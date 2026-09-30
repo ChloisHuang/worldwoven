@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+		<title>Our Alien Lives</title>
+		<style>
+			:root { font-family: Manrope, "Noto Sans SC", "Microsoft YaHei", sans-serif; }
+			* { box-sizing: border-box; }
+			[hidden] { display: none !important; }
+			html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #222b40; }
+			#canvas { display: block; width: 100%; height: 100%; outline: none; }
+			#loading {
+				position: fixed; inset: 0; z-index: 1; display: flex; flex-direction: column;
+				align-items: center; justify-content: center; padding: 24px;
+				background: #222b40; color: #dbead9; text-align: center;
+			}
+			.loading-orbit { width: 65px; height: 65px; flex: 0 0 65px; }
+			.loading-orbit iframe { display: block; width: 65px; height: 65px; border: 0; pointer-events: none; }
+			#loading h2 { font-size: 22px; font-weight: 400; letter-spacing: 3px; margin: 25px 0 14px; }
+			#loading p { font-size: 12px; color: #99acb7; margin: 0 0 20px; }
+			.boot-progress { width: 260px; max-width: 62vw; height: 4px; border-radius: 99px; background: #ffffff26; overflow: hidden; }
+			.boot-progress i {
+				display: block; width: 100%; height: 100%; border-radius: 99px;
+				background: linear-gradient(90deg, #9fd3b4, #e6e2a8);
+				transform: scaleX(0); transform-origin: left center;
+			}
+			#loading .boot-percent { margin-top: 9px; margin-bottom: 0; font-size: 10px; letter-spacing: 1px; color: #8fa2ad; }
+			#retry-load { display: none; margin-top: 20px; border: 0; border-radius: 7px; padding: 10px 16px; background: #c1ddca; color: #29423e; font: inherit; cursor: pointer; }
+			#retry-load:focus-visible { outline: 3px solid #69ab95; outline-offset: 3px; }
+		</style>
+		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
+<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
+
+	</head>
+	<body>
+		<canvas id="canvas" aria-label="Our Alien Lives"></canvas>
+		<div id="loading" role="status" aria-live="polite">
+			<div class="loading-orbit" id="loading-orbit" aria-hidden="true">
+				<template id="loading-orbit-document">
+					<style>
+						html, body { margin: 0; width: 65px; height: 65px; overflow: hidden; background: #222b40; color: #dbead9; }
+						.orbit { animation: spin 5s linear infinite; will-change: transform; }
+						svg { display: block; width: 65px; height: 65px; stroke-width: 1; }
+						@keyframes spin { to { transform: rotate(360deg); } }
+						@media (prefers-reduced-motion: reduce) { .orbit { animation: none; } }
+					</style>
+					<div class="orbit">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+							<circle cx="12" cy="12" r="3"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/>
+							<path d="M10.4 21.9a10 10 0 0 0 9.941-15.416"/><path d="M13.5 2.1a10 10 0 0 0-9.841 15.416"/>
+						</svg>
+					</div>
+				</template>
+			</div>
+			<h2 id="loading-title">正在降落露米纳星湾</h2>
+			<p id="loading-description">唤醒居民，点亮蘑菇，准备新的日常…</p>
+			<div class="boot-progress" role="progressbar" aria-label="资源加载进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="boot-fill"></i></div>
+			<p class="boot-percent" id="boot-percent">已加载资源 0%</p>
+			<button id="retry-load" type="button" onclick="location.reload()">重新降落</button>
+		</div>
+		<script src="asset-loader.js"></script>
+		<script src="index.js"></script>
+		<script>
+			const config = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":68765808,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+			const GODOT_THREADS_ENABLED = false;
+			const loading = document.getElementById('loading');
+			const title = document.getElementById('loading-title');
+			const description = document.getElementById('loading-description');
+			const progress = document.querySelector('.boot-progress');
+			const fill = document.getElementById('boot-fill');
+			const percent = document.getElementById('boot-percent');
+			const english = !navigator.language.toLowerCase().startsWith('zh');
+			// Isolate the spinner from Godot's synchronous WebGL shader compilation.
+			const orbit = document.createElement('iframe');
+			orbit.setAttribute('sandbox', '');
+			orbit.tabIndex = -1;
+			const orbitReady = new Promise(resolve => orbit.addEventListener('load', resolve, { once: true }));
+			orbit.srcdoc = '<!DOCTYPE html>' + document.getElementById('loading-orbit-document').innerHTML;
+			document.getElementById('loading-orbit').replaceChildren(orbit);
+			if (english) {
+				document.documentElement.lang = 'en';
+				title.textContent = 'Landing at Lumina Bay';
+				description.textContent = 'Waking residents and lighting the mushrooms for a new day...';
+				progress.setAttribute('aria-label', 'Asset loading progress');
+				percent.textContent = 'Assets loaded 0%';
+				document.getElementById('retry-load').textContent = 'Land again';
+			}
+			function fail(error) {
+				console.error(error);
+				title.textContent = english ? 'Lumina Bay could not load' : '星湾暂时无法加载';
+				description.textContent = error instanceof Error ? error.message : String(error);
+				progress.hidden = true;
+				percent.hidden = true;
+				document.getElementById('retry-load').style.display = 'block';
+			}
+			const missing = Engine.getMissingFeatures({ threads: GODOT_THREADS_ENABLED });
+			if (missing.length) {
+				fail(missing.join(', '));
+			} else {
+				orbitReady.then(() => new Engine(config).startGame({
+					onProgress(current, total) {
+						if (total <= 0) return;
+						const value = Math.min(100, Math.round(100 * current / total));
+						fill.style.transform = `scaleX(${value / 100})`;
+						progress.setAttribute('aria-valuenow', value);
+						percent.textContent = `${english ? 'Assets loaded ' : '已加载资源 '}${value}%`;
+					}
+				})).then(() => loading.remove(), fail);
+			}
+		</script>
+	</body>
+</html>
+
