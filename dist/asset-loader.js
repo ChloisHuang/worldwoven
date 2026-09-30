@@ -1,5 +1,5 @@
 (() => {
-const assets = {"index.pck": {"chunks": ["index.pck.gz.part0", "index.pck.gz.part1", "index.pck.gz.part2", "index.pck.gz.part3", "index.pck.gz.part4"], "size": 68765808, "type": "application/octet-stream"}, "index.wasm": {"chunks": ["index.wasm.gz.part0"], "size": 39514754, "type": "application/wasm"}};
+const assets = {"index.pck": {"chunks": ["index.pck.32eded47a17a.gz.part0", "index.pck.32eded47a17a.gz.part1", "index.pck.32eded47a17a.gz.part2", "index.pck.32eded47a17a.gz.part3", "index.pck.32eded47a17a.gz.part4"], "size": 68766832, "type": "application/octet-stream"}, "index.wasm": {"chunks": ["index.wasm.fc74679e3b97.gz.part0"], "size": 39514754, "type": "application/wasm"}};
 const nativeFetch = window.fetch.bind(window);
 window.fetch = async function(input, init) {
  const url = new URL(typeof input === 'string' ? input : input.url, location.href);
