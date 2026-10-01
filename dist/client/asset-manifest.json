@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "build": "6ddd7dba02ed789b8240f1ca",
+  "build": "3b6685ea1b9f32458dddf83d",
   "chunking": {
     "algorithm": "gear32-v1",
     "min": 524288,
@@ -262,7 +262,7 @@
     "chunks/317a13e4217c234b07d19e881bcffb7c36dd19b4773c3c928e657a0b523f4231.gz.bin",
     "chunks/861a794aa1bb9af5e7a375215d64ffd99eb4004f68776ae15505b0691c2df3cd.gz.bin",
     "chunks/5b53fa6d7ad80d712fcb31552821966cd8fdc73a6be5e056b580b903179e58f8.gz.bin",
-    "asset-loader.a4935a953e7c5149.js",
+    "asset-loader.e27e775d05efe96d.js",
     "index.html",
     "asset-manifest.json"
   ]

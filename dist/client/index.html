@@ -3,8 +3,7 @@
 	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
-		<title>Our Alien Lives · Life & Guide 5</title>
-<meta name="game-build" content="life-guide-5">
+		<title>Our Alien Lives · Startup Recovery 6</title>
 		<style>
 			:root { --safe-left: env(safe-area-inset-left, 0px); --safe-right: env(safe-area-inset-right, 0px); --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px); font-family: Manrope, "Noto Sans SC", "Microsoft YaHei", sans-serif; }
 			* { box-sizing: border-box; }
@@ -20,7 +19,7 @@
 			.loading-orbit { width: 65px; height: 65px; flex: 0 0 65px; }
 			.loading-orbit iframe { display: block; width: 65px; height: 65px; border: 0; pointer-events: none; }
 			#loading h2 { font-size: 22px; font-weight: 400; letter-spacing: 3px; margin: 25px 0 14px; }
-			#loading p { font-size: 12px; color: #99acb7; margin: 0 0 20px; }
+			#loading p { font-size: 12px; color: #99acb7; margin: 0 0 20px; max-width: 640px; overflow-wrap: anywhere; }
 			.boot-progress { width: 260px; max-width: 62vw; height: 4px; border-radius: 99px; background: #ffffff26; overflow: hidden; }
 			.boot-progress i {
 				display: block; width: 100%; height: 100%; border-radius: 99px;
@@ -31,9 +30,7 @@
 			#retry-load { display: none; margin-top: 20px; border: 0; border-radius: 7px; padding: 10px 16px; background: #c1ddca; color: #29423e; font: inherit; cursor: pointer; }
 			#retry-load:focus-visible { outline: 3px solid #69ab95; outline-offset: 3px; }
 		</style>
-		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
-<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
-
+		<meta name="game-build" content="startup-recovery-6">
 	</head>
 	<body>
 		<div id="game-surface">
@@ -193,7 +190,7 @@
 			})();
 			window.ourAlienViewport = mobileViewport;
 		</script>
-		<script src="asset-loader.a4935a953e7c5149.js"></script>
+		<script src="asset-loader.e27e775d05efe96d.js"></script>
 		<script src="index.js"></script>
 		<script>
 			const config = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":71107312,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
@@ -210,7 +207,6 @@
 			const orbit = document.createElement('iframe');
 			orbit.setAttribute('sandbox', '');
 			orbit.tabIndex = -1;
-			const orbitReady = new Promise(resolve => orbit.addEventListener('load', resolve, { once: true }));
 			orbit.srcdoc = '<!DOCTYPE html>' + document.getElementById('loading-orbit-document').innerHTML;
 			document.getElementById('loading-orbit').replaceChildren(orbit);
 			if (english) {
@@ -221,25 +217,47 @@
 				percent.textContent = 'Assets loaded 0%';
 				document.getElementById('retry-load').textContent = 'Land again';
 			}
-			let failed = false, initializing = false;
+			let failed = false, initializing = false, finished = false;
+			const startedAt = Date.now();
+			let heartbeat = null;
+			const startupError = event => fail(event.reason || event.error || event.message || 'Game startup failed');
+			window.addEventListener('error', startupError);
+			window.addEventListener('unhandledrejection', startupError);
+			function cleanup() {
+				clearInterval(heartbeat);
+				window.removeEventListener('error', startupError);
+				window.removeEventListener('unhandledrejection', startupError);
+				window.removeEventListener('godot-asset-cache', showTransferStatus);
+			}
 			function showTransferStatus() {
-				if (failed) return;
+				if (failed || finished) return;
 				const stats = window.__godotAssetCache;
-				if (!stats) {
-					if (initializing) description.textContent = english ? 'Assets ready. Preparing the scene...' : '资源已就绪，正在准备画面…';
-					return;
+				if (stats?.assets?.['index.pck']?.complete && stats?.assets?.['index.wasm']?.complete) initializing = true;
+				const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+				const stage = initializing
+					? (english ? 'Assets ready · Starting engine and scene' : '资源已就绪 · 正在启动引擎与场景')
+					: (english ? 'Loading and unpacking game assets' : '正在读取并解压游戏资源');
+				const transfer = stats ? (english
+					? `Downloaded ${(stats.networkBytes / 1000000).toFixed(1)} MB · Reused ${(stats.cacheReadBytes / 1000000).toFixed(1)} MB`
+					: `本次下载 ${(stats.networkBytes / 1000000).toFixed(1)} MB · 复用缓存 ${(stats.cacheReadBytes / 1000000).toFixed(1)} MB`) : '';
+				const storageHint = stats && ['unavailable', 'read-only'].includes(stats.storage)
+					? (english ? ' · Browser cache unavailable; saves are separate' : ' · 资源缓存不可用，存档独立保存') : '';
+				const slowHint = elapsed >= 30
+					? (english ? ' · Taking longer than usual; keep this page open' : ' · 本次启动较久，请保持页面打开') : '';
+				description.textContent = `${stage} · ${elapsed}s${transfer ? ' · ' + transfer : ''}${storageHint}${slowHint}`;
+				if (initializing) {
+					percent.textContent = english ? 'Assets ready · Starting game…' : '资源就绪 · 正在启动游戏…';
+					fill.style.transform = 'scaleX(1)';
+					progress.setAttribute('aria-valuenow', 100);
 				}
-				const downloaded = (stats.networkBytes / 1000000).toFixed(1);
-				const cached = (stats.cacheReadBytes / 1000000).toFixed(1);
-				const storageHint = stats.storage === 'unavailable' ? (english ? ' · Browser cache unavailable' : ' · 当前浏览器缓存不可用') : stats.storage === 'read-only' ? (english ? ' · Cache storage full or read-only' : ' · 缓存空间不足或只读') : '';
-				description.textContent = english
-					? `Downloaded ${downloaded} MB · Reused ${cached} MB${initializing ? ' · Preparing the scene...' : ''}${storageHint}`
-					: `本次下载 ${downloaded} MB · 复用缓存 ${cached} MB${initializing ? ' · 正在准备画面…' : ''}${storageHint}`;
 			}
 			window.addEventListener('godot-asset-cache', showTransferStatus);
+			heartbeat = setInterval(showTransferStatus, 1000);
 			showTransferStatus();
 			function fail(error) {
+				if (failed || finished) return;
 				failed = true;
+				cleanup();
 				console.error(error);
 				title.textContent = english ? 'Lumina Bay could not load' : '星湾暂时无法加载';
 				description.textContent = error instanceof Error ? error.message : String(error);
@@ -251,19 +269,20 @@
 			if (missing.length) {
 				fail(missing.join(', '));
 			} else {
-				orbitReady.then(() => new Engine(config).startGame({
+				// The decorative iframe must never hold game startup hostage.
+				Promise.resolve().then(() => new Engine(config).startGame({
+					onExit(code) { fail(new Error(`Game exited during startup (${code})`)); },
 					onProgress(current, total) {
 						if (total <= 0) return;
 						const value = Math.min(100, Math.round(100 * current / total));
-						initializing = current >= total;
-						showTransferStatus();
+						initializing = initializing || current >= total;
 						fill.style.transform = `scaleX(${value / 100})`;
 						progress.setAttribute('aria-valuenow', value);
 						percent.textContent = `${english ? 'Assets loaded ' : '已加载资源 '}${value}%`;
+						showTransferStatus();
 					}
-				})).then(() => loading.remove(), fail);
+				})).then(() => { if (!failed) { finished = true; cleanup(); loading.remove(); } }, fail);
 			}
 		</script>
 	</body>
 </html>
-
