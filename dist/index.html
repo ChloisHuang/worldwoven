@@ -1,17 +1,18 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 	<head>
-		<meta charset="utf-8"><meta name="game-build" content="dance-fix-20260930-2300">
-		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-		<title>Our Alien Lives · Dance fix 2</title>
+		<meta charset="utf-8"><meta name="game-build" content="parity-cache-3">
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+		<title>Our Alien Lives · Parity & Cache 3</title>
 		<style>
-			:root { font-family: Manrope, "Noto Sans SC", "Microsoft YaHei", sans-serif; }
+			:root { --safe-left: env(safe-area-inset-left, 0px); --safe-right: env(safe-area-inset-right, 0px); --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px); font-family: Manrope, "Noto Sans SC", "Microsoft YaHei", sans-serif; }
 			* { box-sizing: border-box; }
 			[hidden] { display: none !important; }
 			html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #222b40; }
-			#canvas { display: block; width: 100%; height: 100%; outline: none; }
+			#game-surface { position: absolute; transform-origin: 0 0; overflow: hidden; }
+			#canvas { touch-action: none; display: block; width: 100%; height: 100%; outline: none; }
 			#loading {
-				position: fixed; inset: 0; z-index: 1; display: flex; flex-direction: column;
+				position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column;
 				align-items: center; justify-content: center; padding: 24px;
 				background: #222b40; color: #dbead9; text-align: center;
 			}
@@ -34,6 +35,7 @@
 
 	</head>
 	<body>
+		<div id="game-surface">
 		<canvas id="canvas" aria-label="Our Alien Lives"></canvas>
 		<div id="loading" role="status" aria-live="polite">
 			<div class="loading-orbit" id="loading-orbit" aria-hidden="true">
@@ -59,10 +61,142 @@
 			<p class="boot-percent" id="boot-percent">已加载资源 0%</p>
 			<button id="retry-load" type="button" onclick="location.reload()">重新降落</button>
 		</div>
-		<script src="asset-loader.js?v=dance-fix-2"></script>
-		<script src="index.js?v=dance-fix-2"></script>
+		</div>
+		<script id="mobile-viewport">
+			// Port src/resident-panel.css and src/viewport.js: a portrait phone
+			// presents the same landscape playfield, including its input axes.
+			const mobileViewport = (() => {
+				const canvas = document.getElementById('canvas');
+				const surface = document.getElementById('game-surface');
+				let rotated = false, logicalWidth = 1, logicalHeight = 1;
+				const activePointers = new Set();
+				const activeMouseButtons = new Set();
+				let fallbackFullscreen = false, orientationLocked = false;
+				function resize() {
+					const viewport = window.visualViewport;
+					const width = viewport ? viewport.width : window.innerWidth;
+					const height = viewport ? viewport.height : window.innerHeight;
+					const styles = getComputedStyle(document.documentElement);
+					const inset = side => Math.max(0, parseFloat(styles.getPropertyValue('--safe-' + side)) || 0);
+					const left = inset('left'), right = inset('right'), top = inset('top'), bottom = inset('bottom');
+					const availableWidth = Math.max(1, width - left - right);
+					const availableHeight = Math.max(1, height - top - bottom);
+					rotated = window.innerWidth <= 760 && window.innerHeight > window.innerWidth;
+					logicalWidth = rotated ? availableHeight : availableWidth;
+					logicalHeight = rotated ? availableWidth : availableHeight;
+					surface.style.width = logicalWidth + 'px';
+					surface.style.height = logicalHeight + 'px';
+					surface.style.left = ((viewport ? viewport.offsetLeft : 0) + left + (rotated ? availableWidth : 0)) + 'px';
+					surface.style.top = ((viewport ? viewport.offsetTop : 0) + top) + 'px';
+					surface.style.transform = rotated ? 'rotate(90deg)' : 'none';
+					canvas.style.width = logicalWidth + 'px';
+					canvas.style.height = logicalHeight + 'px';
+					const ratio = window.devicePixelRatio || 1;
+					const pixelsWide = Math.max(1, Math.round(logicalWidth * ratio));
+					const pixelsHigh = Math.max(1, Math.round(logicalHeight * ratio));
+					if (canvas.width !== pixelsWide) canvas.width = pixelsWide;
+					if (canvas.height !== pixelsHigh) canvas.height = pixelsHigh;
+				}
+				function pointProxy(point, rect) {
+					// Godot scales client coordinates using the transformed DOM rect.
+					// Re-express source logical coordinates in that rect, so its normal
+					// conversion yields the correct DPR-scaled game coordinates.
+					const x = rect.left + (point.clientY - rect.top) * rect.width / logicalWidth;
+					const y = rect.top + (rect.right - point.clientX) * rect.height / logicalHeight;
+					return new Proxy(point, {get(target, key) {
+						if (key === 'clientX') return x;
+						if (key === 'clientY') return y;
+						if (key === 'movementX') return (target.movementY || 0) * rect.width / logicalWidth;
+						if (key === 'movementY') return -(target.movementX || 0) * rect.height / logicalHeight;
+						const value = Reflect.get(target, key, target);
+						return typeof value === 'function' ? value.bind(target) : value;
+					}});
+				}
+				function eventProxy(event) {
+					if (!rotated || (event.target !== canvas && !activePointers.has(event.pointerId) && activeMouseButtons.size === 0)) return event;
+					const rect = canvas.getBoundingClientRect();
+					const point = pointProxy(event, rect);
+					return new Proxy(point, {get(target, key) {
+						if (['changedTouches', 'touches', 'targetTouches'].includes(key) && event[key]) {
+							const points = Array.from(event[key], touch => pointProxy(touch, rect));
+							points.item = index => points[index];
+							return points;
+						}
+						return Reflect.get(target, key);
+					}});
+				}
+				function forwardInput(target) {
+					const add = target.addEventListener.bind(target), remove = target.removeEventListener.bind(target);
+					const listeners = new Map();
+					target.addEventListener = (type, listener, options) => {
+						if (!/^(pointer|mouse|touch|wheel)/.test(type) || typeof listener !== 'function') return add(type, listener, options);
+						let wrapped = listeners.get(listener);
+						if (!wrapped) {
+							wrapped = event => {
+								if (event.type === 'pointerdown' && event.target === canvas) activePointers.add(event.pointerId);
+								if (event.type === 'mousedown' && event.target === canvas) activeMouseButtons.add(event.button);
+								const result = listener.call(target, eventProxy(event));
+								if (event.type === 'pointerup' || event.type === 'pointercancel') queueMicrotask(() => activePointers.delete(event.pointerId));
+								if (event.type === 'mouseup') queueMicrotask(() => activeMouseButtons.delete(event.button));
+								return result;
+							};
+							listeners.set(listener, wrapped);
+						}
+						return add(type, wrapped, options);
+					};
+					target.removeEventListener = (type, listener, options) => remove(type, listeners.get(listener) || listener, options);
+				}
+				const nativeFullscreen = () => document.fullscreenElement === document.documentElement;
+				const isFullscreen = () => nativeFullscreen() || fallbackFullscreen;
+				function unlockOrientation() {
+					if (orientationLocked) window.screen?.orientation?.unlock?.();
+					orientationLocked = false;
+				}
+				function publishFullscreen() {
+					document.documentElement.classList.toggle('app-fullscreen', isFullscreen());
+					resize();
+				}
+				async function toggleFullscreen() {
+					if (nativeFullscreen()) {
+						await document.exitFullscreen();
+						unlockOrientation();
+					} else if (fallbackFullscreen) {
+						fallbackFullscreen = false;
+					} else if (typeof document.documentElement.requestFullscreen === 'function') {
+						try {
+							// Fullscreening the canvas removes its parent's rotation.
+							await document.documentElement.requestFullscreen();
+							if (window.innerWidth <= 760 && typeof window.screen?.orientation?.lock === 'function') {
+								try { await window.screen.orientation.lock('landscape'); orientationLocked = true; } catch (_) {}
+							}
+						} catch (_) { return false; }
+					} else {
+						// Same in-page fallback as the source; this cannot hide Safari chrome.
+						fallbackFullscreen = true;
+					}
+					publishFullscreen();
+					return isFullscreen();
+				}
+				forwardInput(canvas);
+				forwardInput(window);
+				window.addEventListener('resize', resize);
+				window.addEventListener('blur', () => { activePointers.clear(); activeMouseButtons.clear(); });
+				window.addEventListener('fullscreenchange', () => { if (!nativeFullscreen()) { fallbackFullscreen = false; unlockOrientation(); } publishFullscreen(); });
+				window.addEventListener('orientationchange', () => requestAnimationFrame(resize));
+				if (window.visualViewport) {
+					window.visualViewport.addEventListener('resize', resize);
+					window.visualViewport.addEventListener('scroll', resize);
+				}
+				resize();
+				return {resize, isFullscreen, toggleFullscreen};
+			})();
+			window.ourAlienViewport = mobileViewport;
+		</script>
+		<script src="asset-loader.224e8a5f74c0a549.js"></script>
+		<script src="index.js"></script>
 		<script>
-			const config = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":68766832,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+			const config = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":71068884,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+			config.canvasResizePolicy = 0;
 			const GODOT_THREADS_ENABLED = false;
 			const loading = document.getElementById('loading');
 			const title = document.getElementById('loading-title');
@@ -86,7 +220,25 @@
 				percent.textContent = 'Assets loaded 0%';
 				document.getElementById('retry-load').textContent = 'Land again';
 			}
+			let failed = false, initializing = false;
+			function showTransferStatus() {
+				if (failed) return;
+				const stats = window.__godotAssetCache;
+				if (!stats) {
+					if (initializing) description.textContent = english ? 'Assets ready. Preparing the scene...' : '资源已就绪，正在准备画面…';
+					return;
+				}
+				const downloaded = (stats.networkBytes / 1000000).toFixed(1);
+				const cached = (stats.cacheReadBytes / 1000000).toFixed(1);
+				const storageHint = stats.storage === 'unavailable' ? (english ? ' · Browser cache unavailable' : ' · 当前浏览器缓存不可用') : stats.storage === 'read-only' ? (english ? ' · Cache storage full or read-only' : ' · 缓存空间不足或只读') : '';
+				description.textContent = english
+					? `Downloaded ${downloaded} MB · Reused ${cached} MB${initializing ? ' · Preparing the scene...' : ''}${storageHint}`
+					: `本次下载 ${downloaded} MB · 复用缓存 ${cached} MB${initializing ? ' · 正在准备画面…' : ''}${storageHint}`;
+			}
+			window.addEventListener('godot-asset-cache', showTransferStatus);
+			showTransferStatus();
 			function fail(error) {
+				failed = true;
 				console.error(error);
 				title.textContent = english ? 'Lumina Bay could not load' : '星湾暂时无法加载';
 				description.textContent = error instanceof Error ? error.message : String(error);
@@ -102,6 +254,8 @@
 					onProgress(current, total) {
 						if (total <= 0) return;
 						const value = Math.min(100, Math.round(100 * current / total));
+						initializing = current >= total;
+						showTransferStatus();
 						fill.style.transform = `scaleX(${value / 100})`;
 						progress.setAttribute('aria-valuenow', value);
 						percent.textContent = `${english ? 'Assets loaded ' : '已加载资源 '}${value}%`;
