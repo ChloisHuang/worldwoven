@@ -1,0 +1,12 @@
+import {mkdir,copyFile,cp,readFile,rm} from 'node:fs/promises';
+import {resolve} from 'node:path';
+const assets=process.env.GODOT_PREVIEW_ASSETS;
+if(!assets) throw Error('GODOT_PREVIEW_ASSETS must name the validated compiled export directory');
+await readFile(resolve(assets,'index.html'));
+await rm('dist',{recursive:true,force:true});
+await mkdir('dist/server',{recursive:true});
+await mkdir('dist/.openai',{recursive:true});
+await cp(assets,'dist/client',{recursive:true});
+await copyFile('worker/index.mjs','dist/server/index.js');
+await copyFile('.openai/hosting.json','dist/.openai/hosting.json');
+console.log('Built compiled static game assets plus fixed read-only import endpoint');
