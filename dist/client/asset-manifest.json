@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "build": "3b6685ea1b9f32458dddf83d",
+  "build": "115d8fab8e26bc40508a4bce",
   "chunking": {
     "algorithm": "gear32-v1",
     "min": 524288,
@@ -9,16 +9,16 @@
   },
   "assets": {
     "index.pck": {
-      "size": 71107312,
-      "sha256": "4720904466a0fea07b0eb93f163c977dc1ff368624841501cc9adadd82600bf8",
+      "size": 63924892,
+      "sha256": "f013daf1dc15a1b95b873b1095b84d69cdba955e348ea1a164402fc704dc1bf3",
       "type": "application/octet-stream",
       "chunks": [
         {
-          "path": "chunks/2d1dde0faae61655c45c1ae4c5e9c0f130b5a95fed34e2c3272c8d96ca9e7d36.gz.bin",
+          "path": "chunks/d969bfc48e432f40bf63efef273f21867cf2b9d70148fb6cc9dd100c1bc0cd52.gz.bin",
           "size": 3714792,
           "compressedSize": 3706779,
-          "sha256": "2d1dde0faae61655c45c1ae4c5e9c0f130b5a95fed34e2c3272c8d96ca9e7d36",
-          "rawSha256": "d4e27346e60da292f998fb15eef0807c9e1f47d9a5f482936b60933445db1dca"
+          "sha256": "d969bfc48e432f40bf63efef273f21867cf2b9d70148fb6cc9dd100c1bc0cd52",
+          "rawSha256": "3b7f45c27deb733f367fb0f0f7ff74cad255cb1cda24e4702803522daa940b14"
         },
         {
           "path": "chunks/c1bb6b51dfb837e97df5936f462332aaf5560e2bf718ae8173c2ab6cd3150bd6.gz.bin",
@@ -133,32 +133,25 @@
           "rawSha256": "4b9f84e7ed88d0313cea6b3cfef23ce28a3e212086423304a95a38751a9d8d1c"
         },
         {
-          "path": "chunks/5c9e2e98a11e07e541d5ba5ee57a96227ab97db16b285de74451b16aa876a250.gz.bin",
-          "size": 8388608,
-          "compressedSize": 3457943,
-          "sha256": "5c9e2e98a11e07e541d5ba5ee57a96227ab97db16b285de74451b16aa876a250",
-          "rawSha256": "73cc0a316af6eb62b4543a962be6a542770d07109e1cebdd6b0712462f7791a3"
+          "path": "chunks/225a538f871a503633772593edc8947ad21c54a9501435ccae8edbf05c7d7dfa.gz.bin",
+          "size": 6674127,
+          "compressedSize": 3697969,
+          "sha256": "225a538f871a503633772593edc8947ad21c54a9501435ccae8edbf05c7d7dfa",
+          "rawSha256": "336c3470179e3b521e6df6873402d70f1c6f0cde1528cf7738323e192423e7bd"
         },
         {
-          "path": "chunks/547cbbd5916f9ec11e0cdbde5322f1e8efb295a793c3d8ad7e9983aceb601ed9.gz.bin",
-          "size": 3346518,
-          "compressedSize": 1005378,
-          "sha256": "547cbbd5916f9ec11e0cdbde5322f1e8efb295a793c3d8ad7e9983aceb601ed9",
-          "rawSha256": "3c0663db95c1bb9d27a8c85fe019c3388e3762542983443d906d4ae411660ab6"
+          "path": "chunks/6073d85b71a43e784c201acac372437bd5be9f8fae2979b3e731a5c52df99241.gz.bin",
+          "size": 3331758,
+          "compressedSize": 1858252,
+          "sha256": "6073d85b71a43e784c201acac372437bd5be9f8fae2979b3e731a5c52df99241",
+          "rawSha256": "3c34506a1bf2aae89f9624683f388c1a50422c9cb52fbd4e773e36bea7f4cecc"
         },
         {
-          "path": "chunks/064b486ebe43246da6fa8c3c832eb32e783b491dc9783145012fcf3e90d76c9b.gz.bin",
-          "size": 5456343,
-          "compressedSize": 2187727,
-          "sha256": "064b486ebe43246da6fa8c3c832eb32e783b491dc9783145012fcf3e90d76c9b",
-          "rawSha256": "a27d1c14f9ad5c73a87dff4761a78eaafe9ed3cb9fd7a3ad8b894d013ad507c5"
-        },
-        {
-          "path": "chunks/95c6e6a045d6503f59a2f2ceefe86d9fcfd761f0082d480551d11546d4df6b64.gz.bin",
-          "size": 914857,
-          "compressedSize": 798601,
-          "sha256": "95c6e6a045d6503f59a2f2ceefe86d9fcfd761f0082d480551d11546d4df6b64",
-          "rawSha256": "3e68a43b16a167786cbac6ed7d0399370cd6b728522307f53709f01c5ee2f53e"
+          "path": "chunks/924ed4914262bf6e8acce74009b13fefd1386b76ba4078953e0fe52ccbfc0213.gz.bin",
+          "size": 918021,
+          "compressedSize": 801924,
+          "sha256": "924ed4914262bf6e8acce74009b13fefd1386b76ba4078953e0fe52ccbfc0213",
+          "rawSha256": "24d4f3e9f9b276939e269b4461adb8ef561e16ce651c58f2a5f99d46f3c199b6"
         }
       ]
     },
@@ -233,7 +226,7 @@
     "index.png",
     "index.icon.png",
     "index.apple-touch-icon.png",
-    "chunks/2d1dde0faae61655c45c1ae4c5e9c0f130b5a95fed34e2c3272c8d96ca9e7d36.gz.bin",
+    "chunks/d969bfc48e432f40bf63efef273f21867cf2b9d70148fb6cc9dd100c1bc0cd52.gz.bin",
     "chunks/c1bb6b51dfb837e97df5936f462332aaf5560e2bf718ae8173c2ab6cd3150bd6.gz.bin",
     "chunks/0535701dcaa652a89a276afd370604a420f3f1d137706131163519da668c71ab.gz.bin",
     "chunks/178ca24a96668f08bc8fe5396dc57cd72c37076627246de2ffb401dc13dee0bf.gz.bin",
@@ -250,10 +243,9 @@
     "chunks/ef444efc13681a8b1058e47147e59aad9fff42a99eb935b2da05c75b0f356c2e.gz.bin",
     "chunks/14d2339540dcb3e5296b69e815420c248ed7e3c557e9dded3d01df8b68f51557.gz.bin",
     "chunks/d2d9169afd9ec6805c2e0b44aa072353040e86f9e8e27981405ebd076ad6f26e.gz.bin",
-    "chunks/5c9e2e98a11e07e541d5ba5ee57a96227ab97db16b285de74451b16aa876a250.gz.bin",
-    "chunks/547cbbd5916f9ec11e0cdbde5322f1e8efb295a793c3d8ad7e9983aceb601ed9.gz.bin",
-    "chunks/064b486ebe43246da6fa8c3c832eb32e783b491dc9783145012fcf3e90d76c9b.gz.bin",
-    "chunks/95c6e6a045d6503f59a2f2ceefe86d9fcfd761f0082d480551d11546d4df6b64.gz.bin",
+    "chunks/225a538f871a503633772593edc8947ad21c54a9501435ccae8edbf05c7d7dfa.gz.bin",
+    "chunks/6073d85b71a43e784c201acac372437bd5be9f8fae2979b3e731a5c52df99241.gz.bin",
+    "chunks/924ed4914262bf6e8acce74009b13fefd1386b76ba4078953e0fe52ccbfc0213.gz.bin",
     "chunks/9febf8195c1b29365f8634d1a0b607156f134bcd5af784e554d10f68e6171851.gz.bin",
     "chunks/54100547f1fcdaf5059112bcf79a95c2dc8aaaf16a4cf68ff8d6eccb0f0966a8.gz.bin",
     "chunks/8f762d7350d298dc6891421dae68b161db20344d6a3d2f3f364a307f37b3bc0e.gz.bin",
@@ -262,7 +254,7 @@
     "chunks/317a13e4217c234b07d19e881bcffb7c36dd19b4773c3c928e657a0b523f4231.gz.bin",
     "chunks/861a794aa1bb9af5e7a375215d64ffd99eb4004f68776ae15505b0691c2df3cd.gz.bin",
     "chunks/5b53fa6d7ad80d712fcb31552821966cd8fdc73a6be5e056b580b903179e58f8.gz.bin",
-    "asset-loader.e27e775d05efe96d.js",
+    "asset-loader.fe96f91ecef57439.js",
     "index.html",
     "asset-manifest.json"
   ]
