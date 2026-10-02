@@ -1,0 +1,113 @@
+{
+  "release": "R14",
+  "baselinePublishedSource": "772915a1bb3e5657a1b53ffe5c7132bc43332e19",
+  "reason": "Explicit raised-palace and kitchen-scale changes; historical R7/R9/R10/R12.1 fixtures remain untouched. Physical acceptance is covered by R14 geometry/systems/controller/input/contact gates.",
+  "regions": {
+    "china": {
+      "reason": "Raised main/rear halls and reachable upper spaces with stairs, furniture/lamp floor interfaces; same 60x80 compound and existing activities",
+      "approvedChangedFields": [
+        "colliders",
+        "cameraColliders",
+        "walkableSurfaces",
+        "doorways",
+        "explorationTargets",
+        "stations"
+      ],
+      "hashes": {
+        "colliders": "7054763535ab402c577281d97e1638a295dd84c7ba95554c01258ac1d341a505",
+        "cameraColliders": "0862b1b43a443f5f56940087f0eec0aa55bf5f7edfe5804a6e157062e6631c14",
+        "walkableSurfaces": "4b9bef2196febe24953de2a6478f6d3596a04ba65e252cb19a534bdbea552276",
+        "doorways": "73a72f5df85eb491470f393a7b4301234de50fa33bd66ecac6104767d434606a",
+        "explorationTargets": "4ab12bf4029e32037ade5882c9196e418b83a37620abc6c113655d39ecb4ce75",
+        "stations": "df437c129d0da95599584166b4cbc7a8eb9b981e8177b97d2840a219597f8177"
+      },
+      "priorHashes": {
+        "colliders": "da67ac789db1d1897349cca263805c556fde3fa800ce10d6decbd11827e705ba",
+        "cameraColliders": "2ad95ba01fb73c854103fe3bf74c60689497b8b390189f2cc70ca1fb33139878",
+        "walkableSurfaces": "0fec5762ab86605c3f6eeabe327677fc78f00974a6720c7b41e629176da2e610",
+        "doorways": "a02b0ee0ce0c2b1ac39972c0ddb9c96c0ecc9d2e21ac29bc9d5074e9448bd114",
+        "explorationTargets": "18608209b3a4c0a4085d28a80bef5df829437dc1cf649698ec559cf81231c180",
+        "stations": "9470cda579b7eefd7789dcac69383c9c5f39efb272556892ef389f17868d9419"
+      },
+      "unchangedFields": [
+        "bounds"
+      ],
+      "counts": {
+        "colliders": {
+          "before": 347,
+          "after": 837
+        },
+        "cameraColliders": {
+          "before": 736,
+          "after": 1336
+        },
+        "walkableSurfaces": {
+          "before": 22,
+          "after": 54
+        },
+        "doorways": {
+          "before": 38,
+          "after": 38
+        },
+        "explorationTargets": {
+          "before": 50,
+          "after": 62
+        },
+        "stations": {
+          "before": 5,
+          "after": 5
+        }
+      }
+    },
+    "egypt": {
+      "reason": "Kitchen counter/props lowered coherently; collider XZ and all other room navigation unchanged",
+      "approvedChangedFields": [
+        "colliders",
+        "cameraColliders",
+        "stations"
+      ],
+      "hashes": {
+        "colliders": "2fa31203b21500b30f1c0bef0173aa464c82b30a147cf61279f06e3f9c8d4533",
+        "cameraColliders": "c933cb7aacf42889841728090de418b33ea5c2e43ea77d28b920ce6bc6d81b8f",
+        "stations": "e4cf4c586d20677d300ef7bcf039b5c39ac209e982f1536b14f60c22e9d4d958"
+      },
+      "priorHashes": {
+        "colliders": "d31dd631ae080f0d1ff4acb380b336a3e8060cf70e9b4252180f482aee456788",
+        "cameraColliders": "31792fb6c8d83f02e1269078cb72a766d41d5400ff90c192baeac73164a61563",
+        "stations": "d95dd30074467375a3a8e2b2388c16b801305ba5a0827226d91d43da9dc01b69"
+      },
+      "unchangedFields": [
+        "bounds",
+        "walkableSurfaces",
+        "doorways",
+        "explorationTargets"
+      ],
+      "counts": {
+        "colliders": {
+          "before": 851,
+          "after": 851
+        },
+        "cameraColliders": {
+          "before": 931,
+          "after": 931
+        },
+        "walkableSurfaces": {
+          "before": 65,
+          "after": 65
+        },
+        "doorways": {
+          "before": 12,
+          "after": 12
+        },
+        "explorationTargets": {
+          "before": 12,
+          "after": 12
+        },
+        "stations": {
+          "before": 15,
+          "after": 15
+        }
+      }
+    }
+  }
+}

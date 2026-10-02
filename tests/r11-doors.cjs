@@ -1,3 +1,4 @@
+const groundRaisedProbe=require('./fixtures/ground-raised-probe.cjs');
 // Run from the checkout: node --experimental-vm-modules /path/to/door-safety-regression.cjs
 // CULTURAL_GAME_ROOT overrides the checkout; AUDIT_DOOR_SOURCE overrides this candidate.
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
@@ -8,10 +9,10 @@ const main=fs.readFileSync(root+'/game/main.js','utf8'),start=main.indexOf('func
 function hit(p,b,r){return p.y<b.maxY-.01&&p.y+1.95>b.minY+.01&&p.x>b.minX-r+1e-7&&p.x<b.maxX+r-1e-7&&p.z>b.minZ-r+1e-7&&p.z<b.maxZ+r-1e-7;}
 (async()=>{const {createCharacter}=await load('characters.js'),slow=createCharacter({culture:'japan',variant:0,gaitPreset:0}),fast=createCharacter({culture:'france',variant:3,gaitPreset:2}),npc=createCharacter({culture:'france',variant:3,gaitPreset:2,scale:.96}),speeds={walkMin:slow.locomotion.walkSpeed,walkMax:fast.locomotion.walkSpeed,hurryMax:fast.locomotion.hurrySpeed,npcMax:npc.locomotion.walkSpeed*.82}, {createAutomaticDoors}=await load('automatic-doors.js'),nav=await load('navigation.js'),{visualSupportHeight}=await load('floor-support.js'),T=mod(root+'/vendor/three/build/three.module.js').namespace,summary={scope:'CPU scene geometry and production movement, no browser/WebGL',crossings:[],sideApproaches:[],idleDoors:[],oppositeActors:0,restoredEscape:0,plannedSides:[]};
 for(const[id,file,fn]of[['japan','japan-bathhouse.js','buildJapan'],['china','regions-east.js','buildChina'],['egypt','egypt-temple.js','buildEgypt'],['france','regions-west.js','buildFrance']]){
-const lot=(await load(file))[fn](),multi=id==='japan'||id==='egypt',opts=multi?{surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4}:{bounds:lot.bounds,multilevel:false};let doors;
+const lot=(await load(file))[fn](),multi=!!lot.heightAware||id==='japan'||id==='egypt',opts=multi?{surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4}:{bounds:lot.bounds,multilevel:false};let doors;
 const reset=()=>{doors?.dispose();doors=createAutomaticDoors(lot,id);return new Function('automaticDoors','lot','navOptions','moveWithCollision','return '+moveSource)(doors,lot,opts,nav.moveWithCollision);};reset();const specs=doors.getState();
 const actor=p=>{const root=new T.Group();root.position.set(...p);return{root,position:root.position,radius:.34,height:1.95};};
-const position=(d,lateral,normal)=>[d.center[0]+(d.axis==='x'?lateral:normal),multi?d.center[1]-(id==='japan'?.075:0):d.center[1],d.center[2]+(d.axis==='x'?normal:lateral)];
+const position=(d,lateral,normal)=>{const p=[d.center[0]+(d.axis==='x'?lateral:normal),multi?d.center[1]-(id==='japan'?.075:0):d.center[1],d.center[2]+(d.axis==='x'?normal:lateral)];return lot.heightAware?groundRaisedProbe(lot,p):p;};
 for(const d of specs){
 // Room-side landings end before the real bed/tub; the swing side retains full approach clearance.
 const distance=sign=>d.id==='france-bedroom-enfilade'&&sign>0||d.id==='france-private-bath'&&sign<0?1.45:d.width/2+1.8;
