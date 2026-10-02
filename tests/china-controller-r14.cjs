@@ -1,0 +1,17 @@
+const fs=require('fs'),path=require('path'),vm=require('vm');let harness=fs.readFileSync(path.join(__dirname,'fixtures','hotfix-input-harness.cjs'),'utf8');
+harness=harness.replace("path.resolve('source')", "path.resolve(process.env.SOURCE_ROOT||'source')");
+harness=harness.replace("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),", "new vm.SourceTextModule(fs.readFileSync(file,'utf8')+(file.endsWith('/game/main.js')?`\\nexport function structureReview(){return {player,lot,camera,cameraSolids,npcs,navOptions,furniture};} export {navigateTo};`:''),");
+const begin=harness.indexOf('const report=[];for(let round=0;'),end=harness.indexOf('\nconsole.log(JSON.stringify(',begin);
+const body=String.raw`
+const report=[],T=three.namespace;all.find(e=>e.dataset.region==='china').onclick();ids.travel.onclick();tick(3);assert(state().multilevel,'China uses actual height-aware controller');const review=main.namespace.structureReview();
+const route=async(target)=>{console.error('ROUTE',target.id);main.namespace.navigateTo(new T.Vector3(...target.position));let frames=0;while(state().pathLength&&frames++<9000){now+=100;raf();}assert.equal(state().pathLength,0,target.id+' frame-loop path stuck');const p=state().player;assert(Math.hypot(p.x-target.position[0],p.z-target.position[2])<.145,target.id+' reached actual destination '+JSON.stringify({p,target:target.position}));assert(Math.abs(p.y-target.position[1])<.11,target.id+' correct floor '+JSON.stringify({p,target:target.position}));assert(state().camera.every(Number.isFinite));report.push({id:target.id,frames,player:p});};
+for(const t of review.lot.explorationTargets)await route(t);
+for(const s of review.lot.stations)await route({id:s.id+'-activity',position:s.position});
+for(const item of review.furniture.items)await route({id:item.id,position:item.position});
+await route({id:'return-to-south-entry',position:review.lot.spawn});
+const roomLights=state().localLights;ids['light-toggle'].onclick();tick(6);assert(state().lightingNight);ids['light-toggle'].onclick();
+ids['return-world'].onclick();assert.equal(state().npcCount,0);assert.equal(state().player,null);assert.equal(state().characterResources.activeReferences,0);
+all.find(e=>e.dataset.region==='china').onclick();ids.travel.onclick();tick(3);assert(state().multilevel);ids['return-world'].onclick();assert.equal(state().characterResources.activeReferences,0);
+fs.writeFileSync('qa/r14-palace/main-controller-report.json',JSON.stringify({status:'PASS',scope:'Production main frame loop/navigateTo, automatic doors and NPC updates; DOM/renderer simulated, separate real Mesa/WebGL renders',routes:report,mobileViewport:'844x390',cleanup:'two enter/leave cycles; zero active character references'},null,2));
+`;
+harness=harness.slice(0,begin)+body+harness.slice(end);harness=harness.replace("totalActivityPaths:report.reduce((n,r)=>n+r.stations,0),",'');new vm.Script(harness,{filename:path.join(__dirname,'china-controller-test-harness.cjs')}).runInNewContext({require,console,process,Buffer,__dirname,__filename});
