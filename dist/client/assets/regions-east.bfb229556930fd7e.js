@@ -1,5 +1,5 @@
-import {buildChinaPalace} from '/assets/china-palace.47cd66171772caac.js';
-import {registerNightFixture} from '/assets/night-lighting.45125c813da91138.js';
+import {buildChinaPalace} from '/assets/china-palace.d3c7487b889852b9.js';
+import {registerNightFixture} from '/assets/night-lighting.41621174f39ac4d8.js';
 import * as G from '/assets/geometry.accd26d9fe1820ba.js';
 const {THREE} = G;
 
