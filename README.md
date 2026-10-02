@@ -4,8 +4,8 @@ An original cel-shaded cultural life and exploration game. The repository name s
 
 Public game: https://alien.doudouai.net/
 
-Archived release: R12-public, 2026-10-02
-Verified published Sites source commit: 8537a7279b781938d8c149f94275242503777e57
+Archived release: R12.1-public, 2026-10-02
+Verified published Sites source commit: d151344cb8142ae15fb78441a5d5b49e374d45d6
 
 ## Requirements and local development
 
