@@ -394,9 +394,13 @@ export function buildEgypt(){
   for(const x of [15.15,20.65]){roomWall(service,x,.28,-9.3,1,.56,1,C.shadow);box(service,x,.6,-9.3,1.02,.12,1.02,C.red);}
   glyphPanel(service,12,2.4,-9.3,4.4,3.3,Math.PI/2,2);
   // Kitchen work line is kept against the east wall, leaving a broad aisle.
-  roomWall(service,22.8,.61,-16.0,1.5,1.22,6.3,C.shadow);box(service,22.8,1.28,-16,1.65,.12,6.5,C.edge);
-  for(const z of [-14.5,-16,-18.3]){urn(service,22.7,1.36,z,.65,z===-16?C.blue:C.deep);box(service,23.59,1.35,z,.1,.06,.7,C.gold);}
-  box(service,22.4,1.38,-17.1,.9,.035,.65,C.linen);for(let i=0;i<4;i++)ball(service,22.2+i*.18,1.48,-17.1,.09,C.red,1,.8,1);
+  // Keep the cabinet grounded and the adult work surface at one metre. All
+  // supported pieces and hand/knife targets share these heights; no lot scaling.
+  const kitchenTop=1.0,kitchenSlab=.12,kitchenBase=kitchenTop-kitchenSlab;
+  const kitchenNpcBoardTop=kitchenTop+.035,kitchenPlayerBoardTop=kitchenTop+.015;
+  roomWall(service,22.8,kitchenBase/2,-16.0,1.5,kitchenBase,6.3,C.shadow);box(service,22.8,kitchenTop-kitchenSlab/2,-16,1.65,kitchenSlab,6.5,C.edge);
+  for(const z of [-14.5,-16,-18.3]){urn(service,22.7,kitchenTop,z,.65,z===-16?C.blue:C.deep);box(service,23.59,kitchenTop+.03,z,.1,.06,.7,C.gold);}
+  box(service,22.4,kitchenNpcBoardTop-.0175,-17.1,.9,.035,.65,C.linen);for(let i=0;i<4;i++)ball(service,22.2+i*.18,kitchenNpcBoardTop+.09*.8,-17.1,.09,C.red,1,.8,1);
   for(const x of [12.35,15.95])roomWall(service,x,2.3,-16.2,1.2,4.6,.22,C.stone);
   roomWall(service,14.15,4.0,-16.2,2.4,1.2,.22,C.stone);
   roomWall(service,16.6,2.3,-18.2,.22,4.6,4.1,C.stone);
@@ -405,7 +409,7 @@ export function buildEgypt(){
   for(const x of [12.8,15.6])for(const z of [-18.3,-17.25]){urn(service,x,0,z,.7,C.shadow);volume(colliders,x,.6,z,.7,1.2,.7);volume(cameraColliders,x,.6,z,.7,1.2,.7);}
   for(const [x,z,r]of[[12,-7.3,Math.PI/2],[23.8,-13.3,-Math.PI/2]])torch(service,x,2.75,z,cameraColliders,r,x<18);
   // Supported preparation boards follow the adults' measured knife paths.
-  box(service,22.10,1.3475,-15.31,.22,.015,.30,C.linen);
+  box(service,22.10,kitchenPlayerBoardTop-.0075,-15.31,.22,.015,.30,C.linen);
   box(service,19.15,1.305,-8.70,.60,.05,.45,C.linen);
   box(service,16.80,1.295,-8.65,.50,.03,.42,C.linen);
   for(const [x,y,z]of [[19.3,1.365,-8.79],[19.15,1.365,-8.82],[16.96,1.345,-8.72]])ball(service,x,y,z,.055,C.lightSand,1,.25,1.3);
@@ -439,7 +443,7 @@ export function buildEgypt(){
   stations.push(
     {id:'egypt-royal-reception',name:'王室接待处',action:'领取探索卷轴',position:[-3.6,0,10.0],npcName:'阿赫',npcAction:'calligraphy',npcLabel:'登记来访卷轴',npcPosition:[-3.6,0,7.1],workTarget:[-3.6,1.26,8.35],route:[[-3.6,0,7.1],[-5.9,0,7.1]],dialogue:'欢迎来到金字塔里的王室宅邸。正前方是旧柱厅，西边是审判厅和上升王殿的长坡道，东边是起居、用餐与服务房间。'},
     {id:'egypt-royal-dining',name:'王室餐厅',action:'摆放面包与彩釉餐盘',position:[17,0,-8.03],playerWorkTarget:[17,1.31,-8.57],npcName:'达娜',npcAction:'cook',npcLabel:'准备面包与水果',npcPosition:[19.2,0,-8.08],workTarget:[19.2,1.33,-8.57],route:[[20.5,0,-7.7],[22,0,-10.6]],dialogue:'厨房在餐厅后面，储物室收着陶罐和谷物。把餐盘摆好，再看看这一整套王室生活设施怎样连接。'},
-    {id:'egypt-royal-kitchen',name:'王室厨房',action:'准备陶锅与矿物色餐具',position:[21.60,0,-15.1],playerWorkTarget:[22.08,1.355,-15.1],npcName:'赫特',npcAction:'cook',npcLabel:'照看陶锅并整理食材',npcPosition:[21.62,0,-17.1],workTarget:[22.10,1.40,-17.1],route:[[20.6,0,-17.3],[20.6,0,-14.2]],dialogue:'这条工作台把陶锅、食材和案板排在墙边，中央留下足够的走动空间。隔壁的小储藏室也可以走进去。'},
+    {id:'egypt-royal-kitchen',name:'王室厨房',action:'准备陶锅与矿物色餐具',position:[21.60,0,-15.1],playerWorkTarget:[22.08,kitchenPlayerBoardTop,-15.1],npcName:'赫特',npcAction:'cook',npcLabel:'照看陶锅并整理食材',npcPosition:[21.62,0,-17.1],workTarget:[22.10,kitchenNpcBoardTop,-17.1],route:[[20.6,0,-17.3],[20.6,0,-14.2]],dialogue:'这条工作台把陶锅、食材和案板排在墙边，中央留下足够的走动空间。隔壁的小储藏室也可以走进去。'},
     {id:'egypt-private-bath',name:'王室沐浴间',action:'查看蓝色浴池与更衣器物',position:[17.2,0,-1],npcName:'赛提',npcAction:'clean',npcLabel:'整理沐浴用的亚麻织物',npcPosition:[17.2,0,.8],workTarget:[14.05,.65,-1.05],route:[[17.2,0,.8],[17.2,0,-2.8]],dialogue:'寝室旁另有一间带石质浴池的沐浴室。蓝色水面、亚麻织物和陶罐让它与仪式空间有了不同的日常气息。'}
   );
   const explorationTargets=[

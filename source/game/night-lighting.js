@@ -78,7 +78,9 @@ function buildFixtureField(lot,fixtures) {
  const p=new THREE.Vector3();let maxEnergy=0,occludedContributions=0;
  for(let z=0;z<nz;z++)for(let y=0;y<ny;y++)for(let x=0;x<nx;x++) {
   p.set(min.x+size.x*x/(nx-1),min.y+size.y*y/(ny-1),min.z+size.z*z/(nz-1));
-  let floor=levels[0]??0;for(const level of levels)if(level<=p.y)floor=level;
+  let floor=levels[0]??0;
+  if(lot.lightingZones){const zone=lot.lightingZones.find(z=>p.x>=z.minX&&p.x<=z.maxX&&p.z>=z.minZ&&p.z<=z.maxZ&&p.y>=z.minY&&p.y<z.maxY);floor=zone?.floorY??.115;}
+  else for(const level of levels)if(level<=p.y)floor=level;
   const nearby=[];
   for(const f of fixtures) {
    if(Math.abs(f.floorY-floor)>.8)continue;

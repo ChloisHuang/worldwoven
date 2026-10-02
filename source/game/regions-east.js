@@ -269,7 +269,7 @@ G.rug(group,5.3,-9.15,8.6,6.5,0x94755a,0xd2b894);
 function palaceBox(g,nav,camera,x,y,z,w,h,d,color,walkBlock=false){
  G.box(g,x,y,z,w,h,d,color);
  camera.push({minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2});
- if(walkBlock)G.collider(nav,x,z,w,d);
+ if(walkBlock)nav.push({minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2});
 }
 function palaceWall(g,nav,camera,{axis='x',at,from,to,bottom=.2,top=3.86,depth=.26,color=0xc6906b,openings=[]}){
  const openingsSorted=[...openings].sort((a,b)=>a.from-b.from);let cursor=from;

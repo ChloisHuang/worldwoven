@@ -32,12 +32,12 @@ export const REST_BATH_DESCRIPTORS={
 function additionalSeats(lot,region){
  const seats=[],add=(name,x,y,z,yaw,width,depth,seatY,front=.27)=>{
   const anchor=[x+Math.sin(yaw)*front,y,z+Math.cos(yaw)*front];
-  if(region==='china'||region==='france')anchor[1]=visualSupportHeight(lot,anchor[0],anchor[2])??y;
+  if(region==='china'||region==='france')anchor[1]=visualSupportHeight(lot,anchor[0],anchor[2],y,!!lot.heightAware)??y;
   seats.push({name,center:[x,y,z],anchor,position:[x+Math.sin(yaw)*(depth/2+.64),y,z+Math.cos(yaw)*(depth/2+.64)],yaw,seatY,size:[width,Math.max(1.65,seatY-y+.25),depth]});
  };
  if(region==='france')seats.push(...(lot.group.userData.gardenBenches||[]));
  if(region==='france')lot.group.traverse(q=>{if(q.userData.furnitureKind!=='chair'||Math.hypot(q.position.x+6.65,q.position.z-1.8)<.05)return;const x=q.position.x,z=q.position.z,y=visualSupportHeight(lot,x,z)??.23;add('宫苑雕花扶手椅',x,y,z,q.rotation.y,1.18,1.20,q.position.y+q.userData.seatTopLocal,.29);});
- if(region==='china')for(const x of[-8.6,8.6])for(const z of[-3,1])add('正殿木扶椅',x,.2,z,x<0?Math.PI/2:-Math.PI/2,.9,.9,.875);
+ if(region==='china'){if(lot.additionalFurnitureSeats)for(const s of lot.additionalFurnitureSeats)add(s.name,s.x,s.y,s.z,s.yaw,s.width,s.depth,s.seatY,s.front);else for(const x of[-8.6,8.6])for(const z of[-3,1])add('正殿木扶椅',x,.2,z,x<0?Math.PI/2:-Math.PI/2,.9,.9,.875);}
  if(region==='japan')for(const [name,x,y,z,w]of[
   ['迎宾木长椅',-9.2,0,3.1,3.5],['更衣室木长椅',-3.1,3.8,2.05,2.35],['更衣室木长椅',.15,3.8,2.05,1.6],
   ['浴室木长椅',-4.2,3.8,-3.1,3],['浴室木长椅',1.35,3.8,-3.1,2.3],['休息廊木长椅',-7.7,3.8,7.55,4],['休息廊木长椅',4.9,3.8,7.55,3.1],
@@ -98,16 +98,16 @@ export function createFurnitureInteractions(lot,region,{curtains={},onCurtainCha
  for(const [i,d]of REST_BATH_DESCRIPTORS[region].entries())items.push({...d,id:region+'-furniture-'+d.kind+'-'+i,furniture:true,action:d.kind==='bed'?(region==='china'?'龙榻安寝':'躺下休息'):'换浴衣泡澡',interactionRadius:2.1,position:d.position.slice()});
  const seat=items.find(i=>i.kind==='seat'),canopy=items.find(i=>i.kind==='canopy'),wardrobe=items.find(i=>i.kind==='wardrobe'),cloth=canopy?canopyGeometry(root,canopy,region):null;changingDetails(root,wardrobe,region);
  lot.group.updateMatrixWorld(true);const beddingMeshes=[];lot.group.traverse(o=>{if(o.isMesh&&!o.material.transparent)beddingMeshes.push(o);});const bedMeshes=new Map(),bedRay=new THREE.Raycaster();
- const options=['japan','egypt'].includes(region)?{bounds:lot.bounds,surfaces:lot.walkableSurfaces,legacyGround:false,bodyHeight:1.95,maxStep:.4}:{bounds:lot.bounds,multilevel:false};
+ const options=(lot.heightAware||['japan','egypt'].includes(region))?{bounds:lot.bounds,surfaces:lot.walkableSurfaces,legacyGround:false,bodyHeight:1.95,maxStep:.4}:{bounds:lot.bounds,multilevel:false};
  const ownSeatBoxes=item=>lot.colliders.filter(c=>c.minX<=item.center[0]&&c.maxX>=item.center[0]&&c.minZ<=item.center[2]&&c.maxZ>=item.center[2]&&(c.maxY??3.5)>item.center[1]+.1&&(c.minY??-1)<item.seatY&&(c.maxX-c.minX)<=item.size[0]+.2&&(c.maxZ-c.minZ)<=item.size[2]+.2);
  const rejected=[];
  for(const [i,d]of additionalSeats(lot,region).entries()){
   const item={...d,id:d.id||region+'-furniture-seat-'+(i+2),kind:'seat',furniture:true,action:'坐下休息',interactionRadius:2.1},own=ownSeatBoxes(item),remaining=lot.colliders.filter(c=>!own.includes(c));
   // Choose a clear front/side landing, without relaxing any room collider.
   const candidates=[item.position,...[.4,-.4,.7,-.7].map(side=>[item.position[0]+Math.cos(item.yaw)*side,item.position[1],item.position[2]-Math.sin(item.yaw)*side]),...[1,-1].map(side=>[item.center[0]+Math.cos(item.yaw)*side*(item.size[0]/2+.64),item.position[1],item.center[2]-Math.sin(item.yaw)*side*(item.size[0]/2+.64)])];
-  const position=candidates.find(a=>!blocked(a[0],a[2],lot.colliders,.39,{...options,y:a[1]})&&canTraverse(point(a),point(item.anchor),remaining,{...options,radius:.34}));
+  const position=candidates.map(a=>lot.heightAware?[a[0],visualSupportHeight(lot,a[0],a[2],a[1],true)??a[1],a[2]]:a).find(a=>!blocked(a[0],a[2],lot.colliders,.39,{...options,y:a[1]})&&canTraverse(point(a),point(item.anchor),remaining,{...options,radius:.34}));
   if(!own.length||!position){rejected.push({name:item.name,center:item.center,reason:'No clear front or side landing'});continue;}
-  item.position=position;if(region==='china'||region==='france')item.position[1]=visualSupportHeight(lot,position[0],position[2])??position[1];items.push(item);
+  item.position=position;if(region==='china'||region==='france')item.position[1]=visualSupportHeight(lot,position[0],position[2],position[1],!!lot.heightAware)??position[1];items.push(item);
  }
  const seatBoxes=new Map(items.filter(x=>x.kind==='seat').map(item=>[item.id,ownSeatBoxes(item)]));
  for(const item of items.filter(x=>x.kind==='bed'||x.kind==='bath'))seatBoxes.set(item.id,lot.colliders.filter(c=>c.minX<=item.center[0]+.05&&c.maxX>=item.center[0]-.05&&c.minZ<=item.center[2]+.05&&c.maxZ>=item.center[2]-.05&&(c.maxX-c.minX)<=item.size[0]+.2&&(c.maxZ-c.minZ)<=item.size[2]+.2&&(c.minY===undefined||c.minY>=item.center[1]-.6)&&(c.maxY??3.5)>item.center[1]+.15));
