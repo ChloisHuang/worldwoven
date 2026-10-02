@@ -1,0 +1,23 @@
+{
+  "region": "china",
+  "reason": "R12.1 replaces the existing bed artwork with an original carved dragon bed and red wraparound curtains. Only the cn-rest display name and action become 倚窗书席 / 倚窗读书; all actor/work positions and actions, navigation, colliders, doorways and exploration targets stay exact. Sleeping facility display name becomes 雕龙龙榻. Original R12 fixture hashes are not rewritten.",
+  "changedFields": [
+    "stations (cn-rest name/action only)",
+    "facilities (sleeping first furnishing name only)"
+  ],
+  "hashes": {
+    "stations": "9470cda579b7eefd7789dcac69383c9c5f39efb272556892ef389f17868d9419"
+  },
+  "previousHashes": {
+    "stations": "840150e3c893b8f634cf3c81053a54c5281317b51c8bcdce313aef22e5c5a8f4"
+  },
+  "requiredTests": [
+    "r12-1-dragon-bed",
+    "dragon-bed-input",
+    "dragon-bed-camera",
+    "lie-support-contact",
+    "rest-bath-input-events",
+    "china-decor-r11",
+    "furniture-assemblies"
+  ]
+}
