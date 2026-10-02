@@ -4,6 +4,7 @@
  * Runtime dependency: Three.js 0.186.1. No textures, licensed meshes or PBR.
  */
 import * as THREE from 'three';
+import {normalizeShapeTraits,hasShapeTraits,shapeHeight} from './character-traits.js';
 const gradient = new THREE.DataTexture(new Uint8Array([90, 150, 213, 255]),4,1,THREE.RedFormat);
 gradient.minFilter = gradient.magFilter = THREE.NearestFilter;
 gradient.generateMipmaps=false; gradient.needsUpdate=true;
@@ -25,35 +26,54 @@ function tube(g,name,points,r,color,radial=8){const curve=new THREE.CatmullRomCu
 function patch(g,name,fn,color,nu=24,nv=10){return surface(g,name,nu,nv,fn,color,false);}
 const BASE={skin:0xdba789,skinLight:0xe7b99a,skinShadow:0xb78069,lip:0xa76463,mouth:0x704a4a,eye:0xf2e5d4,iris:0x594b3f,pupil:0x25252a,brow:0x473d38,hair:0x342f31,hairMid:0x51434a,hairLight:0x65515a,yukata:0x4f7c7d,collar:0xe5dbc1,obi:0x304657,pattern:0x99b1a5,shirt:0xc7b998,pants:0x344451,sole:0x302f33,shoe:0x6b5550};
 let C={...BASE};
-function headSurface(x,y,masc=false){
+function headSurface(x,y,masc=false,traits=null){
  const rs=[[1.455,.012,.021,0,.004],[1.468,masc?.044:.037,.052,0,.002],[1.49,masc?.071:.062,.067,0,0],[1.525,.079,.073,0,-.002],[1.57,.088,.075,0,-.003],[1.62,.087,.077,0,-.004],[1.663,.072,.065,0,-.006],[1.692,.044,.042,0,-.008],[1.707,.001,.001,0,-.008]];
+ if(traits&&traits.jawWidth!==1)for(const r of rs)r[1]*=jawFactor(r[0],traits.jawWidth);
  let low=0,high=rs.length-1;
  for(let i=0;i<24;i++){const mid=(low+high)/2;if(spline(rs,mid)[0]<y)low=mid;else high=mid;}
  const r=spline(rs,(low+high)/2),c=Math.sqrt(Math.max(0,1-(x/r[1])**2));
- return r[4]+r[2]*c+faceD(x,y)*Math.pow(c,8);
+ return r[4]+r[2]*c+faceD(x,y,traits)*Math.pow(c,8);
 }
-function faceD(x,y){const G=(cx,cy,sx,sy)=>Math.exp(-(((x-cx)/sx)**2)-((y-cy)/sy)**2);return .006*(G(-.045,1.545,.028,.027)+G(.045,1.545,.028,.027))-.0055*(G(-.040,1.589,.027,.012)+G(.040,1.589,.027,.012))+.009*G(0,1.568,.013,.039)+.016*G(0,1.548,.017,.015)+.003*G(0,1.539,.019,.009)+.007*G(0,1.508,.023,.012);}
-function buildHead(g,masc=false,hairStyle=masc?'swept-short':'chin-bob'){
- const facialSurface=(x,y)=>headSurface(x,y,masc);
+function neutralFaceD(x,y){const G=(cx,cy,sx,sy)=>Math.exp(-(((x-cx)/sx)**2)-((y-cy)/sy)**2);return .006*(G(-.045,1.545,.028,.027)+G(.045,1.545,.028,.027))-.0055*(G(-.040,1.589,.027,.012)+G(.040,1.589,.027,.012))+.009*G(0,1.568,.013,.039)+.016*G(0,1.548,.017,.015)+.003*G(0,1.539,.019,.009)+.007*G(0,1.508,.023,.012);}
+function jawFactor(y,width){
+ // Jaw corners/chin change; temples, ear roots and the neck seam stay fixed.
+ const amount=y<1.49?clamp((y-1.455)/.035,0,1):clamp((1.55-y)/.06,0,1);
+ return 1+(width-1)*amount;
+}
+function faceD(x,y,traits=null){
+ if(!traits||traits.noseSize===1&&traits.noseWidth===1&&traits.socketDepth===1)return neutralFaceD(x,y);
+ const G=(cx,cy,sx,sy)=>Math.exp(-(((x-cx)/sx)**2)-((y-cy)/sy)**2),n=traits.noseSize,w=traits.noseWidth;
+ return .006*(G(-.045,1.545,.028,.027)+G(.045,1.545,.028,.027))
+  -.0055*traits.socketDepth*(G(-.040,1.589,.027,.012)+G(.040,1.589,.027,.012))
+  +.009*n*G(0,1.568,.013*w,.039)+.016*n*G(0,1.548,.017*w,.015*n)
+  +.003*n*G(0,1.539,.019*w,.009*n)+.007*G(0,1.508,.023,.012);
+}
+function buildHead(g,masc=false,hairStyle=masc?'swept-short':'chin-bob',traits=null){
+ const facialSurface=(x,y)=>headSurface(x,y,masc,traits);
  const h=new THREE.Group();h.name='sculpted-head';g.add(h);
  const rings=[[1.455,.012,.021,0,.004],[1.468,masc?.044:.037,.052,0,.002],[1.49,masc?.071:.062,.067,0,0],[1.525,.079,.073,0,-.002],[1.57,.088,.075,0,-.003],[1.62,.087,.077,0,-.004],[1.663,.072,.065,0,-.006],[1.692,.044,.042,0,-.008],[1.707,.001,.001,0,-.008]];
- loft(h,'continuous-head-jaw-cheeks-nose',rings,C.skin,{segs:64,steps:44,deform:(p,a)=>{const front=Math.pow(Math.max(0,Math.cos(a)),8);p[2]+=faceD(p[0],p[1])*front;return p;}});
+ if(traits&&traits.jawWidth!==1)for(const r of rings)r[1]*=jawFactor(r[0],traits.jawWidth);
+ loft(h,'continuous-head-jaw-cheeks-nose',rings,C.skin,{segs:64,steps:44,deform:(p,a)=>{const front=Math.pow(Math.max(0,Math.cos(a)),8);p[2]+=faceD(p[0],p[1],traits)*front;return p;}});
  loft(g,'neck',[[1.335,.046,.039,0,-.008],[1.37,.038,.035,0,0],[1.414,.033,.033,0,.004],[1.461,.036,.036,0,.003],[1.48,.037,.04,0,.002]],C.skin,{steps:24});
  for(const s of [-1,1]){
   // Folded ear bowl is one tailored surface, nested against the skull.
   loft(h,'ear-pinna-'+s,[[1.532,.005,.006,s*.086,-.004],[1.545,.012,.012,s*.091,-.001],[1.567,.013,.014,s*.091,-.006],[1.584,.008,.01,s*.09,-.009],[1.588,.001,.003,s*.088,-.008]],C.skin,{segs:24,steps:20});
   tube(h,'ear-fold-'+s,[[s*.099,1.574,.003],[s*.103,1.567,.007],[s*.10,1.55,.008]],.0023,C.skinShadow);
-  const cx=s*(masc?.040:.038),cy=1.59,hw=masc?.022:.0215,upper=masc?.0072:.009,lower=masc?.0055:.0062;
+  const eye=traits?.eyeSize??1,cx=s*(masc?.040:.038),cy=1.59,hw=(masc?.022:.0215)*eye,upper=(masc?.0072:.009)*eye,lower=(masc?.0055:.0062)*eye;
   // Thin almond surfaces remain flush with the face, no external eyeballs.
   patch(h,'inset-eye-white-'+s,(u,v)=>{const x=cx+(u*2-1)*hw;const y=cy+Math.sin(u*Math.PI)*mix(-lower,upper,v)+s*(x-cx)*.08;return[x,y,facialSurface(x,y)+.0018];},C.eye,32,12);
-  patch(h,'iris-'+s,(u,v)=>{const a=u*Math.PI*2,r=v*.0058,x=cx+Math.cos(a)*r,y=cy+.0008+Math.sin(a)*r;return[x,y,facialSurface(x,y)+.0032];},C.iris,32,8);
-  patch(h,'pupil-'+s,(u,v)=>{const a=u*Math.PI*2,r=v*.0028,x=cx+Math.cos(a)*r,y=cy+.0008+Math.sin(a)*r;return[x,y,facialSurface(x,y)+.0038];},C.pupil,24,6);
-  patch(h,'eye-catchlight-'+s,(u,v)=>{const a=u*Math.PI*2,r=v*.0013,x=cx-.0016+Math.cos(a)*r,y=cy+.0031+Math.sin(a)*r;return[x,y,facialSurface(x,y)+.0042];},0xfff7e5,16,4);
+  patch(h,'iris-'+s,(u,v)=>{const a=u*Math.PI*2,r=v*.0058*eye,x=cx+Math.cos(a)*r,y=cy+.0008*eye+Math.sin(a)*r;return[x,y,facialSurface(x,y)+.0032];},C.iris,32,8);
+  patch(h,'pupil-'+s,(u,v)=>{const a=u*Math.PI*2,r=v*.0028*eye,x=cx+Math.cos(a)*r,y=cy+.0008*eye+Math.sin(a)*r;return[x,y,facialSurface(x,y)+.0038];},C.pupil,24,6);
+  patch(h,'eye-catchlight-'+s,(u,v)=>{const a=u*Math.PI*2,r=v*.0013*eye,x=cx-.0016*eye+Math.cos(a)*r,y=cy+.0031*eye+Math.sin(a)*r;return[x,y,facialSurface(x,y)+.0042];},0xfff7e5,16,4);
   for(const [part,hh,color,rad] of [['upper',upper,C.brow,.00165],['lower',-lower,C.skinShadow,.001]]){
    const pts=[];for(let i=0;i<=16;i++){const u=i/16,x=cx+(u*2-1)*hw,y=cy+Math.sin(u*Math.PI)*hh+s*(x-cx)*.08;pts.push([x,y,facialSurface(x,y)+.0028]);}tube(h,'eyelid-'+part+'-'+s,pts,rad,color,6);
   }
-  const brows=[];for(let i=0;i<=12;i++){const u=i/12,x=cx+(u*2-1)*(masc?.026:.024),y=1.609+(masc?.0025:.0048)*Math.sin(u*Math.PI)+s*(x-cx)*.09;brows.push([x,y,facialSurface(x,y)+.0023]);}ribbon(h,'soft-brow-'+s,brows,t=>(masc?.0042:.0030)*Math.sin(Math.PI*(.08+.84*t)),C.brow);
-  tube(h,'nostril-'+s,[[s*.007,1.54,facialSurface(s*.007,1.54)+.001],[s*.01,1.539,facialSurface(s*.01,1.539)+.001],[s*.014,1.54,facialSurface(s*.014,1.54)+.001]],.0011,C.skinShadow,6);
+  const brows=[];for(let i=0;i<=12;i++){const u=i/12,x=cx+(u*2-1)*(masc?.026:.024),y=1.609+(eye-1)*.009+(masc?.0025:.0048)*Math.sin(u*Math.PI)+s*(x-cx)*.09;brows.push([x,y,facialSurface(x,y)+.0023]);}ribbon(h,'soft-brow-'+s,brows,t=>(masc?.0042:.0030)*Math.sin(Math.PI*(.08+.84*t)),C.brow);
+  const nw=traits?.noseWidth??1,ns=traits?.noseSize??1;
+  const nostrils=[[s*.007*nw,1.548+(1.54-1.548)*ns],[s*.01*nw,1.548+(1.539-1.548)*ns],[s*.014*nw,1.548+(1.54-1.548)*ns]];
+  // Preserve the old exact arithmetic on the neutral fast path.
+  if(nw===1&&ns===1)tube(h,'nostril-'+s,[[s*.007,1.54,facialSurface(s*.007,1.54)+.001],[s*.01,1.539,facialSurface(s*.01,1.539)+.001],[s*.014,1.54,facialSurface(s*.014,1.54)+.001]],.0011,C.skinShadow,6);
+  else tube(h,'nostril-'+s,nostrils.map(([x,y])=>[x,y,facialSurface(x,y)+.001]),.0011*Math.min(nw,ns),C.skinShadow,6);
  }
  const lipW=masc?.022:.023;
  for(const upper of [true,false])patch(h,upper?'upper-lip':'lower-lip',(u,v)=>{const x=(u*2-1)*lipW;const f=Math.sin(u*Math.PI);const seam=1.512-.0025*f+.0008*Math.cos(u*4*Math.PI);const y=seam+(upper?1:-1)*f*(upper?.0033:.0038)*v;return[x,y,facialSurface(x,y)+.0015+.0018*Math.sin(v*Math.PI)];},C.lip,32,6);
@@ -300,12 +320,13 @@ function jobAccessories(g,style,culture){
   loft(h,'garden-straw-crown',[[1.704,.101,.089,0,-.01],[1.78,.085,.074,0,-.01],[1.813,.023,.022,0,-.01]],0xc7ac7a,{segs:32,steps:18});
  }
 }
-export function createApprovedSurfaces({culture=null,masc=false,style='casual',bodyPreset=masc?'masculine-lean':'feminine-balanced',hairStyle=masc?'swept-short':'chin-bob',wardrobePreset=null,skin=BASE.skin,hair=BASE.hair,clothes=BASE.yukata,accent=BASE.collar,eyeColor=BASE.iris}={}){
+export function createApprovedSurfaces({culture=null,masc=false,style='casual',bodyPreset=masc?'masculine-lean':'feminine-balanced',hairStyle=masc?'swept-short':'chin-bob',wardrobePreset=null,skin=BASE.skin,hair=BASE.hair,clothes=BASE.yukata,accent=BASE.collar,eyeColor=BASE.iris,shapeTraits=null}={}){
+ const normalized=normalizeShapeTraits(shapeTraits),traits=hasShapeTraits(normalized)?normalized:null;
  C={...BASE,skin:new THREE.Color(skin).getHex(),hair:new THREE.Color(hair).getHex(),yukata:new THREE.Color(clothes).getHex(),shirt:new THREE.Color(clothes).getHex(),collar:new THREE.Color(accent).getHex()};
  C.iris=new THREE.Color(eyeColor).getHex();C.skinLight=tone(C.skin,1.08);C.skinShadow=tone(C.skin,.74);C.lip=new THREE.Color(C.skin).lerp(new THREE.Color(0x8e454d),.48).getHex();C.mouth=tone(C.lip,.69);C.hairMid=tone(C.hair,1.32);C.hairLight=tone(C.hair,1.52);C.brow=tone(C.hair,.9);C.obi=culture==='egypt'?0xbd9c48:culture==='china'?0xb69b56:culture==='france'?0xa68d53:0x34495a;C.pattern=culture==='egypt'?0x4d9198:new THREE.Color(C.yukata).lerp(new THREE.Color(0xd6dfbc),.56).getHex();
  // R9 individual Egyptian dye survives both tailoring presets.
  if(culture==='egypt')C.yukata=new THREE.Color(C.yukata).lerp(new THREE.Color(0xe2d7b9),.28).getHex();
- const root=new THREE.Group();buildHead(root,masc,hairStyle);
+ const root=new THREE.Group();buildHead(root,masc,hairStyle,traits);
  // Temporary opaque ankle-length bath robe; saved cultural outfits remain untouched.
  if(wardrobePreset==='bath-robe'){
   buildJapan(root,masc,masc?'yukata-narrow-obi':'yukata-wide-obi');removeSurfaces(root,n=>/footwear|sole-|loafer/.test(n));
@@ -318,6 +339,15 @@ export function createApprovedSurfaces({culture=null,masc=false,style='casual',b
  else if(culture==='france')buildFrance(root,masc,wardrobePreset||(masc?'court-frock-coat':'court-gown'));
  else buildCasual(root);
  jobAccessories(root,style,culture);sculptBody(root,bodyPreset);
+ if(traits?.legLength!==undefined&&traits.legLength!==1)root.traverse(m=>{
+  if(!m.isMesh)return;
+  const p=m.geometry.attributes.position,sourceY=new Float32Array(p.count);
+  // Source Y is anatomical identity for skin weights and posterior bedding
+  // contact regions; do not reclassify a longer leg as a different body part.
+  const footwear=/footwear|sole-|loafer/.test(m.name);
+  for(let i=0;i<p.count;i++){const y=p.getY(i);sourceY[i]=y;if(!footwear)p.setY(i,shapeHeight(y,traits.legLength));}
+  m.geometry.setAttribute('sourceY',new THREE.BufferAttribute(sourceY,1));m.geometry.computeVertexNormals();
+ });
  root.traverse(m=>{if(m.isMesh){m.userData.softSkin=/footwear-bath-bare|continuous-head|neck|^ear-|inset-eye|iris-|pupil-|eye-catchlight|eyelid-|soft-brow|nostril-|lip|mouth|relaxed-|thumb-|wrist-|^arm-|bare-arm|bare-leg/.test(m.name);m.receiveShadow=false;m.castShadow=true;}});
  return root;
 }
