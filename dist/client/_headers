@@ -1,0 +1,12 @@
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+/
+  Cache-Control: public, max-age=0, must-revalidate
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+/game/
+  Cache-Control: public, max-age=0, must-revalidate
+/game/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+/build.json
+  Cache-Control: public, max-age=0, must-revalidate
