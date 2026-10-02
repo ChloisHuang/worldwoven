@@ -4,7 +4,7 @@
  */
 import * as THREE from 'three';
 import {createApprovedSurfaces} from './approved-surfaces.js';
-import {BODY_PRESETS,HAIR_STYLES,WARDROBE_PRESETS} from './appearance.js';
+import {BODY_PRESETS,HAIR_STYLES,WARDROBE_PRESETS,ROLE_WARDROBE_PRESETS} from './appearance.js';
 import {createHandProps,disposeHandProps} from './character-props.js';
 const TAU=Math.PI*2,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),mix=(a,b,t)=>a+(b-a)*t;
 const BAND_VALUES=[90,150,213,255],SKIN_VALUES=[140,186,229,255];
@@ -68,13 +68,13 @@ function locomotionFor(wardrobe,gaitPreset,scale){
  const walkSpeed=(restricted?.95:free?1.35:long?1.20:1.06)*temper*scale*1.65;
  return Object.freeze({walkSpeed,hurrySpeed:walkSpeed*1.38,stepLength,strideLength:stepLength*2,label:restricted?'measured garment-limited steps':free?'relaxed open stride':'easy draped stride',lift:(restricted?.065:.090)*scale,armSwing:(restricted?.065:free?.135:.105)*temper});
 }
-export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,accent=0xe7cab0,style='casual',culture=null,variant=0,bodyPreset=null,hairStyle=null,wardrobePreset=null,gaitPreset=1,scale=1,eyeColor=0x594b3f,receiveShadow=false}={}){
+export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,accent=0xe7cab0,style='casual',culture=null,variant=0,bodyPreset=null,hairStyle=null,wardrobePreset=null,locomotionWardrobePreset=null,gaitPreset=1,scale=1,eyeColor=0x594b3f,receiveShadow=false}={}){
  bodyPreset=BODY_PRESETS.includes(bodyPreset)?bodyPreset:BODY_PRESETS[typeof variant==='string'?(/masculine|male/.test(variant)?1:0):Math.abs(variant|0)%4];
  const masc=bodyPreset.startsWith('masculine');hairStyle=HAIR_STYLES.includes(hairStyle)?hairStyle:(masc?'swept-short':'chin-bob');
  culture=['japan','china','egypt','france'].includes(culture)?culture:null;
  style=['chef','artist','gardener'].includes(style)?style:'casual';scale=Number.isFinite(scale)?clamp(scale,.25,3):1;
- const wardrobeOptions=(WARDROBE_PRESETS[culture]||WARDROBE_PRESETS.france)[masc?'masculine':'feminine'];wardrobePreset=wardrobeOptions.includes(wardrobePreset)?wardrobePreset:wardrobeOptions[0];
- const locomotion=locomotionFor(wardrobePreset,gaitPreset,scale);
+ const wardrobeOptions=(WARDROBE_PRESETS[culture]||WARDROBE_PRESETS.france)[masc?'masculine':'feminine'];wardrobePreset=wardrobePreset==='bath-robe'||(ROLE_WARDROBE_PRESETS[culture]||[]).includes(wardrobePreset)||wardrobeOptions.includes(wardrobePreset)?wardrobePreset:wardrobeOptions[0];
+ const locomotion=locomotionFor(wardrobeOptions.includes(locomotionWardrobePreset)?locomotionWardrobePreset:wardrobePreset,gaitPreset,scale);
  const root=new THREE.Group();root.name='approved-human-r10';root.scale.set(masc?scale*1.085:scale,masc?scale*1.035:scale,masc?scale*1.065:scale);
  const opts={eyeColor:new THREE.Color(eyeColor).getHex(),skin:new THREE.Color(skin).getHex(),hair:new THREE.Color(hair).getHex(),clothes:new THREE.Color(clothes).getHex(),accent:new THREE.Color(accent).getHex(),style,culture,masc,bodyPreset,hairStyle,wardrobePreset};
  const template=getTemplate(opts),height=template.height*root.scale.y;
@@ -84,6 +84,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
  const posedP=REST.map(p=>p.clone()),posedQ=REST.map(()=>new THREE.Quaternion()),pose=new THREE.Group();
  const tmp=V(),tmp2=V(),dir=V(),pole=V(),restDir=V(),identity=new THREE.Quaternion(),invQ=new THREE.Quaternion(),torsoQ=new THREE.Quaternion(),headQ=new THREE.Quaternion(),inverseRoot=new THREE.Matrix4();
  const previousRoot=V(),velocity=V(),rootWorld=V(),forwardWorld=V(),rightWorld=V(),footProbe=V(),footBack=V(),footFront=V(),footRight=V(),footLeft=V(),footOffset=V(),footNormal=V(),footUp=V(0,1,0),footOrient=[new THREE.Quaternion(),new THREE.Quaternion()],footAnchors=[V(),V()],swingStarts=[V(),V()],lastFootWorld=[V(),V()],lastSupport=[true,false],footTargets=[V(),V()];
+ let supportCorrection=0,poseMinY=0,poseMaxY=0;const lieOffsets={back:0,head:0,heel:0};
  let lastTime=null,wasWalking=false,gaitPhase=0,disposed=false,initializedFeet=false,currentAction=null,visualFloorOffset=0,previousYaw=0;
  const metrics={height,labelHeight:height+.16,headHeight:1.61*root.scale.y,action:null,seated:false,grounded:true,feet:[[],[]],hands:[[],[]]};
  root.userData={characterR9:true,characterR10:true,locomotion,appearance:{skin:opts.skin,hair:opts.hair,clothes:opts.clothes,accent:opts.accent,eyeColor:opts.eyeColor,culture,variant,style,bodyPreset,hairStyle,wardrobePreset,gaitPreset},body:rig,head:bones[3],arms:[bones[4],bones[7]],forearms:[bones[5],bones[8]],hands:[bones[6],bones[9]],legs:[bones[10],bones[13]],knees:[bones[11],bones[14]],feet:[bones[12],bones[15]],tools:props.tools,poseQA:metrics,labelHeight:metrics.labelHeight,characterShared:true};
@@ -109,15 +110,31 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   props.left.quaternion.copy(posedQ[6]).invert();props.right.quaternion.copy(posedQ[9]).invert();
   rig.updateMatrixWorld(true);skeleton.update();
  }
+ function measureLieSkin(){
+  const result={min:Infinity,max:-Infinity,hip:Infinity,back:Infinity,head:Infinity,heel:Infinity,points:{}};root.updateMatrixWorld(true);skeleton.update();inverseRoot.copy(root.matrixWorld).invert();
+  for(const mesh of meshes)for(const range of mesh.geometry.userData.sourceRanges||[]){
+   const n=range.name,body=/body|bodice|skirt|trouser|tunic|kilt|robe/.test(n)&&!/bow|tie|sash|belt|fold|seam|border|panel|sleeve/.test(n),head=/continuous-head/.test(n),heel=/footwear|sole-|loafer/.test(n),attr=mesh.geometry.attributes.position;
+   for(let i=range.start;i<range.start+range.count;i++){mesh.getVertexPosition(i,tmp).applyMatrix4(mesh.matrixWorld).applyMatrix4(inverseRoot);const y=tmp.y,sy=attr.getY(i);result.min=Math.min(result.min,y);result.max=Math.max(result.max,y);
+    if(body&&attr.getZ(i)<0&&Math.abs(attr.getX(i))<.12){if(sy>.87&&sy<1.03&&y<result.hip){result.hip=y;result.points.hip=tmp.clone();}if(sy>1.18&&sy<1.33&&y<result.back){result.back=y;result.points.back=tmp.clone();}}
+    if(head&&attr.getZ(i)<0&&y<result.head){result.head=y;result.points.head=tmp.clone();}if(heel&&y<result.heel){result.heel=y;result.points.heel=tmp.clone();}
+   }
+  }return result;
+ }
+ function settleLieJoints(){
+  // Small skeletal settling, retaining every original face/outfit vertex. The
+  // spine rests across the pillow/quilt transition; heels no longer levitate.
+  posedP[1].z+=lieOffsets.back*.5;for(const i of[2,4,5,6,7,8,9])posedP[i].z+=lieOffsets.back;posedP[3].z+=lieOffsets.head;
+  for(const i of[12,15])posedP[i].z+=lieOffsets.heel;for(const i of[11,14,16,17])posedP[i].z+=lieOffsets.heel*.4;
+ }
  function resetTools(){props.tools.knife.rotation.set(0,0,0);for(const prop of Object.values(props.tools))prop.visible=false;props.left.rotation.set(0,0,0);props.right.rotation.set(0,0,0);}
  function show(...names){for(const name of names)if(props.tools[name])props.tools[name].visible=true;}
  function animate(time,walking=false,action=null,context=null){
-  if(disposed)return;visualFloorOffset=Number.isFinite(context?.visualFloorOffset)?clamp(context.visualFloorOffset,0,.5):0;rig.position.y=visualFloorOffset/root.scale.y;time=Number.isFinite(time)?time:0;walking=!!walking;if(walking)action=null;resetTools();
+  if(disposed)return;visualFloorOffset=Number.isFinite(context?.visualFloorOffset)?clamp(context.visualFloorOffset,0,.5):0;rig.rotation.set(0,0,0);rig.position.set(0,visualFloorOffset/root.scale.y,0);time=Number.isFinite(time)?time:0;walking=!!walking;if(walking)action=null;resetTools();
   const rawDt=lastTime===null?0:time-lastTime,dt=clamp(rawDt,0,.2);root.updateWorldMatrix(true,false);root.getWorldPosition(rootWorld);velocity.copy(rootWorld).sub(previousRoot);const travel=Math.hypot(velocity.x,velocity.z),headingDelta=Math.atan2(Math.sin(root.rotation.y-previousYaw),Math.cos(root.rotation.y-previousYaw)),discontinuity=rawDt>.25||rawDt<0||travel>=1.2||Math.abs(headingDelta)>.85;const physical=!discontinuity&&dt>0&&travel>.000001;
   if(physical)velocity.multiplyScalar(1/dt);else velocity.set(0,0,0);
-  const leavingSeat=(currentAction==='kotatsu'||currentAction==='chair-sit')&&action!==currentAction;
+  const poseChanged=currentAction!==action;const mountedPose=action==='lie-rest'||action==='bathe';const leavingSeat=['kotatsu','chair-sit','lie-rest','bathe'].includes(currentAction)&&action!==currentAction;
   if(discontinuity||leavingSeat){initializedFeet=false;for(let s=0;s<2;s++){lastFootWorld[s].set(s?.089:-.089,.108,-.025).applyMatrix4(root.matrixWorld);lastFootWorld[s].y+=visualFloorOffset;}wasWalking=false;}
-  currentAction=action;metrics.action=action;metrics.gaitReset=discontinuity||leavingSeat;metrics.seated=action==='kotatsu'||action==='chair-sit';
+  currentAction=action;metrics.action=action;metrics.gaitReset=discontinuity||leavingSeat;metrics.seated=action==='kotatsu'||action==='chair-sit'||action==='bathe';metrics.lying=action==='lie-rest';metrics.bathing=action==='bathe';
   // Phase is distance-driven, never wall-clock-driven: blocked actors do not skate.
   if(walking&&!wasWalking)gaitPhase=Math.PI*.5;
   const t=walking?(physical?gaitPhase+=travel/locomotion.strideLength*TAU:gaitPhase):0;
@@ -136,9 +153,9 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   // Only pelvis/upper cloth settle; IK ankle and absolute wrist targets stay unchanged.
   const seatedDrop=action==='kotatsu'&&culture==='japan'?Math.min(.04,visualFloorOffset/root.scale.y*.5):0;
   const chairHeight=Number.isFinite(context?.seatHeight)?clamp(context.seatHeight/root.scale.y,.35,1):.60;
-  setTorso(action==='chair-sit'?chairHeight+.14:action==='kotatsu'?.417-seatedDrop:walking?.965+bob:.965,action==='calligraphy'?.40:/^(knead|bread|cook|sushi|bake|tidy)$/.test(action||'')?.13:0,walking?Math.sin(t)*.012:0);
+  setTorso(action==='bathe'?(context?.bathHipHeight??.32):action==='chair-sit'?chairHeight+.14:action==='kotatsu'?.417-seatedDrop:walking?.965+bob:.965,action==='calligraphy'?.40:/^(knead|bread|cook|sushi|bake|tidy)$/.test(action||'')?.13:0,walking?Math.sin(t)*.012:0);
   let unevenSupport=false;
-  if(action!=='kotatsu'&&action!=='chair-sit'){
+  if(action!=='kotatsu'&&action!=='chair-sit'&&action!=='bathe'){
    for(let s=0;s<2;s++){
     const phi=((t+(s?Math.PI:0))%TAU+TAU)%TAU,support=phi<Math.PI,u=support?phi/Math.PI:(phi-Math.PI)/Math.PI;
     const x=s?.089:-.089,target=footTargets[s];target.set(x,.108,-.025);
@@ -205,6 +222,9 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    for(let s=0;s<2;s++){const ids=s?[13,14,15]:[10,11,12],target=footTargets[s],reach=REST[ids[0]].distanceTo(REST[ids[1]])+REST[ids[1]].distanceTo(REST[ids[2]])-.003,horizontal=(target.x-posedP[ids[0]].x)**2+(target.z-posedP[ids[0]].z)**2;hipLimit=Math.min(hipLimit,target.y+Math.sqrt(Math.max(.01,reach*reach-horizontal)));}
    const hipAdjust=Math.min(0,hipLimit-posedP[0].y);if(hipAdjust<0)for(const i of[0,1,2,3,4,7,10,13])posedP[i].y+=hipAdjust;
    for(let s=0;s<2;s++){foot(s,footTargets[s]);posedQ[s?15:12].copy(footOrient[s]);}
+  }else if(action==='bathe'){
+   // Relaxed bent knees extend into the basin; feet and robe settle on its bottom.
+   foot(0,tmp.set(-.13,.108,.62));foot(1,tmp.set(.13,.108,.62));
   }else if(action==='chair-sit'){
    // A raised seat retains planted soles and bends the knees forward. The
    // pelvis height is authored from the measured cushion, not a root teleport.
@@ -213,12 +233,15 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    // Actual thighs, flexed knees and folded shins; the same continuous robe skins over them.
    foot(0,tmp.set(-.105,.108,-.13));foot(1,tmp.set(.105,.108,-.13));
   }
-  for(const [i,j] of [[16,11],[17,14]]){posedP[i].copy(posedP[j]);if(walking&&unevenSupport)posedP[i].y+=.12;else if(walking&&/gown|dress/.test(wardrobePreset))posedP[i].y+=.016;if(action!=='kotatsu'&&Math.abs(slope)>.01)posedP[i].y+=Math.abs(slope)*.085;if(action==='chair-sit')posedP[i].y+=.055;if(action==='kotatsu')posedP[i].y+=/gown/.test(wardrobePreset)?.098:.045;posedQ[i].copy(posedQ[j]);}
+  for(const [i,j] of [[16,11],[17,14]]){posedP[i].copy(posedP[j]);if(walking&&unevenSupport)posedP[i].y+=.12;else if(walking&&/gown|dress|hakama/.test(wardrobePreset))posedP[i].y+=.016;if(action!=='kotatsu'&&Math.abs(slope)>.01)posedP[i].y+=Math.abs(slope)*.085;if(action==='chair-sit')posedP[i].y+=.055;if(action==='kotatsu'||action==='bathe')posedP[i].y+=/gown|hakama/.test(wardrobePreset)?.098:.045;posedQ[i].copy(posedQ[j]);}
   initializedFeet=walking&&physical;
   const swing=walking?Math.sin(t)*locomotion.armSwing:0;
   if(walking||action){reach(0,-.304,.926+(walking?-.03:0),.008+swing);reach(1,.304,.926+(walking?-.03:0),.008-swing);}else{for(const i of [4,5,6,7,8,9]){posedP[i].copy(REST[i]).sub(REST[0]).applyQuaternion(torsoQ).add(posedP[0]);posedQ[i].copy(torsoQ);}}
   let lookX=walking?.035:0,lookY=walking?0:Math.sin(time*.7)*.045;
-  if(action==='chair-sit'){
+  if(action==='bathe'){
+   const hip=context?.bathHipHeight??.32;reach(0,-.22,hip+.29,.28);reach(1,.22,hip+.29+Math.sin(time*.7)*.006,.28);lookX=-.03;lookY=Math.sin(time*.35)*.025;
+  }else if(action==='lie-rest'){lookX=0;lookY=0;
+  }else if(action==='chair-sit'){
    reach(0,-.18,chairHeight+.15,.25);reach(1,.18,chairHeight+.15,.25);lookX=.025;lookY=Math.sin(time*.35)*.025;
   }else if(action==='kotatsu'){
    const sip=Math.pow((Math.sin(time*.8)+1)*.5,3);reach(0,-.22,.67,.31);reach(1,.15,.71+sip*.32,.31-sip*.14);show('cup');lookX=.10-sip*.08;lookY=Math.sin(time*.35)*.035;
@@ -251,13 +274,46 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   if(action){posedQ[6].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));posedQ[9].identity();if(/knead|bread|tidy/.test(action))posedQ[9].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));}
   if(action==='chair-sit'){posedQ[6].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));posedQ[9].copy(posedQ[6]);}
   headQ.setFromEuler(new THREE.Euler(lookX,lookY,0));posedQ[3].copy(torsoQ).multiply(headQ);
+  if(action==='lie-rest'){
+   // Supine, face upward, head toward the pillow (-local Z). Keep the original
+   // body/face/garment surfaces; transform the rig rather than squashing them.
+   for(let i=0;i<posedP.length;i++){posedP[i].copy(REST[i]);posedQ[i].identity();}
+   if(poseChanged){lieOffsets.back=0;lieOffsets.head=0;lieOffsets.heel=0;}settleLieJoints();rig.rotation.x=-Math.PI/2;rig.position.set(0,0,context?.lieOffset??.70);
+  }
   applyPose();
+  if(mountedPose){
+   const supportY=Number.isFinite(context?.supportY)?context.supportY:rootWorld.y;
+   if(poseChanged){
+    // One bounded contact fit on activation; no geometry scan in the frame loop.
+    rig.position.y=0;
+    if(action==='lie-rest'&&context?.lieSupport){
+     let skin=measureLieSkin(),hipTarget=supportY,target={...context.lieSupport};
+     // The same garment cut can place its posterior at a different point on a
+     // folded quilt. Raycast those real contact points instead of guessing one plane.
+     for(let pass=0;pass<3;pass++){
+      for(const part of['hip','back','head','heel'])if(skin.points[part]&&context.lieSurfaceHeightAt){tmp2.copy(skin.points[part]).applyMatrix4(root.matrixWorld);target[part]=context.lieSurfaceHeightAt(tmp2.x,tmp2.z);}
+      const hip=Number.isFinite(skin.hip)?skin.hip:skin.min;hipTarget=target.hip;supportCorrection=-hip+.004/root.scale.y;
+      for(const part of['back','head','heel']){const delta=Number.isFinite(skin[part])?(target[part]-target.hip)/root.scale.y-(skin[part]-hip):0;lieOffsets[part]=clamp(lieOffsets[part]+delta,-.24,.24);}
+      for(let i=0;i<posedP.length;i++){posedP[i].copy(REST[i]);posedQ[i].identity();}settleLieJoints();applyPose();skin=measureLieSkin();
+     }
+     supportCorrection=(hipTarget-supportY)/root.scale.y-(Number.isFinite(skin.hip)?skin.hip:skin.min)+.004/root.scale.y;poseMinY=skin.min;poseMaxY=skin.max;
+     metrics.lieContact={};for(const part of['back','hip','head','heel'])metrics.lieContact[part]={surface:target[part],body:supportY+(skin[part]+supportCorrection)*root.scale.y,gap:supportY+(skin[part]+supportCorrection)*root.scale.y-target[part]};
+
+    }else{
+     const skin=measureLieSkin();poseMinY=skin.min;poseMaxY=skin.max;supportCorrection=-poseMinY+.004/root.scale.y;metrics.lieContact=null;
+    }
+   }
+   rig.position.y=(supportY-rootWorld.y)/root.scale.y+supportCorrection;root.updateMatrixWorld(true);skeleton.update();
+   metrics.contactMinY=supportY+(poseMinY+supportCorrection)*root.scale.y;metrics.contactMaxY=supportY+(poseMaxY+supportCorrection)*root.scale.y;
+
+  }else{metrics.contactMinY=null;metrics.contactMaxY=null;metrics.lieContact=null;}
+
   if(action==='sushi-eat')props.right.rotation.x-=Math.pow((Math.sin(time*.95)+1)*.5,2)*.55;
   if(/garden/.test(action||''))props.right.rotation.z=-.35;
   // Fixed-size pose data: no per-frame Box3 or scene traversal.
-  metrics.height=height+visualFloorOffset;metrics.visualFloorOffset=visualFloorOffset;metrics.headHeight=(posedP[3].y+.16)*root.scale.y+visualFloorOffset;metrics.labelHeight=(posedP[3].y+template.height-1.455+.16)*root.scale.y+visualFloorOffset;root.userData.labelHeight=metrics.labelHeight;
+  metrics.height=height+visualFloorOffset;metrics.visualFloorOffset=visualFloorOffset;metrics.headHeight=mountedPose?bones[3].getWorldPosition(tmp).y-rootWorld.y+.16*root.scale.y:(posedP[3].y+.16)*root.scale.y+visualFloorOffset;metrics.labelHeight=mountedPose?metrics.headHeight+.2:(posedP[3].y+template.height-1.455+.16)*root.scale.y+visualFloorOffset;root.userData.labelHeight=metrics.labelHeight;
   for(let s=0;s<2;s++){lastFootWorld[s].copy(posedP[s?15:12]).applyMatrix4(root.matrixWorld);lastFootWorld[s].y+=visualFloorOffset;metrics.feet[s]=clonePoint(posedP[s?15:12]);metrics.hands[s]=clonePoint(posedP[s?9:6]);}
-  metrics.grounded=action==='chair-sit'||action==='kotatsu'||posedP[12].y>=footTargets[0].y-.003&&posedP[15].y>=footTargets[1].y-.003;metrics.rigBones=18;metrics.continuousCloth=true;metrics.unevenSupport=unevenSupport;
+  metrics.grounded=mountedPose||action==='chair-sit'||action==='kotatsu'||posedP[12].y>=footTargets[0].y-.003&&posedP[15].y>=footTargets[1].y-.003;metrics.rigBones=18;metrics.continuousCloth=true;metrics.unevenSupport=unevenSupport;
   previousRoot.copy(rootWorld);lastTime=time;wasWalking=walking;previousYaw=root.rotation.y;
  }
  function dispose(){if(disposed)return;disposed=true;skeleton.dispose();disposeHandProps(props);releaseTemplate(template);const geometry=new Set(),materials=new Set();root.traverse(o=>{if(o.geometry&&!o.geometry.userData.characterShared)geometry.add(o.geometry);for(const m of (Array.isArray(o.material)?o.material:[o.material]))if(m&&!m.userData?.characterShared)materials.add(m);});geometry.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());root.userData.disposed=true;}

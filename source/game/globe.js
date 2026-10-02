@@ -151,34 +151,45 @@ const continents = [
 function land(parent, feature) {
   const vertices = feature.points.map(p => new THREE.Vector2(p[0], p[1]));
   const triangles = THREE.ShapeUtils.triangulateShape(vertices, []);
-  const positions = [], shades = [];
+  const positions = [], shades = [], normals = [];
   const base = new THREE.Color(feature.color);
-  let index = 0;
+  const smooth = (a,b,x) => { const t=THREE.MathUtils.clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+  const band = (x,a,b,c,d) => smooth(a,b,x)*(1-smooth(c,d,x));
+  // Shared-vertex terrain paint avoids the old centroid-selected triangle teeth.
+  function terrainColor(p) {
+    const lon=p.x,lat=p.y,col=base.clone();
+    const dry=feature.name==='Africa'?band(lat,10,17,29,36):feature.name==='Eurasia'?band(lon,31,38,61,69)*band(lat,8,15,29,36):0;
+    if(dry>0)col.lerp(new THREE.Color(0xe1cf90),dry);
+    if(feature.name==='Eurasia')col.lerp(new THREE.Color(0xdcc590),.42*band(lon,72,81,109,118)*band(lat,34,40,46,52));
+    if(feature.name==='South America')col.lerp(new THREE.Color(0x78b687),.35*smooth(-20,-10,lat));
+    if(feature.name!=='Greenland')col.lerp(new THREE.Color(0xc8d8a6),.55*smooth(59,67,lat));
+    return col;
+  }
   function triangle(a, b, c, depth) {
-    const max = Math.max(a.distanceTo(b), b.distanceTo(c), c.distanceTo(a));
-    if (max > 5 && depth < 7) {
-      const ab = a.clone().add(b).multiplyScalar(.5), bc = b.clone().add(c).multiplyScalar(.5), ca = c.clone().add(a).multiplyScalar(.5);
-      triangle(a, ab, ca, depth + 1); triangle(ab, b, bc, depth + 1); triangle(ca, bc, c, depth + 1); triangle(ab, bc, ca, depth + 1);
+    const lengths=[a.distanceTo(b),b.distanceTo(c),c.distanceTo(a)],max=Math.max(...lengths);
+    if (max > 5 && depth < 24) {
+      // Split only a long edge. The old four-way adaptive split also divided
+      // short shared edges on one face, leaving nonconforming spherical seams.
+      const edge=lengths.indexOf(max);
+      if(edge===0){const m=a.clone().add(b).multiplyScalar(.5);triangle(a,m,c,depth+1);triangle(m,b,c,depth+1);}
+      else if(edge===1){const m=b.clone().add(c).multiplyScalar(.5);triangle(a,b,m,depth+1);triangle(a,m,c,depth+1);}
+      else{const m=c.clone().add(a).multiplyScalar(.5);triangle(a,b,m,depth+1);triangle(m,b,c,depth+1);}
       return;
     }
-    const lat = (a.y + b.y + c.y) / 3, lon = (a.x + b.x + c.x) / 3;
-    const col = base.clone();
-    if ((feature.name === 'Africa' && lat > 12 && lat < 31) || (feature.name === 'Eurasia' && lon > 35 && lon < 65 && lat < 33)) col.set(0xe1cf90);
-    if (feature.name === 'Eurasia' && lon > 75 && lon < 115 && lat > 38 && lat < 48) col.lerp(new THREE.Color(0xdcc590), .42);
-    if (feature.name === 'South America' && lat > -15) col.lerp(new THREE.Color(0x78b687), .35);
-    if (lat > 62 && feature.name !== 'Greenland') col.lerp(new THREE.Color(0xc8d8a6), .55);
-    col.multiplyScalar(1 + Math.sin(index++ * 8.912) * .013);
     const A = point(a.y, a.x, R + .065), B = point(b.y, b.x, R + .065), C = point(c.y, c.x, R + .065);
-    // Geographic longitude/latitude triangulation may wind either way. Always face out.
     const normal = B.clone().sub(A).cross(C.clone().sub(A));
-    const face = normal.dot(A) >= 0 ? [A,B,C] : [A,C,B];
-    for (const p of face) { positions.push(p.x,p.y,p.z); shades.push(col.r,col.g,col.b); }
+    const face = normal.dot(A) >= 0 ? [[A,a],[B,b],[C,c]] : [[A,a],[C,c],[B,b]];
+    for (const [p,uv] of face) {
+      const col=terrainColor(uv),n=p.clone().normalize();
+      positions.push(p.x,p.y,p.z);shades.push(col.r,col.g,col.b);normals.push(n.x,n.y,n.z);
+    }
   }
   triangles.forEach(t => triangle(vertices[t[0]], vertices[t[1]], vertices[t[2]], 0));
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geometry.setAttribute('color', new THREE.Float32BufferAttribute(shades, 3));
-  geometry.computeVertexNormals();
+  // Radial normals keep coherent spherical Toon bands instead of facet seams.
+  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
   const m = new THREE.Mesh(geometry, toon(0xffffff, { vertexColors: true }));
   m.name = feature.name; m.receiveShadow = true; parent.add(m);
   // A fine sandy rim gives the coast the feel of a cut-paper relief.

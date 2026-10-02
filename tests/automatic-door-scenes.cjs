@@ -9,8 +9,8 @@ for(const[id,file,fn]of[['japan','japan-bathhouse.js','buildJapan'],['china','re
   // A restore inside a wide hinge's swept arc must have an escape, rather than
   // making the leaf teleport through the actor. Retreat, then approach normally.
   const normalDistance=()=>Math.abs(d.axis==='z'?p.x-d.center[0]:p.z-d.center[2]);
-  let retreat=0;const safeApproach=Math.max(1.05,d.width/2+.8);
-  while(normalDistance()<safeApproach&&retreat++<300){doors.update(.016,[{position:p,radius:.34,height:1.95}]);const dx=d.axis==='z'?sign*.06:0,dz=d.axis==='x'?sign*.06:0,before={...p},delta=doors.constrainMove(p,dx,dz,.34);moveWithCollision(p,delta.dx,delta.dz,lot.colliders,.34,opts);assert(Math.hypot(p.x-before.x,p.z-before.z)>.001,id+'/'+d.id+' restored actor has retreat escape');if(!multi)p.y=flatHeight(p.x,p.z);}
+  let retreat=0;const safeApproach=(d.id==='france-bedroom-enfilade'&&sign>0||d.id==='france-private-bath'&&sign<0)?1.45:Math.max(1.05,d.width/2+.8);
+  while(normalDistance()<safeApproach-1e-6&&retreat++<300){doors.update(.016,[{position:p,radius:.34,height:1.95}]);const remaining=Math.min(.06,safeApproach-normalDistance()),dx=d.axis==='z'?sign*remaining:0,dz=d.axis==='x'?sign*remaining:0,before={...p},delta=doors.constrainMove(p,dx,dz,.34);moveWithCollision(p,delta.dx,delta.dz,lot.colliders,.34,opts);assert(Math.hypot(p.x-before.x,p.z-before.z)>.001,id+'/'+d.id+' restored actor has retreat escape');if(!multi)p.y=flatHeight(p.x,p.z);}
   assert(retreat<300,'retreat completes');
   for(let n=0;n<Math.ceil((safeApproach+1.15)/.03);n++){
    doors.update(.016,[{position:p,radius:.34,height:1.95}]);const delta=doors.constrainMove(p,d.axis==='z'?-sign*.03:0,d.axis==='x'?-sign*.03:0,.34);moveWithCollision(p,delta.dx,delta.dz,lot.colliders,.34,opts);if(!multi)p.y=flatHeight(p.x,p.z);samples++;
@@ -20,4 +20,4 @@ for(const[id,file,fn]of[['japan','japan-bathhouse.js','buildJapan'],['china','re
  }
  reports.push({id,doors:doors.getState().map(d=>({id:d.id,motion:d.motion,style:d.style})),actualThresholdMovementSamples:samples,cameraSweeps});doors.dispose();lot.group.traverse(o=>o.geometry?.dispose());
 }
-assert(reports.every(x=>x.doors.length<=2),'bounded selected doors only');console.log(JSON.stringify({status:'PASS',regions:reports,scope:'Authored door placement and actual lot-controller bidirectional crossing tests; not browser rendering'},null,2));})().catch(e=>{console.error(e);process.exit(1)});
+assert.deepEqual(Object.fromEntries(reports.map(x=>[x.id,x.doors.length])),{japan:1,china:2,egypt:1,france:3},'bounded, explicitly selected private-room and main doors');console.log(JSON.stringify({status:'PASS',regions:reports,scope:'Authored door placement and actual lot-controller bidirectional crossing tests; not browser rendering'},null,2));})().catch(e=>{console.error(e);process.exit(1)});

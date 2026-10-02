@@ -163,7 +163,34 @@ function skirt(g,name,{hem=.26,depth=.145,waist=.14,bottom=.13,color=C.yukata,pl
  return rings;
 }
 function belt(g,name,y,width,rx,color=C.obi){loft(g,name,[[y-width/2,rx,.101,0,-.001],[y+width/2,rx*.97,.096,0,-.001]],color,{segs:24,steps:5});}
+// Original shrine-service kosode and vermillion hakama. This preset changes
+// clothing only: the approved head, hands, wrists and body-sculpt rules are reused.
+function buildMiko(g){
+ const white=0xfffefa,collar=0xffffff,vermillion=0xca3b2f;
+ const upper=[[1.075,.148,.096,0,-.004],[1.14,.151,.095,0,-.004],[1.24,.159,.093,0,-.008],[1.32,.184,.080,0,-.012],[1.365,.122,.061,0,-.004],[1.40,.047,.038,0,0]];
+ loft(g,'miko-white-kosode-body',upper,white,{segs:36,steps:30});
+ const lower=skirt(g,'miko-vermillion-hakama',{hem:.251,depth:.147,waist:.148,bottom:.118,color:vermillion,pleats:.0055});
+ for(const side of[-1,1]){
+  loft(g,'miko-wide-sleeve-'+side,[[.946,.053,.070,side*.304,-.009],[.979,.087,.090,side*.297,-.014],[1.055,.106,.098,side*.270,-.014],[1.16,.088,.092,side*.235,-.014],[1.275,.069,.075,side*.202,-.013],[1.322,.058,.068,side*.17,-.012],[1.344,.034,.045,side*.145,-.01]],white,{steps:28,segs:28});
+  loft(g,'wrist-'+side,[[.901,.020,.022,side*.305,0],[.959,.025,.028,side*.296,-.001],[1.017,.028,.032,side*.289,-.002]],C.skin,{steps:20,segs:28});
+  const lapel=ribbon(g,'miko-white-cross-collar-'+side,[[side*.040,1.405,.03],[side*.080,1.35,.069],[-side*.010,1.236,.101],[-side*.074,1.103,.095]],.029,collar);
+  conformFront(lapel,upper,side===-1?.007:.0045);
+  const edge=ribbon(g,'miko-collar-seam-'+side,[[side*.048,1.397,.03],[side*.091,1.35,.069],[-side*.002,1.235,.10],[-side*.064,1.11,.096]],.0025,0xd3cdc2);
+  conformFront(edge,upper,side===-1?.009:.0065);
+  // Deep straight fold lines make the divided hakama read at game distance.
+  for(const [j,x]of[.040,.097,.164].entries()){
+   const fold=ribbon(g,'miko-hakama-pleat-'+side+'-'+j,[[side*x*.49,1.028,.10],[side*x*.68,.80,.12],[side*x*.89,.43,.14],[side*x,.14,.15]],.005,tone(vermillion,.73));
+   conformFront(fold,lower,.006);
+  }
+  hand(g,side);shoe(g,side,false);
+ }
+ loft(g,'miko-hakama-waistband',[[1.044,.160,.112,0,-.001],[1.130,.157,.108,0,-.001]],vermillion,{segs:24,steps:5});
+ ribbon(g,'miko-hakama-front-tie',[[-.052,1.101,.112],[0,1.080,.119],[.052,1.100,.112]],.025,tone(vermillion,.93));
+ // Tie lies clear of the band; the two modest ends remain on the skirt surface.
+ for(const side of[-1,1]){const end=ribbon(g,'miko-hakama-tie-end-'+side,[[side*.014,1.084,.116],[side*.035,.996,.114],[side*.049,.91,.112]],.018,tone(vermillion,.91));conformFront(end,lower,.012);}
+}
 function buildJapan(g,masc,preset){
+ if(preset==='miko-hakama'){buildMiko(g);return;}
  if(preset==='haori-trouser'){
   buildCasual(g);removeSurfaces(g,n=>/^short-sleeve/.test(n));const torso=g.getObjectByName('tailored-shirt-body');torso.name='haori-jacket-body';
   removeSurfaces(g,n=>/shirt-collar|shirt-placket|shirt-button|shirt-fold|collar-opening/.test(n));
@@ -279,12 +306,18 @@ export function createApprovedSurfaces({culture=null,masc=false,style='casual',b
  // R9 individual Egyptian dye survives both tailoring presets.
  if(culture==='egypt')C.yukata=new THREE.Color(C.yukata).lerp(new THREE.Color(0xe2d7b9),.28).getHex();
  const root=new THREE.Group();buildHead(root,masc,hairStyle);
- if(culture==='japan')buildJapan(root,masc,wardrobePreset||(masc?'yukata-narrow-obi':'yukata-wide-obi'));
+ // Temporary opaque ankle-length bath robe; saved cultural outfits remain untouched.
+ if(wardrobePreset==='bath-robe'){
+  buildJapan(root,masc,masc?'yukata-narrow-obi':'yukata-wide-obi');removeSurfaces(root,n=>/footwear|sole-|loafer/.test(n));
+  for(const side of[-1,1])loft(root,'footwear-bath-bare-'+side,[[.025,.001,.002,side*.089,.04],[.035,.045,.105,side*.089,.04],[.06,.050,.114,side*.089,.04],[.10,.033,.053,side*.089,-.01],[.15,.026,.034,side*.089,-.021]],C.skin,{segs:24,steps:16});
+ }
+
+ else if(culture==='japan')buildJapan(root,masc,wardrobePreset||(masc?'yukata-narrow-obi':'yukata-wide-obi'));
  else if(culture==='china')buildChina(root,masc,wardrobePreset||(masc?'scholar-long-robe':'ruqun-long-skirt'));
  else if(culture==='egypt')buildEgypt(root,masc,wardrobePreset||(masc?'linen-kilt':'linen-sheath'));
  else if(culture==='france')buildFrance(root,masc,wardrobePreset||(masc?'court-frock-coat':'court-gown'));
  else buildCasual(root);
  jobAccessories(root,style,culture);sculptBody(root,bodyPreset);
- root.traverse(m=>{if(m.isMesh){m.userData.softSkin=/continuous-head|neck|^ear-|inset-eye|iris-|pupil-|eye-catchlight|eyelid-|soft-brow|nostril-|lip|mouth|relaxed-|thumb-|wrist-|^arm-|bare-arm|bare-leg/.test(m.name);m.receiveShadow=false;m.castShadow=true;}});
+ root.traverse(m=>{if(m.isMesh){m.userData.softSkin=/footwear-bath-bare|continuous-head|neck|^ear-|inset-eye|iris-|pupil-|eye-catchlight|eyelid-|soft-brow|nostril-|lip|mouth|relaxed-|thumb-|wrist-|^arm-|bare-arm|bare-leg/.test(m.name);m.receiveShadow=false;m.castShadow=true;}});
  return root;
 }

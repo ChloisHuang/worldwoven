@@ -22,28 +22,32 @@ function leaf(width,height,style,side){
   const g=new THREE.Group(),[wood,panel,metal]=PALETTES[style]||PALETTES.palace;
   shapeBox(g,0,height/2,0,width,height,.105,wood);
   const innerW=width-.19;
-  if(style==='shoji'){
-    shapeBox(g,0,height*.53,.060,innerW,height*.79,.022,panel,.004);
-    for(let y=.32;y<height-.16;y+=.38)shapeBox(g,0,y,.08,innerW,.028,.026,wood,.003);
-    for(let x=-innerW/2+.27;x<innerW/2-.1;x+=.29)shapeBox(g,x,height*.53,.081,.025,height*.79,.026,wood,.003);
-    shapeBox(g,-side*(width/2-.13),height*.49,.085,.045,.15,.035,metal,.008);
-  }else{
-    const centers=[height*.25,height*.68],heights=[height*.27,height*.43];
-    for(let i=0;i<2;i++){
-      shapeBox(g,0,centers[i],.064,innerW,heights[i],.028,metal,.006);
-      shapeBox(g,0,centers[i],.083,innerW-.055,heights[i]-.055,.026,panel,.01);
-      if(style==='palace')for(let x=-innerW*.35;x<innerW*.4;x+=innerW*.35)for(let j=-1;j<=1;j++)shapeBox(g,x,centers[i]+j*heights[i]*.27,.107,.038,.038,.028,metal,.008);
-      if(style==='egypt')for(let j=-1;j<=1;j++)shapeBox(g,0,centers[i]+j*heights[i]*.29,.106,innerW*.65,.022,.015,metal,.003);
+  // Doors are approached from both directions. Each face gets its own joined
+  // lattice/panels and usable pull; the center slab and hinge straps stay single.
+  for(const face of[-1,1]){
+    const part=(x,y,z,w,h,d,c,b)=>{const m=shapeBox(g,x,y,face*z,w,h,d,c,b);m.userData.doorFace=face;return m;};
+    if(style==='shoji'){
+      part(0,height*.53,.060,innerW,height*.79,.022,panel,.004);
+      for(let y=.32;y<height-.16;y+=.38)part(0,y,.08,innerW,.028,.026,wood,.003);
+      for(let x=-innerW/2+.27;x<innerW/2-.1;x+=.29)part(x,height*.53,.081,.025,height*.79,.026,wood,.003);
+      part(-side*(width/2-.13),height*.49,.085,.045,.15,.035,metal,.008);
+    }else{
+      const centers=[height*.25,height*.68],heights=[height*.27,height*.43];
+      for(let i=0;i<2;i++){
+        part(0,centers[i],.064,innerW,heights[i],.028,metal,.006);
+        part(0,centers[i],.083,innerW-.055,heights[i]-.055,.026,panel,.01);
+        if(style==='palace')for(let x=-innerW*.35;x<innerW*.4;x+=innerW*.35)for(let j=-1;j<=1;j++)part(x,centers[i]+j*heights[i]*.27,.107,.038,.038,.028,metal,.008);
+        if(style==='egypt')for(let j=-1;j<=1;j++)part(0,centers[i]+j*heights[i]*.29,.106,innerW*.65,.022,.015,metal,.003);
+      }
+      const knob=new THREE.Mesh(new THREE.TorusGeometry(.069,.014,5,16),material(metal));knob.position.set(-side*(width/2-.13),height*.47,face*.135);knob.userData.doorFace=face;g.add(knob);
     }
-    const knob=new THREE.Mesh(new THREE.TorusGeometry(.069,.014,5,16),material(metal));knob.position.set(-side*(width/2-.13),height*.47,.135);g.add(knob);
-    // Jamb-mounted offset strap hinges keep the opened leaf outside the clear
-    // portal. Their short connected straps bridge from timber to hinge pin.
-    for(const y of[height*.2,height*.8])shapeBox(g,side*(width/2+.065),y,0,.19,.09,.09,metal,.012);
   }
+  if(style!=='shoji')for(const y of[height*.2,height*.8])shapeBox(g,side*(width/2+.065),y,0,.19,.09,.09,metal,.012);
+  g.userData={style,twoSidedDecoration:true,frontDetailMeshes:g.children.filter(x=>x.userData.doorFace===1).length,backDetailMeshes:g.children.filter(x=>x.userData.doorFace===-1).length};
   mergeLeaf(g);return g;
 }
 function boxFromLeaf(g,width,height){
-  const b=new THREE.Box3(new THREE.Vector3(-width/2,0,-.065),new THREE.Vector3(width/2,height,.15));b.applyMatrix4(g.matrixWorld);
+  const b=new THREE.Box3(new THREE.Vector3(-width/2,0,-.15),new THREE.Vector3(width/2,height,.15));b.applyMatrix4(g.matrixWorld);
   return {minX:b.min.x,maxX:b.max.x,minY:b.min.y,maxY:b.max.y,minZ:b.min.z,maxZ:b.max.z};
 }
 function within(d,p,depth,padding=0){
@@ -60,7 +64,7 @@ function unionBox(a,b){return {minX:Math.min(a.minX,b.minX),maxX:Math.max(a.maxX
 const DEFAULT_DOORS={
   japan:[{id:'japan-guest-shoji',center:[2,7.675,-7.76],width:2.6,height:2.73,axis:'x',style:'shoji',motion:'slide'}],
   egypt:[{id:'egypt-private-suite-door',center:[17.9,0,11.4],width:3.18,height:3.36,axis:'x',style:'egypt',motion:'hinge',swing:1}],
-  france:[{id:'france-palace-front',center:[0,.23,3.5],width:3.8,height:3.86,axis:'x',style:'french',motion:'hinge',swing:1}]
+  france:[{id:'france-palace-front',center:[0,.23,3.5],width:3.8,height:3.86,axis:'x',style:'french',motion:'hinge',swing:1},{id:'france-bedroom-enfilade',center:[6.85,.23,-6.6],width:2.2,height:3.67,axis:'x',style:'french',motion:'hinge',swing:1},{id:'france-private-bath',center:[-21,.23,-6.6],width:2.5,height:3.67,axis:'x',style:'french',motion:'hinge',swing:-1}]
 };
 export function createAutomaticDoors(lot,region){
   const root=new THREE.Group();root.name='R10 operable cultural doors';lot.group.add(root);let disposed=false;
@@ -97,7 +101,10 @@ export function createAutomaticDoors(lot,region){
       }).filter(Boolean);
       for(const d of doors){
         const approach=people.some(a=>{const travel=a.speed*.58,moving=a.speed>.08,reach=d.motion==='hinge'?d.width/2+.32:.15;return within(d,a.p,moving?Math.max(1.7,reach+a.r+.25+travel):1.7,.8+(moving?travel:0));});
-        const currentBoxes=doorBoxes(d),safety=people.some(a=>within(d,a.p,1.35,.55)||currentBoxes.some(b=>penetration(a.p,b,a.r,a.height)>0));
+        // Finish opening before a fast actor reaches the entire hinge sweep, not
+        // only after reaching the center threshold. Swept-volume checks still
+        // reject any unsafe leaf motion for actors restored inside that sweep.
+        const currentBoxes=doorBoxes(d),safety=people.some(a=>within(d,a.p,1.35,.55)||(d.motion==='hinge'&&a.speed>.08&&within(d,a.p,d.width/2+.32+a.r+.12+a.speed*dt,.55))||currentBoxes.some(b=>penetration(a.p,b,a.r,a.height)>0));
         if(approach||safety)d.hold=1.1;else d.hold=Math.max(0,d.hold-dt);
         const target=approach||safety||d.hold>0?1:0;
         const desired=safety?1:THREE.MathUtils.clamp(d.fraction+(target?1:-1)*dt/(target?.48:.85),0,1);

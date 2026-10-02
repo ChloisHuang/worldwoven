@@ -9,6 +9,8 @@ export const WARDROBE_PRESETS={
  egypt:{feminine:['linen-sheath','linen-pleated-dress'],masculine:['linen-kilt','linen-tunic-kilt']},
  france:{feminine:['court-gown','court-overgown'],masculine:['court-frock-coat','court-waistcoat']}
 };
+// Explicit NPC roles are outside the seeded/player wardrobe cycle.
+export const ROLE_WARDROBE_PRESETS={japan:['miko-hakama']};
 const skin=[[0xefc6a6,3],[0xdfb18d,3],[0xca9672,2],[0xa87050,2],[0x7e5037,1],[0x593725,1]];
 const palettes={
  japan:{skin:[[0xefc6a6,3],[0xdfb18d,4],[0xca9672,3],[0xa87050,2],[0x7e5037,1]],hair:[[0x252329,5],[0x362c2a,4],[0x53382d,3],[0x725442,1],[0x6c6661,1]],eyes:[[0x332923,5],[0x4a3428,4],[0x674830,2],[0x80704b,1]],clothes:[0x587e7a,0x596d89,0x91606a,0xb19870,0x777159,0x776789,0xa77565,0x697c65]},
@@ -27,6 +29,12 @@ function identity(seed,variant){
 function wardrobe(region,bodyPreset,index){const p=WARDROBE_PRESETS[region]||WARDROBE_PRESETS.france;return p[bodyPreset.startsWith('masculine')?'masculine':'feminine'][index%2];}
 // Keep the v1 color salts forever: a schema migration must never repaint residents.
 export function npcAppearance(region,id,worldSeed=1){const p=palettes[region]||palettes.france,key=`v1|${worldSeed>>>0}|${region}|${id}`,variant=Math.floor(random(key,'silhouette')*4),traits=identity(key,variant);return{skin:weighted(p.skin,random(key,'skin')),hair:weighted(p.hair,random(key,'hair')),eyeColor:weighted(p.eyes,random(key,'eyes')),clothes:pick(p.clothes,random(key,'clothes')),accent:region==='egypt'?0xc4a657:region==='china'?0xd0b478:0xdfceb0,variant,...traits,wardrobePreset:wardrobe(region,traits.bodyPreset,traits.wardrobeIndex)};}
+// Only the omamori/Inari approach attendant wears shrine service clothing.
+// Keep every identity salt and the resident's original locomotion cut intact.
+export function npcRoleAppearance(region,id,worldSeed=1){
+ const look=npcAppearance(region,id,worldSeed);
+ return region==='japan'&&id==='jp-omamori'?{...look,hairStyle:'low-bun',wardrobePreset:'miko-hakama',locomotionWardrobePreset:look.wardrobePreset}:look;
+}
 export function createAppearanceState(seed){const key='player|'+(seed>>>0),variant=Math.floor(random(key,'silhouette')*4);return{version:APPEARANCE_VERSION,seed:seed>>>0,player:{skin:weighted(skin,random(key,'skin')),hair:weighted(palettes.france.hair,random(key,'hair')),eyeColor:weighted(palettes.france.eyes,random(key,'eyes')),variant,...identity(key,variant)}};}
 function validBase(a){return Number.isInteger(a?.seed)&&a.seed>=0&&a.seed<=4294967295&&a.player&&['skin','hair','eyeColor'].every(k=>Number.isInteger(a.player[k])&&a.player[k]>=0&&a.player[k]<=0xffffff)&&Number.isInteger(a.player.variant)&&a.player.variant>=0&&a.player.variant<4;}
 export function validAppearanceState(a){return a?.version===APPEARANCE_VERSION&&validBase(a)&&BODY_PRESETS.includes(a.player.bodyPreset)&&HAIR_STYLES.includes(a.player.hairStyle)&&Number.isInteger(a.player.wardrobeIndex)&&a.player.wardrobeIndex>=0&&a.player.wardrobeIndex<2&&Number.isInteger(a.player.gaitPreset)&&a.player.gaitPreset>=0&&a.player.gaitPreset<4;}

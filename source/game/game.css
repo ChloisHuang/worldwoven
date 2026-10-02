@@ -19,3 +19,20 @@ body.in-lot .location-card{background:#fff8e4d9;backdrop-filter:blur(10px)}body.
 .outfit-dialog{margin:auto 24px auto auto;width:310px;padding:24px;max-height:90dvh;overflow-y:auto}.outfit-dialog::backdrop{background:#18332b38;backdrop-filter:none}.outfit-dialog h2{font-size:21px;margin:13px 0}.outfit-dialog p{font-size:11px;margin:9px 0;line-height:1.65}.outfit-close{position:absolute;right:12px;top:8px;background:transparent;font-size:24px}.outfit-choices{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0}.outfit-choices button{text-align:left;background:#eae5d6;border-radius:9px;padding:11px 7px;font-size:11px;border:2px solid transparent}.outfit-choices button:before{content:'';display:inline-block;vertical-align:middle;width:20px;height:24px;margin-right:7px;background:var(--outfit-color);border-radius:7px 7px 3px 3px;box-shadow:inset 0 0 0 1px #0002}.outfit-choices button[aria-pressed=true]{border-color:#497165;background:#e0eadb}.outfit-next{width:100%;padding:10px;background:#ebe7d7;border-radius:8px;font-size:11px}.outfit-actions{display:flex;gap:9px;margin-top:14px}.outfit-actions button{flex:1;min-width:0;padding:12px;background:#e5e0ce;border-radius:9px;font-size:12px}.outfit-actions .primary{background:#315e60}.furniture-row{border-top:1px solid #85978122;font-size:10px;color:#486b5c;padding:11px 9px}@media(max-height:500px){.outfit-dialog{width:286px;padding:17px;max-height:94dvh;margin-right:16px}.outfit-dialog h2{font-size:18px;margin:8px 0}.outfit-dialog p{font-size:10px;margin:6px 0}.outfit-choices{gap:5px;margin:10px 0}.outfit-choices button{padding:7px}.outfit-choices button:before{height:17px;width:15px}.outfit-actions{margin-top:8px}.outfit-actions button{padding:9px}}
 
 .outfit-steppers{display:flex;gap:8px}@media(pointer:coarse) and (orientation:landscape){.character-card{display:block;padding:0;background:none;box-shadow:none}.character-card>.portrait,.character-card>div{display:none}#appearance-button{position:fixed;left:calc(50% - 19px);top:max(10px,env(safe-area-inset-top));width:38px;height:38px;margin:0;border-radius:12px;background:#fff8e4e8;font-size:22px;color:#806448}}
+
+/* R11 furniture remains discoverable with the mobile journal collapsed. */
+.daybook-tabs{display:flex;flex-shrink:0;padding:0 7px 7px;gap:5px}
+.daybook-tabs button{flex:1;min-height:38px;padding:8px 5px;border-radius:8px;font-size:11px;background:#e8e7d9}
+.daybook-tabs button[aria-selected=true]{background:#426f68;color:#fff9e7}
+#furniture-list{padding:0 8px 8px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.furniture-row{min-height:44px;padding:7px 9px}
+#furniture-labels{position:fixed;inset:0;pointer-events:none}
+.furniture-label{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;min-width:48px;min-height:44px;padding:7px 10px;border-radius:16px;background:#315e60e8;color:#fff8e5;box-shadow:0 2px 8px #18392d45;border:1px solid #fff8e5b0;font-size:11px;touch-action:manipulation}
+.furniture-label::before{content:'◇ ';color:#f4d895}
+.furniture-label:active{transform:translate(-50%,-100%)}
+.touch-action{font-size:12px;line-height:1.25;padding:8px;word-break:keep-all;min-width:58px;min-height:58px}
+@media(pointer:coarse) and (orientation:landscape){.daybook>button{padding:7px 10px}.daybook-tabs{padding-bottom:5px}.daybook-tabs button{min-height:36px}.daybook{width:190px}.touch-action{width:64px;height:58px;right:max(25px,calc(env(safe-area-inset-right) + 9px))}.furniture-label{min-width:48px;min-height:44px;font-size:10px}}
+.daybook{display:flex;flex-direction:column;max-height:calc(100dvh - 244px)}
+.daybook>button{flex-shrink:0}
+#station-list,#furniture-list{min-height:0;overflow-y:auto}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:360px){.daybook{top:92px;max-height:calc(100dvh - 214px)}.daybook>button{padding:4px 10px}.daybook-tabs button{min-height:32px}}

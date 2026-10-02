@@ -1152,7 +1152,10 @@ export function buildFrance({pack=true}={}){
   }
   // West service wing: private bathing room behind a real cross-wall.
   for(let x=-24.5;x<-17.2;x+=.72)for(let z=-13.1;z<-6.9;z+=.72)box(x,.249,z,.70,.03,.70,((Math.round(x*10)+Math.round(z*10))%2)?C.ivory:C.sage);
-  block(-22.55,.57,-10.2,3.05,.60,3.60,C.gold);G.sphere(group,-22.55,.77,-10.2,1.0,C.white,1.46,.37,1.7);const bathRim=G.torus(group,-22.55,1.20,-10.2,1,.12,C.white);bathRim.scale.set(1.35,1.60,1);G.sphere(group,-22.55,1.15,-10.2,1.0,C.sage,1.19,.03,1.45);G.sphere(group,-22.55,1.18,-10.2,1.0,0xb2d9c9,1.10,.025,1.34);
+  // R12: open oval tub with a supported bottom, inner wall and outer shell.
+  reserveBlock(-22.55,.57,-10.2,3.05,.60,3.60);box(-22.55,.325,-10.2,3.05,.11,3.60,C.gold);
+  const tubProfile=[[0,.38],[1.04,.38],[1.13,.48],[1.40,1.20],[1.28,1.20],[1.02,.42],[0,.42]].map(([r,y])=>new THREE.Vector2(r,y));const tubShell=G.mesh(group,new THREE.LatheGeometry(tubProfile,24),C.white,-22.55,0,-10.2);tubShell.scale.z=1.16;
+  const bathRim=G.torus(group,-22.55,1.20,-10.2,1,.12,C.white);bathRim.scale.set(1.35,1.60,1);G.sphere(group,-22.55,1.18,-10.2,1.0,0xb2d9c9,1.10,.025,1.34);
   for(const x of [-23.62,-21.48])for(const z of [-11.4,-9.0])G.sphere(group,x,.43,z,.13,C.gold,.8,1.4,.8);
   G.cyl(group,-22.55,1.33,-11.73,.055,.055,.64,C.gold,10);const spout=G.torus(group,-22.55,1.65,-11.66,.17,.035,C.gold,0);spout.rotation.y=Math.PI/2;
   // Wash basin, towel rail, screened WC, and linen cabinet stay on service edges.
@@ -1196,11 +1199,20 @@ export function buildFrance({pack=true}={}){
     for(const z of [-33,-17.5,10,18.5,27,35]){
       const x=s*27.3;G.cyl(group,x,1.77,z,.16,.25,3.3,0x928e68,10);G.box(group,x,3.75,z,2.45,2.2,2.45,C.green);G.box(group,x,4.91,z,2.05,.23,2.05,0x6b8c5c);G.collider(colliders,x,z,1.1,1.1);
     }
-    for(const z of [17.5,27.2,-17.5,-33.2]){const x=s*5.15;block(x,.51,z,.9,.70,2.9,C.ivory);box(x,.94,z,.93,.18,2.94,C.sage);box(x+s*.42,1.31,z,.12,.77,2.98,C.white);}
+    for(const z of [19.4,27.2,-19.6,-33.2]){
+      // The former front bench crossed the parterre hedge; the rear bench
+      // enclosed a potted lime. Put both on clear paths and at sitting height.
+      const x=s*5.15,q=assembly(local(x,z),'Royal garden stone bench','garden-bench');
+      for(const zz of[-1.03,1.03])G.box(q,0,.15,zz,.80,.26,.32,C.ivory);
+      G.box(q,0,.43,0,.88,.34,2.86,C.ivory);G.box(q,0,.645,0,.93,.10,2.94,C.sage);G.box(q,s*.415,1.00,0,.12,.81,2.98,C.white);
+      q.userData.supportY=.02;q.userData.seatTopLocal=.695;
+      G.collider(colliders,x,z,.95,2.98);cameraBox(x,.7125,z,.95,1.385,2.98);
+      group.userData.gardenBenches??=[];group.userData.gardenBenches.push({id:`france-garden-bench-${s}-${z}`,name:'宫苑石长椅',center:[x,0,z],anchor:[x-s*.27,0,z],position:[x-s*1.10,0,z],yaw:-s*Math.PI/2,seatY:.695,size:[.95,1.405,2.98],cameraStyle:'garden-bench',cameraParts:[{minX:x-.465,maxX:x+.465,minY:.02,maxY:.70,minZ:z-1.49,maxZ:z+1.49},{minX:x+(s<0?-.475:.355),maxX:x+(s<0?-.355:.475),minY:.595,maxY:1.405,minZ:z-1.49,maxZ:z+1.49}]});
+    }
     for(const z of [36.9,-36.9])urn(s*3.1,z,.8);
   }
   // Gilt garden lamps sit on existing bench-back footprints; no new collision.
-  for(const s of [-1,1])for(const z of [17.5,27.2,-17.5,-33.2]){const x=s*5.57;G.cyl(group,x,1.78,z,.035,.055,.25,C.gold,8);G.mesh(group,new THREE.BoxGeometry(.23,.32,.23),C.ivory,x,2.02,z,{emissive:0xffbb65,emissiveIntensity:.55});G.box(group,x,2.20,z,.32,.05,.32,C.gold);registerNightFixture(group,x,2.02,z,{kind:'garden-lamp',color:0xffd398,intensity:12,distance:9});}
+  for(const s of [-1,1])for(const z of [19.4,27.2,-19.6,-33.2]){const x=s*5.565;G.cyl(group,x,1.49,z,.035,.055,.25,C.gold,8);G.mesh(group,new THREE.BoxGeometry(.23,.32,.23),C.ivory,x,1.78,z,{emissive:0xffbb65,emissiveIntensity:.55});G.box(group,x,1.96,z,.32,.05,.32,C.gold);registerNightFixture(group,x,1.78,z,{kind:'garden-lamp',color:0xffd398,intensity:12,distance:9});}
   // Gate piers and low white/green railings close the 60 x 80 footprint.
   for(const x of [-29.5,29.5]){block(x,.56,0,.36,1.08,79,C.ivory);for(let z=-38;z<39;z+=1.5)box(x,1.26,z,.15,.42,.15,C.gold);box(x,1.50,0,.16,.08,78,C.green);}
   for(const z of [-39.5,39.5])for(const s of [-1,1]){block(s*16.7,.56,z,25.6,1.08,.36,C.ivory);box(s*16.7,1.50,z,25.7,.08,.16,C.green);}

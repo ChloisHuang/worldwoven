@@ -1,13 +1,13 @@
-import {registerNightFixture} from '/assets/night-lighting.45125c813da91138.js';
+import {registerNightFixture} from '/assets/night-lighting.41621174f39ac4d8.js';
 
-// R10 original procedural palace. The entire estate was replanned as separate
+// R11 painted and furnished original procedural palace. The entire estate was replanned as separate
 // roofed buildings within four palace walls, rather than enlarging one house.
 // Visual study: mareasia, SGLY t182446 (creator effect images, 2026-10-02).
 // No third-party geometry, texture, download, or traced plan is used.
 export function buildChinaPalace(G,H){
  const {THREE}=G;
  const {palaceBox,palaceWall,palaceCeiling,palaceRoof,beam,teaSet,bowl,scroll,openShelf,boundBook,foldedCloth,flowerBranches,cherry,bamboo,packStatic}=H;
- const C={red:0x9d3f32,dark:0x603e2e,wood:0x805137,gold:0xc8a15d,stone:0xc9c3b0,cream:0xd8c7a7,jade:0x4d7569,roof:0xb68b42};
+ const C={red:0xac3b2d,dark:0x50362d,wood:0x805137,gold:0xd7af56,stone:0xc9c3b0,cream:0xdbc5a0,jade:0x287879,roof:0xc39341};
  const group=new THREE.Group(),roofGroup=new THREE.Group(),exterior=new THREE.Group();
  group.name='China — Four Courts Palace';roofGroup.name='China palace roofs and real ceilings';exterior.name='China outer walls and open courts';group.add(exterior,roofGroup);
  const colliders=[],cameraColliders=[],walkableSurfaces=[],interiorRooms=[],doorways=[],explorationTargets=[],buildings=[],perimeterWalls=[],courts=[];
@@ -16,10 +16,64 @@ export function buildChinaPalace(G,H){
  const floor=(g,x,z,w,d,y=.2,color=C.stone)=>{box(g,x,y/2,z,w,y,d,color);walkableSurfaces.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2,y:y+.015});};
  const target=(id,name,x,z,roomId)=>explorationTargets.push({id,name,roomId,position:[x,0,z]});
  const door=(id,name,axis,at,from,to,top,rooms,bottom=.2)=>{const center=(from+to)/2;const point=off=>axis==='x'?[center,0,at+off]:[at+off,0,center];const d={id,name,axis,at,from,to,bottom,top,width:to-from,height:top-bottom,rooms,a:point(-.85),b:point(.85)};doorways.push(d);return {from,to,top,bottom};};
+
+ // Original, low-relief painted decoration. Every composition belongs to an
+ // existing wall, beam or furniture support. The R10 physical contracts below
+ // are untouched: no new navigation obstacles or hidden floor/platform rules.
+ const ornaments=[],ink=0x245564,teal=0x3d9590,ivory=0xf2d999,bronze=0x75633b;
+ const ornament=(g,id,kind,support,build)=>{const q=new THREE.Group();q.name='China R11 '+id;g.add(q);build(q);q.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(q);let meshes=0,triangles=0;q.traverse(o=>{if(o.isMesh){meshes++;triangles+=(o.geometry.index?.count||o.geometry.attributes.position.count)/3;}});ornaments.push({id,kind,support,groupName:q.name,meshes,triangles,bounds:{min:b.min.toArray(),max:b.max.toArray()}});return q;};
+ // A bezier silhouette creates a continuous cut petal, not stacked primitives.
+ const petal=(g,x,y,z,w,h,c,angle=0)=>{const p=new THREE.Shape();p.moveTo(0,0);p.bezierCurveTo(-w*.64,h*.32,-w*.4,h*.83,0,h);p.bezierCurveTo(w*.4,h*.83,w*.64,h*.32,0,0);const m=G.mesh(g,new THREE.ExtrudeGeometry(p,{depth:.016,bevelEnabled:false,curveSegments:5}),c,x,y,z);m.rotation.z=angle;return m;};
+ const stroke=(g,points,r,c)=>G.mesh(g,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p))),Math.max(5,points.length*2),r,4,false),c);
+ const cloud=(g,x,y,z,s=1,c=C.gold)=>{const pts=[[-.55,-.03],[-.28,-.03],[-.39,.10],[-.34,.25],[-.17,.27],[-.09,.12],[.02,.22],[.18,.21],[.24,.08],[.10,-.04],[.52,-.04]];stroke(g,pts.map(([a,b])=>[x+a*s,y+b*s,z]),.027*s,c);stroke(g,[[x-.48*s,y-.15*s,z],[x-.16*s,y-.15*s,z],[x+.07*s,y-.10*s,z],[x+.37*s,y-.15*s,z]],.018*s,ivory);};
+ const lotus=(g,x,y,z,s=1)=>{for(const a of [-1.10,-.62,0,.62,1.10])petal(g,x,y,z,.28*s,.54*s,a===0?ivory:C.gold,a);for(const a of [-1.1,-.55,.55,1.1])petal(g,x,y-.035*s,z+.020,.20*s,.33*s,teal,a);};
+ const frame=(g,x,y,z,w,h,c=C.gold)=>{for(const dx of [-w/2,w/2])G.box(g,x+dx,y,z,.045,h,.036,c);for(const dy of [-h/2,h/2])G.box(g,x,y+dy,z,w,.045,.036,c);};
+ function paintedBand(g,id,x,y,z,w,angle=0){
+  return ornament(g,id,'painted-frieze','existing transom',q=>{q.position.set(x,y,z);q.rotation.y=angle;
+   G.box(q,0,0,0,w,.43,.026,ink);for(const yy of [-.205,.205])G.box(q,0,yy,.026,w,.033,.035,C.gold);
+   const n=Math.max(2,Math.floor(w/1.65)),step=w/n;
+   for(let i=0;i<n;i++){const xx=-w/2+step*(i+.5);frame(q,xx,0,.030,step-.14,.31,C.gold);G.box(q,xx,0,.052,.21,.21,.018,teal).rotation.z=Math.PI/4;cloud(q,xx,-.07,.078,.45);for(const side of [-1,1])petal(q,xx+side*(step*.30),-.1,.066,.11,.21,C.gold,side*.9);}
+  });
+ }
+ function dado(g,id,axis,at,from,to,face=1){
+  const w=to-from;if(w<.28)return;ornament(g,id,'vermillion-wainscot','existing masonry wall',q=>{q.position.set(axis==='x'?(from+to)/2:at,.76,axis==='x'?at:(from+to)/2);q.rotation.y=axis==='x'?(face===1?0:Math.PI):(face===1?Math.PI/2:-Math.PI/2);
+   G.box(q,0,0,.177,w,1.08,.028,C.red);for(const yy of [-.50,.50])G.box(q,0,yy,.205,w,.046,.035,C.gold);const n=Math.max(1,Math.ceil(w/1.65)),step=w/n;
+   for(let i=0;i<n;i++){const xx=-w/2+(i+.5)*step;frame(q,xx,0,.219,step-.20,.79,C.dark);frame(q,xx,0,.240,step-.31,.67,C.gold);const rr=G.box(q,xx,0,.261,.21,.21,.018,C.gold);rr.rotation.z=Math.PI/4;}
+  });
+ }
+ function silkLantern(g,id,x,y,z,s=.38){
+  return ornament(g,id,'ribbed-palace-lantern','existing overhead beam or lamp post',q=>{q.position.set(x,y,z);const h=.72;
+   // Eight faceted silk panels, continuous curved ribs, a raised cap and tassel.
+   const profile=[[.20,-.47],[.34,-.37],[.42,-.12],[.42,.12],[.34,.37],[.20,.47]];
+   G.mesh(q,new THREE.LatheGeometry(profile.map(([r,yy])=>new THREE.Vector2(r*s/.38,yy)),8),C.red,0,0,0,{emissive:0xffa550,emissiveIntensity:.48});
+   for(let i=0;i<8;i++){const a=i*Math.PI/4;stroke(q,profile.map(([r,yy])=>[Math.sin(a)*(r*s/.38+.018),yy,Math.cos(a)*(r*s/.38+.018)]),.017,C.gold);}
+   for(const yy of [-.45,.45])G.cyl(q,0,yy,0,s*.63,s*.8,.075,C.gold,8);G.cyl(q,0,.515,0,s*.48,s*.7,.055,C.dark,8);G.cyl(q,0,.72,0,.018,.018,.36,C.gold,6);
+   for(const side of [-1,1]){petal(q,side*.025,-.19,s*1.10,.13,.31,ivory,side*.4);}
+   G.cyl(q,0,-.63,0,.025,.025,.28,C.gold,6);G.cyl(q,0,-.83,0,.09,.045,.22,C.red,8);for(const a of [-.05,0,.05])G.cyl(q,a,-1.0,0,.012,.012,.23,C.gold,5);
+  });
+ }
+ function incense(g,id,x,y,z,s=1){
+  return ornament(g,id,'bronze-incense-vessel','existing ceremonial console top',q=>{q.position.set(x,y,z);q.scale.setScalar(s);
+   const profile=[[.18,.08],[.26,.10],[.35,.22],[.39,.45],[.34,.55],[.34,.59],[.29,.59],[.29,.54],[.32,.44],[.27,.23],[.18,.16]];
+   G.mesh(q,new THREE.LatheGeometry(profile.map(p=>new THREE.Vector2(...p)),16),bronze);for(const yy of [.11,.52,.59])G.torus(q,0,yy,0,yy===.11?.25:.345,.027,C.gold);
+   for(let i=0;i<3;i++){const a=i*2*Math.PI/3;stroke(q,[[Math.sin(a)*.27,.27,Math.cos(a)*.27],[Math.sin(a)*.28,.13,Math.cos(a)*.28],[Math.sin(a)*.32,.02,Math.cos(a)*.32]],.045,bronze);}
+   for(const side of [-1,1])stroke(q,[[side*.32,.46,0],[side*.49,.52,0],[side*.46,.72,0],[side*.30,.69,0]],.035,C.gold);
+   G.mesh(q,new THREE.LatheGeometry([[0,.92],[.11,.89],[.18,.81],[.30,.76],[.34,.66]].map(p=>new THREE.Vector2(...p)),16),bronze);G.sphere(q,0,.96,0,.055,C.gold);
+   for(let i=0;i<8;i++){const a=i*Math.PI/4;petal(q,Math.sin(a)*.322,.63,Math.cos(a)*.322,.09,.14,teal,a);}
+  });
+ }
+ function dragon(g,x,y,z,s=1,mirror=1){
+  const q=new THREE.Group();q.position.set(x,y,z);q.scale.set(mirror*s,s,s);g.add(q);
+  stroke(q,[[-.74,-.58,0],[-.30,-.35,0],[.38,-.42,0],[.65,-.09,0],[.43,.29,0],[-.17,.25,0],[-.40,.63,0],[-.21,.89,0],[.12,.92,0]],.115,C.gold);
+  stroke(q,[[-.66,-.59,.055],[-.28,-.40,.055],[.38,-.46,.055],[.58,-.11,.055],[.39,.22,.055],[-.20,.18,.055],[-.45,.57,.055]],.022,ivory);
+  petal(q,.01,.68,.04,.38,.39,C.gold,-.55);G.sphere(q,.16,.91,.025,.14,C.gold,1.35,.72,.38);G.sphere(q,.15,.94,.096,.025,C.dark);stroke(q,[[.24,.86,.06],[.40,.92,.06],[.50,.89,.06]],.018,ivory);
+  for(const side of [-1,1]){stroke(q,[[-.06,.93,0],[-.13,1.14,0],[-.02,1.22,0]],.034,C.gold);stroke(q,[[.32*side,.10,0],[.48*side,.02,0],[.70*side,.14,0]],.049,C.gold);for(const j of [-1,0,1])stroke(q,[[.65*side,.12,0],[(.80+j*.05)*side,.14+j*.08,0]],.020,C.gold);}
+  for(let i=0;i<6;i++)petal(q,-.20+i*.12,-.39,.10,.07,.13,teal,-.6);
+ }
  const column=(g,x,z,h=4.5,r=.18)=>{G.cyl(g,x,(h+.2)/2,z,r,r,h-.2,C.red,12);box(g,x,.28,z,r*2.9,.3,r*2.9,0xb3b6a7,true);for(const y of [.6,h-.3])G.cyl(g,x,y,z,r*1.12,r*1.12,.12,C.gold,12);cameraColliders.push({minX:x-r,maxX:x+r,minZ:z-r,maxZ:z+r,minY:.2,maxY:h});};
- const fixture=(g,x,y,z,kind='palace-pendant',size=.30)=>{G.cyl(g,x,y+.52,z,.024,.024,.52,C.gold,6);G.lamp(g,x,y,z,0xdca26a,size);G.mesh(g,new THREE.SphereGeometry(size*.54,10,6),0xffce8a,x,y,z,{emissive:0xffa550,emissiveIntensity:.48});registerNightFixture(g,x,y-.10,z,{kind,intensity:22,distance:12,floorY:0});};
+ const fixture=(g,x,y,z,kind='palace-pendant',size=.30)=>{G.cyl(g,x,y+.52,z,.024,.024,.52,C.gold,6);silkLantern(g,'fixture-'+x+'-'+z+'-'+y,x,y,z,size);G.mesh(g,new THREE.SphereGeometry(size*.54,10,6),0xffce8a,x,y,z,{emissive:0xffa550,emissiveIntensity:.48});registerNightFixture(g,x,y-.10,z,{kind,intensity:22,distance:12,floorY:0});};
  const standingLamp=(x,z)=>{column(exterior,x,z,3.25,.085);G.box(exterior,x,3.25,z,.9,.13,.72,C.dark);fixture(exterior,x,2.6,z,'court-lantern',.31);};
- const window=(g,x,z,w,axis='x',h=2.35,y=2.62)=>{const q=new THREE.Group();q.position.set(x,y,z);if(axis==='z')q.rotation.y=Math.PI/2;g.add(q);for(const a of [-w/2,w/2])G.box(q,a,0,0,.13,h,.2,C.red);for(const b of [-h/2,h/2,0])G.box(q,0,b,0,w,.11,.2,C.red);for(let a=-w/2+.34;a<w/2-.1;a+=.46){G.box(q,a,0,0,.052,h-.12,.1,C.dark);for(const b of [-.59,.59]){const d=G.box(q,a,b,.03,.31,.31,.055,C.gold);d.rotation.z=Math.PI/4;}}cameraColliders.push({minX:x-(axis==='x'?w/2:.10),maxX:x+(axis==='x'?w/2:.10),minY:y-h/2,maxY:y+h/2,minZ:z-(axis==='x'?.10:w/2),maxZ:z+(axis==='x'?.10:w/2)});};
+ const window=(g,x,z,w,axis='x',h=2.35,y=2.62)=>{const q=new THREE.Group();q.position.set(x,y,z);if(axis==='z')q.rotation.y=Math.PI/2;g.add(q);for(const a of [-w/2,w/2])G.box(q,a,0,0,.13,h,.2,C.red);for(const b of [-h/2,h/2,0])G.box(q,0,b,0,w,.11,.2,C.red);for(let a=-w/2+.34;a<w/2-.1;a+=.46){G.box(q,a,0,0,.052,h-.12,.1,C.dark);for(const b of [-.59,.59]){const d=G.box(q,a,b,.03,.31,.31,.055,C.gold);d.rotation.z=Math.PI/4;}}ornament(q,'lattice-'+x+'-'+z+'-'+axis,'lotus-lattice','existing window frame',d=>{for(const sign of [-1,1]){const f=new THREE.Group();f.rotation.y=sign<0?Math.PI:0;d.add(f);G.box(f,0,-.88,.065,w-.16,.42,.028,C.jade);for(const yy of [-1.06,-.69])G.box(f,0,yy,.086,w-.12,.035,.032,C.gold);lotus(f,0,-1.00,.106,.43);for(const xx of [-w*.28,w*.28]){frame(f,xx,.11,.066,w*.30,h*.49,C.gold);cloud(f,xx,.64,.09,.39);}}});cameraColliders.push({minX:x-(axis==='x'?w/2:.10),maxX:x+(axis==='x'?w/2:.10),minY:y-h/2,maxY:y+h/2,minZ:z-(axis==='x'?.10:w/2),maxZ:z+(axis==='x'?.10:w/2)});};
  const stool=(g,x,z)=>{box(g,x,.45,z,.75,.5,.75,C.wood,true);G.box(g,x,.76,z,.86,.12,.86,0xb19068);};
  const table=(g,x,z,w,d,h=1)=>{G.table(g,x,z,w,d,C.wood,h);G.collider(colliders,x,z,w,d);cameraColliders.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2,minY:.2,maxY:h+.09});};
  const shelf=(g,x,z,w=3.2,h=2.8,d=.7,rot=0)=>{const s=openShelf(g,colliders,x,z,w,h,d,C.wood,rot);s.position.y=.2;cameraColliders.push({minX:x-(rot?d:w)/2,maxX:x+(rot?d:w)/2,minZ:z-(rot?w:d)/2,maxZ:z+(rot?w:d)/2,minY:.2,maxY:h+.2});for(const xx of [-w*.30,0,w*.30]){for(let j=0;j<3;j++)boundBook(s,xx,.35+j*.11,0,w*.20,.46,[0x738d7b,0xb69d6a,0x9a6350][j]);G.vessel(s,xx,1.51,0,0xa9c2b5,.55);}return s;};
@@ -56,6 +110,13 @@ export function buildChinaPalace(G,H){
   for(const xx of [x0,x0+w*.25,x0+w*.75,x1])for(const zz of [z0,z1])if(!((back&&zz===z0&&xx>back.from-.3&&xx<back.to+.3)||(zz===z1&&xx>entry.from-.3&&xx<entry.to+.3)))column(g,xx,zz,h,.19);for(const side of [-1,1])for(const zz of [z-3,z+3])if(!(id==='kitchen'&&zz===z+3)&&!(id==='bath'&&side<0&&zz===z+3))column(g,x+side*w/2,zz,h,.17);
   // Qing-inspired painted transoms and bracket clusters reinforce actual bays.
   for(const zz of [z0,z1]){G.box(g,x,h-.45,zz,w,.52,.36,C.jade);for(let xx=x0+.6;xx<x1;xx+=1.15){G.box(g,xx,h-.45,zz+(zz===z1?.21:-.21),.48,.17,.055,C.gold);for(const yy of [h-.85,h-.66])G.box(g,xx,yy,zz,.64,.13,.54,C.red);}}
+
+  for(const [side,at,opening,face]of[['front',z1,entry,1],['rear',z0,back,-1]]){
+   for(const[a,b]of opening?[[x0,opening.from],[opening.to,x1]]:[[x0,x1]])dado(g,id+'-'+side+'-'+a,'x',at,a,b,face);
+   paintedBand(g,id+'-'+side+'-beam',x,h-.45,at+face*.227,w,face>0?0:Math.PI);
+  }
+  // Paired facade lanterns hang in the window bays, away from every door swing.
+  for(const side of [-1,1])silkLantern(g,id+'-entry-lantern-'+side,x+side*(s.ceremony?7.9:3.35),h-.70,z1+.32,s.ceremony?.42:.27);
   palaceCeiling(r,colliders,cameraColliders,x,z,w,d,h,!!s.ceremony);palaceRoof(r,x,h+.25,z,w+2,d+2,s.ceremony?2.45:1.55,C.roof);
   if(s.ceremony){palaceRoof(r,x,h+2.18,z,16,10.5,1.45,0xc49749);for(const xx of [-6,0,6])fixture(g,xx,4.5,z+1,'ceremonial-pendant',.40);}
   else fixture(g,x,h-.82,z,'chamber-lantern',.30);
@@ -91,7 +152,10 @@ export function buildChinaPalace(G,H){
   table(g,21,-1.7,3.8,2.1,1);for(const x of [19.9,21,22.1]){bowl(g,x,1.09,-1.15,0xc3d1bd,.2);bowl(g,x,1.09,-2.25,0xc3d1bd,.2);}for(const x of [19.8,22.2])for(const z of [-3.2,.3])stool(g,x,z);shelf(g,25.1,-10.6,2,2.6,.7,-Math.PI/2);target('cn-kitchen-prep','御膳备餐案前',22.7,-7.45,'kitchen');target('cn-kitchen-stove','灶前',17.8,-9.35,'kitchen');target('cn-kitchen-rear','御膳后门内',21,-11.05,'kitchen');target('cn-dining-west','餐厅西侧',17.8,-1.2,'dining');target('cn-dining-east','餐厅东侧',23.9,-1.2,'dining');target('cn-dining-door','餐厅门内',21,.6,'dining');}
  // Bath hall has a distinct screened washroom with its own real threshold.
  {const g=rooms.bath.g;interiorRooms.splice(interiorRooms.findIndex(r=>r.id==='bath'),1);interiorRooms.push({id:'bath',name:'竹苑浴间',minX:-26,maxX:-20,minZ:-33,maxZ:-23,ceiling:4},{id:'washroom',name:'竹苑净室',minX:-20,maxX:-16,minZ:-33,maxZ:-23,ceiling:4});buildings.find(b=>b.id==='bath').roomIds=['bath','washroom'];palaceWall(g,colliders,cameraColliders,{axis:'z',at:-20,from:-33,to:-23,bottom:.2,top:4,color:C.cream,openings:[door('cn-bath-washroom','浴间净室门','z',-20,-27,-24,3.3,['bath','washroom'])]});
-  box(g,-23.6,.65,-30,3.2,.85,4.15,0x8f9d92,true);G.box(g,-23.6,1.10,-30,2.9,.08,3.84,0xcecfb8);G.box(g,-23.6,1.15,-30,2.5,.025,3.44,0x72a79e);for(const x of [-25.12,-22.08])G.box(g,x,1.2,-30,.18,.23,4.22,0xd7d4bb);for(const z of [-32,-28])G.box(g,-23.6,1.2,z,3.25,.23,.18,0xd7d4bb);foldedCloth(g,-24.1,1.32,-32,1.0,.34,0xe0d7bb);shelf(g,-25,-23.6,1.8,2.1,.65);
+  // R12: genuine hollow stone basin inside its preserved movement/camera envelope.
+  G.collider(colliders,-23.6,-30,3.2,4.15);cameraColliders.push({minX:-23.6-3.2/2,maxX:-23.6+3.2/2,minY:.65-.85/2,maxY:.65+.85/2,minZ:-30-4.15/2,maxZ:-30+4.15/2});
+  G.box(g,-23.6,.255,-30,3.2,.1,4.15,0x8f9d92);for(const x of[-25.09,-22.11])G.box(g,x,.75,-30,.22,1.0,4.15,0x8f9d92);for(const z of[-31.965,-28.035])G.box(g,-23.6,.75,z,3.2,1.0,.22,0x8f9d92);
+  G.box(g,-23.6,1.15,-30,2.5,.025,3.44,0x72a79e);for(const x of [-25.12,-22.08])G.box(g,x,1.2,-30,.18,.23,4.22,0xd7d4bb);for(const z of [-32,-28])G.box(g,-23.6,1.2,z,3.25,.23,.18,0xd7d4bb);foldedCloth(g,-24.1,1.32,-32,1.0,.34,0xe0d7bb);shelf(g,-25,-23.6,1.8,2.1,.65);
   box(g,-17.25,.78,-30.9,1.7,1.12,1.15,C.wood,true);G.box(g,-17.25,1.39,-30.9,1.82,.1,1.24,0xb8c3b5);G.sphere(g,-17.25,1.48,-30.9,.36,0xd7d8c2,1.3,.35,1);G.box(g,-17.25,2.52,-32.8,1.45,1.4,.09,C.wood);G.box(g,-17.25,2.52,-32.73,1.25,1.2,.045,0xa8bdb1);G.cyl(g,-17.4,.61,-24.8,.36,.31,.72,0xc6c9b7,12);G.torus(g,-17.4,.99,-24.8,.31,.08,0xe5dec5);G.box(g,-17.4,1.13,-25.3,.72,.7,.26,0xc6c9b7);G.collider(colliders,-17.4,-24.9,.9,1.2);target('cn-bath-tub','浴池步道',-21,-30,'bath');target('cn-bath-linens','更衣布草区',-22.8,-25,'bath');target('cn-bath-basin','净室洗手盆前',-17.3,-29.2,'washroom');target('cn-bath-toilet','净室屏后',-18.4,-24.8,'washroom');}
  // Rear library and quiet guest residence are independent buildings. Rear
  // passage and garden lanes give every facade room to breathe.
@@ -109,6 +173,41 @@ export function buildChinaPalace(G,H){
  for(const [id,name,x,z]of [['cn-south-gate','承礼门外',0,39],['cn-gatehouse','承礼门廊',0,35],['cn-processional-court','开阔仪庭',0,23],['cn-court-west','广庭西侧',-12,16],['cn-court-east','广庭东侧',12,16],['cn-hall-approach','正殿前露台',0,7],['cn-west-lane','西内庭宽巷',-13.5,-5],['cn-east-lane','东内庭宽巷',13.5,-5],['cn-west-crosscourt','西苑横庭',-21,5],['cn-east-crosscourt','东苑横庭',21,5],['cn-garden','后苑荷桥',0,-18],['cn-garden-west','荷庭西岸',-10,-14],['cn-garden-east','荷庭东岸',10,-14],['cn-north-court','藏书殿后庭',0,-36],['cn-west-gate','西苑侧门',-28,-18],['cn-east-gate','东苑侧门',28,-18]])target(id,name,x,z,'outdoors');
  for(const d of doorways){if(['cn-kitchen-front','cn-kitchen-west','cn-kitchen-east'].includes(d.id))d.rooms[0]='dining';if(d.id==='cn-bath-east')d.rooms[0]='washroom';}
  const facilities=[{id:'entrance',name:'迎宾与入口',targets:['cn-south-gate','cn-gatehouse','cn-processional-court'],furnishings:['承礼门','开阔仪庭','迎宾长椅']},{id:'reception',name:'会客与礼仪',targets:['cn-hall-front','cn-hall-throne','cn-tea-work'],furnishings:['独立正殿','云纹仪座','宫苑茶厅']},{id:'dining-kitchen',name:'用餐与备膳',targets:['cn-dining-west','cn-kitchen-prep','cn-kitchen-stove'],furnishings:['独立餐厅','蒸笼灶台','双人备餐案']},{id:'sleeping',name:'寝居',targets:['cn-bedroom-east','cn-guest-bed'],furnishings:['雕花架子床','客居卧榻','阅读椅']},{id:'bathing',name:'沐浴与更衣',targets:['cn-bath-tub','cn-bath-linens'],furnishings:['石浴池','布草柜']},{id:'washroom',name:'盥洗与净室',targets:['cn-bath-basin','cn-bath-toilet'],furnishings:['水盆','壁镜','屏后坐便']},{id:'storage-service',name:'储藏与勤务',targets:['cn-archive-center','cn-study-work','cn-kitchen-rear'],furnishings:['藏书殿','书法案','御膳后门']}];
+
+ // Throne backdrop is one cohesive, shallow lacquer-and-gilt relief composition,
+ // fitted to the existing seven-metre screen instead of filling the central aisle.
+ ornament(rooms.hall.g,'throne-dragon-screen','dragon-cloud-screen','existing solid throne backdrop',q=>{
+  G.box(q,0,3.06,-10.225,6.9,3.85,.035,ink);frame(q,0,3.06,-10.190,7.1,4.02);frame(q,0,3.06,-10.162,6.75,3.64);
+  for(const side of [-1,1]){dragon(q,side*1.48,3.10,-10.110,1.06,side);for(const yy of [1.62,4.50])cloud(q,side*1.50,yy,-10.10,.94);}
+  G.torus(q,0,3.53,-10.10,.36,.050,C.gold,0);lotus(q,0,1.65,-10.10,.90);
+  // Folded side hangings use tapered extruded profiles; hems remain attached.
+  for(const side of [-1,1]){const sh=new THREE.Shape();sh.moveTo(0,0);sh.lineTo(side*.31,0);sh.quadraticCurveTo(side*.40,-1.2,side*.20,-2.2);sh.lineTo(side*.01,-2.11);sh.closePath();G.mesh(q,new THREE.ExtrudeGeometry(sh,{depth:.032,bevelEnabled:false,curveSegments:6}),C.red,side*3.21,4.86,-10.11);stroke(q,[[side*3.22,4.80,-10.06],[side*3.29,3.72,-10.06],[side*3.25,2.68,-10.06]],.025,C.gold);}
+ });
+ ornament(rooms.hall.g,'throne-carved-apron','gilded-throne','existing throne seat and back',q=>{frame(q,0,.93,-7.125,2.93,.57);for(const x of [-1.03,0,1.03])cloud(q,x,.86,-7.09,.53);for(const side of [-1,1])dragon(q,side*.70,2.25,-8.50,.48,side);});
+ for(const x of [-6.7,6.7])incense(rooms.hall.g,'hall-incense-'+x,x-.63,1.17,-7,.82);
+ // Symmetric court-side display consoles use the two existing bench footprints.
+ // Their depth never exceeds the original .72 m support; the 12 m axis is clear.
+ for(const x of [-19,19]){
+  ornament(exterior,'court-console-'+x,'paired-court-console','existing courtyard bench',q=>{G.box(q,x,.59,30,4.8,.14,.69,C.red);for(const yy of [.45,.65])G.box(q,x,yy,30.372,4.7,.042,.025,C.gold);for(const dx of [-1.7,0,1.7])cloud(q,x+dx,.51,30.392,.60);});
+  for(const dx of [-1.85,1.85])incense(exterior,'court-incense-'+x+'-'+dx,x+dx,.725,30,.60);
+ }
+ // Room-scaled surface compositions: hanging paintings, framed silk panels,
+ // brocade runners, tea trays, bound folios, and supported fine porcelain.
+ const hanging=(g,id,x,y,z,w,h,motif='lotus')=>ornament(g,id,'framed-silk-panel','existing solid wall',q=>{G.box(q,x,y,z,w,h,.045,ink);frame(q,x,y,z+.039,w+.07,h+.08);G.box(q,x,y,z+.05,w-.13,h-.13,.018,C.jade);if(motif==='lotus'){lotus(q,x,y-h*.25,z+.083,Math.min(w*.75,h*.70));for(const dx of [-w*.28,w*.28])cloud(q,x+dx,y+h*.30,z+.091,w*.27);}else{for(const k of [-1,0,1]){stroke(q,[[x+k*w*.2,y-h*.35,z+.086],[x+k*w*.12,y+h*.34,z+.086]],.015,C.gold);for(const j of [-1,0,1])petal(q,x+k*w*.14,y+j*h*.19,z+.09,w*.13,h*.20,ivory,(k+j)%2*.9);}}});
+ hanging(rooms.tea.g,'tea-floral-panel',-23.7,2.65,8.19,1.2,1.75);hanging(rooms.tea.g,'tea-floral-panel-pair',-18.3,2.65,8.19,1.2,1.75);
+ const studyPanel=hanging(rooms.study.g,'study-bamboo-panel',0,2.77,0,1.7,1.62,'bamboo');studyPanel.position.set(21,0,20.81);studyPanel.rotation.y=Math.PI;
+ hanging(rooms.bedroom.g,'bedroom-silk-panel',-24.05,2.50,-11.81,1.3,1.9);hanging(rooms.guest.g,'guest-silk-panel',19,2.45,-32.81,1.9,1.8);
+ for(const x of [-8,-4,4,8])hanging(rooms.archive.g,'archive-painted-panel-'+x,x,3.75,-33.81,2.6,.46,'bamboo');
+ ornament(rooms.tea.g,'tea-brocade-tray','tabletop-vignette','existing tea table outside work approach',q=>{G.box(q,-21,1.11,11.05,3.2,.018,.32,C.red);for(const z of [10.91,11.19])G.box(q,-21,1.124,z,3.18,.015,.022,C.gold);for(const x of [-22,-21,-20]){G.cyl(q,x,1.14,11.06,.12,.12,.025,C.gold,12);}});
+ ornament(rooms.study.g,'scholar-scroll-vignette','tabletop-vignette','existing study table behind supported working papers',q=>{for(const x of [20.2,21.1]){const m=G.cyl(q,x,1.13,11.03,.085,.085,.70,0xe8d5a7,10);m.rotation.z=Math.PI/2;for(const dx of [-.36,.36]){const cap=G.cyl(q,x+dx,1.13,11.03,.103,.103,.06,C.dark,10);cap.rotation.z=Math.PI/2;}}G.box(q,21.9,1.17,10.95,.90,.24,.50,C.red);frame(q,21.9,1.18,11.21,.77,.15);});
+ ornament(rooms.bedroom.g,'bed-gilt-valance','bed-canopy-trim','existing bed rear and top frame',q=>{G.box(q,-21,3.12,-10.96,3.65,.25,.09,ink);for(const x of [-22.2,-21,-19.8])cloud(q,x,3.055,-10.90,.60);for(const x of [-22.82,-19.18]){G.cyl(q,x,1.59,-10.95,.035,.035,2.65,C.gold,6);}frame(q,-21,1.40,-10.975,3.5,.60);});
+ ornament(rooms.kitchen.g,'dining-brocade-setting','dining-vignette','existing dining tabletop',q=>{G.box(q,21,1.084,-1.7,.70,.014,2.01,C.red);for(const x of [20.68,21.32])G.box(q,x,1.096,-1.7,.025,.014,1.95,C.gold);for(const x of [19.9,21,22.1])for(const z of [-1.15,-2.25]){G.cyl(q,x,1.085,z,.29,.29,.026,C.jade,16);for(const dx of [.34,.40])G.box(q,x+dx,1.111,z,.02,.023,.45,C.dark);}});
+ ornament(rooms.bath.g,'bath-lotus-border','lotus-bath-frieze','existing tub rim',q=>{for(const x of [-24.5,-23.6,-22.7]){lotus(q,x,.58,-27.905,.40);G.box(q,x,.98,-27.900,.7,.025,.020,C.gold);}});
+ for(const x of [-7,7])ornament(rooms.archive.g,'library-brush-tray-'+x,'scholar-vignette','existing library table',q=>{G.box(q,x,1.10,-27.49,2.6,.05,.35,C.red);for(const dx of [-.65,.65])G.vessel(q,x+dx,1.14,-27.50,teal,.35);});
+ // Refresh recorded bounds after any support-local transforms, before batching.
+ group.updateMatrixWorld(true);for(const o of ornaments){const b=new THREE.Box3().setFromObject(group.getObjectByName(o.groupName));o.bounds={min:b.min.toArray(),max:b.max.toArray()};}
+ const decorativeProgram={revision:'R11 painted palace',sourceStudy:{url:'https://www.sglynp.com/t182446',creator:'mareasia',observed:'Public effect images: layered screens, paired lanterns, wall lattices, textiles, displayed porcelain and paired court composition. All geometry and motifs here are newly authored; no assets copied.'},palette:{vermillion:C.red,gold:C.gold,turquoise:C.jade,indigo:ink},ornaments,physicalPolicy:'Decor fitted to existing architecture/furniture; R10 navigation, camera, stations, automatic doors and 60x80 metadata preserved',newPointLights:0};
+ group.userData.decorativeProgram=decorativeProgram;
  // Per-building floors and rugs aggregate at lot level for the unchanged flat
  // controller; no unmodelled elevation formula or floating decorative slab.
  group.userData.rugSurfaces=[];for(const{g}of Object.values(rooms))group.userData.rugSurfaces.push(...(g.userData.rugSurfaces||[]));

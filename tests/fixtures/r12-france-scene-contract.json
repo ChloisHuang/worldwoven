@@ -1,0 +1,14 @@
+{
+  "region": "france",
+  "reason": "R12 moves exactly four intersecting garden benches to clear rows, gives all eight supported .695m seats and matching body/camera boxes. Hollow royal tub keeps original collider footprint. All stations, room doors, bounds, walking surfaces and exploration targets unchanged.",
+  "hashes": {
+    "colliders": "d8cc53bb8d31b902ef6483c19ed711a3bada773e1b407accf7c57123241ad1ac",
+    "cameraColliders": "38518d9b5afa19b324b4d4c0d60b161c606dda945ac26e40ff8fe8fca36d5ab0"
+  },
+  "requiredTests": [
+    "garden-bench-clearance",
+    "furniture-interactions",
+    "hotfix-input-events",
+    "rest-bath-input-events"
+  ]
+}
