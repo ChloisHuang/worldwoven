@@ -1,7 +1,7 @@
 const vm=require('vm'),fs=require('fs'),assert=require('assert/strict');
 (async()=>{
- const m=new vm.SourceTextModule(fs.readFileSync('source/game/appearance.js','utf8'));await m.link(()=>{});await m.evaluate();const A=m.namespace,regions=['japan','china','egypt','france'];let checks=0;
- assert.equal(A.APPEARANCE_VERSION,2);
+ const A=await import('../source/game/appearance.js'),regions=['japan','china','egypt','france'];let checks=0;
+ assert.equal(A.APPEARANCE_VERSION,3);
  for(const seed of[0,1,42,731821,4294967295]){
   const state=A.createAppearanceState(seed);assert(A.validAppearanceState(state));assert(A.validAppearanceState(JSON.parse(JSON.stringify(state))));
   const old={version:1,seed,player:Object.fromEntries(['skin','hair','eyeColor','variant'].map(k=>[k,state.player[k]]))},migrated=A.migrateAppearanceState(old);assert(A.validAppearanceState(migrated));for(const[k,v]of Object.entries(old.player))assert.equal(migrated.player[k],v,'migration preserves '+k);assert.equal(migrated.seed,seed);
