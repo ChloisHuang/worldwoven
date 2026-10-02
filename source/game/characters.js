@@ -63,7 +63,9 @@ function locomotionFor(wardrobe,gaitPreset,scale){
  const restricted=/yukata|kimono/.test(wardrobe),free=/trouser|waistcoat|frock|kilt/.test(wardrobe),long=/gown|ruqun|long-robe/.test(wardrobe);
  const personality=Math.abs(gaitPreset|0)%4,temper=[.90,1,1.08,.97][personality],stepTemper=[.96,1,1.04,.94][personality];
  const stepLength=(restricted?.39:free?.60:long?.53:.46)*stepTemper*scale;
- const walkSpeed=(restricted?.95:free?1.35:long?1.20:1.06)*temper*scale;
+ // Keep garment-specific short steps, but make everyday travel responsive.
+ // Phase follows real distance below, so this raises cadence without foot skating.
+ const walkSpeed=(restricted?.95:free?1.35:long?1.20:1.06)*temper*scale*1.65;
  return Object.freeze({walkSpeed,hurrySpeed:walkSpeed*1.38,stepLength,strideLength:stepLength*2,label:restricted?'measured garment-limited steps':free?'relaxed open stride':'easy draped stride',lift:(restricted?.065:.090)*scale,armSwing:(restricted?.065:free?.135:.105)*temper});
 }
 export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,accent=0xe7cab0,style='casual',culture=null,variant=0,bodyPreset=null,hairStyle=null,wardrobePreset=null,gaitPreset=1,scale=1,eyeColor=0x594b3f,receiveShadow=false}={}){
@@ -113,9 +115,9 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   if(disposed)return;visualFloorOffset=Number.isFinite(context?.visualFloorOffset)?clamp(context.visualFloorOffset,0,.5):0;rig.position.y=visualFloorOffset/root.scale.y;time=Number.isFinite(time)?time:0;walking=!!walking;if(walking)action=null;resetTools();
   const rawDt=lastTime===null?0:time-lastTime,dt=clamp(rawDt,0,.2);root.updateWorldMatrix(true,false);root.getWorldPosition(rootWorld);velocity.copy(rootWorld).sub(previousRoot);const travel=Math.hypot(velocity.x,velocity.z),headingDelta=Math.atan2(Math.sin(root.rotation.y-previousYaw),Math.cos(root.rotation.y-previousYaw)),discontinuity=rawDt>.25||rawDt<0||travel>=1.2||Math.abs(headingDelta)>.85;const physical=!discontinuity&&dt>0&&travel>.000001;
   if(physical)velocity.multiplyScalar(1/dt);else velocity.set(0,0,0);
-  const leavingSeat=currentAction==='kotatsu'&&walking;
+  const leavingSeat=(currentAction==='kotatsu'||currentAction==='chair-sit')&&action!==currentAction;
   if(discontinuity||leavingSeat){initializedFeet=false;for(let s=0;s<2;s++){lastFootWorld[s].set(s?.089:-.089,.108,-.025).applyMatrix4(root.matrixWorld);lastFootWorld[s].y+=visualFloorOffset;}wasWalking=false;}
-  currentAction=action;metrics.action=action;metrics.gaitReset=discontinuity||leavingSeat;metrics.seated=action==='kotatsu';
+  currentAction=action;metrics.action=action;metrics.gaitReset=discontinuity||leavingSeat;metrics.seated=action==='kotatsu'||action==='chair-sit';
   // Phase is distance-driven, never wall-clock-driven: blocked actors do not skate.
   if(walking&&!wasWalking)gaitPhase=Math.PI*.5;
   const t=walking?(physical?gaitPhase+=travel/locomotion.strideLength*TAU:gaitPhase):0;
@@ -133,9 +135,10 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   // Raised tatami must lift soles without lifting the seated lap through its quilt.
   // Only pelvis/upper cloth settle; IK ankle and absolute wrist targets stay unchanged.
   const seatedDrop=action==='kotatsu'&&culture==='japan'?Math.min(.04,visualFloorOffset/root.scale.y*.5):0;
-  setTorso(action==='kotatsu'?.417-seatedDrop:walking?.965+bob:.965,action==='calligraphy'?.40:/^(knead|bread|cook|sushi|bake|tidy)$/.test(action||'')?.13:0,walking?Math.sin(t)*.012:0);
+  const chairHeight=Number.isFinite(context?.seatHeight)?clamp(context.seatHeight/root.scale.y,.35,1):.60;
+  setTorso(action==='chair-sit'?chairHeight+.14:action==='kotatsu'?.417-seatedDrop:walking?.965+bob:.965,action==='calligraphy'?.40:/^(knead|bread|cook|sushi|bake|tidy)$/.test(action||'')?.13:0,walking?Math.sin(t)*.012:0);
   let unevenSupport=false;
-  if(action!=='kotatsu'){
+  if(action!=='kotatsu'&&action!=='chair-sit'){
    for(let s=0;s<2;s++){
     const phi=((t+(s?Math.PI:0))%TAU+TAU)%TAU,support=phi<Math.PI,u=support?phi/Math.PI:(phi-Math.PI)/Math.PI;
     const x=s?.089:-.089,target=footTargets[s];target.set(x,.108,-.025);
@@ -143,7 +146,14 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
      inverseRoot.copy(root.matrixWorld).invert();
      // Reset planted coordinates only on an actual start or a discontinuous move.
      if(!initializedFeet||!wasWalking){footAnchors[s].copy(lastFootWorld[s]);swingStarts[s].copy(lastFootWorld[s]);lastSupport[s]=support;}
-     if(support&&!lastSupport[s]){footAnchors[s].copy(lastFootWorld[s]);footAnchors[s].y=supportHeight(footAnchors[s])+ankleY*root.scale.y;}
+     if(support&&!lastSupport[s]){
+      // A frame can cross touchdown. Plant at the exact distance-phase boundary,
+      // rather than freezing the previous (still-swinging) frame's short landing.
+      // The latter shortened strides at low refresh rates and forced stance glide.
+      footAnchors[s].set(x,ankleY,lead).applyMatrix4(root.matrixWorld);
+      footAnchors[s].addScaledVector(velocity,-u*locomotion.stepLength/currentSpeed);
+      footAnchors[s].y=supportHeight(footAnchors[s])+ankleY*root.scale.y;
+     }
      if(!support&&lastSupport[s])swingStarts[s].copy(footAnchors[s]);
      if(support){target.copy(footAnchors[s]).applyMatrix4(inverseRoot);target.y-=visualFloorOffset/root.scale.y;}
      else{
@@ -151,7 +161,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
       target.copy(swingStarts[s]).lerp(tmp,u*u*(3-2*u)).applyMatrix4(inverseRoot);target.y-=visualFloorOffset/root.scale.y;target.y+=Math.sin(u*Math.PI)*lift;
      }
      // Safe reach on tight turns. Straight-line support stays fixed in world space.
-     target.x=clamp(target.x,x-.14,x+.14);target.z=clamp(target.z,-.32,.32);
+     target.x=clamp(target.x,x-.14,x+.14);const reachZ=Math.max(.32,lead+.04);target.z=clamp(target.z,-reachZ,reachZ);
      // Keep both toes and garment clear of the current authored support. No root lift.
      tmp.copy(target).applyMatrix4(root.matrixWorld);const minAnkle=(supportHeight(tmp)-rootWorld.y-visualFloorOffset)/root.scale.y+ankleY;
      target.y=Math.max(target.y,minAnkle);
@@ -195,16 +205,22 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    for(let s=0;s<2;s++){const ids=s?[13,14,15]:[10,11,12],target=footTargets[s],reach=REST[ids[0]].distanceTo(REST[ids[1]])+REST[ids[1]].distanceTo(REST[ids[2]])-.003,horizontal=(target.x-posedP[ids[0]].x)**2+(target.z-posedP[ids[0]].z)**2;hipLimit=Math.min(hipLimit,target.y+Math.sqrt(Math.max(.01,reach*reach-horizontal)));}
    const hipAdjust=Math.min(0,hipLimit-posedP[0].y);if(hipAdjust<0)for(const i of[0,1,2,3,4,7,10,13])posedP[i].y+=hipAdjust;
    for(let s=0;s<2;s++){foot(s,footTargets[s]);posedQ[s?15:12].copy(footOrient[s]);}
+  }else if(action==='chair-sit'){
+   // A raised seat retains planted soles and bends the knees forward. The
+   // pelvis height is authored from the measured cushion, not a root teleport.
+   foot(0,tmp.set(-.11,.108,.40));foot(1,tmp.set(.11,.108,.40));
   }else{
    // Actual thighs, flexed knees and folded shins; the same continuous robe skins over them.
    foot(0,tmp.set(-.105,.108,-.13));foot(1,tmp.set(.105,.108,-.13));
   }
-  for(const [i,j] of [[16,11],[17,14]]){posedP[i].copy(posedP[j]);if(walking&&unevenSupport)posedP[i].y+=.12;else if(walking&&/gown|dress/.test(wardrobePreset))posedP[i].y+=.016;if(action!=='kotatsu'&&Math.abs(slope)>.01)posedP[i].y+=Math.abs(slope)*.085;if(action==='kotatsu')posedP[i].y+=/gown/.test(wardrobePreset)?.098:.045;posedQ[i].copy(posedQ[j]);}
+  for(const [i,j] of [[16,11],[17,14]]){posedP[i].copy(posedP[j]);if(walking&&unevenSupport)posedP[i].y+=.12;else if(walking&&/gown|dress/.test(wardrobePreset))posedP[i].y+=.016;if(action!=='kotatsu'&&Math.abs(slope)>.01)posedP[i].y+=Math.abs(slope)*.085;if(action==='chair-sit')posedP[i].y+=.055;if(action==='kotatsu')posedP[i].y+=/gown/.test(wardrobePreset)?.098:.045;posedQ[i].copy(posedQ[j]);}
   initializedFeet=walking&&physical;
   const swing=walking?Math.sin(t)*locomotion.armSwing:0;
   if(walking||action){reach(0,-.304,.926+(walking?-.03:0),.008+swing);reach(1,.304,.926+(walking?-.03:0),.008-swing);}else{for(const i of [4,5,6,7,8,9]){posedP[i].copy(REST[i]).sub(REST[0]).applyQuaternion(torsoQ).add(posedP[0]);posedQ[i].copy(torsoQ);}}
   let lookX=walking?.035:0,lookY=walking?0:Math.sin(time*.7)*.045;
-  if(action==='kotatsu'){
+  if(action==='chair-sit'){
+   reach(0,-.18,chairHeight+.15,.25);reach(1,.18,chairHeight+.15,.25);lookX=.025;lookY=Math.sin(time*.35)*.025;
+  }else if(action==='kotatsu'){
    const sip=Math.pow((Math.sin(time*.8)+1)*.5,3);reach(0,-.22,.67,.31);reach(1,.15,.71+sip*.32,.31-sip*.14);show('cup');lookX=.10-sip*.08;lookY=Math.sin(time*.35)*.035;
   }else if(action==='sushi-eat'){
    const sip=Math.pow((Math.sin(time*.95)+1)*.5,2);reach(0,-.14,1.18,.29);reach(1,.08,1.37+sip*.07,.26-sip*.15);show('sushiPlate','chopsticks');lookX=.13-sip*.08;
@@ -233,6 +249,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    else if(/tidy/.test(action||'')){reach(0,-.18,surface+.08,forward-.025);reach(1,.18,surface+.095,forward-.025);}
   }
   if(action){posedQ[6].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));posedQ[9].identity();if(/knead|bread|tidy/.test(action))posedQ[9].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));}
+  if(action==='chair-sit'){posedQ[6].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));posedQ[9].copy(posedQ[6]);}
   headQ.setFromEuler(new THREE.Euler(lookX,lookY,0));posedQ[3].copy(torsoQ).multiply(headQ);
   applyPose();
   if(action==='sushi-eat')props.right.rotation.x-=Math.pow((Math.sin(time*.95)+1)*.5,2)*.55;
@@ -240,7 +257,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   // Fixed-size pose data: no per-frame Box3 or scene traversal.
   metrics.height=height+visualFloorOffset;metrics.visualFloorOffset=visualFloorOffset;metrics.headHeight=(posedP[3].y+.16)*root.scale.y+visualFloorOffset;metrics.labelHeight=(posedP[3].y+template.height-1.455+.16)*root.scale.y+visualFloorOffset;root.userData.labelHeight=metrics.labelHeight;
   for(let s=0;s<2;s++){lastFootWorld[s].copy(posedP[s?15:12]).applyMatrix4(root.matrixWorld);lastFootWorld[s].y+=visualFloorOffset;metrics.feet[s]=clonePoint(posedP[s?15:12]);metrics.hands[s]=clonePoint(posedP[s?9:6]);}
-  metrics.grounded=action==='kotatsu'||posedP[12].y>=footTargets[0].y-.003&&posedP[15].y>=footTargets[1].y-.003;metrics.rigBones=18;metrics.continuousCloth=true;metrics.unevenSupport=unevenSupport;
+  metrics.grounded=action==='chair-sit'||action==='kotatsu'||posedP[12].y>=footTargets[0].y-.003&&posedP[15].y>=footTargets[1].y-.003;metrics.rigBones=18;metrics.continuousCloth=true;metrics.unevenSupport=unevenSupport;
   previousRoot.copy(rootWorld);lastTime=time;wasWalking=walking;previousYaw=root.rotation.y;
  }
  function dispose(){if(disposed)return;disposed=true;skeleton.dispose();disposeHandProps(props);releaseTemplate(template);const geometry=new Set(),materials=new Set();root.traverse(o=>{if(o.geometry&&!o.geometry.userData.characterShared)geometry.add(o.geometry);for(const m of (Array.isArray(o.material)?o.material:[o.material]))if(m&&!m.userData?.characterShared)materials.add(m);});geometry.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());root.userData.disposed=true;}

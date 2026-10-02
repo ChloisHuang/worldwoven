@@ -594,6 +594,41 @@ export function buildFrance({pack=true}={}){
   function turned(q,x,y,z,profile,c,name='Turned component'){
     return part(G.mesh(q,new THREE.LatheGeometry(profile.map(v=>new THREE.Vector2(...v)),16),c,x,y,z),name);
   }
+  // R11 sculpted joinery: variable cross-sections, shaped relief and stuffed
+  // upholstery, all original meshes sharing the existing toon/static batches.
+  function carvedSweep(q,points,widths,depths,c,name,steps=20,sides=8){
+    steps=Math.max(10,Math.round(steps*.70));sides=Math.min(sides,6);const path=new THREE.CatmullRomCurve3(points.map(v=>new THREE.Vector3(...v))),frames=path.computeFrenetFrames(steps,false),pos=[],idx=[];
+    const sample=(values,t)=>{const k=t*(values.length-1),i=Math.min(values.length-2,Math.floor(k));return THREE.MathUtils.lerp(values[i],values[i+1],k-i);};
+    for(let i=0;i<=steps;i++){const t=i/steps,p=path.getPointAt(t),w=sample(widths,t),d=sample(depths,t);for(let j=0;j<sides;j++){const a=j*Math.PI*2/sides,v=p.clone().addScaledVector(frames.normals[i],Math.cos(a)*w).addScaledVector(frames.binormals[i],Math.sin(a)*d);pos.push(v.x,v.y,v.z);}}
+    for(let i=0;i<steps;i++)for(let j=0;j<sides;j++){const a=i*sides+j,b=i*sides+(j+1)%sides,c=a+sides,d=b+sides;idx.push(a,b,c,b,d,c);}
+    for(const end of [0,steps]){const p=path.getPointAt(end/steps),center=pos.length/3;pos.push(p.x,p.y,p.z);for(let j=0;j<sides;j++){const a=end*sides+j,b=end*sides+(j+1)%sides;idx.push(...(end?[center,a,b]:[center,b,a]));}}
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setIndex(idx);geo.computeVertexNormals();geo.userData={variableSection:true,widths,depths,controlPoints:points};return part(G.mesh(q,geo,c),name);
+  }
+  function beadPath(q,points,r,c,name,closed=false,steps=32){
+    const path=new THREE.CatmullRomCurve3(points.map(v=>new THREE.Vector3(...v)),closed);return part(G.mesh(q,new THREE.TubeGeometry(path,Math.max(6,Math.round(steps*.70)),r,4,closed),c),name);
+  }
+  function leafRelief(q,x,y,z,w,h,rot=0,c=C.gold,name='Carved acanthus leaf'){
+    const p=new THREE.Shape();p.moveTo(0,-h*.46);p.bezierCurveTo(-w*.05,-h*.1,-w*.56,-h*.12,-w*.38,h*.05);p.bezierCurveTo(-w*.76,h*.18,-w*.24,h*.33,0,h*.55);p.bezierCurveTo(w*.06,h*.30,w*.56,h*.23,w*.30,h*.06);p.bezierCurveTo(w*.48,-h*.12,w*.06,-h*.19,0,-h*.46);p.closePath();
+    const a=new THREE.Group();a.position.set(x,y,z);a.rotation.z=rot;q.add(a);const reliefGeo=new THREE.ExtrudeGeometry(p,{depth:.018,steps:1,curveSegments:5,bevelEnabled:true,bevelSegments:1,bevelSize:.008,bevelThickness:.008});part(G.mesh(a,reliefGeo,c),name);beadPath(a,[[0,-h*.36,.03],[-w*.05,0,.046],[0,h*.41,.031]],.008,C.lightGold,'Acanthus central rib',false,8);return a;
+  }
+  function rocaille(q,x,y,z,w=.40,h=.24){
+    const a=new THREE.Group();a.position.set(x,y,z);q.add(a);a.name='Joined rocaille shell carving';
+    const shell=new THREE.Shape();shell.moveTo(0,-h*.32);shell.bezierCurveTo(-w*.52,-h*.32,-w*.55,h*.31,-w*.30,h*.40);shell.bezierCurveTo(-w*.18,h*.25,-w*.15,h*.58,0,h*.44);shell.bezierCurveTo(w*.15,h*.58,w*.18,h*.25,w*.30,h*.40);shell.bezierCurveTo(w*.55,h*.31,w*.52,-h*.32,0,-h*.32);shell.closePath();part(G.mesh(a,new THREE.ExtrudeGeometry(shell,{depth:.032,steps:1,curveSegments:6,bevelEnabled:true,bevelSegments:1,bevelSize:.014,bevelThickness:.014}),C.gold),'Scalloped rocaille shell');
+    for(let i=-2;i<=2;i++)beadPath(a,[[0,-h*.25,.04],[i*w*.065,h*.03,.077],[i*w*.125,h*(.36-Math.abs(i)*.025),.048]],.010,C.lightGold,'Shell carved fan rib',false,8);return a;
+  }
+  function scrollRelief(q,x,y,z,w,h,side=1,name='Connected C-scroll relief'){
+    const pts=[[0,0,0],[.23,.10,.006],[.49,.40,.003],[.90,.43,0],[1,.12,0],[.84,-.04,0],[.68,.07,0],[.75,.18,0]].map(v=>[x+side*v[0]*w,y+v[1]*h,z+v[2]]);
+    return carvedSweep(q,pts,[.021,.036,.029,.022,.017,.013],[.024,.030,.028,.022,.017,.012],C.gold,name,22,6);
+  }
+  function cushionSurface(q,outline,x,y,z,c,name,{depth=.065,buttons=[],horizontal=false}={}){
+    const edge=outline.getSpacedPoints(32).slice(0,-1).map(v=>horizontal?new THREE.Vector2(v.x,-v.y):v);if(THREE.ShapeUtils.isClockWise(edge))edge.reverse();const rings=8,pos=[0,0,depth],idx=[];
+    const surface=(px,py,r)=>{let zz=depth*Math.pow(Math.max(0,1-r*r),.55);for(const [bx,by]of buttons){const d=Math.hypot(px-bx,py-by);zz-=Math.min(.059,depth*.65)*Math.exp(-d*d/.0028);}return zz;};
+    pos[2]=surface(0,0,0);
+    for(let k=1;k<=rings;k++){const r=k/rings;for(const v of edge)pos.push(v.x*r,v.y*r,surface(v.x*r,v.y*r,r));}
+    const n=edge.length;for(let j=0;j<n;j++)idx.push(0,1+j,1+(j+1)%n);
+    for(let k=1;k<rings;k++)for(let j=0;j<n;j++){const a=1+(k-1)*n+j,b=1+(k-1)*n+(j+1)%n,cc=a+n,d=b+n;idx.push(a,cc,b,b,cc,d);}
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setIndex(idx);geo.computeVertexNormals();if(buttons.length){const colors=[];for(let i=0;i<pos.length;i+=3){let shade=1;for(const [bx,by]of buttons){const d=Math.hypot(pos[i]-bx,pos[i+1]-by);shade-=.20*Math.exp(-d*d/.0030);}colors.push(shade,shade,shade);}geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));}geo.userData={stuffedUpholstery:true,buttons:buttons.length,depth};const m=part(G.mesh(q,geo,c,x,y,z,{vertexColors:buttons.length>0}),name);if(horizontal)m.rotation.x=-Math.PI/2;return m;
+  }
   function reserveBlock(x,y,z,w,h,d){
     G.collider(colliders,x,z,w,d);cameraBox(x,y,z,w,h,d);
   }
@@ -642,6 +677,7 @@ export function buildFrance({pack=true}={}){
     const end=curve.getPoint(1),tangent=curve.getTangent(1),lip=part(G.torus(p,end.x,end.y,0,.030,.006,C.gold,0),'Gilt open spout lip');lip.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),tangent);
     turned(p,0,0,0,[[.324,.185],[.333,.25],[.333,.285]],C.sage,'Celadon porcelain waist band');
     for(const [yy,rr]of [[.185,.324],[.285,.332]])G.torus(p,0,yy,0,rr,.005,C.gold);
+    for(let i=0;i<6;i++){const a=i*Math.PI/3,p0=[Math.cos(a)*.334,.223,Math.sin(a)*.334],p1=[Math.cos(a+.20)*.337,.206,Math.sin(a+.20)*.337],p2=[Math.cos(a+.40)*.334,.223,Math.sin(a+.40)*.334];beadPath(p,[p0,p1,p2],.0038,C.gold,'Porcelain gilt swag',false,8);}
     return p;
   }
   function teaTray(q,x,y,z,s=1){
@@ -772,10 +808,17 @@ export function buildFrance({pack=true}={}){
     shaped(m,stripe,.004,0xdeebe4,0,0,.117,0,'Broad reflected window streak');
     const stripe2=new THREE.Shape();stripe2.moveTo(-w*.25,-h*.38);stripe2.lineTo(-w*.19,-h*.38);stripe2.lineTo(w*.29,h*.16);stripe2.lineTo(w*.29,h*.23);stripe2.closePath();
     shaped(m,stripe2,.004,0xf2f3de,0,0,.123,0,'Narrow reflected light streak');
-    // Crown is attached to the arched frame; two carved scrolls meet its base.
-    for(const side of [-1,1])rail(m,[[side*.04,h/2+.05,.025],[side*.17,h/2+.15,.02],[side*.30,h/2+.09,.02],[side*.26,h/2+.03,.02]],.027,C.gold,'Attached crown scroll');
-    const leaf=new THREE.Shape();leaf.moveTo(0,0);leaf.bezierCurveTo(-.13,.08,-.10,.20,0,.27);leaf.bezierCurveTo(.10,.20,.13,.08,0,0);shaped(m,leaf,.044,C.gold,0,h/2+.025,0,.008,'Joined crown palmette');
+    // Attached open rocaille crest and flowing side ears are genuine relief,
+    // not a decal or identical spheres stuck over a plain rectangular panel.
+    rocaille(m,0,h/2+.064,.073,Math.min(.45,w*.32),.27);
+    for(const side of [-1,1]){
+      scrollRelief(m,side*.025,h/2+.035,.061,w*.31,.29,side,'Mirror crown C-scroll');
+      for(const [yy,angle]of [[h*.26,side*.18],[-h*.25,-side*.20]]){scrollRelief(m,side*(w/2+.025),yy,.024,.15,.30,side,'Mirror side rocaille ear');leafRelief(m,side*(w/2+.066),yy-.10,.078,.145,.30,angle);}
+      leafRelief(m,side*w*.21,h/2+.114,.071,.15,.26,side*.65);
+    }
+    const perimeter=arch(w+.12,h+.12).getSpacedPoints(56).slice(0,-1).map(p=>[p.x,p.y,.083]);beadPath(m,perimeter,.018,C.lightGold,'Continuous mirror carved bead moulding',true,56);
   }
+
   function chandelier(x,z,s=1){
     const q=assembly(local(x,z,0,roofGroup),'Crystal eight-arm chandelier','chandelier');
     turned(q,0,0,0,[[0,5.22],[.22,5.22],[.25,5.18],[.20,5.13],[.08,5.10]],C.white,'Ceiling rose');
@@ -784,16 +827,20 @@ export function buildFrance({pack=true}={}){
     for(let i=0;i<8;i++){
       const a=i*Math.PI/4,dx=Math.sin(a),dz=Math.cos(a),xx=dx*.67*s,zz=dz*.67*s;
       const at=(r,y)=>[dx*r*s,y,dz*r*s];
-      rail(q,[at(.065,4.27),at(.26,4.16),at(.46,4.13),at(.65,4.25),at(.67,4.41)],.031,C.gold,'Joined rising candle arm '+i);
+      carvedSweep(q,[at(.065,4.27),at(.24,4.07),at(.49,4.10),at(.73,4.29),at(.65,4.36),at(.67,4.41)],[.033,.043,.038,.031,.020],[.027,.038,.031,.026,.018],C.gold,'Joined rising candle arm '+i,26,8);
+      const inner=at(.34,4.22);beadPath(q,[at(.12,4.28),at(.27,4.42),at(.44,4.32),at(.40,4.22),at(.33,4.24)],.018,C.lightGold,'Joined upper candle scroll '+i,false,18);
       turned(q,xx,0,zz,[[0,4.35],[.055,4.35],[.075,4.40],[.12,4.415],[.12,4.44],[.055,4.44]],C.gold,'Candle drip tray '+i);
       G.cyl(q,xx,4.545,zz,.049,.049,.23,C.white,12);
       part(G.mesh(q,new THREE.SphereGeometry(.049,10,8),0xfff4cf,xx,4.70,zz,{emissive:0xffc982,emissiveIntensity:.6}),'Warm candle flame').scale.set(.65,1.5,.65);
       // A continuous swag chain joins the baluster to its candle tray.
       rail(q,[at(.075,4.49),at(.27,4.31),at(.45,4.27),at(.67,4.40)],.011,0xe2e8da,'Connected crystal swag '+i);
       G.cyl(q,xx,4.24,zz,.011,.011,.25,C.gold,6);
-      const drop=part(G.mesh(q,new THREE.OctahedronGeometry(.09),0xddebe4,xx,4.035,zz),'Suspended faceted crystal '+i);drop.scale.set(.57,1.28,.57);
+      const drop=part(G.mesh(q,new THREE.LatheGeometry([[0,-.13],[.042,-.08],[.061,-.026],[.05,.026],[.026,.072],[.009,.125]].map(v=>new THREE.Vector2(...v)),6),0xddebe4,xx,4.035,zz),'Suspended faceted crystal '+i);drop.geometry.userData.pearDrop=true;
+      for(let j=1;j<=3;j++){const t=j/4,swag=new THREE.CatmullRomCurve3([at(.075,4.49),at(.27,4.31),at(.45,4.27),at(.67,4.40)].map(v=>new THREE.Vector3(...v))),anchor=swag.getPoint(t),yy=anchor.y,chainTop=anchor.toArray(),dropAt=[anchor.x,yy-.125,anchor.z];part(G.mesh(q,new THREE.CylinderGeometry(.007,.007,.125,5),C.lightGold,dropAt[0],yy-.0625,dropAt[2]),'Connected crystal drop hanger');const gem=part(G.mesh(q,new THREE.LatheGeometry([[0,-.075],[.032,-.041],[.037,-.005],[.023,.039],[.006,.070]].map(v=>new THREE.Vector2(...v)),6),j%2?0xf6f6e9:0xbdd8cb,...dropAt),'Pear cut crystal festoon');gem.geometry.userData.pearDrop=true;}
+      const nextA=a+Math.PI/4;beadPath(q,[[dx*.67*s,4.40,dz*.67*s],[Math.sin(a+Math.PI/8)*.61*s,4.17,Math.cos(a+Math.PI/8)*.61*s],[Math.sin(nextA)*.67*s,4.40,Math.cos(nextA)*.67*s]],.008,0xe2e8da,'Candle-to-candle crystal festoon',false,16);
     }
-    const tip=part(G.mesh(q,new THREE.OctahedronGeometry(.11),0xddebe4,0,3.96,0),'Central pendant crystal');tip.scale.set(.7,1.35,.7);
+    const tip=part(G.mesh(q,new THREE.LatheGeometry([[0,-.145],[.060,-.088],[.087,-.016],[.060,.055],[.012,.138]].map(v=>new THREE.Vector2(...v)),8),0xddebe4,0,3.96,0),'Central pendant crystal');tip.geometry.userData.pearDrop=true;
+    for(const [yy,r]of [[4.12,.13],[4.31,.13],[4.53,.085]])part(G.mesh(q,new THREE.TorusGeometry(r,.014,4,20),C.gold,0,yy,0),'Chandelier collar').rotation.x=Math.PI/2;
     const light=new THREE.PointLight(0xffdab0,24,11,1.7);light.position.set(x,3.86,z);light.castShadow=false;group.add(light);
   }
   function ceiling(x,z,w,d){
@@ -803,39 +850,66 @@ export function buildFrance({pack=true}={}){
     G.cyl(roofGroup,x,ceilingY-.06,z,.56,.56,.09,C.sage,24);G.torus(roofGroup,x,ceilingY-.12,z,.47,.044,C.gold);
   }
   function chairAt(x,z,rot=0,cloth=C.sage){
-    const q=assembly(local(x,z,rot),'Joined Louis XVI fauteuil','chair');
-    let support=z>7&&z<14?.16:.23;for(const surface of group.userData.rugSurfaces||[])if(x>=surface.minX&&x<=surface.maxX&&z>=surface.minZ&&z<=surface.maxZ)support=Math.max(support,surface.y);q.position.y=support-.2395;
-    q.userData.supportY=support;
-    // Shaped seat rail carries a separate padded cushion. Four cabriole members
-    // visibly enter the rail instead of ending underneath disconnected blobs.
-    slab(q,roundShape(1.02,.83,.18),.752,.13,C.gold,'Bevelled seat frame');
-    slab(q,roundShape(.91,.76,.16),.845,.115,cloth,'Upholstered seat cushion',.026);
+    const q=assembly(local(x,z,rot),'Sculpted rocaille fauteuil','chair');
+    let support=z>7&&z<14?.16:.23;for(const surface of group.userData.rugSurfaces||[])if(x>=surface.minX&&x<=surface.maxX&&z>=surface.minZ&&z<=surface.maxZ)support=Math.max(support,surface.y);q.position.y=support-.2395;q.userData.supportY=support;
+    const seatShape=()=>{const p=new THREE.Shape();p.moveTo(-.42,-.35);p.bezierCurveTo(-.56,-.25,-.52,.25,-.41,.36);p.bezierCurveTo(-.24,.43,.24,.43,.41,.36);p.bezierCurveTo(.52,.25,.56,-.25,.42,-.35);p.quadraticCurveTo(0,-.41,-.42,-.35);p.closePath();return p;};
+    slab(q,seatShape(),.758,.105,C.ivory,'Bevelled seat frame',.016);
+    const seat=seatShape(); // The cushion inherits the shaped seat footprint.
+    const cushion=slab(q,seat,.846,.087,cloth,'Upholstered seat cushion',.018);cushion.scale.set(.91,.91,1);
+    const top=cushionSurface(q,seatShape(),0,.878,0,cloth,'Stuffed seat crown',{depth:.050,horizontal:true});top.scale.set(.91,.91,1);
+    const pipe=seatShape().getSpacedPoints(40).slice(0,-1).map(p=>[p.x*.919,.886,p.y*.919]);beadPath(q,pipe,.012,C.lightGold,'Continuous seat piping',true,40);
+    // Concave, scalloped aprons connect the swollen knees. Broad white carving
+    // and a gilt ogee edge make the frame readable at normal player distance.
+    const apron=new THREE.Shape();apron.moveTo(-.44,.787);apron.lineTo(.44,.787);apron.lineTo(.44,.691);apron.bezierCurveTo(.28,.733,.18,.64,0,.625);apron.bezierCurveTo(-.18,.64,-.28,.733,-.44,.691);apron.closePath();
+    shaped(q,apron,.077,C.ivory,0,0,.29,.013,'Scalloped front apron');
+    beadPath(q,[[-.44,.694,.386],[-.29,.714,.386],[0,.637,.386],[.29,.714,.386],[.44,.694,.386]],.015,C.gold,'Apron carved lower moulding');rocaille(q,0,.720,.376,.24,.15);
+    for(const side of [-1,1]){const sideApron=shaped(q,apron,.066,C.ivory,side*.437,0,-.018,.01,'Scalloped side apron');sideApron.rotation.y=side*Math.PI/2;sideApron.scale.x=.77;}
     for(const side of [-1,1])for(const back of [-1,1]){
-      const z0=back*.29;
-      rail(q,[[side*.405,.75,z0],[side*.427,.62,z0+.012],[side*.391,.43,z0+.02],[side*.435,.285,z0+.03]],.048,C.gold,'Joined cabriole leg '+side+' '+back);
-      rounded(q,side*.435,.279,z0+.03,.13,.055,.13,C.gold,.025,'Leg foot');
+      const z0=back*.29,pts=[[side*.403,.771,z0],[side*.464,.644,z0+back*.025],[side*.405,.444,z0+back*.044],[side*.43,.286,z0+back*.066]];
+      carvedSweep(q,pts,[.059,.079,.048,.031,.046],[.058,.065,.045,.031,.045],C.ivory,'Joined cabriole leg '+side+' '+back,24,8);
+      beadPath(q,pts.map((p,i)=>[p[0]+side*.025,p[1],p[2]+back*([.051,.061,.034,.032][i])]),.012,C.gold,'Cabriole gilt arris',false,24);
+      const foot=part(G.mesh(q,new THREE.CylinderGeometry(.06,.055,.055,8),C.gold,side*.430,.267,z0+back*.066),'Leg foot');foot.scale.z=1.10;
+      leafRelief(q,side*.440,.683,z0+back*.064,.115,.15,side*-.32,C.gold,'Cabriole knee acanthus');
     }
-    // The oval back has an open wood ring and a close-fitting inset cushion.
-    const outer=new THREE.Shape();outer.absellipse(0,0,.478,.487,0,Math.PI*2,false,0);const hole=new THREE.Path();hole.absellipse(0,0,.405,.410,0,Math.PI*2,true,0);outer.holes.push(hole);
-    shaped(q,outer,.072,C.gold,0,1.46,-.405,.013,'Oval back frame');
-    const pad=new THREE.Shape();pad.absellipse(0,0,.403,.407,0,Math.PI*2,false,0);shaped(q,pad,.077,cloth,0,1.46,-.401,.017,'Inset back upholstery');
+    // A waisted, lobed carved back replaces the mechanically perfect oval.
+    const backShape=(scale=1)=>{const p=new THREE.Shape();p.moveTo(0,-.465);p.bezierCurveTo(-.28,-.48,-.42,-.28,-.401,-.08);p.bezierCurveTo(-.50,.10,-.39,.38,-.21,.415);p.bezierCurveTo(-.09,.39,-.10,.485,0,.481);p.bezierCurveTo(.10,.485,.09,.39,.21,.415);p.bezierCurveTo(.39,.38,.50,.10,.401,-.08);p.bezierCurveTo(.42,-.28,.28,-.48,0,-.465);p.closePath();if(scale!==1){const pts=p.getSpacedPoints(48);const s=new THREE.Shape(pts.map(v=>v.multiplyScalar(scale)));return s;}return p;};
+    const outer=backShape(1.10),hole=new THREE.Path(backShape(.91).getPoints(12).reverse());outer.holes.push(hole);shaped(q,outer,.089,C.ivory,0,1.43,-.416,.018,'Oval back frame');
+    beadPath(q,backShape(1.072).getSpacedPoints(56).slice(0,-1).map(p=>[p.x,1.43+p.y,-.308]),.019,C.gold,'Sculpted back outer gilt moulding',true,56);
+    beadPath(q,backShape(1.05).getSpacedPoints(48).slice(0,-1).map(p=>[p.x,1.43+p.y,-.435]),.017,C.gold,'Rear back gilt moulding',true,48);
+    const padShape=backShape(.917);shaped(q,padShape,.069,cloth,0,1.43,-.40,.013,'Inset back upholstery');
+    const buttons=[[-.19,-.13],[.19,-.13],[0,.02],[-.18,.17],[.18,.17],[0,-.29],[0,.32]];
+    const backSurface=cushionSurface(q,padShape,0,1.43,-.305,cloth,'Sculpted button tufted back',{depth:.092,buttons});backSurface.updateWorldMatrix(true,false);
+    const tuftDepth=(bx,by)=>{const origin=backSurface.localToWorld(new THREE.Vector3(bx,by,1)),dir=new THREE.Vector3(0,0,-1).transformDirection(backSurface.matrixWorld),hit=new THREE.Raycaster(origin,dir).intersectObject(backSurface,false)[0];return hit?backSurface.worldToLocal(hit.point.clone()).z:0;};
+    beadPath(q,backShape(.946).getSpacedPoints(48).slice(0,-1).map(p=>[p.x,1.43+p.y,-.296]),.012,C.lightGold,'Inset upholstery welt',true,48);
+    for(const [bx,by]of buttons){const button=part(G.mesh(q,new THREE.SphereGeometry(.017,8,5),C.lightGold,bx,1.43+by,-.305+tuftDepth(bx,by)+.005),'Recessed upholstery button');button.scale.z=.34;}
+    // Short tucked pleats stop before the border; their relief is physical.
+    for(const [bx,by]of buttons)for(const side of [-1,1])beadPath(q,[[bx,1.43+by,-.305+tuftDepth(bx,by)+.003],[bx+side*.046,1.43+by+.048,-.305+tuftDepth(bx+side*.046,by+.048)+.003],[bx+side*.071,1.43+by+.070,-.305+tuftDepth(bx+side*.071,by+.070)+.003]],.0037,cloth===C.green?C.emerald:0x90af94,'Diamond tuck seam',false,8);
     for(const side of [-1,1]){
-      rail(q,[[side*.34,.77,-.30],[side*.37,.95,-.36],[side*.37,1.20,-.37]],.039,C.gold,'Back stile joined to seat');
-      rail(q,[[side*.45,.78,.24],[side*.455,.98,.24],[side*.445,1.15,.17],[side*.435,1.18,-.25],[side*.37,1.20,-.36]],.032,C.gold,'Joined arm and upright');
-      rounded(q,side*.44,1.20,-.035,.085,.055,.40,cloth,.04,'Padded armrest');
+      carvedSweep(q,[[side*.34,.77,-.30],[side*.38,.97,-.36],[side*.35,1.20,-.38]],[.043,.050,.034],[.035,.044,.031],C.ivory,'Back stile joined to seat',16,8);
+      carvedSweep(q,[[side*.45,.78,.24],[side*.480,.99,.27],[side*.430,1.16,.19],[side*.435,1.18,-.22],[side*.36,1.20,-.36]],[.041,.056,.040,.038,.035],[.038,.042,.031,.039,.030],C.ivory,'Joined arm and upright',24,8);
+      beadPath(q,[[side*.474,.82,.264],[side*.501,1.02,.281],[side*.458,1.16,.14],[side*.453,1.18,-.21],[side*.373,1.22,-.34]],.011,C.gold,'Armrest gilt edge',false,24);
+      const arm=part(G.mesh(q,new THREE.CapsuleGeometry(.052,.26,3,8),cloth,side*.442,1.204,-.015),'Padded armrest');arm.rotation.x=Math.PI/2;arm.scale.set(.95,1,.75);
     }
-    rounded(q,0,1.941,-.37,.19,.065,.09,C.gold,.035,'Back crest joined to frame');
+    rocaille(q,0,1.904,-.303,.235,.15);q.userData.seatTopLocal=.928;q.userData.silhouette='waisted back; S-curve taper legs; scalloped apron';
     G.collider(colliders,x,z,1.18,1.20);cameraBox(x,1.13,z,1.18,1.81,1.2);
   }
+
   function grandPiano(x,z){
     const q=assembly(local(x,z),'Curved-rim grand piano','piano');
     const outline=()=>{const p=new THREE.Shape();p.moveTo(-1.25,1.02);p.lineTo(1.25,1.02);p.lineTo(1.25,.49);p.bezierCurveTo(1.25,-.05,.87,-.12,.79,-.67);p.bezierCurveTo(.70,-1.25,-.14,-1.28,-.65,-1.24);p.bezierCurveTo(-1.17,-1.22,-1.25,-.84,-1.25,-.52);p.closePath();return p;};
-    slab(q,outline(),1.18,.15,C.emerald,'Continuous curved piano rim',.026);
+    slab(q,outline(),1.135,.235,C.emerald,'Continuous curved piano rim',.026);
+    const outlinePoints=outline().getSpacedPoints(56).slice(0,-1);
+    for(const [yy,r,col]of [[1.277,.025,C.gold],[1.010,.020,C.gold],[1.058,.009,C.lightGold]])beadPath(q,outlinePoints.map(p=>[p.x,yy,p.y]),r,col,'Continuous case moulding',true,56);
+    for(const side of [-1,1]){const a=new THREE.Group();a.position.set(side*1.255,1.144,.16);a.rotation.y=side*Math.PI/2;q.add(a);rocaille(a,0,0,0,.35,.19);for(const dir of [-1,1])scrollRelief(a,0,-.04,0,.30,.18,dir,'Piano side carved scroll');}
     // Inset soundboard follows the rim; the front keybed remains flat.
     const board=outline();const boardMesh=slab(q,board,1.279,.045,0xb29a63,'Inset piano soundboard');boardMesh.scale.set(.94,.94,1);
     const left=-1.01,right=1.01;
     for(const [xx,zz]of [[left,.76],[right,.76],[-.47,-1.02]]){
-      turned(q,xx,.23,zz,[[0,0],[.075,0],[.075,.045],[.051,.08],[.060,.59],[.105,.74],[.11,.88]],C.gold,'Joined turned piano leg');
+      const front=zz>0?1:-1,side=xx<0?-1:1;
+      carvedSweep(q,[[xx,.285,zz],[xx-side*.035,.49,zz-front*.014],[xx+side*.065,.85,zz-front*.025],[xx,1.15,zz]],[.064,.041,.061,.114,.099],[.064,.043,.065,.102,.091],C.ivory,'Joined turned piano leg',28,10);
+      rounded(q,xx,.262,zz,.17,.055,.17,C.gold,.026,'Piano carved foot');
+      beadPath(q,[[xx+side*.047,.30,zz+front*.031],[xx+side*.019,.55,zz+front*.04],[xx+side*.097,.9,zz+front*.068],[xx+side*.042,1.12,zz+front*.075]],.015,C.gold,'Piano leg gilt spine',false,24);
+      leafRelief(q,xx,.99,zz+front*.087,.20,.27,-side*.12,C.gold,'Piano knee leaf carving');
       rounded(q,xx,1.125,zz,.26,.15,.26,C.emerald,.035,'Leg mounting block');
     }
     rounded(q,0,1.238,1.08,2.55,.14,.40,C.emerald,.035,'Keyboard bed');
@@ -846,12 +920,20 @@ export function buildFrance({pack=true}={}){
     for(let i=0;i<34;i++)if([0,1,3,4,5].includes(i%7))G.box(q,-1.12+pitch*(i+1),1.408,1.015,pitch*.52,.043,.18,0x172b24);
     for(const side of [-1,1])rounded(q,side*1.22,1.38,1.08,.105,.16,.40,C.gold,.025,'Keyboard cheek');
     rounded(q,0,1.455,.84,2.40,.10,.10,C.emerald,.026,'Fallboard rail');
-    const music=rounded(q,0,1.635,.53,1.12,.40,.049,C.emerald,.04,'Connected music desk');music.rotation.x=-.12;
+    const musicShape=new THREE.Shape();musicShape.moveTo(-.56,-.19);musicShape.lineTo(.56,-.19);musicShape.lineTo(.56,.10);musicShape.bezierCurveTo(.36,.09,.30,.27,0,.22);musicShape.bezierCurveTo(-.30,.27,-.36,.09,-.56,.10);musicShape.closePath();
+    const music=shaped(q,musicShape,.049,C.emerald,0,1.635,.51,.014,'Connected music desk');music.rotation.x=-.12;
+    const deskTrim=beadPath(music,musicShape.getSpacedPoints(36).slice(0,-1).map(p=>[p.x,p.y,.064]),.012,C.gold,'Shaped music desk gilt edge',true,36);
+    rocaille(music,0,.018,.062,.28,.21);
     G.box(q,0,1.444,.58,1.20,.045,.18,C.gold);
     for(const xx of [-.46,.46])rail(q,[[xx,1.32,.54],[xx,1.53,.54]],.023,C.gold,'Music desk mounting');
     // Lid is a matching curved board on a true long-side hinge, not a square.
     const hinge=new THREE.Group();hinge.position.set(-1.24,1.42,0);hinge.rotation.z=.38;q.add(hinge);hinge.name='Long-side hinged piano lid';
     const lidShape=outline();const lid=slab(hinge,lidShape,0,.065,C.emerald,'Curved raised lid',.018);lid.position.x=1.24;
+    for(const [yy,rad]of [[.043,.019],[-.024,.012]])beadPath(hinge,outlinePoints.map(p=>[p.x+1.24,yy,p.y]),rad,C.gold,'Lid continuous gilded rim',true,56);
+    const lidCartouche=new THREE.Group();lidCartouche.position.set(1.13,.047,-.13);lidCartouche.rotation.x=-Math.PI/2;hinge.add(lidCartouche);rocaille(lidCartouche,0,0,0,.48,.39);for(const side of [-1,1])scrollRelief(lidCartouche,side*.09,-.06,0,.35,.28,side,'Lid foliate scroll');
+    // Real strings run below the hinged lid; they join a cast gilt harp frame.
+    rail(q,[[-1.08,1.332,.48],[-1.00,1.332,-.72],[-.47,1.332,-1.12],[.61,1.332,-.76],[.90,1.332,.40]],.024,C.gold,'Joined soundboard harp frame');
+    for(let i=0;i<17;i++){const px=-.90+i*.094;rail(q,[[px,1.33,.39],[px,1.33,-.97+Math.pow((px+.30),2)*.34]],.0025,C.lightGold,'Tensioned piano string');}
     // Visible hinge barrels share the hinge axis and lid support reaches it.
     for(const zz of [-.78,-.20,.38]){const h=G.cyl(q,-1.24,1.42,zz,.026,.026,.19,C.gold,10);h.rotation.x=Math.PI/2;}
     const lx=.64,lz=-.37,px=-1.24+(lx+1.24)*Math.cos(.38)+.030*Math.sin(.38),py=1.42+(lx+1.24)*Math.sin(.38)-.030*Math.cos(.38);
@@ -862,33 +944,36 @@ export function buildFrance({pack=true}={}){
     for(const xx of [-.12,0,.12])rounded(q,xx,.414,.99,.068,.043,.30,C.gold,.026,'Piano pedal');
   }
   function pianoBench(x,z){
-    const q=assembly(local(x,z),'Upholstered piano bench','bench');
-    slab(q,roundShape(1.46,.69,.09),.765,.14,C.gold,'Bench apron');
-    slab(q,roundShape(1.46,.69,.10),.895,.15,C.sage,'Bench padded seat',.020);
-    for(const xx of [-.61,.61])for(const zz of [-.22,.22])turned(q,xx,.23,zz,[[0,0],[.052,0],[.042,.37],[.067,.48],[.065,.52]],C.gold,'Bench leg joined to apron');
+    const q=assembly(local(x,z),'Tufted cabriole piano bench','bench');
+    slab(q,roundShape(1.46,.69,.12),.765,.14,C.ivory,'Bench apron');
+    slab(q,roundShape(1.46,.69,.13),.895,.15,C.sage,'Bench padded seat',.020);
+    const top=cushionSurface(q,roundShape(1.42,.65,.12),0,.973,0,C.sage,'Stuffed bench upholstery',{depth:.045,buttons:[[-.4,0],[0,0],[.4,0]],horizontal:true});
+    beadPath(q,roundShape(1.46,.69,.13).getSpacedPoints(40).slice(0,-1).map(p=>[p.x,.984,-p.y]),.012,C.gold,'Bench upholstery piping',true,40);
+    for(const xx of [-.61,.61])for(const zz of [-.22,.22])carvedSweep(q,[[xx,.254,zz],[xx*.91,.40,zz*1.07],[xx*1.04,.64,zz],[xx,.77,zz]],[.040,.026,.053,.05],[.04,.03,.046,.044],C.gold,'Bench leg joined to apron',20,8);
+    for(const zz of [-.351,.351]){const ornament=rocaille(q,0,.767,zz,.26,.17);if(zz<0)ornament.rotation.y=Math.PI;}
   }
+
   function palaceHearth(x,z){
-    const q=assembly(local(x,z),'Recessed marble fireplace','fireplace');
-    // Side jambs, lintel and rear firebrick form an actual open firebox.
-    // Nothing spans the dark opening at its front face.
-    rounded(q,0,.32,.13,2.28,.16,.78,C.stone,.03,'Hearth plinth');
-    G.box(q,0,1.0,-.25,1.28,1.16,.075,0x263a30);
+    const q=assembly(local(x,z),'Carved rocaille marble fireplace','fireplace');
+    rounded(q,0,.32,.13,2.28,.16,.78,C.stone,.03,'Hearth plinth');G.box(q,0,1.0,-.25,1.28,1.16,.075,0x263a30);
     for(const side of [-1,1]){
       rounded(q,side*.82,1.12,.09,.33,1.53,.63,C.ivory,.025,'Solid marble jamb');
       rounded(q,side*.82,.455,.16,.43,.20,.69,C.white,.025,'Jamb plinth');
+      // Modelled consoles flare continuously out of their jambs into the shelf.
+      const console=new THREE.Shape();console.moveTo(-.145,-.58);console.lineTo(.145,-.58);console.bezierCurveTo(.16,-.22,.23,.07,.21,.31);console.bezierCurveTo(.20,.52,.26,.61,.24,.67);console.lineTo(-.23,.67);console.bezierCurveTo(-.26,.50,-.10,.31,-.13,.10);console.closePath();shaped(q,console,.16,C.white,side*.82,1.10,.34,.020,'Sculpted S-profile mantel console');
+      scrollRelief(q,side*.83,1.53,.526,.22,.46,-side,'Jamb volute crest');leafRelief(q,side*.82,1.21,.518,.235,.46,-side*.06);leafRelief(q,side*.82,.82,.510,.17,.28,side*.04);
+      beadPath(q,[[side*.75,.61,.522],[side*.77,.83,.535],[side*.76,1.18,.535],[side*.69,1.48,.55]],.012,C.gold,'Jamb carved gilt arris');
       rounded(q,side*.82,1.74,.15,.43,.14,.67,C.white,.02,'Jamb capital');
-      for(const dx of [-.065,0,.065])G.cyl(q,side*.82+dx,1.12,.427,.012,.012,1.05,C.stone,6);
     }
-    rounded(q,0,1.785,.09,2.00,.25,.63,C.ivory,.028,'Joined frieze');
-    rounded(q,0,1.943,.13,2.24,.10,.82,C.gold,.025,'Mantel under moulding');
-    rounded(q,0,2.01,.13,2.40,.11,1.02,C.white,.04,'Continuous mantel shelf');
-    rounded(q,0,1.80,.428,.42,.16,.045,C.gold,.045,'Frieze cartouche');
-    for(const side of [-1,1])rail(q,[[side*.18,1.80,.447],[side*.38,1.84,.446],[side*.53,1.79,.446]],.017,C.gold,'Frieze foliate scroll');
-    // Grate and split logs are grounded on the firebox floor.
+    const frieze=new THREE.Shape();frieze.moveTo(-1.01,1.91);frieze.lineTo(1.01,1.91);frieze.lineTo(1.01,1.63);frieze.bezierCurveTo(.72,1.68,.50,1.59,0,1.60);frieze.bezierCurveTo(-.50,1.59,-.72,1.68,-1.01,1.63);frieze.closePath();shaped(q,frieze,.62,C.ivory,0,0,-.22,.018,'Joined frieze');
+    const shelf=()=>{const p=new THREE.Shape();p.moveTo(-1.20,-.42);p.lineTo(1.20,-.42);p.lineTo(1.20,.32);p.bezierCurveTo(1.19,.47,.87,.40,.72,.46);p.bezierCurveTo(.41,.52,.22,.50,0,.53);p.bezierCurveTo(-.22,.50,-.41,.52,-.72,.46);p.bezierCurveTo(-.87,.40,-1.19,.47,-1.20,.32);p.closePath();return p;};
+    const under=slab(q,shelf(),1.943,.10,C.gold,'Mantel under moulding',.02);under.scale.set(.965,.95,1);under.position.z=.13;
+    const cap=slab(q,shelf(),2.01,.11,C.white,'Continuous mantel shelf',.030);cap.position.z=.13;
+    rocaille(q,0,1.795,.444,.47,.34);for(const side of [-1,1]){scrollRelief(q,side*.10,1.70,.434,.52,.25,side,'Frieze foliate scroll');leafRelief(q,side*.53,1.81,.447,.20,.24,side*1.0);}
     for(const zz of [-.02,.19]){const log=G.cyl(q,0,.47,zz,.067,.076,1.02,0x6d5540,9);log.rotation.z=Math.PI/2;}
-    for(const xx of [-.49,-.25,0,.25,.49])rail(q,[[xx,.38,.29],[xx,.59,.32],[xx,.69,.29]],.015,0x36473b,'Joined grate bar');
-    G.box(q,0,.58,.315,1.08,.025,.035,0x36473b);
+    for(const xx of [-.49,-.25,0,.25,.49])rail(q,[[xx,.38,.29],[xx,.59,.32],[xx,.69,.29]],.015,0x36473b,'Joined grate bar');G.box(q,0,.58,.315,1.08,.025,.035,0x36473b);
   }
+
   function urn(x,z,s=.8){
     block(x,.48,z,1.10,.72,1.10,C.white);G.box(group,x,.88,z,.88,.13,.88,C.gold);G.vessel(group,x,.96,z,C.white,s);
     for(let i=0;i<8;i++){let a=i*2.4,xx=x+Math.sin(a)*.27,zz=z+Math.cos(a)*.27;G.cyl(group,xx,1.81,zz,.012,.014,.75,C.green,5);G.sphere(group,xx,2.13+Math.sin(i)*.1,zz,.18,C.white,1,.8,1);G.sphere(group,xx+.09,1.95,zz,.17,C.sage,.8,1.7,.7);}
@@ -1134,7 +1219,7 @@ export function buildFrance({pack=true}={}){
   }
   // Retain a compact semantic inventory for offline assembly/contact tests.
   group.updateMatrixWorld(true);
-  group.userData.furnitureRevision='R10-joined-french-palace-furniture';
+  group.userData.furnitureRevision='R11-sculpted-rocaille-french-furniture';
   group.userData.furnitureAssemblies=furniture.map(q=>{const b=new THREE.Box3().setFromObject(q);return {name:q.name,kind:q.userData.furnitureKind,min:b.min.toArray(),max:b.max.toArray()};});
   if(pack){packPalaceChunks(roofGroup);packPalaceChunks(group,roofGroup);}
   return {group,colliders,cameraColliders,spawn:[0,0,32],stations,roofGroup,walkableSurfaces,explorationTargets,doorways,bounds};
