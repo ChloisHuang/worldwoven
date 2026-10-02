@@ -1,141 +1,184 @@
-import * as G from './geometry.js?rev=R7-20261002';
-const {THREE}=G;
-export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,accent=0xe7cab0,style='casual',culture=null,variant=0,scale=1}={}){
- const root=new THREE.Group(),body=new THREE.Group();root.add(body);body.position.y=-.144;root.scale.setScalar(scale);
- G.sphere(body,0,1.18,0,.38,clothes,.94,culture==='japan'?1.12:1.28,.65);if(!['japan','china','egypt'].includes(culture)&&!(culture==='france'&&variant%2))G.cyl(body,0,.82,0,.28,.31,.2,0x334856);
- G.cyl(body,0,1.59,0,.1,.1,.18,skin);if(culture!=='japan')G.box(body,0,1.48,.238,.18,.09,.055,accent);
- const head=new THREE.Group();head.position.y=1.91;body.add(head);G.sphere(head,0,0,0,.32,skin,.86,1.06,.82);G.sphere(head,0,.14,-.04,.32,hair,.93,.69,.88);G.sphere(head,-.17,.16,.2,.14,hair,.9,.52,.7);G.sphere(head,.15,.19,.17,.14,hair,.95,.44,.63);
- for(const x of [-.105,.105]){G.sphere(head,x,.018,.252,.045,0xfff6e5,.8,1.1,.4);G.sphere(head,x,.016,.269,.025,0x343235,.7,1,.4);G.box(head,x,.09,.259,.075,.022,.03,hair);G.sphere(head,x*1.7,-.092,.2,.05,0xe2a18d,1,.5,.3);}
- G.sphere(head,0,-.035,.273,.046,skin,.7,1,.7);G.box(head,0,-.145,.251,.1,.018,.013,0xa96151);for(const x of [-.29,.29])G.sphere(head,x,0,0,.071,skin,.6,1,.7);
- if(style==='chef'){G.cyl(head,0,.36,0,.28,.28,.2,0xf6f0da);for(const x of [-.14,0,.14])G.sphere(head,x,.5,0,.19,0xf6f0da,1,.7,1);G.box(body,0,1.12,.239,.42,.65,.04,0xf3e2b9);G.box(body,0,.97,.268,.25,.14,.03,0xe2c990);}
- if(style==='artist'){if(culture==='france'||!culture){G.sphere(head,0,.31,-.015,.31,0xb26047,1.1,.36,1);G.cyl(head,.07,.44,0,.025,.025,.09,0x644537);}G.box(body,-.15,1.09,.23,.1,.18,.035,0xe3b759);G.box(body,.08,1.24,.24,.08,.12,.036,0x87aea4);}
- if(style==='gardener'){G.cyl(head,0,.29,0,.4,.4,.05,0xc5a578,20);G.cyl(head,0,.39,0,.22,.27,.2,0xc5a578,12);G.cyl(head,0,.34,0,.26,.26,.07,0x977254,12);}
-
- // Japan's wrapped yukata is articulated with the original body; all other clothing is unchanged.
- let kimonoSkirt=null;
- if(culture==='japan'){
-  kimonoSkirt=new THREE.Group();kimonoSkirt.position.y=.64;body.add(kimonoSkirt);
-  G.cyl(kimonoSkirt,0,0,0,.27,.35,.74,clothes,12);
-  // The wearer's left front panel lies over the right, including at the crossed collar.
-  G.box(kimonoSkirt,.055,.015,.282,.017,.66,.014,new THREE.Color(clothes).multiplyScalar(.86).getHex()).rotation.z=-.055;
-  G.torus(kimonoSkirt,0,-.346,0,.344,.009,accent);
-  const neckline=new THREE.Shape();neckline.moveTo(-.145,1.525);neckline.lineTo(.145,1.525);neckline.lineTo(0,1.295);neckline.closePath();G.mesh(body,new THREE.ShapeGeometry(neckline),0xe6d3b7,0,0,.264);
-  const inner=G.box(body,.083,1.357,.267,.057,.39,.018,0xeee4cf);inner.rotation.z=-.54;
-  const under=G.box(body,.101,1.354,.276,.026,.38,.018,accent);under.rotation.z=-.54;
-  const over=G.box(body,-.067,1.356,.299,.066,.414,.021,0xf0e4cb);over.rotation.z=.54;
-  const edge=G.box(body,-.096,1.356,.322,.015,.402,.012,accent);edge.rotation.z=.54;
-  const obi=variant%2?0x9c5d5c:0x9c7854;
-  G.cyl(body,0,1.038,0,.299,.313,.19,obi,12);G.box(body,0,1.038,.28,.58,.19,.085,obi);G.box(body,0,1.13,.253,.578,.014,.143,obi);
-  G.box(body,0,1.045,.335,.58,.021,.022,variant%2?0x84a49b:0xe1c392);G.sphere(body,.095,1.045,.357,.035,accent,1,.8,.35);G.box(body,.118,.981,.349,.017,.098,.013,accent);
-  G.box(body,0,1.034,-.245,.44,.18,.087,obi);
-  for(const side of [-1,1])G.box(body,side*.106,1.067,-.319,.2,.2,.075,obi).rotation.z=side*.16;
-  G.box(body,0,1.061,-.364,.105,.16,.055,accent);
-  // Small geometric blossom/woven motifs, made from geometry rather than a texture.
-  for(const [x,y,z,g] of [[.18,1.255,.243,body],[-.16,-.18,.276,kimonoSkirt],[.17,-.245,.277,kimonoSkirt]]){
-   for(let i=0;i<4;i++){const a=i*Math.PI/2;G.sphere(g,x+Math.cos(a)*.022,y+Math.sin(a)*.022,z,.026,accent,1,.65,.19);}
-   G.sphere(g,x,y,z+.005,.012,0xe5d2a8,1,1,.25);
-  }
-  if(variant%2){G.sphere(head,.16,.29,-.12,.16,hair,1,.9,1);for(let i=0;i<4;i++)G.sphere(head,.25+Math.cos(i*1.57)*.045,.31+Math.sin(i*1.57)*.045,0,.035,0xe8b3ad,.9,.9,.4);}
- }else if(culture==='china'){
-  G.cyl(body,0,.64,0,.27,.35,.68,clothes,12);
-  G.box(body,0,1.05,.232,.57,.18,.08,culture==='japan'?0xa8685c:0xc7a256);
-  const collarA=G.box(body,-.08,1.35,.258,.07,.38,.045,0xe8dec1);collarA.rotation.z=.54;
-  const collarB=G.box(body,.09,1.34,.264,.065,.39,.047,culture==='japan'?0xc89c7d:0xc9a759);collarB.rotation.z=-.53;
-  if(culture==='japan')G.box(body,0,1.05,-.24,.3,.2,.15,0xa8685c);
-  else{G.box(body,.1,.89,.26,.07,.23,.035,0xc9a759);G.sphere(head,0,.37,-.04,.15,hair,1,.9,1);G.box(head,0,.39,0,.39,.028,.027,0xc4aa68);G.sphere(head,.22,.39,0,.035,0x85ab9c);}
-  if(culture==='japan'&&variant%2){G.sphere(head,.16,.29,-.12,.16,hair,1,.9,1);for(let i=0;i<4;i++)G.sphere(head,.25+Math.cos(i*1.57)*.045,.31+Math.sin(i*1.57)*.045,0,.035,0xe8b3ad,.9,.9,.4);}
- }else if(culture==='egypt'){
-  G.cyl(body,0,.67,0,.29,.34,.63,0xe7d8af,12);G.box(body,0,1.0,.24,.57,.12,.08,0xc3a14d);
-  for(let row=0;row<3;row++){const y=1.48-row*.065;G.box(body,0,y,.245+row*.016,.32+row*.11,.045,.047,row%2?0xb99a49:0x528a9a);}
-  G.box(body,0,.77,.31,.22,.37,.04,0xc5ab58);G.box(body,0,.77,.335,.09,.32,.018,0x4d899a);
- }else if(culture==='france'){
-  if(variant%2){G.cyl(body,0,.62,0,.23,.46,.75,clothes,16);G.box(body,0,1.05,.24,.5,.08,.06,0x725e56);}
-  else{G.box(body,0,1.25,.247,.29,.48,.05,0xb6a27c);for(const y of [1.1,1.23,1.36])G.sphere(body,.05,y,.28,.016,0x755d45);}
-  for(const side of [-1,1])G.box(body,side*.07,1.45,.259,.12,.16,.027,0xe8dec3).rotation.z=side*.4;
- }
- const arms=[],forearms=[],hands=[],legs=[];
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.34,1.43,0);body.add(arm);G.sphere(arm,0,-.13,0,.12,clothes,.93,1.4,.92);if(culture==='japan'){
- const sleeveShape=new THREE.Shape();sleeveShape.moveTo(-.094,-.06);sleeveShape.quadraticCurveTo(0,-.008,.094,-.06);sleeveShape.lineTo(.135,-.278);sleeveShape.quadraticCurveTo(.145,-.322,.096,-.327);sleeveShape.lineTo(-.096,-.327);sleeveShape.quadraticCurveTo(-.145,-.322,-.135,-.278);sleeveShape.closePath();
- G.mesh(arm,new THREE.ExtrudeGeometry(sleeveShape,{depth:.208,steps:1,bevelEnabled:true,bevelSegments:2,bevelSize:.023,bevelThickness:.022,curveSegments:3}),clothes,0,0,-.104);
- G.box(arm,0,-.311,.009,.265,.014,.229,accent);
- G.box(arm,side*.079,-.179,.141,.029,.084,.014,accent).rotation.z=side*.5;
- }else if(culture==='china'){G.cyl(arm,0,-.19,0,.13,.18,.27,clothes,10);G.cyl(arm,0,-.31,0,.18,.18,.04,0xe2caa0,10);}if(culture==='france'&&variant%2)G.sphere(arm,0,-.06,0,.16,clothes,1,1.1,1);const elbow=new THREE.Group();elbow.position.y=-.25;arm.add(elbow);G.sphere(elbow,0,-.09,0,.082,skin,1,1.35,1);const hand=new THREE.Group();hand.position.set(0,-.22,0);elbow.add(hand);G.sphere(hand,0,0,0,.078,skin,.95,1.12,.75);G.sphere(hand,-side*.057,.01,.023,.036,skin,.7,1.2,.8);arms.push(arm);forearms.push(elbow);hands.push(hand);const leg=new THREE.Group();leg.position.set(side*.145,.84,0);body.add(leg);G.cyl(leg,0,-.28,0,.105,.085,.55,0x445a68,8);G.sphere(leg,0,-.61,.07,.12,0x433c39,1,.72,1.7);legs.push(leg);}
- const tools={},toolGroup=new THREE.Group();hands[1].add(toolGroup);const leftTools=new THREE.Group();hands[0].add(leftTools);
- function prop(name,left=false){const g=new THREE.Group();(left?leftTools:toolGroup).add(g);g.visible=false;tools[name]=g;return g;}
- let p=prop('brush');G.cyl(p,0,-.08,0,.018,.022,.33,0xa1774e,6);G.cone(p,0,-.28,0,.031,.09,0x4b3b2c,7).rotation.z=Math.PI;
- p=prop('knife');G.cyl(p,0,-.04,0,.027,.027,.16,0x765143,6);G.box(p,.065,-.19,0,.15,.19,.024,0xafc7c5);
- p=prop('cup');G.cyl(p,0,-.03,.04,.095,.08,.15,0xe7dbc2,14);G.cyl(p,0,.05,.04,.074,.074,.008,0x77654a,14);G.torus(p,.105,-.02,.04,.049,.016,0xe7dbc2,0);
- p=prop('book',true);G.box(p,.15,-.02,.04,.34,.06,.25,0x947763);G.box(p,.15,.017,.04,.3,.016,.22,0xf1dfbd);for(const x of [.045,.14,.235])G.box(p,x,.029,.04,.01,.006,.15,0xb5a481);p.rotation.z=-.35;
- p=prop('palette',true);G.sphere(p,0,0,.06,.16,0xc5a16d,1,.16,.75);for(let i=0;i<4;i++)G.sphere(p,(i-1.5)*.065,.035,.06,.027,[0xa24f41,0xe0c564,0x6c9b89,0x829eaf][i],1,.4,1);
- p=prop('can');G.cyl(p,0,-.12,0,.16,.14,.24,0x76a39b,10);G.torus(p,0,.02,0,.16,.026,0x5e847e,0);G.cyl(p,.19,-.04,0,.032,.045,.32,0x6c968d,8).rotation.z=-.8;G.cyl(p,.32,.06,0,.064,.05,.05,0x52796e,8).rotation.z=-.8;
- p=prop('feather');G.cyl(p,0,.09,0,.009,.009,.34,0xc5b686,6);for(let i=0;i<6;i++){const yy=.02+i*.045;for(const side of [-1,1]){const f=G.sphere(p,side*(.06-i*.005),yy,0,.052,0xf3e8c4,1.2,.48,.15);f.rotation.z=side*.42;}}
- p=prop('cloth',true);G.box(p,.1,-.02,0,.32,.075,.27,0xe1c7b0);G.box(p,.1,.02,.08,.32,.018,.035,0x929c85);
- // New station props are hidden outside their exact actions.
- p=prop('ramenBowl',true);p.position.set(0,.1,.075);G.cyl(p,0,-.04,.045,.148,.088,.14,0xe7dbc2,16);G.torus(p,0,.031,.045,.143,.016,0xb15d4b);G.cyl(p,0,.027,.045,.125,.125,.008,0xa66a38,16);
- for(let i=0;i<3;i++)G.torus(p,-.034+i*.031,.035,.045,.026,.008,0xe8c378);
- G.sphere(p,.055,.042,.069,.035,0xf4e5c2,1,.16,1);G.sphere(p,.055,.048,.069,.017,0xddaa4c,1,.2,1);
- p=prop('ladle');const ladleStem=G.cyl(p,-.08,-.042,.1075,.013,.013,.281,0x806046,7);ladleStem.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(-.16,-.084,.215).normalize());G.sphere(p,-.16,-.084,.215,.055,0x9eaaa6,1,.28,1);G.cyl(p,-.16,-.072,.215,.046,.037,.016,0xb1844d,10);
- p=prop('chopsticks');for(const x of [-.018,.018]){const stick=G.cyl(p,x-.06,-.05,.125,.008,.005,.294,0xb78c57,6);stick.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(-.12,-.10,.25).normalize());}
- p=prop('sushiPlate',true);p.position.set(0,.1,.075);G.cyl(p,0,-.025,.05,.165,.14,.025,0xe6dac0,16);G.torus(p,0,-.006,.05,.153,.011,0xa65e50);for(const x of [-.064,.064]){G.sphere(p,x,.027,.05,.059,0xf4e8cd,.77,.43,1.22);G.sphere(p,x,.052,.05,.063,0xd78369,.8,.20,1.24);}
- p=prop('bathBucket');G.cyl(p,0,-.22,0,.139,.109,.22,0xb89465,12);for(const y of [-.14,-.29])G.torus(p,0,y,0,.126,.011,0x78674d);G.torus(p,0,-.075,0,.108,.014,0x997647,0);
- p=prop('bathCloth',true);G.box(p,0,-.045,.055,.19,.024,.19,0xeadfc8);G.box(p,0,-.028,.055,.19,.008,.036,0x95a8a0);
- const seated=new THREE.Group();body.add(seated);seated.visible=false;
- // Folded legs and lap use a short silhouette, so no standing mesh can extend through the floor.
- for(const side of [-1,1]){G.sphere(seated,side*.158,.715,.195,.16,clothes,.93,.65,1.63);G.sphere(seated,side*.148,.675,-.17,.105,0xe7deca,.91,.57,1.3);}
- G.sphere(seated,0,.826,.135,.3,clothes,1.12,.33,1.06);
- const down=new THREE.Vector3(0,-1,0),direction=new THREE.Vector3(),pole=new THREE.Vector3(),elbowPoint=new THREE.Vector3(),wristPoint=new THREE.Vector3(),upperQ=new THREE.Quaternion(),lowerQ=new THREE.Quaternion();
- function reach(i,x,y,z){
-  const shoulder=arms[i].position;wristPoint.set(x,y-body.position.y,z);direction.copy(wristPoint).sub(shoulder);
-  const distance=Math.min(.468,Math.max(.035,direction.length()));direction.normalize();wristPoint.copy(shoulder).addScaledVector(direction,distance);
-  const along=(.25*.25-.22*.22+distance*distance)/(2*distance),height=Math.sqrt(Math.max(0,.25*.25-along*along));
-  pole.set(0,-1,0).addScaledVector(direction,direction.y);if(pole.lengthSq()<.001)pole.set(0,0,1);pole.normalize();
-  elbowPoint.copy(shoulder).addScaledVector(direction,along).addScaledVector(pole,height);
-  upperQ.setFromUnitVectors(down,direction.copy(elbowPoint).sub(shoulder).normalize());lowerQ.setFromUnitVectors(down,direction.copy(wristPoint).sub(elbowPoint).normalize());
-  arms[i].quaternion.copy(upperQ);forearms[i].quaternion.copy(upperQ).invert().multiply(lowerQ);
-  // Keep vessels upright independently of arm articulation.
-  (i?toolGroup:leftTools).quaternion.copy(lowerQ).invert();
- }
- root.userData={body,head,arms,forearms,hands,legs,tools,seated,kimonoSkirt,garment:culture==='japan'?'wrapped-yukata':null,poseQA:null};
-
- function animate(time,walking=false,action=null){seated.visible=false;legs.forEach(l=>l.visible=true);if(kimonoSkirt){kimonoSkirt.position.set(0,.64,0);kimonoSkirt.scale.set(1,1,1);}root.userData.poseQA=null;const phase=Math.sin(time*2.7),sway=walking?Math.sin(time*8)*.58:0;for(const t of Object.values(tools))t.visible=false;legs[0].rotation.x=sway;legs[1].rotation.x=-sway;arms[0].rotation.set(-sway*.75,0,.04);arms[1].rotation.set(sway*.75,0,-.04);forearms[0].rotation.set(0,0,0);forearms[1].rotation.set(0,0,0);body.position.y=-.144+(walking?Math.abs(Math.sin(time*8))*.045:Math.sin(time*1.8)*.01);body.rotation.z=walking?Math.sin(time*4)*.025:0;body.rotation.x=0;head.rotation.set(0,walking?0:Math.sin(time*.7)*.08,0);toolGroup.rotation.set(0,0,0);leftTools.rotation.set(0,0,0);
- if(!action)return;head.rotation.x=.13;
- if(action==='kotatsu'){
-  body.position.y=-.444;body.rotation.set(0,0,0);legs.forEach(l=>l.visible=false);seated.visible=true;
-  if(kimonoSkirt){kimonoSkirt.position.set(0,.8,.065);kimonoSkirt.scale.set(1.06,.34,1.16);}
-  const sip=Math.pow((Math.sin(time*.8)+1)*.5,3);
-  reach(0,-.30,.748,.35);reach(1,.25,.844+sip*.346,.405-sip*.22);
-  tools.cup.visible=true;head.rotation.x=.065-sip*.055;head.rotation.y=Math.sin(time*.35)*.035;
-  root.userData.poseQA={action,seated:true,rootAtSurface:true,tableTop:.70,seatTop:.16,lapTop:.481,contact:'knees under quilt; cup above table',hands:[[-.30,.748,.35],[.25,.844+sip*.346,.405-sip*.22]]};return;
- }
- if(action==='sushi-eat'){
-  body.position.y=-.144;body.rotation.set(0,0,0);const sip=Math.pow((Math.sin(time*.95)+1)*.5,2);
-  reach(0,-.16,1.19,.32);reach(1,.08,1.40+sip*.07,.25-sip*.15);
-  tools.sushiPlate.visible=true;tools.chopsticks.visible=true;toolGroup.rotation.x-=sip;head.rotation.x=.16-sip*.12;
-  root.userData.poseQA={action,seated:false,rootAtSurface:true,workTop:1.17,contact:'held nigiri plate and tasting chopsticks',hands:[[-.16,1.19,.32],[.08,1.40+sip*.07,.25-sip*.15]]};return;
- }
- if(action==='ramen'){
-  body.position.y=-.144;body.rotation.set(0,0,0);const serve=(Math.sin(time*1.15)+1)*.5,stir=Math.sin(time*2.3);
-  reach(0,-.16,1.07+serve*.065,.32-serve*.035);reach(1,.07-serve*.07,1.27+serve*.10,.26-serve*.025);
-  tools.ramenBowl.visible=true;if(serve<.83){tools.ladle.visible=true;toolGroup.rotation.z+=-.12+stir*.08;}else{tools.chopsticks.visible=true;toolGroup.rotation.z-=.24;}
-  head.rotation.x=.12+serve*.035;head.rotation.y=-serve*.08;
-  root.userData.poseQA={action,seated:false,rootAtSurface:true,workTop:1,contact:'upright bowl and ladle/chopsticks',hands:[[-.16,1.07+serve*.065,.32-serve*.035],[.07-serve*.07,1.27+serve*.10,.26-serve*.025]]};return;
- }
- if(action==='bath-attendant'){
-  body.position.y=-.144;body.rotation.set(0,0,0);const sweep=Math.sin(time*1.45);
-  reach(0,-.29+sweep*.055,.89,.17+sweep*.025);reach(1,.34,1.0,.24);
-  tools.bathCloth.visible=true;tools.bathBucket.visible=true;head.rotation.x=.22;
-  root.userData.poseQA={action,seated:false,rootAtSurface:true,workTop:.80,contact:'cloth above wash shelf; carried bucket',hands:[[-.29+sweep*.055,.89,.17+sweep*.025],[.34,1,.24]]};return;
- }
-
- if(/relax/.test(action)){arms[0].rotation.x=-.15;arms[1].rotation.x=-.15;forearms[0].rotation.x=-.25;forearms[1].rotation.x=-.25;head.rotation.x=-.045+Math.sin(time*.6)*.025;return;}
- if(/ritual/.test(action)){arms[0].rotation.x=-1.2;arms[1].rotation.x=-1.28+Math.sin(time*.7)*.06;forearms[0].rotation.x=-.25;forearms[1].rotation.x=-.26;tools.feather.visible=true;toolGroup.rotation.x=-(arms[1].rotation.x+forearms[1].rotation.x);head.rotation.x=.18;return;}
- if(/knead/.test(action)){arms[0].rotation.x=-1.12+Math.sin(time*3.4)*.18;arms[1].rotation.x=-1.12+Math.sin(time*3.4+.8)*.18;arms[0].rotation.z=-.12;arms[1].rotation.z=.12;forearms.forEach(a=>a.rotation.x=-.2);body.rotation.x=Math.sin(time*3.4)*.025;}
- else if(/cook|sushi|bake/.test(action)){arms[0].rotation.x=-1.12;arms[1].rotation.x=-1.03+Math.sin(time*5)*.21;forearms[0].rotation.x=-.16;forearms[1].rotation.x=-.25+Math.sin(time*5)*.14;tools.knife.visible=true;}
- else if(/paint|calligraphy|craft/.test(action)){const calligraphy=/calligraphy/.test(action);arms[0].rotation.x=-1.0;arms[1].rotation.x=(calligraphy?-1.14:-1.66)+Math.sin(time*1.4)*.09;arms[1].rotation.z=Math.sin(time*1.2)*.12;forearms[1].rotation.x=-.25+Math.cos(time*2.1)*.09;tools.brush.visible=true;toolGroup.rotation.x=.25;if(!calligraphy){tools.palette.visible=true;leftTools.rotation.x=-(arms[0].rotation.x+forearms[0].rotation.x)-.2;}}
- else if(/tea/.test(action)){const sip=(Math.sin(time*.9)+1)*.5;arms[1].rotation.x=-1.05-sip*.68;forearms[1].rotation.x=-.35-sip*.5;arms[0].rotation.x=-.75;tools.cup.visible=true;toolGroup.rotation.x=-(arms[1].rotation.x+forearms[1].rotation.x)-sip*.12;head.rotation.x=-sip*.05;}
- else if(/read|rest/.test(action)){arms[0].rotation.x=-1.22;arms[1].rotation.x=-1.2;arms[0].rotation.z=-.18;arms[1].rotation.z=.2;forearms[0].rotation.x=-.35;forearms[1].rotation.x=-.4;tools.book.visible=true;head.rotation.x=.27+Math.sin(time*.6)*.025;}
- else if(/garden/.test(action)){arms[1].rotation.x=-.95;forearms[1].rotation.x=-.15;arms[1].rotation.z=.2+Math.sin(time*1.3)*.13;tools.can.visible=true;toolGroup.rotation.z=-.55;head.rotation.x=.18;}
- else {arms[0].rotation.x=-1.05+phase*.12;arms[1].rotation.x=-1.02-phase*.12;tools.cloth.visible=true;head.rotation.x=.2;}
- }
- return {root,animate};
+/** R9 production rig from the user-approved R8 sculpt. Y up; face +Z; metres.
+ * All templates are immutable and shared with a bounded, reference-counted cache.
+ * Call actor.dispose() and remove actor.root BEFORE generic scene disposal.
+ */
+import * as THREE from 'three';
+import {createApprovedSurfaces} from './approved-surfaces.js';
+import {createHandProps,disposeHandProps} from './character-props.js';
+const TAU=Math.PI*2,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),mix=(a,b,t)=>a+(b-a)*t;
+const BAND_VALUES=[90,150,213,255],SKIN_VALUES=[140,186,229,255];
+function toon(values){const tex=new THREE.DataTexture(new Uint8Array(values),4,1,THREE.RedFormat);tex.minFilter=tex.magFilter=THREE.NearestFilter;tex.generateMipmaps=false;tex.needsUpdate=true;const m=new THREE.MeshToonMaterial({vertexColors:true,gradientMap:tex,side:THREE.DoubleSide,shadowSide:THREE.BackSide});m.userData.characterShared=true;tex.userData={characterShared:true};return m;}
+const clothMaterial=toon(BAND_VALUES),skinMaterial=toon(SKIN_VALUES);
+const cache=new Map(),CACHE_LIMIT=24;
+const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
+// Parent-before-child anatomical joints, with absolute rest positions.
+const JOINTS=[
+ ['pelvis',-1,[0,.965,-.01]],['spine',0,[0,1.18,-.007]],['chest',1,[0,1.335,-.01]],['head',2,[0,1.455,0]],
+ ['upperArmL',2,[-.171,1.326,-.010]],['forearmL',4,[-.277,1.099,-.006]],['handL',5,[-.304,.926,0]],
+ ['upperArmR',2,[.171,1.326,-.010]],['forearmR',7,[.277,1.099,-.006]],['handR',8,[.304,.926,0]],
+ ['thighL',0,[-.085,.965,-.010]],['shinL',10,[-.089,.54,-.015]],['footL',11,[-.089,.108,-.025]],
+ ['thighR',0,[.085,.965,-.010]],['shinR',13,[.089,.54,-.015]],['footR',14,[.089,.108,-.025]],
+ ['clothShinL',11,[-.089,.54,-.015]],['clothShinR',14,[.089,.54,-.015]]
+];
+const REST=JOINTS.map(j=>V(...j[2])),ID=Object.fromEntries(JOINTS.map((j,i)=>[j[0],i]));
+function sideOf(name,geometry){const a=geometry.attributes.position;let x=0;for(let i=0;i<a.count;i++)x+=a.getX(i);return x<0?0:1;}
+function torsoWeights(y){if(y>=1.335)return [[2,1]];if(y>=1.18){const u=(y-1.18)/.155;return [[1,1-u],[2,u]];}const u=clamp((y-.965)/.215,0,1);return [[0,1-u],[1,u]];}
+function legWeights(x,y,side=null){
+ const s=side===null?clamp((x+.070)/.140,0,1):side;
+ const w=[];for(let k=0;k<2;k++){const f=k?s:1-s;if(!f)continue;const ids=k?[13,14,15]:[10,11,12];
+ if(y>=.81){const u=clamp((.965-y)/.155,0,1);w.push([0,f*(1-u)],[ids[0],f*u]);}
+ else if(y>=.47){const u=clamp((.64-y)/.17,0,1);w.push([ids[0],f*(1-u)],[ids[1],f*u]);}
+ else{const u=clamp((.20-y)/.092,0,1);w.push([ids[1],f*(1-u)],[ids[2],f*u]);}}
+ // Combine pelvis duplicates and cap to four influences, renormalizing.
+ const m=new Map();for(const [i,a]of w)if(a>0)m.set(i,(m.get(i)||0)+a);const r=[...m].sort((a,b)=>b[1]-a[1]).slice(0,4),sum=r.reduce((a,x)=>a+x[1],0);return r.map(([i,w])=>[i,w/sum]);
 }
+function weights(name,x,y,side){
+ if(/continuous-head|^ear-|inset-eye|iris-|pupil-|eye-catchlight|eyelid-|soft-brow|nostril-|lip|mouth|hair|fringe|combed|side-lock|side-flow|cook-.*cap|artist-beret|garden-straw/.test(name))return [[3,1]];
+ if(name==='neck'){const u=clamp((y-1.375)/.065,0,1);return [[2,1-u],[3,u]];}
+ if(/sleeve|^arm-|bare-arm|wrist-|relaxed-|thumb-/.test(name)){
+ const [a,b,c]=side?[7,8,9]:[4,5,6];if(y<=.938)return [[c,1]];
+ if(y>=1.295){const u=clamp((y-1.295)/.049,0,1);return [[a,1-u],[2,u]];}
+ if(y<=1.15){const u=clamp((y-1.055)/.095,0,1),v=clamp((.99-y)/.05,0,1);return v?[[b,1-v],[c,v]]:[[a,u],[b,1-u]];}
+ return [[a,1]];
+ }
+ if(/footwear|sole-|loafer/.test(name))return [[side?15:12,1]];
+ if(/trouser/.test(name))return legWeights(x,y,side);
+ return y>=.965?torsoWeights(y):legWeights(x,y).map(([i,w])=>[i===11?16:i===14?17:i,w]);
+}
+function mergeSurfaces(source){const buckets=[{p:[],n:[],c:[],i:[],si:[],sw:[],ranges:[]},{p:[],n:[],c:[],i:[],si:[],sw:[],ranges:[]}];source.updateMatrixWorld(true);const p=V(),n=V(),nm=new THREE.Matrix3();
+ source.traverse(m=>{if(!m.isMesh)return;const b=buckets[m.userData.softSkin?1:0],offset=b.p.length/3,g=m.geometry,pos=g.attributes.position,nor=g.attributes.normal,s=sideOf(m.name,g);nm.getNormalMatrix(m.matrixWorld);b.ranges.push({name:m.name,start:offset,count:pos.count,indexStart:b.i.length,indexCount:g.index?.count??pos.count});
+ for(let i=0;i<pos.count;i++){p.fromBufferAttribute(pos,i).applyMatrix4(m.matrixWorld);n.fromBufferAttribute(nor,i).applyMatrix3(nm).normalize();b.p.push(p.x,p.y,p.z);b.n.push(n.x,n.y,n.z);b.c.push(m.material.color.r,m.material.color.g,m.material.color.b);const w=weights(m.name,p.x,p.y,s);for(let j=0;j<4;j++){b.si.push(w[j]?.[0]||0);b.sw.push(w[j]?.[1]||0);}}
+ const idx=g.index;for(let i=0;i<(idx?.count??pos.count);i++)b.i.push(offset+(idx?idx.getX(i):i));g.dispose();});
+ return buckets.map((b,k)=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(b.p,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(b.n,3));g.setAttribute('color',new THREE.Float32BufferAttribute(b.c,3));g.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(b.si,4));g.setAttribute('skinWeight',new THREE.Float32BufferAttribute(b.sw,4));g.setIndex(b.i);g.computeBoundingBox();g.computeBoundingSphere();g.userData={characterShared:true,section:k?'skin':'cloth',sourceRanges:b.ranges};return g;});
+}
+function getTemplate(opts){const key=JSON.stringify(opts);let t=cache.get(key);if(t){t.refs++;t.last=performance.now();return t;}
+ if(cache.size>=CACHE_LIMIT){const free=[...cache.values()].filter(x=>x.refs===0).sort((a,b)=>a.last-b.last);if(free.length){cache.delete(free[0].key);free[0].geometry.forEach(g=>g.dispose());}}
+ const source=createApprovedSurfaces(opts),geometry=mergeSurfaces(source);const b=new THREE.Box3();for(const g of geometry)b.union(g.boundingBox);t={key,geometry,height:b.max.y,refs:1,last:performance.now(),cached:cache.size<CACHE_LIMIT};if(t.cached)cache.set(key,t);return t;
+}
+function releaseTemplate(t){t.refs=Math.max(0,t.refs-1);t.last=performance.now();if(!t.cached&&t.refs===0)t.geometry.forEach(g=>g.dispose());}
+function buildSkeleton(root){const bones=JOINTS.map(([name])=>{const b=new THREE.Bone();b.name=name;return b;});JOINTS.forEach(([,parent],i)=>{bones[i].position.copy(REST[i]);if(parent>=0){bones[i].position.sub(REST[parent]);bones[parent].add(bones[i]);}else root.add(bones[i]);});root.updateMatrixWorld(true);const skeleton=new THREE.Skeleton(bones);return {bones,skeleton};}
+const clonePoint=p=>p.toArray().map(n=>+n.toFixed(5));
+export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,accent=0xe7cab0,style='casual',culture=null,variant=0,scale=1,eyeColor=0x594b3f,receiveShadow=false}={}){
+ const masc=typeof variant==='string'?/masculine|male/.test(variant):Math.abs(variant)%2===1;
+ culture=['japan','china','egypt','france'].includes(culture)?culture:null;
+ style=['chef','artist','gardener'].includes(style)?style:'casual';scale=Number.isFinite(scale)?clamp(scale,.25,3):1;
+ const root=new THREE.Group();root.name='approved-human-r9';root.scale.set(masc?scale*1.085:scale,masc?scale*1.035:scale,masc?scale*1.065:scale);
+ const opts={eyeColor:new THREE.Color(eyeColor).getHex(),skin:new THREE.Color(skin).getHex(),hair:new THREE.Color(hair).getHex(),clothes:new THREE.Color(clothes).getHex(),accent:new THREE.Color(accent).getHex(),style,culture,masc};
+ const template=getTemplate(opts),height=template.height*root.scale.y;
+ const rig=new THREE.Group();rig.name='articulated-rig';root.add(rig);const {bones,skeleton}=buildSkeleton(rig);
+ const meshes=template.geometry.map((g,i)=>{const mesh=new THREE.SkinnedMesh(g,i?skinMaterial:clothMaterial);mesh.name=i?'approved-face-skin':'continuous-tailored-cloth';mesh.castShadow=true;mesh.receiveShadow=receiveShadow;mesh.frustumCulled=false;rig.add(mesh);mesh.bind(skeleton);return mesh;});
+ const props=createHandProps(THREE);props.tools.cup.position.set(-.078,-.025,0);props.tools.brush.position.y=-.015;bones[6].add(props.left);bones[9].add(props.right);
+ const posedP=REST.map(p=>p.clone()),posedQ=REST.map(()=>new THREE.Quaternion()),pose=new THREE.Group();
+ const tmp=V(),tmp2=V(),dir=V(),pole=V(),restDir=V(),identity=new THREE.Quaternion(),invQ=new THREE.Quaternion(),torsoQ=new THREE.Quaternion(),headQ=new THREE.Quaternion(),inverseRoot=new THREE.Matrix4();
+ const previousRoot=V(),velocity=V(),rootWorld=V(),footAnchors=[V(),V()],swingStarts=[V(),V()],lastFootWorld=[V(),V()],lastSupport=[true,false],footTargets=[V(),V()];
+ let lastTime=null,wasWalking=false,gaitPhase=0,disposed=false,initializedFeet=false,currentAction=null,visualFloorOffset=0;
+ const metrics={height,labelHeight:height+.16,headHeight:1.61*root.scale.y,action:null,seated:false,grounded:true,feet:[[],[]],hands:[[],[]]};
+ root.userData={characterR9:true,appearance:{skin:opts.skin,hair:opts.hair,clothes:opts.clothes,accent:opts.accent,eyeColor:opts.eyeColor,culture,variant,style},body:rig,head:bones[3],arms:[bones[4],bones[7]],forearms:[bones[5],bones[8]],hands:[bones[6],bones[9]],legs:[bones[10],bones[13]],knees:[bones[11],bones[14]],feet:[bones[12],bones[15]],tools:props.tools,poseQA:metrics,labelHeight:metrics.labelHeight,characterShared:true};
+ function orient(i,j,p){restDir.copy(REST[j]).sub(REST[i]).normalize();dir.copy(p).sub(posedP[i]).normalize();posedQ[i].setFromUnitVectors(restDir,dir);}
+ function setTorso(hipY,lean=0,sway=0){
+  posedP[0].set(0,hipY,-.01);torsoQ.setFromEuler(new THREE.Euler(lean,0,sway));posedQ[0].copy(torsoQ);
+  for(const i of [1,2,3,4,7,10,13]){posedP[i].copy(REST[i]).sub(REST[0]).applyQuaternion(torsoQ).add(posedP[0]);posedQ[i].copy(torsoQ);}
+  headQ.setFromEuler(new THREE.Euler(0,0,0));
+ }
+ function solveLimb(a,b,c,target,poleVector){
+  const upper=REST[a].distanceTo(REST[b]),lower=REST[b].distanceTo(REST[c]);dir.copy(target).sub(posedP[a]);let distance=clamp(dir.length(),Math.abs(upper-lower)+.002,upper+lower-.0005);dir.normalize();const along=(upper*upper-lower*lower+distance*distance)/(2*distance),high=Math.sqrt(Math.max(0,upper*upper-along*along));
+  pole.copy(poleVector).addScaledVector(dir,-poleVector.dot(dir));if(pole.lengthSq()<.0001)pole.set(0,0,1);pole.normalize();
+  posedP[c].copy(posedP[a]).addScaledVector(dir,distance);posedP[b].copy(posedP[a]).addScaledVector(dir,along).addScaledVector(pole,high);
+  orient(a,b,posedP[b]);orient(b,c,posedP[c]);posedQ[c].copy(posedQ[b]);
+ }
+ const armPole=[V(-.28,-1,-.2),V(.28,-1,-.2)],legPole=V(0,0,1);
+ function reach(side,x,y,z){const ids=side?[7,8,9]:[4,5,6];tmp.set(x,y,z);solveLimb(...ids,tmp,armPole[side]);// Neutral wrist keeps hand silhouette attached; vessels are counter-rotated separately.
+ }
+ function foot(side,target){const ids=side?[13,14,15]:[10,11,12];solveLimb(...ids,target,legPole);posedQ[ids[2]].identity();}
+ function applyPose(){
+  for(let i=0;i<bones.length;i++){const parent=JOINTS[i][1];if(parent<0){bones[i].position.copy(posedP[i]);bones[i].quaternion.copy(posedQ[i]);}else{invQ.copy(posedQ[parent]).invert();bones[i].position.copy(posedP[i]).sub(posedP[parent]).applyQuaternion(invQ);bones[i].quaternion.copy(invQ).multiply(posedQ[i]);}}
+  // World-upright cups, bowls and buckets; hands retain real elbow/wrist rotation.
+  props.left.quaternion.copy(posedQ[6]).invert();props.right.quaternion.copy(posedQ[9]).invert();
+  rig.updateMatrixWorld(true);skeleton.update();
+ }
+ function resetTools(){props.tools.knife.rotation.set(0,0,0);for(const prop of Object.values(props.tools))prop.visible=false;props.left.rotation.set(0,0,0);props.right.rotation.set(0,0,0);}
+ function show(...names){for(const name of names)if(props.tools[name])props.tools[name].visible=true;}
+ function animate(time,walking=false,action=null,context=null){
+  if(disposed)return;visualFloorOffset=Number.isFinite(context?.visualFloorOffset)?clamp(context.visualFloorOffset,0,.5):0;rig.position.y=visualFloorOffset/root.scale.y;time=Number.isFinite(time)?time:0;walking=!!walking;if(walking)action=null;resetTools();
+  const dt=lastTime===null?0:clamp(time-lastTime,0,.2);root.updateWorldMatrix(true,false);root.getWorldPosition(rootWorld);velocity.copy(rootWorld).sub(previousRoot);const travel=velocity.length();const physical=dt>0&&travel>.00001&&travel<1.2;
+  if(physical)velocity.multiplyScalar(1/dt);else velocity.set(0,0,0);
+  currentAction=action;metrics.action=action;metrics.seated=action==='kotatsu';
+  const t=walking?(physical?gaitPhase+=dt*Math.max(.4,velocity.length())*TAU:time*7.6):0;
+  const bob=walking?Math.abs(Math.sin(t))*.009:Math.sin(time*1.8)*.002;
+  // Raised tatami must lift soles without lifting the seated lap through its quilt.
+  // Only pelvis/upper cloth settle; IK ankle and absolute wrist targets stay unchanged.
+  const seatedDrop=action==='kotatsu'&&culture==='japan'?Math.min(.04,visualFloorOffset/root.scale.y*.5):0;
+  setTorso(action==='kotatsu'?.417-seatedDrop:walking?.895+bob:.965,action==='calligraphy'?.40:/^(knead|bread|cook|sushi|bake|tidy)$/.test(action||'')?.13:0,walking?Math.sin(t)*.012:0);
+  if(action!=='kotatsu'){
+   for(let s=0;s<2;s++){
+    const phi=((t+(s?Math.PI:0))%TAU+TAU)%TAU,support=phi<Math.PI,u=support?phi/Math.PI:(phi-Math.PI)/Math.PI;
+    const x=s?.089:-.089,target=footTargets[s];target.set(x,.108,-.025);
+    if(walking){
+     if(physical){
+      inverseRoot.copy(root.matrixWorld).invert();
+      if(!initializedFeet||!wasWalking){footAnchors[s].copy(lastFootWorld[s]);swingStarts[s].copy(lastFootWorld[s]);lastSupport[s]=support;}
+      if(support&&!lastSupport[s])footAnchors[s].copy(lastFootWorld[s]);
+      if(!support&&lastSupport[s])swingStarts[s].copy(footAnchors[s]);
+      if(support){target.copy(footAnchors[s]).applyMatrix4(inverseRoot);target.y=.108;}
+      else{tmp.set(x,.108,.23).applyMatrix4(root.matrixWorld);target.copy(swingStarts[s]).lerp(tmp,u*u*(3-2*u)).applyMatrix4(inverseRoot);target.y=.108+Math.sin(u*Math.PI)*.105;}
+      // Never drag a planted foot beyond anatomical reach after sudden turning/teleport.
+      target.x=clamp(target.x,x-.14,x+.14);target.z=clamp(target.z,-.30,.30);lastSupport[s]=support;
+     }else{target.z=support?mix(.23,-.23,u):mix(-.23,.23,u*u*(3-2*u));target.y=.108+(support?0:Math.sin(u*Math.PI)*.105);}
+    }
+    foot(s,target);
+   }
+  }else{
+   // Actual thighs, flexed knees and folded shins; the same continuous robe skins over them.
+   foot(0,tmp.set(-.105,.108,-.13));foot(1,tmp.set(.105,.108,-.13));
+  }
+  for(const [i,j] of [[16,11],[17,14]]){posedP[i].copy(posedP[j]);if(action==='kotatsu')posedP[i].y+=.045;posedQ[i].copy(posedQ[j]);}
+  initializedFeet=walking&&physical;
+  const swing=walking?Math.sin(t)*.13:0;
+  if(walking||action){reach(0,-.304,.926+(walking?-.03:0),.008+swing);reach(1,.304,.926+(walking?-.03:0),.008-swing);}else{for(const i of [4,5,6,7,8,9]){posedP[i].copy(REST[i]).sub(REST[0]).applyQuaternion(torsoQ).add(posedP[0]);posedQ[i].copy(torsoQ);}}
+  let lookX=walking?.035:0,lookY=walking?0:Math.sin(time*.7)*.045;
+  if(action==='kotatsu'){
+   const sip=Math.pow((Math.sin(time*.8)+1)*.5,3);reach(0,-.22,.67,.31);reach(1,.15,.71+sip*.32,.31-sip*.14);show('cup');lookX=.10-sip*.08;lookY=Math.sin(time*.35)*.035;
+  }else if(action==='sushi-eat'){
+   const sip=Math.pow((Math.sin(time*.95)+1)*.5,2);reach(0,-.14,1.18,.29);reach(1,.08,1.37+sip*.07,.26-sip*.15);show('sushiPlate','chopsticks');lookX=.13-sip*.08;
+  }else if(action==='ramen'){
+   const serve=(Math.sin(time*1.15)+1)*.5;reach(0,-.15,1.04+serve*.06,.29);reach(1,.07-serve*.045,1.24+serve*.10,.28-serve*.035);show('ramenBowl',serve<.83?'ladle':'chopsticks');lookX=.13;
+  }else if(action==='bath-attendant'){
+   const sweep=Math.sin(time*1.45);reach(0,-.25+sweep*.055,.92,.26+sweep*.025);reach(1,.32,1.03,.21);show('bathCloth','bathBucket');lookX=.20;
+  }else if(/relax/.test(action||'')){reach(0,-.25,.955,.13);reach(1,.25,.955,.13);lookX=-.04;}
+  else if(/ritual/.test(action||'')){reach(0,-.19,1.40,.28);reach(1,.18,1.43+Math.sin(time*.7)*.018,.28);show('feather');lookX=.09;}
+  else if(/knead|bread/.test(action||'')){const press=Math.sin(time*3.4);reach(0,-.15,1.16+press*.025,.36);reach(1,.15,1.16+Math.sin(time*3.4+.7)*.025,.36);lookX=.20;}
+  else if(/cook|sushi|bake/.test(action||'')){reach(0,-.14,1.20,.34);reach(1,.16,1.24+Math.sin(time*5)*.04,.33);show('knife');lookX=.20;}
+  else if(/paint|calligraphy|craft|art/.test(action||'')){const low=/calligraphy/.test(action);reach(0,-.19,1.14,.30);reach(1,.12+Math.sin(time*1.2)*.035,low?1.23:1.43+Math.sin(time*1.4)*.027,low?.34:.30);show('brush');if(!low)show('palette');lookX=low?.17:.035;}
+  else if(/tea/.test(action||'')){const sip=Math.pow((Math.sin(time*.9)+1)*.5,2);reach(0,-.17,1.10,.29);reach(1,.11,1.12+sip*.30,.30-sip*.145);show('cup');lookX=.09-sip*.065;}
+  else if(/read|rest/.test(action||'')){reach(0,-.16,1.13,.29);reach(1,.18,1.13,.29);show('book');lookX=.22;}
+  else if(/garden/.test(action||'')){reach(0,-.27,.96,.14);reach(1,.26,1.09,.29);show('can');lookX=.17;}
+  else if(action){reach(0,-.18,1.02,.28);reach(1,.18,1.04+Math.sin(time*2.7)*.025,.29);show('cloth');lookX=.18;}
+  // Optional main-supplied authored work surface in actor-local metres. Distant
+  // ritual/reading targets stay observational; only genuine tabletop jobs use it.
+  const workHeight=context?.workHeight;
+  if(Number.isFinite(workHeight)&&workHeight>.55&&workHeight<1.65&&action!=='kotatsu'){
+   const surface=workHeight/(masc?1.035:1)-visualFloorOffset/root.scale.y,forward=clamp(context?.workDistance??.38,.25,action==='calligraphy'?.57:.455);
+   if(/knead|bread/.test(action||'')){reach(0,-.15,surface+.065+Math.sin(time*3.4)*.017,forward);reach(1,.15,surface+.065+Math.sin(time*3.4+.7)*.017,forward);}
+   else if(/^(cook|sushi|bake)$/.test(action||'')){if(surface>1.30){reach(0,-.14,surface+.045,Math.min(forward,.36));reach(1,.16,surface+.215+Math.sin(time*5)*.018,Math.min(forward,.34));props.tools.knife.rotation.x=-.60;}else{reach(0,-.14,surface+.075,forward);reach(1,.16,surface+.255+Math.sin(time*5)*.030,forward-.01);}}
+   else if(/calligraphy/.test(action||'')){reach(0,-.18,surface+.045,forward-.025);reach(1,.12+Math.sin(time*1.2)*.03,surface+.265,forward-.025);}
+   else if(action==='bath-attendant'){reach(0,-.25+Math.sin(time*1.45)*.055,surface+.075,forward-.02);}
+   else if(/tidy/.test(action||'')){reach(0,-.18,surface+.08,forward-.025);reach(1,.18,surface+.095,forward-.025);}
+  }
+  if(action){posedQ[6].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));posedQ[9].identity();if(/knead|bread|tidy/.test(action))posedQ[9].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));}
+  headQ.setFromEuler(new THREE.Euler(lookX,lookY,0));posedQ[3].copy(torsoQ).multiply(headQ);
+  applyPose();
+  if(action==='sushi-eat')props.right.rotation.x-=Math.pow((Math.sin(time*.95)+1)*.5,2)*.55;
+  if(/garden/.test(action||''))props.right.rotation.z=-.35;
+  // Fixed-size pose data: no per-frame Box3 or scene traversal.
+  metrics.height=height+visualFloorOffset;metrics.visualFloorOffset=visualFloorOffset;metrics.headHeight=(posedP[3].y+.16)*root.scale.y+visualFloorOffset;metrics.labelHeight=(posedP[3].y+template.height-1.455+.16)*root.scale.y+visualFloorOffset;root.userData.labelHeight=metrics.labelHeight;
+  for(let s=0;s<2;s++){lastFootWorld[s].copy(posedP[s?15:12]).applyMatrix4(root.matrixWorld);metrics.feet[s]=clonePoint(posedP[s?15:12]);metrics.hands[s]=clonePoint(posedP[s?9:6]);}
+  metrics.grounded=posedP[12].y>=.106&&posedP[15].y>=.106;metrics.rigBones=18;metrics.continuousCloth=true;
+  previousRoot.copy(rootWorld);lastTime=time;wasWalking=walking;
+ }
+ function dispose(){if(disposed)return;disposed=true;skeleton.dispose();disposeHandProps(props);releaseTemplate(template);const geometry=new Set(),materials=new Set();root.traverse(o=>{if(o.geometry&&!o.geometry.userData.characterShared)geometry.add(o.geometry);for(const m of (Array.isArray(o.material)?o.material:[o.material]))if(m&&!m.userData?.characterShared)materials.add(m);});geometry.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());root.userData.disposed=true;}
+ function getPoseMetrics(){return {...metrics,feet:metrics.feet.map(x=>x.slice()),hands:metrics.hands.map(x=>x.slice())};}
+ animate(0,false,null);
+ return {root,animate,dispose,get height(){return height+visualFloorOffset;},getPoseMetrics};
+}
+export function characterResourceStats(){return {cachedTemplates:cache.size,cacheLimit:CACHE_LIMIT,activeReferences:[...cache.values()].reduce((a,t)=>a+t.refs,0),cachedTriangles:[...cache.values()].reduce((a,t)=>a+t.geometry.reduce((s,g)=>s+g.index.count/3,0),0),sharedBodyMaterials:2};}
+export function auditCharacter(actor){let meshes=0,visibleMeshes=0,triangles=0,visibleTriangles=0,finite=true;const materials=new Set();actor.root.traverse(o=>{if(!o.isMesh)return;meshes++;let shown=true;for(let p=o;p;p=p.parent)if(!p.visible)shown=false;const t=(o.geometry.index?.count||o.geometry.attributes.position.count)/3;triangles+=t;if(shown){visibleMeshes++;visibleTriangles+=t;}materials.add(o.material);for(const v of o.geometry.attributes.position.array)finite&&=Number.isFinite(v);});return {meshes,visibleMeshes,triangles,visibleTriangles,materials:materials.size,finite,height:actor.height,bones:18,...actor.getPoseMetrics()};}

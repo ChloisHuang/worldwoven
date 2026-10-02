@@ -1,3 +1,4 @@
+import {registerNightFixture} from './night-lighting.js';
 import * as THREE from 'three';
 import {material as celMaterial} from './geometry.js?rev=R7-20261002';
 
@@ -47,7 +48,7 @@ function mural(parent,x,y,z,w,h,rot=0,seed=0){
   for(let i=0;i<Math.floor(w/.42);i++)glyph(g,-w/2+.24+i*.42,-h/2+.42,.07,seed+i,.17,C.ink);
   return g;
 }
-function torch(g,x,y,z,cam,rot=0,emitLight=true){const q=new THREE.Group();q.position.set(x,y,z);q.rotation.y=rot;g.add(q);box(q,0,0,0,.17,.54,.24,C.black);rod(q,[0,-.14,0],[0,.2,.33],.055,C.gold);cyl(q,0,.24,.35,.23,.09,.22,C.gold);const flame=ball(q,0,.48,.35,.16,0xffbd56,.62,1.9,.62);flame.material=mat(0xffba50,true);const inner=ball(q,0,.44,.40,.1,0xffe5a0,.7,1.3,.7);inner.material=mat(0xffdf96,true);if(emitLight){const light=new THREE.PointLight(0xffb660,7,8,2);light.position.set(0,.48,.55);q.add(light);}}
+function torch(g,x,y,z,cam,rot=0,emitLight=true){const q=new THREE.Group();q.position.set(x,y,z);q.rotation.y=rot;g.add(q);box(q,0,0,0,.17,.54,.24,C.black);rod(q,[0,-.14,0],[0,.2,.33],.055,C.gold);cyl(q,0,.24,.35,.23,.09,.22,C.gold);const flame=ball(q,0,.48,.35,.16,0xffbd56,.62,1.9,.62);flame.material=mat(0xffba50,true);const inner=ball(q,0,.44,.40,.1,0xffe5a0,.7,1.3,.7);inner.material=mat(0xffdf96,true);if(emitLight){const light=new THREE.PointLight(0xffb660,14,8,1.7);light.position.set(0,.48,.55);q.add(light);}else registerNightFixture(q,0,.48,.55,{kind:'torch',color:0xffb660,intensity:14,distance:8,dayFactor:.62});}
 function column(g,cs,cam,x,z,h=5){solid(g,cs,cam,x,.16,z,1.3,.32,1.3,C.edge);cyl(g,x,h/2,z,.48,.62,h-.2,C.stone,16);volume(cs,x,h/2,z,1.2,h,1.2);volume(cam,x,h/2,z,1.2,h,1.2);for(const y of [.45,h-.73,h-.42])cyl(g,x,y,z,.59,.59,.13,y===.45?C.blue:C.gold,16);cyl(g,x,h-.27,z,.9,.52,.6,C.stone,8);box(g,x,h+.04,z,1.75,.26,1.75,C.edge);for(let i=0;i<12;i++){const a=i*Math.PI/6;rod(g,[x+Math.sin(a)*.52,1,z+Math.cos(a)*.52],[x+Math.sin(a)*.45,h-.67,z+Math.cos(a)*.45],.018,0xb58c54);}for(const y of [1.3,1.95,2.6])glyph(g,x,y,z+.59,Math.floor(y*3+x),.25,C.red);}
 function jackalStatue(g,x,y,z,s=1){
   const q=new THREE.Group();q.position.set(x,y,z);q.scale.setScalar(s);g.add(q);box(q,0,.13,0,1.55,.26,1.3,C.shadow);box(q,0,.30,0,1.3,.14,1.08,C.gold);
@@ -341,6 +342,11 @@ export function buildEgypt(){
   for(let i=0;i<5;i++)urn(service,12.7+i*.7,1.45,-19.25,.65,i%2?C.deep:C.gold);
   for(const x of [12.8,15.6])for(const z of [-18.3,-17.25]){urn(service,x,0,z,.7,C.shadow);volume(colliders,x,.6,z,.7,1.2,.7);volume(cameraColliders,x,.6,z,.7,1.2,.7);}
   for(const [x,z,r]of[[12,-7.3,Math.PI/2],[23.8,-13.3,-Math.PI/2]])torch(service,x,2.75,z,cameraColliders,r,x<18);
+  // Supported preparation boards follow the adults' measured knife paths.
+  box(service,22.10,1.3475,-15.31,.22,.015,.30,C.linen);
+  box(service,19.15,1.305,-8.70,.60,.05,.45,C.linen);
+  box(service,16.80,1.295,-8.65,.50,.03,.42,C.linen);
+  for(const [x,y,z]of [[19.3,1.365,-8.79],[19.15,1.365,-8.82],[16.96,1.345,-8.72]])ball(service,x,y,z,.055,C.lightSand,1,.25,1.3);
   // Private bath with visible water, stepped basin rim and a changing niche.
   for(const [z,d]of[[-3.5,1.8],[1.6,2]])roomWall(privateRoom,16.4,2.35,z,.22,4.7,d,C.stone);
   roomWall(privateRoom,16.4,4.05,-1,.22,1.3,3.2,C.stone);
@@ -370,8 +376,8 @@ export function buildEgypt(){
   );
   stations.push(
     {id:'egypt-royal-reception',name:'王室接待处',action:'领取探索卷轴',position:[-3.6,0,10.0],npcName:'阿赫',npcAction:'calligraphy',npcLabel:'登记来访卷轴',npcPosition:[-3.6,0,7.1],workTarget:[-3.6,1.26,8.35],route:[[-3.6,0,7.1],[-5.9,0,7.1]],dialogue:'欢迎来到金字塔里的王室宅邸。正前方是旧柱厅，西边是审判厅和上升王殿的长坡道，东边是起居、用餐与服务房间。'},
-    {id:'egypt-royal-dining',name:'王室餐厅',action:'摆放面包与彩釉餐盘',position:[17.9,0,-7.45],npcName:'达娜',npcAction:'cook',npcLabel:'准备面包与水果',npcPosition:[20.5,0,-7.7],workTarget:[17.9,1.4,-9.3],route:[[20.5,0,-7.7],[22,0,-10.6]],dialogue:'厨房在餐厅后面，储物室收着陶罐和谷物。把餐盘摆好，再看看这一整套王室生活设施怎样连接。'},
-    {id:'egypt-royal-kitchen',name:'王室厨房',action:'准备陶锅与矿物色餐具',position:[20.5,0,-15.0],npcName:'赫特',npcAction:'cook',npcLabel:'照看陶锅并整理食材',npcPosition:[20.6,0,-17.3],workTarget:[22.8,1.7,-16],route:[[20.6,0,-17.3],[20.6,0,-14.2]],dialogue:'这条工作台把陶锅、食材和案板排在墙边，中央留下足够的走动空间。隔壁的小储藏室也可以走进去。'},
+    {id:'egypt-royal-dining',name:'王室餐厅',action:'摆放面包与彩釉餐盘',position:[17,0,-8.03],playerWorkTarget:[17,1.31,-8.57],npcName:'达娜',npcAction:'cook',npcLabel:'准备面包与水果',npcPosition:[19.2,0,-8.08],workTarget:[19.2,1.33,-8.57],route:[[20.5,0,-7.7],[22,0,-10.6]],dialogue:'厨房在餐厅后面，储物室收着陶罐和谷物。把餐盘摆好，再看看这一整套王室生活设施怎样连接。'},
+    {id:'egypt-royal-kitchen',name:'王室厨房',action:'准备陶锅与矿物色餐具',position:[21.60,0,-15.1],playerWorkTarget:[22.08,1.355,-15.1],npcName:'赫特',npcAction:'cook',npcLabel:'照看陶锅并整理食材',npcPosition:[21.62,0,-17.1],workTarget:[22.10,1.40,-17.1],route:[[20.6,0,-17.3],[20.6,0,-14.2]],dialogue:'这条工作台把陶锅、食材和案板排在墙边，中央留下足够的走动空间。隔壁的小储藏室也可以走进去。'},
     {id:'egypt-private-bath',name:'王室沐浴间',action:'查看蓝色浴池与更衣器物',position:[17.2,0,-1],npcName:'赛提',npcAction:'clean',npcLabel:'整理沐浴用的亚麻织物',npcPosition:[17.2,0,.8],workTarget:[14.05,.65,-1.05],route:[[17.2,0,.8],[17.2,0,-2.8]],dialogue:'寝室旁另有一间带石质浴池的沐浴室。蓝色水面、亚麻织物和陶罐让它与仪式空间有了不同的日常气息。'}
   );
   const explorationTargets=[
@@ -417,6 +423,8 @@ export function buildEgypt(){
     {id:'judgment-hall',name:'阿努比斯与荷鲁斯之眼',position:[-20,0,4.45],activity:'egypt-anubis-judgment'},
     {id:'lower-burial',name:'地下石棺与木乃伊墓室',position:[-2.4,-3,-16.25],activity:'egypt-burial'}
   ];
+  // Gold torch fixtures hug the existing entry jambs, leaving the portal clear.
+  for(const x of [-3.0,3.0])torch(desert,x,2.55,21.45,cameraColliders,0,true);
   for(const q of [desert,temple,passage,burial,pyramid,throne,privateRoom,judgment,ascending,service,roofGroup])batchZone(q);
   group.userData={...group.userData,interior:true,defaultRoofVisible:true,cameraMode:'close-third-person',theme:'dry-desert-pyramid',pyramidShell:{...shell,frontZ:front,rearZ:rear,solidBands:shellSolids.length,mainEntry:true},ambientIntensity:.38,sunIntensity:2.4,interiorZones:[{name:'神殿柱厅',minX:-9,maxX:9,minZ:-6.8,maxZ:.5,minY:-.1,maxY:5.1},{name:'金字塔墓室',minX:-7,maxX:7,minZ:-19.4,maxZ:-13,minY:-3.1,maxY:.4}],originalProceduralArt:true};
   return {group,colliders,spawn:[0,0,35.5],bounds:{minX:-30,maxX:30,minZ:-40,maxZ:40},stations,roofGroup,walkableSurfaces,cameraColliders,explorationTargets,doorways,facilities,levels:[{id:'desert',name:'沙漠与神殿',y:0},{id:'burial',name:'金字塔地下墓室',y:-3},{id:'throne',name:'上层法老王殿',y:4}]};

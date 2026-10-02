@@ -1,3 +1,4 @@
+import {registerNightFixture} from './night-lighting.js';
 import * as G from './geometry.js?rev=R7-20261002';
 const {THREE} = G;
 
@@ -20,7 +21,7 @@ function curvedRoof(g,x,y,z,w,d,color,asian='japan',scale=1){
 function teaSet(g,x,y,z,color=P.jade){G.cyl(g,x,y+.14,z,.19,.24,.28,color);G.cyl(g,x,y+.3,z,.13,.13,.07,color);G.sphere(g,x,y+.36,z,.055,color);beam(g,[x+.17,y+.12,z],[x+.4,y+.27,z],.06,color);G.torus(g,x-.23,y+.17,z,.15,.04,color,0);for(const [dx,dz] of [[-.5,.25],[.5,.3],[.03,-.4]]){G.cyl(g,x+dx,y+.075,z+dz,.115,.085,.15,0xf0e7ca);G.cyl(g,x+dx,y+.155,z+dz,.083,.083,.009,0x6c714d);}}
 function bowl(g,x,y,z,color=0xf0e7cd,s=.25,fill=0xf4e8d6){G.sphere(g,x,y+s*.33,z,s,color,1,.65,1);G.cyl(g,x,y+s*.55,z,s*.9,s*.9,.035,fill);}
 function scroll(g,x,y,z,w,h,china=false){G.box(g,x,y,z,w,h,.055,0xe8d9ad);for(const yy of [-h/2,h/2]){const m=G.cyl(g,x,y+yy,z,.055,.055,w+.16,P.cedar,8);m.rotation.z=Math.PI/2;}if(china){for(let row=0;row<4;row++){const yy=y+h*.3-row*h*.2;for(const [dx,dy,ww,hh,rot] of [[-.04,0,.36,.025,.1],[-.08,-.12,.025,.3,-.3],[.1,.08,.025,.26,.2],[.09,-.11,.2,.024,-.35]]){const m=G.box(g,x+dx,yy+dy,z-.04,ww,hh,.012,0x313c38);m.rotation.z=rot;}}}else{G.sphere(g,x,y+.1,z-.045,.33,0xbd817d,1,1,.03);for(let i=0;i<4;i++){const m=G.box(g,x-.16+i*.1,y-.24+i*.05,z-.055,.035,.6-i*.08,.015,0x586b5f);m.rotation.z=-.3+i*.17;}}}
-function lantern(g,c,x,z,color=0xda6750,h=2.7,s=.42){post(g,c,x,z,P.cedar,h,.065);G.box(g,x+.28,h,z,.65,.07,.075,P.cedar);G.cyl(g,x+.55,h-.19,z,.025,.025,.37,P.cedar,6);G.sphere(g,x+.55,h-.68,z,s,color,1,1.15,1);for(const yy of [h-1.1,h-.27])G.cyl(g,x+.55,yy,z,.24,.24,.07,P.gold);G.cyl(g,x+.55,h-1.25,z,.025,.025,.25,P.gold,6);}
+function lantern(g,c,x,z,color=0xda6750,h=2.7,s=.42){post(g,c,x,z,P.cedar,h,.065);G.box(g,x+.28,h,z,.65,.07,.075,P.cedar);G.cyl(g,x+.55,h-.19,z,.025,.025,.37,P.cedar,6);G.mesh(g,new THREE.SphereGeometry(s,12,8),color,x+.55,h-.68,z,{emissive:0xffa04f,emissiveIntensity:.42}).scale.set(1,1.15,1);registerNightFixture(g,x+.55,h-.68,z,{kind:'garden-lantern',intensity:22,distance:9});for(const yy of [h-1.1,h-.27])G.cyl(g,x+.55,yy,z,.24,.24,.07,P.gold);G.cyl(g,x+.55,h-1.25,z,.025,.025,.25,P.gold,6);}
 function stone(g,x,z,s=1){return G.sphere(g,x,.18*s,z,.6*s,0xa3a59a,1,.36,.75);}
 function bamboo(g,c,x,z,s=1){G.cyl(g,x,.19,z,.4,.32,.38,0x807b62);G.collider(c,x,z,.8,.8);for(let i=0;i<5;i++){const dx=Math.sin(i*2.4)*.25,dz=Math.cos(i*2.4)*.25,hh=(1.8+i*.16)*s;G.cyl(g,x+dx,hh/2,z+dz,.034,.05,hh,0x71935f,6);for(let j=.35;j<hh;j+=.36)G.cyl(g,x+dx,j,z+dz,.052,.052,.045,0xb1bf7e,6);for(let j=0;j<3;j++){const leaf=G.sphere(g,x+dx+.2*(j-1),hh-.25*j,z+dz,.25,0x698a58,.35,.32,1.5);leaf.rotation.y=i+j;}}}
 function boundary(g,c,color){for(const x of [-14.5,14.5]){G.box(g,x,.53,0,.28,1.04,39,color);G.collider(c,x,0,.28,39);}G.box(g,0,.7,-19.5,29,1.4,.3,color);G.collider(c,0,-19.5,29,.3);for(const x of [-8.9,8.9]){G.box(g,x,.62,19.5,11.2,1.25,.3,color);G.collider(c,x,19.5,11.2,.3);}}
@@ -303,6 +304,8 @@ function palaceCeiling(g,nav,camera,x,z,w,d,y,ceremonial=false){
  for(const side of [-1,1]){G.box(g,x+side*(w/2-.18),y-.28,z,.12,.12,d-.15,P.gold);G.box(g,x,y-.28,z+side*(d/2-.18),w-.15,.12,.12,P.gold);}
 }
 function palaceInteriorLight(group,x,y,z,intensity=15,distance=10){
+ // Compact warm core sits inside the existing pendant, without changing its shape.
+ G.mesh(group,new THREE.SphereGeometry(.075,8,6),0xffd9a2,x,y,z,{emissive:0xffb85f,emissiveIntensity:.6});
  const light=new THREE.PointLight(0xffd2a0,intensity,distance,1.7);light.position.set(x,y,z);light.castShadow=false;group.add(light);
 }
 
@@ -517,7 +520,7 @@ export function buildChina(){
  for(let i=bedMeshStart;i<group.children.length;i++)group.children[i].position.z-=.4;
  for(let i=bedColliderStart;i<c.length;i++){c[i].minZ-=.4;c[i].maxZ-=.4;}
  // Calligraphy desk and scholar's shelf, with paper, brush rest and inkstone.
- G.table(group,6.1,-1.9,4.35,2,0x835439,.97);G.collider(c,6.1,-1.9,4.35,2);G.box(group,6.1,1.09,-1.95,1.65,.022,1.12,0xf0e3c5);for(let i=0;i<4;i++){const zz=-2.29+i*.2;G.box(group,6.03,1.108,zz,.41,.01,.035,0x3c4038).rotation.y=.1*i;G.box(group,6.04,1.115,zz,.035,.01,.14,0x3c4038).rotation.y=-.4;}G.box(group,7.58,1.13,-2.15,.56,.1,.37,0x454940);G.box(group,7.58,1.19,-2.15,.37,.015,.2,0x202d2c);beam(group,[6.98,1.17,-1.7],[7.45,1.17,-1.15],.025,0x554338);G.cyl(group,4.45,1.3,-2.23,.17,.18,.4,0x718a7e);for(let i=0;i<5;i++)beam(group,[4.4+i*.03,1.39,-2.22],[4.32+i*.08,1.88+(i%2)*.1,-2.22],.014,0x694d39);
+ G.table(group,6.1,-1.9,4.35,2,0x835439,.97);G.collider(c,6.1,-1.9,4.35,2);G.box(group,6.1,1.056,-1.95,1.65,.022,1.12,0xf0e3c5);for(let i=0;i<4;i++){const zz=-2.29+i*.2;G.box(group,6.03,1.074,zz,.41,.01,.035,0x3c4038).rotation.y=.1*i;G.box(group,6.04,1.081,zz,.035,.01,.14,0x3c4038).rotation.y=-.4;}G.box(group,7.58,1.13,-2.15,.56,.1,.37,0x454940);G.box(group,7.58,1.19,-2.15,.37,.015,.2,0x202d2c);beam(group,[6.98,1.17,-1.7],[7.45,1.17,-1.15],.025,0x554338);G.cyl(group,4.45,1.3,-2.23,.17,.18,.4,0x718a7e);for(let i=0;i<5;i++)beam(group,[4.4+i*.03,1.39,-2.22],[4.32+i*.08,1.88+(i%2)*.1,-2.22],.014,0x694d39);
  G.chair(group,6.1,.05,0x79492e,Math.PI);G.collider(c,6.1,.05,.9,.9);
  // Open-front scholar cabinet; original movement envelope is preserved exactly.
  G.collider(c,9.25,-2.3,1.5,3.25);G.box(group,9.94,1.22,-2.3,.12,2.25,3.25,0x976c46);
@@ -525,6 +528,9 @@ export function buildChina(){
  for(const yy of [.155,2.285])G.box(group,9.19,yy,-2.3,1.38,.12,3.15,0x976c46);
  for(const zz of [-2.925,-1.875])G.box(group,9.19,1.22,zz,1.38,2.13,.06,0x976c46);
  for(let zz=-3.45;zz<-1.15;zz+=1.05){G.box(group,9.868,1.32,zz,.025,1.9,.89,0x463e31);for(const yy of [.6,1.2,1.8]){G.box(group,9.21,yy,zz,1.38,.08,.99,P.gold);for(let j=0;j<4;j++)G.box(group,8.72,yy+.0725+j*.0655,zz,.34,.065,.7,[0xb4a984,0x8d6251,0x708279,0xb99362][j]);}}scroll(group,7.15,2.18,-13.12,1.15,1.55,true);
+ // Small supported writing slips at the reachable near edge of the existing desk.
+ for(const [x,d]of [[7.30,.16],[4.90,.17]]){G.box(group,x,1.051,-.99,.40,.012,d,0xf0e3c5);for(let i=0;i<3;i++)G.box(group,x-.08+i*.08,1.059,-.987,.025,.003,.06,0x3c4038);}
+ for(const x of [7.68,5.25]){G.box(group,x,1.07,-1.07,.23,.05,.17,0x454940);G.box(group,x,1.097,-1.07,.14,.004,.09,0x242e29);}
  // Wok kitchen: tiled stove, bamboo steamers, hanging utensils and preparation island.
  solid(group,c,6.25,.75,-11.55,7.2,1.35,1.5,0x92774f);G.box(group,6.25,1.47,-11.55,7.35,.12,1.65,0xc5ba96);for(let x=2.8;x<9.7;x+=.46)G.box(group,x,.73,-10.76,.42,1.2,.025,0xbca378);G.cyl(group,8.42,1.55,-11.55,.53,.53,.04,0x333d37);G.sphere(group,8.42,1.66,-11.55,.46,0x3d4946,1,.4,1);beam(group,[8.8,1.7,-11.55],[9.4,1.86,-11.55],.055,P.cedar);
  for(const x of [3.5,4.2]){for(let j=0;j<3;j++){G.cyl(group,x,1.63+j*.19,-11.6,.27,.28,.16,0xc9ac72);G.torus(group,x,1.72+j*.19,-11.6,.27,.025,0x9d814d);}G.cone(group,x,2.14,-11.6,.31,.17,0xd5bb82,12);}
@@ -582,7 +588,7 @@ export function buildChina(){
   G.sphere(group,x,.06,z,1,0x7e956d,1.5,.06,1.15);for(let i=0;i<4;i++){const a=i*2.2;G.sphere(group,x+Math.sin(a)*.65,.48,z+Math.cos(a)*.5,.64,0x78935e,1,.7,1);G.sphere(group,x+Math.sin(a)*.65,.77,z+Math.cos(a)*.5,.37,0x9eb279,1,.45,1);}
  }
  // Hanging red lanterns and tassels across the eaves.
- for(const x of [-8.8,-4.5,4.5,8.8]){G.cyl(group,x,3.16,3.05,.018,.018,.85,P.gold,6);G.sphere(group,x,2.64,3.05,.38,0xce5540,1,1.15,1);for(const yy of [2.28,3])G.cyl(group,x,yy,3.05,.22,.22,.06,P.gold);for(let i=0;i<4;i++)G.cyl(group,x+(i-1.5)*.035,2.04,3.05,.015,.015,.35,0xd19c55,5);}
+ for(const x of [-8.8,-4.5,4.5,8.8]){G.cyl(group,x,3.16,3.05,.018,.018,.85,P.gold,6);G.mesh(group,new THREE.SphereGeometry(.38,12,8),0xce5540,x,2.64,3.05,{emissive:0xffa04f,emissiveIntensity:.42}).scale.set(1,1.15,1);registerNightFixture(group,x,2.64,3.05,{kind:'eave-lantern',intensity:18,distance:8});for(const yy of [2.28,3])G.cyl(group,x,yy,3.05,.22,.22,.06,P.gold);for(let i=0;i<4;i++)G.cyl(group,x+(i-1.5)*.035,2.04,3.05,.015,.015,.35,0xd19c55,5);}
  // Water garden with traversable arched bridge and open central approach.
  G.box(group,7.2,.09,12,7.7,.14,6.1,0x808e7e);G.box(group,7.2,.18,12,7.2,.035,5.65,0x72a5a1);G.collider(c,7.2,10.1,7.3,1.75);G.collider(c,7.2,13.9,7.3,1.75);
  for(let i=0;i<9;i++){const xx=3.1+i*.98;stone(group,xx,9.05,.76);stone(group,xx,14.93,.76);}for(const xx of [3.2,11.2])for(const zz of [9.9,10.8,13.2,14.1])stone(group,xx,zz,.72);
@@ -716,7 +722,7 @@ export function buildChina(){
  packLot(group,roofGroup);
  return {group,colliders,cameraColliders,bounds,spawn:[0,0,34],roofGroup,walkableSurfaces,interiorRooms,doorways,explorationTargets,facilities,stations:[
  {id:'cn-tea',name:'西偏殿 · 宫苑茶叙',action:'沏茉莉花茶',position:[-4.65,0,1.4],color:'#96b19a',npcName:'Lin',npcAction:'tea',npcLabel:'温杯沏茉莉花茶',npcPosition:[-5.7,0,-.4],workTarget:[-5.7,1.2,-1.1],npcRotation:Math.PI,route:[[-8,0,-.1],[-8,0,1.7],[-4.2,0,1.7],[-8,0,1.7]]},
- {id:'cn-calligraphy',name:'东书阁 · 翰墨书房',action:'写书法',position:[7.5,0,1.2],color:'#baaa84',npcName:'Wen',npcAction:'calligraphy',npcLabel:'正在挥毫习字',npcPosition:[7.45,0,-.4],workTarget:[7.4,1.17,-1.15],npcRotation:Math.atan2(-.05,-.75),route:[[7.65,0,.1],[7.8,0,1.6],[4.5,0,1.6],[7.8,0,1.6]]},
+ {id:'cn-calligraphy',name:'东书阁 · 翰墨书房',action:'写书法',position:[5.05,0,-.40],playerWorkTarget:[5.0,1.057,-1.15],color:'#baaa84',npcName:'Wen',npcAction:'calligraphy',npcLabel:'正在挥毫习字',npcPosition:[7.45,0,-.43],workTarget:[7.4,1.057,-1.15],npcRotation:Math.atan2(-.05,-.75),route:[[7.65,0,.1],[7.8,0,1.6],[4.5,0,1.6],[7.8,0,1.6]]},
  {id:'cn-cooking',name:'御膳房 · 手作点心',action:'包饺子',position:[7.5,0,-9.5],color:'#e3b175',npcName:'Jia',npcAction:'knead',npcLabel:'正在捏出手工饺子',npcPosition:[6.25,0,-9.4],workTarget:[6.25,1.2,-8.65],npcRotation:0,route:[[8.95,0,-8.2],[8.95,0,-9.55],[6.5,0,-9.55],[8.95,0,-9.55]]},
  {id:'cn-rest',name:'寝殿 · 雕花卧榻',action:'卧榻小憩',position:[-3.15,0,-8.2],color:'#c99aaa',npcName:'Lan',npcAction:'read',npcLabel:'倚窗静读',npcPosition:[-3.7,0,-9.7],workTarget:[-4.6,.84,-9.55],npcRotation:Math.atan2(-.9,.15)},
  {id:'cn-garden',name:'御花园 · 曲桥赏荷',action:'观鱼赏荷',position:[7.2,0,12],color:'#82bcb2',npcName:'Bo',npcAction:'garden',npcLabel:'在荷塘边观鱼',npcPosition:[9.2,0,12],workTarget:[9.4,.18,13.6],npcRotation:Math.atan2(.2,1.6),route:[[2.15,0,11.9],[1.5,0,9.1],[-2,0,9.1]]}

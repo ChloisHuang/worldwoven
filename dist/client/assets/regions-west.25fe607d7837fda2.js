@@ -1,3 +1,4 @@
+import {registerNightFixture} from '/assets/night-lighting.45125c813da91138.js';
 import * as G from '/assets/geometry.accd26d9fe1820ba.js';
 const { THREE } = G;
 
@@ -615,11 +616,11 @@ export function buildFrance(){
     const q=local(x,z,0,roofGroup);q.name='水晶枝形吊灯';G.cyl(q,0,4.89,0,.035,.035,.68,C.gold,8);G.cyl(q,0,5.17,0,.25,.32,.11,C.white,16);G.torus(q,0,4.36,0,.60*s,.034,C.gold);
     G.sphere(q,0,4.27,0,.16,C.lightGold,.75,1.9,.75);
     for(let i=0;i<8;i++){const a=i*Math.PI/4,xx=Math.sin(a)*.60*s,zz=Math.cos(a)*.60*s;
-      const arm=G.box(q,xx/2,4.34,zz/2,.042,.042,.63*s,C.gold,-a);G.cyl(q,xx,4.49,zz,.060,.09,.23,C.white,8);G.sphere(q,xx,4.64,zz,.055,0xfff4cf,.65,1.5,.65);
+      const arm=G.box(q,xx/2,4.34,zz/2,.042,.042,.63*s,C.gold,a);G.cyl(q,xx,4.49,zz,.060,.09,.23,C.white,8);G.mesh(q,new THREE.SphereGeometry(.055,8,6),0xfff4cf,xx,4.64,zz,{emissive:0xffc982,emissiveIntensity:.6}).scale.set(.65,1.5,.65);
       G.sphere(q,xx,4.08,zz,.10,0xdfebe0,.55,1.8,.55);G.cyl(q,xx,4.24,zz,.014,.014,.19,C.gold,6);
       for(let j=1;j<4;j++){const t=j/4;G.sphere(q,xx*t,4.43-.28*Math.sin(t*Math.PI),zz*t,.043,0xe6f0e9,1,1.5,1);}
     }
-    const light=new THREE.PointLight(0xfff2d8,24,13,1.7);light.position.set(x,3.86,z);light.castShadow=false;group.add(light);
+    const light=new THREE.PointLight(0xffdab0,24,11,1.7);light.position.set(x,3.86,z);light.castShadow=false;group.add(light);
   }
   function ceiling(x,z,w,d){
     box(x,ceilingY+.08,z,w,.16,d,C.white,roofGroup);cameraBox(x,ceilingY+.08,z,w,.16,d);
@@ -709,7 +710,7 @@ export function buildFrance(){
   block(-9.45,.64,-1.95,1.26,.70,3.86,C.gold);box(-9.45,1.0,-1.95,1.24,.25,3.69,C.green);box(-10.04,1.47,-1.95,.18,1.06,3.83,C.gold);box(-9.92,1.47,-1.95,.12,.84,3.61,C.green);
   for(const z of [-3.78,-.12]){G.sphere(group,-9.44,1.35,z,.35,C.gold,1.65,.24,.34);G.sphere(group,-9.45,1.0,z,.27,C.sage,1.60,.28,.51);}
   for(const z of [-3,-1.8,-.6])pillow(group,-9.22,1.22,z,C.sage,.66,.72);
-  chairAt(-4.65,-3.45,Math.PI/2);chairAt(-6.65,1.80,Math.PI,C.green);
+  chairAt(-4.65,-3.45,-Math.PI/2);chairAt(-6.65,1.80,Math.PI,C.green);
   feetTable(group,colliders,-6.85,-1.65,2.4,1.65,C.gold,.85);cameraBox(-6.85,.6,-1.65,2.4,1.05,1.65);G.sphere(group,-6.85,.965,-1.65,1.0,C.ivory,1.28,.09,.86);book(group,-7.1,1.09,-1.55,C.green,.15);cup(group,-6.2,1.04,-1.7,C.white);G.vessel(group,-6.85,1.03,-1.65,C.gold,.32);
   // Hearth on the solid west portion of the enfilade wall; center door stays open.
   block(-9.1,1.08,-6.07,2.01,1.70,.69,C.ivory);box(-9.1,1.06,-5.69,1.32,1.25,.045,0x30463a);box(-9.1,1.98,-5.94,2.4,.18,1.02,C.white);
@@ -750,8 +751,8 @@ export function buildFrance(){
   for(const x of [5.96,9.15])for(let k=0;k<4;k++)G.cyl(group,x+(k-1.5)*.09,2.54+k*.006,-4.66,.11,.13,3.06,k%2?C.green:C.emerald,8);
   for(let i=0;i<11;i++)G.sphere(group,5.96+i*.32,4.0,-.49,.22,C.green,1.0,.7,.45);
   block(4.4,.85,-4.95,1.19,1.17,.86,C.white);box(4.4,1.52,-4.95,1.29,.13,1.01,C.gold);G.vessel(group,4.4,1.58,-4.95,C.white,.50);
-  feetTable(group,colliders,6.3,1.93,3.1,.82,C.gold,1.10);box(6.3,1.19,1.93,3.20,.11,.90,C.white);cameraBox(6.3,.82,1.93,3.2,1.19,.9);const dressing=local(6.3,2.30,Math.PI);mirror(dressing,0,2.44,0,1.30,1.98);
-  G.vessel(group,7.35,1.30,1.85,C.green,.36);for(let i=0;i<3;i++)box(5.05,1.29+i*.065,1.85,.55,.059,.46,[C.white,C.sage,C.green][i]);
+  feetTable(group,colliders,6.3,1.93,3.1,.82,C.gold,1.10);box(6.3,1.19,1.93,3.20,.11,.90,C.white);cameraBox(6.3,.82,1.93,3.2,1.19,.9);const dressing=local(6.3,2.30,Math.PI);mirror(dressing,0,2.32,0,1.30,1.98);
+  G.vessel(group,7.35,1.245,1.85,C.green,.36);for(let i=0;i<3;i++)box(5.05,1.29+i*.065,1.85,.55,.059,.46,[C.white,C.sage,C.green][i]);
   // Formal parterres, garden pool and a classical afternoon-tea loggia.
   const hedge=(x,z,w,d)=>{block(x,.42,z,w,.75,d,C.green);box(x,.80,z,w-.08,.075,d-.08,0x678b5a);};
   for(const [x,z,w,d]of [[-7.1,8.8,6.2,.40],[-7.1,13.8,6.2,.40],[-10.0,11.3,.40,5],[-4.2,11.3,.40,5],[-7.1,16.9,7.4,.40],[6.75,16.9,8.1,.40],[-11.95,11.6,.45,11.0],[11.95,11.6,.45,11.0]])hedge(x,z,w,d);
@@ -766,13 +767,13 @@ export function buildFrance(){
   box(6.65,4.18,10.65,6.66,.12,6.8,C.ivory,roofGroup);cameraBox(6.65,4.18,10.65,6.66,.12,6.8);
   for(let x=3.85;x<9.55;x+=.5)box(x,4.31,10.65,.08,.15,6.85,C.sage,roofGroup);
   G.cyl(group,6.6,1.17,10.45,1.11,1.11,.12,C.white,32);G.cyl(group,6.6,.66,10.45,.11,.21,1.0,C.gold,12);G.cyl(group,6.6,.22,10.45,.58,.58,.12,C.gold,16);G.collider(colliders,6.6,10.45,2.24,2.24);cameraBox(6.6,.76,10.45,2.24,1.20,2.24);
-  chairAt(4.55,10.45,-Math.PI/2,C.sage);chairAt(8.65,10.45,Math.PI/2,C.sage);chairAt(6.6,12.50,0,C.green);
+  chairAt(4.55,10.45,Math.PI/2,C.sage);chairAt(8.65,10.45,-Math.PI/2,C.sage);chairAt(6.6,12.50,Math.PI,C.green);
   plate(group,6.88,1.26,10.48,C.white,.32);bread(group,6.88,1.41,10.48,.66);cup(group,6.08,1.27,10.33,C.white);G.vessel(group,6.56,1.27,10.57,C.gold,.35);
   for(const x of [-2.4,2.4])urn(x,6.45,.70);
   // Rear terrace and clipped trees complete a full loop outside the pavilion.
   for(const x of [-9,-5,5,9]){G.cyl(group,x,.34,-16.70,.58,.66,.65,C.white,12);G.cyl(group,x,1.18,-16.70,.085,.1,1.6,C.gold,8);G.sphere(group,x,2.43,-16.70,.96,C.green,.85,1.03,.85);G.collider(colliders,x,-16.7,1.35,1.35);}
   const stations=[
-    {id:'france-bakery',name:'宫廷糕点房',action:'烘烤法式面包',position:[-6.8,0,-9.0],color:'#b6cbb5',workTarget:[-5.7,1.38,-10.15],npcName:'卡米耶',npcAction:'cook',npcLabel:'准备宫廷面包与糕点',npcPosition:[-7.1,0,-10.55],route:[[-7.1,0,-10.55],[-6.8,0,-8.1]]},
+    {id:'france-bakery',name:'宫廷糕点房',action:'烘烤法式面包',position:[-5.3,0,-9.05],playerWorkTarget:[-5.3,1.30,-9.65],color:'#b6cbb5',workTarget:[-5.7,1.30,-10.15],npcName:'卡米耶',npcAction:'cook',npcLabel:'准备宫廷面包与糕点',npcPosition:[-6.95,0,-10.55],route:[[-7.1,0,-10.55],[-6.8,0,-8.1]]},
     {id:'france-atelier',name:'皇家艺术书斋',action:'描绘宫苑的光影',position:[7.1,0,-9.25],color:'#97bba0',workTarget:[7.1,1.95,-10.90],npcName:'卢西安',npcAction:'paint',npcLabel:'调色与观察宫苑光线',npcPosition:[5.55,0,-9.4],route:[[5.55,0,-9.4],[4.3,0,-9.4]]},
     {id:'france-salon',name:'翡翠镜厅',action:'翻阅一本诗集',position:[-6.7,0,.1],color:'#629776',workTarget:[-7.1,1.08,-1.55],npcName:'玛农',npcAction:'read',npcLabel:'整理诗集与瓷器茶具',npcPosition:[-6.5,0,-4.45],route:[[-6.5,0,-4.45],[-4.0,0,-4.7]]},
     {id:'france-bedroom',name:'白金皇家寝室',action:'整理刺绣床品',position:[4.55,0,-1.2],color:'#b8cdb7',workTarget:[7.55,1.25,-1.98],npcName:'朱丽叶',npcAction:'tidy',npcLabel:'整理翡翠色刺绣织物',npcPosition:[4.35,0,.65],route:[[4.35,0,.65],[4.35,0,-2.65]]},
@@ -826,20 +827,23 @@ export function buildFrance(){
   // Winter orangery with indoor citrus, balanced benches and worktable.
   G.rug(group,-21,-1.55,5.3,6.2,0xdce3cf,C.gold);
   for(const [x,z]of [[-23.7,1.8],[-18.3,1.8],[-23.7,-4.8]]){G.cyl(group,x,.57,z,.59,.46,.85,C.white,12);G.cyl(group,x,1.55,z,.075,.10,1.6,C.gold,8);G.sphere(group,x,2.61,z,.79,C.green,.9,1.2,.9);for(let k=0;k<5;k++)G.sphere(group,x+Math.sin(k*2.4)*.5,2.54+Math.cos(k)*.35,z+Math.cos(k*2.4)*.5,.11,0xdbbc55);G.collider(colliders,x,z,1.28,1.28);}
-  block(-23.62,.70,-1.45,1.03,.64,3.2,C.gold);box(-23.62,1.09,-1.45,1.05,.18,3.1,C.green);box(-24.11,1.49,-1.45,.11,.78,3.2,C.white);
-  feetTable(group,colliders,-20.2,-1.45,2.1,1.25,C.gold,.93);box(-20.2,1.04,-1.45,2.21,.12,1.34,C.ivory);G.vessel(group,-20.2,1.12,-1.45,C.sage,.45);chairAt(-18.45,-1.35,Math.PI/2,C.sage);
+  block(-23.62,.70,-1.45,1.03,.64,3.2,C.gold);for(const x of [-23.95,-23.3])for(const z of [-2.75,-.15])box(x,.33,z,.12,.22,.12,C.gold);box(-23.62,1.09,-1.45,1.05,.18,3.1,C.green);box(-24.11,1.49,-1.45,.11,.78,3.2,C.white);
+  feetTable(group,colliders,-20.2,-1.45,2.1,1.25,C.gold,.93);box(-20.2,1.04,-1.45,2.21,.12,1.34,C.ivory);G.vessel(group,-20.2,1.12,-1.45,C.sage,.45);chairAt(-18.45,-1.35,-Math.PI/2,C.sage);
   // East rear: formal dining room, service sideboard and set porcelain covers.
   G.rug(group,21,-10.0,6.1,5.0,C.sage,C.gold);feetTable(group,colliders,21,-10.2,3.6,1.75,C.gold,1.02);box(21,1.13,-10.2,3.71,.13,1.86,C.ivory);cameraBox(21,.84,-10.2,3.71,1.17,1.86);
   for(const x of [19.9,21,22.1])for(const z of [-10.68,-9.74]){plate(group,x,1.23,z,C.white,.23);G.box(group,x+.32,1.26,z,.04,.02,.36,C.gold);cup(group,x-.29,1.22,z,C.white);}
-  for(const x of [19.8,21.0,22.2]){chairAt(x,-8.65,0,C.sage);chairAt(x,-12.25,Math.PI,C.sage);}
+  for(const x of [19.8,21.0,22.2]){chairAt(x,-8.65,Math.PI,C.sage);chairAt(x,-12.25,0,C.sage);}
   block(24.2,.85,-10.2,.88,1.17,3.91,C.white);box(24.2,1.51,-10.2,1.04,.13,4.03,C.gold);for(let i=0;i<5;i++)plate(group,24.2,1.62+i*.06,-9.2,C.ivory,.29);G.vessel(group,24.2,1.62,-11.4,C.sage,.55);
   // Music reception: sculpted piano, gilt stools, a mirror and portrait console.
-  G.rug(group,21,-1.5,5.8,6.3,C.sage,C.gold);block(22.7,.97,-3.35,2.7,1.15,2.6,C.emerald);box(22.7,1.61,-2.03,2.72,.13,.50,C.gold);
+  G.rug(group,21,-1.5,5.8,6.3,C.sage,C.gold);block(22.7,.97,-3.35,2.7,1.15,2.6,C.emerald);for(const x of [21.58,23.8])for(const z of [-4.4,-2.3])box(x,.34,z,.18,.14,.18,C.gold);box(22.7,1.61,-2.03,2.72,.13,.50,C.gold);
   for(let i=0;i<24;i++)box(21.42+i*.11,1.70,-1.97,.104,.09,.43,C.white);for(let i=0;i<16;i++)box(21.50+i*.155,1.77,-2.09,.06,.09,.20,C.emerald);
-  const lid=box(22.7,2.08,-3.6,2.74,.11,2.2,C.emerald);lid.rotation.x=-.38;G.cyl(group,23.4,1.92,-3.80,.035,.035,.98,C.gold,8);
+  const lid=box(22.7,2.08,-3.6,2.74,.11,2.2,C.emerald);lid.rotation.x=-.38;G.cyl(group,23.4,1.75,-3.80,.035,.035,.44,C.gold,8);
   block(22.7,.58,-.85,1.53,.60,.75,C.gold);box(22.7,.94,-.85,1.57,.17,.77,C.sage);
   chairAt(18.63,.88,-Math.PI/2,C.green);chairAt(21,1.35,Math.PI,C.sage);urn(19.05,-5.10,.65);
   const musicMirror=local(24.73,.2,-Math.PI/2);mirror(musicMirror,0,3.15,0,1.6,2.5);
+  // Supported pastry boards follow the adults' separate working positions.
+  box(-6.43,1.285,-10.62,.22,.03,.30,C.gold);box(-5.46,1.285,-9.67,.60,.03,.40,C.gold);
+  bread(group,-5.56,1.33,-9.75,.22);bread(group,-6.39,1.33,-10.68,.18);
   // Entire estate is designed: long axial promenade, four formal garden rooms,
   // twin reflecting pools, rose beds, perimeter lime allees, benches and urns.
   box(0,.019,25.5,7.6,.038,26,C.ivory);box(0,.020,-24,8,.040,21,C.ivory);
@@ -858,6 +862,8 @@ export function buildFrance(){
     for(const z of [17.5,27.2,-17.5,-33.2]){const x=s*5.15;block(x,.51,z,.9,.70,2.9,C.ivory);box(x,.94,z,.93,.18,2.94,C.sage);box(x+s*.42,1.31,z,.12,.77,2.98,C.white);}
     for(const z of [36.9,-36.9])urn(s*3.1,z,.8);
   }
+  // Gilt garden lamps sit on existing bench-back footprints; no new collision.
+  for(const s of [-1,1])for(const z of [17.5,27.2,-17.5,-33.2]){const x=s*5.57;G.cyl(group,x,1.78,z,.035,.055,.25,C.gold,8);G.mesh(group,new THREE.BoxGeometry(.23,.32,.23),C.ivory,x,2.02,z,{emissive:0xffbb65,emissiveIntensity:.55});G.box(group,x,2.20,z,.32,.05,.32,C.gold);registerNightFixture(group,x,2.02,z,{kind:'garden-lamp',color:0xffd398,intensity:12,distance:9});}
   // Gate piers and low white/green railings close the 60 x 80 footprint.
   for(const x of [-29.5,29.5]){block(x,.56,0,.36,1.08,79,C.ivory);for(let z=-38;z<39;z+=1.5)box(x,1.26,z,.15,.42,.15,C.gold);box(x,1.50,0,.16,.08,78,C.green);}
   for(const z of [-39.5,39.5])for(const s of [-1,1]){block(s*16.7,.56,z,25.6,1.08,.36,C.ivory);box(s*16.7,1.50,z,25.7,.08,.16,C.green);}

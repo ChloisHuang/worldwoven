@@ -1,0 +1,8 @@
+{
+  "reason": "R9 explicit reachable close-work anchors and actual tabletop heights; colliders/doors/surfaces unchanged",
+  "stations": {
+    "china": "550572c5eabbe8d94627e2f2a3985ebdf144140c41bacf920457f7f823fd44db",
+    "egypt": "d95dd30074467375a3a8e2b2388c16b801305ba5a0827226d91d43da9dc01b69",
+    "france": "2783462f3e5c824e8fc71e1fdcbab351b76108c00abc9fbb641cefa42ae25bf8"
+  }
+}

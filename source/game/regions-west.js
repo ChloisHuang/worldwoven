@@ -1,3 +1,4 @@
+import {registerNightFixture} from './night-lighting.js';
 import * as G from './geometry.js?rev=R7-20261002';
 const { THREE } = G;
 
@@ -615,11 +616,11 @@ export function buildFrance(){
     const q=local(x,z,0,roofGroup);q.name='水晶枝形吊灯';G.cyl(q,0,4.89,0,.035,.035,.68,C.gold,8);G.cyl(q,0,5.17,0,.25,.32,.11,C.white,16);G.torus(q,0,4.36,0,.60*s,.034,C.gold);
     G.sphere(q,0,4.27,0,.16,C.lightGold,.75,1.9,.75);
     for(let i=0;i<8;i++){const a=i*Math.PI/4,xx=Math.sin(a)*.60*s,zz=Math.cos(a)*.60*s;
-      const arm=G.box(q,xx/2,4.34,zz/2,.042,.042,.63*s,C.gold,a);G.cyl(q,xx,4.49,zz,.060,.09,.23,C.white,8);G.sphere(q,xx,4.64,zz,.055,0xfff4cf,.65,1.5,.65);
+      const arm=G.box(q,xx/2,4.34,zz/2,.042,.042,.63*s,C.gold,a);G.cyl(q,xx,4.49,zz,.060,.09,.23,C.white,8);G.mesh(q,new THREE.SphereGeometry(.055,8,6),0xfff4cf,xx,4.64,zz,{emissive:0xffc982,emissiveIntensity:.6}).scale.set(.65,1.5,.65);
       G.sphere(q,xx,4.08,zz,.10,0xdfebe0,.55,1.8,.55);G.cyl(q,xx,4.24,zz,.014,.014,.19,C.gold,6);
       for(let j=1;j<4;j++){const t=j/4;G.sphere(q,xx*t,4.43-.28*Math.sin(t*Math.PI),zz*t,.043,0xe6f0e9,1,1.5,1);}
     }
-    const light=new THREE.PointLight(0xfff2d8,24,13,1.7);light.position.set(x,3.86,z);light.castShadow=false;group.add(light);
+    const light=new THREE.PointLight(0xffdab0,24,11,1.7);light.position.set(x,3.86,z);light.castShadow=false;group.add(light);
   }
   function ceiling(x,z,w,d){
     box(x,ceilingY+.08,z,w,.16,d,C.white,roofGroup);cameraBox(x,ceilingY+.08,z,w,.16,d);
@@ -772,7 +773,7 @@ export function buildFrance(){
   // Rear terrace and clipped trees complete a full loop outside the pavilion.
   for(const x of [-9,-5,5,9]){G.cyl(group,x,.34,-16.70,.58,.66,.65,C.white,12);G.cyl(group,x,1.18,-16.70,.085,.1,1.6,C.gold,8);G.sphere(group,x,2.43,-16.70,.96,C.green,.85,1.03,.85);G.collider(colliders,x,-16.7,1.35,1.35);}
   const stations=[
-    {id:'france-bakery',name:'宫廷糕点房',action:'烘烤法式面包',position:[-6.8,0,-9.0],color:'#b6cbb5',workTarget:[-5.7,1.38,-10.15],npcName:'卡米耶',npcAction:'cook',npcLabel:'准备宫廷面包与糕点',npcPosition:[-7.1,0,-10.55],route:[[-7.1,0,-10.55],[-6.8,0,-8.1]]},
+    {id:'france-bakery',name:'宫廷糕点房',action:'烘烤法式面包',position:[-5.3,0,-9.05],playerWorkTarget:[-5.3,1.30,-9.65],color:'#b6cbb5',workTarget:[-5.7,1.30,-10.15],npcName:'卡米耶',npcAction:'cook',npcLabel:'准备宫廷面包与糕点',npcPosition:[-6.95,0,-10.55],route:[[-7.1,0,-10.55],[-6.8,0,-8.1]]},
     {id:'france-atelier',name:'皇家艺术书斋',action:'描绘宫苑的光影',position:[7.1,0,-9.25],color:'#97bba0',workTarget:[7.1,1.95,-10.90],npcName:'卢西安',npcAction:'paint',npcLabel:'调色与观察宫苑光线',npcPosition:[5.55,0,-9.4],route:[[5.55,0,-9.4],[4.3,0,-9.4]]},
     {id:'france-salon',name:'翡翠镜厅',action:'翻阅一本诗集',position:[-6.7,0,.1],color:'#629776',workTarget:[-7.1,1.08,-1.55],npcName:'玛农',npcAction:'read',npcLabel:'整理诗集与瓷器茶具',npcPosition:[-6.5,0,-4.45],route:[[-6.5,0,-4.45],[-4.0,0,-4.7]]},
     {id:'france-bedroom',name:'白金皇家寝室',action:'整理刺绣床品',position:[4.55,0,-1.2],color:'#b8cdb7',workTarget:[7.55,1.25,-1.98],npcName:'朱丽叶',npcAction:'tidy',npcLabel:'整理翡翠色刺绣织物',npcPosition:[4.35,0,.65],route:[[4.35,0,.65],[4.35,0,-2.65]]},
@@ -840,6 +841,9 @@ export function buildFrance(){
   block(22.7,.58,-.85,1.53,.60,.75,C.gold);box(22.7,.94,-.85,1.57,.17,.77,C.sage);
   chairAt(18.63,.88,-Math.PI/2,C.green);chairAt(21,1.35,Math.PI,C.sage);urn(19.05,-5.10,.65);
   const musicMirror=local(24.73,.2,-Math.PI/2);mirror(musicMirror,0,3.15,0,1.6,2.5);
+  // Supported pastry boards follow the adults' separate working positions.
+  box(-6.43,1.285,-10.62,.22,.03,.30,C.gold);box(-5.46,1.285,-9.67,.60,.03,.40,C.gold);
+  bread(group,-5.56,1.33,-9.75,.22);bread(group,-6.39,1.33,-10.68,.18);
   // Entire estate is designed: long axial promenade, four formal garden rooms,
   // twin reflecting pools, rose beds, perimeter lime allees, benches and urns.
   box(0,.019,25.5,7.6,.038,26,C.ivory);box(0,.020,-24,8,.040,21,C.ivory);
@@ -858,6 +862,8 @@ export function buildFrance(){
     for(const z of [17.5,27.2,-17.5,-33.2]){const x=s*5.15;block(x,.51,z,.9,.70,2.9,C.ivory);box(x,.94,z,.93,.18,2.94,C.sage);box(x+s*.42,1.31,z,.12,.77,2.98,C.white);}
     for(const z of [36.9,-36.9])urn(s*3.1,z,.8);
   }
+  // Gilt garden lamps sit on existing bench-back footprints; no new collision.
+  for(const s of [-1,1])for(const z of [17.5,27.2,-17.5,-33.2]){const x=s*5.57;G.cyl(group,x,1.78,z,.035,.055,.25,C.gold,8);G.mesh(group,new THREE.BoxGeometry(.23,.32,.23),C.ivory,x,2.02,z,{emissive:0xffbb65,emissiveIntensity:.55});G.box(group,x,2.20,z,.32,.05,.32,C.gold);registerNightFixture(group,x,2.02,z,{kind:'garden-lamp',color:0xffd398,intensity:12,distance:9});}
   // Gate piers and low white/green railings close the 60 x 80 footprint.
   for(const x of [-29.5,29.5]){block(x,.56,0,.36,1.08,79,C.ivory);for(let z=-38;z<39;z+=1.5)box(x,1.26,z,.15,.42,.15,C.gold);box(x,1.50,0,.16,.08,78,C.green);}
   for(const z of [-39.5,39.5])for(const s of [-1,1]){block(s*16.7,.56,z,25.6,1.08,.36,C.ivory);box(s*16.7,1.50,z,25.7,.08,.16,C.green);}
