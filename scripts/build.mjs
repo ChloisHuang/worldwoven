@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 const root=path.resolve('source'),out=path.resolve('dist/client'),prior=[];
 const hash=s=>createHash('sha256').update(s).digest('hex').slice(0,16);
 // Keep the previous complete immutable graph so already-open documents remain valid.
-try{const m=JSON.parse(fs.readFileSync(path.join(out,'build.json'),'utf8'));for(const url of Object.values(m.assets)){if(!/^\/assets\/[\w.-]+$/.test(url))throw Error('Invalid previous asset URL');prior.push([url,fs.readFileSync(path.join(out,url))]);}}catch(e){if(e.code!=='ENOENT')throw e;}
+try{const m=JSON.parse(fs.readFileSync('cache-baseline.json','utf8'));for(const url of m.assets){if(!/^\/assets\/[\w.-]+$/.test(url))throw Error('Invalid previous asset URL');const body=fs.readFileSync(path.join(out,url));if(!url.includes('.'+hash(body)+'.'))throw Error('Retained published asset hash mismatch');prior.push([url,body]);}}catch(e){if(e.code!=='ENOENT')throw e;}
 fs.rmSync('dist',{recursive:true,force:true});fs.mkdirSync(path.join(out,'assets'),{recursive:true});
 for(const[url,body]of prior)fs.writeFileSync(path.join(out,url),body);
 const assets={},busy=new Set();
@@ -14,7 +14,7 @@ let html=fs.readFileSync('source/game/index.html','utf8').replace('./game.css?re
 if(html.includes('../tools/')||html.includes('?rev='))throw Error('Private links or blanket cache version remain');
 fs.mkdirSync(path.join(out,'game'),{recursive:true});fs.writeFileSync(path.join(out,'index.html'),html);fs.writeFileSync(path.join(out,'game/index.html'),html);
 fs.writeFileSync(path.join(out,'three-LICENSE.txt'),fs.readFileSync('source/vendor/three/LICENSE'));
-const manifest={release:'R7-public',date:'2026-10-02',sourceGame:'0fe52232a8632029081e99a3f4c323a7e528ac04',assets};fs.writeFileSync(path.join(out,'build.json'),JSON.stringify(manifest,null,2)+'\n');
+const manifest={release:'R8-public',date:'2026-10-02',baseGameCommit:'0fe52232a8632029081e99a3f4c323a7e528ac04',assets};fs.writeFileSync(path.join(out,'build.json'),JSON.stringify(manifest,null,2)+'\n');
 // No overlapping Cache-Control rules: Cloudflare concatenates matching values.
 fs.writeFileSync(path.join(out,'_headers'),`/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n/\n  Cache-Control: public, max-age=0, must-revalidate\n/index.html\n  Cache-Control: public, max-age=0, must-revalidate\n/game/\n  Cache-Control: public, max-age=0, must-revalidate\n/game/index.html\n  Cache-Control: public, max-age=0, must-revalidate\n/build.json\n  Cache-Control: public, max-age=0, must-revalidate\n`);
 fs.mkdirSync('dist/server',{recursive:true});fs.copyFileSync('worker/index.mjs','dist/server/index.js');fs.mkdirSync('dist/.openai',{recursive:true});fs.copyFileSync('.openai/hosting.json','dist/.openai/hosting.json');

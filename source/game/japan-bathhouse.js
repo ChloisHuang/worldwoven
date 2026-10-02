@@ -1,3 +1,4 @@
+import {createGuestFuton} from './japan-futon.js';
 import * as G from './geometry.js?rev=R7-20261002';
 import {createConveyorSushi,createRamenCounter,createKotatsu} from './japan-furnishings.js?rev=R7-20261002';
 import {createSakuraTree,createPetalFall,createTorii,addSakuraMotif} from './japan-sakura.js?rev=R7-20261002';
@@ -122,7 +123,7 @@ export function buildJapan(){
    wall(g,base,x,z,w,axis,{width:gap,height:2.85});const q=new THREE.Group();q.position.set(x,0,z);if(axis==='z')q.rotation.y=Math.PI/2;g.add(q);for(let xx=-w/2+.18;xx<w/2;xx+=.42)if(Math.abs(xx)>gap/2+.08){G.box(q,xx,1.75,.135,.035,2.75,.035,P.honey);for(const yy of [.6,1.28,2.1,2.72])G.box(q,xx,yy,.15,.41,.034,.045,P.cedar);}G.box(q,0,2.91,0,gap+.14,.15,.31,P.cedar);
  }
  function lowTable(g,base,x,z,w=2.5,d=1.55,color=P.wood){G.table(g,x,z,w,d,color,.63);obstacle(x,base+.38,z,w,.75,d);G.box(g,x,.73,z,w*.56,.028,d*.62,0xae8156);tea(g,x,.76,z);}
- function shelf(g,base,x,z,w=2,d=.6,angle=0){const q=new THREE.Group();q.position.set(x,0,z);q.rotation.y=angle;g.add(q);for(const xx of [-w/2,w/2])G.box(q,xx,1.22,0,.1,2.45,d,P.cedar);G.box(q,0,1.18,-d/2,w,2.4,.065,P.wood);for(const yy of [.18,.8,1.42,2.05,2.45])G.box(q,0,yy,0,w,.085,d,P.honey);for(let i=0;i<3;i++){vase(q,-w*.3+i*w*.3,.84,0,[P.jade,P.cream,0xa37556][i],false);folded(q,-w*.27+i*w*.28,1.49,0,[P.indigo,P.red,0x9b9a78][i],w*.23,.4);G.cyl(q,-w*.3+i*w*.3,2.22,0,.16,.17,.26,0xc6ae7d,8);}const sideOn=Math.abs(Math.sin(angle))>.7;obstacle(x,base+1.2,z,sideOn?d:w,2.4,sideOn?w:d);return q;}
+ function shelf(g,base,x,z,w=2,d=.6,angle=0,contents=true){const q=new THREE.Group();q.position.set(x,0,z);q.rotation.y=angle;g.add(q);for(const xx of [-w/2,w/2])G.box(q,xx,1.22,0,.1,2.45,d,P.cedar);G.box(q,0,1.18,-d/2,w,2.4,.065,P.wood);for(const yy of [.18,.8,1.42,2.05,2.45])G.box(q,0,yy,0,w,.085,d,P.honey);if(contents)for(let i=0;i<3;i++){vase(q,-w*.3+i*w*.3,.84,0,[P.jade,P.cream,0xa37556][i],false);folded(q,-w*.27+i*w*.28,1.49,0,[P.indigo,P.red,0x9b9a78][i],w*.23,.4);G.cyl(q,-w*.3+i*w*.3,2.22,0,.16,.17,.26,0xc6ae7d,8);}const sideOn=Math.abs(Math.sin(angle))>.7;obstacle(x,base+1.2,z,sideOn?d:w,2.4,sideOn?w:d);return q;}
  function pool(g,base,x,z,w,d){
    // Three continuous curbs and a split east curb form a 1.9m walk-in entrance.
    G.box(g,x,.067,z,w,.027,d,0x54756c);G.mesh(g,new THREE.BoxGeometry(w-.24,.028,d-.24),P.water,x,.105,z,{transparent:true,opacity:.76,depthWrite:false,emissive:0x426e60,emissiveIntensity:.12});
@@ -259,8 +260,8 @@ export function buildJapan(){
   obstacle(x,base+.55,z,1.5,1.1,1.55); // Wet fixture envelope, with the aisle in front kept clear.
  }
  function futon(g,base,x,z,color=P.indigo){
-  G.sphere(g,x,.15,z,1,0xd8cdb4,1.18,.18,1.62);G.sphere(g,x,.29,z+.3,1,color,1.13,.22,1.21);G.sphere(g,x,.43,z-1.05,.6,P.paper,1.38,.29,.53);
-  for(let i=0;i<6;i++)G.box(g,x,.48,z-.55+i*.34,2.0,.012,.018,0xc4b691);obstacle(x,base+.25,z,2.36,.5,3.24);
+  const bedding=createGuestFuton({color});bedding.position.set(x,0,z);g.add(bedding);
+  obstacle(x,base+.25,z,2.36,.5,3.24); // Unchanged safe interaction/camera envelope.
  }
  // 1F: a generous arrival and food hall, with two visibly different services.
  {
@@ -345,7 +346,7 @@ export function buildJapan(){
   // Full-width vaulted-looking frieze, opaque coffered ceiling remains at 3.8m.
   for(const x of [-10.7,4.7]){G.box(f,x,3.2,.1,.3,.33,16.5,P.red);for(let z=-6.9;z<8;z+=2)cloud(f,x,2.91,z,.9);}
   // Compact, quiet library: wall-to-wall books, one reading bench and scroll.
-  for(const [x,z,w,rot]of [[-7.5,-14.35,7.5,0],[-11.12,-11.1,4.5,Math.PI/2]]){const q=shelf(f,y,x,z,w,.62,rot);for(const yy of [.84,1.47,2.1])bookset(q,0,yy,0,w-.2);}
+  for(const [x,z,w,rot]of [[-7.5,-14.35,7.5,0],[-11.12,-11.1,4.5,Math.PI/2]]){const q=shelf(f,y,x,z,w,.62,rot,false);for(const yy of [.84,1.47,2.1])bookset(q,0,yy,0,w-.2);}
   bench(f,y,-5.0,-11.8,2.1);scroll(f,-4.2,2,-14.8,1.3,1.65);sign(f,-7.5,3.05,-7.84,'LIBRARY',P.jade,3.9);
   // Only public guest sleeping room in the district; no repeated suite rows.
   tatami(f,1.8,-11.45,9.15,6.35);futon(f,y,4.4,-11.6,P.indigo);

@@ -510,7 +510,7 @@ export function buildChina(){
  for(const surface of group.userData.rugSurfaces||[]){surface.minX-=.9;surface.maxX-=.9;}
  // Bedroom with open carved canopy and embroidered cover.
  const bedMeshStart=group.children.length,bedColliderStart=c.length;
- G.bed(group,-6.2,-9.7,0x8b706d,3.4,3.7);G.collider(c,-6.2,-9.7,3.5,3.8);for(const x of [-7.85,-4.55])for(const z of [-11.5,-7.85])post(group,c,x,z,0x76472f,2.75,.075);for(const x of [-7.85,-4.55])G.box(group,x,2.78,-9.67,.16,.18,3.9,0x76472f);for(const z of [-11.5,-7.85]){G.box(group,-6.2,2.78,z,3.45,.18,.18,0x76472f);for(let x=-7.65;x<-4.65;x+=.4)G.box(group,x,2.53,z,.05,.48,.07,P.gold);}G.box(group,-6.2,.9,-9.15,2.8,.026,1.5,0xb66b5c);for(const x of [-7.2,-5.2])G.box(group,x,.92,-9.15,.045,.015,1.5,P.gold);
+ G.bed(group,-6.2,-9.7,0x8b706d,3.4,3.7);G.collider(c,-6.2,-9.7,3.5,3.8);for(const x of [-7.85,-4.55])for(const z of [-11.5,-7.85])post(group,c,x,z,0x76472f,2.75,.075);for(const x of [-7.85,-4.55])G.box(group,x,2.78,-9.67,.16,.18,3.9,0x76472f);for(const z of [-11.5,-7.85]){G.box(group,-6.2,2.78,z,3.45,.18,.18,0x76472f);for(let x=-7.65;x<-4.65;x+=.4)G.box(group,x,2.53,z,.05,.48,.07,P.gold);}G.box(group,-6.2,.868,-9.15,2.8,.026,1.5,0xb66b5c);for(const x of [-7.2,-5.2])G.box(group,x,.888,-9.15,.045,.015,1.46,P.gold);
  solid(group,c,-9.1,.69,-10.55,1.15,1.1,1.5,0x855238);G.vessel(group,-9.1,1.25,-10.5,0xa8bcc0,.65);G.box(group,-9.1,1.3,-9.8,.6,.08,.44,0x8e5943);
  // Pull the full bed/canopy assembly north by .4 m: the foot passage now
  // includes the production grid's z=-7.5 row, opening the west window nook.
@@ -518,8 +518,13 @@ export function buildChina(){
  for(let i=bedColliderStart;i<c.length;i++){c[i].minZ-=.4;c[i].maxZ-=.4;}
  // Calligraphy desk and scholar's shelf, with paper, brush rest and inkstone.
  G.table(group,6.1,-1.9,4.35,2,0x835439,.97);G.collider(c,6.1,-1.9,4.35,2);G.box(group,6.1,1.09,-1.95,1.65,.022,1.12,0xf0e3c5);for(let i=0;i<4;i++){const zz=-2.29+i*.2;G.box(group,6.03,1.108,zz,.41,.01,.035,0x3c4038).rotation.y=.1*i;G.box(group,6.04,1.115,zz,.035,.01,.14,0x3c4038).rotation.y=-.4;}G.box(group,7.58,1.13,-2.15,.56,.1,.37,0x454940);G.box(group,7.58,1.19,-2.15,.37,.015,.2,0x202d2c);beam(group,[6.98,1.17,-1.7],[7.45,1.17,-1.15],.025,0x554338);G.cyl(group,4.45,1.3,-2.23,.17,.18,.4,0x718a7e);for(let i=0;i<5;i++)beam(group,[4.4+i*.03,1.39,-2.22],[4.32+i*.08,1.88+(i%2)*.1,-2.22],.014,0x694d39);
- G.chair(group,6.1,.05,0x79492e,0);G.collider(c,6.1,.05,.9,.9);
- solid(group,c,9.25,1.22,-2.3,1.5,2.25,3.25,0x976c46);for(let zz=-3.45;zz<-1.15;zz+=1.05){G.box(group,8.865,1.32,zz,.09,1.9,.86,0x463e31);for(const yy of [.6,1.2,1.8]){G.box(group,8.79,yy,zz,.32,.08,.89,P.gold);for(let j=0;j<4;j++)G.box(group,8.62,yy+.11+j*.09,zz,.3,.065,.7,[0xb4a984,0x8d6251,0x708279,0xb99362][j]);}}scroll(group,7.15,2.18,-13.12,1.15,1.55,true);
+ G.chair(group,6.1,.05,0x79492e,Math.PI);G.collider(c,6.1,.05,.9,.9);
+ // Open-front scholar cabinet; original movement envelope is preserved exactly.
+ G.collider(c,9.25,-2.3,1.5,3.25);G.box(group,9.94,1.22,-2.3,.12,2.25,3.25,0x976c46);
+ for(const zz of [-3.875,-.725])G.box(group,9.19,1.22,zz,1.38,2.25,.10,0x976c46);
+ for(const yy of [.155,2.285])G.box(group,9.19,yy,-2.3,1.38,.12,3.15,0x976c46);
+ for(const zz of [-2.925,-1.875])G.box(group,9.19,1.22,zz,1.38,2.13,.06,0x976c46);
+ for(let zz=-3.45;zz<-1.15;zz+=1.05){G.box(group,9.868,1.32,zz,.025,1.9,.89,0x463e31);for(const yy of [.6,1.2,1.8]){G.box(group,9.21,yy,zz,1.38,.08,.99,P.gold);for(let j=0;j<4;j++)G.box(group,8.72,yy+.0725+j*.0655,zz,.34,.065,.7,[0xb4a984,0x8d6251,0x708279,0xb99362][j]);}}scroll(group,7.15,2.18,-13.12,1.15,1.55,true);
  // Wok kitchen: tiled stove, bamboo steamers, hanging utensils and preparation island.
  solid(group,c,6.25,.75,-11.55,7.2,1.35,1.5,0x92774f);G.box(group,6.25,1.47,-11.55,7.35,.12,1.65,0xc5ba96);for(let x=2.8;x<9.7;x+=.46)G.box(group,x,.73,-10.76,.42,1.2,.025,0xbca378);G.cyl(group,8.42,1.55,-11.55,.53,.53,.04,0x333d37);G.sphere(group,8.42,1.66,-11.55,.46,0x3d4946,1,.4,1);beam(group,[8.8,1.7,-11.55],[9.4,1.86,-11.55],.055,P.cedar);
  for(const x of [3.5,4.2]){for(let j=0;j<3;j++){G.cyl(group,x,1.63+j*.19,-11.6,.27,.28,.16,0xc9ac72);G.torus(group,x,1.72+j*.19,-11.6,.27,.025,0x9d814d);}G.cone(group,x,2.14,-11.6,.31,.17,0xd5bb82,12);}
@@ -563,7 +568,7 @@ export function buildChina(){
  // Painted fascia with gilded roundels ties the ceremonial hall to the gates.
  for(const z of [-7.05]){G.box(group,0,4.22,z+.19,5.25,.2,.07,0x356f72);for(const x of [-2.15,-1.42,1.42,2.15])G.sphere(group,x,4.22,z+.25,.085,0xd7b763,1,1,.35);}
  // Palace textiles and a matched pair of bronze incense vessels on the terrace.
- G.torus(group,-6.2,.94,-9.55,.38,.035,0xd5b471);G.sphere(group,-6.2,.958,-9.55,.2,0xc59e58,1,.04,.7);
+ G.torus(group,-6.2,.908,-9.55,.38,.035,0xd5b471);G.sphere(group,-6.2,.889,-9.55,.2,0xc59e58,1,.04,.7);
  for(const x of [-2.0,2.0]){
   G.box(group,x,.15,8.5,.92,.2,.92,0xd0c6a6);G.cyl(group,x,.56,8.5,.28,.34,.71,0x7c8d71,10);G.sphere(group,x,.96,8.5,.42,0x85957a,1,.62,1);G.cyl(group,x,1.22,8.5,.26,.31,.2,0xada773,10);G.cone(group,x,1.48,8.5,.35,.33,0xb8ad71,8);G.sphere(group,x,1.72,8.5,.09,0xd7bb6f);
   for(const dx of [-.43,.43]){const handle=G.torus(group,x+dx,1.06,8.5,.18,.04,0xb3a874,0);handle.rotation.y=Math.PI/2;}G.collider(c,x,8.5,.85,.85);

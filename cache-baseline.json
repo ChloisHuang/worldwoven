@@ -1,0 +1,21 @@
+{
+  "publishedSourceCommit": "4df6df9994aac5ade1bebf3ddc4a41ff0b1eab0a",
+  "assets": [
+    "/assets/geometry.accd26d9fe1820ba.js",
+    "/assets/globe.f436f6f2e65ad8c0.js",
+    "/assets/regions-east.95f3a3debd4445bb.js",
+    "/assets/japan-furnishings.1ebebff154862976.js",
+    "/assets/japan-sakura.b674c1ca3f576075.js",
+    "/assets/japan-omamori.e068cff974b48932.js",
+    "/assets/japan-bathhouse.e2f2ee848af01a1a.js",
+    "/assets/regions-west.1aefb3c9bf5e711e.js",
+    "/assets/egypt-temple.3550db14b3dec031.js",
+    "/assets/camera.7b6fc625c07138fc.js",
+    "/assets/characters.384b92c9f4ab93d5.js",
+    "/assets/navigation.61467e65ab34c23b.js",
+    "/assets/main.d270eca32cefca16.js",
+    "/assets/game.6697939b1c94c8ae.css",
+    "/assets/three.core.9edde002b066a9a0.js",
+    "/assets/three.module.d8c0a97fa13a785e.js"
+  ]
+}

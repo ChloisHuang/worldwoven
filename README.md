@@ -4,6 +4,7 @@ This repository is the public game at https://alien.doudouai.net. It is a contin
 
 ## Author and validate
 
+- Before a new release, refresh `cache-baseline.json` from the current confirmed published `build.json` and keep those immutable files in the checkout. This baseline is fixed throughout drafts, tests and packaging so repeated local builds cannot discard the actual live graph.
 - Edit `source/game/`. `source/vendor/three/` contains the locally vendored MIT renderer.
 - Run `node tests/run.cjs` for navigation, every-room traversal, depth fixtures, camera sweeps, scene geometry and simulated controller checks.
 - Run `node scripts/build.mjs` to produce the immutable module/CSS graph and the revalidated HTML entrypoints.
@@ -14,10 +15,14 @@ The tests do not substitute for browser/WebGL, iOS performance or motion-comfort
 
 ## Cache contract
 
-Assets under `/assets/` are content-hashed and immutable for one year. The root, `/game/`, HTML and `build.json` revalidate. A CSS-only edit changes one URL and reuses the other fifteen asset URLs. The build retains the preceding complete immutable graph so an already-open page can finish importing it. Compression belongs to the hosting platform; the game does not fetch compressed chunks or manually decompress HTTP bodies. Actual response headers must be verified after deployment.
+Assets under `/assets/` are content-hashed and immutable for one year. The root, `/game/`, HTML and `build.json` revalidate. A CSS-only edit changes one URL and reuses every other asset URL. The build retains the preceding complete immutable graph so an already-open page can finish importing it. Compression belongs to the hosting platform; the game does not fetch compressed chunks or manually decompress HTTP bodies. Actual response headers must be verified after deployment.
 
 ## Migration and rollback
 
 The initial public release copies the released R7 game from commit `0fe52232a8632029081e99a3f4c323a7e528ac04`, with only public navigation and packaging changes. The independent human prototype and private asset workbench are excluded.
 
 The preceding OUR ALIEN LIVES Site v15 remains in version history, with source commit `5570566a39d6e294052ac2d5f6caf27a80f985ea`. Its full game repository archive was verified at https://github.com/ChloisHuang/our-alien-lives/commit/9d27efaadaf39d3914afc97c86a7eced13b5b9b6 before this migration. No domain or audience settings were altered.
+
+## R8 furniture repair batch
+
+Rectangular Japanese futon with supported seams and folded cuff; library shelves no longer add books over prefilled containers; open Chinese scholar cabinet and seated textiles; corrected French mirror, piano, chandelier and seating assemblies; seated Egyptian ornament. Navigation metadata and collider arrays are locked to the preceding R7 fingerprints. Human character prototypes remain private pending review.

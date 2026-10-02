@@ -278,7 +278,7 @@ export function buildEgypt(){
   box(privateRoom,20.4,3.34,-1.25,2.88,.16,4.22,C.blue);box(privateRoom,20.4,3.45,-1.25,2.98,.08,4.32,C.gold);volume(cameraColliders,20.4,3.38,-1.25,2.98,.22,4.32);
   for(const x of [19.18,21.62])box(privateRoom,x,2.15,-3.10,.26,2.3,.06,C.linen);
   ball(privateRoom,20.4,2.5,-2.99,.28,C.gold,1.2,1,.25);rod(privateRoom,[20.4,2.48,-2.9],[20.4,3.05,-2.9],.055,C.gold);ball(privateRoom,20.4,3.1,-2.9,.14,C.gold,1,1.2,.6);
-  roomWall(privateRoom,14.2,.55,9.7,2.2,1.1,1.1,C.shadow);box(privateRoom,14.2,1.15,9.7,2.4,.1,1.3,C.edge);urn(privateRoom,13.8,1.2,9.7,.6,C.gold);ball(privateRoom,14.8,1.4,9.7,.23,C.blue,1,.35,1);
+  roomWall(privateRoom,14.2,.55,9.7,2.2,1.1,1.1,C.shadow);box(privateRoom,14.2,1.15,9.7,2.4,.1,1.3,C.edge);urn(privateRoom,13.8,1.2,9.7,.6,C.gold);ball(privateRoom,14.8,1.28,9.7,.23,C.blue,1,.35,1);
   box(privateRoom,17.8,.018,7,7.6,.035,5.7,C.blue);for(const xx of [14.2,21.4])box(privateRoom,xx,.047,7,.10,.035,5.46,C.gold);
   roomWall(privateRoom,17.9,.52,7.0,2.5,1.04,1.2,C.shadow);box(privateRoom,17.9,1.1,7,2.7,.15,1.4,C.edge);urn(privateRoom,18.5,1.2,7,.65,C.blue);box(privateRoom,17.4,1.2,7,1,.035,.7,C.linen);
   for(const [x,z]of [[14.4,8.2],[21.2,8.2]]){box(privateRoom,x,.34,z,1.6,.65,1.1,C.shadow);box(privateRoom,x,.7,z,1.64,.16,1.14,C.red);volume(colliders,x,.4,z,1.7,.8,1.2);volume(cameraColliders,x,.4,z,1.7,.8,1.2);}
