@@ -1,4 +1,4 @@
-/** Approved R8 parametric sculpt, reduced and adapted for R9 skeletal production.
+/** Approved original R8 sculpt with R10 body, tailoring and hairstyle presets.
  * World units are metres; Y up, face +Z. All visible body, face, hair and clothes
  * surfaces are authored parametric meshes. The only material is MeshToonMaterial.
  * Runtime dependency: Three.js 0.186.1. No textures, licensed meshes or PBR.
@@ -33,7 +33,7 @@ function headSurface(x,y,masc=false){
  return r[4]+r[2]*c+faceD(x,y)*Math.pow(c,8);
 }
 function faceD(x,y){const G=(cx,cy,sx,sy)=>Math.exp(-(((x-cx)/sx)**2)-((y-cy)/sy)**2);return .006*(G(-.045,1.545,.028,.027)+G(.045,1.545,.028,.027))-.0055*(G(-.040,1.589,.027,.012)+G(.040,1.589,.027,.012))+.009*G(0,1.568,.013,.039)+.016*G(0,1.548,.017,.015)+.003*G(0,1.539,.019,.009)+.007*G(0,1.508,.023,.012);}
-function buildHead(g,masc=false){
+function buildHead(g,masc=false,hairStyle=masc?'swept-short':'chin-bob'){
  const facialSurface=(x,y)=>headSurface(x,y,masc);
  const h=new THREE.Group();h.name='sculpted-head';g.add(h);
  const rings=[[1.455,.012,.021,0,.004],[1.468,masc?.044:.037,.052,0,.002],[1.49,masc?.071:.062,.067,0,0],[1.525,.079,.073,0,-.002],[1.57,.088,.075,0,-.003],[1.62,.087,.077,0,-.004],[1.663,.072,.065,0,-.006],[1.692,.044,.042,0,-.008],[1.707,.001,.001,0,-.008]];
@@ -58,31 +58,45 @@ function buildHead(g,masc=false){
  const lipW=masc?.022:.023;
  for(const upper of [true,false])patch(h,upper?'upper-lip':'lower-lip',(u,v)=>{const x=(u*2-1)*lipW;const f=Math.sin(u*Math.PI);const seam=1.512-.0025*f+.0008*Math.cos(u*4*Math.PI);const y=seam+(upper?1:-1)*f*(upper?.0033:.0038)*v;return[x,y,facialSurface(x,y)+.0015+.0018*Math.sin(v*Math.PI)];},C.lip,32,6);
  const mouth=[];for(let i=0;i<=24;i++){const u=i/24,x=(u*2-1)*lipW,y=1.512-.0025*Math.sin(u*Math.PI)+.0008*Math.cos(u*4*Math.PI);mouth.push([x,y,facialSurface(x,y)+.002]);}tube(h,'closed-soft-mouth',mouth,.00075,C.mouth,5);
- buildHair(h,masc);return h;
+ buildHair(h,masc,hairStyle);return h;
 }
-function buildHair(h,masc){
- const top=masc?1.733:1.741;
- // Single swept shell: a designed hairline and a continuous nape/back silhouette.
- surface(h,'continuous-swept-hair-shell',64,28,(u,v)=>{
-  const a=u*Math.PI*2,front=Math.max(0,Math.cos(a)),back=Math.max(0,-Math.cos(a));
-  let bottom=masc?(1.577-.028*Math.abs(Math.sin(a))):(1.350+.016*Math.abs(Math.sin(a))+.008*Math.cos(a*3));
-  const frontal=Math.exp(-Math.pow(Math.atan2(Math.sin(a),Math.cos(a))/.91,6));
-  bottom=mix(bottom,1.636+.014*Math.sin(a+1.1),frontal);
-  const y=mix(top,bottom,v),t=clamp((y-1.605)/(top-1.605),-2,1);
-  let rx,rz;if(y>=1.605){rx=.101*Math.sqrt(Math.max(0.0004,1-t*t));rz=.092*Math.sqrt(Math.max(.0004,1-t*t));}else{rx=(masc?.1:.100)+(masc?0:.007)*Math.sin((1.605-y)*9);rz=(masc?.086:.092)+(masc?0:.004)*Math.sin((1.605-y)*8);}
-  if(y<1.605){const taper=masc?mix(.86,1,clamp((y-1.55)/.055,0,1)):mix(.89,1,clamp((y-1.35)/.255,0,1));rx*=taper;rz*=taper;}
+function buildHair(h,masc,style='chin-bob'){
+ const short=style==='swept-short'||style==='side-part',bob=style==='chin-bob',long=style==='shoulder-wave',tied=style==='low-bun'||style==='braided-tail';
+ const top=style==='side-part'?1.733:1.739;
+ // Six genuinely different outlines share the original smooth, swept surface language.
+ surface(h,'continuous-swept-hair-shell',40,24,(u,v)=>{
+  const a=u*Math.PI*2,frontal=Math.exp(-Math.pow(Math.atan2(Math.sin(a),Math.cos(a))/.88,6));
+  const end=short?1.568:bob?1.447:long?1.353:1.565;
+  let bottom=end+(short?.012:.016)*Math.abs(Math.sin(a));
+  bottom=mix(bottom,1.637+.012*Math.sin(a+(style==='side-part'?-.7:1.1)),frontal);
+  const y=mix(top,bottom,v),t=clamp((y-1.605)/(top-1.605),-2,1),wave=long?.006*Math.sin((y-1.35)*29+a*.4):0;
+  let rx=y>=1.605?.101*Math.sqrt(Math.max(.0004,1-t*t)):(bob?.111:long?.112:.097)+wave;
+  let rz=y>=1.605?.094*Math.sqrt(Math.max(.0004,1-t*t)):(bob?.100:long?.115:.089);
+  if(y<1.605){const taper=short||tied?mix(.83,1,clamp((y-1.55)/.055,0,1)):mix(.95,1,clamp((y-end)/.18,0,1));rx*=taper;rz*=taper;}
   const flow=.0018*Math.cos(a*11+v*1.9)*Math.sin(v*Math.PI);
-  return[(rx+flow)*Math.sin(a)+.011*Math.sin(v*Math.PI)*(1-v),y, -.009+(rz+flow)*Math.cos(a)];
+  return[(rx+flow)*Math.sin(a)+.008*Math.sin(v*Math.PI)*(1-v),y,-.009+(rz+flow)*Math.cos(a)];
  },C.hair);
- // Asymmetric side-sweep is a thin, flowing sheet with a feathered boundary.
- patch(h,'side-swept-fringe',(u,v)=>{const xx=mix(-.086,.076,u),x=xx*(1-.48*v),edge=1.638+.024*u-.013*Math.sin(Math.PI*u);const y=mix(edge,1.715-((x-.012)/.14)**2*.011,v);const sy=clamp((y-1.605)/(top-1.605),-1,1),rx=.101*Math.sqrt(Math.max(.001,1-sy*sy)),rz=.092*Math.sqrt(Math.max(.001,1-sy*sy));const z=-.009+rz*Math.sqrt(Math.max(.015,1-(x/rx)**2))+.004;return[x,y,z];},C.hair,48,18);
- // Sparse broad ribbons follow hair flow. No stacked lumps or sphere clusters.
- const flowLines=masc?[-.06,-.025,.017,.052]:[-.08,-.04,.008,.05,.082];
- flowLines.forEach((x,i)=>{const e=1.64+.02*((x+.087)/.162),points=[[x*.4,1.715,0],[x*.82,1.69,0],[x,e+.02,0],[x+.006,e,0]].map(p=>{const q=clamp((p[1]-1.605)/(top-1.605),0,1),rx=.101*Math.sqrt(Math.max(.001,1-q*q)),rz=.092*Math.sqrt(Math.max(.001,1-q*q));p[2]=-.009+rz*Math.sqrt(Math.max(.015,1-(p[0]/rx)**2))+.0056;return p;});ribbon(h,'combed-highlight-'+i,points,t=>(.0012+Math.sin(t*Math.PI)*.0012),i%2?C.hairMid:C.hairLight);});
- if(!masc)for(const s of [-1,1]){
-  // Long side locks taper into the bob rather than separate hair balls.
-  loft(h,'tapered-side-lock-'+s,[[1.36,.014,.035,s*.082,-.018],[1.41,.025,.049,s*.09,-.016],[1.49,.022,.047,s*.088,-.014],[1.57,.020,.039,s*.087,-.015],[1.64,.012,.024,s*.079,-.006]],C.hair,{segs:28,steps:34});
-  ribbon(h,'side-flow-'+s,[[s*.099,1.62,.013],[s*.108,1.54,.02],[s*.112,1.45,.011],[s*.093,1.379,.005]],.0024,C.hairMid);
+ if(style==='side-part'){
+  patch(h,'side-part-hair-fringe',(u,v)=>{const x=mix(-.085,.088,u)*(1-.35*v),edge=1.647-.025*Math.sin(u*Math.PI);const y=mix(edge,1.715,v),q=clamp((y-1.605)/(top-1.605),0,1),rx=.104*Math.sqrt(Math.max(.001,1-q*q)),rz=.097*Math.sqrt(Math.max(.001,1-q*q));return[x,y,-.009+rz*Math.sqrt(Math.max(.015,1-(x/rx)**2))+.003];},C.hair,32,16);
+  ribbon(h,'hair-part-line',[[.030,1.721,.019],[.031,1.700,.051],[.032,1.674,.071],[.035,1.652,.086]],.002,C.hairMid);
+ }else{
+  patch(h,'side-swept-fringe',(u,v)=>{const xx=mix(-.086,.076,u),x=xx*(1-.48*v),edge=1.638+.024*u-.013*Math.sin(Math.PI*u),y=mix(edge,1.715-((x-.012)/.14)**2*.011,v),q=clamp((y-1.605)/(top-1.605),-1,1),rx=.101*Math.sqrt(Math.max(.001,1-q*q)),rz=.094*Math.sqrt(Math.max(.001,1-q*q));return[x,y,-.009+rz*Math.sqrt(Math.max(.015,1-(x/rx)**2))+.004];},C.hair,36,16);
+ }
+ for(const [i,x]of [-.066,-.027,.018,.057].entries()){
+  const e=1.644+.016*((x+.08)/.16),pts=[[x*.4,1.715,0],[x*.82,1.69,0],[x,e+.015,0],[x+.006,e,0]].map(p=>{const q=clamp((p[1]-1.605)/(top-1.605),0,1),rx=.101*Math.sqrt(Math.max(.001,1-q*q)),rz=.094*Math.sqrt(Math.max(.001,1-q*q));p[2]=-.009+rz*Math.sqrt(Math.max(.015,1-(p[0]/rx)**2))+.0056;return p;});ribbon(h,'combed-highlight-'+i,pts,t=>.0012+Math.sin(t*Math.PI)*.0012,i%2?C.hairMid:C.hairLight);
+ }
+ if(bob||long)for(const side of[-1,1]){
+  const end=bob?1.449:1.372;
+  loft(h,'tapered-side-lock-'+side,[[end,.006,.021,side*.100,-.026],[end+.045,.018,.043,side*.101,-.019],[1.54,.021,.042,side*.092,-.015],[1.63,.013,.025,side*.080,-.006]],C.hair,{segs:16,steps:18});
+  ribbon(h,'side-flow-'+side,[[side*.097,1.61,.015],[side*.112,1.53,.014],[side*.115,end+.03,.002]],.0024,C.hairMid);
+ }
+ if(style==='low-bun'){
+  loft(h,'hair-low-bun',[[1.493,.003,.005,0,-.110],[1.505,.040,.031,0,-.123],[1.542,.057,.041,0,-.127],[1.575,.044,.037,0,-.116],[1.588,.004,.008,0,-.100]],C.hair,{segs:24,steps:18});
+  for(const side of[-1,1])ribbon(h,'hair-bun-sweep-'+side,[[side*.065,1.61,-.074],[side*.064,1.563,-.097],[side*.036,1.523,-.153]],.0027,C.hairMid);
+ }else if(style==='braided-tail'){
+  loft(h,'hair-braided-tail',[[1.238,.006,.009,0,-.148],[1.270,.013,.015,-.009,-.149],[1.347,.020,.021,.006,-.148],[1.425,.025,.023,-.005,-.143],[1.509,.026,.026,0,-.121],[1.557,.031,.033,0,-.101]],C.hair,{segs:18,steps:24,deform:(p,a,v)=>{p[0]+=.004*Math.sin(v*39)*Math.sin(Math.PI*v);return p;}});
+  for(const side of[-1,1])tube(h,'hair-braid-weave-'+side,Array.from({length:15},(_,i)=>[side*.016*Math.cos(i*1.4),1.28+i*.016,-.163-.002*Math.sin(i)]),.0025,C.hairMid,5);
+  loft(h,'hair-braid-tie',[[1.265,.014,.016,-.008,-.149],[1.278,.015,.016,-.008,-.149]],C.obi,{segs:16,steps:3});
  }
 }
 function hand(g,s){
@@ -141,53 +155,104 @@ function buildYukata(g){
  for(const m of g.children)if(m.isMesh&&['inner-collar','outer-collar','lapel-binding','front-overlap-seam','willow-stem','willow-leaf'].includes(m.name))conformFront(m,yukataProfile,m.name==='outer-collar'?.007:m.name==='lapel-binding'?.009:.0045);
 }
 
-function tone(c,f){return new THREE.Color(c).multiplyScalar(f).getHex();}
-function adaptYukata(g,culture,masc){
- if(culture==='japan') return;
- const remove=[];
- g.traverse(m=>{if(!m.isMesh)return;const n=m.name;
- if(culture==='china'){
-  if(n==='continuous-yukata-body'){const p=m.geometry.attributes.position;for(let i=0;i<p.count;i++){const y=p.getY(i);if(y<1.01)p.setX(i,p.getX(i)*(1+.2*(1-y)));}}
-  if(n==='soft-wrapped-obi'||n==='obi-tie'){const p=m.geometry.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,1.065+(p.getY(i)-1.08)*.50);}
-  if(n.includes('willow-'))remove.push(m);
- }else if(culture==='egypt'){
-  if(n.includes('collar')||n.includes('binding')||n.includes('willow')||n.includes('sleeve-fold'))remove.push(m);
-  if(n.startsWith('draped-yukata-sleeve'))remove.push(m);
-  if(n==='continuous-yukata-body'){const p=m.geometry.attributes.position;for(let i=0;i<p.count;i++){const y=p.getY(i);if(y<.98){p.setX(i,p.getX(i)*(1+.12*(1-y)));p.setZ(i,p.getZ(i)+.004*Math.sin(p.getX(i)*95));}}}
-  if(n==='soft-wrapped-obi'||n==='obi-tie'){const p=m.geometry.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,1.03+(p.getY(i)-1.08)*.44);}
- }else if(culture==='france'){
-  if(n.includes('collar')||n.includes('binding')||n.includes('willow')||n.includes('front-overlap'))remove.push(m);
-  if(n==='continuous-yukata-body'){const p=m.geometry.attributes.position;for(let i=0;i<p.count;i++){const y=p.getY(i);if(y<1.04){const f=1+.70*(1-y);p.setX(i,p.getX(i)*f);p.setZ(i,p.getZ(i)*(1+.43*(1-y)));}}}
-  if(n==='soft-wrapped-obi'||n==='obi-tie'){const p=m.geometry.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,1.06+(p.getY(i)-1.08)*.40);}
+function removeSurfaces(g,test){const removed=[];g.traverse(m=>{if(m.isMesh&&test(m.name))removed.push(m);});for(const m of removed){m.removeFromParent();m.geometry.dispose();}}
+function shirtToBodice(g,color=C.yukata){const m=g.getObjectByName('tailored-shirt-body');if(m){m.name='fitted-court-bodice';m.material=mat(color);}}
+function skirt(g,name,{hem=.26,depth=.145,waist=.14,bottom=.13,color=C.yukata,pleats=0}={}){
+ const rings=[[bottom,hem,depth,0,-.008],[bottom+.04,hem*1.005,depth,0,-.008],[.37,hem*.92,depth*.96,0,-.008],[.64,hem*.79,depth*.88,0,-.008],[.88,hem*.64,depth*.78,0,-.006],[1.06,waist,.09,0,-.003],[1.10,waist*.97,.086,0,-.003]];
+ loft(g,name,rings,color,{segs:36,steps:32,deform:(p,a,v)=>{const fold=pleats*Math.sin(a*16)*Math.sin(Math.PI*v);p[0]+=fold*Math.sin(a);p[2]+=fold*Math.cos(a);return p;}});
+ return rings;
+}
+function belt(g,name,y,width,rx,color=C.obi){loft(g,name,[[y-width/2,rx,.101,0,-.001],[y+width/2,rx*.97,.096,0,-.001]],color,{segs:24,steps:5});}
+function buildJapan(g,masc,preset){
+ if(preset==='haori-trouser'){
+  buildCasual(g);removeSurfaces(g,n=>/^short-sleeve/.test(n));const torso=g.getObjectByName('tailored-shirt-body');torso.name='haori-jacket-body';
+  removeSurfaces(g,n=>/shirt-collar|shirt-placket|shirt-button|shirt-fold|collar-opening/.test(n));
+  for(const side of[-1,1]){loft(g,'haori-long-sleeve-'+side,[[.998,.051,.057,side*.293,-.008],[1.12,.064,.068,side*.26,-.012],[1.29,.074,.075,side*.20,-.012],[1.338,.055,.065,side*.164,-.012]],C.yukata,{steps:24});ribbon(g,'haori-lapel-'+side,[[side*.04,1.403,.03],[side*.085,1.27,.091],[side*.079,1.10,.089],[side*.10,.944,.115]],.025,C.collar);}
+  belt(g,'haori-waist-tie',1.055,.038,.153);return;
  }
- m.geometry.computeVertexNormals();
- });
- for(const m of remove){m.removeFromParent();m.geometry.dispose();}
- if(culture==='china'){
-  ribbon(g,'palace-sash',[[.055,1.05,.107],[.072,.85,.114],[.096,.63,.125]],.038,C.obi);
-  for(const s of [-1,1]) ribbon(g,'palace-hem-border-'+s,[[s*.15,.96,.057],[s*.18,.53,.060],[s*.203,.14,.064]],.014,C.pattern);
-  const h=g.getObjectByName('sculpted-head');tube(h,'palace-hairpin',[[-.13,1.687,-.022],[.13,1.687,-.022]],.0055,C.obi,8);
-  loft(h,'palace-jade-ornament',[[1.676,.010,.007,.138,-.022],[1.689,.014,.010,.138,-.022],[1.701,.006,.004,.138,-.022]],C.pattern,{segs:12,steps:8});
- }else if(culture==='egypt'){
-  for(const s of [-1,1]){
-   loft(g,'linen-short-sleeve-'+s,[[1.20,.053,.060,s*.251,-.006],[1.27,.067,.072,s*.213,-.010],[1.33,.058,.065,s*.174,-.012]],C.yukata,{segs:24,steps:18});
-   loft(g,'bare-arm-'+s,[[.916,.021,.023,s*.303,0],[1.01,.03,.03,s*.297,-.002],[1.092,.039,.036,s*.28,-.006],[1.154,.039,.037,s*.266,-.005],[1.23,.045,.042,s*.247,-.006]],C.skin,{steps:24,segs:24});
-  }
-  for(let j=0;j<3;j++) surface(g,'egypt-broad-collar-'+j,40,4,(u,v)=>{const a=u*Math.PI*2,r=mix(.050+j*.033,.080+j*.033,v);return[Math.sin(a)*r,1.40-r*.67,Math.cos(a)*r*.69+.008+Math.max(0,Math.cos(a))*.055];},j%2?C.obi:C.pattern);
-  ribbon(g,'linen-front-panel',[[0,1.0,.111],[0,.70,.117],[0,.35,.12]],.10,C.collar);
-  for(const s of [-1,1])ribbon(g,'linen-front-border-'+s,[[s*.048,1.0,.117],[s*.048,.70,.123],[s*.048,.35,.126]],.008,C.obi);
- }else if(culture==='france'){
-  // Closed palace day gown, softly flared hem and shaped lace neckline.
-  for(const s of [-1,1])ribbon(g,'royal-lace-neckline-'+s,[[s*.04,1.397,.032],[s*.084,1.35,.069],[s*.072,1.30,.087],[0,1.28,.094]],.028,C.collar);
-  for(let i=0;i<4;i++)loft(g,'royal-bodice-button-'+i,[[1.125+i*.037,.003,.003,0,.094],[1.13+i*.037,.005,.004,0,.096],[1.135+i*.037,.003,.003,0,.094]],C.obi,{steps:4,segs:8});
-  for(const s of [-1,1])ribbon(g,'royal-embroidered-skirt-'+s,[[s*.105,1.0,.084],[s*.18,.62,.105],[s*.265,.17,.125]],.008,C.obi);
+ buildYukata(g);
+ g.traverse(m=>{if(!m.isMesh)return;const n=m.name,p=m.geometry.attributes.position;if(n==='soft-wrapped-obi'||n==='obi-tie'){for(let i=0;i<p.count;i++){const y=p.getY(i);p.setY(i,masc?1.015+(y-1.08)*.40:y+(preset==='kimono-soft-sleeve'?.012:0));}}
+ if(n.startsWith('draped-yukata-sleeve'))for(let i=0;i<p.count;i++){const y=p.getY(i),f=clamp((1.32-y)/.365,0,1);p.setZ(i,p.getZ(i)*(masc?.88:preset==='kimono-soft-sleeve'?1.16:1.04));if(!masc)p.setY(i,y-f*(preset==='kimono-soft-sleeve'?.039:.019));}
+ if(masc&&n==='continuous-yukata-body')for(let i=0;i<p.count;i++)if(p.getY(i)<1.08)p.setX(i,p.getX(i)*.98);m.geometry.computeVertexNormals();});
+ if(!masc){loft(g,'obi-back-bow',[[1.035,.062,.018,0,-.116],[1.07,.099,.033,0,-.122],[1.116,.064,.02,0,-.117]],C.obi,{segs:20,steps:8});}
+}
+function buildChina(g,masc,preset){
+ if(masc){
+  buildJapan(g,true,'haori-trouser');removeSurfaces(g,n=>/^haori-lapel|haori-waist-tie|haori-jacket-body/.test(n));loft(g,'scholar-upper-robe',[[1.045,.156,.103,0,-.005],[1.15,.156,.098,0,-.004],[1.28,.185,.087,0,-.01],[1.335,.19,.078,0,-.013],[1.374,.135,.061,0,-.005],[1.407,.049,.038,0,.002]],C.yukata,{steps:26});
+  if(preset==='scholar-long-robe'){
+   removeSurfaces(g,n=>/^tailored-trouser|trouser-crease/.test(n));
+   loft(g,'scholar-long-robe-body',[[.13,.194,.115,0,-.01],[.35,.186,.112,0,-.007],[.72,.167,.105,0,-.006],[.96,.163,.108,0,-.006],[1.07,.152,.10,0,-.005]],C.yukata,{steps:30});
+  }else loft(g,'scholar-split-tunic-body',[[.54,.195,.122,0,-.006],[.62,.189,.119,0,-.005],[.89,.17,.116,0,-.005],[1.06,.15,.103,0,-.005]],C.yukata,{steps:24});
+  for(const side of[-1,1])ribbon(g,'scholar-cross-collar-'+side,[[side*.04,1.406,.034],[side*.074,1.345,.073],[-side*.014,1.225,.096],[-side*.093,1.09,.10]],.026,C.collar);
+  belt(g,'scholar-waist-sash',1.06,.047,.157);ribbon(g,'scholar-sash-end',[[.061,1.05,.11],[.078,.85,.121],[.083,.68,.126]],.028,C.obi);
+ }else{
+  buildYukata(g);removeSurfaces(g,n=>/continuous-yukata-body|soft-wrapped-obi|obi-tie|front-overlap|willow/.test(n));
+  const skirtProfile=skirt(g,'ruqun-pleated-skirt',{hem:preset==='ruqun-jacket'?.253:.237,depth:.134,waist:.145,pleats:.003});
+  const upper=[[1.10,.145,.094,0,-.003],[1.15,.143,.090,0,-.004],[1.24,.151,.088,0,-.007],[1.33,.181,.080,0,-.012],[1.37,.124,.061,0,-.004],[1.406,.047,.039,0,0]];
+  loft(g,'ruqun-crossed-bodice',upper,C.yukata,{steps:30});
+  if(preset==='ruqun-jacket'){loft(g,'ruqun-short-overjacket',[[.904,.186,.118,0,-.006],[1.02,.167,.111,0,-.005],[1.17,.149,.104,0,-.006]],tone(C.yukata,.84),{steps:16});}
+  belt(g,'ruqun-raised-sash',1.108,.075,.149);
+  ribbon(g,'ruqun-sash-ribbon',[[.05,1.11,.112],[.074,.86,.119],[.067,.60,.131]],.035,C.obi);
+  for(const side of[-1,1]){const m=ribbon(g,'ruqun-hem-border-'+side,[[side*.09,.97,.08],[side*.16,.62,.09],[side*.211,.17,.10]],.012,C.pattern);conformFront(m,skirtProfile,.004);}
  }
 }
+function buildEgypt(g,masc,preset){
+ buildCasual(g);removeSurfaces(g,n=>/tailored-shirt-body|short-sleeve|shirt-|collar-opening|tailored-trouser|trouser-crease|^arm-/.test(n));
+ for(const side of[-1,1])loft(g,'bare-arm-'+side,[[.916,.021,.023,side*.303,0],[1.01,.030,.03,side*.297,-.002],[1.092,.039,.036,side*.28,-.006],[1.19,.045,.042,side*.254,-.006],[1.28,.052,.05,side*.204,-.01],[1.326,.048,.048,side*.173,-.011],[1.343,.031,.04,side*.151,-.010]],C.skin,{segs:24,steps:26});
+ if(masc){
+  const long=preset==='linen-tunic-kilt';
+  loft(g,'linen-fitted-tunic',[[1.04,.147,.100,0,-.003],[1.10,.145,.090,0,-.003],[1.24,.17,.09,0,-.007],[1.34,.186,.074,0,-.012],[1.395,.055,.039,0,0]],C.yukata,{steps:28});
+  loft(g,'linen-wrapped-kilt',[[long?.49:.57,.19,.135,0,-.003],[.64,.182,.128,0,-.003],[.83,.163,.115,0,-.003],[1.04,.146,.100,0,-.003]],C.yukata,{steps:24,deform:(p,a,v)=>{p[2]+=.003*Math.cos(a*12)*Math.sin(v*Math.PI);return p;}});
+  for(const side of[-1,1]){loft(g,'bare-leg-'+side,[[.106,.032,.036,side*.089,-.020],[.26,.043,.046,side*.089,-.017],[.44,.051,.047,side*.089,-.013],[.63,.064,.064,side*.087,-.010],[.71,.068,.065,side*.086,-.009]],C.skin,{segs:20,steps:26});if(long)loft(g,'linen-short-sleeve-'+side,[[1.18,.053,.057,side*.254,-.006],[1.29,.070,.073,side*.202,-.012],[1.34,.048,.056,side*.161,-.011]],C.yukata,{steps:18});}
+  ribbon(g,'kilt-wrap-overlap',[[.09,1.035,.103],[.12,.84,.118],[.047,long?.495:.575,.137]],.012,C.collar);
+ }else{
+  const pleated=preset==='linen-pleated-dress';
+  loft(g,'linen-ankle-dress-body',[[.13,pleated?.227:.178,pleated?.132:.11,0,-.005],[.30,pleated?.216:.176,.113,0,-.004],[.58,pleated?.188:.169,.11,0,-.003],[.88,.170,.111,0,-.003],[1.085,.132,.087,0,-.001],[1.24,.159,.096,0,-.006],[1.34,.179,.075,0,-.010],[1.395,.054,.039,0,0]],C.yukata,{segs:36,steps:32,deform:(p,a,v)=>{const f=pleated?.004*Math.cos(a*18)*Math.sin(v*Math.PI):0;p[0]+=Math.sin(a)*f;p[2]+=Math.cos(a)*f;return p;}});
+ }
+ belt(g,'linen-woven-belt',1.045,.047,.153);
+ for(let j=0;j<3;j++)surface(g,'egypt-broad-collar-'+j,24,3,(u,v)=>{const a=u*Math.PI*2,r=mix(.05+j*.029,.077+j*.029,v);return[Math.sin(a)*r,1.401-(r-.05)*.65,-.003+Math.cos(a)*r*.68];},j===1?C.pattern:C.obi);
+}
+function buildFrance(g,masc,preset){
+ if(masc){buildCasual(g);franceCoat(g);if(preset==='court-waistcoat')removeSurfaces(g,n=>/royal-coat-tail/.test(n));
+  // A continuous long coat sleeve versus a visibly cropped waistcoat/shirt cut.
+  if(preset==='court-frock-coat'){removeSurfaces(g,n=>/^short-sleeve|^arm-/.test(n));for(const side of[-1,1])loft(g,'wrist-court-'+side,[[.916,.022,.023,side*.303,0],[.95,.025,.027,side*.3,-.001],[.982,.028,.03,side*.298,-.002]],C.skin,{segs:16,steps:8});}
+  if(preset==='court-frock-coat')for(const side of[-1,1]){loft(g,'court-long-sleeve-'+side,[[.956,.034,.037,side*.302,-.001],[1.08,.05,.047,side*.278,-.005],[1.23,.062,.060,side*.231,-.01],[1.34,.056,.057,side*.17,-.011]],C.yukata,{steps:24});}
+  else for(const side of[-1,1])ribbon(g,'waistcoat-front-panel-'+side,[[side*.041,1.385,.055],[side*.067,1.25,.101],[side*.064,1.10,.096],[side*.058,.96,.113]],.052,tone(C.yukata,.77));
+  return;
+ }
+ buildCasual(g);removeSurfaces(g,n=>/tailored-trouser|trouser-crease|shirt-collar|shirt-placket|shirt-button|collar-opening|shirt-fold/.test(n));shirtToBodice(g);
+ const over=preset==='court-overgown',rings=skirt(g,'court-full-gown-skirt',{hem:over?.294:.269,depth:over?.169:.151,waist:.135,pleats:.0025});
+ const bodice=g.getObjectByName('fitted-court-bodice'),bp=bodice.geometry.attributes.position;
+ for(let i=0;i<bp.count;i++){const y=bp.getY(i);if(y<1.12){bp.setX(i,bp.getX(i)*.88);if(y<1.075)bp.setY(i,1.075);}}
+ for(const side of[-1,1]){
+  ribbon(g,'court-square-neckline-'+side,[[side*.04,1.407,.035],[side*.10,1.36,.07],[side*.075,1.275,.091],[0,1.266,.096]],.019,C.collar);
+  loft(g,'court-puffed-sleeve-'+side,[[1.16,.057,.063,side*.257,-.006],[1.23,.080,.083,side*.232,-.009],[1.30,.075,.082,side*.201,-.011],[1.342,.042,.049,side*.156,-.010]],C.yukata,{steps:20});
+  const m=ribbon(g,'court-skirt-embroidered-panel-'+side,[[side*.062,1.02,.091],[side*.155,.65,.12],[side*(over?.248:.228),.16,.13]],over?.019:.009,C.obi);conformFront(m,rings,.0045);
+ }
+ if(over)patch(g,'court-cream-front-inset',(u,v)=>{const y=mix(.135,1.025,v),w=mix(.119,.023,v),x=mix(-w,w,u);return[x,y,frontOfLoft(rings,x,y)+.005];},C.collar,10,24);
+ belt(g,'court-waist-ribbon',1.077,.038,.14);ribbon(g,'court-lace-front',[[0,1.267,.098],[0,1.18,.097],[0,1.09,.095]],.023,C.collar);
+}
+function sculptBody(g,preset){
+ const d={
+  'feminine-balanced':{hip:1.055,waist:.925,chest:1.0,shoulder:.965,depth:1.01},
+  'feminine-slender':{hip:1.015,waist:.875,chest:.965,shoulder:.935,depth:.955},
+  'masculine-lean':{hip:.947,waist:.98,chest:1.075,shoulder:1.08,depth:1.01},
+  'masculine-broad':{hip:1.015,waist:1.05,chest:1.125,shoulder:1.135,depth:1.075}
+ }[preset]||{hip:1,waist:1,chest:1,shoulder:1,depth:1};
+ g.traverse(m=>{if(!m.isMesh||m.parent.name==='sculpted-head'||/footwear|sole-|loafer|relaxed-|thumb-/.test(m.name))return;const p=m.geometry.attributes.position;
+  for(let i=0;i<p.count;i++){const y=p.getY(i),x=p.getX(i);let factor=y<.85?mix(1,d.hip,clamp((y-.65)/.20,0,1)):y<1.075?mix(d.hip,d.waist,(y-.85)/.225):y<1.23?mix(d.waist,d.chest,(y-1.075)/.155):y<1.335?mix(d.chest,d.shoulder,(y-1.23)/.105):mix(d.shoulder,1,clamp((y-1.335)/.09,0,1));
+   if(/sleeve|^arm-|bare-arm|wrist-/.test(m.name))factor=mix(1,d.shoulder,clamp((y-1.03)/.30,0,1));
+   p.setX(i,x*factor);if(y>.84&&y<1.38)p.setZ(i,p.getZ(i)*d.depth);
+  }m.geometry.computeVertexNormals();
+ });
+}
+
+function tone(c,f){return new THREE.Color(c).multiplyScalar(f).getHex();}
 function franceCoat(g){
  const shirt=g.getObjectByName('tailored-shirt-body');if(shirt){shirt.material=mat(C.yukata);shirt.name='royal-frock-bodice';}
  for(const s of [-1,1]){
   const p=[[.56,.076,.080,s*.097,-.012],[.73,.085,.086,s*.089,-.013],[.93,.080,.09,s*.082,-.014],[1.04,.066,.078,s*.072,-.011]];
-  loft(g,'royal-coat-tail-'+s,p,C.yukata,{segs:24,steps:24});
+  loft(g,'royal-coat-tail-'+s,p,C.yukata,{segs:20,steps:16});
   ribbon(g,'royal-gold-facing-'+s,[[s*.041,1.393,.040],[s*.060,1.30,.100],[s*.050,1.15,.100],[s*.062,.97,.108]],.012,C.obi);
  }
  ribbon(g,'royal-cravat',[[0,1.402,.042],[0,1.345,.072],[0,1.276,.105]],t=>.027+Math.sin(t*Math.PI)*.019,C.collar);
@@ -196,8 +261,8 @@ function jobAccessories(g,style,culture){
  const h=g.getObjectByName('sculpted-head');
  if(style==='chef'){
   // Low cap stays inside the existing 1.95 m navigation clearance.
-  loft(h,'cook-soft-cap',[[1.683,.096,.083,0,-.007],[1.713,.099,.086,0,-.007],[1.759,.083,.073,0,-.008],[1.785,.041,.038,0,-.008],[1.79,.001,.001,0,-.008]],C.collar,{segs:32,steps:20});
-  loft(h,'cook-cap-band',[[1.688,.099,.086,0,-.007],[1.72,.098,.086,0,-.007]],C.collar,{segs:32,steps:5});
+  loft(h,'cook-soft-cap',[[1.683,.108,.098,0,-.007],[1.713,.109,.098,0,-.007],[1.759,.083,.073,0,-.008],[1.785,.041,.038,0,-.008],[1.79,.001,.001,0,-.008]],C.collar,{segs:32,steps:20});
+  loft(h,'cook-cap-band',[[1.688,.110,.100,0,-.007],[1.72,.108,.098,0,-.007]],C.collar,{segs:32,steps:5});
   patch(g,'cook-apron',(u,v)=>{const y=mix(.61,1.288,v),w=y>1.10?.098:.126;return[mix(-w,w,u),y,.116+Math.sin(v*Math.PI)*.008];},C.collar,12,24);
   ribbon(g,'apron-pocket',[[-.055,.96,.128],[0,.956,.129],[.055,.96,.128]],.050,C.pattern);
  }else if(style==='artist'){
@@ -208,13 +273,18 @@ function jobAccessories(g,style,culture){
   loft(h,'garden-straw-crown',[[1.704,.101,.089,0,-.01],[1.78,.085,.074,0,-.01],[1.813,.023,.022,0,-.01]],0xc7ac7a,{segs:32,steps:18});
  }
 }
-export function createApprovedSurfaces({culture=null,masc=false,style='casual',skin=BASE.skin,hair=BASE.hair,clothes=BASE.yukata,accent=BASE.collar,eyeColor=BASE.iris}={}){
+export function createApprovedSurfaces({culture=null,masc=false,style='casual',bodyPreset=masc?'masculine-lean':'feminine-balanced',hairStyle=masc?'swept-short':'chin-bob',wardrobePreset=null,skin=BASE.skin,hair=BASE.hair,clothes=BASE.yukata,accent=BASE.collar,eyeColor=BASE.iris}={}){
  C={...BASE,skin:new THREE.Color(skin).getHex(),hair:new THREE.Color(hair).getHex(),yukata:new THREE.Color(clothes).getHex(),shirt:new THREE.Color(clothes).getHex(),collar:new THREE.Color(accent).getHex()};
  C.iris=new THREE.Color(eyeColor).getHex();C.skinLight=tone(C.skin,1.08);C.skinShadow=tone(C.skin,.74);C.lip=new THREE.Color(C.skin).lerp(new THREE.Color(0x8e454d),.48).getHex();C.mouth=tone(C.lip,.69);C.hairMid=tone(C.hair,1.32);C.hairLight=tone(C.hair,1.52);C.brow=tone(C.hair,.9);C.obi=culture==='egypt'?0xbd9c48:culture==='china'?0xb69b56:culture==='france'?0xa68d53:0x34495a;C.pattern=culture==='egypt'?0x4d9198:new THREE.Color(C.yukata).lerp(new THREE.Color(0xd6dfbc),.56).getHex();
+ // R9 individual Egyptian dye survives both tailoring presets.
  if(culture==='egypt')C.yukata=new THREE.Color(C.yukata).lerp(new THREE.Color(0xe2d7b9),.28).getHex();
- const root=new THREE.Group();buildHead(root,masc);
- if(!culture){buildCasual(root);}else if(culture==='france'&&masc){buildCasual(root);franceCoat(root);}else{buildYukata(root);adaptYukata(root,culture,masc);}
- jobAccessories(root,style,culture);
- root.traverse(m=>{if(m.isMesh){m.userData.softSkin=/continuous-head|neck|^ear-|inset-eye|iris-|pupil-|eye-catchlight|eyelid-|soft-brow|nostril-|lip|mouth|relaxed-|thumb-|wrist-|^arm-|bare-arm/.test(m.name);m.receiveShadow=false;m.castShadow=true;}});
+ const root=new THREE.Group();buildHead(root,masc,hairStyle);
+ if(culture==='japan')buildJapan(root,masc,wardrobePreset||(masc?'yukata-narrow-obi':'yukata-wide-obi'));
+ else if(culture==='china')buildChina(root,masc,wardrobePreset||(masc?'scholar-long-robe':'ruqun-long-skirt'));
+ else if(culture==='egypt')buildEgypt(root,masc,wardrobePreset||(masc?'linen-kilt':'linen-sheath'));
+ else if(culture==='france')buildFrance(root,masc,wardrobePreset||(masc?'court-frock-coat':'court-gown'));
+ else buildCasual(root);
+ jobAccessories(root,style,culture);sculptBody(root,bodyPreset);
+ root.traverse(m=>{if(m.isMesh){m.userData.softSkin=/continuous-head|neck|^ear-|inset-eye|iris-|pupil-|eye-catchlight|eyelid-|soft-brow|nostril-|lip|mouth|relaxed-|thumb-|wrist-|^arm-|bare-arm|bare-leg/.test(m.name);m.receiveShadow=false;m.castShadow=true;}});
  return root;
 }

@@ -106,7 +106,7 @@ function eaveRing(g,y){
 }
 
 export function buildJapan(){
- const group=new THREE.Group(),roofGroup=new THREE.Group(),colliders=[],cameraColliders=[],walkableSurfaces=[],ceilingGroups=[],floorGroups=[],explorationTargets=[],doorways=[],roomProgram=[],updates=[];
+ const group=new THREE.Group(),roofGroup=new THREE.Group(),colliders=[],cameraColliders=[],walkableSurfaces=[],ceilingGroups=[],floorGroups=[],explorationTargets=[],doorways=[],roomProgram=[],updates=[],characterFootSurfaces=[];
  group.name='Japan · Kasumi-yu Lantern Bathhouse';roofGroup.name='Visible green roof ensemble';roofGroup.visible=true;group.add(roofGroup);
  const levels=[{id:'jp-ground',name:'一层 · 接待与寿司拉面大厅',y:0},{id:'jp-guest',name:'二层 · 男汤与女汤',y:3.8},{id:'jp-tea',name:'三层 · 方形暖桌会客大厅',y:7.6},{id:'jp-sky',name:'四层 · 汤屋工作与职人生活',y:11.4}];
  function obstacle(x,y,z,w,h,d,{camera=true}={}){const b=limits(x,y,z,w,h,d);colliders.push(b);if(camera)cameraColliders.push({...b});}
@@ -194,7 +194,7 @@ export function buildJapan(){
    if(f<3){
      const rampY=H/8;
      walkableSurfaces.push({...STAIR,y:base+H,axis:'z',endY:base});
-     for(let i=0;i<24;i++){const z=-10+(i+.5)*8/24,y=H*(1-(i+.5)/24),depth=8/24;G.box(fg,9.1,y-.075,z,3.4,.15,depth,P.honey);G.box(fg,9.1,y+.008,z+depth/2-.039,3.36,.025,.04,P.gold);cameraColliders.push(limits(9.1,base+y-.075,z,3.4,.15,depth));}
+     for(let i=0;i<24;i++){const z=-10+(i+.5)*8/24,y=H*(1-(i+.5)/24),depth=8/24;G.box(fg,9.1,y-.075,z,3.4,.15,depth,P.honey);G.box(fg,9.1,y+.008,z+depth/2-.039,3.36,.025,.04,P.gold);cameraColliders.push(limits(9.1,base+y-.075,z,3.4,.15,depth));characterFootSurfaces.push({minX:7.4,maxX:10.8,minZ:z-depth/2,maxZ:z+depth/2,y:base+y},{minX:7.42,maxX:10.78,minZ:z+depth/2-.059,maxZ:z+depth/2-.019,y:base+y+.0205});}
      for(const x of [7.4,10.8]){beam(fg,[x,H+.99,-10],[x,.99,-2],.055,P.red);beam(fg,[x,H+.22,-10],[x,.22,-2],.05,P.red);for(let i=0;i<=16;i++){const z=-10+i*.5,y=H-rampY*(z+10);G.box(fg,x,y+.5,z,.065,.96,.065,P.red);G.sphere(fg,x,y+1.04,z,.075,P.gold);if(i<16){const zc=z+.25,yc=H-rampY*(zc+10);obstacle(x,base+yc+.49,zc,.12,.99,.5);}}}
    }
    // Guard only the long open edges; endpoints remain fully walkable.
@@ -616,5 +616,5 @@ export function buildJapan(){
  const street=new THREE.Group();street.name='Arrival garden static';for(const child of [...group.children])if(child!==roofGroup&&child!==district&&!floorGroups.includes(child)&&!ceilingGroups.includes(child))street.add(child);group.add(street);pack(street);
  group.userData={architecture:'original-four-storey-copper-steam-lantern-bathhouse',revision:'R7',referenceInspired:true,referenceAssetsReused:false,spatialBatchSize:12,roomVignetteCount:roomProgram.length,lotSize:[60,80],districtZones:5,defaultRoofVisible:true,interior:true,cameraMode:'close-third-person',ambientIntensity:.5,sunIntensity:1.5,floorCount:4,stairSlope:3.8/8,stairWidth:3.4,stairHeadroom:3.43,roomProgram,facilities,sakuraDetails,antiFlicker:{terrainFoundationCutouts:true,duplicateCeilingSlabsRemoved:true,dynamicBranchesExcludedFromPacking:true},references:['https://www.sglynp.com/t170153','https://www.ghibli.jp/gallery/chihiro039.jpg','https://inari.jp/en/faq/','https://inari.jp/en/saijin/']};
  const characterFloorSurfaces=floorGroups.flatMap(fg=>(fg.userData.characterMatSurfaces||[]).map(s=>({...s,baseY:fg.position.y,minX:s.minX+fg.position.x,maxX:s.maxX+fg.position.x,minZ:s.minZ+fg.position.z,maxZ:s.maxZ+fg.position.z})));
- return {group,colliders,characterFloorSurfaces,spawn:[0,0,37.5],stations,roofGroup,walkableSurfaces,cameraColliders,levels,ceilingGroups,floorGroups,explorationTargets,doorways,facilities,roomProgram,bounds:LOT_BOUNDS,update(dt,time){for(const update of updates)update(dt,time);}};
+ return {group,colliders,characterFloorSurfaces,characterFootSurfaces,spawn:[0,0,37.5],stations,roofGroup,walkableSurfaces,cameraColliders,levels,ceilingGroups,floorGroups,explorationTargets,doorways,facilities,roomProgram,bounds:LOT_BOUNDS,update(dt,time){for(const update of updates)update(dt,time);}};
 }

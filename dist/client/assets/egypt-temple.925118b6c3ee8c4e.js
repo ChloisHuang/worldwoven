@@ -1,3 +1,4 @@
+import {registerNightFixture} from '/assets/night-lighting.45125c813da91138.js';
 import * as THREE from 'three';
 import {material as celMaterial} from '/assets/geometry.accd26d9fe1820ba.js';
 
@@ -8,6 +9,17 @@ const materials=new Map();
 function mat(c,emissive=false){const k=c+':'+emissive;if(!materials.has(k))materials.set(k,celMaterial(c,{emissive:emissive?c:0,emissiveIntensity:emissive?.8:0}));return materials.get(k);}
 function mesh(g,geo,c,x=0,y=0,z=0){const m=new THREE.Mesh(geo,mat(c));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;g.add(m);return m;}
 function box(g,x,y,z,w,h,d,c,ry=0){const m=mesh(g,new THREE.BoxGeometry(w,h,d),c,x,y,z);m.rotation.y=ry;return m;}
+// R10 hand-cut stone: planar chamfers create an intentional light-catching edge,
+// without intersecting a second decorative box or softening the walking plane.
+function ashlar(g,x,y,z,w,h,d,c,r=.035){
+  r=Math.min(r,w*.16,h*.16,d*.16);const a=[w/2,h/2,d/2],b=a.map(v=>v-r),vertices=[];
+  const face=pts=>{const u=new THREE.Vector3(...pts[1]).sub(new THREE.Vector3(...pts[0])),v=new THREE.Vector3(...pts[2]).sub(new THREE.Vector3(...pts[0])),center=new THREE.Vector3();for(const p of pts)center.add(new THREE.Vector3(...p));if(u.cross(v).dot(center)<0)pts.reverse();for(let i=1;i<pts.length-1;i++)vertices.push(...pts[0],...pts[i],...pts[i+1]);};
+  for(let axis=0;axis<3;axis++)for(const sign of[-1,1]){const other=[0,1,2].filter(q=>q!==axis);face([[-1,-1],[1,-1],[1,1],[-1,1]].map(pair=>{const p=[0,0,0];p[axis]=sign*a[axis];for(let j=0;j<2;j++)p[other[j]]=pair[j]*b[other[j]];return p;}));}
+  for(let axis=0;axis<3;axis++){const other=[0,1,2].filter(q=>q!==axis);for(const s0 of[-1,1])for(const s1 of[-1,1])face([[-1,0],[1,0],[1,1],[-1,1]].map(([end,edge])=>{const p=[0,0,0];p[axis]=end*b[axis];p[other[0]]=s0*(edge?b[other[0]]:a[other[0]]);p[other[1]]=s1*(edge?a[other[1]]:b[other[1]]);return p;}));}
+  for(const sx of[-1,1])for(const sy of[-1,1])for(const sz of[-1,1]){const signs=[sx,sy,sz];face([0,1,2].map(axis=>a.map((v,j)=>signs[j]*(j===axis?v:b[j]))));}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.computeVertexNormals();return mesh(g,geo,c,x,y,z);
+}
+function stoneCourse(g,x,y,z,w,h,d,c=C.stone){return ashlar(g,x,y,z,w,h,d,c,Math.min(.045,h*.14));}
 function cyl(g,x,y,z,rt,rb,h,c,n=12){return mesh(g,new THREE.CylinderGeometry(rt,rb,h,n),c,x,y,z);}
 function ball(g,x,y,z,r,c,sx=1,sy=1,sz=1){const m=mesh(g,new THREE.SphereGeometry(r,12,8),c,x,y,z);m.scale.set(sx,sy,sz);return m;}
 function torus(g,x,y,z,r,t,c,rx=0){const m=mesh(g,new THREE.TorusGeometry(r,t,6,24),c,x,y,z);m.rotation.x=rx;return m;}
@@ -15,7 +27,7 @@ function rod(g,a,b,r,c){const d=new THREE.Vector3(...b).sub(new THREE.Vector3(..
 function slab(g,pts,c){const p=[],idx=[0,1,2,0,2,3];for(const i of idx)p.push(...pts[i]);const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(p,3));geo.computeVertexNormals();const m=mesh(g,geo,c);m.material=mat(c);return m;}
 function triangle(g,a,b,c,color){const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute([...a,...b,...c],3));geo.computeVertexNormals();return mesh(g,geo,color);}
 function volume(arr,x,y,z,w,h,d){arr.push({minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2});}
-function solid(g,cs,cam,x,y,z,w,h,d,c){box(g,x,y,z,w,h,d,c);volume(cs,x,y,z,w,h,d);volume(cam,x,y,z,w,h,d);}
+function solid(g,cs,cam,x,y,z,w,h,d,c){ashlar(g,x,y,z,w,h,d,c);volume(cs,x,y,z,w,h,d);volume(cam,x,y,z,w,h,d);}
 function urn(g,x,y,z,s=1,color=C.shadow){cyl(g,x,y+.34*s,z,.26*s,.35*s,.68*s,color);cyl(g,x,y+.76*s,z,.19*s,.25*s,.2*s,color);torus(g,x,y+.86*s,z,.19*s,.035*s,C.edge,Math.PI/2);}
 function glyph(g,x,y,z,n,s=.25,color=C.ink){
   const line=(a,b)=>rod(g,[x+a[0]*s,y+a[1]*s,z],[x+b[0]*s,y+b[1]*s,z],s*.065,color);
@@ -30,7 +42,7 @@ function glyph(g,x,y,z,n,s=.25,color=C.ink){
     default:line([-.5,.45],[.5,.45]);line([0,.45],[0,-.55]);line([-.5,-.55],[.5,-.55]);line([-.28,-.3],[.28,-.3]);
   }
 }
-function glyphPanel(parent,x,y,z,w,h,rot=0,seed=0){const g=new THREE.Group();g.position.set(x,y,z);g.rotation.y=rot;parent.add(g);box(g,0,0,0,w,h,.07,C.edge);for(const yy of [-h/2+.1,h/2-.1])box(g,0,yy,.045,w-.1,.055,.025,C.red);for(const xx of [-w/2+.1,w/2-.1])box(g,xx,0,.063,.055,h-.1,.025,C.blue);const nx=Math.max(1,Math.floor(w/.6)),ny=Math.max(1,Math.floor(h/.62));for(let i=0;i<nx;i++)for(let j=0;j<ny;j++)glyph(g,(i-(nx-1)/2)*.54,(j-(ny-1)/2)*.57,.068,seed+i*3+j,.25);return g;}
+function glyphPanel(parent,x,y,z,w,h,rot=0,seed=0){const g=new THREE.Group();g.position.set(x,y,z);g.rotation.y=rot;parent.add(g);ashlar(g,0,0,0,w,h,.07,C.edge,.012);for(const yy of [-h/2+.1,h/2-.1])box(g,0,yy,.045,w-.1,.055,.025,C.red);for(const xx of [-w/2+.1,w/2-.1])box(g,xx,0,.063,.055,h-.1,.025,C.blue);const nx=Math.max(1,Math.floor(w/.6)),ny=Math.max(1,Math.floor(h/.62));for(let i=0;i<nx;i++)for(let j=0;j<ny;j++)glyph(g,(i-(nx-1)/2)*.54,(j-(ny-1)/2)*.57,.068,seed+i*3+j,.25);return g;}
 function mural(parent,x,y,z,w,h,rot=0,seed=0){
   const g=new THREE.Group();g.position.set(x,y,z);g.rotation.y=rot;parent.add(g);box(g,0,0,0,w,h,.045,0xb89359);
   for(const yy of [-h/2+.12,h/2-.12]){box(g,0,yy,.03,w-.1,.10,.015,C.blue);box(g,0,yy+.09,.031,w-.1,.05,.016,C.red);}
@@ -47,16 +59,25 @@ function mural(parent,x,y,z,w,h,rot=0,seed=0){
   for(let i=0;i<Math.floor(w/.42);i++)glyph(g,-w/2+.24+i*.42,-h/2+.42,.07,seed+i,.17,C.ink);
   return g;
 }
-function torch(g,x,y,z,cam,rot=0,emitLight=true){const q=new THREE.Group();q.position.set(x,y,z);q.rotation.y=rot;g.add(q);box(q,0,0,0,.17,.54,.24,C.black);rod(q,[0,-.14,0],[0,.2,.33],.055,C.gold);cyl(q,0,.24,.35,.23,.09,.22,C.gold);const flame=ball(q,0,.48,.35,.16,0xffbd56,.62,1.9,.62);flame.material=mat(0xffba50,true);const inner=ball(q,0,.44,.40,.1,0xffe5a0,.7,1.3,.7);inner.material=mat(0xffdf96,true);if(emitLight){const light=new THREE.PointLight(0xffb660,7,8,2);light.position.set(0,.48,.55);q.add(light);}}
-function column(g,cs,cam,x,z,h=5){solid(g,cs,cam,x,.16,z,1.3,.32,1.3,C.edge);cyl(g,x,h/2,z,.48,.62,h-.2,C.stone,16);volume(cs,x,h/2,z,1.2,h,1.2);volume(cam,x,h/2,z,1.2,h,1.2);for(const y of [.45,h-.73,h-.42])cyl(g,x,y,z,.59,.59,.13,y===.45?C.blue:C.gold,16);cyl(g,x,h-.27,z,.9,.52,.6,C.stone,8);box(g,x,h+.04,z,1.75,.26,1.75,C.edge);for(let i=0;i<12;i++){const a=i*Math.PI/6;rod(g,[x+Math.sin(a)*.52,1,z+Math.cos(a)*.52],[x+Math.sin(a)*.45,h-.67,z+Math.cos(a)*.45],.018,0xb58c54);}for(const y of [1.3,1.95,2.6])glyph(g,x,y,z+.59,Math.floor(y*3+x),.25,C.red);}
+function torch(g,x,y,z,cam,rot=0,emitLight=true){const q=new THREE.Group();q.position.set(x,y,z);q.rotation.y=rot;g.add(q);box(q,0,0,0,.17,.54,.24,C.black);rod(q,[0,-.14,0],[0,.2,.33],.055,C.gold);cyl(q,0,.24,.35,.23,.09,.22,C.gold);const flame=ball(q,0,.48,.35,.16,0xffbd56,.62,1.9,.62);flame.material=mat(0xffba50,true);const inner=ball(q,0,.44,.40,.1,0xffe5a0,.7,1.3,.7);inner.material=mat(0xffdf96,true);if(emitLight){const light=new THREE.PointLight(0xffb660,14,8,1.7);light.position.set(0,.48,.55);q.add(light);}else registerNightFixture(q,0,.48,.55,{kind:'torch',color:0xffb660,intensity:14,distance:8,dayFactor:.62});}
+function column(g,cs,cam,x,z,h=5){solid(g,cs,cam,x,.16,z,1.3,.32,1.3,C.edge);cyl(g,x,h/2,z,.48,.62,h-.2,C.stone,16);volume(cs,x,h/2,z,1.2,h,1.2);volume(cam,x,h/2,z,1.2,h,1.2);for(const y of [.45,h-.73,h-.42])cyl(g,x,y,z,.59,.59,.13,y===.45?C.blue:C.gold,16);cyl(g,x,h-.27,z,.9,.52,.6,C.stone,8);stoneCourse(g,x,h+.04,z,1.75,.26,1.75,C.edge);for(let i=0;i<12;i++){const a=i*Math.PI/6;rod(g,[x+Math.sin(a)*.52,1,z+Math.cos(a)*.52],[x+Math.sin(a)*.45,h-.67,z+Math.cos(a)*.45],.018,0xb58c54);}for(const y of [1.3,1.95,2.6])glyph(g,x,y,z+.59,Math.floor(y*3+x),.25,C.red);}
+// Ring-lofted carved volumes preserve one connected silhouette at neck,
+// shoulders and shins, rather than stacked primitive cones and rectangular legs.
+function carvedVolume(g,rings,color,{axis='y',segments=16}={}){
+  const vertices=[],v=(ring,i)=>{const a=i*Math.PI*2/segments,[t,rx,rz,offset=0]=ring;return axis==='y'?[Math.cos(a)*rx,t,Math.sin(a)*rz+offset]:[Math.cos(a)*rx,Math.sin(a)*rz+offset,t];};
+  const tri=(a,b,c)=>vertices.push(...a,...b,...c);
+  for(let j=0;j<rings.length-1;j++)for(let i=0;i<segments;i++){const a=v(rings[j],i),b=v(rings[j],i+1),c=v(rings[j+1],i+1),d=v(rings[j+1],i);if(axis==='y'){tri(a,c,b);tri(a,d,c);}else{tri(a,b,c);tri(a,c,d);}}
+  for(const [j,reverse]of[[0,true],[rings.length-1,false]])for(let i=0;i<segments;i++){const r=rings[j],center=axis==='y'?[0,r[0],r[3]||0]:[0,r[3]||0,r[0]],a=v(r,i),b=v(r,i+1);if(reverse===(axis==='z'))tri(center,b,a);else tri(center,a,b);}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.computeVertexNormals();return mesh(g,geo,color);
+}
 function jackalStatue(g,x,y,z,s=1){
-  const q=new THREE.Group();q.position.set(x,y,z);q.scale.setScalar(s);g.add(q);box(q,0,.13,0,1.55,.26,1.3,C.shadow);box(q,0,.30,0,1.3,.14,1.08,C.gold);
-  for(const side of [-1,1]){box(q,side*.25,1.02,0,.32,1.32,.37,C.black);box(q,side*.25,.45,.16,.35,.2,.66,C.black);}
+  const q=new THREE.Group();q.position.set(x,y,z);q.scale.setScalar(s);g.add(q);stoneCourse(q,0,.13,0,1.55,.26,1.3,C.shadow);stoneCourse(q,0,.30,0,1.3,.14,1.08,C.gold);
+  for(const side of [-1,1]){const leg=carvedVolume(q,[[.48,.14,.17],[.67,.135,.16],[1.02,.17,.19],[1.48,.18,.21],[1.69,.20,.22]],C.black);leg.position.x=side*.25;ashlar(q,side*.25,.45,.16,.35,.2,.66,C.black,.055);}
   cyl(q,0,1.78,0,.4,.65,.76,C.gold,8);for(let i=0;i<8;i++)box(q,-.47+i*.135,1.76,.44,.045,.65,.04,C.blue);
-  cyl(q,0,2.48,0,.65,.39,.87,C.black,8);ball(q,0,2.92,0,.5,C.black,1.26,.55,.65);torus(q,0,2.85,.05,.43,.095,C.gold,Math.PI/2);
+  carvedVolume(q,[[2.01,.37,.25],[2.18,.43,.27],[2.53,.59,.31],[2.77,.61,.29],[2.93,.46,.24],[3.06,.24,.21]],C.black); torus(q,0,2.85,.05,.43,.095,C.gold,Math.PI/2);
   for(const side of [-1,1]){rod(q,[side*.59,2.77,0],[side*.77,1.99,.08],.17,C.black);ball(q,side*.77,1.92,.10,.17,C.black,1,1.1,1);}
-  cyl(q,0,3.13,0,.22,.25,.4,C.black);ball(q,0,3.53,.02,.44,C.black,.9,1.08,.75);ball(q,0,3.38,.48,.3,C.black,.64,.58,1.7);ball(q,0,3.38,.90,.13,C.black,.9,.7,.55);
-  for(const side of [-1,1]){const ear=mesh(q,new THREE.ConeGeometry(.18,.84,3),C.black,side*.26,4.14,-.05);ear.rotation.z=-side*.09;ear.scale.z=.7;ball(q,side*.22,3.6,.33,.068,C.gold,1.5,.6,.35);}
+  cyl(q,0,3.13,0,.22,.25,.4,C.black);ball(q,0,3.53,.02,.44,C.black,.9,1.08,.75);carvedVolume(q,[[.21,.27,.22,3.40],[.43,.235,.185,3.39],[.72,.14,.125,3.36],[.91,.105,.075,3.37]],C.black,{axis:'z'});ashlar(q,0,3.38,.94,.19,.13,.12,C.black,.035); 
+  for(const side of [-1,1]){const ear=carvedVolume(q,[[0,.145,.08],[.25,.135,.065],[.65,.06,.035],[.84,.009,.009]],C.black,{segments:8});ear.position.set(side*.26,3.72,-.05);ear.rotation.z=-side*.09;ball(q,side*.22,3.6,.33,.068,C.gold,1.5,.6,.35);}
   box(q,0,3.05,.23,.55,.10,.32,C.gold);rod(q,[.83,.42,.17],[.83,3.22,.17],.04,C.gold);torus(q,.83,3.36,.17,.18,.04,C.gold);
   return q;
 }
@@ -91,7 +112,10 @@ export function buildEgypt(){
       if(x1<=x0||z1<=z0)return[[l,r,n,s]];
       return [[l,x0,n,s],[x1,r,n,s],[x0,x1,n,z0],[x0,x1,z1,s]].filter(([l,r,n,s])=>r-l>1e-5&&s-n>1e-5);
     });
-    for(const [l,r,n,s]of pieces)box(g,(l+r)/2,y-.18,(n+s)/2,r-l,.36,s-n,c);
+    for(const [l,r,n,s]of pieces){
+      if(y===4){const nx=Math.ceil((r-l)/1.6),nz=Math.ceil((s-n)/1.6),w=(r-l)/nx,d=(s-n)/nz;for(let i=0;i<nx;i++)for(let j=0;j<nz;j++)ashlar(g,l+(i+.5)*w,y-.18,n+(j+.5)*d,w,.36,d,c,.012);}
+      else box(g,(l+r)/2,y-.18,(n+s)/2,r-l,.36,s-n,c);
+    }
     volume(cameraColliders,x,y-.18,z,w,.36,d);
   };
   floor(desert,0,0,16.5,60,47,C.sand);surface(-30,30,-7,40,0);
@@ -118,13 +142,17 @@ export function buildEgypt(){
   for(const x of [-6.55,6.55])for(const z of [3.25,-.05,-3.75])column(temple,colliders,cameraColliders,x,z,4.92);
   for(const x of [-3.7,3.7])for(const z of [-1.35,-4.45])column(temple,colliders,cameraColliders,x,z,4.92);
   // Stone floor joins are painted at a millimetre scale, not raised obstacles.
-  for(let x=-8.6;x<9;x+=1.7)for(let z=-6.4;z<4.8;z+=1.6)box(temple,x,.008,z,1.63,.016,1.53,(Math.round(x*10+z*10)%3)?0xc7a16a:0xb88e57);
+  for(let x=-8.6;x<9;x+=1.7)for(let z=-6.4;z<4.8;z+=1.6){const lo=Math.max(-7,z-.765),hi=z+.765;box(temple,x,.008,(lo+hi)/2,1.63,.016,hi-lo,(Math.round(x*10+z*10)%3)?0xc7a16a:0xb88e57);}
   box(roofGroup,0,5.24,-3.3,18.96,.48,7.49,C.shadow);volume(cameraColliders,0,5.24,-3.3,18.9,.48,7.45);
   for(const x of [-7,7]){box(roofGroup,x,5.24,2.70,4.4,.48,4.8,C.shadow);volume(cameraColliders,x,5.24,2.70,4.4,.48,4.8);}
   for(const z of [-5.55,-2.25,.05]){box(roofGroup,0,4.94,z,18.5,.30,.42,C.edge);for(let i=0;i<30;i++)box(roofGroup,-8.55+i*.59,4.77,z,.26,.025,.29,i%2?C.blue:C.red);}
   // A blue astronomical ceiling reads from a close third-person camera.
   box(roofGroup,0,4.989,-3.1,6.1,.025,6.9,C.ink);for(let i=0;i<54;i++){const x=-2.65+(i%9)*.65,z=-5.9+Math.floor(i/9)*1.04;box(roofGroup,x,4.966,z,.15,.02,.037,C.gold);box(roofGroup,x,4.965,z,.037,.02,.15,C.gold);}
   glyphPanel(temple,-5.8,2.43,-6.60,5.05,3.8,0,2);glyphPanel(temple,5.8,3.5,-6.60,4.65,1.4,0,4);
+  // Cut stone portal joints sit on the existing pylon, never across its opening.
+  // Four broad alternating bonds read at human distance rather than as noise.
+  for(const side of[-1,1])for(let j=0;j<7;j++)stoneCourse(temple,side*2.01,.25+j*.48,5.84,.36,.45,.09,j%3?C.edge:C.stone);
+  stoneCourse(temple,0,3.66,5.84,3.96,.36,.11,C.edge);
   // The original jackal guardian has a human body, long muzzle and tall ears.
   jackalStatue(temple,6.1,0,-4.9,.92);volume(colliders,6.1,2.1,-4.9,1.9,4.2,1.9);volume(cameraColliders,6.1,2.1,-4.9,1.9,4.2,1.9);
   balance(temple,1.2,0,-3.05);volume(colliders,1.2,.9,-3.05,2.5,1.8,1.15);volume(cameraColliders,1.2,.9,-3.05,2.5,1.8,1.15);
@@ -201,12 +229,31 @@ export function buildEgypt(){
   // Keep the descending corridor's shoulders closed at ground level while its
   // original central portal, ramps and below-ground rooms remain untouched.
   for(const side of [-1,1])volume(colliders,side*5.8,1.6,-7.02,8,3.2,.1);
-  // Six-metre ramp descends three metres. Geometric treads only add a shallow
-  // visual rhythm; continuous surface and collision use the identical slope.
-  walkableSurfaces.push({minX:-1.6,maxX:1.6,minZ:-13,maxZ:-7,y:-3,axis:'z',endY:0});
-  slab(passage,[[-1.6,0,-7],[1.6,0,-7],[1.6,-3,-13],[-1.6,-3,-13]],C.shadow);
-  slab(passage,[[-1.6,-.25,-7],[-1.6,-3.25,-13],[1.6,-3.25,-13],[1.6,-.25,-7]],C.deep);
-  for(let i=0;i<24;i++){const z=-7-i*.25,y=(z+7)*.5;box(passage,0,y-.016,z,3.18,.032,.045,C.edge);}
+  // The actual step faces and support regions are generated together. End treads
+  // are half-depth, so both adjoining landings keep precisely their old height.
+  // Every flight has sealed stone sides and a continuous 30 cm thick underside.
+  const stoneFlight=(g,{id,minX,maxX,z0,z1,y0,y1,risers})=>{
+    const run=(z1-z0)/risers,rise=(y1-y0)/risers;
+    const sections=[];for(let i=0;i<=risers;i++){
+      const a=z0+Math.max(0,i-.5)*run,b=z0+Math.min(risers,i+.5)*run,y=y0+i*rise;
+      const lo=Math.min(a,b),hi=Math.max(a,b);sections.push({lo,hi,y});surface(minX,maxX,lo,hi,y);
+      // Continuous tread spans the full clear width; shallow painted joints have
+      // no raised lip and each riser has its own genuine vertical face.
+      const joints=[minX,minX+(maxX-minX)/3-.008,minX+(maxX-minX)/3+.008,maxX-(maxX-minX)/3-.008,maxX-(maxX-minX)/3+.008,maxX];
+      for(let j=0;j<joints.length-1;j++)slab(g,[[joints[j],y,hi],[joints[j+1],y,hi],[joints[j+1],y,lo],[joints[j],y,lo]],j%2?C.shadow:i%4===0?C.edge:C.stone);
+      if(i<risers){const zy=b,ny=y0+(i+1)*rise;const points=[[minX,y,zy],[maxX,y,zy],[maxX,ny,zy],[minX,ny,zy]];if(run>0)points.reverse();slab(g,points,C.shadow);}
+      const mid=(lo+hi)/2;volume(cameraColliders,(minX+maxX)/2,y-.15,mid,maxX-minX,.30,hi-lo);
+    }
+    // Use an extruded saw-tooth cross-section only for closed sides and bottom;
+    // front/back sheets terminate exactly at the adjacent floor, without cracks.
+    const lower=z=>y0+(y1-y0)*(z-z0)/(z1-z0)-.30;
+    for(const side of[-1,1])for(const q of sections){const x=side<0?minX:maxX,points=[[x,lower(q.lo),q.lo],[x,lower(q.hi),q.hi],[x,q.y,q.hi],[x,q.y,q.lo]];if(side>0)points.reverse();slab(g,points,C.shadow);}
+    const bottom=[[minX,lower(z0),z0],[maxX,lower(z0),z0],[maxX,lower(z1),z1],[minX,lower(z1),z1]];if(run<0)bottom.reverse();slab(g,bottom,C.deep);
+    for(const [z,y,reverse]of[[z0,y0,run>0],[z1,y1,run<0]]){const p=[[minX,y-.3,z],[maxX,y-.3,z],[maxX,y,z],[minX,y,z]];if(reverse)p.reverse();slab(g,p,C.shadow);}
+    return {id,minX,maxX,z0,z1,y0,y1,risers,rise:Math.abs(rise),tread:Math.abs(run),sections};
+  };
+  const flights=[];
+  flights.push(stoneFlight(passage,{id:'burial-stair',minX:-1.6,maxX:1.6,z0:-7,z1:-13,y0:0,y1:-3,risers:24}));
   for(const side of [-1,1]){
     const x=side*1.78;slab(passage,[[x,-3.05,-13],[x,0,-7],[x,3.5,-7],[x,.45,-13]],C.shadow);
     // Reverse face ensures the enclosed wall is visible from its interior.
@@ -215,7 +262,14 @@ export function buildEgypt(){
   }
   slab(roofGroup,[[-1.98,3.48,-7],[-1.98,.48,-13],[1.98,.48,-13],[1.98,3.48,-7]],C.deep);
   slab(roofGroup,[[1.98,3.68,-7],[1.98,.68,-13],[-1.98,.68,-13],[-1.98,3.68,-7]],C.shadow);
-  for(let i=0;i<12;i++){const z=-12.75+i*.5,y=(z+7)*.5;volume(cameraColliders,0,y+3.55,z,4,.3,.5);volume(cameraColliders,0,y-.17,z,3.2,.3,.5);}
+  for(let i=0;i<12;i++){const z=-12.75+i*.5,y=(z+7)*.5;volume(cameraColliders,0,y+3.55,z,4,.3,.5);}
+  for(const side of[-1,1])for(let i=0;i<24;i++){
+    const z=-7.125-i*.25,y=(z+7)*.5;
+    stoneCourse(passage,side*1.69,y+.13,z,.18,.42,.25,C.deep);
+  }
+  // Two centimetres of uncovered jamb were visible as sky beside the old
+  // paper wall. Bond the 3.2 m corridor directly into both existing door frames.
+  for(const side of[-1,1]){solid(passage,colliders,cameraColliders,side*1.78,1.65,-6.90,.36,3.3,.20,C.shadow);solid(passage,colliders,cameraColliders,side*1.78,-1.42,-13.0,.36,3.16,.30,C.deep);}
   for(const [z,rot]of[[-8.7,Math.PI/2],[-11.2,-Math.PI/2]])torch(passage,rot>0?-1.55:1.55,(z+7)*.5+2.1,z,cameraColliders,rot);
   // The inner chamber is entirely below the pyramid, with continuous ceiling,
   // four walls, a full entrance portal and actual room to circle the coffin.
@@ -283,17 +337,26 @@ export function buildEgypt(){
   roomWall(privateRoom,17.9,.52,7.0,2.5,1.04,1.2,C.shadow);box(privateRoom,17.9,1.1,7,2.7,.15,1.4,C.edge);urn(privateRoom,18.5,1.2,7,.65,C.blue);box(privateRoom,17.4,1.2,7,1,.035,.7,C.linen);
   for(const [x,z]of [[14.4,8.2],[21.2,8.2]]){box(privateRoom,x,.34,z,1.6,.65,1.1,C.shadow);box(privateRoom,x,.7,z,1.64,.16,1.14,C.red);volume(colliders,x,.4,z,1.7,.8,1.2);volume(cameraColliders,x,.4,z,1.7,.8,1.2);}
   for(const x of [13.4,22.4])torch(privateRoom,x,2.65,11.2,cameraColliders,Math.PI,x<18);
-  // West rising ramp and landing: 3.6 m usable width, +4 m over 16.5 m run.
-  walkableSurfaces.push({minX:-14.8,maxX:-11.2,minZ:-10.5,maxZ:6,y:4,axis:'z',endY:0});
-  slab(ascending,[[-14.8,0,6],[-11.2,0,6],[-11.2,4,-10.5],[-14.8,4,-10.5]],C.stone);
-  for(const x of [-14.98,-11.02]){
-    slab(ascending,[[x,0,6],[x,4,-10.5],[x,5.05,-10.5],[x,1.05,6]],C.shadow);slab(ascending,[[x,1.05,6],[x,5.05,-10.5],[x,4,-10.5],[x,0,6]],C.shadow);
-    for(let i=0;i<33;i++){const z=5.75-i*.5,y=(6-z)*4/16.5;volume(colliders,x,y+.52,z,.36,1.05,.5);volume(cameraColliders,x,y+.52,z,.36,1.05,.5);}
-    rod(ascending,[x,1.09,6],[x,5.09,-10.5],.075,C.gold);
+  // Broad upper stone stair with 32 shallow, consistent 12.5 cm risers.
+  // Closed cheek walls have actual thickness, coursed capstones and no floor gap.
+  flights.push(stoneFlight(ascending,{id:'throne-stair',minX:-14.8,maxX:-11.2,z0:6,z1:-10.5,y0:0,y1:4,risers:32}));
+  for(const x of[-14.98,-11.02])for(let i=0;i<32;i++){
+    const z=6-(i+.5)*16.5/32,y=(i+.5)*4/32;
+    // Bottom is supported by the ground rather than a paper-thin floating rail.
+    stoneCourse(ascending,x,(y+1.05)/2,z,.36,y+1.05,16.5/32,C.shadow);
+    stoneCourse(ascending,x,y+1.075,z,.40,.10,16.5/32,C.edge);
+    volume(colliders,x,y+.52,z,.36,1.05,16.5/32);volume(cameraColliders,x,y/2+.525,z,.40,y+1.05,16.5/32);
   }
-  for(let i=0;i<33;i++){const z=5.75-i*.5,y=(6-z)*4/16.5;box(ascending,-13,y-.012,z,3.5,.024,.04,C.edge);volume(cameraColliders,-13,y-.18,z,3.6,.34,.5);}
   floor(ascending,-6.4,4,-12.2,16.8,3.4,C.stone);surface(-14.8,2,-13.9,-10.5,4);
-  for(const [x,z,w]of[[-4.6,-10.47,13.2],[-8.3,-13.93,13]]){roomWall(ascending,x,4.54,z,w,1.08,.16,C.shadow);box(ascending,x,5.13,z,w,.10,.22,C.gold);}
+  for(const [x,z,w]of[[-4.6,-10.47,13.2],[-8.3,-13.93,13]]){roomWall(ascending,x,4.54,z,w,1.08,.16,C.shadow);stoneCourse(ascending,x,5.13,z,w,.10,.22,C.edge);}
+  // Complete the formerly open 3.4 m west platform edge, and cap the blind
+  // east end. The 3.6 m stair mouth and 3.6 m throne doorway remain unobstructed.
+  for(const [x,z,d]of[[-14.98,-12.2,3.4],[2.18,-11.875,2.75]]){
+    roomWall(ascending,x,4.54,z,.36,1.08,d,C.shadow);stoneCourse(ascending,x,5.13,z,.40,.10,d,C.edge);
+  }
+  // End-bonded upper platform fascia stops at floor height; no decorative
+  // extrusion projects into the walkable turn or the lower stair opening.
+  for(const [x,z,w]of[[-6.4,-10.51,16.8],[-8.3,-13.89,13]])stoneCourse(ascending,x,3.74,z,w,.36,.16,C.edge);
   // Front landing rail leaves the full ascending opening; rear rail leaves the
   // throne doorway at x=0. Neither obstructs the human-height circulation path.
   // Throne hall on a separately supported upper floor, above the lower tomb.
@@ -341,6 +404,11 @@ export function buildEgypt(){
   for(let i=0;i<5;i++)urn(service,12.7+i*.7,1.45,-19.25,.65,i%2?C.deep:C.gold);
   for(const x of [12.8,15.6])for(const z of [-18.3,-17.25]){urn(service,x,0,z,.7,C.shadow);volume(colliders,x,.6,z,.7,1.2,.7);volume(cameraColliders,x,.6,z,.7,1.2,.7);}
   for(const [x,z,r]of[[12,-7.3,Math.PI/2],[23.8,-13.3,-Math.PI/2]])torch(service,x,2.75,z,cameraColliders,r,x<18);
+  // Supported preparation boards follow the adults' measured knife paths.
+  box(service,22.10,1.3475,-15.31,.22,.015,.30,C.linen);
+  box(service,19.15,1.305,-8.70,.60,.05,.45,C.linen);
+  box(service,16.80,1.295,-8.65,.50,.03,.42,C.linen);
+  for(const [x,y,z]of [[19.3,1.365,-8.79],[19.15,1.365,-8.82],[16.96,1.345,-8.72]])ball(service,x,y,z,.055,C.lightSand,1,.25,1.3);
   // Private bath with visible water, stepped basin rim and a changing niche.
   for(const [z,d]of[[-3.5,1.8],[1.6,2]])roomWall(privateRoom,16.4,2.35,z,.22,4.7,d,C.stone);
   roomWall(privateRoom,16.4,4.05,-1,.22,1.3,3.2,C.stone);
@@ -370,8 +438,8 @@ export function buildEgypt(){
   );
   stations.push(
     {id:'egypt-royal-reception',name:'王室接待处',action:'领取探索卷轴',position:[-3.6,0,10.0],npcName:'阿赫',npcAction:'calligraphy',npcLabel:'登记来访卷轴',npcPosition:[-3.6,0,7.1],workTarget:[-3.6,1.26,8.35],route:[[-3.6,0,7.1],[-5.9,0,7.1]],dialogue:'欢迎来到金字塔里的王室宅邸。正前方是旧柱厅，西边是审判厅和上升王殿的长坡道，东边是起居、用餐与服务房间。'},
-    {id:'egypt-royal-dining',name:'王室餐厅',action:'摆放面包与彩釉餐盘',position:[17.9,0,-7.45],npcName:'达娜',npcAction:'cook',npcLabel:'准备面包与水果',npcPosition:[20.5,0,-7.7],workTarget:[17.9,1.4,-9.3],route:[[20.5,0,-7.7],[22,0,-10.6]],dialogue:'厨房在餐厅后面，储物室收着陶罐和谷物。把餐盘摆好，再看看这一整套王室生活设施怎样连接。'},
-    {id:'egypt-royal-kitchen',name:'王室厨房',action:'准备陶锅与矿物色餐具',position:[20.5,0,-15.0],npcName:'赫特',npcAction:'cook',npcLabel:'照看陶锅并整理食材',npcPosition:[20.6,0,-17.3],workTarget:[22.8,1.7,-16],route:[[20.6,0,-17.3],[20.6,0,-14.2]],dialogue:'这条工作台把陶锅、食材和案板排在墙边，中央留下足够的走动空间。隔壁的小储藏室也可以走进去。'},
+    {id:'egypt-royal-dining',name:'王室餐厅',action:'摆放面包与彩釉餐盘',position:[17,0,-8.03],playerWorkTarget:[17,1.31,-8.57],npcName:'达娜',npcAction:'cook',npcLabel:'准备面包与水果',npcPosition:[19.2,0,-8.08],workTarget:[19.2,1.33,-8.57],route:[[20.5,0,-7.7],[22,0,-10.6]],dialogue:'厨房在餐厅后面，储物室收着陶罐和谷物。把餐盘摆好，再看看这一整套王室生活设施怎样连接。'},
+    {id:'egypt-royal-kitchen',name:'王室厨房',action:'准备陶锅与矿物色餐具',position:[21.60,0,-15.1],playerWorkTarget:[22.08,1.355,-15.1],npcName:'赫特',npcAction:'cook',npcLabel:'照看陶锅并整理食材',npcPosition:[21.62,0,-17.1],workTarget:[22.10,1.40,-17.1],route:[[20.6,0,-17.3],[20.6,0,-14.2]],dialogue:'这条工作台把陶锅、食材和案板排在墙边，中央留下足够的走动空间。隔壁的小储藏室也可以走进去。'},
     {id:'egypt-private-bath',name:'王室沐浴间',action:'查看蓝色浴池与更衣器物',position:[17.2,0,-1],npcName:'赛提',npcAction:'clean',npcLabel:'整理沐浴用的亚麻织物',npcPosition:[17.2,0,.8],workTarget:[14.05,.65,-1.05],route:[[17.2,0,.8],[17.2,0,-2.8]],dialogue:'寝室旁另有一间带石质浴池的沐浴室。蓝色水面、亚麻织物和陶罐让它与仪式空间有了不同的日常气息。'}
   );
   const explorationTargets=[
@@ -417,7 +485,9 @@ export function buildEgypt(){
     {id:'judgment-hall',name:'阿努比斯与荷鲁斯之眼',position:[-20,0,4.45],activity:'egypt-anubis-judgment'},
     {id:'lower-burial',name:'地下石棺与木乃伊墓室',position:[-2.4,-3,-16.25],activity:'egypt-burial'}
   ];
+  // Gold torch fixtures hug the existing entry jambs, leaving the portal clear.
+  for(const x of [-3.0,3.0])torch(desert,x,2.55,21.45,cameraColliders,0,true);
   for(const q of [desert,temple,passage,burial,pyramid,throne,privateRoom,judgment,ascending,service,roofGroup])batchZone(q);
-  group.userData={...group.userData,interior:true,defaultRoofVisible:true,cameraMode:'close-third-person',theme:'dry-desert-pyramid',pyramidShell:{...shell,frontZ:front,rearZ:rear,solidBands:shellSolids.length,mainEntry:true},ambientIntensity:.38,sunIntensity:2.4,interiorZones:[{name:'神殿柱厅',minX:-9,maxX:9,minZ:-6.8,maxZ:.5,minY:-.1,maxY:5.1},{name:'金字塔墓室',minX:-7,maxX:7,minZ:-19.4,maxZ:-13,minY:-3.1,maxY:.4}],originalProceduralArt:true};
+  group.userData={...group.userData,interior:true,defaultRoofVisible:true,cameraMode:'close-third-person',theme:'dry-desert-pyramid',pyramidShell:{...shell,frontZ:front,rearZ:rear,solidBands:shellSolids.length,mainEntry:true},ambientIntensity:.38,sunIntensity:2.4,interiorZones:[{name:'神殿柱厅',minX:-9,maxX:9,minZ:-6.8,maxZ:.5,minY:-.1,maxY:5.1},{name:'金字塔墓室',minX:-7,maxX:7,minZ:-19.4,maxZ:-13,minY:-3.1,maxY:.4}],originalProceduralArt:true,stoneFlights:flights.map(({sections,...f})=>f),constructionRevision:'R10-sealed-stone-stairs'};
   return {group,colliders,spawn:[0,0,35.5],bounds:{minX:-30,maxX:30,minZ:-40,maxZ:40},stations,roofGroup,walkableSurfaces,cameraColliders,explorationTargets,doorways,facilities,levels:[{id:'desert',name:'沙漠与神殿',y:0},{id:'burial',name:'金字塔地下墓室',y:-3},{id:'throne',name:'上层法老王殿',y:4}]};
 }

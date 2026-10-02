@@ -1,0 +1,30 @@
+{
+  "regions": {
+    "egypt": {
+      "reason": "R10 replaces two ramp sheets with 56 actual 125 mm risers, seals floor/wall edges and adds landing guards/jamb closures. Bounds, stations, exploration targets and doorway contracts remain R9-identical. Independently verified geometry/support and full-width controller tests.",
+      "hashes": {
+        "colliders": "d31dd631ae080f0d1ff4acb380b336a3e8060cf70e9b4252180f482aee456788",
+        "cameraColliders": "31792fb6c8d83f02e1269078cb72a766d41d5400ff90c192baeac73164a61563",
+        "walkableSurfaces": "4121db0781b4de2f5ac5260e4fe1d9203e9540266ec0d101ac2850135a54850b"
+      }
+    },
+    "china": {
+      "reason": "R10 replaces compressed shared core with four 4.8m perimeter walls, nine detached buildings, 11 explicit rooms, a 30x25m main court and 12m formal axis. All 200 room routes and 472 off-center door crossings verified by china-palace-r10; changed surfaces/work anchors are intentional. 60x80 bounds unchanged.",
+      "sourceSha256": "3e3920b9f76f2904dc9b219c33492141cb3e2512302f7c92667293d78307a1a2",
+      "hashes": {
+        "colliders": "da67ac789db1d1897349cca263805c556fde3fa800ce10d6decbd11827e705ba",
+        "cameraColliders": "2ad95ba01fb73c854103fe3bf74c60689497b8b390189f2cc70ca1fb33139878",
+        "walkableSurfaces": "0fec5762ab86605c3f6eeabe327677fc78f00974a6720c7b41e629176da2e610",
+        "doorways": "a02b0ee0ce0c2b1ac39972c0ddb9c96c0ecc9d2e21ac29bc9d5074e9448bd114",
+        "explorationTargets": "18608209b3a4c0a4085d28a80bef5df829437dc1cf649698ec559cf81231c180",
+        "stations": "840150e3c893b8f634cf3c81053a54c5281317b51c8bcdce313aef22e5c5a8f4"
+      }
+    },
+    "france": {
+      "reason": "R10 royal tea vignette: bounded cafe NPC front-edge home, actual cup-rim work target, same-route home correction, truthful afternoon-tea activity and cup-lift label. Player anchor and all other station fields remain unchanged. Static clearance0.41m for0.39m radius; four bidirectional route checks pass.",
+      "hashes": {
+        "stations": "f052b6414448b1ddce6d1d1ebeec79760c392d9de0b6e1091731393b8f7b0d3c"
+      }
+    }
+  }
+}

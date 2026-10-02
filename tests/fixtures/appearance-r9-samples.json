@@ -1,0 +1,421 @@
+{
+  "sourceCommit": "62112d5ac3fda28696aec2207c30421c202ec78c",
+  "samples": [
+    {
+      "region": "japan",
+      "id": "sample-0",
+      "seed": 42,
+      "look": {
+        "skin": 14659981,
+        "hair": 2433833,
+        "eyeColor": 3352867,
+        "clothes": 7827801,
+        "accent": 14667440,
+        "variant": 3
+      }
+    },
+    {
+      "region": "japan",
+      "id": "sample-1",
+      "seed": 42,
+      "look": {
+        "skin": 15713958,
+        "hair": 5453869,
+        "eyeColor": 3352867,
+        "clothes": 9527402,
+        "accent": 14667440,
+        "variant": 2
+      }
+    },
+    {
+      "region": "japan",
+      "id": "sample-2",
+      "seed": 42,
+      "look": {
+        "skin": 14659981,
+        "hair": 5453869,
+        "eyeColor": 4863016,
+        "clothes": 6913125,
+        "accent": 14667440,
+        "variant": 3
+      }
+    },
+    {
+      "region": "japan",
+      "id": "sample-3",
+      "seed": 42,
+      "look": {
+        "skin": 14659981,
+        "hair": 7492674,
+        "eyeColor": 4863016,
+        "clothes": 10974565,
+        "accent": 14667440,
+        "variant": 2
+      }
+    },
+    {
+      "region": "japan",
+      "id": "sample-4",
+      "seed": 42,
+      "look": {
+        "skin": 14659981,
+        "hair": 3550250,
+        "eyeColor": 4863016,
+        "clothes": 5860745,
+        "accent": 14667440,
+        "variant": 3
+      }
+    },
+    {
+      "region": "japan",
+      "id": "sample-5",
+      "seed": 42,
+      "look": {
+        "skin": 14659981,
+        "hair": 5453869,
+        "eyeColor": 3352867,
+        "clothes": 5860745,
+        "accent": 14667440,
+        "variant": 0
+      }
+    },
+    {
+      "region": "japan",
+      "id": "sample-6",
+      "seed": 42,
+      "look": {
+        "skin": 15713958,
+        "hair": 2433833,
+        "eyeColor": 4863016,
+        "clothes": 7827801,
+        "accent": 14667440,
+        "variant": 1
+      }
+    },
+    {
+      "region": "japan",
+      "id": "sample-7",
+      "seed": 42,
+      "look": {
+        "skin": 11038800,
+        "hair": 7492674,
+        "eyeColor": 4863016,
+        "clothes": 9527402,
+        "accent": 14667440,
+        "variant": 0
+      }
+    },
+    {
+      "region": "china",
+      "id": "sample-0",
+      "seed": 42,
+      "look": {
+        "skin": 14659981,
+        "hair": 2499878,
+        "eyeColor": 5388587,
+        "clothes": 9992586,
+        "accent": 13677688,
+        "variant": 2
+      }
+    },
+    {
+      "region": "china",
+      "id": "sample-1",
+      "seed": 42,
+      "look": {
+        "skin": 11038800,
+        "hair": 3681575,
+        "eyeColor": 5388587,
+        "clothes": 8547913,
+        "accent": 13677688,
+        "variant": 2
+      }
+    },
+    {
+      "region": "china",
+      "id": "sample-2",
+      "seed": 42,
+      "look": {
+        "skin": 15713958,
+        "hair": 2499878,
+        "eyeColor": 8548429,
+        "clothes": 5142385,
+        "accent": 13677688,
+        "variant": 2
+      }
+    },
+    {
+      "region": "china",
+      "id": "sample-3",
+      "seed": 42,
+      "look": {
+        "skin": 11038800,
+        "hair": 2499878,
+        "eyeColor": 5388587,
+        "clothes": 8547913,
+        "accent": 13677688,
+        "variant": 0
+      }
+    },
+    {
+      "region": "china",
+      "id": "sample-4",
+      "seed": 42,
+      "look": {
+        "skin": 14659981,
+        "hair": 5783855,
+        "eyeColor": 3483423,
+        "clothes": 9390405,
+        "accent": 13677688,
+        "variant": 3
+      }
+    },
+    {
+      "region": "china",
+      "id": "sample-5",
+      "seed": 42,
+      "look": {
+        "skin": 15713958,
+        "hair": 7690051,
+        "eyeColor": 7426361,
+        "clothes": 12232566,
+        "accent": 13677688,
+        "variant": 1
+      }
+    },
+    {
+      "region": "china",
+      "id": "sample-6",
+      "seed": 42,
+      "look": {
+        "skin": 11038800,
+        "hair": 2499878,
+        "eyeColor": 8548429,
+        "clothes": 5465988,
+        "accent": 13677688,
+        "variant": 3
+      }
+    },
+    {
+      "region": "china",
+      "id": "sample-7",
+      "seed": 42,
+      "look": {
+        "skin": 13276786,
+        "hair": 2499878,
+        "eyeColor": 3483423,
+        "clothes": 5142385,
+        "accent": 13677688,
+        "variant": 3
+      }
+    },
+    {
+      "region": "egypt",
+      "id": "sample-0",
+      "seed": 42,
+      "look": {
+        "skin": 9789508,
+        "hair": 2564898,
+        "eyeColor": 7829842,
+        "clothes": 13223076,
+        "accent": 12887639,
+        "variant": 1
+      }
+    },
+    {
+      "region": "egypt",
+      "id": "sample-1",
+      "seed": 42,
+      "look": {
+        "skin": 7424050,
+        "hair": 2564898,
+        "eyeColor": 6176812,
+        "clothes": 11959636,
+        "accent": 12887639,
+        "variant": 2
+      }
+    },
+    {
+      "region": "egypt",
+      "id": "sample-2",
+      "seed": 42,
+      "look": {
+        "skin": 12157531,
+        "hair": 3746338,
+        "eyeColor": 6176812,
+        "clothes": 10252379,
+        "accent": 12887639,
+        "variant": 3
+      }
+    },
+    {
+      "region": "egypt",
+      "id": "sample-3",
+      "seed": 42,
+      "look": {
+        "skin": 7424050,
+        "hair": 2564898,
+        "eyeColor": 6176812,
+        "clothes": 10252379,
+        "accent": 12887639,
+        "variant": 0
+      }
+    },
+    {
+      "region": "egypt",
+      "id": "sample-4",
+      "seed": 42,
+      "look": {
+        "skin": 15186834,
+        "hair": 2564898,
+        "eyeColor": 3943456,
+        "clothes": 6653056,
+        "accent": 12887639,
+        "variant": 1
+      }
+    },
+    {
+      "region": "egypt",
+      "id": "sample-5",
+      "seed": 42,
+      "look": {
+        "skin": 7424050,
+        "hair": 5783595,
+        "eyeColor": 3943456,
+        "clothes": 13745805,
+        "accent": 12887639,
+        "variant": 0
+      }
+    },
+    {
+      "region": "egypt",
+      "id": "sample-6",
+      "seed": 42,
+      "look": {
+        "skin": 9789508,
+        "hair": 5783595,
+        "eyeColor": 8414271,
+        "clothes": 6000276,
+        "accent": 12887639,
+        "variant": 0
+      }
+    },
+    {
+      "region": "egypt",
+      "id": "sample-7",
+      "seed": 42,
+      "look": {
+        "skin": 7424050,
+        "hair": 3746338,
+        "eyeColor": 6176812,
+        "clothes": 15062700,
+        "accent": 12887639,
+        "variant": 2
+      }
+    },
+    {
+      "region": "france",
+      "id": "sample-0",
+      "seed": 42,
+      "look": {
+        "skin": 13145458,
+        "hair": 3155748,
+        "eyeColor": 7573415,
+        "clothes": 8756140,
+        "accent": 14667440,
+        "variant": 1
+      }
+    },
+    {
+      "region": "france",
+      "id": "sample-1",
+      "seed": 42,
+      "look": {
+        "skin": 10974037,
+        "hair": 8616817,
+        "eyeColor": 4994089,
+        "clothes": 7900793,
+        "accent": 14667440,
+        "variant": 3
+      }
+    },
+    {
+      "region": "france",
+      "id": "sample-2",
+      "seed": 42,
+      "look": {
+        "skin": 13145458,
+        "hair": 9201735,
+        "eyeColor": 7755067,
+        "clothes": 8756140,
+        "accent": 14667440,
+        "variant": 0
+      }
+    },
+    {
+      "region": "france",
+      "id": "sample-3",
+      "seed": 42,
+      "look": {
+        "skin": 5781285,
+        "hair": 12097893,
+        "eyeColor": 4994089,
+        "clothes": 6326132,
+        "accent": 14667440,
+        "variant": 1
+      }
+    },
+    {
+      "region": "france",
+      "id": "sample-4",
+      "seed": 42,
+      "look": {
+        "skin": 7950393,
+        "hair": 8616817,
+        "eyeColor": 9536103,
+        "clothes": 4615777,
+        "accent": 14667440,
+        "variant": 0
+      }
+    },
+    {
+      "region": "france",
+      "id": "sample-5",
+      "seed": 42,
+      "look": {
+        "skin": 7950393,
+        "hair": 6177072,
+        "eyeColor": 4994089,
+        "clothes": 4615777,
+        "accent": 14667440,
+        "variant": 0
+      }
+    },
+    {
+      "region": "france",
+      "id": "sample-6",
+      "seed": 42,
+      "look": {
+        "skin": 5781285,
+        "hair": 8616817,
+        "eyeColor": 7755067,
+        "clothes": 8756140,
+        "accent": 14667440,
+        "variant": 2
+      }
+    },
+    {
+      "region": "france",
+      "id": "sample-7",
+      "seed": 42,
+      "look": {
+        "skin": 14791823,
+        "hair": 12097893,
+        "eyeColor": 4994089,
+        "clothes": 12298616,
+        "accent": 14667440,
+        "variant": 0
+      }
+    }
+  ]
+}

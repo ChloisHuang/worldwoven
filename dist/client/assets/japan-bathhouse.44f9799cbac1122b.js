@@ -1,3 +1,4 @@
+import {registerNightFixture} from '/assets/night-lighting.45125c813da91138.js';
 import {createGuestFuton} from '/assets/japan-futon.d1ff9cbfc4dbfa98.js';
 import * as G from '/assets/geometry.accd26d9fe1820ba.js';
 import {createConveyorSushi,createRamenCounter,createKotatsu} from '/assets/japan-furnishings.1ebebff154862976.js';
@@ -35,6 +36,7 @@ function packSpatial(root,cell=12){
 }
 function lantern(g,x,y,z,red=true,s=.37){
   const color=red?0xcf593b:0xffd497;
+  registerNightFixture(g,x,y,z,{kind:'paper-lantern',color:red?0xffbb72:0xffd69a,intensity:18,distance:8});
   G.cyl(g,x,y+.54,z,.018,.018,.42,P.wood,6);
   G.mesh(g,new THREE.SphereGeometry(s,12,10),color,x,y,z,{emissive:red?0x9d2b10:0xf9b353,emissiveIntensity:red?.22:.34}).scale.set(1,1.28,1);
   for(const yy of [-.34,-.18,0,.18,.34]){const r=s*Math.sqrt(Math.max(.25,1-(yy/(s*1.28))**2));const hoop=G.mesh(g,new THREE.TorusGeometry(r,.013,4,16),P.gold,x,y+yy,z);hoop.rotation.x=Math.PI/2;}
@@ -44,7 +46,7 @@ function lantern(g,x,y,z,red=true,s=.37){
 function tea(g,x,y,z){G.cyl(g,x,y+.13,z,.22,.25,.26,P.jade);G.cyl(g,x,y+.29,z,.19,.19,.065,P.jade);G.sphere(g,x,y+.35,z,.055,P.gold);beam(g,[x+.19,y+.13,z],[x+.4,y+.24,z],.055,P.jade);G.torus(g,x-.23,y+.17,z,.14,.033,P.jade,0);for(const dx of [-.5,.5]){G.cyl(g,x+dx,y+.065,z+.22,.12,.09,.13,P.cream);G.cyl(g,x+dx,y+.136,z+.22,.085,.085,.012,0x727b42);}}
 function vase(g,x,y,z,color=P.jade,flower=true){G.vessel(g,x,y,z,color,.7);if(flower)for(let i=0;i<5;i++){const a=i*2.4,dx=Math.cos(a)*.26,dz=Math.sin(a)*.2;beam(g,[x,y+.4,z],[x+dx,y+1.15+(i%2)*.12,z+dz],.016,0x566747);G.sphere(g,x+dx,y+1.15+(i%2)*.12,z+dz,.11,i%2?0xe4ae98:0xd9c481);}}
 function folded(g,x,y,z,c=P.indigo,w=.65,d=.42){for(let i=0;i<3;i++){G.box(g,x,y+i*.075,z,w,.065,d,i===1?0xe3d5b8:c);G.box(g,x+w*.33,y+.035+i*.075,z,.03,.012,d,0xe6d9bc);}}
-function tatami(g,x,z,w,d){G.box(g,x,.035,z,w,.07,d,P.tatami);for(let xx=x-w/2;xx<x+w/2-.03;xx+=1.65){G.box(g,xx,.075,z,.055,.016,d,P.jade);for(let zz=z-d/2+.15;zz<z+d/2;zz+=.23)G.box(g,Math.min(xx+.81,x+w/2-.8),.077,zz,1.52,.01,.018,0x9d9f73);}for(const zz of [z-d/2,z+d/2])G.box(g,x,.078,zz,w,.014,.07,P.jade);}
+function tatami(g,x,z,w,d){g.userData.characterMatSurfaces??=[];g.userData.characterMatSurfaces.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2,offset:.075});G.box(g,x,.035,z,w,.07,d,P.tatami);for(let xx=x-w/2;xx<x+w/2-.03;xx+=1.65){G.box(g,xx,.075,z,.055,.016,d,P.jade);for(let zz=z-d/2+.15;zz<z+d/2;zz+=.23)G.box(g,Math.min(xx+.81,x+w/2-.8),.077,zz,1.52,.01,.018,0x9d9f73);}for(const zz of [z-d/2,z+d/2])G.box(g,x,.078,zz,w,.014,.07,P.jade);}
 function scroll(g,x,y,z,w=1.2,h=1.65){G.box(g,x,y,z,w,h,.035,0xe6cf9e);for(const yy of [-h/2,h/2]){const m=G.cyl(g,x,y+yy,z,.045,.045,w+.13,P.wood,7);m.rotation.z=Math.PI/2;}G.sphere(g,x,y+.2,z+.031,.28,0xad6860,1,1,.018);for(let i=0;i<4;i++)beam(g,[x-.25+i*.1,y-.55,z+.04],[x-.15+i*.08,y+.05+i*.14,z+.04],.014,0x54745d);}
 function window(g,x,y,z,w,h,axis='x'){
   const q=new THREE.Group();q.position.set(x,y,z);if(axis==='z')q.rotation.y=Math.PI/2;g.add(q);
@@ -69,6 +71,7 @@ function roof(g,x,y,z,w,d,rise=2.1){
 // Reference images informed silhouette/material rhythm only; every vertex is procedural.
 function glowWindow(g,x,y,z,w,h,axis='x'){
  const q=new THREE.Group();q.position.set(x,y,z);if(axis==='z')q.rotation.y=Math.PI/2;g.add(q);
+ registerNightFixture(q,0,0,.25,{kind:'window',intensity:9,distance:5,dayFactor:.08});
  G.mesh(q,new THREE.BoxGeometry(w,h,.035),0xffd59a,0,0,0,{emissive:0xffaa46,emissiveIntensity:.75});
  window(q,0,0,.05,w,h);
  for(let xx=-w/2+.18;xx<w/2;xx+=.3)G.box(q,xx,0,.065,.025,h,.02,P.red);
@@ -103,7 +106,7 @@ function eaveRing(g,y){
 }
 
 export function buildJapan(){
- const group=new THREE.Group(),roofGroup=new THREE.Group(),colliders=[],cameraColliders=[],walkableSurfaces=[],ceilingGroups=[],floorGroups=[],explorationTargets=[],doorways=[],roomProgram=[],updates=[];
+ const group=new THREE.Group(),roofGroup=new THREE.Group(),colliders=[],cameraColliders=[],walkableSurfaces=[],ceilingGroups=[],floorGroups=[],explorationTargets=[],doorways=[],roomProgram=[],updates=[],characterFootSurfaces=[];
  group.name='Japan · Kasumi-yu Lantern Bathhouse';roofGroup.name='Visible green roof ensemble';roofGroup.visible=true;group.add(roofGroup);
  const levels=[{id:'jp-ground',name:'一层 · 接待与寿司拉面大厅',y:0},{id:'jp-guest',name:'二层 · 男汤与女汤',y:3.8},{id:'jp-tea',name:'三层 · 方形暖桌会客大厅',y:7.6},{id:'jp-sky',name:'四层 · 汤屋工作与职人生活',y:11.4}];
  function obstacle(x,y,z,w,h,d,{camera=true}={}){const b=limits(x,y,z,w,h,d);colliders.push(b);if(camera)cameraColliders.push({...b});}
@@ -191,7 +194,7 @@ export function buildJapan(){
    if(f<3){
      const rampY=H/8;
      walkableSurfaces.push({...STAIR,y:base+H,axis:'z',endY:base});
-     for(let i=0;i<24;i++){const z=-10+(i+.5)*8/24,y=H*(1-(i+.5)/24),depth=8/24;G.box(fg,9.1,y-.075,z,3.4,.15,depth,P.honey);G.box(fg,9.1,y+.008,z+depth/2-.039,3.36,.025,.04,P.gold);cameraColliders.push(limits(9.1,base+y-.075,z,3.4,.15,depth));}
+     for(let i=0;i<24;i++){const z=-10+(i+.5)*8/24,y=H*(1-(i+.5)/24),depth=8/24;G.box(fg,9.1,y-.075,z,3.4,.15,depth,P.honey);G.box(fg,9.1,y+.008,z+depth/2-.039,3.36,.025,.04,P.gold);cameraColliders.push(limits(9.1,base+y-.075,z,3.4,.15,depth));characterFootSurfaces.push({minX:7.4,maxX:10.8,minZ:z-depth/2,maxZ:z+depth/2,y:base+y},{minX:7.42,maxX:10.78,minZ:z+depth/2-.059,maxZ:z+depth/2-.019,y:base+y+.0205});}
      for(const x of [7.4,10.8]){beam(fg,[x,H+.99,-10],[x,.99,-2],.055,P.red);beam(fg,[x,H+.22,-10],[x,.22,-2],.05,P.red);for(let i=0;i<=16;i++){const z=-10+i*.5,y=H-rampY*(z+10);G.box(fg,x,y+.5,z,.065,.96,.065,P.red);G.sphere(fg,x,y+1.04,z,.075,P.gold);if(i<16){const zc=z+.25,yc=H-rampY*(zc+10);obstacle(x,base+yc+.49,zc,.12,.99,.5);}}}
    }
    // Guard only the long open edges; endpoints remain fully walkable.
@@ -202,7 +205,7 @@ export function buildJapan(){
    for(const x of [-9.8,-6.8,-3.9,3.7,6.3])for(const z of [-12.7,-9.2,-5.7,-2.2,1.4,5.0,7.8]){
     G.cyl(cg,x,3.41,z,.34,.34,.04,f===2?0xb9914a:0x957153,12);for(let k=0;k<5;k++){const a=k*Math.PI*2/5;G.mesh(cg,new THREE.SphereGeometry(.085,6,4),f===2?0xa85443:0x436960,x+Math.cos(a)*.19,3.375,z+Math.sin(a)*.19).scale.set(1,.18,1);}}
    // Perimeter lamps and tiny alcove cabinets stay outside the 3m main passage.
-   for(const [x,z] of [[-11.2,-1.8],[11.25,5.6]]){G.box(fg,x,.36,z,.48,.72,.52,P.red);G.mesh(fg,new THREE.BoxGeometry(.43,.42,.44),P.paper,x,.94,z,{emissive:0xffbc65,emissiveIntensity:.5});G.box(fg,x,1.19,z,.6,.09,.62,P.jade);obstacle(x,base+.62,z,.62,1.3,.64);}
+   for(const [x,z] of [[-11.2,-1.8],[11.25,5.6]]){G.box(fg,x,.36,z,.48,.72,.52,P.red);G.mesh(fg,new THREE.BoxGeometry(.43,.42,.44),P.paper,x,.94,z,{emissive:0xffbc65,emissiveIntensity:.5});registerNightFixture(fg,x,.94,z,{kind:'floor-lantern',intensity:10,distance:5.5});G.box(fg,x,1.19,z,.6,.09,.62,P.jade);obstacle(x,base+.62,z,.62,1.3,.64);}
    // Each room has warm light. These are local lights, not a hidden global exposure boost.
    for(const [x,z] of [[-7,-5],[4,4]]){const light=new THREE.PointLight(0xffc684,.85,14,1.2);light.position.set(x,2.8,z);fg.add(light);}
    // Layered, original exterior bracket rhythm, brass corners and green eave skirts.
@@ -238,6 +241,8 @@ export function buildJapan(){
  }
  const LETTERS={A:[[[0,0],[.5,1],[1,0]],[[.22,.43],[.78,.43]]],B:[[[0,0],[0,1],[.65,1],[1,.78],[.6,.5],[0,.5]],[[.6,.5],[1,.24],[.65,0],[0,0]]],C:[[[1,.86],[.7,1],[.16,.85],[0,.5],[.16,.15],[.7,0],[1,.14]]],D:[[[0,0],[0,1],[.55,1],[1,.75],[1,.25],[.55,0],[0,0]]],E:[[[1,1],[0,1],[0,0],[1,0]],[[0,.5],[.8,.5]]],F:[[[0,0],[0,1],[1,1]],[[0,.5],[.8,.5]]],G:[[[1,.8],[.75,1],[.2,.9],[0,.55],[.15,.15],[.65,0],[1,.25],[1,.5],[.55,.5]]],H:[[[0,0],[0,1]],[[1,0],[1,1]],[[0,.5],[1,.5]]],I:[[[0,1],[1,1]],[[.5,1],[.5,0]],[[0,0],[1,0]]],K:[[[0,0],[0,1]],[[1,1],[0,.42],[1,0]]],L:[[[0,1],[0,0],[1,0]]],M:[[[0,0],[0,1],[.5,.45],[1,1],[1,0]]],N:[[[0,0],[0,1],[1,0],[1,1]]],O:[[[.2,0],[0,.25],[0,.75],[.2,1],[.8,1],[1,.75],[1,.25],[.8,0],[.2,0]]],P:[[[0,0],[0,1],[.7,1],[1,.75],[.7,.5],[0,.5]]],R:[[[0,0],[0,1],[.7,1],[1,.75],[.7,.5],[0,.5]],[[.55,.5],[1,0]]],S:[[[1,.88],[.7,1],[.2,.9],[0,.65],[1,.35],[.8,.06],[.2,0],[0,.15]]],T:[[[0,1],[1,1]],[[.5,1],[.5,0]]],U:[[[0,1],[0,.2],[.2,0],[.8,0],[1,.2],[1,1]]],V:[[[0,1],[.5,0],[1,1]]],W:[[[0,1],[.2,0],[.5,.55],[.8,0],[1,1]]],Y:[[[0,1],[.5,.5],[1,1]],[[.5,.5],[.5,0]]]};
  function sign(g,x,y,z,text,color=P.jade,w=3.6){
+  registerNightFixture(g,x,y+.16,z+.45,{kind:'sign',intensity:10,distance:5,dayFactor:.08});
+  G.mesh(g,new THREE.BoxGeometry(Math.min(1.2,w*.4),.055,.09),P.paper,x,y+.41,z+.17,{emissive:0xffc375,emissiveIntensity:.55});
   G.box(g,x,y,z,w,.68,.11,color);for(const dy of [-.36,.36])G.box(g,x,y+dy,z+.04,w+.12,.065,.12,P.gold);
   const step=Math.min(.38,(w-.35)/text.length),gh=.35,gw=step*.7;
   [...text].forEach((c,i)=>{for(const stroke of LETTERS[c]??[])for(let j=1;j<stroke.length;j++)beam(g,[x+(i-(text.length-1)/2)*step+(stroke[j-1][0]-.5)*gw,y+(stroke[j-1][1]-.5)*gh,z+.075],[x+(i-(text.length-1)/2)*step+(stroke[j][0]-.5)*gw,y+(stroke[j][1]-.5)*gh,z+.075],.018,P.paper,5);});
@@ -489,7 +494,7 @@ export function buildJapan(){
  for(let i=0;i<9;i++){const x=-25.6+(i%3)*2.1,z=-6.8+Math.floor(i/3)*2.6;G.sphere(district,x,.062,z,.21,i%2?0xd79566:P.paper,1.6,.12,.7);const tail=G.mesh(district,new THREE.ConeGeometry(.14,.25,3),P.red,x-.39,.065,z);tail.rotation.z=Math.PI/2;tail.rotation.x=Math.PI/2;}
  for(const [x,z]of [[-25,-.4],[-26.3,-1.7],[-24.1,-.9]]){G.cyl(district,x,.067,z,.37,.37,.015,0x6d9a6c,12);G.sphere(district,x,.1,z,.1,0xe3b6b1,1,.45,1);}
  for(const [x,z,s]of [[-27.3,-10,.95],[-26.5,7.8,.8],[-19.8,-11.3,.8]]){G.tree(district,x,z,0x7a9376,s);G.sphere(district,x,.38,z+.8,.75,P.stone,1.3,.65,.75);obstacle(x,.53,z,1.5,1.06,1.5,{camera:false});}
- for(const z of [-10.6,8.9])for(const x of [-21.8,-27]){G.box(district,x,.25,z,.9,.5,.9,P.stone);G.cyl(district,x,1,z,.18,.23,1.25,P.stone);G.mesh(district,new THREE.BoxGeometry(.54,.65,.54),P.paper,x,1.6,z,{emissive:0xffd599,emissiveIntensity:.65});roof(district,x,1.97,z,1.2,1.2,.45);obstacle(x,1,z,1.1,2,1.1);}
+ for(const z of [-10.6,8.9])for(const x of [-21.8,-27]){G.box(district,x,.25,z,.9,.5,.9,P.stone);G.cyl(district,x,1,z,.18,.23,1.25,P.stone);G.mesh(district,new THREE.BoxGeometry(.54,.65,.54),P.paper,x,1.6,z,{emissive:0xffd599,emissiveIntensity:.65});registerNightFixture(district,x,1.6,z,{kind:'garden-lantern',intensity:15,distance:7});roof(district,x,1.97,z,1.2,1.2,.45);obstacle(x,1,z,1.1,2,1.1);}
  G.box(district,-23,.025,12.8,10.1,.05,6.7,P.wood);for(const x of [-27.4,-18.6])for(const z of [10,15.6])groundSolid(district,0,x,1.75,z,.2,3.5,.2,P.red);
  roof(roofGroup,-23,3.53,12.8,12,8.3,2.0);slab(district,0,-28,-18,9.5,16.1,3.45,P.wood,false);bench(district,0,-23.2,14.7,6.9);sign(district,-23.2,2.55,15.66,'GARDEN',P.jade,5.0);lantern(district,-25.9,2.7,11.1,true,.38);lantern(district,-20.1,2.7,11.1,true,.38);
  // East travel and luggage shop, a furnished room with a large western
@@ -610,5 +615,6 @@ export function buildJapan(){
  for(const fg of floorGroups)pack(fg);for(const cg of ceilingGroups)pack(cg);packSpatial(roofGroup);packSpatial(district);
  const street=new THREE.Group();street.name='Arrival garden static';for(const child of [...group.children])if(child!==roofGroup&&child!==district&&!floorGroups.includes(child)&&!ceilingGroups.includes(child))street.add(child);group.add(street);pack(street);
  group.userData={architecture:'original-four-storey-copper-steam-lantern-bathhouse',revision:'R7',referenceInspired:true,referenceAssetsReused:false,spatialBatchSize:12,roomVignetteCount:roomProgram.length,lotSize:[60,80],districtZones:5,defaultRoofVisible:true,interior:true,cameraMode:'close-third-person',ambientIntensity:.5,sunIntensity:1.5,floorCount:4,stairSlope:3.8/8,stairWidth:3.4,stairHeadroom:3.43,roomProgram,facilities,sakuraDetails,antiFlicker:{terrainFoundationCutouts:true,duplicateCeilingSlabsRemoved:true,dynamicBranchesExcludedFromPacking:true},references:['https://www.sglynp.com/t170153','https://www.ghibli.jp/gallery/chihiro039.jpg','https://inari.jp/en/faq/','https://inari.jp/en/saijin/']};
- return {group,colliders,spawn:[0,0,37.5],stations,roofGroup,walkableSurfaces,cameraColliders,levels,ceilingGroups,floorGroups,explorationTargets,doorways,facilities,roomProgram,bounds:LOT_BOUNDS,update(dt,time){for(const update of updates)update(dt,time);}};
+ const characterFloorSurfaces=floorGroups.flatMap(fg=>(fg.userData.characterMatSurfaces||[]).map(s=>({...s,baseY:fg.position.y,minX:s.minX+fg.position.x,maxX:s.maxX+fg.position.x,minZ:s.minZ+fg.position.z,maxZ:s.maxZ+fg.position.z})));
+ return {group,colliders,characterFloorSurfaces,characterFootSurfaces,spawn:[0,0,37.5],stations,roofGroup,walkableSurfaces,cameraColliders,levels,ceilingGroups,floorGroups,explorationTargets,doorways,facilities,roomProgram,bounds:LOT_BOUNDS,update(dt,time){for(const update of updates)update(dt,time);}};
 }

@@ -1,6 +1,14 @@
 // Original fictional-character palettes. Color choices are independent traits,
 // not an attempt to infer a real person's ethnicity or identity.
-export const APPEARANCE_VERSION=1;
+export const APPEARANCE_VERSION=2;
+export const BODY_PRESETS=['feminine-balanced','masculine-lean','feminine-slender','masculine-broad'];
+export const HAIR_STYLES=['swept-short','side-part','chin-bob','shoulder-wave','low-bun','braided-tail'];
+export const WARDROBE_PRESETS={
+ japan:{feminine:['yukata-wide-obi','kimono-soft-sleeve'],masculine:['yukata-narrow-obi','haori-trouser']},
+ china:{feminine:['ruqun-long-skirt','ruqun-jacket'],masculine:['scholar-long-robe','scholar-tunic-trousers']},
+ egypt:{feminine:['linen-sheath','linen-pleated-dress'],masculine:['linen-kilt','linen-tunic-kilt']},
+ france:{feminine:['court-gown','court-overgown'],masculine:['court-frock-coat','court-waistcoat']}
+};
 const skin=[[0xefc6a6,3],[0xdfb18d,3],[0xca9672,2],[0xa87050,2],[0x7e5037,1],[0x593725,1]];
 const palettes={
  japan:{skin:[[0xefc6a6,3],[0xdfb18d,4],[0xca9672,3],[0xa87050,2],[0x7e5037,1]],hair:[[0x252329,5],[0x362c2a,4],[0x53382d,3],[0x725442,1],[0x6c6661,1]],eyes:[[0x332923,5],[0x4a3428,4],[0x674830,2],[0x80704b,1]],clothes:[0x587e7a,0x596d89,0x91606a,0xb19870,0x777159,0x776789,0xa77565,0x697c65]},
@@ -12,7 +20,15 @@ function hash(s){let n=2166136261;for(let i=0;i<s.length;i++){n^=s.charCodeAt(i)
 function random(seed,trait){return hash(seed+'|'+trait)/4294967296;}
 function weighted(list,t){const sum=list.reduce((a,x)=>a+x[1],0);let n=t*sum;for(const[c,w]of list){n-=w;if(n<0)return c;}return list.at(-1)[0];}
 const pick=(a,t)=>a[Math.min(a.length-1,Math.floor(t*a.length))];
-export function npcAppearance(region,id,worldSeed=1){const p=palettes[region]||palettes.france,key=`v${APPEARANCE_VERSION}|${worldSeed>>>0}|${region}|${id}`;return{skin:weighted(p.skin,random(key,'skin')),hair:weighted(p.hair,random(key,'hair')),eyeColor:weighted(p.eyes,random(key,'eyes')),clothes:pick(p.clothes,random(key,'clothes')),accent:region==='egypt'?0xc4a657:region==='china'?0xd0b478:0xdfceb0,variant:Math.floor(random(key,'silhouette')*4)};}
-export function createAppearanceState(seed){const key='player|'+(seed>>>0);return{version:APPEARANCE_VERSION,seed:seed>>>0,player:{skin:weighted(skin,random(key,'skin')),hair:weighted(palettes.france.hair,random(key,'hair')),eyeColor:weighted(palettes.france.eyes,random(key,'eyes')),variant:Math.floor(random(key,'silhouette')*4)}};}
-export function validAppearanceState(a){return a?.version===APPEARANCE_VERSION&&Number.isInteger(a.seed)&&a.seed>=0&&a.seed<=4294967295&&a.player&&['skin','hair','eyeColor'].every(k=>Number.isInteger(a.player[k])&&a.player[k]>=0&&a.player[k]<=0xffffff)&&Number.isInteger(a.player.variant)&&a.player.variant>=0&&a.player.variant<4;}
-export function playerAppearance(state,region,outfit=0){const p=palettes[region]||palettes.france,key='player-clothes|'+state.seed+'|'+region,offset=Math.floor(random(key,'outfit')*p.clothes.length);return{...state.player,clothes:p.clothes[(offset+(outfit>>>0))%p.clothes.length],accent:region==='egypt'?0xc4a657:region==='china'?0xd0b478:0xdfceb0};}
+function identity(seed,variant){
+ const bodyPreset=BODY_PRESETS[variant];
+ return {bodyPreset,hairStyle:pick(HAIR_STYLES,random(seed,'hair-style')),wardrobeIndex:Math.floor(random(seed,'wardrobe-cut')*2),gaitPreset:Math.floor(random(seed,'gait-personality')*4)};
+}
+function wardrobe(region,bodyPreset,index){const p=WARDROBE_PRESETS[region]||WARDROBE_PRESETS.france;return p[bodyPreset.startsWith('masculine')?'masculine':'feminine'][index%2];}
+// Keep the v1 color salts forever: a schema migration must never repaint residents.
+export function npcAppearance(region,id,worldSeed=1){const p=palettes[region]||palettes.france,key=`v1|${worldSeed>>>0}|${region}|${id}`,variant=Math.floor(random(key,'silhouette')*4),traits=identity(key,variant);return{skin:weighted(p.skin,random(key,'skin')),hair:weighted(p.hair,random(key,'hair')),eyeColor:weighted(p.eyes,random(key,'eyes')),clothes:pick(p.clothes,random(key,'clothes')),accent:region==='egypt'?0xc4a657:region==='china'?0xd0b478:0xdfceb0,variant,...traits,wardrobePreset:wardrobe(region,traits.bodyPreset,traits.wardrobeIndex)};}
+export function createAppearanceState(seed){const key='player|'+(seed>>>0),variant=Math.floor(random(key,'silhouette')*4);return{version:APPEARANCE_VERSION,seed:seed>>>0,player:{skin:weighted(skin,random(key,'skin')),hair:weighted(palettes.france.hair,random(key,'hair')),eyeColor:weighted(palettes.france.eyes,random(key,'eyes')),variant,...identity(key,variant)}};}
+function validBase(a){return Number.isInteger(a?.seed)&&a.seed>=0&&a.seed<=4294967295&&a.player&&['skin','hair','eyeColor'].every(k=>Number.isInteger(a.player[k])&&a.player[k]>=0&&a.player[k]<=0xffffff)&&Number.isInteger(a.player.variant)&&a.player.variant>=0&&a.player.variant<4;}
+export function validAppearanceState(a){return a?.version===APPEARANCE_VERSION&&validBase(a)&&BODY_PRESETS.includes(a.player.bodyPreset)&&HAIR_STYLES.includes(a.player.hairStyle)&&Number.isInteger(a.player.wardrobeIndex)&&a.player.wardrobeIndex>=0&&a.player.wardrobeIndex<2&&Number.isInteger(a.player.gaitPreset)&&a.player.gaitPreset>=0&&a.player.gaitPreset<4;}
+export function migrateAppearanceState(a){if(validAppearanceState(a))return a;if(a?.version===1&&validBase(a))return{...a,version:APPEARANCE_VERSION,player:{...identity('player|'+a.seed,a.player.variant),...a.player}};return null;}
+export function playerAppearance(state,region,outfit=0){const p=palettes[region]||palettes.france,key='player-clothes|'+state.seed+'|'+region,offset=Math.floor(random(key,'outfit')*p.clothes.length),wardrobePreset=wardrobe(region,state.player.bodyPreset,state.player.wardrobeIndex+Math.floor((outfit>>>0)/4));return{...state.player,wardrobePreset,clothes:p.clothes[(offset+(outfit>>>0))%p.clothes.length],accent:region==='egypt'?0xc4a657:region==='china'?0xd0b478:0xdfceb0};}
