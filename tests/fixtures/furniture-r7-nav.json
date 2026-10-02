@@ -1,0 +1,38 @@
+{
+  "japan": {
+    "colliders": "6e514986a403ab384d6c253bc4a057e76b7b48695bb2ad5a6bab3e2db2af9d0a",
+    "cameraColliders": "08d91fe7b32837e32fe272164c9899b163f6bea72e344e7be7570110579eca7e",
+    "bounds": "41fc4c1b861c6f80d61e6fc708bbd92dd3ef8c357e12b45e78c8728f4fb1cd4f",
+    "walkableSurfaces": "817d915b35cfba066d48f2ba0514977f7ca8c82f90ad31698b1af3bde614fd3b",
+    "doorways": "37bae3c74610d81a166f147e9aa9604f91fef9848fbef2f22a1f5c63e05b9971",
+    "explorationTargets": "e3a419cd39f37e081c191e23b3d170d1a02ac1a572882557ad6c212d0d1934b6",
+    "stations": "55528d0c03a0f23fd11c1dc3770cc81284744806645afb996d1ebe54b20d4d19"
+  },
+  "china": {
+    "colliders": "c3008bf383691389da13ddceb3f3d2470fae68a6aa55c12226130bf3f217293d",
+    "cameraColliders": "8694922cd352a9a50dc4e6150f08351de25917effd7f68fa5129faf1e5fd6bc0",
+    "bounds": "41fc4c1b861c6f80d61e6fc708bbd92dd3ef8c357e12b45e78c8728f4fb1cd4f",
+    "walkableSurfaces": "6c5006e54a7b1b4897111a865a1f562d3be52677b182da1cc53a0450d04901fa",
+    "doorways": "ea02fa808120d3dda66274d82c9f74a04272740a7ecde8ea32a3c6b8257386b0",
+    "explorationTargets": "025ce2da8bd914166f29513475c9771851b885238ed2f4a7c6fa12306942bc59",
+    "stations": "c4d71dd7d9a6caa9687807456e5392e3a21027045a52e8e6fdb30fe9368b0b83"
+  },
+  "egypt": {
+    "colliders": "3fbdabddf7942a73a41a21674481ae3f990d2481c72c4dc1296284bff6279950",
+    "cameraColliders": "29d3a4eb4ee0c718307f52abfcd0c49ea2639541b379f8902dfb9c3456895006",
+    "bounds": "41fc4c1b861c6f80d61e6fc708bbd92dd3ef8c357e12b45e78c8728f4fb1cd4f",
+    "walkableSurfaces": "4dbdda223126ef7e1021ecd93c40ecd57bf43a76c98532b199a8cd0d1f2880d3",
+    "doorways": "9725b2cebd5c3e8cfb69c7675bbad03666927017f2f7a28f44b1c7c27692119a",
+    "explorationTargets": "3d050cd2335a4ade522c84fe620288b3ae2bb7f6e8fba7a9087034ef272906bc",
+    "stations": "8ec14a651be49741830ded90ad4749008b7aef63042bda25f155d333c99297e9"
+  },
+  "france": {
+    "colliders": "b3e95bfa9b306a6a03c05acd8193a4da058c168c16d46464163f0096c3881ec6",
+    "cameraColliders": "bce6b1575cd14becf277f2e2480fd5bbe3671d65e99aa4cba7045dee7ee70705",
+    "bounds": "41fc4c1b861c6f80d61e6fc708bbd92dd3ef8c357e12b45e78c8728f4fb1cd4f",
+    "walkableSurfaces": "95ca4dda8984d634ecde68707781e38ca1fb73cc1434bebef9eff8dac7ec14b9",
+    "doorways": "a97e0219d0b51b19c9f0295630660d4d0cae0763290029ee3932743f15590622",
+    "explorationTargets": "c6266db33d5a613585c5246a04a471f0e4703eb73ecdd3119c5f217dc5fb7784",
+    "stations": "285f1ac0b9541e4b5cb808688a400f21c369623b0c1850335c0402afd9ef853a"
+  }
+}
