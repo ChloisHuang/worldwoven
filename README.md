@@ -86,3 +86,9 @@ The globe land repair also removes centroid-selected triangular biome edges and 
 China's bed now has an original carved paired-dragon headboard, joined gold crown, brocade quilt and red gauze enclosing the front and both sides. The one-time China curtain migration reveals the new design closed, then remembers the player's choice. World labels distinguish lying in the dragon bed from opening its curtains. Closed gauze permits the lower bed selection ray while the upper ray still selects the curtain. Japan remains canopy-free.
 
 Mounted-bed camera collision now follows fourteen solid wood members, leaving the inner cavity and translucent cloth free. The same 1,920 production camera sweeps had 218 opaque sightline crossings before and zero after. Actual Three/Mesa WebGL2 inspection and mounted camera views had no GL/shader errors; real iOS remains untested. Bed support surfaces, navigation footprints, standing positions and all other regions remain unchanged.
+
+## R13 appearance batch
+
+One explicit player randomizer changes gender presentation, the existing colors/hair/clothes and six bounded shape controls. Preview remains reversible until confirm. The game preference score uses those six dimensions only. Residents gain a stable versioned six-trait generator keyed by saved world seed and identity; their existing colors, roles, anchors and outfit constraints are retained. The same score appears in existing resident information.
+
+The serial test runner now streams active-stage stderr and writes per-gate terminal exit/signal evidence with a source fingerprint. TEST_ONLY accepts an explicit comma-separated gate subset for coordinated resource windows; the default still runs every registered gate. A selected subset is not a whole-suite pass. Heavy scene/renderer checks are coordinated separately from lightweight units.

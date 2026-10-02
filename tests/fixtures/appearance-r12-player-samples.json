@@ -1,0 +1,1112 @@
+[
+  {
+    "state": {
+      "version": 2,
+      "seed": 0,
+      "player": {
+        "skin": 8278071,
+        "hair": 3155748,
+        "eyeColor": 4994089,
+        "variant": 1,
+        "bodyPreset": "masculine-lean",
+        "hairStyle": "swept-short",
+        "wardrobeIndex": 0,
+        "gaitPreset": 1
+      }
+    },
+    "looks": [
+      {
+        "region": "japan",
+        "outfit": 0,
+        "look": {
+          "skin": 8278071,
+          "hair": 3155748,
+          "eyeColor": 4994089,
+          "variant": 1,
+          "bodyPreset": "masculine-lean",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 1,
+          "wardrobePreset": "yukata-narrow-obi",
+          "clothes": 10974565,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "japan",
+        "outfit": 3,
+        "look": {
+          "skin": 8278071,
+          "hair": 3155748,
+          "eyeColor": 4994089,
+          "variant": 1,
+          "bodyPreset": "masculine-lean",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 1,
+          "wardrobePreset": "yukata-narrow-obi",
+          "clothes": 5860745,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "japan",
+        "outfit": 7,
+        "look": {
+          "skin": 8278071,
+          "hair": 3155748,
+          "eyeColor": 4994089,
+          "variant": 1,
+          "bodyPreset": "masculine-lean",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 1,
+          "wardrobePreset": "haori-trouser",
+          "clothes": 7825289,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "china",
+        "outfit": 0,
+        "look": {
+          "skin": 8278071,
+          "hair": 3155748,
+          "eyeColor": 4994089,
+          "variant": 1,
+          "bodyPreset": "masculine-lean",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 1,
+          "wardrobePreset": "scholar-long-robe",
+          "clothes": 8087124,
+          "accent": 13677688
+        }
+      },
+      {
+        "region": "china",
+        "outfit": 3,
+        "look": {
+          "skin": 8278071,
+          "hair": 3155748,
+          "eyeColor": 4994089,
+          "variant": 1,
+          "bodyPreset": "masculine-lean",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 1,
+          "wardrobePreset": "scholar-long-robe",
+          "clothes": 5142385,
+          "accent": 13677688
+        }
+      },
+      {
+        "region": "china",
+        "outfit": 7,
+        "look": {
+          "skin": 8278071,
+          "hair": 3155748,
+          "eyeColor": 4994089,
+          "variant": 1,
+          "bodyPreset": "masculine-lean",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 1,
+          "wardrobePreset": "scholar-tunic-trousers",
+          "clothes": 12232566,
+          "accent": 13677688
+        }
+      },
+      {
+        "region": "egypt",
+        "outfit": 0,
+        "look": {
+          "skin": 8278071,
+          "hair": 3155748,
+          "eyeColor": 4994089,
+          "variant": 1,
+          "bodyPreset": "masculine-lean",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 1,
+          "wardrobePreset": "linen-kilt",
+          "clothes": 13020285,
+          "accent": 12887639
+        }
+      },
+      {
+        "region": "egypt",
+        "outfit": 3,
+        "look": {
+          "skin": 8278071,
+          "hair": 3155748,
+          "eyeColor": 4994089,
+          "variant": 1,
+          "bodyPreset": "masculine-lean",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 1,
+          "wardrobePreset": "linen-kilt",
+          "clothes": 11959636,
+          "accent": 12887639
+        }
+      },
+      {
+        "region": "egypt",
+        "outfit": 7,
+        "look": {
+          "skin": 8278071,
+          "hair": 3155748,
+          "eyeColor": 4994089,
+          "variant": 1,
+          "bodyPreset": "masculine-lean",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 1,
+          "wardrobePreset": "linen-tunic-kilt",
+          "clothes": 13745805,
+          "accent": 12887639
+        }
+      },
+      {
+        "region": "france",
+        "outfit": 0,
+        "look": {
+          "skin": 8278071,
+          "hair": 3155748,
+          "eyeColor": 4994089,
+          "variant": 1,
+          "bodyPreset": "masculine-lean",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 1,
+          "wardrobePreset": "court-frock-coat",
+          "clothes": 7900793,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "france",
+        "outfit": 3,
+        "look": {
+          "skin": 8278071,
+          "hair": 3155748,
+          "eyeColor": 4994089,
+          "variant": 1,
+          "bodyPreset": "masculine-lean",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 1,
+          "wardrobePreset": "court-frock-coat",
+          "clothes": 8756140,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "france",
+        "outfit": 7,
+        "look": {
+          "skin": 8278071,
+          "hair": 3155748,
+          "eyeColor": 4994089,
+          "variant": 1,
+          "bodyPreset": "masculine-lean",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 1,
+          "wardrobePreset": "court-waistcoat",
+          "clothes": 6326132,
+          "accent": 14667440
+        }
+      }
+    ]
+  },
+  {
+    "state": {
+      "version": 2,
+      "seed": 1,
+      "player": {
+        "skin": 11038800,
+        "hair": 3155748,
+        "eyeColor": 7573415,
+        "variant": 2,
+        "bodyPreset": "feminine-slender",
+        "hairStyle": "side-part",
+        "wardrobeIndex": 1,
+        "gaitPreset": 2
+      }
+    },
+    "looks": [
+      {
+        "region": "japan",
+        "outfit": 0,
+        "look": {
+          "skin": 11038800,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "side-part",
+          "wardrobeIndex": 1,
+          "gaitPreset": 2,
+          "wardrobePreset": "kimono-soft-sleeve",
+          "clothes": 5860745,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "japan",
+        "outfit": 3,
+        "look": {
+          "skin": 11038800,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "side-part",
+          "wardrobeIndex": 1,
+          "gaitPreset": 2,
+          "wardrobePreset": "kimono-soft-sleeve",
+          "clothes": 7827801,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "japan",
+        "outfit": 7,
+        "look": {
+          "skin": 11038800,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "side-part",
+          "wardrobeIndex": 1,
+          "gaitPreset": 2,
+          "wardrobePreset": "yukata-wide-obi",
+          "clothes": 5799546,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "china",
+        "outfit": 0,
+        "look": {
+          "skin": 11038800,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "side-part",
+          "wardrobeIndex": 1,
+          "gaitPreset": 2,
+          "wardrobePreset": "ruqun-jacket",
+          "clothes": 9390405,
+          "accent": 13677688
+        }
+      },
+      {
+        "region": "china",
+        "outfit": 3,
+        "look": {
+          "skin": 11038800,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "side-part",
+          "wardrobeIndex": 1,
+          "gaitPreset": 2,
+          "wardrobePreset": "ruqun-jacket",
+          "clothes": 5465988,
+          "accent": 13677688
+        }
+      },
+      {
+        "region": "china",
+        "outfit": 7,
+        "look": {
+          "skin": 11038800,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "side-part",
+          "wardrobeIndex": 1,
+          "gaitPreset": 2,
+          "wardrobePreset": "ruqun-long-skirt",
+          "clothes": 8547913,
+          "accent": 13677688
+        }
+      },
+      {
+        "region": "egypt",
+        "outfit": 0,
+        "look": {
+          "skin": 11038800,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "side-part",
+          "wardrobeIndex": 1,
+          "gaitPreset": 2,
+          "wardrobePreset": "linen-pleated-dress",
+          "clothes": 13020285,
+          "accent": 12887639
+        }
+      },
+      {
+        "region": "egypt",
+        "outfit": 3,
+        "look": {
+          "skin": 11038800,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "side-part",
+          "wardrobeIndex": 1,
+          "gaitPreset": 2,
+          "wardrobePreset": "linen-pleated-dress",
+          "clothes": 11959636,
+          "accent": 12887639
+        }
+      },
+      {
+        "region": "egypt",
+        "outfit": 7,
+        "look": {
+          "skin": 11038800,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "side-part",
+          "wardrobeIndex": 1,
+          "gaitPreset": 2,
+          "wardrobePreset": "linen-sheath",
+          "clothes": 13745805,
+          "accent": 12887639
+        }
+      },
+      {
+        "region": "france",
+        "outfit": 0,
+        "look": {
+          "skin": 11038800,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "side-part",
+          "wardrobeIndex": 1,
+          "gaitPreset": 2,
+          "wardrobePreset": "court-overgown",
+          "clothes": 10322323,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "france",
+        "outfit": 3,
+        "look": {
+          "skin": 11038800,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "side-part",
+          "wardrobeIndex": 1,
+          "gaitPreset": 2,
+          "wardrobePreset": "court-overgown",
+          "clothes": 7900793,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "france",
+        "outfit": 7,
+        "look": {
+          "skin": 11038800,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "side-part",
+          "wardrobeIndex": 1,
+          "gaitPreset": 2,
+          "wardrobePreset": "court-gown",
+          "clothes": 12298616,
+          "accent": 14667440
+        }
+      }
+    ]
+  },
+  {
+    "state": {
+      "version": 2,
+      "seed": 42,
+      "player": {
+        "skin": 5846821,
+        "hair": 3155748,
+        "eyeColor": 7573415,
+        "variant": 2,
+        "bodyPreset": "feminine-slender",
+        "hairStyle": "swept-short",
+        "wardrobeIndex": 0,
+        "gaitPreset": 3
+      }
+    },
+    "looks": [
+      {
+        "region": "japan",
+        "outfit": 0,
+        "look": {
+          "skin": 5846821,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 3,
+          "wardrobePreset": "yukata-wide-obi",
+          "clothes": 7827801,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "japan",
+        "outfit": 3,
+        "look": {
+          "skin": 5846821,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 3,
+          "wardrobePreset": "yukata-wide-obi",
+          "clothes": 6913125,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "japan",
+        "outfit": 7,
+        "look": {
+          "skin": 5846821,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 3,
+          "wardrobePreset": "kimono-soft-sleeve",
+          "clothes": 11638896,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "china",
+        "outfit": 0,
+        "look": {
+          "skin": 5846821,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 3,
+          "wardrobePreset": "ruqun-long-skirt",
+          "clothes": 5465988,
+          "accent": 13677688
+        }
+      },
+      {
+        "region": "china",
+        "outfit": 3,
+        "look": {
+          "skin": 5846821,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 3,
+          "wardrobePreset": "ruqun-long-skirt",
+          "clothes": 8087124,
+          "accent": 13677688
+        }
+      },
+      {
+        "region": "china",
+        "outfit": 7,
+        "look": {
+          "skin": 5846821,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 3,
+          "wardrobePreset": "ruqun-jacket",
+          "clothes": 6782039,
+          "accent": 13677688
+        }
+      },
+      {
+        "region": "egypt",
+        "outfit": 0,
+        "look": {
+          "skin": 5846821,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 3,
+          "wardrobePreset": "linen-sheath",
+          "clothes": 11959636,
+          "accent": 12887639
+        }
+      },
+      {
+        "region": "egypt",
+        "outfit": 3,
+        "look": {
+          "skin": 5846821,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 3,
+          "wardrobePreset": "linen-sheath",
+          "clothes": 15062700,
+          "accent": 12887639
+        }
+      },
+      {
+        "region": "egypt",
+        "outfit": 7,
+        "look": {
+          "skin": 5846821,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 3,
+          "wardrobePreset": "linen-pleated-dress",
+          "clothes": 6653056,
+          "accent": 12887639
+        }
+      },
+      {
+        "region": "france",
+        "outfit": 0,
+        "look": {
+          "skin": 5846821,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 3,
+          "wardrobePreset": "court-gown",
+          "clothes": 7900793,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "france",
+        "outfit": 3,
+        "look": {
+          "skin": 5846821,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 3,
+          "wardrobePreset": "court-gown",
+          "clothes": 8756140,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "france",
+        "outfit": 7,
+        "look": {
+          "skin": 5846821,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 0,
+          "gaitPreset": 3,
+          "wardrobePreset": "court-overgown",
+          "clothes": 6326132,
+          "accent": 14667440
+        }
+      }
+    ]
+  },
+  {
+    "state": {
+      "version": 2,
+      "seed": 731821,
+      "player": {
+        "skin": 14659981,
+        "hair": 3155748,
+        "eyeColor": 7573415,
+        "variant": 2,
+        "bodyPreset": "feminine-slender",
+        "hairStyle": "swept-short",
+        "wardrobeIndex": 1,
+        "gaitPreset": 3
+      }
+    },
+    "looks": [
+      {
+        "region": "japan",
+        "outfit": 0,
+        "look": {
+          "skin": 14659981,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 3,
+          "wardrobePreset": "kimono-soft-sleeve",
+          "clothes": 6913125,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "japan",
+        "outfit": 3,
+        "look": {
+          "skin": 14659981,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 3,
+          "wardrobePreset": "kimono-soft-sleeve",
+          "clothes": 9527402,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "japan",
+        "outfit": 7,
+        "look": {
+          "skin": 14659981,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 3,
+          "wardrobePreset": "yukata-wide-obi",
+          "clothes": 10974565,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "china",
+        "outfit": 0,
+        "look": {
+          "skin": 14659981,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 3,
+          "wardrobePreset": "ruqun-jacket",
+          "clothes": 8547913,
+          "accent": 13677688
+        }
+      },
+      {
+        "region": "china",
+        "outfit": 3,
+        "look": {
+          "skin": 14659981,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 3,
+          "wardrobePreset": "ruqun-jacket",
+          "clothes": 6782039,
+          "accent": 13677688
+        }
+      },
+      {
+        "region": "china",
+        "outfit": 7,
+        "look": {
+          "skin": 14659981,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 3,
+          "wardrobePreset": "ruqun-long-skirt",
+          "clothes": 8087124,
+          "accent": 13677688
+        }
+      },
+      {
+        "region": "egypt",
+        "outfit": 0,
+        "look": {
+          "skin": 14659981,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 3,
+          "wardrobePreset": "linen-pleated-dress",
+          "clothes": 10252379,
+          "accent": 12887639
+        }
+      },
+      {
+        "region": "egypt",
+        "outfit": 3,
+        "look": {
+          "skin": 14659981,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 3,
+          "wardrobePreset": "linen-pleated-dress",
+          "clothes": 13745805,
+          "accent": 12887639
+        }
+      },
+      {
+        "region": "egypt",
+        "outfit": 7,
+        "look": {
+          "skin": 14659981,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 3,
+          "wardrobePreset": "linen-sheath",
+          "clothes": 11959636,
+          "accent": 12887639
+        }
+      },
+      {
+        "region": "france",
+        "outfit": 0,
+        "look": {
+          "skin": 14659981,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 3,
+          "wardrobePreset": "court-overgown",
+          "clothes": 10322323,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "france",
+        "outfit": 3,
+        "look": {
+          "skin": 14659981,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 3,
+          "wardrobePreset": "court-overgown",
+          "clothes": 7900793,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "france",
+        "outfit": 7,
+        "look": {
+          "skin": 14659981,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 3,
+          "wardrobePreset": "court-gown",
+          "clothes": 12298616,
+          "accent": 14667440
+        }
+      }
+    ]
+  },
+  {
+    "state": {
+      "version": 2,
+      "seed": 4294967295,
+      "player": {
+        "skin": 13276786,
+        "hair": 12097893,
+        "eyeColor": 4994089,
+        "variant": 2,
+        "bodyPreset": "feminine-slender",
+        "hairStyle": "swept-short",
+        "wardrobeIndex": 1,
+        "gaitPreset": 0
+      }
+    },
+    "looks": [
+      {
+        "region": "japan",
+        "outfit": 0,
+        "look": {
+          "skin": 13276786,
+          "hair": 12097893,
+          "eyeColor": 4994089,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 0,
+          "wardrobePreset": "kimono-soft-sleeve",
+          "clothes": 6913125,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "japan",
+        "outfit": 3,
+        "look": {
+          "skin": 13276786,
+          "hair": 12097893,
+          "eyeColor": 4994089,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 0,
+          "wardrobePreset": "kimono-soft-sleeve",
+          "clothes": 9527402,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "japan",
+        "outfit": 7,
+        "look": {
+          "skin": 13276786,
+          "hair": 12097893,
+          "eyeColor": 4994089,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 0,
+          "wardrobePreset": "yukata-wide-obi",
+          "clothes": 10974565,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "china",
+        "outfit": 0,
+        "look": {
+          "skin": 13276786,
+          "hair": 12097893,
+          "eyeColor": 4994089,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 0,
+          "wardrobePreset": "ruqun-jacket",
+          "clothes": 5142385,
+          "accent": 13677688
+        }
+      },
+      {
+        "region": "china",
+        "outfit": 3,
+        "look": {
+          "skin": 13276786,
+          "hair": 12097893,
+          "eyeColor": 4994089,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 0,
+          "wardrobePreset": "ruqun-jacket",
+          "clothes": 9992586,
+          "accent": 13677688
+        }
+      },
+      {
+        "region": "china",
+        "outfit": 7,
+        "look": {
+          "skin": 13276786,
+          "hair": 12097893,
+          "eyeColor": 4994089,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 0,
+          "wardrobePreset": "ruqun-long-skirt",
+          "clothes": 9390405,
+          "accent": 13677688
+        }
+      },
+      {
+        "region": "egypt",
+        "outfit": 0,
+        "look": {
+          "skin": 13276786,
+          "hair": 12097893,
+          "eyeColor": 4994089,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 0,
+          "wardrobePreset": "linen-pleated-dress",
+          "clothes": 10252379,
+          "accent": 12887639
+        }
+      },
+      {
+        "region": "egypt",
+        "outfit": 3,
+        "look": {
+          "skin": 13276786,
+          "hair": 12097893,
+          "eyeColor": 4994089,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 0,
+          "wardrobePreset": "linen-pleated-dress",
+          "clothes": 13745805,
+          "accent": 12887639
+        }
+      },
+      {
+        "region": "egypt",
+        "outfit": 7,
+        "look": {
+          "skin": 13276786,
+          "hair": 12097893,
+          "eyeColor": 4994089,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 0,
+          "wardrobePreset": "linen-sheath",
+          "clothes": 11959636,
+          "accent": 12887639
+        }
+      },
+      {
+        "region": "france",
+        "outfit": 0,
+        "look": {
+          "skin": 13276786,
+          "hair": 12097893,
+          "eyeColor": 4994089,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 0,
+          "wardrobePreset": "court-overgown",
+          "clothes": 8756140,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "france",
+        "outfit": 3,
+        "look": {
+          "skin": 13276786,
+          "hair": 12097893,
+          "eyeColor": 4994089,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 0,
+          "wardrobePreset": "court-overgown",
+          "clothes": 7304581,
+          "accent": 14667440
+        }
+      },
+      {
+        "region": "france",
+        "outfit": 7,
+        "look": {
+          "skin": 13276786,
+          "hair": 12097893,
+          "eyeColor": 4994089,
+          "variant": 2,
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "swept-short",
+          "wardrobeIndex": 1,
+          "gaitPreset": 0,
+          "wardrobePreset": "court-gown",
+          "clothes": 4615777,
+          "accent": 14667440
+        }
+      }
+    ]
+  }
+]

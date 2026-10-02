@@ -1,0 +1,338 @@
+[
+  {
+    "region": "japan",
+    "id": "jp-omamori",
+    "seed": 0,
+    "shapeTraits": {
+      "jawWidth": 0.864,
+      "legLength": 0.9667,
+      "eyeSize": 1.0202,
+      "noseSize": 1.0972,
+      "noseWidth": 1.1714,
+      "socketDepth": 1.4661
+    },
+    "score": 45
+  },
+  {
+    "region": "japan",
+    "id": "jp-omamori",
+    "seed": 42,
+    "shapeTraits": {
+      "jawWidth": 1.08,
+      "legLength": 0.9433,
+      "eyeSize": 1.1629,
+      "noseSize": 0.8163,
+      "noseWidth": 1.0065,
+      "socketDepth": 1.4891
+    },
+    "score": 55
+  },
+  {
+    "region": "japan",
+    "id": "jp-omamori",
+    "seed": 4294967295,
+    "shapeTraits": {
+      "jawWidth": 0.9846,
+      "legLength": 0.9702,
+      "eyeSize": 0.926,
+      "noseSize": 1.1729,
+      "noseWidth": 0.949,
+      "socketDepth": 1.3022
+    },
+    "score": 38
+  },
+  {
+    "region": "japan",
+    "id": "jp-bath-female",
+    "seed": 0,
+    "shapeTraits": {
+      "jawWidth": 0.8985,
+      "legLength": 1.0294,
+      "eyeSize": 1.1303,
+      "noseSize": 0.8222,
+      "noseWidth": 0.9122,
+      "socketDepth": 1.0854
+    },
+    "score": 74
+  },
+  {
+    "region": "japan",
+    "id": "jp-bath-female",
+    "seed": 42,
+    "shapeTraits": {
+      "jawWidth": 1.0721,
+      "legLength": 1.0129,
+      "eyeSize": 0.8888,
+      "noseSize": 0.8308,
+      "noseWidth": 1.0389,
+      "socketDepth": 1.1027
+    },
+    "score": 45
+  },
+  {
+    "region": "japan",
+    "id": "jp-bath-female",
+    "seed": 4294967295,
+    "shapeTraits": {
+      "jawWidth": 1.0366,
+      "legLength": 0.9919,
+      "eyeSize": 0.9901,
+      "noseSize": 1.1408,
+      "noseWidth": 0.8742,
+      "socketDepth": 1.2571
+    },
+    "score": 45
+  },
+  {
+    "region": "china",
+    "id": "jp-omamori",
+    "seed": 0,
+    "shapeTraits": {
+      "jawWidth": 1.0585,
+      "legLength": 1.0062,
+      "eyeSize": 1.1343,
+      "noseSize": 1.1609,
+      "noseWidth": 0.8598,
+      "socketDepth": 1.4857
+    },
+    "score": 55
+  },
+  {
+    "region": "china",
+    "id": "jp-omamori",
+    "seed": 42,
+    "shapeTraits": {
+      "jawWidth": 0.9193,
+      "legLength": 1.0407,
+      "eyeSize": 0.9299,
+      "noseSize": 0.8235,
+      "noseWidth": 1.0174,
+      "socketDepth": 1.2626
+    },
+    "score": 64
+  },
+  {
+    "region": "china",
+    "id": "jp-omamori",
+    "seed": 4294967295,
+    "shapeTraits": {
+      "jawWidth": 0.8556,
+      "legLength": 1.0554,
+      "eyeSize": 0.862,
+      "noseSize": 1.1247,
+      "noseWidth": 0.933,
+      "socketDepth": 0.7694
+    },
+    "score": 49
+  },
+  {
+    "region": "china",
+    "id": "jp-bath-female",
+    "seed": 0,
+    "shapeTraits": {
+      "jawWidth": 1.0665,
+      "legLength": 1.0037,
+      "eyeSize": 1.1344,
+      "noseSize": 0.8688,
+      "noseWidth": 0.8296,
+      "socketDepth": 1.3377
+    },
+    "score": 66
+  },
+  {
+    "region": "china",
+    "id": "jp-bath-female",
+    "seed": 42,
+    "shapeTraits": {
+      "jawWidth": 1.0988,
+      "legLength": 0.9841,
+      "eyeSize": 1.0377,
+      "noseSize": 0.8466,
+      "noseWidth": 1.0287,
+      "socketDepth": 1.3826
+    },
+    "score": 50
+  },
+  {
+    "region": "china",
+    "id": "jp-bath-female",
+    "seed": 4294967295,
+    "shapeTraits": {
+      "jawWidth": 0.9305,
+      "legLength": 0.9513,
+      "eyeSize": 1.093,
+      "noseSize": 0.8158,
+      "noseWidth": 0.8429,
+      "socketDepth": 1.0495
+    },
+    "score": 62
+  },
+  {
+    "region": "egypt",
+    "id": "jp-omamori",
+    "seed": 0,
+    "shapeTraits": {
+      "jawWidth": 1.1119,
+      "legLength": 1.0343,
+      "eyeSize": 0.8858,
+      "noseSize": 0.9778,
+      "noseWidth": 1.1157,
+      "socketDepth": 1.095
+    },
+    "score": 36
+  },
+  {
+    "region": "egypt",
+    "id": "jp-omamori",
+    "seed": 42,
+    "shapeTraits": {
+      "jawWidth": 1.0488,
+      "legLength": 1.0229,
+      "eyeSize": 0.9634,
+      "noseSize": 1.0989,
+      "noseWidth": 0.8519,
+      "socketDepth": 1.2505
+    },
+    "score": 50
+  },
+  {
+    "region": "egypt",
+    "id": "jp-omamori",
+    "seed": 4294967295,
+    "shapeTraits": {
+      "jawWidth": 1.0367,
+      "legLength": 0.9851,
+      "eyeSize": 0.8679,
+      "noseSize": 0.8099,
+      "noseWidth": 0.8132,
+      "socketDepth": 0.9182
+    },
+    "score": 50
+  },
+  {
+    "region": "egypt",
+    "id": "jp-bath-female",
+    "seed": 0,
+    "shapeTraits": {
+      "jawWidth": 1.0838,
+      "legLength": 1.0109,
+      "eyeSize": 1.0774,
+      "noseSize": 0.925,
+      "noseWidth": 1.0022,
+      "socketDepth": 0.9623
+    },
+    "score": 47
+  },
+  {
+    "region": "egypt",
+    "id": "jp-bath-female",
+    "seed": 42,
+    "shapeTraits": {
+      "jawWidth": 1.0838,
+      "legLength": 0.9877,
+      "eyeSize": 1.1332,
+      "noseSize": 1.0942,
+      "noseWidth": 1.0797,
+      "socketDepth": 0.684
+    },
+    "score": 31
+  },
+  {
+    "region": "egypt",
+    "id": "jp-bath-female",
+    "seed": 4294967295,
+    "shapeTraits": {
+      "jawWidth": 0.9203,
+      "legLength": 0.9985,
+      "eyeSize": 1.1036,
+      "noseSize": 0.8088,
+      "noseWidth": 0.8142,
+      "socketDepth": 1.6266
+    },
+    "score": 81
+  },
+  {
+    "region": "france",
+    "id": "jp-omamori",
+    "seed": 0,
+    "shapeTraits": {
+      "jawWidth": 0.9254,
+      "legLength": 0.9915,
+      "eyeSize": 0.8203,
+      "noseSize": 1.0758,
+      "noseWidth": 0.9359,
+      "socketDepth": 1.6137
+    },
+    "score": 50
+  },
+  {
+    "region": "france",
+    "id": "jp-omamori",
+    "seed": 42,
+    "shapeTraits": {
+      "jawWidth": 1.1148,
+      "legLength": 1.0231,
+      "eyeSize": 0.8995,
+      "noseSize": 0.8442,
+      "noseWidth": 1.1162,
+      "socketDepth": 1.1729
+    },
+    "score": 42
+  },
+  {
+    "region": "france",
+    "id": "jp-omamori",
+    "seed": 4294967295,
+    "shapeTraits": {
+      "jawWidth": 1.0388,
+      "legLength": 1.0028,
+      "eyeSize": 0.9522,
+      "noseSize": 1.1564,
+      "noseWidth": 0.9957,
+      "socketDepth": 1.0662
+    },
+    "score": 35
+  },
+  {
+    "region": "france",
+    "id": "jp-bath-female",
+    "seed": 0,
+    "shapeTraits": {
+      "jawWidth": 0.8572,
+      "legLength": 0.9645,
+      "eyeSize": 0.8225,
+      "noseSize": 0.9113,
+      "noseWidth": 0.8828,
+      "socketDepth": 0.7139
+    },
+    "score": 45
+  },
+  {
+    "region": "france",
+    "id": "jp-bath-female",
+    "seed": 42,
+    "shapeTraits": {
+      "jawWidth": 0.8616,
+      "legLength": 0.9902,
+      "eyeSize": 0.9349,
+      "noseSize": 1.179,
+      "noseWidth": 0.9041,
+      "socketDepth": 1.527
+    },
+    "score": 54
+  },
+  {
+    "region": "france",
+    "id": "jp-bath-female",
+    "seed": 4294967295,
+    "shapeTraits": {
+      "jawWidth": 0.9551,
+      "legLength": 0.9553,
+      "eyeSize": 0.9565,
+      "noseSize": 1.1239,
+      "noseWidth": 0.9301,
+      "socketDepth": 0.684
+    },
+    "score": 32
+  }
+]

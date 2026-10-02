@@ -1,5 +1,5 @@
 {
-  "release": "R12.1-public",
+  "release": "R13-public",
   "date": "2026-10-02",
   "baseGameCommit": "0fe52232a8632029081e99a3f4c323a7e528ac04",
   "assets": {
@@ -13,7 +13,8 @@
     "game/automatic-doors.js": "/assets/automatic-doors.67d92eca26323e30.js",
     "game/stable-shadows.js": "/assets/stable-shadows.20c3f208ed1e1e9e.js",
     "game/night-lighting.js": "/assets/night-lighting.41621174f39ac4d8.js",
-    "game/appearance.js": "/assets/appearance.28c01f6984c174b3.js",
+    "game/character-traits.js": "/assets/character-traits.c581cc6d4bbbc140.js",
+    "game/appearance.js": "/assets/appearance.6931d01064bfc906.js",
     "game/globe.js": "/assets/globe.24e1c856bb2ded7c.js",
     "game/china-palace.js": "/assets/china-palace.d3c7487b889852b9.js",
     "game/regions-east.js": "/assets/regions-east.bfb229556930fd7e.js",
@@ -24,11 +25,11 @@
     "game/japan-bathhouse.js": "/assets/japan-bathhouse.7ff292f82dc7f6ea.js",
     "game/regions-west.js": "/assets/regions-west.f92a0a76970763ab.js",
     "game/egypt-temple.js": "/assets/egypt-temple.5da29792912fb582.js",
-    "game/approved-surfaces.js": "/assets/approved-surfaces.40188f966de79849.js",
+    "game/approved-surfaces.js": "/assets/approved-surfaces.2409d7b0b49385bb.js",
     "game/character-props.js": "/assets/character-props.deb24f9b65d5e60a.js",
-    "game/characters.js": "/assets/characters.7df9128b4549aa73.js",
-    "game/main.js": "/assets/main.58df39b6fcb2b8db.js",
-    "game/game.css": "/assets/game.e08a3fb82066960f.css",
+    "game/characters.js": "/assets/characters.f9f346d4a465b0a4.js",
+    "game/main.js": "/assets/main.4c6a4a5e5e1264e9.js",
+    "game/game.css": "/assets/game.2aa1d6218d7148cd.css",
     "vendor/three/build/three.core.js": "/assets/three.core.9edde002b066a9a0.js",
     "vendor/three/build/three.module.js": "/assets/three.module.d8c0a97fa13a785e.js"
   }

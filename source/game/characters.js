@@ -4,6 +4,7 @@
  */
 import * as THREE from 'three';
 import {createApprovedSurfaces} from './approved-surfaces.js';
+import {normalizeShapeTraits,hasShapeTraits,shapeHeight} from './character-traits.js';
 import {BODY_PRESETS,HAIR_STYLES,WARDROBE_PRESETS,ROLE_WARDROBE_PRESETS} from './appearance.js';
 import {createHandProps,disposeHandProps} from './character-props.js';
 const TAU=Math.PI*2,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),mix=(a,b,t)=>a+(b-a)*t;
@@ -46,18 +47,18 @@ function weights(name,x,y,side){
  if(/trouser|bare-leg/.test(name))return legWeights(x,y,side);
  return y>=.965?torsoWeights(y):legWeights(x,y).map(([i,w])=>[i===11||i===12?16:i===14||i===15?17:i,w]);
 }
-function mergeSurfaces(source){const buckets=[{p:[],n:[],c:[],i:[],si:[],sw:[],ranges:[]},{p:[],n:[],c:[],i:[],si:[],sw:[],ranges:[]}];source.updateMatrixWorld(true);const p=V(),n=V(),nm=new THREE.Matrix3();
+function mergeSurfaces(source){const buckets=[{p:[],n:[],c:[],i:[],si:[],sw:[],sy:[],ranges:[]},{p:[],n:[],c:[],i:[],si:[],sw:[],sy:[],ranges:[]}];source.updateMatrixWorld(true);const p=V(),n=V(),nm=new THREE.Matrix3();
  source.traverse(m=>{if(!m.isMesh)return;const b=buckets[m.userData.softSkin?1:0],offset=b.p.length/3,g=m.geometry,pos=g.attributes.position,nor=g.attributes.normal,s=sideOf(m.name,g);nm.getNormalMatrix(m.matrixWorld);b.ranges.push({name:m.name,start:offset,count:pos.count,indexStart:b.i.length,indexCount:g.index?.count??pos.count});
- for(let i=0;i<pos.count;i++){p.fromBufferAttribute(pos,i).applyMatrix4(m.matrixWorld);n.fromBufferAttribute(nor,i).applyMatrix3(nm).normalize();b.p.push(p.x,p.y,p.z);b.n.push(n.x,n.y,n.z);b.c.push(m.material.color.r,m.material.color.g,m.material.color.b);const w=weights(m.name,p.x,p.y,s);for(let j=0;j<4;j++){b.si.push(w[j]?.[0]||0);b.sw.push(w[j]?.[1]||0);}}
+ for(let i=0;i<pos.count;i++){p.fromBufferAttribute(pos,i).applyMatrix4(m.matrixWorld);n.fromBufferAttribute(nor,i).applyMatrix3(nm).normalize();b.p.push(p.x,p.y,p.z);b.n.push(n.x,n.y,n.z);b.c.push(m.material.color.r,m.material.color.g,m.material.color.b);const sourceY=g.attributes.sourceY?.getX(i)??p.y;b.sy.push(sourceY);const w=weights(m.name,p.x,sourceY,s);for(let j=0;j<4;j++){b.si.push(w[j]?.[0]||0);b.sw.push(w[j]?.[1]||0);}}
  const idx=g.index;for(let i=0;i<(idx?.count??pos.count);i++)b.i.push(offset+(idx?idx.getX(i):i));g.dispose();});
- return buckets.map((b,k)=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(b.p,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(b.n,3));g.setAttribute('color',new THREE.Float32BufferAttribute(b.c,3));g.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(b.si,4));g.setAttribute('skinWeight',new THREE.Float32BufferAttribute(b.sw,4));g.setIndex(b.i);g.computeBoundingBox();g.computeBoundingSphere();g.userData={characterShared:true,section:k?'skin':'cloth',sourceRanges:b.ranges};return g;});
+ return buckets.map((b,k)=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(b.p,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(b.n,3));g.setAttribute('color',new THREE.Float32BufferAttribute(b.c,3));g.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(b.si,4));g.setAttribute('skinWeight',new THREE.Float32BufferAttribute(b.sw,4));if(source.userData.shapeLegs)g.setAttribute('sourceY',new THREE.Float32BufferAttribute(b.sy,1));g.setIndex(b.i);g.computeBoundingBox();g.computeBoundingSphere();g.userData={characterShared:true,section:k?'skin':'cloth',sourceRanges:b.ranges};return g;});
 }
 function getTemplate(opts){const key=JSON.stringify(opts);let t=cache.get(key);if(t){t.refs++;t.last=performance.now();return t;}
  if(cache.size>=CACHE_LIMIT){const free=[...cache.values()].filter(x=>x.refs===0).sort((a,b)=>a.last-b.last);if(free.length){cache.delete(free[0].key);free[0].geometry.forEach(g=>g.dispose());}}
- const source=createApprovedSurfaces(opts),geometry=mergeSurfaces(source);const b=new THREE.Box3();for(const g of geometry)b.union(g.boundingBox);t={key,geometry,height:b.max.y,refs:1,last:performance.now(),cached:cache.size<CACHE_LIMIT};if(t.cached)cache.set(key,t);return t;
+ const source=createApprovedSurfaces(opts);source.userData.shapeLegs=opts.shapeTraits?.legLength!==undefined&&opts.shapeTraits.legLength!==1;const geometry=mergeSurfaces(source);const b=new THREE.Box3();for(const g of geometry)b.union(g.boundingBox);t={key,geometry,height:b.max.y,refs:1,last:performance.now(),cached:cache.size<CACHE_LIMIT};if(t.cached)cache.set(key,t);return t;
 }
 function releaseTemplate(t){t.refs=Math.max(0,t.refs-1);t.last=performance.now();if(!t.cached&&t.refs===0)t.geometry.forEach(g=>g.dispose());}
-function buildSkeleton(root){const bones=JOINTS.map(([name])=>{const b=new THREE.Bone();b.name=name;return b;});JOINTS.forEach(([,parent],i)=>{bones[i].position.copy(REST[i]);if(parent>=0){bones[i].position.sub(REST[parent]);bones[parent].add(bones[i]);}else root.add(bones[i]);});root.updateMatrixWorld(true);const skeleton=new THREE.Skeleton(bones);return {bones,skeleton};}
+function buildSkeleton(root,rest=REST){const bones=JOINTS.map(([name])=>{const b=new THREE.Bone();b.name=name;return b;});JOINTS.forEach(([,parent],i)=>{bones[i].position.copy(rest[i]);if(parent>=0){bones[i].position.sub(rest[parent]);bones[parent].add(bones[i]);}else root.add(bones[i]);});root.updateMatrixWorld(true);const skeleton=new THREE.Skeleton(bones);return {bones,skeleton};}
 const clonePoint=p=>p.toArray().map(n=>+n.toFixed(5));
 function locomotionFor(wardrobe,gaitPreset,scale){
  const restricted=/yukata|kimono/.test(wardrobe),free=/trouser|waistcoat|frock|kilt/.test(wardrobe),long=/gown|ruqun|long-robe/.test(wardrobe);
@@ -68,7 +69,8 @@ function locomotionFor(wardrobe,gaitPreset,scale){
  const walkSpeed=(restricted?.95:free?1.35:long?1.20:1.06)*temper*scale*1.65;
  return Object.freeze({walkSpeed,hurrySpeed:walkSpeed*1.38,stepLength,strideLength:stepLength*2,label:restricted?'measured garment-limited steps':free?'relaxed open stride':'easy draped stride',lift:(restricted?.065:.090)*scale,armSwing:(restricted?.065:free?.135:.105)*temper});
 }
-export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,accent=0xe7cab0,style='casual',culture=null,variant=0,bodyPreset=null,hairStyle=null,wardrobePreset=null,locomotionWardrobePreset=null,gaitPreset=1,scale=1,eyeColor=0x594b3f,receiveShadow=false}={}){
+export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,accent=0xe7cab0,style='casual',culture=null,variant=0,bodyPreset=null,hairStyle=null,wardrobePreset=null,locomotionWardrobePreset=null,gaitPreset=1,scale=1,eyeColor=0x594b3f,receiveShadow=false,shapeTraits=null}={}){
+ shapeTraits=normalizeShapeTraits(shapeTraits);const shaped=hasShapeTraits(shapeTraits),rest=shapeTraits.legLength===1?REST:REST.map(p=>V(p.x,shapeHeight(p.y,shapeTraits.legLength),p.z));
  bodyPreset=BODY_PRESETS.includes(bodyPreset)?bodyPreset:BODY_PRESETS[typeof variant==='string'?(/masculine|male/.test(variant)?1:0):Math.abs(variant|0)%4];
  const masc=bodyPreset.startsWith('masculine');hairStyle=HAIR_STYLES.includes(hairStyle)?hairStyle:(masc?'swept-short':'chin-bob');
  culture=['japan','china','egypt','france'].includes(culture)?culture:null;
@@ -77,25 +79,26 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
  const locomotion=locomotionFor(wardrobeOptions.includes(locomotionWardrobePreset)?locomotionWardrobePreset:wardrobePreset,gaitPreset,scale);
  const root=new THREE.Group();root.name='approved-human-r10';root.scale.set(masc?scale*1.085:scale,masc?scale*1.035:scale,masc?scale*1.065:scale);
  const opts={eyeColor:new THREE.Color(eyeColor).getHex(),skin:new THREE.Color(skin).getHex(),hair:new THREE.Color(hair).getHex(),clothes:new THREE.Color(clothes).getHex(),accent:new THREE.Color(accent).getHex(),style,culture,masc,bodyPreset,hairStyle,wardrobePreset};
+ if(shaped)opts.shapeTraits=shapeTraits;
  const template=getTemplate(opts),height=template.height*root.scale.y;
- const rig=new THREE.Group();rig.name='articulated-rig';root.add(rig);const {bones,skeleton}=buildSkeleton(rig);
+ const rig=new THREE.Group();rig.name='articulated-rig';root.add(rig);const {bones,skeleton}=buildSkeleton(rig,rest);
  const meshes=template.geometry.map((g,i)=>{const mesh=new THREE.SkinnedMesh(g,i?skinMaterial:clothMaterial);mesh.name=i?'approved-face-skin':'continuous-tailored-cloth';mesh.castShadow=true;mesh.receiveShadow=receiveShadow;mesh.frustumCulled=false;rig.add(mesh);mesh.bind(skeleton);return mesh;});
  const props=createHandProps(THREE);props.tools.cup.position.set(-.078,-.025,0);props.tools.brush.position.y=-.015;bones[6].add(props.left);bones[9].add(props.right);
- const posedP=REST.map(p=>p.clone()),posedQ=REST.map(()=>new THREE.Quaternion()),pose=new THREE.Group();
+ const posedP=rest.map(p=>p.clone()),posedQ=rest.map(()=>new THREE.Quaternion()),pose=new THREE.Group();
  const tmp=V(),tmp2=V(),dir=V(),pole=V(),restDir=V(),identity=new THREE.Quaternion(),invQ=new THREE.Quaternion(),torsoQ=new THREE.Quaternion(),headQ=new THREE.Quaternion(),inverseRoot=new THREE.Matrix4();
  const previousRoot=V(),velocity=V(),rootWorld=V(),forwardWorld=V(),rightWorld=V(),footProbe=V(),footBack=V(),footFront=V(),footRight=V(),footLeft=V(),footOffset=V(),footNormal=V(),footUp=V(0,1,0),footOrient=[new THREE.Quaternion(),new THREE.Quaternion()],footAnchors=[V(),V()],swingStarts=[V(),V()],lastFootWorld=[V(),V()],lastSupport=[true,false],footTargets=[V(),V()];
- let supportCorrection=0,poseMinY=0,poseMaxY=0;const lieOffsets={back:0,head:0,heel:0};
+ let supportCorrection=0,poseMinY=0,poseMaxY=0;const lieOffsets={back:0,spine:0,head:0,heel:0};
  let lastTime=null,wasWalking=false,gaitPhase=0,disposed=false,initializedFeet=false,currentAction=null,visualFloorOffset=0,previousYaw=0;
  const metrics={height,labelHeight:height+.16,headHeight:1.61*root.scale.y,action:null,seated:false,grounded:true,feet:[[],[]],hands:[[],[]]};
- root.userData={characterR9:true,characterR10:true,locomotion,appearance:{skin:opts.skin,hair:opts.hair,clothes:opts.clothes,accent:opts.accent,eyeColor:opts.eyeColor,culture,variant,style,bodyPreset,hairStyle,wardrobePreset,gaitPreset},body:rig,head:bones[3],arms:[bones[4],bones[7]],forearms:[bones[5],bones[8]],hands:[bones[6],bones[9]],legs:[bones[10],bones[13]],knees:[bones[11],bones[14]],feet:[bones[12],bones[15]],tools:props.tools,poseQA:metrics,labelHeight:metrics.labelHeight,characterShared:true};
- function orient(i,j,p){restDir.copy(REST[j]).sub(REST[i]).normalize();dir.copy(p).sub(posedP[i]).normalize();posedQ[i].setFromUnitVectors(restDir,dir);}
+ root.userData={characterR9:true,characterR10:true,locomotion,appearance:{skin:opts.skin,hair:opts.hair,clothes:opts.clothes,accent:opts.accent,eyeColor:opts.eyeColor,culture,variant,style,bodyPreset,hairStyle,wardrobePreset,gaitPreset,shapeTraits:{...shapeTraits}},body:rig,head:bones[3],arms:[bones[4],bones[7]],forearms:[bones[5],bones[8]],hands:[bones[6],bones[9]],legs:[bones[10],bones[13]],knees:[bones[11],bones[14]],feet:[bones[12],bones[15]],tools:props.tools,poseQA:metrics,labelHeight:metrics.labelHeight,characterShared:true};
+ function orient(i,j,p){restDir.copy(rest[j]).sub(rest[i]).normalize();dir.copy(p).sub(posedP[i]).normalize();posedQ[i].setFromUnitVectors(restDir,dir);}
  function setTorso(hipY,lean=0,sway=0){
   posedP[0].set(0,hipY,-.01);torsoQ.setFromEuler(new THREE.Euler(lean,0,sway));posedQ[0].copy(torsoQ);
-  for(const i of [1,2,3,4,7,10,13]){posedP[i].copy(REST[i]).sub(REST[0]).applyQuaternion(torsoQ).add(posedP[0]);posedQ[i].copy(torsoQ);}
+  for(const i of [1,2,3,4,7,10,13]){posedP[i].copy(rest[i]).sub(rest[0]).applyQuaternion(torsoQ).add(posedP[0]);posedQ[i].copy(torsoQ);}
   headQ.setFromEuler(new THREE.Euler(0,0,0));
  }
  function solveLimb(a,b,c,target,poleVector){
-  const upper=REST[a].distanceTo(REST[b]),lower=REST[b].distanceTo(REST[c]);dir.copy(target).sub(posedP[a]);let distance=clamp(dir.length(),Math.abs(upper-lower)+.002,upper+lower-.0005);dir.normalize();const along=(upper*upper-lower*lower+distance*distance)/(2*distance),high=Math.sqrt(Math.max(0,upper*upper-along*along));
+  const upper=rest[a].distanceTo(rest[b]),lower=rest[b].distanceTo(rest[c]);dir.copy(target).sub(posedP[a]);let distance=clamp(dir.length(),Math.abs(upper-lower)+.002,upper+lower-.0005);dir.normalize();const along=(upper*upper-lower*lower+distance*distance)/(2*distance),high=Math.sqrt(Math.max(0,upper*upper-along*along));
   pole.copy(poleVector).addScaledVector(dir,-poleVector.dot(dir));if(pole.lengthSq()<.0001)pole.set(0,0,1);pole.normalize();
   posedP[c].copy(posedP[a]).addScaledVector(dir,distance);posedP[b].copy(posedP[a]).addScaledVector(dir,along).addScaledVector(pole,high);
   orient(a,b,posedP[b]);orient(b,c,posedP[c]);posedQ[c].copy(posedQ[b]);
@@ -114,16 +117,56 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   const result={min:Infinity,max:-Infinity,hip:Infinity,back:Infinity,head:Infinity,heel:Infinity,points:{}};root.updateMatrixWorld(true);skeleton.update();inverseRoot.copy(root.matrixWorld).invert();
   for(const mesh of meshes)for(const range of mesh.geometry.userData.sourceRanges||[]){
    const n=range.name,body=/body|bodice|skirt|trouser|tunic|kilt|robe/.test(n)&&!/bow|tie|sash|belt|fold|seam|border|panel|sleeve/.test(n),head=/continuous-head/.test(n),heel=/footwear|sole-|loafer/.test(n),attr=mesh.geometry.attributes.position;
-   for(let i=range.start;i<range.start+range.count;i++){mesh.getVertexPosition(i,tmp).applyMatrix4(mesh.matrixWorld).applyMatrix4(inverseRoot);const y=tmp.y,sy=attr.getY(i);result.min=Math.min(result.min,y);result.max=Math.max(result.max,y);
+   for(let i=range.start;i<range.start+range.count;i++){mesh.getVertexPosition(i,tmp).applyMatrix4(mesh.matrixWorld).applyMatrix4(inverseRoot);const y=tmp.y,sy=mesh.geometry.attributes.sourceY?.getX(i)??attr.getY(i);result.min=Math.min(result.min,y);result.max=Math.max(result.max,y);
     if(body&&attr.getZ(i)<0&&Math.abs(attr.getX(i))<.12){if(sy>.87&&sy<1.03&&y<result.hip){result.hip=y;result.points.hip=tmp.clone();}if(sy>1.18&&sy<1.33&&y<result.back){result.back=y;result.points.back=tmp.clone();}}
     if(head&&attr.getZ(i)<0&&y<result.head){result.head=y;result.points.head=tmp.clone();}if(heel&&y<result.heel){result.heel=y;result.points.heel=tmp.clone();}
    }
   }return result;
  }
+ function fitShapedLie(context,supportY){
+  // Leg proportions move the back across quilt/pillow transitions. Fit the
+  // lower and upper back independently instead of treating it as one plane.
+  // All samples retain their original anatomical source Y and exact skin weights.
+  const zones=['hip','lowerBack','upperBack','head','heel'];
+  const influence=(id)=>id===1?1:[2,4,5,6,7,8,9].includes(id)?2:id===3?3:[12,15].includes(id)?4:-1;
+  let correction=0,best=null;
+  for(let pass=0;pass<12;pass++){
+   const samples={};root.updateMatrixWorld(true);skeleton.update();inverseRoot.copy(root.matrixWorld).invert();
+   for(const mesh of meshes)for(const range of mesh.geometry.userData.sourceRanges||[]){
+    const name=range.name,body=/body|bodice|skirt|trouser|tunic|kilt|robe/.test(name)&&!/bow|tie|sash|belt|fold|seam|border|panel|sleeve/.test(name),head=/continuous-head/.test(name),heel=/footwear|sole-|loafer/.test(name),attr=mesh.geometry.attributes.position,sy=mesh.geometry.attributes.sourceY,si=mesh.geometry.attributes.skinIndex,sw=mesh.geometry.attributes.skinWeight;
+    if(!body&&!head&&!heel)continue;
+    for(let i=range.start;i<range.start+range.count;i++){
+     const y=sy?.getX(i)??attr.getY(i);let zone=null;
+     if(body&&attr.getZ(i)<0&&Math.abs(attr.getX(i))<.12)zone=y>.87&&y<1.03?'hip':y>1.18&&y<1.25?'lowerBack':y>=1.25&&y<1.33?'upperBack':null;
+     if(head&&attr.getZ(i)<0)zone='head';if(heel)zone='heel';if(!zone)continue;
+     mesh.getVertexPosition(i,tmp).applyMatrix4(mesh.matrixWorld).applyMatrix4(inverseRoot);
+     if(samples[zone]&&samples[zone].point.y<=tmp.y)continue;
+     const row=[1,0,0,0,0];for(let k=0;k<4;k++){const id=si.array[i*4+k],weight=sw.array[i*4+k],column=influence(id);if(column>0)row[column]+=weight;else if([11,14,16,17].includes(id))row[4]+=weight*.4;}
+     samples[zone]={point:tmp.clone(),row};
+    }
+   }
+   if(zones.some(z=>!samples[z]))break;
+   const matrix=zones.map(zone=>{const sample=samples[zone];tmp2.copy(sample.point).applyMatrix4(root.matrixWorld);const part=zone.includes('Back')?'back':zone,target=context.lieSurfaceHeightAt?.(tmp2.x,tmp2.z)??context.lieSupport[part]??supportY;return [...sample.row,(target-supportY+.004)/root.scale.y-sample.point.y-correction];});
+   const residual=Math.max(...matrix.map(row=>Math.abs(row[5])));
+   if(!best||residual<best.residual)best={residual,correction,offsets:{...lieOffsets}};
+   if(residual<.001)break;
+   // Five tiny equations: support translation, spine, chest, head and heels.
+   // Pivoting avoids dividing by a weak mixed skin influence.
+   let singular=false;for(let j=0;j<5;j++){let pivot=j;for(let k=j+1;k<5;k++)if(Math.abs(matrix[k][j])>Math.abs(matrix[pivot][j]))pivot=k;[matrix[j],matrix[pivot]]=[matrix[pivot],matrix[j]];const d=matrix[j][j];if(Math.abs(d)<1e-5){singular=true;break;}for(let k=j;k<6;k++)matrix[j][k]/=d;for(let r=0;r<5;r++)if(r!==j){const f=matrix[r][j];for(let k=j;k<6;k++)matrix[r][k]-=f*matrix[j][k];}}
+   if(singular)break;// Damped updates prevent alternate minimum vertices from oscillating
+   // across a folded quilt or pillow seam.
+   const change=matrix.map(row=>row[5]*(pass===0?1:.45));correction+=change[0];for(const [key,j]of [['spine',1],['back',2],['head',3],['heel',4]])lieOffsets[key]=clamp(lieOffsets[key]+change[j],-.24,.24);
+   for(let i=0;i<posedP.length;i++){posedP[i].copy(rest[i]);posedQ[i].identity();}settleLieJoints();applyPose();
+   if(Math.max(...change.map(Math.abs))<.00002)break;
+  }
+  if(best){correction=best.correction;Object.assign(lieOffsets,best.offsets);for(let i=0;i<posedP.length;i++){posedP[i].copy(rest[i]);posedQ[i].identity();}settleLieJoints();applyPose();}
+  const skin=measureLieSkin();supportCorrection=correction;poseMinY=skin.min;poseMaxY=skin.max;metrics.lieContact={};
+  for(const part of ['back','hip','head','heel']){tmp2.copy(skin.points[part]).applyMatrix4(root.matrixWorld);const surface=context.lieSurfaceHeightAt?.(tmp2.x,tmp2.z)??context.lieSupport[part]??supportY,body=supportY+(skin[part]+correction)*root.scale.y;metrics.lieContact[part]={surface,body,gap:body-surface};}
+ }
  function settleLieJoints(){
   // Small skeletal settling, retaining every original face/outfit vertex. The
   // spine rests across the pillow/quilt transition; heels no longer levitate.
-  posedP[1].z+=lieOffsets.back*.5;for(const i of[2,4,5,6,7,8,9])posedP[i].z+=lieOffsets.back;posedP[3].z+=lieOffsets.head;
+  posedP[1].z+=shapeTraits.legLength===1?lieOffsets.back*.5:lieOffsets.spine;for(const i of[2,4,5,6,7,8,9])posedP[i].z+=lieOffsets.back;posedP[3].z+=lieOffsets.head;
   for(const i of[12,15])posedP[i].z+=lieOffsets.heel;for(const i of[11,14,16,17])posedP[i].z+=lieOffsets.heel*.4;
  }
  function resetTools(){props.tools.knife.rotation.set(0,0,0);for(const prop of Object.values(props.tools))prop.visible=false;props.left.rotation.set(0,0,0);props.right.rotation.set(0,0,0);}
@@ -153,7 +196,10 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   // Only pelvis/upper cloth settle; IK ankle and absolute wrist targets stay unchanged.
   const seatedDrop=action==='kotatsu'&&culture==='japan'?Math.min(.04,visualFloorOffset/root.scale.y*.5):0;
   const chairHeight=Number.isFinite(context?.seatHeight)?clamp(context.seatHeight/root.scale.y,.35,1):.60;
-  setTorso(action==='bathe'?(context?.bathHipHeight??.32):action==='chair-sit'?chairHeight+.14:action==='kotatsu'?.417-seatedDrop:walking?.965+bob:.965,action==='calligraphy'?.40:/^(knead|bread|cook|sushi|bake|tidy)$/.test(action||'')?.13:0,walking?Math.sin(t)*.012:0);
+  setTorso(action==='bathe'?(context?.bathHipHeight??.32):action==='chair-sit'?chairHeight+.14:action==='kotatsu'?.417-seatedDrop:walking?rest[0].y+bob:rest[0].y,action==='calligraphy'?.40:/^(knead|bread|cook|sushi|bake|tidy)$/.test(action||'')?.13:0,walking?Math.sin(t)*.012:0);
+  // A shorter thigh sits slightly forward on the same cushion so its knee
+  // clears the seat edge; the feet retain their exact floor targets.
+  if(action==='chair-sit'&&shapeTraits.legLength<1)for(const i of [0,1,2,3,4,7,10,13])posedP[i].z+=(1-shapeTraits.legLength)*1.2;
   let unevenSupport=false;
   if(action!=='kotatsu'&&action!=='chair-sit'&&action!=='bathe'){
    for(let s=0;s<2;s++){
@@ -219,7 +265,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    // A rear planted foot may still be on a lower tread after the root reaches a
    // landing. Lower the pelvis to both legs' reachable height instead of sliding it.
    let hipLimit=posedP[0].y;
-   for(let s=0;s<2;s++){const ids=s?[13,14,15]:[10,11,12],target=footTargets[s],reach=REST[ids[0]].distanceTo(REST[ids[1]])+REST[ids[1]].distanceTo(REST[ids[2]])-.003,horizontal=(target.x-posedP[ids[0]].x)**2+(target.z-posedP[ids[0]].z)**2;hipLimit=Math.min(hipLimit,target.y+Math.sqrt(Math.max(.01,reach*reach-horizontal)));}
+   for(let s=0;s<2;s++){const ids=s?[13,14,15]:[10,11,12],target=footTargets[s],reach=rest[ids[0]].distanceTo(rest[ids[1]])+rest[ids[1]].distanceTo(rest[ids[2]])-.003,horizontal=(target.x-posedP[ids[0]].x)**2+(target.z-posedP[ids[0]].z)**2;hipLimit=Math.min(hipLimit,target.y+Math.sqrt(Math.max(.01,reach*reach-horizontal)));}
    const hipAdjust=Math.min(0,hipLimit-posedP[0].y);if(hipAdjust<0)for(const i of[0,1,2,3,4,7,10,13])posedP[i].y+=hipAdjust;
    for(let s=0;s<2;s++){foot(s,footTargets[s]);posedQ[s?15:12].copy(footOrient[s]);}
   }else if(action==='bathe'){
@@ -228,7 +274,8 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   }else if(action==='chair-sit'){
    // A raised seat retains planted soles and bends the knees forward. The
    // pelvis height is authored from the measured cushion, not a root teleport.
-   foot(0,tmp.set(-.11,.108,.40));foot(1,tmp.set(.11,.108,.40));
+   const seatFootZ=.40;
+   foot(0,tmp.set(-.11,.108,seatFootZ));foot(1,tmp.set(.11,.108,seatFootZ));
   }else{
    // Actual thighs, flexed knees and folded shins; the same continuous robe skins over them.
    foot(0,tmp.set(-.105,.108,-.13));foot(1,tmp.set(.105,.108,-.13));
@@ -236,7 +283,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   for(const [i,j] of [[16,11],[17,14]]){posedP[i].copy(posedP[j]);if(walking&&unevenSupport)posedP[i].y+=.12;else if(walking&&/gown|dress|hakama/.test(wardrobePreset))posedP[i].y+=.016;if(action!=='kotatsu'&&Math.abs(slope)>.01)posedP[i].y+=Math.abs(slope)*.085;if(action==='chair-sit')posedP[i].y+=.055;if(action==='kotatsu'||action==='bathe')posedP[i].y+=/gown|hakama/.test(wardrobePreset)?.098:.045;posedQ[i].copy(posedQ[j]);}
   initializedFeet=walking&&physical;
   const swing=walking?Math.sin(t)*locomotion.armSwing:0;
-  if(walking||action){reach(0,-.304,.926+(walking?-.03:0),.008+swing);reach(1,.304,.926+(walking?-.03:0),.008-swing);}else{for(const i of [4,5,6,7,8,9]){posedP[i].copy(REST[i]).sub(REST[0]).applyQuaternion(torsoQ).add(posedP[0]);posedQ[i].copy(torsoQ);}}
+  if(walking||action){reach(0,-.304,rest[6].y+(walking?-.03:0),.008+swing);reach(1,.304,rest[9].y+(walking?-.03:0),.008-swing);}else{for(const i of [4,5,6,7,8,9]){posedP[i].copy(rest[i]).sub(rest[0]).applyQuaternion(torsoQ).add(posedP[0]);posedQ[i].copy(torsoQ);}}
   let lookX=walking?.035:0,lookY=walking?0:Math.sin(time*.7)*.045;
   if(action==='bathe'){
    const hip=context?.bathHipHeight??.32;reach(0,-.22,hip+.29,.28);reach(1,.22,hip+.29+Math.sin(time*.7)*.006,.28);lookX=-.03;lookY=Math.sin(time*.35)*.025;
@@ -277,8 +324,8 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   if(action==='lie-rest'){
    // Supine, face upward, head toward the pillow (-local Z). Keep the original
    // body/face/garment surfaces; transform the rig rather than squashing them.
-   for(let i=0;i<posedP.length;i++){posedP[i].copy(REST[i]);posedQ[i].identity();}
-   if(poseChanged){lieOffsets.back=0;lieOffsets.head=0;lieOffsets.heel=0;}settleLieJoints();rig.rotation.x=-Math.PI/2;rig.position.set(0,0,context?.lieOffset??.70);
+   for(let i=0;i<posedP.length;i++){posedP[i].copy(rest[i]);posedQ[i].identity();}
+   if(poseChanged){lieOffsets.back=0;lieOffsets.spine=0;lieOffsets.head=0;lieOffsets.heel=0;}settleLieJoints();rig.rotation.x=-Math.PI/2;rig.position.set(0,0,context?.lieOffset??.70);
   }
   applyPose();
   if(mountedPose){
@@ -286,7 +333,9 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    if(poseChanged){
     // One bounded contact fit on activation; no geometry scan in the frame loop.
     rig.position.y=0;
-    if(action==='lie-rest'&&context?.lieSupport){
+    if(action==='lie-rest'&&context?.lieSupport&&shapeTraits.legLength!==1){
+     fitShapedLie(context,supportY);
+    }else if(action==='lie-rest'&&context?.lieSupport){
      let skin=measureLieSkin(),hipTarget=supportY,target={...context.lieSupport};
      // The same garment cut can place its posterior at a different point on a
      // folded quilt. Raycast those real contact points instead of guessing one plane.
@@ -294,7 +343,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
       for(const part of['hip','back','head','heel'])if(skin.points[part]&&context.lieSurfaceHeightAt){tmp2.copy(skin.points[part]).applyMatrix4(root.matrixWorld);target[part]=context.lieSurfaceHeightAt(tmp2.x,tmp2.z);}
       const hip=Number.isFinite(skin.hip)?skin.hip:skin.min;hipTarget=target.hip;supportCorrection=-hip+.004/root.scale.y;
       for(const part of['back','head','heel']){const delta=Number.isFinite(skin[part])?(target[part]-target.hip)/root.scale.y-(skin[part]-hip):0;lieOffsets[part]=clamp(lieOffsets[part]+delta,-.24,.24);}
-      for(let i=0;i<posedP.length;i++){posedP[i].copy(REST[i]);posedQ[i].identity();}settleLieJoints();applyPose();skin=measureLieSkin();
+      for(let i=0;i<posedP.length;i++){posedP[i].copy(rest[i]);posedQ[i].identity();}settleLieJoints();applyPose();skin=measureLieSkin();
      }
      supportCorrection=(hipTarget-supportY)/root.scale.y-(Number.isFinite(skin.hip)?skin.hip:skin.min)+.004/root.scale.y;poseMinY=skin.min;poseMaxY=skin.max;
      metrics.lieContact={};for(const part of['back','hip','head','heel'])metrics.lieContact[part]={surface:target[part],body:supportY+(skin[part]+supportCorrection)*root.scale.y,gap:supportY+(skin[part]+supportCorrection)*root.scale.y-target[part]};
