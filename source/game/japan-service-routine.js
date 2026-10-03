@@ -13,7 +13,7 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
  const host=byId.get('jp-welcome'),guest=byId.get('jp-balcony');
  const men=guest.root.userData.appearance.bodyPreset.startsWith('masculine');
  const cleaner=byId.get(men?'jp-onsen':'jp-women-onsen'),porter=byId.get(men?'jp-women-onsen':'jp-onsen');
- const actors=[host,guest,cleaner,porter],owned=new Set(actors),facilities=createFacilityQueue();
+ const actors=[host,guest,cleaner,porter],owned=new Set(actors),facilities=furniture.facilities||createFacilityQueue();
  const bath=furniture.items.find(i=>i.id===`japan-furniture-bath-${men?1:2}`);
  const bench=furniture.items.find(i=>i.kind==='seat'&&i.center[2]===7.55&&(men?i.center[0]<0:i.center[0]>0));
  if(!bath||!bench)return null;
@@ -28,7 +28,7 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
  const job=(actor,to,options={})=>({actor,to,duration:0,label:'稍作等候',...options});
  const tell=(n,text)=>{const label=n.label?.querySelector?.('small');if(label)label.textContent=text;};
  function outfit(preset){if(guest.root.userData.appearance.wardrobePreset!==preset)changeWardrobe(guest,{...visitorLook,wardrobePreset:preset});}
- function unmount(){if(!guest.serviceMount)return;guest.root.position.set(...guest.serviceMount.position);guest.serviceMount=null;}
+ function unmount(){for(const n of actors){if(!n.serviceMount)continue;n.root.position.set(...n.serviceMount.position);n.serviceMount=null;}}
  function release(){for(const n of actors){facilities.releaseActor(n.station.id);n.route=[];n.serviceTask=null;}jobs=[];}
  function checkpoint(){saveState({version:1,cycles,checkpoint:'welcome'});}
  function enter(next){
@@ -72,7 +72,7 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
  }
  function blockedByPlayer(id){return id&&playerState.facilityId===id;}
  function interrupt(id){
-  if(disposed)return;
+  if(disposed||furniture.items.some(i=>i.id===id&&i.seats))return;
   const relevant=jobs.some(j=>j.claim===id)||guest.serviceMount?.id===id;
   facilities.prioritize(id,true);
   if(!relevant||stage==='yielding')return;
@@ -95,7 +95,11 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
   if(task.after&&!task.after())return;
   if(playerState.performing===n.station.id){tell(n,'先陪你一起体验');return;}
   tell(n,task.label);
-  if(task.claim&&!facilities.request(task.claim,n.station.id)){task.waited=(task.waited||0)+dt;if(task.waited>25){interruption={id:task.claim,resume:stage,wait:wait.slice()};enter('yielding');}return;}
+  if(task.claim&&furniture.items.some(i=>i.id===task.claim&&i.seats)){
+   const pool=furniture.items.find(i=>i.id===task.claim),seat=furniture.resolveBath(pool,n.station.id,()=>true,task.mount?'bathe':'clean-seat');
+   if(!seat){tell(n,'池中座位已满，在通道外等空位');return;}
+   if(!task.reservedSeat){task.reservedSeat=seat.id;task.to=seat.position.slice();if(task.mount)task.mount=seat;else{task.to[0]-=.16;task.workTarget=[seat.anchor[0],seat.bathPose.backTopY+.07,seat.anchor[2]];}task.routeSet=false;}
+  }else if(task.claim&&!facilities.request(task.claim,n.station.id)){task.waited=(task.waited||0)+dt;if(task.waited>25){interruption={id:task.claim,resume:stage,wait:wait.slice()};enter('yielding');}return;}
   if(task.exitTo){
    if(near(n.root.position,task.exitTo,.08))task.exitTo=null;
    else{const dx=task.exitTo[0]-n.root.position.x,dz=task.exitTo[2]-n.root.position.z,d=Math.hypot(dx,dz),amount=Math.min(d,dt*n.locomotion.walkSpeed*.82),before=n.root.position.clone();
@@ -104,7 +108,7 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
   }
   if(!task.arrived){
    if(near(n.root.position,task.to,task.handoff||task.action==='bath-attendant'?.025:.18)){task.arrived=true;n.route=[];
-    if(task.mount){n.serviceMount=task.mount;n.root.position.set(...task.mount.anchor);n.root.rotation.y=task.mount.yaw;}
+    if(task.mount){n.serviceMount=task.mount;n.root.position.set(...task.mount.anchor);n.root.rotation.y=task.mount.yaw;if(task.mount.poolId)furniture.occupyBath(task.mount,n.station.id);}
    }else{
     if(!task.routeSet){n.route=planPath(n.root.position,point(task.to),.25);task.routeSet=true;}
     const step=doors.routeStep(n.route,n.root.position,task.handoff||task.action==='bath-attendant'?.018:.12);
@@ -123,11 +127,20 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
   // Exchanges start only after both people have reached the shared work point.
   if(task.handoff&&!jobs.every(j=>!j.handoff||j.arrived))return;
   task.elapsed+=dt;
-  if(task.elapsed>=task.duration){task.done=true;task.onDone?.();}
+  if(task.elapsed>=task.duration){
+   if(n.serviceMount?.poolId){
+    const others=npcs.filter(a=>a!==n).map(a=>a.root.position);if(playerState.position)others.push(playerState.position);
+    const safety=[...(doors.cameraColliders||[]),...others.map(p=>({minX:p.x-.25,maxX:p.x+.25,minZ:p.z-.25,maxZ:p.z+.25,minY:p.y,maxY:p.y+1.95}))];
+    const landing=furniture.standPoint(undefined,safety,n.serviceMount);if(!landing){tell(n,'等池边通道让开后离池');return;}
+    n.root.position.copy(landing);n.serviceMount=null;
+   }
+   if(task.reservedSeat)facilities.release(task.claim,n.station.id);
+   task.done=true;task.onDone?.();
+  }
  }
  function animateActor(n,t){
   const task=n.serviceTask,helping=playerState.performing===n.station.id;
-  const pose=task?.arrived?task.action:null;
+  const pose=task?.arrived&&!task.done?task.action:null;
   const context=poseContext(n,helping?n.station:task?.workTarget?{workTarget:task.workTarget}:null);
   const mount=n.serviceMount;
   if(mount){context.visualFloorOffset=mount.kind==='bath'?0:context.visualFloorOffset;context.seatHeight=mount.seatY===undefined?undefined:mount.seatY-n.root.position.y-context.visualFloorOffset;context.supportY=mount.supportY;context.bathPose=mount.bathPose;context.bathHipHeight=mount.bathHipHeight;}
@@ -151,9 +164,9 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
    }else if(jobs.length&&jobs.every(j=>j.done))nextStage();
    for(const n of actors)animateActor(n,t);
   },
-  playerRequest(id){interrupt(id);lastPlayerId=id;},
+  playerRequest(id){if(lastPlayerId&&lastPlayerId!==id)facilities.prioritize(lastPlayerId,false);interrupt(id);lastPlayerId=id;},
   isYieldingFor:id=>!disposed&&stage==='yielding'&&interruption?.id===id,
   state:()=>({stage,stageTime,cycles,side:men?'men':'women',history:history.slice(),failures:failures.slice(),facilities:facilities.state(),actors:actors.map(n=>({id:n.station.id,name:n.station.npcName,position:n.root.position.toArray(),walking:n.walking,job:n.serviceTask?.label,action:n.serviceMount?'mounted':n.serviceTask?.arrived?n.serviceTask.action:null,held:n.serviceTask?.held||null,mounted:n.serviceMount?.id||null,route:n.route.length}))}),
-  dispose(){if(disposed)return;disposed=true;unmount();release();facilities.dispose();checkpoint();for(const n of actors){n.serviceMount=null;n.serviceTask=null;}},
+  dispose(){if(disposed)return;disposed=true;unmount();release();if(lastPlayerId)facilities.prioritize(lastPlayerId,false);if(!furniture.facilities)facilities.dispose();checkpoint();for(const n of actors){n.serviceMount=null;n.serviceTask=null;}},
  };
 }
