@@ -24,11 +24,22 @@ export function eyeLidBoundary(layout,u,up,outer=false){
 }
 export function buildConvexEye(parent,{side,masc=false,traits=null,facialSurface,colors:C,coherent=false}){
  const layout=eyeLayout({side,masc,traits,coherent}),{eye,cx,cy,hw,upper,lower}=layout;
+ const wrapped=coherent&&side===1;
+ // The single revised side fits one convex surface to the actual canthi.
+ // A centre tangent cannot represent the strong lateral turn of this face.
  // Sample the original socket: socketDepth still changes globe/lid placement,
  // while eyeSize scales the same opening around its unchanged centre.
  const e=.0001,base=facialSurface(cx,cy),dx=(facialSurface(cx+e,cy)-facialSurface(cx-e,cy))/(2*e),dy=(facialSurface(cx,cy+e)-facialSurface(cx,cy-e))/(2*e);
  const rx=hw*1.25,ry=(coherent?.024:.020)*eye,rz=(coherent?.025:.008)*eye;
- const globe=(x,y)=>{const xx=x-cx,yy=y-cy-side*xx*(coherent?.10:.08),t=Math.max(0,Math.min(1,(Math.abs(xx)-.0085*eye)/(hw-.0085*eye))),corner=coherent?t*t*t*(t*(t*6-15)+10):1;return base+(dx*xx+dy*(y-cy))*corner+(coherent?-.0032:.0008)+rz*(Math.sqrt(Math.max(.001,1-(xx/rx)**2-(yy/ry)**2))-.6);};
+ const legacyGlobe=(x,y)=>{const xx=x-cx,yy=y-cy-side*xx*(coherent?.10:.08),t=Math.max(0,Math.min(1,(Math.abs(xx)-.0085*eye)/(hw-.0085*eye))),corner=coherent?t*t*t*(t*(t*6-15)+10):1;return base+(dx*xx+dy*(y-cy))*corner+(coherent?-.0032:.0008)+rz*(Math.sqrt(Math.max(.001,1-(xx/rx)**2-(yy/ry)**2))-.6);};
+ let globe=legacyGlobe;
+ if(wrapped){
+  const axy=eyeLidBoundary(layout,0,true),cxy=eyeLidBoundary(layout,1,true);
+  const a=[axy[0],facialSurface(...axy)-.0005],b=[cx,base+.0068],c=[cxy[0],facialSurface(...cxy)-.0005];
+  const A=2*(b[0]-a[0]),B=2*(b[1]-a[1]),C=b[0]**2+b[1]**2-a[0]**2-a[1]**2,D=2*(c[0]-a[0]),E=2*(c[1]-a[1]),F=c[0]**2+c[1]**2-a[0]**2-a[1]**2,det=A*E-B*D;
+  const gx=(C*E-B*F)/det,gz=(A*F-C*D)/det,r=Math.hypot(a[0]-gx,a[1]-gz);
+  globe=(x,y)=>{const yy=y-cy-side*(x-cx)*.10;return gz+Math.sqrt(Math.max(.000001,r*r-(x-gx)**2-r*r*(yy/(.027*eye))**2));};
+ }
  const edge=(u,up)=>{const [x,y]=eyeLidBoundary(layout,u,up);return[x,y,globe(x,y)];};
  const eyeWhite=coherent?new THREE.Color(0xe7eaeb).getHex():C.eye;
  const white=grid(parent,'inset-eye-white-'+side,24,8,(u,v)=>{const a=edge(u,false),b=edge(u,true),y=mix(a[1],b[1],v);return[a[0],y,globe(a[0],y)];},eyeWhite);
@@ -49,8 +60,9 @@ export function buildConvexEye(parent,{side,masc=false,traits=null,facialSurface
    const p=edge(u,up),outer=eyeLidBoundary(layout,u,up,true),taper=Math.pow(Math.sin(Math.PI*u),.7),x=mix(p[0],outer[0],v),y=mix(p[1],outer[1],v);
    // The outer edge overlaps the socket skin by a submillimetre; the curved
    // intermediate rows give the lid thickness without a separate round tube.
-   const roll=coherent&&!up?.0015:.0006;
-   const z=mix(p[2]+.00025,facialSurface(x,y)+.0002,v)+roll*Math.sin(Math.PI*v)*taper-(coherent&&up?.0012*Math.exp(-(((v-.72)/.17)**2))*taper:0);
+   const roll=coherent&&!up?(wrapped?.0008:.0015):.0006;
+   let z=mix(p[2]+.00045,facialSurface(x,y)+.0002,v)+roll*Math.sin(Math.PI*v)*taper-(coherent&&up?.0012*Math.exp(-(((v-.72)/.17)**2))*taper:0);
+   if(wrapped)z=Math.max(z,globe(x,y)+.00055*(1-v));
    return[x,y,z];
   },C.skin);
   if(coherent){const colors=[];for(let j=0;j<=5;j++)for(let i=0;i<=24;i++){const u=i/24,v=j/5,fold=Math.exp(-(((v-(up?.78:.82))/.16)**2))*Math.sin(Math.PI*u),c=new THREE.Color(C.skin).multiplyScalar(1-(up?.25:.18)*fold);colors.push(c.r,c.g,c.b);}lid.geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));}
