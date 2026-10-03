@@ -10,7 +10,7 @@ import {createFacilityQueue} from './npc-facilities.js';
 // existing seats below reuse the same sculpted objects and their collider footprints.
 // Neither the region topology nor its collider/walkable arrays is modified.
 export const FURNITURE_DESCRIPTORS={
- china:{seat:{name:'寝殿阅读椅',anchor:[-17.9056,.285,-2.2944],position:[-17.15,.215,-3.05],yaw:Math.PI*.75,seatY:.875,center:[-18.1,.2,-2.1],size:[.9,1.65,.9]},canopy:{worldLabel:'龙榻红纱帐',name:'雕龙龙榻 · 红纱帷帐',position:[-21,.215,-5.8],center:[-21,.2,-9],width:3.68,depth:3.94,top:3.08,bottom:1.05,color:0xc73b45},wardrobe:{name:'寝殿更衣妆台',position:[-23.7,.215,-.65],center:[-24.8,.2,-1.4],size:[.75,2.3,3.1],style:'dressing'}},
+ china:{seat:{name:'寝殿阅读椅',anchor:[-17.9056,7.885,-4.6944],position:[-17.15,7.815,-5.45],yaw:Math.PI*.75,seatY:8.475,center:[-18.1,7.8,-4.5],size:[.9,1.65,.9]},canopy:{worldLabel:'龙榻红纱帐',name:'雕龙龙榻 · 红纱帷帐',position:[-21,7.815,-5.8],center:[-21,7.8,-9],width:3.68,depth:3.94,top:10.68,bottom:8.65,color:0xc73b45},wardrobe:{name:'后宫三层梳妆台',position:[-18,7.815,-.05],center:[-16.8,7.8,-.8],size:[.75,2.3,3.1],style:'dressing'}},
  france:{seat:{name:'翡翠沙龙扶手椅',anchor:[-6.65,.302,1.51],position:[-6.65,.302,.68],yaw:Math.PI,seatY:.9535,center:[-6.65,.23,1.8],size:[1.12,1.85,1.15]},canopy:{name:'皇家寝床纱帐',position:[7.55,.302,.58],center:[7.55,.23,-2.64],width:3.38,depth:4.04,top:4.07,bottom:1.35,color:0xf0e8d8},wardrobe:{name:'王宫衣橱',position:[-19.0,.23,-8.85],center:[-19.0,.23,-7.45],size:[1.37,2.45,.71],style:'armoire'}},
  japan:{seat:{name:'书阁木长椅',anchor:[-5,7.6,-11.64],position:[-5,7.6,-10.76],yaw:0,seatY:8.165,center:[-5,7.6,-11.8],size:[2.1,.57,.6]},wardrobe:{name:'汤馆和服更衣柜',position:[-9.92,3.8,2.4],center:[-11.32,3.8,2.4],size:[.95,2.65,3.9],style:'lockers'}},
  egypt:{seat:{name:'王室餐厅坐凳',anchor:[14.71,0,-9.3],position:[13.95,0,-9.3],yaw:-Math.PI/2,seatY:.66,center:[15.15,0,-9.3],size:[1.02,.66,1.02]},canopy:{name:'王室亚麻纱帐',position:[20.4,0,1.71],center:[20.4,0,-1.25],width:2.36,depth:3.56,top:3.21,bottom:.98,color:0xf0dfb6},wardrobe:{name:'王室雪松衣箱',position:[12.5,0,9.7],center:[14.2,0,9.7],size:[2.2,1.18,1.1],style:'chest'}}
@@ -29,8 +29,9 @@ function japanBathCameraParts(x,z,w,d){
  return parts;
 }
 export const REST_BATH_DESCRIPTORS={
- china:[{kind:'bed',cameraParts:chinaDragonBedCameraParts(),worldLabel:'龙榻安寝',name:'静宜寝殿 · 雕龙龙榻',position:[-18.4,.215,-8.5],anchor:[-21.55,.215,-9],center:[-21,.2,-9],size:[4,3.1,4.2],yaw:0,supportY:1.055,lieOffset:.30,lieSupport:{hip:1.055,back:1.055,head:1.14,heel:1.055}},
- {kind:'bath',name:'竹苑石浴池',position:[-21.1,.215,-30],anchor:[-23.6,.215,-30],center:[-23.6,.2,-30],size:[3.3,1.15,4.3],yaw:Math.PI/2,supportY:.31,waterY:1.1625,bathHipHeight:.48}],
+ china:[{kind:'bed',cameraParts:chinaDragonBedCameraParts().map(p=>({...p,minY:p.minY+7.6,maxY:p.maxY+7.6})),worldLabel:'龙榻安寝',name:'静宜寝殿 · 雕龙龙榻',position:[-18.4,7.815,-8.5],anchor:[-21.55,7.815,-9],center:[-21,7.8,-9],size:[4,3.1,4.2],yaw:0,supportY:8.655,lieOffset:.30,lieSupport:{hip:8.655,back:8.655,head:8.74,heel:8.655}},
+ {kind:'bath',name:'后宫二层石浴池',position:[-21.1,4.015,-6],anchor:[-23.6,4.015,-6],center:[-23.6,4,-6],size:[3.3,1.15,4.3],yaw:Math.PI/2,supportY:4.11,waterY:4.9625,bathHipHeight:.48},
+ {kind:'bed',name:'后宫一层客榻',position:[-21.6,.215,-8],anchor:[-23.5,.215,-8],center:[-23.5,.2,-8],size:[2.9,1.25,3.4],yaw:0,supportY:1.055,lieOffset:.3,lieSupport:{hip:1.055,back:1.055,head:1.14,heel:1.055}}],
  france:[{kind:'bed',name:'皇家寝床',position:[5.16,.302,-2.1],anchor:[6.72,.302,-2.65],center:[7.55,.23,-2.65],size:[3.5,4.2,4.3],yaw:0,supportY:1.25,lieOffset:.72,lieSupport:{hip:1.25,back:1.25,head:1.31,heel:1.25}},
  {kind:'bath',name:'白金浴缸',position:[-20.34,.23,-10.2],anchor:[-22.55,.23,-10.2],center:[-22.55,.23,-10.2],size:[3.1,1.15,3.65],yaw:Math.PI/2,supportY:.425,waterY:1.205,bathHipHeight:.48}],
  japan:[{kind:'bed',name:'客室日式寝具',position:[2.48,7.6,-10.7],anchor:[4.4,7.6,-11.6],center:[4.4,7.6,-11.6],size:[2.36,.5,3.24],yaw:0,supportY:7.95,lieOffset:.54,lieSupport:{hip:7.95,back:7.992,head:8.026,heel:7.96}},
@@ -84,6 +85,7 @@ function changingDetails(parent,d,region){
  const g=new THREE.Group();g.name=region+' cultural changing place';g.userData.furnitureInteraction='wardrobe';parent.add(g);const[x,y,z]=d.center;
  // Details sit within existing storage footprints, never creating a new obstacle.
  if(d.style==='dressing'){
+  if(region==='china')g.position.y=d.center[1]-.2; // Entire dressing vignette follows its floor.
   const frame=G.box(g,x-.23,1.83,z+.67,.065,1.38,.80,0xc8a15d);frame.name='Dressing mirror frame';G.box(g,x-.184,1.83,z+.67,.014,1.20,.65,0xa0b7ad).name='Inset polished bronze mirror';
   for(let i=0;i<3;i++)G.box(g,x+.10,1.07+i*.065,z+.79,.38,.06,.58,[0x9b6768,0xbba47a,0x738e82][i]).name='Folded embroidered silk';
  }else if(d.style==='armoire'){
