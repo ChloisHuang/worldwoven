@@ -1,0 +1,238 @@
+{
+  "status": "PASS_FOCUSED_EGYPT_SUBSET",
+  "sourceCommit": "1c3b8ca",
+  "basedOn": "9787567",
+  "checkedAt": "2026-10-03T11:40:16Z",
+  "scope": "Two Egyptian rigid doors only. Existing France inset, Japanese bath/guard, shared door engine, pyramid, and furniture unchanged.",
+  "inputHashes": {
+    "egypt-temple.js": "b3d3e3971b1b3946646971149b2f852ac3f17ce60f65bcc9b2dee9220f6cb868",
+    "automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+    "room-closures.js": "bb723dced3a530d4ebdb82bbbf8b36de47ecb0d2a3ac933e7e76a92dedb4f916",
+    "inset-closures.js": "dadba37aaa60d85abc2c9102a5da10bcfaf529474d8e60fefe5a975e63d8930a",
+    "stable-shadows.js": "20c3f208ed1e1e9ee7e98bdd5a88f5a9c79fbfefbeb365952b72f7f773bfb493",
+    "furniture-interactions.js": "f1286dc2ec9b247f0025e81fbec09722e3d5d83b883e31240820efa702175faa"
+  },
+  "visual": {
+    "status": "PASS_REVIEWED",
+    "renderer": {
+      "display": {
+        "backend": "egl",
+        "vendor": "Mesa Project",
+        "version": "1.5",
+        "extensions": "EGL_ANDROID_blob_cache EGL_EXT_config_select_group EGL_EXT_create_context_robustness EGL_EXT_image_dma_buf_import EGL_EXT_image_dma_buf_import_modifiers EGL_EXT_query_reset_notification_strategy EGL_EXT_surface_compression EGL_KHR_cl_event2 EGL_KHR_config_attribs EGL_KHR_context_flush_control EGL_KHR_create_context EGL_KHR_create_context_no_error EGL_KHR_fence_sync EGL_KHR_get_all_proc_addresses EGL_KHR_gl_colorspace EGL_KHR_gl_renderbuffer_image EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_3D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_image_base EGL_KHR_no_config_context EGL_KHR_reusable_sync EGL_KHR_surfaceless_context EGL_EXT_pixel_format_float EGL_KHR_wait_sync EGL_MESA_configless_context EGL_MESA_gl_interop EGL_MESA_query_driver EGL_MESA_x11_native_visual_id ",
+        "surfaceless": true,
+        "dynamic": true,
+        "angle": false,
+        "api": "gles",
+        "glVersion": 0
+      },
+      "unmasked": "llvmpipe (LLVM 19.1.7, 256 bits)"
+    },
+    "roofVisible": true,
+    "lighting": "Production Egypt daylight plus existing fixture field and stable shadows",
+    "views": [
+      {
+        "name": "suite-front-closed",
+        "camera": [
+          19.2,
+          2.1,
+          14.1
+        ],
+        "target": [
+          17.9,
+          1.8,
+          11.4
+        ],
+        "fov": 76,
+        "sha256": "65570a8daf3fc236108c70bb6bdcb49e7c868f56b9ec1e58dec9369b554508ef"
+      },
+      {
+        "name": "suite-back-closed",
+        "camera": [
+          16.7,
+          2.1,
+          8.6
+        ],
+        "target": [
+          17.9,
+          1.8,
+          11.4
+        ],
+        "fov": 76,
+        "sha256": "ba23c33728e765497e5c2f8776f079d2dd0a9ea36b384616c33e5e2a3e57b536"
+      },
+      {
+        "name": "suite-front-open",
+        "camera": [
+          19.2,
+          2.1,
+          14.1
+        ],
+        "target": [
+          17.9,
+          1.8,
+          11.4
+        ],
+        "fov": 76,
+        "sha256": "56077c00a6f7d3747c2128ca06989b51cf557dcc0a4860701051d5467dc25dd8"
+      },
+      {
+        "name": "suite-back-open",
+        "camera": [
+          16.7,
+          2.1,
+          8.6
+        ],
+        "target": [
+          17.9,
+          1.8,
+          11.4
+        ],
+        "fov": 76,
+        "sha256": "25e34c8f1817eef240d7cf7d5afe6dccff0432eeaaebec2ff7c57c6e4b87f84d"
+      },
+      {
+        "name": "storage-front-closed",
+        "camera": [
+          15.2,
+          2.1,
+          -13.7
+        ],
+        "target": [
+          14.15,
+          1.8,
+          -16.2
+        ],
+        "fov": 80,
+        "sha256": "97deb05f436d9698e7604afc5c13348f3169f35cc37f9b1f847ca81e607afc0c"
+      },
+      {
+        "name": "storage-back-closed",
+        "camera": [
+          13.45,
+          2.1,
+          -18.5
+        ],
+        "target": [
+          14.15,
+          1.8,
+          -16.2
+        ],
+        "fov": 80,
+        "sha256": "3d370cefbb7838e5f80a21b1735f42d39292ec74cc6822bed579746741821ef2"
+      },
+      {
+        "name": "storage-front-open",
+        "camera": [
+          15.2,
+          2.1,
+          -13.7
+        ],
+        "target": [
+          14.15,
+          1.8,
+          -16.2
+        ],
+        "fov": 80,
+        "sha256": "66c5ed3d5ac5d7c75d743fd1962a10528331bb5c5b1c4fedf159e5ce1f2df8ca"
+      },
+      {
+        "name": "storage-back-open",
+        "camera": [
+          13.45,
+          2.1,
+          -18.5
+        ],
+        "target": [
+          14.15,
+          1.8,
+          -16.2
+        ],
+        "fov": 80,
+        "sha256": "b5746841daf09cc6c507af27db627506aab1e17b70d6a210e5d57dac125f50ae"
+      }
+    ],
+    "assessment": "Eight human-height front/back oblique closed/open images show the frame housed in the wall reveal, covered side/top joints, two decorated faces, and clear leaf travel beside the suite rug and storage urns.",
+    "images": "qa/egypt-doors-images/*.png (local evidence)"
+  },
+  "controller": {
+    "status": "PASS",
+    "crossings": 16,
+    "failures": 0,
+    "cameraSweeps": 136,
+    "holdAndClose": [
+      {
+        "id": "egypt",
+        "door": "egypt-private-suite-door",
+        "occupied": 1,
+        "held": 1,
+        "closed": 0
+      },
+      {
+        "id": "egypt",
+        "door": "storage-entry",
+        "occupied": 1,
+        "held": 1,
+        "closed": 0
+      }
+    ],
+    "coverage": "Actual authored a/b, production moveActor/planPath/routeStep; 0.34 m player and 0.25 m NPC radii, both directions, 60 Hz and mixed timing; original ground-floor support resolution retained."
+  },
+  "sweep": {
+    "status": "PASS_BOUNDED_SWEEP",
+    "contactWaivers": "NONE",
+    "doors": [
+      {
+        "id": "egypt-private-suite-door",
+        "status": "PASS_BOUNDED_SWEEP",
+        "counts": {
+          "surfaceCrossings": 0,
+          "containments": 0,
+          "sweptCrossings": 0,
+          "sweptContainments": 0,
+          "contactsRequiringReview": 0,
+          "boundedMountContacts": 0
+        },
+        "candidateTriangles": 8981,
+        "maxHingeChordSagitta": 5.9834169108052834e-05
+      },
+      {
+        "id": "storage-entry",
+        "status": "PASS_BOUNDED_SWEEP",
+        "counts": {
+          "surfaceCrossings": 0,
+          "containments": 0,
+          "sweptCrossings": 0,
+          "sweptContainments": 0,
+          "contactsRequiringReview": 0,
+          "boundedMountContacts": 0
+        },
+        "candidateTriangles": 7898,
+        "maxHingeChordSagitta": 4.780565057602159e-05
+      }
+    ],
+    "coverage": "Existing v7 actual rendered triangle runner, production hinge pins, continuous bounded sweep, full real Egypt world/furnishings; both exact endpoints and six-direction mesh containment."
+  },
+  "resources": {
+    "render": {
+      "status": "PASS",
+      "seconds": 9.829839402998914,
+      "peakObservedRSSBytes": 590442496,
+      "termination": null
+    },
+    "route": {
+      "status": "PASS",
+      "seconds": 1.5057664910018502,
+      "peakObservedRSSBytes": 277872640,
+      "termination": null
+    },
+    "sweep": {
+      "status": "PASS",
+      "seconds": 11.142513915001473,
+      "peakObservedRSSBytes": 299970560,
+      "termination": null
+    }
+  },
+  "reusedEvidence": "Other-region, shared controller/engine, and unrelated Egypt geometry results reused because their source and dependencies did not change.",
+  "notRun": "No browser/mobile gameplay, unrelated region reruns, build or publication in this branch."
+}
