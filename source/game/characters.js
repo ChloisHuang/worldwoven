@@ -298,7 +298,9 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   // Only pelvis/upper cloth settle; IK ankle and absolute wrist targets stay unchanged.
   const seatedDrop=action==='kotatsu'&&culture==='japan'?Math.min(.04,visualFloorOffset/root.scale.y*.5):0;
   const chairHeight=Number.isFinite(context?.seatHeight)?clamp(context.seatHeight/root.scale.y,.35,1):.60;
-  setTorso(action==='bathe'?(context?.bathHipHeight??.32):action==='chair-sit'?chairHeight+.14:action==='kotatsu'?.417-seatedDrop:walking?rest[0].y+bob:rest[0].y,action==='calligraphy'?.40:/^(knead|bread|cook|sushi|bake|tidy)$/.test(action||'')?.13:0,walking?Math.sin(t)*.012:0);
+  const receptionWriting=action==='calligraphy'&&context?.receptionWriting;
+  props.tools.brush.scale.y=receptionWriting?.55:1;
+  setTorso(action==='bathe'?(context?.bathHipHeight??.32):action==='chair-sit'?chairHeight+.14:action==='kotatsu'?.417-seatedDrop:walking?rest[0].y+bob:rest[0].y,action==='calligraphy'?(receptionWriting?.18:.40):/^(knead|bread|cook|sushi|bake|tidy)$/.test(action||'')?.13:0,walking?Math.sin(t)*.012:0);
   // A shorter thigh sits slightly forward on the same cushion so its knee
   // clears the seat edge; the feet retain their exact floor targets.
   if(action==='chair-sit'&&shapeTraits.legLength<1)for(const i of [0,1,2,3,4,7,10,13])posedP[i].z+=(1-shapeTraits.legLength)*1.2;
@@ -440,7 +442,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    const surface=workHeight/(masc?1.035:1)-visualFloorOffset/root.scale.y,forward=clamp(context?.workDistance??.38,.25,action==='calligraphy'?.57:.455);
    if(/knead|bread/.test(action||'')){reach(0,-.15,surface+.065+Math.sin(time*3.4)*.017,forward);reach(1,.15,surface+.065+Math.sin(time*3.4+.7)*.017,forward);}
    else if(/^(cook|sushi|bake)$/.test(action||'')){if(surface>1.30){reach(0,-.14,surface+.045,Math.min(forward,.36));reach(1,.16,surface+.215+Math.sin(time*5)*.018,Math.min(forward,.34));props.tools.knife.rotation.x=-.60;}else{reach(0,-.14,surface+.075,forward);reach(1,.16,surface+.255+Math.sin(time*5)*.030,forward-.01);}}
-   else if(/calligraphy/.test(action||'')){reach(0,-.18,surface+.045,forward-.025);reach(1,.12+Math.sin(time*1.2)*.03,surface+.265,forward-.025);}
+   else if(/calligraphy/.test(action||'')){reach(0,-.18,surface+(receptionWriting?.025:.045),forward-.025);reach(1,.12+Math.sin(time*1.2)*.03,surface+(receptionWriting?.145:.265),forward-.025);}
    else if(action==='bath-attendant'){reach(0,-.25+Math.sin(time*1.45)*.055,surface+.075,forward-.02);}
    else if(/tidy/.test(action||'')){reach(0,-.18,surface+.08,forward-.025);reach(1,.18,surface+.095,forward-.025);}
    else if(action==='herb-mix'){reach(0,-.14,surface+.10,forward);reach(1,.07+Math.cos(time*2.2)*.025,surface+.14+Math.sin(time*2.2)*.012,forward+.015+Math.sin(time*2.2)*.018);}

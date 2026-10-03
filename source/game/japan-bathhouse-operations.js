@@ -10,7 +10,7 @@ const point=a=>({x:a[0],y:a[1],z:a[2]});
 const near=(p,a,r=.08)=>Math.hypot(p.x-a[0],p.z-a[2])<r&&Math.abs(p.y-a[1])<.35;
 const positions=actors=>Object.fromEntries([...actors].map(([id,n])=>[id,(n.serviceMount?n.serviceMount.position:n.root.position.toArray()).slice()]));
 const LABELS={arriving:'沿参道来到汤馆','check-in':'等前台登记并发浴牌',changing:'拿着浴牌去更衣',washing:'洗净后再入汤','waiting-bath':'等自己的浴包送到汤室',bathing:'坐进共享池座泡汤',drying:'擦干并换回旅途衣着',resting:'在休息廊坐下歇脚',dining:'点一碗汤面','waiting-meal':'等后厨做好自己的汤面',eating:'吃刚刚送来的汤面',checkout:'向前台归还浴牌','checkout-ready':'等前台收回浴牌',leaving:'沿参道离开汤馆'};
-const JOBS={register:{label:'记入客簿并递出浴牌',duration:2.5,action:'calligraphy',workTarget:P.receptionLedger},prepare:{label:'按浴牌配制草木浴包',duration:4,action:'herb-mix',workTarget:P.blendWork},deliverMix:{label:'把对应浴包送到汤室',duration:1.3},cook:{label:'为来客煮一碗汤面',duration:6,action:'ramen',workTarget:[2.1,1.47,-13.4]},serve:{label:'把热汤面送给点餐来客',duration:1.5},checkout:{label:'在客簿销号并收回浴牌',duration:2,action:'calligraphy',workTarget:P.receptionLedger}};
+const JOBS={register:{label:'记入客簿并递出浴牌',duration:2.5,action:'calligraphy',receptionWriting:true,workTarget:P.receptionLedger},prepare:{label:'按浴牌配制草木浴包',duration:4,action:'herb-mix',workTarget:P.blendWork},deliverMix:{label:'把对应浴包送到汤室',duration:1.3},cook:{label:'为来客煮一碗汤面',duration:6,action:'ramen',workTarget:[2.1,1.47,-13.4]},serve:{label:'把热汤面送给点餐来客',duration:1.5},checkout:{label:'在客簿销号并收回浴牌',duration:2,action:'calligraphy',receptionWriting:true,workTarget:P.receptionLedger}};
 
 // Replaces (never runs beside) the earlier four-resident demonstration routine.
 // The host supplies the existing movement/door/wardrobe code and lifecycle
@@ -235,6 +235,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   const helping=isJapanEmployeeInteraction(n,playerState),chatting=helping&&playerState.conversationActorId===n.station.id,sharedActivity=helping&&!chatting;
   const context=poseContext(n,sharedActivity?n.station:chatting?null:task?.workTarget?{workTarget:task.workTarget}:null);
   if(mount){context.visualFloorOffset=mount.kind!=='seat'?0:context.visualFloorOffset;context.seatHeight=mount.seatY===undefined?undefined:mount.seatY-n.root.position.y-context.visualFloorOffset;context.supportY=mount.supportY;context.bathPose=mount.bathPose;context.bathHipHeight=mount.bathHipHeight;context.lieSupport=mount.lieSupport;context.lieOffset=mount.lieOffset;context.lieSurfaceHeightAt=mount.kind==='bed'?(n.staffBedProbe??=(x,z)=>furniture.bedSupportAt(mount,x,z)):undefined;}
+  context.receptionWriting=!helping&&!!task?.arrived&&!!task?.receptionWriting;
   context.heldProp=sharedActivity?null:task?.held||null;context.handoff=!sharedActivity&&(!!task?.handoff||v?.stage==='eating');
   context.seatedMeal=!chatting&&(v?.stage==='eating'||task?.seatedMeal)&&mount?.kind==='seat';
   n.animate(t+n.phase,n.walking,sharedActivity?n.station.npcAction:mount?(mount.kind==='bath'?'bathe':mount.kind==='bed'?'lie-rest':'chair-sit'):chatting?null:task?.arrived?task.action:null,context);
