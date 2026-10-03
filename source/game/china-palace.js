@@ -220,7 +220,9 @@ export function buildChinaPalace(G,H){
   box(g,-17.25,.78,-30.9,1.7,1.12,1.15,C.wood,true);G.box(g,-17.25,1.39,-30.9,1.82,.1,1.24,0xb8c3b5);G.sphere(g,-17.25,1.48,-30.9,.36,0xd7d8c2,1.3,.35,1);G.box(g,-17.25,2.52,-32.8,1.45,1.4,.09,C.wood);G.box(g,-17.25,2.52,-32.73,1.25,1.2,.045,0xa8bdb1);G.cyl(g,-17.4,.61,-24.8,.36,.31,.72,0xc6c9b7,12);G.torus(g,-17.4,.99,-24.8,.31,.08,0xe5dec5);G.box(g,-17.4,1.13,-25.3,.72,.7,.26,0xc6c9b7);G.collider(colliders,-17.4,-24.9,.9,1.2);target('cn-bath-tub','浴池步道',-21,-30,'bath');target('cn-bath-linens','更衣布草区',-22.8,-25,'bath');target('cn-bath-basin','净室洗手盆前',-17.3,-29,'washroom');target('cn-bath-toilet','净室屏后',-18.4,-24.8,'washroom');}
  // Rear library and quiet guest residence are independent buildings. Rear
  // passage and garden lanes give every facade room to breathe.
- {const g=rooms.archive.g;for(const x of [-8,-4,4,8])shelf(g,x,-32.8,3,3.2,.72);for(const [x,zz] of [[-1.6,-30.2],[7,-28]]){table(g,x,zz,4.2,1.7,1);for(const dx of [-1.1,0,1.1])boundBook(g,x+dx,1.13,zz,.8,.6,0x7d9583);}G.rug(g,0,-27.5,4.5,5,0xa28f69,0xd2bf90);target('cn-archive-center','藏书殿中央',0,-28,'archive');target('cn-archive-west','西书案前',-1.6,-28.5,'archive');target('cn-archive-east','东书案前',7,-26.3,'archive');target('cn-archive-rear','北门书廊',0,-32,'archive');}
+ // Shift only the east reading table and its carried objects away from the door turn.
+ const archiveEastTableX=6.15;
+ {const g=rooms.archive.g;for(const x of [-8,-4,4,8])shelf(g,x,-32.8,3,3.2,.72);for(const [x,zz] of [[-1.6,-30.2],[archiveEastTableX,-28]]){table(g,x,zz,4.2,1.7,1);for(const dx of [-1.1,0,1.1])boundBook(g,x+dx,1.13,zz,.8,.6,0x7d9583);}G.rug(g,0,-27.5,4.5,5,0xa28f69,0xd2bf90);target('cn-archive-center','藏书殿中央',0,-28,'archive');target('cn-archive-west','西书案前',-1.6,-28.5,'archive');target('cn-archive-east','东书案前',archiveEastTableX,-26.3,'archive');target('cn-archive-rear','北门书廊',0,-32,'archive');}
  {const g=rooms.guest.g;const b=new THREE.Group();b.position.y=.2;g.add(b);G.bed(b,23,-30.5,0x728f89,2.8,3.3);G.collider(colliders,23,-30.5,2.9,3.4);table(g,18.3,-25.8,2.7,1.4,.95);teaSet(g,18.3,1.04,-25.8,0x9cbfb5);shelf(g,17,-31.4,2.1,2.5,.7,Math.PI/2);target('cn-guest-front','客居门内',21,-24.3,'guest');target('cn-guest-bed','客榻侧',20.7,-30.5,'guest');target('cn-guest-tea','客居茶席',18.2,-24.3,'guest');}
  // Rear lotus court. Broad cross lanes continue to both side gates, and a
  // four-metre level bridge crosses the water without hidden sine-wave footing.
@@ -264,7 +266,7 @@ export function buildChinaPalace(G,H){
  // R12.1 dragon bed includes its own joined crown and headboard relief.
  ornament(rooms.kitchen.g,'dining-brocade-setting','dining-vignette','existing dining tabletop',q=>{G.box(q,21,1.084,-1.7,.70,.014,2.01,C.red);for(const x of [20.68,21.32])G.box(q,x,1.096,-1.7,.025,.014,1.95,C.gold);for(const x of [19.9,21,22.1])for(const z of [-1.15,-2.25]){G.cyl(q,x,1.085,z,.29,.29,.026,C.jade,16);for(const dx of [.34,.40])G.box(q,x+dx,1.111,z,.02,.023,.45,C.dark);}});
  ornament(rooms.bath.g,'bath-lotus-border','lotus-bath-frieze','existing tub rim',q=>{for(const x of [-24.5,-23.6,-22.7]){lotus(q,x,.58,-27.905,.40);G.box(q,x,.98,-27.900,.7,.025,.020,C.gold);}});
- for(const [x,zz] of [[-1.6,-30.2],[7,-28]])ornament(rooms.archive.g,'library-brush-tray-'+x,'scholar-vignette','existing library table',q=>{G.box(q,x,1.10,zz+.51,2.6,.05,.35,C.red);for(const dx of [-.65,.65])G.vessel(q,x+dx,1.14,zz+.50,teal,.35);});
+ for(const [x,zz] of [[-1.6,-30.2],[archiveEastTableX,-28]])ornament(rooms.archive.g,'library-brush-tray-'+(x===archiveEastTableX?7:x),'scholar-vignette','existing library table',q=>{G.box(q,x,1.10,zz+.51,2.6,.05,.35,C.red);for(const dx of [-.65,.65])G.vessel(q,x+dx,1.14,zz+.50,teal,.35);});
  // R14: independent ceremonial plinths and a real two-storey rear library.
  // Translation is per building, never global mesh scaling. Existing living
  // halls, work objects and courts retain their authored dimensions and places.
