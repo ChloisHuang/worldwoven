@@ -8,8 +8,8 @@ import {createJapanServiceOrders,JAPAN_LOCAL_WORKERS,JAPAN_SERVICE_WORKERS} from
 import {createFacilityQueue} from '../source/game/npc-facilities.js';
 const source=fs.readFileSync('source/game/japan-bathhouse.js','utf8'),start=source.indexOf(' const stations=['),end=source.indexOf('\n ];',start);
 const stations=JSON.parse(JSON.stringify(vm.runInNewContext(source.slice(start,end+4)+';stations')));
-function fixture(saved={}){
- const actors=new Map(JAPAN_STAFF_CREW.map(id=>{const station=stations.find(s=>s.id===id),look={wardrobePreset:id==='jp-omamori'?'miko-hakama':'jinbei',hairStyle:id==='jp-omamori'?'low-bun':'bob',bodyPreset:id,shapeTraits:{height:.9}};return [id,{station,home:{toArray:()=>station.npcPosition.slice()},root:{userData:{appearance:look}}}];}));
+function fixture(saved={},omitId=null){
+ const actors=new Map(JAPAN_STAFF_CREW.filter(id=>id!==omitId).map(id=>{const station=stations.find(s=>s.id===id),look={wardrobePreset:id==='jp-omamori'?'miko-hakama':'jinbei',hairStyle:id==='jp-omamori'?'low-bun':'bob',bodyPreset:id,shapeTraits:{height:.9}};return [id,{station,home:{toArray:()=>station.npcPosition.slice()},root:{userData:{appearance:look}}}];}));
  const original=new Map([...actors].map(([id,n])=>[id,JSON.stringify(n.root.userData.appearance)])),tasks=new Map(),facilities=createFacilityQueue(),board=createJapanServiceOrders();
  const items=[{id:'staff-seat',kind:'seat',center:[-6.8,11.4,-7.45],position:[-6.8,11.4,-8.39]},{id:'staff-bed',kind:'bed',center:[-4.3,11.4,-11.5],position:[-4.3,11.4,-9.18]}];
  const life=createJapanStaffLife({actors,board,furniture:{items,facilities,releaseActor:id=>facilities.releaseActor(id)},assign:(n,to,t)=>tasks.set(n.station.id,{...t,to}),clear:n=>tasks.delete(n.station.id),unmount:n=>{n.serviceMount=null;return true;},taskOf:n=>tasks.get(n.station.id),changeWardrobe:(n,look)=>{n.root.userData.appearance={...look};},saved:{version:5,next:10,dueIn:0,...saved}});
@@ -19,6 +19,7 @@ function fixture(saved={}){
 for(const [version,next,index]of [[1,3,1],[2,7,3],[3,11,5],[4,19,9],[5,13,13]]){
  const f=fixture({version,next,completed:7,interrupted:2,dueIn:8});assert.equal(f.life.state().nextWorkerId,JAPAN_STAFF_CREW[index]);assert.deepEqual(f.life.snapshot(),{version:5,next:index,dueIn:8,completed:7,interrupted:2});f.dispose();
 }
+const partial=fixture({next:0},'jp-balcony');assert(!partial.life.state().crew.includes('jp-tea'),'A missing partner excludes the complete local pair');partial.dispose();
 const f=fixture();
 for(let turn=0;turn<14;turn++){
  f.life.update(100,{night:true});const a=f.life.state().active,{id,reliefId}=a,n=f.actors.get(id),cover=f.actors.get(reliefId),local=JAPAN_LOCAL_WORKERS.includes(id);

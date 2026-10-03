@@ -25,7 +25,8 @@ const LOCAL_WAIT={'jp-omamori':[7.5,0,30.5],'jp-garden-onsen':[-17.1,0,-6],'jp-t
 // sleeping pose is restored from a save; an interrupted break gets its turn
 // again after both real workers have safely met at their service counter.
 export function createJapanStaffLife({actors,board,furniture,assign,clear,unmount,taskOf,changeWardrobe=()=>{},saved={}}) {
- const crew=JAPAN_STAFF_CREW.map(id=>actors.get(id)).filter(Boolean);
+ // A reduced scene can omit a whole pair, but never schedule half a pair.
+ const crew=JAPAN_STAFF_CREW.filter(id=>profile(id).ids.every(other=>actors.has(other))).map(id=>actors.get(id));
  const seat=furniture.items.find(i=>i.kind==='seat'&&i.center[1]===11.4&&i.center[2]===-7.45);
  const bed=furniture.items.find(i=>i.kind==='bed'&&i.center[1]===11.4);
  if(!crew.length||!seat||!bed)return null;

@@ -325,3 +325,7 @@
 - Emi首次真实入下铺暴露既有巫女裙片语义缺口：`TypeError: Cannot read properties of undefined (reading 'x')`，`Vector3.copy → fitShapedLie (characters.js:265) → animate (characters.js:509)`；裙片名未包含现有卧姿支撑识别的skirt，因此缺臀部采样点。仅将既有asset语义名补为`miko-vermillion-hakama-skirt`并同步三处测试选择器，不改characters.js、网格/颜色/材质/权重
 - 修后御守/庭园真实main场景通过：Akari到Emi原御守位置并显示红白巫女服/束发，Emi自盛餐、坐吃、喝茶、下铺30秒睡眠（背/臀/头/跟接触值均可测）、起身并实际返岗；Akari还原衣着回锦鲤池，下一轮Emi实际到庭园接替，原庭园目标/动作保持。436.50模拟秒，45.70秒、整树774MiB、零route失败；14身份/版本5轮次/退出释放检查通过
 - 正常视角`qa/courtyard-life-shrine-rest/shrine-relief-red-white-miko.png`已亲看，代班人在真实御守台前，红白服与束发可见、无遮挡；不提交渲染。暖桌/望景廊局部场景仍在验证，模拟DOM+Three/Mesa，不宣称浏览器/iOS
+- 暖桌/望景廊真实main场景通过：Ren经侧面进座、落Aoi原座垫锚点，保持原暖桌动作/茶目标；Aoi完成自取餐/坐吃/茶/下铺/返岗并保留占座锁，随后离座走到Ren原望景廊读书目标接班。375.50模拟秒、41.73秒、整树采样809MiB、零route失败；原14身份、版本5与退出释放通过
+- 首张暖桌图被离岗Aoi挡住，仅补交班后走远的10.86秒/708MiB局部捕捉，未重跑完整生活；`qa/courtyard-life-hall-clear/kotatsu-relief-at-cushion.png`已亲看，Ren身体/杯/桌/座垫与侧面进出空间清楚，无站进桌内。御守正常实图与此图均不入Git
+- 收尾静态边界：只纳入完整岗位配对，缺任一搭档不再生成无替班人的轮次；小夹具验证。最终十四人/旧十人轮次、订单、玩家服务、连续待单动作定向逻辑及fresh构建通过；既有十人实景证据复用，未重跑全国家/衣型矩阵
+- W07本项接入覆盖14/14既有日本居民：前十人沿用原验证，新增Emi/Aoi完整实景生活周期、Akari/Ren双向实际岗位接班及十四人共享逻辑；未逐人重放相同生活链。整体W07与其他世界内容仍开放。当前为模拟DOM+Three/Mesa局部验证，浏览器/iOS未验，未合主分支/发布
