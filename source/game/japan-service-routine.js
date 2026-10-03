@@ -18,8 +18,8 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
  const bench=furniture.items.find(i=>i.kind==='seat'&&i.center[2]===7.55&&(men?i.center[0]<0:i.center[0]>0));
  if(!bath||!bench)return null;
  const change=men?[-9.92,3.8,2.4]:[4.8,3.8,1.4],wash=men?[-9.15,3.8,-3.7]:[3,3.8,-4.4];
- const wait=men?[-3.3,3.8,6.55]:[.25,3.8,6.55],meet=[wait[0]-.82,3.8,wait[2]],reception=[-4.22,0,5.7];
- const cleanPoint=[bath.position[0]-.16,3.8,bath.position[2]],cleanTarget=[bath.center[0],4.57,bath.position[2]],cleanerWait=[wait[0]+1.15,3.8,7.2];
+ const wait=men?[-3.3,3.8,6.55]:[.25,3.8,6.55],meet=[wait[0]+(men?.82:-.82),3.8,wait[2]],reception=[-4.22,0,5.7];
+ const cleanPoint=[bath.position[0]-.16,3.8,bath.position[2]],cleanTarget=[bath.center[0],4.57,bath.position[2]],cleanerWait=[wait[0]+(men?-1.7:1.15),3.8,7.2];
  const porterSupply=men?[.15,3.8,2.72]:[-3.55,3.8,2.72],cleanSupply=men?[-3.55,3.8,2.72]:[.15,3.8,2.72];
  const changingId=men?'japan-furniture-wardrobe':'japan-service-women-changing';
  const home=n=>n.home.toArray(),visitorLook={...guest.root.userData.appearance};
@@ -45,7 +45,7 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
   }else if(next==='towels'){
    jobs=[job(guest,wait,{duration:2,face:meet,handoff:true,label:'接过入浴手巾'}),job(porter,meet,{duration:2,held:'cloth',face:wait,handoff:true,label:'把干净手巾交给 Ren'}),job(cleaner,cleanerWait,{label:'检查完毕，先让出洗浴通道'})];
   }else if(next==='handoff-clear'){
-   jobs=[job(guest,wait,{held:'cloth',label:'收好手巾，准备更衣'}),job(porter,[meet[0],3.8,7.25],{label:'交接完毕，侧身让出通道'})];
+   jobs=[job(guest,wait,{held:'cloth',label:'收好手巾，准备更衣'}),job(porter,[meet[0],3.8,men?5.8:7.25],{label:'交接完毕，侧身让出通道'})];
   }else if(next==='changing'){
    jobs=[job(guest,change,{duration:3,action:'tidy',held:'cloth',claim:changingId,face:men?[-11.32,3.8,2.4]:[6.3,3.8,1.4],label:'在更衣柜前整理入浴衣着',onDone:()=>outfit('onsen-swimwear')}),job(porter,home(porter),{label:'返回手巾木篮'}),job(cleaner,cleanerWait,{label:'在休息廊等候清洁交接'})];
   }else if(next==='washing'){

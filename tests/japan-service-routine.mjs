@@ -20,7 +20,7 @@ function capture(stage){
  const targetActor=stage==='drying'?npcs.find(n=>n.station.id===(report.side==='men'?'jp-onsen':'jp-women-onsen')):guest;
  const task=targetActor.serviceTask;if(!task?.arrived||task.elapsed<.8)return;
  const p=targetActor.root.position;
- const views={arrival:[[-2.8,2.05,9],[-4.8,1.15,5.7]],towels:report.side==='men'?[[-2.3,5.8,8.4],[-3.65,4.95,6.55]]:[[1.9,5.8,8.35],[-.12,4.95,6.55]],bathing:report.side==='men'?[[-1.65,5.65,-6.9],[-3.35,4.8,-9.3]]:[[5.2,5.65,-7.25],[3.6,4.8,-9.7]],drying:[[p.x+.45,p.y+1.8,p.z+2.2],[p.x-.35,p.y+.95,p.z]],resting:[[p.x+1.8,p.y+1.7,p.z-2.25],[p.x,p.y+.95,p.z]]};
+ const views={arrival:[[-2.8,2.05,9],[-4.8,1.15,5.7]],towels:report.side==='men'?[[-1.9,5.8,8.45],[-2.9,4.95,6.55]]:[[1.9,5.8,8.35],[-.12,4.95,6.55]],bathing:report.side==='men'?[[-1.65,5.65,-6.9],[-3.35,4.8,-9.3]]:[[5.2,5.65,-7.25],[3.6,4.8,-9.7]],drying:[[p.x+.45,p.y+1.8,p.z+2.2],[p.x-.35,p.y+.95,p.z]],resting:[[p.x+1.8,p.y+1.7,p.z-2.25],[p.x,p.y+.95,p.z]]};
  if(!views[stage])return;const[position,target]=views[stage];camera.position.set(...position);camera.lookAt(new T.Vector3(...target));scene.updateMatrixWorld(true);renderer.render(scene,camera);gl.finish();assert.equal(gl.getError(),0);const name=String(report.frames.length+1).padStart(2,'0')+'-'+stage;fs.writeFileSync(out+'/'+name+'.png',canvas.toBuffer('image/png'));report.frames.push({name,time:t,camera:position,target,actors:routine.state().actors});captured.add(stage);
 }
 function captureWalk(){
