@@ -16,8 +16,10 @@ const HALL={...COURTYARD,ids:['jp-tea','jp-balcony'],duty:'暖桌与望景廊接
 const profile=id=>[KITCHEN,FRONT_DESK,APOTHECARY,MEN_BATH,WOMEN_BATH,COURTYARD,HALL].find(shift=>shift.ids.includes(id));
 // The kotatsu already has a floor cushion and an authored seated anchor. Enter
 // from its open side, then use the ordinary furniture transfer/exit checks.
-const KOTATSU={id:'japan-kotatsu-host',kind:'kotatsu',action:'kotatsu',position:[-5.9,7.6,5.6],anchor:[-7,7.6,5.525],yaw:Math.PI};
-const LOCAL_WAIT={'jp-omamori':[3.3,0,30.6],'jp-garden-onsen':[-17.1,0,-6],'jp-tea':[-4.9,7.6,6.5],'jp-balcony':[-3.3,11.4,10.25]};
+const KOTATSU={id:'japan-kotatsu-host',kind:'kotatsu',poseAction:'kotatsu',position:[-5.9,7.6,5.6],anchor:[-7,7.6,5.525],yaw:Math.PI};
+// The shrine's back lane is single-file: wait past the east end so both the
+// incoming replacement and outgoing worker retain their actual clear route.
+const LOCAL_WAIT={'jp-omamori':[7.5,0,30.5],'jp-garden-onsen':[-17.1,0,-6],'jp-tea':[-4.9,7.6,6.5],'jp-balcony':[-3.3,11.4,10.25]};
 
 // Seven bounded coverage pairs. No live claim, held meal, seat lock or
 // sleeping pose is restored from a save; an interrupted break gets its turn
@@ -48,7 +50,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
  const go=(n,to,options)=>assign(n,to,{staffLife:true,...options});
  const release=n=>{board.releaseWorkplace(n.station.id);furniture.releaseActor(n.station.id);};
  function finish() {
-  const n=actors.get(active.id);restoreRelief();release(n);note(active.interrupted?'break-interrupted':'returned-to-duty');
+  const n=actors.get(active.id);restoreRelief();board.releaseWorkplace(n.station.id);if(!n.serviceMount)furniture.releaseActor(n.station.id);note(active.interrupted?'break-interrupted':'returned-to-duty');
   if(active.interrupted){interrupted++;dueIn=20;}else{completed++;dueIn=night?35:75;}
   // A player who keeps using the bunk cannot starve the other workers.
   next=(next+1)%crew.length;
@@ -58,9 +60,9 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   if(!unmount(n))return false;
   release(n);active.phase=phase;active.wait=0;return true;
  }
- function interrupt(n) {
+ function interrupt(n,{coverageAborted=false}={}) {
   if(!active||n.station.id!==active.id)return false;
-  if(!unmount(n)||!endLocalCoverage())return false;
+  if(!unmount(n)||(coverageAborted&&!endLocalCoverage()))return false;
   if(active.phase==='handoff'){const relief=actors.get(active.reliefId);if(taskOf(relief)?.staffLife)clear(relief);}
   clear(n);release(n);active.meal=false;active.interrupted=true;active.phase='returning';active.wait=0;return true;
  }
@@ -75,7 +77,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   },
   idleTask(id){
    const n=actors.get(id);
-   if(profile(id)?.local){const work=post(active?.reliefId===id&&active.covering?active.id:id);return {...work,duration:4};}
+   if(profile(id)?.local){const work=post(active?.reliefId===id&&active.covering?active.id:id);return {...work,staffLife:true,duration:4};}
    if(active?.reliefId===id){const shift=profile(id);return {duration:4,face:shift===KITCHEN?P.mealTray:shift===FRONT_DESK?P.tokenTray:shift.side?P[shift.side+'Service']:P.blendWork,label:'留在代班岗位，等候下一张单'};}
    return id==='jp-herb-workshop'?{duration:4,action:n.station.npcAction,workTarget:n.station.workTarget,label:n.station.npcLabel}:null;
   },
@@ -122,7 +124,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   },
   abort(n){
    if(!active)return;
-   if(n.station.id===active.reliefId){if(active.phase==='handoff'){restoreRelief();active.phase='draining';return;}if(profile(active.id).local&&active.covering)interrupt(actors.get(active.id));return;}
+   if(n.station.id===active.reliefId){if(active.phase==='handoff'){restoreRelief();active.phase='draining';return;}if(profile(active.id).local&&active.covering)interrupt(actors.get(active.id),{coverageAborted:true});return;}
    interrupt(n);
   },
   playerRequest(id){if(active){const n=actors.get(active.id);if(n.serviceMount?.id===id||taskOf(n)?.mount?.id===id)interrupt(n);}},
