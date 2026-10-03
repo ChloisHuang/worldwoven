@@ -487,7 +487,13 @@ export function buildJapan(){
   // Staff quarters use two raised timber bunks and personal storage, not suites.
   for(const x of [-8.9,-4.3]){
    for(const dx of [-1.12,1.12])for(const dz of [-1.48,1.48]){G.cyl(f,x+dx,1.37,-11.5+dz,.065,.065,2.74,P.cedar,8);G.sphere(f,x+dx,2.77,-11.5+dz,.095,P.gold);}
-   for(const yy of [.46,1.93]){G.box(f,x,yy,-11.5,2.35,.16,3.1,P.honey);G.sphere(f,x,yy+.13,-11.3,1,P.indigo,1.08,.16,1.31);G.sphere(f,x,yy+.28,-12.59,.48,P.paper,1.5,.28,.53);}
+   for(const yy of [.46,1.93]){
+    G.box(f,x,yy,-11.5,2.35,.16,3.1,P.honey);
+    // Reuse the existing softly folded rectangular futon at single-bunk size.
+    // Keep the former quilt and pillow support heights; only cloth changes.
+    const bedding=createGuestFuton({color:P.indigo});bedding.scale.set(.91,.8,.95);bedding.position.set(x,yy+.0052,-11.6);
+    bedding.getObjectByName('Soft rectangular pillow').parent.position.y=.0845;f.add(bedding);
+   }
    for(const zz of [-12.98,-10.02])G.box(f,x,2.46,zz,2.3,.12,.09,P.wood);
    for(let yy=.35;yy<2;yy+=.34)G.box(f,x+1.28,yy,-10.2,.72,.065,.11,P.cedar);obstacle(x,y+1.5,-11.5,2.75,3,3.2);
   }

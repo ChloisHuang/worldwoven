@@ -1,14 +1,16 @@
-import {createJapanServiceOrders,JAPAN_SERVICE_POINTS as P,JAPAN_SERVICE_WORKERS} from './japan-service-orders.js';
+import {createJapanServiceOrders,JAPAN_SERVICE_POINTS as P,JAPAN_SERVICE_WORKERS,JAPAN_LOCAL_WORKERS} from './japan-service-orders.js';
 import {createJapanVisitorIdentity,isJapanEmployeeInteraction} from './japan-visitors.js';
 import {createJapanServiceProps} from './japan-service-props.js';
 import {canTraverse} from './navigation.js';
+import {createJapanStaffLife} from './japan-staff-life.js';
+import {createJapanPlayerService} from './japan-player-service.js';
 
 const WORKERS=[...new Set(Object.values(JAPAN_SERVICE_WORKERS).flat())];
 const point=a=>({x:a[0],y:a[1],z:a[2]});
 const near=(p,a,r=.08)=>Math.hypot(p.x-a[0],p.z-a[2])<r&&Math.abs(p.y-a[1])<.35;
 const positions=actors=>Object.fromEntries([...actors].map(([id,n])=>[id,(n.serviceMount?n.serviceMount.position:n.root.position.toArray()).slice()]));
 const LABELS={arriving:'沿参道来到汤馆','check-in':'等前台登记并发浴牌',changing:'拿着浴牌去更衣',washing:'洗净后再入汤','waiting-bath':'等自己的浴包送到汤室',bathing:'坐进共享池座泡汤',drying:'擦干并换回旅途衣着',resting:'在休息廊坐下歇脚',dining:'点一碗汤面','waiting-meal':'等后厨做好自己的汤面',eating:'吃刚刚送来的汤面',checkout:'向前台归还浴牌','checkout-ready':'等前台收回浴牌',leaving:'沿参道离开汤馆'};
-const JOBS={register:{label:'登记来客并递出浴牌',duration:2.5,action:'tidy',workTarget:P.tokenTray},prepare:{label:'按浴牌配制草木浴包',duration:4,action:'herb-mix',workTarget:P.blendWork},deliverMix:{label:'把对应浴包送到汤室',duration:1.3},cook:{label:'为来客煮一碗汤面',duration:6,action:'ramen',workTarget:[2.1,1.47,-13.4]},serve:{label:'把热汤面送给点餐来客',duration:1.5},checkout:{label:'收回浴牌，送别来客',duration:2,action:'tidy',workTarget:P.tokenTray}};
+const JOBS={register:{label:'记入客簿并递出浴牌',duration:2.5,action:'calligraphy',receptionWriting:true,workTarget:P.receptionLedger},prepare:{label:'按浴牌配制草木浴包',duration:4,action:'herb-mix',workTarget:P.blendWork},deliverMix:{label:'把对应浴包送到汤室',duration:1.3},cook:{label:'为来客煮一碗汤面',duration:6,action:'ramen',workTarget:[2.1,1.47,-13.4]},serve:{label:'把热汤面送给点餐来客',duration:1.5},checkout:{label:'在客簿销号并收回浴牌',duration:2,action:'calligraphy',receptionWriting:true,workTarget:P.receptionLedger}};
 
 // Replaces (never runs beside) the earlier four-resident demonstration routine.
 // The host supplies the existing movement/door/wardrobe code and lifecycle
@@ -19,10 +21,11 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
  if(!furniture.resolveBath||!furniture.facilities)throw new Error('Bathhouse operations require shared pool seats');
  const restSeats=furniture.items.filter(i=>i.kind==='seat'&&i.center[1]===3.8&&i.center[2]===7.55);
  if(restSeats.length<2)return null;
- const workers=WORKERS.map(id=>residents.get(id)),guests=new Map(),actors=new Map(workers.map(n=>[n.station.id,n])),tasks=new Map(),cooldowns=new Map();
- const board=createJapanServiceOrders({saved,worldSeed,saveState,capacity:2}),props=createJapanServiceProps(lot.group);
+ const workers=[...WORKERS,...JAPAN_LOCAL_WORKERS].map(id=>residents.get(id)).filter(Boolean),guests=new Map(),actors=new Map(workers.map(n=>[n.station.id,n])),tasks=new Map(),cooldowns=new Map();
+ let staffLife=null;
+ const board=createJapanServiceOrders({saved,worldSeed,saveState:state=>saveState({...state,staffLife:staffLife?.snapshot()||saved.staffLife}),capacity:2}),props=createJapanServiceProps(lot.group);
  const navigation={surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4,radius:.25};
- let playerState={},disposed=false,time=0,nextArrival=0,checkpointAt=5;
+ let playerState={},playerCustomerService=null,disposed=false,time=0,nextArrival=0,checkpointAt=5;
  const history=[],failures=[];
  const tell=(n,label)=>{const el=n.label?.querySelector?.('small');if(el)el.textContent=label;};
  const record=(visit,event)=>{history.push({visit,event,time:+time.toFixed(2)});if(history.length>48)history.shift();};
@@ -38,7 +41,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   if(releaseJob)board.releaseWorker(n.station.id);
  }
  function assign(n,to,options={}) {
-  const task={actor:n,to:to.slice(),duration:0,elapsed:0,stalled:0,retries:0,arrived:false,routeSet:false,...options};
+  const task={actor:n,to:to.slice(),duration:0,elapsed:0,stalled:0,retries:0,arrived:false,routeSet:false,trail:[n.root.position.toArray()],...options};
   tasks.set(n.station.id,task);n.serviceTask=task;n.route=[];tell(n,task.label||'稍作等候');return task;
  }
  function guestEvent(n,event,evidence={}) {
@@ -61,29 +64,37 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
  function removeGuest(n) {
   const id=n.station.id;clear(n);furniture.releaseActor(id);guests.delete(id);actors.delete(id);removeVisitor(n);board.forgetFinished([id]);nextArrival=Math.max(nextArrival,time+18);
  }
- for(const v of board.state().visits)addGuest(v);
+ for(const v of board.state().visits)if(v.customerType!=='player')addGuest(v);
+ const customerActor=id=>guests.get(id)||(board.getVisit(id)?.customerType==='player'?playerCustomerService?.actor():null);
  function spawn() {
   if(guests.size>=2||time<nextArrival)return;
   if([...guests.values()].some(n=>near(n.root.position,P.arrival,1.1)))return;
   const identity=createJapanVisitorIdentity(board.nextIdentity(),worldSeed);
-  const used=new Set(board.state().visits.map(v=>v.restSeatId)),seat=restSeats.find(s=>!used.has(s.id));if(!seat)return;
+  const used=new Set(board.state().visits.filter(v=>v.customerType!=='player').map(v=>v.restSeatId)),seat=restSeats.find(s=>!used.has(s.id));if(!seat)return;
   const visit=board.spawn({...identity,restPoint:seat.anchor,diningPoint:seat.anchor,servePoint:[seat.position[0]+.7,seat.position[1],seat.position[2]-.12],restSeatId:seat.id});
   if(visit){addGuest(visit);record(visit.id,'spawned');nextArrival=time+14;}
  }
  function abortTask(task,reason) {
-  const n=task.actor;failures.push({actor:n.station.id,reason,time:+time.toFixed(2)});if(failures.length>8)failures.shift();
+  const n=task.actor;failures.push({actor:n.station.id,reason,time:+time.toFixed(2),position:n.root.position.toArray(),destination:task.to.slice(),next:task.avoidRoute?.[0]||n.route[0]||null,player:playerState.position?.toArray?.()||null});if(failures.length>8)failures.shift();
+  if(task.staffLife){clear(n);staffLife?.abort(n);cooldowns.set(n.station.id,time+3);return;}
   clear(n,{releaseJob:true});furniture.releaseActor(n.station.id);cooldowns.set(n.station.id,time+3);
  }
  function tickTask(task,dt) {
   const n=task.actor;n.walking=false;
+  if(task.orderJobId&&!board.state().claims.some(j=>j.id===task.orderJobId&&j.workerId===n.station.id)){clear(n);return;}
   if(isJapanEmployeeInteraction(n,playerState)){tell(n,'先陪你聊一会儿');return;}
   tell(n,task.label||'稍作等候');
   if(task.after&&!task.after())return;
   if(!task.arrived) {
+   if(task.yieldToId&&!task.avoidRoute?.length){
+    const other=actors.get(task.yieldToId),p=other?.root.position,yieldAt=task.yieldAt;
+    if(p&&tasks.has(task.yieldToId)&&!tasks.get(task.yieldToId).arrived&&(p.x-yieldAt[0])*task.yieldDirection[0]+(p.z-yieldAt[2])*task.yieldDirection[1]>-.9)return;
+    task.yieldToId=null;task.routeSet=false;task.stalled=0;task.retries=0;
+   }
    if(near(n.root.position,task.to)) {
     n.route=[];task.arrived=true;task.stalled=0;
     if(task.mount) {
-     const allowed=task.mount.kind==='bath'?furniture.canUse(navigation,safety(n),task.mount):furniture.canSit(navigation,safety(n),task.mount);
+     const allowed=task.mount.kind!=='seat'?furniture.canUse(navigation,safety(n),task.mount):furniture.canSit(navigation,safety(n),task.mount);
      if(!allowed){task.arrived=false;return;}
      if(task.mount.kind==='bath'&&!furniture.occupyBath(task.mount,n.station.id)){abortTask(task,'seat reservation lost');return;}
      n.root.position.set(...task.mount.anchor);n.root.rotation.y=task.mount.yaw;n.serviceMount=task.mount;
@@ -94,13 +105,17 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
     if(task.avoidRoute?.length&&near(n.root.position,task.avoidRoute[0],.08)){
      task.avoidRoute.shift();if(!task.avoidRoute.length){n.route=planPath(n.root.position,point(task.to),.25);task.routeSet=true;}
     }
-    const step=task.avoidRoute?.length?{waypoint:point(task.avoidRoute[0])}:doors.routeStep(n.route,n.root.position,.025);
+    // Near the exact work point, a coarse grid corner may be nearer a waiting
+    // customer than the actual destination. Use a checked final floor segment.
+    const direct=near(n.root.position,task.to,.75)&&canTraverse(n.root.position,point(task.to),lot.colliders.concat(safety(n)),navigation);
+    if(direct&&!task.yieldToId)task.avoidRoute=null;
+    const step=direct&&!task.yieldToId?{waypoint:point(task.to)}:task.avoidRoute?.length?{waypoint:point(task.avoidRoute[0])}:doors.routeStep(n.route,n.root.position,.025);
     if(!step.waiting&&step.waypoint) {
      const p=step.waypoint,dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz);
      const obstacles=[...npcs.filter(a=>a!==n).map(a=>a.root.position),...(playerState.position?[playerState.position]:[])];
      const blocker=obstacles.find(p=>Math.abs(p.y-n.root.position.y)<.65&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<.65&&(p.x-n.root.position.x)*dx+(p.z-n.root.position.z)*dz>.005&&Math.abs((p.x-n.root.position.x)*dz-(p.z-n.root.position.z)*dx)/Math.max(d,1e-10)<.52);
      const blockerId=blocker&&npcs.find(a=>a.root.position===blocker)?.station.id;
-     if(blocker&&(!blockerId||!tasks.has(blockerId)||tasks.get(blockerId).arrived||n.station.id>blockerId)&&!task.avoidRoute?.length&&d>1e-10&&Math.abs(blocker.y-n.root.position.y)<.15) {
+     if(blocker&&(!blockerId||!tasks.has(blockerId)||tasks.get(blockerId).arrived||n.station.id>blockerId)&&!task.avoidRoute?.length&&d>1e-10) {
       // A real side-step through checked floor space lets opposite traffic pass
       // at the stair landing. Never change a route by snapping through an actor.
       const colliders=lot.colliders.concat(safety(n));
@@ -108,9 +123,33 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
        const sx=side*dz/d*.83,sz=-side*dx/d*.83,a=[n.root.position.x+sx,n.root.position.y,n.root.position.z+sz],b=[blocker.x+sx+dx/d*.72,n.root.position.y,blocker.z+sz+dz/d*.72];
        if(canTraverse(n.root.position,point(a),colliders,navigation)&&canTraverse(point(a),point(b),colliders,navigation)){task.avoidRoute=[a,b];break;}
       }
+      // A single-file corridor has no safe immediate side step. The yielding
+      // actor retraces its own checked footsteps to the nearest real passing
+      // space, then waits there until opposing traffic has gone past.
+      if(!task.avoidRoute?.length&&blockerId&&tasks.has(blockerId)&&!tasks.get(blockerId).arrived&&task.stalled>1.2){
+       const trail=task.trail||[];
+       for(let i=trail.length-1;i>=0&&!task.avoidRoute?.length;i--){
+        const p=trail[i],distance=Math.hypot(p[0]-n.root.position.x,p[2]-n.root.position.z);
+        // The same saved footsteps safely lead down a sloped stair to its
+        // landing; equal-height-only retreat strands opposing stair traffic.
+        if(distance>12)break;
+        if(distance<1.2)continue;
+        const forward=trail[i+1]||n.root.position.toArray(),tx=forward[0]-p[0],tz=forward[2]-p[2],length=Math.hypot(tx,tz);
+        if(length<.01)continue;
+        const opposingRoute=actors.get(blockerId)?.route||[];
+        for(const side of [1,-1]){
+         const aside=[p[0]+side*tz/length*.83,p[1],p[2]-side*tx/length*.83];
+         // A wide stair corner can still be on the other actor's next turn.
+         if(opposingRoute.some(q=>Math.abs(q.y-aside[1])<.7&&Math.hypot(q.x-aside[0],q.z-aside[2])<.75))continue;
+         if(!canTraverse(point(p),point(aside),colliders,navigation))continue;
+         task.avoidRoute=trail.slice(i).reverse().concat([aside]);task.yieldToId=blockerId;task.yieldAt=aside;task.yieldDirection=[dx/d,dz/d];task.retries=0;break;
+        }
+       }
+      }
      }
      if(d>1e-10&&!blocker){const amount=Math.min(d,dt*n.locomotion.walkSpeed*.82),before=n.root.position.clone();moveActor(n,dx/d*amount,dz/d*amount,.25);n.walking=before.distanceToSquared(n.root.position)>1e-8;n.root.rotation.y=Math.atan2(dx,dz);}
     }
+    if(n.walking&&!task.avoidRoute?.length){const last=task.trail.at(-1);if(!last||Math.hypot(n.root.position.x-last[0],n.root.position.z-last[2])>.4){task.trail.push(n.root.position.toArray());if(task.trail.length>80)task.trail.shift();}}
     task.stalled=n.walking?0:task.stalled+dt;
     if(task.stalled>5){task.stalled=0;task.routeSet=false;if(++task.retries>3)abortTask(task,'route temporarily obstructed');}
     return;
@@ -125,31 +164,45 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
  function workerTask(n,job) {
   const v=board.getVisit(job.visitId),config=JOBS[job.kind],carrying=!!job.itemId;
   const complete=()=>{
-   const guest=guests.get(job.visitId),ok=board.complete(job.id,n.station.id,{position:n.root.position.toArray(),guestPosition:guest?.root.position.toArray(),itemId:job.itemId,tokenId:job.tokenId||v.tokenId});
+   const guest=customerActor(job.visitId),ok=board.complete(job.id,n.station.id,{position:n.root.position.toArray(),guestPosition:guest?.root.position.toArray(),itemId:job.itemId,tokenId:job.tokenId||v.tokenId});
    if(ok){record(job.visitId,job.kind);if(['register','checkout'].includes(job.kind))furniture.facilities.release('japan-service-reception',job.visitId);}
    return ok;
   };
-  if(carrying)assign(n,P[job.from],{label:`领取第 ${v.number} 号${job.kind==='serve'?'汤面':'浴包'}`,duration:.8,face:job.kind==='serve'?P.mealTray:P.mixtureTray,onDone:()=>{
+  if(carrying)assign(n,P[job.from],{orderJobId:job.id,label:`领取第 ${v.number} 号${job.kind==='serve'?'汤面':'浴包'}`,duration:.8,face:job.kind==='serve'?P.mealTray:P.mixtureTray,onDone:()=>{
    if(!board.pickup(job.id,n.station.id,{position:n.root.position.toArray()}))return false;
    const target=job.to==='dining'?v.servePoint:P[job.to];
-   assign(n,target,{...config,label:`${config.label} · ${v.number}号`,handoff:true,face:job.to==='dining'?v.diningPoint:null,ready:()=>job.kind!=='serve'||board.getVisit(v.id)?.stage==='waiting-meal',onDone:complete});
+   assign(n,target,{...config,orderJobId:job.id,label:`${config.label} · ${v.number}号`,handoff:true,face:job.to==='dining'?v.diningPoint:null,ready:()=>job.kind!=='serve'||board.getVisit(v.id)?.stage==='waiting-meal',onDone:complete});
    return true;
   }});
-  else assign(n,P[job.to],{...config,label:`${config.label} · ${v.number}号`,ready:()=>!['register','checkout'].includes(job.kind)||near(guests.get(v.id)?.root.position||{},P.reception,.25),onDone:complete});
+  else assign(n,P[job.to],{...config,orderJobId:job.id,label:`${config.label} · ${v.number}号`,ready:()=>!['register','checkout'].includes(job.kind)||near(customerActor(v.id)?.root.position||{},v.customerType==='player'?P.playerReception:P.reception,.25),onDone:complete});
  }
  function scheduleWorkers() {
   for(const n of workers) {
-   if((cooldowns.get(n.station.id)||0)>time)continue;
-   const current=tasks.get(n.station.id);
+   if((cooldowns.get(n.station.id)||0)>time||(staffLife&&!staffLife.canWork(n.station.id)))continue;
+   let current=tasks.get(n.station.id);
    if(current&&!current.idle)continue;
-   const available=board.jobs().filter(j=>!j.workerId),job=available.map(j=>board.claim(j.id,n.station.id)).find(Boolean);
+   const available=board.jobs().filter(j=>!j.workerId&&(!staffLife||staffLife.canClaim(n.station.id,j.kind))),job=available.map(j=>board.claim(j.id,n.station.id)).find(Boolean);
    if(job){clear(n);workerTask(n,job);}
-   else if(!current&&!near(n.root.position,n.home.toArray(),.18))assign(n,n.home.toArray(),{idle:true,label:'收好用具，回到岗位'});
+   else {
+    const home=staffLife?.idlePoint(n.station.id)||n.home.toArray(),target=n.station.workTarget;
+    // Work only at this resident's authored post. Shift waiting/relief points
+    // may be in the same room, but do not put their original tools there.
+    const ownPost=near(point(home),n.home.toArray(),.08),validTarget=Array.isArray(target)&&target.length===3&&target.every(Number.isFinite);
+    const idle=staffLife?.idleTask(n.station.id)||(validTarget?{duration:4,face:target,...(ownPost?{action:n.station.npcAction,workTarget:target,label:n.station.id==='jp-welcome'?'整理柜台钥匙与客簿':n.station.npcLabel}:{label:n.station.id==='jp-welcome'?'查看柜台钥匙与客簿':'查看药房称量台与浴包'})}:null);
+    // Coverage ending or displacement immediately releases the old idle.
+    if(current&&(!near(point(current.to),home,.08)||(current.arrived&&!near(n.root.position,current.mount?.anchor||home,.18)))){if(!unmount(n))continue;clear(n);furniture.releaseActor(n.station.id);current=null;}
+    // Keep the pose across its work cycle boundary; orders/handoffs above own
+    // interruption, so clearing every four seconds would only flicker tools.
+    if(!current&&(!near(n.root.position,home,.18)||idle)){
+     if(idle?.mount&&!furniture.facilities.request(idle.mount.id,n.station.id))continue;
+     assign(n,home,{idle:true,arrived:!!idle?.mount&&n.serviceMount?.id===idle.mount.id,onDone:()=>false,label:'收好用具，回到值班岗位',...idle});
+    }
+   }
   }
  }
  function queueAtReception(n,v,event) {
   if(!furniture.facilities.request('japan-service-reception',v.id)) {
-   const to=[-2.7,0,8.2+(v.number%2)*.85];
+   const to=[restSeat(v).center[0]<0?-2.7:-1.6,0,8.2];
    if(!near(n.root.position,to,.15))assign(n,to,{label:'等前一位来客办完登记'});
    return;
   }
@@ -195,41 +248,49 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   const task=tasks.get(n.station.id),v=guests.has(n.station.id)?board.getVisit(n.station.id):null,mount=n.serviceMount;
   const helping=isJapanEmployeeInteraction(n,playerState),chatting=helping&&playerState.conversationActorId===n.station.id,sharedActivity=helping&&!chatting;
   const context=poseContext(n,sharedActivity?n.station:chatting?null:task?.workTarget?{workTarget:task.workTarget}:null);
-  if(mount){context.visualFloorOffset=mount.kind==='bath'?0:context.visualFloorOffset;context.seatHeight=mount.seatY===undefined?undefined:mount.seatY-n.root.position.y-context.visualFloorOffset;context.supportY=mount.supportY;context.bathPose=mount.bathPose;context.bathHipHeight=mount.bathHipHeight;}
+  if(mount){context.visualFloorOffset=['bath','bed'].includes(mount.kind)?0:context.visualFloorOffset;context.seatHeight=mount.seatY===undefined?undefined:mount.seatY-n.root.position.y-context.visualFloorOffset;context.supportY=mount.supportY;context.bathPose=mount.bathPose;context.bathHipHeight=mount.bathHipHeight;context.lieSupport=mount.lieSupport;context.lieOffset=mount.lieOffset;context.lieSurfaceHeightAt=mount.kind==='bed'?(n.staffBedProbe??=(x,z)=>furniture.bedSupportAt(mount,x,z)):undefined;}
+  context.receptionWriting=!helping&&!!task?.arrived&&!!task?.receptionWriting;
   context.heldProp=sharedActivity?null:task?.held||null;context.handoff=!sharedActivity&&(!!task?.handoff||v?.stage==='eating');
-  context.seatedMeal=!chatting&&v?.stage==='eating'&&mount?.kind==='seat';
-  n.animate(t+n.phase,n.walking,sharedActivity?n.station.npcAction:mount?(mount.kind==='bath'?'bathe':'chair-sit'):chatting?null:task?.arrived?task.action:null,context);
+  context.seatedMeal=!chatting&&(v?.stage==='eating'||task?.seatedMeal)&&mount?.kind==='seat';
+  const working=!n.walking&&task?.arrived&&(!task.idle||near(n.root.position,mount?.anchor||task.to,.18));
+  n.animate(t+n.phase,n.walking,sharedActivity?n.station.npcAction:mount?(mount.kind==='bath'?'bathe':mount.kind==='bed'?'lie-rest':mount.poseAction||'chair-sit'):chatting?null:working?task.action:null,context);
  }
+ staffLife=createJapanStaffLife({actors,board,furniture,assign,clear,unmount,taskOf:n=>tasks.get(n.station.id),changeWardrobe,saved:saved.staffLife});
  return {
   owns:n=>actors.has(n.station.id),
+  connectPlayerService(options) {return playerCustomerService??=createJapanPlayerService({...options,board,furniture});},
   update(dt,t,state={}) {
-   if(disposed)return;time+=dt;playerState=state;spawn();
+   if(disposed)return;time+=dt;playerState=state;playerCustomerService?.update(dt);spawn();
    for(const n of actors.values())n.walking=false;
    for(const [id,n]of guests){const v=board.getVisit(id);if(v)scheduleGuest(n,v);}
-   scheduleWorkers();for(const task of [...tasks.values()])if(tasks.get(task.actor.station.id)===task)tickTask(task,dt);
+   staffLife?.update(dt,playerState);scheduleWorkers();for(const task of [...tasks.values()])if(tasks.get(task.actor.station.id)===task)tickTask(task,dt);
    for(const [id,n]of [...guests])if(board.getVisit(id)?.stage==='departed')removeGuest(n);
-   for(const n of actors.values())animate(n,t);props.update(board.state(),actors);
+   for(const n of actors.values())animate(n,t);
+   const propActors=new Map(actors),playerVisit=playerCustomerService?.state().visit;
+   if(playerVisit?.present&&playerCustomerService.actor())propActors.set(playerVisit.id,playerCustomerService.actor());
+   props.update(board.state(),propActors,staffLife?.meals());
    if(time>=checkpointAt){board.checkpoint(positions(guests));checkpointAt=time+5;}
   },
   // Player furniture use may move a waiting guest out of a chair; pools retain
   // per-seat ownership. The host uses the same playerRequest call as before.
   playerRequest(id) {
+   staffLife?.playerRequest(id);
    for(const n of guests.values())if(n.serviceMount?.id===id&&n.serviceMount.kind!=='bath') {
     if(unmount(n)){clear(n);cooldowns.set(n.station.id,time+2);}
    }
   },
-  isYieldingFor:id=>[...guests.values()].some(n=>n.serviceMount?.id===id&&n.serviceMount.kind!=='bath'),
+  isYieldingFor:id=>[...actors.values()].some(n=>n.serviceMount?.id===id&&n.serviceMount.kind!=='bath'),
   cancelVisit(id,reason='visit-cancelled') {
    const n=guests.get(id);if(!n||!unmount(n))return false;
    for(const job of board.state().claims)if(job.visitId===id){const worker=actors.get(job.workerId);if(worker)clear(worker,{releaseJob:true});}
    clear(n);furniture.releaseActor(id);board.cancel(id,reason);changeWardrobe(n,board.getVisit(id).appearance);
    scheduleGuest(n,board.getVisit(id));return true;
   },
-  state:()=>({...board.state(),history:history.slice(),failures:failures.slice(),actors:[...actors].map(([id,n])=>({id,name:n.station.npcName,position:n.root.position.toArray(),job:n.serviceTask?.label,mounted:n.serviceMount?.id||null,walking:n.walking}))}),
+  state:()=>({...board.state(),staffLife:staffLife?.state()||null,history:history.slice(),failures:failures.slice(),actors:[...actors].map(([id,n])=>({id,name:n.station.npcName,position:n.root.position.toArray(),job:n.serviceTask?.label,mounted:n.serviceMount?.id||null,walking:n.walking}))}),
   dispose() {
-   if(disposed)return;board.checkpoint(positions(guests));disposed=true;
+   if(disposed)return;playerCustomerService?.suspend();board.checkpoint(positions(guests));disposed=true;
    for(const n of actors.values()){clear(n,{releaseJob:true});furniture.releaseActor(n.station.id);n.serviceMount=null;}
-   board.dispose();props.dispose();for(const n of guests.values())removeVisitor(n);guests.clear();actors.clear();
+   board.dispose();staffLife?.dispose();props.dispose();for(const n of guests.values())removeVisitor(n);guests.clear();actors.clear();
   },
  };
 }

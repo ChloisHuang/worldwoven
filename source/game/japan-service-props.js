@@ -34,15 +34,27 @@ export function createJapanServiceProps(parent) {
     for(const x of [-.05,.02,.08])box(g,.027,.009,.083,0x638469,[x,.159,0]);
     for(const x of [-.06,.005]){const noodle=part(g,new THREE.TorusGeometry(.045,.006,4,12),0xe8cf88,[x,.157,.012]);noodle.rotation.x=Math.PI/2;}
    }
-   const tag=badge(visit.number,color);tag.scale.setScalar(.48);tag.position.set(.16,.09,.14);g.add(tag);
+   if(!item.staffMeal){const tag=badge(visit.number,color);tag.scale.setScalar(.48);tag.position.set(.16,.09,.14);g.add(tag);}
   }
   g.name=item.id;g.userData={serviceItemId:item.id,visitId:visit.id,tokenId:visit.tokenId,kind:item.kind};root.add(g);return g;
  }
  // Ledger and return tray sit on the already modelled reception counter.
  const reception=new THREE.Group();reception.position.set(...P.tokenTray);root.add(reception);
- box(reception,.52,.027,.37,0xe6dcc2,[-.38,0,0]);
- for(const z of [-.11,-.055,0,.055,.11])box(reception,.39,.004,.011,0x819086,[-.38,.016,z]);
- box(reception,.42,.032,.31,0x8e6645,[.23,0,0]);
+ // The open book projects slightly past the counter lip, within the existing
+ // writing pose's reach. The pen target is above its paper, not a wiping tray.
+ const ledger=new THREE.Group();ledger.name='Open numbered reception guest ledger';ledger.position.set(.26,.008,-.11);reception.add(ledger);
+ box(ledger,.84,.023,.49,0x754e3b,[0,-.008,0]);
+ for(const side of [-1,1]){
+  const page=new THREE.Group();page.position.x=side*.207;page.rotation.z=side*-.025;ledger.add(page);
+  box(page,.398,.025,.465,0xefe4c7);box(page,.018,.007,.439,0xc59c77,[-side*.188,.018,0]);
+  box(page,.325,.005,.022,0x9f5549,[0,.018,.182]);
+  for(let row=0;row<4;row++){
+   const z=-.164+row*.081,entry=new THREE.Group();entry.position.set(-.119,.021,z);entry.rotation.x=-Math.PI/2;entry.scale.setScalar(.43);number(entry,row+1+(side>0?4:0));page.add(entry);
+   box(page,.219,.004,.006,0x7d8070,[.052,.018,z+.03]);box(page,.006,.004,.31,0xb8b29a,[-.062,.018,-.01]);
+   for(const dx of [.012,.052,.092])box(page,.020,.004,.010,0x625d4b,[dx,.021,z]);
+  }
+ }
+ box(reception,.34,.032,.28,0x8e6645,[-.44,0,0]);
  // Work-in-progress ingredients are visible only while the claimed preparer
  // actually works here. The finished order-owned pouch still appears on completion.
  const mixing=new THREE.Group(),pestle=new THREE.Group();mixing.name='Herbal blend mortar at reachable bench edge';pestle.name='Wooden pestle held by preparer';root.add(mixing,pestle);mixing.position.set(...P.blendWork);mixing.visible=pestle.visible=false;
@@ -56,18 +68,21 @@ export function createJapanServiceProps(parent) {
   if(item.location.id==='kitchenPickup')return [P.mealTray[0]+lane,P.mealTray[1],P.mealTray[2]];
   if(item.location.id==='menService')return [-4.2+lane,4.48,-3.1];
   if(item.location.id==='womenService')return [1.35+lane,4.48,-3.1];
-  return [P.tokenTray[0]+.23,P.tokenTray[1]+.065,P.tokenTray[2]];
+  if(item.location.id==='dining')return v.mealPoint||[v.diningPoint[0]+.5,v.diningPoint[1]+.60,v.diningPoint[2]];
+  return [P.tokenTray[0]-.44,P.tokenTray[1]+.065,P.tokenTray[2]];
  }
  return {
-  update(state,actorById) {
+  update(state,actorById,staffMeals=[]) {
+   const staffItems=staffMeals.map(m=>({id:'staff-meal:'+m.workerId,visitId:m.workerId,kind:'meal',staffMeal:true,eating:m.eating,location:{type:'worker',id:m.workerId}}));
    const visits=new Map(state.visits.map(v=>[v.id,v])),seen=new Set();
+   for(const m of staffMeals)visits.set(m.workerId,{id:m.workerId,number:0,blendId:JAPAN_BATH_BLENDS[0].id});
    const preparation=state.claims?.find(j=>j.kind==='prepare'),preparer=preparation&&actorById.get(preparation.workerId);
    const working=!!(preparer?.serviceTask?.arrived&&preparer.serviceTask.action==='herb-mix'&&preparer.root.userData.poseQA.action==='herb-mix');mixing.visible=pestle.visible=working;
    if(working){preparer.root.updateWorldMatrix(true,true);preparer.root.userData.hands[1].getWorldPosition(handB);pestle.position.copy(handB);pestle.position.x+=Math.sin(preparer.root.rotation.y)*.07;pestle.position.z+=Math.cos(preparer.root.rotation.y)*.07;pestle.rotation.y=preparer.root.rotation.y;}
-   for(const item of state.items) {
+   for(const item of [...state.items,...staffItems]) {
     const v=visits.get(item.visitId);if(!v||['cancelled','used'].includes(item.location.type))continue;
     seen.add(item.id);let g=objects.get(item.id);if(!g){g=make(item,v);objects.set(item.id,g);}
-    const held=item.location.type==='worker',guest=item.location.type==='guest',eating=item.kind==='meal'&&item.location.id==='dining';
+    const held=item.location.type==='worker',guest=item.location.type==='guest',eating=item.eating||(item.kind==='meal'&&item.location.id==='dining'&&v.stage==='eating');
     const actor=actorById.get(held?item.location.id:v.id);
     if((held||guest||eating)&&actor) {
      actor.root.updateWorldMatrix(true,true);g.rotation.set(0,actor.root.rotation.y,0);
