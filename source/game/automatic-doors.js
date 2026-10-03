@@ -20,9 +20,18 @@ function mergeLeaf(g){
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.computeBoundingBox();geo.computeBoundingSphere();
   const m=new THREE.Mesh(geo,material(0xffffff,{vertexColors:true}));m.userData.hingeStrapRanges=hingeStrapRanges;m.userData.curtainPartRanges=curtainPartRanges;m.castShadow=m.receiveShadow=true;g.add(m);return m;
 }
+// One solid stepped meeting stile per leaf. Complementary half-depth
+// rebates overlap across the seam with an 18 mm concealed running clearance;
+// this is part of the wood slab, not a separate surface cover strip.
+function rebatedLeafBody(g,width,height,side,color){
+ const cut=.080,extension=.026,halfDepth=.0525,halfGap=.009,edge=width/2,profile=[[-edge,-halfDepth],[edge-cut,-halfDepth],[edge-cut,halfGap],[edge+extension,halfGap],[edge+extension,halfDepth],[-edge,halfDepth]],shape=new THREE.Shape();
+ profile.forEach(([x,z],i)=>{x*=-side;z*=-side;if(i)shape.lineTo(x,-z);else shape.moveTo(x,-z);});shape.closePath();
+ const geo=new THREE.ExtrudeGeometry(shape,{depth:height,steps:1,bevelEnabled:false,curveSegments:1});geo.rotateX(-Math.PI/2);const mesh=new THREE.Mesh(geo,material(color));g.add(mesh);return {cut,extension,halfDepth,halfGap,side,bodyTriangles:(geo.index?.count??geo.attributes.position.count)/3};
+}
 function leaf(width,height,style,side,mount){
   const g=new THREE.Group(),[wood,panel,metal]=PALETTES[style]||PALETTES.palace;
-  shapeBox(g,0,height/2,0,width,height,.105,wood);
+  const meetingJoint=mount?rebatedLeafBody(g,width,height,side,wood):null;
+  if(!meetingJoint)shapeBox(g,0,height/2,0,width,height,.105,wood);
   const innerW=width-.19;
   // Doors are approached from both directions. Each face gets its own joined
   // lattice/panels and usable pull; the center slab and hinge straps stay single.
@@ -45,7 +54,7 @@ function leaf(width,height,style,side,mount){
     }
   }
   if(style!=='shoji'&&mount?.kind!=='pocket')for(const y of[height*.2,height*.8]){const inset=mount?.kind==='hinge',x=side*(width/2+(inset?-.07:.065)),w=inset?.14:.19,strap=shapeBox(g,x,y,0,w,.09,.09,metal,.012);strap.userData.hingeStrap={side,center:[x,y,0],size:[w,.09,.09]};}
-  g.userData={style,twoSidedDecoration:true,frontDetailMeshes:g.children.filter(x=>x.userData.doorFace===1).length,backDetailMeshes:g.children.filter(x=>x.userData.doorFace===-1).length};
+  g.userData={style,meetingJoint,twoSidedDecoration:true,frontDetailMeshes:g.children.filter(x=>x.userData.doorFace===1).length,backDetailMeshes:g.children.filter(x=>x.userData.doorFace===-1).length};
   mergeLeaf(g);return g;
 }
 function curtainLeaf(width,height,style,kind,authoredBottom){
@@ -75,7 +84,8 @@ function curtainLeaf(width,height,style,kind,authoredBottom){
   merged.receiveShadow=false;merged.userData.shadowPolicy='toon-lit-casting-cloth-no-shadow-receiver';return g;
 }
 function boxFromLeaf(g,width,height,bottom=0){
-  const b=new THREE.Box3(new THREE.Vector3(-width/2,bottom,-.15),new THREE.Vector3(width/2,height,.15));b.applyMatrix4(g.matrixWorld);
+  const joint=g.userData.meetingJoint,leftExtra=joint?.side===1?joint.extension:0,rightExtra=joint?.side===-1?joint.extension:0;
+  const b=new THREE.Box3(new THREE.Vector3(-width/2-leftExtra,bottom,-.15),new THREE.Vector3(width/2+rightExtra,height,.15));b.applyMatrix4(g.matrixWorld);
   return {minX:b.min.x,maxX:b.max.x,minY:b.min.y,maxY:b.max.y,minZ:b.min.z,maxZ:b.max.z};
 }
 function within(d,p,depth,padding=0){

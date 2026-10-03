@@ -91,11 +91,12 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
  const tmp=V(),tmp2=V(),dir=V(),pole=V(),restDir=V(),identity=new THREE.Quaternion(),invQ=new THREE.Quaternion(),torsoQ=new THREE.Quaternion(),headQ=new THREE.Quaternion(),inverseRoot=new THREE.Matrix4();
  const previousRoot=V(),velocity=V(),rootWorld=V(),forwardWorld=V(),rightWorld=V(),footProbe=V(),footBack=V(),footFront=V(),footRight=V(),footLeft=V(),footOffset=V(),footNormal=V(),footUp=V(0,1,0),footOrient=[new THREE.Quaternion(),new THREE.Quaternion()],footAnchors=[V(),V()],swingStarts=[V(),V()],lastFootWorld=[V(),V()],lastSupport=[true,false],footTargets=[V(),V()];
  let supportCorrection=0,poseMinY=0,poseMaxY=0,onsenHip=.32,onsenBackOffset=0,onsenArmLift=0;const lieOffsets={back:0,spine:0,head:0,heel:0};
- const onsenLapPoint=V(.09,.40,.23),onsenRimPalmQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(0,0,-1),V(1,0,0),V(0,-1,0))),onsenLapPalmQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(-1,0,0),V(0,0,-1),V(0,-1,0)));
+ const onsenLapPoint=V(.09,.40,.23),onsenLapNormal=V(0,1,0),onsenRimPalmQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(0,0,-1),V(1,0,0),V(0,-1,0))),onsenLapPalmQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(-1,0,0),V(0,0,-1),V(0,-1,0)));
  const onsenPalmContact={offset:V(),index:-1};
- if(culture==='japan'&&wardrobePreset==='onsen-swimwear')for(const geometry of template.geometry)for(const range of geometry.userData.sourceRanges||[])if(range.name==='relaxed-palm-1'){
-  let low=Infinity;for(let i=range.start;i<range.start+range.count;i++){tmp.fromBufferAttribute(geometry.attributes.position,i).sub(rest[9]).applyQuaternion(onsenLapPalmQ);if(tmp.y<low){low=tmp.y;onsenPalmContact.offset.copy(tmp);onsenPalmContact.index=i;}}
- }
+ function fitOnsenPalmContact(){for(const geometry of template.geometry)for(const range of geometry.userData.sourceRanges||[])if(range.name==='relaxed-palm-1'){
+  let low=Infinity;for(let i=range.start;i<range.start+range.count;i++){tmp.fromBufferAttribute(geometry.attributes.position,i).sub(rest[9]).applyQuaternion(onsenLapPalmQ);const depth=tmp.dot(onsenLapNormal);if(depth<low){low=depth;onsenPalmContact.offset.copy(tmp);onsenPalmContact.index=i;}}
+ }}
+ if(culture==='japan'&&wardrobePreset==='onsen-swimwear')fitOnsenPalmContact();
  let lastTime=null,wasWalking=false,gaitPhase=0,disposed=false,initializedFeet=false,currentAction=null,visualFloorOffset=0,previousYaw=0;
  const metrics={height,labelHeight:height+.16,headHeight:1.61*root.scale.y,action:null,seated:false,grounded:true,feet:[[],[]],hands:[[],[]]};
  root.userData={characterR9:true,characterR10:true,locomotion,appearance:{skin:opts.skin,hair:opts.hair,clothes:opts.clothes,accent:opts.accent,eyeColor:opts.eyeColor,culture,variant,style,bodyPreset,hairStyle,wardrobePreset,gaitPreset,shapeTraits:{...shapeTraits}},body:rig,head:bones[3],arms:[bones[4],bones[7]],forearms:[bones[5],bones[8]],hands:[bones[6],bones[9]],legs:[bones[10],bones[13]],knees:[bones[11],bones[14]],feet:[bones[12],bones[15]],tools:props.tools,poseQA:metrics,labelHeight:metrics.labelHeight,characterShared:true};
@@ -139,11 +140,11 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   const upper=rest[4].distanceTo(rest[5]),lower=rest[5].distanceTo(rest[6]),dy=armY-posedP[4].y,dz=armZ-posedP[4].z,out=Math.sqrt(Math.max(.0004,upper*upper-dy*dy-dz*dz));
   posedP[5].set(posedP[4].x-out,armY,armZ);posedP[6].set(posedP[5].x-lower,armY,armZ);orient(4,5,posedP[5]);orient(5,6,posedP[6]);posedQ[6].copy(onsenRimPalmQ);
   // The other palm rests on an actual deformed thigh vertex, palm down.
-  tmp2.copy(onsenLapPoint).sub(onsenPalmContact.offset);tmp2.y+=.004/root.scale.y;reach(1,tmp2.x,tmp2.y,tmp2.z);posedQ[9].copy(onsenLapPalmQ);
+  tmp2.copy(onsenLapPoint).sub(onsenPalmContact.offset).addScaledVector(onsenLapNormal,.004/root.scale.y);reach(1,tmp2.x,tmp2.y,tmp2.z);posedQ[9].copy(onsenLapPalmQ);
   headQ.setFromEuler(new THREE.Euler(.07,Math.sin(time*.35)*.02,0));posedQ[3].copy(torsoQ).multiply(headQ);
  }
  function measureOnsenSkin(context){
-  const result={min:Infinity,max:-Infinity,hip:Infinity,sole:Infinity,back:Infinity,backY:null,lapY:-Infinity,lapPoint:null,palmPoint:null,armSupportMin:Infinity,forearmMin:Infinity,forearmPoint:null};root.updateMatrixWorld(true);skeleton.update();inverseRoot.copy(root.matrixWorld).invert();
+  const result={min:Infinity,max:-Infinity,hip:Infinity,sole:Infinity,back:Infinity,backY:null,lapY:-Infinity,lapPoint:null,lapNormal:null,lapTriangle:null,palmPoint:null,armSupportMin:Infinity,forearmMin:Infinity,forearmPoint:null};root.updateMatrixWorld(true);skeleton.update();inverseRoot.copy(root.matrixWorld).invert();
   for(const mesh of meshes)for(const range of mesh.geometry.userData.sourceRanges||[]){
    const attr=mesh.geometry.attributes.position,hip=/^onsen-trouser|^onsen-swim-body/.test(range.name),back=range.name==='onsen-swim-body',sole=/^footwear-bath-bare/.test(range.name);
    for(let i=range.start;i<range.start+range.count;i++){
@@ -153,12 +154,23 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
     if(hip&&sy>.84&&sy<1.01&&attr.getZ(i)<-.012)result.hip=Math.min(result.hip,tmp.y);
     const worldY=context.supportY+(tmp.y+supportCorrection)*root.scale.y;
     if(back&&sy>1.12&&sy<1.335&&attr.getZ(i)<0&&worldY<context.bathPose.backTopY-.01&&tmp.z<result.back){result.back=tmp.z;result.backY=worldY;}
-    if(range.name==='onsen-trouser-1'&&sy>.74&&sy<.86&&tmp.y>result.lapY){result.lapY=tmp.y;result.lapPoint=tmp.clone();}
     if(range.name==='relaxed-palm-1'&&i===onsenPalmContact.index)result.palmPoint=tmp.clone();
     const onLedge=tmp.z+onsenBackOffset>(context.bathPose.backZ-.08)/root.scale.z&&tmp.z+onsenBackOffset<context.bathPose.backZ/root.scale.z;
     if(onLedge&&/^(bare-arm-onsen--1|relaxed-palm--1|relaxed-finger--1-|thumb--1)/.test(range.name)){
      result.armSupportMin=Math.min(result.armSupportMin,tmp.y);
      if(range.name==='bare-arm-onsen--1'&&sy<1.10&&sy>.94&&tmp.y<result.forearmMin){result.forearmMin=tmp.y;result.forearmPoint=tmp.clone();}
+    }
+   }
+   if(range.name==='onsen-trouser-1'){
+    // A palm lies along the actual posed thigh triangle, not a horizontal
+    // world plane. This retains finger clearance on longer bent legs.
+    const a=V(),b=V(),c=V(),normal=V(),center=V(),indices=mesh.geometry.index;
+    for(let j=range.indexStart;j<range.indexStart+range.indexCount;j+=3){
+     const ids=[indices.getX(j),indices.getX(j+1),indices.getX(j+2)],sy=ids.reduce((sum,i)=>sum+(mesh.geometry.attributes.sourceY?.getX(i)??attr.getY(i)),0)/3;if(sy<=.74||sy>=.86)continue;
+     for(const [point,i]of[[a,ids[0]],[b,ids[1]],[c,ids[2]]])mesh.getVertexPosition(i,point).applyMatrix4(mesh.matrixWorld).applyMatrix4(inverseRoot);
+     center.copy(a).add(b).add(c).multiplyScalar(1/3);if(center.y<=result.lapY)continue;
+     normal.copy(b).sub(a).cross(tmp2.copy(c).sub(a)).normalize();if(normal.y<0)normal.negate();if(normal.y<.65)continue;
+     result.lapY=center.y;result.lapPoint=center.clone();result.lapNormal=normal.clone();result.lapTriangle=ids;
     }
    }
   }return result;
@@ -403,7 +415,11 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
      let skin=measureOnsenSkin(context);supportCorrection=-skin.sole+.004/root.scale.y;
      poseOnsen(context,time);applyPose();skin=measureOnsenSkin(context);
      onsenBackOffset=context.bathPose.backZ/root.scale.z-skin.back+.006/root.scale.z;
-     if(skin.lapPoint)onsenLapPoint.copy(skin.lapPoint);
+     if(skin.lapPoint&&skin.lapNormal){
+      onsenLapPoint.copy(skin.lapPoint);onsenLapNormal.copy(skin.lapNormal);
+      dir.copy(posedP[14]).sub(posedP[13]);dir.addScaledVector(onsenLapNormal,-dir.dot(onsenLapNormal)).normalize();
+      onsenLapPalmQ.setFromRotationMatrix(new THREE.Matrix4().makeBasis(dir.clone().cross(onsenLapNormal).normalize(),dir.clone().negate(),onsenLapNormal.clone().negate()));fitOnsenPalmContact();
+     }
      for(let pass=0;pass<3;pass++){
       poseOnsen(context,time);applyPose();skin=measureOnsenSkin(context);
       if(Number.isFinite(skin.armSupportMin))onsenArmLift=clamp(onsenArmLift+(context.bathPose.backTopY-supportY+.004)/root.scale.y-supportCorrection-skin.armSupportMin,-.04,.09);
@@ -412,7 +428,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
      poseMinY=skin.min;poseMaxY=skin.max;metrics.lieContact=null;
      metrics.bathContact={hip:{surface:context.bathPose.seatY,body:supportY+(skin.hip+supportCorrection)*root.scale.y,gap:supportY+(skin.hip+supportCorrection)*root.scale.y-context.bathPose.seatY},sole:{surface:supportY,body:supportY+(skin.sole+supportCorrection)*root.scale.y,gap:.004},back:{surface:context.bathPose.backZ,body:(skin.back+onsenBackOffset)*root.scale.z,gap:.006,height:skin.backY,top:context.bathPose.backTopY},waterY:context.bathPose.waterY};
      const finalPoint=p=>p?p.clone().add(V(0,(supportY-rootWorld.y)/root.scale.y+supportCorrection,onsenBackOffset)).applyMatrix4(root.matrixWorld).toArray():null;
-     metrics.bathHandContact={forearm:{surface:context.bathPose.backTopY,body:supportY+(skin.forearmMin+supportCorrection)*root.scale.y,gap:supportY+(skin.forearmMin+supportCorrection)*root.scale.y-context.bathPose.backTopY,point:finalPoint(skin.forearmPoint)},palm:{point:finalPoint(skin.palmPoint),supportPoint:finalPoint(skin.lapPoint),gap:skin.palmPoint?.distanceTo(skin.lapPoint)*root.scale.y},palmNormals:[V(0,0,1).applyQuaternion(posedQ[6]).toArray(),V(0,0,1).applyQuaternion(posedQ[9]).toArray()]};
+     metrics.bathHandContact={forearm:{surface:context.bathPose.backTopY,body:supportY+(skin.forearmMin+supportCorrection)*root.scale.y,gap:supportY+(skin.forearmMin+supportCorrection)*root.scale.y-context.bathPose.backTopY,point:finalPoint(skin.forearmPoint)},palm:{point:finalPoint(skin.palmPoint),supportPoint:finalPoint(skin.lapPoint),gap:skin.palmPoint?.distanceTo(skin.lapPoint)*root.scale.y,supportNormal:skin.lapNormal?.toArray(),supportTriangle:skin.lapTriangle},palmNormals:[V(0,0,1).applyQuaternion(posedQ[6]).toArray(),V(0,0,1).applyQuaternion(posedQ[9]).toArray()]};
     }else if(action==='lie-rest'&&context?.lieSupport&&shapeTraits.legLength!==1){
      fitShapedLie(context,supportY);
     }else if(action==='lie-rest'&&context?.lieSupport){

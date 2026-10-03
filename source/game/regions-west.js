@@ -836,13 +836,33 @@ export function buildFrance({pack=true}={}){
     for(let k=0;k<9;k++){const xx=-w/2+k*w/8;G.sphere(q,xx,4.32-.26*Math.sin(k*Math.PI/8),.28,.25,C.green,1.15,.7,.42);}
     cameraBox(x,2.72,z,rot? .06:w,3.64,rot?w:.06);
   }
-  function doorway(x,z,w=2.5,rot=0,openingTop=3.9){
+  function doorway(x,z,w=2.5,rot=0,openingTop=3.9,pocket=false){
     const q=local(x,z,rot),lift=openingTop-3.9,inner=w/2+.012;
     q.name='Joined doorway casing '+x+','+z;
     // The casing and outward-flared foot both stay outside the real aperture.
     // Keep their inner edges aligned, their backing joined, and the foot on
     // the finished slab. These are solid jambs, never a hinge-contact waiver.
     const solidPart=(m,name)=>{m.name=name;m.updateWorldMatrix(true,false);const b=new THREE.Box3().setFromObject(m);const c={minX:b.min.x,maxX:b.max.x,minY:b.min.y,maxY:b.max.y,minZ:b.min.z,maxZ:b.max.z};if(name==='White joined casing'){const id='fr-casing:'+x+','+z+','+w+','+rot+','+Math.sign(m.position.x);(group.userData.hingeMountSolids??=[]).push({id,kind:'door-casing',source:'joined-doorway-casing',axis:rot?'z':'x',plane:rot?x:z,bounds:{...c},openingWidth:w,center:[x,floorY,z]});c.hingeMountSolidId=id;m.userData.hingeMountRanges=[{firstTriangle:0,triangleCount:(m.geometry.index?.count??m.geometry.attributes.position.count)/3,solidId:id}];}colliders.push({...c});cameraColliders.push({...c});return m;};
+    if(pocket){
+      // The casing dresses the two opaque cassette skins; no solid post or
+      // stone foot bridges the real ±.18 m storage cavity behind the leaves.
+      // Each face overlaps its .18..25 m wall skin by20–30mm, so mouldings
+      // remain structurally joined while the complete leaf travel stays clear.
+      q.userData.pocketCasing={cavityNormal:[-.18,.18],wallFaces:[-.25,.25],casingInnerFace:.23,footInnerFace:.22};
+      for(const face of[-1,1]){
+        for(const side of[-1,1]){
+          solidPart(G.box(q,side*(inner+.09),2.11+lift/2,face*.27,.18,3.76+lift,.08,C.white),'Pocket face casing');
+          G.box(q,side*(inner+.09),2.1+lift/2,face*.32,.045,3.50+lift,.035,C.gold);
+          solidPart(G.box(q,side*(inner+.175),.385,face*.27,.35,.31,.10,C.stone),'Pocket face stone foot');
+        }
+        const head=G.box(q,0,4.04+lift,face*.27,w+.50,.28,.08,C.white);head.name='Pocket joined face header';head.updateWorldMatrix(true,false);const b=new THREE.Box3().setFromObject(head);cameraColliders.push({minX:b.min.x,maxX:b.max.x,minY:b.min.y,maxY:b.max.y,minZ:b.min.z,maxZ:b.max.z});
+        G.box(q,0,4.19+lift,face*.28,w+.62,.065,.10,C.gold);
+        archBand(q,0,face*.28,w+.37,4.17+lift,.45,C.white,.08);
+        G.sphere(q,0,4.65+lift,face*.33,.22,C.gold,1,.90,.25);
+        for(const side of[-1,1]){const leaf=G.sphere(q,side*.29,4.52+lift,face*.33,.22,C.gold,1.6,.30,.20);leaf.rotation.z=side*.25;}
+      }
+      return q;
+    }
     for(const side of [-1,1]){
       solidPart(G.box(q,side*(inner+.09),2.11+lift/2,0,.18,3.76+lift,.42,C.white),'White joined casing');
       G.box(q,side*(inner+.09),2.1+lift/2,.23,.045,3.50+lift,.04,C.gold);
@@ -1209,7 +1229,7 @@ export function buildFrance({pack=true}={}){
     wall({at:-13.5,from:xc-4,to:xc+4,openings:[windowOpen(xc,2.8)]});
     wall({at:3.5,from:xc-4,to:xc+4,openings:[{from:xc-1.25,to:xc+1.25,top:3.9}]});
     wall({at:-6.6,from:xc-4,to:xc+4,openings:[{from:xc-1.25,to:xc+1.25,top:3.9}]});
-    doorway(s*17,-9.5,2.3,Math.PI/2);doorway(s*17,-5,2.2,Math.PI/2);doorway(s*10.8,-9.5,2.3,Math.PI/2);doorway(s*10.8,-5,2,Math.PI/2);doorway(xc,3.5,2.5);doorway(xc,-6.6,2.5);
+    doorway(s*17,-9.5,2.3,Math.PI/2);doorway(s*17,-5,2.2,Math.PI/2);doorway(s*10.8,-9.5,2.3,Math.PI/2);doorway(s*10.8,-5,2,Math.PI/2,3.9,s>0);doorway(xc,3.5,2.5);doorway(xc,-6.6,2.5);
     windowAt(s*25,-10.5,2.4,s<0?Math.PI/2:-Math.PI/2);windowAt(s*25,-1.5,2.8,s<0?Math.PI/2:-Math.PI/2);windowAt(xc,-13.5,2.8);
     ceiling(xc,-10.05,8,6.9);ceiling(xc,-1.55,8,10.1);chandelier(xc,-10.05,.8);chandelier(xc,-1.55,.9);
     for(const z of [-13.5,3.5]){box(xc,5.48,z,8.45,.19,.51,C.gold,roofGroup);box(xc,5.68,z,8.67,.18,.60,C.ivory,roofGroup);for(let x=xc-3.8;x<xc+4;x+=.50){G.cyl(roofGroup,x,6.04,z,.065,.07,.51,C.white,8);}box(xc,6.33,z,8.62,.15,.40,C.white,roofGroup);}
