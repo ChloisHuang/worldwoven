@@ -19,6 +19,8 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
  if(!bath||!bench)return null;
  const change=men?[-9.92,3.8,2.4]:[4.8,3.8,1.4],wash=men?[-9.15,3.8,-3.7]:[3.65,3.8,-4.15];
  const wait=men?[-3.3,3.8,6.55]:[.25,3.8,6.55],meet=[wait[0]-.82,3.8,wait[2]],reception=[-4.22,0,5.7];
+ const cleanPoint=[bath.position[0]-.16,3.8,bath.position[2]],cleanTarget=[bath.center[0],4.57,bath.position[2]],cleanerWait=[wait[0]+1.15,3.8,6.55];
+ const porterSupply=men?[.15,3.8,2.72]:[-3.55,3.8,2.72],cleanSupply=men?[-3.55,3.8,2.72]:[.15,3.8,2.72];
  const changingId=men?'japan-furniture-wardrobe':'japan-service-women-changing';
  const home=n=>n.home.toArray(),visitorLook={...guest.root.userData.appearance};
  let stage='',jobs=[],stageTime=0,cycles=Math.max(0,saved?.cycles|0),disposed=false,interruption=null,playerState={},lastPlayerId=null;
@@ -37,19 +39,19 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
   }else if(next==='guide'){
    jobs=[job(host,[5.9,0,5.7],{duration:1,face:[9.1,0,-1],label:'引导旅人前往二层'}),job(guest,[4.65,0,5.7],{duration:1,label:'跟随接待前往楼梯',follow:host})];
   }else if(next==='upstairs'){
-   jobs=[job(host,home(host),{action:'tidy',label:'回前台迎接下一位旅人'}),job(guest,wait,{label:'沿楼梯前往温泉接待处'}),job(porter,home(porter),{duration:2.5,action:'tidy',held:'cloth',label:'从木篮取出干净手巾'}),job(cleaner,bath.position,{duration:3,action:'bath-attendant',workTarget:[bath.center[0],4.48,bath.position[2]],claim:bath.id,label:'检查并擦拭池边座位'})];
+   jobs=[job(host,home(host),{action:'tidy',label:'回前台迎接下一位旅人'}),job(guest,wait,{label:'沿楼梯前往温泉接待处'}),job(porter,porterSupply,{duration:2.5,action:'tidy',workTarget:[porterSupply[0],4.7,2.1],label:'从木篮取出干净手巾'}),job(cleaner,cleanPoint,{duration:3,action:'bath-attendant',held:'bathBucket',workTarget:cleanTarget,claim:bath.id,label:'检查并擦拭池边座位'})];
   }else if(next==='towels'){
-   jobs=[job(guest,wait,{duration:2,face:meet,handoff:true,label:'接过入浴手巾'}),job(porter,meet,{duration:2,held:'cloth',face:wait,handoff:true,label:'把干净手巾交给 Ren'})];
+   jobs=[job(guest,wait,{duration:2,face:meet,handoff:true,label:'接过入浴手巾'}),job(porter,meet,{duration:2,held:'cloth',face:wait,handoff:true,label:'把干净手巾交给 Ren'}),job(cleaner,cleanerWait,{label:'检查完毕，先让出洗浴通道'})];
   }else if(next==='changing'){
-   jobs=[job(guest,change,{duration:3,action:'tidy',held:'cloth',claim:changingId,face:men?[-11.32,3.8,2.4]:[6.3,3.8,1.4],label:'在更衣柜前整理入浴衣着',onDone:()=>outfit('onsen-swimwear')}),job(porter,home(porter),{label:'返回手巾木篮'}),job(cleaner,home(cleaner),{label:'让出洗浴通道'})];
+   jobs=[job(guest,change,{duration:3,action:'tidy',held:'cloth',claim:changingId,face:men?[-11.32,3.8,2.4]:[6.3,3.8,1.4],label:'在更衣柜前整理入浴衣着',onDone:()=>outfit('onsen-swimwear')}),job(porter,home(porter),{label:'返回手巾木篮'}),job(cleaner,cleanerWait,{label:'在休息廊等候清洁交接'})];
   }else if(next==='washing'){
    jobs=[job(guest,wash,{duration:3.5,action:'bath-attendant',face:men?[-10.35,3.8,-3.7]:[4.6,3.8,-4.15],workTarget:men?[-10.35,4.6,-3.7]:[4.6,4.6,-4.15],label:'洗净后再入汤'})];
   }else if(next==='bathing'){
    jobs=[job(guest,bath.position,{duration:8,action:'bathe',claim:bath.id,mount:bath,label:'坐在温泉池座上泡汤'})];
   }else if(next==='drying'){
-   jobs=[job(guest,change,{duration:3,action:'tidy',held:'cloth',claim:changingId,face:men?[-11.32,3.8,2.4]:[6.3,3.8,1.4],label:'擦干并换回旅途衣着',onDone:()=>outfit(visitorLook.wardrobePreset)}),job(cleaner,bath.position,{duration:4,action:'bath-attendant',workTarget:[bath.center[0],4.48,bath.position[2]],claim:bath.id,label:'旅人离池后擦洗座位'})];
+   jobs=[job(guest,change,{duration:3,action:'tidy',held:'cloth',claim:changingId,face:men?[-11.32,3.8,2.4]:[6.3,3.8,1.4],label:'擦干并换回旅途衣着',onDone:()=>outfit(visitorLook.wardrobePreset)}),job(cleaner,cleanPoint,{duration:4,action:'bath-attendant',held:'bathBucket',workTarget:cleanTarget,after:()=>guest.root.position.z>-.1,claim:bath.id,label:'旅人离池后擦洗座位'})];
   }else if(next==='resting'){
-   jobs=[job(guest,bench.position,{duration:6,action:'chair-sit',claim:bench.id,mount:bench,label:'在休息廊坐下歇脚'}),job(cleaner,home(cleaner),{duration:2.5,action:'tidy',held:'cloth',label:'补齐下一位旅人的手巾与木桶'})];
+   jobs=[job(guest,bench.position,{duration:6,action:'chair-sit',claim:bench.id,mount:bench,label:'在休息廊坐下歇脚'}),job(cleaner,cleanSupply,{duration:2.5,action:'tidy',held:'cloth',workTarget:[cleanSupply[0],4.7,2.1],label:'补齐下一位旅人的手巾与木桶'})];
   }else if(next==='returning'||next==='recovering'){
    outfit(visitorLook.wardrobePreset);
    jobs=actors.map(n=>job(n,n===guest?reception:home(n),{duration:n===guest?2:0,label:n===guest?'回前台归还钥匙':n===host?'等候旅人归还钥匙':'收好用具，准备下一轮'}));
@@ -83,15 +85,16 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
  function tickTask(task,dt){
   const n=task.actor;n.walking=false;
   if(task.done)return;
+  if(task.after&&!task.after())return;
   if(playerState.performing===n.station.id){tell(n,'先陪你一起体验');return;}
   tell(n,task.label);
   if(task.claim&&!facilities.request(task.claim,n.station.id)){task.waited=(task.waited||0)+dt;if(task.waited>25){interruption={id:task.claim,resume:stage,wait:wait.slice()};enter('yielding');}return;}
   if(!task.arrived){
-   if(near(n.root.position,task.to,task.handoff?.025:.18)){task.arrived=true;n.route=[];
+   if(near(n.root.position,task.to,task.handoff||task.action==='bath-attendant'?.025:.18)){task.arrived=true;n.route=[];
     if(task.mount){n.serviceMount=task.mount;n.root.position.set(...task.mount.anchor);n.root.rotation.y=task.mount.yaw;}
    }else{
     if(!task.routeSet){n.route=planPath(n.root.position,point(task.to),.25);task.routeSet=true;}
-    const step=doors.routeStep(n.route,n.root.position,task.handoff?.018:.12);
+    const step=doors.routeStep(n.route,n.root.position,task.handoff||task.action==='bath-attendant'?.018:.12);
     if(!step.waiting&&step.waypoint){const p=step.waypoint,dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz);
      const player=playerState.position,playerAhead=player&&Math.abs(player.y-n.root.position.y)<.6&&Math.hypot(player.x-n.root.position.x,player.z-n.root.position.z)<.68&&(player.x-n.root.position.x)*dx+(player.z-n.root.position.z)*dz>0;
      const followGap=task.follow&&task.follow.root.position.distanceTo(n.root.position)<1.05;
