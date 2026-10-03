@@ -67,6 +67,7 @@ export function buildConvexEye(parent,{side,masc=false,traits=null,facialSurface
    if(wrapped)z=Math.max(z,globe(x,y)+(.00075+.0007*Math.sin(Math.PI*v))*Math.sin(Math.PI*u)**.5*(1-v));
    return[x,y,z];
   },C.skin);
+  if(wrapped){const n=lid.geometry.attributes.normal;for(let i=0;i<=24;i++){const [x,y]=eyeLidBoundary(layout,i/24,up,true),h=.00008,nx=(facialSurface(x+h,y)-facialSurface(x-h,y))/(2*h),ny=(facialSurface(x,y+h)-facialSurface(x,y-h))/(2*h),normal=new THREE.Vector3(-nx,-ny,1).normalize();n.setXYZ(5*25+i,normal.x,normal.y,normal.z);}}
   if(coherent){const colors=[];for(let j=0;j<=5;j++)for(let i=0;i<=24;i++){const u=i/24,v=j/5,fold=Math.exp(-(((v-(up?.78:.82))/.16)**2))*Math.sin(Math.PI*u),c=new THREE.Color(C.skin).multiplyScalar(1-(up?.25:.18)*fold);colors.push(c.r,c.g,c.b);}lid.geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));}
   if(wrapped)grid(parent,'eyelid-margin-'+(up?'upper':'lower')+'-'+side,24,3,(u,v)=>{
    const p=edge(u,up),taper=Math.sin(Math.PI*u)**.7,depth=(up?.0018:.0007)*taper;

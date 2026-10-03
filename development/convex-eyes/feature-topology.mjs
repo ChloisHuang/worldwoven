@@ -25,8 +25,9 @@ const NOSE=[
  [1.601,[1.601,1.601,1.601,1.601,1.601,1.601],[.077,.077,.076,.073,.070,.064]]
 ];
 const NY=NOSE.map(r=>r[0]);
-const MOUTH_Y=[-.019,-.012,-.0085,-.0038,-.0005,.0005,.0037,.0066,.011,.016];
-const MOUTH_Z=[.0745,.075,.081,.0855,.0820,.0825,.0858,.084,.084,.081];
+const MOUTH_Y=[-.019,-.012,-.0095,-.0042,-.0016,-.00035,.00035,.0016,.0038,.007,.011,.016];
+const MOUTH_Z=[.0745,.075,.081,.0865,.0855,.0805,.081,.0850,.0865,.0838,.084,.081];
+const MOUTH_PY=[-.019,-.012,-.0095,-.0036,-.0007,-.00035,.00035,.0007,.0032,.007,.011,.016];
 function mappedSkin(x,y,masc,traits){
  const f=(xx,yy)=>coherentFaceSurface(xx,yy,masc,traits),base=f(x,y);let py=y,pz=base;
  const ns=traits?.noseSize??1,nw=traits?.noseWidth??1,nx=Math.abs(x/nw),ny=1.554+(y-1.554)/ns;
@@ -42,6 +43,7 @@ function mappedSkin(x,y,masc,traits){
   const side=(1-q*q)**1.15,join=smooth(-.019,-.013,dy)*(1-smooth(.010,.016,dy));
   const centreBase=f(0,y),lipScale=dy>0?1.30*(1-.20*Math.exp(-((x/.004)**2))):1.13,target=curve(MOUTH_Y,MOUTH_Z,dy/lipScale);
   pz+=(target-centreBase)*side*join;
+  py+=(curve(MOUTH_Y,MOUTH_PY,dy/lipScale)*lipScale-dy)*side*join;
   py+=(.0011*q*q-.0006*Math.exp(-((x/.004)**2))+.0005*Math.exp(-(((Math.abs(x)-.012)/.007)**2)))*side*join;
   if(dy>.006&&dy<.016){const columns=Math.exp(-(((Math.abs(x)-.0045)/.0026)**2)),groove=Math.exp(-((x/.0030)**2));pz+=(.0015*columns-.0008*groove)*Math.sin(Math.PI*clamp((dy-.006)/.010))*join;}
  }
@@ -55,7 +57,7 @@ export function applyFeatureTopology(head,{masc,traits,skin}){
  const base=new THREE.Color(skin),upper=base.clone().lerp(new THREE.Color(0x925e5b),.60),lower=base.clone().lerp(new THREE.Color(0x925e5b),.50);
  for(const m of head.children){
   if(!m.isMesh||!(/^(continuous-head|nostril-cavity|closed-soft-mouth)/.test(m.name)))continue;
-  const p=m.geometry.attributes.position,colors=[],isSkin=m.name.startsWith('continuous-head');
+  const p=m.geometry.attributes.position,colors=[],sheen=[],isSkin=m.name.startsWith('continuous-head');
   for(let i=0;i<p.count;i++){
    const x=p.getX(i),y=p.getY(i),z=p.getZ(i);let point=[x,y,z];
    if(z>.005&&Math.abs(x)<.031&&y>1.499&&y<1.601){
@@ -64,12 +66,13 @@ export function applyFeatureTopology(head,{masc,traits,skin}){
    }
    if(!point.every(Number.isFinite))throw new Error('Non-finite folded feature vertex');p.setXYZ(i,...point);
    if(isSkin){
-    const hw=masc?.030:.029,q=Math.abs(x)/hw,dy=y-1.518;let c=base;
-    if(q<1&&z>.035){const taper=Math.sqrt(1-q*q),height=(dy>=0?.0090:.0095)*taper*(dy>=0?1-.35*Math.exp(-((x/.005)**2)):1),edge=1-smooth(.88,1,Math.abs(dy)/Math.max(height,.000001));c=base.clone().lerp(dy>=0?upper:lower,edge);}
+    const hw=masc?.030:.029,q=Math.abs(x)/hw,dy=y-1.518;let c=base,gloss=0;
+    if(q<1&&z>.035){const taper=Math.sqrt(1-q*q),height=(dy>=0?.0090:.0095)*taper*(dy>=0?1-.35*Math.exp(-((x/.005)**2)):1),edge=1-smooth(.88,1,Math.abs(dy)/Math.max(height,.000001));c=base.clone().lerp(dy>=0?upper:lower,edge);gloss=edge*.9;}
     colors.push(c.r,c.g,c.b);
+    if(z>.035&&Math.abs(x)<.013&&y>1.547&&y<1.561)gloss=Math.max(gloss,.25*Math.sin(Math.PI*(y-1.547)/.014)*(1-(x/.013)**2));sheen.push(gloss);
    }
   }
-  if(isSkin)m.geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+  if(isSkin){m.geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));m.geometry.setAttribute('featureSheen',new THREE.Float32BufferAttribute(sheen,1));}
   m.geometry.computeVertexNormals();m.geometry.computeBoundingBox();m.geometry.computeBoundingSphere();
  }
 }

@@ -4,8 +4,9 @@ export function applyFaceTone(material){
  const previous=material.onBeforeCompile;
  material.onBeforeCompile=(shader,renderer)=>{
   previous.call(material,shader,renderer);
-  shader.vertexShader='attribute float eyeReflectance;\nvarying float vEyeReflectance;\nvarying float vFaceTone;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n vFaceTone = smoothstep(1.400, 1.455, position.y);\n vEyeReflectance=eyeReflectance;');
-  const bands=`varying float vFaceTone;
+  shader.vertexShader='attribute float eyeReflectance;\nattribute float featureSheen;\nvarying float vFeatureSheen;\nvarying float vEyeReflectance;\nvarying float vFaceTone;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n vFaceTone = smoothstep(1.400, 1.455, position.y);\n vEyeReflectance=eyeReflectance;vFeatureSheen=featureSheen;');
+  const bands=`varying float vFeatureSheen;
+varying float vFaceTone;
 varying float vEyeReflectance;
 float faceCelTone(float v) {
  float e = max(fwidth(v) * 0.65, 0.090);
@@ -21,6 +22,13 @@ float faceCelTone(float v) {
   // It is limited to eye vertices, with no PBR skin or global shadow change.
   shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>',`
 #if NUM_DIR_LIGHTS > 0
+ if(vFeatureSheen>0.001){
+  vec3 featureSum=directionalLights[0].direction+normalize(vViewPosition);
+  vec3 featureHalf=featureSum*inversesqrt(max(dot(featureSum,featureSum),0.00001));
+  float featureGlint=pow(max(dot(normal,featureHalf),0.0),64.0);
+  float featureGain=clamp(max(directionalLights[0].color.r,max(directionalLights[0].color.g,directionalLights[0].color.b)),0.0,1.0);
+  outgoingLight+=featureGain*vec3(0.10,0.085,0.075)*vFeatureSheen*smoothstep(0.35,0.75,featureGlint);
+ }
  if (vEyeReflectance > 0.5) {
  vec3 eyeSum = directionalLights[0].direction + normalize(vViewPosition);
  vec3 eyeHalf = eyeSum * inversesqrt(max(dot(eyeSum,eyeSum),0.00001));
@@ -36,5 +44,5 @@ float faceCelTone(float v) {
 #endif
 #include <opaque_fragment>`);
  };
- material.customProgramCacheKey=()=> 'worldwoven-prototype-face-five-band-eye-v5';material.needsUpdate=true;
+ material.customProgramCacheKey=()=> 'worldwoven-prototype-face-five-band-feature-sheen-v1';material.needsUpdate=true;
 }
