@@ -35,7 +35,7 @@ try{
   actor.root.position.set(0,.015,.275);actor.animate(1,false,'chair-sit',{seatHeight:.675-.015});actor.root.updateMatrixWorld(true);
   report.seated={anchor:actor.root.position.toArray(),yaw:0,seatY:.675,seatHeight:.660,scope:'Hall-seat relative transform and exact production chair-sit action, with original .275 front offset'};
   render('seated','threequarter',actor);render('seated','side',actor);
-  camera.fov=50;camera.updateProjectionMatrix();views.game=[3.15,2.7,4.00];render('seated','game',actor);actor.root.removeFromParent();actor.dispose();assert.equal(C.characterResourceStats().activeReferences,0);
+  camera.fov=50;camera.updateProjectionMatrix();target.copy(actor.root.position).add(new T.Vector3(0,Math.min(1.45,actor.getPoseMetrics().headHeight-.12),0));views.game=[Math.sin(.5)*Math.cos(.22)*4.6,Math.sin(.22)*4.6,Math.cos(.5)*Math.cos(.22)*4.6];render('seated','game',actor);actor.root.removeFromParent();actor.dispose();assert.equal(C.characterResourceStats().activeReferences,0);
  }else report.throneInteraction='No existing throne action. Old hall-local seatY 1.49 is preserved; old dais top .36 is 1.13 m below it, beyond the production pose seatHeight cap of 1 m. Do not infer usable seating from this decorative prototype.';
  report.sourceUnchanged=JSON.stringify(before)===JSON.stringify(manifest());assert(report.sourceUnchanged);assert.equal(report.errors.length,0);report.status='RENDERED_PENDING_VISUAL_REVIEW';
 }catch(e){report.status='FAIL';report.errors.push(e.stack||String(e));process.exitCode=1;}
