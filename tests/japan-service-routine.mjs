@@ -23,12 +23,17 @@ function capture(stage){
  const views={arrival:[[-2.8,2.05,9],[-4.8,1.15,5.7]],towels:report.side==='men'?[[-2.3,5.8,8.4],[-3.65,4.95,6.55]]:[[1.9,5.8,8.35],[-.12,4.95,6.55]],bathing:report.side==='men'?[[-1.65,5.65,-6.9],[-3.35,4.8,-9.3]]:[[5.2,5.65,-7.25],[3.6,4.8,-9.7]],drying:[[p.x+.45,p.y+1.8,p.z+2.2],[p.x-.35,p.y+.95,p.z]],resting:[[p.x+1.8,p.y+1.7,p.z-2.25],[p.x,p.y+.95,p.z]]};
  if(!views[stage])return;const[position,target]=views[stage];camera.position.set(...position);camera.lookAt(new T.Vector3(...target));scene.updateMatrixWorld(true);renderer.render(scene,camera);gl.finish();assert.equal(gl.getError(),0);const name=String(report.frames.length+1).padStart(2,'0')+'-'+stage;fs.writeFileSync(out+'/'+name+'.png',canvas.toBuffer('image/png'));report.frames.push({name,time:t,camera:position,target,actors:routine.state().actors});captured.add(stage);
 }
+function captureWalk(){
+ if(!renderer||routine.state().stage!=='escorting')return;const guest=npcs.find(n=>n.station.id==='jp-balcony'),host=npcs.find(n=>n.station.id==='jp-welcome'),x=guest.root.position.x,key='walk-'+Math.floor((x+2)/2);
+ if(!guest.walking||x< -2||x>4||captured.has(key))return;
+ camera.position.set(-1,2.1,9.3);camera.lookAt(new T.Vector3((x+host.root.position.x)/2,1.2,6));scene.updateMatrixWorld(true);renderer.render(scene,camera);gl.finish();assert.equal(gl.getError(),0);const name=String(report.frames.length+1).padStart(2,'0')+'-'+key;fs.writeFileSync(out+'/'+name+'.png',canvas.toBuffer('image/png'));report.frames.push({name,time:t,camera:camera.position.toArray(),actors:routine.state().actors});captured.add(key);
+}
 try{
  for(let i=0;i<15000&&routine.state().cycles<1;i++){
   t+=dt;doors.update(dt,npcs.map(n=>({position:n.root.position,radius:.25,height:1.95})));routine.update(dt,t,{position:new T.Vector3(0,0,37.5)});lot.update(dt,t);
   const state=routine.state();if(state.stage!==last){console.log(JSON.stringify({time:+t.toFixed(2),...state}));report.stages.push({stage:state.stage,time:t});last=state.stage;}
   assert.equal(state.failures.length,0,'Actual route failed: '+JSON.stringify(state));
-  for(let a=0;a<npcs.length;a++)for(let b=a+1;b<npcs.length;b++){const p=npcs[a].root.position,q=npcs[b].root.position;if(Math.abs(p.y-q.y)>.4)continue;const separation=Math.hypot(p.x-q.x,p.z-q.z);report.minActorSeparation=Math.min(report.minActorSeparation,separation);assert(separation>.50,'Actor overlap '+JSON.stringify({stage:state.stage,a:npcs[a].station.id,b:npcs[b].station.id,p:p.toArray(),q:q.toArray()}));}capture(state.stage);
+  for(let a=0;a<npcs.length;a++)for(let b=a+1;b<npcs.length;b++){const p=npcs[a].root.position,q=npcs[b].root.position;if(Math.abs(p.y-q.y)>.4)continue;const separation=Math.hypot(p.x-q.x,p.z-q.z);report.minActorSeparation=Math.min(report.minActorSeparation,separation);assert(separation>.50,'Actor overlap '+JSON.stringify({stage:state.stage,a:npcs[a].station.id,b:npcs[b].station.id,p:p.toArray(),q:q.toArray()}));}capture(state.stage);captureWalk();
  }
  assert.equal(routine.state().cycles,1,'Complete real loop within bounded simulation');assert.deepEqual(npcs.map(n=>JSON.stringify(n.root.userData.appearance)),originalLooks,'Temporary bath clothing restores exact saved identity');assert.equal(saved.cycles,1);
  // Reach the next bath, then preempt its actual occupied seat with a player request.
