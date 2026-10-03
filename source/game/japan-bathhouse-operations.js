@@ -179,11 +179,21 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
  function scheduleWorkers() {
   for(const n of workers) {
    if((cooldowns.get(n.station.id)||0)>time||(staffLife&&!staffLife.canWork(n.station.id)))continue;
-   const current=tasks.get(n.station.id);
+   let current=tasks.get(n.station.id);
    if(current&&!current.idle)continue;
    const available=board.jobs().filter(j=>!j.workerId&&(!staffLife||staffLife.canClaim(n.station.id,j.kind))),job=available.map(j=>board.claim(j.id,n.station.id)).find(Boolean);
    if(job){clear(n);workerTask(n,job);}
-   else {const home=staffLife?.idlePoint(n.station.id)||n.home.toArray(),idle=staffLife?.idleTask(n.station.id);if(!current&&(!near(n.root.position,home,.18)||idle))assign(n,home,{idle:true,label:'收好用具，回到值班岗位',...idle});}
+   else {
+    const home=staffLife?.idlePoint(n.station.id)||n.home.toArray(),target=n.station.workTarget;
+    // Work only at this resident's authored post. Shift waiting/relief points
+    // may be in the same room, but do not put their original tools there.
+    const ownPost=near(point(home),n.home.toArray(),.08),validTarget=Array.isArray(target)&&target.length===3&&target.every(Number.isFinite);
+    const idle=staffLife?.idleTask(n.station.id)||(validTarget?{duration:4,face:target,...(ownPost?{action:n.station.npcAction,workTarget:target,label:n.station.id==='jp-welcome'?'整理柜台钥匙与客簿':n.station.npcLabel}:{label:n.station.id==='jp-welcome'?'查看柜台钥匙与客簿':'查看药房称量台与浴包'})}:null);
+    // Coverage ending can change the idle destination before this short task
+    // finishes; release it immediately rather than lingering at another post.
+    if(current&&!near(point(current.to),home,.08)){clear(n);current=null;}
+    if(!current&&(!near(n.root.position,home,.18)||idle))assign(n,home,{idle:true,label:'收好用具，回到值班岗位',...idle});
+   }
   }
  }
  function queueAtReception(n,v,event) {
@@ -238,7 +248,8 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   context.receptionWriting=!helping&&!!task?.arrived&&!!task?.receptionWriting;
   context.heldProp=sharedActivity?null:task?.held||null;context.handoff=!sharedActivity&&(!!task?.handoff||v?.stage==='eating');
   context.seatedMeal=!chatting&&(v?.stage==='eating'||task?.seatedMeal)&&mount?.kind==='seat';
-  n.animate(t+n.phase,n.walking,sharedActivity?n.station.npcAction:mount?(mount.kind==='bath'?'bathe':mount.kind==='bed'?'lie-rest':'chair-sit'):chatting?null:task?.arrived?task.action:null,context);
+  const working=!n.walking&&task?.arrived&&(!task.idle||near(n.root.position,task.to,.18));
+  n.animate(t+n.phase,n.walking,sharedActivity?n.station.npcAction:mount?(mount.kind==='bath'?'bathe':mount.kind==='bed'?'lie-rest':'chair-sit'):chatting?null:working?task.action:null,context);
  }
  staffLife=createJapanStaffLife({actors,board,furniture,assign,clear,unmount,taskOf:n=>tasks.get(n.station.id),saved:saved.staffLife});
  return {

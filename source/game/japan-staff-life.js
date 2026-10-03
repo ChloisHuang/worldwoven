@@ -46,7 +46,11 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   // Nao stays the supply clerk between relief shifts; training is not a
   // permanent reassignment away from the rear-yard crates.
   canClaim(id,kind){return id!=='jp-herb-workshop'||kind!=='prepare'||(active?.id==='jp-incense'&&active.reliefId===id&&!['draining','handoff'].includes(active.phase));},
-  idleTask(id){const n=actors.get(id);return id==='jp-herb-workshop'&&active?.reliefId!==id?{duration:4,action:n.station.npcAction,workTarget:n.station.workTarget,label:n.station.npcLabel}:null;},
+  idleTask(id){
+   const n=actors.get(id);
+   if(active?.reliefId===id){const shift=profile(id);return {duration:4,face:shift===KITCHEN?P.mealTray:shift===FRONT_DESK?P.tokenTray:P.blendWork,label:'留在代班岗位，等候下一张单'};}
+   return id==='jp-herb-workshop'?{duration:4,action:n.station.npcAction,workTarget:n.station.workTarget,label:n.station.npcLabel}:null;
+  },
   canWork(id){return !active||(id!==active.id&&!(id===active.reliefId&&['draining','handoff'].includes(active.phase)));},
   update(dt,state={}) {
    if(!!state.night!==night){night=!!state.night;if(night&&!active)dueIn=Math.min(dueIn,10);}
