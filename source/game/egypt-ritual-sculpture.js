@@ -20,7 +20,7 @@ function sculptor(parent,material){
     }
     for(const [j,last] of [[0,false],[rings.length-1,true]]){
       const [t,,,cx=0,cz=0]=rings[j],center=positions.length/3;positions.push(...(axis==='y'?[cx,t,cz]:[cx,cz,t]));
-      for(let i=0;i<segments;i++){const a=j*segments+i,b=j*segments+(i+1)%segments;if(last===(axis==='y'))indices.push(center,a,b);else indices.push(center,b,a);}
+      for(let i=0;i<segments;i++){const a=j*segments+i,b=j*segments+(i+1)%segments;if(last===(axis==='z'))indices.push(center,a,b);else indices.push(center,b,a);}
     }
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setIndex(indices);geo.computeVertexNormals();return mesh(geo,color);
   };
@@ -29,7 +29,7 @@ function sculptor(parent,material){
   const outline=points=>{const s=new THREE.Shape();s.moveTo(...points[0]);for(const p of points.slice(1))s.lineTo(...p);s.closePath();return s;};
   const ellipse=(x,y,rx,ry)=>{const s=new THREE.Shape();s.absellipse(x,y,rx,ry,0,Math.PI*2,false);return s;};
   const block=(w,h,d,x,y,z,color,r=.04)=>{
-    const hw=w/2,hh=h/2,s=new THREE.Shape();s.moveTo(-hw+r,-hh);s.lineTo(hw-r,-hh);s.quadraticCurveTo(hw,-hh,hw,-hh+r);s.lineTo(hw,hh-r);s.quadraticCurveTo(hw,hh,hw-r,hh);s.lineTo(-hw+r,hh);s.quadraticCurveTo(-hw,hh,-hw,hh-r);s.lineTo(-hw,-hh+r);s.quadraticCurveTo(-hw,-hh,-hw+r,-hh);const o=relief(s,color,d-2*r,r);o.position.set(x,y,z-d/2+r);return o;
+    const hw=w/2-r,hh=h/2-r,s=new THREE.Shape();s.moveTo(-hw+r,-hh);s.lineTo(hw-r,-hh);s.quadraticCurveTo(hw,-hh,hw,-hh+r);s.lineTo(hw,hh-r);s.quadraticCurveTo(hw,hh,hw-r,hh);s.lineTo(-hw+r,hh);s.quadraticCurveTo(-hw,hh,-hw,hh-r);s.lineTo(-hw,-hh+r);s.quadraticCurveTo(-hw,-hh,-hw+r,-hh);const o=relief(s,color,d-2*r,r);o.position.set(x,y,z-d/2+r);return o;
   };
   return {mesh,loft,path,relief,outline,ellipse,block};
 }
@@ -76,7 +76,7 @@ export function addAnubisGuardian(parent,material,x,y,z){
   loft([[-.34,.13,.16,0,3.54],[-.26,.22,.255,0,3.57],[-.10,.273,.285,0,3.60],[.08,.25,.245,0,3.62],[.23,.197,.167,0,3.56],[.43,.15,.115,0,3.49],[.66,.104,.080,0,3.445],[.76,.089,.066,0,3.447]],P.stone,{axis:'z',segments:28});
   loft([[.72,.091,.069,0,3.447],[.79,.095,.06,0,3.455],[.81,.062,.041,0,3.451]],P.dark,{axis:'z',segments:16});
   for(const side of [-1,1]){
-    const ear=outline([[side*.12,3.76],[side*.15,4.015],[side*.255,4.39],[side*.337,4.02],[side*.338,3.77]]);
+    const ear=outline([[side*.12,3.76],[side*.15,4.015],[side*.255,4.37],[side*.337,4.02],[side*.338,3.77]]);
     const em=relief(ear,P.stone,.125,.022);em.position.z=-.15;
     const inner=outline([[side*.193,3.845],[side*.214,4.017],[side*.254,4.265],[side*.287,4.01],[side*.282,3.86]]);
     const im=relief(inner,P.goldShade,.016,.006);im.position.z=.004;
