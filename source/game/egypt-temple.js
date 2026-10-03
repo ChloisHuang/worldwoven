@@ -376,8 +376,8 @@ export function buildEgypt(){
   tombWall(burial,-1.7,-31.5,1,7);
   tombWall(burial,3.4,-21.7,10.2,1);
   tombWall(burial,3.4,-35.5,10.2,1);
-  tombWall(burial,8.5,-24.55,1,4.7);
-  tombWall(burial,8.5,-33.55,1,3.9);
+  tombWall(burial,8.5,-24.95,1,5.5);
+  tombWall(burial,8.5,-33.2,1,4.6);
   tombWall(burial,8.5,-29.3,1,3.2,-2.95,2.35,C.stone);
   box(roofGroup,3.4,-.49,-28.6,10.2,.22,13.8,C.deep);for(const arr of[colliders,cameraColliders])volume(arr,3.4,-.49,-28.6,10.2,.22,13.8);
   // Recessed ceiling coffers lift the centre above the heavy transverse beams, bounded by

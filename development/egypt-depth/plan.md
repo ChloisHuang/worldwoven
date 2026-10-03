@@ -22,3 +22,12 @@ The R16.8 layout has a 0.16 m pyramid shell and a single 6 m stair ending in a 3
 | Lot bounds / spawn / upper level | 60 × 80 m / [0,0,35.5] / y=4 retained |
 
 Verification: exercise this changed procession, both stair directions and side-room thresholds using the existing controller; raycast actual support/ceiling triangles; inspect standing close-TPS entrance, turning passage, antechamber and coffin views through production Three/Mesa. Do not re-run unrelated country suites. The old R10 straight-tomb snapshot assumptions become obsolete, not a reason to force the new layout back into one room.
+
+## Verified implementation
+
+- Exact production controller: 18 route/direction cases pass, including both descents, side lanes, turn, side rooms and the complete coffin circuit. Maximum riser is 0.125 m. The two moved activities and six associated NPC/route anchors are clear. Spawn-to-activity/side-room automatic paths also complete with the existing pathfinder and movement controller.
+- Triangle-ray ceilings: entry 3.45 m; descending beams 2.91 m; turn 2.95 m; antechamber 3.25 m; central painted vault 5.36 m. Geometry and supporting surfaces agree at the authored floors.
+- Standing production Three r186/Mesa views at FOV 50, distance 4.6, pitch 0.22: entry both directions, both descents, blind corner, antechamber, low/high threshold, burial and return aisle, offering room. Additional normal look-up view shows the high star ceiling. Camera stays 2.20–4.60 m from the target with the character visible. Found and repaired coplanar entrance facing, bright chamfer seams and an over-wide side-room aperture; reviewed the affected re-renders.
+- 13 unaffected activity records and both inset-door records compare exactly to the starting main. All 15 IDs remain. No camera, navigation, material, lighting-engine, save or other-country source changes.
+- Save compatibility: main.js persists identity/progress/outfit/curtain state, never coordinates. enterRegion sets player=null before buildPlayer uses lot.spawn. Reloading/re-entering Egypt therefore starts at the unchanged entrance instead of restoring a removed y=-3 room. No migration needed.
+- Mesa evidence is local under qa/depth-tps-v2 and qa/depth-tps-v3; changed hall views use v3. Each render ran alone under the existing 175 s / 1.2 GiB supervisor; largest measured peak was 591 MiB and 7.1 s. No GL or shader errors. This is controller + direct production rendering evidence, not browser-input validation.
