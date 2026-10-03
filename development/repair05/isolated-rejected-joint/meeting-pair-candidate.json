@@ -1,0 +1,104 @@
+{
+  "status": "PASS_SAMPLED_PAIR_AND_CLOSED_RAYS",
+  "candidate": "/workspace/shared/worldwoven-r17-door-design/joint-candidate",
+  "engineSha256": "e502e71e1066631a86783052f5c127da08caf4342055530dc18bd485bea55839",
+  "method": "Exact merged leaf triangles, 13 synchronous poses with unchanged EPS1e-5; actual front/back and ±30/60 degree rays at three heights and three seam offsets. Sampled evidence only, no continuous claim.",
+  "rows": [
+    {
+      "style": "shoji",
+      "kind": "pocket",
+      "width": 2.6,
+      "depth": 0.38,
+      "contacts": [],
+      "rays": []
+    },
+    {
+      "style": "palace",
+      "kind": "pocket",
+      "width": 3.2,
+      "depth": 0.5,
+      "contacts": [],
+      "rays": []
+    },
+    {
+      "style": "french",
+      "kind": "pocket",
+      "width": 2,
+      "depth": 0.5,
+      "contacts": [],
+      "rays": []
+    },
+    {
+      "style": "shoji",
+      "kind": "hinge",
+      "width": 1.35,
+      "depth": 0.24,
+      "contacts": [],
+      "rays": []
+    },
+    {
+      "style": "egypt",
+      "kind": "hinge",
+      "width": 2.4,
+      "depth": 0.22,
+      "contacts": [],
+      "rays": []
+    },
+    {
+      "style": "egypt",
+      "kind": "hinge",
+      "width": 3.18,
+      "depth": 0.3,
+      "contacts": [],
+      "rays": []
+    },
+    {
+      "style": "french",
+      "kind": "hinge",
+      "width": 2.2,
+      "depth": 0.42,
+      "contacts": [],
+      "rays": []
+    },
+    {
+      "style": "palace",
+      "kind": "hinge",
+      "width": 3.2,
+      "depth": 0.32,
+      "contacts": [],
+      "rays": []
+    },
+    {
+      "style": "palace",
+      "kind": "hinge",
+      "width": 4.4,
+      "depth": 0.65,
+      "contacts": [],
+      "rays": []
+    },
+    {
+      "style": "palace",
+      "kind": "hinge",
+      "width": 2.2,
+      "depth": 0.65,
+      "contacts": [],
+      "rays": []
+    },
+    {
+      "style": "palace",
+      "kind": "hinge",
+      "width": 6,
+      "depth": 0.65,
+      "contacts": [],
+      "rays": []
+    },
+    {
+      "style": "palace",
+      "kind": "hinge",
+      "width": 4,
+      "depth": 0.65,
+      "contacts": [],
+      "rays": []
+    }
+  ]
+}

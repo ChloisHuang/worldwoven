@@ -1,0 +1,820 @@
+{
+  "status": "FAIL",
+  "scope": "Bounded pilot: exact moving-to-moving surfaces plus initial rebated-body disjointness, static section/floor sweeps, closed seam rays separately measured. No whole-country geometry.",
+  "eps": 0.00001,
+  "rows": [
+    {
+      "style": "shoji",
+      "kind": "hinge",
+      "width": 1.35,
+      "depth": 0.24,
+      "swing": -1,
+      "status": "REVIEW",
+      "pair": {
+        "nodes": 168574,
+        "pairs": 126,
+        "axes": 4179455,
+        "certified": 1686,
+        "contacts": 0,
+        "unresolved": 82664,
+        "witnesses": [
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0,
+              0.0000152587890625
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000152587890625,
+              0.000030517578125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.000030517578125,
+              0.0000457763671875
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000457763671875,
+              0.00006103515625
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.00006103515625,
+              0.0000762939453125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000762939453125,
+              0.000091552734375
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.000091552734375,
+              0.0001068115234375
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0001068115234375,
+              0.0001220703125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          }
+        ]
+      },
+      "static": {
+        "triangles": 0,
+        "status": "RUNNING",
+        "witnesses": []
+      },
+      "actualRigidPoseResidual": 2.482534153247273e-16,
+      "initialDisjointness": {
+        "body": "Four exact prismatic region pairs separated by at least16mm normal or66mm lateral clearance",
+        "decorativeTriangles": "Every actual decorative triangle outside opposite full closed x extent"
+      }
+    },
+    {
+      "style": "shoji",
+      "kind": "hinge",
+      "width": 1.35,
+      "depth": 0.24,
+      "swing": 1,
+      "status": "REVIEW",
+      "pair": {
+        "nodes": 168574,
+        "pairs": 126,
+        "axes": 4179849,
+        "certified": 1686,
+        "contacts": 0,
+        "unresolved": 82664,
+        "witnesses": [
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0,
+              0.0000152587890625
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000152587890625,
+              0.000030517578125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.000030517578125,
+              0.0000457763671875
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000457763671875,
+              0.00006103515625
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.00006103515625,
+              0.0000762939453125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000762939453125,
+              0.000091552734375
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.000091552734375,
+              0.0001068115234375
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0001068115234375,
+              0.0001220703125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          }
+        ]
+      },
+      "static": {
+        "triangles": 0,
+        "status": "RUNNING",
+        "witnesses": []
+      },
+      "actualRigidPoseResidual": 2.482534153247273e-16,
+      "initialDisjointness": {
+        "body": "Four exact prismatic region pairs separated by at least16mm normal or66mm lateral clearance",
+        "decorativeTriangles": "Every actual decorative triangle outside opposite full closed x extent"
+      }
+    },
+    {
+      "style": "french",
+      "kind": "hinge",
+      "width": 2.2,
+      "depth": 0.42,
+      "swing": -1,
+      "status": "REVIEW",
+      "pair": {
+        "nodes": 164782,
+        "pairs": 486,
+        "axes": 4008259,
+        "certified": 5384,
+        "contacts": 0,
+        "unresolved": 77250,
+        "witnesses": [
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0,
+              0.0000152587890625
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000152587890625,
+              0.000030517578125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.000030517578125,
+              0.0000457763671875
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000457763671875,
+              0.00006103515625
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.00006103515625,
+              0.0000762939453125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000762939453125,
+              0.000091552734375
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.000091552734375,
+              0.0001068115234375
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0001068115234375,
+              0.0001220703125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          }
+        ]
+      },
+      "static": {
+        "triangles": 0,
+        "status": "RUNNING",
+        "witnesses": []
+      },
+      "actualRigidPoseResidual": 2.7755575615628914e-16,
+      "initialDisjointness": {
+        "body": "Four exact prismatic region pairs separated by at least16mm normal or66mm lateral clearance",
+        "decorativeTriangles": "Every actual decorative triangle outside opposite full closed x extent"
+      }
+    },
+    {
+      "style": "french",
+      "kind": "hinge",
+      "width": 2.2,
+      "depth": 0.42,
+      "swing": 1,
+      "status": "REVIEW",
+      "pair": {
+        "nodes": 164782,
+        "pairs": 486,
+        "axes": 4009463,
+        "certified": 5384,
+        "contacts": 0,
+        "unresolved": 77250,
+        "witnesses": [
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0,
+              0.0000152587890625
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000152587890625,
+              0.000030517578125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.000030517578125,
+              0.0000457763671875
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000457763671875,
+              0.00006103515625
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.00006103515625,
+              0.0000762939453125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000762939453125,
+              0.000091552734375
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.000091552734375,
+              0.0001068115234375
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0001068115234375,
+              0.0001220703125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          }
+        ]
+      },
+      "static": {
+        "triangles": 0,
+        "status": "RUNNING",
+        "witnesses": []
+      },
+      "actualRigidPoseResidual": 2.7755575615628914e-16,
+      "initialDisjointness": {
+        "body": "Four exact prismatic region pairs separated by at least16mm normal or66mm lateral clearance",
+        "decorativeTriangles": "Every actual decorative triangle outside opposite full closed x extent"
+      }
+    },
+    {
+      "style": "palace",
+      "kind": "hinge",
+      "width": 2.2,
+      "depth": 0.65,
+      "swing": -1,
+      "status": "FAIL",
+      "pair": {
+        "nodes": 184732,
+        "pairs": 690,
+        "axes": 4310482,
+        "certified": 15459,
+        "contacts": 1,
+        "unresolved": 77251,
+        "witnesses": [
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0,
+              0.0000152587890625
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000152587890625,
+              0.000030517578125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.000030517578125,
+              0.0000457763671875
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000457763671875,
+              0.00006103515625
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.00006103515625,
+              0.0000762939453125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000762939453125,
+              0.000091552734375
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.000091552734375,
+              0.0001068115234375
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0001068115234375,
+              0.0001220703125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          }
+        ]
+      },
+      "static": {
+        "triangles": 0,
+        "status": "RUNNING",
+        "witnesses": []
+      },
+      "actualRigidPoseResidual": 4.440892098500626e-16,
+      "initialDisjointness": {
+        "body": "Four exact prismatic region pairs separated by at least16mm normal or66mm lateral clearance",
+        "decorativeTriangles": "Every actual decorative triangle outside opposite full closed x extent"
+      }
+    },
+    {
+      "style": "palace",
+      "kind": "hinge",
+      "width": 2.2,
+      "depth": 0.65,
+      "swing": 1,
+      "status": "REVIEW",
+      "pair": {
+        "nodes": 184732,
+        "pairs": 690,
+        "axes": 4322277,
+        "certified": 15459,
+        "contacts": 0,
+        "unresolved": 77252,
+        "witnesses": [
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0,
+              0.0000152587890625
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000152587890625,
+              0.000030517578125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.000030517578125,
+              0.0000457763671875
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000457763671875,
+              0.00006103515625
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.00006103515625,
+              0.0000762939453125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000762939453125,
+              0.000091552734375
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.000091552734375,
+              0.0001068115234375
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0001068115234375,
+              0.0001220703125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          }
+        ]
+      },
+      "static": {
+        "triangles": 0,
+        "status": "RUNNING",
+        "witnesses": []
+      },
+      "actualRigidPoseResidual": 4.440892098500626e-16,
+      "initialDisjointness": {
+        "body": "Four exact prismatic region pairs separated by at least16mm normal or66mm lateral clearance",
+        "decorativeTriangles": "Every actual decorative triangle outside opposite full closed x extent"
+      }
+    },
+    {
+      "style": "palace",
+      "kind": "pocket",
+      "width": 3.2,
+      "depth": 0.5,
+      "swing": -1,
+      "status": "REVIEW",
+      "pair": {
+        "nodes": 26304,
+        "pairs": 64,
+        "axes": 561398,
+        "certified": 224,
+        "contacts": 0,
+        "unresolved": 12960,
+        "witnesses": [
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0,
+              0.0000152587890625
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000152587890625,
+              0.000030517578125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.000030517578125,
+              0.0000457763671875
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000457763671875,
+              0.00006103515625
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.00006103515625,
+              0.0000762939453125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000762939453125,
+              0.000091552734375
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.000091552734375,
+              0.0001068115234375
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0001068115234375,
+              0.0001220703125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          }
+        ]
+      },
+      "static": {
+        "triangles": 0,
+        "status": "RUNNING",
+        "witnesses": []
+      },
+      "actualRigidPoseResidual": 2.220446049250313e-16,
+      "initialDisjointness": {
+        "body": "Four exact prismatic region pairs separated by at least16mm normal or66mm lateral clearance",
+        "decorativeTriangles": "Every actual decorative triangle outside opposite full closed x extent"
+      }
+    },
+    {
+      "style": "palace",
+      "kind": "pocket",
+      "width": 3.2,
+      "depth": 0.5,
+      "swing": 1,
+      "status": "REVIEW",
+      "pair": {
+        "nodes": 26304,
+        "pairs": 64,
+        "axes": 561398,
+        "certified": 224,
+        "contacts": 0,
+        "unresolved": 12960,
+        "witnesses": [
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0,
+              0.0000152587890625
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000152587890625,
+              0.000030517578125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.000030517578125,
+              0.0000457763671875
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000457763671875,
+              0.00006103515625
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.00006103515625,
+              0.0000762939453125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0000762939453125,
+              0.000091552734375
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.000091552734375,
+              0.0001068115234375
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          },
+          {
+            "a": 1,
+            "b": 1,
+            "interval": [
+              0.0001068115234375,
+              0.0001220703125
+            ],
+            "reason": "Conservative double-motion envelopes unresolved"
+          }
+        ]
+      },
+      "static": {
+        "triangles": 0,
+        "status": "RUNNING",
+        "witnesses": []
+      },
+      "actualRigidPoseResidual": 2.220446049250313e-16,
+      "initialDisjointness": {
+        "body": "Four exact prismatic region pairs separated by at least16mm normal or66mm lateral clearance",
+        "decorativeTriangles": "Every actual decorative triangle outside opposite full closed x extent"
+      }
+    }
+  ],
+  "limits": {
+    "seconds": 300,
+    "rssMiB": 1228,
+    "maxDepth": 16,
+    "maxNodesPerPair": 10000
+  },
+  "sourceHashes": {
+    "automatic-doors.js": "e502e71e1066631a86783052f5c127da08caf4342055530dc18bd485bea55839",
+    "inset-closures.js": "869a0c43bf27479d697ddb57d70b7b1fb1babaf18ea41e55067ca253af8f28fb",
+    "room-closures.js": "ecf0a75a68c24b01f5ae71d6790b940d476d1a4534cda95ccf79f850220f6fb9"
+  },
+  "elapsedSeconds": 58.495,
+  "rssMiB": 231.5703125
+}
