@@ -295,6 +295,8 @@ export function buildEgypt(){
         const pts=[[inner,floorAt(hi)-.3,hi],[inner,floorAt(lo)-.3,lo],[inner,floorAt(lo)+2.95,lo],[inner,floorAt(hi)+2.95,hi]];
         if(side>0)pts.reverse();slab(passage,pts,C.shadow);
         slab(passage,[[outer,floorAt(hi)-.3,hi],[outer,floorAt(hi)+3.6,hi],[outer,floorAt(lo)+3.6,lo],[outer,floorAt(lo)-.3,lo]],C.deep);
+        for(const zz of[lo,hi]){const y=floorAt(zz),cap=[[inner,y-.3,zz],[outer,y-.3,zz],[outer,y+3.6,zz],[inner,y+2.95,zz]];slab(passage,cap,C.shadow);slab(passage,[...cap].reverse(),C.shadow);}
+        slab(passage,[[inner,floorAt(hi)+2.95,hi],[outer,floorAt(hi)+3.6,hi],[outer,floorAt(lo)+3.6,lo],[inner,floorAt(lo)+2.95,lo]],C.shadow);
         volume(colliders,(inner+outer)/2,(ya+yb)/2+1.325,z,1,3.25,Math.abs(dz));
         volume(cameraColliders,(inner+outer)/2,(ya+yb)/2+1.325,z,1,3.25,Math.abs(dz));
       }
@@ -310,6 +312,8 @@ export function buildEgypt(){
     for(let i=1;i<4;i++){const z=z0+(z1-z0)*i/4,y=y0+(y1-y0)*i/4;stoneCourse(passage,(minX+maxX)/2,y+2.97,z,maxX-minX,.12,.20,C.edge);}
   };
   tunnel(-1.6,1.6,-7,-13,0,-3);
+  for(const side of[-1,1])solid(passage,colliders,cameraColliders,side*2.1,1.475,-6.90,1,2.95,.2,C.shadow);
+  solid(passage,colliders,cameraColliders,0,3.2,-6.90,5.2,.5,.2,C.shadow);
   const tombFloor=(g,x,z,w,d,y=-6)=>{floor(g,x,y,z,w,d,C.shadow);surface(x-w/2,x+w/2,z-d/2,z+d/2,y);};
   const tombWall=(g,x,z,w,d,y=-6,h=5.4,c=C.shadow)=>solid(g,colliders,cameraColliders,x,y+h/2,z,w,h,d,c);
   const tombRoof=(x,z,w,d,y,h)=>{box(roofGroup,x,y+h+.35,z,w,.7,d,C.deep);for(const arr of[colliders,cameraColliders])volume(arr,x,y+h+.35,z,w,.7,d);};
