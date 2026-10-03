@@ -1,0 +1,3649 @@
+{
+  "status": "INCOMPLETE_INTEGRATION_AND_QA",
+  "method": "Complete policy-ID cross-check against source-owned constructions; China dimensions reuse actual scene check; other contracts resolved from exact source definitions. This is not an all-door visual acceptance.",
+  "sourceHashes": {
+    "room-closures.js": "e418cd6d9a10c63aa782a8122205083217b1c407a5d0d426fab2543555601aea",
+    "automatic-doors.js": "631bc1f912fa4a5de8d7b0afd975db485d61cd7643486f0a58fe325404b474b0",
+    "inset-closures.js": "869a0c43bf27479d697ddb57d70b7b1fb1babaf18ea41e55067ca253af8f28fb",
+    "japan-bathhouse.js": "341ed14868411f2357fb63cdcacb9cd026ced0bc2ea1bd7e51c48164360954b6",
+    "japan-shoji.js": "46966dd748a99209081490c8e936f5f5aab82545d02df8ceb962dea7f0c1b122",
+    "china-palace.js": "5fce85bfc95fe8b92247638906791ab68a8e60fd5fba3d0850717c3b0bee45a7",
+    "egypt-temple.js": "b3d3e3971b1b3946646971149b2f852ac3f17ce60f65bcc9b2dee9220f6cb868",
+    "regions-west.js": "b261a978e9fe16ccd7980436fa6cdc2f78626a241a45a0ae8ab119c48a583476"
+  },
+  "counts": {
+    "rigid": 41,
+    "sourceIntegrated": 41,
+    "preparedJapan": 0,
+    "fullCurtains": 12,
+    "fixedHalfCurtains": 18
+  },
+  "rigid": [
+    {
+      "region": "china",
+      "id": "cn-south-gate-west",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": 38,
+        "structuralDepth": 0.65,
+        "closureSectionDepth": 0.65,
+        "faces": [
+          37.675,
+          38.325
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -5,
+        "to": -2.8,
+        "width": 2.2,
+        "bottom": 0.21500000000000002,
+        "top": 4.1
+      },
+      "roughOpening": {
+        "from": -5.08,
+        "to": -2.7199999999999998,
+        "bottom": 0.1,
+        "top": 4.18
+      },
+      "frame": {
+        "closedLeafPlane": 38,
+        "fullDepth": 0.65,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.18,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": 38,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          37.9475,
+          38.0525
+        ],
+        "completeDecorationNormalBounds": [
+          37.851685211,
+          38.148314789
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-south-gate",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": 38,
+        "structuralDepth": 0.65,
+        "closureSectionDepth": 0.65,
+        "faces": [
+          37.675,
+          38.325
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -2.2,
+        "to": 2.2,
+        "width": 4.4,
+        "bottom": 0.21500000000000002,
+        "top": 4.1
+      },
+      "roughOpening": {
+        "from": -2.2800000000000002,
+        "to": 2.2800000000000002,
+        "bottom": 0.1,
+        "top": 4.18
+      },
+      "frame": {
+        "closedLeafPlane": 38,
+        "fullDepth": 0.65,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.18,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": 38,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          37.9475,
+          38.0525
+        ],
+        "completeDecorationNormalBounds": [
+          37.851685211,
+          38.148314789
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-south-gate-east",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": 38,
+        "structuralDepth": 0.65,
+        "closureSectionDepth": 0.65,
+        "faces": [
+          37.675,
+          38.325
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": 2.8,
+        "to": 5,
+        "width": 2.2,
+        "bottom": 0.21500000000000002,
+        "top": 4.1
+      },
+      "roughOpening": {
+        "from": 2.7199999999999998,
+        "to": 5.08,
+        "bottom": 0.1,
+        "top": 4.18
+      },
+      "frame": {
+        "closedLeafPlane": 38,
+        "fullDepth": 0.65,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.18,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": 38,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          37.9475,
+          38.0525
+        ],
+        "completeDecorationNormalBounds": [
+          37.851685211,
+          38.148314789
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-north-gate",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": -1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.1,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": -38,
+        "structuralDepth": 0.65,
+        "closureSectionDepth": 0.65,
+        "faces": [
+          -38.325,
+          -37.675
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -3,
+        "to": 3,
+        "width": 6,
+        "bottom": 0.115,
+        "top": 4.1
+      },
+      "roughOpening": {
+        "from": -3.08,
+        "to": 3.08,
+        "bottom": 0.1,
+        "top": 4.18
+      },
+      "frame": {
+        "closedLeafPlane": -38,
+        "fullDepth": 0.65,
+        "stopNormal": -0.08,
+        "hingePinNormal": 0.18,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -38,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -38.0525,
+          -37.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -38.148314789,
+          -37.851685211
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-west-gate",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "z",
+      "motion": {
+        "swing": -1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.1,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": -29,
+        "structuralDepth": 0.65,
+        "closureSectionDepth": 0.65,
+        "faces": [
+          -29.325,
+          -28.675
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -20,
+        "to": -16,
+        "width": 4,
+        "bottom": 0.115,
+        "top": 4.1
+      },
+      "roughOpening": {
+        "from": -20.08,
+        "to": -15.92,
+        "bottom": 0.1,
+        "top": 4.18
+      },
+      "frame": {
+        "closedLeafPlane": -29,
+        "fullDepth": 0.65,
+        "stopNormal": -0.08,
+        "hingePinNormal": 0.18,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -29,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -29.0525,
+          -28.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -29.148314789,
+          -28.851685211
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-east-gate",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "z",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.1,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": 29,
+        "structuralDepth": 0.65,
+        "closureSectionDepth": 0.65,
+        "faces": [
+          28.675,
+          29.325
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -20,
+        "to": -16,
+        "width": 4,
+        "bottom": 0.115,
+        "top": 4.1
+      },
+      "roughOpening": {
+        "from": -20.08,
+        "to": -15.92,
+        "bottom": 0.1,
+        "top": 4.18
+      },
+      "frame": {
+        "closedLeafPlane": 29,
+        "fullDepth": 0.65,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.18,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": 29,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          28.9475,
+          29.0525
+        ],
+        "completeDecorationNormalBounds": [
+          28.851685211,
+          29.148314789
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-hall-front",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 1.4000000000000001,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": 5,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          4.84,
+          5.16
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -3,
+        "to": 3,
+        "width": 6,
+        "bottom": 1.415,
+        "top": 5.73
+      },
+      "roughOpening": {
+        "from": -3.08,
+        "to": 3.08,
+        "bottom": 1.4,
+        "top": 5.8100000000000005
+      },
+      "frame": {
+        "closedLeafPlane": 5,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": 5,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          4.9475,
+          5.0525
+        ],
+        "completeDecorationNormalBounds": [
+          4.851685211,
+          5.148314789
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-hall-rear",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": -1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 1.4000000000000001,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": -11,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          -11.16,
+          -10.84
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": 4.5,
+        "to": 7.5,
+        "width": 3,
+        "bottom": 1.415,
+        "top": 5.4
+      },
+      "roughOpening": {
+        "from": 4.42,
+        "to": 7.58,
+        "bottom": 1.4,
+        "top": 5.48
+      },
+      "frame": {
+        "closedLeafPlane": -11,
+        "fullDepth": 0.32,
+        "stopNormal": -0.08,
+        "hingePinNormal": 0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -11,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -11.0525,
+          -10.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -11.148314789,
+          -10.851685211
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-hall-west",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "pocket",
+      "axis": "z",
+      "motion": {
+        "swing": 0,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 1.4000000000000001,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": -11,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.5,
+        "faces": [
+          -11.25,
+          -10.75
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -9.1,
+        "to": -5.9,
+        "width": 3.1999999999999993,
+        "bottom": 1.415,
+        "top": 5.4
+      },
+      "roughOpening": {
+        "from": -10.799999999999999,
+        "to": -4.200000000000001,
+        "bottom": 1.4,
+        "top": 5.5
+      },
+      "frame": {
+        "closedLeafPlane": -11,
+        "fullDepth": 0.5,
+        "stopNormal": null,
+        "hingePinNormal": null,
+        "pocketClearDepth": 0.36,
+        "pocketSkinThickness": 0.07,
+        "pocketEnd": 3.2799999999999994
+      },
+      "leaf": {
+        "closedPlane": -11,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -11.0525,
+          -10.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -11.148314789,
+          -10.851685211
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-hall-east",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "z",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 1.4000000000000001,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": 11,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          10.84,
+          11.16
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -4.6,
+        "to": -1.4000000000000001,
+        "width": 3.1999999999999997,
+        "bottom": 1.415,
+        "top": 5.4
+      },
+      "roughOpening": {
+        "from": -4.68,
+        "to": -1.32,
+        "bottom": 1.4,
+        "top": 5.48
+      },
+      "frame": {
+        "closedLeafPlane": 11,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": 11,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          10.9475,
+          11.0525
+        ],
+        "completeDecorationNormalBounds": [
+          10.851685211,
+          11.148314789
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-study-front",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": 21,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          20.84,
+          21.16
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": 19.4,
+        "to": 22.6,
+        "width": 3.200000000000003,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": 19.32,
+        "to": 22.68,
+        "bottom": 0.2,
+        "top": 3.58
+      },
+      "frame": {
+        "closedLeafPlane": 21,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": 21,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          20.9475,
+          21.0525
+        ],
+        "completeDecorationNormalBounds": [
+          20.851685211,
+          21.148314789
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-bedroom-front",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": 2,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          1.84,
+          2.16
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -22.6,
+        "to": -19.4,
+        "width": 3.200000000000003,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": -22.68,
+        "to": -19.32,
+        "bottom": 0.2,
+        "top": 3.58
+      },
+      "frame": {
+        "closedLeafPlane": 2,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": 2,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          1.9475,
+          2.0525
+        ],
+        "completeDecorationNormalBounds": [
+          1.851685211,
+          2.148314789
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-bedroom-west",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "z",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": -26,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          -26.16,
+          -25.84
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -6.6,
+        "to": -3.4000000000000004,
+        "width": 3.1999999999999997,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": -6.68,
+        "to": -3.3200000000000003,
+        "bottom": 0.2,
+        "top": 3.58
+      },
+      "frame": {
+        "closedLeafPlane": -26,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -26,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -26.0525,
+          -25.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -26.148314789,
+          -25.851685211
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-bedroom-east",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "pocket",
+      "axis": "z",
+      "motion": {
+        "swing": 0,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": -16,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.5,
+        "faces": [
+          -16.25,
+          -15.75
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -6.6,
+        "to": -3.4000000000000004,
+        "width": 3.1999999999999997,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": -8.3,
+        "to": -1.7000000000000002,
+        "bottom": 0.2,
+        "top": 3.6
+      },
+      "frame": {
+        "closedLeafPlane": -16,
+        "fullDepth": 0.5,
+        "stopNormal": null,
+        "hingePinNormal": null,
+        "pocketClearDepth": 0.36,
+        "pocketSkinThickness": 0.07,
+        "pocketEnd": 3.28
+      },
+      "leaf": {
+        "closedPlane": -16,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -16.0525,
+          -15.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -16.148314789,
+          -15.851685211
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-kitchen-rear",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": -12,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          -12.16,
+          -11.84
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": 20.699999999999996,
+        "to": 23.9,
+        "width": 3.1999999999999993,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": 20.619999999999997,
+        "to": 23.979999999999997,
+        "bottom": 0.2,
+        "top": 3.58
+      },
+      "frame": {
+        "closedLeafPlane": -12,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -12,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -12.0525,
+          -11.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -12.148314789,
+          -11.851685211
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-bath-front",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": -1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": -23,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          -23.16,
+          -22.84
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -24.1,
+        "to": -20.9,
+        "width": 3.200000000000003,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": -24.18,
+        "to": -20.82,
+        "bottom": 0.2,
+        "top": 3.58
+      },
+      "frame": {
+        "closedLeafPlane": -23,
+        "fullDepth": 0.32,
+        "stopNormal": -0.08,
+        "hingePinNormal": 0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -23,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -23.0525,
+          -22.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -23.148314789,
+          -22.851685211
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-bath-west",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "z",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": -26,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          -26.16,
+          -25.84
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -26.900000000000002,
+        "to": -23.7,
+        "width": 3.200000000000003,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": -26.980000000000004,
+        "to": -23.619999999999997,
+        "bottom": 0.2,
+        "top": 3.58
+      },
+      "frame": {
+        "closedLeafPlane": -26,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -26,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -26.0525,
+          -25.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -26.148314789,
+          -25.851685211
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-bath-east",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "z",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": -16,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          -16.16,
+          -15.84
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -29.6,
+        "to": -26.4,
+        "width": 3.200000000000003,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": -29.68,
+        "to": -26.32,
+        "bottom": 0.2,
+        "top": 3.58
+      },
+      "frame": {
+        "closedLeafPlane": -16,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -16,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -16.0525,
+          -15.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -16.148314789,
+          -15.851685211
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-archive-front",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.7999999999999999,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": -23,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          -23.16,
+          -22.84
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -1.6,
+        "to": 1.6,
+        "width": 3.2,
+        "bottom": 0.815,
+        "top": 3.93
+      },
+      "roughOpening": {
+        "from": -1.6800000000000002,
+        "to": 1.6800000000000002,
+        "bottom": 0.8,
+        "top": 4.01
+      },
+      "frame": {
+        "closedLeafPlane": -23,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -23,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -23.0525,
+          -22.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -23.148314789,
+          -22.851685211
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-archive-rear",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": -1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.7999999999999999,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": -34,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          -34.16,
+          -33.84
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -1.6,
+        "to": 1.6,
+        "width": 3.2,
+        "bottom": 0.815,
+        "top": 3.93
+      },
+      "roughOpening": {
+        "from": -1.6800000000000002,
+        "to": 1.6800000000000002,
+        "bottom": 0.8,
+        "top": 4.01
+      },
+      "frame": {
+        "closedLeafPlane": -34,
+        "fullDepth": 0.32,
+        "stopNormal": -0.08,
+        "hingePinNormal": 0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -34,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -34.0525,
+          -33.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -34.148314789,
+          -33.851685211
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-archive-west",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "pocket",
+      "axis": "z",
+      "motion": {
+        "swing": 0,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.7999999999999999,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": -11,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.5,
+        "faces": [
+          -11.25,
+          -10.75
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -30.1,
+        "to": -26.9,
+        "width": 3.200000000000003,
+        "bottom": 0.815,
+        "top": 3.93
+      },
+      "roughOpening": {
+        "from": -31.800000000000004,
+        "to": -25.199999999999996,
+        "bottom": 0.8,
+        "top": 4.03
+      },
+      "frame": {
+        "closedLeafPlane": -11,
+        "fullDepth": 0.5,
+        "stopNormal": null,
+        "hingePinNormal": null,
+        "pocketClearDepth": 0.36,
+        "pocketSkinThickness": 0.07,
+        "pocketEnd": 3.280000000000003
+      },
+      "leaf": {
+        "closedPlane": -11,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -11.0525,
+          -10.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -11.148314789,
+          -10.851685211
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-archive-east",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "z",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.7999999999999999,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": 11,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          10.84,
+          11.16
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -30.1,
+        "to": -26.9,
+        "width": 3.200000000000003,
+        "bottom": 0.815,
+        "top": 3.93
+      },
+      "roughOpening": {
+        "from": -30.18,
+        "to": -26.82,
+        "bottom": 0.8,
+        "top": 4.01
+      },
+      "frame": {
+        "closedLeafPlane": 11,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": 11,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          10.9475,
+          11.0525
+        ],
+        "completeDecorationNormalBounds": [
+          10.851685211,
+          11.148314789
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-guest-front",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": -1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": -23,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          -23.16,
+          -22.84
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": 19.4,
+        "to": 22.6,
+        "width": 3.200000000000003,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": 19.32,
+        "to": 22.68,
+        "bottom": 0.2,
+        "top": 3.58
+      },
+      "frame": {
+        "closedLeafPlane": -23,
+        "fullDepth": 0.32,
+        "stopNormal": -0.08,
+        "hingePinNormal": 0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -23,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -23.0525,
+          -22.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -23.148314789,
+          -22.851685211
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-guest-west",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "pocket",
+      "axis": "z",
+      "motion": {
+        "swing": 0,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": 16,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.5,
+        "faces": [
+          15.75,
+          16.25
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -29.6,
+        "to": -26.4,
+        "width": 3.200000000000003,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": -31.300000000000004,
+        "to": -24.699999999999996,
+        "bottom": 0.2,
+        "top": 3.6
+      },
+      "frame": {
+        "closedLeafPlane": 16,
+        "fullDepth": 0.5,
+        "stopNormal": null,
+        "hingePinNormal": null,
+        "pocketClearDepth": 0.36,
+        "pocketSkinThickness": 0.07,
+        "pocketEnd": 3.280000000000003
+      },
+      "leaf": {
+        "closedPlane": 16,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          15.9475,
+          16.0525
+        ],
+        "completeDecorationNormalBounds": [
+          15.851685211,
+          16.148314789
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "china",
+      "id": "cn-guest-east",
+      "source": "source/game/china-palace.js:insetKinds + door + palaceWall wrapper",
+      "status": "SOURCE_INTEGRATED_SCENE_EDGES_CHECKED",
+      "kind": "hinge",
+      "axis": "z",
+      "motion": {
+        "swing": -1,
+        "bottomClearance": 0
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "wall": {
+        "centerPlane": 26,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          25.84,
+          26.16
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -29.6,
+        "to": -26.4,
+        "width": 3.200000000000003,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": -29.68,
+        "to": -26.32,
+        "bottom": 0.2,
+        "top": 3.58
+      },
+      "frame": {
+        "closedLeafPlane": 26,
+        "fullDepth": 0.32,
+        "stopNormal": -0.08,
+        "hingePinNormal": 0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": 26,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          25.9475,
+          26.0525
+        ],
+        "completeDecorationNormalBounds": [
+          25.851685211,
+          26.148314789
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": true,
+        "closedJambRays": "all300 China edge rays blocked",
+        "closedCenterRays": "all150 center rays leaked before candidate",
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "france",
+      "id": "front-entry",
+      "source": "source/game/regions-west.js:insetDoorSections + wall wrapper",
+      "status": "SOURCE_INTEGRATED_PENDING_SCENE_QA",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0.012
+      },
+      "floor": {
+        "renderedTop": 0.258,
+        "evidence": "Source finished sill/floor fit at leaf base"
+      },
+      "wall": {
+        "centerPlane": 3.5,
+        "structuralDepth": 0.3,
+        "closureSectionDepth": 0.42,
+        "faces": [
+          3.29,
+          3.71
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -1.9,
+        "to": 1.9,
+        "width": 3.8,
+        "bottom": 0.258,
+        "top": 4.12
+      },
+      "roughOpening": {
+        "from": -1.98,
+        "to": 1.98,
+        "bottom": 0.258,
+        "top": 4.2
+      },
+      "frame": {
+        "closedLeafPlane": 3.5,
+        "fullDepth": 0.42,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": 3.5,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          3.4475,
+          3.5525
+        ],
+        "completeDecorationNormalBounds": [
+          3.351685211,
+          3.648314789
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": false,
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "france",
+      "id": "rear-entry",
+      "source": "source/game/regions-west.js:insetDoorSections + wall wrapper",
+      "status": "SOURCE_INTEGRATED_PENDING_SCENE_QA",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0.012
+      },
+      "floor": {
+        "renderedTop": 0.258,
+        "evidence": "Source finished sill/floor fit at leaf base"
+      },
+      "wall": {
+        "centerPlane": -13.5,
+        "structuralDepth": 0.3,
+        "closureSectionDepth": 0.42,
+        "faces": [
+          -13.71,
+          -13.29
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -1.6,
+        "to": 1.6,
+        "width": 3.2,
+        "bottom": 0.258,
+        "top": 4.12
+      },
+      "roughOpening": {
+        "from": -1.6800000000000002,
+        "to": 1.6800000000000002,
+        "bottom": 0.258,
+        "top": 4.2
+      },
+      "frame": {
+        "closedLeafPlane": -13.5,
+        "fullDepth": 0.42,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -13.5,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -13.5525,
+          -13.4475
+        ],
+        "completeDecorationNormalBounds": [
+          -13.648314789,
+          -13.351685211
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": false,
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "france",
+      "id": "gallery-east-front",
+      "source": "source/game/regions-west.js:insetDoorSections + wall wrapper",
+      "status": "SOURCE_INTEGRATED_PENDING_SCENE_QA",
+      "kind": "hinge",
+      "axis": "z",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0.012
+      },
+      "floor": {
+        "renderedTop": 0.258,
+        "evidence": "Source finished sill/floor fit at leaf base"
+      },
+      "wall": {
+        "centerPlane": 3,
+        "structuralDepth": 0.3,
+        "closureSectionDepth": 0.42,
+        "faces": [
+          2.79,
+          3.21
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -2.3,
+        "to": 0.30000000000000004,
+        "width": 2.6,
+        "bottom": 0.258,
+        "top": 3.9
+      },
+      "roughOpening": {
+        "from": -2.38,
+        "to": 0.3800000000000001,
+        "bottom": 0.258,
+        "top": 3.98
+      },
+      "frame": {
+        "closedLeafPlane": 3,
+        "fullDepth": 0.42,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": 3,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          2.9475,
+          3.0525
+        ],
+        "completeDecorationNormalBounds": [
+          2.851685211,
+          3.148314789
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": false,
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "france",
+      "id": "enfilade-east",
+      "source": "source/game/regions-west.js:insetDoorSections + wall wrapper",
+      "status": "SOURCE_INTEGRATED_PENDING_SCENE_QA",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0.012
+      },
+      "floor": {
+        "renderedTop": 0.252,
+        "evidence": "Source finished sill/floor fit at leaf base"
+      },
+      "wall": {
+        "centerPlane": -6.6,
+        "structuralDepth": 0.3,
+        "closureSectionDepth": 0.42,
+        "faces": [
+          -6.81,
+          -6.39
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": 5.75,
+        "to": 7.949999999999999,
+        "width": 2.2,
+        "bottom": 0.252,
+        "top": 3.9
+      },
+      "roughOpening": {
+        "from": 5.67,
+        "to": 8.03,
+        "bottom": 0.252,
+        "top": 3.98
+      },
+      "frame": {
+        "closedLeafPlane": -6.6,
+        "fullDepth": 0.42,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -6.6,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -6.6525,
+          -6.547499999999999
+        ],
+        "completeDecorationNormalBounds": [
+          -6.748314788999999,
+          -6.451685211
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": false,
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "france",
+      "id": "wing-entry--1--9.5",
+      "source": "source/game/regions-west.js:insetDoorSections + wall wrapper",
+      "status": "SOURCE_INTEGRATED_PENDING_SCENE_QA",
+      "kind": "hinge",
+      "axis": "z",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0.012
+      },
+      "floor": {
+        "renderedTop": 0.264,
+        "evidence": "Source finished sill/floor fit at leaf base"
+      },
+      "wall": {
+        "centerPlane": -17,
+        "structuralDepth": 0.3,
+        "closureSectionDepth": 0.42,
+        "faces": [
+          -17.21,
+          -16.79
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -10.65,
+        "to": -8.35,
+        "width": 2.3,
+        "bottom": 0.264,
+        "top": 3.9
+      },
+      "roughOpening": {
+        "from": -10.73,
+        "to": -8.27,
+        "bottom": 0.264,
+        "top": 3.98
+      },
+      "frame": {
+        "closedLeafPlane": -17,
+        "fullDepth": 0.42,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -17,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -17.0525,
+          -16.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -17.148314789,
+          -16.851685211
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": false,
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "france",
+      "id": "wing-enfilade--1",
+      "source": "source/game/regions-west.js:insetDoorSections + wall wrapper",
+      "status": "SOURCE_INTEGRATED_PENDING_SCENE_QA",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": -1,
+        "bottomClearance": 0.012
+      },
+      "floor": {
+        "renderedTop": 0.23,
+        "evidence": "Source finished sill/floor fit at leaf base"
+      },
+      "wall": {
+        "centerPlane": -6.6,
+        "structuralDepth": 0.3,
+        "closureSectionDepth": 0.42,
+        "faces": [
+          -6.81,
+          -6.39
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -22.25,
+        "to": -19.75,
+        "width": 2.5,
+        "bottom": 0.23,
+        "top": 3.9
+      },
+      "roughOpening": {
+        "from": -22.33,
+        "to": -19.67,
+        "bottom": 0.23,
+        "top": 3.98
+      },
+      "frame": {
+        "closedLeafPlane": -6.6,
+        "fullDepth": 0.42,
+        "stopNormal": -0.08,
+        "hingePinNormal": 0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -6.6,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -6.6525,
+          -6.547499999999999
+        ],
+        "completeDecorationNormalBounds": [
+          -6.748314788999999,
+          -6.451685211
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": false,
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "france",
+      "id": "core-wing-1--5",
+      "source": "source/game/regions-west.js:insetDoorSections + wall wrapper",
+      "status": "SOURCE_INTEGRATED_PENDING_SCENE_QA",
+      "kind": "pocket",
+      "axis": "z",
+      "motion": {
+        "swing": 0,
+        "bottomClearance": 0.012
+      },
+      "floor": {
+        "renderedTop": 0.23,
+        "evidence": "Source finished sill/floor fit at leaf base"
+      },
+      "wall": {
+        "centerPlane": 10.8,
+        "structuralDepth": 0.3,
+        "closureSectionDepth": 0.5,
+        "faces": [
+          10.55,
+          11.05
+        ],
+        "span": null
+      },
+      "nominalOpening": {
+        "from": -6,
+        "to": -4,
+        "width": 2,
+        "bottom": 0.23,
+        "top": 3.9
+      },
+      "roughOpening": {
+        "from": -7.1,
+        "to": -2.9,
+        "bottom": 0.23,
+        "top": 4
+      },
+      "frame": {
+        "closedLeafPlane": 10.8,
+        "fullDepth": 0.5,
+        "stopNormal": null,
+        "hingePinNormal": null,
+        "pocketClearDepth": 0.36,
+        "pocketSkinThickness": 0.07,
+        "pocketEnd": 2.08
+      },
+      "leaf": {
+        "closedPlane": 10.8,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          10.7475,
+          10.852500000000001
+        ],
+        "completeDecorationNormalBounds": [
+          10.651685211,
+          10.948314789000001
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": false,
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": [
+        "East window moved fromz−2.2 to−1.2; conflicting deep north pier panel omitted; legacy solid pocket casing/foot now split into joined face mouldings and face headers outside actual cavity; verify full-scene neighbors and all front/back oblique views"
+      ]
+    },
+    {
+      "region": "egypt",
+      "id": "private-suite-entry",
+      "source": "source/game/egypt-temple.js:insetStonePortal",
+      "status": "SOURCE_INTEGRATED_PENDING_SCENE_QA",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0.012
+      },
+      "floor": {
+        "renderedTop": 0,
+        "evidence": "Source finished sill/floor fit at leaf base"
+      },
+      "wall": {
+        "centerPlane": 11.4,
+        "structuralDepth": 0.3,
+        "closureSectionDepth": 0.3,
+        "faces": [
+          11.25,
+          11.55
+        ],
+        "span": [
+          11.85,
+          23.95
+        ]
+      },
+      "nominalOpening": {
+        "from": 16.31,
+        "to": 19.49,
+        "width": 3.18,
+        "bottom": 0,
+        "top": 3.36
+      },
+      "roughOpening": {
+        "from": 16.229999999999997,
+        "to": 19.57,
+        "bottom": 0,
+        "top": 3.44
+      },
+      "frame": {
+        "closedLeafPlane": 11.4,
+        "fullDepth": 0.3,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.065,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": 11.4,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          11.3475,
+          11.4525
+        ],
+        "completeDecorationNormalBounds": [
+          11.251685211,
+          11.548314789
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": false,
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "egypt",
+      "id": "storage-entry",
+      "source": "source/game/egypt-temple.js:insetStonePortal",
+      "status": "SOURCE_INTEGRATED_PENDING_SCENE_QA",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": -1,
+        "bottomClearance": 0.012
+      },
+      "floor": {
+        "renderedTop": 0,
+        "evidence": "Source finished sill/floor fit at leaf base"
+      },
+      "wall": {
+        "centerPlane": -16.2,
+        "structuralDepth": 0.22,
+        "closureSectionDepth": 0.22,
+        "faces": [
+          -16.31,
+          -16.09
+        ],
+        "span": [
+          11.75,
+          16.55
+        ]
+      },
+      "nominalOpening": {
+        "from": 12.950000000000001,
+        "to": 15.35,
+        "width": 2.4,
+        "bottom": 0,
+        "top": 3.4
+      },
+      "roughOpening": {
+        "from": 12.870000000000001,
+        "to": 15.43,
+        "bottom": 0,
+        "top": 3.48
+      },
+      "frame": {
+        "closedLeafPlane": -16.2,
+        "fullDepth": 0.22,
+        "stopNormal": -0.08,
+        "hingePinNormal": 0.065,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -16.2,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -16.252499999999998,
+          -16.1475
+        ],
+        "completeDecorationNormalBounds": [
+          -16.348314789,
+          -16.051685211
+        ],
+        "decorativeProjectionBeyondFrame": 0.038314789,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": false,
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": [
+        "Existing torus pull/relief projects38.3mm beyond .22m frame faces; this is a recorded decorative projection, not a floating-frame failure. The wood slab is inset. Do not thicken the wall solely for the pull; assess actual frame joins and closed-view leakage."
+      ]
+    },
+    {
+      "region": "japan",
+      "id": "jp-guest-suite-door",
+      "source": "source/game/japan-bathhouse.js + japan-shoji.js",
+      "status": "SOURCE_INTEGRATED_PENDING_SCENE_QA",
+      "kind": "pocket",
+      "axis": "x",
+      "motion": {
+        "swing": 0,
+        "bottomClearance": 0.012
+      },
+      "floor": {
+        "renderedTop": 7.67,
+        "evidence": "Source finished sill/floor fit at leaf base"
+      },
+      "wall": {
+        "centerPlane": -8,
+        "structuralDepth": 0.24,
+        "closureSectionDepth": 0.38,
+        "faces": [
+          -8.19,
+          -7.81
+        ],
+        "span": [
+          -3,
+          5.8
+        ]
+      },
+      "nominalOpening": {
+        "from": 0.7,
+        "to": 3.3,
+        "width": 2.6,
+        "bottom": 7.67,
+        "top": 10.405
+      },
+      "roughOpening": {
+        "from": -0.7600000000000002,
+        "to": 4.76,
+        "bottom": 7.67,
+        "top": 10.504999999999999
+      },
+      "frame": {
+        "closedLeafPlane": -8,
+        "fullDepth": 0.38,
+        "stopNormal": null,
+        "hingePinNormal": null,
+        "pocketClearDepth": 0.26,
+        "pocketSkinThickness": 0.06,
+        "pocketEnd": 2.74
+      },
+      "leaf": {
+        "closedPlane": -8,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -8.0525,
+          -7.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -8.1025,
+          -7.8975
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": false,
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": [
+        "Prepared patch removes old addShojiJambReturns calls and cuts full cavity/skirting",
+        "Raised partition lattice at normal+.135 partly enters new skin[+.13,+.19]; retain genuine cavity and visually review ornament continuity"
+      ]
+    },
+    {
+      "region": "japan",
+      "id": "jp-operator-door",
+      "source": "source/game/japan-bathhouse.js + japan-shoji.js",
+      "status": "SOURCE_INTEGRATED_PENDING_SCENE_QA",
+      "kind": "pocket",
+      "axis": "z",
+      "motion": {
+        "swing": 0,
+        "bottomClearance": 0.012
+      },
+      "floor": {
+        "renderedTop": 11.4,
+        "evidence": "Source finished sill/floor fit at leaf base"
+      },
+      "wall": {
+        "centerPlane": -1,
+        "structuralDepth": 0.24,
+        "closureSectionDepth": 0.38,
+        "faces": [
+          -1.19,
+          -0.81
+        ],
+        "span": [
+          1,
+          9
+        ]
+      },
+      "nominalOpening": {
+        "from": 3.6500000000000004,
+        "to": 6.15,
+        "width": 2.5,
+        "bottom": 11.4,
+        "top": 14.25
+      },
+      "roughOpening": {
+        "from": 2.24,
+        "to": 7.5600000000000005,
+        "bottom": 11.4,
+        "top": 14.35
+      },
+      "frame": {
+        "closedLeafPlane": -1,
+        "fullDepth": 0.38,
+        "stopNormal": null,
+        "hingePinNormal": null,
+        "pocketClearDepth": 0.26,
+        "pocketSkinThickness": 0.06,
+        "pocketEnd": 2.64
+      },
+      "leaf": {
+        "closedPlane": -1,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -1.0525,
+          -0.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -1.1025,
+          -0.8975
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": false,
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": [
+        "Prepared patch removes old addShojiJambReturns calls and cuts full cavity/skirting",
+        "Raised partition lattice at normal+.135 partly enters new skin[+.13,+.19]; retain genuine cavity and visually review ornament continuity"
+      ]
+    },
+    {
+      "region": "japan",
+      "id": "jp-staff-room-door",
+      "source": "source/game/japan-bathhouse.js + japan-shoji.js",
+      "status": "SOURCE_INTEGRATED_PENDING_SCENE_QA",
+      "kind": "pocket",
+      "axis": "z",
+      "motion": {
+        "swing": 0,
+        "bottomClearance": 0.012
+      },
+      "floor": {
+        "renderedTop": 11.4,
+        "evidence": "Source finished sill/floor fit at leaf base"
+      },
+      "wall": {
+        "centerPlane": -1,
+        "structuralDepth": 0.24,
+        "closureSectionDepth": 0.38,
+        "faces": [
+          -1.19,
+          -0.81
+        ],
+        "span": [
+          -15,
+          -6
+        ]
+      },
+      "nominalOpening": {
+        "from": -11.7,
+        "to": -9.3,
+        "width": 2.4,
+        "bottom": 11.4,
+        "top": 14.25
+      },
+      "roughOpening": {
+        "from": -13.06,
+        "to": -7.9399999999999995,
+        "bottom": 11.4,
+        "top": 14.35
+      },
+      "frame": {
+        "closedLeafPlane": -1,
+        "fullDepth": 0.38,
+        "stopNormal": null,
+        "hingePinNormal": null,
+        "pocketClearDepth": 0.26,
+        "pocketSkinThickness": 0.06,
+        "pocketEnd": 2.54
+      },
+      "leaf": {
+        "closedPlane": -1,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -1.0525,
+          -0.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -1.1025,
+          -0.8975
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": false,
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": [
+        "Prepared patch removes old addShojiJambReturns calls and cuts full cavity/skirting",
+        "Raised partition lattice at normal+.135 partly enters new skin[+.13,+.19]; retain genuine cavity and visually review ornament continuity"
+      ]
+    },
+    {
+      "region": "japan",
+      "id": "jp-washroom-cubicle-1",
+      "source": "source/game/japan-bathhouse.js + japan-shoji.js",
+      "status": "SOURCE_INTEGRATED_PENDING_SCENE_QA",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0.012
+      },
+      "floor": {
+        "renderedTop": 0,
+        "evidence": "Source finished sill/floor fit at leaf base"
+      },
+      "wall": {
+        "centerPlane": -13.25,
+        "structuralDepth": 0.24,
+        "closureSectionDepth": 0.24,
+        "faces": [
+          -13.37,
+          -13.13
+        ],
+        "span": [
+          18.575,
+          21.425
+        ]
+      },
+      "nominalOpening": {
+        "from": 19.325,
+        "to": 20.675,
+        "width": 1.35,
+        "bottom": 0,
+        "top": 2.85
+      },
+      "roughOpening": {
+        "from": 19.245,
+        "to": 20.755,
+        "bottom": 0,
+        "top": 2.93
+      },
+      "frame": {
+        "closedLeafPlane": -13.25,
+        "fullDepth": 0.24,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.065,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -13.25,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -13.3025,
+          -13.1975
+        ],
+        "completeDecorationNormalBounds": [
+          -13.3525,
+          -13.1475
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": false,
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "japan",
+      "id": "jp-washroom-cubicle-2",
+      "source": "source/game/japan-bathhouse.js + japan-shoji.js",
+      "status": "SOURCE_INTEGRATED_PENDING_SCENE_QA",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0.012
+      },
+      "floor": {
+        "renderedTop": 0,
+        "evidence": "Source finished sill/floor fit at leaf base"
+      },
+      "wall": {
+        "centerPlane": -13.25,
+        "structuralDepth": 0.24,
+        "closureSectionDepth": 0.24,
+        "faces": [
+          -13.37,
+          -13.13
+        ],
+        "span": [
+          21.724999999999998,
+          24.575
+        ]
+      },
+      "nominalOpening": {
+        "from": 22.474999999999998,
+        "to": 23.825,
+        "width": 1.35,
+        "bottom": 0,
+        "top": 2.85
+      },
+      "roughOpening": {
+        "from": 22.395,
+        "to": 23.904999999999998,
+        "bottom": 0,
+        "top": 2.93
+      },
+      "frame": {
+        "closedLeafPlane": -13.25,
+        "fullDepth": 0.24,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.065,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -13.25,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -13.3025,
+          -13.1975
+        ],
+        "completeDecorationNormalBounds": [
+          -13.3525,
+          -13.1475
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": false,
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "japan",
+      "id": "jp-washroom-cubicle-3",
+      "source": "source/game/japan-bathhouse.js + japan-shoji.js",
+      "status": "SOURCE_INTEGRATED_PENDING_SCENE_QA",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0.012
+      },
+      "floor": {
+        "renderedTop": 0,
+        "evidence": "Source finished sill/floor fit at leaf base"
+      },
+      "wall": {
+        "centerPlane": -13.25,
+        "structuralDepth": 0.24,
+        "closureSectionDepth": 0.24,
+        "faces": [
+          -13.37,
+          -13.13
+        ],
+        "span": [
+          24.825,
+          27.675
+        ]
+      },
+      "nominalOpening": {
+        "from": 25.575,
+        "to": 26.925,
+        "width": 1.35,
+        "bottom": 0,
+        "top": 2.85
+      },
+      "roughOpening": {
+        "from": 25.495,
+        "to": 27.005,
+        "bottom": 0,
+        "top": 2.93
+      },
+      "frame": {
+        "closedLeafPlane": -13.25,
+        "fullDepth": 0.24,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.065,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -13.25,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -13.3025,
+          -13.1975
+        ],
+        "completeDecorationNormalBounds": [
+          -13.3525,
+          -13.1475
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": false,
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    },
+    {
+      "region": "japan",
+      "id": "jp-supplies-door",
+      "source": "source/game/japan-bathhouse.js + japan-shoji.js",
+      "status": "SOURCE_INTEGRATED_PENDING_SCENE_QA",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0.012
+      },
+      "floor": {
+        "renderedTop": 0.05,
+        "evidence": "Source finished sill/floor fit at leaf base"
+      },
+      "wall": {
+        "centerPlane": -30,
+        "structuralDepth": 0.24,
+        "closureSectionDepth": 0.24,
+        "faces": [
+          -30.12,
+          -29.88
+        ],
+        "span": [
+          -4.35,
+          4.35
+        ]
+      },
+      "nominalOpening": {
+        "from": -1.55,
+        "to": 1.55,
+        "width": 3.1,
+        "bottom": 0.05,
+        "top": 2.9
+      },
+      "roughOpening": {
+        "from": -1.6300000000000001,
+        "to": 1.6300000000000001,
+        "bottom": 0.05,
+        "top": 2.98
+      },
+      "frame": {
+        "closedLeafPlane": -30,
+        "fullDepth": 0.24,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.065,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "leaf": {
+        "closedPlane": -30,
+        "woodDepth": 0.105,
+        "woodFaces": [
+          -30.0525,
+          -29.9475
+        ],
+        "completeDecorationNormalBounds": [
+          -30.1025,
+          -29.8975
+        ],
+        "decorativeProjectionBeyondFrame": 0,
+        "surfaceTrack": false,
+        "meetingJoint": "current product has measured12mm leak; centered rebated candidate10 remains isolated"
+      },
+      "verification": {
+        "source": true,
+        "currentScene": false,
+        "render": false,
+        "continuousWorldSweep": false
+      },
+      "notes": []
+    }
+  ],
+  "curtains": [
+    {
+      "region": "japan",
+      "id": "jp-men-wet-threshold",
+      "kind": "full-curtain",
+      "status": "SOURCE_PRESENT_SUPPORT_REVERIFICATION_PENDING",
+      "wall": {
+        "axis": "x",
+        "centerPlane": 0.3,
+        "depth": 0.24,
+        "faces": [
+          0.18,
+          0.42
+        ]
+      },
+      "opening": {
+        "from": -7.8,
+        "to": -5.2,
+        "width": 2.6,
+        "bottom": 3.8,
+        "top": 6.65
+      },
+      "cloth": {
+        "plane": 0.3,
+        "normalBounds": [
+          0.21799999999999997,
+          0.382
+        ],
+        "bottom": 3.835,
+        "top": 6.62
+      },
+      "rail": {
+        "axis": "x",
+        "normalPlane": 0.3,
+        "centerY": 6.635000000000001,
+        "radius": 0.006,
+        "endLateral": [
+          -7.81,
+          -5.19
+        ],
+        "support": "both rod endcaps must meet actual original jamb surfaces; source geometry endpoints penetrate nominal jambs10mm",
+        "renderedSupportVerifiedCurrent": false
+      },
+      "surfaceTrack": false
+    },
+    {
+      "region": "japan",
+      "id": "jp-women-wet-threshold",
+      "kind": "full-curtain",
+      "status": "SOURCE_PRESENT_SUPPORT_REVERIFICATION_PENDING",
+      "wall": {
+        "axis": "x",
+        "centerPlane": 0.3,
+        "depth": 0.24,
+        "faces": [
+          0.18,
+          0.42
+        ]
+      },
+      "opening": {
+        "from": 1.825,
+        "to": 4.175,
+        "width": 2.35,
+        "bottom": 3.8,
+        "top": 6.65
+      },
+      "cloth": {
+        "plane": 0.3,
+        "normalBounds": [
+          0.21799999999999997,
+          0.382
+        ],
+        "bottom": 3.835,
+        "top": 6.62
+      },
+      "rail": {
+        "axis": "x",
+        "normalPlane": 0.3,
+        "centerY": 6.635000000000001,
+        "radius": 0.006,
+        "endLateral": [
+          1.815,
+          4.185
+        ],
+        "support": "both rod endcaps must meet actual original jamb surfaces; source geometry endpoints penetrate nominal jambs10mm",
+        "renderedSupportVerifiedCurrent": false
+      },
+      "surfaceTrack": false
+    },
+    {
+      "region": "china",
+      "id": "cn-tea-front",
+      "kind": "full-curtain",
+      "status": "SOURCE_PRESENT_SUPPORT_REVERIFICATION_PENDING",
+      "wall": {
+        "axis": "x",
+        "centerPlane": 21,
+        "depth": 0.32,
+        "faces": [
+          20.84,
+          21.16
+        ]
+      },
+      "opening": {
+        "from": -22.6,
+        "to": -19.4,
+        "width": 3.2,
+        "bottom": 0.215,
+        "top": 3.5
+      },
+      "cloth": {
+        "plane": 21,
+        "normalBounds": [
+          20.918,
+          21.082
+        ],
+        "bottom": 0.25,
+        "top": 3.47
+      },
+      "rail": {
+        "axis": "x",
+        "normalPlane": 21,
+        "centerY": 3.485,
+        "radius": 0.006,
+        "endLateral": [
+          -22.610000000000003,
+          -19.389999999999997
+        ],
+        "support": "both rod endcaps must meet actual original jamb surfaces; source geometry endpoints penetrate nominal jambs10mm",
+        "renderedSupportVerifiedCurrent": false
+      },
+      "surfaceTrack": false
+    },
+    {
+      "region": "china",
+      "id": "cn-study-rear",
+      "kind": "full-curtain",
+      "status": "SOURCE_PRESENT_SUPPORT_REVERIFICATION_PENDING",
+      "wall": {
+        "axis": "x",
+        "centerPlane": 8,
+        "depth": 0.32,
+        "faces": [
+          7.84,
+          8.16
+        ]
+      },
+      "opening": {
+        "from": 19.4,
+        "to": 22.6,
+        "width": 3.2,
+        "bottom": 0.215,
+        "top": 3.5
+      },
+      "cloth": {
+        "plane": 8,
+        "normalBounds": [
+          7.918,
+          8.082
+        ],
+        "bottom": 0.25,
+        "top": 3.47
+      },
+      "rail": {
+        "axis": "x",
+        "normalPlane": 8,
+        "centerY": 3.485,
+        "radius": 0.006,
+        "endLateral": [
+          19.389999999999997,
+          22.610000000000003
+        ],
+        "support": "both rod endcaps must meet actual original jamb surfaces; source geometry endpoints penetrate nominal jambs10mm",
+        "renderedSupportVerifiedCurrent": false
+      },
+      "surfaceTrack": false
+    },
+    {
+      "region": "china",
+      "id": "cn-study-west",
+      "kind": "full-curtain",
+      "status": "SOURCE_PRESENT_SUPPORT_REVERIFICATION_PENDING",
+      "wall": {
+        "axis": "z",
+        "centerPlane": 16,
+        "depth": 0.32,
+        "faces": [
+          15.84,
+          16.16
+        ]
+      },
+      "opening": {
+        "from": 12.9,
+        "to": 16.1,
+        "width": 3.2,
+        "bottom": 0.215,
+        "top": 3.5
+      },
+      "cloth": {
+        "plane": 16,
+        "normalBounds": [
+          15.918,
+          16.082
+        ],
+        "bottom": 0.25,
+        "top": 3.47
+      },
+      "rail": {
+        "axis": "z",
+        "normalPlane": 16,
+        "centerY": 3.485,
+        "radius": 0.006,
+        "endLateral": [
+          12.89,
+          16.110000000000003
+        ],
+        "support": "both rod endcaps must meet actual original jamb surfaces; source geometry endpoints penetrate nominal jambs10mm",
+        "renderedSupportVerifiedCurrent": false
+      },
+      "surfaceTrack": false
+    },
+    {
+      "region": "china",
+      "id": "cn-study-east",
+      "kind": "full-curtain",
+      "status": "SOURCE_PRESENT_SUPPORT_REVERIFICATION_PENDING",
+      "wall": {
+        "axis": "z",
+        "centerPlane": 26,
+        "depth": 0.32,
+        "faces": [
+          25.84,
+          26.16
+        ]
+      },
+      "opening": {
+        "from": 12.9,
+        "to": 16.1,
+        "width": 3.2,
+        "bottom": 0.215,
+        "top": 3.5
+      },
+      "cloth": {
+        "plane": 26,
+        "normalBounds": [
+          25.918,
+          26.082
+        ],
+        "bottom": 0.25,
+        "top": 3.47
+      },
+      "rail": {
+        "axis": "z",
+        "normalPlane": 26,
+        "centerY": 3.485,
+        "radius": 0.006,
+        "endLateral": [
+          12.89,
+          16.110000000000003
+        ],
+        "support": "both rod endcaps must meet actual original jamb surfaces; source geometry endpoints penetrate nominal jambs10mm",
+        "renderedSupportVerifiedCurrent": false
+      },
+      "surfaceTrack": false
+    },
+    {
+      "region": "china",
+      "id": "cn-kitchen-front",
+      "kind": "full-curtain",
+      "status": "SOURCE_PRESENT_SUPPORT_REVERIFICATION_PENDING",
+      "wall": {
+        "axis": "x",
+        "centerPlane": 2,
+        "depth": 0.32,
+        "faces": [
+          1.84,
+          2.16
+        ]
+      },
+      "opening": {
+        "from": 19.4,
+        "to": 22.6,
+        "width": 3.2,
+        "bottom": 0.215,
+        "top": 3.5
+      },
+      "cloth": {
+        "plane": 2,
+        "normalBounds": [
+          1.918,
+          2.082
+        ],
+        "bottom": 0.25,
+        "top": 3.47
+      },
+      "rail": {
+        "axis": "x",
+        "normalPlane": 2,
+        "centerY": 3.485,
+        "radius": 0.006,
+        "endLateral": [
+          19.389999999999997,
+          22.610000000000003
+        ],
+        "support": "both rod endcaps must meet actual original jamb surfaces; source geometry endpoints penetrate nominal jambs10mm",
+        "renderedSupportVerifiedCurrent": false
+      },
+      "surfaceTrack": false
+    },
+    {
+      "region": "china",
+      "id": "cn-bath-washroom",
+      "kind": "full-curtain",
+      "status": "SOURCE_PRESENT_SUPPORT_REVERIFICATION_PENDING",
+      "wall": {
+        "axis": "z",
+        "centerPlane": -20,
+        "depth": 0.26,
+        "faces": [
+          -20.13,
+          -19.87
+        ]
+      },
+      "opening": {
+        "from": -27,
+        "to": -24,
+        "width": 3,
+        "bottom": 0.215,
+        "top": 3.3
+      },
+      "cloth": {
+        "plane": -20,
+        "normalBounds": [
+          -20.082,
+          -19.918
+        ],
+        "bottom": 0.25,
+        "top": 3.27
+      },
+      "rail": {
+        "axis": "z",
+        "normalPlane": -20,
+        "centerY": 3.2849999999999997,
+        "radius": 0.006,
+        "endLateral": [
+          -27.01,
+          -23.99
+        ],
+        "support": "both rod endcaps must meet actual original jamb surfaces; source geometry endpoints penetrate nominal jambs10mm",
+        "renderedSupportVerifiedCurrent": false
+      },
+      "surfaceTrack": false
+    },
+    {
+      "region": "egypt",
+      "id": "private-bedroom",
+      "kind": "full-curtain",
+      "status": "SOURCE_PRESENT_SUPPORT_REVERIFICATION_PENDING",
+      "wall": {
+        "axis": "x",
+        "centerPlane": 2.6,
+        "depth": 0.22,
+        "faces": [
+          2.49,
+          2.71
+        ]
+      },
+      "opening": {
+        "from": 16.31,
+        "to": 19.49,
+        "width": 3.18,
+        "bottom": 0,
+        "top": 3.4
+      },
+      "cloth": {
+        "plane": 2.6,
+        "normalBounds": [
+          2.5180000000000002,
+          2.682
+        ],
+        "bottom": 0.035,
+        "top": 3.37
+      },
+      "rail": {
+        "axis": "x",
+        "normalPlane": 2.6,
+        "centerY": 3.385,
+        "radius": 0.006,
+        "endLateral": [
+          16.299999999999997,
+          19.5
+        ],
+        "support": "both rod endcaps must meet actual original jamb surfaces; source geometry endpoints penetrate nominal jambs10mm",
+        "renderedSupportVerifiedCurrent": false
+      },
+      "surfaceTrack": false
+    },
+    {
+      "region": "egypt",
+      "id": "private-bath-entry",
+      "kind": "full-curtain",
+      "status": "SOURCE_PRESENT_SUPPORT_REVERIFICATION_PENDING",
+      "wall": {
+        "axis": "z",
+        "centerPlane": 16.4,
+        "depth": 0.22,
+        "faces": [
+          16.29,
+          16.509999999999998
+        ]
+      },
+      "opening": {
+        "from": -2.6,
+        "to": 0.6000000000000001,
+        "width": 3.2,
+        "bottom": 0,
+        "top": 3.4
+      },
+      "cloth": {
+        "plane": 16.4,
+        "normalBounds": [
+          16.317999999999998,
+          16.482
+        ],
+        "bottom": 0.035,
+        "top": 3.37
+      },
+      "rail": {
+        "axis": "z",
+        "normalPlane": 16.4,
+        "centerY": 3.385,
+        "radius": 0.006,
+        "endLateral": [
+          -2.61,
+          0.6100000000000001
+        ],
+        "support": "both rod endcaps must meet actual original jamb surfaces; source geometry endpoints penetrate nominal jambs10mm",
+        "renderedSupportVerifiedCurrent": false
+      },
+      "surfaceTrack": false
+    },
+    {
+      "region": "france",
+      "id": "wing-entry-1--9.5",
+      "kind": "full-curtain",
+      "status": "SOURCE_PRESENT_SUPPORT_REVERIFICATION_PENDING",
+      "wall": {
+        "axis": "z",
+        "centerPlane": 17,
+        "depth": 0.3,
+        "faces": [
+          16.85,
+          17.15
+        ]
+      },
+      "opening": {
+        "from": -10.65,
+        "to": -8.35,
+        "width": 2.3,
+        "bottom": 0.23,
+        "top": 3.9
+      },
+      "cloth": {
+        "plane": 17,
+        "normalBounds": [
+          16.918,
+          17.082
+        ],
+        "bottom": 0.265,
+        "top": 3.87
+      },
+      "rail": {
+        "axis": "z",
+        "normalPlane": 17,
+        "centerY": 3.885,
+        "radius": 0.006,
+        "endLateral": [
+          -10.66,
+          -8.34
+        ],
+        "support": "both rod endcaps must meet actual original jamb surfaces; source geometry endpoints penetrate nominal jambs10mm",
+        "renderedSupportVerifiedCurrent": false
+      },
+      "surfaceTrack": false
+    },
+    {
+      "region": "france",
+      "id": "wing-enfilade-1",
+      "kind": "full-curtain",
+      "status": "SOURCE_PRESENT_SUPPORT_REVERIFICATION_PENDING",
+      "wall": {
+        "axis": "x",
+        "centerPlane": -6.6,
+        "depth": 0.3,
+        "faces": [
+          -6.75,
+          -6.449999999999999
+        ]
+      },
+      "opening": {
+        "from": 19.75,
+        "to": 22.25,
+        "width": 2.5,
+        "bottom": 0.23,
+        "top": 3.9
+      },
+      "cloth": {
+        "plane": -6.6,
+        "normalBounds": [
+          -6.6819999999999995,
+          -6.518
+        ],
+        "bottom": 0.265,
+        "top": 3.87
+      },
+      "rail": {
+        "axis": "x",
+        "normalPlane": -6.6,
+        "centerY": 3.885,
+        "radius": 0.006,
+        "endLateral": [
+          19.74,
+          22.26
+        ],
+        "support": "both rod endcaps must meet actual original jamb surfaces; source geometry endpoints penetrate nominal jambs10mm",
+        "renderedSupportVerifiedCurrent": false
+      },
+      "surfaceTrack": false
+    }
+  ],
+  "fixed": [
+    {
+      "region": "japan",
+      "id": "jp-food-prep-door",
+      "status": "FIXED_NO_AUTOMATIC_GATHER",
+      "sourceAuthoredBanner": false,
+      "supportAudit": "current-scene rod/jamb or source banner header review pending"
+    },
+    {
+      "region": "japan",
+      "id": "jp-men-noren",
+      "status": "FIXED_NO_AUTOMATIC_GATHER",
+      "sourceAuthoredBanner": true,
+      "supportAudit": "current-scene rod/jamb or source banner header review pending"
+    },
+    {
+      "region": "japan",
+      "id": "jp-women-noren",
+      "status": "FIXED_NO_AUTOMATIC_GATHER",
+      "sourceAuthoredBanner": true,
+      "supportAudit": "current-scene rod/jamb or source banner header review pending"
+    },
+    {
+      "region": "japan",
+      "id": "jp-laundry-stair-foyer-door",
+      "status": "FIXED_NO_AUTOMATIC_GATHER",
+      "sourceAuthoredBanner": false,
+      "supportAudit": "current-scene rod/jamb or source banner header review pending"
+    },
+    {
+      "region": "japan",
+      "id": "jp-apothecary-room-door",
+      "status": "FIXED_NO_AUTOMATIC_GATHER",
+      "sourceAuthoredBanner": false,
+      "supportAudit": "current-scene rod/jamb or source banner header review pending"
+    },
+    {
+      "region": "japan",
+      "id": "jp-laundry-door",
+      "status": "FIXED_NO_AUTOMATIC_GATHER",
+      "sourceAuthoredBanner": false,
+      "supportAudit": "current-scene rod/jamb or source banner header review pending"
+    },
+    {
+      "region": "japan",
+      "id": "jp-washhouse-entry",
+      "status": "FIXED_NO_AUTOMATIC_GATHER",
+      "sourceAuthoredBanner": false,
+      "supportAudit": "current-scene rod/jamb or source banner header review pending"
+    },
+    {
+      "region": "japan",
+      "id": "jp-market-door",
+      "status": "FIXED_NO_AUTOMATIC_GATHER",
+      "sourceAuthoredBanner": false,
+      "supportAudit": "current-scene rod/jamb or source banner header review pending"
+    },
+    {
+      "region": "japan",
+      "id": "jp-1-front-portal",
+      "status": "FIXED_NO_AUTOMATIC_GATHER",
+      "sourceAuthoredBanner": true,
+      "supportAudit": "current-scene rod/jamb or source banner header review pending"
+    },
+    {
+      "region": "china",
+      "id": "cn-tea-rear",
+      "status": "FIXED_NO_AUTOMATIC_GATHER",
+      "sourceAuthoredBanner": false,
+      "supportAudit": "current-scene rod/jamb or source banner header review pending"
+    },
+    {
+      "region": "china",
+      "id": "cn-kitchen-west",
+      "status": "FIXED_NO_AUTOMATIC_GATHER",
+      "sourceAuthoredBanner": false,
+      "supportAudit": "current-scene rod/jamb or source banner header review pending"
+    },
+    {
+      "region": "china",
+      "id": "cn-kitchen-east",
+      "status": "FIXED_NO_AUTOMATIC_GATHER",
+      "sourceAuthoredBanner": false,
+      "supportAudit": "current-scene rod/jamb or source banner header review pending"
+    },
+    {
+      "region": "china",
+      "id": "cn-kitchen-dining",
+      "status": "FIXED_NO_AUTOMATIC_GATHER",
+      "sourceAuthoredBanner": false,
+      "supportAudit": "current-scene rod/jamb or source banner header review pending"
+    },
+    {
+      "region": "egypt",
+      "id": "dining-entry",
+      "status": "FIXED_NO_AUTOMATIC_GATHER",
+      "sourceAuthoredBanner": false,
+      "supportAudit": "current-scene rod/jamb or source banner header review pending"
+    },
+    {
+      "region": "egypt",
+      "id": "kitchen-entry",
+      "status": "FIXED_NO_AUTOMATIC_GATHER",
+      "sourceAuthoredBanner": false,
+      "supportAudit": "current-scene rod/jamb or source banner header review pending"
+    },
+    {
+      "region": "france",
+      "id": "gallery-west-rear",
+      "status": "FIXED_NO_AUTOMATIC_GATHER",
+      "sourceAuthoredBanner": false,
+      "supportAudit": "current-scene rod/jamb or source banner header review pending"
+    },
+    {
+      "region": "france",
+      "id": "enfilade-west",
+      "status": "FIXED_NO_AUTOMATIC_GATHER",
+      "sourceAuthoredBanner": false,
+      "supportAudit": "current-scene rod/jamb or source banner header review pending"
+    },
+    {
+      "region": "france",
+      "id": "core-wing--1--9.5",
+      "status": "FIXED_NO_AUTOMATIC_GATHER",
+      "sourceAuthoredBanner": false,
+      "supportAudit": "current-scene rod/jamb or source banner header review pending"
+    }
+  ],
+  "requiredFinalQA": [
+    "all41 rigid doors: actual wall/rough cut/frame/leaf plane and complete decoration bounds",
+    "front,back,and both oblique views for every rigid door, including allJapan floors/WCs/store",
+    "12 full-curtain rod supports against actual jambs; fixed half curtains remain unanimated",
+    "full world opening/closing sweeps plus normal controllers/camera for each door",
+    "no surface-track fallback or unmounted rigid door",
+    "do not present representative prototypes as full completion"
+  ]
+}

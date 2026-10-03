@@ -1,0 +1,796 @@
+{
+  "status": "ALL_41_LOCAL_CONSTRUCTIONS_PASS_NOT_WHOLE_SCENE",
+  "sourceEngineSha256": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+  "countries": [
+    {
+      "region": "japan",
+      "status": "PASS_BOUNDED_PILOT",
+      "rawReportSha256": "eeecb8ed5680d91649daf64acd42f39d0984abce6d0aa0fe1e0522b2a6fffe09",
+      "elapsedSeconds": 6.707,
+      "sourceHashes": {
+        "automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+        "inset-closures.js": "869a0c43bf27479d697ddb57d70b7b1fb1babaf18ea41e55067ca253af8f28fb",
+        "room-closures.js": "e418cd6d9a10c63aa782a8122205083217b1c407a5d0d426fab2543555601aea"
+      },
+      "doors": [
+        {
+          "id": "jp-guest-suite-door",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "dd217ee1544e00b9f2c30c16b0e8506459d8c0e08d2ff2802011dce2dbdd2e47",
+          "params": {
+            "style": "shoji",
+            "kind": "pocket",
+            "axis": "x",
+            "width": 2.6,
+            "depth": 0.38,
+            "swing": 1,
+            "height": 2.7349999999999994,
+            "frameBottom": 0,
+            "floorY": 0,
+            "runningGap": 0.012,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "jp-operator-door",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "7c622b06f1e61d208de2a82a4c90b9134c234987548c63b476a9a513df04d4a3",
+          "params": {
+            "style": "shoji",
+            "kind": "pocket",
+            "axis": "z",
+            "width": 2.5,
+            "depth": 0.38,
+            "swing": 1,
+            "height": 2.8499999999999996,
+            "frameBottom": 0,
+            "floorY": 0,
+            "runningGap": 0.012,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "jp-staff-room-door",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "18e10d384b1ac8f6e09e18cb999de09402794262db4e81a056ca7eac37f84fdf",
+          "params": {
+            "style": "shoji",
+            "kind": "pocket",
+            "axis": "z",
+            "width": 2.4,
+            "depth": 0.38,
+            "swing": 1,
+            "height": 2.8499999999999996,
+            "frameBottom": 0,
+            "floorY": 0,
+            "runningGap": 0.012,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "jp-washroom-cubicle-1",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "8c1da6203579c5287644ab0f51165cf2514041dd685a3f398c6802d36ba0778c",
+          "params": {
+            "style": "shoji",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 1.35,
+            "depth": 0.24,
+            "swing": 1,
+            "height": 2.85,
+            "frameBottom": 0,
+            "floorY": 0,
+            "runningGap": 0.012,
+            "pin": 0.065
+          }
+        },
+        {
+          "id": "jp-washroom-cubicle-2",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "8c1da6203579c5287644ab0f51165cf2514041dd685a3f398c6802d36ba0778c",
+          "params": {
+            "style": "shoji",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 1.35,
+            "depth": 0.24,
+            "swing": 1,
+            "height": 2.85,
+            "frameBottom": 0,
+            "floorY": 0,
+            "runningGap": 0.012,
+            "pin": 0.065
+          }
+        },
+        {
+          "id": "jp-washroom-cubicle-3",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "8c1da6203579c5287644ab0f51165cf2514041dd685a3f398c6802d36ba0778c",
+          "params": {
+            "style": "shoji",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 1.35,
+            "depth": 0.24,
+            "swing": 1,
+            "height": 2.85,
+            "frameBottom": 0,
+            "floorY": 0,
+            "runningGap": 0.012,
+            "pin": 0.065
+          }
+        },
+        {
+          "id": "jp-supplies-door",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "da2f072e2f6e822484ac4db8d0046771b7fdbdf2e80dd9da9ccd1a96258ff15c",
+          "params": {
+            "style": "shoji",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 3.1,
+            "depth": 0.24,
+            "swing": 1,
+            "height": 2.85,
+            "frameBottom": 0,
+            "floorY": 0,
+            "runningGap": 0.012,
+            "pin": 0.065
+          }
+        }
+      ]
+    },
+    {
+      "region": "china",
+      "status": "PASS_BOUNDED_PILOT",
+      "rawReportSha256": "e09df0bf403825c67ae3d1ad356267a52dfd5f2f646207d46c2a38f477d62465",
+      "elapsedSeconds": 51.867,
+      "sourceHashes": {
+        "automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+        "inset-closures.js": "869a0c43bf27479d697ddb57d70b7b1fb1babaf18ea41e55067ca253af8f28fb",
+        "room-closures.js": "e418cd6d9a10c63aa782a8122205083217b1c407a5d0d426fab2543555601aea"
+      },
+      "doors": [
+        {
+          "id": "cn-south-gate-west",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "93e79eb8132f243427934e8f55f2458b11efc36fecd8857eeb13af675fdbf67e",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 2.2,
+            "depth": 0.65,
+            "swing": 1,
+            "height": 3.885,
+            "frameBottom": -0.11500000000000002,
+            "floorY": -0.015000000000000013,
+            "runningGap": 0,
+            "pin": 0.18
+          }
+        },
+        {
+          "id": "cn-south-gate",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "97c38eaf887cf75731e2dc377221cd015638528521b854770a7e171ed2f6ef14",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 4.4,
+            "depth": 0.65,
+            "swing": 1,
+            "height": 3.885,
+            "frameBottom": -0.11500000000000002,
+            "floorY": -0.015000000000000013,
+            "runningGap": 0,
+            "pin": 0.18
+          }
+        },
+        {
+          "id": "cn-south-gate-east",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "93e79eb8132f243427934e8f55f2458b11efc36fecd8857eeb13af675fdbf67e",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 2.2,
+            "depth": 0.65,
+            "swing": 1,
+            "height": 3.885,
+            "frameBottom": -0.11500000000000002,
+            "floorY": -0.015000000000000013,
+            "runningGap": 0,
+            "pin": 0.18
+          }
+        },
+        {
+          "id": "cn-north-gate",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "2ebfb9cc44b4b9b85905f31450b6466f242c9120c0b3142a14da4aea41bdd3d7",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 6,
+            "depth": 0.65,
+            "swing": -1,
+            "height": 3.9849999999999994,
+            "frameBottom": -0.015,
+            "floorY": -0.015,
+            "runningGap": 0,
+            "pin": 0.18
+          }
+        },
+        {
+          "id": "cn-west-gate",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "a0a00683b0e6ba2478194d27daaea0805e4378e6387903fcf1c7c1e92a52e07d",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "z",
+            "width": 4,
+            "depth": 0.65,
+            "swing": -1,
+            "height": 3.9849999999999994,
+            "frameBottom": -0.015,
+            "floorY": -0.015,
+            "runningGap": 0,
+            "pin": 0.18
+          }
+        },
+        {
+          "id": "cn-east-gate",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "7666a12108a196ea4f1a1c9fc7d2f47179e9458e64f72e5c900dbb5a9b213901",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "z",
+            "width": 4,
+            "depth": 0.65,
+            "swing": 1,
+            "height": 3.9849999999999994,
+            "frameBottom": -0.015,
+            "floorY": -0.015,
+            "runningGap": 0,
+            "pin": 0.18
+          }
+        },
+        {
+          "id": "cn-hall-front",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "d1caecaa39f879f52efb8977ab967bca145ce0d15080150a0e2ae8739f91c7ba",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 6,
+            "depth": 0.32,
+            "swing": 1,
+            "height": 4.315,
+            "frameBottom": -0.015000000000000124,
+            "floorY": -0.014999999999999902,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "cn-hall-rear",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "becae06e0a446180fb33f0f84afb19515f2971c1767721daa7e8a96fc545dfc3",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 3,
+            "depth": 0.32,
+            "swing": -1,
+            "height": 3.9850000000000003,
+            "frameBottom": -0.015000000000000124,
+            "floorY": -0.014999999999999902,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "cn-hall-west",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "c6040d7ece258b3fb4fd74e1cf68298898315e742d352bdbd439be3a9ac6f479",
+          "params": {
+            "style": "palace",
+            "kind": "pocket",
+            "axis": "z",
+            "width": 3.1999999999999993,
+            "depth": 0.5,
+            "swing": 1,
+            "height": 3.9850000000000003,
+            "frameBottom": -0.015000000000000124,
+            "floorY": -0.014999999999999902,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "cn-hall-east",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "3683659c6a7eed3fdbb779cfb631ea8950d8c87236d17ffcb8444a3174bf65c3",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "z",
+            "width": 3.1999999999999997,
+            "depth": 0.32,
+            "swing": 1,
+            "height": 3.9850000000000003,
+            "frameBottom": -0.015000000000000124,
+            "floorY": -0.014999999999999902,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "cn-study-front",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "03af61a37d431d41a50f756769a4a0c6c63141a4d419363668820a96ee3fd138",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 3.200000000000003,
+            "depth": 0.32,
+            "swing": 1,
+            "height": 3.285,
+            "frameBottom": -0.015000000000000013,
+            "floorY": -0.015000000000000013,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "cn-bedroom-front",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "03af61a37d431d41a50f756769a4a0c6c63141a4d419363668820a96ee3fd138",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 3.200000000000003,
+            "depth": 0.32,
+            "swing": 1,
+            "height": 3.285,
+            "frameBottom": -0.015000000000000013,
+            "floorY": -0.015000000000000013,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "cn-bedroom-west",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "054d402bf6a75e9e6c17729a5719aa162a669842b1305373ec0bb74d5dbb0dcb",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "z",
+            "width": 3.1999999999999997,
+            "depth": 0.32,
+            "swing": 1,
+            "height": 3.285,
+            "frameBottom": -0.015000000000000013,
+            "floorY": -0.015000000000000013,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "cn-bedroom-east",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "e1f54d686f39a51d7acfea8a672275e673b492b19e26ffbb35f7e6417d4dcc3e",
+          "params": {
+            "style": "palace",
+            "kind": "pocket",
+            "axis": "z",
+            "width": 3.1999999999999997,
+            "depth": 0.5,
+            "swing": 1,
+            "height": 3.285,
+            "frameBottom": -0.015000000000000013,
+            "floorY": -0.015000000000000013,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "cn-kitchen-rear",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "c376167e0fd5f75654dc5bdc02850133278f84f9ca5016ab0627bdbc57b79c56",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 3.1999999999999993,
+            "depth": 0.32,
+            "swing": 1,
+            "height": 3.285,
+            "frameBottom": -0.015000000000000013,
+            "floorY": -0.015000000000000013,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "cn-bath-front",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "deabac439a422e8882ddecb8ff3ea772e3072d79a4bb6b57f050b223415028c2",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 3.200000000000003,
+            "depth": 0.32,
+            "swing": -1,
+            "height": 3.285,
+            "frameBottom": -0.015000000000000013,
+            "floorY": -0.015000000000000013,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "cn-bath-west",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "e1ae22b80aa2cd34cbe04d0947b4bef9bdbc0a4405d760328d0a0f5ea0ad9716",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "z",
+            "width": 3.200000000000003,
+            "depth": 0.32,
+            "swing": 1,
+            "height": 3.285,
+            "frameBottom": -0.015000000000000013,
+            "floorY": -0.015000000000000013,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "cn-bath-east",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "e1ae22b80aa2cd34cbe04d0947b4bef9bdbc0a4405d760328d0a0f5ea0ad9716",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "z",
+            "width": 3.200000000000003,
+            "depth": 0.32,
+            "swing": 1,
+            "height": 3.285,
+            "frameBottom": -0.015000000000000013,
+            "floorY": -0.015000000000000013,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "cn-archive-front",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "9292859dd92167b8553808712f31ad913c9842aa9051a3064e9692e63df7c165",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 3.2,
+            "depth": 0.32,
+            "swing": 1,
+            "height": 3.115,
+            "frameBottom": -0.014999999999999902,
+            "floorY": -0.015000000000000013,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "cn-archive-rear",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "ecdda6f7c772aa75ff1931f95ce8949878d0d82e572dcb76e03f63eff40fa9c8",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 3.2,
+            "depth": 0.32,
+            "swing": -1,
+            "height": 3.115,
+            "frameBottom": -0.014999999999999902,
+            "floorY": -0.015000000000000013,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "cn-archive-west",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "11a4511aef769b2c84874227f0ec42d98866d5a7758fffa075716e1ada89c525",
+          "params": {
+            "style": "palace",
+            "kind": "pocket",
+            "axis": "z",
+            "width": 3.200000000000003,
+            "depth": 0.5,
+            "swing": 1,
+            "height": 3.115,
+            "frameBottom": -0.014999999999999902,
+            "floorY": -0.015000000000000013,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "cn-archive-east",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "6fd51cd20e579fe44eb3cb212372069c0f61e32e2421f53e9a3b97647d5c06cb",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "z",
+            "width": 3.200000000000003,
+            "depth": 0.32,
+            "swing": 1,
+            "height": 3.115,
+            "frameBottom": -0.014999999999999902,
+            "floorY": -0.015000000000000013,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "cn-guest-front",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "deabac439a422e8882ddecb8ff3ea772e3072d79a4bb6b57f050b223415028c2",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 3.200000000000003,
+            "depth": 0.32,
+            "swing": -1,
+            "height": 3.285,
+            "frameBottom": -0.015000000000000013,
+            "floorY": -0.015000000000000013,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "cn-guest-west",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "d12360d645eb9a9aa0c99d8171d0dd350bea6c5c797083ab5b1363eefeff677f",
+          "params": {
+            "style": "palace",
+            "kind": "pocket",
+            "axis": "z",
+            "width": 3.200000000000003,
+            "depth": 0.5,
+            "swing": 1,
+            "height": 3.285,
+            "frameBottom": -0.015000000000000013,
+            "floorY": -0.015000000000000013,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "cn-guest-east",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "1e79ec965f9614c3c7ebb43f0a29a9f6a3061b09af14261b931ccfbe01305d16",
+          "params": {
+            "style": "palace",
+            "kind": "hinge",
+            "axis": "z",
+            "width": 3.200000000000003,
+            "depth": 0.32,
+            "swing": -1,
+            "height": 3.285,
+            "frameBottom": -0.015000000000000013,
+            "floorY": -0.015000000000000013,
+            "runningGap": 0,
+            "pin": 0.155
+          }
+        }
+      ]
+    },
+    {
+      "region": "egypt",
+      "status": "PASS_BOUNDED_PILOT",
+      "rawReportSha256": "c772abb77d4a2dfcb1aae3ec718e172a4ddc0e14dc89ac58a16fb8bf55386513",
+      "elapsedSeconds": 4.341,
+      "sourceHashes": {
+        "automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+        "inset-closures.js": "869a0c43bf27479d697ddb57d70b7b1fb1babaf18ea41e55067ca253af8f28fb",
+        "room-closures.js": "e418cd6d9a10c63aa782a8122205083217b1c407a5d0d426fab2543555601aea"
+      },
+      "doors": [
+        {
+          "id": "private-suite-entry",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "fff3e8bffdc0e1fdd3dbe3f04ae35f6f8384a3303fcf132a5102c8201197eb7c",
+          "params": {
+            "style": "egypt",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 3.18,
+            "depth": 0.3,
+            "swing": 1,
+            "height": 3.36,
+            "frameBottom": 0,
+            "floorY": 0,
+            "runningGap": 0.012,
+            "pin": 0.065
+          }
+        },
+        {
+          "id": "storage-entry",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "8c5c634bb650719b603dab674744f3941f0e6242c46b41646253ee46453c4213",
+          "params": {
+            "style": "egypt",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 2.4,
+            "depth": 0.22,
+            "swing": -1,
+            "height": 3.4,
+            "frameBottom": 0,
+            "floorY": 0,
+            "runningGap": 0.012,
+            "pin": 0.065
+          }
+        }
+      ]
+    },
+    {
+      "region": "france",
+      "status": "PASS_BOUNDED_PILOT",
+      "rawReportSha256": "fd3a105d07c0c5a1db2a4c843e97b13cfc08d5c81abd1505064d518583b573a6",
+      "elapsedSeconds": 8.572,
+      "sourceHashes": {
+        "automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+        "inset-closures.js": "869a0c43bf27479d697ddb57d70b7b1fb1babaf18ea41e55067ca253af8f28fb",
+        "room-closures.js": "e418cd6d9a10c63aa782a8122205083217b1c407a5d0d426fab2543555601aea"
+      },
+      "doors": [
+        {
+          "id": "front-entry",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "62894285e071af91d64838cc55739ac083e72d5a5635a9d4e0839fbe7c3040e2",
+          "params": {
+            "style": "french",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 3.8,
+            "depth": 0.42,
+            "swing": 1,
+            "height": 3.862,
+            "frameBottom": 0,
+            "floorY": 0,
+            "runningGap": 0.012,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "rear-entry",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "671b108fe0c2346174237f74180555595b051a1e7110f91f4b76cff6c4ddfe2d",
+          "params": {
+            "style": "french",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 3.2,
+            "depth": 0.42,
+            "swing": 1,
+            "height": 3.862,
+            "frameBottom": 0,
+            "floorY": 0,
+            "runningGap": 0.012,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "gallery-east-front",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "2be1f3d87d04fb8921438f2902692c70439821e7787115fed746af1e6074e4fe",
+          "params": {
+            "style": "french",
+            "kind": "hinge",
+            "axis": "z",
+            "width": 2.6,
+            "depth": 0.42,
+            "swing": 1,
+            "height": 3.642,
+            "frameBottom": 0,
+            "floorY": 0,
+            "runningGap": 0.012,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "enfilade-east",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "b6966f9d3042fece2743858830a892163d4b8de971c48b516105892b98b82052",
+          "params": {
+            "style": "french",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 2.2,
+            "depth": 0.42,
+            "swing": 1,
+            "height": 3.6479999999999997,
+            "frameBottom": 0,
+            "floorY": 0,
+            "runningGap": 0.012,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "wing-entry--1--9.5",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "862c911d24bfece5d4add4d261c5f02ba2bd17d181d3c8187009e512177dccca",
+          "params": {
+            "style": "french",
+            "kind": "hinge",
+            "axis": "z",
+            "width": 2.3,
+            "depth": 0.42,
+            "swing": 1,
+            "height": 3.636,
+            "frameBottom": 0,
+            "floorY": 0,
+            "runningGap": 0.012,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "wing-enfilade--1",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "704f55113d0442c42e3b7d7bf807826c50167ce583d1df9cc6f41efffbf1d20d",
+          "params": {
+            "style": "french",
+            "kind": "hinge",
+            "axis": "x",
+            "width": 2.5,
+            "depth": 0.42,
+            "swing": -1,
+            "height": 3.67,
+            "frameBottom": 0,
+            "floorY": 0,
+            "runningGap": 0.012,
+            "pin": 0.155
+          }
+        },
+        {
+          "id": "core-wing-1--5",
+          "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+          "parameterHash": "27956dc01c4106b2371ef30e1ac2df9d5297980247f79f114b0ae4e2d24c3a48",
+          "params": {
+            "style": "french",
+            "kind": "pocket",
+            "axis": "z",
+            "width": 2,
+            "depth": 0.5,
+            "swing": 1,
+            "height": 3.67,
+            "frameBottom": 0,
+            "floorY": 0,
+            "runningGap": 0.012,
+            "pin": 0.155
+          }
+        }
+      ]
+    }
+  ]
+}
