@@ -12,38 +12,38 @@ export function faceRings(masc,traits){
 // Fixed adult study after inspecting SGLY 171393: wider pupil separation,
 // longer eye-to-nose segment, broad full lips, and a short lip/chin profile arc.
 // Values are original anatomy, not extracted meshes or a likeness transfer.
-function curve1(points,y){if(y<=points[0][0])return points[0][1];if(y>=points.at(-1)[0])return points.at(-1)[1];const j=points.findIndex((p,i)=>i<points.length-1&&y<points[i+1][0]);const a=points[j],b=points[j+1],prev=points[Math.max(0,j-1)],next=points[Math.min(points.length-1,j+2)],d=b[0]-a[0],t=(y-a[0])/d,ma=(b[1]-prev[1])/(b[0]-prev[0]),mb=(next[1]-a[1])/(next[0]-a[0]);return Math.max(0,(2*t**3-3*t*t+1)*a[1]+(t**3-2*t*t+t)*d*ma+(-2*t**3+3*t*t)*b[1]+(t**3-t*t)*d*mb);}
+function c2Plan(knots,firstSlope=null){
+ const n=knots.length,a=new Float64Array(n),pivot=new Float64Array(n),upper=new Float64Array(n);pivot[0]=firstSlope===null?1:2*(knots[1]-knots[0]);upper[0]=firstSlope===null?0:(knots[1]-knots[0])/pivot[0];
+ for(let i=1;i<n-1;i++){const left=knots[i]-knots[i-1],right=knots[i+1]-knots[i];a[i]=left;pivot[i]=2*(left+right)-left*upper[i-1];upper[i]=right/pivot[i];}pivot[n-1]=1;
+ return{curve(values){
+  const d=new Float64Array(n),second=new Float64Array(n);if(firstSlope!==null)d[0]=6*((values[1]-values[0])/(knots[1]-knots[0])-firstSlope)/pivot[0];
+  for(let i=1;i<n-1;i++){const left=knots[i]-knots[i-1],right=knots[i+1]-knots[i],rhs=6*((values[i+1]-values[i])/right-(values[i]-values[i-1])/left);d[i]=(rhs-a[i]*d[i-1])/pivot[i];}
+  for(let i=n-2;i>=0;i--)second[i]=d[i]-upper[i]*second[i+1];
+  return t=>{let j=0;if(t<knots[0]){const h=knots[1]-knots[0],slope=(values[1]-values[0])/h-h*(2*second[0]+second[1])/6;return values[0]+slope*(t-knots[0]);}if(t>knots[n-1]){const h=knots[n-1]-knots[n-2],slope=(values[n-1]-values[n-2])/h+h*(second[n-2]+2*second[n-1])/6;return values[n-1]+slope*(t-knots[n-1]);}while(j<n-2&&t>knots[j+1])j++;const h=knots[j+1]-knots[j],u=(knots[j+1]-t)/h,v=(t-knots[j])/h;return u*values[j]+v*values[j+1]+((u*u*u-u)*second[j]+(v*v*v-v)*second[j+1])*h*h/6;};
+ }};
+}
 // One shared bicubic front surface. Adjacent rows carry the orbital rim into
 // the nose root, upper cheek, muzzle and chin rather than summing local bumps.
 const FACE_X=[0,.008,.018,.030,.0435,.057,.070,.083];
+const X_PLAN=c2Plan(FACE_X,0);
 const FACE_ROWS=[
- [1.474,[.0805,.079,.074,.061,.044,.026,.012,0]],
- [1.487,[.0795,.079,.077,.070,.057,.040,.020,0]],
- [1.500,[.0835,.083,.080,.075,.063,.048,.026,0]],
- [1.514,[.084,.0835,.079,.074,.065,.049,.030,.010]],
- [1.529,[.084,.083,.077,.072,.067,.054,.032,.012]],
- [1.536,[.094,.090,.078,.072,.067,.058,.041,.016]],
- [1.544,[.101,.0945,.079,.072,.069,.061,.047,.020]],
- [1.556,[.095,.088,.078,.071,.069,.064,.052,.023]],
- [1.577,[.087,.083,.075,.068,.069,.063,.047,.021]],
+ [1.474,[.077,.076,.072,.060,.044,.026,.012,0]],
+ [1.487,[.0765,.076,.075,.070,.057,.040,.020,0]],
+ [1.500,[.0788,.0785,.0775,.0745,.064,.048,.026,0]],
+ [1.514,[.0793,.0790,.078,.075,.066,.050,.030,.010]],
+ [1.529,[.0790,.0785,.076,.073,.067,.054,.032,.012]],
+ [1.536,[.0845,.0828,.077,.073,.067,.058,.041,.016]],
+ [1.544,[.0910,.0868,.0775,.072,.069,.061,.047,.020]],
+ [1.556,[.0870,.0828,.0765,.071,.069,.064,.052,.023]],
+ [1.577,[.0825,.0798,.0735,.068,.069,.063,.047,.021]],
  [1.594,[.079,.076,.069,.062,.060,.056,.044,.017]],
  [1.614,[.077,.0765,.075,.072,.069,.063,.044,.021]],
  [1.640,[.075,.075,.074,.071,.066,.058,.043,.017]],
  [1.665,[.060,.060,.059,.055,.047,.036,.020,0]]
-].map(([y,z])=>[y,FACE_X.map((x,i)=>[x,z[i]])]);
-const smooth=(a,b,v)=>{const t=clamp((v-a)/(b-a));return t*t*(3-2*t);};
-const frontNet=(x,y)=>curve1(FACE_ROWS.map(([yy,row])=>[yy,curve1(row,Math.abs(x))]),y);
-function lipSection(x,masc){
- const hw=masc?.0315:.0305,u=(x/hw+1)/2;if(u<=0||u>=1)return null;
- const taper=Math.sin(Math.PI*u)**.82,bow=1-.25*Math.exp(-((x/.0035)**2));
- return{u,taper,seam:1.504-.0014*Math.sin(Math.PI*u)+.0005*Math.cos(4*Math.PI*u),upper:.0085*bow*taper,lower:.011*taper};
-}
-function lipSurfaceDepth(x,y,masc){
- const p=lipSection(x,masc);if(!p)return 0;const up=y>=p.seam,t=Math.abs(y-p.seam)/(up?p.upper:p.lower);if(t>=1)return 0;
- // The lip volumes belong to the same skin surface. The color surfaces below
- // follow them; they no longer add separate protruding pieces to the profile.
- return p.taper*(.0016+(up?.0018:.0021)*Math.sin(Math.PI*t))*(1-t*t)**2;
-}
+].map(([y,z])=>[y,X_PLAN.curve(z)]);
+const Y_PLAN=c2Plan(FACE_ROWS.map(([y])=>y));
+const smooth=(a,b,v)=>{const t=clamp((v-a)/(b-a));return t*t*t*(t*(t*6-15)+10);};
+const frontNet=(x,y)=>Y_PLAN.curve(FACE_ROWS.map(([,row])=>row(Math.abs(x))))(y);
 export function coherentFaceSurface(x,y,masc=false,traits=null){
  const rs=faceRings(masc,traits);let lo=0,hi=rs.length-1;for(let i=0;i<24;i++){const t=(lo+hi)/2;if(spline(rs,t)[0]<y)lo=t;else hi=t;}
  const r=spline(rs,(lo+hi)/2),q=Math.abs(x/r[1]),c=Math.sqrt(Math.max(0,1-q*q)),base=r[4]+r[2]*c;
@@ -51,7 +51,7 @@ export function coherentFaceSurface(x,y,masc=false,traits=null){
  let z=frontNet(x,y);const n=traits?.noseSize??1,w=traits?.noseWidth??1,s=traits?.socketDepth??1;
  if(n!==1||w!==1){const region=(1-smooth(.018,.030,Math.abs(x)))*smooth(1.518,1.531,y)*(1-smooth(1.599,1.616,y)),root=frontNet(.026,y),shaped=root+(frontNet(x/w,1.542+(y-1.542)/n)-root)*n;z=mix(z,shaped,region);}
  if(s!==1)z-=.006*(s-1)*(G(x,y,-.0435,1.594,.022,.012)+G(x,y,.0435,1.594,.022,.012));
- return mix(base,z,blend)+lipSurfaceDepth(x,y,masc);
+ return mix(base,z,blend);
 }
 export function buildCoherentHead(head,{masc,traits,color}){
  const rings=faceRings(masc,traits),angles=[],heights=[];
