@@ -1,3 +1,5 @@
+> Historical regression tooling: select only the checks affected by current changes under [TESTING.md](../../docs/TESTING.md). This catalog is not a mandatory whole-scene or daily release gate. Reuse unchanged validated results.
+
 # Optional door geometry QA
 
 This is the preserved V7 rendered-leaf/static sweep and gathered-rod support gate, with repository-relative loaders. It does not change the game. It is deliberately outside `npm test`.

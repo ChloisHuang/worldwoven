@@ -8,8 +8,12 @@ Public game: https://alien.doudouai.net/
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Archived release: R16.3-public, 2026-10-03
+Published release: R16.3-public, 2026-10-03
 Verified published Sites source commit: fee72e7db31f428bf070e8d56d1ffb14454fcfee
+
+## Working rules
+
+Read [AGENTS.md](AGENTS.md). Git commit/push is the only source-backup mechanism; no repeated source snapshots or ZIP exports.
 
 ## Requirements and local development
 
@@ -33,15 +37,15 @@ CPU/DOM fixtures do not provide browser or iOS visual acceptance. The R16 baseli
 
 ## Deploy with Sites
 
-Keep .openai/hosting.json and its existing project ID. Use the connected Sites source/save/deploy workflow for that existing public Site, keeping its custom domain and audience unchanged. Run the validation and build commands above, package dist through the supported workflow, publish the corresponding source commit, and verify the terminal deployment result. This repository does not contain publication credentials or configure automatic GitHub deployments.
+Keep .openai/hosting.json and its existing project ID. Use the connected Sites source/save/deploy workflow for that existing public Site, keeping its custom domain and audience unchanged. Choose only checks affected by the change under docs/TESTING.md, build the production output, then publish dist through the supported workflow and verify the terminal deployment result. Do not export or package source snapshots. This repository does not contain publication credentials or configure automatic GitHub deployments.
 
-Before subsequent releases, cache-baseline.json must describe the confirmed live graph. Build the archived release once before editing so its immutable outputs are available for retention. The builder keeps the previous complete graph for already-open pages. On a fresh clone, the first build produces the current graph; historical build outputs are deliberately not in Git. HTML and build.json revalidate; hashed assets cache immutably for one year. Do not add blanket asset cache-busting or manual gzip decompression.
+Before subsequent releases, cache-baseline.json must describe the confirmed live graph. Reuse the existing prior build outputs for cache retention; rebuild the published version only if those required outputs are actually missing. Do not reconstruct them for every small change. The builder keeps the previous complete graph for already-open pages. On a fresh clone, the first build produces the current graph; historical build outputs are deliberately not in Git. HTML and build.json revalidate; hashed assets cache immutably for one year. Do not add blanket asset cache-busting or manual gzip decompression.
 
 ## Source map
 
 - source/game: original scenes, globe, controls, characters and interactions
 - source/vendor/three: vendored renderer and its MIT license
-- scripts: dependency-free development, build and clean archival helpers
+- scripts: dependency-free development and build helpers
 - tests: portable source-level regression suites and necessary baseline fixtures
 - worker: preserved legacy read-only handler
 - .openai/hosting.json: necessary existing deployment identity
