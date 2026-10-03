@@ -4,6 +4,7 @@
  * Runtime dependency: Three.js 0.186.1. No textures, licensed meshes or PBR.
  */
 import * as THREE from 'three';
+import {applyNaturalHead} from './head-shape.js';
 import {normalizeShapeTraits,hasShapeTraits,shapeHeight} from './character-traits.js';
 const gradient = new THREE.DataTexture(new Uint8Array([90, 150, 213, 255]),4,1,THREE.RedFormat);
 gradient.minFilter = gradient.magFilter = THREE.NearestFilter;
@@ -398,7 +399,7 @@ export function createApprovedSurfaces({culture=null,masc=false,style='casual',b
  else if(culture==='egypt')buildEgypt(root,masc,wardrobePreset||(masc?'linen-kilt':'linen-sheath'));
  else if(culture==='france')buildFrance(root,masc,wardrobePreset||(masc?'court-frock-coat':'court-gown'));
  else buildCasual(root);
- jobAccessories(root,style,culture);sculptBody(root,bodyPreset);relaxArmSurfaces(root,bodyPreset,wardrobePreset,normalized.legLength);
+ jobAccessories(root,style,culture);applyNaturalHead(root,{hair:C.hair,hairStyle});sculptBody(root,bodyPreset);relaxArmSurfaces(root,bodyPreset,wardrobePreset,normalized.legLength);
  if(traits?.legLength!==undefined&&traits.legLength!==1)root.traverse(m=>{
   if(!m.isMesh)return;
   const p=m.geometry.attributes.position,sourceY=new Float32Array(p.count);
@@ -406,7 +407,10 @@ export function createApprovedSurfaces({culture=null,masc=false,style='casual',b
   // contact regions; do not reclassify a longer leg as a different body part.
   const footwear=/footwear|sole-|loafer/.test(m.name);
   for(let i=0;i<p.count;i++){const y=p.getY(i);sourceY[i]=m.geometry.attributes.sourceY?.getX(i)??y;if(!footwear)p.setY(i,shapeHeight(y,traits.legLength));}
-  m.geometry.setAttribute('sourceY',new THREE.BufferAttribute(sourceY,1));m.geometry.computeVertexNormals();
+  m.geometry.setAttribute('sourceY',new THREE.BufferAttribute(sourceY,1));
+  // The new short cut is wholly above the fixed head anchor; preserve its
+  // wrapped seam normals when a leg-length change leaves its positions fixed.
+  if(!m.userData.naturalHeadSurface)m.geometry.computeVertexNormals();
  });
  root.traverse(m=>{if(m.isMesh){m.userData.softSkin=/footwear-bath-bare|continuous-head|neck|^ear-|inset-eye|iris-|pupil-|eye-catchlight|eyelid-|soft-brow|nostril-|lip|mouth|relaxed-|thumb-|wrist-|^arm-|bare-arm|bare-leg/.test(m.name);m.receiveShadow=false;m.castShadow=true;}});
  return root;
