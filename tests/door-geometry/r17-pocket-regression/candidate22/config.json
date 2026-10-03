@@ -1,0 +1,17 @@
+{
+  "status": "ISOLATED_NOT_RUN",
+  "source": "/workspace/shared/worldwoven-r17-door-design/pocket-mouth-candidate-22/inset-closures.js",
+  "sha256": "c8eae852f02ac0a07ce8d2dc2e5b2de13192716456b5f3a8af26cb5f3cb06607",
+  "unchangedLiveSource": "869a0c43bf27479d697ddb57d70b7b1fb1babaf18ea41e55067ca253af8f28fb",
+  "scope": "Only French pocket branch; all hinged and Japanese constructions remain unchanged. Four French integrated mouth cheeks inside existing0.50m wall, from normal\u00b10.160 to\u00b10.250, lateral width0.150. French pocket overlap40mm->140mm, actual rough opening extends100mm at each end, nominal clear passage remains2.0m.",
+  "limits": "Requires original-image first-hit classification, same-view rendering, entire real-world full translation including north wall at z=-6.6 and adjacent trim; not accepted or integrated.",
+  "expectedMouthClearanceMeters": 0.011685211062430007,
+  "candidateRoughOpeningWorldZ": [
+    -7.2,
+    -2.8
+  ],
+  "liveRoughOpeningWorldZ": [
+    -7.1,
+    -2.9
+  ]
+}

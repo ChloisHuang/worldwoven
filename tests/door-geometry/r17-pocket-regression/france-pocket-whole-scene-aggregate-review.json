@@ -1,0 +1,277 @@
+{
+  "status": "REVIEW",
+  "scope": "One actual full France scene pocket core-wing-1--5, with production furnishings and all non-target moving closures parked closed. Original casing positive retained; actual target leaves swept against all static world rendered triangles. No collision exclusions or contact waivers. Other doors, actor routes and visual coverage remain separate.",
+  "eps": 0.00001,
+  "guards": {
+    "source/game/automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+    "source/game/inset-closures.js": "869a0c43bf27479d697ddb57d70b7b1fb1babaf18ea41e55067ca253af8f28fb",
+    "source/game/room-closures.js": "e418cd6d9a10c63aa782a8122205083217b1c407a5d0d426fab2543555601aea",
+    "source/game/regions-west.js": "b261a978e9fe16ccd7980436fa6cdc2f78626a241a45a0ae8ab119c48a583476",
+    "source/game/furniture-interactions.js": "72a5856cb502fb8b0e9f1882a03ae0d7579a723fa9f8323052b1182322391ba4",
+    "source/game/geometry.js": "accd26d9fe1820ba7829bc00f802c8916458813eefd0cfd08f5d38e11c207ca9",
+    "source/vendor/three/build/three.core.js": "9edde002b066a9a05676a6127f67735b62baf399bdea529f2f7e31657da769e6",
+    "tests/door-geometry/triangle-kernel-v3.mjs": "dcc13af03fb915407736f7c0654e17a10cd4900b587d7a0ea9e029548172b77b"
+  },
+  "beforeHash": "ec75eade337b7b1d68f5dbf7a619991097d392d283e297b29bd261b54d34a207",
+  "stages": [
+    {
+      "stage": "before",
+      "status": "RUNNING",
+      "loadedHashes": {
+        "source/game/regions-west.js": "ec75eade337b7b1d68f5dbf7a619991097d392d283e297b29bd261b54d34a207",
+        "source/game/inset-closures.js": "869a0c43bf27479d697ddb57d70b7b1fb1babaf18ea41e55067ca253af8f28fb",
+        "source/game/night-lighting.js": "61d5dff148e2797e35633d103c52a05460d1029506d312115c78941e81e7fc30",
+        "source/game/geometry.js": "accd26d9fe1820ba7829bc00f802c8916458813eefd0cfd08f5d38e11c207ca9",
+        "source/vendor/three/build/three.module.js": "9052042d676cb0fdc1ddfefe193053f34b7ac0513a616fdac4535d49987812ea",
+        "source/vendor/three/build/three.core.js": "9edde002b066a9a05676a6127f67735b62baf399bdea529f2f7e31657da769e6",
+        "source/game/automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+        "source/game/automatic-routing.js": "c0abe71a90b9600dec9d1cbe977b115f9b97e5384f7e55a09794cf7496d4c913",
+        "source/game/navigation.js": "d22f45cd94d968b88d44a803bbc7ba1ec65c45f2d7fdf2c20610d18b256c062e",
+        "source/game/room-closures.js": "e418cd6d9a10c63aa782a8122205083217b1c407a5d0d426fab2543555601aea",
+        "source/game/furniture-interactions.js": "72a5856cb502fb8b0e9f1882a03ae0d7579a723fa9f8323052b1182322391ba4",
+        "source/game/china-dragon-bed.js": "fc661ab4cb0f00601d2162af1b2dca33c9324bc8af391ca54e0a948beb0a2c37",
+        "source/game/camera.js": "7b6fc625c07138fc5636d38651b2487cdd812e22fcb89618a707b6b913808dea",
+        "source/game/floor-support.js": "5f5df2cde18b6e232e89a222027fc81bb25ba89678912f654ce3c2f632f44615"
+      },
+      "affineSweep": {
+        "everyRenderedVertex": true,
+        "fractions": [
+          0,
+          0.25,
+          0.5,
+          0.75,
+          1
+        ],
+        "maxResidual": 8.881784197001252e-16,
+        "envelope": {
+          "min": [
+            10.651685211062432,
+            0.24200000010430814,
+            -7.053999998569489
+          ],
+          "max": [
+            10.94831478893757,
+            3.8749999809265137,
+            -2.9460000014305114
+          ]
+        },
+        "sourceFormula": "poseDoor slide: fixed transforms, pivot lateral = side * (width/4 + overlap/2 + fraction * authoredTravel)"
+      },
+      "staticMeshCount": 144,
+      "staticScope": "Every lot mesh except the two target moving leaf subtrees; includes own fixed supports, other closed doors/curtains, full roof, actual room walls, floor, furniture and ornamental casing",
+      "inspectedStaticTriangles": 662720,
+      "rayCandidateCounts": [
+        71849,
+        2074,
+        1476
+      ],
+      "envelopeBoundaryCandidates": 26,
+      "originalWitnesses": [
+        {
+          "point": [
+            10.8,
+            1.3,
+            -6.02
+          ],
+          "actualLeaf": {
+            "inside": true,
+            "rays": [
+              {
+                "axis": 0,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 0,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 1,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 1,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 2,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 2,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 3
+              }
+            ]
+          },
+          "actualStaticWorld": {
+            "inside": false,
+            "rays": [
+              {
+                "axis": 0,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 27
+              },
+              {
+                "axis": 0,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 5
+              },
+              {
+                "axis": 1,
+                "sign": -1,
+                "sum": 0,
+                "edge": true,
+                "hits": 9
+              },
+              {
+                "axis": 1,
+                "sign": 1,
+                "sum": 1,
+                "edge": true,
+                "hits": 35
+              },
+              {
+                "axis": 2,
+                "sign": -1,
+                "sum": 1,
+                "edge": true,
+                "hits": 29
+              },
+              {
+                "axis": 2,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 27
+              }
+            ]
+          }
+        },
+        {
+          "point": [
+            10.8,
+            1.3,
+            -3.98
+          ],
+          "actualLeaf": {
+            "inside": true,
+            "rays": [
+              {
+                "axis": 0,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 0,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 1,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 1,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 2,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 3
+              },
+              {
+                "axis": 2,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              }
+            ]
+          },
+          "actualStaticWorld": {
+            "inside": false,
+            "rays": [
+              {
+                "axis": 0,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 25
+              },
+              {
+                "axis": 0,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 11
+              },
+              {
+                "axis": 1,
+                "sign": -1,
+                "sum": 0,
+                "edge": true,
+                "hits": 9
+              },
+              {
+                "axis": 1,
+                "sign": 1,
+                "sum": 1,
+                "edge": true,
+                "hits": 31
+              },
+              {
+                "axis": 2,
+                "sign": -1,
+                "sum": 1,
+                "edge": true,
+                "hits": 31
+              },
+              {
+                "axis": 2,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 25
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "error": "AssertionError [ERR_ASSERTION]: Both original actual-mesh wood/casing containment positives must remain detectable\n    at /workspace/shared/worldwoven-r17-door-design/france-pocket-whole-scene-check.cjs:51:4",
+  "elapsedSeconds": 3.987
+}

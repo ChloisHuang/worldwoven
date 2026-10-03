@@ -1,0 +1,45 @@
+{
+  "status": "READY_NOT_RUN_V2",
+  "command": "QA_RESOURCE_WINDOW=granted-by-owner node --max-old-space-size=768 --experimental-vm-modules /workspace/shared/worldwoven-r17-door-design/france-pocket-whole-scene-v2-check.cjs",
+  "sourceRoot": "/workspace/shared/worldwoven-r17-repairs",
+  "restoration": "Scripts use the existing design workspace path; restore these mirrored files there. Restore regions-west-before-casing.js to design/checkpoints/16-before-france-pocket-casing/regions-west.js. No product source changes.",
+  "budget": {
+    "wallSeconds": 180,
+    "watcherSeconds": 175,
+    "rssMiB": 1228
+  },
+  "originalImage": "/workspace/shared/worldwoven-r17-door-design/france-visual-0937/pocket-closed-back.png",
+  "originalImageCamera": {
+    "position": [
+      13.8,
+      1.9,
+      -5.7
+    ],
+    "target": [
+      10.8,
+      1.9,
+      -5
+    ],
+    "fov": 62,
+    "size": [
+      1280,
+      960
+    ]
+  },
+  "files": {
+    "france-pocket-whole-scene-aggregate-review.json": "c80a939024411f1c49adea787d30b3b4cb302f4ef7fb1ad830b2affa9369bc9a",
+    "france-pocket-casing-source-result.json": "be19e38e009fc430e08cc693b9aaf735ff5e164eb993bd1f7af17bd291e64cac",
+    "france-pocket-whole-scene-v2-check.cjs": "2d6db2e44aac78c0cf2dc5c900bf6233fd70686b7c3e7b7562f273e33942b14f",
+    "regions-west-before-casing.js": "ec75eade337b7b1d68f5dbf7a619991097d392d283e297b29bd261b54d34a207",
+    "france-pocket-whole-scene-check.cjs": "5c4c74f7e5ff907dd9e917005fa3ee09c37e24dc2aa93210d9534d7f46711d30"
+  },
+  "candidate22": {
+    "status": "ISOLATED_NOT_RUN",
+    "files": {
+      "config.json": "58a816a7e5c56303a30df44117f366c6bc1ae42159b9a37d9b52f01ad170da2f",
+      "inset-closures.js": "c8eae852f02ac0a07ce8d2dc2e5b2de13192716456b5f3a8af26cb5f3cb06607"
+    },
+    "scope": "French pocket mouth cheeks only, nominal width retained; requires first-hit classification and both original views before evaluation."
+  },
+  "additionalOriginalImage": "/workspace/shared/worldwoven-r17-door-design/france-visual-0939/pocket-closed-oblique.png"
+}

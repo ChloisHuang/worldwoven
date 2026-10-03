@@ -119,6 +119,75 @@ function buildHair(h,masc,style='chin-bob'){
   loft(h,'hair-braid-tie',[[1.265,.014,.016,-.008,-.149],[1.278,.015,.016,-.008,-.149]],C.obi,{segs:16,steps:3});
  }
 }
+// For soaking only, wind the existing long braid up against its own hair shell.
+// This changes neither hairstyle identity nor the normal outfit's source meshes.
+// Cross sections are transported rigidly; the braid, woven strands and tie keep
+// their original topology, thickness and arc-length positions along the braid.
+function bindOnsenBraid(root){
+ const core=root.getObjectByName('hair-braided-tail');if(!core)return;
+ const geometry=core.geometry,p=geometry.attributes.position,stride=geometry.index.getX(2);
+ const centers=[];
+ for(let start=p.count-stride;start>=0;start-=stride){
+  const center=new THREE.Vector3();for(let i=0;i<stride-1;i++)center.add(new THREE.Vector3().fromBufferAttribute(p,start+i));
+  centers.push(center.multiplyScalar(1/(stride-1)));
+ }
+ const lengths=points=>{const values=[0];for(let i=1;i<points.length;i++)values.push(values[i-1]+points[i].distanceTo(points[i-1]));return values;};
+ const sourceArc=lengths(centers),length=sourceArc.at(-1),base=centers[0],firstTangent=centers[1].clone().sub(base).normalize();
+ const sweep=Math.PI*1.65,centerY=1.590,centerZ=-.125;
+ function pathFor(radius){
+  const end=new THREE.Vector3(base.x,centerY-radius,centerZ);
+  const connector=new THREE.CubicBezierCurve3(base,base.clone().addScaledVector(firstTangent,.018),end.clone().add(new THREE.Vector3(-.017,0,0)),end);
+  const points=connector.getPoints(64);
+  for(let i=1;i<=320;i++){const angle=sweep*i/320;points.push(new THREE.Vector3(base.x+radius*Math.sin(angle),centerY-radius*Math.cos(angle),centerZ));}
+  return {points,arc:lengths(points)};
+ }
+ // The connector also consumes braid length, so solve from actual shaped
+ // centerline length instead of assuming a radius or shortening a long braid.
+ let lo=.02,hi=.09;
+ for(let i=0;i<32;i++){const radius=(lo+hi)/2;if(pathFor(radius).arc.at(-1)>length)hi=radius;else lo=radius;}
+ const radius=(lo+hi)/2,target=pathFor(radius);
+ function frames(points){
+  const tangents=points.map((point,i)=>points[Math.min(i+1,points.length-1)].clone().sub(points[Math.max(0,i-1)]).normalize());
+  // Exact root frame continuity keeps the original attachment ring in place.
+  tangents[0].copy(firstTangent);
+  let x=new THREE.Vector3(1,0,0).addScaledVector(firstTangent,-firstTangent.x).normalize();
+  return tangents.map((tangent,i)=>{
+   if(i)x.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(tangents[i-1],tangent));
+   x.addScaledVector(tangent,-x.dot(tangent)).normalize();
+   const z=new THREE.Vector3().crossVectors(x,tangent).normalize();
+   return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x,tangent,z));
+  });
+ }
+ const sourceFrames=frames(centers),targetFrames=frames(target.points);
+ function sample(points,arc,orientations,distance){
+  let i=0;while(i<arc.length-2&&arc[i+1]<distance)i++;
+  const t=clamp((distance-arc[i])/(arc[i+1]-arc[i]),0,1);
+  return {point:points[i].clone().lerp(points[i+1],t),rotation:orientations[i].clone().slerp(orientations[i+1],t)};
+ }
+ function sourceAtHeight(y){
+  let i=0;while(i<centers.length-2&&centers[i+1].y>y)i++;
+  const t=clamp((centers[i].y-y)/(centers[i].y-centers[i+1].y),0,1);
+  return sourceArc[i]+(sourceArc[i+1]-sourceArc[i])*t;
+ }
+ const names=['hair-braided-tail','hair-braid-weave--1','hair-braid-weave-1','hair-braid-tie'];
+ for(const name of names){
+  const m=root.getObjectByName(name),positions=m.geometry.attributes.position;
+  const ringSize=m.geometry.parameters?.radialSegments+1||m.geometry.index.getX(2);
+  for(let start=0;start<positions.count;start+=ringSize){
+   let y=0;for(let i=start;i<start+ringSize-1;i++)y+=positions.getY(i);y/=ringSize-1;
+   const distance=sourceAtHeight(y);
+   if(distance<1e-8)continue;
+   const old=sample(centers,sourceArc,sourceFrames,distance),next=sample(target.points,target.arc,targetFrames,distance);
+   const rotation=next.rotation.multiply(old.rotation.invert());
+   for(let i=start;i<start+ringSize;i++){
+    const vertex=new THREE.Vector3().fromBufferAttribute(positions,i).sub(old.point).applyQuaternion(rotation).add(next.point);
+    positions.setXYZ(i,vertex.x,vertex.y,vertex.z);
+   }
+  }
+  positions.needsUpdate=true;m.geometry.computeVertexNormals();m.geometry.computeBoundingBox();m.geometry.computeBoundingSphere();
+ }
+ root.userData.onsenBraidBinding={sourceLength:length,boundLength:target.arc.at(-1),radius,sweep,root:base.toArray(),center:[base.x,centerY,centerZ],meshes:names};
+}
 function hand(g,s){
  loft(g,'relaxed-palm-'+s,[[.818,.007,.009,s*.317,.016],[.837,.022,.014,s*.317,.015],[.88,.026,.018,s*.31,.009],[.918,.019,.019,s*.304,.003],[.939,.021,.022,s*.3,0]],C.skin,{segs:28,steps:26});
  // Four softly grouped finger contours are attached to the palm and curve inward.
@@ -406,6 +475,7 @@ export function createApprovedSurfaces({culture=null,masc=false,style='casual',b
   for(let i=0;i<p.count;i++){const y=p.getY(i);sourceY[i]=m.geometry.attributes.sourceY?.getX(i)??y;if(!footwear)p.setY(i,shapeHeight(y,traits.legLength));}
   m.geometry.setAttribute('sourceY',new THREE.BufferAttribute(sourceY,1));m.geometry.computeVertexNormals();
  });
+ if(culture==='japan'&&wardrobePreset==='onsen-swimwear'&&hairStyle==='braided-tail')bindOnsenBraid(root);
  root.traverse(m=>{if(m.isMesh){m.userData.softSkin=/footwear-bath-bare|continuous-head|neck|^ear-|inset-eye|iris-|pupil-|eye-catchlight|eyelid-|soft-brow|nostril-|lip|mouth|relaxed-|thumb-|wrist-|^arm-|bare-arm|bare-leg/.test(m.name);m.receiveShadow=false;m.castShadow=true;}});
  return root;
 }
