@@ -4,18 +4,18 @@
     "japan-bathhouse.js": "fbba20bb8864a4155c71d14de2c98a1b77c080cfee7d9f4672698eac9fa2e6c2",
     "furniture-interactions.js": "72a5856cb502fb8b0e9f1882a03ae0d7579a723fa9f8323052b1182322391ba4",
     "characters.js": "601b6f4777a9145ac463bf23a05aac98a3816e44b120d630bf4982bf0f731009",
-    "approved-surfaces.js": "b902f0ebfb4e10d2ae30209678b61f50a6eabbfb999fbcfe5129d3dcad24e401",
-    "main.js": "1845caae26d36f9fced1a2c55646880622891e02348067ad64692bca81b85b5d",
+    "approved-surfaces.js": "7f2829fddde315292973db6a54fbd5d10d5b80c53e924e0d0332b641235e2b65",
+    "main.js": "edb498ed2954d2d2010c5b6c70897d052e6fdc374a9615bfe530d8718d6fbaba",
     "geometry.js": "accd26d9fe1820ba7829bc00f802c8916458813eefd0cfd08f5d38e11c207ca9",
     "night-lighting.js": "61d5dff148e2797e35633d103c52a05460d1029506d312115c78941e81e7fc30",
     "stable-shadows.js": "20c3f208ed1e1e9ee7e98bdd5a88f5a9c79fbfefbeb365952b72f7f773bfb493",
     "camera.js": "7b6fc625c07138fc5636d38651b2487cdd812e22fcb89618a707b6b913808dea",
-    "automatic-doors.js": "37282650c1658a0fba13c0ae1947d840f225d47497730bec6c64084e29e1c894",
-    "room-closures.js": "2557cc3fc9ab5a21dfc20f3c26ed442e868c05290806c9bbebbba12c1496d6eb"
+    "automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+    "room-closures.js": "3f2bf20f6f11523152e9a275aa8369b7b30ef960f5817551150e12bbd98003cc"
   },
   "cameraReport": "main-camera-06.json",
   "cameraReportSha256": "677bbd17cf300e22ef2e9a112dd7d0550f568e9321f3b656c4174824394d9a45",
-  "scope": "UNTESTED clean R16.1 plus isolated bath candidate. New hand02 pose on frozen09, using unchanged real main06 default-direction close TPS parameters. Two controlled production male/female fixtures; exact camera/head/chest/forearm/palm scene clearance checked. Camera source unchanged.",
+  "scope": "Current bath candidate merged onto published R16.2; existing accepted camera inputs. UNTESTED clean R16.1 plus isolated bath candidate. New hand02 pose on frozen09, using unchanged real main06 default-direction close TPS parameters. Two controlled production male/female fixtures; exact camera/head/chest/forearm/palm scene clearance checked. Camera source unchanged.",
   "resolution": [
     1688,
     780

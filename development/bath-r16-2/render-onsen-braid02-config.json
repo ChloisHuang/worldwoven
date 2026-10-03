@@ -1,0 +1,110 @@
+{
+  "scope": "Hair02 folded-braid character-only diagnostic. Exact six hair01 cameras/body inputs retained; current production standing rig versus exact unbound factory. No whole scene or main-camera claim.",
+  "sourceHashes": {
+    "approved-surfaces.js": "5f79dd15e7313c219460a3cc1dcf583c2c4a2a9ff5fec7e8e1e445c27d1aff88",
+    "characters.js": "601b6f4777a9145ac463bf23a05aac98a3816e44b120d630bf4982bf0f731009"
+  },
+  "resolution": [
+    768,
+    768
+  ],
+  "cases": [
+    {
+      "name": "male-short-rear-before",
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "variant": "before",
+      "camera": [
+        0.28,
+        1.52,
+        -0.6
+      ],
+      "target": [
+        0,
+        1.49,
+        -0.02
+      ]
+    },
+    {
+      "name": "male-short-rear-bound",
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "variant": "bound",
+      "camera": [
+        0.28,
+        1.52,
+        -0.6
+      ],
+      "target": [
+        0,
+        1.49,
+        -0.02
+      ]
+    },
+    {
+      "name": "male-short-side-bound",
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "variant": "bound",
+      "camera": [
+        0.62,
+        1.5,
+        -0.13
+      ],
+      "target": [
+        0,
+        1.49,
+        -0.05
+      ]
+    },
+    {
+      "name": "female-long-rear-before",
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "variant": "before",
+      "camera": [
+        0.28,
+        1.52,
+        -0.6
+      ],
+      "target": [
+        0,
+        1.49,
+        -0.02
+      ]
+    },
+    {
+      "name": "female-long-rear-bound",
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "variant": "bound",
+      "camera": [
+        0.28,
+        1.52,
+        -0.6
+      ],
+      "target": [
+        0,
+        1.49,
+        -0.02
+      ]
+    },
+    {
+      "name": "female-long-side-bound",
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "variant": "bound",
+      "camera": [
+        0.62,
+        1.5,
+        -0.13
+      ],
+      "target": [
+        0,
+        1.49,
+        -0.05
+      ]
+    }
+  ],
+  "source": "/workspace/shared/worldwoven-r16-2-bath-candidate/source"
+}

@@ -1,0 +1,1436 @@
+{
+  "status": "PASS",
+  "source": "/workspace/shared/worldwoven-r16-2-bath-candidate/source",
+  "sourceSHA256": "b902f0ebfb4e10d2ae30209678b61f50a6eabbfb999fbcfe5129d3dcad24e401",
+  "baseline": "/workspace/shared/worldwoven-r16-2-bath-candidate/development/bath-r16-2/fixtures/unbound-braid",
+  "scope": "Original 24 hair/sex/leg cases, rigid cross-section and root preservation, original indices/materials, production skinned hair vertices and triangles versus closed real lumbar/wall/timber volumes. No rendered appearance claim.",
+  "invariants": [
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "swept-short",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "side-part",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "chin-bob",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "shoulder-wave",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "low-bun",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "braided-tail",
+      "changed": [
+        "hair-braided-tail",
+        "hair-braid-weave--1",
+        "hair-braid-weave-1",
+        "hair-braid-tie"
+      ],
+      "ringDistanceError": 1.114262875231975e-7,
+      "rootExact": true,
+      "centerline": {
+        "before": 0.35825862476304354,
+        "after": 0.354497578551326,
+        "relativeChange": 0.010498131661743309,
+        "sampling": "23 unchanged ring means joined by 22 chords; bending shortens these chords relative to the dense destination curve. Report this sampling loss without an arbitrary acceptance cutoff; the dense curve arc, unchanged cross sections, root, real collisions and visual review are checked separately."
+      },
+      "binding": {
+        "sourceLength": 0.3582586247630436,
+        "boundLength": 0.35825862476100484,
+        "radius": 0.060758591803023586,
+        "sweep": 5.183627878423159,
+        "root": [
+          0,
+          1.5570000410079956,
+          -0.10100000186098945
+        ],
+        "center": [
+          0,
+          1.59,
+          -0.125
+        ],
+        "meshes": [
+          "hair-braided-tail",
+          "hair-braid-weave--1",
+          "hair-braid-weave-1",
+          "hair-braid-tie"
+        ]
+      },
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 1.06,
+      "hairStyle": "swept-short",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 1.06,
+      "hairStyle": "side-part",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 1.06,
+      "hairStyle": "chin-bob",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 1.06,
+      "hairStyle": "shoulder-wave",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 1.06,
+      "hairStyle": "low-bun",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 1.06,
+      "hairStyle": "braided-tail",
+      "changed": [
+        "hair-braided-tail",
+        "hair-braid-weave--1",
+        "hair-braid-weave-1",
+        "hair-braid-tie"
+      ],
+      "ringDistanceError": 1.0418998792893763e-7,
+      "rootExact": true,
+      "centerline": {
+        "before": 0.31467520554149453,
+        "after": 0.31247934092149066,
+        "relativeChange": 0.006978193964234391,
+        "sampling": "23 unchanged ring means joined by 22 chords; bending shortens these chords relative to the dense destination curve. Report this sampling loss without an arbitrary acceptance cutoff; the dense curve arc, unchanged cross sections, root, real collisions and visual review are checked separately."
+      },
+      "binding": {
+        "sourceLength": 0.3146752055414946,
+        "boundLength": 0.31467520558059026,
+        "radius": 0.053184222086565584,
+        "sweep": 5.183627878423159,
+        "root": [
+          0,
+          1.5570000410079956,
+          -0.10100000186098945
+        ],
+        "center": [
+          0,
+          1.59,
+          -0.125
+        ],
+        "meshes": [
+          "hair-braided-tail",
+          "hair-braid-weave--1",
+          "hair-braid-weave-1",
+          "hair-braid-tie"
+        ]
+      },
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 0.94,
+      "hairStyle": "swept-short",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 0.94,
+      "hairStyle": "side-part",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 0.94,
+      "hairStyle": "chin-bob",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 0.94,
+      "hairStyle": "shoulder-wave",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 0.94,
+      "hairStyle": "low-bun",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 0.94,
+      "hairStyle": "braided-tail",
+      "changed": [
+        "hair-braided-tail",
+        "hair-braid-weave--1",
+        "hair-braid-weave-1",
+        "hair-braid-tie"
+      ],
+      "ringDistanceError": 1.114262875231975e-7,
+      "rootExact": true,
+      "centerline": {
+        "before": 0.35825862476304354,
+        "after": 0.354497578551326,
+        "relativeChange": 0.010498131661743309,
+        "sampling": "23 unchanged ring means joined by 22 chords; bending shortens these chords relative to the dense destination curve. Report this sampling loss without an arbitrary acceptance cutoff; the dense curve arc, unchanged cross sections, root, real collisions and visual review are checked separately."
+      },
+      "binding": {
+        "sourceLength": 0.3582586247630436,
+        "boundLength": 0.35825862476100484,
+        "radius": 0.060758591803023586,
+        "sweep": 5.183627878423159,
+        "root": [
+          0,
+          1.5570000410079956,
+          -0.10100000186098945
+        ],
+        "center": [
+          0,
+          1.59,
+          -0.125
+        ],
+        "meshes": [
+          "hair-braided-tail",
+          "hair-braid-weave--1",
+          "hair-braid-weave-1",
+          "hair-braid-tie"
+        ]
+      },
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "hairStyle": "swept-short",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "hairStyle": "side-part",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "hairStyle": "chin-bob",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "hairStyle": "shoulder-wave",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "hairStyle": "low-bun",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "hairStyle": "braided-tail",
+      "changed": [
+        "hair-braided-tail",
+        "hair-braid-weave--1",
+        "hair-braid-weave-1",
+        "hair-braid-tie"
+      ],
+      "ringDistanceError": 1.0418998792893763e-7,
+      "rootExact": true,
+      "centerline": {
+        "before": 0.31467520554149453,
+        "after": 0.31247934092149066,
+        "relativeChange": 0.006978193964234391,
+        "sampling": "23 unchanged ring means joined by 22 chords; bending shortens these chords relative to the dense destination curve. Report this sampling loss without an arbitrary acceptance cutoff; the dense curve arc, unchanged cross sections, root, real collisions and visual review are checked separately."
+      },
+      "binding": {
+        "sourceLength": 0.3146752055414946,
+        "boundLength": 0.31467520558059026,
+        "radius": 0.053184222086565584,
+        "sweep": 5.183627878423159,
+        "root": [
+          0,
+          1.5570000410079956,
+          -0.10100000186098945
+        ],
+        "center": [
+          0,
+          1.59,
+          -0.125
+        ],
+        "meshes": [
+          "hair-braided-tail",
+          "hair-braid-weave--1",
+          "hair-braid-weave-1",
+          "hair-braid-tie"
+        ]
+      },
+      "normalOutfitExact": true
+    }
+  ],
+  "clearance": [
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "swept-short",
+      "vertices": 1678,
+      "triangles": 2976,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          -3.1812627399885267,
+          4.841390551860769,
+          -9.407942806080081
+        ],
+        "max": [
+          -2.981366150858448,
+          5.022328842424126,
+          -9.188249756004193
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "masculine-lean",
+        "hairStyle": "swept-short",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 0.94,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "side-part",
+      "vertices": 1735,
+      "triangles": 3048,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          -3.1862352169672414,
+          4.841390551860769,
+          -9.407948836512709
+        ],
+        "max": [
+          -2.9813715793728632,
+          5.016126683158441,
+          -9.18817255676613
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "masculine-lean",
+        "hairStyle": "side-part",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 0.94,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "chin-bob",
+      "vertices": 2438,
+      "triangles": 4272,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          -3.1812627399885267,
+          4.714607503748159,
+          -9.429531322838015
+        ],
+        "max": [
+          -2.976591229430323,
+          5.022328842424126,
+          -9.170739784978334
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "masculine-lean",
+        "hairStyle": "chin-bob",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 0.94,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "shoulder-wave",
+      "vertices": 2438,
+      "triangles": 4272,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          -3.1812627399885267,
+          4.606505174413566,
+          -9.429531322838015
+        ],
+        "max": [
+          -2.960187034536351,
+          5.022328842424126,
+          -9.165851783432675
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "masculine-lean",
+        "hairStyle": "shoulder-wave",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 0.94,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "low-bun",
+      "vertices": 2267,
+      "triangles": 3984,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          -3.1812627399885267,
+          4.7624567756207,
+          -9.407933057150123
+        ],
+        "max": [
+          -2.915945404706637,
+          5.022328842424126,
+          -9.188319437410698
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "masculine-lean",
+        "hairStyle": "low-bun",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 0.94,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "braided-tail",
+      "vertices": 2375,
+      "triangles": 4164,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          -3.1812627399885267,
+          4.772516617097158,
+          -9.407933057150123
+        ],
+        "max": [
+          -2.927531624831359,
+          5.022328842424126,
+          -9.188319437410698
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "masculine-lean",
+        "hairStyle": "braided-tail",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 0.94,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 1.06,
+      "hairStyle": "swept-short",
+      "vertices": 1678,
+      "triangles": 2976,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          -3.190516202345405,
+          4.731654554502785,
+          -9.407942806080081
+        ],
+        "max": [
+          -2.990619613215326,
+          4.912592845066141,
+          -9.188249756004193
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "masculine-lean",
+        "hairStyle": "swept-short",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 1.06,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 1.06,
+      "hairStyle": "side-part",
+      "vertices": 1735,
+      "triangles": 3048,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          -3.1954886793241197,
+          4.731654554502785,
+          -9.407948836512709
+        ],
+        "max": [
+          -2.9906250417297415,
+          4.9063906858004565,
+          -9.18817255676613
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "masculine-lean",
+        "hairStyle": "side-part",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 1.06,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 1.06,
+      "hairStyle": "chin-bob",
+      "vertices": 2438,
+      "triangles": 4272,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          -3.190516202345405,
+          4.606607041370561,
+          -9.429531322838015
+        ],
+        "max": [
+          -2.9858446917872015,
+          4.912592845066141,
+          -9.170739784978334
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "masculine-lean",
+        "hairStyle": "chin-bob",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 1.06,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 1.06,
+      "hairStyle": "shoulder-wave",
+      "vertices": 2438,
+      "triangles": 4272,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          -3.190516202345405,
+          4.518898357102304,
+          -9.429531322838015
+        ],
+        "max": [
+          -2.9694404968932298,
+          4.912592845066141,
+          -9.165851783432675
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "masculine-lean",
+        "hairStyle": "shoulder-wave",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 1.06,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 1.06,
+      "hairStyle": "low-bun",
+      "vertices": 2267,
+      "triangles": 3984,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          -3.190516202345405,
+          4.652720778262714,
+          -9.407933057150123
+        ],
+        "max": [
+          -2.925198867063515,
+          4.912592845066141,
+          -9.188319437410698
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "masculine-lean",
+        "hairStyle": "low-bun",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 1.06,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 1.06,
+      "hairStyle": "braided-tail",
+      "vertices": 2375,
+      "triangles": 4164,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          -3.190516202345405,
+          4.671340931331099,
+          -9.407933057150123
+        ],
+        "max": [
+          -2.9411912432633476,
+          4.912592845066141,
+          -9.188319437410698
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "masculine-lean",
+        "hairStyle": "braided-tail",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 1.06,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 0.94,
+      "hairStyle": "swept-short",
+      "vertices": 1678,
+      "triangles": 2976,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          3.731332766349267,
+          4.814500463268728,
+          -9.799486457216664
+        ],
+        "max": [
+          3.919029094170937,
+          4.989320067677768,
+          -9.597004383414003
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "feminine-slender",
+        "hairStyle": "swept-short",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 0.94,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 0.94,
+      "hairStyle": "side-part",
+      "vertices": 1735,
+      "triangles": 3048,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          3.7266637738809902,
+          4.814500463268728,
+          -9.799492015219085
+        ],
+        "max": [
+          3.919023996974303,
+          4.9833276432664775,
+          -9.596933232042515
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "feminine-slender",
+        "hairStyle": "side-part",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 0.94,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 0.94,
+      "hairStyle": "chin-bob",
+      "vertices": 2438,
+      "triangles": 4272,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          3.731332766349267,
+          4.6920047646092,
+          -9.819383707684805
+        ],
+        "max": [
+          3.9235125884696456,
+          4.989320067677768,
+          -9.580866161270352
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "feminine-slender",
+        "hairStyle": "chin-bob",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 0.94,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 0.94,
+      "hairStyle": "shoulder-wave",
+      "vertices": 2438,
+      "triangles": 4272,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          3.731332766349267,
+          4.587558069599932,
+          -9.819383707684805
+        ],
+        "max": [
+          3.9389155883700893,
+          4.989320067677768,
+          -9.576361090721358
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "feminine-slender",
+        "hairStyle": "shoulder-wave",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 0.94,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 0.94,
+      "hairStyle": "low-bun",
+      "vertices": 2267,
+      "triangles": 3984,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          3.731332766349267,
+          4.73823594516238,
+          -9.799477472027762
+        ],
+        "max": [
+          3.9804570248299145,
+          4.989320067677768,
+          -9.597068605908476
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "feminine-slender",
+        "hairStyle": "low-bun",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 0.94,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 0.94,
+      "hairStyle": "braided-tail",
+      "vertices": 2375,
+      "triangles": 4164,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          3.731332766349267,
+          4.747955598762823,
+          -9.799477472027762
+        ],
+        "max": [
+          3.969577944900598,
+          4.989320067677768,
+          -9.597068605908476
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "feminine-slender",
+        "hairStyle": "braided-tail",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 0.94,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "hairStyle": "swept-short",
+      "vertices": 1678,
+      "triangles": 2976,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          3.7247008253755567,
+          4.708704471150348,
+          -9.799486457216664
+        ],
+        "max": [
+          3.912397153197227,
+          4.883524075559388,
+          -9.597004383414003
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "feminine-slender",
+        "hairStyle": "swept-short",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 1.06,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "hairStyle": "side-part",
+      "vertices": 1735,
+      "triangles": 3048,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          3.72003183290728,
+          4.708704471150348,
+          -9.799492015219085
+        ],
+        "max": [
+          3.9123920560005927,
+          4.877531651148098,
+          -9.596933232042515
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "feminine-slender",
+        "hairStyle": "side-part",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 1.06,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "hairStyle": "chin-bob",
+      "vertices": 2438,
+      "triangles": 4272,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          3.7247008253755567,
+          4.587885617882499,
+          -9.819383707684805
+        ],
+        "max": [
+          3.9168806474959355,
+          4.883524075559388,
+          -9.580866161270352
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "feminine-slender",
+        "hairStyle": "chin-bob",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 1.06,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "hairStyle": "shoulder-wave",
+      "vertices": 2438,
+      "triangles": 4272,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          3.7247008253755567,
+          4.503142927768241,
+          -9.819383707684805
+        ],
+        "max": [
+          3.932283647396379,
+          4.883524075559388,
+          -9.576361090721358
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "feminine-slender",
+        "hairStyle": "shoulder-wave",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 1.06,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "hairStyle": "low-bun",
+      "vertices": 2267,
+      "triangles": 3984,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          3.7247008253755567,
+          4.632439953044,
+          -9.799477472027762
+        ],
+        "max": [
+          3.9738250838562044,
+          4.883524075559388,
+          -9.597068605908476
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "feminine-slender",
+        "hairStyle": "low-bun",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 1.06,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "hairStyle": "braided-tail",
+      "vertices": 2375,
+      "triangles": 4164,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          3.7247008253755567,
+          4.65043043910041,
+          -9.799477472027762
+        ],
+        "max": [
+          3.9588087681756106,
+          4.883524075559388,
+          -9.597068605908476
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "feminine-slender",
+        "hairStyle": "braided-tail",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 1.06,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    }
+  ],
+  "errors": []
+}

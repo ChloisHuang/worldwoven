@@ -180,7 +180,7 @@ const DOOR_MOTIONS={
  'enfilade-east':['hinge',1,'Retain tested bedroom enfilade panel-door sweep'],
  'wing-entry--1--9.5':['hinge',1,'French bath panels swing inward/west; outward swing would hit service-arcade columns'],
  'wing-enfilade--1':['hinge',-1,'Retain tested private-bath/orangery panel-door sweep'],
- 'core-wing-1--5':['slide',0,'Use a surface-track panel on the arcade face: outward swing hits columns and inward swing approaches the bedpost']
+ 'core-wing-1--5':['slide',0,'Use an authored in-wall pocket for the bedroom closure; retain its clear passage beside the bedpost and arcade columns']
 };
 const FIXED_BANNERS={
  japan:[
@@ -198,6 +198,9 @@ export function existingBannerAudit(region){return (FIXED_BANNERS[region]||[]).m
 export function classifyRoomOpenings(lot,region){
  const policy=POLICY[region];if(!policy)return [];
  const thresholds=lot.doorways||lot.group?.userData.doorways||[];
+ // A migrated lot authors every rigid opening. Other lots retain the accepted
+ // surface-mounted behavior until their own inset construction is verified.
+ const requireInset=thresholds.some(t=>t.closureMount);
  return thresholds.map(t=>{
   const p=policy[t.id];if(!p)throw new Error('Unclassified traversable opening: '+region+'/'+t.id);
   const axis=t.axis||(Math.abs(t.a[0]-t.b[0])>Math.abs(t.a[2]-t.b[2])?'z':'x');
@@ -206,9 +209,11 @@ export function classifyRoomOpenings(lot,region){
   // Regional floorFit records a real finished sill, independent of route-probe Y.
   // Preserve its authored opening top; the rigid engine still subtracts25mm there.
   const fix=PLANES[t.id]||{},legacy=LEGACY[t.id]||{},bottom=fix.bottom??t.floorFit?.bottom??Math.max(t.a[1],t.b[1]);
-  const wallPlane=t.at??(axis==='x'?(t.a[2]+t.b[2])/2:(t.a[0]+t.b[0])/2),at=fix.at??wallPlane;
+  const wallPlane=t.at??(axis==='x'?(t.a[2]+t.b[2])/2:(t.a[0]+t.b[0])/2),closureMount=t.closureMount,at=closureMount?.wallPlane??fix.at??wallPlane;
+  if(requireInset&&p[0]==='door'&&!closureMount)throw new Error('Incomplete source-authored inset lot: '+region+'/'+t.id);
+  if(closureMount&&p[0]==='door'&&closureMount.kind!==(choice[0]==='slide'?'pocket':'hinge'))throw new Error('Door motion and inset source disagree: '+t.id);
   const lateral=t.from!==undefined?(t.from+t.to)/2:axis==='x'?(t.a[0]+t.b[0])/2:(t.a[2]+t.b[2])/2;
-  return {id:legacy.id||t.id,openingId:t.id,kind:p[0],...(t.interactionOnly?{openingRole:'interaction-approach',apertureWidth:null}:{}),rationale:p[1],rooms:t.rooms||[],center:axis==='x'?[lateral,bottom,at]:[at,bottom,lateral],axis,surfaceTrack:choice?.[0]==='slide',trackMountOffset:at-wallPlane,width:t.width,sideOverlap:fix.sideOverlap??0,bottomClearance:fix.bottomClearance??t.floorFit?.runningGap??0,height:t.floorFit?t.floorFit.top-bottom:fix.height??legacy.height??(t.top!==undefined?t.top-bottom:t.height),style:STYLE[region],motion:p[0]==='open'?'none':fixedOverhead?'fixed-overhead':p[0].includes('curtain')?'gather':choice[0],existingBanner,motionRationale:fixedOverhead?'Fixed hanging textile stays above actor height and never gathers automatically':p[0].includes('curtain')?'Gathered fabric stays at the jambs and has no rigid leaf swing':choice?.[2]||'Intentionally open circulation',operable:p[0]!=='open'&&!fixedOverhead,...(choice?.[1]?{swing:choice[1]}:{}),source:region==='japan'?'japan-bathhouse.js':region==='china'?'china-palace.js':region==='egypt'?'egypt-temple.js':'regions-west.js'};
+  return {id:legacy.id||t.id,openingId:t.id,kind:p[0],...(t.interactionOnly?{openingRole:'interaction-approach',apertureWidth:null}:{}),rationale:p[1],rooms:t.rooms||[],center:axis==='x'?[lateral,bottom,at]:[at,bottom,lateral],axis,closureMount:closureMount?{...closureMount,wallPlane:closureMount.wallPlane??wallPlane}:undefined,revealDepth:closureMount?.revealDepth??closureMount?.wallDepth,surfaceTrack:choice?.[0]==='slide'&&closureMount?.kind!=='pocket',trackMountOffset:at-wallPlane,width:t.width,sideOverlap:closureMount?.sideOverlap??fix.sideOverlap??0,bottomClearance:fix.bottomClearance??t.floorFit?.runningGap??0,height:t.floorFit?t.floorFit.top-bottom:fix.height??legacy.height??(t.top!==undefined?t.top-bottom:t.height),style:STYLE[region],motion:p[0]==='open'?'none':fixedOverhead?'fixed-overhead':p[0].includes('curtain')?'gather':choice[0],existingBanner,motionRationale:fixedOverhead?'Fixed hanging textile stays above actor height and never gathers automatically':p[0].includes('curtain')?'Gathered fabric stays at the jambs and has no rigid leaf swing':choice?.[2]||'Intentionally open circulation',operable:p[0]!=='open'&&!fixedOverhead,...(choice?.[1]?{swing:choice[1]}:{}),source:region==='japan'?'japan-bathhouse.js':region==='china'?'china-palace.js':region==='egypt'?'egypt-temple.js':'regions-west.js'};
  });
 }
 export function roomClosureSpecs(lot,region){

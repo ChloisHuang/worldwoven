@@ -1,6 +1,6 @@
-# Isolated Japan soaking candidate from published R16.1
+# Isolated Japan soaking candidate on published R16.2
 
-Status: extraction and JavaScript syntax checked only. The earlier body, hand and camera results are useful prior evidence; this clean integrated tree has not run them. Hair binding candidate 01 has not been measured or rendered yet.
+Status: hair03 is the current source-only candidate. The owner rejected both curve-deformed braid silhouettes and selected the existing low-bun as braided-tail’s temporary Japan-soaking display. The condition changes only the hair-tail construction branch; the original head, shell, saved hairstyle/ID and ordinary clothed model remain unchanged. Hair03 pictures, actual contact and main vertex restoration are pending. Prior curve-preservation requirements apply only to the retired hair01/02 proposals.
 
 ## Product hunks and dependencies
 
@@ -30,14 +30,41 @@ Required serial checks, owner allocates each compute window:
 4. Existing original24 check-onsen-hands02.mjs and check-bath-main-camera.cjs 192+480 inputs on this integrated tree, plus the two updated rest-bath tests. Do not turn a failure into a pass by weakening an unchanged criterion.
 5. Reuse accepted default-direction main close-view coordinates from the supplied render-hand02-main-config.json to confirm the final integrated pool/pose. These configurations now lock the six-file bath-only source, not the larger repair tree.
 
-No test/build/render has been started for this extracted candidate. No package version or hosting config is changed. The owner can apply the local Git change after validation and publish this bath batch independently of the door project.
+The completed mesh/contact and six-frame stages above do not substitute for the pending main lifecycle and integrated bath regressions. No package version or hosting config is changed. The owner can apply the local Git change after validation and publish this bath batch independently of the door project.
 
 ## Hair01 diagnostic outcomes (no art acceptance)
 
 The first run stopped in an auxiliary normal-outfit equality check because repeated willow-leaf/willow-stem names were matched with getObjectByName. The corrected probe asserts equal counts, original child-index hierarchy paths, parent/name, every attribute shape and triangle indices before pairing by traversal occurrence. Product source stayed unchanged.
 
-The second run passed five non-braid cases, then stopped at the short-leg braid's sampled-centerline check. Twenty-three ring means define twenty-two straight chords. Actual source surface vertices measured 358.258625mm before and 354.497579mm after, a 1.049813% chord deficit. The separately solved dense destination curve retained 358.258625mm. Default and long-leg chord deficits were 0.833248% and 0.697819%. These match the independent numerical curve/ring reconstruction. This is a sampling consequence of bending the same sparse topology; it does not establish collision clearance or visual quality, and the full24 collision matrix has not completed. The owner accepted recording this distinction instead of reshaping the braid to satisfy a self-imposed1% proxy. Both FAIL receipts and the prior four unbound-braid collision positives remain in evidence.
+The second run passed five non-braid cases, then stopped at the short-leg braid's sampled-centerline check. Twenty-three ring means define twenty-two straight chords. Actual source surface vertices measured 358.258625mm before and 354.497579mm after, a 1.049813% chord deficit. The separately solved dense destination curve retained 358.258625mm. Default and long-leg chord deficits were 0.833248% and 0.697819%. These match the independent numerical curve/ring reconstruction. This is a sampling consequence of bending the same sparse topology; it does not establish collision clearance or visual quality, and the full24 collision matrix had not completed at that point; it subsequently passed with the physical criteria unchanged. The owner accepted recording this distinction instead of reshaping the braid to satisfy a self-imposed1% proxy. Both FAIL receipts and the prior four unbound-braid collision positives remain in evidence.
 
-All new heavy tests/renders were paused for production availability diagnosis. Six character pictures and real-main geometry restoration are prepared only.
+Production availability diagnosis briefly paused new heavy work. After it resumed, the owner authorized and the worker completed the24-case geometry and six-image stages. Real-main geometry restoration remains prepared only.
 
 The owner removed the unsourced1% chord-loss hard gate after the actual23-ring/dense-curve comparison. The probe still reports every before/after sampled length and checks the unchanged root, every cross-section distance, all ordinary outfit vertices, topology/materials, dense destination arc length, and actual skinned triangles versus physical basin solids. No product geometry or contact criterion changed.
+
+## Latest receipts
+
+- Full24: evidence/hair-binding-01-full.json and hair-binding-01-full-resource-resource-result.json. No skinned vertex or triangle intrusions into the1mm-inset real lumbar stone, retaining wall or timber volumes. Cross-section maximum error and all before/after lengths are reported per case.
+- Six production Three/Mesa frames: qa/hair-prototype-01/ (images intentionally outside Git); metadata in evidence/hair-prototype-01-report.json.
+- Representative rear/side pairs: male-short-rear-bound.png, male-short-side-bound.png, female-long-rear-bound.png, female-long-side-bound.png.
+- Earlier FAIL reports and old unbound braid positives remain unchanged.
+
+## Hair02 lightweight candidate
+
+Only approved-surfaces.js changes relative to the preceding product candidate. The temporary braid follows two48mm-separated runs with a24mm high small turn; a short smooth root connection preserves the exact authored attachment ring, and the retained tip/old tie return12mm to its side,4mm below it, at rest-spaceZ−.132. The route follows the rear hair-shell profile instead of forming a suspended circular loop. Each input braid’s measured source length solves the folded run height. The same four original mesh cross sections, topology, material and saved identity stay intact. Geometry and art acceptance are pending, not inferred from these parameters.
+
+Next render configuration: render-onsen-braid02-config.json, using the unchanged renderer and exact six earlier cameras. After visual review, repeat physical contact and the prepared production-main vertex restoration chain as the owner authorizes. No heavy run was started for hair02.
+
+Hair02 six-frame receipt: evidence/hair-prototype-02-report.json and hair-prototype-02-resource-resource-result.json. Images remain at qa/hair-prototype-02/ outside Git. All34 current source fingerprints are recorded in evidence/hair02-source-fingerprints.json. No contact or main stage followed this render.
+
+## Hair03 current implementation
+
+The only product change from hair02 is approved-surfaces.js: remove the rejected curve helper and select the existing low-bun tail branch only for Japan/onsen-swimwear/braided-tail. This preserves the incoming hairStyle through all head and hair-shell construction. No new hair geometry is designed. The original long braid remains the normal-outfit representation and the saved style identity. Next three-picture configuration is render-onsen-braid03-config.json. Old curve-specific probes are historical evidence, not acceptance criteria for this alternate temporary display.
+
+Japan-only halo cleanup: buildPlayer makes the halo invisible when seated.bathPose is present, and successful onsen activation clears an old navigation feetPulse. Normal exit reconstruction restores the default visible halo. The actual-main probe must check entry=false, exit=true and no pulse residue; pending.
+
+Current acceptance scripts: check-onsen-temporary-hair.mjs checks all24 old hair/body/leg cases, exact existing-low-bun display for braided-tail, untouched head/shell/body, all normal-outfit vertices, saved identity and real pool-solid triangles. check-onsen-braid-restore.cjs now asserts mounted low-bun mesh names, original long-braid vertices after exit/cancel/region changes, halo false→true and stale feetPulse cleanup. The older check-onsen-braid-binding.mjs remains historical for the rejected curve proposal and must not be run as the new display contract.
+
+## Published R16.2 three-way integration
+
+Base was the preserved R16.1 tree, ours the current bath branch, incoming the published R16.2 source84a54df402f66c6964414814773a1de931668717. The only common changed product file was room-closures.js: its shared return line now retains the full incoming France mount/reveal/pocket compatibility logic and the two Japan-only approach metadata fields. The two pool rationale changes were preserved separately. All other incoming changes, including France scene/engine, new inset module, index/version/build files, README, docs/checklist and archive rules, were copied exactly. Relative to published R16.2 only six own product files and two own tests differ; every other incoming file is byte-identical. See merge-r16-2.json for complete source fingerprints and incoming file list. No41-door work is imported.

@@ -1,0 +1,62 @@
+{
+  "scope": "Hair03 temporary existing low-bun display for unchanged braided-tail identity. One long-leg feminine actor, front/side/rear. Standing-rig contour diagnosis only; no new head/hair-shell geometry or whole-scene claim.",
+  "sourceHashes": {
+    "approved-surfaces.js": "7f2829fddde315292973db6a54fbd5d10d5b80c53e924e0d0332b641235e2b65",
+    "characters.js": "601b6f4777a9145ac463bf23a05aac98a3816e44b120d630bf4982bf0f731009"
+  },
+  "resolution": [
+    768,
+    768
+  ],
+  "cases": [
+    {
+      "name": "female-long-rear-bound",
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "variant": "bound",
+      "camera": [
+        0.28,
+        1.52,
+        -0.6
+      ],
+      "target": [
+        0,
+        1.49,
+        -0.02
+      ]
+    },
+    {
+      "name": "female-long-side-bound",
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "variant": "bound",
+      "camera": [
+        0.62,
+        1.5,
+        -0.13
+      ],
+      "target": [
+        0,
+        1.49,
+        -0.05
+      ]
+    },
+    {
+      "name": "female-long-front-bound",
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "variant": "bound",
+      "camera": [
+        0,
+        1.52,
+        0.6
+      ],
+      "target": [
+        0,
+        1.49,
+        0
+      ]
+    }
+  ],
+  "source": "/workspace/shared/worldwoven-r16-2-bath-candidate/source"
+}
