@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {createAutomaticRouting} from '../source/game/automatic-routing.js';
 // Routing-only support fixtures. Actual rendered sweeps are a separate gate.
 for(const axis of ['x','z'])for(const rise of[-1,1]){
- const at=rise<0?0:12,normal=rise<0?2.3:9.7,side=rise<0?1:-1;
+ const at=rise<0?0:12,normal=rise<0?1.1:10.9,side=rise<0?1:-1;
  const pos=(u,y=0)=>axis==='x'?{x:0,y,z:u}:{x:u,y,z:0};
  const prism=(lo,hi)=>axis==='x'?{minX:-1.6,maxX:1.6,minY:0,maxY:3,minZ:lo,maxZ:hi}:{minX:lo,maxX:hi,minY:0,maxY:3,minZ:-1.6,maxZ:1.6};
  const d={id:'under-high-flight-'+axis+rise,axis,center:axis==='x'?[0,0,at]:[at,0,0],width:3.2,motion:'hinge',swing:side,fraction:0,boxes:[prism(at-.06,at+.06)]};

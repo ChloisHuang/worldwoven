@@ -5,13 +5,17 @@ for(const style of['shoji','palace','french','egypt'])for(const axis of['x','z']
  const lot={group:new T.Group(),bounds:{minX:-30,maxX:30,minZ:-40,maxZ:40},automaticDoorways:[{id:'test',center:[0,0,0],width:3.2,height:2.8,axis,style,motion:style==='shoji'?'slide':'hinge',swing:direction}]},door=createAutomaticDoors(lot);
  const position=(normal,y=0)=>({x:axis==='z'?normal:0,y,z:axis==='x'?normal:0});
  const closed=position(.35);const stop=door.constrainMove(closed,axis==='z'?-.4:0,axis==='x'?-.4:0,.34);assert(Math.hypot(stop.dx,stop.dz)<.2,'closed leaves physically block crossing');
+ // Desired near-door movement now requests an opening; let that probe's lease
+ // and close hold expire before checking independent upper-floor inactivity.
+ for(let i=0;i<180;i++)door.update(1/60,[]);assert.equal(door.getState()[0].fraction,0);
  door.update(.1,[position(0,4)]);assert.equal(door.getState()[0].fraction,0,'actor on another floor does not activate');
- const p=position(-direction*6);for(let f=0;f<200;f++){
+ const p=position(-direction*6);let waitingSeconds=0;for(let f=0;f<200;f++){
   door.update(.025,[p]);const before={...p},delta=door.constrainMove(p,axis==='z'?direction*.13:0,axis==='x'?direction*.13:0,.34);p.x+=delta.dx;p.z+=delta.dz;steps++;
-  assert(Math.hypot(p.x-before.x,p.z-before.z)>.01,'approaching actor never stalls at opening leaves');
+  if(Math.hypot(p.x-before.x,p.z-before.z)<.01)waitingSeconds+=.025;
+  assert(waitingSeconds<=(style==='shoji'?.28:.30)+.05+1e-8,'near approach waits only for the opening stroke plus two frames');assert(!door.isOpeningObstructedBy(p),'normal approach waits outside the actual leaf sweep');
   if((axis==='z'?p.x:p.z)*direction>6)break;
  }
- assert((axis==='z'?p.x:p.z)*direction>6,'continuous 5.2m/s crossing completed');crossings++;
+ assert((axis==='z'?p.x:p.z)*direction>6,'held 5.2m/s crossing resumes after a short natural wait');crossings++;
  const center=position(0),other=position(-.5);for(let i=0;i<100;i++)door.update(.025,[{root:{position:center}},other]);assert.equal(door.getState()[0].fraction,1,'multiple actors in threshold hold open');
  door.update(.1,[]);assert.equal(door.getState()[0].fraction,1,'hold delay prevents immediate close');for(let i=0;i<90;i++)door.update(.025,[]);assert.equal(door.getState()[0].fraction,0,'clear threshold closes after hold');
  door.update(.016,[{root:{position:position(.2)}}]);assert.equal(door.getState()[0].fraction,1,'reentry from close proximity immediately safe');

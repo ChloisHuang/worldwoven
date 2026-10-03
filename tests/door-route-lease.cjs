@@ -9,7 +9,7 @@ const linker=(s,m)=>mod(s==='three'?root+'/vendor/three/build/three.module.js':p
 (async()=>{
  const module=mod(root+'/game/automatic-doors.js');await module.link(linker);await module.evaluate();const {createAutomaticDoors}=module.namespace,T=mod(root+'/vendor/three/build/three.module.js').namespace,results=[];
  for(const presence of ['absent','far'])for(const dt of [.025,.01]){
-  const bounds={minX:-12,maxX:12,minZ:-12,maxZ:12},lot={group:new T.Group(),bounds,colliders:[],automaticDoorways:[{id:'lease-fixture',center:[0,0,0],width:3.2,height:3,axis:'x',style:'palace',motion:'hinge',swing:1}]},doors=createAutomaticDoors(lot),options={bounds,multilevel:false},p={x:0,y:0,z:2},end={x:0,y:0,z:-2},far={position:{x:10,y:0,z:10},radius:.34,height:1.95},actors=presence==='far'?[far]:[];
+  const bounds={minX:-12,maxX:12,minZ:-12,maxZ:12},lot={group:new T.Group(),bounds,colliders:[],automaticDoorways:[{id:'lease-fixture',center:[0,0,0],width:3.2,height:3,axis:'x',style:'palace',motion:'hinge',swing:1}]},doors=createAutomaticDoors(lot),options={bounds,multilevel:false},p={x:0,y:0,z:1.1},end={x:0,y:0,z:-2},far={position:{x:10,y:0,z:10},radius:.34,height:1.95},actors=presence==='far'?[far]:[];
   let activeRoute=doors.planPath(p,end,options,.34);const retainedRoute=activeRoute,initial={...p};assert(activeRoute.length);assert.equal(doors.getState()[0].fraction,0);
   // A live automatic route keeps renewing even while physically waiting.
   for(let elapsed=0;elapsed<1;elapsed+=dt){doors.routeStep(activeRoute,p,.008);doors.update(dt,actors);}
