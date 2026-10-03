@@ -4,6 +4,7 @@ import * as G from './geometry.js';
 import {blocked,canTraverse} from './navigation.js';
 import {cameraDistanceToObstacle} from './camera.js';
 import {visualSupportHeight} from './floor-support.js';
+import {createFacilityQueue} from './npc-facilities.js';
 
 // Authored reference seats, canopy and cultural changing place. Additional
 // existing seats below reuse the same sculpted objects and their collider footprints.
@@ -107,6 +108,21 @@ export function createFurnitureInteractions(lot,region,{curtains={},onCurtainCha
  const root=new THREE.Group();root.name='R12 bounded furniture interactions';lot.group.add(root);
  const items=Object.entries(desc).map(([kind,d])=>({...d,id:region+'-furniture-'+kind,kind,furniture:true,action:kind==='seat'?'坐下休息':kind==='canopy'?'开合纱帐':'挑选服装',interactionRadius:2.1,position:d.position.slice()}));
  for(const [i,d]of REST_BATH_DESCRIPTORS[region].entries())items.push({...d,id:region+'-furniture-'+d.kind+'-'+i,furniture:true,action:d.kind==='bed'?(region==='china'?'龙榻安寝':'躺下休息'):d.bathWardrobePreset==='onsen-swimwear'?'换入浴衣着泡汤':'换浴衣泡澡',interactionRadius:2.1,position:d.position.slice()});
+ // Match the existing continuous submerged bench, not duplicate unsupported
+ // mount points. End clearance keeps arms away from perpendicular coping;
+ // 1.65m pitch separates the widest supported arms and parallel long legs.
+ const facilities=createFacilityQueue(),bathSeats=new Map();
+ if(region==='japan'){
+  const pools=[];lot.group.traverse(g=>pools.push(...(g.userData.onsenPools||[])));
+  for(const item of items.filter(i=>i.bathPose)){
+   const geometry=pools.find(p=>Math.hypot(p.center[0]-item.center[0],p.center[2]-item.center[2])<.01);
+   if(!geometry)throw Error('Missing supported onsen bench: '+item.id);
+   const ledge=geometry.seat,endClearance=.75,pitch=1.65,capacity=Math.max(1,Math.floor((ledge.maxZ-ledge.minZ-2*endClearance)/pitch)+1);
+   const offsets=Array.from({length:capacity},(_,i)=>(i-(capacity-1)/2)*pitch).sort((a,b)=>Math.abs(a)-Math.abs(b)||a-b);
+   item.seats=offsets.map((offset,i)=>({...item,id:item.id+'-seat-'+(i+1),poolId:item.id,seatIndex:i,anchor:[item.anchor[0],item.anchor[1],item.anchor[2]+offset],position:[item.position[0],item.position[1],item.position[2]+offset],bathPose:{...item.bathPose},supportBounds:{...ledge},cameraParts:item.cameraParts.map(p=>({...p}))}));
+   item.capacity=capacity;for(const seat of item.seats)bathSeats.set(seat.id,seat);facilities.define(item.id,item.seats.map(s=>s.id));
+  }
+ }
  const seat=items.find(i=>i.kind==='seat'),canopy=items.find(i=>i.kind==='canopy'),wardrobe=items.find(i=>i.kind==='wardrobe'),cloth=canopy?canopyGeometry(root,canopy,region):null;changingDetails(root,wardrobe,region);
  lot.group.updateMatrixWorld(true);const beddingMeshes=[];lot.group.traverse(o=>{if(o.isMesh&&!o.material.transparent)beddingMeshes.push(o);});const bedMeshes=new Map(),bedRay=new THREE.Raycaster();
  const options=(lot.heightAware||['japan','egypt'].includes(region))?{bounds:lot.bounds,surfaces:lot.walkableSurfaces,legacyGround:false,bodyHeight:1.95,maxStep:.4}:{bounds:lot.bounds,multilevel:false};
@@ -127,9 +143,15 @@ export function createFurnitureInteractions(lot,region,{curtains={},onCurtainCha
  // Visibility ignores only a compact proxy belonging to the clicked object.
  // A wall, ceiling, other furniture, or moving door is never removed.
  function ownCameraBox(item,c){const w=item.width??item.size[0],d=item.depth??item.size[2],h=item.top?item.top-item.center[1]:item.size[1];return c.minY>=item.center[1]-.30&&c.maxY<=item.center[1]+h+.30&& c.minX<=item.center[0]+.16&&c.maxX>=item.center[0]-.16&&c.minZ<=item.center[2]+.16&&c.maxZ>=item.center[2]-.16&&c.maxX-c.minX<=w+.45&&c.maxZ-c.minZ<=d+.45&&Math.abs((c.minX+c.maxX)/2-item.center[0])<.20&&Math.abs((c.minZ+c.maxZ)/2-item.center[2])<.20;}
- function transferClear(a,b,options,extra=[],item=seat){const own=seatBoxes.get(item.id)||[],colliders=lot.colliders.filter(c=>!own.includes(c)).concat(extra);return canTraverse(a,b,colliders,{...options,radius:.34});}
+ function transferClear(a,b,options,extra=[],item=seat){const own=seatBoxes.get(item.poolId||item.id)||[],colliders=lot.colliders.filter(c=>!own.includes(c)).concat(extra);return canTraverse(a,b,colliders,{...options,radius:.34});}
  const seatColliders=seatBoxes.get(seat.id);
- return {items,root,cloth,seatColliders,
+ return {items,root,cloth,seatColliders,facilities,
+  resolveBath(item,actor,eligible=()=>true,purpose='bathe'){
+   const pool=items.find(i=>i.id===(item.poolId||item.id));if(!pool?.seats)return item;
+   const reservation=facilities.reserve(pool.id,actor,{purpose,eligible:id=>eligible(bathSeats.get(id))});return reservation?bathSeats.get(reservation.seatId):null;
+  },
+  occupyBath(item,actor){return facilities.occupy(item.poolId||item.id,actor);},
+  releaseActor(actor){facilities.releaseActor(actor);},
   bedSupportAt(item,x,z){if(!bedMeshes.has(item.id)){const bounds=boxOf(item);bounds.max.y=item.supportY+.28;bedMeshes.set(item.id,beddingMeshes.filter(m=>new THREE.Box3().setFromObject(m).intersectsBox(bounds)));}bedRay.set(new THREE.Vector3(x,item.supportY+.27,z),new THREE.Vector3(0,-1,0));const hit=bedRay.intersectObjects(bedMeshes.get(item.id),false).find(h=>h.point.y<=item.supportY+.24&&h.point.y>item.center[1]+.05);return hit?.point.y??item.supportY;},
   isVisible(item,origin,target,boxes){return cameraDistanceToObstacle(origin,target,boxes.filter(c=>!ownCameraBox(item,c)),0)>=origin.distanceTo(target)-.09;},
   nearbyClear(item,position,options,extra=[]){return Math.abs(position.y-item.position[1])<.45&&canTraverse(position,point(item.position),lot.colliders.concat(extra),{...options,radius:.34});},
@@ -144,10 +166,10 @@ export function createFurnitureInteractions(lot,region,{curtains={},onCurtainCha
    const proxy=(minX,maxX,minY,maxY,minZ,maxZ)=>{const corners=[];for(const xx of[minX,maxX])for(const zz of[minZ,maxZ])corners.push([x+Math.cos(item.yaw)*xx+Math.sin(item.yaw)*zz,z-Math.sin(item.yaw)*xx+Math.cos(item.yaw)*zz]);return {minX:Math.min(...corners.map(p=>p[0])),maxX:Math.max(...corners.map(p=>p[0])),minY:minY+y,maxY:maxY+y,minZ:Math.min(...corners.map(p=>p[1])),maxZ:Math.max(...corners.map(p=>p[1]))};};
    return boxes.filter(b=>!own.includes(b)).concat([proxy(-.59,.59,.225,.985,-.6,.6),proxy(-.52,.52,1.02,2.035,-.46,-.24),proxy(-.54,-.43,1,1.43,-.33,.37),proxy(.43,.54,1,1.43,-.33,.37)]);},
   canUse(options,extra=[],item){return transferClear(point(item.position),point(item.anchor),options,extra,item);},
-  canSit(options,extra=[],item=seat){return (seatBoxes.get(item.id)||[]).length>0&&transferClear(point(item.position),point(item.anchor),options,extra,item);},
+  canSit(options,extra=[],item=seat){return (seatBoxes.get(item.poolId||item.id)||[]).length>0&&transferClear(point(item.position),point(item.anchor),options,extra,item);},
   standPoint(options,extra=[],item=seat){const anchor=point(item.anchor);for(const a of[item.position,...[-.3,.3].map(offset=>[item.position[0]+Math.cos(item.yaw)*offset,item.position[1],item.position[2]-Math.sin(item.yaw)*offset])]){const p=point(a);if(!blocked(p.x,p.z,lot.colliders.concat(extra),.34,{...options,y:p.y})&&transferClear(anchor,p,options,extra,item))return p;}return null;},
-  state:()=>({region,rejectedSeats:rejected,hasCanopy:!!cloth,curtainsOpen:cloth?!!target:null,curtainProgress:cloth?amount:null,items:items.map(({id,kind,name,position,anchor,seatY,center,yaw,supportY,waterY})=>({id,kind,name,position,anchor,seatY,center,yaw,supportY,waterY})),seatColliderCount:seatColliders.length}),
-  dispose(){if(disposed)return;disposed=true;root.traverse(o=>{o.geometry?.dispose();if(o.isInstancedMesh)o.dispose();});cloth?.material.dispose();root.removeFromParent();}
+  state:()=>({region,facilities:facilities.state(),rejectedSeats:rejected,hasCanopy:!!cloth,curtainsOpen:cloth?!!target:null,curtainProgress:cloth?amount:null,items:items.map(({id,kind,name,position,anchor,seatY,center,yaw,supportY,waterY,capacity,seats})=>({id,kind,name,position,anchor,seatY,center,yaw,supportY,waterY,capacity,seats:seats?.map(({id,poolId,anchor,position})=>({id,poolId,anchor,position}))})),seatColliderCount:seatColliders.length}),
+  dispose(){if(disposed)return;disposed=true;facilities.dispose();root.traverse(o=>{o.geometry?.dispose();if(o.isInstancedMesh)o.dispose();});cloth?.material.dispose();root.removeFromParent();}
  };
 }
 
