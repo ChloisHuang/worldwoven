@@ -8,8 +8,8 @@ Public game: https://alien.doudouai.net/
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.3-public, 2026-10-03
-Verified published Sites source commit: fee72e7db31f428bf070e8d56d1ffb14454fcfee
+Published release: R16.4-public, 2026-10-03
+Verified published Sites source commit: 48ad51a496440b03923276f77a3ac322682dc6e7
 
 ## Working rules
 
@@ -49,6 +49,8 @@ Before subsequent releases, cache-baseline.json must describe the confirmed live
 - tests: portable source-level regression suites and necessary baseline fixtures
 - worker: preserved legacy read-only handler
 - .openai/hosting.json: necessary existing deployment identity
+
+R16.4 adds the missing Japanese 2F/3F stairwell landing guards and a 4F blind-end guard while keeping stair mouths and the west corridor open. This does not close the other regions’ guardrail checklist items.
 
 ## Current play and scope
 
