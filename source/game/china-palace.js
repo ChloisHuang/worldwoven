@@ -39,7 +39,7 @@ export function buildChinaPalace(G,H){
  const box=(g,x,y,z,w,h,d,color,block=false)=>palaceBox(g,colliders,cameraColliders,x,y,z,w,h,d,color,block);
  const floor=(g,x,z,w,d,y=.2,color=C.stone)=>{if(!(y===.2&&['China building hall','China building archive'].includes(g.name)))box(g,x,y/2,z,w,y,d,color);walkableSurfaces.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2,y:y+.015,owner:g.name});};
  const target=(id,name,x,z,roomId)=>explorationTargets.push({id,name,roomId,position:[x,0,z]});
- const door=(id,name,axis,at,from,to,top,rooms,bottom=.2)=>{const center=(from+to)/2;const point=off=>axis==='x'?[center,0,at+off]:[at+off,0,center];const d={id,name,axis,at,from,to,bottom,top,width:to-from,height:top-bottom,rooms,a:point(-.85),b:point(.85)};doorways.push(d);const choice=insetKinds[id];if(choice){const[kind,swing,wallDepth,authoredHingeOffset]=choice,section=insetClosureSection({kind,axis,at,lateral:center,bottom,top,width:to-from,wallDepth,style:'palace',swing,hingeNormalOffset:authoredHingeOffset??(wallDepth===.65?.18:.155)});section.group.name='China inset closure '+id;insetSections.set(id,section);d.closureMount=section.mount;d.roughOpening={...section.roughOpening};return {id,...section.roughOpening};}return {id,from,to,top,bottom};};
+ const door=(id,name,axis,at,from,to,top,rooms,bottom=.2)=>{const center=(from+to)/2;const point=off=>axis==='x'?[center,0,at+off]:[at+off,0,center];const d={id,name,axis,at,from,to,bottom,top,width:to-from,height:top-bottom,rooms,a:point(-.85),b:point(.85)};if(bottom>2){d.a[1]=bottom;d.b[1]=bottom;}doorways.push(d);const choice=insetKinds[id];if(choice){const[kind,swing,wallDepth,authoredHingeOffset]=choice,section=insetClosureSection({kind,axis,at,lateral:center,bottom,top,width:to-from,wallDepth,style:'palace',swing,hingeNormalOffset:authoredHingeOffset??(wallDepth===.65?.18:.155)});section.group.name='China inset closure '+id;insetSections.set(id,section);d.closureMount=section.mount;d.roughOpening={...section.roughOpening};return {id,...section.roughOpening};}return {id,from,to,top,bottom};};
 
  // Original, low-relief painted decoration. Every composition belongs to an
  // existing wall, beam or furniture support. R14 elevations and circulation
@@ -468,7 +468,8 @@ export function buildChinaPalace(G,H){
   for(const[id,a,b]of[
    ['void-west',[-9.2,-32],[-9.2,-25.4]],['void-east',[-4.05,-32],[-4.05,-25.4]],
    ['void-north',[-9.2,-32],[-4.05,-32]],['void-south-west',[-9.2,-25.4],[-6.55,-25.4]]
-  ])rail(loft,prefix+'-'+id,a,b,y);
+  ]){if(storey===2&&id==='void-south-west')continue;rail(loft,prefix+'-'+id,a,b,y);}
+  if(storey===2){landingRail(loft,'culture-upper-stair-mouth-west',[-9.2,-25.4],[-8.95,-25.4],y);landingRail(loft,'culture-upper-stair-mouth-center',[-6.75,-25.4],[-6.55,-25.4],y);}
   // Each visible tier has a real slab, open viewing bays, low vermilion
   // parapets and turquoise/gold bracket beams, not an inaccessible roof shell.
   for(const z of [-34,-23]){
