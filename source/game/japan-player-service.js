@@ -119,8 +119,8 @@ export function createJapanPlayerService({board,furniture,getPlayer,getMounted=(
    if(finished){releaseDesk(finished);board.forgetFinished([finished.id]);notify('浴牌已归还，这次泡汤和用餐完成了');}
    let v=visit();const p=position(),mounted=getMounted();if(!v||!p){syncWardrobe();return;}
    dt=Math.max(0,Math.min(.1,dt));
-   if(v.stage==='check-in'&&!near(p,P.playerReception,2)){api.cancel();notify('你离开了前台，未完成的登记已取消');return;}
-   if(v.stage==='checkout-ready'&&!near(p,P.playerReception,2)){releaseDesk(v);board.setPlayerPresent(v.id,false);board.setPlayerPresent(v.id,true);deskRequest=false;return;}
+   if((v.stage==='check-in'||v.stage==='arriving'&&deskRequest)&&!near(p,P.playerReception,2)){api.cancel();notify('你离开了前台，未完成的登记已取消');return;}
+   if((v.stage==='checkout-ready'||v.stage==='checkout'&&deskRequest)&&!near(p,P.playerReception,2)){releaseDesk(v);board.setPlayerPresent(v.id,false);board.setPlayerPresent(v.id,true);deskRequest=false;return;}
    if(v.mealRequested)board.setPlayerDiningPresent(v.id,mounted?.id===v.restSeatId&&near(p,v.diningPoint,.8));
    if(deskRequest&&['arriving','checkout'].includes(v.stage))desk(v);
    if(!['arriving','check-in','checkout','checkout-ready'].includes(v.stage)){releaseDesk(v);deskRequest=false;}

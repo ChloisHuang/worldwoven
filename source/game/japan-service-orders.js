@@ -18,9 +18,9 @@ export const JAPAN_BATH_BLENDS = Object.freeze([
  {id:'lantern-petal',name:'灯花浴包',color:0xc79080},
 ]);
 export const JAPAN_SERVICE_WORKERS = Object.freeze({
- register:['jp-welcome'], prepare:['jp-incense'],
+ register:['jp-welcome','jp-market-tea'], prepare:['jp-incense'],
  deliverMix:['jp-onsen','jp-women-onsen'], cook:['jp-ramen','jp-sushi'],
- serve:['jp-sushi','jp-ramen'], checkout:['jp-welcome'],
+ serve:['jp-sushi','jp-ramen'], checkout:['jp-welcome','jp-market-tea'],
 });
 const clone=value=>JSON.parse(JSON.stringify(value));
 const active=v=>!['departed','cancelled'].includes(v.stage);
@@ -182,7 +182,9 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   // A staff meal uses the same kitchen as orders. A pending break reserves it
   // after its current cook finishes, so a stream of visitors cannot starve it.
   holdWorkplace(resource,workerId) {
-   if(disposed||resource!=='kitchen'||!JAPAN_SERVICE_WORKERS.cook.includes(workerId)||workers.has(workerId))return false;
+   // Front-desk staff may serve themselves from the existing pot; this does
+   // not make them eligible to claim customer cooking or delivery orders.
+   if(disposed||resource!=='kitchen'||![...JAPAN_SERVICE_WORKERS.cook,...JAPAN_SERVICE_WORKERS.register].includes(workerId)||workers.has(workerId))return false;
    const key='staff:'+workerId;if(resources.has(resource)&&resources.get(resource)!==key)return false;
    resources.set(resource,key);staffResources.set(workerId,resource);return true;
   },
