@@ -16,14 +16,25 @@ export const FURNITURE_DESCRIPTORS={
 };
 // Real authored sleeping and bathing fixtures. Anchor Y stays on the navigation
 // floor; supportY is the actual mattress/basin bottom supporting the skinned pose.
+// Japan's closed onsen has a taller coping, a seat, and a low lumbar support.
+// Its camera must use these authored solids instead of a guessed water+.12 rim.
+function japanBathCameraParts(x,z,w,d){
+ const east=x+w/2,parts=[{minX:x-w/2,maxX:x+w/2,minY:3.8535,maxY:3.8805,minZ:z-d/2,maxZ:z+d/2}];
+ for(const side of[-1,1])parts.push({minX:x-(w+.38)/2,maxX:x+(w+.38)/2,minY:3.8,maxY:4.617,minZ:z+side*d/2-.20,maxZ:z+side*d/2+.20});
+ parts.push({minX:x-w/2-.14,maxX:x-w/2+.14,minY:3.8,maxY:4.52,minZ:z-d/2,maxZ:z+d/2},
+  {minX:east-.17,maxX:east+.17,minY:3.8,maxY:4.60,minZ:z-d/2,maxZ:z+d/2},
+  {minX:east-.70,maxX:east-.14,minY:3.8805,maxY:4.10,minZ:z-d/2+.14,maxZ:z+d/2-.14},
+  {minX:east-.22,maxX:east-.14,minY:4.10,maxY:4.50,minZ:z-d/2+.14,maxZ:z+d/2-.14});
+ return parts;
+}
 export const REST_BATH_DESCRIPTORS={
  china:[{kind:'bed',cameraParts:chinaDragonBedCameraParts(),worldLabel:'龙榻安寝',name:'静宜寝殿 · 雕龙龙榻',position:[-18.4,.215,-8.5],anchor:[-21.55,.215,-9],center:[-21,.2,-9],size:[4,3.1,4.2],yaw:0,supportY:1.055,lieOffset:.30,lieSupport:{hip:1.055,back:1.055,head:1.14,heel:1.055}},
  {kind:'bath',name:'竹苑石浴池',position:[-21.1,.215,-30],anchor:[-23.6,.215,-30],center:[-23.6,.2,-30],size:[3.3,1.15,4.3],yaw:Math.PI/2,supportY:.31,waterY:1.1625,bathHipHeight:.48}],
  france:[{kind:'bed',name:'皇家寝床',position:[5.16,.302,-2.1],anchor:[6.72,.302,-2.65],center:[7.55,.23,-2.65],size:[3.5,4.2,4.3],yaw:0,supportY:1.25,lieOffset:.72,lieSupport:{hip:1.25,back:1.25,head:1.31,heel:1.25}},
  {kind:'bath',name:'白金浴缸',position:[-20.34,.23,-10.2],anchor:[-22.55,.23,-10.2],center:[-22.55,.23,-10.2],size:[3.1,1.15,3.65],yaw:Math.PI/2,supportY:.425,waterY:1.205,bathHipHeight:.48}],
  japan:[{kind:'bed',name:'客室日式寝具',position:[2.48,7.6,-10.7],anchor:[4.4,7.6,-11.6],center:[4.4,7.6,-11.6],size:[2.36,.5,3.24],yaw:0,supportY:7.95,lieOffset:.54,lieSupport:{hip:7.95,back:7.992,head:8.026,heel:7.96}},
- {kind:'bath',name:'二层男汤温泉',position:[-2.1,3.8,-9.3],anchor:[-3.9,3.8,-9.3],center:[-6.55,3.8,-9.3],size:[7.5,.56,6.6],yaw:Math.PI/2,supportY:3.882,waterY:4.219,bathHipHeight:.32},
- {kind:'bath',name:'二层女汤温泉',position:[4.9,3.8,-9.7],anchor:[2.9,3.8,-9.7],center:[2.1,3.8,-9.7],size:[4,.56,6.6],yaw:Math.PI/2,supportY:3.882,waterY:4.219,bathHipHeight:.32}],
+ {kind:'bath',cameraTargetMinY:4.85,cameraParts:japanBathCameraParts(-6.55,-9.3,7.5,6.6),name:'二层男汤温泉',position:[-2.1,3.8,-9.3],anchor:[-3.22,3.8,-9.3],center:[-6.55,3.8,-9.3],size:[7.5,.82,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}},
+ {kind:'bath',cameraTargetMinY:4.85,cameraParts:japanBathCameraParts(2.1,-9.7,4,6.6),name:'二层女汤温泉',position:[4.9,3.8,-9.7],anchor:[3.68,3.8,-9.7],center:[2.1,3.8,-9.7],size:[4,.82,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}}],
  egypt:[{kind:'bed',name:'王室亚麻寝床',position:[18.48,0,-1.25],anchor:[19.8,0,-1.25],center:[20.4,0,-1.25],size:[2.65,3.4,4.1],yaw:0,supportY:.9,lieOffset:.48,lieSupport:{hip:.9,back:.9,head:1.056,heel:.9}},
  {kind:'bath',name:'王室石质浴池',position:[15.9,0,-1.05],anchor:[14.05,0,-1.05],center:[14.05,0,-1.05],size:[2.7,1.06,3.8],yaw:Math.PI/2,supportY:.305,waterY:.585,bathHipHeight:.32}]
 };
@@ -95,7 +106,7 @@ export function createFurnitureInteractions(lot,region,{curtains={},onCurtainCha
  const desc=FURNITURE_DESCRIPTORS[region];if(!desc)throw new Error('Unknown furniture region '+region);
  const root=new THREE.Group();root.name='R12 bounded furniture interactions';lot.group.add(root);
  const items=Object.entries(desc).map(([kind,d])=>({...d,id:region+'-furniture-'+kind,kind,furniture:true,action:kind==='seat'?'坐下休息':kind==='canopy'?'开合纱帐':'挑选服装',interactionRadius:2.1,position:d.position.slice()}));
- for(const [i,d]of REST_BATH_DESCRIPTORS[region].entries())items.push({...d,id:region+'-furniture-'+d.kind+'-'+i,furniture:true,action:d.kind==='bed'?(region==='china'?'龙榻安寝':'躺下休息'):'换浴衣泡澡',interactionRadius:2.1,position:d.position.slice()});
+ for(const [i,d]of REST_BATH_DESCRIPTORS[region].entries())items.push({...d,id:region+'-furniture-'+d.kind+'-'+i,furniture:true,action:d.kind==='bed'?(region==='china'?'龙榻安寝':'躺下休息'):d.bathWardrobePreset==='onsen-swimwear'?'换入浴衣着泡汤':'换浴衣泡澡',interactionRadius:2.1,position:d.position.slice()});
  const seat=items.find(i=>i.kind==='seat'),canopy=items.find(i=>i.kind==='canopy'),wardrobe=items.find(i=>i.kind==='wardrobe'),cloth=canopy?canopyGeometry(root,canopy,region):null;changingDetails(root,wardrobe,region);
  lot.group.updateMatrixWorld(true);const beddingMeshes=[];lot.group.traverse(o=>{if(o.isMesh&&!o.material.transparent)beddingMeshes.push(o);});const bedMeshes=new Map(),bedRay=new THREE.Raycaster();
  const options=(lot.heightAware||['japan','egypt'].includes(region))?{bounds:lot.bounds,surfaces:lot.walkableSurfaces,legacyGround:false,bodyHeight:1.95,maxStep:.4}:{bounds:lot.bounds,multilevel:false};
@@ -122,7 +133,7 @@ export function createFurnitureInteractions(lot,region,{curtains={},onCurtainCha
   bedSupportAt(item,x,z){if(!bedMeshes.has(item.id)){const bounds=boxOf(item);bounds.max.y=item.supportY+.28;bedMeshes.set(item.id,beddingMeshes.filter(m=>new THREE.Box3().setFromObject(m).intersectsBox(bounds)));}bedRay.set(new THREE.Vector3(x,item.supportY+.27,z),new THREE.Vector3(0,-1,0));const hit=bedRay.intersectObjects(bedMeshes.get(item.id),false).find(h=>h.point.y<=item.supportY+.24&&h.point.y>item.center[1]+.05);return hit?.point.y??item.supportY;},
   isVisible(item,origin,target,boxes){return cameraDistanceToObstacle(origin,target,boxes.filter(c=>!ownCameraBox(item,c)),0)>=origin.distanceTo(target)-.09;},
   nearbyClear(item,position,options,extra=[]){return Math.abs(position.y-item.position[1])<.45&&canTraverse(position,point(item.position),lot.colliders.concat(extra),{...options,radius:.34});},
-  markerPoint(item){return new THREE.Vector3(item.center[0],item.kind==='bed'?item.supportY+.5:item.kind==='bath'?item.waterY+.7:item.kind==='canopy'?Math.min(item.top-.22,item.center[1]+2.0):item.center[1]+Math.min(2.05,item.size[1]+.24),item.center[2]);},
+  markerPoint(item){if(item.bathPose)return new THREE.Vector3(item.position[0],item.position[1]+1.15,item.position[2]);return new THREE.Vector3(item.center[0],item.kind==='bed'?item.supportY+.5:item.kind==='bath'?item.waterY+.7:item.kind==='canopy'?Math.min(item.top-.22,item.center[1]+2.0):item.center[1]+Math.min(2.05,item.size[1]+.24),item.center[2]);},
   update(dt){if(disposed)return;const step=Math.min(1,Math.max(0,dt)*2.4);amount=target>amount?Math.min(target,amount+step):Math.max(target,amount-step);cloth?.set(amount);},
   toggleCurtain(){if(!cloth)return null;target=target?0:1;curtains[region]=!!target;onCurtainChange(region,!!target);return !!target;},
   curtainLabel:()=>!cloth?'':region==='china'?(target?'合上龙榻红纱帐':'拉开龙榻红纱帐'):target?'合上纱帐':'拉开纱帐',

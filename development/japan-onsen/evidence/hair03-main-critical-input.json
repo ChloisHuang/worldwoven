@@ -1,0 +1,15 @@
+{
+  "git": "3069c1d2959f55958f299b828aa1c3198779bdeb",
+  "SOURCE_ROOT": "/workspace/shared/worldwoven-r16-2-bath-candidate/source",
+  "affectedSourceHashes": {
+    "main.js": "9774565b37b074aa279f655bcbbb8d4fa05345cf522f1842a62d58148c7c1626",
+    "furniture-interactions.js": "f1286dc2ec9b247f0025e81fbec09722e3d5d83b883e31240820efa702175faa",
+    "approved-surfaces.js": "7f2829fddde315292973db6a54fbd5d10d5b80c53e924e0d0332b641235e2b65",
+    "characters.js": "601b6f4777a9145ac463bf23a05aac98a3816e44b120d630bf4982bf0f731009",
+    "japan-bathhouse.js": "fbba20bb8864a4155c71d14de2c98a1b77c080cfee7d9f4672698eac9fa2e6c2",
+    "room-closures.js": "3f2bf20f6f11523152e9a275aa8369b7b30ef960f5817551150e12bbd98003cc"
+  },
+  "probe": "development/bath-r16-2/check-onsen-braid-restore.cjs",
+  "probeSHA256": "c312159b283229f878ecc61a35ccd4ee3baf3c47f21eed0aa820f10b65a0aa0b",
+  "scope": "Key main restoration, actual low-bun versus long-braid mesh identity, halo/pulse and dry marker, default4.6/near2.1 entry/exit only"
+}

@@ -1,0 +1,232 @@
+{
+  "status": "PASS",
+  "scope": "Real production main list activation, touch and Escape exit, preview cancel, pending approach cancel, lot return and active-region change. Actual mounted low-bun meshes with original braided-tail ID; exact original braid vertex signature after exit/cancel/region change; saved appearance preservation, hidden/restored halo old navigation pulse cleanup, dry approach label anchor, hidden occupied label and restored projection on exit. Only default4.6m/common2.1m yaw0 pitch.22 enter/exit paths are traced (240 frames), no angle grid or four-country suite. Renderer stub; route pulse is seeded by actual production navigateTo.",
+  "productGit": "3069c1d2959f55958f299b828aa1c3198779bdeb",
+  "probeSHA256": "c312159b283229f878ecc61a35ccd4ee3baf3c47f21eed0aa820f10b65a0aa0b",
+  "resource": {
+    "status": "PASS",
+    "command": [
+      "node",
+      "--experimental-vm-modules",
+      "/workspace/shared/worldwoven-r16-2-bath-candidate/development/bath-r16-2/check-onsen-braid-restore.cjs"
+    ],
+    "exit": 0,
+    "seconds": 99.14439318499717,
+    "peakObservedTreeRSSBytes": 637214720,
+    "maxProcesses": 2,
+    "termination": null
+  },
+  "restorationEvents": [
+    {
+      "stage": "mounted japan-furniture-bath-1",
+      "status": "PASS",
+      "braidSHA256": "3026501a69653e175517f4f65c1f632a9ff08077a8d60586db227e142a1669c2",
+      "hairParts": [
+        "hair-bun-sweep--1",
+        "hair-bun-sweep-1",
+        "hair-low-bun"
+      ],
+      "halo": false
+    },
+    {
+      "stage": "japan-furniture-bath-1 default touch exit",
+      "status": "PASS",
+      "braidSHA256": "4c12561a8ba3224892aac82f6fff1bd8b9e1dc68fe3d46c86b4e11b4e28e09aa",
+      "hairParts": [
+        "hair-braid-tie",
+        "hair-braid-weave--1",
+        "hair-braid-weave-1",
+        "hair-braided-tail"
+      ],
+      "halo": true
+    },
+    {
+      "stage": "mounted japan-furniture-bath-1",
+      "status": "PASS",
+      "braidSHA256": "3026501a69653e175517f4f65c1f632a9ff08077a8d60586db227e142a1669c2",
+      "hairParts": [
+        "hair-bun-sweep--1",
+        "hair-bun-sweep-1",
+        "hair-low-bun"
+      ],
+      "halo": false
+    },
+    {
+      "stage": "japan-furniture-bath-1 near touch exit",
+      "status": "PASS",
+      "braidSHA256": "4c12561a8ba3224892aac82f6fff1bd8b9e1dc68fe3d46c86b4e11b4e28e09aa",
+      "hairParts": [
+        "hair-braid-tie",
+        "hair-braid-weave--1",
+        "hair-braid-weave-1",
+        "hair-braided-tail"
+      ],
+      "halo": true
+    },
+    {
+      "stage": "mounted japan-furniture-bath-1",
+      "status": "PASS",
+      "braidSHA256": "3026501a69653e175517f4f65c1f632a9ff08077a8d60586db227e142a1669c2",
+      "hairParts": [
+        "hair-bun-sweep--1",
+        "hair-bun-sweep-1",
+        "hair-low-bun"
+      ],
+      "halo": false
+    },
+    {
+      "stage": "japan-furniture-bath-1 Escape cancel",
+      "status": "PASS",
+      "braidSHA256": "4c12561a8ba3224892aac82f6fff1bd8b9e1dc68fe3d46c86b4e11b4e28e09aa",
+      "hairParts": [
+        "hair-braid-tie",
+        "hair-braid-weave--1",
+        "hair-braid-weave-1",
+        "hair-braided-tail"
+      ],
+      "halo": true
+    },
+    {
+      "stage": "mounted japan-furniture-bath-1",
+      "status": "PASS",
+      "braidSHA256": "3026501a69653e175517f4f65c1f632a9ff08077a8d60586db227e142a1669c2",
+      "hairParts": [
+        "hair-bun-sweep--1",
+        "hair-bun-sweep-1",
+        "hair-low-bun"
+      ],
+      "halo": false
+    },
+    {
+      "stage": "japan-furniture-bath-1 clothing-preview cancel",
+      "status": "PASS",
+      "braidSHA256": "4c12561a8ba3224892aac82f6fff1bd8b9e1dc68fe3d46c86b4e11b4e28e09aa",
+      "hairParts": [
+        "hair-braid-tie",
+        "hair-braid-weave--1",
+        "hair-braid-weave-1",
+        "hair-braided-tail"
+      ],
+      "halo": true
+    },
+    {
+      "stage": "japan-furniture-bath-1 pending approach cancel",
+      "status": "PASS",
+      "braidSHA256": "4c12561a8ba3224892aac82f6fff1bd8b9e1dc68fe3d46c86b4e11b4e28e09aa",
+      "hairParts": [
+        "hair-braid-tie",
+        "hair-braid-weave--1",
+        "hair-braid-weave-1",
+        "hair-braided-tail"
+      ],
+      "halo": true
+    },
+    {
+      "stage": "mounted japan-furniture-bath-2",
+      "status": "PASS",
+      "braidSHA256": "3026501a69653e175517f4f65c1f632a9ff08077a8d60586db227e142a1669c2",
+      "hairParts": [
+        "hair-bun-sweep--1",
+        "hair-bun-sweep-1",
+        "hair-low-bun"
+      ],
+      "halo": false
+    },
+    {
+      "stage": "japan-furniture-bath-2 touch exit",
+      "status": "PASS",
+      "braidSHA256": "4c12561a8ba3224892aac82f6fff1bd8b9e1dc68fe3d46c86b4e11b4e28e09aa",
+      "hairParts": [
+        "hair-braid-tie",
+        "hair-braid-weave--1",
+        "hair-braid-weave-1",
+        "hair-braided-tail"
+      ],
+      "halo": true
+    },
+    {
+      "stage": "mounted japan-furniture-bath-1",
+      "status": "PASS",
+      "braidSHA256": "3026501a69653e175517f4f65c1f632a9ff08077a8d60586db227e142a1669c2",
+      "hairParts": [
+        "hair-bun-sweep--1",
+        "hair-bun-sweep-1",
+        "hair-low-bun"
+      ],
+      "halo": false
+    },
+    {
+      "stage": "leave and reenter Japan",
+      "status": "PASS",
+      "braidSHA256": "4c12561a8ba3224892aac82f6fff1bd8b9e1dc68fe3d46c86b4e11b4e28e09aa",
+      "hairParts": [
+        "hair-braid-tie",
+        "hair-braid-weave--1",
+        "hair-braid-weave-1",
+        "hair-braided-tail"
+      ],
+      "halo": true
+    },
+    {
+      "stage": "mounted japan-furniture-bath-1",
+      "status": "PASS",
+      "braidSHA256": "3026501a69653e175517f4f65c1f632a9ff08077a8d60586db227e142a1669c2",
+      "hairParts": [
+        "hair-bun-sweep--1",
+        "hair-bun-sweep-1",
+        "hair-low-bun"
+      ],
+      "halo": false
+    },
+    {
+      "stage": "change region while soaking",
+      "status": "PASS",
+      "braidSHA256": "4c12561a8ba3224892aac82f6fff1bd8b9e1dc68fe3d46c86b4e11b4e28e09aa"
+    }
+  ],
+  "camera": {
+    "frames": 240,
+    "failures": 0,
+    "maxStep": 0.10675525852333616,
+    "minDistance": 2.094339063374457,
+    "views": [
+      {
+        "id": "japan-furniture-bath-1",
+        "distance": 4.6,
+        "camera": [
+          -3.2199910024741296,
+          5.853859479574096,
+          -4.810871733079216
+        ],
+        "target": [
+          -3.2199982836049945,
+          4.850000612998216,
+          -9.3
+        ],
+        "visible": true,
+        "near": 0.2,
+        "fov": 50
+      },
+      {
+        "id": "japan-furniture-bath-1",
+        "distance": 2.1,
+        "camera": [
+          -3.2199910024741296,
+          5.308285421871923,
+          -7.25061535640573
+        ],
+        "target": [
+          -3.2199982836049945,
+          4.850000612998216,
+          -9.3
+        ],
+        "visible": true,
+        "near": 0.2,
+        "fov": 50
+      }
+    ]
+  },
+  "labelChecks": "Both pool markers were asserted at the dry approach +1.15m, hidden while mounted and visible again in a valid dry-approach projection after exit.",
+  "rawLocalReport": "qa/hair03-main-critical.json",
+  "notCovered": "A fully animated climb/step across the pool curb remains separate B03 work."
+}

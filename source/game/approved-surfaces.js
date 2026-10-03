@@ -48,7 +48,7 @@ function faceD(x,y,traits=null){
   +.009*n*G(0,1.568,.013*w,.039)+.016*n*G(0,1.548,.017*w,.015*n)
   +.003*n*G(0,1.539,.019*w,.009*n)+.007*G(0,1.508,.023,.012);
 }
-function buildHead(g,masc=false,hairStyle=masc?'swept-short':'chin-bob',traits=null){
+function buildHead(g,masc=false,hairStyle=masc?'swept-short':'chin-bob',traits=null,onsenBoundBraid=false){
  const facialSurface=(x,y)=>headSurface(x,y,masc,traits);
  const h=new THREE.Group();h.name='sculpted-head';g.add(h);
  const rings=[[1.455,.012,.021,0,.004],[1.468,masc?.044:.037,.052,0,.002],[1.49,masc?.071:.062,.067,0,0],[1.525,.079,.073,0,-.002],[1.57,.088,.075,0,-.003],[1.62,.087,.077,0,-.004],[1.663,.072,.065,0,-.006],[1.692,.044,.042,0,-.008],[1.707,.001,.001,0,-.008]];
@@ -78,9 +78,9 @@ function buildHead(g,masc=false,hairStyle=masc?'swept-short':'chin-bob',traits=n
  const lipW=masc?.022:.023;
  for(const upper of [true,false])patch(h,upper?'upper-lip':'lower-lip',(u,v)=>{const x=(u*2-1)*lipW;const f=Math.sin(u*Math.PI);const seam=1.512-.0025*f+.0008*Math.cos(u*4*Math.PI);const y=seam+(upper?1:-1)*f*(upper?.0033:.0038)*v;return[x,y,facialSurface(x,y)+.0015+.0018*Math.sin(v*Math.PI)];},C.lip,32,6);
  const mouth=[];for(let i=0;i<=24;i++){const u=i/24,x=(u*2-1)*lipW,y=1.512-.0025*Math.sin(u*Math.PI)+.0008*Math.cos(u*4*Math.PI);mouth.push([x,y,facialSurface(x,y)+.002]);}tube(h,'closed-soft-mouth',mouth,.00075,C.mouth,5);
- buildHair(h,masc,hairStyle);return h;
+ buildHair(h,masc,hairStyle,onsenBoundBraid);return h;
 }
-function buildHair(h,masc,style='chin-bob'){
+function buildHair(h,masc,style='chin-bob',onsenBoundBraid=false){
  const short=style==='swept-short'||style==='side-part',bob=style==='chin-bob',long=style==='shoulder-wave',tied=style==='low-bun'||style==='braided-tail';
  const top=style==='side-part'?1.733:1.739;
  // Six genuinely different outlines share the original smooth, swept surface language.
@@ -110,7 +110,9 @@ function buildHair(h,masc,style='chin-bob'){
   loft(h,'tapered-side-lock-'+side,[[end,.006,.021,side*.100,-.026],[end+.045,.018,.043,side*.101,-.019],[1.54,.021,.042,side*.092,-.015],[1.63,.013,.025,side*.080,-.006]],C.hair,{segs:16,steps:18});
   ribbon(h,'side-flow-'+side,[[side*.097,1.61,.015],[side*.112,1.53,.014],[side*.115,end+.03,.002]],.0024,C.hairMid);
  }
- if(style==='low-bun'){
+ // The long braid is tied up for soaking using the existing compact bun.
+ // Keep the original style through the head/shell construction and saved ID.
+ if(style==='low-bun'||onsenBoundBraid&&style==='braided-tail'){
   loft(h,'hair-low-bun',[[1.493,.003,.005,0,-.110],[1.505,.040,.031,0,-.123],[1.542,.057,.041,0,-.127],[1.575,.044,.037,0,-.116],[1.588,.004,.008,0,-.100]],C.hair,{segs:24,steps:18});
   for(const side of[-1,1])ribbon(h,'hair-bun-sweep-'+side,[[side*.065,1.61,-.074],[side*.064,1.563,-.097],[side*.036,1.523,-.153]],.0027,C.hairMid);
  }else if(style==='braided-tail'){
@@ -173,6 +175,21 @@ function buildYukata(g){
  }
 
  for(const m of g.children)if(m.isMesh&&['inner-collar','outer-collar','lapel-binding','front-overlap-seam','willow-stem','willow-leaf'].includes(m.name))conformFront(m,yukataProfile,m.name==='outer-collar'?.007:m.name==='lapel-binding'?.009:.0045);
+}
+
+// Temporary, opaque one-piece swimwear. The closed torso and fitted shorts
+// remain covered above and below water, without a heavy folded robe at the lap.
+function buildOnsenSwimwear(g){
+ const cloth=0x536e7b,trim=0xc3d9d0;
+ loft(g,'onsen-swim-body',[[.922,.163,.113,0,-.008],[1.01,.158,.104,0,-.006],[1.10,.145,.087,0,-.003],[1.22,.158,.090,0,-.007],[1.31,.186,.079,0,-.013],[1.36,.139,.063,0,-.006],[1.397,.051,.039,0,.001]],cloth,{segs:40,steps:38});
+ for(const s of[-1,1]){
+  loft(g,'onsen-trouser-'+s,[[.558,.069,.063,s*.089,-.010],[.62,.075,.070,s*.089,-.010],[.79,.084,.078,s*.083,-.009],[.96,.083,.079,s*.075,-.013],[1.014,.075,.068,s*.07,-.012]],cloth,{segs:30,steps:28});
+  loft(g,'bare-leg-onsen-'+s,[[.106,.031,.036,s*.089,-.021],[.26,.043,.045,s*.089,-.017],[.44,.052,.048,s*.089,-.013],[.57,.062,.060,s*.088,-.01]],C.skin,{segs:24,steps:28});
+  loft(g,'bare-arm-onsen-'+s,[[.916,.021,.023,s*.303,0],[1.01,.030,.030,s*.297,-.002],[1.092,.039,.036,s*.28,-.006],[1.19,.045,.041,s*.254,-.006],[1.28,.052,.048,s*.204,-.01],[1.326,.048,.046,s*.173,-.011],[1.343,.031,.035,s*.151,-.01]],C.skin,{segs:24,steps:30});
+  hand(g,s);
+  loft(g,'footwear-bath-bare-'+s,[[.025,.001,.002,s*.089,.04],[.035,.045,.105,s*.089,.04],[.06,.050,.114,s*.089,.04],[.10,.033,.053,s*.089,-.01],[.15,.026,.034,s*.089,-.021]],C.skin,{segs:24,steps:16});
+ }
+ loft(g,'onsen-collar-binding',[[1.383,.065,.044,0,.001],[1.397,.052,.040,0,.001]],trim,{segs:24,steps:4});
 }
 
 function removeSurfaces(g,test){const removed=[];g.traverse(m=>{if(m.isMesh&&test(m.name))removed.push(m);});for(const m of removed){m.removeFromParent();m.geometry.dispose();}}
@@ -368,9 +385,10 @@ export function createApprovedSurfaces({culture=null,masc=false,style='casual',b
  C.iris=new THREE.Color(eyeColor).getHex();C.skinLight=tone(C.skin,1.08);C.skinShadow=tone(C.skin,.74);C.lip=new THREE.Color(C.skin).lerp(new THREE.Color(0x8e454d),.48).getHex();C.mouth=tone(C.lip,.69);C.hairMid=tone(C.hair,1.32);C.hairLight=tone(C.hair,1.52);C.brow=tone(C.hair,.9);C.obi=culture==='egypt'?0xbd9c48:culture==='china'?0xb69b56:culture==='france'?0xa68d53:0x34495a;C.pattern=culture==='egypt'?0x4d9198:new THREE.Color(C.yukata).lerp(new THREE.Color(0xd6dfbc),.56).getHex();
  // R9 individual Egyptian dye survives both tailoring presets.
  if(culture==='egypt')C.yukata=new THREE.Color(C.yukata).lerp(new THREE.Color(0xe2d7b9),.28).getHex();
- const root=new THREE.Group();buildHead(root,masc,hairStyle,traits);
+ const root=new THREE.Group();buildHead(root,masc,hairStyle,traits,culture==='japan'&&wardrobePreset==='onsen-swimwear'&&hairStyle==='braided-tail');
  // Temporary opaque ankle-length bath robe; saved cultural outfits remain untouched.
- if(wardrobePreset==='bath-robe'){
+ if(culture==='japan'&&wardrobePreset==='onsen-swimwear')buildOnsenSwimwear(root);
+ else if(wardrobePreset==='bath-robe'){
   buildJapan(root,masc,masc?'yukata-narrow-obi':'yukata-wide-obi');removeSurfaces(root,n=>/footwear|sole-|loafer/.test(n));
   for(const side of[-1,1])loft(root,'footwear-bath-bare-'+side,[[.025,.001,.002,side*.089,.04],[.035,.045,.105,side*.089,.04],[.06,.050,.114,side*.089,.04],[.10,.033,.053,side*.089,-.01],[.15,.026,.034,side*.089,-.021]],C.skin,{segs:24,steps:16});
  }
