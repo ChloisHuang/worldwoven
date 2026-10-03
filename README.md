@@ -1,3 +1,7 @@
+# Private R17 WIP checkpoint, not published
+
+See [R17-WIP.md](R17-WIP.md) for recovery status and incomplete acceptance. The release documentation below describes the preserved R16 baseline, not acceptance of these R17 changes.
+
 # Worldwoven · 四方生活
 
 An original cel-shaded cultural life and exploration game. The repository name supports more regions in future; the current public game includes Japan, China, Egypt and France.
