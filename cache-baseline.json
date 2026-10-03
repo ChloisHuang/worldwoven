@@ -1,5 +1,5 @@
 {
-  "publishedSourceCommit": "61d55d7932cc5c0a287e230e096652037a4a33a9",
+  "publishedSourceCommit": "04a0e3479f777eb014a98f9090fc5df9c8c9b17c",
   "assets": [
     "/assets/movement-runtime.a07dd501e74cfebf.js",
     "/assets/geometry.accd26d9fe1820ba.js",
@@ -7,7 +7,7 @@
     "/assets/navigation.d22f45cd94d968b8.js",
     "/assets/camera.7b6fc625c07138fc.js",
     "/assets/floor-support.5f5df2cde18b6e23.js",
-    "/assets/furniture-interactions.50db1d508e542433.js",
+    "/assets/furniture-interactions.67c2cb0f50a6375d.js",
     "/assets/automatic-routing.1b023912e70ad51c.js",
     "/assets/room-closures.e2db68a63184caef.js",
     "/assets/automatic-doors.6a409f2487b14f32.js",
@@ -17,8 +17,9 @@
     "/assets/appearance.6931d01064bfc906.js",
     "/assets/globe.24e1c856bb2ded7c.js",
     "/assets/inset-closures.cb69abcbff455774.js",
-    "/assets/china-palace.33ce706cafcc7875.js",
-    "/assets/regions-east.908cd8be91349b4c.js",
+    "/assets/china-royal-seating.5f5ed229caedc8f4.js",
+    "/assets/china-palace.d7dc3a29c5a25c2b.js",
+    "/assets/regions-east.c8c3bd11d0b46dce.js",
     "/assets/japan-futon.d1ff9cbfc4dbfa98.js",
     "/assets/japan-shoji.15bc33d5fa5a0c4b.js",
     "/assets/japan-furnishings.1ebebff154862976.js",
@@ -31,7 +32,7 @@
     "/assets/approved-surfaces.349f05502cf5e44a.js",
     "/assets/character-props.deb24f9b65d5e60a.js",
     "/assets/characters.2cebfe3fdc06caa9.js",
-    "/assets/main.c33147ea5330d430.js",
+    "/assets/main.a7d9c609be8c7d38.js",
     "/assets/game.bcd28e6aaa90b201.css",
     "/assets/three.core.9edde002b066a9a0.js",
     "/assets/three.module.d8c0a97fa13a785e.js"

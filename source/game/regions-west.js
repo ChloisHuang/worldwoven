@@ -1,5 +1,6 @@
 import {addInsetClosureSection} from './inset-closures.js';
 import {registerNightFixture} from './night-lighting.js';
+import {addRoyalGardenBench,addGardenTree,addFlowerShrub,addGardenHedge} from './france-garden.js';
 import * as G from './geometry.js?rev=R7-20261002';
 const { THREE } = G;
 
@@ -1053,7 +1054,8 @@ export function buildFrance({pack=true}={}){
 
   function urn(x,z,s=.8){
     block(x,.48,z,1.10,.72,1.10,C.white);G.box(group,x,.88,z,.88,.13,.88,C.gold);G.vessel(group,x,.96,z,C.white,s);
-    for(let i=0;i<8;i++){let a=i*2.4,xx=x+Math.sin(a)*.27,zz=z+Math.cos(a)*.27;G.cyl(group,xx,1.81,zz,.012,.014,.75,C.green,5);G.sphere(group,xx,2.13+Math.sin(i)*.1,zz,.18,C.white,1,.8,1);G.sphere(group,xx+.09,1.95,zz,.17,C.sage,.8,1.7,.7);}
+    if(z>3.5||z<-13.5)addFlowerShrub(group,x,z,{base:.96+s*.62,scale:.95,seed:Math.round(Math.abs(x+z))});
+    else for(let i=0;i<8;i++){let a=i*2.4,xx=x+Math.sin(a)*.27,zz=z+Math.cos(a)*.27;G.cyl(group,xx,1.81,zz,.012,.014,.75,C.green,5);G.sphere(group,xx,2.13+Math.sin(i)*.1,zz,.18,C.white,1,.8,1);G.sphere(group,xx+.09,1.95,zz,.17,C.sage,.8,1.7,.7);}
   }
   box(0,-.5,0,60,1,80,0x729466);cameraBox(0,-.5,0,60,1,80);
   // Palace plan: four substantial chambers, axial gallery, two enfilade links.
@@ -1200,12 +1202,12 @@ export function buildFrance({pack=true}={}){
   feetTable(group,colliders,6.3,1.93,3.1,.82,C.gold,1.10);box(6.3,1.19,1.93,3.20,.11,.90,C.white);cameraBox(6.3,.82,1.93,3.2,1.19,.9);const dressing=local(6.3,2.30,Math.PI);mirror(dressing,0,2.32,0,1.30,1.98);
   G.vessel(group,7.35,1.245,1.85,C.green,.36);for(let i=0;i<3;i++)box(5.05,1.29+i*.065,1.85,.55,.059,.46,[C.white,C.sage,C.green][i]);
   // Formal parterres, garden pool and a classical afternoon-tea loggia.
-  const hedge=(x,z,w,d)=>{block(x,.42,z,w,.75,d,C.green);box(x,.80,z,w-.08,.075,d-.08,0x678b5a);};
+  const hedge=(x,z,w,d)=>{addGardenHedge(group,x,z,w,d);G.collider(colliders,x,z,w,d);cameraBox(x,.42,z,w,.75,d);};
   for(const [x,z,w,d]of [[-7.1,8.8,6.2,.40],[-7.1,13.8,6.2,.40],[-10.0,11.3,.40,5],[-4.2,11.3,.40,5],[-7.1,16.9,7.4,.40],[6.75,16.9,8.1,.40],[-11.95,11.6,.45,11.0],[11.95,11.6,.45,11.0]])hedge(x,z,w,d);
   box(-7.1,.049,11.3,5.4,.042,4.2,0x90a47c);
   G.cyl(group,-7.1,.26,11.3,1.82,1.95,.47,C.white,32);G.cyl(group,-7.1,.54,11.3,1.61,1.61,.08,C.sage,32);G.cyl(group,-7.1,.59,11.3,1.48,1.48,.035,0x9ed0bf,32);G.torus(group,-7.1,.62,11.3,1.65,.095,C.gold);
   G.cyl(group,-7.1,1.0,11.3,.21,.39,.87,C.white,16);G.cyl(group,-7.1,1.52,11.3,.71,.21,.24,C.white,20);G.cyl(group,-7.1,1.66,11.3,.57,.57,.04,0xa6d2c4,24);G.sphere(group,-7.1,1.91,11.3,.23,C.gold,.7,1.4,.7);G.collider(colliders,-7.1,11.3,3.9,3.9);cameraBox(-7.1,1.01,11.3,3.9,2.05,3.9);
-  for(const [x,z]of [[-10.9,7.15],[10.9,7.15],[-10.9,15.5],[10.9,15.5]]){G.cyl(group,x,.41,z,.57,.64,.74,C.white,12);G.cyl(group,x,1.33,z,.095,.10,1.2,C.gold,8);G.sphere(group,x,2.29,z,.85,C.green,.83,1.08,.83);G.collider(colliders,x,z,1.2,1.2);}
+  for(const [x,z]of [[-10.9,7.15],[10.9,7.15],[-10.9,15.5],[10.9,15.5]]){G.cyl(group,x,.41,z,.57,.64,.74,C.white,12);addGardenTree(group,x,z,{base:.77,scale:.52,seed:Math.round(Math.abs(x+z))});G.collider(colliders,x,z,1.2,1.2);}
   box(6.65,.08,10.65,6.3,.16,6.5,C.ivory);cameraBox(6.65,.08,10.65,6.3,.16,6.5);
   for(const x of [3.72,9.58])for(const z of [7.55,13.75])column(x,z,3.60);
   for(const x of [3.72,9.58])box(x,4.06,10.65,.43,.20,6.66,C.white,roofGroup);
@@ -1217,7 +1219,7 @@ export function buildFrance({pack=true}={}){
   royalTeaLoggia();
   for(const x of [-2.4,2.4])urn(x,6.45,.70);
   // Rear terrace and clipped trees complete a full loop outside the pavilion.
-  for(const x of [-9,-5,5,9]){G.cyl(group,x,.34,-16.70,.58,.66,.65,C.white,12);G.cyl(group,x,1.18,-16.70,.085,.1,1.6,C.gold,8);G.sphere(group,x,2.43,-16.70,.96,C.green,.85,1.03,.85);G.collider(colliders,x,-16.7,1.35,1.35);}
+  for(const x of [-9,-5,5,9]){G.cyl(group,x,.34,-16.70,.58,.66,.65,C.white,12);addGardenTree(group,x,-16.70,{base:.67,scale:.58,seed:Math.abs(x)});G.collider(colliders,x,-16.7,1.35,1.35);}
   const stations=[
     {id:'france-bakery',name:'宫廷糕点房',action:'烘烤法式面包',position:[-5.3,0,-9.05],playerWorkTarget:[-5.3,1.30,-9.65],color:'#b6cbb5',workTarget:[-5.7,1.30,-10.15],npcName:'卡米耶',npcAction:'cook',npcLabel:'准备宫廷面包与糕点',npcPosition:[-6.95,0,-10.55],route:[[-7.1,0,-10.55],[-6.8,0,-8.1]]},
     {id:'france-atelier',name:'皇家艺术书斋',action:'描绘宫苑的光影',position:[7.1,0,-9.25],color:'#97bba0',workTarget:[7.1,1.95,-10.90],npcName:'卢西安',npcAction:'paint',npcLabel:'调色与观察宫苑光线',npcPosition:[5.55,0,-9.4],route:[[5.55,0,-9.4],[4.3,0,-9.4]]},
@@ -1311,22 +1313,21 @@ export function buildFrance({pack=true}={}){
     for(const z of [21.2,32.1])for(const x of [s*11,s*21.3]){
       const w=7.2,d=7.0;box(x,.08,z,w,.10,d,0x8fa878);
       for(const zz of [z-d/2,z+d/2])hedge(x,zz,w,.39);for(const xx of [x-w/2,x+w/2])hedge(xx,z,.39,d);
-      for(let k=0;k<8;k++){let a=k*Math.PI/4;G.sphere(group,x+Math.sin(a)*1.7,.67,z+Math.cos(a)*1.7,.36,k%2?C.white:C.sage,1.4,.55,1.4);}
-      G.vessel(group,x,.20,z,C.ivory,.9);G.sphere(group,x,1.40,z,.62,C.green,1,1,1);G.collider(colliders,x,z,1.1,1.1);
+      for(let k=0;k<8;k++){const a=k*Math.PI/4;addFlowerShrub(group,x+Math.sin(a)*1.7,z+Math.cos(a)*1.7,{scale:1.16,seed:k});}
+      G.vessel(group,x,.20,z,C.ivory,.9);addFlowerShrub(group,x,z,{base:.83,scale:1.02,seed:Math.round(Math.abs(x+z))});G.collider(colliders,x,z,1.1,1.1);
     }
     const px=s*12.2,pz=-25.3;block(px,.22,pz,8.4,.43,9.2,C.ivory);box(px,.465,pz,7.75,.08,8.55,0x9cc4b2);for(const z of [pz-4.25,pz+4.25])box(px,.54,z,8.35,.14,.22,C.gold);
     for(const z of [-33,-17.5,10,18.5,27,35]){
-      const x=s*27.3;G.cyl(group,x,1.77,z,.16,.25,3.3,0x928e68,10);G.box(group,x,3.75,z,2.45,2.2,2.45,C.green);G.box(group,x,4.91,z,2.05,.23,2.05,0x6b8c5c);G.collider(colliders,x,z,1.1,1.1);
+      const x=s*27.3;addGardenTree(group,x,z,{scale:1.07,seed:Math.round(Math.abs(z))+Number(s>0)});G.collider(colliders,x,z,1.1,1.1);
     }
     for(const z of [19.4,27.2,-19.6,-33.2]){
       // The former front bench crossed the parterre hedge; the rear bench
       // enclosed a potted lime. Put both on clear paths and at sitting height.
-      const x=s*5.15,q=assembly(local(x,z),'Royal garden stone bench','garden-bench');
-      for(const zz of[-1.03,1.03])G.box(q,0,.15,zz,.80,.26,.32,C.ivory);
-      G.box(q,0,.43,0,.88,.34,2.86,C.ivory);G.box(q,0,.645,0,.93,.10,2.94,C.sage);G.box(q,s*.415,1.00,0,.12,.81,2.98,C.white);
+      const x=s*5.15,q=assembly(local(x,z),'Royal garden scroll iron bench','garden-bench');
+      addRoyalGardenBench(q,s);
       q.userData.supportY=.02;q.userData.seatTopLocal=.695;
       G.collider(colliders,x,z,.95,2.98);cameraBox(x,.7125,z,.95,1.385,2.98);
-      group.userData.gardenBenches??=[];group.userData.gardenBenches.push({id:`france-garden-bench-${s}-${z}`,name:'宫苑石长椅',center:[x,0,z],anchor:[x-s*.27,0,z],position:[x-s*1.10,0,z],yaw:-s*Math.PI/2,seatY:.695,size:[.95,1.405,2.98],cameraStyle:'garden-bench',cameraParts:[{minX:x-.465,maxX:x+.465,minY:.02,maxY:.70,minZ:z-1.49,maxZ:z+1.49},{minX:x+(s<0?-.475:.355),maxX:x+(s<0?-.355:.475),minY:.595,maxY:1.405,minZ:z-1.49,maxZ:z+1.49}]});
+      group.userData.gardenBenches??=[];group.userData.gardenBenches.push({id:`france-garden-bench-${s}-${z}`,name:'宫苑铸铁木条长椅',center:[x,0,z],anchor:[x-s*.27,0,z],position:[x-s*1.10,0,z],yaw:-s*Math.PI/2,seatY:.695,size:[.95,1.405,2.98],cameraStyle:'garden-bench',cameraParts:[{minX:x-.465,maxX:x+.465,minY:.02,maxY:.70,minZ:z-1.49,maxZ:z+1.49},{minX:x+(s<0?-.475:.355),maxX:x+(s<0?-.355:.475),minY:.595,maxY:1.405,minZ:z-1.49,maxZ:z+1.49}]});
     }
     for(const z of [36.9,-36.9])urn(s*3.1,z,.8);
   }
