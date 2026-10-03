@@ -79,12 +79,12 @@ const POLICY={
   'descending-passage-mouth':['open','Ramp entrance must stay free of a moving closure'],
   'burial-chamber-portal':['open','Tomb exploration sequence and sloped landing'],
   'judgment-hall-entry':['open','Public ritual/exploration room'],
-  'private-suite-entry':['door','Private royal reception suite has two-sided decorated timber doors'],
+  'private-suite-entry':['door','Private royal reception suite has two-sided timber leaves and rebated jambs within the stone wall'],
   'private-bedroom':['full-curtain','Inner sleeping room uses opaque linen drapes'],
   'upper-throne-entry':['open','Ceremonial throne approach meets the stair landing'],
   'dining-entry':['half-curtain','Dining/service suite arrival uses split linen'],
   'kitchen-entry':['half-curtain','Dining-to-kitchen working transition uses split linen'],
-  'storage-entry':['door','Enclosed supply room uses a simple timber closure'],
+  'storage-entry':['door','Enclosed supply room uses an inset timber closure joined to the storage wall'],
   'private-bath-entry':['full-curtain','Private inner bathing room uses opaque full linen drapes']
  },
  france:{
