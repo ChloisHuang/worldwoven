@@ -56,13 +56,18 @@ const angles={front:0,threequarter:Math.PI/4,side:Math.PI/2,'left-side':-Math.PI
 const camera=new T.OrthographicCamera(-.212,.212,.212,-.212,.01,10),gameCamera=new T.PerspectiveCamera(50,1,.2,150);
 const baselineStyles={'natural-side-sweep':'side-part'};
 function preservation(actor){
- const body=crypto.createHash('sha256');
- const headNames=/continuous-head|^ear-|inset-eye|iris-|pupil-|eye-catchlight|eyelid-|soft-brow|nostril-|lip|mouth|hair|fringe|combed|side-lock|side-flow/;
+ const body=crypto.createHash('sha256'),collar=crypto.createHash('sha256'),bones=[];
+ const headNames=/continuous-head|^neck$|^ear-|inset-eye|iris-|pupil-|eye-catchlight|eyelid-|soft-brow|nostril-|lip|mouth|hair|fringe|combed|side-lock|side-flow/;
  actor.root.traverse(m=>{if(!m.isSkinnedMesh)return;for(const r of m.geometry.userData.sourceRanges||[]){
+  if(r.name==='neck'){
+   const p=m.geometry.attributes.position,si=m.geometry.attributes.skinIndex,sw=m.geometry.attributes.skinWeight;
+   for(let i=r.start;i<r.start+r.count;i++)if(p.getY(i)<=1.421){collar.update(JSON.stringify([p.getX(i),p.getY(i),p.getZ(i),...Array.from(si.array.subarray(i*4,i*4+4)),...Array.from(sw.array.subarray(i*4,i*4+4))]));}
+  }
   if(headNames.test(r.name))continue;body.update(r.name);
   for(const k of['position','normal','color','skinIndex','skinWeight']){const a=m.geometry.attributes[k],v=a.array.subarray(r.start*a.itemSize,(r.start+r.count)*a.itemSize);body.update(Buffer.from(v.buffer,v.byteOffset,v.byteLength));}
  }});
- return {bodyAndNeck:body.digest('hex'),appearance:actor.root.userData.appearance,bones:actor.root.userData.head.parent.children.filter(x=>x.isBone).map(x=>[x.name,x.position.toArray()])};
+ actor.root.traverse(x=>{if(x.isBone)bones.push([x.name,x.position.toArray(),x.quaternion.toArray()]);});
+ return {bodyExcludingUpperNeck:body.digest('hex'),collarPositionsAndWeights:collar.digest('hex'),appearance:actor.root.userData.appearance,bones};
 }
 try{
  for(const style of STYLES)for(const variant of(process.env.VARIANTS||'baseline,prototype').split(',')){
@@ -85,7 +90,7 @@ try{
   }
   actor.root.removeFromParent();actor.dispose();assert.equal(C.characterResourceStats().activeReferences,0);
  }
- if(report.preserved.baseline&&report.preserved.prototype)assert.deepEqual(report.preserved.baseline,report.preserved.prototype,'Body/neck geometry, rig or appearance identity changed');
+ if(report.preserved.baseline&&report.preserved.prototype)assert.deepEqual(report.preserved.baseline,report.preserved.prototype,'Body geometry outside the approved upper-neck edit, rig or appearance identity changed');
  report.sourceUnchanged=JSON.stringify(before)===JSON.stringify(manifest());assert(report.sourceUnchanged);
  assert.equal(sha(fs.readFileSync(ROOT+'/natural-head.mjs')),prototypeSHA);assert.equal(report.errors.length,0);
  report.status='RENDERED_PENDING_VISUAL_REVIEW';

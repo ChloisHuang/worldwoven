@@ -35,12 +35,23 @@ export function sculptHeadPoint(x,y,z) {
   const seam=smooth(1.478,1.526,y);
   const front=smooth(-.052,.055,z);
   const forehead=.0075*G(y,1.640,.053);
-  const cheek=.0036*G(y,1.550,.031)*(G(x,-.052,.031)+G(x,.052,.031));
+  const cheek=.0080*G(y,1.550,.036)*(G(x,-.052,.036)+G(x,.052,.036));
   const posterior=profile(POSTERIOR_DELTA,y)*smooth(1.455,1.474,y);
   const dz=posterior*(1-front)+seam*(forehead*front+cheek*front);
-  const dx=Math.sign(x)*.0018*G(y,1.552,.031)*smooth(.018,.070,Math.abs(x))*seam;
-  const dy=y>1.620?profile(CROWN_PROFILE,y)-Math.min(y,1.707):0;
+  const dx=Math.sign(x)*(.0024*G(y,1.552,.036)-.0035*G(y,1.483,.023))*smooth(.018,.070,Math.abs(x))*seam;
+  // The mandibular underside rises gently toward the ear instead of keeping
+  // the chin-height ring horizontal all the way around the back of the jaw.
+  const jawRise=.019*G(y,1.491,.036)*smooth(.026,-.065,z)*smooth(1.455,1.478,y);
+  const dy=(y>1.620?profile(CROWN_PROFILE,y)-Math.min(y,1.707):0)+jawRise;
   return [x+dx,y+dy,z+dz];
+}
+
+function sculptUpperNeckPoint(x,y,z){
+  const blend=smooth(1.421,1.481,y);
+  // Collar contact stays fixed. Above it, the neck leans toward the mastoid and
+  // widens into the jaw. Its buried top extends inside the jaw; total character
+  // height and skeleton attachments stay fixed.
+  return[x*(1+.20*blend),y+.026*blend,z-.014*blend];
 }
 
 function material(color){return {color:new THREE.Color(color),skin:false,isMaterial:false};}
@@ -130,9 +141,21 @@ export function applyNaturalHead(root,{hair=0x44342f,bald=false,heightMap=y=>y}=
   head.traverse(m=>{
     if(!m.isMesh||/cook-.*cap|artist-beret|garden-straw/.test(m.name))return;
     const p=m.geometry.attributes.position;
-    for(let i=0;i<p.count;i++)p.setXYZ(i,...sculptHeadPoint(p.getX(i),p.getY(i),p.getZ(i)));
+    for(let i=0;i<p.count;i++){
+      const y=m.geometry.attributes.sourceY?.getX(i)??p.getY(i),point=sculptHeadPoint(p.getX(i),y,p.getZ(i));
+      p.setXYZ(i,point[0],heightMap(point[1]),point[2]);
+    }
     p.needsUpdate=true;m.geometry.computeVertexNormals();m.geometry.computeBoundingBox();m.geometry.computeBoundingSphere();
   });
+  const neck=root.getObjectByName('neck');
+  if(neck){
+    const p=neck.geometry.attributes.position;
+    for(let i=0;i<p.count;i++){
+      const y=neck.geometry.attributes.sourceY?.getX(i)??p.getY(i),point=sculptUpperNeckPoint(p.getX(i),y,p.getZ(i));
+      p.setXYZ(i,point[0],heightMap(point[1]),point[2]);
+    }
+    p.needsUpdate=true;neck.geometry.computeVertexNormals();neck.geometry.computeBoundingBox();neck.geometry.computeBoundingSphere();
+  }
   if(!bald)naturalSweep(head,hair);
   for(const m of head.children)if(m.isMesh&&m.userData.originalHeadStudy){
     const a=m.geometry.attributes.position,sy=new Float32Array(a.count);

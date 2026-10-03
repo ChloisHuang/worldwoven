@@ -6,7 +6,7 @@ The first target is one modest asymmetric short side sweep, on masculine and fem
 
 The real reference pixels were inspected in the existing research images for [sims芮芮, 音](https://www.sglynp.com/t171393), [Penny / ppkkcmdj, 艾琳娜](https://www.sglynp.com/t142324), and [sophialeila, near-profile study](https://www.sglynp.com/t72891). Visual structure only: no reference image, creator mesh, texture or likeness is included or reused.
 
-The isolated renderer imports production Three.js, body, rig and materials through an in-memory hook. Only the prototype head geometry changes. Source IDs, saved identities, appearance scoring, clothing, body and neck are outside this edit. Role hats are not fitted or accepted by this prototype.
+The isolated renderer imports production Three.js, body, rig and materials through an in-memory hook. Only the prototype head and upper-neck geometry changes. Source IDs, saved identities, appearance scoring, clothing, the lower neck/collar contact and rig are outside this edit. Role hats are not fitted or accepted by this prototype.
 
 Review criterion: actual front, true side, three-quarter and game-distance images, with one masculine and one feminine example. Neither an appearance score nor geometry counts establish visual acceptance.
 
@@ -28,4 +28,12 @@ PRESENTATION=male VIEWS=front,threequarter,side,game-near,game-default \
 node prototypes/natural-head/render.mjs
 ```
 
-The resource-window variable asserts coordination, not enforcement. Runtime paths and generated images are not bundled. This is a neutral-height design prototype: fitting non-neutral body height traits, role hats, all costumes and movement transitions remains integration work after art acceptance. The existing appearance IDs, trait definitions and saved identity logic have not been edited.
+The resource-window variable asserts coordination, not enforcement. Runtime paths and generated images are not bundled. This is a neutral-head design prototype: fitting role hats, all costumes, non-neutral trait limits and movement transitions remains integration work after art acceptance. Existing sourceY/height mapping is retained, and the appearance IDs, trait definitions and saved identity logic have not been edited.
+
+## Head/jaw/neck follow-up
+
+The parent visually reviewed the short side sweep and asked to keep this direction. The hair geometry is retained. The next narrow pass broadens cheek curvature into the sides, softens the low jaw width, and raises the mandibular underside gently toward the ear. The upper neck now widens and tilts back into the jaw, with its top buried inside the head. This is a real neck-surface edit; it is not described as unchanged. Geometry at and below 1.421m and the collar positions stay fixed, as do bone positions, body geometry and saved appearance identity. The total height is still established by the unchanged hair crown.
+
+`evidence/face-review-male` and `evidence/face-review-female` show the requested neutral front/true-side samples. The intermediate neck notch was rejected and closed by extending the hidden upper neck into the jaw. Those images use the same ordinary lights and production toon materials. Final checks also retain the lower-neck position/weight signature and all bone transforms. No new eye, nose or lip modeling was included in this pass. Acceptance remains pending; no production integration or publication.
+
+Review status: this head/neck candidate is NOT accepted; the side-view nape and neck became over-sloped. Preserve only as a WIP comparison, not a production asset.
