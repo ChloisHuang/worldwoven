@@ -1,7 +1,7 @@
 {
-  "release": "R16.21-public",
+  "release": "R16.22-public",
   "date": "2026-10-03",
-  "baseGameCommit": "264dce32589c701cd09938d164ff289f86bc5858",
+  "baseGameCommit": "580475ab8ca0be92ed85ae0cde1c9676b45ade93",
   "assets": {
     "game/movement-runtime.js": "/assets/movement-runtime.a07dd501e74cfebf.js",
     "game/geometry.js": "/assets/geometry.accd26d9fe1820ba.js",
@@ -42,12 +42,13 @@
     "game/japan-bathhouse.js": "/assets/japan-bathhouse.71b89690a720c965.js",
     "game/france-garden.js": "/assets/france-garden.33c1b609bb4b6330.js",
     "game/regions-west.js": "/assets/regions-west.87d58f44a67ea4bd.js",
-    "game/egypt-temple.js": "/assets/egypt-temple.a8ec1ccab5f85f1c.js",
+    "game/egypt-ritual-sculpture.js": "/assets/egypt-ritual-sculpture.81dc6b40cd7deb83.js",
+    "game/egypt-temple.js": "/assets/egypt-temple.ef7db758858d7467.js",
     "game/head-shape.js": "/assets/head-shape.f7c0134832111278.js",
     "game/approved-surfaces.js": "/assets/approved-surfaces.ecf07c012d487053.js",
     "game/character-props.js": "/assets/character-props.deb24f9b65d5e60a.js",
     "game/characters.js": "/assets/characters.fb0a18ddc3cf6f91.js",
-    "game/main.js": "/assets/main.c96b186f446c2a60.js",
+    "game/main.js": "/assets/main.4ceee2df1583a45e.js",
     "game/game.css": "/assets/game.bcd28e6aaa90b201.css",
     "vendor/three/build/three.core.js": "/assets/three.core.9edde002b066a9a0.js",
     "vendor/three/build/three.module.js": "/assets/three.module.d8c0a97fa13a785e.js"
