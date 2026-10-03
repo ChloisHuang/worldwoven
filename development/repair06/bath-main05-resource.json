@@ -1,0 +1,13 @@
+{
+  "status": "FAIL",
+  "command": [
+    "node",
+    "--experimental-vm-modules",
+    "/workspace/shared/worldwoven-r17-bath-repair/check-bath-main-camera.cjs"
+  ],
+  "exit": 1,
+  "seconds": 159.2575270489997,
+  "peakObservedTreeRSSBytes": 485642240,
+  "maxProcesses": 2,
+  "termination": null
+}

@@ -1,0 +1,120 @@
+--- a/source/game/main.js
++++ b/source/game/main.js
+@@ -178,7 +178,12 @@
+ function applyCameraDepth(planes){if(camera.near!==planes.near||camera.far!==planes.far){camera.near=planes.near;camera.far=planes.far;camera.updateProjectionMatrix();}}
+ function updateCamera(dt,instant=false){const aspect=innerWidth/innerHeight;if(mode==='globe'){applyCameraDepth(cameraClipPlanes({mode:'globe'}));const d=(aspect<.8?31:aspect<1.1?24:19)*globeZoom;desiredCamera.set(0,1.5,d);const smallLandscape=matchMedia('(pointer: coarse)').matches&&innerWidth>innerHeight&&innerHeight<650;const target=new THREE.Vector3(smallLandscape?3.2:0,aspect<.8?-.25:-1.05,0);camera.position.lerp(desiredCamera,instant?1:Math.min(1,dt*5));camera.lookAt(target);}else if(player){
+  if(roofShown){const sphere=lot.overviewSphere,vertical=THREE.MathUtils.degToRad(camera.fov),horizontal=2*Math.atan(Math.tan(vertical/2)*camera.aspect),fit=sphere.radius/Math.sin(Math.min(vertical,horizontal)/2)*1.12;applyCameraDepth(cameraClipPlanes({overviewDistance:fit,overviewRadius:sphere.radius}));followTarget.copy(sphere.center);camTarget.lerp(followTarget,instant?1:Math.min(1,dt*6));desiredCamera.set(camTarget.x+Math.sin(yaw)*.645*fit,camTarget.y+.764*fit,camTarget.z+Math.cos(yaw)*.645*fit);camera.position.lerp(desiredCamera,instant?1:Math.min(1,dt*6));player.root.visible=true;}
+- else{followTarget.copy(player.root.position).add(new THREE.Vector3(0,(outfitPreview.state().open?previewTargetHeight():seated?Math.min(1.45,player.getPoseMetrics().headHeight-.12):performing?.playerAction==='kotatsu'?1.05:1.45)+(player.poseContext?.visualFloorOffset||0),0));camTarget.lerp(followTarget,instant?1:Math.min(1,dt*12));desiredCamera.set(camTarget.x+Math.sin(yaw)*Math.cos(pitch)*distance,camTarget.y+Math.sin(pitch)*distance,camTarget.z+Math.cos(yaw)*Math.cos(pitch)*distance);const seatSolids=seated?furniture.seatCameraSolids(cameraSolids,seated):cameraSolids,clear=resolveCameraPosition(camTarget,desiredCamera,seatSolids,.18);const candidate=camera.position.clone().lerp(clear,instant?1:Math.min(1,dt*14));camera.position.copy(resolveCameraPosition(camTarget,candidate,seatSolids,.18));player.root.visible=camera.position.distanceTo(camTarget)>.8;applyCameraDepth(cameraClipPlanes({cameraDistance:camera.position.distanceTo(camTarget)}));}
++ else{followTarget.copy(player.root.position).add(new THREE.Vector3(0,(outfitPreview.state().open?previewTargetHeight():seated?Math.min(1.45,player.getPoseMetrics().headHeight-.12):performing?.playerAction==='kotatsu'?1.05:1.45)+(player.poseContext?.visualFloorOffset||0),0));
++ // A seated onsen head is close to a real raised coping. Keep the authored
++ // focus above its camera-volume clearance before the usual smooth lerp;
++ // the ordinary standing target resumes as soon as the bath is exited.
++ if(Number.isFinite(seated?.cameraTargetMinY))followTarget.y=Math.max(followTarget.y,seated.cameraTargetMinY);
++ camTarget.lerp(followTarget,instant?1:Math.min(1,dt*12));desiredCamera.set(camTarget.x+Math.sin(yaw)*Math.cos(pitch)*distance,camTarget.y+Math.sin(pitch)*distance,camTarget.z+Math.cos(yaw)*Math.cos(pitch)*distance);const seatSolids=seated?furniture.seatCameraSolids(cameraSolids,seated):cameraSolids,clear=resolveCameraPosition(camTarget,desiredCamera,seatSolids,.18);const candidate=camera.position.clone().lerp(clear,instant?1:Math.min(1,dt*14));camera.position.copy(resolveCameraPosition(camTarget,candidate,seatSolids,.18));player.root.visible=camera.position.distanceTo(camTarget)>.8;applyCameraDepth(cameraClipPlanes({cameraDistance:camera.position.distanceTo(camTarget)}));}
+  camera.lookAt(camTarget);
+  }}
+ 
+--- a/source/game/japan-bathhouse.js
++++ b/source/game/japan-bathhouse.js
+@@ -390,7 +390,11 @@
+   for(const [cx,w,col]of [[-6.5,10.3,0x345a59],[3,7.5,0x846057]]){
+    G.box(f,cx,2.13,-14.79,w,1.72,.055,col);
+    for(let i=0;i<9;i++){const xx=cx-w*.43+i*w*.105;G.sphere(f,xx,1.72+(i%3)*.15,-14.74,.66,[0x708f7b,0x456f68,0xadb797][i%3],1,.6,.036);cloud(f,xx,2.55,-14.68,.68);}
+-   lantern(f,cx,3,-9.3,false,.32);
++   const lampStart=f.children.length;lantern(f,cx,3,-9.3,false,.32);
++   // The onsen orbit can reach these pendants. Use each real bulb/hoop/cap/
++   // suspension component, not a guessed solid box spanning the whole lamp.
++   f.updateWorldMatrix(true,false);
++   for(const part of f.children.slice(lampStart)){part.updateWorldMatrix(true,true);const b=new THREE.Box3().setFromObject(part);cameraColliders.push({minX:b.min.x,maxX:b.max.x,minY:b.min.y,maxY:b.max.y,minZ:b.min.z,maxZ:b.max.z,fixture:'onsen-pendant',cameraOnly:true});}
+   }
+   bench(f,y,-7.7,7.55,4.0);bench(f,y,4.9,7.55,3.1);
+   target('bath-foyer','Shared bath foyer',0,y,6.8);target('men-changing','Men changing and basket lockers',-8.8,y,1.6);target('women-changing','Women changing and basket lockers',4.6,y,1.45);
+--- a/source/game/furniture-interactions.js
++++ b/source/game/furniture-interactions.js
+@@ -33,8 +33,8 @@
+  france:[{kind:'bed',name:'皇家寝床',position:[5.16,.302,-2.1],anchor:[6.72,.302,-2.65],center:[7.55,.23,-2.65],size:[3.5,4.2,4.3],yaw:0,supportY:1.25,lieOffset:.72,lieSupport:{hip:1.25,back:1.25,head:1.31,heel:1.25}},
+  {kind:'bath',name:'白金浴缸',position:[-20.34,.23,-10.2],anchor:[-22.55,.23,-10.2],center:[-22.55,.23,-10.2],size:[3.1,1.15,3.65],yaw:Math.PI/2,supportY:.425,waterY:1.205,bathHipHeight:.48}],
+  japan:[{kind:'bed',name:'客室日式寝具',position:[2.48,7.6,-10.7],anchor:[4.4,7.6,-11.6],center:[4.4,7.6,-11.6],size:[2.36,.5,3.24],yaw:0,supportY:7.95,lieOffset:.54,lieSupport:{hip:7.95,back:7.992,head:8.026,heel:7.96}},
+- {kind:'bath',cameraParts:japanBathCameraParts(-6.55,-9.3,7.5,6.6),name:'二层男汤温泉',position:[-2.1,3.8,-9.3],anchor:[-3.22,3.8,-9.3],center:[-6.55,3.8,-9.3],size:[7.5,.82,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}},
+- {kind:'bath',cameraParts:japanBathCameraParts(2.1,-9.7,4,6.6),name:'二层女汤温泉',position:[4.9,3.8,-9.7],anchor:[3.68,3.8,-9.7],center:[2.1,3.8,-9.7],size:[4,.82,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}}],
++ {kind:'bath',cameraTargetMinY:4.85,cameraParts:japanBathCameraParts(-6.55,-9.3,7.5,6.6),name:'二层男汤温泉',position:[-2.1,3.8,-9.3],anchor:[-3.22,3.8,-9.3],center:[-6.55,3.8,-9.3],size:[7.5,.82,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}},
++ {kind:'bath',cameraTargetMinY:4.85,cameraParts:japanBathCameraParts(2.1,-9.7,4,6.6),name:'二层女汤温泉',position:[4.9,3.8,-9.7],anchor:[3.68,3.8,-9.7],center:[2.1,3.8,-9.7],size:[4,.82,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}}],
+  egypt:[{kind:'bed',name:'王室亚麻寝床',position:[18.48,0,-1.25],anchor:[19.8,0,-1.25],center:[20.4,0,-1.25],size:[2.65,3.4,4.1],yaw:0,supportY:.9,lieOffset:.48,lieSupport:{hip:.9,back:.9,head:1.056,heel:.9}},
+  {kind:'bath',name:'王室石质浴池',position:[15.9,0,-1.05],anchor:[14.05,0,-1.05],center:[14.05,0,-1.05],size:[2.7,1.06,3.8],yaw:Math.PI/2,supportY:.305,waterY:.585,bathHipHeight:.32}]
+ };
+--- a/source/game/room-closures.js
++++ b/source/game/room-closures.js
+@@ -9,8 +9,8 @@
+   'jp-women-noren':['half-curtain','Retain the fixed women’s noren and existing offset privacy screen; no duplicate closure'],
+   'jp-men-wet-threshold':['full-curtain','Changing to bathing: full split cloth keeps the wet area private'],
+   'jp-women-wet-threshold':['full-curtain','Changing to bathing: full split cloth keeps the wet area private'],
+-  'jp-men-pool-entry':['open','Pool curb is a walk-in water entry, not a room wall'],
+-  'jp-women-pool-entry':['open','Pool curb is a walk-in water entry, not a room wall'],
++  'jp-men-pool-entry':['open','Open poolside approach to a supported bathing action; the retaining basin wall is not an ordinary walking passage'],
++  'jp-women-pool-entry':['open','Open poolside approach to a supported bathing action; the retaining basin wall is not an ordinary walking passage'],
+   'jp-library-open-nook':['open','Reading nook is part of the public kotatsu gathering floor'],
+   'jp-guest-suite-door':['door','Sleeping suite needs opaque two-sided shoji privacy'],
+   'jp-laundry-stair-foyer-door':['half-curtain','Linen workroom transition uses split service cloth, clear of stair mouth'],
+@@ -92,7 +92,7 @@
+  france:{
+   'front-entry':['door','Formal exterior paired panel doors'],
+   'rear-entry':['door','Rear exterior gallery envelope gets matching paired doors'],
+-  'gallery-west-rear':['half-curtain','Pastry/service room entry uses a gathered service textile'],
++  'gallery-west-rear':['half-curtain','Pastry/service room entry uses a fixed hanging service textile'],
+   'gallery-west-front':['open','Public salon and mirror-gallery reception sequence'],
+   'gallery-east-rear':['open','Public art/study-gallery sequence'],
+   'gallery-east-front':['door','Bedroom-to-gallery opening requires full panel-door privacy'],
+@@ -124,14 +124,11 @@
+  // French private-bath leaves swing into bare .23m orangery slab;
+  // bath tiles stop at z=-6.99 and the orangery rug starts at z=-4.65.
+  'wing-enfilade--1':{bottomClearance:.012},
+- 'jp-men-noren':{at:5.12},'jp-women-noren':{at:5.12},
+- // Clear the partition's real raised lattice face by 25mm at full travel.
+- 'jp-guest-suite-door':{at:-7.70,sideOverlap:SHOJI_SIDE_OVERLAP},
+- 'jp-operator-door':{at:-.70,bottomClearance:.012,sideOverlap:SHOJI_SIDE_OVERLAP},'jp-staff-room-door':{at:-.70,bottomClearance:.012,sideOverlap:SHOJI_SIDE_OVERLAP},
++ // Source-authored pocket metadata owns the wall plane and side overlap.
++ 'jp-guest-suite-door':{sideOverlap:SHOJI_SIDE_OVERLAP},
++ 'jp-operator-door':{bottomClearance:.012,sideOverlap:SHOJI_SIDE_OVERLAP},'jp-staff-room-door':{bottomClearance:.012,sideOverlap:SHOJI_SIDE_OVERLAP},
+  'private-suite-entry':{bottomClearance:.012},
+- 'cn-hall-west':{at:-11.46},'cn-bedroom-east':{at:-15.54},
+- 'cn-archive-west':{at:-10.54},'cn-guest-west':{at:15.54},
+- 'core-wing-1--5':{at:11.22,bottomClearance:.012},
++ 'core-wing-1--5':{bottomClearance:.012},
+  'storage-entry':{bottomClearance:.012},
+  'front-entry':{at:3.5},'private-bath-entry':{at:16.4},
+  'dining-entry':{at:-5.85},'kitchen-entry':{at:-12.25}
+@@ -155,9 +152,9 @@
+  'cn-north-gate':['hinge',-1,'Inward compound gate with hinge pins within its .65 m masonry reveal'],
+  'cn-west-gate':['hinge',-1,'Inward compound gate with hinge pins within its .65 m masonry reveal'],
+  'cn-east-gate':['hinge',1,'Inward compound gate with hinge pins within its .65 m masonry reveal'],
+- 'jp-guest-suite-door':['slide',0,'Retain shoji motion; guest screen and public side gallery make a swing unnecessary'],
+- 'jp-operator-door':['slide',0,'Timber lattice office door slides clear of the narrow working gallery'],
+- 'jp-staff-room-door':['slide',0,'Sleeping-room shoji stays out of the shared working gallery and bunk approach'],
++ 'jp-guest-suite-door':['slide',0,'Paired shoji retract into authored hollow partition pockets, clear of the guest screen and public gallery'],
++ 'jp-operator-door':['slide',0,'Timber lattice office door retracts into the actual hollow partition, clear of the working gallery'],
++ 'jp-staff-room-door':['slide',0,'Sleeping-room shoji retracts into the actual partition pockets, clear of the working gallery and bunk approach'],
+  'jp-washroom-cubicle-1':['hinge',1,'Inward timber cubicle leaves use the empty front of the stall; the WC is farther north'],
+  'jp-washroom-cubicle-2':['hinge',1,'Inward timber cubicle leaves use the empty front of the stall; no outward sweep across the sink aisle'],
+  'jp-washroom-cubicle-3':['hinge',1,'Inward timber cubicle leaves use the empty front of the stall; no outward sweep across the sink aisle'],
+@@ -189,7 +186,7 @@
+  'enfilade-east':['hinge',1,'Retain tested bedroom enfilade panel-door sweep'],
+  'wing-entry--1--9.5':['hinge',1,'French bath panels swing inward/west; outward swing would hit service-arcade columns'],
+  'wing-enfilade--1':['hinge',-1,'Retain tested private-bath/orangery panel-door sweep'],
+- 'core-wing-1--5':['slide',0,'Use a surface-track panel on the arcade face: outward swing hits columns and inward swing approaches the bedpost']
++ 'core-wing-1--5':['slide',0,'An authored in-wall pocket keeps the bedroom closure within its rebuilt reveal and clear of arcade columns and the bedpost']
+ };
+ const FIXED_BANNERS={
+  japan:[
+@@ -216,8 +213,11 @@
+   // Preserve its authored opening top; the rigid engine still subtracts25mm there.
+   const fix=PLANES[t.id]||{},legacy=LEGACY[t.id]||{},bottom=fix.bottom??t.floorFit?.bottom??Math.max(t.a[1],t.b[1]);
+   const wallPlane=t.at??(axis==='x'?(t.a[2]+t.b[2])/2:(t.a[0]+t.b[0])/2),closureMount=t.closureMount??fix.closureMount,at=closureMount?.wallPlane??fix.at??wallPlane;
++  if(p[0]==='door'&&!t.closureMount)throw new Error('Rigid opening lacks an authored inset section: '+region+'/'+t.id);
++  if(p[0]==='door'&&closureMount.kind!==(choice[0]==='slide'?'pocket':'hinge'))throw new Error('Door motion and source inset section disagree: '+t.id);
++  const interactionApproach=t.id==='jp-men-pool-entry'||t.id==='jp-women-pool-entry';
+   const lateral=t.from!==undefined?(t.from+t.to)/2:axis==='x'?(t.a[0]+t.b[0])/2:(t.a[2]+t.b[2])/2;
+-  return {id:legacy.id||t.id,openingId:t.id,kind:p[0],rationale:p[1],rooms:t.rooms||[],center:axis==='x'?[lateral,bottom,at]:[at,bottom,lateral],axis,closureMount:closureMount?{...closureMount,wallPlane:closureMount.wallPlane??wallPlane}:undefined,revealDepth:closureMount?.revealDepth??closureMount?.wallDepth,surfaceTrack:choice?.[0]==='slide'&&closureMount?.kind!=='pocket',trackMountOffset:at-wallPlane,width:t.width,sideOverlap:closureMount?.sideOverlap??fix.sideOverlap??0,bottomClearance:fix.bottomClearance??t.floorFit?.runningGap??0,height:t.floorFit?t.floorFit.top-bottom:fix.height??legacy.height??(t.top!==undefined?t.top-bottom:t.height),style:STYLE[region],motion:p[0]==='open'?'none':fixedOverhead?'fixed-overhead':p[0].includes('curtain')?'gather':choice[0],existingBanner,motionRationale:fixedOverhead?'Fixed hanging textile stays above actor height and never gathers automatically':p[0].includes('curtain')?'Gathered fabric stays at the jambs and has no rigid leaf swing':choice?.[2]||'Intentionally open circulation',operable:p[0]!=='open'&&!fixedOverhead,...(choice?.[1]?{swing:choice[1]}:{}),source:region==='japan'?'japan-bathhouse.js':region==='china'?'china-palace.js':region==='egypt'?'egypt-temple.js':'regions-west.js'};
++  return {id:legacy.id||t.id,openingId:t.id,kind:p[0],openingRole:interactionApproach?'interaction-approach':'structural-aperture',apertureWidth:interactionApproach?null:t.width,rationale:p[1],rooms:t.rooms||[],center:axis==='x'?[lateral,bottom,at]:[at,bottom,lateral],axis,closureMount:closureMount?{...closureMount,wallPlane:closureMount.wallPlane??wallPlane}:undefined,revealDepth:closureMount?.revealDepth??closureMount?.wallDepth,surfaceTrack:choice?.[0]==='slide'&&closureMount?.kind!=='pocket',trackMountOffset:at-wallPlane,width:t.width,sideOverlap:closureMount?.sideOverlap??fix.sideOverlap??0,bottomClearance:fix.bottomClearance??t.floorFit?.runningGap??0,height:t.floorFit?t.floorFit.top-bottom:fix.height??legacy.height??(t.top!==undefined?t.top-bottom:t.height),style:STYLE[region],motion:p[0]==='open'?'none':fixedOverhead?'fixed-overhead':p[0].includes('curtain')?'gather':choice[0],existingBanner,motionRationale:fixedOverhead?'Fixed hanging textile stays above actor height and never gathers automatically':p[0].includes('curtain')?'Gathered fabric stays at the jambs and has no rigid leaf swing':choice?.[2]||'Intentionally open circulation',operable:p[0]!=='open'&&!fixedOverhead,...(choice?.[1]?{swing:choice[1]}:{}),source:region==='japan'?'japan-bathhouse.js':region==='china'?'china-palace.js':region==='egypt'?'egypt-temple.js':'regions-west.js'};
+  });
+ }
+ export function roomClosureSpecs(lot,region){
