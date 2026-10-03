@@ -1,0 +1,93 @@
+{
+  "source": "/workspace/scratch/1eb6172ab681/fourfang-public-alien/source",
+  "inputHashes": {
+    "china-palace.js": "2676f10b9aa9b8b2c1dd4a8b6a020c11a273fcd0bc40b971a65d708ed3085708",
+    "regions-east.js": "9063560d2d022f62bab7454d8e22158549e385192fc6a534449ff5a94ed0a2ac",
+    "automatic-doors.js": "fb6993b1d4074d085c5b2701618b241824fa64520043cbcd9d4052fee2e95264",
+    "room-closures.js": "34e7c459a723faa3b6038730d43777bac2b72613f181102359e17e74529320e4",
+    "stable-shadows.js": "20c3f208ed1e1e9ee7e98bdd5a88f5a9c79fbfefbeb365952b72f7f773bfb493"
+  },
+  "renderer": {
+    "display": {
+      "backend": "egl",
+      "vendor": "Mesa Project",
+      "version": "1.5",
+      "extensions": "EGL_ANDROID_blob_cache EGL_EXT_config_select_group EGL_EXT_create_context_robustness EGL_EXT_image_dma_buf_import EGL_EXT_image_dma_buf_import_modifiers EGL_EXT_query_reset_notification_strategy EGL_EXT_surface_compression EGL_KHR_cl_event2 EGL_KHR_config_attribs EGL_KHR_context_flush_control EGL_KHR_create_context EGL_KHR_create_context_no_error EGL_KHR_fence_sync EGL_KHR_get_all_proc_addresses EGL_KHR_gl_colorspace EGL_KHR_gl_renderbuffer_image EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_3D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_image_base EGL_KHR_no_config_context EGL_KHR_reusable_sync EGL_KHR_surfaceless_context EGL_EXT_pixel_format_float EGL_KHR_wait_sync EGL_MESA_configless_context EGL_MESA_gl_interop EGL_MESA_query_driver EGL_MESA_x11_native_visual_id ",
+      "surfaceless": true,
+      "dynamic": true,
+      "angle": false,
+      "api": "gles",
+      "glVersion": 0
+    },
+    "unmasked": "llvmpipe (LLVM 19.1.7, 256 bits)"
+  },
+  "scope": "Exact R16 production China wall geometry and door module, fixed human-height inspection cameras, not browser or controller input",
+  "frames": [
+    {
+      "name": "south-oblique",
+      "camera": [
+        3.8,
+        2.1,
+        39.5
+      ],
+      "target": [
+        0,
+        2.1,
+        37.5
+      ],
+      "sha256": "d44106f05c81f3d98051a99aa7bc8de1085090e6ac34ad701e44f5c54e10d691",
+      "calls": 164,
+      "triangles": 1150928
+    },
+    {
+      "name": "north-oblique",
+      "camera": [
+        2.5,
+        2.1,
+        -39.5
+      ],
+      "target": [
+        0,
+        2.1,
+        -37.5
+      ],
+      "sha256": "be0b64d5de672dbab39b6af05adba6c4977c3b8f24e05953be9af0b695eea4a2",
+      "calls": 185,
+      "triangles": 1225252
+    },
+    {
+      "name": "west-oblique",
+      "camera": [
+        -29.8,
+        2.1,
+        -16.3
+      ],
+      "target": [
+        -28,
+        2.1,
+        -18
+      ],
+      "sha256": "0d068e9480d42c5b708b114df684a70e851f899293c64ae3ac2e64955e8f980e",
+      "calls": 168,
+      "triangles": 1043046
+    },
+    {
+      "name": "east-oblique",
+      "camera": [
+        29.8,
+        2.1,
+        -19.7
+      ],
+      "target": [
+        28,
+        2.1,
+        -18
+      ],
+      "sha256": "60e9876428d089fce847e05f2c3c60572e79f9ab021149f895160d956a581a12",
+      "calls": 206,
+      "triangles": 1322652
+    }
+  ],
+  "errors": [],
+  "status": "RENDERED_PENDING_REVIEW"
+}

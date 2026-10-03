@@ -1,0 +1,18 @@
+{
+  "time": "2026-10-03T07:08Z",
+  "status": "syntax-checked, candidate02 contact/render pending",
+  "source": "/workspace/shared/worldwoven-r17-repairs/source",
+  "files": {
+    "japan-bathhouse.js": "8bb94c9d43c445fe7d5e713ce76a5e04b452e3cb1cc97de450914bf7ee88e15c",
+    "furniture-interactions.js": "080b8a1534a8c8130661a4c3cd876776b9b29809e56522eb47c282eae896062b",
+    "characters.js": "75fed2ba7fa5c65354426082fc85c4ad56016832dd84bba36ef92b6dcf99c88e",
+    "approved-surfaces.js": "49b3eb8c72a57de9fb3c0c0072a564d2d827f7851e96fc6677c8a31e942e7844",
+    "main.js": "9747b519ce1f102a69dd93e9b31e039b4acf02fffb2d91edc0e116eac2d1ef8d"
+  },
+  "scripts": {
+    "render-bath.mjs": "8cf56c6853f17ba60881fda49f5cde5c06405c61510433b229b412269ce0be26",
+    "probe-bath-vertices.mjs": "9f50abd008a2f8d25bbbb621c66cbc671803abdc34bc209f961bdcefb81b7747",
+    "check-bath-contact.mjs": "de89b4bcf34cdb6566b84f23345b2769a5fd233c65e9ace301765cbcc2b1d120"
+  },
+  "delta": "Water4.54 to4.47; real8cm lumbar support top4.50, face8cm in front of retainingwall; fitback only belowactualsupporttop; preserveoriginalhead/hair, seat4.10 andbottom3.8805. Original24cases retained, added shoulder waterline/wholehair-wall clearance/lumbarpenetration probes. Original candidate01 FAIL retained."
+}

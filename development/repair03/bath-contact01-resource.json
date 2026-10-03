@@ -1,0 +1,12 @@
+{
+  "status": "FAIL",
+  "command": [
+    "node",
+    "/workspace/shared/worldwoven-r17-bath-repair/check-bath-contact.mjs"
+  ],
+  "exit": 1,
+  "seconds": 4.6247652320003,
+  "peakObservedTreeRSSBytes": 497377280,
+  "maxProcesses": 2,
+  "termination": null
+}
