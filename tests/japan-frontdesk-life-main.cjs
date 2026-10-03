@@ -72,7 +72,7 @@ exports.run=async({state,T,Orders,furniture,doors,frame,until,card,key,report})=
   // restore only state/claims, without building a second full scene.
   for(const look of looks.filter(x=>!x.id.startsWith('jp-visitor-')))assert.equal(JSON.stringify(state.npcs.find(n=>n.station.id===look.id).root.userData.appearance),look.appearance,look.id+' identity unchanged');
   const before=state.japanService.state(),staffIds=['jp-ramen','jp-sushi','jp-welcome','jp-market-tea'];state.disposeLot();
-  const saved=state.saved.japanOperations;assert.equal(saved.staffLife.version,2);assert.equal(saved.staffLife.next,3);assert.equal(saved.staffLife.completed,3);assert.equal(saved.staffLife.interrupted,1);
+  const saved=state.saved.japanOperations;assert.equal(saved.staffLife.version,3);assert.equal(saved.staffLife.next,3);assert.equal(saved.staffLife.completed,3);assert.equal(saved.staffLife.interrupted,1);
   assert.equal(furniture.facilities.state().some(f=>f.reservations.some(r=>staffIds.includes(r.actor))||f.queue.some(id=>staffIds.includes(id))),false);
   const restored=Orders.createJapanServiceOrders({saved,worldSeed:1});assert.equal(restored.state().claims.length,0);assert.equal(restored.state().nextVisit,before.nextVisit);restored.dispose();
   report.status='PASS';report.scope='Legal saved check-in/post-bath fixtures; actual main/controller front-desk handoff, player token, NPC meal/checkout, Koharu meal/tea/night sleep/return, Tomo next handoff and real disposeLot';report.simulatedSeconds=state.elapsed;report.frames=frames;report.maxRSSMiB=process.resourceUsage().maxRSS/1024;

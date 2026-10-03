@@ -183,9 +183,9 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   // A staff meal uses the same kitchen as orders. A pending break reserves it
   // after its current cook finishes, so a stream of visitors cannot starve it.
   holdWorkplace(resource,workerId) {
-   // Front-desk staff may serve themselves from the existing pot; this does
+   // Trained non-kitchen staff may serve themselves from the existing pot; this does
    // not make them eligible to claim customer cooking or delivery orders.
-   if(disposed||resource!=='kitchen'||![...JAPAN_SERVICE_WORKERS.cook,...JAPAN_SERVICE_WORKERS.register].includes(workerId)||workers.has(workerId))return false;
+   if(disposed||resource!=='kitchen'||![...JAPAN_SERVICE_WORKERS.cook,...JAPAN_SERVICE_WORKERS.register,...JAPAN_SERVICE_WORKERS.prepare].includes(workerId)||workers.has(workerId))return false;
    const key='staff:'+workerId;if(resources.has(resource)&&resources.get(resource)!==key)return false;
    resources.set(resource,key);staffResources.set(workerId,resource);return true;
   },
