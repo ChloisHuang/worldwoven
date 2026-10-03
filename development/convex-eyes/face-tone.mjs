@@ -25,7 +25,7 @@ float faceCelTone(float v) {
  vec3 eyeSum = directionalLights[0].direction + normalize(vViewPosition);
  vec3 eyeHalf = eyeSum * inversesqrt(max(dot(eyeSum,eyeSum),0.00001));
  float eyeGlint = pow(max(dot(normal,eyeHalf),0.0),768.0);
- vec3 eyeWindow = normalize((viewMatrix * vec4(-0.48,0.20,0.85,0.0)).xyz);
+ vec3 eyeWindow = normalize((viewMatrix * vec4(-0.20,0.25,0.95,0.0)).xyz);
  vec3 windowSum = eyeWindow + normalize(vViewPosition);
  vec3 eyeWindowHalf = windowSum * inversesqrt(max(dot(windowSum,windowSum),0.00001));
  float windowGlint = pow(max(dot(normal,eyeWindowHalf),0.0),1024.0);
@@ -36,5 +36,5 @@ float faceCelTone(float v) {
 #endif
 #include <opaque_fragment>`);
  };
- material.customProgramCacheKey=()=> 'worldwoven-prototype-face-five-band-eye-v2';material.needsUpdate=true;
+ material.customProgramCacheKey=()=> 'worldwoven-prototype-face-five-band-eye-v3';material.needsUpdate=true;
 }
