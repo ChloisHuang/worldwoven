@@ -1,0 +1,456 @@
+{
+  "status": "PASS_CLEAN_FRANCE_RELEASE_SUBSETS",
+  "sourceCommit": "a64ade074944200734a3c160a14718daff1d7737",
+  "testCommit": "8c43e84",
+  "sourceGuards": {
+    "scope": "Clean R16.1 + France inset release candidate only; reused v7 static sweep and v3 authored staged-controller tests, bounded focused subsets.",
+    "sourceCommit": "a64ade074944200734a3c160a14718daff1d7737",
+    "poseHash": "d79172e65b6a1224a755e6504058b7f1e7eb5937daa70160bdd0e9d28b54c719",
+    "files": {
+      "source/game/automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+      "source/game/inset-closures.js": "dadba37aaa60d85abc2c9102a5da10bcfaf529474d8e60fefe5a975e63d8930a",
+      "source/game/regions-west.js": "f1c34d4c3ced5cbc8e14f66502374cad849d59298679a78f13fdcbc738446646",
+      "source/game/room-closures.js": "1d70be71fe6b30d136c0f6c887570667be0520735d1f152d468f599210e4556d",
+      "source/game/geometry.js": "accd26d9fe1820ba7829bc00f802c8916458813eefd0cfd08f5d38e11c207ca9",
+      "source/game/furniture-interactions.js": "83c6372db4564a46fda87c164db3a3b79760bd8d7c7c6cae21e8564fe402af88",
+      "source/game/automatic-routing.js": "c0abe71a90b9600dec9d1cbe977b115f9b97e5384f7e55a09794cf7496d4c913",
+      "source/game/navigation.js": "d22f45cd94d968b88d44a803bbc7ba1ec65c45f2d7fdf2c20610d18b256c062e",
+      "source/game/main.js": "6b3f36422f76f87f6f374f75189e6a01f12838c882004d813f898b61117f9707",
+      "source/game/camera.js": "7b6fc625c07138fc5636d38651b2487cdd812e22fcb89618a707b6b913808dea",
+      "source/game/floor-support.js": "5f5df2cde18b6e232e89a222027fc81bb25ba89678912f654ce3c2f632f44615",
+      "source/vendor/three/build/three.core.js": "9edde002b066a9a05676a6127f67735b62baf399bdea529f2f7e31657da769e6",
+      "tests/door-geometry/leaf-static-adaptive-v7.cjs": "5ed0ceba84c79d16e720dc71d8f7b385906626f4b89f88f17ef251c0d256e212",
+      "tests/door-geometry/triangle-kernel-v3.mjs": "dcc13af03fb915407736f7c0654e17a10cd4900b587d7a0ea9e029548172b77b",
+      "tests/door-geometry/adaptive-rotation-kernel-v1.mjs": "fd343ddc79bc83bb2cf1ab71190fef0f15d88a762bd2bb5e98a93b5872bcf89c",
+      "tests/authored-threshold-probes-v3.cjs": "5b411d19d3d3f136f8788be3c19dc6dc4739324fa2cb8b1a3673735ce7b67a97",
+      "tests/fixtures/france-prior-furniture-interactions.js": "72a5856cb502fb8b0e9f1882a03ae0d7579a723fa9f8323052b1182322391ba4"
+    },
+    "budgets": {
+      "worldSix": {
+        "seconds": 180,
+        "rssMiB": 1228,
+        "stop": "first FAIL/REVIEW"
+      },
+      "routesSeven": {
+        "seconds": 180,
+        "rssMiB": 1228,
+        "crossings": 56,
+        "stop": "first failure"
+      }
+    }
+  },
+  "world": {
+    "rawQAPath": "/workspace/shared/worldwoven-france-inset-candidate/qa/france-inset-world-six/france-all.json",
+    "rawSHA256": "dd139f86f43aa0ff02bff89e68113db4dcc974ccdd078a4416005561f665a777",
+    "status": "PASS_BOUNDED_SWEEP",
+    "waivers": "NONE",
+    "resource": {
+      "status": "PASS",
+      "command": [
+        "node",
+        "--max-old-space-size=768",
+        "--experimental-vm-modules",
+        "tests/door-geometry/france-inset-world-six.cjs"
+      ],
+      "exit": 0,
+      "seconds": 24.828709544000958,
+      "peakObservedRSSBytes": 491204608,
+      "termination": null
+    },
+    "doors": [
+      {
+        "id": "france-palace-front",
+        "status": "PASS_BOUNDED_SWEEP",
+        "counts": {
+          "surfaceCrossings": 0,
+          "containments": 0,
+          "sweptCrossings": 0,
+          "sweptContainments": 0,
+          "contactsRequiringReview": 0,
+          "boundedMountContacts": 0
+        },
+        "eps": 1e-05,
+        "maxHingeChordSagitta": 6.939529922325716e-05,
+        "adaptive": {
+          "maxPoseResidual": 9.485749680535094e-16,
+          "motionNumericalGuard": 1.0262080008422851e-08,
+          "trianglesChecked": 1240
+        }
+      },
+      {
+        "id": "rear-entry",
+        "status": "PASS_BOUNDED_SWEEP",
+        "counts": {
+          "surfaceCrossings": 0,
+          "containments": 0,
+          "sweptCrossings": 0,
+          "sweptContainments": 0,
+          "contactsRequiringReview": 0,
+          "boundedMountContacts": 0
+        },
+        "eps": 1e-05,
+        "maxHingeChordSagitta": 6.014259266015621e-05,
+        "adaptive": {
+          "maxPoseResidual": 3.563539207208429e-15,
+          "motionNumericalGuard": 1.0873492146492004e-08,
+          "trianglesChecked": 1240
+        }
+      },
+      {
+        "id": "gallery-east-front",
+        "status": "PASS_BOUNDED_SWEEP",
+        "counts": {
+          "surfaceCrossings": 0,
+          "containments": 0,
+          "sweptCrossings": 0,
+          "sweptContainments": 0,
+          "contactsRequiringReview": 0,
+          "boundedMountContacts": 0
+        },
+        "eps": 1e-05,
+        "maxHingeChordSagitta": 5.088988609705525e-05,
+        "adaptive": {
+          "maxPoseResidual": 9.155133597044475e-16,
+          "motionNumericalGuard": 1.0248000006591798e-08,
+          "trianglesChecked": 1240
+        }
+      },
+      {
+        "id": "france-bedroom-enfilade",
+        "status": "PASS_BOUNDED_SWEEP",
+        "counts": {
+          "surfaceCrossings": 0,
+          "containments": 0,
+          "sweptCrossings": 0,
+          "sweptContainments": 0,
+          "contactsRequiringReview": 0,
+          "boundedMountContacts": 0
+        },
+        "eps": 1e-05,
+        "maxHingeChordSagitta": 4.472141505498795e-05,
+        "adaptive": {
+          "maxPoseResidual": 1.9860273225978185e-15,
+          "motionNumericalGuard": 1.050841600189209e-08,
+          "trianglesChecked": 1240
+        }
+      },
+      {
+        "id": "wing-entry--1--9.5",
+        "status": "PASS_BOUNDED_SWEEP",
+        "counts": {
+          "surfaceCrossings": 0,
+          "containments": 0,
+          "sweptCrossings": 0,
+          "sweptContainments": 0,
+          "contactsRequiringReview": 0,
+          "boundedMountContacts": 0
+        },
+        "eps": 1e-05,
+        "maxHingeChordSagitta": 4.626353281550477e-05,
+        "adaptive": {
+          "maxPoseResidual": 5.0242958677880805e-15,
+          "motionNumericalGuard": 1.1097492146492004e-08,
+          "trianglesChecked": 1240
+        }
+      },
+      {
+        "id": "france-private-bath",
+        "status": "PASS_BOUNDED_SWEEP",
+        "counts": {
+          "surfaceCrossings": 0,
+          "containments": 0,
+          "sweptCrossings": 0,
+          "sweptContainments": 0,
+          "contactsRequiringReview": 0,
+          "boundedMountContacts": 0
+        },
+        "eps": 1e-05,
+        "maxHingeChordSagitta": 4.934776833653842e-05,
+        "adaptive": {
+          "maxPoseResidual": 3.972054645195637e-15,
+          "motionNumericalGuard": 1.1423616001129151e-08,
+          "trianglesChecked": 1240
+        }
+      }
+    ],
+    "furnitureDependencyComparison": {
+      "priorModuleSHA": "72a5856cb502fb8b0e9f1882a03ae0d7579a723fa9f8323052b1182322391ba4",
+      "currentModuleSHA": "83c6372db4564a46fda87c164db3a3b79760bd8d7c7c6cae21e8564fe402af88",
+      "priorSignature": {
+        "sha256": "7f6ae24e3c54265a7a545a01903c8403715647631082c6489588683061c4a991",
+        "meshes": 24,
+        "items": 23
+      },
+      "currentSignature": {
+        "sha256": "7f6ae24e3c54265a7a545a01903c8403715647631082c6489588683061c4a991",
+        "meshes": 24,
+        "items": 23
+      },
+      "identical": true,
+      "scope": "Both real module implementations on the same actual clean France lot; previous root disposed before current production root retained. Exact generated geometry/material/world-transform/item signatures."
+    }
+  },
+  "routes": {
+    "rawQAPath": "/workspace/shared/worldwoven-france-inset-candidate/qa/france-inset-routes-seven/staged-authored-probes-v3-france.json",
+    "rawSHA256": "fc740acc0faedb555660aa82da728c89dadb36e5886287a74313d5f77ceb9a5d",
+    "status": "PASS",
+    "resource": {
+      "status": "PASS",
+      "command": [
+        "node",
+        "--max-old-space-size=768",
+        "--experimental-vm-modules",
+        "tests/france-inset-routes-seven.cjs"
+      ],
+      "exit": 0,
+      "seconds": 2.708524605001003,
+      "peakObservedRSSBytes": 450375680,
+      "termination": null
+    },
+    "crossings": 56,
+    "failures": 0,
+    "cameraSweeps": 520,
+    "doors": [
+      {
+        "id": "france-palace-front",
+        "crossings": 8,
+        "allPassed": true,
+        "radii": [
+          0.25,
+          0.34
+        ],
+        "directions": [
+          -1,
+          1
+        ],
+        "timing": [
+          "60",
+          "mixed"
+        ],
+        "maxSeconds": 1.7538333333333334,
+        "overlaps": 0,
+        "staticOverlaps": 0,
+        "allCrossedActualAperture": true,
+        "observedPhases": [
+          "complete",
+          "staging",
+          "waiting",
+          "walking"
+        ]
+      },
+      {
+        "id": "rear-entry",
+        "crossings": 8,
+        "allPassed": true,
+        "radii": [
+          0.25,
+          0.34
+        ],
+        "directions": [
+          -1,
+          1
+        ],
+        "timing": [
+          "60",
+          "mixed"
+        ],
+        "maxSeconds": 1.566666666666666,
+        "overlaps": 0,
+        "staticOverlaps": 0,
+        "allCrossedActualAperture": true,
+        "observedPhases": [
+          "complete",
+          "staging",
+          "waiting",
+          "walking"
+        ]
+      },
+      {
+        "id": "gallery-east-front",
+        "crossings": 8,
+        "allPassed": true,
+        "radii": [
+          0.25,
+          0.34
+        ],
+        "directions": [
+          -1,
+          1
+        ],
+        "timing": [
+          "60",
+          "mixed"
+        ],
+        "maxSeconds": 1.399166666666667,
+        "overlaps": 0,
+        "staticOverlaps": 0,
+        "allCrossedActualAperture": true,
+        "observedPhases": [
+          "complete",
+          "staging",
+          "waiting",
+          "walking"
+        ]
+      },
+      {
+        "id": "france-bedroom-enfilade",
+        "crossings": 8,
+        "allPassed": true,
+        "radii": [
+          0.25,
+          0.34
+        ],
+        "directions": [
+          -1,
+          1
+        ],
+        "timing": [
+          "60",
+          "mixed"
+        ],
+        "maxSeconds": 1.399166666666667,
+        "overlaps": 0,
+        "staticOverlaps": 0,
+        "allCrossedActualAperture": true,
+        "observedPhases": [
+          "complete",
+          "staging",
+          "waiting",
+          "walking"
+        ]
+      },
+      {
+        "id": "wing-entry--1--9.5",
+        "crossings": 8,
+        "allPassed": true,
+        "radii": [
+          0.25,
+          0.34
+        ],
+        "directions": [
+          -1,
+          1
+        ],
+        "timing": [
+          "60",
+          "mixed"
+        ],
+        "maxSeconds": 1.399166666666667,
+        "overlaps": 0,
+        "staticOverlaps": 0,
+        "allCrossedActualAperture": true,
+        "observedPhases": [
+          "complete",
+          "staging",
+          "waiting",
+          "walking"
+        ]
+      },
+      {
+        "id": "france-private-bath",
+        "crossings": 8,
+        "allPassed": true,
+        "radii": [
+          0.25,
+          0.34
+        ],
+        "directions": [
+          -1,
+          1
+        ],
+        "timing": [
+          "60",
+          "mixed"
+        ],
+        "maxSeconds": 1.4443333333333335,
+        "overlaps": 0,
+        "staticOverlaps": 0,
+        "allCrossedActualAperture": true,
+        "observedPhases": [
+          "complete",
+          "staging",
+          "waiting",
+          "walking"
+        ]
+      },
+      {
+        "id": "core-wing-1--5",
+        "crossings": 8,
+        "allPassed": true,
+        "radii": [
+          0.25,
+          0.34
+        ],
+        "directions": [
+          -1,
+          1
+        ],
+        "timing": [
+          "60",
+          "mixed"
+        ],
+        "maxSeconds": 1.0275000000000003,
+        "overlaps": 0,
+        "staticOverlaps": 0,
+        "allCrossedActualAperture": true,
+        "observedPhases": [
+          "complete",
+          "waiting",
+          "walking"
+        ]
+      }
+    ],
+    "holdAndClose": [
+      {
+        "id": "france",
+        "door": "france-palace-front",
+        "occupied": 1,
+        "held": 1,
+        "closed": 0
+      },
+      {
+        "id": "france",
+        "door": "rear-entry",
+        "occupied": 1,
+        "held": 1,
+        "closed": 0
+      },
+      {
+        "id": "france",
+        "door": "gallery-east-front",
+        "occupied": 1,
+        "held": 1,
+        "closed": 0
+      },
+      {
+        "id": "france",
+        "door": "france-bedroom-enfilade",
+        "occupied": 1,
+        "held": 1,
+        "closed": 0
+      },
+      {
+        "id": "france",
+        "door": "wing-entry--1--9.5",
+        "occupied": 1,
+        "held": 1,
+        "closed": 0
+      },
+      {
+        "id": "france",
+        "door": "france-private-bath",
+        "occupied": 1,
+        "held": 1,
+        "closed": 0
+      },
+      {
+        "id": "france",
+        "door": "core-wing-1--5",
+        "occupied": 1,
+        "held": 1,
+        "closed": 0
+      }
+    ]
+  },
+  "visualScope": "Pocket original-camera4 views and front portal prior views exist. Remaining5 hinged openings still require grouped front/back oblique visual coverage for the original all-door visual requirement; this receipt is geometry/controller acceptance only."
+}
