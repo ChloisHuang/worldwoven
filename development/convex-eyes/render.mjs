@@ -2,6 +2,7 @@
 import {registerHooks} from 'node:module';
 import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import assert from 'node:assert/strict';import {pathToFileURL,fileURLToPath} from 'node:url';
 const ROOT=path.dirname(fileURLToPath(import.meta.url)),SOURCE=path.resolve(ROOT,'../../source');
+const WHOLE=process.env.WHOLE_FACE==='1';
 const OUT=path.resolve(process.env.OUT_DIR||''),VIEWS=(process.env.VIEWS||'front,threequarter,side').split(','),SIZE=640;
 assert(OUT.startsWith(ROOT+'/')&&!fs.existsSync(OUT));
 const sha=x=>crypto.createHash('sha256').update(x).digest('hex');
@@ -9,11 +10,20 @@ const sourceHash=sha(fs.readFileSync(SOURCE+'/game/approved-surfaces.js'));
 registerHooks({
  resolve(s,c,next){
   if(s==='three')return{url:pathToFileURL(SOURCE+'/vendor/three/build/three.module.js').href,shortCircuit:true};
-  const r=next(s,c);if(s==='./approved-surfaces.js'&&c.parentURL?.includes('eyeVariant=')){const u=new URL(r.url);u.searchParams.set('eyeVariant',new URL(c.parentURL).searchParams.get('eyeVariant'));return{...r,url:u.href};}return r;
+  const r=next(s,c);if(['./approved-surfaces.js','./head-shape.js'].includes(s)&&c.parentURL?.includes('eyeVariant=')){const u=new URL(r.url);u.searchParams.set('eyeVariant',new URL(c.parentURL).searchParams.get('eyeVariant'));return{...r,url:u.href};}return r;
  },
- load(url,c,next){const r=next(url,c);if(!url.includes('/approved-surfaces.js?eyeVariant=prototype'))return r;
-  let code=String(r.source);const start=code.indexOf('  // Thin almond surfaces'),end=code.indexOf('  const brows=[];',start);assert(start>0&&end>start);
-  code=code.slice(0,start)+'  buildConvexEye(h,{side:s,masc,traits,facialSurface,colors:C});\n'+code.slice(end);
+ load(url,c,next){const r=next(url,c);if(WHOLE&&url.includes('/characters.js?eyeVariant=prototype'))return {...r,source:String(r.source).replace('SKIN_VALUES=[140,186,229,255]','SKIN_VALUES=[138,138,140,147,158,175,194,212,224,233,240,246,250,253,255,255]').replace('skinMaterial=toon(SKIN_VALUES);','skinMaterial=toon(SKIN_VALUES);skinMaterial.gradientMap.minFilter=skinMaterial.gradientMap.magFilter=THREE.LinearFilter;').replace('b.c.push(m.material.color.r,m.material.color.g,m.material.color.b)','b.c.push(g.attributes.color?.getX(i)??m.material.color.r,g.attributes.color?.getY(i)??m.material.color.g,g.attributes.color?.getZ(i)??m.material.color.b)')};if(WHOLE&&url.includes('/head-shape.js?eyeVariant=prototype'))return {...r,source:String(r.source).replace('[1.515,-.014],[1.545,-.034],[1.580,-.043]','[1.515,-.006],[1.545,-.015],[1.580,-.035]')};if(!url.includes('/approved-surfaces.js?eyeVariant=prototype'))return r;
+  let code=String(r.source);
+  if(WHOLE){
+   code='import {coherentFaceSurface,coherentFaceDepth,faceRings,buildCoherentMouth,shadeFaceSurface} from '+JSON.stringify(pathToFileURL(ROOT+'/face-sculpt.mjs').href)+';\n'+code;
+   const hs=code.indexOf('function headSurface('),he=code.indexOf('function neutralFaceD(',hs);code=code.slice(0,hs)+'function headSurface(x,y,masc=false,traits=null){return coherentFaceSurface(x,y,masc,traits); }\n'+code.slice(he);
+   const bs=code.indexOf(' const rings=',code.indexOf('function buildHead(')),be=code.indexOf(" loft(h,'continuous-head",bs);code=code.slice(0,bs)+' const rings=faceRings(masc,traits);\n'+code.slice(be);
+   code=code.replace("name==='continuous-head-jaw-cheeks-nose'?[64,44]","name==='continuous-head-jaw-cheeks-nose'?[128,80]").replace("{segs:64,steps:44,deform:(p,a)=>{const front=Math.pow(Math.max(0,Math.cos(a)),8);p[2]+=faceD(p[0],p[1],traits)*front;return p;}}","{segs:128,steps:80,deform:(p,a)=>{const front=Math.pow(Math.max(0,Math.cos(a)),3);p[2]+=coherentFaceDepth(p[0],p[1],traits)*front;return p;}}");
+   code=code.replace("cx=s*(masc?.040:.038)","cx=s*(masc?.037:.036)").replace("cx+(u*2-1)*(masc?.026:.024)","cx+(u*2-1)*(masc?.024:.023)").replace("(masc?.0042:.0030)*Math.sin","(masc?.0048:.0033)*Math.sin");
+   const ms=code.indexOf(' const lipW=masc?'),me=code.indexOf(' buildHair(h,masc',ms);code=code.slice(0,ms)+' buildCoherentMouth(h,{masc,facialSurface,colors:C});shadeFaceSurface(h,C.skin);\n'+code.slice(me);
+  }
+  const start=code.indexOf('  // Thin almond surfaces'),end=code.indexOf('  const brows=[];',start);assert(start>0&&end>start);
+  code=code.slice(0,start)+'  buildConvexEye(h,{side:s,masc,traits,facialSurface,colors:C,coherent:'+WHOLE+'});\n'+code.slice(end);
   code='import {buildConvexEye} from '+JSON.stringify(pathToFileURL(ROOT+'/eye-surface.mjs').href)+';\n'+code;return{...r,source:code};}
 });
 const runtime=process.env.WORLDWOVEN_WEBGL_RUNTIME||'/workspace/shared/cultural-life-r12-webgl/node_modules/@onirenaud/node-webgl/dist/index.js';
@@ -25,7 +35,7 @@ renderer.debug.onShaderError=(g,p,v,f)=>report.errors.push({program:g.getProgram
 const scene=new T.Scene();scene.background=new T.Color(0xd9ddcf);
 const hemi=new T.HemisphereLight(0xfff4df,0x718079,1.05),sun=new T.DirectionalLight(0xfff3dc,1.55),fill=new T.DirectionalLight(0xb7c6d5,.22);sun.position.set(-2,3,4);fill.position.set(3,2,-2);scene.add(hemi,sun,fill);
 const camera=new T.OrthographicCamera(-.212,.212,.212,-.212,.01,10),gameCamera=new T.PerspectiveCamera(50,1,.2,150),angles={front:0,threequarter:Math.PI/4,side:Math.PI/2};
-function preservation(actor){const other=crypto.createHash('sha256'),bones=[];actor.root.traverse(m=>{if(m.isBone)bones.push([m.name,m.position.toArray(),m.quaternion.toArray()]);if(!m.isSkinnedMesh)return;for(const r of m.geometry.userData.sourceRanges||[]){if(/^(inset-eye|iris-|pupil-|eye-catchlight|eyelid-)/.test(r.name))continue;other.update(r.name);for(const k of['position','normal','color','skinIndex','skinWeight']){const a=m.geometry.attributes[k],v=a.array.subarray(r.start*a.itemSize,(r.start+r.count)*a.itemSize);other.update(Buffer.from(v.buffer,v.byteOffset,v.byteLength));}}});return{nonEyeGeometry:other.digest('hex'),bones,appearance:actor.root.userData.appearance};}
+function preservation(actor){const other=crypto.createHash('sha256'),bones=[];actor.root.traverse(m=>{if(m.isBone)bones.push([m.name,m.position.toArray(),m.quaternion.toArray()]);if(!m.isSkinnedMesh)return;for(const r of m.geometry.userData.sourceRanges||[]){if((WHOLE?/^(continuous-head|neck|ear-|inset-eye|iris-|pupil-|eye-catchlight|eyelid-|soft-brow|nostril-|upper-lip|lower-lip|closed-soft-mouth)/:/^(inset-eye|iris-|pupil-|eye-catchlight|eyelid-)/).test(r.name))continue;other.update(r.name);for(const k of['position','normal','color','skinIndex','skinWeight']){const a=m.geometry.attributes[k],v=a.array.subarray(r.start*a.itemSize,(r.start+r.count)*a.itemSize);other.update(Buffer.from(v.buffer,v.byteOffset,v.byteLength));}}});return{nonEyeGeometry:other.digest('hex'),bones,appearance:actor.root.userData.appearance};}
 fs.mkdirSync(OUT,{recursive:true});
 try{
  for(const variant of['baseline','prototype']){
