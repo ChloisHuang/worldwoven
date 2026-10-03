@@ -27,8 +27,8 @@ export function buildConvexEye(parent,{side,masc=false,traits=null,facialSurface
  // Sample the original socket: socketDepth still changes globe/lid placement,
  // while eyeSize scales the same opening around its unchanged centre.
  const e=.0001,base=facialSurface(cx,cy),dx=(facialSurface(cx+e,cy)-facialSurface(cx-e,cy))/(2*e),dy=(facialSurface(cx,cy+e)-facialSurface(cx,cy-e))/(2*e);
- const rx=hw*1.25,ry=.020*eye,rz=.008*eye;
- const globe=(x,y)=>{const xx=x-cx,yy=y-cy-side*xx*(coherent?.16:.08);return base+dx*xx+dy*(y-cy)+.0008+rz*(Math.sqrt(Math.max(.001,1-(xx/rx)**2-(yy/ry)**2))-.6);};
+ const rx=hw*1.25,ry=.020*eye,rz=(coherent?.0155:.008)*eye;
+ const globe=(x,y)=>{const xx=x-cx,yy=y-cy-side*xx*(coherent?.16:.08),t=Math.max(0,Math.min(1,(Math.abs(xx)-.0085*eye)/(hw-.0085*eye))),corner=coherent?t*t*t*(t*(t*6-15)+10):1;return base+(dx*xx+dy*(y-cy))*corner+.0008+rz*(Math.sqrt(Math.max(.001,1-(xx/rx)**2-(yy/ry)**2))-.6);};
  const edge=(u,up)=>{const [x,y]=eyeLidBoundary(layout,u,up);return[x,y,globe(x,y)];};
  const white=grid(parent,'inset-eye-white-'+side,24,8,(u,v)=>{const a=edge(u,false),b=edge(u,true),y=mix(a[1],b[1],v);return[a[0],y,globe(a[0],y)];},C.eye);
  if(coherent){const colors=[];for(let j=0;j<=8;j++)for(let i=0;i<=24;i++){const u=i/24,v=j/8,c=new THREE.Color(C.eye).multiplyScalar(1-.13*Math.abs(u*2-1)**3-.07*v**3);colors.push(c.r,c.g,c.b);}white.geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));}
@@ -37,12 +37,11 @@ export function buildConvexEye(parent,{side,masc=false,traits=null,facialSurface
  // opening itself retains its original size, separation and trait range.
  const iris=disk('iris',(coherent?.0080:.0070)*eye,cx,cy+.0013*eye,.00025,C.iris),irisColors=[];
  for(let j=0;j<=5;j++)for(let i=0;i<=24;i++){
-  const a=i/24*Math.PI*2,r=j/5,c=new THREE.Color(C.iris).multiplyScalar(1-.23*Math.max(0,(r-.72)/.28)+.10*Math.max(0,-Math.sin(a))*r);irisColors.push(c.r,c.g,c.b);
+  const a=i/24*Math.PI*2,r=j/5,c=new THREE.Color(C.iris).multiplyScalar((1-.30*Math.max(0,(r-.72)/.28))*(1+.22*Math.max(0,-Math.sin(a))*r-.18*Math.max(0,Math.sin(a))*r));irisColors.push(c.r,c.g,c.b);
  }
  iris.geometry.setAttribute('color',new THREE.Float32BufferAttribute(irisColors,3));
  disk('pupil',.0028*eye,cx,cy+.0013*eye,.00045,C.pupil,16,3);
- disk('eye-catchlight',.0012*eye,cx-.0016*eye,cy+.0031*eye,.00065,0xfff7e5,12,2);
- if(coherent)disk('eye-catchlight-small',.00045*eye,cx+.0015*eye,cy-.0007*eye,.00065,0xdbe8de,8,1);
+ if(!coherent)disk('eye-catchlight',.0012*eye,cx-.0016*eye,cy+.0031*eye,.00065,0xfff7e5,12,2);
  for(const up of[true,false]){
   const width=(up?(coherent?.0064:.0045):.0030)*eye;
   const lid=grid(parent,'eyelid-'+(up?'upper':'lower')+'-'+side,24,5,(u,v)=>{

@@ -4,7 +4,6 @@
 import * as THREE from 'three';
 const mix=(a,b,t)=>a+(b-a)*t,clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const G=(x,y,cx,cy,sx,sy)=>Math.exp(-(((x-cx)/sx)**2)-((y-cy)/sy)**2);
-function spline(a,t){const j=Math.min(a.length-2,Math.floor(t)),u=t-j;const p0=a[Math.max(0,j-1)],p1=a[j],p2=a[j+1],p3=a[Math.min(a.length-1,j+2)];return p1.map((v,k)=>.5*((2*v)+(-p0[k]+p2[k])*u+(2*p0[k]-5*v+4*p2[k]-p3[k])*u*u+(-p0[k]+3*p1[k]-3*p2[k]+p3[k])*u*u*u));}
 export function faceRings(masc,traits){
  const rs=[[1.455,.010,.024,0,.010],[1.461,.022,.035,0,.016],[1.474,.034,.050,0,.017],[1.487,masc?.047:.044,.060,0,.010],[1.502,masc?.063:.058,.067,0,.001],[1.526,.075,.071,0,-.004],[1.552,.084,.075,0,-.004],[1.577,.086,.076,0,-.005],[1.610,.084,.076,0,-.005],[1.643,.080,.071,0,-.006],[1.671,.063,.060,0,-.007],[1.695,.037,.037,0,-.008],[1.707,.001,.001,0,-.008]];
  const width=traits?.jawWidth??1;for(const r of rs){const t=r[0]<1.49?clamp((r[0]-1.455)/.035):clamp((1.55-r[0])/.06);r[1]*=1+(width-1)*t;}return rs;
@@ -21,6 +20,12 @@ function c2Plan(knots,firstSlope=null){
   for(let i=n-2;i>=0;i--)second[i]=d[i]-upper[i]*second[i+1];
   return t=>{let j=0;if(t<knots[0]){const h=knots[1]-knots[0],slope=(values[1]-values[0])/h-h*(2*second[0]+second[1])/6;return values[0]+slope*(t-knots[0]);}if(t>knots[n-1]){const h=knots[n-1]-knots[n-2],slope=(values[n-1]-values[n-2])/h+h*(second[n-2]+2*second[n-1])/6;return values[n-1]+slope*(t-knots[n-1]);}while(j<n-2&&t>knots[j+1])j++;const h=knots[j+1]-knots[j],u=(knots[j+1]-t)/h,v=(t-knots[j])/h;return u*values[j]+v*values[j+1]+((u*u*u-u)*second[j]+(v*v*v-v)*second[j+1])*h*h/6;};
  }};
+}
+const OUTLINE_PLAN=c2Plan(faceRings(false,null).map(r=>r[0])),outlineCache=new Map();
+function outlineAt(y,masc,traits){
+ const key=String(masc)+':'+String(traits?.jawWidth??1);let curves=outlineCache.get(key);
+ if(!curves){const rows=faceRings(masc,traits);curves=[1,2,4].map(k=>OUTLINE_PLAN.curve(rows.map(r=>r[k])));if(outlineCache.size>=16)outlineCache.delete(outlineCache.keys().next().value);outlineCache.set(key,curves);}
+ const yy=clamp(y,1.455,1.707);return[yy,curves[0](yy),curves[1](yy),0,curves[2](yy)];
 }
 // One shared bicubic front surface. Adjacent rows carry the orbital rim into
 // the nose root, upper cheek, muzzle and chin rather than summing local bumps.
@@ -45,8 +50,7 @@ const Y_PLAN=c2Plan(FACE_ROWS.map(([y])=>y));
 const smooth=(a,b,v)=>{const t=clamp((v-a)/(b-a));return t*t*t*(t*(t*6-15)+10);};
 const frontNet=(x,y)=>Y_PLAN.curve(FACE_ROWS.map(([,row])=>row(Math.abs(x))))(y);
 export function coherentFaceSurface(x,y,masc=false,traits=null){
- const rs=faceRings(masc,traits);let lo=0,hi=rs.length-1;for(let i=0;i<24;i++){const t=(lo+hi)/2;if(spline(rs,t)[0]<y)lo=t;else hi=t;}
- const r=spline(rs,(lo+hi)/2),q=Math.abs(x/r[1]),c=Math.sqrt(Math.max(0,1-q*q)),base=r[4]+r[2]*c;
+ const r=outlineAt(y,masc,traits),q=Math.abs(x/r[1]),c=Math.sqrt(Math.max(0,1-q*q)),base=r[4]+r[2]*c;
  const blend=(1-smooth(.83,.995,q))*smooth(1.455,1.474,y)*(1-smooth(1.665,1.696,y));
  let z=frontNet(x,y);const n=traits?.noseSize??1,w=traits?.noseWidth??1,s=traits?.socketDepth??1;
  if(n!==1||w!==1){const region=(1-smooth(.018,.030,Math.abs(x)))*smooth(1.518,1.531,y)*(1-smooth(1.599,1.616,y)),root=frontNet(.026,y),shaped=root+(frontNet(x/w,1.542+(y-1.542)/n)-root)*n;z=mix(z,shaped,region);}
@@ -54,14 +58,14 @@ export function coherentFaceSurface(x,y,masc=false,traits=null){
  return mix(base,z,blend);
 }
 export function buildCoherentHead(head,{masc,traits,color}){
- const rings=faceRings(masc,traits),angles=[],heights=[];
+ const angles=[],heights=[];
  // Keep a bounded grid while concentrating samples where the nose openings,
  // lips and orbital boundaries require curvature. The back needs fewer rows.
  for(const[a,b,n]of[[-Math.PI,-.85,32],[-.85,-.30,16],[-.30,.30,32],[.30,.85,16],[.85,Math.PI,32]])for(let i=0;i<n;i++)angles.push(mix(a,b,i/n));angles.push(Math.PI);
  for(const[a,b,n]of[[1.455,1.480,10],[1.480,1.535,28],[1.535,1.555,20],[1.555,1.620,26],[1.620,1.707,18]])for(let i=0;i<n;i++)heights.push(mix(a,b,i/n));heights.push(1.707);
  const positions=[],indices=[];
  for(const y of heights){
-  let lo=0,hi=rings.length-1;for(let i=0;i<24;i++){const t=(lo+hi)/2;if(spline(rings,t)[0]<y)lo=t;else hi=t;}const r=spline(rings,(lo+hi)/2);
+  const r=outlineAt(y,masc,traits);
   for(const a of angles){const x=r[1]*Math.sin(a),z=Math.cos(a)>0?coherentFaceSurface(x,y,masc,traits):r[4]+r[2]*Math.cos(a);positions.push(x,y,z);}
  }
  const stride=angles.length;for(let j=0;j<heights.length-1;j++)for(let i=0;i<stride-1;i++){const a=j*stride+i,b=a+1,c=a+stride,d=c+1;indices.push(a,b,c,b,d,c);}
