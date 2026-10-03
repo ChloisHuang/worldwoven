@@ -99,7 +99,7 @@ function batchZone(zone){
 export function buildEgypt(){
   const group=new THREE.Group(),roofGroup=new THREE.Group(),colliders=[],cameraColliders=[],walkableSurfaces=[];
   group.name='赤砂神殿 · 深入金字塔';roofGroup.name='埃及 · 真实封闭顶棚';roofGroup.visible=true;group.add(roofGroup);
-  const zone=name=>{const q=new THREE.Group();q.name=name;group.add(q);return q;},desert=zone('干燥沙漠与狮身守望者'),temple=zone('神殿柱厅与彩绘'),passage=zone('地下下降甬道'),burial=zone('金字塔内部墓室'),pyramid=zone('中空金字塔石壳');
+  const zone=name=>{const q=new THREE.Group();q.name=name;group.add(q);return q;},desert=zone('干燥沙漠与狮身守望者'),temple=zone('神殿柱厅与彩绘'),passage=zone('地下下降甬道'),burial=zone('金字塔内部墓室'),pyramid=zone('金字塔外坡与厚石入口');
   const surface=(minX,maxX,minZ,maxZ,y)=>walkableSurfaces.push({minX,maxX,minZ,maxZ,y});
   // The room floors and desert share y=0. Carve the room footprints out
   // of the visual desert instead of drawing coplanar sand through the rooms.
@@ -227,6 +227,31 @@ export function buildEgypt(){
     lo=hi;
   }
   colliders.push(...shellSolids);cameraColliders.push(...shellSolids.map(c=>({...c})));
+  // The outer slope is only the envelope. A real masonry throat behind its
+  // cutout gives arrival an eight-metre-long, compressed stone interior.
+  // Every block ends below the sloping exterior, rather than poking through it.
+  const entryBack=11.8,entryFront=21.9,entryWallOuter=5.05,entryCeiling=3.45;
+  const entryTopAt=z=>Math.min(5.2,baseY+(front-z)*rise/halfZ-.06);
+  for(const side of[-1,1])for(let z=entryBack;z<entryFront-.001;z+=.5){
+    const end=Math.min(entryFront,z+.5),h=entryTopAt(end),d=end-z;
+    solid(pyramid,colliders,cameraColliders,side*(entryHalf+entryWallOuter)/2,h/2,(z+end)/2,entryWallOuter-entryHalf,h,d,C.shadow);
+    // Coursed interior faces expose the wall depth at the final return.
+    for(let y=.04;y<h-.06;y+=.62){const bh=Math.min(.60,h-y);ashlar(pyramid,side*(entryHalf+.055),y+bh/2,(z+end)/2,.11,bh,d-.012,(Math.round(z*2)+Math.round(y/.62))%4?C.stone:C.edge,.014);}
+  }
+  for(let z=entryBack;z<19.5-.001;z+=.5){
+    const end=Math.min(19.5,z+.5),top=entryTopAt(end),h=top-entryCeiling;
+    box(roofGroup,0,entryCeiling+h/2,(z+end)/2,entryWallOuter*2,h,end-z,C.shadow);
+    volume(colliders,0,entryCeiling+h/2,(z+end)/2,entryWallOuter*2,h,end-z);
+    volume(cameraColliders,0,entryCeiling+h/2,(z+end)/2,entryWallOuter*2,h,end-z);
+  }
+  for(const side of[-1,1]){
+    solid(pyramid,colliders,cameraColliders,side*6.1,2.6,entryBack,7.9,5.2,1.05,C.stone);
+    // Deep return faces and a high-set relief make the inside portal legible.
+    glyphPanel(pyramid,side*6.0,2.42,entryBack-.54,5.8,3.5,Math.PI,side>0?2:5);
+    for(const z of[14.4,17.9])glyphPanel(pyramid,side*(entryHalf-.035),1.82,z,1.8,1.65,side<0?Math.PI/2:-Math.PI/2,side>0?4:1);
+  }
+  stoneCourse(pyramid,0,3.66,entryBack-.58,4.75,.42,.14,C.edge);
+  for(const [side,z]of[[-1,18.35],[1,13.8]])torch(pyramid,side*(entryHalf-.09),2.13,z,cameraColliders,side<0?Math.PI/2:-Math.PI/2);
   // Keep the descending corridor's shoulders closed at ground level while its
   // original central portal, ramps and below-ground rooms remain untouched.
   for(const side of [-1,1])volume(colliders,side*5.8,1.6,-7.02,8,3.2,.1);
@@ -440,7 +465,7 @@ export function buildEgypt(){
   // Reception desk sits beside, not across, the central entry procession.
   roomWall(temple,-3.6,.55,8.35,3.0,1.1,1.25,C.shadow);box(temple,-3.6,1.17,8.35,3.2,.14,1.4,C.edge);box(temple,-3.6,1.26,8.35,1.5,.035,.8,C.linen);urn(temple,-4.55,1.26,8.35,.42,C.blue);
   // Court markers keep the expanded circulation legible without crowding it.
-  for(const x of [-5.2,5.2])for(const z of [11.7,17])column(temple,colliders,cameraColliders,x,z,4.2);
+  for(const x of [-7.3,7.3])column(temple,colliders,cameraColliders,x,9.85,4.2);
   const stations=[
     {id:'egypt-sphinx',name:'沙海守望者',action:'观察狮身人面像',position:[-4.4,0,29.5],npcName:'哈桑',npcAction:'read',npcLabel:'描摹风化石纹',npcPosition:[-4.5,0,31.5],workTarget:[-7.7,2.3,29.8],route:[[-4.5,0,31.5],[-3.6,0,28.3]],dialogue:'看看狮身、人的面孔，还有风在石头上留下的细痕。它一直守着从沙漠通向神殿的路。'},
     {id:'egypt-glyphs',name:'彩绘柱廊',action:'辨认墙上的象形图案',position:[-4.5,0,3.35],npcName:'莱拉',npcAction:'read',npcLabel:'讲述太阳与河流',npcPosition:[-3.0,0,2.2],workTarget:[-5.5,3.1,5.0],route:[[-3,0,2.2],[-4.6,0,1.7]],dialogue:'柱头像盛开的纸莎草。墙上的水纹、眼睛与羽毛，组成了这座神殿自己的故事。'},
@@ -463,7 +488,7 @@ export function buildEgypt(){
     {id:'egypt-private-bath',name:'王室沐浴间',action:'查看蓝色浴池与更衣器物',position:[17.2,0,-1],npcName:'赛提',npcAction:'clean',npcLabel:'整理沐浴用的亚麻织物',npcPosition:[17.2,0,.8],workTarget:[14.05,.65,-1.05],route:[[17.2,0,.8],[17.2,0,-2.8]],dialogue:'寝室旁另有一间带石质浴池的沐浴室。蓝色水面、亚麻织物和陶罐让它与仪式空间有了不同的日常气息。'}
   );
   const explorationTargets=[
-    {id:'pyramid-vestibule',name:'金字塔入口内庭',position:[0,0,18.0]},
+    {id:'pyramid-vestibule',name:'厚石入口甬道',position:[0,0,16.0]},
     {id:'west-column-aisle',name:'西侧彩绘柱廊',position:[-3.1,0,.25]},
     {id:'east-column-aisle',name:'东侧彩绘柱廊',position:[4.8,0,.5]},
     {id:'ramp-middle',name:'下降甬道中段',position:[0,-1.5,-10]},
