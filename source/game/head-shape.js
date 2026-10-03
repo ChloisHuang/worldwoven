@@ -59,6 +59,23 @@ function sculptUpperNeckPoint(x,y,z){
   return[x*(1+.08*blend),y+(.008+.060*back)*blend,z-(.003+.032*back)*blend];
 }
 
+function fitExistingHairPoint(x,y,z,name,hairStyle){
+  // Preserve the old cut's fall and tied shape. A cranial/jaw warp on hanging
+  // locks would create an artificial shelf at occiput height, and lift a bun
+  // away from its roots. Only the fitted upper shell follows crown height.
+  if(/hair-(low-bun|bun-sweep|braided-tail|braid-weave|braid-tie)/.test(name))return[x,y,z-.027];
+  const long=hairStyle==='chin-bob'||hairStyle==='shoulder-wave';
+  const back=smooth(.010,-.060,z),front=smooth(-.052,.055,z);
+  const lower=-.035*smooth(1.525,1.578,y);
+  const hanging=profile([[1.35,-.027],[1.50,-.031],[1.59,-.034],[1.62,-.034],[1.663,-.015],[1.692,-.004],[1.707,0]],y);
+  let dz=(long?hanging:mix(lower,profile(POSTERIOR_DELTA,y),smooth(1.578,1.618,y)))*back+.0075*G(y,1.640,.053)*front;
+  // The legacy long shell switches from a .094 crown depth to .115 hanging
+  // depth at this row. Blend that existing shoulder as the larger skull fits.
+  if(long&&name==='continuous-swept-hair-shell'&&y<1.605){const join=smooth(1.52,1.605,y);dz+=.021*join*back;x*=1-.095*join;}
+  const dy=(y>1.620?profile(CROWN_PROFILE,y)-Math.min(y,1.707):0)*(1-smooth(1.713,1.743,y));
+  return[x,y+dy,z+dz];
+}
+
 function material(color){return {color:new THREE.Color(color),skin:false,isMaterial:false};}
 function addMesh(parent,name,positions,indices,color){
   const geo=new THREE.BufferGeometry();
@@ -146,13 +163,13 @@ export function applyNaturalHead(root,{hair=0x44342f,hairStyle='side-part'}={}){
   for(const m of [...head.children])if(replaceShort&&m.isMesh&&hairNames.test(m.name)){m.removeFromParent();m.geometry.dispose();}
   head.traverse(m=>{
     if(!m.isMesh)return;
-    const covering=hairNames.test(m.name)||/cook-.*cap|artist-beret|garden-straw/.test(m.name);
+    const existingHair=hairNames.test(m.name),hat=/cook-.*cap|artist-beret|garden-straw/.test(m.name);
     const p=m.geometry.attributes.position;
     for(let i=0;i<p.count;i++){
-      const y=p.getY(i),point=sculptHeadPoint(p.getX(i),y,p.getZ(i));
+      const y=p.getY(i),point=existingHair?fitExistingHairPoint(p.getX(i),y,p.getZ(i),m.name,hairStyle):sculptHeadPoint(p.getX(i),y,p.getZ(i));
       // Existing hairstyles and job hats follow the deeper cranium while their
       // upper silhouette/clearance stays at its original height.
-      if(covering)point[1]=y+(point[1]-y)*(1-smooth(1.713,1.743,y));
+      if(hat)point[1]=y+(point[1]-y)*(1-smooth(1.713,1.743,y));
       p.setXYZ(i,...point);
     }
     p.needsUpdate=true;m.geometry.computeVertexNormals();m.geometry.computeBoundingBox();m.geometry.computeBoundingSphere();
