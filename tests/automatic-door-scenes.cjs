@@ -14,8 +14,12 @@ for(const[id,file,fn]of[['japan','japan-bathhouse.js','buildJapan'],['china','re
   let retreat=0;const safeApproach=(d.id==='france-bedroom-enfilade'&&sign>0||d.id==='france-private-bath'&&sign<0)?1.45:Math.max(1.05,d.width/2+.8);
   while(normalDistance()<safeApproach-1e-6&&retreat++<300){doors.update(.016,[{position:p,radius:.34,height:1.95}]);const remaining=Math.min(.06,safeApproach-normalDistance()),dx=d.axis==='z'?sign*remaining:0,dz=d.axis==='x'?sign*remaining:0,before={...p},delta=doors.constrainMove(p,dx,dz,.34);moveWithCollision(p,delta.dx,delta.dz,lot.colliders,.34,opts);assert(Math.hypot(p.x-before.x,p.z-before.z)>.001,id+'/'+d.id+' restored actor has retreat escape');if(!multi)p.y=flatHeight(p.x,p.z);}
   assert(retreat<300,'retreat completes');
-  for(let n=0;n<Math.ceil((safeApproach+1.15)/.03);n++){
-   doors.update(.016,[{position:p,radius:.34,height:1.95}]);const delta=doors.constrainMove(p,d.axis==='z'?-sign*.03:0,d.axis==='x'?-sign*.03:0,.34);moveWithCollision(p,delta.dx,delta.dz,lot.colliders,.34,opts);if(!multi)p.y=flatHeight(p.x,p.z);samples++;
+  // Near activation deliberately permits a short natural wait. Retain the
+  // original other-side destination, adding at most 1.2 seconds of wait budget.
+  let consecutiveWait=0;
+  for(let n=0;n<Math.ceil((safeApproach+1.15)/.03)+75&&(d.axis==='z'?p.x-d.center[0]:p.z-d.center[2])*sign>-1.15;n++){
+   const before={...p};doors.update(.016,[{position:p,radius:.34,height:1.95}]);const delta=doors.constrainMove(p,d.axis==='z'?-sign*.03:0,d.axis==='x'?-sign*.03:0,.34);moveWithCollision(p,delta.dx,delta.dz,lot.colliders,.34,opts);if(!multi)p.y=flatHeight(p.x,p.z);samples++;
+   consecutiveWait=Math.hypot(p.x-before.x,p.z-before.z)<1e-7?consecutiveWait+.016:0;assert(consecutiveWait<=1.2+1e-8,id+'/'+d.id+' bounded near-door wait exceeded');
    if(n%10===0){const solids=staticSolids.concat(doors.cameraColliders),target=new T.Vector3(p.x,p.y+1.45,p.z);for(const yaw of[0,Math.PI/2,Math.PI,Math.PI*1.5]){const desired=target.clone().add(new T.Vector3(Math.sin(yaw)*4.4,1,Math.cos(yaw)*4.4)),camera=resolveCameraPosition(target,desired,solids);assert(!solids.some(b=>camera.x>b.minX+.005&&camera.x<b.maxX-.005&&camera.y>b.minY+.005&&camera.y<b.maxY-.005&&camera.z>b.minZ+.005&&camera.z<b.maxZ-.005),id+'/'+d.id+' camera intersects door or wall');cameraSweeps++;}}
   }
   const normal=d.axis==='z'?p.x-d.center[0]:p.z-d.center[2];assert(normal*sign<-.95,id+'/'+d.id+' actual threshold blocked at '+JSON.stringify(p));

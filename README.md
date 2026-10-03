@@ -4,8 +4,8 @@ An original cel-shaded cultural life and exploration game. The repository name s
 
 Public game: https://alien.doudouai.net/
 
-Development release: R15-public, 2026-10-03
-Published baseline used for this change: R14, b04961ff0d85feb60b59cbd64c7eb2ded2464c30
+Development release: R15.1-public, 2026-10-03
+Published baseline used for this change: R15 / Sites v25, 4e491fa116a5145fd32a008ef6f6c3a84f051adc
 The deployment record is authoritative. The clean archival helper writes the confirmed published commit after deployment.
 
 ## Requirements and local development
@@ -58,3 +58,7 @@ Art is authored in procedural geometry. Creator/reference images informed propor
 Build output, generated QA reports/screenshots, temporary experiments, node_modules, caches, archives and credentials are excluded. Original code/assets, licenses, required test fixtures, lockfile and deployment configuration are retained. This directory is independent of the Sites checkout; creating its GitHub remote must not change the Sites source workflow or force-push earlier history.
 
 R15 adds purpose-classified room closures and safe waiting routes. Published R14 raised palace galleries and kitchen scale fixes remain. Closing a doorway does not establish complete privacy through decorative windows.
+
+## R15.1 change scope
+
+Door activation follows a close approach through the usable doorway. A brief straight-line wait keeps actors outside a swinging leaf until it finishes opening; held input resumes automatically. Parallel passers do not request opening. Players and residents share the same admission and collision rules, with a short close delay. Sliding doors and curtains use the near doorway zone; wide doors swinging toward an actor retain only the clearance required by their actual leaf sweep. Room assignments, privacy geometry, leaf shapes and collision radii remain those of R15. Deployment status is established by the saved release record, not this source document.
