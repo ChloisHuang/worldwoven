@@ -7,7 +7,7 @@ bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=Fals
 MATS={}
 for name,color in {'skin':(.68,.48,.36,1),'lip':(.48,.25,.22,1),'mouth':(.15,.07,.065,1),'sclera':(.8,.82,.83,1),'iris':(.10,.075,.055,1),'pupil':(.018,.018,.02,1),'brow':(.06,.043,.034,1)}.items():
  m=bpy.data.materials.new(name);m.diffuse_color=color;MATS[name]=m
-verts=[];faces=[];tags=[];creases=set();weld={}
+verts=[];faces=[];tags=[];creases=set();weld={};lid_tint={}
 def V(p):
  k=tuple(round(a,7) for a in p)
  if k not in weld:weld[k]=len(verts);verts.append(tuple(p))
@@ -23,22 +23,22 @@ def add(*a,**k):rows.append(R(*a,**k))
 add('chin_tip',1.472,.024,[.055,.055,.053,.049,.042,.026,.011])
 add('chin_lower',1.482,.034,[.068,.067,.065,.060,.049,.032,.009])
 add('chin_body',1.494,.041,[.073,.072,.071,.066,.058,.040,.009])
-add('chin_groove',1.504,.052,[.076,.076,.075,.071,.063,.045,.010])
-add('lip_lower_border',1.509,.057,[.080,.080,.077,.073,.063,.043,.008],x=[0,.008,.019,.0355,.044,.052,.057],yy=[1.5065,1.507,1.5115,1.517,1.510,1.509,1.509])
-add('lip_lower_body',1.514,.061,[.090,.089,.083,.075,.065,.045,.008],x=[0,.008,.019,.0318,.046,.056,.061],yy=[1.5115,1.5125,1.515,1.518,1.515,1.514,1.514])
+add('chin_groove',1.504,.052,[.075,.075,.074,.071,.063,.045,.010],yy=[1.4995,1.500,1.503,1.504,1.504,1.504,1.504])
+add('lip_lower_border',1.509,.057,[.080,.080,.077,.073,.063,.043,.008],x=[0,.008,.019,.0355,.044,.052,.057],yy=[1.503,1.504,1.5105,1.517,1.510,1.509,1.509])
+add('lip_lower_body',1.514,.061,[.092,.091,.084,.075,.065,.045,.008],x=[0,.008,.019,.0318,.046,.056,.061],yy=[1.510,1.511,1.514,1.518,1.515,1.514,1.514])
 add('lip_lower_roll',1.517,.064,[.086,.086,.081,.075,.065,.046,.008],x=[0,.008,.019,.0305,.047,.059,.064],yy=[1.5175,1.5175,1.518,1.519,1.5168,1.5165,1.5165])
 add('mouth_lower',1.518,.064,[.080,.080,.077,.074,.065,.046,.008],x=[0,.008,.019,.030,.047,.059,.064],yy=[1.5178,1.5175,1.518,1.519,1.518,1.518,1.518])
 add('mouth_upper',1.518,.064,[.080,.081,.077,.074,.065,.046,.008],x=[0,.008,.019,.030,.047,.059,.064],yy=[1.519,1.5183,1.5187,1.519,1.518,1.518,1.518])
 add('lip_upper_roll',1.520,.066,[.084,.086,.081,.075,.066,.047,.008],x=[0,.008,.019,.0305,.047,.060,.066],yy=[1.5194,1.519,1.519,1.5197,1.522,1.522,1.522])
-add('lip_upper_body',1.524,.069,[.085,.090,.082,.075,.067,.048,.009],x=[0,.008,.019,.0318,.047,.062,.069],yy=[1.5225,1.524,1.5225,1.5205,1.524,1.524,1.524])
-add('lip_upper_border',1.528,.072,[.081,.085,.079,.074,.068,.050,.009],x=[0,.008,.019,.0355,.048,.064,.072],yy=[1.525,1.528,1.525,1.5225,1.528,1.528,1.528])
+add('lip_upper_body',1.524,.069,[.088,.092,.083,.075,.067,.048,.009],x=[0,.008,.019,.0318,.047,.062,.069],yy=[1.5235,1.527,1.524,1.5205,1.524,1.524,1.524])
+add('lip_upper_border',1.528,.072,[.081,.085,.079,.074,.068,.050,.009],x=[0,.008,.019,.0355,.048,.064,.072],yy=[1.526,1.531,1.526,1.5225,1.528,1.528,1.528])
 add('philtrum',1.537,.077,[.080,.082,.079,.074,.071,.052,.009],x=[0,.005,.019,.032,.049,.068,.077])
 add('nose_base',1.544,.080,[.086,.088,.085,.077,.074,.054,.009],x=[0,.0048,.0175,.028,.047,.068,.080],yy=[1.542,1.543,1.544,1.548,1.551,1.551,1.551])
 add('nose_underside',1.549,.082,[.097,.096,.091,.077,.074,.055,.009],x=[0,.006,.017,.027,.047,.068,.082],yy=[1.547,1.5475,1.550,1.554,1.556,1.556,1.556])
 add('nose_tip',1.555,.084,[.102,.100,.085,.075,.075,.056,.009],x=[0,.007,.018,.030,.048,.069,.084],yy=[1.554,1.554,1.557,1.565,1.571,1.572,1.572])
-add('mid_nose',1.578,.085,[.088,.084,.074,.072,.074,.058,.011],x=[0,.006,.019,.032,.048,.070,.085],yy=[1.577,1.577,1.581,1.583,1.583,1.581,1.581])
-add('orbital_lower',1.591,.085,[.080,.078,.071,.071,.072,.061,.013],x=[0,.007,.019,.031,.048,.069,.085],yy=[1.591,1.591,1.594,1.587,1.587,1.596,1.594])
-add('lower_lid_outer',1.595,.084,[.078,.076,.066,.074,.074,.057,.014],x=[0,.008,.020,.031,.047,.068,.084],yy=[1.595,1.595,1.598,1.5915,1.591,1.603,1.599])
+add('mid_nose',1.578,.085,[.088,.084,.074,.072,.074,.058,.011],x=[0,.006,.019,.032,.048,.070,.085],yy=[1.577,1.577,1.581,1.578,1.579,1.581,1.581])
+add('orbital_lower',1.591,.085,[.080,.078,.071,.071,.072,.061,.013],x=[0,.007,.019,.031,.048,.069,.085],yy=[1.591,1.591,1.594,1.583,1.583,1.596,1.594])
+add('lower_lid_outer',1.595,.084,[.078,.076,.066,.074,.074,.057,.014],x=[0,.008,.020,.031,.047,.068,.084],yy=[1.595,1.595,1.598,1.588,1.588,1.603,1.599])
 add('lower_lid_margin',1.599,.083,[.077,.075,.066,.071,.071,.056,.015],x=[0,.008,.019,.031,.047,.068,.083],yy=[1.598,1.598,1.601,1.595,1.5945,1.603,1.602])
 add('upper_lid_margin',1.603,.083,[.077,.075,.066,.0718,.071,.056,.016],x=[0,.008,.019,.031,.047,.068,.083],yy=[1.603,1.603,1.601,1.6045,1.605,1.603,1.606])
 add('upper_lid_outer',1.612,.082,[.078,.077,.072,.075,.075,.059,.017],x=[0,.008,.0195,.031,.047,.070,.082],yy=[1.612,1.612,1.606,1.612,1.613,1.610,1.612])
@@ -89,9 +89,12 @@ F([a,lower[5],upper[5],b,q])
 for c in range(5,9):F([lower[c],lower[c+1],upper[c+1],upper[c]])
 # Inset mouth surfaces share the opening's real boundary vertices.
 lo=rows[name_to_i['mouth_lower']][1];hi=rows[name_to_i['mouth_upper']][1]
+mouth_back=[]
 for line in [lo,hi]:
  inner=[V(Vector(verts[k])+Vector((0,0,-.008))) for k in line[:4]]
+ mouth_back.append(inner)
  for c in range(3):F([line[c],line[c+1],inner[c+1],inner[c]],'mouth')
+for c in range(3):F([mouth_back[0][c],mouth_back[0][c+1],mouth_back[1][c+1],mouth_back[1][c]],'mouth')
 # An editable, closed orbital ring replaces the old three-edge slit. The outer
 # boundary is the face cage itself. Three successive rings turn skin around
 # the globe, give the free lid edge thickness, and return into the socket.
@@ -104,7 +107,7 @@ outer=ids('lower_lid_outer')[2:6]+[ids('lower_lid_margin')[5]]+list(reversed(ids
 samples=[(.07,-1),(.30,-1),(.65,-1),(.95,-1),(1,0),(.95,1),(.65,1),(.30,1),(.07,1),(0,0)]
 aperture=[]
 for u,side in samples:
- x=.021+u*.045;arc=math.sin(math.pi*u)**.85;y=eye_cy+(u-.5)*.003+( .0051 if side>0 else -.0071 if side<0 else 0)*arc
+ x=.021+u*.045;arc=math.sin(math.pi*u)**.85;y=eye_cy+(u-.5)*.003+( .0080 if side>0 else -.0105 if side<0 else 0)*arc
  aperture.append(Vector((x,y,globe_z(x,y))))
 last=outer
 for stage in ['fold','edge','return']:
@@ -113,9 +116,10 @@ for stage in ['fold','edge','return']:
   taper=math.sin(math.pi*u)**.65
   if stage=='fold':
    co=Vector(verts[outer[k]]).lerp(p,.60);co.z=max(co.z,globe_z(co.x,co.y)+.0018*taper)
-  elif stage=='edge':co=p+Vector((0,side*.00045*taper,.00165*taper+.0004))
+  elif stage=='edge':co=p+Vector((0,side*.00045*taper,.0021*taper+.0004))
   else:co=p+Vector((0,-side*.00015*taper,-.00035))
-  ring.append(V(co))
+  vi=V(co);ring.append(vi)
+  if stage!='fold':lid_tint[tuple(round(v,7) for v in verts[vi])]=taper*(1 if side>0 else .22)
  for k in range(len(ring)):F([last[k],last[(k+1)%len(ring)],ring[(k+1)%len(ring)],ring[k]])
  last=ring
 # A separate posterior cervical loop sits inside the jaw underside. The chin
@@ -139,6 +143,15 @@ crease_coords={tuple(sorted((tuple(round(v,7) for v in verts[a]),tuple(round(v,7
 bm=bmesh.new();bm.from_mesh(mesh);bm.verts.ensure_lookup_table()
 bmesh.ops.delete(bm,geom=[v for v in bm.verts if not v.link_faces],context='VERTS')
 bmesh.ops.recalc_face_normals(bm,faces=bm.faces);bm.to_mesh(mesh);bm.free()
+# Subdivision interpolates this anatomical tint with the lip volume. Material
+# boundaries do not draw rectangular bands across the edge of the lip cage.
+lip_tint={}
+for name,weight in [('lip_lower_border',.08),('lip_lower_body',1),('lip_lower_roll',1),('mouth_lower',1),('mouth_upper',1),('lip_upper_roll',1),('lip_upper_body',1),('lip_upper_border',.12)]:
+ for c,k in enumerate(rows[name_to_i[name]][1][:4]):lip_tint[tuple(round(v,7) for v in verts[k])]=weight*([1,1,.90,0][c])
+tint=mesh.attributes.new('lip_tint','FLOAT','POINT')
+for v in mesh.vertices:tint.data[v.index].value=lip_tint.get(tuple(round(a,7) for a in v.co),0)
+lid=mesh.attributes.new('lid_tint','FLOAT','POINT')
+for v in mesh.vertices:lid.data[v.index].value=lid_tint.get(tuple(round(a,7) for a in v.co),0)
 attr=mesh.attributes.new('crease_edge','FLOAT','EDGE')
 for e in mesh.edges:
  if tuple(sorted(tuple(round(v,7) for v in mesh.vertices[i].co) for i in e.vertices)) in crease_coords:attr.data[e.index].value=.40
@@ -159,6 +172,11 @@ for sign in [-1,1]:
  for n in ['sclera','iris','pupil']:em.materials.append(MATS[n])
  for p,mi in zip(em.polygons,pm):p.material_index=mi;p.use_smooth=True
  bm=bmesh.new();bm.from_mesh(em);bmesh.ops.remove_doubles(bm,verts=bm.verts,dist=.000001);bmesh.ops.recalc_face_normals(bm,faces=bm.faces);bm.to_mesh(em);bm.free()
+ # Subdivision cuts chords through a sparse orbital arc. This editable outside
+ # constraint keeps the lid surface clear of the same real closed globe while
+ # leaving all already-outside facial vertices in place.
+ wrap=obj.modifiers.new('Eyelid globe clearance '+str(sign),'SHRINKWRAP');wrap.target=eo
+ wrap.wrap_method='NEAREST_SURFACEPOINT';wrap.wrap_mode='OUTSIDE';wrap.offset=.00065
  # A small, simple ear cage remains independently editable.
  bpy.ops.mesh.primitive_uv_sphere_add(segments=12,ring_count=8,location=(sign*.085,1.578,-.004));ear=bpy.context.object;ear.name='Ear '+str(sign);ear.scale=(.013,.026,.010);ear.rotation_euler[1]=sign*.25;ear.data.materials.append(MATS['skin'])
  for p in ear.data.polygons:p.use_smooth=True
@@ -176,10 +194,11 @@ for o in bpy.context.scene.objects:
  if o.type not in {'MESH','CURVE'}:continue
  ev=o.evaluated_get(deps);me=ev.to_mesh();me.calc_loop_triangles();buckets={}
  for tri in me.loop_triangles:
-  mat=me.materials[tri.material_index].name if len(me.materials) else 'skin';b=buckets.setdefault(mat,{'name':o.name,'material':mat,'position':[],'normal':[],'index':[]});lookup=b.setdefault('_lookup',{})
+  mat=me.materials[tri.material_index].name if len(me.materials) else 'skin';b=buckets.setdefault(mat,{'name':o.name,'material':mat,'position':[],'normal':[],'lipWeight':[],'lidWeight':[],'index':[]});lookup=b.setdefault('_lookup',{})
   for vi in tri.vertices:
    if vi not in lookup:
-    v=me.vertices[vi];p=o.matrix_world@v.co;n=(o.matrix_world.to_3x3().inverted().transposed()@v.normal).normalized();lookup[vi]=len(b['position'])//3;b['position']+=list(p);b['normal']+=list(n)
+    v=me.vertices[vi];p=o.matrix_world@v.co;n=(o.matrix_world.to_3x3().inverted().transposed()@v.normal).normalized();lookup[vi]=len(b['position'])//3;b['position']+=list(p);b['normal']+=list(n);b['lipWeight'].append(me.attributes['lip_tint'].data[vi].value if 'lip_tint' in me.attributes else 0)
+    b['lidWeight'].append(me.attributes['lid_tint'].data[vi].value if 'lid_tint' in me.attributes else 0)
    b['index'].append(lookup[vi])
  for b in buckets.values():b.pop('_lookup');parts.append(b)
  ev.to_mesh_clear()
