@@ -8,8 +8,8 @@ Public game: https://alien.doudouai.net/
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Release candidate: R16.20-public, 2026-10-03
-Verified published Sites source commit: e73421fe35a22ed634313126ae17097b54317233
+Release candidate: R16.21-public, 2026-10-03
+Verified published Sites source commit: 264dce32589c701cd09938d164ff289f86bc5858
 
 ## Working rules
 
@@ -75,3 +75,5 @@ Art is authored in procedural geometry. Creator/reference images informed propor
 Build output, generated QA reports/screenshots, temporary experiments, node_modules, caches, archives and credentials are excluded. Original code/assets, licenses, required test fixtures, lockfile and deployment configuration are retained. This directory is independent of the Sites checkout; creating its GitHub remote must not change the Sites source workflow or force-push earlier history.
 
 R16.20 links generated Japanese visitors to numbered bath tokens, real staff preparation/delivery, shared pool seating and ordered meals. This first batch covers the observable NPC business chain; direct player service menus and employee meals/sleep/shifts remain open. Existing nearby conversations and archery stay active.
+
+R16.21 consolidates the Chinese royal residence into three connected floors with a separate public stair hall. Guest/reception, bathing/linen and dragon-bed/dressing rooms preserve their interactions and privacy entrances. Former bath and guest plots are freed for later localized facilities; this release does not implement those future businesses.
