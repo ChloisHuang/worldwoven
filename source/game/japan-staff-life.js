@@ -30,6 +30,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
  function interrupt(n) {
   if(!active||n.station.id!==active.id)return false;
   if(!unmount(n))return false;
+  if(active.phase==='handoff'){const relief=actors.get(active.reliefId);if(taskOf(relief)?.staffLife)clear(relief);}
   clear(n);release(n);active.meal=false;active.interrupted=true;active.phase='returning';active.wait=0;return true;
  }
  return {
@@ -43,8 +44,12 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
     // Already claimed orders and trays finish normally. Neither actor can
     // claim another job until the relief physically reaches this handoff.
     if(busy(n)||busy(relief))return;
-    clear(n);clear(relief);active.phase='handoff';
-    go(relief,P.kitchenPickup,{label:`接替 ${n.station.npcName} 的煮面与送餐班`,duration:1,onDone:()=>{note('relief-arrived');active.phase='preparing';return true;}});return;
+    clear(n);clear(relief);active.phase='handoff';active.retireReady=false;active.reliefReady=false;
+    const met=()=>{if(active.retireReady&&active.reliefReady){note('relief-arrived');active.phase='preparing';}return true;};
+    // Distinct adjacent positions let the retiring cook hand over without
+    // occupying the point the replacement must reach.
+    go(n,P.kitchen,{label:`把煮面与送餐班交给 ${relief.station.npcName}`,duration:1,onDone:()=>{active.retireReady=true;return met();}});
+    go(relief,P.kitchenPickup,{label:`接替 ${n.station.npcName} 的煮面与送餐班`,duration:1,onDone:()=>{active.reliefReady=true;return met();}});return;
    }
    if(active.phase==='handoff'||busy(n))return;
    if(active.phase==='preparing') {

@@ -16,7 +16,7 @@ assert.equal(tasks.get('jp-ramen').orderJobId,'held-tray','A due break never rel
 tasks.delete('jp-ramen');life.update(1,{night:true});assert.equal(life.state().active.phase,'draining','Wait for relief’s safe current job completion');
 tasks.delete('jp-sushi');life.update(1,{night:true});assert.equal(life.state().active.phase,'handoff');
 function finish(id){const t=tasks.get(id);assert.ok(t,id+' has a physical task');if(t.mount)actors.get(id).serviceMount=t.mount;t.arrived=true;t.onArrive?.();assert.notEqual(t.onDone?.(),false);if(tasks.get(id)===t)tasks.delete(id);}
-finish('jp-sushi');life.update(1,{night:true});assert.equal(tasks.get('jp-ramen').action,'ramen');
+finish('jp-sushi');finish('jp-ramen');life.update(1,{night:true});assert.equal(tasks.get('jp-ramen').action,'ramen');
 assert.equal(board.holdWorkplace('kitchen','jp-sushi'),false,'Staff meal owns the real order kitchen until cooked');
 assert.equal(life.canWork('jp-sushi'),true,'Relief remains available for delivery while staff meal cooks');
 finish('jp-ramen');assert.equal(life.meals().length,1);life.update(1,{night:true});assert.equal(tasks.get('jp-ramen').mount.id,'staff-seat');
@@ -25,7 +25,7 @@ finish('jp-ramen');life.update(1,{night:true});assert.equal(tasks.get('jp-ramen'
 finish('jp-ramen');life.update(1,{night:true});finish('jp-ramen');
 assert.equal(life.state().completed,1);assert.equal(life.state().nextWorkerId,'jp-sushi');assert.equal(life.canWork('jp-ramen'),true);
 life.update(36,{night:true});assert.equal(life.state().active.id,'jp-sushi','Both staff get fair turns under continuous work');
-finish('jp-ramen');life.update(1,{night:true});finish('jp-sushi');life.update(1,{night:true});
+finish('jp-ramen');finish('jp-sushi');life.update(1,{night:true});finish('jp-sushi');life.update(1,{night:true});
 relief.serviceMount=items[0];life.playerRequest('staff-seat');assert.equal(relief.serviceMount,null);assert.equal(facilities.state().find(f=>f.id==='staff-seat').owner,null);
 assert.equal(life.state().active.phase,'returning');assert.equal(life.meals().length,0,'Player yield clears the staff tray');
 const snapshot=life.snapshot();assert.equal(snapshot.dueIn,0);assert.equal('active' in snapshot,false,'Do not serialize physical ownership');

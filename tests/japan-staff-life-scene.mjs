@@ -58,6 +58,7 @@ try {
   if(life.active&&!['draining','handoff'].includes(life.active.phase))assert.equal(state.claims.some(j=>j.workerId===life.active.id),false,'Off-duty worker never takes a new guest job');
   capture(state);
  }
+ console.log(JSON.stringify({finalStaff: routine.state().staffLife,finalActors: routine.state().actors.map(a=>({...a,yieldAt:npcs.find(n=>n.station.id===a.id)?.serviceTask?.yieldAt,yieldTo:npcs.find(n=>n.station.id===a.id)?.serviceTask?.yieldToId}))}));
  assert.equal(routine.state().staffLife.completed,2,'Both staff complete actual meal/tea/night rest/return');assert.equal(served.size,initialIds.length,'Relief completes the waiting meal orders');
  assert.equal(captured.size,resume?3:6);assert.equal(contacts.length,resume?1:2);
  for(const look of looks)assert.equal(JSON.stringify(npcs.find(n=>n.station.id===look.id).root.userData.appearance),look.appearance,'Persistent employee appearance '+look.id);

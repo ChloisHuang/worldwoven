@@ -88,7 +88,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   if(!task.arrived) {
    if(task.yieldToId&&!task.avoidRoute?.length){
     const other=actors.get(task.yieldToId),p=other?.root.position,yieldAt=task.yieldAt;
-    if(p&&Math.abs(p.y-yieldAt[1])<.7&&(p.x-yieldAt[0])*task.yieldDirection[0]+(p.z-yieldAt[2])*task.yieldDirection[1]>-.9)return;
+    if(p&&tasks.has(task.yieldToId)&&!tasks.get(task.yieldToId).arrived&&Math.abs(p.y-yieldAt[1])<.7&&(p.x-yieldAt[0])*task.yieldDirection[0]+(p.z-yieldAt[2])*task.yieldDirection[1]>-.9)return;
     task.yieldToId=null;task.routeSet=false;task.stalled=0;task.retries=0;
    }
    if(near(n.root.position,task.to)) {
@@ -126,7 +126,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
       // A single-file corridor has no safe immediate side step. The yielding
       // actor retraces its own checked footsteps to the nearest real passing
       // space, then waits there until opposing traffic has gone past.
-      if(!task.avoidRoute?.length&&blockerId&&task.stalled>1.2){
+      if(!task.avoidRoute?.length&&blockerId&&tasks.has(blockerId)&&!tasks.get(blockerId).arrived&&task.stalled>1.2){
        const trail=task.trail||[];
        for(let i=trail.length-1;i>=0&&!task.avoidRoute?.length;i--){
         const p=trail[i],distance=Math.hypot(p[0]-n.root.position.x,p[2]-n.root.position.z);
