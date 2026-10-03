@@ -1,6 +1,7 @@
 import {createJapanServiceOrders,JAPAN_SERVICE_POINTS as P,JAPAN_SERVICE_WORKERS} from './japan-service-orders.js';
 import {createJapanVisitorIdentity} from './japan-visitors.js';
 import {createJapanServiceProps} from './japan-service-props.js';
+import {canTraverse} from './navigation.js';
 
 const WORKERS=[...new Set(Object.values(JAPAN_SERVICE_WORKERS).flat())];
 const point=a=>({x:a[0],y:a[1],z:a[2]});
@@ -20,6 +21,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
  if(restSeats.length<2)return null;
  const workers=WORKERS.map(id=>residents.get(id)),guests=new Map(),actors=new Map(workers.map(n=>[n.station.id,n])),tasks=new Map(),cooldowns=new Map();
  const board=createJapanServiceOrders({saved,worldSeed,saveState,capacity:2}),props=createJapanServiceProps(lot.group);
+ const navigation={surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4,radius:.25};
  let playerState={},disposed=false,time=0,nextArrival=0,checkpointAt=5;
  const history=[],failures=[];
  const tell=(n,label)=>{const el=n.label?.querySelector?.('small');if(el)el.textContent=label;};
@@ -76,7 +78,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    if(near(n.root.position,task.to)) {
     n.route=[];task.arrived=true;task.stalled=0;
     if(task.mount) {
-     const allowed=task.mount.kind==='bath'?furniture.canUse(undefined,safety(n),task.mount):furniture.canSit(undefined,safety(n),task.mount);
+     const allowed=task.mount.kind==='bath'?furniture.canUse(navigation,safety(n),task.mount):furniture.canSit(navigation,safety(n),task.mount);
      if(!allowed){task.arrived=false;return;}
      if(task.mount.kind==='bath'&&!furniture.occupyBath(task.mount,n.station.id)){abortTask(task,'seat reservation lost');return;}
      n.root.position.set(...task.mount.anchor);n.root.rotation.y=task.mount.yaw;n.serviceMount=task.mount;
@@ -84,12 +86,25 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
     if(task.onArrive?.()===false){abortTask(task,'arrival precondition changed');return;}
    }else {
     if(!task.routeSet){n.route=planPath(n.root.position,point(task.to),.25);task.routeSet=true;}
-    const step=doors.routeStep(n.route,n.root.position,.025);
+    if(task.avoidRoute?.length&&near(n.root.position,task.avoidRoute[0],.08)){
+     task.avoidRoute.shift();if(!task.avoidRoute.length){n.route=planPath(n.root.position,point(task.to),.25);task.routeSet=true;}
+    }
+    const step=task.avoidRoute?.length?{waypoint:point(task.avoidRoute[0])}:doors.routeStep(n.route,n.root.position,.025);
     if(!step.waiting&&step.waypoint) {
      const p=step.waypoint,dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz);
      const obstacles=[...npcs.filter(a=>a!==n).map(a=>a.root.position),...(playerState.position?[playerState.position]:[])];
-     const blocked=obstacles.some(p=>Math.abs(p.y-n.root.position.y)<.65&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<.59&&(p.x-n.root.position.x)*dx+(p.z-n.root.position.z)*dz>.005);
-     if(d>1e-10&&!blocked){const amount=Math.min(d,dt*n.locomotion.walkSpeed*.82),before=n.root.position.clone();moveActor(n,dx/d*amount,dz/d*amount,.25);n.walking=before.distanceToSquared(n.root.position)>1e-8;n.root.rotation.y=Math.atan2(dx,dz);}
+     const blocker=obstacles.find(p=>Math.abs(p.y-n.root.position.y)<.65&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<.65&&(p.x-n.root.position.x)*dx+(p.z-n.root.position.z)*dz>.005&&Math.abs((p.x-n.root.position.x)*dz-(p.z-n.root.position.z)*dx)/Math.max(d,1e-10)<.52);
+     const blockerId=blocker&&npcs.find(a=>a.root.position===blocker)?.station.id;
+     if(blocker&&(!blockerId||!tasks.has(blockerId)||tasks.get(blockerId).arrived||n.station.id>blockerId)&&!task.avoidRoute?.length&&d>1e-10&&Math.abs(blocker.y-n.root.position.y)<.15) {
+      // A real side-step through checked floor space lets opposite traffic pass
+      // at the stair landing. Never change a route by snapping through an actor.
+      const colliders=lot.colliders.concat(safety(n));
+      for(const side of [1,-1]) {
+       const sx=side*dz/d*.83,sz=-side*dx/d*.83,a=[n.root.position.x+sx,n.root.position.y,n.root.position.z+sz],b=[blocker.x+sx+dx/d*.72,n.root.position.y,blocker.z+sz+dz/d*.72];
+       if(canTraverse(n.root.position,point(a),colliders,navigation)&&canTraverse(point(a),point(b),colliders,navigation)){task.avoidRoute=[a,b];break;}
+      }
+     }
+     if(d>1e-10&&!blocker){const amount=Math.min(d,dt*n.locomotion.walkSpeed*.82),before=n.root.position.clone();moveActor(n,dx/d*amount,dz/d*amount,.25);n.walking=before.distanceToSquared(n.root.position)>1e-8;n.root.rotation.y=Math.atan2(dx,dz);}
     }
     task.stalled=n.walking?0:task.stalled+dt;
     if(task.stalled>5){task.stalled=0;task.routeSet=false;if(++task.retries>3)abortTask(task,'route temporarily obstructed');}
@@ -152,7 +167,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    const mixture=board.state().items.find(i=>i.id===v.mixtureId);
    const pool=furniture.items.find(i=>i.id===v.poolId);
    const bath=mixture?.location.id===side+'Service'?furniture.resolveBath(pool,v.id,s=>!playerState.facilityId||playerState.facilityId!==s.id):null;
-   if(!bath){const wait=[side==='men'?-2.1:4.9,3.8,-5];if(!near(n.root.position,wait,.15))assign(n,wait,{label:LABELS[v.stage]});return;}
+   if(!bath){const wait=[(side==='men'?-4.3:1.3)+(v.number%2)*.8,3.8,-4.7];if(!near(n.root.position,wait,.15))assign(n,wait,{label:LABELS[v.stage]});return;}
    assign(n,bath.position,{label:LABELS.bathing,mount:bath,action:'bathe',duration:10,onArrive:()=>{
     const ok=board.guestStep(v.id,'bath-mounted',{poolId:v.poolId,seatId:bath.id,position:bath.position});if(ok)record(v.id,'bath-mounted');return ok;
    },onDone:()=>{if(!unmount(n)){tell(n,'等池边通道让开再离池');return false;}return guestEvent(n,'bathed',{seatId:bath.id});}});
