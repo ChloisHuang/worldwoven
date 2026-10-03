@@ -1,6 +1,6 @@
 {
   "scope": "Affected China door groups only; no unrelated-country scene or color/hash regression. Hashes below lock the actual China test dependencies.",
-  "productCommit": "HALL_WEST_POCKET_CENTERED_BETWEEN_COLUMNS",
+  "productCommit": "HALL_EAST_CHAIR_TURNING_CLEARANCE",
   "poseHash": "d79172e65b6a1224a755e6504058b7f1e7eb5937daa70160bdd0e9d28b54c719",
   "groups": {
     "gates": [
@@ -57,7 +57,7 @@
     ]
   },
   "files": {
-    "source/game/china-palace.js": "eea343e306b93abc86df6922d2afa81be7cedf72011accfa2d2be62bdc3009ed",
+    "source/game/china-palace.js": "a86f83da9f58e098f7395c188e471ab73b0fbc6ae5e6409745d1413367310bcd",
     "source/game/regions-east.js": "9063560d2d022f62bab7454d8e22158549e385192fc6a534449ff5a94ed0a2ac",
     "source/game/room-closures.js": "885ef9ca8437263c925bacbc097af66cafa2164669736dbc2aa7ac71c7b54f1f",
     "source/game/automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",

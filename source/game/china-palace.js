@@ -190,7 +190,9 @@ export function buildChinaPalace(G,H){
   box(g,0,2.18,-8.78,3.3,2.1,.22,0x9e4d32,true);G.box(g,0,2.22,-8.62,2.98,1.83,.065,0xcfa55b);G.torus(g,0,2.32,-8.54,.63,.085,0x835034,0);for(let i=0;i<9;i++)G.sphere(g,Math.sin(i*2.2)*.45,2.32+Math.cos(i*2.2)*.45,-8.48,.13,0xe0bd77,1.3,.7,.3);
   box(g,0,2.95,-10.4,7.7,4.7,.25,0x763a2c,true);for(const x of [-3.55,-2.4,-1.2,0,1.2,2.4,3.55])G.box(g,x,2.97,-10.22,.08,4.42,.11,C.gold);for(const x of [-2.5,2.5])scroll(g,x,3.13,-10.2,.68,2.7,true);
   for(const x of [-6.7,6.7]){table(g,x,-7,2.6,1.15,1.08);G.vessel(g,x,1.19,-7,0xabbfaf,.95);G.vessel(g,x+.75,1.19,-7,0xc6aa65,.66);}
-  for(const x of [-5.8,8.6])for(const z of [-3,1]){G.chair(g,x,z,C.wood,x<0?Math.PI/2:-Math.PI/2).position.y=.2;G.collider(colliders,x,z,.9,.9);additionalFurnitureSeats.push({name:'正殿木扶椅',x,y:1.4,z,yaw:x<0?Math.PI/2:-Math.PI/2,width:.9,depth:.9,seatY:2.075});}
+  // Leave almost1m between the east door's parked leaf tips and this chair,
+  // with its mesh, collider, seated anchor and standing approach moving together.
+  for(const x of [-5.8,8.6])for(const z of [-3,1]){const seatX=x===8.6&&z===-3?7.8:x;G.chair(g,seatX,z,C.wood,x<0?Math.PI/2:-Math.PI/2).position.y=.2;G.collider(colliders,seatX,z,.9,.9);additionalFurnitureSeats.push({name:'正殿木扶椅',x:seatX,y:1.4,z,yaw:x<0?Math.PI/2:-Math.PI/2,width:.9,depth:.9,seatY:2.075});}
   target('cn-hall-front','正殿中央前厅',0,3,'hall');target('cn-hall-throne','仪座前礼仪空间',0,-4.25,'hall');target('cn-hall-west','正殿西宽廊',-4.6,-3,'hall');target('cn-hall-east','正殿东宽廊',5,-3,'hall');target('cn-hall-rear','正殿后门',6,-9.6,'hall');}
  // Tea reception occupies a separate south-west pavilion, with a real room
  // around its social setting and a wide central cross-passage through the doors.

@@ -7,7 +7,7 @@
     "source/game/room-closures.js"
   ],
   "sourceHashes": {
-    "china-palace.js": "eea343e306b93abc86df6922d2afa81be7cedf72011accfa2d2be62bdc3009ed",
+    "china-palace.js": "a86f83da9f58e098f7395c188e471ab73b0fbc6ae5e6409745d1413367310bcd",
     "room-closures.js": "885ef9ca8437263c925bacbc097af66cafa2164669736dbc2aa7ac71c7b54f1f",
     "automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
     "inset-closures.js": "dadba37aaa60d85abc2c9102a5da10bcfaf529474d8e60fefe5a975e63d8930a"
@@ -1743,5 +1743,22 @@
     "sideHingeOffset": 0.13,
     "centralHingeOffset": 0.18,
     "unchanged": "archive building, terrace, stair geometry and all southern gate construction"
+  },
+  "hallEastChairCorrection": {
+    "oldCenter": [
+      8.6,
+      1.4,
+      -3
+    ],
+    "newCenter": [
+      7.8,
+      1.4,
+      -3
+    ],
+    "oldClearXToOpenLeaf": 0.181000007152556,
+    "newClearXToOpenLeaf": 0.981000007152556,
+    "chairId": "china-furniture-seat-4",
+    "preserved": "same chair model, yaw, seat height and interaction ID; mesh/collider/source seat record translated together",
+    "status": "CANDIDATE_PENDING_FOCUSED_ROUTE_AND_SIT_STAND"
   }
 }
