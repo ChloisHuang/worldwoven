@@ -187,7 +187,7 @@ function startFurniture(item){const alreadyWaiting=pendingInteraction===item;jap
  const clear=item.kind==='seat'?furniture.canSit(navOptions,furnitureSafetyBoxes(),item):furniture.canUse(navOptions,furnitureSafetyBoxes(),item);
  if(!clear){if(japanService?.isYieldingFor(item.id)){pendingInteraction=item;targetStation=item;if(!alreadyWaiting)toast('工作人员正在让出位置，马上就好');return;}furniture.releaseActor?.('player');toast('入口需要留出空间，请稍后再试');return;}
  if(item.poolId)furniture.occupyBath(item,'player');seated=item;if(item.bathPose)clearFeetPulse();player.root.position.set(...item.anchor);player.root.rotation.y=item.yaw;if(item.kind==='bath')buildPlayer();player.animate(elapsed,false,furniturePose(item),characterPoseContext(player,null,true));
- toast(item.kind==='bed'?'躺在寝具上了。按 E 起床，也可以直接移动':item.kind==='bath'?(item.bathWardrobePreset==='onsen-swimwear'?'已换好入浴衣着，坐进水中泡澡。按 E 离池后换回原服装':'已换上浴衣，坐进水中泡澡。按 E 离池后换回原服装'):'坐下了。按 E 起身，也可以直接移动');
+ toast(item.kind==='bed'?'躺在寝具上了。按 E 起床，也可以直接移动':item.kind==='bath'?(item.bathWardrobePreset==='onsen-swimwear'?(japanPlayerService?.wardrobePreset()?'已坐进水中泡汤。泡满10秒后离池，再去更衣柜擦干换衣':'已换好入浴衣着，坐进水中泡澡。按 E 离池后换回原服装'):'已换上浴衣，坐进水中泡澡。按 E 离池后换回原服装'):'坐下了。按 E 起身，也可以直接移动');
  }else if(item.kind==='canopy'){const open=furniture.toggleCurtain();toast(open?'轻轻拉开了纱帐':'轻轻合上了纱帐');}else{player.root.rotation.y=Math.atan2(item.center[0]-player.root.position.x,item.center[2]-player.root.position.z);openOutfitPreview(item);}}
 
 

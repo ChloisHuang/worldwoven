@@ -17,7 +17,8 @@ async function load(name){const m=mod(root+'/game/'+name);if(m.status==='unlinke
  const main=fs.readFileSync(root+'/game/main.js','utf8'),take=(a,b)=>{const from=main.indexOf(a),to=main.indexOf(b,from);assert(from>=0&&to>from,a);return main.slice(from,to);};
  const functions=[take('function moveActor(','function lotBounds('),take('function groundHeight(','function configureNPCs('),take('function configureNPCs(','function configureChinaArchery('),take('function configureJapanService(','function enterRegion('),take('function disposeLot(','function leaveLot('),take('function furniturePose(','function renderStations('),take('function goToStation(','function refreshOutfitChoices('),take('function clearFeetPulse(','const projectPoint='),take('function updatePlayer(','let frame=0;'),main.split('\n').find(s=>s.startsWith("addEventListener('keydown'")),take("$('interact-button').onclick=", "$('daybook-activities').onclick=")].join('\n');
  vm.createContext(state);vm.runInContext(functions,state,{filename:'actual-main-social-functions.js'});
- state.saved.appearance.player.bodyPreset='masculine-lean';const originalAppearance=JSON.stringify(state.saved.appearance);
+ const checkpoint=process.env.CHECKPOINT?JSON.parse(fs.readFileSync(process.env.CHECKPOINT,'utf8')):null;
+ if(checkpoint)state.saved=checkpoint.saved;else state.saved.appearance.player.bodyPreset='masculine-lean';const originalAppearance=JSON.stringify(state.saved.appearance);
  state.buildPlayer();state.configureNPCs();state.configureJapanService();state.configureNpcSocial();
  const report={status:'RUNNING',scope:'Actual main E/touch, service card handlers, player navigation and employee jobs; DOM stub only',stages:[]};let last='';
  const find=(root,test)=>test(root)?root:root.children?.map(x=>find(x,test)).find(Boolean);
@@ -35,6 +36,7 @@ async function load(name){const m=mod(root+'/game/'+name);if(m.status==='unlinke
  const stage=()=>state.japanPlayerService.state().visit?.stage;
  let playerVisitId;
  try {
+  if(!checkpoint){
   frame();card();find(dialog(),e=>e.textContent==='灯花浴包').onclick();primary().onclick();until(()=>!state.path.length,2400);frame();assert(state.nearest?.playerService);key('KeyE');assert(dialog().open);primary().onclick();
   until(()=>!!state.japanPlayerService.state().visit?.tokenId,1800);playerVisitId=state.japanPlayerService.state().visit.id;assert.equal(state.japanPlayerService.state().visit.blendId,'lantern-petal');
   travel();key('KeyE');until(()=>stage()==='washing',300);assert.equal(state.player.root.userData.appearance.wardrobePreset,'onsen-swimwear','Changing visibly applies the temporary bathing outfit');
@@ -44,13 +46,20 @@ async function load(name){const m=mod(root+'/game/'+name);if(m.status==='unlinke
   card().onclick();until(()=>!!state.seated,1800);until(()=>state.japanPlayerService.state().soakReady,400);key('KeyE');until(()=>!state.seated&&stage()==='drying',60);assert.equal(state.player.root.userData.appearance.wardrobePreset,'onsen-swimwear');
   travel();key('KeyE');until(()=>stage()==='resting',300);assert.notEqual(state.player.root.userData.appearance.wardrobePreset,'onsen-swimwear','Drying restores the saved wardrobe');
   card().onclick();until(()=>!!state.seated,1800);frame();state.$('touch-action').onclick();assert.equal(stage(),'waiting-meal');
-  until(()=>stage()==='meal-ready',6500);frame();key('KeyE');assert.equal(stage(),'eating');until(()=>stage()==='checkout',300);assert(state.seated,'Eating does not teleport the seated player');key('KeyE');frame();assert(!state.seated);
-  travel();key('KeyE');until(()=>!state.japanPlayerService.state().visit,1800);
-  const completed=state.japanService.state(),history=completed.history.filter(e=>e.visit===playerVisitId);for(const kind of ['register','prepare','deliverMix','cook','serve','checkout'])assert(history.some(e=>e.event===kind),kind+' was completed by the shared employee routine');assert(!completed.items.some(i=>i.visitId===playerVisitId));
+  until(()=>stage()==='meal-ready',6500);frame();key('KeyE');assert.equal(stage(),'eating');until(()=>stage()==='checkout',300);assert(state.seated,'Eating does not teleport the seated player');
+  }else{
+   assert.equal(checkpoint.stage,'checkout','Continue only the saved, already-eaten checkout checkpoint');playerVisitId=state.japanPlayerService.state().visit.id;
+   const seat=furniture.items.find(i=>i.id===state.japanPlayerService.state().visit.restSeatId);state.player.root.position.set(...seat.position);state.requestFurniture(seat);until(()=>!!state.seated,90);
+  }
+  // The order transition happens in updateNPCs, after that frame's nearest/E
+  // label was drawn. Read the next rendered input state before pressing E.
+  frame(2);key('KeyE');frame();assert(!state.seated);
+  travel();key('KeyE');until(()=>!state.japanPlayerService.state().visit,1800);frame(2);
+  const completed=state.japanService.state(),history=completed.history.filter(e=>e.visit===playerVisitId);for(const kind of (checkpoint?['checkout']:['register','prepare','deliverMix','cook','serve','checkout']))assert(history.some(e=>e.event===kind),kind+' was completed by the shared employee routine');assert(!completed.items.some(i=>i.visitId===playerVisitId));
   assert.equal(JSON.stringify(state.saved.appearance),originalAppearance,'Temporary service outfit never mutates saved appearance');
   // Leave with a new actual order pending; disposal preserves that same ID and
   // clears live employee claims instead of creating a second avatar on reload.
-  card().onclick();until(()=>!!state.japanPlayerService.state().visit?.tokenId,1800);const pendingId=state.japanPlayerService.state().visit.id;state.disposeLot();
+  card().onclick();until(()=>stage()==='check-in',1800);state.keys.add('KeyD');frame(7);state.keys.clear();card();assert.equal(primary().textContent,'前往服务位置');primary().onclick();assert(state.path.length,'A waiting player who stepped away is really guided back');until(()=>!!state.japanPlayerService.state().visit?.tokenId,1800);const pendingId=state.japanPlayerService.state().visit.id;state.disposeLot();
   const resumed=Orders.createJapanServiceOrders({saved:state.saved.japanOperations,worldSeed:1});assert.equal(resumed.state().visits.filter(v=>v.customerType==='player').length,1);assert.equal(resumed.state().visits.find(v=>v.customerType==='player').id,pendingId);assert(!resumed.jobs().some(j=>j.visitId===pendingId));assert.equal(resumed.state().claims.length,0);resumed.dispose();
   report.status='PASS';report.simulatedSeconds=state.elapsed;report.maxRSSMiB=process.resourceUsage().maxRSS/1024;assert(report.maxRSSMiB<1228.8);
  }catch(e){report.status='FAIL';report.error=String(e);console.log(JSON.stringify({service:state.japanPlayerService?.state(),actors:state.japanService?.state().actors,messages:messages.slice(-8)}));throw e;}

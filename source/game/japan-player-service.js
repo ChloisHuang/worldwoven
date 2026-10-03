@@ -5,6 +5,15 @@ const array=p=>p?.toArray?p.toArray():p?[p.x,p.y,p.z]:null;
 const near=(a,b,r=.35)=>a&&b&&Math.abs(a[1]-b[1])<.4&&Math.hypot(a[0]-b[0],a[2]-b[2])<=r;
 const copy=v=>v?JSON.parse(JSON.stringify(v)):null;
 
+export function japanPlayerOrderProgress(snapshot,v) {
+ if(!v)return null;
+ const claimed=kind=>snapshot.claims.some(j=>j.visitId===v.id&&j.kind===kind),mix=snapshot.items.find(i=>i.id===v.mixtureId),meal=snapshot.items.find(i=>i.id===v.mealId);
+ const side=v.side==='men'?'男汤':'女汤';
+ const blend=!v.tokenId?['registration','等前台发浴牌']:!mix?(claimed('prepare')?['preparing','正在配制']:['queued','排队配制']):mix.location.type==='worker'?['delivering',`正在送往${side}`]:mix.location.type==='used'?['used','本次草木浴已用毕']:mix.location.id===v.side+'Service'?['delivered',`已到${side}交接木凳`]:['pickup','等待取件'];
+ const food=!v.mealRequested?['not-ordered','尚未点餐']:!meal?(claimed('cook')?['cooking','后厨正在制作']:['queued','餐单排队中']):meal.location.type==='worker'?['delivering','服务员正在送餐']:meal.location.type==='used'?['eaten','已用餐完毕']:meal.location.id==='dining'?['delivered','已送到你的餐位']:['pickup','餐点已做好，等待取餐'];
+ return {blend:{code:blend[0],text:blend[1]},meal:{code:food[0],text:food[1]}};
+}
+
 // Player interaction adapter over the same board used by the NPC employees.
 // It never creates its own workers, delivery clock, pool locks or meal queue.
 // The main scene supplies its actual player/mount getters and renders activity.
@@ -132,7 +141,7 @@ export function createJapanPlayerService({board,furniture,getPlayer,getMounted=(
    v=visit();if(v?.stage!==lastStage){lastStage=v?.stage||null;if(v?.stage==='changing')notify(`已领取第 ${v.number} 号浴牌`);if(v?.stage==='meal-ready')notify('你的汤面已经送到餐位');}
    syncWardrobe();
   },
-  state:()=>({visit:copy(visit()),activity:copy(activity),soakSeconds:soak,soakReady:soak>=10,suspended}),
+  state:()=>{const snapshot=board.state(),v=snapshot.visits.find(live)||null;return {visit:v,activity:copy(activity),soakSeconds:soak,soakReady:soak>=10,suspended,progress:japanPlayerOrderProgress(snapshot,v)};},
   pose:()=>activity?{action:activity.action,heldProp:['changed','dried'].includes(activity.event)?'cloth':null,seatedMeal:activity.event==='ate',workTarget:activity.event==='washed'?(visit()?.side==='men'?[-10.35,4.6,-3.7]:[4.6,4.6,-4.15]):null}:null,
  };
  return api;
