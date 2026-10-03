@@ -295,6 +295,17 @@ export function buildChinaPalace(G,H){
   for(let i=0;i<=n;i++){const t=i/n,x=a[0]+(b[0]-a[0])*t,z=a[1]+(b[1]-a[1])*t,y=y0+(y1-y0)*t;G.box(g,x,y+.51,z,.095,1.02,.095,color);G.mesh(g,new THREE.OctahedronGeometry(.10,0),trim,x,y+1.055,z);}
   for(let i=0;i<n;i++){const t=(i+.5)/n,x=a[0]+(b[0]-a[0])*t,z=a[1]+(b[1]-a[1])*t,y=y0+(y1-y0)*t;const c={minX:x-(Math.abs(b[0]-a[0])/n+.14)/2,maxX:x+(Math.abs(b[0]-a[0])/n+.14)/2,minZ:z-(Math.abs(b[1]-a[1])/n+.14)/2,maxZ:z+(Math.abs(b[1]-a[1])/n+.14)/2,minY:y-.03,maxY:y+1.13,owner:id};colliders.push(c);cameraColliders.push({...c});}
  };
+ // Level landing returns join existing end posts. Keep an avatar guard along
+ // the edge, but give the camera only the visible bars, balusters and finials.
+ const landingRail=(g,id,a,b,y,stone=false)=>{
+  const color=stone?0xc8c3af:C.red,trim=stone?0xe0d8be:C.gold;
+  const cameraSolid=m=>{m.updateWorldMatrix(true,false);const q=new THREE.Box3().setFromObject(m);cameraColliders.push({minX:q.min.x,maxX:q.max.x,minY:q.min.y,maxY:q.max.y,minZ:q.min.z,maxZ:q.max.z,owner:id});};
+  cameraSolid(beam(g,[a[0],y+.98,a[1]],[b[0],y+.98,b[1]],.067,trim));
+  cameraSolid(beam(g,[a[0],y+.28,a[1]],[b[0],y+.28,b[1]],.045,color));
+  const n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/.68));
+  for(let i=1;i<n;i++){const t=i/n,x=a[0]+(b[0]-a[0])*t,z=a[1]+(b[1]-a[1])*t;cameraSolid(G.box(g,x,y+.51,z,.095,1.02,.095,color));cameraSolid(G.mesh(g,new THREE.OctahedronGeometry(.10,0),trim,x,y+1.055,z));}
+  colliders.push({minX:Math.min(a[0],b[0])-.07,maxX:Math.max(a[0],b[0])+.07,minY:y-.03,maxY:y+1.13,minZ:Math.min(a[1],b[1])-.07,maxZ:Math.max(a[1],b[1])+.07,owner:id});
+ };
  const stairs=(g,id,axis,minX,maxX,minZ,maxZ,y,endY,count,stone=false)=>{
   const s={id,axis,minX,maxX,minZ,maxZ,y,endY};walkableSurfaces.push(s);
   const low=axis==='x'?minX:minZ,high=axis==='x'?maxX:maxZ,step=(high-low)/count;
@@ -323,6 +334,7 @@ export function buildChinaPalace(G,H){
   stairs(r14,'cn-main-side-stair-'+side,'z',sx0,sx1,front,front+3.2,1.415,.115,8,true);
   rail(r14,'main-side-outer-'+side,[side*13.85,back],[side*13.85,front],1.415,1.415,true);
   rail(r14,'main-side-back-'+side,[side*12,back],[side*13.85,back],1.415,1.415,true);
+  landingRail(r14,'main-side-plinth-'+side,[side*12,front],[side*12,front+3.2],1.415,true);
   rail(r14,'main-side-south-'+side,[side*12,front+3.2],[side*12,7],1.415,1.415,true);
   rail(r14,'main-side-north-'+side,[side*12,-12],[side*12,back],1.415,1.415,true);
  }
@@ -358,6 +370,14 @@ export function buildChinaPalace(G,H){
  ])rail(gallery,id,a,b,6.015);
  // Existing lower walls reach 6.9 m and become the gallery's deep parapets;
  // the new upper bays above them are genuinely open at standing eye height.
+ // Door/window headers already have camera masonry. Clip avatar-only guards
+ // to those same solids at the gallery level, leaving every lower opening.
+ // Reading actual header spans also keeps a relocated inset doorway aligned.
+ for(const c of cameraColliders){
+  const front=Math.abs(c.minZ-4.84)<.001&&Math.abs(c.maxZ-5.16)<.001;
+  const side=Math.abs(Math.abs((c.minX+c.maxX)/2)-11)<.001&&Math.abs(c.maxX-c.minX-.32)<.001&&c.minZ>=-11&&c.maxZ<=5;
+  if((front||side)&&c.minY>1.415&&Math.abs(c.maxY-6.9)<.001)colliders.push({...c,minY:6.015,maxY:6.9,owner:'main-gallery-parapet'});
+ }
  for(const z of [-11,5]){
   box(gallery,0,9.0,z,22,.43,.32,C.jade);
   for(const x of[-11,-6,-2.6,2.6,7.8,11])solid3(gallery,x,7.97,z,.20,2.16,.30,C.red);
@@ -393,6 +413,10 @@ export function buildChinaPalace(G,H){
  slab(loft,'cn-loft-middle-landing',-9.1,-4.05,-32,-30,2.515,.23,C.wood);
  stairs(loft,'cn-loft-east-flight','z',-6.4,-4.2,-30,-25.4,2.515,4.215,10);
  rail(loft,'loft-middle-north',[-9.1,-32],[-4.05,-32],2.515);
+ for(const[id,a,b]of[
+  ['loft-middle-west',[-9.1,-32],[-9.1,-30]],['loft-middle-east',[-4.05,-32],[-4.05,-30]],
+  ['loft-middle-south-west',[-9.1,-30],[-8.95,-30]],['loft-middle-south-center',[-6.75,-30],[-6.4,-30]],['loft-middle-south-east',[-4.2,-30],[-4.05,-30]]
+ ])landingRail(loft,id,a,b,2.515);
  rail(loft,'loft-void-west',[-9.2,-32],[-9.2,-25.4],4.215);
  rail(loft,'loft-void-east',[-4.05,-32],[-4.05,-25.4],4.215);
  rail(loft,'loft-void-north',[-9.2,-32],[-4.05,-32],4.215);
