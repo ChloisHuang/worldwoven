@@ -20,6 +20,11 @@ export function buildChinaPalace(G,H){
  const insetKinds={
   'cn-south-gate':['hinge',1,.65],'cn-south-gate-west':['hinge',1,.65],'cn-south-gate-east':['hinge',1,.65],
   'cn-north-gate':['hinge',1,.65],'cn-north-gate-west':['hinge',1,.65,.13],'cn-north-gate-east':['hinge',1,.65,.13],'cn-west-gate':['hinge',-1,.65],'cn-east-gate':['hinge',1,.65],
+  'cn-hall-front':['hinge',1,.32],'cn-hall-rear':['hinge',-1,.32],'cn-hall-west':['pocket',0,.50],'cn-hall-east':['hinge',1,.32],
+  'cn-study-front':['hinge',1,.32],'cn-bedroom-front':['hinge',1,.32],'cn-bedroom-west':['hinge',1,.32],'cn-bedroom-east':['pocket',0,.50],
+  'cn-kitchen-rear':['hinge',1,.32],'cn-bath-front':['hinge',-1,.32],'cn-bath-west':['hinge',1,.32],'cn-bath-east':['hinge',1,.32],
+  'cn-archive-front':['hinge',1,.32],'cn-archive-rear':['hinge',-1,.32],'cn-archive-west':['pocket',0,.50],'cn-archive-east':['hinge',1,.32],
+  'cn-guest-front':['hinge',-1,.32],'cn-guest-west':['pocket',0,.50],'cn-guest-east':['hinge',-1,.32]
  };
  function palaceWall(parent,nav,camera,options){
   for(const op of options.openings||[]){const section=insetSections.get(op.id);if(!section||section.group.parent)continue;parent.add(section.group);section.group.updateWorldMatrix(true,true);
@@ -136,8 +141,12 @@ export function buildChinaPalace(G,H){
   const wins=frontWindows.map(([dx,ww])=>({from:x+dx-ww/2,to:x+dx+ww/2,bottom:1.45,top:id==='archive'?2.85:3.795}));
   palaceWall(g,colliders,cameraColliders,{at:z1,from:x0,to:x1,bottom:.2,top:h,depth:.32,color:C.cream,openings:[entry,...wins]});for(const[dx,ww]of frontWindows)window(g,x+dx,z1,ww,'x',id==='archive'?1.4:2.35,id==='archive'?2.15:2.62);
   palaceWall(g,colliders,cameraColliders,{at:z0,from:x0,to:x1,bottom:.2,top:h,depth:.32,color:C.cream,openings:back?[back]:[]});
-  for(const side of [-1,1]){const at=x+side*w/2,entryZ=id==='hall'&&side<0?z-4.5:id==='kitchen'?z+2.5:id==='bath'&&side<0?z+2.7:z,sideEntry=door('cn-'+id+(side<0?'-west':'-east'),name+(side<0?'西门':'东门'),'z',at,entryZ-1.6,entryZ+1.6,id==='archive'?3.33:s.ceremony?4.2:3.5,[id,'side-court']);const offsets=(d>12?[-4.7,4.7]:[-3.5,3.5]).filter(zz=>Math.abs(z+zz-entryZ)>2.7),windows=offsets.map(zz=>({from:z+zz-1,to:z+zz+1,bottom:1.45,top:id==='archive'?2.85:3.795}));palaceWall(g,colliders,cameraColliders,{axis:'z',at,from:z0,to:z1,bottom:.2,top:h,depth:.32,color:C.cream,openings:[sideEntry,...windows]});for(const zz of offsets)window(g,at,z+zz,2,'z',id==='archive'?1.4:2.35,id==='archive'?2.15:2.62);}
-  for(const xx of [x0,x0+w*.25,x0+w*.75,x1])for(const zz of [z0,z1])if(!((back&&zz===z0&&xx>back.from-.3&&xx<back.to+.3)||(zz===z1&&xx>entry.from-.3&&xx<entry.to+.3)))column(g,xx,zz,h,.19);for(const side of [-1,1])for(const zz of [z-3,z+3])if(!doorways.some(d=>d.axis==='z'&&d.at===x+side*w/2&&zz>d.from-.3&&zz<d.to+.3))column(g,x+side*w/2,zz,h,.17);
+  for(const side of [-1,1]){const at=x+side*w/2,entryZ=id==='hall'&&side<0?z-4:id==='kitchen'?z+2.5:id==='bath'&&side<0?z+2.7:z,sideEntry=door('cn-'+id+(side<0?'-west':'-east'),name+(side<0?'西门':'东门'),'z',at,entryZ-1.6,entryZ+1.6,id==='archive'?3.33:s.ceremony?4.2:3.5,[id,'side-court']);let sideWindows=(d>12?[-4.7,4.7]:[-3.5,3.5]).filter(zz=>Math.abs(z+zz-entryZ)>2.7).map(zz=>({center:z+zz,width:2}));
+   if(sideEntry.id==='cn-archive-west')sideWindows=[{center:-32.82,width:1.40},{center:-24.18,width:1.40}];
+   if(sideEntry.id==='cn-guest-west')sideWindows=[{center:-32.07,width:.90},{center:-23.93,width:.90}];
+   sideWindows=sideWindows.filter(win=>win.center+win.width/2<=sideEntry.from-.03||win.center-win.width/2>=sideEntry.to+.03);
+   const windows=sideWindows.map(win=>({from:win.center-win.width/2,to:win.center+win.width/2,bottom:1.45,top:id==='archive'?2.85:3.795}));palaceWall(g,colliders,cameraColliders,{axis:'z',at,from:z0,to:z1,bottom:.2,top:h,depth:insetSections.get(sideEntry.id)?.mount.wallDepth??.32,color:C.cream,openings:[sideEntry,...windows]});for(const win of sideWindows)window(g,at,win.center,win.width,'z',id==='archive'?1.4:2.35,id==='archive'?2.15:2.62);}
+  for(const xx of [x0,x0+w*.25,x0+w*.75,x1])for(const zz of [z0,z1])if(!((back&&zz===z0&&xx>back.from-.3&&xx<back.to+.3)||(zz===z1&&xx>entry.from-.3&&xx<entry.to+.3)))column(g,xx,zz,h,.19);for(const side of [-1,1])for(const zz of [z-3,z+3])if(!doorways.some(d=>d.axis==='z'&&d.at===x+side*w/2&&zz>(d.roughOpening?.from??d.from)-.21&&zz<(d.roughOpening?.to??d.to)+.21))column(g,x+side*w/2,zz,h,.17);
   // Paint and bracket clusters frame actual openings instead of hanging
   // through their clear height. Low rooms keep a shallower header over doors.
   for(const zz of [z0,z1]){
@@ -181,7 +190,9 @@ export function buildChinaPalace(G,H){
   box(g,0,2.18,-8.78,3.3,2.1,.22,0x9e4d32,true);G.box(g,0,2.22,-8.62,2.98,1.83,.065,0xcfa55b);G.torus(g,0,2.32,-8.54,.63,.085,0x835034,0);for(let i=0;i<9;i++)G.sphere(g,Math.sin(i*2.2)*.45,2.32+Math.cos(i*2.2)*.45,-8.48,.13,0xe0bd77,1.3,.7,.3);
   box(g,0,2.95,-10.4,7.7,4.7,.25,0x763a2c,true);for(const x of [-3.55,-2.4,-1.2,0,1.2,2.4,3.55])G.box(g,x,2.97,-10.22,.08,4.42,.11,C.gold);for(const x of [-2.5,2.5])scroll(g,x,3.13,-10.2,.68,2.7,true);
   for(const x of [-6.7,6.7]){table(g,x,-7,2.6,1.15,1.08);G.vessel(g,x,1.19,-7,0xabbfaf,.95);G.vessel(g,x+.75,1.19,-7,0xc6aa65,.66);}
-  for(const x of [-5.8,8.6])for(const z of [-3,1]){G.chair(g,x,z,C.wood,x<0?Math.PI/2:-Math.PI/2).position.y=.2;G.collider(colliders,x,z,.9,.9);additionalFurnitureSeats.push({name:'正殿木扶椅',x,y:1.4,z,yaw:x<0?Math.PI/2:-Math.PI/2,width:.9,depth:.9,seatY:2.075});}
+  // Leave almost1m between the east door's parked leaf tips and this chair,
+  // with its mesh, collider, seated anchor and standing approach moving together.
+  for(const x of [-5.8,8.6])for(const z of [-3,1]){const seatX=x===8.6&&z===-3?7.8:x;G.chair(g,seatX,z,C.wood,x<0?Math.PI/2:-Math.PI/2).position.y=.2;G.collider(colliders,seatX,z,.9,.9);additionalFurnitureSeats.push({name:'正殿木扶椅',x:seatX,y:1.4,z,yaw:x<0?Math.PI/2:-Math.PI/2,width:.9,depth:.9,seatY:2.075});}
   target('cn-hall-front','正殿中央前厅',0,3,'hall');target('cn-hall-throne','仪座前礼仪空间',0,-4.25,'hall');target('cn-hall-west','正殿西宽廊',-4.6,-3,'hall');target('cn-hall-east','正殿东宽廊',5,-3,'hall');target('cn-hall-rear','正殿后门',6,-9.6,'hall');}
  // Tea reception occupies a separate south-west pavilion, with a real room
  // around its social setting and a wide central cross-passage through the doors.
