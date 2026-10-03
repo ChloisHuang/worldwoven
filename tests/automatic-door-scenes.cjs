@@ -4,7 +4,8 @@ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),asse
 for(const[id,file,fn]of[['japan','japan-bathhouse.js','buildJapan'],['china','regions-east.js','buildChina'],['egypt','egypt-temple.js','buildEgypt'],['france','regions-west.js','buildFrance']]){
  const lot=(await load(file))[fn](),doors=createAutomaticDoors(lot,id),staticSolids=buildCameraSolids(lot),multi=!!lot.heightAware||id==='japan'||id==='egypt',opts=multi?{surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4}:{bounds:lot.bounds,multilevel:false};let samples=0,cameraSweeps=0;
  const flatHeight=(x,z)=>{let y=.015;for(const s of[...(lot.walkableSurfaces||[]),...(lot.group.userData.rugSurfaces||[])])if(x>=s.minX&&x<=s.maxX&&z>=s.minZ&&z<=s.maxZ)y=Math.max(y,s.y);return y;};
- for(const d of doors.getState())for(const lateral of[-.35,0,.35])for(const sign of[-1,1]){
+ const legacyIds=new Set(['japan-guest-shoji','cn-hall-front','cn-bedroom-front','egypt-private-suite-door','france-palace-front','france-bedroom-enfilade','france-private-bath']);
+ for(const d of doors.getState().filter(d=>legacyIds.has(d.id)))for(const lateral of[-.35,0,.35])for(const sign of[-1,1]){
   const p={x:d.center[0]+(d.axis==='z'?sign*1.05:lateral),y:multi?(lot.levels||[]).reduce((y,l)=>Math.abs(l.y-d.center[1])<Math.abs(y-d.center[1])?l.y:y,0):d.center[1],z:d.center[2]+(d.axis==='x'?sign*1.05:lateral)};if(lot.heightAware){const q=groundRaisedProbe(lot,[p.x,d.center[1],p.z]);p.y=q[1];}
   doors.update(0,[p]);
   // A restore inside a wide hinge's swept arc must have an escape, rather than
@@ -19,6 +20,6 @@ for(const[id,file,fn]of[['japan','japan-bathhouse.js','buildJapan'],['china','re
   }
   const normal=d.axis==='z'?p.x-d.center[0]:p.z-d.center[2];assert(normal*sign<-.95,id+'/'+d.id+' actual threshold blocked at '+JSON.stringify(p));
  }
- reports.push({id,doors:doors.getState().map(d=>({id:d.id,motion:d.motion,style:d.style})),actualThresholdMovementSamples:samples,cameraSweeps});doors.dispose();lot.group.traverse(o=>o.geometry?.dispose());
+ reports.push({id,doors:doors.getState().filter(d=>legacyIds.has(d.id)).map(d=>({id:d.id,motion:d.motion,style:d.style})),actualThresholdMovementSamples:samples,cameraSweeps});doors.dispose();lot.group.traverse(o=>o.geometry?.dispose());
 }
-assert.deepEqual(Object.fromEntries(reports.map(x=>[x.id,x.doors.length])),{japan:1,china:2,egypt:1,france:3},'bounded, explicitly selected private-room and main doors');console.log(JSON.stringify({status:'PASS',regions:reports,scope:'Authored door placement and actual lot-controller bidirectional crossing tests; not browser rendering'},null,2));})().catch(e=>{console.error(e);process.exit(1)});
+assert.deepEqual(Object.fromEntries(reports.map(x=>[x.id,x.doors.length])),{japan:1,china:2,egypt:1,france:3},'original seven doors retained; all added openings separately covered by authored-threshold-probes-v3.cjs');console.log(JSON.stringify({status:'PASS',regions:reports,scope:'Authored door placement and actual lot-controller bidirectional crossing tests; not browser rendering'},null,2));})().catch(e=>{console.error(e);process.exit(1)});
