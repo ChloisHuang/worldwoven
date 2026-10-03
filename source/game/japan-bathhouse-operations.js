@@ -73,7 +73,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   if(visit){addGuest(visit);record(visit.id,'spawned');nextArrival=time+14;}
  }
  function abortTask(task,reason) {
-  const n=task.actor;failures.push({actor:n.station.id,reason,time:+time.toFixed(2)});if(failures.length>8)failures.shift();
+  const n=task.actor;failures.push({actor:n.station.id,reason,time:+time.toFixed(2),position:n.root.position.toArray(),destination:task.to.slice(),next:task.avoidRoute?.[0]||n.route[0]||null,player:playerState.position?.toArray?.()||null});if(failures.length>8)failures.shift();
   clear(n,{releaseJob:true});furniture.releaseActor(n.station.id);cooldowns.set(n.station.id,time+3);
  }
  function tickTask(task,dt) {
@@ -97,7 +97,11 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
     if(task.avoidRoute?.length&&near(n.root.position,task.avoidRoute[0],.08)){
      task.avoidRoute.shift();if(!task.avoidRoute.length){n.route=planPath(n.root.position,point(task.to),.25);task.routeSet=true;}
     }
-    const step=task.avoidRoute?.length?{waypoint:point(task.avoidRoute[0])}:doors.routeStep(n.route,n.root.position,.025);
+    // Near the exact work point, a coarse grid corner may be nearer a waiting
+    // customer than the actual destination. Use a checked final floor segment.
+    const direct=near(n.root.position,task.to,.75)&&canTraverse(n.root.position,point(task.to),lot.colliders.concat(safety(n)),navigation);
+    if(direct)task.avoidRoute=null;
+    const step=direct?{waypoint:point(task.to)}:task.avoidRoute?.length?{waypoint:point(task.avoidRoute[0])}:doors.routeStep(n.route,n.root.position,.025);
     if(!step.waiting&&step.waypoint) {
      const p=step.waypoint,dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz);
      const obstacles=[...npcs.filter(a=>a!==n).map(a=>a.root.position),...(playerState.position?[playerState.position]:[])];
