@@ -20,13 +20,13 @@ def R(name,y,width,z,x=None,yy=None):
  return name,[V((x[i],yy[i] if yy else y,z[i])) for i in range(7)]
 rows=[]
 def add(*a,**k):rows.append(R(*a,**k))
-add('chin_tip',1.472,.012,[.045,.044,.042,.038,.031,.021,.010])
-add('chin_lower',1.482,.027,[.066,.065,.063,.058,.048,.031,.008])
+add('chin_tip',1.472,.024,[.055,.055,.053,.049,.042,.026,.011])
+add('chin_lower',1.482,.034,[.068,.067,.065,.060,.049,.032,.009])
 add('chin_body',1.494,.041,[.073,.072,.071,.066,.058,.040,.009])
 add('chin_groove',1.504,.052,[.076,.076,.075,.071,.063,.045,.010])
 add('lip_lower_border',1.509,.057,[.081,.081,.078,.073,.063,.043,.008],x=[0,.006,.019,.0355,.044,.052,.057],yy=[1.508,1.508,1.511,1.514,1.510,1.509,1.509])
 add('lip_lower_body',1.514,.061,[.087,.087,.083,.075,.065,.045,.008],x=[0,.006,.019,.0318,.046,.056,.061],yy=[1.5135,1.514,1.516,1.517,1.515,1.514,1.514])
-add('lip_lower_roll',1.517,.064,[.086,.086,.081,.075,.065,.046,.008],x=[0,.006,.019,.0305,.047,.059,.064],yy=[1.517,1.517,1.518,1.5183,1.518,1.518,1.518])
+add('lip_lower_roll',1.517,.064,[.086,.086,.081,.075,.065,.046,.008],x=[0,.006,.019,.0305,.047,.059,.064],yy=[1.517,1.517,1.518,1.5183,1.5168,1.5165,1.5165])
 add('mouth_lower',1.518,.064,[.081,.081,.079,.075,.065,.046,.008],x=[0,.006,.019,.030,.047,.059,.064],yy=[1.5175,1.5176,1.5182,1.519,1.518,1.518,1.518])
 add('mouth_upper',1.518,.064,[.081,.081,.079,.075,.065,.046,.008],x=[0,.006,.019,.030,.047,.059,.064],yy=[1.5185,1.5186,1.5188,1.519,1.518,1.518,1.518])
 add('lip_upper_roll',1.520,.066,[.085,.086,.081,.075,.066,.047,.008],x=[0,.006,.019,.0305,.047,.060,.066],yy=[1.5193,1.5195,1.520,1.5197,1.522,1.522,1.522])
@@ -64,6 +64,7 @@ name_to_i={name:i for i,(name,_) in enumerate(rows)}
 for r in range(len(rows)-1):
  name,a=rows[r];_,b=rows[r+1]
  for c in range(9):
+  if name_to_i['lip_lower_border']<=r<name_to_i['lip_upper_border'] and c>=3:continue
   if name=='mouth_lower' and c<3:continue
   if name=='lower_lid_margin' and 2<=c<5:continue
   quad=[a[c],a[c+1],b[c+1],b[c]]
@@ -71,24 +72,39 @@ for r in range(len(rows)-1):
    centre=sum((Vector(verts[k]) for k in quad),Vector())/4
    ring=[V(centre+(Vector(verts[k])-centre)*.58) for k in quad]
    for k in range(4):F([quad[k],quad[(k+1)%4],ring[(k+1)%4],ring[k]])
-   inner=[V(Vector(verts[k])+Vector((0,.0025,-.006))) for k in ring]
+   inner=[V(Vector(verts[k])+Vector((0,.007,-.008))) for k in ring]
    for k in range(4):F([ring[k],ring[(k+1)%4],inner[(k+1)%4],inner[k]],'mouth');creases.add(tuple(sorted((ring[k],ring[(k+1)%4]))))
    F(inner,'mouth');continue
-  lip=name.startswith('lip_') or name=='mouth_upper'
+  lip=(name.startswith('lip_') and name!='lip_upper_border') or name=='mouth_upper'
   F(quad,'lip' if lip and c<3 else 'skin')
+# The local mouth ring terminates in three cheek patches. The skull has only
+# one broad span here, rather than inheriting every lip row around its back.
+lower=rows[name_to_i['lip_lower_border']][1];upper=rows[name_to_i['lip_upper_border']][1]
+arc=list(dict.fromkeys(rows[r][1][3] for r in range(name_to_i['lip_lower_border'],name_to_i['lip_upper_border']+1)))
+a,b=lower[4],upper[4];q=V((.050,1.519,.066))
+F([arc[0],a,q,arc[2],arc[1]])
+F([arc[2],q,arc[4],arc[3]])
+F([arc[4],q,b,arc[6],arc[5]])
+F([a,lower[5],upper[5],b,q])
+for c in range(5,9):F([lower[c],lower[c+1],upper[c+1],upper[c]])
 # Inset mouth surfaces share the opening's real boundary vertices.
 lo=rows[name_to_i['mouth_lower']][1];hi=rows[name_to_i['mouth_upper']][1]
 for line in [lo,hi]:
  inner=[V(Vector(verts[k])+Vector((0,0,-.008))) for k in line[:4]]
- for c in range(3):F([line[c],line[c+1],inner[c+1],inner[c]],'mouth');creases.add(tuple(sorted((line[c],line[c+1]))))
+ for c in range(3):F([line[c],line[c+1],inner[c+1],inner[c]],'mouth')
 # Eyelid rims retain the aperture while the surrounding planes subdivide.
 for label in ['lower_lid_margin','upper_lid_margin']:
  ids=rows[name_to_i[label]][1]
  for c in range(2,5):creases.add(tuple(sorted((ids[c],ids[c+1]))))
-# A continuous jaw underside runs into the neck, rather than intersecting it.
+# A separate posterior cervical loop sits inside the jaw underside. The chin
+# stays a chin; its entire outer contour is not squeezed into a neck funnel.
+angles=[math.radians(v) for v in [0,10,22,36,52,68,86,112,148,180]]
 last=rows[0][1]
-for y,rx,rz,cz in [(1.451,.033,.033,-.005),(1.407,.034,.033,-.002),(1.368,.039,.035,-.006)]:
- ring=[V((rx*math.sin(i/9*math.pi),y,cz+rz*math.cos(i/9*math.pi))) for i in range(10)]
+ring=[V((.034*math.sin(a),1.477+.022*(1-math.cos(a))*.5,-.018+.031*math.cos(a))) for a in angles]
+for c in range(9):F([last[c],ring[c],ring[c+1],last[c+1]])
+last=ring
+for y,rx,rz,cz in [(1.441,.035,.033,-.014),(1.407,.036,.033,-.006),(1.368,.039,.035,-.006)]:
+ ring=[V((rx*math.sin(a),y,cz+rz*math.cos(a))) for a in angles]
  for c in range(9):F([last[c],ring[c],ring[c+1],last[c+1]])
  last=ring
 cap=V((0,1.714,-.010));top=rows[-1][1]
@@ -97,19 +113,32 @@ mesh=bpy.data.meshes.new('Adult facial edge-loop cage');mesh.from_pydata(verts,[
 obj=bpy.data.objects.new('Original adult control cage',mesh);bpy.context.collection.objects.link(obj)
 for name in ['skin','lip','mouth']:mesh.materials.append(MATS[name])
 for p,tag in zip(mesh.polygons,tags):p.material_index=['skin','lip','mouth'].index(tag);p.use_smooth=True
-bm=bmesh.new();bm.from_mesh(mesh);bmesh.ops.recalc_face_normals(bm,faces=bm.faces);bm.to_mesh(mesh);bm.free()
+crease_coords={tuple(sorted((tuple(round(v,7) for v in verts[a]),tuple(round(v,7) for v in verts[b])))) for a,b in creases}
+bm=bmesh.new();bm.from_mesh(mesh);bm.verts.ensure_lookup_table()
+bmesh.ops.delete(bm,geom=[v for v in bm.verts if not v.link_faces],context='VERTS')
+bmesh.ops.recalc_face_normals(bm,faces=bm.faces);bm.to_mesh(mesh);bm.free()
 attr=mesh.attributes.new('crease_edge','FLOAT','EDGE')
 for e in mesh.edges:
- if tuple(sorted(e.vertices)) in creases:attr.data[e.index].value=.40
+ if tuple(sorted(tuple(round(v,7) for v in mesh.vertices[i].co) for i in e.vertices)) in crease_coords:attr.data[e.index].value=.40
 mirror=obj.modifiers.new('Editable bilateral anatomy','MIRROR');mirror.use_clip=True;mirror.use_mirror_merge=True;mirror.merge_threshold=.00001
 sub=obj.modifiers.new('Anatomical surface subdivision','SUBSURF');sub.subdivision_type='CATMULL_CLARK';sub.levels=2;sub.render_levels=2
+# Seat the globes against the actual subdivided lid rim, not the cage position.
+bpy.context.view_layer.update();ev=obj.evaluated_get(bpy.context.evaluated_depsgraph_get());em=ev.to_mesh();eb=bmesh.new();eb.from_mesh(em)
+lid_vertices={v for e in eb.edges if e.is_boundary for v in e.verts if .015<v.co.x<.075 and 1.585<v.co.y<1.617}
+fits=[]
+for v in lid_vertices:
+ q=((v.co.x-.042)/.0285)**2+((v.co.y-1.600)/.025)**2
+ if q<.98:fits.append(v.co.z-.0295*math.sqrt(1-q))
+fits.sort();eye_depth=(fits[len(fits)//4]-.0003) if fits else .038
+print('Subdivided eyelid-fit depth:',eye_depth,'from',len(fits),'rim vertices')
+eb.free();ev.to_mesh_clear()
 # Closed eye globes with iris/pupil face rings; no floating image discs.
 for sign in [-1,1]:
  pv=[];pf=[];pm=[];theta=[0,.045,.10,.19,.27,.32,.38,.53,.75,1.02,1.35,1.7,2.05,2.40,2.75,math.pi]
  nu=32
  for t in theta:
   for i in range(nu):
-   a=i/nu*2*math.pi;pv.append((sign*.042+.0285*math.sin(t)*math.cos(a),1.600+.025*math.sin(t)*math.sin(a),.042+.0295*math.cos(t)))
+   a=i/nu*2*math.pi;pv.append((sign*.042+.0285*math.sin(t)*math.cos(a),1.600+.025*math.sin(t)*math.sin(a),eye_depth+.0295*math.cos(t)))
  for j in range(len(theta)-1):
   for i in range(nu):pf.append((j*nu+i,j*nu+(i+1)%nu,(j+1)*nu+(i+1)%nu,(j+1)*nu+i));pm.append(2 if theta[j+1]<=.10 else 1 if theta[j+1]<=.32 else 0)
  em=bpy.data.meshes.new('One continuous eye globe');em.from_pydata(pv,[],pf);em.update();eo=bpy.data.objects.new('Eye '+str(sign),em);bpy.context.collection.objects.link(eo)
@@ -120,7 +149,7 @@ for sign in [-1,1]:
  bpy.ops.mesh.primitive_uv_sphere_add(segments=12,ring_count=8,location=(sign*.085,1.578,-.004));ear=bpy.context.object;ear.name='Ear '+str(sign);ear.scale=(.013,.026,.010);ear.rotation_euler[1]=sign*.25;ear.data.materials.append(MATS['skin'])
  for p in ear.data.polygons:p.use_smooth=True
  # Tapered brow volume follows the brow arch, not a flat mask.
- cu=bpy.data.curves.new('Brow curve','CURVE');cu.dimensions='3D';cu.resolution_u=8;cu.bevel_depth=.0017;cu.bevel_resolution=2
+ cu=bpy.data.curves.new('Brow curve','CURVE');cu.dimensions='3D';cu.resolution_u=8;cu.bevel_depth=.0023;cu.bevel_resolution=2
  sp=cu.splines.new('BEZIER');sp.bezier_points.add(3)
  for p,co,r in zip(sp.bezier_points,[(.019,1.620,.078),(.032,1.623,.081),(.048,1.622,.081),(.068,1.617,.064)],[.65,1,.85,.08]):p.co=(sign*co[0],co[1],co[2]);p.handle_left_type='AUTO';p.handle_right_type='AUTO';p.radius=r
  bo=bpy.data.objects.new('Brow '+str(sign),cu);bpy.context.collection.objects.link(bo);cu.materials.append(MATS['brow'])
