@@ -64,7 +64,7 @@ export function createJapanServiceProps(parent) {
      if(guest) {const pelvis=actor.root.getObjectByName('pelvis');g.position.set(...(pelvis?[.24,-.12,.07]:[.24,.84,.07])).applyMatrix4(pelvis?.matrixWorld||actor.root.matrixWorld);g.rotation.z=.12;}
      else {
       const hands=actor.root.userData.hands;
-      if(hands?.length===2){hands[0].getWorldPosition(handA);hands[1].getWorldPosition(handB);g.position.copy(handA).add(handB).multiplyScalar(.5);g.position.y-=.07;}
+      if(hands?.length===2){hands[0].getWorldPosition(handA);hands[1].getWorldPosition(handB);if(eating)g.position.copy(handA);else g.position.copy(handA).add(handB).multiplyScalar(.5);g.position.y-=.07;}
       else g.position.set(0,1,.4).applyMatrix4(actor.root.matrixWorld);
      }
     }else {g.position.set(...itemPoint(item,v));g.rotation.set(item.kind==='token'?-Math.PI/2:0,0,0);}

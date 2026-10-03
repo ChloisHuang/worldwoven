@@ -197,6 +197,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   const context=poseContext(n,sharedActivity?n.station:chatting?null:task?.workTarget?{workTarget:task.workTarget}:null);
   if(mount){context.visualFloorOffset=mount.kind==='bath'?0:context.visualFloorOffset;context.seatHeight=mount.seatY===undefined?undefined:mount.seatY-n.root.position.y-context.visualFloorOffset;context.supportY=mount.supportY;context.bathPose=mount.bathPose;context.bathHipHeight=mount.bathHipHeight;}
   context.heldProp=sharedActivity?null:task?.held||null;context.handoff=!sharedActivity&&(!!task?.handoff||v?.stage==='eating');
+  context.seatedMeal=!chatting&&v?.stage==='eating'&&mount?.kind==='seat';
   n.animate(t+n.phase,n.walking,sharedActivity?n.station.npcAction:mount?(mount.kind==='bath'?'bathe':'chair-sit'):chatting?null:task?.arrived?task.action:null,context);
  }
  return {

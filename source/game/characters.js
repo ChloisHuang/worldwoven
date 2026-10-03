@@ -417,6 +417,13 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   }else if(context?.heldProp==='bathBucket'){
    reach(1,.30,.92,.15);show('bathBucket');
   }else if(context?.handoff){reach(0,-.16,1.02,.43);reach(1,.16,1.03,.43);}
+  // An explicitly delivered meal keeps the real chair support and lower body.
+  // The left hand supports its order-owned bowl; the existing chopsticks move
+  // between that bowl and the mouth instead of substituting a generic dish.
+  if(action==='chair-sit'&&context?.seatedMeal){
+   const bite=Math.pow((Math.sin(time*1.6)+1)*.5,2),hip=chairHeight+.14;
+   reach(0,-.15,hip+.22,.30);reach(1,.10,hip+.32+bite*.18,.29-bite*.16);show('chopsticks');lookX=.11-bite*.05;
+  }
   // Optional main-supplied authored work surface in actor-local metres. Distant
   // ritual/reading targets stay observational; only genuine tabletop jobs use it.
   const workHeight=context?.workHeight;
@@ -430,6 +437,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   }
   if(action){posedQ[6].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));posedQ[9].identity();if(/knead|bread|tidy/.test(action))posedQ[9].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));}
   if(action==='chair-sit'){posedQ[6].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));posedQ[9].copy(posedQ[6]);}
+  if(action==='chair-sit'&&context?.seatedMeal)posedQ[9].identity();
   headQ.setFromEuler(new THREE.Euler(lookX,lookY,0));posedQ[3].copy(torsoQ).multiply(headQ);
   if(action==='lie-rest'){
    // Supine, face upward, head toward the pillow (-local Z). Keep the original
@@ -439,7 +447,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   }
   if(supportedOnsen)poseOnsen(context,time);
   applyPose();
-  if(action==='chair-sit'&&!context?.heldProp&&!context?.handoff){
+  if(action==='chair-sit'&&!context?.heldProp&&!context?.handoff&&!context?.seatedMeal){
    if(poseChanged||fittedChairHeight!==chairHeight)fitChairHands(chairHeight);
    poseChairHands();applyPose();
   }
@@ -498,6 +506,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   }else{metrics.contactMinY=null;metrics.contactMaxY=null;metrics.lieContact=null;metrics.bathContact=null;metrics.bathHandContact=null;}
 
   if(action==='sushi-eat')props.right.rotation.x-=Math.pow((Math.sin(time*.95)+1)*.5,2)*.55;
+  if(action==='chair-sit'&&context?.seatedMeal)props.right.rotation.x-=Math.pow((Math.sin(time*1.6)+1)*.5,2)*.55;
   if(/garden/.test(action||''))props.right.rotation.z=-.35;
   // Fixed-size pose data: no per-frame Box3 or scene traversal.
   metrics.height=height+visualFloorOffset;metrics.visualFloorOffset=visualFloorOffset;metrics.headHeight=mountedPose?bones[3].getWorldPosition(tmp).y-rootWorld.y+.16*root.scale.y:(posedP[3].y+.16)*root.scale.y+visualFloorOffset;metrics.labelHeight=mountedPose?metrics.headHeight+.2:(posedP[3].y+template.height-1.455+.16)*root.scale.y+visualFloorOffset;root.userData.labelHeight=metrics.labelHeight;
