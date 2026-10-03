@@ -1,0 +1,5004 @@
+{
+  "status": "FAIL",
+  "scope": "Actual full China source scene and closed inset door meshes. Normal front/back rays at center meeting seam and both jamb edges; no movement or mobile visual acceptance.",
+  "counts": {
+    "rigid": 25,
+    "perimeter": 6,
+    "rays": 450,
+    "failures": 150
+  },
+  "failures": [
+    {
+      "id": "cn-south-gate-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": 0,
+      "h": 3.7049999999999996,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": 0,
+      "h": 3.7049999999999996,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": 0,
+      "h": 3.7049999999999996,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": 0,
+      "h": 3.7049999999999996,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": 0,
+      "h": 3.7049999999999996,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": 0,
+      "h": 3.7049999999999996,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": 0,
+      "h": 3.8049999999999993,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": 0,
+      "h": 3.8049999999999993,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": 0,
+      "h": 3.8049999999999993,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": 0,
+      "h": 3.8049999999999993,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": 0,
+      "h": 3.8049999999999993,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": 0,
+      "h": 3.8049999999999993,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": 0,
+      "h": 4.135000000000001,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": 0,
+      "h": 4.135000000000001,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": 0,
+      "h": 3.805,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": 0,
+      "h": 3.805,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": 0,
+      "h": 3.805,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": 0,
+      "h": 3.805,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": 0,
+      "h": 3.805,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": 0,
+      "h": 3.805,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-study-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-study-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-study-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-study-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-study-front",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-study-front",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": 0,
+      "h": 2.935,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": 0,
+      "h": 2.935,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": 0,
+      "h": 2.935,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": 0,
+      "h": 2.935,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": 0,
+      "h": 2.935,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": 0,
+      "h": 2.935,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": 0,
+      "h": 2.935,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": 0,
+      "h": 2.935,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    }
+  ],
+  "rows": [
+    {
+      "id": "cn-south-gate-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": 0,
+      "h": 3.7049999999999996,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": 0,
+      "h": 3.7049999999999996,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": -1.088,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": -1.088,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": -1.088,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": -1.088,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": -1.088,
+      "h": 3.7049999999999996,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": -1.088,
+      "h": 3.7049999999999996,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": 1.088,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": 1.088,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": 1.088,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": 1.088,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": 1.088,
+      "h": 3.7049999999999996,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-south-gate-west",
+      "offset": 1.088,
+      "h": 3.7049999999999996,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": 0,
+      "h": 3.7049999999999996,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": 0,
+      "h": 3.7049999999999996,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": -2.188,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7535000012367945
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": -2.188,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": -2.188,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7535000012367945
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": -2.188,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": -2.188,
+      "h": 3.7049999999999996,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7535000012367945
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": -2.188,
+      "h": 3.7049999999999996,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": 2.188,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7535000012367945
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": 2.188,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": 2.188,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7535000012367945
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": 2.188,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": 2.188,
+      "h": 3.7049999999999996,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7535000012367945
+    },
+    {
+      "id": "cn-south-gate",
+      "offset": 2.188,
+      "h": 3.7049999999999996,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": 0,
+      "h": 3.7049999999999996,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": 0,
+      "h": 3.7049999999999996,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": -1.088,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": -1.088,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": -1.088,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": -1.088,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": -1.088,
+      "h": 3.7049999999999996,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": -1.088,
+      "h": 3.7049999999999996,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": 1.088,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": 1.088,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": 1.088,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": 1.088,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": 1.088,
+      "h": 3.7049999999999996,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-south-gate-east",
+      "offset": 1.088,
+      "h": 3.7049999999999996,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": 0,
+      "h": 3.8049999999999993,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": 0,
+      "h": 3.8049999999999993,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": -2.988,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": -2.988,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.753500023216084
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": -2.988,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": -2.988,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.753500023216084
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": -2.988,
+      "h": 3.8049999999999993,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": -2.988,
+      "h": 3.8049999999999993,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.753500023216084
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": 2.988,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": 2.988,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.753500023216084
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": 2.988,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": 2.988,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.753500023216084
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": 2.988,
+      "h": 3.8049999999999993,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-north-gate",
+      "offset": 2.988,
+      "h": 3.8049999999999993,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.753500023216084
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": 0,
+      "h": 3.8049999999999993,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": 0,
+      "h": 3.8049999999999993,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": -1.988,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": -1.988,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999934136977
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": -1.988,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": -1.988,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999934136977
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": -1.988,
+      "h": 3.8049999999999993,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": -1.988,
+      "h": 3.8049999999999993,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999934136977
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": 1.988,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": 1.988,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999934136977
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": 1.988,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": 1.988,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999934136977
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": 1.988,
+      "h": 3.8049999999999993,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-west-gate",
+      "offset": 1.988,
+      "h": 3.8049999999999993,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999934136977
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": 0,
+      "h": 3.8049999999999993,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": 0,
+      "h": 3.8049999999999993,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": -1.988,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999952763464
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": -1.988,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": -1.988,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999952763428
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": -1.988,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": -1.988,
+      "h": 3.8049999999999993,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999952763428
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": -1.988,
+      "h": 3.8049999999999993,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": 1.988,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999952763428
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": 1.988,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": 1.988,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999952763428
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": 1.988,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": 1.988,
+      "h": 3.8049999999999993,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999952763428
+    },
+    {
+      "id": "cn-east-gate",
+      "offset": 1.988,
+      "h": 3.8049999999999993,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": 0,
+      "h": 4.135000000000001,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": 0,
+      "h": 4.135000000000001,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": -2.988,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753500025078722
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": -2.988,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050002098083494
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": -2.988,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753500025078722
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": -2.988,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050002098083494
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": -2.988,
+      "h": 4.135000000000001,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753500025078722
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": -2.988,
+      "h": 4.135000000000001,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050002098083494
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": 2.988,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753500025078722
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": 2.988,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050002098083494
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": 2.988,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753500025078722
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": 2.988,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050002098083494
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": 2.988,
+      "h": 4.135000000000001,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753500025078722
+    },
+    {
+      "id": "cn-hall-front",
+      "offset": 2.988,
+      "h": 4.135000000000001,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050002098083494
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": 0,
+      "h": 3.805,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": 0,
+      "h": 3.805,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": -1.488,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": -1.488,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999934136977
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": -1.488,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": -1.488,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999934136977
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": -1.488,
+      "h": 3.805,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": -1.488,
+      "h": 3.805,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999934136977
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": 1.488,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": 1.488,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999934136977
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": 1.488,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": 1.488,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999934136977
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": 1.488,
+      "h": 3.805,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-hall-rear",
+      "offset": 1.488,
+      "h": 3.805,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999934136977
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": 0,
+      "h": 3.805,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": 0,
+      "h": 3.805,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": -1.5879999999999996,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": -1.5879999999999996,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": -1.5879999999999996,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": -1.5879999999999996,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": -1.5879999999999996,
+      "h": 3.805,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": -1.5879999999999996,
+      "h": 3.805,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": 1.5879999999999996,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": 1.5879999999999996,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": 1.5879999999999996,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": 1.5879999999999996,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": 1.5879999999999996,
+      "h": 3.805,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-hall-west",
+      "offset": 1.5879999999999996,
+      "h": 3.805,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.014742687256475762
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": 0,
+      "h": 3.805,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": 0,
+      "h": 3.805,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": -1.5879999999999999,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": -1.5879999999999999,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": -1.5879999999999999,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": -1.5879999999999999,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": -1.5879999999999999,
+      "h": 3.805,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": -1.5879999999999999,
+      "h": 3.805,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": 1.5879999999999999,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": 1.5879999999999999,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": 1.5879999999999999,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": 1.5879999999999999,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": 1.5879999999999999,
+      "h": 3.805,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-hall-east",
+      "offset": 1.5879999999999999,
+      "h": 3.805,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-study-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-study-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-study-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-study-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-study-front",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-study-front",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-study-front",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-study-front",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-study-front",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-study-front",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-study-front",
+      "offset": -1.5880000000000014,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-study-front",
+      "offset": -1.5880000000000014,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-study-front",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-study-front",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-study-front",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-study-front",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-study-front",
+      "offset": 1.5880000000000014,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-study-front",
+      "offset": 1.5880000000000014,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355441
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049999713897703
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355441
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049999713897703
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": -1.5880000000000014,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355441
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": -1.5880000000000014,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049999713897703
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355441
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049999713897703
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355441
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049999713897703
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": 1.5880000000000014,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355441
+    },
+    {
+      "id": "cn-bedroom-front",
+      "offset": 1.5880000000000014,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049999713897703
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": -1.5879999999999999,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": -1.5879999999999999,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": -1.5879999999999999,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": -1.5879999999999999,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": -1.5879999999999999,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": -1.5879999999999999,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": 1.5879999999999999,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": 1.5879999999999999,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": 1.5879999999999999,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": 1.5879999999999999,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": 1.5879999999999999,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-bedroom-west",
+      "offset": 1.5879999999999999,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": -1.5879999999999999,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": -1.5879999999999999,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": -1.5879999999999999,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": -1.5879999999999999,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": -1.5879999999999999,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": -1.5879999999999999,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": 1.5879999999999999,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": 1.5879999999999999,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": 1.5879999999999999,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": 1.5879999999999999,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": 1.5879999999999999,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-bedroom-east",
+      "offset": 1.5879999999999999,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": -1.5879999999999996,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554412
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": -1.5879999999999996,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": -1.5879999999999996,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554412
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": -1.5879999999999996,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": -1.5879999999999996,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554412
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": -1.5879999999999996,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": 1.5879999999999996,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554412
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": 1.5879999999999996,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": 1.5879999999999996,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554412
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": 1.5879999999999996,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": 1.5879999999999996,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554412
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "offset": 1.5879999999999996,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927907
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927907
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": -1.5880000000000014,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": -1.5880000000000014,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927907
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927907
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927907
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": 1.5880000000000014,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-bath-front",
+      "offset": 1.5880000000000014,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927907
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": -1.5880000000000014,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": -1.5880000000000014,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.03999977111816477
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.5350006103515632
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": 1.5880000000000014,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-bath-west",
+      "offset": 1.5880000000000014,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": -1.5880000000000014,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": -1.5880000000000014,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": 1.5880000000000014,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-bath-east",
+      "offset": 1.5880000000000014,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": 0,
+      "h": 2.935,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": 0,
+      "h": 2.935,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": -1.588,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": -1.588,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": -1.588,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": -1.588,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": -1.588,
+      "h": 2.935,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": -1.588,
+      "h": 2.935,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": 1.588,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": 1.588,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": 1.588,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": 1.588,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": 1.588,
+      "h": 2.935,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.753499983355443
+    },
+    {
+      "id": "cn-archive-front",
+      "offset": 1.588,
+      "h": 2.935,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": 0,
+      "h": 2.935,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": 0,
+      "h": 2.935,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": -1.588,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": -1.588,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927872
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": -1.588,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": -1.588,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927872
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": -1.588,
+      "h": 2.935,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": -1.588,
+      "h": 2.935,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927872
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": 1.588,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": 1.588,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927872
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": 1.588,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": 1.588,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927872
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": 1.588,
+      "h": 2.935,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7049987792968722
+    },
+    {
+      "id": "cn-archive-rear",
+      "offset": 1.588,
+      "h": 2.935,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927872
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": 0,
+      "h": 2.935,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": 0,
+      "h": 2.935,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": -1.5880000000000014,
+      "h": 2.935,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": -1.5880000000000014,
+      "h": 2.935,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": 1.5880000000000014,
+      "h": 2.935,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-archive-west",
+      "offset": 1.5880000000000014,
+      "h": 2.935,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": 0,
+      "h": 2.935,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": 0,
+      "h": 2.935,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554412
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554412
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": -1.5880000000000014,
+      "h": 2.935,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554412
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": -1.5880000000000014,
+      "h": 2.935,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": 1.5880000000000014,
+      "h": 2.935,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7534999833554394
+    },
+    {
+      "id": "cn-archive-east",
+      "offset": 1.5880000000000014,
+      "h": 2.935,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7049997329711921
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927907
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927907
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": -1.5880000000000014,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": -1.5880000000000014,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927907
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927907
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927907
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": 1.5880000000000014,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-guest-front",
+      "offset": 1.5880000000000014,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927907
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": -1.5880000000000014,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": -1.5880000000000014,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": 1.5880000000000014,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7475000016391284
+    },
+    {
+      "id": "cn-guest-west",
+      "offset": 1.5880000000000014,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7474999979138381
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": 0,
+      "h": 0.35,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": 0,
+      "h": 1.3,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": 0,
+      "h": 3.105,
+      "sign": -1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": 0,
+      "h": 3.105,
+      "sign": 1,
+      "pass": false
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": -1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927907
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": -1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927907
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": -1.5880000000000014,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": -1.5880000000000014,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927907
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": 1.5880000000000014,
+      "h": 0.35,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927907
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": 1.5880000000000014,
+      "h": 1.3,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927907
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": 1.5880000000000014,
+      "h": 3.105,
+      "sign": -1,
+      "pass": true,
+      "hitDistance": 0.7050006866455085
+    },
+    {
+      "id": "cn-guest-east",
+      "offset": 1.5880000000000014,
+      "h": 3.105,
+      "sign": 1,
+      "pass": true,
+      "hitDistance": 0.7534999814927907
+    }
+  ],
+  "doors": [
+    {
+      "id": "cn-south-gate-west",
+      "width": 2.2,
+      "center": [
+        -3.9,
+        0.21500000000000002,
+        38
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": 38,
+        "wallDepth": 0.65,
+        "revealDepth": 0.65,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.18,
+        "sideOverlap": 0,
+        "slideTravel": 1.12
+      }
+    },
+    {
+      "id": "cn-south-gate",
+      "width": 4.4,
+      "center": [
+        0,
+        0.21500000000000002,
+        38
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": 38,
+        "wallDepth": 0.65,
+        "revealDepth": 0.65,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.18,
+        "sideOverlap": 0,
+        "slideTravel": 2.22
+      }
+    },
+    {
+      "id": "cn-south-gate-east",
+      "width": 2.2,
+      "center": [
+        3.9,
+        0.21500000000000002,
+        38
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": 38,
+        "wallDepth": 0.65,
+        "revealDepth": 0.65,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.18,
+        "sideOverlap": 0,
+        "slideTravel": 1.12
+      }
+    },
+    {
+      "id": "cn-north-gate",
+      "width": 6,
+      "center": [
+        0,
+        0.115,
+        -38
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": -38,
+        "wallDepth": 0.65,
+        "revealDepth": 0.65,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.18,
+        "sideOverlap": 0,
+        "slideTravel": 3.02
+      }
+    },
+    {
+      "id": "cn-west-gate",
+      "width": 4,
+      "center": [
+        -29,
+        0.115,
+        -18
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": -29,
+        "wallDepth": 0.65,
+        "revealDepth": 0.65,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.18,
+        "sideOverlap": 0,
+        "slideTravel": 2.02
+      }
+    },
+    {
+      "id": "cn-east-gate",
+      "width": 4,
+      "center": [
+        29,
+        0.115,
+        -18
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": 29,
+        "wallDepth": 0.65,
+        "revealDepth": 0.65,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.18,
+        "sideOverlap": 0,
+        "slideTravel": 2.02
+      }
+    },
+    {
+      "id": "cn-hall-front",
+      "width": 6,
+      "center": [
+        0,
+        1.415,
+        5
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": 5,
+        "wallDepth": 0.32,
+        "revealDepth": 0.32,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0,
+        "slideTravel": 3.02
+      }
+    },
+    {
+      "id": "cn-hall-rear",
+      "width": 3,
+      "center": [
+        6,
+        1.415,
+        -11
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": -11,
+        "wallDepth": 0.32,
+        "revealDepth": 0.32,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0,
+        "slideTravel": 1.52
+      }
+    },
+    {
+      "id": "cn-hall-west",
+      "width": 3.1999999999999993,
+      "center": [
+        -11,
+        1.415,
+        -7.5
+      ],
+      "mount": {
+        "kind": "pocket",
+        "wallPlane": -11,
+        "wallDepth": 0.5,
+        "revealDepth": 0.5,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0.04,
+        "slideTravel": 1.6199999999999997,
+        "pocketClearDepth": 0.36,
+        "pocketEnd": 3.2799999999999994,
+        "pocketOuter": 3.2999999999999994
+      }
+    },
+    {
+      "id": "cn-hall-east",
+      "width": 3.1999999999999997,
+      "center": [
+        11,
+        1.415,
+        -3
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": 11,
+        "wallDepth": 0.32,
+        "revealDepth": 0.32,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0,
+        "slideTravel": 1.6199999999999999
+      }
+    },
+    {
+      "id": "cn-study-front",
+      "width": 3.200000000000003,
+      "center": [
+        21,
+        0.21500000000000002,
+        21
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": 21,
+        "wallDepth": 0.32,
+        "revealDepth": 0.32,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0,
+        "slideTravel": 1.6200000000000014
+      }
+    },
+    {
+      "id": "cn-bedroom-front",
+      "width": 3.200000000000003,
+      "center": [
+        -21,
+        0.21500000000000002,
+        2
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": 2,
+        "wallDepth": 0.32,
+        "revealDepth": 0.32,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0,
+        "slideTravel": 1.6200000000000014
+      }
+    },
+    {
+      "id": "cn-bedroom-west",
+      "width": 3.1999999999999997,
+      "center": [
+        -26,
+        0.21500000000000002,
+        -5
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": -26,
+        "wallDepth": 0.32,
+        "revealDepth": 0.32,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0,
+        "slideTravel": 1.6199999999999999
+      }
+    },
+    {
+      "id": "cn-bedroom-east",
+      "width": 3.1999999999999997,
+      "center": [
+        -16,
+        0.21500000000000002,
+        -5
+      ],
+      "mount": {
+        "kind": "pocket",
+        "wallPlane": -16,
+        "wallDepth": 0.5,
+        "revealDepth": 0.5,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0.04,
+        "slideTravel": 1.6199999999999999,
+        "pocketClearDepth": 0.36,
+        "pocketEnd": 3.28,
+        "pocketOuter": 3.3
+      }
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "width": 3.1999999999999993,
+      "center": [
+        22.299999999999997,
+        0.21500000000000002,
+        -12
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": -12,
+        "wallDepth": 0.32,
+        "revealDepth": 0.32,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0,
+        "slideTravel": 1.6199999999999997
+      }
+    },
+    {
+      "id": "cn-bath-front",
+      "width": 3.200000000000003,
+      "center": [
+        -22.5,
+        0.21500000000000002,
+        -23
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": -23,
+        "wallDepth": 0.32,
+        "revealDepth": 0.32,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0,
+        "slideTravel": 1.6200000000000014
+      }
+    },
+    {
+      "id": "cn-bath-west",
+      "width": 3.200000000000003,
+      "center": [
+        -26,
+        0.21500000000000002,
+        -25.3
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": -26,
+        "wallDepth": 0.32,
+        "revealDepth": 0.32,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0,
+        "slideTravel": 1.6200000000000014
+      }
+    },
+    {
+      "id": "cn-bath-east",
+      "width": 3.200000000000003,
+      "center": [
+        -16,
+        0.21500000000000002,
+        -28
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": -16,
+        "wallDepth": 0.32,
+        "revealDepth": 0.32,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0,
+        "slideTravel": 1.6200000000000014
+      }
+    },
+    {
+      "id": "cn-archive-front",
+      "width": 3.2,
+      "center": [
+        0,
+        0.815,
+        -23
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": -23,
+        "wallDepth": 0.32,
+        "revealDepth": 0.32,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0,
+        "slideTravel": 1.62
+      }
+    },
+    {
+      "id": "cn-archive-rear",
+      "width": 3.2,
+      "center": [
+        0,
+        0.815,
+        -34
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": -34,
+        "wallDepth": 0.32,
+        "revealDepth": 0.32,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0,
+        "slideTravel": 1.62
+      }
+    },
+    {
+      "id": "cn-archive-west",
+      "width": 3.200000000000003,
+      "center": [
+        -11,
+        0.815,
+        -28.5
+      ],
+      "mount": {
+        "kind": "pocket",
+        "wallPlane": -11,
+        "wallDepth": 0.5,
+        "revealDepth": 0.5,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0.04,
+        "slideTravel": 1.6200000000000014,
+        "pocketClearDepth": 0.36,
+        "pocketEnd": 3.280000000000003,
+        "pocketOuter": 3.300000000000003
+      }
+    },
+    {
+      "id": "cn-archive-east",
+      "width": 3.200000000000003,
+      "center": [
+        11,
+        0.815,
+        -28.5
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": 11,
+        "wallDepth": 0.32,
+        "revealDepth": 0.32,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0,
+        "slideTravel": 1.6200000000000014
+      }
+    },
+    {
+      "id": "cn-guest-front",
+      "width": 3.200000000000003,
+      "center": [
+        21,
+        0.21500000000000002,
+        -23
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": -23,
+        "wallDepth": 0.32,
+        "revealDepth": 0.32,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0,
+        "slideTravel": 1.6200000000000014
+      }
+    },
+    {
+      "id": "cn-guest-west",
+      "width": 3.200000000000003,
+      "center": [
+        16,
+        0.21500000000000002,
+        -28
+      ],
+      "mount": {
+        "kind": "pocket",
+        "wallPlane": 16,
+        "wallDepth": 0.5,
+        "revealDepth": 0.5,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0.04,
+        "slideTravel": 1.6200000000000014,
+        "pocketClearDepth": 0.36,
+        "pocketEnd": 3.280000000000003,
+        "pocketOuter": 3.300000000000003
+      }
+    },
+    {
+      "id": "cn-guest-east",
+      "width": 3.200000000000003,
+      "center": [
+        26,
+        0.21500000000000002,
+        -28
+      ],
+      "mount": {
+        "kind": "hinge",
+        "wallPlane": 26,
+        "wallDepth": 0.32,
+        "revealDepth": 0.32,
+        "hingeLateralInset": 0.006,
+        "hingeNormalOffset": 0.155,
+        "sideOverlap": 0,
+        "slideTravel": 1.6200000000000014
+      }
+    }
+  ],
+  "runtimeMoving": 31
+}

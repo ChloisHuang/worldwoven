@@ -1,0 +1,243 @@
+--- a/source/game/japan-bathhouse.js
++++ b/source/game/japan-bathhouse.js
+@@ -153,14 +153,28 @@
+  function lowTable(g,base,x,z,w=2.5,d=1.55,color=P.wood){G.table(g,x,z,w,d,color,.63);obstacle(x,base+.38,z,w,.75,d);G.box(g,x,.73,z,w*.56,.028,d*.62,0xae8156);tea(g,x,.76,z);}
+  function shelf(g,base,x,z,w=2,d=.6,angle=0,contents=true){const q=new THREE.Group();q.position.set(x,0,z);q.rotation.y=angle;g.add(q);for(const xx of [-w/2,w/2])G.box(q,xx,1.22,0,.1,2.45,d,P.cedar);G.box(q,0,1.18,-d/2,w,2.4,.065,P.wood);for(const yy of [.18,.8,1.42,2.05,2.45])G.box(q,0,yy,0,w,.085,d,P.honey);if(contents)for(let i=0;i<3;i++){vase(q,-w*.3+i*w*.3,.84,0,[P.jade,P.cream,0xa37556][i],false);folded(q,-w*.27+i*w*.28,1.49,0,[P.indigo,P.red,0x9b9a78][i],w*.23,.4);G.cyl(q,-w*.3+i*w*.3,2.22,0,.16,.17,.26,0xc6ae7d,8);}const sideOn=Math.abs(Math.sin(angle))>.7;obstacle(x,base+1.2,z,sideOn?d:w,2.4,sideOn?w:d);return q;}
+  function pool(g,base,x,z,w,d){
+-   // Three continuous curbs and a split east curb form a 1.9m walk-in entrance.
+-   G.box(g,x,.067,z,w,.027,d,0x54756c);G.mesh(g,new THREE.BoxGeometry(w-.24,.337,d-.24),P.water,x,.2505,z,{transparent:true,opacity:.76,depthWrite:false,emissive:0x426e60,emissiveIntensity:.12});
+-   for(const zz of [z-d/2,z+d/2])groundSolid(g,base,x,.23,zz,w+.34,.46,.28,0x878c72);
+-   groundSolid(g,base,x-w/2,.23,z,.28,.46,d,0x878c72);
+-   for(const side of [-1,1]){const seg=(d-1.9)/2;groundSolid(g,base,x+w/2,.23,z+side*(.95+seg/2),.28,.46,seg,0x878c72);}
++   const bottom=.0805,waterY=.67,rimY=.72,seatY=.30,backTop=.70,east=x+w/2;
++   // A closed retaining basin. The original floor remains the only bottom;
++   // its east ledge carries the sitter and the coping supports their back.
++   G.box(g,x,.067,z,w,.027,d,0x416d65);
++   for(const zz of [z-d/2,z+d/2])groundSolid(g,base,x,rimY/2,zz,w+.34,rimY,.28,0x878c72);
++   groundSolid(g,base,x-w/2,rimY/2,z,.28,rimY,d,0x878c72);
++   G.box(g,east,rimY/2,z,.28,rimY,d,0x878c72);
++   G.box(g,east-.42,(bottom+seatY)/2,z,.56,seatY-bottom,d-.28,0x7e9687);
++   G.box(g,east-.18,(seatY+backTop)/2,z,.08,backTop-seatY,d-.28,0x81978a);
++   // Ordinary movement stops at the basin. Existing furniture ownership
++   // recognizes this exact centered proxy only for an explicit bath transfer.
++   obstacle(x,base+rimY/2,z,w,rimY,d);
++   g.userData.onsenPools??=[];g.userData.onsenPools.push({center:[x,base,z],bottomY:base+bottom,waterY:base+waterY,rimY:base+rimY,seat:{minX:east-.70,maxX:east-.14,minZ:z-d/2+.14,maxZ:z+d/2-.14,y:base+seatY},backX:east-.22,backTopY:base+backTop,retainingWallX:east-.14,copingTopY:base+.80,seamTopY:base+.817});
++   // One top surface, independent of the room's transparent steam batch.
++   // Opaque geometry behind it is tinted once, with no stacked water box faces.
++   const water=G.mesh(g,new THREE.PlaneGeometry(w-.28,d-.28),0x83c4b8,x,waterY,z,{transparent:true,opacity:.82,depthWrite:false,emissive:0x427e73,emissiveIntensity:.16});water.rotation.x=-Math.PI/2;water.castShadow=false;water.userData.noStaticBatch=true;water.name='Onsen single water surface';
++   for(let i=0;i<3;i++){
++    const radius=Math.min(w*.16,.82)+i*.13,arc=G.mesh(g,new THREE.RingGeometry(radius-.008,radius+.008,40,1,i*.55,Math.PI*.58),0xc6e5d3,x-w*.12,waterY+.014,z-.40,{transparent:true,opacity:.62,depthWrite:false});arc.rotation.x=-Math.PI/2;arc.scale.x=1.2;arc.castShadow=false;arc.userData.noStaticBatch=true;arc.name='Onsen broken surface highlight';
++   }
+    for(const zz of [z-d/2+.45,z+d/2-.45])for(let xx=x-w/2+.45;xx<x+w/2-.1;xx+=.7)G.box(g,xx,.083,zz,.42,.012,.024,0xb5d5ba);
+    // Suspended soft puffs remain sparse enough to see the room and characters.
+-   for(let i=0;i<7;i++){const xx=x+Math.sin(i*2.4)*w*.3,zz=z+Math.cos(i*2.4)*d*.25;G.mesh(g,new THREE.SphereGeometry(.35+(i%3)*.1,10,7),0xe8e9cf,xx,.67+(i%3)*.33,zz,{transparent:true,opacity:.12,depthWrite:false}).scale.set(1.8,.62,1);}
++   for(let i=0;i<7;i++){const xx=x+Math.sin(i*2.4)*w*.3,zz=z+Math.cos(i*2.4)*d*.25;G.mesh(g,new THREE.SphereGeometry(.35+(i%3)*.1,10,7),0xe8e9cf,xx,waterY+.32+(i%3)*.33,zz,{transparent:true,opacity:.085,depthWrite:false}).scale.set(1.8,.62,1);}
+    for(const zz of [z-d*.35,z+d*.35]){G.cyl(g,x-w/2-.65,.22,zz,.24,.27,.44,P.honey,9);G.torus(g,x-w/2-.65,.41,zz,.23,.025,P.wood);}
+  }
+  // Street and a compact enclosed arrival garden fit the original 30 × 40 lot.
+@@ -358,8 +372,8 @@
+   pool(f,y,-6.55,-9.3,7.5,6.6);pool(f,y,2.1,-9.7,4.0,6.6);
+   // Raised coping has a tailored timber edge and tile seam, not a box-ring bath.
+   for(const [cx,w,cz]of [[-6.55,7.5,-9.3],[2.1,4.0,-9.7]]){
+-   for(const zz of [cz-3.3,cz+3.3]){G.box(f,cx,.49,zz,w+.38,.1,.4,P.honey);for(let xx=cx-w/2;xx<cx+w/2;xx+=.44)G.box(f,xx,.55,zz,.025,.014,.39,P.wood);}
+-   for(let k=0;k<5;k++){const r=.65+k*.43;G.torus(f,cx,.423,cz,r,.011,0xb9d7c5);}
++   for(const zz of [cz-3.3,cz+3.3]){G.box(f,cx,.75,zz,w+.38,.1,.4,P.honey);for(let xx=cx-w/2;xx<cx+w/2;xx+=.44)G.box(f,xx,.81,zz,.025,.014,.39,P.wood);}
++   G.box(f,cx+w/2,.75,cz,.34,.10,6.6,P.honey);
+    const fx=cx-w/2+.8;beam(f,[fx,1.38,-14.54],[fx,1.38,-12.3],.10,0x6e8960);beam(f,[fx,1.38,-12.3],[fx,.52,-12.3],.052,0xd1ded0);
+   }
+   for(const z of [-2.25,-4.15])washBay(f,y,-10.65,z,-1);
+@@ -375,8 +389,9 @@
+   bench(f,y,-7.7,7.55,4.0);bench(f,y,4.9,7.55,3.1);
+   target('bath-foyer','Shared bath foyer',0,y,6.8);target('men-changing','Men changing and basket lockers',-8.8,y,1.6);target('women-changing','Women changing and basket lockers',4.6,y,1.45);
+   target('men-wash','Men pre-bath washing',-8.65,y,-3.4);target('women-wash','Women pre-bath washing',3.0,y,-4.4);target('men-bath','Men onsen broad pool entry',-2.25,y,-9.3);target('women-bath','Women onsen broad pool entry',5.0,y,-9.7);
+-  target('men-pool-interior','Men pool walk-in interior',-6.55,y,-9.3);target('women-pool-interior','Women pool walk-in interior',2.1,y,-9.7);
+-  threshold('jp-men-pool-entry',[-2.1,y,-9.3],[-3.5,y,-9.3],1.9,3.3);threshold('jp-women-pool-entry',[4.9,y,-9.7],[3.5,y,-9.7],1.9,3.3);
++  target('men-pool-interior','Men pool seated-soak approach',-2.1,y,-9.3);Object.assign(explorationTargets.at(-1),{purpose:'Change into swimwear and mount the supported pool seat',furnitureId:'japan-furniture-bath-1',mountedDestination:[-3.22,y,-9.3],previousWalkInPosition:[-6.55,y,-9.3]});
++  target('women-pool-interior','Women pool seated-soak approach',4.9,y,-9.7);Object.assign(explorationTargets.at(-1),{purpose:'Change into swimwear and mount the supported pool seat',furnitureId:'japan-furniture-bath-2',mountedDestination:[3.68,y,-9.7],previousWalkInPosition:[2.1,y,-9.7]});
++  threshold('jp-men-pool-entry',[-2.1,y,-9.3],[-2.1,y,-8.5],1.9,3.3,{purpose:'Poolside bath interaction approach; enter through the mounted bath action',furnitureId:'japan-furniture-bath-1'});threshold('jp-women-pool-entry',[4.9,y,-9.7],[4.9,y,-8.9],1.9,3.3,{purpose:'Poolside bath interaction approach; enter through the mounted bath action',furnitureId:'japan-furniture-bath-2'});
+   program('men-changing',2,'changing-lockers',53,['jp-room-men-changing'],{gender:'men',pairedFunction:'gender-separated-changing'});program('women-changing',2,'changing-lockers',38,['jp-room-women-changing'],{gender:'women',pairedFunction:'gender-separated-changing'});
+   program('men-wet',2,'onsen',162,['jp-room-men-wash','jp-room-men-bath','jp-room-men-pool-interior'],{gender:'men',pairedFunction:'gender-separated-onsen'});program('women-wet',2,'onsen',100,['jp-room-women-wash','jp-room-women-bath','jp-room-women-pool-interior'],{gender:'women',pairedFunction:'gender-separated-onsen'});program('bath-foyer',2,'bath-transition-foyer',87,['jp-room-bath-foyer']);
+  }
+--- a/source/game/furniture-interactions.js
++++ b/source/game/furniture-interactions.js
+@@ -16,14 +16,25 @@
+ };
+ // Real authored sleeping and bathing fixtures. Anchor Y stays on the navigation
+ // floor; supportY is the actual mattress/basin bottom supporting the skinned pose.
++// Japan's closed onsen has a taller coping, a seat, and a low lumbar support.
++// Its camera must use these authored solids instead of a guessed water+.12 rim.
++function japanBathCameraParts(x,z,w,d){
++ const east=x+w/2,parts=[{minX:x-w/2,maxX:x+w/2,minY:3.8535,maxY:3.8805,minZ:z-d/2,maxZ:z+d/2}];
++ for(const side of[-1,1])parts.push({minX:x-(w+.38)/2,maxX:x+(w+.38)/2,minY:3.8,maxY:4.617,minZ:z+side*d/2-.20,maxZ:z+side*d/2+.20});
++ parts.push({minX:x-w/2-.14,maxX:x-w/2+.14,minY:3.8,maxY:4.52,minZ:z-d/2,maxZ:z+d/2},
++  {minX:east-.17,maxX:east+.17,minY:3.8,maxY:4.60,minZ:z-d/2,maxZ:z+d/2},
++  {minX:east-.70,maxX:east-.14,minY:3.8805,maxY:4.10,minZ:z-d/2+.14,maxZ:z+d/2-.14},
++  {minX:east-.22,maxX:east-.14,minY:4.10,maxY:4.50,minZ:z-d/2+.14,maxZ:z+d/2-.14});
++ return parts;
++}
+ export const REST_BATH_DESCRIPTORS={
+  china:[{kind:'bed',cameraParts:chinaDragonBedCameraParts(),worldLabel:'龙榻安寝',name:'静宜寝殿 · 雕龙龙榻',position:[-18.4,.215,-8.5],anchor:[-21.55,.215,-9],center:[-21,.2,-9],size:[4,3.1,4.2],yaw:0,supportY:1.055,lieOffset:.30,lieSupport:{hip:1.055,back:1.055,head:1.14,heel:1.055}},
+  {kind:'bath',name:'竹苑石浴池',position:[-21.1,.215,-30],anchor:[-23.6,.215,-30],center:[-23.6,.2,-30],size:[3.3,1.15,4.3],yaw:Math.PI/2,supportY:.31,waterY:1.1625,bathHipHeight:.48}],
+  france:[{kind:'bed',name:'皇家寝床',position:[5.16,.302,-2.1],anchor:[6.72,.302,-2.65],center:[7.55,.23,-2.65],size:[3.5,4.2,4.3],yaw:0,supportY:1.25,lieOffset:.72,lieSupport:{hip:1.25,back:1.25,head:1.31,heel:1.25}},
+  {kind:'bath',name:'白金浴缸',position:[-20.34,.23,-10.2],anchor:[-22.55,.23,-10.2],center:[-22.55,.23,-10.2],size:[3.1,1.15,3.65],yaw:Math.PI/2,supportY:.425,waterY:1.205,bathHipHeight:.48}],
+  japan:[{kind:'bed',name:'客室日式寝具',position:[2.48,7.6,-10.7],anchor:[4.4,7.6,-11.6],center:[4.4,7.6,-11.6],size:[2.36,.5,3.24],yaw:0,supportY:7.95,lieOffset:.54,lieSupport:{hip:7.95,back:7.992,head:8.026,heel:7.96}},
+- {kind:'bath',name:'二层男汤温泉',position:[-2.1,3.8,-9.3],anchor:[-3.9,3.8,-9.3],center:[-6.55,3.8,-9.3],size:[7.5,.56,6.6],yaw:Math.PI/2,supportY:3.882,waterY:4.219,bathHipHeight:.32},
+- {kind:'bath',name:'二层女汤温泉',position:[4.9,3.8,-9.7],anchor:[2.9,3.8,-9.7],center:[2.1,3.8,-9.7],size:[4,.56,6.6],yaw:Math.PI/2,supportY:3.882,waterY:4.219,bathHipHeight:.32}],
++ {kind:'bath',cameraParts:japanBathCameraParts(-6.55,-9.3,7.5,6.6),name:'二层男汤温泉',position:[-2.1,3.8,-9.3],anchor:[-3.22,3.8,-9.3],center:[-6.55,3.8,-9.3],size:[7.5,.82,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}},
++ {kind:'bath',cameraParts:japanBathCameraParts(2.1,-9.7,4,6.6),name:'二层女汤温泉',position:[4.9,3.8,-9.7],anchor:[3.68,3.8,-9.7],center:[2.1,3.8,-9.7],size:[4,.82,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}}],
+  egypt:[{kind:'bed',name:'王室亚麻寝床',position:[18.48,0,-1.25],anchor:[19.8,0,-1.25],center:[20.4,0,-1.25],size:[2.65,3.4,4.1],yaw:0,supportY:.9,lieOffset:.48,lieSupport:{hip:.9,back:.9,head:1.056,heel:.9}},
+  {kind:'bath',name:'王室石质浴池',position:[15.9,0,-1.05],anchor:[14.05,0,-1.05],center:[14.05,0,-1.05],size:[2.7,1.06,3.8],yaw:Math.PI/2,supportY:.305,waterY:.585,bathHipHeight:.32}]
+ };
+--- a/source/game/characters.js
++++ b/source/game/characters.js
+@@ -75,7 +75,7 @@
+  const masc=bodyPreset.startsWith('masculine');hairStyle=HAIR_STYLES.includes(hairStyle)?hairStyle:(masc?'swept-short':'chin-bob');
+  culture=['japan','china','egypt','france'].includes(culture)?culture:null;
+  style=['chef','artist','gardener'].includes(style)?style:'casual';scale=Number.isFinite(scale)?clamp(scale,.25,3):1;
+- const wardrobeOptions=(WARDROBE_PRESETS[culture]||WARDROBE_PRESETS.france)[masc?'masculine':'feminine'];wardrobePreset=wardrobePreset==='bath-robe'||(ROLE_WARDROBE_PRESETS[culture]||[]).includes(wardrobePreset)||wardrobeOptions.includes(wardrobePreset)?wardrobePreset:wardrobeOptions[0];
++ const wardrobeOptions=(WARDROBE_PRESETS[culture]||WARDROBE_PRESETS.france)[masc?'masculine':'feminine'];wardrobePreset=wardrobePreset==='bath-robe'||culture==='japan'&&wardrobePreset==='onsen-swimwear'||(ROLE_WARDROBE_PRESETS[culture]||[]).includes(wardrobePreset)||wardrobeOptions.includes(wardrobePreset)?wardrobePreset:wardrobeOptions[0];
+  // Skin, cloth and rig use the same anatomical displacement before leg shaping.
+  const armOffset=createRelaxedArmOffset(bodyPreset,wardrobePreset,shapeTraits.legLength);
+  const rest=REST.map((p,i)=>{const arm=i>=4&&i<=9,offset=arm&&armOffset?armOffset(p.y):null;return V(p.x*(arm?armWidthAtHeight(p.y,bodyPreset):1)+(offset?Math.sign(p.x)*offset[0]:0),shapeHeight(p.y+(offset?.[1]??0),shapeTraits.legLength),p.z+(offset?.[2]??0));});
+@@ -90,7 +90,7 @@
+  const posedP=rest.map(p=>p.clone()),posedQ=rest.map(()=>new THREE.Quaternion()),pose=new THREE.Group();
+  const tmp=V(),tmp2=V(),dir=V(),pole=V(),restDir=V(),identity=new THREE.Quaternion(),invQ=new THREE.Quaternion(),torsoQ=new THREE.Quaternion(),headQ=new THREE.Quaternion(),inverseRoot=new THREE.Matrix4();
+  const previousRoot=V(),velocity=V(),rootWorld=V(),forwardWorld=V(),rightWorld=V(),footProbe=V(),footBack=V(),footFront=V(),footRight=V(),footLeft=V(),footOffset=V(),footNormal=V(),footUp=V(0,1,0),footOrient=[new THREE.Quaternion(),new THREE.Quaternion()],footAnchors=[V(),V()],swingStarts=[V(),V()],lastFootWorld=[V(),V()],lastSupport=[true,false],footTargets=[V(),V()];
+- let supportCorrection=0,poseMinY=0,poseMaxY=0;const lieOffsets={back:0,spine:0,head:0,heel:0};
++ let supportCorrection=0,poseMinY=0,poseMaxY=0,onsenHip=.32,onsenBackOffset=0;const lieOffsets={back:0,spine:0,head:0,heel:0};
+  let lastTime=null,wasWalking=false,gaitPhase=0,disposed=false,initializedFeet=false,currentAction=null,visualFloorOffset=0,previousYaw=0;
+  const metrics={height,labelHeight:height+.16,headHeight:1.61*root.scale.y,action:null,seated:false,grounded:true,feet:[[],[]],hands:[[],[]]};
+  root.userData={characterR9:true,characterR10:true,locomotion,appearance:{skin:opts.skin,hair:opts.hair,clothes:opts.clothes,accent:opts.accent,eyeColor:opts.eyeColor,culture,variant,style,bodyPreset,hairStyle,wardrobePreset,gaitPreset,shapeTraits:{...shapeTraits}},body:rig,head:bones[3],arms:[bones[4],bones[7]],forearms:[bones[5],bones[8]],hands:[bones[6],bones[9]],legs:[bones[10],bones[13]],knees:[bones[11],bones[14]],feet:[bones[12],bones[15]],tools:props.tools,poseQA:metrics,labelHeight:metrics.labelHeight,characterShared:true};
+@@ -124,6 +124,29 @@
+   posedQ[c].copy(posedQ[b]);
+  }
+  function foot(side,target){const ids=side?[13,14,15]:[10,11,12];solveLimb(...ids,target,legPole);posedQ[ids[2]].identity();}
++ function poseOnsen(context,time){
++  setTorso(onsenHip,-.12,0);
++  foot(0,tmp.set(-.13,.108,.58));foot(1,tmp.set(.13,.108,.58));
++  for(const [i,j]of[[16,11],[17,14]]){posedP[i].copy(posedP[j]);posedQ[i].copy(posedQ[j]);}
++  const water=(context.bathPose.waterY-context.supportY+.025)/root.scale.y-supportCorrection;
++  reach(0,-.23,water,.15);reach(1,.23,water+Math.sin(time*.7)*.003,.15);
++  posedQ[6].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));posedQ[9].copy(posedQ[6]);
++  headQ.setFromEuler(new THREE.Euler(.07,Math.sin(time*.35)*.02,0));posedQ[3].copy(torsoQ).multiply(headQ);
++ }
++ function measureOnsenSkin(context){
++  const result={min:Infinity,max:-Infinity,hip:Infinity,sole:Infinity,back:Infinity,backY:null};root.updateMatrixWorld(true);skeleton.update();inverseRoot.copy(root.matrixWorld).invert();
++  for(const mesh of meshes)for(const range of mesh.geometry.userData.sourceRanges||[]){
++   const attr=mesh.geometry.attributes.position,hip=/^onsen-trouser|^onsen-swim-body/.test(range.name),back=range.name==='onsen-swim-body',sole=/^footwear-bath-bare/.test(range.name);
++   for(let i=range.start;i<range.start+range.count;i++){
++    mesh.getVertexPosition(i,tmp).applyMatrix4(mesh.matrixWorld).applyMatrix4(inverseRoot);const sy=mesh.geometry.attributes.sourceY?.getX(i)??attr.getY(i);
++    result.min=Math.min(result.min,tmp.y);result.max=Math.max(result.max,tmp.y);
++    if(sole)result.sole=Math.min(result.sole,tmp.y);
++    if(hip&&sy>.84&&sy<1.01&&attr.getZ(i)<-.012)result.hip=Math.min(result.hip,tmp.y);
++    const worldY=context.supportY+(tmp.y+supportCorrection)*root.scale.y;
++    if(back&&sy>1.12&&sy<1.335&&attr.getZ(i)<0&&worldY<context.bathPose.backTopY-.01&&tmp.z<result.back){result.back=tmp.z;result.backY=worldY;}
++   }
++  }return result;
++ }
+  function applyPose(){
+   for(let i=0;i<bones.length;i++){const parent=JOINTS[i][1];if(parent<0){bones[i].position.copy(posedP[i]);bones[i].quaternion.copy(posedQ[i]);}else{invQ.copy(posedQ[parent]).invert();bones[i].position.copy(posedP[i]).sub(posedP[parent]).applyQuaternion(invQ);bones[i].quaternion.copy(invQ).multiply(posedQ[i]);}}
+   // World-upright cups, bowls and buckets; hands retain real elbow/wrist rotation.
+@@ -192,7 +215,8 @@
+   if(disposed)return;visualFloorOffset=Number.isFinite(context?.visualFloorOffset)?clamp(context.visualFloorOffset,0,.5):0;rig.rotation.set(0,0,0);rig.position.set(0,visualFloorOffset/root.scale.y,0);time=Number.isFinite(time)?time:0;walking=!!walking;if(walking)action=null;resetTools();
+   const rawDt=lastTime===null?0:time-lastTime,dt=clamp(rawDt,0,.2);root.updateWorldMatrix(true,false);root.getWorldPosition(rootWorld);velocity.copy(rootWorld).sub(previousRoot);const travel=Math.hypot(velocity.x,velocity.z),headingDelta=Math.atan2(Math.sin(root.rotation.y-previousYaw),Math.cos(root.rotation.y-previousYaw)),discontinuity=rawDt>.25||rawDt<0||travel>=1.2||Math.abs(headingDelta)>.85;const physical=!discontinuity&&dt>0&&travel>.000001;
+   if(physical)velocity.multiplyScalar(1/dt);else velocity.set(0,0,0);
+-  const poseChanged=currentAction!==action;const mountedPose=action==='lie-rest'||action==='bathe';const leavingSeat=['kotatsu','chair-sit','lie-rest','bathe'].includes(currentAction)&&action!==currentAction;
++  const poseChanged=currentAction!==action;const mountedPose=action==='lie-rest'||action==='bathe';const supportedOnsen=action==='bathe'&&culture==='japan'&&wardrobePreset==='onsen-swimwear'&&context?.bathPose?.style==='onsen-seat';const leavingSeat=['kotatsu','chair-sit','lie-rest','bathe'].includes(currentAction)&&action!==currentAction;
++  if(supportedOnsen&&poseChanged){onsenHip=context.bathHipHeight??.32;onsenBackOffset=0;supportCorrection=0;}
+   if(discontinuity||leavingSeat){initializedFeet=false;for(let s=0;s<2;s++){lastFootWorld[s].set(s?.089:-.089,.108,-.025).applyMatrix4(root.matrixWorld);lastFootWorld[s].y+=visualFloorOffset;}wasWalking=false;}
+   currentAction=action;metrics.action=action;metrics.gaitReset=discontinuity||leavingSeat;metrics.seated=action==='kotatsu'||action==='chair-sit'||action==='bathe';metrics.lying=action==='lie-rest';metrics.bathing=action==='bathe';
+   // Phase is distance-driven, never wall-clock-driven: blocked actors do not skate.
+@@ -345,13 +369,27 @@
+    for(let i=0;i<posedP.length;i++){posedP[i].copy(rest[i]);posedQ[i].identity();}
+    if(poseChanged){lieOffsets.back=0;lieOffsets.spine=0;lieOffsets.head=0;lieOffsets.heel=0;}settleLieJoints();rig.rotation.x=-Math.PI/2;rig.position.set(0,0,context?.lieOffset??.70);
+   }
++  if(supportedOnsen)poseOnsen(context,time);
+   applyPose();
+   if(mountedPose){
+    const supportY=Number.isFinite(context?.supportY)?context.supportY:rootWorld.y;
+    if(poseChanged){
+     // One bounded contact fit on activation; no geometry scan in the frame loop.
+     rig.position.y=0;
+-    if(action==='lie-rest'&&context?.lieSupport&&shapeTraits.legLength!==1){
++    if(supportedOnsen){
++     // Fit the two real support surfaces independently. The seat carries the
++     // posterior while the soles stay on the basin bottom; no whole-body lift
++     // is used to put the head above water.
++     for(let pass=0;pass<3;pass++){
++      const skin=measureOnsenSkin(context),desired=(context.bathPose.seatY-supportY)/root.scale.y+skin.sole;
++      onsenHip=clamp(onsenHip+desired-skin.hip,.25,.52);poseOnsen(context,time);applyPose();
++     }
++     let skin=measureOnsenSkin(context);supportCorrection=-skin.sole+.004/root.scale.y;
++     poseOnsen(context,time);applyPose();skin=measureOnsenSkin(context);
++     onsenBackOffset=context.bathPose.backZ/root.scale.z-skin.back+.006/root.scale.z;
++     poseMinY=skin.min;poseMaxY=skin.max;metrics.lieContact=null;
++     metrics.bathContact={hip:{surface:context.bathPose.seatY,body:supportY+(skin.hip+supportCorrection)*root.scale.y,gap:supportY+(skin.hip+supportCorrection)*root.scale.y-context.bathPose.seatY},sole:{surface:supportY,body:supportY+(skin.sole+supportCorrection)*root.scale.y,gap:.004},back:{surface:context.bathPose.backZ,body:(skin.back+onsenBackOffset)*root.scale.z,gap:.006,height:skin.backY,top:context.bathPose.backTopY},waterY:context.bathPose.waterY};
++    }else if(action==='lie-rest'&&context?.lieSupport&&shapeTraits.legLength!==1){
+      fitShapedLie(context,supportY);
+     }else if(action==='lie-rest'&&context?.lieSupport){
+      let skin=measureLieSkin(),hipTarget=supportY,target={...context.lieSupport};
+@@ -370,10 +408,10 @@
+      const skin=measureLieSkin();poseMinY=skin.min;poseMaxY=skin.max;supportCorrection=-poseMinY+.004/root.scale.y;metrics.lieContact=null;
+     }
+    }
+-   rig.position.y=(supportY-rootWorld.y)/root.scale.y+supportCorrection;root.updateMatrixWorld(true);skeleton.update();
++   rig.position.y=(supportY-rootWorld.y)/root.scale.y+supportCorrection;if(supportedOnsen)rig.position.z=onsenBackOffset;root.updateMatrixWorld(true);skeleton.update();
+    metrics.contactMinY=supportY+(poseMinY+supportCorrection)*root.scale.y;metrics.contactMaxY=supportY+(poseMaxY+supportCorrection)*root.scale.y;
+ 
+-  }else{metrics.contactMinY=null;metrics.contactMaxY=null;metrics.lieContact=null;}
++  }else{metrics.contactMinY=null;metrics.contactMaxY=null;metrics.lieContact=null;metrics.bathContact=null;}
+ 
+   if(action==='sushi-eat')props.right.rotation.x-=Math.pow((Math.sin(time*.95)+1)*.5,2)*.55;
+   if(/garden/.test(action||''))props.right.rotation.z=-.35;
+--- a/source/game/approved-surfaces.js
++++ b/source/game/approved-surfaces.js
+@@ -175,6 +175,21 @@
+  for(const m of g.children)if(m.isMesh&&['inner-collar','outer-collar','lapel-binding','front-overlap-seam','willow-stem','willow-leaf'].includes(m.name))conformFront(m,yukataProfile,m.name==='outer-collar'?.007:m.name==='lapel-binding'?.009:.0045);
+ }
+ 
++// Temporary, opaque one-piece swimwear. The closed torso and fitted shorts
++// remain covered above and below water, without a heavy folded robe at the lap.
++function buildOnsenSwimwear(g){
++ const cloth=0x536e7b,trim=0xc3d9d0;
++ loft(g,'onsen-swim-body',[[.922,.163,.113,0,-.008],[1.01,.158,.104,0,-.006],[1.10,.145,.087,0,-.003],[1.22,.158,.090,0,-.007],[1.31,.186,.079,0,-.013],[1.36,.139,.063,0,-.006],[1.397,.051,.039,0,.001]],cloth,{segs:40,steps:38});
++ for(const s of[-1,1]){
++  loft(g,'onsen-trouser-'+s,[[.558,.069,.063,s*.089,-.010],[.62,.075,.070,s*.089,-.010],[.79,.084,.078,s*.083,-.009],[.96,.083,.079,s*.075,-.013],[1.014,.075,.068,s*.07,-.012]],cloth,{segs:30,steps:28});
++  loft(g,'bare-leg-onsen-'+s,[[.106,.031,.036,s*.089,-.021],[.26,.043,.045,s*.089,-.017],[.44,.052,.048,s*.089,-.013],[.57,.062,.060,s*.088,-.01]],C.skin,{segs:24,steps:28});
++  loft(g,'bare-arm-onsen-'+s,[[.916,.021,.023,s*.303,0],[1.01,.030,.030,s*.297,-.002],[1.092,.039,.036,s*.28,-.006],[1.19,.045,.041,s*.254,-.006],[1.28,.052,.048,s*.204,-.01],[1.326,.048,.046,s*.173,-.011],[1.343,.031,.035,s*.151,-.01]],C.skin,{segs:24,steps:30});
++  hand(g,s);
++  loft(g,'footwear-bath-bare-'+s,[[.025,.001,.002,s*.089,.04],[.035,.045,.105,s*.089,.04],[.06,.050,.114,s*.089,.04],[.10,.033,.053,s*.089,-.01],[.15,.026,.034,s*.089,-.021]],C.skin,{segs:24,steps:16});
++ }
++ loft(g,'onsen-collar-binding',[[1.383,.065,.044,0,.001],[1.397,.052,.040,0,.001]],trim,{segs:24,steps:4});
++}
++
+ function removeSurfaces(g,test){const removed=[];g.traverse(m=>{if(m.isMesh&&test(m.name))removed.push(m);});for(const m of removed){m.removeFromParent();m.geometry.dispose();}}
+ function shirtToBodice(g,color=C.yukata){const m=g.getObjectByName('tailored-shirt-body');if(m){m.name='fitted-court-bodice';m.material=mat(color);}}
+ function skirt(g,name,{hem=.26,depth=.145,waist=.14,bottom=.13,color=C.yukata,pleats=0}={}){
+@@ -370,7 +385,8 @@
+  if(culture==='egypt')C.yukata=new THREE.Color(C.yukata).lerp(new THREE.Color(0xe2d7b9),.28).getHex();
+  const root=new THREE.Group();buildHead(root,masc,hairStyle,traits);
+  // Temporary opaque ankle-length bath robe; saved cultural outfits remain untouched.
+- if(wardrobePreset==='bath-robe'){
++ if(culture==='japan'&&wardrobePreset==='onsen-swimwear')buildOnsenSwimwear(root);
++ else if(wardrobePreset==='bath-robe'){
+   buildJapan(root,masc,masc?'yukata-narrow-obi':'yukata-wide-obi');removeSurfaces(root,n=>/footwear|sole-|loafer/.test(n));
+   for(const side of[-1,1])loft(root,'footwear-bath-bare-'+side,[[.025,.001,.002,side*.089,.04],[.035,.045,.105,side*.089,.04],[.06,.050,.114,side*.089,.04],[.10,.033,.053,side*.089,-.01],[.15,.026,.034,side*.089,-.021]],C.skin,{segs:24,steps:16});
+  }
+--- a/source/game/main.js
++++ b/source/game/main.js
+@@ -96,12 +96,12 @@
+  const target=station&&(isPlayer?(station.playerWorkTarget||station.workTarget):station.workTarget);
+  if(isPlayer&&seated&&seated.kind!=='seat')c.visualFloorOffset=0;
+  c.seatHeight=isPlayer&&seated?.kind==='seat'?seated.seatY-person.root.position.y-c.visualFloorOffset:undefined;
+- c.supportY=isPlayer&&seated?seated.supportY:undefined;c.lieSupport=isPlayer&&seated?seated.lieSupport:undefined;c.lieSurfaceHeightAt=isPlayer&&seated?.kind==='bed'?(c.bedSurfaceProbe??=(x,z)=>furniture.bedSupportAt(seated,x,z)):undefined;c.lieOffset=isPlayer&&seated?seated.lieOffset:undefined;c.pillowLift=isPlayer&&seated?seated.pillowLift:undefined;c.bathHipHeight=isPlayer&&seated?seated.bathHipHeight:undefined;
++ c.supportY=isPlayer&&seated?seated.supportY:undefined;c.lieSupport=isPlayer&&seated?seated.lieSupport:undefined;c.lieSurfaceHeightAt=isPlayer&&seated?.kind==='bed'?(c.bedSurfaceProbe??=(x,z)=>furniture.bedSupportAt(seated,x,z)):undefined;c.lieOffset=isPlayer&&seated?seated.lieOffset:undefined;c.pillowLift=isPlayer&&seated?seated.pillowLift:undefined;c.bathHipHeight=isPlayer&&seated?seated.bathHipHeight:undefined;c.bathPose=isPlayer&&seated?seated.bathPose:undefined;
+  c.workHeight=target?(target[1]-person.root.position.y)/(person.characterScale||1):undefined;
+  c.workDistance=target?Math.hypot(target[0]-person.root.position.x,target[2]-person.root.position.z)/(person.characterScale||1):undefined;return c;
+ }
+ function disposePerson(person){if(!person)return;if(person.halo){person.halo.geometry.dispose();person.halo.material.dispose();person.halo.removeFromParent();}if(person.dispose)person.dispose();else{const geos=new Set();person.root.traverse(o=>{if(o.geometry)geos.add(o.geometry);});geos.forEach(g=>g.dispose());}person.root.removeFromParent();}
+-function buildPlayer(outfit=saved.outfit){const pos=player?player.root.position.clone():new THREE.Vector3(...(lot.spawn||[0,0,16]));const rot=player?player.root.rotation.y:Math.PI;if(player)disposePerson(player);const look=playerAppearance(outfitDraft||saved.appearance,active?.id,outfit);if(seated?.kind==='bath')look.wardrobePreset='bath-robe';player=createCharacter({...look,culture:active?.id||null});player.characterScale=1;player.root.position.copy(pos);player.root.rotation.y=rot;for(const [id,color]of[['portrait-shirt',look.clothes],['portrait-skin',look.skin],['portrait-hair',look.hair],['portrait-eye-left',look.eyeColor],['portrait-eye-right',look.eyeColor]])$(id).setAttribute('fill','#'+color.toString(16).padStart(6,'0'));lot.group.add(player.root);const halo=new THREE.Mesh(new THREE.RingGeometry(.47,.52,32),new THREE.MeshBasicMaterial({color:0xfff2b9,transparent:true,opacity:.8,depthWrite:false,side:THREE.DoubleSide}));halo.rotation.x=-Math.PI/2;halo.position.y=.09;player.root.add(halo);player.halo=halo;player.animate(elapsed,false,seated?furniturePose(seated):null,characterPoseContext(player,null,true));}
++function buildPlayer(outfit=saved.outfit){const pos=player?player.root.position.clone():new THREE.Vector3(...(lot.spawn||[0,0,16]));const rot=player?player.root.rotation.y:Math.PI;if(player)disposePerson(player);const look=playerAppearance(outfitDraft||saved.appearance,active?.id,outfit);if(seated?.kind==='bath')look.wardrobePreset=seated.bathWardrobePreset||'bath-robe';player=createCharacter({...look,culture:active?.id||null});player.characterScale=1;player.root.position.copy(pos);player.root.rotation.y=rot;for(const [id,color]of[['portrait-shirt',look.clothes],['portrait-skin',look.skin],['portrait-hair',look.hair],['portrait-eye-left',look.eyeColor],['portrait-eye-right',look.eyeColor]])$(id).setAttribute('fill','#'+color.toString(16).padStart(6,'0'));lot.group.add(player.root);const halo=new THREE.Mesh(new THREE.RingGeometry(.47,.52,32),new THREE.MeshBasicMaterial({color:0xfff2b9,transparent:true,opacity:.8,depthWrite:false,side:THREE.DoubleSide}));halo.rotation.x=-Math.PI/2;halo.position.y=.09;player.root.add(halo);player.halo=halo;player.animate(elapsed,false,seated?furniturePose(seated):null,characterPoseContext(player,null,true));}
+ function configureNPCs(){npcs=[];npcLabels.forEach(el=>el.remove());npcLabels.length=0;lot.stations.forEach((s,i)=>{const verb=s.npcAction||'tea',style=/cook|sushi|knead|bake|bread|ramen/.test(verb)?'chef':/paint|draw|calligraphy|craft/.test(verb)?'artist':/garden/.test(verb)?'gardener':'casual';const look=npcRoleAppearance(active.id,s.id,saved.appearance.seed,saved.appearance.npcShapeVersion),person=createCharacter({...look,style,culture:active.id,scale:.96});person.characterScale=.96;person.preferenceScore=shapePreferenceScore(look.shapeTraits);const p=s.npcPosition||s.position;person.root.position.set(p[0],p[1]||0,p[2]);person.root.rotation.y=s.workTarget?Math.atan2(s.workTarget[0]-p[0],s.workTarget[2]-p[2]):(s.npcRotation??Math.PI);lot.group.add(person.root);const el=document.createElement('div');el.className='npc-label';el.append(document.createTextNode(s.npcName||['小遥','林','阿米娜','艾米'][i%4]));const sub=document.createElement('small');sub.textContent=s.npcLabel||s.action;el.append(sub);const score=document.createElement('small');score.className='npc-preference-score';score.textContent=`游戏审美 ${person.preferenceScore} / 100`;el.append(score);$('labels').append(el);npcLabels.push(el);npcs.push({...person,station:s,label:el,phase:i*6.7,walking:false,home:person.root.position.clone(),route:[],breakAt:elapsed+14+i*7,returning:false});});}
+ function enterRegion(id){if(mode==='lot')leaveLot(false);try{selected=id;active=regions.find(x=>x.id===id);lot=active.build();saved.curtains??={};furniture=createFurnitureInteractions(lot,id,{curtains:saved.curtains,onCurtainChange:()=>save()});lotAnimationTime=0;lot.group.name='active-lot';scene.add(lot.group);lighting.attach(lot,active.id);multiLevel=!!lot.heightAware||active.id==='japan'||active.id==='egypt';navOptions=multiLevel?{surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lotBounds(),bodyHeight:1.95,maxStep:.4}:{bounds:lotBounds(),multilevel:false};staticCameraSolids=buildCameraSolids(lot);cameraSolids=staticCameraSolids;installAutomaticDoors();const shadowBounds=new THREE.Box3().setFromObject(lot.group);lot.overviewSphere=shadowBounds.getBoundingSphere(new THREE.Sphere());applyWorldShadowPolicy(lot.group);setStableShadowBounds(sun,shadowBounds);lot.grid=makeGrid();lot.group.add(lot.grid);roofShown=false;if(lot.roofGroup)lot.roofGroup.visible=true;player=null;buildPlayer();configureNPCs();updateAutomaticDoors(0);mode='lot';camera.fov=50;camera.far=Math.max(180,(lotBounds().maxZ-lotBounds().minZ)*3);camera.updateProjectionMatrix();globe.group.visible=false;starGroup.visible=false;globeLabels.forEach(el=>el.hidden=true);$('globe-ui').hidden=true;$('lot-ui').hidden=false;document.body.classList.add('in-lot');$('lot-country').textContent=`${active.country} / ${active.en}`;$('lot-name').textContent=active.name;$('activity-heading').textContent=active.id==='japan'?'汤馆里的日常':active.id==='egypt'?'金字塔里的发现':active.id==='france'||active.id==='china'?'宫苑里的日常':'家里的日常';$('arrival-country').textContent=active.country;$('arrival-name').textContent=active.name;$('arrival').hidden=false;$('arrival').style.animation='none';void $('arrival').offsetWidth;$('arrival').style.animation='';clearTimeout(arrivalTimer);arrivalTimer=setTimeout(()=>$('arrival').hidden=true,2700);yaw=0;pitch=.22;distance=4.6;arrivalViewUntil=0;camTarget.copy(player.root.position).add(new THREE.Vector3(0,1.45,0));path=[];performing=null;nearest=null;targetStation=null;dusk=false;$('roof-toggle').setAttribute('aria-pressed','false');$('roof-toggle').lastElementChild.textContent='总览';$('grid-toggle').setAttribute('aria-pressed','false');$('light-toggle').setAttribute('aria-pressed','false');$('light-toggle').lastElementChild.textContent='夜晚';if(!saved.visited.includes(id))saved.visited.push(id);save();renderStations();setDaybook(daybookOpen);setBackground();updateCamera(1,true);canvas.focus({preventScroll:true});window.location.hash=id;}
+ catch(e){console.error(e);toast('住宅载入遇到问题，请回到世界后再试');leaveLot();}}

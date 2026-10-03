@@ -1,0 +1,61 @@
+--- a/source/game/japan-bathhouse.js
++++ b/source/game/japan-bathhouse.js
+@@ -153,7 +153,7 @@
+  function lowTable(g,base,x,z,w=2.5,d=1.55,color=P.wood){G.table(g,x,z,w,d,color,.63);obstacle(x,base+.38,z,w,.75,d);G.box(g,x,.73,z,w*.56,.028,d*.62,0xae8156);tea(g,x,.76,z);}
+  function shelf(g,base,x,z,w=2,d=.6,angle=0,contents=true){const q=new THREE.Group();q.position.set(x,0,z);q.rotation.y=angle;g.add(q);for(const xx of [-w/2,w/2])G.box(q,xx,1.22,0,.1,2.45,d,P.cedar);G.box(q,0,1.18,-d/2,w,2.4,.065,P.wood);for(const yy of [.18,.8,1.42,2.05,2.45])G.box(q,0,yy,0,w,.085,d,P.honey);if(contents)for(let i=0;i<3;i++){vase(q,-w*.3+i*w*.3,.84,0,[P.jade,P.cream,0xa37556][i],false);folded(q,-w*.27+i*w*.28,1.49,0,[P.indigo,P.red,0x9b9a78][i],w*.23,.4);G.cyl(q,-w*.3+i*w*.3,2.22,0,.16,.17,.26,0xc6ae7d,8);}const sideOn=Math.abs(Math.sin(angle))>.7;obstacle(x,base+1.2,z,sideOn?d:w,2.4,sideOn?w:d);return q;}
+  function pool(g,base,x,z,w,d){
+-   const bottom=.0805,waterY=.67,rimY=.86,seatY=.30,backTop=.70,east=x+w/2;
++   const bottom=.0805,waterY=.67,rimY=.72,seatY=.30,backTop=.70,east=x+w/2;
+    // A closed retaining basin. The original floor remains the only bottom;
+    // its east ledge carries the sitter and the coping supports their back.
+    G.box(g,x,.067,z,w,.027,d,0x416d65);
+@@ -165,7 +165,7 @@
+    // Ordinary movement stops at the basin. Existing furniture ownership
+    // recognizes this exact centered proxy only for an explicit bath transfer.
+    obstacle(x,base+rimY/2,z,w,rimY,d);
+-   g.userData.onsenPools??=[];g.userData.onsenPools.push({center:[x,base,z],bottomY:base+bottom,waterY:base+waterY,rimY:base+rimY,seat:{minX:east-.70,maxX:east-.14,minZ:z-d/2+.14,maxZ:z+d/2-.14,y:base+seatY},backX:east-.22,backTopY:base+backTop,retainingWallX:east-.14});
++   g.userData.onsenPools??=[];g.userData.onsenPools.push({center:[x,base,z],bottomY:base+bottom,waterY:base+waterY,rimY:base+rimY,seat:{minX:east-.70,maxX:east-.14,minZ:z-d/2+.14,maxZ:z+d/2-.14,y:base+seatY},backX:east-.22,backTopY:base+backTop,retainingWallX:east-.14,copingTopY:base+.80,seamTopY:base+.817});
+    // One top surface, independent of the room's transparent steam batch.
+    // Opaque geometry behind it is tinted once, with no stacked water box faces.
+    const water=G.mesh(g,new THREE.PlaneGeometry(w-.28,d-.28),0x83c4b8,x,waterY,z,{transparent:true,opacity:.82,depthWrite:false,emissive:0x427e73,emissiveIntensity:.16});water.rotation.x=-Math.PI/2;water.castShadow=false;water.userData.noStaticBatch=true;water.name='Onsen single water surface';
+@@ -372,8 +372,8 @@
+   pool(f,y,-6.55,-9.3,7.5,6.6);pool(f,y,2.1,-9.7,4.0,6.6);
+   // Raised coping has a tailored timber edge and tile seam, not a box-ring bath.
+   for(const [cx,w,cz]of [[-6.55,7.5,-9.3],[2.1,4.0,-9.7]]){
+-   for(const zz of [cz-3.3,cz+3.3]){G.box(f,cx,.89,zz,w+.38,.1,.4,P.honey);for(let xx=cx-w/2;xx<cx+w/2;xx+=.44)G.box(f,xx,.95,zz,.025,.014,.39,P.wood);}
+-   G.box(f,cx+w/2,.89,cz,.34,.10,6.6,P.honey);
++   for(const zz of [cz-3.3,cz+3.3]){G.box(f,cx,.75,zz,w+.38,.1,.4,P.honey);for(let xx=cx-w/2;xx<cx+w/2;xx+=.44)G.box(f,xx,.81,zz,.025,.014,.39,P.wood);}
++   G.box(f,cx+w/2,.75,cz,.34,.10,6.6,P.honey);
+    const fx=cx-w/2+.8;beam(f,[fx,1.38,-14.54],[fx,1.38,-12.3],.10,0x6e8960);beam(f,[fx,1.38,-12.3],[fx,.52,-12.3],.052,0xd1ded0);
+   }
+   for(const z of [-2.25,-4.15])washBay(f,y,-10.65,z,-1);
+--- a/source/game/furniture-interactions.js
++++ b/source/game/furniture-interactions.js
+@@ -16,14 +16,25 @@
+ };
+ // Real authored sleeping and bathing fixtures. Anchor Y stays on the navigation
+ // floor; supportY is the actual mattress/basin bottom supporting the skinned pose.
++// Japan's closed onsen has a taller coping, a seat, and a low lumbar support.
++// Its camera must use these authored solids instead of a guessed water+.12 rim.
++function japanBathCameraParts(x,z,w,d){
++ const east=x+w/2,parts=[{minX:x-w/2,maxX:x+w/2,minY:3.8535,maxY:3.8805,minZ:z-d/2,maxZ:z+d/2}];
++ for(const side of[-1,1])parts.push({minX:x-(w+.38)/2,maxX:x+(w+.38)/2,minY:3.8,maxY:4.617,minZ:z+side*d/2-.20,maxZ:z+side*d/2+.20});
++ parts.push({minX:x-w/2-.14,maxX:x-w/2+.14,minY:3.8,maxY:4.52,minZ:z-d/2,maxZ:z+d/2},
++  {minX:east-.17,maxX:east+.17,minY:3.8,maxY:4.60,minZ:z-d/2,maxZ:z+d/2},
++  {minX:east-.70,maxX:east-.14,minY:3.8805,maxY:4.10,minZ:z-d/2+.14,maxZ:z+d/2-.14},
++  {minX:east-.22,maxX:east-.14,minY:4.10,maxY:4.50,minZ:z-d/2+.14,maxZ:z+d/2-.14});
++ return parts;
++}
+ export const REST_BATH_DESCRIPTORS={
+  china:[{kind:'bed',cameraParts:chinaDragonBedCameraParts(),worldLabel:'龙榻安寝',name:'静宜寝殿 · 雕龙龙榻',position:[-18.4,.215,-8.5],anchor:[-21.55,.215,-9],center:[-21,.2,-9],size:[4,3.1,4.2],yaw:0,supportY:1.055,lieOffset:.30,lieSupport:{hip:1.055,back:1.055,head:1.14,heel:1.055}},
+  {kind:'bath',name:'竹苑石浴池',position:[-21.1,.215,-30],anchor:[-23.6,.215,-30],center:[-23.6,.2,-30],size:[3.3,1.15,4.3],yaw:Math.PI/2,supportY:.31,waterY:1.1625,bathHipHeight:.48}],
+  france:[{kind:'bed',name:'皇家寝床',position:[5.16,.302,-2.1],anchor:[6.72,.302,-2.65],center:[7.55,.23,-2.65],size:[3.5,4.2,4.3],yaw:0,supportY:1.25,lieOffset:.72,lieSupport:{hip:1.25,back:1.25,head:1.31,heel:1.25}},
+  {kind:'bath',name:'白金浴缸',position:[-20.34,.23,-10.2],anchor:[-22.55,.23,-10.2],center:[-22.55,.23,-10.2],size:[3.1,1.15,3.65],yaw:Math.PI/2,supportY:.425,waterY:1.205,bathHipHeight:.48}],
+  japan:[{kind:'bed',name:'客室日式寝具',position:[2.48,7.6,-10.7],anchor:[4.4,7.6,-11.6],center:[4.4,7.6,-11.6],size:[2.36,.5,3.24],yaw:0,supportY:7.95,lieOffset:.54,lieSupport:{hip:7.95,back:7.992,head:8.026,heel:7.96}},
+- {kind:'bath',name:'二层男汤温泉',position:[-2.1,3.8,-9.3],anchor:[-3.22,3.8,-9.3],center:[-6.55,3.8,-9.3],size:[7.5,.96,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}},
+- {kind:'bath',name:'二层女汤温泉',position:[4.9,3.8,-9.7],anchor:[3.68,3.8,-9.7],center:[2.1,3.8,-9.7],size:[4,.96,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}}],
++ {kind:'bath',cameraParts:japanBathCameraParts(-6.55,-9.3,7.5,6.6),name:'二层男汤温泉',position:[-2.1,3.8,-9.3],anchor:[-3.22,3.8,-9.3],center:[-6.55,3.8,-9.3],size:[7.5,.82,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}},
++ {kind:'bath',cameraParts:japanBathCameraParts(2.1,-9.7,4,6.6),name:'二层女汤温泉',position:[4.9,3.8,-9.7],anchor:[3.68,3.8,-9.7],center:[2.1,3.8,-9.7],size:[4,.82,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}}],
+  egypt:[{kind:'bed',name:'王室亚麻寝床',position:[18.48,0,-1.25],anchor:[19.8,0,-1.25],center:[20.4,0,-1.25],size:[2.65,3.4,4.1],yaw:0,supportY:.9,lieOffset:.48,lieSupport:{hip:.9,back:.9,head:1.056,heel:.9}},
+  {kind:'bath',name:'王室石质浴池',position:[15.9,0,-1.05],anchor:[14.05,0,-1.05],center:[14.05,0,-1.05],size:[2.7,1.06,3.8],yaw:Math.PI/2,supportY:.305,waterY:.585,bathHipHeight:.32}]
+ };

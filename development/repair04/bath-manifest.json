@@ -1,0 +1,57 @@
+{
+  "time": "2026-10-03T07:31Z",
+  "status": "syntax-checked; no candidate03 run",
+  "source": "/workspace/shared/worldwoven-r17-repairs/source",
+  "files": {
+    "japan-bathhouse.js": "f923dd5629f958a6ce8ef3e1695fc89de8b9afb26a57ebeeca87beafd531d965",
+    "furniture-interactions.js": "cde028fe3bcae26fd5ebef8341ee8ed0eae3630c2a6bcbf93047bc547131262c",
+    "characters.js": "75fed2ba7fa5c65354426082fc85c4ad56016832dd84bba36ef92b6dcf99c88e",
+    "approved-surfaces.js": "49b3eb8c72a57de9fb3c0c0072a564d2d827f7851e96fc6677c8a31e942e7844",
+    "main.js": "9747b519ce1f102a69dd93e9b31e039b4acf02fffb2d91edc0e116eac2d1ef8d"
+  },
+  "scripts": {
+    "check-bath-wall03.mjs": "2a1a44bf455ad384e34eec2bebd2f262b572100d7cb4b2c1b71b8e77ac579484",
+    "render-bath-paired03.mjs": "ce575cfe5782b6038234cd96d53852d39a1bcfb76c6aeb34163d016e3b01c46b"
+  },
+  "delta": "Only real rim and camera geometry changed. Stone top4.52, timbertop4.60, tiny north/south seams4.617; water4.47/backrest4.50/seat4.10/bottom3.8805 unchanged. Seven exact Japan-only camera parts replace water+.12 approximation. All character/swimwear/main files unchanged from02. Prior occluded8images and original24case FAIL retained.",
+  "imagePlan": {
+    "mode": "paired fixed inspection cameras, NOT actual main TPS",
+    "views": {
+      "men": {
+        "camera": [
+          -5.2,
+          5.32,
+          -8
+        ],
+        "target": [
+          -3.3,
+          4.5,
+          -9.3
+        ]
+      },
+      "women": {
+        "camera": [
+          1.5,
+          5.32,
+          -8.1
+        ],
+        "target": [
+          3.6,
+          4.5,
+          -9.7
+        ]
+      }
+    },
+    "cases": [
+      "malelean default",
+      "femalebalanced default",
+      "masculinebroad shortleg.94"
+    ],
+    "framesPerSource": 3,
+    "sourceVersions": [
+      "before-source historical R16",
+      "candidate03 manifest locked"
+    ],
+    "cameraChecks": "Production resolveCameraPosition must leave camera unchanged; actual opaque geometry rays to looktarget/head/chest must have zero hits; keep all original scene geometry/materials."
+  }
+}
