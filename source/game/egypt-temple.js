@@ -333,7 +333,11 @@ export function buildEgypt(){
   for(const x of [19.18,21.62])box(privateRoom,x,2.15,-3.10,.26,2.3,.06,C.linen);
   ball(privateRoom,20.4,2.5,-2.99,.28,C.gold,1.2,1,.25);rod(privateRoom,[20.4,2.48,-2.9],[20.4,3.05,-2.9],.055,C.gold);ball(privateRoom,20.4,3.1,-2.9,.14,C.gold,1,1.2,.6);
   roomWall(privateRoom,14.2,.55,9.7,2.2,1.1,1.1,C.shadow);box(privateRoom,14.2,1.15,9.7,2.4,.1,1.3,C.edge);urn(privateRoom,13.8,1.2,9.7,.6,C.gold);ball(privateRoom,14.8,1.28,9.7,.23,C.blue,1,.35,1);
-  box(privateRoom,17.8,.018,7,7.6,.035,5.7,C.blue);for(const xx of [14.2,21.4])box(privateRoom,xx,.047,7,.10,.035,5.46,C.gold);
+  // Keep the reception rug and its gold bindings beyond the bottom-leaf sweep.
+  // North edge4.15 stays fixed; south edge9.44 leaves36mm to the conservative
+  // inward bottom-slab extreme9.476. This is local textile fit, not floor lift.
+  const suiteRugNorth=4.15,suiteRugSouth=9.44,suiteRugZ=(suiteRugNorth+suiteRugSouth)/2,suiteRugDepth=suiteRugSouth-suiteRugNorth;
+  box(privateRoom,17.8,.018,suiteRugZ,7.6,.035,suiteRugDepth,C.blue);for(const xx of [14.2,21.4])box(privateRoom,xx,.047,suiteRugZ,.10,.035,suiteRugDepth-.24,C.gold);
   roomWall(privateRoom,17.9,.52,7.0,2.5,1.04,1.2,C.shadow);box(privateRoom,17.9,1.1,7,2.7,.15,1.4,C.edge);urn(privateRoom,18.5,1.2,7,.65,C.blue);box(privateRoom,17.4,1.2,7,1,.035,.7,C.linen);
   for(const [x,z]of [[14.4,8.2],[21.2,8.2]]){box(privateRoom,x,.34,z,1.6,.65,1.1,C.shadow);box(privateRoom,x,.7,z,1.64,.16,1.14,C.red);volume(colliders,x,.4,z,1.7,.8,1.2);volume(cameraColliders,x,.4,z,1.7,.8,1.2);}
   for(const x of [13.4,22.4])torch(privateRoom,x,2.65,11.2,cameraColliders,Math.PI,x<18);
@@ -414,7 +418,9 @@ export function buildEgypt(){
   box(service,16.80,1.295,-8.65,.50,.03,.42,C.linen);
   for(const [x,y,z]of [[19.3,1.365,-8.79],[19.15,1.365,-8.82],[16.96,1.345,-8.72]])ball(service,x,y,z,.055,C.lightSand,1,.25,1.3);
   // Private bath with visible water, stepped basin rim and a changing niche.
-  for(const [z,d]of[[-3.5,1.8],[1.6,2]])roomWall(privateRoom,16.4,2.35,z,.22,4.7,d,C.stone);
+  // The north/south return meets the inner face of the cross-wall at2.49,
+  // rather than projecting110mm into the bedroom curtain's mounting plane.
+  for(const [z,d]of[[-3.5,1.8],[1.545,1.89]])roomWall(privateRoom,16.4,2.35,z,.22,4.7,d,C.stone);
   roomWall(privateRoom,16.4,4.05,-1,.22,1.3,3.2,C.stone);
   box(privateRoom,14.05,.15,-1.05,2.7,.3,3.8,C.shadow);
   for(const x of [12.75,15.35])box(privateRoom,x,.53,-1.05,.18,.76,3.8,C.edge);
@@ -473,7 +479,7 @@ export function buildEgypt(){
     {id:'dining-entry',a:[17.9,0,-5.1],b:[17.9,0,-6.6],width:3.19,height:3.36},
     {id:'kitchen-entry',a:[17.9,0,-11.4],b:[17.9,0,-13.1],width:3.19,height:3.36},
     {id:'storage-entry',a:[14.15,0,-15.4],b:[14.15,0,-17],width:2.4,height:3.4},
-    {id:'private-bath-entry',a:[17.2,0,-1],b:[15.8,0,-1],width:3.2,height:3.4}
+    {id:'private-bath-entry',a:[17.2,0,-1],b:[15.8,0,-1],at:16.4,width:3.2,height:3.4}
 
 
   ];

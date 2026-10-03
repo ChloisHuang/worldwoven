@@ -1,3 +1,4 @@
+require('node:fs').mkdirSync('qa/r12-japan',{recursive:true});
 // Actual production frame loop / click-to-walk navigation, simulated DOM, renderer stub.
 // Test-only module exports below do not modify production source.
 const fs=require('fs'),path=require('path'),vm=require('vm');let harness=fs.readFileSync(path.join(__dirname,'fixtures','hotfix-input-harness.cjs'),'utf8');

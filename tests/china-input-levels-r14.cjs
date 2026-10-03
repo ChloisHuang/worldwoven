@@ -1,3 +1,4 @@
+require('node:fs').mkdirSync('qa/r14-palace',{recursive:true});
 // Production canvas handlers + floor picking + navigation, using the portable
 // VM fixture. Only observation exports and a start-position route export are
 // appended. No production picker, handler, camera or collision logic is replaced.

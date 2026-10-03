@@ -19,6 +19,9 @@
  *     geometry edits, increment cacheVersion or call clearNavigationCache(options).
  *     Replacing arrays or changing their lengths automatically invalidates it.
  *     All retained data is weakly keyed by options and releases with the lot.
+ * portals: [{id,points:[{x,y,z},...],linkRadius?:1.25}] adds sparse exact
+ *   doorway visibility links when the coarse route is missing/incomplete.
+ *   Every added node/edge uses pathRadius and real supports; no global refinement.
  * blocked(x,z,colliders,r,options) uses options.y as the feet height.
  * moveWithCollision(pos,dx,dz,colliders,r,options) mutates x/y/z continuously.
  * findPath(start,end,colliders,options) returns {x,y,z} waypoints; end.y selects
@@ -124,8 +127,8 @@ function indexedOptions(options,colliders,r) {
     o.endpointTolerance??.06,o.supportTolerance??.06,o.maxSnapDistance??4,o.maxNodes??60000,o.cacheVersion??0]);
   let retained=cacheable?SEARCH_CACHES.get(options):null;
   if(!retained||retained.signature!==signature||retained.colliders!==colliders||retained.surfaces!==surfaces||
-     retained.colliderCount!==colliders.length||retained.surfaceCount!==surfaces.length) {
-    retained={signature,colliders,surfaces,colliderCount:colliders.length,surfaceCount:surfaces.length,
+     retained.colliderCount!==colliders.length||retained.surfaceCount!==surfaces.length||retained.portals!==o.portals) {
+    retained={signature,colliders,surfaces,portals:o.portals,colliderCount:colliders.length,surfaceCount:surfaces.length,
       radius,version:o.cacheVersion??0,index:colliderIndex(colliders,radius),surfaceIndex:colliderIndex(surfaces),
       nodeCache:new Map(),nodes:new Map(),edges:new Map(),paths:new Map()};
     if(cacheable)SEARCH_CACHES.set(options,retained);
@@ -425,11 +428,117 @@ function findLegacyPath(start,end,colliders,options) {
   }
   return [];
 }
+// Sparse exact doorway connections augment the existing grid only when its
+// route is missing or cannot reach the requested endpoint. No smaller global
+// grid, collider removal, or reduced-radius doorway edge is introduced.
+function findPortalPath(start,end,colliders,o) {
+  const multi=isMultilevel(o),{step,nx,nz,ox,oz}=gridOf(o),r=o.pathRadius??.39;
+  const {nodeCache,nodes,edges}=o._cache,maxStep=o.maxStep??DEFAULT_STEP;
+  const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z,multi?(a.y??0)-(b.y??0):0);
+  const safeEdge=(a,b)=>{
+    const terminal=a.terminal||b.terminal,k=a.key<b.key?`${a.key}>${b.key}`:`${b.key}>${a.key}`;
+    if(!terminal&&edges.has(k))return edges.get(k);
+    const safe=multi?traceSegment(a,b,colliders,r,o)!==null:legacySegmentSafe(a,b,colliders,r,o);
+    if(!terminal)edges.set(k,safe);return safe;
+  };
+  const at=(ix,iz)=>{
+    if(ix<0||iz<0||ix>=nx||iz>=nz)return [];
+    const k=iz*nx+ix,x=ox+ix*step,z=oz+iz*step;
+    if(multi){
+      if(nodeCache.has(k))return nodeCache.get(k);
+      const result=[],heights=heightsAt(x,z,o);
+      for(const y of heights)if(!bodyBlocked(x,y,z,colliders,r,o,heights)){
+        const n={x,y,z,ix,iz,key:`${k}:${Math.round(y*100000)}`};result.push(n);nodes.set(n.key,n);
+      }
+      nodeCache.set(k,result);return result;
+    }
+    if(!nodeCache.has(k))nodeCache.set(k,!blocked(x,z,colliders,r,o));
+    if(!nodeCache.get(k))return [];
+    const key=`grid:${k}`;if(!nodes.has(key))nodes.set(key,{x,z,ix,iz,key});return [nodes.get(key)];
+  };
+  const around=(p,radius)=>{
+    const result=[];
+    for(let ix=Math.max(0,Math.ceil((p.x-radius-ox)/step));ix<=Math.min(nx-1,Math.floor((p.x+radius-ox)/step));ix++)
+      for(let iz=Math.max(0,Math.ceil((p.z-radius-oz)/step));iz<=Math.min(nz-1,Math.floor((p.z+radius-oz)/step));iz++)
+        for(const n of at(ix,iz))if(Math.hypot(n.x-p.x,n.z-p.z)<=radius+EPS)result.push(n);
+    return result;
+  };
+  const exact=(p,key,terminal=false)=>{
+    if(!multi)return !blocked(p.x,p.z,colliders,r,o)?{x:p.x,z:p.z,key,terminal}:null;
+    const wanted=p.y??start.y??o.groundY??0,y=supportAt(p.x,p.z,wanted,colliders,r,o,wanted);
+    return y!==null&&Math.abs(y-wanted)<=(o.floorTolerance??.22)+EPS?{x:p.x,y,z:p.z,key,terminal}:null;
+  };
+  // Portal nodes and their spatial bins are immutable for a navigation profile.
+  // Their visibility edges share its existing collider/support invalidation.
+  let portal=o._cache.portalGraph;
+  if(!portal){
+    const points=[],bins=new Map();
+    for(let group=0;group<(o.portals||[]).length;group++){
+      const spec=o.portals[group],radius=spec.linkRadius??Math.max(1.25,step*2);
+      for(let i=0;i<spec.points.length;i++){
+        const n=exact(spec.points[i],`portal:${group}:${i}`);if(!n)continue;
+        Object.assign(n,{portal:true,group,linkRadius:radius});points.push(n);nodes.set(n.key,n);
+        for(let ix=Math.max(0,Math.ceil((n.x-radius-ox)/step));ix<=Math.min(nx-1,Math.floor((n.x+radius-ox)/step));ix++)
+          for(let iz=Math.max(0,Math.ceil((n.z-radius-oz)/step));iz<=Math.min(nz-1,Math.floor((n.z+radius-oz)/step));iz++){
+            const k=iz*nx+ix;if(!bins.has(k))bins.set(k,[]);bins.get(k).push(n);
+          }
+      }
+    }
+    portal={points,bins};o._cache.portalGraph=portal;
+  }
+  const a=exact(start,'terminal:start',true),b=exact({...end,y:end.y??start.y},'terminal:end',true);
+  if(!a||!b)return [];
+  const terminalLinks=new Map(),links=new Map(),snap=o.maxSnapDistance??4;
+  for(const terminal of [a,b]){
+    const candidates=[...around(terminal,snap),...portal.points.filter(n=>Math.hypot(n.x-terminal.x,n.z-terminal.z)<=snap+EPS)],visible=[];
+    for(const n of candidates)if(safeEdge(terminal,n)){
+      visible.push(n);if(!terminalLinks.has(n.key))terminalLinks.set(n.key,[]);terminalLinks.get(n.key).push(terminal);
+    }
+    links.set(terminal.key,visible);
+  }
+  if(distance(a,b)<=snap+EPS&&safeEdge(a,b)){links.get(a.key).push(b);links.get(b.key).push(a);}
+  if(!links.get(a.key).length||!links.get(b.key).length)return [];
+  const open=new MinHeap(),from=new Map(),scores=new Map([[a.key,0]]),closed=new Set(),localNodes=new Map([[a.key,a],[b.key,b]]);
+  open.push({n:a,g:0,f:distance(a,b)});let count=0;
+  while(open.length&&count++<(o.maxNodes??60000)){
+    const {n:c,g}=open.pop();if(closed.has(c.key)||g>(scores.get(c.key)??Infinity)+EPS)continue;
+    if(c.key===b.key){
+      const result=[];let n=c;
+      while(n&&n.key!==a.key){result.push(multi?{x:n.x,y:n.y,z:n.z}:{x:n.x,z:n.z});const k=from.get(n.key);n=localNodes.get(k)||nodes.get(k);}
+      return result.reverse();
+    }
+    closed.add(c.key);const neighbors=[];
+    if(c.terminal)neighbors.push(...links.get(c.key));
+    else if(c.portal){
+      neighbors.push(...around(c,c.linkRadius));
+      for(const n of portal.points)if(n.key!==c.key&&(n.group===c.group||Math.hypot(n.x-c.x,n.z-c.z)<=Math.min(n.linkRadius,c.linkRadius)+EPS))neighbors.push(n);
+    }else{
+      for(const [dx,dz]of DIRECTIONS)for(const n of at(c.ix+dx,c.iz+dz)){
+        if(multi&&Math.abs(n.y-c.y)>maxStep+EPS)continue;
+        if(dx&&dz){
+          const sideSafe=(ix,iz)=>at(ix,iz).some(side=>(!multi||(Math.abs(side.y-c.y)<=maxStep+EPS&&Math.abs(side.y-n.y)<=maxStep+EPS))&&safeEdge(c,side)&&safeEdge(side,n));
+          if(!sideSafe(c.ix+dx,c.iz)||!sideSafe(c.ix,c.iz+dz))continue;
+        }
+        neighbors.push(n);
+      }
+      for(const n of portal.bins.get(c.iz*nx+c.ix)||[])if(Math.hypot(n.x-c.x,n.z-c.z)<=n.linkRadius+EPS)neighbors.push(n);
+    }
+    neighbors.push(...(terminalLinks.get(c.key)||[]));
+    for(const n of neighbors){
+      if(closed.has(n.key)||!safeEdge(c,n))continue;
+      const next=g+distance(c,n);if(next+EPS<(scores.get(n.key)??Infinity)){scores.set(n.key,next);from.set(n.key,c.key);open.push({n,g:next,f:next+distance(n,b)});}
+    }
+  }
+  return [];
+}
+
 export function findPath(start,end,colliders=[],options) {
   const o=indexedOptions(options,colliders,optionsOf(options).pathRadius??.39),paths=o._cache.paths;
   const key=JSON.stringify([start.x,start.y??null,start.z,end.x,end.y??null,end.z]);
   if(paths.has(key))return paths.get(key).map(p=>({...p}));
-  const result=isMultilevel(o)?findMultilevelPath(start,end,colliders,o):findLegacyPath(start,end,colliders,o);
+  let result=isMultilevel(o)?findMultilevelPath(start,end,colliders,o):findLegacyPath(start,end,colliders,o);
+  const last=result.at(-1),desiredY=end.y??start.y??o.groundY??0;
+  if(o.portals?.length&&(!last||Math.hypot(last.x-end.x,last.z-end.z)>.03||(isMultilevel(o)&&Math.abs(last.y-desiredY)>(o.floorTolerance??.22)+EPS)))result=findPortalPath(start,end,colliders,o);
   // Return independent waypoint objects: controllers consume their path with
   // shift/splice and callers may mutate coordinates without poisoning the cache.
   if(paths.size>=64)paths.delete(paths.keys().next().value);

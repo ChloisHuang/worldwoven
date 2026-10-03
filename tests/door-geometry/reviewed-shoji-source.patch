@@ -1,0 +1,125 @@
+diff --git a/source/game/automatic-doors.js b/source/game/automatic-doors.js
+index 72804fc..518a82a 100644
+--- a/source/game/automatic-doors.js
++++ b/source/game/automatic-doors.js
+@@ -100,7 +100,7 @@ export function createAutomaticDoors(lot,region){
+   const doors=roomClosureSpecs(lot,region).map((spec,index)=>{
+     const d={...spec,apertureHeight:spec.height,height:spec.height-(spec.motion==='gather'?.030:spec.kind==='door'?.025:0),center:[...spec.center],fraction:0,hold:0,routeHold:0,index},g=new THREE.Group();g.name='Automatic '+d.kind+' / '+d.id;g.position.fromArray(d.center);if(d.axis==='z')g.rotation.y=Math.PI/2;root.add(g);d.group=g;d.leaves=[];
+     for(const side of [-1,1]){
+-      const pivot=new THREE.Group(),width=d.width/2-.012,runningGap=d.kind==='door'?(d.bottomClearance??0):0;
++      const pivot=new THREE.Group(),width=d.width/2-.012+(d.sideOverlap||0),runningGap=d.kind==='door'?(d.bottomClearance??0):0;
+       if(runningGap<0||runningGap>.03)throw Error('Invalid authored door running gap: '+d.id);
+       const m=d.motion==='gather'?curtainLeaf(width,d.height,d.style,d.kind,d.kind==='half-curtain'?Math.max(2.35,d.apertureHeight*.60):.035):leaf(width,d.height-runningGap,d.style,side);
+       // Shorten the leaf from its bottom only: top edge, jamb, pin and group
+@@ -115,7 +115,7 @@ export function createAutomaticDoors(lot,region){
+       // Visible surface-mounted top guide. The corresponding authored plane
+       // clears the wall/column face; sliding panels never disappear in a wall.
+       const direction=Math.sign(d.trackMountOffset)||1,guideZ=-direction*(d.style==='shoji'?.13:.20),wood=(PALETTES[d.style]||PALETTES.palace)[0];
+-      const guide=shapeBox(g,0,d.height-.065,guideZ,d.width*2+.20,.075,.04,wood,.006);
++      const guide=shapeBox(g,0,d.height-.065,guideZ,(d.width+(d.sideOverlap||0))*2+.20,.075,.04,wood,.006);
+       guide.name='Surface-mounted timber sliding guide';guide.castShadow=guide.receiveShadow=true;
+       const wallZ=-(d.trackMountOffset||.24),depth=Math.abs(wallZ-guideZ)+.035;
+       for(const side of[-1,1]){const mount=shapeBox(g,side*(d.width-.11),d.height-.065,(wallZ+guideZ)/2,.10,.13,depth,wood,.006);mount.name='Lintel-to-track joined bracket';mount.castShadow=mount.receiveShadow=true;}
+@@ -134,7 +134,7 @@ export function createAutomaticDoors(lot,region){
+         // Cloth gathers wholly inside the aperture, not buried beyond the jamb.
+         const parkedCenter=d.width/2-gathered/2-.025;
+         l.pivot.position.set(l.side*THREE.MathUtils.lerp(d.width/4,parkedCenter,d.fraction),0,0);l.pivot.rotation.y=0;
+-      }else if(d.motion==='slide'){l.pivot.position.set(l.side*(d.width/4+d.fraction*(d.width/2+.08)),0,0);l.mesh.position.x=0;l.pivot.rotation.y=0;}
++      }else if(d.motion==='slide'){l.pivot.position.set(l.side*(d.width/4+(d.sideOverlap||0)/2+d.fraction*(d.width/2+.08)),0,0);l.mesh.position.x=0;l.pivot.rotation.y=0;}
+       else{
+         // The pin lies on the opening side of the reveal. Counter-translate
+         // the leaf so its closed plane stays fixed while the wood edge turns
+diff --git a/source/game/japan-bathhouse.js b/source/game/japan-bathhouse.js
+index e647698..0c71cb9 100644
+--- a/source/game/japan-bathhouse.js
++++ b/source/game/japan-bathhouse.js
+@@ -1,5 +1,7 @@
+ import {registerNightFixture} from './night-lighting.js';
+ import {createGuestFuton} from './japan-futon.js';
++import {SHOJI_SIDE_OVERLAP} from './room-closures.js';
++import {addShojiJambReturns} from './japan-shoji.js';
+ import * as G from './geometry.js?rev=R7-20261002';
+ import {createConveyorSushi,createRamenCounter,createKotatsu} from './japan-furnishings.js?rev=R7-20261002';
+ import {createSakuraTree,createPetalFall,createTorii,addSakuraMotif} from './japan-sakura.js?rev=R7-20261002';
+@@ -14,10 +16,10 @@ const P={wood:0x513c32,cedar:0x825337,honey:0xb88350,cream:0xe6d7b2,paper:0xf2df
+   tile:0x679584,stone:0x8f9380,water:0x73b5ad,tatami:0xb7b582,indigo:0x536d83};
+ const LOT_BOUNDS={minX:-30,maxX:30,minZ:-40,maxZ:40};
+ const LEVEL_Y=[0,3.8,7.6,11.4],H=3.8,STAIR={minX:7.4,maxX:10.8,minZ:-10,maxZ:-2};
+-// Full shoji travel is width+.074 along the track, with .1025 face depth.
++// Full shoji travel includes the outer privacy overlap, with .1025 face depth.
+ // Stop only raised floor trim 12.5mm beyond that envelope; retain the slab/mat.
+ function slideTrimCutout(x,z,width,axis='x'){
+- const along=width+.074+.0125,across=.1025+.0125;
++ const along=width+SHOJI_SIDE_OVERLAP+.074+.0125,across=.1025+.0125;
+  return {minX:x-(axis==='x'?along:across),maxX:x+(axis==='x'?along:across),minZ:z-(axis==='x'?across:along),maxZ:z+(axis==='x'?across:along)};
+ }
+ const SLIDE_FLOOR_TRIM_CUTOUTS={guest:slideTrimCutout(2,-7.70,2.6),operator:slideTrimCutout(-.70,4.9,2.5,'z'),staff:slideTrimCutout(-.70,-10.5,2.4,'z')};
+@@ -384,6 +386,7 @@ export function buildJapan(){
+   // Two enclosed rear rooms. The east return separates the guest bed from
+   // the stair landing; a public gallery x=5.92..7.34 leads south to the hall.
+   partition(f,y,-7.5,-8,9,'x',2.8);partition(f,y,1.4,-8,8.8,'x',2.6,.6);
++  addShojiJambReturns(f,y,2,-8,2.6,'x',colliders,cameraColliders);
+   wall(f,y,-3,-11.5,7,'z');wall(f,y,5.8,-11.5,7,'z');
+   threshold('jp-library-open-nook',[-7.5,y,-7.1],[-7.5,y,-8.9],2.8,2.85);
+   // Use the continuous .070m tatami face; retain the previous aperture top.
+@@ -412,6 +415,8 @@ export function buildJapan(){
+  {
+   const f=floorGroups[3],y=11.4;
+   partition(f,y,-1,5,8,'z',2.5,-.1);partition(f,y,-1,-2.5,7,'z',2.3);partition(f,y,-1,-10.5,9,'z',2.4);
++  addShojiJambReturns(f,y,-1,4.9,2.5,'z',colliders,cameraColliders);
++  addShojiJambReturns(f,y,-1,-10.5,2.4,'z',colliders,cameraColliders);
+   wall(f,y,-6.5,1,11,'x');wall(f,y,-6.5,-6,11,'x');
+   // Laundry starts beyond a clear south stair landing, never inside it.
+   partition(f,y,2,4.7,8.6,'z',2.6,-.6);partition(f,y,7,.4,10,'x',2.4,2.1);
+diff --git a/source/game/japan-shoji.js b/source/game/japan-shoji.js
+new file mode 100644
+index 0000000..e365c52
+--- /dev/null
++++ b/source/game/japan-shoji.js
+@@ -0,0 +1,17 @@
++import {box} from './geometry.js';
++
++// Surface-running shoji overlap the outside of the aperture, while a timber
++// return joins each wall jamb to the back of the track. The opening stays full
++// width. Even the conservative .15m leaf boxes retain 5mm behind this return.
++export function addShojiJambReturns(g,base,x,z,width,axis,colliders,cameraColliders){
++ const jambWidth=.16,jambInset=.006,back=-.04,front=.145,height=2.925,depth=front-back;
++ for(const side of[-1,1]){
++  // Recess the inner edge into the existing jamb so the overlapping solids
++  // never place two visible faces on the same aperture-side plane.
++  const lateral=side*(width/2+jambInset+jambWidth/2),normal=(back+front)/2;
++  const cx=x+(axis==='x'?lateral:normal),cz=z+(axis==='x'?normal:lateral),w=axis==='x'?jambWidth:depth,d=axis==='x'?depth:jambWidth;
++  const mesh=box(g,cx,height/2,cz,w,height,d,0x765744);mesh.name='Joined shoji privacy jamb return';
++  const b={minX:cx-w/2,maxX:cx+w/2,minY:base,maxY:base+height,minZ:cz-d/2,maxZ:cz+d/2};
++  colliders.push(b);cameraColliders.push({...b});
++ }
++}
+diff --git a/source/game/room-closures.js b/source/game/room-closures.js
+index d6df6d2..44630fa 100644
+--- a/source/game/room-closures.js
++++ b/source/game/room-closures.js
+@@ -1,3 +1,4 @@
++export const SHOJI_SIDE_OVERLAP=.10;
+ // Traversable aperture policy, audited against the constructed regional walls.
+ // This is game design for the authored fantasy lots, not a historical claim.
+ // Geometry is resolved from live thresholds: raised palace levels remain valid.
+@@ -122,8 +123,8 @@ const PLANES={
+  'wing-enfilade--1':{bottomClearance:.012},
+  'jp-men-noren':{at:5.12},'jp-women-noren':{at:5.12},
+  // Clear the partition's real raised lattice face by 25mm at full travel.
+- 'jp-guest-suite-door':{at:-7.70},
+- 'jp-operator-door':{at:-.70,bottomClearance:.012},'jp-staff-room-door':{at:-.70,bottomClearance:.012},
++ 'jp-guest-suite-door':{at:-7.70,sideOverlap:SHOJI_SIDE_OVERLAP},
++ 'jp-operator-door':{at:-.70,bottomClearance:.012,sideOverlap:SHOJI_SIDE_OVERLAP},'jp-staff-room-door':{at:-.70,bottomClearance:.012,sideOverlap:SHOJI_SIDE_OVERLAP},
+  'private-suite-entry':{bottomClearance:.012},
+  'cn-hall-west':{at:-11.46},'cn-bedroom-east':{at:-15.54},
+  'cn-archive-west':{at:-10.54},'cn-guest-west':{at:15.54},
+@@ -207,7 +208,7 @@ export function classifyRoomOpenings(lot,region){
+   const fix=PLANES[t.id]||{},legacy=LEGACY[t.id]||{},bottom=fix.bottom??t.floorFit?.bottom??Math.max(t.a[1],t.b[1]);
+   const wallPlane=t.at??(axis==='x'?(t.a[2]+t.b[2])/2:(t.a[0]+t.b[0])/2),at=fix.at??wallPlane;
+   const lateral=t.from!==undefined?(t.from+t.to)/2:axis==='x'?(t.a[0]+t.b[0])/2:(t.a[2]+t.b[2])/2;
+-  return {id:legacy.id||t.id,openingId:t.id,kind:p[0],rationale:p[1],rooms:t.rooms||[],center:axis==='x'?[lateral,bottom,at]:[at,bottom,lateral],axis,surfaceTrack:choice?.[0]==='slide',trackMountOffset:at-wallPlane,width:t.width,bottomClearance:fix.bottomClearance??t.floorFit?.runningGap??0,height:t.floorFit?t.floorFit.top-bottom:fix.height??legacy.height??(t.top!==undefined?t.top-bottom:t.height),style:STYLE[region],motion:p[0]==='open'?'none':fixedOverhead?'fixed-overhead':p[0].includes('curtain')?'gather':choice[0],motionRationale:fixedOverhead?'Existing Yu banner is above actor height and needs no added moving cloth':p[0].includes('curtain')?'Gathered fabric stays at the jambs and has no rigid leaf swing':choice?.[2]||'Intentionally open circulation',operable:p[0]!=='open'&&!fixedOverhead,...(choice?.[1]?{swing:choice[1]}:{}),source:region==='japan'?'japan-bathhouse.js':region==='china'?'china-palace.js':region==='egypt'?'egypt-temple.js':'regions-west.js'};
++  return {id:legacy.id||t.id,openingId:t.id,kind:p[0],rationale:p[1],rooms:t.rooms||[],center:axis==='x'?[lateral,bottom,at]:[at,bottom,lateral],axis,surfaceTrack:choice?.[0]==='slide',trackMountOffset:at-wallPlane,width:t.width,sideOverlap:fix.sideOverlap??0,bottomClearance:fix.bottomClearance??t.floorFit?.runningGap??0,height:t.floorFit?t.floorFit.top-bottom:fix.height??legacy.height??(t.top!==undefined?t.top-bottom:t.height),style:STYLE[region],motion:p[0]==='open'?'none':fixedOverhead?'fixed-overhead':p[0].includes('curtain')?'gather':choice[0],motionRationale:fixedOverhead?'Existing Yu banner is above actor height and needs no added moving cloth':p[0].includes('curtain')?'Gathered fabric stays at the jambs and has no rigid leaf swing':choice?.[2]||'Intentionally open circulation',operable:p[0]!=='open'&&!fixedOverhead,...(choice?.[1]?{swing:choice[1]}:{}),source:region==='japan'?'japan-bathhouse.js':region==='china'?'china-palace.js':region==='egypt'?'egypt-temple.js':'regions-west.js'};
+  });
+ }
+ export function roomClosureSpecs(lot,region){

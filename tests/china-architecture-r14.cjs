@@ -1,3 +1,4 @@
+require('node:fs').mkdirSync('qa/r14-palace',{recursive:true});
 // Original R14 audit assertions unchanged; only loader adapted to portable suite.
 const fs=require('node:fs'),assert=require('node:assert/strict'),path=require('node:path');
 const source=path.resolve(process.env.SOURCE_DIR||'source'),load=require('./fixtures/browser-module-loader.cjs').createBrowserModuleLoader(source);

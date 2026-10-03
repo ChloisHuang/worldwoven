@@ -1,6 +1,6 @@
 {
   "name": "worldwoven",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "private": true,
   "description": "Original cel-shaded cultural life and exploration game",
   "engines": {
@@ -12,7 +12,8 @@
     "preview": "node scripts/serve.mjs dist/client 4173",
     "test": "node tests/run.cjs",
     "test:cache": "node --experimental-vm-modules tests/cache-build.cjs",
-    "test:worker": "node --test worker/worker.test.mjs"
+    "test:worker": "node --test worker/worker.test.mjs",
+    "test:door-geometry": "node tests/door-geometry/run.cjs"
   },
   "type": "module"
 }

@@ -1,0 +1,197 @@
+{
+  "review": "EXACT_SIX_ADDITIONS_PER_COLLISION_CHANNEL",
+  "sourceReview": "../door-geometry/reviewed-shoji-source-guards.json",
+  "sourceJapanSha256": "c5bd1dd4f0ab4aaff0a2be438f37bc520865914b6a4b24b0aa961a56fdb85d74",
+  "sourceHelperSha256": "652ff5b411e3994f816b6696df8225f6fd1c8ffc75b461f3f6a2eef5a0a4ae0d",
+  "method": "One final authored Japan construction. Removing only the six identified return entries from each collision channel restores each complete historical array hash. All other raw fields match the existing approved contracts byte-for-byte.",
+  "fields": {
+    "colliders": {
+      "beforeSha256": "ed54e137d6a58ce40966c4b1c4d7a56d57f122f5d65ff8d3a9371b8664536f21",
+      "afterSha256": "30cfa65ff56a52f3c625f0733532b9a9cac737c830811c5ff1f07448cd38e913",
+      "delta": [
+        {
+          "op": "add",
+          "path": "/colliders/358",
+          "after": {
+            "minX": 0.5339999999999999,
+            "maxX": 0.6939999999999998,
+            "minY": 7.6,
+            "maxY": 10.524999999999999,
+            "minZ": -8.04,
+            "maxZ": -7.8549999999999995
+          }
+        },
+        {
+          "op": "add",
+          "path": "/colliders/359",
+          "after": {
+            "minX": 3.306,
+            "maxX": 3.466,
+            "minY": 7.6,
+            "maxY": 10.524999999999999,
+            "minZ": -8.04,
+            "maxZ": -7.8549999999999995
+          }
+        },
+        {
+          "op": "add",
+          "path": "/colliders/397",
+          "after": {
+            "minX": -1.04,
+            "maxX": -0.855,
+            "minY": 11.4,
+            "maxY": 14.325,
+            "minZ": 3.484,
+            "maxZ": 3.644
+          }
+        },
+        {
+          "op": "add",
+          "path": "/colliders/398",
+          "after": {
+            "minX": -1.04,
+            "maxX": -0.855,
+            "minY": 11.4,
+            "maxY": 14.325,
+            "minZ": 6.156000000000001,
+            "maxZ": 6.316000000000001
+          }
+        },
+        {
+          "op": "add",
+          "path": "/colliders/399",
+          "after": {
+            "minX": -1.04,
+            "maxX": -0.855,
+            "minY": 11.4,
+            "maxY": 14.325,
+            "minZ": -11.866,
+            "maxZ": -11.706
+          }
+        },
+        {
+          "op": "add",
+          "path": "/colliders/400",
+          "after": {
+            "minX": -1.04,
+            "maxX": -0.855,
+            "minY": 11.4,
+            "maxY": 14.325,
+            "minZ": -9.294,
+            "maxZ": -9.134
+          }
+        }
+      ],
+      "deltaSha256": "3a8209551b33dfb1bdb40ae7f7107f0b7e9b26bfb72c812df8a191b5418eefa5"
+    },
+    "cameraColliders": {
+      "beforeSha256": "95e7def7298f28b0fcb21dc098a9c4e024df658929b9911bd15a1bad72d2e992",
+      "afterSha256": "d61a48a9c36175a7030d3212255cac9974cbb5d32b7cb0537c63b22287741411",
+      "delta": [
+        {
+          "op": "add",
+          "path": "/cameraColliders/433",
+          "after": {
+            "minX": 0.5339999999999999,
+            "maxX": 0.6939999999999998,
+            "minY": 7.6,
+            "maxY": 10.524999999999999,
+            "minZ": -8.04,
+            "maxZ": -7.8549999999999995
+          }
+        },
+        {
+          "op": "add",
+          "path": "/cameraColliders/434",
+          "after": {
+            "minX": 3.306,
+            "maxX": 3.466,
+            "minY": 7.6,
+            "maxY": 10.524999999999999,
+            "minZ": -8.04,
+            "maxZ": -7.8549999999999995
+          }
+        },
+        {
+          "op": "add",
+          "path": "/cameraColliders/456",
+          "after": {
+            "minX": -1.04,
+            "maxX": -0.855,
+            "minY": 11.4,
+            "maxY": 14.325,
+            "minZ": 3.484,
+            "maxZ": 3.644
+          }
+        },
+        {
+          "op": "add",
+          "path": "/cameraColliders/457",
+          "after": {
+            "minX": -1.04,
+            "maxX": -0.855,
+            "minY": 11.4,
+            "maxY": 14.325,
+            "minZ": 6.156000000000001,
+            "maxZ": 6.316000000000001
+          }
+        },
+        {
+          "op": "add",
+          "path": "/cameraColliders/458",
+          "after": {
+            "minX": -1.04,
+            "maxX": -0.855,
+            "minY": 11.4,
+            "maxY": 14.325,
+            "minZ": -11.866,
+            "maxZ": -11.706
+          }
+        },
+        {
+          "op": "add",
+          "path": "/cameraColliders/459",
+          "after": {
+            "minX": -1.04,
+            "maxX": -0.855,
+            "minY": 11.4,
+            "maxY": 14.325,
+            "minZ": -9.294,
+            "maxZ": -9.134
+          }
+        }
+      ],
+      "deltaSha256": "627e1db5af27bfff38152a552ea041b07a1c823d9b8bdbe0fb820b2e2882d8db"
+    },
+    "bounds": {
+      "beforeSha256": "41fc4c1b861c6f80d61e6fc708bbd92dd3ef8c357e12b45e78c8728f4fb1cd4f",
+      "afterSha256": "41fc4c1b861c6f80d61e6fc708bbd92dd3ef8c357e12b45e78c8728f4fb1cd4f",
+      "delta": [],
+      "deltaSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "walkableSurfaces": {
+      "beforeSha256": "46617e04ec74f378830ce19fa63e8711978cafd683431ce6f972d76ca01e60ba",
+      "afterSha256": "46617e04ec74f378830ce19fa63e8711978cafd683431ce6f972d76ca01e60ba",
+      "delta": [],
+      "deltaSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "doorways": {
+      "beforeSha256": "6c55b036d4f5680cb28fc2b0956ff0d02e1444737cc378a1d9a2aea3732ac452",
+      "afterSha256": "6c55b036d4f5680cb28fc2b0956ff0d02e1444737cc378a1d9a2aea3732ac452",
+      "delta": [],
+      "deltaSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "explorationTargets": {
+      "beforeSha256": "e3a419cd39f37e081c191e23b3d170d1a02ac1a572882557ad6c212d0d1934b6",
+      "afterSha256": "e3a419cd39f37e081c191e23b3d170d1a02ac1a572882557ad6c212d0d1934b6",
+      "delta": [],
+      "deltaSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "stations": {
+      "beforeSha256": "55528d0c03a0f23fd11c1dc3770cc81284744806645afb996d1ebe54b20d4d19",
+      "afterSha256": "55528d0c03a0f23fd11c1dc3770cc81284744806645afb996d1ebe54b20d4d19",
+      "delta": [],
+      "deltaSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  }
+}
