@@ -441,6 +441,10 @@ export function buildJapan(){
   // Use the continuous .070m tatami face; retain the previous aperture top.
   threshold('jp-guest-suite-door',[2,y,-7.1],[2,y,-8.9],2.6,2.85,{floorFit:{bottom:y+.07,top:y+.075+2.73,runningGap:.012}});
   tatami(f,-2.65,.42,17.9,16.4,[SLIDE_FLOOR_TRIM_CUTOUTS.guest]);
+  // The inset moves the leaf behind the hall mat edge. Join the two existing
+  // tatami finishes across the wall thickness and beneath both pocket cavities.
+  G.box(f,2,.035,-8.0275,5.52,.07,.495,P.tatami);
+  f.userData.characterMatSurfaces.push({minX:-.76,maxX:4.76,minZ:-8.275,maxZ:-7.78,offset:.075});
   for(const [i,[x,z]]of [[-7,4],[-.7,4],[-7,-3],[-.7,-3]].entries())furnishing(createKotatsu,2,x,z,{size:i===0?2.2:2.45,quiltSize:3.6,height:.7,color:i%2?P.indigo:P.red});
   sign(f,-2.5,3.04,-7.3,'KOTATSU HALL',P.red,8.2);
   for(const [x,z]of [[-7,4],[-.7,4],[-7,-3],[-.7,-3]])lantern(f,x,3.06,z,false,.35);
