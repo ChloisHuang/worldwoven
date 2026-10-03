@@ -5,8 +5,8 @@ export const SHOJI_SIDE_OVERLAP=.10;
 const POLICY={
  japan:{
   'jp-food-prep-door':['half-curtain','Food preparation to public hall: split indigo service noren'],
-  'jp-men-noren':['full-curtain','Shared foyer to changing: opaque split noren, with existing offset privacy screen'],
-  'jp-women-noren':['full-curtain','Shared foyer to changing: opaque split noren, with existing offset privacy screen'],
+  'jp-men-noren':['half-curtain','Retain the fixed men’s noren and existing offset privacy screen; no duplicate closure'],
+  'jp-women-noren':['half-curtain','Retain the fixed women’s noren and existing offset privacy screen; no duplicate closure'],
   'jp-men-wet-threshold':['full-curtain','Changing to bathing: full split cloth keeps the wet area private'],
   'jp-women-wet-threshold':['full-curtain','Changing to bathing: full split cloth keeps the wet area private'],
   'jp-men-pool-entry':['open','Pool curb is a walk-in water entry, not a room wall'],
@@ -202,19 +202,25 @@ export function classifyRoomOpenings(lot,region){
   const p=policy[t.id];if(!p)throw new Error('Unclassified traversable opening: '+region+'/'+t.id);
   const axis=t.axis||(Math.abs(t.a[0]-t.b[0])>Math.abs(t.a[2]-t.b[2])?'z':'x');
   const choice=DOOR_MOTIONS[t.id];if(p[0]==='door'&&!choice)throw new Error('Unreviewed door motion: '+t.id);
-  const fixedOverhead=t.id==='jp-1-front-portal';
+  const fixedOverhead=p[0]==='half-curtain',existingBanner=(FIXED_BANNERS[region]||[]).some(b=>b.openingId===t.id);
   // Regional floorFit records a real finished sill, independent of route-probe Y.
   // Preserve its authored opening top; the rigid engine still subtracts25mm there.
   const fix=PLANES[t.id]||{},legacy=LEGACY[t.id]||{},bottom=fix.bottom??t.floorFit?.bottom??Math.max(t.a[1],t.b[1]);
   const wallPlane=t.at??(axis==='x'?(t.a[2]+t.b[2])/2:(t.a[0]+t.b[0])/2),at=fix.at??wallPlane;
   const lateral=t.from!==undefined?(t.from+t.to)/2:axis==='x'?(t.a[0]+t.b[0])/2:(t.a[2]+t.b[2])/2;
-  return {id:legacy.id||t.id,openingId:t.id,kind:p[0],rationale:p[1],rooms:t.rooms||[],center:axis==='x'?[lateral,bottom,at]:[at,bottom,lateral],axis,surfaceTrack:choice?.[0]==='slide',trackMountOffset:at-wallPlane,width:t.width,sideOverlap:fix.sideOverlap??0,bottomClearance:fix.bottomClearance??t.floorFit?.runningGap??0,height:t.floorFit?t.floorFit.top-bottom:fix.height??legacy.height??(t.top!==undefined?t.top-bottom:t.height),style:STYLE[region],motion:p[0]==='open'?'none':fixedOverhead?'fixed-overhead':p[0].includes('curtain')?'gather':choice[0],motionRationale:fixedOverhead?'Existing Yu banner is above actor height and needs no added moving cloth':p[0].includes('curtain')?'Gathered fabric stays at the jambs and has no rigid leaf swing':choice?.[2]||'Intentionally open circulation',operable:p[0]!=='open'&&!fixedOverhead,...(choice?.[1]?{swing:choice[1]}:{}),source:region==='japan'?'japan-bathhouse.js':region==='china'?'china-palace.js':region==='egypt'?'egypt-temple.js':'regions-west.js'};
+  return {id:legacy.id||t.id,openingId:t.id,kind:p[0],rationale:p[1],rooms:t.rooms||[],center:axis==='x'?[lateral,bottom,at]:[at,bottom,lateral],axis,surfaceTrack:choice?.[0]==='slide',trackMountOffset:at-wallPlane,width:t.width,sideOverlap:fix.sideOverlap??0,bottomClearance:fix.bottomClearance??t.floorFit?.runningGap??0,height:t.floorFit?t.floorFit.top-bottom:fix.height??legacy.height??(t.top!==undefined?t.top-bottom:t.height),style:STYLE[region],motion:p[0]==='open'?'none':fixedOverhead?'fixed-overhead':p[0].includes('curtain')?'gather':choice[0],existingBanner,motionRationale:fixedOverhead?'Fixed hanging textile stays above actor height and never gathers automatically':p[0].includes('curtain')?'Gathered fabric stays at the jambs and has no rigid leaf swing':choice?.[2]||'Intentionally open circulation',operable:p[0]!=='open'&&!fixedOverhead,...(choice?.[1]?{swing:choice[1]}:{}),source:region==='japan'?'japan-bathhouse.js':region==='china'?'china-palace.js':region==='egypt'?'egypt-temple.js':'regions-west.js'};
  });
 }
 export function roomClosureSpecs(lot,region){
  const classified=classifyRoomOpenings(lot,region);
  // Tests/custom lots may supply explicit operable doors without a room registry.
- return classified.length?classified.filter(p=>p.operable):(lot.automaticDoorways||[]).map(p=>({kind:'door',...p}));
+ return classified.length?classified.filter(p=>p.operable):(lot.automaticDoorways||[]).filter(p=>p.kind!=='half-curtain').map(p=>({kind:'door',...p}));
+}
+// Source-authored noren already have real cloth and camera proxies. Generate
+// only the other fixed service textiles, entirely outside automatic routing.
+export function fixedHalfCurtainSpecs(lot,region){
+ const classified=classifyRoomOpenings(lot,region);
+ return classified.length?classified.filter(p=>p.kind==='half-curtain'&&!p.existingBanner):(lot.automaticDoorways||[]).filter(p=>p.kind==='half-curtain').map(p=>({...p,motion:'fixed-overhead',operable:false}));
 }
 export const OPEN_CIRCULATION_AUDIT={
  japan:['3 internal stair flights and their 6 endpoints','2F stair-to-foyer gallery','3F stair/public side gallery','4F boiler-control gallery','front balcony promenades','west garden pavilion open sides','east market linking arcade open sides','arrival/shrine garden paths'],
