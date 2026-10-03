@@ -6,7 +6,7 @@ export const JAPAN_STAFF_CREW=['jp-ramen','jp-sushi','jp-welcome','jp-market-tea
 const TEA=[-4.9,11.4,5.25],TEA_TARGET=[-4.9,12.68,6.5];
 const KITCHEN={ids:['jp-ramen','jp-sushi'],retire:P.kitchen,relief:P.kitchenPickup,back:[4.35,0,-11.3],duty:'煮面与送餐班',mealLabel:'交班后煮自己的员工餐',mealAction:'ramen',mealDuration:5,mealEvent:'staff-meal-cooked'};
 const FRONT_DESK={ids:['jp-welcome','jp-market-tea'],retire:[-6.65,0,5.7],relief:P.registrar,back:[-6.65,0,5.7],duty:'登记与退牌班',mealLabel:'从后厨现成汤锅盛自己的员工餐',mealAction:'tidy',mealDuration:3,mealEvent:'staff-meal-served'};
-const APOTHECARY={ids:['jp-incense','jp-herb-workshop'],retire:[-4,11.4,-1.3],relief:P.apothecary,back:[-4,11.4,-1.3],duty:'浴牌配料班',mealLabel:FRONT_DESK.mealLabel,mealAction:'tidy',mealDuration:3,mealEvent:'staff-meal-served'};
+const APOTHECARY={ids:['jp-incense','jp-herb-workshop'],retire:[-5.25,11.4,-.3],relief:P.apothecary,back:[-5.25,11.4,-.3],duty:'浴牌配料班',mealLabel:FRONT_DESK.mealLabel,mealAction:'tidy',mealDuration:3,mealEvent:'staff-meal-served'};
 const profile=id=>[KITCHEN,FRONT_DESK,APOTHECARY].find(shift=>shift.ids.includes(id));
 
 // Three bounded coverage pairs. No live claim, held meal, seat lock or
@@ -42,7 +42,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   clear(n);release(n);active.meal=false;active.interrupted=true;active.phase='returning';active.wait=0;return true;
  }
  return {
-  idlePoint(id){return active?.reliefId===id?profile(id).relief:id==='jp-welcome'?FRONT_DESK.retire:null;},
+  idlePoint(id){return active?.reliefId===id?profile(id).relief:id==='jp-welcome'?FRONT_DESK.retire:id==='jp-incense'?APOTHECARY.retire:null;},
   // Nao stays the supply clerk between relief shifts; training is not a
   // permanent reassignment away from the rear-yard crates.
   canClaim(id,kind){return id!=='jp-herb-workshop'||kind!=='prepare'||(active?.id==='jp-incense'&&active.reliefId===id&&!['draining','handoff'].includes(active.phase));},
@@ -60,8 +60,8 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
     const met=()=>{if(active.retireReady&&active.reliefReady){note('relief-arrived');active.phase='preparing';}return true;};
     // Distinct adjacent positions let the retiring worker hand over without
     // occupying the point the replacement must reach.
-    go(n,shift.retire,{label:`把${shift.duty}交给 ${relief.station.npcName}`,duration:1,onDone:()=>{active.retireReady=true;return met();}});
-    go(relief,shift.relief,{label:`接替 ${n.station.npcName} 的${shift.duty}`,duration:1,onDone:()=>{active.reliefReady=true;return met();}});return;
+    go(n,shift.retire,{face:shift===APOTHECARY?shift.relief:null,label:`把${shift.duty}交给 ${relief.station.npcName}`,duration:1,onDone:()=>{active.retireReady=true;return met();}});
+    go(relief,shift.relief,{face:shift===APOTHECARY?shift.retire:null,label:`接替 ${n.station.npcName} 的${shift.duty}`,duration:1,onDone:()=>{active.reliefReady=true;return met();}});return;
    }
    if(active.phase==='handoff'||busy(n))return;
    if(active.phase==='preparing') {
