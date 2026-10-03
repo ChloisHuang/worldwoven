@@ -1,12 +1,13 @@
+> 问题、待办与验收状态：[项目 checklist](docs/PROJECT_CHECKLIST.md)。仅对应版本已上线的条目可视为发布完成。
+
 # Worldwoven · 四方生活
 
 An original cel-shaded cultural life and exploration game. The repository name supports more regions in future; the current public game includes Japan, China, Egypt and France.
 
 Public game: https://alien.doudouai.net/
 
-Development release: R16-public, 2026-10-03
-Published baseline used for this change: R15.1 / Sites v26, 079cdfab810c06a79d35a8963b1a3dbfe4b81760
-The deployment record is authoritative. The clean archival helper writes the confirmed published commit after deployment.
+Archived release: R16.1-public, 2026-10-03
+Verified published Sites source commit: eafb569e386904fe1bb9d012bbf9c2b90c3db9a9
 
 ## Requirements and local development
 
@@ -24,9 +25,9 @@ The local servers bind only to 127.0.0.1 and are not the public deployment servi
 - npm test: deterministic geometry, navigation, controller, furniture, character, lamp-field and shadow contracts. It can take several minutes because it physically traverses rooms and stairs and evaluates skinned vertices
 - npm run build, then npm run test:cache: complete module graph, immutable content hashes, selective invalidation and prior published graph retention
 - npm run test:worker: the preserved read-only legacy endpoint
-- npm run test:door-geometry -- --check and --tiny: portable exact-geometry fixture checks; see tests/door-geometry/README.md for the separate serialized authored sweep
+- npm run test:door-geometry -- --check and --tiny: portable door geometry harness checks; see tests/door-geometry/README.md for the separate serialized authored sweep command and limits
 
-CPU/DOM fixtures do not provide browser or iOS visual acceptance. This release also received separate production Three/Mesa WebGL2 image checks; those generated screenshots and reports are intentionally not committed. Real iOS performance, driver-specific appearance and observed HTTP warm-cache transfers remain unverified.
+CPU/DOM fixtures do not provide browser or iOS visual acceptance. The R16 baseline received separate production Three/Mesa WebGL2 image checks. R16.1 adds focused actual-scene controller and geometry checks for fixed half-curtains; no new browser or iOS visual acceptance is claimed. Generated screenshots and reports are intentionally not committed. Real iOS performance, driver-specific appearance and observed HTTP warm-cache transfers remain unverified.
 
 ## Deploy with Sites
 
@@ -45,26 +46,20 @@ Before subsequent releases, cache-baseline.json must describe the confirmed live
 
 ## Current play and scope
 
-All four lots use human-scale 60 × 80 grids, close third-person exploration, ceilings, cultural facilities, residents, stairs where authored, day/night lighting and purpose-classified automatic doors, full curtains, half curtains and open circulation. Mobile play is landscape-first. Furniture includes 37 usable seats, four lying beds, five bathing facilities, three operable gauze canopies and four changing props. Japan has no bed canopy; China's is red. Some decorative furniture and staff bunks are not interactive. The game is an original exploration/life slice, not a complete commercial life simulator or a recreation of EA assets.
+All four lots use human-scale 60 × 80 grids, close third-person exploration, ceilings, cultural facilities, residents, stairs where authored, day/night lighting and selected automatic doors. Mobile play is landscape-first. China includes raised palace platforms, broad exterior steps, an accessible main-hall upper gallery and a rear viewing loft with a continuous interior stair. Room thresholds are classified by use and privacy into doors, full curtains, half curtains and open circulation. Furniture includes usable chairs and benches, four lying beds, five bathing facilities, three operable gauze canopies and four changing props. Japan has no bed canopy; China's is red. Some decorative furniture and staff bunks are not interactive. The game is an original exploration/life slice, not a complete commercial life simulator or a recreation of EA assets.
 
 The changing-prop and wardrobe preview includes a one-click player randomizer for presentation, hair/clothing/color and six bounded facial/body traits. Confirm saves the draft; Cancel restores it. Residents use the same six-trait preference score and a stable versioned generator tied to the saved world seed and original NPC ID. Existing job clothing and role constraints remain. The score is a fictional game preference independent of culture, skin color or presentation. Saves are local to the browser, not a cloud account.
 
-R15 keeps world-fixed shadow settings. Fine moving pleated curtains retain opaque depth, toon/lamp lighting and cast shadows, while disabling shadow-map reception on those cloth meshes to avoid self-shadow striping; beams do not project onto that cloth. This local tradeoff does not alter world, building or globe shadow precision. Closed doors do not guarantee privacy through unchanged decorative windows.
+Character shoulder proportions, relaxed arm rest positions and walking elbow motion are fitted to the garment cut; Japanese wide sleeves retain more room than fitted shirts. The wardrobe retains randomization and the fictional preference score but no longer explains individual scoring criteria. Saved identities, existing travel speed, physical collision radii and interaction anchors remain constrained by regression checks. Later environmental and NPC workflow refinements are separate batches.
+
+Half-curtains now stay naturally suspended in all four regions. They never enter the automatic opening or path-waiting system. The existing men’s and women’s bath-entry noren and offset screens in Japan are retained without an extra moving closure. Full privacy curtains and the existing R16 rigid doors are preserved. The separate inset-door reconstruction and bathing-pose/water changes are not part of R16.1.
+
+Door sensing follows the usable aperture and approach direction. Near activation can cause a brief safe wait outside the actual opening sweep; continued input resumes when the leaf is open. Wide leaves swinging toward an actor require more clearance than the opposite side or sliding panels. Player and NPC rules, voluntary retreat, anti-trap protection and delayed closing are shared.
+
+Fine moving pleated curtains retain opaque depth, toon/lamp lighting and cast shadows, while disabling shadow-map reception on those cloth meshes to avoid self-shadow striping; beams do not project onto that cloth. World, building and globe shadow precision remain unchanged. Closed doors do not guarantee privacy through decorative windows.
 
 Art is authored in procedural geometry. Creator/reference images informed proportions and design; EA/mod assets were not imported. The current region catalog can be expanded without changing the repository name. Source changes should preserve traversal, shape, shader, input and resource-lifetime tests before publication.
 
 ## Repository hygiene
 
 Build output, generated QA reports/screenshots, temporary experiments, node_modules, caches, archives and credentials are excluded. Original code/assets, licenses, required test fixtures, lockfile and deployment configuration are retained. This directory is independent of the Sites checkout; creating its GitHub remote must not change the Sites source workflow or force-push earlier history.
-
-R15 adds purpose-classified room closures and safe waiting routes. Published R14 raised palace galleries and kitchen scale fixes remain. Closing a doorway does not establish complete privacy through decorative windows.
-
-## R15.1 change scope
-
-Door activation follows a close approach through the usable doorway. A brief straight-line wait keeps actors outside a swinging leaf until it finishes opening; held input resumes automatically. Parallel passers do not request opening. Players and residents share the same admission and collision rules, with a short close delay. Sliding doors and curtains use the near doorway zone; wide doors swinging toward an actor retain only the clearance required by their actual leaf sweep. Room assignments, privacy geometry, leaf shapes and collision radii remain those of R15. Deployment status is established by the saved release record, not this source document.
-
-## R16 change scope
-
-Character shoulder proportions and arm rest positions are fitted to the garment cut. Walking uses a distance-driven shoulder swing and a softly delayed elbow bend; wide kimono and miko sleeves keep more room than fitted shirts. Sleeve shape, skinning and the matching arm rig move together. Existing travel speed, body collision radius, random appearance generation, saved identities, cultural role outfits and interaction anchors remain constrained by regression tests.
-
-The wardrobe still displays the fictional appearance score and randomizer. The page no longer explains the individual scoring preferences. Indoor, garden and NPC workflow refinements are later independent batches. The release record establishes which source and checks were actually published; this file alone does not establish deployment.
