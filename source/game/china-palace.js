@@ -1,5 +1,5 @@
 import {insetClosureSection} from './inset-closures.js';
-import {buildChinaRoyalChair,buildChinaDragonThrone} from './china-royal-seating.js';
+import {buildChinaRoyalChair,buildChinaDragonThrone,buildChinaThroneFootrest} from './china-royal-seating.js';
 import {buildChinaDragonBed} from './china-dragon-bed.js';
 import {registerNightFixture} from './night-lighting.js';
 
@@ -197,6 +197,12 @@ export function buildChinaPalace(G,H){
   // Leave almost1m between the east door's parked leaf tips and this chair,
   // with its mesh, collider, seated anchor and standing approach moving together.
   for(const x of [-5.8,8.6])for(const z of [-3,1]){const seatX=x===8.6&&z===-3?7.8:x;buildChinaRoyalChair(g,{x:seatX,y:.2,z,yaw:x<0?Math.PI/2:-Math.PI/2,id:'china-furniture-seat-'+(additionalFurnitureSeats.length+2)});G.collider(colliders,seatX,z,.9,.9);additionalFurnitureSeats.push({name:'正殿木扶椅',x:seatX,y:1.4,z,yaw:x<0?Math.PI/2:-Math.PI/2,width:.9,depth:.9,seatY:2.075});}
+  // A central footrest brings the unchanged 2.69 m seat within the shared
+  // seated pose range, with a real supported floor and clear side aisles.
+  buildChinaThroneFootrest(g);
+  walkableSurfaces.push({minX:-.58,maxX:.58,minZ:-7.52,maxZ:-6.58,y:.659,owner:g.name});
+  cameraColliders.push({minX:-.58,maxX:.58,minZ:-7.52,maxZ:-6.58,minY:.36,maxY:.644});
+  additionalFurnitureSeats.push({id:'china-furniture-throne',name:'正殿龙纹御座',x:0,y:1.859,z:-8,yaw:0,width:3.3,depth:1.7,seatY:2.69,front:.54});
   target('cn-hall-front','正殿中央前厅',0,3,'hall');target('cn-hall-throne','仪座前礼仪空间',0,-4.25,'hall');target('cn-hall-west','正殿西宽廊',-4.6,-3,'hall');target('cn-hall-east','正殿东宽廊',5,-3,'hall');target('cn-hall-rear','正殿后门',6,-9.6,'hall');}
  // Tea reception occupies a separate south-west pavilion, with a real room
  // around its social setting and a wide central cross-passage through the doors.

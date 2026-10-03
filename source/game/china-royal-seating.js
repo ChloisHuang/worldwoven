@@ -322,3 +322,15 @@ export function buildChinaRoyalChair(parent,{x=0,y=.2,z=0,yaw=0,variant='hall',i
 export function buildChinaDragonThrone(parent,{x=0,y=0,z=-8,yaw=0,id='china-dragon-throne'}={}) {
   return instantiate(parent,'throne',{x,y,z,yaw,id});
 }
+
+/** A low, central wooden footrest supports the high ceremonial throne pose. */
+export function buildChinaThroneFootrest(parent,{x=0,y=0,z=-7.05}={}){
+  const q=new THREE.Group();q.name='正殿御座 · 雕木脚踏';q.position.set(x,y,z);parent.add(q);
+  const p=PALETTES.throne;
+  for(const xx of[-.46,.46])for(const zz of[-.34,.34])G.box(q,xx,.471,zz,.13,.222,.13,p.wood);
+  const top=new THREE.ExtrudeGeometry(roundedRect(1.16,.94,.045),{depth:.070,curveSegments:5,bevelEnabled:false});top.rotateX(-Math.PI/2);G.mesh(q,top,p.raised,0,.570,0);
+  for(const xx of[-.542,.542])G.box(q,xx,.642,0,.022,.004,.85,p.gold);
+  for(const zz of[-.432,.432])G.box(q,0,.642,zz,1.06,.004,.022,p.gold);
+  G.box(q,0,.532,.387,.91,.090,.065,p.wood);
+  q.userData={furnitureKind:'footrest',topLocal:.644,throneSupport:true};return q;
+}
