@@ -1,0 +1,7 @@
+evidence/
+*-resource/
+*.png
+*.zip
+*-receipt.json
+*-geometry-check.json
+*.log

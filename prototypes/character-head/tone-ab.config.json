@@ -1,0 +1,47 @@
+{
+  "status": "SOURCE_ONLY_MATERIAL_AB_NOT_RENDERED",
+  "kind": "IDENTICAL_V4_GEOMETRY_TONE_AB",
+  "uniformModule": {
+    "file": "original-head-hair.v4.mjs",
+    "sha256": "96e9ca0aa8a7192df68df843fa36d8c80cfa8240ba18c9a9a4e1c81838d65c08"
+  },
+  "toneModule": {
+    "file": "original-head-hair.v5-tone.mjs",
+    "sha256": "0818ed4f3ae40d256ad9a92321b418e7fb91c08608fa725e1b8bd1e91d94e564"
+  },
+  "renderer": {
+    "file": "render-tone-ab.mjs",
+    "sha256": "8e978b20e2d63ed51e95eff39ef44cf35f0d63a78d2a6c0b2b68d5f749459ac7"
+  },
+  "baselineSource": "../../source (relative to this directory), or WORLDWOVEN_BASELINE_SOURCE",
+  "sourceHashes": {
+    "approved-surfaces.js": "7ce28f18b8927dc6c639f06b1b2652c6d4a2ddf313890cb32c1fb653338c21fb",
+    "characters.js": "5a949e69d527902a048fa9abf6c8f651c78e9f399c747a9cd76e7626b6e60c91",
+    "appearance.js": "7e87b9041fe824716c0bdf30168adf4f6a1c5f9098ac4a44e9298f32a382bb8f",
+    "character-traits.js": "c581cc6d4bbbc1409428d3502f8fe690fd1327d4c372c402ebb2fa9e6560e76a",
+    "character-props.js": "deb24f9b65d5e60a052b934d262191794dc70712dce1271d9adf160c863e1352"
+  },
+  "presentation": "male",
+  "style": "side-quiff",
+  "views": [
+    "front",
+    "side",
+    "rear-threequarter"
+  ],
+  "imageSize": 640,
+  "frames": 6,
+  "toneFactors": [
+    0.7,
+    1,
+    1.3
+  ],
+  "adapter": "In-memory source merger honors an optional geometry color attribute; same adapter for uniform and tone candidates. No production file edits.",
+  "resourceLimits": {
+    "secondsPerProcess": 180,
+    "processTreeMiB": 1200,
+    "nodeHeapMiB": 640,
+    "serialOnly": true
+  },
+  "baselineCommit": "eafb569e386904fe1bb9d012bbf9c2b90c3db9a9",
+  "runtime": "WORLDWOVEN_WEBGL_RUNTIME must point to installed @onirenaud/node-webgl dist/index.js; dependency is not bundled"
+}

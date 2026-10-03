@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1260" height="640" viewBox="0 0 1260 640">
+<rect width="1260" height="640" fill="#f2eee4"/><style>text{font-family:Arial,sans-serif;fill:#253b38}.title{font-size:25px;font-weight:700}.sub{font-size:15px}.label{font-size:17px;font-weight:600}.flow{fill:none;stroke:#9abdb1;stroke-width:24;stroke-linecap:round}.guide{fill:none;stroke:#f0dbc0;stroke-width:3;stroke-dasharray:6 5}</style>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#4f8275"/></marker></defs>
+<text x="28" y="38" class="title">V4 SHORT SIDE SWEEP — SOURCE SHAPE PLAN</text><text x="28" y="66" class="sub">Schematic only · keep V3 skull/base · 3 connected broad ridges · one continuous surface · no overlay plates</text>
+<g transform="translate(30 100)"><rect width="385" height="440" rx="12" fill="#e2e5da"/><text x="20" y="33" class="label">FRONT</text>
+<path d="M130 361L137 420H255L261 361" fill="#bf906c"/><path d="M90 199Q72 287 116 340Q185 395 260 341Q309 286 294 201Q283 70 192 70Q104 71 90 199" fill="#c79a76"/>
+<path d="M80 212Q68 121 128 66Q185 29 245 60Q308 91 305 210L283 233L271 169Q258 147 244 146L224 155Q209 170 185 181L135 210L105 222L88 247Z" fill="#4b382e"/>
+<path d="M238 139Q231 87 179 90Q127 111 108 206" class="flow"/>
+<path d="M250 111Q230 63 184 66Q129 74 102 148" class="flow" opacity=".6"/>
+<path d="M253 139Q284 161 287 210" class="flow" stroke-width="17" opacity=".65"/>
+<path d="M247 73Q260 116 243 154" class="guide"/>
+<path d="M231 111Q155 97 114 204" fill="none" stroke="#4f8275" stroke-width="4" marker-end="url(#arrow)"/>
+<text x="126" y="277" class="label">1</text><text x="149" y="92" class="label">2</text><text x="280" y="166" class="label">3</text>
+<text x="18" y="390" class="sub">Unequal fringe ends, visible side part</text><text x="18" y="416" class="sub">No straight brow-to-brow cap edge</text></g>
+<g transform="translate(437 100)"><rect width="385" height="440" rx="12" fill="#e2e5da"/><text x="20" y="33" class="label">SIDE</text>
+<path d="M154 347L155 420H235L231 345" fill="#bf906c"/><path d="M109 191L102 213L77 244L93 251L108 259L105 281L123 286L117 302Q149 357 201 360Q224 323 258 309Q306 276 296 213Q304 93 218 74Q128 57 109 191Z" fill="#c79a76"/>
+<path d="M107 193Q89 147 126 95Q172 44 229 62Q301 75 313 161Q325 231 298 273Q276 247 259 217Q237 202 217 212Q164 213 140 181Z" fill="#4b382e"/>
+<path d="M140 177Q153 128 184 105Q219 80 248 106" class="flow"/>
+<path d="M184 174Q205 136 247 130Q279 143 292 182" class="flow" opacity=".6"/>
+<path d="M212 260Q209 213 236 211Q254 223 234 255Z" fill="#b38665"/>
+<text x="18" y="350" class="sub">Ridges blend into the shell at root + tip</text><text x="18" y="382" class="sub">Target relief: main 10–14 mm</text><text x="18" y="411" class="sub">No air gap, tube loop or separate plate</text></g>
+<g transform="translate(844 100)"><rect width="385" height="440" rx="12" fill="#e2e5da"/><text x="20" y="33" class="label">TOP / FLOW</text>
+<ellipse cx="190" cy="205" rx="124" ry="144" fill="#4b382e"/>
+<path d="M230 275Q165 267 128 222Q103 178 161 137" class="flow"/>
+<path d="M243 231Q191 222 159 184Q144 145 202 108" class="flow" opacity=".6"/>
+<path d="M250 274Q285 249 289 202" class="flow" opacity=".65" stroke-width="17"/>
+<path d="M243 293Q268 206 235 116" class="guide"/>
+<path d="M225 271Q157 260 132 210" fill="none" stroke="#4f8275" stroke-width="4" marker-end="url(#arrow)"/>
+<text x="163" y="373" class="sub">FRONT</text><text x="18" y="406" class="sub">1 main sweep · 2 crown sweep · 3 short return</text></g>
+<text x="28" y="578" class="label">READABILITY CHECK</text><text x="28" y="605" class="sub">Same production toon light and color. Accept only if part + 2–3 main flows read in front/side/rear views; smaller strand detail is out of scope.</text>
+</svg>
