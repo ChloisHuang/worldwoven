@@ -1,3 +1,4 @@
+import {addInsetClosureSection} from './inset-closures.js';
 import {registerNightFixture} from './night-lighting.js';
 import * as G from './geometry.js?rev=R7-20261002';
 const { THREE } = G;
@@ -594,7 +595,27 @@ export function buildFrance({pack=true}={}){
   }
   const block=(x,y,z,w,h,d,c,parent=group)=>{box(x,y,z,w,h,d,c,parent);G.collider(colliders,x,z,w,d);cameraColliders.push({minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2});};
   const cameraBox=(x,y,z,w,h,d)=>cameraColliders.push({minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2});
-  const wall=o=>frenchRoomWall(group,colliders,cameraColliders,{bottom:.23,top:ceilingY,depth:.30,color:C.ivory,...o});
+  // Structural plaster is .30 m; the joined .42 m casing is the actual
+  // hinge reveal. Only the bedroom arcade needs a hollow .50 m pocket wall.
+  const insetDoorSections=[
+    {id:'front-entry',axis:'x',at:3.5,lateral:0,width:3.8,bottom:.258,top:4.12,swing:1},
+    {id:'rear-entry',axis:'x',at:-13.5,lateral:0,width:3.2,bottom:.258,top:4.12,swing:1},
+    {id:'gallery-east-front',axis:'z',at:3,lateral:-1,width:2.6,bottom:.258,top:3.9,swing:1},
+    {id:'enfilade-east',axis:'x',at:-6.6,lateral:6.85,width:2.2,bottom:.252,top:3.9,swing:1},
+    {id:'wing-entry--1--9.5',axis:'z',at:-17,lateral:-9.5,width:2.3,bottom:.264,top:3.9,swing:1},
+    {id:'wing-enfilade--1',axis:'x',at:-6.6,lateral:-21,width:2.5,bottom:.23,top:3.9,swing:-1},
+    {id:'core-wing-1--5',axis:'z',at:10.8,lateral:-5,width:2,bottom:.23,top:3.9,kind:'pocket'}
+  ],insetMounts=new Map();
+  const wall=o=>{
+    const openings=(o.openings||[]).map(opening=>{
+      const def=insetDoorSections.find(d=>d.axis===(o.axis||'x')&&Math.abs(d.at-o.at)<.001&&Math.abs(d.lateral-(opening.from+opening.to)/2)<.001&&Math.abs(d.width-(opening.to-opening.from))<.001);
+      if(!def)return opening;
+      const section=addInsetClosureSection(group,colliders,cameraColliders,{...def,kind:def.kind||'hinge',wallDepth:def.kind==='pocket'?.50:.42,style:'french',color:C.white});
+      insetMounts.set(def.id,{...section.mount,structuralWallDepth:.30});
+      return section.roughOpening;
+    });
+    frenchRoomWall(group,colliders,cameraColliders,{bottom:.23,top:ceilingY,depth:.30,color:C.ivory,...o,openings});
+  };
   const local=(x,z,rot=0,parent=group)=>{const q=new THREE.Group();q.position.set(x,0,z);q.rotation.y=rot;parent.add(q);return q;};
   // R10: recognisable furniture is built as joined structural assemblies. The
   // authored navigation/camera footprints and R9 work anchors remain unchanged.
@@ -815,13 +836,33 @@ export function buildFrance({pack=true}={}){
     for(let k=0;k<9;k++){const xx=-w/2+k*w/8;G.sphere(q,xx,4.32-.26*Math.sin(k*Math.PI/8),.28,.25,C.green,1.15,.7,.42);}
     cameraBox(x,2.72,z,rot? .06:w,3.64,rot?w:.06);
   }
-  function doorway(x,z,w=2.5,rot=0,openingTop=3.9){
+  function doorway(x,z,w=2.5,rot=0,openingTop=3.9,pocket=false){
     const q=local(x,z,rot),lift=openingTop-3.9,inner=w/2+.012;
     q.name='Joined doorway casing '+x+','+z;
     // The casing and outward-flared foot both stay outside the real aperture.
     // Keep their inner edges aligned, their backing joined, and the foot on
     // the finished slab. These are solid jambs, never a hinge-contact waiver.
     const solidPart=(m,name)=>{m.name=name;m.updateWorldMatrix(true,false);const b=new THREE.Box3().setFromObject(m);const c={minX:b.min.x,maxX:b.max.x,minY:b.min.y,maxY:b.max.y,minZ:b.min.z,maxZ:b.max.z};if(name==='White joined casing'){const id='fr-casing:'+x+','+z+','+w+','+rot+','+Math.sign(m.position.x);(group.userData.hingeMountSolids??=[]).push({id,kind:'door-casing',source:'joined-doorway-casing',axis:rot?'z':'x',plane:rot?x:z,bounds:{...c},openingWidth:w,center:[x,floorY,z]});c.hingeMountSolidId=id;m.userData.hingeMountRanges=[{firstTriangle:0,triangleCount:(m.geometry.index?.count??m.geometry.attributes.position.count)/3,solidId:id}];}colliders.push({...c});cameraColliders.push({...c});return m;};
+    if(pocket){
+      // The casing dresses the two opaque cassette skins; no solid post or
+      // stone foot bridges the real ±.18 m storage cavity behind the leaves.
+      // Each face overlaps its .18..25 m wall skin by20–30mm, so mouldings
+      // remain structurally joined while the complete leaf travel stays clear.
+      q.userData.pocketCasing={cavityNormal:[-.18,.18],wallFaces:[-.25,.25],casingInnerFace:.23,footInnerFace:.22};
+      for(const face of[-1,1]){
+        for(const side of[-1,1]){
+          solidPart(G.box(q,side*(inner+.09),2.11+lift/2,face*.27,.18,3.76+lift,.08,C.white),'Pocket face casing');
+          G.box(q,side*(inner+.09),2.1+lift/2,face*.32,.045,3.50+lift,.035,C.gold);
+          solidPart(G.box(q,side*(inner+.175),.385,face*.27,.35,.31,.10,C.stone),'Pocket face stone foot');
+        }
+        const head=G.box(q,0,4.04+lift,face*.27,w+.50,.28,.08,C.white);head.name='Pocket joined face header';head.updateWorldMatrix(true,false);const b=new THREE.Box3().setFromObject(head);cameraColliders.push({minX:b.min.x,maxX:b.max.x,minY:b.min.y,maxY:b.max.y,minZ:b.min.z,maxZ:b.max.z});
+        G.box(q,0,4.19+lift,face*.28,w+.62,.065,.10,C.gold);
+        archBand(q,0,face*.28,w+.37,4.17+lift,.45,C.white,.08);
+        G.sphere(q,0,4.65+lift,face*.33,.22,C.gold,1,.90,.25);
+        for(const side of[-1,1]){const leaf=G.sphere(q,side*.29,4.52+lift,face*.33,.22,C.gold,1.6,.30,.20);leaf.rotation.z=side*.25;}
+      }
+      return q;
+    }
     for(const side of [-1,1]){
       solidPart(G.box(q,side*(inner+.09),2.11+lift/2,0,.18,3.76+lift,.42,C.white),'White joined casing');
       G.box(q,side*(inner+.09),2.1+lift/2,.23,.045,3.50+lift,.04,C.gold);
@@ -1022,15 +1063,28 @@ export function buildFrance({pack=true}={}){
   const windowOpen=(v,w=2.05)=>({from:v-w/2,to:v+w/2,bottom:.9,top:4.54});
   wall({at:3.5,from:-10.8,to:10.8,openings:[windowOpen(-8.55,1.7),windowOpen(-5.55,1.7),{from:-1.9,to:1.9,top:4.12},windowOpen(5.55,1.7),windowOpen(8.55,1.7)]});
   wall({at:-13.5,from:-10.8,to:10.8,openings:[windowOpen(-7.1,2.4),{from:-1.6,to:1.6,top:4.12},windowOpen(7.1,2.4)]});
-  for(const x of [-10.8,10.8])wall({axis:'z',at:x,from:-13.5,to:3.5,openings:[windowOpen(-12,1.3),{from:-10.65,to:-8.35,top:3.9},{from:-6,to:-4,top:3.9},windowOpen(-2.2,2.65)]});
+  for(const x of [-10.8,10.8])wall({axis:'z',at:x,from:-13.5,to:3.5,openings:[windowOpen(-12,1.3),{from:-10.65,to:-8.35,top:3.9},{from:-6,to:-4,top:3.9},windowOpen(x>0?-1.2:-2.2,2.65)]});
   for(const x of [-3,3])wall({axis:'z',at:x,from:-13.5,to:3.5,openings:[{from:-10.8,to:-8.2,top:3.9},{from:-2.3,to:.3,top:3.9}]});
-  for(const s of [-1,1])wall({at:-6.6,from:s<0?-10.8:3,to:s<0?-3:10.8,openings:[{from:s*6.85-1.10,to:s*6.85+1.10,top:3.9}]});
+  // The north cross-wall terminates20mm inside the room-side cassette skin
+  // (x10.55..10.62). Preserve its upper wall above the cassette header, while
+  // physically removing the lower end from the actual storage cavity.
+  const pocketCrossWallRebate={from:10.57,to:10.8,bottom:.23,top:4.0};
+  for(const s of [-1,1])wall({at:-6.6,from:s<0?-10.8:3,to:s<0?-3:10.8,openings:[{from:s*6.85-1.10,to:s*6.85+1.10,top:3.9},...(s>0?[pocketCrossWallRebate]:[])]});
+  group.userData.pocketCrossWallJoin={at:-6.6,skinRange:[10.55,10.62],wallEnd:10.57,overlap:.02,headerBottom:4.0,unchangedDecorativePanelEnd:10.12};
+  // The side-loggia slab spans z=-5±1.425. Only the two pocket ends beyond
+  // it lack support on the exterior half of the cassette. Continue the real
+  // 0..0.23m foundation there without duplicating the main or loggia floor.
+  const pocketBaseMount=insetMounts.get('core-wing-1--5'),loggiaHalfSpan=2.85/2,missingPocketBase=pocketBaseMount.pocketOuter-loggiaHalfSpan;
+  for(const side of[-1,1]){
+    const x=10.8+pocketBaseMount.wallDepth/4,z=-5+side*(loggiaHalfSpan+missingPocketBase/2),w=pocketBaseMount.wallDepth/2;
+    const support=box(x,.115,z,w,.23,missingPocketBase,C.ivory);support.name='Pocket ground-supported base extension';cameraBox(x,.115,z,w,.23,missingPocketBase);
+  }
   for(const x of [-3,3])for(const z of [-9.5,-1])doorway(x,z,2.6,Math.PI/2);
   for(const x of [-6.85,6.85])doorway(x,-6.6,2.2);
   doorway(0,3.5,3.8,0,4.12);doorway(0,-13.5,3.2,0,4.12);
   for(const x of [-8.55,-5.55,5.55,8.55])windowAt(x,3.5,1.7,Math.PI);
   for(const x of [-7.1,7.1])windowAt(x,-13.5,2.4);
-  for(const x of [-10.8,10.8])for(const [z,w]of [[-12,1.3],[-2.2,2.65]])windowAt(x,z,w,x<0?Math.PI/2:-Math.PI/2);
+  for(const x of [-10.8,10.8])for(const [z,w]of [[-12,1.3],[x>0?-1.2:-2.2,2.65]])windowAt(x,z,w,x<0?Math.PI/2:-Math.PI/2);
   // Tall white/gilt panel sequences, interleaved with mirrored green salons.
   for(const x of [-3,3]){
     const q=local(x,-5, x<0?Math.PI/2:-Math.PI/2);
@@ -1040,7 +1094,9 @@ export function buildFrance({pack=true}={}){
   }
   for(const x of [-10.62,10.62]){
     const q=local(x,0,x<0?Math.PI/2:-Math.PI/2);
-    for(const z of [-7.4,1.2])panel(q,x<0?-z:z,0,1.35,true);
+    // The east north cassette skin remains a plain joined pier; its old
+    // deep boiserie occupied the actual pocket cavity.
+    for(const z of (x>0?[1.2]:[-7.4,1.2]))panel(q,x<0?-z:z,0,1.35,true);
   }
   for(const s of [-1,1])for(const front of [-1,1]){const q=local(s*6.85,-6.6,front<0?Math.PI:0);panel(q,-2.48,.19,1.58,true);panel(q,2.48,.19,1.58,true);}
   for(const x of [-4.5,4.5,-9.5,9.5])panel(group,x,-13.29,1.25,true);
@@ -1186,7 +1242,7 @@ export function buildFrance({pack=true}={}){
     wall({at:-13.5,from:xc-4,to:xc+4,openings:[windowOpen(xc,2.8)]});
     wall({at:3.5,from:xc-4,to:xc+4,openings:[{from:xc-1.25,to:xc+1.25,top:3.9}]});
     wall({at:-6.6,from:xc-4,to:xc+4,openings:[{from:xc-1.25,to:xc+1.25,top:3.9}]});
-    doorway(s*17,-9.5,2.3,Math.PI/2);doorway(s*17,-5,2.2,Math.PI/2);doorway(s*10.8,-9.5,2.3,Math.PI/2);doorway(s*10.8,-5,2,Math.PI/2);doorway(xc,3.5,2.5);doorway(xc,-6.6,2.5);
+    doorway(s*17,-9.5,2.3,Math.PI/2);doorway(s*17,-5,2.2,Math.PI/2);doorway(s*10.8,-9.5,2.3,Math.PI/2);doorway(s*10.8,-5,2,Math.PI/2,3.9,s>0);doorway(xc,3.5,2.5);doorway(xc,-6.6,2.5);
     windowAt(s*25,-10.5,2.4,s<0?Math.PI/2:-Math.PI/2);windowAt(s*25,-1.5,2.8,s<0?Math.PI/2:-Math.PI/2);windowAt(xc,-13.5,2.8);
     ceiling(xc,-10.05,8,6.9);ceiling(xc,-1.55,8,10.1);chandelier(xc,-10.05,.8);chandelier(xc,-1.55,.9);
     for(const z of [-13.5,3.5]){box(xc,5.48,z,8.45,.19,.51,C.gold,roofGroup);box(xc,5.68,z,8.67,.18,.60,C.ivory,roofGroup);for(let x=xc-3.8;x<xc+4;x+=.50){G.cyl(roofGroup,x,6.04,z,.065,.07,.51,C.white,8);}box(xc,6.33,z,8.62,.15,.40,C.white,roofGroup);}
@@ -1202,6 +1258,7 @@ export function buildFrance({pack=true}={}){
     walkableSurfaces.push({minX:xc-4,maxX:xc+4,minZ:-13.5,maxZ:3.5,y:.23},...[-9.5,-5].map(z=>({minX:s<0?-17.1:10.7,maxX:s<0?-10.7:17.1,minZ:z-1.43,maxZ:z+1.43,y:.23})));
     doorways.push(...[-9.5,-5].flatMap(z=>[{id:`core-wing-${s}-${z}`,a:[s*9.95,.23,z],b:[s*11.65,.23,z],width:z===-5?2:2.3,height:3.67},{id:`wing-entry-${s}-${z}`,a:[s*16.1,.23,z],b:[s*17.9,.23,z],width:z===-5?2.2:2.3,height:3.67}]),{id:`wing-enfilade-${s}`,a:[xc,.23,-5.7],b:[xc,.23,-7.5],width:2.5,height:3.67},{id:`wing-garden-${s}`,a:[xc,.23,2.6],b:[xc,0,4.4],width:2.5,height:3.67});
   }
+  for(const d of doorways)if(insetMounts.has(d.id))d.closureMount=insetMounts.get(d.id);
   // Low thresholds meet the real finished surfaces while leaving every
   // opening top fixed. These shallow supports do not become full-height walls.
   for(const sill of finishedDoorSills){

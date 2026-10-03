@@ -1,0 +1,37 @@
+{
+  "status": "PASS",
+  "scope": "Exact unchanged Japan/China/Egypt scenes; legacy versus mount-aware engine and classifier, same actors and 60 update steps. Geometry, materials, live matrices, leaf/camera/planning colliders compared. No browser/visual or full navigation claim.",
+  "sourceHashes": {
+    "automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+    "room-closures.js": "1d70be71fe6b30d136c0f6c887570667be0520735d1f152d468f599210e4556d",
+    "japan-bathhouse.js": "c5bd1dd4f0ab4aaff0a2be438f37bc520865914b6a4b24b0aa961a56fdb85d74",
+    "china-palace.js": "2676f10b9aa9b8b2c1dd4a8b6a020c11a273fcd0bc40b971a65d708ed3085708",
+    "egypt-temple.js": "89c08f1c87abbc5b2ff1c5856c3f810c9dfda111fa181e0839ef2aed23e447d7"
+  },
+  "regions": [
+    {
+      "region": "japan",
+      "status": "PASS",
+      "movingClosures": 9,
+      "fixedHalfCurtains": 6,
+      "poseComparisons": 61,
+      "initialMeshSignature": "cc2b04667688680eb9be4350208f15f59fc83a70b2a546e9a7ff60d851d91733"
+    },
+    {
+      "region": "china",
+      "status": "PASS",
+      "movingClosures": 25,
+      "fixedHalfCurtains": 4,
+      "poseComparisons": 61,
+      "initialMeshSignature": "049ed7c880b85b7c509708ded6d09b2c6f06fed690187ce6d327ab9bb766e830"
+    },
+    {
+      "region": "egypt",
+      "status": "PASS",
+      "movingClosures": 4,
+      "fixedHalfCurtains": 2,
+      "poseComparisons": 61,
+      "initialMeshSignature": "f2f5020b9f5b6ed824f0f39183e1de4331ba33e4d773faf7479bb4b02dd482e6"
+    }
+  ]
+}

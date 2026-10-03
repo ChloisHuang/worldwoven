@@ -8,7 +8,7 @@ const head=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();if(
 const dirty=execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim();if(dirty)throw Error('Source checkout must be clean');
 const build=JSON.parse(fs.readFileSync('dist/client/build.json','utf8'));
 fs.mkdirSync(dest,{recursive:true});
-for(const dir of ['source','tests','scripts','worker','.openai'])fs.cpSync(dir,path.join(dest,dir),{recursive:true});
+for(const dir of ['source','tests','scripts','worker','.openai','docs','development'])if(fs.existsSync(dir))fs.cpSync(dir,path.join(dest,dir),{recursive:true});
 for(const file of ['package.json','package-lock.json'])fs.copyFileSync(file,path.join(dest,file));
 fs.writeFileSync(path.join(dest,'.gitignore'),`node_modules/\ndist/\nqa/\ncoverage/\n.cache/\n.sites-runtime/\n*.log\n*.zip\n*.tar\n*.tar.gz\n.DS_Store\n.env\n.env.*\n!.env.example\n`);
 fs.writeFileSync(path.join(dest,'cache-baseline.json'),JSON.stringify({publishedSourceCommit:commit,assets:Object.values(build.assets)},null,2)+'\n');
@@ -17,6 +17,8 @@ fs.writeFileSync(path.join(dest,'README.md'),`# Worldwoven · 四方生活
 An original cel-shaded cultural life and exploration game. The repository name supports more regions in future; the current public game includes Japan, China, Egypt and France.
 
 Public game: https://alien.doudouai.net/
+
+[问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
 Archived release: ${build.release}, ${build.date}
 Verified published Sites source commit: ${commit}
@@ -39,7 +41,7 @@ The local servers bind only to 127.0.0.1 and are not the public deployment servi
 - npm run test:worker: the preserved read-only legacy endpoint
 - npm run test:door-geometry -- --check and --tiny: portable door geometry harness checks; see tests/door-geometry/README.md for the separate serialized authored sweep command and limits
 
-CPU/DOM fixtures do not provide browser or iOS visual acceptance. The R16 baseline received separate production Three/Mesa WebGL2 image checks. R16.1 adds focused actual-scene controller and geometry checks for fixed half-curtains; no new browser or iOS visual acceptance is claimed. Generated screenshots and reports are intentionally not committed. Real iOS performance, driver-specific appearance and observed HTTP warm-cache transfers remain unverified.
+CPU/DOM fixtures do not provide browser or iOS visual acceptance. The R16 baseline received separate production Three/Mesa WebGL2 image checks. R16.1 added focused actual-scene controller and geometry checks for fixed half-curtains. R16.2 adds exact-source Three/Mesa French doorway images, continuous full-scene door sweeps, seven-door bidirectional controller checks and unchanged-region geometry/collision comparisons; no browser or iOS visual acceptance is claimed. Generated screenshots and reports are intentionally not committed. Real iOS performance, driver-specific appearance and observed HTTP warm-cache transfers remain unverified.
 
 ## Deploy with Sites
 
@@ -64,7 +66,7 @@ The changing-prop and wardrobe preview includes a one-click player randomizer fo
 
 Character shoulder proportions, relaxed arm rest positions and walking elbow motion are fitted to the garment cut; Japanese wide sleeves retain more room than fitted shirts. The wardrobe retains randomization and the fictional preference score but no longer explains individual scoring criteria. Saved identities, existing travel speed, physical collision radii and interaction anchors remain constrained by regression checks. Later environmental and NPC workflow refinements are separate batches.
 
-Half-curtains now stay naturally suspended in all four regions. They never enter the automatic opening or path-waiting system. The existing men’s and women’s bath-entry noren and offset screens in Japan are retained without an extra moving closure. Full privacy curtains and the existing R16 rigid doors are preserved. The separate inset-door reconstruction and bathing-pose/water changes are not part of R16.1.
+Half-curtains now stay naturally suspended in all four regions. They never enter the automatic opening or path-waiting system. The existing men’s and women’s bath-entry noren and offset screens in Japan are retained without an extra moving closure. Full privacy curtains and the existing R16 rigid doors are preserved. R16.2 migrates all seven French rigid doors into their actual wall openings, including the bedroom pocket door with a hollow joined wall, real lower bases and clear panel travel. The other three regions retain their R16.1 door geometry and behavior; their inset repairs and the bathing-pose/water work remain separate candidates. Checklist D01–D04 applies to the French subset only, not completion of all four regions.
 
 Door sensing follows the usable aperture and approach direction. Near activation can cause a brief safe wait outside the actual opening sweep; continued input resumes when the leaf is open. Wide leaves swinging toward an actor require more clearance than the opposite side or sliding panels. Player and NPC rules, voluntary retreat, anti-trap protection and delayed closing are shared.
 

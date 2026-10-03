@@ -1,0 +1,37 @@
+{
+  "scope": "Clean R16.1 + France inset release candidate only; reused v7 static sweep and v3 authored staged-controller tests, bounded focused subsets.",
+  "sourceCommit": "a64ade074944200734a3c160a14718daff1d7737",
+  "poseHash": "d79172e65b6a1224a755e6504058b7f1e7eb5937daa70160bdd0e9d28b54c719",
+  "files": {
+    "source/game/automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+    "source/game/inset-closures.js": "dadba37aaa60d85abc2c9102a5da10bcfaf529474d8e60fefe5a975e63d8930a",
+    "source/game/regions-west.js": "f1c34d4c3ced5cbc8e14f66502374cad849d59298679a78f13fdcbc738446646",
+    "source/game/room-closures.js": "1d70be71fe6b30d136c0f6c887570667be0520735d1f152d468f599210e4556d",
+    "source/game/geometry.js": "accd26d9fe1820ba7829bc00f802c8916458813eefd0cfd08f5d38e11c207ca9",
+    "source/game/furniture-interactions.js": "83c6372db4564a46fda87c164db3a3b79760bd8d7c7c6cae21e8564fe402af88",
+    "source/game/automatic-routing.js": "c0abe71a90b9600dec9d1cbe977b115f9b97e5384f7e55a09794cf7496d4c913",
+    "source/game/navigation.js": "d22f45cd94d968b88d44a803bbc7ba1ec65c45f2d7fdf2c20610d18b256c062e",
+    "source/game/main.js": "6b3f36422f76f87f6f374f75189e6a01f12838c882004d813f898b61117f9707",
+    "source/game/camera.js": "7b6fc625c07138fc5636d38651b2487cdd812e22fcb89618a707b6b913808dea",
+    "source/game/floor-support.js": "5f5df2cde18b6e232e89a222027fc81bb25ba89678912f654ce3c2f632f44615",
+    "source/vendor/three/build/three.core.js": "9edde002b066a9a05676a6127f67735b62baf399bdea529f2f7e31657da769e6",
+    "tests/door-geometry/leaf-static-adaptive-v7.cjs": "5ed0ceba84c79d16e720dc71d8f7b385906626f4b89f88f17ef251c0d256e212",
+    "tests/door-geometry/triangle-kernel-v3.mjs": "dcc13af03fb915407736f7c0654e17a10cd4900b587d7a0ea9e029548172b77b",
+    "tests/door-geometry/adaptive-rotation-kernel-v1.mjs": "fd343ddc79bc83bb2cf1ab71190fef0f15d88a762bd2bb5e98a93b5872bcf89c",
+    "tests/authored-threshold-probes-v3.cjs": "5b411d19d3d3f136f8788be3c19dc6dc4739324fa2cb8b1a3673735ce7b67a97",
+    "tests/fixtures/france-prior-furniture-interactions.js": "72a5856cb502fb8b0e9f1882a03ae0d7579a723fa9f8323052b1182322391ba4"
+  },
+  "budgets": {
+    "worldSix": {
+      "seconds": 180,
+      "rssMiB": 1228,
+      "stop": "first FAIL/REVIEW"
+    },
+    "routesSeven": {
+      "seconds": 180,
+      "rssMiB": 1228,
+      "crossings": 56,
+      "stop": "first failure"
+    }
+  }
+}

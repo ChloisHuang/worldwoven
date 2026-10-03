@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "command": [
+    "node",
+    "--experimental-vm-modules",
+    "development/france-insets/check-other-region-parity.cjs"
+  ],
+  "exit": 0,
+  "seconds": 7.039030765999996,
+  "peakObservedTreeRSSBytes": 609878016,
+  "maxProcesses": 2,
+  "termination": null
+}
