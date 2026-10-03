@@ -1,3 +1,5 @@
+> 问题、待办与验收状态：[项目 checklist](docs/PROJECT_CHECKLIST.md)。仅对应版本已上线的条目可视为发布完成。
+
 # Worldwoven · 四方生活
 
 An original cel-shaded cultural life and exploration game. The repository name supports more regions in future; the current public game includes Japan, China, Egypt and France.
