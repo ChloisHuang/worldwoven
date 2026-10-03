@@ -1,3 +1,4 @@
+import {addInsetClosureSection} from './inset-closures.js';
 import {registerNightFixture} from './night-lighting.js';
 import * as THREE from 'three';
 import {material as celMaterial} from './geometry.js?rev=R7-20261002';
@@ -292,6 +293,15 @@ export function buildEgypt(){
   // the original six-metre descending passage still reaches the lower tomb.
   const throne=zone('上层法老王座大厅'),privateRoom=zone('克娄巴特拉主题起居室'),judgment=zone('阿努比斯审判厅'),ascending=zone('上层王殿通道');
   const roomWall=(g,x,y,z,w,h,d,c=C.stone)=>solid(g,colliders,cameraColliders,x,y,z,w,h,d,c);
+  const insetDoorMounts=new Map();
+  function insetStonePortal(g,{id,at,lateral,width,top,wallTop,wallDepth,from,to,swing}){
+    const section=addInsetClosureSection(g,colliders,cameraColliders,{kind:'hinge',axis:'x',at,lateral,bottom:0,top,width,wallDepth,style:'egypt',swing});
+    const rough=section.roughOpening;
+    for(const [a,b]of [[from,rough.from],[rough.to,to]])roomWall(g,(a+b)/2,wallTop/2,at,b-a,wallTop,wallDepth);
+    roomWall(g,lateral,(rough.top+wallTop)/2,at,rough.to-rough.from,wallTop-rough.top,wallDepth);
+    insetDoorMounts.set(id,section.mount);
+  }
+
   const raisedColumn=(g,x,y,z,h=4.5)=>{const q=new THREE.Group(),cs=[],cam=[];q.position.y=y;g.add(q);column(q,cs,cam,x,z,h);for(const a of cs)colliders.push({...a,minY:a.minY+y,maxY:a.maxY+y});for(const a of cam)cameraColliders.push({...a,minY:a.minY+y,maxY:a.maxY+y});};
   const roomRoof=(x,y,z,w,d)=>{box(roofGroup,x,y,z,w+.04,.34,d+.04,C.shadow);volume(cameraColliders,x,y,z,w,.34,d);};
   // West judgment room: separate full-height enclosure, wide south doorway,
@@ -316,8 +326,9 @@ export function buildEgypt(){
   floor(privateRoom,17.9,0,3.5,11.8,15.8,C.edge);
   for(const x of [11.85,23.95])roomWall(privateRoom,x,2.35,3.5,.3,4.7,16.1);
   roomWall(privateRoom,17.9,2.35,-4.4,12.4,4.7,.3);
-  for(const x of [14.08,21.72])roomWall(privateRoom,x,2.35,11.4,4.46,4.7,.3);
-  roomWall(privateRoom,17.9,4.05,11.4,3.2,1.3,.3);
+  // A real wider rough opening accepts joined timber jambs; the functional
+  // 3.18 m aperture and R16 leaf top stay fixed inside the .30 m stone reveal.
+  insetStonePortal(privateRoom,{id:'private-suite-entry',at:11.4,lateral:17.9,width:3.18,top:3.36,wallTop:4.7,wallDepth:.30,from:11.85,to:23.95,swing:1});
   for(const x of [14.08,21.72])roomWall(privateRoom,x,2.35,2.6,4.46,4.7,.22);
   roomWall(privateRoom,17.9,4.05,2.6,3.2,1.3,.22);roomRoof(17.9,4.9,3.5,12.4,16.1);
   mural(privateRoom,17.9,2.35,-4.21,11.5,3.6,0,4);
@@ -405,8 +416,7 @@ export function buildEgypt(){
   roomWall(service,22.8,kitchenBase/2,-16.0,1.5,kitchenBase,6.3,C.shadow);box(service,22.8,kitchenTop-kitchenSlab/2,-16,1.65,kitchenSlab,6.5,C.edge);
   for(const z of [-14.5,-16,-18.3]){urn(service,22.7,kitchenTop,z,.65,z===-16?C.blue:C.deep);box(service,23.59,kitchenTop+.03,z,.1,.06,.7,C.gold);}
   box(service,22.4,kitchenNpcBoardTop-.0175,-17.1,.9,.035,.65,C.linen);for(let i=0;i<4;i++)ball(service,22.2+i*.18,kitchenNpcBoardTop+.09*.8,-17.1,.09,C.red,1,.8,1);
-  for(const x of [12.35,15.95])roomWall(service,x,2.3,-16.2,1.2,4.6,.22,C.stone);
-  roomWall(service,14.15,4.0,-16.2,2.4,1.2,.22,C.stone);
+  insetStonePortal(service,{id:'storage-entry',at:-16.2,lateral:14.15,width:2.4,top:3.4,wallTop:4.6,wallDepth:.22,from:11.75,to:16.55,swing:-1});
   roomWall(service,16.6,2.3,-18.2,.22,4.6,4.1,C.stone);
   roomWall(service,14.15,.65,-19.25,3.9,1.3,.65,C.shadow);box(service,14.15,1.37,-19.25,4.0,.12,.75,C.edge);
   for(let i=0;i<5;i++)urn(service,12.7+i*.7,1.45,-19.25,.65,i%2?C.deep:C.gold);
@@ -483,6 +493,7 @@ export function buildEgypt(){
 
 
   ];
+  for(const doorway of doorways)if(insetDoorMounts.has(doorway.id))doorway.closureMount=insetDoorMounts.get(doorway.id);
   const facilities=[
     {id:'reception',name:'入口接待处',position:[-3.6,0,10],activity:'egypt-royal-reception'},
     {id:'throne-hall',name:'上层法老王座大厅',position:[0,4,-25.6],activity:'egypt-pharaoh-throne'},
