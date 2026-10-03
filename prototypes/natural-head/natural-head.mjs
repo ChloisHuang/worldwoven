@@ -59,29 +59,40 @@ function grid(parent,name,nu,nv,fn,color,flip=false){
     const a=j*(nu+1)+i,b=a+1,c=a+nu+1,d=c+1;
     if(flip)ix.push(a,c,b,b,c,d);else ix.push(a,b,c,b,d,c);
   }
-  return addMesh(parent,name,p,ix,color);
+  const m=addMesh(parent,name,p,ix,color),n=m.geometry.attributes.normal;
+  // Both surfaces wrap in U. Share the seam normal so a duplicate vertex never
+  // creates a carved ridge along the top of an otherwise rounded broad lock.
+  for(let j=0;j<=nv;j++){
+    const a=j*(nu+1),b=a+nu,normal=new THREE.Vector3().fromBufferAttribute(n,a).add(new THREE.Vector3().fromBufferAttribute(n,b)).normalize();
+    n.setXYZ(a,normal.x,normal.y,normal.z);n.setXYZ(b,normal.x,normal.y,normal.z);
+  }
+  n.needsUpdate=true;return m;
 }
 
-/** A full volumetric lock, with a broad flattened cross-section and tapered tip.
- * The lock normal is projected off the curve tangent at each ring. This avoids
- * paper strips, round tubes and twists around nearly vertical strands.
+/** A closed scalp-attached wedge, with a broad rounded crest and tapered tip.
+ * The underside follows the same ellipsoid as the fitted bed. This avoids
+ * paper strips, round tubes, and hollow arches detached from the skull.
  */
 function lock(parent,name,points,width,depth,color,outward=[0,0,1]){
   const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)),false,'centripetal');
-  const axis=new THREE.Vector3(...outward).normalize(),fallback=new THREE.Vector3(1,0,0);
-  return grid(parent,'hair-'+name,8,16,(u,t)=>{
-    const p=curve.getPoint(t),tan=curve.getTangent(t).normalize();
-    let normal=axis.clone().addScaledVector(tan,-axis.dot(tan));
-    if(normal.lengthSq()<.001)normal=fallback.clone().addScaledVector(tan,-fallback.dot(tan));
-    normal.normalize();const lateral=new THREE.Vector3().crossVectors(tan,normal).normalize();
-    const a=u*Math.PI*2;
-    const taper=t>.70?mix(1,.025,smooth(.70,1,t)):mix(.63,1,smooth(0,.27,t));
-    const tipDepth=t>.80?mix(1,.06,smooth(.80,1,t)):1;
-    const w=width*.5*taper*(1+.025*Math.cos(t*Math.PI*3));
-    const d=depth*.5*tipDepth;
-    p.addScaledVector(lateral,Math.sin(a)*w).addScaledVector(normal,Math.cos(a)*d);
-    return p.toArray();
+  const origin=new THREE.Vector3(0,1.601,-.019),radii=new THREE.Vector3(.097,.120,.120);
+  const onScalp=p=>p.clone().sub(origin).divide(radii).normalize().multiply(radii).add(origin);
+  const m=grid(parent,'hair-'+name,16,28,(u,t)=>{
+    const authored=curve.getPoint(t),foot=onScalp(authored);
+    const normal=foot.clone().sub(origin).divide(radii).divide(radii).normalize();
+    const tangent=curve.getTangent(t).normalize();
+    const lateral=new THREE.Vector3().crossVectors(tangent,normal).normalize();
+    const taper=t>.68?mix(1,.012,smooth(.68,1,t)):mix(.42,1,smooth(0,.22,t));
+    const angle=u*Math.PI*2;
+    const center=onScalp(foot.clone().addScaledVector(lateral,Math.sin(angle)*width*.5*taper));
+    const localNormal=center.clone().sub(origin).divide(radii).divide(radii).normalize();
+    const height=Math.max(.003,authored.clone().sub(foot).dot(normal)*.72+depth*.28);
+    // Closed wedge: the underside follows the scalp; the crest is rounded and
+    // its side edges are buried in the fitted bed, so no floating tube arches.
+    center.addScaledVector(localNormal,(.5+.5*Math.cos(angle))*height*taper-.0015);
+    return center.toArray();
   },color);
+  return m;
 }
 
 function naturalSweep(head,hair){
@@ -93,18 +104,18 @@ function naturalSweep(head,hair){
     const front=smooth(.2,.88,c);
     const nape=1.539+.007*Math.cos(a*3+.4);
     const side=mix(nape,1.573,smooth(.1,.95,Math.abs(s)));
-    const edge=1.667-.033*G(angle,-.86,.28)-.021*G(angle,1.06,.32)+.006*G(angle,.30,.2);
-    const y=mix(1.718,mix(side,edge,front),v),q=clamp((y-1.601)/.118,-1,1);
+    const edge=1.674+.010*G(angle,-.10,.35)-.033*G(angle,-.86,.28)-.021*G(angle,1.06,.32)+.006*G(angle,.30,.2);
+    const y=mix(1.721,mix(side,edge,front),v),q=clamp((y-1.601)/.120,-1,1);
     const r=Math.sqrt(Math.max(.00001,1-q*q));
-    return[s*.093*r,y,-.025+c*.111*r];
+    return[s*.097*r,y,-.019+c*.120*r];
   },color(.95),true);
 
   // Broad curved volumes: roots bury into the underlayer, lift once, then sweep
   // toward the temple. Tips finish at unequal heights and do not form a brim.
-  lock(head,'main-sweep',[[.036,1.681,.066],[.014,1.716,.062],[-.028,1.722,.055],[-.066,1.695,.063],[-.081,1.654,.069],[-.065,1.623,.074]],.049,.025,color(1.035),[0,.22,1]);
+  lock(head,'main-sweep',[[.036,1.681,.066],[.014,1.712,.062],[-.028,1.718,.055],[-.066,1.695,.063],[-.081,1.654,.069],[-.065,1.623,.074]],.049,.025,color(1.035),[0,.22,1]);
   lock(head,'front-subgroup',[[.025,1.680,.068],[.002,1.707,.082],[-.031,1.701,.090],[-.054,1.669,.094],[-.045,1.644,.089]],.027,.020,color(1.06),[0,.1,1]);
-  lock(head,'crown-sweep',[[.035,1.709,.024],[.001,1.735,.007],[-.048,1.719,-.005],[-.084,1.674,-.018],[-.089,1.625,-.012],[-.082,1.588,-.007]],.053,.024,color(1.0),[-.5,.5,.2]);
-  lock(head,'back-crown-sweep',[[.026,1.711,-.030],[-.009,1.728,-.050],[-.056,1.703,-.079],[-.076,1.646,-.103],[-.057,1.592,-.116]],.053,.021,color(.99),[-.4,.35,-.7]);
+  lock(head,'crown-sweep',[[.035,1.709,.024],[.001,1.729,.007],[-.048,1.719,-.005],[-.084,1.674,-.018],[-.089,1.625,-.012],[-.082,1.588,-.007]],.064,.018,color(1.0),[-.5,.5,.2]);
+  lock(head,'back-crown-sweep',[[.026,1.711,-.030],[-.009,1.722,-.050],[-.056,1.703,-.079],[-.076,1.646,-.103],[-.057,1.592,-.116]],.064,.016,color(.99),[-.4,.35,-.7]);
   lock(head,'short-part-return',[[.039,1.682,.062],[.057,1.702,.041],[.079,1.679,.030],[.095,1.635,.020],[.087,1.601,.012]],.031,.020,color(1.02),[.65,.2,.7]);
   lock(head,'short-crown-return',[[.039,1.708,.001],[.066,1.706,-.019],[.093,1.663,-.043],[.095,1.615,-.054],[.079,1.581,-.049]],.043,.019,color(.98),[.85,.3,-.25]);
   // Smaller supporting layers follow the skull; they don't compete with the part.
@@ -126,7 +137,7 @@ export function applyNaturalHead(root,{hair=0x44342f,bald=false,heightMap=y=>y}=
   for(const m of head.children)if(m.isMesh&&m.userData.originalHeadStudy){
     const a=m.geometry.attributes.position,sy=new Float32Array(a.count);
     for(let i=0;i<a.count;i++){sy[i]=a.getY(i);a.setY(i,heightMap(a.getY(i)));}
-    m.geometry.setAttribute('sourceY',new THREE.BufferAttribute(sy,1));m.geometry.computeVertexNormals();
+    m.geometry.setAttribute('sourceY',new THREE.BufferAttribute(sy,1));
   }
   head.userData.naturalHead={version:1,bald};return root;
 }
