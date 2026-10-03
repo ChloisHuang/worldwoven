@@ -7,7 +7,7 @@
     "source/game/room-closures.js"
   ],
   "sourceHashes": {
-    "china-palace.js": "d0c0ce23cf9739e0408e0bddcd94e06c473c602cc54a0a828f110e0a4ef74f39",
+    "china-palace.js": "5dc3e3b01f0b2e7eed61a30b6766fca8c1405a231ceefa3ff1cfe38141044ee1",
     "room-closures.js": "885ef9ca8437263c925bacbc097af66cafa2164669736dbc2aa7ac71c7b54f1f",
     "automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
     "inset-closures.js": "dadba37aaa60d85abc2c9102a5da10bcfaf529474d8e60fefe5a975e63d8930a"
@@ -526,7 +526,16 @@
       },
       "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
       "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
-      "currentVisualProof": "PENDING"
+      "currentVisualProof": "PENDING",
+      "structuralCutBottom": 0,
+      "sill": {
+        "minX": -29.325,
+        "maxX": -29,
+        "bottom": 0,
+        "top": 0.1,
+        "walkableY": 0.115,
+        "note": "Exterior half only; interior supplied by existing courtyard slab"
+      }
     },
     {
       "id": "cn-east-gate",
@@ -574,7 +583,16 @@
       },
       "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
       "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
-      "currentVisualProof": "PENDING"
+      "currentVisualProof": "PENDING",
+      "structuralCutBottom": 0,
+      "sill": {
+        "minX": 29,
+        "maxX": 29.325,
+        "bottom": 0,
+        "top": 0.1,
+        "walkableY": 0.115,
+        "note": "Exterior half only; interior supplied by existing courtyard slab"
+      }
     },
     {
       "id": "cn-hall-front",

@@ -108,11 +108,11 @@ export function buildChinaPalace(G,H){
   // boundary; their real0.30m piers house both neighboring inset jambs.
   const bays=side==='south'?[['south-gate-west',-5,-2.8],['south-gate',-2.2,2.2],['south-gate-east',2.8,5]]:side==='north'?[['north-gate-west',-3,-1.4],['north-gate',-1.1,1.1],['north-gate-east',1.4,3]]:[[side+'-gate',gap[0],gap[1]]];
   const ops=bays.map(([suffix,a,b])=>{const op=door('cn-'+suffix,side==='south'?'承礼门 '+(suffix==='south-gate'?'中轴正门':suffix.endsWith('west')?'西掖门':'东掖门'):side==='north'?'北苑门 '+(suffix==='north-gate'?'中轴正门':suffix.endsWith('west')?'西侧门':'东侧门'):side+' palace gate',axis,at,a,b,4.1,['outside','compound'],.10);if(axis==='z'){doorways.at(-1).a[0]=at-.55;doorways.at(-1).b[0]=at+.55;}return op;});
-  // North courtyard already supplies the inner half of the 100mm sill.
+  // The north/east/west courtyard supplies the inner half of the 100mm sill.
   // Cut the duplicate lower wall and keep only the exterior supported step.
   // This is a strict subset of the former solid; leaf/frame levels do not move.
-  if(side==='north')for(const op of ops){floor(w,(op.from+op.to)/2,at-.1625,op.to-op.from,.325,.10,C.red);doorways.find(d=>d.id===op.id).wallCut={...op,bottom:0};}
-  palaceWall(w,colliders,cameraColliders,{axis,at,from,to,bottom:0,top:4.8,depth:.65,color:C.red,openings:side==='north'?ops.map(op=>({...op,bottom:0})):ops});
+  if(side!=='south')for(const op of ops){const mid=(op.from+op.to)/2,outer=at+Math.sign(at)*.1625;floor(w,axis==='x'?mid:outer,axis==='x'?outer:mid,axis==='x'?op.to-op.from:.325,axis==='x'?.325:op.to-op.from,.10,C.red);doorways.find(d=>d.id===op.id).wallCut={...op,bottom:0};}
+  palaceWall(w,colliders,cameraColliders,{axis,at,from,to,bottom:0,top:4.8,depth:.65,color:C.red,openings:side!=='south'?ops.map(op=>({...op,bottom:0})):ops});
   const pieces=[];let cursor=from;for(const op of ops){pieces.push([cursor,op.from]);cursor=op.to;}pieces.push([cursor,to]);
   for(const[a,b]of pieces){const mid=(a+b)/2;G.box(w,axis==='x'?mid:at,.35,axis==='x'?at:mid,axis==='x'?b-a:.77,.7,axis==='x'?.77:b-a,0xa6aaa0);G.box(w,axis==='x'?mid:at,4.88,axis==='x'?at:mid,axis==='x'?b-a:1.04,.22,axis==='x'?1.04:b-a,C.roof);for(let t=a+.22;t<b;t+=.56){const m=G.cyl(w,axis==='x'?t:at,5.02,axis==='x'?at:t,.13,.13,1.13,0xd0ac60,8);m.rotation.x=axis==='x'?Math.PI/2:0;m.rotation.z=axis==='z'?Math.PI/2:0;}}
   const bb=axis==='x'?{minX:from,maxX:to,minZ:at-.325,maxZ:at+.325}:{minX:at-.325,maxX:at+.325,minZ:from,maxZ:to};perimeterWalls.push({side,groupName:w.name,bounds:{...bb,minY:0,maxY:4.8},openings:bays.map(([suffix,a,b])=>({id:'cn-'+suffix,from:a,to:b,width:b-a}))});return w;
