@@ -17,7 +17,7 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
  const bath=furniture.items.find(i=>i.id===`japan-furniture-bath-${men?1:2}`);
  const bench=furniture.items.find(i=>i.kind==='seat'&&i.center[2]===7.55&&(men?i.center[0]<0:i.center[0]>0));
  if(!bath||!bench)return null;
- const change=men?[-9.92,3.8,2.4]:[4.8,3.8,1.4],wash=men?[-9.15,3.8,-3.7]:[3.65,3.8,-4.15];
+ const change=men?[-9.92,3.8,2.4]:[4.8,3.8,1.4],wash=men?[-9.15,3.8,-3.7]:[3,3.8,-4.4];
  const wait=men?[-3.3,3.8,6.55]:[.25,3.8,6.55],meet=[wait[0]-.82,3.8,wait[2]],reception=[-4.22,0,5.7];
  const cleanPoint=[bath.position[0]-.16,3.8,bath.position[2]],cleanTarget=[bath.center[0],4.57,bath.position[2]],cleanerWait=[wait[0]+1.15,3.8,7.2];
  const porterSupply=men?[.15,3.8,2.72]:[-3.55,3.8,2.72],cleanSupply=men?[-3.55,3.8,2.72]:[.15,3.8,2.72];
@@ -61,7 +61,7 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
    jobs=actors.map(n=>job(n,n===guest?reception:home(n),{duration:n===guest?2:0,label:n===guest?'回前台归还钥匙':n===host?'等候旅人归还钥匙':'收好用具，准备下一轮'}));
   }else if(next==='yielding'){
    const destination=interruption?.wait||wait;
-   jobs=[job(guest,destination,{label:'先让客人使用，稍后再来'}),...actors.filter(n=>n!==guest).map(n=>job(n,home(n),{label:'让出设施与通道'}))];
+   jobs=[job(guest,destination,{label:'先让客人使用，稍后再来'}),...actors.filter(n=>n!==guest).map(n=>job(n,interruption?.clearing?.includes(n)?cleanerWait:n.root.position.toArray(),{label:'让出设施与通道'}))];
   }
   for(const task of jobs){task.actor.serviceTask=task;task.actor.route=[];task.elapsed=0;task.stalled=0;task.retries=0;task.done=false;task.arrived=false;task.routeSet=false;tell(task.actor,task.label);}
  }
@@ -77,7 +77,7 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
   facilities.prioritize(id,true);
   if(!relevant||stage==='yielding')return;
   const resume=stage;
-  unmount();interruption={id,resume,wait:wait.slice()};enter('yielding');
+  unmount();interruption={id,resume,wait:wait.slice(),clearing:jobs.filter(j=>j.claim===id).map(j=>j.actor)};enter('yielding');
  }
  function fail(task,reason){
   failures.push({stage,actor:task.actor.station.id,reason});if(failures.length>8)failures.shift();
