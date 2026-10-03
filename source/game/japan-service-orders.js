@@ -2,11 +2,11 @@
 // belong to the scene adapter; a timer alone can never deliver an order here.
 export const JAPAN_SERVICE_POINTS = Object.freeze({
  arrival:[0,0,35], departure:[0,0,36.5],
- reception:[-4.22,0,5.7], registrar:[-5.4,0,5.7], tokenTray:[-5.15,1.19,6.7],
- apothecary:[-5.25,11.4,-1.6], apothecaryPickup:[-4.35,11.4,-2.6], mixtureTray:[-4.9,12.59,-2.6],
+ reception:[-4.22,0,5.7], registrar:[-5.4,0,5.7], tokenTray:[-5.65,1.17,6.48],
+ apothecary:[-5.25,11.4,-1.6], apothecaryPickup:[-4.35,11.4,-2.6], mixtureTray:[-5.0,12.60,-2.15],
  kitchen:[2.1,0,-12.15], kitchenPickup:[3.35,0,-12.15], mealTray:[3.35,1.20,-13.4],
  menService:[-4.2,3.8,-2.16], womenService:[1.35,3.8,-2.16],
- menChanging:[-9.92,3.8,2.4], womenChanging:[4.8,3.8,1.4],
+ menChanging:[-9.92,3.8,2.4], womenChanging:[5.15,3.8,2.4],
  menWashing:[-9.15,3.8,-3.7], womenWashing:[3,3.8,-4.4],
 });
 // These are invented bathhouse blends, with no medical claims or real recipes.
@@ -59,11 +59,13 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
    if(v.stage==='check-in')result.push(descriptor(v,'register','registrar','registrar','reception'));
    if(v.tokenId&&!v.mixtureId)result.push(descriptor(v,'prepare','apothecary','apothecary','apothecary'));
    const mix=item(v.mixtureId);
-   if(mix&&mix.location.id!==service(v)&&mix.location.type!=='used')result.push(descriptor(v,'deliverMix','apothecaryPickup',service(v),null,{itemId:mix.id,tokenId:v.tokenId,side:v.side}));
+   // The small apothecary has one dispatch corner. A second carrier remains at
+   // their own post until the first complete dispatch releases that workspace.
+   if(mix&&mix.location.id!==service(v)&&mix.location.type!=='used')result.push(descriptor(v,'deliverMix','apothecaryPickup',service(v),'apothecary-dispatch',{itemId:mix.id,tokenId:v.tokenId,side:v.side}));
    if(v.mealRequested&&!v.mealId)result.push(descriptor(v,'cook','kitchen','kitchen','kitchen'));
    const meal=item(v.mealId);
    if(meal&&['point','worker'].includes(meal.location.type)&&meal.location.id!=='dining')result.push(descriptor(v,'serve','kitchenPickup','dining',null,{itemId:meal.id,tokenId:v.tokenId}));
-   if(v.stage==='checkout')result.push(descriptor(v,'checkout','registrar','registrar','reception'));
+   if(v.stage==='checkout-ready')result.push(descriptor(v,'checkout','registrar','registrar','reception'));
   }
   return result;
  }
@@ -125,6 +127,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   if(event==='rested'&&v.stage==='resting'&&near(evidence.position,v.restPoint,.8)) {next='dining';v.mealRequested=true;}
   if(event==='sat-to-eat'&&v.stage==='dining'&&near(evidence.position,v.diningPoint,.8))next='waiting-meal';
   if(event==='ate'&&v.stage==='eating'&&item(v.mealId)?.location.id==='dining'&&near(evidence.position,v.diningPoint,.8)) {next='checkout';item(v.mealId).location={type:'used',id:v.id};}
+  if(event==='returned-to-desk'&&v.stage==='checkout'&&near(evidence.position,JAPAN_SERVICE_POINTS.reception))next='checkout-ready';
   if(event==='left'&&v.stage==='leaving'&&near(evidence.position,JAPAN_SERVICE_POINTS.departure)){next='departed';state.completed++;}
   if(!next)return false;
   v.stage=next;if(evidence.position)v.position=evidence.position.slice();persist();return true;

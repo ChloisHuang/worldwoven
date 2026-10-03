@@ -39,13 +39,13 @@ export function createJapanServiceProps(parent) {
   g.name=item.id;g.userData={serviceItemId:item.id,visitId:visit.id,tokenId:visit.tokenId,kind:item.kind};root.add(g);return g;
  }
  // Ledger and return tray sit on the already modelled reception counter.
- const reception=new THREE.Group();reception.position.set(-5.15,1.19,6.7);root.add(reception);
+ const reception=new THREE.Group();reception.position.set(...P.tokenTray);root.add(reception);
  box(reception,.52,.027,.37,0xe6dcc2,[-.38,0,0]);
  for(const z of [-.11,-.055,0,.055,.11])box(reception,.39,.004,.011,0x819086,[-.38,.016,z]);
  box(reception,.42,.032,.31,0x8e6645,[.23,0,0]);
  function itemPoint(item,v) {
   const lane=(v.number%2?-.22:.22);
-  if(item.location.id==='apothecaryPickup')return [P.mixtureTray[0],P.mixtureTray[1],P.mixtureTray[2]+lane];
+  if(item.location.id==='apothecaryPickup')return [P.mixtureTray[0]+lane,P.mixtureTray[1],P.mixtureTray[2]];
   if(item.location.id==='kitchenPickup')return [P.mealTray[0]+lane,P.mealTray[1],P.mealTray[2]];
   if(item.location.id==='menService')return [-4.2+lane,4.48,-3.1];
   if(item.location.id==='womenService')return [1.35+lane,4.48,-3.1];
