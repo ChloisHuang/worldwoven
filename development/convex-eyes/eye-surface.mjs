@@ -49,10 +49,11 @@ export function buildConvexEye(parent,{side,masc=false,traits=null,facialSurface
    const p=edge(u,up),taper=Math.pow(Math.sin(Math.PI*u),.7),y=p[1]+(up?1:-1)*width*taper*v;
    // The outer edge overlaps the socket skin by a submillimetre; the curved
    // intermediate rows give the lid thickness without a separate round tube.
-   const z=mix(p[2]+.00025,facialSurface(p[0],y)+.0002,v)+.0006*Math.sin(Math.PI*v)*taper-(coherent&&up?.0010*Math.exp(-(((v-.72)/.17)**2))*taper:0);
+   const roll=coherent&&!up?.0015:.0006;
+   const z=mix(p[2]+.00025,facialSurface(p[0],y)+.0002,v)+roll*Math.sin(Math.PI*v)*taper-(coherent&&up?.0012*Math.exp(-(((v-.72)/.17)**2))*taper:0);
    return[p[0],y,z];
   },C.skin);
-  if(coherent&&up){const colors=[];for(let j=0;j<=5;j++)for(let i=0;i<=24;i++){const u=i/24,v=j/5,fold=Math.exp(-(((v-.78)/.16)**2))*Math.sin(Math.PI*u),c=new THREE.Color(C.skin).multiplyScalar(1-.115*fold);colors.push(c.r,c.g,c.b);}lid.geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));}
+  if(coherent){const colors=[];for(let j=0;j<=5;j++)for(let i=0;i<=24;i++){const u=i/24,v=j/5,fold=Math.exp(-(((v-(up?.78:.82))/.16)**2))*Math.sin(Math.PI*u),c=new THREE.Color(C.skin).multiplyScalar(1-(up?.25:.18)*fold);colors.push(c.r,c.g,c.b);}lid.geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));}
   const color=up?C.brow:new THREE.Color(C.skin).multiplyScalar(.9).getHex();
   grid(parent,'eyelid-'+(up?'lash':'waterline')+'-'+side,24,2,(u,v)=>{
    const p=edge(u,up),taper=Math.sin(Math.PI*u),w=(up?(coherent?.00165:.0012):.00040)*eye*taper;

@@ -17,15 +17,15 @@ function curve1(points,y){if(y<=points[0][0])return points[0][1];if(y>=points.at
 // the nose root, upper cheek, muzzle and chin rather than summing local bumps.
 const FACE_X=[0,.008,.018,.030,.0435,.057,.070,.083];
 const FACE_ROWS=[
- [1.474,[.0745,.073,.068,.058,.043,.026,.012,0]],
- [1.487,[.0735,.0735,.072,.067,.056,.040,.020,0]],
- [1.500,[.0765,.076,.074,.070,.061,.048,.026,0]],
- [1.514,[.078,.0775,.075,.071,.064,.049,.030,.010]],
- [1.529,[.080,.079,.074,.070,.067,.054,.032,.012]],
- [1.536,[.087,.084,.075,.070,.067,.058,.041,.016]],
- [1.544,[.092,.088,.076,.071,.069,.061,.047,.020]],
- [1.556,[.089,.084,.076,.071,.069,.064,.052,.023]],
- [1.577,[.084,.081,.074,.068,.069,.063,.047,.021]],
+ [1.474,[.0805,.079,.074,.061,.044,.026,.012,0]],
+ [1.487,[.0795,.079,.077,.070,.057,.040,.020,0]],
+ [1.500,[.0835,.083,.080,.075,.063,.048,.026,0]],
+ [1.514,[.084,.0835,.079,.074,.065,.049,.030,.010]],
+ [1.529,[.084,.083,.077,.072,.067,.054,.032,.012]],
+ [1.536,[.094,.090,.078,.072,.067,.058,.041,.016]],
+ [1.544,[.101,.0945,.079,.072,.069,.061,.047,.020]],
+ [1.556,[.095,.088,.078,.071,.069,.064,.052,.023]],
+ [1.577,[.087,.083,.075,.068,.069,.063,.047,.021]],
  [1.594,[.079,.076,.069,.062,.060,.056,.044,.017]],
  [1.614,[.077,.0765,.075,.072,.069,.063,.044,.021]],
  [1.640,[.075,.075,.074,.071,.066,.058,.043,.017]],
@@ -52,6 +52,21 @@ export function coherentFaceSurface(x,y,masc=false,traits=null){
  if(n!==1||w!==1){const region=(1-smooth(.018,.030,Math.abs(x)))*smooth(1.518,1.531,y)*(1-smooth(1.599,1.616,y)),root=frontNet(.026,y),shaped=root+(frontNet(x/w,1.542+(y-1.542)/n)-root)*n;z=mix(z,shaped,region);}
  if(s!==1)z-=.006*(s-1)*(G(x,y,-.0435,1.594,.022,.012)+G(x,y,.0435,1.594,.022,.012));
  return mix(base,z,blend)+lipSurfaceDepth(x,y,masc);
+}
+export function buildCoherentHead(head,{masc,traits,color}){
+ const rings=faceRings(masc,traits),angles=[],heights=[];
+ // Keep a bounded grid while concentrating samples where the nose openings,
+ // lips and orbital boundaries require curvature. The back needs fewer rows.
+ for(const[a,b,n]of[[-Math.PI,-.85,32],[-.85,-.30,16],[-.30,.30,32],[.30,.85,16],[.85,Math.PI,32]])for(let i=0;i<n;i++)angles.push(mix(a,b,i/n));angles.push(Math.PI);
+ for(const[a,b,n]of[[1.455,1.480,10],[1.480,1.535,28],[1.535,1.555,20],[1.555,1.620,26],[1.620,1.707,18]])for(let i=0;i<n;i++)heights.push(mix(a,b,i/n));heights.push(1.707);
+ const positions=[],indices=[];
+ for(const y of heights){
+  let lo=0,hi=rings.length-1;for(let i=0;i<24;i++){const t=(lo+hi)/2;if(spline(rings,t)[0]<y)lo=t;else hi=t;}const r=spline(rings,(lo+hi)/2);
+  for(const a of angles){const x=r[1]*Math.sin(a),z=Math.cos(a)>0?coherentFaceSurface(x,y,masc,traits):r[4]+r[2]*Math.cos(a);positions.push(x,y,z);}
+ }
+ const stride=angles.length;for(let j=0;j<heights.length-1;j++)for(let i=0;i<stride-1;i++){const a=j*stride+i,b=a+1,c=a+stride,d=c+1;indices.push(a,b,c,b,d,c);}
+ const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setIndex(indices);geometry.computeVertexNormals();
+ const mesh=new THREE.Mesh(geometry,{color:new THREE.Color(color),isMaterial:false});mesh.name='continuous-head-jaw-cheeks-nose';head.add(mesh);
 }
 function grid(g,name,nu,nv,fn,color){const p=[],ix=[];for(let j=0;j<=nv;j++)for(let i=0;i<=nu;i++)p.push(...fn(i/nu,j/nv));for(let j=0;j<nv;j++)for(let i=0;i<nu;i++){const a=j*(nu+1)+i,b=a+1,c=a+nu+1,d=c+1;ix.push(a,b,c,b,d,c);}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(p,3));geo.setIndex(ix);geo.computeVertexNormals();const m=new THREE.Mesh(geo,{color:new THREE.Color(color),isMaterial:false});m.name=name;g.add(m);return m;}
 export function buildCoherentMouth(h,{masc,facialSurface,colors:C}){
