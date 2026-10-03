@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import {material} from './geometry.js';
-import {createAutomaticRouting} from './automatic-routing.js';
+import {createAutomaticRouting,approachingDoor,advanceDoorOpening} from './automatic-routing.js';
 import {moveWithCollision,segmentBoxIntersection} from './navigation.js';
 import {roomClosureSpecs,existingBannerCameraColliders} from './room-closures.js';
 
-// Operable thresholds are known to the route planner. Only their moving leaves
-// participate in physical movement and camera collision; the static lot's cached
-// navigation graph is never invalidated on every animation frame.
+// Operable thresholds are known to the route planner. Movement briefly reserves
+// their sampled opening workspace; cameras still collide with actual leaves and
+// fixed supports. Animation never invalidates the static lot's navigation graph.
 const PALETTES={shoji:[0x765744,0xe8ddbc,0x9a7a49],palace:[0x843a31,0x963e32,0xcaa45e],french:[0xe6e0c9,0x698779,0xb79b54],egypt:[0x5e503b,0x386f72,0xbc984e]};
 function shapeBox(parent,x,y,z,w,h,d,color,bevel=.012){
   const b=Math.min(bevel,w/5,h/5,d/3),s=new THREE.Shape();
@@ -128,7 +128,7 @@ export function createAutomaticDoors(lot,region){
     d.occluders=(lot.colliders||[]).filter(b=>b.maxX>d.center[0]-d.width-7&&b.minX<d.center[0]+d.width+7&&b.maxZ>d.center[2]-d.width-7&&b.minZ<d.center[2]+d.width+7&&(b.maxY??4)>d.center[1]+1.3&&(b.minY??0)<d.center[1]+1.3);
     return d;
   });
-  let cameraBoxes=[],openingObstructions=new WeakSet();const previousPositions=new WeakMap(),query=broadPhase(doors),active=new Set();
+  let cameraBoxes=[],openingObstructions=new WeakSet(),frameSeconds=1/60;const previousPositions=new WeakMap(),query=broadPhase(doors),active=new Set();
   function poseDoor(d){
     stats.poseEvaluations++;
     for(const l of d.leaves){
@@ -161,35 +161,39 @@ export function createAutomaticDoors(lot,region){
   function getSweepBoxes(d){
     if(d.sweepBoxes)return d.sweepBoxes;
     const fraction=d.fraction,boxes=[];d.fraction=0;poseDoor(d);let previous=doorBoxes(d);
-    for(let i=1;i<=50;i++){d.fraction=i/50;poseDoor(d);const next=doorBoxes(d);for(let j=0;j<next.length;j++)boxes.push(unionBox(previous[j],next[j]));previous=next;}
+    for(let i=1;i<=50;i++){d.fraction=i/50;poseDoor(d);const next=doorBoxes(d);for(let j=0;j<next.length;j++)boxes.push({...unionBox(previous[j],next[j]),openingFraction:i/50});previous=next;}
     d.fraction=fraction;poseDoor(d);d.sweepBoxes=boxes;return boxes;
   }
-  const routing=createAutomaticRouting({doors,staticColliders:lot.colliders||[],planningColliders:openLeafColliders,getSweepBoxes,getVersion:()=>version,
-    requestOpen(d){if(disposed)return;d.routeHold=.25;active.add(d);}});
+  function visibleFrom(d,p){const y=d.center[1]+1.3,from={x:p.x,y,z:p.z},to={x:d.center[0],y,z:d.center[2]};return !d.occluders.some(b=>segmentBoxIntersection(from,to,{...b,minY:b.minY??-1,maxY:b.maxY??4})!==null);}
+  function requestOpen(d){if(disposed)return;d.routeHold=.25;active.add(d);}
+  const routing=createAutomaticRouting({doors,staticColliders:lot.colliders||[],planningColliders:openLeafColliders,getSweepBoxes,getVersion:()=>version,getMotion:p=>previousPositions.get(p)?.motion,requestOpen});
   const api={
     ...routing,
     // Stable position keys allow freshly allocated actor descriptors each frame.
     update(dt,actors=[]){
-      if(disposed)return;openingObstructions=new WeakSet();dt=Math.min(.1,Math.max(0,dt));stats.updates++;
+      if(disposed)return;openingObstructions=new WeakSet();dt=Math.min(.1,Math.max(0,dt));if(dt>0)frameSeconds=dt;stats.updates++;
       const people=actors.map(a=>{
         const p=a.root?.position||a.position||a;if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.z))return null;
-        const old=previousPositions.get(p),measured=old&&dt>0?Math.hypot(p.x-old.x,p.z-old.z)/dt:0;
-        previousPositions.set(p,{x:p.x,z:p.z});
-        return {p,r:Math.max(.01,a.radius??a.collisionRadius??.34),height:a.height??1.95,speed:Math.min(8,Math.max(0,a.speed??measured))};
+        // Controllers move after this update, so the observed displacement
+        // belongs to the previous step. A long next frame must not dilute it.
+        const old=previousPositions.get(p),elapsed=old?.dt||dt,vx=a.velocity?.x??(old&&elapsed>0?(p.x-old.x)/elapsed:0),vz=a.velocity?.z??(old&&elapsed>0?(p.z-old.z)/elapsed:0),measured=Math.hypot(vx,vz),speed=Math.min(8,Math.max(0,a.speed??measured)),scale=measured>0?speed/measured:0,motion={x:vx*scale,z:vz*scale,dt};
+        previousPositions.set(p,{x:p.x,z:p.z,dt,motion});
+        return {p,r:Math.max(.01,a.radius??a.collisionRadius??.34),height:a.height??1.95,speed,motion};
       }).filter(Boolean);
       const candidates=new Set(active);
-      for(const a of people){const r=2+a.r+a.speed*.58;for(const d of query({minX:a.p.x-r,maxX:a.p.x+r,minZ:a.p.z-r,maxZ:a.p.z+r}))candidates.add(d);}
+      for(const a of people){const r=2+a.r+a.speed*dt;for(const d of query({minX:a.p.x-r,maxX:a.p.x+r,minZ:a.p.z-r,maxZ:a.p.z+r}))candidates.add(d);}
       for(const d of candidates){
         stats.visitedClosures++;
         const routeRequested=d.routeHold>0;d.routeHold=Math.max(0,d.routeHold-dt);
         const nearby=people.filter(a=>Math.abs((a.p.y??0)-d.center[1])<1.2&&Math.abs(a.p.x-d.center[0])<d.width+7&&Math.abs(a.p.z-d.center[2])<d.width+7);
-        const visible=a=>{const y=d.center[1]+1.3,from={x:a.p.x,y,z:a.p.z},to={x:d.center[0],y,z:d.center[2]};return !d.occluders.some(b=>segmentBoxIntersection(from,to,{...b,minY:b.minY??-1,maxY:b.maxY??4})!==null);};
-        const reachable=nearby.filter(visible);
-        const approach=reachable.some(a=>{const travel=a.speed*.58,moving=a.speed>.08,reach=d.motion==='hinge'?d.width/2+.32:.15;return within(d,a.p,moving?Math.max(1.7,reach+a.r+.25+travel):1.7,.8+(moving?travel:0));});
-        const safety=reachable.some(a=>within(d,a.p,1.35,.55)||(d.motion==='hinge'&&a.speed>.08&&within(d,a.p,d.width/2+.32+a.r+.12+a.speed*dt,.55)))||nearby.some(a=>d.boxes.some(b=>penetration(a.p,b,a.r,a.height)>0));
+        const reachable=nearby.filter(a=>visibleFrom(d,a.p));
+        const approach=reachable.some(a=>approachingDoor(d,a.p,a.r,a.height,a.motion,getSweepBoxes));
+        // Occupancy keeps an already opening/closing doorway safe. It cannot
+        // independently open a closed door for a distant or sideways passer.
+        const overlapping=nearby.some(a=>d.boxes.some(b=>penetration(a.p,b,a.r,a.height)>0)),safety=(d.fraction>0&&reachable.some(a=>within(d,a.p,1.35,.55)))||overlapping;
         if(approach||safety||routeRequested)d.hold=1.1;else d.hold=Math.max(0,d.hold-dt);
         const target=approach||safety||routeRequested||d.hold>0?1:0;
-        const desired=safety?1:THREE.MathUtils.clamp(d.fraction+(target?1:-1)*dt/(target?.48:.85),0,1);
+        const desired=overlapping?1:target?advanceDoorOpening(d,dt):Math.max(0,d.fraction-dt/.85);
         if(target||d.fraction>0)active.add(d);else active.delete(d);
         if(Math.abs(desired-d.fraction)<1e-10){
           // Normalize an already-converged endpoint, including its live boxes.
@@ -220,6 +224,25 @@ export function createAutomaticDoors(lot,region){
     constrainMove(position,dx,dz,r=.34,height=1.95){
       if(disposed||!cameraBoxes.length)return {dx,dz};
       const candidates=query({minX:Math.min(position.x,position.x+dx)-r,maxX:Math.max(position.x,position.x+dx)+r,minZ:Math.min(position.z,position.z+dz)-r,maxZ:Math.max(position.z,position.z+dz)+r});
+      const length=Math.hypot(dx,dz),from={x:position.x,y:position.y??0,z:position.z},to={x:position.x+dx,y:from.y,z:position.z+dz},motion={x:dx/frameSeconds,z:dz/frameSeconds,dt:frameSeconds};let allowed=1;
+      for(const d of candidates){
+        if(d.fraction>=1)continue;
+        // Desired movement supplies intent even on the first input frame or
+        // while waiting. Renewing it cannot steer or relocate the actor.
+        if(visibleFrom(d,position)&&approachingDoor(d,position,r,height,motion,getSweepBoxes))requestOpen(d);
+        if(!d.hold&&!d.routeHold)continue;
+        const sweep=getSweepBoxes(d),margin=r+.035;
+        // A restored/near-start actor already inside the future workspace keeps
+        // its real-leaf escape and automatic backoff; never cage it in a new box.
+        if(sweep.some(b=>penetration(from,b,margin,height)>0))continue;
+        for(const b of sweep){
+          const at=segmentBoxIntersection(from,to,{minX:b.minX-margin,maxX:b.maxX+margin,minY:b.minY-height+.01,maxY:b.maxY-.01,minZ:b.minZ-margin,maxZ:b.maxZ+margin});
+          if(at!==null)allowed=Math.min(allowed,Math.max(0,at-.002/Math.max(length,.002)));
+        }
+      }
+      // Clip the requested line only. No sliding along an invisible rectangle,
+      // and no reservation once the moving leaf reaches its fully open pose.
+      dx*=allowed;dz*=allowed;
       const relevant=[];for(const d of candidates)for(const b of d.boxes)if((position.y??0)<b.maxY-.01&&(position.y??0)+height>b.minY+.01)relevant.push(b);stats.collisionCandidates+=relevant.length;
       if(!relevant.length)return {dx,dz};
       const p={x:position.x,y:position.y,z:position.z},options={bounds:lot.bounds,multilevel:false,cache:false};

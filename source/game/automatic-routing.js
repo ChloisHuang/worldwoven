@@ -1,4 +1,4 @@
-import {blocked,canTraverse,findPath,resolveSurfaceHeight} from './navigation.js';
+import {blocked,canTraverse,findPath,resolveSurfaceHeight,segmentBoxIntersection} from './navigation.js';
 
 // Authored same-level rugs rise .07 m and courtyard curbs drop .10 m.
 // Keep their flat supports without admitting even the engine's .4 m stair step.
@@ -8,13 +8,41 @@ const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 function overlaps(p,b,r,height){return p.y<b.maxY-.01&&p.y+height>b.minY+.01&&p.x>b.minX-r&&p.x<b.maxX+r&&p.z>b.minZ-r&&p.z<b.maxZ+r;}
 function coordinates(d,p){return {lateral:d.axis==='z'?p.z-d.center[2]:p.x-d.center[0],normal:d.axis==='z'?p.x-d.center[0]:p.z-d.center[2]};}
 function worldPoint(d,lateral,normal,y){return d.axis==='z'?{x:d.center[0]+normal,y,z:d.center[2]+lateral}:{x:d.center[0]+lateral,y,z:d.center[2]+normal};}
-function crossingDistance(d,start,route,limit){
+// Smoothstep eases both ends; broad ceremonial leaves retain a slower stroke.
+// Inverting the current fraction also keeps interrupted/reversed strokes smooth.
+export function doorOpeningSeconds(d){return d.motion==='hinge'?.30+.16*Math.min(1,Math.max(0,(d.width-3.2)/2.8)):d.motion==='gather'?.32:.28;}
+const openingTime=fraction=>.5-Math.sin(Math.asin(1-2*Math.min(1,Math.max(0,fraction)))/3);
+export function advanceDoorOpening(d,dt){const t=Math.min(1,openingTime(d.fraction)+dt/doorOpeningSeconds(d));return t*t*(3-2*t);}
+// One admission rule for physical actors and automatic routes. A moving actor
+// must be heading through the usable aperture, not merely passing its side.
+// Only the leaf sweep on that trajectory can extend the near-door sensor.
+export function approachingDoor(d,p,radius,height,motion,getSweepBoxes){
+ const local=coordinates(d,p),usable=Math.max(0,d.width/2-radius),vx=motion?.x??0,vz=motion?.z??0,speed=Math.hypot(vx,vz);
+ if(Math.abs((p.y??0)-d.center[1])>=1.2||Math.abs(local.lateral)>d.width/2+.12)return false;
+ const near=Math.abs(local.normal)<1.2&&Math.abs(local.lateral)<=usable;
+ if(speed<=.08)return near;
+ if(Math.abs(local.normal)<1e-6)return near;
+ const normal=d.axis==='z'?vx:vz,lateral=d.axis==='z'?vz:vx;
+ if(local.normal*normal>=-1e-6)return false;
+ const crossing=local.lateral-lateral*local.normal/normal;
+ if(Math.abs(crossing)>usable)return false;
+ if(near)return true;
+ // Admit only at the workspace itself, with one movement step of warning.
+ // Movement reserves these same per-pose swept boxes while the leaf opens;
+ // actor speed no longer adds a whole animation's travel to the sensor.
+ const frame=Math.min(.1,Math.max(0,motion?.dt??.05)),from={...p,y:p.y??0};
+ return getSweepBoxes(d).some(b=>{
+  const to={x:p.x+vx*frame,y:from.y,z:p.z+vz*frame},margin=radius+.06;
+  return segmentBoxIntersection(from,to,{minX:b.minX-margin,maxX:b.maxX+margin,minY:b.minY-height+.01,maxY:b.maxY-.01,minZ:b.minZ-margin,maxZ:b.maxZ+margin})!==null;
+ });
+}
+function crossingDistance(d,start,route,limit,visit){
  let from=start,total=0;
  for(const to of route){
   const a=coordinates(d,from),b=coordinates(d,to),length=distance(from,to);
   if(a.normal*b.normal<=0&&Math.abs(a.normal-b.normal)>1e-7){
    const t=a.normal/(a.normal-b.normal),lateral=a.lateral+(b.lateral-a.lateral)*t,y=(from.y??start.y)+((to.y??start.y)-(from.y??start.y))*t;
-   if(Math.abs(lateral)<d.width/2&&Math.abs(y-d.center[1])<.7)return total+length*t;
+   if(Math.abs(lateral)<d.width/2&&Math.abs(y-d.center[1])<.7){visit?.(worldPoint(d,lateral,0,y));return total+length*t;}
   }
   total+=length;if(total>limit)break;from=to;
  }
@@ -24,7 +52,7 @@ function crossingDistance(d,start,route,limit){
 // An automatic route owns its detour/wait state. Physical movement is still
 // performed by the normal actor controller, with the unchanged live leaf sweep.
 // Manual input never calls this API, and abandoning an array abandons its route.
-export function createAutomaticRouting({doors,staticColliders,planningColliders,getSweepBoxes,requestOpen,getVersion}){
+export function createAutomaticRouting({doors,staticColliders,planningColliders,getSweepBoxes,requestOpen,getVersion,getMotion=()=>null}){
  let plans=new WeakMap(),profiles=new WeakMap(),disposed=false;const openColliders=staticColliders.concat(planningColliders);
  // Exact centerline samples bridge narrow translated apertures to the
  // unchanged coarse grid. All visibility links are verified by navigation.
@@ -90,13 +118,18 @@ export function createAutomaticRouting({doors,staticColliders,planningColliders,
   }
   return {door:d,points:[],wait:null,originY,phase:'blocked',version:getVersion()};
  }
- function imminentDoor(route,p,height=1.95){
+ function imminentDoor(route,p,height=1.95,radius=.34,motion=null){
   let found=null,best=Infinity;
+  const speed=Math.max(.1,Math.hypot(motion?.x??0,motion?.z??0));
   for(const d of doors){
    if(Math.abs(p.y-d.center[1])>=.7||!d.boxes.some(b=>p.y<b.maxY-.01&&p.y+height>b.minY+.01))continue;
-   const local=coordinates(d,p),reach=d.width/2+.8;
-   if(Math.abs(local.normal)>reach||Math.abs(local.lateral)>d.width/2+.8)continue;
-   const at=crossingDistance(d,p,route,d.width+2);
+   let crossing;const at=crossingDistance(d,p,route,d.width+2,q=>crossing=q);
+   if(!crossing)continue;
+   // The route's verified aperture crossing is its intent. A short initial
+   // grid link can point sideways/away while already inside a future leaf;
+   // that must not suppress staging or let it borrow a different floor.
+   const length=distance(p,crossing),intent=length>1e-7?{x:(crossing.x-p.x)/length*speed,z:(crossing.z-p.z)/length*speed,dt:motion?.dt}:null;
+   if(!approachingDoor(d,p,radius,height,intent,getSweepBoxes))continue;
    if(at<best){best=at;found=d;}
   }
   return found;
@@ -108,7 +141,12 @@ export function createAutomaticRouting({doors,staticColliders,planningColliders,
    // A legal closed-door start can be inside a future parked leaf. Only in
    // that case may the initial planning leg omit open poses; staging still
    // uses every current leaf and rejoins the full open-leaf route afterward.
-   if(!route.length){const initial=findPath(start,end,staticColliders,routeOptions),d=imminentDoor(initial,point(start),routeOptions.bodyHeight??1.95);if(d&&d.fraction<1&&d.openBoxes?.some(b=>overlaps(point(start),b,radius,routeOptions.bodyHeight??1.95)))route=initial;}
+   if(!route.length){
+    const initial=findPath(start,end,staticColliders,routeOptions),p=point(start),height=routeOptions.bodyHeight??1.95;
+    // Eligibility has no opening side effect. A legal closed start may first
+    // need a sideways grid link out of a future parked leaf before approaching.
+    if(doors.some(d=>d.fraction<1&&d.openBoxes?.some(b=>overlaps(p,b,radius,height))&&crossingDistance(d,p,initial,Infinity)!==Infinity))route=initial;
+   }
    plans.set(route,{target:{...point(end),y:end.y??start.y??0},options:routeOptions,radius,stage:null,door:null,phase:route.length?'walking':'complete'});
    return route;
   },
@@ -136,7 +174,7 @@ export function createAutomaticRouting({doors,staticColliders,planningColliders,
     }
     while(route.length&&distance(p,route[0])<arrivalTolerance&&Math.abs((route[0].y??p.y)-p.y)<.45)route.shift();
     if(!route.length){state.phase='complete';return {waypoint:null,waiting:false,phase:state.phase,doorId:null};}
-    const door=imminentDoor(route,p,state.options.bodyHeight??1.95);state.door=door;
+    const door=imminentDoor(route,p,state.options.bodyHeight??1.95,state.radius,getMotion(position));state.door=door;
     if(door){
      requestOpen(door);
      if(door.fraction<1-1e-7){state.stage=makeStage(door,p,state);continue;}
@@ -148,7 +186,7 @@ export function createAutomaticRouting({doors,staticColliders,planningColliders,
   routeBlocked(route,position){
    const state=plans.get(route);if(!state)return false;
    if(state.stage){state.stage.retry=true;return true;}
-   const d=state.door||imminentDoor(route,point(position),state.options.bodyHeight??1.95);
+   const d=state.door||imminentDoor(route,point(position),state.options.bodyHeight??1.95,state.radius,getMotion(position));
    if(!d)return false;
    requestOpen(d);state.stage=makeStage(d,point(position),state);return true;
   },
