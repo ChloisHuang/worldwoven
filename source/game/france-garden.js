@@ -41,22 +41,27 @@ export function addRoyalGardenBench(parent,side=1){
 
 // Leaves are folded, pointed blades, batched per plant. Their open arrangement
 // reveals actual branches; there are no spherical or box canopy fillers.
-function leafBatch(){return{positions:[],colors:[]};}
+function leafBatch(){return{positions:[],colors:[],normals:[]};}
+const broadLeafOutline=(()=>{const p=new T.Shape();p.moveTo(0,-.34);p.bezierCurveTo(-.18,-.54,-.49,-.42,-.50,-.13);p.bezierCurveTo(-.52,.12,-.26,.40,0,.51);p.bezierCurveTo(.27,.40,.51,.10,.50,-.13);p.bezierCurveTo(.48,-.42,.17,-.54,0,-.34);return p.getSpacedPoints(16).slice(0,-1);})();
 function leaf(b,center,length,width,yaw,pitch,color,twist=0){
-  const outline=[[0,-.50],[-.34,-.33],[-.51,-.04],[-.34,.23],[0,.52],[.38,.24],[.48,-.08],[.28,-.35]],c=new T.Color(color),m=new T.Matrix4().makeRotationFromEuler(new T.Euler(pitch,yaw,twist,'YXZ'));
-  const points=outline.map(([x,z])=>new T.Vector3(x*width,-Math.abs(x)*length*.055,z*length).applyMatrix4(m).add(new T.Vector3(...center))),mid=new T.Vector3(0,length*.065,0).applyMatrix4(m).add(new T.Vector3(...center));
-  for(let i=0;i<8;i++){const shade=i<4?.94:1.06;for(const p of[mid,points[i],points[(i+1)%8]]){b.positions.push(p.x,p.y,p.z);b.colors.push(c.r*shade,c.g*shade,c.b*shade);}}
+  const c=new T.Color(color),m=new T.Matrix4().makeRotationFromEuler(new T.Euler(pitch,yaw,twist,'YXZ')),local=[0,length*.065,0],ids=[],n=broadLeafOutline.length;
+  for(const r of[.52,1])for(const v of broadLeafOutline){const x=v.x*width*r,z=v.y*length*r,y=length*(.065*(1-r*r)-.15*v.y*v.y*r*r);local.push(x,y,z);}
+  for(let i=0;i<n;i++){const j=(i+1)%n;ids.push(0,1+i,1+j,1+i,1+n+i,1+j,1+j,1+n+i,1+n+j);}
+  // Smooth normals over the shallow curved blade avoid a triangular shard look.
+  const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(local,3));geo.setIndex(ids);geo.computeVertexNormals();const normals=geo.attributes.normal;
+  for(const id of ids){const p=new T.Vector3(local[id*3],local[id*3+1],local[id*3+2]).applyMatrix4(m).add(new T.Vector3(...center)),normal=new T.Vector3().fromBufferAttribute(normals,id).transformDirection(m),shade=.97+.06*(local[id*3]/Math.max(width,.01)+.5);b.positions.push(p.x,p.y,p.z);b.normals.push(normal.x,normal.y,normal.z);b.colors.push(c.r*shade,c.g*shade,c.b*shade);}
+  geo.dispose();
 }
-function foliage(q,b,name){const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(b.positions,3));geo.setAttribute('color',new T.Float32BufferAttribute(b.colors,3));geo.computeVertexNormals();return named(G.mesh(q,geo,0xffffff,0,0,0,{vertexColors:true,side:T.DoubleSide}),name);}
+function foliage(q,b,name){const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(b.positions,3));geo.setAttribute('color',new T.Float32BufferAttribute(b.colors,3));if(b.normals.length===b.positions.length)geo.setAttribute('normal',new T.Float32BufferAttribute(b.normals,3));else geo.computeVertexNormals();return named(G.mesh(q,geo,0xffffff,0,0,0,{vertexColors:true,side:T.DoubleSide}),name);}
 function branchLeaves(b,end,scale,angle,seed){
-  for(let j=0;j<17;j++){const a=angle+j*2.399,ring=j<4?.13:.35,dx=Math.sin(a)*ring*scale,dz=Math.cos(a)*ring*scale,dy=Math.sin(j*2.1+seed)*.29*scale;leaf(b,[end[0]+dx,end[1]+dy,end[2]+dz],(.47+.07*Math.sin(j+seed))*scale,(.34+.06*Math.cos(j*3+seed))*scale,a,Math.sin(j*1.71+seed)*1.05,[P.leaf,P.light,P.dark][(j+seed)%3],Math.cos(j*2.3)*.45);}
+  for(let j=0;j<13;j++){const a=angle+j*2.399,ring=j<4?.09:.29,dx=Math.sin(a)*ring*scale,dz=Math.cos(a)*ring*scale,dy=Math.sin(j*2.1+seed)*.22*scale;leaf(b,[end[0]+dx,end[1]+dy,end[2]+dz],(.53+.07*Math.sin(j+seed))*scale,(.53+.06*Math.cos(j*3+seed))*scale,a,Math.sin(j*1.71+seed)*.78,[P.leaf,P.light,P.dark][(j+seed)%3],Math.cos(j*2.3)*.45);}
 }
 export function addGardenTree(parent,x,z,{scale=1,base=0,seed=0}={}){
   const q=new T.Group();q.position.set(x,base,z);q.scale.setScalar(scale);q.rotation.y=seed*.81;q.name='Branched lime with open leaf sprays';parent.add(q);const b=leafBatch();
   for(const [a,end,r1,r2]of[[[0,0,0],[.035,1.3,.015],.16,.125],[[.035,1.3,.015],[-.04,2.3,.04],.125,.081],[[-.04,2.3,.04],[.08,3.1,0],.081,.044],[[.08,3.1,0],[.02,4.1,.02],.044,.012]])rod(q,a,end,r1,r2,P.bark,'Tapered bending lime trunk');
   for(const [i,r,y]of[[0,.82,2.5],[1,1.0,2.75],[2,.86,2.87],[3,1.04,3.14],[4,.89,3.40],[5,.68,3.61],[6,.86,3.76],[7,.52,4.0],[8,.30,4.27]]){
     const a=i*2.4+seed*.21,end=[Math.sin(a)*r,y,Math.cos(a)*r];
-    const start=[.015,Math.max(1.7,y-.82),.015];sweep(q,[start,[end[0]*.55,y-.34,end[2]*.52],end],i<3?.053:.036,P.bark,'Visible rising lime branch '+i,9);
+    const start=[.015,Math.max(1.7,y-.82),.015];sweep(q,[start,[end[0]*.30+Math.cos(a)*.12,y-.59,end[2]*.30-Math.sin(a)*.12],[end[0]*.74,y-.23,end[2]*.77],end],i<3?.053:.036,P.bark,'Visible rising lime branch '+i,9);
     const tip=[end[0]+Math.cos(a)*.22,y+.23,end[2]-Math.sin(a)*.22];rod(q,[end[0]*.68,y-.2,end[2]*.68],tip,.022,.009,P.bark,'Forked terminal twig '+i);branchLeaves(b,end,.96,a,i+seed);branchLeaves(b,tip,.65,a+.6,i+seed+1);
   }
   foliage(q,b,'Layered lime leaf canopy');q.userData.originalGardenAsset=true;return q;
@@ -89,9 +94,9 @@ export function addGardenHedge(parent,x,z,w,d){
     const along=-long/2+long*i/steps,h=.60+.085*Math.sin(i*1.8),width=short*(.35+.045*Math.sin(i*2.7));
     for(const [across,y]of[[-width*.68,.09],[-width,.30],[-width*.94,h-.10],[-width*.43,h+.026],[width*.39,h+.047],[width*.88,h-.06],[width,.26],[width*.71,.09]])pos.push(horizontal?along:across,y,horizontal?across:along);
     if(i)for(let j=0;j<ringSize-1;j++){const a=(i-1)*ringSize+j,b=a+ringSize;idx.push(a,a+1,b,a+1,b+1,b);}
-    if(i<steps)for(let k=0;k<10;k++){
-      const p=along+long/steps*(.21+(k%3)*.28),side=k%2?1:-1,cross=side*short*(k<4?.12:.30),y=k<4?h+.05:.22+(k%3)*.15,length=Math.min(.24,long/steps*.67),center=horizontal?[p,y,cross]:[cross,y,p];
-      leaf(leaves,center,length,short*.45,(horizontal?Math.PI/2:0)+(k%3-1)*.3,k<4?Math.sin(i+k)*.6:side*1.13,[P.leaf,P.light,P.dark][(i+k)%3]);
+    if(i<steps)for(let k=0;k<18;k++){
+      const p=along+long/steps*(.16+(k%4)*.22),side=k%2?1:-1,cross=side*short*(k<6?.14:.31),y=k<6?h+.04:.20+Math.floor((k-6)/4)*.18,length=Math.min(.31,long/steps*.86),center=horizontal?[p,y,cross]:[cross,y,p];
+      leaf(leaves,center,length,short*.68,(horizontal?Math.PI/2:0)+(k%3-1)*.3,k<6?Math.sin(i+k)*.55:side*1.13,[P.leaf,P.light,P.dark][(i+k)%3]);
     }
   }
   for(const end of[0,steps]){const base=end*ringSize;for(let j=1;j<ringSize-1;j++)idx.push(base,base+j,base+j+1);}
