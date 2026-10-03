@@ -375,8 +375,8 @@ export function buildChinaPalace(G,H){
  // Reading actual header spans also keeps a relocated inset doorway aligned.
  for(const c of cameraColliders){
   const front=Math.abs(c.minZ-4.84)<.001&&Math.abs(c.maxZ-5.16)<.001;
-  const side=Math.abs(Math.abs((c.minX+c.maxX)/2)-11)<.001&&Math.abs(c.maxX-c.minX-.32)<.001&&c.minZ>=-11&&c.maxZ<=5;
-  if((front||side)&&c.minY>1.415&&Math.abs(c.maxY-6.9)<.001)colliders.push({...c,minY:6.015,maxY:6.9,owner:'main-gallery-parapet'});
+  const side=Math.abs(Math.abs((c.minX+c.maxX)/2)-11)<.001&&[.32,.50].some(depth=>Math.abs(c.maxX-c.minX-depth)<.001)&&c.minZ>=-11&&c.maxZ<=5;
+  if((front||side)&&c.minY>1.415&&c.minY<6.9&&Math.abs(c.maxY-6.9)<.001)colliders.push({...c,minY:Math.max(6.015,c.minY),owner:'main-gallery-parapet'});
  }
  for(const z of [-11,5]){
   box(gallery,0,9.0,z,22,.43,.32,C.jade);
