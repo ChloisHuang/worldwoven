@@ -37,7 +37,7 @@ def profile(keys,x):
    return (2*t**3-3*t*t+1)*a[1]+(t**3-2*t*t+t)*d*m1+(-2*t**3+3*t*t)*b[1]+(t**3-t*t)*d*m2
 # A compact midface keeps the nose and lips close to the enlarged orbital
 # opening; the mandibular underside remains a continuous surface.
-YMAP=[(5.85,1.367),(6.08,1.446),(6.22,1.481),(6.4,1.497),(6.60,1.529),(6.90,1.566),(7.28,1.603),(7.6,1.641),(8.4913,1.714)]
+YMAP=[(5.85,1.367),(6.08,1.446),(6.22,1.481),(6.4,1.495),(6.60,1.526),(6.90,1.561),(7.28,1.603),(7.6,1.641),(8.4913,1.714)]
 
 # Author the real lower vermilion and its oral return before subdivision.
 # These are base.obj vertex indices, mirrored by source coordinates. Raising
@@ -48,8 +48,10 @@ LIP_SUPPORT=[494,488,482,510]
 LIP_RETURN=[523,517,518,519,540,534,535,536]
 sculpt={}
 for index in LIP_CONTACT:
- x,y,z=verts[index];falloff=1-smooth(.18,.255,abs(x))
- sculpt[(abs(x),y,z)]=(0,.020*falloff,.017*falloff)
+ x,y,z=verts[index];a=abs(x);contact=1-smooth(.23,.25,a)
+ upper_y=profile([(0,6.6081),(.0215,6.6095),(.0466,6.6114),(.0761,6.6127),(.1014,6.6133),(.156,6.6146),(.196,6.6324),(.2243,6.6214),(.2391,6.6143),(.2494,6.6089)],a)
+ upper_z=profile([(0,1.553),(.0215,1.5497),(.0466,1.5488),(.0761,1.5452),(.1014,1.5452),(.156,1.5163),(.196,1.4904),(.2243,1.4612),(.2391,1.4354),(.2494,1.4192)],a)
+ sculpt[(a,y,z)]=(0,upper_y+.012*contact-y,upper_z+.004*contact-z)
 for index in LIP_SUPPORT:
  x,y,z=verts[index];falloff=1-smooth(.18,.255,abs(x))
  sculpt[(abs(x),y,z)]=(0,.011*falloff,.008*falloff)
@@ -64,16 +66,20 @@ def fit(p):
  x,y,z=p
  # Taper the lower face below a soft malar volume, retaining the source
  # alar/nostril, ear and mandibular topology.
- xx=x*.119*(1-.135*gauss(y,6.48,.43))
+ xx=x*.119*(1-.10*gauss(y,6.48,.43))
  eye=gauss(abs(x),.308,.255)*gauss(y,7.28,.27)*smooth(.65,1.1,z)
- xx+=math.copysign(1,x)*(.0018+(abs(x)-.308)*.119*.72)*eye
+ # Most extra width goes toward the temple. Retain the inner canthus and
+ # nasal root instead of squeezing the bridge into a thin vertical ridge.
+ lateral_scale=.35+.45*smooth(.283,.378,abs(x))
+ xx+=math.copysign(1,x)*(.0022+(abs(x)-.308)*.119*lateral_scale)*eye*smooth(0,.145,abs(x))
  yy=profile(YMAP,y)+((y-7.284)*.119*.18+(abs(x)-.308)*.006)*eye
  zz=(z-.76)*.109
  zz+=.0035*gauss(abs(x),.44,.23)*gauss(y,6.96,.29)*smooth(.65,1.05,z)
+ zz+=.0015*gauss(abs(x),.39,.21)*gauss(y,6.62,.24)*smooth(.75,1.10,z)
  # Narrow the upper cervical mass behind the jaw, blending into the collar
  # fit below and the ear/mastoid above. Do not scale the chin with the neck.
- neck=(1-smooth(6.23,6.70,y))*(1-smooth(.86,1.25,z))
- xx*=1-.21*neck
+ neck=smooth(5.95,6.18,y)*(1-smooth(6.23,6.70,y))*(1-smooth(.86,1.25,z))
+ xx*=1-.17*neck
  zz-=.0025*neck*smooth(.30,.95,z)
  # Set the collar end to the existing neck envelope without moving the chin.
  t=1-smooth(5.98,6.25,y)
@@ -85,8 +91,19 @@ def fit(p):
  q=((xx/(.0895*ry))**2+((zz+.017)/(.105*ry))**2)**.5
  if q>1:xx*=1-fit_t+fit_t/q;zz=-.017+(zz+.017)*(1-fit_t+fit_t/q)
  return xx,yy,zz
+
+def fit_surface(p):
+ x,y,z=sculpt_surface(p);xx,yy,zz=fit((x,y,z))
+ # A small physical upper-lid roll and supratarsal recess connect the wider
+ # aperture to its brow plane. This deforms skin only, not the eye globe.
+ lid_span=gauss(abs(x),.31,.165)*smooth(1.27,1.37,z)
+ margin_span=smooth(.165,.245,abs(x))*(1-smooth(.37,.455,abs(x)))
+ yy-=.0015*margin_span*gauss(y,7.328,.033)*smooth(1.27,1.37,z)
+ zz+=lid_span*(.0014*gauss(y,7.345,.026)-.0008*gauss(y,7.389,.025))
+ return xx,yy,zz
+
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
-mesh=bpy.data.meshes.new('CC0 hm08 cropped anatomical surface');mesh.from_pydata([fit(sculpt_surface(p)) for p in raw],[],faces);mesh.update()
+mesh=bpy.data.meshes.new('CC0 hm08 cropped anatomical surface');mesh.from_pydata([fit_surface(p) for p in raw],[],faces);mesh.update()
 obj=bpy.data.objects.new('Anatomical adult study',mesh);bpy.context.collection.objects.link(obj)
 # Smooth region masks are interpolated with the same real facial topology.
 for name in ['lip_tint','cavity_tint','lid_tint']:
@@ -131,7 +148,7 @@ parts.append(part);ev.to_mesh_clear()
 # Dense original procedural eyeballs and brows can be tuned independently of
 # the CC0 face, retaining iris/hair color chosen by the production test actor.
 for side in [-1,1]:
- cx,cy,cz=side*.30775,7.28415,1.24535
+ cx,cy,cz=side*.30775,7.29415,1.24535
  nu=64;theta=[0,.025,.07,.13,.20,.27,.33,.38,.52,.66,.85,1.05,1.30,1.6,1.95,2.3,2.65,math.pi]
  positions=[]
  for t in theta:
@@ -154,9 +171,9 @@ for side in [-1,1]:
   for p in positions:normals+=list((Vector(p)-Vector(fit((cx,cy,cz)))).normalized())
   parts.append({'name':'eye-'+str(side)+'-'+material,'material':material,'position':[a for p in positions for a in p],'normal':normals,'index':ix})
  # Original fine tapered eyebrow follows the actual source brow plane.
- cu=bpy.data.curves.new('Original tapered brow','CURVE');cu.dimensions='3D';cu.resolution_u=12;cu.bevel_depth=.0025;cu.bevel_resolution=2
- sp=cu.splines.new('BEZIER');sp.bezier_points.add(4)
- for p,co,r in zip(sp.bezier_points,[(.16,7.396,1.49),(.26,7.428,1.44),(.37,7.436,1.39),(.48,7.410,1.31),(.57,7.350,1.23)],[.40,.90,1,.62,.03]):
+ cu=bpy.data.curves.new('Original tapered brow','CURVE');cu.dimensions='3D';cu.resolution_u=12;cu.bevel_depth=.0030;cu.bevel_resolution=2
+ sp=cu.splines.new('BEZIER');sp.bezier_points.add(5)
+ for p,co,r in zip(sp.bezier_points,[(.143,7.392,1.495),(.185,7.395,1.475),(.285,7.406,1.43),(.385,7.414,1.38),(.49,7.402,1.30),(.57,7.364,1.23)],[.08,.88,1.05,.90,.48,.025]):
   p.co=fit((side*co[0],co[1],co[2]));hit=skin_tree.ray_cast(Vector((p.co.x,p.co.y,.3)),Vector((0,0,-1)),.6)[0]
   if hit is not None:p.co.z=hit.z+.0013
   p.handle_left_type='AUTO';p.handle_right_type='AUTO';p.radius=r
