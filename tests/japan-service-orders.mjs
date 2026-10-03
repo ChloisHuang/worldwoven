@@ -1,0 +1,46 @@
+// Focused linkage regression: two orders cannot exchange cargo, and cancelling
+// or releasing a carrier must not leave a claimed job or an invisible tray.
+import assert from 'node:assert/strict';
+import {createJapanServiceOrders,JAPAN_SERVICE_POINTS as P} from '../source/game/japan-service-orders.js';
+import {createJapanVisitorIdentity} from '../source/game/japan-visitors.js';
+let saved;const board=createJapanServiceOrders({worldSeed:17,saveState:s=>saved=s});
+const spawn=()=>board.spawn({...createJapanVisitorIdentity(board.nextIdentity(),17),restPoint:[-7.7,3.8,6.61],diningPoint:[-7.7,3.8,6.61]});
+const a=spawn(),b=spawn();assert.notEqual(a.id,b.id);assert.equal(spawn(),null);
+assert.deepEqual(board.state().visits.map(v=>v.appearance),[a.appearance,b.appearance]);
+const claim=(v,kind,worker)=>{const job=board.jobs().find(j=>j.visitId===v.id&&j.kind===kind);assert(job,`${kind} is ready`);assert(board.claim(job.id,worker));return job;};
+for(const v of [a,b]) {
+ assert.equal(board.guestStep(v.id,'bath-mounted',{poolId:v.poolId,seatId:v.poolId+'-seat-1'}),false,'No bath without an issued token, washing and delivery');
+ assert(board.guestStep(v.id,'arrived',{position:P.reception}));
+ const registration=claim(v,'register','jp-welcome');
+ assert(board.complete(registration.id,'jp-welcome',{position:P.registrar,guestPosition:P.reception}));
+ const prep=claim(v,'prepare','jp-incense');
+ assert(board.complete(prep.id,'jp-incense',{position:P.apothecary}));
+}
+const va=board.getVisit(a.id),vb=board.getVisit(b.id),carrier=va.side==='men'?'jp-onsen':'jp-women-onsen',destination=P[va.side+'Service'];
+const delivery=claim(va,'deliverMix',carrier);
+const evidence={position:destination,itemId:va.mixtureId,tokenId:va.tokenId};
+assert.equal(board.complete(delivery.id,carrier,evidence),false,'Must pick up the actual tray');
+assert(board.pickup(delivery.id,carrier,{position:P.apothecary}));
+assert.equal(board.complete(delivery.id,carrier,{...evidence,itemId:vb.mixtureId,tokenId:vb.tokenId}),false,'Cannot deliver another visit’s mixture or token');
+assert(board.releaseWorker(carrier));
+assert.equal(board.state().claims.length,0);
+assert.deepEqual(board.state().items.find(i=>i.id===va.mixtureId).location,{type:'point',id:'apothecary'});
+assert(board.claim(delivery.id,carrier));assert(board.pickup(delivery.id,carrier,{position:P.apothecary}));
+// Refresh while carrying: same two identities, one tray returned, no stale lock.
+const resumed=createJapanServiceOrders({saved,worldSeed:17});
+assert.equal(resumed.state().visits.length,2);assert.equal(resumed.state().nextVisit,3);
+assert.deepEqual(resumed.state().visits.map(v=>v.appearance),[a.appearance,b.appearance]);
+assert.equal(resumed.state().claims.length,0);
+assert.deepEqual(resumed.state().items.find(i=>i.id===va.mixtureId).location,{type:'point',id:'apothecary'});
+assert(board.complete(delivery.id,carrier,evidence));
+assert.equal(board.jobs().some(j=>j.id===delivery.id),false);
+const second=board.jobs().find(j=>j.visitId===b.id&&j.kind==='deliverMix');
+const worker=vb.side==='men'?'jp-onsen':'jp-women-onsen';
+assert(board.claim(second.id,worker));assert(board.pickup(second.id,worker,{position:P.apothecary}));
+assert(board.cancel(b.id,'guest-left'));assert.equal(board.state().claims.length,0);
+assert.equal(board.jobs().some(j=>j.visitId===b.id),false);
+assert(board.state().items.filter(i=>i.visitId===b.id).every(i=>i.location.type==='cancelled'));
+assert.equal(board.complete(second.id,worker,{position:P[vb.side+'Service'],itemId:vb.mixtureId,tokenId:vb.tokenId}),false,'Late cancelled completion cannot revive an order');
+assert.equal(board.jobs().some(j=>j.kind==='cook'),false,'Kitchen waits for the actual post-bath request');
+board.dispose();resumed.dispose();
+console.log('PASS: distinct visit cargo, causal preparation, carrier abort, cancellation and refresh identity');
