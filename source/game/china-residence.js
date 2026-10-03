@@ -100,8 +100,8 @@ export function buildChinaResidence(G,A){
  // and a separate linen/dressing room; no wet room is a stair access route.
  wall('x',-12,-26,-16,4,7.57,[privacy('cn-bath-front','后宫浴间门','x',-12,-24.9,-22.1,4.015,['bath','residence-hall-2']),privacy('cn-bath-east','后宫净室门','x',-12,-19.4,-16.6,4.015,['washroom','residence-hall-2'])]);
  wall('z',-20,-12,2,4,7.57,[door('cn-bath-washroom','浴间净室屏','z',-20,-9.3,-6.5,7.1,['bath','washroom'],4)]);
- wall('x',-5,-20,-16,4,7.57,[privacy('cn-bath-west','后宫布草更衣门','x',-5,-19.4,-16.6,4.015,['residence-linen','washroom'])]);
- part('bath','后宫二层浴间',-26,-20,-12,2,4.015,7.57);part('washroom','后宫二层净室',-20,-16,-12,-5,4.015,7.57);part('residence-linen','后宫二层布草与更衣',-20,-16,-5,2,4.015,7.57);
+ wall('x',-4,-20,-16,4,7.57,[privacy('cn-bath-west','后宫布草更衣门','x',-4,-19.4,-16.6,4.015,['residence-linen','washroom'])]);
+ part('bath','后宫二层浴间',-26,-20,-12,2,4.015,7.57);part('washroom','后宫二层净室',-20,-16,-12,-4,4.015,7.57);part('residence-linen','后宫二层布草与更衣',-20,-16,-4,2,4.015,7.57);
  // Linen storage uses a supported compact wardrobe and folded textiles.
  for(const x of[-18.7,-17.1]){solid3(g,x,4.88,1.2,1.15,1.7,.6,C.wood);for(const yy of[4.45,5.03])G.box(g,x,yy,.86,1.04,.18,.1,0xd4ba82);G.box(g,x,5.19,.85,1.00,.05,.10,C.gold);}
  // Third floor: independent sleeping room, a south reading alcove and a real
