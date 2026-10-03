@@ -138,7 +138,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    assign(n,target,{...config,orderJobId:job.id,label:`${config.label} · ${v.number}号`,handoff:true,face:job.to==='dining'?v.diningPoint:null,ready:()=>job.kind!=='serve'||board.getVisit(v.id)?.stage==='waiting-meal',onDone:complete});
    return true;
   }});
-  else assign(n,P[job.to],{...config,orderJobId:job.id,label:`${config.label} · ${v.number}号`,ready:()=>!['register','checkout'].includes(job.kind)||near(customerActor(v.id)?.root.position||{},P.reception,.25),onDone:complete});
+  else assign(n,P[job.to],{...config,orderJobId:job.id,label:`${config.label} · ${v.number}号`,ready:()=>!['register','checkout'].includes(job.kind)||near(customerActor(v.id)?.root.position||{},v.customerType==='player'?P.playerReception:P.reception,.25),onDone:complete});
  }
  function scheduleWorkers() {
   for(const n of workers) {
@@ -152,7 +152,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
  }
  function queueAtReception(n,v,event) {
   if(!furniture.facilities.request('japan-service-reception',v.id)) {
-   const to=[-2.7,0,8.2+(v.number%2)*.85];
+   const to=[restSeat(v).center[0]<0?-2.7:-1.6,0,8.2];
    if(!near(n.root.position,to,.15))assign(n,to,{label:'等前一位来客办完登记'});
    return;
   }

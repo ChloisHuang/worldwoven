@@ -6,23 +6,25 @@ const LABELS={arriving:'回到前台完成登记','check-in':'前台正在登记
 // and all employee work remain owned by the existing scene and order board.
 export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMounted,onNavigate,onFurniture,onStand,onOpen=()=>{},document:doc=globalThis.document}) {
  const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;};
- const style=make('style');style.textContent='.jp-service-ticket{position:fixed;left:max(18px,env(safe-area-inset-left));top:156px;z-index:18;max-width:calc(100vw - 212px);padding:11px 14px;min-height:44px;border-radius:12px;background:#315e60;color:#fff8e8;font-size:12px;box-shadow:0 3px 12px #173b3320}.jp-service-dialog{position:fixed;inset:0;margin:auto;width:min(360px,calc(100vw - 30px));max-height:calc(100dvh - 32px);padding:22px;overflow:auto;color:#304e44;background:#f3eedf;border:1px solid #c7c5ab;border-radius:16px}.jp-service-dialog::backdrop{background:#173b3366}.jp-service-dialog h2{font-size:22px;margin:0 34px 13px 0}.jp-service-dialog p{font-size:13px;line-height:1.6}.jp-service-dialog button{min-height:44px;padding:11px 13px;border-radius:9px;background:#e4dfcb;color:#304e44}.jp-service-dialog button:focus-visible{outline:3px solid #af7b3f;outline-offset:2px}.jp-service-dialog .jp-service-close{position:absolute;right:8px;top:7px;background:transparent;font-size:23px}.jp-service-choices{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:16px 0}.jp-service-choices [aria-pressed=true]{outline:2px solid #497165;background:#dbe8d9}.jp-service-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.jp-service-actions .jp-service-primary{flex:1;background:#315e60;color:#fff8e8}.jp-service-dialog button:disabled{opacity:.55}.jp-service-note{font-size:11px!important;color:#657168}@media(max-height:550px){.jp-service-ticket{top:132px;font-size:10px;padding:8px 10px}.jp-service-dialog{padding:17px}.jp-service-dialog h2{font-size:19px}}';
+ const style=make('style');style.textContent='.jp-service-ticket{position:fixed;left:max(18px,env(safe-area-inset-left));top:205px;z-index:18;max-width:calc(100vw - 212px);padding:11px 14px;min-height:44px;border-radius:12px;background:#315e60;color:#fff8e8;font-size:12px;box-shadow:0 3px 12px #173b3320}.jp-service-dialog{position:fixed;inset:0;margin:auto;width:min(360px,calc(100vw - 30px));max-height:calc(100dvh - 32px);padding:22px;overflow:auto;color:#304e44;background:#f3eedf;border:1px solid #c7c5ab;border-radius:16px}.jp-service-dialog::backdrop{background:#173b3366}.jp-service-dialog h2{font-size:22px;margin:0 34px 13px 0}.jp-service-dialog p{font-size:13px;line-height:1.6}.jp-service-dialog button{min-height:44px;padding:11px 13px;border-radius:9px;background:#e4dfcb;color:#304e44}.jp-service-dialog button:focus-visible{outline:3px solid #af7b3f;outline-offset:2px}.jp-service-dialog .jp-service-close{position:absolute;right:8px;top:7px;background:transparent;font-size:23px}.jp-service-choices{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:16px 0}.jp-service-choices [aria-pressed=true]{outline:2px solid #497165;background:#dbe8d9}.jp-service-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.jp-service-actions .jp-service-primary{flex:1;background:#315e60;color:#fff8e8}.jp-service-dialog button:disabled{opacity:.55}.jp-service-note{font-size:11px!important;color:#657168}@media(max-height:550px){.jp-service-ticket{top:160px;font-size:10px;padding:8px 10px}.jp-service-dialog{padding:17px}.jp-service-dialog h2{font-size:19px}}';
  const badge=make('button','汤馆服务','jp-service-ticket'),dialog=make('dialog',null,'jp-service-dialog');badge.type='button';badge.setAttribute('aria-label','查看汤馆服务与浴牌');dialog.setAttribute('aria-label','汤馆服务');doc.head.append(style);doc.body.append(badge,dialog);
- let selected=service.blends[0].id,signature='',disposed=false;
+ let selected=service.blends[0].id,signature='',disposed=false,placed=false;
+ const uiWindow=doc.defaultView||globalThis,onResize=()=>{placed=false;};uiWindow.addEventListener?.('resize',onResize);
+ function placeBadge(){if(placed)return;const rect=doc.querySelector?.('.location-card')?.getBoundingClientRect();if(rect?.height>0){badge.style.top=Math.ceil(rect.bottom+9)+'px';placed=true;}}
  const distance=a=>{const p=getPlayer()?.root.position;return p&&Math.abs(p.y-a[1])<.65?Math.hypot(p.x-a[0],p.z-a[2]):Infinity;};
  const seats=()=>furniture.items.filter(i=>i.kind==='seat'&&i.center[1]===3.8&&i.center[2]===7.55);
  function next() {
   const s=service.state(),v=s.visit,mounted=getMounted();
   if(s.activity)return {kind:'stop',label:'停止当前动作',position:s.activity.point};
-  if(!v||v.stage==='arriving')return {kind:'register',label:'登记并领取浴牌',position:P.reception};
-  if(v.stage==='check-in'||v.stage==='checkout-ready')return {kind:'wait',label:v.stage==='check-in'?'等前台发牌':'等前台收牌',position:P.reception};
+  if(!v||v.stage==='arriving')return {kind:'register',label:'登记并领取浴牌',position:P.playerReception};
+  if(v.stage==='check-in'||v.stage==='checkout-ready')return {kind:'wait',label:v.stage==='check-in'?'等前台发牌':'等前台收牌',position:P.playerReception};
   if(v.stage==='changing'||v.stage==='drying')return {kind:'change',label:v.stage==='changing'?'整理入浴衣着':'擦干并收好手巾',position:P[v.side+'Changing']};
   if(v.stage==='washing')return {kind:'wash',label:'洗净后再入汤',position:P[v.side+'Washing']};
   if(v.stage==='waiting-bath') {
-   if(!v.blendReceived)return {kind:'collect',label:'接收本人的浴包',position:P[v.side+'Service']};
+   if(!v.blendReceived)return {kind:'collect',label:'接收本人的浴包',position:P[v.side+'Receive']};
    const item=furniture.items.find(i=>i.id===v.poolId);return {kind:'bath',label:'到共享汤池入浴',position:item.position,item};
   }
-  if(v.stage==='bathing')return {kind:'stand',label:s.soakReady?'完成泡汤并离池':`泡汤 ${Math.floor(s.soakSeconds)}/10 秒 · 提前离池`,position:mounted?.position||P[v.side+'Service']};
+  if(v.stage==='bathing')return {kind:'stand',label:s.soakReady?'完成泡汤并离池':`泡汤 ${Math.floor(s.soakSeconds)}/10 秒 · 提前离池`,position:mounted?.position||P[v.side+'Receive']};
   if(['resting','dining','waiting-meal','meal-ready','eating'].includes(v.stage)) {
    const item=furniture.items.find(i=>i.id===v.restSeatId)||seats()[0],actual=mounted&&seats().find(i=>i.id===mounted.id);
    if(v.stage==='resting'&&actual)return {kind:'meal',label:'在这里点一碗汤面',position:actual.anchor};
@@ -30,14 +32,14 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
    if(v.stage==='meal-ready')return {kind:'eat',label:'吃送来的汤面',position:v.diningPoint};
    return {kind:'wait',label:'在餐位等自己的汤面',position:v.diningPoint};
   }
-  if(v.stage==='checkout')return {kind:'return',label:'归还浴牌',position:P.reception};
-  return {kind:'panel',label:'查看浴牌',position:P.reception};
+  if(v.stage==='checkout')return {kind:'return',label:'归还浴牌',position:P.playerReception};
+  return {kind:'panel',label:'查看浴牌',position:P.playerReception};
  }
  function close(){if(dialog.open)dialog.close();}
  function act(step) {
   if(['bath','seat'].includes(step.kind)){close();onFurniture(step.item);return;}
   if(step.kind==='stand'){close();onStand();return;}
-  if(!['stop','panel','wait'].includes(step.kind)&&distance(step.position)>.34){close();onNavigate(step.position);return;}
+  if(!['stop','panel'].includes(step.kind)&&distance(step.position)>.34){close();onNavigate(step.position);return;}
   let reply;
   if(step.kind==='register')reply=service.register(service.state().visit?.blendId||selected);
   if(step.kind==='change')reply=service.change();if(step.kind==='wash')reply=service.wash();if(step.kind==='collect')reply=service.collectBlend();if(step.kind==='meal')reply=service.orderMeal();if(step.kind==='eat')reply=service.eat();if(step.kind==='return')reply=service.returnToken();if(step.kind==='stop')reply=service.stopActivity();
@@ -68,11 +70,11 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
    if(s.activity)return {id:'jp-service-activity',playerService:true,serviceStep:step,name:'汤馆浴牌',action:'停止当前动作',position:step.position};
    if(mounted&&['meal','eat','stand','wait'].includes(step.kind))return {id:'jp-player-service',playerService:true,serviceStep:step,name:'你的汤馆服务',action:step.label,position:step.position};
    if(distance(step.position)<1.25)return {id:'jp-player-service',playerService:true,serviceStep:step,name:'你的汤馆服务',action:step.label,position:step.position};
-   if(distance(P.reception)<1.25)return {id:'jp-player-service-desk',playerService:true,serviceStep:{kind:'panel',position:P.reception},name:'接待柜台',action:'查看浴牌服务',position:P.reception};
+   if(distance(P.playerReception)<1.25)return {id:'jp-player-service-desk',playerService:true,serviceStep:{kind:'panel',position:P.playerReception},name:'接待柜台',action:'查看浴牌服务',position:P.playerReception};
    return null;
   },
   interact(target) {const step=target?.serviceStep||next();if(['register','wait','panel'].includes(step.kind))open();else act(step);},
-  update(){if(!disposed)refresh();},
-  dispose(){disposed=true;close();badge.remove();dialog.remove();style.remove();},
+  update(){if(!disposed){placeBadge();refresh();}},
+  dispose(){disposed=true;uiWindow.removeEventListener?.('resize',onResize);close();badge.remove();dialog.remove();style.remove();},
  };
 }

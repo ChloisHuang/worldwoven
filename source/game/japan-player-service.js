@@ -8,11 +8,13 @@ const copy=v=>v?JSON.parse(JSON.stringify(v)):null;
 // Player interaction adapter over the same board used by the NPC employees.
 // It never creates its own workers, delivery clock, pool locks or meal queue.
 // The main scene supplies its actual player/mount getters and renders activity.
-export function createJapanPlayerService({board,furniture,getPlayer,getMounted=()=>null,notify=()=>{}}) {
+export function createJapanPlayerService({board,furniture,getPlayer,getMounted=()=>null,onWardrobeChange=()=>{},notify=()=>{}}) {
  const diningSeats=furniture.items.filter(i=>i.kind==='seat'&&i.center[1]===3.8&&i.center[2]===7.55);
- let activity=null,soak=0,soakSeat=null,deskRequest=false,suspended=false,lastStage=null;
+ let activity=null,soak=0,soakSeat=null,deskRequest=false,suspended=false,lastStage=null,lastWardrobe=null;
  const actor=()=>getPlayer(),position=()=>array(actor()?.root.position);
  const visit=()=>board.state().visits.find(live)||null;
+ const wardrobePreset=()=>!suspended&&['washing','waiting-bath','bathing','drying'].includes(visit()?.stage)?'onsen-swimwear':null;
+ const syncWardrobe=()=>{const preset=wardrobePreset();if(preset!==lastWardrobe){lastWardrobe=preset;onWardrobeChange(preset);}};
  const result=(ok,message)=>{if(message)notify(message);return {ok,message};};
  function releaseDesk(v){if(v)furniture.facilities.release('japan-service-reception',v.id);}
  function interruptActivity() {
@@ -24,7 +26,7 @@ export function createJapanPlayerService({board,furniture,getPlayer,getMounted=(
   activity={visitId:visit().id,event,point:point.slice(),duration,elapsed:0,action,label};return result(true);
  }
  function desk(v) {
-  if(!near(position(),P.reception))return false;
+  if(!near(position(),P.playerReception))return false;
   if(!furniture.facilities.request('japan-service-reception',v.id))return false;
   return board.guestStep(v.id,v.stage==='checkout'?'returned-to-desk':'arrived',{position:position()});
  }
@@ -36,11 +38,11 @@ export function createJapanPlayerService({board,furniture,getPlayer,getMounted=(
  }
  restorePresence();
  const api={
-  actor,blends:JAPAN_BATH_BLENDS,
+  actor,wardrobePreset,blends:JAPAN_BATH_BLENDS,
   register(blendId) {
    if(suspended||!actor())return result(false,'先回到汤馆');
    const existing=visit();if(existing){deskRequest=true;if(existing.stage==='arriving')desk(existing);return result(true,'已有你的浴牌登记，不会重复开单');}
-   if(!near(position(),P.reception))return result(false,'请先走到接待柜台');
+   if(!near(position(),P.playerReception))return result(false,'请先走到接待柜台');
    if(!JAPAN_BATH_BLENDS.some(b=>b.id===blendId))return result(false,'请选择一种汤馆虚构草木浴包');
    const seat=diningSeats[0],appearance=actor().root.userData.appearance;
    if(!seat)return result(false,'休息廊暂时没有可用餐位');
@@ -58,7 +60,7 @@ export function createJapanPlayerService({board,furniture,getPlayer,getMounted=(
   },
   collectBlend() {
    const v=visit();if(v?.stage!=='waiting-bath')return result(false,'先完成更衣与清洗');
-   if(!near(position(),P[v.side+'Service']))return result(false,'请到本侧汤室的浴包交接木凳');
+   if(!near(position(),P[v.side+'Receive']))return result(false,'请到本侧汤室的浴包交接木凳');
    if(!board.guestStep(v.id,'collect-blend',{position:position()}))return result(false,'你的浴包还在配制或配送，请稍等');
    return result(true,`第 ${v.number} 号浴包已送达，现在可以选择池中空位`);
   },
@@ -85,7 +87,7 @@ export function createJapanPlayerService({board,furniture,getPlayer,getMounted=(
   },
   returnToken() {
    const v=visit();if(v?.stage!=='checkout')return result(false,'用完汤面后可以回前台归牌');
-   if(!near(position(),P.reception))return result(false,'请先回到接待柜台');
+   if(!near(position(),P.playerReception))return result(false,'请先回到接待柜台');
    deskRequest=true;desk(v);return result(true,'等前台收回浴牌');
   },
   stopActivity(){interruptActivity();return result(true);},
@@ -94,21 +96,22 @@ export function createJapanPlayerService({board,furniture,getPlayer,getMounted=(
    interruptActivity();releaseDesk(v);board.cancel(v.id,'player-cancelled');board.forgetFinished([v.id]);deskRequest=false;soak=0;soakSeat=null;
    // An occupied seat belongs to the physical player until a safe actual exit.
    if(!getMounted())furniture.releaseActor?.('player');
+   syncWardrobe();
    return result(true,'本次服务已取消，员工任务和未送出的物品已释放');
   },
   suspend() {
    interruptActivity();const v=visit();if(v){board.checkpoint({[v.id]:getMounted()?.position||position()});releaseDesk(v);board.setPlayerPresent(v.id,false);}
-   if(!getMounted())furniture.releaseActor?.('player');deskRequest=false;soak=0;soakSeat=null;suspended=true;
+   if(!getMounted())furniture.releaseActor?.('player');deskRequest=false;soak=0;soakSeat=null;suspended=true;syncWardrobe();
   },
-  resume(){suspended=false;restorePresence();},
+  resume(){suspended=false;restorePresence();syncWardrobe();},
   update(dt) {
    if(suspended)return;
    const finished=board.state().visits.find(x=>x.customerType==='player'&&x.stage==='departed');
    if(finished){releaseDesk(finished);board.forgetFinished([finished.id]);notify('浴牌已归还，这次泡汤和用餐完成了');}
-   let v=visit();const p=position(),mounted=getMounted();if(!v||!p)return;
+   let v=visit();const p=position(),mounted=getMounted();if(!v||!p){syncWardrobe();return;}
    dt=Math.max(0,Math.min(.1,dt));
-   if(v.stage==='check-in'&&!near(p,P.reception,2)){api.cancel();notify('你离开了前台，未完成的登记已取消');return;}
-   if(v.stage==='checkout-ready'&&!near(p,P.reception,2)){releaseDesk(v);board.setPlayerPresent(v.id,false);board.setPlayerPresent(v.id,true);deskRequest=false;return;}
+   if(v.stage==='check-in'&&!near(p,P.playerReception,2)){api.cancel();notify('你离开了前台，未完成的登记已取消');return;}
+   if(v.stage==='checkout-ready'&&!near(p,P.playerReception,2)){releaseDesk(v);board.setPlayerPresent(v.id,false);board.setPlayerPresent(v.id,true);deskRequest=false;return;}
    if(v.mealRequested)board.setPlayerDiningPresent(v.id,mounted?.id===v.restSeatId&&near(p,v.diningPoint,.8));
    if(deskRequest&&['arriving','checkout'].includes(v.stage))desk(v);
    if(!['arriving','check-in','checkout','checkout-ready'].includes(v.stage)){releaseDesk(v);deskRequest=false;}
@@ -127,6 +130,7 @@ export function createJapanPlayerService({board,furniture,getPlayer,getMounted=(
     else{activity.elapsed+=dt;if(activity.elapsed>=activity.duration){board.guestStep(v.id,activity.event,{position:p});activity=null;}}
    }
    v=visit();if(v?.stage!==lastStage){lastStage=v?.stage||null;if(v?.stage==='changing')notify(`已领取第 ${v.number} 号浴牌`);if(v?.stage==='meal-ready')notify('你的汤面已经送到餐位');}
+   syncWardrobe();
   },
   state:()=>({visit:copy(visit()),activity:copy(activity),soakSeconds:soak,soakReady:soak>=10,suspended}),
   pose:()=>activity?{action:activity.action,heldProp:['changed','dried'].includes(activity.event)?'cloth':null,seatedMeal:activity.event==='ate',workTarget:activity.event==='washed'?(visit()?.side==='men'?[-10.35,4.6,-3.7]:[4.6,4.6,-4.15]):null}:null,
