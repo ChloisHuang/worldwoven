@@ -1,3 +1,4 @@
+import {residencePlaque} from './china-residence-lettering.js';
 import {culturePlaque} from './china-culture-lettering.js';
 import {buildChinaRoyalChair} from './china-royal-seating.js';
 
@@ -60,7 +61,7 @@ export function buildChinaResidence(G,A){
   part('residence-hall-'+(i+1),'后宫'+(i+1)+'层公共梯厅',-26,-16,-20,-12,y,top);
   lightingZones.push({id:'residence-floor-'+(i+1),minX:-26.3,maxX:-15.7,minZ:-20.3,maxZ:2.3,minY:y-.1,maxY:top+.1,floorY:y});
   levels.push({id:'residence-floor-'+(i+1),name:'静宜后宫'+(i+1)+'层',y});
-  for(const [x,z]of[[-18.1,-16.6],[-21,-4.4]])upperFixture(g,'residence-light-'+i+'-'+z,x,top-.60,z,y);
+  for(const [x,z]of[[-18.1,-16.6],[-23.5,-5.0],[-18.0,-5.0],[-18.0,-.4]])upperFixture(g,'residence-light-'+i+'-'+z,x,top-.60,z,y);
   explorationTargets.push({id:'cn-residence-hall-'+(i+1),name:'后宫'+(i+1)+'层公共厅',roomId:'residence-hall-'+(i+1),position:[-18.0,y,-13.4]});
   if(i<2){
    const next=CHINA_RESIDENCE.floors[i+1].y,mid=(y+next)/2,prefix='cn-residence-stair-'+(i+1);
@@ -105,7 +106,7 @@ export function buildChinaResidence(G,A){
  for(const x of[-18.7,-17.1]){solid3(g,x,4.88,1.2,1.15,1.7,.6,C.wood);for(const yy of[4.45,5.03])G.box(g,x,yy,.86,1.04,.18,.1,0xd4ba82);G.box(g,x,5.19,.85,1.00,.05,.10,C.gold);}
  // Third floor: independent sleeping room, a south reading alcove and a real
  // walled grooming room. Dragon-bed crown has >0.8m overhead clearance.
- wall('x',-12,-26,-16,7.8,12.215,[privacy('cn-bedroom-front','静宜寝殿私门','x',-12,-19.3,-16.5,7.815,['bedroom','residence-hall-3'])]);
+ wall('x',-12,-26,-16,7.8,12.215,[privacy('cn-bedroom-front','静宜寝殿私门','x',-12,-18.8,-16.6,7.815,['bedroom','residence-hall-3'])]);
  wall('x',-3,-26,-16,7.8,12.215,[{from:-24.8,to:-21.2,bottom:7.8,top:11.1},privacy('cn-bedroom-west','后宫梳妆更衣门','x',-3,-19.4,-16.6,7.815,['residence-dressing','bedroom'])]);
  wall('z',-20,-3,2,7.8,12.215);
  part('bedroom','静宜后宫三层寝殿',-26,-16,-12,-3,7.815,12.215);part('residence-dressing','后宫三层梳妆间',-20,-16,-3,2,7.815,12.215);part('residence-sitting','后宫三层私厅',-26,-20,-3,2,7.815,12.215);
@@ -114,6 +115,9 @@ export function buildChinaResidence(G,A){
  G.box(g,-23,8.50,1.0,3.2,1.30,.64,C.wood);G.vessel(g,-23.8,9.2,1.0,0x93b7ac,.62);G.vessel(g,-22.2,9.2,1.0,0xc3aa7c,.48);
  const rugStart=g.children.length;G.rug(g,-23,-.6,4.3,2.7,0xa88357,0xd2b883);g.userData.rugSurfaces.at(-1).y+=7.6;for(const q of g.children.slice(rugStart))q.position.y+=7.6;
  culturePlaque(G,g,'观景',-18.1,10.75,-19.79,2,.64);
+ g.traverse(o=>{if(o.userData.nightFixture)o.userData.nightFixture.dayFactor=.38;});
+ const entrySign=residencePlaque(G,g,'静宜后宫',-15.77,3.43,-13.5,3.1,.58);entrySign.rotation.y=Math.PI/2;
+ for(const [name,x,y,z]of[['客居',-23.5,3.45,-12.21],['会客',-18.3,3.45,-12.21],['沐浴',-23.5,7.25,-12.21],['净室',-18,7.25,-12.21],['寝殿',-17.7,11.06,-12.21],['梳妆',-18,11.06,-3.21]]){const plaque=residencePlaque(G,g,name,x,y,z,1.7,.55);plaque.rotation.y=Math.PI;}
  buildings.push({id:'rear-palace',name:'静宜后宫',groupName:g.name,roofGroupName:r.name,bounds:CHINA_RESIDENCE.bounds,roomIds:CHINA_RESIDENCE.floors.flatMap(f=>f.rooms),storeys:3});
  for(const [id,name,p,roomId]of[['cn-residence-ground-entry','后宫公共通廊东口',[-15.2,.215,-13.4],'outdoors'],['cn-residence-living','后宫起居茶案',[-18.3,.215,-9.1],'residence-living'],['cn-residence-dressing','后宫梳妆台前',[-18,7.815,-.05],'residence-dressing'],['cn-residence-linen','后宫布草柜前',[-18,4.015,-1],'residence-linen']])explorationTargets.push({id,name,position:p,roomId});
  return {group:g,roofGroup:r};

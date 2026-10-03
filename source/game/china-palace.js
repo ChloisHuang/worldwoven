@@ -26,8 +26,8 @@ export function buildChinaPalace(G,H){
   'cn-south-gate':['hinge',1,.65],'cn-south-gate-west':['hinge',1,.65],'cn-south-gate-east':['hinge',1,.65],
   'cn-north-gate':['hinge',1,.65],'cn-north-gate-west':['hinge',1,.65,.13],'cn-north-gate-east':['hinge',1,.65,.13],'cn-west-gate':['hinge',-1,.65],'cn-east-gate':['hinge',1,.65],
   'cn-hall-front':['hinge',1,.32],'cn-hall-rear':['hinge',-1,.32],'cn-hall-west':['pocket',0,.50],'cn-hall-east':['hinge',1,.32],
-  'cn-study-front':['hinge',1,.32],'cn-bedroom-front':['hinge',1,.32],'cn-bedroom-west':['hinge',1,.32],
-  'cn-kitchen-rear':['hinge',1,.32],'cn-bath-front':['hinge',-1,.32],'cn-bath-west':['hinge',1,.32],'cn-bath-east':['hinge',1,.32],
+  'cn-study-front':['hinge',1,.32],'cn-bedroom-front':['hinge',-1,.32],'cn-bedroom-west':['hinge',1,.32],
+  'cn-kitchen-rear':['hinge',1,.32],'cn-bath-front':['hinge',-1,.32],'cn-bath-west':['hinge',1,.32],'cn-bath-east':['hinge',-1,.32],
   'cn-archive-front':['hinge',1,.32],'cn-archive-rear':['hinge',-1,.32],'cn-archive-west':['pocket',0,.50],'cn-archive-east':['hinge',1,.32],
   'cn-guest-front':['hinge',-1,.32],'cn-guest-east':['hinge',-1,.32]
  };
@@ -247,7 +247,7 @@ export function buildChinaPalace(G,H){
   G.collider(colliders,-23.6,-30,3.2,4.15);cameraColliders.push({minX:-23.6-3.2/2,maxX:-23.6+3.2/2,minY:.65-.85/2,maxY:.65+.85/2,minZ:-30-4.15/2,maxZ:-30+4.15/2});
   G.box(g,-23.6,.255,-30,3.2,.1,4.15,0x8f9d92);for(const x of[-25.09,-22.11])G.box(g,x,.75,-30,.22,1.0,4.15,0x8f9d92);for(const z of[-31.965,-28.035])G.box(g,-23.6,.75,z,3.2,1.0,.22,0x8f9d92);
   G.box(g,-23.6,1.15,-30,2.5,.025,3.44,0x72a79e);for(const x of [-25.12,-22.08])G.box(g,x,1.2,-30,.18,.23,4.22,0xd7d4bb);for(const z of [-32,-28])G.box(g,-23.6,1.2,z,3.25,.23,.18,0xd7d4bb);foldedCloth(g,-24.1,1.32,-32,1.0,.34,0xe0d7bb);shelf(g,-24.88,-23.6,1.8,2.1,.65); //27mm west-leaf clearance; front left-edge .39m body probe remains clear.
-  box(g,-17.25,.78,-34.2,1.7,1.12,1.15,C.wood,true);G.box(g,-17.25,1.39,-34.2,1.82,.1,1.24,0xb8c3b5);G.sphere(g,-17.25,1.48,-34.2,.36,0xd7d8c2,1.3,.35,1);G.box(g,-17.25,2.52,-35.8,1.45,1.4,.09,C.wood);G.box(g,-17.25,2.52,-35.73,1.25,1.2,.045,0xa8bdb1);G.cyl(g,-17.4,.61,-30.6,.36,.31,.72,0xc6c9b7,12);G.torus(g,-17.4,.99,-30.6,.31,.08,0xe5dec5);G.box(g,-17.4,1.13,-31.1,.72,.7,.26,0xc6c9b7);G.collider(colliders,-17.4,-30.7,.9,1.2);target('cn-bath-tub','浴池步道',-21,-30,'bath');target('cn-bath-linens','更衣布草区',-22.8,-25,'bath');target('cn-bath-basin','净室洗手盆前',-17.3,-32.8,'washroom');target('cn-bath-toilet','净室屏后',-18.6,-30.6,'washroom');}
+  box(g,-17.25,.78,-33.1,1.7,1.12,1.15,C.wood,true);G.box(g,-17.25,1.39,-33.1,1.82,.1,1.24,0xb8c3b5);G.sphere(g,-17.25,1.48,-33.1,.36,0xd7d8c2,1.3,.35,1);G.box(g,-16.19,2.52,-33.1,.09,1.4,1.45,C.wood);G.box(g,-16.25,2.52,-33.1,.045,1.2,1.25,0xa8bdb1);G.cyl(g,-17.4,.61,-30.6,.36,.31,.72,0xc6c9b7,12);G.torus(g,-17.4,.99,-30.6,.31,.08,0xe5dec5);G.box(g,-17.4,1.13,-31.1,.72,.7,.26,0xc6c9b7);G.collider(colliders,-17.4,-30.7,.9,1.2);target('cn-bath-tub','浴池步道',-21,-30,'bath');target('cn-bath-linens','更衣布草区',-22.8,-25,'bath');target('cn-bath-basin','净室洗手盆前',-17.3,-31.7,'washroom');target('cn-bath-toilet','净室屏后',-18.6,-30.6,'washroom');}
  finishCulture('bath');
  // Rear library and quiet guest residence are independent buildings. Rear
  // passage and garden lanes give every facade room to breathe.
@@ -256,7 +256,7 @@ export function buildChinaPalace(G,H){
  markCulture('library');
  {const g=libraryFurniture;for(const x of [-8,-4,4,8])shelf(g,x,-32.8,3,3.2,.72);for(const [x,zz] of [[-1.6,-30.2],[archiveEastTableX,-28]]){table(g,x,zz,4.2,1.7,1);for(const dx of [-1.1,0,1.1])boundBook(g,x+dx,1.13,zz,.8,.6,0x7d9583);}G.rug(g,0,-27.5,4.5,5,0xa28f69,0xd2bf90);target('cn-archive-center','藏书殿中央',0,-28,'archive');target('cn-archive-west','西书案前',-1.6,-28.5,'archive');target('cn-archive-east','东书案前',archiveEastTableX,-26.3,'archive');target('cn-archive-rear','北门书廊',0,-32,'archive');}
  finishCulture('library');
- {const g=rooms.guest.g;const b=new THREE.Group();b.position.y=.2;g.add(b);G.bed(b,-23.5,-8,0x728f89,2.8,3.3);G.collider(colliders,-23.5,-8,2.9,3.4);cameraColliders.push({minX:-24.95,maxX:-22.05,minY:.2,maxY:1.3,minZ:-9.7,maxZ:-6.3});table(g,-23.5,-3.7,2.7,1.4,.95);teaSet(g,-23.5,1.04,-3.7,0x9cbfb5);shelf(g,-25.5,-.1,2.1,2.5,.7,Math.PI/2);target('cn-guest-front','后宫客卧门内',-23.5,-10.6,'guest');target('cn-guest-bed','客榻东侧',-21.6,-8,'guest');target('cn-guest-tea','客居茶席',-23.5,-2.2,'guest');}
+ {const g=rooms.guest.g;const b=new THREE.Group();b.position.y=.2;g.add(b);G.bed(b,-23.5,-7.5,0x728f89,2.8,3.3);G.collider(colliders,-23.5,-7.5,2.9,3.4);cameraColliders.push({minX:-24.95,maxX:-22.05,minY:.2,maxY:1.3,minZ:-9.2,maxZ:-5.8});table(g,-23.5,-3.7,2.7,1.4,.95);teaSet(g,-23.5,1.04,-3.7,0x9cbfb5);shelf(g,-25.5,-.1,2.1,2.5,.7,Math.PI/2);target('cn-guest-front','后宫客卧门内',-23.5,-10.6,'guest');target('cn-guest-bed','客榻东侧',-21.6,-7.5,'guest');target('cn-guest-tea','客居茶席',-23.5,-2.2,'guest');}
  // Rear lotus court. Broad cross lanes continue to both side gates, and a
  // four-metre level bridge crosses the water without hidden sine-wave footing.
  floor(exterior,0,-18,30,7.5,.13,0xc9c3ad);for(const side of [-1,1]){box(exterior,side*5.1,.18,-18,6.1,.16,4.5,0x7d9685,true);G.box(exterior,side*5.1,.273,-18,5.8,.025,4.2,0x75a69d);for(const z of [-19.2,-16.9])for(const x of [side*3.6,side*6.5]){G.cyl(exterior,x,.3,z,.37,.37,.025,0x78916b,12);G.sphere(exterior,x,.39,z,.19,0xdea6a4,1,.5,1);}}
