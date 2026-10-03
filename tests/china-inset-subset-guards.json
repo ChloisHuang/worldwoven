@@ -51,6 +51,9 @@
       "cn-south-gate-west",
       "cn-south-gate",
       "cn-south-gate-east"
+    ],
+    "hall-east-replay": [
+      "cn-hall-east"
     ]
   },
   "files": {
