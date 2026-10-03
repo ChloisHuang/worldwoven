@@ -34,10 +34,12 @@ const POLICY={
   'jp-4-front-portal':['open','Common service gallery to balcony; individual workrooms are classified separately']
  },
  china:{
-  'cn-south-gate':['open','Ceremonial compound arrival, broad outdoor circulation'],
-  'cn-north-gate':['open','Outdoor rear compound gate'],
-  'cn-west-gate':['open','Outdoor service cross-court circulation'],
-  'cn-east-gate':['open','Outdoor side-court circulation'],
+  'cn-south-gate':['door','Inset central ceremonial timber gate, opening inward to the compound'],
+  'cn-south-gate-west':['door','Inset west gatehouse bay preserves the broad ceremonial arrival'],
+  'cn-south-gate-east':['door','Inset east gatehouse bay preserves the broad ceremonial arrival'],
+  'cn-north-gate':['door','Inset paired timber gates protecting the rear compound'],
+  'cn-west-gate':['door','Inset service gates opening inward to the compound'],
+  'cn-east-gate':['door','Inset side-court gates opening inward to the compound'],
   'cn-gatehouse-court':['open','Gatehouse arcade continues the ceremonial court axis'],
   'cn-hall-front':['door','Principal ceremonial entrance uses paired lacquer-and-gilt doors'],
   'cn-hall-rear':['door','Hall rear building envelope uses matching lacquer doors'],
@@ -113,6 +115,7 @@ const POLICY={
 const STYLE={japan:'shoji',china:'palace',egypt:'egypt',france:'french'};
 // a/b points are route probes, not always the exact constructed wall plane.
 const PLANES={
+ ...Object.fromEntries(['cn-south-gate','cn-south-gate-west','cn-south-gate-east','cn-north-gate','cn-west-gate','cn-east-gate'].map(id=>[id,{closureMount:{kind:'hinge',wallDepth:.65,revealDepth:.65,hingeLateralInset:.006,hingeNormalOffset:.18}}])),
  // Individual timber WC leaves need a running gap above the zero-height floor.
  // Keep the authored aperture, jambs and hinge location unchanged.
  'jp-washroom-cubicle-1':{bottomClearance:.012},
@@ -146,6 +149,12 @@ const LEGACY={
 // swing +1 = negative world normal (−Z for axis X, −X for axis Z); −1 reverses.
 // New hinge choices remain candidates pending full swept-room/controller QA.
 const DOOR_MOTIONS={
+ 'cn-south-gate':['hinge',1,'Inward compound gate with hinge pins within its .65 m masonry reveal'],
+ 'cn-south-gate-west':['hinge',1,'Inward gatehouse side bay with hinge pins within its .65 m masonry reveal'],
+ 'cn-south-gate-east':['hinge',1,'Inward gatehouse side bay with hinge pins within its .65 m masonry reveal'],
+ 'cn-north-gate':['hinge',-1,'Inward compound gate with hinge pins within its .65 m masonry reveal'],
+ 'cn-west-gate':['hinge',-1,'Inward compound gate with hinge pins within its .65 m masonry reveal'],
+ 'cn-east-gate':['hinge',1,'Inward compound gate with hinge pins within its .65 m masonry reveal'],
  'jp-guest-suite-door':['slide',0,'Retain shoji motion; guest screen and public side gallery make a swing unnecessary'],
  'jp-operator-door':['slide',0,'Timber lattice office door slides clear of the narrow working gallery'],
  'jp-staff-room-door':['slide',0,'Sleeping-room shoji stays out of the shared working gallery and bunk approach'],
@@ -206,9 +215,9 @@ export function classifyRoomOpenings(lot,region){
   // Regional floorFit records a real finished sill, independent of route-probe Y.
   // Preserve its authored opening top; the rigid engine still subtracts25mm there.
   const fix=PLANES[t.id]||{},legacy=LEGACY[t.id]||{},bottom=fix.bottom??t.floorFit?.bottom??Math.max(t.a[1],t.b[1]);
-  const wallPlane=t.at??(axis==='x'?(t.a[2]+t.b[2])/2:(t.a[0]+t.b[0])/2),at=fix.at??wallPlane;
+  const wallPlane=t.at??(axis==='x'?(t.a[2]+t.b[2])/2:(t.a[0]+t.b[0])/2),closureMount=t.closureMount??fix.closureMount,at=closureMount?.wallPlane??fix.at??wallPlane;
   const lateral=t.from!==undefined?(t.from+t.to)/2:axis==='x'?(t.a[0]+t.b[0])/2:(t.a[2]+t.b[2])/2;
-  return {id:legacy.id||t.id,openingId:t.id,kind:p[0],rationale:p[1],rooms:t.rooms||[],center:axis==='x'?[lateral,bottom,at]:[at,bottom,lateral],axis,surfaceTrack:choice?.[0]==='slide',trackMountOffset:at-wallPlane,width:t.width,sideOverlap:fix.sideOverlap??0,bottomClearance:fix.bottomClearance??t.floorFit?.runningGap??0,height:t.floorFit?t.floorFit.top-bottom:fix.height??legacy.height??(t.top!==undefined?t.top-bottom:t.height),style:STYLE[region],motion:p[0]==='open'?'none':fixedOverhead?'fixed-overhead':p[0].includes('curtain')?'gather':choice[0],existingBanner,motionRationale:fixedOverhead?'Fixed hanging textile stays above actor height and never gathers automatically':p[0].includes('curtain')?'Gathered fabric stays at the jambs and has no rigid leaf swing':choice?.[2]||'Intentionally open circulation',operable:p[0]!=='open'&&!fixedOverhead,...(choice?.[1]?{swing:choice[1]}:{}),source:region==='japan'?'japan-bathhouse.js':region==='china'?'china-palace.js':region==='egypt'?'egypt-temple.js':'regions-west.js'};
+  return {id:legacy.id||t.id,openingId:t.id,kind:p[0],rationale:p[1],rooms:t.rooms||[],center:axis==='x'?[lateral,bottom,at]:[at,bottom,lateral],axis,closureMount:closureMount?{...closureMount,wallPlane:closureMount.wallPlane??wallPlane}:undefined,revealDepth:closureMount?.revealDepth??closureMount?.wallDepth,surfaceTrack:choice?.[0]==='slide'&&closureMount?.kind!=='pocket',trackMountOffset:at-wallPlane,width:t.width,sideOverlap:closureMount?.sideOverlap??fix.sideOverlap??0,bottomClearance:fix.bottomClearance??t.floorFit?.runningGap??0,height:t.floorFit?t.floorFit.top-bottom:fix.height??legacy.height??(t.top!==undefined?t.top-bottom:t.height),style:STYLE[region],motion:p[0]==='open'?'none':fixedOverhead?'fixed-overhead':p[0].includes('curtain')?'gather':choice[0],existingBanner,motionRationale:fixedOverhead?'Fixed hanging textile stays above actor height and never gathers automatically':p[0].includes('curtain')?'Gathered fabric stays at the jambs and has no rigid leaf swing':choice?.[2]||'Intentionally open circulation',operable:p[0]!=='open'&&!fixedOverhead,...(choice?.[1]?{swing:choice[1]}:{}),source:region==='japan'?'japan-bathhouse.js':region==='china'?'china-palace.js':region==='egypt'?'egypt-temple.js':'regions-west.js'};
  });
 }
 export function roomClosureSpecs(lot,region){

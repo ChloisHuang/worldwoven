@@ -1,3 +1,4 @@
+import {addInsetClosureSection} from './inset-closures.js';
 import {registerNightFixture} from './night-lighting.js';
 import * as G from './geometry.js?rev=R7-20261002';
 const { THREE } = G;
@@ -594,7 +595,27 @@ export function buildFrance({pack=true}={}){
   }
   const block=(x,y,z,w,h,d,c,parent=group)=>{box(x,y,z,w,h,d,c,parent);G.collider(colliders,x,z,w,d);cameraColliders.push({minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2});};
   const cameraBox=(x,y,z,w,h,d)=>cameraColliders.push({minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2});
-  const wall=o=>frenchRoomWall(group,colliders,cameraColliders,{bottom:.23,top:ceilingY,depth:.30,color:C.ivory,...o});
+  // Structural plaster is .30 m; the joined .42 m casing is the actual
+  // hinge reveal. Only the bedroom arcade needs a hollow .50 m pocket wall.
+  const insetDoorSections=[
+    {id:'front-entry',axis:'x',at:3.5,lateral:0,width:3.8,bottom:.258,top:4.12,swing:1},
+    {id:'rear-entry',axis:'x',at:-13.5,lateral:0,width:3.2,bottom:.258,top:4.12,swing:1},
+    {id:'gallery-east-front',axis:'z',at:3,lateral:-1,width:2.6,bottom:.258,top:3.9,swing:1},
+    {id:'enfilade-east',axis:'x',at:-6.6,lateral:6.85,width:2.2,bottom:.252,top:3.9,swing:1},
+    {id:'wing-entry--1--9.5',axis:'z',at:-17,lateral:-9.5,width:2.3,bottom:.264,top:3.9,swing:1},
+    {id:'wing-enfilade--1',axis:'x',at:-6.6,lateral:-21,width:2.5,bottom:.23,top:3.9,swing:-1},
+    {id:'core-wing-1--5',axis:'z',at:10.8,lateral:-5,width:2,bottom:.23,top:3.9,kind:'pocket'}
+  ],insetMounts=new Map();
+  const wall=o=>{
+    const openings=(o.openings||[]).map(opening=>{
+      const def=insetDoorSections.find(d=>d.axis===(o.axis||'x')&&Math.abs(d.at-o.at)<.001&&Math.abs(d.lateral-(opening.from+opening.to)/2)<.001&&Math.abs(d.width-(opening.to-opening.from))<.001);
+      if(!def)return opening;
+      const section=addInsetClosureSection(group,colliders,cameraColliders,{...def,kind:def.kind||'hinge',wallDepth:def.kind==='pocket'?.50:.42,style:'french',color:C.white});
+      insetMounts.set(def.id,{...section.mount,structuralWallDepth:.30});
+      return section.roughOpening;
+    });
+    frenchRoomWall(group,colliders,cameraColliders,{bottom:.23,top:ceilingY,depth:.30,color:C.ivory,...o,openings});
+  };
   const local=(x,z,rot=0,parent=group)=>{const q=new THREE.Group();q.position.set(x,0,z);q.rotation.y=rot;parent.add(q);return q;};
   // R10: recognisable furniture is built as joined structural assemblies. The
   // authored navigation/camera footprints and R9 work anchors remain unchanged.
@@ -1022,7 +1043,7 @@ export function buildFrance({pack=true}={}){
   const windowOpen=(v,w=2.05)=>({from:v-w/2,to:v+w/2,bottom:.9,top:4.54});
   wall({at:3.5,from:-10.8,to:10.8,openings:[windowOpen(-8.55,1.7),windowOpen(-5.55,1.7),{from:-1.9,to:1.9,top:4.12},windowOpen(5.55,1.7),windowOpen(8.55,1.7)]});
   wall({at:-13.5,from:-10.8,to:10.8,openings:[windowOpen(-7.1,2.4),{from:-1.6,to:1.6,top:4.12},windowOpen(7.1,2.4)]});
-  for(const x of [-10.8,10.8])wall({axis:'z',at:x,from:-13.5,to:3.5,openings:[windowOpen(-12,1.3),{from:-10.65,to:-8.35,top:3.9},{from:-6,to:-4,top:3.9},windowOpen(-2.2,2.65)]});
+  for(const x of [-10.8,10.8])wall({axis:'z',at:x,from:-13.5,to:3.5,openings:[windowOpen(-12,1.3),{from:-10.65,to:-8.35,top:3.9},{from:-6,to:-4,top:3.9},windowOpen(x>0?-1.2:-2.2,2.65)]});
   for(const x of [-3,3])wall({axis:'z',at:x,from:-13.5,to:3.5,openings:[{from:-10.8,to:-8.2,top:3.9},{from:-2.3,to:.3,top:3.9}]});
   for(const s of [-1,1])wall({at:-6.6,from:s<0?-10.8:3,to:s<0?-3:10.8,openings:[{from:s*6.85-1.10,to:s*6.85+1.10,top:3.9}]});
   for(const x of [-3,3])for(const z of [-9.5,-1])doorway(x,z,2.6,Math.PI/2);
@@ -1030,7 +1051,7 @@ export function buildFrance({pack=true}={}){
   doorway(0,3.5,3.8,0,4.12);doorway(0,-13.5,3.2,0,4.12);
   for(const x of [-8.55,-5.55,5.55,8.55])windowAt(x,3.5,1.7,Math.PI);
   for(const x of [-7.1,7.1])windowAt(x,-13.5,2.4);
-  for(const x of [-10.8,10.8])for(const [z,w]of [[-12,1.3],[-2.2,2.65]])windowAt(x,z,w,x<0?Math.PI/2:-Math.PI/2);
+  for(const x of [-10.8,10.8])for(const [z,w]of [[-12,1.3],[x>0?-1.2:-2.2,2.65]])windowAt(x,z,w,x<0?Math.PI/2:-Math.PI/2);
   // Tall white/gilt panel sequences, interleaved with mirrored green salons.
   for(const x of [-3,3]){
     const q=local(x,-5, x<0?Math.PI/2:-Math.PI/2);
@@ -1040,7 +1061,9 @@ export function buildFrance({pack=true}={}){
   }
   for(const x of [-10.62,10.62]){
     const q=local(x,0,x<0?Math.PI/2:-Math.PI/2);
-    for(const z of [-7.4,1.2])panel(q,x<0?-z:z,0,1.35,true);
+    // The east north cassette skin remains a plain joined pier; its old
+    // deep boiserie occupied the actual pocket cavity.
+    for(const z of (x>0?[1.2]:[-7.4,1.2]))panel(q,x<0?-z:z,0,1.35,true);
   }
   for(const s of [-1,1])for(const front of [-1,1]){const q=local(s*6.85,-6.6,front<0?Math.PI:0);panel(q,-2.48,.19,1.58,true);panel(q,2.48,.19,1.58,true);}
   for(const x of [-4.5,4.5,-9.5,9.5])panel(group,x,-13.29,1.25,true);
@@ -1202,6 +1225,7 @@ export function buildFrance({pack=true}={}){
     walkableSurfaces.push({minX:xc-4,maxX:xc+4,minZ:-13.5,maxZ:3.5,y:.23},...[-9.5,-5].map(z=>({minX:s<0?-17.1:10.7,maxX:s<0?-10.7:17.1,minZ:z-1.43,maxZ:z+1.43,y:.23})));
     doorways.push(...[-9.5,-5].flatMap(z=>[{id:`core-wing-${s}-${z}`,a:[s*9.95,.23,z],b:[s*11.65,.23,z],width:z===-5?2:2.3,height:3.67},{id:`wing-entry-${s}-${z}`,a:[s*16.1,.23,z],b:[s*17.9,.23,z],width:z===-5?2.2:2.3,height:3.67}]),{id:`wing-enfilade-${s}`,a:[xc,.23,-5.7],b:[xc,.23,-7.5],width:2.5,height:3.67},{id:`wing-garden-${s}`,a:[xc,.23,2.6],b:[xc,0,4.4],width:2.5,height:3.67});
   }
+  for(const d of doorways)if(insetMounts.has(d.id))d.closureMount=insetMounts.get(d.id);
   // Low thresholds meet the real finished surfaces while leaving every
   // opening top fixed. These shallow supports do not become full-height walls.
   for(const sill of finishedDoorSills){

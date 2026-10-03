@@ -175,6 +175,21 @@ function buildYukata(g){
  for(const m of g.children)if(m.isMesh&&['inner-collar','outer-collar','lapel-binding','front-overlap-seam','willow-stem','willow-leaf'].includes(m.name))conformFront(m,yukataProfile,m.name==='outer-collar'?.007:m.name==='lapel-binding'?.009:.0045);
 }
 
+// Temporary, opaque one-piece swimwear. The closed torso and fitted shorts
+// remain covered above and below water, without a heavy folded robe at the lap.
+function buildOnsenSwimwear(g){
+ const cloth=0x536e7b,trim=0xc3d9d0;
+ loft(g,'onsen-swim-body',[[.922,.163,.113,0,-.008],[1.01,.158,.104,0,-.006],[1.10,.145,.087,0,-.003],[1.22,.158,.090,0,-.007],[1.31,.186,.079,0,-.013],[1.36,.139,.063,0,-.006],[1.397,.051,.039,0,.001]],cloth,{segs:40,steps:38});
+ for(const s of[-1,1]){
+  loft(g,'onsen-trouser-'+s,[[.558,.069,.063,s*.089,-.010],[.62,.075,.070,s*.089,-.010],[.79,.084,.078,s*.083,-.009],[.96,.083,.079,s*.075,-.013],[1.014,.075,.068,s*.07,-.012]],cloth,{segs:30,steps:28});
+  loft(g,'bare-leg-onsen-'+s,[[.106,.031,.036,s*.089,-.021],[.26,.043,.045,s*.089,-.017],[.44,.052,.048,s*.089,-.013],[.57,.062,.060,s*.088,-.01]],C.skin,{segs:24,steps:28});
+  loft(g,'bare-arm-onsen-'+s,[[.916,.021,.023,s*.303,0],[1.01,.030,.030,s*.297,-.002],[1.092,.039,.036,s*.28,-.006],[1.19,.045,.041,s*.254,-.006],[1.28,.052,.048,s*.204,-.01],[1.326,.048,.046,s*.173,-.011],[1.343,.031,.035,s*.151,-.01]],C.skin,{segs:24,steps:30});
+  hand(g,s);
+  loft(g,'footwear-bath-bare-'+s,[[.025,.001,.002,s*.089,.04],[.035,.045,.105,s*.089,.04],[.06,.050,.114,s*.089,.04],[.10,.033,.053,s*.089,-.01],[.15,.026,.034,s*.089,-.021]],C.skin,{segs:24,steps:16});
+ }
+ loft(g,'onsen-collar-binding',[[1.383,.065,.044,0,.001],[1.397,.052,.040,0,.001]],trim,{segs:24,steps:4});
+}
+
 function removeSurfaces(g,test){const removed=[];g.traverse(m=>{if(m.isMesh&&test(m.name))removed.push(m);});for(const m of removed){m.removeFromParent();m.geometry.dispose();}}
 function shirtToBodice(g,color=C.yukata){const m=g.getObjectByName('tailored-shirt-body');if(m){m.name='fitted-court-bodice';m.material=mat(color);}}
 function skirt(g,name,{hem=.26,depth=.145,waist=.14,bottom=.13,color=C.yukata,pleats=0}={}){
@@ -370,7 +385,8 @@ export function createApprovedSurfaces({culture=null,masc=false,style='casual',b
  if(culture==='egypt')C.yukata=new THREE.Color(C.yukata).lerp(new THREE.Color(0xe2d7b9),.28).getHex();
  const root=new THREE.Group();buildHead(root,masc,hairStyle,traits);
  // Temporary opaque ankle-length bath robe; saved cultural outfits remain untouched.
- if(wardrobePreset==='bath-robe'){
+ if(culture==='japan'&&wardrobePreset==='onsen-swimwear')buildOnsenSwimwear(root);
+ else if(wardrobePreset==='bath-robe'){
   buildJapan(root,masc,masc?'yukata-narrow-obi':'yukata-wide-obi');removeSurfaces(root,n=>/footwear|sole-|loafer/.test(n));
   for(const side of[-1,1])loft(root,'footwear-bath-bare-'+side,[[.025,.001,.002,side*.089,.04],[.035,.045,.105,side*.089,.04],[.06,.050,.114,side*.089,.04],[.10,.033,.053,side*.089,-.01],[.15,.026,.034,side*.089,-.021]],C.skin,{segs:24,steps:16});
  }

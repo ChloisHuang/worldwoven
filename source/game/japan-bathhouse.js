@@ -153,14 +153,28 @@ export function buildJapan(){
  function lowTable(g,base,x,z,w=2.5,d=1.55,color=P.wood){G.table(g,x,z,w,d,color,.63);obstacle(x,base+.38,z,w,.75,d);G.box(g,x,.73,z,w*.56,.028,d*.62,0xae8156);tea(g,x,.76,z);}
  function shelf(g,base,x,z,w=2,d=.6,angle=0,contents=true){const q=new THREE.Group();q.position.set(x,0,z);q.rotation.y=angle;g.add(q);for(const xx of [-w/2,w/2])G.box(q,xx,1.22,0,.1,2.45,d,P.cedar);G.box(q,0,1.18,-d/2,w,2.4,.065,P.wood);for(const yy of [.18,.8,1.42,2.05,2.45])G.box(q,0,yy,0,w,.085,d,P.honey);if(contents)for(let i=0;i<3;i++){vase(q,-w*.3+i*w*.3,.84,0,[P.jade,P.cream,0xa37556][i],false);folded(q,-w*.27+i*w*.28,1.49,0,[P.indigo,P.red,0x9b9a78][i],w*.23,.4);G.cyl(q,-w*.3+i*w*.3,2.22,0,.16,.17,.26,0xc6ae7d,8);}const sideOn=Math.abs(Math.sin(angle))>.7;obstacle(x,base+1.2,z,sideOn?d:w,2.4,sideOn?w:d);return q;}
  function pool(g,base,x,z,w,d){
-   // Three continuous curbs and a split east curb form a 1.9m walk-in entrance.
-   G.box(g,x,.067,z,w,.027,d,0x54756c);G.mesh(g,new THREE.BoxGeometry(w-.24,.337,d-.24),P.water,x,.2505,z,{transparent:true,opacity:.76,depthWrite:false,emissive:0x426e60,emissiveIntensity:.12});
-   for(const zz of [z-d/2,z+d/2])groundSolid(g,base,x,.23,zz,w+.34,.46,.28,0x878c72);
-   groundSolid(g,base,x-w/2,.23,z,.28,.46,d,0x878c72);
-   for(const side of [-1,1]){const seg=(d-1.9)/2;groundSolid(g,base,x+w/2,.23,z+side*(.95+seg/2),.28,.46,seg,0x878c72);}
+   const bottom=.0805,waterY=.67,rimY=.72,seatY=.30,backTop=.70,east=x+w/2;
+   // A closed retaining basin. The original floor remains the only bottom;
+   // its east ledge carries the sitter and the coping supports their back.
+   G.box(g,x,.067,z,w,.027,d,0x416d65);
+   for(const zz of [z-d/2,z+d/2])groundSolid(g,base,x,rimY/2,zz,w+.34,rimY,.28,0x878c72);
+   groundSolid(g,base,x-w/2,rimY/2,z,.28,rimY,d,0x878c72);
+   G.box(g,east,rimY/2,z,.28,rimY,d,0x878c72);
+   G.box(g,east-.42,(bottom+seatY)/2,z,.56,seatY-bottom,d-.28,0x7e9687);
+   G.box(g,east-.18,(seatY+backTop)/2,z,.08,backTop-seatY,d-.28,0x81978a);
+   // Ordinary movement stops at the basin. Existing furniture ownership
+   // recognizes this exact centered proxy only for an explicit bath transfer.
+   obstacle(x,base+rimY/2,z,w,rimY,d);
+   g.userData.onsenPools??=[];g.userData.onsenPools.push({center:[x,base,z],bottomY:base+bottom,waterY:base+waterY,rimY:base+rimY,seat:{minX:east-.70,maxX:east-.14,minZ:z-d/2+.14,maxZ:z+d/2-.14,y:base+seatY},backX:east-.22,backTopY:base+backTop,retainingWallX:east-.14,copingTopY:base+.80,seamTopY:base+.817});
+   // One top surface, independent of the room's transparent steam batch.
+   // Opaque geometry behind it is tinted once, with no stacked water box faces.
+   const water=G.mesh(g,new THREE.PlaneGeometry(w-.28,d-.28),0x83c4b8,x,waterY,z,{transparent:true,opacity:.82,depthWrite:false,emissive:0x427e73,emissiveIntensity:.16});water.rotation.x=-Math.PI/2;water.castShadow=false;water.userData.noStaticBatch=true;water.name='Onsen single water surface';
+   for(let i=0;i<3;i++){
+    const radius=Math.min(w*.16,.82)+i*.13,arc=G.mesh(g,new THREE.RingGeometry(radius-.008,radius+.008,40,1,i*.55,Math.PI*.58),0xc6e5d3,x-w*.12,waterY+.014,z-.40,{transparent:true,opacity:.62,depthWrite:false});arc.rotation.x=-Math.PI/2;arc.scale.x=1.2;arc.castShadow=false;arc.userData.noStaticBatch=true;arc.name='Onsen broken surface highlight';
+   }
    for(const zz of [z-d/2+.45,z+d/2-.45])for(let xx=x-w/2+.45;xx<x+w/2-.1;xx+=.7)G.box(g,xx,.083,zz,.42,.012,.024,0xb5d5ba);
    // Suspended soft puffs remain sparse enough to see the room and characters.
-   for(let i=0;i<7;i++){const xx=x+Math.sin(i*2.4)*w*.3,zz=z+Math.cos(i*2.4)*d*.25;G.mesh(g,new THREE.SphereGeometry(.35+(i%3)*.1,10,7),0xe8e9cf,xx,.67+(i%3)*.33,zz,{transparent:true,opacity:.12,depthWrite:false}).scale.set(1.8,.62,1);}
+   for(let i=0;i<7;i++){const xx=x+Math.sin(i*2.4)*w*.3,zz=z+Math.cos(i*2.4)*d*.25;G.mesh(g,new THREE.SphereGeometry(.35+(i%3)*.1,10,7),0xe8e9cf,xx,waterY+.32+(i%3)*.33,zz,{transparent:true,opacity:.085,depthWrite:false}).scale.set(1.8,.62,1);}
    for(const zz of [z-d*.35,z+d*.35]){G.cyl(g,x-w/2-.65,.22,zz,.24,.27,.44,P.honey,9);G.torus(g,x-w/2-.65,.41,zz,.23,.025,P.wood);}
  }
  // Street and a compact enclosed arrival garden fit the original 30 × 40 lot.
@@ -358,8 +372,8 @@ export function buildJapan(){
   pool(f,y,-6.55,-9.3,7.5,6.6);pool(f,y,2.1,-9.7,4.0,6.6);
   // Raised coping has a tailored timber edge and tile seam, not a box-ring bath.
   for(const [cx,w,cz]of [[-6.55,7.5,-9.3],[2.1,4.0,-9.7]]){
-   for(const zz of [cz-3.3,cz+3.3]){G.box(f,cx,.49,zz,w+.38,.1,.4,P.honey);for(let xx=cx-w/2;xx<cx+w/2;xx+=.44)G.box(f,xx,.55,zz,.025,.014,.39,P.wood);}
-   for(let k=0;k<5;k++){const r=.65+k*.43;G.torus(f,cx,.423,cz,r,.011,0xb9d7c5);}
+   for(const zz of [cz-3.3,cz+3.3]){G.box(f,cx,.75,zz,w+.38,.1,.4,P.honey);for(let xx=cx-w/2;xx<cx+w/2;xx+=.44)G.box(f,xx,.81,zz,.025,.014,.39,P.wood);}
+   G.box(f,cx+w/2,.75,cz,.34,.10,6.6,P.honey);
    const fx=cx-w/2+.8;beam(f,[fx,1.38,-14.54],[fx,1.38,-12.3],.10,0x6e8960);beam(f,[fx,1.38,-12.3],[fx,.52,-12.3],.052,0xd1ded0);
   }
   for(const z of [-2.25,-4.15])washBay(f,y,-10.65,z,-1);
@@ -375,8 +389,9 @@ export function buildJapan(){
   bench(f,y,-7.7,7.55,4.0);bench(f,y,4.9,7.55,3.1);
   target('bath-foyer','Shared bath foyer',0,y,6.8);target('men-changing','Men changing and basket lockers',-8.8,y,1.6);target('women-changing','Women changing and basket lockers',4.6,y,1.45);
   target('men-wash','Men pre-bath washing',-8.65,y,-3.4);target('women-wash','Women pre-bath washing',3.0,y,-4.4);target('men-bath','Men onsen broad pool entry',-2.25,y,-9.3);target('women-bath','Women onsen broad pool entry',5.0,y,-9.7);
-  target('men-pool-interior','Men pool walk-in interior',-6.55,y,-9.3);target('women-pool-interior','Women pool walk-in interior',2.1,y,-9.7);
-  threshold('jp-men-pool-entry',[-2.1,y,-9.3],[-3.5,y,-9.3],1.9,3.3);threshold('jp-women-pool-entry',[4.9,y,-9.7],[3.5,y,-9.7],1.9,3.3);
+  target('men-pool-interior','Men pool seated-soak approach',-2.1,y,-9.3);Object.assign(explorationTargets.at(-1),{purpose:'Change into swimwear and mount the supported pool seat',furnitureId:'japan-furniture-bath-1',mountedDestination:[-3.22,y,-9.3],previousWalkInPosition:[-6.55,y,-9.3]});
+  target('women-pool-interior','Women pool seated-soak approach',4.9,y,-9.7);Object.assign(explorationTargets.at(-1),{purpose:'Change into swimwear and mount the supported pool seat',furnitureId:'japan-furniture-bath-2',mountedDestination:[3.68,y,-9.7],previousWalkInPosition:[2.1,y,-9.7]});
+  threshold('jp-men-pool-entry',[-2.1,y,-9.3],[-2.1,y,-8.5],1.9,3.3,{purpose:'Poolside bath interaction approach; enter through the mounted bath action',furnitureId:'japan-furniture-bath-1'});threshold('jp-women-pool-entry',[4.9,y,-9.7],[4.9,y,-8.9],1.9,3.3,{purpose:'Poolside bath interaction approach; enter through the mounted bath action',furnitureId:'japan-furniture-bath-2'});
   program('men-changing',2,'changing-lockers',53,['jp-room-men-changing'],{gender:'men',pairedFunction:'gender-separated-changing'});program('women-changing',2,'changing-lockers',38,['jp-room-women-changing'],{gender:'women',pairedFunction:'gender-separated-changing'});
   program('men-wet',2,'onsen',162,['jp-room-men-wash','jp-room-men-bath','jp-room-men-pool-interior'],{gender:'men',pairedFunction:'gender-separated-onsen'});program('women-wet',2,'onsen',100,['jp-room-women-wash','jp-room-women-bath','jp-room-women-pool-interior'],{gender:'women',pairedFunction:'gender-separated-onsen'});program('bath-foyer',2,'bath-transition-foyer',87,['jp-room-bath-foyer']);
  }

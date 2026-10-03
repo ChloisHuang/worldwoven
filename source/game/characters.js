@@ -75,7 +75,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
  const masc=bodyPreset.startsWith('masculine');hairStyle=HAIR_STYLES.includes(hairStyle)?hairStyle:(masc?'swept-short':'chin-bob');
  culture=['japan','china','egypt','france'].includes(culture)?culture:null;
  style=['chef','artist','gardener'].includes(style)?style:'casual';scale=Number.isFinite(scale)?clamp(scale,.25,3):1;
- const wardrobeOptions=(WARDROBE_PRESETS[culture]||WARDROBE_PRESETS.france)[masc?'masculine':'feminine'];wardrobePreset=wardrobePreset==='bath-robe'||(ROLE_WARDROBE_PRESETS[culture]||[]).includes(wardrobePreset)||wardrobeOptions.includes(wardrobePreset)?wardrobePreset:wardrobeOptions[0];
+ const wardrobeOptions=(WARDROBE_PRESETS[culture]||WARDROBE_PRESETS.france)[masc?'masculine':'feminine'];wardrobePreset=wardrobePreset==='bath-robe'||culture==='japan'&&wardrobePreset==='onsen-swimwear'||(ROLE_WARDROBE_PRESETS[culture]||[]).includes(wardrobePreset)||wardrobeOptions.includes(wardrobePreset)?wardrobePreset:wardrobeOptions[0];
  // Skin, cloth and rig use the same anatomical displacement before leg shaping.
  const armOffset=createRelaxedArmOffset(bodyPreset,wardrobePreset,shapeTraits.legLength);
  const rest=REST.map((p,i)=>{const arm=i>=4&&i<=9,offset=arm&&armOffset?armOffset(p.y):null;return V(p.x*(arm?armWidthAtHeight(p.y,bodyPreset):1)+(offset?Math.sign(p.x)*offset[0]:0),shapeHeight(p.y+(offset?.[1]??0),shapeTraits.legLength),p.z+(offset?.[2]??0));});
@@ -90,7 +90,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
  const posedP=rest.map(p=>p.clone()),posedQ=rest.map(()=>new THREE.Quaternion()),pose=new THREE.Group();
  const tmp=V(),tmp2=V(),dir=V(),pole=V(),restDir=V(),identity=new THREE.Quaternion(),invQ=new THREE.Quaternion(),torsoQ=new THREE.Quaternion(),headQ=new THREE.Quaternion(),inverseRoot=new THREE.Matrix4();
  const previousRoot=V(),velocity=V(),rootWorld=V(),forwardWorld=V(),rightWorld=V(),footProbe=V(),footBack=V(),footFront=V(),footRight=V(),footLeft=V(),footOffset=V(),footNormal=V(),footUp=V(0,1,0),footOrient=[new THREE.Quaternion(),new THREE.Quaternion()],footAnchors=[V(),V()],swingStarts=[V(),V()],lastFootWorld=[V(),V()],lastSupport=[true,false],footTargets=[V(),V()];
- let supportCorrection=0,poseMinY=0,poseMaxY=0;const lieOffsets={back:0,spine:0,head:0,heel:0};
+ let supportCorrection=0,poseMinY=0,poseMaxY=0,onsenHip=.32,onsenBackOffset=0;const lieOffsets={back:0,spine:0,head:0,heel:0};
  let lastTime=null,wasWalking=false,gaitPhase=0,disposed=false,initializedFeet=false,currentAction=null,visualFloorOffset=0,previousYaw=0;
  const metrics={height,labelHeight:height+.16,headHeight:1.61*root.scale.y,action:null,seated:false,grounded:true,feet:[[],[]],hands:[[],[]]};
  root.userData={characterR9:true,characterR10:true,locomotion,appearance:{skin:opts.skin,hair:opts.hair,clothes:opts.clothes,accent:opts.accent,eyeColor:opts.eyeColor,culture,variant,style,bodyPreset,hairStyle,wardrobePreset,gaitPreset,shapeTraits:{...shapeTraits}},body:rig,head:bones[3],arms:[bones[4],bones[7]],forearms:[bones[5],bones[8]],hands:[bones[6],bones[9]],legs:[bones[10],bones[13]],knees:[bones[11],bones[14]],feet:[bones[12],bones[15]],tools:props.tools,poseQA:metrics,labelHeight:metrics.labelHeight,characterShared:true};
@@ -124,6 +124,29 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   posedQ[c].copy(posedQ[b]);
  }
  function foot(side,target){const ids=side?[13,14,15]:[10,11,12];solveLimb(...ids,target,legPole);posedQ[ids[2]].identity();}
+ function poseOnsen(context,time){
+  setTorso(onsenHip,-.12,0);
+  foot(0,tmp.set(-.13,.108,.58));foot(1,tmp.set(.13,.108,.58));
+  for(const [i,j]of[[16,11],[17,14]]){posedP[i].copy(posedP[j]);posedQ[i].copy(posedQ[j]);}
+  const water=(context.bathPose.waterY-context.supportY+.025)/root.scale.y-supportCorrection;
+  reach(0,-.23,water,.15);reach(1,.23,water+Math.sin(time*.7)*.003,.15);
+  posedQ[6].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));posedQ[9].copy(posedQ[6]);
+  headQ.setFromEuler(new THREE.Euler(.07,Math.sin(time*.35)*.02,0));posedQ[3].copy(torsoQ).multiply(headQ);
+ }
+ function measureOnsenSkin(context){
+  const result={min:Infinity,max:-Infinity,hip:Infinity,sole:Infinity,back:Infinity,backY:null};root.updateMatrixWorld(true);skeleton.update();inverseRoot.copy(root.matrixWorld).invert();
+  for(const mesh of meshes)for(const range of mesh.geometry.userData.sourceRanges||[]){
+   const attr=mesh.geometry.attributes.position,hip=/^onsen-trouser|^onsen-swim-body/.test(range.name),back=range.name==='onsen-swim-body',sole=/^footwear-bath-bare/.test(range.name);
+   for(let i=range.start;i<range.start+range.count;i++){
+    mesh.getVertexPosition(i,tmp).applyMatrix4(mesh.matrixWorld).applyMatrix4(inverseRoot);const sy=mesh.geometry.attributes.sourceY?.getX(i)??attr.getY(i);
+    result.min=Math.min(result.min,tmp.y);result.max=Math.max(result.max,tmp.y);
+    if(sole)result.sole=Math.min(result.sole,tmp.y);
+    if(hip&&sy>.84&&sy<1.01&&attr.getZ(i)<-.012)result.hip=Math.min(result.hip,tmp.y);
+    const worldY=context.supportY+(tmp.y+supportCorrection)*root.scale.y;
+    if(back&&sy>1.12&&sy<1.335&&attr.getZ(i)<0&&worldY<context.bathPose.backTopY-.01&&tmp.z<result.back){result.back=tmp.z;result.backY=worldY;}
+   }
+  }return result;
+ }
  function applyPose(){
   for(let i=0;i<bones.length;i++){const parent=JOINTS[i][1];if(parent<0){bones[i].position.copy(posedP[i]);bones[i].quaternion.copy(posedQ[i]);}else{invQ.copy(posedQ[parent]).invert();bones[i].position.copy(posedP[i]).sub(posedP[parent]).applyQuaternion(invQ);bones[i].quaternion.copy(invQ).multiply(posedQ[i]);}}
   // World-upright cups, bowls and buckets; hands retain real elbow/wrist rotation.
@@ -192,7 +215,8 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   if(disposed)return;visualFloorOffset=Number.isFinite(context?.visualFloorOffset)?clamp(context.visualFloorOffset,0,.5):0;rig.rotation.set(0,0,0);rig.position.set(0,visualFloorOffset/root.scale.y,0);time=Number.isFinite(time)?time:0;walking=!!walking;if(walking)action=null;resetTools();
   const rawDt=lastTime===null?0:time-lastTime,dt=clamp(rawDt,0,.2);root.updateWorldMatrix(true,false);root.getWorldPosition(rootWorld);velocity.copy(rootWorld).sub(previousRoot);const travel=Math.hypot(velocity.x,velocity.z),headingDelta=Math.atan2(Math.sin(root.rotation.y-previousYaw),Math.cos(root.rotation.y-previousYaw)),discontinuity=rawDt>.25||rawDt<0||travel>=1.2||Math.abs(headingDelta)>.85;const physical=!discontinuity&&dt>0&&travel>.000001;
   if(physical)velocity.multiplyScalar(1/dt);else velocity.set(0,0,0);
-  const poseChanged=currentAction!==action;const mountedPose=action==='lie-rest'||action==='bathe';const leavingSeat=['kotatsu','chair-sit','lie-rest','bathe'].includes(currentAction)&&action!==currentAction;
+  const poseChanged=currentAction!==action;const mountedPose=action==='lie-rest'||action==='bathe';const supportedOnsen=action==='bathe'&&culture==='japan'&&wardrobePreset==='onsen-swimwear'&&context?.bathPose?.style==='onsen-seat';const leavingSeat=['kotatsu','chair-sit','lie-rest','bathe'].includes(currentAction)&&action!==currentAction;
+  if(supportedOnsen&&poseChanged){onsenHip=context.bathHipHeight??.32;onsenBackOffset=0;supportCorrection=0;}
   if(discontinuity||leavingSeat){initializedFeet=false;for(let s=0;s<2;s++){lastFootWorld[s].set(s?.089:-.089,.108,-.025).applyMatrix4(root.matrixWorld);lastFootWorld[s].y+=visualFloorOffset;}wasWalking=false;}
   currentAction=action;metrics.action=action;metrics.gaitReset=discontinuity||leavingSeat;metrics.seated=action==='kotatsu'||action==='chair-sit'||action==='bathe';metrics.lying=action==='lie-rest';metrics.bathing=action==='bathe';
   // Phase is distance-driven, never wall-clock-driven: blocked actors do not skate.
@@ -345,13 +369,27 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    for(let i=0;i<posedP.length;i++){posedP[i].copy(rest[i]);posedQ[i].identity();}
    if(poseChanged){lieOffsets.back=0;lieOffsets.spine=0;lieOffsets.head=0;lieOffsets.heel=0;}settleLieJoints();rig.rotation.x=-Math.PI/2;rig.position.set(0,0,context?.lieOffset??.70);
   }
+  if(supportedOnsen)poseOnsen(context,time);
   applyPose();
   if(mountedPose){
    const supportY=Number.isFinite(context?.supportY)?context.supportY:rootWorld.y;
    if(poseChanged){
     // One bounded contact fit on activation; no geometry scan in the frame loop.
     rig.position.y=0;
-    if(action==='lie-rest'&&context?.lieSupport&&shapeTraits.legLength!==1){
+    if(supportedOnsen){
+     // Fit the two real support surfaces independently. The seat carries the
+     // posterior while the soles stay on the basin bottom; no whole-body lift
+     // is used to put the head above water.
+     for(let pass=0;pass<3;pass++){
+      const skin=measureOnsenSkin(context),desired=(context.bathPose.seatY-supportY)/root.scale.y+skin.sole;
+      onsenHip=clamp(onsenHip+desired-skin.hip,.25,.52);poseOnsen(context,time);applyPose();
+     }
+     let skin=measureOnsenSkin(context);supportCorrection=-skin.sole+.004/root.scale.y;
+     poseOnsen(context,time);applyPose();skin=measureOnsenSkin(context);
+     onsenBackOffset=context.bathPose.backZ/root.scale.z-skin.back+.006/root.scale.z;
+     poseMinY=skin.min;poseMaxY=skin.max;metrics.lieContact=null;
+     metrics.bathContact={hip:{surface:context.bathPose.seatY,body:supportY+(skin.hip+supportCorrection)*root.scale.y,gap:supportY+(skin.hip+supportCorrection)*root.scale.y-context.bathPose.seatY},sole:{surface:supportY,body:supportY+(skin.sole+supportCorrection)*root.scale.y,gap:.004},back:{surface:context.bathPose.backZ,body:(skin.back+onsenBackOffset)*root.scale.z,gap:.006,height:skin.backY,top:context.bathPose.backTopY},waterY:context.bathPose.waterY};
+    }else if(action==='lie-rest'&&context?.lieSupport&&shapeTraits.legLength!==1){
      fitShapedLie(context,supportY);
     }else if(action==='lie-rest'&&context?.lieSupport){
      let skin=measureLieSkin(),hipTarget=supportY,target={...context.lieSupport};
@@ -370,10 +408,10 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
      const skin=measureLieSkin();poseMinY=skin.min;poseMaxY=skin.max;supportCorrection=-poseMinY+.004/root.scale.y;metrics.lieContact=null;
     }
    }
-   rig.position.y=(supportY-rootWorld.y)/root.scale.y+supportCorrection;root.updateMatrixWorld(true);skeleton.update();
+   rig.position.y=(supportY-rootWorld.y)/root.scale.y+supportCorrection;if(supportedOnsen)rig.position.z=onsenBackOffset;root.updateMatrixWorld(true);skeleton.update();
    metrics.contactMinY=supportY+(poseMinY+supportCorrection)*root.scale.y;metrics.contactMaxY=supportY+(poseMaxY+supportCorrection)*root.scale.y;
 
-  }else{metrics.contactMinY=null;metrics.contactMaxY=null;metrics.lieContact=null;}
+  }else{metrics.contactMinY=null;metrics.contactMaxY=null;metrics.lieContact=null;metrics.bathContact=null;}
 
   if(action==='sushi-eat')props.right.rotation.x-=Math.pow((Math.sin(time*.95)+1)*.5,2)*.55;
   if(/garden/.test(action||''))props.right.rotation.z=-.35;

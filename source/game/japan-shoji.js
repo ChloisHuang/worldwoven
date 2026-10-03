@@ -1,3 +1,4 @@
+import {addInsetClosureSection} from './inset-closures.js';
 import {box} from './geometry.js';
 
 // Surface-running shoji overlap the outside of the aperture, while a timber
@@ -14,4 +15,10 @@ export function addShojiJambReturns(g,base,x,z,width,axis,colliders,cameraCollid
   const b={minX:cx-w/2,maxX:cx+w/2,minY:base,maxY:base+height,minZ:cz-d/2,maxZ:cz+d/2};
   colliders.push(b);cameraColliders.push({...b});
  }
+}
+
+// The wall author must cut the returned rough opening, including both pocket
+// cavities. Floor groups supply their own world elevation through matrixWorld.
+export function addJapanInsetClosure(g,x,z,width,axis,colliders,cameraColliders,config={}){
+ return addInsetClosureSection(g,colliders,cameraColliders,{kind:config.kind||'hinge',axis,at:axis==='x'?z:x,lateral:axis==='x'?x:z,bottom:config.bottom??0,top:config.top??2.85,width,style:'shoji',wallDepth:config.kind==='pocket'?.38:.24,swing:config.swing??1});
 }
