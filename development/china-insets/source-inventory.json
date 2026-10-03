@@ -12,7 +12,7 @@
     "automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
     "inset-closures.js": "dadba37aaa60d85abc2c9102a5da10bcfaf529474d8e60fefe5a975e63d8930a"
   },
-  "scope": "China source wall/door cuts, six perimeter gate sets and China-only policy/mount requirements. Other countries, published France, bath work, archery and chair candidates excluded.",
+  "scope": "China source wall/door cuts, eight perimeter gate sets and China-only source mount requirements.",
   "counts": {
     "rigid": 27,
     "hinged": 23,
@@ -1663,12 +1663,14 @@
     {
       "name": "perimeter-gates",
       "ids": [
-        "cn-east-gate",
-        "cn-north-gate",
+        "cn-south-gate-west",
         "cn-south-gate",
         "cn-south-gate-east",
-        "cn-south-gate-west",
-        "cn-west-gate"
+        "cn-north-gate-west",
+        "cn-north-gate",
+        "cn-north-gate-east",
+        "cn-west-gate",
+        "cn-east-gate"
       ]
     },
     {
@@ -1701,9 +1703,9 @@
       ]
     }
   ],
-  "reuse": "Prior25 local pair/frame/floor and5250 closed rays remain parameter-identical. Their scope excludes current full-world neighbors. Do not repeat unrelated41-door local matrix or other-country poses.",
+  "reuse": "The 24 unchanged initial local configurations are reused. Two distinct corrected north-bay parameter sets passed continuous leaf/frame/floor and420 closed rays; east side is the translated west-side geometry. Full-world scope is tracked separately.",
   "northCorrection": {
-    "status": "CANDIDATE_NOT_YET_ACCEPTED",
+    "status": "FOCUSED_LOCAL_WORLD_ROUTES_AND_VISUAL_PASS",
     "reason": "Original6m inward pair intersects archive terrace/stair. Outward6m pair extends1.194m beyond north boundary and has no player-safe waiting area in aperture strip.",
     "functionalCentralIDPreserved": "cn-north-gate",
     "newSideIDs": [

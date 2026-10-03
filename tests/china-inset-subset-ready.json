@@ -1,24 +1,26 @@
 {
-  "status": "READY_SOURCE_LOCK_AND_ADAPTER_SYNTAX_ONLY",
-  "productCommit": "f57fc71",
+  "status": "NORTH_PASS_OTHER_GROUPS_PENDING",
+  "productCommit": "656395f",
   "cwd": "/workspace/shared/worldwoven-china-inset-candidate",
   "commands": {
-    "firstWorldGroup": "QA_RESOURCE_WINDOW=granted-by-owner node --max-old-space-size=768 --experimental-vm-modules tests/door-geometry/china-inset-world-group.cjs gates",
-    "firstRouteGroup": "QA_RESOURCE_WINDOW=granted-by-owner node --max-old-space-size=768 --experimental-vm-modules tests/china-inset-routes-group.cjs gates",
+    "firstWorldGroup": "QA_RESOURCE_WINDOW=granted-by-owner node --max-old-space-size=768 --experimental-vm-modules tests/door-geometry/china-inset-world-group.cjs west-east",
+    "firstRouteGroup": "QA_RESOURCE_WINDOW=granted-by-owner node --max-old-space-size=768 --experimental-vm-modules tests/china-inset-routes-group.cjs west-east",
     "gateViews": "QA_RESOURCE_WINDOW=granted-by-owner SOURCE_ROOT=/workspace/shared/worldwoven-china-inset-candidate/source OUT_DIR=/workspace/shared/worldwoven-china-inset-candidate/qa/china-gate-views node --max-old-space-size=768 tests/render-china-inset-gates.mjs"
   },
   "groups": {
-    "gates": 6,
+    "gates": 8,
     "pockets": 4,
     "central-hinges": 10,
-    "north-hinges": 5
+    "north-hinges": 5,
+    "north-fix": 3,
+    "west-east": 2
   },
   "budgets": {
     "worldEachSeconds": 180,
     "routesEachSeconds": 180,
     "renderSeconds": 60,
     "rssMiB": 1228,
-    "stop": "First FAIL/REVIEW. Owner grants each serial heavy segment. No scene has run at this checkpoint."
+    "stop": "First FAIL/REVIEW. Sequential affected-China groups only. North acceptance: tests/china-north-subset-results.json"
   },
   "outputs": [
     "qa/china-inset-world-gates/china-all.json",
@@ -26,9 +28,9 @@
     "qa/china-gate-views/report.json"
   ],
   "files": {
-    "tests/door-geometry/china-inset-world-group.cjs": "84a8afc2ff39891363a818cf1ee518593563d6997ae2a041b05d37dbf7d24c82",
+    "tests/door-geometry/china-inset-world-group.cjs": "aa2dc36f3ffdd16b1dbf5d7248f455dc493c496497ce4407ef1d56966c70bce2",
     "tests/china-inset-routes-group.cjs": "8eb5fc2c98fdd94e7b19062b686b488a84982b309992f65868746dcdb518cc7d",
-    "tests/china-inset-subset-guards.json": "45745809535a883fbd7d2feecd2503372dcbd631b3c08502a67138ff373a6c13",
-    "tests/render-china-inset-gates.mjs": "d25149a009600edc37e8b5907dd444ba938ce8ce2aedc2ad7cad653def650465"
+    "tests/china-inset-subset-guards.json": "1ac9a7f615c396a84a01c64a3b8061280e64fe03fdafb6eda34fd2f1b62dfbc2",
+    "tests/render-china-inset-gates.mjs": "ff56d95b3a394f98482daf59443baa84b9afe35ffd8656ff9de1efaaa8060712"
   }
 }

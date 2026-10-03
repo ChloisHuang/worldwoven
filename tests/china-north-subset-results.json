@@ -1,0 +1,267 @@
+{
+  "status": "NORTH_THREE_BAYS_PASS",
+  "sourceCommit": "656395f",
+  "productFiles": {
+    "source/game/china-palace.js": "d0c0ce23cf9739e0408e0bddcd94e06c473c602cc54a0a828f110e0a4ef74f39",
+    "source/game/room-closures.js": "885ef9ca8437263c925bacbc097af66cafa2164669736dbc2aa7ac71c7b54f1f"
+  },
+  "originalFailure": "tests/fixtures/china-north-original-failure.json",
+  "scope": "North three bays only; this is not all China or all perimeter acceptance. South3 unchanged world passes reused. East/west and rooms remain pending.",
+  "local": {
+    "status": "PASS_BOUNDED_PILOT",
+    "cases": [
+      {
+        "id": "cn-north-gate-west",
+        "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+        "parameterHash": "a37912f6822c6ea7e358fd433c5e3518f6dacfd121a4b0915693349fa17622ce",
+        "closedRays": 210,
+        "contacts": 0,
+        "unresolved": 0
+      },
+      {
+        "id": "cn-north-gate",
+        "status": "PASS_CONTINUOUS_PAIRS_AND_SECTION",
+        "parameterHash": "a58ee0ca7565f0eceaa5b3ca1b6df396247cd05f10d408521cc64ba4e303d394",
+        "closedRays": 210,
+        "contacts": 0,
+        "unresolved": 0
+      }
+    ],
+    "eastReuse": "Exact1.6m/0.13m west leaf/section geometry translated4.4m"
+  },
+  "world": {
+    "sourceHashAtRun": "037ebafc64839b8755533f1a1a37caac893b82ecbcff6b262279a890a0042eba",
+    "doors": [
+      {
+        "id": "cn-north-gate-west",
+        "status": "PASS_BOUNDED_SWEEP",
+        "counts": {
+          "surfaceCrossings": 0,
+          "containments": 0,
+          "sweptCrossings": 0,
+          "sweptContainments": 0,
+          "contactsRequiringReview": 0,
+          "boundedMountContacts": 0
+        },
+        "sweptEnvelope": {
+          "min": [
+            -3.012360257646061,
+            0.11495453129150812,
+            -38.9442327106385
+          ],
+          "max": [
+            -1.3876397423539397,
+            4.0750455068554645,
+            -37.85163974235394
+          ]
+        }
+      },
+      {
+        "id": "cn-north-gate",
+        "status": "PASS_BOUNDED_SWEEP",
+        "counts": {
+          "surfaceCrossings": 0,
+          "containments": 0,
+          "sweptCrossings": 0,
+          "sweptContainments": 0,
+          "contactsRequiringReview": 0,
+          "boundedMountContacts": 0
+        },
+        "sweptEnvelope": {
+          "min": [
+            -1.0940547509789589,
+            0.11494527858494502,
+            -39.294054714262494
+          ],
+          "max": [
+            1.0940547509789589,
+            4.075054759562028,
+            -37.85163048964738
+          ]
+        }
+      },
+      {
+        "id": "cn-north-gate-east",
+        "status": "PASS_BOUNDED_SWEEP",
+        "counts": {
+          "surfaceCrossings": 0,
+          "containments": 0,
+          "sweptCrossings": 0,
+          "sweptContainments": 0,
+          "contactsRequiringReview": 0,
+          "boundedMountContacts": 0
+        },
+        "sweptEnvelope": {
+          "min": [
+            1.3876397423539397,
+            0.11495453129150812,
+            -38.9442327106385
+          ],
+          "max": [
+            3.012360257646061,
+            4.0750455068554645,
+            -37.85163974235394
+          ]
+        }
+      }
+    ],
+    "afterSillReuse": "Each new north outer-half sill is a strict subset of the previous full-depth lower wall block, with unchanged top0.10m. Courtyard remains. Frame/leaf/static obstacles otherwise unchanged. No geometry added outside the old volume."
+  },
+  "routes": {
+    "status": "PASS",
+    "crossings": 24,
+    "failures": 0,
+    "cameraSweeps": 180,
+    "radii": [
+      0.25,
+      0.34
+    ],
+    "bounds": {
+      "minX": -30,
+      "maxX": 30,
+      "minZ": -40,
+      "maxZ": 40
+    },
+    "waitPoints": {
+      "cn-north-gate-west": [
+        [
+          -2.2,
+          0.015,
+          -39.45
+        ],
+        [
+          -2.2,
+          0.015,
+          -39.300000000000004
+        ],
+        [
+          -2.2,
+          0.115,
+          -37.15
+        ]
+      ],
+      "cn-north-gate": [
+        [
+          0,
+          0.015,
+          -39.6
+        ],
+        [
+          0,
+          0.015,
+          -39.45
+        ],
+        [
+          0,
+          0.115,
+          -37.15
+        ]
+      ],
+      "cn-north-gate-east": [
+        [
+          2.2,
+          0.015,
+          -39.45
+        ],
+        [
+          2.2,
+          0.015,
+          -39.300000000000004
+        ],
+        [
+          2.2,
+          0.115,
+          -37.15
+        ]
+      ]
+    },
+    "holdAndClose": [
+      {
+        "id": "china",
+        "door": "cn-north-gate-west",
+        "occupied": 1,
+        "held": 1,
+        "closed": 0
+      },
+      {
+        "id": "china",
+        "door": "cn-north-gate",
+        "occupied": 1,
+        "held": 1,
+        "closed": 0
+      },
+      {
+        "id": "china",
+        "door": "cn-north-gate-east",
+        "occupied": 1,
+        "held": 1,
+        "closed": 0
+      }
+    ]
+  },
+  "visual": {
+    "status": "REVIEWED_PASS_NORTH_SCOPE",
+    "acceptedOutsideDirectory": "qa/china-north-views",
+    "acceptedInsideDirectory": "qa/china-north-views-reframe",
+    "oldInteriorOblique": "Retained as incomplete visibility, not accepted full aperture views",
+    "coplanarPositive": "qa/china-north-views-reframe/cn-north-gate-inside.png",
+    "sameCameraFixed": "qa/china-north-sill-fixed-view/cn-north-gate-inside.png",
+    "fixedFrame": {
+      "camera": [
+        0.3,
+        2.365,
+        -36.7
+      ],
+      "target": [
+        0,
+        2.365,
+        -38
+      ],
+      "fov": 116,
+      "sha256": "e1d8c7bf849f4c64314fd61e7d2b0fa376afe98f30fdccbc70227981cef83208"
+    },
+    "review": "Insets and opening clearances visible; north inner-half red/grey sill z-fighting removed in exact same camera. PNGs untracked."
+  },
+  "resources": {
+    "world": {
+      "status": "PASS",
+      "command": [
+        "node",
+        "--max-old-space-size=768",
+        "--experimental-vm-modules",
+        "tests/door-geometry/china-inset-world-group.cjs",
+        "north-fix"
+      ],
+      "exit": 0,
+      "seconds": 16.877978561002237,
+      "peakObservedRSSBytes": 488374272,
+      "termination": null
+    },
+    "routesAfterSill": {
+      "status": "PASS",
+      "command": [
+        "node",
+        "--max-old-space-size=768",
+        "--experimental-vm-modules",
+        "tests/china-inset-routes-group.cjs",
+        "north-fix"
+      ],
+      "exit": 0,
+      "seconds": 13.544386432000465,
+      "peakObservedRSSBytes": 513130496,
+      "termination": null
+    },
+    "sameView": {
+      "status": "PASS",
+      "command": [
+        "node",
+        "--max-old-space-size=768",
+        "tests/render-china-inset-gates.mjs"
+      ],
+      "exit": 0,
+      "seconds": 7.331838637997862,
+      "peakObservedRSSBytes": 758366208,
+      "termination": null
+    }
+  }
+}
