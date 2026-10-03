@@ -31,7 +31,7 @@ try{
  report.asset=object.userData.royalSeating;for(const view of ['front','threequarter'])render('empty',view);
  if(!throne){
   const C=await import(pathToFileURL(SOURCE+'/game/characters.js'));
-  const actor=C.createCharacter({culture:'china',bodyPreset:'masculine-lean',wardrobePreset:'scholar-tunic-trousers'});scene.add(actor.root);Shadow.applyCharacterShadowPolicy(actor.root);
+  const actor=C.createCharacter({culture:'china',bodyPreset:process.env.BODY_PRESET||'masculine-lean',wardrobePreset:process.env.WARDROBE_PRESET||'scholar-tunic-trousers'});scene.add(actor.root);Shadow.applyCharacterShadowPolicy(actor.root);
   actor.root.position.set(0,.015,.275);actor.animate(1,false,'chair-sit',{seatHeight:.675-.015});actor.root.updateMatrixWorld(true);
   report.seated={anchor:actor.root.position.toArray(),yaw:0,seatY:.675,seatHeight:.660,scope:'Hall-seat relative transform and exact production chair-sit action, with original .275 front offset'};
   render('seated','threequarter',actor);render('seated','side',actor);

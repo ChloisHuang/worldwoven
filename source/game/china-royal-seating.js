@@ -56,7 +56,6 @@ function assembly(palette) {
       }
     }
   }
-  function ellipsoid(name,x,y,z,rx,ry,rz,color){add(name,new THREE.SphereGeometry(1,12,8),color,transform(x,y,z,0,0,0,rx,ry,rz));}
   function finish(){
     const geo=new THREE.BufferGeometry();
     geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
@@ -66,7 +65,7 @@ function assembly(palette) {
     geo.userData={chinaRoyalSeating:true,version:CHINA_ROYAL_SEATING_VERSION};
     return {geometry:geo,members,bounds:boundsOf(geo.boundingBox),triangles:positions.length/9};
   }
-  return {add,box,extrusion,tube,ellipsoid,finish,palette};
+  return {add,box,extrusion,tube,finish,palette};
 }
 
 function roundedRect(w,h,r) {
@@ -114,7 +113,7 @@ function cloudRelief(a,name,x,y,z,s=1,color=a.palette.gold) {
   carvedRibbon(a,name+' lower carved return',[[-.13,-.065],[-.038,-.065],[.017,-.049],[.096,-.071]].map(([xx,yy])=>[x+xx*s,y+yy*s]),.018*s,z,color,s);
 }
 
-function cushion(a,{name,w,d,bottom,top,z=0,repeat=.27}) {
+function cushion(a,{name,w,d,bottom,top,z=0}) {
   const p=a.palette,thickness=top-bottom;
   const solid=new THREE.ExtrudeGeometry(roundedRect(w,d,.045),{depth:thickness,steps:1,curveSegments:7,bevelEnabled:false});
   solid.translate(0,0,-thickness/2);solid.rotateX(Math.PI/2);solid.translate(0,(bottom+top)/2,z);
@@ -126,24 +125,13 @@ function cushion(a,{name,w,d,bottom,top,z=0,repeat=.27}) {
   if(body!==solid)body.dispose();solid.dispose();
   const openBody=new THREE.BufferGeometry();openBody.setAttribute('position',new THREE.Float32BufferAttribute(bodyP,3));openBody.setAttribute('normal',new THREE.Float32BufferAttribute(bodyN,3));
   a.add(name+' rounded supported cushion sides and underside',openBody,p.silk,new THREE.Matrix4(),true);
-  // Brocade is part of the contact surface: a flat, stitched field with a broad
-  // border and large woven cloud/diamond motifs, never a stack of raised tiles.
-  const grid=w>1?.034:.026,nx=Math.ceil(w/grid),nz=Math.ceil(d/grid),geo=new THREE.PlaneGeometry(w,d,nx,nz);
-  geo.rotateX(-Math.PI/2);geo.translate(0,top,z);
-  const at=geo.attributes.position,col=[],base=new THREE.Color(p.silk),thread=new THREE.Color(p.thread),border=new THREE.Color(p.border),gold=new THREE.Color(p.gold);
-  for(let i=0;i<at.count;i++){
-    let x=at.getX(i),zz=at.getZ(i)-z;
-    const cx=Math.max(-w/2+.045,Math.min(w/2-.045,x)),cz=Math.max(-d/2+.045,Math.min(d/2-.045,zz)),rCorner=Math.hypot(x-cx,zz-cz);
-    if(rCorner>.045){x=cx+(x-cx)*.045/rCorner;zz=cz+(zz-cz)*.045/rCorner;at.setXYZ(i,x,top,zz+z);}
-    const edge=Math.min(w/2-Math.abs(x),d/2-Math.abs(zz));let c=base;
-    const u=x/repeat,v=zz/repeat,dx=u-Math.round(u),dz=v-Math.round(v),r=Math.hypot(dx,dz),angle=Math.atan2(dz,dx);
-    if(edge<.024)c=gold;else if(edge<.056)c=border;
-    
-    col.push(c.r,c.g,c.b);
-  }
-  geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
-  // This is the only top face. Clipped corner cells retain the rounded outline.
-  a.add(name+' level woven brocade',geo,0xffffff);
+  // Three adjoining planar fabric regions give crisp rectangular tailoring.
+  // Their holes share exact edges; no coplanar overlays or dense paint grid.
+  const topSurface=(label,shape,color)=>{const geo=new THREE.ShapeGeometry(shape,7);geo.rotateX(-Math.PI/2);geo.translate(0,top,z);a.add(name+' '+label,geo,color);};
+  const ring=(outerW,outerD,innerW,innerD,outerR,innerR)=>{const sh=roundedRect(outerW,outerD,outerR);sh.holes.push(new THREE.Path(roundedRect(innerW,innerD,innerR).getPoints(7)));return sh;};
+  topSurface('outer gilt woven edge',ring(w,d,w-.048,d-.048,.045,.040),p.gold);
+  topSurface('silk contrasting border',ring(w-.048,d-.048,w-.112,d-.112,.040,.030),p.border);
+  topSurface('level woven silk',roundedRect(w-.112,d-.112,.030),p.silk);
   // Few crisp flat woven knots remain legible at the game's camera distance.
   const knotCountX=w>1?5:2,knotCountZ=d>1?3:2;
   for(let iz=0;iz<knotCountZ;iz++)for(let ix=0;ix<knotCountX;ix++){
@@ -181,7 +169,7 @@ function chairBack(a) {
 function makeChair(variant) {
   const a=assembly(PALETTES[variant]),p=a.palette;
   a.extrusion('Rounded hardwood seat rim',roundedRect(.805,.765,.067),.09,p.wood,transform(0,.56,0,Math.PI/2),true,.005);
-  cushion(a,{name:'Inset silk seat',w:.732,d:.690,bottom:.605,top:CHINA_ROYAL_CHAIR_SEAT_TOP,repeat:.31});
+  cushion(a,{name:'Inset silk seat',w:.732,d:.690,bottom:.605,top:CHINA_ROYAL_CHAIR_SEAT_TOP});
   // Cabriole silhouettes have actual thickness and meet both apron and floor.
   for(const side of[-1,1])for(const z of[-.292,.292]){
     const s=new THREE.Shape();s.moveTo(.272,.54);s.lineTo(.369,.54);s.bezierCurveTo(.378,.43,.323,.32,.328,.16);
@@ -275,7 +263,7 @@ function dragonArm(a,side) {
     a.box('Dragon raised brow '+side+' '+edge,x+edge*.082,2.097,.624,.073,.04,.035,p.raised,false);
     a.box('Dragon narrow eye '+side+' '+edge,x+edge*.082,2.071,.642,.038,.018,.012,p.wood,false);
     a.box('Dragon nostril '+side+' '+edge,x+edge*.058,2.019,.810,.03,.019,.008,p.wood,false);
-    a.tube('Dragon antler '+side+' '+edge,[[x+edge*.076,2.139,.49],[x+edge*.094,2.27,.40],[x+edge*.110,2.308,.45]],.024,p.gold,false,12);
+    a.tube('Dragon antler '+side+' '+edge,[[x+edge*.076,2.139,.49],[x+edge*.094,2.265,.42],[x+edge*.122,2.308,.385]],.020,p.gold,false,12);
     a.tube('Dragon antler fork '+side+' '+edge,[[x+edge*.090,2.240,.41],[x+edge*.145,2.275,.38]],.018,p.gold,false,5);
     a.tube('Dragon whisker '+side+' '+edge,[[x+edge*.084,1.997,.781],[x+edge*.136,2.025,.76],[x+edge*.133,2.075,.683]],.014,p.thread,false,12);
     reliefShape(a,'Dragon swept cheek blade '+side+' '+edge,[[x+edge*.10,2.065],[x+edge*.177,2.088],[x+edge*.145,2.017],[x+edge*.177,1.975],[x+edge*.115,1.977]],.515,p.raised,.054);
@@ -305,7 +293,7 @@ function makeThrone() {
   for(const x of[-.89,0,.89])cloudRelief(a,'Throne front apron carving '+x,x,1.082,.767,x?1.45:1.9);
   for(const side of[-1,1])a.box('Throne structural side apron '+side,side*1.43,1.073,0,.13,.36,1.21,p.raised);
   a.extrusion('Throne rounded seat frame',roundedRect(3.09,1.52,.11),.14,p.wood,transform(0,1.285,0,Math.PI/2),true,.007);
-  cushion(a,{name:'Imperial gold brocade',w:2.535,d:1.395,bottom:1.355,top:1.49,z:.007,repeat:.49});
+  cushion(a,{name:'Imperial gold brocade',w:2.535,d:1.395,bottom:1.355,top:1.49,z:.007});
   throneBack(a);for(const side of[-1,1])dragonArm(a,side);return a.finish();
 }
 
