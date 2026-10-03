@@ -10,7 +10,7 @@ function moveActor(n,dx,dz,r){const before=n.root.position.clone(),v=doors.const
 function poseContext(n,station){const p=n.root.position,target=station?.workTarget;return {visualFloorOffset:F.characterFloorOffsetAt(lot,p.x,p.y,p.z),groundHeightAt:(x,z)=>F.visualSupportHeight(lot,x,z,n.root.position.y,true),footprintHeightAt:(a,b,c,d)=>F.footprintSupportHeight(lot,a,b,c,d,n.root.position.y,true),workHeight:target?(target[1]-p.y)/.96:undefined,workDistance:target?Math.hypot(target[0]-p.x,target[2]-p.z)/.96:undefined};}
 function changeWardrobe(n,look){const position=n.root.position.clone(),yaw=n.root.rotation.y;n.dispose();n.root.removeFromParent();Object.defineProperties(n,Object.getOwnPropertyDescriptors(createCharacter({...look,culture:'japan',scale:.96})));n.root.position.copy(position);n.root.rotation.y=yaw;lot.group.add(n.root);}
 let saved;const create=()=>createJapanServiceRoutine({npcs,furniture,doors,moveActor,poseContext,changeWardrobe,planPath:(a,b,r)=>doors.planPath(a,b,options,r),saveState:s=>saved=s});
-const originalLooks=npcs.map(n=>JSON.stringify(n.root.userData.appearance));let routine=create(),last='',t=0;const dt=1/30,report={status:'RUNNING',stages:[],frames:[],source:source,side:routine.state().side};
+const originalLooks=npcs.map(n=>JSON.stringify(n.root.userData.appearance));let routine=create(),last='',t=0;const dt=1/30,report={status:'RUNNING',stages:[],frames:[],source:source,side:routine.state().side,minActorSeparation:Infinity};
 let renderer,canvas,camera,scene,sun,gl;
 if(out){assert(!fs.existsSync(out));fs.mkdirSync(out,{recursive:true});const W=await import('/workspace/shared/cultural-life-r12-webgl/node_modules/@onirenaud/node-webgl/dist/index.js');W.installDOM({fetch:false});W.init({api:'gles'});canvas=W.createCanvas(960,720);renderer=new T.WebGLRenderer({canvas,antialias:true});renderer.setSize(960,720,false);renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.NoToneMapping;gl=renderer.getContext();scene=new T.Scene();scene.background=new T.Color(0xa7c3bf);scene.add(lot.group,new T.HemisphereLight(0xfff4d8,0x6e8a7b,.85));sun=new T.DirectionalLight(0xffedcd,1.6);sun.position.set(-10,26,8);scene.add(sun,sun.target);camera=new T.PerspectiveCamera(55,4/3,.08,180);}
 const captured=new Set();
@@ -27,7 +27,8 @@ try{
  for(let i=0;i<15000&&routine.state().cycles<1;i++){
   t+=dt;doors.update(dt,npcs.map(n=>({position:n.root.position,radius:.25,height:1.95})));routine.update(dt,t,{position:new T.Vector3(0,0,37.5)});lot.update(dt,t);
   const state=routine.state();if(state.stage!==last){console.log(JSON.stringify({time:+t.toFixed(2),...state}));report.stages.push({stage:state.stage,time:t});last=state.stage;}
-  assert.equal(state.failures.length,0,'Actual route failed: '+JSON.stringify(state));capture(state.stage);
+  assert.equal(state.failures.length,0,'Actual route failed: '+JSON.stringify(state));
+  for(let a=0;a<npcs.length;a++)for(let b=a+1;b<npcs.length;b++){const p=npcs[a].root.position,q=npcs[b].root.position;if(Math.abs(p.y-q.y)>.4)continue;const separation=Math.hypot(p.x-q.x,p.z-q.z);report.minActorSeparation=Math.min(report.minActorSeparation,separation);assert(separation>.50,'Actor overlap '+JSON.stringify({stage:state.stage,a:npcs[a].station.id,b:npcs[b].station.id,p:p.toArray(),q:q.toArray()}));}capture(state.stage);
  }
  assert.equal(routine.state().cycles,1,'Complete real loop within bounded simulation');assert.deepEqual(npcs.map(n=>JSON.stringify(n.root.userData.appearance)),originalLooks,'Temporary bath clothing restores exact saved identity');assert.equal(saved.cycles,1);
  // Reach the next bath, then preempt its actual occupied seat with a player request.

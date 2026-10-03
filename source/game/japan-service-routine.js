@@ -37,7 +37,9 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
    outfit(visitorLook.wardrobePreset);
    jobs=[job(host,home(host),{duration:2,action:'tidy',held:'cloth',face:reception,label:'为旅人登记钥匙'}),job(guest,reception,{duration:2,face:home(host),label:'向 Koharu 领取浴衣钥匙'})];
   }else if(next==='guide'){
-   jobs=[job(host,[5.9,0,5.7],{duration:1,face:[9.1,0,-1],label:'引导旅人前往二层'}),job(guest,[4.65,0,5.7],{duration:1,label:'跟随接待前往楼梯',follow:host})];
+   jobs=[job(host,[-5.4,0,4.35],{duration:.5,face:[9.1,0,-1],label:'绕到通道前方为旅人引路'}),job(guest,reception,{duration:.5,label:'等接待走到前方'})];
+  }else if(next==='escorting'){
+   jobs=[job(host,[5.9,0,4.35],{duration:1,face:[9.1,0,-1],label:'引导旅人前往二层'}),job(guest,[4.65,0,5.7],{duration:1,label:'跟随接待前往楼梯',follow:host,after:()=>host.root.position.x>guest.root.position.x+.9||host.serviceTask?.done})];
   }else if(next==='upstairs'){
    jobs=[job(host,home(host),{action:'tidy',label:'回前台迎接下一位旅人'}),job(guest,wait,{label:'沿楼梯前往温泉接待处'}),job(porter,porterSupply,{duration:2.5,action:'tidy',workTarget:[porterSupply[0],4.7,2.1],label:'从木篮取出干净手巾'}),job(cleaner,cleanPoint,{duration:3,action:'bath-attendant',held:'bathBucket',workTarget:cleanTarget,claim:bath.id,label:'检查并擦拭池边座位'})];
   }else if(next==='towels'){
@@ -62,7 +64,7 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
   for(const task of jobs){task.actor.serviceTask=task;task.actor.route=[];task.elapsed=0;task.stalled=0;task.retries=0;task.done=false;task.arrived=false;task.routeSet=false;tell(task.actor,task.label);}
  }
  function nextStage(){
-  const next={arrival:'guide',guide:'upstairs',upstairs:'towels',towels:'changing',changing:'washing',washing:'bathing',bathing:'drying',drying:'resting',resting:'returning',returning:'arrival',recovering:'arrival'}[stage];
+  const next={arrival:'guide',guide:'escorting',escorting:'upstairs',upstairs:'towels',towels:'changing',changing:'washing',washing:'bathing',bathing:'drying',drying:'resting',resting:'returning',returning:'arrival',recovering:'arrival'}[stage];
   if(stage==='returning'){cycles++;checkpoint();}
   if(next)enter(next);
  }
@@ -97,7 +99,7 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
     const step=doors.routeStep(n.route,n.root.position,task.handoff||task.action==='bath-attendant'?.018:.12);
     if(!step.waiting&&step.waypoint){const p=step.waypoint,dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz);
      const player=playerState.position,playerAhead=player&&Math.abs(player.y-n.root.position.y)<.6&&Math.hypot(player.x-n.root.position.x,player.z-n.root.position.z)<.68&&(player.x-n.root.position.x)*dx+(player.z-n.root.position.z)*dz>0;
-     const followGap=task.follow&&task.follow.root.position.distanceTo(n.root.position)<1.05;
+     const leader=task.follow?.root.position,followGap=leader&&leader.distanceTo(n.root.position)<1.05&&(leader.x-n.root.position.x)*dx+(leader.z-n.root.position.z)*dz>0;
      if(d>1e-10&&!playerAhead&&!followGap){const amount=Math.min(d,dt*n.locomotion.walkSpeed*.82),before=n.root.position.clone();moveActor(n,dx/d*amount,dz/d*amount,.25);n.walking=before.distanceToSquared(n.root.position)>1e-8;n.root.rotation.y=Math.atan2(dx,dz);}
     }
     task.stalled=n.walking?0:task.stalled+dt;
