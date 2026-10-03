@@ -39,7 +39,7 @@ export function addRoyalGardenBench(parent,side=1){
   q.userData={originalGardenAsset:true,seatY:.695,castIron:true,slatted:true};return q;
 }
 
-// Leaves are folded, pointed blades, batched per plant. Their open arrangement
+// Leaves are shallow curved, heart-shaped blades, batched per plant. Their open arrangement
 // reveals actual branches; there are no spherical or box canopy fillers.
 function leafBatch(){return{positions:[],colors:[],normals:[]};}
 const broadLeafOutline=(()=>{const p=new T.Shape();p.moveTo(0,-.34);p.bezierCurveTo(-.18,-.54,-.49,-.42,-.50,-.13);p.bezierCurveTo(-.52,.12,-.26,.40,0,.51);p.bezierCurveTo(.27,.40,.51,.10,.50,-.13);p.bezierCurveTo(.48,-.42,.17,-.54,0,-.34);return p.getSpacedPoints(16).slice(0,-1);})();
