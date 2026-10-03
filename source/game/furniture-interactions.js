@@ -35,7 +35,10 @@ export const REST_BATH_DESCRIPTORS={
  {kind:'bath',name:'白金浴缸',position:[-20.34,.23,-10.2],anchor:[-22.55,.23,-10.2],center:[-22.55,.23,-10.2],size:[3.1,1.15,3.65],yaw:Math.PI/2,supportY:.425,waterY:1.205,bathHipHeight:.48}],
  japan:[{kind:'bed',name:'客室日式寝具',position:[2.48,7.6,-10.7],anchor:[4.4,7.6,-11.6],center:[4.4,7.6,-11.6],size:[2.36,.5,3.24],yaw:0,supportY:7.95,lieOffset:.54,lieSupport:{hip:7.95,back:7.992,head:8.026,heel:7.96}},
  {kind:'bath',cameraTargetMinY:4.85,cameraParts:japanBathCameraParts(-6.55,-9.3,7.5,6.6),name:'二层男汤温泉',position:[-2.1,3.8,-9.3],anchor:[-3.22,3.8,-9.3],center:[-6.55,3.8,-9.3],size:[7.5,.82,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}},
- {kind:'bath',cameraTargetMinY:4.85,cameraParts:japanBathCameraParts(2.1,-9.7,4,6.6),name:'二层女汤温泉',position:[4.9,3.8,-9.7],anchor:[3.68,3.8,-9.7],center:[2.1,3.8,-9.7],size:[4,.82,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}}],
+ {kind:'bath',cameraTargetMinY:4.85,cameraParts:japanBathCameraParts(2.1,-9.7,4,6.6),name:'二层女汤温泉',position:[4.9,3.8,-9.7],anchor:[3.68,3.8,-9.7],center:[2.1,3.8,-9.7],size:[4,.82,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}},
+ // The eastern lower bunk already exists in the staff room. Preserve bath IDs
+ // by appending it; its approach enters from the clear foot of the same bunk.
+ {kind:'bed',name:'员工室下铺',position:[-4.3,11.4,-9.18],anchor:[-4.3,11.4,-11.5],center:[-4.3,11.4,-11.5],size:[2.75,3,3.2],yaw:0,supportY:12.15,lieOffset:.48,lieSupport:{hip:12.15,back:12.15,head:12.274,heel:12.00}}],
  egypt:[{kind:'bed',name:'王室亚麻寝床',position:[18.48,0,-1.25],anchor:[19.8,0,-1.25],center:[20.4,0,-1.25],size:[2.65,3.4,4.1],yaw:0,supportY:.9,lieOffset:.48,lieSupport:{hip:.9,back:.9,head:1.056,heel:.9}},
  {kind:'bath',name:'王室石质浴池',position:[15.9,0,-1.05],anchor:[14.05,0,-1.05],center:[14.05,0,-1.05],size:[2.7,1.06,3.8],yaw:Math.PI/2,supportY:.305,waterY:.585,bathHipHeight:.32}]
 };

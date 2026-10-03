@@ -19,8 +19,8 @@ export const JAPAN_BATH_BLENDS = Object.freeze([
 ]);
 export const JAPAN_SERVICE_WORKERS = Object.freeze({
  register:['jp-welcome'], prepare:['jp-incense'],
- deliverMix:['jp-onsen','jp-women-onsen'], cook:['jp-ramen'],
- serve:['jp-sushi'], checkout:['jp-welcome'],
+ deliverMix:['jp-onsen','jp-women-onsen'], cook:['jp-ramen','jp-sushi'],
+ serve:['jp-sushi','jp-ramen'], checkout:['jp-welcome'],
 });
 const clone=value=>JSON.parse(JSON.stringify(value));
 const active=v=>!['departed','cancelled'].includes(v.stage);
@@ -48,7 +48,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   }
  }
  const visits=new Map(state.visits.map(v=>[v.id,v])),items=new Map(state.items.map(i=>[i.id,i]));
- const claims=new Map(),workers=new Map(),resources=new Map();
+ const claims=new Map(),workers=new Map(),resources=new Map(),staffResources=new Map();
  let disposed=false;
  const persist=()=>saveState(clone(state));
  const visit=id=>visits.get(id);
@@ -87,7 +87,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   const prior=claims.get(jobId);
   if(prior)return prior.workerId===workerId?clone(prior):null;
   const job=jobs().find(j=>j.id===jobId);
-  if(!job||workers.has(workerId)||!JAPAN_SERVICE_WORKERS[job.kind].includes(workerId))return null;
+  if(!job||workers.has(workerId)||staffResources.has(workerId)||!JAPAN_SERVICE_WORKERS[job.kind].includes(workerId))return null;
   if(job.kind==='deliverMix'&&workerId!==(job.side==='men'?'jp-onsen':'jp-women-onsen'))return null;
   if(job.resource&&resources.has(job.resource))return null;
   const claimed={...job,workerId};claims.set(job.id,claimed);workers.set(workerId,job.id);
@@ -179,6 +179,14 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
    cargo.location={type:'worker',id:workerId};persist();return true;
   },
   complete,guestStep,
+  // A staff meal uses the same kitchen as orders. A pending break reserves it
+  // after its current cook finishes, so a stream of visitors cannot starve it.
+  holdWorkplace(resource,workerId) {
+   if(disposed||resource!=='kitchen'||!JAPAN_SERVICE_WORKERS.cook.includes(workerId)||workers.has(workerId))return false;
+   const key='staff:'+workerId;if(resources.has(resource)&&resources.get(resource)!==key)return false;
+   resources.set(resource,key);staffResources.set(workerId,resource);return true;
+  },
+  releaseWorkplace(workerId) {const resource=staffResources.get(workerId);if(resource&&resources.get(resource)==='staff:'+workerId)resources.delete(resource);staffResources.delete(workerId);},
   releaseWorker(workerId) {const released=dropClaim(workers.get(workerId));if(released)persist();return released;},
   cancel(id,reason='visit-cancelled') {
    const v=visit(id);if(disposed||!v||!active(v))return false;
@@ -196,6 +204,6 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   checkpoint(positions={}) {for(const v of state.visits)if(active(v)&&Array.isArray(positions[v.id])&&positions[v.id].length===3&&positions[v.id].every(Number.isFinite))v.position=positions[v.id].slice();persist();},
   getVisit:id=>visit(id)?clone(visit(id)):null,
   state:()=>({...clone(state),claims:[...claims.values()].map(clone)}),
-  dispose() {if(disposed)return;for(const id of [...claims.keys()])dropClaim(id);persist();disposed=true;},
+  dispose() {if(disposed)return;for(const id of [...claims.keys()])dropClaim(id);resources.clear();staffResources.clear();persist();disposed=true;},
  };
 }

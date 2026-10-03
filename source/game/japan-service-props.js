@@ -34,7 +34,7 @@ export function createJapanServiceProps(parent) {
     for(const x of [-.05,.02,.08])box(g,.027,.009,.083,0x638469,[x,.159,0]);
     for(const x of [-.06,.005]){const noodle=part(g,new THREE.TorusGeometry(.045,.006,4,12),0xe8cf88,[x,.157,.012]);noodle.rotation.x=Math.PI/2;}
    }
-   const tag=badge(visit.number,color);tag.scale.setScalar(.48);tag.position.set(.16,.09,.14);g.add(tag);
+   if(!item.staffMeal){const tag=badge(visit.number,color);tag.scale.setScalar(.48);tag.position.set(.16,.09,.14);g.add(tag);}
   }
   g.name=item.id;g.userData={serviceItemId:item.id,visitId:visit.id,tokenId:visit.tokenId,kind:item.kind};root.add(g);return g;
  }
@@ -60,15 +60,17 @@ export function createJapanServiceProps(parent) {
   return [P.tokenTray[0]+.23,P.tokenTray[1]+.065,P.tokenTray[2]];
  }
  return {
-  update(state,actorById) {
+  update(state,actorById,staffMeals=[]) {
+   const staffItems=staffMeals.map(m=>({id:'staff-meal:'+m.workerId,visitId:m.workerId,kind:'meal',staffMeal:true,eating:m.eating,location:{type:'worker',id:m.workerId}}));
    const visits=new Map(state.visits.map(v=>[v.id,v])),seen=new Set();
+   for(const m of staffMeals)visits.set(m.workerId,{id:m.workerId,number:0,blendId:JAPAN_BATH_BLENDS[0].id});
    const preparation=state.claims?.find(j=>j.kind==='prepare'),preparer=preparation&&actorById.get(preparation.workerId);
    const working=!!(preparer?.serviceTask?.arrived&&preparer.serviceTask.action==='herb-mix'&&preparer.root.userData.poseQA.action==='herb-mix');mixing.visible=pestle.visible=working;
    if(working){preparer.root.updateWorldMatrix(true,true);preparer.root.userData.hands[1].getWorldPosition(handB);pestle.position.copy(handB);pestle.position.x+=Math.sin(preparer.root.rotation.y)*.07;pestle.position.z+=Math.cos(preparer.root.rotation.y)*.07;pestle.rotation.y=preparer.root.rotation.y;}
-   for(const item of state.items) {
+   for(const item of [...state.items,...staffItems]) {
     const v=visits.get(item.visitId);if(!v||['cancelled','used'].includes(item.location.type))continue;
     seen.add(item.id);let g=objects.get(item.id);if(!g){g=make(item,v);objects.set(item.id,g);}
-    const held=item.location.type==='worker',guest=item.location.type==='guest',eating=item.kind==='meal'&&item.location.id==='dining'&&v.stage==='eating';
+    const held=item.location.type==='worker',guest=item.location.type==='guest',eating=item.eating||(item.kind==='meal'&&item.location.id==='dining'&&v.stage==='eating');
     const actor=actorById.get(held?item.location.id:v.id);
     if((held||guest||eating)&&actor) {
      actor.root.updateWorldMatrix(true,true);g.rotation.set(0,actor.root.rotation.y,0);
