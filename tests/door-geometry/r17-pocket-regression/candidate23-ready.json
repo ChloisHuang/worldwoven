@@ -1,0 +1,23 @@
+{
+  "status": "CANDIDATE23_READY_NOT_RUN",
+  "source": {
+    "regions-west.js": "f1c34d4c3ced5cbc8e14f66502374cad849d59298679a78f13fdcbc738446646",
+    "inset-closures.js": "dadba37aaa60d85abc2c9102a5da10bcfaf529474d8e60fefe5a975e63d8930a"
+  },
+  "geometryCommand": "QA_RESOURCE_WINDOW=granted-by-owner node --max-old-space-size=768 --experimental-vm-modules /workspace/shared/worldwoven-r17-door-design/france-pocket-candidate23-check.cjs",
+  "renderCommand": "QA_RESOURCE_WINDOW=granted-by-owner SOURCE_ROOT=/workspace/shared/worldwoven-r17-repairs/source OUT_DIR=/workspace/shared/worldwoven-r17-door-design/france-visual-candidate23 node --max-old-space-size=768 /workspace/shared/worldwoven-r17-door-design/render-france-pocket-candidate23.mjs",
+  "geometryBudget": {
+    "seconds": 180,
+    "watcherSeconds": 175,
+    "rssMiB": 1228
+  },
+  "renderBudget": {
+    "seconds": 60,
+    "watcherSeconds": 55,
+    "rssMiB": 1228
+  },
+  "files": {
+    "france-pocket-candidate23-check.cjs": "dc273b8ca2e28f0e89f1b79466511f2a35a291345b896f5df46aa1151622faa9",
+    "render-france-pocket-candidate23.mjs": "baf4312cc71decb2ca3c9afc6cb7c18d22c658b087944129957a2ce13c8e2812"
+  }
+}

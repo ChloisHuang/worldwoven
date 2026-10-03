@@ -1,0 +1,14 @@
+{
+  "status": "FAIL_OR_REVIEW",
+  "command": [
+    "node",
+    "--max-old-space-size=768",
+    "--experimental-vm-modules",
+    "/workspace/shared/worldwoven-r17-door-design/france-pocket-whole-scene-v2-check.cjs"
+  ],
+  "scriptSHA256": "2d6db2e44aac78c0cf2dc5c900bf6233fd70686b7c3e7b7562f273e33942b14f",
+  "exit": 1,
+  "seconds": 12.044092560998251,
+  "peakObservedRSSBytes": 633753600,
+  "termination": null
+}

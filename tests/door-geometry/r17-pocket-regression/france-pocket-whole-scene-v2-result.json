@@ -1,0 +1,3182 @@
+{
+  "status": "REVIEW",
+  "scope": "One actual full France scene pocket core-wing-1--5, with production furnishings and all non-target moving closures parked closed. Original casing positive retained; actual target leaves swept against all static world rendered triangles. No collision exclusions or contact waivers. Other doors, actor routes and visual coverage remain separate.",
+  "eps": 0.00001,
+  "guards": {
+    "source/game/automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+    "source/game/inset-closures.js": "869a0c43bf27479d697ddb57d70b7b1fb1babaf18ea41e55067ca253af8f28fb",
+    "source/game/room-closures.js": "e418cd6d9a10c63aa782a8122205083217b1c407a5d0d426fab2543555601aea",
+    "source/game/regions-west.js": "b261a978e9fe16ccd7980436fa6cdc2f78626a241a45a0ae8ab119c48a583476",
+    "source/game/furniture-interactions.js": "72a5856cb502fb8b0e9f1882a03ae0d7579a723fa9f8323052b1182322391ba4",
+    "source/game/geometry.js": "accd26d9fe1820ba7829bc00f802c8916458813eefd0cfd08f5d38e11c207ca9",
+    "source/vendor/three/build/three.core.js": "9edde002b066a9a05676a6127f67735b62baf399bdea529f2f7e31657da769e6",
+    "tests/door-geometry/triangle-kernel-v3.mjs": "dcc13af03fb915407736f7c0654e17a10cd4900b587d7a0ea9e029548172b77b"
+  },
+  "beforeHash": "ec75eade337b7b1d68f5dbf7a619991097d392d283e297b29bd261b54d34a207",
+  "stages": [
+    {
+      "stage": "before",
+      "status": "PASS_ORIGINAL_COLLISION_DETECTED",
+      "loadedHashes": {
+        "source/game/regions-west.js": "ec75eade337b7b1d68f5dbf7a619991097d392d283e297b29bd261b54d34a207",
+        "source/game/inset-closures.js": "869a0c43bf27479d697ddb57d70b7b1fb1babaf18ea41e55067ca253af8f28fb",
+        "source/game/night-lighting.js": "61d5dff148e2797e35633d103c52a05460d1029506d312115c78941e81e7fc30",
+        "source/game/geometry.js": "accd26d9fe1820ba7829bc00f802c8916458813eefd0cfd08f5d38e11c207ca9",
+        "source/vendor/three/build/three.module.js": "9052042d676cb0fdc1ddfefe193053f34b7ac0513a616fdac4535d49987812ea",
+        "source/vendor/three/build/three.core.js": "9edde002b066a9a05676a6127f67735b62baf399bdea529f2f7e31657da769e6",
+        "source/game/automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+        "source/game/automatic-routing.js": "c0abe71a90b9600dec9d1cbe977b115f9b97e5384f7e55a09794cf7496d4c913",
+        "source/game/navigation.js": "d22f45cd94d968b88d44a803bbc7ba1ec65c45f2d7fdf2c20610d18b256c062e",
+        "source/game/room-closures.js": "e418cd6d9a10c63aa782a8122205083217b1c407a5d0d426fab2543555601aea",
+        "source/game/furniture-interactions.js": "72a5856cb502fb8b0e9f1882a03ae0d7579a723fa9f8323052b1182322391ba4",
+        "source/game/china-dragon-bed.js": "fc661ab4cb0f00601d2162af1b2dca33c9324bc8af391ca54e0a948beb0a2c37",
+        "source/game/camera.js": "7b6fc625c07138fc5636d38651b2487cdd812e22fcb89618a707b6b913808dea",
+        "source/game/floor-support.js": "5f5df2cde18b6e232e89a222027fc81bb25ba89678912f654ce3c2f632f44615"
+      },
+      "instrumentedFranceHash": "bedaba18918375c0759b4c651cdf9879e05ba76dcbefb5499fdc4ad6359989ee",
+      "affineSweep": {
+        "everyRenderedVertex": true,
+        "fractions": [
+          0,
+          0.25,
+          0.5,
+          0.75,
+          1
+        ],
+        "maxResidual": 8.881784197001252e-16,
+        "envelope": {
+          "min": [
+            10.651685211062432,
+            0.24200000010430814,
+            -7.053999998569489
+          ],
+          "max": [
+            10.94831478893757,
+            3.8749999809265137,
+            -2.9460000014305114
+          ]
+        },
+        "sourceFormula": "poseDoor slide: fixed transforms, pivot lateral = side * (width/4 + overlap/2 + fraction * authoredTravel)"
+      },
+      "staticMeshCount": 144,
+      "staticScope": "Every lot mesh except the two target moving leaf subtrees; includes own fixed supports, other closed doors/curtains, full roof, actual room walls, floor, furniture and ornamental casing",
+      "sourcePrimitiveAudit": {
+        "primitiveCount": 8220,
+        "verifiedPackedRanges": 8169,
+        "packedPositionBuffersIdentical": true,
+        "method": "Every packed triangle belongs to exactly one source primitive range; each range position SHA equals the original transformed source buffer. Other meshes retain their original separate identity. Containment is computed per original primitive and combined by union, never aggregated over overlapping solids."
+      },
+      "inspectedStaticTriangles": 662720,
+      "rayCandidateCounts": [
+        71849,
+        2074,
+        1476
+      ],
+      "envelopeBoundaryCandidates": 26,
+      "originalWitnesses": [
+        {
+          "point": [
+            10.8,
+            1.3,
+            -6.02
+          ],
+          "actualLeaf": {
+            "inside": true,
+            "rays": [
+              {
+                "axis": 0,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 0,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 1,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 1,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 2,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 2,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 3
+              }
+            ]
+          },
+          "aggregateStaticWorldDiagnostic": {
+            "inside": false,
+            "rays": [
+              {
+                "axis": 0,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 27
+              },
+              {
+                "axis": 0,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 5
+              },
+              {
+                "axis": 1,
+                "sign": -1,
+                "sum": 0,
+                "edge": true,
+                "hits": 9
+              },
+              {
+                "axis": 1,
+                "sign": 1,
+                "sum": 1,
+                "edge": true,
+                "hits": 35
+              },
+              {
+                "axis": 2,
+                "sign": -1,
+                "sum": 1,
+                "edge": true,
+                "hits": 29
+              },
+              {
+                "axis": 2,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 27
+              }
+            ]
+          },
+          "actualSourcePrimitives": [
+            {
+              "primitive": 5136,
+              "path": "白鸢王宫/Royal estate spatial batch 1,-1/Mesh",
+              "name": "White joined casing",
+              "bounds": {
+                "min": [
+                  10.59000015258789,
+                  0.23000000417232513,
+                  -6.191999912261963
+                ],
+                "max": [
+                  11.010000228881836,
+                  3.990000009536743,
+                  -6.01200008392334
+                ]
+              },
+              "triangleCount": 12,
+              "firstTriangle": 4604,
+              "positionSHA": "3e7fc84fedd143aafe8f352c3bfceb0a5023bb34240071a966e78205237f1f44",
+              "containment": {
+                "inside": true,
+                "rays": [
+                  {
+                    "axis": 0,
+                    "sign": -1,
+                    "sum": 1,
+                    "edge": false,
+                    "hits": 1
+                  },
+                  {
+                    "axis": 0,
+                    "sign": 1,
+                    "sum": 1,
+                    "edge": false,
+                    "hits": 1
+                  },
+                  {
+                    "axis": 1,
+                    "sign": -1,
+                    "sum": 1,
+                    "edge": false,
+                    "hits": 1
+                  },
+                  {
+                    "axis": 1,
+                    "sign": 1,
+                    "sum": 1,
+                    "edge": false,
+                    "hits": 1
+                  },
+                  {
+                    "axis": 2,
+                    "sign": -1,
+                    "sum": 1,
+                    "edge": false,
+                    "hits": 1
+                  },
+                  {
+                    "axis": 2,
+                    "sign": 1,
+                    "sum": 1,
+                    "edge": false,
+                    "hits": 1
+                  }
+                ]
+              }
+            }
+          ],
+          "actualPrimitiveUnionInside": true
+        },
+        {
+          "point": [
+            10.8,
+            1.3,
+            -3.98
+          ],
+          "actualLeaf": {
+            "inside": true,
+            "rays": [
+              {
+                "axis": 0,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 0,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 1,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 1,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 2,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 3
+              },
+              {
+                "axis": 2,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              }
+            ]
+          },
+          "aggregateStaticWorldDiagnostic": {
+            "inside": false,
+            "rays": [
+              {
+                "axis": 0,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 25
+              },
+              {
+                "axis": 0,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 11
+              },
+              {
+                "axis": 1,
+                "sign": -1,
+                "sum": 0,
+                "edge": true,
+                "hits": 9
+              },
+              {
+                "axis": 1,
+                "sign": 1,
+                "sum": 1,
+                "edge": true,
+                "hits": 31
+              },
+              {
+                "axis": 2,
+                "sign": -1,
+                "sum": 1,
+                "edge": true,
+                "hits": 31
+              },
+              {
+                "axis": 2,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 25
+              }
+            ]
+          },
+          "actualSourcePrimitives": [
+            {
+              "primitive": 5133,
+              "path": "白鸢王宫/Royal estate spatial batch 1,-1/Mesh",
+              "name": "White joined casing",
+              "bounds": {
+                "min": [
+                  10.59000015258789,
+                  0.23000000417232513,
+                  -3.98799991607666
+                ],
+                "max": [
+                  11.010000228881836,
+                  3.990000009536743,
+                  -3.808000087738037
+                ]
+              },
+              "triangleCount": 12,
+              "firstTriangle": 4568,
+              "positionSHA": "c6e1faebc027530359ff55ce0f300172be8151ce5515ef2272d104d344e60016",
+              "containment": {
+                "inside": true,
+                "rays": [
+                  {
+                    "axis": 0,
+                    "sign": -1,
+                    "sum": 1,
+                    "edge": false,
+                    "hits": 1
+                  },
+                  {
+                    "axis": 0,
+                    "sign": 1,
+                    "sum": 1,
+                    "edge": false,
+                    "hits": 1
+                  },
+                  {
+                    "axis": 1,
+                    "sign": -1,
+                    "sum": 1,
+                    "edge": false,
+                    "hits": 1
+                  },
+                  {
+                    "axis": 1,
+                    "sign": 1,
+                    "sum": 1,
+                    "edge": false,
+                    "hits": 1
+                  },
+                  {
+                    "axis": 2,
+                    "sign": -1,
+                    "sum": 1,
+                    "edge": false,
+                    "hits": 1
+                  },
+                  {
+                    "axis": 2,
+                    "sign": 1,
+                    "sum": 1,
+                    "edge": false,
+                    "hits": 1
+                  }
+                ]
+              }
+            }
+          ],
+          "actualPrimitiveUnionInside": true
+        }
+      ],
+      "positiveStaticTriangles": [
+        {
+          "t": [
+            [
+              10.800000190734863,
+              5.25,
+              -6.449999809265137
+            ],
+            [
+              10.800000190734863,
+              0.23000000417232513,
+              -6.449999809265137
+            ],
+            [
+              10.800000190734863,
+              5.25,
+              -6.75
+            ]
+          ],
+          "b": {
+            "min": [
+              10.800000190734863,
+              0.23000000417232513,
+              -6.75
+            ],
+            "max": [
+              10.800000190734863,
+              5.25,
+              -6.449999809265137
+            ]
+          },
+          "path": "白鸢王宫/Royal estate spatial batch 0,-1/Mesh",
+          "sourcePrimitive": "BoxGeometry",
+          "primitive": 2290,
+          "triangle": 216,
+          "instance": null
+        },
+        {
+          "t": [
+            [
+              10.800000190734863,
+              0.23000000417232513,
+              -6.449999809265137
+            ],
+            [
+              10.800000190734863,
+              0.23000000417232513,
+              -6.75
+            ],
+            [
+              10.800000190734863,
+              5.25,
+              -6.75
+            ]
+          ],
+          "b": {
+            "min": [
+              10.800000190734863,
+              0.23000000417232513,
+              -6.75
+            ],
+            "max": [
+              10.800000190734863,
+              5.25,
+              -6.449999809265137
+            ]
+          },
+          "path": "白鸢王宫/Royal estate spatial batch 0,-1/Mesh",
+          "sourcePrimitive": "BoxGeometry",
+          "primitive": 2290,
+          "triangle": 217,
+          "instance": null
+        },
+        {
+          "t": [
+            [
+              8.029999732971191,
+              5.25,
+              -6.449999809265137
+            ],
+            [
+              8.029999732971191,
+              0.23000000417232513,
+              -6.449999809265137
+            ],
+            [
+              10.800000190734863,
+              5.25,
+              -6.449999809265137
+            ]
+          ],
+          "b": {
+            "min": [
+              8.029999732971191,
+              0.23000000417232513,
+              -6.449999809265137
+            ],
+            "max": [
+              10.800000190734863,
+              5.25,
+              -6.449999809265137
+            ]
+          },
+          "path": "白鸢王宫/Royal estate spatial batch 0,-1/Mesh",
+          "sourcePrimitive": "BoxGeometry",
+          "primitive": 2290,
+          "triangle": 224,
+          "instance": null
+        },
+        {
+          "t": [
+            [
+              8.029999732971191,
+              0.23000000417232513,
+              -6.449999809265137
+            ],
+            [
+              10.800000190734863,
+              0.23000000417232513,
+              -6.449999809265137
+            ],
+            [
+              10.800000190734863,
+              5.25,
+              -6.449999809265137
+            ]
+          ],
+          "b": {
+            "min": [
+              8.029999732971191,
+              0.23000000417232513,
+              -6.449999809265137
+            ],
+            "max": [
+              10.800000190734863,
+              5.25,
+              -6.449999809265137
+            ]
+          },
+          "path": "白鸢王宫/Royal estate spatial batch 0,-1/Mesh",
+          "sourcePrimitive": "BoxGeometry",
+          "primitive": 2290,
+          "triangle": 225,
+          "instance": null
+        },
+        {
+          "t": [
+            [
+              10.800000190734863,
+              5.25,
+              -6.75
+            ],
+            [
+              10.800000190734863,
+              0.23000000417232513,
+              -6.75
+            ],
+            [
+              8.029999732971191,
+              5.25,
+              -6.75
+            ]
+          ],
+          "b": {
+            "min": [
+              8.029999732971191,
+              0.23000000417232513,
+              -6.75
+            ],
+            "max": [
+              10.800000190734863,
+              5.25,
+              -6.75
+            ]
+          },
+          "path": "白鸢王宫/Royal estate spatial batch 0,-1/Mesh",
+          "sourcePrimitive": "BoxGeometry",
+          "primitive": 2290,
+          "triangle": 226,
+          "instance": null
+        },
+        {
+          "t": [
+            [
+              10.800000190734863,
+              0.23000000417232513,
+              -6.75
+            ],
+            [
+              8.029999732971191,
+              0.23000000417232513,
+              -6.75
+            ],
+            [
+              8.029999732971191,
+              5.25,
+              -6.75
+            ]
+          ],
+          "b": {
+            "min": [
+              8.029999732971191,
+              0.23000000417232513,
+              -6.75
+            ],
+            "max": [
+              10.800000190734863,
+              5.25,
+              -6.75
+            ]
+          },
+          "path": "白鸢王宫/Royal estate spatial batch 0,-1/Mesh",
+          "sourcePrimitive": "BoxGeometry",
+          "primitive": 2290,
+          "triangle": 227,
+          "instance": null
+        },
+        {
+          "t": [
+            [
+              11.010000228881836,
+              3.990000009536743,
+              -3.98799991607666
+            ],
+            [
+              11.010000228881836,
+              0.23000000417232513,
+              -3.98799991607666
+            ],
+            [
+              10.59000015258789,
+              3.990000009536743,
+              -3.98799991607666
+            ]
+          ],
+          "b": {
+            "min": [
+              10.59000015258789,
+              0.23000000417232513,
+              -3.98799991607666
+            ],
+            "max": [
+              11.010000228881836,
+              3.990000009536743,
+              -3.98799991607666
+            ]
+          },
+          "path": "白鸢王宫/Royal estate spatial batch 1,-1/Mesh",
+          "sourcePrimitive": "White joined casing",
+          "primitive": 5133,
+          "triangle": 4568,
+          "instance": null
+        },
+        {
+          "t": [
+            [
+              11.010000228881836,
+              0.23000000417232513,
+              -3.98799991607666
+            ],
+            [
+              10.59000015258789,
+              0.23000000417232513,
+              -3.98799991607666
+            ],
+            [
+              10.59000015258789,
+              3.990000009536743,
+              -3.98799991607666
+            ]
+          ],
+          "b": {
+            "min": [
+              10.59000015258789,
+              0.23000000417232513,
+              -3.98799991607666
+            ],
+            "max": [
+              11.010000228881836,
+              3.990000009536743,
+              -3.98799991607666
+            ]
+          },
+          "path": "白鸢王宫/Royal estate spatial batch 1,-1/Mesh",
+          "sourcePrimitive": "White joined casing",
+          "primitive": 5133,
+          "triangle": 4569,
+          "instance": null
+        },
+        {
+          "t": [
+            [
+              10.59000015258789,
+              3.990000009536743,
+              -3.808000087738037
+            ],
+            [
+              10.59000015258789,
+              0.23000000417232513,
+              -3.808000087738037
+            ],
+            [
+              11.010000228881836,
+              3.990000009536743,
+              -3.808000087738037
+            ]
+          ],
+          "b": {
+            "min": [
+              10.59000015258789,
+              0.23000000417232513,
+              -3.808000087738037
+            ],
+            "max": [
+              11.010000228881836,
+              3.990000009536743,
+              -3.808000087738037
+            ]
+          },
+          "path": "白鸢王宫/Royal estate spatial batch 1,-1/Mesh",
+          "sourcePrimitive": "White joined casing",
+          "primitive": 5133,
+          "triangle": 4570,
+          "instance": null
+        },
+        {
+          "t": [
+            [
+              10.59000015258789,
+              0.23000000417232513,
+              -3.808000087738037
+            ],
+            [
+              11.010000228881836,
+              0.23000000417232513,
+              -3.808000087738037
+            ],
+            [
+              11.010000228881836,
+              3.990000009536743,
+              -3.808000087738037
+            ]
+          ],
+          "b": {
+            "min": [
+              10.59000015258789,
+              0.23000000417232513,
+              -3.808000087738037
+            ],
+            "max": [
+              11.010000228881836,
+              3.990000009536743,
+              -3.808000087738037
+            ]
+          },
+          "path": "白鸢王宫/Royal estate spatial batch 1,-1/Mesh",
+          "sourcePrimitive": "White joined casing",
+          "primitive": 5133,
+          "triangle": 4571,
+          "instance": null
+        },
+        {
+          "t": [
+            [
+              11.039999961853027,
+              0.5400000214576721,
+              -3.98799991607666
+            ],
+            [
+              11.039999961853027,
+              0.23000000417232513,
+              -3.98799991607666
+            ],
+            [
+              10.5600004196167,
+              0.5400000214576721,
+              -3.98799991607666
+            ]
+          ],
+          "b": {
+            "min": [
+              10.5600004196167,
+              0.23000000417232513,
+              -3.98799991607666
+            ],
+            "max": [
+              11.039999961853027,
+              0.5400000214576721,
+              -3.98799991607666
+            ]
+          },
+          "path": "白鸢王宫/Royal estate spatial batch 1,-1/Mesh",
+          "sourcePrimitive": "Outward-flared stone foot",
+          "primitive": 5135,
+          "triangle": 4592,
+          "instance": null
+        },
+        {
+          "t": [
+            [
+              11.039999961853027,
+              0.23000000417232513,
+              -3.98799991607666
+            ],
+            [
+              10.5600004196167,
+              0.23000000417232513,
+              -3.98799991607666
+            ],
+            [
+              10.5600004196167,
+              0.5400000214576721,
+              -3.98799991607666
+            ]
+          ],
+          "b": {
+            "min": [
+              10.5600004196167,
+              0.23000000417232513,
+              -3.98799991607666
+            ],
+            "max": [
+              11.039999961853027,
+              0.5400000214576721,
+              -3.98799991607666
+            ]
+          },
+          "path": "白鸢王宫/Royal estate spatial batch 1,-1/Mesh",
+          "sourcePrimitive": "Outward-flared stone foot",
+          "primitive": 5135,
+          "triangle": 4593,
+          "instance": null
+        }
+      ],
+      "elapsedSeconds": 4.469
+    },
+    {
+      "stage": "after",
+      "status": "REVIEW",
+      "loadedHashes": {
+        "source/game/regions-west.js": "b261a978e9fe16ccd7980436fa6cdc2f78626a241a45a0ae8ab119c48a583476",
+        "source/game/inset-closures.js": "869a0c43bf27479d697ddb57d70b7b1fb1babaf18ea41e55067ca253af8f28fb",
+        "source/game/night-lighting.js": "61d5dff148e2797e35633d103c52a05460d1029506d312115c78941e81e7fc30",
+        "source/game/geometry.js": "accd26d9fe1820ba7829bc00f802c8916458813eefd0cfd08f5d38e11c207ca9",
+        "source/vendor/three/build/three.module.js": "9052042d676cb0fdc1ddfefe193053f34b7ac0513a616fdac4535d49987812ea",
+        "source/vendor/three/build/three.core.js": "9edde002b066a9a05676a6127f67735b62baf399bdea529f2f7e31657da769e6",
+        "source/game/automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+        "source/game/automatic-routing.js": "c0abe71a90b9600dec9d1cbe977b115f9b97e5384f7e55a09794cf7496d4c913",
+        "source/game/navigation.js": "d22f45cd94d968b88d44a803bbc7ba1ec65c45f2d7fdf2c20610d18b256c062e",
+        "source/game/room-closures.js": "e418cd6d9a10c63aa782a8122205083217b1c407a5d0d426fab2543555601aea",
+        "source/game/furniture-interactions.js": "72a5856cb502fb8b0e9f1882a03ae0d7579a723fa9f8323052b1182322391ba4",
+        "source/game/china-dragon-bed.js": "fc661ab4cb0f00601d2162af1b2dca33c9324bc8af391ca54e0a948beb0a2c37",
+        "source/game/camera.js": "7b6fc625c07138fc5636d38651b2487cdd812e22fcb89618a707b6b913808dea",
+        "source/game/floor-support.js": "5f5df2cde18b6e232e89a222027fc81bb25ba89678912f654ce3c2f632f44615"
+      },
+      "instrumentedFranceHash": "08bd3de6ab35a545645bab18348f3a842bd5d22f5ac8b8f00d55d2b3d3762a49",
+      "affineSweep": {
+        "everyRenderedVertex": true,
+        "fractions": [
+          0,
+          0.25,
+          0.5,
+          0.75,
+          1
+        ],
+        "maxResidual": 8.881784197001252e-16,
+        "envelope": {
+          "min": [
+            10.651685211062432,
+            0.24200000010430814,
+            -7.053999998569489
+          ],
+          "max": [
+            10.94831478893757,
+            3.8749999809265137,
+            -2.9460000014305114
+          ]
+        },
+        "sourceFormula": "poseDoor slide: fixed transforms, pivot lateral = side * (width/4 + overlap/2 + fraction * authoredTravel)"
+      },
+      "staticMeshCount": 144,
+      "staticScope": "Every lot mesh except the two target moving leaf subtrees; includes own fixed supports, other closed doors/curtains, full roof, actual room walls, floor, furniture and ornamental casing",
+      "sourcePrimitiveAudit": {
+        "primitiveCount": 8252,
+        "verifiedPackedRanges": 8201,
+        "packedPositionBuffersIdentical": true,
+        "method": "Every packed triangle belongs to exactly one source primitive range; each range position SHA equals the original transformed source buffer. Other meshes retain their original separate identity. Containment is computed per original primitive and combined by union, never aggregated over overlapping solids."
+      },
+      "inspectedStaticTriangles": 663572,
+      "rayCandidateCounts": [
+        71909,
+        1652,
+        1456
+      ],
+      "envelopeBoundaryCandidates": 6,
+      "originalWitnesses": [
+        {
+          "point": [
+            10.8,
+            1.3,
+            -6.02
+          ],
+          "actualLeaf": {
+            "inside": true,
+            "rays": [
+              {
+                "axis": 0,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 0,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 1,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 1,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 2,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 2,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 3
+              }
+            ]
+          },
+          "aggregateStaticWorldDiagnostic": {
+            "inside": false,
+            "rays": [
+              {
+                "axis": 0,
+                "sign": -1,
+                "sum": 0,
+                "edge": false,
+                "hits": 28
+              },
+              {
+                "axis": 0,
+                "sign": 1,
+                "sum": 0,
+                "edge": false,
+                "hits": 6
+              },
+              {
+                "axis": 1,
+                "sign": -1,
+                "sum": 0,
+                "edge": true,
+                "hits": 6
+              },
+              {
+                "axis": 1,
+                "sign": 1,
+                "sum": 0,
+                "edge": true,
+                "hits": 28
+              },
+              {
+                "axis": 2,
+                "sign": -1,
+                "sum": 0,
+                "edge": true,
+                "hits": 28
+              },
+              {
+                "axis": 2,
+                "sign": 1,
+                "sum": 0,
+                "edge": false,
+                "hits": 24
+              }
+            ]
+          },
+          "actualSourcePrimitives": [],
+          "actualPrimitiveUnionInside": false
+        },
+        {
+          "point": [
+            10.8,
+            1.3,
+            -3.98
+          ],
+          "actualLeaf": {
+            "inside": true,
+            "rays": [
+              {
+                "axis": 0,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 0,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 1,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 1,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              },
+              {
+                "axis": 2,
+                "sign": -1,
+                "sum": 1,
+                "edge": false,
+                "hits": 3
+              },
+              {
+                "axis": 2,
+                "sign": 1,
+                "sum": 1,
+                "edge": false,
+                "hits": 1
+              }
+            ]
+          },
+          "aggregateStaticWorldDiagnostic": {
+            "inside": false,
+            "rays": [
+              {
+                "axis": 0,
+                "sign": -1,
+                "sum": 0,
+                "edge": false,
+                "hits": 26
+              },
+              {
+                "axis": 0,
+                "sign": 1,
+                "sum": 0,
+                "edge": false,
+                "hits": 12
+              },
+              {
+                "axis": 1,
+                "sign": -1,
+                "sum": 0,
+                "edge": true,
+                "hits": 6
+              },
+              {
+                "axis": 1,
+                "sign": 1,
+                "sum": 0,
+                "edge": true,
+                "hits": 24
+              },
+              {
+                "axis": 2,
+                "sign": -1,
+                "sum": 0,
+                "edge": true,
+                "hits": 28
+              },
+              {
+                "axis": 2,
+                "sign": 1,
+                "sum": 0,
+                "edge": false,
+                "hits": 24
+              }
+            ]
+          },
+          "actualSourcePrimitives": [],
+          "actualPrimitiveUnionInside": false
+        }
+      ],
+      "fullSweepBoundary": {
+        "candidateTriangles": 6,
+        "separated": 1,
+        "unresolved": 5,
+        "witnesses": [
+          {
+            "t": [
+              [
+                10.800000190734863,
+                5.25,
+                -6.449999809265137
+              ],
+              [
+                10.800000190734863,
+                0.23000000417232513,
+                -6.449999809265137
+              ],
+              [
+                10.800000190734863,
+                5.25,
+                -6.75
+              ]
+            ],
+            "b": {
+              "min": [
+                10.800000190734863,
+                0.23000000417232513,
+                -6.75
+              ],
+              "max": [
+                10.800000190734863,
+                5.25,
+                -6.449999809265137
+              ]
+            },
+            "path": "白鸢王宫/Royal estate spatial batch 0,-1/Mesh",
+            "sourcePrimitive": "BoxGeometry",
+            "primitive": 2290,
+            "triangle": 216,
+            "instance": null
+          },
+          {
+            "t": [
+              [
+                10.800000190734863,
+                0.23000000417232513,
+                -6.449999809265137
+              ],
+              [
+                10.800000190734863,
+                0.23000000417232513,
+                -6.75
+              ],
+              [
+                10.800000190734863,
+                5.25,
+                -6.75
+              ]
+            ],
+            "b": {
+              "min": [
+                10.800000190734863,
+                0.23000000417232513,
+                -6.75
+              ],
+              "max": [
+                10.800000190734863,
+                5.25,
+                -6.449999809265137
+              ]
+            },
+            "path": "白鸢王宫/Royal estate spatial batch 0,-1/Mesh",
+            "sourcePrimitive": "BoxGeometry",
+            "primitive": 2290,
+            "triangle": 217,
+            "instance": null
+          },
+          {
+            "t": [
+              [
+                8.029999732971191,
+                0.23000000417232513,
+                -6.449999809265137
+              ],
+              [
+                10.800000190734863,
+                0.23000000417232513,
+                -6.449999809265137
+              ],
+              [
+                10.800000190734863,
+                5.25,
+                -6.449999809265137
+              ]
+            ],
+            "b": {
+              "min": [
+                8.029999732971191,
+                0.23000000417232513,
+                -6.449999809265137
+              ],
+              "max": [
+                10.800000190734863,
+                5.25,
+                -6.449999809265137
+              ]
+            },
+            "path": "白鸢王宫/Royal estate spatial batch 0,-1/Mesh",
+            "sourcePrimitive": "BoxGeometry",
+            "primitive": 2290,
+            "triangle": 225,
+            "instance": null
+          },
+          {
+            "t": [
+              [
+                10.800000190734863,
+                5.25,
+                -6.75
+              ],
+              [
+                10.800000190734863,
+                0.23000000417232513,
+                -6.75
+              ],
+              [
+                8.029999732971191,
+                5.25,
+                -6.75
+              ]
+            ],
+            "b": {
+              "min": [
+                8.029999732971191,
+                0.23000000417232513,
+                -6.75
+              ],
+              "max": [
+                10.800000190734863,
+                5.25,
+                -6.75
+              ]
+            },
+            "path": "白鸢王宫/Royal estate spatial batch 0,-1/Mesh",
+            "sourcePrimitive": "BoxGeometry",
+            "primitive": 2290,
+            "triangle": 226,
+            "instance": null
+          },
+          {
+            "t": [
+              [
+                10.800000190734863,
+                0.23000000417232513,
+                -6.75
+              ],
+              [
+                8.029999732971191,
+                0.23000000417232513,
+                -6.75
+              ],
+              [
+                8.029999732971191,
+                5.25,
+                -6.75
+              ]
+            ],
+            "b": {
+              "min": [
+                8.029999732971191,
+                0.23000000417232513,
+                -6.75
+              ],
+              "max": [
+                10.800000190734863,
+                5.25,
+                -6.75
+              ]
+            },
+            "path": "白鸢王宫/Royal estate spatial batch 0,-1/Mesh",
+            "sourcePrimitive": "BoxGeometry",
+            "primitive": 2290,
+            "triangle": 227,
+            "instance": null
+          }
+        ]
+      },
+      "freeVolumeProbe": {
+        "point": [
+          10.8,
+          2.058499990515411,
+          -5
+        ],
+        "aggregateDiagnostic": {
+          "inside": false,
+          "rays": [
+            {
+              "axis": 0,
+              "sign": -1,
+              "sum": 0,
+              "edge": false,
+              "hits": 28
+            },
+            {
+              "axis": 0,
+              "sign": 1,
+              "sum": 0,
+              "edge": false,
+              "hits": 10
+            },
+            {
+              "axis": 1,
+              "sign": -1,
+              "sum": 0,
+              "edge": true,
+              "hits": 6
+            },
+            {
+              "axis": 1,
+              "sign": 1,
+              "sum": 0,
+              "edge": true,
+              "hits": 24
+            },
+            {
+              "axis": 2,
+              "sign": -1,
+              "sum": 0,
+              "edge": true,
+              "hits": 28
+            },
+            {
+              "axis": 2,
+              "sign": 1,
+              "sum": 0,
+              "edge": false,
+              "hits": 24
+            }
+          ]
+        },
+        "actualSourcePrimitives": []
+      },
+      "closedRays": {
+        "count": 210,
+        "leaks": []
+      },
+      "originalImagePixelProbes": [
+        {
+          "image": "france-visual-0937/pocket-closed-back.png",
+          "pixel": [
+            380,
+            300
+          ],
+          "camera": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "rayDirection": [
+            -0.8370958548365739,
+            0.20898551477586716,
+            0.5055646194397818
+          ],
+          "wallCrossingDistance": [
+            3.285167384488939,
+            3.8824705453051096
+          ],
+          "firstHit": {
+            "distance": 3.3625770764650764,
+            "point": [
+              10.9852006677226,
+              2.6027299012985843,
+              -4
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 13,
+            "primitiveRange": {
+              "firstTriangle": 12,
+              "triangleCount": 12,
+              "positionSHA": "8cf0573ef3b47609a2cfac1caf23400f26309dfb7f4c2801dffc580f7d513c57"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 3.3625770764650764,
+              "point": [
+                10.9852006677226,
+                2.6027299012985843,
+                -4
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 13,
+              "primitiveRange": {
+                "firstTriangle": 12,
+                "triangleCount": 12,
+                "positionSHA": "8cf0573ef3b47609a2cfac1caf23400f26309dfb7f4c2801dffc580f7d513c57"
+              }
+            },
+            {
+              "distance": 3.79884823950269,
+              "point": [
+                10.619999885559082,
+                2.6939042548878662,
+                -3.7794367354863376
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 9,
+              "primitiveRange": {
+                "firstTriangle": 0,
+                "triangleCount": 12,
+                "positionSHA": "6fd9bcadf0330d828d50f5191d605995a0eea62cf2e41d9b31ddc0ab4ba0fd50"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0937/pocket-closed-back.png",
+          "pixel": [
+            384,
+            300
+          ],
+          "camera": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "rayDirection": [
+            -0.8393267449860585,
+            0.20927790817849418,
+            0.5017303780912032
+          ],
+          "wallCrossingDistance": [
+            3.2764355674686363,
+            3.8721511251902063
+          ],
+          "firstHit": {
+            "distance": 3.788751083457658,
+            "point": [
+              10.619999885559082,
+              2.692901901355022,
+              -3.7990684864033337
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 9,
+            "primitiveRange": {
+              "firstTriangle": 0,
+              "triangleCount": 12,
+              "positionSHA": "6fd9bcadf0330d828d50f5191d605995a0eea62cf2e41d9b31ddc0ab4ba0fd50"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 3.788751083457658,
+              "point": [
+                10.619999885559082,
+                2.692901901355022,
+                -3.7990684864033337
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 9,
+              "primitiveRange": {
+                "firstTriangle": 0,
+                "triangleCount": 12,
+                "positionSHA": "6fd9bcadf0330d828d50f5191d605995a0eea62cf2e41d9b31ddc0ab4ba0fd50"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0937/pocket-closed-back.png",
+          "pixel": [
+            388,
+            300
+          ],
+          "camera": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "rayDirection": [
+            -0.8415471844421767,
+            0.20956696169010866,
+            0.49787551147392434
+          ],
+          "wallCrossingDistance": [
+            3.2677906252194875,
+            3.8619343752593944
+          ],
+          "firstHit": {
+            "distance": 3.7787543862425212,
+            "point": [
+              10.619999885559082,
+              2.6919020756980165,
+              -3.8186507272151697
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 9,
+            "primitiveRange": {
+              "firstTriangle": 0,
+              "triangleCount": 12,
+              "positionSHA": "6fd9bcadf0330d828d50f5191d605995a0eea62cf2e41d9b31ddc0ab4ba0fd50"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 3.7787543862425212,
+              "point": [
+                10.619999885559082,
+                2.6919020756980165,
+                -3.8186507272151697
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 9,
+              "primitiveRange": {
+                "firstTriangle": 0,
+                "triangleCount": 12,
+                "positionSHA": "6fd9bcadf0330d828d50f5191d605995a0eea62cf2e41d9b31ddc0ab4ba0fd50"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0937/pocket-closed-back.png",
+          "pixel": [
+            380,
+            500
+          ],
+          "camera": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "rayDirection": [
+            -0.8557425262285137,
+            -0.024399083702716158,
+            0.5168262895001658
+          ],
+          "wallCrossingDistance": [
+            3.2135834269216303,
+            3.797871322725563
+          ],
+          "firstHit": {
+            "distance": 3.289306357933355,
+            "point": [
+              10.9852006677226,
+              1.8197439388489076,
+              -4
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 13,
+            "primitiveRange": {
+              "firstTriangle": 12,
+              "triangleCount": 12,
+              "positionSHA": "8cf0573ef3b47609a2cfac1caf23400f26309dfb7f4c2801dffc580f7d513c57"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 3.289306357933355,
+              "point": [
+                10.9852006677226,
+                1.8197439388489076,
+                -4
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 13,
+              "primitiveRange": {
+                "firstTriangle": 12,
+                "triangleCount": 12,
+                "positionSHA": "8cf0573ef3b47609a2cfac1caf23400f26309dfb7f4c2801dffc580f7d513c57"
+              }
+            },
+            {
+              "distance": 3.7160711510458992,
+              "point": [
+                10.619999885559082,
+                1.8093312689403822,
+                -3.7794367354863376
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 9,
+              "primitiveRange": {
+                "firstTriangle": 0,
+                "triangleCount": 12,
+                "positionSHA": "6fd9bcadf0330d828d50f5191d605995a0eea62cf2e41d9b31ddc0ab4ba0fd50"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0937/pocket-closed-back.png",
+          "pixel": [
+            384,
+            500
+          ],
+          "camera": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "rayDirection": [
+            -0.8580772308933247,
+            -0.024434761811628125,
+            0.5129389907558725
+          ],
+          "wallCrossingDistance": [
+            3.204839728863377,
+            3.787537861383991
+          ],
+          "firstHit": {
+            "distance": 3.7059602562001244,
+            "point": [
+              10.619999885559082,
+              1.8094457438563896,
+              -3.7990684864033337
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 9,
+            "primitiveRange": {
+              "firstTriangle": 0,
+              "triangleCount": 12,
+              "positionSHA": "6fd9bcadf0330d828d50f5191d605995a0eea62cf2e41d9b31ddc0ab4ba0fd50"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 3.7059602562001244,
+              "point": [
+                10.619999885559082,
+                1.8094457438563896,
+                -3.7990684864033337
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 9,
+              "primitiveRange": {
+                "firstTriangle": 0,
+                "triangleCount": 12,
+                "positionSHA": "6fd9bcadf0330d828d50f5191d605995a0eea62cf2e41d9b31ddc0ab4ba0fd50"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0937/pocket-closed-back.png",
+          "pixel": [
+            388,
+            500
+          ],
+          "camera": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "rayDirection": [
+            -0.8604010032788243,
+            -0.02447003902547384,
+            0.5090297935748797
+          ],
+          "wallCrossingDistance": [
+            3.196184092673386,
+            3.777308473159456
+          ],
+          "firstHit": {
+            "distance": 3.695951192900223,
+            "point": [
+              10.619999885559082,
+              1.8095599300734848,
+              -3.8186507272151697
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 9,
+            "primitiveRange": {
+              "firstTriangle": 0,
+              "triangleCount": 12,
+              "positionSHA": "6fd9bcadf0330d828d50f5191d605995a0eea62cf2e41d9b31ddc0ab4ba0fd50"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 3.695951192900223,
+              "point": [
+                10.619999885559082,
+                1.8095599300734848,
+                -3.8186507272151697
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 9,
+              "primitiveRange": {
+                "firstTriangle": 0,
+                "triangleCount": 12,
+                "positionSHA": "6fd9bcadf0330d828d50f5191d605995a0eea62cf2e41d9b31ddc0ab4ba0fd50"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0937/pocket-closed-back.png",
+          "pixel": [
+            380,
+            750
+          ],
+          "camera": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "rayDirection": [
+            -0.8147875411712096,
+            -0.3065407319555526,
+            0.49209149800045143
+          ],
+          "wallCrossingDistance": [
+            3.3751129724529605,
+            3.988769876535317
+          ],
+          "firstHit": {
+            "distance": 3.4546420877168655,
+            "point": [
+              10.985200667722602,
+              0.8410114857868134,
+              -4
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 13,
+            "primitiveRange": {
+              "firstTriangle": 12,
+              "triangleCount": 12,
+              "positionSHA": "8cf0573ef3b47609a2cfac1caf23400f26309dfb7f4c2801dffc580f7d513c57"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 3.4546420877168655,
+              "point": [
+                10.985200667722602,
+                0.8410114857868134,
+                -4
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 13,
+              "primitiveRange": {
+                "firstTriangle": 12,
+                "triangleCount": 12,
+                "positionSHA": "8cf0573ef3b47609a2cfac1caf23400f26309dfb7f4c2801dffc580f7d513c57"
+              }
+            },
+            {
+              "distance": 3.9028580504187063,
+              "point": [
+                10.619999885559082,
+                0.7036150365060285,
+                -3.779436735486337
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 9,
+              "primitiveRange": {
+                "firstTriangle": 0,
+                "triangleCount": 12,
+                "positionSHA": "6fd9bcadf0330d828d50f5191d605995a0eea62cf2e41d9b31ddc0ab4ba0fd50"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0937/pocket-closed-back.png",
+          "pixel": [
+            384,
+            750
+          ],
+          "camera": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "rayDirection": [
+            -0.8168988333752675,
+            -0.306947016217647,
+            0.48832348424503463
+          ],
+          "wallCrossingDistance": [
+            3.366389922039102,
+            3.978460816955302
+          ],
+          "firstHit": {
+            "distance": 3.892771031758945,
+            "point": [
+              10.619999885559082,
+              0.7051255469831006,
+              -3.7990684864033337
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 9,
+            "primitiveRange": {
+              "firstTriangle": 0,
+              "triangleCount": 12,
+              "positionSHA": "6fd9bcadf0330d828d50f5191d605995a0eea62cf2e41d9b31ddc0ab4ba0fd50"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 3.892771031758945,
+              "point": [
+                10.619999885559082,
+                0.7051255469831006,
+                -3.7990684864033337
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 9,
+              "primitiveRange": {
+                "firstTriangle": 0,
+                "triangleCount": 12,
+                "positionSHA": "6fd9bcadf0330d828d50f5191d605995a0eea62cf2e41d9b31ddc0ab4ba0fd50"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0937/pocket-closed-back.png",
+          "pixel": [
+            388,
+            750
+          ],
+          "camera": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "rayDirection": [
+            -0.8190002542409914,
+            -0.3073485714096466,
+            0.4845363136088363
+          ],
+          "wallCrossingDistance": [
+            3.3577523154111386,
+            3.9682527363949816
+          ],
+          "firstHit": {
+            "distance": 3.8827828171897014,
+            "point": [
+              10.619999885559082,
+              0.7066322480428222,
+              -3.8186507272151697
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 9,
+            "primitiveRange": {
+              "firstTriangle": 0,
+              "triangleCount": 12,
+              "positionSHA": "6fd9bcadf0330d828d50f5191d605995a0eea62cf2e41d9b31ddc0ab4ba0fd50"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 3.8827828171897014,
+              "point": [
+                10.619999885559082,
+                0.7066322480428222,
+                -3.8186507272151697
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 9,
+              "primitiveRange": {
+                "firstTriangle": 0,
+                "triangleCount": 12,
+                "positionSHA": "6fd9bcadf0330d828d50f5191d605995a0eea62cf2e41d9b31ddc0ab4ba0fd50"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0937/pocket-closed-back.png",
+          "pixel": [
+            380,
+            855
+          ],
+          "camera": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "rayDirection": [
+            -0.7814618996995004,
+            -0.40812602666629655,
+            0.4719644538263759
+          ],
+          "wallCrossingDistance": [
+            3.5190455235981073,
+            4.1588719824341265
+          ],
+          "firstHit": {
+            "distance": 3.601966178210082,
+            "point": [
+              10.985200667722602,
+              0.42994385550073355,
+              -4
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 13,
+            "primitiveRange": {
+              "firstTriangle": 12,
+              "triangleCount": 12,
+              "positionSHA": "8cf0573ef3b47609a2cfac1caf23400f26309dfb7f4c2801dffc580f7d513c57"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 3.601966178210082,
+              "point": [
+                10.985200667722602,
+                0.42994385550073355,
+                -4
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 13,
+              "primitiveRange": {
+                "firstTriangle": 12,
+                "triangleCount": 12,
+                "positionSHA": "8cf0573ef3b47609a2cfac1caf23400f26309dfb7f4c2801dffc580f7d513c57"
+              }
+            },
+            {
+              "distance": 4.037968392773852,
+              "point": [
+                10.644481548856408,
+                0.25200000405311584,
+                -3.79422245293632
+              ],
+              "mesh": "",
+              "sourcePrimitive": "BoxGeometry",
+              "triangle": 17441,
+              "primitiveRange": {
+                "firstTriangle": 17436,
+                "triangleCount": 12,
+                "positionSHA": "317b4dd3685bb8f5f571c06d974b260c1e9368885dced1254f5c92e62b841c0d"
+              }
+            },
+            {
+              "distance": 4.069296424641739,
+              "point": [
+                10.619999885559082,
+                0.23921421888359995,
+                -3.779436735486337
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 9,
+              "primitiveRange": {
+                "firstTriangle": 0,
+                "triangleCount": 12,
+                "positionSHA": "6fd9bcadf0330d828d50f5191d605995a0eea62cf2e41d9b31ddc0ab4ba0fd50"
+              }
+            },
+            {
+              "distance": 4.091873310479039,
+              "point": [
+                10.602356909463367,
+                0.23000000417232513,
+                -3.7687812478930365
+              ],
+              "mesh": "",
+              "sourcePrimitive": "BoxGeometry",
+              "triangle": 5,
+              "primitiveRange": {
+                "firstTriangle": 0,
+                "triangleCount": 12,
+                "positionSHA": "a9ceff78e0c7318f54e5f11e367ff6d2fc5cfb0ba887470f864c64ee0e9dd64d"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0937/pocket-closed-back.png",
+          "pixel": [
+            384,
+            855
+          ],
+          "camera": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "rayDirection": [
+            -0.7834035882298992,
+            -0.4086235274290075,
+            0.4683007909239463
+          ],
+          "wallCrossingDistance": [
+            3.510323467133494,
+            4.148564097521402
+          ],
+          "firstHit": {
+            "distance": 4.0330521502661165,
+            "point": [
+              10.640492473963214,
+              0.25200000405311584,
+              -3.8113184881928555
+            ],
+            "mesh": "",
+            "sourcePrimitive": "BoxGeometry",
+            "triangle": 17441,
+            "primitiveRange": {
+              "firstTriangle": 17436,
+              "triangleCount": 12,
+              "positionSHA": "317b4dd3685bb8f5f571c06d974b260c1e9368885dced1254f5c92e62b841c0d"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 4.0330521502661165,
+              "point": [
+                10.640492473963214,
+                0.25200000405311584,
+                -3.8113184881928555
+              ],
+              "mesh": "",
+              "sourcePrimitive": "BoxGeometry",
+              "triangle": 17441,
+              "primitiveRange": {
+                "firstTriangle": 17436,
+                "triangleCount": 12,
+                "positionSHA": "317b4dd3685bb8f5f571c06d974b260c1e9368885dced1254f5c92e62b841c0d"
+              }
+            },
+            {
+              "distance": 4.059210555348783,
+              "point": [
+                10.619999885559082,
+                0.24131106429631966,
+                -3.7990684864033337
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 9,
+              "primitiveRange": {
+                "firstTriangle": 0,
+                "triangleCount": 12,
+                "positionSHA": "6fd9bcadf0330d828d50f5191d605995a0eea62cf2e41d9b31ddc0ab4ba0fd50"
+              }
+            },
+            {
+              "distance": 4.086891438520543,
+              "point": [
+                10.598314582356952,
+                0.2300000041723249,
+                -3.786105506920525
+              ],
+              "mesh": "",
+              "sourcePrimitive": "BoxGeometry",
+              "triangle": 5,
+              "primitiveRange": {
+                "firstTriangle": 0,
+                "triangleCount": 12,
+                "positionSHA": "a9ceff78e0c7318f54e5f11e367ff6d2fc5cfb0ba887470f864c64ee0e9dd64d"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0937/pocket-closed-back.png",
+          "pixel": [
+            388,
+            855
+          ],
+          "camera": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            13.8,
+            1.9,
+            -5.7
+          ],
+          "rayDirection": [
+            -0.7853362699264611,
+            -0.4091150814814471,
+            0.46462005256168337
+          ],
+          "wallCrossingDistance": [
+            3.5016846990366433,
+            4.138354644316033
+          ],
+          "firstHit": {
+            "distance": 4.0282064156112485,
+            "point": [
+              10.636503399070023,
+              0.2520000040531156,
+              -3.8284145234493914
+            ],
+            "mesh": "",
+            "sourcePrimitive": "BoxGeometry",
+            "triangle": 17441,
+            "primitiveRange": {
+              "firstTriangle": 17436,
+              "triangleCount": 12,
+              "positionSHA": "317b4dd3685bb8f5f571c06d974b260c1e9368885dced1254f5c92e62b841c0d"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 4.0282064156112485,
+              "point": [
+                10.636503399070023,
+                0.2520000040531156,
+                -3.8284145234493914
+              ],
+              "mesh": "",
+              "sourcePrimitive": "BoxGeometry",
+              "triangle": 17441,
+              "primitiveRange": {
+                "firstTriangle": 17436,
+                "triangleCount": 12,
+                "positionSHA": "317b4dd3685bb8f5f571c06d974b260c1e9368885dced1254f5c92e62b841c0d"
+              }
+            },
+            {
+              "distance": 4.049220997699106,
+              "point": [
+                10.619999885559082,
+                0.24340262158994386,
+                -3.8186507272151697
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 9,
+              "primitiveRange": {
+                "firstTriangle": 0,
+                "triangleCount": 12,
+                "positionSHA": "6fd9bcadf0330d828d50f5191d605995a0eea62cf2e41d9b31ddc0ab4ba0fd50"
+              }
+            },
+            {
+              "distance": 4.081981015660522,
+              "point": [
+                10.594272255250539,
+                0.23000000417232513,
+                -3.8034297659480147
+              ],
+              "mesh": "",
+              "sourcePrimitive": "BoxGeometry",
+              "triangle": 5,
+              "primitiveRange": {
+                "firstTriangle": 0,
+                "triangleCount": 12,
+                "positionSHA": "a9ceff78e0c7318f54e5f11e367ff6d2fc5cfb0ba887470f864c64ee0e9dd64d"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0939/pocket-closed-oblique.png",
+          "pixel": [
+            489,
+            200
+          ],
+          "camera": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "rayDirection": [
+            0.2928034711190536,
+            0.3251454477633251,
+            -0.8991921736199779
+          ],
+          "wallCrossingDistance": [
+            3.073734052947963,
+            4.781364082363497
+          ],
+          "firstHit": {
+            "distance": 4.542294314863335,
+            "point": [
+              10.979999542236328,
+              3.376906318879045,
+              -6.9843954982036305
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 58,
+            "primitiveRange": {
+              "firstTriangle": 48,
+              "triangleCount": 12,
+              "positionSHA": "f1999a142a0e54da98dd3d45a96f98461a0ce8203d58eae432b89797ae106132"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 4.542294314863335,
+              "point": [
+                10.979999542236328,
+                3.376906318879045,
+                -6.9843954982036305
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 58,
+              "primitiveRange": {
+                "firstTriangle": 48,
+                "triangleCount": 12,
+                "positionSHA": "f1999a142a0e54da98dd3d45a96f98461a0ce8203d58eae432b89797ae106132"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0939/pocket-closed-oblique.png",
+          "pixel": [
+            495,
+            200
+          ],
+          "camera": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "rayDirection": [
+            0.2992841427286944,
+            0.3255355637488003,
+            -0.896914487922846
+          ],
+          "wallCrossingDistance": [
+            3.007175695291895,
+            4.677828859342947
+          ],
+          "firstHit": {
+            "distance": 4.443935886847144,
+            "point": [
+              10.979999542236328,
+              3.34665917418831,
+              -6.885830480313465
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 58,
+            "primitiveRange": {
+              "firstTriangle": 48,
+              "triangleCount": 12,
+              "positionSHA": "f1999a142a0e54da98dd3d45a96f98461a0ce8203d58eae432b89797ae106132"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 4.443935886847144,
+              "point": [
+                10.979999542236328,
+                3.34665917418831,
+                -6.885830480313465
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 58,
+              "primitiveRange": {
+                "firstTriangle": 48,
+                "triangleCount": 12,
+                "positionSHA": "f1999a142a0e54da98dd3d45a96f98461a0ce8203d58eae432b89797ae106132"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0939/pocket-closed-oblique.png",
+          "pixel": [
+            502,
+            200
+          ],
+          "camera": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "rayDirection": [
+            0.3068461768274684,
+            0.3259723029172712,
+            -0.8941965564109363
+          ],
+          "wallCrossingDistance": [
+            2.9330657116384633,
+            4.56254666254872
+          ],
+          "firstHit": {
+            "distance": 4.334417837586916,
+            "point": [
+              10.979999542236328,
+              3.3129001643239055,
+              -6.775821504416356
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 58,
+            "primitiveRange": {
+              "firstTriangle": 48,
+              "triangleCount": 12,
+              "positionSHA": "f1999a142a0e54da98dd3d45a96f98461a0ce8203d58eae432b89797ae106132"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 4.334417837586916,
+              "point": [
+                10.979999542236328,
+                3.3129001643239055,
+                -6.775821504416356
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 58,
+              "primitiveRange": {
+                "firstTriangle": 48,
+                "triangleCount": 12,
+                "positionSHA": "f1999a142a0e54da98dd3d45a96f98461a0ce8203d58eae432b89797ae106132"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0939/pocket-closed-oblique.png",
+          "pixel": [
+            489,
+            500
+          ],
+          "camera": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "rayDirection": [
+            0.30952897085048975,
+            -0.025210114007219325,
+            -0.9505557670941667
+          ],
+          "wallCrossingDistance": [
+            2.9076438225704013,
+            4.5230015017761795
+          ],
+          "firstHit": {
+            "distance": 4.296849947783243,
+            "point": [
+              10.979999542236328,
+              1.7916759229444699,
+              -6.9843954982036305
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 58,
+            "primitiveRange": {
+              "firstTriangle": 48,
+              "triangleCount": 12,
+              "positionSHA": "f1999a142a0e54da98dd3d45a96f98461a0ce8203d58eae432b89797ae106132"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 4.296849947783243,
+              "point": [
+                10.979999542236328,
+                1.7916759229444699,
+                -6.9843954982036305
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 58,
+              "primitiveRange": {
+                "firstTriangle": 48,
+                "triangleCount": 12,
+                "positionSHA": "f1999a142a0e54da98dd3d45a96f98461a0ce8203d58eae432b89797ae106132"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0939/pocket-closed-oblique.png",
+          "pixel": [
+            495,
+            500
+          ],
+          "camera": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "rayDirection": [
+            0.31642447257838485,
+            -0.025243923054846615,
+            -0.9482817606082551
+          ],
+          "wallCrossingDistance": [
+            2.8442806356485333,
+            4.4244365443421625
+          ],
+          "firstHit": {
+            "distance": 4.20321327044911,
+            "point": [
+              10.979999542236328,
+              1.7938944076176724,
+              -6.885830480313464
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 58,
+            "primitiveRange": {
+              "firstTriangle": 48,
+              "triangleCount": 12,
+              "positionSHA": "f1999a142a0e54da98dd3d45a96f98461a0ce8203d58eae432b89797ae106132"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 4.20321327044911,
+              "point": [
+                10.979999542236328,
+                1.7938944076176724,
+                -6.885830480313464
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 58,
+              "primitiveRange": {
+                "firstTriangle": 48,
+                "triangleCount": 12,
+                "positionSHA": "f1999a142a0e54da98dd3d45a96f98461a0ce8203d58eae432b89797ae106132"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0939/pocket-closed-oblique.png",
+          "pixel": [
+            502,
+            500
+          ],
+          "camera": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "rayDirection": [
+            0.32447092036178543,
+            -0.025281789653855406,
+            -0.9455577470210237
+          ],
+          "wallCrossingDistance": [
+            2.7737462543530844,
+            4.314716395660353
+          ],
+          "firstHit": {
+            "distance": 4.098979165077034,
+            "point": [
+              10.979999542236328,
+              1.7963704709529864,
+              -6.775821504416356
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 58,
+            "primitiveRange": {
+              "firstTriangle": 48,
+              "triangleCount": 12,
+              "positionSHA": "f1999a142a0e54da98dd3d45a96f98461a0ce8203d58eae432b89797ae106132"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 4.098979165077034,
+              "point": [
+                10.979999542236328,
+                1.7963704709529864,
+                -6.775821504416356
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 58,
+              "primitiveRange": {
+                "firstTriangle": 48,
+                "triangleCount": 12,
+                "positionSHA": "f1999a142a0e54da98dd3d45a96f98461a0ce8203d58eae432b89797ae106132"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0939/pocket-closed-oblique.png",
+          "pixel": [
+            489,
+            750
+          ],
+          "camera": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "rayDirection": [
+            0.2937891417626131,
+            -0.3157349474388834,
+            -0.902219143638702
+          ],
+          "wallCrossingDistance": [
+            3.063421590738083,
+            4.7653224744814615
+          ],
+          "firstHit": {
+            "distance": 4.527054792620592,
+            "point": [
+              10.979999542236328,
+              0.47065059299899237,
+              -6.984395498203632
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 59,
+            "primitiveRange": {
+              "firstTriangle": 48,
+              "triangleCount": 12,
+              "positionSHA": "f1999a142a0e54da98dd3d45a96f98461a0ce8203d58eae432b89797ae106132"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 4.527054792620592,
+              "point": [
+                10.979999542236328,
+                0.47065059299899237,
+                -6.984395498203632
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 59,
+              "primitiveRange": {
+                "firstTriangle": 48,
+                "triangleCount": 12,
+                "positionSHA": "f1999a142a0e54da98dd3d45a96f98461a0ce8203d58eae432b89797ae106132"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0939/pocket-closed-oblique.png",
+          "pixel": [
+            495,
+            750
+          ],
+          "camera": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "rayDirection": [
+            0.3002940607106541,
+            -0.3161163319364241,
+            -0.8999410768405709
+          ],
+          "wallCrossingDistance": [
+            2.9970622724609526,
+            4.6620968682725925
+          ],
+          "firstHit": {
+            "distance": 4.42899050047426,
+            "point": [
+              10.979999542236328,
+              0.49992376880880984,
+              -6.885830480313465
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 59,
+            "primitiveRange": {
+              "firstTriangle": 48,
+              "triangleCount": 12,
+              "positionSHA": "f1999a142a0e54da98dd3d45a96f98461a0ce8203d58eae432b89797ae106132"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 4.42899050047426,
+              "point": [
+                10.979999542236328,
+                0.49992376880880984,
+                -6.885830480313465
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 59,
+              "primitiveRange": {
+                "firstTriangle": 48,
+                "triangleCount": 12,
+                "positionSHA": "f1999a142a0e54da98dd3d45a96f98461a0ce8203d58eae432b89797ae106132"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0939/pocket-closed-oblique.png",
+          "pixel": [
+            502,
+            750
+          ],
+          "camera": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "rayDirection": [
+            0.30788440675503653,
+            -0.3165433071051794,
+            -0.8972221167604014
+          ],
+          "wallCrossingDistance": [
+            2.923174997673953,
+            4.5471611074928155
+          ],
+          "firstHit": {
+            "distance": 4.319801565314482,
+            "point": [
+              10.979999542236328,
+              0.532595726477223,
+              -6.775821504416355
+            ],
+            "mesh": "",
+            "sourcePrimitive": "Pocket opaque wall skin",
+            "triangle": 59,
+            "primitiveRange": {
+              "firstTriangle": 48,
+              "triangleCount": 12,
+              "positionSHA": "f1999a142a0e54da98dd3d45a96f98461a0ce8203d58eae432b89797ae106132"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 4.319801565314482,
+              "point": [
+                10.979999542236328,
+                0.532595726477223,
+                -6.775821504416355
+              ],
+              "mesh": "",
+              "sourcePrimitive": "Pocket opaque wall skin",
+              "triangle": 59,
+              "primitiveRange": {
+                "firstTriangle": 48,
+                "triangleCount": 12,
+                "positionSHA": "f1999a142a0e54da98dd3d45a96f98461a0ce8203d58eae432b89797ae106132"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0939/pocket-closed-oblique.png",
+          "pixel": [
+            489,
+            825
+          ],
+          "camera": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "rayDirection": [
+            0.2849578302307379,
+            -0.39115446483250804,
+            -0.8750984056846317
+          ],
+          "wallCrossingDistance": [
+            3.1583620610503895,
+            4.913007650522828
+          ],
+          "firstHit": {
+            "distance": 4.857416112618268,
+            "point": [
+              11.034158755979528,
+              -6.661338147750939e-16,
+              -7.150717095899088
+            ],
+            "mesh": "",
+            "sourcePrimitive": "BoxGeometry",
+            "triangle": 5,
+            "primitiveRange": {
+              "firstTriangle": 0,
+              "triangleCount": 12,
+              "positionSHA": "4765bd90f8bd4670013865691e6afe98febe8b241495901408578a8ae3320880"
+            }
+          },
+          "closureIntervalHits": [
+            {
+              "distance": 4.857416112618268,
+              "point": [
+                11.034158755979528,
+                -6.661338147750939e-16,
+                -7.150717095899088
+              ],
+              "mesh": "",
+              "sourcePrimitive": "BoxGeometry",
+              "triangle": 5,
+              "primitiveRange": {
+                "firstTriangle": 0,
+                "triangleCount": 12,
+                "positionSHA": "4765bd90f8bd4670013865691e6afe98febe8b241495901408578a8ae3320880"
+              }
+            }
+          ]
+        },
+        {
+          "image": "france-visual-0939/pocket-closed-oblique.png",
+          "pixel": [
+            495,
+            825
+          ],
+          "camera": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "rayDirection": [
+            0.2912463666649789,
+            -0.3915989238988463,
+            -0.8728263496857288
+          ],
+          "wallCrossingDistance": [
+            3.090167305109326,
+            4.8069269190589505
+          ],
+          "firstHit": {
+            "distance": 4.851903016185988,
+            "point": [
+              11.063099124875022,
+              2.220446049250313e-16,
+              -7.134868798646794
+            ],
+            "mesh": "",
+            "sourcePrimitive": "BoxGeometry",
+            "triangle": 5,
+            "primitiveRange": {
+              "firstTriangle": 0,
+              "triangleCount": 12,
+              "positionSHA": "4765bd90f8bd4670013865691e6afe98febe8b241495901408578a8ae3320880"
+            }
+          },
+          "closureIntervalHits": []
+        },
+        {
+          "image": "france-visual-0939/pocket-closed-oblique.png",
+          "pixel": [
+            502,
+            825
+          ],
+          "camera": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "target": [
+            10.8,
+            1.9,
+            -5
+          ],
+          "fov": 62,
+          "size": [
+            1280,
+            960
+          ],
+          "rayOrigin": [
+            9.65,
+            1.9,
+            -2.9
+          ],
+          "rayDirection": [
+            0.29858406859709774,
+            -0.39209640029453163,
+            -0.8701195129728296
+          ],
+          "wallCrossingDistance": [
+            3.0142264596656663,
+            4.688796715035481
+          ],
+          "firstHit": {
+            "distance": 4.845747113650557,
+            "point": [
+              11.096862888586427,
+              0,
+              -7.1163791185191165
+            ],
+            "mesh": "",
+            "sourcePrimitive": "BoxGeometry",
+            "triangle": 5,
+            "primitiveRange": {
+              "firstTriangle": 0,
+              "triangleCount": 12,
+              "positionSHA": "4765bd90f8bd4670013865691e6afe98febe8b241495901408578a8ae3320880"
+            }
+          },
+          "closureIntervalHits": []
+        }
+      ],
+      "elapsedSeconds": 11.832
+    }
+  ],
+  "elapsedSeconds": 11.835,
+  "rssMiB": 603.890625
+}

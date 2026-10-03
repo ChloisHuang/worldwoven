@@ -1,0 +1,57 @@
+{
+  "status": "ISOLATED_NOT_RUN",
+  "scope": "One French pocket only: split jamb mouth, lower north-wall end rebated to join opaque cassette skin, two actual ground-supported base pieces solely outside the existing loggia slab. Original40mm overlap, 4.2m rough width, unchanged leaves and2m clear opening. No generic floor-to-ground rule for Japan.",
+  "source": {
+    "regions-west.js": "f1c34d4c3ced5cbc8e14f66502374cad849d59298679a78f13fdcbc738446646",
+    "inset-closures.js": "dadba37aaa60d85abc2c9102a5da10bcfaf529474d8e60fefe5a975e63d8930a"
+  },
+  "geometry": {
+    "wallOuterFaces": [
+      10.55,
+      11.05
+    ],
+    "cavityInnerFaces": [
+      10.62,
+      10.98
+    ],
+    "splitMouthInnerFaces": [
+      10.64,
+      10.96
+    ],
+    "crossWallEndX": 10.57,
+    "crossWallJoinOverlapMeters": 0.02,
+    "crossWallCutHeight": [
+      0.23,
+      4.0
+    ],
+    "preservedCrossWallTop": 5.25,
+    "extensionFloorX": [
+      10.8,
+      11.05
+    ],
+    "extensionFloorY": [
+      0,
+      0.23
+    ],
+    "originalSideOverlap": 0.04,
+    "originalRoughZ": [
+      -7.1,
+      -2.9
+    ],
+    "extensionFloorZ": [
+      [
+        -7.1,
+        -6.425
+      ],
+      [
+        -3.575,
+        -2.9
+      ]
+    ]
+  },
+  "originalEvidence": {
+    "fullScene": "france-pocket-whole-scene-v2-result.json",
+    "contactCandidate": "Original north wall actual packed triangles216/217/225/226/227 cross swept box; retain exact posed-leaf contact in next replay.",
+    "pixelClassification": "Most sampled bright vertical strips hit actual far pocket skins, lower steep-view pixels reach ground underneath raised pocket. No claim that every visible reveal is a leak."
+  }
+}
