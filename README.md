@@ -1,6 +1,6 @@
-# Private repair WIP checkpoint 01 — not published
+# Private door/bath repair checkpoint 03 — not published
 
-See [REPAIR-WIP.md](REPAIR-WIP.md). The following documentation describes the preserved R16 release, not acceptance of this unfinished repair.
+See [REPAIR-WIP.md](REPAIR-WIP.md). This immutable source/config snapshot is unaccepted. Public production remains R16.
 
 # Worldwoven · 四方生活
 
