@@ -398,6 +398,8 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    const sip=Math.pow((Math.sin(time*.95)+1)*.5,2);reach(0,-.14,1.18,.29);reach(1,.08,1.37+sip*.07,.26-sip*.15);show('sushiPlate','chopsticks');lookX=.13-sip*.08;
   }else if(action==='ramen'){
    const serve=(Math.sin(time*1.15)+1)*.5;reach(0,-.15,1.04+serve*.06,.29);reach(1,.07-serve*.045,1.24+serve*.10,.28-serve*.035);show('ramenBowl',serve<.83?'ladle':'chopsticks');lookX=.13;
+  }else if(action==='herb-mix'){
+   reach(0,-.14,1.15,.37);reach(1,.07,1.2,.39);lookX=.18;
   }else if(action==='bath-attendant'){
    const sweep=Math.sin(time*1.45);reach(0,-.25+sweep*.055,.92,.26+sweep*.025);reach(1,.32,1.03,.21);show('bathCloth','bathBucket');lookX=.20;
   }else if(/relax/.test(action||'')){reach(0,-.25,.955,.13);reach(1,.25,.955,.13);lookX=-.04;}
@@ -434,6 +436,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    else if(/calligraphy/.test(action||'')){reach(0,-.18,surface+.045,forward-.025);reach(1,.12+Math.sin(time*1.2)*.03,surface+.265,forward-.025);}
    else if(action==='bath-attendant'){reach(0,-.25+Math.sin(time*1.45)*.055,surface+.075,forward-.02);}
    else if(/tidy/.test(action||'')){reach(0,-.18,surface+.08,forward-.025);reach(1,.18,surface+.095,forward-.025);}
+   else if(action==='herb-mix'){reach(0,-.14,surface+.10,forward);reach(1,.07+Math.cos(time*2.2)*.025,surface+.14+Math.sin(time*2.2)*.012,forward+.015+Math.sin(time*2.2)*.018);}
   }
   if(action){posedQ[6].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));posedQ[9].identity();if(/knead|bread|tidy/.test(action))posedQ[9].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));}
   if(action==='chair-sit'){posedQ[6].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));posedQ[9].copy(posedQ[6]);}

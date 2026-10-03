@@ -8,7 +8,7 @@ const point=a=>({x:a[0],y:a[1],z:a[2]});
 const near=(p,a,r=.08)=>Math.hypot(p.x-a[0],p.z-a[2])<r&&Math.abs(p.y-a[1])<.35;
 const positions=actors=>Object.fromEntries([...actors].map(([id,n])=>[id,(n.serviceMount?n.serviceMount.position:n.root.position.toArray()).slice()]));
 const LABELS={arriving:'沿参道来到汤馆','check-in':'等前台登记并发浴牌',changing:'拿着浴牌去更衣',washing:'洗净后再入汤','waiting-bath':'等自己的浴包送到汤室',bathing:'坐进共享池座泡汤',drying:'擦干并换回旅途衣着',resting:'在休息廊坐下歇脚',dining:'点一碗汤面','waiting-meal':'等后厨做好自己的汤面',eating:'吃刚刚送来的汤面',checkout:'向前台归还浴牌','checkout-ready':'等前台收回浴牌',leaving:'沿参道离开汤馆'};
-const JOBS={register:{label:'登记来客并递出浴牌',duration:2.5,action:'tidy',workTarget:P.tokenTray},prepare:{label:'按浴牌配制草木浴包',duration:4,action:'tidy',workTarget:[-5.2,12.8,-2.5]},deliverMix:{label:'把对应浴包送到汤室',duration:1.3},cook:{label:'为来客煮一碗汤面',duration:6,action:'ramen',workTarget:[2.1,1.47,-13.4]},serve:{label:'把热汤面送给点餐来客',duration:1.5},checkout:{label:'收回浴牌，送别来客',duration:2,action:'tidy',workTarget:P.tokenTray}};
+const JOBS={register:{label:'登记来客并递出浴牌',duration:2.5,action:'tidy',workTarget:P.tokenTray},prepare:{label:'按浴牌配制草木浴包',duration:4,action:'herb-mix',workTarget:P.blendWork},deliverMix:{label:'把对应浴包送到汤室',duration:1.3},cook:{label:'为来客煮一碗汤面',duration:6,action:'ramen',workTarget:[2.1,1.47,-13.4]},serve:{label:'把热汤面送给点餐来客',duration:1.5},checkout:{label:'收回浴牌，送别来客',duration:2,action:'tidy',workTarget:P.tokenTray}};
 
 // Replaces (never runs beside) the earlier four-resident demonstration routine.
 // The host supplies the existing movement/door/wardrobe code and lifecycle

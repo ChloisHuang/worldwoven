@@ -43,6 +43,13 @@ export function createJapanServiceProps(parent) {
  box(reception,.52,.027,.37,0xe6dcc2,[-.38,0,0]);
  for(const z of [-.11,-.055,0,.055,.11])box(reception,.39,.004,.011,0x819086,[-.38,.016,z]);
  box(reception,.42,.032,.31,0x8e6645,[.23,0,0]);
+ // Work-in-progress ingredients are visible only while the claimed preparer
+ // actually works here. The finished order-owned pouch still appears on completion.
+ const mixing=new THREE.Group(),pestle=new THREE.Group();mixing.name='Herbal blend mortar at reachable bench edge';pestle.name='Wooden pestle held by preparer';root.add(mixing,pestle);mixing.position.set(...P.blendWork);mixing.visible=pestle.visible=false;
+ part(mixing,new THREE.CylinderGeometry(.15,.12,.09,16,1,true),0xc6aa77,[0,.025,0]);cylinder(mixing,.12,.12,.012,0xc6aa77,[0,-.014,0]);cylinder(mixing,.133,.133,.010,0x82996c,[0,.042,0]);
+ const rim=part(mixing,new THREE.TorusGeometry(.145,.013,6,20),0xddc28b,[0,.07,0]);rim.rotation.x=Math.PI/2;
+ for(const [x,z]of [[-.23,.025],[-.27,-.035],[-.21,-.055]]){const leaf=part(mixing,new THREE.SphereGeometry(.039,8,6),0x728b61,[x,-.005,z]);leaf.scale.set(1,.16,.55);}
+ cylinder(pestle,.024,.017,.14,0x886343,[0,-.035,0]);part(pestle,new THREE.SphereGeometry(.027,8,6),0xa98255,[0,.035,0]);
  function itemPoint(item,v) {
   const lane=(v.number%2?-.22:.22);
   if(item.location.id==='apothecaryPickup')return [P.mixtureTray[0]+lane,P.mixtureTray[1],P.mixtureTray[2]];
@@ -54,6 +61,9 @@ export function createJapanServiceProps(parent) {
  return {
   update(state,actorById) {
    const visits=new Map(state.visits.map(v=>[v.id,v])),seen=new Set();
+   const preparation=state.claims?.find(j=>j.kind==='prepare'),preparer=preparation&&actorById.get(preparation.workerId);
+   const working=!!(preparer?.serviceTask?.arrived&&preparer.serviceTask.action==='herb-mix'&&preparer.root.userData.poseQA.action==='herb-mix');mixing.visible=pestle.visible=working;
+   if(working){preparer.root.updateWorldMatrix(true,true);preparer.root.userData.hands[1].getWorldPosition(handB);pestle.position.copy(handB);pestle.position.x+=Math.sin(preparer.root.rotation.y)*.07;pestle.position.z+=Math.cos(preparer.root.rotation.y)*.07;pestle.rotation.y=preparer.root.rotation.y;}
    for(const item of state.items) {
     const v=visits.get(item.visitId);if(!v||['cancelled','used'].includes(item.location.type))continue;
     seen.add(item.id);let g=objects.get(item.id);if(!g){g=make(item,v);objects.set(item.id,g);}

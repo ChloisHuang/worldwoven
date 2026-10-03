@@ -4,6 +4,7 @@ export const JAPAN_SERVICE_POINTS = Object.freeze({
  arrival:[0,0,35], departure:[0,0,36.5],
  reception:[-4.22,0,5.7], registrar:[-5.4,0,5.7], tokenTray:[-5.65,1.17,6.48],
  apothecary:[-5.25,11.4,-1.6], apothecaryPickup:[-4.35,11.4,-2.6], mixtureTray:[-5.0,12.60,-2.15],
+ blendWork:[-5.20,12.60,-2.10],
  kitchen:[2.1,0,-12.15], kitchenPickup:[3.35,0,-12.15], mealTray:[3.35,1.20,-13.4],
  menService:[-4.2,3.8,-2.16], womenService:[1.35,3.8,-2.16],
  menChanging:[-9.92,3.8,2.4], womenChanging:[5.15,3.8,2.4],
