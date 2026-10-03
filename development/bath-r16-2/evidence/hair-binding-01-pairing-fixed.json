@@ -1,0 +1,284 @@
+{
+  "status": "FAIL",
+  "source": "/workspace/shared/worldwoven-r16-2-bath-candidate/source",
+  "sourceSHA256": "b902f0ebfb4e10d2ae30209678b61f50a6eabbfb999fbcfe5129d3dcad24e401",
+  "baseline": "/workspace/shared/worldwoven-r16-2-bath-candidate/development/bath-r16-2/fixtures/unbound-braid",
+  "scope": "Original 24 hair/sex/leg cases, rigid cross-section and root preservation, original indices/materials, production skinned hair vertices and triangles versus closed real lumbar/wall/timber volumes. No rendered appearance claim.",
+  "invariants": [
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "swept-short",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "side-part",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "chin-bob",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "shoulder-wave",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "low-bun",
+      "changed": [],
+      "ringDistanceError": 0,
+      "rootExact": true,
+      "centerline": null,
+      "normalOutfitExact": true
+    }
+  ],
+  "clearance": [
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "swept-short",
+      "vertices": 1678,
+      "triangles": 2976,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          -3.1812627399885267,
+          4.841390551860769,
+          -9.407942806080081
+        ],
+        "max": [
+          -2.981366150858448,
+          5.022328842424126,
+          -9.188249756004193
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "masculine-lean",
+        "hairStyle": "swept-short",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 0.94,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "side-part",
+      "vertices": 1735,
+      "triangles": 3048,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          -3.1862352169672414,
+          4.841390551860769,
+          -9.407948836512709
+        ],
+        "max": [
+          -2.9813715793728632,
+          5.016126683158441,
+          -9.18817255676613
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "masculine-lean",
+        "hairStyle": "side-part",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 0.94,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "chin-bob",
+      "vertices": 2438,
+      "triangles": 4272,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          -3.1812627399885267,
+          4.714607503748159,
+          -9.429531322838015
+        ],
+        "max": [
+          -2.976591229430323,
+          5.022328842424126,
+          -9.170739784978334
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "masculine-lean",
+        "hairStyle": "chin-bob",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 0.94,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "shoulder-wave",
+      "vertices": 2438,
+      "triangles": 4272,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          -3.1812627399885267,
+          4.606505174413566,
+          -9.429531322838015
+        ],
+        "max": [
+          -2.960187034536351,
+          5.022328842424126,
+          -9.165851783432675
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "masculine-lean",
+        "hairStyle": "shoulder-wave",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 0.94,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    },
+    {
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "low-bun",
+      "vertices": 2267,
+      "triangles": 3984,
+      "vertexHits": [],
+      "triangleHits": [],
+      "hairBounds": {
+        "min": [
+          -3.1812627399885267,
+          4.7624567756207,
+          -9.407933057150123
+        ],
+        "max": [
+          -2.915945404706637,
+          5.022328842424126,
+          -9.188319437410698
+        ]
+      },
+      "appearance": {
+        "skin": 14395267,
+        "hair": 4600616,
+        "clothes": 6132648,
+        "accent": 15190704,
+        "eyeColor": 5851967,
+        "culture": "japan",
+        "variant": 0,
+        "style": "casual",
+        "bodyPreset": "masculine-lean",
+        "hairStyle": "low-bun",
+        "wardrobePreset": "onsen-swimwear",
+        "gaitPreset": 1,
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 0.94,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        }
+      },
+      "status": "PASS"
+    }
+  ],
+  "errors": [
+    "AssertionError [ERR_ASSERTION]: source mesh centerline shortened more than 1%\n    at file:///workspace/shared/worldwoven-r16-2-bath-candidate/development/bath-r16-2/check-onsen-braid-binding.mjs:17:1074\n    at Array.forEach (<anonymous>)\n    at validateRaw (file:///workspace/shared/worldwoven-r16-2-bath-candidate/development/bath-r16-2/check-onsen-braid-binding.mjs:15:26)\n    at file:///workspace/shared/worldwoven-r16-2-bath-candidate/development/bath-r16-2/check-onsen-braid-binding.mjs:25:2"
+  ]
+}

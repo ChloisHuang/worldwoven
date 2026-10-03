@@ -9,8 +9,8 @@ const POLICY={
   'jp-women-noren':['half-curtain','Retain the fixed women’s noren and existing offset privacy screen; no duplicate closure'],
   'jp-men-wet-threshold':['full-curtain','Changing to bathing: full split cloth keeps the wet area private'],
   'jp-women-wet-threshold':['full-curtain','Changing to bathing: full split cloth keeps the wet area private'],
-  'jp-men-pool-entry':['open','Pool curb is a walk-in water entry, not a room wall'],
-  'jp-women-pool-entry':['open','Pool curb is a walk-in water entry, not a room wall'],
+  'jp-men-pool-entry':['open','Open poolside approach to a supported bathing action; the retaining basin wall is not an ordinary walking passage'],
+  'jp-women-pool-entry':['open','Open poolside approach to a supported bathing action; the retaining basin wall is not an ordinary walking passage'],
   'jp-library-open-nook':['open','Reading nook is part of the public kotatsu gathering floor'],
   'jp-guest-suite-door':['door','Sleeping suite needs opaque two-sided shoji privacy'],
   'jp-laundry-stair-foyer-door':['half-curtain','Linen workroom transition uses split service cloth, clear of stair mouth'],
@@ -208,7 +208,7 @@ export function classifyRoomOpenings(lot,region){
   const fix=PLANES[t.id]||{},legacy=LEGACY[t.id]||{},bottom=fix.bottom??t.floorFit?.bottom??Math.max(t.a[1],t.b[1]);
   const wallPlane=t.at??(axis==='x'?(t.a[2]+t.b[2])/2:(t.a[0]+t.b[0])/2),at=fix.at??wallPlane;
   const lateral=t.from!==undefined?(t.from+t.to)/2:axis==='x'?(t.a[0]+t.b[0])/2:(t.a[2]+t.b[2])/2;
-  return {id:legacy.id||t.id,openingId:t.id,kind:p[0],rationale:p[1],rooms:t.rooms||[],center:axis==='x'?[lateral,bottom,at]:[at,bottom,lateral],axis,surfaceTrack:choice?.[0]==='slide',trackMountOffset:at-wallPlane,width:t.width,sideOverlap:fix.sideOverlap??0,bottomClearance:fix.bottomClearance??t.floorFit?.runningGap??0,height:t.floorFit?t.floorFit.top-bottom:fix.height??legacy.height??(t.top!==undefined?t.top-bottom:t.height),style:STYLE[region],motion:p[0]==='open'?'none':fixedOverhead?'fixed-overhead':p[0].includes('curtain')?'gather':choice[0],existingBanner,motionRationale:fixedOverhead?'Fixed hanging textile stays above actor height and never gathers automatically':p[0].includes('curtain')?'Gathered fabric stays at the jambs and has no rigid leaf swing':choice?.[2]||'Intentionally open circulation',operable:p[0]!=='open'&&!fixedOverhead,...(choice?.[1]?{swing:choice[1]}:{}),source:region==='japan'?'japan-bathhouse.js':region==='china'?'china-palace.js':region==='egypt'?'egypt-temple.js':'regions-west.js'};
+  return {id:legacy.id||t.id,openingId:t.id,kind:p[0],...(t.interactionOnly?{openingRole:'interaction-approach',apertureWidth:null}:{}),rationale:p[1],rooms:t.rooms||[],center:axis==='x'?[lateral,bottom,at]:[at,bottom,lateral],axis,surfaceTrack:choice?.[0]==='slide',trackMountOffset:at-wallPlane,width:t.width,sideOverlap:fix.sideOverlap??0,bottomClearance:fix.bottomClearance??t.floorFit?.runningGap??0,height:t.floorFit?t.floorFit.top-bottom:fix.height??legacy.height??(t.top!==undefined?t.top-bottom:t.height),style:STYLE[region],motion:p[0]==='open'?'none':fixedOverhead?'fixed-overhead':p[0].includes('curtain')?'gather':choice[0],existingBanner,motionRationale:fixedOverhead?'Fixed hanging textile stays above actor height and never gathers automatically':p[0].includes('curtain')?'Gathered fabric stays at the jambs and has no rigid leaf swing':choice?.[2]||'Intentionally open circulation',operable:p[0]!=='open'&&!fixedOverhead,...(choice?.[1]?{swing:choice[1]}:{}),source:region==='japan'?'japan-bathhouse.js':region==='china'?'china-palace.js':region==='egypt'?'egypt-temple.js':'regions-west.js'};
  });
 }
 export function roomClosureSpecs(lot,region){

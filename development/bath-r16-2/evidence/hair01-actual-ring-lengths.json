@@ -1,0 +1,98 @@
+{
+  "scope": "Actual raw production surface vertices, 23 ring means excluding duplicate seam vertices. No Character creation, scene or collision test; this does not replace the failed original check.",
+  "rows": [
+    {
+      "legLength": 0.94,
+      "ringCount": 23,
+      "uniqueVerticesPerRing": 18,
+      "before": 0.35825862476304354,
+      "after": 0.354497578551326,
+      "loss": 0.0037610462117175225,
+      "lossPercent": 1.0498131661743308,
+      "exactProductionMetadata": {
+        "sourceLength": 0.3582586247630436,
+        "boundLength": 0.35825862476100484,
+        "radius": 0.060758591803023586,
+        "sweep": 5.183627878423159,
+        "root": [
+          0,
+          1.5570000410079956,
+          -0.10100000186098945
+        ],
+        "center": [
+          0,
+          1.59,
+          -0.125
+        ],
+        "meshes": [
+          "hair-braided-tail",
+          "hair-braid-weave--1",
+          "hair-braid-weave-1",
+          "hair-braid-tie"
+        ]
+      }
+    },
+    {
+      "legLength": 1,
+      "ringCount": 23,
+      "uniqueVerticesPerRing": 18,
+      "before": 0.3363784433641891,
+      "after": 0.333575575604983,
+      "loss": 0.0028028677592060736,
+      "lossPercent": 0.833248329225269,
+      "exactProductionMetadata": {
+        "sourceLength": 0.33637844336418904,
+        "boundLength": 0.3363784433357143,
+        "radius": 0.05698300296091476,
+        "sweep": 5.183627878423159,
+        "root": [
+          0,
+          1.5570000410079956,
+          -0.10100000186098945
+        ],
+        "center": [
+          0,
+          1.59,
+          -0.125
+        ],
+        "meshes": [
+          "hair-braided-tail",
+          "hair-braid-weave--1",
+          "hair-braid-weave-1",
+          "hair-braid-tie"
+        ]
+      }
+    },
+    {
+      "legLength": 1.06,
+      "ringCount": 23,
+      "uniqueVerticesPerRing": 18,
+      "before": 0.31467520554149453,
+      "after": 0.31247934092149066,
+      "loss": 0.0021958646200038734,
+      "lossPercent": 0.697819396423439,
+      "exactProductionMetadata": {
+        "sourceLength": 0.3146752055414946,
+        "boundLength": 0.31467520558059026,
+        "radius": 0.053184222086565584,
+        "sweep": 5.183627878423159,
+        "root": [
+          0,
+          1.5570000410079956,
+          -0.10100000186098945
+        ],
+        "center": [
+          0,
+          1.59,
+          -0.125
+        ],
+        "meshes": [
+          "hair-braided-tail",
+          "hair-braid-weave--1",
+          "hair-braid-weave-1",
+          "hair-braid-tie"
+        ]
+      }
+    }
+  ]
+}

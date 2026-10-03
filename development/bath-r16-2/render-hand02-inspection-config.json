@@ -1,0 +1,126 @@
+{
+  "source": "/workspace/shared/worldwoven-r16-2-bath-candidate/source",
+  "sourceHashes": {
+    "japan-bathhouse.js": "fbba20bb8864a4155c71d14de2c98a1b77c080cfee7d9f4672698eac9fa2e6c2",
+    "furniture-interactions.js": "72a5856cb502fb8b0e9f1882a03ae0d7579a723fa9f8323052b1182322391ba4",
+    "characters.js": "601b6f4777a9145ac463bf23a05aac98a3816e44b120d630bf4982bf0f731009",
+    "approved-surfaces.js": "b902f0ebfb4e10d2ae30209678b61f50a6eabbfb999fbcfe5129d3dcad24e401",
+    "main.js": "1845caae26d36f9fced1a2c55646880622891e02348067ad64692bca81b85b5d",
+    "geometry.js": "accd26d9fe1820ba7829bc00f802c8916458813eefd0cfd08f5d38e11c207ca9",
+    "night-lighting.js": "61d5dff148e2797e35633d103c52a05460d1029506d312115c78941e81e7fc30",
+    "stable-shadows.js": "20c3f208ed1e1e9ee7e98bdd5a88f5a9c79fbfefbeb365952b72f7f773bfb493",
+    "camera.js": "7b6fc625c07138fc5636d38651b2487cdd812e22fcb89618a707b6b913808dea",
+    "automatic-doors.js": "37282650c1658a0fba13c0ae1947d840f225d47497730bec6c64084e29e1c894",
+    "room-closures.js": "2557cc3fc9ab5a21dfc20f3c26ed442e868c05290806c9bbebbba12c1496d6eb"
+  },
+  "cameraReport": "main-camera-06.json",
+  "cameraReportSha256": "677bbd17cf300e22ef2e9a112dd7d0550f568e9321f3b656c4174824394d9a45",
+  "scope": "UNTESTED clean R16.1 plus isolated bath candidate. New hand02 pose, four male/female short/long-leg endpoint fixtures on exact earlier paired03 inspection camera/FOV/aspect. Full frozen09 scene retained, no hidden walls/material edits; main TPS examples are delivered separately.",
+  "resolution": [
+    1280,
+    960
+  ],
+  "cases": [
+    {
+      "name": "men-short-hand02",
+      "index": 0,
+      "id": "japan-furniture-bath-1",
+      "bodyPreset": "masculine-broad",
+      "hairStyle": "swept-short",
+      "shapeTraits": {
+        "legLength": 0.94
+      },
+      "view": {
+        "camera": [
+          -5.2,
+          5.32,
+          -8
+        ],
+        "target": [
+          -3.3,
+          4.5,
+          -9.3
+        ],
+        "fov": 50,
+        "near": 0.1,
+        "requireChestClear": true
+      }
+    },
+    {
+      "name": "men-long-hand02",
+      "index": 0,
+      "id": "japan-furniture-bath-1",
+      "bodyPreset": "masculine-lean",
+      "hairStyle": "swept-short",
+      "shapeTraits": {
+        "legLength": 1.06
+      },
+      "view": {
+        "camera": [
+          -5.2,
+          5.32,
+          -8
+        ],
+        "target": [
+          -3.3,
+          4.5,
+          -9.3
+        ],
+        "fov": 50,
+        "near": 0.1,
+        "requireChestClear": true
+      }
+    },
+    {
+      "name": "women-short-hand02",
+      "index": 1,
+      "id": "japan-furniture-bath-2",
+      "bodyPreset": "feminine-balanced",
+      "hairStyle": "low-bun",
+      "shapeTraits": {
+        "legLength": 0.94
+      },
+      "view": {
+        "camera": [
+          1.5,
+          5.32,
+          -8.1
+        ],
+        "target": [
+          3.6,
+          4.5,
+          -9.7
+        ],
+        "fov": 50,
+        "near": 0.1,
+        "requireChestClear": true
+      }
+    },
+    {
+      "name": "women-long-hand02",
+      "index": 1,
+      "id": "japan-furniture-bath-2",
+      "bodyPreset": "feminine-slender",
+      "hairStyle": "low-bun",
+      "shapeTraits": {
+        "legLength": 1.06
+      },
+      "view": {
+        "camera": [
+          1.5,
+          5.32,
+          -8.1
+        ],
+        "target": [
+          3.6,
+          4.5,
+          -9.7
+        ],
+        "fov": 50,
+        "near": 0.1,
+        "requireChestClear": true
+      }
+    }
+  ],
+  "aspect": 1.3333333333333333
+}

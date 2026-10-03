@@ -1,0 +1,1116 @@
+{
+  "status": "FAIL",
+  "scope": "24 production hair/sex/leg cases against source-verified real lumbar/stone/timber volumes; actual skinned vertex intrusion witnesses. No geometry, head, hairstyle, or whole scene changed. Absence of sampled intrusions is not a triangle-volume proof.",
+  "cases": 24,
+  "failedCases": 4,
+  "rows": [
+    {
+      "id": "二层男汤温泉",
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "swept-short",
+      "hairVertices": 1678,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层男汤温泉",
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "side-part",
+      "hairVertices": 1735,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层男汤温泉",
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "chin-bob",
+      "hairVertices": 2438,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层男汤温泉",
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "shoulder-wave",
+      "hairVertices": 2438,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层男汤温泉",
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "low-bun",
+      "hairVertices": 2267,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层男汤温泉",
+      "bodyPreset": "masculine-lean",
+      "legLength": 0.94,
+      "hairStyle": "braided-tail",
+      "hairVertices": 2375,
+      "status": "FAIL",
+      "hits": [
+        {
+          "solid": "actual low lumbar stone",
+          "part": "hair-braided-tail",
+          "count": 73,
+          "maxDepthTowardPool": 0.07850247828015,
+          "maxMinimumEscape": 0.02418442584502145,
+          "bounds": {
+            "min": [
+              -2.9665125082315695,
+              4.473149803102073,
+              -9.322104861429695
+            ],
+            "max": [
+              -2.94149752171985,
+              4.494101322096617,
+              -9.294678665637873
+            ]
+          },
+          "worstPoint": [
+            -2.94149752171985,
+            4.484251601201539,
+            -9.306915222888257
+          ]
+        },
+        {
+          "solid": "actual east timber coping",
+          "part": "hair-braided-tail",
+          "count": 91,
+          "maxDepthTowardPool": 0.04291201867934458,
+          "maxMinimumEscape": 0.04068521562477745,
+          "bounds": {
+            "min": [
+              -2.9687734156017895,
+              4.503979799075711,
+              -9.325478481134569
+            ],
+            "max": [
+              -2.927087981320655,
+              4.582313572136394,
+              -9.272079416548012
+            ]
+          },
+          "worstPoint": [
+            -2.927087981320655,
+            4.580289284557319,
+            -9.29239538431934
+          ]
+        },
+        {
+          "solid": "actual east stone retaining wall",
+          "part": "hair-braided-tail",
+          "count": 8,
+          "maxDepthTowardPool": 0.005624956846841833,
+          "maxMinimumEscape": 0.0033315851495272497,
+          "bounds": {
+            "min": [
+              -2.9383848157791177,
+              4.503979799075711,
+              -9.318073045343905
+            ],
+            "max": [
+              -2.934375043153158,
+              4.5188609077536315,
+              -9.298586618290138
+            ]
+          },
+          "worstPoint": [
+            -2.934375043153158,
+            4.518665904159327,
+            -9.308357424567133
+          ]
+        },
+        {
+          "solid": "actual east timber coping",
+          "part": "hair-braid-weave--1",
+          "count": 30,
+          "maxDepthTowardPool": 0.03985034923698816,
+          "maxMinimumEscape": 0.03985034923698816,
+          "bounds": {
+            "min": [
+              -2.938943877034779,
+              4.519176512198977,
+              -9.32050866420713
+            ],
+            "max": [
+              -2.9301496507630116,
+              4.589167243491838,
+              -9.285761708409819
+            ]
+          },
+          "worstPoint": [
+            -2.9301496507630116,
+            4.553608383819796,
+            -9.288733361953888
+          ]
+        },
+        {
+          "solid": "actual east timber coping",
+          "part": "hair-braid-weave-1",
+          "count": 30,
+          "maxDepthTowardPool": 0.03968214401970327,
+          "maxMinimumEscape": 0.03968214401970327,
+          "bounds": {
+            "min": [
+              -2.9387123320382367,
+              4.519166486653491,
+              -9.316681670515564
+            ],
+            "max": [
+              -2.9303178559802965,
+              4.589163846590347,
+              -9.281905585355773
+            ]
+          },
+          "worstPoint": [
+            -2.9303178559802965,
+            4.553616563989849,
+            -9.31375185659873
+          ]
+        },
+        {
+          "solid": "actual east timber coping",
+          "part": "hair-braid-tie",
+          "count": 66,
+          "maxDepthTowardPool": 0.03576451024025751,
+          "maxMinimumEscape": 0.018941958111347468,
+          "bounds": {
+            "min": [
+              -2.9688101365868143,
+              4.503577717310815,
+              -9.326063096034037
+            ],
+            "max": [
+              -2.9342354897597422,
+              4.520081399918199,
+              -9.293513861186788
+            ]
+          },
+          "worstPoint": [
+            -2.9342354897597422,
+            4.518426128486393,
+            -9.309907532320693
+          ]
+        },
+        {
+          "solid": "actual east stone retaining wall",
+          "part": "hair-braid-tie",
+          "count": 12,
+          "maxDepthTowardPool": 0.005764510240257703,
+          "maxMinimumEscape": 0.005537965777969944,
+          "bounds": {
+            "min": [
+              -2.936334593548109,
+              4.503577717310815,
+              -9.316126496207254
+            ],
+            "max": [
+              -2.9342354897597422,
+              4.5184911650482,
+              -9.30367044310066
+            ]
+          },
+          "worstPoint": [
+            -2.9342354897597422,
+            4.518426128486393,
+            -9.309907532320693
+          ]
+        }
+      ]
+    },
+    {
+      "id": "二层男汤温泉",
+      "bodyPreset": "masculine-lean",
+      "legLength": 1.06,
+      "hairStyle": "swept-short",
+      "hairVertices": 1678,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层男汤温泉",
+      "bodyPreset": "masculine-lean",
+      "legLength": 1.06,
+      "hairStyle": "side-part",
+      "hairVertices": 1735,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层男汤温泉",
+      "bodyPreset": "masculine-lean",
+      "legLength": 1.06,
+      "hairStyle": "chin-bob",
+      "hairVertices": 2438,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层男汤温泉",
+      "bodyPreset": "masculine-lean",
+      "legLength": 1.06,
+      "hairStyle": "shoulder-wave",
+      "hairVertices": 2438,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层男汤温泉",
+      "bodyPreset": "masculine-lean",
+      "legLength": 1.06,
+      "hairStyle": "low-bun",
+      "hairVertices": 2267,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层男汤温泉",
+      "bodyPreset": "masculine-lean",
+      "legLength": 1.06,
+      "hairStyle": "braided-tail",
+      "hairVertices": 2375,
+      "status": "FAIL",
+      "hits": [
+        {
+          "solid": "actual low lumbar stone",
+          "part": "hair-braided-tail",
+          "count": 154,
+          "maxDepthTowardPool": 0.0784107856757279,
+          "maxMinimumEscape": 0.03578213504035954,
+          "bounds": {
+            "min": [
+              -2.977043454572088,
+              4.410492348566955,
+              -9.325478481134569
+            ],
+            "max": [
+              -2.941589214324272,
+              4.4987361546631925,
+              -9.272079416548012
+            ]
+          },
+          "worstPoint": [
+            -2.941589214324272,
+            4.479747191750219,
+            -9.28915641076222
+          ]
+        },
+        {
+          "solid": "actual east stone retaining wall",
+          "part": "hair-braided-tail",
+          "count": 10,
+          "maxDepthTowardPool": 0.006341292986824509,
+          "maxMinimumEscape": 0.006026662295822938,
+          "bounds": {
+            "min": [
+              -2.9388323846634115,
+              4.479523239978278,
+              -9.307643423941753
+            ],
+            "max": [
+              -2.9336587070131754,
+              4.5142249444239795,
+              -9.281564692674811
+            ]
+          },
+          "worstPoint": [
+            -2.9336587070131754,
+            4.513973337704177,
+            -9.295739850890676
+          ]
+        },
+        {
+          "solid": "actual east timber coping",
+          "part": "hair-braided-tail",
+          "count": 74,
+          "maxDepthTowardPool": 0.03795168019153605,
+          "maxMinimumEscape": 0.03795168019153605,
+          "bounds": {
+            "min": [
+              -2.9681270976466108,
+              4.513973337704177,
+              -9.336492990786148
+            ],
+            "max": [
+              -2.9320483198084637,
+              4.598854258623692,
+              -9.272773422294934
+            ]
+          },
+          "worstPoint": [
+            -2.9320483198084637,
+            4.546399690667393,
+            -9.29740892172868
+          ]
+        },
+        {
+          "solid": "actual low lumbar stone",
+          "part": "hair-braid-weave--1",
+          "count": 16,
+          "maxDepthTowardPool": 0.07865081600229384,
+          "maxMinimumEscape": 0.006244093761400116,
+          "bounds": {
+            "min": [
+              -2.9462440937614,
+              4.447726041896993,
+              -9.32050866420713
+            ],
+            "max": [
+              -2.941349183997706,
+              4.49254904799935,
+              -9.28762297195764
+            ]
+          },
+          "worstPoint": [
+            -2.941349183997706,
+            4.489940580671682,
+            -9.29288221713247
+          ]
+        },
+        {
+          "solid": "actual east stone retaining wall",
+          "part": "hair-braid-weave--1",
+          "count": 6,
+          "maxDepthTowardPool": 0.002229024786688516,
+          "maxMinimumEscape": 0.002229024786688516,
+          "bounds": {
+            "min": [
+              -2.938921052635002,
+              4.462150183949736,
+              -9.305978473568345
+            ],
+            "max": [
+              -2.9377709752133114,
+              4.49222747020984,
+              -9.286447967282545
+            ]
+          },
+          "worstPoint": [
+            -2.9377709752133114,
+            4.475569189836231,
+            -9.288733361953888
+          ]
+        },
+        {
+          "solid": "actual east timber coping",
+          "part": "hair-braid-weave--1",
+          "count": 43,
+          "maxDepthTowardPool": 0.037005884117337295,
+          "maxMinimumEscape": 0.036598313462700816,
+          "bounds": {
+            "min": [
+              -2.94470498772393,
+              4.501679054443818,
+              -9.318645941445155
+            ],
+            "max": [
+              -2.9329941158826625,
+              4.598964378593335,
+              -9.284704787428366
+            ]
+          },
+          "worstPoint": [
+            -2.9329941158826625,
+            4.572401959725864,
+            -9.309020182004833
+          ]
+        },
+        {
+          "solid": "actual low lumbar stone",
+          "part": "hair-braid-weave-1",
+          "count": 17,
+          "maxDepthTowardPool": 0.07892172738739234,
+          "maxMinimumEscape": 0.006012548764858128,
+          "bounds": {
+            "min": [
+              -2.946012548764858,
+              4.447716016351507,
+              -9.316681670515564
+            ],
+            "max": [
+              -2.9410782726126077,
+              4.492557207047204,
+              -9.281905585355773
+            ]
+          },
+          "worstPoint": [
+            -2.9410782726126077,
+            4.473221879137992,
+            -9.316681670515564
+          ]
+        },
+        {
+          "solid": "actual east stone retaining wall",
+          "part": "hair-braid-weave-1",
+          "count": 6,
+          "maxDepthTowardPool": 0.0020608195694027387,
+          "maxMinimumEscape": 0.0020608195694027387,
+          "bounds": {
+            "min": [
+              -2.9388885389196577,
+              4.462148602740038,
+              -9.316037061005279
+            ],
+            "max": [
+              -2.937939180430597,
+              4.492235153654072,
+              -9.296501920507762
+            ]
+          },
+          "worstPoint": [
+            -2.937939180430597,
+            4.475577370006283,
+            -9.31375185659873
+          ]
+        },
+        {
+          "solid": "actual east timber coping",
+          "part": "hair-braid-weave-1",
+          "count": 43,
+          "maxDepthTowardPool": 0.03711047182070848,
+          "maxMinimumEscape": 0.036476096599172614,
+          "bounds": {
+            "min": [
+              -2.944502728278366,
+              4.501674168555247,
+              -9.317713023279431
+            ],
+            "max": [
+              -2.9328895281792913,
+              4.598965561860125,
+              -9.283742104575419
+            ]
+          },
+          "worstPoint": [
+            -2.9328895281792913,
+            4.572396873408016,
+            -9.293464024241512
+          ]
+        },
+        {
+          "solid": "actual low lumbar stone",
+          "part": "hair-braid-tie",
+          "count": 68,
+          "maxDepthTowardPool": 0.07848836739229981,
+          "maxMinimumEscape": 0.036167593814074195,
+          "bounds": {
+            "min": [
+              -2.976167593814074,
+              4.43506252414834,
+              -9.326063096034037
+            ],
+            "max": [
+              -2.9415116326077,
+              4.448745777571464,
+              -9.293513861186788
+            ]
+          },
+          "worstPoint": [
+            -2.9415116326077,
+            4.4470905061396575,
+            -9.309907532320693
+          ]
+        }
+      ]
+    },
+    {
+      "id": "二层女汤温泉",
+      "bodyPreset": "feminine-slender",
+      "legLength": 0.94,
+      "hairStyle": "swept-short",
+      "hairVertices": 1678,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层女汤温泉",
+      "bodyPreset": "feminine-slender",
+      "legLength": 0.94,
+      "hairStyle": "side-part",
+      "hairVertices": 1735,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层女汤温泉",
+      "bodyPreset": "feminine-slender",
+      "legLength": 0.94,
+      "hairStyle": "chin-bob",
+      "hairVertices": 2438,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层女汤温泉",
+      "bodyPreset": "feminine-slender",
+      "legLength": 0.94,
+      "hairStyle": "shoulder-wave",
+      "hairVertices": 2438,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层女汤温泉",
+      "bodyPreset": "feminine-slender",
+      "legLength": 0.94,
+      "hairStyle": "low-bun",
+      "hairVertices": 2267,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层女汤温泉",
+      "bodyPreset": "feminine-slender",
+      "legLength": 0.94,
+      "hairStyle": "braided-tail",
+      "hairVertices": 2375,
+      "status": "FAIL",
+      "hits": [
+        {
+          "solid": "actual low lumbar stone",
+          "part": "hair-braided-tail",
+          "count": 92,
+          "maxDepthTowardPool": 0.07871102258539286,
+          "maxMinimumEscape": 0.02614986259549479,
+          "bounds": {
+            "min": [
+              3.932171538581026,
+              4.458712300216846,
+              -9.720674995274686
+            ],
+            "max": [
+              3.9587110225853923,
+              4.489942301316472,
+              -9.695095544366703
+            ]
+          },
+          "worstPoint": [
+            3.9587110225853923,
+            4.477667498072734,
+            -9.71007526097055
+          ]
+        },
+        {
+          "solid": "actual east timber coping",
+          "part": "hair-braided-tail",
+          "count": 83,
+          "maxDepthTowardPool": 0.04141755440307726,
+          "maxMinimumEscape": 0.03790361669039788,
+          "bounds": {
+            "min": [
+              3.9313830096266935,
+              4.502689209450908,
+              -9.723482471091767
+            ],
+            "max": [
+              3.971417554403077,
+              4.584152785887193,
+              -9.67426674336222
+            ]
+          },
+          "worstPoint": [
+            3.971417554403077,
+            4.582279541321873,
+            -9.696073595290944
+          ]
+        },
+        {
+          "solid": "actual east stone retaining wall",
+          "part": "hair-braided-tail",
+          "count": 3,
+          "maxDepthTowardPool": 0.0031521999975008264,
+          "maxMinimumEscape": 0.0031521999975008264,
+          "bounds": {
+            "min": [
+              3.9621648096894235,
+              4.502689209450908,
+              -9.712474255995145
+            ],
+            "max": [
+              3.9631521999975003,
+              4.502738620148758,
+              -9.702918024252806
+            ]
+          },
+          "worstPoint": [
+            3.9631521999975003,
+            4.502689209450908,
+            -9.707702695453577
+          ]
+        },
+        {
+          "solid": "actual east timber coping",
+          "part": "hair-braid-weave--1",
+          "count": 36,
+          "maxDepthTowardPool": 0.03711970458918801,
+          "maxMinimumEscape": 0.036661663448418924,
+          "bounds": {
+            "min": [
+              3.9588622151321284,
+              4.503182550552021,
+              -9.718901994660948
+            ],
+            "max": [
+              3.9671197045891877,
+              4.5880776414999,
+              -9.686877150608124
+            ]
+          },
+          "worstPoint": [
+            3.9671197045891877,
+            4.536450059364405,
+            -9.689616001800818
+          ]
+        },
+        {
+          "solid": "actual east stone retaining wall",
+          "part": "hair-braid-weave--1",
+          "count": 2,
+          "maxDepthTowardPool": 0.0033912215775555588,
+          "maxMinimumEscape": 0.0033912215775555588,
+          "bounds": {
+            "min": [
+              3.963303061099655,
+              4.50349186530663,
+              -9.71836632835403
+            ],
+            "max": [
+              3.963391221577555,
+              4.505563932674151,
+              -9.716104770835685
+            ]
+          },
+          "worstPoint": [
+            3.963391221577555,
+            4.505563932674151,
+            -9.71836632835403
+          ]
+        },
+        {
+          "solid": "actual east timber coping",
+          "part": "hair-braid-weave-1",
+          "count": 36,
+          "maxDepthTowardPool": 0.03696176541802787,
+          "maxMinimumEscape": 0.03654567062541636,
+          "bounds": {
+            "min": [
+              3.959079628274422,
+              4.503172864034642,
+              -9.715374811535078
+            ],
+            "max": [
+              3.9669617654180276,
+              4.588066615093944,
+              -9.683323120143568
+            ]
+          },
+          "worstPoint": [
+            3.9669617654180276,
+            4.536457962910349,
+            -9.71267452221081
+          ]
+        },
+        {
+          "solid": "actual east stone retaining wall",
+          "part": "hair-braid-weave-1",
+          "count": 2,
+          "maxDepthTowardPool": 0.0036273190100146735,
+          "maxMinimumEscape": 0.0036273190100146735,
+          "bounds": {
+            "min": [
+              3.9635081774879164,
+              4.503481600932146,
+              -9.686158555527504
+            ],
+            "max": [
+              3.963627319010014,
+              4.505552117955288,
+              -9.683896998009157
+            ]
+          },
+          "worstPoint": [
+            3.963627319010014,
+            4.505552117955288,
+            -9.683896998009157
+          ]
+        },
+        {
+          "solid": "actual low lumbar stone",
+          "part": "hair-braid-tie",
+          "count": 32,
+          "maxDepthTowardPool": 0.07846140208192054,
+          "maxMinimumEscape": 0.011093899353992853,
+          "bounds": {
+            "min": [
+              3.9306060611280693,
+              4.488342069741309,
+              -9.7233175996033
+            ],
+            "max": [
+              3.95846140208192,
+              4.498705024207991,
+              -9.694725679406886
+            ]
+          },
+          "worstPoint": [
+            3.95846140208192,
+            4.4984373799693245,
+            -9.698702383581665
+          ]
+        },
+        {
+          "solid": "actual east stone retaining wall",
+          "part": "hair-braid-tie",
+          "count": 12,
+          "maxDepthTowardPool": 0.003283236047656235,
+          "maxMinimumEscape": 0.003283236047656235,
+          "bounds": {
+            "min": [
+              3.961312246575011,
+              4.4881112511431684,
+              -9.714863130144934
+            ],
+            "max": [
+              3.9632832360476558,
+              4.502520379391848,
+              -9.703382896866966
+            ]
+          },
+          "worstPoint": [
+            3.9632832360476558,
+            4.502457542134064,
+            -9.709131366194184
+          ]
+        },
+        {
+          "solid": "actual east timber coping",
+          "part": "hair-braid-tie",
+          "count": 17,
+          "maxDepthTowardPool": 0.03328323604765604,
+          "maxMinimumEscape": 0.003826261967354583,
+          "bounds": {
+            "min": [
+              3.931323974038106,
+              4.502457542134064,
+              -9.724021286667314
+            ],
+            "max": [
+              3.9632832360476558,
+              4.504056838203443,
+              -9.694021991877223
+            ]
+          },
+          "worstPoint": [
+            3.9632832360476558,
+            4.502457542134064,
+            -9.709131366194184
+          ]
+        }
+      ]
+    },
+    {
+      "id": "二层女汤温泉",
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "hairStyle": "swept-short",
+      "hairVertices": 1678,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层女汤温泉",
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "hairStyle": "side-part",
+      "hairVertices": 1735,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层女汤温泉",
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "hairStyle": "chin-bob",
+      "hairVertices": 2438,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层女汤温泉",
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "hairStyle": "shoulder-wave",
+      "hairVertices": 2438,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层女汤温泉",
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "hairStyle": "low-bun",
+      "hairVertices": 2267,
+      "status": "NO_VERTEX_INTRUSION",
+      "hits": []
+    },
+    {
+      "id": "二层女汤温泉",
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "hairStyle": "braided-tail",
+      "hairVertices": 2375,
+      "status": "FAIL",
+      "hits": [
+        {
+          "solid": "actual low lumbar stone",
+          "part": "hair-braided-tail",
+          "count": 162,
+          "maxDepthTowardPool": 0.0784350864282648,
+          "maxMinimumEscape": 0.03409663688886022,
+          "bounds": {
+            "min": [
+              3.924395599902974,
+              4.39840282290317,
+              -9.723482471091767
+            ],
+            "max": [
+              3.9584350864282642,
+              4.498919558573352,
+              -9.67426674336222
+            ]
+          },
+          "worstPoint": [
+            3.9584350864282642,
+            4.465315714867675,
+            -9.690005908536605
+          ]
+        },
+        {
+          "solid": "actual east stone retaining wall",
+          "part": "hair-braided-tail",
+          "count": 15,
+          "maxDepthTowardPool": 0.0067827762267893554,
+          "maxMinimumEscape": 0.005959992780636192,
+          "bounds": {
+            "min": [
+              3.961023658879776,
+              4.4650993363440605,
+              -9.714144712302401
+            ],
+            "max": [
+              3.966782776226789,
+              4.514299749569059,
+              -9.683008933340838
+            ]
+          },
+          "worstPoint": [
+            3.966782776226789,
+            4.514040007219363,
+            -9.700285479577722
+          ]
+        },
+        {
+          "solid": "actual east timber coping",
+          "part": "hair-braided-tail",
+          "count": 72,
+          "maxDepthTowardPool": 0.037393672828084146,
+          "maxMinimumEscape": 0.03735208459960537,
+          "bounds": {
+            "min": [
+              3.931950184511118,
+              4.514040007219363,
+              -9.733634092890458
+            ],
+            "max": [
+              3.967393672828084,
+              4.598990981580558,
+              -9.67490637999533
+            ]
+          },
+          "worstPoint": [
+            3.967393672828084,
+            4.529714264546104,
+            -9.697611909427353
+          ]
+        },
+        {
+          "solid": "actual low lumbar stone",
+          "part": "hair-braid-weave--1",
+          "count": 20,
+          "maxDepthTowardPool": 0.07866046701658913,
+          "maxMinimumEscape": 0.005935692385940605,
+          "bounds": {
+            "min": [
+              3.954064307614059,
+              4.434377405830743,
+              -9.718901994660948
+            ],
+            "max": [
+              3.9586604670165886,
+              4.489167551974082,
+              -9.688592600882616
+            ]
+          },
+          "worstPoint": [
+            3.9586604670165886,
+            4.475164399815949,
+            -9.693439831458498
+          ]
+        },
+        {
+          "solid": "actual east stone retaining wall",
+          "part": "hair-braid-weave--1",
+          "count": 7,
+          "maxDepthTowardPool": 0.0020202874714194685,
+          "maxMinimumEscape": 0.0020202874714194685,
+          "bounds": {
+            "min": [
+              3.9610279359798564,
+              4.450116123599041,
+              -9.705510113887874
+            ],
+            "max": [
+              3.962020287471419,
+              4.516227189139711,
+              -9.687509647265017
+            ]
+          },
+          "worstPoint": [
+            3.962020287471419,
+            4.461278998042567,
+            -9.689616001800818
+          ]
+        },
+        {
+          "solid": "actual east timber coping",
+          "part": "hair-braid-weave--1",
+          "count": 48,
+          "maxDepthTowardPool": 0.03650560139691139,
+          "maxMinimumEscape": 0.03650560139691139,
+          "bounds": {
+            "min": [
+              3.9555094776022943,
+              4.50243980944355,
+              -9.71718519948862
+            ],
+            "max": [
+              3.966505601396911,
+              4.593872619834295,
+              -9.683338713518078
+            ]
+          },
+          "worstPoint": [
+            3.966505601396911,
+            4.55483722981999,
+            -9.708313531801688
+          ]
+        },
+        {
+          "solid": "actual low lumbar stone",
+          "part": "hair-braid-weave-1",
+          "count": 21,
+          "maxDepthTowardPool": 0.07891484390400594,
+          "maxMinimumEscape": 0.005718279243647206,
+          "bounds": {
+            "min": [
+              3.9542817207563523,
+              4.434367719313364,
+              -9.715374811535078
+            ],
+            "max": [
+              3.9589148439040054,
+              4.489164269943656,
+              -9.683323120143568
+            ]
+          },
+          "worstPoint": [
+            3.9589148439040054,
+            4.45901106500079,
+            -9.715374811535078
+          ]
+        },
+        {
+          "solid": "actual east stone retaining wall",
+          "part": "hair-braid-weave-1",
+          "count": 7,
+          "maxDepthTowardPool": 0.001862348300259331,
+          "maxMinimumEscape": 0.001862348300259331,
+          "bounds": {
+            "min": [
+              3.961071588625498,
+              4.4501131298788525,
+              -9.714780701387353
+            ],
+            "max": [
+              3.961862348300259,
+              4.516226228285834,
+              -9.696775963601622
+            ]
+          },
+          "worstPoint": [
+            3.961862348300259,
+            4.461286901588511,
+            -9.71267452221081
+          ]
+        },
+        {
+          "solid": "actual east timber coping",
+          "part": "hair-braid-weave-1",
+          "count": 48,
+          "maxDepthTowardPool": 0.03660380581322231,
+          "maxMinimumEscape": 0.03660380581322231,
+          "bounds": {
+            "min": [
+              3.955699392574654,
+              4.502431986286273,
+              -9.718866291994338
+            ],
+            "max": [
+              3.966603805813222,
+              4.593881646131887,
+              -9.685015764585636
+            ]
+          },
+          "worstPoint": [
+            3.966603805813222,
+            4.554832315503227,
+            -9.693976059208765
+          ]
+        },
+        {
+          "solid": "actual low lumbar stone",
+          "part": "hair-braid-tie",
+          "count": 68,
+          "maxDepthTowardPool": 0.0785079331104912,
+          "maxMinimumEscape": 0.03403287553399137,
+          "bounds": {
+            "min": [
+              3.925967124466008,
+              4.4221421229818025,
+              -9.724021286667314
+            ],
+            "max": [
+              3.9585079331104907,
+              4.435362657690135,
+              -9.694021991877223
+            ]
+          },
+          "worstPoint": [
+            3.9585079331104907,
+            4.4337633616207555,
+            -9.709131366194184
+          ]
+        }
+      ]
+    }
+  ]
+}

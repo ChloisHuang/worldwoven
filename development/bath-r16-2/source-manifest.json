@@ -1,0 +1,116 @@
+{
+  "status": "UNTESTED_EXTRACTION",
+  "baseline": "/workspace/shared/worldwoven-source-r16-1",
+  "candidate": "/workspace/shared/worldwoven-r16-2-bath-candidate",
+  "hair01Status": "syntax only; visual, clearance and recovery pending",
+  "changes": [
+    {
+      "file": "source/game/approved-surfaces.js",
+      "baselineSHA256": "7ce28f18b8927dc6c639f06b1b2652c6d4a2ddf313890cb32c1fb653338c21fb",
+      "candidateSHA256": "b902f0ebfb4e10d2ae30209678b61f50a6eabbfb999fbcfe5129d3dcad24e401",
+      "hunks": [
+        "@@ -119,6 +119,75 @@",
+        "@@ -173,6 +242,21 @@",
+        "@@ -370,7 +454,8 @@",
+        "@@ -390,6 +475,7 @@"
+      ]
+    },
+    {
+      "file": "source/game/characters.js",
+      "baselineSHA256": "5a949e69d527902a048fa9abf6c8f651c78e9f399c747a9cd76e7626b6e60c91",
+      "candidateSHA256": "601b6f4777a9145ac463bf23a05aac98a3816e44b120d630bf4982bf0f731009",
+      "hunks": [
+        "@@ -75,7 +75,7 @@",
+        "@@ -90,7 +90,13 @@",
+        "@@ -124,6 +130,51 @@",
+        "@@ -192,7 +243,8 @@",
+        "@@ -345,13 +397,39 @@",
+        "@@ -370,10 +448,10 @@"
+      ]
+    },
+    {
+      "file": "source/game/furniture-interactions.js",
+      "baselineSHA256": "83c6372db4564a46fda87c164db3a3b79760bd8d7c7c6cae21e8564fe402af88",
+      "candidateSHA256": "72a5856cb502fb8b0e9f1882a03ae0d7579a723fa9f8323052b1182322391ba4",
+      "hunks": [
+        "@@ -16,14 +16,25 @@",
+        "@@ -95,7 +106,7 @@"
+      ]
+    },
+    {
+      "file": "source/game/japan-bathhouse.js",
+      "baselineSHA256": "c5bd1dd4f0ab4aaff0a2be438f37bc520865914b6a4b24b0aa961a56fdb85d74",
+      "candidateSHA256": "fbba20bb8864a4155c71d14de2c98a1b77c080cfee7d9f4672698eac9fa2e6c2",
+      "hunks": [
+        "@@ -153,14 +153,28 @@",
+        "@@ -358,8 +372,8 @@",
+        "@@ -370,13 +384,18 @@"
+      ]
+    },
+    {
+      "file": "source/game/main.js",
+      "baselineSHA256": "6b3f36422f76f87f6f374f75189e6a01f12838c882004d813f898b61117f9707",
+      "candidateSHA256": "1845caae26d36f9fced1a2c55646880622891e02348067ad64692bca81b85b5d",
+      "hunks": [
+        "@@ -96,12 +96,12 @@",
+        "@@ -109,7 +109,7 @@",
+        "@@ -133,7 +133,7 @@",
+        "@@ -178,7 +178,12 @@"
+      ]
+    },
+    {
+      "file": "source/game/room-closures.js",
+      "baselineSHA256": "16014671e76861f80f6225beee468a8ee423d4d3b7798fe7223643f3a73a3d5d",
+      "candidateSHA256": "2557cc3fc9ab5a21dfc20f3c26ed442e868c05290806c9bbebbba12c1496d6eb",
+      "hunks": [
+        "@@ -9,8 +9,8 @@",
+        "@@ -208,7 +208,7 @@"
+      ]
+    }
+  ],
+  "unchangedSourceFileCount": 28,
+  "testChanges": [
+    {
+      "file": "tests/rest-bath-contact.cjs",
+      "baselineSHA256": "21561b08b8ffbdff3884e758722f9c165ba18c78ce96c4e99a7c0a361da31b74",
+      "candidateSHA256": "f9889e8fae007da341566e767cccb6bf7fde9a0d09a948b08abfba849c13d37e"
+    },
+    {
+      "file": "tests/rest-bath-input-events.cjs",
+      "baselineSHA256": "181837144700df9d6b0d3ab2747b27f8b443723eabfd7443f658019d50ebe5ab",
+      "candidateSHA256": "9ced10f9bac6de24425f07e9b8c0f28efb6f446b0d965e5cdc4614ada3c9f12c"
+    }
+  ],
+  "qaFiles": {
+    "check-onsen-braid-binding.mjs": "5768d3443ab8d953bf38111d18ac16faf941d05893d787e58ad86ff400e94fb6",
+    "check-onsen-braid-restore.cjs": "57f819ea01d42a348475b2481faa2bb0e72fe0723c49d567899ec33d04e2adc2",
+    "render-hand02-main-config.json": "28846a21b08ffd1ba26a7617200b8bd8aa7ea6be4539ebc91729629a0df1a0f7",
+    "render-hand02-inspection-config.json": "1597dac35b6decb15bfc09488c2f7056fd20709532b7f8fc56d679725d626e3b",
+    "japan-bathhouse.js.patch": "a059ab447dc77ba13c1730bf066285cea902bd4247acad78d4ce43d22b3e4112",
+    "furniture-interactions.js.patch": "10c5671ba01880c88f4b611505ae05d57d9dbb7ca23c12249b0856008d310ba1",
+    "room-closures.js.patch": "5c8cf8e8525be60adf8fb1a95d5859179476dfc1844fd2088423ab213b4b2ddd",
+    "render-onsen-braid-prototype.mjs": "60edc805e6c135f8b03ae19bc9c78eb48175f27382c7376dffe7a0e03d2b5947",
+    "check-onsen-hands02.mjs": "6bf1a38fe8c76825f4a439a1873a43d0fec4f620823feec23185e8d67f27cace",
+    "render-onsen-hand02.mjs": "9359e79b6db9f1fc00600babfc76a379ea74f65ea5e61396e0fc771b922fcd8e",
+    "check-bath-main-camera.cjs": "09b43219f176a9df780bb5ad65c9ea71c81581f411c1c0e5098249b5fbd4a8e6",
+    "render-onsen-braid-config.json": "870368ed4dc602caf920183ad5d8442190c43959adfe8ac4425e00044fd3c63a",
+    "approved-surfaces.js.patch": "55f198082f5882708da5a24f6e1ab285c1f23b606c165e78aba8033953cc476d",
+    "characters.js.patch": "528bf0d2d421e04205351347c99087d563e60773ad39d3e07de44e7dca273591",
+    "EXTRACTION.md": "ca7f2fa366f2a898ff1ddbc4fbe863e8a568c20c6fb5dee771c3fc15645c7049",
+    "measure-braid-rings.mjs": "c9f945e4f1baaaba9328cfd3b5ccbbd75d19dff0fab29d64e051619af21dfd05",
+    "proposed-bath-regression-updates.patch": "2e0df62cf2500669ac567d0287aa62135b83b14ad88726f067c5e2180bcf2481",
+    "main.js.patch": "10e34475ea62a116a4d115760f33e1849e889e53cae0e777139290927aca583f",
+    "evidence/hair-clearance-09.json": "16f85e4780c4fe4749a2947c2ff6d42bdb7813e581cc4d78f26dce94d22df7f2",
+    "evidence/hair-binding-01-resource.json": "6a443eccff5b1cedfbdd1105090e16237683ee5a3bf7d10e8ba9073880586fa4",
+    "evidence/hair01-actual-ring-lengths.json": "1299d902958b5565b73db6830f1a7edef4e654116af8476d2aee0df1c0a27d0c",
+    "evidence/hair-binding-01-pairing-fixed-input.json": "fd43f26a6158bcfc8bb13d599017d634faa4fcfedc5d3aa6bda264fdd783ada7",
+    "evidence/hair-binding-01.json": "815cf837bbfbb1359f593dc8339d97c800f8f4b0b356bfb609c8033c0307587d",
+    "evidence/hair-binding-01-input.json": "455bd470e695c3b174f2b0e346e21cea698c785eaeaf5d563c1c4fc839d2ca81",
+    "evidence/hair-binding-01-pairing-fixed-resource.json": "1c7bab94b7250c7c61ac5bff7454cdd0b1244cd38612da919e34a159999270ab",
+    "evidence/hair-binding-01-pairing-fixed.json": "cb60cb052a77c5ae87ad8ef53de0c8ebb96de3a5f06e6bd1808661d6baf31428",
+    "fixtures/unbound-braid/approved-surfaces.js": "49b3eb8c72a57de9fb3c0c0072a564d2d827f7851e96fc6677c8a31e942e7844",
+    "fixtures/unbound-braid/character-traits.js": "c581cc6d4bbbc1409428d3502f8fe690fd1327d4c372c402ebb2fa9e6560e76a"
+  },
+  "probeCorrection": "Run01 failed before collision cases: repeated willow-leaf/stem names were paired with the first getObjectByName match. Ordered name+occurrence correspondence replaces name-only lookup, with unchanged byte-equality and geometry criteria. Removing only the new braid helper and invocation reproduces the exact old reference SHA49b3... Pairing now also asserts total mesh count, original child-index parent path, name, all geometry attribute topology and triangle indices before comparing vertices.",
+  "runtimeStatus": "First probe failed due repeated-name pairing; second probe failed at sparse ring chord-length criterion after5 cases. Actual raw surface diagnostic confirms dense length preserved and1.049813% short-leg chord deficit. Full24 contacts, pictures and main restoration remain pending. Owner-authorized probe update removes only the unsourced1% chord-loss hard gate; exact measured values remain. No rerun yet."
+}

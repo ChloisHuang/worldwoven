@@ -1,0 +1,12 @@
+{
+  "status": "FAIL",
+  "command": [
+    "node",
+    "/workspace/shared/worldwoven-r16-2-bath-candidate/development/bath-r16-2/check-onsen-braid-binding.mjs"
+  ],
+  "exit": 1,
+  "seconds": 0.4029219540007034,
+  "peakObservedTreeRSSBytes": 68800512,
+  "maxProcesses": 2,
+  "termination": null
+}
