@@ -1,4 +1,5 @@
 import {insetClosureSection} from './inset-closures.js';
+import {buildChinaRoyalChair,buildChinaDragonThrone,buildChinaThroneFootrest} from './china-royal-seating.js';
 import {buildChinaDragonBed} from './china-dragon-bed.js';
 import {registerNightFixture} from './night-lighting.js';
 
@@ -186,13 +187,24 @@ export function buildChinaPalace(G,H){
   // original front edge z=3.3 caught the leaf at 35.3% opening; z=1.4 leaves
   // a real stone entrance bay without lifting the door off its floor.
   G.rug(g,0,-1.75,5.4,6.3,0xa44936,0xd5b66f);
-  box(g,0,.9,-8,3.3,.85,1.7,0x8c482d,true);G.box(g,0,1.39,-8,3.1,.2,1.55,0xc99a51);for(const x of [-1.43,1.43]){G.box(g,x,1.8,-8,.2,1,1.6,C.gold);G.sphere(g,x,2.37,-7.38,.19,0xe0bb66);}
-  box(g,0,2.18,-8.78,3.3,2.1,.22,0x9e4d32,true);G.box(g,0,2.22,-8.62,2.98,1.83,.065,0xcfa55b);G.torus(g,0,2.32,-8.54,.63,.085,0x835034,0);for(let i=0;i<9;i++)G.sphere(g,Math.sin(i*2.2)*.45,2.32+Math.cos(i*2.2)*.45,-8.48,.13,0xe0bd77,1.3,.7,.3);
+  // Retain the exact established throne navigation/camera hulls. The new
+  // carved geometry is built below with the original decorative-program ID.
+  for(const[x,y,z,w,h,d]of[[0,.9,-8,3.3,.85,1.7],[0,2.18,-8.78,3.3,2.1,.22]]){
+   const hull={minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2};colliders.push({...hull});cameraColliders.push({...hull});
+  }
   box(g,0,2.95,-10.4,7.7,4.7,.25,0x763a2c,true);for(const x of [-3.55,-2.4,-1.2,0,1.2,2.4,3.55])G.box(g,x,2.97,-10.22,.08,4.42,.11,C.gold);for(const x of [-2.5,2.5])scroll(g,x,3.13,-10.2,.68,2.7,true);
   for(const x of [-6.7,6.7]){table(g,x,-7,2.6,1.15,1.08);G.vessel(g,x,1.19,-7,0xabbfaf,.95);G.vessel(g,x+.75,1.19,-7,0xc6aa65,.66);}
   // Leave almost1m between the east door's parked leaf tips and this chair,
   // with its mesh, collider, seated anchor and standing approach moving together.
-  for(const x of [-5.8,8.6])for(const z of [-3,1]){const seatX=x===8.6&&z===-3?7.8:x;G.chair(g,seatX,z,C.wood,x<0?Math.PI/2:-Math.PI/2).position.y=.2;G.collider(colliders,seatX,z,.9,.9);additionalFurnitureSeats.push({name:'正殿木扶椅',x:seatX,y:1.4,z,yaw:x<0?Math.PI/2:-Math.PI/2,width:.9,depth:.9,seatY:2.075});}
+  for(const x of [-5.8,8.6])for(const z of [-3,1]){const seatX=x===8.6&&z===-3?7.8:x;buildChinaRoyalChair(g,{x:seatX,y:.2,z,yaw:x<0?Math.PI/2:-Math.PI/2,id:'china-furniture-seat-'+(additionalFurnitureSeats.length+2)});G.collider(colliders,seatX,z,.9,.9);additionalFurnitureSeats.push({name:'正殿木扶椅',x:seatX,y:1.4,z,yaw:x<0?Math.PI/2:-Math.PI/2,width:.9,depth:.9,seatY:2.075});}
+  // A central footrest brings the unchanged 2.69 m seat within the shared
+  // seated pose range, with a real supported floor and clear side aisles.
+  buildChinaThroneFootrest(g);
+  walkableSurfaces.push({minX:-.58,maxX:.58,minZ:-8.37,maxZ:-7.43,y:.849,owner:g.name});
+  cameraColliders.push({minX:-.58,maxX:.58,minZ:-8.37,maxZ:-7.43,minY:.36,maxY:.834});
+  walkableSurfaces.push({minX:-.58,maxX:.58,minZ:-7.43,maxZ:-7.12,y:.615,owner:g.name});
+  cameraColliders.push({minX:-.58,maxX:.58,minZ:-7.43,maxZ:-7.12,minY:.36,maxY:.60});
+  additionalFurnitureSeats.push({id:'china-furniture-throne',name:'正殿龙纹御座',x:0,y:2.049,z:-8,yaw:0,width:3.3,depth:1.7,seatY:2.69,front:-.30});
   target('cn-hall-front','正殿中央前厅',0,3,'hall');target('cn-hall-throne','仪座前礼仪空间',0,-4.25,'hall');target('cn-hall-west','正殿西宽廊',-4.6,-3,'hall');target('cn-hall-east','正殿东宽廊',5,-3,'hall');target('cn-hall-rear','正殿后门',6,-9.6,'hall');}
  // Tea reception occupies a separate south-west pavilion, with a real room
  // around its social setting and a wide central cross-passage through the doors.
@@ -202,7 +214,7 @@ export function buildChinaPalace(G,H){
  {const g=rooms.study.g;table(g,21,11.8,6.2,2.16,.97);for(const x of [19.55,22.15]){G.box(g,x,1.054,12.79,.62,.018,.18,0xefe1bf);for(let i=0;i<3;i++)G.box(g,x-.16+i*.16,1.067,12.79,.036,.005,.12,0x37463b);G.box(g,x+.5,1.086,12.42,.34,.06,.28,0x424f45);beam(g,[x-.5,1.075,12.2],[x-.19,1.075,12.5],.021,C.wood);}for(const x of [18,24])shelf(g,x,8.65,2.4,2.9,.7);G.vessel(g,24,1.06,11.7,0x799b8b,.53);for(let i=0;i<5;i++)beam(g,[23.95+i*.025,1.3,11.7],[23.82+i*.085,1.95+(i%2)*.1,11.7],.014,C.wood);for(const x of [18.2,23.8])scroll(g,x,2.9,20.81,1.3,2,true);table(g,24.85,18,.7,3.7,1.1);boundBook(g,24.85,1.21,17.2,.5,1,0x6f8c76);flowerBranches(g,24.85,1.19,18.9);target('cn-study-front','书斋门内',21,18.4,'study');target('cn-study-work','书案书写侧',21,13.32,'study');target('cn-study-west','书斋西侧',17.7,16,'study');target('cn-study-east','书斋东侧',24,15.3,'study');}
  // Separate private sleeping hall: canopy bed, dressing furniture and reading
  // chair. All bedpost textiles remain attached to their support, not floating.
- {const g=rooms.bedroom.g;buildChinaDragonBed(g);G.collider(colliders,-21,-9,4,4.2);cameraColliders.push({minX:-23,maxX:-19,minZ:-11.1,maxZ:-6.9,minY:.2,maxY:3.3});G.rug(g,-21,-3,6.4,4.5,0x71887e,0xc2ae7d);table(g,-24.8,-1.4,.75,3.1,.98);G.vessel(g,-24.8,1.08,-1.8,0x91acaa,.65);shelf(g,-17.05,-8.6,3.3,2.75,.65,-Math.PI/2);G.chair(g,-18.1,-2.1,C.wood,Math.PI*.75).position.y=.2;G.collider(colliders,-18.1,-2.1,.9,.9);target('cn-bedroom-front','寝殿前厅',-21,.5,'bedroom');target('cn-bedroom-west','床西通道',-24.2,-8.8,'bedroom');target('cn-bedroom-east','床东通道',-18.2,-8.8,'bedroom');target('cn-bedroom-reading','寝殿书榻前',-19,-3.6,'bedroom');}
+ {const g=rooms.bedroom.g;buildChinaDragonBed(g);G.collider(colliders,-21,-9,4,4.2);cameraColliders.push({minX:-23,maxX:-19,minZ:-11.1,maxZ:-6.9,minY:.2,maxY:3.3});G.rug(g,-21,-3,6.4,4.5,0x71887e,0xc2ae7d);table(g,-24.8,-1.4,.75,3.1,.98);G.vessel(g,-24.8,1.08,-1.8,0x91acaa,.65);shelf(g,-17.05,-8.6,3.3,2.75,.65,-Math.PI/2);buildChinaRoyalChair(g,{x:-18.1,y:.2,z:-2.1,yaw:Math.PI*.75,variant:'reading',id:'china-furniture-seat'});G.collider(colliders,-18.1,-2.1,.9,.9);target('cn-bedroom-front','寝殿前厅',-21,.5,'bedroom');target('cn-bedroom-west','床西通道',-24.2,-8.8,'bedroom');target('cn-bedroom-east','床东通道',-18.2,-8.8,'bedroom');target('cn-bedroom-reading','寝殿书榻前',-19,-3.6,'bedroom');}
  // Dining and food preparation are separate rooms within a detached service
  // hall, with a three-metre internal doorway and their own exterior entrances.
  {const g=rooms.kitchen.g;interiorRooms.splice(interiorRooms.findIndex(r=>r.id==='kitchen'),1);interiorRooms.push({id:'kitchen',name:'御膳备餐间',minX:16,maxX:26,minZ:-12,maxZ:-5,ceiling:4.35},{id:'dining',name:'御膳餐厅',minX:16,maxX:26,minZ:-5,maxZ:2,ceiling:4.35});buildings.find(b=>b.id==='kitchen').roomIds=['kitchen','dining'];palaceWall(g,colliders,cameraColliders,{at:-5,from:16,to:26,bottom:.2,top:4.35,color:C.cream,openings:[door('cn-kitchen-dining','备膳餐厅门','x',-5,19.4,22.6,3.5,['kitchen','dining'])]});
@@ -246,7 +258,7 @@ export function buildChinaPalace(G,H){
   // Folded side hangings use tapered extruded profiles; hems remain attached.
   for(const side of [-1,1]){const sh=new THREE.Shape();sh.moveTo(0,0);sh.lineTo(side*.31,0);sh.quadraticCurveTo(side*.40,-1.2,side*.20,-2.2);sh.lineTo(side*.01,-2.11);sh.closePath();G.mesh(q,new THREE.ExtrudeGeometry(sh,{depth:.032,bevelEnabled:false,curveSegments:6}),C.red,side*3.21,4.86,-10.11);stroke(q,[[side*3.22,4.80,-10.06],[side*3.29,3.72,-10.06],[side*3.25,2.68,-10.06]],.025,C.gold);}
  });
- ornament(rooms.hall.g,'throne-carved-apron','gilded-throne','existing throne seat and back',q=>{frame(q,0,.93,-7.125,2.93,.57);for(const x of [-1.03,0,1.03])cloud(q,x,.86,-7.09,.53);for(const side of [-1,1])dragon(q,side*.70,2.25,-8.50,.48,side);});
+ ornament(rooms.hall.g,'throne-carved-apron','gilded-throne','existing static throne footprint',q=>buildChinaDragonThrone(q));
  for(const x of [-6.7,6.7])incense(rooms.hall.g,'hall-incense-'+x,x-.63,1.17,-7,.82);
  // Symmetric court-side display consoles use the two existing bench footprints.
  // Their depth never exceeds the original .72 m support; the 12 m axis is clear.

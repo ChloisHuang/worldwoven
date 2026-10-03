@@ -41,14 +41,14 @@ export const REST_BATH_DESCRIPTORS={
 // Existing-object inventory only. Beds, tables, thrones, floor cushions and the
 // textile-covered Japanese bench are deliberately not relabelled as chairs.
 function additionalSeats(lot,region){
- const seats=[],add=(name,x,y,z,yaw,width,depth,seatY,front=.27)=>{
+ const seats=[],add=(name,x,y,z,yaw,width,depth,seatY,front=.27,id)=>{
   const anchor=[x+Math.sin(yaw)*front,y,z+Math.cos(yaw)*front];
   if(region==='china'||region==='france')anchor[1]=visualSupportHeight(lot,anchor[0],anchor[2],y,!!lot.heightAware)??y;
-  seats.push({name,center:[x,y,z],anchor,position:[x+Math.sin(yaw)*(depth/2+.64),y,z+Math.cos(yaw)*(depth/2+.64)],yaw,seatY,size:[width,Math.max(1.65,seatY-y+.25),depth]});
+  seats.push({id,name,center:[x,y,z],anchor,position:[x+Math.sin(yaw)*(depth/2+.64),y,z+Math.cos(yaw)*(depth/2+.64)],yaw,seatY,size:[width,Math.max(1.65,seatY-y+.25),depth]});
  };
  if(region==='france')seats.push(...(lot.group.userData.gardenBenches||[]));
  if(region==='france')lot.group.traverse(q=>{if(q.userData.furnitureKind!=='chair'||Math.hypot(q.position.x+6.65,q.position.z-1.8)<.05)return;const x=q.position.x,z=q.position.z,y=visualSupportHeight(lot,x,z)??.23;add('宫苑雕花扶手椅',x,y,z,q.rotation.y,1.18,1.20,q.position.y+q.userData.seatTopLocal,.29);});
- if(region==='china'){if(lot.additionalFurnitureSeats)for(const s of lot.additionalFurnitureSeats)add(s.name,s.x,s.y,s.z,s.yaw,s.width,s.depth,s.seatY,s.front);else for(const x of[-8.6,8.6])for(const z of[-3,1])add('正殿木扶椅',x,.2,z,x<0?Math.PI/2:-Math.PI/2,.9,.9,.875);}
+ if(region==='china'){if(lot.additionalFurnitureSeats)for(const s of lot.additionalFurnitureSeats)add(s.name,s.x,s.y,s.z,s.yaw,s.width,s.depth,s.seatY,s.front,s.id);else for(const x of[-8.6,8.6])for(const z of[-3,1])add('正殿木扶椅',x,.2,z,x<0?Math.PI/2:-Math.PI/2,.9,.9,.875);}
  if(region==='japan')for(const [name,x,y,z,w]of[
   ['迎宾木长椅',-9.2,0,3.1,3.5],['更衣室木长椅',-3.1,3.8,2.05,2.35],['更衣室木长椅',.15,3.8,2.05,1.6],
   ['浴室木长椅',-4.2,3.8,-3.1,3],['浴室木长椅',1.35,3.8,-3.1,2.3],['休息廊木长椅',-7.7,3.8,7.55,4],['休息廊木长椅',4.9,3.8,7.55,3.1],
