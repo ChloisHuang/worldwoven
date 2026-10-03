@@ -39,6 +39,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   for(const item of state.items)if(item.location?.type==='worker')item.location={type:'point',id:sourceOf(item.kind)};
   for(const v of state.visits) {
    if(v.stage==='bathing')v.stage='waiting-bath';
+   if(v.customerType==='player')v.present=false;
    v.seatId=null;
    state.nextVisit=Math.max(state.nextVisit,(v.number||0)+1);
   }
@@ -56,7 +57,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
  const descriptor=(v,kind,from,to,resource,extra={})=>({id:`${v.id}:${kind}`,visitId:v.id,kind,from,to,resource,...extra});
  function jobs() {
   const result=[];
-  for(const v of state.visits)if(active(v)) {
+  for(const v of state.visits)if(active(v)&&v.present!==false) {
    if(v.stage==='check-in')result.push(descriptor(v,'register','registrar','registrar','reception'));
    if(v.tokenId&&!v.mixtureId)result.push(descriptor(v,'prepare','apothecary','apothecary','apothecary'));
    const mix=item(v.mixtureId);
@@ -65,7 +66,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
    if(mix&&mix.location.id!==service(v)&&mix.location.type!=='used')result.push(descriptor(v,'deliverMix','apothecaryPickup',service(v),'apothecary-dispatch',{itemId:mix.id,tokenId:v.tokenId,side:v.side}));
    if(v.mealRequested&&!v.mealId)result.push(descriptor(v,'cook','kitchen','kitchen','kitchen'));
    const meal=item(v.mealId);
-   if(meal&&['point','worker'].includes(meal.location.type)&&meal.location.id!=='dining')result.push(descriptor(v,'serve','kitchenPickup','dining',null,{itemId:meal.id,tokenId:v.tokenId}));
+   if(meal&&['point','worker'].includes(meal.location.type)&&meal.location.id!=='dining'&&(v.customerType!=='player'||v.diningPresent))result.push(descriptor(v,'serve','kitchenPickup','dining',null,{itemId:meal.id,tokenId:v.tokenId}));
    if(v.stage==='checkout-ready')result.push(descriptor(v,'checkout','registrar','registrar','reception'));
   }
   return result;
@@ -106,12 +107,12 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
    if(!cargo||evidence.itemId!==cargo.id||evidence.tokenId!==v.tokenId||cargo.tokenId!==v.tokenId||cargo.location.type!=='worker'||cargo.location.id!==workerId)return false;
    if(job.kind==='serve'&&(v.stage!=='waiting-meal'||!near(evidence.guestPosition,v.diningPoint,.8)))return false;
    cargo.location={type:'point',id:job.to};
-   if(job.kind==='serve')v.stage='eating';
+   if(job.kind==='serve')v.stage=v.customerType==='player'?'meal-ready':'eating';
   }else if(job.kind==='cook') {
    v.mealId=addItem(v,'meal',{type:'point',id:'kitchenPickup'}).id;
   }else if(job.kind==='checkout') {
    if(evidence.tokenId!==v.tokenId||item(v.tokenId)?.location.type!=='guest')return false;
-   item(v.tokenId).location={type:'point',id:'reception'};v.stage='leaving';
+   item(v.tokenId).location={type:'point',id:'reception'};v.stage=v.customerType==='player'?'departed':'leaving';if(v.customerType==='player')state.completed++;
   }
   dropClaim(jobId);persist();return true;
  }
@@ -122,11 +123,15 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   if(event==='arrived'&&v.stage==='arriving'&&near(evidence.position,JAPAN_SERVICE_POINTS.reception))next='check-in';
   if(event==='changed'&&v.stage==='changing'&&near(evidence.position,JAPAN_SERVICE_POINTS[key+'Changing']))next='washing';
   if(event==='washed'&&v.stage==='washing'&&near(evidence.position,JAPAN_SERVICE_POINTS[key+'Washing']))next='waiting-bath';
-  if(event==='bath-mounted'&&v.stage==='waiting-bath'&&item(v.mixtureId)?.location.id===service(v)&&evidence.poolId===v.poolId&&typeof evidence.seatId==='string'&&evidence.seatId.startsWith(v.poolId+'-seat-')){next='bathing';v.seatId=evidence.seatId;}
+  if(event==='collect-blend'&&v.customerType==='player'&&v.stage==='waiting-bath'&&near(evidence.position,JAPAN_SERVICE_POINTS[service(v)])&&item(v.mixtureId)?.location.id===service(v)){next='waiting-bath';v.blendReceived=true;}
+  if(event==='bath-mounted'&&v.stage==='waiting-bath'&&(v.customerType!=='player'||v.blendReceived)&&item(v.mixtureId)?.location.id===service(v)&&evidence.poolId===v.poolId&&typeof evidence.seatId==='string'&&evidence.seatId.startsWith(v.poolId+'-seat-')){next='bathing';v.seatId=evidence.seatId;}
+  if(event==='bath-interrupted'&&v.customerType==='player'&&v.stage==='bathing'&&evidence.seatId===v.seatId){next='waiting-bath';v.seatId=null;}
   if(event==='bathed'&&v.stage==='bathing'&&evidence.seatId===v.seatId){next='drying';item(v.mixtureId).location={type:'used',id:v.poolId};v.seatId=null;}
   if(event==='dried'&&v.stage==='drying'&&near(evidence.position,JAPAN_SERVICE_POINTS[key+'Changing']))next='resting';
   if(event==='rested'&&v.stage==='resting'&&near(evidence.position,v.restPoint,.8)) {next='dining';v.mealRequested=true;}
   if(event==='sat-to-eat'&&v.stage==='dining'&&near(evidence.position,v.diningPoint,.8))next='waiting-meal';
+  if(event==='begin-eating'&&v.customerType==='player'&&v.stage==='meal-ready'&&near(evidence.position,v.diningPoint,.8))next='eating';
+  if(event==='eating-interrupted'&&v.customerType==='player'&&v.stage==='eating')next='meal-ready';
   if(event==='ate'&&v.stage==='eating'&&item(v.mealId)?.location.id==='dining'&&near(evidence.position,v.diningPoint,.8)) {next='checkout';item(v.mealId).location={type:'used',id:v.id};}
   if(event==='returned-to-desk'&&v.stage==='checkout'&&near(evidence.position,JAPAN_SERVICE_POINTS.reception))next='checkout-ready';
   if(event==='left'&&v.stage==='leaving'&&near(evidence.position,JAPAN_SERVICE_POINTS.departure)){next='departed';state.completed++;}
@@ -134,12 +139,34 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   v.stage=next;if(evidence.position)v.position=evidence.position.slice();persist();return true;
  }
  return {
-  spawn({side,appearance,name,restPoint,diningPoint,servePoint,restSeatId,position=JAPAN_SERVICE_POINTS.arrival}={}) {
-   if(disposed||state.visits.filter(active).length>=capacity)return null;
+  spawn({side,appearance,name,restPoint,diningPoint,servePoint,restSeatId,blendId,customerType='npc',position=JAPAN_SERVICE_POINTS.arrival}={}) {
+   customerType=customerType==='player'?'player':'npc';
+   if(disposed||state.visits.filter(v=>active(v)&&(v.customerType||'npc')===customerType).length>=(customerType==='player'?1:capacity))return null;
    if(!['men','women'].includes(side)||!appearance||!restPoint||!diningPoint)throw new TypeError('A visit requires identity, bath side and actual rest/dining anchors');
-   const number=state.nextVisit++,id=`jp-visitor-${state.worldSeed}-${number}`;
-   const v={id,number,name,appearance:clone(appearance),side,poolId:`japan-furniture-bath-${side==='men'?1:2}`,blendId:JAPAN_BATH_BLENDS[(number-1)%JAPAN_BATH_BLENDS.length].id,stage:'arriving',position:position.slice(),restPoint:restPoint.slice(),diningPoint:diningPoint.slice(),servePoint:(servePoint||[diningPoint[0]+.7,diningPoint[1],diningPoint[2]-.85]).slice(),restSeatId,tokenId:null,mixtureId:null,mealRequested:false,mealId:null,seatId:null};
+   if(blendId&&!JAPAN_BATH_BLENDS.some(b=>b.id===blendId))throw new TypeError('Unknown fictional bath blend');
+   const number=state.nextVisit++,id=`${customerType==='player'?'jp-player-service':'jp-visitor'}-${state.worldSeed}-${number}`;
+   const v={id,number,name,appearance:clone(appearance),customerType,present:true,side,poolId:`japan-furniture-bath-${side==='men'?1:2}`,blendId:blendId||JAPAN_BATH_BLENDS[(number-1)%JAPAN_BATH_BLENDS.length].id,stage:'arriving',position:position.slice(),restPoint:restPoint.slice(),diningPoint:diningPoint.slice(),servePoint:(servePoint||[diningPoint[0]+.7,diningPoint[1],diningPoint[2]-.85]).slice(),restSeatId,tokenId:null,mixtureId:null,mealRequested:false,mealId:null,seatId:null};
    visits.set(id,v);state.visits.push(v);persist();return clone(v);
+  },
+  bindPlayerDining(id,{restPoint,diningPoint,servePoint,mealPoint,restSeatId}) {
+   const v=visit(id),points=[restPoint,diningPoint,servePoint,mealPoint];
+   if(disposed||v?.customerType!=='player'||v.stage!=='resting'||points.some(p=>!Array.isArray(p)||p.length!==3||!p.every(Number.isFinite)))return false;
+   Object.assign(v,{restPoint:restPoint.slice(),diningPoint:diningPoint.slice(),servePoint:servePoint.slice(),mealPoint:mealPoint.slice(),restSeatId,diningPresent:true});persist();return true;
+  },
+  setPlayerDiningPresent(id,present) {
+   const v=visit(id);if(disposed||v?.customerType!=='player'||!active(v)||v.diningPresent===!!present)return false;
+   v.diningPresent=!!present;
+   if(!present)for(const job of [...claims.values()])if(job.visitId===id&&job.kind==='serve')dropClaim(job.id);
+   persist();return true;
+  },
+  setPlayerPresent(id,present) {
+   const v=visit(id);if(disposed||v?.customerType!=='player'||!active(v))return false;
+   v.present=!!present;
+   if(!present){
+    for(const job of [...claims.values()])if(job.visitId===id)dropClaim(job.id);
+    const safe={'check-in':'arriving','checkout-ready':'checkout',bathing:'waiting-bath',eating:'meal-ready'};v.stage=safe[v.stage]||v.stage;v.seatId=null;v.diningPresent=false;
+   }
+   persist();return true;
   },
   nextIdentity:()=>({id:`jp-visitor-${state.worldSeed}-${state.nextVisit}`,number:state.nextVisit}),
   jobs:()=>jobs().map(j=>({...clone(j),workerId:claims.get(j.id)?.workerId||null})),claim,
