@@ -37,21 +37,27 @@ export function sculptHeadPoint(x,y,z) {
   const forehead=.0075*G(y,1.640,.053);
   const cheek=.0080*G(y,1.550,.036)*(G(x,-.052,.036)+G(x,.052,.036));
   const posterior=profile(POSTERIOR_DELTA,y)*smooth(1.455,1.474,y);
-  const dz=posterior*(1-front)+seam*(forehead*front+cheek*front);
+  const mandibularCorner=-.004*G(y,1.497,.020)*smooth(.006,-.060,z);
+  const dz=posterior*(1-front)+seam*(forehead*front+cheek*front)+mandibularCorner;
   const dx=Math.sign(x)*(.0024*G(y,1.552,.036)-.0035*G(y,1.483,.023))*smooth(.018,.070,Math.abs(x))*seam;
   // The mandibular underside rises gently toward the ear instead of keeping
   // the chin-height ring horizontal all the way around the back of the jaw.
-  const jawRise=.019*G(y,1.491,.036)*smooth(.026,-.065,z)*smooth(1.455,1.478,y);
-  const dy=(y>1.620?profile(CROWN_PROFILE,y)-Math.min(y,1.707):0)+jawRise;
+  const jawRise=.005*G(y,1.495,.021)*smooth(.026,-.065,z)*smooth(1.455,1.478,y);
+  // Lift only the central posterior skull above the cervical insertion. The
+  // lateral mandible keeps its ear-below corner, rather than lifting the whole
+  // jaw into the same long diagonal as the back of the head.
+  const occipitalUnderside=.016*G(y,1.492,.028)*smooth(-.020,-.065,z)*(1-smooth(.025,.060,Math.abs(x)));
+  const dy=(y>1.620?profile(CROWN_PROFILE,y)-Math.min(y,1.707):0)+jawRise+occipitalUnderside;
   return [x+dx,y+dy,z+dz];
 }
 
 function sculptUpperNeckPoint(x,y,z){
-  const blend=smooth(1.421,1.481,y);
+  const blend=smooth(1.453,1.481,y);
   // Collar contact stays fixed. Above it, the neck leans toward the mastoid and
   // widens into the jaw. Its buried top extends inside the jaw; total character
   // height and skeleton attachments stay fixed.
-  return[x*(1+.20*blend),y+.026*blend,z-.014*blend];
+  const back=smooth(.018,-.036,z);
+  return[x*(1+.08*blend),y+(.008+.060*back)*blend,z-(.003+.032*back)*blend];
 }
 
 function material(color){return {color:new THREE.Color(color),skin:false,isMaterial:false};}

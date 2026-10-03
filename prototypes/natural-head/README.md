@@ -36,4 +36,8 @@ The parent visually reviewed the short side sweep and asked to keep this directi
 
 `evidence/face-review-male` and `evidence/face-review-female` show the requested neutral front/true-side samples. The intermediate neck notch was rejected and closed by extending the hidden upper neck into the jaw. Those images use the same ordinary lights and production toon materials. Final checks also retain the lower-neck position/weight signature and all bone transforms. No new eye, nose or lip modeling was included in this pass. Acceptance remains pending; no production integration or publication.
 
-Review status: this head/neck candidate is NOT accepted; the side-view nape and neck became over-sloped. Preserve only as a WIP comparison, not a production asset.
+The parent accepted the feminine front cheek/jaw narrowing as a useful improvement, but rejected the `1f53899` side profile: the jaw angle had been smoothed into an overly long slope and the neck read as a bent column. The following correction keeps the accepted front treatment and haircut. It restores a nearly vertical neck body below 1.453m, reduces whole-jaw lift, keeps a small soft mandibular corner, and lifts only the central posterior skull over the cervical insertion. The hidden rear top of the neck extends into the skull so its visible join has no exposed tip.
+
+`evidence/short-transition-male` and `evidence/short-transition-female` are the current normal front/side review images. These serial runs took 1 second each and at most 218MiB. They are visual review only; no additional pose matrix or automatic feature test was added. This side-profile correction remains unaccepted pending parent review.
+
+Latest review: the shortened near-vertical neck and fitted short hair are accepted as an incremental visual improvement; production integration and preserved appearance parameters are still pending. The earlier long-sloped-neck version was rejected.
