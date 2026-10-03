@@ -30,5 +30,9 @@ relief.serviceMount=items[0];life.playerRequest('staff-seat');assert.equal(relie
 assert.equal(life.state().active.phase,'returning');assert.equal(life.meals().length,0,'Player yield clears the staff tray');
 const snapshot=life.snapshot();assert.equal(snapshot.dueIn,0);assert.equal('active' in snapshot,false,'Do not serialize physical ownership');
 life.dispose();tasks.clear();const resumed=createJapanStaffLife({...options,saved:snapshot});resumed.update(.1,{night:true});assert.equal(resumed.state().active.id,'jp-sushi','Interrupted worker retains their turn on region re-entry');
-resumed.dispose();board.dispose();assert.ok(JAPAN_SERVICE_WORKERS.cook.includes('jp-sushi'));assert.ok(JAPAN_SERVICE_WORKERS.serve.includes('jp-ramen'));
+resumed.dispose();tasks.clear();
+const daytime=createJapanStaffLife({...options,saved:{next:0,dueIn:0}});daytime.update(.1,{night:false});finish('jp-ramen');finish('jp-sushi');
+for(const phase of ['preparing','meal','tea']){daytime.update(.1,{night:false});assert.equal(daytime.state().active.phase,phase);finish('jp-ramen');}
+assert.equal(daytime.state().active.phase,'returning','Day break finishes after meal and tea without claiming a bed');daytime.update(.1,{night:false});finish('jp-ramen');
+daytime.update(.1,{night:true});assert.ok(daytime.state().dueIn<=10,'Entering night brings the next safe sleep rotation forward');daytime.dispose();board.dispose();assert.ok(JAPAN_SERVICE_WORKERS.cook.includes('jp-sushi'));assert.ok(JAPAN_SERVICE_WORKERS.serve.includes('jp-ramen'));
 console.log('PASS: finish held jobs, physical relief gate, fair alternating breaks, kitchen lock, meal/tea/sleep, player yield and re-entry');
