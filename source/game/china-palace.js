@@ -4,6 +4,7 @@ import {insetClosureSection} from './inset-closures.js';
 import {buildChinaRoyalChair,buildChinaDragonThrone,buildChinaThroneFootrest} from './china-royal-seating.js';
 import {buildChinaDragonBed} from './china-dragon-bed.js';
 import {registerNightFixture} from './night-lighting.js';
+import {buildChinaArcheryCourt,CHINA_ARCHERY} from './china-archery-court.js';
 
 // R11 painted and furnished original procedural palace. The entire estate was replanned as separate
 // roofed buildings within four palace walls, rather than enlarging one house.
@@ -513,9 +514,10 @@ export function buildChinaPalace(G,H){
   ['cn-loft-court-view','雅集楼三层荷庭视野',[4.3,7.615,-23.62],'archive-loft'],['cn-loft-east','三层东侧观景回廊',[9.8,7.615,-26],'archive-loft'],
   ['cn-loft-west','三层西侧观景回廊',[-10.1,7.615,-28],'archive-loft'],['cn-loft-rear','三层北侧书廊',[0,7.615,-32.1],'archive-loft']
  ])explorationTargets.push({id,name,roomId,position:p});
- // Both obsolete pavilions, roofs and doors are absent. The southwest plot
- // stays a complete clear rectangle for a future isolated archery court.
- for(const court of CHINA_CULTURE_TOWER.freedCourts){floor(exterior,(court.minX+court.maxX)/2,14.5,10,13,.115,0xbfc2aa);courts.push({...court,reserved: court.id==='west-open-court'?'future-archery':undefined});}
+ // The consolidated culture functions free the southwest practice ground.
+ for(const court of CHINA_CULTURE_TOWER.freedCourts){floor(exterior,(court.minX+court.maxX)/2,14.5,10,13,.115,0xbfc2aa);courts.push({...court,use:court.id==='west-open-court'?'imperial-archery':undefined});}
+ const archery=buildChinaArcheryCourt(G,{group,colliders,cameraColliders,packStatic});
+ target('cn-archery-entry','西南射圃 · 后方入口',-16,19,'compound');
  for(const x of [17.1,24.9])for(const z of [9.1,19.9]){G.cyl(exterior,x,.28,z,.55,.48,.36,C.stone,10);flowerBranches(exterior,x,.48,z);}
  for(const t of explorationTargets){if(t.id==='cn-hall-approach')t.position=[0,1.415,6.3];if(t.id==='cn-west-lane')t.position=[-14.4,.115,-6];if(t.id==='cn-east-lane')t.position=[14,.115,-6];}
  // Batching remains per building. Stair/platform resources use the same
@@ -533,6 +535,7 @@ export function buildChinaPalace(G,H){
  const ground=p=>[p[0],floorAt(p[0],p[2],p[1]),p[2]];for(const t of explorationTargets)t.position=ground(t.position);for(const d of doorways){d.a=ground(d.a);d.b=ground(d.b);d.height=d.top-Math.max(d.a[1],d.b[1]);}
  const stations=[{id:'cn-tea',name:'雅集楼一层 · 宫苑茶叙',action:'沏茉莉花茶',position:[-19.6,0,13.32],playerWorkTarget:[-19.6,1.2,12.57],color:'#96b19a',npcName:'Lin',npcAction:'tea',npcLabel:'温杯沏茉莉花茶',npcPosition:[-22.1,0,13.32],workTarget:[-22.1,1.2,12.57],npcRotation:Math.PI,route:[[-23,0,16.8],[-19,0,16.8]]},{id:'cn-calligraphy',name:'雅集楼二层 · 翰墨书房',action:'写书法',position:[19.6,0,13.32],playerWorkTarget:[19.55,1.057,12.57],color:'#baaa84',npcName:'Wen',npcAction:'calligraphy',npcLabel:'正在挥毫习字',npcPosition:[22.2,0,13.32],workTarget:[22.15,1.057,12.57],npcRotation:Math.atan2(-.05,-.75),route:[[22.3,0,16.8],[18.2,0,16.8]]},{id:'cn-cooking',name:'御膳备餐间 · 手作点心',action:'包饺子',position:[23.6,0,-7.46],playerWorkTarget:[23.6,1.2,-8.21],color:'#e3b175',npcName:'Jia',npcAction:'knead',npcLabel:'正在捏出手工饺子',npcPosition:[21.3,0,-7.46],workTarget:[21.3,1.2,-8.21],npcRotation:Math.PI,route:[[18,0,-6.2],[23.5,0,-6.2]]},{id:'cn-rest',name:'雅集楼三层 · 藏书观景',action:'倚窗读书',position:[-.2,7.615,-28.7],color:'#c99aaa',npcName:'Lan',npcAction:'read',npcLabel:'倚窗静读',npcPosition:[-2.3,7.615,-28.7],workTarget:[-2.3,8.54,-29.45],npcRotation:Math.PI},{id:'cn-garden',name:'御花园 · 宽桥赏荷',action:'观鱼赏荷',position:[-.8,0,-18],color:'#82bcb2',npcName:'Bo',npcAction:'garden',npcLabel:'在荷塘边观鱼',npcPosition:[.8,0,-18.7],workTarget:[3.6,.3,-19.2],npcRotation:Math.atan2(2.8,-.5),route:[[0,0,-14.3],[10,0,-14],[10,0,-20.9]]}];
  for(const s of stations){const delta=s.id==='cn-tea'?[25,.6,-43]:s.id==='cn-calligraphy'?[-17,4,-41]:null;if(delta){for(const key of ['position','npcPosition','workTarget','playerWorkTarget'])if(s[key])s[key]=s[key].map((v,i)=>v+delta[i]);s.route=s.route?.map(p=>p.map((v,i)=>v+delta[i]));}s.position=ground(s.position);s.npcPosition=ground(s.npcPosition);s.route=s.route?.map(ground);}
+ for(const [i,id]of CHINA_ARCHERY.roles.entries())stations.push({id,name:i?'西南射圃 · 轮值巡查':'西南射圃 · 锦衣卫操练',action:'习射与轮值',position:ground(CHINA_ARCHERY.player),npcPosition:ground(CHINA_ARCHERY.waits[i]),npcName:i?'陆衡':'沈砚',npcAction:'archery-duty',npcLabel:i?'后方巡查 · 候令换班':'取弓 · 就位 · 习射',color:'#b99455',npcRotation:-Math.PI/2,playerWorkTarget:CHINA_ARCHERY.targets[1],interactionRadius:2.5,dialogue:'先在金线后等候。收弓停射后再取箭；按 E 或移动可随时退出。'});
  // swing:1 opens both leaves toward world negative z, into these clear rooms.
  const automaticDoorways=[{id:'cn-hall-front',center:[0,1.415,5],width:6,height:4.315,axis:'x',style:'palace',motion:'hinge',swing:1},{id:'cn-bedroom-front',center:[-21,.215,2],width:3.2,height:3.285,axis:'x',style:'palace',motion:'hinge',swing:1}];
  const architectureProgram={gallery:{building:'hall',room:'hall-gallery',floorY:6.015,slabUnderside:5.785,ceiling:9.215,void:{minX:-6,maxX:7.8,minZ:-11,maxZ:2}},sideLaneWidth:2.15,stairways,levels,lightingZones,raisedBuildings:[{id:'hall',offset:1.2,floorY:1.415},{id:'archive',offset:.6,floorY:.815}],loft:{building:'archive',room:'archive-loft',floorY:7.615,slabUnderside:7.385,ceiling:11.015,stairHole:{minX:-9.2,maxX:-4.05,minZ:-32,maxZ:-25.4}},revision:'R17 three-storey 雅集楼 and cleared southern courts',axisWidth:12,perimeterWalls,buildings,courts,minimumBuildingGap:5,sourceStudy:{url:'https://www.sglynp.com/t182446',creator:'mareasia',method:'Effect-image visual study; original procedural geometry; no assets reused'}};
@@ -542,5 +545,5 @@ export function buildChinaPalace(G,H){
  for(const {g,r}of Object.values(rooms)){packStatic(g);packStatic(r);}packStatic(gate);packStatic(gateRoof);for(const w of [...exterior.children].filter(o=>o.name.startsWith('China perimeter ')))packStatic(w);
  // Outer ground stays in its own group; omit perimeter groups while batching it.
  const walls=exterior.children.filter(o=>o.name.startsWith('China perimeter '));for(const w of walls)exterior.remove(w);packStatic(exterior);for(const w of walls)exterior.add(w);
- return {requiredInsetDoorIds:Object.keys(insetKinds),group,roofGroup,colliders,cameraColliders,bounds,spawn:ground([0,0,39]),heightAware:true,levels,lightingZones,additionalFurnitureSeats,characterFootSurfaces,walkableSurfaces,interiorRooms,doorways,explorationTargets,facilities,stations,architectureProgram,automaticDoorways};
+ return {requiredInsetDoorIds:Object.keys(insetKinds),group,roofGroup,colliders,cameraColliders,bounds,spawn:ground([0,0,39]),heightAware:true,levels,lightingZones,additionalFurnitureSeats,characterFootSurfaces,walkableSurfaces,interiorRooms,doorways,explorationTargets,facilities,stations,architectureProgram,automaticDoorways,archery};
 }
