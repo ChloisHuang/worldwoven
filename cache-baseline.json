@@ -1,5 +1,5 @@
 {
-  "publishedSourceCommit": "4a32e9edcf384ccf9db0229779d80db67fd1bbe3",
+  "publishedSourceCommit": "61d55d7932cc5c0a287e230e096652037a4a33a9",
   "assets": [
     "/assets/movement-runtime.a07dd501e74cfebf.js",
     "/assets/geometry.accd26d9fe1820ba.js",
@@ -27,10 +27,11 @@
     "/assets/japan-bathhouse.0066a269557b448c.js",
     "/assets/regions-west.be7f7e1a1fc4e5e1.js",
     "/assets/egypt-temple.a8ec1ccab5f85f1c.js",
-    "/assets/approved-surfaces.5fd3cbbc337b4479.js",
+    "/assets/head-shape.f7c0134832111278.js",
+    "/assets/approved-surfaces.349f05502cf5e44a.js",
     "/assets/character-props.deb24f9b65d5e60a.js",
-    "/assets/characters.da5d00c4f4ddf53f.js",
-    "/assets/main.14d68b1ba358298e.js",
+    "/assets/characters.2cebfe3fdc06caa9.js",
+    "/assets/main.c33147ea5330d430.js",
     "/assets/game.bcd28e6aaa90b201.css",
     "/assets/three.core.9edde002b066a9a0.js",
     "/assets/three.module.d8c0a97fa13a785e.js"
