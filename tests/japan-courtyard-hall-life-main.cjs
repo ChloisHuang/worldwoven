@@ -21,7 +21,7 @@ exports.observe=state=>{
  if(!n?.serviceTask?.arrived||a.id!==primary)return;
  if(a.phase==='meal'){assert.equal(n.serviceMount?.kind,'seat');assert.equal(n.getPoseMetrics().action,'chair-sit');seen.add('meal');}
  if(a.phase==='tea'){assert.equal(n.getPoseMetrics().action,'tea');seen.add('tea');}
- if(a.phase==='sleep'){assert.equal(n.serviceMount?.kind,'bed');seen.add('sleep');}
+ if(a.phase==='sleep'){assert.equal(n.serviceMount?.kind,'bed');assert.equal(n.getPoseMetrics().action,'lie-rest');for(const part of ['back','hip','head','heel'])assert(Number.isFinite(n.getPoseMetrics().lieContact?.[part]?.gap),part+' bed contact is measurable');seen.add('sleep');}
 };
 exports.run=async({state,T,Orders,furniture,frame,until,report})=>{
  let renderer,canvas;const output=process.env.OUT_DIR;looks=state.npcs.filter(n=>!n.station.id.startsWith('jp-visitor-')).map(n=>({id:n.station.id,appearance:JSON.stringify(n.root.userData.appearance)}));assert.equal(looks.length,14);

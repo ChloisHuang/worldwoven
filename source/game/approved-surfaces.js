@@ -207,7 +207,8 @@ function buildMiko(g){
  const white=0xfffefa,collar=0xffffff,vermillion=0xca3b2f;
  const upper=[[1.075,.148,.096,0,-.004],[1.14,.151,.095,0,-.004],[1.24,.159,.093,0,-.008],[1.32,.184,.080,0,-.012],[1.365,.122,.061,0,-.004],[1.40,.047,.038,0,0]];
  loft(g,'miko-white-kosode-body',upper,white,{segs:36,steps:30});
- const lower=skirt(g,'miko-vermillion-hakama',{hem:.251,depth:.147,waist:.148,bottom:.118,color:vermillion,pleats:.0055});
+ // Keep the existing skirt classification available to seated/lying contact probes.
+ const lower=skirt(g,'miko-vermillion-hakama-skirt',{hem:.251,depth:.147,waist:.148,bottom:.118,color:vermillion,pleats:.0055});
  for(const side of[-1,1]){
   loft(g,'miko-wide-sleeve-'+side,[[.946,.053,.070,side*.304,-.009],[.979,.087,.090,side*.297,-.014],[1.055,.106,.098,side*.270,-.014],[1.16,.088,.092,side*.235,-.014],[1.275,.069,.075,side*.202,-.013],[1.322,.058,.068,side*.17,-.012],[1.344,.034,.045,side*.145,-.01]],white,{steps:28,segs:28});
   loft(g,'wrist-'+side,[[.901,.020,.022,side*.305,0],[.959,.025,.028,side*.296,-.001],[1.017,.028,.032,side*.289,-.002]],C.skin,{steps:20,segs:28});
