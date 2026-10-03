@@ -8,8 +8,8 @@ Public game: https://alien.doudouai.net/
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.21-public, 2026-10-03
-Verified published Sites source commit: 580475ab8ca0be92ed85ae0cde1c9676b45ade93
+Published release: R16.22-public, 2026-10-03
+Verified published Sites source commit: cc47ff1671787925e2ee885ae5178ad92925cce1
 
 ## Working rules
 
@@ -77,3 +77,5 @@ Build output, generated QA reports/screenshots, temporary experiments, node_modu
 R16.20 links generated Japanese visitors to numbered bath tokens, real staff preparation/delivery, shared pool seating and ordered meals. This first batch covers the observable NPC business chain; direct player service menus and employee meals/sleep/shifts remain open. Existing nearby conversations and archery stay active.
 
 R16.21 consolidates the Chinese royal residence into three connected floors with a separate public stair hall. Guest/reception, bathing/linen and dragon-bed/dressing rooms preserve their interactions and privacy entrances. Former bath and guest plots are freed for later localized facilities; this release does not implement those future businesses.
+
+R16.22 refines the Egyptian judgment vignette: a sculpted jackal guardian, suspended heart-and-feather balance and shallow Eye relief. The existing room, routes and interactions remain; sarcophagi and other murals are separate open art work.
