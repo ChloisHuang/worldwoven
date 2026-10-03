@@ -1,5 +1,5 @@
 {
-  "publishedSourceCommit": "dd78f79beefa79e52cb62d65d69fa82cecd7332d",
+  "publishedSourceCommit": "a6e6e278ca45754534eca277e5d0cf6b5701d128",
   "assets": [
     "/assets/movement-runtime.a07dd501e74cfebf.js",
     "/assets/geometry.accd26d9fe1820ba.js",
@@ -34,8 +34,8 @@
     "/assets/head-shape.f7c0134832111278.js",
     "/assets/approved-surfaces.349f05502cf5e44a.js",
     "/assets/character-props.deb24f9b65d5e60a.js",
-    "/assets/characters.b8b819aaf302786f.js",
-    "/assets/main.bb4127ba5afc86b4.js",
+    "/assets/characters.5a10dfa3b47b505e.js",
+    "/assets/main.9991b0187c066357.js",
     "/assets/game.bcd28e6aaa90b201.css",
     "/assets/three.core.9edde002b066a9a0.js",
     "/assets/three.module.d8c0a97fa13a785e.js"
