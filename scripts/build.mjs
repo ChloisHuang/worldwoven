@@ -24,7 +24,7 @@ let html=fs.readFileSync('source/game/index.html','utf8').replace('./game.css?re
 if(html.includes('../tools/')||html.includes('?rev='))throw Error('Private links or blanket cache version remain');
 fs.mkdirSync(path.join(out,'game'),{recursive:true});fs.writeFileSync(path.join(out,'index.html'),html);fs.writeFileSync(path.join(out,'game/index.html'),html);
 fs.writeFileSync(path.join(out,'three-LICENSE.txt'),fs.readFileSync('source/vendor/three/LICENSE'));
-const manifest={release:'R16.4-public',date:'2026-10-03',baseGameCommit:'fee72e7db31f428bf070e8d56d1ffb14454fcfee',assets};fs.writeFileSync(path.join(out,'build.json'),JSON.stringify(manifest,null,2)+'\n');
+const manifest={release:'R16.5-public',date:'2026-10-03',baseGameCommit:'48ad51a496440b03923276f77a3ac322682dc6e7',assets};fs.writeFileSync(path.join(out,'build.json'),JSON.stringify(manifest,null,2)+'\n');
 // No overlapping Cache-Control rules: Cloudflare concatenates matching values.
 fs.writeFileSync(path.join(out,'_headers'),`/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n/\n  Cache-Control: public, max-age=0, must-revalidate\n/index.html\n  Cache-Control: public, max-age=0, must-revalidate\n/game/\n  Cache-Control: public, max-age=0, must-revalidate\n/game/index.html\n  Cache-Control: public, max-age=0, must-revalidate\n/build.json\n  Cache-Control: public, max-age=0, must-revalidate\n`);
 fs.mkdirSync('dist/server',{recursive:true});fs.copyFileSync('worker/index.mjs','dist/server/index.js');fs.mkdirSync('dist/.openai',{recursive:true});fs.copyFileSync('.openai/hosting.json','dist/.openai/hosting.json');
