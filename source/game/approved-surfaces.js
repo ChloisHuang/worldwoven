@@ -407,7 +407,10 @@ export function createApprovedSurfaces({culture=null,masc=false,style='casual',b
   // contact regions; do not reclassify a longer leg as a different body part.
   const footwear=/footwear|sole-|loafer/.test(m.name);
   for(let i=0;i<p.count;i++){const y=p.getY(i);sourceY[i]=m.geometry.attributes.sourceY?.getX(i)??y;if(!footwear)p.setY(i,shapeHeight(y,traits.legLength));}
-  m.geometry.setAttribute('sourceY',new THREE.BufferAttribute(sourceY,1));m.geometry.computeVertexNormals();
+  m.geometry.setAttribute('sourceY',new THREE.BufferAttribute(sourceY,1));
+  // The new short cut is wholly above the fixed head anchor; preserve its
+  // wrapped seam normals when a leg-length change leaves its positions fixed.
+  if(!m.userData.naturalHeadSurface)m.geometry.computeVertexNormals();
  });
  root.traverse(m=>{if(m.isMesh){m.userData.softSkin=/footwear-bath-bare|continuous-head|neck|^ear-|inset-eye|iris-|pupil-|eye-catchlight|eyelid-|soft-brow|nostril-|lip|mouth|relaxed-|thumb-|wrist-|^arm-|bare-arm|bare-leg/.test(m.name);m.receiveShadow=false;m.castShadow=true;}});
  return root;
