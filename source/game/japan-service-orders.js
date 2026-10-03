@@ -3,9 +3,9 @@
 export const JAPAN_SERVICE_POINTS = Object.freeze({
  arrival:[0,0,35], departure:[0,0,36.5],
  reception:[-4.22,0,5.7], registrar:[-5.4,0,5.7], tokenTray:[-5.15,1.19,6.7],
- apothecary:[-4.35,11.4,-2.6], mixtureTray:[-4.9,12.59,-2.6],
- kitchen:[2.1,0,-12.15], mealTray:[2.1,1.50,-13.4],
- menService:[-2.1,3.8,-5.35], womenService:[4.9,3.8,-5.35],
+ apothecary:[-5.25,11.4,-1.6], apothecaryPickup:[-4.35,11.4,-2.6], mixtureTray:[-4.9,12.59,-2.6],
+ kitchen:[2.1,0,-12.15], kitchenPickup:[3.35,0,-12.15], mealTray:[3.35,1.20,-13.4],
+ menService:[-4.2,3.8,-2.16], womenService:[1.35,3.8,-2.16],
  menChanging:[-9.92,3.8,2.4], womenChanging:[4.8,3.8,1.4],
  menWashing:[-9.15,3.8,-3.7], womenWashing:[3,3.8,-4.4],
 });
@@ -23,7 +23,7 @@ const clone=value=>JSON.parse(JSON.stringify(value));
 const active=v=>!['departed','cancelled'].includes(v.stage);
 const near=(p,q,r=.34)=>Array.isArray(p)&&Array.isArray(q)&&p.length===3&&p.every(Number.isFinite)&&Math.hypot(p[0]-q[0],p[2]-q[2])<=r&&Math.abs(p[1]-q[1])<.4;
 const service=v=>v.side==='men'?'menService':'womenService';
-const sourceOf=kind=>kind==='mixture'?'apothecary':kind==='meal'?'kitchen':'reception';
+const sourceOf=kind=>kind==='mixture'?'apothecaryPickup':kind==='meal'?'kitchenPickup':'reception';
 
 export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},capacity=2}={}) {
  const state={version:1,worldSeed:worldSeed>>>0,nextVisit:1,completed:0,cancelled:0,visits:[],items:[]};
@@ -59,10 +59,10 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
    if(v.stage==='check-in')result.push(descriptor(v,'register','registrar','registrar','reception'));
    if(v.tokenId&&!v.mixtureId)result.push(descriptor(v,'prepare','apothecary','apothecary','apothecary'));
    const mix=item(v.mixtureId);
-   if(mix&&mix.location.id!==service(v)&&mix.location.type!=='used')result.push(descriptor(v,'deliverMix','apothecary',service(v),null,{itemId:mix.id,tokenId:v.tokenId,side:v.side}));
+   if(mix&&mix.location.id!==service(v)&&mix.location.type!=='used')result.push(descriptor(v,'deliverMix','apothecaryPickup',service(v),null,{itemId:mix.id,tokenId:v.tokenId,side:v.side}));
    if(v.mealRequested&&!v.mealId)result.push(descriptor(v,'cook','kitchen','kitchen','kitchen'));
    const meal=item(v.mealId);
-   if(meal&&['point','worker'].includes(meal.location.type)&&meal.location.id!=='dining')result.push(descriptor(v,'serve','kitchen','dining',null,{itemId:meal.id,tokenId:v.tokenId}));
+   if(meal&&['point','worker'].includes(meal.location.type)&&meal.location.id!=='dining')result.push(descriptor(v,'serve','kitchenPickup','dining',null,{itemId:meal.id,tokenId:v.tokenId}));
    if(v.stage==='checkout')result.push(descriptor(v,'checkout','registrar','registrar','reception'));
   }
   return result;
@@ -87,7 +87,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   if(job.resource)resources.set(job.resource,job.id);
   return clone(claimed);
  }
- function pointFor(v,key){return key==='dining'?v.diningPoint:JAPAN_SERVICE_POINTS[key];}
+ function pointFor(v,key){return key==='dining'?v.servePoint:JAPAN_SERVICE_POINTS[key];}
  function complete(jobId,workerId,evidence={}) {
   if(disposed)return false;
   const job=claims.get(jobId),v=job&&visit(job.visitId);
@@ -97,7 +97,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   if(job.kind==='register') {
    v.tokenId=`${v.id}:token`;addItem(v,'token',{type:'guest',id:v.id});v.stage='changing';
   }else if(job.kind==='prepare') {
-   v.mixtureId=addItem(v,'mixture',{type:'point',id:'apothecary'}).id;
+   v.mixtureId=addItem(v,'mixture',{type:'point',id:'apothecaryPickup'}).id;
   }else if(job.kind==='deliverMix'||job.kind==='serve') {
    const cargo=item(job.itemId);
    if(!cargo||evidence.itemId!==cargo.id||evidence.tokenId!==v.tokenId||cargo.tokenId!==v.tokenId||cargo.location.type!=='worker'||cargo.location.id!==workerId)return false;
@@ -105,7 +105,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
    cargo.location={type:'point',id:job.to};
    if(job.kind==='serve')v.stage='eating';
   }else if(job.kind==='cook') {
-   v.mealId=addItem(v,'meal',{type:'point',id:'kitchen'}).id;
+   v.mealId=addItem(v,'meal',{type:'point',id:'kitchenPickup'}).id;
   }else if(job.kind==='checkout') {
    if(evidence.tokenId!==v.tokenId||item(v.tokenId)?.location.type!=='guest')return false;
    item(v.tokenId).location={type:'point',id:'reception'};v.stage='leaving';
@@ -130,11 +130,11 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   v.stage=next;if(evidence.position)v.position=evidence.position.slice();persist();return true;
  }
  return {
-  spawn({side,appearance,name,restPoint,diningPoint,position=JAPAN_SERVICE_POINTS.arrival}={}) {
+  spawn({side,appearance,name,restPoint,diningPoint,servePoint,restSeatId,position=JAPAN_SERVICE_POINTS.arrival}={}) {
    if(disposed||state.visits.filter(active).length>=capacity)return null;
    if(!['men','women'].includes(side)||!appearance||!restPoint||!diningPoint)throw new TypeError('A visit requires identity, bath side and actual rest/dining anchors');
    const number=state.nextVisit++,id=`jp-visitor-${state.worldSeed}-${number}`;
-   const v={id,number,name,appearance:clone(appearance),side,poolId:`japan-furniture-bath-${side==='men'?1:2}`,blendId:JAPAN_BATH_BLENDS[(number-1)%JAPAN_BATH_BLENDS.length].id,stage:'arriving',position:position.slice(),restPoint:restPoint.slice(),diningPoint:diningPoint.slice(),tokenId:null,mixtureId:null,mealRequested:false,mealId:null,seatId:null};
+   const v={id,number,name,appearance:clone(appearance),side,poolId:`japan-furniture-bath-${side==='men'?1:2}`,blendId:JAPAN_BATH_BLENDS[(number-1)%JAPAN_BATH_BLENDS.length].id,stage:'arriving',position:position.slice(),restPoint:restPoint.slice(),diningPoint:diningPoint.slice(),servePoint:(servePoint||[diningPoint[0]+.7,diningPoint[1],diningPoint[2]-.85]).slice(),restSeatId,tokenId:null,mixtureId:null,mealRequested:false,mealId:null,seatId:null};
    visits.set(id,v);state.visits.push(v);persist();return clone(v);
   },
   nextIdentity:()=>({id:`jp-visitor-${state.worldSeed}-${state.nextVisit}`,number:state.nextVisit}),
