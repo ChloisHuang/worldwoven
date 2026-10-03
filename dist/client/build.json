@@ -1,7 +1,7 @@
 {
-  "release": "R16.14-public",
+  "release": "R16.15-public",
   "date": "2026-10-03",
-  "baseGameCommit": "2447d270a0386cf011fa259abb73e0096fecaeb6",
+  "baseGameCommit": "dd78f79beefa79e52cb62d65d69fa82cecd7332d",
   "assets": {
     "game/movement-runtime.js": "/assets/movement-runtime.a07dd501e74cfebf.js",
     "game/geometry.js": "/assets/geometry.accd26d9fe1820ba.js",
@@ -36,8 +36,8 @@
     "game/head-shape.js": "/assets/head-shape.f7c0134832111278.js",
     "game/approved-surfaces.js": "/assets/approved-surfaces.349f05502cf5e44a.js",
     "game/character-props.js": "/assets/character-props.deb24f9b65d5e60a.js",
-    "game/characters.js": "/assets/characters.b8b819aaf302786f.js",
-    "game/main.js": "/assets/main.bb4127ba5afc86b4.js",
+    "game/characters.js": "/assets/characters.5a10dfa3b47b505e.js",
+    "game/main.js": "/assets/main.9991b0187c066357.js",
     "game/game.css": "/assets/game.bcd28e6aaa90b201.css",
     "vendor/three/build/three.core.js": "/assets/three.core.9edde002b066a9a0.js",
     "vendor/three/build/three.module.js": "/assets/three.module.d8c0a97fa13a785e.js"

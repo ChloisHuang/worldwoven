@@ -93,6 +93,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
  let supportCorrection=0,poseMinY=0,poseMaxY=0,onsenHip=.32,onsenBackOffset=0,onsenArmLift=0;const lieOffsets={back:0,spine:0,head:0,heel:0};
  const onsenLapPoint=V(.09,.40,.23),onsenLapNormal=V(0,1,0),onsenRimPalmQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(0,0,-1),V(1,0,0),V(0,-1,0))),onsenLapPalmQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(-1,0,0),V(0,0,-1),V(0,-1,0)));
  const onsenPalmContact={offset:V(),index:-1};
+ const chairHands=[0,1].map(()=>({wrist:V(),rotation:new THREE.Quaternion()}));let fittedChairHeight=null;
  function fitOnsenPalmContact(){for(const geometry of template.geometry)for(const range of geometry.userData.sourceRanges||[])if(range.name==='relaxed-palm-1'){
   let low=Infinity;for(let i=range.start;i<range.start+range.count;i++){tmp.fromBufferAttribute(geometry.attributes.position,i).sub(rest[9]).applyQuaternion(onsenLapPalmQ);const depth=tmp.dot(onsenLapNormal);if(depth<low){low=depth;onsenPalmContact.offset.copy(tmp);onsenPalmContact.index=i;}}
  }}
@@ -130,6 +131,37 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   posedQ[c].copy(posedQ[b]);
  }
  function foot(side,target){const ids=side?[13,14,15]:[10,11,12];solveLimb(...ids,target,legPole);posedQ[ids[2]].identity();}
+ function fitChairHands(chairHeight){
+  // Fit only when entering a seat or changing its height. The lap is the real
+  // skinned garment surface; a broad sleeve must not become the hand support.
+  root.updateMatrixWorld(true);skeleton.update();const inverseRig=rig.matrixWorld.clone().invert(),a=V(),b=V(),c=V(),hit=V(),normal=V(),forward=V(),sideAxis=V(),basis=new THREE.Matrix4();
+  for(let side=0;side<2;side++){
+   const thigh=side?13:10,knee=side?14:11,hand=side?9:6,sign=side?1:-1,fit=chairHands[side];
+   const lap=posedP[thigh].clone().lerp(posedP[knee],side?.52:.65);lap.x+=sign*.025;
+   const ray=new THREE.Ray(V(lap.x,chairHeight+.65,lap.z),V(0,-1,0));let top=-Infinity;const up=V(0,1,0);
+   for(const mesh of meshes)for(const range of mesh.geometry.userData.sourceRanges||[]){
+    if(!/body|bodice|skirt|trouser|tunic|kilt|robe/.test(range.name)||/sleeve|fold|seam|border|panel|belt|sash/.test(range.name))continue;
+    const g=mesh.geometry,indices=g.index,sy=g.attributes.sourceY??g.attributes.position;
+    for(let j=range.indexStart;j<range.indexStart+range.indexCount;j+=3){
+     const ids=[indices.getX(j),indices.getX(j+1),indices.getX(j+2)],sourceY=ids.reduce((sum,i)=>sum+(g.attributes.sourceY?sy.getX(i):sy.getY(i)),0)/3;if(sourceY<.68||sourceY>.98)continue;
+     for(const [point,i]of[[a,ids[0]],[b,ids[1]],[c,ids[2]]])mesh.getVertexPosition(i,point).applyMatrix4(mesh.matrixWorld).applyMatrix4(inverseRig);
+     if(!ray.intersectTriangle(a,b,c,false,hit)||hit.y<=top)continue;
+     normal.copy(b).sub(a).cross(tmp2.copy(c).sub(a)).normalize();if(normal.y<0)normal.negate();if(normal.y<.45)continue;
+     top=hit.y;lap.copy(hit);up.copy(normal);
+    }
+   }
+   if(!Number.isFinite(top)){lap.copy(posedP[thigh]).lerp(posedP[knee],side?.52:.65);lap.y+=.075;}
+   forward.copy(posedP[knee]).sub(posedP[thigh]);forward.x-=sign*.035;forward.addScaledVector(up,-forward.dot(up)).normalize();
+   sideAxis.copy(forward).cross(up).normalize();basis.makeBasis(sideAxis,forward.clone().negate(),up.clone().negate());fit.rotation.setFromRotationMatrix(basis);
+   // The palm's underside, rather than its wrist pivot, meets the cloth.
+   let low=Infinity;const offset=V();for(const geometry of template.geometry)for(const range of geometry.userData.sourceRanges||[])if(range.name==='relaxed-palm-'+sign){
+    for(let i=range.start;i<range.start+range.count;i++){const y=geometry.attributes.sourceY?.getX(i)??geometry.attributes.position.getY(i);if(y<.855||y>.895)continue;tmp.fromBufferAttribute(geometry.attributes.position,i).sub(rest[hand]).applyQuaternion(fit.rotation);const depth=tmp.dot(up);if(depth<low){low=depth;offset.copy(tmp);}}
+   }
+   fit.wrist.copy(lap).sub(offset).addScaledVector(up,.004/root.scale.y);
+  }
+  fittedChairHeight=chairHeight;
+ }
+ function poseChairHands(){for(let side=0;side<2;side++){const fit=chairHands[side];reach(side,fit.wrist.x,fit.wrist.y,fit.wrist.z);posedQ[side?9:6].copy(fit.rotation);}}
  function poseOnsen(context,time){
   setTorso(onsenHip,-.12,0);
   foot(0,tmp.set(-.13,.108,.58));foot(1,tmp.set(.13,.108,.58));
@@ -407,6 +439,10 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   }
   if(supportedOnsen)poseOnsen(context,time);
   applyPose();
+  if(action==='chair-sit'&&!context?.heldProp&&!context?.handoff){
+   if(poseChanged||fittedChairHeight!==chairHeight)fitChairHands(chairHeight);
+   poseChairHands();applyPose();
+  }
   if(mountedPose){
    const supportY=Number.isFinite(context?.supportY)?context.supportY:rootWorld.y;
    if(poseChanged){
