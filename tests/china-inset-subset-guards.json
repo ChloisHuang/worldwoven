@@ -1,6 +1,6 @@
 {
   "scope": "Affected China door groups only; no unrelated-country scene or color/hash regression. Hashes below lock the actual China test dependencies.",
-  "productCommit": "NORTH_THREE_BAY_CANDIDATE",
+  "productCommit": "NORTH_NONOVERLAPPING_SILL",
   "poseHash": "d79172e65b6a1224a755e6504058b7f1e7eb5937daa70160bdd0e9d28b54c719",
   "groups": {
     "gates": [
@@ -49,7 +49,7 @@
     ]
   },
   "files": {
-    "source/game/china-palace.js": "037ebafc64839b8755533f1a1a37caac893b82ecbcff6b262279a890a0042eba",
+    "source/game/china-palace.js": "d0c0ce23cf9739e0408e0bddcd94e06c473c602cc54a0a828f110e0a4ef74f39",
     "source/game/regions-east.js": "9063560d2d022f62bab7454d8e22158549e385192fc6a534449ff5a94ed0a2ac",
     "source/game/room-closures.js": "885ef9ca8437263c925bacbc097af66cafa2164669736dbc2aa7ac71c7b54f1f",
     "source/game/automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
