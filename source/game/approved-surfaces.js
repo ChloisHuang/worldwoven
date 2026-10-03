@@ -242,7 +242,7 @@ function buildJapan(g,masc,preset){
  if(!masc){loft(g,'obi-back-bow',[[1.035,.062,.018,0,-.116],[1.07,.099,.033,0,-.122],[1.116,.064,.02,0,-.117]],C.obi,{segs:20,steps:8});}
 }
 function buildChina(g,masc,preset){
- if(masc){
+ if(masc||preset==='jinyi-training'){
   buildJapan(g,true,'haori-trouser');removeSurfaces(g,n=>/^haori-lapel|haori-waist-tie|haori-jacket-body/.test(n));loft(g,'scholar-upper-robe',[[1.045,.156,.103,0,-.005],[1.15,.156,.098,0,-.004],[1.28,.185,.087,0,-.01],[1.335,.19,.078,0,-.013],[1.374,.135,.061,0,-.005],[1.407,.049,.038,0,.002]],C.yukata,{steps:26});
   if(preset==='scholar-long-robe'){
    removeSurfaces(g,n=>/^tailored-trouser|trouser-crease/.test(n));
@@ -321,7 +321,7 @@ function unshapeHeight(y,legLength){
 }
 export function createRelaxedArmOffset(preset,wardrobe,legLength=1){
  if(!BODY_SCULPT[preset])return null;
- const cut=wardrobe==='court-overgown'?'overgown':wardrobe==='miko-hakama'?'miko':/yukata|kimono|ruqun|bath-robe/.test(wardrobe)?'wide':/scholar/.test(wardrobe)?'robe':'fitted';
+ const cut=wardrobe==='court-overgown'?'overgown':wardrobe==='miko-hakama'?'miko':/yukata|kimono|ruqun|bath-robe/.test(wardrobe)?'wide':/scholar|jinyi/.test(wardrobe)?'robe':'fitted';
  const [upperOut,lowerOut,forward]=ARM_HANG[cut],shoulder=[.171*armWidthAtHeight(1.326,preset),shapeHeight(1.326,legLength),-.010],elbow=[.277*armWidthAtHeight(1.099,preset),shapeHeight(1.099,legLength),-.006],wrist=[.304,shapeHeight(.926,legLength),0];
  const length=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i])),upper=length(shoulder,elbow),lower=length(elbow,wrist);
  // Solve in the shaped body, then map back to anatomical Y for the shared mesh

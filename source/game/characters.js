@@ -417,6 +417,12 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   }else if(context?.heldProp==='bathBucket'){
    reach(1,.30,.92,.15);show('bathBucket');
   }else if(context?.handoff){reach(0,-.16,1.02,.43);reach(1,.16,1.03,.43);}
+  // Authored practice is opt-in. Reuse the same anatomical solver; clearing
+  // the context returns both hands and all normal gait/seat/bath poses.
+  if(context?.archery){
+   const a=context.archery;for(let side=0;side<2;side++)if(a.hands?.[side])reach(side,...a.hands[side]);
+   for(const prop of Object.values(props.tools))prop.visible=false;lookX=0;lookY=0;
+  }
   // Optional main-supplied authored work surface in actor-local metres. Distant
   // ritual/reading targets stay observational; only genuine tabletop jobs use it.
   const workHeight=context?.workHeight;
