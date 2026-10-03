@@ -64,7 +64,7 @@ export function buildCoherentHead(head,{masc,traits,color}){
  // Keep a bounded grid while concentrating samples where the nose openings,
  // lips and orbital boundaries require curvature. The back needs fewer rows.
  for(const[a,b,n]of[[-Math.PI,-.85,32],[-.85,-.30,16],[-.30,.30,32],[.30,.85,16],[.85,Math.PI,32]])for(let i=0;i<n;i++)angles.push(mix(a,b,i/n));angles.push(Math.PI);
- for(const[a,b,n]of[[1.472,1.499,12],[1.499,1.540,22],[1.540,1.565,24],[1.565,1.627,28],[1.627,1.714,18]])for(let i=0;i<n;i++)heights.push(mix(a,b,i/n));heights.push(1.714);
+ for(const[a,b,n]of[[1.472,1.504,14],[1.504,1.532,28],[1.532,1.540,6],[1.540,1.565,24],[1.565,1.627,28],[1.627,1.714,18]])for(let i=0;i<n;i++)heights.push(mix(a,b,i/n));heights.push(1.714);
  const positions=[],indices=[];
  for(const y of heights){
   const r=outlineAt(y,masc,traits);

@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import {eyeLayout,eyeLidBoundary} from './eye-surface.mjs';
 import {coherentFaceSurface} from './face-sculpt.mjs';
+import {mouthOpening} from './feature-topology.mjs';
 const cross=(a,b,p)=>(b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0]);
 function clip(poly,a,b,inside){
  const out=[];for(let i=0;i<poly.length;i++){
@@ -28,6 +29,7 @@ export function cutOrbitalOpenings(head,{masc,traits}){
   points.reverse();return{points,minX:layout.cx-layout.hw-.0024*layout.eye,maxX:layout.cx+layout.hw+.0024*layout.eye,minY:layout.cy-.015*layout.eye,maxY:layout.cy+.020*layout.eye};
  });
  for(const side of[-1,1]){const n=nasalLayout(side,traits),points=Array.from({length:24},(_,i)=>nasalPoint(n,i/24,1));openings.push({points,minX:n.cx-n.rx,maxX:n.cx+n.rx,minY:n.cy-n.ry-n.rx*.12,maxY:n.cy+n.ry+n.rx*.12});}
+ openings.push(mouthOpening());
  const positions=[],indices=[],weld=new Map();let cut=0;
  const vertex=v=>{const xyz=v.slice(0,3);if(v[3])xyz[2]=coherentFaceSurface(xyz[0],xyz[1],masc,traits);const key=xyz.map(x=>Math.round(x*1e8)).join(',');let n=weld.get(key);if(n===undefined){n=positions.length/3;weld.set(key,n);positions.push(...xyz);}return n;};
  for(let i=0;i<ix.count;i+=3){
