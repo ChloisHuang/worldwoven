@@ -1,0 +1,10 @@
+{
+  "time": "2026-10-03T08:07Z",
+  "status": "syntax checked, no geometry/runtime check yet",
+  "onlyChangedSource": "source/game/characters.js",
+  "beforeSha256": "75fed2ba7fa5c65354426082fc85c4ad56016832dd84bba36ef92b6dcf99c88e",
+  "afterSha256": "8a25e3595313bf26658711007ed73f4342ef987ec4edb459b3a446bc7f185b8e",
+  "scope": "Japan onsen-swimwear/onsen-seat only: left forearm supported on actual8cm lumbar ledge, right palm down at actual skinned thigh point; original hip/sole/back fitter and all appearance geometry unchanged",
+  "supportCoordinates": "Use existing bathPose backTopY4.50/backZ-.20 and existing ledge depth.08m; left skin probes restricted to actual ledge footprint, no furniture edit. Right support is deformed right swimwear thigh vertex, matched via actual palm rest offset and explicit palm-down quaternion.",
+  "pending": "Actual all-body/leg contacts, support footprint, palm normals, head/back/feet preservation, same-view male/female short/long-leg Mesa images. Candidate has not passed validation."
+}

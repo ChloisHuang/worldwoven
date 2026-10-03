@@ -1,0 +1,86 @@
+{
+  "status": "PASS",
+  "sourceCheckpoint": "worldwoven-source-door-bath-checkpoint-06",
+  "scope": "Actual main UI list bath-entry and touch-exit; exact temporary wardrobe and identity restoration; real main TPS 16 yaw x3pitch x2distance x2pool. Original scene opaque raycasts; 480 continuous entry/exit frames at default4.6m and close2.1m TPS, checking both camera travel through opaque geometry and its resolved sightline. DOM renderer stub, no image claim.",
+  "inputHashes": {
+    "main.js": "f11517fb6f0c59f92b1b0f7872a9171d43b24b55324dbd3a3c32e179f8dd6163",
+    "japan-bathhouse.js": "341ed14868411f2357fb63cdcacb9cd026ced0bc2ea1bd7e51c48164360954b6",
+    "furniture-interactions.js": "72a5856cb502fb8b0e9f1882a03ae0d7579a723fa9f8323052b1182322391ba4",
+    "characters.js": "75fed2ba7fa5c65354426082fc85c4ad56016832dd84bba36ef92b6dcf99c88e",
+    "approved-surfaces.js": "49b3eb8c72a57de9fb3c0c0072a564d2d827f7851e96fc6677c8a31e942e7844",
+    "room-closures.js": "e418cd6d9a10c63aa782a8122205083217b1c407a5d0d426fab2543555601aea"
+  },
+  "testHash": "a6fb3c86c61a7110948ebebb36ea416a30e54c266da6ed17287f593c0d66ca8e",
+  "currentTestMatchesFrozen": true,
+  "resultSha256": "677bbd17cf300e22ef2e9a112dd7d0550f568e9321f3b656c4174824394d9a45",
+  "cases": 192,
+  "hidden": 0,
+  "sightFailures": 0,
+  "transitionFrames": 480,
+  "transitionFailures": 0,
+  "minimumActualOrbitDistance": 1.7499999999999996,
+  "maximumTransitionCameraStep": 0.11524828082640177,
+  "eventChecks": [
+    {
+      "id": "japan-furniture-bath-1",
+      "listEntry": true,
+      "temporarySwimwear": true,
+      "shapePreserved": true,
+      "touchExit": true,
+      "exactOutfitRestored": true,
+      "saveUnchanged": true,
+      "defaultView": {
+        "camera": [
+          -3.22,
+          5.853856266171999,
+          -4.810871733079216
+        ],
+        "target": [
+          -3.22,
+          4.85,
+          -9.3
+        ],
+        "visible": true,
+        "near": 0.2,
+        "fov": 50
+      }
+    },
+    {
+      "id": "japan-furniture-bath-2",
+      "listEntry": true,
+      "temporarySwimwear": true,
+      "shapePreserved": true,
+      "touchExit": true,
+      "exactOutfitRestored": true,
+      "saveUnchanged": true,
+      "defaultView": {
+        "camera": [
+          3.68,
+          5.853856266171999,
+          -5.210871733079214
+        ],
+        "target": [
+          3.68,
+          4.85,
+          -9.7
+        ],
+        "visible": true,
+        "near": 0.2,
+        "fov": 50
+      }
+    }
+  ],
+  "resources": {
+    "status": "PASS",
+    "command": [
+      "node",
+      "--experimental-vm-modules",
+      "/workspace/shared/worldwoven-r17-bath-repair/check-bath-main-camera.cjs"
+    ],
+    "exit": 0,
+    "seconds": 153.16169340000033,
+    "peakObservedTreeRSSBytes": 515768320,
+    "maxProcesses": 2,
+    "termination": null
+  }
+}
