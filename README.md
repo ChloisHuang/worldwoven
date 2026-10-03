@@ -4,8 +4,8 @@ An original cel-shaded cultural life and exploration game. The repository name s
 
 Public game: https://alien.doudouai.net/
 
-Archived release: R16-public, 2026-10-03
-Verified published Sites source commit: 60ee26dab923e36925e4c1385d24d96c7f176662
+Archived release: R16.1-public, 2026-10-03
+Verified published Sites source commit: eafb569e386904fe1bb9d012bbf9c2b90c3db9a9
 
 ## Requirements and local development
 
@@ -25,7 +25,7 @@ The local servers bind only to 127.0.0.1 and are not the public deployment servi
 - npm run test:worker: the preserved read-only legacy endpoint
 - npm run test:door-geometry -- --check and --tiny: portable door geometry harness checks; see tests/door-geometry/README.md for the separate serialized authored sweep command and limits
 
-CPU/DOM fixtures do not provide browser or iOS visual acceptance. This release also received separate production Three/Mesa WebGL2 image checks; those generated screenshots and reports are intentionally not committed. Real iOS performance, driver-specific appearance and observed HTTP warm-cache transfers remain unverified.
+CPU/DOM fixtures do not provide browser or iOS visual acceptance. The R16 baseline received separate production Three/Mesa WebGL2 image checks. R16.1 adds focused actual-scene controller and geometry checks for fixed half-curtains; no new browser or iOS visual acceptance is claimed. Generated screenshots and reports are intentionally not committed. Real iOS performance, driver-specific appearance and observed HTTP warm-cache transfers remain unverified.
 
 ## Deploy with Sites
 
@@ -49,6 +49,8 @@ All four lots use human-scale 60 × 80 grids, close third-person exploration, ce
 The changing-prop and wardrobe preview includes a one-click player randomizer for presentation, hair/clothing/color and six bounded facial/body traits. Confirm saves the draft; Cancel restores it. Residents use the same six-trait preference score and a stable versioned generator tied to the saved world seed and original NPC ID. Existing job clothing and role constraints remain. The score is a fictional game preference independent of culture, skin color or presentation. Saves are local to the browser, not a cloud account.
 
 Character shoulder proportions, relaxed arm rest positions and walking elbow motion are fitted to the garment cut; Japanese wide sleeves retain more room than fitted shirts. The wardrobe retains randomization and the fictional preference score but no longer explains individual scoring criteria. Saved identities, existing travel speed, physical collision radii and interaction anchors remain constrained by regression checks. Later environmental and NPC workflow refinements are separate batches.
+
+Half-curtains now stay naturally suspended in all four regions. They never enter the automatic opening or path-waiting system. The existing men’s and women’s bath-entry noren and offset screens in Japan are retained without an extra moving closure. Full privacy curtains and the existing R16 rigid doors are preserved. The separate inset-door reconstruction and bathing-pose/water changes are not part of R16.1.
 
 Door sensing follows the usable aperture and approach direction. Near activation can cause a brief safe wait outside the actual opening sweep; continued input resumes when the leaf is open. Wide leaves swinging toward an actor require more clearance than the opposite side or sliding panels. Player and NPC rules, voluntary retreat, anti-trap protection and delayed closing are shared.
 

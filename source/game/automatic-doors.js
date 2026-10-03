@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {material} from './geometry.js';
 import {createAutomaticRouting,approachingDoor,advanceDoorOpening} from './automatic-routing.js';
 import {moveWithCollision,segmentBoxIntersection} from './navigation.js';
-import {roomClosureSpecs,existingBannerCameraColliders} from './room-closures.js';
+import {roomClosureSpecs,fixedHalfCurtainSpecs,existingBannerCameraColliders} from './room-closures.js';
 
 // Operable thresholds are known to the route planner. Movement briefly reserves
 // their sampled opening workspace; cameras still collide with actual leaves and
@@ -101,18 +101,18 @@ function broadPhase(doors){
 export function createAutomaticDoors(lot,region){
   const root=new THREE.Group(),fixedSupportBoxes=[];root.name='Operable cultural doors and room curtains';lot.group.add(root);let disposed=false,version=0;
   const stats={updates:0,visitedClosures:0,poseEvaluations:0,boxEvaluations:0,collisionCandidates:0};
-  const doors=roomClosureSpecs(lot,region).map((spec,index)=>{
-    const d={...spec,apertureHeight:spec.height,height:spec.height-(spec.motion==='gather'?.030:spec.kind==='door'?.025:0),center:[...spec.center],fraction:0,hold:0,routeHold:0,index},g=new THREE.Group();g.name='Automatic '+d.kind+' / '+d.id;g.position.fromArray(d.center);if(d.axis==='z')g.rotation.y=Math.PI/2;root.add(g);d.group=g;d.leaves=[];
+  const allClosures=[...roomClosureSpecs(lot,region),...fixedHalfCurtainSpecs(lot,region)].map((spec,index)=>{
+    const d={...spec,apertureHeight:spec.height,height:spec.height-(spec.kind.includes('curtain')?.030:spec.kind==='door'?.025:0),center:[...spec.center],fraction:0,hold:0,routeHold:0,index},g=new THREE.Group();g.name=(d.motion==='fixed-overhead'?'Fixed hanging ':'Automatic ')+d.kind+' / '+d.id;g.position.fromArray(d.center);if(d.axis==='z')g.rotation.y=Math.PI/2;root.add(g);d.group=g;d.leaves=[];
     for(const side of [-1,1]){
       const pivot=new THREE.Group(),width=d.width/2-.012+(d.sideOverlap||0),runningGap=d.kind==='door'?(d.bottomClearance??0):0;
       if(runningGap<0||runningGap>.03)throw Error('Invalid authored door running gap: '+d.id);
-      const m=d.motion==='gather'?curtainLeaf(width,d.height,d.style,d.kind,d.kind==='half-curtain'?Math.max(2.35,d.apertureHeight*.60):.035):leaf(width,d.height-runningGap,d.style,side);
+      const m=d.kind.includes('curtain')?curtainLeaf(width,d.height,d.style,d.kind,d.kind==='half-curtain'?Math.max(2.35,d.apertureHeight*.60):.035):leaf(width,d.height-runningGap,d.style,side);
       // Shorten the leaf from its bottom only: top edge, jamb, pin and group
       // remain fixed. This does not waive a rug/furniture collision.
       if(runningGap)m.traverse(o=>{if(o.isMesh){o.geometry.translate(0,runningGap,0);for(const mark of o.userData.hingeStrapRanges||[])mark.center[1]+=runningGap;}});
-      pivot.add(m);g.add(pivot);d.leaves.push({side,pivot,mesh:m,width,bottom:d.kind==='half-curtain'?Math.max(2.35,d.apertureHeight*.60):runningGap,topExtra:d.motion==='gather'?.025:0});
+      pivot.add(m);g.add(pivot);d.leaves.push({side,pivot,mesh:m,width,bottom:d.kind==='half-curtain'?Math.max(2.35,d.apertureHeight*.60):runningGap,topExtra:d.kind.includes('curtain')?.025:0});
     }
-    if(d.motion==='gather'){
+    if(d.kind.includes('curtain')){
       const rail=new THREE.Mesh(new THREE.CylinderGeometry(.006,.006,d.width+.02,8),material((PALETTES[d.style]||PALETTES.palace)[2]));rail.name='Continuous curtain hanging rail';rail.rotation.z=Math.PI/2;rail.position.set(0,d.height+.015,0);rail.castShadow=rail.receiveShadow=true;g.add(rail);g.updateWorldMatrix(true,true);const b=new THREE.Box3().setFromObject(rail);fixedSupportBoxes.push({minX:b.min.x,maxX:b.max.x,minY:b.min.y,maxY:b.max.y,minZ:b.min.z,maxZ:b.max.z});g.userData.curtainRail={radius:.006,centerY:d.height+.015,clothTop:d.height,highestLoopY:d.height+.025,apertureHeight:d.apertureHeight};
     }
     if(d.surfaceTrack){
@@ -128,11 +128,15 @@ export function createAutomaticDoors(lot,region){
     d.occluders=(lot.colliders||[]).filter(b=>b.maxX>d.center[0]-d.width-7&&b.minX<d.center[0]+d.width+7&&b.maxZ>d.center[2]-d.width-7&&b.minZ<d.center[2]+d.width+7&&(b.maxY??4)>d.center[1]+1.3&&(b.minY??0)<d.center[1]+1.3);
     return d;
   });
+  const doors=allClosures.filter(d=>d.motion!=='fixed-overhead'),fixedCurtains=allClosures.filter(d=>d.motion==='fixed-overhead');
   let cameraBoxes=[],openingObstructions=new WeakSet(),frameSeconds=1/60;const previousPositions=new WeakMap(),query=broadPhase(doors),active=new Set();
   function poseDoor(d){
     stats.poseEvaluations++;
     for(const l of d.leaves){
-      if(d.motion==='gather'){
+      if(d.motion==='fixed-overhead'){
+        l.mesh.scale.x=1;l.mesh.position.x=0;
+        l.pivot.position.set(l.side*d.width/4,0,0);l.pivot.rotation.y=0;
+      }else if(d.motion==='gather'){
         const gathered=Math.min(.18,l.width*.16),scale=1-d.fraction*(1-gathered/l.width);
         l.mesh.scale.x=scale;l.mesh.position.x=0;
         // Cloth gathers wholly inside the aperture, not buried beyond the jamb.
@@ -154,6 +158,7 @@ export function createAutomaticDoors(lot,region){
   function doorBoxes(d){stats.boxEvaluations+=d.leaves.length;return d.leaves.map(l=>boxFromLeaf(l.mesh,l.width,d.height+(l.topExtra??0),l.bottom));}
   for(const d of doors){d.fraction=1;poseDoor(d);d.openBoxes=doorBoxes(d);d.fraction=0;poseDoor(d);d.boxes=doorBoxes(d);cameraBoxes.push(...d.boxes);}
   const openLeafColliders=doors.flatMap(d=>d.openBoxes),bannerBoxes=existingBannerCameraColliders(region);
+  for(const d of fixedCurtains){poseDoor(d);d.boxes=doorBoxes(d);cameraBoxes.push(...d.boxes);}
   cameraBoxes.push(...bannerBoxes,...fixedSupportBoxes);
   function publish(d,boxes){d.boxes=boxes;for(let i=0;i<boxes.length;i++)cameraBoxes[d.index*2+i]=boxes[i];version++;}
   // Lazy conservative sweep snapshots are planning data only. Restore the live
@@ -262,7 +267,7 @@ export function createAutomaticDoors(lot,region){
     get collisionVersion(){return version;},
     get planningColliders(){return openLeafColliders;},
     getState(){return doors.map(d=>({id:d.id,openingId:d.openingId,kind:d.kind,style:d.style,motion:d.motion,fraction:d.fraction,hold:d.hold,center:[...d.center],width:d.width,height:d.height,apertureHeight:d.apertureHeight,axis:d.axis}));},
-    getStats(){return {...stats,closures:doors.length,staticBannerCameraBoxes:bannerBoxes.length,active:active.size,collisionVersion:version};},
+    getStats(){return {...stats,closures:doors.length,fixedHalfCurtains:fixedCurtains.length,staticBannerCameraBoxes:bannerBoxes.length,active:active.size,collisionVersion:version};},
     dispose(){if(disposed)return;disposed=true;routing.dispose();root.traverse(o=>o.geometry?.dispose());root.removeFromParent();cameraBoxes=[];openingObstructions=new WeakSet();active.clear();for(const d of doors){d.routeHold=0;d.sweepBoxes=null;}},
     root
   };

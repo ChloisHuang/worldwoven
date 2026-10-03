@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "sourcePlan": "r15-geometry-group-plan.json",
-  "sourcePlanSha256": "ae650ce55ba10c0261ed73f2860bb1c55eda0ef8a2aeb5a4a2d0d5c4969269be",
-  "scope": "64 operable hinged, sliding and gathered closures. Fixed banners and intentionally open thresholds are excluded.",
+  "sourcePlan": "R16.1 fixed-half-curtain policy",
+  "sourcePlanSha256": "16014671e76861f80f6225beee468a8ee423d4d3b7798fe7223643f3a73a3d5d",
+  "scope": "47 operable hinged, sliding and full-curtain closures. Fixed half-curtains and source banners are covered by fixed-half-curtains and fixed-half-curtain-main; intentionally open thresholds remain excluded.",
   "legacyAliases": {
     "jp-guest-suite-door": "japan-guest-shoji",
     "private-suite-entry": "egypt-private-suite-door",
@@ -11,10 +11,10 @@
     "wing-enfilade--1": "france-private-bath"
   },
   "expectedCounts": {
-    "japan": 17,
-    "china": 29,
-    "egypt": 6,
-    "france": 12
+    "japan": 9,
+    "china": 25,
+    "egypt": 4,
+    "france": 9
   },
   "doors": [
     {
@@ -62,24 +62,6 @@
     {
       "region": "japan",
       "motion": "gather",
-      "openingId": "jp-food-prep-door",
-      "id": "jp-food-prep-door"
-    },
-    {
-      "region": "japan",
-      "motion": "gather",
-      "openingId": "jp-men-noren",
-      "id": "jp-men-noren"
-    },
-    {
-      "region": "japan",
-      "motion": "gather",
-      "openingId": "jp-women-noren",
-      "id": "jp-women-noren"
-    },
-    {
-      "region": "japan",
-      "motion": "gather",
       "openingId": "jp-men-wet-threshold",
       "id": "jp-men-wet-threshold"
     },
@@ -88,36 +70,6 @@
       "motion": "gather",
       "openingId": "jp-women-wet-threshold",
       "id": "jp-women-wet-threshold"
-    },
-    {
-      "region": "japan",
-      "motion": "gather",
-      "openingId": "jp-laundry-stair-foyer-door",
-      "id": "jp-laundry-stair-foyer-door"
-    },
-    {
-      "region": "japan",
-      "motion": "gather",
-      "openingId": "jp-apothecary-room-door",
-      "id": "jp-apothecary-room-door"
-    },
-    {
-      "region": "japan",
-      "motion": "gather",
-      "openingId": "jp-laundry-door",
-      "id": "jp-laundry-door"
-    },
-    {
-      "region": "japan",
-      "motion": "gather",
-      "openingId": "jp-washhouse-entry",
-      "id": "jp-washhouse-entry"
-    },
-    {
-      "region": "japan",
-      "motion": "gather",
-      "openingId": "jp-market-door",
-      "id": "jp-market-door"
     },
     {
       "region": "china",
@@ -242,12 +194,6 @@
     {
       "region": "china",
       "motion": "gather",
-      "openingId": "cn-tea-rear",
-      "id": "cn-tea-rear"
-    },
-    {
-      "region": "china",
-      "motion": "gather",
       "openingId": "cn-study-rear",
       "id": "cn-study-rear"
     },
@@ -272,24 +218,6 @@
     {
       "region": "china",
       "motion": "gather",
-      "openingId": "cn-kitchen-west",
-      "id": "cn-kitchen-west"
-    },
-    {
-      "region": "china",
-      "motion": "gather",
-      "openingId": "cn-kitchen-east",
-      "id": "cn-kitchen-east"
-    },
-    {
-      "region": "china",
-      "motion": "gather",
-      "openingId": "cn-kitchen-dining",
-      "id": "cn-kitchen-dining"
-    },
-    {
-      "region": "china",
-      "motion": "gather",
       "openingId": "cn-bath-washroom",
       "id": "cn-bath-washroom"
     },
@@ -310,18 +238,6 @@
       "motion": "gather",
       "openingId": "private-bedroom",
       "id": "private-bedroom"
-    },
-    {
-      "region": "egypt",
-      "motion": "gather",
-      "openingId": "dining-entry",
-      "id": "dining-entry"
-    },
-    {
-      "region": "egypt",
-      "motion": "gather",
-      "openingId": "kitchen-entry",
-      "id": "kitchen-entry"
     },
     {
       "region": "egypt",
@@ -374,6 +290,104 @@
     {
       "region": "france",
       "motion": "gather",
+      "openingId": "wing-entry-1--9.5",
+      "id": "wing-entry-1--9.5"
+    },
+    {
+      "region": "france",
+      "motion": "gather",
+      "openingId": "wing-enfilade-1",
+      "id": "wing-enfilade-1"
+    }
+  ],
+  "fixedSinceR16": [
+    {
+      "region": "japan",
+      "motion": "gather",
+      "openingId": "jp-food-prep-door",
+      "id": "jp-food-prep-door"
+    },
+    {
+      "region": "japan",
+      "motion": "gather",
+      "openingId": "jp-men-noren",
+      "id": "jp-men-noren"
+    },
+    {
+      "region": "japan",
+      "motion": "gather",
+      "openingId": "jp-women-noren",
+      "id": "jp-women-noren"
+    },
+    {
+      "region": "japan",
+      "motion": "gather",
+      "openingId": "jp-laundry-stair-foyer-door",
+      "id": "jp-laundry-stair-foyer-door"
+    },
+    {
+      "region": "japan",
+      "motion": "gather",
+      "openingId": "jp-apothecary-room-door",
+      "id": "jp-apothecary-room-door"
+    },
+    {
+      "region": "japan",
+      "motion": "gather",
+      "openingId": "jp-laundry-door",
+      "id": "jp-laundry-door"
+    },
+    {
+      "region": "japan",
+      "motion": "gather",
+      "openingId": "jp-washhouse-entry",
+      "id": "jp-washhouse-entry"
+    },
+    {
+      "region": "japan",
+      "motion": "gather",
+      "openingId": "jp-market-door",
+      "id": "jp-market-door"
+    },
+    {
+      "region": "china",
+      "motion": "gather",
+      "openingId": "cn-tea-rear",
+      "id": "cn-tea-rear"
+    },
+    {
+      "region": "china",
+      "motion": "gather",
+      "openingId": "cn-kitchen-west",
+      "id": "cn-kitchen-west"
+    },
+    {
+      "region": "china",
+      "motion": "gather",
+      "openingId": "cn-kitchen-east",
+      "id": "cn-kitchen-east"
+    },
+    {
+      "region": "china",
+      "motion": "gather",
+      "openingId": "cn-kitchen-dining",
+      "id": "cn-kitchen-dining"
+    },
+    {
+      "region": "egypt",
+      "motion": "gather",
+      "openingId": "dining-entry",
+      "id": "dining-entry"
+    },
+    {
+      "region": "egypt",
+      "motion": "gather",
+      "openingId": "kitchen-entry",
+      "id": "kitchen-entry"
+    },
+    {
+      "region": "france",
+      "motion": "gather",
       "openingId": "gallery-west-rear",
       "id": "gallery-west-rear"
     },
@@ -388,18 +402,8 @@
       "motion": "gather",
       "openingId": "core-wing--1--9.5",
       "id": "core-wing--1--9.5"
-    },
-    {
-      "region": "france",
-      "motion": "gather",
-      "openingId": "wing-entry-1--9.5",
-      "id": "wing-entry-1--9.5"
-    },
-    {
-      "region": "france",
-      "motion": "gather",
-      "openingId": "wing-enfilade-1",
-      "id": "wing-enfilade-1"
     }
-  ]
+  ],
+  "historicalR16ManifestSha256": "956eb8261e657546fea8677d9abd9200258703c5c87072c73e9a4042d144c0e8",
+  "totalOperable": 47
 }

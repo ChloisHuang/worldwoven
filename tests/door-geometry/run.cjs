@@ -38,7 +38,7 @@ function verifyPortableFiles(){
   }
   if(text.split(span.fromUniqueMarker).length!==2||digest(text.slice(text.indexOf(span.fromUniqueMarker)))!==span.upstreamSha256)throw Error('Protected V7 body changed: '+span.file);
  }
- if(manifest.doors.length!==64)throw Error('Expected 64 manifested operable closures');
+ if(!Number.isInteger(manifest.totalOperable)||manifest.doors.length!==manifest.totalOperable)throw Error('Manifested operable closure count mismatch');
  for(const region of Object.keys(manifest.expectedCounts)){
   const doors=manifest.doors.filter(d=>d.region===region);
   if(doors.length!==manifest.expectedCounts[region])throw Error('Manifest region count mismatch');
