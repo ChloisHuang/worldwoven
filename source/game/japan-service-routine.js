@@ -167,6 +167,6 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
   playerRequest(id){if(lastPlayerId&&lastPlayerId!==id)facilities.prioritize(lastPlayerId,false);interrupt(id);lastPlayerId=id;},
   isYieldingFor:id=>!disposed&&stage==='yielding'&&interruption?.id===id,
   state:()=>({stage,stageTime,cycles,side:men?'men':'women',history:history.slice(),failures:failures.slice(),facilities:facilities.state(),actors:actors.map(n=>({id:n.station.id,name:n.station.npcName,position:n.root.position.toArray(),walking:n.walking,job:n.serviceTask?.label,action:n.serviceMount?'mounted':n.serviceTask?.arrived?n.serviceTask.action:null,held:n.serviceTask?.held||null,mounted:n.serviceMount?.id||null,route:n.route.length}))}),
-  dispose(){if(disposed)return;disposed=true;unmount();release();if(!furniture.facilities)facilities.dispose();checkpoint();for(const n of actors){n.serviceMount=null;n.serviceTask=null;}},
+  dispose(){if(disposed)return;disposed=true;unmount();release();if(lastPlayerId)facilities.prioritize(lastPlayerId,false);if(!furniture.facilities)facilities.dispose();checkpoint();for(const n of actors){n.serviceMount=null;n.serviceTask=null;}},
  };
 }
