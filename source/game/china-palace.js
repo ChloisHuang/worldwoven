@@ -1,3 +1,4 @@
+import {CHINA_CULTURE_TOWER,relocateCultureFurniture} from './china-culture-tower.js';
 import {insetClosureSection} from './inset-closures.js';
 import {buildChinaRoyalChair,buildChinaDragonThrone,buildChinaThroneFootrest} from './china-royal-seating.js';
 import {buildChinaDragonBed} from './china-dragon-bed.js';
@@ -496,7 +497,7 @@ export function buildChinaPalace(G,H){
  // swing:1 opens both leaves toward world negative z, into these clear rooms.
  const automaticDoorways=[{id:'cn-hall-front',center:[0,1.415,5],width:6,height:4.315,axis:'x',style:'palace',motion:'hinge',swing:1},{id:'cn-bedroom-front',center:[-21,.215,2],width:3.2,height:3.285,axis:'x',style:'palace',motion:'hinge',swing:1}];
  const architectureProgram={gallery:{building:'hall',room:'hall-gallery',floorY:6.015,slabUnderside:5.785,ceiling:9.215,void:{minX:-6,maxX:7.8,minZ:-11,maxZ:2}},sideLaneWidth:2.15,stairways,levels,lightingZones,raisedBuildings:[{id:'hall',offset:1.2,floorY:1.415},{id:'archive',offset:.6,floorY:.815}],loft:{building:'archive',room:'archive-loft',floorY:4.215,slabUnderside:3.985,ceiling:7.215,stairHole:{minX:-9.2,maxX:-4.05,minZ:-32,maxZ:-25.4}},revision:'R14 raised palace and reachable rear viewing loft',axisWidth:12,perimeterWalls,buildings,courts,minimumBuildingGap:5,sourceStudy:{url:'https://www.sglynp.com/t182446',creator:'mareasia',method:'Effect-image visual study; original procedural geometry; no assets reused'}};
- group.userData.architectureProgram=architectureProgram;group.userData.facilities=facilities;group.userData.interiorRooms=interiorRooms;group.userData.doorways=doorways;group.userData.explorationTargets=explorationTargets;
+ architectureProgram.cultureTower=CHINA_CULTURE_TOWER;group.userData.architectureProgram=architectureProgram;group.userData.facilities=facilities;group.userData.interiorRooms=interiorRooms;group.userData.doorways=doorways;group.userData.explorationTargets=explorationTargets;
  // Preserve actual named geometry groups so independent architecture tests can
  // inspect each detached envelope, not only trust declarative metadata.
  for(const {g,r}of Object.values(rooms)){packStatic(g);packStatic(r);}packStatic(gate);packStatic(gateRoof);for(const w of [...exterior.children].filter(o=>o.name.startsWith('China perimeter ')))packStatic(w);
