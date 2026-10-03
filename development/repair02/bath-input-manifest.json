@@ -1,0 +1,23 @@
+{
+  "time": "2026-10-03T06:55Z",
+  "status": "syntax-checked; no candidate render or contact test yet",
+  "source": "/workspace/shared/worldwoven-r17-repairs/source",
+  "files": {
+    "japan-bathhouse.js": "4fae11ea01391af61cf8a28cb6bb8e17f30dae6832e26e030e544d6ad752b672",
+    "furniture-interactions.js": "5d6776e00cadb7c5233cd9a55de78f5306a12f941e96d235bee0384de904806a",
+    "characters.js": "e87b28e57bb37f3a62544b9e03ff3be02daf4d419ac97a7587e76efaac1dc226",
+    "approved-surfaces.js": "49b3eb8c72a57de9fb3c0c0072a564d2d827f7851e96fc6677c8a31e942e7844",
+    "main.js": "9747b519ce1f102a69dd93e9b31e039b4acf02fffb2d91edc0e116eac2d1ef8d"
+  },
+  "renderSha256": "8cf56c6853f17ba60881fda49f5cde5c06405c61510433b229b412269ce0be26",
+  "candidate": {
+    "bottomY": 3.8805,
+    "seatY": 4.1,
+    "waterY": 4.54,
+    "stoneRimY": 4.66,
+    "woodRimTopY": 4.74,
+    "style": "Japan-only modest opaque one-piece swimwear, fitted shorts; existing wardrobe/face geometry unchanged",
+    "supports": "3-pass posterior fit to real seat + sole to real original floor + back to east inner wall, each independent",
+    "navigation": "retaining basin closed, exact own proxy blocks normal movement; old pool interior IDs repurposed poolside mounted-action approach with previous coordinates and furniture mapping"
+  }
+}
