@@ -42,7 +42,7 @@ export function cutOrbitalOpenings(head,{masc,traits}){
  }
  const replacement=new THREE.BufferGeometry();replacement.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));replacement.setIndex(indices);replacement.computeVertexNormals();replacement.userData.orbitalCutTriangles=cut;g.dispose();m.geometry=replacement;
 }
-function nasalLayout(side,traits){const n=traits?.noseSize??1,w=traits?.noseWidth??1;return{side,cx:side*.0085*w,cy:1.542+(1.531-1.542)*n,rx:.0027*w,ry:.0011*n};}
+function nasalLayout(side,traits){const n=traits?.noseSize??1,w=traits?.noseWidth??1;return{side,cx:side*.0085*w,cy:1.554+(1.544-1.554)*n,rx:.0034*w,ry:.0014*n};}
 function nasalPoint(n,u,r){const a=u*Math.PI*2,x=n.cx+Math.cos(a)*n.rx*r,y=n.cy+Math.sin(a)*n.ry*r-n.side*(x-n.cx)*.12;return[x,y];}
 export function buildNasalRecesses(head,{traits,facialSurface,colors:C}){
  for(const side of[-1,1]){

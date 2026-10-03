@@ -5,11 +5,11 @@ import * as THREE from 'three';
 const mix=(a,b,t)=>a+(b-a)*t,clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const G=(x,y,cx,cy,sx,sy)=>Math.exp(-(((x-cx)/sx)**2)-((y-cy)/sy)**2);
 export function faceRings(masc,traits){
- const rs=[[1.455,.010,.024,0,.010],[1.461,.022,.035,0,.016],[1.474,.034,.050,0,.017],[1.487,masc?.047:.044,.060,0,.010],[1.502,masc?.063:.058,.067,0,.001],[1.526,.075,.071,0,-.004],[1.552,.084,.075,0,-.004],[1.577,.086,.076,0,-.005],[1.610,.084,.076,0,-.005],[1.643,.080,.071,0,-.006],[1.671,.063,.060,0,-.007],[1.695,.037,.037,0,-.008],[1.707,.001,.001,0,-.008]];
- const width=traits?.jawWidth??1;for(const r of rs){const t=r[0]<1.49?clamp((r[0]-1.455)/.035):clamp((1.55-r[0])/.06);r[1]*=1+(width-1)*t;}return rs;
+ const rs=[[1.472,.005,.012,0,.030],[1.480,.021,.032,0,.027],[1.491,.034,.044,0,.018],[1.507,masc?.050:.047,.061,0,.006],[1.528,masc?.066:.061,.074,0,-.006],[1.550,.080,.081,0,-.011],[1.576,.086,.085,0,-.014],[1.607,.084,.086,0,-.017],[1.638,.079,.080,0,-.018],[1.672,.062,.063,0,-.017],[1.698,.035,.035,0,-.012],[1.714,.001,.001,0,-.009]];
+ const width=traits?.jawWidth??1;for(const r of rs){const t=r[0]<1.507?clamp((r[0]-1.472)/.035):clamp((1.560-r[0])/.053);r[1]*=1+(width-1)*t;}return rs;
 }
 // Fixed adult study after inspecting SGLY 171393: wider pupil separation,
-// longer eye-to-nose segment, broad full lips, and a short lip/chin profile arc.
+// compact eye-to-nose segment, broad full lips, and a rounded lip/chin profile arc.
 // Values are original anatomy, not extracted meshes or a likeness transfer.
 function c2Plan(knots,firstSlope=null){
  const n=knots.length,a=new Float64Array(n),pivot=new Float64Array(n),upper=new Float64Array(n);pivot[0]=firstSlope===null?1:2*(knots[1]-knots[0]);upper[0]=firstSlope===null?0:(knots[1]-knots[0])/pivot[0];
@@ -25,36 +25,38 @@ const OUTLINE_PLAN=c2Plan(faceRings(false,null).map(r=>r[0])),outlineCache=new M
 function outlineAt(y,masc,traits){
  const key=String(masc)+':'+String(traits?.jawWidth??1);let curves=outlineCache.get(key);
  if(!curves){const rows=faceRings(masc,traits);curves=[1,2,4].map(k=>OUTLINE_PLAN.curve(rows.map(r=>r[k])));if(outlineCache.size>=16)outlineCache.delete(outlineCache.keys().next().value);outlineCache.set(key,curves);}
- const yy=clamp(y,1.455,1.707);return[yy,curves[0](yy),curves[1](yy),0,curves[2](yy)];
+ const yy=clamp(y,1.472,1.714);return[yy,curves[0](yy),curves[1](yy),0,curves[2](yy)];
 }
 // One shared bicubic front surface. Adjacent rows carry the orbital rim into
 // the nose root, upper cheek, muzzle and chin rather than summing local bumps.
-const FACE_X=[0,.008,.018,.030,.0435,.057,.070,.083];
+const FACE_X=[0,.008,.017,.029,.044,.059,.074,.086];
 const X_PLAN=c2Plan(FACE_X,0);
 const FACE_ROWS=[
- [1.474,[.077,.076,.072,.060,.044,.026,.012,0]],
- [1.487,[.0765,.076,.075,.070,.057,.040,.020,0]],
- [1.500,[.0788,.0785,.0775,.0745,.064,.048,.026,0]],
- [1.514,[.0793,.0790,.078,.075,.066,.050,.030,.010]],
- [1.529,[.0790,.0785,.076,.073,.067,.054,.032,.012]],
- [1.536,[.0845,.0828,.077,.073,.067,.058,.041,.016]],
- [1.544,[.0910,.0868,.0775,.072,.069,.061,.047,.020]],
- [1.556,[.0870,.0828,.0765,.071,.069,.064,.052,.023]],
- [1.577,[.0825,.0798,.0735,.068,.069,.063,.047,.021]],
- [1.594,[.079,.076,.069,.062,.060,.056,.044,.017]],
- [1.614,[.077,.0765,.075,.072,.069,.063,.044,.021]],
- [1.640,[.075,.075,.074,.071,.066,.058,.043,.017]],
- [1.665,[.060,.060,.059,.055,.047,.036,.020,0]]
+ [1.480,[.066,.065,.061,.050,.034,.021,.007,0]],
+ [1.491,[.072,.0715,.069,.061,.048,.029,.012,0]],
+ [1.503,[.071,.071,.072,.067,.054,.035,.015,0]],
+ [1.512,[.077,.077,.076,.070,.056,.039,.021,.004]],
+ [1.519,[.079,.079,.077,.071,.060,.046,.026,.006]],
+ [1.527,[.081,.080,.076,.072,.064,.052,.032,.009]],
+ [1.536,[.078,.078,.077,.074,.069,.057,.037,.010]],
+ [1.544,[.081,.085,.082,.076,.071,.061,.041,.012]],
+ [1.554,[.098,.094,.082,.075,.073,.064,.044,.014]],
+ [1.569,[.091,.086,.077,.073,.075,.067,.045,.014]],
+ [1.585,[.082,.079,.073,.068,.069,.061,.037,.010]],
+ [1.601,[.077,.076,.072,.064,.062,.053,.033,.008]],
+ [1.616,[.079,.079,.078,.076,.072,.060,.039,.011]],
+ [1.637,[.079,.079,.078,.074,.068,.057,.039,.012]],
+ [1.665,[.068,.068,.067,.064,.057,.044,.025,.004]]
 ].map(([y,z])=>[y,X_PLAN.curve(z)]);
 const Y_PLAN=c2Plan(FACE_ROWS.map(([y])=>y));
 const smooth=(a,b,v)=>{const t=clamp((v-a)/(b-a));return t*t*t*(t*(t*6-15)+10);};
 const frontNet=(x,y)=>Y_PLAN.curve(FACE_ROWS.map(([,row])=>row(Math.abs(x))))(y);
 export function coherentFaceSurface(x,y,masc=false,traits=null){
  const r=outlineAt(y,masc,traits),q=Math.abs(x/r[1]),c=Math.sqrt(Math.max(0,1-q*q)),base=r[4]+r[2]*c;
- const blend=(1-smooth(.83,.995,q))*smooth(1.455,1.474,y)*(1-smooth(1.665,1.696,y));
+ const blend=(1-smooth(.83,.995,q))*smooth(1.472,1.480,y)*(1-smooth(1.665,1.704,y));
  let z=frontNet(x,y);const n=traits?.noseSize??1,w=traits?.noseWidth??1,s=traits?.socketDepth??1;
- if(n!==1||w!==1){const region=(1-smooth(.018,.030,Math.abs(x)))*smooth(1.518,1.531,y)*(1-smooth(1.599,1.616,y)),root=frontNet(.026,y),shaped=root+(frontNet(x/w,1.542+(y-1.542)/n)-root)*n;z=mix(z,shaped,region);}
- if(s!==1)z-=.006*(s-1)*(G(x,y,-.0435,1.594,.022,.012)+G(x,y,.0435,1.594,.022,.012));
+ if(n!==1||w!==1){const region=(1-smooth(.018,.030,Math.abs(x)))*smooth(1.530,1.544,y)*(1-smooth(1.603,1.620,y)),root=frontNet(.026,y),shaped=root+(frontNet(x/w,1.554+(y-1.554)/n)-root)*n;z=mix(z,shaped,region);}
+ if(s!==1)z-=.006*(s-1)*(G(x,y,.044*-1,1.601,.022,.012)+G(x,y,.044,1.601,.022,.012));
  return mix(base,z,blend);
 }
 export function buildCoherentHead(head,{masc,traits,color}){
@@ -62,7 +64,7 @@ export function buildCoherentHead(head,{masc,traits,color}){
  // Keep a bounded grid while concentrating samples where the nose openings,
  // lips and orbital boundaries require curvature. The back needs fewer rows.
  for(const[a,b,n]of[[-Math.PI,-.85,32],[-.85,-.30,16],[-.30,.30,32],[.30,.85,16],[.85,Math.PI,32]])for(let i=0;i<n;i++)angles.push(mix(a,b,i/n));angles.push(Math.PI);
- for(const[a,b,n]of[[1.455,1.480,10],[1.480,1.535,28],[1.535,1.555,20],[1.555,1.620,26],[1.620,1.707,18]])for(let i=0;i<n;i++)heights.push(mix(a,b,i/n));heights.push(1.707);
+ for(const[a,b,n]of[[1.472,1.499,12],[1.499,1.540,22],[1.540,1.565,24],[1.565,1.627,28],[1.627,1.714,18]])for(let i=0;i<n;i++)heights.push(mix(a,b,i/n));heights.push(1.714);
  const positions=[],indices=[];
  for(const y of heights){
   const r=outlineAt(y,masc,traits);
@@ -74,8 +76,8 @@ export function buildCoherentHead(head,{masc,traits,color}){
 }
 function grid(g,name,nu,nv,fn,color){const p=[],ix=[];for(let j=0;j<=nv;j++)for(let i=0;i<=nu;i++)p.push(...fn(i/nu,j/nv));for(let j=0;j<nv;j++)for(let i=0;i<nu;i++){const a=j*(nu+1)+i,b=a+1,c=a+nu+1,d=c+1;ix.push(a,b,c,b,d,c);}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(p,3));geo.setIndex(ix);geo.computeVertexNormals();const m=new THREE.Mesh(geo,{color:new THREE.Color(color),isMaterial:false});m.name=name;g.add(m);return m;}
 export function buildCoherentMouth(h,{masc,facialSurface,colors:C}){
- const hw=masc?.0315:.0305;
- const seam=u=>1.504-.0014*Math.sin(Math.PI*u)+.0005*Math.cos(4*Math.PI*u);
+ const hw=masc?.0300:.0290;
+ const seam=u=>1.519-.0014*Math.sin(Math.PI*u)+.0005*Math.cos(4*Math.PI*u);
  for(const up of[true,false]){
   grid(h,up?'upper-lip':'lower-lip',32,8,(u,v)=>{const x=(u*2-1)*hw,taper=Math.sin(Math.PI*u)**.82,bow=1-.25*Math.exp(-((x/.0035)**2)),height=up?.0085*bow:.0110,y=seam(u)+(up?1:-1)*height*taper*v,z=facialSurface(x,y)+.00045;return[x,y,z];},new THREE.Color(C.skin).lerp(new THREE.Color(0x925e5b),up?.46:.36).getHex());
 
