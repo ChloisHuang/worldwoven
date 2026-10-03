@@ -14,13 +14,14 @@ function packStatic(root,skip=null){
     // Color is a vertex attribute, so the original exact palette survives while
     // identically configured toon materials share a single draw call.
     const mat=m.material,key=JSON.stringify([mat.type,mat.opacity,mat.transparent,mat.side,mat.blending,mat.depthWrite,mat.depthTest,mat.alphaTest,mat.wireframe,mat.flatShading,mat.fog,mat.emissive?.getHex(),mat.emissiveIntensity,mat.gradientMap?.uuid,mat.map?.uuid,mat.alphaMap?.uuid,mat.normalMap?.uuid]);let b=buckets.get(key);
-    if(!b){const material=mat.clone();material.color.set(0xffffff);material.vertexColors=true;b={material,parts:[],size:0};buckets.set(key,b);}
+    if(!b){const material=mat.clone();material.color.set(0xffffff);material.vertexColors=true;b={material,parts:[],size:0,mountRanges:[]};buckets.set(key,b);}
     let geo=m.geometry.clone();geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inverse,m.matrixWorld));
     if(geo.index){const unindexed=geo.toNonIndexed();geo.dispose();geo=unindexed;}
     if(!geo.attributes.normal)geo.computeVertexNormals();
     const count=geo.attributes.position.count,colors=new Float32Array(count*3),old=geo.attributes.color;
     for(let i=0;i<count;i++){colors[i*3]=mat.color.r*(old?old.getX(i):1);colors[i*3+1]=mat.color.g*(old?old.getY(i):1);colors[i*3+2]=mat.color.b*(old?old.getZ(i):1);}
     geo.setAttribute('color',new THREE.BufferAttribute(colors,3));
+    for(const mark of m.userData.hingeMountRanges||[])b.mountRanges.push({firstTriangle:b.size/3+mark.firstTriangle,triangleCount:mark.triangleCount,solidId:mark.solidId});
     b.parts.push(geo);b.size+=count;
   }
   for(const m of meshes){m.parent.remove(m);m.geometry.dispose();}
@@ -28,7 +29,7 @@ function packStatic(root,skip=null){
     const position=new Float32Array(b.size*3),normal=new Float32Array(b.size*3),color=new Float32Array(b.size*3),uv=new Float32Array(b.size*2);let offset=0;
     for(const geo of b.parts){const count=geo.attributes.position.count;position.set(geo.attributes.position.array,offset*3);normal.set(geo.attributes.normal.array,offset*3);color.set(geo.attributes.color.array,offset*3);if(geo.attributes.uv)uv.set(geo.attributes.uv.array,offset*2);offset+=count;geo.dispose();}
     const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(position,3));geometry.setAttribute('normal',new THREE.BufferAttribute(normal,3));geometry.setAttribute('color',new THREE.BufferAttribute(color,3));geometry.setAttribute('uv',new THREE.BufferAttribute(uv,2));geometry.computeBoundingSphere();
-    const mesh=new THREE.Mesh(geometry,b.material);mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
+    const mesh=new THREE.Mesh(geometry,b.material);mesh.userData.hingeMountRanges=b.mountRanges;mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
   }
   // All palm ribs share one thin-line style; batch them without drawing joins
   // between unrelated fronds.
@@ -363,12 +364,13 @@ export function buildEgypt(){
 
 // R5 closed-room architecture is independent of the 2D walking map. Lintels
 // collide with the close camera at their real height, never with a walking avatar.
-function frenchArchitecturalBox(g,nav,camera,x,y,z,w,h,d,color,walkBlock=false){
- G.box(g,x,y,z,w,h,d,color);camera.push({minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2});
+function frenchArchitecturalBox(g,nav,camera,x,y,z,w,h,d,color,walkBlock=false,mountWall=null){
+ const mesh=G.box(g,x,y,z,w,h,d,color),cameraSolid={minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2};camera.push(cameraSolid);
  if(walkBlock)G.collider(nav,x,z,w,d);
+ if(walkBlock&&mountWall){mesh.updateWorldMatrix(true,false);const b=new THREE.Box3().setFromObject(mesh),id='fr-wall:'+mountWall.axis+':'+mountWall.plane+':'+[x,y,z,w,h,d].join(',');cameraSolid.hingeMountSolidId=id;mesh.userData.hingeMountRanges=[{firstTriangle:0,triangleCount:(mesh.geometry.index?.count??mesh.geometry.attributes.position.count)/3,solidId:id}];(g.userData.hingeMountSolids??=[]).push({id,kind:'structural-wall',source:'frenchRoomWall',axis:mountWall.axis,plane:mountWall.plane,bounds:{minX:b.min.x,maxX:b.max.x,minY:b.min.y,maxY:b.max.y,minZ:b.min.z,maxZ:b.max.z}});}
 }
 function frenchRoomWall(g,nav,camera,{axis='x',at,from,to,bottom=.2,top=4.45,depth=.26,color=0xd6be96,openings=[]}){
- let cursor=from;const piece=(a,b,lo,hi,block)=>{if(b-a<.01||hi-lo<.01)return;const mid=(a+b)/2;frenchArchitecturalBox(g,nav,camera,axis==='x'?mid:at,(lo+hi)/2,axis==='x'?at:mid,axis==='x'?b-a:depth,hi-lo,axis==='x'?depth:b-a,color,block);};
+ let cursor=from;const piece=(a,b,lo,hi,block)=>{if(b-a<.01||hi-lo<.01)return;const mid=(a+b)/2;frenchArchitecturalBox(g,nav,camera,axis==='x'?mid:at,(lo+hi)/2,axis==='x'?at:mid,axis==='x'?b-a:depth,hi-lo,axis==='x'?depth:b-a,color,block,{axis,plane:at});};
  for(const o of [...openings].sort((a,b)=>a.from-b.from)){piece(cursor,o.from,bottom,top,true);piece(o.from,o.to,bottom,o.bottom??bottom,(o.bottom??bottom)>bottom+.1);piece(o.from,o.to,o.top,top,false);cursor=o.to;}piece(cursor,to,bottom,top,true);
 }
 function frenchGlazedWindow(g,x,y,z,w,h,wood=0xe7d2ad,axis='x',camera=null){
@@ -564,7 +566,32 @@ export function buildFrance({pack=true}={}){
   group.name='白鸢王宫';roofGroup.name='皇家宫邸 · 连续天花与栏杆屋顶';group.add(roofGroup);
   const C={ivory:0xf4f2e9,white:0xfffdf5,stone:0xd9decf,sage:0xb6cbb5,green:0x3e7259,emerald:0x245440,gold:0xc7aa61,lightGold:0xe3cb87,wood:0xb69a72,glass:0xbdd8cb};
   const floorY=.23,ceilingY=5.25;
+  // Finished surfaces differ from the structural .23m slab. Each threshold
+  // joins its actual finish; its original opening top and normal12mm gap stay
+  // explicit. a/b remain the original route probes, not leaf-base measurements.
+  const finishedDoorSills=[
+    {id:'front-entry',x:0,z:3.5,w:3.8,d:.30,base:.13,bottom:.258,top:4.12},
+    {id:'rear-entry',x:0,z:-13.5,w:3.2,d:.30,base:0,bottom:.258,top:4.12},
+    {id:'gallery-east-front',x:3,z:-1,w:.30,d:2.6,bottom:.258,top:3.9},
+    {id:'enfilade-east',x:6.85,z:-6.5875,w:2.2,d:.325,bottom:.252,top:3.9},
+    {id:'wing-entry--1--9.5',x:-17,z:-9.5,w:.30,d:2.3,bottom:.264,top:3.9}
+  ];
   const box=(x,y,z,w,h,d,c,parent=group)=>G.box(parent,x,y,z,w,h,d,c);
+  function finishedFloorTile(x,y,z,w,h,d,c){
+    // Replace only overlap with a same-height sill: no coplanar tile/sill faces.
+    let parts=[{x0:x-w/2,x1:x+w/2,z0:z-d/2,z1:z+d/2}];
+    for(const s of finishedDoorSills){
+      const cut={x0:s.x-s.w/2,x1:s.x+s.w/2,z0:s.z-s.d/2,z1:s.z+s.d/2},next=[];
+      for(const p of parts){
+        const x0=Math.max(p.x0,cut.x0),x1=Math.min(p.x1,cut.x1),z0=Math.max(p.z0,cut.z0),z1=Math.min(p.z1,cut.z1);
+        if(x0>=x1||z0>=z1){next.push(p);continue;}
+        if(p.x0<x0)next.push({...p,x1:x0});if(x1<p.x1)next.push({...p,x0:x1});
+        if(p.z0<z0)next.push({x0,x1,z0:p.z0,z1:z0});if(z1<p.z1)next.push({x0,x1,z0:z1,z1:p.z1});
+      }
+      parts=next;
+    }
+    for(const p of parts)box((p.x0+p.x1)/2,y,(p.z0+p.z1)/2,p.x1-p.x0,h,p.z1-p.z0,c);
+  }
   const block=(x,y,z,w,h,d,c,parent=group)=>{box(x,y,z,w,h,d,c,parent);G.collider(colliders,x,z,w,d);cameraColliders.push({minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2});};
   const cameraBox=(x,y,z,w,h,d)=>cameraColliders.push({minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2});
   const wall=o=>frenchRoomWall(group,colliders,cameraColliders,{bottom:.23,top:ceilingY,depth:.30,color:C.ivory,...o});
@@ -788,13 +815,22 @@ export function buildFrance({pack=true}={}){
     for(let k=0;k<9;k++){const xx=-w/2+k*w/8;G.sphere(q,xx,4.32-.26*Math.sin(k*Math.PI/8),.28,.25,C.green,1.15,.7,.42);}
     cameraBox(x,2.72,z,rot? .06:w,3.64,rot?w:.06);
   }
-  function doorway(x,z,w=2.5,rot=0){
-    const q=local(x,z,rot);
-    for(const side of [-1,1]){G.box(q,side*(w/2+.08),2.11,0,.18,3.76,.42,C.white);G.box(q,side*(w/2+.10),2.1,.245,.045,3.50,.04,C.gold);G.box(q,side*(w/2+.08),.39,0,.35,.30,.48,C.stone);}
-    G.box(q,0,4.03,0,w+.50,.28,.45,C.white);G.box(q,0,4.19,.10,w+.62,.065,.43,C.gold);
-    archBand(q,0,.13,w+.37,4.17,.45,C.white,.28);
-    G.sphere(q,0,4.65,.16,.22,C.gold,1,.90,.25);
-    for(const side of [-1,1]){const leaf=G.sphere(q,side*.29,4.52,.17,.22,C.gold,1.6,.30,.20);leaf.rotation.z=side*.25;}
+  function doorway(x,z,w=2.5,rot=0,openingTop=3.9){
+    const q=local(x,z,rot),lift=openingTop-3.9,inner=w/2+.012;
+    q.name='Joined doorway casing '+x+','+z;
+    // The casing and outward-flared foot both stay outside the real aperture.
+    // Keep their inner edges aligned, their backing joined, and the foot on
+    // the finished slab. These are solid jambs, never a hinge-contact waiver.
+    const solidPart=(m,name)=>{m.name=name;m.updateWorldMatrix(true,false);const b=new THREE.Box3().setFromObject(m);const c={minX:b.min.x,maxX:b.max.x,minY:b.min.y,maxY:b.max.y,minZ:b.min.z,maxZ:b.max.z};if(name==='White joined casing'){const id='fr-casing:'+x+','+z+','+w+','+rot+','+Math.sign(m.position.x);(group.userData.hingeMountSolids??=[]).push({id,kind:'door-casing',source:'joined-doorway-casing',axis:rot?'z':'x',plane:rot?x:z,bounds:{...c},openingWidth:w,center:[x,floorY,z]});c.hingeMountSolidId=id;m.userData.hingeMountRanges=[{firstTriangle:0,triangleCount:(m.geometry.index?.count??m.geometry.attributes.position.count)/3,solidId:id}];}colliders.push({...c});cameraColliders.push({...c});return m;};
+    for(const side of [-1,1]){
+      solidPart(G.box(q,side*(inner+.09),2.11+lift/2,0,.18,3.76+lift,.42,C.white),'White joined casing');
+      G.box(q,side*(inner+.09),2.1+lift/2,.23,.045,3.50+lift,.04,C.gold);
+      solidPart(G.box(q,side*(inner+.175),.385,0,.35,.31,.48,C.stone),'Outward-flared stone foot');
+    }
+    G.box(q,0,4.04+lift,0,w+.50,.28,.45,C.white); // underside equals openingTopG.box(q,0,4.19+lift,.10,w+.62,.065,.43,C.gold);
+    archBand(q,0,.13,w+.37,4.17+lift,.45,C.white,.28);
+    G.sphere(q,0,4.65+lift,.16,.22,C.gold,1,.90,.25);
+    for(const side of [-1,1]){const leaf=G.sphere(q,side*.29,4.52+lift,.17,.22,C.gold,1.6,.30,.20);leaf.rotation.z=side*.25;}
   }
   function mirror(q,x,y,z,w=1.3,h=2.3){
     const m=assembly(local(x,z,0,q),'Arched bevelled gilt mirror','mirror');m.position.y=y;
@@ -991,14 +1027,16 @@ export function buildFrance({pack=true}={}){
   for(const s of [-1,1])wall({at:-6.6,from:s<0?-10.8:3,to:s<0?-3:10.8,openings:[{from:s*6.85-1.10,to:s*6.85+1.10,top:3.9}]});
   for(const x of [-3,3])for(const z of [-9.5,-1])doorway(x,z,2.6,Math.PI/2);
   for(const x of [-6.85,6.85])doorway(x,-6.6,2.2);
-  doorway(0,3.5,3.8);doorway(0,-13.5,3.2);
+  doorway(0,3.5,3.8,0,4.12);doorway(0,-13.5,3.2,0,4.12);
   for(const x of [-8.55,-5.55,5.55,8.55])windowAt(x,3.5,1.7,Math.PI);
   for(const x of [-7.1,7.1])windowAt(x,-13.5,2.4);
   for(const x of [-10.8,10.8])for(const [z,w]of [[-12,1.3],[-2.2,2.65]])windowAt(x,z,w,x<0?Math.PI/2:-Math.PI/2);
   // Tall white/gilt panel sequences, interleaved with mirrored green salons.
   for(const x of [-3,3]){
     const q=local(x,-5, x<0?Math.PI/2:-Math.PI/2);
-    for(const u of [-6.5,-.55,.95,5.9])panel(q,u,0,1.28,u===.95);
+    // Place both mirrored sequences by their real world-wall bays. Reusing
+    // local offsets mirrored one panel into the rear door and grazed the front.
+    for(const z of [-11.9,-6,-4.45,1.15])panel(q,(x<0?-1:1)*(z+5),0,1.28,z===-6);
   }
   for(const x of [-10.62,10.62]){
     const q=local(x,0,x<0?Math.PI/2:-Math.PI/2);
@@ -1012,10 +1050,21 @@ export function buildFrance({pack=true}={}){
   // Oak parquet is subordinate to the ivory and green architectural palette.
   for(const [xc,zc,w,d]of [[-6.9,-1.55,7.5,9.75],[6.9,-1.55,7.5,9.75],[6.9,-10.05,7.5,6.6]]){
     box(xc,.242,zc,w,.02,d,0xb29c79);
-    for(let xx=xc-w/2+.35;xx<xc+w/2-.2;xx+=.7)for(let zz=zc-d/2+.35;zz<zc+d/2-.2;zz+=.7){G.box(group,xx,.256,zz,.45,.016,.45,((Math.floor(xx*10)+Math.floor(zz*10))%3)?0xcbb68f:0x9b805e,Math.PI/4);}
-    for(const s of [-1,1]){box(xc+s*(w/2-.12),.273,zc,.06,.016,d-.22,C.gold);box(xc,.273,zc+s*(d/2-.12),w-.22,.016,.06,C.gold);}
+    // The art-room door crosses a plain parquet landing. End only the raised
+    // inlay/border at that landing; retain the continuous .252m timber finish.
+    const artRoom=zc===-10.05,stop={minX:5.55,maxX:8.15,minZ:-8.08,maxZ:-6.40},diamondHalf=.45/Math.SQRT2;
+    for(let xx=xc-w/2+.35;xx<xc+w/2-.2;xx+=.7)for(let zz=zc-d/2+.35;zz<zc+d/2-.2;zz+=.7){
+      if(artRoom&&xx+diamondHalf>stop.minX&&xx-diamondHalf<stop.maxX&&zz+diamondHalf>stop.minZ&&zz-diamondHalf<stop.maxZ)continue;
+      G.box(group,xx,.256,zz,.45,.016,.45,((Math.floor(xx*10)+Math.floor(zz*10))%3)?0xcbb68f:0x9b805e,Math.PI/4);
+    }
+    for(const s of [-1,1]){
+      box(xc+s*(w/2-.12),.273,zc,.06,.016,d-.22,C.gold);
+      const borderZ=zc+s*(d/2-.12),left=xc-(w-.22)/2,right=xc+(w-.22)/2;
+      if(artRoom&&s===1){for(const [a,b]of [[left,stop.minX],[stop.maxX,right]])box((a+b)/2,.273,borderZ,b-a,.016,.06,C.gold);}
+      else box(xc,.273,borderZ,w-.22,.016,.06,C.gold);
+    }
   }
-  for(let x=-2.5;x<=2.5;x+=1)for(let z=-13;z<=3;z++)box(x,.245,z,.99,.026,.99,(Math.round(x+.5)+z)%2?C.ivory:0x739482);
+  for(let x=-2.5;x<=2.5;x+=1)for(let z=-13;z<=3;z++)finishedFloorTile(x,.245,z,.99,.026,.99,(Math.round(x+.5)+z)%2?C.ivory:0x739482);
   for(const z of [-10,-5,0]){G.cyl(group,0,.27,z,.69,.69,.017,C.ivory,32);G.torus(group,0,.288,z,.59,.021,C.gold);for(let i=0;i<8;i++){let a=i*Math.PI/4;G.sphere(group,Math.sin(a)*.36,.29,z+Math.cos(a)*.36,.13,C.gold,.40,.055,1.22).rotation.y=a;}}
   for(let x=-10.25;x<-3.3;x+=.8)for(let z=-13.1;z<-6.9;z+=.8)box(x,.246,z,.79,.025,.79,(Math.round(x*5)+Math.round(z*5))%2?C.ivory:0xcbd7c7);
   // Five full ceilings stay present in TPS. Coffers are shallow, fixtures high.
@@ -1068,14 +1117,17 @@ export function buildFrance({pack=true}={}){
   bread(group,-7.0,1.70,-12.05,1.0);G.vessel(group,-4.55,1.56,-12.12,C.white,.55);
   for(let i=0;i<4;i++){G.cyl(group,-9.0+i*.5,3.65,-13.22,.18,.18,.06,0xc29a5b,16).rotation.x=Math.PI/2;box(-9+i*.5,3.91,-13.19,.032,.35,.04,C.gold);}
   // Royal art cabinet: original architectural landscape canvas and still life.
-  G.rug(group,6.9,-9.8,5.8,4.8,0xd4dfc9,C.gold);
+  // Retain the north rug edge at−12.2, with a clear hinged-door landing.
+  G.rug(group,6.9,-10.175,5.8,4.05,0xd4dfc9,C.gold);
   const easel=local(7.1,-11.05);for(const s of [-1,1]){let m=G.box(easel,s*.64,1.58,0,.095,2.68,.13,C.gold);m.rotation.z=s*.14;}
   G.box(easel,0,1.01,.04,1.9,.12,.32,C.gold);G.box(easel,0,2.66,0,.10,1.18,.10,C.gold);G.box(easel,0,1.95,.09,1.92,1.78,.08,C.gold);G.box(easel,0,1.95,.145,1.77,1.64,.025,0xd2e1d4);
   G.box(easel,0,1.50,.174,1.74,.58,.022,0x8eab7d);G.box(easel,0,1.97,.19,.88,.55,.025,C.white);G.box(easel,0,2.28,.21,1.02,.11,.025,C.gold);for(const xx of [-.32,-.12,.12,.32])G.box(easel,xx,1.96,.224,.056,.46,.017,C.sage);G.sphere(easel,.54,2.49,.19,.13,C.lightGold,1,1,.1);
   G.collider(colliders,7.1,-11.05,2.0,1.2);cameraBox(7.1,1.59,-11.05,2.0,2.82,1.2);
-  feetTable(group,colliders,9.1,-7.60,2.2,1.15,C.gold,1.04);box(9.1,1.15,-7.60,2.3,.10,1.23,C.ivory);cameraBox(9.1,.70,-7.60,2.3,1.25,1.23);
-  for(let i=0;i<5;i++)G.cyl(group,8.30+i*.34,1.30,-7.60,.105,.1,.22,[C.green,C.sage,C.white,C.gold,0x719c9a][i],8);
-  G.vessel(group,9.92,1.22,-7.56,C.sage,.4);for(let i=0;i<5;i++)box(9.86+i*.025,1.84,-7.56,.015,.60,.015,C.gold);
+  // Move the complete painting-supply console250mm into its wall bay,
+  // leaving the enfilade leaf's actual maximumX8.104 a96mm running margin.
+  feetTable(group,colliders,9.35,-7.60,2.2,1.15,C.gold,1.04);box(9.35,1.15,-7.60,2.3,.10,1.23,C.ivory);cameraBox(9.35,.70,-7.60,2.3,1.25,1.23);
+  for(let i=0;i<5;i++)G.cyl(group,8.55+i*.34,1.30,-7.60,.105,.1,.22,[C.green,C.sage,C.white,C.gold,0x719c9a][i],8);
+  G.vessel(group,10.17,1.22,-7.56,C.sage,.4);for(let i=0;i<5;i++)box(10.11+i*.025,1.84,-7.56,.015,.60,.015,C.gold);
   chairAt(4.7,-11.67,Math.PI/2,C.sage);urn(4.35,-7.65,.60);
   // White-and-emerald state bedroom with a true tall canopy, gilded finials,
   // draped backcloth and embroidered geometric coverlet.
@@ -1118,7 +1170,7 @@ export function buildFrance({pack=true}={}){
     {id:'france-cafe',name:'宫苑下午茶廊',action:'享用宫苑下午茶',position:[6.6,0,8.35],color:'#92bca4',workTarget:[7.21,1.414,10.06],npcName:'加布里埃尔',npcAction:'tea',npcLabel:'举杯品尝下午茶',npcPosition:[7.1,0,8.92],route:[[7.1,0,8.92],[10.55,0,9.0],[10.55,0,13.0]]}
   ];
   const explorationTargets=[{id:'forecourt',name:'宫苑主轴',position:[0,0,16]},{id:'portico',name:'科林斯门廊',position:[0,.13,5.25]},{id:'gallery',name:'白金镜廊',position:[0,.23,-5]},{id:'pastry',name:'宫廷糕点房',position:[-6.8,.23,-9]},{id:'art',name:'皇家艺术书斋',position:[7.1,.23,-9.25]},{id:'salon',name:'翡翠镜厅',position:[-6.7,.23,.1]},{id:'bedroom',name:'白金皇家寝室',position:[4.55,.23,-1.2]},{id:'tea-loggia',name:'宫苑下午茶廊',position:[6.6,.16,8.35]},{id:'rear-terrace',name:'后花园露台',position:[0,0,-16.3]},{id:'west-allee',name:'西侧绿篱步道',position:[-13.6,0,-2.6]},{id:'east-allee',name:'东侧绿篱步道',position:[13.6,0,-2.6]},{id:'fountain-walk',name:'喷泉花坛步道',position:[-2.5,0,11]}];
-  const doorways=[{id:'front-entry',a:[0,.13,4.4],b:[0,.23,2.7],width:3.8,height:3.89},{id:'rear-entry',a:[0,.23,-12.6],b:[0,0,-14.4],width:3.2,height:3.89},...[-1,1].flatMap(s=>[-9.5,-1].map(z=>({id:`gallery-${s<0?'west':'east'}-${z===-1?'front':'rear'}`,a:[s*2.3,.23,z],b:[s*3.7,.23,z],width:2.6,height:3.67}))),...[-6.85,6.85].map(x=>({id:`enfilade-${x<0?'west':'east'}`,a:[x,.23,-5.8],b:[x,.23,-7.4],width:2.2,height:3.67}))];
+  const doorways=[{id:'front-entry',a:[0,.13,4.4],b:[0,.23,2.7],at:3.5,width:3.8,height:3.89},{id:'rear-entry',a:[0,.23,-12.6],b:[0,0,-14.4],width:3.2,height:3.89},...[-1,1].flatMap(s=>[-9.5,-1].map(z=>({id:`gallery-${s<0?'west':'east'}-${z===-1?'front':'rear'}`,a:[s*2.3,.23,z],b:[s*3.7,.23,z],width:2.6,height:3.67}))),...[-6.85,6.85].map(x=>({id:`enfilade-${x<0?'west':'east'}`,a:[x,.23,-5.8],b:[x,.23,-7.4],width:2.2,height:3.67}))];
   const walkableSurfaces=[{minX:-10.8,maxX:10.8,minZ:-13.5,maxZ:3.5,y:.23},{minX:-11.35,maxX:11.35,minZ:3.5,maxZ:6.5,y:.13},{minX:3.5,maxX:9.8,minZ:7.4,maxZ:13.9,y:.16}];
   cameraBox(0,-.5,0,30,1,40);
   group.userData.interiorRooms=[{id:'pastry',name:'宫廷糕点房',minX:-10.8,maxX:-3,minZ:-13.5,maxZ:-6.6,ceiling:5.25},{id:'art',name:'皇家艺术书斋',minX:3,maxX:10.8,minZ:-13.5,maxZ:-6.6,ceiling:5.25},{id:'salon',name:'翡翠镜厅',minX:-10.8,maxX:-3,minZ:-6.6,maxZ:3.5,ceiling:5.25},{id:'bedroom',name:'白金皇家寝室',minX:3,maxX:10.8,minZ:-6.6,maxZ:3.5,ceiling:5.25},{id:'gallery',name:'白金镜廊',minX:-3,maxX:3,minZ:-13.5,maxZ:3.5,ceiling:5.25}];
@@ -1150,8 +1202,18 @@ export function buildFrance({pack=true}={}){
     walkableSurfaces.push({minX:xc-4,maxX:xc+4,minZ:-13.5,maxZ:3.5,y:.23},...[-9.5,-5].map(z=>({minX:s<0?-17.1:10.7,maxX:s<0?-10.7:17.1,minZ:z-1.43,maxZ:z+1.43,y:.23})));
     doorways.push(...[-9.5,-5].flatMap(z=>[{id:`core-wing-${s}-${z}`,a:[s*9.95,.23,z],b:[s*11.65,.23,z],width:z===-5?2:2.3,height:3.67},{id:`wing-entry-${s}-${z}`,a:[s*16.1,.23,z],b:[s*17.9,.23,z],width:z===-5?2.2:2.3,height:3.67}]),{id:`wing-enfilade-${s}`,a:[xc,.23,-5.7],b:[xc,.23,-7.5],width:2.5,height:3.67},{id:`wing-garden-${s}`,a:[xc,.23,2.6],b:[xc,0,4.4],width:2.5,height:3.67});
   }
+  // Low thresholds meet the real finished surfaces while leaving every
+  // opening top fixed. These shallow supports do not become full-height walls.
+  for(const sill of finishedDoorSills){
+    const base=sill.base??floorY,h=sill.bottom-base;
+    const m=box(sill.x,base+h/2,sill.z,sill.w,h,sill.d,sill.id==='enfilade-east'?0xb29c79:C.ivory);
+    m.name='Finished doorway sill / '+sill.id;
+    cameraBox(sill.x,base+h/2,sill.z,sill.w,h,sill.d);
+    walkableSurfaces.push({minX:sill.x-sill.w/2,maxX:sill.x+sill.w/2,minZ:sill.z-sill.d/2,maxZ:sill.z+sill.d/2,y:sill.bottom});
+    const t=doorways.find(t=>t.id===sill.id);t.floorFit={bottom:sill.bottom,top:sill.top,runningGap:.012};
+  }
   // West service wing: private bathing room behind a real cross-wall.
-  for(let x=-24.5;x<-17.2;x+=.72)for(let z=-13.1;z<-6.9;z+=.72)box(x,.249,z,.70,.03,.70,((Math.round(x*10)+Math.round(z*10))%2)?C.ivory:C.sage);
+  for(let x=-24.5;x<-17.2;x+=.72)for(let z=-13.1;z<-6.9;z+=.72)finishedFloorTile(x,.249,z,.70,.03,.70,((Math.round(x*10)+Math.round(z*10))%2)?C.ivory:C.sage);
   // R12: open oval tub with a supported bottom, inner wall and outer shell.
   reserveBlock(-22.55,.57,-10.2,3.05,.60,3.60);box(-22.55,.325,-10.2,3.05,.11,3.60,C.gold);
   const tubProfile=[[0,.38],[1.04,.38],[1.13,.48],[1.40,1.20],[1.28,1.20],[1.02,.42],[0,.42]].map(([r,y])=>new THREE.Vector2(r,y));const tubShell=G.mesh(group,new THREE.LatheGeometry(tubProfile,24),C.white,-22.55,0,-10.2);tubShell.scale.z=1.16;
@@ -1161,7 +1223,7 @@ export function buildFrance({pack=true}={}){
   // Wash basin, towel rail, screened WC, and linen cabinet stay on service edges.
   block(-19.20,.82,-12.65,2.64,1.13,.90,C.white);box(-19.20,1.46,-12.65,2.81,.15,1.03,C.gold);G.sphere(group,-19.2,1.56,-12.55,.52,C.ivory,1.1,.20,.7);G.sphere(group,-19.2,1.665,-12.55,.33,C.sage,1.1,.035,.72);G.cyl(group,-19.2,1.81,-12.91,.035,.035,.45,C.gold,8);mirror(group,-19.2,3.02,-13.25,1.48,2.0);
   for(let i=0;i<3;i++)box(-18.35,1.60+i*.09,-12.52,.61,.075,.47,[C.white,C.sage,C.white][i]);
-  block(-18.18,1.46,-7.45,1.37,2.45,.71,C.ivory);for(const x of [-18.49,-17.87]){box(x,1.49,-7.06,.52,2.13,.05,C.sage);box(x,1.52,-7.015,.046,.15,.05,C.gold);}
+  block(-19.0,1.46,-7.45,1.37,2.45,.71,C.ivory);for(const x of [-19.31,-18.69]){box(x,1.49,-7.06,.52,2.13,.05,C.sage);box(x,1.52,-7.015,.046,.15,.05,C.gold);}
   block(-24.17,.65,-7.66,.91,.85,1.3,C.ivory);G.sphere(group,-24.17,1.00,-7.51,.47,C.white,1,.20,1.3);box(-24.17,1.3,-8.1,.87,1.1,.27,C.white);
   block(-23.1,1.47,-7.9,.12,2.43,1.91,C.sage);for(const z of [-8.81,-7.0])box(-23.08,1.48,z,.19,2.58,.075,C.gold);
   box(-24.65,2.18,-11.85,.12,.065,1.55,C.gold);box(-24.58,1.85,-11.85,.065,.70,1.1,C.white);

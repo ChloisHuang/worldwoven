@@ -109,25 +109,45 @@ export function buildChinaPalace(G,H){
   palaceWall(g,colliders,cameraColliders,{at:z0,from:x0,to:x1,bottom:.2,top:h,depth:.32,color:C.cream,openings:back?[back]:[]});
   for(const side of [-1,1]){const at=x+side*w/2,entryZ=id==='hall'&&side<0?z-4.5:id==='kitchen'?z+2.5:id==='bath'&&side<0?z+2.7:z,sideEntry=door('cn-'+id+(side<0?'-west':'-east'),name+(side<0?'西门':'东门'),'z',at,entryZ-1.6,entryZ+1.6,id==='archive'?3.33:s.ceremony?4.2:3.5,[id,'side-court']);const offsets=(d>12?[-4.7,4.7]:[-3.5,3.5]).filter(zz=>Math.abs(z+zz-entryZ)>2.7),windows=offsets.map(zz=>({from:z+zz-1,to:z+zz+1,bottom:1.45,top:id==='archive'?2.85:3.795}));palaceWall(g,colliders,cameraColliders,{axis:'z',at,from:z0,to:z1,bottom:.2,top:h,depth:.32,color:C.cream,openings:[sideEntry,...windows]});for(const zz of offsets)window(g,at,z+zz,2,'z',id==='archive'?1.4:2.35,id==='archive'?2.15:2.62);}
   for(const xx of [x0,x0+w*.25,x0+w*.75,x1])for(const zz of [z0,z1])if(!((back&&zz===z0&&xx>back.from-.3&&xx<back.to+.3)||(zz===z1&&xx>entry.from-.3&&xx<entry.to+.3)))column(g,xx,zz,h,.19);for(const side of [-1,1])for(const zz of [z-3,z+3])if(!doorways.some(d=>d.axis==='z'&&d.at===x+side*w/2&&zz>d.from-.3&&zz<d.to+.3))column(g,x+side*w/2,zz,h,.17);
-  // Qing-inspired painted transoms and bracket clusters reinforce actual bays.
-  for(const zz of [z0,z1]){G.box(g,x,h-.45,zz,w,.52,.36,C.jade);for(let xx=x0+.6;xx<x1;xx+=1.15){G.box(g,xx,h-.45,zz+(zz===z1?.21:-.21),.48,.17,.055,C.gold);for(const yy of [h-.85,h-.66])G.box(g,xx,yy,zz,.64,.13,.54,C.red);}}
+  // Paint and bracket clusters frame actual openings instead of hanging
+  // through their clear height. Low rooms keep a shallower header over doors.
+  for(const zz of [z0,z1]){
+   const opening=zz===z1?entry:back,bandLow=h-.71,bandHigh=h-.19,clear=opening?opening.top+.03:bandLow;
+   const crosses=(xx,half)=>opening&&xx+half>opening.from-.04&&xx-half<opening.to+.04;
+   if(opening&&bandLow<clear){
+    for(const[a,b]of [[x0,opening.from-.04],[opening.to+.04,x1]])if(b>a)G.box(g,(a+b)/2,h-.45,zz,b-a,.52,.36,C.jade);
+    if(bandHigh>clear)G.box(g,(opening.from+opening.to)/2,(clear+bandHigh)/2,zz,opening.to-opening.from+.08,bandHigh-clear,.36,C.jade);
+   }else G.box(g,x,h-.45,zz,w,.52,.36,C.jade);
+   for(let xx=x0+.6;xx<x1;xx+=1.15){
+    if(!crosses(xx,.24)||h-.535>=clear)G.box(g,xx,h-.45,zz+(zz===z1?.21:-.21),.48,.17,.055,C.gold);
+    for(const yy of [h-.85,h-.66])if(!crosses(xx,.32)||yy-.065>=clear)G.box(g,xx,yy,zz,.64,.13,.54,C.red);
+   }
+  }
 
   for(const [side,at,opening,face]of[['front',z1,entry,1],['rear',z0,back,-1]]){
-   for(const[a,b]of opening?[[x0,opening.from],[opening.to,x1]]:[[x0,x1]])dado(g,id+'-'+side+'-'+a,'x',at,a,b,face);
-   paintedBand(g,id+'-'+side+'-beam',x,h-.45,at+face*.227,w,face>0?0:Math.PI);
+   // Leave a real exposed jamb return for hinge straps; projecting wainscot
+   // and its moulding must not occupy the hardware sweep outside the wall.
+   for(const[a,b]of opening?[[x0,opening.from-.24],[opening.to+.24,x1]]:[[x0,x1]])dado(g,id+'-'+side+'-'+a,'x',at,a,b,face);
+   if(opening&&h-.45-.2215<opening.top+.03){
+    for(const [part,a,b]of [['left',x0,opening.from-.04],['right',opening.to+.04,x1]])if(b-a>.28)paintedBand(g,id+'-'+side+'-beam-'+part,(a+b)/2,h-.45,at+face*.227,b-a,face>0?0:Math.PI);
+   }else paintedBand(g,id+'-'+side+'-beam',x,h-.45,at+face*.227,w,face>0?0:Math.PI);
   }
   // Paired facade lanterns hang in the window bays, away from every door swing.
-  for(const side of [-1,1])silkLantern(g,id+'-entry-lantern-'+side,x+side*(s.ceremony?7.9:3.35),h-.70,z1+.32,s.ceremony?.42:.27);
+  for(const side of [-1,1]){const nominal=x+side*(s.ceremony?7.9:3.35),lampX=side<0?Math.min(nominal,entry.from-.60):Math.max(nominal,entry.to+.60);silkLantern(g,id+'-entry-lantern-'+side,lampX,h-.70,z1+.32,s.ceremony?.42:.27);}
   if(id!=='archive'&&id!=='hall'){palaceCeiling(r,colliders,cameraColliders,x,z,w,d,h,!!s.ceremony);palaceRoof(r,x,h+.25,z,w+2,d+2,s.ceremony?2.45:1.55,C.roof);}
   if(s.ceremony){for(const xx of [-4,0,4])fixture(g,xx,4.5,z+1,'ceremonial-pendant',.40);}
-  else if(id==='archive')fixture(g,x,2.92,z,'lower-library-lantern',.30,true);else fixture(g,x,h-.82,z,'chamber-lantern',.30);
+  else if(id==='archive')fixture(g,x,2.92,z,'lower-library-lantern',.30,true);else fixture(g,x,h-.82,id==='kitchen'?z+3.1:z,'chamber-lantern',.30); // The split kitchen's dining lamp hangs over its table, not the partition doorway.
   const room={id,name,minX:x0,maxX:x1,minZ:z0,maxZ:z1,ceiling:h};interiorRooms.push(room);buildings.push({id,name,groupName:g.name,roofGroupName:r.name,bounds:{minX:x0,maxX:x1,minZ:z0,maxZ:z1},roomIds:[id]});
   return g;
  }
  for(const s of structures)hall(s);
  // Ceremonial hall: a deep freestanding throne composition with generous lanes
  // to both sides, not an aisle sharing floor space with a bed and stove.
- {const g=rooms.hall.g;floor(g,0,-7.25,8,4.6,.36,0xc8b688);G.rug(g,0,-.8,5.4,8.2,0xa44936,0xd5b66f);
+ {const g=rooms.hall.g;floor(g,0,-7.25,8,4.6,.36,0xc8b688);
+  // Keep the raised brocade outside the entire ceremonial door sweep. The
+  // original front edge z=3.3 caught the leaf at 35.3% opening; z=1.4 leaves
+  // a real stone entrance bay without lifting the door off its floor.
+  G.rug(g,0,-1.75,5.4,6.3,0xa44936,0xd5b66f);
   box(g,0,.9,-8,3.3,.85,1.7,0x8c482d,true);G.box(g,0,1.39,-8,3.1,.2,1.55,0xc99a51);for(const x of [-1.43,1.43]){G.box(g,x,1.8,-8,.2,1,1.6,C.gold);G.sphere(g,x,2.37,-7.38,.19,0xe0bb66);}
   box(g,0,2.18,-8.78,3.3,2.1,.22,0x9e4d32,true);G.box(g,0,2.22,-8.62,2.98,1.83,.065,0xcfa55b);G.torus(g,0,2.32,-8.54,.63,.085,0x835034,0);for(let i=0;i<9;i++)G.sphere(g,Math.sin(i*2.2)*.45,2.32+Math.cos(i*2.2)*.45,-8.48,.13,0xe0bd77,1.3,.7,.3);
   box(g,0,2.95,-10.4,7.7,4.7,.25,0x763a2c,true);for(const x of [-3.55,-2.4,-1.2,0,1.2,2.4,3.55])G.box(g,x,2.97,-10.22,.08,4.42,.11,C.gold);for(const x of [-2.5,2.5])scroll(g,x,3.13,-10.2,.68,2.7,true);
@@ -156,8 +176,8 @@ export function buildChinaPalace(G,H){
   // R12: genuine hollow stone basin inside its preserved movement/camera envelope.
   G.collider(colliders,-23.6,-30,3.2,4.15);cameraColliders.push({minX:-23.6-3.2/2,maxX:-23.6+3.2/2,minY:.65-.85/2,maxY:.65+.85/2,minZ:-30-4.15/2,maxZ:-30+4.15/2});
   G.box(g,-23.6,.255,-30,3.2,.1,4.15,0x8f9d92);for(const x of[-25.09,-22.11])G.box(g,x,.75,-30,.22,1.0,4.15,0x8f9d92);for(const z of[-31.965,-28.035])G.box(g,-23.6,.75,z,3.2,1.0,.22,0x8f9d92);
-  G.box(g,-23.6,1.15,-30,2.5,.025,3.44,0x72a79e);for(const x of [-25.12,-22.08])G.box(g,x,1.2,-30,.18,.23,4.22,0xd7d4bb);for(const z of [-32,-28])G.box(g,-23.6,1.2,z,3.25,.23,.18,0xd7d4bb);foldedCloth(g,-24.1,1.32,-32,1.0,.34,0xe0d7bb);shelf(g,-25,-23.6,1.8,2.1,.65);
-  box(g,-17.25,.78,-30.9,1.7,1.12,1.15,C.wood,true);G.box(g,-17.25,1.39,-30.9,1.82,.1,1.24,0xb8c3b5);G.sphere(g,-17.25,1.48,-30.9,.36,0xd7d8c2,1.3,.35,1);G.box(g,-17.25,2.52,-32.8,1.45,1.4,.09,C.wood);G.box(g,-17.25,2.52,-32.73,1.25,1.2,.045,0xa8bdb1);G.cyl(g,-17.4,.61,-24.8,.36,.31,.72,0xc6c9b7,12);G.torus(g,-17.4,.99,-24.8,.31,.08,0xe5dec5);G.box(g,-17.4,1.13,-25.3,.72,.7,.26,0xc6c9b7);G.collider(colliders,-17.4,-24.9,.9,1.2);target('cn-bath-tub','浴池步道',-21,-30,'bath');target('cn-bath-linens','更衣布草区',-22.8,-25,'bath');target('cn-bath-basin','净室洗手盆前',-17.3,-29.2,'washroom');target('cn-bath-toilet','净室屏后',-18.4,-24.8,'washroom');}
+  G.box(g,-23.6,1.15,-30,2.5,.025,3.44,0x72a79e);for(const x of [-25.12,-22.08])G.box(g,x,1.2,-30,.18,.23,4.22,0xd7d4bb);for(const z of [-32,-28])G.box(g,-23.6,1.2,z,3.25,.23,.18,0xd7d4bb);foldedCloth(g,-24.1,1.32,-32,1.0,.34,0xe0d7bb);shelf(g,-24.88,-23.6,1.8,2.1,.65); //27mm west-leaf clearance; front left-edge .39m body probe remains clear.
+  box(g,-17.25,.78,-30.9,1.7,1.12,1.15,C.wood,true);G.box(g,-17.25,1.39,-30.9,1.82,.1,1.24,0xb8c3b5);G.sphere(g,-17.25,1.48,-30.9,.36,0xd7d8c2,1.3,.35,1);G.box(g,-17.25,2.52,-32.8,1.45,1.4,.09,C.wood);G.box(g,-17.25,2.52,-32.73,1.25,1.2,.045,0xa8bdb1);G.cyl(g,-17.4,.61,-24.8,.36,.31,.72,0xc6c9b7,12);G.torus(g,-17.4,.99,-24.8,.31,.08,0xe5dec5);G.box(g,-17.4,1.13,-25.3,.72,.7,.26,0xc6c9b7);G.collider(colliders,-17.4,-24.9,.9,1.2);target('cn-bath-tub','浴池步道',-21,-30,'bath');target('cn-bath-linens','更衣布草区',-22.8,-25,'bath');target('cn-bath-basin','净室洗手盆前',-17.3,-29,'washroom');target('cn-bath-toilet','净室屏后',-18.4,-24.8,'washroom');}
  // Rear library and quiet guest residence are independent buildings. Rear
  // passage and garden lanes give every facade room to breathe.
  {const g=rooms.archive.g;for(const x of [-8,-4,4,8])shelf(g,x,-32.8,3,3.2,.72);for(const [x,zz] of [[-1.6,-30.2],[7,-28]]){table(g,x,zz,4.2,1.7,1);for(const dx of [-1.1,0,1.1])boundBook(g,x+dx,1.13,zz,.8,.6,0x7d9583);}G.rug(g,0,-27.5,4.5,5,0xa28f69,0xd2bf90);target('cn-archive-center','藏书殿中央',0,-28,'archive');target('cn-archive-west','西书案前',-1.6,-28.5,'archive');target('cn-archive-east','东书案前',7,-26.3,'archive');target('cn-archive-rear','北门书廊',0,-32,'archive');}
@@ -196,7 +216,7 @@ export function buildChinaPalace(G,H){
  // brocade runners, tea trays, bound folios, and supported fine porcelain.
  const hanging=(g,id,x,y,z,w,h,motif='lotus')=>ornament(g,id,'framed-silk-panel','existing solid wall',q=>{G.box(q,x,y,z,w,h,.045,ink);frame(q,x,y,z+.039,w+.07,h+.08);G.box(q,x,y,z+.05,w-.13,h-.13,.018,C.jade);if(motif==='lotus'){lotus(q,x,y-h*.25,z+.083,Math.min(w*.75,h*.70));for(const dx of [-w*.28,w*.28])cloud(q,x+dx,y+h*.30,z+.091,w*.27);}else{for(const k of [-1,0,1]){stroke(q,[[x+k*w*.2,y-h*.35,z+.086],[x+k*w*.12,y+h*.34,z+.086]],.015,C.gold);for(const j of [-1,0,1])petal(q,x+k*w*.14,y+j*h*.19,z+.09,w*.13,h*.20,ivory,(k+j)%2*.9);}}});
  hanging(rooms.tea.g,'tea-floral-panel',-23.7,2.65,8.19,1.2,1.75);hanging(rooms.tea.g,'tea-floral-panel-pair',-18.3,2.65,8.19,1.2,1.75);
- const studyPanel=hanging(rooms.study.g,'study-bamboo-panel',0,2.77,0,1.7,1.62,'bamboo');studyPanel.position.set(21,0,20.81);studyPanel.rotation.y=Math.PI;
+ const studyPanel=hanging(rooms.study.g,'study-bamboo-panel',0,2.77,0,1.7,1.62,'bamboo');studyPanel.position.set(25.81,0,11.85);studyPanel.rotation.y=-Math.PI/2; // Solid east-wall bay, clear of front/side doors and both windows.
  hanging(rooms.bedroom.g,'bedroom-silk-panel',-24.05,2.50,-11.81,1.3,1.9);hanging(rooms.guest.g,'guest-silk-panel',19,2.45,-32.81,1.9,1.8);
  for(const x of [-8,-4,4,8])hanging(rooms.archive.g,'archive-painted-panel-'+x,x,3.22,-33.81,2.6,.46,'bamboo');
  ornament(rooms.tea.g,'tea-brocade-tray','tabletop-vignette','existing tea table outside work approach',q=>{G.box(q,-21,1.11,11.05,3.2,.018,.32,C.red);for(const z of [10.91,11.19])G.box(q,-21,1.124,z,3.18,.015,.022,C.gold);for(const x of [-22,-21,-20]){G.cyl(q,x,1.14,11.06,.12,.12,.025,C.gold,12);}});
