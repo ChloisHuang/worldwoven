@@ -221,7 +221,7 @@ export function buildChinaPalace(G,H){
  // Rear library and quiet guest residence are independent buildings. Rear
  // passage and garden lanes give every facade room to breathe.
  // Shift only the east reading table and its carried objects away from the door turn.
- const archiveEastTableX=6.15;
+ const archiveEastTableX=5.8;
  {const g=rooms.archive.g;for(const x of [-8,-4,4,8])shelf(g,x,-32.8,3,3.2,.72);for(const [x,zz] of [[-1.6,-30.2],[archiveEastTableX,-28]]){table(g,x,zz,4.2,1.7,1);for(const dx of [-1.1,0,1.1])boundBook(g,x+dx,1.13,zz,.8,.6,0x7d9583);}G.rug(g,0,-27.5,4.5,5,0xa28f69,0xd2bf90);target('cn-archive-center','藏书殿中央',0,-28,'archive');target('cn-archive-west','西书案前',-1.6,-28.5,'archive');target('cn-archive-east','东书案前',archiveEastTableX,-26.3,'archive');target('cn-archive-rear','北门书廊',0,-32,'archive');}
  {const g=rooms.guest.g;const b=new THREE.Group();b.position.y=.2;g.add(b);G.bed(b,23,-30.5,0x728f89,2.8,3.3);G.collider(colliders,23,-30.5,2.9,3.4);table(g,18.3,-25.8,2.7,1.4,.95);teaSet(g,18.3,1.04,-25.8,0x9cbfb5);shelf(g,17,-31.4,2.1,2.5,.7,Math.PI/2);target('cn-guest-front','客居门内',21,-24.3,'guest');target('cn-guest-bed','客榻侧',20.7,-30.5,'guest');target('cn-guest-tea','客居茶席',18.2,-24.3,'guest');}
  // Rear lotus court. Broad cross lanes continue to both side gates, and a
