@@ -1,6 +1,6 @@
 # Isolated Japan soaking candidate on published R16.2
 
-Status: hair03 is the current source-only candidate. The owner rejected both curve-deformed braid silhouettes and selected the existing low-bun as braided-tail’s temporary Japan-soaking display. The condition changes only the hair-tail construction branch; the original head, shell, saved hairstyle/ID and ordinary clothed model remain unchanged. Hair03 pictures, actual contact and main vertex restoration are pending. Prior curve-preservation requirements apply only to the retired hair01/02 proposals.
+Status: hair03 three-view compact-bun rendering and the affected5-case mesh/contact check have passed on the R16.2-integrated candidate. Actual main identity/vertices/halo/pulse restoration and final default/near entry/exit camera paths are next. No full angle grid or four-country furniture rerun is planned; animated curb crossing is not part of this repair.
 
 ## Product hunks and dependencies
 

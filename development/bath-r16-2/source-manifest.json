@@ -1,5 +1,5 @@
 {
-  "status": "MERGED_R16_2_HAIR03_PENDING_IMAGE_CONTACT_MAIN",
+  "status": "HAIR03_THREE_VIEWS_AND_FIVE_CONTACT_CASES_PASS_MAIN_PENDING",
   "baseline": "/workspace/shared/worldwoven-source-r16-2",
   "candidate": "/workspace/shared/worldwoven-r16-2-bath-candidate",
   "hair01Status": "Previous product revision:24 geometry/contact PASS, six images rendered and rejected as open C-shaped loop. Receipts retained.",
@@ -85,10 +85,10 @@
   "qaFiles": {
     "check-onsen-braid-binding.mjs": "5768d3443ab8d953bf38111d18ac16faf941d05893d787e58ad86ff400e94fb6",
     "render-onsen-braid03-config.json": "c44701b4332a4c78d2e6fb337e83168bbef884e22ee533c7bc2da720895ff9af",
-    "check-onsen-braid-restore.cjs": "f3491daa4137879d06cf2dbf7ed1bfa53bcb4d16392dc9f9c5053cb55a02e797",
+    "check-onsen-braid-restore.cjs": "f38940814602817de5b79127e85d821a1f5542936734c66be376a5670cd47d74",
     "render-hand02-main-config.json": "8532c4f0c611f9b8e38427d9401765c58d202a7741bee9349e8e2631eaea259c",
     "render-hand02-inspection-config.json": "0f8fef96ae2cfe56ce50e62433a2cad345ed551411499ed734185cb345b97531",
-    "check-onsen-temporary-hair.mjs": "9de7fdbed1966c5921a074ec23310844b9b6bc95385a232060042d36dff4fa64",
+    "check-onsen-temporary-hair.mjs": "c3f08cd815091eb9691a41583713dc0ebded5394c76e5a20b5ff07048f300626",
     "japan-bathhouse.js.patch": "a059ab447dc77ba13c1730bf066285cea902bd4247acad78d4ce43d22b3e4112",
     "furniture-interactions.js.patch": "10c5671ba01880c88f4b611505ae05d57d9dbb7ca23c12249b0856008d310ba1",
     "room-closures.js.patch": "cc7032e9b293cb7304c8bd5d43e76c01c9359d9f1997920ed350078e6a6a35ed",
@@ -107,6 +107,7 @@
     "main.js.patch": "8cebd4725eefd5e5a2bcb3cd5727420bdb8875ced4a54d2ba49db15957f70c3e",
     "evidence/hair-prototype-02-report.json": "f3a195e7248b185753c9466fb2491038c4f40d21321a5a19fd1887f2b43f8048",
     "evidence/hair-binding-01-full.json": "e7744643b54d67db9dce6de81e5313c16863734ac9101611d569eedbd7ea40f2",
+    "evidence/hair-prototype-03-report.json": "dfb459e691743368b3368ec7ca53070f2c31b56929afffa59202cb7a9ec889d0",
     "evidence/hair-clearance-09.json": "16f85e4780c4fe4749a2947c2ff6d42bdb7813e581cc4d78f26dce94d22df7f2",
     "evidence/hair02-source-fingerprints.json": "071daa10e60e25f5096b86a9b1c6a56fdbe3c3777de17654a3737a18693c4bb5",
     "evidence/hair-binding-01-resource.json": "6a443eccff5b1cedfbdd1105090e16237683ee5a3bf7d10e8ba9073880586fa4",
@@ -117,10 +118,13 @@
     "evidence/hair-binding-01-full-input.json": "e84d4cf20f95bab1793e1a0c940cd1bfb753d7f4bce2d0a9d969956c3c484a1e",
     "evidence/hair-binding-01-input.json": "455bd470e695c3b174f2b0e346e21cea698c785eaeaf5d563c1c4fc839d2ca81",
     "evidence/hair-prototype-02-resource-resource-result.json": "250c25b9df77961796af1bfe5d4e71cfe9cf0bf03f60f6ca21c89a62c8bd4892",
+    "evidence/hair03-contact-five.json": "298a49eae0683f2463e70bc773dc80ac190d8b4caeffc06ade48393a6b9e5d19",
     "evidence/hair-prototype-01-report.json": "c190cf8a32684332c7137f5f99d9a5353238839b8d0a79ee0ce20fbcc95f4068",
     "evidence/hair-binding-01-pairing-fixed-resource.json": "1c7bab94b7250c7c61ac5bff7454cdd0b1244cd38612da919e34a159999270ab",
     "evidence/hair-binding-01-pairing-fixed.json": "cb60cb052a77c5ae87ad8ef53de0c8ebb96de3a5f06e6bd1808661d6baf31428",
     "evidence/hair-binding-01-full-resource-resource-result.json": "da9f19fb4b26602f1d95d0ff99908a460981a29d1d5e7b4875751c3e0aa0b7d1",
+    "evidence/hair-prototype-03-resource-resource-result.json": "9363a2ab16fd3d05391df7739c2bfc76a2b359c51dd9abd4136f8dbd2fa4530e",
+    "evidence/hair03-contact-five-resource-resource-result.json": "ab62ec53a2b670b25b1990da3f49a32be9c6050a7ece2e08c172b32b4dfbd42b",
     "fixtures/unbound-braid/approved-surfaces.js": "49b3eb8c72a57de9fb3c0c0072a564d2d827f7851e96fc6677c8a31e942e7844",
     "fixtures/unbound-braid/character-traits.js": "c581cc6d4bbbc1409428d3502f8fe690fd1327d4c372c402ebb2fa9e6560e76a"
   },
@@ -128,11 +132,12 @@
   "runtimeStatus": "Existing low-bun temporary branch for Japan/onsen-swimwear/braided-tail; syntax only, pictures/contact/main pending.",
   "hair02Status": "Six images rejected by owner as upright thick U handle away from head.",
   "priorSourceHashesVerifiedAfterHair01Runs": true,
-  "hair03Status": "Existing low-bun temporary branch for Japan/onsen-swimwear/braided-tail; syntax only, pictures/contact/main pending.",
+  "hair03Status": "Three compact-bun views rendered; four braided-tail sex/leg endpoints plus one non-braid negative passed1.610s/172552192bytes. Head/shell/normal clothing unchanged. Main critical recovery and default/near paths pending.",
   "haloStatus": "Japanese onsen: hide newly built halo and clear old feetPulse only after successful bath start. Runtime entry/exit cleanup checks pending.",
   "currentHairProbe": "check-onsen-temporary-hair.mjs",
   "currentRestorationProbe": "check-onsen-braid-restore.cjs",
   "originalExtractionBase": "/workspace/shared/worldwoven-source-r16-1",
   "publishedSourceCommit": "84a54df402f66c6964414814773a1de931668717",
-  "mergeReceipt": "merge-r16-2.json"
+  "mergeReceipt": "merge-r16-2.json",
+  "currentTestScope": "Affected5 hair cases; key actual main lifecycle, halo/pulse, default4.6/common2.1 camera paths only. No192-angle repeat, no all-four-country furniture suite. Full animated curb-crossing action remains outside this repair."
 }

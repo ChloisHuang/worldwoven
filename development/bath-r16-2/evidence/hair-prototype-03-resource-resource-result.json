@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "command": [
+    "node",
+    "/workspace/shared/worldwoven-r16-2-bath-candidate/development/bath-r16-2/render-onsen-braid-prototype.mjs"
+  ],
+  "exit": 0,
+  "seconds": 1.2121731560000626,
+  "peakObservedTreeRSSBytes": 225456128,
+  "maxProcesses": 2,
+  "termination": null
+}
