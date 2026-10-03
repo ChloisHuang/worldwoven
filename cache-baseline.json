@@ -1,5 +1,5 @@
 {
-  "publishedSourceCommit": "5854afb9a88a30a11d9c273a0ca4f2c31c2faab3",
+  "publishedSourceCommit": "45f37b132fad8e0f1923de57bbafc17e9a548724",
   "assets": [
     "/assets/movement-runtime.a07dd501e74cfebf.js",
     "/assets/geometry.accd26d9fe1820ba.js",
@@ -7,9 +7,9 @@
     "/assets/navigation.d22f45cd94d968b8.js",
     "/assets/camera.7b6fc625c07138fc.js",
     "/assets/floor-support.5f5df2cde18b6e23.js",
-    "/assets/furniture-interactions.67c2cb0f50a6375d.js",
-    "/assets/npc-facilities.5d4a8fc68b2cb290.js",
-    "/assets/japan-service-routine.489bdbaefd11820b.js",
+    "/assets/npc-facilities.9588f4c55b52ac1a.js",
+    "/assets/furniture-interactions.54c1d66038d8f39b.js",
+    "/assets/japan-service-routine.4a0b63aedfe38811.js",
     "/assets/automatic-routing.1b023912e70ad51c.js",
     "/assets/room-closures.e2db68a63184caef.js",
     "/assets/automatic-doors.6a409f2487b14f32.js",
@@ -37,7 +37,7 @@
     "/assets/approved-surfaces.349f05502cf5e44a.js",
     "/assets/character-props.deb24f9b65d5e60a.js",
     "/assets/characters.5a10dfa3b47b505e.js",
-    "/assets/main.f78f58d42623e48d.js",
+    "/assets/main.2d8300dedf911bdf.js",
     "/assets/game.bcd28e6aaa90b201.css",
     "/assets/three.core.9edde002b066a9a0.js",
     "/assets/three.module.d8c0a97fa13a785e.js"
