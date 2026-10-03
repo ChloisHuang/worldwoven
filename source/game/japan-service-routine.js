@@ -39,7 +39,7 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
   }else if(next==='guide'){
    jobs=[job(host,[-5.4,0,4.35],{duration:.5,face:[9.1,0,-1],label:'绕到通道前方为旅人引路'}),job(guest,reception,{duration:.5,label:'等接待走到前方'})];
   }else if(next==='escorting'){
-   jobs=[job(host,[5.9,0,4.35],{duration:1,face:[9.1,0,-1],label:'引导旅人前往二层'}),job(guest,[4.65,0,5.7],{duration:1,label:'跟随接待前往楼梯',follow:host,after:()=>host.root.position.x>guest.root.position.x+.9||host.serviceTask?.done})];
+   jobs=[job(host,[5.9,0,5.7],{duration:1,face:[9.1,0,-1],label:'引导旅人前往二层'}),job(guest,[4.65,0,5.7],{duration:1,label:'跟随接待前往楼梯',follow:host,after:()=>host.root.position.x>guest.root.position.x+.9||host.serviceTask?.done})];
   }else if(next==='upstairs'){
    jobs=[job(host,home(host),{action:'tidy',label:'回前台迎接下一位旅人'}),job(guest,wait,{label:'沿楼梯前往温泉接待处'}),job(porter,porterSupply,{duration:2.5,action:'tidy',workTarget:[porterSupply[0],4.7,2.1],label:'从木篮取出干净手巾'}),job(cleaner,cleanPoint,{duration:3,action:'bath-attendant',held:'bathBucket',workTarget:cleanTarget,claim:bath.id,label:'检查并擦拭池边座位'})];
   }else if(next==='towels'){
