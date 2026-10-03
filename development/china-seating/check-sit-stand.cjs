@@ -1,4 +1,4 @@
-// One changed hall chair: reuse the production controller harness, no matrix.
+// One selected China seat: reuse the production controller harness, no matrix.
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 let harness=fs.readFileSync('tests/game-controller.cjs','utf8');
 const begin=harness.indexOf('const report=[];for(let round=0;'),end=harness.indexOf('\nconsole.log(JSON.stringify(',begin);
@@ -13,7 +13,7 @@ const seated=JSON.parse(JSON.stringify({player:state().player,look:state().playe
 events.keydown({code:'KeyW',preventDefault(){}});tick(4);events.keyup({code:'KeyW'});
 assert.equal(state().seated,null);assert(!state().playerPose.seated);assert(state().playerPose.gaitReset||state().playerPose.action===null);
 const standing=state().player;ids['return-world'].onclick();assert.equal(state().characterResources.activeReferences,0);
-report.push({seat:item,seated,standing,approachFrames:frames,scope:'One production east-hall chair approach/sit/stand; all stable positions retained. Throne reuses the existing supported chair interaction.'});
+report.push({seat:item,seated,standing,approachFrames:frames,scope:'One production China seat approach/sit/stand; all stable positions retained. Throne reuses the existing supported chair interaction.'});
 fs.writeFileSync('qa/'+item.id+'-controller.json',JSON.stringify({status:'PASS',report},null,2));
 `;
 harness=harness.slice(0,begin)+body+"\nconsole.log(JSON.stringify({status:'PASS',scope:'One production China chair sit/stand',report}));})().catch(e=>{console.error(e);process.exit(1)});";
