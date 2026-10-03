@@ -11,15 +11,25 @@ function grid(parent,name,nu,nv,fn,color){
  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(p,3));geometry.setIndex(ix);geometry.computeVertexNormals();
  const mesh=new THREE.Mesh(geometry,{color:new THREE.Color(color),isMaterial:false});mesh.name=name;parent.add(mesh);return mesh;
 }
-export function buildConvexEye(parent,{side,masc=false,traits=null,facialSurface,colors:C,coherent=false}){
+export function eyeLayout({side,masc=false,traits=null,coherent=false}){
  const eye=traits?.eyeSize??1,cx=side*(coherent?(masc?.0435:.0425):(masc?.040:.038)),cy=coherent?1.594:1.59;
  const hw=(coherent?(masc?.0205:.0205):(masc?.022:.0215))*eye,upper=(coherent?(masc?.0057:.0072):(masc?.0072:.009))*eye,lower=(coherent?.0064:(masc?.0055:.0062))*eye;
+ return{eye,cx,cy,hw,upper,lower,side,coherent};
+}
+export function eyeLidBoundary(layout,u,up,outer=false){
+ const {eye,cx,cy,hw,upper,lower,side,coherent}=layout,x=cx+(u*2-1)*hw;
+ const y=cy+(Math.sin(u*Math.PI)**(coherent?(up?.88:.72):1))*(up?upper:-lower)+side*(x-cx)*(coherent?.16:.08);
+ const width=(up?(coherent?.0064:.0045):.0030)*eye;
+ return[x,y+(outer?(up?1:-1)*width*Math.sin(Math.PI*u)**.7:0)];
+}
+export function buildConvexEye(parent,{side,masc=false,traits=null,facialSurface,colors:C,coherent=false}){
+ const layout=eyeLayout({side,masc,traits,coherent}),{eye,cx,cy,hw,upper,lower}=layout;
  // Sample the original socket: socketDepth still changes globe/lid placement,
  // while eyeSize scales the same opening around its unchanged centre.
  const e=.0001,base=facialSurface(cx,cy),dx=(facialSurface(cx+e,cy)-facialSurface(cx-e,cy))/(2*e),dy=(facialSurface(cx,cy+e)-facialSurface(cx,cy-e))/(2*e);
  const rx=hw*1.25,ry=.020*eye,rz=.008*eye;
  const globe=(x,y)=>{const xx=x-cx,yy=y-cy-side*xx*(coherent?.16:.08);return base+dx*xx+dy*(y-cy)+.0008+rz*(Math.sqrt(Math.max(.001,1-(xx/rx)**2-(yy/ry)**2))-.6);};
- const edge=(u,up)=>{const x=cx+(u*2-1)*hw,y=cy+(Math.sin(u*Math.PI)**(coherent?(up?.88:.72):1))*(up?upper:-lower)+side*(x-cx)*(coherent?.16:.08);return[x,y,globe(x,y)];};
+ const edge=(u,up)=>{const [x,y]=eyeLidBoundary(layout,u,up);return[x,y,globe(x,y)];};
  const white=grid(parent,'inset-eye-white-'+side,24,8,(u,v)=>{const a=edge(u,false),b=edge(u,true),y=mix(a[1],b[1],v);return[a[0],y,globe(a[0],y)];},C.eye);
  if(coherent){const colors=[];for(let j=0;j<=8;j++)for(let i=0;i<=24;i++){const u=i/24,v=j/8,c=new THREE.Color(C.eye).multiplyScalar(1-.13*Math.abs(u*2-1)**3-.07*v**3);colors.push(c.r,c.g,c.b);}white.geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));}
  const disk=(name,radius,centerX,centerY,offset,color,nu=24,nv=5)=>grid(parent,name+'-'+side,nu,nv,(u,v)=>{const a=u*Math.PI*2,r=v*radius,x=centerX+Math.cos(a)*r,arc=Math.sin(Math.PI*((x-cx)/hw+1)/2),tilt=side*(x-cx)*(coherent?.16:.08),y=Math.max(cy-lower*arc+tilt,Math.min(cy+upper*arc+tilt,centerY+Math.sin(a)*r));return[x,y,globe(x,y)+offset];},color);
