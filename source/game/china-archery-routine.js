@@ -40,14 +40,14 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
  const shooter=()=>guards[active],tell=(n,text)=>{const el=n.label?.querySelector?.('small');if(el)el.textContent=text;};
  function enter(next){phase=next;phaseTime=0;for(const n of guards){n.route=[];n.archeryDestination=null;n.archeryStall=0;}history.push(next);if(history.length>64)history.shift();tell(shooter(),labels[next]||next);}
  function travel(n,to,dt){
-  n.walking=false;if(gap(n.root.position,to)<.045)return true;
+  n.walking=false;if(gap(n.root.position,to)<.055)return true;
   const key=to.join(',');if(n.archeryDestination!==key){n.route=planPath(n.root.position,point(to),.25);n.archeryDestination=key;}
   while(n.route.length&&gap(n.root.position,[n.route[0].x,n.route[0].y,n.route[0].z])<.05)n.route.shift();
   const next=n.route[0];if(!next){if(n.archeryStall++===0)failures.push({phase,actor:n.station.id,reason:'route did not reach authored point'});return false;}
   const dx=next.x-n.root.position.x,dz=next.z-n.root.position.z,d=Math.hypot(dx,dz),before=n.root.position.clone(),amount=Math.min(d,dt*n.locomotion.walkSpeed*.78);
   moveActor(n,dx/d*amount,dz/d*amount,.25);n.root.rotation.y=Math.atan2(dx,dz);n.walking=before.distanceToSquared(n.root.position)>1e-9;
   if(!n.walking){n.archeryStall+=dt;if(n.archeryStall>2){n.archeryDestination=null;n.archeryStall=0;}}else n.archeryStall=0;
-  return gap(n.root.position,to)<.045;
+  return gap(n.root.position,to)<.055;
  }
  function clearRange(position){
   const inside=p=>p&&p.x<A.range.maxX+.30&&p.x>A.range.minX-.30&&p.z>A.range.minZ-.30&&p.z<A.range.maxZ+.30&&Math.abs(p.y-A.floorY)<2;
@@ -99,7 +99,7 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
    }else if(phase==='cease'){
     timed();if(phaseTime>1.4&&!flying.visible)enter('retrieve');
    }else if(phase==='retrieve'){
-    if(travel(n,[-23.75,A.floorY,A.targets[retrieveLane][2]],dt)){n.root.rotation.y=-Math.PI/2;enter('collect');}
+    if(travel(n,[-24.0,A.floorY,A.targets[retrieveLane][2]],dt)){n.root.rotation.y=-Math.PI/2;enter('collect');}
    }else if(phase==='collect'){
     timed();if(phaseTime>1.2){impacts[retrieveLane].visible=false;enter('return');}
    }else if(phase==='return'){

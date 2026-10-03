@@ -31,7 +31,7 @@ export function buildChinaArcheryCourt(G,{group,colliders,cameraColliders,packSt
   for(const dz of [-.62,.62])box(x-.12,.77,z+dz,.14,1.32,.14,C.dark,true);
   box(x-.15,1.02,z,.19,.12,1.55,C.dark);
   // Flat straw faces point into +X; muted ink/gilt rings fit the courtyard.
-  for(const [radius,depth,color]of [[.70,0,C.straw],[.52,.016,0x80634b],[.38,.030,C.straw],[.23,.044,C.red],[.09,.056,C.gold]]){
+  for(const [radius,depth,color]of [[.70,0,C.straw],[.52,.10,0x80634b],[.38,.12,C.straw],[.23,.14,C.red],[.09,.16,C.gold]]){
    const disk=G.cyl(q,x+depth,y,z,radius,radius,radius===.70?.16:.018,color,32);disk.rotation.z=-Math.PI/2;
   }
   const pole=G.box(q,x+.10,y+.89,z,.04,.10,1.15,C.red);pole.name='Archery target '+i;
