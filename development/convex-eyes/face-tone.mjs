@@ -1,6 +1,6 @@
 /** Five distinct cel bands for the face; body skin keeps its existing ramp. */
 import * as THREE from 'three';
-export function applyFaceTone(material){
+export function applyFaceTone(material,{productionRamp=false}={}){
  const previous=material.onBeforeCompile;
  material.onBeforeCompile=(shader,renderer)=>{
   previous.call(material,shader,renderer);
@@ -17,7 +17,7 @@ float faceCelTone(float v) {
 }
 `;
   const chunk=THREE.ShaderChunk.gradientmap_pars_fragment.replace('return vec3( texture2D( gradientMap, coord ).r );','return mix(vec3(texture2D(gradientMap,coord).r),vec3(faceCelTone(dotNL)),vFaceTone);');
-  shader.fragmentShader=shader.fragmentShader.replace('#include <gradientmap_pars_fragment>',bands+chunk);
+  shader.fragmentShader=shader.fragmentShader.replace('#include <gradientmap_pars_fragment>',productionRamp?bands+THREE.ShaderChunk.gradientmap_pars_fragment:bands+chunk);
   // A small view-dependent cel reflection follows the actual globe normal.
   // It is limited to eye vertices, with no PBR skin or global shadow change.
   shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>',`
@@ -44,5 +44,5 @@ float faceCelTone(float v) {
 #endif
 #include <opaque_fragment>`);
  };
- material.customProgramCacheKey=()=> 'worldwoven-prototype-face-five-band-feature-sheen-v1';material.needsUpdate=true;
+ material.customProgramCacheKey=()=> 'worldwoven-prototype-face-feature-sheen-'+(productionRamp?'production-ramp-v1':'five-band-v1');material.needsUpdate=true;
 }
