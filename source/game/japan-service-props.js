@@ -40,9 +40,21 @@ export function createJapanServiceProps(parent) {
  }
  // Ledger and return tray sit on the already modelled reception counter.
  const reception=new THREE.Group();reception.position.set(...P.tokenTray);root.add(reception);
- box(reception,.52,.027,.37,0xe6dcc2,[-.38,0,0]);
- for(const z of [-.11,-.055,0,.055,.11])box(reception,.39,.004,.011,0x819086,[-.38,.016,z]);
- box(reception,.42,.032,.31,0x8e6645,[.23,0,0]);
+ // The open book projects slightly past the counter lip, within the existing
+ // writing pose's reach. The pen target is above its paper, not a wiping tray.
+ const ledger=new THREE.Group();ledger.name='Open numbered reception guest ledger';ledger.position.set(.26,.008,-.11);reception.add(ledger);
+ box(ledger,.84,.023,.49,0x754e3b,[0,-.008,0]);
+ for(const side of [-1,1]){
+  const page=new THREE.Group();page.position.x=side*.207;page.rotation.z=side*-.025;ledger.add(page);
+  box(page,.398,.025,.465,0xefe4c7);box(page,.018,.007,.439,0xc59c77,[-side*.188,.018,0]);
+  box(page,.325,.005,.022,0x9f5549,[0,.018,.182]);
+  for(let row=0;row<4;row++){
+   const z=-.164+row*.081,entry=new THREE.Group();entry.position.set(-.119,.021,z);entry.rotation.x=-Math.PI/2;entry.scale.setScalar(.43);number(entry,row+1+(side>0?4:0));page.add(entry);
+   box(page,.219,.004,.006,0x7d8070,[.052,.018,z+.03]);box(page,.006,.004,.31,0xb8b29a,[-.062,.018,-.01]);
+   for(const dx of [.012,.052,.092])box(page,.020,.004,.010,0x625d4b,[dx,.021,z]);
+  }
+ }
+ box(reception,.34,.032,.28,0x8e6645,[-.44,0,0]);
  // Work-in-progress ingredients are visible only while the claimed preparer
  // actually works here. The finished order-owned pouch still appears on completion.
  const mixing=new THREE.Group(),pestle=new THREE.Group();mixing.name='Herbal blend mortar at reachable bench edge';pestle.name='Wooden pestle held by preparer';root.add(mixing,pestle);mixing.position.set(...P.blendWork);mixing.visible=pestle.visible=false;
