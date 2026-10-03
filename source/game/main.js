@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import {simulationFrame,movementInputMagnitude,PLAYER_TRAVEL_SCALE} from './movement-runtime.js';
 import {createFurnitureInteractions,createOutfitPreview} from './furniture-interactions.js';
-import {createJapanServiceRoutine} from './japan-service-routine.js';
 import {createChinaArcheryRoutine} from './china-archery-routine.js';
 import {createNpcSocial} from './npc-social.js';
+import {createJapanBathhouseOperations} from './japan-bathhouse-operations.js';
+import {japanVisitorStation} from './japan-visitors.js';
 import {createAutomaticDoors} from './automatic-doors.js';
 import {visualSupportHeight,characterFloorOffsetAt,footprintSupportHeight} from './floor-support.js';
 import {configureStableShadows,updateStableShadowFrame,setStableShadowBounds,applyWorldShadowPolicy} from './stable-shadows.js';
@@ -116,7 +117,13 @@ function configureNpcSocial(){
 }
 function configureChinaArchery(){chinaArchery=active.id==='china'?createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseContext:characterPoseContext}):null;}
 function configureJapanService(){
- japanService=active.id==='japan'?createJapanServiceRoutine({npcs,furniture,planPath,doors:automaticDoors,moveActor,poseContext:characterPoseContext,saved:saved.japanService,saveState:state=>{saved.japanService=state;save();},changeWardrobe:(n,look)=>{
+ japanService=active.id==='japan'?createJapanBathhouseOperations({npcs,lot,furniture,planPath,doors:automaticDoors,moveActor,poseContext:characterPoseContext,worldSeed:saved.appearance.seed,saved:saved.japanOperations,saveState:state=>{saved.japanOperations=state;save();},createVisitor:visit=>{
+  const station=japanVisitorStation(visit),person=createCharacter({...visit.appearance,culture:'japan',scale:.96});person.characterScale=.96;person.preferenceScore=shapePreferenceScore(visit.appearance.shapeTraits);person.root.position.set(...visit.position);lot.group.add(person.root);
+  const label=document.createElement('div');label.className='npc-label';label.append(document.createTextNode(`${visit.name} · 来客 ${visit.number}`));const status=document.createElement('small');status.textContent=station.npcLabel;label.append(status);const score=document.createElement('small');score.className='npc-preference-score';score.textContent=`游戏审美 ${person.preferenceScore} / 100`;label.append(score);$('labels').append(label);npcLabels.push(label);
+  const n={...person,station,label,phase:visit.number*6.7,walking:false,home:person.root.position.clone(),route:[],breakAt:Infinity,returning:false};npcs.push(n);return n;
+ },removeVisitor:n=>{
+  const index=npcs.indexOf(n);if(index>=0)npcs.splice(index,1);const labelIndex=npcLabels.indexOf(n.label);if(labelIndex>=0)npcLabels.splice(labelIndex,1);n.label?.remove();disposePerson(n);
+ },changeWardrobe:(n,look)=>{
   const position=n.root.position.clone(),rotation=n.root.rotation.y,old=n.root;
   n.dispose();old.removeFromParent();const person=createCharacter({...look,culture:'japan',scale:n.characterScale});
   Object.defineProperties(n,Object.getOwnPropertyDescriptors(person));n.root.position.copy(position);n.root.rotation.y=rotation;n.poseContext=null;lot.group.add(n.root);
