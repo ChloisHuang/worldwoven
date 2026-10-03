@@ -17,22 +17,33 @@ function curve1(points,y){if(y<=points[0][0])return points[0][1];if(y>=points.at
 // the nose root, upper cheek, muzzle and chin rather than summing local bumps.
 const FACE_X=[0,.008,.018,.030,.0435,.057,.070,.083];
 const FACE_ROWS=[
- [1.474,[.069,.068,.064,.056,.043,.026,.012,0]],
- [1.487,[.071,.071,.070,.066,.056,.040,.020,0]],
- [1.500,[.074,.074,.073,.070,.061,.048,.026,0]],
- [1.514,[.075,.075,.074,.071,.064,.049,.030,.010]],
- [1.529,[.077,.076,.073,.070,.067,.054,.032,.012]],
- [1.536,[.088,.085,.079,.073,.068,.058,.041,.016]],
- [1.544,[.094,.089,.080,.073,.069,.062,.047,.020]],
- [1.556,[.089,.085,.077,.071,.069,.066,.054,.025]],
- [1.577,[.084,.081,.074,.068,.068,.067,.058,.028]],
- [1.594,[.079,.076,.069,.062,.060,.063,.061,.025]],
- [1.614,[.077,.077,.076,.075,.073,.068,.055,.028]],
+ [1.474,[.0745,.073,.068,.058,.043,.026,.012,0]],
+ [1.487,[.0735,.0735,.072,.067,.056,.040,.020,0]],
+ [1.500,[.0765,.076,.074,.070,.061,.048,.026,0]],
+ [1.514,[.078,.0775,.075,.071,.064,.049,.030,.010]],
+ [1.529,[.080,.079,.074,.070,.067,.054,.032,.012]],
+ [1.536,[.087,.084,.075,.070,.067,.058,.041,.016]],
+ [1.544,[.092,.088,.076,.071,.069,.061,.047,.020]],
+ [1.556,[.089,.084,.076,.071,.069,.064,.052,.023]],
+ [1.577,[.084,.081,.074,.068,.069,.063,.047,.021]],
+ [1.594,[.079,.076,.069,.062,.060,.056,.044,.017]],
+ [1.614,[.077,.0765,.075,.072,.069,.063,.044,.021]],
  [1.640,[.075,.075,.074,.071,.066,.058,.043,.017]],
  [1.665,[.060,.060,.059,.055,.047,.036,.020,0]]
 ].map(([y,z])=>[y,FACE_X.map((x,i)=>[x,z[i]])]);
 const smooth=(a,b,v)=>{const t=clamp((v-a)/(b-a));return t*t*(3-2*t);};
 const frontNet=(x,y)=>curve1(FACE_ROWS.map(([yy,row])=>[yy,curve1(row,Math.abs(x))]),y);
+function lipSection(x,masc){
+ const hw=masc?.0315:.0305,u=(x/hw+1)/2;if(u<=0||u>=1)return null;
+ const taper=Math.sin(Math.PI*u)**.82,bow=1-.25*Math.exp(-((x/.0035)**2));
+ return{u,taper,seam:1.504-.0014*Math.sin(Math.PI*u)+.0005*Math.cos(4*Math.PI*u),upper:.0085*bow*taper,lower:.011*taper};
+}
+function lipSurfaceDepth(x,y,masc){
+ const p=lipSection(x,masc);if(!p)return 0;const up=y>=p.seam,t=Math.abs(y-p.seam)/(up?p.upper:p.lower);if(t>=1)return 0;
+ // The lip volumes belong to the same skin surface. The color surfaces below
+ // follow them; they no longer add separate protruding pieces to the profile.
+ return p.taper*(.0016+(up?.0018:.0021)*Math.sin(Math.PI*t))*(1-t*t)**2;
+}
 export function coherentFaceSurface(x,y,masc=false,traits=null){
  const rs=faceRings(masc,traits);let lo=0,hi=rs.length-1;for(let i=0;i<24;i++){const t=(lo+hi)/2;if(spline(rs,t)[0]<y)lo=t;else hi=t;}
  const r=spline(rs,(lo+hi)/2),q=Math.abs(x/r[1]),c=Math.sqrt(Math.max(0,1-q*q)),base=r[4]+r[2]*c;
@@ -40,35 +51,15 @@ export function coherentFaceSurface(x,y,masc=false,traits=null){
  let z=frontNet(x,y);const n=traits?.noseSize??1,w=traits?.noseWidth??1,s=traits?.socketDepth??1;
  if(n!==1||w!==1){const region=(1-smooth(.018,.030,Math.abs(x)))*smooth(1.518,1.531,y)*(1-smooth(1.599,1.616,y)),root=frontNet(.026,y),shaped=root+(frontNet(x/w,1.542+(y-1.542)/n)-root)*n;z=mix(z,shaped,region);}
  if(s!==1)z-=.006*(s-1)*(G(x,y,-.0435,1.594,.022,.012)+G(x,y,.0435,1.594,.022,.012));
- return mix(base,z,blend);
+ return mix(base,z,blend)+lipSurfaceDepth(x,y,masc);
 }
 function grid(g,name,nu,nv,fn,color){const p=[],ix=[];for(let j=0;j<=nv;j++)for(let i=0;i<=nu;i++)p.push(...fn(i/nu,j/nv));for(let j=0;j<nv;j++)for(let i=0;i<nu;i++){const a=j*(nu+1)+i,b=a+1,c=a+nu+1,d=c+1;ix.push(a,b,c,b,d,c);}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(p,3));geo.setIndex(ix);geo.computeVertexNormals();const m=new THREE.Mesh(geo,{color:new THREE.Color(color),isMaterial:false});m.name=name;g.add(m);return m;}
 export function buildCoherentMouth(h,{masc,facialSurface,colors:C}){
  const hw=masc?.0315:.0305;
  const seam=u=>1.504-.0014*Math.sin(Math.PI*u)+.0005*Math.cos(4*Math.PI*u);
  for(const up of[true,false]){
-  grid(h,up?'upper-lip':'lower-lip',32,8,(u,v)=>{const x=(u*2-1)*hw,taper=Math.sin(Math.PI*u)**.82,bow=1-.25*Math.exp(-((x/.0035)**2)),height=up?.0085*bow:.0110,y=seam(u)+(up?1:-1)*height*taper*v,z=facialSurface(x,y)+.0004+taper*(.0026*(1-v)+(up?.0017:.0028)*Math.sin(Math.PI*v));return[x,y,z];},new THREE.Color(C.skin).lerp(new THREE.Color(0x925e5b),up?.46:.36).getHex());
+  grid(h,up?'upper-lip':'lower-lip',32,8,(u,v)=>{const x=(u*2-1)*hw,taper=Math.sin(Math.PI*u)**.82,bow=1-.25*Math.exp(-((x/.0035)**2)),height=up?.0085*bow:.0110,y=seam(u)+(up?1:-1)*height*taper*v,z=facialSurface(x,y)+.00045;return[x,y,z];},new THREE.Color(C.skin).lerp(new THREE.Color(0x925e5b),up?.46:.36).getHex());
 
  }
- grid(h,'closed-soft-mouth',32,2,(u,v)=>{const x=(u*2-1)*hw,taper=Math.sin(Math.PI*u),y=seam(u)+(v-.5)*.00065*taper;return[x,y,facialSurface(x,y)+.00065+.0027*taper];},new THREE.Color(C.skin).multiplyScalar(.54).getHex());
-}
-export function shadeFaceSurface(h,skin){
- const m=h.getObjectByName('continuous-head-jaw-cheeks-nose'),p=m.geometry.attributes.position,colors=[];
- const base=new THREE.Color(skin),warm=new THREE.Color(skin).lerp(new THREE.Color(0xb76c68),.16),socket=new THREE.Color(skin).multiplyScalar(.86);
- for(let i=0;i<p.count;i++){
-  const x=p.getX(i),y=p.getY(i),z=p.getZ(i),front=clamp((z-.01)/.055);
-  const cheeks=(G(x,y,-.050,1.561,.024,.019)+G(x,y,.050,1.561,.024,.019))*front;
-  const under=(G(x,y,-.037,1.584,.021,.009)+G(x,y,.037,1.584,.021,.009))*front;
-  const brow=(G(x,y,-.037,1.602,.024,.006)+G(x,y,.037,1.602,.024,.006))*front;
-  const highlight=G(x,y,0,1.570,.005,.033)*front;
-  // Broad, subtle occlusion on the sculpted concavities; no texture or painted
-  // feature patch. These colors stay attached to the continuous skin vertices.
-  const noseSide=(G(x,y,-.010,1.565,.005,.025)+G(x,y,.010,1.565,.005,.025))*.10;
-  const noseBase=G(x,y,0,1.531,.012,.0035)*.22;
-  const alar=(G(x,y,-.014,1.537,.0035,.006)+G(x,y,.014,1.537,.0035,.006))*.14;
-  const philtrum=G(x,y,0,1.520,.0035,.007)*.045,chinFold=G(x,y,0,1.494,.019,.0035)*.075;
-  const occlusion=(noseSide+noseBase+alar+philtrum+chinFold)*front;
-  const c=base.clone().lerp(warm,cheeks*.46+under*.18).lerp(socket,brow*.4).multiplyScalar((1+highlight*.07)*(1-occlusion));colors.push(c.r,c.g,c.b);
- }
- m.geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+ grid(h,'closed-soft-mouth',32,2,(u,v)=>{const x=(u*2-1)*hw,taper=Math.sin(Math.PI*u),y=seam(u)+(v-.5)*.00065*taper;return[x,y,facialSurface(x,y)+.00070];},new THREE.Color(C.skin).multiplyScalar(.54).getHex());
 }
