@@ -8,7 +8,7 @@ export function applyFaceTone(material){
   const bands=`varying float vFaceTone;
 varying float vEyeReflectance;
 float faceCelTone(float v) {
- float e = max(fwidth(v) * 0.65, 0.028);
+ float e = max(fwidth(v) * 0.65, 0.090);
  return 0.62 + 0.12 * smoothstep(-0.60-e,-0.60+e,v)
              + 0.10 * smoothstep(-0.20-e,-0.20+e,v)
              + 0.09 * smoothstep( 0.20-e, 0.20+e,v)
@@ -36,5 +36,5 @@ float faceCelTone(float v) {
 #endif
 #include <opaque_fragment>`);
  };
- material.customProgramCacheKey=()=> 'worldwoven-prototype-face-five-band-eye-v4';material.needsUpdate=true;
+ material.customProgramCacheKey=()=> 'worldwoven-prototype-face-five-band-eye-v5';material.needsUpdate=true;
 }
