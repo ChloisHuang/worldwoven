@@ -633,7 +633,10 @@ export function buildJapan(){
  wall(district,0,28,-12,11.2,'z');wall(district,0,23.1,-17.6,9.8,'x');wall(district,0,23.1,-6.4,9.8,'x');wall(district,0,18.2,-12,11.2,'z',{width:3.2,height:2.9,offset:1.7});
  roof(roofGroup,23.1,3.82,-12,12.0,13.5,2.0);
  for(const [i,x]of [20,23.15,26.25].entries()){
-  wall(district,0,x,-13.25,2.85,'x',{width:1.35,height:2.85,inset:{id:'jp-washroom-cubicle-'+(i+1),kind:'hinge'}});
+  // Join each front section into the real side/dividing walls; the former
+  // repeated 2.85m pieces left sightline slots between stalls and at the ends.
+  const left=[18.2,21.56,24.71][i],right=[21.56,24.71,28][i],middle=(left+right)/2;
+  wall(district,0,middle,-13.25,right-left,'x',{width:1.35,height:2.85,offset:x-middle,inset:{id:'jp-washroom-cubicle-'+(i+1),kind:'hinge'}});
   if(i<2)wall(district,0,x+1.56,-15.36,4.4,'z');
   // Stylised private washroom fixture, cistern and sanitary paper holder.
   G.box(district,x,.53,-16.75,.82,1.05,.3,P.cream);G.sphere(district,x,.36,-16.06,.39,P.paper,1,.8,1.4);G.torus(district,x,.57,-16.04,.30,.085,P.cream);G.cyl(district,x,.15,-16.3,.25,.3,.3,P.paper);
