@@ -1,5 +1,5 @@
 {
-  "publishedSourceCommit": "04a0e3479f777eb014a98f9090fc5df9c8c9b17c",
+  "publishedSourceCommit": "2447d270a0386cf011fa259abb73e0096fecaeb6",
   "assets": [
     "/assets/movement-runtime.a07dd501e74cfebf.js",
     "/assets/geometry.accd26d9fe1820ba.js",
@@ -26,13 +26,14 @@
     "/assets/japan-sakura.b674c1ca3f576075.js",
     "/assets/japan-omamori.e068cff974b48932.js",
     "/assets/japan-bathhouse.0066a269557b448c.js",
-    "/assets/regions-west.be7f7e1a1fc4e5e1.js",
+    "/assets/france-garden.33c1b609bb4b6330.js",
+    "/assets/regions-west.87d58f44a67ea4bd.js",
     "/assets/egypt-temple.a8ec1ccab5f85f1c.js",
     "/assets/head-shape.f7c0134832111278.js",
     "/assets/approved-surfaces.349f05502cf5e44a.js",
     "/assets/character-props.deb24f9b65d5e60a.js",
     "/assets/characters.2cebfe3fdc06caa9.js",
-    "/assets/main.a7d9c609be8c7d38.js",
+    "/assets/main.1bce6f8005729613.js",
     "/assets/game.bcd28e6aaa90b201.css",
     "/assets/three.core.9edde002b066a9a0.js",
     "/assets/three.module.d8c0a97fa13a785e.js"
