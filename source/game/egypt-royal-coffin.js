@@ -59,13 +59,19 @@ export function addRoyalCoffin(parent,material,x,y,z){
   }
   horizontal(caseOutline(.814),P.lapis,.558,.025,.005);
   // Incised side registers conform to the casing, with broad, quiet inlays.
-  const contours=caseOutline(.998).getPoints(30);
+  const contours=caseOutline(1).getPoints(48);
   for(const yy of [.66,.92])path([...contours.map(p=>[p.x,yy,-p.y]),[contours[0].x,yy,-contours[0].y]],P.shade,.012);
-  for(const side of [-1,1])for(const [zz,xx]of [[-1.05,.76],[-.50,.87],[.1,.80],[.68,.68],[1.22,.60]]){
-    const q=new THREE.Group();q.position.set(side*xx,.79,zz);q.rotation.y=side*Math.PI/2;g.add(q);
-    const a=tools(q,material),s=new THREE.Shape();s.absellipse(0,0,.080,.115,0,Math.PI*2,false);
-    const field=a.relief(s,P.lapis,.013,.005);field.position.z=.012;
-    a.path([[0,.065,.037],[0,-.064,.037]],P.gold,.010);a.path([[-.038,.006,.037],[.038,.006,.037]],P.gold,.009);
+  const wallX=zz=>{
+    const matches=[];for(let i=0;i<contours.length-1;i++){const a=contours[i],b=contours[i+1],lo=Math.min(a.y,b.y),hi=Math.max(a.y,b.y);if(a.x>=0&&b.x>=0&&-zz>=lo&&-zz<=hi&&hi-lo>1e-7)matches.push(a.x+(b.x-a.x)*(-zz-a.y)/(b.y-a.y));}
+    return Math.max(...matches);
+  };
+  for(const side of [-1,1])for(const zz of [-1.05,-.50,.1,.68,1.22]){
+    const xx=wallX(zz),slope=(wallX(zz+.008)-wallX(zz-.008))/.016;
+    const q=new THREE.Group();q.position.set(side*(xx+.008),.79,zz);q.rotation.y=Math.atan2(side,-slope);g.add(q);
+    const a=tools(q,material),s=new THREE.Shape();s.moveTo(-.070,-.085);s.lineTo(-.070,.067);s.quadraticCurveTo(-.07,.115,0,.115);s.quadraticCurveTo(.07,.115,.07,.067);s.lineTo(.07,-.085);s.closePath();
+    a.relief(s,P.lapis,.012,.004);
+    a.path([[0,.065,.035],[0,-.055,.035]],P.gold,.010);a.path([[-.035,.006,.035],[.035,.006,.035]],P.gold,.009);
+    a.path([[-.071,-.092,.03],[.071,-.092,.03]],P.shade,.010);
   }
   // A fully covered mummy: a connected head/neck/shoulder/leg silhouette.
   // Bands follow its round section and diagonal tension instead of floating bars.
