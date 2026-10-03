@@ -130,8 +130,6 @@ const PLANES={
  'jp-guest-suite-door':{sideOverlap:SHOJI_SIDE_OVERLAP},
  'jp-operator-door':{bottomClearance:.012,sideOverlap:SHOJI_SIDE_OVERLAP},'jp-staff-room-door':{bottomClearance:.012,sideOverlap:SHOJI_SIDE_OVERLAP},
  'private-suite-entry':{bottomClearance:.012},
- 'cn-hall-west':{at:-11.46},'cn-bedroom-east':{at:-15.54},
- 'cn-archive-west':{at:-10.54},'cn-guest-west':{at:15.54},
  'core-wing-1--5':{at:11.22,bottomClearance:.012},
  'storage-entry':{bottomClearance:.012},
  'front-entry':{at:3.5},'private-bath-entry':{at:16.4},
