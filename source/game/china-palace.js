@@ -223,7 +223,7 @@ export function buildChinaPalace(G,H){
  // East calligraphy pavilion: two supported working sheets at the near edge,
  // with R9 actor-to-target reach preserved at .75 m in world coordinates.
  markCulture('study');
- {const g=rooms.study.g;table(g,21,11.8,6.2,2.16,.97);for(const x of [19.55,22.15]){G.box(g,x,1.054,12.79,.62,.018,.18,0xefe1bf);for(let i=0;i<3;i++)G.box(g,x-.16+i*.16,1.067,12.79,.036,.005,.12,0x37463b);G.box(g,x+.5,1.086,12.42,.34,.06,.28,0x424f45);beam(g,[x-.5,1.075,12.2],[x-.19,1.075,12.5],.021,C.wood);}for(const x of [18,21.5])shelf(g,x,8.65,2.4,2.9,.7);G.vessel(g,24,1.06,11.7,0x799b8b,.53);for(let i=0;i<5;i++)beam(g,[23.95+i*.025,1.3,11.7],[23.82+i*.085,1.95+(i%2)*.1,11.7],.014,C.wood);for(const x of [18.2,23.8])scroll(g,x,2.25,16.01,1.3,1.6,true);table(g,24.85,9.7,.7,3.7,1.1);boundBook(g,24.85,1.21,9,.5,1,0x6f8c76);flowerBranches(g,24.85,1.19,10.6);target('cn-study-front','书画室外回廊',21,17.2,'study');target('cn-study-work','书案书写侧',21,13.32,'study');target('cn-study-west','书斋西侧',17.7,16,'study');target('cn-study-east','书斋东侧',24,15.3,'study');}
+ {const g=rooms.study.g;table(g,21,11.8,6.2,2.16,.97);for(const x of [19.55,22.15]){G.box(g,x,1.054,12.79,.62,.018,.18,0xefe1bf);for(let i=0;i<3;i++)G.box(g,x-.16+i*.16,1.067,12.79,.036,.005,.12,0x37463b);G.box(g,x+.5,1.086,12.42,.34,.06,.28,0x424f45);beam(g,[x-.5,1.075,12.2],[x-.19,1.075,12.5],.021,C.wood);}for(const x of [18,21.5])shelf(g,x,8.65,2.4,2.9,.7);G.vessel(g,24,1.06,11.7,0x799b8b,.53);for(let i=0;i<5;i++)beam(g,[23.95+i*.025,1.3,11.7],[23.82+i*.085,1.95+(i%2)*.1,11.7],.014,C.wood);for(const x of [18.2,23.8])scroll(g,x,2.25,16.01,1.3,1.6,true);table(g,24.85,9.7,.7,3.7,1.1);boundBook(g,24.85,1.21,9,.5,1,0x6f8c76);flowerBranches(g,24.85,1.19,10.6);target('cn-study-front','书画室外回廊',21,17.2,'study');target('cn-study-work','书案书写侧',21,13.32,'study');target('cn-study-west','书画室西侧',17.7,15.2,'study');target('cn-study-east','书斋东侧',24,15.3,'study');}
  finishCulture('study');
  // Separate private sleeping hall: canopy bed, dressing furniture and reading
  // chair. All bedpost textiles remain attached to their support, not floating.
@@ -511,7 +511,7 @@ export function buildChinaPalace(G,H){
   ['cn-tower-study-landing','雅集楼二层公共梯厅',[-5.3,4.215,-24.3],'culture-gallery'],['cn-tower-third-base','雅集楼二层上行梯口',[-7.85,4.215,-24.3],'culture-gallery'],
   ['cn-tower-third-midlanding','三层楼梯转身平台',[-6.6,5.915,-31],'culture-gallery'],['cn-loft-stair-top','雅集楼三层观景梯口',[-5.3,7.615,-24.3],'archive-loft'],
   ['cn-loft-court-view','雅集楼三层荷庭视野',[4.3,7.615,-23.62],'archive-loft'],['cn-loft-east','三层东侧观景回廊',[9.8,7.615,-26],'archive-loft'],
-  ['cn-loft-west','三层西侧观景回廊',[-10.1,7.615,-28],'archive-loft'],['cn-loft-rear','三层北侧书廊',[0,7.615,-31],'archive-loft']
+  ['cn-loft-west','三层西侧观景回廊',[-10.1,7.615,-28],'archive-loft'],['cn-loft-rear','三层北侧书廊',[0,7.615,-32.1],'archive-loft']
  ])explorationTargets.push({id,name,roomId,position:p});
  // Both obsolete pavilions, roofs and doors are absent. The southwest plot
  // stays a complete clear rectangle for a future isolated archery court.
