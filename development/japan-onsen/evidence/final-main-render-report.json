@@ -1,0 +1,3397 @@
+{
+  "status": "RENDERED_PENDING_VISUAL_REVIEW",
+  "source": "/workspace/shared/worldwoven-r16-2-bath-candidate/source",
+  "sourceHashes": {
+    "japan-bathhouse.js": "fbba20bb8864a4155c71d14de2c98a1b77c080cfee7d9f4672698eac9fa2e6c2",
+    "furniture-interactions.js": "f1286dc2ec9b247f0025e81fbec09722e3d5d83b883e31240820efa702175faa",
+    "characters.js": "601b6f4777a9145ac463bf23a05aac98a3816e44b120d630bf4982bf0f731009",
+    "approved-surfaces.js": "7f2829fddde315292973db6a54fbd5d10d5b80c53e924e0d0332b641235e2b65",
+    "main.js": "9774565b37b074aa279f655bcbbb8d4fa05345cf522f1842a62d58148c7c1626",
+    "geometry.js": "accd26d9fe1820ba7829bc00f802c8916458813eefd0cfd08f5d38e11c207ca9",
+    "night-lighting.js": "61d5dff148e2797e35633d103c52a05460d1029506d312115c78941e81e7fc30",
+    "stable-shadows.js": "20c3f208ed1e1e9ee7e98bdd5a88f5a9c79fbfefbeb365952b72f7f773bfb493",
+    "camera.js": "7b6fc625c07138fc5636d38651b2487cdd812e22fcb89618a707b6b913808dea",
+    "automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+    "room-closures.js": "3f2bf20f6f11523152e9a275aa8369b7b30ef960f5817551150e12bbd98003cc"
+  },
+  "frames": [
+    {
+      "file": "main-final-default.png",
+      "cameraProof": {
+        "requested": [
+          -3.2199910024741296,
+          5.853859479574096,
+          -4.810871733079216
+        ],
+        "resolved": [
+          -3.2199910024741296,
+          5.853859479574096,
+          -4.810871733079216
+        ],
+        "radius": 0.18,
+        "opaqueMeshCount": 208,
+        "proofs": [
+          {
+            "name": "look target",
+            "target": [
+              -3.2199982836049945,
+              4.850000612998216,
+              -9.3
+            ],
+            "length": 4.600000567491621,
+            "opaqueHits": 0,
+            "firstHit": null
+          },
+          {
+            "name": "head",
+            "target": [
+              -3.0962489488067653,
+              4.65299519708026,
+              -9.3
+            ],
+            "length": 4.648619119446383,
+            "opaqueHits": 0,
+            "firstHit": null
+          },
+          {
+            "name": "chest",
+            "target": [
+              -3.100686327322897,
+              4.532661038704907,
+              -9.3
+            ],
+            "length": 4.681033168279768,
+            "opaqueHits": 0,
+            "firstHit": null
+          },
+          {
+            "name": "supported forearm",
+            "target": [
+              -3.0082698062020525,
+              4.510169933547883,
+              -9.697864461411722
+            ],
+            "length": 5.0727729485781055,
+            "opaqueHits": 0,
+            "firstHit": null
+          },
+          {
+            "name": "resting palm",
+            "target": [
+              -3.308584541874933,
+              4.330719905295587,
+              -9.233710206478609
+            ],
+            "length": 4.678600553556453,
+            "opaqueHits": 0,
+            "firstHit": null
+          }
+        ]
+      },
+      "camera": [
+        -3.2199910024741296,
+        5.853859479574096,
+        -4.810871733079216
+      ],
+      "target": [
+        -3.2199982836049945,
+        4.850000612998216,
+        -9.3
+      ],
+      "frameSHA256": "133261ecdb67e1dd6cdd441998ec8ffed4759aa617d9d5fe0e6586764c39ada6",
+      "descriptor": {
+        "kind": "bath",
+        "cameraTargetMinY": 4.85,
+        "cameraParts": [
+          {
+            "minX": -10.3,
+            "maxX": -2.8,
+            "minY": 3.8535,
+            "maxY": 3.8805,
+            "minZ": -12.600000000000001,
+            "maxZ": -6.000000000000001
+          },
+          {
+            "minX": -10.49,
+            "maxX": -2.61,
+            "minY": 3.8,
+            "maxY": 4.617,
+            "minZ": -12.8,
+            "maxZ": -12.400000000000002
+          },
+          {
+            "minX": -10.49,
+            "maxX": -2.61,
+            "minY": 3.8,
+            "maxY": 4.617,
+            "minZ": -6.200000000000001,
+            "maxZ": -5.800000000000001
+          },
+          {
+            "minX": -10.440000000000001,
+            "maxX": -10.16,
+            "minY": 3.8,
+            "maxY": 4.52,
+            "minZ": -12.600000000000001,
+            "maxZ": -6.000000000000001
+          },
+          {
+            "minX": -2.9699999999999998,
+            "maxX": -2.63,
+            "minY": 3.8,
+            "maxY": 4.6,
+            "minZ": -12.600000000000001,
+            "maxZ": -6.000000000000001
+          },
+          {
+            "minX": -3.5,
+            "maxX": -2.94,
+            "minY": 3.8805,
+            "maxY": 4.1,
+            "minZ": -12.46,
+            "maxZ": -6.140000000000001
+          },
+          {
+            "minX": -3.02,
+            "maxX": -2.94,
+            "minY": 4.1,
+            "maxY": 4.5,
+            "minZ": -12.46,
+            "maxZ": -6.140000000000001
+          }
+        ],
+        "name": "二层男汤温泉",
+        "position": [
+          -2.1,
+          3.8,
+          -9.3
+        ],
+        "anchor": [
+          -3.22,
+          3.8,
+          -9.3
+        ],
+        "center": [
+          -6.55,
+          3.8,
+          -9.3
+        ],
+        "size": [
+          7.5,
+          0.82,
+          6.6
+        ],
+        "yaw": -1.5707963267948966,
+        "supportY": 3.8805,
+        "waterY": 4.47,
+        "bathHipHeight": 0.32,
+        "bathWardrobePreset": "onsen-swimwear",
+        "bathPose": {
+          "style": "onsen-seat",
+          "seatY": 4.1,
+          "waterY": 4.47,
+          "backZ": -0.2,
+          "backTopY": 4.5
+        },
+        "id": "japan-furniture-bath-1",
+        "furniture": true,
+        "action": "换入浴衣着泡汤",
+        "interactionRadius": 2.1
+      },
+      "actor": {
+        "appearance": {
+          "skin": 5846821,
+          "hair": 3155748,
+          "clothes": 7827801,
+          "accent": 14667440,
+          "eyeColor": 7573415,
+          "culture": "japan",
+          "variant": 2,
+          "style": "casual",
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "braided-tail",
+          "wardrobePreset": "onsen-swimwear",
+          "gaitPreset": 3,
+          "shapeTraits": {
+            "jawWidth": 1,
+            "legLength": 1,
+            "eyeSize": 1,
+            "noseSize": 1,
+            "noseWidth": 1,
+            "socketDepth": 1
+          }
+        },
+        "pose": {
+          "height": 1.7389999628067017,
+          "labelHeight": 1.2129951970802604,
+          "headHeight": 1.0129951970802604,
+          "action": "bathe",
+          "seated": true,
+          "grounded": true,
+          "feet": [
+            [
+              -0.13,
+              0.108,
+              0.58
+            ],
+            [
+              0.13,
+              0.108,
+              0.58
+            ]
+          ],
+          "hands": [
+            [
+              -0.56381,
+              0.68388,
+              -0.14698
+            ],
+            [
+              0.08662,
+              0.46694,
+              0.06624
+            ]
+          ],
+          "gaitReset": true,
+          "lying": false,
+          "bathing": true,
+          "speed": 0,
+          "gaitPhase": 0,
+          "stepLength": 0.4324,
+          "strideLength": 0.8648,
+          "support": [
+            true,
+            true
+          ],
+          "contactMinY": 3.8845,
+          "contactMaxY": 4.936284390558585,
+          "lieContact": null,
+          "bathContact": {
+            "hip": {
+              "surface": 4.1,
+              "body": 4.104011056014337,
+              "gap": 0.0040110560143373775
+            },
+            "sole": {
+              "surface": 3.8805,
+              "body": 3.8845,
+              "gap": 0.004
+            },
+            "back": {
+              "surface": -0.2,
+              "body": -0.194,
+              "gap": 0.006,
+              "height": 4.479352557654238,
+              "top": 4.5
+            },
+            "waterY": 4.47
+          },
+          "bathHandContact": {
+            "forearm": {
+              "surface": 4.5,
+              "body": 4.510169933547883,
+              "gap": 0.01016993354788287,
+              "point": [
+                -3.0082698062020525,
+                4.510169933547883,
+                -9.697864461411722
+              ]
+            },
+            "palm": {
+              "point": [
+                -3.308584541874933,
+                4.330719905295587,
+                -9.233710206478609
+              ],
+              "supportPoint": [
+                -3.3100902381390576,
+                4.327014211568344,
+                -9.233736904045399
+              ],
+              "gap": 0.004000000000000125,
+              "supportNormal": [
+                0.006674391697429177,
+                0.9264234318107935,
+                -0.3764240660310942
+              ],
+              "supportTriangle": [
+                4312,
+                4337,
+                4336
+              ]
+            },
+            "palmNormals": [
+              [
+                0,
+                -1,
+                0
+              ],
+              [
+                -0.006674391697429186,
+                -0.9264234318107935,
+                0.37642406603109424
+              ]
+            ]
+          },
+          "visualFloorOffset": 0,
+          "rigBones": 18,
+          "continuousCloth": true,
+          "unevenSupport": false
+        },
+        "skin": {
+          "bounds": {
+            "min": [
+              -3.9228952973345774,
+              3.8845,
+              -9.98081251290396
+            ],
+            "max": [
+              -2.924114662529955,
+              4.936284390558585,
+              -9.065631083698708
+            ]
+          },
+          "head": {
+            "min": [
+              -3.187693791989183,
+              4.652145613998205,
+              -9.388986444393412
+            ],
+            "max": [
+              -3.0071051398680386,
+              4.904330435248942,
+              -9.211061256929813
+            ]
+          },
+          "hip": {
+            "min": [
+              -3.2513507189105204,
+              4.104011056014336,
+              -9.45721889942913
+            ],
+            "max": [
+              -3.0446719055481712,
+              4.233097789269577,
+              -9.142781100570872
+            ]
+          },
+          "soles": {
+            "min": [
+              -3.9228952973345774,
+              3.8845,
+              -9.48131195640564
+            ],
+            "max": [
+              -3.683495879099752,
+              4.0095000055879355,
+              -9.11868804359436
+            ]
+          },
+          "under": 4843,
+          "total": 15111,
+          "underFraction": 0.32049500363973266
+        }
+      },
+      "drawCalls": 273,
+      "triangles": 1243576
+    },
+    {
+      "file": "main-final-near.png",
+      "cameraProof": {
+        "requested": [
+          -3.2199910024741296,
+          5.308285421871923,
+          -7.25061535640573
+        ],
+        "resolved": [
+          -3.2199910024741296,
+          5.308285421871923,
+          -7.25061535640573
+        ],
+        "radius": 0.18,
+        "opaqueMeshCount": 208,
+        "proofs": [
+          {
+            "name": "look target",
+            "target": [
+              -3.2199982836049945,
+              4.850000612998216,
+              -9.3
+            ],
+            "length": 2.1000005674993143,
+            "opaqueHits": 0,
+            "firstHit": null
+          },
+          {
+            "name": "head",
+            "target": [
+              -3.0962489488067653,
+              4.65299519708026,
+              -9.3
+            ],
+            "length": 2.1551553985625587,
+            "opaqueHits": 0,
+            "firstHit": null
+          },
+          {
+            "name": "chest",
+            "target": [
+              -3.100686327322897,
+              4.532661038704907,
+              -9.3
+            ],
+            "length": 2.194494066220315,
+            "opaqueHits": 0,
+            "firstHit": null
+          },
+          {
+            "name": "supported forearm",
+            "target": [
+              -3.0082698062020525,
+              4.510169933547883,
+              -9.697864461411722
+            ],
+            "length": 2.5827973942232156,
+            "opaqueHits": 0,
+            "firstHit": null
+          },
+          {
+            "name": "resting palm",
+            "target": [
+              -3.308584541874933,
+              4.330719905295587,
+              -9.233710206478609
+            ],
+            "length": 2.2127241895022287,
+            "opaqueHits": 0,
+            "firstHit": null
+          }
+        ]
+      },
+      "camera": [
+        -3.2199910024741296,
+        5.308285421871923,
+        -7.25061535640573
+      ],
+      "target": [
+        -3.2199982836049945,
+        4.850000612998216,
+        -9.3
+      ],
+      "frameSHA256": "a2c7cccfc3dafe2b771c8df2ef1ff11e1e81565f940e9ea3fd61ad641cb48862",
+      "descriptor": {
+        "kind": "bath",
+        "cameraTargetMinY": 4.85,
+        "cameraParts": [
+          {
+            "minX": -10.3,
+            "maxX": -2.8,
+            "minY": 3.8535,
+            "maxY": 3.8805,
+            "minZ": -12.600000000000001,
+            "maxZ": -6.000000000000001
+          },
+          {
+            "minX": -10.49,
+            "maxX": -2.61,
+            "minY": 3.8,
+            "maxY": 4.617,
+            "minZ": -12.8,
+            "maxZ": -12.400000000000002
+          },
+          {
+            "minX": -10.49,
+            "maxX": -2.61,
+            "minY": 3.8,
+            "maxY": 4.617,
+            "minZ": -6.200000000000001,
+            "maxZ": -5.800000000000001
+          },
+          {
+            "minX": -10.440000000000001,
+            "maxX": -10.16,
+            "minY": 3.8,
+            "maxY": 4.52,
+            "minZ": -12.600000000000001,
+            "maxZ": -6.000000000000001
+          },
+          {
+            "minX": -2.9699999999999998,
+            "maxX": -2.63,
+            "minY": 3.8,
+            "maxY": 4.6,
+            "minZ": -12.600000000000001,
+            "maxZ": -6.000000000000001
+          },
+          {
+            "minX": -3.5,
+            "maxX": -2.94,
+            "minY": 3.8805,
+            "maxY": 4.1,
+            "minZ": -12.46,
+            "maxZ": -6.140000000000001
+          },
+          {
+            "minX": -3.02,
+            "maxX": -2.94,
+            "minY": 4.1,
+            "maxY": 4.5,
+            "minZ": -12.46,
+            "maxZ": -6.140000000000001
+          }
+        ],
+        "name": "二层男汤温泉",
+        "position": [
+          -2.1,
+          3.8,
+          -9.3
+        ],
+        "anchor": [
+          -3.22,
+          3.8,
+          -9.3
+        ],
+        "center": [
+          -6.55,
+          3.8,
+          -9.3
+        ],
+        "size": [
+          7.5,
+          0.82,
+          6.6
+        ],
+        "yaw": -1.5707963267948966,
+        "supportY": 3.8805,
+        "waterY": 4.47,
+        "bathHipHeight": 0.32,
+        "bathWardrobePreset": "onsen-swimwear",
+        "bathPose": {
+          "style": "onsen-seat",
+          "seatY": 4.1,
+          "waterY": 4.47,
+          "backZ": -0.2,
+          "backTopY": 4.5
+        },
+        "id": "japan-furniture-bath-1",
+        "furniture": true,
+        "action": "换入浴衣着泡汤",
+        "interactionRadius": 2.1
+      },
+      "actor": {
+        "appearance": {
+          "skin": 5846821,
+          "hair": 3155748,
+          "clothes": 7827801,
+          "accent": 14667440,
+          "eyeColor": 7573415,
+          "culture": "japan",
+          "variant": 2,
+          "style": "casual",
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "braided-tail",
+          "wardrobePreset": "onsen-swimwear",
+          "gaitPreset": 3,
+          "shapeTraits": {
+            "jawWidth": 1,
+            "legLength": 1,
+            "eyeSize": 1,
+            "noseSize": 1,
+            "noseWidth": 1,
+            "socketDepth": 1
+          }
+        },
+        "pose": {
+          "height": 1.7389999628067017,
+          "labelHeight": 1.2129951970802604,
+          "headHeight": 1.0129951970802604,
+          "action": "bathe",
+          "seated": true,
+          "grounded": true,
+          "feet": [
+            [
+              -0.13,
+              0.108,
+              0.58
+            ],
+            [
+              0.13,
+              0.108,
+              0.58
+            ]
+          ],
+          "hands": [
+            [
+              -0.56381,
+              0.68388,
+              -0.14698
+            ],
+            [
+              0.08662,
+              0.46694,
+              0.06624
+            ]
+          ],
+          "gaitReset": true,
+          "lying": false,
+          "bathing": true,
+          "speed": 0,
+          "gaitPhase": 0,
+          "stepLength": 0.4324,
+          "strideLength": 0.8648,
+          "support": [
+            true,
+            true
+          ],
+          "contactMinY": 3.8845,
+          "contactMaxY": 4.936284390558585,
+          "lieContact": null,
+          "bathContact": {
+            "hip": {
+              "surface": 4.1,
+              "body": 4.104011056014337,
+              "gap": 0.0040110560143373775
+            },
+            "sole": {
+              "surface": 3.8805,
+              "body": 3.8845,
+              "gap": 0.004
+            },
+            "back": {
+              "surface": -0.2,
+              "body": -0.194,
+              "gap": 0.006,
+              "height": 4.479352557654238,
+              "top": 4.5
+            },
+            "waterY": 4.47
+          },
+          "bathHandContact": {
+            "forearm": {
+              "surface": 4.5,
+              "body": 4.510169933547883,
+              "gap": 0.01016993354788287,
+              "point": [
+                -3.0082698062020525,
+                4.510169933547883,
+                -9.697864461411722
+              ]
+            },
+            "palm": {
+              "point": [
+                -3.308584541874933,
+                4.330719905295587,
+                -9.233710206478609
+              ],
+              "supportPoint": [
+                -3.3100902381390576,
+                4.327014211568344,
+                -9.233736904045399
+              ],
+              "gap": 0.004000000000000125,
+              "supportNormal": [
+                0.006674391697429177,
+                0.9264234318107935,
+                -0.3764240660310942
+              ],
+              "supportTriangle": [
+                4312,
+                4337,
+                4336
+              ]
+            },
+            "palmNormals": [
+              [
+                0,
+                -1,
+                0
+              ],
+              [
+                -0.006674391697429186,
+                -0.9264234318107935,
+                0.37642406603109424
+              ]
+            ]
+          },
+          "visualFloorOffset": 0,
+          "rigBones": 18,
+          "continuousCloth": true,
+          "unevenSupport": false
+        },
+        "skin": {
+          "bounds": {
+            "min": [
+              -3.9228952973345774,
+              3.8845,
+              -9.98081251290396
+            ],
+            "max": [
+              -2.924114662529955,
+              4.936284390558585,
+              -9.065631083698708
+            ]
+          },
+          "head": {
+            "min": [
+              -3.187693791989183,
+              4.652145613998205,
+              -9.388986444393412
+            ],
+            "max": [
+              -3.0071051398680386,
+              4.904330435248942,
+              -9.211061256929813
+            ]
+          },
+          "hip": {
+            "min": [
+              -3.2513507189105204,
+              4.104011056014336,
+              -9.45721889942913
+            ],
+            "max": [
+              -3.0446719055481712,
+              4.233097789269577,
+              -9.142781100570872
+            ]
+          },
+          "soles": {
+            "min": [
+              -3.9228952973345774,
+              3.8845,
+              -9.48131195640564
+            ],
+            "max": [
+              -3.683495879099752,
+              4.0095000055879355,
+              -9.11868804359436
+            ]
+          },
+          "under": 4843,
+          "total": 15111,
+          "underFraction": 0.32049500363973266
+        }
+      },
+      "drawCalls": 266,
+      "triangles": 1236612
+    }
+  ],
+  "errors": [],
+  "cameraConfiguration": {
+    "source": "/workspace/shared/worldwoven-r16-2-bath-candidate/source",
+    "sourceHashes": {
+      "japan-bathhouse.js": "fbba20bb8864a4155c71d14de2c98a1b77c080cfee7d9f4672698eac9fa2e6c2",
+      "furniture-interactions.js": "f1286dc2ec9b247f0025e81fbec09722e3d5d83b883e31240820efa702175faa",
+      "characters.js": "601b6f4777a9145ac463bf23a05aac98a3816e44b120d630bf4982bf0f731009",
+      "approved-surfaces.js": "7f2829fddde315292973db6a54fbd5d10d5b80c53e924e0d0332b641235e2b65",
+      "main.js": "9774565b37b074aa279f655bcbbb8d4fa05345cf522f1842a62d58148c7c1626",
+      "geometry.js": "accd26d9fe1820ba7829bc00f802c8916458813eefd0cfd08f5d38e11c207ca9",
+      "night-lighting.js": "61d5dff148e2797e35633d103c52a05460d1029506d312115c78941e81e7fc30",
+      "stable-shadows.js": "20c3f208ed1e1e9ee7e98bdd5a88f5a9c79fbfefbeb365952b72f7f773bfb493",
+      "camera.js": "7b6fc625c07138fc5636d38651b2487cdd812e22fcb89618a707b6b913808dea",
+      "automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+      "room-closures.js": "3f2bf20f6f11523152e9a275aa8369b7b30ef960f5817551150e12bbd98003cc"
+    },
+    "cameraReport": "qa/hair03-main-critical.json",
+    "cameraReportSha256": "213b826fece9f6fe6139945e6a2eecf19e63523bb3291f189bc90424bbb48dbd",
+    "scope": "Final bath-only source on published R16.2, actual current main default/near camera outputs. Same female-slender braided-tail actor temporarily displays the existing low-bun. Production Three/Mesa scene and character; DOM labels/halo state are covered separately by the passing main controller test, not drawn by this scene renderer. Both views use the exact playerAppearance output for the same saved fixture identity used by the passing main lifecycle, with the onsen descriptor selecting temporary swimwear; pose time is fixed at1 in both views.",
+    "resolution": [
+      1688,
+      780
+    ],
+    "cases": [
+      {
+        "name": "final-default",
+        "index": 0,
+        "id": "japan-furniture-bath-1",
+        "bodyPreset": "feminine-slender",
+        "hairStyle": "braided-tail",
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 1,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        },
+        "view": {
+          "camera": [
+            -3.2199910024741296,
+            5.853859479574096,
+            -4.810871733079216
+          ],
+          "target": [
+            -3.2199982836049945,
+            4.850000612998216,
+            -9.3
+          ],
+          "fov": 50,
+          "near": 0.2,
+          "requireChestClear": true
+        },
+        "appearance": {
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "braided-tail",
+          "wardrobeIndex": 0,
+          "gaitPreset": 3,
+          "skin": 5846821,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "shapeTraits": {
+            "jawWidth": 1,
+            "legLength": 1,
+            "eyeSize": 1,
+            "noseSize": 1,
+            "noseWidth": 1,
+            "socketDepth": 1
+          },
+          "wardrobePreset": "yukata-wide-obi",
+          "clothes": 7827801,
+          "accent": 14667440
+        }
+      },
+      {
+        "name": "final-near",
+        "index": 0,
+        "id": "japan-furniture-bath-1",
+        "bodyPreset": "feminine-slender",
+        "hairStyle": "braided-tail",
+        "shapeTraits": {
+          "jawWidth": 1,
+          "legLength": 1,
+          "eyeSize": 1,
+          "noseSize": 1,
+          "noseWidth": 1,
+          "socketDepth": 1
+        },
+        "view": {
+          "camera": [
+            -3.2199910024741296,
+            5.308285421871923,
+            -7.25061535640573
+          ],
+          "target": [
+            -3.2199982836049945,
+            4.850000612998216,
+            -9.3
+          ],
+          "fov": 50,
+          "near": 0.2,
+          "requireChestClear": true
+        },
+        "appearance": {
+          "bodyPreset": "feminine-slender",
+          "hairStyle": "braided-tail",
+          "wardrobeIndex": 0,
+          "gaitPreset": 3,
+          "skin": 5846821,
+          "hair": 3155748,
+          "eyeColor": 7573415,
+          "variant": 2,
+          "shapeTraits": {
+            "jawWidth": 1,
+            "legLength": 1,
+            "eyeSize": 1,
+            "noseSize": 1,
+            "noseWidth": 1,
+            "socketDepth": 1
+          },
+          "wardrobePreset": "yukata-wide-obi",
+          "clothes": 7827801,
+          "accent": 14667440
+        }
+      }
+    ],
+    "aspect": 2.164102564102564
+  },
+  "scope": "Final bath-only source on published R16.2, actual current main default/near camera outputs. Same female-slender braided-tail actor temporarily displays the existing low-bun. Production Three/Mesa scene and character; DOM labels/halo state are covered separately by the passing main controller test, not drawn by this scene renderer. Both views use the exact playerAppearance output for the same saved fixture identity used by the passing main lifecycle, with the onsen descriptor selecting temporary swimwear; pose time is fixed at1 in both views.",
+  "renderer": {
+    "three": "186",
+    "display": {
+      "backend": "egl",
+      "vendor": "Mesa Project",
+      "version": "1.5",
+      "extensions": "EGL_ANDROID_blob_cache EGL_EXT_config_select_group EGL_EXT_create_context_robustness EGL_EXT_image_dma_buf_import EGL_EXT_image_dma_buf_import_modifiers EGL_EXT_query_reset_notification_strategy EGL_EXT_surface_compression EGL_KHR_cl_event2 EGL_KHR_config_attribs EGL_KHR_context_flush_control EGL_KHR_create_context EGL_KHR_create_context_no_error EGL_KHR_fence_sync EGL_KHR_get_all_proc_addresses EGL_KHR_gl_colorspace EGL_KHR_gl_renderbuffer_image EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_3D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_image_base EGL_KHR_no_config_context EGL_KHR_reusable_sync EGL_KHR_surfaceless_context EGL_EXT_pixel_format_float EGL_KHR_wait_sync EGL_MESA_configless_context EGL_MESA_gl_interop EGL_MESA_query_driver EGL_MESA_x11_native_visual_id ",
+      "surfaceless": true,
+      "dynamic": true,
+      "angle": false,
+      "api": "gles",
+      "glVersion": 0
+    },
+    "version": "WebGL 2.0 (OpenGL ES 3.0 ANGLE)",
+    "renderer": "llvmpipe (LLVM 19.1.7, 256 bits)"
+  },
+  "shadowFilter": true,
+  "buildMs": 2471.7635360000004,
+  "lighting": {
+    "region": "japan",
+    "night": false,
+    "budget": 6,
+    "fixtureCount": 159,
+    "activeCount": 159,
+    "gpuPointLights": 0,
+    "anchored": true,
+    "selectionMode": "world-fixed-field",
+    "field": {
+      "dimensions": [
+        53,
+        43,
+        69
+      ],
+      "bytes": 3774024,
+      "fixtureCount": 159,
+      "maxSourcesPerCell": 6,
+      "bindings": 206,
+      "buildMs": 1194.3733860000002,
+      "occludedContributions": 59898,
+      "stepMetres": [
+        1.1923076923076923,
+        0.7226190382526034,
+        1.2058823529411764
+      ],
+      "sourceCells": [
+        406,
+        406,
+        401,
+        397,
+        425,
+        432,
+        433,
+        438,
+        431,
+        432,
+        434,
+        431,
+        407,
+        422,
+        413,
+        429,
+        421,
+        419,
+        409,
+        403,
+        107,
+        104,
+        88,
+        92,
+        109,
+        113,
+        613,
+        372,
+        402,
+        429,
+        376,
+        615,
+        217,
+        143,
+        405,
+        270,
+        129,
+        161,
+        1018,
+        1180,
+        143,
+        210,
+        237,
+        134,
+        125,
+        126,
+        128,
+        130,
+        126,
+        125,
+        472,
+        377,
+        417,
+        416,
+        368,
+        472,
+        231,
+        269,
+        279,
+        126,
+        130,
+        161,
+        606,
+        325,
+        131,
+        127,
+        412,
+        193,
+        130,
+        127,
+        126,
+        126,
+        127,
+        130,
+        555,
+        430,
+        480,
+        477,
+        426,
+        555,
+        234,
+        188,
+        414,
+        243,
+        175,
+        161,
+        922,
+        1183,
+        144,
+        506,
+        596,
+        523,
+        567,
+        159,
+        154,
+        118,
+        113,
+        111,
+        96,
+        113,
+        108,
+        758,
+        455,
+        441,
+        452,
+        454,
+        755,
+        412,
+        107,
+        312,
+        210,
+        113,
+        132,
+        291,
+        426,
+        160,
+        64,
+        119,
+        112,
+        109,
+        894,
+        751,
+        894,
+        754,
+        971,
+        764,
+        971,
+        764,
+        741,
+        634,
+        729,
+        617,
+        275,
+        740,
+        860,
+        166,
+        176,
+        146,
+        466,
+        924,
+        910,
+        774,
+        133,
+        579,
+        588,
+        224,
+        237,
+        227,
+        152,
+        157,
+        154,
+        179,
+        183,
+        180,
+        186,
+        192,
+        189,
+        741,
+        738
+      ],
+      "volumeSamplesPerFragment": 2,
+      "rampSamplesPerFragment": 1,
+      "activeGPUPointLights": 0
+    },
+    "fixtures": [
+      {
+        "id": 0,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -2.5,
+          17.21,
+          9.15
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 1,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          0.1,
+          17.21,
+          9.15
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 2,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          2.7,
+          17.21,
+          9.15
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 3,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          5.3,
+          17.21,
+          9.15
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 4,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -8.6,
+          19.67,
+          -9.79
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 5,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -5.8,
+          19.67,
+          -9.79
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 6,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -8.6,
+          19.67,
+          -3.51
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 7,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -5.8,
+          19.67,
+          -3.51
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 8,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -9.98,
+          19.67,
+          -8.3
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 9,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -9.98,
+          19.67,
+          -5.5
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 10,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -3.92,
+          19.67,
+          -8.3
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 11,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -3.92,
+          19.67,
+          -5.5
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 12,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -7.2,
+          23.36,
+          -4.690000000000001
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 13,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -5.637294013577731,
+          23.36,
+          -5.337294013577731
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 14,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -4.99,
+          23.36,
+          -6.9
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 15,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -5.637294013577731,
+          23.36,
+          -8.46270598642227
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 16,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -7.2,
+          23.36,
+          -9.11
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 17,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -8.762705986422269,
+          23.36,
+          -8.46270598642227
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 18,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -9.41,
+          23.36,
+          -6.9
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 19,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -8.76270598642227,
+          23.36,
+          -5.337294013577731
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 20,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -9.65,
+          1.86,
+          9.41
+        ],
+        "floorY": 0,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 21,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -6.5,
+          1.86,
+          9.41
+        ],
+        "floorY": 0,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 22,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -3.45,
+          1.86,
+          9.41
+        ],
+        "floorY": 0,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 23,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          3.45,
+          1.86,
+          9.41
+        ],
+        "floorY": 0,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 24,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          6.5,
+          1.86,
+          9.41
+        ],
+        "floorY": 0,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 25,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          9.65,
+          1.86,
+          9.41
+        ],
+        "floorY": 0,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 26,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -11.75,
+          2.72,
+          10.9
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 27,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -7.5,
+          2.72,
+          10.9
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 28,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -3,
+          2.72,
+          10.9
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 29,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          3,
+          2.72,
+          10.9
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 30,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          7.5,
+          2.72,
+          10.9
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 31,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          11.75,
+          2.72,
+          10.9
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 32,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          6.45,
+          2.94,
+          -12
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 33,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -10.9,
+          2.94,
+          -12
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 34,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          6.45,
+          2.94,
+          6.8
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 35,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -10.9,
+          2.94,
+          6.8
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 36,
+        "name": "Night fixture · floor-lantern",
+        "kind": "floor-lantern",
+        "position": [
+          -11.2,
+          0.94,
+          -1.8
+        ],
+        "floorY": 0,
+        "intensity": 7.199999999999999,
+        "distance": 5.5,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 37,
+        "name": "Night fixture · floor-lantern",
+        "kind": "floor-lantern",
+        "position": [
+          11.25,
+          0.94,
+          5.6
+        ],
+        "floorY": 0,
+        "intensity": 7.199999999999999,
+        "distance": 5.5,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 38,
+        "name": "Authored room lamp",
+        "kind": "interior",
+        "position": [
+          -7,
+          2.8,
+          -5
+        ],
+        "floorY": 0,
+        "intensity": 11.52,
+        "distance": 13,
+        "dayFactor": 0.62
+      },
+      {
+        "id": 39,
+        "name": "Authored room lamp",
+        "kind": "interior",
+        "position": [
+          4,
+          2.8,
+          4
+        ],
+        "floorY": 0,
+        "intensity": 11.52,
+        "distance": 13,
+        "dayFactor": 0.62
+      },
+      {
+        "id": 40,
+        "name": "Night fixture · sign",
+        "kind": "sign",
+        "position": [
+          -7,
+          2.81,
+          9.069999999999999
+        ],
+        "floorY": 0,
+        "intensity": 7.199999999999999,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 41,
+        "name": "Night fixture · sign",
+        "kind": "sign",
+        "position": [
+          -6,
+          3.14,
+          -7.35
+        ],
+        "floorY": 0,
+        "intensity": 7.199999999999999,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 42,
+        "name": "Night fixture · sign",
+        "kind": "sign",
+        "position": [
+          4.1,
+          3.14,
+          2.25
+        ],
+        "floorY": 0,
+        "intensity": 7.199999999999999,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 43,
+        "name": "Night fixture · sign",
+        "kind": "sign",
+        "position": [
+          2.4,
+          3.06,
+          -9.930000000000001
+        ],
+        "floorY": 0,
+        "intensity": 7.199999999999999,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 44,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -9.65,
+          5.66,
+          9.41
+        ],
+        "floorY": 3.8,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 45,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -6.5,
+          5.66,
+          9.41
+        ],
+        "floorY": 3.8,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 46,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -3.45,
+          5.66,
+          9.41
+        ],
+        "floorY": 3.8,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 47,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          3.45,
+          5.66,
+          9.41
+        ],
+        "floorY": 3.8,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 48,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          6.5,
+          5.66,
+          9.41
+        ],
+        "floorY": 3.8,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 49,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          9.65,
+          5.66,
+          9.41
+        ],
+        "floorY": 3.8,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 50,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -11.75,
+          6.52,
+          10.9
+        ],
+        "floorY": 3.8,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 51,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -7.5,
+          6.52,
+          10.9
+        ],
+        "floorY": 3.8,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 52,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -3,
+          6.52,
+          10.9
+        ],
+        "floorY": 3.8,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 53,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          3,
+          6.52,
+          10.9
+        ],
+        "floorY": 3.8,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 54,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          7.5,
+          6.52,
+          10.9
+        ],
+        "floorY": 3.8,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 55,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          11.75,
+          6.52,
+          10.9
+        ],
+        "floorY": 3.8,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 56,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          6.45,
+          6.74,
+          -12
+        ],
+        "floorY": 3.8,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 57,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -10.9,
+          6.74,
+          -12
+        ],
+        "floorY": 3.8,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 58,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          6.45,
+          6.74,
+          6.8
+        ],
+        "floorY": 3.8,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 59,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -10.9,
+          6.74,
+          6.8
+        ],
+        "floorY": 3.8,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 60,
+        "name": "Night fixture · floor-lantern",
+        "kind": "floor-lantern",
+        "position": [
+          -11.2,
+          4.74,
+          -1.8
+        ],
+        "floorY": 3.8,
+        "intensity": 7.199999999999999,
+        "distance": 5.5,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 61,
+        "name": "Night fixture · floor-lantern",
+        "kind": "floor-lantern",
+        "position": [
+          11.25,
+          4.74,
+          5.6
+        ],
+        "floorY": 3.8,
+        "intensity": 7.199999999999999,
+        "distance": 5.5,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 62,
+        "name": "Authored room lamp",
+        "kind": "interior",
+        "position": [
+          -7,
+          6.6,
+          -5
+        ],
+        "floorY": 3.8,
+        "intensity": 11.52,
+        "distance": 13,
+        "dayFactor": 0.62
+      },
+      {
+        "id": 63,
+        "name": "Authored room lamp",
+        "kind": "interior",
+        "position": [
+          4,
+          6.6,
+          4
+        ],
+        "floorY": 3.8,
+        "intensity": 11.52,
+        "distance": 13,
+        "dayFactor": 0.62
+      },
+      {
+        "id": 64,
+        "name": "Night fixture · sign",
+        "kind": "sign",
+        "position": [
+          -6.5,
+          7.09,
+          5.83
+        ],
+        "floorY": 3.8,
+        "intensity": 7.199999999999999,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 65,
+        "name": "Night fixture · sign",
+        "kind": "sign",
+        "position": [
+          3,
+          7.09,
+          5.83
+        ],
+        "floorY": 3.8,
+        "intensity": 7.199999999999999,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 66,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -6.5,
+          6.8,
+          -9.3
+        ],
+        "floorY": 3.8,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 67,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          3,
+          6.8,
+          -9.3
+        ],
+        "floorY": 3.8,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 68,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -9.65,
+          9.459999999999999,
+          9.41
+        ],
+        "floorY": 7.6,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 69,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -6.5,
+          9.459999999999999,
+          9.41
+        ],
+        "floorY": 7.6,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 70,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -3.45,
+          9.459999999999999,
+          9.41
+        ],
+        "floorY": 7.6,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 71,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          3.45,
+          9.459999999999999,
+          9.41
+        ],
+        "floorY": 7.6,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 72,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          6.5,
+          9.459999999999999,
+          9.41
+        ],
+        "floorY": 7.6,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 73,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          9.65,
+          9.459999999999999,
+          9.41
+        ],
+        "floorY": 7.6,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 74,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -11.75,
+          10.32,
+          10.9
+        ],
+        "floorY": 7.6,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 75,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -7.5,
+          10.32,
+          10.9
+        ],
+        "floorY": 7.6,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 76,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -3,
+          10.32,
+          10.9
+        ],
+        "floorY": 7.6,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 77,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          3,
+          10.32,
+          10.9
+        ],
+        "floorY": 7.6,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 78,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          7.5,
+          10.32,
+          10.9
+        ],
+        "floorY": 7.6,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 79,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          11.75,
+          10.32,
+          10.9
+        ],
+        "floorY": 7.6,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 80,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          6.45,
+          10.54,
+          -12
+        ],
+        "floorY": 7.6,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 81,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -10.9,
+          10.54,
+          -12
+        ],
+        "floorY": 7.6,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 82,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          6.45,
+          10.54,
+          6.8
+        ],
+        "floorY": 7.6,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 83,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -10.9,
+          10.54,
+          6.8
+        ],
+        "floorY": 7.6,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 84,
+        "name": "Night fixture · floor-lantern",
+        "kind": "floor-lantern",
+        "position": [
+          -11.2,
+          8.54,
+          -1.8
+        ],
+        "floorY": 7.6,
+        "intensity": 7.199999999999999,
+        "distance": 5.5,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 85,
+        "name": "Night fixture · floor-lantern",
+        "kind": "floor-lantern",
+        "position": [
+          11.25,
+          8.54,
+          5.6
+        ],
+        "floorY": 7.6,
+        "intensity": 7.199999999999999,
+        "distance": 5.5,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 86,
+        "name": "Authored room lamp",
+        "kind": "interior",
+        "position": [
+          -7,
+          10.399999999999999,
+          -5
+        ],
+        "floorY": 7.6,
+        "intensity": 11.52,
+        "distance": 13,
+        "dayFactor": 0.62
+      },
+      {
+        "id": 87,
+        "name": "Authored room lamp",
+        "kind": "interior",
+        "position": [
+          4,
+          10.399999999999999,
+          4
+        ],
+        "floorY": 7.6,
+        "intensity": 11.52,
+        "distance": 13,
+        "dayFactor": 0.62
+      },
+      {
+        "id": 88,
+        "name": "Night fixture · sign",
+        "kind": "sign",
+        "position": [
+          -2.5,
+          10.8,
+          -6.85
+        ],
+        "floorY": 7.6,
+        "intensity": 7.199999999999999,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 89,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -7,
+          10.66,
+          4
+        ],
+        "floorY": 7.6,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 90,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -0.7,
+          10.66,
+          4
+        ],
+        "floorY": 7.6,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 91,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -7,
+          10.66,
+          -3
+        ],
+        "floorY": 7.6,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 92,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -0.7,
+          10.66,
+          -3
+        ],
+        "floorY": 7.6,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 93,
+        "name": "Night fixture · sign",
+        "kind": "sign",
+        "position": [
+          -7.5,
+          10.809999999999999,
+          -7.39
+        ],
+        "floorY": 7.6,
+        "intensity": 7.199999999999999,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 94,
+        "name": "Night fixture · sign",
+        "kind": "sign",
+        "position": [
+          2,
+          10.7928,
+          -7.39
+        ],
+        "floorY": 7.6,
+        "intensity": 7.199999999999999,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 95,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -9.65,
+          13.26,
+          9.41
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 96,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -6.5,
+          13.26,
+          9.41
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 97,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          -3.45,
+          13.26,
+          9.41
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 98,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          3.45,
+          13.26,
+          9.41
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 99,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          6.5,
+          13.26,
+          9.41
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 100,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          9.65,
+          13.26,
+          9.41
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 101,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -11.75,
+          14.120000000000001,
+          10.9
+        ],
+        "floorY": 11.4,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 102,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -7.5,
+          14.120000000000001,
+          10.9
+        ],
+        "floorY": 11.4,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 103,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -3,
+          14.120000000000001,
+          10.9
+        ],
+        "floorY": 11.4,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 104,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          3,
+          14.120000000000001,
+          10.9
+        ],
+        "floorY": 11.4,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 105,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          7.5,
+          14.120000000000001,
+          10.9
+        ],
+        "floorY": 11.4,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 106,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          11.75,
+          14.120000000000001,
+          10.9
+        ],
+        "floorY": 11.4,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 107,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          6.45,
+          14.34,
+          -12
+        ],
+        "floorY": 11.4,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 108,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -10.9,
+          14.34,
+          -12
+        ],
+        "floorY": 11.4,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 109,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          6.45,
+          14.34,
+          6.8
+        ],
+        "floorY": 11.4,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 110,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -10.9,
+          14.34,
+          6.8
+        ],
+        "floorY": 11.4,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 111,
+        "name": "Night fixture · floor-lantern",
+        "kind": "floor-lantern",
+        "position": [
+          -11.2,
+          12.34,
+          -1.8
+        ],
+        "floorY": 11.4,
+        "intensity": 7.199999999999999,
+        "distance": 5.5,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 112,
+        "name": "Night fixture · floor-lantern",
+        "kind": "floor-lantern",
+        "position": [
+          11.25,
+          12.34,
+          5.6
+        ],
+        "floorY": 11.4,
+        "intensity": 7.199999999999999,
+        "distance": 5.5,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 113,
+        "name": "Authored room lamp",
+        "kind": "interior",
+        "position": [
+          -7,
+          14.2,
+          -5
+        ],
+        "floorY": 11.4,
+        "intensity": 11.52,
+        "distance": 13,
+        "dayFactor": 0.62
+      },
+      {
+        "id": 114,
+        "name": "Authored room lamp",
+        "kind": "interior",
+        "position": [
+          4,
+          14.2,
+          4
+        ],
+        "floorY": 11.4,
+        "intensity": 11.52,
+        "distance": 13,
+        "dayFactor": 0.62
+      },
+      {
+        "id": 115,
+        "name": "Night fixture · sign",
+        "kind": "sign",
+        "position": [
+          -6,
+          14.41,
+          1.5999999999999999
+        ],
+        "floorY": 11.4,
+        "intensity": 7.199999999999999,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 116,
+        "name": "Night fixture · sign",
+        "kind": "sign",
+        "position": [
+          -6,
+          14.41,
+          -5.34
+        ],
+        "floorY": 11.4,
+        "intensity": 7.199999999999999,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 117,
+        "name": "Night fixture · sign",
+        "kind": "sign",
+        "position": [
+          -6,
+          14.46,
+          -14.270000000000001
+        ],
+        "floorY": 11.4,
+        "intensity": 7.199999999999999,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 118,
+        "name": "Night fixture · sign",
+        "kind": "sign",
+        "position": [
+          7,
+          14.540000000000001,
+          9.17
+        ],
+        "floorY": 11.4,
+        "intensity": 7.199999999999999,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 119,
+        "name": "Night fixture · sign",
+        "kind": "sign",
+        "position": [
+          4.35,
+          14.3,
+          -14.32
+        ],
+        "floorY": 11.4,
+        "intensity": 7.199999999999999,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 120,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -8.5,
+          2.58,
+          33.1
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 121,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -8.5,
+          2.58,
+          37
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 122,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          8.5,
+          2.58,
+          33.1
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 123,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          8.5,
+          2.58,
+          37
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 124,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -20,
+          2.58,
+          33.1
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 125,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -20,
+          2.58,
+          37
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 126,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          20,
+          2.58,
+          33.1
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 127,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          20,
+          2.58,
+          37
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 128,
+        "name": "Night fixture · garden-lantern",
+        "kind": "garden-lantern",
+        "position": [
+          -21.8,
+          1.6,
+          -10.6
+        ],
+        "floorY": 0,
+        "intensity": 10.799999999999999,
+        "distance": 7,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 129,
+        "name": "Night fixture · garden-lantern",
+        "kind": "garden-lantern",
+        "position": [
+          -27,
+          1.6,
+          -10.6
+        ],
+        "floorY": 0,
+        "intensity": 10.799999999999999,
+        "distance": 7,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 130,
+        "name": "Night fixture · garden-lantern",
+        "kind": "garden-lantern",
+        "position": [
+          -21.8,
+          1.6,
+          8.9
+        ],
+        "floorY": 0,
+        "intensity": 10.799999999999999,
+        "distance": 7,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 131,
+        "name": "Night fixture · garden-lantern",
+        "kind": "garden-lantern",
+        "position": [
+          -27,
+          1.6,
+          8.9
+        ],
+        "floorY": 0,
+        "intensity": 10.799999999999999,
+        "distance": 7,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 132,
+        "name": "Night fixture · sign",
+        "kind": "sign",
+        "position": [
+          -23.2,
+          2.71,
+          16.11
+        ],
+        "floorY": 0,
+        "intensity": 7.199999999999999,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 133,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -25.9,
+          2.7,
+          11.1
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 134,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -20.1,
+          2.7,
+          11.1
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 135,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          18.29,
+          1.76,
+          0.20000000000000007
+        ],
+        "floorY": 0,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 136,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          18.29,
+          1.76,
+          8.1
+        ],
+        "floorY": 0,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 137,
+        "name": "Night fixture · sign",
+        "kind": "sign",
+        "position": [
+          23.1,
+          3.06,
+          11.27
+        ],
+        "floorY": 0,
+        "intensity": 7.199999999999999,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 138,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          23,
+          2.9,
+          4.2
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 139,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          19,
+          2.7,
+          16.9
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 140,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          23,
+          2.7,
+          16.9
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 141,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          26.5,
+          2.7,
+          16.9
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 142,
+        "name": "Night fixture · sign",
+        "kind": "sign",
+        "position": [
+          0,
+          2.96,
+          -37.48
+        ],
+        "floorY": 0,
+        "intensity": 7.199999999999999,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 143,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -3.5,
+          2.65,
+          14
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 144,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          3.5,
+          2.65,
+          14
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 145,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          14.47,
+          1,
+          -11.8
+        ],
+        "floorY": 0,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 146,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          14.47,
+          1,
+          -10.3
+        ],
+        "floorY": 0,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 147,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          14.47,
+          1,
+          -8.8
+        ],
+        "floorY": 0,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 148,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          14.47,
+          4.8,
+          -11.8
+        ],
+        "floorY": 3.8,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 149,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          14.47,
+          4.8,
+          -10.3
+        ],
+        "floorY": 3.8,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 150,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          14.47,
+          4.8,
+          -8.8
+        ],
+        "floorY": 3.8,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 151,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          14.47,
+          8.6,
+          -11.8
+        ],
+        "floorY": 7.6,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 152,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          14.47,
+          8.6,
+          -10.3
+        ],
+        "floorY": 7.6,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 153,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          14.47,
+          8.6,
+          -8.8
+        ],
+        "floorY": 7.6,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 154,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          14.47,
+          12.4,
+          -11.8
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 155,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          14.47,
+          12.4,
+          -10.3
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 156,
+        "name": "Night fixture · window",
+        "kind": "window",
+        "position": [
+          14.47,
+          12.4,
+          -8.8
+        ],
+        "floorY": 11.4,
+        "intensity": 6.4799999999999995,
+        "distance": 5,
+        "dayFactor": 0.08
+      },
+      {
+        "id": 157,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          -5.1,
+          2.83,
+          13.8
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      },
+      {
+        "id": 158,
+        "name": "Night fixture · paper-lantern",
+        "kind": "paper-lantern",
+        "position": [
+          5.1,
+          2.83,
+          13.8
+        ],
+        "floorY": 0,
+        "intensity": 12.959999999999999,
+        "distance": 8,
+        "dayFactor": 0.12
+      }
+    ],
+    "global": {
+      "hemiIntensity": 0.58,
+      "hemiColor": [
+        1,
+        0.9046611743890203,
+        0.6866853124288864
+      ],
+      "groundColor": [
+        0.15592646369776456,
+        0.2541520943200296,
+        0.19806931954941637
+      ],
+      "sunIntensity": 1.5,
+      "sunColor": [
+        1,
+        0.8468732315065057,
+        0.6104955708001716
+      ]
+    }
+  },
+  "shadows": {
+    "version": 2,
+    "receiverPlaneFilter": true,
+    "worldFixed": true,
+    "mapSize": 2048,
+    "depthBiasMetres": 0.012,
+    "normalBiasMetres": 0.025,
+    "bounds": {
+      "min": [
+        -30,
+        -0.699999988079071,
+        -40
+      ],
+      "max": [
+        30,
+        27.649999618530273,
+        40
+      ]
+    },
+    "target": [
+      0,
+      13.474999815225601,
+      0
+    ],
+    "texelMetres": [
+      0.05126953125,
+      0.0498046875
+    ],
+    "depthSpanMetres": 90
+  },
+  "sourceUnchanged": true
+}
