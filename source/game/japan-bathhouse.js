@@ -136,6 +136,23 @@ export function buildJapan(){
  function rail(g,base,x,z,w,axis='x'){
    const q=new THREE.Group();q.position.set(x,0,z);if(axis==='z')q.rotation.y=Math.PI/2;g.add(q);for(const yy of [.17,.92])G.box(q,0,yy,0,w,.11,.15,P.red);for(let xx=-w/2;xx<=w/2+.01;xx+=w/Math.ceil(w/.68)){G.box(q,xx,.51,0,.07,.87,.075,P.red);G.sphere(q,xx,1.01,0,.08,P.gold);}obstacle(x,base+.5,z,axis==='x'?w:.16,1,axis==='x'?.16:w);
  }
+ function stairLandingGuard(g,base,a,b,top=.99,lower=.22){
+   const dx=Math.abs(b[0]-a[0]),dz=Math.abs(b[1]-a[1]),length=dx+dz,alongX=dx>0,
+     owner=`jp-landing-guard:${base}:${a.join(',')}:${b.join(',')}`;
+   const part=(x,y,z,w,h,d,color)=>{G.box(g,x,y,z,w,h,d,color);cameraColliders.push({...limits(x,base+y,z,w,h,d),owner});};
+   // The avatar cannot pass between balusters; the camera sees only real timber.
+   colliders.push({...limits((a[0]+b[0])/2,base+.55,(a[1]+b[1])/2,alongX?length:.12,1.1,alongX?.12:length),owner});
+   for(const [y,thickness]of [[top,.11],[lower,.10]])part((a[0]+b[0])/2,y,(a[1]+b[1])/2,alongX?length:thickness,thickness,alongX?thickness:length,P.red);
+   // Reuse the flight/4F end posts, with socket feet bonded into the deck.
+   for(const [x,z]of [a,b])part(x,.045,z,.10,.16,.10,P.red);
+   const count=Math.ceil(length/.65);
+   for(let i=1;i<count;i++){
+     const t=i/count,x=a[0]+(b[0]-a[0])*t,z=a[1]+(b[1]-a[1])*t;
+     part(x,(top-.01)/2,z,.065,top+.06,.065,P.red);
+     G.sphere(g,x,top+.05,z,.06,P.gold);
+     cameraColliders.push({...limits(x,base+top+.05,z,.12,.12,.12),owner});
+   }
+ }
  function wall(g,base,x,z,w,axis='x',opening=null){
    const depth=.24;const part=(xx,zz,ww,hh,yy)=>groundSolid(g,base,xx,yy,zz,axis==='x'?ww:depth,hh,axis==='x'?depth:ww,P.cream);
    if(opening){const gap=opening.width||2.2,center=opening.offset||0,holeH=opening.height||2.8,left=w/2+center-gap/2,right=w/2-center-gap/2;if(left>.01)part(x+(axis==='x'?(-w/2+left/2):0),z+(axis==='z'?(-w/2+left/2):0),left,H-.20,(H-.20)/2);if(right>.01)part(x+(axis==='x'?(w/2-right/2):0),z+(axis==='z'?(w/2-right/2):0),right,H-.20,(H-.20)/2);part(x+(axis==='x'?center:0),z+(axis==='z'?center:0),gap,H-.20-holeH,holeH+(H-.20-holeH)/2);}
@@ -239,8 +256,13 @@ export function buildJapan(){
      for(let i=0;i<24;i++){const z=-10+(i+.5)*8/24,y=H*(1-(i+.5)/24),depth=8/24;G.box(fg,9.1,y-.075,z,3.4,.15,depth,P.honey);G.box(fg,9.1,y+.008,z+depth/2-.039,3.36,.025,.04,P.gold);cameraColliders.push(limits(9.1,base+y-.075,z,3.4,.15,depth));characterFootSurfaces.push({minX:7.4,maxX:10.8,minZ:z-depth/2,maxZ:z+depth/2,y:base+y},{minX:7.42,maxX:10.78,minZ:z+depth/2-.059,maxZ:z+depth/2-.019,y:base+y+.0205});}
      for(const x of [7.4,10.8]){beam(fg,[x,H+.99,-10],[x,.99,-2],.055,P.red);beam(fg,[x,H+.22,-10],[x,.22,-2],.05,P.red);for(let i=0;i<=16;i++){const z=-10+i*.5,y=H-rampY*(z+10);G.box(fg,x,y+.5,z,.065,.96,.065,P.red);G.sphere(fg,x,y+1.04,z,.075,P.gold);if(i<16){const zc=z+.25,yc=H-rampY*(zc+10);obstacle(x,base+yc+.49,zc,.12,.99,.5);}}}
    }
-   // Guard only the long open edges; endpoints remain fully walkable.
+   // Level guards join the incoming and outgoing flight posts without closing
+   // either travel mouth. Keep the west public gallery's full 1.42 m clearance.
+   if(f===1||f===2)for(const x of [7.4,10.8])stairLandingGuard(fg,base,[x,-10],[x,-2]);
    if(f===3){rail(fg,base,7.4,-6,8,'z');rail(fg,base,10.8,-6,8,'z');}
+   // The top floor has no outgoing flight at the south end: close that blind
+   // edge only at 4F height; the north arrival and the 3F flight below stay open.
+   if(f===3)stairLandingGuard(fg,base,[7.4,-2],[10.8,-2],.92,.17);
 
    // Deep red/gold lower panelling, hand-painted cloud friezes and coffer rosettes.
    for(const x of [-11.78,11.78])for(const z of [-12,-5.3,3.5]){G.box(fg,x,.43,z,.055,.67,5.6,f%2?0x415e56:0x7f3432);for(let zz=z-2.6;zz<z+2.7;zz+=.65)G.box(fg,x,.42,zz,.07,.5,.018,P.gold);}
