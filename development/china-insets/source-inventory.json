@@ -7,7 +7,7 @@
     "source/game/room-closures.js"
   ],
   "sourceHashes": {
-    "china-palace.js": "5dc3e3b01f0b2e7eed61a30b6766fca8c1405a231ceefa3ff1cfe38141044ee1",
+    "china-palace.js": "eea343e306b93abc86df6922d2afa81be7cedf72011accfa2d2be62bdc3009ed",
     "room-closures.js": "885ef9ca8437263c925bacbc097af66cafa2164669736dbc2aa7ac71c7b54f1f",
     "automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
     "inset-closures.js": "dadba37aaa60d85abc2c9102a5da10bcfaf529474d8e60fefe5a975e63d8930a"
@@ -709,15 +709,15 @@
         "span": null
       },
       "opening": {
-        "from": -9.1,
-        "to": -5.9,
+        "from": -8.6,
+        "to": -5.4,
         "width": 3.1999999999999993,
         "bottom": 1.415,
         "top": 5.4
       },
       "roughOpening": {
-        "from": -10.799999999999999,
-        "to": -4.200000000000001,
+        "from": -10.299999999999999,
+        "to": -3.700000000000001,
         "bottom": 1.4,
         "top": 5.5
       },
@@ -735,7 +735,7 @@
         "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
       },
       "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
-      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentWorldProof": "ORIGINAL_CORNER_BASE_CONTACT_RETAINED; CENTERED_POCKET_RECHECK_PENDING",
       "currentVisualProof": "PENDING"
     },
     {

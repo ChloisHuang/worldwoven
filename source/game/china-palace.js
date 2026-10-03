@@ -141,7 +141,7 @@ export function buildChinaPalace(G,H){
   const wins=frontWindows.map(([dx,ww])=>({from:x+dx-ww/2,to:x+dx+ww/2,bottom:1.45,top:id==='archive'?2.85:3.795}));
   palaceWall(g,colliders,cameraColliders,{at:z1,from:x0,to:x1,bottom:.2,top:h,depth:.32,color:C.cream,openings:[entry,...wins]});for(const[dx,ww]of frontWindows)window(g,x+dx,z1,ww,'x',id==='archive'?1.4:2.35,id==='archive'?2.15:2.62);
   palaceWall(g,colliders,cameraColliders,{at:z0,from:x0,to:x1,bottom:.2,top:h,depth:.32,color:C.cream,openings:back?[back]:[]});
-  for(const side of [-1,1]){const at=x+side*w/2,entryZ=id==='hall'&&side<0?z-4.5:id==='kitchen'?z+2.5:id==='bath'&&side<0?z+2.7:z,sideEntry=door('cn-'+id+(side<0?'-west':'-east'),name+(side<0?'西门':'东门'),'z',at,entryZ-1.6,entryZ+1.6,id==='archive'?3.33:s.ceremony?4.2:3.5,[id,'side-court']);let sideWindows=(d>12?[-4.7,4.7]:[-3.5,3.5]).filter(zz=>Math.abs(z+zz-entryZ)>2.7).map(zz=>({center:z+zz,width:2}));
+  for(const side of [-1,1]){const at=x+side*w/2,entryZ=id==='hall'&&side<0?z-4:id==='kitchen'?z+2.5:id==='bath'&&side<0?z+2.7:z,sideEntry=door('cn-'+id+(side<0?'-west':'-east'),name+(side<0?'西门':'东门'),'z',at,entryZ-1.6,entryZ+1.6,id==='archive'?3.33:s.ceremony?4.2:3.5,[id,'side-court']);let sideWindows=(d>12?[-4.7,4.7]:[-3.5,3.5]).filter(zz=>Math.abs(z+zz-entryZ)>2.7).map(zz=>({center:z+zz,width:2}));
    if(sideEntry.id==='cn-archive-west')sideWindows=[{center:-32.82,width:1.40},{center:-24.18,width:1.40}];
    if(sideEntry.id==='cn-guest-west')sideWindows=[{center:-32.07,width:.90},{center:-23.93,width:.90}];
    sideWindows=sideWindows.filter(win=>win.center+win.width/2<=sideEntry.from-.03||win.center-win.width/2>=sideEntry.to+.03);
