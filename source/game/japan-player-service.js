@@ -129,7 +129,7 @@ export function createJapanPlayerService({board,furniture,getPlayer,getMounted=(
    v=visit();if(v?.stage!==lastStage){lastStage=v?.stage||null;if(v?.stage==='changing')notify(`已领取第 ${v.number} 号浴牌`);if(v?.stage==='meal-ready')notify('你的汤面已经送到餐位');}
   },
   state:()=>({visit:copy(visit()),activity:copy(activity),soakSeconds:soak,soakReady:soak>=10,suspended}),
-  pose:()=>activity?{action:activity.action,heldProp:['changed','dried'].includes(activity.event)?'cloth':null,seatedMeal:activity.event==='ate'}:null,
+  pose:()=>activity?{action:activity.action,heldProp:['changed','dried'].includes(activity.event)?'cloth':null,seatedMeal:activity.event==='ate',workTarget:activity.event==='washed'?(visit()?.side==='men'?[-10.35,4.6,-3.7]:[4.6,4.6,-4.15]):null}:null,
  };
  return api;
 }

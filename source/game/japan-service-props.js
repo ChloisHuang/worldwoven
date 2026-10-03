@@ -56,6 +56,7 @@ export function createJapanServiceProps(parent) {
   if(item.location.id==='kitchenPickup')return [P.mealTray[0]+lane,P.mealTray[1],P.mealTray[2]];
   if(item.location.id==='menService')return [-4.2+lane,4.48,-3.1];
   if(item.location.id==='womenService')return [1.35+lane,4.48,-3.1];
+  if(item.location.id==='dining')return v.mealPoint||[v.diningPoint[0]+.5,v.diningPoint[1]+.60,v.diningPoint[2]];
   return [P.tokenTray[0]+.23,P.tokenTray[1]+.065,P.tokenTray[2]];
  }
  return {
@@ -67,7 +68,7 @@ export function createJapanServiceProps(parent) {
    for(const item of state.items) {
     const v=visits.get(item.visitId);if(!v||['cancelled','used'].includes(item.location.type))continue;
     seen.add(item.id);let g=objects.get(item.id);if(!g){g=make(item,v);objects.set(item.id,g);}
-    const held=item.location.type==='worker',guest=item.location.type==='guest',eating=item.kind==='meal'&&item.location.id==='dining';
+    const held=item.location.type==='worker',guest=item.location.type==='guest',eating=item.kind==='meal'&&item.location.id==='dining'&&v.stage==='eating';
     const actor=actorById.get(held?item.location.id:v.id);
     if((held||guest||eating)&&actor) {
      actor.root.updateWorldMatrix(true,true);g.rotation.set(0,actor.root.rotation.y,0);
