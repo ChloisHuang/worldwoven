@@ -1,15 +1,19 @@
-import {JAPAN_SERVICE_POINTS as P} from './japan-service-orders.js';
+import {JAPAN_SERVICE_POINTS as P,JAPAN_BATH_CREWS} from './japan-service-orders.js';
 
 // Keep the original kitchen indices first so version-one saves retain their
 // next worker and counters. One global turn shares the table and single bunk.
-export const JAPAN_STAFF_CREW=['jp-ramen','jp-sushi','jp-welcome','jp-market-tea','jp-incense','jp-herb-workshop'];
+export const JAPAN_STAFF_CREW=['jp-ramen','jp-sushi','jp-welcome','jp-market-tea','jp-incense','jp-herb-workshop','jp-onsen','jp-steam','jp-women-onsen','jp-rest'];
 const TEA=[-4.9,11.4,5.25],TEA_TARGET=[-4.9,12.68,6.5];
 const KITCHEN={ids:['jp-ramen','jp-sushi'],retire:P.kitchen,relief:P.kitchenPickup,back:[4.35,0,-11.3],duty:'煮面与送餐班',mealLabel:'交班后煮自己的员工餐',mealAction:'ramen',mealDuration:5,mealEvent:'staff-meal-cooked'};
 const FRONT_DESK={ids:['jp-welcome','jp-market-tea'],retire:[-6.65,0,5.7],relief:P.registrar,back:[-6.65,0,5.7],duty:'登记与退牌班',mealLabel:'从后厨现成汤锅盛自己的员工餐',mealAction:'tidy',mealDuration:3,mealEvent:'staff-meal-served'};
 const APOTHECARY={ids:['jp-incense','jp-herb-workshop'],retire:[-5.25,11.4,-.3],relief:P.apothecary,back:[-5.25,11.4,-.3],duty:'浴牌配料班',mealLabel:FRONT_DESK.mealLabel,mealAction:'tidy',mealDuration:3,mealEvent:'staff-meal-served'};
-const profile=id=>[KITCHEN,FRONT_DESK,APOTHECARY].find(shift=>shift.ids.includes(id));
+// Meet in the clear central foyer, beside the bath entrances and away from
+// benches. The boiler and guest-linen workers keep their authored home work.
+const MEN_BATH={ids:JAPAN_BATH_CREWS.men,retire:[-3.8,3.8,6.2],relief:[-2.4,3.8,6.2],duty:'男汤浴包与布巾班',side:'men',homeReturn:true,mealLabel:FRONT_DESK.mealLabel,mealAction:'tidy',mealDuration:3,mealEvent:'staff-meal-served'};
+const WOMEN_BATH={...MEN_BATH,ids:JAPAN_BATH_CREWS.women,retire:[-.6,3.8,6.2],relief:[.8,3.8,6.2],duty:'女汤浴包与布巾班',side:'women'};
+const profile=id=>[KITCHEN,FRONT_DESK,APOTHECARY,MEN_BATH,WOMEN_BATH].find(shift=>shift.ids.includes(id));
 
-// Three bounded coverage pairs. No live claim, held meal, seat lock or
+// Five bounded coverage pairs. No live claim, held meal, seat lock or
 // sleeping pose is restored from a save; an interrupted break gets its turn
 // again after both real workers have safely met at their service counter.
 export function createJapanStaffLife({actors,board,furniture,assign,clear,unmount,taskOf,saved={}}) {
@@ -17,7 +21,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
  const seat=furniture.items.find(i=>i.kind==='seat'&&i.center[1]===11.4&&i.center[2]===-7.45);
  const bed=furniture.items.find(i=>i.kind==='bed'&&i.center[1]===11.4);
  if(crew.some(n=>!n)||!seat||!bed)return null;
- let next=Number.isInteger(saved.next)?Math.abs(saved.next)%(saved.version===3?crew.length:saved.version===2?4:2):0,dueIn=Number.isFinite(saved.dueIn)?Math.max(0,Math.min(90,saved.dueIn)):45;
+ let next=Number.isInteger(saved.next)?Math.abs(saved.next)%(saved.version===4?crew.length:saved.version===3?6:saved.version===2?4:2):0,dueIn=Number.isFinite(saved.dueIn)?Math.max(0,Math.min(90,saved.dueIn)):45;
  let active=null,night=false,completed=Math.max(0,saved.completed|0),interrupted=Math.max(0,saved.interrupted|0);
  const events=[];
  const note=event=>{events.push({event,workerId:active?.id||null,reliefId:active?.reliefId||null});if(events.length>24)events.shift();};
@@ -45,10 +49,13 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   idlePoint(id){return active?.reliefId===id?profile(id).relief:id==='jp-welcome'?FRONT_DESK.retire:id==='jp-incense'?APOTHECARY.retire:null;},
   // Nao stays the supply clerk between relief shifts; training is not a
   // permanent reassignment away from the rear-yard crates.
-  canClaim(id,kind){return id!=='jp-herb-workshop'||kind!=='prepare'||(active?.id==='jp-incense'&&active.reliefId===id&&!['draining','handoff'].includes(active.phase));},
+  canClaim(id,kind){
+   const primary=id==='jp-herb-workshop'&&kind==='prepare'?'jp-incense':id==='jp-steam'&&kind==='deliverMix'?'jp-onsen':id==='jp-rest'&&kind==='deliverMix'?'jp-women-onsen':null;
+   return !primary||(active?.id===primary&&active.reliefId===id&&!['draining','handoff'].includes(active.phase));
+  },
   idleTask(id){
    const n=actors.get(id);
-   if(active?.reliefId===id){const shift=profile(id);return {duration:4,face:shift===KITCHEN?P.mealTray:shift===FRONT_DESK?P.tokenTray:P.blendWork,label:'留在代班岗位，等候下一张单'};}
+   if(active?.reliefId===id){const shift=profile(id);return {duration:4,face:shift===KITCHEN?P.mealTray:shift===FRONT_DESK?P.tokenTray:shift.side?P[shift.side+'Service']:P.blendWork,label:'留在代班岗位，等候下一张单'};}
    return id==='jp-herb-workshop'?{duration:4,action:n.station.npcAction,workTarget:n.station.workTarget,label:n.station.npcLabel}:null;
   },
   canWork(id){return !active||(id!==active.id&&!(id===active.reliefId&&['draining','handoff'].includes(active.phase)));},
@@ -64,8 +71,8 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
     const met=()=>{if(active.retireReady&&active.reliefReady){note('relief-arrived');active.phase='preparing';}return true;};
     // Distinct adjacent positions let the retiring worker hand over without
     // occupying the point the replacement must reach.
-    go(n,shift.retire,{face:shift===APOTHECARY?shift.relief:null,label:`把${shift.duty}交给 ${relief.station.npcName}`,duration:1,onDone:()=>{active.retireReady=true;return met();}});
-    go(relief,shift.relief,{face:shift===APOTHECARY?shift.retire:null,label:`接替 ${n.station.npcName} 的${shift.duty}`,duration:1,onDone:()=>{active.reliefReady=true;return met();}});return;
+    go(n,shift.retire,{face:shift===APOTHECARY||shift.side?shift.relief:null,label:`把${shift.duty}交给 ${relief.station.npcName}`,duration:1,onDone:()=>{active.retireReady=true;return met();}});
+    go(relief,shift.relief,{face:shift===APOTHECARY||shift.side?shift.retire:null,label:`接替 ${n.station.npcName} 的${shift.duty}`,duration:1,onDone:()=>{active.reliefReady=true;return met();}});return;
    }
    if(active.phase==='handoff'||busy(n))return;
    if(active.phase==='preparing') {
@@ -83,7 +90,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
    }else if(active.phase==='tea') {
     go(n,TEA,{label:'在事务室茶具旁喝口茶',action:'tea',face:TEA_TARGET,duration:7,onArrive:()=>{note('drinking');return true;},onDone:()=>{active.phase=active.sleep?'sleep':'returning';return true;}});
    }else if(active.phase==='returning') {
-    go(n,active.id==='jp-herb-workshop'?n.home.toArray():shift.back,{label:`回岗位接回${shift.duty}`,duration:1,onDone:finish});
+    go(n,active.id==='jp-herb-workshop'||shift.homeReturn?n.home.toArray():shift.back,{label:`回岗位接回${shift.duty}`,duration:1,onDone:finish});
    }
   },
   abort(n){
@@ -93,7 +100,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   },
   playerRequest(id){if(active){const n=actors.get(active.id);if(n.serviceMount?.id===id||taskOf(n)?.mount?.id===id)interrupt(n);}},
   meals:()=>active?.meal?[{workerId:active.id,eating:taskOf(actors.get(active.id))?.arrived&&active.phase==='meal'}]:[],
-  snapshot:()=>({version:3,next,dueIn:active?0:Math.max(0,dueIn),completed,interrupted}),
+  snapshot:()=>({version:4,next,dueIn:active?0:Math.max(0,dueIn),completed,interrupted}),
   state:()=>({crew:JAPAN_STAFF_CREW.slice(),nextWorkerId:crew[next].station.id,dueIn:Math.max(0,dueIn),completed,interrupted,active:active?{...active}:null,events:events.slice()}),
   dispose(){for(const n of crew)release(n);active=null;},
  };

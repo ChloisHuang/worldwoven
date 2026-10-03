@@ -18,9 +18,11 @@ export const JAPAN_BATH_BLENDS = Object.freeze([
  {id:'cloud-leaf',name:'云叶浴包',color:0x819c76},
  {id:'lantern-petal',name:'灯花浴包',color:0xc79080},
 ]);
+// Bath duty follows the assigned service side, not a resident's appearance.
+export const JAPAN_BATH_CREWS = Object.freeze({men:['jp-onsen','jp-steam'],women:['jp-women-onsen','jp-rest']});
 export const JAPAN_SERVICE_WORKERS = Object.freeze({
  register:['jp-welcome','jp-market-tea'], prepare:['jp-incense','jp-herb-workshop'],
- deliverMix:['jp-onsen','jp-women-onsen'], cook:['jp-ramen','jp-sushi'],
+ deliverMix:Object.values(JAPAN_BATH_CREWS).flat(), cook:['jp-ramen','jp-sushi'],
  serve:['jp-sushi','jp-ramen'], checkout:['jp-welcome','jp-market-tea'],
 });
 const clone=value=>JSON.parse(JSON.stringify(value));
@@ -89,7 +91,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   if(prior)return prior.workerId===workerId?clone(prior):null;
   const job=jobs().find(j=>j.id===jobId);
   if(!job||workers.has(workerId)||staffResources.has(workerId)||!JAPAN_SERVICE_WORKERS[job.kind].includes(workerId))return null;
-  if(job.kind==='deliverMix'&&workerId!==(job.side==='men'?'jp-onsen':'jp-women-onsen'))return null;
+  if(job.kind==='deliverMix'&&!JAPAN_BATH_CREWS[job.side]?.includes(workerId))return null;
   if(job.resource&&resources.has(job.resource))return null;
   const claimed={...job,workerId};claims.set(job.id,claimed);workers.set(workerId,job.id);
   if(job.resource)resources.set(job.resource,job.id);
@@ -185,7 +187,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   holdWorkplace(resource,workerId) {
    // Trained non-kitchen staff may serve themselves from the existing pot; this does
    // not make them eligible to claim customer cooking or delivery orders.
-   if(disposed||resource!=='kitchen'||![...JAPAN_SERVICE_WORKERS.cook,...JAPAN_SERVICE_WORKERS.register,...JAPAN_SERVICE_WORKERS.prepare].includes(workerId)||workers.has(workerId))return false;
+   if(disposed||resource!=='kitchen'||![...JAPAN_SERVICE_WORKERS.cook,...JAPAN_SERVICE_WORKERS.register,...JAPAN_SERVICE_WORKERS.prepare,...JAPAN_SERVICE_WORKERS.deliverMix].includes(workerId)||workers.has(workerId))return false;
    const key='staff:'+workerId;if(resources.has(resource)&&resources.get(resource)!==key)return false;
    resources.set(resource,key);staffResources.set(workerId,resource);return true;
   },
