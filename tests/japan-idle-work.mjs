@@ -32,7 +32,9 @@ try{
  for(const id of ['jp-sushi','jp-ramen','jp-onsen','jp-women-onsen','jp-market-tea','jp-herb-workshop']){
   const n=a.get(id),target=n.station.workTarget;assert(n.serviceTask.idle&&n.serviceTask.arrived);assert.equal(n.pose.action,n.station.npcAction);assert.deepEqual(n.pose.context.target,target);assert.equal(n.root.rotation.y,Math.atan2(target[0]-n.root.position.x,target[2]-n.root.position.z),id+' faces actual work target');
  }
- const sushi=a.get('jp-sushi'),idle=sushi.serviceTask,elapsed=idle.elapsed;
+ const sushi=a.get('jp-sushi'),idle=sushi.serviceTask;
+ for(const dt of [3.98,.02,.01]){a.frame(dt);assert.equal(sushi.pose.action,'sushi','Idle action stays continuous across its duration boundary');assert.equal(sushi.serviceTask,idle);}
+ const elapsed=idle.elapsed;
  a.frame(.1,{position:sushi.root.position.clone().add(new T.Vector3(1,0,0)),conversationActorId:sushi.station.id});
  assert.equal(sushi.pose.action,null);assert.equal(idle.elapsed,elapsed);assert.equal(sushi.serviceTask,idle);
  a.frame();assert.equal(sushi.pose.action,'sushi');

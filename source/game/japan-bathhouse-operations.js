@@ -189,10 +189,11 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
     // may be in the same room, but do not put their original tools there.
     const ownPost=near(point(home),n.home.toArray(),.08),validTarget=Array.isArray(target)&&target.length===3&&target.every(Number.isFinite);
     const idle=staffLife?.idleTask(n.station.id)||(validTarget?{duration:4,face:target,...(ownPost?{action:n.station.npcAction,workTarget:target,label:n.station.id==='jp-welcome'?'整理柜台钥匙与客簿':n.station.npcLabel}:{label:n.station.id==='jp-welcome'?'查看柜台钥匙与客簿':'查看药房称量台与浴包'})}:null);
-    // Coverage ending can change the idle destination before this short task
-    // finishes; release it immediately rather than lingering at another post.
-    if(current&&!near(point(current.to),home,.08)){clear(n);current=null;}
-    if(!current&&(!near(n.root.position,home,.18)||idle))assign(n,home,{idle:true,label:'收好用具，回到值班岗位',...idle});
+    // Coverage ending or displacement immediately releases the old idle.
+    if(current&&(!near(point(current.to),home,.08)||(current.arrived&&!near(n.root.position,home,.18)))){clear(n);current=null;}
+    // Keep the pose across its work cycle boundary; orders/handoffs above own
+    // interruption, so clearing every four seconds would only flicker tools.
+    if(!current&&(!near(n.root.position,home,.18)||idle))assign(n,home,{idle:true,onDone:()=>false,label:'收好用具，回到值班岗位',...idle});
    }
   }
  }
