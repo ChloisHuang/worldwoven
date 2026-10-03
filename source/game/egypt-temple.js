@@ -1,6 +1,6 @@
 import {addInsetClosureSection} from './inset-closures.js';
 import {registerNightFixture} from './night-lighting.js';
-import {addAnubisGuardian} from './egypt-ritual-sculpture.js';
+import {addAnubisGuardian,addJudgmentBalance,addHorusRelief} from './egypt-ritual-sculpture.js';
 import * as THREE from 'three';
 import {material as celMaterial} from './geometry.js?rev=R7-20261002';
 
@@ -439,13 +439,9 @@ export function buildEgypt(){
   roomWall(judgment,-20,4.18,8.3,3,1.24,.3);
   roomRoof(-20,4.95,2,7.9,12.9);
   addAnubisGuardian(judgment,mat,-20,0,-2.15);volume(colliders,-20,2.2,-2.15,1.9,4.4,1.9);volume(cameraColliders,-20,2.2,-2.15,1.9,4.4,1.9);
-  balance(judgment,-20,0,2.1);volume(colliders,-20,.9,2.1,2.5,1.8,1.15);volume(cameraColliders,-20,.9,2.1,2.5,1.8,1.15);
+  addJudgmentBalance(judgment,mat,-20,0,2.1);volume(colliders,-20,.9,2.1,2.5,1.8,1.15);volume(cameraColliders,-20,.9,2.1,2.5,1.8,1.15);
   mural(judgment,-23.62,2.2,1.1,8.4,3.55,Math.PI/2,3);mural(judgment,-16.38,2.2,1.1,8.4,3.55,-Math.PI/2,1);
-  const eye=new THREE.Group();eye.position.set(-23.50,2.6,-1);eye.rotation.y=Math.PI/2;judgment.add(eye);box(eye,0,0,0,4.3,3.1,.05,C.edge);
-  const eyeLine=(pts,c=C.blue,r=.065)=>{for(let i=1;i<pts.length;i++)rod(eye,[...pts[i-1],.06],[...pts[i],.06],r,c);};
-  eyeLine([[-1.4,.1],[-.8,.5],[0,.6],[.8,.35],[1.35,.06]]);eyeLine([[-1.4,.1],[-.7,-.28],[.2,-.30],[1.35,.06]]);
-  eyeLine([[-1.4,.8],[-.55,1.04],[.5,.87],[1.35,.38]],C.ink,.095);ball(eye,0,.1,.08,.28,C.ink,1,1,.2);torus(eye,0,.1,.1,.34,.045,C.gold);
-  eyeLine([[-.15,-.3],[-.15,-1.08],[.17,-1.18],[.55,-.96]],C.blue,.075);eyeLine([[1.05,-.07],[.61,-.55],[.54,-.84]],C.blue,.07);
+  addHorusRelief(judgment,mat,-23.50,2.6,-1,Math.PI/2);
   for(const x of [-22.5,-17.5])torch(judgment,x,2.7,-4.04,cameraColliders,0,x< -20);
   // East private suite: distinct reception and sleeping spaces, each large
   // enough to circle furniture. Cleopatra is a theme, not a claimed replica.

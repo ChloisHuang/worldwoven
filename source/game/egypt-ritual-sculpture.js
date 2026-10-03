@@ -93,3 +93,56 @@ export function addAnubisGuardian(parent,material,x,y,z){
   path([[.705,2.033,.217],[.754,2.03,.224],[.79,2.056,.183]],P.edge,.024);
   return g;
 }
+
+export function addJudgmentBalance(parent,material,x,y,z){
+  const g=new THREE.Group();g.name='Judgment balance · heart and feather';g.position.set(x,y,z);parent.add(g);
+  const {loft,path,relief,outline,ellipse,block,mesh}=sculptor(g,material);
+  block(2.5,.24,1.15,0,.12,0,P.cut,.035);block(1.65,.08,.75,0,.28,0,P.goldShade,.016);
+  loft([[.32,.23,.23],[.36,.23,.23],[.40,.135,.135],[.51,.098,.098],[1.53,.059,.059],[1.64,.095,.095],[1.71,.143,.143],[1.77,.145,.145],[1.81,.08,.08]],P.gold);
+  for(let i=0;i<8;i++){const a=i*Math.PI/4;path([[Math.cos(a)*.065,1.49,Math.sin(a)*.065],[Math.cos(a)*.092,1.63,Math.sin(a)*.092],[Math.cos(a)*.138,1.73,Math.sin(a)*.138]],P.lapis,.009);}
+  // Curved, tapered cast beam with open suspension eyes and central pivot.
+  const beam=outline([[-1.09,1.86],[-.91,1.88],[-.14,1.96],[0,1.99],[.14,1.96],[.91,1.88],[1.09,1.86],[1.075,1.81],[.84,1.815],[.13,1.855],[0,1.85],[-.13,1.855],[-.84,1.815],[-1.075,1.81]]);
+  const bm=relief(beam,P.gold,.085,.012);bm.position.z=-.045;
+  for(const yy of [1.79,1.93]){const disc=relief(ellipse(0,yy,.069,.069),P.goldShade,.075,.007);disc.position.z=.025;}
+  path([[0,1.84,.09],[0,1.48,.09]],P.dark,.013);const pointer=relief(outline([[-.035,1.54],[.035,1.54],[0,1.455]]),P.gold,.023,.002);pointer.position.z=.080;
+  for(const side of [-1,1]){
+    const cx=side*.86,cy=1.82;
+    const loop=new THREE.Shape();loop.absellipse(cx,cy,.042,.052,0,Math.PI*2,false);const h=new THREE.Path();h.absellipse(cx,cy,.024,.033,0,Math.PI*2,true);loop.holes.push(h);const lm=relief(loop,P.gold,.03,.002);lm.position.z=-.015;
+    // Three attachment points hold a shallow bowl with a rolled, solid rim.
+    for(const a of [Math.PI/2,Math.PI*7/6,Math.PI*11/6])path([[cx,cy-.035,0],[cx+Math.cos(a)*.315,1.055,Math.sin(a)*.315]],P.gold,.009);
+    const bowl=mesh(new THREE.LatheGeometry([new THREE.Vector2(0,0),new THREE.Vector2(.10,.008),new THREE.Vector2(.23,.055),new THREE.Vector2(.335,.13),new THREE.Vector2(.343,.15),new THREE.Vector2(.319,.16),new THREE.Vector2(.302,.135),new THREE.Vector2(.213,.079),new THREE.Vector2(.095,.032),new THREE.Vector2(0,.030)],28),P.gold);bowl.position.set(cx,.902,0);
+    const rim=[];for(let i=0;i<=32;i++){const a=i*Math.PI/16;rim.push([cx+Math.cos(a)*.329,1.058,Math.sin(a)*.329]);}path(rim,P.goldShade,.011);
+  }
+  // Symbolic heart and carved feather, each resting inside one shallow pan.
+  const heart=new THREE.Shape();heart.moveTo(0,-.12);heart.bezierCurveTo(-.25,.02,-.17,.25,-.035,.17);heart.bezierCurveTo(.01,.11,.0,.12,.035,.17);heart.bezierCurveTo(.18,.25,.24,.025,0,-.12);const hm=relief(heart,P.red,.095,.028);hm.position.set(-.86,1.085,-.04);hm.rotation.y=-.20;
+  const feather=new THREE.Shape();feather.moveTo(-.025,0);feather.bezierCurveTo(-.13,.14,-.12,.44,.015,.68);feather.bezierCurveTo(.15,.53,.17,.21,.035,.07);feather.lineTo(.018,-.05);feather.closePath();const fm=relief(feather,P.linen,.025,.008);fm.position.set(.86,1.046,-.018);fm.rotation.z=-.23;
+  path([[.855,1.023,.025],[.88,1.24,.025],[.953,1.55,.025],[1.012,1.69,.025]],P.goldShade,.009);
+  for(let i=0;i<7;i++){const t=i/7,yy=1.15+t*.43,xx=.873+t*.102;path([[xx-.075,yy+.082,.031],[xx,yy,.034],[xx+.076,yy+.052,.031]],P.goldShade,.006);}
+  return g;
+}
+
+export function addHorusRelief(parent,material,x,y,z,rotation){
+  const g=new THREE.Group();g.name='Eye of Horus · carved and inlaid stele';g.position.set(x,y,z);g.rotation.y=rotation;parent.add(g);
+  const {relief,outline,ellipse,path,block}=sculptor(g,material);
+  block(4.3,3.1,.115,0,0,0,P.cut,.018);block(4.19,2.99,.065,0,0,.068,P.sand,.012);
+  // A quiet field and shallow inlay give the eye a coherent stele composition.
+  for(const yy of [-1.36,1.36]){const band=relief(outline([[-1.94,yy-.027],[1.94,yy-.027],[1.94,yy+.027],[-1.94,yy+.027]]),P.lapis,.010,.002);band.position.z=.108;}
+  for(const xx of [-1.91,1.91]){const band=relief(outline([[xx-.021,-1.31],[xx+.021,-1.31],[xx+.021,1.31],[xx-.021,1.31]]),P.goldShade,.014,.003);band.position.z=.108;}
+  const eye=new THREE.Shape();eye.moveTo(-1.48,.26);eye.bezierCurveTo(-.72,.90,.21,.95,1.38,.26);eye.bezierCurveTo(.44,-.28,-.72,-.37,-1.48,.26);
+  const inner=new THREE.Path();inner.moveTo(-1.25,.26);inner.bezierCurveTo(-.57,-.18,.38,-.18,1.15,.27);inner.bezierCurveTo(.23,.80,-.61,.74,-1.25,.26);eye.holes.push(inner);const e=relief(eye,P.lapis,.019,.009);e.position.z=.119;
+  const brow=new THREE.Shape();brow.moveTo(-1.47,.80);brow.bezierCurveTo(-.37,1.30,.69,1.01,1.45,.53);brow.lineTo(1.33,.75);brow.bezierCurveTo(.35,1.32,-.55,1.38,-1.5,.96);brow.closePath();const b=relief(brow,P.dark,.019,.009);b.position.z=.122;
+  const iris=relief(ellipse(-.15,.28,.29,.32),P.goldShade,.017,.005);iris.position.z=.12;const pupil=relief(ellipse(-.15,.28,.20,.28),P.dark,.019,.005);pupil.position.z=.142;
+  const tear=new THREE.Shape();tear.moveTo(-.46,-.12);tear.lineTo(-.38,-.77);tear.bezierCurveTo(-.34,-1.18,.28,-1.15,.40,-.81);tear.bezierCurveTo(.45,-.63,.25,-.59,.19,-.75);tear.bezierCurveTo(.14,-.91,-.18,-.98,-.22,-.75);tear.lineTo(-.27,-.13);tear.closePath();const t=relief(tear,P.lapis,.020,.008);t.position.z=.124;
+  const cheek=new THREE.Shape();cheek.moveTo(1.13,.10);cheek.bezierCurveTo(.80,-.04,.48,-.45,.38,-.63);cheek.lineTo(.56,-.54);cheek.bezierCurveTo(.75,-.26,1.1,-.01,1.37,.18);cheek.closePath();const c=relief(cheek,P.lapis,.02,.007);c.position.z=.124;
+  // Compact original offering signs in two aligned side registers.
+  for(const side of [-1,1]){
+    const sx=side*1.69;
+    for(const yy of [-.92,-.35,.24,.84]){
+      if(yy===.84){const loop=new THREE.Shape();loop.absellipse(sx,yy+.06,.063,.088,0,Math.PI*2,false);const hole=new THREE.Path();hole.absellipse(sx,yy+.06,.035,.054,0,Math.PI*2,true);loop.holes.push(hole);const o=relief(loop,P.cut,.009,.001);o.position.z=.112;path([[sx,yy,.128],[sx,yy-.17,.128]],P.cut,.012);path([[sx-.076,yy-.045,.128],[sx+.076,yy-.045,.128]],P.cut,.012);}
+      else if(yy===-.35){for(let j=0;j<3;j++)path([[sx-.10,yy+j*.066,.126],[sx-.035,yy+.032+j*.066,.126],[sx+.035,yy+j*.066,.126],[sx+.10,yy+.032+j*.066,.126]],P.cut,.008);}
+      else {const sign=relief(outline([[sx-.085,yy-.10],[sx+.085,yy-.10],[sx+.057,yy+.10],[sx-.057,yy+.10]]),P.cut,.010,.001);sign.position.z=.113;path([[sx-.095,yy-.13,.127],[sx+.095,yy-.13,.127]],P.goldShade,.009);}
+    }
+  }
+  for(let i=0;i<13;i++){const xx=-1.4+i*.233;path([[xx,-1.17,.123],[xx+(i%3-1)*.016,-1.26,.123]],i%3===0?P.red:P.goldShade,.010);}
+  return g;
+}
