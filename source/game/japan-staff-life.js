@@ -70,7 +70,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
    if(n.station.id===active.reliefId&&active.phase==='handoff'){active.phase='draining';return;}
    interrupt(n);
   },
-  playerRequest(id){if(active){const n=actors.get(active.id);if(n.serviceMount?.id===id)interrupt(n);}},
+  playerRequest(id){if(active){const n=actors.get(active.id);if(n.serviceMount?.id===id||taskOf(n)?.mount?.id===id)interrupt(n);}},
   meals:()=>active?.meal?[{workerId:active.id,eating:taskOf(actors.get(active.id))?.arrived&&active.phase==='meal'}]:[],
   snapshot:()=>({version:1,next,dueIn:active?0:Math.max(0,dueIn),completed,interrupted}),
   state:()=>({crew:JAPAN_STAFF_CREW.slice(),nextWorkerId:crew[next].station.id,dueIn:Math.max(0,dueIn),completed,interrupted,active:active?{...active}:null,events:events.slice()}),

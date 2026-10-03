@@ -41,7 +41,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   if(releaseJob)board.releaseWorker(n.station.id);
  }
  function assign(n,to,options={}) {
-  const task={actor:n,to:to.slice(),duration:0,elapsed:0,stalled:0,retries:0,arrived:false,routeSet:false,...options};
+  const task={actor:n,to:to.slice(),duration:0,elapsed:0,stalled:0,retries:0,arrived:false,routeSet:false,trail:[n.root.position.toArray()],...options};
   tasks.set(n.station.id,task);n.serviceTask=task;n.route=[];tell(n,task.label||'稍作等候');return task;
  }
  function guestEvent(n,event,evidence={}) {
@@ -86,6 +86,11 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   tell(n,task.label||'稍作等候');
   if(task.after&&!task.after())return;
   if(!task.arrived) {
+   if(task.yieldToId&&!task.avoidRoute?.length){
+    const other=actors.get(task.yieldToId),p=other?.root.position,yieldAt=task.yieldAt;
+    if(p&&Math.abs(p.y-yieldAt[1])<.7&&(p.x-yieldAt[0])*task.yieldDirection[0]+(p.z-yieldAt[2])*task.yieldDirection[1]>-.9)return;
+    task.yieldToId=null;task.routeSet=false;task.stalled=0;task.retries=0;
+   }
    if(near(n.root.position,task.to)) {
     n.route=[];task.arrived=true;task.stalled=0;
     if(task.mount) {
@@ -103,8 +108,8 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
     // Near the exact work point, a coarse grid corner may be nearer a waiting
     // customer than the actual destination. Use a checked final floor segment.
     const direct=near(n.root.position,task.to,.75)&&canTraverse(n.root.position,point(task.to),lot.colliders.concat(safety(n)),navigation);
-    if(direct)task.avoidRoute=null;
-    const step=direct?{waypoint:point(task.to)}:task.avoidRoute?.length?{waypoint:point(task.avoidRoute[0])}:doors.routeStep(n.route,n.root.position,.025);
+    if(direct&&!task.yieldToId)task.avoidRoute=null;
+    const step=direct&&!task.yieldToId?{waypoint:point(task.to)}:task.avoidRoute?.length?{waypoint:point(task.avoidRoute[0])}:doors.routeStep(n.route,n.root.position,.025);
     if(!step.waiting&&step.waypoint) {
      const p=step.waypoint,dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz);
      const obstacles=[...npcs.filter(a=>a!==n).map(a=>a.root.position),...(playerState.position?[playerState.position]:[])];
@@ -118,9 +123,31 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
        const sx=side*dz/d*.83,sz=-side*dx/d*.83,a=[n.root.position.x+sx,n.root.position.y,n.root.position.z+sz],b=[blocker.x+sx+dx/d*.72,n.root.position.y,blocker.z+sz+dz/d*.72];
        if(canTraverse(n.root.position,point(a),colliders,navigation)&&canTraverse(point(a),point(b),colliders,navigation)){task.avoidRoute=[a,b];break;}
       }
+      // A single-file corridor has no safe immediate side step. The yielding
+      // actor retraces its own checked footsteps to the nearest real passing
+      // space, then waits there until opposing traffic has gone past.
+      if(!task.avoidRoute?.length&&blockerId&&task.stalled>1.2){
+       const trail=task.trail||[];
+       for(let i=trail.length-1;i>=0&&!task.avoidRoute?.length;i--){
+        const p=trail[i],distance=Math.hypot(p[0]-n.root.position.x,p[2]-n.root.position.z);
+        if(Math.abs(p[1]-n.root.position.y)>.15||distance>12)break;
+        if(distance<1.2)continue;
+        const forward=trail[i+1]||n.root.position.toArray(),tx=forward[0]-p[0],tz=forward[2]-p[2],length=Math.hypot(tx,tz);
+        if(length<.01)continue;
+        const opposingRoute=actors.get(blockerId)?.route||[];
+        for(const side of [1,-1]){
+         const aside=[p[0]+side*tz/length*.83,p[1],p[2]-side*tx/length*.83];
+         // A wide stair corner can still be on the other actor's next turn.
+         if(opposingRoute.some(q=>Math.abs(q.y-aside[1])<.7&&Math.hypot(q.x-aside[0],q.z-aside[2])<.75))continue;
+         if(!canTraverse(point(p),point(aside),colliders,navigation))continue;
+         task.avoidRoute=trail.slice(i).reverse().concat([aside]);task.yieldToId=blockerId;task.yieldAt=aside;task.yieldDirection=[dx/d,dz/d];task.retries=0;break;
+        }
+       }
+      }
      }
      if(d>1e-10&&!blocker){const amount=Math.min(d,dt*n.locomotion.walkSpeed*.82),before=n.root.position.clone();moveActor(n,dx/d*amount,dz/d*amount,.25);n.walking=before.distanceToSquared(n.root.position)>1e-8;n.root.rotation.y=Math.atan2(dx,dz);}
     }
+    if(n.walking&&!task.avoidRoute?.length){const last=task.trail.at(-1);if(!last||Math.hypot(n.root.position.x-last[0],n.root.position.z-last[2])>.4){task.trail.push(n.root.position.toArray());if(task.trail.length>80)task.trail.shift();}}
     task.stalled=n.walking?0:task.stalled+dt;
     if(task.stalled>5){task.stalled=0;task.routeSet=false;if(++task.retries>3)abortTask(task,'route temporarily obstructed');}
     return;
