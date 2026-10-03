@@ -12,14 +12,14 @@ function grid(parent,name,nu,nv,fn,color){
  const mesh=new THREE.Mesh(geometry,{color:new THREE.Color(color),isMaterial:false});mesh.name=name;parent.add(mesh);return mesh;
 }
 export function eyeLayout({side,masc=false,traits=null,coherent=false}){
- const eye=traits?.eyeSize??1,cx=side*(coherent?(masc?.0435:.0425):(masc?.040:.038)),cy=coherent?1.594:1.59;
- const hw=(coherent?(masc?.0205:.0205):(masc?.022:.0215))*eye,upper=(coherent?(masc?.0057:.0072):(masc?.0072:.009))*eye,lower=(coherent?.0064:(masc?.0055:.0062))*eye;
+ const eye=traits?.eyeSize??1,cx=side*(coherent?(masc?.044:.043):(masc?.040:.038)),cy=coherent?1.601:1.59;
+ const hw=(coherent?(masc?.0245:.024):(masc?.022:.0215))*eye,upper=(coherent?(masc?.0073:.0078):(masc?.0072:.009))*eye,lower=(coherent?.0068:(masc?.0055:.0062))*eye;
  return{eye,cx,cy,hw,upper,lower,side,coherent};
 }
 export function eyeLidBoundary(layout,u,up,outer=false){
  const {eye,cx,cy,hw,upper,lower,side,coherent}=layout,x=cx+(u*2-1)*hw;
- const y=cy+(Math.sin(u*Math.PI)**(coherent?(up?.88:.72):1))*(up?upper:-lower)+side*(x-cx)*(coherent?.16:.08);
- const width=(up?(coherent?.0064:.0045):.0030)*eye;
+ const y=cy+(Math.sin(u*Math.PI)**(coherent?(up?.88:.72):1))*(up?upper:-lower)+side*(x-cx)*(coherent?.10:.08);
+ const width=(up?(coherent?.0068:.0045):.0030)*eye;
  return[x,y+(outer?(up?1:-1)*width*Math.sin(Math.PI*u)**.7:0)];
 }
 export function buildConvexEye(parent,{side,masc=false,traits=null,facialSurface,colors:C,coherent=false}){
@@ -28,22 +28,23 @@ export function buildConvexEye(parent,{side,masc=false,traits=null,facialSurface
  // while eyeSize scales the same opening around its unchanged centre.
  const e=.0001,base=facialSurface(cx,cy),dx=(facialSurface(cx+e,cy)-facialSurface(cx-e,cy))/(2*e),dy=(facialSurface(cx,cy+e)-facialSurface(cx,cy-e))/(2*e);
  const rx=hw*1.25,ry=.020*eye,rz=(coherent?.0155:.008)*eye;
- const globe=(x,y)=>{const xx=x-cx,yy=y-cy-side*xx*(coherent?.16:.08),t=Math.max(0,Math.min(1,(Math.abs(xx)-.0085*eye)/(hw-.0085*eye))),corner=coherent?t*t*t*(t*(t*6-15)+10):1;return base+(dx*xx+dy*(y-cy))*corner+.0008+rz*(Math.sqrt(Math.max(.001,1-(xx/rx)**2-(yy/ry)**2))-.6);};
+ const globe=(x,y)=>{const xx=x-cx,yy=y-cy-side*xx*(coherent?.10:.08),t=Math.max(0,Math.min(1,(Math.abs(xx)-.0085*eye)/(hw-.0085*eye))),corner=coherent?t*t*t*(t*(t*6-15)+10):1;return base+(dx*xx+dy*(y-cy))*corner+.0008+rz*(Math.sqrt(Math.max(.001,1-(xx/rx)**2-(yy/ry)**2))-.6);};
  const edge=(u,up)=>{const [x,y]=eyeLidBoundary(layout,u,up);return[x,y,globe(x,y)];};
- const white=grid(parent,'inset-eye-white-'+side,24,8,(u,v)=>{const a=edge(u,false),b=edge(u,true),y=mix(a[1],b[1],v);return[a[0],y,globe(a[0],y)];},C.eye);
- if(coherent){const colors=[];for(let j=0;j<=8;j++)for(let i=0;i<=24;i++){const u=i/24,v=j/8,c=new THREE.Color(C.eye).multiplyScalar(1-.13*Math.abs(u*2-1)**3-.07*v**3);colors.push(c.r,c.g,c.b);}white.geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));}
- const disk=(name,radius,centerX,centerY,offset,color,nu=24,nv=5)=>grid(parent,name+'-'+side,nu,nv,(u,v)=>{const a=u*Math.PI*2,r=v*radius,x=centerX+Math.cos(a)*r,arc=Math.sin(Math.PI*((x-cx)/hw+1)/2),tilt=side*(x-cx)*(coherent?.16:.08),y=Math.max(cy-lower*arc+tilt,Math.min(cy+upper*arc+tilt,centerY+Math.sin(a)*r));return[x,y,globe(x,y)+offset];},color);
+ const eyeWhite=coherent?new THREE.Color(0xe7eaeb).getHex():C.eye;
+ const white=grid(parent,'inset-eye-white-'+side,24,8,(u,v)=>{const a=edge(u,false),b=edge(u,true),y=mix(a[1],b[1],v);return[a[0],y,globe(a[0],y)];},eyeWhite);
+ if(coherent){const colors=[];for(let j=0;j<=8;j++)for(let i=0;i<=24;i++){const u=i/24,v=j/8,c=new THREE.Color(eyeWhite).multiplyScalar(1-.13*Math.abs(u*2-1)**3-.07*v**3);colors.push(c.r,c.g,c.b);}white.geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));}
+ const disk=(name,radius,centerX,centerY,offset,color,nu=24,nv=5)=>grid(parent,name+'-'+side,nu,nv,(u,v)=>{const a=u*Math.PI*2,r=v*radius,x=centerX+Math.cos(a)*r,arc=Math.sin(Math.PI*((x-cx)/hw+1)/2),tilt=side*(x-cx)*(coherent?.10:.08),y=Math.max(cy-lower*arc+tilt,Math.min(cy+upper*arc+tilt,centerY+Math.sin(a)*r));return[x,y,globe(x,y)+offset];},color);
  // The upper lid overlaps the iris, avoiding a fully exposed round bead. The
  // opening itself retains its original size, separation and trait range.
- const iris=disk('iris',(coherent?.0080:.0070)*eye,cx,cy+.0013*eye,.00025,C.iris),irisColors=[];
+ const iris=disk('iris',(coherent?.0090:.0070)*eye,cx+.0012*eye,cy+.0020*eye,.00025,C.iris),irisColors=[];
  for(let j=0;j<=5;j++)for(let i=0;i<=24;i++){
   const a=i/24*Math.PI*2,r=j/5,c=new THREE.Color(C.iris).multiplyScalar((1-.30*Math.max(0,(r-.72)/.28))*(1+.22*Math.max(0,-Math.sin(a))*r-.18*Math.max(0,Math.sin(a))*r));irisColors.push(c.r,c.g,c.b);
  }
  iris.geometry.setAttribute('color',new THREE.Float32BufferAttribute(irisColors,3));
- disk('pupil',.0028*eye,cx,cy+.0013*eye,.00045,C.pupil,16,3);
+ disk('pupil',.0028*eye,cx+.0012*eye,cy+.0020*eye,.00045,C.pupil,16,3);
  if(!coherent)disk('eye-catchlight',.0012*eye,cx-.0016*eye,cy+.0031*eye,.00065,0xfff7e5,12,2);
  for(const up of[true,false]){
-  const width=(up?(coherent?.0064:.0045):.0030)*eye;
+  const width=(up?(coherent?.0068:.0045):.0030)*eye;
   const lid=grid(parent,'eyelid-'+(up?'upper':'lower')+'-'+side,24,5,(u,v)=>{
    const p=edge(u,up),taper=Math.pow(Math.sin(Math.PI*u),.7),y=p[1]+(up?1:-1)*width*taper*v;
    // The outer edge overlaps the socket skin by a submillimetre; the curved
