@@ -166,7 +166,8 @@ export function buildEgypt(){
   for(const [x,z,rot]of[[-8.73,-1,Math.PI/2],[8.73,-1,-Math.PI/2],[-2.4,-6.54,0],[2.4,-6.54,0]])torch(temple,x,2.8,z,cameraColliders,rot);
   // ONE dominant pyramid surrounds the first gateway, column hall and burial
   // sequence. A low stone footing conceals the already-modelled underground
-  // chamber roof; all four faces are hollow sheets with a real front cutout.
+  // chamber roof. Sloped envelope faces retain their real front cutout;
+  // thick entry masonry and independently enclosed passages sit behind them.
   // The redesigned 60 x 80 m precinct provides real new rooms and circulation;
   // existing avatar, furniture, portals, columns and tomb details are not scaled.
   const shell={halfX:28,halfZ:30,centerZ:-8,baseY:.9,topY:38,entryHalf:2.15,entryTop:4.8,thickness:.16};
@@ -211,7 +212,7 @@ export function buildEgypt(){
     else for(const side of [-1,1])rod(pyramid,[side*entryHalf,y,zs],[side*x,y,zs],.018,0xaa8250);
   }
   // Fine shell bands are shared by avatar and camera collision. Each hugs one
-  // sloping face, so the entire interior volume remains genuinely empty. Bands
+  // sloping face, leaving room for the separately built interior masses. Bands
   // split exactly at the portal lintel and retain its full 4.3 m clear width.
   const shellSolids=[];
   for(let lo=baseY;lo<peakY-1e-6;){
@@ -236,7 +237,7 @@ export function buildEgypt(){
     const end=Math.min(entryFront,z+.5),h=entryTopAt(end),d=end-z;
     solid(pyramid,colliders,cameraColliders,side*(entryHalf+entryWallOuter)/2,h/2,(z+end)/2,entryWallOuter-entryHalf,h,d,C.shadow);
     // Coursed interior faces expose the wall depth at the final return.
-    for(let y=.04;y<h-.06;y+=.62){const bh=Math.min(.60,h-y);ashlar(pyramid,side*(entryHalf+.055),y+bh/2,(z+end)/2,.11,bh,d-.012,(Math.round(z*2)+Math.round(y/.62))%4?C.stone:C.edge,.014);}
+    for(let y=.04;y<h-.06;y+=.62){const bh=Math.min(.60,h-y);ashlar(pyramid,side*(entryHalf+.025),y+bh/2,(z+end)/2,.11,bh,d-.012,(Math.round(z*2)+Math.round(y/.62))%4?C.stone:C.edge,.014);}
   }
   for(let z=entryBack;z<19.5-.001;z+=.5){
     const end=Math.min(19.5,z+.5),top=entryTopAt(end),h=top-entryCeiling;
@@ -314,14 +315,24 @@ export function buildEgypt(){
   tunnel(-1.6,1.6,-7,-13,0,-3);
   for(const side of[-1,1])solid(passage,colliders,cameraColliders,side*2.1,1.475,-6.90,1,2.95,.2,C.shadow);
   solid(passage,colliders,cameraColliders,0,3.2,-6.90,5.2,.5,.2,C.shadow);
-  const tombFloor=(g,x,z,w,d,y=-6)=>{floor(g,x,y,z,w,d,C.shadow);surface(x-w/2,x+w/2,z-d/2,z+d/2,y);};
-  const tombWall=(g,x,z,w,d,y=-6,h=5.4,c=C.shadow)=>solid(g,colliders,cameraColliders,x,y+h/2,z,w,h,d,c);
+  const tombFloor=(g,x,z,w,d,y=-6)=>{floor(g,x,y,z,w+.12,d+.12,C.shadow);surface(x-w/2,x+w/2,z-d/2,z+d/2,y);};
+  // Full square masonry backs the exposed returns. Chamfered edge blocks alone
+  // would leave hairline sky gaps where wall, floor and ceiling meet.
+  const tombWall=(g,x,z,w,d,y=-6,h=5.4,c=C.shadow)=>{box(g,x,y+h/2,z,w,h,d,c);for(const arr of[colliders,cameraColliders])volume(arr,x,y+h/2,z,w,h,d);};
   const tombRoof=(x,z,w,d,y,h)=>{box(roofGroup,x,y+h+.35,z,w,.7,d,C.deep);for(const arr of[colliders,cameraColliders])volume(arr,x,y+h+.35,z,w,.7,d);};
   tombFloor(passage,-3,-14.6,9.2,3.2,-3);
   // Offset corner wall blocks the coffin sightline; a wall relief faces the
   // arriving walker, while a lamp reveals the left-hand continuation.
   tombWall(passage,2.1,-14.6,1,5.2,-3,2.95);
-  tombWall(passage,-8.1,-14.6,1,3.2,-3,2.95);
+  // An actual raised niche is cut into the blind wall, with a 0.9 m reveal
+  // and a solid rear. It rewards the turn without offering a false route.
+  for(const z of[-15.725,-13.475])tombWall(passage,-8.1,z,1,.95,-3,2.95);
+  tombWall(passage,-8.1,-14.6,1,1.3,-3,.8);
+  tombWall(passage,-8.1,-14.6,1,1.3,-.6,.55);
+  tombWall(passage,-8.55,-14.6,.1,1.3,-2.2,1.6,C.deep);
+  box(passage,-8.04,-2.18,-14.6,.92,.08,1.28,C.edge);
+  urn(passage,-8.1,-2.14,-14.6,.57,C.linen);
+  glyphPanel(passage,-8.485,-1.15,-14.6,.96,.58,Math.PI/2,1);
   tombWall(passage,-1.4,-16.7,6,1,-3,2.95);
   tombWall(passage,-4.6,-12.5,6,1,-3,2.95);
   tombRoof(-3,-14.6,9.2,3.2,-3,2.95);
