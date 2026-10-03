@@ -134,7 +134,9 @@ export function buildChinaPalace(G,H){
  fixture(gate,0,5.1,35,'gate-lantern',.45);door('cn-gatehouse-court','宫门入庭','x',32.5,-4.5,4.5,5.4,['gatehouse','grand-court']);buildings.push({id:'south-gatehouse',name:'承礼门',groupName:gate.name,roofGroupName:gateRoof.name,bounds:{minX:-8.5,maxX:8.5,minZ:32,maxZ:38},roomIds:['gatehouse'],openGatehouse:true});
  interiorRooms.push({id:'gatehouse',name:'承礼门门廊',minX:-5,maxX:5,minZ:32,maxZ:38,ceiling:5.9});
  const structures=[{id:'hall',name:'承礼正殿',x:0,z:-3,w:22,d:16,h:5.7,ceremony:true},{id:'tea',name:'西苑茶厅',x:-21,z:14.5,w:10,d:13,h:4.35},{id:'study',name:'东苑书斋',x:21,z:14.5,w:10,d:13,h:4.35},{id:'bedroom',name:'静宜寝殿',x:-21,z:-5,w:10,d:14,h:4.35},{id:'kitchen',name:'御膳与餐厅',x:21,z:-5,w:10,d:14,h:4.35},{id:'bath',name:'竹苑浴房',x:-21,z:-28,w:10,d:10,h:4.0},{id:'archive',name:'北苑藏书殿',x:0,z:-28.5,w:22,d:11,h:3.6},{id:'guest',name:'东苑客居',x:21,z:-28,w:10,d:10,h:4.0}];
- const rooms={};
+ const rooms={},cultureRecords={};
+ const markCulture=id=>cultureRecords[id]={c:colliders.length,k:cameraColliders.length};
+ const finishCulture=id=>{const r=cultureRecords[id];r.colliders=colliders.slice(r.c);r.cameraColliders=cameraColliders.slice(r.k);for(const c of [...r.colliders,...r.cameraColliders])c.cultureFurniture=id;};
  function hall(s){const {x,z,w,d,h,id,name}=s,g=new THREE.Group(),r=new THREE.Group();g.name='China building '+id;r.name='China roof '+id;group.add(g);roofGroup.add(r);rooms[id]={g,r,...s};const x0=x-w/2,x1=x+w/2,z0=z-d/2,z1=z+d/2;
   floor(g,x,z,w,d,.20,s.ceremony?0xbdb6a0:0xbba684);floor(g,x,z1+.65,w+1,1.3,.20,0xc4b69b);
   const entryWidth=s.ceremony?6:3.2,entryX=id==='bath'?x-1.5:x,entry=door('cn-'+id+'-front',name+'正门','x',z1,entryX-entryWidth/2,entryX+entryWidth/2,id==='archive'?3.33:s.ceremony?4.53:3.5,[id,'court']);
@@ -180,7 +182,12 @@ export function buildChinaPalace(G,H){
   const room={id,name,minX:x0,maxX:x1,minZ:z0,maxZ:z1,ceiling:h};interiorRooms.push(room);buildings.push({id,name,groupName:g.name,roofGroupName:r.name,bounds:{minX:x0,maxX:x1,minZ:z0,maxZ:z1},roomIds:[id]});
   return g;
  }
- for(const s of structures)hall(s);
+ for(const s of structures){
+  if(['tea','study'].includes(s.id)){const g=new THREE.Group(),r=new THREE.Group();g.name='China relocated '+s.id+' furnishings';r.name='China removed '+s.id+' roof';rooms[s.id]={...s,g,r};group.add(g);}
+  else hall(s);
+ }
+ const libraryFurniture=new THREE.Group();libraryFurniture.name='China relocated archive furnishings';group.add(libraryFurniture);
+ rooms.library={id:'archive',g:libraryFurniture,r:new THREE.Group()};
  // Ceremonial hall: a deep freestanding throne composition with generous lanes
  // to both sides, not an aisle sharing floor space with a bed and stove.
  {const g=rooms.hall.g;floor(g,0,-7.25,8,4.6,.36,0xc8b688);
@@ -209,10 +216,14 @@ export function buildChinaPalace(G,H){
   target('cn-hall-front','正殿中央前厅',0,3,'hall');target('cn-hall-throne','仪座前礼仪空间',0,-4.25,'hall');target('cn-hall-west','正殿西宽廊',-4.6,-3,'hall');target('cn-hall-east','正殿东宽廊',5,-3,'hall');target('cn-hall-rear','正殿后门',6,-9.6,'hall');}
  // Tea reception occupies a separate south-west pavilion, with a real room
  // around its social setting and a wide central cross-passage through the doors.
- {const g=rooms.tea.g;G.rug(g,-21,12,7.8,5.8,0xb78c59,0x5c7a70);table(g,-21,11.8,4.2,1.8,1.02);teaSet(g,-21,1.10,11.8,0xaac5c6);for(const x of [-22.3,-19.7])stool(g,x,10.05);stool(g,-23.85,11.8);shelf(g,-24.8,18.6,2.7,2.65,.7,Math.PI/2);table(g,-17.25,18.6,.7,3.5,1.1);flowerBranches(g,-17.25,1.18,18.0);G.vessel(g,-17.25,1.18,19.3,0xa4bcb2,.8);scroll(g,-21,2.9,8.19,1.1,2,true);target('cn-tea-front','茶厅门内',-21,19.4,'tea');target('cn-tea-work','茶案南侧',-20,13.3,'tea');target('cn-tea-west','茶厅西侧',-24.5,15.8,'tea');target('cn-tea-east','茶厅东侧',-17.5,11.8,'tea');}
+ markCulture('tea');
+ {const g=rooms.tea.g;G.rug(g,-21,12,7.8,5.8,0xb78c59,0x5c7a70);table(g,-21,11.8,4.2,1.8,1.02);teaSet(g,-21,1.10,11.8,0xaac5c6);for(const x of [-22.3,-19.7])stool(g,x,10.05);stool(g,-23.85,11.8);shelf(g,-24.8,18.6,2.7,2.65,.7,Math.PI/2);table(g,-17.25,18,3.5,.7,1.1);flowerBranches(g,-18.25,1.18,18);G.vessel(g,-16.5,1.18,18,0xa4bcb2,.8);scroll(g,-21,2.25,9.19,1.1,1.6,true);target('cn-tea-front','茶厅门内',-21,19.4,'tea');target('cn-tea-work','茶案南侧',-20,13.3,'tea');target('cn-tea-west','茶厅西侧',-24.5,15.8,'tea');target('cn-tea-east','茶厅东侧',-17.5,11.8,'tea');}
+ finishCulture('tea');
  // East calligraphy pavilion: two supported working sheets at the near edge,
  // with R9 actor-to-target reach preserved at .75 m in world coordinates.
- {const g=rooms.study.g;table(g,21,11.8,6.2,2.16,.97);for(const x of [19.55,22.15]){G.box(g,x,1.054,12.79,.62,.018,.18,0xefe1bf);for(let i=0;i<3;i++)G.box(g,x-.16+i*.16,1.067,12.79,.036,.005,.12,0x37463b);G.box(g,x+.5,1.086,12.42,.34,.06,.28,0x424f45);beam(g,[x-.5,1.075,12.2],[x-.19,1.075,12.5],.021,C.wood);}for(const x of [18,24])shelf(g,x,8.65,2.4,2.9,.7);G.vessel(g,24,1.06,11.7,0x799b8b,.53);for(let i=0;i<5;i++)beam(g,[23.95+i*.025,1.3,11.7],[23.82+i*.085,1.95+(i%2)*.1,11.7],.014,C.wood);for(const x of [18.2,23.8])scroll(g,x,2.9,20.81,1.3,2,true);table(g,24.85,18,.7,3.7,1.1);boundBook(g,24.85,1.21,17.2,.5,1,0x6f8c76);flowerBranches(g,24.85,1.19,18.9);target('cn-study-front','书斋门内',21,18.4,'study');target('cn-study-work','书案书写侧',21,13.32,'study');target('cn-study-west','书斋西侧',17.7,16,'study');target('cn-study-east','书斋东侧',24,15.3,'study');}
+ markCulture('study');
+ {const g=rooms.study.g;table(g,21,11.8,6.2,2.16,.97);for(const x of [19.55,22.15]){G.box(g,x,1.054,12.79,.62,.018,.18,0xefe1bf);for(let i=0;i<3;i++)G.box(g,x-.16+i*.16,1.067,12.79,.036,.005,.12,0x37463b);G.box(g,x+.5,1.086,12.42,.34,.06,.28,0x424f45);beam(g,[x-.5,1.075,12.2],[x-.19,1.075,12.5],.021,C.wood);}for(const x of [18,24])shelf(g,x,8.65,2.4,2.9,.7);G.vessel(g,24,1.06,11.7,0x799b8b,.53);for(let i=0;i<5;i++)beam(g,[23.95+i*.025,1.3,11.7],[23.82+i*.085,1.95+(i%2)*.1,11.7],.014,C.wood);for(const x of [18.2,23.8])scroll(g,x,2.25,16.01,1.3,1.6,true);table(g,24.85,13.9,.7,3.7,1.1);boundBook(g,24.85,1.21,13.2,.5,1,0x6f8c76);flowerBranches(g,24.85,1.19,14.9);target('cn-study-front','书画室外回廊',21,17.2,'study');target('cn-study-work','书案书写侧',21,13.32,'study');target('cn-study-west','书斋西侧',17.7,16,'study');target('cn-study-east','书斋东侧',24,15.3,'study');}
+ finishCulture('study');
  // Separate private sleeping hall: canopy bed, dressing furniture and reading
  // chair. All bedpost textiles remain attached to their support, not floating.
  {const g=rooms.bedroom.g;buildChinaDragonBed(g);G.collider(colliders,-21,-9,4,4.2);cameraColliders.push({minX:-23,maxX:-19,minZ:-11.1,maxZ:-6.9,minY:.2,maxY:3.3});G.rug(g,-21,-3,6.4,4.5,0x71887e,0xc2ae7d);table(g,-24.8,-1.4,.75,3.1,.98);G.vessel(g,-24.8,1.08,-1.8,0x91acaa,.65);shelf(g,-17.05,-8.6,3.3,2.75,.65,-Math.PI/2);buildChinaRoyalChair(g,{x:-18.1,y:.2,z:-2.1,yaw:Math.PI*.75,variant:'reading',id:'china-furniture-seat'});G.collider(colliders,-18.1,-2.1,.9,.9);target('cn-bedroom-front','寝殿前厅',-21,.5,'bedroom');target('cn-bedroom-west','床西通道',-24.2,-8.8,'bedroom');target('cn-bedroom-east','床东通道',-18.2,-8.8,'bedroom');target('cn-bedroom-reading','寝殿书榻前',-19,-3.6,'bedroom');}
@@ -235,7 +246,9 @@ export function buildChinaPalace(G,H){
  // passage and garden lanes give every facade room to breathe.
  // Shift only the east reading table and its carried objects away from the door turn.
  const archiveEastTableX=5.8;
- {const g=rooms.archive.g;for(const x of [-8,-4,4,8])shelf(g,x,-32.8,3,3.2,.72);for(const [x,zz] of [[-1.6,-30.2],[archiveEastTableX,-28]]){table(g,x,zz,4.2,1.7,1);for(const dx of [-1.1,0,1.1])boundBook(g,x+dx,1.13,zz,.8,.6,0x7d9583);}G.rug(g,0,-27.5,4.5,5,0xa28f69,0xd2bf90);target('cn-archive-center','藏书殿中央',0,-28,'archive');target('cn-archive-west','西书案前',-1.6,-28.5,'archive');target('cn-archive-east','东书案前',archiveEastTableX,-26.3,'archive');target('cn-archive-rear','北门书廊',0,-32,'archive');}
+ markCulture('library');
+ {const g=libraryFurniture;for(const x of [-8,-4,4,8])shelf(g,x,-32.8,3,3.2,.72);for(const [x,zz] of [[-1.6,-30.2],[archiveEastTableX,-28]]){table(g,x,zz,4.2,1.7,1);for(const dx of [-1.1,0,1.1])boundBook(g,x+dx,1.13,zz,.8,.6,0x7d9583);}G.rug(g,0,-27.5,4.5,5,0xa28f69,0xd2bf90);target('cn-archive-center','藏书殿中央',0,-28,'archive');target('cn-archive-west','西书案前',-1.6,-28.5,'archive');target('cn-archive-east','东书案前',archiveEastTableX,-26.3,'archive');target('cn-archive-rear','北门书廊',0,-32,'archive');}
+ finishCulture('library');
  {const g=rooms.guest.g;const b=new THREE.Group();b.position.y=.2;g.add(b);G.bed(b,23,-30.5,0x728f89,2.8,3.3);G.collider(colliders,23,-30.5,2.9,3.4);table(g,18.3,-25.8,2.7,1.4,.95);teaSet(g,18.3,1.04,-25.8,0x9cbfb5);shelf(g,17,-31.4,2.1,2.5,.7,Math.PI/2);target('cn-guest-front','客居门内',21,-24.3,'guest');target('cn-guest-bed','客榻侧',20.7,-30.5,'guest');target('cn-guest-tea','客居茶席',18.2,-24.3,'guest');}
  // Rear lotus court. Broad cross lanes continue to both side gates, and a
  // four-metre level bridge crosses the water without hidden sine-wave footing.
@@ -248,7 +261,7 @@ export function buildChinaPalace(G,H){
  for(const x of [-19,19]){table(exterior,x,30,5,.72,.63);for(const a of [-1.4,1.4])G.box(exterior,x+a,1.05,30.25,.1,.7,.11,C.wood);G.box(exterior,x,1.37,30.25,4.7,.13,.11,C.wood);}
  for(const [id,name,x,z]of [['cn-south-gate','承礼门外',0,39],['cn-gatehouse','承礼门廊',0,35],['cn-processional-court','开阔仪庭',0,23],['cn-court-west','广庭西侧',-12,16],['cn-court-east','广庭东侧',12,16],['cn-hall-approach','正殿前露台',0,7],['cn-west-lane','西内庭宽巷',-13.5,-5],['cn-east-lane','东内庭宽巷',13.5,-5],['cn-west-crosscourt','西苑横庭',-21,5],['cn-east-crosscourt','东苑横庭',21,5],['cn-garden','后苑荷桥',0,-18],['cn-garden-west','荷庭西岸',-10,-14],['cn-garden-east','荷庭东岸',10,-14],['cn-north-court','藏书殿后庭',0,-36],['cn-west-gate','西苑侧门',-28,-18],['cn-east-gate','东苑侧门',28,-18]])target(id,name,x,z,'outdoors');
  for(const d of doorways){if(['cn-kitchen-front','cn-kitchen-west','cn-kitchen-east'].includes(d.id))d.rooms[0]='dining';if(d.id==='cn-bath-east')d.rooms[0]='washroom';}
- const facilities=[{id:'entrance',name:'迎宾与入口',targets:['cn-south-gate','cn-gatehouse','cn-processional-court'],furnishings:['承礼门','开阔仪庭','迎宾长椅']},{id:'reception',name:'会客与礼仪',targets:['cn-hall-front','cn-hall-throne','cn-tea-work'],furnishings:['独立正殿','云纹仪座','宫苑茶厅']},{id:'dining-kitchen',name:'用餐与备膳',targets:['cn-dining-west','cn-kitchen-prep','cn-kitchen-stove'],furnishings:['独立餐厅','蒸笼灶台','双人备餐案']},{id:'sleeping',name:'寝居',targets:['cn-bedroom-east','cn-guest-bed'],furnishings:['雕龙龙榻','客居卧榻','阅读椅']},{id:'bathing',name:'沐浴与更衣',targets:['cn-bath-tub','cn-bath-linens'],furnishings:['石浴池','布草柜']},{id:'washroom',name:'盥洗与净室',targets:['cn-bath-basin','cn-bath-toilet'],furnishings:['水盆','壁镜','屏后坐便']},{id:'storage-service',name:'储藏与勤务',targets:['cn-archive-center','cn-study-work','cn-kitchen-rear'],furnishings:['藏书殿','书法案','御膳后门']}];
+ const facilities=[{id:'entrance',name:'迎宾与入口',targets:['cn-south-gate','cn-gatehouse','cn-processional-court'],furnishings:['承礼门','开阔仪庭','迎宾长椅']},{id:'reception',name:'会客与礼仪',targets:['cn-hall-front','cn-hall-throne','cn-tea-work'],furnishings:['独立正殿','云纹仪座','雅集楼一层茶厅']},{id:'dining-kitchen',name:'用餐与备膳',targets:['cn-dining-west','cn-kitchen-prep','cn-kitchen-stove'],furnishings:['独立餐厅','蒸笼灶台','双人备餐案']},{id:'sleeping',name:'寝居',targets:['cn-bedroom-east','cn-guest-bed'],furnishings:['雕龙龙榻','客居卧榻','阅读椅']},{id:'bathing',name:'沐浴与更衣',targets:['cn-bath-tub','cn-bath-linens'],furnishings:['石浴池','布草柜']},{id:'washroom',name:'盥洗与净室',targets:['cn-bath-basin','cn-bath-toilet'],furnishings:['水盆','壁镜','屏后坐便']},{id:'storage-service',name:'储藏与勤务',targets:['cn-archive-center','cn-study-work','cn-kitchen-rear'],furnishings:['雅集楼三层藏书','二层书画案','御膳后门']}];
 
  // Throne backdrop is one cohesive, shallow lacquer-and-gilt relief composition,
  // fitted to the existing seven-metre screen instead of filling the central aisle.
@@ -270,16 +283,16 @@ export function buildChinaPalace(G,H){
  // Room-scaled surface compositions: hanging paintings, framed silk panels,
  // brocade runners, tea trays, bound folios, and supported fine porcelain.
  const hanging=(g,id,x,y,z,w,h,motif='lotus')=>ornament(g,id,'framed-silk-panel','existing solid wall',q=>{G.box(q,x,y,z,w,h,.045,ink);frame(q,x,y,z+.039,w+.07,h+.08);G.box(q,x,y,z+.05,w-.13,h-.13,.018,C.jade);if(motif==='lotus'){lotus(q,x,y-h*.25,z+.083,Math.min(w*.75,h*.70));for(const dx of [-w*.28,w*.28])cloud(q,x+dx,y+h*.30,z+.091,w*.27);}else{for(const k of [-1,0,1]){stroke(q,[[x+k*w*.2,y-h*.35,z+.086],[x+k*w*.12,y+h*.34,z+.086]],.015,C.gold);for(const j of [-1,0,1])petal(q,x+k*w*.14,y+j*h*.19,z+.09,w*.13,h*.20,ivory,(k+j)%2*.9);}}});
- hanging(rooms.tea.g,'tea-floral-panel',-23.7,2.65,8.19,1.2,1.75);hanging(rooms.tea.g,'tea-floral-panel-pair',-18.3,2.65,8.19,1.2,1.75);
- const studyPanel=hanging(rooms.study.g,'study-bamboo-panel',0,2.77,0,1.7,1.62,'bamboo');studyPanel.position.set(25.81,0,11.85);studyPanel.rotation.y=-Math.PI/2; // Solid east-wall bay, clear of front/side doors and both windows.
+ hanging(rooms.tea.g,'tea-floral-panel',-23.7,2.45,9.19,1.2,1.75);hanging(rooms.tea.g,'tea-floral-panel-pair',-18.3,2.45,9.19,1.2,1.75);
+ const studyPanel=hanging(rooms.study.g,'study-bamboo-panel',0,2.25,0,1.7,1.62,'bamboo');studyPanel.position.set(25.81,0,11.85);studyPanel.rotation.y=-Math.PI/2; // Solid east-wall bay, clear of front/side doors and both windows.
  hanging(rooms.bedroom.g,'bedroom-silk-panel',-24.05,2.50,-11.81,1.3,1.9);hanging(rooms.guest.g,'guest-silk-panel',19,2.45,-32.81,1.9,1.8);
- for(const x of [-8,-4,4,8])hanging(rooms.archive.g,'archive-painted-panel-'+x,x,3.22,-33.81,2.6,.46,'bamboo');
+ for(const x of [-8,-4,4,8])hanging(libraryFurniture,'archive-painted-panel-'+x,x,3.22,-33.81,2.6,.46,'bamboo');
  ornament(rooms.tea.g,'tea-brocade-tray','tabletop-vignette','existing tea table outside work approach',q=>{G.box(q,-21,1.11,11.05,3.2,.018,.32,C.red);for(const z of [10.91,11.19])G.box(q,-21,1.124,z,3.18,.015,.022,C.gold);for(const x of [-22,-21,-20]){G.cyl(q,x,1.14,11.06,.12,.12,.025,C.gold,12);}});
  ornament(rooms.study.g,'scholar-scroll-vignette','tabletop-vignette','existing study table behind supported working papers',q=>{for(const x of [20.2,21.1]){const m=G.cyl(q,x,1.13,11.03,.085,.085,.70,0xe8d5a7,10);m.rotation.z=Math.PI/2;for(const dx of [-.36,.36]){const cap=G.cyl(q,x+dx,1.13,11.03,.103,.103,.06,C.dark,10);cap.rotation.z=Math.PI/2;}}G.box(q,21.9,1.17,10.95,.90,.24,.50,C.red);frame(q,21.9,1.18,11.21,.77,.15);});
  // R12.1 dragon bed includes its own joined crown and headboard relief.
  ornament(rooms.kitchen.g,'dining-brocade-setting','dining-vignette','existing dining tabletop',q=>{G.box(q,21,1.084,-1.7,.70,.014,2.01,C.red);for(const x of [20.68,21.32])G.box(q,x,1.096,-1.7,.025,.014,1.95,C.gold);for(const x of [19.9,21,22.1])for(const z of [-1.15,-2.25]){G.cyl(q,x,1.085,z,.29,.29,.026,C.jade,16);for(const dx of [.34,.40])G.box(q,x+dx,1.111,z,.02,.023,.45,C.dark);}});
  ornament(rooms.bath.g,'bath-lotus-border','lotus-bath-frieze','existing tub rim',q=>{for(const x of [-24.5,-23.6,-22.7]){lotus(q,x,.58,-27.905,.40);G.box(q,x,.98,-27.900,.7,.025,.020,C.gold);}});
- for(const [x,zz] of [[-1.6,-30.2],[archiveEastTableX,-28]])ornament(rooms.archive.g,'library-brush-tray-'+(x===archiveEastTableX?7:x),'scholar-vignette','existing library table',q=>{G.box(q,x,1.10,zz+.51,2.6,.05,.35,C.red);for(const dx of [-.65,.65])G.vessel(q,x+dx,1.14,zz+.50,teal,.35);});
+ for(const [x,zz] of [[-1.6,-30.2],[archiveEastTableX,-28]])ornament(libraryFurniture,'library-brush-tray-'+(x===archiveEastTableX?7:x),'scholar-vignette','existing library table',q=>{G.box(q,x,1.10,zz+.51,2.6,.05,.35,C.red);for(const dx of [-.65,.65])G.vessel(q,x+dx,1.14,zz+.50,teal,.35);});
  // R14: independent ceremonial plinths and a real two-storey rear library.
  // Translation is per building, never global mesh scaling. Existing living
  // halls, work objects and courts retain their authored dimensions and places.
@@ -287,7 +300,7 @@ export function buildChinaPalace(G,H){
  for(const [id,dy] of Object.entries(raised)){
   const room=rooms[id],b=buildings.find(b=>b.id===id).bounds;
   room.g.position.y+=dy;room.r.position.y+=dy;room.floorY=.215+dy;
-  const owns=c=>c.minX>=b.minX-.51&&c.maxX<=b.maxX+.51&&c.minZ>=b.minZ-.51&&c.maxZ<=b.maxZ+1.31;
+  const owns=c=>!c.cultureFurniture&&c.minX>=b.minX-.51&&c.maxX<=b.maxX+.51&&c.minZ>=b.minZ-.51&&c.maxZ<=b.maxZ+1.31;
   for(const c of colliders)if(owns(c)){c.minY=(c.minY??.2)+dy;c.maxY=(c.maxY??3.5)+dy;}
   for(const c of cameraColliders)if(owns(c)){c.minY+=dy;c.maxY+=dy;}
   for(const f of walkableSurfaces)if(f.owner===room.g.name)f.y+=dy;
@@ -297,11 +310,16 @@ export function buildChinaPalace(G,H){
   for(const t of explorationTargets)if(t.roomId===id)t.position[1]=.215+dy;
   room.g.traverse(o=>{if(o.userData.nightFixture)o.userData.nightFixture.floorY=.215+dy;});
  }
- const levels=[{id:'court',name:'宫苑庭院',y:.115},{id:'rear-hall',name:'藏书殿台基',y:.815},{id:'main-hall',name:'正殿台基',y:1.415},{id:'viewing-loft',name:'北苑观景阁',y:4.215}];
+ relocateCultureFurniture(rooms.tea,cultureRecords.tea,[23,.6,-43],explorationTargets);
+ relocateCultureFurniture(rooms.study,cultureRecords.study,[-17,4,-41],explorationTargets);
+ relocateCultureFurniture(rooms.library,cultureRecords.library,[0,7.4,0],explorationTargets);
+ for(const t of explorationTargets)if(t.roomId==='archive')t.roomId='archive-loft';
+ const levels=[{id:'court',name:'宫苑庭院',y:.115},{id:'rear-hall',name:'雅集楼一层茶厅',y:.815},{id:'main-hall',name:'正殿台基',y:1.415},{id:'culture-study',name:'雅集楼二层书画',y:4.215},{id:'viewing-loft',name:'雅集楼三层藏书观景',y:7.615}];
  const lightingZones=[
   {id:'main-hall',minX:-11.4,maxX:11.4,minZ:-11.4,maxZ:5.4,minY:.9,maxY:8.8,floorY:1.415},
   {id:'archive-lower',minX:-11.4,maxX:11.4,minZ:-34.4,maxZ:-22.6,minY:.5,maxY:4.19,floorY:.815},
-  {id:'archive-loft',minX:-11.4,maxX:11.4,minZ:-34.4,maxZ:-22.6,minY:4.19,maxY:9.5,floorY:4.215}
+  {id:'culture-study',minX:-11.4,maxX:11.4,minZ:-34.4,maxZ:-22.6,minY:4.19,maxY:7.60,floorY:4.215},
+  {id:'archive-loft',minX:-11.4,maxX:11.4,minZ:-34.4,maxZ:-22.6,minY:7.60,maxY:13.5,floorY:7.615}
  ];
  // The outer paths are real terrain too: strict surface navigation has no
  // implicit floor that could hide a hole or teleport an actor between levels.
@@ -431,53 +449,68 @@ export function buildChinaPalace(G,H){
  lightingZones.find(z=>z.id==='main-hall').maxY=10;
  rooms.hall.g.attach(gallery);
 
- // Actual archive upper storey, at world coordinates. The split floor leaves
- // the whole switchback void open, including every turning landing.
- const loft=new THREE.Group();loft.name='China rear viewing loft and indoor stair';group.add(loft);
- for(const [id,a]of [['east',[-4.05,11,-34,-23]],['west',[-11,-9.2,-34,-23]],['north',[-9.2,-4.05,-34,-32]],['south',[-9.2,-4.05,-25.4,-23]]])slab(loft,'cn-loft-floor-'+id,...a,4.215,.215,C.wood);
- stairs(loft,'cn-loft-west-flight','z',-8.95,-6.75,-30,-25.4,2.515,.815,10);
- slab(loft,'cn-loft-middle-landing',-9.1,-4.05,-32,-30,2.515,.23,C.wood);
- stairs(loft,'cn-loft-east-flight','z',-6.4,-4.2,-30,-25.4,2.515,4.215,10);
- rail(loft,'loft-middle-north',[-9.1,-32],[-4.05,-32],2.515);
- for(const[id,a,b]of[
-  ['loft-middle-west',[-9.1,-32],[-9.1,-30]],['loft-middle-east',[-4.05,-32],[-4.05,-30]],
-  ['loft-middle-south-west',[-9.1,-30],[-8.95,-30]],['loft-middle-south-center',[-6.75,-30],[-6.4,-30]],['loft-middle-south-east',[-4.2,-30],[-4.05,-30]]
- ])landingRail(loft,id,a,b,2.515);
- rail(loft,'loft-void-west',[-9.2,-32],[-9.2,-25.4],4.215);
- rail(loft,'loft-void-east',[-4.05,-32],[-4.05,-25.4],4.215);
- rail(loft,'loft-void-north',[-9.2,-32],[-4.05,-32],4.215);
- rail(loft,'loft-void-south-west',[-9.2,-25.4],[-6.55,-25.4],4.215);
- // Broad genuine openings frame the lotus court. Solid 85 cm parapets and
- // actual camera/nav rails guard them; no opaque fake window hides the view.
- for(const z of [-34,-23]){
-  solid3(loft,0,4.625,z,22,.82,.24,C.red);box(loft,0,7.0,z,22,.43,.30,C.jade);
-  for(const x of [-11,-6.8,-2.4,2.4,6.8,11])solid3(loft,x,5.715,z,.18,3.0,.26,C.red);
-  G.box(loft,0,5.08,z,22,.10,.29,C.gold);paintedBand(loft,'loft-frieze-'+z,0,7.0,z+(z===-23?.20:-.20),22,z===-23?0:Math.PI);
+ // 雅集楼: two stacked public switchbacks keep all three cultural floors
+ // connected without entering any private bedroom, kitchen or bath corridor.
+ const loft=new THREE.Group();loft.name='China culture tower public stairs and galleries';group.add(loft);
+ const loftRoof=new THREE.Group();loftRoof.name='China culture tower three eaved roof';roofGroup.add(loftRoof);
+ for(const [storey,base]of [[2,.815],[3,4.215]]){
+  const y=base+3.4,mid=base+1.7,prefix=storey===2?'cn-loft':'cn-tower-third';
+  for(const [id,a]of [['east',[-4.05,11,-34,-23]],['west',[-11,-9.2,-34,-23]],['north',[-9.2,-4.05,-34,-32]],['south',[-9.2,-4.05,-25.4,-23]]])slab(loft,prefix+'-floor-'+id,...a,y,.215,C.wood);
+  stairs(loft,prefix+'-west-flight','z',-8.95,-6.75,-30,-25.4,mid,base,10);
+  slab(loft,prefix+'-middle-landing',-9.1,-4.05,-32,-30,mid,.23,C.wood);
+  stairs(loft,prefix+'-east-flight','z',-6.4,-4.2,-30,-25.4,mid,y,10);
+  rail(loft,prefix+'-middle-north',[-9.1,-32],[-4.05,-32],mid);
+  for(const[id,a,b]of[
+   ['middle-west',[-9.1,-32],[-9.1,-30]],['middle-east',[-4.05,-32],[-4.05,-30]],
+   ['middle-south-west',[-9.1,-30],[-8.95,-30]],['middle-south-center',[-6.75,-30],[-6.4,-30]],['middle-south-east',[-4.2,-30],[-4.05,-30]]
+  ])landingRail(loft,prefix+'-'+id,a,b,mid);
+  for(const[id,a,b]of[
+   ['void-west',[-9.2,-32],[-9.2,-25.4]],['void-east',[-4.05,-32],[-4.05,-25.4]],
+   ['void-north',[-9.2,-32],[-4.05,-32]],['void-south-west',[-9.2,-25.4],[-6.55,-25.4]]
+  ])rail(loft,prefix+'-'+id,a,b,y);
+  // Each visible tier has a real slab, open viewing bays, low vermilion
+  // parapets and turquoise/gold bracket beams, not an inaccessible roof shell.
+  for(const z of [-34,-23]){
+   solid3(loft,0,y+.41,z,22,.82,.24,C.red);box(loft,0,y+2.785,z,22,.43,.30,C.jade);
+   for(const x of [-11,-6.8,-2.4,2.4,6.8,11])solid3(loft,x,y+1.5,z,.18,3.0,.26,C.red);
+   G.box(loft,0,y+.865,z,22,.10,.29,C.gold);paintedBand(loft,'loft-frieze-'+storey+'-'+z,0,y+2.785,z+(z===-23?.20:-.20),22,z===-23?0:Math.PI);
+  }
+  for(const x of [-11,11]){
+   solid3(loft,x,y+.41,-28.5,.24,.82,11,C.red);box(loft,x,y+2.785,-28.5,.30,.43,11,C.jade);
+   for(const z of [-34,-29,-25,-23])solid3(loft,x,y+1.5,z,.26,3,.18,C.red);
+   G.box(loft,x,y+.865,-28.5,.29,.10,11,C.gold);
+  }
+  // Thick open-ring eaves cannot cut through the rooms or the stair headroom.
+  const inner=y+.215,outer=y-.015;
+  const eave=(a,b,c,d)=>{const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute([...a,...b,...c,...a,...c,...d],3));geo.computeVertexNormals();G.mesh(loftRoof,geo,C.roof,0,0,0,{side:THREE.DoubleSide});};
+  eave([-11.1,inner,-22.9],[11.1,inner,-22.9],[12,outer,-22],[-12,outer,-22]);eave([11.1,inner,-34.1],[-11.1,inner,-34.1],[-12,outer,-35],[12,outer,-35]);eave([-11.1,inner,-34.1],[-11.1,inner,-22.9],[-12,outer,-22],[-12,outer,-35]);eave([11.1,inner,-22.9],[11.1,inner,-34.1],[12,outer,-35],[12,outer,-22]);
+  for(const z of [-22,-35]){G.box(loftRoof,0,outer-.09,z,24,.18,.16,C.red);beam(loftRoof,[-12,outer+.05,z],[12,outer+.05,z],.09,C.gold);for(let x=-11.7;x<12;x+=.55)beam(loftRoof,[x,inner+.025,z===-22?-22.9:-34.1],[x,outer+.06,z],.035,C.gold);}
+  for(const x of [-12,12]){G.box(loftRoof,x,outer-.09,-28.5,.16,.18,13,C.red);beam(loftRoof,[x,outer+.05,-35],[x,outer+.05,-22],.09,C.gold);}
+  for(const x of [1.2,7.6])upperFixture(loft,'culture-floor-'+storey+'-lantern-'+x,x,y+2.60,-28.8,y);
  }
- for(const x of [-11,11]){
-  solid3(loft,x,4.625,-28.5,.24,.82,11,C.red);box(loft,x,7.0,-28.5,.30,.43,11,C.jade);
-  for(const z of [-34,-29,-25,-23])solid3(loft,x,5.715,z,.26,3,.18,C.red);
-  G.box(loft,x,5.08,-28.5,.29,.10,11,C.gold);
- }
- const loftRoof=new THREE.Group();loftRoof.name='China roof archive viewing loft';roofGroup.add(loftRoof);
- palaceCeiling(loftRoof,colliders,cameraColliders,0,-28.5,22,11,7.215,false);palaceRoof(loftRoof,0,7.48,-28.5,24,13,1.85,C.roof);
- // A continuous lower eave ring has a true central opening. No sloping roof
- // face crosses the upper room or its stairwell at head height.
- const eave=(a,b,c,d)=>{const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute([...a,...b,...c,...a,...c,...d],3));geo.computeVertexNormals();G.mesh(loftRoof,geo,C.roof,0,0,0,{side:THREE.DoubleSide});};
- const yI=4.43,yO=4.20;eave([-11.1,yI,-22.9],[11.1,yI,-22.9],[12,yO,-22],[-12,yO,-22]);eave([11.1,yI,-34.1],[-11.1,yI,-34.1],[-12,yO,-35],[12,yO,-35]);eave([-11.1,yI,-34.1],[-11.1,yI,-22.9],[-12,yO,-22],[-12,yO,-35]);eave([11.1,yI,-22.9],[11.1,yI,-34.1],[12,yO,-35],[12,yO,-22]);
- for(const z of [-22,-35])beam(loftRoof,[-12,4.25,z],[12,4.25,z],.09,C.gold);
- for(const x of [-12,12])beam(loftRoof,[x,4.25,-35],[x,4.25,-22],.09,C.gold);
- for(const x of [-1.5,6.2])upperFixture(loft,'viewing-loft-lantern-'+x,x,6.815,-28.8,4.215);
- loft.traverse(o=>{if(o.userData.nightFixture)o.userData.nightFixture.floorY=4.215;});
- // Low supported display furniture leaves both the viewing promenade and
- // stair landing open. Library service remains downstairs.
- for(const x of [1.2,7.6]){const t=new THREE.Group();t.position.y=4.2;loft.add(t);G.table(t,x,-32.5,3.2,.8,C.wood,.88);colliders.push({minX:x-1.6,maxX:x+1.6,minY:4.2,maxY:5.155,minZ:-32.9,maxZ:-32.1});cameraColliders.push({minX:x-1.6,maxX:x+1.6,minY:4.2,maxY:5.155,minZ:-32.9,maxZ:-32.1});for(const dx of[-.7,.7])boundBook(loft,x+dx,5.19,-32.5,.75,.5,0x7d9583);}
- interiorRooms.push({id:'archive-loft',name:'北苑观景阁',minX:-11,maxX:11,minZ:-34,maxZ:-23,floorY:4.215,ceiling:7.215});
- const archiveBuilding=buildings.find(b=>b.id==='archive');archiveBuilding.roomIds.push('archive-loft');archiveBuilding.roofGroupName=rooms.archive.r.name;
- for(const [id,name,p] of [
-  ['cn-loft-stair-base','藏书殿室内楼梯口',[-7.85,.815,-24.3]],['cn-loft-midlanding','观景阁转身平台',[-6.6,2.515,-31]],
-  ['cn-loft-stair-top','观景阁上层梯口',[-5.3,4.215,-24.3]],['cn-loft-court-view','观景阁荷庭视野',[0,4.215,-23.52]],
-  ['cn-loft-east','观景阁东侧回廊',[8,4.215,-26]],['cn-loft-west','观景阁西侧回廊',[-10.1,4.215,-28]],['cn-loft-rear','观景阁北侧书廊',[0,4.215,-31]]])explorationTargets.push({id,name,roomId:id==='cn-loft-stair-base'?'archive':'archive-loft',position:p});
+ palaceCeiling(loftRoof,colliders,cameraColliders,0,-28.5,22,11,11.015,false);palaceRoof(loftRoof,0,11.28,-28.5,24,13,1.85,C.roof);
+ // The retained inset study door now belongs to a real second-floor room.
+ // Its surrounding public balcony remains separate from the worktable aisle.
+ const studyDoor=door('cn-study-front','雅集楼二层 · 书画室','x',-24.8,2.4,5.6,7.15,['study','culture-gallery'],4.2);
+ palaceWall(loft,colliders,cameraColliders,{at:-24.8,from:-2.8,to:9,bottom:4.2,top:7.385,depth:.32,color:C.cream,openings:[studyDoor]});
+ for(const side of [-1,1]){const at=side<0?-2.8:9,op=door('cn-study-'+(side<0?'west':'east'),'书画室通廊','z',at,-29.1,-26.3,7.15,['study','culture-gallery'],4.2);palaceWall(loft,colliders,cameraColliders,{axis:'z',at,from:-34,to:-24.8,bottom:4.2,top:7.385,color:C.cream,openings:[op]});}
+ paintedBand(loft,'culture-study-entry',3.1,7.15,-24.59,11.8);
+ // Original viewing desks remain on the upper public reading floor.
+ for(const x of [1.2,7.6]){const t=new THREE.Group();t.position.y=7.6;loft.add(t);G.table(t,x,-24.25,3.2,.8,C.wood,.88);const hull={minX:x-1.6,maxX:x+1.6,minY:7.6,maxY:8.555,minZ:-24.65,maxZ:-23.85};colliders.push({...hull});cameraColliders.push({...hull});for(const dx of[-.7,.7])boundBook(loft,x+dx,8.59,-24.25,.75,.5,0x7d9583);}
+ interiorRooms.find(r=>r.id==='archive').name='雅集楼一层 · 茶叙会客';interiorRooms.find(r=>r.id==='archive').ceiling=3.985;
+ interiorRooms.push({id:'tea',name:'雅集楼一层 · 茶叙会客',minX:-4,maxX:10,minZ:-34,maxZ:-23,floorY:.815,ceiling:3.985},{id:'study',name:'雅集楼二层 · 书画室',minX:-2.8,maxX:9,minZ:-34,maxZ:-24.8,floorY:4.215,ceiling:7.385},{id:'culture-gallery',name:'雅集楼二层 · 公共回廊',minX:-11,maxX:11,minZ:-34,maxZ:-23,floorY:4.215,ceiling:7.385},{id:'archive-loft',name:'雅集楼三层 · 藏书观景',minX:-11,maxX:11,minZ:-34,maxZ:-23,floorY:7.615,ceiling:11.015});
+ const archiveBuilding=buildings.find(b=>b.id==='archive');archiveBuilding.name='雅集楼';archiveBuilding.roomIds=['archive','tea','study','culture-gallery','archive-loft'];archiveBuilding.storeys=3;
+ for(const [id,name,p,roomId]of [
+  ['cn-loft-stair-base','雅集楼一层公共楼梯',[-7.85,.815,-24.3],'tea'],['cn-loft-midlanding','二层楼梯转身平台',[-6.6,2.515,-31],'culture-gallery'],
+  ['cn-tower-study-landing','雅集楼二层公共梯厅',[-5.3,4.215,-24.3],'culture-gallery'],['cn-tower-third-base','雅集楼二层上行梯口',[-7.85,4.215,-24.3],'culture-gallery'],
+  ['cn-tower-third-midlanding','三层楼梯转身平台',[-6.6,5.915,-31],'culture-gallery'],['cn-loft-stair-top','雅集楼三层观景梯口',[-5.3,7.615,-24.3],'archive-loft'],
+  ['cn-loft-court-view','雅集楼三层荷庭视野',[4.3,7.615,-23.62],'archive-loft'],['cn-loft-east','三层东侧观景回廊',[9.8,7.615,-26],'archive-loft'],
+  ['cn-loft-west','三层西侧观景回廊',[-10.1,7.615,-28],'archive-loft'],['cn-loft-rear','三层北侧书廊',[0,7.615,-31],'archive-loft']
+ ])explorationTargets.push({id,name,roomId,position:p});
+ // Both obsolete pavilions, roofs and doors are absent. The southwest plot
+ // stays a complete clear rectangle for a future isolated archery court.
+ for(const court of CHINA_CULTURE_TOWER.freedCourts){floor(exterior,(court.minX+court.maxX)/2,14.5,10,13,.115,0xbfc2aa);courts.push({...court,reserved: court.id==='west-open-court'?'future-archery':undefined});}
+ for(const x of [17.1,24.9])for(const z of [9.1,19.9]){G.cyl(exterior,x,.28,z,.55,.48,.36,C.stone,10);flowerBranches(exterior,x,.48,z);}
  for(const t of explorationTargets){if(t.id==='cn-hall-approach')t.position=[0,1.415,6.3];if(t.id==='cn-west-lane')t.position=[-14.4,.115,-6];if(t.id==='cn-east-lane')t.position=[14,.115,-6];}
  // Batching remains per building. Stair/platform resources use the same
  // material ownership and disposal contract as every existing static group.
@@ -492,11 +525,11 @@ export function buildChinaPalace(G,H){
  group.userData.rugSurfaces=[];for(const{g}of Object.values(rooms))group.userData.rugSurfaces.push(...(g.userData.rugSurfaces||[]));walkableSurfaces.push(...group.userData.rugSurfaces);
  const floorAt=(x,z,near=0)=>{const ys=[...walkableSurfaces,...group.userData.rugSurfaces].filter(s=>x>=s.minX&&x<=s.maxX&&z>=s.minZ&&z<=s.maxZ).map(s=>s.axis?s.y+(s.endY-s.y)*((s.axis==='x'?x-s.minX:z-s.minZ)/(s.axis==='x'?s.maxX-s.minX:s.maxZ-s.minZ)):s.y);if(near<.45)return Math.max(.015,...ys.filter(y=>y<1.65));return ys.filter(y=>Math.abs(y-near)<.45).sort((a,b)=>b-a)[0]??ys.sort((a,b)=>Math.abs(a-near)-Math.abs(b-near))[0]??.015;};
  const ground=p=>[p[0],floorAt(p[0],p[2],p[1]),p[2]];for(const t of explorationTargets)t.position=ground(t.position);for(const d of doorways){d.a=ground(d.a);d.b=ground(d.b);d.height=d.top-Math.max(d.a[1],d.b[1]);}
- const stations=[{id:'cn-tea',name:'西苑茶厅 · 宫苑茶叙',action:'沏茉莉花茶',position:[-19.6,0,13.32],playerWorkTarget:[-19.6,1.2,12.57],color:'#96b19a',npcName:'Lin',npcAction:'tea',npcLabel:'温杯沏茉莉花茶',npcPosition:[-22.1,0,13.32],workTarget:[-22.1,1.2,12.57],npcRotation:Math.PI,route:[[-23,0,16.8],[-19,0,16.8]]},{id:'cn-calligraphy',name:'东苑书斋 · 翰墨书房',action:'写书法',position:[19.6,0,13.32],playerWorkTarget:[19.55,1.057,12.57],color:'#baaa84',npcName:'Wen',npcAction:'calligraphy',npcLabel:'正在挥毫习字',npcPosition:[22.2,0,13.32],workTarget:[22.15,1.057,12.57],npcRotation:Math.atan2(-.05,-.75),route:[[22.3,0,16.8],[18.2,0,16.8]]},{id:'cn-cooking',name:'御膳备餐间 · 手作点心',action:'包饺子',position:[23.6,0,-7.46],playerWorkTarget:[23.6,1.2,-8.21],color:'#e3b175',npcName:'Jia',npcAction:'knead',npcLabel:'正在捏出手工饺子',npcPosition:[21.3,0,-7.46],workTarget:[21.3,1.2,-8.21],npcRotation:Math.PI,route:[[18,0,-6.2],[23.5,0,-6.2]]},{id:'cn-rest',name:'静宜寝殿 · 倚窗书席',action:'倚窗读书',position:[-19,0,-3.6],color:'#c99aaa',npcName:'Lan',npcAction:'read',npcLabel:'倚窗静读',npcPosition:[-23.4,0,-3.4],workTarget:[-24.0,1.04,-3.3],npcRotation:Math.atan2(-.6,.1)},{id:'cn-garden',name:'御花园 · 宽桥赏荷',action:'观鱼赏荷',position:[-.8,0,-18],color:'#82bcb2',npcName:'Bo',npcAction:'garden',npcLabel:'在荷塘边观鱼',npcPosition:[.8,0,-18.7],workTarget:[3.6,.3,-19.2],npcRotation:Math.atan2(2.8,-.5),route:[[0,0,-14.3],[10,0,-14],[10,0,-20.9]]}];
- for(const s of stations){s.position=ground(s.position);s.npcPosition=ground(s.npcPosition);s.route=s.route?.map(ground);}
+ const stations=[{id:'cn-tea',name:'雅集楼一层 · 宫苑茶叙',action:'沏茉莉花茶',position:[-19.6,0,13.32],playerWorkTarget:[-19.6,1.2,12.57],color:'#96b19a',npcName:'Lin',npcAction:'tea',npcLabel:'温杯沏茉莉花茶',npcPosition:[-22.1,0,13.32],workTarget:[-22.1,1.2,12.57],npcRotation:Math.PI,route:[[-23,0,16.8],[-19,0,16.8]]},{id:'cn-calligraphy',name:'雅集楼二层 · 翰墨书房',action:'写书法',position:[19.6,0,13.32],playerWorkTarget:[19.55,1.057,12.57],color:'#baaa84',npcName:'Wen',npcAction:'calligraphy',npcLabel:'正在挥毫习字',npcPosition:[22.2,0,13.32],workTarget:[22.15,1.057,12.57],npcRotation:Math.atan2(-.05,-.75),route:[[22.3,0,16.8],[18.2,0,16.8]]},{id:'cn-cooking',name:'御膳备餐间 · 手作点心',action:'包饺子',position:[23.6,0,-7.46],playerWorkTarget:[23.6,1.2,-8.21],color:'#e3b175',npcName:'Jia',npcAction:'knead',npcLabel:'正在捏出手工饺子',npcPosition:[21.3,0,-7.46],workTarget:[21.3,1.2,-8.21],npcRotation:Math.PI,route:[[18,0,-6.2],[23.5,0,-6.2]]},{id:'cn-rest',name:'静宜寝殿 · 倚窗书席',action:'倚窗读书',position:[-19,0,-3.6],color:'#c99aaa',npcName:'Lan',npcAction:'read',npcLabel:'倚窗静读',npcPosition:[-23.4,0,-3.4],workTarget:[-24.0,1.04,-3.3],npcRotation:Math.atan2(-.6,.1)},{id:'cn-garden',name:'御花园 · 宽桥赏荷',action:'观鱼赏荷',position:[-.8,0,-18],color:'#82bcb2',npcName:'Bo',npcAction:'garden',npcLabel:'在荷塘边观鱼',npcPosition:[.8,0,-18.7],workTarget:[3.6,.3,-19.2],npcRotation:Math.atan2(2.8,-.5),route:[[0,0,-14.3],[10,0,-14],[10,0,-20.9]]}];
+ for(const s of stations){const delta=s.id==='cn-tea'?[23,.6,-43]:s.id==='cn-calligraphy'?[-17,4,-41]:null;if(delta){for(const key of ['position','npcPosition','workTarget','playerWorkTarget'])if(s[key])s[key]=s[key].map((v,i)=>v+delta[i]);s.route=s.route?.map(p=>p.map((v,i)=>v+delta[i]));}s.position=ground(s.position);s.npcPosition=ground(s.npcPosition);s.route=s.route?.map(ground);}
  // swing:1 opens both leaves toward world negative z, into these clear rooms.
  const automaticDoorways=[{id:'cn-hall-front',center:[0,1.415,5],width:6,height:4.315,axis:'x',style:'palace',motion:'hinge',swing:1},{id:'cn-bedroom-front',center:[-21,.215,2],width:3.2,height:3.285,axis:'x',style:'palace',motion:'hinge',swing:1}];
- const architectureProgram={gallery:{building:'hall',room:'hall-gallery',floorY:6.015,slabUnderside:5.785,ceiling:9.215,void:{minX:-6,maxX:7.8,minZ:-11,maxZ:2}},sideLaneWidth:2.15,stairways,levels,lightingZones,raisedBuildings:[{id:'hall',offset:1.2,floorY:1.415},{id:'archive',offset:.6,floorY:.815}],loft:{building:'archive',room:'archive-loft',floorY:4.215,slabUnderside:3.985,ceiling:7.215,stairHole:{minX:-9.2,maxX:-4.05,minZ:-32,maxZ:-25.4}},revision:'R14 raised palace and reachable rear viewing loft',axisWidth:12,perimeterWalls,buildings,courts,minimumBuildingGap:5,sourceStudy:{url:'https://www.sglynp.com/t182446',creator:'mareasia',method:'Effect-image visual study; original procedural geometry; no assets reused'}};
+ const architectureProgram={gallery:{building:'hall',room:'hall-gallery',floorY:6.015,slabUnderside:5.785,ceiling:9.215,void:{minX:-6,maxX:7.8,minZ:-11,maxZ:2}},sideLaneWidth:2.15,stairways,levels,lightingZones,raisedBuildings:[{id:'hall',offset:1.2,floorY:1.415},{id:'archive',offset:.6,floorY:.815}],loft:{building:'archive',room:'archive-loft',floorY:7.615,slabUnderside:7.385,ceiling:11.015,stairHole:{minX:-9.2,maxX:-4.05,minZ:-32,maxZ:-25.4}},revision:'R17 three-storey 雅集楼 and cleared southern courts',axisWidth:12,perimeterWalls,buildings,courts,minimumBuildingGap:5,sourceStudy:{url:'https://www.sglynp.com/t182446',creator:'mareasia',method:'Effect-image visual study; original procedural geometry; no assets reused'}};
  architectureProgram.cultureTower=CHINA_CULTURE_TOWER;group.userData.architectureProgram=architectureProgram;group.userData.facilities=facilities;group.userData.interiorRooms=interiorRooms;group.userData.doorways=doorways;group.userData.explorationTargets=explorationTargets;
  // Preserve actual named geometry groups so independent architecture tests can
  // inspect each detached envelope, not only trust declarative metadata.
