@@ -72,7 +72,7 @@ def fit(p):
  # nasal root instead of squeezing the bridge into a thin vertical ridge.
  lateral_scale=.35+.45*smooth(.283,.378,abs(x))
  xx+=math.copysign(1,x)*(.0022+(abs(x)-.308)*.119*lateral_scale)*eye*smooth(0,.145,abs(x))
- yy=profile(YMAP,y)+((y-7.284)*.119*.18+(abs(x)-.308)*.006)*eye
+ yy=profile(YMAP,y)+((y-7.284)*.119*(.18+.32*gauss(y,7.284,.09))+(abs(x)-.308)*.006)*eye
  zz=(z-.76)*.109
  zz+=.0035*gauss(abs(x),.44,.23)*gauss(y,6.96,.29)*smooth(.65,1.05,z)
  zz+=.0015*gauss(abs(x),.39,.21)*gauss(y,6.62,.24)*smooth(.75,1.10,z)
@@ -98,13 +98,31 @@ def fit_surface(p):
  # aperture to its brow plane. This deforms skin only, not the eye globe.
  lid_span=gauss(abs(x),.31,.165)*smooth(1.27,1.37,z)
  margin_span=smooth(.165,.245,abs(x))*(1-smooth(.37,.455,abs(x)))
- yy-=.0015*margin_span*gauss(y,7.328,.033)*smooth(1.27,1.37,z)
+ yy-=.0005*margin_span*gauss(y,7.328,.033)*smooth(1.27,1.37,z)
+ yy-=.0008*margin_span*gauss(y,7.238,.033)*smooth(1.27,1.37,z)
  zz+=lid_span*(.0014*gauss(y,7.345,.026)-.0008*gauss(y,7.389,.025))
  return xx,yy,zz
 
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
 mesh=bpy.data.meshes.new('CC0 hm08 cropped anatomical surface');mesh.from_pydata([fit_surface(p) for p in raw],[],faces);mesh.update()
 obj=bpy.data.objects.new('Anatomical adult study',mesh);bpy.context.collection.objects.link(obj)
+# The head and neck already share topology and smooth normals. Fair only the
+# cervical insertion where the height fit bent the underside into a sharp step;
+# retain the front chin/jaw silhouette, ear and collar boundary.
+adjacency=[set() for _ in mesh.vertices]
+for edge in mesh.edges:
+ a,b=edge.vertices;adjacency[a].add(b);adjacency[b].add(a)
+neck_weight=[]
+for v in mesh.vertices:
+ x,y,z=v.co
+ neck_weight.append(.55*smooth(1.427,1.455,y)*(1-smooth(1.495,1.535,y))*(1-smooth(.015,.060,z)))
+for _ in range(3):
+ before=[v.co.copy() for v in mesh.vertices]
+ for i,v in enumerate(mesh.vertices):
+  if neck_weight[i] and adjacency[i]:
+   average=sum((before[j] for j in adjacency[i]),Vector())/len(adjacency[i])
+   v.co=before[i].lerp(average,neck_weight[i])
+mesh.update()
 # Smooth region masks are interpolated with the same real facial topology.
 for name in ['lip_tint','cavity_tint','lid_tint']:
  mesh.attributes.new(name,'FLOAT','POINT')
@@ -147,18 +165,42 @@ for v in me.vertices:
 parts.append(part);ev.to_mesh_clear()
 # Dense original procedural eyeballs and brows can be tuned independently of
 # the CC0 face, retaining iris/hair color chosen by the production test actor.
+eye_trees=[]
 for side in [-1,1]:
  cx,cy,cz=side*.30775,7.29415,1.24535
  nu=64;theta=[0,.025,.07,.13,.20,.27,.33,.38,.52,.66,.85,1.05,1.30,1.6,1.95,2.3,2.65,math.pi]
- positions=[]
+ def globe_point(t,a):
+  # A round iris in projection lies on the actual expanded globe surface.
+  circular=1.22/math.sqrt((1.54*math.cos(a))**2+(1.46*math.sin(a))**2)
+  angle=t*(1+(circular-1)*(1-smooth(.52,1.05,t)))
+  return Vector(fit((cx+.164*math.sin(angle)*math.cos(a),cy+.164*math.sin(angle)*math.sin(a),cz+.164*math.cos(angle))))
+ positions=[];normals=[];eye_recess=[]
  for t in theta:
   for k in range(nu):
-   a=k/nu*math.tau
-   # The orbital envelope widens with the lids; the iris remains round in
-   # frontal projection instead of becoming an oversized horizontal oval.
-   circular=1.22/math.sqrt((1.54*math.cos(a))**2+(1.19*math.sin(a))**2)
-   angle=t*(1+(circular-1)*(1-smooth(.52,1.05,t)))
-   positions.append(fit((cx+.164*math.sin(angle)*math.cos(a),cy+.164*math.sin(angle)*math.sin(a),cz+.164*math.cos(angle))))
+   a=k/nu*math.tau;p=globe_point(t,a);positions.append(p)
+   # Differentiate the real fitted globe; radial normals are wrong after an
+   # anisotropic orbit fit and made the surface read like a flat inset.
+   tt=max(.006,min(math.pi-.006,t));epsilon=.0025
+   tangent=globe_point(tt+epsilon,a)-globe_point(tt-epsilon,a)
+   across=globe_point(tt,a+epsilon)-globe_point(tt,a-epsilon)
+   n=tangent.cross(across).normalized()
+   if t<.001:n=Vector((0,0,1))
+   elif t>math.pi-.001:n=Vector((0,0,-1))
+   normals+=list(n)
+   occ=0.0
+   if t<.85:
+    ref=Vector((1,0,0)) if abs(n.x)<.8 else Vector((0,1,0));u=n.cross(ref).normalized();w=n.cross(u).normalized()
+    for j in range(12):
+     az=j*2.399963;ct=.35+.5*((j+.5)/12);st=math.sqrt(1-ct*ct)
+     direction=n*ct+(u*math.cos(az)+w*math.sin(az))*st
+     if skin_tree.ray_cast(p+n*.00015,direction,.010)[0] is not None:occ+=1/12
+   eye_recess.append(occ)
+ globe_faces=[]
+ for j in range(len(theta)-1):
+  for k in range(nu):
+   a=j*nu+k;b=j*nu+(k+1)%nu;c=(j+1)*nu+k;d=(j+1)*nu+(k+1)%nu
+   globe_faces.extend([(a,c,b),(b,c,d)])
+ eye_trees.append(BVHTree.FromPolygons(positions,globe_faces))
  for material,condition in [('pupil',lambda t:t<=.13),('iris',lambda t:.13<t<=.38),('sclera',lambda t:t>.38)]:
   ix=[]
   for j in range(len(theta)-1):
@@ -166,10 +208,8 @@ for side in [-1,1]:
    for k in range(nu):a=j*nu+k;b=j*nu+(k+1)%nu;c=(j+1)*nu+k;d=(j+1)*nu+(k+1)%nu;ix += [a,c,b,b,c,d]
   em=bpy.data.meshes.new('Eye '+material);em.from_pydata(positions,[],[ix[i:i+3] for i in range(0,len(ix),3)]);em.update()
   bm=bmesh.new();bm.from_mesh(em);bmesh.ops.recalc_face_normals(bm,faces=bm.faces);bm.to_mesh(em);bm.free()
-  # Smooth ellipsoid normal, avoiding visible normal seams at iris face rings.
-  normals=[]
-  for p in positions:normals+=list((Vector(p)-Vector(fit((cx,cy,cz)))).normalized())
-  parts.append({'name':'eye-'+str(side)+'-'+material,'material':material,'position':[a for p in positions for a in p],'normal':normals,'index':ix})
+  # Every material ring shares the same complete-globe differential normal.
+  parts.append({'name':'eye-'+str(side)+'-'+material,'material':material,'position':[a for p in positions for a in p],'normal':normals,'index':ix,'recessWeight':eye_recess})
  # Original fine tapered eyebrow follows the actual source brow plane.
  cu=bpy.data.curves.new('Original tapered brow','CURVE');cu.dimensions='3D';cu.resolution_u=12;cu.bevel_depth=.0030;cu.bevel_resolution=2
  sp=cu.splines.new('BEZIER');sp.bezier_points.add(5)
@@ -180,6 +220,20 @@ for side in [-1,1]:
  bo=bpy.data.objects.new('Brow '+str(side),cu);bpy.context.collection.objects.link(bo)
  deps=bpy.context.evaluated_depsgraph_get();ev=bo.evaluated_get(deps);me=ev.to_mesh();me.calc_loop_triangles()
  parts.append({'name':'brow-'+str(side),'material':'brow','position':[a for v in me.vertices for a in v.co],'normal':[a for v in me.vertices for a in v.normal],'index':[a for t in me.loop_triangles for a in t.vertices]});ev.to_mesh_clear()
+# Reciprocal contact occlusion: the eyelid edge receives occlusion from the
+# actual globe as well as surrounding skin. This follows geometry, not a drawn
+# eyeliner stripe, and does not change the skin ramp or light sources.
+head=parts[0]
+for i in range(len(head['position'])//3):
+ p=Vector(head['position'][i*3:i*3+3]);x,y,z=p
+ if not (.010<abs(x)<.080 and 1.582<y<1.626 and z>.030):continue
+ n=Vector(head['normal'][i*3:i*3+3]).normalized()
+ ref=Vector((1,0,0)) if abs(n.x)<.8 else Vector((0,1,0));u=n.cross(ref).normalized();w=n.cross(u).normalized();occ=0
+ for j in range(12):
+  a=j*2.399963;ct=.35+.5*((j+.5)/12);st=math.sqrt(1-ct*ct)
+  direction=n*ct+(u*math.cos(a)+w*math.sin(a))*st
+  if any(tree.ray_cast(p+n*.00025,direction,.006)[0] is not None for tree in eye_trees):occ+=1/12
+ old=head['recessWeight'][i];head['recessWeight'][i]=1-(1-old)*(1-occ)
 output={'license':'CC0-1.0 (base mesh); original study fitting/globes/brows','sourceCommit':meta['commit'],'sourceSha256':meta['files']['base.obj']['sha256'],'coordinateSystem':'metres Y up, face +Z','prototypeOnly':True,'unimplemented':['blended neck skinning','production facial traits','all body/hairstyle/pose integration'],'sourceVertices':len(raw),'sourceFaces':len(faces),'subdivision':1,'parts':parts}
 (ROOT/'assets'/'adult-head-study.json').write_text(json.dumps(output,separators=(',',':'))+'\n')
 print(json.dumps({'vertices':sum(len(p['position'])//3 for p in parts),'triangles':sum(len(p['index'])//3 for p in parts),'path':str(ROOT/'assets'/'adult-head-study.json')}))
