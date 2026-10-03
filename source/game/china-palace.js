@@ -1,3 +1,4 @@
+import {insetClosureSection} from './inset-closures.js';
 import {buildChinaDragonBed} from './china-dragon-bed.js';
 import {registerNightFixture} from './night-lighting.js';
 
@@ -7,16 +8,35 @@ import {registerNightFixture} from './night-lighting.js';
 // No third-party geometry, texture, download, or traced plan is used.
 export function buildChinaPalace(G,H){
  const {THREE}=G;
- const {palaceBox,palaceWall,palaceCeiling,palaceRoof,beam,teaSet,bowl,scroll,openShelf,boundBook,foldedCloth,flowerBranches,cherry,bamboo,packStatic}=H;
+ const {palaceBox,palaceWall:rawPalaceWall,palaceCeiling,palaceRoof,beam,teaSet,bowl,scroll,openShelf,boundBook,foldedCloth,flowerBranches,cherry,bamboo,packStatic}=H;
  const C={red:0xac3b2d,dark:0x50362d,wood:0x805137,gold:0xd7af56,stone:0xc9c3b0,cream:0xdbc5a0,jade:0x287879,roof:0xc39341};
  const group=new THREE.Group(),roofGroup=new THREE.Group(),exterior=new THREE.Group();
  group.name='China — Four Courts Palace';roofGroup.name='China palace roofs and real ceilings';exterior.name='China outer walls and open courts';group.add(exterior,roofGroup);
  const additionalFurnitureSeats=[],colliders=[],cameraColliders=[],walkableSurfaces=[],characterFootSurfaces=[],stairways=[],interiorRooms=[],doorways=[],explorationTargets=[],buildings=[],perimeterWalls=[],courts=[];
  const bounds={minX:-30,maxX:30,minZ:-40,maxZ:40};
+ // Source walls are actually cut to house each inset closure. Functional
+ // aperture IDs/widths remain separate from the rough masonry opening.
+ const insetSections=new Map();
+ const insetKinds={
+  'cn-south-gate':['hinge',1,.65],'cn-south-gate-west':['hinge',1,.65],'cn-south-gate-east':['hinge',1,.65],
+  'cn-north-gate':['hinge',-1,.65],'cn-west-gate':['hinge',-1,.65],'cn-east-gate':['hinge',1,.65],
+  'cn-hall-front':['hinge',1,.32],'cn-hall-rear':['hinge',-1,.32],'cn-hall-west':['pocket',0,.50],'cn-hall-east':['hinge',1,.32],
+  'cn-study-front':['hinge',1,.32],'cn-bedroom-front':['hinge',1,.32],'cn-bedroom-west':['hinge',1,.32],'cn-bedroom-east':['pocket',0,.50],
+  'cn-kitchen-rear':['hinge',1,.32],'cn-bath-front':['hinge',-1,.32],'cn-bath-west':['hinge',1,.32],'cn-bath-east':['hinge',1,.32],
+  'cn-archive-front':['hinge',1,.32],'cn-archive-rear':['hinge',-1,.32],'cn-archive-west':['pocket',0,.50],'cn-archive-east':['hinge',1,.32],
+  'cn-guest-front':['hinge',-1,.32],'cn-guest-west':['pocket',0,.50],'cn-guest-east':['hinge',-1,.32]
+ };
+ function palaceWall(parent,nav,camera,options){
+  for(const op of options.openings||[]){const section=insetSections.get(op.id);if(!section||section.group.parent)continue;parent.add(section.group);section.group.updateWorldMatrix(true,true);
+   for(const local of section.localSolids){const b=new THREE.Box3(new THREE.Vector3(local.minX,local.minY,local.minZ),new THREE.Vector3(local.maxX,local.maxY,local.maxZ)).applyMatrix4(section.group.matrixWorld),world={minX:b.min.x,maxX:b.max.x,minY:b.min.y,maxY:b.max.y,minZ:b.min.z,maxZ:b.max.z,closureSection:op.id};if(local.walkBlock)nav.push({...world});camera.push({...world});}
+  }
+  rawPalaceWall(parent,nav,camera,options);
+ }
+
  const box=(g,x,y,z,w,h,d,color,block=false)=>palaceBox(g,colliders,cameraColliders,x,y,z,w,h,d,color,block);
  const floor=(g,x,z,w,d,y=.2,color=C.stone)=>{if(!(y===.2&&['China building hall','China building archive'].includes(g.name)))box(g,x,y/2,z,w,y,d,color);walkableSurfaces.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2,y:y+.015,owner:g.name});};
  const target=(id,name,x,z,roomId)=>explorationTargets.push({id,name,roomId,position:[x,0,z]});
- const door=(id,name,axis,at,from,to,top,rooms,bottom=.2)=>{const center=(from+to)/2;const point=off=>axis==='x'?[center,0,at+off]:[at+off,0,center];const d={id,name,axis,at,from,to,bottom,top,width:to-from,height:top-bottom,rooms,a:point(-.85),b:point(.85)};doorways.push(d);return {from,to,top,bottom};};
+ const door=(id,name,axis,at,from,to,top,rooms,bottom=.2)=>{const center=(from+to)/2;const point=off=>axis==='x'?[center,0,at+off]:[at+off,0,center];const d={id,name,axis,at,from,to,bottom,top,width:to-from,height:top-bottom,rooms,a:point(-.85),b:point(.85)};doorways.push(d);const choice=insetKinds[id];if(choice){const[kind,swing,wallDepth]=choice,section=insetClosureSection({kind,axis,at,lateral:center,bottom,top,width:to-from,wallDepth,style:'palace',swing,hingeNormalOffset:wallDepth===.65?.18:.155});section.group.name='China inset closure '+id;insetSections.set(id,section);d.closureMount=section.mount;d.roughOpening={...section.roughOpening};return {id,...section.roughOpening};}return {id,from,to,top,bottom};};
 
  // Original, low-relief painted decoration. Every composition belongs to an
  // existing wall, beam or furniture support. R14 elevations and circulation
@@ -81,8 +101,15 @@ export function buildChinaPalace(G,H){
  // All four enclosing walls are tall masonry palace walls. South entry is on
  // the spawn axis; secondary east/west/north gates are usable from both sides.
  G.box(exterior,0,-.5,0,60,1,80,0x859b79);floor(exterior,0,0,58,76,.10,0xbdbca9);
- const perimeter=(side,axis,at,from,to,gap)=>{const w=new THREE.Group();w.name='China perimeter '+side;exterior.add(w);const op=door('cn-'+side+'-gate',side+' palace gate',axis,at,gap[0],gap[1],4.1,['outside','compound'],.10);if(axis==='z'){doorways.at(-1).a[0]=at-.55;doorways.at(-1).b[0]=at+.55;}palaceWall(w,colliders,cameraColliders,{axis,at,from,to,bottom:0,top:4.8,depth:.65,color:C.red,openings:[op]});const pieces=[[from,gap[0]],[gap[1],to]];for(const[a,b]of pieces){const mid=(a+b)/2;G.box(w,axis==='x'?mid:at,.35,axis==='x'?at:mid,axis==='x'?b-a:.77,.7,axis==='x'?.77:b-a,0xa6aaa0);G.box(w,axis==='x'?mid:at,4.88,axis==='x'?at:mid,axis==='x'?b-a:1.04,.22,axis==='x'?1.04:b-a,C.roof);for(let t=a+.22;t<b;t+=.56){const m=G.cyl(w,axis==='x'?t:at,5.02,axis==='x'?at:t,.13,.13,1.13,0xd0ac60,8);m.rotation.x=axis==='x'?Math.PI/2:0;m.rotation.z=axis==='z'?Math.PI/2:0;}}
-  const bb=axis==='x'?{minX:from,maxX:to,minZ:at-.325,maxZ:at+.325}:{minX:at-.325,maxX:at+.325,minZ:from,maxZ:to};perimeterWalls.push({side,groupName:w.name,bounds:{...bb,minY:0,maxY:4.8},openings:[{id:'cn-'+side+'-gate',from:gap[0],to:gap[1],width:gap[1]-gap[0]}]});return w;};
+ const perimeter=(side,axis,at,from,to,gap)=>{
+  const w=new THREE.Group();w.name='China perimeter '+side;exterior.add(w);
+  const bays=side==='south'?[['south-gate-west',-5,-2.8],['south-gate',-2.2,2.2],['south-gate-east',2.8,5]]:[[side+'-gate',gap[0],gap[1]]];
+  const ops=bays.map(([suffix,a,b])=>{const op=door('cn-'+suffix,side==='south'?'承礼门 '+(suffix==='south-gate'?'中轴正门':suffix.endsWith('west')?'西掖门':'东掖门'):side+' palace gate',axis,at,a,b,4.1,['outside','compound'],.10);if(axis==='z'){doorways.at(-1).a[0]=at-.55;doorways.at(-1).b[0]=at+.55;}return op;});
+  palaceWall(w,colliders,cameraColliders,{axis,at,from,to,bottom:0,top:4.8,depth:.65,color:C.red,openings:ops});
+  const pieces=[];let cursor=from;for(const op of ops){pieces.push([cursor,op.from]);cursor=op.to;}pieces.push([cursor,to]);
+  for(const[a,b]of pieces){const mid=(a+b)/2;G.box(w,axis==='x'?mid:at,.35,axis==='x'?at:mid,axis==='x'?b-a:.77,.7,axis==='x'?.77:b-a,0xa6aaa0);G.box(w,axis==='x'?mid:at,4.88,axis==='x'?at:mid,axis==='x'?b-a:1.04,.22,axis==='x'?1.04:b-a,C.roof);for(let t=a+.22;t<b;t+=.56){const m=G.cyl(w,axis==='x'?t:at,5.02,axis==='x'?at:t,.13,.13,1.13,0xd0ac60,8);m.rotation.x=axis==='x'?Math.PI/2:0;m.rotation.z=axis==='z'?Math.PI/2:0;}}
+  const bb=axis==='x'?{minX:from,maxX:to,minZ:at-.325,maxZ:at+.325}:{minX:at-.325,maxX:at+.325,minZ:from,maxZ:to};perimeterWalls.push({side,groupName:w.name,bounds:{...bb,minY:0,maxY:4.8},openings:bays.map(([suffix,a,b])=>({id:'cn-'+suffix,from:a,to:b,width:b-a}))});return w;
+ };
  perimeter('south','x',38,-29,29,[-5,5]);perimeter('north','x',-38,-29,29,[-3,3]);perimeter('west','z',-29,-38,38,[-20,-16]);perimeter('east','z',29,-38,38,[-20,-16]);
  // Formal axis and open courts are intentionally broad and lightly furnished.
  floor(exterior,0,19,12,38,.125,0xd6d0bc);for(const x of [-5.75,5.75])G.box(exterior,x,.141,19,.15,.025,38,0x9fa696);
@@ -107,8 +134,12 @@ export function buildChinaPalace(G,H){
   const wins=frontWindows.map(([dx,ww])=>({from:x+dx-ww/2,to:x+dx+ww/2,bottom:1.45,top:id==='archive'?2.85:3.795}));
   palaceWall(g,colliders,cameraColliders,{at:z1,from:x0,to:x1,bottom:.2,top:h,depth:.32,color:C.cream,openings:[entry,...wins]});for(const[dx,ww]of frontWindows)window(g,x+dx,z1,ww,'x',id==='archive'?1.4:2.35,id==='archive'?2.15:2.62);
   palaceWall(g,colliders,cameraColliders,{at:z0,from:x0,to:x1,bottom:.2,top:h,depth:.32,color:C.cream,openings:back?[back]:[]});
-  for(const side of [-1,1]){const at=x+side*w/2,entryZ=id==='hall'&&side<0?z-4.5:id==='kitchen'?z+2.5:id==='bath'&&side<0?z+2.7:z,sideEntry=door('cn-'+id+(side<0?'-west':'-east'),name+(side<0?'西门':'东门'),'z',at,entryZ-1.6,entryZ+1.6,id==='archive'?3.33:s.ceremony?4.2:3.5,[id,'side-court']);const offsets=(d>12?[-4.7,4.7]:[-3.5,3.5]).filter(zz=>Math.abs(z+zz-entryZ)>2.7),windows=offsets.map(zz=>({from:z+zz-1,to:z+zz+1,bottom:1.45,top:id==='archive'?2.85:3.795}));palaceWall(g,colliders,cameraColliders,{axis:'z',at,from:z0,to:z1,bottom:.2,top:h,depth:.32,color:C.cream,openings:[sideEntry,...windows]});for(const zz of offsets)window(g,at,z+zz,2,'z',id==='archive'?1.4:2.35,id==='archive'?2.15:2.62);}
-  for(const xx of [x0,x0+w*.25,x0+w*.75,x1])for(const zz of [z0,z1])if(!((back&&zz===z0&&xx>back.from-.3&&xx<back.to+.3)||(zz===z1&&xx>entry.from-.3&&xx<entry.to+.3)))column(g,xx,zz,h,.19);for(const side of [-1,1])for(const zz of [z-3,z+3])if(!doorways.some(d=>d.axis==='z'&&d.at===x+side*w/2&&zz>d.from-.3&&zz<d.to+.3))column(g,x+side*w/2,zz,h,.17);
+  for(const side of [-1,1]){const at=x+side*w/2,entryZ=id==='hall'&&side<0?z-4.5:id==='kitchen'?z+2.5:id==='bath'&&side<0?z+2.7:z,sideEntry=door('cn-'+id+(side<0?'-west':'-east'),name+(side<0?'西门':'东门'),'z',at,entryZ-1.6,entryZ+1.6,id==='archive'?3.33:s.ceremony?4.2:3.5,[id,'side-court']);let sideWindows=(d>12?[-4.7,4.7]:[-3.5,3.5]).filter(zz=>Math.abs(z+zz-entryZ)>2.7).map(zz=>({center:z+zz,width:2}));
+   if(sideEntry.id==='cn-archive-west')sideWindows=[{center:-32.82,width:1.40},{center:-24.18,width:1.40}];
+   if(sideEntry.id==='cn-guest-west')sideWindows=[{center:-32.07,width:.90},{center:-23.93,width:.90}];
+   sideWindows=sideWindows.filter(win=>win.center+win.width/2<=sideEntry.from-.03||win.center-win.width/2>=sideEntry.to+.03);
+   const windows=sideWindows.map(win=>({from:win.center-win.width/2,to:win.center+win.width/2,bottom:1.45,top:id==='archive'?2.85:3.795}));palaceWall(g,colliders,cameraColliders,{axis:'z',at,from:z0,to:z1,bottom:.2,top:h,depth:insetSections.get(sideEntry.id)?.mount.wallDepth??.32,color:C.cream,openings:[sideEntry,...windows]});for(const win of sideWindows)window(g,at,win.center,win.width,'z',id==='archive'?1.4:2.35,id==='archive'?2.15:2.62);}
+  for(const xx of [x0,x0+w*.25,x0+w*.75,x1])for(const zz of [z0,z1])if(!((back&&zz===z0&&xx>back.from-.3&&xx<back.to+.3)||(zz===z1&&xx>entry.from-.3&&xx<entry.to+.3)))column(g,xx,zz,h,.19);for(const side of [-1,1])for(const zz of [z-3,z+3])if(!doorways.some(d=>d.axis==='z'&&d.at===x+side*w/2&&zz>(d.roughOpening?.from??d.from)-.21&&zz<(d.roughOpening?.to??d.to)+.21))column(g,x+side*w/2,zz,h,.17);
   // Paint and bracket clusters frame actual openings instead of hanging
   // through their clear height. Low rooms keep a shallower header over doors.
   for(const zz of [z0,z1]){

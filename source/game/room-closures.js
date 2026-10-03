@@ -34,10 +34,12 @@ const POLICY={
   'jp-4-front-portal':['open','Common service gallery to balcony; individual workrooms are classified separately']
  },
  china:{
-  'cn-south-gate':['open','Ceremonial compound arrival, broad outdoor circulation'],
-  'cn-north-gate':['open','Outdoor rear compound gate'],
-  'cn-west-gate':['open','Outdoor service cross-court circulation'],
-  'cn-east-gate':['open','Outdoor side-court circulation'],
+  'cn-south-gate':['door','Inset central ceremonial timber gate, opening inward to the compound'],
+  'cn-south-gate-west':['door','Inset west gatehouse bay preserves the broad ceremonial arrival'],
+  'cn-south-gate-east':['door','Inset east gatehouse bay preserves the broad ceremonial arrival'],
+  'cn-north-gate':['door','Inset paired timber gates protecting the rear compound'],
+  'cn-west-gate':['door','Inset service gates opening inward to the compound'],
+  'cn-east-gate':['door','Inset side-court gates opening inward to the compound'],
   'cn-gatehouse-court':['open','Gatehouse arcade continues the ceremonial court axis'],
   'cn-hall-front':['door','Principal ceremonial entrance uses paired lacquer-and-gilt doors'],
   'cn-hall-rear':['door','Hall rear building envelope uses matching lacquer doors'],
@@ -126,8 +128,6 @@ const PLANES={
  'jp-guest-suite-door':{at:-7.70,sideOverlap:SHOJI_SIDE_OVERLAP},
  'jp-operator-door':{at:-.70,bottomClearance:.012,sideOverlap:SHOJI_SIDE_OVERLAP},'jp-staff-room-door':{at:-.70,bottomClearance:.012,sideOverlap:SHOJI_SIDE_OVERLAP},
  'private-suite-entry':{bottomClearance:.012},
- 'cn-hall-west':{at:-11.46},'cn-bedroom-east':{at:-15.54},
- 'cn-archive-west':{at:-10.54},'cn-guest-west':{at:15.54},
  'core-wing-1--5':{at:11.22,bottomClearance:.012},
  'storage-entry':{bottomClearance:.012},
  'front-entry':{at:3.5},'private-bath-entry':{at:16.4},
@@ -146,6 +146,12 @@ const LEGACY={
 // swing +1 = negative world normal (−Z for axis X, −X for axis Z); −1 reverses.
 // New hinge choices remain candidates pending full swept-room/controller QA.
 const DOOR_MOTIONS={
+ 'cn-south-gate':['hinge',1,'Inward compound gate with hinge pins within its source-authored .65 m masonry reveal'],
+ 'cn-south-gate-west':['hinge',1,'Inward compound gate with hinge pins within its source-authored .65 m masonry reveal'],
+ 'cn-south-gate-east':['hinge',1,'Inward compound gate with hinge pins within its source-authored .65 m masonry reveal'],
+ 'cn-north-gate':['hinge',-1,'Inward compound gate with hinge pins within its source-authored .65 m masonry reveal'],
+ 'cn-west-gate':['hinge',-1,'Inward compound gate with hinge pins within its source-authored .65 m masonry reveal'],
+ 'cn-east-gate':['hinge',1,'Inward compound gate with hinge pins within its source-authored .65 m masonry reveal'],
  'jp-guest-suite-door':['slide',0,'Retain shoji motion; guest screen and public side gallery make a swing unnecessary'],
  'jp-operator-door':['slide',0,'Timber lattice office door slides clear of the narrow working gallery'],
  'jp-staff-room-door':['slide',0,'Sleeping-room shoji stays out of the shared working gallery and bunk approach'],
@@ -198,9 +204,9 @@ export function existingBannerAudit(region){return (FIXED_BANNERS[region]||[]).m
 export function classifyRoomOpenings(lot,region){
  const policy=POLICY[region];if(!policy)return [];
  const thresholds=lot.doorways||lot.group?.userData.doorways||[];
- // A migrated lot authors every rigid opening. Other lots retain the accepted
- // surface-mounted behavior until their own inset construction is verified.
- const requireInset=thresholds.some(t=>t.closureMount);
+ // China and every migrated lot author all rigid openings. Other lots retain
+ // their accepted behavior until their own inset construction is verified.
+ const requireInset=region==='china'||thresholds.some(t=>t.closureMount);
  return thresholds.map(t=>{
   const p=policy[t.id];if(!p)throw new Error('Unclassified traversable opening: '+region+'/'+t.id);
   const axis=t.axis||(Math.abs(t.a[0]-t.b[0])>Math.abs(t.a[2]-t.b[2])?'z':'x');

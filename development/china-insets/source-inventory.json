@@ -1,0 +1,1562 @@
+{
+  "status": "SOURCE_EXTRACTED_NOT_WORLD_ACCEPTED",
+  "publishedBase": "R16.2/v29, Site84a54df",
+  "baselineCommit": "0bd86f7",
+  "changedProductFiles": [
+    "source/game/china-palace.js",
+    "source/game/room-closures.js"
+  ],
+  "sourceHashes": {
+    "china-palace.js": "5fce85bfc95fe8b92247638906791ab68a8e60fd5fba3d0850717c3b0bee45a7",
+    "room-closures.js": "c5fb3cc0e3a3f0ce9034a296e28c0d473d4764a0fa418ea864db6b04cdc71b20",
+    "automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+    "inset-closures.js": "dadba37aaa60d85abc2c9102a5da10bcfaf529474d8e60fefe5a975e63d8930a"
+  },
+  "scope": "China source wall/door cuts, six perimeter gate sets and China-only policy/mount requirements. Other countries, published France, bath work, archery and chair candidates excluded.",
+  "counts": {
+    "rigid": 25,
+    "hinged": 21,
+    "pocket": 4,
+    "perimeterGateSets": 6,
+    "allPolicies": {
+      "door": 25,
+      "full-curtain": 6,
+      "half-curtain": 4,
+      "open": 5
+    }
+  },
+  "sourceMountMap": {
+    "cn-south-gate": [
+      "hinge",
+      1,
+      0.65
+    ],
+    "cn-south-gate-west": [
+      "hinge",
+      1,
+      0.65
+    ],
+    "cn-south-gate-east": [
+      "hinge",
+      1,
+      0.65
+    ],
+    "cn-north-gate": [
+      "hinge",
+      -1,
+      0.65
+    ],
+    "cn-west-gate": [
+      "hinge",
+      -1,
+      0.65
+    ],
+    "cn-east-gate": [
+      "hinge",
+      1,
+      0.65
+    ],
+    "cn-hall-front": [
+      "hinge",
+      1,
+      0.32
+    ],
+    "cn-hall-rear": [
+      "hinge",
+      -1,
+      0.32
+    ],
+    "cn-hall-west": [
+      "pocket",
+      0,
+      0.5
+    ],
+    "cn-hall-east": [
+      "hinge",
+      1,
+      0.32
+    ],
+    "cn-study-front": [
+      "hinge",
+      1,
+      0.32
+    ],
+    "cn-bedroom-front": [
+      "hinge",
+      1,
+      0.32
+    ],
+    "cn-bedroom-west": [
+      "hinge",
+      1,
+      0.32
+    ],
+    "cn-bedroom-east": [
+      "pocket",
+      0,
+      0.5
+    ],
+    "cn-kitchen-rear": [
+      "hinge",
+      1,
+      0.32
+    ],
+    "cn-bath-front": [
+      "hinge",
+      -1,
+      0.32
+    ],
+    "cn-bath-west": [
+      "hinge",
+      1,
+      0.32
+    ],
+    "cn-bath-east": [
+      "hinge",
+      1,
+      0.32
+    ],
+    "cn-archive-front": [
+      "hinge",
+      1,
+      0.32
+    ],
+    "cn-archive-rear": [
+      "hinge",
+      -1,
+      0.32
+    ],
+    "cn-archive-west": [
+      "pocket",
+      0,
+      0.5
+    ],
+    "cn-archive-east": [
+      "hinge",
+      1,
+      0.32
+    ],
+    "cn-guest-front": [
+      "hinge",
+      -1,
+      0.32
+    ],
+    "cn-guest-west": [
+      "pocket",
+      0,
+      0.5
+    ],
+    "cn-guest-east": [
+      "hinge",
+      -1,
+      0.32
+    ]
+  },
+  "entries": [
+    {
+      "id": "cn-south-gate-west",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": 38,
+        "structuralDepth": 0.65,
+        "closureSectionDepth": 0.65,
+        "faces": [
+          37.675,
+          38.325
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -5,
+        "to": -2.8,
+        "width": 2.2,
+        "bottom": 0.21500000000000002,
+        "top": 4.1
+      },
+      "roughOpening": {
+        "from": -5.08,
+        "to": -2.7199999999999998,
+        "bottom": 0.1,
+        "top": 4.18
+      },
+      "frame": {
+        "closedLeafPlane": 38,
+        "fullDepth": 0.65,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.18,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-south-gate",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": 38,
+        "structuralDepth": 0.65,
+        "closureSectionDepth": 0.65,
+        "faces": [
+          37.675,
+          38.325
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -2.2,
+        "to": 2.2,
+        "width": 4.4,
+        "bottom": 0.21500000000000002,
+        "top": 4.1
+      },
+      "roughOpening": {
+        "from": -2.2800000000000002,
+        "to": 2.2800000000000002,
+        "bottom": 0.1,
+        "top": 4.18
+      },
+      "frame": {
+        "closedLeafPlane": 38,
+        "fullDepth": 0.65,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.18,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-south-gate-east",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": 38,
+        "structuralDepth": 0.65,
+        "closureSectionDepth": 0.65,
+        "faces": [
+          37.675,
+          38.325
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": 2.8,
+        "to": 5,
+        "width": 2.2,
+        "bottom": 0.21500000000000002,
+        "top": 4.1
+      },
+      "roughOpening": {
+        "from": 2.7199999999999998,
+        "to": 5.08,
+        "bottom": 0.1,
+        "top": 4.18
+      },
+      "frame": {
+        "closedLeafPlane": 38,
+        "fullDepth": 0.65,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.18,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-north-gate",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": -1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": -38,
+        "structuralDepth": 0.65,
+        "closureSectionDepth": 0.65,
+        "faces": [
+          -38.325,
+          -37.675
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -3,
+        "to": 3,
+        "width": 6,
+        "bottom": 0.115,
+        "top": 4.1
+      },
+      "roughOpening": {
+        "from": -3.08,
+        "to": 3.08,
+        "bottom": 0.1,
+        "top": 4.18
+      },
+      "frame": {
+        "closedLeafPlane": -38,
+        "fullDepth": 0.65,
+        "stopNormal": -0.08,
+        "hingePinNormal": 0.18,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.1,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-west-gate",
+      "kind": "hinge",
+      "axis": "z",
+      "motion": {
+        "swing": -1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": -29,
+        "structuralDepth": 0.65,
+        "closureSectionDepth": 0.65,
+        "faces": [
+          -29.325,
+          -28.675
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -20,
+        "to": -16,
+        "width": 4,
+        "bottom": 0.115,
+        "top": 4.1
+      },
+      "roughOpening": {
+        "from": -20.08,
+        "to": -15.92,
+        "bottom": 0.1,
+        "top": 4.18
+      },
+      "frame": {
+        "closedLeafPlane": -29,
+        "fullDepth": 0.65,
+        "stopNormal": -0.08,
+        "hingePinNormal": 0.18,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.1,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-east-gate",
+      "kind": "hinge",
+      "axis": "z",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": 29,
+        "structuralDepth": 0.65,
+        "closureSectionDepth": 0.65,
+        "faces": [
+          28.675,
+          29.325
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -20,
+        "to": -16,
+        "width": 4,
+        "bottom": 0.115,
+        "top": 4.1
+      },
+      "roughOpening": {
+        "from": -20.08,
+        "to": -15.92,
+        "bottom": 0.1,
+        "top": 4.18
+      },
+      "frame": {
+        "closedLeafPlane": 29,
+        "fullDepth": 0.65,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.18,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.1,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-hall-front",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": 5,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          4.84,
+          5.16
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -3,
+        "to": 3,
+        "width": 6,
+        "bottom": 1.415,
+        "top": 5.73
+      },
+      "roughOpening": {
+        "from": -3.08,
+        "to": 3.08,
+        "bottom": 1.4,
+        "top": 5.8100000000000005
+      },
+      "frame": {
+        "closedLeafPlane": 5,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 1.4000000000000001,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-hall-rear",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": -1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": -11,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          -11.16,
+          -10.84
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": 4.5,
+        "to": 7.5,
+        "width": 3,
+        "bottom": 1.415,
+        "top": 5.4
+      },
+      "roughOpening": {
+        "from": 4.42,
+        "to": 7.58,
+        "bottom": 1.4,
+        "top": 5.48
+      },
+      "frame": {
+        "closedLeafPlane": -11,
+        "fullDepth": 0.32,
+        "stopNormal": -0.08,
+        "hingePinNormal": 0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 1.4000000000000001,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-hall-west",
+      "kind": "pocket",
+      "axis": "z",
+      "motion": {
+        "swing": 0,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": -11,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.5,
+        "faces": [
+          -11.25,
+          -10.75
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -9.1,
+        "to": -5.9,
+        "width": 3.1999999999999993,
+        "bottom": 1.415,
+        "top": 5.4
+      },
+      "roughOpening": {
+        "from": -10.799999999999999,
+        "to": -4.200000000000001,
+        "bottom": 1.4,
+        "top": 5.5
+      },
+      "frame": {
+        "closedLeafPlane": -11,
+        "fullDepth": 0.5,
+        "stopNormal": null,
+        "hingePinNormal": null,
+        "pocketClearDepth": 0.36,
+        "pocketSkinThickness": 0.07,
+        "pocketEnd": 3.2799999999999994
+      },
+      "floor": {
+        "renderedTop": 1.4000000000000001,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-hall-east",
+      "kind": "hinge",
+      "axis": "z",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": 11,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          10.84,
+          11.16
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -4.6,
+        "to": -1.4000000000000001,
+        "width": 3.1999999999999997,
+        "bottom": 1.415,
+        "top": 5.4
+      },
+      "roughOpening": {
+        "from": -4.68,
+        "to": -1.32,
+        "bottom": 1.4,
+        "top": 5.48
+      },
+      "frame": {
+        "closedLeafPlane": 11,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 1.4000000000000001,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-study-front",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": 21,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          20.84,
+          21.16
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": 19.4,
+        "to": 22.6,
+        "width": 3.200000000000003,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": 19.32,
+        "to": 22.68,
+        "bottom": 0.2,
+        "top": 3.58
+      },
+      "frame": {
+        "closedLeafPlane": 21,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-bedroom-front",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": 2,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          1.84,
+          2.16
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -22.6,
+        "to": -19.4,
+        "width": 3.200000000000003,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": -22.68,
+        "to": -19.32,
+        "bottom": 0.2,
+        "top": 3.58
+      },
+      "frame": {
+        "closedLeafPlane": 2,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-bedroom-west",
+      "kind": "hinge",
+      "axis": "z",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": -26,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          -26.16,
+          -25.84
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -6.6,
+        "to": -3.4000000000000004,
+        "width": 3.1999999999999997,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": -6.68,
+        "to": -3.3200000000000003,
+        "bottom": 0.2,
+        "top": 3.58
+      },
+      "frame": {
+        "closedLeafPlane": -26,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-bedroom-east",
+      "kind": "pocket",
+      "axis": "z",
+      "motion": {
+        "swing": 0,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": -16,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.5,
+        "faces": [
+          -16.25,
+          -15.75
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -6.6,
+        "to": -3.4000000000000004,
+        "width": 3.1999999999999997,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": -8.3,
+        "to": -1.7000000000000002,
+        "bottom": 0.2,
+        "top": 3.6
+      },
+      "frame": {
+        "closedLeafPlane": -16,
+        "fullDepth": 0.5,
+        "stopNormal": null,
+        "hingePinNormal": null,
+        "pocketClearDepth": 0.36,
+        "pocketSkinThickness": 0.07,
+        "pocketEnd": 3.28
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-kitchen-rear",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": -12,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          -12.16,
+          -11.84
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": 20.699999999999996,
+        "to": 23.9,
+        "width": 3.1999999999999993,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": 20.619999999999997,
+        "to": 23.979999999999997,
+        "bottom": 0.2,
+        "top": 3.58
+      },
+      "frame": {
+        "closedLeafPlane": -12,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-bath-front",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": -1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": -23,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          -23.16,
+          -22.84
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -24.1,
+        "to": -20.9,
+        "width": 3.200000000000003,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": -24.18,
+        "to": -20.82,
+        "bottom": 0.2,
+        "top": 3.58
+      },
+      "frame": {
+        "closedLeafPlane": -23,
+        "fullDepth": 0.32,
+        "stopNormal": -0.08,
+        "hingePinNormal": 0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-bath-west",
+      "kind": "hinge",
+      "axis": "z",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": -26,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          -26.16,
+          -25.84
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -26.900000000000002,
+        "to": -23.7,
+        "width": 3.200000000000003,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": -26.980000000000004,
+        "to": -23.619999999999997,
+        "bottom": 0.2,
+        "top": 3.58
+      },
+      "frame": {
+        "closedLeafPlane": -26,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-bath-east",
+      "kind": "hinge",
+      "axis": "z",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": -16,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          -16.16,
+          -15.84
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -29.6,
+        "to": -26.4,
+        "width": 3.200000000000003,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": -29.68,
+        "to": -26.32,
+        "bottom": 0.2,
+        "top": 3.58
+      },
+      "frame": {
+        "closedLeafPlane": -16,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-archive-front",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": -23,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          -23.16,
+          -22.84
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -1.6,
+        "to": 1.6,
+        "width": 3.2,
+        "bottom": 0.815,
+        "top": 3.93
+      },
+      "roughOpening": {
+        "from": -1.6800000000000002,
+        "to": 1.6800000000000002,
+        "bottom": 0.8,
+        "top": 4.01
+      },
+      "frame": {
+        "closedLeafPlane": -23,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.7999999999999999,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-archive-rear",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": -1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": -34,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          -34.16,
+          -33.84
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -1.6,
+        "to": 1.6,
+        "width": 3.2,
+        "bottom": 0.815,
+        "top": 3.93
+      },
+      "roughOpening": {
+        "from": -1.6800000000000002,
+        "to": 1.6800000000000002,
+        "bottom": 0.8,
+        "top": 4.01
+      },
+      "frame": {
+        "closedLeafPlane": -34,
+        "fullDepth": 0.32,
+        "stopNormal": -0.08,
+        "hingePinNormal": 0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.7999999999999999,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-archive-west",
+      "kind": "pocket",
+      "axis": "z",
+      "motion": {
+        "swing": 0,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": -11,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.5,
+        "faces": [
+          -11.25,
+          -10.75
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -30.1,
+        "to": -26.9,
+        "width": 3.200000000000003,
+        "bottom": 0.815,
+        "top": 3.93
+      },
+      "roughOpening": {
+        "from": -31.800000000000004,
+        "to": -25.199999999999996,
+        "bottom": 0.8,
+        "top": 4.03
+      },
+      "frame": {
+        "closedLeafPlane": -11,
+        "fullDepth": 0.5,
+        "stopNormal": null,
+        "hingePinNormal": null,
+        "pocketClearDepth": 0.36,
+        "pocketSkinThickness": 0.07,
+        "pocketEnd": 3.280000000000003
+      },
+      "floor": {
+        "renderedTop": 0.7999999999999999,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-archive-east",
+      "kind": "hinge",
+      "axis": "z",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": 11,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          10.84,
+          11.16
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -30.1,
+        "to": -26.9,
+        "width": 3.200000000000003,
+        "bottom": 0.815,
+        "top": 3.93
+      },
+      "roughOpening": {
+        "from": -30.18,
+        "to": -26.82,
+        "bottom": 0.8,
+        "top": 4.01
+      },
+      "frame": {
+        "closedLeafPlane": 11,
+        "fullDepth": 0.32,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.7999999999999999,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-guest-front",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": -1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": -23,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          -23.16,
+          -22.84
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": 19.4,
+        "to": 22.6,
+        "width": 3.200000000000003,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": 19.32,
+        "to": 22.68,
+        "bottom": 0.2,
+        "top": 3.58
+      },
+      "frame": {
+        "closedLeafPlane": -23,
+        "fullDepth": 0.32,
+        "stopNormal": -0.08,
+        "hingePinNormal": 0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-guest-west",
+      "kind": "pocket",
+      "axis": "z",
+      "motion": {
+        "swing": 0,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": 16,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.5,
+        "faces": [
+          15.75,
+          16.25
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -29.6,
+        "to": -26.4,
+        "width": 3.200000000000003,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": -31.300000000000004,
+        "to": -24.699999999999996,
+        "bottom": 0.2,
+        "top": 3.6
+      },
+      "frame": {
+        "closedLeafPlane": 16,
+        "fullDepth": 0.5,
+        "stopNormal": null,
+        "hingePinNormal": null,
+        "pocketClearDepth": 0.36,
+        "pocketSkinThickness": 0.07,
+        "pocketEnd": 3.280000000000003
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    },
+    {
+      "id": "cn-guest-east",
+      "kind": "hinge",
+      "axis": "z",
+      "motion": {
+        "swing": -1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": 26,
+        "structuralDepth": 0.32,
+        "closureSectionDepth": 0.32,
+        "faces": [
+          25.84,
+          26.16
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -29.6,
+        "to": -26.4,
+        "width": 3.200000000000003,
+        "bottom": 0.21500000000000002,
+        "top": 3.5
+      },
+      "roughOpening": {
+        "from": -29.68,
+        "to": -26.32,
+        "bottom": 0.2,
+        "top": 3.58
+      },
+      "frame": {
+        "closedLeafPlane": 26,
+        "fullDepth": 0.32,
+        "stopNormal": -0.08,
+        "hingePinNormal": 0.155,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.2,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "Reused actual-parameter candidate12 local PASS; unchanged palace helper branch and deployed fd788 engine",
+      "currentWorldProof": "PENDING_CLEAN_CHINA_GROUP",
+      "currentVisualProof": "PENDING"
+    }
+  ],
+  "policies": {
+    "cn-south-gate": [
+      "door",
+      "Inset central ceremonial timber gate, opening inward to the compound"
+    ],
+    "cn-south-gate-west": [
+      "door",
+      "Inset west gatehouse bay preserves the broad ceremonial arrival"
+    ],
+    "cn-south-gate-east": [
+      "door",
+      "Inset east gatehouse bay preserves the broad ceremonial arrival"
+    ],
+    "cn-north-gate": [
+      "door",
+      "Inset paired timber gates protecting the rear compound"
+    ],
+    "cn-west-gate": [
+      "door",
+      "Inset service gates opening inward to the compound"
+    ],
+    "cn-east-gate": [
+      "door",
+      "Inset side-court gates opening inward to the compound"
+    ],
+    "cn-gatehouse-court": [
+      "open",
+      "Gatehouse arcade continues the ceremonial court axis"
+    ],
+    "cn-hall-front": [
+      "door",
+      "Principal ceremonial entrance uses paired lacquer-and-gilt doors"
+    ],
+    "cn-hall-rear": [
+      "door",
+      "Hall rear building envelope uses matching lacquer doors"
+    ],
+    "cn-hall-west": [
+      "door",
+      "Hall side entrance uses matching doors, resolved on its relocated landing"
+    ],
+    "cn-hall-east": [
+      "door",
+      "Hall side entrance uses matching lacquer doors"
+    ],
+    "cn-tea-front": [
+      "full-curtain",
+      "Tea reception entrance uses full gathered silk drapes"
+    ],
+    "cn-tea-rear": [
+      "half-curtain",
+      "Tea service/rear-court transition uses split hanging textile"
+    ],
+    "cn-tea-west": [
+      "open",
+      "Public tea pavilion lateral cross-ventilation and garden access"
+    ],
+    "cn-tea-east": [
+      "open",
+      "Public tea pavilion lateral cross-ventilation and garden access"
+    ],
+    "cn-study-front": [
+      "door",
+      "Quiet study main entrance uses opaque lattice panels"
+    ],
+    "cn-study-rear": [
+      "full-curtain",
+      "Quiet study rear threshold uses opaque gathered silk"
+    ],
+    "cn-study-west": [
+      "full-curtain",
+      "Quiet study lateral threshold uses opaque gathered silk"
+    ],
+    "cn-study-east": [
+      "full-curtain",
+      "Quiet study lateral threshold uses opaque gathered silk"
+    ],
+    "cn-bedroom-front": [
+      "door",
+      "Sleeping room front requires full lacquered privacy"
+    ],
+    "cn-bedroom-west": [
+      "door",
+      "Sleeping room west lateral opening must not bypass bedroom privacy"
+    ],
+    "cn-bedroom-east": [
+      "door",
+      "Sleeping room east lateral opening must not bypass bedroom privacy"
+    ],
+    "cn-kitchen-front": [
+      "full-curtain",
+      "Dining entrance uses full decorative silk panels"
+    ],
+    "cn-kitchen-rear": [
+      "door",
+      "Rear food-preparation entrance gets a timber service closure"
+    ],
+    "cn-kitchen-west": [
+      "half-curtain",
+      "Dining side/service transition uses split cloth"
+    ],
+    "cn-kitchen-east": [
+      "half-curtain",
+      "Dining side/service transition uses split cloth"
+    ],
+    "cn-bath-front": [
+      "door",
+      "Bathing/changing room arrival requires opaque privacy"
+    ],
+    "cn-bath-west": [
+      "door",
+      "Bath side entry must not bypass privacy"
+    ],
+    "cn-bath-east": [
+      "door",
+      "Washroom exterior side entry requires opaque privacy"
+    ],
+    "cn-archive-front": [
+      "door",
+      "Enclosed archive entrance protects the reading/store function"
+    ],
+    "cn-archive-rear": [
+      "door",
+      "Archive rear building entrance uses matching timber closure"
+    ],
+    "cn-archive-west": [
+      "door",
+      "Archive lateral entrance uses matching timber closure"
+    ],
+    "cn-archive-east": [
+      "door",
+      "Archive lateral entrance uses matching timber closure"
+    ],
+    "cn-guest-front": [
+      "door",
+      "Guest sleeping room needs full opaque privacy"
+    ],
+    "cn-guest-west": [
+      "door",
+      "Guest lateral access must not bypass sleeping privacy"
+    ],
+    "cn-guest-east": [
+      "door",
+      "Guest lateral access must not bypass sleeping privacy"
+    ],
+    "cn-kitchen-dining": [
+      "half-curtain",
+      "Food-service opening uses split cloth rather than a formal door"
+    ],
+    "cn-bath-washroom": [
+      "full-curtain",
+      "Opaque gathered silk separates bath and WC without a rigid leaf obstructing the tub aisle"
+    ],
+    "cn-lotus-bridge-south": [
+      "open",
+      "Outdoor bridge approach stays clear"
+    ],
+    "cn-lotus-bridge-north": [
+      "open",
+      "Outdoor stepped bridge approach stays clear"
+    ]
+  },
+  "plannedWorldGroups": [
+    {
+      "name": "perimeter-gates",
+      "ids": [
+        "cn-east-gate",
+        "cn-north-gate",
+        "cn-south-gate",
+        "cn-south-gate-east",
+        "cn-south-gate-west",
+        "cn-west-gate"
+      ]
+    },
+    {
+      "name": "pocket-rooms",
+      "ids": [
+        "cn-hall-west",
+        "cn-bedroom-east",
+        "cn-archive-west",
+        "cn-guest-west"
+      ]
+    },
+    {
+      "name": "remaining-room-hinges",
+      "ids": [
+        "cn-hall-front",
+        "cn-hall-rear",
+        "cn-hall-east",
+        "cn-study-front",
+        "cn-bedroom-front",
+        "cn-bedroom-west",
+        "cn-kitchen-rear",
+        "cn-bath-front",
+        "cn-bath-west",
+        "cn-bath-east",
+        "cn-archive-front",
+        "cn-archive-rear",
+        "cn-archive-east",
+        "cn-guest-front",
+        "cn-guest-east"
+      ]
+    }
+  ],
+  "reuse": "Prior25 local pair/frame/floor and5250 closed rays remain parameter-identical. Their scope excludes current full-world neighbors. Do not repeat unrelated41-door local matrix or other-country poses."
+}
