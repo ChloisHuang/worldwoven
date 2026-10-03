@@ -4,6 +4,7 @@
  * Runtime dependency: Three.js 0.186.1. No textures, licensed meshes or PBR.
  */
 import * as THREE from 'three';
+import {applyNaturalHead} from './head-shape.js';
 import {normalizeShapeTraits,hasShapeTraits,shapeHeight} from './character-traits.js';
 const gradient = new THREE.DataTexture(new Uint8Array([90, 150, 213, 255]),4,1,THREE.RedFormat);
 gradient.minFilter = gradient.magFilter = THREE.NearestFilter;
@@ -398,7 +399,7 @@ export function createApprovedSurfaces({culture=null,masc=false,style='casual',b
  else if(culture==='egypt')buildEgypt(root,masc,wardrobePreset||(masc?'linen-kilt':'linen-sheath'));
  else if(culture==='france')buildFrance(root,masc,wardrobePreset||(masc?'court-frock-coat':'court-gown'));
  else buildCasual(root);
- jobAccessories(root,style,culture);sculptBody(root,bodyPreset);relaxArmSurfaces(root,bodyPreset,wardrobePreset,normalized.legLength);
+ jobAccessories(root,style,culture);applyNaturalHead(root,{hair:C.hair,hairStyle});sculptBody(root,bodyPreset);relaxArmSurfaces(root,bodyPreset,wardrobePreset,normalized.legLength);
  if(traits?.legLength!==undefined&&traits.legLength!==1)root.traverse(m=>{
   if(!m.isMesh)return;
   const p=m.geometry.attributes.position,sourceY=new Float32Array(p.count);
