@@ -8,7 +8,7 @@ const actors=new Map(JAPAN_STAFF_CREW.map(id=>[id,{station:{id,npcName:id,npcAct
 const items=[{id:'seat',kind:'seat',center:[-6.8,11.4,-7.45],position:[-6.8,11.4,-8.39]},{id:'bed',kind:'bed',center:[-4.3,11.4,-11.5],position:[-4.3,11.4,-9.18]}];
 const board=createJapanServiceOrders(),options={actors,board,furniture:{items,facilities,releaseActor:id=>facilities.releaseActor(id)},assign:(n,to,t)=>tasks.set(n.station.id,{...t,to}),clear:n=>tasks.delete(n.station.id),unmount:n=>{n.serviceMount=null;return true;},taskOf:n=>tasks.get(n.station.id)};
 for(const [version,next,id]of [[1,1,'jp-sushi'],[2,3,'jp-market-tea'],[3,5,'jp-herb-workshop'],[3,7,'jp-sushi'],[4,9,'jp-rest']]){
- const life=createJapanStaffLife({...options,saved:{version,next,dueIn:9,completed:17,interrupted:2}});assert.equal(life.state().nextWorkerId,id);assert.deepEqual(life.snapshot(),{version:4,next:version===3?next%6:next,dueIn:9,completed:17,interrupted:2});life.dispose();
+ const life=createJapanStaffLife({...options,saved:{version,next,dueIn:9,completed:17,interrupted:2}});assert.equal(life.state().nextWorkerId,id);assert.deepEqual(life.snapshot(),{version:5,next:version===3?next%6:next,dueIn:9,completed:17,interrupted:2});life.dispose();
 }
 function done(id){const t=tasks.get(id);assert.ok(t);if(t.mount)actors.get(id).serviceMount=t.mount;t.onArrive?.();assert.notEqual(t.onDone?.(),false);if(tasks.get(id)===t)tasks.delete(id);}
 for(const [side,index,primary,relief]of [['men',6,'jp-onsen','jp-steam'],['women',8,'jp-women-onsen','jp-rest']]){

@@ -5,11 +5,11 @@ import {createJapanStaffLife,JAPAN_STAFF_CREW} from '../source/game/japan-staff-
 import {createJapanServiceOrders,JAPAN_SERVICE_POINTS as P,JAPAN_SERVICE_WORKERS} from '../source/game/japan-service-orders.js';
 import {createJapanPlayerService} from '../source/game/japan-player-service.js';
 import {createFacilityQueue} from '../source/game/npc-facilities.js';
-const actors=new Map(JAPAN_STAFF_CREW.map(id=>[id,{station:{id,npcName:id,npcAction:'tidy',workTarget:[2.8,1,-34.65],npcLabel:'清点补给木箱'},home:{toArray:()=>[1.5,0,-33]}}])),tasks=new Map(),facilities=createFacilityQueue();
+const actors=new Map(JAPAN_STAFF_CREW.slice(0,10).map(id=>[id,{station:{id,npcName:id,npcAction:'tidy',workTarget:[2.8,1,-34.65],npcLabel:'清点补给木箱'},home:{toArray:()=>[1.5,0,-33]}}])),tasks=new Map(),facilities=createFacilityQueue();
 const items=[{id:'staff-seat',kind:'seat',center:[-6.8,11.4,-7.45],position:[-6.8,11.4,-8.39]},{id:'staff-bed',kind:'bed',center:[-4.3,11.4,-11.5],position:[-4.3,11.4,-9.18]}];
 const board=createJapanServiceOrders(),options={actors,board,furniture:{items,facilities,releaseActor:id=>facilities.releaseActor(id)},assign:(n,to,t)=>tasks.set(n.station.id,{...t,to}),clear:n=>tasks.delete(n.station.id),unmount:n=>{n.serviceMount=null;return true;},taskOf:n=>tasks.get(n.station.id)};
 const upgrade=createJapanStaffLife({...options,saved:{version:1,next:1,dueIn:13,completed:8,interrupted:2}});
-assert.equal(upgrade.snapshot().version,4);assert.equal(upgrade.state().nextWorkerId,'jp-sushi');assert.equal(upgrade.state().completed,8);assert.equal(upgrade.state().interrupted,2);upgrade.dispose();
+assert.equal(upgrade.snapshot().version,5);assert.equal(upgrade.state().nextWorkerId,'jp-sushi');assert.equal(upgrade.state().completed,8);assert.equal(upgrade.state().interrupted,2);upgrade.dispose();
 const previous=createJapanStaffLife({...options,saved:{version:2,next:3,dueIn:7,completed:12}});assert.equal(previous.state().nextWorkerId,'jp-market-tea');assert.equal(previous.state().completed,12);previous.dispose();
 function done(id){const t=tasks.get(id);assert.ok(t);t.arrived=true;if(t.mount)actors.get(id).serviceMount=t.mount;assert.notEqual(t.onArrive?.(),false);assert.notEqual(t.onDone?.(),false);if(tasks.get(id)===t)tasks.delete(id);}
 const life=createJapanStaffLife({...options,saved:{version:2,next:2,dueIn:0}}),turns=[];

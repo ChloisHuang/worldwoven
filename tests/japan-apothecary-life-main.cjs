@@ -54,7 +54,7 @@ exports.run=async({state,T,Orders,furniture,frame,until,report})=>{
   for(const look of looks)assert.equal(JSON.stringify(state.npcs.find(n=>n.station.id===look.id).root.userData.appearance),look.appearance,look.id+' identity unchanged');
   // When coverage ends, Nao is routed back toward his original supply post.
   frame(2);const returnedSupply=state.npcs.find(n=>n.station.id==='jp-herb-workshop');assert.equal(returnedSupply.serviceTask.action,'tidy');assert.deepEqual(returnedSupply.serviceTask.to,returnedSupply.home.toArray());
-  state.disposeLot();const saved=state.saved.japanOperations;assert.equal(saved.staffLife.version,4);assert.equal(saved.staffLife.completed,9);assert.equal(saved.staffLife.interrupted,1);
+  state.disposeLot();const saved=state.saved.japanOperations;assert.equal(saved.staffLife.version,5);assert.equal(saved.staffLife.completed,9);assert.equal(saved.staffLife.interrupted,1);
   assert.equal(furniture.facilities.state().some(f=>f.reservations.some(r=>looks.some(n=>n.id===r.actor))||f.queue.some(id=>looks.some(n=>n.id===id))),false);
   const restored=Orders.createJapanServiceOrders({saved,worldSeed:1});assert.equal(restored.state().claims.length,0);restored.dispose();
   report.status='PASS';report.scope='Legal saved bath customers; production main/controller actual pharmacy handoff, correct relief blend while Itsuki is away, shared meal/tea/night-rest/return and Nao retains his supply role. Simulated DOM plus Three/Mesa, not browser/iOS.';report.simulatedSeconds=state.elapsed;report.frames=frames;report.maxRSSMiB=process.resourceUsage().maxRSS/1024;

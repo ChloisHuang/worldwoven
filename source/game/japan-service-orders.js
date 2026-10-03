@@ -25,6 +25,9 @@ export const JAPAN_SERVICE_WORKERS = Object.freeze({
  deliverMix:Object.values(JAPAN_BATH_CREWS).flat(), cook:['jp-ramen','jp-sushi'],
  serve:['jp-sushi','jp-ramen'], checkout:['jp-welcome','jp-market-tea'],
 });
+// These residents share staff facilities, never customer-order permissions.
+export const JAPAN_LOCAL_WORKERS=Object.freeze(['jp-omamori','jp-garden-onsen','jp-tea','jp-balcony']);
+const STAFF_MEALS=[...new Set(Object.values(JAPAN_SERVICE_WORKERS).flat()),...JAPAN_LOCAL_WORKERS];
 const clone=value=>JSON.parse(JSON.stringify(value));
 const active=v=>!['departed','cancelled'].includes(v.stage);
 const near=(p,q,r=.34)=>Array.isArray(p)&&Array.isArray(q)&&p.length===3&&p.every(Number.isFinite)&&Math.hypot(p[0]-q[0],p[2]-q[2])<=r&&Math.abs(p[1]-q[1])<.4;
@@ -187,7 +190,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   holdWorkplace(resource,workerId) {
    // Trained non-kitchen staff may serve themselves from the existing pot; this does
    // not make them eligible to claim customer cooking or delivery orders.
-   if(disposed||resource!=='kitchen'||![...JAPAN_SERVICE_WORKERS.cook,...JAPAN_SERVICE_WORKERS.register,...JAPAN_SERVICE_WORKERS.prepare,...JAPAN_SERVICE_WORKERS.deliverMix].includes(workerId)||workers.has(workerId))return false;
+   if(disposed||resource!=='kitchen'||!STAFF_MEALS.includes(workerId)||workers.has(workerId))return false;
    const key='staff:'+workerId;if(resources.has(resource)&&resources.get(resource)!==key)return false;
    resources.set(resource,key);staffResources.set(workerId,resource);return true;
   },

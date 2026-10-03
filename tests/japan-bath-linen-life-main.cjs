@@ -53,7 +53,7 @@ exports.run=async({state,T,Orders,furniture,frame,until,report})=>{
   frame(2);assert.deepEqual(standby.serviceTask.to,standby.home.toArray(),'Replacement resumes original home work between turns');assert.equal(standby.serviceTask.action,standby.station.npcAction);
   until(()=>reverseHandoff,9000);assert.equal(state.japanService.state().staffLife.active.id,relief);
   for(const look of looks)assert.equal(JSON.stringify(state.npcs.find(n=>n.station.id===look.id).root.userData.appearance),look.appearance,look.id+' identity unchanged');
-  state.disposeLot();const saved=state.saved.japanOperations;assert.equal(saved.staffLife.version,4);assert.equal(saved.staffLife.next,index+1);assert.equal(saved.staffLife.completed,11);assert.equal(saved.staffLife.interrupted,1);
+  state.disposeLot();const saved=state.saved.japanOperations;assert.equal(saved.staffLife.version,5);assert.equal(saved.staffLife.next,index+1);assert.equal(saved.staffLife.completed,11);assert.equal(saved.staffLife.interrupted,1);
   assert.equal(furniture.facilities.state().some(f=>f.reservations.some(r=>looks.some(n=>n.id===r.actor))||f.queue.some(id=>looks.some(n=>n.id===id))),false);
   const restored=Orders.createJapanServiceOrders({saved,worldSeed:1});assert.equal(restored.state().claims.length,0);restored.dispose();
   report.status='PASS';report.scope='Actual main/controller '+side+' bath claimed tray drain, physical foyer handoff, correct relief token/cargo delivery, shared meal/tea/night rest/return, home work and reverse handoff. Simulated DOM plus Three/Mesa, not browser/iOS.';report.simulatedSeconds=state.elapsed;report.frames=frames;report.maxRSSMiB=process.resourceUsage().maxRSS/1024;
