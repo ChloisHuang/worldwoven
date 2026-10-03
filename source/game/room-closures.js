@@ -34,10 +34,14 @@ const POLICY={
   'jp-4-front-portal':['open','Common service gallery to balcony; individual workrooms are classified separately']
  },
  china:{
-  'cn-south-gate':['open','Ceremonial compound arrival, broad outdoor circulation'],
-  'cn-north-gate':['open','Outdoor rear compound gate'],
-  'cn-west-gate':['open','Outdoor service cross-court circulation'],
-  'cn-east-gate':['open','Outdoor side-court circulation'],
+  'cn-south-gate':['door','Inset central ceremonial timber gate, opening inward to the compound'],
+  'cn-south-gate-west':['door','Inset west gatehouse bay preserves the broad ceremonial arrival'],
+  'cn-south-gate-east':['door','Inset east gatehouse bay preserves the broad ceremonial arrival'],
+  'cn-north-gate':['door','Inset central rear gate preserves the north axis and leaves the archive terrace/stair untouched'],
+  'cn-north-gate-west':['door','Inset west rear bay provides a separate usable outward gate'],
+  'cn-north-gate-east':['door','Inset east rear bay provides a separate usable outward gate'],
+  'cn-west-gate':['door','Inset service gates opening inward to the compound'],
+  'cn-east-gate':['door','Inset side-court gates opening inward to the compound'],
   'cn-gatehouse-court':['open','Gatehouse arcade continues the ceremonial court axis'],
   'cn-hall-front':['door','Principal ceremonial entrance uses paired lacquer-and-gilt doors'],
   'cn-hall-rear':['door','Hall rear building envelope uses matching lacquer doors'],
@@ -146,6 +150,14 @@ const LEGACY={
 // swing +1 = negative world normal (−Z for axis X, −X for axis Z); −1 reverses.
 // New hinge choices remain candidates pending full swept-room/controller QA.
 const DOOR_MOTIONS={
+ 'cn-south-gate':['hinge',1,'Inward compound gate with hinge pins within its source-authored .65 m masonry reveal'],
+ 'cn-south-gate-west':['hinge',1,'Inward compound gate with hinge pins within its source-authored .65 m masonry reveal'],
+ 'cn-south-gate-east':['hinge',1,'Inward compound gate with hinge pins within its source-authored .65 m masonry reveal'],
+ 'cn-north-gate':['hinge',1,'Outward2.2m rear bay fits the fixed north boundary and avoids the archive terrace/stair'],
+ 'cn-north-gate-west':['hinge',1,'Outward1.6m rear side bay stays within the exterior waiting area'],
+ 'cn-north-gate-east':['hinge',1,'Outward1.6m rear side bay stays within the exterior waiting area'],
+ 'cn-west-gate':['hinge',-1,'Inward compound gate with hinge pins within its source-authored .65 m masonry reveal'],
+ 'cn-east-gate':['hinge',1,'Inward compound gate with hinge pins within its source-authored .65 m masonry reveal'],
  'jp-guest-suite-door':['slide',0,'Paired shoji retract into hollow partition pockets clear of the guest screen and public gallery'],
  'jp-operator-door':['slide',0,'Timber lattice office door retracts inside its hollow partition clear of the working gallery'],
  'jp-staff-room-door':['slide',0,'Sleeping-room shoji retracts inside its partition pockets clear of the working gallery and bunk approach'],
@@ -198,9 +210,11 @@ export function existingBannerAudit(region){return (FIXED_BANNERS[region]||[]).m
 export function classifyRoomOpenings(lot,region){
  const policy=POLICY[region];if(!policy)return [];
  const thresholds=lot.doorways||lot.group?.userData.doorways||[];
- // A migrated lot authors every rigid opening. Other lots retain the accepted
- // surface-mounted behavior until their own inset construction is verified.
- const requireInset=thresholds.some(t=>t.closureMount);
+ // A staged lot explicitly names the rigid openings already migrated.
+ // Without that list, a migrated lot still requires every rigid source mount.
+ const requiredInsetIds=lot.requiredInsetDoorIds===undefined?null:new Set(lot.requiredInsetDoorIds);
+ if(requiredInsetIds)for(const id of requiredInsetIds)if(!thresholds.some(t=>t.id===id))throw new Error('Missing required inset opening: '+region+'/'+id);
+ const requireInset=!requiredInsetIds&&thresholds.some(t=>t.closureMount);
  return thresholds.map(t=>{
   const p=policy[t.id];if(!p)throw new Error('Unclassified traversable opening: '+region+'/'+t.id);
   const axis=t.axis||(Math.abs(t.a[0]-t.b[0])>Math.abs(t.a[2]-t.b[2])?'z':'x');
@@ -210,7 +224,7 @@ export function classifyRoomOpenings(lot,region){
   // Preserve its authored opening top; the rigid engine still subtracts25mm there.
   const fix=PLANES[t.id]||{},legacy=LEGACY[t.id]||{},bottom=fix.bottom??t.floorFit?.bottom??Math.max(t.a[1],t.b[1]);
   const wallPlane=t.at??(axis==='x'?(t.a[2]+t.b[2])/2:(t.a[0]+t.b[0])/2),closureMount=t.closureMount,at=closureMount?.wallPlane??fix.at??wallPlane;
-  if(requireInset&&p[0]==='door'&&!closureMount)throw new Error('Incomplete source-authored inset lot: '+region+'/'+t.id);
+  if((requireInset||requiredInsetIds?.has(t.id))&&p[0]==='door'&&!closureMount)throw new Error('Incomplete source-authored inset lot: '+region+'/'+t.id);
   if(closureMount&&p[0]==='door'&&closureMount.kind!==(choice[0]==='slide'?'pocket':'hinge'))throw new Error('Door motion and inset source disagree: '+t.id);
   const lateral=t.from!==undefined?(t.from+t.to)/2:axis==='x'?(t.a[0]+t.b[0])/2:(t.a[2]+t.b[2])/2;
   return {id:legacy.id||t.id,openingId:t.id,kind:p[0],...(t.interactionOnly?{openingRole:'interaction-approach',apertureWidth:null}:{}),rationale:p[1],rooms:t.rooms||[],center:axis==='x'?[lateral,bottom,at]:[at,bottom,lateral],axis,closureMount:closureMount?{...closureMount,wallPlane:closureMount.wallPlane??wallPlane}:undefined,revealDepth:closureMount?.revealDepth??closureMount?.wallDepth,surfaceTrack:choice?.[0]==='slide'&&closureMount?.kind!=='pocket',trackMountOffset:at-wallPlane,width:t.width,sideOverlap:closureMount?.sideOverlap??fix.sideOverlap??0,bottomClearance:fix.bottomClearance??t.floorFit?.runningGap??0,height:t.floorFit?t.floorFit.top-bottom:fix.height??legacy.height??(t.top!==undefined?t.top-bottom:t.height),style:STYLE[region],motion:p[0]==='open'?'none':fixedOverhead?'fixed-overhead':p[0].includes('curtain')?'gather':choice[0],existingBanner,motionRationale:fixedOverhead?'Fixed hanging textile stays above actor height and never gathers automatically':p[0].includes('curtain')?'Gathered fabric stays at the jambs and has no rigid leaf swing':choice?.[2]||'Intentionally open circulation',operable:p[0]!=='open'&&!fixedOverhead,...(choice?.[1]?{swing:choice[1]}:{}),source:region==='japan'?'japan-bathhouse.js':region==='china'?'china-palace.js':region==='egypt'?'egypt-temple.js':'regions-west.js'};
