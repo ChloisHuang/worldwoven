@@ -90,7 +90,12 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
  const posedP=rest.map(p=>p.clone()),posedQ=rest.map(()=>new THREE.Quaternion()),pose=new THREE.Group();
  const tmp=V(),tmp2=V(),dir=V(),pole=V(),restDir=V(),identity=new THREE.Quaternion(),invQ=new THREE.Quaternion(),torsoQ=new THREE.Quaternion(),headQ=new THREE.Quaternion(),inverseRoot=new THREE.Matrix4();
  const previousRoot=V(),velocity=V(),rootWorld=V(),forwardWorld=V(),rightWorld=V(),footProbe=V(),footBack=V(),footFront=V(),footRight=V(),footLeft=V(),footOffset=V(),footNormal=V(),footUp=V(0,1,0),footOrient=[new THREE.Quaternion(),new THREE.Quaternion()],footAnchors=[V(),V()],swingStarts=[V(),V()],lastFootWorld=[V(),V()],lastSupport=[true,false],footTargets=[V(),V()];
- let supportCorrection=0,poseMinY=0,poseMaxY=0,onsenHip=.32,onsenBackOffset=0;const lieOffsets={back:0,spine:0,head:0,heel:0};
+ let supportCorrection=0,poseMinY=0,poseMaxY=0,onsenHip=.32,onsenBackOffset=0,onsenArmLift=0;const lieOffsets={back:0,spine:0,head:0,heel:0};
+ const onsenLapPoint=V(.09,.40,.23),onsenRimPalmQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(0,0,-1),V(1,0,0),V(0,-1,0))),onsenLapPalmQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(-1,0,0),V(0,0,-1),V(0,-1,0)));
+ const onsenPalmContact={offset:V(),index:-1};
+ if(culture==='japan'&&wardrobePreset==='onsen-swimwear')for(const geometry of template.geometry)for(const range of geometry.userData.sourceRanges||[])if(range.name==='relaxed-palm-1'){
+  let low=Infinity;for(let i=range.start;i<range.start+range.count;i++){tmp.fromBufferAttribute(geometry.attributes.position,i).sub(rest[9]).applyQuaternion(onsenLapPalmQ);if(tmp.y<low){low=tmp.y;onsenPalmContact.offset.copy(tmp);onsenPalmContact.index=i;}}
+ }
  let lastTime=null,wasWalking=false,gaitPhase=0,disposed=false,initializedFeet=false,currentAction=null,visualFloorOffset=0,previousYaw=0;
  const metrics={height,labelHeight:height+.16,headHeight:1.61*root.scale.y,action:null,seated:false,grounded:true,feet:[[],[]],hands:[[],[]]};
  root.userData={characterR9:true,characterR10:true,locomotion,appearance:{skin:opts.skin,hair:opts.hair,clothes:opts.clothes,accent:opts.accent,eyeColor:opts.eyeColor,culture,variant,style,bodyPreset,hairStyle,wardrobePreset,gaitPreset,shapeTraits:{...shapeTraits}},body:rig,head:bones[3],arms:[bones[4],bones[7]],forearms:[bones[5],bones[8]],hands:[bones[6],bones[9]],legs:[bones[10],bones[13]],knees:[bones[11],bones[14]],feet:[bones[12],bones[15]],tools:props.tools,poseQA:metrics,labelHeight:metrics.labelHeight,characterShared:true};
@@ -128,13 +133,17 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   setTorso(onsenHip,-.12,0);
   foot(0,tmp.set(-.13,.108,.58));foot(1,tmp.set(.13,.108,.58));
   for(const [i,j]of[[16,11],[17,14]]){posedP[i].copy(posedP[j]);posedQ[i].copy(posedQ[j]);}
-  const water=(context.bathPose.waterY-context.supportY+.025)/root.scale.y-supportCorrection;
-  reach(0,-.23,water,.15);reach(1,.23,water+Math.sin(time*.7)*.003,.15);
-  posedQ[6].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));posedQ[9].copy(posedQ[6]);
+  // Rest one forearm along the real narrow lumbar ledge. Both limb lengths
+  // remain anatomical; the elbow and wrist share its horizontal support.
+  const armY=(context.bathPose.backTopY-context.supportY+.039)/root.scale.y-supportCorrection+onsenArmLift,armZ=(context.bathPose.backZ-.012)/root.scale.z-onsenBackOffset;
+  const upper=rest[4].distanceTo(rest[5]),lower=rest[5].distanceTo(rest[6]),dy=armY-posedP[4].y,dz=armZ-posedP[4].z,out=Math.sqrt(Math.max(.0004,upper*upper-dy*dy-dz*dz));
+  posedP[5].set(posedP[4].x-out,armY,armZ);posedP[6].set(posedP[5].x-lower,armY,armZ);orient(4,5,posedP[5]);orient(5,6,posedP[6]);posedQ[6].copy(onsenRimPalmQ);
+  // The other palm rests on an actual deformed thigh vertex, palm down.
+  tmp2.copy(onsenLapPoint).sub(onsenPalmContact.offset);tmp2.y+=.004/root.scale.y;reach(1,tmp2.x,tmp2.y,tmp2.z);posedQ[9].copy(onsenLapPalmQ);
   headQ.setFromEuler(new THREE.Euler(.07,Math.sin(time*.35)*.02,0));posedQ[3].copy(torsoQ).multiply(headQ);
  }
  function measureOnsenSkin(context){
-  const result={min:Infinity,max:-Infinity,hip:Infinity,sole:Infinity,back:Infinity,backY:null};root.updateMatrixWorld(true);skeleton.update();inverseRoot.copy(root.matrixWorld).invert();
+  const result={min:Infinity,max:-Infinity,hip:Infinity,sole:Infinity,back:Infinity,backY:null,lapY:-Infinity,lapPoint:null,palmPoint:null,armSupportMin:Infinity,forearmMin:Infinity,forearmPoint:null};root.updateMatrixWorld(true);skeleton.update();inverseRoot.copy(root.matrixWorld).invert();
   for(const mesh of meshes)for(const range of mesh.geometry.userData.sourceRanges||[]){
    const attr=mesh.geometry.attributes.position,hip=/^onsen-trouser|^onsen-swim-body/.test(range.name),back=range.name==='onsen-swim-body',sole=/^footwear-bath-bare/.test(range.name);
    for(let i=range.start;i<range.start+range.count;i++){
@@ -144,6 +153,13 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
     if(hip&&sy>.84&&sy<1.01&&attr.getZ(i)<-.012)result.hip=Math.min(result.hip,tmp.y);
     const worldY=context.supportY+(tmp.y+supportCorrection)*root.scale.y;
     if(back&&sy>1.12&&sy<1.335&&attr.getZ(i)<0&&worldY<context.bathPose.backTopY-.01&&tmp.z<result.back){result.back=tmp.z;result.backY=worldY;}
+    if(range.name==='onsen-trouser-1'&&sy>.74&&sy<.86&&tmp.y>result.lapY){result.lapY=tmp.y;result.lapPoint=tmp.clone();}
+    if(range.name==='relaxed-palm-1'&&i===onsenPalmContact.index)result.palmPoint=tmp.clone();
+    const onLedge=tmp.z+onsenBackOffset>(context.bathPose.backZ-.08)/root.scale.z&&tmp.z+onsenBackOffset<context.bathPose.backZ/root.scale.z;
+    if(onLedge&&/^(bare-arm-onsen--1|relaxed-palm--1|relaxed-finger--1-|thumb--1)/.test(range.name)){
+     result.armSupportMin=Math.min(result.armSupportMin,tmp.y);
+     if(range.name==='bare-arm-onsen--1'&&sy<1.10&&sy>.94&&tmp.y<result.forearmMin){result.forearmMin=tmp.y;result.forearmPoint=tmp.clone();}
+    }
    }
   }return result;
  }
@@ -216,7 +232,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   const rawDt=lastTime===null?0:time-lastTime,dt=clamp(rawDt,0,.2);root.updateWorldMatrix(true,false);root.getWorldPosition(rootWorld);velocity.copy(rootWorld).sub(previousRoot);const travel=Math.hypot(velocity.x,velocity.z),headingDelta=Math.atan2(Math.sin(root.rotation.y-previousYaw),Math.cos(root.rotation.y-previousYaw)),discontinuity=rawDt>.25||rawDt<0||travel>=1.2||Math.abs(headingDelta)>.85;const physical=!discontinuity&&dt>0&&travel>.000001;
   if(physical)velocity.multiplyScalar(1/dt);else velocity.set(0,0,0);
   const poseChanged=currentAction!==action;const mountedPose=action==='lie-rest'||action==='bathe';const supportedOnsen=action==='bathe'&&culture==='japan'&&wardrobePreset==='onsen-swimwear'&&context?.bathPose?.style==='onsen-seat';const leavingSeat=['kotatsu','chair-sit','lie-rest','bathe'].includes(currentAction)&&action!==currentAction;
-  if(supportedOnsen&&poseChanged){onsenHip=context.bathHipHeight??.32;onsenBackOffset=0;supportCorrection=0;}
+  if(supportedOnsen&&poseChanged){onsenHip=context.bathHipHeight??.32;onsenBackOffset=0;onsenArmLift=0;supportCorrection=0;onsenLapPoint.set(.09,.40,.23);}
   if(discontinuity||leavingSeat){initializedFeet=false;for(let s=0;s<2;s++){lastFootWorld[s].set(s?.089:-.089,.108,-.025).applyMatrix4(root.matrixWorld);lastFootWorld[s].y+=visualFloorOffset;}wasWalking=false;}
   currentAction=action;metrics.action=action;metrics.gaitReset=discontinuity||leavingSeat;metrics.seated=action==='kotatsu'||action==='chair-sit'||action==='bathe';metrics.lying=action==='lie-rest';metrics.bathing=action==='bathe';
   // Phase is distance-driven, never wall-clock-driven: blocked actors do not skate.
@@ -387,8 +403,16 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
      let skin=measureOnsenSkin(context);supportCorrection=-skin.sole+.004/root.scale.y;
      poseOnsen(context,time);applyPose();skin=measureOnsenSkin(context);
      onsenBackOffset=context.bathPose.backZ/root.scale.z-skin.back+.006/root.scale.z;
+     if(skin.lapPoint)onsenLapPoint.copy(skin.lapPoint);
+     for(let pass=0;pass<3;pass++){
+      poseOnsen(context,time);applyPose();skin=measureOnsenSkin(context);
+      if(Number.isFinite(skin.armSupportMin))onsenArmLift=clamp(onsenArmLift+(context.bathPose.backTopY-supportY+.004)/root.scale.y-supportCorrection-skin.armSupportMin,-.04,.09);
+     }
+     poseOnsen(context,time);applyPose();skin=measureOnsenSkin(context);
      poseMinY=skin.min;poseMaxY=skin.max;metrics.lieContact=null;
      metrics.bathContact={hip:{surface:context.bathPose.seatY,body:supportY+(skin.hip+supportCorrection)*root.scale.y,gap:supportY+(skin.hip+supportCorrection)*root.scale.y-context.bathPose.seatY},sole:{surface:supportY,body:supportY+(skin.sole+supportCorrection)*root.scale.y,gap:.004},back:{surface:context.bathPose.backZ,body:(skin.back+onsenBackOffset)*root.scale.z,gap:.006,height:skin.backY,top:context.bathPose.backTopY},waterY:context.bathPose.waterY};
+     const finalPoint=p=>p?p.clone().add(V(0,(supportY-rootWorld.y)/root.scale.y+supportCorrection,onsenBackOffset)).applyMatrix4(root.matrixWorld).toArray():null;
+     metrics.bathHandContact={forearm:{surface:context.bathPose.backTopY,body:supportY+(skin.forearmMin+supportCorrection)*root.scale.y,gap:supportY+(skin.forearmMin+supportCorrection)*root.scale.y-context.bathPose.backTopY,point:finalPoint(skin.forearmPoint)},palm:{point:finalPoint(skin.palmPoint),supportPoint:finalPoint(skin.lapPoint),gap:skin.palmPoint?.distanceTo(skin.lapPoint)*root.scale.y},palmNormals:[V(0,0,1).applyQuaternion(posedQ[6]).toArray(),V(0,0,1).applyQuaternion(posedQ[9]).toArray()]};
     }else if(action==='lie-rest'&&context?.lieSupport&&shapeTraits.legLength!==1){
      fitShapedLie(context,supportY);
     }else if(action==='lie-rest'&&context?.lieSupport){
@@ -411,7 +435,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    rig.position.y=(supportY-rootWorld.y)/root.scale.y+supportCorrection;if(supportedOnsen)rig.position.z=onsenBackOffset;root.updateMatrixWorld(true);skeleton.update();
    metrics.contactMinY=supportY+(poseMinY+supportCorrection)*root.scale.y;metrics.contactMaxY=supportY+(poseMaxY+supportCorrection)*root.scale.y;
 
-  }else{metrics.contactMinY=null;metrics.contactMaxY=null;metrics.lieContact=null;metrics.bathContact=null;}
+  }else{metrics.contactMinY=null;metrics.contactMaxY=null;metrics.lieContact=null;metrics.bathContact=null;metrics.bathHandContact=null;}
 
   if(action==='sushi-eat')props.right.rotation.x-=Math.pow((Math.sin(time*.95)+1)*.5,2)*.55;
   if(/garden/.test(action||''))props.right.rotation.z=-.35;

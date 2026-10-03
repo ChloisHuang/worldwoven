@@ -1,7 +1,7 @@
 import {registerNightFixture} from './night-lighting.js';
 import {createGuestFuton} from './japan-futon.js';
 import {SHOJI_SIDE_OVERLAP} from './room-closures.js';
-import {addShojiJambReturns} from './japan-shoji.js';
+import {addJapanInsetClosure} from './japan-shoji.js';
 import * as G from './geometry.js?rev=R7-20261002';
 import {createConveyorSushi,createRamenCounter,createKotatsu} from './japan-furnishings.js?rev=R7-20261002';
 import {createSakuraTree,createPetalFall,createTorii,addSakuraMotif} from './japan-sakura.js?rev=R7-20261002';
@@ -22,7 +22,7 @@ function slideTrimCutout(x,z,width,axis='x'){
  const along=width+SHOJI_SIDE_OVERLAP+.074+.0125,across=.1025+.0125;
  return {minX:x-(axis==='x'?along:across),maxX:x+(axis==='x'?along:across),minZ:z-(axis==='x'?across:along),maxZ:z+(axis==='x'?across:along)};
 }
-const SLIDE_FLOOR_TRIM_CUTOUTS={guest:slideTrimCutout(2,-7.70,2.6),operator:slideTrimCutout(-.70,4.9,2.5,'z'),staff:slideTrimCutout(-.70,-10.5,2.4,'z')};
+const SLIDE_FLOOR_TRIM_CUTOUTS={guest:slideTrimCutout(2,-8,2.6),operator:slideTrimCutout(-1,4.9,2.5,'z'),staff:slideTrimCutout(-1,-10.5,2.4,'z')};
 
 function floorTrim(g,x,y,z,w,h,d,color,cutouts=[]){
  if(!cutouts.length){G.box(g,x,y,z,w,h,d,color);return;}
@@ -136,7 +136,13 @@ export function buildJapan(){
  function rail(g,base,x,z,w,axis='x'){
    const q=new THREE.Group();q.position.set(x,0,z);if(axis==='z')q.rotation.y=Math.PI/2;g.add(q);for(const yy of [.17,.92])G.box(q,0,yy,0,w,.11,.15,P.red);for(let xx=-w/2;xx<=w/2+.01;xx+=w/Math.ceil(w/.68)){G.box(q,xx,.51,0,.07,.87,.075,P.red);G.sphere(q,xx,1.01,0,.08,P.gold);}obstacle(x,base+.5,z,axis==='x'?w:.16,1,axis==='x'?.16:w);
  }
+ const insetMounts=new Map();
  function wall(g,base,x,z,w,axis='x',opening=null){
+   if(opening?.inset){
+    const spec=opening.inset,lateral=axis==='x'?x:z,center=lateral+(opening.offset||0),section=addJapanInsetClosure(g,axis==='x'?center:x,axis==='x'?z:center,opening.width||2.2,axis,colliders,cameraColliders,spec);
+    insetMounts.set(spec.id,section.mount);
+    opening={...opening,width:section.roughOpening.to-section.roughOpening.from,height:section.roughOpening.top,offset:center-lateral};
+   }
    const depth=.24;const part=(xx,zz,ww,hh,yy)=>groundSolid(g,base,xx,yy,zz,axis==='x'?ww:depth,hh,axis==='x'?depth:ww,P.cream);
    if(opening){const gap=opening.width||2.2,center=opening.offset||0,holeH=opening.height||2.8,left=w/2+center-gap/2,right=w/2-center-gap/2;if(left>.01)part(x+(axis==='x'?(-w/2+left/2):0),z+(axis==='z'?(-w/2+left/2):0),left,H-.20,(H-.20)/2);if(right>.01)part(x+(axis==='x'?(w/2-right/2):0),z+(axis==='z'?(w/2-right/2):0),right,H-.20,(H-.20)/2);part(x+(axis==='x'?center:0),z+(axis==='z'?center:0),gap,H-.20-holeH,holeH+(H-.20-holeH)/2);}
    else part(x,z,w,H-.20,(H-.20)/2);
@@ -146,9 +152,9 @@ export function buildJapan(){
     for(const [a,b] of spans)if(b>a)G.box(g,x+(axis==='x'?(a+b)/2:0),yy,z+(axis==='z'?(a+b)/2:0),axis==='x'?b-a:.34,.13,axis==='x'?.34:b-a,P.cedar);
    }
  }
- function partition(g,base,x,z,w,axis='x',gap=2.2,offset=0){
+ function partition(g,base,x,z,w,axis='x',gap=2.2,offset=0,inset=null){
    const visualOffset=axis==='z'?-offset:offset; // q's +90° rotation reverses its local X axis.
-   wall(g,base,x,z,w,axis,{width:gap,height:2.85,offset});const q=new THREE.Group();q.position.set(x,0,z);if(axis==='z')q.rotation.y=Math.PI/2;g.add(q);for(let xx=-w/2+.18;xx<w/2;xx+=.42)if(Math.abs(xx-visualOffset)>gap/2+.23){G.box(q,xx,1.75,.135,.035,2.75,.035,P.honey);for(const yy of [.6,1.28,2.1,2.72])G.box(q,xx,yy,.15,.41,.034,.045,P.cedar);}G.box(q,visualOffset,2.925,0,gap+.14,.15,.31,P.cedar); // underside matches the real 2.85m aperture
+   wall(g,base,x,z,w,axis,{width:gap,height:2.85,offset,inset});const q=new THREE.Group();q.position.set(x,0,z);if(axis==='z')q.rotation.y=Math.PI/2;g.add(q);for(let xx=-w/2+.18;xx<w/2;xx+=.42)if(Math.abs(xx-visualOffset)>gap/2+.23){G.box(q,xx,1.75,.135,.035,2.75,.035,P.honey);for(const yy of [.6,1.28,2.1,2.72])G.box(q,xx,yy,.15,.41,.034,.045,P.cedar);}G.box(q,visualOffset,2.925,0,gap+.14,.15,.31,P.cedar); // underside matches the real 2.85m aperture
  }
  function lowTable(g,base,x,z,w=2.5,d=1.55,color=P.wood){G.table(g,x,z,w,d,color,.63);obstacle(x,base+.38,z,w,.75,d);G.box(g,x,.73,z,w*.56,.028,d*.62,0xae8156);tea(g,x,.76,z);}
  function shelf(g,base,x,z,w=2,d=.6,angle=0,contents=true){const q=new THREE.Group();q.position.set(x,0,z);q.rotation.y=angle;g.add(q);for(const xx of [-w/2,w/2])G.box(q,xx,1.22,0,.1,2.45,d,P.cedar);G.box(q,0,1.18,-d/2,w,2.4,.065,P.wood);for(const yy of [.18,.8,1.42,2.05,2.45])G.box(q,0,yy,0,w,.085,d,P.honey);if(contents)for(let i=0;i<3;i++){vase(q,-w*.3+i*w*.3,.84,0,[P.jade,P.cream,0xa37556][i],false);folded(q,-w*.27+i*w*.28,1.49,0,[P.indigo,P.red,0x9b9a78][i],w*.23,.4);G.cyl(q,-w*.3+i*w*.3,2.22,0,.16,.17,.26,0xc6ae7d,8);}const sideOn=Math.abs(Math.sin(angle))>.7;obstacle(x,base+1.2,z,sideOn?d:w,2.4,sideOn?w:d);return q;}
@@ -259,7 +265,7 @@ export function buildJapan(){
  // Original R7 room-specific furnishing and architectural helpers.
  function target(id,name,x,y,z){explorationTargets.push({id:'jp-room-'+id,name,position:[x,y,z]});return 'jp-room-'+id;}
  function program(id,floor,fn,area,targets,extra={}){roomProgram.push({id,floor,function:fn,areaM2:area,targets,...extra});}
- function threshold(id,a,b,width=2.4,height=2.85,extra={}){doorways.push({id,a,b,width,height,...extra});}
+ function threshold(id,a,b,width=2.4,height=2.85,extra={}){doorways.push({id,a,b,width,height,...(insetMounts.has(id)?{closureMount:insetMounts.get(id)}:{}),...extra});}
  function furnishing(factory,f,x,z,options={}){
    const item=factory(options),base=LEVEL_Y[f];item.group.position.set(x,0,z);floorGroups[f].add(item.group);
    const transform=c=>({...c,minX:c.minX+x,maxX:c.maxX+x,minY:c.minY+base,maxY:c.maxY+base,minZ:c.minZ+z,maxZ:c.maxZ+z});
@@ -384,14 +390,18 @@ export function buildJapan(){
   for(const [cx,w,col]of [[-6.5,10.3,0x345a59],[3,7.5,0x846057]]){
    G.box(f,cx,2.13,-14.79,w,1.72,.055,col);
    for(let i=0;i<9;i++){const xx=cx-w*.43+i*w*.105;G.sphere(f,xx,1.72+(i%3)*.15,-14.74,.66,[0x708f7b,0x456f68,0xadb797][i%3],1,.6,.036);cloud(f,xx,2.55,-14.68,.68);}
-   lantern(f,cx,3,-9.3,false,.32);
+   const lampStart=f.children.length;lantern(f,cx,3,-9.3,false,.32);
+   // The onsen orbit can reach these pendants. Use each real bulb/hoop/cap/
+   // suspension component, not a guessed solid box spanning the whole lamp.
+   f.updateWorldMatrix(true,false);
+   for(const part of f.children.slice(lampStart)){part.updateWorldMatrix(true,true);const b=new THREE.Box3().setFromObject(part);cameraColliders.push({minX:b.min.x,maxX:b.max.x,minY:b.min.y,maxY:b.max.y,minZ:b.min.z,maxZ:b.max.z,fixture:'onsen-pendant',cameraOnly:true});}
   }
   bench(f,y,-7.7,7.55,4.0);bench(f,y,4.9,7.55,3.1);
   target('bath-foyer','Shared bath foyer',0,y,6.8);target('men-changing','Men changing and basket lockers',-8.8,y,1.6);target('women-changing','Women changing and basket lockers',4.6,y,1.45);
   target('men-wash','Men pre-bath washing',-8.65,y,-3.4);target('women-wash','Women pre-bath washing',3.0,y,-4.4);target('men-bath','Men onsen broad pool entry',-2.25,y,-9.3);target('women-bath','Women onsen broad pool entry',5.0,y,-9.7);
   target('men-pool-interior','Men pool seated-soak approach',-2.1,y,-9.3);Object.assign(explorationTargets.at(-1),{purpose:'Change into swimwear and mount the supported pool seat',furnitureId:'japan-furniture-bath-1',mountedDestination:[-3.22,y,-9.3],previousWalkInPosition:[-6.55,y,-9.3]});
   target('women-pool-interior','Women pool seated-soak approach',4.9,y,-9.7);Object.assign(explorationTargets.at(-1),{purpose:'Change into swimwear and mount the supported pool seat',furnitureId:'japan-furniture-bath-2',mountedDestination:[3.68,y,-9.7],previousWalkInPosition:[2.1,y,-9.7]});
-  threshold('jp-men-pool-entry',[-2.1,y,-9.3],[-2.1,y,-8.5],1.9,3.3,{purpose:'Poolside bath interaction approach; enter through the mounted bath action',furnitureId:'japan-furniture-bath-1'});threshold('jp-women-pool-entry',[4.9,y,-9.7],[4.9,y,-8.9],1.9,3.3,{purpose:'Poolside bath interaction approach; enter through the mounted bath action',furnitureId:'japan-furniture-bath-2'});
+  threshold('jp-men-pool-entry',[-2.1,y,-9.3],[-2.1,y,-8.5],1.0,3.3,{interactionOnly:true,role:'furniture-approach',mountedDestination:[-3.22,y,-9.3],previousWalkInThreshold:{a:[-2.1,y,-9.3],b:[-3.5,y,-9.3],width:1.9,height:3.3},purpose:'Poolside bath interaction approach; enter through the mounted bath action',furnitureId:'japan-furniture-bath-1'});threshold('jp-women-pool-entry',[4.9,y,-9.7],[4.9,y,-8.9],1.0,3.3,{interactionOnly:true,role:'furniture-approach',mountedDestination:[3.68,y,-9.7],previousWalkInThreshold:{a:[4.9,y,-9.7],b:[3.5,y,-9.7],width:1.9,height:3.3},purpose:'Poolside bath interaction approach; enter through the mounted bath action',furnitureId:'japan-furniture-bath-2'});
   program('men-changing',2,'changing-lockers',53,['jp-room-men-changing'],{gender:'men',pairedFunction:'gender-separated-changing'});program('women-changing',2,'changing-lockers',38,['jp-room-women-changing'],{gender:'women',pairedFunction:'gender-separated-changing'});
   program('men-wet',2,'onsen',162,['jp-room-men-wash','jp-room-men-bath','jp-room-men-pool-interior'],{gender:'men',pairedFunction:'gender-separated-onsen'});program('women-wet',2,'onsen',100,['jp-room-women-wash','jp-room-women-bath','jp-room-women-pool-interior'],{gender:'women',pairedFunction:'gender-separated-onsen'});program('bath-foyer',2,'bath-transition-foyer',87,['jp-room-bath-foyer']);
  }
@@ -400,8 +410,7 @@ export function buildJapan(){
   const f=floorGroups[2],y=7.6;
   // Two enclosed rear rooms. The east return separates the guest bed from
   // the stair landing; a public gallery x=5.92..7.34 leads south to the hall.
-  partition(f,y,-7.5,-8,9,'x',2.8);partition(f,y,1.4,-8,8.8,'x',2.6,.6);
-  addShojiJambReturns(f,y,2,-8,2.6,'x',colliders,cameraColliders);
+  partition(f,y,-7.5,-8,9,'x',2.8);partition(f,y,1.4,-8,8.8,'x',2.6,.6,{id:'jp-guest-suite-door',kind:'pocket',bottom:.07,top:2.805});
   wall(f,y,-3,-11.5,7,'z');wall(f,y,5.8,-11.5,7,'z');
   threshold('jp-library-open-nook',[-7.5,y,-7.1],[-7.5,y,-8.9],2.8,2.85);
   // Use the continuous .070m tatami face; retain the previous aperture top.
@@ -429,9 +438,7 @@ export function buildJapan(){
  // 4F: an asymmetrical working floor, dedicated to running the bathhouse.
  {
   const f=floorGroups[3],y=11.4;
-  partition(f,y,-1,5,8,'z',2.5,-.1);partition(f,y,-1,-2.5,7,'z',2.3);partition(f,y,-1,-10.5,9,'z',2.4);
-  addShojiJambReturns(f,y,-1,4.9,2.5,'z',colliders,cameraColliders);
-  addShojiJambReturns(f,y,-1,-10.5,2.4,'z',colliders,cameraColliders);
+  partition(f,y,-1,5,8,'z',2.5,-.1,{id:'jp-operator-door',kind:'pocket'});partition(f,y,-1,-2.5,7,'z',2.3);partition(f,y,-1,-10.5,9,'z',2.4,0,{id:'jp-staff-room-door',kind:'pocket'});
   wall(f,y,-6.5,1,11,'x');wall(f,y,-6.5,-6,11,'x');
   // Laundry starts beyond a clear south stair landing, never inside it.
   partition(f,y,2,4.7,8.6,'z',2.6,-.6);partition(f,y,7,.4,10,'x',2.4,2.1);
@@ -597,12 +604,12 @@ export function buildJapan(){
  wall(district,0,28,-12,11.2,'z');wall(district,0,23.1,-17.6,9.8,'x');wall(district,0,23.1,-6.4,9.8,'x');wall(district,0,18.2,-12,11.2,'z',{width:3.2,height:2.9,offset:1.7});
  roof(roofGroup,23.1,3.82,-12,12.0,13.5,2.0);
  for(const [i,x]of [20,23.15,26.25].entries()){
-  wall(district,0,x,-13.25,2.85,'x',{width:1.35,height:2.85});
+  wall(district,0,x,-13.25,2.85,'x',{width:1.35,height:2.85,inset:{id:'jp-washroom-cubicle-'+(i+1),kind:'hinge'}});
   if(i<2)wall(district,0,x+1.56,-15.36,4.4,'z');
   // Stylised private washroom fixture, cistern and sanitary paper holder.
   G.box(district,x,.53,-16.75,.82,1.05,.3,P.cream);G.sphere(district,x,.36,-16.06,.39,P.paper,1,.8,1.4);G.torus(district,x,.57,-16.04,.30,.085,P.cream);G.cyl(district,x,.15,-16.3,.25,.3,.3,P.paper);
   obstacle(x,.55,-16.4,1.05,1.1,1.35);G.cyl(district,x+.95,.86,-15.75,.115,.115,.26,P.paper,12).rotation.z=Math.PI/2;
-  doorways.push({id:'jp-washroom-cubicle-'+(i+1),a:[x,0,-12.45],b:[x,0,-14.05],width:1.35,height:2.85});explorationTargets.push({id:'jp-washroom-private-'+(i+1),name:'Private washroom '+(i+1),position:[x,0,-14.7]});
+  doorways.push({id:'jp-washroom-cubicle-'+(i+1),a:[x,0,-12.45],b:[x,0,-14.05],width:1.35,height:2.85,closureMount:insetMounts.get('jp-washroom-cubicle-'+(i+1))});explorationTargets.push({id:'jp-washroom-private-'+(i+1),name:'Private washroom '+(i+1),position:[x,0,-14.7]});
  }
  for(const x of [20.5,23.1,25.7]){groundSolid(district,0,x,.41,-7.2,1.85,.82,1.05,P.cedar);G.box(district,x,.88,-7.2,2,.12,1.14,P.stone);G.sphere(district,x,.96,-7.2,.34,P.paper,1,.26,.8);beam(district,[x,1.0,-6.9],[x,1.38,-6.9],.035,P.gold);beam(district,[x,1.38,-6.9],[x,1.38,-7.15],.035,P.gold);G.box(district,x,2.08,-6.57,1.65,1.18,.065,0x8caaaa);for(const dx of [-.87,.87])G.box(district,x+dx,2.08,-6.52,.07,1.3,.06,P.gold);folded(district,x+.62,.96,-7.22,P.indigo,.46,.38);}
  explorationTargets.push({id:'jp-washroom-sinks',name:'Washhouse sinks and linen',position:[23.1,0,-9.1]});doorways.push({id:'jp-washhouse-entry',a:[17.2,0,-10.3],b:[19.2,0,-10.3],width:3.2,height:2.9});
@@ -613,7 +620,7 @@ export function buildJapan(){
   for(let i=0;i<4;i++)for(let j=0;j<3;j++){G.sphere(district,x-1.5+i,.61,z-1+j,.25,[0x637e4d,0x9ca46a,0x577664][(i+j)%3],1,1.25,1);if((i+j)%3===0)G.sphere(district,x-1.5+i,.87,z-1+j,.09,0xd5b481);}
  }
  // Small roofed workroom at the end of the route, open on its south side.
- G.box(district,0,.025,-34.1,9,.05,8.16,P.wood);for(const x of [-4.35,4.35]){wall(district,0,x,-34.1,8.2,'z');}wall(district,0,0,-38.2,8.7,'x');wall(district,0,0,-30,8.7,'x',{width:3.1,height:2.9});
+ G.box(district,0,.025,-34.1,9,.05,8.16,P.wood);for(const x of [-4.35,4.35]){wall(district,0,x,-34.1,8.2,'z');}wall(district,0,0,-38.2,8.7,'x');wall(district,0,0,-30,8.7,'x',{width:3.1,height:2.9,inset:{id:'jp-supplies-door',kind:'hinge',bottom:.05,top:2.9}});
  // Complete the .050m workfloor through the jamb depth: the existing floor
  // ends at -30.020, and this 20mm cap meets it above the .030m yard finish.
  G.box(district,0,.04,-29.95,3.1,.02,.14,P.wood);surface(-1.55,1.55,-30.02,-29.88,.05);

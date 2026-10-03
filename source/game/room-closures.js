@@ -9,8 +9,8 @@ const POLICY={
   'jp-women-noren':['half-curtain','Retain the fixed women’s noren and existing offset privacy screen; no duplicate closure'],
   'jp-men-wet-threshold':['full-curtain','Changing to bathing: full split cloth keeps the wet area private'],
   'jp-women-wet-threshold':['full-curtain','Changing to bathing: full split cloth keeps the wet area private'],
-  'jp-men-pool-entry':['open','Pool curb is a walk-in water entry, not a room wall'],
-  'jp-women-pool-entry':['open','Pool curb is a walk-in water entry, not a room wall'],
+  'jp-men-pool-entry':['open','Open poolside approach to a supported bathing action; the retaining basin wall is not an ordinary walking passage'],
+  'jp-women-pool-entry':['open','Open poolside approach to a supported bathing action; the retaining basin wall is not an ordinary walking passage'],
   'jp-library-open-nook':['open','Reading nook is part of the public kotatsu gathering floor'],
   'jp-guest-suite-door':['door','Sleeping suite needs opaque two-sided shoji privacy'],
   'jp-laundry-stair-foyer-door':['half-curtain','Linen workroom transition uses split service cloth, clear of stair mouth'],
@@ -92,7 +92,7 @@ const POLICY={
  france:{
   'front-entry':['door','Formal exterior paired panel doors'],
   'rear-entry':['door','Rear exterior gallery envelope gets matching paired doors'],
-  'gallery-west-rear':['half-curtain','Pastry/service room entry uses a gathered service textile'],
+  'gallery-west-rear':['half-curtain','Pastry/service room entry uses a fixed hanging service textile'],
   'gallery-west-front':['open','Public salon and mirror-gallery reception sequence'],
   'gallery-east-rear':['open','Public art/study-gallery sequence'],
   'gallery-east-front':['door','Bedroom-to-gallery opening requires full panel-door privacy'],
@@ -124,14 +124,11 @@ const PLANES={
  // French private-bath leaves swing into bare .23m orangery slab;
  // bath tiles stop at z=-6.99 and the orangery rug starts at z=-4.65.
  'wing-enfilade--1':{bottomClearance:.012},
- 'jp-men-noren':{at:5.12},'jp-women-noren':{at:5.12},
- // Clear the partition's real raised lattice face by 25mm at full travel.
- 'jp-guest-suite-door':{at:-7.70,sideOverlap:SHOJI_SIDE_OVERLAP},
- 'jp-operator-door':{at:-.70,bottomClearance:.012,sideOverlap:SHOJI_SIDE_OVERLAP},'jp-staff-room-door':{at:-.70,bottomClearance:.012,sideOverlap:SHOJI_SIDE_OVERLAP},
+ // Source-authored pocket metadata owns the wall plane and side overlap.
+ 'jp-guest-suite-door':{sideOverlap:SHOJI_SIDE_OVERLAP},
+ 'jp-operator-door':{bottomClearance:.012,sideOverlap:SHOJI_SIDE_OVERLAP},'jp-staff-room-door':{bottomClearance:.012,sideOverlap:SHOJI_SIDE_OVERLAP},
  'private-suite-entry':{bottomClearance:.012},
- 'cn-hall-west':{at:-11.46},'cn-bedroom-east':{at:-15.54},
- 'cn-archive-west':{at:-10.54},'cn-guest-west':{at:15.54},
- 'core-wing-1--5':{at:11.22,bottomClearance:.012},
+ 'core-wing-1--5':{bottomClearance:.012},
  'storage-entry':{bottomClearance:.012},
  'front-entry':{at:3.5},'private-bath-entry':{at:16.4},
  'dining-entry':{at:-5.85},'kitchen-entry':{at:-12.25}
@@ -155,9 +152,9 @@ const DOOR_MOTIONS={
  'cn-north-gate':['hinge',-1,'Inward compound gate with hinge pins within its .65 m masonry reveal'],
  'cn-west-gate':['hinge',-1,'Inward compound gate with hinge pins within its .65 m masonry reveal'],
  'cn-east-gate':['hinge',1,'Inward compound gate with hinge pins within its .65 m masonry reveal'],
- 'jp-guest-suite-door':['slide',0,'Retain shoji motion; guest screen and public side gallery make a swing unnecessary'],
- 'jp-operator-door':['slide',0,'Timber lattice office door slides clear of the narrow working gallery'],
- 'jp-staff-room-door':['slide',0,'Sleeping-room shoji stays out of the shared working gallery and bunk approach'],
+ 'jp-guest-suite-door':['slide',0,'Paired shoji retract into authored hollow partition pockets, clear of the guest screen and public gallery'],
+ 'jp-operator-door':['slide',0,'Timber lattice office door retracts into the actual hollow partition, clear of the working gallery'],
+ 'jp-staff-room-door':['slide',0,'Sleeping-room shoji retracts into the actual partition pockets, clear of the working gallery and bunk approach'],
  'jp-washroom-cubicle-1':['hinge',1,'Inward timber cubicle leaves use the empty front of the stall; the WC is farther north'],
  'jp-washroom-cubicle-2':['hinge',1,'Inward timber cubicle leaves use the empty front of the stall; no outward sweep across the sink aisle'],
  'jp-washroom-cubicle-3':['hinge',1,'Inward timber cubicle leaves use the empty front of the stall; no outward sweep across the sink aisle'],
@@ -189,7 +186,7 @@ const DOOR_MOTIONS={
  'enfilade-east':['hinge',1,'Retain tested bedroom enfilade panel-door sweep'],
  'wing-entry--1--9.5':['hinge',1,'French bath panels swing inward/west; outward swing would hit service-arcade columns'],
  'wing-enfilade--1':['hinge',-1,'Retain tested private-bath/orangery panel-door sweep'],
- 'core-wing-1--5':['slide',0,'Use a surface-track panel on the arcade face: outward swing hits columns and inward swing approaches the bedpost']
+ 'core-wing-1--5':['slide',0,'An authored in-wall pocket keeps the bedroom closure within its rebuilt reveal and clear of arcade columns and the bedpost']
 };
 const FIXED_BANNERS={
  japan:[
@@ -216,8 +213,11 @@ export function classifyRoomOpenings(lot,region){
   // Preserve its authored opening top; the rigid engine still subtracts25mm there.
   const fix=PLANES[t.id]||{},legacy=LEGACY[t.id]||{},bottom=fix.bottom??t.floorFit?.bottom??Math.max(t.a[1],t.b[1]);
   const wallPlane=t.at??(axis==='x'?(t.a[2]+t.b[2])/2:(t.a[0]+t.b[0])/2),closureMount=t.closureMount??fix.closureMount,at=closureMount?.wallPlane??fix.at??wallPlane;
+  if(p[0]==='door'&&!t.closureMount)throw new Error('Rigid opening lacks an authored inset section: '+region+'/'+t.id);
+  if(p[0]==='door'&&closureMount.kind!==(choice[0]==='slide'?'pocket':'hinge'))throw new Error('Door motion and source inset section disagree: '+t.id);
+  const interactionApproach=t.id==='jp-men-pool-entry'||t.id==='jp-women-pool-entry';
   const lateral=t.from!==undefined?(t.from+t.to)/2:axis==='x'?(t.a[0]+t.b[0])/2:(t.a[2]+t.b[2])/2;
-  return {id:legacy.id||t.id,openingId:t.id,kind:p[0],rationale:p[1],rooms:t.rooms||[],center:axis==='x'?[lateral,bottom,at]:[at,bottom,lateral],axis,closureMount:closureMount?{...closureMount,wallPlane:closureMount.wallPlane??wallPlane}:undefined,revealDepth:closureMount?.revealDepth??closureMount?.wallDepth,surfaceTrack:choice?.[0]==='slide'&&closureMount?.kind!=='pocket',trackMountOffset:at-wallPlane,width:t.width,sideOverlap:closureMount?.sideOverlap??fix.sideOverlap??0,bottomClearance:fix.bottomClearance??t.floorFit?.runningGap??0,height:t.floorFit?t.floorFit.top-bottom:fix.height??legacy.height??(t.top!==undefined?t.top-bottom:t.height),style:STYLE[region],motion:p[0]==='open'?'none':fixedOverhead?'fixed-overhead':p[0].includes('curtain')?'gather':choice[0],existingBanner,motionRationale:fixedOverhead?'Fixed hanging textile stays above actor height and never gathers automatically':p[0].includes('curtain')?'Gathered fabric stays at the jambs and has no rigid leaf swing':choice?.[2]||'Intentionally open circulation',operable:p[0]!=='open'&&!fixedOverhead,...(choice?.[1]?{swing:choice[1]}:{}),source:region==='japan'?'japan-bathhouse.js':region==='china'?'china-palace.js':region==='egypt'?'egypt-temple.js':'regions-west.js'};
+  return {id:legacy.id||t.id,openingId:t.id,kind:p[0],openingRole:interactionApproach?'interaction-approach':'structural-aperture',apertureWidth:interactionApproach?null:t.width,rationale:p[1],rooms:t.rooms||[],center:axis==='x'?[lateral,bottom,at]:[at,bottom,lateral],axis,closureMount:closureMount?{...closureMount,wallPlane:closureMount.wallPlane??wallPlane}:undefined,revealDepth:closureMount?.revealDepth??closureMount?.wallDepth,surfaceTrack:choice?.[0]==='slide'&&closureMount?.kind!=='pocket',trackMountOffset:at-wallPlane,width:t.width,sideOverlap:closureMount?.sideOverlap??fix.sideOverlap??0,bottomClearance:fix.bottomClearance??t.floorFit?.runningGap??0,height:t.floorFit?t.floorFit.top-bottom:fix.height??legacy.height??(t.top!==undefined?t.top-bottom:t.height),style:STYLE[region],motion:p[0]==='open'?'none':fixedOverhead?'fixed-overhead':p[0].includes('curtain')?'gather':choice[0],existingBanner,motionRationale:fixedOverhead?'Fixed hanging textile stays above actor height and never gathers automatically':p[0].includes('curtain')?'Gathered fabric stays at the jambs and has no rigid leaf swing':choice?.[2]||'Intentionally open circulation',operable:p[0]!=='open'&&!fixedOverhead,...(choice?.[1]?{swing:choice[1]}:{}),source:region==='japan'?'japan-bathhouse.js':region==='china'?'china-palace.js':region==='egypt'?'egypt-temple.js':'regions-west.js'};
  });
 }
 export function roomClosureSpecs(lot,region){
