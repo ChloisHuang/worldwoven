@@ -44,6 +44,7 @@ export function npcAppearance(region,id,worldSeed=1,shapeVersion=NPC_SHAPE_VERSI
 // Keep every identity salt and the resident's original locomotion cut intact.
 export function npcRoleAppearance(region,id,worldSeed=1,shapeVersion=NPC_SHAPE_VERSION){
  const look=npcAppearance(region,id,worldSeed,shapeVersion);
+ if(region==='china'&&id==='cn-archery')return {...look,clothes:0x8b3732,accent:0xc9a55d,hairStyle:'low-bun',wardrobePreset:look.bodyPreset.startsWith('masculine')?'scholar-tunic-trousers':'ruqun-jacket'};
  return region==='japan'&&id==='jp-omamori'?{...look,hairStyle:'low-bun',wardrobePreset:'miko-hakama',locomotionWardrobePreset:look.wardrobePreset}:look;
 }
 export function createAppearanceState(seed){const key='player|'+(seed>>>0),variant=Math.floor(random(key,'silhouette')*4);return{version:APPEARANCE_VERSION,npcShapeVersion:NPC_SHAPE_VERSION,seed:seed>>>0,player:{skin:weighted(skin,random(key,'skin')),hair:weighted(palettes.france.hair,random(key,'hair')),eyeColor:weighted(palettes.france.eyes,random(key,'eyes')),variant,...identity(key,variant),shapeTraits:{...DEFAULT_SHAPE_TRAITS}}};}

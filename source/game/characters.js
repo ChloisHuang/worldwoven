@@ -321,6 +321,12 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   else if(/knead|bread/.test(action||'')){const press=Math.sin(time*3.4);reach(0,-.15,1.16+press*.025,.36);reach(1,.15,1.16+Math.sin(time*3.4+.7)*.025,.36);lookX=.20;}
   else if(/cook|sushi|bake/.test(action||'')){reach(0,-.14,1.20,.34);reach(1,.16,1.24+Math.sin(time*5)*.04,.33);show('knife');lookX=.20;}
   else if(/paint|calligraphy|craft|art/.test(action||'')){const low=/calligraphy/.test(action);reach(0,-.19,1.14,.30);reach(1,.12+Math.sin(time*1.2)*.035,low?1.23:1.43+Math.sin(time*1.4)*.027,low?.34:.30);show('brush');if(!low)show('palette');lookX=low?.17:.035;}
+  else if(action?.startsWith('archery-')){
+   const draw=clamp(context?.practiceProgress??0,0,1);
+   if(action==='archery-carry'){reach(0,-.24,.98,.14);if(walking)swingArm(1,t);}
+   else if(action==='archery-check'||action==='archery-reset'){reach(0,-.17,1.14,.36);reach(1,.17,1.17+Math.sin(time*1.8)*.025,.36);lookX=.12;}
+   else{reach(0,-.19,1.29,.38);reach(1,.18,1.28+draw*.05,.34-draw*.20);lookX=.035;}
+  }
   else if(/tea/.test(action||'')){const sip=Math.pow((Math.sin(time*.9)+1)*.5,2);reach(0,-.17,1.10,.29);reach(1,.11,1.12+sip*.30,.30-sip*.145);show('cup');lookX=.09-sip*.065;}
   else if(/read|rest/.test(action||'')){reach(0,-.16,1.13,.29);reach(1,.18,1.13,.29);show('book');lookX=.22;}
   else if(/garden/.test(action||'')){reach(0,-.27,.96,.14);reach(1,.26,1.09,.29);show('can');lookX=.17;}

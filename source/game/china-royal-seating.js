@@ -1,0 +1,318 @@
+import * as THREE from 'three';
+import * as G from './geometry.js';
+
+// R17 original, solid-backed Chinese palace seating. No imported model, image,
+// texture, or traced ornament. Shapes are authored in metres, facing local +Z.
+// Geometry is assembled directly into one vertex-coloured mesh per furniture
+// instance. The cache is invalidated when the palace packer/lot owner disposes
+// a shared geometry, so subsequent lot builds never retain stale GPU resources.
+export const CHINA_ROYAL_SEATING_VERSION = 1;
+export const CHINA_ROYAL_CHAIR_SEAT_TOP = .675;
+const PALETTES = {
+  hall: {wood:0x56382d, raised:0x834d33, lacquer:0x97392f, gold:0xd7ad59, silk:0x9b3a37, border:0x28595b, thread:0xe6c984},
+  reading: {wood:0x604634, raised:0x886548, lacquer:0x517d70, gold:0xbea36a, silk:0x648c7b, border:0x3b5953, thread:0xd7d7aa},
+  throne: {wood:0x512f28, raised:0x873e2d, lacquer:0x9d392b, gold:0xd8ad52, silk:0xc29846, border:0x84392b, thread:0xf3dc9c}
+};
+const templates = new Map();
+const point = p => new THREE.Vector3(...p);
+const transform = (x=0,y=0,z=0,rx=0,ry=0,rz=0,sx=1,sy=1,sz=1) => new THREE.Matrix4().compose(
+  new THREE.Vector3(x,y,z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx,ry,rz)), new THREE.Vector3(sx,sy,sz));
+const boundsOf = b => ({minX:b.min.x,maxX:b.max.x,minY:b.min.y,maxY:b.max.y,minZ:b.min.z,maxZ:b.max.z});
+
+function assembly(palette) {
+  const positions=[],normals=[],colors=[],members=[];
+  function add(name, source, color, matrix=new THREE.Matrix4(), camera=false) {
+    let geo=source;
+    if(geo.index){geo=source.toNonIndexed();source.dispose();}
+    geo.applyMatrix4(matrix);
+    if(!geo.attributes.normal)geo.computeVertexNormals();
+    const p=geo.attributes.position,n=geo.attributes.normal,vc=geo.attributes.color,c=new THREE.Color(color),start=positions.length/9,mirrored=matrix.determinant()<0;
+    for(let k=0;k<p.count;k++){
+      // Bake mirrored members with outward triangle winding as well as normals.
+      const i=mirrored?Math.floor(k/3)*3+[0,2,1][k%3]:k;
+      positions.push(p.getX(i),p.getY(i),p.getZ(i));
+      normals.push(n.getX(i),n.getY(i),n.getZ(i));
+      colors.push(c.r*(vc?vc.getX(i):1),c.g*(vc?vc.getY(i):1),c.b*(vc?vc.getZ(i):1));
+    }
+    geo.computeBoundingBox();
+    members.push({name,triangles:p.count/3,firstTriangle:start,bounds:boundsOf(geo.boundingBox),camera});
+    geo.dispose();
+  }
+  function box(name,x,y,z,w,h,d,color=palette.wood,camera=true){add(name,new THREE.BoxGeometry(w,h,d),color,transform(x,y,z),camera);}
+  function extrusion(name,shape,depth,color=palette.wood,matrix=new THREE.Matrix4(),camera=true,bevel=.008){
+    const geo=new THREE.ExtrudeGeometry(shape,{depth,steps:1,curveSegments:7,bevelEnabled:bevel>0,bevelSegments:1,bevelSize:bevel,bevelThickness:bevel});
+    geo.translate(0,0,-depth/2);add(name,geo,color,matrix,camera);
+  }
+  function tube(name,points,r,color=palette.gold,camera=false,segments=24){
+    const curve=new THREE.CatmullRomCurve3(points.map(point),false,'centripetal');
+    add(name,new THREE.TubeGeometry(curve,segments,r,6,false),color);
+    if(camera){
+      // Segment proxies follow the solid curved rail without filling its cavity.
+      for(let i=0;i<6;i++){
+        const b=new THREE.Box3();for(let j=0;j<=4;j++)b.expandByPoint(curve.getPoint((i+j/4)/6));b.expandByScalar(r);
+        members.push({name:name+' camera segment '+(i+1),triangles:0,firstTriangle:positions.length/9,bounds:boundsOf(b),camera:true});
+      }
+    }
+  }
+  function ellipsoid(name,x,y,z,rx,ry,rz,color){add(name,new THREE.SphereGeometry(1,12,8),color,transform(x,y,z,0,0,0,rx,ry,rz));}
+  function finish(){
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+    geo.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3));
+    geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+    geo.computeBoundingBox();geo.computeBoundingSphere();
+    geo.userData={chinaRoyalSeating:true,version:CHINA_ROYAL_SEATING_VERSION};
+    return {geometry:geo,members,bounds:boundsOf(geo.boundingBox),triangles:positions.length/9};
+  }
+  return {add,box,extrusion,tube,ellipsoid,finish,palette};
+}
+
+function roundedRect(w,h,r) {
+  const s=new THREE.Shape(),x=-w/2,y=-h/2;
+  s.moveTo(x+r,y);s.lineTo(x+w-r,y);s.quadraticCurveTo(x+w,y,x+w,y+r);
+  s.lineTo(x+w,y+h-r);s.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  s.lineTo(x+r,y+h);s.quadraticCurveTo(x,y+h,x,y+h-r);
+  s.lineTo(x,y+r);s.quadraticCurveTo(x,y,x+r,y);s.closePath();return s;
+}
+
+function cloudShape(w,h) {
+  const s=new THREE.Shape();
+  s.moveTo(-w*.48,-h*.28);s.bezierCurveTo(-w*.62,-h*.10,-w*.47,h*.26,-w*.24,h*.14);
+  s.bezierCurveTo(-w*.27,h*.53,w*.17,h*.63,w*.25,h*.21);
+  s.bezierCurveTo(w*.51,h*.36,w*.66,-h*.03,w*.43,-h*.24);
+  s.quadraticCurveTo(w*.16,-h*.46,0,-h*.26);s.quadraticCurveTo(-w*.23,-h*.46,-w*.48,-h*.28);s.closePath();return s;
+}
+
+function cloudCutout(cx,cy,w,h) {
+  // A through-cut, with continuous curved walls and genuine rear faces.
+  const s=cloudShape(w,h),path=new THREE.Path();
+  for(const [i,p]of s.getPoints(8).entries())i?path.lineTo(p.x+cx,p.y+cy):path.moveTo(p.x+cx,p.y+cy);
+  path.closePath();return path;
+}
+
+function cloudRelief(a,name,x,y,z,s=1,color=a.palette.gold) {
+  a.extrusion(name,cloudShape(.30*s,.17*s),.012*s,color,transform(x,y,z),false,.003*s);
+  a.tube(name+' carved recess',[[x-.105*s,y-.010*s,z+.010*s],[x-.055*s,y+.030*s,z+.010*s],[x+.014*s,y+.025*s,z+.010*s],[x+.055*s,y-.005*s,z+.010*s]],.008*s,a.palette.raised,false,12);
+}
+
+function cushion(a,{name,w,d,bottom,top,z=0,repeat=.27}) {
+  const p=a.palette,thickness=top-bottom;
+  const solid=new THREE.ExtrudeGeometry(roundedRect(w,d,.045),{depth:thickness,steps:1,curveSegments:7,bevelEnabled:false});
+  solid.translate(0,0,-thickness/2);solid.rotateX(Math.PI/2);solid.translate(0,(bottom+top)/2,z);
+  const body=solid.index?solid.toNonIndexed():solid,bodyP=[],bodyN=[];
+  for(let i=0;i<body.attributes.position.count;i+=3){
+    if(body.attributes.normal.getY(i)>.9)continue;
+    for(let j=0;j<3;j++){const k=i+j;bodyP.push(body.attributes.position.getX(k),body.attributes.position.getY(k),body.attributes.position.getZ(k));bodyN.push(body.attributes.normal.getX(k),body.attributes.normal.getY(k),body.attributes.normal.getZ(k));}
+  }
+  if(body!==solid)body.dispose();solid.dispose();
+  const openBody=new THREE.BufferGeometry();openBody.setAttribute('position',new THREE.Float32BufferAttribute(bodyP,3));openBody.setAttribute('normal',new THREE.Float32BufferAttribute(bodyN,3));
+  a.add(name+' rounded supported cushion sides and underside',openBody,p.silk,new THREE.Matrix4(),true);
+  // Brocade is part of the contact surface: a flat, stitched field with a broad
+  // border and large woven cloud/diamond motifs, never a stack of raised tiles.
+  const grid=w>1?.034:.026,nx=Math.ceil(w/grid),nz=Math.ceil(d/grid),geo=new THREE.PlaneGeometry(w,d,nx,nz);
+  geo.rotateX(-Math.PI/2);geo.translate(0,top,z);
+  const at=geo.attributes.position,col=[],base=new THREE.Color(p.silk),thread=new THREE.Color(p.thread),border=new THREE.Color(p.border),gold=new THREE.Color(p.gold);
+  for(let i=0;i<at.count;i++){
+    let x=at.getX(i),zz=at.getZ(i)-z;
+    const cx=Math.max(-w/2+.045,Math.min(w/2-.045,x)),cz=Math.max(-d/2+.045,Math.min(d/2-.045,zz)),rCorner=Math.hypot(x-cx,zz-cz);
+    if(rCorner>.045){x=cx+(x-cx)*.045/rCorner;zz=cz+(zz-cz)*.045/rCorner;at.setXYZ(i,x,top,zz+z);}
+    const edge=Math.min(w/2-Math.abs(x),d/2-Math.abs(zz));let c=base;
+    const u=x/repeat,v=zz/repeat,dx=u-Math.round(u),dz=v-Math.round(v),r=Math.hypot(dx,dz),angle=Math.atan2(dz,dx);
+    if(edge<.040)c=gold;else if(edge<.070)c=border;
+    else if(Math.abs(r-(.22+.055*Math.cos(angle*4)))<.04||Math.abs(dx)+Math.abs(dz)<.065)c=thread;
+    col.push(c.r,c.g,c.b);
+  }
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  // This is the only top face. Clipped corner cells retain the rounded outline.
+  a.add(name+' level woven brocade',geo,0xffffff);
+  const points=[],rw=w/2-.012,rd=d/2-.012,cr=.045;
+  for(const [cx,cz,start]of[[rw-cr,rd-cr,0],[-rw+cr,rd-cr,Math.PI/2],[-rw+cr,-rd+cr,Math.PI],[rw-cr,-rd+cr,Math.PI*1.5]]){
+    for(let i=0;i<=5;i++){const t=start+i*Math.PI/10;points.push([cx+Math.cos(t)*cr,(bottom+top)/2,cz+Math.sin(t)*cr+z]);}
+  }
+  points.push(points[0]);a.tube(name+' inset piping',points,.010,p.gold,false,48);
+}
+
+function chairBack(a) {
+  const p=a.palette,s=new THREE.Shape();
+  s.moveTo(-.35,.55);s.lineTo(-.395,1.32);s.quadraticCurveTo(-.43,1.45,-.375,1.47);
+  s.bezierCurveTo(-.29,1.45,-.29,1.58,-.19,1.55);s.quadraticCurveTo(-.075,1.56,0,1.625);
+  s.quadraticCurveTo(.075,1.56,.19,1.55);s.bezierCurveTo(.29,1.58,.29,1.45,.375,1.47);
+  s.quadraticCurveTo(.43,1.45,.395,1.32);s.lineTo(.35,.55);s.closePath();
+  // Tall pierced side splats leave the central load-bearing splat intact.
+  for(const side of[-1,1]){
+    const h=new THREE.Path();h.moveTo(side*.17,.77);h.bezierCurveTo(side*.245,.72,side*.285,.85,side*.282,.96);
+    h.lineTo(side*.30,1.28);h.quadraticCurveTo(side*.30,1.39,side*.235,1.43);
+    h.quadraticCurveTo(side*.205,1.38,side*.15,1.39);h.lineTo(side*.14,1.04);h.quadraticCurveTo(side*.12,.87,side*.17,.77);h.closePath();s.holes.push(h);
+  }
+  a.extrusion('Joined pierced cloud crest and structural back splats',s,.10,p.wood,transform(0,0,-.344),false,.006);
+  a.extrusion('Inlaid central back panel',roundedRect(.228,.55,.06),.017,p.lacquer,transform(0,1.12,-.281),false,.004);
+  a.extrusion('Finished rear back panel',roundedRect(.24,.52,.045),.014,p.raised,transform(0,1.12,-.405),false,.003);
+  a.tube('Crest carved gilt lip',[[-.376,1.449,-.282],[-.285,1.487,-.282],[-.227,1.523,-.282],[-.12,1.527,-.282],[0,1.594,-.282],[.12,1.527,-.282],[.227,1.523,-.282],[.285,1.487,-.282],[.376,1.449,-.282]],.014,p.gold,false,28);
+  cloudRelief(a,'Central cloud back medallion',0,1.22,-.260,.64);
+  a.extrusion('Lower pierced back tie',cloudShape(.17,.12),.022,p.gold,transform(0,.89,-.260),false,.003);
+}
+
+function makeChair(variant) {
+  const a=assembly(PALETTES[variant]),p=a.palette;
+  a.extrusion('Rounded hardwood seat rim',roundedRect(.805,.765,.067),.09,p.wood,transform(0,.56,0,Math.PI/2),true,.005);
+  cushion(a,{name:'Inset silk seat',w:.732,d:.690,bottom:.605,top:CHINA_ROYAL_CHAIR_SEAT_TOP,repeat:.255});
+  // Cabriole silhouettes have actual thickness and meet both apron and floor.
+  for(const side of[-1,1])for(const z of[-.292,.292]){
+    const s=new THREE.Shape();s.moveTo(.272,.54);s.lineTo(.369,.54);s.bezierCurveTo(.378,.43,.323,.32,.328,.16);
+    s.quadraticCurveTo(.33,.07,.394,.045);s.lineTo(.394,0);s.lineTo(.279,0);s.quadraticCurveTo(.282,.10,.279,.20);
+    s.quadraticCurveTo(.274,.38,.272,.54);s.closePath();
+    a.extrusion((side<0?'Left':'Right')+(z<0?' rear':' front')+' curved foot and leg',s,.094,p.wood,transform(0,0,z,0,0,0,side,1,1),true,.003);
+  }
+  const apron=new THREE.Shape();apron.moveTo(-.36,.553);apron.lineTo(.36,.553);apron.lineTo(.36,.34);
+  apron.quadraticCurveTo(.26,.33,.23,.402);apron.quadraticCurveTo(.17,.462,.105,.425);apron.quadraticCurveTo(0,.34,-.105,.425);
+  apron.quadraticCurveTo(-.17,.462,-.23,.402);apron.quadraticCurveTo(-.26,.33,-.36,.34);apron.closePath();
+  a.extrusion('Joined scalloped front apron',apron,.060,p.raised,transform(0,0,.313),true,.005);
+  cloudRelief(a,'Front apron cloud carving',0,.469,.350,.55);
+  for(const side of[-1,1]){
+    a.extrusion((side<0?'Left':'Right')+' joined scalloped side apron',apron,.05,p.raised,transform(side*.326,0,0,0,Math.PI/2,0,.88,1,1),true,.004);
+    a.box('Lower side stretcher '+side,side*.307,.175,0,.055,.060,.596,p.wood);
+    a.tube('Continuous curved arm rail '+side,[[side*.345,1.19,-.34],[side*.377,1.125,-.20],[side*.379,1.043,.04],[side*.367,1.027,.225],[side*.346,1.006,.262]],.037,p.wood,true,28);
+    a.tube('Carved arm lip '+side,[[side*.352,1.205,-.30],[side*.380,1.141,-.20],[side*.382,1.063,.04],[side*.369,1.049,.212]],.010,p.gold,false,20);
+    const support=new THREE.Shape();support.moveTo(.145,.588);support.lineTo(.25,.588);support.quadraticCurveTo(.25,.79,.273,.923);
+    support.quadraticCurveTo(.30,1.049,.211,1.041);support.quadraticCurveTo(.13,1.017,.17,.931);
+    support.quadraticCurveTo(.211,.90,.225,.956);support.quadraticCurveTo(.179,.80,.145,.588);support.closePath();
+    a.extrusion('Carved cloud front arm support '+side,support,.075,p.raised,transform(side*.356,0,0,0,-Math.PI/2),true,.004);
+  }
+  a.box('Rear lower cross stretcher',0,.175,-.297,.64,.060,.055,p.wood);
+  chairBack(a);return a.finish();
+}
+
+function throneBack(a) {
+  const p=a.palette,s=new THREE.Shape();
+  s.moveTo(-1.565,1.20);s.lineTo(-1.61,2.71);s.quadraticCurveTo(-1.62,2.90,-1.40,2.88);
+  s.bezierCurveTo(-1.24,2.85,-1.23,3.08,-.98,3.035);s.quadraticCurveTo(-.78,2.99,-.65,3.10);
+  s.quadraticCurveTo(-.34,3.05,-.18,3.18);s.quadraticCurveTo(0,3.255,.18,3.18);
+  s.quadraticCurveTo(.34,3.05,.65,3.10);s.quadraticCurveTo(.78,2.99,.98,3.035);
+  s.bezierCurveTo(1.23,3.08,1.24,2.85,1.40,2.88);s.quadraticCurveTo(1.62,2.90,1.61,2.71);
+  s.lineTo(1.565,1.20);s.closePath();
+  for(const side of[-1,1]){
+    s.holes.push(cloudCutout(side*1.075,2.52,.55,.42));
+    const h=new THREE.Path();h.moveTo(side*.82,1.62);h.lineTo(side*1.35,1.62);h.lineTo(side*1.38,2.03);
+    h.quadraticCurveTo(side*1.18,2.24,side*.98,2.12);h.quadraticCurveTo(side*.82,2.04,side*.82,1.62);h.closePath();s.holes.push(h);
+  }
+  a.extrusion('Joined pierced crown and dragon back frame',s,.184,p.wood,transform(0,0,-.782),false,.013);
+  const field=new THREE.Shape();field.moveTo(-.65,1.45);field.lineTo(.65,1.45);field.lineTo(.65,2.63);
+  field.quadraticCurveTo(.64,2.88,.40,2.87);field.quadraticCurveTo(0,3.08,-.40,2.87);field.quadraticCurveTo(-.64,2.88,-.65,2.63);field.closePath();
+  a.extrusion('Imperial lacquer central back field',field,.044,p.lacquer,transform(0,0,-.658),false,.01);
+  a.tube('Continuous carved crown lip',[[-1.54,2.77,-.664],[-1.35,2.81,-.664],[-1.15,2.99,-.664],[-.98,2.97,-.664],[-.67,3.036,-.664],[-.39,3.035,-.664],[0,3.19,-.664],[.39,3.035,-.664],[.67,3.036,-.664],[.98,2.97,-.664],[1.15,2.99,-.664],[1.35,2.81,-.664],[1.54,2.77,-.664]],.030,p.gold,false,40);
+  for(const side of[-1,1]){
+    a.tube('Back-frame fluted upright '+side,[[side*1.50,1.34,-.669],[side*1.51,1.98,-.669],[side*1.53,2.62,-.669]],.024,p.gold,false,12);
+    cloudRelief(a,'Back openwork tie cloud '+side,side*1.07,2.235,-.647,1.45);
+  }
+  // Single coiled dragon relief: an original continuous body with a whiskered
+  // head, attached legs and antler crown; each stroke sits on its lacquer field.
+  const zz=-.603;
+  a.tube('Coiling central dragon relief',[[-.36,1.73,zz],[-.49,1.96,zz],[-.26,2.05,zz],[.25,1.99,zz],[.43,2.22,zz],[.23,2.41,zz],[-.17,2.33,zz],[-.28,2.51,zz],[-.06,2.68,zz],[.19,2.67,zz]],.065,p.gold,false,40);
+  a.ellipsoid('Central dragon brow',.23,2.665,zz+.009,.14,.090,.060,p.gold);
+  a.ellipsoid('Central dragon long muzzle',.335,2.612,zz+.012,.13,.050,.060,p.gold);
+  a.ellipsoid('Central dragon visible eye',.255,2.691,zz+.066,.018,.014,.010,p.wood);
+  for(const dx of[0,.13])a.tube('Central dragon antler '+dx,[[.13+dx,2.718,zz],[.08+dx,2.83,zz],[.14+dx,2.88,zz]],.021,p.gold,false,10);
+  a.tube('Central dragon whisker',[[.407,2.62,zz],[.51,2.72,zz],[.54,2.64,zz]],.012,p.thread,false,12);
+  for(const [x,y,sign]of[[-.24,2.02,-1],[.15,2.36,1]]){
+    a.tube('Central dragon joined claw '+sign,[[x,y,zz],[x-.13,y+sign*.12,zz],[x-.07,y+sign*.21,zz]],.025,p.gold,false,12);
+    for(const toe of[-1,1])a.tube('Central dragon toe '+sign+' '+toe,[[x-.07,y+sign*.20,zz],[x+.025+toe*.042,y+sign*.21+toe*.022,zz]],.013,p.gold,false,4);
+  }
+  cloudRelief(a,'Lower throne-back cloud',0,1.64,-.601,1.65);
+  a.extrusion('Finished rear throne inset',roundedRect(1.38,1.28,.15),.012,p.raised,transform(0,2.17,-.88),false,.002);
+}
+
+function dragonArm(a,side) {
+  const p=a.palette,x=side*1.385;
+  a.tube('Sculpted dragon arm body '+side,[[x,2.15,-.745],[side*1.41,2.10,-.49],[side*1.42,1.925,-.13],[side*1.405,1.93,.23],[x,2.018,.50]],.101,p.raised,true,32);
+  a.tube('Joined dragon gold dorsal ridge '+side,[[x,2.225,-.72],[side*1.42,2.17,-.46],[side*1.43,2.01,-.10],[side*1.41,2.02,.24],[x,2.105,.50]],.032,p.gold,false,28);
+  a.ellipsoid('Sculpted dragon head '+side,x,2.035,.535,.139,.142,.176,p.gold);
+  a.ellipsoid('Long dragon muzzle '+side,x,1.971,.697,.12,.071,.136,p.gold);
+  a.ellipsoid('Dragon lower jaw '+side,x,1.91,.657,.095,.04,.14,p.raised);
+  for(const edge of[-1,1]){
+    a.ellipsoid('Dragon eye '+side+' '+edge,x+edge*.114,2.064,.586,.018,.022,.032,p.wood);
+    a.tube('Dragon antler '+side+' '+edge,[[x+edge*.076,2.139,.49],[x+edge*.094,2.27,.40],[x+edge*.110,2.308,.45]],.027,p.gold,false,12);
+    a.tube('Dragon whisker '+side+' '+edge,[[x+edge*.078,1.997,.762],[x+edge*.136,2.025,.76],[x+edge*.133,2.075,.683]],.017,p.thread,false,12);
+  }
+  const support=new THREE.Shape();support.moveTo(-.14,1.23);support.lineTo(.14,1.23);support.quadraticCurveTo(.17,1.40,.09,1.57);
+  support.quadraticCurveTo(.01,1.75,.14,1.96);support.lineTo(-.11,1.96);support.quadraticCurveTo(-.24,1.73,-.11,1.54);support.quadraticCurveTo(-.03,1.37,-.14,1.23);support.closePath();
+  a.extrusion('Joined dragon front arm support '+side,support,.16,p.wood,transform(x,0,.49),true,.01);
+  a.tube('Dragon support carved vein '+side,[[x,1.25,.582],[x-.022,1.46,.582],[x-.063,1.66,.582],[x+.04,1.91,.582]],.022,p.gold,false,18);
+}
+
+function makeThrone() {
+  const a=assembly(PALETTES.throne),p=a.palette;
+  // Same 3.3 × 1.7 base, touching the existing dais at local .36. The existing
+  // hall owns that dais and its routes; this builder never alters navigation.
+  a.extrusion('Throne broad stepped foot plinth',roundedRect(3.27,1.67,.08),.14,p.wood,transform(0,.43,0,Math.PI/2),true,.006);
+  a.extrusion('Throne gilt plinth bead',roundedRect(3.19,1.60,.07),.060,p.gold,transform(0,.525,0,Math.PI/2),true,.004);
+  a.extrusion('Throne upper stepped plinth',roundedRect(3.08,1.49,.07),.09,p.raised,transform(0,.591,0,Math.PI/2),true,.004);
+  for(const side of[-1,1])for(const z of[-.58,.58]){
+    const s=new THREE.Shape();s.moveTo(1.23,1.28);s.lineTo(1.52,1.28);s.quadraticCurveTo(1.54,1.06,1.41,.89);
+    s.quadraticCurveTo(1.36,.73,1.50,.63);s.lineTo(1.19,.63);s.quadraticCurveTo(1.26,.81,1.20,.98);s.lineTo(1.23,1.28);s.closePath();
+    a.extrusion('Throne carved support foot '+side+' '+z,s,.24,p.wood,transform(0,0,z,0,0,0,side,1,1),true,.012);
+  }
+  const apron=new THREE.Shape();apron.moveTo(-1.46,1.27);apron.lineTo(1.46,1.27);apron.lineTo(1.46,.78);
+  apron.quadraticCurveTo(1.12,.76,.99,.95);apron.quadraticCurveTo(.73,1.08,.58,.92);apron.quadraticCurveTo(0,.67,-.58,.92);
+  apron.quadraticCurveTo(-.73,1.08,-.99,.95);apron.quadraticCurveTo(-1.12,.76,-1.46,.78);apron.closePath();
+  a.extrusion('Throne joined scalloped front apron',apron,.135,p.raised,transform(0,0,.678),true,.009);
+  for(const x of[-.89,0,.89])cloudRelief(a,'Throne front apron carving '+x,x,1.082,.767,x?1.45:1.9);
+  for(const side of[-1,1])a.box('Throne structural side apron '+side,side*1.43,1.073,0,.13,.36,1.21,p.raised);
+  a.extrusion('Throne rounded seat frame',roundedRect(3.09,1.52,.11),.14,p.wood,transform(0,1.285,0,Math.PI/2),true,.007);
+  cushion(a,{name:'Imperial gold brocade',w:2.535,d:1.395,bottom:1.355,top:1.49,z:.007,repeat:.43});
+  throneBack(a);for(const side of[-1,1])dragonArm(a,side);return a.finish();
+}
+
+function template(key) {
+  if(templates.has(key))return templates.get(key);
+  const t=key==='throne'?makeThrone():makeChair(key);
+  t.geometry.addEventListener('dispose',()=>{if(templates.get(key)===t)templates.delete(key);});templates.set(key,t);return t;
+}
+
+function instantiate(parent,key,{x,y,z,yaw,id}) {
+  const t=template(key),root=new THREE.Group();root.name=key==='throne'?'正殿 · 双龙雕云宝座':key==='reading'?'静宜寝殿 · 青锦雕云阅读椅':'正殿 · 朱锦雕云扶手椅';
+  root.position.set(x,y,z);root.rotation.y=yaw;parent?.add(root);
+  const mesh=new THREE.Mesh(t.geometry,G.material(0xffffff,{vertexColors:true}));mesh.name=root.name+' / joined carved solid and woven silk';mesh.castShadow=mesh.receiveShadow=true;root.add(mesh);
+  root.userData.furnitureKind=key==='throne'?'throne':'chair';root.userData.seatTopLocal=key==='throne'?1.49:CHINA_ROYAL_CHAIR_SEAT_TOP;
+  root.userData.royalSeating={version:CHINA_ROYAL_SEATING_VERSION,id,original:true,variant:key,frontAxis:'+Z',colliderFootprint:key==='throne'?[3.3,1.7]:[.9,.9],seatTopLocal:root.userData.seatTopLocal,meshCount:1,triangles:t.triangles,localBounds:{...t.bounds},members:t.members.map(v=>({...v,bounds:{...v.bounds}})),geometryShared:true,disposal:'Shared geometry invalidates its template cache on dispose; compatible with packStatic and whole-lot disposal',backFaces:true,throughCutOpenwork:true};
+  return root;
+}
+
+/** Drop-in China-only chair. Its .675 contact height is relative to y (default .2). */
+export function buildChinaRoyalChair(parent,{x=0,y=.2,z=0,yaw=0,variant='hall',id='china-royal-chair'}={}) {
+  if(!['hall','reading'].includes(variant))throw new Error('Unknown China chair variant: '+variant);
+  return instantiate(parent,variant,{x,y,z,yaw,id});
+}
+
+/** Hall-local builder. Keep the old dais/screen and the two old collider boxes. */
+export function buildChinaDragonThrone(parent,{x=0,y=0,z=-8,yaw=0,id='china-dragon-throne'}={}) {
+  return instantiate(parent,'throne',{x,y,z,yaw,id});
+}
+
+function cameraTransform(local,{center=[0,0,0],yaw=0,owner='china-royal-seat'}={}) {
+  const c=Math.cos(yaw),s=Math.sin(yaw);
+  return local.map((p,i)=>{
+    const xs=[],zs=[];for(const x of[p.minX,p.maxX])for(const z of[p.minZ,p.maxZ]){xs.push(center[0]+c*x+s*z);zs.push(center[2]-s*x+c*z);}
+    return {minX:Math.min(...xs),maxX:Math.max(...xs),minY:center[1]+p.minY,maxY:center[1]+p.maxY,minZ:Math.min(...zs),maxZ:Math.max(...zs),owner,part:p.name||'solid-'+i};
+  });
+}
+
+/** World-space occupied-chair camera solids; does not construct any geometry. */
+export function chinaRoyalChairCameraParts(options={}) {
+  const box=(name,minX,maxX,minY,maxY,minZ,maxZ)=>({name,minX,maxX,minY,maxY,minZ,maxZ});
+  const parts=[box('seat and apron',-.41,.41,.335,.675,-.39,.39),box('central back splat',-.135,.135,.56,1.555,-.414,-.253),box('cloud crest',-.42,.42,1.42,1.64,-.403,-.264)];
+  for(const side of[-1,1]){
+    const edge=side*.35;
+    parts.push(box('rear back upright '+side,edge-.055,edge+.055,.56,1.44,-.402,-.282));
+    parts.push(box('front arm support '+side,edge-.052,edge+.052,.59,1.055,.12,.287));
+    for(const [y0,y1,z0,z1]of[[1.07,1.23,-.375,-.15],[1.01,1.16,-.19,.06],[.965,1.09,.03,.30]])parts.push(box('curved arm rail '+side,edge-.069,edge+.069,y0,y1,z0,z1));
+    for(const z of[-.292,.292])parts.push(box('curved foot '+side+' '+z,edge-.09,edge+.052,0,.53,z-.05,z+.05));
+  }
+  return cameraTransform(parts,options);
+}
+
+/** Throne camera solids, preserving the open space above its cushion. */
+export function chinaDragonThroneCameraParts(options={}) {
+  const parts=[{name:'stepped throne base',minX:-1.65,maxX:1.65,minY:.36,maxY:1.49,minZ:-.85,maxZ:.85},{name:'pierced crown and back',minX:-1.65,maxX:1.65,minY:1.20,maxY:3.24,minZ:-.89,maxZ:-.51}];
+  for(const side of[-1,1])parts.push({name:'sculpted dragon arm '+side,minX:side*1.385-.16,maxX:side*1.385+.16,minY:1.24,maxY:2.34,minZ:-.80,maxZ:.85});
+  return cameraTransform(parts,{center:[0,0,-8],...options});
+}
