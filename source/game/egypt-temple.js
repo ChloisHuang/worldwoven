@@ -1,5 +1,6 @@
 import {addInsetClosureSection} from './inset-closures.js';
 import {registerNightFixture} from './night-lighting.js';
+import {addAnubisGuardian} from './egypt-ritual-sculpture.js';
 import * as THREE from 'three';
 import {material as celMaterial} from './geometry.js?rev=R7-20261002';
 
@@ -437,7 +438,7 @@ export function buildEgypt(){
   for(const x of [-22.7,-17.3])roomWall(judgment,x,2.4,8.3,2.5,4.8,.3);
   roomWall(judgment,-20,4.18,8.3,3,1.24,.3);
   roomRoof(-20,4.95,2,7.9,12.9);
-  jackalStatue(judgment,-20,0,-2.15,1);volume(colliders,-20,2.2,-2.15,1.9,4.4,1.9);volume(cameraColliders,-20,2.2,-2.15,1.9,4.4,1.9);
+  addAnubisGuardian(judgment,mat,-20,0,-2.15);volume(colliders,-20,2.2,-2.15,1.9,4.4,1.9);volume(cameraColliders,-20,2.2,-2.15,1.9,4.4,1.9);
   balance(judgment,-20,0,2.1);volume(colliders,-20,.9,2.1,2.5,1.8,1.15);volume(cameraColliders,-20,.9,2.1,2.5,1.8,1.15);
   mural(judgment,-23.62,2.2,1.1,8.4,3.55,Math.PI/2,3);mural(judgment,-16.38,2.2,1.1,8.4,3.55,-Math.PI/2,1);
   const eye=new THREE.Group();eye.position.set(-23.50,2.6,-1);eye.rotation.y=Math.PI/2;judgment.add(eye);box(eye,0,0,0,4.3,3.1,.05,C.edge);
