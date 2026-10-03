@@ -47,6 +47,13 @@ exports.run=async({state,T,Orders,furniture,doors,frame,until,card,key,report})=
   capture=(name,[position,target])=>{if(frames.some(f=>f.name===name))return;camera.position.set(...position);camera.lookAt(new T.Vector3(...target));const vis=state.npcs.map(n=>[n.root,n.root.visible]);for(const [root]of vis)root.visible=Math.abs(root.position.y-target[1])<4;state.lot.group.traverse(o=>{if(o.userData.serviceItemId){vis.push([o,o.visible]);const actor=state.npcs.find(n=>n.station.id===o.userData.visitId);if(actor)o.visible=actor.root.visible;}});scene.updateMatrixWorld(true);renderer.render(scene,camera);renderer.getContext().finish();assert.equal(renderer.getContext().getError(),0);fs.writeFileSync(path.join(output,name+'.png'),canvas.toBuffer('image/png'));for(const [object,v]of vis)object.visible=v;frames.push({name,position,target});};
  }
  try{
+  if(process.env.RECEPTION_LEDGER_FRAME==='1'){
+   frame(20);const clerk=state.npcs.find(n=>n.station.id==='jp-welcome'),brush=clerk.root.userData.tools.brush;
+   assert.equal(clerk.serviceTask.orderJobId,initialIds[0]+':register');assert.equal(clerk.getPoseMetrics().action,'calligraphy');assert.equal(brush.visible,true);assert.equal(clerk.root.userData.tools.cloth.visible,false);
+   capture?.('reception-ledger-writing',[[-4,2.25,4.8],[-5.4,1.15,6.35]]);
+   clerk.root.updateWorldMatrix(true,true);const mesh=brush.children[0],tip=mesh.localToWorld(new T.Vector3(0,mesh.geometry.boundingBox.min.y,0));console.log(JSON.stringify({penTip:tip.toArray(),paperTop:1.191}));assert.ok([tip.x,tip.y,tip.z].every(Number.isFinite));assert.ok(tip.x>-5.79&&tip.x<-4.99&&tip.z>6.13&&tip.z<6.60,'Pen tip lies over open ledger paper');assert.ok(Math.abs(tip.y-1.191)<.035,'Pen reaches the paper surface');
+   report.status='PASS';report.scope='One actual main registration frame, existing calligraphy brush, open paper contact; prior route/order/lifecycle evidence reused';report.penTip=tip.toArray();report.frames=frames;report.maxRSSMiB=process.resourceUsage().maxRSS/1024;return;
+  }
   until(()=>state.japanService.state().staffLife.active?.phase==='preparing',4000);assert.ok(handoff);
   // Actual player UI navigation from the normal arrival spawn to the counter.
   card().onclick();until(()=>!state.path.length,2400);frame(2);key('KeyE');card().onclick();playerVisitId=state.japanPlayerService.state().visit.id;

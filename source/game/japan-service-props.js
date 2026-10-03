@@ -69,7 +69,7 @@ export function createJapanServiceProps(parent) {
   if(item.location.id==='menService')return [-4.2+lane,4.48,-3.1];
   if(item.location.id==='womenService')return [1.35+lane,4.48,-3.1];
   if(item.location.id==='dining')return v.mealPoint||[v.diningPoint[0]+.5,v.diningPoint[1]+.60,v.diningPoint[2]];
-  return [P.tokenTray[0]+.23,P.tokenTray[1]+.065,P.tokenTray[2]];
+  return [P.tokenTray[0]-.44,P.tokenTray[1]+.065,P.tokenTray[2]];
  }
  return {
   update(state,actorById,staffMeals=[]) {
