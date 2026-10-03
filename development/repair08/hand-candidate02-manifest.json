@@ -1,0 +1,11 @@
+{
+  "time": "2026-10-03T08:24Z",
+  "status": "syntax checked; no candidate02 execution",
+  "onlyChangedSource": "source/game/characters.js",
+  "parentSnapshot": "/workspace/shared/worldwoven-source-door-bath-checkpoint-07/source",
+  "beforeSha256": "8a25e3595313bf26658711007ed73f4342ef987ec4edb459b3a446bc7f185b8e",
+  "afterSha256": "601b6f4777a9145ac463bf23a05aac98a3816e44b120d630bf4982bf0f731009",
+  "probeSha256": "1aca7e6bcaffe651be5e28a2c7deaa9c59fe3c0633780c46d57705722a270984",
+  "delta": "Right palm now follows the actual deformed thigh triangle centroid and tangent normal; fingers point along the leg projected on that triangle. Contact4mm measured along surface normal, not a lifted hand. Left forearm placement/8cm ledge fitter and hip/sole/back untouched. Original hand01 FAIL preserved.",
+  "validation": "Same24 body/leg/pool cases and unchanged -3mm leg penetration gate; add actual triangle identity and palm-to-support-normal angle. Still requires same-camera pixels and male/female leg endpoints."
+}

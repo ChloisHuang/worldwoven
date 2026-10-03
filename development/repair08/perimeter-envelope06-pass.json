@@ -1,0 +1,31 @@
+{
+  "status": "PASS",
+  "scope": "Exact full China production wall/gate meshes, closed state, short rays restricted to enclosing-wall thickness. All four sides, four heights, regular spans plus every gate jamb and south masonry pier. Not a visual or movement approval.",
+  "source": "/workspace/shared/worldwoven-source-door-bath-checkpoint-06/source",
+  "hashes": {
+    "china-palace.js": "5fce85bfc95fe8b92247638906791ab68a8e60fd5fba3d0850717c3b0bee45a7",
+    "automatic-doors.js": "631bc1f912fa4a5de8d7b0afd975db485d61cd7643486f0a58fe325404b474b0",
+    "room-closures.js": "e418cd6d9a10c63aa782a8122205083217b1c407a5d0d426fab2543555601aea",
+    "inset-closures.js": "869a0c43bf27479d697ddb57d70b7b1fb1babaf18ea41e55067ca253af8f28fb"
+  },
+  "counts": {
+    "walls": 4,
+    "gates": 6,
+    "rays": 5744,
+    "failures": 0
+  },
+  "failures": [],
+  "resource": {
+    "status": "PASS",
+    "command": [
+      "node",
+      "--experimental-vm-modules",
+      "qa/china-insets/perimeter-envelope.cjs"
+    ],
+    "exit": 0,
+    "seconds": 30.438614293000683,
+    "peakObservedTreeRSSBytes": 468086784,
+    "maxProcesses": 2,
+    "termination": null
+  }
+}

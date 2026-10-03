@@ -1,0 +1,12 @@
+{
+  "status": "FAIL",
+  "command": [
+    "node",
+    "/workspace/shared/worldwoven-r17-bath-repair/check-onsen-hands.mjs"
+  ],
+  "exit": 1,
+  "seconds": 3.8224998059995414,
+  "peakObservedTreeRSSBytes": 168927232,
+  "maxProcesses": 2,
+  "termination": null
+}
