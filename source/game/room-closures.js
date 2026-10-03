@@ -122,9 +122,9 @@ const PLANES={
  // bath tiles stop at z=-6.99 and the orangery rug starts at z=-4.65.
  'wing-enfilade--1':{bottomClearance:.012},
  'jp-men-noren':{at:5.12},'jp-women-noren':{at:5.12},
- // Clear the partition's real raised lattice face by 25mm at full travel.
- 'jp-guest-suite-door':{at:-7.70,sideOverlap:SHOJI_SIDE_OVERLAP},
- 'jp-operator-door':{at:-.70,bottomClearance:.012,sideOverlap:SHOJI_SIDE_OVERLAP},'jp-staff-room-door':{at:-.70,bottomClearance:.012,sideOverlap:SHOJI_SIDE_OVERLAP},
+ // Authored hollow partitions own the shoji wall plane and overlap.
+ 'jp-guest-suite-door':{sideOverlap:SHOJI_SIDE_OVERLAP},
+ 'jp-operator-door':{bottomClearance:.012,sideOverlap:SHOJI_SIDE_OVERLAP},'jp-staff-room-door':{bottomClearance:.012,sideOverlap:SHOJI_SIDE_OVERLAP},
  'private-suite-entry':{bottomClearance:.012},
  'cn-hall-west':{at:-11.46},'cn-bedroom-east':{at:-15.54},
  'cn-archive-west':{at:-10.54},'cn-guest-west':{at:15.54},
@@ -146,9 +146,9 @@ const LEGACY={
 // swing +1 = negative world normal (−Z for axis X, −X for axis Z); −1 reverses.
 // New hinge choices remain candidates pending full swept-room/controller QA.
 const DOOR_MOTIONS={
- 'jp-guest-suite-door':['slide',0,'Retain shoji motion; guest screen and public side gallery make a swing unnecessary'],
- 'jp-operator-door':['slide',0,'Timber lattice office door slides clear of the narrow working gallery'],
- 'jp-staff-room-door':['slide',0,'Sleeping-room shoji stays out of the shared working gallery and bunk approach'],
+ 'jp-guest-suite-door':['slide',0,'Paired shoji retract into hollow partition pockets clear of the guest screen and public gallery'],
+ 'jp-operator-door':['slide',0,'Timber lattice office door retracts inside its hollow partition clear of the working gallery'],
+ 'jp-staff-room-door':['slide',0,'Sleeping-room shoji retracts inside its partition pockets clear of the working gallery and bunk approach'],
  'jp-washroom-cubicle-1':['hinge',1,'Inward timber cubicle leaves use the empty front of the stall; the WC is farther north'],
  'jp-washroom-cubicle-2':['hinge',1,'Inward timber cubicle leaves use the empty front of the stall; no outward sweep across the sink aisle'],
  'jp-washroom-cubicle-3':['hinge',1,'Inward timber cubicle leaves use the empty front of the stall; no outward sweep across the sink aisle'],
