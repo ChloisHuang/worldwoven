@@ -9,3 +9,5 @@ Run `WHOLE_FACE=1 OUT_DIR=<fresh subdirectory> node render.mjs` with the existin
 Status: whole-face visual review pending. Parameter endpoints, broader character coverage, production integration and deployment are intentionally not acceptance claims. The current output is a representative single adult, not an approved complete character system.
 
 Current proportion checkpoint: one neutral front and three-quarter render completed with the existing bounded runtime; no shader/GL errors and identity, bones and clothing checks unchanged. These are construction checks, not aesthetic approval. Cheek-to-mouth volume and the hair framing remain under visual review.
+
+The compact proportion study now concentrates cheek support below the outer eye and recesses the inner cheek beside the nose. Upper/lower lip and chin support remain part of the shared front surface. A single original side-part variant lifts the roots and introduces tapered framing bundles over a fitted scalp; the rest of the hairstyle library is untouched. The latest same-camera front/three-quarter images are review evidence only.
