@@ -87,11 +87,11 @@ export function createJapanServiceRoutine({npcs,furniture,planPath,doors,moveAct
   tell(n,task.label);
   if(task.claim&&!facilities.request(task.claim,n.station.id)){task.waited=(task.waited||0)+dt;if(task.waited>25){interruption={id:task.claim,resume:stage,wait:wait.slice()};enter('yielding');}return;}
   if(!task.arrived){
-   if(near(n.root.position,task.to)){task.arrived=true;n.route=[];
+   if(near(n.root.position,task.to,task.handoff?.025:.18)){task.arrived=true;n.route=[];
     if(task.mount){n.serviceMount=task.mount;n.root.position.set(...task.mount.anchor);n.root.rotation.y=task.mount.yaw;}
    }else{
     if(!task.routeSet){n.route=planPath(n.root.position,point(task.to),.25);task.routeSet=true;}
-    const step=doors.routeStep(n.route,n.root.position,.12);
+    const step=doors.routeStep(n.route,n.root.position,task.handoff?.018:.12);
     if(!step.waiting&&step.waypoint){const p=step.waypoint,dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz);
      const player=playerState.position,playerAhead=player&&Math.abs(player.y-n.root.position.y)<.6&&Math.hypot(player.x-n.root.position.x,player.z-n.root.position.z)<.68&&(player.x-n.root.position.x)*dx+(player.z-n.root.position.z)*dz>0;
      const followGap=task.follow&&task.follow.root.position.distanceTo(n.root.position)<1.05;
