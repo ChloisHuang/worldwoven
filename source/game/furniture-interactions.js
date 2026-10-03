@@ -85,7 +85,7 @@ function changingDetails(parent,d,region){
  const g=new THREE.Group();g.name=region+' cultural changing place';g.userData.furnitureInteraction='wardrobe';parent.add(g);const[x,y,z]=d.center;
  // Details sit within existing storage footprints, never creating a new obstacle.
  if(d.style==='dressing'){
-  if(region==='china')g.position.y=d.center[1]-.2; // Entire dressing vignette follows its floor.
+  if(region==='china'){g.position.set(2*x,d.center[1]-.2,2*z);g.rotation.y=Math.PI;} // East-wall mirror and silks face the room on their actual floor.
   const frame=G.box(g,x-.23,1.83,z+.67,.065,1.38,.80,0xc8a15d);frame.name='Dressing mirror frame';G.box(g,x-.184,1.83,z+.67,.014,1.20,.65,0xa0b7ad).name='Inset polished bronze mirror';
   for(let i=0;i<3;i++)G.box(g,x+.10,1.07+i*.065,z+.79,.38,.06,.58,[0x9b6768,0xbba47a,0x738e82][i]).name='Folded embroidered silk';
  }else if(d.style==='armoire'){
