@@ -88,7 +88,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   if(!task.arrived) {
    if(task.yieldToId&&!task.avoidRoute?.length){
     const other=actors.get(task.yieldToId),p=other?.root.position,yieldAt=task.yieldAt;
-    if(p&&tasks.has(task.yieldToId)&&!tasks.get(task.yieldToId).arrived&&Math.abs(p.y-yieldAt[1])<.7&&(p.x-yieldAt[0])*task.yieldDirection[0]+(p.z-yieldAt[2])*task.yieldDirection[1]>-.9)return;
+    if(p&&tasks.has(task.yieldToId)&&!tasks.get(task.yieldToId).arrived&&(p.x-yieldAt[0])*task.yieldDirection[0]+(p.z-yieldAt[2])*task.yieldDirection[1]>-.9)return;
     task.yieldToId=null;task.routeSet=false;task.stalled=0;task.retries=0;
    }
    if(near(n.root.position,task.to)) {
@@ -115,7 +115,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
      const obstacles=[...npcs.filter(a=>a!==n).map(a=>a.root.position),...(playerState.position?[playerState.position]:[])];
      const blocker=obstacles.find(p=>Math.abs(p.y-n.root.position.y)<.65&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<.65&&(p.x-n.root.position.x)*dx+(p.z-n.root.position.z)*dz>.005&&Math.abs((p.x-n.root.position.x)*dz-(p.z-n.root.position.z)*dx)/Math.max(d,1e-10)<.52);
      const blockerId=blocker&&npcs.find(a=>a.root.position===blocker)?.station.id;
-     if(blocker&&(!blockerId||!tasks.has(blockerId)||tasks.get(blockerId).arrived||n.station.id>blockerId)&&!task.avoidRoute?.length&&d>1e-10&&Math.abs(blocker.y-n.root.position.y)<.15) {
+     if(blocker&&(!blockerId||!tasks.has(blockerId)||tasks.get(blockerId).arrived||n.station.id>blockerId)&&!task.avoidRoute?.length&&d>1e-10) {
       // A real side-step through checked floor space lets opposite traffic pass
       // at the stair landing. Never change a route by snapping through an actor.
       const colliders=lot.colliders.concat(safety(n));
@@ -130,7 +130,9 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
        const trail=task.trail||[];
        for(let i=trail.length-1;i>=0&&!task.avoidRoute?.length;i--){
         const p=trail[i],distance=Math.hypot(p[0]-n.root.position.x,p[2]-n.root.position.z);
-        if(Math.abs(p[1]-n.root.position.y)>.15||distance>12)break;
+        // The same saved footsteps safely lead down a sloped stair to its
+        // landing; equal-height-only retreat strands opposing stair traffic.
+        if(distance>12)break;
         if(distance<1.2)continue;
         const forward=trail[i+1]||n.root.position.toArray(),tx=forward[0]-p[0],tz=forward[2]-p[2],length=Math.hypot(tx,tz);
         if(length<.01)continue;
