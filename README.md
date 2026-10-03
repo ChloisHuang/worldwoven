@@ -1,3 +1,7 @@
+# Private repair WIP checkpoint 01 — not published
+
+See [REPAIR-WIP.md](REPAIR-WIP.md). The following documentation describes the preserved R16 release, not acceptance of this unfinished repair.
+
 # Worldwoven · 四方生活
 
 An original cel-shaded cultural life and exploration game. The repository name supports more regions in future; the current public game includes Japan, China, Egypt and France.
