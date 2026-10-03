@@ -279,16 +279,58 @@ function buildFrance(g,masc,preset){
  if(over)patch(g,'court-cream-front-inset',(u,v)=>{const y=mix(.135,1.025,v),w=mix(.119,.023,v),x=mix(-w,w,u);return[x,y,frontOfLoft(rings,x,y)+.005];},C.collar,10,24);
  belt(g,'court-waist-ribbon',1.077,.038,.14);ribbon(g,'court-lace-front',[[0,1.267,.098],[0,1.18,.097],[0,1.09,.095]],.023,C.collar);
 }
+const BODY_SCULPT={
+ 'feminine-balanced':{hip:1.055,waist:.925,chest:1.0,shoulder:.90,depth:1.01},
+ 'feminine-slender':{hip:1.015,waist:.875,chest:.965,shoulder:.87,depth:.955},
+ 'masculine-lean':{hip:.947,waist:.98,chest:1.075,shoulder:.96,depth:1.01},
+ 'masculine-broad':{hip:1.015,waist:1.05,chest:1.125,shoulder:.99,depth:1.075}
+};
+// The rig and every sleeve use the same shoulder taper. Wrists and hands keep
+// their authored width, while the four body presets retain distinct outlines.
+export function armWidthAtHeight(y,preset){return mix(1,BODY_SCULPT[preset]?.shoulder??1,clamp((y-1.03)/.30,0,1));}
+// Garment cuts retain their own room around the arm. These are centreline
+// distances, never sleeve-radius scales; wide hanging sleeves need more space.
+const ARM_HANG={
+ fitted:[.045,.018,.028],robe:[.072,.023,.023],
+ wide:[.096,.024,.020],miko:[.108,.025,.018],
+ // Keep the hand sweep beside the fuller overgown skirt.
+ overgown:[.055,.030,.028]
+};
+function unshapeHeight(y,legLength){
+ const offset=.857*(legLength-1),pelvis=.965+offset;
+ if(legLength===1||y<=.108||y>=1.455)return y;
+ return y<=pelvis?.108+(y-.108)/legLength:(y-offset*(1+.965/.49))/(1-offset/.49);
+}
+export function createRelaxedArmOffset(preset,wardrobe,legLength=1){
+ if(!BODY_SCULPT[preset])return null;
+ const cut=wardrobe==='court-overgown'?'overgown':wardrobe==='miko-hakama'?'miko':/yukata|kimono|ruqun|bath-robe/.test(wardrobe)?'wide':/scholar/.test(wardrobe)?'robe':'fitted';
+ const [upperOut,lowerOut,forward]=ARM_HANG[cut],shoulder=[.171*armWidthAtHeight(1.326,preset),shapeHeight(1.326,legLength),-.010],elbow=[.277*armWidthAtHeight(1.099,preset),shapeHeight(1.099,legLength),-.006],wrist=[.304,shapeHeight(.926,legLength),0];
+ const length=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i])),upper=length(shoulder,elbow),lower=length(elbow,wrist);
+ // Solve in the shaped body, then map back to anatomical Y for the shared mesh
+ // displacement. This preserves bone lengths even across the pelvis shape split.
+ const e=[shoulder[0]+upperOut,shoulder[1]-Math.sqrt(upper*upper-upperOut**2-.004**2),elbow[2]],w=[e[0]+lowerOut,e[1]-Math.sqrt(lower*lower-lowerOut**2-forward**2),e[2]+forward];
+ const elbowOffset=[e[0]-elbow[0],unshapeHeight(e[1],legLength)-1.099,e[2]-elbow[2]],wristOffset=[w[0]-wrist[0],unshapeHeight(w[1],legLength)-.926,w[2]-wrist[2]];
+ return y=>{
+  if(y>=1.326)return [0,0,0];
+  if(y>=1.099){const t=(1.326-y)/.227;return elbowOffset.map(v=>v*t);}
+  // The distal translation is rigid for palms and fingers, including thumbs.
+  const t=clamp((1.099-y)/.161,0,1);return elbowOffset.map((v,i)=>mix(v,wristOffset[i],t));
+ };
+}
+function relaxArmSurfaces(g,preset,wardrobe,legLength){
+ const offsetAt=createRelaxedArmOffset(preset,wardrobe,legLength);if(!offsetAt)return;
+ const handOffset=offsetAt(.926);g.userData.relaxedArms=true;
+ g.traverse(m=>{if(!m.isMesh||!/sleeve|^arm-|bare-arm|wrist-|relaxed-|thumb-/.test(m.name))return;
+  const p=m.geometry.attributes.position,sourceY=new Float32Array(p.count),hand=/relaxed-|thumb-/.test(m.name);
+  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),offset=hand?handOffset:offsetAt(y);sourceY[i]=y;p.setXYZ(i,x+Math.sign(x)*offset[0],y+offset[1],p.getZ(i)+offset[2]);}
+  m.geometry.setAttribute('sourceY',new THREE.BufferAttribute(sourceY,1));m.geometry.computeVertexNormals();
+ });
+}
 function sculptBody(g,preset){
- const d={
-  'feminine-balanced':{hip:1.055,waist:.925,chest:1.0,shoulder:.965,depth:1.01},
-  'feminine-slender':{hip:1.015,waist:.875,chest:.965,shoulder:.935,depth:.955},
-  'masculine-lean':{hip:.947,waist:.98,chest:1.075,shoulder:1.08,depth:1.01},
-  'masculine-broad':{hip:1.015,waist:1.05,chest:1.125,shoulder:1.135,depth:1.075}
- }[preset]||{hip:1,waist:1,chest:1,shoulder:1,depth:1};
+ const d=BODY_SCULPT[preset]||{hip:1,waist:1,chest:1,shoulder:1,depth:1};
  g.traverse(m=>{if(!m.isMesh||m.parent.name==='sculpted-head'||/footwear|sole-|loafer|relaxed-|thumb-/.test(m.name))return;const p=m.geometry.attributes.position;
   for(let i=0;i<p.count;i++){const y=p.getY(i),x=p.getX(i);let factor=y<.85?mix(1,d.hip,clamp((y-.65)/.20,0,1)):y<1.075?mix(d.hip,d.waist,(y-.85)/.225):y<1.23?mix(d.waist,d.chest,(y-1.075)/.155):y<1.335?mix(d.chest,d.shoulder,(y-1.23)/.105):mix(d.shoulder,1,clamp((y-1.335)/.09,0,1));
-   if(/sleeve|^arm-|bare-arm|wrist-/.test(m.name))factor=mix(1,d.shoulder,clamp((y-1.03)/.30,0,1));
+   if(/sleeve|^arm-|bare-arm|wrist-/.test(m.name))factor=armWidthAtHeight(y,preset);
    p.setX(i,x*factor);if(y>.84&&y<1.38)p.setZ(i,p.getZ(i)*d.depth);
   }m.geometry.computeVertexNormals();
  });
@@ -338,14 +380,14 @@ export function createApprovedSurfaces({culture=null,masc=false,style='casual',b
  else if(culture==='egypt')buildEgypt(root,masc,wardrobePreset||(masc?'linen-kilt':'linen-sheath'));
  else if(culture==='france')buildFrance(root,masc,wardrobePreset||(masc?'court-frock-coat':'court-gown'));
  else buildCasual(root);
- jobAccessories(root,style,culture);sculptBody(root,bodyPreset);
+ jobAccessories(root,style,culture);sculptBody(root,bodyPreset);relaxArmSurfaces(root,bodyPreset,wardrobePreset,normalized.legLength);
  if(traits?.legLength!==undefined&&traits.legLength!==1)root.traverse(m=>{
   if(!m.isMesh)return;
   const p=m.geometry.attributes.position,sourceY=new Float32Array(p.count);
   // Source Y is anatomical identity for skin weights and posterior bedding
   // contact regions; do not reclassify a longer leg as a different body part.
   const footwear=/footwear|sole-|loafer/.test(m.name);
-  for(let i=0;i<p.count;i++){const y=p.getY(i);sourceY[i]=y;if(!footwear)p.setY(i,shapeHeight(y,traits.legLength));}
+  for(let i=0;i<p.count;i++){const y=p.getY(i);sourceY[i]=m.geometry.attributes.sourceY?.getX(i)??y;if(!footwear)p.setY(i,shapeHeight(y,traits.legLength));}
   m.geometry.setAttribute('sourceY',new THREE.BufferAttribute(sourceY,1));m.geometry.computeVertexNormals();
  });
  root.traverse(m=>{if(m.isMesh){m.userData.softSkin=/footwear-bath-bare|continuous-head|neck|^ear-|inset-eye|iris-|pupil-|eye-catchlight|eyelid-|soft-brow|nostril-|lip|mouth|relaxed-|thumb-|wrist-|^arm-|bare-arm|bare-leg/.test(m.name);m.receiveShadow=false;m.castShadow=true;}});
