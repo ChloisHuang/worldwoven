@@ -1,7 +1,9 @@
 # EG02: carved royal coffin vignette
 
-Development base: `9e609b3`. Source checkpoint: `1819bbf`. This is a bounded
-underground-vignette art batch, not a release or a completion of all EG02 assets.
+Published as R16.24 / Sites v51 at 2026-10-04 06:15:13 UTC+8. Sites source:
+`cc755c94cf42b6da835e9ac2fd55521f37b4d8d6`; integration commit `658094f`.
+Development base: `9e609b3`; verified candidate: `0f037dc`. This bounded
+underground-vignette art batch does not complete all EG02 assets.
 
 The rectangular lid is replaced by a continuous anthropoid silhouette with a
 gilded mask, fitted striped nemes, crown cobra, curved ceremonial collar, crossed
@@ -38,6 +40,5 @@ directories, and `qa/coffin-envelope.json`. The before/after image names are
 
 No whole-game or door matrix was rerun because only static local geometry changed
 and all contact/station data is identical. Browser and physical iOS checks were
-not performed. This record does not claim browser, mobile or publication success.
-The parent owns integration, remote push and deployment; release metadata is
-deliberately unchanged.
+not performed. Publication was separately confirmed by the Sites deployment
+returning succeeded; that is not a browser or mobile gameplay check.
