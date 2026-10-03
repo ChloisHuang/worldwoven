@@ -15,6 +15,9 @@ for(const d of gates){
 }
 
 
+// A close front-facing camera fits in the real strip before the rear stair; wide FOV records full door height without hiding world geometry.
+if(process.env.NORTH_INSIDE_REFRAME==='1'){for(let i=views.length-1;i>=0;i--){const v=views[i];if(!v[0].includes('-inside')){views.splice(i,1);continue;}v[1]=[v[2][0]+.30,v[2][1]+.25,-36.7];v[2][1]+=.25;v[4]=116;}}
+
 try{for(const[name,p,target,openId,fov]of views.filter(v=>!process.env.FRAME_FILTER||v[0]===process.env.FRAME_FILTER)){
 for(let i=0;i<40;i++)doors.update(.1,[]);
 if(openId){const d=doors.getState().find(d=>d.openingId===openId||d.id===openId||d.id.endsWith('/'+openId));assert(d,'Unknown opening '+openId);const actor={x:d.center[0],y:d.center[1],z:d.center[2]};for(let i=0;i<160;i++)doors.update(1/60,[actor]);const actual=doors.getState().find(x=>x.id===d.id);assert(actual.fraction>.999,'Actual automatic opening did not complete: '+openId);}
