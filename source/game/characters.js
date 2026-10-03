@@ -99,6 +99,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
  }}
  if(culture==='japan'&&wardrobePreset==='onsen-swimwear')fitOnsenPalmContact();
  let lastTime=null,wasWalking=false,gaitPhase=0,disposed=false,initializedFeet=false,currentAction=null,visualFloorOffset=0,previousYaw=0;
+ const socialLook={yaw:0,pitch:0,weight:0};
  const metrics={height,labelHeight:height+.16,headHeight:1.61*root.scale.y,action:null,seated:false,grounded:true,feet:[[],[]],hands:[[],[]]};
  root.userData={characterR9:true,characterR10:true,locomotion,appearance:{skin:opts.skin,hair:opts.hair,clothes:opts.clothes,accent:opts.accent,eyeColor:opts.eyeColor,culture,variant,style,bodyPreset,hairStyle,wardrobePreset,gaitPreset,shapeTraits:{...shapeTraits}},body:rig,head:bones[3],arms:[bones[4],bones[7]],forearms:[bones[5],bones[8]],hands:[bones[6],bones[9]],legs:[bones[10],bones[13]],knees:[bones[11],bones[14]],feet:[bones[12],bones[15]],tools:props.tools,poseQA:metrics,labelHeight:metrics.labelHeight,characterShared:true};
  function orient(i,j,p){restDir.copy(rest[j]).sub(rest[i]).normalize();dir.copy(p).sub(posedP[i]).normalize();posedQ[i].setFromUnitVectors(restDir,dir);}
@@ -436,6 +437,15 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   }
   if(action){posedQ[6].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));posedQ[9].identity();if(/knead|bread|tidy/.test(action))posedQ[9].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));}
   if(action==='chair-sit'){posedQ[6].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));posedQ[9].copy(posedQ[6]);}
+  // Head-only attention preserves the authored torso, hands and work target.
+  // Smooth the return as well as the glance; never let social input twist a
+  // neck toward somebody behind the actor or override an aiming/rest pose.
+  const attention=action==='lie-rest'||context?.archery?null:context?.headLook,blend=1-Math.exp(-dt*7);
+  socialLook.yaw+=(clamp(attention?.yaw||0,-.68,.68)-socialLook.yaw)*blend;
+  socialLook.pitch+=(clamp(attention?.pitch||0,-.16,.16)-socialLook.pitch)*blend;
+  socialLook.weight+=(clamp(attention?.weight||0,0,1)-socialLook.weight)*blend;
+  lookX=lookX*(1-socialLook.weight)+socialLook.pitch*socialLook.weight;lookY=lookY*(1-socialLook.weight)+socialLook.yaw*socialLook.weight;
+  metrics.headLook={yaw:lookY,pitch:lookX,weight:socialLook.weight};
   headQ.setFromEuler(new THREE.Euler(lookX,lookY,0));posedQ[3].copy(torsoQ).multiply(headQ);
   if(action==='lie-rest'){
    // Supine, face upward, head toward the pillow (-local Z). Keep the original
