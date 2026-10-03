@@ -200,11 +200,11 @@ export function buildChinaPalace(G,H){
   // A central footrest brings the unchanged 2.69 m seat within the shared
   // seated pose range, with a real supported floor and clear side aisles.
   buildChinaThroneFootrest(g);
-  walkableSurfaces.push({minX:-.58,maxX:.58,minZ:-7.52,maxZ:-6.58,y:.849,owner:g.name});
-  cameraColliders.push({minX:-.58,maxX:.58,minZ:-7.52,maxZ:-6.58,minY:.36,maxY:.834});
-  walkableSurfaces.push({minX:-.58,maxX:.58,minZ:-6.58,maxZ:-6.27,y:.615,owner:g.name});
-  cameraColliders.push({minX:-.58,maxX:.58,minZ:-6.58,maxZ:-6.27,minY:.36,maxY:.60});
-  additionalFurnitureSeats.push({id:'china-furniture-throne',name:'正殿龙纹御座',x:0,y:2.049,z:-8,yaw:0,width:3.3,depth:1.7,seatY:2.69,front:.54});
+  walkableSurfaces.push({minX:-.58,maxX:.58,minZ:-8.37,maxZ:-7.43,y:.849,owner:g.name});
+  cameraColliders.push({minX:-.58,maxX:.58,minZ:-8.37,maxZ:-7.43,minY:.36,maxY:.834});
+  walkableSurfaces.push({minX:-.58,maxX:.58,minZ:-7.43,maxZ:-7.12,y:.615,owner:g.name});
+  cameraColliders.push({minX:-.58,maxX:.58,minZ:-7.43,maxZ:-7.12,minY:.36,maxY:.60});
+  additionalFurnitureSeats.push({id:'china-furniture-throne',name:'正殿龙纹御座',x:0,y:2.049,z:-8,yaw:0,width:3.3,depth:1.7,seatY:2.69,front:-.30});
   target('cn-hall-front','正殿中央前厅',0,3,'hall');target('cn-hall-throne','仪座前礼仪空间',0,-4.25,'hall');target('cn-hall-west','正殿西宽廊',-4.6,-3,'hall');target('cn-hall-east','正殿东宽廊',5,-3,'hall');target('cn-hall-rear','正殿后门',6,-9.6,'hall');}
  // Tea reception occupies a separate south-west pavilion, with a real room
  // around its social setting and a wide central cross-passage through the doors.

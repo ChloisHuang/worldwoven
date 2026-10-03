@@ -268,8 +268,8 @@ function dragonArm(a,side) {
     a.tube('Dragon whisker '+side+' '+edge,[[x+edge*.084,1.997,.781],[x+edge*.136,2.025,.76],[x+edge*.133,2.075,.683]],.014,p.thread,false,12);
     reliefShape(a,'Dragon swept cheek blade '+side+' '+edge,[[x+edge*.10,2.065],[x+edge*.177,2.088],[x+edge*.145,2.017],[x+edge*.177,1.975],[x+edge*.115,1.977]],.515,p.raised,.054);
   }
-  const support=new THREE.Shape();support.moveTo(-.14,1.23);support.lineTo(.14,1.23);support.quadraticCurveTo(.17,1.40,.09,1.57);
-  support.quadraticCurveTo(.01,1.75,.14,1.96);support.lineTo(-.11,1.96);support.quadraticCurveTo(-.24,1.73,-.11,1.54);support.quadraticCurveTo(-.03,1.37,-.14,1.23);support.closePath();
+  const support=new THREE.Shape();support.moveTo(-.14,.635);support.lineTo(.14,.635);support.quadraticCurveTo(.17,1.40,.09,1.57);
+  support.quadraticCurveTo(.01,1.75,.14,1.96);support.lineTo(-.11,1.96);support.quadraticCurveTo(-.24,1.73,-.11,1.54);support.quadraticCurveTo(-.03,1.37,-.14,.635);support.closePath();
   a.extrusion('Joined dragon front arm support '+side,support,.16,p.wood,transform(x,0,.49),true,.01);
   a.tube('Dragon support carved vein '+side,[[x,1.25,.582],[x-.022,1.46,.582],[x-.063,1.66,.582],[x+.04,1.91,.582]],.022,p.gold,false,18);
 }
@@ -281,7 +281,7 @@ function makeThrone() {
   a.extrusion('Throne broad stepped foot plinth',roundedRect(3.27,1.67,.08),.14,p.wood,transform(0,.43,0,Math.PI/2),true,.006);
   a.extrusion('Throne gilt plinth bead',roundedRect(3.19,1.60,.07),.060,p.gold,transform(0,.525,0,Math.PI/2),true,.004);
   a.extrusion('Throne upper stepped plinth',roundedRect(3.08,1.49,.07),.09,p.raised,transform(0,.591,0,Math.PI/2),true,.004);
-  for(const side of[-1,1])for(const z of[-.58,.58]){
+  for(const side of[-1,1])for(const z of[-.58,-.23]){
     const s=new THREE.Shape();s.moveTo(1.23,1.28);s.lineTo(1.52,1.28);s.quadraticCurveTo(1.54,1.06,1.41,.89);
     s.quadraticCurveTo(1.36,.73,1.50,.63);s.lineTo(1.19,.63);s.quadraticCurveTo(1.26,.81,1.20,.98);s.lineTo(1.23,1.28);s.closePath();
     a.extrusion('Throne carved support foot '+side+' '+z,s,.24,p.wood,transform(0,0,z,0,0,0,side,1,1),true,.012);
@@ -289,11 +289,13 @@ function makeThrone() {
   const apron=new THREE.Shape();apron.moveTo(-1.46,1.27);apron.lineTo(1.46,1.27);apron.lineTo(1.46,.78);
   apron.quadraticCurveTo(1.12,.76,.99,.95);apron.quadraticCurveTo(.73,1.08,.58,.92);apron.quadraticCurveTo(0,.67,-.58,.92);
   apron.quadraticCurveTo(-.73,1.08,-.99,.95);apron.quadraticCurveTo(-1.12,.76,-1.46,.78);apron.closePath();
-  a.extrusion('Throne joined scalloped front apron',apron,.135,p.raised,transform(0,0,.678),true,.009);
-  for(const x of[-.89,0,.89])cloudRelief(a,'Throne front apron carving '+x,x,1.082,.767,x?1.45:1.9);
-  for(const side of[-1,1])a.box('Throne structural side apron '+side,side*1.43,1.073,0,.13,.36,1.21,p.raised);
-  a.extrusion('Throne rounded seat frame',roundedRect(3.09,1.52,.11),.14,p.wood,transform(0,1.285,0,Math.PI/2),true,.007);
-  cushion(a,{name:'Imperial gold brocade',w:2.535,d:1.395,bottom:1.355,top:1.49,z:.007});
+  a.extrusion('Throne joined scalloped front apron',apron,.135,p.raised,transform(0,0,-.202),true,.009);
+  for(const x of[-.89,0,.89])cloudRelief(a,'Throne front apron carving '+x,x,1.082,-.113,x?1.45:1.9);
+  for(const side of[-1,1])a.box('Throne structural side apron '+side,side*1.43,1.073,-.425,.13,.36,.43,p.raised);
+  // The usable shallow seat sits inside the broad ceremonial arm frame.
+  // Its front rail clears the sitter's lower legs; the full plinth stays wide.
+  a.extrusion('Throne rounded seat frame',roundedRect(3.09,.53,.055),.14,p.wood,transform(0,1.285,-.425,Math.PI/2),true,.007);
+  cushion(a,{name:'Imperial gold brocade',w:2.535,d:.41,bottom:1.355,top:1.49,z:-.425});
   throneBack(a);for(const side of[-1,1])dragonArm(a,side);return a.finish();
 }
 
@@ -324,7 +326,7 @@ export function buildChinaDragonThrone(parent,{x=0,y=0,z=-8,yaw=0,id='china-drag
 }
 
 /** A low, central wooden footrest supports the high ceremonial throne pose. */
-export function buildChinaThroneFootrest(parent,{x=0,y=0,z=-7.05}={}){
+export function buildChinaThroneFootrest(parent,{x=0,y=0,z=-7.90}={}){
   const q=new THREE.Group();q.name='正殿御座 · 雕木脚踏';q.position.set(x,y,z);parent.add(q);
   const p=PALETTES.throne;
   for(const xx of[-.46,.46])for(const zz of[-.34,.34])G.box(q,xx,.566,zz,.13,.412,.13,p.wood);
