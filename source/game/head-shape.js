@@ -170,6 +170,9 @@ export function applyNaturalHead(root,{hair=0x44342f,hairStyle='side-part'}={}){
       // Existing hairstyles and job hats follow the deeper cranium while their
       // upper silhouette/clearance stays at its original height.
       if(hat)point[1]=y+(point[1]-y)*(1-smooth(1.713,1.743,y));
+      // The side sweep already meets the left-front hat mouth; seat the straw
+      // brim 1.5mm lower to close the remaining 1mm centre-front support gap.
+      if(hairStyle==='side-part'&&/^garden-straw-/.test(m.name))point[1]-=.0015;
       p.setXYZ(i,...point);
     }
     p.needsUpdate=true;m.geometry.computeVertexNormals();m.geometry.computeBoundingBox();m.geometry.computeBoundingSphere();
