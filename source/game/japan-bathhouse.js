@@ -148,7 +148,7 @@ export function buildJapan(){
    const count=Math.ceil(length/.65);
    for(let i=1;i<count;i++){
      const t=i/count,x=a[0]+(b[0]-a[0])*t,z=a[1]+(b[1]-a[1])*t;
-     part(x,.49,z,.065,1.05,.065,P.red);
+     part(x,(top-.01)/2,z,.065,top+.06,.065,P.red);
      G.sphere(g,x,top+.05,z,.06,P.gold);
      cameraColliders.push({...limits(x,base+top+.05,z,.12,.12,.12),owner});
    }
