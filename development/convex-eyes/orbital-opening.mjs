@@ -25,7 +25,7 @@ export function cutOrbitalOpenings(head,{masc,traits}){
   // Clockwise upper/lower outline reversed so each inside half-plane is left.
   for(let i=0;i<=24;i++)points.push(eyeLidBoundary(layout,i/24,true,true));
   for(let i=23;i>=1;i--)points.push(eyeLidBoundary(layout,i/24,false,true));
-  points.reverse();return{points,minX:layout.cx-layout.hw,maxX:layout.cx+layout.hw,minY:layout.cy-.015*layout.eye,maxY:layout.cy+.020*layout.eye};
+  points.reverse();return{points,minX:layout.cx-layout.hw-.0024*layout.eye,maxX:layout.cx+layout.hw+.0024*layout.eye,minY:layout.cy-.015*layout.eye,maxY:layout.cy+.020*layout.eye};
  });
  for(const side of[-1,1]){const n=nasalLayout(side,traits),points=Array.from({length:24},(_,i)=>nasalPoint(n,i/24,1));openings.push({points,minX:n.cx-n.rx,maxX:n.cx+n.rx,minY:n.cy-n.ry-n.rx*.12,maxY:n.cy+n.ry+n.rx*.12});}
  const positions=[],indices=[],weld=new Map();let cut=0;
