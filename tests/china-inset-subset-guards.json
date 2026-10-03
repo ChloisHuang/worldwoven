@@ -46,6 +46,11 @@
     "west-east": [
       "cn-west-gate",
       "cn-east-gate"
+    ],
+    "south-routes": [
+      "cn-south-gate-west",
+      "cn-south-gate",
+      "cn-south-gate-east"
     ]
   },
   "files": {
