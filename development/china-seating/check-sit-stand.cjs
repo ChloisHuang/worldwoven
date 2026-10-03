@@ -1,0 +1,20 @@
+// One changed hall chair: reuse the production controller harness, no matrix.
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+let harness=fs.readFileSync('tests/game-controller.cjs','utf8');
+const begin=harness.indexOf('const report=[];for(let round=0;'),end=harness.indexOf('\nconsole.log(JSON.stringify(',begin);
+const body=`const report=[];
+all.find(e=>e.dataset.region==='china').onclick();ids.travel.onclick();tick(3);
+const item=state().furniture.items.find(i=>i.id==='china-furniture-seat-4');assert(item,'stable east-hall seat ID');
+assert.equal(item.center[0],7.8);assert.equal(item.center[2],-3);assert.equal(item.seatY,2.075);
+ids['furniture-list'].children.find(b=>b.dataset.furnitureId===item.id).onclick();
+let frames=0;while(state().pathLength&&frames<18000){tick(30);frames+=30;}tick(3);
+assert.equal(state().pathLength,0);assert.equal(state().seated,item.id);assert(state().playerPose.seated);
+const seated=JSON.parse(JSON.stringify({player:state().player,look:state().playerLook,pose:state().playerPose,camera:state().camera,target:state().cameraTarget}));
+events.keydown({code:'KeyW',preventDefault(){}});tick(4);events.keyup({code:'KeyW'});
+assert.equal(state().seated,null);assert(!state().playerPose.seated);assert(state().playerPose.gaitReset||state().playerPose.action===null);
+const standing=state().player;ids['return-world'].onclick();assert.equal(state().characterResources.activeReferences,0);
+report.push({seat:item,seated,standing,approachFrames:frames,scope:'One production east-hall chair approach/sit/stand; all stable positions retained. Throne has no existing sit interaction.'});
+fs.writeFileSync('qa/china-seating-controller.json',JSON.stringify({status:'PASS',report},null,2));
+`;
+harness=harness.slice(0,begin)+body+"\nconsole.log(JSON.stringify({status:'PASS',scope:'One production China chair sit/stand',report}));})().catch(e=>{console.error(e);process.exit(1)});";
+new vm.Script(harness,{filename:path.resolve('tests/china-seating-controller-harness.cjs')}).runInNewContext({require,console,process,Buffer,__dirname:path.resolve('tests'),__filename});
