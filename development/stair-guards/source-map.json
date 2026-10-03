@@ -1,0 +1,3137 @@
+{
+  "title": "Worldwoven R16.1 stair and landing guard source map",
+  "schema_note": "Bounded design inventory, not an executable test framework. bounds_xz = [minX,maxX,minZ,maxZ]. Segment endpoints are world X/Z; deck_y is world Y.",
+  "baseline": {
+    "release": "R16.1-public",
+    "sites_source_commit": "eafb569e386904fe1bb9d012bbf9c2b90c3db9a9",
+    "source_root": "/workspace/shared/worldwoven-source-r16-1",
+    "source_hashes": {
+      "source/game/main.js": "6b3f36422f76f87f6f374f75189e6a01f12838c882004d813f898b61117f9707",
+      "source/game/japan-bathhouse.js": "c5bd1dd4f0ab4aaff0a2be438f37bc520865914b6a4b24b0aa961a56fdb85d74",
+      "source/game/china-palace.js": "2676f10b9aa9b8b2c1dd4a8b6a020c11a273fcd0bc40b971a65d708ed3085708",
+      "source/game/regions-east.js": "9063560d2d022f62bab7454d8e22158549e385192fc6a534449ff5a94ed0a2ac",
+      "source/game/egypt-temple.js": "89c08f1c87abbc5b2ff1c5856c3f810c9dfda111fa181e0839ef2aed23e447d7",
+      "source/game/regions-west.js": "92a65216f09696543dc900f462c5ad4b049284a036a8a6dc3d6b760f6a1ecfc2",
+      "source/game/navigation.js": "d22f45cd94d968b88d44a803bbc7ba1ec65c45f2d7fdf2c20610d18b256c062e",
+      "source/game/camera.js": "7b6fc625c07138fc5636d38651b2487cdd812e22fcb89618a707b6b913808dea"
+    }
+  },
+  "evidence": {
+    "screenshot": "IMG_6229.png",
+    "screenshot_sha256": "6d836833bfeccf72182532e1ff733d2903cdc4bf7bd1c715b2ec83f0c39a738b",
+    "pixels_inspected": true,
+    "scene_constructed": false,
+    "renderer_run": false,
+    "routes_tested": false,
+    "production_source_edited": false,
+    "audit_date_utc": "2026-10-03"
+  },
+  "runtime_contract": {
+    "player_radius_m": 0.34,
+    "body_height_m": 1.95,
+    "normal_path_radius_m": 0.39,
+    "grid_step_m": 0.5,
+    "camera_radius_m": 0.18,
+    "max_step_m": 0.4,
+    "source": [
+      {
+        "file": "source/game/main.js",
+        "line_start": 79,
+        "line_end": 80
+      },
+      {
+        "file": "source/game/main.js",
+        "line_start": 106,
+        "line_end": 106
+      },
+      {
+        "file": "source/game/navigation.js",
+        "line_start": 11,
+        "line_end": 24
+      },
+      {
+        "file": "source/game/camera.js",
+        "line_start": 2,
+        "line_end": 9
+      }
+    ]
+  },
+  "flight_count_by_region": {
+    "japan": 3,
+    "china": 11,
+    "egypt": 2,
+    "france": 0
+  },
+  "flights": [
+    {
+      "id": "jp-flight-1-2",
+      "region": "japan",
+      "axis": "z",
+      "bounds_xz": [
+        7.4,
+        10.8,
+        -10,
+        -2
+      ],
+      "height_at_axis_min": 3.8,
+      "height_at_axis_max": 0.0,
+      "riser_count": 24,
+      "side_guards": "Two red/gold sloped rails; 0.12 m nav strips",
+      "mouths": "Both axis endpoints are travel mouths at their own flight endpoint height; no cross-guard at those heights.",
+      "inner_collider_width_m": 3.28,
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 222,
+        "line_end": 226
+      }
+    },
+    {
+      "id": "jp-flight-2-3",
+      "region": "japan",
+      "axis": "z",
+      "bounds_xz": [
+        7.4,
+        10.8,
+        -10,
+        -2
+      ],
+      "height_at_axis_min": 7.6,
+      "height_at_axis_max": 3.8,
+      "riser_count": 24,
+      "side_guards": "Two red/gold sloped rails; 0.12 m nav strips",
+      "mouths": "Both axis endpoints are travel mouths at their own flight endpoint height; no cross-guard at those heights.",
+      "inner_collider_width_m": 3.28,
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 222,
+        "line_end": 226
+      }
+    },
+    {
+      "id": "jp-flight-3-4",
+      "region": "japan",
+      "axis": "z",
+      "bounds_xz": [
+        7.4,
+        10.8,
+        -10,
+        -2
+      ],
+      "height_at_axis_min": 11.4,
+      "height_at_axis_max": 7.6,
+      "riser_count": 24,
+      "side_guards": "Two red/gold sloped rails; 0.12 m nav strips",
+      "mouths": "Both axis endpoints are travel mouths at their own flight endpoint height; no cross-guard at those heights.",
+      "inner_collider_width_m": 3.28,
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 222,
+        "line_end": 226
+      }
+    },
+    {
+      "id": "cn-main-front-stair",
+      "region": "china",
+      "axis": "z",
+      "bounds_xz": [
+        -5.4,
+        5.4,
+        7,
+        10.2
+      ],
+      "height_at_axis_min": 1.415,
+      "height_at_axis_max": 0.14,
+      "riser_count": 8,
+      "side_guards": "Two stone side rails",
+      "mouths": "Both axis endpoints are travel mouths at their own flight endpoint height; no cross-guard at those heights.",
+      "inner_collider_width_m": 10.66,
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 286,
+        "line_end": 286
+      }
+    },
+    {
+      "id": "cn-main-side-stair--1",
+      "region": "china",
+      "axis": "z",
+      "bounds_xz": [
+        -13.85,
+        -12.05,
+        -5.8,
+        -2.6
+      ],
+      "height_at_axis_min": 1.415,
+      "height_at_axis_max": 0.115,
+      "riser_count": 8,
+      "side_guards": "Two stone side rails",
+      "mouths": "Both axis endpoints are travel mouths at their own flight endpoint height; no cross-guard at those heights.",
+      "inner_collider_width_m": 1.66,
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 290,
+        "line_end": 299
+      }
+    },
+    {
+      "id": "cn-main-side-stair-1",
+      "region": "china",
+      "axis": "z",
+      "bounds_xz": [
+        12.05,
+        13.85,
+        -1.3,
+        1.9
+      ],
+      "height_at_axis_min": 1.415,
+      "height_at_axis_max": 0.115,
+      "riser_count": 8,
+      "side_guards": "Two stone side rails",
+      "mouths": "Both axis endpoints are travel mouths at their own flight endpoint height; no cross-guard at those heights.",
+      "inner_collider_width_m": 1.66,
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 290,
+        "line_end": 299
+      }
+    },
+    {
+      "id": "cn-main-rear-stair",
+      "region": "china",
+      "axis": "z",
+      "bounds_xz": [
+        4.2,
+        7.8,
+        -14.8,
+        -12
+      ],
+      "height_at_axis_min": 0.115,
+      "height_at_axis_max": 1.415,
+      "riser_count": 7,
+      "side_guards": "Two stone side rails",
+      "mouths": "Both axis endpoints are travel mouths at their own flight endpoint height; no cross-guard at those heights.",
+      "inner_collider_width_m": 3.46,
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 300,
+        "line_end": 300
+      }
+    },
+    {
+      "id": "cn-archive-front-stair",
+      "region": "china",
+      "axis": "z",
+      "bounds_xz": [
+        -2.05,
+        2.05,
+        -21.7,
+        -20.5
+      ],
+      "height_at_axis_min": 0.815,
+      "height_at_axis_max": 0.295,
+      "riser_count": 4,
+      "side_guards": "Two stone side rails",
+      "mouths": "Both axis endpoints are travel mouths at their own flight endpoint height; no cross-guard at those heights.",
+      "inner_collider_width_m": 3.96,
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 305,
+        "line_end": 305
+      }
+    },
+    {
+      "id": "cn-archive-rear-stair",
+      "region": "china",
+      "axis": "z",
+      "bounds_xz": [
+        -1.9,
+        1.9,
+        -36.6,
+        -35
+      ],
+      "height_at_axis_min": 0.115,
+      "height_at_axis_max": 0.815,
+      "riser_count": 4,
+      "side_guards": "Two stone side rails",
+      "mouths": "Both axis endpoints are travel mouths at their own flight endpoint height; no cross-guard at those heights.",
+      "inner_collider_width_m": 3.66,
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 309,
+        "line_end": 309
+      }
+    },
+    {
+      "id": "cn-archive-side-stair--1",
+      "region": "china",
+      "axis": "x",
+      "bounds_xz": [
+        -13.85,
+        -12,
+        -30.3,
+        -26.7
+      ],
+      "height_at_axis_min": 0.115,
+      "height_at_axis_max": 0.815,
+      "riser_count": 4,
+      "side_guards": "Two stone side rails",
+      "mouths": "Both axis endpoints are travel mouths at their own flight endpoint height; no cross-guard at those heights.",
+      "inner_collider_width_m": 3.46,
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 310,
+        "line_end": 310
+      }
+    },
+    {
+      "id": "cn-archive-side-stair-1",
+      "region": "china",
+      "axis": "x",
+      "bounds_xz": [
+        12,
+        13.85,
+        -30.3,
+        -26.7
+      ],
+      "height_at_axis_min": 0.815,
+      "height_at_axis_max": 0.115,
+      "riser_count": 4,
+      "side_guards": "Two stone side rails",
+      "mouths": "Both axis endpoints are travel mouths at their own flight endpoint height; no cross-guard at those heights.",
+      "inner_collider_width_m": 3.46,
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 310,
+        "line_end": 310
+      }
+    },
+    {
+      "id": "cn-main-indoor-stair",
+      "region": "china",
+      "axis": "z",
+      "bounds_xz": [
+        -10.25,
+        -8.05,
+        -8,
+        1.2
+      ],
+      "height_at_axis_min": 6.015,
+      "height_at_axis_max": 1.415,
+      "riser_count": 26,
+      "side_guards": "Two red/gold timber side rails",
+      "mouths": "Both axis endpoints are travel mouths at their own flight endpoint height; no cross-guard at those heights.",
+      "inner_collider_width_m": 2.06,
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 325,
+        "line_end": 325
+      }
+    },
+    {
+      "id": "cn-loft-west-flight",
+      "region": "china",
+      "axis": "z",
+      "bounds_xz": [
+        -8.95,
+        -6.75,
+        -30,
+        -25.4
+      ],
+      "height_at_axis_min": 2.515,
+      "height_at_axis_max": 0.815,
+      "riser_count": 10,
+      "side_guards": "Two red/gold timber side rails",
+      "mouths": "Both axis endpoints are travel mouths at their own flight endpoint height; no cross-guard at those heights.",
+      "inner_collider_width_m": 2.06,
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 363,
+        "line_end": 363
+      }
+    },
+    {
+      "id": "cn-loft-east-flight",
+      "region": "china",
+      "axis": "z",
+      "bounds_xz": [
+        -6.4,
+        -4.2,
+        -30,
+        -25.4
+      ],
+      "height_at_axis_min": 2.515,
+      "height_at_axis_max": 4.215,
+      "riser_count": 10,
+      "side_guards": "Two red/gold timber side rails",
+      "mouths": "Both axis endpoints are travel mouths at their own flight endpoint height; no cross-guard at those heights.",
+      "inner_collider_width_m": 2.06,
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 365,
+        "line_end": 365
+      }
+    },
+    {
+      "id": "burial-stair",
+      "region": "egypt",
+      "axis": "z",
+      "bounds_xz": [
+        -1.6,
+        1.6,
+        -13,
+        -7
+      ],
+      "height_at_axis_min": -3,
+      "height_at_axis_max": 0,
+      "riser_count": 24,
+      "side_guards": "Full enclosed stone walls; X=±1.78, depth 0.36",
+      "mouths": "Both axis endpoints are travel mouths at their own flight endpoint height; no cross-guard at those heights.",
+      "inner_collider_width_m": 3.2,
+      "source": {
+        "file": "source/game/egypt-temple.js",
+        "line_start": 256,
+        "line_end": 272
+      }
+    },
+    {
+      "id": "throne-stair",
+      "region": "egypt",
+      "axis": "z",
+      "bounds_xz": [
+        -14.8,
+        -11.2,
+        -10.5,
+        6
+      ],
+      "height_at_axis_min": 4,
+      "height_at_axis_max": 0,
+      "riser_count": 32,
+      "side_guards": "Full stone cheeks plus caps at X=-14.98/-11.02",
+      "mouths": "Both axis endpoints are travel mouths at their own flight endpoint height; no cross-guard at those heights.",
+      "inner_collider_width_m": 3.6,
+      "source": {
+        "file": "source/game/egypt-temple.js",
+        "line_start": 344,
+        "line_end": 352
+      }
+    }
+  ],
+  "platforms": [
+    {
+      "id": "jp-north-landings",
+      "region": "japan",
+      "bounds_xz": [
+        7.4,
+        10.8,
+        -14.85,
+        -10
+      ],
+      "floor_y": [
+        0,
+        3.8,
+        7.6,
+        11.4
+      ],
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 184,
+        "line_end": 185
+      }
+    },
+    {
+      "id": "jp-south-landings",
+      "region": "japan",
+      "bounds_xz": [
+        7.4,
+        10.8,
+        -2,
+        0.28
+      ],
+      "floor_y": [
+        0,
+        3.8,
+        7.6,
+        11.4
+      ],
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 690,
+        "line_end": 690
+      }
+    },
+    {
+      "id": "cn-main-plinth",
+      "region": "china",
+      "bounds_xz": [
+        -12,
+        12,
+        -12,
+        7
+      ],
+      "floor_y": 1.415,
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 285,
+        "line_end": 285
+      }
+    },
+    {
+      "id": "cn-main-side-landing-west",
+      "region": "china",
+      "bounds_xz": [
+        -13.85,
+        -11,
+        -9.2,
+        -5.8
+      ],
+      "floor_y": 1.415,
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 290,
+        "line_end": 292
+      }
+    },
+    {
+      "id": "cn-main-side-landing-east",
+      "region": "china",
+      "bounds_xz": [
+        11,
+        13.85,
+        -4.7,
+        -1.3
+      ],
+      "floor_y": 1.415,
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 290,
+        "line_end": 292
+      }
+    },
+    {
+      "id": "cn-archive-plinth",
+      "region": "china",
+      "bounds_xz": [
+        -12,
+        12,
+        -35,
+        -21.7
+      ],
+      "floor_y": 0.815,
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 304,
+        "line_end": 304
+      }
+    },
+    {
+      "id": "cn-archive-bridge-landing",
+      "region": "china",
+      "bounds_xz": [
+        -2.1,
+        2.1,
+        -20.5,
+        -20.25
+      ],
+      "floor_y": 0.295,
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 308,
+        "line_end": 308
+      }
+    },
+    {
+      "id": "cn-gallery",
+      "region": "china",
+      "floor_y": 6.015,
+      "slabs_xz": [
+        [
+          -11,
+          11,
+          2,
+          5
+        ],
+        [
+          7.8,
+          11,
+          -11,
+          2
+        ],
+        [
+          -7.8,
+          -6,
+          -11,
+          2
+        ],
+        [
+          -11,
+          -10.5,
+          -11,
+          2
+        ],
+        [
+          -10.5,
+          -7.8,
+          -11,
+          -8
+        ],
+        [
+          -10.5,
+          -7.8,
+          1.2,
+          2
+        ]
+      ],
+      "voids_xz": [
+        [
+          -6,
+          7.8,
+          -11,
+          2
+        ],
+        [
+          -10.5,
+          -7.8,
+          -8,
+          1.2
+        ]
+      ],
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 319,
+        "line_end": 329
+      }
+    },
+    {
+      "id": "cn-loft",
+      "region": "china",
+      "floor_y": 4.215,
+      "slabs_xz": [
+        [
+          -4.05,
+          11,
+          -34,
+          -23
+        ],
+        [
+          -11,
+          -9.2,
+          -34,
+          -23
+        ],
+        [
+          -9.2,
+          -4.05,
+          -34,
+          -32
+        ],
+        [
+          -9.2,
+          -4.05,
+          -25.4,
+          -23
+        ]
+      ],
+      "voids_xz": [
+        [
+          -9.2,
+          -4.05,
+          -32,
+          -25.4
+        ]
+      ],
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 361,
+        "line_end": 370
+      }
+    },
+    {
+      "id": "cn-loft-middle-landing",
+      "region": "china",
+      "floor_y": 2.515,
+      "bounds_xz": [
+        -9.1,
+        -4.05,
+        -32,
+        -30
+      ],
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 364,
+        "line_end": 364
+      }
+    },
+    {
+      "id": "eg-burial",
+      "region": "egypt",
+      "floor_y": -3,
+      "bounds_xz": [
+        -7,
+        7,
+        -19.4,
+        -13
+      ],
+      "boundary": "Full walls, single north entrance",
+      "source": {
+        "file": "source/game/egypt-temple.js",
+        "line_start": 274,
+        "line_end": 281
+      }
+    },
+    {
+      "id": "eg-upper-platform",
+      "region": "egypt",
+      "floor_y": 4,
+      "bounds_xz": [
+        -14.8,
+        2,
+        -13.9,
+        -10.5
+      ],
+      "source": {
+        "file": "source/game/egypt-temple.js",
+        "line_start": 354,
+        "line_end": 365
+      }
+    },
+    {
+      "id": "eg-throne-hall",
+      "region": "egypt",
+      "floor_y": 4,
+      "bounds_xz": [
+        -11.2,
+        11.2,
+        -30.5,
+        -13.5
+      ],
+      "boundary": "Full walls, single south doorway",
+      "source": {
+        "file": "source/game/egypt-temple.js",
+        "line_start": 367,
+        "line_end": 371
+      }
+    },
+    {
+      "id": "fr-palace",
+      "region": "france",
+      "floor_y": 0.23,
+      "bounds_xz": [
+        -10.8,
+        10.8,
+        -13.5,
+        3.5
+      ],
+      "classification": "Shallow ground transition; no new guard",
+      "source": {
+        "file": "source/game/regions-west.js",
+        "line_start": 1174,
+        "line_end": 1174
+      }
+    },
+    {
+      "id": "fr-portico",
+      "region": "france",
+      "floor_y": 0.13,
+      "bounds_xz": [
+        -11.35,
+        11.35,
+        3.5,
+        6.5
+      ],
+      "classification": "Shallow ground transition; no new guard",
+      "source": {
+        "file": "source/game/regions-west.js",
+        "line_start": 1174,
+        "line_end": 1174
+      }
+    },
+    {
+      "id": "fr-loggia",
+      "region": "france",
+      "floor_y": 0.16,
+      "bounds_xz": [
+        3.5,
+        9.8,
+        7.4,
+        13.9
+      ],
+      "classification": "Shallow ground transition; no new guard",
+      "source": {
+        "file": "source/game/regions-west.js",
+        "line_start": 1174,
+        "line_end": 1174
+      }
+    },
+    {
+      "id": "fr-wing-west",
+      "region": "france",
+      "floor_y": 0.23,
+      "bounds_xz": [
+        -25,
+        -17,
+        -13.5,
+        3.5
+      ],
+      "classification": "Shallow ground transition; no new guard",
+      "source": {
+        "file": "source/game/regions-west.js",
+        "line_start": 1181,
+        "line_end": 1203
+      }
+    },
+    {
+      "id": "fr-wing-east",
+      "region": "france",
+      "floor_y": 0.23,
+      "bounds_xz": [
+        17,
+        25,
+        -13.5,
+        3.5
+      ],
+      "classification": "Shallow ground transition; no new guard",
+      "source": {
+        "file": "source/game/regions-west.js",
+        "line_start": 1181,
+        "line_end": 1203
+      }
+    },
+    {
+      "id": "fr-connector--1--9.5",
+      "region": "france",
+      "floor_y": 0.23,
+      "bounds_xz": [
+        -17.1,
+        -10.7,
+        -10.93,
+        -8.07
+      ],
+      "classification": "Shallow ground transition; no new guard",
+      "source": {
+        "file": "source/game/regions-west.js",
+        "line_start": 1194,
+        "line_end": 1203
+      }
+    },
+    {
+      "id": "fr-connector--1--5",
+      "region": "france",
+      "floor_y": 0.23,
+      "bounds_xz": [
+        -17.1,
+        -10.7,
+        -6.43,
+        -3.57
+      ],
+      "classification": "Shallow ground transition; no new guard",
+      "source": {
+        "file": "source/game/regions-west.js",
+        "line_start": 1194,
+        "line_end": 1203
+      }
+    },
+    {
+      "id": "fr-connector-1--9.5",
+      "region": "france",
+      "floor_y": 0.23,
+      "bounds_xz": [
+        10.7,
+        17.1,
+        -10.93,
+        -8.07
+      ],
+      "classification": "Shallow ground transition; no new guard",
+      "source": {
+        "file": "source/game/regions-west.js",
+        "line_start": 1194,
+        "line_end": 1203
+      }
+    },
+    {
+      "id": "fr-connector-1--5",
+      "region": "france",
+      "floor_y": 0.23,
+      "bounds_xz": [
+        10.7,
+        17.1,
+        -6.43,
+        -3.57
+      ],
+      "classification": "Shallow ground transition; no new guard",
+      "source": {
+        "file": "source/game/regions-west.js",
+        "line_start": 1194,
+        "line_end": 1203
+      }
+    }
+  ],
+  "edge_segments": [
+    {
+      "id": "jp-2f-west-void",
+      "region": "japan",
+      "a_xz": [
+        7.4,
+        -10
+      ],
+      "b_xz": [
+        7.4,
+        -2
+      ],
+      "deck_y": 3.8,
+      "status": "new_level_guard",
+      "existing_guard": "Sloped flight rails only",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 222,
+        "line_end": 229
+      },
+      "proposed_action": "Add 8 m red/gold guard, maximum 0.12 m full depth"
+    },
+    {
+      "id": "jp-2f-east-void",
+      "region": "japan",
+      "a_xz": [
+        10.8,
+        -10
+      ],
+      "b_xz": [
+        10.8,
+        -2
+      ],
+      "deck_y": 3.8,
+      "status": "new_level_guard",
+      "existing_guard": "Sloped flight rails only",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 222,
+        "line_end": 229
+      },
+      "proposed_action": "Add 8 m red/gold guard, maximum 0.12 m full depth"
+    },
+    {
+      "id": "jp-2f-north-mouth",
+      "region": "japan",
+      "a_xz": [
+        7.4,
+        -10
+      ],
+      "b_xz": [
+        10.8,
+        -10
+      ],
+      "deck_y": 3.8,
+      "status": "keep_open",
+      "existing_guard": "Incoming flight rails terminate at corners",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 184,
+        "line_end": 229
+      }
+    },
+    {
+      "id": "jp-2f-south-edge",
+      "region": "japan",
+      "a_xz": [
+        7.4,
+        -2
+      ],
+      "b_xz": [
+        10.8,
+        -2
+      ],
+      "deck_y": 3.8,
+      "status": "keep_open",
+      "existing_guard": "No cross rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 222,
+        "line_end": 229
+      },
+      "proposed_action": "Outgoing flight mouth; preserve"
+    },
+    {
+      "id": "jp-3f-west-void",
+      "region": "japan",
+      "a_xz": [
+        7.4,
+        -10
+      ],
+      "b_xz": [
+        7.4,
+        -2
+      ],
+      "deck_y": 7.6,
+      "status": "new_level_guard",
+      "existing_guard": "Sloped flight rails only",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 222,
+        "line_end": 229
+      },
+      "proposed_action": "Add 8 m red/gold guard, maximum 0.12 m full depth"
+    },
+    {
+      "id": "jp-3f-east-void",
+      "region": "japan",
+      "a_xz": [
+        10.8,
+        -10
+      ],
+      "b_xz": [
+        10.8,
+        -2
+      ],
+      "deck_y": 7.6,
+      "status": "new_level_guard",
+      "existing_guard": "Sloped flight rails only",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 222,
+        "line_end": 229
+      },
+      "proposed_action": "Add 8 m red/gold guard, maximum 0.12 m full depth"
+    },
+    {
+      "id": "jp-3f-north-mouth",
+      "region": "japan",
+      "a_xz": [
+        7.4,
+        -10
+      ],
+      "b_xz": [
+        10.8,
+        -10
+      ],
+      "deck_y": 7.6,
+      "status": "keep_open",
+      "existing_guard": "Incoming flight rails terminate at corners",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 184,
+        "line_end": 229
+      }
+    },
+    {
+      "id": "jp-3f-south-edge",
+      "region": "japan",
+      "a_xz": [
+        7.4,
+        -2
+      ],
+      "b_xz": [
+        10.8,
+        -2
+      ],
+      "deck_y": 7.6,
+      "status": "keep_open",
+      "existing_guard": "No cross rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 222,
+        "line_end": 229
+      },
+      "proposed_action": "Outgoing flight mouth; preserve"
+    },
+    {
+      "id": "jp-4f-west-void",
+      "region": "japan",
+      "a_xz": [
+        7.4,
+        -10
+      ],
+      "b_xz": [
+        7.4,
+        -2
+      ],
+      "deck_y": 11.4,
+      "status": "retain_guard",
+      "existing_guard": "Flat red/gold rail, 0.16 m collider depth",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 222,
+        "line_end": 229
+      },
+      "proposed_action": "Retain and inspect joins"
+    },
+    {
+      "id": "jp-4f-east-void",
+      "region": "japan",
+      "a_xz": [
+        10.8,
+        -10
+      ],
+      "b_xz": [
+        10.8,
+        -2
+      ],
+      "deck_y": 11.4,
+      "status": "retain_guard",
+      "existing_guard": "Flat red/gold rail, 0.16 m collider depth",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 222,
+        "line_end": 229
+      },
+      "proposed_action": "Retain and inspect joins"
+    },
+    {
+      "id": "jp-4f-north-mouth",
+      "region": "japan",
+      "a_xz": [
+        7.4,
+        -10
+      ],
+      "b_xz": [
+        10.8,
+        -10
+      ],
+      "deck_y": 11.4,
+      "status": "keep_open",
+      "existing_guard": "Incoming flight rails terminate at corners",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 184,
+        "line_end": 229
+      }
+    },
+    {
+      "id": "jp-4f-south-edge",
+      "region": "japan",
+      "a_xz": [
+        7.4,
+        -2
+      ],
+      "b_xz": [
+        10.8,
+        -2
+      ],
+      "deck_y": 11.4,
+      "status": "new_blind_end_guard",
+      "existing_guard": "No cross rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 222,
+        "line_end": 229
+      },
+      "proposed_action": "4F-only cap at deck Y=11.4; do not extend collider down to 3F"
+    },
+    {
+      "id": "jp-1f-balcony-front-west",
+      "region": "japan",
+      "a_xz": [
+        -11.85,
+        11.65
+      ],
+      "b_xz": [
+        -2.15,
+        11.65
+      ],
+      "deck_y": 0,
+      "status": "retain_guard",
+      "existing_guard": "Flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 211,
+        "line_end": 218
+      }
+    },
+    {
+      "id": "jp-1f-balcony-front-east",
+      "region": "japan",
+      "a_xz": [
+        2.15,
+        11.65
+      ],
+      "b_xz": [
+        11.85,
+        11.65
+      ],
+      "deck_y": 0,
+      "status": "retain_guard",
+      "existing_guard": "Flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 211,
+        "line_end": 218
+      }
+    },
+    {
+      "id": "jp-1f-balcony-west-return",
+      "region": "japan",
+      "a_xz": [
+        -11.85,
+        8.95
+      ],
+      "b_xz": [
+        -11.85,
+        11.65
+      ],
+      "deck_y": 0,
+      "status": "retain_guard",
+      "existing_guard": "Flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 211,
+        "line_end": 218
+      }
+    },
+    {
+      "id": "jp-1f-balcony-east-return",
+      "region": "japan",
+      "a_xz": [
+        11.85,
+        8.95
+      ],
+      "b_xz": [
+        11.85,
+        11.65
+      ],
+      "deck_y": 0,
+      "status": "retain_guard",
+      "existing_guard": "Flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 211,
+        "line_end": 218
+      }
+    },
+    {
+      "id": "jp-1f-balcony-center",
+      "region": "japan",
+      "a_xz": [
+        -2.125,
+        11.65
+      ],
+      "b_xz": [
+        2.125,
+        11.65
+      ],
+      "deck_y": 0,
+      "status": "keep_open",
+      "existing_guard": "Ground entry gap",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 214,
+        "line_end": 217
+      }
+    },
+    {
+      "id": "jp-2f-balcony-front-west",
+      "region": "japan",
+      "a_xz": [
+        -11.85,
+        11.65
+      ],
+      "b_xz": [
+        -2.15,
+        11.65
+      ],
+      "deck_y": 3.8,
+      "status": "retain_guard",
+      "existing_guard": "Flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 211,
+        "line_end": 218
+      }
+    },
+    {
+      "id": "jp-2f-balcony-front-east",
+      "region": "japan",
+      "a_xz": [
+        2.15,
+        11.65
+      ],
+      "b_xz": [
+        11.85,
+        11.65
+      ],
+      "deck_y": 3.8,
+      "status": "retain_guard",
+      "existing_guard": "Flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 211,
+        "line_end": 218
+      }
+    },
+    {
+      "id": "jp-2f-balcony-west-return",
+      "region": "japan",
+      "a_xz": [
+        -11.85,
+        8.95
+      ],
+      "b_xz": [
+        -11.85,
+        11.65
+      ],
+      "deck_y": 3.8,
+      "status": "retain_guard",
+      "existing_guard": "Flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 211,
+        "line_end": 218
+      }
+    },
+    {
+      "id": "jp-2f-balcony-east-return",
+      "region": "japan",
+      "a_xz": [
+        11.85,
+        8.95
+      ],
+      "b_xz": [
+        11.85,
+        11.65
+      ],
+      "deck_y": 3.8,
+      "status": "retain_guard",
+      "existing_guard": "Flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 211,
+        "line_end": 218
+      }
+    },
+    {
+      "id": "jp-2f-balcony-center",
+      "region": "japan",
+      "a_xz": [
+        -2.125,
+        11.65
+      ],
+      "b_xz": [
+        2.125,
+        11.65
+      ],
+      "deck_y": 3.8,
+      "status": "retain_guard",
+      "existing_guard": "Central flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 214,
+        "line_end": 217
+      }
+    },
+    {
+      "id": "jp-3f-balcony-front-west",
+      "region": "japan",
+      "a_xz": [
+        -11.85,
+        11.65
+      ],
+      "b_xz": [
+        -2.15,
+        11.65
+      ],
+      "deck_y": 7.6,
+      "status": "retain_guard",
+      "existing_guard": "Flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 211,
+        "line_end": 218
+      }
+    },
+    {
+      "id": "jp-3f-balcony-front-east",
+      "region": "japan",
+      "a_xz": [
+        2.15,
+        11.65
+      ],
+      "b_xz": [
+        11.85,
+        11.65
+      ],
+      "deck_y": 7.6,
+      "status": "retain_guard",
+      "existing_guard": "Flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 211,
+        "line_end": 218
+      }
+    },
+    {
+      "id": "jp-3f-balcony-west-return",
+      "region": "japan",
+      "a_xz": [
+        -11.85,
+        8.95
+      ],
+      "b_xz": [
+        -11.85,
+        11.65
+      ],
+      "deck_y": 7.6,
+      "status": "retain_guard",
+      "existing_guard": "Flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 211,
+        "line_end": 218
+      }
+    },
+    {
+      "id": "jp-3f-balcony-east-return",
+      "region": "japan",
+      "a_xz": [
+        11.85,
+        8.95
+      ],
+      "b_xz": [
+        11.85,
+        11.65
+      ],
+      "deck_y": 7.6,
+      "status": "retain_guard",
+      "existing_guard": "Flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 211,
+        "line_end": 218
+      }
+    },
+    {
+      "id": "jp-3f-balcony-center",
+      "region": "japan",
+      "a_xz": [
+        -2.125,
+        11.65
+      ],
+      "b_xz": [
+        2.125,
+        11.65
+      ],
+      "deck_y": 7.6,
+      "status": "retain_guard",
+      "existing_guard": "Central flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 214,
+        "line_end": 217
+      }
+    },
+    {
+      "id": "jp-4f-balcony-front-west",
+      "region": "japan",
+      "a_xz": [
+        -11.85,
+        11.65
+      ],
+      "b_xz": [
+        -2.15,
+        11.65
+      ],
+      "deck_y": 11.4,
+      "status": "retain_guard",
+      "existing_guard": "Flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 211,
+        "line_end": 218
+      }
+    },
+    {
+      "id": "jp-4f-balcony-front-east",
+      "region": "japan",
+      "a_xz": [
+        2.15,
+        11.65
+      ],
+      "b_xz": [
+        11.85,
+        11.65
+      ],
+      "deck_y": 11.4,
+      "status": "retain_guard",
+      "existing_guard": "Flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 211,
+        "line_end": 218
+      }
+    },
+    {
+      "id": "jp-4f-balcony-west-return",
+      "region": "japan",
+      "a_xz": [
+        -11.85,
+        8.95
+      ],
+      "b_xz": [
+        -11.85,
+        11.65
+      ],
+      "deck_y": 11.4,
+      "status": "retain_guard",
+      "existing_guard": "Flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 211,
+        "line_end": 218
+      }
+    },
+    {
+      "id": "jp-4f-balcony-east-return",
+      "region": "japan",
+      "a_xz": [
+        11.85,
+        8.95
+      ],
+      "b_xz": [
+        11.85,
+        11.65
+      ],
+      "deck_y": 11.4,
+      "status": "retain_guard",
+      "existing_guard": "Flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 211,
+        "line_end": 218
+      }
+    },
+    {
+      "id": "jp-4f-balcony-center",
+      "region": "japan",
+      "a_xz": [
+        -2.125,
+        11.65
+      ],
+      "b_xz": [
+        2.125,
+        11.65
+      ],
+      "deck_y": 11.4,
+      "status": "retain_guard",
+      "existing_guard": "Central flat red/gold rail",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 214,
+        "line_end": 217
+      }
+    },
+    {
+      "id": "jp-arrival-bridge-west",
+      "region": "japan",
+      "a_xz": [
+        -2.56,
+        19.55
+      ],
+      "b_xz": [
+        -2.56,
+        30.25
+      ],
+      "deck_y": 0,
+      "status": "retain_guard",
+      "existing_guard": "Timber rails; canal itself has low nav block",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 521,
+        "line_end": 534
+      }
+    },
+    {
+      "id": "jp-arrival-bridge-east",
+      "region": "japan",
+      "a_xz": [
+        2.56,
+        19.55
+      ],
+      "b_xz": [
+        2.56,
+        30.25
+      ],
+      "deck_y": 0,
+      "status": "retain_guard",
+      "existing_guard": "Timber rails; canal itself has low nav block",
+      "source": {
+        "file": "source/game/japan-bathhouse.js",
+        "line_start": 521,
+        "line_end": 534
+      }
+    },
+    {
+      "id": "cn-main-level-edge-beside-flight--1",
+      "region": "china",
+      "a_xz": [
+        -12,
+        -5.8
+      ],
+      "b_xz": [
+        -12,
+        -2.6
+      ],
+      "deck_y": 1.415,
+      "status": "new_level_guard",
+      "existing_guard": "Adjacent flight has only descending inner rail at X=-12.05",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 290,
+        "line_end": 299
+      },
+      "proposed_action": "Add pale stone level-height rail, 0.14 m collider envelope; do not cap top flight mouth"
+    },
+    {
+      "id": "cn-main-level-edge-beside-flight-1",
+      "region": "china",
+      "a_xz": [
+        12,
+        -1.3
+      ],
+      "b_xz": [
+        12,
+        1.9
+      ],
+      "deck_y": 1.415,
+      "status": "new_level_guard",
+      "existing_guard": "Adjacent flight has only descending inner rail at X=12.05",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 290,
+        "line_end": 299
+      },
+      "proposed_action": "Add pale stone level-height rail, 0.14 m collider envelope; do not cap top flight mouth"
+    },
+    {
+      "id": "cn-main-front-west",
+      "region": "china",
+      "a_xz": [
+        -12,
+        7
+      ],
+      "b_xz": [
+        -5.4,
+        7
+      ],
+      "deck_y": 1.415,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 287,
+        "line_end": 287
+      }
+    },
+    {
+      "id": "cn-main-front-east",
+      "region": "china",
+      "a_xz": [
+        5.4,
+        7
+      ],
+      "b_xz": [
+        12,
+        7
+      ],
+      "deck_y": 1.415,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 287,
+        "line_end": 287
+      }
+    },
+    {
+      "id": "cn-main-rear-west",
+      "region": "china",
+      "a_xz": [
+        -12,
+        -12
+      ],
+      "b_xz": [
+        4.2,
+        -12
+      ],
+      "deck_y": 1.415,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 301,
+        "line_end": 301
+      }
+    },
+    {
+      "id": "cn-main-rear-east",
+      "region": "china",
+      "a_xz": [
+        7.8,
+        -12
+      ],
+      "b_xz": [
+        12,
+        -12
+      ],
+      "deck_y": 1.415,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 301,
+        "line_end": 301
+      }
+    },
+    {
+      "id": "cn-main-side-outer--1",
+      "region": "china",
+      "a_xz": [
+        -13.85,
+        -9.2
+      ],
+      "b_xz": [
+        -13.85,
+        -5.8
+      ],
+      "deck_y": 1.415,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 295,
+        "line_end": 295
+      }
+    },
+    {
+      "id": "cn-main-side-back--1",
+      "region": "china",
+      "a_xz": [
+        -12,
+        -9.2
+      ],
+      "b_xz": [
+        -13.85,
+        -9.2
+      ],
+      "deck_y": 1.415,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 296,
+        "line_end": 296
+      }
+    },
+    {
+      "id": "cn-main-side-south--1",
+      "region": "china",
+      "a_xz": [
+        -12,
+        -2.6
+      ],
+      "b_xz": [
+        -12,
+        7
+      ],
+      "deck_y": 1.415,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 297,
+        "line_end": 297
+      }
+    },
+    {
+      "id": "cn-main-side-north--1",
+      "region": "china",
+      "a_xz": [
+        -12,
+        -12
+      ],
+      "b_xz": [
+        -12,
+        -9.2
+      ],
+      "deck_y": 1.415,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 298,
+        "line_end": 298
+      }
+    },
+    {
+      "id": "cn-main-side-outer-1",
+      "region": "china",
+      "a_xz": [
+        13.85,
+        -4.7
+      ],
+      "b_xz": [
+        13.85,
+        -1.3
+      ],
+      "deck_y": 1.415,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 295,
+        "line_end": 295
+      }
+    },
+    {
+      "id": "cn-main-side-back-1",
+      "region": "china",
+      "a_xz": [
+        12,
+        -4.7
+      ],
+      "b_xz": [
+        13.85,
+        -4.7
+      ],
+      "deck_y": 1.415,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 296,
+        "line_end": 296
+      }
+    },
+    {
+      "id": "cn-main-side-south-1",
+      "region": "china",
+      "a_xz": [
+        12,
+        1.9
+      ],
+      "b_xz": [
+        12,
+        7
+      ],
+      "deck_y": 1.415,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 297,
+        "line_end": 297
+      }
+    },
+    {
+      "id": "cn-main-side-north-1",
+      "region": "china",
+      "a_xz": [
+        12,
+        -12
+      ],
+      "b_xz": [
+        12,
+        -4.7
+      ],
+      "deck_y": 1.415,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 298,
+        "line_end": 298
+      }
+    },
+    {
+      "id": "cn-archive-front-west",
+      "region": "china",
+      "a_xz": [
+        -12,
+        -21.7
+      ],
+      "b_xz": [
+        -2.05,
+        -21.7
+      ],
+      "deck_y": 0.815,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 311,
+        "line_end": 315
+      }
+    },
+    {
+      "id": "cn-archive-front-east",
+      "region": "china",
+      "a_xz": [
+        2.05,
+        -21.7
+      ],
+      "b_xz": [
+        12,
+        -21.7
+      ],
+      "deck_y": 0.815,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 311,
+        "line_end": 315
+      }
+    },
+    {
+      "id": "cn-archive-rear-west",
+      "region": "china",
+      "a_xz": [
+        -12,
+        -35
+      ],
+      "b_xz": [
+        -1.9,
+        -35
+      ],
+      "deck_y": 0.815,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 311,
+        "line_end": 315
+      }
+    },
+    {
+      "id": "cn-archive-rear-east",
+      "region": "china",
+      "a_xz": [
+        1.9,
+        -35
+      ],
+      "b_xz": [
+        12,
+        -35
+      ],
+      "deck_y": 0.815,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 311,
+        "line_end": 315
+      }
+    },
+    {
+      "id": "cn-archive-west-south",
+      "region": "china",
+      "a_xz": [
+        -12,
+        -26.7
+      ],
+      "b_xz": [
+        -12,
+        -21.7
+      ],
+      "deck_y": 0.815,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 311,
+        "line_end": 315
+      }
+    },
+    {
+      "id": "cn-archive-west-north",
+      "region": "china",
+      "a_xz": [
+        -12,
+        -35
+      ],
+      "b_xz": [
+        -12,
+        -30.3
+      ],
+      "deck_y": 0.815,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 311,
+        "line_end": 315
+      }
+    },
+    {
+      "id": "cn-archive-east-south",
+      "region": "china",
+      "a_xz": [
+        12,
+        -26.7
+      ],
+      "b_xz": [
+        12,
+        -21.7
+      ],
+      "deck_y": 0.815,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 311,
+        "line_end": 315
+      }
+    },
+    {
+      "id": "cn-archive-east-north",
+      "region": "china",
+      "a_xz": [
+        12,
+        -35
+      ],
+      "b_xz": [
+        12,
+        -30.3
+      ],
+      "deck_y": 0.815,
+      "status": "retain_guard",
+      "existing_guard": "Stone rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 311,
+        "line_end": 315
+      }
+    },
+    {
+      "id": "cn-bridge-core--2.05",
+      "region": "china",
+      "a_xz": [
+        -2.05,
+        -20.25
+      ],
+      "b_xz": [
+        -2.05,
+        -15.75
+      ],
+      "deck_y": 0.295,
+      "status": "retain_guard",
+      "existing_guard": "Red side rail with nav/camera collider",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 187,
+        "line_end": 189
+      },
+      "clearance_m": {
+        "between_rail_faces": 3.97,
+        "between_column_base_faces": 3.9115
+      }
+    },
+    {
+      "id": "cn-bridge-short-join--2.05",
+      "region": "china",
+      "a_xz": [
+        -2.05,
+        -20.5
+      ],
+      "b_xz": [
+        -2.05,
+        -20.25
+      ],
+      "deck_y": 0.295,
+      "status": "optional_low_edge_join",
+      "existing_guard": "No continuous rail between stair endpoint and bridge",
+      "source": [
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 188,
+          "line_end": 188
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 308,
+          "line_end": 308
+        }
+      ],
+      "proposed_action": "Optional 0.25 m joined rail for visual continuity; low 0.15 m transition, keep axial route open"
+    },
+    {
+      "id": "cn-bridge-core-2.05",
+      "region": "china",
+      "a_xz": [
+        2.05,
+        -20.25
+      ],
+      "b_xz": [
+        2.05,
+        -15.75
+      ],
+      "deck_y": 0.295,
+      "status": "retain_guard",
+      "existing_guard": "Red side rail with nav/camera collider",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 187,
+        "line_end": 189
+      },
+      "clearance_m": {
+        "between_rail_faces": 3.97,
+        "between_column_base_faces": 3.9115
+      }
+    },
+    {
+      "id": "cn-bridge-short-join-2.05",
+      "region": "china",
+      "a_xz": [
+        2.05,
+        -20.5
+      ],
+      "b_xz": [
+        2.05,
+        -20.25
+      ],
+      "deck_y": 0.295,
+      "status": "optional_low_edge_join",
+      "existing_guard": "No continuous rail between stair endpoint and bridge",
+      "source": [
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 188,
+          "line_end": 188
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 308,
+          "line_end": 308
+        }
+      ],
+      "proposed_action": "Optional 0.25 m joined rail for visual continuity; low 0.15 m transition, keep axial route open"
+    },
+    {
+      "id": "cn-main-gallery-front-void",
+      "region": "china",
+      "a_xz": [
+        -6,
+        2
+      ],
+      "b_xz": [
+        7.8,
+        2
+      ],
+      "deck_y": 6.015,
+      "status": "retain_guard",
+      "existing_guard": "Red/gold flat rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 326,
+        "line_end": 329
+      }
+    },
+    {
+      "id": "cn-main-gallery-east-void",
+      "region": "china",
+      "a_xz": [
+        7.8,
+        -11
+      ],
+      "b_xz": [
+        7.8,
+        2
+      ],
+      "deck_y": 6.015,
+      "status": "retain_guard",
+      "existing_guard": "Red/gold flat rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 326,
+        "line_end": 329
+      }
+    },
+    {
+      "id": "cn-main-gallery-west-void",
+      "region": "china",
+      "a_xz": [
+        -6,
+        -11
+      ],
+      "b_xz": [
+        -6,
+        2
+      ],
+      "deck_y": 6.015,
+      "status": "retain_guard",
+      "existing_guard": "Red/gold flat rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 326,
+        "line_end": 329
+      }
+    },
+    {
+      "id": "cn-main-stair-hole-east",
+      "region": "china",
+      "a_xz": [
+        -7.8,
+        -8
+      ],
+      "b_xz": [
+        -7.8,
+        1.2
+      ],
+      "deck_y": 6.015,
+      "status": "retain_guard",
+      "existing_guard": "Red/gold flat rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 326,
+        "line_end": 329
+      }
+    },
+    {
+      "id": "cn-main-stair-hole-west",
+      "region": "china",
+      "a_xz": [
+        -10.5,
+        -8
+      ],
+      "b_xz": [
+        -10.5,
+        1.2
+      ],
+      "deck_y": 6.015,
+      "status": "retain_guard",
+      "existing_guard": "Red/gold flat rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 326,
+        "line_end": 329
+      }
+    },
+    {
+      "id": "cn-main-stair-hole-south",
+      "region": "china",
+      "a_xz": [
+        -10.5,
+        1.2
+      ],
+      "b_xz": [
+        -7.8,
+        1.2
+      ],
+      "deck_y": 6.015,
+      "status": "retain_guard",
+      "existing_guard": "Red/gold flat rail; both avatar and camera strips",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 326,
+        "line_end": 329
+      }
+    },
+    {
+      "id": "cn-main-gallery-top-mouth",
+      "region": "china",
+      "a_xz": [
+        -10.5,
+        -8
+      ],
+      "b_xz": [
+        -7.8,
+        -8
+      ],
+      "deck_y": 6.015,
+      "status": "keep_open",
+      "existing_guard": "Flight opening",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 323,
+        "line_end": 329
+      }
+    },
+    {
+      "id": "cn-main-gallery-parapet-x-5-0",
+      "region": "china",
+      "a_xz": [
+        -9.85,
+        5
+      ],
+      "b_xz": [
+        -6.75,
+        5
+      ],
+      "deck_y": 6.015,
+      "status": "add_avatar_collision_to_existing_masonry",
+      "existing_guard": "Visible wall header and camera collision exist; generic header creation uses block=false",
+      "source": [
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 100,
+          "line_end": 111
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 231,
+          "line_end": 241
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 330,
+          "line_end": 337
+        },
+        {
+          "file": "source/game/regions-east.js",
+          "line_start": 274,
+          "line_end": 277
+        }
+      ],
+      "proposed_action": "Add avatar-only 0.32 m-deep box inside this wall, Y=6.015..6.9. No new visual fence or lower-door change"
+    },
+    {
+      "id": "cn-main-gallery-parapet-x-5-1",
+      "region": "china",
+      "a_xz": [
+        -5.7,
+        5
+      ],
+      "b_xz": [
+        -3.7,
+        5
+      ],
+      "deck_y": 6.015,
+      "status": "add_avatar_collision_to_existing_masonry",
+      "existing_guard": "Visible wall header and camera collision exist; generic header creation uses block=false",
+      "source": [
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 100,
+          "line_end": 111
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 231,
+          "line_end": 241
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 330,
+          "line_end": 337
+        },
+        {
+          "file": "source/game/regions-east.js",
+          "line_start": 274,
+          "line_end": 277
+        }
+      ],
+      "proposed_action": "Add avatar-only 0.32 m-deep box inside this wall, Y=6.015..6.9. No new visual fence or lower-door change"
+    },
+    {
+      "id": "cn-main-gallery-parapet-x-5-2",
+      "region": "china",
+      "a_xz": [
+        -3,
+        5
+      ],
+      "b_xz": [
+        3,
+        5
+      ],
+      "deck_y": 6.015,
+      "status": "add_avatar_collision_to_existing_masonry",
+      "existing_guard": "Visible wall header and camera collision exist; generic header creation uses block=false",
+      "source": [
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 100,
+          "line_end": 111
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 231,
+          "line_end": 241
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 330,
+          "line_end": 337
+        },
+        {
+          "file": "source/game/regions-east.js",
+          "line_start": 274,
+          "line_end": 277
+        }
+      ],
+      "proposed_action": "Add avatar-only 0.32 m-deep box inside this wall, Y=6.015..6.9. No new visual fence or lower-door change"
+    },
+    {
+      "id": "cn-main-gallery-parapet-x-5-3",
+      "region": "china",
+      "a_xz": [
+        3.7,
+        5
+      ],
+      "b_xz": [
+        5.7,
+        5
+      ],
+      "deck_y": 6.015,
+      "status": "add_avatar_collision_to_existing_masonry",
+      "existing_guard": "Visible wall header and camera collision exist; generic header creation uses block=false",
+      "source": [
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 100,
+          "line_end": 111
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 231,
+          "line_end": 241
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 330,
+          "line_end": 337
+        },
+        {
+          "file": "source/game/regions-east.js",
+          "line_start": 274,
+          "line_end": 277
+        }
+      ],
+      "proposed_action": "Add avatar-only 0.32 m-deep box inside this wall, Y=6.015..6.9. No new visual fence or lower-door change"
+    },
+    {
+      "id": "cn-main-gallery-parapet-x-5-4",
+      "region": "china",
+      "a_xz": [
+        6.75,
+        5
+      ],
+      "b_xz": [
+        9.85,
+        5
+      ],
+      "deck_y": 6.015,
+      "status": "add_avatar_collision_to_existing_masonry",
+      "existing_guard": "Visible wall header and camera collision exist; generic header creation uses block=false",
+      "source": [
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 100,
+          "line_end": 111
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 231,
+          "line_end": 241
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 330,
+          "line_end": 337
+        },
+        {
+          "file": "source/game/regions-east.js",
+          "line_start": 274,
+          "line_end": 277
+        }
+      ],
+      "proposed_action": "Add avatar-only 0.32 m-deep box inside this wall, Y=6.015..6.9. No new visual fence or lower-door change"
+    },
+    {
+      "id": "cn-main-gallery-parapet-z-11-0",
+      "region": "china",
+      "a_xz": [
+        11,
+        -8.7
+      ],
+      "b_xz": [
+        11,
+        -6.7
+      ],
+      "deck_y": 6.015,
+      "status": "add_avatar_collision_to_existing_masonry",
+      "existing_guard": "Visible wall header and camera collision exist; generic header creation uses block=false",
+      "source": [
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 100,
+          "line_end": 111
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 231,
+          "line_end": 241
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 330,
+          "line_end": 337
+        },
+        {
+          "file": "source/game/regions-east.js",
+          "line_start": 274,
+          "line_end": 277
+        }
+      ],
+      "proposed_action": "Add avatar-only 0.32 m-deep box inside this wall, Y=6.015..6.9. No new visual fence or lower-door change"
+    },
+    {
+      "id": "cn-main-gallery-parapet-z-11-1",
+      "region": "china",
+      "a_xz": [
+        11,
+        -4.6
+      ],
+      "b_xz": [
+        11,
+        -1.4
+      ],
+      "deck_y": 6.015,
+      "status": "add_avatar_collision_to_existing_masonry",
+      "existing_guard": "Visible wall header and camera collision exist; generic header creation uses block=false",
+      "source": [
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 100,
+          "line_end": 111
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 231,
+          "line_end": 241
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 330,
+          "line_end": 337
+        },
+        {
+          "file": "source/game/regions-east.js",
+          "line_start": 274,
+          "line_end": 277
+        }
+      ],
+      "proposed_action": "Add avatar-only 0.32 m-deep box inside this wall, Y=6.015..6.9. No new visual fence or lower-door change"
+    },
+    {
+      "id": "cn-main-gallery-parapet-z-11-2",
+      "region": "china",
+      "a_xz": [
+        11,
+        0.7
+      ],
+      "b_xz": [
+        11,
+        2.7
+      ],
+      "deck_y": 6.015,
+      "status": "add_avatar_collision_to_existing_masonry",
+      "existing_guard": "Visible wall header and camera collision exist; generic header creation uses block=false",
+      "source": [
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 100,
+          "line_end": 111
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 231,
+          "line_end": 241
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 330,
+          "line_end": 337
+        },
+        {
+          "file": "source/game/regions-east.js",
+          "line_start": 274,
+          "line_end": 277
+        }
+      ],
+      "proposed_action": "Add avatar-only 0.32 m-deep box inside this wall, Y=6.015..6.9. No new visual fence or lower-door change"
+    },
+    {
+      "id": "cn-main-gallery-parapet-z--11-0",
+      "region": "china",
+      "a_xz": [
+        -11,
+        -9.1
+      ],
+      "b_xz": [
+        -11,
+        -5.9
+      ],
+      "deck_y": 6.015,
+      "status": "add_avatar_collision_to_existing_masonry",
+      "existing_guard": "Visible wall header and camera collision exist; generic header creation uses block=false",
+      "source": [
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 100,
+          "line_end": 111
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 231,
+          "line_end": 241
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 330,
+          "line_end": 337
+        },
+        {
+          "file": "source/game/regions-east.js",
+          "line_start": 274,
+          "line_end": 277
+        }
+      ],
+      "proposed_action": "Add avatar-only 0.32 m-deep box inside this wall, Y=6.015..6.9. No new visual fence or lower-door change"
+    },
+    {
+      "id": "cn-main-gallery-parapet-z--11-1",
+      "region": "china",
+      "a_xz": [
+        -11,
+        0.7
+      ],
+      "b_xz": [
+        -11,
+        2.7
+      ],
+      "deck_y": 6.015,
+      "status": "add_avatar_collision_to_existing_masonry",
+      "existing_guard": "Visible wall header and camera collision exist; generic header creation uses block=false",
+      "source": [
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 100,
+          "line_end": 111
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 231,
+          "line_end": 241
+        },
+        {
+          "file": "source/game/china-palace.js",
+          "line_start": 330,
+          "line_end": 337
+        },
+        {
+          "file": "source/game/regions-east.js",
+          "line_start": 274,
+          "line_end": 277
+        }
+      ],
+      "proposed_action": "Add avatar-only 0.32 m-deep box inside this wall, Y=6.015..6.9. No new visual fence or lower-door change"
+    },
+    {
+      "id": "cn-loft-middle-north",
+      "region": "china",
+      "a_xz": [
+        -9.1,
+        -32
+      ],
+      "b_xz": [
+        -4.05,
+        -32
+      ],
+      "deck_y": 2.515,
+      "status": "retain_guard",
+      "existing_guard": "Red/gold rail",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 366,
+        "line_end": 370
+      }
+    },
+    {
+      "id": "cn-loft-void-west",
+      "region": "china",
+      "a_xz": [
+        -9.2,
+        -32
+      ],
+      "b_xz": [
+        -9.2,
+        -25.4
+      ],
+      "deck_y": 4.215,
+      "status": "retain_guard",
+      "existing_guard": "Red/gold rail",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 366,
+        "line_end": 370
+      }
+    },
+    {
+      "id": "cn-loft-void-east",
+      "region": "china",
+      "a_xz": [
+        -4.05,
+        -32
+      ],
+      "b_xz": [
+        -4.05,
+        -25.4
+      ],
+      "deck_y": 4.215,
+      "status": "retain_guard",
+      "existing_guard": "Red/gold rail",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 366,
+        "line_end": 370
+      }
+    },
+    {
+      "id": "cn-loft-void-north",
+      "region": "china",
+      "a_xz": [
+        -9.2,
+        -32
+      ],
+      "b_xz": [
+        -4.05,
+        -32
+      ],
+      "deck_y": 4.215,
+      "status": "retain_guard",
+      "existing_guard": "Red/gold rail",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 366,
+        "line_end": 370
+      }
+    },
+    {
+      "id": "cn-loft-void-south-west",
+      "region": "china",
+      "a_xz": [
+        -9.2,
+        -25.4
+      ],
+      "b_xz": [
+        -6.55,
+        -25.4
+      ],
+      "deck_y": 4.215,
+      "status": "retain_guard",
+      "existing_guard": "Red/gold rail",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 366,
+        "line_end": 370
+      }
+    },
+    {
+      "id": "cn-loft-middle-west",
+      "region": "china",
+      "a_xz": [
+        -9.1,
+        -32
+      ],
+      "b_xz": [
+        -9.1,
+        -30
+      ],
+      "deck_y": 2.515,
+      "status": "new_level_guard",
+      "existing_guard": "No own-height side rail; high upper rail can overlap avatar head",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 362,
+        "line_end": 370
+      },
+      "proposed_action": "Add red/gold side rail at landing Y, preserving the lower flight mouths"
+    },
+    {
+      "id": "cn-loft-middle-east",
+      "region": "china",
+      "a_xz": [
+        -4.05,
+        -32
+      ],
+      "b_xz": [
+        -4.05,
+        -30
+      ],
+      "deck_y": 2.515,
+      "status": "new_level_guard",
+      "existing_guard": "No own-height side rail; high upper rail can overlap avatar head",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 362,
+        "line_end": 370
+      },
+      "proposed_action": "Add red/gold side rail at landing Y, preserving the lower flight mouths"
+    },
+    {
+      "id": "cn-loft-middle-south-remnant-0",
+      "region": "china",
+      "a_xz": [
+        -9.1,
+        -30
+      ],
+      "b_xz": [
+        -8.95,
+        -30
+      ],
+      "deck_y": 2.515,
+      "status": "short_nontravel_return",
+      "existing_guard": "Only adjacent flight posts/rails",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 363,
+        "line_end": 366
+      },
+      "proposed_action": "Join short cap/return only; do not span the two 2.2 m flight mouths"
+    },
+    {
+      "id": "cn-loft-middle-south-remnant-1",
+      "region": "china",
+      "a_xz": [
+        -6.75,
+        -30
+      ],
+      "b_xz": [
+        -6.4,
+        -30
+      ],
+      "deck_y": 2.515,
+      "status": "short_nontravel_return",
+      "existing_guard": "Only adjacent flight posts/rails",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 363,
+        "line_end": 366
+      },
+      "proposed_action": "Join short cap/return only; do not span the two 2.2 m flight mouths"
+    },
+    {
+      "id": "cn-loft-middle-south-remnant-2",
+      "region": "china",
+      "a_xz": [
+        -4.2,
+        -30
+      ],
+      "b_xz": [
+        -4.05,
+        -30
+      ],
+      "deck_y": 2.515,
+      "status": "short_nontravel_return",
+      "existing_guard": "Only adjacent flight posts/rails",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 363,
+        "line_end": 366
+      },
+      "proposed_action": "Join short cap/return only; do not span the two 2.2 m flight mouths"
+    },
+    {
+      "id": "cn-loft-west-lower-mouth",
+      "region": "china",
+      "a_xz": [
+        -8.95,
+        -25.4
+      ],
+      "b_xz": [
+        -6.75,
+        -25.4
+      ],
+      "deck_y": 0.815,
+      "status": "keep_open",
+      "existing_guard": "Actual stair travel opening",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 363,
+        "line_end": 370
+      }
+    },
+    {
+      "id": "cn-loft-west-upper-mouth",
+      "region": "china",
+      "a_xz": [
+        -8.95,
+        -30
+      ],
+      "b_xz": [
+        -6.75,
+        -30
+      ],
+      "deck_y": 2.515,
+      "status": "keep_open",
+      "existing_guard": "Actual stair travel opening",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 363,
+        "line_end": 370
+      }
+    },
+    {
+      "id": "cn-loft-east-lower-mouth",
+      "region": "china",
+      "a_xz": [
+        -6.4,
+        -30
+      ],
+      "b_xz": [
+        -4.2,
+        -30
+      ],
+      "deck_y": 2.515,
+      "status": "keep_open",
+      "existing_guard": "Actual stair travel opening",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 363,
+        "line_end": 370
+      }
+    },
+    {
+      "id": "cn-loft-upper-mouth",
+      "region": "china",
+      "a_xz": [
+        -6.55,
+        -25.4
+      ],
+      "b_xz": [
+        -4.05,
+        -25.4
+      ],
+      "deck_y": 4.215,
+      "status": "keep_open",
+      "existing_guard": "Actual stair travel opening",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 363,
+        "line_end": 370
+      }
+    },
+    {
+      "id": "cn-loft-outer-91",
+      "region": "china",
+      "a_xz": [
+        -11,
+        -34
+      ],
+      "b_xz": [
+        11,
+        -34
+      ],
+      "deck_y": 4.215,
+      "status": "retain_guard",
+      "existing_guard": "0.82 m solid red parapet with gold trim, avatar+camera collision",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 371,
+        "line_end": 381
+      }
+    },
+    {
+      "id": "cn-loft-outer-92",
+      "region": "china",
+      "a_xz": [
+        -11,
+        -23
+      ],
+      "b_xz": [
+        11,
+        -23
+      ],
+      "deck_y": 4.215,
+      "status": "retain_guard",
+      "existing_guard": "0.82 m solid red parapet with gold trim, avatar+camera collision",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 371,
+        "line_end": 381
+      }
+    },
+    {
+      "id": "cn-loft-outer-93",
+      "region": "china",
+      "a_xz": [
+        -11,
+        -34
+      ],
+      "b_xz": [
+        -11,
+        -23
+      ],
+      "deck_y": 4.215,
+      "status": "retain_guard",
+      "existing_guard": "0.82 m solid red parapet with gold trim, avatar+camera collision",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 371,
+        "line_end": 381
+      }
+    },
+    {
+      "id": "cn-loft-outer-94",
+      "region": "china",
+      "a_xz": [
+        11,
+        -34
+      ],
+      "b_xz": [
+        11,
+        -23
+      ],
+      "deck_y": 4.215,
+      "status": "retain_guard",
+      "existing_guard": "0.82 m solid red parapet with gold trim, avatar+camera collision",
+      "source": {
+        "file": "source/game/china-palace.js",
+        "line_start": 371,
+        "line_end": 381
+      }
+    },
+    {
+      "id": "eg-upper-platform-front",
+      "region": "egypt",
+      "a_xz": [
+        -11.2,
+        -10.47
+      ],
+      "b_xz": [
+        2,
+        -10.47
+      ],
+      "deck_y": 4,
+      "status": "retain_guard",
+      "existing_guard": "Stone wall plus cap; explicit avatar/camera volume",
+      "source": {
+        "file": "source/game/egypt-temple.js",
+        "line_start": 354,
+        "line_end": 365
+      }
+    },
+    {
+      "id": "eg-upper-platform-rear",
+      "region": "egypt",
+      "a_xz": [
+        -14.8,
+        -13.93
+      ],
+      "b_xz": [
+        -1.8,
+        -13.93
+      ],
+      "deck_y": 4,
+      "status": "retain_guard",
+      "existing_guard": "Stone wall plus cap; explicit avatar/camera volume",
+      "source": {
+        "file": "source/game/egypt-temple.js",
+        "line_start": 354,
+        "line_end": 365
+      }
+    },
+    {
+      "id": "eg-upper-platform-west",
+      "region": "egypt",
+      "a_xz": [
+        -14.98,
+        -13.9
+      ],
+      "b_xz": [
+        -14.98,
+        -10.5
+      ],
+      "deck_y": 4,
+      "status": "retain_guard",
+      "existing_guard": "Stone wall plus cap; explicit avatar/camera volume",
+      "source": {
+        "file": "source/game/egypt-temple.js",
+        "line_start": 354,
+        "line_end": 365
+      }
+    },
+    {
+      "id": "eg-upper-platform-east",
+      "region": "egypt",
+      "a_xz": [
+        2.18,
+        -13.25
+      ],
+      "b_xz": [
+        2.18,
+        -10.5
+      ],
+      "deck_y": 4,
+      "status": "retain_guard",
+      "existing_guard": "Stone wall plus cap; explicit avatar/camera volume",
+      "source": {
+        "file": "source/game/egypt-temple.js",
+        "line_start": 354,
+        "line_end": 365
+      }
+    },
+    {
+      "id": "eg-upper-stair-mouth",
+      "region": "egypt",
+      "a_xz": [
+        -14.8,
+        -10.5
+      ],
+      "b_xz": [
+        -11.2,
+        -10.5
+      ],
+      "deck_y": 4,
+      "status": "keep_open",
+      "existing_guard": "Throne stair arrives here",
+      "source": {
+        "file": "source/game/egypt-temple.js",
+        "line_start": 346,
+        "line_end": 365
+      }
+    },
+    {
+      "id": "eg-throne-door-mouth",
+      "region": "egypt",
+      "a_xz": [
+        -1.8,
+        -13.45
+      ],
+      "b_xz": [
+        1.8,
+        -13.45
+      ],
+      "deck_y": 4,
+      "status": "keep_open",
+      "existing_guard": "Throne doorway",
+      "source": {
+        "file": "source/game/egypt-temple.js",
+        "line_start": 367,
+        "line_end": 371
+      }
+    }
+  ],
+  "minimum_route_clearances_m": {
+    "jp_flights_inner": 3.28,
+    "jp_4f_north_mouth_inner": 3.24,
+    "jp_2f_3f_west_public_gallery": 1.42,
+    "jp_4f_south_landing_after_cap_min_depth": 2.2,
+    "cn_main_side_flights_inner": 1.66,
+    "cn_indoor_flights_inner": 2.06,
+    "cn_main_gallery_west_inner": 1.66,
+    "cn_main_gallery_east_inner_approx": 2.97,
+    "cn_main_gallery_front_inner_approx": 2.77,
+    "cn_loft_middle_turn_min_depth": 1.86,
+    "cn_loft_middle_inner_width": 4.91,
+    "cn_loft_west_promenade_inner_approx": 1.61,
+    "eg_burial_flight_inner": 3.2,
+    "eg_throne_flight_body_inner": 3.6,
+    "eg_throne_entry_nominal_width": 3.6,
+    "fr_min_existing_core_wing_door": 2.0
+  },
+  "cautions": [
+    "Source-derived dimensions are not scene acceptance or building-code certification.",
+    "Japan east wall strip has no guaranteed 0.5 m grid route; retain west public gallery as the primary route.",
+    "China main-gallery outer-west slab strip is too narrow for a normal avatar; do not count it as a required promenade.",
+    "Only ten header spans touching actual main-gallery floor are proposed for avatar collision. Retain lower doors and existing camera masonry.",
+    "All three loft intermediate south remnant guards must remain confined to non-travel spans.",
+    "Optional China bridge 0.25 m side joins are visual continuity only, not a new high-drop safety repair.",
+    "No production edits, deployment, authentication, remote push, ZIP, or Library upload is part of this audit."
+  ]
+}
