@@ -3,7 +3,7 @@
 export const JAPAN_SERVICE_POINTS = Object.freeze({
  arrival:[0,0,35], departure:[0,0,36.5],
  reception:[-4.22,0,5.7], registrar:[-5.4,0,5.7], tokenTray:[-5.65,1.17,6.48],
- receptionLedger:[-5.39,1.255,6.37],
+ receptionLedger:[-5.39,1.191,6.37],
  playerReception:[-4.2,0,4.8],
  apothecary:[-5.25,11.4,-1.6], apothecaryPickup:[-4.35,11.4,-2.6], mixtureTray:[-5.0,12.60,-2.15],
  blendWork:[-5.20,12.60,-2.10],
