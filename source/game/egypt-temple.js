@@ -85,10 +85,10 @@ function jackalStatue(g,x,y,z,s=1){
 function sphinx(g,cs,cam,x,z){const q=new THREE.Group();q.position.set(x,0,z);g.add(q);box(q,0,.2,0,3.8,.4,5.9,C.shadow);box(q,0,.43,0,3.55,.16,5.6,C.edge);ball(q,0,1.14,-.7,1,C.stone,1.38,.87,2.25);for(const side of [-1,1]){ball(q,side*.97,.73,1.58,.56,C.stone,.8,.55,2.1);for(let i=0;i<3;i++)box(q,side*.97+(i-1)*.17,.76,2.67,.035,.18,.20,C.shadow);}
   ball(q,0,1.91,.9,.82,C.stone,1,.91,.8);ball(q,0,2.55,1.24,.64,C.edge,.73,1.12,.61);for(const side of [-1,1]){box(q,side*.61,2.35,1.22,.31,1.47,.65,C.stone);for(let j=0;j<7;j++)box(q,side*.61,1.82+j*.19,1.56,.34,.055,.035,C.shadow);ball(q,side*.19,2.65,1.79,.055,C.ink,1.2,.65,.4);}box(q,0,2.99,1.54,1.04,.15,.35,C.gold);box(q,0,2.48,1.80,.10,.26,.13,C.stone);box(q,0,2.26,1.79,.30,.055,.04,C.shadow);box(q,0,1.91,1.67,.16,.54,.19,C.stone);volume(cs,x,1.65,z,3.8,3.3,5.9);volume(cam,x,1.65,z,3.8,3.3,5.9);}
 function balance(g,x,y,z){const q=new THREE.Group();q.position.set(x,y,z);g.add(q);box(q,0,.13,0,2.5,.26,1.15,C.shadow);box(q,0,.3,0,1.6,.09,.7,C.gold);rod(q,[0,.35,0],[0,2.0,0],.085,C.gold);ball(q,0,2.0,0,.14,C.gold);rod(q,[-1.07,1.86,0],[1.07,1.92,0],.065,C.gold);for(const side of [-1,1]){for(const dx of [-.25,.25])rod(q,[side*.88,1.90,0],[side*.88+dx,.98,0],.018,C.gold);cyl(q,side*.88,.94,0,.35,.2,.12,C.gold,16);}ball(q,-.88,1.09,0,.13,C.red,1,.9,1);rod(q,[.74,1.07,0],[1.06,1.53,0],.024,C.linen);for(let i=0;i<6;i++){const t=i/6;rod(q,[.75+t*.25,1.08+t*.4,0],[.67+t*.25,1.27+t*.4,0],.018,C.linen);rod(q,[.75+t*.25,1.08+t*.4,0],[.96+t*.25,1.13+t*.4,0],.018,C.linen);}return q;}
-function sarcophagus(g,cs,cam,x,z){const y=-3,q=new THREE.Group();q.position.set(x,y,z);g.add(q);box(q,0,.17,0,2.5,.34,4.1,C.shadow);box(q,0,.42,0,2.1,.18,3.65,C.gold);box(q,0,.62,0,1.64,.3,3.35,C.blue);for(const side of [-1,1]){box(q,side*.85,.89,0,.18,.56,3.55,C.gold);for(let i=0;i<8;i++)box(q,side*.95,.9,-1.48+i*.42,.024,.31,.16,i%2?C.blue:C.red);}for(const zz of [-1.65,1.65])box(q,0,.89,zz,1.8,.56,.2,C.gold);
+function sarcophagus(g,cs,cam,x,z,y=-3){const q=new THREE.Group();q.position.set(x,y,z);g.add(q);box(q,0,.17,0,2.5,.34,4.1,C.shadow);box(q,0,.42,0,2.1,.18,3.65,C.gold);box(q,0,.62,0,1.64,.3,3.35,C.blue);for(const side of [-1,1]){box(q,side*.85,.89,0,.18,.56,3.55,C.gold);for(let i=0;i<8;i++)box(q,side*.95,.9,-1.48+i*.42,.024,.31,.16,i%2?C.blue:C.red);}for(const zz of [-1.65,1.65])box(q,0,.89,zz,1.8,.56,.2,C.gold);
   // A non-graphic linen-wrapped mummy rests inside the open stone coffin.
   ball(q,0,.91,-1.02,.33,C.linen,.83,.66,1);ball(q,0,.89,.05,.36,C.linen,1.04,.58,2.42);for(let i=0;i<16;i++)box(q,0,1.096,-.69+i*.12,.64-Math.max(0,i-8)*.025,.025,.047,0xa79469);rod(q,[-.25,1.1,-.49],[.22,1.12,.06],.065,C.linen);rod(q,[.25,1.12,-.49],[-.22,1.14,.06],.065,C.linen);ball(q,0,.99,-1.16,.25,C.gold,.88,.37,1);for(const side of [-1,1])ball(q,side*.1,1.08,-1.18,.035,C.ink,1,.3,1);volume(cs,x,y+.6,z,2.5,1.2,4.1);volume(cam,x,y+.6,z,2.5,1.2,4.1);
-  const lid=new THREE.Group();lid.position.set(4.35,-2.25,z-.5);lid.rotation.z=.13;lid.rotation.x=-.36;g.add(lid);box(lid,0,.6,0,1.45,2.8,.27,C.gold);ball(lid,0,1.29,.2,.4,C.gold,.85,1.1,.38);for(const side of [-1,1]){box(lid,side*.43,1.05,.2,.24,1.13,.15,C.blue);for(let j=0;j<6;j++)box(lid,side*.44,.62+j*.17,.29,.22,.04,.024,C.gold);ball(lid,side*.12,1.43,.37,.045,C.ink,1.4,.7,.4);}for(let j=0;j<7;j++)glyph(lid,0,-.55+j*.22,.2,j,.13,C.blue);volume(cs,4.35,-1.4,z-.5,1.7,3.2,1.8);volume(cam,4.35,-1.4,z-.5,1.7,3.2,1.8);
+  const lid=new THREE.Group();lid.position.set(x+3.5,y+.75,z-.5);lid.rotation.z=.13;lid.rotation.x=-.36;g.add(lid);box(lid,0,.6,0,1.45,2.8,.27,C.gold);ball(lid,0,1.29,.2,.4,C.gold,.85,1.1,.38);for(const side of [-1,1]){box(lid,side*.43,1.05,.2,.24,1.13,.15,C.blue);for(let j=0;j<6;j++)box(lid,side*.44,.62+j*.17,.29,.22,.04,.024,C.gold);ball(lid,side*.12,1.43,.37,.045,C.ink,1.4,.7,.4);}for(let j=0;j<7;j++)glyph(lid,0,-.55+j*.22,.2,j,.13,C.blue);volume(cs,x+3.5,y+1.6,z-.5,1.7,3.2,1.8);volume(cam,x+3.5,y+1.6,z-.5,1.7,3.2,1.8);
 }
 function batchZone(zone){
   zone.updateMatrixWorld(true);const inverse=new THREE.Matrix4().copy(zone.matrixWorld).invert(),buckets=new Map(),remove=[];
@@ -278,41 +278,126 @@ export function buildEgypt(){
     for(const [z,y,reverse]of[[z0,y0,run>0],[z1,y1,run<0]]){const p=[[minX,y-.3,z],[maxX,y-.3,z],[maxX,y,z],[minX,y,z]];if(reverse)p.reverse();slab(g,p,C.shadow);}
     return {id,minX,maxX,z0,z1,y0,y1,risers,rise:Math.abs(rise),tread:Math.abs(run),sections};
   };
+  // Two descents, separated by a blind corner, put the burial chamber six
+  // metres below the court. Ground at y=0 remains above the deep stone roof;
+  // neither stair cuts through a surviving desert slab or an upper floor.
   const flights=[];
   flights.push(stoneFlight(passage,{id:'burial-stair',minX:-1.6,maxX:1.6,z0:-7,z1:-13,y0:0,y1:-3,risers:24}));
-  for(const side of [-1,1]){
-    const x=side*1.78;slab(passage,[[x,-3.05,-13],[x,0,-7],[x,3.5,-7],[x,.45,-13]],C.shadow);
-    // Reverse face ensures the enclosed wall is visible from its interior.
-    slab(passage,[[x,.45,-13],[x,3.5,-7],[x,0,-7],[x,-3.05,-13]],C.shadow);
-    for(let i=0;i<12;i++){const z=-12.75+i*.5,y=(z+7)*.5;volume(colliders,x,y+1.65,z,.36,3.3,.5);volume(cameraColliders,x,y+1.65,z,.36,3.3,.5);}
+  const tunnel=(minX,maxX,z0,z1,y0,y1)=>{
+    const n=Math.ceil(Math.abs(z1-z0)/.3),dz=(z1-z0)/n;
+    for(let i=0;i<n;i++){
+      const a=z0+i*dz,b=a+dz,z=(a+b)/2,ya=y0+(y1-y0)*i/n,yb=y0+(y1-y0)*(i+1)/n;
+      // Sloped wall/roof cross-sections are true closed prisms. No stepped
+      // underside intrudes into the headroom of a descending walking camera.
+      const lo=Math.min(a,b),hi=Math.max(a,b),floorAt=z=>y0+(y1-y0)*(z-z0)/(z1-z0);
+      for(const side of[-1,1]){
+        const inner=side<0?minX:maxX,outer=inner+side*1.0;
+        const pts=[[inner,floorAt(hi)-.3,hi],[inner,floorAt(lo)-.3,lo],[inner,floorAt(lo)+2.95,lo],[inner,floorAt(hi)+2.95,hi]];
+        if(side>0)pts.reverse();slab(passage,pts,C.shadow);
+        slab(passage,[[outer,floorAt(hi)-.3,hi],[outer,floorAt(hi)+3.6,hi],[outer,floorAt(lo)+3.6,lo],[outer,floorAt(lo)-.3,lo]],C.deep);
+        volume(colliders,(inner+outer)/2,(ya+yb)/2+1.325,z,1,3.25,Math.abs(dz));
+        volume(cameraColliders,(inner+outer)/2,(ya+yb)/2+1.325,z,1,3.25,Math.abs(dz));
+      }
+      const bottom=[[minX-1,floorAt(hi)+2.95,hi],[maxX+1,floorAt(hi)+2.95,hi],[maxX+1,floorAt(lo)+2.95,lo],[minX-1,floorAt(lo)+2.95,lo]];
+      slab(roofGroup,bottom.reverse(),C.deep);
+      slab(roofGroup,[[minX-1,floorAt(hi)+3.6,hi],[maxX+1,floorAt(hi)+3.6,hi],[maxX+1,floorAt(lo)+3.6,lo],[minX-1,floorAt(lo)+3.6,lo]],C.shadow);
+      // Conservative ceiling proxy starts above the lowest actual underside.
+      for(const arr of[colliders,cameraColliders])volume(arr,(minX+maxX)/2,Math.min(ya,yb)+3.28,z,maxX-minX+2,.66,Math.abs(dz));
+    }
+    // Long masonry seams follow the descent; broad transverse lintels make
+    // successive pools of torchlight legible without adding floor obstacles.
+    for(const side of[-1,1])for(const h of[.6,1.2,1.8,2.4])rod(passage,[side<0?minX+.014:maxX-.014,y0+h,z0],[side<0?minX+.014:maxX-.014,y1+h,z1],.015,C.stone);
+    for(let i=1;i<4;i++){const z=z0+(z1-z0)*i/4,y=y0+(y1-y0)*i/4;stoneCourse(passage,(minX+maxX)/2,y+2.97,z,maxX-minX,.12,.20,C.edge);}
+  };
+  tunnel(-1.6,1.6,-7,-13,0,-3);
+  const tombFloor=(g,x,z,w,d,y=-6)=>{floor(g,x,y,z,w,d,C.shadow);surface(x-w/2,x+w/2,z-d/2,z+d/2,y);};
+  const tombWall=(g,x,z,w,d,y=-6,h=5.4,c=C.shadow)=>solid(g,colliders,cameraColliders,x,y+h/2,z,w,h,d,c);
+  const tombRoof=(x,z,w,d,y,h)=>{box(roofGroup,x,y+h+.35,z,w,.7,d,C.deep);for(const arr of[colliders,cameraColliders])volume(arr,x,y+h+.35,z,w,.7,d);};
+  tombFloor(passage,-3,-14.6,9.2,3.2,-3);
+  // Offset corner wall blocks the coffin sightline; a wall relief faces the
+  // arriving walker, while a lamp reveals the left-hand continuation.
+  tombWall(passage,2.1,-14.6,1,5.2,-3,2.95);
+  tombWall(passage,-8.1,-14.6,1,3.2,-3,2.95);
+  tombWall(passage,-1.4,-16.7,6,1,-3,2.95);
+  tombWall(passage,-4.6,-12.5,6,1,-3,2.95);
+  tombRoof(-3,-14.6,9.2,3.2,-3,2.95);
+  glyphPanel(passage,.6,-1.43,-16.16,1.55,2.35,0,3);
+  // Open the second stair at the WEST end of the turning landing.
+  // Its x=-6 centre keeps the two routes separated by genuine rock mass.
+  flights.push(stoneFlight(passage,{id:'burial-deep-stair',minX:-7.6,maxX:-4.4,z0:-16.2,z1:-22.2,y0:-3,y1:-6,risers:24}));
+  tunnel(-7.6,-4.4,-16.2,-22.2,-3,-6);
+  // Low square antechamber. Thresholds have 0.8–1.2 m reveals, not thin dividers.
+  tombFloor(burial,-5,-25.35,6,6.3);
+  tombWall(burial,-5,-29,7,1,-6,3.25);
+  tombWall(burial,-8.5,-23.35,1,2.3,-6,3.25);
+  tombWall(burial,-8.5,-28,1,1,-6,3.25);
+  tombWall(burial,-8.5,-26,1,3,-2.95,.2);
+  tombWall(burial,-2.4,-23.35,.8,2.3,-6,3.25);
+  tombWall(burial,-2.4,-28,.8,1,-6,3.25);
+  tombWall(burial,-1.6,-26,1.6,3,-2.95,2.35,C.stone);
+  tombWall(burial,-1.6,-28,1.6,1);
+  tombWall(burial,-1.6,-23.35,1.6,2.3);
+  tombWall(burial,-3.2,-21.8,2.4,.8,-6,3.25);
+  tombRoof(-5,-25.35,7,6.3,-6,3.25);
+  tombFloor(burial,-1.6,-26,1.6,3);
+  // Raised stone closure in a visible overhead slot. Its clear opening is
+  // 3.0 m high; the two existing working timber inset doors remain unchanged.
+  box(burial,-1.98,-2.68,-26,.3,.52,2.87,C.edge);
+  for(const z of[-27.25,-24.75])glyphPanel(burial,-2.825,-4.4,z,.48,2.45,-Math.PI/2,3);
+  mural(burial,-5,-4.3,-28.47,5.4,2.7,0,3);
+  // West offering room branches from the antechamber. Vessels occupy a bench,
+  // with the centre and the door threshold kept clear for standing inspection.
+  tombFloor(burial,-11,-26.25,4,4.5);tombFloor(burial,-8.5,-26,1,3);
+  tombWall(burial,-13.5,-26.25,1,5.5,-6,3.25);
+  for(const z of[-23.5,-29])tombWall(burial,-11,z,4,1,-6,3.25);
+  tombRoof(-11,-26.25,4,5.5,-6,3.25);
+  solid(burial,colliders,cameraColliders,-12.2,-5.57,-26.45,1,.86,2.7,C.stone);
+  for(let i=0;i<3;i++)urn(burial,-12.2,-5.14,-27.35+i*.88,.67,i%2?C.red:C.linen);
+  glyphPanel(burial,-12.97,-4.1,-26.25,3.6,2.55,Math.PI/2,2);
+  // High main burial hall. Its roof top is y=-.38, below the existing
+  // ground slab underside (-.36), so no ground plane slices the interior.
+  tombFloor(burial,3.4,-28.6,9.2,12.8);
+  tombWall(burial,-1.7,-23.35,1,2.3);
+  tombWall(burial,-1.7,-31.5,1,7);
+  tombWall(burial,3.4,-21.7,10.2,1);
+  tombWall(burial,3.4,-35.5,10.2,1);
+  tombWall(burial,8.5,-24.55,1,4.7);
+  tombWall(burial,8.5,-33.55,1,3.9);
+  tombWall(burial,8.5,-29.3,1,3.2,-2.95,2.35,C.stone);
+  box(roofGroup,3.4,-.49,-28.6,10.2,.22,13.8,C.deep);for(const arr of[colliders,cameraColliders])volume(arr,3.4,-.49,-28.6,10.2,.22,13.8);
+  // Recessed ceiling coffers lift the centre above the heavy transverse beams, bounded by
+  // heavy crossbeams. Star paint remains high overhead, never over a passage.
+  box(roofGroup,3.4,-.626,-28.6,7.5,.02,11.3,C.ink);
+  for(const z of[-24,-28,-32,-34.4])stoneCourse(roofGroup,3.4,-.78,z,9.2,.32,.42,C.stone);
+  for(let i=0;i<48;i++){const x=.3+(i%6)*1.23,z=-33.4+Math.floor(i/6)*1.38;box(roofGroup,x,-.647,z,.15,.018,.04,C.gold);box(roofGroup,x,-.648,z,.04,.018,.15,C.gold);}
+  // Repeated broad pilasters and painted registers establish room scale.
+  for(const z of[-23.35,-28.05,-33.25])for(const x of[-.97,7.77]){
+    solid(burial,colliders,cameraColliders,x,-3.45,z,.46,5.1,.70,C.stone);
+    for(const y of[-5.8,-1.22])stoneCourse(burial,x,y,z,.60,.28,.88,C.edge);
   }
-  slab(roofGroup,[[-1.98,3.48,-7],[-1.98,.48,-13],[1.98,.48,-13],[1.98,3.48,-7]],C.deep);
-  slab(roofGroup,[[1.98,3.68,-7],[1.98,.68,-13],[-1.98,.68,-13],[-1.98,3.68,-7]],C.shadow);
-  for(let i=0;i<12;i++){const z=-12.75+i*.5,y=(z+7)*.5;volume(cameraColliders,0,y+3.55,z,4,.3,.5);}
-  for(const side of[-1,1])for(let i=0;i<24;i++){
-    const z=-7.125-i*.25,y=(z+7)*.5;
-    stoneCourse(passage,side*1.69,y+.13,z,.18,.42,.25,C.deep);
-  }
-  // Two centimetres of uncovered jamb were visible as sky beside the old
-  // paper wall. Bond the 3.2 m corridor directly into both existing door frames.
-  for(const side of[-1,1]){solid(passage,colliders,cameraColliders,side*1.78,1.65,-6.90,.36,3.3,.20,C.shadow);solid(passage,colliders,cameraColliders,side*1.78,-1.42,-13.0,.36,3.16,.30,C.deep);}
-  for(const [z,rot]of[[-8.7,Math.PI/2],[-11.2,-Math.PI/2]])torch(passage,rot>0?-1.55:1.55,(z+7)*.5+2.1,z,cameraColliders,rot);
-  // The inner chamber is entirely below the pyramid, with continuous ceiling,
-  // four walls, a full entrance portal and actual room to circle the coffin.
-  floor(burial,0,-3,-16.2,14,6.4,C.shadow);surface(-7,7,-19.4,-13,-3);
-  for(const side of [-1,1])solid(burial,colliders,cameraColliders,side*7.15,-1.1,-16.2,.3,3.8,6.8,C.deep);
-  solid(burial,colliders,cameraColliders,0,-1.1,-19.55,14.6,3.8,.3,C.deep);
-  for(const side of [-1,1])solid(burial,colliders,cameraColliders,side*4.5,-1.1,-13,5.4,3.8,.3,C.deep);
-  solid(burial,colliders,cameraColliders,0,.43,-13,3.6,.74,.3,C.deep);
-  box(roofGroup,0,.64,-16.3,14.6,.38,6.6,C.deep);volume(cameraColliders,0,.64,-16.3,14.6,.38,6.6);
-  for(let x=-6;x<7;x+=1.1)for(let z=-18.9;z<-13.3;z+=1.1){box(burial,x,-2.992,z,1.04,.016,1.04,((Math.round(x*10+z*10))%2)?0x9a7449:0xa67f50);box(roofGroup,x,.438,z,.13,.022,.038,C.gold);box(roofGroup,x,.437,z,.038,.022,.13,C.gold);}
-  mural(burial,0,-1.07,-19.38,13.6,3.55,0,2);mural(burial,-6.96,-1.05,-16.2,5.8,3.5,Math.PI/2,4);mural(burial,6.96,-1.05,-16.2,5.8,3.5,-Math.PI/2,1);
-  sarcophagus(burial,colliders,cameraColliders,0,-16.55);
-  // Four canopic vessels and a ritual boat give the burial room specific life.
-  solid(burial,colliders,cameraColliders,-5.45,-2.63,-17.65,1.8,.74,1.1,C.shadow);
-  for(let i=0;i<4;i++){const x=-6.08+i*.42;urn(burial,x,-2.23,-17.66,.52,i%2?C.gold:C.linen);ball(burial,x,-1.72,-17.66,.12,C.gold,.8,1.25,1);}
-  solid(burial,colliders,cameraColliders,-4.7,-2.75,-14.45,3.3,.5,.9,C.shadow);const hull=ball(burial,-4.7,-2.39,-14.45,.58,C.gold,2.6,.29,.52);rod(burial,[-4.7,-2.3,-14.45],[-4.7,-1.32,-14.45],.04,C.deep);slab(burial,[[-4.65,-1.3,-14.45],[-3.75,-1.5,-14.45],[-3.75,-2.03,-14.45],[-4.65,-2.2,-14.45]],C.linen);
-  for(const [x,z,rot]of[[-6.85,-14.2,Math.PI/2],[6.85,-14.2,-Math.PI/2],[-3.4,-19.28,0],[3.4,-19.28,0]])torch(burial,x,-.65,z,cameraColliders,rot);
+  mural(burial,3.4,-3.2,-34.97,8.5,4.55,0,4);
+  mural(burial,-1.16,-3.5,-31,5.2,3.7,Math.PI/2,2);
+  mural(burial,7.96,-3.5,-24.65,3.4,3.7,-Math.PI/2,5);
+  // A recessed, sealed stone door anchors the far wall. Carved edges have real
+  // depth and a narrow central joint, without pretending this is a route.
+  box(burial,3.4,-3.9,-34.74,3.4,3.7,.36,C.deep);
+  for(const side of[-1,1]){stoneCourse(burial,3.4+side*1.47,-3.88,-34.48,.34,3.72,.46,C.edge);box(burial,3.4+side*.67,-3.85,-34.50,1.31,3.28,.16,C.stone);glyphPanel(burial,3.4+side*.67,-3.85,-34.40,.80,2.60,0,side>0?1:4);}
+  stoneCourse(burial,3.4,-1.89,-34.50,3.6,.34,.55,C.edge);
+  sarcophagus(burial,colliders,cameraColliders,3,-30.1,-6);
+  // Keep the boat and four canopic vessels as distinct readable destinations.
+  solid(burial,colliders,cameraColliders,.4,-5.75,-23.7,2.7,.5,1,C.shadow);
+  ball(burial,.4,-5.39,-23.7,.58,C.gold,2.1,.29,.52);rod(burial,[.4,-5.3,-23.7],[.4,-4.32,-23.7],.04,C.deep);
+  slab(burial,[[.45,-4.3,-23.7],[1.35,-4.5,-23.7],[1.35,-5.03,-23.7],[.45,-5.2,-23.7]],C.linen);
+  tombFloor(burial,10.75,-29.3,3.5,4.8);tombFloor(burial,8.5,-29.3,1,3.2);
+  tombWall(burial,13,-29.3,1,5.8,-6,3.25);
+  for(const z of[-26.4,-32.2])tombWall(burial,10.75,z,3.5,1,-6,3.25);
+  tombRoof(10.75,-29.3,3.5,5.8,-6,3.25);
+  solid(burial,colliders,cameraColliders,11.8,-5.6,-29.3,.8,.8,3.35,C.stone);
+  for(let i=0;i<4;i++){urn(burial,11.8,-5.2,-30.5+i*.8,.56,i%2?C.gold:C.linen);ball(burial,11.8,-4.65,-30.5+i*.8,.13,C.gold,.8,1.25,1);}
+  glyphPanel(burial,12.47,-4.05,-29.3,4.25,2.5,-Math.PI/2,4);
+  // Fixtures mark decisions and ritual objects. Ambient/sun settings are kept;
+  // mystery comes from enclosure and occlusion rather than global darkness.
+  for(const [x,y,z,r]of[[-1.47,1.04,-8.7,Math.PI/2],[1.47,-.18,-11.2,-Math.PI/2],[-3.6,-.94,-12.98,Math.PI],[-7.47,-2.1,-18.5,Math.PI/2],[-4.53,-3.6,-21.0,-Math.PI/2],[-7.86,-3.83,-23.45,Math.PI/2],[-10.6,-3.78,-28.47,0],[-.98,-3.15,-27.7,Math.PI/2],[7.76,-3.15,-32.6,-Math.PI/2],[5.5,-3.15,-34.85,0],[12.38,-3.8,-28.0,-Math.PI/2]])torch(burial,x,y,z,cameraColliders,r);
   // Three spacious human-scale destinations occupy the new pyramid interior.
   // A real 16.5 m ascending passage connects ground level to the throne floor;
   // the original six-metre descending passage still reaches the lower tomb.
@@ -472,8 +557,8 @@ export function buildEgypt(){
     {id:'egypt-papyrus',name:'神殿书吏壁龛',action:'用矿物颜料绘制纸莎草',position:[-5.5,0,-1.7],npcName:'萨米拉',npcAction:'paint',npcLabel:'调配青金蓝颜料',npcPosition:[-7.75,0,-1.7],workTarget:[-6.65,1.17,-3],route:[[-7.75,0,-1.7],[-7.8,0,-.4]],dialogue:'蘸一点蓝色，再添赭石。把你刚才在柱廊里看到的形状画在这里。'},
     {id:'egypt-scales',name:'羽毛天平',action:'轻放象征真诚的羽毛',position:[1.2,0,-1.55],npcName:'奥马尔',npcAction:'ritual',npcLabel:'调平金色秤盘',npcPosition:[2.5,0,-1.4],workTarget:[1.2,1.6,-3.05],route:[[2.5,0,-1.4],[1.4,0,-5.65]],dialogue:'这是一场象征性的神话体验：看羽毛与心形石怎样让两只秤盘保持平衡。'},
     {id:'egypt-guardian',name:'豺首守护神',action:'观察黑石守护神像',position:[5.25,0,-2.45],npcName:'努尔',npcAction:'read',npcLabel:'记录金饰与轮廓',npcPosition:[7.85,0,-3.05],workTarget:[6.1,2.8,-4.9],route:[[7.85,0,-3.05],[8.0,0,-5.2]],dialogue:'细长的双耳、向前的吻部与金色颈饰，在灯火下格外清晰。黑石守护者身后的甬道，通往金字塔深处。'},
-    {id:'egypt-burial',name:'金字塔深处',action:'探看石棺与亚麻木乃伊',position:[-2.4,-3,-16.25],npcName:'阿米娜',npcAction:'read',npcLabel:'安静讲解墓室',npcPosition:[2.65,-3,-15.55],workTarget:[0,-1.9,-16.55],route:[[2.65,-3,-15.55],[2.65,-3,-18.7]],dialogue:'我们已经沿甬道走进金字塔内部。请绕着石棺慢慢看，细密的亚麻环绕着安静的身影，灯火映着四周的彩绘。'},
-    {id:'egypt-stars',name:'星空墓室',action:'寻找天顶的金色星图',position:[-3.5,-3,-18.55],npcName:'梅丽特',npcAction:'read',npcLabel:'解读星图与彩绘',npcPosition:[-5.65,-3,-18.8],workTarget:[-2,.4,-17.9],route:[[-5.65,-3,-18.8],[-3.3,-3,-17.7]],dialogue:'抬头看，金星点缀着暗蓝与砂岩的天顶。灯火、壁画和模型船，让这间石室有了自己的宁静。'}
+    {id:'egypt-burial',name:'金字塔深处',action:'探看石棺与亚麻木乃伊',position:[.6,-6,-30.1],npcName:'阿米娜',npcAction:'read',npcLabel:'安静讲解墓室',npcPosition:[4.95,-6,-28.8],workTarget:[3,-4.9,-30.1],route:[[4.95,-6,-28.8],[4.95,-6,-32.4]],dialogue:'我们已经沿甬道走进金字塔内部。请绕着石棺慢慢看，细密的亚麻环绕着安静的身影，灯火映着四周的彩绘。'},
+    {id:'egypt-stars',name:'星空墓室',action:'寻找天顶的金色星图',position:[0,-6,-32.8],npcName:'梅丽特',npcAction:'read',npcLabel:'解读星图与彩绘',npcPosition:[.2,-6,-33.3],workTarget:[1,-.65,-31.8],route:[[.2,-6,-33.3],[1,-6,-32.7]],dialogue:'抬头看，金星点缀着暗蓝与砂岩的天顶。灯火、壁画和模型船，让这间石室有了自己的宁静。'}
   ];
   stations.push(
     {id:'egypt-anubis-judgment',name:'阿努比斯审判厅',action:'体验羽毛与心的象征仪式',position:[-20,0,4.45],npcName:'奈菲',npcAction:'ritual',npcLabel:'讲述审判天平的寓意',npcPosition:[-17.5,0,.4],workTarget:[-20,1.8,2.1],route:[[-17.5,0,.4],[-17.5,0,4]],dialogue:'这里用神话里的羽毛、心形石和豺首守护者，讲述诚实与平衡。你可以绕行天平，再走近后墙的荷鲁斯之眼。'},
@@ -492,8 +577,11 @@ export function buildEgypt(){
     {id:'west-column-aisle',name:'西侧彩绘柱廊',position:[-3.1,0,.25]},
     {id:'east-column-aisle',name:'东侧彩绘柱廊',position:[4.8,0,.5]},
     {id:'ramp-middle',name:'下降甬道中段',position:[0,-1.5,-10]},
-    {id:'burial-east',name:'石棺东侧回廊',position:[2.65,-3,-18.55]},
-    {id:'burial-west',name:'石棺西侧回廊',position:[-2.65,-3,-18.55]},
+    {id:'burial-east',name:'石棺东侧回廊',position:[4.95,-6,-32.7]},
+    {id:'burial-west',name:'石棺西侧回廊',position:[.3,-6,-32.7]},
+    {id:'tomb-antechamber',name:'低顶墓室前厅',position:[-5,-6,-25.7]},
+    {id:'offering-room',name:'西侧供奉石室',position:[-10.5,-6,-26.25]},
+    {id:'canopic-room',name:'东侧卡诺匹陶罐室',position:[10.5,-6,-29.3]},
     {id:'ascending-middle',name:'上升长坡道中段',position:[-13,2,-2.25]},
     {id:'upper-landing',name:'上层王殿平台',position:[-6.5,4,-12.2]},
     {id:'private-sleeping-room',name:'王室独立寝室',position:[17.8,0,-1.5]},
@@ -505,8 +593,8 @@ export function buildEgypt(){
   const doorways=[
     {id:'pyramid-main-entry',a:[0,0,23],b:[0,0,17.8],width:4.16,height:4.64},
     {id:'internal-painted-gateway',a:[0,0,6.2],b:[0,0,4.1],width:3.6,height:3.44},
-    {id:'descending-passage-mouth',a:[0,0,-6.2],b:[0,-.4,-7.8],width:3.2,height:3.18},
-    {id:'burial-chamber-portal',a:[0,-2.6,-12.2],b:[0,-3,-13.6],width:3.2,height:3.06},
+    {id:'descending-passage-mouth',a:[0,0,-6.2],b:[0,-.4,-7.8],width:3.2,height:2.95},
+    {id:'burial-chamber-portal',a:[-3.5,-6,-26],b:[.3,-6,-26],at:-1.6,width:3,height:3.05},
     {id:'judgment-hall-entry',a:[-20,0,9.1],b:[-20,0,7.5],width:2.9,height:3.56},
     {id:'private-suite-entry',a:[17.9,0,12.2],b:[17.9,0,10.6],width:3.18,height:3.4},
     {id:'private-bedroom',a:[17.9,0,3.4],b:[17.9,0,1.8],width:3.18,height:3.4},
@@ -529,11 +617,11 @@ export function buildEgypt(){
     {id:'bath',name:'独立沐浴间',position:[15.8,0,-1],activity:'egypt-private-bath'},
     {id:'storage',name:'陶罐谷物储藏室',position:[14.15,0,-17.7]},
     {id:'judgment-hall',name:'阿努比斯与荷鲁斯之眼',position:[-20,0,4.45],activity:'egypt-anubis-judgment'},
-    {id:'lower-burial',name:'地下石棺与木乃伊墓室',position:[-2.4,-3,-16.25],activity:'egypt-burial'}
+    {id:'lower-burial',name:'地下石棺与木乃伊墓室',position:[.6,-6,-30.1],activity:'egypt-burial'}
   ];
   // Gold torch fixtures hug the existing entry jambs, leaving the portal clear.
   for(const x of [-3.0,3.0])torch(desert,x,2.55,21.45,cameraColliders,0,true);
   for(const q of [desert,temple,passage,burial,pyramid,throne,privateRoom,judgment,ascending,service,roofGroup])batchZone(q);
-  group.userData={...group.userData,interior:true,defaultRoofVisible:true,cameraMode:'close-third-person',theme:'dry-desert-pyramid',pyramidShell:{...shell,frontZ:front,rearZ:rear,solidBands:shellSolids.length,mainEntry:true},ambientIntensity:.38,sunIntensity:2.4,interiorZones:[{name:'神殿柱厅',minX:-9,maxX:9,minZ:-6.8,maxZ:.5,minY:-.1,maxY:5.1},{name:'金字塔墓室',minX:-7,maxX:7,minZ:-19.4,maxZ:-13,minY:-3.1,maxY:.4}],originalProceduralArt:true,stoneFlights:flights.map(({sections,...f})=>f),constructionRevision:'R10-sealed-stone-stairs'};
-  return {group,colliders,spawn:[0,0,35.5],bounds:{minX:-30,maxX:30,minZ:-40,maxZ:40},stations,roofGroup,walkableSurfaces,cameraColliders,explorationTargets,doorways,facilities,levels:[{id:'desert',name:'沙漠与神殿',y:0},{id:'burial',name:'金字塔地下墓室',y:-3},{id:'throne',name:'上层法老王殿',y:4}]};
+  group.userData={...group.userData,interior:true,defaultRoofVisible:true,cameraMode:'close-third-person',theme:'dry-desert-pyramid',pyramidShell:{...shell,frontZ:front,rearZ:rear,solidBands:shellSolids.length,mainEntry:true},ambientIntensity:.38,sunIntensity:2.4,interiorZones:[{name:'神殿柱厅',minX:-9,maxX:9,minZ:-6.8,maxZ:.5,minY:-.1,maxY:5.1},{name:'金字塔墓室',minX:-13,maxX:12.5,minZ:-35,maxZ:-22.2,minY:-6.1,maxY:-.6}],originalProceduralArt:true,stoneFlights:flights.map(({sections,...f})=>f),constructionRevision:'Egypt-thick-passage-deep-tomb',tombSequence:{entryClearance:3.45,tunnelClearance:2.95,antechamberClearance:3.25,burialClearance:5.4,burialFloor:-6,route:[[0,0,23],[0,0,10],[0,0,-6.2],[0,-3,-14.6],[-6,-3,-14.6],[-6,-3,-16.2],[-6,-6,-23.3],[-5,-6,-26],[.3,-6,-26],[.6,-6,-30.1]]}};
+  return {group,colliders,spawn:[0,0,35.5],bounds:{minX:-30,maxX:30,minZ:-40,maxZ:40},stations,roofGroup,walkableSurfaces,cameraColliders,explorationTargets,doorways,facilities,levels:[{id:'desert',name:'沙漠与神殿',y:0},{id:'burial',name:'金字塔地下墓室',y:-6},{id:'burial-turn',name:'地下转折甬道',y:-3},{id:'throne',name:'上层法老王殿',y:4}]};
 }
