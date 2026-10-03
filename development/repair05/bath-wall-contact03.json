@@ -1,0 +1,1183 @@
+{
+  "status": "PASS",
+  "scope": "Candidate03 affected physical wall/camera/support verification only. Eight representative actor cases; original24-case vertex-percentage FAIL is retained separately and is not claimed resolved.",
+  "knownUnresolved": "Candidate02 four short-male torso vertex-percentage gate failures await anatomical/image review; this physical-only check does not retune that gate",
+  "cases": 8,
+  "errors": [],
+  "walls": [
+    {
+      "id": "japan-furniture-bath-1",
+      "name": "east coping",
+      "expected": 4.6,
+      "actual": 4.600000011920929
+    },
+    {
+      "id": "japan-furniture-bath-1",
+      "name": "west stone",
+      "expected": 4.52,
+      "actual": 4.520000028610229
+    },
+    {
+      "id": "japan-furniture-bath-1",
+      "name": "seat",
+      "expected": 4.1,
+      "actual": 4.100000011920929
+    },
+    {
+      "id": "japan-furniture-bath-1",
+      "name": "lumbar support",
+      "expected": 4.5,
+      "actual": 4.499999988079071
+    },
+    {
+      "id": "japan-furniture-bath-1",
+      "name": "original bottom",
+      "expected": 3.8805,
+      "actual": 3.8804999992251394
+    },
+    {
+      "id": "japan-furniture-bath-2",
+      "name": "east coping",
+      "expected": 4.6,
+      "actual": 4.600000011920929
+    },
+    {
+      "id": "japan-furniture-bath-2",
+      "name": "west stone",
+      "expected": 4.52,
+      "actual": 4.520000028610229
+    },
+    {
+      "id": "japan-furniture-bath-2",
+      "name": "seat",
+      "expected": 4.1,
+      "actual": 4.100000011920929
+    },
+    {
+      "id": "japan-furniture-bath-2",
+      "name": "lumbar support",
+      "expected": 4.5,
+      "actual": 4.499999988079071
+    },
+    {
+      "id": "japan-furniture-bath-2",
+      "name": "original bottom",
+      "expected": 3.8805,
+      "actual": 3.8804999992251394
+    }
+  ],
+  "rows": [
+    {
+      "id": "japan-furniture-bath-1",
+      "bodyPreset": "feminine-balanced",
+      "legLength": 1,
+      "skin": {
+        "bounds": {
+          "min": [
+            -3.92807162985581,
+            3.8845000000000005,
+            -9.599776547985119
+          ],
+          "max": [
+            -2.986235431411456,
+            4.939164971386858,
+            -8.99977597789875
+          ]
+        },
+        "head": {
+          "min": [
+            -3.192870124510415,
+            4.655026194826478,
+            -9.388986444393412
+          ],
+          "max": [
+            -3.0122814723892706,
+            4.907211016077214,
+            -9.211061256929813
+          ]
+        },
+        "hip": {
+          "min": [
+            -3.2305582980754783,
+            4.1040090487544765,
+            -9.4616936254739
+          ],
+          "max": [
+            -3.0435446564226862,
+            4.211645928193903,
+            -9.138306928849298
+          ]
+        },
+        "feet": {
+          "min": [
+            -3.92807162985581,
+            3.8845000000000005,
+            -9.48131195640564
+          ],
+          "max": [
+            -3.6886722116209842,
+            4.0095000055879355,
+            -9.11868804359436
+          ]
+        },
+        "hipGap": 0.004009048754476829,
+        "soleGap": 0.004000000000000448,
+        "backGap": 0.005999998216515312,
+        "retainingWallGap": 0.05986021304562961,
+        "shoulderAboveWater": [
+          0.05660634181049495,
+          0.05660634181049495
+        ],
+        "bodyBottomGap": 0.08499999837577388,
+        "torsoSubmergedFraction": 0.6382536382536382,
+        "coveredVertices": 2496,
+        "seatPenetration": 0,
+        "rimPenetration": 0,
+        "backrestPenetration": 0
+      },
+      "pose": {
+        "height": 1.7389999628067017,
+        "labelHeight": 1.2158757779085332,
+        "headHeight": 1.0158757779085332,
+        "action": "bathe",
+        "seated": true,
+        "grounded": true,
+        "feet": [
+          [
+            -0.13,
+            0.108,
+            0.58
+          ],
+          [
+            0.13,
+            0.108,
+            0.58
+          ]
+        ],
+        "hands": [
+          [
+            -0.23,
+            0.6355,
+            0.15
+          ],
+          [
+            0.23,
+            0.63743,
+            0.15
+          ]
+        ],
+        "gaitReset": true,
+        "lying": false,
+        "bathing": true,
+        "speed": 0,
+        "gaitPhase": 0,
+        "stepLength": 0.46,
+        "strideLength": 0.92,
+        "support": [
+          true,
+          true
+        ],
+        "contactMinY": 3.8845,
+        "contactMaxY": 4.939164971386857,
+        "lieContact": null,
+        "bathContact": {
+          "hip": {
+            "surface": 4.1,
+            "body": 4.104009048754476,
+            "gap": 0.004009048754475941
+          },
+          "sole": {
+            "surface": 3.8805,
+            "body": 3.8845,
+            "gap": 0.004
+          },
+          "back": {
+            "surface": -0.2,
+            "body": -0.194,
+            "gap": 0.006,
+            "height": 4.481608979823761,
+            "top": 4.5
+          },
+          "waterY": 4.47
+        },
+        "visualFloorOffset": 0,
+        "rigBones": 18,
+        "continuousCloth": true,
+        "unevenSupport": false
+      }
+    },
+    {
+      "id": "japan-furniture-bath-1",
+      "bodyPreset": "masculine-lean",
+      "legLength": 1,
+      "skin": {
+        "bounds": {
+          "min": [
+            -3.98603525090793,
+            3.8844999999999987,
+            -9.625979885565272
+          ],
+          "max": [
+            -2.9877546209928183,
+            4.967313169462375,
+            -8.973578526645245
+          ]
+        },
+        "head": {
+          "min": [
+            -3.2030456477150846,
+            4.673229535722381,
+            -9.396550292166852
+          ],
+          "max": [
+            -3.010718733206066,
+            4.934240825716893,
+            -9.20350146376885
+          ]
+        },
+        "hip": {
+          "min": [
+            -3.2416854830474944,
+            4.104017439451853,
+            -9.465866643535717
+          ],
+          "max": [
+            -3.0440140266830458,
+            4.214330959757665,
+            -9.134133122609185
+          ]
+        },
+        "feet": {
+          "min": [
+            -3.98603525090793,
+            3.8844999999999987,
+            -9.496723472700118
+          ],
+          "max": [
+            -3.7310748704878414,
+            4.013875005783512,
+            -9.103276527299883
+          ]
+        },
+        "hipGap": 0.004017439451853733,
+        "soleGap": 0.003999999999998671,
+        "backGap": 0.0060000015436032506,
+        "retainingWallGap": 0.056935043764958504,
+        "shoulderAboveWater": [
+          0.07031498785083912,
+          0.07031498785083912
+        ],
+        "bodyBottomGap": 0.0878349983189235,
+        "torsoSubmergedFraction": 0.5738045738045738,
+        "coveredVertices": 2496,
+        "seatPenetration": 0,
+        "rimPenetration": 0,
+        "backrestPenetration": 0
+      },
+      "pose": {
+        "height": 1.799864961504936,
+        "labelHeight": 1.2397088542123085,
+        "headHeight": 1.0397088542123085,
+        "action": "bathe",
+        "seated": true,
+        "grounded": true,
+        "feet": [
+          [
+            -0.13,
+            0.108,
+            0.58
+          ],
+          [
+            0.13,
+            0.108,
+            0.58
+          ]
+        ],
+        "hands": [
+          [
+            -0.23,
+            0.61486,
+            0.15
+          ],
+          [
+            0.23,
+            0.61679,
+            0.15
+          ]
+        ],
+        "gaitReset": true,
+        "lying": false,
+        "bathing": true,
+        "speed": 0,
+        "gaitPhase": 0,
+        "stepLength": 0.46,
+        "strideLength": 0.92,
+        "support": [
+          true,
+          true
+        ],
+        "contactMinY": 3.8845,
+        "contactMaxY": 4.967313169462375,
+        "lieContact": null,
+        "bathContact": {
+          "hip": {
+            "surface": 4.1,
+            "body": 4.104017439451854,
+            "gap": 0.004017439451854621
+          },
+          "sole": {
+            "surface": 3.8805,
+            "body": 3.8845,
+            "gap": 0.004
+          },
+          "back": {
+            "surface": -0.2,
+            "body": -0.194,
+            "gap": 0.006,
+            "height": 4.477133788388249,
+            "top": 4.5
+          },
+          "waterY": 4.47
+        },
+        "visualFloorOffset": 0,
+        "rigBones": 18,
+        "continuousCloth": true,
+        "unevenSupport": false
+      }
+    },
+    {
+      "id": "japan-furniture-bath-1",
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "skin": {
+        "bounds": {
+          "min": [
+            -3.9187997436135986,
+            3.8844999999999996,
+            -9.600511153168856
+          ],
+          "max": [
+            -2.9831191468680407,
+            4.883524075559388,
+            -8.999144649971594
+          ]
+        },
+        "head": {
+          "min": [
+            -3.1897538399669996,
+            4.599385298999008,
+            -9.388986444393412
+          ],
+          "max": [
+            -3.009165187845855,
+            4.851570120249744,
+            -9.211061256929813
+          ]
+        },
+        "hip": {
+          "min": [
+            -3.2251278309795874,
+            4.104013206814476,
+            -9.453179532215533
+          ],
+          "max": [
+            -3.0406288079698123,
+            4.20049130091311,
+            -9.146821022107666
+          ]
+        },
+        "feet": {
+          "min": [
+            -3.9187997436135986,
+            3.8844999999999996,
+            -9.48131195640564
+          ],
+          "max": [
+            -3.6794003253787735,
+            4.0095000055879355,
+            -9.11868804359436
+          ]
+        },
+        "hipGap": 0.004013206814476256,
+        "soleGap": 0.0039999999999995595,
+        "backGap": 0.005999997940191459,
+        "retainingWallGap": 0.02383727572650285,
+        "shoulderAboveWater": [
+          0.014405197793582403,
+          0.014405197793582403
+        ],
+        "bodyBottomGap": 0.08499999837577299,
+        "torsoSubmergedFraction": 0.8316008316008316,
+        "coveredVertices": 2496,
+        "seatPenetration": 0,
+        "rimPenetration": 0,
+        "backrestPenetration": 0
+      },
+      "pose": {
+        "height": 1.7389999628067017,
+        "labelHeight": 1.160234882081063,
+        "headHeight": 0.960234882081063,
+        "action": "bathe",
+        "seated": true,
+        "grounded": true,
+        "feet": [
+          [
+            -0.13,
+            0.108,
+            0.58
+          ],
+          [
+            0.13,
+            0.108,
+            0.58
+          ]
+        ],
+        "hands": [
+          [
+            -0.23,
+            0.6355,
+            0.15
+          ],
+          [
+            0.23,
+            0.63743,
+            0.15
+          ]
+        ],
+        "gaitReset": true,
+        "lying": false,
+        "bathing": true,
+        "speed": 0,
+        "gaitPhase": 0,
+        "stepLength": 0.46,
+        "strideLength": 0.92,
+        "support": [
+          true,
+          true
+        ],
+        "contactMinY": 3.8845,
+        "contactMaxY": 4.883524075559388,
+        "lieContact": null,
+        "bathContact": {
+          "hip": {
+            "surface": 4.1,
+            "body": 4.104013206814477,
+            "gap": 0.004013206814477144
+          },
+          "sole": {
+            "surface": 3.8805,
+            "body": 3.8845,
+            "gap": 0.004
+          },
+          "back": {
+            "surface": -0.2,
+            "body": -0.194,
+            "gap": 0.006,
+            "height": 4.443676827952281,
+            "top": 4.5
+          },
+          "waterY": 4.47
+        },
+        "visualFloorOffset": 0,
+        "rigBones": 18,
+        "continuousCloth": true,
+        "unevenSupport": false
+      }
+    },
+    {
+      "id": "japan-furniture-bath-1",
+      "bodyPreset": "masculine-broad",
+      "legLength": 0.94,
+      "skin": {
+        "bounds": {
+          "min": [
+            -3.9928733122517714,
+            3.8845,
+            -9.625959869928984
+          ],
+          "max": [
+            -2.9880369665274404,
+            5.025960271710328,
+            -8.973649661996454
+          ]
+        },
+        "head": {
+          "min": [
+            -3.203327993249707,
+            4.731876637970335,
+            -9.396550292166852
+          ],
+          "max": [
+            -3.0110010787406885,
+            4.992887927964848,
+            -9.20350146376885
+          ]
+        },
+        "hip": {
+          "min": [
+            -3.2442943150056727,
+            4.104011546544719,
+            -9.477975176287481
+          ],
+          "max": [
+            -3.042856112613363,
+            4.224791442016438,
+            -9.122025378035717
+          ]
+        },
+        "feet": {
+          "min": [
+            -3.9928733122517714,
+            3.8845,
+            -9.496723472700118
+          ],
+          "max": [
+            -3.7379129318316826,
+            4.013875005783513,
+            -9.103276527299881
+          ]
+        },
+        "hipGap": 0.004011546544719025,
+        "soleGap": 0.0040000000000000036,
+        "backGap": 0.0060000000000006715,
+        "retainingWallGap": 0.05129012737807859,
+        "shoulderAboveWater": [
+          0.11505194697486587,
+          0.11505194697486587
+        ],
+        "bodyBottomGap": 0.08783499831892483,
+        "torsoSubmergedFraction": 0.43243243243243246,
+        "coveredVertices": 2496,
+        "seatPenetration": 0,
+        "rimPenetration": 0,
+        "backrestPenetration": 0
+      },
+      "pose": {
+        "height": 1.799864961504936,
+        "labelHeight": 1.2983559564602623,
+        "headHeight": 1.0983559564602623,
+        "action": "bathe",
+        "seated": true,
+        "grounded": true,
+        "feet": [
+          [
+            -0.13,
+            0.108,
+            0.58
+          ],
+          [
+            0.13,
+            0.108,
+            0.58
+          ]
+        ],
+        "hands": [
+          [
+            -0.23,
+            0.61486,
+            0.15
+          ],
+          [
+            0.23,
+            0.61679,
+            0.15
+          ]
+        ],
+        "gaitReset": true,
+        "lying": false,
+        "bathing": true,
+        "speed": 0,
+        "gaitPhase": 0,
+        "stepLength": 0.46,
+        "strideLength": 0.92,
+        "support": [
+          true,
+          true
+        ],
+        "contactMinY": 3.8845,
+        "contactMaxY": 5.025960271710328,
+        "lieContact": null,
+        "bathContact": {
+          "hip": {
+            "surface": 4.1,
+            "body": 4.104011546544718,
+            "gap": 0.004011546544718136
+          },
+          "sole": {
+            "surface": 3.8805,
+            "body": 3.8845,
+            "gap": 0.004
+          },
+          "back": {
+            "surface": -0.2,
+            "body": -0.194,
+            "gap": 0.006,
+            "height": 4.474928079184187,
+            "top": 4.5
+          },
+          "waterY": 4.47
+        },
+        "visualFloorOffset": 0,
+        "rigBones": 18,
+        "continuousCloth": true,
+        "unevenSupport": false
+      }
+    },
+    {
+      "id": "japan-furniture-bath-2",
+      "bodyPreset": "feminine-balanced",
+      "legLength": 1,
+      "skin": {
+        "bounds": {
+          "min": [
+            2.9719281645081663,
+            3.8845000000000005,
+            -9.99977654798512
+          ],
+          "max": [
+            3.91376436295252,
+            4.939164971386858,
+            -9.399775977898749
+          ]
+        },
+        "head": {
+          "min": [
+            3.707129669853561,
+            4.655026194826478,
+            -9.78898644439341
+          ],
+          "max": [
+            3.8877183219747056,
+            4.907211016077214,
+            -9.611061256929812
+          ]
+        },
+        "hip": {
+          "min": [
+            3.669441290652479,
+            4.1040090487544765,
+            -9.861693637394827
+          ],
+          "max": [
+            3.856455051188594,
+            4.211645928193903,
+            -9.538306940770225
+          ]
+        },
+        "feet": {
+          "min": [
+            2.9719281645081663,
+            3.8845000000000005,
+            -9.88131195640564
+          ],
+          "max": [
+            3.211327582742992,
+            4.0095000055879355,
+            -9.51868804359436
+          ]
+        },
+        "hipGap": 0.004009048754476829,
+        "soleGap": 0.004000000000000448,
+        "backGap": 0.005999998216520197,
+        "retainingWallGap": 0.059860572908666754,
+        "shoulderAboveWater": [
+          0.05660634181049495,
+          0.05660634181049495
+        ],
+        "bodyBottomGap": 0.08499999837577388,
+        "torsoSubmergedFraction": 0.6382536382536382,
+        "coveredVertices": 2496,
+        "seatPenetration": 0,
+        "rimPenetration": 0,
+        "backrestPenetration": 0
+      },
+      "pose": {
+        "height": 1.7389999628067017,
+        "labelHeight": 1.2158757779085332,
+        "headHeight": 1.0158757779085332,
+        "action": "bathe",
+        "seated": true,
+        "grounded": true,
+        "feet": [
+          [
+            -0.13,
+            0.108,
+            0.58
+          ],
+          [
+            0.13,
+            0.108,
+            0.58
+          ]
+        ],
+        "hands": [
+          [
+            -0.23,
+            0.6355,
+            0.15
+          ],
+          [
+            0.23,
+            0.63743,
+            0.15
+          ]
+        ],
+        "gaitReset": true,
+        "lying": false,
+        "bathing": true,
+        "speed": 0,
+        "gaitPhase": 0,
+        "stepLength": 0.46,
+        "strideLength": 0.92,
+        "support": [
+          true,
+          true
+        ],
+        "contactMinY": 3.8845,
+        "contactMaxY": 4.939164971386857,
+        "lieContact": null,
+        "bathContact": {
+          "hip": {
+            "surface": 4.1,
+            "body": 4.104009048754476,
+            "gap": 0.004009048754475941
+          },
+          "sole": {
+            "surface": 3.8805,
+            "body": 3.8845,
+            "gap": 0.004
+          },
+          "back": {
+            "surface": -0.2,
+            "body": -0.194,
+            "gap": 0.006,
+            "height": 4.481608979823761,
+            "top": 4.5
+          },
+          "waterY": 4.47
+        },
+        "visualFloorOffset": 0,
+        "rigBones": 18,
+        "continuousCloth": true,
+        "unevenSupport": false
+      }
+    },
+    {
+      "id": "japan-furniture-bath-2",
+      "bodyPreset": "masculine-lean",
+      "legLength": 1,
+      "skin": {
+        "bounds": {
+          "min": [
+            2.913964954728096,
+            3.8844999999999987,
+            -10.02597988556527
+          ],
+          "max": [
+            3.912245584643209,
+            4.967313169462375,
+            -9.373578526645243
+          ]
+        },
+        "head": {
+          "min": [
+            3.696954557920942,
+            4.673229535722381,
+            -9.79655029216685
+          ],
+          "max": [
+            3.889281472429961,
+            4.934240825716893,
+            -9.603501463768849
+          ]
+        },
+        "hip": {
+          "min": [
+            3.658314516952502,
+            4.104017439451853,
+            -9.865866638506574
+          ],
+          "max": [
+            3.855986092200281,
+            4.214330959757665,
+            -9.534133117580044
+          ]
+        },
+        "feet": {
+          "min": [
+            2.913964954728096,
+            3.8844999999999987,
+            -9.896723472700117
+          ],
+          "max": [
+            3.1689253351481854,
+            4.013875005783512,
+            -9.503276527299882
+          ]
+        },
+        "hipGap": 0.004017439451853733,
+        "soleGap": 0.003999999999998671,
+        "backGap": 0.006000001543606803,
+        "retainingWallGap": 0.05693504376496117,
+        "shoulderAboveWater": [
+          0.07031498785083912,
+          0.07031498785083912
+        ],
+        "bodyBottomGap": 0.0878349983189235,
+        "torsoSubmergedFraction": 0.5738045738045738,
+        "coveredVertices": 2496,
+        "seatPenetration": 0,
+        "rimPenetration": 0,
+        "backrestPenetration": 0
+      },
+      "pose": {
+        "height": 1.799864961504936,
+        "labelHeight": 1.2397088542123085,
+        "headHeight": 1.0397088542123085,
+        "action": "bathe",
+        "seated": true,
+        "grounded": true,
+        "feet": [
+          [
+            -0.13,
+            0.108,
+            0.58
+          ],
+          [
+            0.13,
+            0.108,
+            0.58
+          ]
+        ],
+        "hands": [
+          [
+            -0.23,
+            0.61486,
+            0.15
+          ],
+          [
+            0.23,
+            0.61679,
+            0.15
+          ]
+        ],
+        "gaitReset": true,
+        "lying": false,
+        "bathing": true,
+        "speed": 0,
+        "gaitPhase": 0,
+        "stepLength": 0.46,
+        "strideLength": 0.92,
+        "support": [
+          true,
+          true
+        ],
+        "contactMinY": 3.8845,
+        "contactMaxY": 4.967313169462375,
+        "lieContact": null,
+        "bathContact": {
+          "hip": {
+            "surface": 4.1,
+            "body": 4.104017439451854,
+            "gap": 0.004017439451854621
+          },
+          "sole": {
+            "surface": 3.8805,
+            "body": 3.8845,
+            "gap": 0.004
+          },
+          "back": {
+            "surface": -0.2,
+            "body": -0.194,
+            "gap": 0.006,
+            "height": 4.477133788388249,
+            "top": 4.5
+          },
+          "waterY": 4.47
+        },
+        "visualFloorOffset": 0,
+        "rigBones": 18,
+        "continuousCloth": true,
+        "unevenSupport": false
+      }
+    },
+    {
+      "id": "japan-furniture-bath-2",
+      "bodyPreset": "feminine-slender",
+      "legLength": 1.06,
+      "skin": {
+        "bounds": {
+          "min": [
+            2.9812000507503775,
+            3.8844999999999996,
+            -10.000511153168855
+          ],
+          "max": [
+            3.9168806474959355,
+            4.883524075559388,
+            -9.399144649971593
+          ]
+        },
+        "head": {
+          "min": [
+            3.7102459543969766,
+            4.599385298999008,
+            -9.78898644439341
+          ],
+          "max": [
+            3.890834606518121,
+            4.851570120249744,
+            -9.611061256929812
+          ]
+        },
+        "hip": {
+          "min": [
+            3.67487175774837,
+            4.104013206814476,
+            -9.85317954413646
+          ],
+          "max": [
+            3.859370899641468,
+            4.20049130091311,
+            -9.546821034028593
+          ]
+        },
+        "feet": {
+          "min": [
+            2.9812000507503775,
+            3.8844999999999996,
+            -9.88131195640564
+          ],
+          "max": [
+            3.2205994689852027,
+            4.0095000055879355,
+            -9.51868804359436
+          ]
+        },
+        "hipGap": 0.004013206814476256,
+        "soleGap": 0.0039999999999995595,
+        "backGap": 0.005999997940196344,
+        "retainingWallGap": 0.02383748136252617,
+        "shoulderAboveWater": [
+          0.014405197793582403,
+          0.014405197793582403
+        ],
+        "bodyBottomGap": 0.08499999837577299,
+        "torsoSubmergedFraction": 0.8316008316008316,
+        "coveredVertices": 2496,
+        "seatPenetration": 0,
+        "rimPenetration": 0,
+        "backrestPenetration": 0
+      },
+      "pose": {
+        "height": 1.7389999628067017,
+        "labelHeight": 1.160234882081063,
+        "headHeight": 0.960234882081063,
+        "action": "bathe",
+        "seated": true,
+        "grounded": true,
+        "feet": [
+          [
+            -0.13,
+            0.108,
+            0.58
+          ],
+          [
+            0.13,
+            0.108,
+            0.58
+          ]
+        ],
+        "hands": [
+          [
+            -0.23,
+            0.6355,
+            0.15
+          ],
+          [
+            0.23,
+            0.63743,
+            0.15
+          ]
+        ],
+        "gaitReset": true,
+        "lying": false,
+        "bathing": true,
+        "speed": 0,
+        "gaitPhase": 0,
+        "stepLength": 0.46,
+        "strideLength": 0.92,
+        "support": [
+          true,
+          true
+        ],
+        "contactMinY": 3.8845,
+        "contactMaxY": 4.883524075559388,
+        "lieContact": null,
+        "bathContact": {
+          "hip": {
+            "surface": 4.1,
+            "body": 4.104013206814477,
+            "gap": 0.004013206814477144
+          },
+          "sole": {
+            "surface": 3.8805,
+            "body": 3.8845,
+            "gap": 0.004
+          },
+          "back": {
+            "surface": -0.2,
+            "body": -0.194,
+            "gap": 0.006,
+            "height": 4.443676827952281,
+            "top": 4.5
+          },
+          "waterY": 4.47
+        },
+        "visualFloorOffset": 0,
+        "rigBones": 18,
+        "continuousCloth": true,
+        "unevenSupport": false
+      }
+    },
+    {
+      "id": "japan-furniture-bath-2",
+      "bodyPreset": "masculine-broad",
+      "legLength": 0.94,
+      "skin": {
+        "bounds": {
+          "min": [
+            2.9071266877482307,
+            3.8845,
+            -10.025959869928982
+          ],
+          "max": [
+            3.9119630334725617,
+            5.025960271710328,
+            -9.373649661996453
+          ]
+        },
+        "head": {
+          "min": [
+            3.696672006750295,
+            4.731876637970335,
+            -9.79655029216685
+          ],
+          "max": [
+            3.8889989212593137,
+            4.992887927964848,
+            -9.603501463768849
+          ]
+        },
+        "hip": {
+          "min": [
+            3.655705479358305,
+            4.104011546544719,
+            -9.877975188208408
+          ],
+          "max": [
+            3.857143800633941,
+            4.224791442016438,
+            -9.522025389956644
+          ]
+        },
+        "feet": {
+          "min": [
+            2.9071266877482307,
+            3.8845,
+            -9.896723472700117
+          ],
+          "max": [
+            3.1620870681683195,
+            4.013875005783513,
+            -9.50327652729988
+          ]
+        },
+        "hipGap": 0.004011546544719025,
+        "soleGap": 0.0040000000000000036,
+        "backGap": 0.005999999999998007,
+        "retainingWallGap": 0.05128992174205127,
+        "shoulderAboveWater": [
+          0.11505194697486587,
+          0.11505194697486587
+        ],
+        "bodyBottomGap": 0.08783499831892483,
+        "torsoSubmergedFraction": 0.43243243243243246,
+        "coveredVertices": 2496,
+        "seatPenetration": 0,
+        "rimPenetration": 0,
+        "backrestPenetration": 0
+      },
+      "pose": {
+        "height": 1.799864961504936,
+        "labelHeight": 1.2983559564602623,
+        "headHeight": 1.0983559564602623,
+        "action": "bathe",
+        "seated": true,
+        "grounded": true,
+        "feet": [
+          [
+            -0.13,
+            0.108,
+            0.58
+          ],
+          [
+            0.13,
+            0.108,
+            0.58
+          ]
+        ],
+        "hands": [
+          [
+            -0.23,
+            0.61486,
+            0.15
+          ],
+          [
+            0.23,
+            0.61679,
+            0.15
+          ]
+        ],
+        "gaitReset": true,
+        "lying": false,
+        "bathing": true,
+        "speed": 0,
+        "gaitPhase": 0,
+        "stepLength": 0.46,
+        "strideLength": 0.92,
+        "support": [
+          true,
+          true
+        ],
+        "contactMinY": 3.8845,
+        "contactMaxY": 5.025960271710328,
+        "lieContact": null,
+        "bathContact": {
+          "hip": {
+            "surface": 4.1,
+            "body": 4.104011546544718,
+            "gap": 0.004011546544718136
+          },
+          "sole": {
+            "surface": 3.8805,
+            "body": 3.8845,
+            "gap": 0.004
+          },
+          "back": {
+            "surface": -0.2,
+            "body": -0.194,
+            "gap": 0.006,
+            "height": 4.474928079184187,
+            "top": 4.5
+          },
+          "waterY": 4.47
+        },
+        "visualFloorOffset": 0,
+        "rigBones": 18,
+        "continuousCloth": true,
+        "unevenSupport": false
+      }
+    }
+  ]
+}
