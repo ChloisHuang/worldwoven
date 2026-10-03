@@ -4,8 +4,8 @@ An original cel-shaded cultural life and exploration game. The repository name s
 
 Public game: https://alien.doudouai.net/
 
-Development release: R15.1-public, 2026-10-03
-Published baseline used for this change: R15 / Sites v25, 4e491fa116a5145fd32a008ef6f6c3a84f051adc
+Development release: R16-public, 2026-10-03
+Published baseline used for this change: R15.1 / Sites v26, 079cdfab810c06a79d35a8963b1a3dbfe4b81760
 The deployment record is authoritative. The clean archival helper writes the confirmed published commit after deployment.
 
 ## Requirements and local development
@@ -62,3 +62,9 @@ R15 adds purpose-classified room closures and safe waiting routes. Published R14
 ## R15.1 change scope
 
 Door activation follows a close approach through the usable doorway. A brief straight-line wait keeps actors outside a swinging leaf until it finishes opening; held input resumes automatically. Parallel passers do not request opening. Players and residents share the same admission and collision rules, with a short close delay. Sliding doors and curtains use the near doorway zone; wide doors swinging toward an actor retain only the clearance required by their actual leaf sweep. Room assignments, privacy geometry, leaf shapes and collision radii remain those of R15. Deployment status is established by the saved release record, not this source document.
+
+## R16 change scope
+
+Character shoulder proportions and arm rest positions are fitted to the garment cut. Walking uses a distance-driven shoulder swing and a softly delayed elbow bend; wide kimono and miko sleeves keep more room than fitted shirts. Sleeve shape, skinning and the matching arm rig move together. Existing travel speed, body collision radius, random appearance generation, saved identities, cultural role outfits and interaction anchors remain constrained by regression tests.
+
+The wardrobe still displays the fictional appearance score and randomizer. The page no longer explains the individual scoring preferences. Indoor, garden and NPC workflow refinements are later independent batches. The release record establishes which source and checks were actually published; this file alone does not establish deployment.
