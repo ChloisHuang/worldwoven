@@ -32,10 +32,11 @@
     {
       "file": "source/game/furniture-interactions.js",
       "baselineSHA256": "83c6372db4564a46fda87c164db3a3b79760bd8d7c7c6cae21e8564fe402af88",
-      "candidateSHA256": "72a5856cb502fb8b0e9f1882a03ae0d7579a723fa9f8323052b1182322391ba4",
+      "candidateSHA256": "f1286dc2ec9b247f0025e81fbec09722e3d5d83b883e31240820efa702175faa",
       "hunks": [
         "@@ -16,14 +16,25 @@",
-        "@@ -95,7 +106,7 @@"
+        "@@ -95,7 +106,7 @@",
+        "@@ -122,7 +133,7 @@"
       ]
     },
     {
@@ -51,12 +52,12 @@
     {
       "file": "source/game/main.js",
       "baselineSHA256": "6b3f36422f76f87f6f374f75189e6a01f12838c882004d813f898b61117f9707",
-      "candidateSHA256": "edb498ed2954d2d2010c5b6c70897d052e6fdc374a9615bfe530d8718d6fbaba",
+      "candidateSHA256": "9774565b37b074aa279f655bcbbb8d4fa05345cf522f1842a62d58148c7c1626",
       "hunks": [
         "@@ -96,12 +96,12 @@",
         "@@ -109,7 +109,7 @@",
         "@@ -132,8 +132,8 @@",
-        "@@ -178,7 +178,12 @@"
+        "@@ -178,13 +178,18 @@"
       ]
     },
     {
@@ -85,12 +86,12 @@
   "qaFiles": {
     "check-onsen-braid-binding.mjs": "5768d3443ab8d953bf38111d18ac16faf941d05893d787e58ad86ff400e94fb6",
     "render-onsen-braid03-config.json": "c44701b4332a4c78d2e6fb337e83168bbef884e22ee533c7bc2da720895ff9af",
-    "check-onsen-braid-restore.cjs": "f38940814602817de5b79127e85d821a1f5542936734c66be376a5670cd47d74",
-    "render-hand02-main-config.json": "8532c4f0c611f9b8e38427d9401765c58d202a7741bee9349e8e2631eaea259c",
-    "render-hand02-inspection-config.json": "0f8fef96ae2cfe56ce50e62433a2cad345ed551411499ed734185cb345b97531",
+    "check-onsen-braid-restore.cjs": "c312159b283229f878ecc61a35ccd4ee3baf3c47f21eed0aa820f10b65a0aa0b",
+    "render-hand02-main-config.json": "77fc942b46a6c48598056361e52525d04a453a4311e9f312e560866cd0549fe2",
+    "render-hand02-inspection-config.json": "13ecce15f1d1c1d092702efa4af2349b39b94c02466d4daacd036a2a0819ffeb",
     "check-onsen-temporary-hair.mjs": "c3f08cd815091eb9691a41583713dc0ebded5394c76e5a20b5ff07048f300626",
     "japan-bathhouse.js.patch": "a059ab447dc77ba13c1730bf066285cea902bd4247acad78d4ce43d22b3e4112",
-    "furniture-interactions.js.patch": "10c5671ba01880c88f4b611505ae05d57d9dbb7ca23c12249b0856008d310ba1",
+    "furniture-interactions.js.patch": "5b9970ee4a7ed451c205be6578f5227b7edd8fe269a97ab78dbd55cff6ebab3a",
     "room-closures.js.patch": "cc7032e9b293cb7304c8bd5d43e76c01c9359d9f1997920ed350078e6a6a35ed",
     "render-onsen-braid-prototype.mjs": "60edc805e6c135f8b03ae19bc9c78eb48175f27382c7376dffe7a0e03d2b5947",
     "check-onsen-hands02.mjs": "6bf1a38fe8c76825f4a439a1873a43d0fec4f620823feec23185e8d67f27cace",
@@ -100,11 +101,11 @@
     "approved-surfaces.js.patch": "97462559406e190f1a1fd9da3de8e364ade283feecf8c09f4bf4aeda4247b06b",
     "characters.js.patch": "528bf0d2d421e04205351347c99087d563e60773ad39d3e07de44e7dca273591",
     "merge-r16-2.json": "9bf98d1b01e8e4eb69087623a33de5a271a88cefec11cc8c912cb8aa029c982d",
-    "EXTRACTION.md": "e21a76def2cd683ffcd9fc261a609e47cdefc9ed47b59947223f48f5cfd776ed",
+    "EXTRACTION.md": "f73c6ece05f81f3b53283b30b8c5d555ab897682c599846f992586564cbcca10",
     "measure-braid-rings.mjs": "c9f945e4f1baaaba9328cfd3b5ccbbd75d19dff0fab29d64e051619af21dfd05",
     "render-onsen-braid02-config.json": "d27d338fca354e60419d61fd8fd12174be98223dc6dec6cb50823ab32e200b71",
     "proposed-bath-regression-updates.patch": "2e0df62cf2500669ac567d0287aa62135b83b14ad88726f067c5e2180bcf2481",
-    "main.js.patch": "8cebd4725eefd5e5a2bcb3cd5727420bdb8875ced4a54d2ba49db15957f70c3e",
+    "main.js.patch": "acdb18ee3ad45d67da8c33d64b5a562dd32a1a1237118acab7e2283642d2b789",
     "evidence/hair-prototype-02-report.json": "f3a195e7248b185753c9466fb2491038c4f40d21321a5a19fd1887f2b43f8048",
     "evidence/hair-binding-01-full.json": "e7744643b54d67db9dce6de81e5313c16863734ac9101611d569eedbd7ea40f2",
     "evidence/hair-prototype-03-report.json": "dfb459e691743368b3368ec7ca53070f2c31b56929afffa59202cb7a9ec889d0",
@@ -139,5 +140,6 @@
   "originalExtractionBase": "/workspace/shared/worldwoven-source-r16-1",
   "publishedSourceCommit": "84a54df402f66c6964414814773a1de931668717",
   "mergeReceipt": "merge-r16-2.json",
-  "currentTestScope": "Affected5 hair cases; key actual main lifecycle, halo/pulse, default4.6/common2.1 camera paths only. No192-angle repeat, no all-four-country furniture suite. Full animated curb-crossing action remains outside this repair."
+  "currentTestScope": "Affected5 hair cases; key actual main lifecycle, halo/pulse, default4.6/common2.1 camera paths only. No192-angle repeat, no all-four-country furniture suite. Full animated curb-crossing action remains outside this repair.",
+  "markerStatus": "Two-line Japan-only dry-entry anchor and mounted-label hide added; main validation pending."
 }

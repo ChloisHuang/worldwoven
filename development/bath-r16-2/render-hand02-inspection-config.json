@@ -2,10 +2,10 @@
   "source": "/workspace/shared/worldwoven-r16-2-bath-candidate/source",
   "sourceHashes": {
     "japan-bathhouse.js": "fbba20bb8864a4155c71d14de2c98a1b77c080cfee7d9f4672698eac9fa2e6c2",
-    "furniture-interactions.js": "72a5856cb502fb8b0e9f1882a03ae0d7579a723fa9f8323052b1182322391ba4",
+    "furniture-interactions.js": "f1286dc2ec9b247f0025e81fbec09722e3d5d83b883e31240820efa702175faa",
     "characters.js": "601b6f4777a9145ac463bf23a05aac98a3816e44b120d630bf4982bf0f731009",
     "approved-surfaces.js": "7f2829fddde315292973db6a54fbd5d10d5b80c53e924e0d0332b641235e2b65",
-    "main.js": "edb498ed2954d2d2010c5b6c70897d052e6fdc374a9615bfe530d8718d6fbaba",
+    "main.js": "9774565b37b074aa279f655bcbbb8d4fa05345cf522f1842a62d58148c7c1626",
     "geometry.js": "accd26d9fe1820ba7829bc00f802c8916458813eefd0cfd08f5d38e11c207ca9",
     "night-lighting.js": "61d5dff148e2797e35633d103c52a05460d1029506d312115c78941e81e7fc30",
     "stable-shadows.js": "20c3f208ed1e1e9ee7e98bdd5a88f5a9c79fbfefbeb365952b72f7f773bfb493",
