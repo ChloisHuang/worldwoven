@@ -155,8 +155,8 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
    for(const cargo of state.items)if(cargo.visitId===id)cargo.location={type:'cancelled',id};
    v.stage='cancelled';v.cancelReason=reason;v.seatId=null;state.cancelled++;persist();return true;
   },
-  forgetFinished() {
-   const finished=new Set(state.visits.filter(v=>!active(v)).map(v=>v.id));
+  forgetFinished(visitIds=null) {
+   const finished=new Set(state.visits.filter(v=>!active(v)&&(!visitIds||visitIds.includes(v.id))).map(v=>v.id));
    for(const id of finished)visits.delete(id);
    for(const cargo of state.items)if(finished.has(cargo.visitId))items.delete(cargo.id);
    state.visits=state.visits.filter(active);state.items=state.items.filter(i=>!finished.has(i.visitId));persist();

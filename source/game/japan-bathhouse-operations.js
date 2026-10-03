@@ -1,5 +1,5 @@
 import {createJapanServiceOrders,JAPAN_SERVICE_POINTS as P,JAPAN_SERVICE_WORKERS} from './japan-service-orders.js';
-import {createJapanVisitorIdentity} from './japan-visitors.js';
+import {createJapanVisitorIdentity,isJapanEmployeeInteraction} from './japan-visitors.js';
 import {createJapanServiceProps} from './japan-service-props.js';
 import {canTraverse} from './navigation.js';
 
@@ -58,6 +58,9 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   if(['check-in','checkout-ready'].includes(v.stage))furniture.facilities.request('japan-service-reception',v.id);
   return n;
  }
+ function removeGuest(n) {
+  const id=n.station.id;clear(n);furniture.releaseActor(id);guests.delete(id);actors.delete(id);removeVisitor(n);board.forgetFinished([id]);nextArrival=Math.max(nextArrival,time+18);
+ }
  for(const v of board.state().visits)addGuest(v);
  function spawn() {
   if(guests.size>=2||time<nextArrival)return;
@@ -73,7 +76,8 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
  }
  function tickTask(task,dt) {
   const n=task.actor;n.walking=false;
-  if(playerState.performing===n.station.id){tell(n,'先陪你聊一会儿');return;}
+  if(isJapanEmployeeInteraction(n,playerState)){tell(n,'先陪你聊一会儿');return;}
+  tell(n,task.label||'稍作等候');
   if(task.after&&!task.after())return;
   if(!task.arrived) {
    if(near(n.root.position,task.to)) {
@@ -185,13 +189,15 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    }});
   }else if(v.stage==='checkout')queueAtReception(n,v,'returned-to-desk');
   else if(v.stage==='leaving')step('left',P.departure);
+  else if(v.stage==='cancelled')assign(n,P.departure,{label:'收好行李离开汤馆',onDone:()=>{removeGuest(n);return true;}});
  }
  function animate(n,t) {
   const task=tasks.get(n.station.id),v=guests.has(n.station.id)?board.getVisit(n.station.id):null,mount=n.serviceMount;
-  const helping=playerState.performing===n.station.id,context=poseContext(n,helping?n.station:task?.workTarget?{workTarget:task.workTarget}:null);
+  const helping=isJapanEmployeeInteraction(n,playerState),chatting=helping&&playerState.conversationActorId===n.station.id,sharedActivity=helping&&!chatting;
+  const context=poseContext(n,sharedActivity?n.station:chatting?null:task?.workTarget?{workTarget:task.workTarget}:null);
   if(mount){context.visualFloorOffset=mount.kind==='bath'?0:context.visualFloorOffset;context.seatHeight=mount.seatY===undefined?undefined:mount.seatY-n.root.position.y-context.visualFloorOffset;context.supportY=mount.supportY;context.bathPose=mount.bathPose;context.bathHipHeight=mount.bathHipHeight;}
-  context.heldProp=helping?null:task?.held||null;context.handoff=!helping&&(!!task?.handoff||v?.stage==='eating');
-  n.animate(t+n.phase,n.walking,helping?n.station.npcAction:mount?(mount.kind==='bath'?'bathe':'chair-sit'):task?.arrived?task.action:null,context);
+  context.heldProp=sharedActivity?null:task?.held||null;context.handoff=!sharedActivity&&(!!task?.handoff||v?.stage==='eating');
+  n.animate(t+n.phase,n.walking,sharedActivity?n.station.npcAction:mount?(mount.kind==='bath'?'bathe':'chair-sit'):chatting?null:task?.arrived?task.action:null,context);
  }
  return {
   owns:n=>actors.has(n.station.id),
@@ -200,8 +206,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    for(const n of actors.values())n.walking=false;
    for(const [id,n]of guests){const v=board.getVisit(id);if(v)scheduleGuest(n,v);}
    scheduleWorkers();for(const task of [...tasks.values()])if(tasks.get(task.actor.station.id)===task)tickTask(task,dt);
-   for(const [id,n]of [...guests])if(board.getVisit(id)?.stage==='departed') {clear(n);furniture.releaseActor(id);guests.delete(id);actors.delete(id);removeVisitor(n);nextArrival=Math.max(nextArrival,time+18);}
-   if(board.state().visits.some(v=>v.stage==='departed'))board.forgetFinished();
+   for(const [id,n]of [...guests])if(board.getVisit(id)?.stage==='departed')removeGuest(n);
    for(const n of actors.values())animate(n,t);props.update(board.state(),actors);
    if(time>=checkpointAt){board.checkpoint(positions(guests));checkpointAt=time+5;}
   },
@@ -217,7 +222,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    const n=guests.get(id);if(!n||!unmount(n))return false;
    for(const job of board.state().claims)if(job.visitId===id){const worker=actors.get(job.workerId);if(worker)clear(worker,{releaseJob:true});}
    clear(n);furniture.releaseActor(id);board.cancel(id,reason);changeWardrobe(n,board.getVisit(id).appearance);
-   assign(n,P.departure,{label:'收好行李离开汤馆',onDone:()=>{guests.delete(id);actors.delete(id);removeVisitor(n);board.forgetFinished();return true;}});return true;
+   scheduleGuest(n,board.getVisit(id));return true;
   },
   state:()=>({...board.state(),history:history.slice(),failures:failures.slice(),actors:[...actors].map(([id,n])=>({id,name:n.station.npcName,position:n.root.position.toArray(),job:n.serviceTask?.label,mounted:n.serviceMount?.id||null,walking:n.walking}))}),
   dispose() {

@@ -22,7 +22,7 @@ export function createJapanServiceProps(parent) {
  }
  function make(item,visit) {
   const g=new THREE.Group(),color=JAPAN_BATH_BLENDS.find(b=>b.id===visit.blendId).color;
-  if(item.kind==='token')g.add(badge(visit.number,color));
+  if(item.kind==='token'){g.add(badge(visit.number,color));g.scale.setScalar(.65);}
   else {
    box(g,.46,.035,.34,0x8e6645,[0,0,0]);
    if(item.kind==='mixture') {
@@ -61,7 +61,7 @@ export function createJapanServiceProps(parent) {
     const actor=actorById.get(held?item.location.id:v.id);
     if((held||guest||eating)&&actor) {
      actor.root.updateWorldMatrix(true,true);g.rotation.set(0,actor.root.rotation.y,0);
-     if(guest) {g.position.set(.27,.84,.12).applyMatrix4(actor.root.matrixWorld);g.rotation.z=.12;}
+     if(guest) {const pelvis=actor.root.getObjectByName('pelvis');g.position.set(...(pelvis?[.24,-.12,.07]:[.24,.84,.07])).applyMatrix4(pelvis?.matrixWorld||actor.root.matrixWorld);g.rotation.z=.12;}
      else {
       const hands=actor.root.userData.hands;
       if(hands?.length===2){hands[0].getWorldPosition(handA);hands[1].getWorldPosition(handB);g.position.copy(handA).add(handB).multiplyScalar(.5);g.position.y-=.07;}
