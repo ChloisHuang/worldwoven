@@ -17,7 +17,7 @@ export function buildChinaResidence(G,A){
  const g=new THREE.Group(),r=new THREE.Group();g.name='China building rear-palace';r.name='China roof rear-palace';group.add(g);roofGroup.add(r);rooms.residence={id:'rear-palace',g,r};
  const part=(id,name,minX,maxX,minZ,maxZ,floorY,ceiling)=>interiorRooms.push({id,name,minX,maxX,minZ,maxZ,floorY,ceiling});
  const wall=(axis,at,from,to,bottom,top,openings=[],depth=.32)=>palaceWall(g,colliders,cameraColliders,{axis,at,from,to,bottom,top,depth,color:C.cream,openings});
- const privacy=(id,name,axis,at,from,to,y,roomIds)=>door(id,name,axis,at,from,to,y+3.0,roomIds,y-.015);
+ const privacy=(id,name,axis,at,from,to,y,roomIds)=>{const op=door(id,name,axis,at,from,to,y+3.0,roomIds,y-.015);A.doorways.at(-1).floorFit={bottom:y,top:y+3.0};return op;};
  const panel=(axis,at,from,to,y,top)=>{
   const center=(from+to)/2,width=to-from,open={from,to,bottom:y+1.18,top:y+2.88};
   window(g,axis==='x'?center:at,axis==='x'?at:center,width,axis,1.70,y+2.03);
