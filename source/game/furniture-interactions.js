@@ -36,7 +36,10 @@ export const REST_BATH_DESCRIPTORS={
  {kind:'bath',name:'白金浴缸',position:[-20.34,.23,-10.2],anchor:[-22.55,.23,-10.2],center:[-22.55,.23,-10.2],size:[3.1,1.15,3.65],yaw:Math.PI/2,supportY:.425,waterY:1.205,bathHipHeight:.48}],
  japan:[{kind:'bed',name:'客室日式寝具',position:[2.48,7.6,-10.7],anchor:[4.4,7.6,-11.6],center:[4.4,7.6,-11.6],size:[2.36,.5,3.24],yaw:0,supportY:7.95,lieOffset:.54,lieSupport:{hip:7.95,back:7.992,head:8.026,heel:7.96}},
  {kind:'bath',cameraTargetMinY:4.85,cameraParts:japanBathCameraParts(-6.55,-9.3,7.5,6.6),name:'二层男汤温泉',position:[-2.1,3.8,-9.3],anchor:[-3.22,3.8,-9.3],center:[-6.55,3.8,-9.3],size:[7.5,.82,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}},
- {kind:'bath',cameraTargetMinY:4.85,cameraParts:japanBathCameraParts(2.1,-9.7,4,6.6),name:'二层女汤温泉',position:[4.9,3.8,-9.7],anchor:[3.68,3.8,-9.7],center:[2.1,3.8,-9.7],size:[4,.82,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}}],
+ {kind:'bath',cameraTargetMinY:4.85,cameraParts:japanBathCameraParts(2.1,-9.7,4,6.6),name:'二层女汤温泉',position:[4.9,3.8,-9.7],anchor:[3.68,3.8,-9.7],center:[2.1,3.8,-9.7],size:[4,.82,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}},
+ // The eastern lower bunk already exists in the staff room. Preserve bath IDs
+ // by appending it; its approach enters from the clear foot of the same bunk.
+ {kind:'bed',name:'员工室下铺',position:[-4.3,11.4,-9.18],exitPositions:[[-5.2,11.4,-9.18],[-3.4,11.4,-9.18]],anchor:[-4.3,11.4,-11.5],center:[-4.3,11.4,-11.5],size:[2.75,3,3.2],yaw:0,supportY:12.15,lieOffset:.48,lieSupport:{hip:12.15,back:12.15,head:12.274,heel:12.00}}],
  egypt:[{kind:'bed',name:'王室亚麻寝床',position:[18.48,0,-1.25],anchor:[19.8,0,-1.25],center:[20.4,0,-1.25],size:[2.65,3.4,4.1],yaw:0,supportY:.9,lieOffset:.48,lieSupport:{hip:.9,back:.9,head:1.056,heel:.9}},
  {kind:'bath',name:'王室石质浴池',position:[15.9,0,-1.05],anchor:[14.05,0,-1.05],center:[14.05,0,-1.05],size:[2.7,1.06,3.8],yaw:Math.PI/2,supportY:.305,waterY:.585,bathHipHeight:.32}]
 };
@@ -138,6 +141,7 @@ export function createFurnitureInteractions(lot,region,{curtains={},onCurtainCha
   if(!own.length||!position){rejected.push({name:item.name,center:item.center,reason:'No clear front or side landing'});continue;}
   item.position=position;if(region==='china'||region==='france')item.position[1]=visualSupportHeight(lot,position[0],position[2],position[1],!!lot.heightAware)??position[1];items.push(item);
  }
+ if(region==='japan'){const staffSeat=items.find(i=>i.kind==='seat'&&i.center[1]===11.4&&i.center[2]===-7.45);if(staffSeat)staffSeat.exitPositions=[-.9,.9].map(dx=>[staffSeat.position[0]+dx,staffSeat.position[1],staffSeat.position[2]]);}
  const seatBoxes=new Map(items.filter(x=>x.kind==='seat').map(item=>[item.id,ownSeatBoxes(item)]));
  for(const item of items.filter(x=>x.kind==='bed'||x.kind==='bath'))seatBoxes.set(item.id,lot.colliders.filter(c=>c.minX<=item.center[0]+.05&&c.maxX>=item.center[0]-.05&&c.minZ<=item.center[2]+.05&&c.maxZ>=item.center[2]-.05&&(c.maxX-c.minX)<=item.size[0]+.2&&(c.maxZ-c.minZ)<=item.size[2]+.2&&(c.minY===undefined||c.minY>=item.center[1]-.6)&&(c.maxY??3.5)>item.center[1]+.15));
  let amount=curtains[region]===false?0:1,target=amount,disposed=false;cloth?.set(amount);
@@ -171,7 +175,7 @@ export function createFurnitureInteractions(lot,region,{curtains={},onCurtainCha
   canSit(options,extra=[],item=seat){return (seatBoxes.get(item.poolId||item.id)||[]).length>0&&transferClear(point(item.position),point(item.anchor),options,extra,item);},
   // A shared-pool waiter may stand at the center entry. Wider aisle landings
   // keep the actual swept transfer clear of that person, with all walls retained.
-  standPoint(navigation=options,extra=[],item=seat){const anchor=point(item.anchor);for(const a of[item.position,...(item.poolId?[-.3,.3,-1.35,1.35]:[-.3,.3]).map(offset=>[item.position[0]+Math.cos(item.yaw)*offset,item.position[1],item.position[2]-Math.sin(item.yaw)*offset])]){const p=point(a);if(!blocked(p.x,p.z,lot.colliders.concat(extra),.34,{...navigation,y:p.y})&&transferClear(anchor,p,navigation,extra,item))return p;}return null;},
+  standPoint(navigation=options,extra=[],item=seat){const anchor=point(item.anchor);for(const a of[item.position,...(item.exitPositions||[]),...(item.poolId?[-.3,.3,-1.35,1.35]:[-.3,.3]).map(offset=>[item.position[0]+Math.cos(item.yaw)*offset,item.position[1],item.position[2]-Math.sin(item.yaw)*offset])]){const p=point(a);if(!blocked(p.x,p.z,lot.colliders.concat(extra),.34,{...navigation,y:p.y})&&transferClear(anchor,p,navigation,extra,item))return p;}return null;},
   state:()=>({region,facilities:facilities.state(),rejectedSeats:rejected,hasCanopy:!!cloth,curtainsOpen:cloth?!!target:null,curtainProgress:cloth?amount:null,items:items.map(({id,kind,name,position,anchor,seatY,center,yaw,supportY,waterY,capacity,seats})=>({id,kind,name,position,anchor,seatY,center,yaw,supportY,waterY,capacity,seats:seats?.map(({id,poolId,anchor,position})=>({id,poolId,anchor,position}))})),seatColliderCount:seatColliders.length}),
   dispose(){if(disposed)return;disposed=true;facilities.dispose();root.traverse(o=>{o.geometry?.dispose();if(o.isInstancedMesh)o.dispose();});cloth?.material.dispose();root.removeFromParent();}
  };

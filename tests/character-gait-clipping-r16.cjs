@@ -4,7 +4,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
 const {createBrowserModuleLoader}=require('./fixtures/browser-module-loader.cjs');
 const {createGarmentProbe,classifyGarmentUnion}=require('./fixtures/garment-section-probe.cjs');
 const TOLERANCE=.004;
-const bodyNames=/^(continuous-yukata-body|haori-jacket-body|scholar-upper-robe|scholar-long-robe-body|scholar-split-tunic-body|ruqun-pleated-skirt|ruqun-crossed-bodice|ruqun-short-overjacket|linen-fitted-tunic|linen-wrapped-kilt|linen-ankle-dress-body|fitted-court-bodice|court-full-gown-skirt|royal-frock-bodice|miko-white-kosode-body|miko-vermillion-hakama)$/;
+const bodyNames=/^(continuous-yukata-body|haori-jacket-body|scholar-upper-robe|scholar-long-robe-body|scholar-split-tunic-body|ruqun-pleated-skirt|ruqun-crossed-bodice|ruqun-short-overjacket|linen-fitted-tunic|linen-wrapped-kilt|linen-ankle-dress-body|fitted-court-bodice|court-full-gown-skirt|royal-frock-bodice|miko-white-kosode-body|miko-vermillion-hakama-skirt)$/;
 function save(name,result){fs.mkdirSync('qa',{recursive:true});fs.writeFileSync(`qa/${name}.json`,JSON.stringify(result,null,2));}
 (async()=>{
  const load=createBrowserModuleLoader(process.env.SOURCE_ROOT||'source'),C=await load('game/characters.js'),A=await load('game/appearance.js'),S=await load('game/character-traits.js'),T=await load('vendor/three/build/three.module.js');
