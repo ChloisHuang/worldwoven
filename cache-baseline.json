@@ -1,5 +1,5 @@
 {
-  "publishedSourceCommit": "3227f0db918abf6f51843ad08152a35ac35faddb",
+  "publishedSourceCommit": "983377aa0f76e1d80691250830381c90c939ad03",
   "assets": [
     "/assets/movement-runtime.a07dd501e74cfebf.js",
     "/assets/geometry.accd26d9fe1820ba.js",
@@ -17,8 +17,8 @@
     "/assets/appearance.6931d01064bfc906.js",
     "/assets/globe.24e1c856bb2ded7c.js",
     "/assets/inset-closures.cb69abcbff455774.js",
-    "/assets/china-palace.a0ab1610aec57ab8.js",
-    "/assets/regions-east.c2d51c68091767a9.js",
+    "/assets/china-palace.61025f6d83514ce1.js",
+    "/assets/regions-east.49769bb2eb247990.js",
     "/assets/japan-futon.d1ff9cbfc4dbfa98.js",
     "/assets/japan-shoji.15bc33d5fa5a0c4b.js",
     "/assets/japan-furnishings.1ebebff154862976.js",
@@ -30,7 +30,7 @@
     "/assets/approved-surfaces.5fd3cbbc337b4479.js",
     "/assets/character-props.deb24f9b65d5e60a.js",
     "/assets/characters.da5d00c4f4ddf53f.js",
-    "/assets/main.cf5ae9b7de0d3e36.js",
+    "/assets/main.0bde54357f4fc358.js",
     "/assets/game.bcd28e6aaa90b201.css",
     "/assets/three.core.9edde002b066a9a0.js",
     "/assets/three.module.d8c0a97fa13a785e.js"
