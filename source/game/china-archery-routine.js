@@ -55,6 +55,8 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
  }
  const hold={held:true,nocked:false,hands:[[-.24,1.04,.21],[.27,.96,.07]]};
  function poseFor(stage,time){
+  if(stage==='fetch'&&time<.5)return null;
+  if(stage==='collect')return {held:true,nocked:false,hands:[[-.24,1.04,.21],[-.10,1.34,.48]]};
   if(stage==='aim'||stage==='player-aim'){const f=Math.min(1,time/1.1);return {held:true,nocked:true,hands:[[-.17,1.08+.27*f,.21+.23*f],[-.12,1.08+.29*f,.25-.19*f]]};}
   if(stage==='flight'||stage==='player-flight')return {held:true,nocked:false,hands:[[-.17,1.35,.44],[.13,1.38,-.04]]};
   return ['fetch','line','cease','retrieve','collect','return','rack','player-take','player-cease'].includes(stage)?hold:null;
