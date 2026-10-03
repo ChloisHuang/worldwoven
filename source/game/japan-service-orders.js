@@ -19,7 +19,7 @@ export const JAPAN_BATH_BLENDS = Object.freeze([
  {id:'lantern-petal',name:'灯花浴包',color:0xc79080},
 ]);
 export const JAPAN_SERVICE_WORKERS = Object.freeze({
- register:['jp-welcome','jp-market-tea'], prepare:['jp-incense'],
+ register:['jp-welcome','jp-market-tea'], prepare:['jp-incense','jp-herb-workshop'],
  deliverMix:['jp-onsen','jp-women-onsen'], cook:['jp-ramen','jp-sushi'],
  serve:['jp-sushi','jp-ramen'], checkout:['jp-welcome','jp-market-tea'],
 });

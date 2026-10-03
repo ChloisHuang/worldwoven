@@ -181,9 +181,9 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    if((cooldowns.get(n.station.id)||0)>time||(staffLife&&!staffLife.canWork(n.station.id)))continue;
    const current=tasks.get(n.station.id);
    if(current&&!current.idle)continue;
-   const available=board.jobs().filter(j=>!j.workerId),job=available.map(j=>board.claim(j.id,n.station.id)).find(Boolean);
+   const available=board.jobs().filter(j=>!j.workerId&&(!staffLife||staffLife.canClaim(n.station.id,j.kind))),job=available.map(j=>board.claim(j.id,n.station.id)).find(Boolean);
    if(job){clear(n);workerTask(n,job);}
-   else {const home=staffLife?.idlePoint(n.station.id)||n.home.toArray();if(!current&&!near(n.root.position,home,.18))assign(n,home,{idle:true,label:'收好用具，回到值班岗位'});}
+   else {const home=staffLife?.idlePoint(n.station.id)||n.home.toArray(),idle=staffLife?.idleTask(n.station.id);if(!current&&(!near(n.root.position,home,.18)||idle))assign(n,home,{idle:true,label:'收好用具，回到值班岗位',...idle});}
   }
  }
  function queueAtReception(n,v,event) {
