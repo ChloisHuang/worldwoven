@@ -1,0 +1,255 @@
+{
+  "status": "FAIL_ACTUAL_NORTH_GATE_COLLISION",
+  "sourceSHA": "5fce85bfc95fe8b92247638906791ab68a8e60fd5fba3d0850717c3b0bee45a7",
+  "rawQA": "/workspace/shared/worldwoven-china-inset-candidate/qa/china-inset-world-gates/china-all.json",
+  "rawSHA256": "59231b51968920804e07be17a27b3140e31a662a03815fbc893b0d6e8bc88de3",
+  "southPassed": [
+    {
+      "id": "cn-south-gate-west",
+      "status": "PASS_BOUNDED_SWEEP",
+      "counts": {
+        "surfaceCrossings": 0,
+        "containments": 0,
+        "sweptCrossings": 0,
+        "sweptContainments": 0,
+        "contactsRequiringReview": 0,
+        "boundedMountContacts": 0
+      }
+    },
+    {
+      "id": "cn-south-gate",
+      "status": "PASS_BOUNDED_SWEEP",
+      "counts": {
+        "surfaceCrossings": 0,
+        "containments": 0,
+        "sweptCrossings": 0,
+        "sweptContainments": 0,
+        "contactsRequiringReview": 0,
+        "boundedMountContacts": 0
+      }
+    },
+    {
+      "id": "cn-south-gate-east",
+      "status": "PASS_BOUNDED_SWEEP",
+      "counts": {
+        "surfaceCrossings": 0,
+        "containments": 0,
+        "sweptCrossings": 0,
+        "sweptContainments": 0,
+        "contactsRequiringReview": 0,
+        "boundedMountContacts": 0
+      }
+    }
+  ],
+  "firstFullyOpenPlatformCrossing": {
+    "type": "surface",
+    "fraction": 1,
+    "side": -1,
+    "leafTriangle": 0,
+    "staticMesh": 0,
+    "staticPath": "China \u2014 Four Courts Palace/China outer walls and open courts/Mesh",
+    "staticTriangle": 85319,
+    "staticInstance": null,
+    "event": {
+      "type": "surface-crossing",
+      "points": [
+        [
+          -2.8211389260405966,
+          0.115,
+          -35
+        ],
+        [
+          -2.7615000016391273,
+          0.115,
+          -35
+        ]
+      ],
+      "normal": [
+        0,
+        0,
+        -1
+      ]
+    },
+    "leafWorldTriangle": [
+      [
+        -2.7615000016391282,
+        0.115,
+        -37.81999995803833
+      ],
+      [
+        -2.7615000016391273,
+        0.115,
+        -34.911999965667725
+      ],
+      [
+        -2.8229999996125694,
+        0.115,
+        -34.911999965667725
+      ]
+    ],
+    "leafLocalTriangle": [
+      [
+        -1.49399995803833,
+        3.2146976571638206e-18,
+        -0.05249999836087227
+      ],
+      [
+        1.4140000343322754,
+        3.2146976571638206e-18,
+        -0.05249999836087227
+      ],
+      [
+        1.4140000343322754,
+        -5.510910402363434e-19,
+        0.008999999612569809
+      ]
+    ],
+    "leafVertexColors": [
+      [
+        0.23074005544185638,
+        0.0423114113509655,
+        0.03071344457566738
+      ],
+      [
+        0.23074005544185638,
+        0.0423114113509655,
+        0.03071344457566738
+      ],
+      [
+        0.23074005544185638,
+        0.0423114113509655,
+        0.03071344457566738
+      ]
+    ],
+    "staticWorldTriangle": [
+      [
+        12,
+        -5.9604645663569045e-09,
+        -35
+      ],
+      [
+        -12,
+        -5.9604645663569045e-09,
+        -35
+      ],
+      [
+        -12,
+        0.800000011920929,
+        -35
+      ]
+    ],
+    "staticLocalTriangle": [
+      [
+        12,
+        -5.9604645663569045e-09,
+        -35
+      ],
+      [
+        -12,
+        -5.9604645663569045e-09,
+        -35
+      ],
+      [
+        -12,
+        0.800000011920929,
+        -35
+      ]
+    ],
+    "staticNormal": [
+      0,
+      0,
+      -1
+    ]
+  },
+  "firstHalfOpenStairCrossing": {
+    "resolution": "surface",
+    "kind": "actual-or-unresolved-contact",
+    "fraction": 0.5,
+    "interval": [
+      0,
+      1
+    ],
+    "maxArcDeviation": 0.9811922830250659,
+    "leafTriangle": 0,
+    "side": -1,
+    "leafWorldTriangle": [
+      [
+        -2.829597644861785,
+        0.115,
+        -37.98440229579545
+      ],
+      [
+        -0.7733311305661014,
+        0.115,
+        -35.92813578149977
+      ],
+      [
+        -0.8168181961760812,
+        0.115,
+        -35.88464871588979
+      ]
+    ],
+    "leafLocalTriangle": [
+      [
+        -1.49399995803833,
+        3.2146976571638206e-18,
+        -0.05249999836087227
+      ],
+      [
+        1.4140000343322754,
+        3.2146976571638206e-18,
+        -0.05249999836087227
+      ],
+      [
+        1.4140000343322754,
+        -5.510910402363434e-19,
+        0.008999999612569809
+      ]
+    ],
+    "staticPath": "China \u2014 Four Courts Palace/China outer walls and open courts/Mesh",
+    "staticTriangle": 85623,
+    "staticWorldTriangle": [
+      [
+        1.899999976158142,
+        -0.06749999523162842,
+        -36.599998474121094
+      ],
+      [
+        -1.899999976158142,
+        -0.06749999523162842,
+        -36.599998474121094
+      ],
+      [
+        -1.899999976158142,
+        0.1875,
+        -36.599998474121094
+      ]
+    ],
+    "staticNormal": [
+      0,
+      0,
+      -1
+    ],
+    "event": {
+      "type": "surface-crossing",
+      "points": [
+        [
+          -1.5025373709256007,
+          0.115,
+          -36.599998474121094
+        ],
+        [
+          -1.4451938231874275,
+          0.115,
+          -36.599998474121094
+        ]
+      ],
+      "normal": [
+        0,
+        0,
+        -1
+      ]
+    }
+  },
+  "termination": "Repeated witnesses exhausted the prior4096-entry log after real crossings were already found; next adapter stops at its first actual failure/review."
+}

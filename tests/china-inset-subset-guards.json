@@ -1,13 +1,15 @@
 {
   "scope": "Affected China door groups only; no unrelated-country scene or color/hash regression. Hashes below lock the actual China test dependencies.",
-  "productCommit": "f57fc71",
+  "productCommit": "NORTH_THREE_BAY_CANDIDATE",
   "poseHash": "d79172e65b6a1224a755e6504058b7f1e7eb5937daa70160bdd0e9d28b54c719",
   "groups": {
     "gates": [
       "cn-south-gate-west",
       "cn-south-gate",
       "cn-south-gate-east",
+      "cn-north-gate-west",
       "cn-north-gate",
+      "cn-north-gate-east",
       "cn-west-gate",
       "cn-east-gate"
     ],
@@ -35,12 +37,21 @@
       "cn-archive-east",
       "cn-guest-front",
       "cn-guest-east"
+    ],
+    "north-fix": [
+      "cn-north-gate-west",
+      "cn-north-gate",
+      "cn-north-gate-east"
+    ],
+    "west-east": [
+      "cn-west-gate",
+      "cn-east-gate"
     ]
   },
   "files": {
-    "source/game/china-palace.js": "5fce85bfc95fe8b92247638906791ab68a8e60fd5fba3d0850717c3b0bee45a7",
+    "source/game/china-palace.js": "037ebafc64839b8755533f1a1a37caac893b82ecbcff6b262279a890a0042eba",
     "source/game/regions-east.js": "9063560d2d022f62bab7454d8e22158549e385192fc6a534449ff5a94ed0a2ac",
-    "source/game/room-closures.js": "c5fb3cc0e3a3f0ce9034a296e28c0d473d4764a0fa418ea864db6b04cdc71b20",
+    "source/game/room-closures.js": "885ef9ca8437263c925bacbc097af66cafa2164669736dbc2aa7ac71c7b54f1f",
     "source/game/automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
     "source/game/inset-closures.js": "dadba37aaa60d85abc2c9102a5da10bcfaf529474d8e60fefe5a975e63d8930a",
     "source/game/furniture-interactions.js": "83c6372db4564a46fda87c164db3a3b79760bd8d7c7c6cae21e8564fe402af88",

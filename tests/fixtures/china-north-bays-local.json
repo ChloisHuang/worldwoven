@@ -1,0 +1,123 @@
+{
+  "rigid": [
+    {
+      "id": "cn-north-gate-west",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": -38,
+        "structuralDepth": 0.65,
+        "closureSectionDepth": 0.65,
+        "faces": [
+          -38.325,
+          -37.675
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -3,
+        "to": -1.4,
+        "width": 1.6,
+        "bottom": 0.115,
+        "top": 4.1
+      },
+      "roughOpening": {
+        "from": -3.08,
+        "to": -1.3199999999999998,
+        "bottom": 0.1,
+        "top": 4.18
+      },
+      "frame": {
+        "closedLeafPlane": -38,
+        "fullDepth": 0.65,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.13,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.1,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "PENDING_FOCUSED_NORTH_BAY_PAIR_FRAME_CHECK",
+      "currentWorldProof": "PENDING_NORTH_ONLY_REPLAY",
+      "currentVisualProof": "PENDING",
+      "region": "china",
+      "nominalOpening": {
+        "from": -3,
+        "to": -1.4,
+        "width": 1.6,
+        "bottom": 0.115,
+        "top": 4.1
+      }
+    },
+    {
+      "id": "cn-north-gate",
+      "kind": "hinge",
+      "axis": "x",
+      "motion": {
+        "swing": 1,
+        "bottomClearance": 0
+      },
+      "wall": {
+        "centerPlane": -38,
+        "structuralDepth": 0.65,
+        "closureSectionDepth": 0.65,
+        "faces": [
+          -38.325,
+          -37.675
+        ],
+        "span": null
+      },
+      "opening": {
+        "from": -1.1,
+        "to": 1.1,
+        "width": 2.2,
+        "bottom": 0.115,
+        "top": 4.1
+      },
+      "roughOpening": {
+        "from": -1.1800000000000002,
+        "to": 1.1800000000000002,
+        "bottom": 0.1,
+        "top": 4.18
+      },
+      "frame": {
+        "closedLeafPlane": -38,
+        "fullDepth": 0.65,
+        "stopNormal": 0.08,
+        "hingePinNormal": -0.18,
+        "pocketClearDepth": null,
+        "pocketSkinThickness": null,
+        "pocketEnd": null
+      },
+      "floor": {
+        "renderedTop": 0.1,
+        "evidence": "Source floor()/slab() navigation support is15mm above rendered floor"
+      },
+      "localProof": "PENDING_FOCUSED_NORTH_BAY_PAIR_FRAME_CHECK",
+      "currentWorldProof": "PENDING_NORTH_ONLY_REPLAY",
+      "currentVisualProof": "PENDING",
+      "region": "china",
+      "nominalOpening": {
+        "from": -1.1,
+        "to": 1.1,
+        "width": 2.2,
+        "bottom": 0.115,
+        "top": 4.1
+      }
+    }
+  ],
+  "sourceHashes": {
+    "china-palace.js": "037ebafc64839b8755533f1a1a37caac893b82ecbcff6b262279a890a0042eba",
+    "room-closures.js": "885ef9ca8437263c925bacbc097af66cafa2164669736dbc2aa7ac71c7b54f1f",
+    "automatic-doors.js": "fd788f9e229cc27052c12d0331d2b73e5b567d84664c361005f310fef4f01195",
+    "inset-closures.js": "dadba37aaa60d85abc2c9102a5da10bcfaf529474d8e60fefe5a975e63d8930a"
+  },
+  "scope": "Two distinct actual north-bay parameter sets; east1.6m is a pure translated copy of west1.6m."
+}
