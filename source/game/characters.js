@@ -377,6 +377,14 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   else if(/read|rest/.test(action||'')){reach(0,-.16,1.13,.29);reach(1,.18,1.13,.29);show('book');lookX=.22;}
   else if(/garden/.test(action||'')){reach(0,-.27,.96,.14);reach(1,.26,1.09,.29);show('can');lookX=.17;}
   else if(action){reach(0,-.18,1.02,.28);reach(1,.18,1.04+Math.sin(time*2.7)*.025,.29);show('cloth');lookX=.18;}
+  // Explicit routine carrying is opt-in: keep the vessel upright at a real
+  // hand while walking, without changing the normal gait or station poses.
+  if(context?.heldProp==='cloth'){
+   reach(0,-.18,1.03,context.handoff?.43:.27);show('cloth');
+   if(context.handoff)reach(1,.18,1.04,.40);
+  }else if(context?.heldProp==='bathBucket'){
+   reach(1,.30,.92,.15);show('bathBucket');
+  }else if(context?.handoff){reach(0,-.16,1.02,.43);reach(1,.16,1.03,.43);}
   // Optional main-supplied authored work surface in actor-local metres. Distant
   // ritual/reading targets stay observational; only genuine tabletop jobs use it.
   const workHeight=context?.workHeight;
