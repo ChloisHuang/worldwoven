@@ -34,6 +34,10 @@ const POLICY={
   'jp-4-front-portal':['open','Common service gallery to balcony; individual workrooms are classified separately']
  },
  china:{
+  'cn-clinic-front':['door','Public clinic and pharmacy entrance uses inset timber leaves'],
+  'cn-clinic-consult-door':['door','Separate consultation room with an inset privacy door'],
+  'cn-clinic-handoff':['half-curtain','Staff pass the original numbered card through the connecting service opening'],
+  'cn-clinic-stock-door':['door','Enclosed pharmacy stock room with inset timber closure'],
   'cn-south-gate':['door','Inset central ceremonial timber gate, opening inward to the compound'],
   'cn-south-gate-west':['door','Inset west gatehouse bay preserves the broad ceremonial arrival'],
   'cn-south-gate-east':['door','Inset east gatehouse bay preserves the broad ceremonial arrival'],
@@ -166,6 +170,9 @@ const DOOR_MOTIONS={
  'cn-hall-front':['hinge',1,'Retain the tested paired ceremonial lacquer doors swinging into the hall'],
  'cn-hall-rear':['hinge',-1,'Swing inward/south into the clear rear hall bay, away from the R14 rear terrace stair'],
  'cn-hall-west':['slide',0,'Tall hinged leaves would enter the indoor stair or the short exterior landing and rails; keep a sliding lattice closure'],
+ 'cn-clinic-front':['hinge',1,'Open north into the unobstructed public waiting hall'],
+ 'cn-clinic-consult-door':['hinge',1,'Open north into the clear consultation arrival bay'],
+ 'cn-clinic-stock-door':['hinge',-1,'Open south into the clear staff counter aisle, away from the stock workbench'],
  'cn-hall-east':['hinge',1,'Swing inward/west between the existing chair groups, clear of the narrow exterior landing and its rails'],
  'cn-study-front':['hinge',1,'Paired timber panels swing into the clear south reception bay, short of the writing tables and side console'],
  'cn-bedroom-front':['hinge',-1,'The rear-palace north entrance opens south into the clear bedroom arrival bay, leaving the common hall unobstructed'],

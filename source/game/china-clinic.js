@@ -55,3 +55,10 @@ export function buildChinaClinic(G,A){
 }
 
 export function chinaClinicStations(){const P=CHINA_CLINIC.points;return CHINA_CLINIC.roles.map((role,i)=>({...role,name:i?'安和药铺 · 凭号领取':'安和医馆 · 坐诊开单',action:i?'凭编号领取云纹包':'坐下候诊',npcOnly:!i,position:i?P.counter:[18.45,.215,-27.1],npcPosition:i?P.assistant:P.doctor,npcAction:'clinic-duty',npcLabel:i?'柜台候单 · 按号备物':'问诊室候诊',color:'#83a392',interactionRadius:1.55,dialogue:'这里是宫苑故事里的医馆。先在问诊椅坐下，开单后凭同一编号到药铺领取虚构云纹包。'}));}
+
+export function clinicRoleAppearance(region,id,look){
+ if(region!=='china')return look;
+ if(id==='cn-clinic-physician')return {...look,bodyPreset:'masculine-lean',hairStyle:'low-bun',wardrobePreset:'scholar-long-robe',clothes:0x57796c,accent:0xd2c19c};
+ if(id==='cn-pharmacy-assistant')return {...look,bodyPreset:'feminine-balanced',hairStyle:'braided-tail',wardrobePreset:'ruqun-jacket',clothes:0x9c805b,accent:0xc3ceac};
+ return look;
+}
