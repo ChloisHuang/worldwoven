@@ -48,12 +48,13 @@ function displaced(p,raw,traits,c,eye=false){
  const bridge=smooth(6.95,7.20,ry);
  const nasal=smooth(6.70,6.83,ry)*(1-smooth(7.28,7.46,ry))
   *(1-smooth(.22-.145*bridge,.36-.12*bridge,Math.abs(rx)))*smooth(1.22,1.46,rz)*(1-w);
- out[0]+=x*(traits.noseSize*traits.noseWidth-1)*nasal;
- out[1]+=(y-c.nose[1])*(traits.noseSize-1)*nasal;
- // Whole-nose size changes the lower nose. Its old full-ridge projection
- // masked the independent bridge control when a smaller nose was selected.
- const lowerNose=1-smooth(6.96,7.12,ry);
- out[2]+=(z-c.nose[2]+.010)*(traits.noseSize-1)*nasal*lowerNose;
+ // Saved noseSize values now size the lower nasal body/alar region in this
+ // candidate. No axis may shrink or lift the bony upper bridge. Width remains
+ // its own transverse control, and bridge projection is applied below.
+ const lowerNose=1-smooth(6.96,7.12,ry),lowerSize=(traits.noseSize-1)*lowerNose;
+ out[0]+=x*((1+lowerSize)*traits.noseWidth-1)*nasal;
+ out[1]+=(y-c.nose[1])*lowerSize*nasal;
+ out[2]+=(z-c.nose[2]+.010)*lowerSize*nasal;
  // Independent chin length/projection share a broad sublabial transition and
  // stop above the anchored neck. Neither moves the lips or full head anchor.
  const chin=smooth(1.38,1.435,y)*smooth(5.98,6.17,ry)*(1-smooth(6.38,6.55,ry))

@@ -14,6 +14,9 @@ const points={bridge:[0,7.1046,1.583],tip:[0,6.909,1.6807]};
 const z=(h,raw)=>h.g.attributes.position.getZ(nearest(h,raw));
 const lostRidge=Math.abs(z(small,points.bridge)-z(neutral,points.bridge));
 assert(lostRidge<.0002,'noseSize must not flatten the independent upper ridge');
+let upperRidgeVertices=0;
+for(let j=0;j<neutral.r.count;j++){const i=neutral.r.start+j;if(neutral.g.attributes.featureCoord.getY(i)<7.12)continue;for(let k=0;k<3;k++)assert.equal(small.g.attributes.position.array[3*(small.r.start+j)+k],neutral.g.attributes.position.array[3*i+k],'small lower nose must preserve every upper-bridge axis');upperRidgeVertices++;}
+assert(upperRidgeVertices>0);
 assert(z(both,points.bridge)>z(neutral,points.bridge)+.003,'small nose must retain high-bridge projection');
 assert(Math.abs((z(both,points.bridge)-z(small,points.bridge))-(z(high,points.bridge)-z(neutral,points.bridge)))<1e-6,'bridge response remains independent of nose size');
 const tipSpan=z(tipHigh,points.tip)-z(tipLow,points.tip);assert(tipSpan>.006&&tipSpan<.014,'tip base must produce a visible but bounded projection span');
@@ -23,4 +26,4 @@ const p=neutral.g.attributes.position,fc=neutral.g.attributes.featureCoord,rawSk
 for(let j=0;j<neutral.r.count;j++){const i=neutral.r.start+j;const anchored=neutral.g.attributes.sourceY.getX(i)<1.36,lip=rawSkin.lipWeight[j]>.5;if(!anchored&&!lip)continue;for(const h of [tipLow,tipHigh])for(let k=0;k<3;k++)assert.equal(h.g.attributes.position.array[3*(h.r.start+j)+k],p.array[3*i+k],anchored?'collar anchors stay exact':'tip must not pull lips');if(anchored)anchors++;if(lip)lips++;}
 assert(anchors>0&&lips>0);assert.equal(morphCompleteAdultAsset(ADULT_FORMS.female,null),ADULT_FORMS.female,'neutral mesh remains exact');
 actors.forEach(a=>a.dispose());assert.equal(C.characterResourceStats().activeReferences,0);
-console.log(JSON.stringify({status:'PASS',scope:'Actual createCharacter control separation, fixed collar/lips, exact neutral; visual review remains separate',smallNoseBridgeRetractionMm:lostRidge*1000,tipProjectionSpanMm:tipSpan*1000,anchors,lips},null,2));
+console.log(JSON.stringify({status:'PASS',scope:'Actual createCharacter control separation, fixed collar/lips, exact neutral; visual review remains separate',smallNoseBridgeRetractionMm:lostRidge*1000,tipProjectionSpanMm:tipSpan*1000,anchors,lips,upperRidgeVertices},null,2));
