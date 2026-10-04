@@ -85,6 +85,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
   update(dt,t,playerState={}){
    if(disposed)return;state=playerState;time+=dt;life?.tick(dt,state);schedule.observe(state.hour??10);
    const duty=palace.dutyState(OWNER);
+   if(phase==='waiting'&&schedule.snapshot().outcome==='completed'&&reports.hasPending())setPhase('followup');
    if(phase==='waiting'&&schedule.due(state.hour??10,state.night)){
     reported=0;schedule.call();save();officials.forEach((n,i)=>{if(life)life.request(n);else task(n,'leave-office',[court(i)],'从官署出发 · 前往候朝位置');});setPhase('arriving');
    }
@@ -119,9 +120,10 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
     if(++reported<officials.length){task(officials[reported],'approach-report',[REPORT],'仓务进前奏报');setPhase('approaching');}
     else{say(emperor,'今日朝议到此，诸位各归其职。');setPhase('dismissal');}
    }else if(phase==='dismissal'&&phaseTime>=4)depart('completed');
-   else if(phase==='departing'){for(const n of officials)if(tasks.get(n)?.arrived){tasks.delete(n);life?.resume(n);record('released-to-personal-life',n);}if(!tasks.size&&!palace.dutyState(OWNER))setPhase('waiting');}
+   else if(phase==='departing'){for(const n of officials)if(tasks.get(n)?.arrived){tasks.delete(n);life?.resume(n);record('released-to-personal-life',n);}if(!tasks.size&&!palace.dutyState(OWNER))setPhase(reports.hasPending()?'followup':'waiting');}
+   else if(phase==='followup'&&!reports.hasPending())setPhase('waiting');
   },
   state:()=>({phase,time,phaseTime,life:life?.state()||null,reports:reports?.state()||null,currentReport,schedule:schedule.snapshot(),reported,speaker:speaker?.station.id||null,utterance,history:history.map(e=>({...e})),failures:failures.map(e=>({...e})),actors:officials.map(n=>({id:n.station.id,ageYears:n.station.ageYears,position:n.root.position.toArray(),stage:tasks.get(n)?.id||life?.label(n)||'waiting',waypoint:tasks.get(n)?.index||0,arrived:tasks.get(n)?.arrived||false,walking:n.walking,paused:paused(n)}))}),
-  dispose(){if(disposed)return;disposed=true;if(!['waiting','departing'].includes(phase)){schedule.finish('interrupted');save();}palace.releaseDuty(OWNER);life?.dispose();for(const n of officials)n.route=[];for(const costume of caps)costume?.dispose();}
+  dispose(){if(disposed)return;disposed=true;if(!['waiting','departing','followup'].includes(phase)){schedule.finish('interrupted');save();}palace.releaseDuty(OWNER);life?.dispose();for(const n of officials)n.route=[];for(const costume of caps)costume?.dispose();}
  };
 }

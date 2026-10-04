@@ -37,7 +37,7 @@ export function createCourtReports({readEdict=()=>null,saved={},saveState=()=>{}
   },
   inspection(){
    for(const c of cases)if(c.response==='defer'&&!c.result){const s=live();if(s?.documentId===c.source.documentId&&s.outcome!=='active'){c.response='inquire';c.resumedFrom='defer';save();}}
-   const c=pending();if(!c)return null;const source=live();if(source&&source.documentId!==c.source.documentId){c.retired={reason:'new-numbered-order',sourceEventId:source.eventId};save();return null;}const east=source?.outcome==='completed';return {id:c.id,documentId:c.source.documentId,point:east?[11.9,.145,-15.7]:[5.35,1.415,-4.05],look:east?[11.2,.145,-15.3]:[4.2,2.33,-4.84],place:east?'荷庭东岸':'传令案',label:`奉旨核验${c.source.documentId} · ${east?'前往东岸竹筐':'到传令案核对'}`};
+   const c=pending();if(!c)return null;const source=live();if(source&&source.documentId!==c.source.documentId){c.retired={reason:'new-numbered-order',sourceEventId:source.eventId};save();return null;}const east=(source?.outcome||c.source.outcome)==='completed';return {id:c.id,documentId:c.source.documentId,point:east?[11.9,.145,-15.7]:[5.35,1.415,-4.05],look:east?[11.2,.145,-15.3]:[4.2,2.33,-4.84],place:east?'荷庭东岸':'传令案',label:`奉旨核验${c.source.documentId} · ${east?'前往东岸竹筐':'到传令案核对'}`};
   },
   inspected(issueId,{actorId,position,place}){
    const c=cases.find(c=>c.id===issueId),job=this.inspection(),source=live();if(!c||c.result||job?.id!==issueId||actorId!=='cn-minister-works'||!position||Math.hypot(position[0]-job.point[0],position[2]-job.point[2])>.3||Math.abs(position[1]-job.point[1])>.3||source?.documentId!==c.source.documentId)return false;
@@ -45,6 +45,6 @@ export function createCourtReports({readEdict=()=>null,saved={},saveState=()=>{}
    // terminal state, not merely that time passed or a report was spoken.
    if(source.outcome==='completed'&&source.workProgress!==1)return false;
    c.result={id:`court-inspection:${c.id}`,actorId,position:position.slice(),place:job.place,source};save();return true;
-  },snapshot,state:snapshot
+  },hasPending:()=>cases.some(c=>c.response&&!c.result&&!c.retired),snapshot,state:snapshot
  };
 }
