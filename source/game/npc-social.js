@@ -9,6 +9,7 @@ export function npcSocialReply(n,{busy=false,job=n.serviceTask?.label||n.station
  if(busy)return `你好！这会儿在${job}。等忙完这一步，我们再聊。`;
  if(npcActorId(n)?.startsWith('jp-visitor-'))return `你好，我是${name(n)}。来汤馆走走、歇歇脚，路上遇见你很高兴。`;
  const id=n.station?.id||'',verb=n.station?.npcAction||'';
+ if(n.station?.royalRole==='consort'&&n.station.dialogue)return n.station.dialogue;
  if(id==='cn-archery'||id==='cn-range-warden')return '我和同伴轮流巡看宫门、正殿与射圃，回到射圃当面交班。若想习射，从后方入口去金线旁等候就好。';
  if(id==='jp-welcome')return '欢迎来到云隐汤馆！我在这里接待来访的客人，也会带大家找到去温泉的路。';
  if(/onsen/.test(id))return '你好！我会照看池边、补齐手巾。入汤前先洗净身体，池边慢慢走。';
