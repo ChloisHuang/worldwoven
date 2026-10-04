@@ -1,6 +1,7 @@
 import {buildChinaMoneyHouse,chinaMoneyHouseStation,CHINA_MONEY_HOUSE} from './china-money-house.js';
 import {buildChinaClinic,chinaClinicStations,CHINA_CLINIC} from './china-clinic.js';
 import {CHINA_PALACE_ROLES} from './china-palace-life.js';
+import {chinaCourtOfficialStations} from './china-palace-audience.js';
 import {buildChinaTavern,CHINA_TAVERN} from './china-tavern.js';
 import {buildChinaResidence,CHINA_RESIDENCE} from './china-residence.js';
 import {culturePlaque} from './china-culture-lettering.js';
@@ -561,6 +562,7 @@ export function buildChinaPalace(G,H){
  // swing:1 opens both leaves toward world negative z, into these clear rooms.
  for(const x of[19.8,22.2])additionalFurnitureSeats.push({id:'china-palace-dining-seat-'+x,name:'御膳餐厅坐凳',x,y:.215,z:.3,yaw:0,width:.86,depth:.86,seatY:.82,front:0});
  for(const role of CHINA_PALACE_ROLES)stations.push({...role,npcOnly:true,name:role.royalRole==='emperor'?'静宜寝殿 · 皇帝起居':'静宜客居 · 月容私室',action:'宫苑日常',npcAction:'read',npcLabel:'晨间起居',position:ground(role.npcPosition),npcPosition:ground(role.npcPosition),color:role.royalRole==='emperor'?'#bd964e':'#a56d81'});
+ stations.push(...chinaCourtOfficialStations());
  stations.push(...chinaClinicStations());
  stations.push(chinaMoneyHouseStation());
  const automaticDoorways=[{id:'cn-hall-front',center:[0,1.415,5],width:6,height:4.315,axis:'x',style:'palace',motion:'hinge',swing:1}];
