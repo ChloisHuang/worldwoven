@@ -95,7 +95,7 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
     else if(stage==='await-recipient'&&arrived(recipient)){enter('reading');face(herald,P.recipient);face(recipient,P.read);say(herald,E.title+'：'+E.text);}
     else if(stage==='reading'&&advanceAfter(6,'response'))say(recipient,'领会。现在就把东岸落叶扫进竹筐，清出这段行路。');
     else if(stage==='response'&&advanceAfter(3,'recipient-handoff'))order.holder='transfer';
-    else if(stage==='recipient-handoff'&&advanceAfter(1.3,'to-work')){order.holder='recipient';record('edict-received',recipient);task(recipient,'walk-to-receipt-basket',[P.file],'Bo 携同号令到竹筐边留存');}
+    else if(stage==='recipient-handoff'&&advanceAfter(1.3,'to-work')){order.holder='recipient';record('edict-received',recipient);task(herald,'stand-clear-of-work',[[12.6,.145,-14]],'交令后退到侧旁 · 留出竹筐前工作通道');task(recipient,'walk-to-receipt-basket',[P.file],'Bo 携同号令到竹筐边留存');}
     else if(stage==='to-work'&&arrived(recipient)){enter('file-receipt');face(recipient,P.basket);}
     else if(stage==='file-receipt'&&advanceAfter(1.2,'to-sweep')){order.holder='basket';task(recipient,'walk-to-leaves',[P.work],'按令实作 · 到落叶边取帚清扫');}
     else if(stage==='to-sweep'&&arrived(recipient)){enter('sweeping');tell(recipient,'按令实作 · 把东岸落叶扫进竹筐');}
