@@ -31,6 +31,7 @@ export function createTavernMealProps(parent){
    if(stage==='placing')tp=hand(actors.cook).lerp(new THREE.Vector3(...P.passTop),ratio(1.1));
    else if(stage==='pickup')tp=new THREE.Vector3(...P.passTop).lerp(hand(actors.host),ratio(1.1));
    else if(stage==='serving')tp=hand(actors.host).lerp(new THREE.Vector3(...o.mealPoint),ratio(1.1));
+   else if(stage==='recall')tp=new THREE.Vector3(...o.recallPoint).lerp(hand(actors.host),ratio(1.1));
    else if(stage==='lifting')tp=new THREE.Vector3(...o.mealPoint).lerp(hand(actors.host),ratio(1.1));
    else if(o.holder==='cook')tp=hand(actors.cook);
    else if(o.holder==='host')tp=hand(actors.host);
@@ -38,9 +39,9 @@ export function createTavernMealProps(parent){
    tray.position.copy(tp);tray.rotation.y=['host','cook'].includes(o.holder)?actors[o.holder].root.rotation.y:0;
    bowl.position.copy(tp).add(new THREE.Vector3(.035,.035,0));bowl.rotation.set(0,0,0);
    if(stage==='eating')bowl.position.copy(hand(actors.player,true));
-   if(stage==='finish-bite')bowl.position.copy(hand(actors.player,true)).lerp(new THREE.Vector3(...o.mealPoint).add(new THREE.Vector3(.035,.035,0)),ratio(.8));
-   food.visible=!['finish-bite','clear-table','lifting','return','washing'].includes(stage)||o.cancelled;
-   food.scale.setScalar(stage==='eating'?Math.max(.12,1-ratio(5.5)*.88):1);
+   if(stage==='finish-bite')bowl.position.copy(o.returnBowlFrom?new THREE.Vector3(...o.returnBowlFrom):hand(actors.player,true)).lerp(new THREE.Vector3(...o.mealPoint).add(new THREE.Vector3(.035,.035,0)),ratio(.8));
+   food.visible=(o.portionsRemaining??1)>0;
+   food.scale.setScalar(o.portionsRemaining??1);
   },
   state(){return {trayCount:tray?1:0,bowlCount:bowl?1:0,mealId:id,trayPosition:tray?.position.toArray()||null,bowlPosition:bowl?.position.toArray()||null,foodVisible:food?.visible||false,prepVisible:ingredients.visible};},
   dispose(){clear();root.removeFromParent();for(const geo of geos)geo.dispose();for(const m of mats.values())m.dispose();}

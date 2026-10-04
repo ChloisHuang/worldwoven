@@ -84,7 +84,7 @@ export function buildChinaTavern(G,A){
  wall(g0,'x',15.2,16,26,.215,3.77,[opening('cn-tavern-dining-hall','酒楼与公共梯厅','x',15.2,20.0,23.0,.215,['tavern-dining','tavern-hall-1'])]);
  room('tavern-dining','云来一层酒楼',16,26,15.2,21,.215,3.77);
  for(const[x,z]of[[18.1,18.1],[23.9,18.1]]){const top=table(g0,x,.215,z,1.45,1.12,.90);H.teaSet(g0,x,top,z,0xb9c7ac);H.bowl(g0,x-.35,top,z+.24,0xf1dfbb,.18);for(const[side,yaw]of[[-1,0],[1,Math.PI]])chair(g0,'china-tavern-dining-'+x+'-'+side,'酒楼雕花餐椅',x,.215,z+side*1.32,yaw);}
- const counter=table(g0,24.35,.215,10.10,2.5,.78,1.0);H.teaSet(g0,23.50,counter,10.10,0xa8b0a0);buildTavernKitchen(G,{group:g0,block,table,H});
+ const counter=table(g0,24.35,.215,10.34,2.5,.78,1.0);H.teaSet(g0,23.50,counter,10.34,0xa8b0a0);buildTavernKitchen(G,{group:g0,block,table,H});
  room('tavern-kitchen','云来酒楼 · 后厨备餐间',21.95,26,8,10.65,.215,3.77);
  sign(g0,'云来酒楼',21,3.23,21.24,3.45,.61);
  sign(g0,'云来酒楼',15.76,3.13,13.4,3.20,.59,-Math.PI/2);
