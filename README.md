@@ -8,8 +8,8 @@ Public game: https://alien.doudouai.net/
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.51-public, 2026-10-04
-Verified published Sites source commit: 2601b2dcea5272c13b7294d2298249ecfdc5c59e
+Published release: R16.52-public, 2026-10-04
+Verified published Sites source commit: 0f6069ef2669b48d0d59b70f55c5bb7bc8338a90
 
 ## Working rules
 
