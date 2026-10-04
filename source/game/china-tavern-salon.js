@@ -88,7 +88,7 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
      const leg=escortLeg(),p=getPlayer(),separation=p.root.position.distanceTo(performer.root.position);travel(performer,leg.actor,dt,{hold:separation>4.2});
      if(near(performer,leg.actor,.13)&&near(p,leg.player,.13)){record('escort-leg',{leg:o.leg,actor:performer.root.position.toArray(),player:p.root.position.toArray()});o.leg++;if(o.leg===3)enter('entering');else{resetRoute(performer);resetRoute(p);}}
     }else if(o.stage==='entering'){
-     if(!entryValid())cancel('还没有一起到达雅间');else{ledger.occupy(o.roomId,o.id);record('both-entered',{actor:performer.root.position.toArray(),player:getPlayer().root.position.toArray()});enter('fade');}
+     if(!entryValid())cancel('还没有一起到达雅间');else{const p=getPlayer();p.root.rotation.y=Math.atan2(performer.root.position.x-p.root.position.x,performer.root.position.z-p.root.position.z);ledger.occupy(o.roomId,o.id);record('both-entered',{actor:performer.root.position.toArray(),player:getPlayer().root.position.toArray()});enter('fade');}
     }else if(o.stage==='fade'||o.stage==='visiting'){
      if(!entryValid())cancel('你们结束了这次茶叙');else{phaseTime+=dt;if(o.stage==='fade'&&phaseTime>=2.2){record('tea-and-poetry',{explicit:false});relationships[o.actorId]=Math.min(5,(relationships[o.actorId]||0)+1);enter('visiting');persist();}else if(o.stage==='visiting'&&phaseTime>=6){release('茶叙结束',true);notify('柳清弦：今日谈得愉快，我先回楼上了');}}
     }
