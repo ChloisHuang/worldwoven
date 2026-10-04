@@ -52,4 +52,13 @@ function fixture({start=[0,0,0],goal=[0,0,3],body=[0,0,1.2],walls=[]}={}){
  for(let i=0;i<40&&f.context.path.length;i++)f.tick();
  assert.equal(f.context.path.length,0,'a true static blockage still abandons an impossible route');assert.equal(f.counts().completed,0);assert.equal(f.counts().rejected,1);
 }
+for(const obstruction of ['wall','floor','closed-door','occupied-destination']){
+ const start={x:0,y:0,z:0},body={x:.5,y:0,z:0},goal={x:obstruction==='occupied-destination'?.6:1.5,y:obstruction==='floor'?3.8:0,z:0};
+ const walls=obstruction==='wall'?[{minX:.75,maxX:1,minZ:-1,maxZ:1,minY:0,maxY:3}]:[];
+ const doors=obstruction==='closed-door'?[{id:'closed',axis:'z',center:[1,0,0],width:2,fraction:0,boxes:[]}]:[];
+ const options={bounds:{minX:-3,maxX:3,minZ:-3,maxZ:3},surfaces:[0,3.8].map(y=>({minX:-3,maxX:3,minZ:-3,maxZ:3,y})),legacyGround:false};
+ const router=createAutomaticRouting({doors,staticColliders:walls,planningColliders:[],getSweepBoxes:()=>[],requestOpen:()=>{},getVersion:()=>0});
+ const route=router.planPath(start,goal,options,.34);route.splice(0,route.length,{...body},goal);const before=route.slice();
+ assert.equal(router.rejoinAroundBody(route,start,body,.59),false,'local rejoin preserves '+obstruction);assert.deepEqual(route,before);
+}
 console.log('PASS: actual main path consumer retains a body pause, resumes one click once, passes a stationary doctor with full radii, preserves endpoint resolution and rejects a true wall');
