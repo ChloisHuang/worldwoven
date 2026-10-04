@@ -1,7 +1,7 @@
 import {CHINA_CONSORTS,CONSORT_ROUTES,palaceResidentSave,palaceResident} from './china-palace-residents.js';
 import {consortActivities,createPalaceLeisureClaims,createConsortPassage} from './china-consort-activities.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
-import {canTraverse} from './navigation.js';
+import {followActorRoute} from './actor-navigation.js';
 import {attachPalaceCostume,createPalaceMealKit} from './china-palace-costume.js';
 import {courtRouteBudget,cachedCourtPlanner} from './china-court-schedule.js';
 
@@ -69,30 +69,9 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
  function cancelCommitment(n,s,reason){if(!unmount(n,s))return false;if(hostHeld===n)releaseHost();claims.release(n.station.id);if(s.choice){s.choice.fulfilled=false;brain.complete(n.station.id,s.choice,{fulfilled:false});}record(n,'leisure-deferred:'+reason);const room=lot.interiorRooms?.find(r=>r.id===n.station.privateRoomId),p=n.root.position,inOwnRoom=room&&p.x>room.minX&&p.x<room.maxX&&p.z>room.minZ&&p.z<room.maxZ&&Math.abs(p.y-(room.floorY??n.home.y))<.4;scripts.set(n,[stage('return-suite','改日再访 · 回自己的私室',inOwnRoom?[n.home.toArray()]:homeReturn(n))]);enter(n,0);return true;}
  function travel(n,s,to,dt){
   if(!passage.allow(n,to)){tell(n,'在自己的门前等候 · 让走廊里的人先行');return false;}
-  if(s.yieldPoint){
-   const target=point(s.yieldPoint),dx=target.x-n.root.position.x,dz=target.z-n.root.position.z,d=Math.hypot(dx,dz);
-   if(d>.045){const before=n.root.position.clone(),amount=Math.min(d,dt*n.locomotion.walkSpeed*.65);moveActor(n,dx/d*amount,dz/d*amount,.25);n.walking=before.distanceToSquared(n.root.position)>1e-9;n.root.rotation.y=Math.atan2(dx,dz);return false;}
-   const other=npcs.find(a=>a.station.id===s.yieldTo)?.root.position||playerState.position;
-   if(other&&Math.abs(other.y-n.root.position.y)<.7&&Math.hypot(other.x-n.root.position.x,other.z-n.root.position.z)<1.15)return false;
-   s.yieldPoint=null;s.yieldTo=null;s.planned=false;s.retries=0;
-  }
   if(near(n.root.position,to)){n.route=[];s.planned=false;s.retries=0;return true;}
   if(!s.planned){n.route=planPath(n.root.position,point(to),.25);s.planned=true;}
-  const direct=near(n.root.position,to,.45)&&canTraverse(n.root.position,point(to),lot.colliders,navigation,safety(n));
-  const step=direct?{waypoint:point(to)}:doors.routeStep(n.route,n.root.position,.025);
-  if(!step.waiting&&step.waypoint){
-   const p=step.waypoint,dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz);
-   const obstacles=[...npcs.filter(a=>a!==n).map(a=>a.root.position),...(playerState.position?[playerState.position]:[])];
-   const blocker=obstacles.find(p=>Math.abs(p.y-n.root.position.y)<.7&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<.70&&(p.x-n.root.position.x)*dx+(p.z-n.root.position.z)*dz>.001&&Math.abs((p.x-n.root.position.x)*dz-(p.z-n.root.position.z)*dx)/Math.max(d,1e-10)<.55);
-   if(blocker&&d>1e-10){
-    const other=npcs.find(a=>a.root.position===blocker),yields=!other||!owned.has(other)||!other.walking||n.station.id>other.station.id;
-    // A checked side-step in the public doorway prevents two household actors
-    // waiting nose-to-nose. In a narrow passage the actor simply waits.
-    if(yields)for(const sign of[1,-1]){const aside=[n.root.position.x+sign*dz/d*.82,n.root.position.y,n.root.position.z-sign*dx/d*.82];if(canTraverse(n.root.position,point(aside),lot.colliders,navigation,safety(n))){s.yieldPoint=aside;s.yieldTo=other?.station.id||'player';record(n,'make-room-for-'+s.yieldTo);break;}}
-    s.stalled=0;return false;
-   }
-   if(d>1e-10){const before=n.root.position.clone(),amount=Math.min(d,dt*n.locomotion.walkSpeed*.78);moveActor(n,dx/d*amount,dz/d*amount,.25);n.walking=before.distanceToSquared(n.root.position)>1e-9;n.root.rotation.y=Math.atan2(dx,dz);}
-  }
+  const step=followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:playerState.position,speedScale:.78});
   if(n.walking)s.retries=0;s.stalled=n.walking||step.waiting?0:s.stalled+dt;
   if(s.stalled>4){s.stalled=0;s.planned=false;if(++s.retries===3){failures.push({actor:n.station.id,activity:s.choice?.id||null,stage:scripts.get(n)[s.index].id,to:to.slice(),position:n.root.position.toArray()});if(failures.length>8)failures.shift();}}
   return near(n.root.position,to);
@@ -127,8 +106,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
    if(duty?.active&&s.mount===throne&&!duty.release&&!duty.yieldSeat)return {reachable:true,seconds:0,distance:0,path:[],stage:steps[s.index].id};
    const path=[];let knownSegments=0,handoff=near(landing,emperor.home.toArray(),.4)?'home':near(landing,HALL.at(-1),.3)?'public':null;
    if(!duty?.active&&!handoff||duty?.active){
-    if(s.yieldPoint)path.push(s.yieldPoint.slice());
-    if(!s.arrived&&!s.yieldPoint&&emperor.route.length){path.push(...emperor.route.map(p=>[p.x,p.y,p.z]));knownSegments=path.length;}
+    if(!s.arrived&&emperor.route.length){path.push(...emperor.route.map(p=>[p.x,p.y,p.z]));knownSegments=path.length;}
     for(let i=s.index;i<steps.length;i++){
      if(i===s.index&&s.arrived)continue;
      for(const p of steps[i].path.slice(i===s.index?s.waypoint:0)){
