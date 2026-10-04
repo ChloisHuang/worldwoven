@@ -1,32 +1,23 @@
-import * as THREE from 'three';
+import {attachCourtOfficialCostume} from './china-court-official-costume.js';
+import {createChinaOfficialLife} from './china-official-life.js';
+import {CHINA_OFFICIAL_BUREAU as B} from './china-official-bureau.js';
 import {canTraverse} from './navigation.js';
 
 // Fictional adult officials retain the same seeded identities on every visit.
 export const CHINA_COURT_OFFICIALS=Object.freeze([
- {id:'cn-minister-works',npcName:'顾衡 · 工部官',ageYears:47,npcPosition:[-2,.115,39],courtRole:'works',color:'#697f87'},
- {id:'cn-minister-granary',npcName:'许知远 · 仓务官',ageYears:39,npcPosition:[2,.115,39],courtRole:'granary',color:'#90635b'}
+ {id:'cn-minister-works',npcName:'顾衡 · 工部官',ageYears:47,npcPosition:B.offices[0],gender:'male',privateRoomId:B.roomIds[0],courtRole:'works',color:'#697f87'},
+ {id:'cn-minister-granary',npcName:'许知远 · 仓务官',ageYears:39,npcPosition:B.offices[1],gender:'male',privateRoomId:B.roomIds[1],courtRole:'granary',color:'#90635b'}
 ]);
 export function courtOfficialAppearance(region,id,look){
  if(region!=='china'||!CHINA_COURT_OFFICIALS.some(r=>r.id===id))return look;
- return {...look,bodyPreset:'masculine-lean',hairStyle:'low-bun',wardrobePreset:'scholar-long-robe',clothes:id==='cn-minister-works'?0x526e7b:0x814b45,accent:0xb49c65};
+ return {...look,bodyPreset:'masculine-lean',hairStyle:'low-bun',wardrobePreset:'court-official-long-robe',clothes:id==='cn-minister-works'?0x526e7b:0x814b45,accent:0xb49c65};
 }
-export const chinaCourtOfficialStations=()=>CHINA_COURT_OFFICIALS.map(r=>({...r,npcOnly:true,name:'承礼门 · 入宫候朝',action:'入宫与朝议',npcAction:'court-duty',npcLabel:'在承礼门外等候朝议',npcRotation:Math.PI,position:r.npcPosition.slice()}));
+export const chinaCourtOfficialStations=()=>CHINA_COURT_OFFICIALS.map(r=>({...r,npcOnly:true,name:'承务官署 · 值宿与办公',action:'官署起居与朝议',npcAction:'court-duty',npcLabel:'在自己的案边处理来文',npcRotation:Math.PI,position:r.npcPosition.slice()}));
 const point=a=>({x:a[0],y:a[1],z:a[2]}),near=(p,a,r=.075)=>Math.hypot(p.x-a[0],p.z-a[2])<r&&Math.abs(p.y-a[1])<.32;
 const OWNER='china-morning-audience',REPORT=[0,1.415,-3.25];
-const court=i=>[i?5:-5,.13,14],hall=i=>[i?2.3:-2.3,1.415,.1];
-const entry=i=>[[i?1.8:-1.8,.115,35],[i?1.8:-1.8,.115,31],court(i)];
+const court=i=>[i?5.2:-4.6,.13,i?16.2:13.2],hall=i=>[i?2.3:-2.3,1.415,.1];
 const enterHall=i=>[[i?2:-2,.13,11],[i?2:-2,1.415,6],[i?1.6:-1.6,1.415,3],hall(i)];
-const departure=i=>[...enterHall(i).slice().reverse(),court(i),[i?1.8:-1.8,.115,31],[i?1.8:-1.8,.115,35],CHINA_COURT_OFFICIALS[i].npcPosition];
-
-function attachOfficialCap(actor){
- const root=new THREE.Group();root.name='Original court official folded cap';actor.root.userData.head.add(root);
- const material=new THREE.MeshToonMaterial({color:0x343637}),edge=new THREE.MeshToonMaterial({color:0x8c794e});
- const add=(geometry,mat,x,y,z)=>{const m=new THREE.Mesh(geometry,mat);m.position.set(x,y,z);root.add(m);return m;};
- add(new THREE.SphereGeometry(.113,12,8),material,0,.264,-.022).scale.set(1,.78,.85);
- add(new THREE.CylinderGeometry(.113,.113,.022,16),edge,0,.218,-.014).scale.z=.86;
- for(const side of[-1,1]){const wing=add(new THREE.BoxGeometry(.135,.032,.035),material,side*.159,.245,-.061);wing.rotation.z=side*.10;}
- return ()=>{root.removeFromParent();root.traverse(o=>o.geometry?.dispose());material.dispose();edge.dispose();};
-}
+const departure=i=>[...enterHall(i).slice().reverse(),court(i)];
 
 // The display clock is session-based. A saved, observed midnight advances this
 // small schedule; reopening at the default 10:00 cannot invent a new court day.
@@ -42,15 +33,15 @@ export function createAudienceSchedule(saved={}){
  };
 }
 
-export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveActor,poseContext,saved={},saveState=()=>{},notify=()=>{}}){
+export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveActor,poseContext,furniture,worldSeed=1,saved={},saveState=()=>{},notify=()=>{}}){
  const officials=CHINA_COURT_OFFICIALS.map(r=>npcs.find(n=>n.station.id===r.id)),emperor=npcs.find(n=>n.station.id==='cn-emperor');
  if(!palace||!emperor||officials.some(n=>!n))return null;
- const owned=new Set(officials),schedule=createAudienceSchedule(saved),caps=officials.map(attachOfficialCap),tasks=new Map(),history=[],failures=[];
+ const owned=new Set(officials),schedule=createAudienceSchedule(saved),caps=officials.map(attachCourtOfficialCostume),tasks=new Map(),history=[],failures=[];
  const navigation={surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4,radius:.25};
- let phase='waiting',time=0,phaseTime=0,disposed=false,state={},speaker=null,utterance='',reported=0;
+ let phase='waiting',time=0,phaseTime=0,disposed=false,state={},speaker=null,utterance='',reported=0,life=null;
  const tell=(n,text)=>{const el=n.label?.querySelector?.('small');if(el)el.textContent=text;};
  const record=(event,actor)=>{history.push({event,actor:actor?.station.id||null,time:+time.toFixed(2),position:actor?.root.position.toArray()});if(history.length>64)history.shift();};
- const save=()=>saveState(schedule.snapshot());
+ const save=()=>saveState({...schedule.snapshot(),life:life?.snapshot()||saved.life});
  function setPhase(value){phase=value;phaseTime=0;record(value);}
  function silence(){speaker=null;utterance='';palace.setDutyLine(OWNER,null);}
  function say(n,text){speaker=n;utterance=text;palace.setDutyLine(OWNER,n===emperor?text:null);tell(n,text);record('speech:'+text,n);const p=state.position;if(p&&Math.abs(p.y-n.root.position.y)<2&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<19)notify(n.station.npcName+'：'+text);}
@@ -82,20 +73,23 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
   return false;
  }
  const allArrived=()=>officials.every(n=>tasks.get(n)?.arrived),paused=n=>!!n&&state.conversationActorId===n.station.id;
- function depart(reason){const outside=phase==='arriving';schedule.finish(reason);save();palace.releaseDuty(OWNER);silence();officials.forEach((n,i)=>task(n,'leave-court',outside?departure(i).slice(-4):departure(i),'散朝 · 沿正门返回承礼门外'));setPhase('departing');}
+ function depart(reason){const outside=phase==='arriving';schedule.finish(reason);save();palace.releaseDuty(OWNER);silence();officials.forEach((n,i)=>task(n,'leave-court',outside?[court(i)]:departure(i),'散朝 · 回到公共庭院后自行安排'));setPhase('departing');}
+ life=createChinaOfficialLife({officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,worldSeed,saved:saved.life,saveState:()=>save(),record});
  save();
  return {
   owns:n=>owned.has(n),
-  socialStatus(n){return owned.has(n)?{busy:false,attention:true,job:tasks.get(n)?.label||'承礼门外等候下一场朝议'}:null;},
+  socialStatus(n){return owned.has(n)?{busy:false,attention:true,job:tasks.get(n)?.label||life?.label(n)||'承务官署 · 日常起居'}:null;},
+  playerRequest(id){life?.playerRequest(id);},
   update(dt,t,playerState={}){
-   if(disposed)return;state=playerState;time+=dt;schedule.observe(state.hour??10);
+   if(disposed)return;state=playerState;time+=dt;life?.tick(dt,state);schedule.observe(state.hour??10);
    const duty=palace.dutyState(OWNER);
    if(phase==='waiting'&&schedule.due(state.hour??10,state.night)){
-    reported=0;schedule.call();save();officials.forEach((n,i)=>task(n,'enter-gate',entry(i),'由承礼门入宫 · 前往各自候朝位置'));setPhase('arriving');
+    reported=0;schedule.call();save();officials.forEach((n,i)=>{if(life)life.request(n);else task(n,'leave-office',[court(i)],'从官署出发 · 前往候朝位置');});setPhase('arriving');
    }
    const speakingPaused=paused(speaker)||state.conversationActorId===emperor.station.id;
    for(const [i,n]of officials.entries()){
-    n.walking=false;const s=tasks.get(n),label=s?.label||(schedule.snapshot().outcome==='completed'?'本日朝议已毕 · 门外待归':schedule.snapshot().outcome==='interrupted'?'本日朝议已中断 · 等待下次召集':state.night?'夜间不朝议 · 在门外等候':'未到朝议时段 · 在门外等候');tell(n,n===speaker?utterance:label);
+    if(life&&!tasks.has(n)){life.update(n,dt,t);if(phase==='arriving'&&life.ready(n))task(n,'leave-office',[court(i)],'应召赴朝 · 从当前位置沿通道入庭');else continue;}
+    n.walking=false;const s=tasks.get(n),label=s?.label||'本日朝议已毕 · 官署日常';tell(n,n===speaker?utterance:label);
     if(paused(n)){tell(n,label+' · 停步与你交谈');if(state.position)n.root.rotation.y=Math.atan2(state.position.x-n.root.position.x,state.position.z-n.root.position.z);}
     else if(s)travel(n,s,dt);
     if(s?.arrived&&!paused(n)){const facing=n===speaker?emperor.root.position:phase==='waiting'||phase==='departing'?point([0,.115,35]):point([0,1.415,-8]);n.root.rotation.y=Math.atan2(facing.x-n.root.position.x,facing.z-n.root.position.z);}
@@ -108,22 +102,24 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
     if(state.night||(state.hour??10)>=12){depart('interrupted');return;}
     say(officials[0],'朝议时辰已至，二臣候奏，请陛下临殿。');palace.requestDuty(OWNER);setPhase('await-emperor');
    }else if(phase==='await-emperor'&&duty?.ready){
-    silence();officials.forEach((n,i)=>task(n,'enter-hall',enterHall(i),'闻召入殿 · 在侧席依次候奏'));setPhase('entering-hall');
+    silence();task(officials[0],'enter-hall',enterHall(0),'闻召先行入殿 · 在侧席候奏');setPhase('entering-hall');
+   }else if(phase==='entering-hall'&&tasks.get(officials[0])?.arrived&&tasks.get(officials[1])?.id!=='enter-hall'&&duty?.ready){
+    task(officials[1],'enter-hall',enterHall(1),'依次入殿 · 等同僚通过后进门');
    }else if(phase==='entering-hall'&&allArrived()&&duty?.ready){
     task(officials[0],'approach-report',[REPORT],'工部进前奏报');setPhase('approaching');
    }else if(phase==='approaching'&&tasks.get(officials[reported])?.arrived&&duty?.ready){
-    say(officials[reported],reported?'禀陛下，仓中存粮已清点，街坊日用供应如常。':'禀陛下，宫苑雨后石阶已巡查，松动处已安排修整。');setPhase('report');
+    say(officials[reported],reported?'禀陛下，今日尚无可核验的仓务新报，候收到实据再奏。':'禀陛下，今日尚无可核验的工务新报，候收到执行回执再奏。');setPhase('report');
    }else if(phase==='report'&&phaseTime>=6&&duty?.ready){
-    say(emperor,reported?'按册照料，留足雨天所需，勿扰街坊。':'修整时留下通行小路，照顾往来行人。');setPhase('response');
+    say(emperor,'无据之事暂缓，按实际收到的回执再报。');setPhase('response');
    }else if(phase==='response'&&phaseTime>=5&&duty?.ready){
     silence();task(officials[reported],'step-back',[hall(reported)],'奏毕退回侧席 · 留出进言通道');setPhase('returning-line');
    }else if(phase==='returning-line'&&tasks.get(officials[reported])?.arrived&&duty?.ready){
     if(++reported<officials.length){task(officials[reported],'approach-report',[REPORT],'仓务进前奏报');setPhase('approaching');}
     else{say(emperor,'今日朝议到此，诸位各归其职。');setPhase('dismissal');}
    }else if(phase==='dismissal'&&phaseTime>=4)depart('completed');
-   else if(phase==='departing'&&allArrived()&&!palace.dutyState(OWNER)){tasks.clear();setPhase('waiting');}
+   else if(phase==='departing'){for(const n of officials)if(tasks.get(n)?.arrived){tasks.delete(n);life?.resume(n);record('released-to-personal-life',n);}if(!tasks.size&&!palace.dutyState(OWNER))setPhase('waiting');}
   },
-  state:()=>({phase,time,phaseTime,schedule:schedule.snapshot(),reported,speaker:speaker?.station.id||null,utterance,history:history.map(e=>({...e})),failures:failures.map(e=>({...e})),actors:officials.map(n=>({id:n.station.id,ageYears:n.station.ageYears,position:n.root.position.toArray(),stage:tasks.get(n)?.id||'waiting',waypoint:tasks.get(n)?.index||0,arrived:tasks.get(n)?.arrived||false,walking:n.walking,paused:paused(n)}))}),
-  dispose(){if(disposed)return;disposed=true;if(!['waiting','departing'].includes(phase)){schedule.finish('interrupted');save();}palace.releaseDuty(OWNER);for(const n of officials)n.route=[];for(const dispose of caps)dispose();}
+  state:()=>({phase,time,phaseTime,life:life?.state()||null,schedule:schedule.snapshot(),reported,speaker:speaker?.station.id||null,utterance,history:history.map(e=>({...e})),failures:failures.map(e=>({...e})),actors:officials.map(n=>({id:n.station.id,ageYears:n.station.ageYears,position:n.root.position.toArray(),stage:tasks.get(n)?.id||life?.label(n)||'waiting',waypoint:tasks.get(n)?.index||0,arrived:tasks.get(n)?.arrived||false,walking:n.walking,paused:paused(n)}))}),
+  dispose(){if(disposed)return;disposed=true;if(!['waiting','departing'].includes(phase)){schedule.finish('interrupted');save();}palace.releaseDuty(OWNER);life?.dispose();for(const n of officials)n.route=[];for(const costume of caps)costume?.dispose();}
  };
 }

@@ -157,7 +157,7 @@ function configureChinaClinic(){chinaClinic=active.id==='china'?createChinaClini
 function configureChinaMoneyHouse(){chinaMoneyHouse=active.id==='china'?createChinaMoneyHouseService({npcs,lot,getPlayer:()=>player,poseContext:characterPoseContext,saved:saved.copperLedger,saveState:state=>{const next={...saved,copperLedger:state};localStorage.setItem('worlds-days-v1',JSON.stringify(next));saved.copperLedger=state;},notify:toast,onOpen:()=>{path=[];targetStation=null;pendingInteraction=null;performing=null;npcSocial?.end();keys.clear();joy={x:0,y:0};$('joystick-knob').style.transform='';},onClose:()=>canvas.focus({preventScroll:true})}):null;}
 function configureChinaPalace(){chinaPalace=active.id==='china'?createChinaPalaceLife({npcs,lot,furniture,doors:automaticDoors,planPath,moveActor,poseContext:characterPoseContext,worldSeed:saved.appearance.seed,saved:saved.chinaPalaceLife||{},saveState:state=>{saved.chinaPalaceLife=state;save();}}):null;}
 function configureChinaEdict(){chinaEdict=active.id==='china'?createChinaPalaceEdict({npcs,lot,audience:chinaAudience,palace:chinaPalace,doors:automaticDoors,planPath,moveActor,poseContext:characterPoseContext,saved:saved.chinaEdict||{},saveState:state=>{saved.chinaEdict=state;save();},notify:toast}):null;}
-function configureChinaAudience(){chinaAudience=active.id==='china'?createChinaPalaceAudience({npcs,palace:chinaPalace,lot,doors:automaticDoors,planPath,moveActor,poseContext:characterPoseContext,saved:saved.chinaAudience||{},saveState:state=>{saved.chinaAudience=state;save();},notify:toast}):null;}
+function configureChinaAudience(){chinaAudience=active.id==='china'?createChinaPalaceAudience({npcs,palace:chinaPalace,lot,furniture,worldSeed:saved.appearance.seed,doors:automaticDoors,planPath,moveActor,poseContext:characterPoseContext,saved:saved.chinaAudience||{},saveState:state=>{saved.chinaAudience=state;save();},notify:toast}):null;}
 function configureJapanService(){
  japanService=active.id==='japan'?createJapanBathhouseOperations({npcs,lot,furniture,planPath,doors:automaticDoors,moveActor,poseContext:characterPoseContext,worldSeed:saved.appearance.seed,saved:saved.japanOperations,saveState:state=>{saved.japanOperations=state;save();},createVisitor:visit=>{
   const station=japanVisitorStation(visit),person=createCharacter({...visit.appearance,culture:'japan',scale:.96});person.characterScale=.96;person.preferenceScore=shapePreferenceScore(visit.appearance.shapeTraits);person.root.position.set(...visit.position);lot.group.add(person.root);
@@ -223,11 +223,11 @@ function walkToFurniture(item){
 }
 function requestFurniture(item){if(!player||outfitPreview.state().open)return;if(chinaSalon&&!chinaSalon.furnitureAccess(item))return;showDoorwayHint();keys.clear();joy={x:0,y:0};joyActionAnchor=joyPointer!==null&&joyLastPoint?{...joyLastPoint}:null;$('joystick-knob').style.transform='';if(seated&&(seated.poolId||seated.id)===(item.poolId||item.id)){standFromSeat();return;}if(!cancelAction())return;path=[];targetStation=null;
  const access=item.kind==='bath'?japanPlayerService?.bathAccess(item):null;if(access&&!access.allowed){toast(access.message);return;}
- japanService?.playerRequest(item.poolId||item.id);chinaPalace?.playerRequest(item.id);
+ japanService?.playerRequest(item.poolId||item.id);chinaAudience?.playerRequest(item.id);chinaPalace?.playerRequest(item.id);
  const target=item.seats||item.poolId?furniture.resolveBath(item,'player'):item;
  walkToFurniture(target||item);
 }
-function startFurniture(item){if(chinaSalon&&!chinaSalon.furnitureAccess(item))return;const alreadyWaiting=pendingInteraction===item;japanService?.playerRequest(item.poolId||item.id);chinaPalace?.playerRequest(item.id);path=[];targetStation=null;pendingInteraction=null;performing=null;
+function startFurniture(item){if(chinaSalon&&!chinaSalon.furnitureAccess(item))return;const alreadyWaiting=pendingInteraction===item;japanService?.playerRequest(item.poolId||item.id);chinaAudience?.playerRequest(item.id);chinaPalace?.playerRequest(item.id);path=[];targetStation=null;pendingInteraction=null;performing=null;
  const access=item.kind==='bath'?japanPlayerService?.bathAccess(item):null;if(access&&!access.allowed){furniture.releaseActor?.('player');toast(access.message);return;}
  if(item.seats||item.poolId){
   const seat=furniture.resolveBath(item,'player');
@@ -314,7 +314,7 @@ function updateNPCs(dt,t){npcSocial?.update(dt);chinaSalon?.update(dt,t,{convers
 // Existing needs are read from each routine's latest durable checkpoint. No
 // second hunger system or job scheduler is introduced by health.
 function updateGameHealth(dt){
- const lifePeople={...(saved.japanOperations?.staffLife?.decisions?.people||{}),...(saved.chinaPalaceLife?.people||{})};
+ const lifePeople={...(saved.japanOperations?.staffLife?.decisions?.people||{}),...(saved.chinaPalaceLife?.people||{}),...(saved.chinaAudience?.life?.decisions?.people||{})};
  gameHealth.update(dt,{player,actors:npcs,playerResting:!!seated&&!bathTransition,playerExertion:player.walking?(keys.has('ShiftLeft')?1:.4):0,lifePeople,visible:(p,q)=>{
   const from=new THREE.Vector3(p.x,p.y+1.5,p.z),to=new THREE.Vector3(q.x,q.y+1.5,q.z);
   return cameraDistanceToObstacle(from,to,cameraSolids,0)>=from.distanceTo(to)-.12;
