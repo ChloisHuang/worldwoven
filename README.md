@@ -8,8 +8,8 @@ Public game: https://alien.doudouai.net/
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.11-public, 2026-10-03
-Verified published Sites source commit: 61d55d7932cc5c0a287e230e096652037a4a33a9
+Published release: R16.52-public, 2026-10-04
+Verified published Sites source commit: 0f6069ef2669b48d0d59b70f55c5bb7bc8338a90
 
 ## Working rules
 
@@ -73,3 +73,35 @@ Art is authored in procedural geometry. Creator/reference images informed propor
 ## Repository hygiene
 
 Build output, generated QA reports/screenshots, temporary experiments, node_modules, caches, archives and credentials are excluded. Original code/assets, licenses, required test fixtures, lockfile and deployment configuration are retained. This directory is independent of the Sites checkout; creating its GitHub remote must not change the Sites source workflow or force-push earlier history.
+
+R16.20 links generated Japanese visitors to numbered bath tokens, real staff preparation/delivery, shared pool seating and ordered meals. This first batch covers the observable NPC business chain; direct player service menus and employee meals/sleep/shifts remain open. Existing nearby conversations and archery stay active.
+
+R16.21 consolidates the Chinese royal residence into three connected floors with a separate public stair hall. Guest/reception, bathing/linen and dragon-bed/dressing rooms preserve their interactions and privacy entrances. Former bath and guest plots are freed for later localized facilities; this release does not implement those future businesses.
+
+R16.22 refines the Egyptian judgment vignette: a sculpted jackal guardian, suspended heart-and-feather balance and shallow Eye relief. The existing room, routes and interactions remain; sarcophagi and other murals are separate open art work.
+
+R16.23 adds the playable bathhouse service menu and fourteen existing residents’ shared staff-life rotation, physical relief, meal/tea/night rest and return. Shrine relief keeps the required temporary miko clothing. Targeted flow and Three/Mesa checks are complete; mobile browser layout and real iOS gameplay remain unverified. The new face study is not included.
+
+R16.24 refines the existing Egyptian royal coffin with an anthropoid lid, nemes mask, regalia and nested casing detail, plus a non-graphic wrapped mummy. Existing collision bounds and interactions are preserved; this is one asset improvement, not completion of all Egyptian art.
+
+R16.25 gives the two original Chinese guards a gate/courtyard/hall-step patrol, observation and physical relief, with safe nearby conversation and existing player archery. Their independent Ming-informed robe, cap, belt and sheathed saber replace the former generic costume; museum images informed original geometry. Patrol and handoff checks use the actual main controller and Three/Mesa, not mobile browser gameplay.
+
+R16.26 extends the existing guards into complementary side and rear patrols: quiet palace lanes, the residence and kitchen backs, and opposite archive rear corners. They pause to observe and yield to nearby players, preserving range coverage and actual shift handoff. This adds patrol coverage, not a crime-detection system.
+
+R16.27 adds shared player/NPC onsen entry and exit: brace on the coping, turn and swing the legs over, then lower into the existing supported seat. Cancellation returns safely to the bank before releasing the individual seat; crossing time does not count as soaking. Neighboring seats and original outfits remain intact. Focused main/controller and Three/Mesa checks are complete; real iOS/browser play remains unverified.
+
+R16.28 adds one adult emperor and one adult consort with separate private rooms, real public-route activities, tea-host visits and meals. Their saved personality/needs/context decisions share one model with the fourteen Japanese residents’ personal break choices. Work coverage and handoffs remain ordered; breaks choose one suitable activity instead of always meal→tea→sleep. Royal outings still start and end at private rooms; further court roles, audience/edict workflows and other countries are not included. Targeted controller/Mesa evidence is reused across the two layers; real iOS play remains unverified.
+
+R16.29 opens the three-floor Yunlai house: dining seats, two private guest rooms with usable beds and wardrobes, and an adult recital/banquet floor with public stairs and corridors. Booking/payment, food orders, actual music/dance choreography and relationship invitations remain pending. Scoped real-controller and Three/Mesa checks passed; iOS remains untested.
+
+R16.30 opens the clinic and pharmacy: a seated consultation, a numbered card physically handed from the physician to the assistant, preparation in the stock room, and collection of the same-number parcel at the counter. Early departure releases the order. This is fictional in-game service with no real treatment advice, health effects or inventory system. Changed patrol access and the actual player flow passed focused controller/Mesa checks. The build manifest now reads the release from package.json.
+
+R16.31 separates personal action selection from target selection and preserves independent worker deadlines and committed targets. Facility or actor counts no longer implicitly multiply action weight. Only actual informed conversation participants receive value-dependent signed opinions; merely sharing the Japanese tea area creates no fabricated social exchange. Focused scene-free invariance and life-controller fixtures passed; unchanged navigation and imagery were reused.
+
+R16.32 connects Yunlai dining seats to its own kitchen: the host takes an order, the cook prepares it, the same tray passes between them and reaches the original table, the player eats, and the dishes are washed. Cancellation and reentry release the order. No charges, booking or adult salon reception are included yet.
+
+R16.33 moves the clinic above the pharmacy with a real guarded public staircase and physical original-card collection across floors. The cleared northwest plot now contains Chengguang Money House, a teller/abacus/ledger and bounded integer copper deposits/withdrawals. New wallets/accounts start at zero; income, fees and multi-currency exchange remain pending. Both facility scopes passed focused controller and TPS checks.
+
+R16.34 connects saved fictional health to actual actors: accumulated exertion, bounded recorded traveler exposure, local visible contact, symptoms, rest and gradual supportive care after the physical numbered clinic receipt. It preserves appearances, movement speed and work coverage. Absence relief, family care and fuller nutrition/hygiene behavior remain later work; browser/iOS health UI is not claimed verified.
+
+R16.35 opens the top-floor reception: one known-adult artist personally responds according to her poetry/banquet preference, then an accepted invitation uses the real stairs and a claimed private room for a non-graphic fade and return. No fee or full relationship economy is included. The two existing royal roles also receive original richer Ming-informed layered court clothing and ornaments; faces are unchanged.

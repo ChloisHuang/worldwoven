@@ -93,11 +93,14 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
  let supportCorrection=0,poseMinY=0,poseMaxY=0,onsenHip=.32,onsenBackOffset=0,onsenArmLift=0;const lieOffsets={back:0,spine:0,head:0,heel:0};
  const onsenLapPoint=V(.09,.40,.23),onsenLapNormal=V(0,1,0),onsenRimPalmQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(0,0,-1),V(1,0,0),V(0,-1,0))),onsenLapPalmQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(-1,0,0),V(0,0,-1),V(0,-1,0)));
  const onsenPalmContact={offset:V(),index:-1};
+ const transferP=rest.map(()=>V()),transferQ=rest.map(()=>new THREE.Quaternion());
+ const chairHands=[0,1].map(()=>({wrist:V(),rotation:new THREE.Quaternion()}));let fittedChairHeight=null;
  function fitOnsenPalmContact(){for(const geometry of template.geometry)for(const range of geometry.userData.sourceRanges||[])if(range.name==='relaxed-palm-1'){
   let low=Infinity;for(let i=range.start;i<range.start+range.count;i++){tmp.fromBufferAttribute(geometry.attributes.position,i).sub(rest[9]).applyQuaternion(onsenLapPalmQ);const depth=tmp.dot(onsenLapNormal);if(depth<low){low=depth;onsenPalmContact.offset.copy(tmp);onsenPalmContact.index=i;}}
  }}
  if(culture==='japan'&&wardrobePreset==='onsen-swimwear')fitOnsenPalmContact();
- let lastTime=null,wasWalking=false,gaitPhase=0,disposed=false,initializedFeet=false,currentAction=null,visualFloorOffset=0,previousYaw=0;
+ let lastTime=null,wasWalking=false,gaitPhase=0,disposed=false,initializedFeet=false,currentAction=null,wasBathTransition=false,visualFloorOffset=0,previousYaw=0;
+ const socialLook={yaw:0,pitch:0,weight:0};
  const metrics={height,labelHeight:height+.16,headHeight:1.61*root.scale.y,action:null,seated:false,grounded:true,feet:[[],[]],hands:[[],[]]};
  root.userData={characterR9:true,characterR10:true,locomotion,appearance:{skin:opts.skin,hair:opts.hair,clothes:opts.clothes,accent:opts.accent,eyeColor:opts.eyeColor,culture,variant,style,bodyPreset,hairStyle,wardrobePreset,gaitPreset,shapeTraits:{...shapeTraits}},body:rig,head:bones[3],arms:[bones[4],bones[7]],forearms:[bones[5],bones[8]],hands:[bones[6],bones[9]],legs:[bones[10],bones[13]],knees:[bones[11],bones[14]],feet:[bones[12],bones[15]],tools:props.tools,poseQA:metrics,labelHeight:metrics.labelHeight,characterShared:true};
  function orient(i,j,p){restDir.copy(rest[j]).sub(rest[i]).normalize();dir.copy(p).sub(posedP[i]).normalize();posedQ[i].setFromUnitVectors(restDir,dir);}
@@ -130,6 +133,37 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   posedQ[c].copy(posedQ[b]);
  }
  function foot(side,target){const ids=side?[13,14,15]:[10,11,12];solveLimb(...ids,target,legPole);posedQ[ids[2]].identity();}
+ function fitChairHands(chairHeight){
+  // Fit only when entering a seat or changing its height. The lap is the real
+  // skinned garment surface; a broad sleeve must not become the hand support.
+  root.updateMatrixWorld(true);skeleton.update();const inverseRig=rig.matrixWorld.clone().invert(),a=V(),b=V(),c=V(),hit=V(),normal=V(),forward=V(),sideAxis=V(),basis=new THREE.Matrix4();
+  for(let side=0;side<2;side++){
+   const thigh=side?13:10,knee=side?14:11,hand=side?9:6,sign=side?1:-1,fit=chairHands[side];
+   const lap=posedP[thigh].clone().lerp(posedP[knee],side?.52:.65);lap.x+=sign*.025;
+   const ray=new THREE.Ray(V(lap.x,chairHeight+.65,lap.z),V(0,-1,0));let top=-Infinity;const up=V(0,1,0);
+   for(const mesh of meshes)for(const range of mesh.geometry.userData.sourceRanges||[]){
+    if(!/body|bodice|skirt|trouser|tunic|kilt|robe/.test(range.name)||/sleeve|fold|seam|border|panel|belt|sash/.test(range.name))continue;
+    const g=mesh.geometry,indices=g.index,sy=g.attributes.sourceY??g.attributes.position;
+    for(let j=range.indexStart;j<range.indexStart+range.indexCount;j+=3){
+     const ids=[indices.getX(j),indices.getX(j+1),indices.getX(j+2)],sourceY=ids.reduce((sum,i)=>sum+(g.attributes.sourceY?sy.getX(i):sy.getY(i)),0)/3;if(sourceY<.68||sourceY>.98)continue;
+     for(const [point,i]of[[a,ids[0]],[b,ids[1]],[c,ids[2]]])mesh.getVertexPosition(i,point).applyMatrix4(mesh.matrixWorld).applyMatrix4(inverseRig);
+     if(!ray.intersectTriangle(a,b,c,false,hit)||hit.y<=top)continue;
+     normal.copy(b).sub(a).cross(tmp2.copy(c).sub(a)).normalize();if(normal.y<0)normal.negate();if(normal.y<.45)continue;
+     top=hit.y;lap.copy(hit);up.copy(normal);
+    }
+   }
+   if(!Number.isFinite(top)){lap.copy(posedP[thigh]).lerp(posedP[knee],side?.52:.65);lap.y+=.075;}
+   forward.copy(posedP[knee]).sub(posedP[thigh]);forward.x-=sign*.035;forward.addScaledVector(up,-forward.dot(up)).normalize();
+   sideAxis.copy(forward).cross(up).normalize();basis.makeBasis(sideAxis,forward.clone().negate(),up.clone().negate());fit.rotation.setFromRotationMatrix(basis);
+   // The palm's underside, rather than its wrist pivot, meets the cloth.
+   let low=Infinity;const offset=V();for(const geometry of template.geometry)for(const range of geometry.userData.sourceRanges||[])if(range.name==='relaxed-palm-'+sign){
+    for(let i=range.start;i<range.start+range.count;i++){const y=geometry.attributes.sourceY?.getX(i)??geometry.attributes.position.getY(i);if(y<.855||y>.895)continue;tmp.fromBufferAttribute(geometry.attributes.position,i).sub(rest[hand]).applyQuaternion(fit.rotation);const depth=tmp.dot(up);if(depth<low){low=depth;offset.copy(tmp);}}
+   }
+   fit.wrist.copy(lap).sub(offset).addScaledVector(up,.004/root.scale.y);
+  }
+  fittedChairHeight=chairHeight;
+ }
+ function poseChairHands(){for(let side=0;side<2;side++){const fit=chairHands[side];reach(side,fit.wrist.x,fit.wrist.y,fit.wrist.z);posedQ[side?9:6].copy(fit.rotation);}}
  function poseOnsen(context,time){
   setTorso(onsenHip,-.12,0);
   foot(0,tmp.set(-.13,.108,.58));foot(1,tmp.set(.13,.108,.58));
@@ -243,7 +277,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   if(disposed)return;visualFloorOffset=Number.isFinite(context?.visualFloorOffset)?clamp(context.visualFloorOffset,0,.5):0;rig.rotation.set(0,0,0);rig.position.set(0,visualFloorOffset/root.scale.y,0);time=Number.isFinite(time)?time:0;walking=!!walking;if(walking)action=null;resetTools();
   const rawDt=lastTime===null?0:time-lastTime,dt=clamp(rawDt,0,.2);root.updateWorldMatrix(true,false);root.getWorldPosition(rootWorld);velocity.copy(rootWorld).sub(previousRoot);const travel=Math.hypot(velocity.x,velocity.z),headingDelta=Math.atan2(Math.sin(root.rotation.y-previousYaw),Math.cos(root.rotation.y-previousYaw)),discontinuity=rawDt>.25||rawDt<0||travel>=1.2||Math.abs(headingDelta)>.85;const physical=!discontinuity&&dt>0&&travel>.000001;
   if(physical)velocity.multiplyScalar(1/dt);else velocity.set(0,0,0);
-  const poseChanged=currentAction!==action;const mountedPose=action==='lie-rest'||action==='bathe';const supportedOnsen=action==='bathe'&&culture==='japan'&&wardrobePreset==='onsen-swimwear'&&context?.bathPose?.style==='onsen-seat';const leavingSeat=['kotatsu','chair-sit','lie-rest','bathe'].includes(currentAction)&&action!==currentAction;
+  const poseChanged=currentAction!==action||(wasBathTransition&&!context?.bathTransition);wasBathTransition=!!context?.bathTransition;const mountedPose=action==='lie-rest'||action==='bathe';const supportedOnsen=action==='bathe'&&culture==='japan'&&wardrobePreset==='onsen-swimwear'&&context?.bathPose?.style==='onsen-seat';const leavingSeat=['kotatsu','chair-sit','lie-rest','bathe'].includes(currentAction)&&action!==currentAction;
   if(supportedOnsen&&poseChanged){onsenHip=context.bathHipHeight??.32;onsenBackOffset=0;onsenArmLift=0;supportCorrection=0;onsenLapPoint.set(.09,.40,.23);}
   if(discontinuity||leavingSeat){initializedFeet=false;for(let s=0;s<2;s++){lastFootWorld[s].set(s?.089:-.089,.108,-.025).applyMatrix4(root.matrixWorld);lastFootWorld[s].y+=visualFloorOffset;}wasWalking=false;}
   currentAction=action;metrics.action=action;metrics.gaitReset=discontinuity||leavingSeat;metrics.seated=action==='kotatsu'||action==='chair-sit'||action==='bathe';metrics.lying=action==='lie-rest';metrics.bathing=action==='bathe';
@@ -265,7 +299,12 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   // Only pelvis/upper cloth settle; IK ankle and absolute wrist targets stay unchanged.
   const seatedDrop=action==='kotatsu'&&culture==='japan'?Math.min(.04,visualFloorOffset/root.scale.y*.5):0;
   const chairHeight=Number.isFinite(context?.seatHeight)?clamp(context.seatHeight/root.scale.y,.35,1):.60;
-  setTorso(action==='bathe'?(context?.bathHipHeight??.32):action==='chair-sit'?chairHeight+.14:action==='kotatsu'?.417-seatedDrop:walking?rest[0].y+bob:rest[0].y,action==='calligraphy'?.40:/^(knead|bread|cook|sushi|bake|tidy)$/.test(action||'')?.13:0,walking?Math.sin(t)*.012:0);
+  const receptionWriting=action==='calligraphy'&&context?.receptionWriting;
+  // A clerk grips nearer the tip of a shorter pen; only the reception job
+  // opts in, while every other calligrapher keeps the original long brush.
+  props.tools.brush.scale.y=receptionWriting?.70:1;
+  props.tools.brush.position.y=receptionWriting?.10:-.015;
+  setTorso(action==='bathe'?(context?.bathHipHeight??.32):action==='chair-sit'?chairHeight+.14:action==='kotatsu'?.417-seatedDrop:walking?rest[0].y+bob:rest[0].y,action==='calligraphy'?(receptionWriting?.18:.40):/^(knead|bread|cook|sushi|bake|tidy)$/.test(action||'')?.13:0,walking?Math.sin(t)*.012:0);
   // A shorter thigh sits slightly forward on the same cushion so its knee
   // clears the seat edge; the feet retain their exact floor targets.
   if(action==='chair-sit'&&shapeTraits.legLength<1)for(const i of [0,1,2,3,4,7,10,13])posedP[i].z+=(1-shapeTraits.legLength)*1.2;
@@ -366,6 +405,8 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    const sip=Math.pow((Math.sin(time*.95)+1)*.5,2);reach(0,-.14,1.18,.29);reach(1,.08,1.37+sip*.07,.26-sip*.15);show('sushiPlate','chopsticks');lookX=.13-sip*.08;
   }else if(action==='ramen'){
    const serve=(Math.sin(time*1.15)+1)*.5;reach(0,-.15,1.04+serve*.06,.29);reach(1,.07-serve*.045,1.24+serve*.10,.28-serve*.035);show('ramenBowl',serve<.83?'ladle':'chopsticks');lookX=.13;
+  }else if(action==='herb-mix'){
+   reach(0,-.14,1.15,.37);reach(1,.07,1.2,.39);lookX=.18;
   }else if(action==='bath-attendant'){
    const sweep=Math.sin(time*1.45);reach(0,-.25+sweep*.055,.92,.26+sweep*.025);reach(1,.32,1.03,.21);show('bathCloth','bathBucket');lookX=.20;
   }else if(/relax/.test(action||'')){reach(0,-.25,.955,.13);reach(1,.25,.955,.13);lookX=-.04;}
@@ -377,6 +418,27 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   else if(/read|rest/.test(action||'')){reach(0,-.16,1.13,.29);reach(1,.18,1.13,.29);show('book');lookX=.22;}
   else if(/garden/.test(action||'')){reach(0,-.27,.96,.14);reach(1,.26,1.09,.29);show('can');lookX=.17;}
   else if(action){reach(0,-.18,1.02,.28);reach(1,.18,1.04+Math.sin(time*2.7)*.025,.29);show('cloth');lookX=.18;}
+  // Explicit routine carrying is opt-in: keep the vessel upright at a real
+  // hand while walking, without changing the normal gait or station poses.
+  if(context?.heldProp==='cloth'){
+   reach(0,-.18,1.03,context.handoff?.43:.27);show('cloth');
+   if(context.handoff)reach(1,.18,1.04,.40);
+  }else if(context?.heldProp==='bathBucket'){
+   reach(1,.30,.92,.15);show('bathBucket');
+  }else if(context?.handoff){reach(0,-.16,1.02,.43);reach(1,.16,1.03,.43);}
+  // Authored practice is opt-in. Reuse the same anatomical solver; clearing
+  // the context returns both hands and all normal gait/seat/bath poses.
+  if(context?.archery){
+   const a=context.archery;for(let side=0;side<2;side++)if(a.hands?.[side])reach(side,...a.hands[side]);
+   for(const prop of Object.values(props.tools))prop.visible=false;lookX=0;lookY=0;
+  }
+  // An explicitly delivered meal keeps the real chair support and lower body.
+  // The left hand supports its order-owned bowl; the existing chopsticks move
+  // between that bowl and the mouth instead of substituting a generic dish.
+  if(action==='chair-sit'&&context?.seatedMeal){
+   const bite=Math.pow((Math.sin(time*1.6)+1)*.5,2),hip=chairHeight+.14;
+   reach(0,-.15,hip+.22,.30);reach(1,.10,hip+.32+bite*.18,.29-bite*.16);show('chopsticks');lookX=.11-bite*.05;
+  }
   // Optional main-supplied authored work surface in actor-local metres. Distant
   // ritual/reading targets stay observational; only genuine tabletop jobs use it.
   const workHeight=context?.workHeight;
@@ -384,12 +446,23 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    const surface=workHeight/(masc?1.035:1)-visualFloorOffset/root.scale.y,forward=clamp(context?.workDistance??.38,.25,action==='calligraphy'?.57:.455);
    if(/knead|bread/.test(action||'')){reach(0,-.15,surface+.065+Math.sin(time*3.4)*.017,forward);reach(1,.15,surface+.065+Math.sin(time*3.4+.7)*.017,forward);}
    else if(/^(cook|sushi|bake)$/.test(action||'')){if(surface>1.30){reach(0,-.14,surface+.045,Math.min(forward,.36));reach(1,.16,surface+.215+Math.sin(time*5)*.018,Math.min(forward,.34));props.tools.knife.rotation.x=-.60;}else{reach(0,-.14,surface+.075,forward);reach(1,.16,surface+.255+Math.sin(time*5)*.030,forward-.01);}}
-   else if(/calligraphy/.test(action||'')){reach(0,-.18,surface+.045,forward-.025);reach(1,.12+Math.sin(time*1.2)*.03,surface+.265,forward-.025);}
+   else if(/calligraphy/.test(action||'')){reach(0,-.18,surface+(receptionWriting?.025:.045),forward-.025);reach(1,.12+Math.sin(time*1.2)*.03,surface+(receptionWriting?.085:.265),forward-.025);}
    else if(action==='bath-attendant'){reach(0,-.25+Math.sin(time*1.45)*.055,surface+.075,forward-.02);}
    else if(/tidy/.test(action||'')){reach(0,-.18,surface+.08,forward-.025);reach(1,.18,surface+.095,forward-.025);}
+   else if(action==='herb-mix'){reach(0,-.14,surface+.10,forward);reach(1,.07+Math.cos(time*2.2)*.025,surface+.14+Math.sin(time*2.2)*.012,forward+.015+Math.sin(time*2.2)*.018);}
   }
   if(action){posedQ[6].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));posedQ[9].identity();if(/knead|bread|tidy/.test(action))posedQ[9].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));}
   if(action==='chair-sit'){posedQ[6].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));posedQ[9].copy(posedQ[6]);}
+  if(action==='chair-sit'&&context?.seatedMeal)posedQ[9].identity();
+  // Head-only attention preserves the authored torso, hands and work target.
+  // Smooth the return as well as the glance; never let social input twist a
+  // neck toward somebody behind the actor or override an aiming/rest pose.
+  const attention=action==='lie-rest'||context?.archery?null:context?.headLook,blend=1-Math.exp(-dt*7);
+  socialLook.yaw+=(clamp(attention?.yaw||0,-.68,.68)-socialLook.yaw)*blend;
+  socialLook.pitch+=(clamp(attention?.pitch||0,-.16,.16)-socialLook.pitch)*blend;
+  socialLook.weight+=(clamp(attention?.weight||0,0,1)-socialLook.weight)*blend;
+  lookX=lookX*(1-socialLook.weight)+socialLook.pitch*socialLook.weight;lookY=lookY*(1-socialLook.weight)+socialLook.yaw*socialLook.weight;
+  metrics.headLook={yaw:lookY,pitch:lookX,weight:socialLook.weight};
   headQ.setFromEuler(new THREE.Euler(lookX,lookY,0));posedQ[3].copy(torsoQ).multiply(headQ);
   if(action==='lie-rest'){
    // Supine, face upward, head toward the pillow (-local Z). Keep the original
@@ -399,6 +472,10 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   }
   if(supportedOnsen)poseOnsen(context,time);
   applyPose();
+  if(action==='chair-sit'&&!context?.heldProp&&!context?.handoff&&!context?.seatedMeal){
+   if(poseChanged||fittedChairHeight!==chairHeight)fitChairHands(chairHeight);
+   poseChairHands();applyPose();
+  }
   if(mountedPose){
    const supportY=Number.isFinite(context?.supportY)?context.supportY:rootWorld.y;
    if(poseChanged){
@@ -453,7 +530,33 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
 
   }else{metrics.contactMinY=null;metrics.contactMaxY=null;metrics.lieContact=null;metrics.bathContact=null;metrics.bathHandContact=null;}
 
+  // Keep the approved seated fit above unchanged, then blend its exact joints
+  // into a supported rim crossing. Limb targets are in the actual pool's world
+  // space, so a rotating pelvis cannot drag a planted hand through the coping.
+  const transfer=context?.bathTransition;
+  if(supportedOnsen&&transfer){
+   for(let i=0;i<posedP.length;i++){transferP[i].copy(posedP[i]).add(rig.position);transferQ[i].copy(posedQ[i]);}
+   rig.position.set(0,0,0);inverseRoot.copy(root.matrixWorld).invert();
+   setTorso(mix(rest[0].y,(transfer.hipY-rootWorld.y)/root.scale.y,transfer.handWeight),-.70*transfer.handWeight,0);
+   for(let side=0;side<2;side++){
+    tmp.fromArray(transfer.feet[side]).applyMatrix4(inverseRoot);foot(side,tmp);
+    const hand=side?9:6;tmp2.copy(rest[hand]).sub(rest[0]).add(posedP[0]);
+    tmp.fromArray(transfer.hands[side]).applyMatrix4(inverseRoot).lerp(tmp2,1-transfer.handWeight);
+    reach(side,tmp.x,tmp.y,tmp.z);posedQ[hand].slerp(onsenLapPalmQ,transfer.handWeight);
+   }
+   for(const [i,j]of[[16,11],[17,14]]){posedP[i].copy(posedP[j]);posedQ[i].copy(posedQ[j]);}
+   // Look toward the feet/pool while the supporting torso leans back.
+   headQ.setFromEuler(new THREE.Euler(.78*transfer.handWeight,0,0));posedQ[3].copy(torsoQ).multiply(headQ);
+   for(let i=0;i<posedP.length;i++){posedP[i].lerp(transferP[i],transfer.seatBlend);posedP[i].z+=Math.sin(Math.PI*transfer.seatBlend)*.03/root.scale.z;posedQ[i].slerp(transferQ[i],transfer.seatBlend);}
+   // Hands and elbows arc above and inward of the timber as support changes.
+   for(const i of[5,6,8,9]){const lift=Math.sin(Math.PI*transfer.seatBlend);posedP[i].y+=lift*.10/root.scale.y;posedP[i].z+=lift*.07/root.scale.z;}
+   for(const ids of[[4,5,6],[7,8,9]]){orient(ids[0],ids[1],posedP[ids[1]]);orient(ids[1],ids[2],posedP[ids[2]]);}
+   applyPose();root.updateMatrixWorld(true);skeleton.update();
+   metrics.bathTransition={progress:transfer.progress,phase:transfer.phase};
+  }else metrics.bathTransition=null;
+
   if(action==='sushi-eat')props.right.rotation.x-=Math.pow((Math.sin(time*.95)+1)*.5,2)*.55;
+  if(action==='chair-sit'&&context?.seatedMeal)props.right.rotation.x-=Math.pow((Math.sin(time*1.6)+1)*.5,2)*.55;
   if(/garden/.test(action||''))props.right.rotation.z=-.35;
   // Fixed-size pose data: no per-frame Box3 or scene traversal.
   metrics.height=height+visualFloorOffset;metrics.visualFloorOffset=visualFloorOffset;metrics.headHeight=mountedPose?bones[3].getWorldPosition(tmp).y-rootWorld.y+.16*root.scale.y:(posedP[3].y+.16)*root.scale.y+visualFloorOffset;metrics.labelHeight=mountedPose?metrics.headHeight+.2:(posedP[3].y+template.height-1.455+.16)*root.scale.y+visualFloorOffset;root.userData.labelHeight=metrics.labelHeight;

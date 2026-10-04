@@ -1,0 +1,175 @@
+{
+  "status": "BENCH_PASS_PLANTING_REVIEW_PENDING",
+  "scope": "France garden art only; production controller with simulated DOM, exact production Three/Mesa pixels. No browser/iOS claim.",
+  "geometry": {
+    "benchCount": 8,
+    "overlaps": 0,
+    "unchangedSeatHeight": 0.695,
+    "bounds": {
+      "min": [
+        -5.625,
+        0.02000000089406967,
+        17.909999990463255
+      ],
+      "max": [
+        -4.6849999989271165,
+        1.4049999991059303,
+        20.89000000953674
+      ]
+    }
+  },
+  "controller": [
+    {
+      "id": "france-garden-bench--1-19.4",
+      "seatY": 0.695,
+      "adjacentApproachFrames": 30,
+      "touchStand": true,
+      "walkAfterStand": true
+    },
+    {
+      "id": "france-garden-bench--1-27.2",
+      "seatY": 0.695,
+      "adjacentApproachFrames": 40,
+      "touchStand": true,
+      "walkAfterStand": true
+    },
+    {
+      "id": "france-garden-bench--1--19.6",
+      "seatY": 0.695,
+      "adjacentApproachFrames": 30,
+      "touchStand": true,
+      "walkAfterStand": true
+    },
+    {
+      "id": "france-garden-bench--1--33.2",
+      "seatY": 0.695,
+      "adjacentApproachFrames": 40,
+      "touchStand": true,
+      "walkAfterStand": true
+    },
+    {
+      "id": "france-garden-bench-1-19.4",
+      "seatY": 0.695,
+      "adjacentApproachFrames": 20,
+      "touchStand": true,
+      "walkAfterStand": true
+    },
+    {
+      "id": "france-garden-bench-1-27.2",
+      "seatY": 0.695,
+      "adjacentApproachFrames": 30,
+      "touchStand": true,
+      "walkAfterStand": true
+    },
+    {
+      "id": "france-garden-bench-1--19.6",
+      "seatY": 0.695,
+      "adjacentApproachFrames": 20,
+      "touchStand": true,
+      "walkAfterStand": true
+    },
+    {
+      "id": "france-garden-bench-1--33.2",
+      "seatY": 0.695,
+      "adjacentApproachFrames": 30,
+      "touchStand": true,
+      "walkAfterStand": true
+    }
+  ],
+  "render": {
+    "three": "186",
+    "renderer": "llvmpipe (LLVM 19.1.7, 256 bits)",
+    "frames": [
+      {
+        "name": "courtyard-bench-empty",
+        "camera": [
+          -1.1492558482603608,
+          2.1038562661719986,
+          21.43625117045719
+        ],
+        "target": [
+          -5.15,
+          1.1,
+          19.4
+        ],
+        "fov": 50,
+        "distance": 4.6,
+        "triangles": 2303293,
+        "calls": 175
+      },
+      {
+        "name": "courtyard-bench-current-actor",
+        "camera": [
+          -0.8792558482603603,
+          2.133856266171999,
+          21.43625117045719
+        ],
+        "target": [
+          -4.88,
+          1.13,
+          19.4
+        ],
+        "fov": 50,
+        "distance": 4.6,
+        "triangles": 2382737,
+        "calls": 180
+      },
+      {
+        "name": "courtyard-branched-planter",
+        "camera": [
+          -10.096313281319363,
+          2.4538562661719987,
+          20.816600531526884
+        ],
+        "target": [
+          -10.9,
+          1.45,
+          16.4
+        ],
+        "fov": 50,
+        "distance": 4.6,
+        "triangles": 2522615,
+        "calls": 209
+      },
+      {
+        "name": "parterre-layered-flowers",
+        "camera": [
+          -7.508024170170948,
+          2.4538562661719987,
+          26.63347468267232
+        ],
+        "target": [
+          -10.4,
+          1.45,
+          23.2
+        ],
+        "fov": 50,
+        "distance": 4.6,
+        "triangles": 2544082,
+        "calls": 185
+      }
+    ],
+    "elapsedSeconds": 10.78,
+    "peakRSSKiB": 1157608
+  },
+  "build": {
+    "status": "PASS",
+    "assetCount": 35
+  },
+  "unchanged": [
+    "seat IDs and anchors",
+    "bench and planting colliders",
+    "France inset doors",
+    "shared camera/navigation/characters"
+  ],
+  "cache": "No cache or resource lifecycle added; existing static packing reused.",
+  "artReview": {
+    "bench": "Accepted; all eight controller/clearance results reused without rerunning.",
+    "previousPlanting": "Integrated v1 images retained; rejected for repeated oversized hedge leaves.",
+    "currentPlanting": "V5 same 4.6 m / FOV50 vignette rendered with production Three r186/Mesa. Fine mixed-size boxwood leaves, varied 3D lime sprays, small ordered flower-height changes; parent review pending.",
+    "currentImage": "/workspace/shared/france-garden-vignette-v5/planting-vignette-game-distance.png",
+    "sourceCommit": "ce92a97",
+    "renderScope": "One local planting frame only; no full France or interaction rerun.",
+    "build": "Fresh source build PASS, 35 assets. Previous local dist lacked production baseline assets; generated dist cleaned without changing build/cache sources."
+  }
+}

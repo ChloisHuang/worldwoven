@@ -108,7 +108,10 @@ function colliderIndex(colliders,r=0) {
   return {buckets,size};
 }
 function indexedAt(index,x,z) {
-  return index?(index.buckets.get(`${Math.floor(x/index.size)},${Math.floor(z/index.size)}`)??EMPTY_SURFACES):null;
+  if(!index)return null;
+  const found=index.buckets.get(`${Math.floor(x/index.size)},${Math.floor(z/index.size)}`)??EMPTY_SURFACES;
+  const live=indexedAt(index.liveIndex,x,z);
+  return live?.length?found.concat(live):found;
 }
 function indexedSegment(index,start,end,fallback) {
   if(!index)return fallback;
@@ -116,6 +119,7 @@ function indexedSegment(index,start,end,fallback) {
   for(let x=Math.floor(Math.min(start.x,end.x)/size);x<=Math.floor(Math.max(start.x,end.x)/size);x++)
     for(let z=Math.floor(Math.min(start.z,end.z)/size);z<=Math.floor(Math.max(start.z,end.z)/size);z++)
       for(const item of index.buckets.get(`${x},${z}`)??EMPTY_SURFACES)found.add(item);
+  if(index.liveIndex)for(const item of indexedSegment(index.liveIndex,start,end,EMPTY_SURFACES))found.add(item);
   return found;
 }
 function indexedOptions(options,colliders,r) {
@@ -239,8 +243,13 @@ function legacySegmentSafe(start,end,colliders,r,options) {
   }
   return true;
 }
-export function canTraverse(start,end,colliders=[],options={}) {
+// Optional liveColliders are checked against this query's exact current pose;
+// the caller keeps static colliders/options stable to reuse their broad phase.
+export function canTraverse(start,end,colliders=[],options={},liveColliders=EMPTY_SURFACES) {
   const r=optionsOf(options).radius??.34,o=indexedOptions(options,colliders,r);
+  // Moving people and door leaves must be tested now, but must not invalidate
+  // the retained index of all static walls and floor surfaces on every step.
+  if(liveColliders.length)o._colliderIndex={...o._colliderIndex,liveIndex:colliderIndex(liveColliders,o._cache.radius)};
   return isMultilevel(o)?traceSegment(start,end,colliders,r,o)!==null:legacySegmentSafe(start,end,colliders,r,o);
 }
 

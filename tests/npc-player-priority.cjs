@@ -1,0 +1,9 @@
+// Exercise the actual player entry hook: a requested facility retries while an
+// NPC is stepping aside, but an unrelated obstacle never forces a mounted pose.
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const main=fs.readFileSync('source/game/main.js','utf8'),start=main.slice(main.indexOf('function startFurniture(item)'),main.indexOf('function refreshOutfitChoices()'));
+let clear=false,yielding=true,swaps=0;const item={id:'japan-furniture-bath-1',kind:'bath',anchor:[-3.22,3.8,-9.3],yaw:-Math.PI/2,bathPose:{},bathWardrobePreset:'onsen-swimwear'},messages=[];
+const state={path:[],targetStation:null,pendingInteraction:null,performing:null,seated:null,navOptions:{},elapsed:0,japanService:{playerRequest(){},isYieldingFor:()=>yielding},furniture:{canUse:()=>clear},furnitureSafetyBoxes:()=>[],toast:s=>messages.push(s),player:{root:{position:{set(){}},rotation:{}},animate(){}},buildPlayer:()=>swaps++,clearFeetPulse(){},furniturePose:()=>null,characterPoseContext:()=>({})};
+vm.createContext(state);vm.runInContext(start,state);state.startFurniture(item);assert.equal(state.pendingInteraction,item);assert.equal(state.targetStation,item);assert.equal(state.seated,null);assert.equal(swaps,0);
+state.startFurniture(item);assert.equal(messages.length,1,'Repeated automatic retries do not repeat toast');clear=true;state.startFurniture(item);assert.equal(state.seated,item);assert.equal(state.pendingInteraction,null);assert.equal(swaps,1,'Mount only after the actual clearance check succeeds');
+state.seated=null;clear=false;yielding=false;state.startFurniture(item);assert.equal(state.pendingInteraction,null);assert.equal(state.targetStation,null);assert.equal(state.seated,null);assert.equal(swaps,1);console.log('PASS actual player hook waits for NPC yield, mounts after clearance and retains ordinary obstacle refusal');

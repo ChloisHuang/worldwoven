@@ -1,5 +1,7 @@
 import {addInsetClosureSection} from './inset-closures.js';
 import {registerNightFixture} from './night-lighting.js';
+import {addAnubisGuardian,addJudgmentBalance,addHorusRelief} from './egypt-ritual-sculpture.js';
+import {addRoyalCoffin} from './egypt-royal-coffin.js';
 import * as THREE from 'three';
 import {material as celMaterial} from './geometry.js?rev=R7-20261002';
 
@@ -85,10 +87,10 @@ function jackalStatue(g,x,y,z,s=1){
 function sphinx(g,cs,cam,x,z){const q=new THREE.Group();q.position.set(x,0,z);g.add(q);box(q,0,.2,0,3.8,.4,5.9,C.shadow);box(q,0,.43,0,3.55,.16,5.6,C.edge);ball(q,0,1.14,-.7,1,C.stone,1.38,.87,2.25);for(const side of [-1,1]){ball(q,side*.97,.73,1.58,.56,C.stone,.8,.55,2.1);for(let i=0;i<3;i++)box(q,side*.97+(i-1)*.17,.76,2.67,.035,.18,.20,C.shadow);}
   ball(q,0,1.91,.9,.82,C.stone,1,.91,.8);ball(q,0,2.55,1.24,.64,C.edge,.73,1.12,.61);for(const side of [-1,1]){box(q,side*.61,2.35,1.22,.31,1.47,.65,C.stone);for(let j=0;j<7;j++)box(q,side*.61,1.82+j*.19,1.56,.34,.055,.035,C.shadow);ball(q,side*.19,2.65,1.79,.055,C.ink,1.2,.65,.4);}box(q,0,2.99,1.54,1.04,.15,.35,C.gold);box(q,0,2.48,1.80,.10,.26,.13,C.stone);box(q,0,2.26,1.79,.30,.055,.04,C.shadow);box(q,0,1.91,1.67,.16,.54,.19,C.stone);volume(cs,x,1.65,z,3.8,3.3,5.9);volume(cam,x,1.65,z,3.8,3.3,5.9);}
 function balance(g,x,y,z){const q=new THREE.Group();q.position.set(x,y,z);g.add(q);box(q,0,.13,0,2.5,.26,1.15,C.shadow);box(q,0,.3,0,1.6,.09,.7,C.gold);rod(q,[0,.35,0],[0,2.0,0],.085,C.gold);ball(q,0,2.0,0,.14,C.gold);rod(q,[-1.07,1.86,0],[1.07,1.92,0],.065,C.gold);for(const side of [-1,1]){for(const dx of [-.25,.25])rod(q,[side*.88,1.90,0],[side*.88+dx,.98,0],.018,C.gold);cyl(q,side*.88,.94,0,.35,.2,.12,C.gold,16);}ball(q,-.88,1.09,0,.13,C.red,1,.9,1);rod(q,[.74,1.07,0],[1.06,1.53,0],.024,C.linen);for(let i=0;i<6;i++){const t=i/6;rod(q,[.75+t*.25,1.08+t*.4,0],[.67+t*.25,1.27+t*.4,0],.018,C.linen);rod(q,[.75+t*.25,1.08+t*.4,0],[.96+t*.25,1.13+t*.4,0],.018,C.linen);}return q;}
-function sarcophagus(g,cs,cam,x,z,y=-3){const q=new THREE.Group();q.position.set(x,y,z);g.add(q);box(q,0,.17,0,2.5,.34,4.1,C.shadow);box(q,0,.42,0,2.1,.18,3.65,C.gold);box(q,0,.62,0,1.64,.3,3.35,C.blue);for(const side of [-1,1]){box(q,side*.85,.89,0,.18,.56,3.55,C.gold);for(let i=0;i<8;i++)box(q,side*.95,.9,-1.48+i*.42,.024,.31,.16,i%2?C.blue:C.red);}for(const zz of [-1.65,1.65])box(q,0,.89,zz,1.8,.56,.2,C.gold);
-  // A non-graphic linen-wrapped mummy rests inside the open stone coffin.
-  ball(q,0,.91,-1.02,.33,C.linen,.83,.66,1);ball(q,0,.89,.05,.36,C.linen,1.04,.58,2.42);for(let i=0;i<16;i++)box(q,0,1.096,-.69+i*.12,.64-Math.max(0,i-8)*.025,.025,.047,0xa79469);rod(q,[-.25,1.1,-.49],[.22,1.12,.06],.065,C.linen);rod(q,[.25,1.12,-.49],[-.22,1.14,.06],.065,C.linen);ball(q,0,.99,-1.16,.25,C.gold,.88,.37,1);for(const side of [-1,1])ball(q,side*.1,1.08,-1.18,.035,C.ink,1,.3,1);volume(cs,x,y+.6,z,2.5,1.2,4.1);volume(cam,x,y+.6,z,2.5,1.2,4.1);
-  const lid=new THREE.Group();lid.position.set(x+3.5,y+.75,z-.5);lid.rotation.z=.13;lid.rotation.x=-.36;g.add(lid);box(lid,0,.6,0,1.45,2.8,.27,C.gold);ball(lid,0,1.29,.2,.4,C.gold,.85,1.1,.38);for(const side of [-1,1]){box(lid,side*.43,1.05,.2,.24,1.13,.15,C.blue);for(let j=0;j<6;j++)box(lid,side*.44,.62+j*.17,.29,.22,.04,.024,C.gold);ball(lid,side*.12,1.43,.37,.045,C.ink,1.4,.7,.4);}for(let j=0;j<7;j++)glyph(lid,0,-.55+j*.22,.2,j,.13,C.blue);volume(cs,x+3.5,y+1.6,z-.5,1.7,3.2,1.8);volume(cam,x+3.5,y+1.6,z-.5,1.7,3.2,1.8);
+function sarcophagus(g,cs,cam,x,z,y=-3){
+  addRoyalCoffin(g,mat,x,y,z);
+  volume(cs,x,y+.6,z,2.5,1.2,4.1);volume(cam,x,y+.6,z,2.5,1.2,4.1);
+  volume(cs,x+3.5,y+1.6,z-.5,1.7,3.2,1.8);volume(cam,x+3.5,y+1.6,z-.5,1.7,3.2,1.8);
 }
 function batchZone(zone){
   zone.updateMatrixWorld(true);const inverse=new THREE.Matrix4().copy(zone.matrixWorld).invert(),buckets=new Map(),remove=[];
@@ -437,14 +439,10 @@ export function buildEgypt(){
   for(const x of [-22.7,-17.3])roomWall(judgment,x,2.4,8.3,2.5,4.8,.3);
   roomWall(judgment,-20,4.18,8.3,3,1.24,.3);
   roomRoof(-20,4.95,2,7.9,12.9);
-  jackalStatue(judgment,-20,0,-2.15,1);volume(colliders,-20,2.2,-2.15,1.9,4.4,1.9);volume(cameraColliders,-20,2.2,-2.15,1.9,4.4,1.9);
-  balance(judgment,-20,0,2.1);volume(colliders,-20,.9,2.1,2.5,1.8,1.15);volume(cameraColliders,-20,.9,2.1,2.5,1.8,1.15);
+  addAnubisGuardian(judgment,mat,-20,0,-2.15);volume(colliders,-20,2.2,-2.15,1.9,4.4,1.9);volume(cameraColliders,-20,2.2,-2.15,1.9,4.4,1.9);
+  addJudgmentBalance(judgment,mat,-20,0,2.1);volume(colliders,-20,.9,2.1,2.5,1.8,1.15);volume(cameraColliders,-20,.9,2.1,2.5,1.8,1.15);
   mural(judgment,-23.62,2.2,1.1,8.4,3.55,Math.PI/2,3);mural(judgment,-16.38,2.2,1.1,8.4,3.55,-Math.PI/2,1);
-  const eye=new THREE.Group();eye.position.set(-23.50,2.6,-1);eye.rotation.y=Math.PI/2;judgment.add(eye);box(eye,0,0,0,4.3,3.1,.05,C.edge);
-  const eyeLine=(pts,c=C.blue,r=.065)=>{for(let i=1;i<pts.length;i++)rod(eye,[...pts[i-1],.06],[...pts[i],.06],r,c);};
-  eyeLine([[-1.4,.1],[-.8,.5],[0,.6],[.8,.35],[1.35,.06]]);eyeLine([[-1.4,.1],[-.7,-.28],[.2,-.30],[1.35,.06]]);
-  eyeLine([[-1.4,.8],[-.55,1.04],[.5,.87],[1.35,.38]],C.ink,.095);ball(eye,0,.1,.08,.28,C.ink,1,1,.2);torus(eye,0,.1,.1,.34,.045,C.gold);
-  eyeLine([[-.15,-.3],[-.15,-1.08],[.17,-1.18],[.55,-.96]],C.blue,.075);eyeLine([[1.05,-.07],[.61,-.55],[.54,-.84]],C.blue,.07);
+  addHorusRelief(judgment,mat,-23.50,2.6,-1,Math.PI/2);
   for(const x of [-22.5,-17.5])torch(judgment,x,2.7,-4.04,cameraColliders,0,x< -20);
   // East private suite: distinct reception and sleeping spaces, each large
   // enough to circle furniture. Cleopatra is a theme, not a claimed replica.
