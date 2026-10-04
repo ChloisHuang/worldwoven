@@ -49,6 +49,13 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
  function unmount(n,s){if(!s.mount)return true;const landing=furniture.standPoint(navigation,safety(n),s.mount);if(!landing)return false;n.root.position.copy(landing);s.mount=null;furniture.releaseActor(n.station.id);return true;}
  function advance(n,s){if(!unmount(n,s))return false;if(n===consort)releaseHost();if(s.index+1===scripts.get(n).length){if(s.choice)brain.complete(n.station.id,s.choice,{fulfilled:s.choice.fulfilled!==false});s.cycles++;choose(n);}else enter(n,s.index+1);return true;}
  function travel(n,s,to,dt){
+  if(s.yieldPoint){
+   const target=point(s.yieldPoint),dx=target.x-n.root.position.x,dz=target.z-n.root.position.z,d=Math.hypot(dx,dz);
+   if(d>.045){const before=n.root.position.clone(),amount=Math.min(d,dt*n.locomotion.walkSpeed*.65);moveActor(n,dx/d*amount,dz/d*amount,.25);n.walking=before.distanceToSquared(n.root.position)>1e-9;n.root.rotation.y=Math.atan2(dx,dz);return false;}
+   const other=npcs.find(a=>a.station.id===s.yieldTo)?.root.position||playerState.position;
+   if(other&&Math.abs(other.y-n.root.position.y)<.7&&Math.hypot(other.x-n.root.position.x,other.z-n.root.position.z)<1.15)return false;
+   s.yieldPoint=null;s.yieldTo=null;s.planned=false;s.retries=0;
+  }
   if(near(n.root.position,to)){n.route=[];s.planned=false;s.retries=0;return true;}
   if(!s.planned){n.route=planPath(n.root.position,point(to),.25);s.planned=true;}
   const direct=near(n.root.position,to,.45)&&canTraverse(n.root.position,point(to),lot.colliders.concat(safety(n)),navigation);
@@ -56,8 +63,15 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   if(!step.waiting&&step.waypoint){
    const p=step.waypoint,dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz);
    const obstacles=[...npcs.filter(a=>a!==n).map(a=>a.root.position),...(playerState.position?[playerState.position]:[])];
-   const blocked=obstacles.some(p=>Math.abs(p.y-n.root.position.y)<.7&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<.70&&(p.x-n.root.position.x)*dx+(p.z-n.root.position.z)*dz>.001&&Math.abs((p.x-n.root.position.x)*dz-(p.z-n.root.position.z)*dx)/Math.max(d,1e-10)<.55);
-   if(d>1e-10&&!blocked){const before=n.root.position.clone(),amount=Math.min(d,dt*n.locomotion.walkSpeed*.78);moveActor(n,dx/d*amount,dz/d*amount,.25);n.walking=before.distanceToSquared(n.root.position)>1e-9;n.root.rotation.y=Math.atan2(dx,dz);}
+   const blocker=obstacles.find(p=>Math.abs(p.y-n.root.position.y)<.7&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<.70&&(p.x-n.root.position.x)*dx+(p.z-n.root.position.z)*dz>.001&&Math.abs((p.x-n.root.position.x)*dz-(p.z-n.root.position.z)*dx)/Math.max(d,1e-10)<.55);
+   if(blocker&&d>1e-10){
+    const other=npcs.find(a=>a.root.position===blocker),yields=!other||!owned.has(other)||n.station.id>other.station.id;
+    // A checked side-step in the public doorway prevents two household actors
+    // waiting nose-to-nose. In a narrow passage the actor simply waits.
+    if(yields)for(const sign of[1,-1]){const aside=[n.root.position.x+sign*dz/d*.82,n.root.position.y,n.root.position.z-sign*dx/d*.82];if(canTraverse(n.root.position,point(aside),lot.colliders.concat(safety(n)),navigation)){s.yieldPoint=aside;s.yieldTo=other?.station.id||'player';record(n,'make-room-for-'+s.yieldTo);break;}}
+    s.stalled=0;return false;
+   }
+   if(d>1e-10){const before=n.root.position.clone(),amount=Math.min(d,dt*n.locomotion.walkSpeed*.78);moveActor(n,dx/d*amount,dz/d*amount,.25);n.walking=before.distanceToSquared(n.root.position)>1e-9;n.root.rotation.y=Math.atan2(dx,dz);}
   }
   if(n.walking)s.retries=0;s.stalled=n.walking||step.waiting?0:s.stalled+dt;
   if(s.stalled>4){s.stalled=0;s.planned=false;if(++s.retries===3){failures.push({actor:n.station.id,activity:s.choice?.id||null,stage:scripts.get(n)[s.index].id,to:to.slice(),position:n.root.position.toArray()});if(failures.length>8)failures.shift();}}
