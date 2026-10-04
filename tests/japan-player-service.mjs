@@ -24,5 +24,26 @@ const next=board.state().nextVisit,restored=createJapanServiceOrders({saved,worl
 assert.equal(resumed.state().visit.id,v.id);assert.equal(restored.state().nextVisit,next);assert.equal(restored.state().visits.filter(x=>x.customerType==='player').length,1);
 assert.equal(resumed.bathAccess({id:'japan-furniture-bath-1'}).allowed,false,'A token alone cannot skip preparation, delivery and washing');
 resumed.cancel();assert.equal(restored.jobs().some(j=>j.visitId===v.id),false);assert.equal(restored.state().visits.filter(x=>x.customerType==='npc').length,2,'Cancellation preserves other visitors');
+// Crossing is occupied physical space, but is not soaking time. Restore a
+// delivered/washed customer checkpoint to isolate this bath boundary from the
+// unchanged preparation routes, dining and employee shifts.
+const bathSnapshot=board.state(),bathVisit=bathSnapshot.visits.find(x=>x.id===v.id);
+bathVisit.stage='waiting-bath';bathVisit.present=true;bathVisit.blendReceived=true;
+bathSnapshot.items.find(x=>x.id===bathVisit.mixtureId).location={type:'station',id:'menService'};
+const bathBoard=createJapanServiceOrders({saved:bathSnapshot,worldSeed:29});
+const bathService=createJapanPlayerService({board:bathBoard,furniture,getPlayer:()=>player,getMounted:()=>mounted});
+const bathSeat={id:bathVisit.poolId+'-seat-1',poolId:bathVisit.poolId,kind:'bath',position:[-2.1,3.8,-9.3]};
+facilities.define(bathVisit.poolId,[bathSeat.id]);facilities.reserve(bathVisit.poolId,'player');facilities.occupy(bathVisit.poolId,'player');move(bathSeat.position);
+mounted={...bathSeat,transitioning:true};for(let i=0;i<48;i++)bathService.update(.1);
+assert.equal(bathService.state().visit.stage,'waiting-bath','Rim entry cannot finish mounting');
+mounted=bathSeat;for(let i=0;i<99;i++)bathService.update(.1);
+const beforeExit=bathService.state().soakSeconds;assert(beforeExit<10);
+mounted={...bathSeat,transitioning:true};for(let i=0;i<48;i++)bathService.update(.1);
+assert.equal(bathService.state().soakSeconds,beforeExit,'Rim exit cannot manufacture the last seconds of soaking');
+assert.equal(bathService.state().visit.stage,'bathing','Visit retains actual occupancy until bank endpoint');
+mounted=null;bathService.update(.1);assert.equal(bathService.state().visit.stage,'waiting-bath','A short soak remains interrupted after actual exit');
+mounted=bathSeat;for(let i=0;i<101;i++)bathService.update(.1);
+mounted={...bathSeat,transitioning:true};bathService.update(.1);assert.equal(bathService.state().visit.stage,'bathing');
+mounted=null;bathService.update(.1);assert.equal(bathService.state().visit.stage,'drying','A full soak advances only after bank arrival');bathBoard.dispose();
 board.dispose();restored.dispose();facilities.dispose();
 console.log('PASS: shared player order, physical interaction, interruption, region suspension and durable identity');
