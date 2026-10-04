@@ -6,6 +6,8 @@ import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 ROOT=pathlib.Path(__file__).resolve().parent
+FORM=os.environ.get('CHARACTER_FORM','male')
+forms=json.loads((ROOT/'forms.json').read_text());form=forms[FORM]
 UP=ROOT.parent/'anatomical-head/assets/upstream'
 meta=json.loads((UP/'provenance.json').read_text());data=(UP/'base.obj').read_bytes()
 assert hashlib.sha256(data).hexdigest()==meta['files']['base.obj']['sha256']
@@ -33,6 +35,14 @@ def profile(keys,v):
 # One editable cage solve. The biharmonic radial basis preserves the actual
 # original topology and interpolates authored whole-plane targets exactly.
 handles=json.loads((ROOT/'cage.json').read_text())['handles'];src=[];dst=[];names=[]
+def frame(p):
+ p=np.array(p,dtype=float);pivot=np.array(form['pivot']);scale=np.array(form['scale'])
+ # Head compaction fades through the short neck into its fixed garment seam.
+ weight=smooth(1.38,1.435,p[1]);return list(p+(p-pivot)*(scale-1)*weight)
+handles.append(['orbital_globe_center',[.30775,7.281,1.24535],form['globeCenter']])
+for handle in handles:
+ name=handle[0];target=form['overrides'].get(name,forms['common'].get(name,handle[2]));handle[2]=frame(target)
+
 for name,a,b in handles:
  for side in ([1,-1] if a[0] else [1]):
   src.append([a[0]*side,a[1],a[2]]);dst.append([b[0]*side,b[1],b[2]]);names.append(name+('-L' if side<0 else '-R' if a[0] else ''))
@@ -63,7 +73,7 @@ for i,(x,y,z) in enumerate(raw):lookup[(round(abs(x),5),round(y,5),round(z,5))].
 for loop in loops:
  for index in loop['vertices']:
   x,y,z=verts[index]
-  for i in lookup.get((round(abs(x),5),round(y,5),round(z,5)),[]):positions[i]+=np.array(loop['delta'])
+  for i in lookup.get((round(abs(x),5),round(y,5),round(z,5)),[]):positions[i]+=np.array(loop['delta'])*np.array(form['scale'])
 # Fit the one open cervical boundary to the existing collar. Interior facial
 # topology is closed and has no boundary in this source mesh.
 from collections import Counter
@@ -71,7 +81,7 @@ edges=Counter(tuple(sorted((f[j],f[(j+1)%len(f)]))) for f in faces for j in rang
 boundary={v for e,n in edges.items() if n==1 for v in e}
 for i in boundary:
  x,y,z=raw[i];angle=math.atan2(x,(z-.235)*1.1)
- positions[i]=(.043*math.sin(angle),1.353,-.008+.037*math.cos(angle))
+ positions[i]=(form['neckRadii'][0]*math.sin(angle),1.353,-.008+form['neckRadii'][1]*math.cos(angle))
 
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
 mesh=bpy.data.meshes.new('hm08 authored adult control topology');mesh.from_pydata(positions,[],faces);mesh.update()
@@ -146,9 +156,9 @@ for side in [-1,1]:
  # Shallow skin-fitted eyebrows, one polygon ribbon with tapered fringe.
  bp=[];bf=[];bc=[];bn=38;bw=4
  for j in range(bn+1):
-  t=j/bn;x=.018+(.071-.018)*t;y=profile([(0,1.5925),(.20,1.595),(.52,1.5958),(.74,1.5945),(1,1.587)],t);half=.0037*profile([(0,.20),(.12,.95),(.32,1),(.67,.73),(1,.015)],t)
+  t=j/bn;x=.018+(form['browEnd']-.018)*t;y=profile(form['browPath'],t);half=form['browHalfWidth']*profile([(0,.20),(.12,.95),(.32,1),(.67,.73),(1,.015)],t)
   for k in range(bw+1):
-   a=k/bw*2-1;p=Vector((side*x,y+a*half,.2));hit=tree.ray_cast(p,Vector((0,0,-1)),.4)[0]
+   a=k/bw*2-1;p=Vector(frame((side*x,y+a*half,.2)));hit=tree.ray_cast(p,Vector((0,0,-1)),.4)[0]
    if hit is not None:p.z=hit.z+.0004+.00018*(1-a*a)
    else:p.z=.06
    bp.append(p);bc += [t,a,0]
@@ -160,7 +170,7 @@ for side in [-1,1]:
 for p in parts:
  for k,v in p.items():
   if isinstance(v,list) and k!='index':p[k]=[round(float(x),7) for x in v]
-output={'license':'CC0-1.0 hm08; original cage, eyes and brows','sourceCommit':meta['commit'],'sourceSha256':meta['files']['base.obj']['sha256'],'coordinateSystem':'metres Y up face +Z','method':'named anatomical biharmonic cage plus direct topology contact loops','prototypeOnly':True,'unimplemented':['facial trait morphs','other body and hairstyle variants'],'parts':parts,'landmarks':{n:list(v) for n,_,v in handles},'sourceVertices':len(raw),'sourceFaces':len(faces)}
-(ROOT/'adult-head.json').write_text(json.dumps(output,separators=(',',':'))+'\n')
+output={'license':'CC0-1.0 hm08; original cage, eyes and brows','sourceCommit':meta['commit'],'sourceSha256':meta['files']['base.obj']['sha256'],'coordinateSystem':'metres Y up face +Z','method':'named anatomical biharmonic cage plus direct topology contact loops','form':FORM,'prototypeOnly':True,'unimplemented':['facial trait morphs','other body and hairstyle variants'],'parts':parts,'landmarks':{n:list(v) for n,_,v in handles},'sourceVertices':len(raw),'sourceFaces':len(faces)}
+(ROOT/('adult-head.json' if FORM=='male' else 'adult-head-female.json')).write_text(json.dumps(output,separators=(',',':'))+'\n')
 if os.environ.get('SAVE_SCULPT_BLEND'):bpy.ops.wm.save_as_mainfile(filepath=os.environ['SAVE_SCULPT_BLEND'])
 print(json.dumps({'vertices':sum(len(p['position'])//3 for p in parts),'triangles':sum(len(p['index'])//3 for p in parts),'parts':[(p['name'],len(p['index'])//3) for p in parts],'bounds':[(min(part['position'][k::3]),max(part['position'][k::3])) for k in range(3)]}))

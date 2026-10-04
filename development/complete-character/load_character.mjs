@@ -2,9 +2,9 @@ import {addLayeredHair} from './layered-hair.mjs';
 /** Isolated CC0 anatomical study. Never imported by production source. */
 import * as THREE from 'three';
 import fs from 'node:fs';
-const asset=JSON.parse(fs.readFileSync(new URL('./adult-head.json',import.meta.url),'utf8'));
-export function replaceWithCompleteAdult(root,C,{clay=false,surface=false}={}){
- const head=root.getObjectByName('sculpted-head');
+const assets={male:JSON.parse(fs.readFileSync(new URL('./adult-head.json',import.meta.url),'utf8')),female:JSON.parse(fs.readFileSync(new URL('./adult-head-female.json',import.meta.url),'utf8'))};
+export function replaceWithCompleteAdult(root,C,{clay=false,surface=false,form='male'}={}){
+ const asset=assets[form];const head=root.getObjectByName('sculpted-head');
  for(const m of [...head.children])if(m.isMesh&&!/hair|fringe|combed|side-lock|side-flow/.test(m.name)){m.removeFromParent();m.geometry.dispose();}
  const neck=root.getObjectByName('neck');if(neck){neck.removeFromParent();neck.geometry.dispose();}
  if(clay)for(const m of [...head.children])if(m.isMesh){m.removeFromParent();m.geometry.dispose();}
@@ -17,6 +17,6 @@ export function replaceWithCompleteAdult(root,C,{clay=false,surface=false}={}){
   if(!clay&&p.material!=='skin'&&p.recessWeight){const c=[];for(const occlusion of p.recessWeight){const v=new THREE.Color(colors[p.material]).multiplyScalar(1-.38*occlusion);c.push(v.r,v.g,v.b);}g.setAttribute('color',new THREE.Float32BufferAttribute(c,3));}
   const m=new THREE.Mesh(g,{color:new THREE.Color(clay?0x999999:colors[p.material]),isMaterial:false});m.name=prefixes[p.material]+'-'+p.name;m.userData.softSkin=true;head.add(m);
  }
- if(!clay)addLayeredHair(head,C.hair);
+ if(!clay&&form==='male')addLayeredHair(head,C.hair,{center:[0,1.54922,-.01644],radii:[.0828,.10647,.0966]});
  head.userData.anatomicalStudy={sourceCommit:asset.sourceCommit,prototypeOnly:true,unimplemented:asset.unimplemented};
 }
