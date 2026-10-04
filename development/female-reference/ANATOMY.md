@@ -173,3 +173,36 @@ asset are unchanged. Contact displacement discrepancy from rounding is below
 approximately 245 MiB; cgroup OOM counters were unavailable. Overall individual
 similarity remains unaccepted, so this is a development candidate only. All
 private photo alignments remain in ignored `qa/perioral-study/`.
+
+
+## Coordinated eyelid and iris comparison
+
+The inspected multi-angle eye crops show a flatter model aperture, long lateral
+scleral wedges and less readable upper-lid support. Reference iris coverage is
+larger, with the upper lid over the iris and a rounder lower supporting arc.
+This single candidate preserves globe size/centers and both canthal columns,
+while redistributing the complete eyelid thickness band angularly in the
+current common ellipsoid frame. The lower band travels farther down around
+the globe than the upper band. It does not equate one source vertex loop with
+the globe intersection: the visible contact traverses different layers around
+the aperture. The angular map preserves each point's current radial distance;
+additional tarsal support is restricted to skin outside the intersection band.
+The upper fold is slightly softened, without a painted dark eye ring.
+
+Iris-boundary latitude changes from 0.405 to 0.470 radians and the pupil follows
+the same linear ratio, approximately 1.1494. This changes colored regions on
+the unchanged globe ellipsoid; it does not scale the eyeballs. The projected
+iris remains circular. Source skin topology/features, exact inner/outer canthal
+positions across the four thickness/return layers, nasal/mouth/chin anchors,
+and masculine asset remain unchanged. Globe sample radius error is below
+0.000005 in normalized ellipsoid units, due to export rounding. Head triangles
+remain 14,726 and the character uses two material batches.
+
+One complete front/side/three-quarter game-material set was inspected. The
+iris occupies more of the aperture, lateral white wedges are shorter, and the
+lower lid reads rounder while upper-iris coverage remains. No new visible lid
+gap or protruding globe was observed in these views. This is still an artistic
+candidate, not accepted individual likeness or default replacement. The guarded
+build/capture took 3.33 seconds and approximately 248 MiB; cgroup OOM counters
+were unavailable. Evidence is in ignored `qa/ocular-study/candidate/`; private
+reference comparisons are not shipped.

@@ -43,6 +43,34 @@ def eye_normal(normal,source,config):
  angle=side*e.get('canthalTilt',0.);c,s=math.cos(angle),math.sin(angle)
  return np.array([n[0]*c-n[1]*s,n[0]*s+n[1]*c,n[2]])
 
+def shape_eyelid_band(point,source,config):
+ specification=config.get('eyelidShape')
+ if not specification:return point
+ sx,sy,sz=source;ax=abs(sx);side=-1 if sx<0 else 1
+ e=config['ocularFrame'];width=config.get('facialWidth',1.)
+ center=native_point([side*.30775,7.281,1.24535],config);center[0]*=width
+ center+=np.array([side*e.get('outward',0.),e.get('raise',0.),0.])
+ axes=np.array(config['scale'])*np.array([width,1,1])*np.array(e.get('scale',[1,1,1]))
+ angle=side*e.get('canthalTilt',0.);c,s=math.cos(angle),math.sin(angle)
+ rotation=np.array([[c,-s,0],[s,c,0],[0,0,1]])
+ local=(rotation.T@(np.array(point)-center))/axes;radius=np.linalg.norm(local)
+ # Both actual canthal columns, across all thickness/return layers, remain
+ # fixed. The source eyelid is a thickness band, not one mesh boundary loop.
+ along=smooth(.205,.239,ax)*(1-smooth(.3995,.4335,ax))
+ support=along*(1-smooth(.185,.270,radius))*smooth(1.20,1.30,sz)
+ upper=smooth(7.265,7.315,sy)
+ theta=(specification['lowerRotation']*(1-upper)+specification['upperRotation']*upper)*support
+ ct,st=math.cos(theta),math.sin(theta);old_y,old_z=local[1:]
+ local[1]=old_y*ct-old_z*st;local[2]=old_y*st+old_z*ct
+ result=center+rotation@(local*axes)
+ # Form the upper tarsal support outside the actual globe-intersection band.
+ # This is a skin volume; no extra dark ring, eyelash card or white-eye mesh.
+ above=sy-curve(specification['upperRimSource'],ax)
+ tarsal=along*smooth(.176,.186,radius)*(1-smooth(.235,.285,radius))
+ tarsal*=smooth(.007,.014,above)*bell(above,.027,.021)
+ result[2]+=specification['tarsalProjection']*tarsal
+ return result
+
 def skin_point(source,config,neck=None):
  sx,sy,sz=source;x,y,z=native_point(source,config);ax=abs(sx)
  facial=smooth(6.12,6.30,sy)*(1-smooth(7.44,7.80,sy))*smooth(.45,1.02,sz)
@@ -71,6 +99,7 @@ def skin_point(source,config,neck=None):
  if config.get('ocularFrame'):
   w=smooth(.10,.165,ax)*(1-smooth(.475,.64,ax))*smooth(7.08,7.21,sy)*(1-smooth(7.40,7.55,sy))*smooth(1.15,1.30,sz)
   p=p*(1-w)+eye_transform(p,source,config)*w
+ p=shape_eyelid_band(p,source,config)
  if neck is not None:
   w=smooth(*config['neckJoinSourceY'],sy)
   posterior=(1-smooth(.20,.64,sz))*(1-smooth(6.45,7.13,sy))

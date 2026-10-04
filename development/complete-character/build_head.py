@@ -236,14 +236,23 @@ def export(name,material,vs,fs,features=None,occ=None):
 for side in [-1,1]:
  center=Vector((side*.30775,7.281,1.24535));rad=Vector((.164,.164,.164));nu=48
  theta=[0,.07,.15,.24,.32,.405,.46,.58,.76,1.02,1.30,1.65,2.05,2.50,math.pi]
+ iris_angle=(anatomy or {}).get('irisAngle',.405)
+ pupil_angle=.15 if iris_angle==.405 else math.asin(math.sin(.15)*math.sin(iris_angle)/math.sin(.405))
+ if iris_angle!=.405:
+  # Change the color-boundary latitudes on the same fixed ellipsoid. Keep
+  # pupil/iris ratio and round front projection; never enlarge the globe.
+  theta=[pupil_angle if t==.15 else iris_angle if t==.405 else
+         math.asin(math.sin(t)*math.sin(iris_angle)/math.sin(.405)) if t<.405 else
+         t+(iris_angle-.405)*(1-smooth(.405,1.02,t)) for t in theta]
+
  points=[];normals=[];fc=[];occ=[]
  for t in theta:
   for k in range(nu):
    a=k/nu*math.tau;sn=math.sin(t);direction=np.array([sn*math.cos(a),sn*math.sin(a),math.cos(t)])
-   if anatomy and anatomy.get('roundProjectedIris') and t<.82:
+   if anatomy and anatomy.get('roundProjectedIris') and t<iris_angle+.415:
     # A circular iris chart on the shared convex ellipsoid. Widening the
     # aperture must not stretch the projected pupil into a horizontal oval.
-    w=1-smooth(.46,.82,t);e=anatomy.get('ocularFrame',{}).get('scale',[1,1,1])
+    w=1-smooth(iris_angle+.055,iris_angle+.415,t);e=anatomy.get('ocularFrame',{}).get('scale',[1,1,1])
     direction[0]*=1+w*(1/(anatomy.get('facialWidth',1.)*e[0])-1)
     direction[1]*=1+w*(1/e[1]-1)
     direction[2]=math.sqrt(max(0.,1-direction[0]**2-direction[1]**2))
@@ -254,9 +263,9 @@ for side in [-1,1]:
    outward=np.linalg.solve(jacobian,np.array([sn*math.cos(a),sn*math.sin(a),math.cos(t)]))
    if anatomy:outward=eye_normal(direction,source_point,anatomy)
    outward/=np.linalg.norm(outward);normals.append(list(outward))
-   points.append(p);fc += [math.sin(t)/math.sin(.405)*math.cos(a),math.sin(t)/math.sin(.405)*math.sin(a),t]
+   points.append(p);fc += [math.sin(t)/math.sin(iris_angle)*math.cos(a),math.sin(t)/math.sin(iris_angle)*math.sin(a),t]
    hit=tree.ray_cast(p+Vector((0,.0003,.0002)),Vector((0,.8,.6)),.013)[0];occ.append(.65 if hit is not None else 0.)
- for material,lo,hi in [('pupil',0,.15),('iris',.15,.405),('sclera',.405,math.pi)]:
+ for material,lo,hi in [('pupil',0,pupil_angle),('iris',pupil_angle,iris_angle),('sclera',iris_angle,math.pi)]:
   fs=[]
   for j in range(len(theta)-1):
    if not (lo<theta[j+1]<=hi):continue
