@@ -87,6 +87,7 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
  badge.onclick=()=>open();dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
  return {
   open,close,isOpen:()=>dialog.open,
+  openStation(id){if(!['jp-sushi','jp-ramen'].includes(id))return false;selectedDish=id==='jp-sushi'?'sushi':'ramen';open('dining');return true;},
   buttonLabel:target=>({order:'点餐','dining-panel':'点餐',register:'登记',change:'更衣',wash:'清洗',collect:'领浴包',bath:'入汤',meal:'点餐',eat:'用餐',stop:'停止',stand:'离池',wait:'查看',return:'退牌',panel:'浴牌',seat:'入座'}[target.serviceStep?.kind]||'查看'),
   target() {
    if(disposed||dialog.open)return null;const s=service.state(),step=next(),mounted=getMounted();

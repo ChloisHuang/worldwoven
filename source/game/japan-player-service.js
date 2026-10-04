@@ -91,7 +91,7 @@ export function createJapanPlayerService({board,furniture,copperLedger,getPlayer
   },
   register(blendId) {
    if(suspended||!actor())return result(false,'先回到汤馆');
-   const existing=visit();if(existing){deskRequest=true;if(existing.stage==='arriving')desk(existing);return result(true,'已有你的浴牌登记，不会重复开单');}
+   const existing=visit();if(existing){if(existing.orderKind==='dining')return result(false,'先用完或取消本餐，再登记泡汤');deskRequest=true;if(existing.stage==='arriving')desk(existing);return result(true,'已有你的浴牌登记，不会重复开单');}
    if(!near(position(),P.playerReception))return result(false,'请先走到接待柜台');
    if(!JAPAN_BATH_BLENDS.some(b=>b.id===blendId))return result(false,'请选择一种汤馆虚构草木浴包');
    const seat=diningSeats[0],appearance=actor().root.userData.appearance;
