@@ -8,8 +8,8 @@ Public game: https://alien.doudouai.net/
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.25-public, 2026-10-04
-Verified published Sites source commit: d136299f70b088932c7fbe754eb9fedb208b9f23
+Prepared release: R16.26-public, 2026-10-04
+Previous published Sites source commit: d136299f70b088932c7fbe754eb9fedb208b9f23
 
 ## Working rules
 
@@ -85,3 +85,5 @@ R16.23 adds the playable bathhouse service menu and fourteen existing residents�
 R16.24 refines the existing Egyptian royal coffin with an anthropoid lid, nemes mask, regalia and nested casing detail, plus a non-graphic wrapped mummy. Existing collision bounds and interactions are preserved; this is one asset improvement, not completion of all Egyptian art.
 
 R16.25 gives the two original Chinese guards a gate/courtyard/hall-step patrol, observation and physical relief, with safe nearby conversation and existing player archery. Their independent Ming-informed robe, cap, belt and sheathed saber replace the former generic costume; museum images informed original geometry. Patrol and handoff checks use the actual main controller and Three/Mesa, not mobile browser gameplay.
+
+R16.26 extends the existing guards into complementary side and rear patrols: quiet palace lanes, the residence and kitchen backs, and opposite archive rear corners. They pause to observe and yield to nearby players, preserving range coverage and actual shift handoff. This adds patrol coverage, not a crime-detection system.
