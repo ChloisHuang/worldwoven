@@ -6,7 +6,7 @@ const point=a=>({x:a[0],y:a[1],z:a[2]}),copy=x=>JSON.parse(JSON.stringify(x));
 const near=(n,p,r=.075)=>Math.hypot(n.root.position.x-p[0],n.root.position.z-p[2])<r&&Math.abs(n.root.position.y-p[1])<.32;
 const reverse=p=>p.slice().reverse().map(a=>a.slice()),P=E.points;
 // Public front steps, east lane, north crosscourt and the actual two flights.
-const HALL_EXIT=[[2,1.415,3],[2,1.415,6],[2,.13,11],[14,.13,11],[14,.115,-13.5]];
+const HALL_EXIT=[[2,1.415,3],[2,1.415,6],[2,.13,11],[14,.13,11],[13.4,.145,-14]];
 const STUDY_PATH=[[13.7,.145,-20.85],[0,.295,-20.85],[0,.815,-22.3],[0,.815,-24.3],[-7.85,.815,-24.3],[-7.85,2.515,-31],[-5.3,2.515,-31],[-5.3,4.215,-24.3],[4,4.215,-24.3],[4,4.215,-26],P.collect];
 
 // A receipt is consumed before actors move. Interrupted work is retired on
@@ -85,7 +85,7 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
     else if(stage==='scribe-handoff'&&advanceAfter(2,'to-approval')){order.holder='herald';order.claims.scribe=null;record('draft-received',herald);release(scribe);task(herald,'carry-draft-to-emperor',[...reverse(STUDY_PATH).slice(1,-1),[-13.7,.145,-20.85],[-13.7,.145,-14.5],P.approve],'携同一份原稿下楼 · 到公共听候处请准');palace.requestDuty(E.owner,{kind:'edict-review'});}
     else if(stage==='to-approval'){
      if(!palace.dutyState(E.owner))palace.requestDuty(E.owner,{kind:'edict-review'});
-     if(arrived(herald)&&palace.dutyState(E.owner)?.ready){enter('approval');say(emperor,'准。照此清扫东岸，收好落叶，留宽路给往来的人。');}
+     if(arrived(herald)&&palace.dutyState(E.owner)?.ready){enter('approval');face(herald,emperor.root.position.toArray());say(emperor,'准。照此清扫东岸，收好落叶，留宽路给往来的人。');}
     }else if(stage==='approval'&&palace.dutyState(E.owner)?.ready&&advanceAfter(4,'to-seal')){order.approvedBy=emperor.station.id;record('approved',emperor);palace.releaseDuty(E.owner);task(herald,'carry-approved-draft',[[-14.4,.115,-10],[-14.4,.115,.4],[-8,.13,11],[2,.13,11],[2,1.415,6],[2,1.415,3],P.sealStand],'奉准回东侧传令案用印');}
     else if(stage==='to-seal'&&arrived(herald)){enter('seal-place');face(herald,P.seal);}
     else if(stage==='seal-place'&&advanceAfter(1.2,'sealing'))order.holder='seal-stand';
@@ -99,7 +99,7 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
     else if(stage==='to-work'&&arrived(recipient)){enter('file-receipt');face(recipient,P.basket);}
     else if(stage==='file-receipt'&&advanceAfter(1.2,'to-sweep')){order.holder='basket';task(recipient,'walk-to-leaves',[P.work],'按令实作 · 到落叶边取帚清扫');}
     else if(stage==='to-sweep'&&arrived(recipient)){enter('sweeping');tell(recipient,'按令实作 · 把东岸落叶扫进竹筐');}
-    else if(stage==='sweeping'&&advanceAfter(7,'returning')){ledger.finish(true);persist();order.claims={scribe:null,herald:null,recipient:null};record('east-shore-cleaned',recipient);say(recipient,'东岸落叶已入筐，这段路清好了。');task(recipient,'return-garden-post',[[10,.145,-14],[0,.295,-14.3],recipient.home.toArray()],'清扫完成 · 沿荷桥返岗');task(herald,'return-seal-stand',[[14,.115,-13.5],...reverse(HALL_EXIT).slice(1),P.sealStand],'传达已办结 · 回传令案');}
+    else if(stage==='sweeping'&&advanceAfter(7,'returning')){ledger.finish(true);persist();order.claims={scribe:null,herald:null,recipient:null};record('east-shore-cleaned',recipient);say(recipient,'东岸落叶已入筐，这段路清好了。');task(recipient,'return-garden-post',[[10,.145,-14],[0,.295,-14.3],recipient.home.toArray()],'清扫完成 · 沿荷桥返岗');task(herald,'return-seal-stand',[[13.4,.145,-14],...reverse(HALL_EXIT).slice(1),P.sealStand],'传达已办结 · 回传令案');}
     else if(stage==='returning'){if(owned.has(recipient)&&arrived(recipient))release(recipient);if(arrived(herald)&&!owned.has(recipient)){record('closed');order=null;tasks.delete(herald);speaker=null;utterance='';}}
    }
    for(const n of owned)animate(n,t);props.update(order,actors,phaseTime,!order&&ledger.snapshot().outcome==='completed',halt);

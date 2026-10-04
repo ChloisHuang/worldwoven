@@ -42,7 +42,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   if(n===emperor&&duty){
    duty.active=true;
    const departure=duty.fromPublic?[]:[stage('duty-public-stairs','应召出居 · 沿公共梯厅下楼',homeExit(n))];
-   scripts.set(n,duty.kind==='edict-review'?[...departure,stage('duty-public-review','公共听候处阅批 · 留出院门通行',[HALL.at(-1)],Infinity,{look:[-14.1,.145,-13.35]}),stage('duty-return-home','阅批完毕 · 沿公共梯厅回居',homeReturn(n))]:[...departure,stage('duty-hall-arrival','前往朝议 · 沿正殿前阶入殿',COURT),stage('duty-hall-seat','朝议候奏 · 等候大臣依次进言',[throne.position],Infinity,{mount:throne}),stage('duty-return-home','朝议结束 · 沿公共梯厅回居',[...reverse(COURT),...homeReturn(n)])]);
+   scripts.set(n,duty.kind==='edict-review'?[...departure,stage('duty-public-review','公共听候处阅批 · 留出院门通行',[HALL.at(-1)],Infinity,{look:[-15.1,.145,-14.45]}),stage('duty-return-home','阅批完毕 · 沿公共梯厅回居',homeReturn(n))]:[...departure,stage('duty-hall-arrival','前往朝议 · 沿正殿前阶入殿',COURT),stage('duty-hall-seat','朝议候奏 · 等候大臣依次进言',[throne.position],Infinity,{mount:throne}),stage('duty-return-home','朝议结束 · 沿公共梯厅回居',[...reverse(COURT),...homeReturn(n)])]);
    stages.set(n,{choice:null,cycles:stages.get(n)?.cycles||0});enter(n,0);return;
   }
   const options=candidates(n).map(c=>{const end=c.steps.find(s=>s.chosen)?.path.at(-1);return {...c,available:c.available!==false&&!!end&&(near(n.root.position,end,.1)||planPath(n.root.position,point(end),.25).length>0)};}),choice=brain.choose(n.station.id,options,playerState.hour??10);
