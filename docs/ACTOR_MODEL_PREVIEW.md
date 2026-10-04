@@ -10,6 +10,14 @@ The long hairstyle is baked against the refined French gown and is bounded to th
 
 The updated actual actor contract passes four selected new endpoints across both forms: chin length 3.40 mm, chin projection 3.68 mm, bridge height 4.56 mm and nose tip 2.01 mm maximum displacement. Fixed collar anchors and scores remain unchanged; explicit preview hair is absent from saved appearance. Source/version contracts from the control worker are reused. The normal-view renders and default build graph below complete this bounded integration check.
 
+## Retained braid and chef compatibility increment
+
+`previewHair:'retained'` now opts into the original `braided-tail` or `low-bun` on the new head, retaining the saved style and colors. This mode does not select the separate baked female candidates. The whole free braid (shaft, weave and tie) gets one root-derived rigid translation, preserving its authored length and proportions instead of multiplying the full strand by the scalp scale. Its upper roots use the existing common head envelope. A cached rear-cloth triangle check determines any additional retreat; a required retreat over 25 mm falls back for authored fitting. Lower lengths reuse the torso/head weight transition and the two existing buckets.
+
+The real `cn-consort-heng`, seed41, preserves a 328.868 mm free-braid span. All three braid parts translate by [0, −9.486, −5.650] mm; 435 garment surface samples require no extra retreat. The actual `jp-sushi` chef, seed41, uses the already-supported retained low bun, so its soft cap/band follows the common envelope while its yukata/apron remain unchanged. Chef support is bounded to retained low-bun/braid inputs; short/bob/shoulder-wave chef combinations and gardener hats remain fallback pending their own fitting.
+
+`node tests/actor-retained-hair.mjs` passes these two actual actor cases, including unchanged saved appearance/garment colors and positions, no whole-braid scaling, unchanged 46 collar anchors under head turn, active nose-bridge morphology rather than legacy-head fallback, and zero retained actor references. The head, neck, skeleton and existing neutral/hairstyle assets are unchanged. Only the new braid/chef render is being inspected; prior official/consort evidence is reused.
+
 ## Current runtime verification
 
 - `node tests/actor-model-preview.mjs`: PASS for saved player/NPC appearance, explicit runtime hair without save mutation, both material buckets, preview/legacy/cache separation, fixed joint/collar and four actual new-control endpoints. Merged score/slider handlers were checked only because those overlapping lines required merge resolution; existing standalone control/NPC-version evidence is reused.

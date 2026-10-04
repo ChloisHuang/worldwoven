@@ -50,7 +50,7 @@ for(const [id,look]of [['saved-npc',male],['saved-player',female],['official',of
  result.push({id,score,body:look.bodyPreset,hair:look.hairStyle,wardrobe:look.wardrobePreset,retainedBodySurfaces:retained,collarAnchors:anchors,neckBlendVertices:blend,fit:preview.root.userData.characterModel.attachmentFit});
  costume?.dispose();for(const a of[preview,legacy,reload])a.dispose();
 }
-for(const [reason,look]of [['hairstyle-needs-fit',{...female,hairStyle:'braided-tail'}],['role-headgear-needs-fit',{...male,style:'chef'}]]){const a=C.createCharacter(look),b=C.createCharacter({...look,...previewFor(look)});assert.equal(b.root.userData.characterModel.reason,reason);assert.equal(skinMeshes(a)[0].geometry,skinMeshes(b)[0].geometry);assert.equal(skinMeshes(a)[1].material,skinMeshes(b)[1].material);a.dispose();b.dispose();}
+for(const [reason,look]of [['retained-braid-opt-in-required',{...female,hairStyle:'braided-tail'}],['role-headgear-needs-fit',{...male,style:'chef'}]]){const a=C.createCharacter(look),b=C.createCharacter({...look,...previewFor(look)});assert.equal(b.root.userData.characterModel.reason,reason);assert.equal(skinMeshes(a)[0].geometry,skinMeshes(b)[0].geometry);assert.equal(skinMeshes(a)[1].material,skinMeshes(b)[1].material);a.dispose();b.dispose();}
 // Complete-pair selection ports only the two already-authored French cuts.
 const pair=[];
 for(const [name,look]of [['male',male],['female',female]]){
