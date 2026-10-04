@@ -3,7 +3,7 @@ import {residencePlaque} from './china-residence-lettering.js';
 
 export const CONSORT_ROOM_PROGRAM=Object.freeze({
  reception:{minX:-20.9,maxX:-16,minZ:-12,maxZ:-7.8},corridor:{minX:-20.9,maxX:-19.3,minZ:-7.8,maxZ:2,clearWidth:1.28},
- rooms:[{key:'heng',name:'沈蘅',minZ:-7.8,maxZ:-3,doorZ:-4.1,bedZ:-6.15,color:0x52796f},{key:'ling',name:'令仪',minZ:-3,maxZ:2,doorZ:.9,bedZ:-1.5,color:0xbf805e}],bedSize:[1.55,2.4]
+ rooms:[{key:'heng',name:'沈蘅',minZ:-7.8,maxZ:-3,doorZ:-4.15,bedZ:-6.3,color:0x52796f},{key:'ling',name:'令仪',minZ:-3,maxZ:2,doorZ:.85,bedZ:-1.55,color:0xbf805e}],bedSize:[1.55,2.4]
 });
 
 function privateBed(G,parent,{x,z,color,C}){
@@ -30,10 +30,10 @@ export function buildChinaConsortRooms(G,{g,C,wall,privacy,part,table,teaSet,col
  part('residence-living','后宫一层公共会客前厅',-20.9,-16,-12,-7.8,y,3.77);
  part('residence-suite-corridor','后宫私室外走廊',-20.9,-19.3,-7.8,2,y,3.77);
  wall('x',-7.8,-19.3,-16,.2,3.77);wall('x',-3,-19.3,-16,.2,3.77);
- wall('z',-19.3,-7.8,2,.2,3.77,CONSORT_ROOM_PROGRAM.rooms.map(r=>privacy('cn-consort-'+r.key+'-door',r.name+'私室门','z',-19.3,r.doorZ-.75,r.doorZ+.75,y,['consort-'+r.key,'residence-suite-corridor'])));
- G.rug(g,-18.1,-9.7,3.1,2.6,0x9d7b59,0xd6bd85);table(g,-18.1,-9.7,1.10,1.7,.93);teaSet(g,-18.1,1.02,-9.7,0x93b0a4);
- for(const [id,x,yaw]of[['china-residence-reception-seat--7.2',-19.35,Math.PI/2],['china-residence-reception-seat--3.7',-16.85,-Math.PI/2]]){
-  buildChinaRoyalChair(g,{x,y:.2,z:-9.7,yaw,variant:'reading',id});G.collider(colliders,x,-9.7,.9,.9);cameraColliders.push({minX:x-.45,maxX:x+.45,minY:.2,maxY:2.0,minZ:-10.15,maxZ:-9.25});additionalFurnitureSeats.push({id,name:'后宫会客椅',x,y,z:-9.7,yaw,width:.9,depth:.9,seatY:.875,front:.275});
+ wall('z',-19.3,-7.8,2,.2,3.77,CONSORT_ROOM_PROGRAM.rooms.map(r=>privacy('cn-consort-'+r.key+'-door',r.name+'私室门','z',-19.3,r.doorZ-.9,r.doorZ+.9,y,['consort-'+r.key,'residence-suite-corridor'])));
+ G.rug(g,-17.5,-9.7,2.2,2.8,0x9d7b59,0xd6bd85);table(g,-17.5,-9.7,1.4,.68,.93);teaSet(g,-17.5,1.02,-9.7,0x93b0a4);
+ for(const [id,z,yaw]of[['china-residence-reception-seat--7.2',-8.55,Math.PI],['china-residence-reception-seat--3.7',-10.85,0]]){
+  const x=-17.5;buildChinaRoyalChair(g,{x,y:.2,z,yaw,variant:'reading',id});G.collider(colliders,x,z,.9,.9);cameraColliders.push({minX:x-.45,maxX:x+.45,minY:.2,maxY:2.0,minZ:z-.45,maxZ:z+.45});additionalFurnitureSeats.push({id,name:'后宫会客椅',x,y,z,yaw,width:.9,depth:.9,seatY:.875,front:.275});
  }
  for(const r of CONSORT_ROOM_PROGRAM.rooms){
   const roomId='consort-'+r.key,bedId='china-consort-bed-'+r.key,x=-17.35,z=r.bedZ,w=1.55,d=2.4;

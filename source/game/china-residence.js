@@ -118,6 +118,6 @@ export function buildChinaResidence(G,A){
  const entrySign=residencePlaque(G,g,'静宜后宫',-15.77,3.43,-13.5,3.1,.58);entrySign.rotation.y=Math.PI/2;
  for(const [name,x,y,z]of[['客居',-23.5,3.45,-12.21],['会客',-18.3,3.45,-12.21],['沐浴',-23.5,7.25,-12.21],['净室',-18,7.25,-12.21],['寝殿',-17.7,11.06,-12.21],['梳妆',-18,11.06,-3.21]]){const plaque=residencePlaque(G,g,name,x,y,z,1.7,.55);plaque.rotation.y=Math.PI;}
  buildings.push({id:'rear-palace',name:'静宜后宫',groupName:g.name,roofGroupName:r.name,bounds:CHINA_RESIDENCE.bounds,roomIds:CHINA_RESIDENCE.floors.flatMap(f=>f.rooms),storeys:3});
- for(const [id,name,p,roomId]of[['cn-residence-ground-entry','后宫公共通廊东口',[-15.2,.215,-13.4],'outdoors'],['cn-residence-living','后宫起居茶案',[-18.25,.215,-10.95],'residence-living'],['cn-residence-dressing','后宫梳妆台前',[-18,7.815,-.05],'residence-dressing'],['cn-residence-linen','后宫布草柜前',[-18,4.015,-1],'residence-linen']])explorationTargets.push({id,name,position:p,roomId});
+ for(const [id,name,p,roomId]of[['cn-residence-ground-entry','后宫公共通廊东口',[-15.2,.215,-13.4],'outdoors'],['cn-residence-living','后宫起居茶案',[-18.9,.215,-11],'residence-living'],['cn-residence-dressing','后宫梳妆台前',[-18,7.815,-.05],'residence-dressing'],['cn-residence-linen','后宫布草柜前',[-18,4.015,-1],'residence-linen']])explorationTargets.push({id,name,position:p,roomId});
  return {group:g,roofGroup:r,additionalFurniture};
 }
