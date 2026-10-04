@@ -16,8 +16,17 @@ export function createHeadAttachmentFit(head,asset){
  const oldScalp=bounds(old,1.58),newScalp=bounds(skin.position,HEAD_PIVOT+(1.58-HEAD_PIVOT)*vertical);
  const scale=[0,vertical,0],offset=[0,HEAD_PIVOT*(1-vertical),0];
  for(const k of[0,2]){scale[k]=(newScalp.max[k]-newScalp.min[k])/(oldScalp.max[k]-oldScalp.min[k]);offset[k]=(newScalp.min[k]+newScalp.max[k])/2-scale[k]*(oldScalp.min[k]+oldScalp.max[k])/2;}
+ let hairTopFrom=-Infinity;for(const mesh of head.children)if(mesh.isMesh&&RETAINED_HAIR.test(mesh.name)){mesh.geometry.computeBoundingBox();hairTopFrom=Math.max(hairTopFrom,mesh.geometry.boundingBox.max.y);}
  const oldMouth=head.getObjectByName('closed-soft-mouth').geometry;oldMouth.computeBoundingBox();
- return{scale,offset,mouthFrom:oldMouth.boundingBox.getCenter(new THREE.Vector3()).y,mouthTo:landmark(skin,[0,6.57,1.55])[1],chinFrom:a.min[1],chinTo:landmark(skin,[0,6.2,1.34])[1]};
+ return{scale,offset,hairTopFrom,mouthFrom:oldMouth.boundingBox.getCenter(new THREE.Vector3()).y,mouthTo:landmark(skin,[0,6.57,1.55])[1],chinFrom:a.min[1],chinTo:landmark(skin,[0,6.2,1.34])[1]};
+}
+/** Existing combs/pins were fitted to the saved hairstyle envelope. When an
+ * explicit candidate hairstyle replaces it, retain that same crown contact.
+ * Only the accessory attachment moves; anatomy and the head joint stay fixed. */
+export function fitCandidateHairAttachments(fit,hair){
+ hair.geometry.computeBoundingBox();
+ const from=fit.hairTopFrom*fit.scale[1]+fit.offset[1],to=hair.geometry.boundingBox.max.y;
+ fit.hairOffsetY=Number.isFinite(from)?Math.max(-.025,Math.min(.025,to-from)):0;
 }
 export function fitRetainedHeadMesh(mesh,fit){
  const g=mesh.geometry,p=g.attributes.position,n=g.attributes.normal,normal=new THREE.Vector3();
@@ -28,7 +37,7 @@ export function fitRetainedHeadMesh(mesh,fit){
  * envelope used by retained hair, relative to the unchanged real head joint. */
 export function fitActorHeadAttachment(actor,group){
  const fit=actor.root.userData.characterModel?.attachmentFit;if(!fit||group.userData.completeAdultFit)return group;
- group.position.set(group.position.x*fit.scale[0]+fit.offset[0],(group.position.y+HEAD_PIVOT)*fit.scale[1]+fit.offset[1]-HEAD_PIVOT,group.position.z*fit.scale[2]+fit.offset[2]);
+ group.position.set(group.position.x*fit.scale[0]+fit.offset[0],(group.position.y+HEAD_PIVOT)*fit.scale[1]+fit.offset[1]-HEAD_PIVOT+(fit.hairOffsetY??0),group.position.z*fit.scale[2]+fit.offset[2]);
  group.scale.multiply(new THREE.Vector3(...fit.scale));group.userData.completeAdultFit=true;return group;
 }
 // Project a retained lower-face surface onto the new front triangle surface.

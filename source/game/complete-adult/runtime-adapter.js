@@ -12,10 +12,10 @@ import {fitCompleteAdultClothing} from './fit-clothing.js';
 import {applyAnatomicalFinish} from './face-finish.js';
 import {applySurfaceFinish} from './surface-finish.js';
 import {morphCompleteAdultAsset,fitCompleteAdultAttachments} from './shape-traits.js';
-import {RETAINED_HAIR,createHeadAttachmentFit,fitRetainedHeadMesh,fitRetainedFacialHair} from './attachment-fit.js';
+import {RETAINED_HAIR,createHeadAttachmentFit,fitCandidateHairAttachments,fitRetainedHeadMesh,fitRetainedFacialHair} from './attachment-fit.js';
 export const COMPLETE_ADULT_PREVIEW='complete-adult-head-v1';
 export const COMPLETE_ADULT_PAIR_PREVIEW='complete-adult-pair-v1';
-export const COMPLETE_ADULT_VERSION='candidate-e850c2b-hair-c313967-traits10-v2';
+export const COMPLETE_ADULT_VERSION='candidate-e850c2b-hair-c313967-traits10-v3';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const forms={'masculine-lean':'male','masculine-broad':'male','feminine-balanced':'female','feminine-slender':'female'};
 export function completeAdultSupport(options,selection){
@@ -47,7 +47,7 @@ export function applyCompleteAdultPreview(root,options,selection){
   attachCompleteHead(root,C,asset,{surface:true});
   // Hair is the only replaced attachment; authored role hats survive the
   // explicit face removal list in attach-head. Facial hair has its own fit.
-  if(options.hairStyle!=='low-bun'||options.previewHair){const hair=support.form==='male'?addLayeredHair(head,C.hair):addFemaleHairOption(head,C.hair,options.previewHair);hair.userData.softSkin=support.form==='female';hair.userData.completeAdultPart=options.previewHair==='long-layered'?'long-hair':'hair';}
+  if(options.hairStyle!=='low-bun'||options.previewHair){const hair=support.form==='male'?addLayeredHair(head,C.hair):addFemaleHairOption(head,C.hair,options.previewHair);hair.userData.softSkin=support.form==='female';hair.userData.completeAdultPart=options.previewHair==='long-layered'?'long-hair':'hair';if(options.previewHair)fitCandidateHairAttachments(attachmentFit,hair);}
  });
  if(selection===COMPLETE_ADULT_PAIR_PREVIEW)fitCompleteAdultClothing(root,options,neutral=>{applyNaturalClothing(root,neutral);applyFemaleSilhouette(root,neutral);});
  const result={applied:true,previewHair:options.previewHair??null,garmentRefinement:selection===COMPLETE_ADULT_PAIR_PREVIEW,version:COMPLETE_ADULT_VERSION,form:support.form,attachmentFit};

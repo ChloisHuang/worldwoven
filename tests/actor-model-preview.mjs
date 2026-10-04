@@ -35,7 +35,7 @@ for(const actor of[coldLegacy,coldPreview,readyPreview])actor.dispose();
 const result=[];
 for(const [id,look]of [['saved-npc',male],['saved-player',female],['official',official],['consort',consort]]){
  const original=structuredClone(look),score=shapePreferenceScore(look.shapeTraits),legacy=C.createCharacter(look),preview=C.createCharacter({...look,...previewFor(look)}),reload=C.createCharacter({...JSON.parse(JSON.stringify(look)),...previewFor(look)});
- assert(preview.root.userData.characterModel.applied,id);assert.deepEqual(look,original);assert.deepEqual(preview.root.userData.appearance,legacy.root.userData.appearance);assert.equal(shapePreferenceScore(preview.root.userData.appearance.shapeTraits),score);
+ assert(preview.root.userData.characterModel.applied,id);assert.deepEqual(preview.root.userData.head.position.toArray(),legacy.root.userData.head.position.toArray());assert.deepEqual(look,original);assert.deepEqual(preview.root.userData.appearance,legacy.root.userData.appearance);assert.equal(shapePreferenceScore(preview.root.userData.appearance.shapeTraits),score);
  const meshes=skinMeshes(preview),legacyMeshes=skinMeshes(legacy);assert.equal(meshes.length,2);assert.notEqual(meshes[1].material,legacyMeshes[1].material);assert.equal(meshes[0].material,legacyMeshes[0].material);assert.equal(meshes[1].geometry,skinMeshes(reload)[1].geometry);assert.notEqual(meshes[1].geometry,legacyMeshes[1].geometry);
  assert.equal(legacyMeshes[1].material.userData.completeAdultFinish,undefined);assert.equal(legacyMeshes[1].geometry.attributes.featureKind,undefined);
  const old=ranges(legacy),now=ranges(preview);let retained=0;
@@ -46,7 +46,7 @@ for(const [id,look]of [['saved-npc',male],['saved-player',female],['official',of
  const mesh=meshes.find(m=>m.geometry===head.g),before=anchorIds.map(i=>mesh.getVertexPosition(i,new T.Vector3()).toArray());preview.root.userData.head.rotation.y=.38;preview.root.updateMatrixWorld(true);mesh.skeleton.update();for(const [j,i]of anchorIds.entries())assert(new T.Vector3(...before[j]).distanceTo(mesh.getVertexPosition(i,new T.Vector3()))<1e-6);
  let costume;
  if(id==='official'){assert([...now.keys()].filter(n=>n.startsWith('court-official-facial-hair')).length===3);costume=attachCourtOfficialCostume(preview);const cap=preview.root.getObjectByName('Original civil official black winged cap');assert.equal(cap.parent,preview.root.userData.head);assert(cap.userData.completeAdultFit);}
- if(id==='consort'){preview.station={royalRole:'consort',costumeStyle:'flower-comb'};costume=attachPalaceCostume(preview);assert(preview.root.userData.palaceCostume.userData.completeAdultFit);}
+ if(id==='consort'){preview.station={royalRole:'consort',costumeStyle:'flower-comb'};costume=attachPalaceCostume(preview);assert(preview.root.userData.palaceCostume.userData.completeAdultFit);assert(Math.abs(preview.root.userData.characterModel.attachmentFit.hairOffsetY)<.025);}
  result.push({id,score,body:look.bodyPreset,hair:look.hairStyle,wardrobe:look.wardrobePreset,retainedBodySurfaces:retained,collarAnchors:anchors,neckBlendVertices:blend,fit:preview.root.userData.characterModel.attachmentFit});
  costume?.dispose();for(const a of[preview,legacy,reload])a.dispose();
 }
