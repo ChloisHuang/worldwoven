@@ -23,12 +23,15 @@ function context(asset){
   for(const p of asset.parts.filter(isEye))for(let i=0;i<p.position.length;i+=3){if(Math.sign(p.position[i])!==side)continue;for(let k=0;k<3;k++){min[k]=Math.min(min[k],p.position[i+k]);max[k]=Math.max(max[k],p.position[i+k]);}}
   eyes[side]=min.map((v,k)=>(v+max[k])/2);
  }
- const noseAt=nearestSkin(skin,[0,7.2916,1.5075],true),nose=Array.from(skin.position.slice(noseAt,noseAt+3));
+ const landmark=raw=>{const at=nearestSkin(skin,raw,true);return Array.from(skin.position.slice(at,at+3));};
+ const nose=landmark([0,7.2916,1.5075]),bridge=landmark([0,7.1046,1.583]),tip=landmark([0,6.909,1.6807]),columella=landmark([0,6.8268,1.6033]);
+ const chinRoot=landmark([0,6.4583,1.5032]),chin=landmark([0,6.2006,1.4344]);
+ const tipPivot=[0,(tip[1]+columella[1])/2,tip[2]-.6*(tip[2]-columella[2])];
  // Brow featureCoord contains ribbon UVs, not anatomy. Associate its existing
  // fitted vertices with the current skin, without scalp rays or new geometry.
  const semantics=new Map();
  for(const part of asset.parts){if(part.material==='skin'||isEye(part))continue;const raw=[];for(let i=0;i<part.position.length;i+=3){const j=nearestSkin(skin,part.position.slice(i,i+3));raw.push(...skin.featureCoord.slice(j,j+3));}semantics.set(part,raw);}
- const c={eyes,nose,semantics};contexts.set(asset,c);return c;
+ const c={eyes,nose,bridge,tipPivot,chinRoot,chin,semantics};contexts.set(asset,c);return c;
 }
 function eyeWeight(x,y,z){
  return smooth(.075,.145,Math.abs(x))*(1-smooth(.48,.66,Math.abs(x)))
@@ -47,6 +50,20 @@ function displaced(p,raw,traits,c,eye=false){
  out[0]+=x*(traits.noseSize*traits.noseWidth-1)*nasal;
  out[1]+=(y-c.nose[1])*(traits.noseSize-1)*nasal;
  out[2]+=(z-c.nose[2]+.010)*(traits.noseSize-1)*nasal;
+ // Independent chin length/projection share a broad sublabial transition and
+ // stop above the anchored neck. Neither moves the lips or full head anchor.
+ const chin=smooth(1.38,1.435,y)*smooth(5.98,6.17,ry)*(1-smooth(6.38,6.55,ry))
+  *smooth(.65,1.18,rz)*(1-smooth(.26,.54,Math.abs(rx)));
+ out[1]+=(y-c.chinRoot[1])*(traits.chinLength-1)*chin;
+ out[2]+=Math.abs(c.chinRoot[1]-c.chin[1])*(traits.chinProjection-1)*chin;
+ // Bridge projection is independent of the tip bulb and the existing whole
+ // nose scale/width. Each uses current sculpt support, never new neutral data.
+ const ridge=smooth(6.94,7.02,ry)*(1-smooth(7.20,7.43,ry))
+  *(1-smooth(.05,.16,Math.abs(rx)))*smooth(1.36,1.54,rz)*(1-w);
+ out[2]+=Math.max(.010,c.bridge[2]-c.nose[2]+.008)*(traits.noseBridgeHeight-1)*ridge;
+ const bulb=smooth(6.78,6.86,ry)*(1-smooth(6.98,7.08,ry))
+  *(1-smooth(.095,.18,Math.abs(rx)))*smooth(1.49,1.60,rz)*(1-w);
+ for(let k=0;k<3;k++)out[k]+=(p[k]-c.tipPivot[k])*(traits.noseTipSize-1)*bulb;
  return out;
 }
 function areaNormals(position,index){
@@ -62,7 +79,7 @@ function changedNormals(part,position){
 }
 export function morphCompleteAdultAsset(asset,input){
  const traits=normalizeShapeTraits(input);
- if(['jawWidth','eyeSize','noseSize','noseWidth','socketDepth'].every(k=>traits[k]===1))return asset;
+ if(Object.entries(traits).every(([key,value])=>key==='legLength'||value===1))return asset;
  const c=context(asset),parts=asset.parts.map(part=>{
   const eye=isEye(part),position=part.position.slice(),raw=part.material==='skin'?part.featureCoord:c.semantics.get(part);let changed=false;
   for(let i=0;i<position.length;i+=3){const out=displaced(part.position.slice(i,i+3),eye?null:raw.slice(i,i+3),traits,c,eye);for(let k=0;k<3;k++){position[i+k]=out[k];changed ||= position[i+k]!==part.position[i+k];}}
