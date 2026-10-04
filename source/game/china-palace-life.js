@@ -78,7 +78,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   }
   if(near(n.root.position,to)){n.route=[];s.planned=false;s.retries=0;return true;}
   if(!s.planned){n.route=planPath(n.root.position,point(to),.25);s.planned=true;}
-  const direct=near(n.root.position,to,.45)&&canTraverse(n.root.position,point(to),lot.colliders.concat(safety(n)),navigation);
+  const direct=near(n.root.position,to,.45)&&canTraverse(n.root.position,point(to),lot.colliders,navigation,safety(n));
   const step=direct?{waypoint:point(to)}:doors.routeStep(n.route,n.root.position,.025);
   if(!step.waiting&&step.waypoint){
    const p=step.waypoint,dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz);
@@ -88,7 +88,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
     const other=npcs.find(a=>a.root.position===blocker),yields=!other||!owned.has(other)||!other.walking||n.station.id>other.station.id;
     // A checked side-step in the public doorway prevents two household actors
     // waiting nose-to-nose. In a narrow passage the actor simply waits.
-    if(yields)for(const sign of[1,-1]){const aside=[n.root.position.x+sign*dz/d*.82,n.root.position.y,n.root.position.z-sign*dx/d*.82];if(canTraverse(n.root.position,point(aside),lot.colliders.concat(safety(n)),navigation)){s.yieldPoint=aside;s.yieldTo=other?.station.id||'player';record(n,'make-room-for-'+s.yieldTo);break;}}
+    if(yields)for(const sign of[1,-1]){const aside=[n.root.position.x+sign*dz/d*.82,n.root.position.y,n.root.position.z-sign*dx/d*.82];if(canTraverse(n.root.position,point(aside),lot.colliders,navigation,safety(n))){s.yieldPoint=aside;s.yieldTo=other?.station.id||'player';record(n,'make-room-for-'+s.yieldTo);break;}}
     s.stalled=0;return false;
    }
    if(d>1e-10){const before=n.root.position.clone(),amount=Math.min(d,dt*n.locomotion.walkSpeed*.78);moveActor(n,dx/d*amount,dz/d*amount,.25);n.walking=before.distanceToSquared(n.root.position)>1e-9;n.root.rotation.y=Math.atan2(dx,dz);}
