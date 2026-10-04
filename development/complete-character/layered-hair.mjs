@@ -4,6 +4,7 @@
  * at the silhouette. The module returns one indexed, vertex-coloured mesh.
  */
 import * as THREE from 'three';
+import HAIR_DATA from './assets/layered-hair-data.mjs';
 const BASE_CENTER=[0,1.600,-.017], BASE_RADII=[.090,.117,.105];
 const mix=(a,b,t)=>a+(b-a)*t;
 const smooth=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
@@ -31,7 +32,7 @@ const LOCKS=[
  ['left-nape-tip',[[-.083,1.665,-.075],[-.102,1.635,-.091],[-.101,1.605,-.103],[-.083,1.574,-.108],[-.067,1.565,-.100]],.020,.0030,.99]
 ];
 
-export function createLayeredHairGeometry({center=BASE_CENTER,radii=BASE_RADII,color=0x44342f,scalpGeometry=null}={}){
+export function sculptLayeredHairGeometry({center=BASE_CENTER,radii=BASE_RADII,color=0x44342f,scalpGeometry=null}={}){
  const positions=[],indices=[],colors=[],flow=[],root=V(BASE_CENTER),r=V(BASE_RADII),baseColor=new THREE.Color(color);
  const scalpMaterial=scalpGeometry?new THREE.MeshBasicMaterial({side:THREE.DoubleSide}):null;
  const scalp=scalpGeometry?new THREE.Mesh(scalpGeometry,scalpMaterial):null;
@@ -39,7 +40,15 @@ export function createLayeredHairGeometry({center=BASE_CENTER,radii=BASE_RADII,c
  const ray=new THREE.Raycaster(),direction=new THREE.Vector3();
  function scalpPoint(p,rise){
   direction.copy(p).sub(root).normalize();
-  if(scalp){ray.set(root,direction);ray.far=.25;const hit=ray.intersectObject(scalp,false)[0];if(hit)return root.clone().addScaledVector(direction,hit.distance+rise);}
+  if(scalp){ray.set(root,direction);ray.far=.25;const hit=ray.intersectObject(scalp,false)[0];if(hit){
+    const surface=root.clone().addScaledVector(direction,hit.distance);
+    // The skin mesh includes the ear. Roots pass above/in front of its helix,
+    // never growing from the ear itself when a near-horizontal ray hits it.
+    const earWeight=gaussian(surface.z,-.003,.032)*(1-smooth(1.615,1.640,surface.y))*smooth(.076,.090,Math.abs(surface.x));
+    const scalpX=Math.min(Math.abs(surface.x),.085);
+    surface.x=mix(surface.x,Math.sign(surface.x)*scalpX,earWeight);
+    return surface.addScaledVector(direction,rise);
+   }}
   const q=direction.clone().divide(r),distance=1/q.length();return root.clone().addScaledVector(direction,distance+rise);
  }
 
@@ -101,11 +110,24 @@ export function createLayeredHairGeometry({center=BASE_CENTER,radii=BASE_RADII,c
  scalpMaterial?.dispose();g.computeBoundingBox();g.computeBoundingSphere();g.userData={originalAsset:true,style:'loose-asymmetrical-side-part',triangles:indices.length/3,locks:LOCKS.length};return g;
 }
 
-/** Replace only head hair. The placeholder matches Worldwoven's mesh batcher. */
+/** Reuse the evaluated original mesh. No rays or per-frame work at runtime. */
+export function createLayeredHairGeometry({center=BASE_CENTER,radii=BASE_RADII,color=0x44342f}={}){
+ const p=HAIR_DATA.position.slice(),n=HAIR_DATA.normal.slice(),c=[],base=new THREE.Color(color);
+ for(let i=0;i<p.length;i+=3){
+  for(let k=0;k<3;k++){p[i+k]=center[k]+(p[i+k]-BASE_CENTER[k])*radii[k]/BASE_RADII[k];n[i+k]*=BASE_RADII[k]/radii[k];}
+  const length=Math.hypot(n[i],n[i+1],n[i+2])||1;for(let k=0;k<3;k++)n[i+k]/=length;
+  const value=HAIR_DATA.value[i/3];c.push(base.r*value,base.g*value,base.b*value);
+ }
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(n,3));g.setAttribute('color',new THREE.Float32BufferAttribute(c,3));g.setIndex(HAIR_DATA.index);g.computeBoundingBox();g.computeBoundingSphere();g.userData={originalAsset:true,style:HAIR_DATA.style,triangles:HAIR_DATA.index.length/3,locks:LOCKS.length,scalpSha256:HAIR_DATA.scalpSha256};return g;
+}
+
+/** Replace only head hair. The placeholder matches Worldwoven's mesh batcher.
+ * Pass resculpt:true only for offline refitting to a changed anatomical scalp.
+ */
 export function addLayeredHair(head,color=0x44342f,fit={}){
  for(const child of [...head.children])if(child.isMesh&&/^(hair-|fringe|combed|side-lock|side-flow)/.test(child.name)){child.removeFromParent();child.geometry.dispose();}
  const scalp=head.children.find(m=>m.isMesh&&/^continuous-head/.test(m.name));
- const geometry=createLayeredHairGeometry({scalpGeometry:scalp?.geometry,...fit,color});
+ const geometry=fit.resculpt?sculptLayeredHairGeometry({scalpGeometry:scalp?.geometry,...fit,color}):createLayeredHairGeometry({...fit,color});
  const material=fit.material??{color:new THREE.Color(color),isMaterial:false};
  const mesh=new THREE.Mesh(geometry,material);mesh.name='hair-layered-loose-side-part';mesh.userData.softSkin=true;mesh.userData.layeredHair=true;head.add(mesh);head.userData.layeredHair={...geometry.userData,center:fit.center??BASE_CENTER,radii:fit.radii??BASE_RADII};return mesh;
 }
