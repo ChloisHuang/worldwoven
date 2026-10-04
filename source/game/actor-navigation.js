@@ -76,6 +76,7 @@ export function followActorRoute(actor,dt,{route=actor.route,doors,moveActor,npc
   return actor.walking;
  };
  if(body){
+  if(step.phase==='walking')doors.rejoinAroundBody?.(route,from,body.position,radius+(body.actor?.collisionRadius??(body.actor ? .25 : .34)));
   const other=body.actor,sameDirection=other?.walking&&!TURNOUT.has(other)&&Math.sin(other.root.rotation.y)*ux+Math.cos(other.root.rotation.y)*uz>.35;
   // Follow a moving queue. In a crossing, one actor starts yielding and
   // the other can also make room locally; no role owns an entire corridor.

@@ -190,6 +190,24 @@ export function createAutomaticRouting({doors,staticColliders,planningColliders,
    }
    return {waypoint:null,waiting:true,phase:state.phase,doorId:state.stage?.door.id??null};
   },
+  rejoinAroundBody(route,position,body,radius){
+   const state=plans.get(route);
+   if(!state||state.stage||route.length<2)return false;
+   const occupied=p=>(p.y??position.y)<body.y+1.95-.00001&&(p.y??position.y)+(state.options.bodyHeight??1.95)>body.y+.00001&&distance(p,body)<radius+.025;
+   if(!occupied(route[0]))return false;
+   let join=0;while(join<Math.min(route.length-1,8)&&occupied(route[join]))join++;
+   const next=route[join];
+   // Only bypass occupied intermediate grid links in this immediate encounter.
+   // The actual destination remains claimed even when another person stands on it.
+   if(!join||occupied(next)||distance(position,next)>2)return false;
+   const prior=state.bodyJoin;
+   if(prior&&prior.first===route[0]&&prior.version===getVersion()&&distance(prior.from,position)<.2&&distance(prior.body,body)<.1)return false;
+   state.bodyJoin={first:route[0],from:point(position),body:point(body),version:getVersion()};
+   // Do not bypass closed-door staging or borrow a floor/wall shortcut. Bodies
+   // still constrain every real movement; they are not added to the static map.
+   if(doors.some(d=>d.fraction<1-1e-7&&crossingDistance(d,position,[next],2)!==Infinity)||!canTraverse(position,next,openColliders,state.options))return false;
+   route.splice(0,join);state.bodyJoin=null;return true;
+  },
   routeBlocked(route,position){
    const state=plans.get(route);if(!state)return false;
    if(state.stage){state.stage.retry=true;return true;}
