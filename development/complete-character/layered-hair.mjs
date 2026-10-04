@@ -7,7 +7,7 @@ import * as THREE from 'three';
 const BASE_CENTER=[0,1.600,-.017], BASE_RADII=[.090,.117,.105];
 const mix=(a,b,t)=>a+(b-a)*t;
 const smooth=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
-const gaussian=(x,c,w)=>Math.exp(-((x-c)/w)**2);
+const gaussian=(x,c,w)=>Math.exp(-(((x-c)/w)**2));
 const V=p=>new THREE.Vector3(...p);
 
 // Each path is a deliberately authored flow from the off-centre part/crown.
