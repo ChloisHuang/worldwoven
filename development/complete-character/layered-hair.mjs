@@ -53,6 +53,10 @@ export function sculptLayeredHairGeometry({center=BASE_CENTER,radii=BASE_RADII,c
  }
 
  function add(p,value=1,u=0,v=0){positions.push(...p);const c=baseColor.clone().multiplyScalar(value);colors.push(c.r,c.g,c.b);flow.push(u,v,1);return positions.length/3-1;}
+ function envelopeLift(q){
+  const crown=smooth(.26,.84,q.y),part=gaussian(q.x,.27,.085)*gaussian(q.z,.17,.64)*crown;
+  return .0045+.0080*crown-.0035*part+.0025*gaussian(q.x,-.24,.55)*crown;
+ }
  // A close scalp envelope, completely covered at the forehead by the swept
  // fringe. The ear edge is an arch with asymmetric sideburn/nape termination.
  const columns=56,rows=16,phiBounds=[];
@@ -69,19 +73,15 @@ export function sculptLayeredHairGeometry({center=BASE_CENTER,radii=BASE_RADII,c
   if(abs<.50)edge=mix(edge,1.640,1-smooth(.10,.50,abs));
   let low=.015,high=2.55;
   for(let step=0;step<12;step++){
-   const phi=(low+high)*.5,d=new THREE.Vector3(Math.sin(phi)*Math.sin(a),Math.cos(phi),Math.sin(phi)*Math.cos(a)).multiply(r).add(root);
-   if(scalpPoint(d,0).y>edge)low=phi;else high=phi;
+   const phi=(low+high)*.5,q=new THREE.Vector3(Math.sin(phi)*Math.sin(a),Math.cos(phi),Math.sin(phi)*Math.cos(a)),d=q.clone().multiply(r).add(root);
+   if(scalpPoint(d,envelopeLift(q)).y>edge)low=phi;else high=phi;
   }
   phiBounds.push((low+high)*.5);
  }
  for(let j=0;j<=rows;j++)for(let i=0;i<=columns;i++){
   const a=i/columns*Math.PI*2,phi=phiBounds[i]*j/rows;
   const q=new THREE.Vector3(Math.sin(phi)*Math.sin(a),Math.cos(phi),Math.sin(phi)*Math.cos(a));
-  const direction=q.clone().divide(r).normalize();
-  const crown=smooth(.26,.84,q.y),part=gaussian(q.x,.27,.085)*gaussian(q.z,.17,.64)*crown;
-  const lift=.0045+.0080*crown-.0035*part;
-  const fullness=.0025*gaussian(q.x,-.24,.55)*crown;
-  const p=scalpPoint(q.multiply(r).add(root),lift+fullness);
+  const p=scalpPoint(q.clone().multiply(r).add(root),envelopeLift(q));
   add(p.toArray(),.975, j/rows, i/columns);
  }
  for(let j=0;j<rows;j++)for(let i=0;i<columns;i++){
