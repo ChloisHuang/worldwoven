@@ -41,8 +41,9 @@ function displaced(p,raw,traits,c,eye=false){
  const [rx,ry,rz]=raw;
  const jaw=smooth(1.38,1.435,y)*smooth(5.98,6.18,ry)*(1-smooth(6.50,6.94,ry))*smooth(.18,.85,rz);
  out[0]+=x*(traits.jawWidth-1)*jaw;
+ const bridge=smooth(6.95,7.20,ry);
  const nasal=smooth(6.70,6.83,ry)*(1-smooth(7.28,7.46,ry))
-  *(1-smooth(ry>7.1?.075:.22,ry>7.1?.24:.36,Math.abs(rx)))*smooth(1.22,1.46,rz)*(1-w);
+  *(1-smooth(.22-.145*bridge,.36-.12*bridge,Math.abs(rx)))*smooth(1.22,1.46,rz)*(1-w);
  out[0]+=x*(traits.noseSize*traits.noseWidth-1)*nasal;
  out[1]+=(y-c.nose[1])*(traits.noseSize-1)*nasal;
  out[2]+=(z-c.nose[2]+.010)*(traits.noseSize-1)*nasal;
@@ -95,7 +96,7 @@ export function fitCompleteAdultAttachments(root,options,attach){
   const delta=y=>shapedArm(y).map((v,k)=>v-neutralArm(y)[k]);
   for(let i=0;i<p.count;i++){
    const x=p.getX(i),y=p.getY(i),z=p.getZ(i),sourceY=sy.getX(i),d=arm?delta(sourceY):[0,0,0];
-   const derivative=arm?delta(sourceY+epsilon).map((v,k)=>(v-delta(sourceY-epsilon)[k])/(2*epsilon)):[0,0,0];
+   const below=arm?delta(sourceY-epsilon):null,derivative=arm?delta(sourceY+epsilon).map((v,k)=>(v-below[k])/(2*epsilon)):[0,0,0];
    p.setXYZ(i,x+Math.sign(x)*d[0],shapeHeight(y+d[1],leg),z+d[2]);
    const ny=(n.getY(i)-Math.sign(x)*derivative[0]*n.getX(i)-derivative[2]*n.getZ(i))/(heightDerivative(y+d[1],leg)*(1+derivative[1]));
    normal.set(n.getX(i),ny,n.getZ(i)).normalize();n.setXYZ(i,normal.x,normal.y,normal.z);
