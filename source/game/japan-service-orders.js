@@ -15,8 +15,8 @@ export const JAPAN_SERVICE_POINTS = Object.freeze({
  menChanging:[-9.92,3.8,2.4], womenChanging:[5.15,3.8,2.4],
  menWashing:[-9.15,3.8,-3.7], womenWashing:[3,3.8,-4.4],
 });
-// These are invented bathhouse blends, with no medical claims or real recipes.
 export const JAPAN_RECEPTION_RADIUS=.34;
+// These are invented bathhouse blends, with no medical claims or real recipes.
 export const JAPAN_BATH_BLENDS = Object.freeze([
  {id:'cloud-leaf',name:'云叶浴包',color:0x819c76},
  {id:'lantern-petal',name:'灯花浴包',color:0xc79080},
