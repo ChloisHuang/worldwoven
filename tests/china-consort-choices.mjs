@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {createLifeDecisions} from '../source/game/npc-life-decisions.js';
 import {CHINA_CONSORTS,palaceResidentSave} from '../source/game/china-palace-residents.js';
-import {consortActivities,createPalaceLeisureClaims} from '../source/game/china-consort-activities.js';
+import {consortActivities,createPalaceLeisureClaims,createConsortPassage} from '../source/game/china-consort-activities.js';
 import {npcRoleAppearance} from '../source/game/appearance.js';
 const ids=['cn-emperor',...CHINA_CONSORTS.map(p=>p.id),'cn-tea'],claims=createPalaceLeisureClaims();
 const saved=palaceResidentSave({worldSeed:42,actorIds:ids});
@@ -20,4 +20,5 @@ for(const [i,p]of CHINA_CONSORTS.entries())assert(claims.reserve('palace-garden-
 const original=brain.snapshot();original.people[yue.id].traits.quiet=.71;original.people[yue.id].relations['cn-tea']=.89;original.people[yue.id].current={id:'visit',targetId:'cn-tea',duration:11,startedAt:0};original.people[yue.id].cooldowns.rest=76;
 assert.deepEqual(palaceResidentSave({worldSeed:42,actorIds:ids,saved:original}),original,'existing personality, relationship, intention, cooldown and PRNG remain byte-for-byte stable');
 const migrated=structuredClone(original);delete migrated.people[heng.id];const restored=palaceResidentSave({worldSeed:42,actorIds:ids,saved:migrated});assert.deepEqual(restored.people[yue.id],original.people[yue.id]);assert.deepEqual(restored.people[heng.id].traits,heng.traits);
+const passage=createConsortPassage(),resident=p=>({station:p,root:{position:{x:-18.6,z:p.npcPosition[2]}}}),h=resident(CHINA_CONSORTS[1]),l=resident(CHINA_CONSORTS[2]);assert(passage.allow(h,[-20.1,.215,-4.1]));assert(!passage.allow(l,[-20.1,.215,.9]));h.root.position={x:-20.1,z:-6};passage.leave(h);assert(!passage.allow(l,[-20.1,.215,.9]));h.root.position={x:-18.3,z:-10.7};passage.leave(h);assert(passage.allow(l,[-20.1,.215,.9]));passage.dispose();
 console.log('PASS: adult/private identity, distinct conditional probabilities, finite host/garden claims, timeout/conversation pause, migrated and retained per-person state');
