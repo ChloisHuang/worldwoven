@@ -87,6 +87,18 @@ for x,y,z in raw:
   _,y,z=sculpt[(abs(x),y,z)]
  sculpted.append((x,y,z))
 positions=np.array([sculpt_forehead(p) for p in cage(sculpted)])
+# Recover the source's continuous braincase and suboccipital curve as one
+# aligned form. The failed independent base handles pulled the lower occiput
+# forward above the ear; a native affine back preserves its rounded return.
+# The semantic blend ends behind the ear and above the unchanged collar.
+posterior=form['posteriorNative']
+for i,(sx,sy,sz) in enumerate(raw):
+ weight=(1-smooth(.08,.53,sz))*smooth(5.96,6.80,sy)
+ if weight:
+  target=np.array(positions[i])
+  target[1]=posterior['crownY']+(sy-8.4913)*posterior['verticalScale']
+  target[2]=sz*posterior['depthScale']+posterior['depthOffset']
+  positions[i]=positions[i]*(1-weight)+target*weight
 # Authored local planes are direct named vertex-loop moves, mirrored by source
 # topology. They are not extra meshes or a global displacement function.
 loops=json.loads((ROOT/'topology_sculpt.json').read_text())['loops']

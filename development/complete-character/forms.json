@@ -594,7 +594,13 @@
           -0.046
         ]
       ]
-    ]
+    ],
+    "posteriorNative": {
+      "crownY": 1.686,
+      "verticalScale": 0.1017,
+      "depthScale": 0.105,
+      "depthOffset": -0.09
+    }
   },
   "female": {
     "scale": [
@@ -1229,6 +1235,12 @@
           -0.044
         ]
       ]
-    ]
+    ],
+    "posteriorNative": {
+      "crownY": 1.69,
+      "verticalScale": 0.105,
+      "depthScale": 0.102,
+      "depthOffset": -0.088
+    }
   }
 }
