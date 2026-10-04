@@ -1,5 +1,17 @@
 # C01 opt-in actor integration
 
+## Current candidate: fixed cranium, ten traits, explicit female hair
+
+The runtime now includes main R16.53 (`3cde448`) and the bounded-control branch (`babdc7b`) through ordinary incremental merges. The actual candidate uses compiled head/short male hair from `e850c2b`, the four semantic morph additions from `857d702` / `4db9241`, and baked female hair from `c313967`. The new four controls are chin length/projection, nose bridge height and nose-tip size; legacy six-term scores and old NPC generation versions remain authoritative.
+
+After importing `source/game/complete-adult/register.js`, callers may request either model preview mode below. Female candidates additionally require an explicit runtime-only `previewHair:'gathered-updo'` or `previewHair:'long-layered'`. This option never enters `root.userData.appearance` or saved state; a stored `chin-bob` / `low-bun` ID stays exact. Omitting the female preview hair falls back, so rejected old bob art is not silently replaced.
+
+The long hairstyle is baked against the refined French gown and is bounded to the feminine-slender / court-gown complete-pair preview. Lower draped lengths follow the existing torso joints, transitioning to head influence above the shoulders; no additional material bucket or bone is created. Gathered updo also supports the existing female low-bun role input, including 月容's original garments/ornaments. Other saved hair combinations remain fallback. No asset is aesthetically accepted or activated by this integration.
+
+The updated actual actor contract passes four selected new endpoints across both forms: chin length 3.40 mm, chin projection 3.68 mm, bridge height 4.56 mm and nose tip 2.01 mm maximum displacement. Fixed collar anchors and scores remain unchanged; explicit preview hair is absent from saved appearance. Source/version contracts from the control worker are reused. Updated normal-view rendering and default build graph are checked separately before final handoff.
+
+## Earlier integration and evidence
+
 Development only. First explicitly import `source/game/complete-adult/register.js` in the development entry; then synchronous `createCharacter({...appearance, modelPreview:'complete-adult-head-v1'})` uses the current candidate head. Omitted, unknown, or not-yet-registered selection stays legacy; registration alone selects no actors. No production call site enables it, and nothing in this branch is an aesthetic approval. `root.userData.characterModel` reports applied/fallback and the asset version; saved appearance fields and scoring are unchanged.
 
 `complete-adult-head-v1` is **head-only** and keeps every original body/clothing mesh. A separate `modelPreview:'complete-adult-pair-v1'` ports the existing soft-shoulder/folded-collar and gown refinements only for the exact two French representatives (masculine-lean / side-part / court-frock-coat and feminine-slender / chin-bob / court-gown, casual). Other pair-selection requests fall back unchanged. It is not a cultural wardrobe replacement.
