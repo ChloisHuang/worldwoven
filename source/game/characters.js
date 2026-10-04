@@ -545,6 +545,8 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
     reach(side,tmp.x,tmp.y,tmp.z);posedQ[hand].slerp(onsenLapPalmQ,transfer.handWeight);
    }
    for(const [i,j]of[[16,11],[17,14]]){posedP[i].copy(posedP[j]);posedQ[i].copy(posedQ[j]);}
+   // Look toward the feet/pool while the supporting torso leans back.
+   headQ.setFromEuler(new THREE.Euler(.78*transfer.handWeight,0,0));posedQ[3].copy(torsoQ).multiply(headQ);
    for(let i=0;i<posedP.length;i++){posedP[i].lerp(transferP[i],transfer.seatBlend);posedP[i].z+=Math.sin(Math.PI*transfer.seatBlend)*.03/root.scale.z;posedQ[i].slerp(transferQ[i],transfer.seatBlend);}
    // Hands and elbows arc above and inward of the timber as support changes.
    for(const i of[5,6,8,9]){const lift=Math.sin(Math.PI*transfer.seatBlend);posedP[i].y+=lift*.10/root.scale.y;posedP[i].z+=lift*.07/root.scale.z;}
