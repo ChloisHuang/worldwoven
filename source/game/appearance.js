@@ -1,9 +1,12 @@
 // Original fictional-character palettes. Color choices are independent traits,
 // not an attempt to infer a real person's ethnicity or identity.
 import {palaceResidentAppearance} from './china-palace-residents.js';
-import {DEFAULT_SHAPE_TRAITS,SHAPE_RANGES,normalizeShapeTraits,randomShapeTraits} from './character-traits.js';
+import {DEFAULT_SHAPE_TRAITS,SHAPE_RANGES,LEGACY_SHAPE_KEYS,normalizeShapeTraits,randomShapeTraits} from './character-traits.js';
 export const APPEARANCE_VERSION=3;
 export const NPC_SHAPE_VERSION=2;
+const shapeRanges=extended=>extended?SHAPE_RANGES:Object.fromEntries(LEGACY_SHAPE_KEYS.map(key=>[key,SHAPE_RANGES[key]]));
+const shapeDefaults=extended=>Object.fromEntries(Object.keys(shapeRanges(extended)).map(key=>[key,1]));
+const normalizedShape=(input,extended)=>{const all=normalizeShapeTraits(input);return Object.fromEntries(Object.keys(shapeRanges(extended)).map(key=>[key,all[key]]));};
 // Durable v1 generation contract: never retune these bounds or salts in place.
 // The seed is already persisted with the player; region + stable station ID is
 // the resident identity key. Future generators must use a new saved version.
@@ -57,27 +60,27 @@ export function npcRoleAppearance(region,id,worldSeed=1,shapeVersion=NPC_SHAPE_V
  if(region==='china'&&['cn-archery','cn-range-warden'].includes(id))return {...look,hairStyle:'low-bun',wardrobePreset:'jinyi-training',clothes:id==='cn-archery'?0x853930:0x594638,accent:0xc9aa60};
  return region==='japan'&&id==='jp-omamori'?{...look,hairStyle:'low-bun',wardrobePreset:'miko-hakama',locomotionWardrobePreset:look.wardrobePreset}:look;
 }
-export function createAppearanceState(seed){const key='player|'+(seed>>>0),variant=Math.floor(random(key,'silhouette')*4);return{version:APPEARANCE_VERSION,npcShapeVersion:NPC_SHAPE_VERSION,seed:seed>>>0,player:{skin:weighted(skin,random(key,'skin')),hair:weighted(palettes.france.hair,random(key,'hair')),eyeColor:weighted(palettes.france.eyes,random(key,'eyes')),variant,...identity(key,variant),shapeTraits:{...DEFAULT_SHAPE_TRAITS}}};}
+export function createAppearanceState(seed,{extended=true}={}){const key='player|'+(seed>>>0),variant=Math.floor(random(key,'silhouette')*4);return{version:APPEARANCE_VERSION,npcShapeVersion:extended?NPC_SHAPE_VERSION:1,seed:seed>>>0,player:{skin:weighted(skin,random(key,'skin')),hair:weighted(palettes.france.hair,random(key,'hair')),eyeColor:weighted(palettes.france.eyes,random(key,'eyes')),variant,...identity(key,variant),shapeTraits:shapeDefaults(extended)}};}
 function validBase(a){return Number.isInteger(a?.seed)&&a.seed>=0&&a.seed<=4294967295&&a.player&&['skin','hair','eyeColor'].every(k=>Number.isInteger(a.player[k])&&a.player[k]>=0&&a.player[k]<=0xffffff)&&Number.isInteger(a.player.variant)&&a.player.variant>=0&&a.player.variant<4;}
 function validIdentity(a){return validBase(a)&&BODY_PRESETS.includes(a.player.bodyPreset)&&HAIR_STYLES.includes(a.player.hairStyle)&&Number.isInteger(a.player.wardrobeIndex)&&a.player.wardrobeIndex>=0&&a.player.wardrobeIndex<2&&Number.isInteger(a.player.gaitPreset)&&a.player.gaitPreset>=0&&a.player.gaitPreset<4;}
-export function validAppearanceState(a){return a?.version===APPEARANCE_VERSION&&[1,2].includes(a.npcShapeVersion)&&validIdentity(a)&&Object.entries(SHAPE_RANGES).every(([key,{min,max}])=>Number.isFinite(a.player.shapeTraits?.[key])&&a.player.shapeTraits[key]>=min&&a.player.shapeTraits[key]<=max);}
-export function migrateAppearanceState(a){
- if(validAppearanceState(a))return a;
+export function validAppearanceState(a,{extended=true}={}){return a?.version===APPEARANCE_VERSION&&(extended?[1,2].includes(a.npcShapeVersion):a.npcShapeVersion===1)&&validIdentity(a)&&Object.entries(shapeRanges(extended)).every(([key,{min,max}])=>Number.isFinite(a.player.shapeTraits?.[key])&&a.player.shapeTraits[key]>=min&&a.player.shapeTraits[key]<=max);}
+export function migrateAppearanceState(a,{extended=true}={}){
+ if(validAppearanceState(a,{extended}))return a;
  // Legacy saves use exact neutral morphs. Never interpret new fields on old saves,
  // change the world seed, or reroll an existing face during schema migration.
- if(a?.version===1&&validBase(a))return{...a,version:APPEARANCE_VERSION,npcShapeVersion:1,player:{...identity('player|'+a.seed,a.player.variant),...a.player,shapeTraits:{...DEFAULT_SHAPE_TRAITS}}};
- if(a?.version===2&&validIdentity(a))return{...a,version:APPEARANCE_VERSION,npcShapeVersion:1,player:{...a.player,shapeTraits:{...DEFAULT_SHAPE_TRAITS}}};
- if(a?.version===APPEARANCE_VERSION&&validIdentity(a))return{...a,npcShapeVersion:a.npcShapeVersion===2?2:1,player:{...a.player,shapeTraits:normalizeShapeTraits(a.player.shapeTraits)}};
+ if(a?.version===1&&validBase(a))return{...a,version:APPEARANCE_VERSION,npcShapeVersion:1,player:{...identity('player|'+a.seed,a.player.variant),...a.player,shapeTraits:shapeDefaults(extended)}};
+ if(a?.version===2&&validIdentity(a))return{...a,version:APPEARANCE_VERSION,npcShapeVersion:1,player:{...a.player,shapeTraits:shapeDefaults(extended)}};
+ if(a?.version===APPEARANCE_VERSION&&validIdentity(a))return{...a,npcShapeVersion:extended&&a.npcShapeVersion===2?2:1,player:{...a.player,shapeTraits:normalizedShape(a.player.shapeTraits,extended)}};
  return null;
 }
 // Pool existing colors equally: random player appearance has no culture, skin or
 // presentation weighting. World/resident seed is deliberately not a random trait.
 const playerColorPool={skin:[...new Set([...skin.map(x=>x[0]),...Object.values(palettes).flatMap(p=>p.skin.map(x=>x[0]))])],hair:[...new Set(Object.values(palettes).flatMap(p=>p.hair.map(x=>x[0])))],eyes:[...new Set(Object.values(palettes).flatMap(p=>p.eyes.map(x=>x[0])))]};
-export function randomizePlayerAppearance(state,rng=Math.random){
+export function randomizePlayerAppearance(state,rng=Math.random,{extended=true}={}){
  const roll=()=>{const n=rng();return Number.isFinite(n)?Math.max(0,Math.min(1-Number.EPSILON,n)):0;};
  const variant=Math.floor(roll()*BODY_PRESETS.length);
  // Independent unbiased draws, not a search for the highest preference score.
- const shapeTraits=randomShapeTraits(roll);
+ const shapeTraits=randomShapeTraits(roll,shapeRanges(extended));
  return{...state,version:APPEARANCE_VERSION,npcShapeVersion:state.npcShapeVersion??1,seed:state.seed,player:{skin:pick(playerColorPool.skin,roll()),hair:pick(playerColorPool.hair,roll()),eyeColor:pick(playerColorPool.eyes,roll()),variant,bodyPreset:BODY_PRESETS[variant],hairStyle:pick(HAIR_STYLES,roll()),wardrobeIndex:Math.floor(roll()*2),gaitPreset:Math.floor(roll()*4),shapeTraits}};
 }
 export function playerAppearance(state,region,outfit=0){const p=palettes[region]||palettes.france,key='player-clothes|'+state.seed+'|'+region,offset=Math.floor(random(key,'outfit')*p.clothes.length),wardrobePreset=wardrobe(region,state.player.bodyPreset,state.player.wardrobeIndex+Math.floor((outfit>>>0)/4));return{...state.player,wardrobePreset,clothes:p.clothes[(offset+(outfit>>>0))%p.clothes.length],accent:region==='egypt'?0xc4a657:region==='china'?0xd0b478:0xdfceb0};}

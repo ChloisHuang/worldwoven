@@ -72,7 +72,7 @@ function locomotionFor(wardrobe,gaitPreset,scale){
  const walkSpeed=(restricted?.95:free?1.35:long?1.20:1.06)*temper*scale*1.65;
  return Object.freeze({walkSpeed,hurrySpeed:walkSpeed*1.38,stepLength,strideLength:stepLength*2,label:restricted?'measured garment-limited steps':free?'relaxed open stride':'easy draped stride',lift:(restricted?.065:.090)*scale,armSwing:(restricted?.065:free?.135:.105)*temper});
 }
-export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,accent=0xe7cab0,style='casual',culture=null,variant=0,bodyPreset=null,hairStyle=null,wardrobePreset=null,locomotionWardrobePreset=null,gaitPreset=1,scale=1,eyeColor=0x594b3f,receiveShadow=false,shapeTraits=null,modelPreview=undefined,previewHair=null,previewHairFlow=undefined}={}){
+export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,accent=0xe7cab0,style='casual',culture=null,variant=0,bodyPreset=null,hairStyle=null,wardrobePreset=null,locomotionWardrobePreset=null,gaitPreset=1,scale=1,eyeColor=0x594b3f,receiveShadow=false,shapeTraits=null,modelPreview=undefined,previewHair=null,previewHairFlow=undefined,previewSubject=null}={}){
  shapeTraits=normalizeShapeTraits(shapeTraits);const shaped=hasShapeTraits(shapeTraits);
  bodyPreset=BODY_PRESETS.includes(bodyPreset)?bodyPreset:BODY_PRESETS[typeof variant==='string'?(/masculine|male/.test(variant)?1:0):Math.abs(variant|0)%4];
  const masc=bodyPreset.startsWith('masculine');hairStyle=HAIR_STYLES.includes(hairStyle)?hairStyle:(masc?'swept-short':'chin-bob');
@@ -86,7 +86,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
  const root=new THREE.Group();root.name='approved-human-r10';root.scale.set(masc?scale*1.085:scale,masc?scale*1.035:scale,masc?scale*1.065:scale);
  const opts={eyeColor:new THREE.Color(eyeColor).getHex(),skin:new THREE.Color(skin).getHex(),hair:new THREE.Color(hair).getHex(),clothes:new THREE.Color(clothes).getHex(),accent:new THREE.Color(accent).getHex(),style,culture,masc,bodyPreset,hairStyle,wardrobePreset};
  if(shaped)opts.shapeTraits=shapeTraits;
- if(modelPreview===undefined){const selected=defaultCharacterModelPreview(opts);modelPreview=selected.modelPreview;previewHair??=selected.previewHair;previewHairFlow??=selected.previewHairFlow;}
+ if(modelPreview===undefined){const selected=defaultCharacterModelPreview({...opts,previewSubject});modelPreview=selected.modelPreview;previewHair??=selected.previewHair;previewHairFlow??=selected.previewHairFlow;}
  const previewOptions=previewHair||previewHairFlow?{...opts,previewHair,previewHairFlow:!!previewHairFlow}:opts,model=resolveCharacterModelPreview(previewOptions,modelPreview),template=getTemplate(opts,modelPreview,model,previewOptions),height=template.height*root.scale.y;
  const rig=new THREE.Group();rig.name='articulated-rig';root.add(rig);const {bones,skeleton}=buildSkeleton(rig,rest);
  const meshes=template.geometry.map((g,i)=>{const mesh=new THREE.SkinnedMesh(g,template.preview.applied?previewMaterial(template.previewAdapter,template.preview,i?'skin':'cloth'):(i?skinMaterial:clothMaterial));mesh.name=i?'approved-face-skin':'continuous-tailored-cloth';mesh.castShadow=true;mesh.receiveShadow=receiveShadow;mesh.frustumCulled=false;rig.add(mesh);mesh.bind(skeleton);return mesh;});

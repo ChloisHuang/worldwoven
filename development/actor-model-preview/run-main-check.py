@@ -1,6 +1,5 @@
 """One guarded actual-main chain. Run serially; defaults to its two Mesa captures."""
 import json
-import importlib.util
 import os
 from pathlib import Path
 import signal
@@ -18,16 +17,34 @@ if OUT.exists():
     raise SystemExit('Use a fresh OUT_DIR to preserve existing evidence: ' + str(OUT))
 
 
-MONITOR_PATH = Path('/workspace/scratch/1eb6172ab681/alphagpt-recovery-20261003/reentry_evidence/code/process_tree_monitor.py')
-spec = importlib.util.spec_from_file_location('worldwoven_process_monitor', MONITOR_PATH)
-monitor = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(monitor)
+def own_tree(root_pid):
+    rows = {}
+    for entry in Path('/proc').iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            fields = {line.split(':', 1)[0]: line.split(':', 1)[1].strip()
+                      for line in (entry / 'status').read_text().splitlines() if ':' in line}
+            pid = int(fields['Pid'])
+            rows[pid] = {'pid': pid, 'ppid': int(fields['PPid']),
+                         'rss_bytes': int(fields.get('VmRSS', '0 kB').split()[0]) * 1024}
+        except (FileNotFoundError, ProcessLookupError):
+            continue
+    if root_pid not in rows:
+        raise ProcessLookupError('Monitored root is absent')
+    selected = {root_pid}
+    while True:
+        new = {pid for pid, row in rows.items() if row['ppid'] in selected} - selected
+        if not new:
+            break
+        selected.update(new)
+    return [rows[pid] for pid in sorted(selected)]
 
 
 def own_tree_rss(child_pid):
     """The shared status/PPid scan works where task/children is not populated."""
-    rows = monitor.own_tree(child_pid)
-    guard_rss = next(row['rss_bytes'] for row in monitor.own_tree(os.getpid()) if row['pid'] == os.getpid())
+    rows = own_tree(child_pid)
+    guard_rss = next(row['rss_bytes'] for row in own_tree(os.getpid()) if row['pid'] == os.getpid())
     return guard_rss + sum(row['rss_bytes'] for row in rows)
 
 

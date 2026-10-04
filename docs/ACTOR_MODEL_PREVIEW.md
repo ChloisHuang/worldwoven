@@ -1,5 +1,16 @@
 # C01 opt-in actor integration
 
+## Same-Site optional preview entry
+
+The candidate can be built for the existing Site at `/?character-preview=1#france` (or its existing `/game/` path). Publication remains a separate step. The normal entry uses the same real main module, old model selection, original wardrobe UI and six-trait appearance creation/validation/random sequence. No candidate module is imported unless the exact query flag is enabled. A failed candidate import shows a clear error and never falls through to ordinary main initialization.
+
+The query/storage mode is fixed before any main/ledger initialization. All four browser-storage access points found by the source audit (one read, ordinary save, direct copper-ledger write, direct labor write) now use one facade. Preview starts from a read-only formal copy and writes only `sessionStorage` keys prefixed `worldwoven:character-preview:v1:`; if session storage is unavailable, it uses memory. Write failures propagate for transaction callers and never retry against formal storage. All state inside the save, including health, wallet, relationships, wages, curtains, stamps and outfit changes, is isolated. Returning to ordinary play uses a full same-site navigation with the region hash preserved.
+
+Preview selects only actors explicitly marked as the player. NPCs remain ordinary unless `preview-npcs=1` is also explicitly chosen. The small candidate label explains the isolated progress and unfinished art; ten sliders exist only in preview. Runtime model/hair options do not change saved hairstyle IDs.
+
+The build emitter now hashes known literal relative dynamic imports without a bundler or duplicated project. A clean build passes and emits the gated entry and candidate chunks. Focused query-load/storage/return-to-normal checks are in progress; the earlier France walk/sit/stand/head-turn proof is reused, with no new world render.
+
+
 ## Explicit playable cloud development entry
 
 Run `npm run dev:actors -- 5186` in this worktree. The loopback-only development server serves the existing game HTML with `development/actor-model-preview/bootstrap.mjs`; it does not create a Site or change the production entry/build graph. The bootstrap registers candidates and installs a temporary selector before importing the real `main.js`. `?hair=long` chooses long hair for the matching French gown; other female clothing uses the known gathered-updo candidate. Male candidates use the known side-part. The development panel labels these as temporary visual choices, preserves stored hair IDs, offers flow on/off reloads and routes its head-turn control into the existing attention context.
