@@ -6,6 +6,8 @@ import {CHINA_OFFICIAL_BUREAU as B,isChinaOfficialUpperFloor} from './china-offi
 const point=a=>({x:a[0],y:a[1],z:a[2]}),near=(p,a,r=.14)=>Math.hypot(p.x-a[0],p.z-a[2])<r&&Math.abs(p.y-a[1])<.32;
 const TAVERN_UP=[[14,.115,13.8],[16.9,.215,14.1],[17.55,.215,13.8],[17.55,2.115,9.2],[19.95,2.115,9.2],[19.95,4.015,14.1],[17.55,4.015,14.1],[17.55,5.915,9.2],[19.95,5.915,9.2],[19.95,7.815,14.1],[22.5,7.815,14.2]];
 const reverse=a=>a.slice().reverse().map(p=>p.slice());
+// Real clear east-bank standing places, outside the numbered-edict leaf basket.
+export const CHINA_OFFICIAL_GARDEN_PLACES=Object.freeze([[11.7,.145,-14.4],[9.2,.145,-14.4],[8,.145,-14.4],[10.45,.145,-14.4],[11.7,.115,-13.1],[9.2,.115,-13.1]]);
 
 // This controller owns the officials' personal time. Court borrows an
 // official after a safe furniture exit; it never adds personal summon delays,
@@ -51,7 +53,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
    {id:'read',label:'官署静读 · 看一会儿书卷',base:.18,traits:{curiosity:.7,quiet:.8},needs:{fatigue:.2},duration:[10,18],cooldown:50,relief:{fatigue:-.10},point:B.offices[i],action:'read'},
    {id:'rest',label:'回自己的值宿室歇息',base:.05,traits:{quiet:.25},needs:{fatigue:3.5},duration:[18,32],cooldown:90,relief:{fatigue:-.7},point:bed?.position,mount:bed,facilityId:bed?.id,roomId:B.privateRoomIds?.[i]??(i<2?B.roomIds[i]:null)},
    {id:'meal',label:'去御膳餐厅吃点心',base:.04,traits:{appetite:.3},needs:{hunger:3.7},duration:[13,20],cooldown:100,relief:{hunger:-.72},point:meal?.position,mount:meal,facilityId:meal?.id,meal:true},
-   {id:'garden',label:'沿东侧庭院散步赏荷',base:.13,traits:{outdoors:1.1},needs:{fatigue:-.5,social:.25},duration:[9,18],cooldown:65,relief:{fatigue:-.10,social:-.12},point:[9.2+(i%3)*1.25,.145,-14.4-Math.floor(i/3)*1.2],look:[0,.2,-18]},
+   {id:'garden',label:'沿东侧庭院散步赏荷',base:.13,traits:{outdoors:1.1},needs:{fatigue:-.5,social:.25},duration:[9,18],cooldown:65,relief:{fatigue:-.10,social:-.12},point:CHINA_OFFICIAL_GARDEN_PLACES[i],facilityId:'cn-official-garden-place-'+i,look:[0,.2,-18]},
    {id:'listen',label:'自愿去云来楼听诗乐',base:.09,traits:{curiosity:.65,sociability:.9},needs:{social:1.25,fatigue:-.4},duration:[14,24],cooldown:120,relief:{social:-.5},point:listen?.position,mount:listen,facilityId:listen?.id,upstairs:true},
    {id:'visit',label:'到同僚案边聊几句',base:.09,traits:{sociability:1.1},needs:{social:1.8},duration:[6,11],cooldown:80,relief:{social:-.45},point:[B.offices[otherIndex][0],B.offices[otherIndex][1],B.offices[otherIndex][2]+.65],partner:other,available:near(other.root.position,B.offices[otherIndex],.6),targets:[{id:other.station.id,relationship:{target:other.station.id,gain:.06,weight:.5}}]}
   ].map(c=>({...c,available:c.available!==false&&!!c.point&&(!c.facilityId||!occupied(c.facilityId,n))&&(!c.roomId||!occupied(c.roomId,n))}));
