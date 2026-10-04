@@ -396,10 +396,36 @@
       ]
     ],
     "browFinalHalfWidth": 0.0033,
-    "anteriorForeheadZ": {
-      "forehead_plane": 0.079,
-      "upper_forehead": 0.075,
-      "crown_front": 0.046
+    "foreheadProfile": {
+      "lowerY": 1.5665,
+      "upperY": 1.678,
+      "stations": [
+        [
+          1.577,
+          0.073,
+          0.12
+        ],
+        [
+          1.603,
+          0.0755,
+          0
+        ],
+        [
+          1.627,
+          0.0728,
+          -0.23
+        ],
+        [
+          1.646,
+          0.065,
+          -0.63
+        ],
+        [
+          1.663,
+          0.046,
+          -1.4
+        ]
+      ]
     }
   },
   "female": {
@@ -837,10 +863,36 @@
       ]
     ],
     "browFinalHalfWidth": 0.00255,
-    "anteriorForeheadZ": {
-      "forehead_plane": 0.081,
-      "upper_forehead": 0.077,
-      "crown_front": 0.043
+    "foreheadProfile": {
+      "lowerY": 1.566,
+      "upperY": 1.681,
+      "stations": [
+        [
+          1.577,
+          0.0704,
+          0.15
+        ],
+        [
+          1.608,
+          0.0743,
+          0
+        ],
+        [
+          1.631,
+          0.0716,
+          -0.26
+        ],
+        [
+          1.651,
+          0.0628,
+          -0.74
+        ],
+        [
+          1.668,
+          0.043,
+          -1.55
+        ]
+      ]
     }
   }
 }
