@@ -23,7 +23,18 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  function publicExit(p){
   const bureau=isChinaOfficialUpperFloor(p)||p.y>.25&&p.x>26.1&&p.z>30&&p.z<36.7;
   const route=bureau?B.stairRoute:p.y>.5&&p.x>15&&p.z<23?TAVERN_UP:null;
-  return route?reverse(route.filter(a=>a[1]<=p.y+.25)):[];
+  if(!route)return [];
+  const remaining=reverse(route.filter(a=>a[1]<=p.y+.25));let closest=.65,start=0;
+  // A summons may interrupt someone halfway through a landing or stair.
+  // Continue toward the public end instead of ordering him back to the room
+  // entrance that is now occupied by the people following him.
+  for(let i=0;i<remaining.length-1;i++){
+   const a=remaining[i],b=remaining[i+1],dx=b[0]-a[0],dy=b[1]-a[1],dz=b[2]-a[2],length=dx*dx+dy*dy+dz*dz;
+   const t=length?Math.max(0,Math.min(1,((p.x-a[0])*dx+(p.y-a[1])*dy+(p.z-a[2])*dz)/length)):0;
+   const distance=Math.hypot(p.x-a[0]-t*dx,p.y-a[1]-t*dy,p.z-a[2]-t*dz);
+   if(distance<closest){closest=distance;start=i+1;}
+  }
+  return remaining.slice(start);
  }
  function publicRoute(n,target){
   const from=n.root.position,to=target?point(target):null;
