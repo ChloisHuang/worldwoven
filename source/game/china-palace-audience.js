@@ -87,6 +87,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
  save();
  return {
   owns:n=>owned.has(n),
+  labelVisible(n,player){return !owned.has(n)||!FORMAL.has(phase)&&phase!=='holding'||n===speaker||!!player&&n.root.position.distanceTo(player)<1.8;},
   socialStatus(n){return owned.has(n)?{busy:FORMAL.has(phase)||['assembling','holding'].includes(phase),attention:!FORMAL.has(phase)&&!['assembling','holding'].includes(phase),job:tasks.get(n)?.label||life?.label(n)||'承务官署 · 日常起居'}:null;},
   playerRequest(id){life?.playerRequest(id);},
   update(dt,t,playerState={}){
