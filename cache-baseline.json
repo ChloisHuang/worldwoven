@@ -1,5 +1,5 @@
 {
-  "publishedSourceCommit": "0f6069ef2669b48d0d59b70f55c5bb7bc8338a90",
+  "publishedSourceCommit": "c272378dcf0355f52a8aef99b83589d09ec8bf13",
   "assets": [
     "/assets/navigation.8b75df4e99fa6099.js",
     "/assets/actor-navigation.691b15771060bf53.js",
@@ -107,8 +107,8 @@
     "/assets/approved-surfaces.4167f3e1bf13ca83.js",
     "/assets/character-props.deb24f9b65d5e60a.js",
     "/assets/characters.de45e793f0595e24.js",
-    "/assets/main.b66b9572736afa8a.js",
-    "/assets/game.445dd032d7c751a2.css",
+    "/assets/main.b721fd27d969272b.js",
+    "/assets/game.48aa1a85116f87f6.css",
     "/assets/three.core.9edde002b066a9a0.js",
     "/assets/three.module.d8c0a97fa13a785e.js"
   ]
