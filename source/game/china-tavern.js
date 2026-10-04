@@ -11,7 +11,7 @@ export const CHINA_TAVERN=Object.freeze({
  stairHall:{minX:16,maxX:26,minZ:8,maxZ:15.2,crossPassage:{minZ:13.4,maxZ:15.2,width:1.8}},
  guestRooms:['tavern-guest-lan','tavern-guest-zhu'],adultVenue:true,
  implemented:['public stairs','dining seats','two private furnished guest rooms','guest beds','guest wardrobes','listening seats','adult poetry recital','host meal orders and clearing','physical kitchen and table delivery','adult introductions and private-room tea visits'],
- pending:['inn booking and payment','qin playing and dance choreography','qin and dance performance schedules','childhood and family life']
+ pending:['inn booking and payment','qin playing and dance choreography','childhood and family life']
 });
 
 export function buildChinaTavern(G,A){

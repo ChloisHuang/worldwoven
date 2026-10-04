@@ -30,7 +30,7 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
  function cancel(reason='你向柳清弦告辞'){if(!release(reason))return false;notify(reason+'，温晚已撤下留房牌');return true;}
  function travel(a,to,dt,{player=false,hold=false}={}){
   a.walking=false;if(near(a,to))return true;if(hold||conversation===a.station?.id)return false;
-  const radius=player?.34:.25;let s=travelState.get(a),key=to.join(',');
+  const radius=player ? .34 : .25;let s=travelState.get(a),key=to.join(',');
   if(!s||s.key!==key){s={key,route:planPath(a.root.position,{x:to[0],y:to[1],z:to[2]},radius),stalled:0};travelState.set(a,s);}
   const step=doors.routeStep(s.route,a.root.position,.04);if(step.waiting)return false;const p=step.waypoint;
   if(!p){s.stalled+=dt;if(s.stalled>3){failures.push({actor:player?'player':a.station.id,stage:session?.stage||'return',to:to.slice(),position:a.root.position.toArray()});travelState.delete(a);if(failures.length>8)failures.shift();}return false;}
@@ -96,7 +96,7 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
    }else if(returning){if(travel(performer,performer.home.toArray(),dt)){returning=false;performer.breakAt=t+14;resetRoute(performer);record('returned');persist();}pose(performer,t,null);}
    for(const n of [receptionist,performer]){if(n===performer&&!session&&!returning)continue;const e=n.label?.querySelector?.('small');if(e)e.textContent=n===receptionist?'接待 · 引见与安排雅间':session?labels[session.stage]:'艺者 · 返回雅集厅';}
   },
-  view(){return {session:session?clone(session):null,label:session?labels[session.stage]:returning?'柳清弦正回雅集厅':null,returning,fade:session?.stage==='fade',lastReply:clone(lastReply),candidates:knownAdult(getPlayer())&&knownAdult(performer)?[{id:performer.station.id,name:performer.station.npcName,ageYears:performer.station.ageYears??performer.station.age,preference:performer.station.salon.preference,available:!session&&!returning&&!isActorBusy(performer)}]:[],rooms:ledger.state(),fee:0};},
+  view(){return {session:session?clone(session):null,label:session?labels[session.stage]:returning?'柳清弦正回雅集厅':null,returning,fade:session?.stage==='fade',lastReply:clone(lastReply),candidates:adult()?[{id:performer.station.id,name:performer.station.npcName,ageYears:performer.station.ageYears??performer.station.age,preference:performer.station.salon.preference,available:!session&&!returning&&!isActorBusy(performer)}]:[],rooms:ledger.state(),fee:0};},
   state(){return {...this.view(),serial,history:clone(history),failures:clone(failures),actor:performer.root.position.toArray(),persistentClaims:false};},
   dispose(){if(disposed)return;if(session)release('离开地区');disposed=true;ledger.clear();travelState.clear();resetRoute(performer);resetRoute(receptionist);session=null;returning=false;persist();}
  };
