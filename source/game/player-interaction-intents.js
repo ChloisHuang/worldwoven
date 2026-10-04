@@ -29,6 +29,6 @@ export function chooseNearbyInteraction(candidates,position,clear){
 // supply their own phase/choice key; a new visit cannot inherit an old intent.
 export function currentInteractionIntent(selected,current){
  if(!selected||!current||selected.id!==current.id||selected.provider!==current.provider)return null;
- if(selected.intentKey!==undefined&&selected.intentKey!==current.intentKey)return null;
+ if((selected.provider||selected.intentKey!==undefined)&&selected.intentKey!==current.intentKey)return null;
  return current;
 }

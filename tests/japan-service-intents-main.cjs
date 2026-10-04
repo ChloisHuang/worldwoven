@@ -9,7 +9,7 @@ harness=harness.replace("const document={body:new E('body')","const document={he
 const begin=harness.indexOf('const report=[];for(let round=0;'),end=harness.indexOf('\nconsole.log(JSON.stringify(',begin);
 const body=String.raw`
 const checks=[],record=s=>{checks.push(s);console.log('PASS',s);},T=three.namespace;
-const laborModule=mod(root+'/game/china-tavern-labor.js');await laborModule.link(linker);await laborModule.evaluate();
+const laborModule=mod(root+'/game/china-tavern-labor.js');if(laborModule.status==='unlinked')await laborModule.link(linker);if(laborModule.status==='linked')await laborModule.evaluate();
 const wallet=main.namespace.serviceIntentReview().copperLedger,laborActor={root:{position:new T.Vector3(),rotation:{y:0}}},host={root:{position:new T.Vector3(24.1,.215,11.4)},station:{npcPosition:[24.1,.215,11.4]}};
 const labor=laborModule.namespace.createChinaTavernLabor({getPlayer:()=>laborActor,host,copperLedger:wallet,document:null});laborActor.root.position.set(22.35,.215,11.7);assert(labor.accept());for(const p of [[19.3,.215,18.1],[22.7,.215,18.1]]){laborActor.root.position.set(...p);assert(labor.startCleaning());for(let i=0;i<51;i++)labor.update(.1);}laborActor.root.position.set(22.35,.215,11.7);assert(labor.claim());labor.dispose();assert.equal(wallet.state().cash,12);
 all.find(e=>e.dataset.region==='japan').onclick();ids.travel.onclick();assert.equal(state().region,'japan');
