@@ -68,6 +68,11 @@ for(const [look,key,side]of [[female,'chinLength','max'],[male,'chinProjection',
  const neutral={...look,shapeTraits:normalizeShapeTraits(null)},base=C.createCharacter({...neutral,...previewFor(look)}),changed=C.createCharacter({...neutral,shapeTraits:{...neutral.shapeTraits,[key]:SHAPE_RANGES[key][side]},...previewFor(look)});
  const a=ranges(base).get('continuous-head-anatomical-head-neck'),b=ranges(changed).get('continuous-head-anatomical-head-neck');let maxDelta=0;
  for(let j=0;j<a.r.count;j++){const i=a.r.start+j,k=b.r.start+j;for(const axis of['X','Y','Z']){const delta=Math.abs(a.g.attributes.position['get'+axis](i)-b.g.attributes.position['get'+axis](k));maxDelta=Math.max(maxDelta,delta);if(a.g.attributes.sourceY.getX(i)<1.36)assert.equal(delta,0);}}
+ if(key==='chinLength'){
+  // Reproduce the elongated candidate's former 1.435 m neck-threshold leak.
+  const fc=b.g.attributes.featureCoord,si=b.g.attributes.skinIndex,sw=b.g.attributes.skinWeight;
+  for(let j=0;j<b.r.count;j++){const i=b.r.start+j;if(fc.getY(i)>6.10&&fc.getY(i)<6.40&&fc.getZ(i)>1.15&&Math.abs(fc.getX(i))<.45){let head=0;for(let k=0;k<4;k++)if(si.array[i*4+k]===3)head+=sw.array[i*4+k];assert.equal(head,1,'Long chin remains rigid to head');}}
+ }
  assert(maxDelta>.0005&&maxDelta<.01,key);assert.equal(shapePreferenceScore(base.root.userData.appearance.shapeTraits),shapePreferenceScore(changed.root.userData.appearance.shapeTraits));endpoints.push({body:look.bodyPreset,key,value:SHAPE_RANGES[key][side],maxDelta});base.dispose();changed.dispose();
 }
 assert.equal(JSON.stringify(state),saved);assert.equal(C.characterResourceStats().activeReferences,0);

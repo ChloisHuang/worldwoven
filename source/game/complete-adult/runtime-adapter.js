@@ -17,7 +17,7 @@ import {RETAINED_HAIR,createHeadAttachmentFit,fitCandidateHairAttachments,fitRet
 import {FREE_BRAID,planRetainedBraid,applyRetainedBraid} from './retained-hair-fit.js';
 export const COMPLETE_ADULT_PREVIEW='complete-adult-head-v1';
 export const COMPLETE_ADULT_PAIR_PREVIEW='complete-adult-pair-v1';
-export const COMPLETE_ADULT_VERSION='candidate-female68a2bec-hair-fcaa901-traits10-depth-v1-long-fit2';
+export const COMPLETE_ADULT_VERSION='candidate-femaled9df9e6-hair-fcaa901-traits10-depth-v1-long-fit2-neck-v2';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const forms={'masculine-lean':'male','masculine-broad':'male','feminine-balanced':'female','feminine-slender':'female'};
 export function completeAdultSupport(options,selection){
@@ -64,7 +64,7 @@ export function applyCompleteAdultPreview(root,options,selection){
 }
 /** Cache selection is never persisted as an appearance version. */
 export function completeAdultCacheTag(options,selection){return completeAdultSupport(options,selection).supported?COMPLETE_ADULT_VERSION+'|'+selection+'|'+(options.previewHair??'saved-hair')+'|flow:'+!!options.previewHairFlow:'legacy';}
-export function completeAdultWeights(mesh,sourceY){
+export function completeAdultWeights(mesh,sourceY,index){
  if(!mesh.userData.completeAdultPart)return null;
  if(mesh.userData.completeAdultPart==='long-hair'){
   // The baked lower lengths lie on the gown, so they follow torso joints; only
@@ -72,7 +72,14 @@ export function completeAdultWeights(mesh,sourceY){
   if(sourceY<1.335){const u=clamp((sourceY-1.18)/.155);return[[1,1-u],[2,u]];}
   const u=clamp((sourceY-1.395)/.08);return[[2,1-u],[3,u]];
  }
- if(mesh.userData.completeAdultPart==='skin'&&sourceY<1.435){const u=clamp((sourceY-1.365)/.070);return[[2,1-u],[3,u]];}
+ if(mesh.userData.completeAdultPart==='skin'&&sourceY<1.435){
+  // A long chin can descend below the neck's world-height transition. Keep
+  // facial source topology rigid to the head; only the native cervical region
+  // receives chest/head blending. The original collar weights stay unchanged.
+  const feature=mesh.geometry.attributes.featureCoord;
+  const cervical=!feature||index===undefined||feature.getY(index)<6.20&&feature.getZ(index)<1.12;
+  if(cervical){const u=clamp((sourceY-1.365)/.070);return[[2,1-u],[3,u]];}
+ }
  return[[3,1]];
 }
 /** Extra channels accompany the existing two material buckets. Legacy meshes
