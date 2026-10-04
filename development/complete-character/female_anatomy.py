@@ -84,4 +84,15 @@ def skin_point(source,config,neck=None):
   lateral=smooth(.16,.36,ax)*smooth(.55,.95,sz)*(1-lip)
   p[0]*=1+(curve(lower['widthBySourceY'],sy)-1)*lateral
   p[1]+=curve(lower['heightBySourceY'],sy)*smooth(.65,.99,sz)*(1-lip)
+ # One broad anterior-lateral malar volume supports the outer lower orbit,
+ # then returns continuously through the cheek toward the mouth/jaw. It is
+ # depth, not whole-face width; compact support leaves facial apertures fixed.
+ malar=config.get('malarVolume')
+ if malar:
+  weight=bell(ax,malar['centerAbsX'],malar['widthX'])
+  weight*=smooth(*malar['innerSourceX'],ax)*smooth(*malar['anteriorSourceZ'],sz)
+  weight*=smooth(*malar['lowerFadeSourceY'],sy)*(1-smooth(*malar['upperFadeSourceY'],sy))
+  mouth=smooth(6.45,6.48,sy)*(1-smooth(6.73,6.78,sy))*(1-smooth(.28,.34,ax))*smooth(1.34,1.40,sz)
+  weight*=1-mouth
+  p[2]+=curve(malar['projectionBySourceY'],sy)*weight
  return p
