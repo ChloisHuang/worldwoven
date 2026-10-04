@@ -45,6 +45,7 @@ export function npcAppearance(region,id,worldSeed=1,shapeVersion=NPC_SHAPE_VERSI
 // Keep every identity salt and the resident's original locomotion cut intact.
 export function npcRoleAppearance(region,id,worldSeed=1,shapeVersion=NPC_SHAPE_VERSION){
  const look=npcAppearance(region,id,worldSeed,shapeVersion);
+ if(region==='france'&&id==='france-gardener')return {...look,bodyPreset:'masculine-lean',wardrobePreset:'court-waistcoat',hairStyle:'side-part'};
  if(region==='china'&&id==='cn-emperor')return {...look,bodyPreset:'masculine-lean',hairStyle:'low-bun',wardrobePreset:'palace-emperor-robe',locomotionWardrobePreset:'scholar-long-robe',clothes:0xd4ae58,accent:0xf3d487};
  if(region==='china'){const resident=palaceResidentAppearance(id);if(resident)return {...look,...resident};}
  if(region==='china'&&['cn-archery','cn-range-warden'].includes(id))return {...look,hairStyle:'low-bun',wardrobePreset:'jinyi-training',clothes:id==='cn-archery'?0x853930:0x594638,accent:0xc9aa60};

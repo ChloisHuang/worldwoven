@@ -1,5 +1,6 @@
 import {addInsetClosureSection} from './inset-closures.js';
 import {registerNightFixture} from './night-lighting.js';
+import {addFranceGardenerPlace,FRANCE_GARDENER} from './france-gardener-place.js';
 import {addRoyalGardenBench,addGardenTree,addFlowerShrub,addGardenHedge} from './france-garden.js';
 import * as G from './geometry.js?rev=R7-20261002';
 const { THREE } = G;
@@ -1221,12 +1222,14 @@ export function buildFrance({pack=true}={}){
   for(const x of [-2.4,2.4])urn(x,6.45,.70);
   // Rear terrace and clipped trees complete a full loop outside the pavilion.
   for(const x of [-9,-5,5,9]){G.cyl(group,x,.34,-16.70,.58,.66,.65,C.white,12);addGardenTree(group,x,-16.70,{base:.67,scale:.58,seed:Math.abs(x)});G.collider(colliders,x,-16.7,1.35,1.35);}
+  addFranceGardenerPlace(group,colliders,cameraBox);
   const stations=[
     {id:'france-bakery',name:'宫廷糕点房',action:'烘烤法式面包',position:[-5.3,0,-9.05],playerWorkTarget:[-5.3,1.30,-9.65],color:'#b6cbb5',workTarget:[-5.7,1.30,-10.15],npcName:'卡米耶',npcAction:'cook',npcLabel:'准备宫廷面包与糕点',npcPosition:[-6.95,0,-10.55],route:[[-7.1,0,-10.55],[-6.8,0,-8.1]]},
     {id:'france-atelier',name:'皇家艺术书斋',action:'描绘宫苑的光影',position:[7.1,0,-9.25],color:'#97bba0',workTarget:[7.1,1.95,-10.90],npcName:'卢西安',npcAction:'paint',npcLabel:'调色与观察宫苑光线',npcPosition:[5.55,0,-9.4],route:[[5.55,0,-9.4],[4.3,0,-9.4]]},
     {id:'france-salon',name:'翡翠镜厅',action:'翻阅一本诗集',position:[-6.7,0,.1],color:'#629776',workTarget:[-7.1,1.08,-1.55],npcName:'玛农',npcAction:'read',npcLabel:'整理诗集与瓷器茶具',npcPosition:[-6.5,0,-4.45],route:[[-6.5,0,-4.45],[-4.0,0,-4.7]]},
     {id:'france-bedroom',name:'白金皇家寝室',action:'整理刺绣床品',position:[4.55,0,-1.2],color:'#b8cdb7',workTarget:[7.55,1.25,-1.98],npcName:'朱丽叶',npcAction:'tidy',npcLabel:'整理翡翠色刺绣织物',npcPosition:[4.35,0,.65],route:[[4.35,0,.65],[4.35,0,-2.65]]},
-    {id:'france-cafe',name:'宫苑下午茶廊',action:'享用宫苑下午茶',position:[6.6,0,8.35],color:'#92bca4',workTarget:[7.21,1.414,10.06],npcName:'加布里埃尔',npcAction:'tea',npcLabel:'举杯品尝下午茶',npcPosition:[7.1,0,8.92],route:[[7.1,0,8.92],[10.55,0,9.0],[10.55,0,13.0]]}
+    {id:'france-cafe',name:'宫苑下午茶廊',action:'享用宫苑下午茶',position:[6.6,0,8.35],color:'#92bca4',workTarget:[7.21,1.414,10.06],npcName:'加布里埃尔',npcAction:'tea',npcLabel:'举杯品尝下午茶',npcPosition:[7.1,0,8.92],route:[[7.1,0,8.92],[10.55,0,9.0],[10.55,0,13.0]]},
+    {id:FRANCE_GARDENER.id,name:'西苑苗圃与黄杨篱',action:'请园丁照料花圃',position:[-16.1,0,13.7],color:'#74956e',workTarget:FRANCE_GARDENER.standTop,npcName:'埃米尔',ageYears:39,npcAction:'garden',npcLabel:'浇灌玫瑰、换剪修篱',npcPosition:FRANCE_GARDENER.approach.slice()}
   ];
   const explorationTargets=[{id:'forecourt',name:'宫苑主轴',position:[0,0,16]},{id:'portico',name:'科林斯门廊',position:[0,.13,5.25]},{id:'gallery',name:'白金镜廊',position:[0,.23,-5]},{id:'pastry',name:'宫廷糕点房',position:[-6.8,.23,-9]},{id:'art',name:'皇家艺术书斋',position:[7.1,.23,-9.25]},{id:'salon',name:'翡翠镜厅',position:[-6.7,.23,.1]},{id:'bedroom',name:'白金皇家寝室',position:[4.55,.23,-1.2]},{id:'tea-loggia',name:'宫苑下午茶廊',position:[6.6,.16,8.35]},{id:'rear-terrace',name:'后花园露台',position:[0,0,-16.3]},{id:'west-allee',name:'西侧绿篱步道',position:[-13.6,0,-2.6]},{id:'east-allee',name:'东侧绿篱步道',position:[13.6,0,-2.6]},{id:'fountain-walk',name:'喷泉花坛步道',position:[-2.5,0,11]}];
   const doorways=[{id:'front-entry',a:[0,.13,4.4],b:[0,.23,2.7],at:3.5,width:3.8,height:3.89},{id:'rear-entry',a:[0,.23,-12.6],b:[0,0,-14.4],width:3.2,height:3.89},...[-1,1].flatMap(s=>[-9.5,-1].map(z=>({id:`gallery-${s<0?'west':'east'}-${z===-1?'front':'rear'}`,a:[s*2.3,.23,z],b:[s*3.7,.23,z],width:2.6,height:3.67}))),...[-6.85,6.85].map(x=>({id:`enfilade-${x<0?'west':'east'}`,a:[x,.23,-5.8],b:[x,.23,-7.4],width:2.2,height:3.67}))];
