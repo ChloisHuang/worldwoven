@@ -206,13 +206,20 @@ for side in [-1,1]:
  points=[];normals=[];fc=[];occ=[]
  for t in theta:
   for k in range(nu):
-   a=k/nu*math.tau;sn=math.sin(t);p=point(center+Vector((rad.x*sn*math.cos(a),rad.y*sn*math.sin(a),rad.z*math.cos(t))))
-   if anatomy:p=Vector(eye_point(center+Vector((rad.x*sn*math.cos(a),rad.y*sn*math.sin(a),rad.z*math.cos(t))),anatomy))
-   source_point=np.array(center+Vector((rad.x*sn*math.cos(a),rad.y*sn*math.sin(a),rad.z*math.cos(t))))
+   a=k/nu*math.tau;sn=math.sin(t);direction=np.array([sn*math.cos(a),sn*math.sin(a),math.cos(t)])
+   if anatomy and anatomy.get('roundProjectedIris') and t<.82:
+    # A circular iris chart on the shared convex ellipsoid. Widening the
+    # aperture must not stretch the projected pupil into a horizontal oval.
+    w=1-smooth(.46,.82,t);e=anatomy.get('ocularFrame',{}).get('scale',[1,1,1])
+    direction[0]*=1+w*(1/(anatomy.get('facialWidth',1.)*e[0])-1)
+    direction[1]*=1+w*(1/e[1]-1)
+    direction[2]=math.sqrt(max(0.,1-direction[0]**2-direction[1]**2))
+   source_point=np.array(center+Vector(np.array(rad)*direction))
+   p=Vector(eye_point(source_point,anatomy)) if anatomy else point(source_point)
    difference=source_point-S;distance=np.maximum(1e-9,np.linalg.norm(difference,axis=1))
    jacobian=(difference/distance[:,None]).T@coef[:len(S)]+coef[len(S)+1:]
    outward=np.linalg.solve(jacobian,np.array([sn*math.cos(a),sn*math.sin(a),math.cos(t)]))
-   if anatomy:outward=eye_normal([sn*math.cos(a),sn*math.sin(a),math.cos(t)],source_point,anatomy)
+   if anatomy:outward=eye_normal(direction,source_point,anatomy)
    outward/=np.linalg.norm(outward);normals.append(list(outward))
    points.append(p);fc += [math.sin(t)/math.sin(.405)*math.cos(a),math.sin(t)/math.sin(.405)*math.sin(a),t]
    hit=tree.ray_cast(p+Vector((0,.0003,.0002)),Vector((0,.8,.6)),.013)[0];occ.append(.65 if hit is not None else 0.)

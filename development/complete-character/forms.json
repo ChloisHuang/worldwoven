@@ -1000,15 +1000,83 @@
       "facialWidth": 0.96,
       "ocularFrame": {
         "scale": [
-          1.11,
-          0.98,
+          1.18,
+          0.92,
           1.0
         ],
         "canthalTilt": 0,
         "outward": 0.002,
         "raise": 0.0018
       },
-      "muzzleRetraction": 0.0037
+      "muzzleRetraction": 0.0037,
+      "roundProjectedIris": true,
+      "lowerFaceContour": {
+        "widthBySourceY": [
+          [
+            6.1,
+            1.0
+          ],
+          [
+            6.2,
+            1.08
+          ],
+          [
+            6.35,
+            1.07
+          ],
+          [
+            6.48,
+            1.02
+          ],
+          [
+            6.65,
+            0.96
+          ],
+          [
+            6.83,
+            0.91
+          ],
+          [
+            7.03,
+            0.965
+          ],
+          [
+            7.2,
+            1.0
+          ]
+        ],
+        "heightBySourceY": [
+          [
+            6.0,
+            0
+          ],
+          [
+            6.12,
+            -0.002
+          ],
+          [
+            6.18,
+            -0.0055
+          ],
+          [
+            6.37,
+            -0.0055
+          ],
+          [
+            6.44,
+            -0.003
+          ],
+          [
+            6.49,
+            0
+          ],
+          [
+            6.7,
+            0
+          ]
+        ],
+        "scope": "local cheek-to-jaw oval; eyes, nasal root, vermilion and scalp excluded"
+      }
     },
     "mouthContactSourceVertices": [
       493,

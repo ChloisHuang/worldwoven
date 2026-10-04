@@ -76,4 +76,12 @@ def skin_point(source,config,neck=None):
   posterior=(1-smooth(.20,.64,sz))*(1-smooth(6.45,7.13,sy))
   w*=1-posterior
   p=np.array(neck)*(1-w)+p*w
+ # Eye-distance-aligned contour study: local mid-cheek reduction transitions
+ # into a retained lower jaw arc and a longer chin, not a whole-head scale.
+ lower=config.get('lowerFaceContour')
+ if lower:
+  lip=smooth(6.45,6.48,sy)*(1-smooth(6.73,6.78,sy))*(1-smooth(.28,.34,ax))*smooth(1.34,1.40,sz)
+  lateral=smooth(.16,.36,ax)*smooth(.55,.95,sz)*(1-lip)
+  p[0]*=1+(curve(lower['widthBySourceY'],sy)-1)*lateral
+  p[1]+=curve(lower['heightBySourceY'],sy)*smooth(.65,.99,sz)*(1-lip)
  return p

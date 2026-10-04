@@ -3,7 +3,7 @@ import fs from 'node:fs';import path from 'node:path';import assert from 'node:a
 const HERE=path.dirname(fileURLToPath(import.meta.url)),ROOT=path.resolve(HERE,'../..'),OUT=path.resolve(process.env.OUT_DIR||ROOT+'/qa/female-reference/first');
 registerHooks({resolve(s,c,next){if(s==='three')return{url:pathToFileURL(ROOT+'/source/vendor/three/build/three.module.js').href,shortCircuit:true};return next(s,c);}});
 const {init,createCanvas,installDOM}=await import('/workspace/shared/cultural-life-r12-webgl/node_modules/@onirenaud/node-webgl/dist/index.js');installDOM({fetch:false});init({api:'gles'});
-const T=await import('three'),C=await import('../../source/game/characters.js'),{installActorPreview}=await import('../../source/game/complete-adult/selection.js'),{shapePreferenceScore}=await import('../../source/game/character-traits.js');installActorPreview();
+const T=await import('three'),C=await import('../../source/game/characters.js'),{installActorPreview}=await import('../../source/game/complete-adult/selection.js'),{shapePreferenceScore}=await import('../../source/game/character-traits.js');installActorPreview({femaleHair:process.env.HAIR||'gathered-updo'});
 const canvas=createCanvas(640,640),renderer=new T.WebGLRenderer({canvas,antialias:true});renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.NoToneMapping;
 const scene=new T.Scene();scene.background=new T.Color(0xd9ddcf);const hemi=new T.HemisphereLight(0xfff4df,0x718079,1.05),sun=new T.DirectionalLight(0xfff3dc,1.55),fill=new T.DirectionalLight(0xb7c6d5,.22);sun.position.set(-2,3,4);fill.position.set(3,2,-2);scene.add(hemi,sun,fill);
 fs.mkdirSync(OUT,{recursive:true});const frames=[],gl=renderer.getContext();
