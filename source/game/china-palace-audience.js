@@ -10,11 +10,15 @@ export {createAudienceSchedule} from './china-court-schedule.js';
 // Fictional adult officials retain the same seeded identities on every visit.
 export const CHINA_COURT_OFFICIALS=Object.freeze([
  {id:'cn-minister-works',npcName:'顾衡 · 工部官',ageYears:47,npcPosition:B.offices[0],gender:'male',privateRoomId:B.roomIds[0],courtRole:'works',color:'#697f87'},
- {id:'cn-minister-granary',npcName:'许知远 · 仓务官',ageYears:39,npcPosition:B.offices[1],gender:'male',privateRoomId:B.roomIds[1],courtRole:'granary',color:'#90635b'}
+ {id:'cn-minister-granary',npcName:'许知远 · 仓务官',ageYears:39,npcPosition:B.offices[1],gender:'male',privateRoomId:B.roomIds[1],courtRole:'granary',color:'#90635b'},
+ {id:'cn-official-rites',npcName:'沈叙 · 礼仪官',ageYears:46,npcPosition:B.offices[2],gender:'male',courtRole:'rites',workLabel:'整理朝仪名册 · 核对班位',color:'#667583'},
+ {id:'cn-official-personnel',npcName:'陆谦 · 吏务官',ageYears:42,npcPosition:B.offices[3],gender:'male',courtRole:'personnel',workLabel:'整理署内值勤名册',color:'#72564f'},
+ {id:'cn-official-justice',npcName:'周惟正 · 刑名官',ageYears:51,npcPosition:B.offices[4],gender:'male',courtRole:'justice',workLabel:'静读律例 · 未有案件不作案报',color:'#4f6962'},
+ {id:'cn-official-records',npcName:'宋承简 · 文书官',ageYears:35,npcPosition:B.offices[5],gender:'male',courtRole:'records',workLabel:'抄录官署来文 · 整理案卷',color:'#78624f'}
 ]);
 export function courtOfficialAppearance(region,id,look){
  if(region!=='china'||!CHINA_COURT_OFFICIALS.some(r=>r.id===id))return look;
- return {...look,bodyPreset:'masculine-lean',hairStyle:'low-bun',wardrobePreset:'court-official-long-robe',clothes:id==='cn-minister-works'?0x526e7b:0x814b45,accent:0xb49c65};
+ return {...look,bodyPreset:'masculine-lean',hairStyle:'low-bun',wardrobePreset:'court-official-long-robe',clothes:[0x526e7b,0x814b45,0x546371,0x765049,0x476259,0x79634a][CHINA_COURT_OFFICIALS.findIndex(r=>r.id===id)],accent:0xb49c65};
 }
 export const chinaCourtOfficialStations=()=>CHINA_COURT_OFFICIALS.map(r=>({...r,npcOnly:true,name:'承务官署 · 值宿与办公',action:'官署起居与朝议',npcAction:'court-duty',npcLabel:'在自己的案边处理来文',npcRotation:Math.PI,position:r.npcPosition.slice()}));
 const point=a=>({x:a[0],y:a[1],z:a[2]}),near=(p,a,r=.075)=>Math.hypot(p.x-a[0],p.z-a[2])<r&&Math.abs(p.y-a[1])<.32;
@@ -73,7 +77,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
  }
  function depart(reason){
   departureReason=reason;schedule.finish(reason,exception);save();palace.releaseDuty(OWNER);silence();
-  officials.forEach((n,i)=>{postures[i]?.stop();const s=tasks.get(n);if(s?.id==='enter-hall'&&s.arrived)task(n,'wait-dismissal',[n.root.position.toArray()],'散朝 · 在班位等前方通道腾出');else{tasks.delete(n);life?.resume(n);record('released-to-personal-life',n);}});setPhase('departing');
+  officials.forEach((n,i)=>{postures[i]?.stop();const s=tasks.get(n);if(s?.id==='enter-hall'&&s.arrived)task(n,'wait-dismissal',[n.root.position.toArray()],'散朝 · 在班位等前方通道腾出');else{tasks.delete(n);if(s)life?.resume(n);else life?.cancelCourt(n);record('released-to-personal-life',n);}});setPhase('departing');
  }
  function postpone(reason){exception={reason,atHour:state.hour??10,courtStart:schedule.snapshot().courtStart,absent:officials.filter(n=>!(tasks.get(n)?.id==='enter-hall'&&tasks.get(n).arrived)).map(n=>n.station.id),emperorReady:!!palace.dutyState(OWNER)?.ready};record('court-postponed:'+reason);notify('11:30 朝会未能按时举行：'+(reason==='assembly-incomplete'?'班列或御驾尚未到位，今日延期。':'现场通路或职责受到阻断，今日延期。'));depart('postponed');}
  function admit(){for(let lane=0;lane<2;lane++){const row=officials.map((n,i)=>({n,i})).filter(a=>a.i%2===lane);const next=row.find(({n})=>tasks.get(n)?.id!=='enter-hall'||!tasks.get(n).arrived);if(next&&tasks.get(next.n)?.id==='to-court'&&tasks.get(next.n).arrived)task(next.n,'enter-hall',enterHall(next.i),'朝前入班 · 到既定班位静候11:30');}}

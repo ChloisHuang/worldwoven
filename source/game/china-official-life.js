@@ -1,7 +1,7 @@
 import {createLifeDecisions} from './npc-life-decisions.js';
 import {blocked} from './navigation.js';
 import {createPalaceMealKit} from './china-palace-costume.js';
-import {CHINA_OFFICIAL_BUREAU as B} from './china-official-bureau.js';
+import {CHINA_OFFICIAL_BUREAU as B,isChinaOfficialUpperFloor} from './china-official-bureau.js';
 
 const point=a=>({x:a[0],y:a[1],z:a[2]}),near=(p,a,r=.14)=>Math.hypot(p.x-a[0],p.z-a[2])<r&&Math.abs(p.y-a[1])<.32;
 const TAVERN_UP=[[14,.115,13.8],[16.9,.215,14.1],[17.55,.215,13.8],[17.55,2.115,9.2],[19.95,2.115,9.2],[19.95,4.015,14.1],[17.55,4.015,14.1],[17.55,5.915,9.2],[19.95,5.915,9.2],[19.95,7.815,14.1],[22.5,7.815,14.2]];
@@ -20,19 +20,29 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  function save(){if(ready)saveState(snapshot());}
  const occupied=(id,n)=>state.facilityId===id||claims.state().some(f=>f.id===id&&(f.player||f.reservations.some(r=>r.actor!==n.station.id)));
  const stage=(path,label,options={})=>({path:path.map(a=>a.slice()),label,index:0,arrived:false,planned:false,stalled:0,retries:0,elapsed:0,...options});
- function publicRoute(n,target){return n.root.position.y>3&&n.root.position.x>15?[...reverse(TAVERN_UP),target]:[target];}
+ function publicExit(p){
+  const bureau=isChinaOfficialUpperFloor(p)||p.y>.25&&p.x>26.1&&p.z>30&&p.z<36.7;
+  const route=bureau?B.stairRoute:p.y>.5&&p.x>15&&p.z<23?TAVERN_UP:null;
+  return route?reverse(route.filter(a=>a[1]<=p.y+.25)):[];
+ }
+ function publicRoute(n,target){
+  const from=n.root.position,to=target?point(target):null;
+  if(to&&isChinaOfficialUpperFloor(to))return isChinaOfficialUpperFloor(from)?[target]:[...publicExit(from),...B.stairRoute,target];
+  if(to&&to.y>7&&to.x>15&&to.z<23)return from.y>7&&from.z<23?[target]:[...publicExit(from),...TAVERN_UP,target];
+  return [...publicExit(from),...(target?[target]:[])];
+ }
  function candidates(n){
-  const i=index(n),bed=seat(B.beds[i]),meal=seat('china-palace-dining-seat-'+(i?22.2:19.8)),listen=seat('china-tavern-listening-'+(i?20.65:17.5)),other=officials[1-i];
+  const i=index(n),otherIndex=(i+1)%officials.length,bed=seat(B.beds[i]),meal=seat('china-palace-dining-seat-'+(i%2?22.2:19.8)),listen=seat('china-tavern-listening-'+(i%2?20.65:17.5)),other=officials[otherIndex];
   const inspection=i===0?reports?.inspection():null;
   return [
    ...(inspection?[{id:'inspect',label:inspection.label,base:8,point:inspection.point,look:inspection.look,action:'read',duration:[5,9],cooldown:15,inspection,relief:{}}]:[]),
-   {id:'work',label:i?'核对来文 · 编排下一次奏事':'整理工务文书 · 核对执行回执',base:1.2,traits:{quiet:.4},needs:{fatigue:-.6},duration:[15,27],cooldown:22,relief:{social:.02},point:B.offices[i],action:'calligraphy',workTarget:B.workTargets[i]},
+   {id:'work',label:n.station.workLabel||(i?'核对来文 · 编排下一次奏事':'整理工务文书 · 核对执行回执'),base:1.2,traits:{quiet:.4},needs:{fatigue:-.6},duration:[15,27],cooldown:22,relief:{social:.02},point:B.offices[i],action:'calligraphy',workTarget:B.workTargets[i]},
    {id:'read',label:'官署静读 · 看一会儿书卷',base:.18,traits:{curiosity:.7,quiet:.8},needs:{fatigue:.2},duration:[10,18],cooldown:50,relief:{fatigue:-.10},point:B.offices[i],action:'read'},
-   {id:'rest',label:'回自己的值宿室歇息',base:.05,traits:{quiet:.25},needs:{fatigue:3.5},duration:[18,32],cooldown:90,relief:{fatigue:-.7},point:bed?.position,mount:bed,facilityId:bed?.id,roomId:B.roomIds[i]},
+   {id:'rest',label:'回自己的值宿室歇息',base:.05,traits:{quiet:.25},needs:{fatigue:3.5},duration:[18,32],cooldown:90,relief:{fatigue:-.7},point:bed?.position,mount:bed,facilityId:bed?.id,roomId:B.privateRoomIds?.[i]??(i<2?B.roomIds[i]:null)},
    {id:'meal',label:'去御膳餐厅吃点心',base:.04,traits:{appetite:.3},needs:{hunger:3.7},duration:[13,20],cooldown:100,relief:{hunger:-.72},point:meal?.position,mount:meal,facilityId:meal?.id,meal:true},
-   {id:'garden',label:'沿东侧庭院散步赏荷',base:.13,traits:{outdoors:1.1},needs:{fatigue:-.5,social:.25},duration:[9,18],cooldown:65,relief:{fatigue:-.10,social:-.12},point:[i?9.2:11.7,.145,-14.4],look:[0,.2,-18]},
+   {id:'garden',label:'沿东侧庭院散步赏荷',base:.13,traits:{outdoors:1.1},needs:{fatigue:-.5,social:.25},duration:[9,18],cooldown:65,relief:{fatigue:-.10,social:-.12},point:[9.2+(i%3)*1.25,.145,-14.4-Math.floor(i/3)*1.2],look:[0,.2,-18]},
    {id:'listen',label:'自愿去云来楼听诗乐',base:.09,traits:{curiosity:.65,sociability:.9},needs:{social:1.25,fatigue:-.4},duration:[14,24],cooldown:120,relief:{social:-.5},point:listen?.position,mount:listen,facilityId:listen?.id,upstairs:true},
-   {id:'visit',label:'到同僚案边聊几句',base:.09,traits:{sociability:1.1},needs:{social:1.8},duration:[6,11],cooldown:80,relief:{social:-.45},point:[B.offices[1-i][0]+(i?.9:-.9),.215,B.offices[1-i][2]],partner:other,available:near(other.root.position,B.offices[1-i],.6),targets:[{id:other.station.id,relationship:{target:other.station.id,gain:.06,weight:.5}}]}
+   {id:'visit',label:'到同僚案边聊几句',base:.09,traits:{sociability:1.1},needs:{social:1.8},duration:[6,11],cooldown:80,relief:{social:-.45},point:[B.offices[otherIndex][0],B.offices[otherIndex][1],B.offices[otherIndex][2]+.65],partner:other,available:near(other.root.position,B.offices[otherIndex],.6),targets:[{id:other.station.id,relationship:{target:other.station.id,gain:.06,weight:.5}}]}
   ].map(c=>({...c,available:c.available!==false&&!!c.point&&(!c.facilityId||!occupied(c.facilityId,n))&&(!c.roomId||!occupied(c.roomId,n))}));
  }
  function release(n,s){if(s?.mount){const landing=furniture.standPoint(navigation,safety(n),s.mount);if(!landing)return false;n.root.position.copy(landing);s.mount=null;}claims.releaseActor(n.station.id);return true;}
@@ -41,7 +51,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   const options=candidates(n),inspection=options.find(c=>c.id==='inspect'),choice=brain.choose(n.station.id,inspection?[inspection]:options,state.hour??10);
   if(!choice){stages.set(n,stage([n.root.position.toArray()],'在廊下稍候',{duration:6}));return;}
   if(choice.facilityId&&!claims.reserve(choice.facilityId,n.station.id,{purpose:choice.id})||choice.roomId&&!claims.reserve(choice.roomId,n.station.id,{purpose:'private-rest'})){claims.releaseActor(n.station.id);brain.complete(n.station.id,choice,{fulfilled:false});return;}
-  const path=choice.upstairs?(n.root.position.y>7?[choice.point]:[...TAVERN_UP,choice.point]):publicRoute(n,choice.point);
+  const path=publicRoute(n,choice.point);
   stages.set(n,stage(path,choice.label,{id:'life-'+choice.id,arrived:path.length===1&&near(n.root.position,path[0]),choice,duration:choice.duration,mountTarget:choice.mount,roomId:choice.roomId,waiting:0}));n.route=[];record('life-'+choice.id,n);save();
  }
  function animate(n,s,t){
@@ -54,6 +64,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  ready=true;for(const n of officials)choose(n);
  return {
   request(n){const s=stages.get(n);if(s)s.called=true;},
+  cancelCourt(n){const s=stages.get(n);if(s?.courtReady){stages.delete(n);choose(n);}else if(s)s.called=false;},
   courtPlan(n){const s=stages.get(n),landing=s?.mount?furniture.standPoint(navigation,safety(n),s.mount):n.root.position;return {reachable:!!landing,position:landing||n.root.position,path:publicRoute(n,null).filter(Boolean),safeExitSeconds:s?.mount?2:0,doorSeconds:4};},
   ready(n){return stages.get(n)?.courtReady===true;},
   resume(n){stages.delete(n);n.route=[];choose(n);},
