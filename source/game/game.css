@@ -53,3 +53,5 @@ body.in-lot .location-card{background:#fff8e4d9;backdrop-filter:blur(10px)}body.
 /* Door safety guidance stays in the lot HUD, above the landscape controls. */
 .doorway-hint{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(max(22px,env(safe-area-inset-bottom)) + 76px);max-width:calc(100vw - max(24px,env(safe-area-inset-left)) - max(24px,env(safe-area-inset-right)));padding:8px 13px;border-radius:10px;background:#fff9eaf5;color:#263d42;box-shadow:0 5px 24px #15261f35;font-size:12px;line-height:1.5;text-align:center;pointer-events:none;z-index:12}
 @media(pointer:coarse) and (orientation:portrait){.doorway-hint{bottom:calc(max(22px,env(safe-area-inset-bottom)) + 276px)}}
+
+#player-health{display:block;max-width:230px;margin-top:6px;color:#765d44;font-size:10px;line-height:1.5}.npc-health-status{color:#795638}
