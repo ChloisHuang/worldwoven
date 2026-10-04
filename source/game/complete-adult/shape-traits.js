@@ -25,14 +25,15 @@ function context(asset){
  const landmark=raw=>{const at=nearestSkin(skin,raw,true);return Array.from(skin.position.slice(at,at+3));};
  const nose=landmark([0,7.2916,1.5075]),bridge=landmark([0,7.1046,1.583]),tip=landmark([0,6.909,1.6807]),columella=landmark([0,6.8268,1.6033]);
  const chinRoot=landmark([0,6.4583,1.5032]),chin=landmark([0,6.2006,1.4344]);
- // A bulb must expand from its base, not from a point almost on its front.
- // Use the current sculpt's nasal root/ridge so neutral asset refinements fit.
- const tipPivot=[0,(tip[1]+columella[1])/2,(nose[2]+bridge[2])/2];
+ // Local cartilage controls must not rescale the root-to-tip distance. Keep
+ // the tip's height and use its lower bulb depth, never the upper nasal root.
+ const tipPivot=[0,tip[1],(tip[2]+columella[2])/2];
+ const wings={};for(const side of [-1,1])wings[side]=landmark([side*.1014,6.8563,1.5318]);
  // Brow featureCoord contains ribbon UVs, not anatomy. Associate its existing
  // fitted vertices with the current skin, without scalp rays or new geometry.
  const semantics=new Map();
  for(const part of asset.parts){if(part.material==='skin'||isEye(part))continue;const raw=[];for(let i=0;i<part.position.length;i+=3){const j=nearestSkin(skin,part.position.slice(i,i+3));raw.push(...skin.featureCoord.slice(j,j+3));}semantics.set(part,raw);}
- const c={eyes,nose,bridge,tipPivot,chinRoot,chin,semantics};contexts.set(asset,c);return c;
+ const c={eyes,nose,bridge,tip,tipPivot,wings,chinRoot,chin,semantics};contexts.set(asset,c);return c;
 }
 function eyeWeight(x,y,z){
  return smooth(.075,.145,Math.abs(x))*(1-smooth(.48,.66,Math.abs(x)))
@@ -48,28 +49,27 @@ function displaced(p,raw,traits,c,eye=false){
  const bridge=smooth(6.95,7.20,ry);
  const nasal=smooth(6.70,6.83,ry)*(1-smooth(7.28,7.46,ry))
   *(1-smooth(.22-.145*bridge,.36-.12*bridge,Math.abs(rx)))*smooth(1.22,1.46,rz)*(1-w);
- // Saved noseSize values now size the lower nasal body/alar region in this
- // candidate. No axis may shrink or lift the bony upper bridge. Width remains
- // its own transverse control, and bridge projection is applied below.
- const lowerNose=1-smooth(6.96,7.12,ry),lowerSize=(traits.noseSize-1)*lowerNose;
- out[0]+=x*((1+lowerSize)*traits.noseWidth-1)*nasal;
- out[1]+=(y-c.nose[1])*lowerSize*nasal;
- out[2]+=(z-c.nose[2]+.010)*lowerSize*nasal;
+ // Width changes the cross-span. Saved noseSize values size each alar wing
+ // around its own inner attachment, leaving the central tip and length fixed.
+ out[0]+=x*(traits.noseWidth-1)*nasal;
+ const wing=smooth(.06,.11,Math.abs(rx))*(1-smooth(1.56,1.64,rz))
+  *smooth(6.79,6.85,ry)*(1-smooth(6.92,7.08,ry))*nasal;
+ for(let k=0;k<3;k++)out[k]+=(p[k]-c.wings[side][k])*(traits.noseSize-1)*wing;
  // Independent chin length/projection share a broad sublabial transition and
  // stop above the anchored neck. Neither moves the lips or full head anchor.
  const chin=smooth(1.38,1.435,y)*smooth(5.98,6.17,ry)*(1-smooth(6.38,6.55,ry))
   *smooth(.65,1.18,rz)*(1-smooth(.26,.54,Math.abs(rx)));
  out[1]+=(y-c.chinRoot[1])*(traits.chinLength-1)*chin;
  out[2]+=Math.abs(c.chinRoot[1]-c.chin[1])*(traits.chinProjection-1)*chin;
- // Bridge projection is independent of the tip bulb and the existing whole
- // nose scale/width. Each uses current sculpt support, never new neutral data.
+ // The narrow bony ridge keeps its own projection, with less displacement as
+ // it meets the bulb so a high bridge cannot overshoot the tip into a hump.
  const ridge=smooth(6.94,7.02,ry)*(1-smooth(7.20,7.43,ry))
   *(1-smooth(.05,.16,Math.abs(rx)))*smooth(1.36,1.54,rz)*(1-w);
- out[2]+=Math.max(.010,c.bridge[2]-c.nose[2]+.008)*(traits.noseBridgeHeight-1)*ridge;
+ const ridgeDepth=Math.min(Math.max(.010,c.bridge[2]-c.nose[2]+.008),Math.max(0,c.tip[2]-z)*1.5);
+ out[2]+=ridgeDepth*(traits.noseBridgeHeight-1)*ridge;
  const bulb=smooth(6.76,6.84,ry)*(1-smooth(6.99,7.11,ry))
   *(1-smooth(.11,.21,Math.abs(rx)))*smooth(1.47,1.59,rz)*(1-w);
- // Width/height have a slightly broader response than the former tiny core;
- // projection grows from the nasal base without moving the upper ridge/lips.
+ // Bulb volume changes locally; its center height and the upper ridge stay put.
  for(let k=0;k<3;k++)out[k]+=(p[k]-c.tipPivot[k])*(traits.noseTipSize-1)*bulb*(k===2?1:1.35);
  return out;
 }
