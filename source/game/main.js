@@ -180,7 +180,7 @@ function configureJapanService(){
   Object.defineProperties(n,Object.getOwnPropertyDescriptors(person));n.root.position.copy(position);n.root.rotation.y=rotation;n.poseContext=null;lot.group.add(n.root);
  }}):null;
  if(japanService){
-  japanPlayerService=japanService.connectPlayerService({getPlayer:()=>player,getMounted:()=>bathTransition?{...bathTransition.item,transitioning:true}:seated,onWardrobeChange:()=>{if(player)buildPlayer();},notify:toast});
+  japanPlayerService=japanService.connectPlayerService({copperLedger,getPlayer:()=>player,getMounted:()=>bathTransition?{...bathTransition.item,transitioning:true}:seated,onWardrobeChange:()=>{if(player)buildPlayer();},notify:toast});
   japanServiceUI=createJapanPlayerServiceUI({service:japanPlayerService,furniture,getPlayer:()=>player,getMounted:()=>bathTransition?{...bathTransition.item,transitioning:true}:seated,onNavigate:p=>navigateTo(new THREE.Vector3(...p)),onFurniture:requestFurniture,onStand:standFromSeat,onOpen:()=>{npcSocial?.end();path=[];targetStation=null;pendingInteraction=null;performing=null;actionTime=0;keys.clear();joy={x:0,y:0};$('joystick-knob').style.transform='';$('activity-progress').hidden=true;if(!seated&&!bathTransition)furniture.releaseActor?.('player');}});
  }
 }

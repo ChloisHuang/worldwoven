@@ -21,7 +21,7 @@ export function createJapanServiceProps(parent) {
   const ring=part(g,new THREE.TorusGeometry(.03,.008,5,12),0x806b46,[0,.137,0]);ring.rotation.y=0;number(g,n);return g;
  }
  function make(item,visit) {
-  const g=new THREE.Group(),color=JAPAN_BATH_BLENDS.find(b=>b.id===visit.blendId).color;
+  const g=new THREE.Group(),color=JAPAN_BATH_BLENDS.find(b=>b.id===visit.blendId)?.color||0x6f8e81;
   if(item.kind==='token'){g.add(badge(visit.number,color));g.scale.setScalar(.65);}
   else {
    box(g,.46,.035,.34,0x8e6645,[0,0,0]);
@@ -29,6 +29,12 @@ export function createJapanServiceProps(parent) {
     const bag=part(g,new THREE.SphereGeometry(.13,10,8),color,[0,.115,0]);bag.scale.set(1,.85,.8);
     cylinder(g,.043,.052,.095,0xeadcba,[0,.22,0]);
     const tie=part(g,new THREE.TorusGeometry(.053,.014,5,12),0xa35f49,[0,.195,0]);tie.rotation.x=Math.PI/2;
+   }else if(item.dishId==='sushi') {
+    box(g,.36,.027,.26,0xe6dcc2,[0,.032,0]);
+    for(const [i,x]of [-.105,0,.105].entries()){
+     const rice=part(g,new THREE.SphereGeometry(.062,10,7),0xf3e8cc,[x,.079,0]);rice.scale.set(.66,.45,1.2);
+     const topping=box(g,.076,.025,.14,[0xd17e66,0xe6bc68,0x40594b][i],[x,.106,0]);topping.rotation.z=(i-1)*.08;
+    }
    }else {
     cylinder(g,.17,.105,.13,0xe6dcc2,[0,.08,0]);cylinder(g,.147,.147,.007,0xc49148,[0,.149,0]);
     for(const x of [-.05,.02,.08])box(g,.027,.009,.083,0x638469,[x,.159,0]);
@@ -66,6 +72,7 @@ export function createJapanServiceProps(parent) {
   const lane=(v.number%2?-.22:.22);
   if(item.location.id==='apothecaryPickup')return [P.mixtureTray[0]+lane,P.mixtureTray[1],P.mixtureTray[2]];
   if(item.location.id==='kitchenPickup')return [P.mealTray[0]+lane,P.mealTray[1],P.mealTray[2]];
+  if(item.location.id==='sushiPickup')return [P.sushiTray[0]+lane,P.sushiTray[1],P.sushiTray[2]];
   if(item.location.id==='menService')return [-4.2+lane,4.48,-3.1];
   if(item.location.id==='womenService')return [1.35+lane,4.48,-3.1];
   if(item.location.id==='dining')return v.mealPoint||[v.diningPoint[0]+.5,v.diningPoint[1]+.60,v.diningPoint[2]];

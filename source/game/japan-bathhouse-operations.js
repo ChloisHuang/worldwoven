@@ -175,13 +175,13 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   if(task.elapsed>=task.duration&&task.onDone?.()!==false&&tasks.get(n.station.id)===task)clear(n);
  }
  function workerTask(n,job) {
-  const v=board.getVisit(job.visitId),config=JOBS[job.kind],carrying=!!job.itemId;
+  const v=board.getVisit(job.visitId),dish=v.dishId==='sushi'?'寿司拼盘':'汤面',config={...JOBS[job.kind],...(job.kind==='cook'&&v.dishId==='sushi'?{label:'为来客制作寿司拼盘',action:'sushi',workTarget:[-6.6,1.18,-13.65]}:{}),...(job.kind==='serve'?{label:`把${dish}送给点餐来客`}:{})},carrying=!!job.itemId;
   const complete=()=>{
    const guest=customerActor(job.visitId),ok=board.complete(job.id,n.station.id,{position:n.root.position.toArray(),guestPosition:guest?.root.position.toArray(),itemId:job.itemId,tokenId:job.tokenId||v.tokenId});
    if(ok){record(job.visitId,job.kind);if(['register','checkout'].includes(job.kind))furniture.facilities.release('japan-service-reception',job.visitId);}
    return ok;
   };
-  if(carrying)assign(n,P[job.from],{orderJobId:job.id,label:`领取第 ${v.number} 号${job.kind==='serve'?'汤面':'浴包'}`,duration:.8,face:job.kind==='serve'?P.mealTray:P.mixtureTray,onDone:()=>{
+  if(carrying)assign(n,P[job.from],{orderJobId:job.id,label:`领取第 ${v.number} 号${job.kind==='serve'?dish:'浴包'}`,duration:.8,face:job.kind==='serve'?(v.dishId==='sushi'?P.sushiTray:P.mealTray):P.mixtureTray,onDone:()=>{
    if(!board.pickup(job.id,n.station.id,{position:n.root.position.toArray()}))return false;
    const target=job.to==='dining'?v.servePoint:P[job.to];
    assign(n,target,{...config,orderJobId:job.id,label:`${config.label} · ${v.number}号`,handoff:true,face:job.to==='dining'?v.diningPoint:null,ready:()=>job.kind!=='serve'||board.getVisit(v.id)?.stage==='waiting-meal',onDone:complete});
