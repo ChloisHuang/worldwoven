@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {createAudienceSchedule,courtRouteBudget,COURT_START_HOUR} from '../source/game/china-court-schedule.js';
+import {createAudienceSchedule,courtRouteBudget,cachedCourtPlanner,COURT_START_HOUR} from '../source/game/china-court-schedule.js';
 const schedule=createAudienceSchedule();
 assert.equal(COURT_START_HOUR,11.5);
 assert(Math.abs(schedule.secondsUntil(10)-128.5714285714)<1e-6);
@@ -20,4 +20,7 @@ schedule.observe(23.99);schedule.observe(.01);assert.equal(schedule.snapshot().d
 const budget=courtRouteBudget({position:{x:0,y:0,z:0},path:[[3,0,4],[6,0,8]],walkSpeed:2,planPath:(_,p)=>[p],safeExitSeconds:2,doorSeconds:3});
 assert(budget.reachable);assert.equal(budget.distance,10);assert.equal(budget.seconds,10/1.56+5);
 assert(!courtRouteBudget({position:{x:0,y:0,z:0},path:[[3,0,4]],walkSpeed:2,planPath:()=>[]}).reachable);
+let plans=0;const cached=cachedCourtPlanner((_,p)=>{plans++;return [p];}),legs={position:{x:0,y:0,z:0},path:[[3,0,4],[6,0,8]],walkSpeed:2,planPath:cached};
+courtRouteBudget(legs);courtRouteBudget(legs);assert.equal(plans,2,'repeated authored legs reuse their planned route');
+courtRouteBudget({...legs,position:{x:1,y:0,z:1},knownSegments:1});assert.equal(plans,2,'the actual current planned remainder is measured without A*');
 console.log('PASS: fixed 11:30, common real-route summon budget, early hold, late/missed exception, durable receipt and reachable route length');
