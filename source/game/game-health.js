@@ -22,7 +22,7 @@ const stages=new Set(['well','incubating','ill','recovering']);
 export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
  let time=saved.version===1?positive(saved.time):0;
  const people=new Map(),interactionProgress=new Map();
- for(const [source,event]of Object.entries(saved.version===1?saved.interactionProgress||{}:{}))if(typeof event.id==='string'&&Number.isSafeInteger(event.number)&&event.number>0&&Array.isArray(event.participants)&&event.participants.length===2)interactionProgress.set(source,{id:event.id,number:event.number,participants:[...event.participants].sort(),duration:positive(event.duration)});
+ for(const [source,event]of Object.entries(saved.version===1?saved.interactionProgress||{}:{}))if(typeof event?.id==='string'&&Number.isSafeInteger(event.number)&&event.number>0&&Array.isArray(event.participants)&&event.participants.length===2)interactionProgress.set(source,{id:event.id,number:event.number,participants:[...event.participants].sort(),duration:positive(event.duration)});
  for(const id of [...new Set(actorIds)].sort()){
   const key=`game-health-v1|${worldSeed>>>0}|${id}`,old=saved.version===1?saved.people?.[id]:null;
   const p={constitution:clamp(old?.constitution,.4+hash(key)/4294967296*.5),supportRemaining:positive(old?.supportRemaining),careReceipts:{},conditions:{}};
@@ -50,13 +50,14 @@ export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
     vulnerability:(1.25-.65*p.constitution)*(1+.8*fatigue+.65*(1-nutrition)+.5*(1-hygiene)),protection:clamp(a.protection)}];
   }));
  }
- // A source emits monotonically numbered sessions/orders. Keep only its latest
+ // Each source is a serial stream of sessions/orders; concurrent controllers
+ // must use separate source IDs. Keep only the latest
  // watermark: replaying an old event cannot add dose, even after save/reload.
  // Durations are cumulative actual interaction seconds, never time spent nearby.
  function interactionContacts(events,actors,dt){
   const pairs=new Map();
   for(const event of events){
-   if(typeof event.source!=='string'||!event.source||typeof event.id!=='string'||!event.id||!Number.isSafeInteger(event.number)||event.number<1||!Array.isArray(event.participants)||event.participants.length!==2||!Number.isFinite(event.duration)||event.duration<=0)continue;
+   if(!event||typeof event.source!=='string'||!event.source||typeof event.id!=='string'||!event.id||!Number.isSafeInteger(event.number)||event.number<1||!Array.isArray(event.participants)||event.participants.length!==2||event.participants.some(id=>typeof id!=='string'||!id)||!Number.isFinite(event.duration)||event.duration<=0)continue;
    const ids=[...event.participants].sort(),[a,b]=ids.map(id=>actors.get(id));
    if(!a||!b||ids[0]===ids[1]||typeof a.sceneId!=='string'||!a.sceneId||a.sceneId!==b.sceneId)continue;
    const previous=interactionProgress.get(event.source);
@@ -129,16 +130,6 @@ export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
     time+=step;left=Math.max(0,left-step);
     for(const event of events)if(event.in<=step)event.finish();
    }
-  },
-  // One authored exposure that already happened (for example a visitor's
-  // journey). The world owns the event identity and must persist its receipt.
-  // Constitution changes the accumulated dose, not a per-frame random draw.
-  expose(id,{condition='mistbell',dose=0}={}){
-   const p=people.get(id),c=p?.conditions[condition],definition=GAME_HEALTH_CONDITIONS[condition];
-   if(!c||!definition.infectious||!Number.isFinite(dose)||dose<=0||c.stage!=='well'||c.immuneFor>0)return false;
-   c.dose+=Math.min(4,dose)*(1.25-.65*p.constitution);
-   if(c.dose>=c.threshold)transition(c,definition);
-   return true;
   },
   // World clinic hook: call only after a confirmed physical handoff, using its
   // persisted provider/serial. A receipt cannot be replayed after save/reload.

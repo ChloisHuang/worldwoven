@@ -5,7 +5,6 @@ const clamp=value=>Math.max(0,Math.min(1,Number.isFinite(value)?value:0));
 const idOf=actor=>actor.actorId||actor.station?.id;
 const visitorId=id=>/^jp-visitor-\d+-\d+$/.test(id);
 const MAX_VISITORS=8;
-function hash(text){let h=2166136261;for(const c of text){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
 
 // Saved health follows real actor IDs across scene/wardrobe rebuilds. This
 // adapter never creates actors, controls a role, changes looks or slows movement.
@@ -29,18 +28,12 @@ export function createGameHealthWorld({worldSeed=1,saved={},visitorFloor=0,clini
   for(const id of visitors)if(!keep.has(id)){ids.delete(id);journeys.delete(id);changed=true;}
   if(changed)rebuild();
  }
- // A rare journey stops at the invented mistbell shelter. Its one bounded
- // arrival exposure is applied only to that visitor, using their constitution.
- // The visit number watermark prevents repeats even after old visits are pruned.
+ // Arrivals register identity only. Historical journey/disease data survives,
+ // but an offscreen journey is not an interaction with named participants.
  function arrive(visit){
   if(!visitorId(visit?.id)||!Number.isSafeInteger(visit.number)||visit.number<1)return false;
   register(visit.id);activeVisitors.add(visit.id);
-  if(!journeys.has(visit.id)){
-   const fresh=visit.number>arrivals&&visit.stage==='arriving';
-   const shelter=fresh&&hash(`mistbell-journey-v1|${worldSeed>>>0}|${visit.id}`)%16===0;
-   journeys.set(visit.id,{number:visit.number,source:shelter?'mistbell-shelter':null});
-   if(shelter)health.expose(visit.id,{dose:1.6});
-  }
+  if(!journeys.has(visit.id))journeys.set(visit.id,{number:visit.number,source:null});
   arrivals=Math.max(arrivals,visit.number);prune();persist();return true;
  }
  function text(id){
@@ -64,7 +57,7 @@ export function createGameHealthWorld({worldSeed=1,saved={},visitorFloor=0,clini
   enter(id,actors=[]){pendingInteractions.clear();sceneId=id;for(const actor of actors)register(idOf(actor));persist();},
   leave(){pendingInteractions.clear();sceneId=null;persist();},
   beginInteraction(source,participants){
-   if(!sceneId||!source||participants.length!==2||participants.some(id=>!ids.has(id)))return null;
+   if(!sceneId||typeof source!=='string'||!source||!Array.isArray(participants)||participants.length!==2||participants.some(id=>!ids.has(id)))return null;
    const number=++interactionSerial,event={source,id:`${source}-${number}`,number,sceneId,participants:[...participants],duration:0};persist();return event;
   },
   interaction(event){
