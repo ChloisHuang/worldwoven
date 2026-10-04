@@ -46,7 +46,7 @@ export function buildChinaClinic(G,A){
  }
  wall('x',-30.4,21.35,26,.215,3.77,[portal('cn-clinic-stock-door','一层药铺备物间门','x',-30.4,23,25,.215,['clinic-stock','clinic-pharmacy'])]);
  wall('z',21.35,-33,-30.4,.215,3.77);
- wall('x',-26.4,21.35,26,4.015,7.57,[portal('cn-clinic-consult-door','二层医馆独立问诊室门','x',-26.4,22.45,24.65,4.015,['clinic-consult','clinic-waiting'])]);
+ wall('x',-26.4,21.35,26,4.015,7.57,[portal('cn-clinic-consult-door','二层医馆独立问诊室门','x',-26.4,21.7,23.9,4.015,['clinic-consult','clinic-waiting'])]);
  wall('z',21.35,-33,-26.4,4.015,7.57);
  H.palaceCeiling(g,colliders,cameraColliders,23.675,-29.7,4.65,6.6,3.77,false);
  H.palaceCeiling(g,colliders,cameraColliders,21,-24.7,10,3.4,3.77,false);
@@ -91,7 +91,7 @@ export function buildChinaClinic(G,A){
  sign('1F药铺',20.7,3.28,-22.77,3.55,.64).userData.facilitySign=true;
  sign('2F医馆',20.7,7.08,-22.77,3.55,.64).userData.facilitySign=true;
  sign('2F医馆',17.6,3.03,-26.18,2.75,.52);sign('候诊',17.1,6.65,-23.21,1.5,.52,Math.PI);
- sign('问诊',23.55,7.08,-26.18,1.65,.52);sign('药铺',23.6,.72,-27.43,1.65,.52);sign('药库',24,3.25,-30.19,1.5,.52);
+ sign('问诊',22.8,7.08,-26.18,1.65,.52);sign('药铺',23.6,.72,-27.43,1.65,.52);sign('药库',24,3.25,-30.19,1.5,.52);
  for(const[id,x,y,z,floor]of[['stair',19,7.03,-31.8,2.115],['waiting',20.7,7.03,-24.5,4.015],['consult',23.55,7.03,-29,4.015],['pharmacy',23.5,3.23,-29.3,.215],['entry',20.7,3.23,-24.5,.215]])upperFixture(g,'clinic-'+id,x,y,z,floor);
  for(const[id,name,position,roomId]of[['cn-clinic-entry','一层药铺正门',[20.7,.215,-21.3],'outdoors'],['cn-clinic-stair-base','医馆公共楼梯起点',[17.6,.215,-25.5],'clinic-stair-hall'],['cn-clinic-stair-landing','医馆楼梯转身平台',[19,2.115,-31.8],'clinic-stair-hall'],['cn-clinic-stair-top','二层医馆公共楼梯平台',[20,4.015,-25.5],'clinic-waiting'],['cn-clinic-waiting','二层医馆候诊厅',[20.7,4.015,-24.7],'clinic-waiting'],['cn-clinic-consult','二层医馆问诊椅',[23.55,4.015,-27.1],'clinic-consult'],['cn-pharmacy-counter','一层药铺领取柜台',CHINA_CLINIC.points.counter,'clinic-pharmacy'],['cn-clinic-east-passage','医馆外东侧巡查通道',[27.15,.115,-27.5],'outdoors']])explorationTargets.push({id,name,position,roomId});
  buildings.push({id:CHINA_CLINIC.id,name:CHINA_CLINIC.name,groupName:g.name,roofGroupName:r.name,bounds:CHINA_CLINIC.bounds,storeys:2,roomIds:['clinic-stair-hall','clinic-waiting','clinic-consult','clinic-pharmacy','clinic-stock'],eastPassage:{centerX:27.15,width:2.35}});
