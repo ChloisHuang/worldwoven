@@ -1,6 +1,6 @@
 # Female anatomical reconstruction
 
-The earlier `0ac344e` female trial is retained in Git but was rejected visually. The reconstruction replaces its frontal RBF constraint pile with one continuous native CC0 topology in a uniform anatomical frame. The original photos are private visual references; they are neither stored here nor sampled as textures. The following dimensions are authored construction choices, not measurements recovered from a single photograph.
+The earlier `0ac344e` female trial is retained in Git but was rejected visually. The reconstruction replaces its frontal RBF constraint pile with one continuous native CC0 topology in a uniform anatomical frame. The original photos are private visual references; they are neither stored here nor sampled as textures. The following nominal dimensions are authored construction choices, not measurements recovered from a single photograph. They are not exact exported-vertex values: the local source-space blending can change a nominal centerline value. The sampled export values below are authoritative for that candidate.
 
 Coordinates are metres, Y up, +Z forward. Native source scale is 0.105 and offset is `[0, 0.798, -0.085]`. The whole cranium, eye aperture, cheek, muzzle and jaw share this frame. Only the lower cervical transition uses the existing anchored neck solve.
 
@@ -26,3 +26,9 @@ This is an original work in progress, not an accepted likeness or a claim that t
 The lip-contact correction follows actual connected source rim vertices and piecewise-linear upper rim edges. It avoids the old jump onto an adjacent lower vermilion roll and the high lateral upper-roll samples that produced saw teeth. Only contact-loop positions change; the rest of the reconstructed geometry is frozen for material review.
 
 The combined candidate retains the new character cel response. A single ocular frame moves the globe and surrounding contact loops together, with a wider relaxed aperture and no added canthal tilt. The frontal cheek/jaw frame is 4% narrower while the cranium is not enlarged. The nasal curve and whole mouth barrel are balanced together. The cervical handoff now occurs above the throat; submental, throat-corner and front-neck targets form one downward curve rather than a long horizontal shelf and a V-shaped neck notch. Standard comparison frames retain the same palette, light and camera, including one v2=90 example.
+
+## Actual exported center profile (6e07f64)
+
+The nasion is the center-profile local depth minimum, not the lateral brow support point. Actual source-matched mesh coordinates (+Z forward, mm) are: glabella `(0, 1577.793, 74.631)`; nasion `(0, 1563.618, 71.478)`; upper bridge `(0, 1553.612, 76.466)`; bony bridge `(0, 1543.983, 82.478)`; dorsum `(0, 1536.570, 87.909)`; tip `(0, 1523.445, 93.367)`. The actual center nasion is recessed 3.153 mm behind the glabella.
+
+The measured lateral brow support is `(31.330, 1577.460, 68.643)` and its upper orbital fold is `(32.814, 1573.813, 63.769)`. These are lateral points, so their depths should not be substituted for the central glabella when assessing the center nasal profile. The nominal 70 mm nasal target becomes 71.478 mm after the source-space influence mask; it was incorrect to describe that nominal number as an exact mesh coordinate. This audit did not change geometry.
