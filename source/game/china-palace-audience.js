@@ -67,7 +67,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
  }
  const allInLine=()=>officials.every(n=>tasks.get(n)?.id==='enter-hall'&&tasks.get(n).arrived),paused=n=>!!n&&state.conversationActorId===n.station.id;
  function routeBudgets(){
-  const actors=officials.map((n,i)=>{const exit=life?.courtPlan(n)||{reachable:true,position:n.root.position,path:[],safeExitSeconds:0,doorSeconds:4};return {actor:n.station.id,...(exit.reachable?courtRouteBudget({...exit,path:[...exit.path,court(i),...enterHall(i)],walkSpeed:n.locomotion.walkSpeed,planPath}):{reachable:false,seconds:Infinity,reason:'safe-exit-blocked'})};});
+  const actors=officials.map((n,i)=>{const exit=life?.courtPlan(n)||{reachable:true,position:n.root.position,path:[],safeExitSeconds:0,doorSeconds:4};return {actor:n.station.id,...(exit.reachable?courtRouteBudget({...exit,path:[...exit.path,court(i),...enterHall(i)],walkSpeed:n.locomotion.walkSpeed,planPath,doorways:lot.doorways}):{reachable:false,seconds:Infinity,reason:'safe-exit-blocked'})};});
   const royal=palace.dutyPlan?.(OWNER)||{reachable:false,seconds:Infinity,reason:'royal-route-unavailable'};
   actors.push({actor:emperor.station.id,...royal});return {actors,seconds:Math.max(...actors.map(a=>a.seconds)),measuredAt:time};
  }
@@ -106,7 +106,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
     if(s?.arrived&&!n.walking)n.root.rotation.y=Math.PI;
     const c=poseContext(n,null);c.handoff=false;c.heldProp=null;c.seatedMeal=false;n.animate(t+n.phase,n.walking,null,c);
     const kneeling=phase==='kneeling'?Math.min(1,phaseTime/1.8):phase==='rising'?Math.max(0,1-phaseTime/1.8):['report','response','dismissal'].includes(phase)?1:0;
-    postures[i]?.apply({kneeling,raised:n===speaker&&phase==='report'?1:.20+(i%3)*.07,time:t,phase:n.phase});
+    postures[i]?.apply({kneeling,holding:phase==='holding'||tasks.get(n)?.id==='enter-hall'&&tasks.get(n).arrived,raised:n===speaker&&phase==='report'?1:.20+(i%3)*.07,time:t,phase:n.phase});
    }
    phaseTime+=dt;
    if(['assembling','holding'].includes(phase)){

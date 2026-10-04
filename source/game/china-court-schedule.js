@@ -4,18 +4,18 @@ export const COURT_START_HOUR=11.5;
 export const COURT_CLOCK_MINUTES_PER_SECOND=.7;
 export const COURT_CONGESTION_SECONDS=20;
 
-export function courtRouteBudget({position,path,walkSpeed,planPath,safeExitSeconds=0,doorSeconds=0}){
- let from={x:position.x,y:position.y,z:position.z},distance=0;
+export function courtRouteBudget({position,path,walkSpeed,planPath,safeExitSeconds=0,doorSeconds=0,doorways=[]}){
+ let from={x:position.x,y:position.y,z:position.z},distance=0;const crossed=new Set();
  for(const a of path){
   const to=Array.isArray(a)?{x:a[0],y:a[1],z:a[2]}:a;
   if(Math.hypot(to.x-from.x,to.z-from.z)<.08&&Math.abs(to.y-from.y)<.32){from=to;continue;}
   const route=planPath(from,to,.25);
   if(!route?.length)return {reachable:false,seconds:Infinity,distance,blockedTarget:[to.x,to.y,to.z]};
-  for(const p of [...route,to]){distance+=Math.hypot(p.x-from.x,p.z-from.z);from=p;}
+  for(const p of [...route,to]){distance+=Math.hypot(p.x-from.x,p.z-from.z);for(const d of doorways){const a=d.axis==='x'?from.z:from.x,b=d.axis==='x'?p.z:p.x;if(Math.abs(a-b)<1e-8)continue;const t=(d.at-a)/(b-a),lateral=d.axis==='x'?from.x+(p.x-from.x)*t:from.z+(p.z-from.z)*t,y=from.y+(p.y-from.y)*t;if(t>=0&&t<=1&&lateral>=d.from-.25&&lateral<=d.to+.25&&y>=d.bottom-.4&&y<d.top)crossed.add(d.id);}from=p;}
  }
  const speed=walkSpeed*.78;
  if(!(speed>0))return {reachable:false,seconds:Infinity,distance,blockedTarget:null};
- return {reachable:true,seconds:distance/speed+safeExitSeconds+doorSeconds,distance};
+ return {reachable:true,seconds:distance/speed+safeExitSeconds+doorSeconds+crossed.size*2,distance,doors:[...crossed]};
 }
 
 export function createAudienceSchedule(saved={}){

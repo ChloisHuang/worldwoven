@@ -3,6 +3,7 @@ import {consortActivities,createPalaceLeisureClaims,createConsortPassage} from '
 import {createLifeDecisions} from './npc-life-decisions.js';
 import {canTraverse} from './navigation.js';
 import {attachPalaceCostume,createPalaceMealKit} from './china-palace-costume.js';
+import {courtRouteBudget} from './china-court-schedule.js';
 
 export const CHINA_PALACE_ROLES=Object.freeze([
  {id:'cn-emperor',npcName:'景珩 · 皇帝',royalRole:'emperor',ageYears:36,privateRoomId:'bedroom',npcPosition:[-21.7,7.815,-4.6]},
@@ -113,6 +114,32 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
    if(disposed||!owner||duty&&duty.owner!==owner)return false;
    if(!duty){duty={owner,kind:options.kind==='edict-review'?'edict-review':'audience',active:false,release:false,yieldSeat:false};const s=stages.get(emperor);if(s.choice){s.choice.fulfilled=false;brain.complete(emperor.station.id,s.choice,{fulfilled:false});}record(emperor,'duty-requested:'+owner);}
    return true;
+  },
+  // Read-only estimate of the exact existing handoff/duty itinerary. This does
+  // not move the emperor or borrow the consorts' routes, claims or controller.
+  dutyPlan(owner){
+   const s=stages.get(emperor),steps=scripts.get(emperor),fail=reason=>({reachable:false,seconds:Infinity,reason,stage:steps[s.index].id});
+   if(disposed||duty&&duty.owner!==owner)return fail('duty-owned-by-another-service');
+   if(interrupted(emperor))return fail('emperor-in-conversation');
+   const landing=s.mount?furniture.standPoint(navigation,safety(emperor),s.mount):emperor.root.position;
+   if(!landing)return fail('safe-stand-exit-blocked');
+   if(duty?.active&&s.mount===throne&&!duty.release&&!duty.yieldSeat)return {reachable:true,seconds:0,distance:0,path:[],stage:steps[s.index].id};
+   const path=[];let handoff=near(landing,emperor.home.toArray(),.4)?'home':near(landing,HALL.at(-1),.3)?'public':null;
+   if(!duty?.active&&!handoff||duty?.active){
+    if(s.yieldPoint)path.push(s.yieldPoint.slice());
+    if(!s.arrived&&emperor.route.length)path.push(...emperor.route.map(p=>[p.x,p.y,p.z]));
+    for(let i=s.index;i<steps.length;i++){
+     if(i===s.index&&s.arrived)continue;
+     for(const p of steps[i].path.slice(i===s.index?s.waypoint:0)){
+      path.push(p.slice());
+      if(!duty?.active&&(near(point(p),emperor.home.toArray(),.4)||near(point(p),HALL.at(-1),.3))){handoff=near(point(p),HALL.at(-1),.3)?'public':'home';break;}
+     }
+     if(duty?.active&&steps[i].mount===throne||!duty?.active&&handoff)break;
+    }
+   }
+   if(!duty?.active){if(!handoff)return fail('no-reachable-duty-handoff');if(handoff==='home')path.push(...STAIRS);path.push(...COURT,throne.position);}
+   const result=courtRouteBudget({position:landing,path,walkSpeed:emperor.locomotion.walkSpeed,planPath,doorways:lot.doorways,safeExitSeconds:s.mount?2:0,doorSeconds:2});
+   return {...result,stage:steps[s.index].id,handoff,path:path.map(p=>p.slice())};
   },
   releaseDuty(owner){if(duty?.owner===owner)duty.release=true;},
   setDutyLine(owner,line){if(duty?.owner===owner)duty.line=line;},
