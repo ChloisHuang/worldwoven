@@ -5,9 +5,9 @@
 ## Confirmed causes and bounded change
 
 - All ten controls reach the rendered candidate; no stale legacy value or normalization erased endpoints. Female head jaw min/max moves each side by up to 13.91 mm; whole nose and width have existing meaningful spans. Their overall ranges were not enlarged.
-- Small whole-nose size used to retract the upper bridge landmark 4.34 mm, cancelling the independent high-bridge control. Whole-nose projection now tapers out before the upper bridge; the same small-nose choice retracts it only 0.113 mm. Lower-nose length/width/projected size still change.
+- Small whole-nose size used to retract the upper bridge landmark 4.34 mm, cancelling the independent high-bridge control. All three lower-nose size axes now taper out before the upper bridge; the same small-nose choice retracts it only 0.113 mm. Lower-nose length/width/projected size still change.
 - Nose-tip scaling was centered very near its front surface and its mask covered only a small core. Its full-range maximum forward movement was 2.73 mm. The current nasal root/ridge now supplies the bulb base, with a softly widened region and 1.35 width/height response. Full-range forward span is 7.55 mm. Neutral value 1 is byte-identical, with upper ridge, eyes, lips, collar and rig anchors retained.
-- Candidate cache tag bumped to traits10-v7. The neutral mesh, legacy head, palette, scores, saved ranges, identity and randomizer are unchanged.
+- Candidate cache tag bumped to traits10-v8. The neutral mesh, legacy head, palette, scores, saved ranges, identity and randomizer are unchanged. The 2026-10-04 clarification defines a small nose as narrow/small alae and tip with a high clear bony bridge; candidate noseSize therefore means lower nasal body/alar size rather than scaling the bony ridge. noseWidth remains transverse width, noseTipSize is local bulb size, and noseBridgeHeight controls independent ridge projection. The final XYZ separation is covered by an exact upper-region position check; the earlier endpoint renders remain applicable because they vary jaw/tip/bridge with noseSize=1.
 
 ## Focused verification
 
