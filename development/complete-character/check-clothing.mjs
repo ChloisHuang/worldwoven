@@ -1,0 +1,17 @@
+import {registerHooks} from 'node:module';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+const HERE=path.dirname(fileURLToPath(import.meta.url)),SOURCE=path.resolve(HERE,'../../source');
+registerHooks({resolve(s,c,next){if(s==='three')return{url:pathToFileURL(SOURCE+'/vendor/three/build/three.module.js').href,shortCircuit:true};return next(s,c);}});
+const {createApprovedSurfaces}=await import('../../source/game/approved-surfaces.js');
+const {applyNaturalClothing}=await import('./natural-clothing.mjs');
+const opts={culture:'france',masc:true,bodyPreset:'masculine-lean',wardrobePreset:'court-frock-coat'};
+const root=createApprovedSurfaces(opts),hands=new Map();
+root.traverse(m=>{if(m.isMesh&&/relaxed-|thumb-|wrist-/.test(m.name))hands.set(m.name,m.geometry.attributes.position.array.slice());});
+const result=applyNaturalClothing(root,opts);assert(result.changed.length>8);
+root.traverse(m=>{if(!m.isMesh)return;const p=m.geometry.attributes.position;for(const n of p.array)assert(Number.isFinite(n),m.name);if(m.userData.naturalClothing){assert.equal(m.geometry.attributes.sourceY.count,p.count);assert(m.geometry.index.count>0);}if(hands.has(m.name))assert.deepEqual(p.array,hands.get(m.name),m.name);});
+assert.equal(applyNaturalClothing(root,opts),null);
+const unchanged=createApprovedSurfaces({...opts,culture:'japan'});assert.equal(applyNaturalClothing(unchanged,{...opts,culture:'japan'}),null);
+console.log(JSON.stringify({status:'PASS',changed:result.changed,untouchedHandsAndWrists:hands.size,scope:'representative male French frock, mesh integrity only'}));
+for(const g of [root,unchanged])g.traverse(m=>{if(m.isMesh)m.geometry.dispose();});

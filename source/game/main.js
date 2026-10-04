@@ -38,7 +38,7 @@ import {visualSupportHeight,characterFloorOffsetAt,footprintSupportHeight} from 
 import {configureStableShadows,updateStableShadowFrame,setStableShadowBounds,applyWorldShadowPolicy} from './stable-shadows.js';
 import {createNightLighting,NIGHT_PALETTE} from './night-lighting.js';
 import {createAppearanceState,validAppearanceState,migrateAppearanceState,npcRoleAppearance,playerAppearance,randomizePlayerAppearance} from './appearance.js';
-import {shapePreferenceScore} from './character-traits.js';
+import {SHAPE_RANGES,normalizeShapeTraits,shapePreferenceScore} from './character-traits.js';
 import {createGlobe} from './globe.js?rev=R7-20261002';
 import {buildChina} from './regions-east.js?rev=R7-20261002';
 import {buildJapan} from './japan-bathhouse.js?rev=R7-20261002';
@@ -103,7 +103,7 @@ let arrivalViewUntil=0;
 let mode='globe',selected='japan',active=null,lot=null,player=null,npcs=[],path=[],targetStation=null,nearest=null,performing=null,pendingInteraction=null,actionTime=0,walkTime=0,elapsed=0,paused=false,roofShown=false,dusk=false;
 let yaw=0,pitch=.22,distance=4.6,globeZoom=1,drag=null,keys=new Set(),joy={x:0,y:0},focusedGlobe=null,toastTimer,arrivalTimer,daybookOpen=!matchMedia('(pointer: coarse)').matches&&innerWidth>600,feetPulse=null,feetPulseTimer=null;let cameraSolids=[],staticCameraSolids=[],automaticDoors=null,doorCameraVersion=-1,routeColliders=[],routeOptions=null,navOptions=null,multiLevel=false,lotAnimationTime=0;const camTarget=new THREE.Vector3(0,0,0),followTarget=new THREE.Vector3(),desiredCamera=new THREE.Vector3();
 let japanPerformance=null,japanPerformanceUI=null,franceTea=null,franceGardener=null,japanWeatherCharms=null,japanService=null,japanPlayerService=null,japanServiceUI=null,chinaArchery=null,chinaPalace=null,chinaAudience=null,chinaEdict=null,chinaClinic=null,chinaMoneyHouse=null,chinaTavern=null,chinaTavernUI=null,chinaSalon=null,chinaSalonUI=null,chinaLabor=null,npcSocial=null;
-let furniture=null,seated=null,bathTransition=null,outfitView=null,outfitDraft=null,outfitRandomScoreVisible=false,daybookTab='activities';const furnitureLabels=[];const outfitPreview=createOutfitPreview();
+let furniture=null,seated=null,bathTransition=null,outfitView=null,outfitDraft=null,outfitShapeDirty=false,outfitShapeLastAt=-Infinity,outfitRandomScoreVisible=false,outfitBackdropPointer=false,daybookTab='activities';const furnitureLabels=[];const outfitPreview=createOutfitPreview();
 const globeLabels=new Map(),npcLabels=[];
 for(const r of regions){const b=document.createElement('button');b.className='region-card';b.dataset.region=r.id;b.style.setProperty('--card-color',r.color);b.innerHTML=`<span class="region-icon">${r.icon}</span><span><strong>${r.country}</strong><small>${r.en}</small></span><span class="visited">${saved.visited.includes(r.id)?'✓':''}</span>`;b.onclick=()=>selectRegion(r.id,true);$('region-cards').append(b);const label=document.createElement('div');label.className='world-label';label.textContent=r.country;$('labels').append(label);globeLabels.set(r.id,label);}
 function showDoorwayHint(manual=false){const visible=!!(manual&&mode==='lot'&&player&&automaticDoors?.isOpeningObstructedBy(player.root.position));const hint=$('doorway-hint');if(hint.hidden===visible)hint.hidden=!visible;}
@@ -182,7 +182,7 @@ function configureJapanPerformance(){
 }
 function configureJapanWeatherCharms(){japanWeatherCharms=active.id==='japan'?createJapanWeatherCharmService({lot,getPlayer:()=>player,getBusy:()=>!!(seated||bathTransition||performing||pendingInteraction||npcSocial?.active()||japanPlayerService?.pose()||interactionMenuOpen()),saved:saved.japanWeatherCharms,saveState:state=>{saved.japanWeatherCharms=state;save();},notify:toast}):null;}
 function configureJapanService(){
- japanService=active.id==='japan'?createJapanBathhouseOperations({npcs,lot,furniture,planPath,doors:automaticDoors,moveActor,poseContext:characterPoseContext,worldSeed:saved.appearance.seed,saved:saved.japanOperations,saveState:state=>{saved.japanOperations=state;save();},createVisitor:visit=>{
+ japanService=active.id==='japan'?createJapanBathhouseOperations({npcs,lot,furniture,planPath,doors:automaticDoors,moveActor,poseContext:characterPoseContext,worldSeed:saved.appearance.seed,npcShapeVersion:saved.appearance.npcShapeVersion,saved:saved.japanOperations,saveState:state=>{saved.japanOperations=state;save();},createVisitor:visit=>{
   const station=japanVisitorStation(visit),person=createCharacter({...visit.appearance,culture:'japan',scale:.96});person.characterScale=.96;person.preferenceScore=shapePreferenceScore(visit.appearance.shapeTraits);person.root.position.set(...visit.position);lot.group.add(person.root);
   const label=document.createElement('div');label.className='npc-label';label.append(document.createTextNode(`${visit.name} · 来客 ${visit.number}`));const status=document.createElement('small');status.textContent=station.npcLabel;label.append(status);$('labels').append(label);npcLabels.push(label);
   const n={...person,station,label,phase:visit.number*6.7,walking:false,home:person.root.position.clone(),route:[],breakAt:Infinity,returning:false};npcs.push(n);gameHealth.arrive(visit);return n;
@@ -298,20 +298,47 @@ function startFurniture(item){if(interactionMenuOpen())return;if(!nearbyInteract
 
 
 
+const shapeLabels={jawWidth:'下颌宽度',chinLength:'下巴长度',chinProjection:'下巴前后',eyeSize:'眼睛大小',socketDepth:'眼窝深度',noseBridgeHeight:'鼻梁高度',noseTipSize:'鼻头大小',noseSize:'鼻子大小',noseWidth:'鼻翼宽度',legLength:'腿长比例'};
+const shapeControls=new Map(),shapePercent=value=>`${Math.round(value*10000)/100}%`;
+function createShapeControls(){
+ if(shapeControls.size)return;
+ for(const [key,labelText]of Object.entries(shapeLabels)){
+  const range=SHAPE_RANGES[key];if(!range)continue;
+  const row=document.createElement('label'),caption=document.createElement('span'),name=document.createElement('span'),value=document.createElement('output'),input=document.createElement('input'),bounds=document.createElement('span');
+  row.className='shape-control';caption.className='shape-caption';name.textContent=labelText;value.id=`shape-value-${key}`;caption.append(name,value);
+  input.type='range';input.id=`shape-${key}`;row.setAttribute('for',input.id);input.dataset.shapeTrait=key;input.min=String(range.min);input.max=String(range.max);input.step='0.0001';input.setAttribute('aria-label',labelText);value.setAttribute('for',input.id);
+  bounds.className='shape-bounds';bounds.textContent=`${shapePercent(range.min)} — ${shapePercent(range.max)}`;
+  input.oninput=()=>previewShapeTrait(key,input.value);input.onchange=()=>{previewShapeTrait(key,input.value);flushShapePreview(true);};input.onpointerup=()=>flushShapePreview(true);input.onpointercancel=()=>flushShapePreview(true);
+  row.append(caption,input,bounds);$('appearance-shapes').append(row);shapeControls.set(key,{input,value});
+ }
+}
+function refreshShapeControls(){
+ const traits=normalizeShapeTraits((outfitDraft||saved.appearance).player.shapeTraits);
+ for(const [key,{input,value}]of shapeControls){input.value=String(traits[key]);value.textContent=shapePercent(traits[key]);input.setAttribute('aria-valuetext',value.textContent);}
+}
 function refreshAppearanceScore(){
  $('appearance-score-readout').hidden=!outfitRandomScoreVisible;$('appearance-score-note').hidden=!outfitRandomScoreVisible;
  $('appearance-score').textContent=outfitRandomScoreVisible?`${Math.round(shapePreferenceScore(outfitDraft.player.shapeTraits))} / 100`:'';
 }
+function previewShapeTrait(key,value){
+ if(!outfitPreview.state().open||!Object.hasOwn(SHAPE_RANGES,key))return;
+ const traits=normalizeShapeTraits({...outfitDraft.player.shapeTraits,[key]:typeof value==='string'&&value.trim()?Number(value):NaN});
+ if(Object.keys(SHAPE_RANGES).some(k=>traits[k]!==outfitDraft.player.shapeTraits[k])){outfitDraft={...outfitDraft,player:{...outfitDraft.player,shapeTraits:traits}};outfitShapeDirty=true;}
+ outfitRandomScoreVisible=false;refreshShapeControls();refreshAppearanceScore();
+}
+// Limit full geometry rebuilds while dragging on mobile. Native release/change
+// flushes the last value immediately, including when the animation loop is paused.
+function flushShapePreview(force=false){if(!outfitShapeDirty)return;const now=performance.now();if(!force&&now-outfitShapeLastAt<100)return;outfitShapeDirty=false;outfitShapeLastAt=now;if(outfitPreview.state().open&&player)buildPlayer(outfitPreview.state().selected);}
 function refreshOutfitChoices(){
  const selected=outfitPreview.state().selected,appearance=outfitDraft||saved.appearance;
  for(const b of $('outfit-choices').children){b.setAttribute('aria-pressed',Number(b.dataset.outfit)===selected);const look=playerAppearance(appearance,active.id,Number(b.dataset.outfit));b.style.setProperty('--outfit-color','#'+look.clothes.toString(16).padStart(6,'0'));}
  const presentation=appearance.player.bodyPreset.startsWith('masculine')?'男性外形':'女性外形';
  $('appearance-presentation').textContent=presentation;
- refreshAppearanceScore();
+ refreshShapeControls();refreshAppearanceScore();
  $('outfit-preview-status').textContent=`第 ${selected+1} 套 · 人物与服装确认后保存`;
 }
-function previewOutfit(index){if(!outfitPreview.state().open)return;buildPlayer(outfitPreview.select(index));refreshOutfitChoices();}
-function previewRandomCharacter(){if(!outfitPreview.state().open)return;outfitRandomScoreVisible=true;outfitDraft=randomizePlayerAppearance(outfitDraft||saved.appearance);buildPlayer(outfitPreview.select(Math.floor(Math.random()*8)));refreshOutfitChoices();}
+function previewOutfit(index){if(!outfitPreview.state().open)return;outfitShapeDirty=false;outfitShapeLastAt=performance.now();buildPlayer(outfitPreview.select(index));refreshOutfitChoices();}
+function previewRandomCharacter(){if(!outfitPreview.state().open)return;outfitShapeDirty=false;outfitShapeLastAt=performance.now();outfitRandomScoreVisible=true;outfitDraft=randomizePlayerAppearance(outfitDraft||saved.appearance);buildPlayer(outfitPreview.select(Math.floor(Math.random()*8)));refreshOutfitChoices();}
 function previewTargetHeight(){return seated?Math.max(seated.seatY-player.root.position.y+.25,player.getPoseMetrics().headHeight*.55):1.0;}
 function frameOutfitPreview(){
  const floor=player.poseContext?.visualFloorOffset||0,target=player.root.position.clone().add(new THREE.Vector3(0,previewTargetHeight()+floor,0));
@@ -322,8 +349,8 @@ function frameOutfitPreview(){
  for(const elevation of(seated?[.04,.12,.20]:[.04]))for(const turn of turns){const angle=player.root.rotation.y+turn,desired=new THREE.Vector3(target.x+Math.sin(angle)*Math.cos(elevation)*3.8,target.y+Math.sin(elevation)*3.8,target.z+Math.cos(angle)*Math.cos(elevation)*3.8),clear=resolveCameraPosition(target,desired,solids,.18),room=clear.distanceTo(target);if(!best||room>best.room+.08)best={angle,elevation,room};}
  yaw=best.angle;pitch=best.elevation;distance=3.8;if(!seated)player.root.rotation.y=yaw;camTarget.copy(target);updateCamera(1,true);
 }
-function openOutfitPreview(item=null){if(mode!=='lot'||outfitPreview.state().open)return;if(bathTransition){standFromSeat();return;}if(seated&&seated.kind!=='seat'&&!standFromSeat())return;cancelAction({keepSeat:true});showDoorwayHint();path=[];targetStation=null;keys.clear();joy={x:0,y:0};$('joystick-knob').style.transform='';joyActionAnchor=joyPointer!==null&&joyLastPoint?{...joyLastPoint}:null;outfitDraft={...saved.appearance,player:{...saved.appearance.player,shapeTraits:{...saved.appearance.player.shapeTraits}}};outfitRandomScoreVisible=false;outfitPreview.begin(saved.outfit);outfitView={yaw,pitch,distance,roofShown,playerYaw:player.root.rotation.y};roofShown=false;$('roof-toggle').setAttribute('aria-pressed','false');$('roof-toggle').lastElementChild.textContent='总览';setBackground();frameOutfitPreview();$('outfit-title').textContent=item?.name||`${active.country} · 人物与服装`;$('outfit-choices').replaceChildren();for(let i=0;i<8;i++){const b=document.createElement('button'),look=playerAppearance(saved.appearance,active.id,i);b.type='button';b.dataset.outfit=String(i);b.style.setProperty('--outfit-color','#'+look.clothes.toString(16).padStart(6,'0'));b.textContent=`款式 ${i+1}`;b.setAttribute('aria-label',`试穿第 ${i+1} 套服装`);b.onclick=()=>previewOutfit(i);$('outfit-choices').append(b);}refreshOutfitChoices();$('outfit-dialog').showModal();}
-function closeOutfitPreview(confirm=false,rebuild=true){if(!outfitPreview.state().open)return;const outfit=confirm?outfitPreview.confirm():outfitPreview.cancel();if(confirm){saved.outfit=outfit;saved.appearance=outfitDraft;save();}outfitDraft=null;outfitRandomScoreVisible=false;refreshAppearanceScore();if(rebuild&&player)buildPlayer(outfit);$('outfit-dialog').close();if(outfitView){if(player)player.root.rotation.y=outfitView.playerYaw;({yaw,pitch,distance,roofShown}=outfitView);outfitView=null;$('roof-toggle').setAttribute('aria-pressed',roofShown);$('roof-toggle').lastElementChild.textContent=roofShown?'跟随人物':'总览';setBackground();}keys.clear();joy={x:0,y:0};joyActionAnchor=joyPointer!==null&&joyLastPoint?{...joyLastPoint}:null;$('joystick-knob').style.transform='';if(rebuild)canvas.focus({preventScroll:true});}
+function openOutfitPreview(item=null){if(mode!=='lot'||outfitPreview.state().open)return;if(bathTransition){standFromSeat();return;}if(seated&&seated.kind!=='seat'&&!standFromSeat())return;cancelAction({keepSeat:true});showDoorwayHint();path=[];targetStation=null;keys.clear();joy={x:0,y:0};$('joystick-knob').style.transform='';joyActionAnchor=joyPointer!==null&&joyLastPoint?{...joyLastPoint}:null;outfitDraft={...saved.appearance,player:{...saved.appearance.player,shapeTraits:normalizeShapeTraits(saved.appearance.player.shapeTraits)}};outfitShapeDirty=false;outfitShapeLastAt=-Infinity;outfitRandomScoreVisible=false;outfitBackdropPointer=false;createShapeControls();outfitPreview.begin(saved.outfit);outfitView={yaw,pitch,distance,roofShown,playerYaw:player.root.rotation.y};roofShown=false;$('roof-toggle').setAttribute('aria-pressed','false');$('roof-toggle').lastElementChild.textContent='总览';setBackground();frameOutfitPreview();$('outfit-title').textContent=item?.name||`${active.country} · 人物与服装`;$('outfit-choices').replaceChildren();for(let i=0;i<8;i++){const b=document.createElement('button'),look=playerAppearance(saved.appearance,active.id,i);b.type='button';b.dataset.outfit=String(i);b.style.setProperty('--outfit-color','#'+look.clothes.toString(16).padStart(6,'0'));b.textContent=`款式 ${i+1}`;b.setAttribute('aria-label',`试穿第 ${i+1} 套服装`);b.onclick=()=>previewOutfit(i);$('outfit-choices').append(b);}refreshOutfitChoices();$('outfit-dialog').showModal();}
+function closeOutfitPreview(confirm=false,rebuild=true){if(!outfitPreview.state().open)return;const outfit=confirm?outfitPreview.confirm():outfitPreview.cancel();if(confirm){saved.outfit=outfit;saved.appearance=outfitDraft;save();}outfitDraft=null;outfitShapeDirty=false;outfitShapeLastAt=-Infinity;outfitRandomScoreVisible=false;outfitBackdropPointer=false;refreshAppearanceScore();if(rebuild&&player)buildPlayer(outfit);$('outfit-dialog').close();if(outfitView){if(player)player.root.rotation.y=outfitView.playerYaw;({yaw,pitch,distance,roofShown}=outfitView);outfitView=null;$('roof-toggle').setAttribute('aria-pressed',roofShown);$('roof-toggle').lastElementChild.textContent=roofShown?'跟随人物':'总览';setBackground();}keys.clear();joy={x:0,y:0};joyActionAnchor=joyPointer!==null&&joyLastPoint?{...joyLastPoint}:null;$('joystick-knob').style.transform='';if(rebuild)canvas.focus({preventScroll:true});}
 $('random-character').onclick=previewRandomCharacter;
 // Native buttons handle Enter/Space; suppress held-key repeats without adding a second click path.
 $('random-character').addEventListener('keydown',e=>{if(e.repeat&&['Enter','Space'].includes(e.code))e.preventDefault();});
@@ -334,7 +361,10 @@ $('outfit-cancel').onclick=() => closeOutfitPreview(false);
 $('outfit-close').onclick=() => closeOutfitPreview(false);
 $('outfit-dialog').addEventListener('cancel',e=>{e.preventDefault();closeOutfitPreview(false);});
 $('outfit-dialog').addEventListener('close',()=>{if(!$('outfit-dialog').open)closeOutfitPreview(false);});
-$('outfit-dialog').addEventListener('click',e=>{if(e.target===$('outfit-dialog'))closeOutfitPreview(false);});
+// A range drag may end over the backdrop; only a press that started there dismisses.
+$('outfit-dialog').addEventListener('pointerdown',e=>{outfitBackdropPointer=e.target===$('outfit-dialog');});
+$('outfit-dialog').addEventListener('pointercancel',()=>{outfitBackdropPointer=false;});
+$('outfit-dialog').addEventListener('click',e=>{const dismiss=outfitBackdropPointer&&e.target===$('outfit-dialog');outfitBackdropPointer=false;if(dismiss)closeOutfitPreview(false);});
 
 function finishInteraction(){const id=active.id;saved.stamps[id]??=[];if(!saved.stamps[id].includes(performing.id)){saved.stamps[id].push(performing.id);save();renderStations();toast(`✦ ${performing.action} · 记住了今天的小日常`);}cancelAction();}
 function pickWalkPoint(){const candidates=[];const surfaces=multiLevel?lot.walkableSurfaces:[{...lotBounds(),y:.015},...(lot.walkableSurfaces||[{minX:-10.5,maxX:10.5,minZ:-13.5,maxZ:3.5,y:.23}])];for(const s of surfaces){const gradient=s.axis?(s.endY-s.y)/Math.max(.001,s.axis==='x'?s.maxX-s.minX:s.maxZ-s.minZ):0;const n=new THREE.Vector3(s.axis==='x'?-gradient:0,1,s.axis==='z'?-gradient:0).normalize();const origin=new THREE.Vector3(s.minX,s.y,s.minZ),plane=new THREE.Plane().setFromNormalAndCoplanarPoint(n,origin),hit=new THREE.Vector3();if(ray.ray.intersectPlane(plane,hit)&&hit.x>=s.minX&&hit.x<=s.maxX&&hit.z>=s.minZ&&hit.z<=s.maxZ){const distance=camera.position.distanceTo(hit);if(cameraDistanceToObstacle(camera.position,hit,cameraSolids,0)>=distance-.16)candidates.push({hit,distance});}}candidates.sort((a,b)=>a.distance-b.distance);return candidates[0]?.hit||null;}
@@ -414,7 +444,7 @@ function updateGameHealth(dt){
  const text=gameHealth.text('player'),label=$('player-health');if(label.textContent!==text)label.textContent=text;label.hidden=!text;
  for(const n of npcs){const text=gameHealth.text(n.actorId||n.station.id);if(!text&&!n.healthLabel)continue;if(!n.healthLabel){n.healthLabel=document.createElement('small');n.healthLabel.className='npc-health-status';n.label.append(n.healthLabel);}if(n.healthLabel.textContent!==text)n.healthLabel.textContent=text;n.healthLabel.hidden=!text;}
 }
-let frame=0;function animate(){requestAnimationFrame(animate);const {dt,steps,stepDt}=simulationFrame(clock.getDelta());if(paused)return;if(mode==='globe'){elapsed+=dt;if(focusedGlobe){globe.group.quaternion.slerp(focusedGlobe,Math.min(1,dt*3));if(globe.group.quaternion.angleTo(focusedGlobe)<.006)focusedGlobe=null;}else if(!drag&&!matchMedia('(prefers-reduced-motion: reduce)').matches){const q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),dt*.012);globe.group.quaternion.premultiply(q);}globe.update?.(dt,elapsed);}else{for(let step=0;step<steps;step++){elapsed+=stepDt;updateAutomaticDoors(stepDt);updatePlayer(stepDt,elapsed);japanWeatherCharms?.update(elapsed);updateNPCs(stepDt,elapsed);updateGameHealth(stepDt);japanServiceUI?.update();japanPerformanceUI?.update();chinaTavernUI?.update();chinaSalonUI?.update();}lotAnimationTime+=dt;lot.update?.(dt,lotAnimationTime);furniture?.update(dt);const total=10*60+Math.floor(elapsed*.7);$('game-time').textContent=`${String(Math.floor(total/60)%24).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;}if(mode==='lot'&&player)lighting.update(player.root.position);updateCamera(dt);renderer.render(scene,camera);if(frame++%2===0){updateLabels();updateFurnitureLabels();}}
+let frame=0;function animate(){requestAnimationFrame(animate);const {dt,steps,stepDt}=simulationFrame(clock.getDelta());if(paused)return;flushShapePreview();if(mode==='globe'){elapsed+=dt;if(focusedGlobe){globe.group.quaternion.slerp(focusedGlobe,Math.min(1,dt*3));if(globe.group.quaternion.angleTo(focusedGlobe)<.006)focusedGlobe=null;}else if(!drag&&!matchMedia('(prefers-reduced-motion: reduce)').matches){const q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),dt*.012);globe.group.quaternion.premultiply(q);}globe.update?.(dt,elapsed);}else{for(let step=0;step<steps;step++){elapsed+=stepDt;updateAutomaticDoors(stepDt);updatePlayer(stepDt,elapsed);japanWeatherCharms?.update(elapsed);updateNPCs(stepDt,elapsed);updateGameHealth(stepDt);japanServiceUI?.update();japanPerformanceUI?.update();chinaTavernUI?.update();chinaSalonUI?.update();}lotAnimationTime+=dt;lot.update?.(dt,lotAnimationTime);furniture?.update(dt);const total=10*60+Math.floor(elapsed*.7);$('game-time').textContent=`${String(Math.floor(total/60)%24).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;}if(mode==='lot'&&player)lighting.update(player.root.position);updateCamera(dt);renderer.render(scene,camera);if(frame++%2===0){updateLabels();updateFurnitureLabels();}}
 addEventListener('pagehide',()=>gameHealth.flush());
 function resize(){if(innerHeight>innerWidth&&matchMedia('(pointer: coarse)').matches&&outfitPreview.state().open)closeOutfitPreview(false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));updateCamera(1,true);}addEventListener('resize',resize);
 const touches=new Map();let pinchDistance=0;
