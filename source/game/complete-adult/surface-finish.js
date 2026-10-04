@@ -2,7 +2,8 @@
  * Coordinates come from our CC0-derived mesh, never an image or camera.
  * Diffuse light still uses the same discrete cel ramp. No skin BRDF switch.
  */
-export function applySurfaceFinish(material){
+import {HAIR_FLOW_COLOR_GLSL,HAIR_FLOW_LIGHT_GLSL,HAIR_FLOW_VERSION} from './hair-flow-finish.js';
+export function applySurfaceFinish(material,{hairFlow=false}={}){
  const previous=material.onBeforeCompile;
  material.onBeforeCompile=(shader,renderer)=>{
   previous.call(material,shader,renderer);
@@ -59,21 +60,13 @@ if(vFeatureKind>0.5&&vFeatureKind<1.5){
   float strand=.5+.5*sin(t*314.0-v*3.1);
   diffuseColor.rgb*=.93+.14*strand;
  }else{diffuseColor.rgb*=1.03;}
-}else if(vFeatureKind>5.5){
- // Flow-aligned original colour separation on the actual hair bundles.
- // Restrained strand groups, no sampled texture or photographic highlight.
- float t=f.x,a=f.y;
- float strand=.5+.5*sin(a*113.097+sin(t*5.0)*.8);
- float fine=.5+.5*sin(a*226.195+t*2.0);
- float tip=1.0-smoothstep(.72,1.0,t);
- float detail=mix(1.0,.95+.075*strand+.025*fine,f.z*tip);
- diffuseColor.rgb*=detail;
-}
+}${hairFlow?'else if(vFeatureKind>5.5&&vFeatureKind<6.5){'+HAIR_FLOW_COLOR_GLSL+'}':''}
 `);
   // Readable small corneal reflection, still driven by the existing sun and
   // the differentiated, convex eye normal. Only eyes and tiny wet margins.
   shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>',`
 #if NUM_DIR_LIGHTS > 0
+${hairFlow?HAIR_FLOW_LIGHT_GLSL:''}
  if(vFeatureKind>1.5&&vFeatureKind<4.5){
   vec3 h=normalize(directionalLights[0].direction+normalize(vViewPosition));
   float glint=pow(max(dot(normal,h),0.0),240.0);
@@ -94,6 +87,6 @@ if(vFeatureKind>0.5&&vFeatureKind<1.5){
 #include <opaque_fragment>`);
  };
  const oldKey=material.customProgramCacheKey.bind(material);
- material.customProgramCacheKey=()=>oldKey()+'-original-feature-surface-v2';
+ material.customProgramCacheKey=()=>oldKey()+'-original-feature-surface-v2-'+(hairFlow?HAIR_FLOW_VERSION:'plain-hair');
  material.needsUpdate=true;
 }

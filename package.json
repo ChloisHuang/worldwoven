@@ -13,7 +13,8 @@
     "test": "node tests/run.cjs",
     "test:cache": "node --experimental-vm-modules tests/cache-build.cjs",
     "test:worker": "node --test worker/worker.test.mjs",
-    "test:door-geometry": "node tests/door-geometry/run.cjs"
+    "test:door-geometry": "node tests/door-geometry/run.cjs",
+    "dev:actors": "node development/actor-model-preview/serve.mjs"
   },
   "type": "module"
 }

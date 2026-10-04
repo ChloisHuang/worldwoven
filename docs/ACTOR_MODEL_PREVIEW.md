@@ -1,5 +1,15 @@
 # C01 opt-in actor integration
 
+## Explicit playable cloud development entry
+
+Run `npm run dev:actors -- 5186` in this worktree. The loopback-only development server serves the existing game HTML with `development/actor-model-preview/bootstrap.mjs`; it does not create a Site or change the production entry/build graph. The bootstrap registers candidates and installs a temporary selector before importing the real `main.js`. `?hair=long` chooses long hair for the matching French gown; other female clothing uses the known gathered-updo candidate. Male candidates use the known side-part. The development panel labels these as temporary visual choices, preserves stored hair IDs, offers flow on/off reloads and routes its head-turn control into the existing attention context.
+
+A caller can still force legacy with `modelPreview:null`. Production has no selector and no head-look request, so both remain unchanged. Unsupported role combinations retain a reported legacy fallback. The ten appearance controls use the existing real main handlers and save rules; candidate hair/mode/flow are never saved as fake appearance identities.
+
+Flow from `fcaa901` is explicitly selected with `previewHairFlow:true`. Baked normalized flow coordinates survive the actual merge as featureCoord/featureKind=6. Preview skin and cloth each have an independently keyed shared material; flow on/off separates both template geometry and material caches. The actor's selected RGB is multiplied by the same baked and shader shade relationships. No neutral geometry/palette values were changed. Targeted actual-createCharacter checks pass for side-part, layered-long and gathered-updo: colors retain their ratios, geometry is identical with flow off/on, caches stay separate and references return to zero.
+
+The source entry and same-process loopback HTTP routes are verified. Separate tool invocations did not share the running loopback endpoint, so this does not claim an externally accessible browser URL. The server is not left running by those route checks. The single France main-controller/Mesa chain is the next bounded verification; no new neutral portrait renders are required.
+
 ## Current candidate: fixed cranium, ten traits, explicit female hair
 
 The runtime now includes main R16.53 (`3cde448`) and the bounded-control branch (`babdc7b`) through ordinary incremental merges. The actual candidate uses compiled head/short male hair from `e850c2b`, the four semantic morph additions from `857d702` / `4db9241`, and baked female hair from `c313967`. The new four controls are chin length/projection, nose bridge height and nose-tip size; legacy six-term scores and old NPC generation versions remain authoritative.

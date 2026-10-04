@@ -7,13 +7,13 @@ import {createApprovedSurfaces,armWidthAtHeight,createRelaxedArmOffset} from './
 import {normalizeShapeTraits,hasShapeTraits,shapeHeight} from './character-traits.js';
 import {BODY_PRESETS,HAIR_STYLES,WARDROBE_PRESETS,ROLE_WARDROBE_PRESETS} from './appearance.js';
 import {createHandProps,disposeHandProps} from './character-props.js';
-import {resolveCharacterModelPreview} from './character-model-preview.js';
+import {resolveCharacterModelPreview,defaultCharacterModelPreview} from './character-model-preview.js';
 const TAU=Math.PI*2,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),mix=(a,b,t)=>a+(b-a)*t;
 const BAND_VALUES=[90,150,213,255],SKIN_VALUES=[140,186,229,255];
 function toon(values){const tex=new THREE.DataTexture(new Uint8Array(values),4,1,THREE.RedFormat);tex.minFilter=tex.magFilter=THREE.NearestFilter;tex.generateMipmaps=false;tex.needsUpdate=true;const m=new THREE.MeshToonMaterial({vertexColors:true,gradientMap:tex,side:THREE.DoubleSide,shadowSide:THREE.BackSide});m.userData.characterShared=true;tex.userData={characterShared:true};return m;}
 const clothMaterial=toon(BAND_VALUES),skinMaterial=toon(SKIN_VALUES);
-const previewSkinMaterials=new Map();
-function previewSkin(adapter){let material=previewSkinMaterials.get(adapter);if(!material){material=adapter.prepareSkinMaterial(toon(SKIN_VALUES));previewSkinMaterials.set(adapter,material);}return material;}
+const previewMaterials=new Map();
+function previewMaterial(adapter,preview,section){let variants=previewMaterials.get(adapter);if(!variants){variants=new Map();previewMaterials.set(adapter,variants);}const key=section+'|'+adapter.materialKey(preview);let material=variants.get(key);if(!material){material=section==='skin'?adapter.prepareSkinMaterial(toon(SKIN_VALUES),preview):adapter.prepareClothMaterial(toon(BAND_VALUES),preview);variants.set(key,material);}return material;}
 const cache=new Map(),CACHE_LIMIT=24;
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 // Parent-before-child anatomical joints, with absolute rest positions.
@@ -72,7 +72,7 @@ function locomotionFor(wardrobe,gaitPreset,scale){
  const walkSpeed=(restricted?.95:free?1.35:long?1.20:1.06)*temper*scale*1.65;
  return Object.freeze({walkSpeed,hurrySpeed:walkSpeed*1.38,stepLength,strideLength:stepLength*2,label:restricted?'measured garment-limited steps':free?'relaxed open stride':'easy draped stride',lift:(restricted?.065:.090)*scale,armSwing:(restricted?.065:free?.135:.105)*temper});
 }
-export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,accent=0xe7cab0,style='casual',culture=null,variant=0,bodyPreset=null,hairStyle=null,wardrobePreset=null,locomotionWardrobePreset=null,gaitPreset=1,scale=1,eyeColor=0x594b3f,receiveShadow=false,shapeTraits=null,modelPreview=null,previewHair=null}={}){
+export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,accent=0xe7cab0,style='casual',culture=null,variant=0,bodyPreset=null,hairStyle=null,wardrobePreset=null,locomotionWardrobePreset=null,gaitPreset=1,scale=1,eyeColor=0x594b3f,receiveShadow=false,shapeTraits=null,modelPreview=undefined,previewHair=null,previewHairFlow=undefined}={}){
  shapeTraits=normalizeShapeTraits(shapeTraits);const shaped=hasShapeTraits(shapeTraits);
  bodyPreset=BODY_PRESETS.includes(bodyPreset)?bodyPreset:BODY_PRESETS[typeof variant==='string'?(/masculine|male/.test(variant)?1:0):Math.abs(variant|0)%4];
  const masc=bodyPreset.startsWith('masculine');hairStyle=HAIR_STYLES.includes(hairStyle)?hairStyle:(masc?'swept-short':'chin-bob');
@@ -86,9 +86,10 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
  const root=new THREE.Group();root.name='approved-human-r10';root.scale.set(masc?scale*1.085:scale,masc?scale*1.035:scale,masc?scale*1.065:scale);
  const opts={eyeColor:new THREE.Color(eyeColor).getHex(),skin:new THREE.Color(skin).getHex(),hair:new THREE.Color(hair).getHex(),clothes:new THREE.Color(clothes).getHex(),accent:new THREE.Color(accent).getHex(),style,culture,masc,bodyPreset,hairStyle,wardrobePreset};
  if(shaped)opts.shapeTraits=shapeTraits;
- const previewOptions=previewHair?{...opts,previewHair}:opts,model=resolveCharacterModelPreview(previewOptions,modelPreview),template=getTemplate(opts,modelPreview,model,previewOptions),height=template.height*root.scale.y;
+ if(modelPreview===undefined){const selected=defaultCharacterModelPreview(opts);modelPreview=selected.modelPreview;previewHair??=selected.previewHair;previewHairFlow??=selected.previewHairFlow;}
+ const previewOptions=previewHair||previewHairFlow?{...opts,previewHair,previewHairFlow:!!previewHairFlow}:opts,model=resolveCharacterModelPreview(previewOptions,modelPreview),template=getTemplate(opts,modelPreview,model,previewOptions),height=template.height*root.scale.y;
  const rig=new THREE.Group();rig.name='articulated-rig';root.add(rig);const {bones,skeleton}=buildSkeleton(rig,rest);
- const meshes=template.geometry.map((g,i)=>{const mesh=new THREE.SkinnedMesh(g,i?(template.preview.applied?previewSkin(template.previewAdapter):skinMaterial):clothMaterial);mesh.name=i?'approved-face-skin':'continuous-tailored-cloth';mesh.castShadow=true;mesh.receiveShadow=receiveShadow;mesh.frustumCulled=false;rig.add(mesh);mesh.bind(skeleton);return mesh;});
+ const meshes=template.geometry.map((g,i)=>{const mesh=new THREE.SkinnedMesh(g,template.preview.applied?previewMaterial(template.previewAdapter,template.preview,i?'skin':'cloth'):(i?skinMaterial:clothMaterial));mesh.name=i?'approved-face-skin':'continuous-tailored-cloth';mesh.castShadow=true;mesh.receiveShadow=receiveShadow;mesh.frustumCulled=false;rig.add(mesh);mesh.bind(skeleton);return mesh;});
  const props=createHandProps(THREE);props.tools.cup.position.set(-.078,-.025,0);props.tools.brush.position.y=-.015;bones[6].add(props.left);bones[9].add(props.right);
  const posedP=rest.map(p=>p.clone()),posedQ=rest.map(()=>new THREE.Quaternion()),pose=new THREE.Group();
  const tmp=V(),tmp2=V(),dir=V(),pole=V(),restDir=V(),identity=new THREE.Quaternion(),invQ=new THREE.Quaternion(),torsoQ=new THREE.Quaternion(),headQ=new THREE.Quaternion(),inverseRoot=new THREE.Matrix4();
@@ -572,5 +573,5 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
  animate(0,false,null);
  return {root,animate,dispose,locomotion,get height(){return height+visualFloorOffset;},getPoseMetrics};
 }
-export function characterResourceStats(){return {cachedTemplates:cache.size,cacheLimit:CACHE_LIMIT,activeReferences:[...cache.values()].reduce((a,t)=>a+t.refs,0),cachedTriangles:[...cache.values()].reduce((a,t)=>a+t.geometry.reduce((s,g)=>s+g.index.count/3,0),0),sharedBodyMaterials:2+previewSkinMaterials.size};}
+export function characterResourceStats(){return {cachedTemplates:cache.size,cacheLimit:CACHE_LIMIT,activeReferences:[...cache.values()].reduce((a,t)=>a+t.refs,0),cachedTriangles:[...cache.values()].reduce((a,t)=>a+t.geometry.reduce((s,g)=>s+g.index.count/3,0),0),sharedBodyMaterials:2+[...previewMaterials.values()].reduce((n,variants)=>n+variants.size,0)};}
 export function auditCharacter(actor){let meshes=0,visibleMeshes=0,triangles=0,visibleTriangles=0,finite=true;const materials=new Set();actor.root.traverse(o=>{if(!o.isMesh)return;meshes++;let shown=true;for(let p=o;p;p=p.parent)if(!p.visible)shown=false;const t=(o.geometry.index?.count||o.geometry.attributes.position.count)/3;triangles+=t;if(shown){visibleMeshes++;visibleTriangles+=t;}materials.add(o.material);for(const v of o.geometry.attributes.position.array)finite&&=Number.isFinite(v);});return {meshes,visibleMeshes,triangles,visibleTriangles,materials:materials.size,finite,height:actor.height,bones:18,...actor.getPoseMetrics()};}
