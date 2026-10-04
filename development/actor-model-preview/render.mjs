@@ -6,6 +6,7 @@ const OUT=path.resolve(process.env.OUT_DIR||'qa/actor-preview/roles-01');assert(
 registerHooks({resolve(s,c,next){return s==='three'?{url:pathToFileURL(path.resolve('source/vendor/three/build/three.module.js')).href,shortCircuit:true}:next(s,c);}});
 const {init,createCanvas,installDOM,getDisplayInfo}=await import('/workspace/shared/cultural-life-r12-webgl/node_modules/@onirenaud/node-webgl/dist/index.js');installDOM({fetch:false});init({api:'gles'});
 const T=await import('three'),C=await import('../../source/game/characters.js');
+await import('../../source/game/complete-adult/register.js');
 const {npcRoleAppearance}=await import('../../source/game/appearance.js');
 const {courtOfficialAppearance}=await import('../../source/game/china-palace-audience.js');
 const {attachCourtOfficialCostume}=await import('../../source/game/china-court-official-costume.js');

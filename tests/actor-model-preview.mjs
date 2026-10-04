@@ -20,6 +20,17 @@ const male={...npcRoleAppearance('france','saved-npc',19),culture:'france',bodyP
 const female={...playerAppearance(loaded,'france'),culture:'france'};
 const official={...courtOfficialAppearance('china',CHINA_COURT_OFFICIALS[0].id,npcRoleAppearance('china',CHINA_COURT_OFFICIALS[0].id,41)),culture:'china'};
 const consort={...npcRoleAppearance('china','cn-consort-yue',41),culture:'china'};
+// Before explicit registration, even a preview request is an unchanged legacy
+// cache/material request. Registering later cannot reuse that legacy geometry.
+const coldLegacy=C.createCharacter(male),coldPreview=C.createCharacter({...male,modelPreview});
+assert.equal(coldPreview.root.userData.characterModel.reason,'preview-not-registered');
+assert.equal(skinMeshes(coldPreview)[1].geometry,skinMeshes(coldLegacy)[1].geometry);
+assert.equal(C.characterResourceStats().sharedBodyMaterials,2);
+await import('../source/game/complete-adult/register.js');
+const readyPreview=C.createCharacter({...male,modelPreview});
+assert(readyPreview.root.userData.characterModel.applied);
+assert.notEqual(skinMeshes(readyPreview)[1].geometry,skinMeshes(coldPreview)[1].geometry);
+for(const actor of[coldLegacy,coldPreview,readyPreview])actor.dispose();
 const result=[];
 for(const [id,look]of [['saved-npc',male],['saved-player',female],['official',official],['consort',consort]]){
  const original=structuredClone(look),score=shapePreferenceScore(look.shapeTraits),legacy=C.createCharacter(look),preview=C.createCharacter({...look,modelPreview}),reload=C.createCharacter({...JSON.parse(JSON.stringify(look)),modelPreview});
