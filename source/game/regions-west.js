@@ -927,8 +927,9 @@ export function buildFrance({pack=true}={}){
     for(const s of [-1,1]){box(x+s*(w/2-.75),ceilingY-.035,z,.055,.055,d-1.5,C.gold,roofGroup);box(x,ceilingY-.035,z+s*(d/2-.75),w-1.5,.055,.055,C.gold,roofGroup);}
     G.cyl(roofGroup,x,ceilingY-.06,z,.56,.56,.09,C.sage,24);G.torus(roofGroup,x,ceilingY-.12,z,.47,.044,C.gold);
   }
-  function chairAt(x,z,rot=0,cloth=C.sage){
+  function chairAt(x,z,rot=0,cloth=C.sage,approachYaw=rot){
     const q=assembly(local(x,z,rot),'Sculpted rocaille fauteuil','chair');
+    q.userData.approachYaw=approachYaw;
     let support=z>7&&z<14?.16:.23;for(const surface of group.userData.rugSurfaces||[])if(x>=surface.minX&&x<=surface.maxX&&z>=surface.minZ&&z<=surface.maxZ)support=Math.max(support,surface.y);q.position.y=support-.2395;q.userData.supportY=support;
     const seatShape=()=>{const p=new THREE.Shape();p.moveTo(-.42,-.35);p.bezierCurveTo(-.56,-.25,-.52,.25,-.41,.36);p.bezierCurveTo(-.24,.43,.24,.43,.41,.36);p.bezierCurveTo(.52,.25,.56,-.25,.42,-.35);p.quadraticCurveTo(0,-.41,-.42,-.35);p.closePath();return p;};
     slab(q,seatShape(),.758,.105,C.ivory,'Bevelled seat frame',.016);
@@ -1300,7 +1301,8 @@ export function buildFrance({pack=true}={}){
   G.rug(group,21,-1.5,5.8,6.3,C.sage,C.gold);
   reserveBlock(22.7,.97,-3.35,2.7,1.15,2.6);grandPiano(22.7,-3.35);
   reserveBlock(22.7,.58,-.85,1.53,.60,.75);pianoBench(22.7,-.85);
-  chairAt(18.63,.88,-Math.PI/2,C.green);chairAt(21,1.35,Math.PI,C.sage);urn(19.05,-5.10,.65);
+  // Face the music/social space, with a side landing in the clear south aisle.
+  chairAt(18.63,.88,Math.PI/2,C.green,0);chairAt(21,1.35,Math.PI,C.sage);urn(19.05,-5.10,.65);
   const musicMirror=local(24.73,.2,-Math.PI/2);mirror(musicMirror,0,3.15,0,1.6,2.5);
   // Supported pastry boards follow the adults' separate working positions.
   box(-6.43,1.285,-10.62,.22,.03,.30,C.gold);box(-5.46,1.285,-9.67,.60,.03,.40,C.gold);
