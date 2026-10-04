@@ -1,4 +1,4 @@
-import {JAPAN_SERVICE_POINTS as P} from './japan-service-orders.js';
+import {JAPAN_SERVICE_POINTS as P,JAPAN_RECEPTION_RADIUS} from './japan-service-orders.js';
 import {currentInteractionIntent} from './player-interaction-intents.js';
 
 const LABELS={arriving:'回到前台完成登记','check-in':'前台正在登记浴牌',changing:'去更衣柜整理入浴衣着',washing:'到洗浴位洗净后入汤','waiting-bath':'去汤室木凳接收自己的浴包',bathing:'在浴牌对应的共享池座泡汤',drying:'回更衣柜擦干并收好手巾',resting:'坐到休息廊长椅，点一碗汤面',dining:'在餐位等候','waiting-meal':'后厨与服务员正在准备你的汤面','meal-ready':'汤面已送到，坐好后可以用餐',eating:'慢慢吃完这碗汤面',checkout:'回前台归还浴牌','checkout-ready':'前台正在收回浴牌'};
@@ -52,8 +52,7 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
   const s=service.state(),v=s.visit,step=next();
   if(disposed||s.suspended||!getPlayer()||!['register','change','wash','collect','return','order','meal','eat'].includes(step.kind))return null;
   const dish=service.menu.find(d=>d.id===selectedDish);
-  // The registrar's real handover waits for the guest inside 0.25 m.
-  return {id:'jp-player-service-'+step.kind,provider:'japan-player-service',name:'你的汤馆服务',action:step.label,kind:step.kind,position:step.position.slice(),executionRadius:step.kind==='order'?1.25:['register','return'].includes(step.kind)?.24:.34,keepSeat:!!getMounted()&&['order','meal','eat'].includes(step.kind),
+  return {id:'jp-player-service-'+step.kind,provider:'japan-player-service',name:'你的汤馆服务',action:step.label,kind:step.kind,position:step.position.slice(),executionRadius:step.kind==='order'?1.25:['register','return'].includes(step.kind)?JAPAN_RECEPTION_RADIUS:.34,keepSeat:!!getMounted()&&['order','meal','eat'].includes(step.kind),
    intentKey:JSON.stringify([choiceRevision,v?.id,v?.stage,v?.tokenId,v?.side,v?.poolId,v?.restSeatId,v?.blendReceived,v?.paymentId,step.kind,v?.blendId||selected,selectedDish,dish?.price])};
  }
  function resolveIntent(candidate){return currentInteractionIntent(candidate,currentIntent());}

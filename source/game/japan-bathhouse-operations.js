@@ -1,5 +1,5 @@
 import {createOnsenTransition} from './onsen-transitions.js';
-import {createJapanServiceOrders,JAPAN_SERVICE_POINTS as P,JAPAN_SERVICE_WORKERS,JAPAN_LOCAL_WORKERS} from './japan-service-orders.js';
+import {createJapanServiceOrders,JAPAN_SERVICE_POINTS as P,JAPAN_SERVICE_WORKERS,JAPAN_LOCAL_WORKERS,japanReceptionReady} from './japan-service-orders.js';
 import {createJapanVisitorIdentity,isJapanEmployeeInteraction} from './japan-visitors.js';
 import {createJapanServiceProps} from './japan-service-props.js';
 import {canTraverse} from './navigation.js';
@@ -187,7 +187,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    assign(n,target,{...config,orderJobId:job.id,label:`${config.label} · ${v.number}号`,handoff:true,face:job.to==='dining'?v.diningPoint:null,ready:()=>job.kind!=='serve'||board.getVisit(v.id)?.stage==='waiting-meal',onDone:complete});
    return true;
   }});
-  else assign(n,P[job.to],{...config,orderJobId:job.id,label:`${config.label} · ${v.number}号`,ready:()=>!['register','checkout'].includes(job.kind)||near(customerActor(v.id)?.root.position||{},v.customerType==='player'?P.playerReception:P.reception,.25),onDone:complete});
+  else assign(n,P[job.to],{...config,orderJobId:job.id,label:`${config.label} · ${v.number}号`,ready:()=>!['register','checkout'].includes(job.kind)||japanReceptionReady(customerActor(v.id)?.root.position,v.customerType),onDone:complete});
  }
  function scheduleWorkers() {
   for(const n of workers) {

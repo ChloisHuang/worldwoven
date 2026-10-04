@@ -16,6 +16,7 @@ export const JAPAN_SERVICE_POINTS = Object.freeze({
  menWashing:[-9.15,3.8,-3.7], womenWashing:[3,3.8,-4.4],
 });
 // These are invented bathhouse blends, with no medical claims or real recipes.
+export const JAPAN_RECEPTION_RADIUS=.34;
 export const JAPAN_BATH_BLENDS = Object.freeze([
  {id:'cloud-leaf',name:'云叶浴包',color:0x819c76},
  {id:'lantern-petal',name:'灯花浴包',color:0xc79080},
@@ -38,7 +39,12 @@ const clone=value=>JSON.parse(JSON.stringify(value));
 const active=v=>!['departed','cancelled'].includes(v.stage);
 const near=(p,q,r=.34)=>Array.isArray(p)&&Array.isArray(q)&&p.length===3&&p.every(Number.isFinite)&&Math.hypot(p[0]-q[0],p[2]-q[2])<=r&&Math.abs(p[1]-q[1])<.4;
 const service=v=>v.side==='men'?'menService':'womenService';
-const reception=v=>v.customerType==='player'?JAPAN_SERVICE_POINTS.playerReception:JAPAN_SERVICE_POINTS.reception;
+// Menu arrival, registration and the registrar's physical handover agree on
+// this legal counter area; a visitor must never need a second centimetre-step.
+export function japanReceptionReady(position,customerType='player') {
+ const p=Array.isArray(position)?position:position&&[position.x,position.y,position.z];
+ return near(p,JAPAN_SERVICE_POINTS[customerType==='player'?'playerReception':'reception'],JAPAN_RECEPTION_RADIUS);
+}
 const mealSource=v=>v.dishId==='sushi'?'sushiPickup':'kitchenPickup';
 const sourceOf=item=>item.kind==='mixture'?'apothecaryPickup':item.kind==='meal'?mealSource(item):'reception';
 
@@ -114,7 +120,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   const job=claims.get(jobId),v=job&&visit(job.visitId);
   if(!job||job.workerId!==workerId||!v||!active(v)||!jobs().some(j=>j.id===jobId))return false;
   if(!near(evidence.position,pointFor(v,job.to)))return false;
-  if(['register','checkout'].includes(job.kind)&&!near(evidence.guestPosition,reception(v)))return false;
+  if(['register','checkout'].includes(job.kind)&&!japanReceptionReady(evidence.guestPosition,v.customerType))return false;
   if(job.kind==='register') {
    v.tokenId=`${v.id}:token`;addItem(v,'token',{type:'guest',id:v.id});v.stage='changing';
   }else if(job.kind==='prepare') {
@@ -139,7 +145,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   if(disposed)return false;
   const v=visit(id);if(!v||!active(v))return false;
   const key=v.side==='men'?'men':'women';let next;
-  if(event==='arrived'&&v.stage==='arriving'&&near(evidence.position,reception(v)))next='check-in';
+  if(event==='arrived'&&v.stage==='arriving'&&japanReceptionReady(evidence.position,v.customerType))next='check-in';
   if(event==='changed'&&v.stage==='changing'&&near(evidence.position,JAPAN_SERVICE_POINTS[key+'Changing']))next='washing';
   if(event==='washed'&&v.stage==='washing'&&near(evidence.position,JAPAN_SERVICE_POINTS[key+'Washing']))next='waiting-bath';
   if(event==='collect-blend'&&v.customerType==='player'&&v.stage==='waiting-bath'&&near(evidence.position,JAPAN_SERVICE_POINTS[v.side+'Receive'])&&item(v.mixtureId)?.location.id===service(v)){next='waiting-bath';v.blendReceived=true;}
@@ -152,7 +158,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   if(event==='begin-eating'&&v.customerType==='player'&&v.stage==='meal-ready'&&near(evidence.position,v.diningPoint,.8))next='eating';
   if(event==='eating-interrupted'&&v.customerType==='player'&&v.stage==='eating')next='meal-ready';
   if(event==='ate'&&v.stage==='eating'&&item(v.mealId)?.location.id==='dining'&&near(evidence.position,v.diningPoint,.8)) {next=v.orderKind==='dining'?'departed':'checkout';item(v.mealId).location={type:'used',id:v.id};if(v.orderKind==='dining'){state.completed++;receipt(v,'ate');}}
-  if(event==='returned-to-desk'&&v.stage==='checkout'&&near(evidence.position,reception(v)))next='checkout-ready';
+  if(event==='returned-to-desk'&&v.stage==='checkout'&&japanReceptionReady(evidence.position,v.customerType))next='checkout-ready';
   if(event==='left'&&v.stage==='leaving'&&near(evidence.position,JAPAN_SERVICE_POINTS.departure)){next='departed';state.completed++;}
   if(!next)return false;
   v.stage=next;if(evidence.position)v.position=evidence.position.slice();persist();return true;
