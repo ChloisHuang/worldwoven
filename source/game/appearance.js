@@ -44,6 +44,8 @@ export function npcAppearance(region,id,worldSeed=1,shapeVersion=NPC_SHAPE_VERSI
 // Keep every identity salt and the resident's original locomotion cut intact.
 export function npcRoleAppearance(region,id,worldSeed=1,shapeVersion=NPC_SHAPE_VERSION){
  const look=npcAppearance(region,id,worldSeed,shapeVersion);
+ if(region==='china'&&id==='cn-emperor')return {...look,bodyPreset:'masculine-lean',hairStyle:'low-bun',wardrobePreset:'scholar-long-robe',clothes:0xb18c43,accent:0xe0bd69};
+ if(region==='china'&&id==='cn-consort-yue')return {...look,bodyPreset:'feminine-balanced',hairStyle:'low-bun',wardrobePreset:'ruqun-long-skirt',clothes:0x9a657c,accent:0xd5b875};
  if(region==='china'&&['cn-archery','cn-range-warden'].includes(id))return {...look,hairStyle:'low-bun',wardrobePreset:'jinyi-training',clothes:id==='cn-archery'?0x853930:0x594638,accent:0xc9aa60};
  return region==='japan'&&id==='jp-omamori'?{...look,hairStyle:'low-bun',wardrobePreset:'miko-hakama',locomotionWardrobePreset:look.wardrobePreset}:look;
 }
