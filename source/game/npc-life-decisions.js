@@ -47,6 +47,8 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
   });
  }
  function pick(entries,roll){const total=entries.reduce((sum,c)=>sum+c.weight,0);roll*=total;return entries.find(c=>(roll-=c.weight)<0)||entries.at(-1);}
+ // A raw target carries score fields plus choice: {facilityId, route, ...}.
+ // Only that execution payload overrides the action; target.id stays targetId.
  function materialize(action,target,current){return {...action,...target?.choice,id:action.id,...(target?{targetId:target.id,relationship:target.relationship||null}:{}),...current};}
  function observe(id,c,{observers=[]}={}){
   const actor=people[id],current=actor?.current,event=c.socialEvent;
