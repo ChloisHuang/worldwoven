@@ -35,7 +35,7 @@ export function buildChinaOfficialBureau(G,A){
   interiorRooms.push({id:roomId,name:(i?'许知远':'顾衡')+'的值宿私室',minX:i?21:16,maxX:i?26:21,minZ:33.5,maxZ:36.5,floorY:y,ceiling:top,ownerId});
   explorationTargets.push({id:roomId,name:(i?'许知远':'顾衡')+'值宿室',roomId,position:p});
  }
- culturePlaque(G,root,'承务官舍',15.80,2.7,30.95,2.25,.55).rotation.y=-Math.PI/2;
+ culturePlaque(G,root,'承务官舍',15.80,3.34,32.45,2.25,.46).rotation.y=-Math.PI/2;
  culturePlaque(G,root,'架空官署·两人值宿',21,2.78,30.69,3.4,.42);
  upperFixture(root,'official-office',21,3.11,32.2,y);
  interiorRooms.push({id:'cn-official-office',name:'承务官署 · 公共办公厅',minX:16,maxX:26,minZ:30.5,maxZ:33.5,floorY:y,ceiling:top});
