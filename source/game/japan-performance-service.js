@@ -92,7 +92,7 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
   owns:n=>cast.includes(n),socialStatus:n=>({busy:!!order||returns.has(n),attention:!order&&!returns.has(n),job:n.station.npcLabel}),
   furnitureAccess(item){if(item.id===ARTIST&&(order||returns.size)){notify('这是本次艺者陪席位置');return false;}return true;},
   leaveSeat(id){if(id===GUEST&&order?.paid&&order.status!=='seating')cancel('你提前离开了茶席');},
-  playerPose(t=0){if(!order||getMounted()?.id!==GUEST||order.drinkStatus!=='drinking')return null;const sip=(Math.sin(t*1.15)+1)*.5;return {archery:{hands:[[-.18,.89,.24],[.14,1.02+sip*.28,.30-sip*.13]]}};},
+  playerPose(t=0){if(!order||getMounted()?.id!==GUEST||order.drinkStatus!=='drinking')return null;const sip=(Math.sin(t*1.15)+1)*.5;return {handoff:true,archery:{hands:[[-.18,.89,.24],[.14,1.02+sip*.28,.30-sip*.13]]}};},
   update(dt,t,{conversationActorId=null}={}){
    if(disposed)return;dt=Math.max(0,Math.min(.1,dt));time+=dt;life.tick(dt);conversation=conversationActorId;
    for(const n of cast)n.walking=false;
