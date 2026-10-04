@@ -751,6 +751,11 @@ export function buildJapan(){
  for(const fg of floorGroups)pack(fg);for(const cg of ceilingGroups)pack(cg);packSpatial(roofGroup);packSpatial(district);
  const street=new THREE.Group();street.name='Arrival garden static';for(const child of [...group.children])if(child!==roofGroup&&child!==district&&!floorGroups.includes(child)&&!ceilingGroups.includes(child))street.add(child);group.add(street);pack(street);
  group.userData={architecture:'original-four-storey-copper-steam-lantern-bathhouse',revision:'R12-structural-circulation',referenceInspired:true,referenceAssetsReused:false,spatialBatchSize:12,roomVignetteCount:roomProgram.length,lotSize:[60,80],districtZones:5,defaultRoofVisible:true,interior:true,cameraMode:'close-third-person',ambientIntensity:.5,sunIntensity:1.5,floorCount:4,stairSlope:3.8/8,stairWidth:3.4,stairHeadroom:3.43,roomProgram,facilities,sakuraDetails,interiorRooms,circulation,antiFlicker:{terrainFoundationCutouts:true,duplicateCeilingSlabsRemoved:true,dynamicBranchesExcludedFromPacking:true},references:['https://www.sglynp.com/t170153','https://www.ghibli.jp/gallery/chihiro039.jpg','https://inari.jp/en/faq/','https://inari.jp/en/saijin/']};
+ // Two quiet 1F front-window bays; reachable from the existing 2.5 m balcony.
+ const weatherCharmPoints=[
+  {id:'jp-weather-fair',kind:'fair',name:'晴天娃娃',position:[-5,0,9.14],approach:[-5,0,9.86],height:1.78},
+  {id:'jp-weather-rain',kind:'rain',name:'幻想雨天挂偶',position:[5,0,9.14],approach:[5,0,9.86],height:1.78},
+ ];
  const characterFloorSurfaces=floorGroups.flatMap(fg=>(fg.userData.characterMatSurfaces||[]).map(s=>({...s,baseY:fg.position.y,minX:s.minX+fg.position.x,maxX:s.maxX+fg.position.x,minZ:s.minZ+fg.position.z,maxZ:s.maxZ+fg.position.z})));
- return {group,colliders,characterFloorSurfaces,characterFootSurfaces,spawn:[0,0,37.5],stations,roofGroup,walkableSurfaces,cameraColliders,levels,ceilingGroups,floorGroups,explorationTargets,doorways,facilities,roomProgram,interiorRooms,circulation,bounds:LOT_BOUNDS,update(dt,time){for(const update of updates)update(dt,time);}};
+ return {group,weatherCharmPoints,colliders,characterFloorSurfaces,characterFootSurfaces,spawn:[0,0,37.5],stations,roofGroup,walkableSurfaces,cameraColliders,levels,ceilingGroups,floorGroups,explorationTargets,doorways,facilities,roomProgram,interiorRooms,circulation,bounds:LOT_BOUNDS,update(dt,time){for(const update of updates)update(dt,time);}};
 }
