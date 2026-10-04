@@ -60,7 +60,7 @@ def cage(points):
  p=np.array(points);r=np.linalg.norm(p[:,None]-S[None,:],axis=2);affine=np.column_stack([np.ones(len(p)),p])
  base=r@coef[:len(S)]+affine@coef[len(S):]
  corrected=r@forehead_coef[:len(S)]+affine@forehead_coef[len(S):]
- weight=np.array([smooth(7.47,7.63,q[1])*smooth(.75,1.10,q[2]) for q in p])
+ weight=np.array([smooth(7.45,7.82,q[1])*smooth(.75,1.10,q[2]) for q in p])
  base[:,2]+=(corrected[:,2]-base[:,2])*weight
  return base
 def point(p):return Vector(cage([p])[0])

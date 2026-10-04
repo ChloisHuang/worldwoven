@@ -839,8 +839,8 @@
     "browFinalHalfWidth": 0.00255,
     "anteriorForeheadZ": {
       "forehead_plane": 0.081,
-      "upper_forehead": 0.08,
-      "crown_front": 0.049
+      "upper_forehead": 0.077,
+      "crown_front": 0.043
     }
   }
 }
