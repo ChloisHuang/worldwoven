@@ -3,6 +3,7 @@
  * color and skeleton remain unchanged; the badge is original bird linework.
  */
 import * as THREE from 'three';
+import {fitActorHeadAttachment} from './complete-adult/attachment-fit.js';
 import {embroidery} from './china-royal-embroidery.js';
 const INK=0x22272c,EDGE=0xbba36d,IVORY=0xe8dcc0,TAU=Math.PI*2;
 
@@ -88,6 +89,7 @@ export function attachCourtOfficialCostume(actor){
   const shape=new THREE.Shape();shape.moveTo(0,-.021);shape.bezierCurveTo(.065,-.027,.124,-.041,.161,-.029);shape.bezierCurveTo(.202,-.018,.199,.027,.167,.035);shape.bezierCurveTo(.127,.049,.061,.026,0,.023);shape.closePath();
   const wing=part('court-official-horizontal-black-wing-'+side,new THREE.ExtrudeGeometry(shape,{depth:.019,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.0025,bevelThickness:.0025,curveSegments:8}),0x2d3339,side*.091,.235,-.063);wing.scale.x=side;
  }
+ fitActorHeadAttachment(actor,group);
  let disposed=false;const handle={dispose(){if(disposed)return;disposed=true;group.removeFromParent();group.traverse(o=>o.geometry?.dispose());for(const m of materials.values())m.dispose();bands.dispose();delete actor.root.userData.courtOfficialCostume;}};
  actor.root.userData.courtOfficialCostume=handle;return handle;
 }

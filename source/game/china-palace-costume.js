@@ -2,6 +2,7 @@
  * Garments enter the existing sculpt/skin pipeline; accessories use head bones.
  */
 import * as THREE from 'three';
+import {fitActorHeadAttachment} from './complete-adult/attachment-fit.js';
 import {embroidery,dragonRoundel,floralSpray} from './china-royal-embroidery.js';
 const GOLD=0xf0cd77,SHADOW_GOLD=0xa57931,JADE=0x63a092,WINE=0x782e3a,INK=0x222930;
 const TAU=Math.PI*2;
@@ -169,6 +170,7 @@ export function attachPalaceCostume(actor){
   for(let i=0;i<pos.count;i++){v.fromBufferAttribute(pos,i).applyMatrix4(mesh.matrix);b.p.push(v.x,v.y,v.z);v.fromBufferAttribute(nor,i).applyMatrix3(nm).normalize();b.n.push(v.x,v.y,v.z);}for(let i=0;i<(geo.index?.count??pos.count);i++)b.i.push(base+(geo.index?geo.index.getX(i):i));b.names.push(mesh.name);batches.set(mesh.material,b);geo.dispose();group.remove(mesh);
  }
  for(const[mat,b]of batches){const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(b.p,3));geo.setAttribute('normal',new THREE.Float32BufferAttribute(b.n,3));geo.setIndex(b.i);geo.computeBoundingSphere();const mesh=new THREE.Mesh(geo,mat);mesh.name='Batched '+role+' '+mat.color.getHexString();mesh.userData.originalParts=b.names;mesh.castShadow=true;group.add(mesh);}
+ fitActorHeadAttachment(actor,group);
  actor.root.userData.palaceCostume=group;let disposed=false;
  return {dispose(){if(disposed)return;disposed=true;group.removeFromParent();group.traverse(o=>o.geometry?.dispose());for(const m of materials.values())m.dispose();bands.dispose();delete actor.root.userData.palaceCostume;}};
 }
