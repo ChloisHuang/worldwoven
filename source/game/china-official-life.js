@@ -10,7 +10,7 @@ const reverse=a=>a.slice().reverse().map(p=>p.slice());
 // This controller owns only the two officials' personal time. Court borrows an
 // official after his current short action and safe furniture exit; it never
 // creates, removes, teleports or animates a second emperor.
-export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,worldSeed=1,saved={},saveState=()=>{},record=()=>{}}){
+export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,reports,worldSeed=1,saved={},saveState=()=>{},record=()=>{}}){
  if(!furniture)return null;
  const navigation={surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4,radius:.25};
  const stages=new Map(),meals=new Map(officials.map(n=>[n,createPalaceMealKit(n)])),brain=createLifeDecisions({worldSeed,actorIds:officials.map(n=>n.station.id),saved:saved.decisions,onChange:()=>save()}),claims=furniture.facilities;
@@ -23,7 +23,9 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  function publicRoute(n,target){return n.root.position.y>3&&n.root.position.x>15?[...reverse(TAVERN_UP),target]:[target];}
  function candidates(n){
   const i=index(n),bed=seat(B.beds[i]),meal=seat('china-palace-dining-seat-'+(i?22.2:19.8)),listen=seat('china-tavern-listening-'+(i?20.65:17.5)),other=officials[1-i];
+  const inspection=i===0?reports?.inspection():null;
   return [
+   ...(inspection?[{id:'inspect',label:inspection.label,base:8,point:inspection.point,look:inspection.look,action:'read',duration:[5,9],cooldown:15,inspection,relief:{}}]:[]),
    {id:'work',label:i?'核对来文 · 编排下一次奏事':'整理工务文书 · 核对执行回执',base:1.2,traits:{quiet:.4},needs:{fatigue:-.6},duration:[15,27],cooldown:22,relief:{social:.02},point:B.offices[i],action:'calligraphy',workTarget:B.workTargets[i]},
    {id:'read',label:'官署静读 · 看一会儿书卷',base:.18,traits:{curiosity:.7,quiet:.8},needs:{fatigue:.2},duration:[10,18],cooldown:50,relief:{fatigue:-.10},point:B.offices[i],action:'read'},
    {id:'rest',label:'回自己的值宿室歇息',base:.05,traits:{quiet:.25},needs:{fatigue:3.5},duration:[18,32],cooldown:90,relief:{fatigue:-.7},point:bed?.position,mount:bed,facilityId:bed?.id,roomId:B.roomIds[i]},
@@ -34,9 +36,9 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   ].map(c=>({...c,available:c.available!==false&&!!c.point&&(!c.facilityId||!occupied(c.facilityId,n))&&(!c.roomId||!occupied(c.roomId,n))}));
  }
  function release(n,s){if(s?.mount){const landing=furniture.standPoint(navigation,safety(n),s.mount);if(!landing)return false;n.root.position.copy(landing);s.mount=null;}claims.releaseActor(n.station.id);return true;}
- function finish(n,s,fulfilled=true){if(!release(n,s))return false;if(s?.choice)brain.complete(n.station.id,s.choice,{fulfilled});record('life-'+(s?.choice?.id||'pause')+(fulfilled?':completed':':interrupted'),n);stages.delete(n);save();return true;}
+ function finish(n,s,fulfilled=true){if(fulfilled&&s?.choice?.inspection)fulfilled=reports.inspected(s.choice.inspection.id,{actorId:n.station.id,position:n.root.position.toArray(),place:s.choice.inspection.place});if(!release(n,s))return false;if(s?.choice)brain.complete(n.station.id,s.choice,{fulfilled});record('life-'+(s?.choice?.id||'pause')+(fulfilled?':completed':':interrupted'),n);stages.delete(n);save();return true;}
  function choose(n){
-  const choice=brain.choose(n.station.id,candidates(n),state.hour??10);
+  const options=candidates(n),inspection=options.find(c=>c.id==='inspect'),choice=brain.choose(n.station.id,inspection?[inspection]:options,state.hour??10);
   if(!choice){stages.set(n,stage([n.root.position.toArray()],'在廊下稍候',{duration:6}));return;}
   if(choice.facilityId&&!claims.reserve(choice.facilityId,n.station.id,{purpose:choice.id})||choice.roomId&&!claims.reserve(choice.roomId,n.station.id,{purpose:'private-rest'})){claims.releaseActor(n.station.id);brain.complete(n.station.id,choice,{fulfilled:false});return;}
   const path=choice.upstairs?(n.root.position.y>7?[choice.point]:[...TAVERN_UP,choice.point]):publicRoute(n,choice.point);

@@ -1,3 +1,4 @@
+import {createCourtReports} from './china-court-reports.js';
 import {attachCourtOfficialCostume} from './china-court-official-costume.js';
 import {createChinaOfficialLife} from './china-official-life.js';
 import {CHINA_OFFICIAL_BUREAU as B} from './china-official-bureau.js';
@@ -33,15 +34,15 @@ export function createAudienceSchedule(saved={}){
  };
 }
 
-export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveActor,poseContext,furniture,worldSeed=1,saved={},saveState=()=>{},notify=()=>{}}){
+export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveActor,poseContext,furniture,worldSeed=1,readEdict=()=>null,saved={},saveState=()=>{},notify=()=>{}}){
  const officials=CHINA_COURT_OFFICIALS.map(r=>npcs.find(n=>n.station.id===r.id)),emperor=npcs.find(n=>n.station.id==='cn-emperor');
  if(!palace||!emperor||officials.some(n=>!n))return null;
  const owned=new Set(officials),schedule=createAudienceSchedule(saved),caps=officials.map(attachCourtOfficialCostume),tasks=new Map(),history=[],failures=[];
  const navigation={surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4,radius:.25};
- let phase='waiting',time=0,phaseTime=0,disposed=false,state={},speaker=null,utterance='',reported=0,life=null;
+ let phase='waiting',time=0,phaseTime=0,disposed=false,state={},speaker=null,utterance='',reported=0,life=null,reports=null,currentReport=null;
  const tell=(n,text)=>{const el=n.label?.querySelector?.('small');if(el)el.textContent=text;};
  const record=(event,actor)=>{history.push({event,actor:actor?.station.id||null,time:+time.toFixed(2),position:actor?.root.position.toArray()});if(history.length>64)history.shift();};
- const save=()=>saveState({...schedule.snapshot(),life:life?.snapshot()||saved.life});
+ const save=()=>saveState({...schedule.snapshot(),life:life?.snapshot()||saved.life,reports:reports?.snapshot()||saved.reports});
  function setPhase(value){phase=value;phaseTime=0;record(value);}
  function silence(){speaker=null;utterance='';palace.setDutyLine(OWNER,null);}
  function say(n,text){speaker=n;utterance=text;palace.setDutyLine(OWNER,n===emperor?text:null);tell(n,text);record('speech:'+text,n);const p=state.position;if(p&&Math.abs(p.y-n.root.position.y)<2&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<19)notify(n.station.npcName+'：'+text);}
@@ -74,7 +75,8 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
  }
  const allArrived=()=>officials.every(n=>tasks.get(n)?.arrived),paused=n=>!!n&&state.conversationActorId===n.station.id;
  function depart(reason){const outside=phase==='arriving';schedule.finish(reason);save();palace.releaseDuty(OWNER);silence();officials.forEach((n,i)=>task(n,'leave-court',outside?[court(i)]:departure(i),'散朝 · 回到公共庭院后自行安排'));setPhase('departing');}
- life=createChinaOfficialLife({officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,worldSeed,saved:saved.life,saveState:()=>save(),record});
+ reports=createCourtReports({readEdict,saved:saved.reports,saveState:()=>save()});
+ life=createChinaOfficialLife({officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,reports,worldSeed,saved:saved.life,saveState:()=>save(),record});
  save();
  return {
   owns:n=>owned.has(n),
@@ -108,9 +110,9 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
    }else if(phase==='entering-hall'&&allArrived()&&duty?.ready){
     task(officials[0],'approach-report',[REPORT],'工部进前奏报');setPhase('approaching');
    }else if(phase==='approaching'&&tasks.get(officials[reported])?.arrived&&duty?.ready){
-    say(officials[reported],reported?'禀陛下，今日尚无可核验的仓务新报，候收到实据再奏。':'禀陛下，今日尚无可核验的工务新报，候收到执行回执再奏。');setPhase('report');
+    currentReport=reports.report(officials[reported].station.courtRole,schedule.snapshot().day);say(officials[reported],currentReport.text);setPhase('report');
    }else if(phase==='report'&&phaseTime>=6&&duty?.ready){
-    say(emperor,'无据之事暂缓，按实际收到的回执再报。');setPhase('response');
+    if(currentReport?.issueId)reports.decide(currentReport.issueId,currentReport.action,emperor.station.id);say(emperor,currentReport?.response||'待有实据再报。');setPhase('response');
    }else if(phase==='response'&&phaseTime>=5&&duty?.ready){
     silence();task(officials[reported],'step-back',[hall(reported)],'奏毕退回侧席 · 留出进言通道');setPhase('returning-line');
    }else if(phase==='returning-line'&&tasks.get(officials[reported])?.arrived&&duty?.ready){
@@ -119,7 +121,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
    }else if(phase==='dismissal'&&phaseTime>=4)depart('completed');
    else if(phase==='departing'){for(const n of officials)if(tasks.get(n)?.arrived){tasks.delete(n);life?.resume(n);record('released-to-personal-life',n);}if(!tasks.size&&!palace.dutyState(OWNER))setPhase('waiting');}
   },
-  state:()=>({phase,time,phaseTime,life:life?.state()||null,schedule:schedule.snapshot(),reported,speaker:speaker?.station.id||null,utterance,history:history.map(e=>({...e})),failures:failures.map(e=>({...e})),actors:officials.map(n=>({id:n.station.id,ageYears:n.station.ageYears,position:n.root.position.toArray(),stage:tasks.get(n)?.id||life?.label(n)||'waiting',waypoint:tasks.get(n)?.index||0,arrived:tasks.get(n)?.arrived||false,walking:n.walking,paused:paused(n)}))}),
+  state:()=>({phase,time,phaseTime,life:life?.state()||null,reports:reports?.state()||null,currentReport,schedule:schedule.snapshot(),reported,speaker:speaker?.station.id||null,utterance,history:history.map(e=>({...e})),failures:failures.map(e=>({...e})),actors:officials.map(n=>({id:n.station.id,ageYears:n.station.ageYears,position:n.root.position.toArray(),stage:tasks.get(n)?.id||life?.label(n)||'waiting',waypoint:tasks.get(n)?.index||0,arrived:tasks.get(n)?.arrived||false,walking:n.walking,paused:paused(n)}))}),
   dispose(){if(disposed)return;disposed=true;if(!['waiting','departing'].includes(phase)){schedule.finish('interrupted');save();}palace.releaseDuty(OWNER);life?.dispose();for(const n of officials)n.route=[];for(const costume of caps)costume?.dispose();}
  };
 }
