@@ -34,6 +34,12 @@ const POLICY={
   'jp-4-front-portal':['open','Common service gallery to balcony; individual workrooms are classified separately']
  },
  china:{
+  'cn-official-upper-entry':['open','Public upper office opens onto a supported balcony and public stair'],
+  'cn-official-dorm-west-door':['full-curtain','Shared two-bed dormitory privacy curtain clear of both individual beds'],
+  'cn-official-dorm-east-door':['full-curtain','Shared two-bed dormitory privacy curtain clear of both individual beds'],
+  'cn-official-bureau-entry':['door','Fictional bureau office entry, inset timber leaves'],
+  'cn-official-room-gu-door':['door','Gu Heng private duty lodging needs an opaque inset door'],
+  'cn-official-room-xu-door':['door','Xu Zhiyuan private duty lodging needs an opaque inset door'],
   'cn-money-house-front':['door','Inset timber public money-house entrance'],
   'cn-money-house-store':['door','Enclosed coin store with a real inset timber door'],
   'cn-tavern-public-entry':['open','Public house stair hall keeps direct access from the court'],
@@ -163,6 +169,9 @@ const LEGACY={
 // swing +1 = negative world normal (−Z for axis X, −X for axis Z); −1 reverses.
 // New hinge choices remain candidates pending full swept-room/controller QA.
 const DOOR_MOTIONS={
+ 'cn-official-bureau-entry':['hinge',-1,'Swing east into the clear office entrance bay'],
+ 'cn-official-room-gu-door':['hinge',-1,'Swing south into the private room aisle beside the bed'],
+ 'cn-official-room-xu-door':['hinge',-1,'Swing south into the private room aisle beside the bed'],
  'cn-tavern-lan-door':['hinge',-1,'Paired inset leaves open south into a clear arrival bay; bed begins beyond the sweep'],
  'cn-tavern-zhu-door':['hinge',-1,'Paired inset leaves open south into a clear arrival bay; wardrobe stays at the rear wall'],
  'cn-south-gate':['hinge',1,'Inward compound gate with hinge pins within its source-authored .65 m masonry reveal'],
