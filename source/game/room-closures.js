@@ -172,7 +172,7 @@ const DOOR_MOTIONS={
  'cn-hall-west':['slide',0,'Tall hinged leaves would enter the indoor stair or the short exterior landing and rails; keep a sliding lattice closure'],
  'cn-clinic-front':['hinge',1,'Open north into the unobstructed public waiting hall'],
  'cn-clinic-consult-door':['hinge',1,'Open north into the clear consultation arrival bay'],
- 'cn-clinic-stock-door':['hinge',-1,'Open south into the clear staff counter aisle, away from the stock workbench'],
+ 'cn-clinic-stock-door':['hinge',1,'Open north beside the stock workbench, preserving the full counter-side staff aisle'],
  'cn-hall-east':['hinge',1,'Swing inward/west between the existing chair groups, clear of the narrow exterior landing and its rails'],
  'cn-study-front':['hinge',1,'Paired timber panels swing into the clear south reception bay, short of the writing tables and side console'],
  'cn-bedroom-front':['hinge',-1,'The rear-palace north entrance opens south into the clear bedroom arrival bay, leaving the common hall unobstructed'],

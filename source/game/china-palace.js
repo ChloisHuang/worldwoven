@@ -25,7 +25,7 @@ export function buildChinaPalace(G,H){
  // aperture IDs/widths remain separate from the rough masonry opening.
  const insetSections=new Map();
  const insetKinds={
-  'cn-clinic-front':['hinge',1,.32],'cn-clinic-consult-door':['hinge',1,.32],'cn-clinic-stock-door':['hinge',-1,.32],
+  'cn-clinic-front':['hinge',1,.32],'cn-clinic-consult-door':['hinge',1,.32],'cn-clinic-stock-door':['hinge',1,.32],
   'cn-south-gate':['hinge',1,.65],'cn-south-gate-west':['hinge',1,.65],'cn-south-gate-east':['hinge',1,.65],
   'cn-north-gate':['hinge',1,.65],'cn-north-gate-west':['hinge',1,.65,.13],'cn-north-gate-east':['hinge',1,.65,.13],'cn-west-gate':['hinge',-1,.65],'cn-east-gate':['hinge',1,.65],
   'cn-hall-front':['hinge',1,.32],'cn-hall-rear':['hinge',-1,.32],'cn-hall-west':['pocket',0,.50],'cn-hall-east':['hinge',1,.32],

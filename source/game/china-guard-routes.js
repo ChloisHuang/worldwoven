@@ -39,7 +39,7 @@ export const CHINA_GUARD_ROUTES={
   stop('kitchen-rear',21,-14.7,'御膳房后驻足 · 查看后门与背墙',[22,-12],3.2),
   stop('clinic-side-turn',27.15,-21,'沿医馆外侧转入东巷'),
   stop('east-quiet-path',27.15,-27.5,'医馆外侧驻足 · 查看东巷与药铺背角',[26,-31],3.2),
-  stop('clinic-rear-turn',27.15,-35.5,'绕过医馆后墙 · 查看北巷',[24,-33.3]),
+  stop('clinic-rear-turn',27.15,-33.9,'绕过医馆后墙 · 查看北巷',[24,-33.3]),
   stop('archive-east-back',14.9,-36.7,'沿雅集楼东侧绕至楼后',[12.5,-32]),
   stop('northeast-watch',5,-37,'楼后驻足 · 查看北墙与后阶',[1,-35.8],3.2),
   stop('east-rear-return',14.9,-36.7,'沿楼外东巷返程'),

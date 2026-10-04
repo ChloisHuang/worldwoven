@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {CHINA_CLINIC as C} from './china-clinic.js';
 
 const point=a=>({x:a[0],y:a[1],z:a[2]}),distance=(p,a)=>Math.hypot(p.x-a[0],p.z-a[2]),copy=x=>JSON.parse(JSON.stringify(x));
-const LABELS={consult:'许宁正在当面问询',writing:'许宁在纸上写下编号单',handoff:'医师与助手当面核对编号',stock:'苏禾带原单去备物间',prepare:'苏禾按号折好云纹包',counter:'苏禾把同号纸包带到柜台',ready:'云纹包已备好 · 起身到药铺柜台按 E 领取',deliver:'苏禾当面交付同号云纹包',complete:'已收到云纹包 · 本次宫苑故事完成'};
+const LABELS={consult:'许宁正在当面问询',writing:'许宁在纸上写下编号单',handoff:'医师与助手当面核对编号',stock:'苏禾带原单去备物间',prepare:'苏禾按号折好云纹包',counter:'苏禾把同号纸包带到柜台',ready:'云纹包已备好 · 起身到药铺柜台按 E 领取',deliver:'苏禾当面交付同号云纹包',complete:'已收到云纹包 · 请收好'};
 
 // One bounded player order. Numbers survive reloads; unfinished physical work
 // is cancelled on departure, never remotely delivered or replayed as health.
@@ -46,7 +46,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
  function beginConsultation(item,p){
   if(item?.id!==C.seatId||!p||distance(p.root.position,P.consult)>.35)return false;
   if(order&&order.stage!=='complete'){notify('这张编号单还在办理中，请按原编号到药铺领取');return false;}
-  if(order)cancel('已交付记录保留');player=p;order={id:'cn-clinic-order-'+(++serial),number:serial,stage:'consult',packetId:null,cardId:'cn-clinic-card-'+serial,cardHolder:'doctor',packetName:C.packet.name,claims:{doctor:doctor.station.id,assistant:null},createdAt:time};phaseTime=0;request=false;props.order(order);record('consult');persist();notify('许宁会当面问询，再写编号单。写单前起身可取消；这里使用的都是宫苑故事道具');return true;
+  if(order)cancel('已交付记录保留');player=p;order={id:'cn-clinic-order-'+(++serial),number:serial,stage:'consult',packetId:null,cardId:'cn-clinic-card-'+serial,cardHolder:'doctor',packetName:C.packet.name,claims:{doctor:doctor.station.id,assistant:null},createdAt:time};phaseTime=0;request=false;props.order(order);record('consult');persist();notify('许宁会当面问询，再写下编号单。写单前可起身取消');return true;
  }
  return {
   owns:n=>owned.has(n),ownsStation:id=>id===assistant.station.id,
@@ -63,7 +63,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
   statusLabel(seatId){return seatId===C.seatId&&order?`第 ${order.number} 号 · ${LABELS[order.stage]}`:null;},
   playerStatus(){return request&&order?{label:`第 ${order.number} 号 · ${LABELS[order.stage]}`,progress:order.stage==='complete'?1:order.stage==='deliver'?phaseTime/1.3:0,complete:order.stage==='complete'}:null;},
   update(dt,t,state={}){
-   if(disposed)return;playerState=state;time+=dt;for(const n of owned)n.walking=false;
+   if(disposed)return;playerState=state;if(state.player)player=state.player;time+=dt;for(const n of owned)n.walking=false;
    if(order&&!present())cancel('离开医馆，未交付订单释放');
    if(order&&['consult','writing'].includes(order.stage)&&!seated()){cancel('写单前离开问诊椅');notify('已离开问诊椅，本次问诊取消');}
    let da=null,aa=null,dtar=null,atar=null,dh=false,ah=false;
@@ -82,7 +82,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
      else if(order.stage==='prepare'){aa='tidy';atar=P.stockWork;if(near(assistant,P.stock)&&!paused){phaseTime+=dt;if(phaseTime>=4){order.packetId='cn-clinic-packet-'+order.number;record('packet-prepared',{cardId:order.cardId,packetId:order.packetId});enter('counter');}}}
      else if(order.stage==='counter'){ah=true;if(travel(assistant,P.assistant,dt)&&!paused){enter('ready');notify(`第 ${order.number} 号云纹包已到柜台，请当面按 E 领取`);}}
      else if(order.stage==='ready'){face(assistant,P.counter);if(request&&atCounter()&&near(assistant,P.assistant)&&!paused)enter('deliver');}
-     else if(order.stage==='deliver'){ah=true;face(assistant,P.counter);if(!request||!atCounter()){enter('ready');request=false;}else if(!paused){phaseTime+=dt;if(phaseTime>=1.3){order.cardHolder='delivered';order.claims={doctor:null,assistant:null};order.deliveredAt=time;enter('complete');record('delivered',{cardId:order.cardId,packetId:order.packetId,playerPosition:player.root.position.toArray()});persist();notify(`已领取第 ${order.number} 号云纹包，医师与药铺的这次协作完成了`);}}}
+     else if(order.stage==='deliver'){ah=true;face(assistant,P.counter);if(!request||!atCounter()){enter('ready');request=false;}else if(!paused){phaseTime+=dt;if(phaseTime>=1.3){order.cardHolder='delivered';order.claims={doctor:null,assistant:null};order.deliveredAt=time;enter('complete');record('delivered',{cardId:order.cardId,packetId:order.packetId,playerPosition:player.root.position.toArray()});persist();notify(`第 ${order.number} 号云纹包已交给你，请收好`);}}}
     }
    }
    animate(doctor,t,da,dtar,dh);animate(assistant,t,aa,atar,ah);props.update(order,{doctor,assistant},phaseTime);
