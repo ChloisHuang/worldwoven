@@ -8,7 +8,13 @@ The query/storage mode is fixed before any main/ledger initialization. All four 
 
 Preview selects only actors explicitly marked as the player. NPCs remain ordinary unless `preview-npcs=1` is also explicitly chosen. The small candidate label explains the isolated progress and unfinished art; ten sliders exist only in preview. Runtime model/hair options do not change saved hairstyle IDs.
 
-The build emitter now hashes known literal relative dynamic imports without a bundler or duplicated project. A clean build passes and emits the gated entry and candidate chunks. Focused query-load/storage/return-to-normal checks are in progress; the earlier France walk/sit/stand/head-turn proof is reused, with no new world render.
+The build emitter now hashes known literal relative dynamic imports without a bundler or duplicated project. A clean build passes and emits the gated entry and candidate chunks. Focused checks pass without a scene or browser run:
+
+- `node --test tests/character-preview-storage.mjs`: six cases cover actual extracted main initialization/save callbacks, appearance confirmation, health/background flush, relationships, real ledger/labor persistence, session failure without formal fallback, locked storage mode, and return to normal. Every formal key remains byte-for-byte unchanged. Formal creation/validation/migration/random draw order matches deployed `3cde448`, including no experimental-field migration or NPC-v2 default.
+- `node --experimental-vm-modules tests/character-preview-loading.mjs`: ordinary boot requests only hashed main; explicit preview requests hashed candidate setup then main; failed candidate setup never requests main and offers a full normal URL retaining `#france`. Normal HTML hides the entire experimental fieldset and retains its original hint. The normal static main graph has 113 modules with no candidate-heavy asset, versus the separate 32-module candidate graph. All 134 emitted assets have valid content hashes and literal dynamic references are reachable.
+- `node tests/character-preview-scope.mjs`: actual same-look/same-scale player gets the candidate, while resident, visitor and wardrobe rebuild remain legacy; explicit NPC opt-in and teardown back to ordinary selection pass. The transient subject/hair choice is absent from saved appearance.
+
+The explicit-preview controller fixtures were updated for query/selector and isolated storage expectations but their long scene chains were not repeated. The earlier France walk/sit/stand/head-turn evidence is reused. Parent owns merge/deployment and same-Site public URL verification.
 
 
 ## Explicit playable cloud development entry

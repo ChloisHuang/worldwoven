@@ -6,6 +6,7 @@ function replaceOnce(before,after){
  if(!harness.includes(before)||harness.indexOf(before)!==harness.lastIndexOf(before))throw Error('Fixture seam changed: '+before);
  harness=harness.replace(before,after);
 }
+replaceOnce("search:''","search:'?character-preview=1'");
 replaceOnce("const document={body:new E('body'),","const document={head:new E('head'),body:new E('body'),");
 replaceOnce('addEventListener:(k,f)=>events[k]=f','addEventListener:(k,f)=>{const prior=events[k];events[k]=prior?(...args)=>{prior(...args);f(...args);}:f}');
 const globals='Float32Array,Float64Array,Uint8Array,Uint8ClampedArray,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,DataView,atob,btoa,TextEncoder,TextDecoder,URL,URLSearchParams,';
@@ -22,7 +23,7 @@ replaceOnce("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),","new vm.Sour
 const install=String.raw`
 const selection=mod(path.resolve('development/actor-model-preview/selection.mjs'));
 await selection.link(linker);await selection.evaluate();
-const previewInstallation=selection.namespace.installActorPreview({femaleHair:'long-layered',hairFlow:true});
+const previewInstallation=selection.namespace.installActorPreview({femaleHair:'long-layered',hairFlow:true,playerOnly:true});
 const appearance=mod(path.join(root,'game/appearance.js'));
 if(appearance.status==='unlinked')await appearance.link(linker);
 if(appearance.status==='linked')await appearance.evaluate();
@@ -42,6 +43,7 @@ const report={status:'RUNNING',scope:'One France actual-main walk/chair/stand/he
 const write=()=>fs.writeFileSync(path.join(out,'checks.json'),JSON.stringify(report,null,2)+'\n');
 const record=(label,evidence)=>{report.checks.push({label,...(evidence?{evidence}: {})});write();console.log(label);};
 const review=()=>main.namespace.actorPreviewReview(),serial=x=>JSON.stringify(x),T=three.namespace;
+const formalBefore=storage['worlds-days-v1'],previewStorage=mod(path.join(root,'game/character-preview-gate.js')).namespace.gameStorage;
 const key=code=>events.keydown({code,repeat:false,preventDefault(){}}),release=code=>events.keyup({code});
 let actual=null,canvas=null;
 try{
@@ -52,8 +54,8 @@ try{
  const original=serial(review().saved.appearance),npcLooks=serial(state().npcLooks),originalLook=serial(state().playerLook);
  const identity=look=>Object.fromEntries(Object.entries(look).filter(([key])=>key!=='shapeTraits'));
  const originalIdentity=serial(identity(review().saved.appearance.player));
- const assertNoPreviewSave=()=>assert(!/modelPreview|previewHair|previewHairFlow|headLook/.test(storage['worlds-days-v1']),'development choices never enter the save');
- assertNoPreviewSave();record('Supported saved chin-bob identity displays the runtime long-haired gown',{model:state().playerModel,appearance:state().playerLook});
+ const assertNoPreviewSave=()=>assert(!/modelPreview|previewHair|previewHairFlow|headLook/.test(previewStorage.getItem('worlds-days-v1')),'development choices never enter the save');
+ assertNoPreviewSave();assert(review().npcs.every(n=>!n.root.userData.characterModel.applied),'default preview leaves NPC geometry ordinary');record('Supported saved chin-bob identity displays the runtime long-haired gown',{model:state().playerModel,appearance:state().playerLook});
  const ranges=mod(path.join(root,'game/character-traits.js')).namespace.SHAPE_RANGES;
  const sliders=()=>all.filter(e=>e.dataset.shapeTrait),slider=key=>sliders().find(e=>e.dataset.shapeTrait===key);
  const headPositions=()=>{
@@ -80,7 +82,7 @@ try{
  ids['outfit-confirm'].onclick();tick(1);
  assert.equal(review().saved.appearance.player.shapeTraits.chinLength,ranges.chinLength.max);
  assert.equal(serial(identity(review().saved.appearance.player)),originalIdentity);
- assert.equal(serial(JSON.parse(storage['worlds-days-v1']).appearance),serial(review().saved.appearance));
+ assert.equal(serial(JSON.parse(previewStorage.getItem('worlds-days-v1')).appearance),serial(review().saved.appearance));
  assert.equal(state().playerLook.hairStyle,'chin-bob');assert.equal(state().playerModel.previewHair,'long-layered');
  assert.equal(serial(state().npcLooks),npcLooks);assertNoPreviewSave();
  record('Confirm saves only the intended shape edit and preserves genuine hair, other identity and all resident appearances');
@@ -132,7 +134,8 @@ try{
  selection.namespace.setCharacterPreviewHeadLook(null);advance(25);assert(state().playerPose.headLook.weight<.01,'head attention releases smoothly');
  assertNoPreviewSave();assert.equal(serial(identity(review().saved.appearance.player)),originalIdentity);assert.equal(serial(state().npcLooks),npcLooks);
  ids['return-world'].onclick();assert.equal(state().mode,'globe');assert.equal(state().characterResources.activeReferences,0);
- record('Leaving releases every actor and no runtime preview choice enters durable appearance');
+ assert.equal(storage['worlds-days-v1'],formalBefore,'every preview write leaves the formal save unchanged');
+ record('Leaving releases every actor; temporary choices remain absent and formal save is unchanged');
  report.status='PASS';report.visualReview=actual?'PENDING':'NOT_RENDERED';report.maxRSSMiB=process.resourceUsage().maxRSS/1024;write();
  console.log(JSON.stringify({status:report.status,out,checks:report.checks.length,frames:report.frames.map(f=>f.name),maxRSSMiB:report.maxRSSMiB,visualReview:report.visualReview}));
 }catch(error){report.status='FAIL';report.failure=error.stack||String(error);write();throw error;}
