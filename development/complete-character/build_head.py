@@ -40,6 +40,7 @@ def frame(p):
  # Head compaction fades through the short neck into its fixed garment seam.
  weight=smooth(1.38,1.435,p[1]);return list(p+(p-pivot)*(scale-1)*weight)
 handles.append(['orbital_globe_center',[.30775,7.281,1.24535],form['globeCenter']])
+handles.extend(form.get('cranialHandles',[]))
 for handle in handles:
  name=handle[0];target=form['overrides'].get(name,forms['common'].get(name,handle[2]));handle[2]=form.get('finalOverrides',{}).get(name,frame(target))
 
