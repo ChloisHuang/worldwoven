@@ -101,7 +101,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   // drains unfinished leisure without granting its need/relationship relief.
   requestDuty(owner){
    if(disposed||!owner||duty&&duty.owner!==owner)return false;
-   if(!duty){duty={owner,active:false,release:false,yieldSeat:false};const s=stages.get(emperor);if(s.choice)s.choice.fulfilled=false;record(emperor,'duty-requested:'+owner);}
+   if(!duty){duty={owner,active:false,release:false,yieldSeat:false};const s=stages.get(emperor);if(s.choice){s.choice.fulfilled=false;brain.complete(emperor.station.id,s.choice,{fulfilled:false});}record(emperor,'duty-requested:'+owner);}
    return true;
   },
   releaseDuty(owner){if(duty?.owner===owner)duty.release=true;},
@@ -124,7 +124,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
       if(duty.release){if(unmount(n,s)){enter(n,s.index+1);s=stages.get(n);stop=scripts.get(n)[s.index];}else{animate(n,s,t);continue;}}
       else if(occupied||duty.yieldSeat){
        if(!unmount(n,s)){animate(n,s,t);continue;}
-       duty.seatYieldState??={planned:false,stalled:0,retries:0};
+       duty.seatYieldState??={index:s.index,planned:false,stalled:0,retries:0};
        // Leave the approach clear for the player before awaiting the chair.
        tell(n,'朝议暂候 · 为御座使用者让出通道');
        const clear=travel(n,duty.seatYieldState,[-2.4,1.415,-4.25],dt);
