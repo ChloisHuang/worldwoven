@@ -11,6 +11,7 @@ forms=json.loads((ROOT/'forms.json').read_text());form=forms[FORM]
 import sys
 sys.path.insert(0,str(ROOT))
 from female_anatomy import native_point,skin_point,eye_point,eye_normal
+from perioral_placement import place_perioral
 anatomy=form.get('referenceAnatomy')
 UP=ROOT.parent/'anatomical-head/assets/upstream'
 meta=json.loads((UP/'provenance.json').read_text());data=(UP/'base.obj').read_bytes()
@@ -128,6 +129,10 @@ if anatomy and native_target_sources:
   lip=smooth(6.45,6.48,y)*(1-smooth(6.73,6.78,y))*(1-smooth(.28,.34,abs(x)))*smooth(1.34,1.40,z)
   target_delta[i]*=1-lip
  positions+=target_delta
+# Move the already closed perioral surface through one native-topology field.
+# All masks and feature coordinates still refer to the immutable raw mesh.
+perioral_delta=place_perioral(verts,raw,faces,(anatomy or {}).get('perioralPlacement'))
+positions+=perioral_delta
 
 # Recover the source's continuous braincase and suboccipital curve as one
 # aligned form. Preserve the rounded upper braincase, but end this native
@@ -280,9 +285,9 @@ def authored_landmark(source):
  p=skin_point(source,anatomy,cage([source])[0]) if anatomy else sculpt_forehead(cage([source])[0])
  if native_target_sources:
   i=int(np.argmin(np.sum((np.asarray(raw)-source)**2,axis=1)))
-  if np.linalg.norm(np.asarray(raw[i])-source)<1e-5:p+=target_delta[i]
+  if np.linalg.norm(np.asarray(raw[i])-source)<1e-5:p+=target_delta[i]+perioral_delta[i]
  return list(p)
-output={'license':'CC0-1.0 hm08; original cage, eyes and brows','sourceCommit':meta['commit'],'sourceSha256':meta['files']['base.obj']['sha256'],'coordinateSystem':'metres Y up face +Z','method':'named anatomical biharmonic cage plus direct topology contact loops','form':FORM,'prototypeOnly':True,'unimplemented':['facial trait morphs','other body and hairstyle variants'],'parts':parts,'landmarks':{n:authored_landmark(source) for n,source,_ in handles},'nativeTargets':native_target_sources,'sourceVertices':len(raw),'sourceFaces':len(faces)}
+output={'license':'CC0-1.0 hm08; original cage, eyes and brows','sourceCommit':meta['commit'],'sourceSha256':meta['files']['base.obj']['sha256'],'coordinateSystem':'metres Y up face +Z','method':'named anatomical biharmonic cage plus direct topology contact loops','form':FORM,'prototypeOnly':True,'unimplemented':['facial trait morphs','other body and hairstyle variants'],'parts':parts,'landmarks':{n:authored_landmark(source) for n,source,_ in handles},'nativeTargets':native_target_sources,'perioralPlacement':(anatomy or {}).get('perioralPlacement'),'sourceVertices':len(raw),'sourceFaces':len(faces)}
 (ROOT/('adult-head.json' if FORM=='male' else 'adult-head-female.json')).write_text(json.dumps(output,separators=(',',':'))+'\n')
 if os.environ.get('SAVE_SCULPT_BLEND'):bpy.ops.wm.save_as_mainfile(filepath=os.environ['SAVE_SCULPT_BLEND'])
 print(json.dumps({'vertices':sum(len(p['position'])//3 for p in parts),'triangles':sum(len(p['index'])//3 for p in parts),'parts':[(p['name'],len(p['index'])//3) for p in parts],'bounds':[(min(part['position'][k::3]),max(part['position'][k::3])) for k in range(3)]}))

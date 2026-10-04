@@ -86,3 +86,90 @@ in 3.33 seconds at approximately 316 MiB peak, below 768 MiB/90-second bounds.
 Cgroup OOM counters were unavailable and were not interpreted as zero. Render
 and coordinate-check evidence is local under `qa/native-targets/candidate/`;
 private photographs remain outside the repository.
+
+
+## One intermediate proportion candidate after 7ea rejection
+
+The user rejected `7ea06a1` as having a chin that looked too short. The restored
+61aa, a538 and 7ea versions remain unchanged in Git. Before editing, a local
+four-panel study put the photograph and those three versions at the same pupil
+spacing and approximately the same 35-degree turn. Existing a538 and 7ea
+images were reused; only the missing 61aa 35-degree frame was rendered.
+
+The photo's visible mouth-to-anterior-chin interval reads approximately 61 px,
+a538 about 83 px and 7ea about 66 px, with approximately 3–5 px manual edge
+uncertainty. Thus the photo alone does not prove that 7ea has a smaller vertical
+interval. Its broad lower-chin arc and compressed convex chin section also
+contribute to the short appearance. Pupil alignment corrects image scale and
+roll, but cannot recover camera pitch, focal length or exact 3D landmarks.
+Neither these pixels nor a single photo establish an exact likeness.
+
+Native-correspondence geometry under the actual game camera separates the
+convex chin surface from the lower-neck silhouette. At this fixed camera,
+a538's anterior chin/round-turn vertices project to Y=502.889/525.117 px;
+7ea's same vertices project to 489.683/508.897 px. The bounded authored target
+was Y=496±3 and 515±3: restore roughly half of that local interval difference,
+while reducing part of the earlier local transverse mandibular expansion.
+These are explicit modeling choices informed by the visual comparison and
+user feedback, not measurements claimed to be recovered from the photograph.
+
+Solving that displacement against the existing native target gives chin
+weight 0.20. Both cheek weights remain 0.60; the old 5.5 mm elongation remains
+removed. Lower-contour width factors at native Y=6.20/6.35 change from
+1.08/1.07 to 1.035/1.03. No whole-head scale or eye/nose/lip-frame change is used.
+The resulting actual anterior chin/round-turn projection is
+495.413/516.775 px. Maximum downward restoration relative to 7ea is 4.678 mm;
+maximum local inward change is 1.672 mm per side.
+
+Only one new front/side/three-quarter set was rendered and visually inspected.
+The chin is intermediate in length and keeps a continuous surface, with less
+local transverse expansion. The side mandibular underside still reads thick;
+this candidate does not establish final similarity or user acceptance. Raw
+feature coordinates and topology, eyes/brows including normals, protected
+vermilion, scalp and collar coordinates, and masculine asset hash remain
+unchanged. The head still has 14,726 triangles and the character two batches.
+
+The comparison renderer can select a local immutable asset commit and a subset
+of views, and records actual skinned landmark projections. The final three-view
+build/capture ran in 3.23 seconds at approximately 260 MiB whole-process-tree
+peak, under the existing 768 MiB/90-second guard. Cgroup OOM counters remain
+unavailable. Private aligned comparison images and measurement data stay under
+ignored `qa/native-targets/midpoint-study/` and `midpoint-candidate/`; reference
+pixels are not included in the repository or runtime. This pass stops at that
+one candidate and does not publish or replace the default model.
+
+
+## Multi-angle perioral placement
+
+The latest user feedback identified mouth placement rather than chin length.
+The original three-quarter photo plus the agency standing-front, oblique and
+close-front photographs were inspected locally. The latter poses are not
+orthographic and there is no verified 90-degree Savanna reference. Manual
+readings put mouth position within the nasal-base-to-chin interval near
+0.30–0.32 in the photographs and 0.32–0.33 in the model, with overlapping
+uncertainty. A more consistent difference is upper vermilion thickness:
+upper-to-lower visible midline height is roughly 0.27–0.41 in the photographs
+versus 0.56–0.58 in the model. These support a mild placement/upper-lip change,
+not a large translation or another chin correction.
+
+An original graph-supported field moves the already closed contact loops,
+lower vermilion, corners and adjacent oral return upward by 2.2 mm (3.71 px in
+the fixed front view). The upper bow follows by only 0.462 mm, reducing upper
+lip vertical thickness while retaining its actual forward roll. Transitions
+run through the philtrum, cheeks and labial fold to the actual nasal return
+and anterior chin. The old low upper-chin ring is not used as a fixed boundary.
+The field covers 870 original vertices with 531 free scalar weights, and all
+contact vertices share the same displacement. It is applied after native
+targets and closure; immutable feature coordinates and all skin X/Z values
+remain unchanged. Chin coefficients and the nasal/chin anchors stay fixed.
+The source sampler now labels the actual nasal return (source vertex 317),
+correcting the earlier misleading `noseBase` sample from the philtrum.
+
+One same-material front/side/three-quarter set was inspected. The shifted mouth
+stays closed and the surrounding surface continuous, with no eye/nose/chin
+rebuild. Source indices/feature coordinates, eyes/brows, collar and masculine
+asset are unchanged. Contact displacement discrepancy from rounding is below
+0.00012 mm. The guarded build and three views completed in 3.33 seconds at
+approximately 245 MiB; cgroup OOM counters were unavailable. Overall individual
+similarity remains unaccepted, so this is a development candidate only. All
+private photo alignments remain in ignored `qa/perioral-study/`.

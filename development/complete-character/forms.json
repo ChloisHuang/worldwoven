@@ -1018,11 +1018,11 @@
           ],
           [
             6.2,
-            1.08
+            1.035
           ],
           [
             6.35,
-            1.07
+            1.03
           ],
           [
             6.48,
@@ -1050,7 +1050,7 @@
       "nativeTargets": [
         {
           "file": "chin-height-decr.target.gz",
-          "weight": 0.65
+          "weight": 0.2
         },
         {
           "file": "l-cheek-volume-incr.target.gz",
@@ -1060,7 +1060,12 @@
           "file": "r-cheek-volume-incr.target.gz",
           "weight": 0.6
         }
-      ]
+      ],
+      "perioralPlacement": {
+        "raiseY": 0.0022,
+        "upperLipShare": 0.2,
+        "scope": "closed upper/lower contact and lower lip move together; upper vermilion moves less; graph transition to actual nasal return and chin-front anchors; immutable source coordinates"
+      }
     },
     "mouthContactSourceVertices": [
       493,
