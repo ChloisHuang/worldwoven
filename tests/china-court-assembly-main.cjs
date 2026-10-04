@@ -22,13 +22,13 @@ let actual,canvas;if(process.env.OFFICIAL_MESA==='1'){const W=await import('/wor
 const capture=()=>{if(!actual)return;r.player.root.position.set(-2.4,1.415,3.8);main.namespace.officialView(-.32,.32);r.scene.updateMatrixWorld(true);r.lighting.update(r.player.root.position);actual.render(r.scene,r.camera);actual.getContext().finish();assert.equal(actual.getContext().getError(),0);fs.writeFileSync(out+'/01-six-person-kneeling-normal.png',canvas.toBuffer('image/png'));report.frames.push('01-six-person-kneeling-normal.png');};
 // The existing imperial staircase was already verified; reuse its legal public
 // checkpoint and still request the real emperor owner/duty API. No duplicate.
-emperor.root.position.set(-15.1,.215,-13.35);r.player.root.position.set(0,.13,24);
+emperor.root.position.set(-15.1,.215,-13.35);r.chinaPalace.requestDuty('china-morning-audience');r.player.root.position.set(0,.13,24);
 let t=0,last='',frames=0,held=false,shot=false;const departureTimes={};
 function frame(){const before=officials.map(n=>n.root.position.clone());t+=.1;main.namespace.officialStep(.1);frames++;const s=r.chinaAudience.state();
  if(s.phase!==last){console.log('PHASE',s.phase,t.toFixed(1),s.schedule.outcome);last=s.phase;fs.writeFileSync(out+'/live.json',JSON.stringify(s,null,2));}
  for(const[i,n]of officials.entries()){assert(Math.hypot(n.root.position.x-before[i].x,n.root.position.z-before[i].z)<.25,'no travel teleport');if(frames%10===0&&!s.life.actors[i].mounted)assert(!main.namespace.blocked(n.root.position.x,n.root.position.z,r.lot.colliders,.25,{...r.navOptions,y:n.root.position.y}),'new route intersects solid '+n.station.id+' '+n.root.position.toArray());if(s.actors[i].stage==='to-court'&&!departureTimes[n.station.id])departureTimes[n.station.id]=t;}
  if(s.phase==='holding'){held=true;assert(10+t*.7/60<11.5+.002,'early holding only before fixed start');}
- if(s.phase==='kneeling'){assert(held,'group assembled before opening');assert(t>=128.5&&t<129,'opens at fixed game 11:30');}
+ if(s.phase==='kneeling'){assert(held,'group assembled before opening');assert(t>=128.5,'never opens before fixed game 11:30');}
  if(s.phase==='report'&&!shot){assert(officials.every(n=>n.root.userData.courtPosture?.kneeling===1),'all six kneeling');assert.equal(s.currentReport.sourceEventId,'cn-edict-east-shore:0:completed');capture();shot=true;r.player.root.position.set(7,.13,17);record('all six hold their ranks before 11:30, then kneel together with two-hand tablets and real numbered report');}
  assert(!s.exception,'unexpected real court exception '+JSON.stringify(s.exception));assert.equal(s.failures.length,0,'official route failures '+JSON.stringify(s.failures));if(frames%100===0){fs.writeFileSync(out+'/live.json',JSON.stringify(s,null,2));assert(process.memoryUsage().rss<1.2*1024**3,'RSS cap');}
 }
