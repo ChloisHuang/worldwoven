@@ -566,8 +566,8 @@ export function buildChinaPalace(G,H){
  for(const s of stations){const delta=s.id==='cn-tea'?[25,.6,-43]:s.id==='cn-calligraphy'?[-17,4,-41]:null;if(delta){for(const key of ['position','npcPosition','workTarget','playerWorkTarget'])if(s[key])s[key]=s[key].map((v,i)=>v+delta[i]);s.route=s.route?.map(p=>p.map((v,i)=>v+delta[i]));}s.position=ground(s.position);s.npcPosition=ground(s.npcPosition);s.route=s.route?.map(ground);}
  for(const [i,id]of CHINA_ARCHERY.roles.entries())stations.push({id,name:i?'西南射圃 · 轮值巡查':'西南射圃 · 锦衣卫操练',action:'习射与轮值',position:ground(CHINA_ARCHERY.player),npcPosition:ground(CHINA_ARCHERY.waits[i]),npcName:i?'陆衡':'沈砚',npcAction:'archery-duty',npcLabel:i?'后方巡查 · 候令换班':'取弓 · 就位 · 习射',color:'#b99455',npcRotation:-Math.PI/2,playerWorkTarget:CHINA_ARCHERY.targets[1],interactionRadius:2.5,dialogue:'先在金线后等候。收弓停射后再取箭；按 E 或移动可随时退出。'});
  stations.push(...tavern.stations);
- // swing:1 opens both leaves toward world negative z, into these clear rooms.
- for(const x of[19.8,22.2])additionalFurnitureSeats.push({id:'china-palace-dining-seat-'+x,name:'御膳餐厅坐凳',x,y:.215,z:.3,yaw:0,width:.86,depth:.86,seatY:.82,front:0});
+ // South-side stools face their table to the north; mount/get up in the south aisle.
+ for(const x of[19.8,22.2])additionalFurnitureSeats.push({id:'china-palace-dining-seat-'+x,name:'御膳餐厅坐凳',x,y:.215,z:.3,yaw:Math.PI,approachYaw:0,width:.86,depth:.86,seatY:.82,front:0});
  for(const role of CHINA_PALACE_ROLES)stations.push({...role,npcOnly:true,name:role.royalRole==='emperor'?'静宜寝殿 · 皇帝起居':'静宜客居 · '+role.shortName+'私室',action:'宫苑日常',npcAction:'read',npcLabel:'晨间起居',position:ground(role.npcPosition),npcPosition:ground(role.npcPosition),color:role.royalRole==='emperor'?'#bd964e':'#a56d81'});
  stations.push(...chinaCourtOfficialStations());
  stations.push(...chinaClinicStations());
