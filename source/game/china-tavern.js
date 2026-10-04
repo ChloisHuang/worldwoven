@@ -1,3 +1,4 @@
+import {salonArtistStations} from './china-tavern-salon-artists.js';
 import {buildTavernKitchen} from './china-tavern-kitchen.js';
 import {tavernPlaque} from './china-tavern-lettering.js';
 import {buildChinaRoyalChair} from './china-royal-seating.js';
@@ -142,8 +143,8 @@ export function buildChinaTavern(G,A){
  // No ground porch or column projects west into the accepted x14.9 patrol.
  stations.push({id:'cn-tavern-host',name:'云来酒楼 · 迎客茶案',action:'看看酒楼菜牌',position:[22.35,.215,11.7],npcPosition:[24.1,.215,11.40],workTarget:[24.1,1.32,10.68],npcName:'许安',npcAction:'tea',npcLabel:'掌柜 · 迎客点菜',npcRotation:Math.PI,route:[[23.6,.215,13.95],[21,.215,18.1]],color:'#bd8b58',age:38,dialogue:'云来楼一层用饭，二层客房，三层雅集。客榻可以暂歇，坐到餐椅后招呼我，今日有云来菌菇饭。客房先供暂歇，订房账册还未开。'});
  stations.push({id:'cn-tavern-cook',name:'云来酒楼 · 后厨',npcOnly:true,action:'照料灶火',position:[23.3,.215,9.36],npcPosition:[23.3,.215,9.36],workTarget:[23.3,1.29,8.86],npcName:'沈禾',npcAction:'cook',npcLabel:'厨师 · 备菜候单',npcRotation:Math.PI,color:'#6f8470',age:32,ageYears:32,dialogue:'今日菌菇新鲜。掌柜报了桌位，我便动手，热饭要趁热端去。'});
- stations.push({id:'cn-tavern-reception',name:'三层青楼 · 雅集接待',action:'请接待引见艺者',position:[24.15,7.815,12.65],npcPosition:[24.15,7.815,10.45],workTarget:[24.15,8.95,11.3],npcName:'温晚',npcAction:'tea',npcLabel:'接待 · 引见与安排雅间',npcRotation:0,color:'#9e617a',age:41,ageYears:41,dialogue:'柳清弦今日在楼上诵词。想请她茶叙，我可以代为引见；她会亲自来答复。茶叙暂不收银。'});
- stations.push({id:'cn-tavern-reciter',name:'顶层青楼 · 成年诗乐雅集',action:'听诗词吟诵',playerAction:'relax',position:[20.70,7.815,18.25],npcPosition:[18.8,7.815,18.66],workTarget:[18.8,8.98,17.9],playerWorkTarget:[18.8,9.02,18.66],npcName:'柳清弦',npcAction:'read',npcLabel:'成年艺者 · 诵词与歇场',npcRotation:Math.PI,route:[[20.55,7.815,19.35],[23.1,7.815,14.1]],color:'#ab7287',age:27,ageYears:27,salon:{activities:['poetry'],willing:true,preference:'喜静谈与诗词，不喜喧闹宴饮'},dialogue:'这里先有诗词吟诵和茶叙。琴案可观赏，奏琴与舞步还在排练；请在前方听席稍坐。'});
+ stations.push({id:'cn-tavern-reception',name:'三层青楼 · 雅集接待',action:'请接待引见艺者',position:[24.15,7.815,12.65],npcPosition:[24.15,7.815,10.45],workTarget:[24.15,8.95,11.3],npcName:'温晚',npcAction:'tea',npcLabel:'接待 · 引见与安排雅间',npcRotation:0,color:'#9e617a',age:41,ageYears:41,dialogue:'四位艺者各有所好。我先引见，由本人答复；愿意且有空房，才请你确认价目。茶叙完成前取消，全额退回铜钱。'});
+ stations.push(...salonArtistStations());
  root.traverse(o=>{if(o.userData.nightFixture)o.userData.nightFixture.dayFactor=.48;});
  buildings.push({id:CHINA_TAVERN.id,name:CHINA_TAVERN.name,groupName:root.name,roofGroupName:roof.name,bounds:CHINA_TAVERN.bounds,storeys:3,roomIds:CHINA_TAVERN.floors.flatMap(f=>f.rooms)});
  // Material batches stay per floor, so top-floor decor does not create hundreds

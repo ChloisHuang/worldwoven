@@ -6,7 +6,7 @@ const LABELS={requested:'许安正过来听你点菜',accepted:'许安当面记�
 
 // One meal has one tray/bowl identity. Arrival, cook work, the shared counter,
 // the same dining seat and cleanup all gate progress; no generic stamp timer.
-export function createChinaTavernMeal({npcs,lot,furniture,doors,planPath,moveActor,poseContext,getPlayer,getMounted,saved={},saveState=()=>{},notify=()=>{}}){
+export function createChinaTavernMeal({npcs,lot,furniture,doors,planPath,moveActor,poseContext,getPlayer,getMounted,canRequest=()=>true,saved={},saveState=()=>{},notify=()=>{}}){
  const host=npcs.find(n=>n.station.id===M.host),cook=npcs.find(n=>n.station.id===M.cook);if(!host||!cook)return null;
  const actors=[host,cook],owned=new Set(actors),P=M.points,travelState=new Map(),history=Array.isArray(saved.history)?saved.history.slice(-30):[],failures=[];
  const seats=furniture.items.filter(i=>i.id.startsWith('china-tavern-dining-')),props=createTavernMealProps(lot.group);
@@ -47,6 +47,7 @@ export function createChinaTavernMeal({npcs,lot,furniture,doors,planPath,moveAct
  }
  const tick=(dt,duration,next)=>{phaseTime+=dt;if(phaseTime>=duration)next();};
  function requestMeal(){
+  if(!canRequest()){notify('手上的擦桌短工还未收工，请完成或取消后再点菜');return false;}
   const item=getMounted(),player=getPlayer();if(order){notify(order.cancelled?'请稍等，餐具还在收拾':'已经记下这份饭了，请稍候');return false;}
   if(!item||!seats.includes(item)||!player||gap(player,item.anchor)>.35||!present()){notify('先挑一把一层餐椅坐好，再招呼掌柜点菜');return false;}
   const inward=item.center[0]<21?1:-1,side=item.center[2]<18.1?-1:1;
