@@ -851,52 +851,52 @@
       "nasal_root": [
         0,
         1.565,
-        0.0745
+        0.0705
       ],
       "nose_bridge": [
         0,
         1.545,
-        0.094
+        0.09
       ],
       "nose_dorsum": [
         0,
         1.534,
-        0.1045
+        0.099
       ],
       "nose_tip": [
         0,
         1.523,
-        0.112
+        0.1045
       ],
       "columella": [
         0,
-        1.513,
-        0.101
+        1.514,
+        0.095
       ],
       "nasal_sidewall": [
         0.0078,
         1.535,
-        0.091
+        0.0865
       ],
       "tip_dome": [
         0.0065,
         1.524,
-        0.1105
+        0.104
       ],
       "nasal_ala": [
-        0.0148,
-        1.518,
-        0.086
+        0.0138,
+        1.519,
+        0.0845
       ],
       "alar_crease": [
-        0.0177,
+        0.0175,
         1.526,
-        0.0775
+        0.076
       ],
       "alar_outer": [
-        0.0172,
-        1.518,
-        0.0845
+        0.0157,
+        1.519,
+        0.083
       ],
       "alar_cheek": [
         0.0225,
@@ -916,27 +916,27 @@
       "cupid_center": [
         0,
         1.501,
-        0.089
+        0.0885
       ],
       "cupid_peak": [
         0.0074,
-        1.5035,
-        0.087
+        1.503,
+        0.088
       ],
       "lip_contact": [
         0,
-        1.492,
-        0.084
+        1.493,
+        0.086
       ],
       "lip_corner": [
-        0.0257,
-        1.492,
-        0.0665
+        0.0262,
+        1.494,
+        0.067
       ],
       "lower_lip_roll": [
         0,
-        1.486,
-        0.091
+        1.4865,
+        0.0875
       ],
       "labial_fold": [
         0,
@@ -959,9 +959,9 @@
         0.06
       ],
       "chin_corner": [
-        0.0225,
+        0.024,
         1.451,
-        0.069
+        0.068
       ],
       "submental": [
         0,
@@ -984,24 +984,24 @@
         0.027
       ],
       "jaw_body": [
-        0.0368,
-        1.453,
-        0.0435
+        0.039,
+        1.454,
+        0.0455
       ],
       "jaw_angle": [
-        0.054,
-        1.478,
+        0.059,
+        1.481,
         -0.009
       ],
       "cheek_low": [
-        0.0435,
-        1.482,
-        0.0635
+        0.0455,
+        1.483,
+        0.065
       ],
       "cheek_mid": [
-        0.054,
-        1.51,
-        0.0595
+        0.057,
+        1.513,
+        0.0625
       ],
       "malar_high": [
         0.0645,
@@ -1114,17 +1114,17 @@
         -0.039
       ],
       "ear_top": [
-        0.0828,
+        0.077,
         1.566,
         -0.0191
       ],
       "ear_outer": [
-        0.0927,
+        0.085,
         1.542,
         -0.0182
       ],
       "ear_lobe": [
-        0.0765,
+        0.0715,
         1.516,
         -0.0164
       ],
@@ -1162,6 +1162,41 @@
         0.044,
         1.513,
         -0.044
+      ],
+      "nasal_upper_ridge": [
+        0,
+        1.5545,
+        0.08
+      ],
+      "nasal_bridge_edge": [
+        0.0036,
+        1.549,
+        0.084
+      ],
+      "nasal_bridge_turn": [
+        0.0064,
+        1.548,
+        0.0798
+      ],
+      "nasal_root_side": [
+        0.0075,
+        1.552,
+        0.074
+      ],
+      "nasal_low_ridge": [
+        0.0051,
+        1.535,
+        0.095
+      ],
+      "nasal_supratip": [
+        0,
+        1.528,
+        0.104
+      ],
+      "nasal_tip_turn": [
+        0.0081,
+        1.524,
+        0.0985
       ]
     },
     "browFinalSpan": [
@@ -1325,6 +1360,103 @@
         7.13
       ]
     },
-    "description": "Original complete adult female reference sculpt, October 2026: continuous rounded cranium, almond orbital rim, tall narrow dorsum, defined small alae, malar-to-jaw planes and full turned vermilion. Reference images are used for visual proportion study only and are not included in assets."
+    "description": "Original complete adult female reference sculpt, October 2026: continuous rounded cranium, almond orbital rim, tall narrow dorsum, defined small alae, malar-to-jaw planes and full turned vermilion. Reference images are used for visual proportion study only and are not included in assets.",
+    "mouthContactSourceOffset": [
+      -0.001,
+      0
+    ],
+    "featureHandles": [
+      [
+        "nasal_upper_ridge",
+        [
+          0,
+          7.1963,
+          1.5364
+        ],
+        [
+          0,
+          1.5545,
+          0.08
+        ]
+      ],
+      [
+        "nasal_bridge_edge",
+        [
+          0.0347,
+          7.141,
+          1.5487
+        ],
+        [
+          0.0036,
+          1.549,
+          0.084
+        ]
+      ],
+      [
+        "nasal_bridge_turn",
+        [
+          0.0643,
+          7.1268,
+          1.5321
+        ],
+        [
+          0.0064,
+          1.548,
+          0.0798
+        ]
+      ],
+      [
+        "nasal_root_side",
+        [
+          0.0645,
+          7.1705,
+          1.5077
+        ],
+        [
+          0.0075,
+          1.552,
+          0.074
+        ]
+      ],
+      [
+        "nasal_low_ridge",
+        [
+          0.0664,
+          7.0244,
+          1.6078
+        ],
+        [
+          0.0051,
+          1.535,
+          0.095
+        ]
+      ],
+      [
+        "nasal_supratip",
+        [
+          0,
+          6.9688,
+          1.6689
+        ],
+        [
+          0,
+          1.528,
+          0.104
+        ]
+      ],
+      [
+        "nasal_tip_turn",
+        [
+          0.0884,
+          6.9178,
+          1.6368
+        ],
+        [
+          0.0081,
+          1.524,
+          0.0985
+        ]
+      ]
+    ]
   }
 }

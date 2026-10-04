@@ -41,6 +41,7 @@ def frame(p):
  weight=smooth(1.38,1.435,p[1]);return list(p+(p-pivot)*(scale-1)*weight)
 handles.append(['orbital_globe_center',[.30775,7.281,1.24535],form['globeCenter']])
 handles.extend(form.get('cranialHandles',[]))
+handles.extend(form.get('featureHandles',[]))
 for handle in handles:
  name=handle[0];target=form['overrides'].get(name,forms['common'].get(name,handle[2]));handle[2]=form.get('finalOverrides',{}).get(name,frame(target))
 
@@ -80,7 +81,7 @@ contact=[493,487,481,476,502,503,501];sculpt={}
 upper_y=[(0,6.6081),(.0215,6.6095),(.0466,6.6114),(.0761,6.6127),(.1014,6.6133),(.156,6.6146),(.196,6.6324),(.2243,6.6214),(.2391,6.6143),(.2494,6.6089)]
 upper_z=[(0,1.553),(.0215,1.5497),(.0466,1.5488),(.0761,1.5452),(.1014,1.5452),(.156,1.5163),(.196,1.4904),(.2243,1.4612),(.2391,1.4354),(.2494,1.4192)]
 for i in contact:
- x,y,z=verts[i];u=1-smooth(.23,.25,abs(x));sculpt[(abs(x),y,z)]=(x,profile(upper_y,abs(x))+.010*u,profile(upper_z,abs(x))+.004*u)
+ x,y,z=verts[i];u=1-smooth(.23,.25,abs(x));dy,dz=form.get('mouthContactSourceOffset',[.010,.004]);sculpt[(abs(x),y,z)]=(x,profile(upper_y,abs(x))+dy*u,profile(upper_z,abs(x))+dz*u)
 sculpted=[]
 for x,y,z in raw:
  if (abs(x),y,z) in sculpt:
