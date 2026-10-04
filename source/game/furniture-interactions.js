@@ -13,7 +13,7 @@ export const FURNITURE_DESCRIPTORS={
  china:{seat:{name:'寝殿阅读椅',anchor:[-23.9056,7.885,-4.1056],position:[-23.15,7.815,-3.35],yaw:Math.PI*.25,seatY:8.475,center:[-24.1,7.8,-4.3],size:[.9,1.65,.9]},canopy:{worldLabel:'龙榻红纱帐',name:'雕龙龙榻 · 红纱帷帐',position:[-21,7.885,-5.8],center:[-21,7.8,-9],width:3.68,depth:3.94,top:10.68,bottom:8.65,color:0xc73b45},wardrobe:{name:'后宫三层梳妆台',position:[-18,7.815,-.05],center:[-16.8,7.8,-.8],size:[.75,2.3,3.1],style:'dressing'}},
  france:{seat:{name:'翡翠沙龙扶手椅',anchor:[-6.65,.302,1.51],position:[-6.65,.302,.68],yaw:Math.PI,seatY:.9535,center:[-6.65,.23,1.8],size:[1.12,1.85,1.15]},canopy:{name:'皇家寝床纱帐',position:[7.55,.302,.58],center:[7.55,.23,-2.64],width:3.38,depth:4.04,top:4.07,bottom:1.35,color:0xf0e8d8},wardrobe:{name:'王宫衣橱',position:[-19.0,.23,-8.85],center:[-19.0,.23,-7.45],size:[1.37,2.45,.71],style:'armoire'}},
  japan:{seat:{name:'书阁木长椅',anchor:[-5,7.6,-11.64],position:[-5,7.6,-10.76],yaw:0,seatY:8.165,center:[-5,7.6,-11.8],size:[2.1,.57,.6]},wardrobe:{name:'汤馆和服更衣柜',position:[-9.92,3.8,2.4],center:[-11.32,3.8,2.4],size:[.95,2.65,3.9],style:'lockers'}},
- egypt:{seat:{name:'王室餐厅坐凳',anchor:[14.71,0,-9.3],position:[13.95,0,-9.3],yaw:-Math.PI/2,seatY:.66,center:[15.15,0,-9.3],size:[1.02,.66,1.02]},canopy:{name:'王室亚麻纱帐',position:[20.4,0,1.71],center:[20.4,0,-1.25],width:2.36,depth:3.56,top:3.21,bottom:.98,color:0xf0dfb6},wardrobe:{name:'王室雪松衣箱',position:[12.5,0,9.7],center:[14.2,0,9.7],size:[2.2,1.18,1.1],style:'chest'}}
+ egypt:{seat:{name:'王室餐厅坐凳',anchor:[15.25,0,-9.3],position:[13.95,0,-9.3],yaw:Math.PI/2,seatY:.66,center:[15.15,0,-9.3],size:[1.02,.66,1.02]},canopy:{name:'王室亚麻纱帐',position:[20.4,0,1.71],center:[20.4,0,-1.25],width:2.36,depth:3.56,top:3.21,bottom:.98,color:0xf0dfb6},wardrobe:{name:'王室雪松衣箱',position:[12.5,0,9.7],center:[14.2,0,9.7],size:[2.2,1.18,1.1],style:'chest'}}
 };
 // Real authored sleeping and bathing fixtures. Anchor Y stays on the navigation
 // floor; supportY is the actual mattress/basin bottom supporting the skinned pose.
@@ -46,24 +46,26 @@ export const REST_BATH_DESCRIPTORS={
 // Existing-object inventory only. Beds, tables, thrones, floor cushions and the
 // textile-covered Japanese bench are deliberately not relabelled as chairs.
 function additionalSeats(lot,region){
- const seats=[],add=(name,x,y,z,yaw,width,depth,seatY,front=.27,id)=>{
+ const seats=[],add=(name,x,y,z,yaw,width,depth,seatY,front=.27,id,approachYaw=yaw)=>{
   const anchor=[x+Math.sin(yaw)*front,y,z+Math.cos(yaw)*front];
   if(region==='china'||region==='france')anchor[1]=visualSupportHeight(lot,anchor[0],anchor[2],y,!!lot.heightAware)??y;
-  seats.push({id,name,center:[x,y,z],anchor,position:[x+Math.sin(yaw)*(depth/2+.64),y,z+Math.cos(yaw)*(depth/2+.64)],yaw,seatY,size:[width,Math.max(1.65,seatY-y+.25),depth]});
+  // Backless dining stools face the table but are reached from the open aisle.
+  seats.push({id,name,center:[x,y,z],anchor,position:[x+Math.sin(approachYaw)*(depth/2+.64),y,z+Math.cos(approachYaw)*(depth/2+.64)],yaw,seatY,size:[width,Math.max(1.65,seatY-y+.25),depth]});
  };
  if(region==='france')seats.push(...(lot.group.userData.gardenBenches||[]));
- if(region==='france')lot.group.traverse(q=>{if(q.userData.furnitureKind!=='chair'||Math.hypot(q.position.x+6.65,q.position.z-1.8)<.05)return;const x=q.position.x,z=q.position.z,y=visualSupportHeight(lot,x,z)??.23;add('宫苑雕花扶手椅',x,y,z,q.rotation.y,1.18,1.20,q.position.y+q.userData.seatTopLocal,.29);});
- if(region==='china'){if(lot.additionalFurnitureSeats)for(const s of lot.additionalFurnitureSeats)add(s.name,s.x,s.y,s.z,s.yaw,s.width,s.depth,s.seatY,s.front,s.id);else for(const x of[-8.6,8.6])for(const z of[-3,1])add('正殿木扶椅',x,.2,z,x<0?Math.PI/2:-Math.PI/2,.9,.9,.875);}
+ if(region==='france')lot.group.traverse(q=>{if(q.userData.furnitureKind!=='chair'||Math.hypot(q.position.x+6.65,q.position.z-1.8)<.05)return;const x=q.position.x,z=q.position.z,y=visualSupportHeight(lot,x,z)??.23;add('宫苑雕花扶手椅',x,y,z,q.rotation.y,1.18,1.20,q.position.y+q.userData.seatTopLocal,.29,undefined,q.userData.approachYaw);});
+ if(region==='china'){if(lot.additionalFurnitureSeats)for(const s of lot.additionalFurnitureSeats)add(s.name,s.x,s.y,s.z,s.yaw,s.width,s.depth,s.seatY,s.front,s.id,s.approachYaw);else for(const x of[-8.6,8.6])for(const z of[-3,1])add('正殿木扶椅',x,.2,z,x<0?Math.PI/2:-Math.PI/2,.9,.9,.875);}
  if(region==='japan')for(const [name,x,y,z,w]of[
   ['迎宾木长椅',-9.2,0,3.1,3.5],['更衣室木长椅',-3.1,3.8,2.05,2.35],['更衣室木长椅',.15,3.8,2.05,1.6],
   ['浴室木长椅',-4.2,3.8,-3.1,3],['浴室木长椅',1.35,3.8,-3.1,2.3],['休息廊木长椅',-7.7,3.8,7.55,4],['休息廊木长椅',4.9,3.8,7.55,3.1],
-  ['事务室木长椅',-7.1,11.4,4.2,3.2],['员工室木长椅',-6.8,11.4,-7.45,3.3],['庭园木长椅',-23.2,0,14.7,6.9]])add(name,x,y,z,(z===7.55||z===-7.45)?Math.PI:0,w,.6,y+.565,.16);
+  ['事务室木长椅',-7.1,11.4,4.2,3.2],['员工室木长椅',-6.8,11.4,-7.45,3.3],['庭园木长椅',-23.2,0,14.7,6.9]])add(name,x,y,z,(z===7.55||z===-7.45||z===14.7)?Math.PI:0,w,.6,y+.565,.16);
  // Existing ground-floor woven stools: approach from the open customer aisle,
  // then face the counter. These remain in the ordinary shared seat inventory.
  if(region==='japan')for(const [dish,xs,z,seatY]of[['sushi',[-7.68,-6.56,-5.44,-4.32],-1.29,.719],['ramen',[2.65,4.1,5.55],4.75,.739]])for(const [i,x]of xs.entries()){
   seats.push({id:`japan-dining-${dish}-${i+1}`,name: dish==='sushi'?'一层寿司吧台藤凳':'一层拉面吧台藤凳',diningKind:dish,center:[x,0,z],anchor:[x,0,z+.10],position:[x,0,z+.94],yaw:Math.PI,seatY,size:[.62,1.65,.62]});
  }
- if(region==='egypt')add('王室餐厅东侧坐凳',20.65,0,-9.3,Math.PI/2,1.02,1.02,.66,.44);
+ // Keep knees clear of the dining table's solid plinth, with hips on the stool.
+ if(region==='egypt')add('王室餐厅东侧坐凳',20.65,0,-9.3,-Math.PI/2,1.02,1.02,.66,.10,undefined,Math.PI/2);
  return seats;
 }
 const point=a=>new THREE.Vector3(...a);
