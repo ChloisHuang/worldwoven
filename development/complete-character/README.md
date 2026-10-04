@@ -26,3 +26,10 @@ PRODUCTION_BEFORE=1 OUT_DIR=$PWD/qa/complete-character/new-before node developme
 ```
 
 Remaining integration is deliberately bounded: preserve appearance IDs while adding facial trait deformation and body/hairstyle/outfit compatibility after the complete aesthetic direction is chosen. The one representative already uses production bone batching and cervical chest/head blending. No full-scene, all-body matrix, site publication or production replacement was performed here.
+
+
+## Direct user revision: two compact adult forms
+
+The user's latest feedback asked for deeper eyes, a taller nasal bridge, a smaller head and male/female differences. `forms.json` now defines a shared recessed socket and supported bridge, plus two actual mesh forms. The globe center and continuous orbital rims move inward together below the projecting brow plane; this is geometry, not darker paint. The male has a firmer jaw and fuller low brow; the female has different malar, cheek, rounded jaw/chin, nose, lip and arched brow targets with a narrower cervical base. Existing skin, hair and iris colors remain identical in comparisons.
+
+Both forms are compacted around the fixed neck junction, blending to the unchanged y1.353 garment seam. Male head scale is (.92,.91,.92), skin crown y1.663; female is (.90,.89,.90), skin crown y1.658. Body presets remain `masculine-lean` and `feminine-slender`, with their existing France frock and court gown. The paired renderer creates both actors in the same scene/camera/light at their real root scales, male left and female right; portraits are never resized to match proportions. `PAIR_PREVIEW=1` produces that comparison. `CHARACTER_FORM=female` builds or renders the female individually. No random trait endpoint matrix is part of this representative comparison.
