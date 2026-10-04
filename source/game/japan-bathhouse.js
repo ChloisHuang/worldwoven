@@ -129,7 +129,7 @@ function eaveRing(g,y){
 export function buildJapan(){
  const group=new THREE.Group(),roofGroup=new THREE.Group(),colliders=[],cameraColliders=[],walkableSurfaces=[],ceilingGroups=[],floorGroups=[],explorationTargets=[],doorways=[],roomProgram=[],updates=[],characterFootSurfaces=[];
  group.name='Japan · Kasumi-yu Lantern Bathhouse';roofGroup.name='Visible green roof ensemble';roofGroup.visible=true;group.add(roofGroup);
- const levels=[{id:'jp-ground',name:'一层 · 接待与寿司拉面大厅',y:0},{id:'jp-guest',name:'二层 · 男汤与女汤',y:3.8},{id:'jp-tea',name:'三层 · 方形暖桌会客大厅',y:7.6},{id:'jp-sky',name:'四层 · 汤屋工作与职人生活',y:11.4}];
+ const levels=[{id:'jp-ground',name:'一层 · 接待与寿司拉面大厅',y:0},{id:'jp-guest',name:'二层 · 男汤与女汤',y:3.8},{id:'jp-tea',name:'三层 · 暖桌会客与演艺茶席',y:7.6},{id:'jp-sky',name:'四层 · 汤屋工作与职人生活',y:11.4}];
  function obstacle(x,y,z,w,h,d,{camera=true}={}){const b=limits(x,y,z,w,h,d);colliders.push(b);if(camera)cameraColliders.push({...b});}
  function groundSolid(g,base,x,y,z,w,h,d,c,camera=true){G.box(g,x,y,z,w,h,d,c);obstacle(x,base+y,z,w,h,d,{camera});}
  function surface(minX,maxX,minZ,maxZ,y){walkableSurfaces.push({minX,maxX,minZ,maxZ,y});}
@@ -701,9 +701,10 @@ export function buildJapan(){
   threshold(`jp-${f+1}-front-portal`,[f===3?.5:0,y,8.2],[f===3?.5:0,y,9.8],f===3?2.3:4.2,2.9);
  }
  const performanceHall=buildJapanPerformanceHall({floor:floorGroups[2],obstacle,sign});
+ explorationTargets.push({id:'jp-performance-reception',name:'Performance and drinks reception',position:[4.3,7.6,-4.6]},{id:'jp-performance-stage',name:'Original kabuki-inspired small stage',position:[4.5,7.6,5.9]});
  const stations=[
   {id:'jp-omamori',name:'参道 · 御守与小稻荷祠',action:'欣赏御守绳结与刺绣',position:[4.7,0,33.1],color:'#ad7892',playerAction:'tidy',playerWorkTarget:[4.7,1.14,32.04],interactionRadius:1.1,dialogue:'御守的小布袋绣着樱花，绳结也各不相同。鸟居另一侧的小稻荷祠前，狐狸是稻荷的使者，稻穗与米供传达着丰收的意象。',npcName:'Emi',npcAction:'tidy',npcLabel:'整理绳结与御守布袋',npcPosition:[4.7,0,30.6],workTarget:[4.7,1.12,31.1],npcRotation:0},
-  {id:'jp-welcome',name:'一层 · 灯笼接待大厅',action:'领取浴衣与钥匙',position:[-4,0,5.4],color:'#d4a46d',playerAction:'tidy',dialogue:'欢迎来到霞汤屋。男汤与女汤都在二层，三层是暖桌大厅，四层是工作人员的地方。',npcName:'Koharu',npcAction:'tidy',npcLabel:'登记客簿与浴衣钥匙',npcPosition:[-5.4,0,5.7],workTarget:[-5.4,1.25,6.4],npcRotation:0},
+  {id:'jp-welcome',name:'一层 · 灯笼接待大厅',action:'领取浴衣与钥匙',position:[-4,0,5.4],color:'#d4a46d',playerAction:'tidy',dialogue:'欢迎来到霞汤屋。男汤与女汤都在二层，三层是暖桌大厅与演艺茶席，四层是工作人员的地方。',npcName:'Koharu',npcAction:'tidy',npcLabel:'登记客簿与浴衣钥匙',npcPosition:[-5.4,0,5.7],workTarget:[-5.4,1.25,6.4],npcRotation:0},
   {id:'jp-onsen',name:'二层 · 男汤',action:'欣赏温泉水景',position:[-2.25,3.8,-9.3],color:'#7eadd0',playerAction:'relax',dialogue:'先经过更衣室，再洗净入汤。这里的屏风让每一道门都留住了隐私。',npcName:'Sora',npcAction:'bath-attendant',npcLabel:'检查男汤洗浴木桶',npcPosition:[-9.15,3.8,-3.7],workTarget:[-10.35,4.6,-3.7],npcRotation:-Math.PI/2},
   {id:'jp-women-onsen',name:'二层 · 女汤',action:'观赏温泉与山纹屏风',position:[5.0,3.8,-9.7],color:'#d5958d',playerAction:'relax',dialogue:'女汤有独立的更衣柜、洗浴区与宽敞汤池。木格窗外，樱花顺着庭园轻轻落下。',npcName:'Mei',npcAction:'tidy',npcLabel:'整理女汤毛巾与木篮',npcPosition:[4.3,3.8,1.4],workTarget:[5.8,4.8,1.4],npcRotation:Math.PI/2},
   {id:'jp-sushi',name:'一层 · 回转寿司',action:'查看寿司菜单',position:[-6,0,-.25],color:'#dcaa76',playerAction:'sushi-eat',interactionRadius:1.25,dialogue:'小盘沿着回转台缓缓前行。金枪鱼、玉子与紫菜卷，挑一盘喜欢的就好。',npcName:'Haru',npcAction:'sushi',npcLabel:'摆放寿司小盘',npcPosition:[-6,0,-5.38],workTarget:[-6,1.065,-4.8],npcRotation:0},
@@ -723,6 +724,7 @@ export function buildJapan(){
  program('omamori-display',0,'omamori-cultural-display',4.8,['jp-courtyard-omamori']);program('inari-shrine',0,'small-inari-shrine',3.4,['jp-courtyard-inari']);
  program('reflection-pond',0,'koi-reflection-garden',124,['jp-district-garden-pond']);program('garden-pavilion',0,'garden-shelter',66,['jp-district-garden-pavilion']);program('travel-shop',0,'travel-luggage-retail',135,['jp-district-market-room']);program('public-toilets',0,'public-sanitary-facilities',110,['jp-washroom-private-1','jp-washroom-private-2','jp-washroom-private-3','jp-washroom-sinks']);program('supply-store',0,'delivery-supply-storage',73,['jp-district-supplies']);program('herb-growing',0,'herb-growing',252,['jp-district-herb-yard']);
  const facilities=[
+  {kind:'performing-arts',name:'Original kabuki-inspired performance and voluntary adult tea conversation',location:'Third-floor east hall',targetIds:['jp-performance-reception','jp-performance-stage']},
   {kind:'shrine approach',name:'Sakura torii, embroidered omamori and a compact Inari shrine with paired fox messengers',location:'One compact shrine-approach courtyard flanking the torii',targetIds:['jp-arrival-torii','jp-courtyard-omamori','jp-courtyard-inari']},
   {kind:'entry/reception',name:'Grand arrival hall, keys and yukata reception',location:'Ground floor',targetIds:['jp-room-welcome','jp-district-arrival-gate']},
   {kind:'bathing',name:'Separate MEN and WOMEN onsen with screened changing and washing sequences',location:'Second floor only',targetIds:['jp-room-men-changing','jp-room-men-wash','jp-room-men-bath','jp-room-women-changing','jp-room-women-wash','jp-room-women-bath']},
