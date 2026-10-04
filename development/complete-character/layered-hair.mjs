@@ -5,7 +5,7 @@
  */
 import * as THREE from 'three';
 import HAIR_DATA from './assets/layered-hair-data.mjs';
-const BASE_CENTER=[0,1.562,-.017], BASE_RADII=[.090,.117,.105];
+const BASE_CENTER=[0,1.562,-.017], BASE_RADII=[.079,.126,.101];
 const mix=(a,b,t)=>a+(b-a)*t;
 const smooth=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
 const gaussian=(x,c,w)=>Math.exp(-(((x-c)/w)**2));
@@ -14,12 +14,12 @@ const V=p=>new THREE.Vector3(...p);
 // Each path is a deliberately authored flow from the off-centre part/crown.
 // Width and thickness are independent: these are flattened locks, not tubes.
 const LOCKS=[
- ['sweep-outer',[[.026,1.680,.036],[.000,1.695,.061],[-.045,1.676,.086],[-.079,1.628,.076],[-.078,1.565,.049]],.040,.0060,1.00],
- ['sweep-main',[[.027,1.678,.052],[.009,1.700,.078],[-.025,1.682,.103],[-.053,1.637,.110],[-.052,1.586,.092]],.033,.0064,1.035],
- ['sweep-front',[[.028,1.672,.066],[.014,1.694,.098],[-.010,1.666,.121],[-.022,1.626,.117],[-.017,1.590,.101]],.023,.0045,1.07],
+ ['sweep-outer',[[.022,1.682,.032],[-.006,1.695,.054],[-.043,1.675,.075],[-.070,1.633,.072],[-.071,1.568,.046]],.037,.0060,1.00],
+ ['sweep-main',[[.023,1.681,.046],[.004,1.697,.069],[-.025,1.677,.092],[-.050,1.636,.098],[-.047,1.589,.085]],.031,.0064,1.035],
+ ['sweep-front',[[.024,1.680,.056],[.010,1.692,.082],[-.012,1.662,.104],[-.023,1.626,.102],[-.016,1.592,.090]],.020,.0045,1.07],
  ['loose-front',[[.005,1.683,.091],[-.014,1.658,.122],[-.026,1.621,.121],[-.026,1.597,.108],[-.015,1.578,.093]],.010,.0025,1.03],
- ['part-short',[[.032,1.674,.056],[.058,1.688,.070],[.080,1.658,.083],[.089,1.618,.076],[.076,1.580,.068]],.029,.0053,1.02],
- ['part-fringe',[[.033,1.670,.072],[.052,1.678,.094],[.066,1.648,.107],[.067,1.616,.099],[.057,1.596,.090]],.015,.0033,1.055],
+ ['part-short',[[.028,1.680,.051],[.052,1.686,.062],[.071,1.659,.074],[.079,1.623,.070],[.068,1.586,.063]],.026,.0053,1.02],
+ ['part-fringe',[[.029,1.676,.063],[.047,1.677,.083],[.059,1.650,.095],[.060,1.622,.089],[.052,1.600,.081]],.014,.0033,1.055],
  ['left-temple',[[.009,1.688,.022],[-.043,1.689,.033],[-.083,1.651,.053],[-.099,1.594,.035],[-.090,1.565,.029]],.025,.0048,.99],
  ['left-ear-front',[[ -.041,1.669,.061],[-.077,1.644,.072],[-.094,1.603,.055],[-.096,1.571,.032],[-.088,1.554,.019]],.017,.0036,1.03],
  ['right-temple',[[.031,1.684,.004],[.070,1.684,.018],[.097,1.645,.029],[.104,1.595,.008],[.093,1.567,-.005]],.025,.0049,.99],
@@ -44,8 +44,8 @@ export function sculptLayeredHairGeometry({center=BASE_CENTER,radii=BASE_RADII,c
     const surface=root.clone().addScaledVector(direction,hit.distance);
     // The skin mesh includes the ear. Roots pass above/in front of its helix,
     // never growing from the ear itself when a near-horizontal ray hits it.
-    const earWeight=gaussian(surface.z,-.003,.032)*(1-smooth(1.577,1.602,surface.y))*smooth(.076,.090,Math.abs(surface.x));
-    const scalpX=Math.min(Math.abs(surface.x),.085);
+    const earWeight=gaussian(surface.z,-.003,.032)*(1-smooth(1.577,1.602,surface.y))*smooth(.070,.084,Math.abs(surface.x));
+    const scalpX=Math.min(Math.abs(surface.x),.078);
     surface.x=mix(surface.x,Math.sign(surface.x)*scalpX,earWeight);
     return surface.addScaledVector(direction,rise);
    }}
@@ -55,27 +55,40 @@ export function sculptLayeredHairGeometry({center=BASE_CENTER,radii=BASE_RADII,c
  function add(p,value=1,u=0,v=0){positions.push(...p);const c=baseColor.clone().multiplyScalar(value);colors.push(c.r,c.g,c.b);flow.push(u,v,1);return positions.length/3-1;}
  // A close scalp envelope, completely covered at the forehead by the swept
  // fringe. The ear edge is an arch with asymmetric sideburn/nape termination.
- const columns=56,rows=16;
- for(let j=0;j<=rows;j++)for(let i=0;i<=columns;i++){
+ const columns=56,rows=16,phiBounds=[];
+ for(let i=0;i<=columns;i++){
   const a=i/columns*Math.PI*2,signed=a>Math.PI?a-Math.PI*2:a,abs=Math.abs(signed);
   const ear=gaussian(abs,1.63,.30),front=gaussian(signed,0,1.17);
-  let edge=1.523+.114*front+.034*ear;
+  let edge=1.518+.119*front+.032*ear;
   edge+=.010*gaussian(abs,2.42,.45);
   edge+=.0045*Math.sin(a*5+.5)+.003*Math.sin(a*9);
   // No straight side cut: sweep the temple into an irregular ear opening.
-  const phiMax=Math.acos(Math.max(-.99,Math.min(.99,(edge-BASE_CENTER[1])/BASE_RADII[1]))),phi=phiMax*j/rows;
+  // Solve the boundary on the actual vault. The former ellipsoid angle moved
+  // the hairline down when the head was narrowed, shortening the upper third.
+  // Frontal centre is 1.640 m; its rounded corners descend into the temple.
+  if(abs<.50)edge=mix(edge,1.640,1-smooth(.10,.50,abs));
+  let low=.015,high=2.55;
+  for(let step=0;step<12;step++){
+   const phi=(low+high)*.5,d=new THREE.Vector3(Math.sin(phi)*Math.sin(a),Math.cos(phi),Math.sin(phi)*Math.cos(a)).multiply(r).add(root);
+   if(scalpPoint(d,0).y>edge)low=phi;else high=phi;
+  }
+  phiBounds.push((low+high)*.5);
+ }
+ for(let j=0;j<=rows;j++)for(let i=0;i<=columns;i++){
+  const a=i/columns*Math.PI*2,phi=phiBounds[i]*j/rows;
   const q=new THREE.Vector3(Math.sin(phi)*Math.sin(a),Math.cos(phi),Math.sin(phi)*Math.cos(a));
   const direction=q.clone().divide(r).normalize();
   const crown=smooth(.26,.84,q.y),part=gaussian(q.x,.27,.085)*gaussian(q.z,.17,.64)*crown;
-  const lift=.005+.009*crown-.0040*part;
-  const fullness=.003*gaussian(q.x,-.24,.55)*crown;
+  const lift=.0045+.0080*crown-.0035*part;
+  const fullness=.0025*gaussian(q.x,-.24,.55)*crown;
   const p=scalpPoint(q.multiply(r).add(root),lift+fullness);
   add(p.toArray(),.975, j/rows, i/columns);
  }
  for(let j=0;j<rows;j++)for(let i=0;i<columns;i++){
   const a=j*(columns+1)+i,b=a+1,c=a+columns+1,d=c+1;indices.push(a,c,b,b,c,d);
  }
- for(const [name,points,width,depth,value] of LOCKS){
+ for(const [name,points,authoredWidth,depth,value] of LOCKS){
+  const width=authoredWidth*(/temple|crown-|back-|nape/.test(name)?.93:1);
   const curve=new THREE.CatmullRomCurve3(points.map(V),false,'centripetal'),start=positions.length/3,steps=16,sides=8;
   const rear=/back-|nape/.test(name);
   for(let j=0;j<=steps;j++){
