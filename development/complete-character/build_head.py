@@ -112,6 +112,7 @@ for v in me.vertices:
  part['recessWeight'].append(occ)
 parts.append(part);ev.to_mesh_clear()
 def export(name,material,vs,fs,features=None,occ=None):
+ fs=[f for f in fs if (Vector(vs[f[1]])-Vector(vs[f[0]])).cross(Vector(vs[f[2]])-Vector(vs[f[0]])).length_squared>1e-24]
  em=bpy.data.meshes.new(name);em.from_pydata(vs,[],fs);em.update()
  bm=bmesh.new();bm.from_mesh(em);bmesh.ops.recalc_face_normals(bm,faces=bm.faces);bm.to_mesh(em);bm.free();em.calc_loop_triangles()
  p={'name':name,'material':material,'position':[x for v in em.vertices for x in v.co],'normal':[x for v in em.vertices for x in v.normal],'index':[x for t in em.loop_triangles for x in t.vertices]}
@@ -127,6 +128,11 @@ for side in [-1,1]:
  for t in theta:
   for k in range(nu):
    a=k/nu*math.tau;sn=math.sin(t);p=point(center+Vector((rad.x*sn*math.cos(a),rad.y*sn*math.sin(a),rad.z*math.cos(t))))
+   source_point=np.array(center+Vector((rad.x*sn*math.cos(a),rad.y*sn*math.sin(a),rad.z*math.cos(t))))
+   difference=source_point-S;distance=np.maximum(1e-9,np.linalg.norm(difference,axis=1))
+   jacobian=(difference/distance[:,None]).T@coef[:len(S)]+coef[len(S)+1:]
+   outward=np.linalg.solve(jacobian,np.array([sn*math.cos(a),sn*math.sin(a),math.cos(t)]))
+   outward/=np.linalg.norm(outward);normals.append(list(outward))
    points.append(p);fc += [math.sin(t)/math.sin(.405)*math.cos(a),math.sin(t)/math.sin(.405)*math.sin(a),t]
    hit=tree.ray_cast(p+Vector((0,.0003,.0002)),Vector((0,.8,.6)),.013)[0];occ.append(.65 if hit is not None else 0.)
  for material,lo,hi in [('pupil',0,.15),('iris',.15,.405),('sclera',.405,math.pi)]:
@@ -136,6 +142,7 @@ for side in [-1,1]:
    for k in range(nu):a=j*nu+k;b=j*nu+(k+1)%nu;c=(j+1)*nu+k;d=(j+1)*nu+(k+1)%nu;fs.extend([(a,c,b),(b,c,d)])
   relevant=sorted({i for f in fs for i in f});remap={v:i for i,v in enumerate(relevant)}
   export('eye-'+str(side)+'-'+material,material,[points[i] for i in relevant],[[remap[i] for i in f] for f in fs],[c for i in relevant for c in fc[i*3:i*3+3]],[occ[i] for i in relevant])
+  parts[-1]['normal']=[v for i in relevant for v in normals[i]]
  # Shallow skin-fitted eyebrows, one polygon ribbon with tapered fringe.
  bp=[];bf=[];bc=[];bn=38;bw=4
  for j in range(bn+1):

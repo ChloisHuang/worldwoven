@@ -2,8 +2,27 @@
 
 The source/reference direction is one coherent original adult wearing the existing France outfit. The supplied Sims images were visually inspected but are never imported as geometry or texture. Skin/hair/iris colors remain the original selected values.
 
-Authoring changes method: editable named anatomical handles in `cage.json` deform the pinned CC0 hm08 surface with one thin-plate cage solve. Direct topology loop edits then close the lips and seat the orbital rims. Blender retains an inspectable named cage object; no stack of Gaussian micro-displacements is used. The source attribution is retained under `../anatomical-head/assets/upstream/`.
+Authoring changes method: editable named anatomical handles in `cage.json` deform the pinned CC0 hm08 surface with one biharmonic cage solve. Direct topology loop edits then close the lips and seat the orbital rims. Blender retains an inspectable named cage object; no stack of Gaussian micro-displacements is used. The source attribution is retained under `../anatomical-head/assets/upstream/`.
 
-This isolated branch does not replace production characters. Current valid native cage: 8,524 skin triangles; 11,820 including eyes and brows; 31,932 for the complete clothed actor with original layered hair (2 merged draws). The failed vertex-group collapse modifier is removed entirely. Native feature loops are retained.
+This isolated branch does not replace production characters. Current valid native cage: 8,524 skin triangles; 11,628 including eyes and brows; 33,316 for the complete clothed actor with original layered hair and softened existing frock (2 merged draws). The failed vertex-group collapse modifier is removed entirely. Native feature loops are retained.
 
 The cervical segment is compressed from the fixed y=1.353 collar boundary, shortening visible neck by 38mm while moving the intact head and hair together. Chin is approximately y=1.442 and crown y=1.687. Skin and hair inputs, culture appearance IDs, body/limb transforms and outfit identity remain unchanged.
+
+
+## Complete comparison
+
+Final views: `qa/complete-character/final-complete/cel-{front,threequarter,side}.png`; real 50° / 4.6m and closer 2.6m complete outfit views are `cel-clothed-game-{4.6,2.6}.png`. `cel-game-distance-crop.png` is the native 320px crop of the actual 1280×720 / 4.6m follow projection. The exact current production comparator, with the same actor inputs, camera and lights, is in `final-production-before`. All complete views were personally inspected. The new representative combines shaped relaxed orbital lids/brows, formed nasal/labial planes, the shortened cervical connection, original layered hair, rounded sleeves/shoulders and seated existing collar/frock. This delivers one complete candidate for whole-character review; it is not a claim that every face trait, outfit, body or NPC has already been replaced.
+
+The final finish retains the existing production four cel values (140/186/229/255) and original selected colors; narrow antialiased boundaries avoid the previous five-band flattening. The skin retains its actual anatomical surface. Eye surface normals use the cage Jacobian and the zero-area pole triangles have been removed.
+
+Scoped verification: finite vertex/normal attributes, valid indices and zero degenerate triangles; source syntax; original production source unchanged; no shader/GL errors; zero retained character references. The 0.38-radian head-turn image in `final-neck-turn` keeps all 46 collar-boundary vertices chest anchored (head weight 0), with 48 actual cervical blend vertices. Clothing integrity check passes. Final complete model is 33,316 triangles / 2 draws versus production 37,352 / 2, a reduction of 4,036 triangles with no added draws. The former study was 69,184 / 2. Final build: 2.62s / 246,943,744 bytes observed RSS; final complete render: 1.92s / 288,960,512 bytes; head turn: 1.91s / 305,557,504 bytes, all under 120s / 600MiB.
+
+Run from the repository root:
+
+```sh
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/blender -b --factory-startup --threads 1 --python-exit-code 1 --python development/complete-character/build_head.py
+OUT_DIR=$PWD/qa/complete-character/new-review node development/complete-character/render.mjs
+PRODUCTION_BEFORE=1 OUT_DIR=$PWD/qa/complete-character/new-before node development/complete-character/render.mjs
+```
+
+Remaining integration is deliberately bounded: preserve appearance IDs while adding facial trait deformation and body/hairstyle/outfit compatibility after the complete aesthetic direction is chosen. The one representative already uses production bone batching and cervical chest/head blending. No full-scene, all-body matrix, site publication or production replacement was performed here.
