@@ -36,7 +36,7 @@ test('stable NPC and player courses survive another region, globe pause and reen
 test('journey exposure happens once per real arrival, existing saves do not gain retroactive risk',()=>{
  const w=createGameHealthWorld({worldSeed:42});w.enter('japan');let chosen;
  for(let number=1;number<=80;number++){const v=visit(number);w.arrive(v);if(w.state().journeys[v.id].source){chosen=v;break;}w.depart(v.id);}
- assert(chosen,'one deterministic journey source among real arrivals');const once=w.snapshot();w.arrive(chosen);assert.deepEqual(w.snapshot().health.people[chosen.id],once.health.people[chosen.id]);
+ assert(chosen,'one deterministic journey source among real arrivals');assert(condition(w,chosen.id).dose>0||condition(w,chosen.id).stage==='incubating','the recorded journey gives this real visitor an exposure');const once=w.snapshot();w.arrive(chosen);assert.deepEqual(w.snapshot().health.people[chosen.id],once.health.people[chosen.id]);
  const restored=createGameHealthWorld({worldSeed:42,saved:once,retainedVisitorIds:[chosen.id]});restored.enter('japan');restored.arrive(chosen);assert.deepEqual(restored.snapshot().health.people[chosen.id],once.health.people[chosen.id]);
  const old=createGameHealthWorld({worldSeed:42,visitorFloor:chosen.number});old.enter('japan');old.arrive(chosen);assert.equal(old.state().journeys[chosen.id].source,null);assert.equal(condition(old,chosen.id).dose,0);
 });
