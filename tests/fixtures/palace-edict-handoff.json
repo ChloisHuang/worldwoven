@@ -1,0 +1,91 @@
+{
+  "order": {
+    "id": "cn-edict-east-shore:0",
+    "audienceId": "cn-morning-audience:0",
+    "day": 0,
+    "title": "荷庭东岸清扫令",
+    "stage": "recipient-handoff",
+    "holder": "transfer",
+    "sealed": true,
+    "claims": {
+      "scribe": null,
+      "herald": "cn-palace-herald",
+      "recipient": "cn-garden"
+    },
+    "rooms": [],
+    "approvedBy": "cn-emperor"
+  },
+  "time": 327.33,
+  "phaseTime": 0,
+  "actors": [
+    {
+      "id": "cn-palace-herald",
+      "position": [
+        11.5,
+        0.115,
+        -14
+      ]
+    },
+    {
+      "id": "cn-garden",
+      "position": [
+        10,
+        0.115,
+        -14
+      ]
+    }
+  ],
+  "history": [
+    {
+      "event": "draft-received",
+      "documentId": "cn-edict-east-shore:0",
+      "audienceId": "cn-morning-audience:0",
+      "actor": "cn-palace-herald",
+      "time": 114.63,
+      "position": [
+        6.15,
+        4.215,
+        -27.65
+      ]
+    },
+    {
+      "event": "approved",
+      "documentId": "cn-edict-east-shore:0",
+      "audienceId": "cn-morning-audience:0",
+      "actor": "cn-emperor",
+      "time": 182.33,
+      "position": [
+        -15.07977394690164,
+        0.115,
+        -13.380339079647541
+      ]
+    },
+    {
+      "event": "sealed",
+      "documentId": "cn-edict-east-shore:0",
+      "audienceId": "cn-morning-audience:0",
+      "actor": "cn-palace-herald",
+      "time": 235.73,
+      "position": [
+        4.1693813960893245,
+        1.415,
+        -4.151279720693454
+      ]
+    },
+    {
+      "event": "reading",
+      "documentId": "cn-edict-east-shore:0",
+      "audienceId": "cn-morning-audience:0",
+      "actor": null,
+      "time": 318.23
+    },
+    {
+      "event": "recipient-handoff",
+      "documentId": "cn-edict-east-shore:0",
+      "audienceId": "cn-morning-audience:0",
+      "actor": null,
+      "time": 327.33
+    }
+  ],
+  "fixtureSource": "Measured e1bfe4c production-controller run, 2026-10-04; exact prior handoff state, not a product save-resume API"
+}
