@@ -11,8 +11,8 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.57-public, 2026-10-04
-Verified published Sites source commit: 0369d7a1c6f9836b3bdbe66f149c09538f6fd014
+Published release: R16.58-public, 2026-10-04
+Verified published Sites source commit: 00ab703d79526bcafe0f8910c48c12ef49ad0f7c
 
 ## Working rules
 
@@ -108,3 +108,5 @@ R16.33 moves the clinic above the pharmacy with a real guarded public staircase 
 R16.34 connects saved fictional health to actual actors: accumulated exertion, bounded recorded traveler exposure, local visible contact, symptoms, rest and gradual supportive care after the physical numbered clinic receipt. It preserves appearances, movement speed and work coverage. Absence relief, family care and fuller nutrition/hygiene behavior remain later work; browser/iOS health UI is not claimed verified.
 
 R16.35 opens the top-floor reception: one known-adult artist personally responds according to her poetry/banquet preference, then an accepted invitation uses the real stairs and a claimed private room for a non-graphic fade and return. No fee or full relationship economy is included. The two existing royal roles also receive original richer Ming-informed layered court clothing and ornaments; faces are unchanged.
+
+R16.58 adds French garden-helper registration, physical shared-can work on two rose beds, tool return and one six-copper wage receipt, with resign/reapply and separate regional employment. The actual main-controller route and normal Three/Mesa frames passed; real browser/iOS play remains unverified. New rejected face candidates are not included.
