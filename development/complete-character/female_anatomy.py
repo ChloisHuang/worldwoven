@@ -24,8 +24,29 @@ def curve(keys,v):
 def native_point(source,config):
  return np.array(source,dtype=float)*np.array(config['scale'])+np.array(config['offset'])
 
+def eye_transform(point,source,config):
+ side=-1 if source[0]<0 else 1
+ e=config.get('ocularFrame',{});center=native_point([side*.30775,7.281,1.24535],config)
+ width=config.get('facialWidth',1.);center[0]*=width
+ scale=np.array(e.get('scale',[1,1,1]));q=(np.array(point)-center)*scale
+ angle=side*e.get('canthalTilt',0.);c,s=math.cos(angle),math.sin(angle)
+ q=np.array([q[0]*c-q[1]*s,q[0]*s+q[1]*c,q[2]])
+ return center+q+np.array([side*e.get('outward',0.),e.get('raise',0.),0.])
+
+def eye_point(source,config):
+ p=native_point(source,config);p[0]*=config.get('facialWidth',1.)
+ return eye_transform(p,source,config)
+
+def eye_normal(normal,source,config):
+ side=-1 if source[0]<0 else 1;e=config.get('ocularFrame',{});n=np.array(normal)/np.array(config['scale'])
+ n[0]/=config.get('facialWidth',1.);n/=np.array(e.get('scale',[1,1,1]))
+ angle=side*e.get('canthalTilt',0.);c,s=math.cos(angle),math.sin(angle)
+ return np.array([n[0]*c-n[1]*s,n[0]*s+n[1]*c,n[2]])
+
 def skin_point(source,config,neck=None):
  sx,sy,sz=source;x,y,z=native_point(source,config);ax=abs(sx)
+ facial=smooth(6.12,6.30,sy)*(1-smooth(7.44,7.80,sy))*smooth(.45,1.02,sz)
+ x*=1+(config.get('facialWidth',1.)-1)*facial
  # A single continuous centerline defines nasion, bony dorsum, supratip,
  # rounded lobule and columella. Lateral support retains the real alar folds.
  nose=config['nasalProfile'];source_z=curve(nose['sourceCenter'],sy)
@@ -41,11 +62,15 @@ def skin_point(source,config,neck=None):
  z-=config['orbitalFoldRecess']*bell(sy,7.375,.022)*orbit
  # Preserve a full vermilion lower roll without projecting the whole muzzle.
  z+=config['lowerLipProjection']*bell(sy,6.55,.048)*bell(sx,0,.17)*smooth(1.50,1.565,sz)
+ z-=config.get('muzzleRetraction',0.)*bell(sy,6.63,.21)*bell(sx,0,.24)*smooth(1.39,1.54,sz)
  # Ear contact remains ordinary human anatomy; the outer helix is modestly
  # tucked in, without changing the cheek or inventing separate ear geometry.
  ear=smooth(.67,.81,ax)*(1-smooth(.74,1.02,sz))*smooth(6.69,6.83,sy)*(1-smooth(7.30,7.44,sy))
  x*=1-config['earTuck']*ear
  p=np.array([x,y,z])
+ if config.get('ocularFrame'):
+  w=smooth(.10,.165,ax)*(1-smooth(.475,.64,ax))*smooth(7.08,7.21,sy)*(1-smooth(7.40,7.55,sy))*smooth(1.15,1.30,sz)
+  p=p*(1-w)+eye_transform(p,source,config)*w
  if neck is not None:
   w=smooth(*config['neckJoinSourceY'],sy)
   posterior=(1-smooth(.20,.64,sz))*(1-smooth(6.45,7.13,sy))

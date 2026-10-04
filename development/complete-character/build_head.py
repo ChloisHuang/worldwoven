@@ -10,7 +10,7 @@ FORM=os.environ.get('CHARACTER_FORM','male')
 forms=json.loads((ROOT/'forms.json').read_text());form=forms[FORM]
 import sys
 sys.path.insert(0,str(ROOT))
-from female_anatomy import native_point,skin_point
+from female_anatomy import native_point,skin_point,eye_point,eye_normal
 anatomy=form.get('referenceAnatomy')
 UP=ROOT.parent/'anatomical-head/assets/upstream'
 meta=json.loads((UP/'provenance.json').read_text());data=(UP/'base.obj').read_bytes()
@@ -207,12 +207,12 @@ for side in [-1,1]:
  for t in theta:
   for k in range(nu):
    a=k/nu*math.tau;sn=math.sin(t);p=point(center+Vector((rad.x*sn*math.cos(a),rad.y*sn*math.sin(a),rad.z*math.cos(t))))
-   if anatomy:p=Vector(native_point(center+Vector((rad.x*sn*math.cos(a),rad.y*sn*math.sin(a),rad.z*math.cos(t))),anatomy))
+   if anatomy:p=Vector(eye_point(center+Vector((rad.x*sn*math.cos(a),rad.y*sn*math.sin(a),rad.z*math.cos(t))),anatomy))
    source_point=np.array(center+Vector((rad.x*sn*math.cos(a),rad.y*sn*math.sin(a),rad.z*math.cos(t))))
    difference=source_point-S;distance=np.maximum(1e-9,np.linalg.norm(difference,axis=1))
    jacobian=(difference/distance[:,None]).T@coef[:len(S)]+coef[len(S)+1:]
    outward=np.linalg.solve(jacobian,np.array([sn*math.cos(a),sn*math.sin(a),math.cos(t)]))
-   if anatomy:outward=np.array([sn*math.cos(a),sn*math.sin(a),math.cos(t)])/np.array(anatomy['scale'])
+   if anatomy:outward=eye_normal([sn*math.cos(a),sn*math.sin(a),math.cos(t)],source_point,anatomy)
    outward/=np.linalg.norm(outward);normals.append(list(outward))
    points.append(p);fc += [math.sin(t)/math.sin(.405)*math.cos(a),math.sin(t)/math.sin(.405)*math.sin(a),t]
    hit=tree.ray_cast(p+Vector((0,.0003,.0002)),Vector((0,.8,.6)),.013)[0];occ.append(.65 if hit is not None else 0.)
