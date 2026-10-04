@@ -3,8 +3,8 @@ import {npcAppearance} from './appearance.js';
 // Resident IDs (including Ren and the shrine attendant) are never reused for
 // visitors. The durable visit number is committed before the scene spawns them.
 const NAMES=['Hina','Takumi','Kaede','Riku','Yuna','Minato','Shiori','Kento'];
-export function createJapanVisitorIdentity({id,number},worldSeed=1) {
- const appearance=npcAppearance('japan',id,worldSeed);
+export function createJapanVisitorIdentity({id,number},worldSeed=1,shapeVersion=1) {
+ const appearance=npcAppearance('japan',id,worldSeed,shapeVersion);
  return {id,name:NAMES[(number-1)%NAMES.length],appearance,side:appearance.bodyPreset.startsWith('masculine')?'men':'women'};
 }
 
