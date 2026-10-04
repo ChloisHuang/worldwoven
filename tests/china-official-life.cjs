@@ -1,0 +1,27 @@
+// Reproduces court borrowing a still-mounted official, duplicate room use and
+// a frozen post-court actor. Movement is deliberately a double, not route QA.
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const root=path.resolve('source'),context=vm.createContext({console}),cache=new Map();
+function mod(file){if(cache.has(file))return cache.get(file);const m=new vm.SourceTextModule(fs.readFileSync(file,'utf8'),{identifier:file,context});cache.set(file,m);return m;}
+const linker=(s,f)=>mod(s==='three'?path.join(root,'vendor/three/build/three.module.js'):path.resolve(path.dirname(f.identifier),s));
+(async()=>{
+ const lifeModule=mod(path.join(root,'game/china-official-life.js'));await lifeModule.link(linker);await lifeModule.evaluate();
+ const facilitiesModule=mod(path.join(root,'game/npc-facilities.js'));await facilitiesModule.link(linker);await facilitiesModule.evaluate();
+ const T=cache.get(path.join(root,'vendor/three/build/three.module.js')).namespace,B=cache.get(path.join(root,'game/china-official-bureau.js')).namespace.CHINA_OFFICIAL_BUREAU;
+ const brain=cache.get(path.join(root,'game/npc-life-decisions.js')).namespace,ids=['cn-minister-works','cn-minister-granary','cn-official-rites','cn-official-personnel','cn-official-justice','cn-official-records'];
+ const officials=ids.map((id,i)=>{const root=new T.Group();root.position.set(...B.offices[i]);root.userData.hands=[new T.Group(),new T.Group()];root.add(...root.userData.hands);return {station:{id},root,home:root.position.clone(),phase:0,route:[],animate(){}};});
+ const beds=ids.map((id,i)=>({id:B.beds[i],kind:'bed',position:[i?22.65:19.35,.215,34.5],anchor:[i?24.15:17.85,.215,34.5],yaw:0,supportY:1.055,lieSupport:{hip:1.055}}));
+ const claims=facilitiesModule.namespace.createFacilityQueue();let blockedFirst=true,durable;
+ const furniture={items:beds,facilities:claims,canUse:()=>true,canSit:()=>true,bedSupportAt:()=>1.055,standPoint:(_,__,bed)=>blockedFirst&&bed===beds[0]?null:new T.Vector3(...bed.position)};
+ const saved=brain.createLifeDecisions({worldSeed:42,actorIds:ids}).snapshot();for(const id of ids)saved.people[id].current={id:'rest',duration:24,startedAt:0};
+ const flow=lifeModule.namespace.createChinaOfficialLife({officials,npcs:officials,lot:{colliders:[],walkableSurfaces:[{minX:16,maxX:26,minZ:30.5,maxZ:36.5,y:3.915}],bounds:{minX:-30,maxX:30,minZ:-40,maxZ:40}},furniture,doors:{},planPath:(_,p)=>[p],poseContext:()=>({visualFloorOffset:0}),safety:()=>[],travel(n,s){n.root.position.set(...s.path.at(-1));s.arrived=true;},worldSeed:42,saved:{decisions:saved},saveState:s=>durable=s});
+ let time=0;function tick(){time+=.1;flow.tick(.1,{hour:10});for(const n of officials)flow.update(n,.1,time);}
+ tick();assert(flow.state().actors.every(a=>a.mounted));assert.equal(claims.state().filter(f=>f.reservations.length).length,8,'six individual beds plus only the two actual private rooms');assert(!claims.state().some(f=>f.id.startsWith('cn-official-dorm-')&&f.reservations.length),'one resident must not reserve a whole shared sleeping room');
+ assert.equal(claims.reserve(B.roomIds[0],ids[1]),null,'second actor cannot take another reserved private room');claims.release(B.roomIds[0],ids[1]);
+ officials.forEach(n=>flow.request(n));flow.playerRequest(beds[0].id);for(let i=0;i<130;i++)tick();assert(!flow.ready(officials[0]),'blocked bed exit cannot be teleported away');assert(flow.ready(officials[1]),'other official responds independently');assert.equal(flow.state().actors[0].mounted,beds[0].id);
+ assert(flow.state().decisions.people[ids[1]].needs.fatigue>=saved.people[ids[1]].needs.fatigue,'court interruption grants no rest recovery');
+ flow.cancelCourt(officials[0]);assert.equal(flow.state().actors[0].mounted,beds[0].id,'late-court cancellation preserves a physically blocked bed mount');assert(!flow.state().actors[0].called);flow.request(officials[0]);blockedFirst=false;tick();assert(flow.ready(officials[0]));assert.equal(claims.state().filter(f=>f.reservations.length).length,0,'court releases all finite claims');
+ officials[0].root.position.set(-4.6,.13,13.2);const afterCourt=officials[0].root.position.clone();flow.resume(officials[0]);assert(officials[0].root.position.equals(afterCourt),'resume chooses from real dismissal location');assert(flow.state().actors[0].activity,'released actor returns to independent life');
+ assert(durable.decisions.people[ids[0]].current,'new intention saved');officials[5].root.position.set(24.981406942,3.915,31.407917968);const exit=flow.courtPlan(officials[5]);assert(exit.path[0][2]<officials[5].root.position.z,'a summons at the recorded upper doorway continues out instead of reversing to the office origin');flow.dispose();assert.equal(claims.state().filter(f=>f.reservations.length).length,0);
+ console.log('PASS: private finite claims, blocked bed handoff, independent call readiness, no false rest recovery, current-location resumption and claim cleanup');
+})().catch(e=>{console.error(e);process.exitCode=1;});
