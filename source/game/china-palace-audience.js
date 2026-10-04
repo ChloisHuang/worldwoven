@@ -54,7 +54,10 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
    n.route=[];s.planned=false;s.retries=0;if(++s.index===s.path.length){s.arrived=true;record(s.id+':arrived',n);return true;}return false;
   }
   if(!s.planned){n.route=planPath(n.root.position,point(target),.25);s.planned=true;}
-  const direct=near(n.root.position,target,.45)&&canTraverse(n.root.position,point(target),lot.colliders.concat(safety(n)),navigation);
+  // A safe clear segment to the authored waypoint takes priority over the
+  // grid's initial link, which can sit behind a person already in the doorway.
+  // Every wall, current door leaf and other body still blocks this segment.
+  const direct=canTraverse(n.root.position,point(target),lot.colliders.concat(safety(n)),navigation);
   const step=direct?{waypoint:point(target)}:doors.routeStep(n.route,n.root.position,.025);
   if(!step.waiting&&step.waypoint){
    const p=step.waypoint,dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz);
@@ -73,7 +76,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
  }
  const allInLine=()=>officials.every(n=>tasks.get(n)?.id==='enter-hall'&&tasks.get(n).arrived),paused=n=>!!n&&state.conversationActorId===n.station.id;
  function routeBudgets(){
-  const actors=officials.map((n,i)=>{const exit=life?.courtPlan(n)||{reachable:true,position:n.root.position,path:[],safeExitSeconds:0,doorSeconds:4};return {actor:n.station.id,...(exit.reachable?courtRouteBudget({...exit,path:[...exit.path,court(i),...enterHall(i)],walkSpeed:n.locomotion.walkSpeed,planPath:planBudgetPath,doorways:lot.doorways}):{reachable:false,seconds:Infinity,reason:'safe-exit-blocked'})};});
+  const actors=officials.map((n,i)=>{const exit=life?.courtPlan(n)||{reachable:true,position:n.root.position,path:[],safeExitSeconds:0,doorSeconds:4};return {actor:n.station.id,...(exit.reachable?courtRouteBudget({...exit,path:near(exit.position,hall(i))?[]:[...exit.path,court(i),...enterHall(i)],walkSpeed:n.locomotion.walkSpeed,planPath:planBudgetPath,doorways:lot.doorways}):{reachable:false,seconds:Infinity,reason:'safe-exit-blocked'})};});
   const royal=palace.dutyPlan?.(OWNER)||{reachable:false,seconds:Infinity,reason:'royal-route-unavailable'};
   actors.push({actor:emperor.station.id,...royal});return {actors,seconds:Math.max(...actors.map(a=>a.seconds)),measuredAt:time};
  }
@@ -106,7 +109,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
    }
    const duty=palace.dutyState(OWNER),speakingPaused=paused(speaker)||state.conversationActorId===emperor.station.id;
    for(const [i,n]of officials.entries()){
-    if(life&&!tasks.has(n)){life.update(n,dt,t);if(phase==='assembling'&&life.ready(n)){const exit=life.courtPlan(n);task(n,'to-court',[...exit.path,court(i)],'共同召集 · 从当前位置提前赴班');}else{postures[i]?.stop();continue;}}
+    if(life&&!tasks.has(n)){life.update(n,dt,t);if(phase==='assembling'&&life.ready(n)){const exit=life.courtPlan(n);if(near(n.root.position,hall(i))){task(n,'enter-hall',[hall(i)],'已在班位 · 静候11:30');tasks.get(n).arrived=true;}else task(n,'to-court',[...exit.path,court(i)],'共同召集 · 从当前位置提前赴班');}else{postures[i]?.stop();continue;}}
     n.walking=false;const s=tasks.get(n),label=s?.label||'承务官署 · 日常起居';tell(n,n===speaker?utterance:label);
     if(paused(n)&&!FORMAL.has(phase))tell(n,label+' · 交谈尚未结束');
     else if(s&&!FORMAL.has(phase))travel(n,s,dt);
