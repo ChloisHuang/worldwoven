@@ -82,11 +82,11 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
     if(stage==='preparing'&&arrived(scribe)){enter('drafting');say(scribe,'据今日朝议，拟一纸荷庭清扫令，交陛下核准。');}
     else if(stage==='drafting'&&advanceAfter(5,'await-pickup'))tell(scribe,'清扫令初稿已写好 · 等沈序来取');
     else if(stage==='await-pickup'&&arrived(herald)&&arrived(scribe)){enter('scribe-handoff');order.holder='transfer';face(scribe,P.collect);face(herald,P.scribe);say(scribe,'沈序，请将这份原稿呈陛下核准。');}
-    else if(stage==='scribe-handoff'&&advanceAfter(2,'to-approval')){order.holder='herald';order.claims.scribe=null;record('draft-received',herald);release(scribe);task(herald,'carry-draft-to-emperor',[...reverse(STUDY_PATH).slice(1),...reverse(HALL_EXIT),P.approve],'携同一份原稿下楼 · 入殿请准');palace.requestDuty(E.owner);}
+    else if(stage==='scribe-handoff'&&advanceAfter(2,'to-approval')){order.holder='herald';order.claims.scribe=null;record('draft-received',herald);release(scribe);task(herald,'carry-draft-to-emperor',[...reverse(STUDY_PATH).slice(1,-1),[-13.7,.145,-20.85],[-13.7,.145,-14.5],P.approve],'携同一份原稿下楼 · 到公共听候处请准');palace.requestDuty(E.owner,{kind:'edict-review'});}
     else if(stage==='to-approval'){
-     if(!palace.dutyState(E.owner))palace.requestDuty(E.owner);
+     if(!palace.dutyState(E.owner))palace.requestDuty(E.owner,{kind:'edict-review'});
      if(arrived(herald)&&palace.dutyState(E.owner)?.ready){enter('approval');say(emperor,'准。照此清扫东岸，收好落叶，留宽路给往来的人。');}
-    }else if(stage==='approval'&&palace.dutyState(E.owner)?.ready&&advanceAfter(4,'to-seal')){order.approvedBy=emperor.station.id;record('approved',emperor);palace.releaseDuty(E.owner);task(herald,'carry-approved-draft',[P.sealStand],'奉准回东侧传令案用印');}
+    }else if(stage==='approval'&&palace.dutyState(E.owner)?.ready&&advanceAfter(4,'to-seal')){order.approvedBy=emperor.station.id;record('approved',emperor);palace.releaseDuty(E.owner);task(herald,'carry-approved-draft',[[-14.4,.115,-10],[-14.4,.115,.4],[-8,.13,11],[3,.13,11],[3,1.415,6],[3,1.415,3],P.sealStand],'奉准回东侧传令案用印');}
     else if(stage==='to-seal'&&arrived(herald)){enter('seal-place');face(herald,P.seal);}
     else if(stage==='seal-place'&&advanceAfter(1.2,'sealing'))order.holder='seal-stand';
     else if(stage==='sealing'&&advanceAfter(2.2,'seal-pickup')){order.sealed=true;record('sealed',herald);}
