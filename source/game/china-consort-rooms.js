@@ -40,7 +40,7 @@ export function buildChinaConsortRooms(G,{g,C,wall,privacy,part,table,teaSet,col
   part(roomId,r.name+' · 后宫私室',-19.2,-16,r.minZ,r.maxZ,y,3.77);
   privateBed(G,g,{x,z,color:r.color,C});
   colliders.push({minX:x-w/2,maxX:x+w/2,minY:.2,maxY:1.92,minZ:z-d/2-.065,maxZ:z+d/2});cameraColliders.push({...colliders.at(-1)});
-  additionalFurniture.push({id:bedId,privateOwnerId:'cn-consort-'+r.key,privateRoomId:roomId,kind:'bed',name:r.name+'的私室卧榻',worldLabel:r.name+' · 卧榻',position:[-18.5,y,z],exitPositions:[[-18.5,y,z],[-18.5,y,r.doorZ]],anchor:[x,y,z],center:[x,.2,z],size:[w,1.8,d+.13],yaw:0,supportY:1.055,lieOffset:.30,lieSupport:{hip:1.055,back:1.055,head:1.12,heel:1.055},action:'躺下休息'});
+  additionalFurniture.push({id:bedId,privateOwnerId:'cn-consort-'+r.key,privateRoomId:roomId,kind:'bed',name:r.name+'的私室卧榻',worldLabel:r.name+' · 卧榻',position:[-18.5,y,z],exitPositions:[[-18.5,y,z],[-18.5,y,r.doorZ]],anchor:[x,y,z],center:[x,.2,z],size:[w,1.8,d+.13],yaw:0,supportY:1.055,lieOffset:.70,lieSupport:{hip:1.055,back:1.055,head:1.12,heel:1.055},action:'躺下休息'});
   const consoleZ=r.doorZ+.38;G.box(g,-16.62,.70,consoleZ,.56,1.0,.66,C.wood);G.vessel(g,-16.62,1.24,consoleZ,r.color,.35);colliders.push({minX:-16.9,maxX:-16.34,minY:.2,maxY:1.4,minZ:consoleZ-.33,maxZ:consoleZ+.33});cameraColliders.push({...colliders.at(-1)});
   const plaque=residencePlaque(G,g,'客居',-19.49,3.28,r.doorZ,1.2,.38);plaque.rotation.y=-Math.PI/2;
   explorationTargets.push({id:'cn-consort-'+r.key+'-entry',name:r.name+'私室门内',roomId,position:[-18.2,y,r.doorZ]},{id:'cn-consort-'+r.key+'-bed',name:r.name+'卧榻旁',roomId,position:[-18.5,y,z]});
