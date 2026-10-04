@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import {applyNaturalHead} from './head-shape.js';
 import {normalizeShapeTraits,hasShapeTraits,shapeHeight} from './character-traits.js';
-import {buildPalaceEmperorGarments} from './china-palace-costume.js';
+import {buildPalaceEmperorGarments,buildPalaceConsortGarments} from './china-palace-costume.js';
 import {buildJinyiGarments} from './jinyi-costume.js';
 const gradient = new THREE.DataTexture(new Uint8Array([90, 150, 213, 255]),4,1,THREE.RedFormat);
 gradient.minFilter = gradient.magFilter = THREE.NearestFilter;
@@ -245,6 +245,7 @@ function buildJapan(g,masc,preset){
  if(!masc){loft(g,'obi-back-bow',[[1.035,.062,.018,0,-.116],[1.07,.099,.033,0,-.122],[1.116,.064,.02,0,-.117]],C.obi,{segs:20,steps:8});}
 }
 function buildChina(g,masc,preset){
+ if(preset==='palace-consort-ruqun'){buildPalaceConsortGarments(g,{loft,surface,ribbon,hand,shoe,conformFront,tone},C);return;}
  if(preset==='palace-emperor-robe'){buildPalaceEmperorGarments(g,{loft,surface,ribbon,hand,shoe,conformFront,tone},C);return;}
  if(preset==='jinyi-training'){buildJinyiGarments(g,{loft,surface,ribbon,hand,shoe,conformFront,tone},C);return;}
  if(masc){
