@@ -32,12 +32,13 @@ function attachOfficialCap(actor){
 // small schedule; reopening at the default 10:00 cannot invent a new court day.
 export function createAudienceSchedule(saved={}){
  let day=Math.max(0,Math.floor(saved.day||0)),calledDay=Number.isInteger(saved.calledDay)?saved.calledDay:-1,lastHour=null;
+ let lastCompletedDay=Number.isInteger(saved.lastCompletedDay)?saved.lastCompletedDay:saved.outcome==='completed'?calledDay:-1;
  let outcome=calledDay===day?(saved.outcome==='completed'?'completed':'interrupted'):'waiting';
  return {
   observe(hour){if(!Number.isFinite(hour))return;if(lastHour!==null&&lastHour>18&&hour<6){day++;outcome='waiting';}lastHour=hour;},
   due(hour,night=false){return !night&&hour>=6&&hour<12&&calledDay!==day;},
-  call(){calledDay=day;outcome='called';},finish(value){outcome=value;},
-  snapshot:()=>({version:1,day,calledDay,outcome})
+  call(){calledDay=day;outcome='called';},finish(value){outcome=value;if(value==='completed')lastCompletedDay=day;},
+  snapshot:()=>({version:1,day,calledDay,outcome,lastCompletedDay,completionId:lastCompletedDay>=0?'cn-morning-audience:'+lastCompletedDay:null})
  };
 }
 
