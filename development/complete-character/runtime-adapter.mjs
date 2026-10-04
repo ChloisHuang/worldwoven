@@ -33,7 +33,7 @@ export function applyCompleteAdultPreview(root,options){
  const C={skin:options.skin,hair:options.hair,iris:options.eyeColor,pupil:0x25252a,brow:new THREE.Color(options.hair).multiplyScalar(.9).getHex()};
  attachCompleteHead(root,C,ADULT_FORMS[support.form],{surface:true});
  const head=root.getObjectByName('sculpted-head');
- if(support.form==='male')addLayeredHair(head,C.hair,{center:[0,1.54922,-.01644],radii:[.0828,.10647,.0966]});
+ if(support.form==='male'){const hair=addLayeredHair(head,C.hair,{center:[0,1.54922,-.01644],radii:[.0828,.10647,.0966]});hair.userData.softSkin=false;} // Preserve the exact reviewed male hair's existing cloth bucket.
  applyNaturalClothing(root,options);applyFemaleSilhouette(root,options);
  for(const mesh of head.children)if(mesh.isMesh&&/^hair-/.test(mesh.name))mesh.userData.completeAdultPart='hair';
  root.userData.completeAdultRepresentation={version:COMPLETE_ADULT_VERSION,form:support.form,shapeTraits:{...support.shapeTraits}};
