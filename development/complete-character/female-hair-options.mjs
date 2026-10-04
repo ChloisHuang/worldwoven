@@ -10,17 +10,20 @@ const V=p=>new THREE.Vector3(...p),mix=(a,b,t)=>a+(b-a)*t;
 const smooth=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
 const gauss=(x,c,w)=>Math.exp(-(((x-c)/w)**2));
 export function sculptFemaleHairOption({style='long-layered',scalpGeometry,landmarks={}}={}){
- const up=style==='gathered-updo',origin=V([0,1.565,-.008]),ray=new THREE.Raycaster(),mat=new THREE.MeshBasicMaterial({side:THREE.DoubleSide}),scalp=new THREE.Mesh(scalpGeometry,mat);scalp.updateMatrixWorld(true);
+ const up=style==='gathered-updo',origin=V([0,1.565,-.008]),ray=new THREE.Raycaster(),mat=new THREE.MeshBasicMaterial({side:THREE.DoubleSide}),scalp=new THREE.Mesh(scalpGeometry,mat);scalp.updateMatrixWorld(true);scalpGeometry.computeBoundingBox();const skullTop=scalpGeometry.boundingBox.max.y;
  const p=[],ix=[],values=[],seams=[],longParts=[];
  const add=(q,value=1)=>{p.push(...q.toArray());values.push(value);return p.length/3-1;};
- function skin(q,lift=.006){const d=q.clone().sub(origin).normalize();ray.set(origin,d);ray.far=.3;const hit=ray.intersectObject(scalp,false)[0];return hit?origin.clone().addScaledVector(d,hit.distance+lift):q;}
+ // Fit horizontal sections so the authored frontal opening retains its actual
+ // Y landmark. Radial projection from the head center lowered the hairline.
+ function skin(q,lift=.006){const y=Math.min(skullTop-.0007,q.y-.008*smooth(1.630,1.682,q.y)),center=new THREE.Vector3(0,y,-.015),d=new THREE.Vector3(q.x,0,q.z+.015).normalize();ray.set(center,d);ray.far=.3;const hit=ray.intersectObject(scalp,false)[0];if(!hit)return q;const out=center.addScaledVector(d,hit.distance+lift);out.y=q.y;return out;}
  function grid(nu,nv,fn,wrap=false){const start=p.length/3;for(let j=0;j<=nv;j++)for(let i=0;i<=nu;i++){const r=fn(i/nu,j/nv);add(r[0],r[1]);}for(let j=0;j<nv;j++)for(let i=0;i<nu;i++){const a=start+j*(nu+1)+i,b=a+1,c=a+nu+1,d=c+1;ix.push(a,b,c,b,d,c);}if(wrap)for(let j=0;j<=nv;j++)seams.push([start+j*(nu+1),start+j*(nu+1)+nu]);}
  // Actual skull surface supplies the rounded crown; the off-centre part is a
  // shallow root depression and two broad lifts, never a conical cap apex.
  const crownY=(landmarks.crown?.[1]??1.690)+.010;
- grid(48,20,(u,v)=>{const a=u*Math.PI*2,signed=a>Math.PI?a-Math.PI*2:a,front=gauss(signed,0,.72),ear=gauss(Math.abs(signed),1.58,.30);
-  const edge=up?1.497+.148*front+.069*ear:1.518+.127*front+.022*ear;
-  const phi=Math.acos(Math.max(-.96,Math.min(.96,(edge-origin.y)/.139)))*(.015+.985*v),q=new THREE.Vector3(Math.sin(phi)*Math.sin(a)*.096,Math.cos(phi)*.139,Math.sin(phi)*Math.cos(a)*.121).add(origin);
+ grid(48,20,(u,v)=>{const a=u*Math.PI*2,signed=a>Math.PI?a-Math.PI*2:a,front=1-smooth(.50,1.26,Math.abs(signed)),ear=gauss(Math.abs(signed),1.58,.30);
+  const contour=front*(.006*Math.cos(signed*3.8)-.007*gauss(signed,.08,.17)+.002*Math.sin(signed*5));
+  const edge=(up?1.505+.140*front+.061*ear:1.518+.127*front+.022*ear)+contour;
+  const y=crownY-(crownY-edge)*Math.pow(.035+.965*v,1.45),phi=Math.acos(Math.max(-.96,Math.min(.999,(y-origin.y)/.139))),q=new THREE.Vector3(Math.sin(phi)*Math.sin(a)*.096,y,Math.sin(phi)*Math.cos(a)*.135-.015);
   const part=gauss(q.x,.010,.007)*gauss(q.z,.024,.093)*smooth(1.61,1.69,q.y),rootFlow=up?Math.cos(11*a+2.0*v):Math.cos(12*a+1.2*v);
   const out=skin(q,.0065+.004*Math.sin(phi)-.003*part+.0015*rootFlow*Math.sin(phi));
   if(v<.08)out.y=Math.min(out.y,crownY);
@@ -54,23 +57,24 @@ export function sculptFemaleHairOption({style='long-layered',scalpGeometry,landm
   });
   for(const s of[-1,1]){
    const asym=s<0?1:0;
-   lock('front-length-'+s,[[s*.013,1.686,.032],[s*.044,1.650,.080],[s*.076,1.585,.073],[s*.105,1.498,.069],[s*.107,1.400,.112],[s*.127,1.292,.120],[s*.107,1.198,.112],[s*.077,1.159+asym*.020,.095]],.067,.009,1.04,{rootEnd:.35,steps:26});
-   lock('outer-length-'+s,[[s*.035,1.678,.008],[s*.082,1.614,.026],[s*.100,1.540,.022],[s*.122,1.452,.009],[s*.139,1.366,.035],[s*.130,1.266,.058],[s*.096,1.180+asym*.025,.064]],.062,.008,.99,{rootEnd:.36,steps:24});
-   lock('cheek-frame-'+s,[[s*.010,1.682,.034],[s*.040,1.644,.078],[s*.070,1.591,.079],[s*.083,1.521,.082],[s*.096,1.456,.070],[s*.078,1.413+asym*.015,.060]],.024,.0045,1.10,{rootEnd:.38,steps:22});
+   lock('front-length-'+s,[[s*.013,1.686,.032],[s*.044,1.650,.080],[s*.079,1.585,.051],[s*.096,1.498,.040],[s*.113,1.409,.075],[s*.099,1.305,.084],[s*.111,1.221,.079],[s*.077,1.159+asym*.020,.067]],.046,.007,1.08,{rootEnd:.39,steps:26});
+   lock('outer-length-'+s,[[s*.035,1.678,.008],[s*.082,1.614,.026],[s*.100,1.540,.012],[s*.110,1.452,.005],[s*.128,1.366,.030],[s*.119,1.266,.050],[s*.096,1.180+asym*.025,.051]],.048,.007,.99,{rootEnd:.40,steps:24});
+   lock('cheek-frame-'+s,[[s*.010,1.682,.034],[s*.040,1.644,.078],[s*.072,1.591,.048],[s*.080,1.536,.035],[s*.073,1.492+asym*.006,.028]],.019,.0035,1.10,{rootEnd:.66,steps:22});
   }
  }else{
   for(const s of[-1,1]){
-   lock('gather-temple-'+s,[[s*.026,1.682,.023],[s*.069,1.636,.041],[s*.083,1.588,-.015],[s*.074,1.551,-.071],[s*.035,1.539,-.126],[s*.008,1.548,-.140]],.047,.0055,1.045,{rootEnd:.72,steps:20});
-   lock('gather-crown-'+s,[[s*.014,1.689,-.009],[s*.047,1.676,-.054],[s*.063,1.628,-.104],[s*.044,1.578,-.129],[s*.016,1.551,-.145]],.051,.005,1.01,{rootEnd:.72,steps:20});
+   lock('gather-temple-'+s,[[s*.026,1.682,.023],[s*.069,1.636,.041],[s*.083,1.588,-.015],[s*.074,1.551,-.071],[s*.035,1.539,-.112],[s*.008,1.548,-.126]],.043,.0055,1.045,{rootEnd:.88,steps:20});
+   lock('gather-crown-'+s,[[s*.014,1.689,-.009],[s*.047,1.676,-.054],[s*.063,1.628,-.104],[s*.044,1.578,-.127],[s*.016,1.551,-.130]],.047,.005,1.01,{rootEnd:.88,steps:20});
    lock('loose-temple-'+s,[[s*.058,1.637,.046],[s*.076,1.602,.035],[s*.076,1.558,.040],[s*.068,1.519,.044],[s*.074,1.488,.027]],.015,.0034,1.07,{rootEnd:.40,steps:18});
   }
   // Flattened overlapping rolls form a low chignon. Its asymmetric folded
   // center and visible winding have volume and direction; no sphere is used.
+  grid(24,12,(u,v)=>{const a=u*Math.PI*2,b=.035+(Math.PI-.07)*v,r=1+.06*Math.cos(a*5+v*4);return[new THREE.Vector3(Math.sin(b)*Math.cos(a)*.038*r,1.544+Math.sin(b)*Math.sin(a)*.031*r,-.127+Math.cos(b)*.018),.965+.025*Math.cos(a*5+v*4)];},true);
   for(let band=0;band<2;band++){
-   const pts=[];for(let j=0;j<=12;j++){const a=mix(-.5+band*.9,Math.PI*2+.32+band*.5,j/12),shrink=1-.18*j/12;pts.push([Math.cos(a)*(.046-band*.010)*shrink,1.544+Math.sin(a)*(.033-band*.005),-.137-Math.sin(j/12*Math.PI)*.021-band*.006]);}
-   lock('chignon-roll-'+band,pts,.033-band*.004,.010,1.015+band*.025,{rooted:false,steps:36,sides:8});
+   const pts=[];for(let j=0;j<=12;j++){const a=mix(-.5+band*.9,Math.PI*2+.32+band*.5,j/12),shrink=1-.18*j/12;pts.push([Math.cos(a)*(.043-band*.016)*shrink,1.544+Math.sin(a)*(.031-band*.010),-.121-Math.sin(j/12*Math.PI)*.021-band*.006]);}
+   lock('chignon-roll-'+band,pts,.032-band*.003,.009,1.015+band*.025,{rooted:false,steps:36,sides:8});
   }
-  lock('chignon-center-fold',[[-.026,1.554,-.149],[-.014,1.570,-.168],[.009,1.559,-.176],[.019,1.539,-.169],[.004,1.520,-.151]],.029,.009,.99,{rooted:false,steps:18});
+  lock('chignon-center-fold',[[-.026,1.554,-.132],[-.014,1.564,-.148],[.009,1.555,-.157],[.019,1.539,-.151],[.004,1.524,-.134]],.030,.009,1.06,{rooted:false,steps:18});
  }
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setIndex(ix);g.computeVertexNormals();const n=g.attributes.normal;
  for(const[a,b]of seams){const q=new THREE.Vector3().fromBufferAttribute(n,a).add(new THREE.Vector3().fromBufferAttribute(n,b)).normalize();n.setXYZ(a,q.x,q.y,q.z);n.setXYZ(b,q.x,q.y,q.z);}
