@@ -104,7 +104,7 @@ for t in me.loop_triangles:part['index']+=list(t.vertices)
 tree=BVHTree.FromPolygons([v.co.copy() for v in me.vertices],[list(t.vertices) for t in me.loop_triangles])
 for v in me.vertices:
  x,y,z=v.co;occ=0.
- if z>.035 and 1.50<y<1.64:
+ if z>.035 and 1.462<y<1.602:
   n=v.normal.normalized();ref=Vector((1,0,0)) if abs(n.x)<.8 else Vector((0,1,0));u=n.cross(ref).normalized();w=n.cross(u).normalized()
   for j in range(8):
    a=j*2.399963;ct=.4+.45*((j+.5)/8);st=math.sqrt(1-ct*ct);direction=n*ct+(u*math.cos(a)+w*math.sin(a))*st
@@ -139,7 +139,7 @@ for side in [-1,1]:
  # Shallow skin-fitted eyebrows, one polygon ribbon with tapered fringe.
  bp=[];bf=[];bc=[];bn=38;bw=4
  for j in range(bn+1):
-  t=j/bn;x=.018+(.071-.018)*t;y=profile([(0,1.6295),(.24,1.6325),(.62,1.6335),(1,1.6275)],t);half=.0027*profile([(0,.08),(.12,.84),(.32,1),(.67,.73),(1,.015)],t)
+  t=j/bn;x=.018+(.071-.018)*t;y=profile([(0,1.5925),(.20,1.595),(.52,1.5958),(.74,1.5945),(1,1.587)],t);half=.0037*profile([(0,.20),(.12,.95),(.32,1),(.67,.73),(1,.015)],t)
   for k in range(bw+1):
    a=k/bw*2-1;p=Vector((side*x,y+a*half,.2));hit=tree.ray_cast(p,Vector((0,0,-1)),.4)[0]
    if hit is not None:p.z=hit.z+.0004+.00018*(1-a*a)

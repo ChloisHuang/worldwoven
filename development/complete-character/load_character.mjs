@@ -2,8 +2,6 @@ import {addLayeredHair} from './layered-hair.mjs';
 /** Isolated CC0 anatomical study. Never imported by production source. */
 import * as THREE from 'three';
 import fs from 'node:fs';
-import {fitAnatomicalHair} from '../anatomical-head/fit_hair.mjs';
-import {reframePrototypeHair} from '../convex-eyes/hair-framing.mjs';
 const asset=JSON.parse(fs.readFileSync(new URL('./adult-head.json',import.meta.url),'utf8'));
 export function replaceWithCompleteAdult(root,C,{clay=false,surface=false}={}){
  const head=root.getObjectByName('sculpted-head');
