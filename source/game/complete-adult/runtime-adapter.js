@@ -16,7 +16,7 @@ import {RETAINED_HAIR,createHeadAttachmentFit,fitCandidateHairAttachments,fitRet
 import {FREE_BRAID,planRetainedBraid,applyRetainedBraid} from './retained-hair-fit.js';
 export const COMPLETE_ADULT_PREVIEW='complete-adult-head-v1';
 export const COMPLETE_ADULT_PAIR_PREVIEW='complete-adult-pair-v1';
-export const COMPLETE_ADULT_VERSION='candidate-e850c2b-hair-fcaa901-traits10-v6';
+export const COMPLETE_ADULT_VERSION='candidate-profile-neck-traits10-v8';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const forms={'masculine-lean':'male','masculine-broad':'male','feminine-balanced':'female','feminine-slender':'female'};
 export function completeAdultSupport(options,selection){
@@ -29,7 +29,7 @@ export function completeAdultSupport(options,selection){
  if(options.previewHair==='retained'&&!['low-bun','braided-tail'].includes(options.hairStyle))return fail('retained-hairstyle-needs-fit');
  if(form==='female'&&!options.previewHair)return fail('explicit-female-hair-required');
  if(options.previewHair==='long-layered'&&!(selection===COMPLETE_ADULT_PAIR_PREVIEW&&options.culture==='france'&&options.bodyPreset==='feminine-slender'&&options.wardrobePreset==='court-gown'))return fail('long-hair-needs-matching-gown');
- if(selection===COMPLETE_ADULT_PAIR_PREVIEW&&(options.culture!=='france'||(options.style??'casual')!=='casual'||!(options.bodyPreset==='masculine-lean'&&(bakedHair||options.hairStyle==='side-part')&&options.wardrobePreset==='court-frock-coat'||options.bodyPreset==='feminine-slender'&&bakedHair&&options.wardrobePreset==='court-gown')))return fail('complete-pair-only');
+ if(selection===COMPLETE_ADULT_PAIR_PREVIEW&&(options.culture!=='france'||(options.style??'casual')!=='casual'||!(options.bodyPreset==='masculine-lean'&&(bakedHair||options.hairStyle==='side-part')&&options.wardrobePreset==='court-frock-coat'||form==='female'&&bakedHair&&['court-gown','court-overgown'].includes(options.wardrobePreset))))return fail('complete-pair-only');
  if(!bakedHair&&options.hairStyle==='braided-tail'&&options.previewHair!=='retained')return fail('retained-braid-opt-in-required');
  if(!bakedHair&&!['low-bun','braided-tail'].includes(options.hairStyle)&&options.hairStyle!==(form==='male'?'side-part':'chin-bob'))return fail('hairstyle-needs-fit');
  const style=options.style??'casual';
