@@ -38,6 +38,7 @@ export function buildChinaPalace(G,H){
   'cn-study-front':['hinge',1,.32],'cn-bedroom-front':['hinge',-1,.32],'cn-bedroom-west':['hinge',1,.32],
   'cn-kitchen-rear':['hinge',1,.32],'cn-bath-front':['hinge',-1,.32],'cn-bath-west':['hinge',1,.32],'cn-bath-east':['hinge',-1,.32],
   'cn-archive-front':['hinge',1,.32],'cn-archive-rear':['hinge',-1,.32],'cn-archive-west':['pocket',0,.50],'cn-archive-east':['hinge',1,.32],
+  'cn-consort-heng-door':['hinge',-1,.32],'cn-consort-ling-door':['hinge',-1,.32],
   'cn-guest-front':['hinge',-1,.32],'cn-guest-east':['hinge',-1,.32]
  };
  function palaceWall(parent,nav,camera,options){
@@ -277,7 +278,7 @@ export function buildChinaPalace(G,H){
  for(const x of [-19,19]){table(exterior,x,30,5,.72,.63);for(const a of [-1.4,1.4])G.box(exterior,x+a,1.05,30.25,.1,.7,.11,C.wood);G.box(exterior,x,1.37,30.25,4.7,.13,.11,C.wood);}
  for(const [id,name,x,z]of [['cn-south-gate','承礼门外',0,39],['cn-gatehouse','承礼门廊',0,35],['cn-processional-court','开阔仪庭',0,23],['cn-court-west','广庭西侧',-12,16],['cn-court-east','广庭东侧',12,16],['cn-hall-approach','正殿前露台',0,7],['cn-west-lane','西内庭宽巷',-13.5,-5],['cn-east-lane','东内庭宽巷',13.5,-5],['cn-west-crosscourt','西苑横庭',-21,5],['cn-east-crosscourt','东苑横庭',21,5],['cn-garden','后苑荷桥',0,-18],['cn-garden-west','荷庭西岸',-10,-14],['cn-garden-east','荷庭东岸',10,-14],['cn-north-court','藏书殿后庭',0,-36],['cn-west-gate','西苑侧门',-28,-18],['cn-east-gate','东苑侧门',28,-18]])target(id,name,x,z,'outdoors');
  for(const d of doorways){if(['cn-kitchen-front','cn-kitchen-west','cn-kitchen-east'].includes(d.id))d.rooms[0]='dining';if(d.id==='cn-bath-east')d.rooms[0]='washroom';}
- const facilities=[{id:'entrance',name:'迎宾与入口',targets:['cn-south-gate','cn-gatehouse','cn-processional-court'],furnishings:['承礼门','开阔仪庭','迎宾长椅']},{id:'reception',name:'会客与礼仪',targets:['cn-hall-front','cn-hall-throne','cn-tea-work'],furnishings:['独立正殿','云纹仪座','雅集楼一层茶厅']},{id:'dining-kitchen',name:'用餐与备膳',targets:['cn-dining-west','cn-kitchen-prep','cn-kitchen-stove'],furnishings:['独立餐厅','蒸笼灶台','双人备餐案']},{id:'sleeping',name:'寝居',targets:['cn-bedroom-east','cn-guest-bed'],furnishings:['静宜后宫三层龙榻','一层客居卧榻','阅读椅']},{id:'bathing',name:'沐浴与更衣',targets:['cn-bath-tub','cn-bath-linens'],furnishings:['后宫二层石浴池','布草柜']},{id:'washroom',name:'盥洗与净室',targets:['cn-bath-basin','cn-bath-toilet'],furnishings:['水盆','壁镜','屏后坐便']},{id:'storage-service',name:'储藏与勤务',targets:['cn-archive-center','cn-study-work','cn-kitchen-rear'],furnishings:['雅集楼三层藏书','二层书画案','御膳后门']}];
+ const facilities=[{id:'entrance',name:'迎宾与入口',targets:['cn-south-gate','cn-gatehouse','cn-processional-court'],furnishings:['承礼门','开阔仪庭','迎宾长椅']},{id:'reception',name:'会客与礼仪',targets:['cn-hall-front','cn-hall-throne','cn-tea-work'],furnishings:['独立正殿','云纹仪座','雅集楼一层茶厅']},{id:'dining-kitchen',name:'用餐与备膳',targets:['cn-dining-west','cn-kitchen-prep','cn-kitchen-stove'],furnishings:['独立餐厅','蒸笼灶台','双人备餐案']},{id:'sleeping',name:'寝居',targets:['cn-bedroom-east','cn-guest-bed','cn-consort-heng-bed','cn-consort-ling-bed'],furnishings:['静宜后宫三层龙榻','三间独立妃嫔私室卧榻','阅读椅']},{id:'bathing',name:'沐浴与更衣',targets:['cn-bath-tub','cn-bath-linens'],furnishings:['后宫二层石浴池','布草柜']},{id:'washroom',name:'盥洗与净室',targets:['cn-bath-basin','cn-bath-toilet'],furnishings:['水盆','壁镜','屏后坐便']},{id:'storage-service',name:'储藏与勤务',targets:['cn-archive-center','cn-study-work','cn-kitchen-rear'],furnishings:['雅集楼三层藏书','二层书画案','御膳后门']}];
 
  // Throne backdrop is one cohesive, shallow lacquer-and-gilt relief composition,
  // fitted to the existing seven-metre screen instead of filling the central aisle.
@@ -563,7 +564,7 @@ export function buildChinaPalace(G,H){
  stations.push(...tavern.stations);
  // swing:1 opens both leaves toward world negative z, into these clear rooms.
  for(const x of[19.8,22.2])additionalFurnitureSeats.push({id:'china-palace-dining-seat-'+x,name:'御膳餐厅坐凳',x,y:.215,z:.3,yaw:0,width:.86,depth:.86,seatY:.82,front:0});
- for(const role of CHINA_PALACE_ROLES)stations.push({...role,npcOnly:true,name:role.royalRole==='emperor'?'静宜寝殿 · 皇帝起居':'静宜客居 · 月容私室',action:'宫苑日常',npcAction:'read',npcLabel:'晨间起居',position:ground(role.npcPosition),npcPosition:ground(role.npcPosition),color:role.royalRole==='emperor'?'#bd964e':'#a56d81'});
+ for(const role of CHINA_PALACE_ROLES)stations.push({...role,npcOnly:true,name:role.royalRole==='emperor'?'静宜寝殿 · 皇帝起居':'静宜客居 · '+role.shortName+'私室',action:'宫苑日常',npcAction:'read',npcLabel:'晨间起居',position:ground(role.npcPosition),npcPosition:ground(role.npcPosition),color:role.royalRole==='emperor'?'#bd964e':'#a56d81'});
  stations.push(...chinaCourtOfficialStations());
  stations.push(...chinaClinicStations());
  stations.push(chinaMoneyHouseStation());
@@ -576,5 +577,5 @@ export function buildChinaPalace(G,H){
  tavern.pack();for(const {g,r}of Object.values(rooms)){packStatic(g);packStatic(r);}packStatic(gate);packStatic(gateRoof);for(const w of [...exterior.children].filter(o=>o.name.startsWith('China perimeter ')))packStatic(w);
  // Outer ground stays in its own group; omit perimeter groups while batching it.
  const walls=exterior.children.filter(o=>o.name.startsWith('China perimeter '));for(const w of walls)exterior.remove(w);packStatic(exterior);for(const w of walls)exterior.add(w);
- return {requiredInsetDoorIds:Object.keys(insetKinds),group,roofGroup,colliders,cameraColliders,bounds,spawn:ground([0,0,39]),heightAware:true,levels,lightingZones,additionalFurnitureSeats,additionalFurniture:tavern.additionalFurniture,characterFootSurfaces,walkableSurfaces,interiorRooms,doorways,explorationTargets,facilities,stations,architectureProgram,automaticDoorways,archery,clinic,moneyHouse};
+ return {requiredInsetDoorIds:Object.keys(insetKinds),group,roofGroup,colliders,cameraColliders,bounds,spawn:ground([0,0,39]),heightAware:true,levels,lightingZones,additionalFurnitureSeats,additionalFurniture:[...tavern.additionalFurniture,...residence.additionalFurniture],characterFootSurfaces,walkableSurfaces,interiorRooms,doorways,explorationTargets,facilities,stations,architectureProgram,automaticDoorways,archery,clinic,moneyHouse};
 }

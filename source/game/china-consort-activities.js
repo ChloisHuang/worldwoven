@@ -21,7 +21,7 @@ export function createPalaceLeisureClaims(){
  const queue=createFacilityQueue(),leases=new Map();
  return {
   available(id,actor){return !id||!queue.state().some(f=>f.id===id&&f.reservations.some(r=>r.actor!==actor));},
-  reserve(id,actor){if(!id)return true;const claim=queue.reserve(id,actor);if(!claim){queue.release(id,actor);return false;}leases.set(actor,{id,remaining:120});return true;},
+  reserve(id,actor,budget=120){if(!id)return true;const claim=queue.reserve(id,actor);if(!claim){queue.release(id,actor);return false;}leases.set(actor,{id,remaining:budget});return true;},
   release(actor){queue.releaseActor(actor);leases.delete(actor);},
   tick(actor,dt,paused=false){const lease=leases.get(actor);if(!lease||paused)return false;lease.remaining-=dt;if(lease.remaining>0)return false;queue.releaseActor(actor);leases.delete(actor);return true;},
   state:()=>[...leases].map(([actor,value])=>({actor,...value})),dispose(){leases.clear();queue.dispose();}
