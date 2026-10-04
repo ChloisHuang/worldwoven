@@ -151,7 +151,7 @@ function configureNpcSocial(){
   return {busy:!!(n.walking||task?.handoff||n.serviceMount||/cook|sushi|knead|bread|bake|ramen|kotatsu|chair-sit|bathe|lie-rest/.test(action)),job:task?.label||n.station?.npcLabel||n.station?.action};
  }});
 }
-function configureFranceTea(){franceTea=active.id==='france'?createFranceTeaService({npcs,lot,furniture,doors:automaticDoors,planPath,moveActor,poseContext:characterPoseContext,getPlayer:()=>player,getMounted:()=>seated,onSeat:requestFurniture,notify:toast,worldSeed:saved.appearance.seed,saved:saved.franceTea||{},saveState:state=>{saved.franceTea=state;save();}}):null;}
+function configureFranceTea(){franceTea=active.id==='france'?createFranceTeaService({npcs,lot,furniture,doors:automaticDoors,planPath,moveActor,poseContext:characterPoseContext,getPlayer:()=>player,getMounted:()=>seated,getPendingSeat:()=>pendingInteraction?.id||targetStation?.id,onSeat:requestFurniture,notify:toast,worldSeed:saved.appearance.seed,saved:saved.franceTea||{},saveState:state=>{saved.franceTea=state;save();}}):null;}
 function configureChinaArchery(){chinaArchery=active.id==='china'?createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseContext:characterPoseContext}):null;}
 function configureChinaTavern(){
  chinaTavern=active.id==='china'?createChinaTavernMeal({npcs,lot,furniture,doors:automaticDoors,planPath,moveActor,poseContext:characterPoseContext,getPlayer:()=>player,getMounted:()=>seated,canRequest:()=>!chinaLabor?.active(),saved:saved.chinaTavernMeal||{},saveState:state=>{saved.chinaTavernMeal=state;save();},notify:toast}):null;

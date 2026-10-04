@@ -6,11 +6,11 @@ import {visualSupportHeight} from './floor-support.js';
 // None of these transient claims or scene objects survive a region unload.
 export const FRANCE_TEA={cook:'france-bakery',host:'france-salon',guest:'france-cafe',table:[6.4,1.230,11.24],
  prep:[-5.9,.258,-9.03],prepTop:[-5.9,1.270,-9.65],cookAside:[-6.95,.258,-10.55],hostHome:[-6.5,.302,-4.45],
- serve:[5.25,.16,11.93],guestHome:[7.1,.16,8.92],seatCenter:[6.6,.16,12.5]};
+ serve:[5.65,.16,11.88],guestHome:[7.1,.16,8.92],seatCenter:[6.6,.16,12.5]};
 const P=FRANCE_TEA,copy=x=>JSON.parse(JSON.stringify(x)),gap=(n,p)=>Math.hypot(n.root.position.x-p[0],n.root.position.z-p[2]);
 const LABEL={seating:'加布里埃尔正在茶桌入座',requested:'玛农过来记下下午茶',accepted:'玛农记下茶与小蛋糕',ticket:'玛农去糕点房传话',preparing:'卡米耶切好一小份蛋糕',brewing:'卡米耶备好热茶',pickup:'玛农在糕点案边接过茶盘',carrying:'玛农把茶盘送往茶廊',serving:'玛农轻轻把茶盘放上桌',ready:'茶与小蛋糕已上桌',drinking:'坐着慢慢品茶',lowering:'把茶杯放回茶碟',clearing:'玛农过来收拾杯碟',lifting:'玛农收起用过的杯碟',returning:'玛农把杯碟送回糕点房',washing:'玛农清理杯碟',leaving:'加布里埃尔起身让出茶位'};
 
-export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveActor,poseContext,getPlayer,getMounted,onSeat=()=>{},notify=()=>{},worldSeed=1,saved={},saveState=()=>{},propsFactory=createFranceTeaProps}){
+export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveActor,poseContext,getPlayer,getMounted,getPendingSeat=null,onSeat=()=>{},notify=()=>{},worldSeed=1,saved={},saveState=()=>{},propsFactory=createFranceTeaProps}){
  const cook=npcs.find(n=>n.station.id===P.cook),host=npcs.find(n=>n.station.id===P.host),guest=npcs.find(n=>n.station.id===P.guest);
  const seat=furniture.items.find(i=>i.kind==='seat'&&Math.hypot(i.center[0]-P.seatCenter[0],i.center[2]-P.seatCenter[2])<.05);
  if(!cook||!host||!guest||!seat)return null;
@@ -56,7 +56,7 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
    if(guest.serviceMount||furniture.facilities.reservation(seat.id,P.guest)){notify('这张茶椅有人，请稍候');return false;}
    // Existing player furniture navigation remains responsible for approach,
    // swept transfer and cancellation. Mark intent after its cancelAction hook.
-   onSeat(seat);intent=true;notify('先到茶椅坐好，玛农会过来记下午茶');return true;
+   onSeat(seat);intent=atSeat()||!getPendingSeat||getPendingSeat()===seat.id;if(!intent){notify('茶椅入口暂时走不过去，请从通道靠近后再试');return false;}notify('先到茶椅坐好，玛农会过来记下午茶');return true;
   }
   return begin('player');
  }
@@ -83,6 +83,7 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
   update(dt,t,{conversationActorId=null,performing=null,hour=15}={}){
    if(disposed)return;time+=dt;life.tick(dt);conversation=conversationActorId;stationBusy=performing;for(const n of actors)n.walking=false;
    if(intent&&atSeat()){intent=false;begin('player');}
+   else if(intent&&getPendingSeat&&getPendingSeat()!==seat.id){intent=false;notify('已取消前往茶位');}
    if(order?.customer==='player'&&!order.cancelled&&!['clearing','lifting','returning','washing'].includes(order.stage)&&!atSeat())cancel('离开茶位');
    let ca=null,ha=null,ct=null,ht=null,carry=false;
    if(!order){
