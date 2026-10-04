@@ -82,7 +82,7 @@ export function morphCompleteAdultAsset(asset,input){
  if(Object.entries(traits).every(([key,value])=>key==='legLength'||value===1))return asset;
  const c=context(asset),parts=asset.parts.map(part=>{
   const eye=isEye(part),position=part.position.slice(),raw=part.material==='skin'?part.featureCoord:c.semantics.get(part);let changed=false;
-  for(let i=0;i<position.length;i+=3){const out=displaced(part.position.slice(i,i+3),eye?null:raw.slice(i,i+3),traits,c,eye);for(let k=0;k<3;k++){position[i+k]=out[k];changed ||= position[i+k]!==part.position[i+k];}}
+  for(let i=0;i<position.length;i+=3){const out=displaced(part.position.slice(i,i+3),eye?null:raw.slice(i,i+3),traits,c,eye);for(let k=0;k<3;k++)if(out[k]!==part.position[i+k]){position[i+k]=out[k];changed ||= position[i+k]!==part.position[i+k];}}
   if(!changed)return part;
   // Each globe's three material regions share exactly the same uniform scale
   // and translation, so their original Jacobian normals remain continuous.

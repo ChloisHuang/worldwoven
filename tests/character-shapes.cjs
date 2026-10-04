@@ -23,7 +23,9 @@ for(const culture of ['japan','china','egypt','france'])for(const bodyPreset of 
  }
 }
 const opts={culture:'egypt',bodyPreset:'masculine-lean',hairStyle:'swept-short'},n=C.createCharacter(opts),np=digest(n,'position'),nc=digest(n,'color');
-for(const [key,range]of Object.entries(S.SHAPE_RANGES))for(const value of [range.min,range.max]){const a=C.createCharacter({...opts,shapeTraits:{[key]:value}});assert.notEqual(digest(a,'position'),np,key+' changes mesh');assert.equal(digest(a,'color'),nc,key+' does not repaint');assert.equal(a.height,n.height,key+' preserves fixed standing height');report.singleTraitChecks.push({key,value,hash:digest(a,'position')});a.dispose();}n.dispose();
+// This Egypt case exercises the legacy renderer's original six controls. The
+// added semantic controls belong to the complete-topology adapter contract.
+for(const key of S.LEGACY_SHAPE_KEYS)for(const value of [S.SHAPE_RANGES[key].min,S.SHAPE_RANGES[key].max]){const a=C.createCharacter({...opts,shapeTraits:{[key]:value}});assert.notEqual(digest(a,'position'),np,key+' changes mesh');assert.equal(digest(a,'color'),nc,key+' does not repaint');assert.equal(a.height,n.height,key+' preserves fixed standing height');report.singleTraitChecks.push({key,value,hash:digest(a,'position')});a.dispose();}n.dispose();
 // Live neutral NPCs are immutable even while random players evict old templates.
 const npc=C.createCharacter({culture:'china',bodyPreset:'masculine-broad',skin:0x76502d}),before=digest(npc);let disposed=false;npc.root.traverse(m=>{if(m.isSkinnedMesh)m.geometry.addEventListener('dispose',()=>disposed=true);});
 for(let i=0;i<100;i++){const shapeTraits=Object.fromEntries(Object.entries(S.SHAPE_RANGES).map(([k,r],j)=>[k,r.min+(r.max-r.min)*((i*31+j*7)%101)/100]));const a=C.createCharacter({culture:'france',shapeTraits});a.dispose();assert(!disposed);assert.equal(digest(npc),before);assert(C.characterResourceStats().cachedTemplates<=24);}

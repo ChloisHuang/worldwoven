@@ -9,7 +9,7 @@ registerHooks({resolve(s,c,next){if(s==='three')return{url:pathToFileURL(SOURCE+
 const T=await import('three'),{createApprovedSurfaces}=await import('../../source/game/approved-surfaces.js');
 const A=await import('./runtime-adapter.mjs'),{ADULT_FORMS}=await import('./assets/adult-forms-data.mjs');
 const {morphCompleteAdultAsset}=await import('./shape-traits.mjs');
-const {normalizeShapeTraits,SHAPE_RANGES,shapeHeight,shapePreferenceScore}=await import('../../source/game/character-traits.js');
+const {normalizeShapeTraits,SHAPE_RANGES,LEGACY_SHAPE_KEYS,shapeHeight,shapePreferenceScore}=await import('../../source/game/character-traits.js');
 // These low-cost contracts cover real integration failure modes: shared-cache
 // mutation, eye material seams, detached lids/collars and score/save migration.
 const assetsBefore=structuredClone(ADULT_FORMS);
@@ -39,7 +39,7 @@ for(const options of [npc,player]){
  const original=structuredClone(options),score=shapePreferenceScore(options.shapeTraits),root=createApprovedSurfaces(options);
  const legacyLeg=root.getObjectByName('sculpted-head').parent.children.filter(m=>m.isMesh&&/footwear|bare-leg/.test(m.name)).map(m=>[m,m.geometry.attributes.position.array.slice()]);
  assert(A.applyCompleteAdultPreview(root,options).applied);assert.deepEqual(options,original);assert.equal(shapePreferenceScore(options.shapeTraits),score);
- assert.deepEqual(root.userData.completeAdultRepresentation.shapeTraits,options.shapeTraits);
+ assert.deepEqual(root.userData.completeAdultRepresentation.shapeTraits,normalizeShapeTraits(options.shapeTraits));
  for(const [mesh,p]of legacyLeg)assert.deepEqual(mesh.geometry.attributes.position.array,p);
  const form=options.masc?'male':'female',base=ADULT_FORMS[form].parts.find(p=>p.material==='skin'),head=root.getObjectByName('continuous-head-anatomical-head-neck'),p=head.geometry.attributes.position,sy=head.geometry.attributes.sourceY;
  let collar=0;for(let i=0;i<p.count;i++)if(base.position[i*3+1]<1.36){near(p.getX(i),base.position[i*3]);near(p.getZ(i),base.position[i*3+2]);near(p.getY(i),shapeHeight(base.position[i*3+1],options.shapeTraits.legLength));near(sy.getX(i),base.position[i*3+1]);assert.deepEqual(A.completeAdultWeights(head,sy.getX(i)),[[2,1],[3,0]]);collar++;}
@@ -64,7 +64,7 @@ const nearest=(part,target)=>{let best=Infinity,at=0;for(let i=0;i<part.featureC
 const allChanges=[];
 for(const [form,asset]of Object.entries(ADULT_FORMS)){
  const skin=asset.parts.find(p=>p.material==='skin'),lid=nearest(skin,[.311,7.332,1.4107]),lower=nearest(skin,[.31,7.24,1.402]),jaw=nearest(skin,[.58,6.41,.78]),tip=nearest(skin,[0,6.909,1.6807]),ala=nearest(skin,[.205,6.865,1.49]);
- for(const [key,range]of Object.entries(SHAPE_RANGES))for(const value of [range.min,range.max]){
+ for(const key of LEGACY_SHAPE_KEYS)for(const value of [SHAPE_RANGES[key].min,SHAPE_RANGES[key].max]){
   const traits=normalizeShapeTraits({[key]:value}),result=morphCompleteAdultAsset(asset,traits),changed=result.parts.find(p=>p.material==='skin');
   if(key==='legLength'){assert.equal(result,asset);continue;}
   let max=0;for(let i=0;i<skin.position.length;i++){assert(Number.isFinite(changed.position[i]));max=Math.max(max,Math.abs(changed.position[i]-skin.position[i]));if(skin.position[Math.floor(i/3)*3+1]<1.38)assert.equal(changed.position[i],skin.position[i]);}
@@ -88,8 +88,25 @@ for(const [form,asset]of Object.entries(ADULT_FORMS)){
   assert(shared>=192);allChanges.push({form,trait:key,value,maxDelta:Number(max.toFixed(6))});
  }
 }
+// Four targeted new-control examples, not a rendered trait/body matrix. Old
+// six values and all-ones geometry keep their previous meaning and score.
+const extended=[];
+for(const [form,key,bound]of [['male','chinLength','min'],['female','chinProjection','max'],['male','noseBridgeHeight','max'],['female','noseTipSize','min']]){
+ const asset=ADULT_FORMS[form],base=asset.parts.find(p=>p.material==='skin'),traits=normalizeShapeTraits({[key]:SHAPE_RANGES[key][bound]}),result=morphCompleteAdultAsset(asset,traits),skin=result.parts.find(p=>p.material==='skin');
+ const chin=nearest(base,[0,6.2006,1.4344]),bridge=nearest(base,[0,7.1046,1.583]),tip=nearest(base,[0,6.909,1.6807]),tipSide=nearest(base,[.075,6.918,1.66]),mouth=nearest(base,[0,6.6081,1.553]);
+ const delta=traits[key]-1;let max=0;
+ for(let i=0;i<skin.position.length;i++){assert(Number.isFinite(skin.position[i]));max=Math.max(max,Math.abs(skin.position[i]-base.position[i]));if(base.position[Math.floor(i/3)*3+1]<1.38||base.featureCoord[Math.floor(i/3)*3+1]>7.5)assert.equal(skin.position[i],base.position[i]);}
+ assert(max>1e-4&&max<.008,key+' has bounded actual geometry change');
+ for(let k=0;k<3;k++)assert.equal(skin.position[mouth+k],base.position[mouth+k],'mouth remains outside new controls');
+ if(key==='chinLength')assert((skin.position[chin+1]-base.position[chin+1])*delta<0);
+ if(key==='chinProjection')assert((skin.position[chin+2]-base.position[chin+2])*delta>0);
+ if(key==='noseBridgeHeight'){assert((skin.position[bridge+2]-base.position[bridge+2])*delta>0);for(let k=0;k<3;k++)assert.equal(skin.position[tip+k],base.position[tip+k],'bridge does not resize tip');}
+ if(key==='noseTipSize'){assert((skin.position[tip+2]-base.position[tip+2])*delta>0);assert((skin.position[tipSide]-base.position[tipSide])*delta>0);for(let k=0;k<3;k++)assert.equal(skin.position[bridge+k],base.position[bridge+k],'tip does not resize bridge');}
+ for(let i=0;i<asset.parts.length;i++)if(['sclera','iris','pupil'].includes(asset.parts[i].material))assert.equal(result.parts[i],asset.parts[i],'new controls leave globes unchanged');
+ assert.equal(shapePreferenceScore(traits),shapePreferenceScore({}));extended.push({form,trait:key,value:traits[key],maxDelta:Number(max.toFixed(6))});
+}
 // Unsupported choices still return the original legacy objects unchanged.
 const unsupported={...npc,hairStyle:'swept-short'},root=createApprovedSurfaces(unsupported),meshes=[...root.getObjectByName('sculpted-head').children];
 assert.equal(A.applyCompleteAdultPreview(root,unsupported).reason,'unreviewed-hair-or-garment');assert.deepEqual([...root.getObjectByName('sculpted-head').children],meshes);dispose(root);
 assert.deepEqual(ADULT_FORMS,assetsBefore);
-console.log(JSON.stringify({status:'PASS',neutral:records,savedRequests:saved,traitBounds:allChanges,eyeSeams:'continuous original globe normals',unsupportedFallback:'unchanged',activation:'none'}));
+console.log(JSON.stringify({status:'PASS',neutral:records,savedRequests:saved,traitBounds:allChanges,extended,eyeSeams:'continuous original globe normals',unsupportedFallback:'unchanged',activation:'none'}));
