@@ -13,6 +13,6 @@ assert(nearbyInteraction(collect,p));assert(!nearbyInteraction(collect,{x:0,y:4,
 assert.equal(chooseNearbyInteraction([{...station('chat'),priority:5,position:[0,0,.9]},collect],p,()=>true).id,collect.id,'task outranks an incidental closer chat');
 assert.equal(chooseNearbyInteraction([collect],p,()=>false),null);
 const main=fs.readFileSync('source/game/main.js','utf8');
-for(const hook of ['japanServiceUI?.openStation(station.id)','franceTea?.ownsStation(station.id)','chinaSalonUI?.openStation(station.id)','chinaTavernUI?.openStation(station.id)','chinaMoneyHouse?.ownsStation(station.id)','chinaClinic.startPlayer(station.id,player,station.intentKey)','onNavigate:station=>goToStation(station)'])assert(main.includes(hook),'existing service dispatch retained: '+hook);
+for(const hook of ['japanServiceUI?.openStation(station.id)','franceTea?.ownsStation(station.id)','chinaSalonUI?.openStation(station.id)','chinaTavernUI?.openStation(station.id)','chinaMoneyHouse?.ownsStation(station.id)','chinaClinic.startPlayer(station.id,player,station.intentKey)','onIntent:requestStationIntent,canSee:station=>nearbyInteractionClear(station)'])assert(main.includes(hook),'existing service dispatch retained: '+hook);
 assert(!main.includes('n.station===performing'),'cloned intents keep NPC identity via stable ID');
 console.log('PASS: public/task eligibility, distance/floor/occlusion, task priority, existing service dispatches');
