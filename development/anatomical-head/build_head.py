@@ -92,6 +92,10 @@ def fit(p):
  if q>1:xx*=1-fit_t+fit_t/q;zz=-.017+(zz+.017)*(1-fit_t+fit_t/q)
  return xx,yy,zz
 
+def upper_lid_y(x):
+ return profile([(.17,7.276),(.21,7.296),(.24,7.313),(.27,7.326),(.31,7.332),(.35,7.331),(.38,7.326),(.41,7.317),(.44,7.290),(.46,7.280)],abs(x))
+def lower_lid_y(x):
+ return profile([(.17,7.268),(.21,7.254),(.24,7.248),(.27,7.244),(.31,7.240),(.35,7.241),(.38,7.248),(.41,7.260),(.44,7.280),(.46,7.280)],abs(x))
 def fit_surface(p):
  x,y,z=sculpt_surface(p);xx,yy,zz=fit((x,y,z))
  # A small physical upper-lid roll and supratarsal recess connect the wider
@@ -102,7 +106,11 @@ def fit_surface(p):
  # together rather than covering the eye with a painted line or a flat cap.
  yy-=.0017*margin_span*gauss(y,7.332,.050)*smooth(1.27,1.37,z)
  yy-=.00025*margin_span*gauss(y,7.238,.033)*smooth(1.27,1.37,z)
- zz+=lid_span*(.0017*gauss(y,7.346,.029)-.0010*gauss(y,7.390,.029))
+ upper=y-upper_lid_y(x);lower=y-lower_lid_y(x)
+ # The lid rolls follow their actual almond-shaped contact curves. A flat
+ # height mask disappears toward both canthi and leaves an inset white oval.
+ zz+=lid_span*(.0033*gauss(upper,.009,.030)-.0008*gauss(upper,.067,.026)
+              +.0011*gauss(lower,-.007,.024))
  # Continuous alar support and two philtral columns join the nose to the
  # existing closed vermilion. Preserve the nose width, nostrils and lip seam.
  front=smooth(1.42,1.54,z)
@@ -137,7 +145,7 @@ for i,(x,y,z) in enumerate(raw):
  lip=gauss(x,0,.265)*smooth(1.39,1.53,z)*smooth(6.44,6.50,y)*(1-smooth(6.70,6.75,y))
  # Oral cavity behind lips: darker only on its actual internal geometry.
  cavity=(1-smooth(1.40,1.52,z))*smooth(.6,1.15,z)*gauss(x,0,.23)*smooth(6.45,6.51,y)*(1-smooth(6.68,6.74,y))
- lid=gauss(abs(x),.305,.17)*gauss(y,7.335,.041)*smooth(1.3,1.38,z)*.48
+ lid=gauss(abs(x),.305,.16)*smooth(1.3,1.38,z)*(.48*gauss(y-upper_lid_y(x),.003,.021)+.12*gauss(y-lower_lid_y(x),-.002,.018))
  mesh.attributes['lip_tint'].data[i].value=lip
  seam=gauss(y,6.605,.024)*(1-smooth(1.548,1.566,z))*gauss(x,0,.29)*smooth(1.20,1.43,z)
  mesh.attributes['cavity_tint'].data[i].value=max(cavity,seam)
@@ -201,7 +209,16 @@ for side in [-1,1]:
      az=j*2.399963;ct=.35+.5*((j+.5)/12);st=math.sqrt(1-ct*ct)
      direction=n*ct+(u*math.cos(az)+w*math.sin(az))*st
      if skin_tree.ray_cast(p+n*.00015,direction,.010)[0] is not None:occ+=1/12
-   eye_recess.append(occ)
+   # Local upper-hemisphere visibility: the real projecting lid roll shades
+   # the globe beneath it, including the iris. This is a geometric cavity
+   # bake, not a white/dark patch attached to the camera or a lighting switch.
+   upper_occ=0.0
+   if t<.85:
+    for sx in [-.35,0,.35]:
+     for sz in [.20,.45,.70]:
+      direction=Vector((sx,1,sz)).normalized()
+      if skin_tree.ray_cast(p+n*.00018,direction,.018)[0] is not None:upper_occ+=1/9
+   eye_recess.append(1-(1-occ)*(1-.78*upper_occ))
  globe_faces=[]
  for j in range(len(theta)-1):
   for k in range(nu):
