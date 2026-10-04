@@ -52,7 +52,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
   owns:n=>owned.has(n),ownsStation:id=>id===assistant.station.id,
   beginConsultation,
   leaveSeat(){if(order&&['consult','writing'].includes(order.stage)){cancel('写单前起身');notify('已起身，本次问诊取消');}},
-  collectionIntent(){return order&&!['consult','writing','complete'].includes(order.stage)?{action:`领取第 ${order.number} 号云纹包`,intentKey:order.id}:null;},
+  collectionIntent(){return order&&!['consult','writing','complete'].includes(order.stage)?{action:`领取第 ${order.number} 号云纹包`,intentKey:order.id,executionRadius:.6}:null;},
   startPlayer(id,p,intentKey){if(id!==assistant.station.id)return false;player=p;
    if(!order){notify('请先上二层医馆，在问诊椅坐下，由许宁写下编号单');return false;}
    if(order.stage==='complete'||['consult','writing'].includes(order.stage)||intentKey&&intentKey!==order.id){notify('请等当前编号单写好后领取，本次动作已失效');return false;}
