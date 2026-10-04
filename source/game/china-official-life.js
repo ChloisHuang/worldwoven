@@ -1,5 +1,5 @@
 import {createLifeDecisions} from './npc-life-decisions.js';
-import {blocked} from './navigation.js';
+import {blocked,canTraverse} from './navigation.js';
 import {createPalaceMealKit} from './china-palace-costume.js';
 import {CHINA_OFFICIAL_BUREAU as B,isChinaOfficialUpperFloor} from './china-official-bureau.js';
 
@@ -32,7 +32,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
    const a=remaining[i],b=remaining[i+1],dx=b[0]-a[0],dy=b[1]-a[1],dz=b[2]-a[2],length=dx*dx+dy*dy+dz*dz;
    const t=length?Math.max(0,Math.min(1,((p.x-a[0])*dx+(p.y-a[1])*dy+(p.z-a[2])*dz)/length)):0;
    const distance=Math.hypot(p.x-a[0]-t*dx,p.y-a[1]-t*dy,p.z-a[2]-t*dz);
-   if(distance<closest){closest=distance;start=i+1;}
+   if(distance<closest&&canTraverse(p,point(b),lot.colliders.concat(doors?.planningColliders||[]),navigation)){closest=distance;start=i+1;}
   }
   return remaining.slice(start);
  }
