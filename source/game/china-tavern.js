@@ -10,8 +10,8 @@ export const CHINA_TAVERN=Object.freeze({
  floors:[{y:.215,ceiling:3.77,name:'一层酒楼',rooms:['tavern-dining','tavern-kitchen','tavern-hall-1']},{y:4.015,ceiling:7.57,name:'二层客栈',rooms:['tavern-guest-lan','tavern-guest-zhu','tavern-hall-2']},{y:7.815,ceiling:11.57,name:'三层青楼',rooms:['tavern-performance','tavern-banquet','tavern-hall-3']}],
  stairHall:{minX:16,maxX:26,minZ:8,maxZ:15.2,crossPassage:{minZ:13.4,maxZ:15.2,width:1.8}},
  guestRooms:['tavern-guest-lan','tavern-guest-zhu'],adultVenue:true,
- implemented:['public stairs','dining seats','two private furnished guest rooms','guest beds','guest wardrobes','listening seats','adult poetry recital','host meal orders and clearing','physical kitchen and table delivery'],
- pending:['inn booking and payment','qin playing and dance choreography','relationship invitations','age/family access rules']
+ implemented:['public stairs','dining seats','two private furnished guest rooms','guest beds','guest wardrobes','listening seats','adult poetry recital','host meal orders and clearing','physical kitchen and table delivery','adult introductions and private-room tea visits'],
+ pending:['inn booking and payment','qin playing and dance choreography','qin and dance performance schedules','childhood and family life']
 });
 
 export function buildChinaTavern(G,A){
@@ -105,9 +105,9 @@ export function buildChinaTavern(G,A){
   for(const dx of[-.82,0,.82]){G.box(bed,dx,1.20,-d/2+.125,.065,.79,.03,C.gold);if(dx)G.box(bed,dx,.868,.5,.018,.004,1.85,C.gold);}
   // One hull per bed for safe mount exclusion, supported quilt contacts remain real.
   colliders.push({minX:x-w/2,maxX:x+w/2,minY:y-.015,maxY:y+1.78,minZ:z-d/2,maxZ:z+d/2});cameraColliders.push({...colliders.at(-1)});
-  additionalFurniture.push({id:bedId,kind:'bed',name:'云来客栈 · '+name+'安寝',worldLabel:name+'客榻',position:[x0+3.7,y,z],exitPositions:[[x0+3.7,y,z],[x0+3.7,y,20.0]],anchor:[x,y,z],center:[x,y-.015,z],size:[w,1.8,d],yaw:0,supportY:y+.815,lieOffset:.30,lieSupport:{hip:y+.8525,back:y+.8525,head:y+.920,heel:y+.8525},action:'躺下休息'});
+  additionalFurniture.push({id:bedId,guestRoomId:'tavern-guest-'+key,kind:'bed',name:'云来客栈 · '+name+'安寝',worldLabel:name+'客榻',position:[x0+3.7,y,z],exitPositions:[[x0+3.7,y,z],[x0+3.7,y,20.0]],anchor:[x,y,z],center:[x,y-.015,z],size:[w,1.8,d],yaw:0,supportY:y+.815,lieOffset:.30,lieSupport:{hip:y+.8525,back:y+.8525,head:y+.920,heel:y+.8525},action:'躺下休息'});
   const wx=x0+3.87,wz=20.45;block(g1,wx,y+1.03,wz,1.15,2.06,.62,C.dark);for(const s of[-1,1]){G.box(g1,wx+s*.27,y+1.11,wz-.325,.50,1.71,.04,color);G.box(g1,wx+s*.12,y+1.14,wz-.36,.045,.18,.055,C.gold);}G.box(g1,wx,y+2.11,wz,1.25,.13,.76,C.wood);
-  additionalFurniture.push({id:'china-tavern-wardrobe-'+key,kind:'wardrobe',name:name+'衣柜',position:[wx,y,19.25],center:[wx,y,wz],size:[1.15,2.18,.72],style:'authored',action:'挑选服装'});
+  additionalFurniture.push({id:'china-tavern-wardrobe-'+key,guestRoomId:'tavern-guest-'+key,kind:'wardrobe',name:name+'衣柜',position:[wx,y,19.25],center:[wx,y,wz],size:[1.15,2.18,.72],style:'authored',action:'挑选服装'});
   sign(g1,name,x0+3.25,6.99,14.99,1.45,.52,Math.PI);
   target('cn-tavern-'+key+'-entry',name+'空闲前室',[x0+3.2,y,16.35],'tavern-guest-'+key);
  }
@@ -129,6 +129,8 @@ export function buildChinaTavern(G,A){
  const banquetTop=table(g2,24.2,7.815,18.2,1.36,1.10,.92);H.teaSet(g2,24.2,banquetTop,18.2,0xc29c74);H.bowl(g2,23.85,banquetTop,18.4,0xf0debd,.19);for(const[side,yaw]of[[-1,0],[1,Math.PI]])chair(g2,'china-tavern-banquet-'+side,'青楼宴饮椅',24.2,7.815,18.2+side*1.34,yaw,'hall');
  consoleTable(g2,24.25,7.815,9.0,2.9);sign(g2,'琴歌雅集',19.1,10.65,20.46,3.3,.54,Math.PI);sign(g2,'宴饮',24.2,10.87,15.42,1.8,.50);
  sign(g2,'三层青楼',21,10.90,21.23,3.5,.58);
+ const salonDesk=table(g2,24.15,7.815,11.3,2.6,.78,1.0);H.teaSet(g2,24.85,salonDesk,11.3,0xb7afa0);G.box(g2,23.5,salonDesk+.035,11.3,.46,.07,.35,0x744741);sign(g2,'雅集接待',24.15,10.15,11.72,2.12,.46);
+ target('cn-tavern-salon-desk','三层青楼接待案',[24.15,7.815,12.65],'tavern-hall-3');
  target('cn-tavern-recital','青楼雅集听曲区',[20.6,7.815,18.4],'tavern-performance');
 
  // Continuous perimeter eaves mark genuine floors. A narrower raised top roof
@@ -140,7 +142,8 @@ export function buildChinaTavern(G,A){
  // No ground porch or column projects west into the accepted x14.9 patrol.
  stations.push({id:'cn-tavern-host',name:'云来酒楼 · 迎客茶案',action:'看看酒楼菜牌',position:[22.35,.215,11.7],npcPosition:[24.1,.215,11.40],workTarget:[24.1,1.32,10.68],npcName:'许安',npcAction:'tea',npcLabel:'掌柜 · 迎客点菜',npcRotation:Math.PI,route:[[23.6,.215,13.95],[21,.215,18.1]],color:'#bd8b58',age:38,dialogue:'云来楼一层用饭，二层客房，三层雅集。客榻可以暂歇，坐到餐椅后招呼我，今日有云来菌菇饭。客房先供暂歇，订房账册还未开。'});
  stations.push({id:'cn-tavern-cook',name:'云来酒楼 · 后厨',npcOnly:true,action:'照料灶火',position:[23.3,.215,9.36],npcPosition:[23.3,.215,9.36],workTarget:[23.3,1.29,8.86],npcName:'沈禾',npcAction:'cook',npcLabel:'厨师 · 备菜候单',npcRotation:Math.PI,color:'#6f8470',age:32,ageYears:32,dialogue:'今日菌菇新鲜。掌柜报了桌位，我便动手，热饭要趁热端去。'});
- stations.push({id:'cn-tavern-reciter',name:'顶层青楼 · 成年诗乐雅集',action:'听诗词吟诵',playerAction:'relax',position:[20.70,7.815,18.25],npcPosition:[18.8,7.815,18.66],workTarget:[18.8,8.98,17.9],playerWorkTarget:[18.8,9.02,18.66],npcName:'柳清弦',npcAction:'read',npcLabel:'成年艺者 · 诵词与歇场',npcRotation:Math.PI,route:[[20.55,7.815,19.35],[23.1,7.815,14.1]],color:'#ab7287',age:27,dialogue:'这里先有诗词吟诵和茶叙。琴案可观赏，奏琴与舞步还在排练；请在前方听席稍坐。'});
+ stations.push({id:'cn-tavern-reception',name:'三层青楼 · 雅集接待',action:'请接待引见艺者',position:[24.15,7.815,12.65],npcPosition:[24.15,7.815,10.45],workTarget:[24.15,8.95,11.3],npcName:'温晚',npcAction:'tea',npcLabel:'接待 · 引见与安排雅间',npcRotation:0,color:'#9e617a',age:41,ageYears:41,dialogue:'柳清弦今日在楼上诵词。想请她茶叙，我可以代为引见；她会亲自来答复。茶叙暂不收银。'});
+ stations.push({id:'cn-tavern-reciter',name:'顶层青楼 · 成年诗乐雅集',action:'听诗词吟诵',playerAction:'relax',position:[20.70,7.815,18.25],npcPosition:[18.8,7.815,18.66],workTarget:[18.8,8.98,17.9],playerWorkTarget:[18.8,9.02,18.66],npcName:'柳清弦',npcAction:'read',npcLabel:'成年艺者 · 诵词与歇场',npcRotation:Math.PI,route:[[20.55,7.815,19.35],[23.1,7.815,14.1]],color:'#ab7287',age:27,ageYears:27,salon:{activities:['poetry'],willing:true,preference:'喜静谈与诗词，不喜喧闹宴饮'},dialogue:'这里先有诗词吟诵和茶叙。琴案可观赏，奏琴与舞步还在排练；请在前方听席稍坐。'});
  root.traverse(o=>{if(o.userData.nightFixture)o.userData.nightFixture.dayFactor=.48;});
  buildings.push({id:CHINA_TAVERN.id,name:CHINA_TAVERN.name,groupName:root.name,roofGroupName:roof.name,bounds:CHINA_TAVERN.bounds,storeys:3,roomIds:CHINA_TAVERN.floors.flatMap(f=>f.rooms)});
  // Material batches stay per floor, so top-floor decor does not create hundreds
