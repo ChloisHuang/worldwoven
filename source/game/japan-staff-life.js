@@ -64,7 +64,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   const teaClear=![...actors.values()].some(other=>other!==n&&nearPoint(other,TEA,.7))&&!(state.position&&Math.hypot(state.position.x-TEA[0],state.position.z-TEA[2])<.7&&Math.abs(state.position.y-TEA[1])<1);
   return [
    {id:'meal',facilityId:seat.id,available:vacant(seat.id,state)&&!board.state().claims.some(j=>j.resource==='kitchen')&&canReach(n,P.kitchen)&&canReach(n,seat.position),base:.15,traits:{appetite:.9},needs:{hunger:3.4},relief:{hunger:-.72},duration:[8,12],cooldown:90},
-   {id:'tea',facilityId:TEA_FACILITY,available:vacant(TEA_FACILITY,state)&&teaClear&&canReach(n,TEA),base:.3,traits:{quiet:.65,sociability:friend?.8:.2},needs:{social:friend?1.4:.2,fatigue:.2},relief:{fatigue:-.12,...(friend?{social:-.32}:{})},...(friend?{relationship:{target:friend.station.id,weight:.6,gain:.08}}:{}),duration:[6,11],cooldown:55},
+   {id:'tea',facilityId:TEA_FACILITY,available:vacant(TEA_FACILITY,state)&&teaClear&&canReach(n,TEA),base:.3,traits:{quiet:.65,sociability:friend ? .8 : .2},needs:{social:friend?1.4:.2,fatigue:.2},relief:{fatigue:-.12,...(friend?{social:-.32}:{})},...(friend?{relationship:{target:friend.station.id,weight:.6,gain:.08}}:{}),duration:[6,11],cooldown:55},
    {id:'rest',facilityId:bed.id,available:vacant(bed.id,state)&&canReach(n,bed.position),base:.12,traits:{quiet:.45},needs:{fatigue:3.5},relief:{fatigue:-.78},duration:[20,34],cooldown:140},
   ];
  }
@@ -122,7 +122,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   update(dt,state={}) {
    decisions.tick(dt);
    if(!!state.night!==night){night=!!state.night;if(night&&!active)dueIn=Math.min(dueIn,10);}
-   if(!active){dueIn-=dt;if(dueIn>0)return;const id=crew[next].station.id;active={id,reliefId:profile(id).ids.find(other=>other!==id),covering:false,phase:'draining',choice:null,meal:false,wait:0,interrupted:false,returnOnly:resumeReturn};resumeReturn=false;note('break-due');}
+   if(!active){dueIn-=dt;if(dueIn>0)return;const id=crew[next].station.id;active={id,reliefId:profile(id).ids.find(other=>other!==id),covering:false,phase:'draining',choice:null,meal:false,wait:0,interrupted:resumeReturn&&!!saved.returnInterrupted,returnOnly:resumeReturn};resumeReturn=false;note('break-due');}
    const n=actors.get(active.id),relief=actors.get(active.reliefId),shift=shiftFor(active.id);
    if(active.phase==='draining') {
     // Already claimed orders and trays finish normally. Neither actor can
@@ -147,7 +147,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
     if(state.facilityId===fixture.id||!furniture.facilities.request(fixture.id,active.id)){
      active.wait+=dt;if(active.wait>=20)interrupt(n);return;
     }
-    go(n,fixture.position,{label:eating?'端员工餐到员工室坐下吃':'夜班轮休，在员工室下铺睡一会儿',mount:fixture,action:eating?'chair-sit':'lie-rest',handoff:eating,seatedMeal:eating,duration:active.choice.duration,onArrive:()=>{note(eating?'eating':'sleeping');return true;},onDone:()=>{
+    go(n,fixture.position,{label:eating?'端员工餐到员工室坐下吃':'轮休，在员工室下铺睡一会儿',mount:fixture,action:eating?'chair-sit':'lie-rest',handoff:eating,seatedMeal:eating,duration:active.choice.duration,onArrive:()=>{note(eating?'eating':'sleeping');return true;},onDone:()=>{
      if(!leaveMount(n,'returning'))return false;
      completeChoice();active.meal=false;note(eating?'meal-finished':'woke-up');return true;
     }});
@@ -166,9 +166,9 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
    if(n.station.id===active.reliefId){if(active.phase==='handoff'){restoreRelief();active.phase='draining';return;}if(profile(active.id).local&&active.covering)interrupt(actors.get(active.id),{coverageAborted:true});return;}
    interrupt(n);
   },
-  playerRequest(id){if(active){const n=actors.get(active.id);if(n.serviceMount?.id===id||taskOf(n)?.mount?.id===id)interrupt(n);}},
+  playerRequest(id){if(active){const n=actors.get(active.id);if(active.choice?.facilityId===id||n.serviceMount?.id===id||taskOf(n)?.mount?.id===id)interrupt(n);}},
   meals:()=>active?.meal?[{workerId:active.id,eating:taskOf(actors.get(active.id))?.arrived&&active.phase==='meal'}]:[],
-  snapshot:()=>({version:6,next,dueIn:active?0:Math.max(0,dueIn),completed,interrupted,returning:active?['returning','reclaiming'].includes(active.phase):resumeReturn,decisions:decisions.snapshot()}),
+  snapshot:()=>({version:6,next,dueIn:active?0:Math.max(0,dueIn),completed,interrupted,returning:active?['returning','reclaiming'].includes(active.phase):resumeReturn,returnInterrupted:active?active.interrupted:resumeReturn&&!!saved.returnInterrupted,decisions:decisions.snapshot()}),
   state:()=>({crew:crew.map(n=>n.station.id),nextWorkerId:crew[next].station.id,dueIn:Math.max(0,dueIn),completed,interrupted,active:active?JSON.parse(JSON.stringify(active)):null,decisions:decisions.snapshot(),events:events.slice()}),
   dispose(){decisions.dispose();if(active)restoreRelief();for(const n of crew)release(n);active=null;},
  };
