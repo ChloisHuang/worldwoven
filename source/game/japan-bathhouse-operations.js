@@ -89,7 +89,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    if(crossing.done){
     n.bathTransition=null;
     if(crossing.endpoint==='seat'){n.serviceMount=crossing.item;task.arrived=true;if(task.onArrive?.()===false)abortTask(task,'arrival precondition changed');}
-    else{n.serviceMount=null;furniture.releaseActor(n.station.id);}
+    else{n.serviceMount=null;furniture.releaseActor(n.station.id);if(n.cancelVisitReason)finishVisitCancellation(n,n.cancelVisitReason);}
    }
    return;
   }
@@ -257,6 +257,12 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   else if(v.stage==='leaving')step('left',P.departure);
   else if(v.stage==='cancelled')assign(n,P.departure,{label:'收好行李离开汤馆',onDone:()=>{removeGuest(n);return true;}});
  }
+ function finishVisitCancellation(n,reason){
+  const id=n.station.id;n.cancelVisitReason=null;
+  for(const job of board.state().claims)if(job.visitId===id){const worker=actors.get(job.workerId);if(worker)clear(worker,{releaseJob:true});}
+  clear(n);furniture.releaseActor(id);board.cancel(id,reason);changeWardrobe(n,board.getVisit(id).appearance);
+  scheduleGuest(n,board.getVisit(id));return true;
+ }
  function animate(n,t) {
   const task=tasks.get(n.station.id),v=guests.has(n.station.id)?board.getVisit(n.station.id):null,mount=n.serviceMount||n.bathTransition?.item;
   const helping=isJapanEmployeeInteraction(n,playerState),chatting=helping&&playerState.conversationActorId===n.station.id,sharedActivity=helping&&!chatting;
@@ -295,10 +301,9 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   },
   isYieldingFor:id=>[...actors.values()].some(n=>n.serviceMount?.id===id&&n.serviceMount.kind!=='bath'),
   cancelVisit(id,reason='visit-cancelled') {
-   const n=guests.get(id);if(!n||!unmount(n))return false;
-   for(const job of board.state().claims)if(job.visitId===id){const worker=actors.get(job.workerId);if(worker)clear(worker,{releaseJob:true});}
-   clear(n);furniture.releaseActor(id);board.cancel(id,reason);changeWardrobe(n,board.getVisit(id).appearance);
-   scheduleGuest(n,board.getVisit(id));return true;
+   const n=guests.get(id);if(!n)return false;n.cancelVisitReason=reason;
+   if(!unmount(n))return false;
+   return finishVisitCancellation(n,reason);
   },
   state:()=>({...board.state(),staffLife:staffLife?.state()||null,history:history.slice(),failures:failures.slice(),actors:[...actors].map(([id,n])=>({id,name:n.station.npcName,position:n.root.position.toArray(),job:n.serviceTask?.label,mounted:n.serviceMount?.id||null,bathTransition:n.bathTransition?.state()||null,walking:n.walking}))}),
   dispose() {

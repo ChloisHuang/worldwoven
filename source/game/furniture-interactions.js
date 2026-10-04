@@ -122,7 +122,7 @@ export function createFurnitureInteractions(lot,region,{curtains={},onCurtainCha
   for(const item of items.filter(i=>i.bathPose)){
    const geometry=pools.find(p=>Math.hypot(p.center[0]-item.center[0],p.center[2]-item.center[2])<.01);
    if(!geometry)throw Error('Missing supported onsen bench: '+item.id);
-   item.bathEntry={east:geometry.retainingWallX+.14,top:geometry.seamTopY};
+   item.bathEntry={east:geometry.retainingWallX+.14,top:geometry.seamTopY,handY:geometry.copingTopY};
    const ledge=geometry.seat,endClearance=.75,pitch=1.65,capacity=Math.max(1,Math.floor((ledge.maxZ-ledge.minZ-2*endClearance)/pitch)+1);
    const offsets=Array.from({length:capacity},(_,i)=>(i-(capacity-1)/2)*pitch).sort((a,b)=>Math.abs(a)-Math.abs(b)||a-b);
    item.seats=offsets.map((offset,i)=>({...item,id:item.id+'-seat-'+(i+1),poolId:item.id,seatIndex:i,anchor:[item.anchor[0],item.anchor[1],item.anchor[2]+offset],position:[item.position[0],item.position[1],item.position[2]+offset],bathPose:{...item.bathPose},supportBounds:{...ledge},cameraParts:item.cameraParts.map(p=>({...p}))}));

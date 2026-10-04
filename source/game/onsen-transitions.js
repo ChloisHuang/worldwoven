@@ -14,7 +14,7 @@ export function createOnsenTransition({item,position,yaw,direction='enter',landi
  let progress=direction==='enter'?0:1,velocity=direction==='enter'?1:-1,done=false;
  function sample(){
   const p=progress,approach=span(p,.14,.27),sit=span(p,.27,.38),cross=span(p,.42,.73),inward=span(p,.73,.85),seatBlend=span(p,.85,1);
-  const bankX=mix(bank[0],entry.east+.37,approach),x=mix(mix(bankX,entry.east+.025,sit),seat[0],inward),z=mix(bank[2],seat[2],span(p,0,.27));
+  const bankX=mix(bank[0],entry.east+.37,approach),x=mix(mix(bankX,mix(entry.east+.26,entry.east+.025,span(p,.56,.73)),sit),seat[0],inward),z=mix(bank[2],seat[2],span(p,0,.27));
   const angle=p<.42?turn(bankYaw,away,span(p,0,.14)):away-Math.PI*cross;
   const feet=[0,1].map(side=>{
    const sign=side?1:-1,startAngle=turn(bankYaw,away,span(p,0,.14)),swing=span(p,side?.57:.43,side?.73:.60),theta=away-Math.PI*swing;
@@ -23,7 +23,7 @@ export function createOnsenTransition({item,position,yaw,direction='enter',landi
    const lift=span(p,side?.49:.36,side?.56:.43);
    return start.map((v,i)=>mix(v,tucked[i],lift));
   });
-  return {progress:p,phase:p<.14?'turn':p<.38?'rim-support':p<.73?'legs-over-rim':p<.85?'over-seat':'lower-to-seat',position:[x,bank[1],z],yaw:angle,hipY:mix(bank[1]+.965,entry.top+.16,sit),feet,hands:[[entry.east,entry.top+.055,seat[2]-.31],[entry.east,entry.top+.055,seat[2]+.31]],handWeight:span(p,.18,.38),seatBlend};
+  return {progress:p,phase:p<.14?'turn':p<.38?'rim-support':p<.73?'legs-over-rim':p<.85?'over-seat':'lower-to-seat',position:[x,bank[1],z],yaw:angle,hipY:mix(bank[1]+.965,entry.top+.16,sit),feet,hands:[0,1].map(side=>{const sign=side?1:-1;return [mix(Math.max(entry.east-.105,Math.min(entry.east+.105,x-Math.sin(angle)*.23+Math.cos(angle)*sign*.17)),entry.east-.34,inward),mix((entry.handY??entry.top-.017)+.029,entry.top+.20,inward),z-Math.cos(angle)*.23-Math.sin(angle)*sign*.19];}),handWeight:span(p,.18,.38),seatBlend};
  }
  return {
   item,

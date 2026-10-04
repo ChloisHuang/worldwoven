@@ -537,7 +537,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   if(supportedOnsen&&transfer){
    for(let i=0;i<posedP.length;i++){transferP[i].copy(posedP[i]).add(rig.position);transferQ[i].copy(posedQ[i]);}
    rig.position.set(0,0,0);inverseRoot.copy(root.matrixWorld).invert();
-   setTorso((transfer.hipY-rootWorld.y)/root.scale.y,-.08*transfer.handWeight,0);
+   setTorso(mix(rest[0].y,(transfer.hipY-rootWorld.y)/root.scale.y,transfer.handWeight),-.70*transfer.handWeight,0);
    for(let side=0;side<2;side++){
     tmp.fromArray(transfer.feet[side]).applyMatrix4(inverseRoot);foot(side,tmp);
     const hand=side?9:6;tmp2.copy(rest[hand]).sub(rest[0]).add(posedP[0]);
@@ -546,6 +546,9 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    }
    for(const [i,j]of[[16,11],[17,14]]){posedP[i].copy(posedP[j]);posedQ[i].copy(posedQ[j]);}
    for(let i=0;i<posedP.length;i++){posedP[i].lerp(transferP[i],transfer.seatBlend);posedQ[i].slerp(transferQ[i],transfer.seatBlend);}
+   // Hands and elbows arc above and inward of the timber as support changes.
+   for(const i of[5,6,8,9]){const lift=Math.sin(Math.PI*transfer.seatBlend);posedP[i].y+=lift*.10/root.scale.y;posedP[i].z+=lift*.07/root.scale.z;}
+   for(const ids of[[4,5,6],[7,8,9]]){orient(ids[0],ids[1],posedP[ids[1]]);orient(ids[1],ids[2],posedP[ids[2]]);}
    applyPose();root.updateMatrixWorld(true);skeleton.update();
    metrics.bathTransition={progress:transfer.progress,phase:transfer.phase};
   }else metrics.bathTransition=null;
