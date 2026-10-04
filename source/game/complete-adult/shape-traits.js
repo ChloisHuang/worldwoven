@@ -25,7 +25,9 @@ function context(asset){
  const landmark=raw=>{const at=nearestSkin(skin,raw,true);return Array.from(skin.position.slice(at,at+3));};
  const nose=landmark([0,7.2916,1.5075]),bridge=landmark([0,7.1046,1.583]),tip=landmark([0,6.909,1.6807]),columella=landmark([0,6.8268,1.6033]);
  const chinRoot=landmark([0,6.4583,1.5032]),chin=landmark([0,6.2006,1.4344]);
- const tipPivot=[0,(tip[1]+columella[1])/2,tip[2]-.6*(tip[2]-columella[2])];
+ // A bulb must expand from its base, not from a point almost on its front.
+ // Use the current sculpt's nasal root/ridge so neutral asset refinements fit.
+ const tipPivot=[0,(tip[1]+columella[1])/2,(nose[2]+bridge[2])/2];
  // Brow featureCoord contains ribbon UVs, not anatomy. Associate its existing
  // fitted vertices with the current skin, without scalp rays or new geometry.
  const semantics=new Map();
@@ -48,7 +50,10 @@ function displaced(p,raw,traits,c,eye=false){
   *(1-smooth(.22-.145*bridge,.36-.12*bridge,Math.abs(rx)))*smooth(1.22,1.46,rz)*(1-w);
  out[0]+=x*(traits.noseSize*traits.noseWidth-1)*nasal;
  out[1]+=(y-c.nose[1])*(traits.noseSize-1)*nasal;
- out[2]+=(z-c.nose[2]+.010)*(traits.noseSize-1)*nasal;
+ // Whole-nose size changes the lower nose. Its old full-ridge projection
+ // masked the independent bridge control when a smaller nose was selected.
+ const lowerNose=1-smooth(6.96,7.12,ry);
+ out[2]+=(z-c.nose[2]+.010)*(traits.noseSize-1)*nasal*lowerNose;
  // Independent chin length/projection share a broad sublabial transition and
  // stop above the anchored neck. Neither moves the lips or full head anchor.
  const chin=smooth(1.38,1.435,y)*smooth(5.98,6.17,ry)*(1-smooth(6.38,6.55,ry))
@@ -60,9 +65,11 @@ function displaced(p,raw,traits,c,eye=false){
  const ridge=smooth(6.94,7.02,ry)*(1-smooth(7.20,7.43,ry))
   *(1-smooth(.05,.16,Math.abs(rx)))*smooth(1.36,1.54,rz)*(1-w);
  out[2]+=Math.max(.010,c.bridge[2]-c.nose[2]+.008)*(traits.noseBridgeHeight-1)*ridge;
- const bulb=smooth(6.78,6.86,ry)*(1-smooth(6.98,7.08,ry))
-  *(1-smooth(.095,.18,Math.abs(rx)))*smooth(1.49,1.60,rz)*(1-w);
- for(let k=0;k<3;k++)out[k]+=(p[k]-c.tipPivot[k])*(traits.noseTipSize-1)*bulb;
+ const bulb=smooth(6.76,6.84,ry)*(1-smooth(6.99,7.11,ry))
+  *(1-smooth(.11,.21,Math.abs(rx)))*smooth(1.47,1.59,rz)*(1-w);
+ // Width/height have a slightly broader response than the former tiny core;
+ // projection grows from the nasal base without moving the upper ridge/lips.
+ for(let k=0;k<3;k++)out[k]+=(p[k]-c.tipPivot[k])*(traits.noseTipSize-1)*bulb*(k===2?1:1.35);
  return out;
 }
 function areaNormals(position,index){
