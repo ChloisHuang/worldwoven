@@ -51,7 +51,8 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
  const record=(event,actor)=>{history.push({event,actor:actor?.station.id||null,time:+time.toFixed(2),position:actor?.root.position.toArray()});if(history.length>64)history.shift();};
  const save=()=>saveState(schedule.snapshot());
  function setPhase(value){phase=value;phaseTime=0;record(value);}
- function say(n,text){speaker=n;utterance=text;tell(n,text);record('speech:'+text,n);const p=state.position;if(p&&Math.abs(p.y-n.root.position.y)<2&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<19)notify(n.station.npcName+'：'+text);}
+ function silence(){speaker=null;utterance='';palace.setDutyLine(OWNER,null);}
+ function say(n,text){speaker=n;utterance=text;palace.setDutyLine(OWNER,n===emperor?text:null);tell(n,text);record('speech:'+text,n);const p=state.position;if(p&&Math.abs(p.y-n.root.position.y)<2&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<19)notify(n.station.npcName+'：'+text);}
  function task(n,id,path,label){tasks.set(n,{id,path,label,index:0,arrived:false,planned:false,stalled:0,retries:0,yieldPoint:null});n.route=[];record(id,n);}
  const safety=n=>[...(doors?.cameraColliders||[]),...npcs.filter(a=>a!==n).map(a=>a.root.position),...(state.position?[state.position]:[])].map(p=>p.minX===undefined?{minX:p.x-.27,maxX:p.x+.27,minZ:p.z-.27,maxZ:p.z+.27,minY:p.y,maxY:p.y+1.95}:p);
  function travel(n,s,dt){
@@ -79,8 +80,8 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
   s.stalled=n.walking||step.waiting?0:s.stalled+dt;if(s.stalled>4){s.stalled=0;s.planned=false;if(++s.retries===3){failures.push({actor:n.station.id,stage:s.id,target,position:n.root.position.toArray()});if(failures.length>8)failures.shift();}}
   return false;
  }
- const allArrived=()=>officials.every(n=>tasks.get(n)?.arrived),paused=n=>state.conversationActorId===n.station.id;
- function depart(reason){schedule.finish(reason);save();palace.releaseDuty(OWNER);speaker=null;utterance='';officials.forEach((n,i)=>task(n,'leave-court',departure(i),'散朝 · 沿正门返回承礼门外'));setPhase('departing');}
+ const allArrived=()=>officials.every(n=>tasks.get(n)?.arrived),paused=n=>!!n&&state.conversationActorId===n.station.id;
+ function depart(reason){const outside=phase==='arriving';schedule.finish(reason);save();palace.releaseDuty(OWNER);silence();officials.forEach((n,i)=>task(n,'leave-court',outside?departure(i).slice(-4):departure(i),'散朝 · 沿正门返回承礼门外'));setPhase('departing');}
  save();
  return {
   owns:n=>owned.has(n),
@@ -89,7 +90,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
    if(disposed)return;state=playerState;time+=dt;schedule.observe(state.hour??10);
    const duty=palace.dutyState(OWNER);
    if(phase==='waiting'&&schedule.due(state.hour??10,state.night)){
-    schedule.call();save();officials.forEach((n,i)=>task(n,'enter-gate',entry(i),'由承礼门入宫 · 前往各自候朝位置'));setPhase('arriving');
+    reported=0;schedule.call();save();officials.forEach((n,i)=>task(n,'enter-gate',entry(i),'由承礼门入宫 · 前往各自候朝位置'));setPhase('arriving');
    }
    const speakingPaused=paused(speaker)||state.conversationActorId===emperor.station.id;
    for(const [i,n]of officials.entries()){
@@ -106,7 +107,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
     if(state.night||(state.hour??10)>=12){depart('interrupted');return;}
     say(officials[0],'朝议时辰已至，二臣候奏，请陛下临殿。');palace.requestDuty(OWNER);setPhase('await-emperor');
    }else if(phase==='await-emperor'&&duty?.ready){
-    speaker=null;utterance='';officials.forEach((n,i)=>task(n,'enter-hall',enterHall(i),'闻召入殿 · 在侧席依次候奏'));setPhase('entering-hall');
+    silence();officials.forEach((n,i)=>task(n,'enter-hall',enterHall(i),'闻召入殿 · 在侧席依次候奏'));setPhase('entering-hall');
    }else if(phase==='entering-hall'&&allArrived()&&duty?.ready){
     task(officials[0],'approach-report',[REPORT],'工部进前奏报');setPhase('approaching');
    }else if(phase==='approaching'&&tasks.get(officials[reported])?.arrived&&duty?.ready){
@@ -114,7 +115,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
    }else if(phase==='report'&&phaseTime>=6&&duty?.ready){
     say(emperor,reported?'按册照料，留足雨天所需，勿扰街坊。':'修整时留下通行小路，照顾往来行人。');setPhase('response');
    }else if(phase==='response'&&phaseTime>=5&&duty?.ready){
-    speaker=null;utterance='';task(officials[reported],'step-back',[hall(reported)],'奏毕退回侧席 · 留出进言通道');setPhase('returning-line');
+    silence();task(officials[reported],'step-back',[hall(reported)],'奏毕退回侧席 · 留出进言通道');setPhase('returning-line');
    }else if(phase==='returning-line'&&tasks.get(officials[reported])?.arrived&&duty?.ready){
     if(++reported<officials.length){task(officials[reported],'approach-report',[REPORT],'仓务进前奏报');setPhase('approaching');}
     else{say(emperor,'今日朝议到此，诸位各归其职。');setPhase('dismissal');}

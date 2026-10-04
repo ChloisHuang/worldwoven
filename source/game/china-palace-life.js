@@ -105,6 +105,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
    return true;
   },
   releaseDuty(owner){if(duty?.owner===owner)duty.release=true;},
+  setDutyLine(owner,line){if(duty?.owner===owner)duty.line=line;},
   dutyState(owner){if(!duty||duty.owner!==owner)return null;const s=stages.get(emperor);return {owner,active:duty.active,stage:scripts.get(emperor)[s.index].id,ready:duty.active&&s.mount===throne&&!duty.release,mounted:s.mount?.id||null,releasing:duty.release};},
   playerRequest(id){for(const n of actors){const s=stages.get(n);if(s.mount?.id===id){if(n===emperor&&duty?.active){duty.yieldSeat=true;}else{if(s.choice)s.choice.fulfilled=false;advance(n,s);}}}},
   update(dt,t,state={}){
@@ -123,10 +124,14 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
       if(duty.release){if(unmount(n,s)){enter(n,s.index+1);s=stages.get(n);stop=scripts.get(n)[s.index];}else{animate(n,s,t);continue;}}
       else if(occupied||duty.yieldSeat){
        if(!unmount(n,s)){animate(n,s,t);continue;}
-       duty.yieldSeat=occupied;s.arrived=false;s.waypoint=0;s.planned=false;
+       duty.seatYieldState??={planned:false,stalled:0,retries:0};
        // Leave the approach clear for the player before awaiting the chair.
-       tell(n,'朝议暂候 · 为御座使用者让出通道');travel(n,s,[-2.4,1.415,-4.25],dt);animate(n,s,t);continue;
+       tell(n,'朝议暂候 · 为御座使用者让出通道');
+       const clear=travel(n,duty.seatYieldState,[-2.4,1.415,-4.25],dt);
+       if(clear&&!occupied){duty.yieldSeat=false;duty.seatYieldState=null;s.arrived=false;s.waypoint=0;s.planned=false;}
+       animate(n,s,t);continue;
       }
+      if(duty?.line)tell(n,duty.line);
      }
     }
     if(interrupted(n)){tell(n,stop.label+' · 停步与你交谈');if(!s.mount&&state.position)n.root.rotation.y=Math.atan2(state.position.x-n.root.position.x,state.position.z-n.root.position.z);animate(n,s,t);continue;}
