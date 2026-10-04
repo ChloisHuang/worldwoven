@@ -128,10 +128,10 @@ export function createWeatherCharm({kind='fair',phase=0}={}) {
 export function createWeatherCharmHook({kind='fair',height=1.78,phase=0}={}) {
   if(!Number.isFinite(height)||height<.65||height>1.9)throw new RangeError('Use a human-reachable hook height (0.65–1.9 m)');
   const group=new THREE.Group(),mount=new THREE.Group(),charm=createWeatherCharm({kind,phase});
-  group.name='Reachable weather charm hook';mount.position.set(0,height,.031);group.add(mount);mount.add(charm.group);
+  group.name='Reachable weather charm hook';mount.position.set(0,height,.086);group.add(mount);mount.add(charm.group);
   const d=detailsBuilder();
   const back=new THREE.BoxGeometry(.036,.067,.013);back.translate(0,height+.008,-.009);d.add(back,COLORS.wood);
-  d.add(tube([[0,height+.018,-.002],[0,height+.008,.018],[0,height-.005,.030],[0,height+.003,.039]],.0027,12,5),COLORS.brass);
+  d.add(tube([[0,height+.018,-.002],[0,height+.008,.065],[0,height-.005,.085],[0,height+.003,.094]],.0027,12,5),COLORS.brass);
   const hook=d.mesh();hook.name='Small cedar-backed brass hook';group.add(hook);
   let state='hanging';
   const point=new THREE.Vector3();

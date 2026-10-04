@@ -33,7 +33,7 @@ export function createJapanWeatherCharmService({lot,getPlayer,getBusy=()=>false,
   }
   function interact(id) {
     const item=items.find(p=>p.id===id);if(!item||!reachable(item))return false;
-    if(carried){if(item!==carried||!item.hook.hang(getPlayer().root.position))return false;uses[item.id].hung++;carried=null;
+    if(carried){if(item!==carried||!item.hook.hang(getPlayer().root.position))return false;uses[item.id].hung++;item.hook.charm.group.visible=true;carried=null;
       notify('挂回窗边了，让小挂偶随风轻轻摇摆');}
     else{if(!item.hook.take(carryAnchor,getPlayer().root.position))return false;carried=item;uses[item.id].picked++;
       notify(item.kind==='fair'?'拿起了晴天娃娃，把小小的祈晴心愿握在手里。忙别的事时会暂时收好':
