@@ -2,9 +2,12 @@
 // personal activity. Existing emperor stairs and unrelated regions are reused.
 const fs=require('node:fs'),vm=require('node:vm');
 let harness=fs.readFileSync('tests/fixtures/hotfix-input-harness.cjs','utf8');
-const additions="\nexport function officialReview(){return {player,lot,camera,scene,sun,lighting,npcs,chinaAudience,chinaPalace,chinaEdict,automaticDoors,furniture,navOptions};} export function officialStep(dt){elapsed+=dt;updateAutomaticDoors(dt);updateNPCs(dt,elapsed);} export function officialView(a,p=.16){yaw=a;pitch=p;distance=4.6;updateCamera(1,true);} export {configureStableShadows,blocked,planPath};";
+const additions="\nexport function officialReview(){return {player,lot,camera,scene,sun,lighting,npcs,chinaAudience,chinaPalace,chinaEdict,automaticDoors,furniture,navOptions};} export function officialStep(dt){elapsed+=dt;updateAutomaticDoors(dt);updateNPCs(dt,elapsed);} export function officialPrivateStep(dt){elapsed+=dt;updateAutomaticDoors(dt);chinaAudience.update(dt,elapsed,{hour:14,position:player.root.position});} export function officialView(a,p=.16){yaw=a;pitch=p;distance=4.6;updateCamera(1,true);} export {configureStableShadows,blocked,planPath};";
 harness=harness.replace("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),", "new vm.SourceTextModule(fs.readFileSync(file,'utf8')+(file.endsWith('/game/main.js')?"+JSON.stringify(additions)+":''),");
 harness=harness.replace('vm.createContext({console,','vm.createContext({Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,console,');
+const people=Object.fromEntries(['cn-minister-works','cn-minister-granary'].map((id,i)=>[id,{random:i+7,choices:0,last:null,current:{id:'rest',duration:45,startedAt:0},cooldowns:{},needs:{hunger:.2,fatigue:.4,social:.2},traits:{quiet:i?.8:.4,curiosity:.4,outdoors:.4,sociability:.3,appetite:.5},relations:{},opinions:{},values:{},nextDecisionAt:0}]));
+const fixture={chinaAudience:{version:1,day:1,calledDay:0,lastCompletedDay:0,outcome:'completed',life:{version:1,decisions:{version:1,time:0,people}}},chinaEdict:{version:1,lastDay:0,lastReceipt:'cn-morning-audience:0',outcome:'completed',completedReceipt:'cn-morning-audience:0'}};
+harness=harness.replace("const main=mod(path.join(root,'game/main.js'));", "{const prior=JSON.parse(storage['worlds-days-v1']);Object.assign(prior,"+JSON.stringify(fixture)+");storage['worlds-days-v1']=JSON.stringify(prior);}const main=mod(path.join(root,'game/main.js'));");
 const begin=harness.indexOf('const report=[];for(let round=0;'),end=harness.indexOf('\nconsole.log(JSON.stringify(',begin);
 const body=String.raw`
 const out='qa/china-official-lives',report={status:'RUNNING',scenario:process.env.OFFICIAL_SCENARIO||'court',checks:[],frames:[]};fs.mkdirSync(out,{recursive:true});
@@ -16,7 +19,7 @@ const preflight=officials.map((n,i)=>{const bed=r.furniture.items.find(b=>b.id==
 record('both new private beds, office routes, three real doors and court approaches have static clearance');
 let actual,canvas;if(process.env.OFFICIAL_MESA==='1'){const W=await import('/workspace/shared/cultural-life-r12-webgl/node_modules/@onirenaud/node-webgl/dist/index.js');W.installDOM({fetch:false});W.init({api:'gles'});canvas=W.createCanvas(1000,700);actual=new T.WebGLRenderer({canvas,antialias:true});actual.setSize(1000,700,false);actual.outputColorSpace=T.SRGBColorSpace;main.namespace.configureStableShadows(actual,r.sun);r.camera.aspect=1000/700;r.camera.updateProjectionMatrix();}
 const capture=(name,p,a)=>{if(!actual)return;r.player.root.position.set(...p);main.namespace.officialView(a,.10);r.scene.updateMatrixWorld(true);r.lighting.update(r.player.root.position);actual.render(r.scene,r.camera);actual.getContext().finish();assert.equal(actual.getContext().getError(),0);fs.writeFileSync(out+'/'+name+'.png',canvas.toBuffer('image/png'));report.frames.push(name);};
-capture('01-real-bureau-office',[20.9,.215,32.7],Math.PI*.93);r.player.root.position.set(0,.13,24);
+r.player.root.position.set(14,.115,31);for(let i=0;i<650&&!r.chinaAudience.state().life.actors.every(a=>a.mounted);i++)main.namespace.officialPrivateStep(.1);assert(r.chinaAudience.state().life.actors.every(a=>a.mounted),'both officials physically enter their own rooms and mount their own beds');record('both officials walk through independent private doors and lie on their own real beds');capture('01-real-official-private-room',[20,.215,35.4],Math.PI*.58);r.player.root.position.set(0,.13,24);
 // Reuse verified royal public-stair evidence: only the call's changed official
 // approach/admission is under test; no repeated entire palace-life route.
 emperor.root.position.set(-15.1,.215,-13.35);r.chinaPalace.requestDuty('china-morning-audience');
@@ -29,11 +32,11 @@ function frame(){const before=officials.map(n=>n.root.position.clone()),mounted=
 function until(pred,label,max=3000){let i=0;for(;i<max&&!pred();i++)frame();assert(pred(),label+' '+JSON.stringify(r.chinaAudience.state()));record(label);}
 until(()=>r.chinaAudience.state().phase==='entering-hall','both different bureau routes arrive before hall admission');
 assert(Object.values(departureTimes).length===2);assert(Math.abs(Object.values(departureTimes)[0]-Object.values(departureTimes)[1])>.1,'initial call must respond to independent actions');
-capture('02-officials-different-arrivals',[0,.13,18],Math.PI);r.player.root.position.set(7,.13,17);
-until(()=>r.chinaAudience.state().phase==='report','first official approaches after sequential arrival');assert.equal(r.chinaAudience.state().currentReport.sourceEventId,null,'first morning has no invented earlier edict');
-capture('03-official-report-live',[1.7,1.415,-.3],.35);r.player.root.position.set(7,.13,17);
+r.player.root.position.set(7,.13,17);
+until(()=>r.chinaAudience.state().phase==='report','first official approaches after sequential arrival');assert.equal(r.chinaAudience.state().currentReport.sourceEventId,'cn-edict-east-shore:0:completed','report links the prior verified numbered receipt');
+r.player.root.position.set(7,.13,17);
 until(()=>r.chinaAudience.state().history.filter(e=>e.event==='released-to-personal-life').length===2,'both officials physically leave court and return to independent personal life');
-assert(r.chinaAudience.state().life.actors.every(a=>a.activity),'both officials still exist with personal intentions');
+assert(r.chinaAudience.state().life.actors.every(a=>a.activity),'both officials still exist with personal intentions');until(()=>r.chinaAudience.state().reports.cases.some(c=>c.result),'approved official walks to the actual east-shore work and records a source-linked inspection');const inspected=r.chinaAudience.state().reports.cases.find(c=>c.result);assert.equal(inspected.result.source.eventId,'cn-edict-east-shore:0:completed');assert.equal(inspected.result.place,'荷庭东岸');record('next command cannot replace its source while the physical inspection is pending');
 report.departureTimes=departureTimes;report.maxRSSMiB=process.resourceUsage().maxRSS/1024;report.status='PASS';report.scope='Production main + controllers, simulated DOM, real affected official routes; '+(actual?'Three/Mesa normal TPS':'renderer stub')+'; not browser/iOS';actual?.dispose();canvas?.dispose();ids['return-world'].onclick();assert.equal(state().characterResources.activeReferences,0);fs.writeFileSync(out+'/'+report.scenario+'.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));
 `;
 harness=harness.slice(0,begin)+body+harness.slice(end);harness=harness.replace(/console.log\(JSON.stringify\(\{status:'PASS',scope:'Production controller[\s\S]*?\},null,2\)\);/,'');
