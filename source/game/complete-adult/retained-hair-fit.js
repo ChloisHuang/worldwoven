@@ -32,18 +32,30 @@ export function planRetainedBraid(root,fit){
  for(const mesh of meshes){mesh.geometry.computeBoundingBox();rootY=Math.max(rootY,mesh.geometry.boundingBox.max.y);minY=Math.min(minY,mesh.geometry.boundingBox.min.y);}
  const xs=[],zs=[];for(const mesh of meshes){const p=mesh.geometry.attributes.position;for(let i=0;i<p.count;i++)if(p.getY(i)>=rootY-.005){xs.push(p.getX(i));zs.push(p.getZ(i));}}
  const pivot=[(Math.min(...xs)+Math.max(...xs))/2,rootY,(Math.min(...zs)+Math.max(...zs))/2];
- const delta=pivot.map((v,k)=>v*fit.scale[k]+fit.offset[k]-v),cloth=rearClothTriangles(root,minY+delta[1],rootY+delta[1]);let retreat=0,contactSamples=0;
+ const delta=pivot.map((v,k)=>v*fit.scale[k]+fit.offset[k]-v);
+ // The inherited braid's open root ring ends below the rear hair shell. Use
+ // that real surface edge as the common anchor rather than preserving its gap.
+ const shell=root.getObjectByName('continuous-swept-hair-shell')?.geometry.attributes.position;
+ let shellRoot=null,best=Infinity;if(shell)for(let i=0;i<shell.count;i++){
+  const x=shell.getX(i),y=shell.getY(i),z=shell.getZ(i);if(z>=0||y<rootY)continue;
+  const d=(x-pivot[0])**2+(y-pivot[1])**2+(z-pivot[2])**2;if(d<best){best=d;shellRoot=[x,y,z];}
+ }
+ if(!shellRoot)return{supported:false,reason:'retained-braid-root-needs-fit'};
+ // Four millimetres of overlap hides the open root ring inside the shell;
+ // the entire shaft/weave/tie moves together, retaining its full length.
+ delta[1]=shellRoot[1]*fit.scale[1]+fit.offset[1]+.004-rootY;
+ const cloth=rearClothTriangles(root,minY+delta[1],rootY+delta[1]);let retreat=0,contactSamples=0;
  for(const mesh of meshes){const p=mesh.geometry.attributes.position;for(let i=0;i<p.count;i++){
   const back=rearSurface(cloth,p.getX(i)+delta[0],p.getY(i)+delta[1]);if(!Number.isFinite(back))continue;
   contactSamples++;retreat=Math.min(retreat,back-.004-(p.getZ(i)+delta[2]));
  }}
  // A large departure from the nape needs authored fitting, not a silent move.
  if(retreat<-.025)return{supported:false,reason:'retained-braid-cloth-fit-out-of-range',retreat};
- delta[2]+=retreat;return{supported:true,meshes,delta,rootY,length:rootY-minY,retreat,contactSamples};
+ delta[2]+=retreat;return{supported:true,meshes,delta,rootY,shellRoot,length:rootY-minY,retreat,contactSamples};
 }
 export function applyRetainedBraid(plan){
  for(const mesh of plan.meshes){
   mesh.geometry.translate(...plan.delta);mesh.geometry.computeBoundingBox();mesh.geometry.computeBoundingSphere();mesh.userData.completeAdultPart='long-hair';
  }
- return{rootY:plan.rootY,length:plan.length,translation:[...plan.delta],garmentRetreat:plan.retreat,contactSamples:plan.contactSamples};
+ return{rootY:plan.rootY,shellRoot:plan.shellRoot,length:plan.length,translation:[...plan.delta],garmentRetreat:plan.retreat,contactSamples:plan.contactSamples};
 }
