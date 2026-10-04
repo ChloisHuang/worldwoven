@@ -139,9 +139,11 @@ for _ in range(3):
    v.co=before[i].lerp(average,neck_weight[i])
 mesh.update()
 # Smooth region masks are interpolated with the same real facial topology.
+mesh.attributes.new('feature_coord','FLOAT_VECTOR','POINT')
 for name in ['lip_tint','cavity_tint','lid_tint']:
  mesh.attributes.new(name,'FLOAT','POINT')
 for i,(x,y,z) in enumerate(raw):
+ mesh.attributes['feature_coord'].data[i].vector=(x,y,z)
  lip=gauss(x,0,.265)*smooth(1.39,1.53,z)*smooth(6.44,6.50,y)*(1-smooth(6.70,6.75,y))
  # Oral cavity behind lips: darker only on its actual internal geometry.
  cavity=(1-smooth(1.40,1.52,z))*smooth(.6,1.15,z)*gauss(x,0,.23)*smooth(6.45,6.51,y)*(1-smooth(6.68,6.74,y))
@@ -157,9 +159,10 @@ sub=obj.modifiers.new('One anatomical Catmull-Clark level','SUBSURF');sub.levels
 # geometry is exported. Iris and pupil are face rings on the same curved globe.
 parts=[]
 deps=bpy.context.evaluated_depsgraph_get();ev=obj.evaluated_get(deps);me=ev.to_mesh();me.calc_loop_triangles()
-part={'name':'head-neck','material':'skin','position':[],'normal':[],'index':[],'lipWeight':[],'cavityWeight':[],'lidWeight':[]}
+part={'name':'head-neck','material':'skin','position':[],'normal':[],'index':[],'lipWeight':[],'cavityWeight':[],'lidWeight':[],'featureCoord':[]}
 for v in me.vertices:
  part['position']+=list(v.co);part['normal']+=list(v.normal)
+ part['featureCoord']+=list(me.attributes['feature_coord'].data[v.index].vector)
  for a,b in [('lipWeight','lip_tint'),('cavityWeight','cavity_tint'),('lidWeight','lid_tint')]:part[a].append(me.attributes[b].data[v.index].value)
 for t in me.loop_triangles:part['index']+=list(t.vertices)
 skin_tree=BVHTree.FromPolygons([v.co.copy() for v in me.vertices],[list(t.vertices) for t in me.loop_triangles])
@@ -188,11 +191,16 @@ for side in [-1,1]:
   # A round iris in projection lies on the actual expanded globe surface.
   circular=1.22/math.sqrt((1.54*math.cos(a))**2+(1.46*math.sin(a))**2)
   angle=t*(1+(circular-1)*(1-smooth(.52,1.05,t)))
-  return Vector(fit((cx+.164*math.sin(angle)*math.cos(a),cy+.164*math.sin(angle)*math.sin(a),cz+.164*math.cos(angle))))
- positions=[];normals=[];eye_recess=[]
+  p=Vector(fit((cx+.164*math.sin(angle)*math.cos(a),cy+.164*math.sin(angle)*math.sin(a),cz+.164*math.cos(angle))))
+  # Original corneal crown, continuous with the existing globe and rim.
+  # Its differentiated normals put the light on curved cornea, not a flat iris.
+  p.z+=.00135*(1-smooth(0,.58,t))
+  return p
+ positions=[];normals=[];eye_recess=[];eye_coord=[]
  for t in theta:
   for k in range(nu):
    a=k/nu*math.tau;p=globe_point(t,a);positions.append(p)
+   eye_coord += [t/.44*math.cos(a),t/.44*math.sin(a),t]
    # Differentiate the real fitted globe; radial normals are wrong after an
    # anisotropic orbit fit and made the surface read like a flat inset.
    tt=max(.006,min(math.pi-.006,t));epsilon=.0025
@@ -233,22 +241,22 @@ for side in [-1,1]:
   em=bpy.data.meshes.new('Eye '+material);em.from_pydata(positions,[],[ix[i:i+3] for i in range(0,len(ix),3)]);em.update()
   bm=bmesh.new();bm.from_mesh(em);bmesh.ops.recalc_face_normals(bm,faces=bm.faces);bm.to_mesh(em);bm.free()
   # Every material ring shares the same complete-globe differential normal.
-  parts.append({'name':'eye-'+str(side)+'-'+material,'material':material,'position':[a for p in positions for a in p],'normal':normals,'index':ix,'recessWeight':eye_recess})
+  parts.append({'name':'eye-'+str(side)+'-'+material,'material':material,'position':[a for p in positions for a in p],'normal':normals,'index':ix,'recessWeight':eye_recess,'featureCoord':eye_coord})
  # Original surface-fitted brow ribbon: fuller inner body, quiet arch, fine
  # tail, shallow cross-section. A round extruded tube read as a heavy sticker.
  brow_y=[(.145,7.390),(.19,7.399),(.28,7.412),(.38,7.419),(.49,7.398),(.568,7.350)]
  brow_z=[(.145,1.49),(.28,1.43),(.38,1.38),(.49,1.30),(.568,1.23)]
  brow_r=[(0,.05),(.09,.82),(.30,1),(.57,.78),(.80,.43),(1,.015)]
- bp=[];bf=[];bn=48;bw=6
+ bp=[];bf=[];bcoords=[];bn=72;bw=8
  for j in range(bn+1):
   t=j/bn;x=.145+(.568-.145)*t
   center=Vector(fit((side*x,profile(brow_y,x),profile(brow_z,x))))
-  half=.0023*profile(brow_r,t)
+  half=.0027*profile(brow_r,t)
   for k in range(bw+1):
    a=k/bw*2-1;p=center.copy();p.y+=a*half
    hit=skin_tree.ray_cast(Vector((p.x,p.y,.3)),Vector((0,0,-1)),.6)[0]
    if hit is not None:p.z=hit.z+.00045+.00050*(1-a*a)*profile(brow_r,t)
-   bp.append(p)
+   bp.append(p);bcoords.extend([t,a,0])
  for j in range(bn):
   for k in range(bw):
    a=j*(bw+1)+k;bf.append((a,a+1,a+bw+2,a+bw+1))
@@ -256,7 +264,28 @@ for side in [-1,1]:
  bo=bpy.data.objects.new('Brow '+str(side),bmsh);bpy.context.collection.objects.link(bo)
  for poly in bmsh.polygons:poly.use_smooth=True
  deps=bpy.context.evaluated_depsgraph_get();ev=bo.evaluated_get(deps);me=ev.to_mesh();me.calc_loop_triangles()
- parts.append({'name':'brow-'+str(side),'material':'brow','position':[a for v in me.vertices for a in v.co],'normal':[a for v in me.vertices for a in v.normal],'index':[a for t in me.loop_triangles for a in t.vertices]});ev.to_mesh_clear()
+ parts.append({'name':'brow-'+str(side),'material':'brow','position':[a for v in me.vertices for a in v.co],'normal':[a for v in me.vertices for a in v.normal],'index':[a for t in me.loop_triangles for a in t.vertices],'featureCoord':bcoords});ev.to_mesh_clear()
+ # Sparse original perimeter hairs break the silhouette without making a
+ # uniformly black eyebrow. Each small tapered ribbon hugs the real skin.
+ hp=[];hn=[];hi=[];hc=[]
+ for j in range(43):
+  t=.012+j/44.0;x=.145+(.568-.145)*t
+  center=Vector(fit((side*x,profile(brow_y,x),profile(brow_z,x))))
+  half=.0027*profile(brow_r,t)
+  offset=len(hp)//3;length=.0015+.0024*profile(brow_r,t)
+  for k in range(5):
+   q=k/4;dx=side*(.0005+.0020*t)*q;dy=(-.45+1.60*q)*half
+   if t>.68:dy=(-.15+.75*q)*half
+   width=(.00016+.00005*math.sin(j*2.399))*(1-q*.9)
+   for edge in [-1,1]:
+    p=center+Vector((dx+edge*width,dy+.00012*math.sin(j*2.3+q*3),0))
+    hit,n,_,_=skin_tree.ray_cast(Vector((p.x,p.y,.3)),Vector((0,0,-1)),.6)
+    if hit is not None:p.z=hit.z+.00054;n=n.normalized()
+    else:n=Vector((0,0,1))
+    hp+=list(p);hn+=list(n);hc.extend([t,0,1])
+  for k in range(4):
+   a=offset+k*2;hi += [a,a+1,a+2,a+1,a+3,a+2]
+ parts.append({'name':'brow-hairs-'+str(side),'material':'brow','position':hp,'normal':hn,'index':hi,'featureCoord':hc})
 # Reciprocal contact occlusion: the eyelid edge receives occlusion from the
 # actual globe as well as surrounding skin. This follows geometry, not a drawn
 # eyeliner stripe, and does not change the skin ramp or light sources.
