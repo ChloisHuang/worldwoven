@@ -17,7 +17,7 @@ export function attachHairFlow(geometry,packed){
 export const HAIR_FLOW_COLOR_GLSL=`
  // Broad authored bundles, with quiet roots and a soft shift along the length.
  // The actor's selected RGB remains the source of every shade.
- float ht=clamp(f.x,0.0,1.0),hp=f.y*100.530965;
+ float ht=clamp(f.x,0.0,1.0),hp=f.y*16.0*6.2831853;
  float hb=.5+.5*cos(hp+.24*sin(ht*4.0));
  float hs=.5+.5*cos(hp*2.0-.35);
  float hr=mix(.77,1.0,smoothstep(.025,.24,ht));
@@ -31,7 +31,7 @@ export const HAIR_FLOW_LIGHT_GLSL=`
   vec3 hairHalf=normalize(hairLight+normalize(vViewPosition));
   float hairLit=max(dot(normal,hairLight),0.0);
   float hairLobe=pow(max(dot(normal,hairHalf),0.0),12.0);
-  float hairBundle=.35+.65*pow(.5+.5*cos(f.y*100.530965+.24*sin(f.x*4.0)),.8);
+  float hairBundle=.35+.65*pow(.5+.5*cos(f.y*16.0*6.2831853+.24*sin(f.x*4.0)),.8);
   float hairLength=smoothstep(.05,.25,f.x)*(1.0-.45*smoothstep(.76,1.0,f.x));
   vec3 hairGain=clamp(directionalLights[0].color,vec3(0.0),vec3(1.5));
   // Multiplicative selected-hue reflection; goes to zero with the direct light.
