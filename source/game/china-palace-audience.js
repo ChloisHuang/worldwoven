@@ -29,6 +29,7 @@ const court=i=>[side(i)*(4.6+rank(i)*1.1),.13,13.2+rank(i)*1.35];
 const hall=i=>[side(i)*2.35,1.415,-2.1+rank(i)*1.75];
 const enterHall=i=>[[side(i)*2,.13,11],[side(i)*2,1.415,6],[side(i)*2.35,1.415,3],hall(i)];
 const departure=i=>[...enterHall(i).slice().reverse(),court(i)];
+export const chinaCourtAssemblyRoute=i=>({court:court(i),hall:hall(i),entry:enterHall(i)});
 
 export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveActor,poseContext,furniture,worldSeed=1,readEdict=()=>null,saved={},saveState=()=>{},notify=()=>{}}){
  const officials=CHINA_COURT_OFFICIALS.map(r=>npcs.find(n=>n.station.id===r.id)),emperor=npcs.find(n=>n.station.id==='cn-emperor');
