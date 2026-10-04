@@ -13,6 +13,8 @@
 - `node --experimental-vm-modules tests/china-consort-host.cjs`：实际生命控制器的新增妃嫔接待归属、双方会话暂停、主人工作时放弃无收益、仅完成的参与者关系增加；路线到场为轻量替身，非几何验证
 - 原`china-palace-audience.cjs`及`china-palace-edict.cjs`：单皇帝职责、保存回执/中断语义通过
 
-待运行：`tests/china-consorts-main.cjs`受影响私门/床/前厅和三人庭景往返单场景，正常TPS/Mesa实图。上限175秒、1.2GiB，排在CN09/酒楼当前单链之后。未声称浏览器或iOS验证。
+修后`tests/china-consorts-main.cjs`通过：两个新增角色各自私门/公共前厅→南岸、玩家两张新床的自动到达/躺起/出门、有限停留后的实际回居，1870帧、峰值972.1MiB；175秒/1.2GiB预算内。同场为取得共同活动图把两人的庭景意图设为60秒，覆盖120秒总占用预算到期后的无奖励回居；产品正常庭景时长为14–24秒。月容/皇帝留在原私室，旧路径与朝会不重复跑。
+
+已人工检查2张实际Three/Mesa正常游玩镜头：`qa/china-consorts/01-consorts-garden-normal-tps.png`显示新增两人的衣色、发型、身形与簪饰；`02-private-bed-and-pocket-door-normal-tps.png`显示床边真人尺度、软矩形寝具/曲线床头与嵌墙口袋门。轻量口袋检查还验证0.50m墙体内的0.36m净腔、收门五金不出墙腔、1.29m走廊及0.975m床边通道。非浏览器/iOS验证。
 
 本批不含侍寝、妊娠、年龄阶段或新的皇帝/通用角色系统。

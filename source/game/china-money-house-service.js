@@ -3,11 +3,11 @@ import {CHINA_MONEY_HOUSE as C} from './china-money-house.js';
 
 const ERRORS={ 'invalid-amount':'请填入大于零的整数铜钱', 'insufficient-cash':'手头铜钱不足，不能存入这个数目', 'insufficient-bank':'账上存钱不足，不能取出这个数目', 'account-not-open':'请先请账房立一本账簿', 'save-failed':'这笔尚未记入，请稍后再试', 'invalid-saved-state':'旧账暂时无法核对，本次不办理存取', 'balance-overflow':'这个数目太大，请核对后再填', 'transaction-limit':'这本账已经记满，请稍后再来', 'ledger-busy':'账房正在落笔，请稍候', 'account-already-open':'你的账簿已经立好', 'async-save-unsupported':'这笔尚未记入，请稍后再试', 'invalid-request-id':'这笔凭号无法核对，请重新打开账簿', 'request-conflict':'这张凭号已经记过别的账，请重新打开账簿' };
 
-// A local story wallet. Wages, purchases and regional finance remain separate
-// unfinished systems; this service never issues cash or connects to a network.
-export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,saved,saveState,notify=()=>{},onOpen=()=>{},onClose=()=>{},document:doc=globalThis.document}){
+// The shared fictional wallet records bank transfers, earned wages and visits.
+// This counter only handles deposits/withdrawals; it never awards money.
+export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,saved,saveState,copperLedger,notify=()=>{},onOpen=()=>{},onClose=()=>{},document:doc=globalThis.document}){
  const teller=npcs.find(n=>n.station.id===C.stationId);if(!teller||!lot.moneyHouse)return null;
- const ledger=createCopperLedger({saved,saveState});
+ const ledger=copperLedger||createCopperLedger({saved,saveState});
  const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
  const style=make('style','.cn-money-dialog{position:fixed;inset:0;margin:auto;width:min(400px,calc(100vw - 28px));max-height:calc(100dvh - 32px);padding:22px;overflow:auto;color:#4b4434;background:#f3ead2;border:2px solid #988156;border-radius:12px}.cn-money-dialog::backdrop{background:#242c2866}.cn-money-dialog h2{font-size:23px;margin:0 32px 16px 0}.cn-money-dialog p,.cn-money-dialog li{font-size:14px;line-height:1.65}.cn-money-dialog button{min-height:44px;padding:10px 15px;border-radius:8px;background:#526750;color:#fff4d8}.cn-money-dialog button:disabled{opacity:.45}.cn-money-dialog button:focus-visible,.cn-money-dialog input:focus-visible{outline:3px solid #9b702e;outline-offset:2px}.cn-money-close{position:absolute;top:6px;right:8px;background:transparent!important;color:#4b4434!important;font-size:22px}.cn-money-balances{padding:12px;background:#e6dcc0;border-radius:8px}.cn-money-actions{display:flex;gap:9px;flex-wrap:wrap;margin:13px 0}.cn-money-dialog label{display:block;font-size:14px}.cn-money-dialog input{display:block;width:100%;min-height:44px;box-sizing:border-box;margin-top:6px;padding:8px;color:#4b4434;background:#fff9e8;border:1px solid #9e8a63;border-radius:7px;font-size:17px}.cn-money-history{padding-left:22px;max-height:180px;overflow:auto}.cn-money-note{color:#736b54;font-size:12px!important}');
  const dialog=make('dialog',undefined,'cn-money-dialog');dialog.setAttribute('aria-label','承光钱庄账簿');(doc.head||doc.body).append(style);doc.body.append(dialog);
@@ -28,7 +28,7 @@ export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,sav
   }
   dialog.append(actions,make('h3','往来账'));
   const history=ledger.history();if(!history.length)dialog.append(make('p','尚无往来账'));
-  else{const list=make('ol',undefined,'cn-money-history');for(const row of history.slice(-12).reverse()){const kind=row.kind||row.type||row.action;list.append(make('li',kind==='open'||kind==='open-account'?'立账 · 不收铜钱':`${kind==='deposit'?'存入':'取出'} ${row.amount} 文`));}dialog.append(list);}
+  else{const list=make('ol',undefined,'cn-money-history');for(const row of history.slice(-12).reverse()){const kind=row.kind||row.type||row.action;list.append(make('li',kind==='open'||kind==='open-account'?'立账 · 不收铜钱':`${({deposit:'存入',withdraw:'取出',earn:'酒楼工钱',reserve:'茶叙预留',settle:'茶叙结清（已预留）',refund:'茶叙退款'})[kind]||'往来'} ${row.amount} 文`));}dialog.append(list);}
   dialog.append(make('p','合上账簿会保留已经记好的账；未按存取按钮的数目不会入账。','cn-money-note'));
  }
  dialog.addEventListener('cancel',e=>{e.preventDefault();close();});

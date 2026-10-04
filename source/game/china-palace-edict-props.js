@@ -43,7 +43,12 @@ export function createPalaceEdictProps(parent){
   seal.position.set(4.60,2.39,-5.06);if(stage==='sealing'){actors.herald.root.updateWorldMatrix(true,true);const right=actors.herald.root.userData.hands?.[1],p=right?right.getWorldPosition(v).clone():hands(actors.herald);p.y-=.13;seal.position.lerp(p,Math.min(1,phase/.4,(2.2-phase)/.4));}
   workProgress=cleaned?1:stage==='sweeping'?ratio(7):stage==='returning'||stage==='complete'?1:0;
   leaves.forEach((leaf,i)=>{const start=new THREE.Vector3(P.sweep[0]+(i%3-1)*.29,.174,P.sweep[2]+(Math.floor(i/3)-1)*.22),end=new THREE.Vector3(P.basket[0]+(i%3-1)*.12,P.basket[1]+.10+Math.floor(i/3)*.035,P.basket[2]+(Math.floor(i/3)-1)*.10);leaf.position.copy(start).lerp(end,Math.max(0,Math.min(1,workProgress*9-i)));});
-  broom.visible=stage==='sweeping';if(broom.visible){actors.recipient.root.updateWorldMatrix(true,true);const h=actors.recipient.root.userData.hands?.[1];broom.position.copy(h?h.getWorldPosition(v):hands(actors.recipient));broom.rotation.set(-.23,actors.recipient.root.rotation.y,paused?0:Math.sin(phase*4)*.20);}
+  broom.visible=stage==='sweeping';if(broom.visible){actors.recipient.root.updateWorldMatrix(true,true);const h=actors.recipient.root.userData.hands?.[1];broom.position.copy(h?h.getWorldPosition(v):hands(actors.recipient));broom.rotation.set(-.23,actors.recipient.root.rotation.y,paused?0:Math.sin(phase*4)*.20);
+   // Keep the handle in the actual palm while bristle tips skim this authored
+   // ground. Fixed shaft length otherwise left Bo's broom about 10 cm aloft.
+   const xY=v.set(1,0,0).applyQuaternion(broom.quaternion).y,yY=v.set(0,1,0).applyQuaternion(broom.quaternion).y,zY=v.set(0,0,1).applyQuaternion(broom.quaternion).y;
+   broom.scale.y=(broom.position.y-P.work[1]-.008-.1525*Math.abs(xY)-.025*Math.abs(zY))/(.98*Math.abs(yY));
+  }
  }
  return {update,state:()=>({documentId,holder,sealed,scrollCount:scroll.visible?1:0,scrollPosition:scroll.visible?scroll.position.toArray():null,workProgress,broomVisible:broom.visible,leafPositions:leaves.map(l=>l.position.toArray())}),dispose(){root.removeFromParent();for(const g of geometries)g.dispose();for(const m of materials.values())m.dispose();}};
 }

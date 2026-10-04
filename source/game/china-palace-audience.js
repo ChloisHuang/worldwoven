@@ -1,14 +1,14 @@
-import * as THREE from 'three';
+import {attachCourtOfficialCostume} from './china-court-official-costume.js';
 import {canTraverse} from './navigation.js';
 
 // Fictional adult officials retain the same seeded identities on every visit.
 export const CHINA_COURT_OFFICIALS=Object.freeze([
- {id:'cn-minister-works',npcName:'顾衡 · 工部官',ageYears:47,npcPosition:[-2,.115,39],courtRole:'works',color:'#697f87'},
- {id:'cn-minister-granary',npcName:'许知远 · 仓务官',ageYears:39,npcPosition:[2,.115,39],courtRole:'granary',color:'#90635b'}
+ {id:'cn-minister-works',npcName:'顾衡 · 工部官',ageYears:47,gender:'male',npcPosition:[-2,.115,39],courtRole:'works',color:'#697f87'},
+ {id:'cn-minister-granary',npcName:'许知远 · 仓务官',ageYears:39,gender:'male',npcPosition:[2,.115,39],courtRole:'granary',color:'#90635b'}
 ]);
 export function courtOfficialAppearance(region,id,look){
  if(region!=='china'||!CHINA_COURT_OFFICIALS.some(r=>r.id===id))return look;
- return {...look,bodyPreset:'masculine-lean',hairStyle:'low-bun',wardrobePreset:'scholar-long-robe',clothes:id==='cn-minister-works'?0x526e7b:0x814b45,accent:0xb49c65};
+ return {...look,bodyPreset:'masculine-lean',hairStyle:'low-bun',wardrobePreset:'court-official-long-robe',clothes:id==='cn-minister-works'?0x526e7b:0x814b45,accent:0xb49c65};
 }
 export const chinaCourtOfficialStations=()=>CHINA_COURT_OFFICIALS.map(r=>({...r,npcOnly:true,name:'承礼门 · 入宫候朝',action:'入宫与朝议',npcAction:'court-duty',npcLabel:'在承礼门外等候朝议',npcRotation:Math.PI,position:r.npcPosition.slice()}));
 const point=a=>({x:a[0],y:a[1],z:a[2]}),near=(p,a,r=.075)=>Math.hypot(p.x-a[0],p.z-a[2])<r&&Math.abs(p.y-a[1])<.32;
@@ -18,15 +18,6 @@ const entry=i=>[[i?1.8:-1.8,.115,35],[i?1.8:-1.8,.115,31],court(i)];
 const enterHall=i=>[[i?2:-2,.13,11],[i?2:-2,1.415,6],[i?1.6:-1.6,1.415,3],hall(i)];
 const departure=i=>[...enterHall(i).slice().reverse(),court(i),[i?1.8:-1.8,.115,31],[i?1.8:-1.8,.115,35],CHINA_COURT_OFFICIALS[i].npcPosition];
 
-function attachOfficialCap(actor){
- const root=new THREE.Group();root.name='Original court official folded cap';actor.root.userData.head.add(root);
- const material=new THREE.MeshToonMaterial({color:0x343637}),edge=new THREE.MeshToonMaterial({color:0x8c794e});
- const add=(geometry,mat,x,y,z)=>{const m=new THREE.Mesh(geometry,mat);m.position.set(x,y,z);root.add(m);return m;};
- add(new THREE.SphereGeometry(.113,12,8),material,0,.264,-.022).scale.set(1,.78,.85);
- add(new THREE.CylinderGeometry(.113,.113,.022,16),edge,0,.218,-.014).scale.z=.86;
- for(const side of[-1,1]){const wing=add(new THREE.BoxGeometry(.135,.032,.035),material,side*.159,.245,-.061);wing.rotation.z=side*.10;}
- return ()=>{root.removeFromParent();root.traverse(o=>o.geometry?.dispose());material.dispose();edge.dispose();};
-}
 
 // The display clock is session-based. A saved, observed midnight advances this
 // small schedule; reopening at the default 10:00 cannot invent a new court day.
@@ -45,7 +36,7 @@ export function createAudienceSchedule(saved={}){
 export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveActor,poseContext,saved={},saveState=()=>{},notify=()=>{}}){
  const officials=CHINA_COURT_OFFICIALS.map(r=>npcs.find(n=>n.station.id===r.id)),emperor=npcs.find(n=>n.station.id==='cn-emperor');
  if(!palace||!emperor||officials.some(n=>!n))return null;
- const owned=new Set(officials),schedule=createAudienceSchedule(saved),caps=officials.map(attachOfficialCap),tasks=new Map(),history=[],failures=[];
+ const owned=new Set(officials),schedule=createAudienceSchedule(saved),caps=officials.map(attachCourtOfficialCostume),tasks=new Map(),history=[],failures=[];
  const navigation={surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4,radius:.25};
  let phase='waiting',time=0,phaseTime=0,disposed=false,state={},speaker=null,utterance='',reported=0;
  const tell=(n,text)=>{const el=n.label?.querySelector?.('small');if(el)el.textContent=text;};
@@ -124,6 +115,6 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
    else if(phase==='departing'&&allArrived()&&!palace.dutyState(OWNER)){tasks.clear();setPhase('waiting');}
   },
   state:()=>({phase,time,phaseTime,schedule:schedule.snapshot(),reported,speaker:speaker?.station.id||null,utterance,history:history.map(e=>({...e})),failures:failures.map(e=>({...e})),actors:officials.map(n=>({id:n.station.id,ageYears:n.station.ageYears,position:n.root.position.toArray(),stage:tasks.get(n)?.id||'waiting',waypoint:tasks.get(n)?.index||0,arrived:tasks.get(n)?.arrived||false,walking:n.walking,paused:paused(n)}))}),
-  dispose(){if(disposed)return;disposed=true;if(!['waiting','departing'].includes(phase)){schedule.finish('interrupted');save();}palace.releaseDuty(OWNER);for(const n of officials)n.route=[];for(const dispose of caps)dispose();}
+  dispose(){if(disposed)return;disposed=true;if(!['waiting','departing'].includes(phase)){schedule.finish('interrupted');save();}palace.releaseDuty(OWNER);for(const n of officials)n.route=[];for(const handle of caps)handle.dispose();}
  };
 }
