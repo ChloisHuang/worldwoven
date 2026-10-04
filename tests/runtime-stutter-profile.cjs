@@ -20,7 +20,9 @@ colliderIndex=__bench.measure('colliderIndex',colliderIndex);
 profileNavigationVersion('patched');
 `;
 const extract=(name,next)=>old.slice(old.indexOf('function '+name+'('),old.indexOf('function '+next+'(',old.indexOf('function '+name+'('))).replace('function '+name+'(','function '+name+'R1644(');
-const extras='\n'+extract('updatePlayer','updateNPCs')+'\n'+extract('updateFurnitureLabels','updatePlayer')+String.raw`
+const intentTest=fs.readFileSync('tests/nearby-interaction-main.cjs','utf8');
+const intentExtras=vm.runInNewContext(intentTest.match(/const extras=([^\n]+);\nharness=/)[1]);
+const extras=intentExtras+'\n'+extract('updatePlayer','updateNPCs')+'\n'+extract('updateFurnitureLabels','updatePlayer')+String.raw`
 export function profileScene(){
  for(const [name,service]of Object.entries({chinaAudience,chinaPalace,chinaClinic,chinaSalon,chinaMoneyHouse,chinaTavern,chinaLabor,chinaEdict,chinaArchery,gameHealth,npcSocial,japanService,japanServiceUI}))if(service?.update)service.update=__bench.measure(name,service.update);
  furniture.isVisible=__bench.measure('furniture.isVisible',furniture.isVisible);
@@ -58,7 +60,9 @@ main.namespace.profilePosition(...spawn);for(let i=0;i<12;i++)main.namespace.pro
 const inspector=require('node:inspector'),session=new inspector.Session();session.connect();const post=(name,params={})=>new Promise((resolve,reject)=>session.post(name,params,(err,result)=>err?reject(err):resolve(result)));await post('Profiler.enable');await post('Profiler.start');
 for(let block=0;block<6;block++){const version=block%2?'original':'patched';cameraProfile.profileCameraVersion(version);navigationProfile.profileNavigationVersion(version);bench.reset();bench.start();const times=[];for(let i=0;i<120;i++){const s=performanceHost.now();main.namespace.profileStep(1/60);times.push(performanceHost.now()-s);}bench.stop();times.sort((a,b)=>a-b);console.log(JSON.stringify({sample:'full-current',version,block,mean:times.reduce((a,b)=>a+b,0)/times.length,p95:times[114],max:times.at(-1),rssMiB:process.memoryUsage().rss/1048576}));bench.report('full-current '+version);await new Promise(resolve=>setImmediate(resolve));}
 const profile=await post('Profiler.stop');fs.writeFileSync('/tmp/worldwoven-stutter.cpuprofile',JSON.stringify(profile.profile));session.disconnect();
+cameraProfile.profileCameraVersion('patched');navigationProfile.profileNavigationVersion('patched');
 console.log('PROFILE_DONE');
 `;
-harness=harness.slice(0,begin)+body+harness.slice(end);harness=harness.replace(/console.log\(JSON.stringify\(\{status:'PASS',scope:'Production controller[\s\S]*?\},null,2\)\);/,'');
+const intentBody=process.env.PROFILE_INTERACTIONS?intentTest.slice(intentTest.indexOf('const body=String.raw`')+String('const body=String.raw`').length,intentTest.indexOf('\n`;')).replace("all.find(e=>e.dataset.region==='china').onclick();ids.travel.onclick();tick(2);",''):'';
+harness=harness.slice(0,begin)+body+'\n{'+intentBody+'}\n'+harness.slice(end);harness=harness.replace(/console.log\(JSON.stringify\(\{status:'PASS',scope:'Production controller[\s\S]*?\},null,2\)\);/,'');
 new vm.Script(harness,{filename:'tests/runtime-stutter-inherited.cjs'}).runInNewContext({require,console,process,Buffer,bench,setImmediate,performanceHost:performance,__dirname:process.cwd()+'/tests',__filename});
