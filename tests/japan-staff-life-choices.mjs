@@ -5,9 +5,9 @@ import {createJapanStaffLife,JAPAN_STAFF_CREW} from '../source/game/japan-staff-
 import {createLifeDecisions} from '../source/game/npc-life-decisions.js';
 import {createJapanServiceOrders} from '../source/game/japan-service-orders.js';
 import {createFacilityQueue} from '../source/game/npc-facilities.js';
-function fixture(saved={},blocked=[]){
- const actors=new Map(JAPAN_STAFF_CREW.slice(0,4).map((id,i)=>[id,{station:{id,npcName:id},home:{toArray:()=>[i,0,0]},root:{position:{x:i,y:0,z:0},userData:{appearance:{}}}}]));
- const tasks=new Map(),facilities=createFacilityQueue(),board=createJapanServiceOrders(),items=[{id:'staff-seat',kind:'seat',center:[-6.8,11.4,-7.45],position:[-6.8,11.4,-8.39]},{id:'staff-bed',kind:'bed',center:[-4.3,11.4,-11.5],position:[-4.3,11.4,-9.18]}];
+function fixture(saved={},blocked=[],{crewIds=JAPAN_STAFF_CREW.slice(0,4),extraItems=[]}={}){
+ const actors=new Map(crewIds.map((id,i)=>[id,{station:{id,npcName:id},home:{toArray:()=>[i,0,0]},root:{position:{x:i,y:0,z:0},userData:{appearance:{}}}}]));
+ const tasks=new Map(),facilities=createFacilityQueue(),board=createJapanServiceOrders(),items=[{id:'staff-seat',kind:'seat',center:[-6.8,11.4,-7.45],position:[-6.8,11.4,-8.39]},{id:'staff-bed',kind:'bed',center:[-4.3,11.4,-11.5],position:[-4.3,11.4,-9.18]},...extraItems];
  const life=createJapanStaffLife({actors,board,worldSeed:1,furniture:{items,facilities,releaseActor:id=>facilities.releaseActor(id)},canReach:(n,to)=>!blocked.includes(to[0]),assign:(n,to,t)=>tasks.set(n.station.id,{...t,to}),clear:n=>tasks.delete(n.station.id),unmount:n=>{n.serviceMount=null;return true;},taskOf:n=>tasks.get(n.station.id),saved:{version:5,next:0,dueIn:0,...saved}});
  const update=(dt=.1)=>life.update(dt,{night:true});
  function done(id){const t=tasks.get(id);assert(t);if(t.mount)actors.get(id).serviceMount=t.mount;t.arrived=true;t.onArrive?.();assert.notEqual(t.onDone?.(),false);if(tasks.get(id)===t)tasks.delete(id);}
@@ -17,7 +17,7 @@ function fixture(saved={},blocked=[]){
 const first=fixture();first.tasks.set('jp-ramen',{orderJobId:'held-tray'});first.update();assert.equal(first.life.state().active.phase,'draining');assert.equal(first.tasks.get('jp-ramen').orderJobId,'held-tray');assert.equal(first.life.state().decisions.people['jp-ramen'].choices,0);first.tasks.clear();
 const a=first.handoff();assert.equal(a.choice.id,'meal');assert.equal(first.life.canWork('jp-sushi'),true);assert.equal(first.board.holdWorkplace('kitchen','jp-sushi'),false);
 const chosen=first.life.snapshot(),random=chosen.decisions.people['jp-ramen'].random;for(let i=0;i<20;i++)first.update();assert.equal(first.life.snapshot().decisions.people['jp-ramen'].random,random,'No per-frame random draws during a commitment');
-first.done(a.id);first.update();assert.equal(first.tasks.get(a.id).mount.id,'staff-seat');first.done(a.id);assert.equal(first.life.state().active.phase,'returning','Meal finishes without mandatory tea or sleep');assert.equal(first.life.meals().length,0);first.update();first.done(a.id);assert.equal(first.life.state().completed,1);assert.equal(first.life.snapshot().decisions.people[a.id].current,null);assert.equal(first.life.snapshot().version,6);first.dispose();
+first.done(a.id);first.update();assert.equal(first.tasks.get(a.id).mount.id,'staff-seat');first.done(a.id);assert.equal(first.life.state().active.phase,'returning','Meal finishes without mandatory tea or sleep');assert.equal(first.life.meals().length,0);first.update();first.done(a.id);assert.equal(first.life.state().completed,1);assert.equal(first.life.snapshot().decisions.people[a.id].current,null);assert.equal(first.life.snapshot().version,7);first.dispose();
 const rested=fixture({next:1});const rest=rested.handoff();assert.equal(rest.choice.id,'rest');assert.equal(rested.tasks.get(rest.id).mount.id,'staff-bed');assert.equal(rested.life.meals().length,0);rested.done(rest.id);assert.equal(rested.life.state().active.phase,'returning','Rest can happen directly, without a meal or tea');rested.update();rested.done(rest.id);rested.dispose();
 const restored=fixture(chosen);const resume=restored.handoff();assert.equal(resume.choice.id,'meal');assert.equal(resume.choice.resumed,true);assert.equal(restored.life.snapshot().decisions.people[resume.id].random,random);restored.dispose();
 const occupied=fixture(chosen);occupied.facilities.prioritize('staff-seat');const filtered=occupied.handoff();assert.notEqual(filtered.choice?.id,'meal','Occupied saved destination must be re-resolved');assert.equal(occupied.facilities.reservation('staff-seat',filtered.id),null);occupied.dispose();
@@ -30,3 +30,23 @@ for(const id of JAPAN_STAFF_CREW)choices.add(model.choose(id,candidates,22).id);
 const saved=model.snapshot(),copy=createLifeDecisions({worldSeed:1,actorIds:JAPAN_STAFF_CREW,saved});assert.deepEqual(copy.choose('jp-welcome',candidates,22),{...model.choose('jp-welcome',candidates,22)});assert.deepEqual(copy.snapshot(),model.snapshot());
 const id='jp-welcome',candidate=model.choose(id,candidates,22);model.complete(id,candidate);copy.complete(id,candidate);model.tick(200);copy.tick(200);assert.deepEqual(copy.choose(id,candidates,12),model.choose(id,candidates,12),'Future random sequence survives reload');
 console.log('PASS W08: varied seeded choices, fixed commitment, v5 migration, saved intention/random replay, occupied/unreachable hard filters, held-tray drain, real handoff gate, chosen activity → duty, cancellation → covered return');
+
+// Independent due clocks survive both an additional coverage pair and reload.
+const four=fixture(),six=fixture({},[],{crewIds:JAPAN_STAFF_CREW.slice(0,6)});
+for(const id of JAPAN_STAFF_CREW.slice(0,4))assert.equal(four.life.snapshot().breakDue[id],six.life.snapshot().breakDue[id]);
+const fourBreak=four.handoff(),sixBreak=six.handoff();assert.equal(fourBreak.choice.id,sixBreak.choice.id);assert.equal(fourBreak.choice.duration,sixBreak.choice.duration);
+const sixSaved=six.life.snapshot(),sixRestored=fixture(sixSaved,[],{crewIds:JAPAN_STAFF_CREW.slice(0,6)});sixRestored.update();
+assert.deepEqual(sixRestored.life.snapshot().breakDue,sixSaved.breakDue,'Night reload retains independent due clocks');
+for(const f of [four,six,sixRestored])f.dispose();
+// Additional real stools expand target choice without inflating meal action mass.
+const extraSeat={id:'staff-seat-b',kind:'seat',center:[-6.8,11.4,-7.45],position:[-6.7,11.4,-8.39]},base=fixture(),moreSeats=fixture({},[],{extraItems:[extraSeat,{...extraSeat}]});
+const baseChoice=base.handoff().choice,extraChoice=moreSeats.handoff().choice;
+assert.equal(baseChoice.id,extraChoice.id);assert.equal(baseChoice.duration,extraChoice.duration);
+assert(['staff-seat','staff-seat-b'].includes(extraChoice.facilityId));
+assert.equal(moreSeats.facilities.state().filter(f=>f.reservations.length).length,1,'Only the chosen destination is reserved');
+base.dispose();moreSeats.dispose();
+// A nearby idle colleague does not become a fictional conversation partner.
+const solo=fixture({},[-6.8,-4.3]);Object.assign(solo.actors.get('jp-welcome').root.position,{x:-3.2,y:11.4,z:5.25});
+const soloChoice=solo.handoff().choice;assert.equal(soloChoice.id,'tea');assert.equal(soloChoice.relationship,null);
+solo.done('jp-ramen');assert.deepEqual(solo.life.snapshot().decisions.people['jp-ramen'].relations,{});assert.deepEqual(solo.life.snapshot().decisions.people['jp-welcome'].opinions,{});solo.dispose();
+console.log('PASS: per-worker clock/population invariance, reload, facility target multiplicity, and no social credit for co-presence');
