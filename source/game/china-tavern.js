@@ -1,3 +1,4 @@
+import {buildTavernKitchen} from './china-tavern-kitchen.js';
 import {tavernPlaque} from './china-tavern-lettering.js';
 import {buildChinaRoyalChair} from './china-royal-seating.js';
 
@@ -6,11 +7,11 @@ import {buildChinaRoyalChair} from './china-royal-seating.js';
 export const CHINA_TAVERN=Object.freeze({
  id:'yunlai-house',name:'云来酒楼 · 客栈 · 青楼',storeys:3,
  bounds:{minX:16,maxX:26,minZ:8,maxZ:21},
- floors:[{y:.215,ceiling:3.77,name:'一层酒楼',rooms:['tavern-dining','tavern-hall-1']},{y:4.015,ceiling:7.57,name:'二层客栈',rooms:['tavern-guest-lan','tavern-guest-zhu','tavern-hall-2']},{y:7.815,ceiling:11.57,name:'三层青楼',rooms:['tavern-performance','tavern-banquet','tavern-hall-3']}],
+ floors:[{y:.215,ceiling:3.77,name:'一层酒楼',rooms:['tavern-dining','tavern-kitchen','tavern-hall-1']},{y:4.015,ceiling:7.57,name:'二层客栈',rooms:['tavern-guest-lan','tavern-guest-zhu','tavern-hall-2']},{y:7.815,ceiling:11.57,name:'三层青楼',rooms:['tavern-performance','tavern-banquet','tavern-hall-3']}],
  stairHall:{minX:16,maxX:26,minZ:8,maxZ:15.2,crossPassage:{minZ:13.4,maxZ:15.2,width:1.8}},
  guestRooms:['tavern-guest-lan','tavern-guest-zhu'],adultVenue:true,
- implemented:['public stairs','dining seats','two private furnished guest rooms','guest beds','guest wardrobes','listening seats','adult poetry recital','host tea and room rounds'],
- pending:['inn booking and payment','meal ordering and delivery','qin playing and dance choreography','relationship invitations','age/family access rules']
+ implemented:['public stairs','dining seats','two private furnished guest rooms','guest beds','guest wardrobes','listening seats','adult poetry recital','host meal orders and clearing','physical kitchen and table delivery'],
+ pending:['inn booking and payment','qin playing and dance choreography','relationship invitations','age/family access rules']
 });
 
 export function buildChinaTavern(G,A){
@@ -83,7 +84,8 @@ export function buildChinaTavern(G,A){
  wall(g0,'x',15.2,16,26,.215,3.77,[opening('cn-tavern-dining-hall','酒楼与公共梯厅','x',15.2,20.0,23.0,.215,['tavern-dining','tavern-hall-1'])]);
  room('tavern-dining','云来一层酒楼',16,26,15.2,21,.215,3.77);
  for(const[x,z]of[[18.1,18.1],[23.9,18.1]]){const top=table(g0,x,.215,z,1.45,1.12,.90);H.teaSet(g0,x,top,z,0xb9c7ac);H.bowl(g0,x-.35,top,z+.24,0xf1dfbb,.18);for(const[side,yaw]of[[-1,0],[1,Math.PI]])chair(g0,'china-tavern-dining-'+x+'-'+side,'酒楼雕花餐椅',x,.215,z+side*1.32,yaw);}
- const counter=table(g0,24.35,.215,10.10,2.5,.78,1.0);H.teaSet(g0,24.25,counter,10.10,0xa8b0a0);H.boundBook(g0,23.6,counter,10.1,.55,.40,0x667b6b);for(const x of[23.65,24.35,25.05]){G.vessel(g0,x,.33,8.70,0x7e5c3f,.56);G.box(g0,x,.89,8.70,.21,.12,.21,C.red);}
+ const counter=table(g0,24.35,.215,10.34,2.5,.78,1.0);H.teaSet(g0,23.50,counter,10.34,0xa8b0a0);buildTavernKitchen(G,{group:g0,block,table,H});
+ room('tavern-kitchen','云来酒楼 · 后厨备餐间',21.95,26,8,10.65,.215,3.77);
  sign(g0,'云来酒楼',21,3.23,21.24,3.45,.61);
  sign(g0,'云来酒楼',15.76,3.13,13.4,3.20,.59,-Math.PI/2);
  target('cn-tavern-dining','酒楼中央过道',[21,.215,18.2],'tavern-dining');
@@ -136,7 +138,8 @@ export function buildChinaTavern(G,A){
  H.palaceRoof(roof,21,11.83,14.5,11.65,14.75,1.55,0x4f7774);
  H.palaceRoof(roof,21,13.20,14.5,5.1,11.1,.82,0x4f7774);
  // No ground porch or column projects west into the accepted x14.9 patrol.
- stations.push({id:'cn-tavern-host',name:'云来酒楼 · 迎客茶案',action:'和掌柜品茶',position:[22.35,.215,11.7],npcPosition:[24.1,.215,11.40],workTarget:[24.1,1.32,10.68],npcName:'许安',npcAction:'tea',npcLabel:'掌柜 · 温茶迎客',npcRotation:Math.PI,route:[[23.6,.215,13.95],[21,.215,18.1]],color:'#bd8b58',age:38,dialogue:'云来楼一层用饭，二层客房，三层雅集。客榻可以暂歇，正式订房和点单还未开办。'});
+ stations.push({id:'cn-tavern-host',name:'云来酒楼 · 迎客茶案',action:'看看酒楼菜牌',position:[22.35,.215,11.7],npcPosition:[24.1,.215,11.40],workTarget:[24.1,1.32,10.68],npcName:'许安',npcAction:'tea',npcLabel:'掌柜 · 迎客点菜',npcRotation:Math.PI,route:[[23.6,.215,13.95],[21,.215,18.1]],color:'#bd8b58',age:38,dialogue:'云来楼一层用饭，二层客房，三层雅集。客榻可以暂歇，坐到餐椅后招呼我，今日有云来菌菇饭。客房先供暂歇，订房账册还未开。'});
+ stations.push({id:'cn-tavern-cook',name:'云来酒楼 · 后厨',npcOnly:true,action:'照料灶火',position:[23.3,.215,9.36],npcPosition:[23.3,.215,9.36],workTarget:[23.3,1.29,8.86],npcName:'沈禾',npcAction:'cook',npcLabel:'厨师 · 备菜候单',npcRotation:Math.PI,color:'#6f8470',age:32,ageYears:32,dialogue:'今日菌菇新鲜。掌柜报了桌位，我便动手，热饭要趁热端去。'});
  stations.push({id:'cn-tavern-reciter',name:'顶层青楼 · 成年诗乐雅集',action:'听诗词吟诵',playerAction:'relax',position:[20.70,7.815,18.25],npcPosition:[18.8,7.815,18.66],workTarget:[18.8,8.98,17.9],playerWorkTarget:[18.8,9.02,18.66],npcName:'柳清弦',npcAction:'read',npcLabel:'成年艺者 · 诵词与歇场',npcRotation:Math.PI,route:[[20.55,7.815,19.35],[23.1,7.815,14.1]],color:'#ab7287',age:27,dialogue:'这里先有诗词吟诵和茶叙。琴案可观赏，奏琴与舞步还在排练；请在前方听席稍坐。'});
  root.traverse(o=>{if(o.userData.nightFixture)o.userData.nightFixture.dayFactor=.48;});
  buildings.push({id:CHINA_TAVERN.id,name:CHINA_TAVERN.name,groupName:root.name,roofGroupName:roof.name,bounds:CHINA_TAVERN.bounds,storeys:3,roomIds:CHINA_TAVERN.floors.flatMap(f=>f.rooms)});
