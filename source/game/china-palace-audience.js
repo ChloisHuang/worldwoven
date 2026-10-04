@@ -57,7 +57,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
   // A safe clear segment to the authored waypoint takes priority over the
   // grid's initial link, which can sit behind a person already in the doorway.
   // Every wall, current door leaf and other body still blocks this segment.
-  const direct=Math.abs(n.root.position.y-target[1])<.32&&canTraverse(n.root.position,point(target),lot.colliders.concat(safety(n)),navigation);
+  const direct=Math.abs(n.root.position.y-target[1])<.32&&canTraverse(n.root.position,point(target),lot.colliders,navigation,safety(n));
   const step=direct?{waypoint:point(target)}:doors.routeStep(n.route,n.root.position,.025);
   if(!step.waiting&&step.waypoint){
    const p=step.waypoint,dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz);
@@ -66,7 +66,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
    if(block){
     // Give the existing guards, royals and player the passage. The two court
     // lanes are separate, with a checked side-step for unforeseen encounters.
-    if(!s.yieldPoint&&(!owned.has(block.actor)||n.station.id>block.actor.station.id))for(const sign of[1,-1]){const aside=[n.root.position.x+sign*dz/d*.85,n.root.position.y,n.root.position.z-sign*dx/d*.85];if(canTraverse(n.root.position,point(aside),lot.colliders.concat(safety(n)),navigation)){s.yieldPoint=aside;s.yieldTo=block.actor;s.planned=false;record('yield-passage',n);break;}}
+    if(!s.yieldPoint&&(!owned.has(block.actor)||n.station.id>block.actor.station.id))for(const sign of[1,-1]){const aside=[n.root.position.x+sign*dz/d*.85,n.root.position.y,n.root.position.z-sign*dx/d*.85];if(canTraverse(n.root.position,point(aside),lot.colliders,navigation,safety(n))){s.yieldPoint=aside;s.yieldTo=block.actor;s.planned=false;record('yield-passage',n);break;}}
     s.stalled=0;return false;
    }
    if(d>1e-10){const before=n.root.position.clone(),amount=Math.min(d,dt*n.locomotion.walkSpeed*.78);moveActor(n,dx/d*amount,dz/d*amount,.25);n.walking=before.distanceToSquared(n.root.position)>1e-9;n.root.rotation.y=Math.atan2(dx,dz);}

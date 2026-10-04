@@ -4,7 +4,11 @@ export function cameraDistanceToObstacle(target,desired,boxes,radius=.18){
  // This sweep runs for camera, interaction and health sight lines. Avoid
  // allocating a Vector3 plus four axis arrays for every tested world box.
  const dx=desired.x-target.x,dy=desired.y-target.y,dz=desired.z-target.z,length=Math.sqrt(dx*dx+dy*dy+dz*dz);if(length<.001)return 0;let fraction=1,obstructed=false;
+ const minX=Math.min(target.x,desired.x),maxX=Math.max(target.x,desired.x),minY=Math.min(target.y,desired.y),maxY=Math.max(target.y,desired.y),minZ=Math.min(target.z,desired.z),maxZ=Math.max(target.z,desired.z);
  for(const b of boxes||[]){
+  // Most solids are in a different room. Reject disjoint segment bounds
+  // before the exact slab sweep; touching bounds still reach the exact test.
+  if(b.minX<=b.maxX&&(b.minX-radius>maxX||b.maxX+radius<minX)||b.minY<=b.maxY&&(b.minY-radius>maxY||b.maxY+radius<minY)||b.minZ<=b.maxZ&&(b.minZ-radius>maxZ||b.maxZ+radius<minZ))continue;
   let lo=0,hi=1,a=b.minX-radius,c=b.maxX+radius;
   if(!Number.isFinite(a)||!Number.isFinite(c))continue;
   if(Math.abs(dx)<1e-8){if(target.x<a||target.x>c)continue;}else{let t1=(a-target.x)/dx,t2=(c-target.x)/dx;if(t1>t2){const swap=t1;t1=t2;t2=swap;}lo=Math.max(lo,t1);hi=Math.min(hi,t2);if(lo>hi)continue;}
