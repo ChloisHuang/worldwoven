@@ -58,6 +58,11 @@ function additionalSeats(lot,region){
   ['迎宾木长椅',-9.2,0,3.1,3.5],['更衣室木长椅',-3.1,3.8,2.05,2.35],['更衣室木长椅',.15,3.8,2.05,1.6],
   ['浴室木长椅',-4.2,3.8,-3.1,3],['浴室木长椅',1.35,3.8,-3.1,2.3],['休息廊木长椅',-7.7,3.8,7.55,4],['休息廊木长椅',4.9,3.8,7.55,3.1],
   ['事务室木长椅',-7.1,11.4,4.2,3.2],['员工室木长椅',-6.8,11.4,-7.45,3.3],['庭园木长椅',-23.2,0,14.7,6.9]])add(name,x,y,z,(z===7.55||z===-7.45)?Math.PI:0,w,.6,y+.565,.16);
+ // Existing ground-floor woven stools: approach from the open customer aisle,
+ // then face the counter. These remain in the ordinary shared seat inventory.
+ if(region==='japan')for(const [dish,xs,z,seatY]of[['sushi',[-7.68,-6.56,-5.44,-4.32],-1.29,.719],['ramen',[2.65,4.1,5.55],4.75,.739]])for(const [i,x]of xs.entries()){
+  seats.push({id:`japan-dining-${dish}-${i+1}`,name: dish==='sushi'?'一层寿司吧台藤凳':'一层拉面吧台藤凳',diningKind:dish,center:[x,0,z],anchor:[x,0,z+.10],position:[x,0,z+.94],yaw:Math.PI,seatY,size:[.62,1.65,.62]});
+ }
  if(region==='egypt')add('王室餐厅东侧坐凳',20.65,0,-9.3,Math.PI/2,1.02,1.02,.66,.44);
  return seats;
 }

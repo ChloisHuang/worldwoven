@@ -8,6 +8,8 @@ export const JAPAN_SERVICE_POINTS = Object.freeze({
  apothecary:[-5.25,11.4,-1.6], apothecaryPickup:[-4.35,11.4,-2.6], mixtureTray:[-5.0,12.60,-2.15],
  blendWork:[-5.20,12.60,-2.10],
  kitchen:[2.1,0,-12.15], kitchenPickup:[3.35,0,-12.15], mealTray:[3.35,1.20,-13.4],
+ sushiKitchen:[-6.6,0,-12.15], sushiPickup:[-5.35,0,-12.15], sushiTray:[-5.35,1.20,-13.65],
+ sushiCounter:[-6,0,-.25], ramenCounter:[4.1,0,5.7],
  menService:[-4.2,3.8,-2.16], womenService:[1.35,3.8,-2.16],
  menReceive:[-3.3,3.8,-2.16], womenReceive:[2.25,3.8,-2.16],
  menChanging:[-9.92,3.8,2.4], womenChanging:[5.15,3.8,2.4],
@@ -17,6 +19,10 @@ export const JAPAN_SERVICE_POINTS = Object.freeze({
 export const JAPAN_BATH_BLENDS = Object.freeze([
  {id:'cloud-leaf',name:'云叶浴包',color:0x819c76},
  {id:'lantern-petal',name:'灯花浴包',color:0xc79080},
+]);
+export const JAPAN_DINING_MENU=Object.freeze([
+ {id:'sushi',name:'寿司拼盘',price:8,counter:'sushiCounter'},
+ {id:'ramen',name:'热汤拉面',price:6,counter:'ramenCounter'},
 ]);
 // Bath duty follows the assigned service side, not a resident's appearance.
 export const JAPAN_BATH_CREWS = Object.freeze({men:['jp-onsen','jp-steam'],women:['jp-women-onsen','jp-rest']});
@@ -33,19 +39,21 @@ const active=v=>!['departed','cancelled'].includes(v.stage);
 const near=(p,q,r=.34)=>Array.isArray(p)&&Array.isArray(q)&&p.length===3&&p.every(Number.isFinite)&&Math.hypot(p[0]-q[0],p[2]-q[2])<=r&&Math.abs(p[1]-q[1])<.4;
 const service=v=>v.side==='men'?'menService':'womenService';
 const reception=v=>v.customerType==='player'?JAPAN_SERVICE_POINTS.playerReception:JAPAN_SERVICE_POINTS.reception;
-const sourceOf=kind=>kind==='mixture'?'apothecaryPickup':kind==='meal'?'kitchenPickup':'reception';
+const mealSource=v=>v.dishId==='sushi'?'sushiPickup':'kitchenPickup';
+const sourceOf=item=>item.kind==='mixture'?'apothecaryPickup':item.kind==='meal'?mealSource(item):'reception';
 
 export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},capacity=2}={}) {
- const state={version:1,worldSeed:worldSeed>>>0,nextVisit:1,completed:0,cancelled:0,visits:[],items:[]};
+ const state={version:1,worldSeed:worldSeed>>>0,nextVisit:1,completed:0,cancelled:0,visits:[],items:[],diningReceipts:[]};
  if(saved?.version===1&&saved.worldSeed===(worldSeed>>>0)) {
   state.nextVisit=Math.max(1,Number.isSafeInteger(saved.nextVisit)?saved.nextVisit:1);
   state.completed=Math.max(0,saved.completed|0);state.cancelled=Math.max(0,saved.cancelled|0);
+  state.diningReceipts=clone((saved.diningReceipts||[]).slice(-24));
   state.visits=clone((saved.visits||[]).filter(v=>active(v)&&typeof v.id==='string'));
   const ids=new Set(state.visits.map(v=>v.id));
   state.items=clone((saved.items||[]).filter(i=>ids.has(i.visitId)));
   // A carrier and a bath reservation are scene-local. Restore the exact same
   // visit and order, returning an interrupted carried tray to its source.
-  for(const item of state.items)if(item.location?.type==='worker')item.location={type:'point',id:sourceOf(item.kind)};
+  for(const item of state.items)if(item.location?.type==='worker')item.location={type:'point',id:sourceOf(item)};
   for(const v of state.visits) {
    if(v.stage==='bathing')v.stage='waiting-bath';
    if(v.customerType==='player')v.present=false;
@@ -60,7 +68,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
  const visit=id=>visits.get(id);
  const item=id=>items.get(id);
  const addItem=(v,kind,location)=>{
-  const result={id:`${v.id}:${kind}`,visitId:v.id,tokenId:v.tokenId,kind,blendId:v.blendId,location};
+  const result={id:`${v.id}:${kind}`,visitId:v.id,tokenId:v.tokenId,kind,blendId:v.blendId,dishId:v.dishId||'ramen',location};
   items.set(result.id,result);state.items.push(result);return result;
  };
  const descriptor=(v,kind,from,to,resource,extra={})=>({id:`${v.id}:${kind}`,visitId:v.id,kind,from,to,resource,...extra});
@@ -73,9 +81,9 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
    // The small apothecary has one dispatch corner. A second carrier remains at
    // their own post until the first complete dispatch releases that workspace.
    if(mix&&mix.location.id!==service(v)&&mix.location.type!=='used')result.push(descriptor(v,'deliverMix','apothecaryPickup',service(v),'apothecary-dispatch',{itemId:mix.id,tokenId:v.tokenId,side:v.side}));
-   if(v.mealRequested&&!v.mealId)result.push(descriptor(v,'cook','kitchen','kitchen','kitchen'));
+   if(v.mealRequested&&!v.mealId){const kitchen=v.dishId==='sushi'?'sushiKitchen':'kitchen';result.push(descriptor(v,'cook',kitchen,kitchen,'kitchen'));}
    const meal=item(v.mealId);
-   if(meal&&['point','worker'].includes(meal.location.type)&&meal.location.id!=='dining'&&(v.customerType!=='player'||v.diningPresent))result.push(descriptor(v,'serve','kitchenPickup','dining',null,{itemId:meal.id,tokenId:v.tokenId}));
+   if(meal&&['point','worker'].includes(meal.location.type)&&meal.location.id!=='dining'&&(v.customerType!=='player'||v.diningPresent))result.push(descriptor(v,'serve',mealSource(v),'dining',null,{itemId:meal.id,tokenId:v.tokenId}));
    if(v.stage==='checkout-ready')result.push(descriptor(v,'checkout','registrar','registrar','reception'));
   }
   return result;
@@ -113,18 +121,20 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
    v.mixtureId=addItem(v,'mixture',{type:'point',id:'apothecaryPickup'}).id;
   }else if(job.kind==='deliverMix'||job.kind==='serve') {
    const cargo=item(job.itemId);
-   if(!cargo||evidence.itemId!==cargo.id||evidence.tokenId!==v.tokenId||cargo.tokenId!==v.tokenId||cargo.location.type!=='worker'||cargo.location.id!==workerId)return false;
+   if(!cargo||cargo.visitId!==v.id||evidence.itemId!==cargo.id||evidence.tokenId!==v.tokenId||cargo.tokenId!==v.tokenId||cargo.location.type!=='worker'||cargo.location.id!==workerId)return false;
    if(job.kind==='serve'&&(v.stage!=='waiting-meal'||!near(evidence.guestPosition,v.diningPoint,.8)))return false;
    cargo.location={type:'point',id:job.to};
    if(job.kind==='serve')v.stage=v.customerType==='player'?'meal-ready':'eating';
   }else if(job.kind==='cook') {
-   v.mealId=addItem(v,'meal',{type:'point',id:'kitchenPickup'}).id;
+   v.mealId=addItem(v,'meal',{type:'point',id:mealSource(v)}).id;
   }else if(job.kind==='checkout') {
    if(evidence.tokenId!==v.tokenId||item(v.tokenId)?.location.type!=='guest')return false;
    item(v.tokenId).location={type:'point',id:'reception'};v.stage=v.customerType==='player'?'departed':'leaving';if(v.customerType==='player')state.completed++;
   }
+  if(v.orderKind==='dining'){v.participants??={};v.participants[job.kind]=workerId;}
   dropClaim(jobId);persist();return true;
  }
+ function receipt(v,outcome){if(v.orderKind!=='dining'||state.diningReceipts.some(r=>r.id===v.id))return;state.diningReceipts.push({id:v.id,dishId:v.dishId,paymentId:v.paymentId,participants:clone(v.participants||{}),outcome});state.diningReceipts=state.diningReceipts.slice(-24);}
  function guestStep(id,event,evidence={}) {
   if(disposed)return false;
   const v=visit(id);if(!v||!active(v))return false;
@@ -141,13 +151,21 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   if(event==='sat-to-eat'&&v.stage==='dining'&&near(evidence.position,v.diningPoint,.8))next='waiting-meal';
   if(event==='begin-eating'&&v.customerType==='player'&&v.stage==='meal-ready'&&near(evidence.position,v.diningPoint,.8))next='eating';
   if(event==='eating-interrupted'&&v.customerType==='player'&&v.stage==='eating')next='meal-ready';
-  if(event==='ate'&&v.stage==='eating'&&item(v.mealId)?.location.id==='dining'&&near(evidence.position,v.diningPoint,.8)) {next='checkout';item(v.mealId).location={type:'used',id:v.id};}
+  if(event==='ate'&&v.stage==='eating'&&item(v.mealId)?.location.id==='dining'&&near(evidence.position,v.diningPoint,.8)) {next=v.orderKind==='dining'?'departed':'checkout';item(v.mealId).location={type:'used',id:v.id};if(v.orderKind==='dining'){state.completed++;receipt(v,'ate');}}
   if(event==='returned-to-desk'&&v.stage==='checkout'&&near(evidence.position,reception(v)))next='checkout-ready';
   if(event==='left'&&v.stage==='leaving'&&near(evidence.position,JAPAN_SERVICE_POINTS.departure)){next='departed';state.completed++;}
   if(!next)return false;
   v.stage=next;if(evidence.position)v.position=evidence.position.slice();persist();return true;
  }
  return {
+  spawnDining({appearance,dishId,position,restPoint,diningPoint,servePoint,mealPoint,restSeatId,paymentId}={}) {
+   const dish=JAPAN_DINING_MENU.find(d=>d.id===dishId),points=[position,restPoint,diningPoint,servePoint,mealPoint];
+   if(disposed||state.visits.some(v=>active(v)&&v.customerType==='player'))return null;
+   if(!dish||!appearance||typeof paymentId!=='string'||!paymentId.startsWith('jp-dining-')||typeof restSeatId!=='string'||points.some(p=>!Array.isArray(p)||p.length!==3||!p.every(Number.isFinite)))return null;
+   const number=state.nextVisit++,id=`jp-player-dining-${state.worldSeed}-${number}`;
+   const v={id,number,name:'你',appearance:clone(appearance),customerType:'player',orderKind:'dining',present:true,dishId,price:dish.price,paymentId,participants:{},stage:'waiting-meal',position:position.slice(),restPoint:restPoint.slice(),diningPoint:diningPoint.slice(),servePoint:servePoint.slice(),mealPoint:mealPoint.slice(),restSeatId,tokenId:null,mixtureId:null,mealRequested:true,mealId:null,seatId:null,diningPresent:false};
+   visits.set(id,v);state.visits.push(v);persist();return clone(v);
+  },
   spawn({side,appearance,name,restPoint,diningPoint,servePoint,restSeatId,blendId,customerType='npc',position=JAPAN_SERVICE_POINTS.arrival}={}) {
    customerType=customerType==='player'?'player':'npc';
    if(disposed||state.visits.filter(v=>active(v)&&(v.customerType||'npc')===customerType).length>=(customerType==='player'?1:capacity))return null;
@@ -200,13 +218,13 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
    const v=visit(id);if(disposed||!v||!active(v))return false;
    for(const job of [...claims.values()])if(job.visitId===id)dropClaim(job.id);
    for(const cargo of state.items)if(cargo.visitId===id)cargo.location={type:'cancelled',id};
-   v.stage='cancelled';v.cancelReason=reason;v.seatId=null;state.cancelled++;persist();return true;
+   v.stage='cancelled';v.cancelReason=reason;v.seatId=null;state.cancelled++;receipt(v,reason);persist();return true;
   },
   forgetFinished(visitIds=null) {
    const finished=new Set(state.visits.filter(v=>!active(v)&&(!visitIds||visitIds.includes(v.id))).map(v=>v.id));
    for(const id of finished)visits.delete(id);
    for(const cargo of state.items)if(finished.has(cargo.visitId))items.delete(cargo.id);
-   state.visits=state.visits.filter(active);state.items=state.items.filter(i=>!finished.has(i.visitId));persist();
+   state.visits=state.visits.filter(v=>!finished.has(v.id));state.items=state.items.filter(i=>!finished.has(i.visitId));persist();
   },
   // Save safe walking positions periodically, not per rendered frame. No locks.
   checkpoint(positions={}) {for(const v of state.visits)if(active(v)&&Array.isArray(positions[v.id])&&positions[v.id].length===3&&positions[v.id].every(Number.isFinite))v.position=positions[v.id].slice();persist();},
