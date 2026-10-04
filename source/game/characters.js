@@ -99,7 +99,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   let low=Infinity;for(let i=range.start;i<range.start+range.count;i++){tmp.fromBufferAttribute(geometry.attributes.position,i).sub(rest[9]).applyQuaternion(onsenLapPalmQ);const depth=tmp.dot(onsenLapNormal);if(depth<low){low=depth;onsenPalmContact.offset.copy(tmp);onsenPalmContact.index=i;}}
  }}
  if(culture==='japan'&&wardrobePreset==='onsen-swimwear')fitOnsenPalmContact();
- let lastTime=null,wasWalking=false,gaitPhase=0,disposed=false,initializedFeet=false,currentAction=null,visualFloorOffset=0,previousYaw=0;
+ let lastTime=null,wasWalking=false,gaitPhase=0,disposed=false,initializedFeet=false,currentAction=null,wasBathTransition=false,visualFloorOffset=0,previousYaw=0;
  const socialLook={yaw:0,pitch:0,weight:0};
  const metrics={height,labelHeight:height+.16,headHeight:1.61*root.scale.y,action:null,seated:false,grounded:true,feet:[[],[]],hands:[[],[]]};
  root.userData={characterR9:true,characterR10:true,locomotion,appearance:{skin:opts.skin,hair:opts.hair,clothes:opts.clothes,accent:opts.accent,eyeColor:opts.eyeColor,culture,variant,style,bodyPreset,hairStyle,wardrobePreset,gaitPreset,shapeTraits:{...shapeTraits}},body:rig,head:bones[3],arms:[bones[4],bones[7]],forearms:[bones[5],bones[8]],hands:[bones[6],bones[9]],legs:[bones[10],bones[13]],knees:[bones[11],bones[14]],feet:[bones[12],bones[15]],tools:props.tools,poseQA:metrics,labelHeight:metrics.labelHeight,characterShared:true};
@@ -277,7 +277,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   if(disposed)return;visualFloorOffset=Number.isFinite(context?.visualFloorOffset)?clamp(context.visualFloorOffset,0,.5):0;rig.rotation.set(0,0,0);rig.position.set(0,visualFloorOffset/root.scale.y,0);time=Number.isFinite(time)?time:0;walking=!!walking;if(walking)action=null;resetTools();
   const rawDt=lastTime===null?0:time-lastTime,dt=clamp(rawDt,0,.2);root.updateWorldMatrix(true,false);root.getWorldPosition(rootWorld);velocity.copy(rootWorld).sub(previousRoot);const travel=Math.hypot(velocity.x,velocity.z),headingDelta=Math.atan2(Math.sin(root.rotation.y-previousYaw),Math.cos(root.rotation.y-previousYaw)),discontinuity=rawDt>.25||rawDt<0||travel>=1.2||Math.abs(headingDelta)>.85;const physical=!discontinuity&&dt>0&&travel>.000001;
   if(physical)velocity.multiplyScalar(1/dt);else velocity.set(0,0,0);
-  const poseChanged=currentAction!==action;const mountedPose=action==='lie-rest'||action==='bathe';const supportedOnsen=action==='bathe'&&culture==='japan'&&wardrobePreset==='onsen-swimwear'&&context?.bathPose?.style==='onsen-seat';const leavingSeat=['kotatsu','chair-sit','lie-rest','bathe'].includes(currentAction)&&action!==currentAction;
+  const poseChanged=currentAction!==action||(wasBathTransition&&!context?.bathTransition);wasBathTransition=!!context?.bathTransition;const mountedPose=action==='lie-rest'||action==='bathe';const supportedOnsen=action==='bathe'&&culture==='japan'&&wardrobePreset==='onsen-swimwear'&&context?.bathPose?.style==='onsen-seat';const leavingSeat=['kotatsu','chair-sit','lie-rest','bathe'].includes(currentAction)&&action!==currentAction;
   if(supportedOnsen&&poseChanged){onsenHip=context.bathHipHeight??.32;onsenBackOffset=0;onsenArmLift=0;supportCorrection=0;onsenLapPoint.set(.09,.40,.23);}
   if(discontinuity||leavingSeat){initializedFeet=false;for(let s=0;s<2;s++){lastFootWorld[s].set(s?.089:-.089,.108,-.025).applyMatrix4(root.matrixWorld);lastFootWorld[s].y+=visualFloorOffset;}wasWalking=false;}
   currentAction=action;metrics.action=action;metrics.gaitReset=discontinuity||leavingSeat;metrics.seated=action==='kotatsu'||action==='chair-sit'||action==='bathe';metrics.lying=action==='lie-rest';metrics.bathing=action==='bathe';
@@ -545,7 +545,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
     reach(side,tmp.x,tmp.y,tmp.z);posedQ[hand].slerp(onsenLapPalmQ,transfer.handWeight);
    }
    for(const [i,j]of[[16,11],[17,14]]){posedP[i].copy(posedP[j]);posedQ[i].copy(posedQ[j]);}
-   for(let i=0;i<posedP.length;i++){posedP[i].lerp(transferP[i],transfer.seatBlend);posedQ[i].slerp(transferQ[i],transfer.seatBlend);}
+   for(let i=0;i<posedP.length;i++){posedP[i].lerp(transferP[i],transfer.seatBlend);posedP[i].z+=Math.sin(Math.PI*transfer.seatBlend)*.03/root.scale.z;posedQ[i].slerp(transferQ[i],transfer.seatBlend);}
    // Hands and elbows arc above and inward of the timber as support changes.
    for(const i of[5,6,8,9]){const lift=Math.sin(Math.PI*transfer.seatBlend);posedP[i].y+=lift*.10/root.scale.y;posedP[i].z+=lift*.07/root.scale.z;}
    for(const ids of[[4,5,6],[7,8,9]]){orient(ids[0],ids[1],posedP[ids[1]]);orient(ids[1],ids[2],posedP[ids[2]]);}
