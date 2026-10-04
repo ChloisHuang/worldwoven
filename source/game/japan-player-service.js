@@ -124,13 +124,13 @@ export function createJapanPlayerService({board,furniture,getPlayer,getMounted=(
    if(v.mealRequested)board.setPlayerDiningPresent(v.id,mounted?.id===v.restSeatId&&near(p,v.diningPoint,.8));
    if(deskRequest&&['arriving','checkout'].includes(v.stage))desk(v);
    if(!['arriving','check-in','checkout','checkout-ready'].includes(v.stage)){releaseDesk(v);deskRequest=false;}
-   if(v.stage==='waiting-bath'&&mounted?.kind==='bath'&&api.bathAccess(mounted).allowed){
+   if(v.stage==='waiting-bath'&&!mounted?.transitioning&&mounted?.kind==='bath'&&api.bathAccess(mounted).allowed){
     const r=furniture.facilities.reservation?.(v.poolId,'player');
     if(r?.seatId===mounted.id&&r.status==='occupied'&&board.guestStep(v.id,'bath-mounted',{poolId:v.poolId,seatId:mounted.id,position:mounted.position})){soak=0;soakSeat=mounted.id;}
    }
    v=visit();
    if(v.stage==='bathing') {
-    if(mounted?.id===v.seatId){soak=Math.min(10,soak+dt);soakSeat=v.seatId;}
+    if(mounted?.id===v.seatId){soak=Math.min(10,soak+(mounted.transitioning?0:dt));soakSeat=v.seatId;}
     else{board.guestStep(v.id,soak>=10?'bathed':'bath-interrupted',{seatId:soakSeat||v.seatId,position:p});soak=0;soakSeat=null;}
    }
    if(activity) {

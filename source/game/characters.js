@@ -93,6 +93,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
  let supportCorrection=0,poseMinY=0,poseMaxY=0,onsenHip=.32,onsenBackOffset=0,onsenArmLift=0;const lieOffsets={back:0,spine:0,head:0,heel:0};
  const onsenLapPoint=V(.09,.40,.23),onsenLapNormal=V(0,1,0),onsenRimPalmQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(0,0,-1),V(1,0,0),V(0,-1,0))),onsenLapPalmQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(-1,0,0),V(0,0,-1),V(0,-1,0)));
  const onsenPalmContact={offset:V(),index:-1};
+ const transferP=rest.map(()=>V()),transferQ=rest.map(()=>new THREE.Quaternion());
  const chairHands=[0,1].map(()=>({wrist:V(),rotation:new THREE.Quaternion()}));let fittedChairHeight=null;
  function fitOnsenPalmContact(){for(const geometry of template.geometry)for(const range of geometry.userData.sourceRanges||[])if(range.name==='relaxed-palm-1'){
   let low=Infinity;for(let i=range.start;i<range.start+range.count;i++){tmp.fromBufferAttribute(geometry.attributes.position,i).sub(rest[9]).applyQuaternion(onsenLapPalmQ);const depth=tmp.dot(onsenLapNormal);if(depth<low){low=depth;onsenPalmContact.offset.copy(tmp);onsenPalmContact.index=i;}}
@@ -528,6 +529,26 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    metrics.contactMinY=supportY+(poseMinY+supportCorrection)*root.scale.y;metrics.contactMaxY=supportY+(poseMaxY+supportCorrection)*root.scale.y;
 
   }else{metrics.contactMinY=null;metrics.contactMaxY=null;metrics.lieContact=null;metrics.bathContact=null;metrics.bathHandContact=null;}
+
+  // Keep the approved seated fit above unchanged, then blend its exact joints
+  // into a supported rim crossing. Limb targets are in the actual pool's world
+  // space, so a rotating pelvis cannot drag a planted hand through the coping.
+  const transfer=context?.bathTransition;
+  if(supportedOnsen&&transfer){
+   for(let i=0;i<posedP.length;i++){transferP[i].copy(posedP[i]).add(rig.position);transferQ[i].copy(posedQ[i]);}
+   rig.position.set(0,0,0);inverseRoot.copy(root.matrixWorld).invert();
+   setTorso((transfer.hipY-rootWorld.y)/root.scale.y,-.08*transfer.handWeight,0);
+   for(let side=0;side<2;side++){
+    tmp.fromArray(transfer.feet[side]).applyMatrix4(inverseRoot);foot(side,tmp);
+    const hand=side?9:6;tmp2.copy(rest[hand]).sub(rest[0]).add(posedP[0]);
+    tmp.fromArray(transfer.hands[side]).applyMatrix4(inverseRoot).lerp(tmp2,1-transfer.handWeight);
+    reach(side,tmp.x,tmp.y,tmp.z);posedQ[hand].slerp(onsenLapPalmQ,transfer.handWeight);
+   }
+   for(const [i,j]of[[16,11],[17,14]]){posedP[i].copy(posedP[j]);posedQ[i].copy(posedQ[j]);}
+   for(let i=0;i<posedP.length;i++){posedP[i].lerp(transferP[i],transfer.seatBlend);posedQ[i].slerp(transferQ[i],transfer.seatBlend);}
+   applyPose();root.updateMatrixWorld(true);skeleton.update();
+   metrics.bathTransition={progress:transfer.progress,phase:transfer.phase};
+  }else metrics.bathTransition=null;
 
   if(action==='sushi-eat')props.right.rotation.x-=Math.pow((Math.sin(time*.95)+1)*.5,2)*.55;
   if(action==='chair-sit'&&context?.seatedMeal)props.right.rotation.x-=Math.pow((Math.sin(time*1.6)+1)*.5,2)*.55;
