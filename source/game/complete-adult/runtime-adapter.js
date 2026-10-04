@@ -8,6 +8,7 @@ import {addLayeredHair} from './layered-hair.js';
 import {addFemaleHairOption,FEMALE_HAIR_OPTIONS} from './female-hair-options.js';
 import {applyNaturalClothing} from './natural-clothing.js';
 import {applyFemaleSilhouette} from './female-silhouette.js';
+import {fitFemaleLongHair} from './fit-long-hair.js';
 import {fitCompleteAdultClothing} from './fit-clothing.js';
 import {applyAnatomicalFinish} from './face-finish.js';
 import {applySurfaceFinish} from './surface-finish.js';
@@ -16,7 +17,7 @@ import {RETAINED_HAIR,createHeadAttachmentFit,fitCandidateHairAttachments,fitRet
 import {FREE_BRAID,planRetainedBraid,applyRetainedBraid} from './retained-hair-fit.js';
 export const COMPLETE_ADULT_PREVIEW='complete-adult-head-v1';
 export const COMPLETE_ADULT_PAIR_PREVIEW='complete-adult-pair-v1';
-export const COMPLETE_ADULT_VERSION='candidate-profile-neck-traits10-v9';
+export const COMPLETE_ADULT_VERSION='candidate-female-native-targets-traits10-v10';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const forms={'masculine-lean':'male','masculine-broad':'male','feminine-balanced':'female','feminine-slender':'female'};
 export function completeAdultSupport(options,selection){
@@ -28,7 +29,7 @@ export function completeAdultSupport(options,selection){
  const bakedHair=options.previewHair==='side-part'||FEMALE_HAIR_OPTIONS.includes(options.previewHair);
  if(options.previewHair==='retained'&&!['low-bun','braided-tail'].includes(options.hairStyle))return fail('retained-hairstyle-needs-fit');
  if(form==='female'&&!options.previewHair)return fail('explicit-female-hair-required');
- if(options.previewHair==='long-layered'&&!(selection===COMPLETE_ADULT_PAIR_PREVIEW&&options.culture==='france'&&options.bodyPreset==='feminine-slender'&&options.wardrobePreset==='court-gown'))return fail('long-hair-needs-matching-gown');
+ if(options.previewHair==='long-layered'&&!(selection===COMPLETE_ADULT_PAIR_PREVIEW&&options.culture==='france'&&form==='female'&&(options.style??'casual')==='casual'&&['court-gown','court-overgown'].includes(options.wardrobePreset)))return fail('long-hair-needs-matching-gown');
  if(selection===COMPLETE_ADULT_PAIR_PREVIEW&&(options.culture!=='france'||(options.style??'casual')!=='casual'||!(options.bodyPreset==='masculine-lean'&&(bakedHair||options.hairStyle==='side-part')&&options.wardrobePreset==='court-frock-coat'||form==='female'&&bakedHair&&['court-gown','court-overgown'].includes(options.wardrobePreset))))return fail('complete-pair-only');
  if(!bakedHair&&options.hairStyle==='braided-tail'&&options.previewHair!=='retained')return fail('retained-braid-opt-in-required');
  if(!bakedHair&&!['low-bun','braided-tail'].includes(options.hairStyle)&&options.hairStyle!==(form==='male'?'side-part':'chin-bob'))return fail('hairstyle-needs-fit');
@@ -55,7 +56,7 @@ export function applyCompleteAdultPreview(root,options,selection){
   attachCompleteHead(root,C,asset,{surface:true});
   // Hair is the only replaced attachment; authored role hats survive the
   // explicit face removal list in attach-head. Facial hair has its own fit.
-  if(!retained){for(const mesh of[...head.children])if(mesh.isMesh&&RETAINED_HAIR.test(mesh.name)){mesh.removeFromParent();mesh.geometry.dispose();}const flowFinish=!!options.previewHairFlow,hair=support.form==='male'?addLayeredHair(head,C.hair,{flowFinish}):addFemaleHairOption(head,C.hair,options.previewHair,{flowFinish});hair.userData.softSkin=support.form==='female';hair.userData.completeAdultPart=options.previewHair==='long-layered'?'long-hair':'hair';if(options.previewHair)fitCandidateHairAttachments(attachmentFit,hair);}
+  if(!retained){for(const mesh of[...head.children])if(mesh.isMesh&&RETAINED_HAIR.test(mesh.name)){mesh.removeFromParent();mesh.geometry.dispose();}const flowFinish=!!options.previewHairFlow,hair=support.form==='male'?addLayeredHair(head,C.hair,{flowFinish}):addFemaleHairOption(head,C.hair,options.previewHair,{flowFinish});hair.userData.softSkin=support.form==='female';hair.userData.completeAdultPart=options.previewHair==='long-layered'?'long-hair':'hair';fitFemaleLongHair(hair,options);if(options.previewHair)fitCandidateHairAttachments(attachmentFit,hair);}
  });
  if(selection===COMPLETE_ADULT_PAIR_PREVIEW)fitCompleteAdultClothing(root,options,neutral=>{applyNaturalClothing(root,neutral);applyFemaleSilhouette(root,neutral);});
  const result={applied:true,hairFlow:!!options.previewHairFlow,previewHair:options.previewHair??null,garmentRefinement:selection===COMPLETE_ADULT_PAIR_PREVIEW,version:COMPLETE_ADULT_VERSION,form:support.form,attachmentFit};
@@ -63,7 +64,7 @@ export function applyCompleteAdultPreview(root,options,selection){
 }
 /** Cache selection is never persisted as an appearance version. */
 export function completeAdultCacheTag(options,selection){return completeAdultSupport(options,selection).supported?COMPLETE_ADULT_VERSION+'|'+selection+'|'+(options.previewHair??'saved-hair')+'|flow:'+!!options.previewHairFlow:'legacy';}
-export function completeAdultWeights(mesh,sourceY){
+export function completeAdultWeights(mesh,sourceY,index){
  if(!mesh.userData.completeAdultPart)return null;
  if(mesh.userData.completeAdultPart==='long-hair'){
   // The baked lower lengths lie on the gown, so they follow torso joints; only
@@ -71,7 +72,14 @@ export function completeAdultWeights(mesh,sourceY){
   if(sourceY<1.335){const u=clamp((sourceY-1.18)/.155);return[[1,1-u],[2,u]];}
   const u=clamp((sourceY-1.395)/.08);return[[2,1-u],[3,u]];
  }
- if(mesh.userData.completeAdultPart==='skin'&&sourceY<1.435){const u=clamp((sourceY-1.365)/.070);return[[2,1-u],[3,u]];}
+ if(mesh.userData.completeAdultPart==='skin'&&sourceY<1.435){
+  // A long chin can descend below the neck's world-height transition. Keep
+  // facial source topology rigid to the head; only the native cervical region
+  // receives chest/head blending. The original collar weights stay unchanged.
+  const feature=mesh.geometry.attributes.featureCoord;
+  const cervical=!feature||index===undefined||feature.getY(index)<6.20&&feature.getZ(index)<1.12;
+  if(cervical){const u=clamp((sourceY-1.365)/.070);return[[2,1-u],[3,u]];}
+ }
  return[[3,1]];
 }
 /** Extra channels accompany the existing two material buckets. Legacy meshes
@@ -82,7 +90,7 @@ export function appendCompleteAdultVertex(channels,mesh,index,position){
  channels.featureCoord.push(g.attributes.featureCoord?.getX(index)??0,g.attributes.featureCoord?.getY(index)??0,g.attributes.featureCoord?.getZ(index)??0);
  channels.featureKind.push(g.attributes.featureKind?.getX(index)??0);
  channels.eyeReflectance.push(['iris','pupil','sclera'].includes(kind)?1:0);channels.featureSheen.push(0);
- const sourceY=g.attributes.sourceY?.getX(index)??position.y,t=clamp((sourceY-1.395)/.050);channels.anatomicalTone.push(kind==='hair'||kind==='long-hair'?-1:kind==='skin'?t*t*(3-2*t):0);
+ const sourceY=g.attributes.sourceY?.getX(index)??position.y,t=clamp((sourceY-1.395)/.050);channels.anatomicalTone.push(kind==='hair'||kind==='long-hair'?-1:['skin','iris','pupil','sclera'].includes(kind)?t*t*(3-2*t):0);
 }
 export function finishCompleteAdultChannels(geometry,channels){
  for(const [name,array]of Object.entries(channels))geometry.setAttribute(name,new THREE.Float32BufferAttribute(array,name==='featureCoord'?3:1));
@@ -91,7 +99,7 @@ export function readCompleteAdultColor(mesh,index,target){const a=mesh.geometry.
 export function completeAdultMaterialKey(preview){return COMPLETE_ADULT_VERSION+'|flow:'+!!preview.hairFlow;}
 export function prepareCompleteAdultSkinMaterial(material,preview={}){
  if(material.userData.completeAdultFinish)return material;
- applyAnatomicalFinish(material,{narrow:true,reflect:true});applySurfaceFinish(material,{hairFlow:!!preview.hairFlow});material.userData.completeAdultFinish=COMPLETE_ADULT_VERSION;return material;
+ applyAnatomicalFinish(material,{narrow:true,reflect:false});applySurfaceFinish(material,{hairFlow:!!preview.hairFlow});material.userData.completeAdultFinish=COMPLETE_ADULT_VERSION;return material;
 }
 
 export function prepareCompleteAdultClothMaterial(material,preview={}){

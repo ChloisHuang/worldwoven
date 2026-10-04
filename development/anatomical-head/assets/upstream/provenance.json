@@ -1,10 +1,10 @@
 {
   "repository": "https://github.com/makehumancommunity/mpfb2",
   "commit": "afb9f530a7c2741dedb8df0ebae2e0b183caec21",
-  "retrieved": "2026-10-03",
+  "retrieved": "2026-10-04",
   "assetLicense": "CC0-1.0",
-  "assetLicenseVerified": "base.obj header explicitly CC0 September 2020; LICENSE.md C covers base meshes; D covers output",
-  "importScope": "Only base.obj graphical data and license text; no addon, targets, executable code or community assets",
+  "assetLicenseVerified": "base.obj header explicitly CC0 September 2020; pinned LICENSE.md C explicitly includes base meshes, targets and modifiers; D covers generated output",
+  "importScope": "Only CC0 base.obj, three numeric chin/cheek target delta assets and license text; no addon logic or third-party MOD assets",
   "files": {
     "LICENSE.md": {
       "sourceUrl": "https://raw.githubusercontent.com/makehumancommunity/mpfb2/afb9f530a7c2741dedb8df0ebae2e0b183caec21/LICENSE.md",
@@ -20,6 +20,27 @@
       "sourceUrl": "https://raw.githubusercontent.com/makehumancommunity/mpfb2/afb9f530a7c2741dedb8df0ebae2e0b183caec21/src/mpfb/data/3dobjs/base.obj",
       "sha256": "8e761e6624b8f54536409135d1636da63b32486a90d4897f84e121d144f6fb4c",
       "bytes": 1749303
+    },
+    "targets/chin-height-decr.target.gz": {
+      "sourceUrl": "https://raw.githubusercontent.com/makehumancommunity/mpfb2/afb9f530a7c2741dedb8df0ebae2e0b183caec21/src/mpfb/data/targets/chin/chin-height-decr.target.gz",
+      "sha256": "1f4196d330b418d576e9400a754cb99d7e60b069ee8fdef645713f84db984e0c",
+      "bytes": 1136,
+      "uncompressedSha256": "032ca0771b5c43f3add06aca11030d186b0716b7faffb50d71d3eb87d473c629",
+      "format": "zero-based original OBJ vertex index followed by X Y Z numeric displacement"
+    },
+    "targets/l-cheek-volume-incr.target.gz": {
+      "sourceUrl": "https://raw.githubusercontent.com/makehumancommunity/mpfb2/afb9f530a7c2741dedb8df0ebae2e0b183caec21/src/mpfb/data/targets/cheek/l-cheek-volume-incr.target.gz",
+      "sha256": "75bf330b96d0036c46f779ed003782c7380c77dd06c14fd80f1fa20a5093fee1",
+      "bytes": 1274,
+      "uncompressedSha256": "7a47a6a0121657092266df2a27ec6e134462642fd3f781ee47daeec40d1426fd",
+      "format": "zero-based original OBJ vertex index followed by X Y Z numeric displacement"
+    },
+    "targets/r-cheek-volume-incr.target.gz": {
+      "sourceUrl": "https://raw.githubusercontent.com/makehumancommunity/mpfb2/afb9f530a7c2741dedb8df0ebae2e0b183caec21/src/mpfb/data/targets/cheek/r-cheek-volume-incr.target.gz",
+      "sha256": "4df3e61e843c2d3381ef534e90d347b6b8ea763428d69eba8ef2ed5ab0affb8c",
+      "bytes": 1288,
+      "uncompressedSha256": "95e57c5e1313c118d5e3c4e43ec3d0dd9952957e5ba1bcbed1c8027d40940e43",
+      "format": "zero-based original OBJ vertex index followed by X Y Z numeric displacement"
     }
   }
 }

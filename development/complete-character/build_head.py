@@ -1,13 +1,17 @@
 """Offline named-cage sculpt on pinned CC0 topology; no reference pixels.
 /usr/bin/blender -b --factory-startup --python development/complete-character/build_head.py
 """
-import bpy,bmesh,json,pathlib,hashlib,math,os
+import bpy,bmesh,json,pathlib,hashlib,math,os,gzip
 import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 ROOT=pathlib.Path(__file__).resolve().parent
 FORM=os.environ.get('CHARACTER_FORM','male')
 forms=json.loads((ROOT/'forms.json').read_text());form=forms[FORM]
+import sys
+sys.path.insert(0,str(ROOT))
+from female_anatomy import native_point,skin_point,eye_point,eye_normal
+anatomy=form.get('referenceAnatomy')
 UP=ROOT.parent/'anatomical-head/assets/upstream'
 meta=json.loads((UP/'provenance.json').read_text());data=(UP/'base.obj').read_bytes()
 assert hashlib.sha256(data).hexdigest()==meta['files']['base.obj']['sha256']
@@ -18,6 +22,24 @@ for line in data.decode().splitlines():
  if a[0]=='v':verts.append(tuple(map(float,a[1:4])))
  elif a[0]=='g':group=a[1]
  elif a[0]=='f' and group=='body':faces.append([int(x.split('/')[0])-1 for x in a[1:]])
+# Native numeric targets use the original OBJ vertex IDs and XYZ axes.
+# Keep raw/feature coordinates immutable: they define masks, attachments and
+# runtime traits independently of this candidate's authored geometry.
+native_delta=np.zeros((len(verts),3));native_target_sources=[]
+for target in (anatomy or {}).get('nativeTargets',[]):
+ filename='targets/'+target['file'];payload=(UP/filename).read_bytes()
+ assert hashlib.sha256(payload).hexdigest()==meta['files'][filename]['sha256']
+ decoded=gzip.decompress(payload)
+ assert hashlib.sha256(decoded).hexdigest()==meta['files'][filename]['uncompressedSha256']
+ seen=set()
+ for line in decoded.decode('ascii').splitlines():
+  fields=line.split()
+  if not fields or fields[0].startswith('#'):continue
+  assert len(fields)==4
+  index=int(fields[0]);delta=np.array(list(map(float,fields[1:])))
+  assert 0<=index<len(verts) and index not in seen and np.isfinite(delta).all()
+  seen.add(index);native_delta[index]+=target['weight']*delta
+ native_target_sources.append({**target,'sha256':meta['files'][filename]['sha256']})
 faces=[f for f in faces if all(verts[i][1]>=5.85 for i in f)]
 used=sorted({i for f in faces for i in f});ids={v:i for i,v in enumerate(used)};raw=[verts[i] for i in used];faces=[[ids[v] for v in f] for f in faces]
 def clamp(v):return max(0.,min(1.,v))
@@ -41,8 +63,9 @@ def frame(p):
  weight=smooth(1.38,1.435,p[1]);return list(p+(p-pivot)*(scale-1)*weight)
 handles.append(['orbital_globe_center',[.30775,7.281,1.24535],form['globeCenter']])
 handles.extend(form.get('cranialHandles',[]))
+handles.extend(form.get('featureHandles',[]))
 for handle in handles:
- name=handle[0];target=form['overrides'].get(name,forms['common'].get(name,handle[2]));handle[2]=form.get('finalOverrides',{}).get(name,frame(target))
+ name=handle[0];target=form['overrides'].get(name,forms['common'].get(name,handle[2]));handle[2]=form.get('finalOverrides',{}).get(name,list(native_point(handle[1],anatomy)) if anatomy else frame(target))
 
 for name,a,b in handles:
  for side in ([1,-1] if a[0] else [1]):
@@ -76,17 +99,36 @@ def sculpt_forehead(p):
 def point(p):return Vector(cage([p])[0])
 # Actual lower lip contact loop/inner oral return edits, mirrored by source
 # positions. Move real skin to contact; never add a closure plane or mouth decal.
-contact=[493,487,481,476,502,503,501];sculpt={}
+contact=form.get('mouthContactSourceVertices',[493,487,481,476,502,503,501]);sculpt={}
 upper_y=[(0,6.6081),(.0215,6.6095),(.0466,6.6114),(.0761,6.6127),(.1014,6.6133),(.156,6.6146),(.196,6.6324),(.2243,6.6214),(.2391,6.6143),(.2494,6.6089)]
 upper_z=[(0,1.553),(.0215,1.5497),(.0466,1.5488),(.0761,1.5452),(.1014,1.5452),(.156,1.5163),(.196,1.4904),(.2243,1.4612),(.2391,1.4354),(.2494,1.4192)]
+# Follow the actual connected vermilion contact edge. The former sampled
+# curve used upper-roll vertices at the lateral mouth and lifted isolated
+# lower-roll vertices, making literal triangular teeth at the seam.
+contact_curve=profile
+if 'mouthContactUpperEdgeVertices' in form:
+ edge=[verts[i] for i in form['mouthContactUpperEdgeVertices']]
+ upper_y=sorted((abs(x),y) for x,y,z in edge);upper_z=sorted((abs(x),z) for x,y,z in edge)
+ def contact_curve(keys,v):return float(np.interp(v,[p[0] for p in keys],[p[1] for p in keys]))
 for i in contact:
- x,y,z=verts[i];u=1-smooth(.23,.25,abs(x));sculpt[(abs(x),y,z)]=(x,profile(upper_y,abs(x))+.010*u,profile(upper_z,abs(x))+.004*u)
+ x,y,z=verts[i];u=1-smooth(.23,.25,abs(x));dy,dz=form.get('mouthContactSourceOffset',[.010,.004]);sculpt[(abs(x),y,z)]=(x,contact_curve(upper_y,abs(x))+dy*u,contact_curve(upper_z,abs(x))+dz*u)
 sculpted=[]
 for x,y,z in raw:
  if (abs(x),y,z) in sculpt:
   _,y,z=sculpt[(abs(x),y,z)]
  sculpted.append((x,y,z))
 positions=np.array([sculpt_forehead(p) for p in cage(sculpted)])
+if anatomy:positions=np.array([skin_point(p,anatomy,c) for p,c in zip(sculpted,cage(sculpted))])
+# Apply data deltas in the same uniform native anatomical frame. The existing
+# cage and source masks are evaluated on original semantics, never shifted
+# coordinates. The true vermilion/contact region stays in its accepted frame.
+if anatomy and native_target_sources:
+ target_delta=native_delta[used]*np.array(anatomy['scale'])
+ for i,(x,y,z) in enumerate(raw):
+  lip=smooth(6.45,6.48,y)*(1-smooth(6.73,6.78,y))*(1-smooth(.28,.34,abs(x)))*smooth(1.34,1.40,z)
+  target_delta[i]*=1-lip
+ positions+=target_delta
+
 # Recover the source's continuous braincase and suboccipital curve as one
 # aligned form. Preserve the rounded upper braincase, but end this native
 # reconstruction above the cervical surface: its previous 5.96–6.80 source
@@ -94,7 +136,7 @@ positions=np.array([sculpt_forehead(p) for p in cage(sculpted)])
 # The lower occiput now returns continuously into the authored upper neck.
 posterior=form['posteriorNative']
 for i,(sx,sy,sz) in enumerate(raw):
- weight=(1-smooth(.08,.53,sz))*smooth(*posterior['lowerBlendSourceY'],sy)
+ weight=0. if anatomy else (1-smooth(.08,.53,sz))*smooth(*posterior['lowerBlendSourceY'],sy)
  if weight:
   target=np.array(positions[i])
   target[1]=posterior['crownY']+(sy-8.4913)*posterior['verticalScale']
@@ -105,7 +147,7 @@ for i,(sx,sy,sz) in enumerate(raw):
 loops=json.loads((ROOT/'topology_sculpt.json').read_text())['loops']
 lookup={(round(abs(x),5),round(y,5),round(z,5)):[] for x,y,z in raw}
 for i,(x,y,z) in enumerate(raw):lookup[(round(abs(x),5),round(y,5),round(z,5))].append(i)
-for loop in loops:
+for loop in ([] if anatomy else loops):
  for at,index in enumerate(loop['vertices']):
   x,y,z=verts[index]
   for i in lookup.get((round(abs(x),5),round(y,5),round(z,5)),[]):positions[i]+=np.array(loop['delta'])*np.array(form['scale'])*(loop.get('weights',[1]*len(loop['vertices']))[at])
@@ -192,11 +234,20 @@ for side in [-1,1]:
  points=[];normals=[];fc=[];occ=[]
  for t in theta:
   for k in range(nu):
-   a=k/nu*math.tau;sn=math.sin(t);p=point(center+Vector((rad.x*sn*math.cos(a),rad.y*sn*math.sin(a),rad.z*math.cos(t))))
-   source_point=np.array(center+Vector((rad.x*sn*math.cos(a),rad.y*sn*math.sin(a),rad.z*math.cos(t))))
+   a=k/nu*math.tau;sn=math.sin(t);direction=np.array([sn*math.cos(a),sn*math.sin(a),math.cos(t)])
+   if anatomy and anatomy.get('roundProjectedIris') and t<.82:
+    # A circular iris chart on the shared convex ellipsoid. Widening the
+    # aperture must not stretch the projected pupil into a horizontal oval.
+    w=1-smooth(.46,.82,t);e=anatomy.get('ocularFrame',{}).get('scale',[1,1,1])
+    direction[0]*=1+w*(1/(anatomy.get('facialWidth',1.)*e[0])-1)
+    direction[1]*=1+w*(1/e[1]-1)
+    direction[2]=math.sqrt(max(0.,1-direction[0]**2-direction[1]**2))
+   source_point=np.array(center+Vector(np.array(rad)*direction))
+   p=Vector(eye_point(source_point,anatomy)) if anatomy else point(source_point)
    difference=source_point-S;distance=np.maximum(1e-9,np.linalg.norm(difference,axis=1))
    jacobian=(difference/distance[:,None]).T@coef[:len(S)]+coef[len(S)+1:]
    outward=np.linalg.solve(jacobian,np.array([sn*math.cos(a),sn*math.sin(a),math.cos(t)]))
+   if anatomy:outward=eye_normal(direction,source_point,anatomy)
    outward/=np.linalg.norm(outward);normals.append(list(outward))
    points.append(p);fc += [math.sin(t)/math.sin(.405)*math.cos(a),math.sin(t)/math.sin(.405)*math.sin(a),t]
    hit=tree.ray_cast(p+Vector((0,.0003,.0002)),Vector((0,.8,.6)),.013)[0];occ.append(.65 if hit is not None else 0.)
@@ -225,7 +276,13 @@ for side in [-1,1]:
 for p in parts:
  for k,v in p.items():
   if isinstance(v,list) and k!='index':p[k]=[round(float(x),7) for x in v]
-output={'license':'CC0-1.0 hm08; original cage, eyes and brows','sourceCommit':meta['commit'],'sourceSha256':meta['files']['base.obj']['sha256'],'coordinateSystem':'metres Y up face +Z','method':'named anatomical biharmonic cage plus direct topology contact loops','form':FORM,'prototypeOnly':True,'unimplemented':['facial trait morphs','other body and hairstyle variants'],'parts':parts,'landmarks':{n:list(sculpt_forehead(cage([source])[0])) for n,source,_ in handles},'sourceVertices':len(raw),'sourceFaces':len(faces)}
+def authored_landmark(source):
+ p=skin_point(source,anatomy,cage([source])[0]) if anatomy else sculpt_forehead(cage([source])[0])
+ if native_target_sources:
+  i=int(np.argmin(np.sum((np.asarray(raw)-source)**2,axis=1)))
+  if np.linalg.norm(np.asarray(raw[i])-source)<1e-5:p+=target_delta[i]
+ return list(p)
+output={'license':'CC0-1.0 hm08; original cage, eyes and brows','sourceCommit':meta['commit'],'sourceSha256':meta['files']['base.obj']['sha256'],'coordinateSystem':'metres Y up face +Z','method':'named anatomical biharmonic cage plus direct topology contact loops','form':FORM,'prototypeOnly':True,'unimplemented':['facial trait morphs','other body and hairstyle variants'],'parts':parts,'landmarks':{n:authored_landmark(source) for n,source,_ in handles},'nativeTargets':native_target_sources,'sourceVertices':len(raw),'sourceFaces':len(faces)}
 (ROOT/('adult-head.json' if FORM=='male' else 'adult-head-female.json')).write_text(json.dumps(output,separators=(',',':'))+'\n')
 if os.environ.get('SAVE_SCULPT_BLEND'):bpy.ops.wm.save_as_mainfile(filepath=os.environ['SAVE_SCULPT_BLEND'])
 print(json.dumps({'vertices':sum(len(p['position'])//3 for p in parts),'triangles':sum(len(p['index'])//3 for p in parts),'parts':[(p['name'],len(p['index'])//3) for p in parts],'bounds':[(min(part['position'][k::3]),max(part['position'][k::3])) for k in range(3)]}))
