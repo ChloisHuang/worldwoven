@@ -9,6 +9,7 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
  for(const id of actorIds){
   const key=`life-v1|${worldSeed>>>0}|${id}`,old=saved.version===1?saved.people?.[id]:null;
   people[id]=old?copy(old):{random:hash(key),choices:0,last:null,current:null,cooldowns:{},needs:{hunger:.10+hash(key+'hunger')/4294967296*.28,fatigue:.12+hash(key+'fatigue')/4294967296*.32,social:.20+hash(key+'social')/4294967296*.45},traits:Object.fromEntries(['curiosity','outdoors','sociability','quiet','appetite'].map(k=>[k,.25+hash(key+k)/4294967296*.65]))};
+  people[id].relations??={};
   // A saved commitment is retained as an intention; scene objects and occupied
   // seats are re-resolved by the caller instead of restoring stale mount data.
  }
@@ -19,6 +20,7 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
   let value=c.base??.2;
   for(const [key,k]of Object.entries(c.traits||{}))value+=(p.traits[key]||0)*k;
   for(const [key,k]of Object.entries(c.needs||{}))value+=(p.needs[key]||0)*k;
+  if(c.relationship)value+=(p.relations[c.relationship.target]||0)*(c.relationship.weight??.5);
   if(c.id==='rest')value+=hour>=20||hour<7?1.6:0;
   if(c.id==='meal')value+=(hour>=11&&hour<14||hour>=17&&hour<20)?.8:0;
   if(c.id==='garden'&&(hour>=20||hour<6))value*=.22;
@@ -34,7 +36,7 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
    const c=candidates[index],range=c.duration||[8,14],duration=range[0]+random(p)*(range[1]-range[0]);
    p.current={id:c.id,duration,startedAt:time};p.choices++;save();return {...c,...p.current};
   },
-  complete(id,c,{fulfilled=true}={}){const p=people[id];if(!p)return;if(fulfilled)for(const[k,delta]of Object.entries(c.relief||{}))p.needs[k]=clamp(p.needs[k]+delta);p.last=c.id;p.cooldowns[c.id]=time+(c.cooldown??45);p.current=null;save();},
+  complete(id,c,{fulfilled=true}={}){const p=people[id];if(!p)return;if(fulfilled)for(const[k,delta]of Object.entries(c.relief||{}))p.needs[k]=clamp(p.needs[k]+delta);if(fulfilled&&c.relationship){const r=c.relationship;p.relations[r.target]=clamp((p.relations[r.target]||0)+(r.gain??.08));}p.last=c.id;p.cooldowns[c.id]=time+(c.cooldown??45);p.current=null;save();},
   state(id){return id?copy(people[id]):snapshot();},snapshot,dispose:save
  };
 }

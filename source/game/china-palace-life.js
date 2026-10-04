@@ -35,7 +35,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   {id:'rest',label:'回自己的私室休息',base:.08,traits:{quiet:.3},needs:{fatigue:2.8,social:-.15},relief:{fatigue:-.65},duration:[12,22],cooldown:65,available:!!ownRest.get(n)&&playerState.facilityId!==ownRest.get(n).id,steps:[stage('private-rest','在自己的私室休息',[ownRest.get(n).position],0,{mount:ownRest.get(n),chosen:true}),stage('stand-after-rest','起身整理衣袖',[n.home.toArray()])]},
   {id:'garden',label:'去荷庭看看水色',base:.15,traits:{outdoors:1.2},needs:{fatigue:-.55,social:.2},relief:{fatigue:-.12,social:-.10},duration:[9,17],cooldown:70,steps:[stage('leave-suite','离开私室 · 沿公共通廊',homeExit(n)),stage('garden-view','荷庭驻足 · 看花与水色',SHORE,0,{look:[-5,.3,-18],chosen:true}),stage('return-suite','沿公共通廊回到自己的私室',[...reverse(SHORE),...homeReturn(n)])]},
   {id:'meal',label:'去御膳餐厅用些点心',base:.02,traits:{appetite:.2},needs:{hunger:3.5},relief:{hunger:-.72,fatigue:-.05},duration:[12,18],cooldown:100,available:!!mealSeats.get(n)&&playerState.facilityId!==mealSeats.get(n).id,steps:[stage('leave-suite','离开私室 · 前往餐厅',homeExit(n)),stage('dining-arrival','沿外庭走到御膳餐厅',[...DINING,mealSeats.get(n)?.position||DINING.at(-1)]),stage('meal','在餐厅坐凳上用点心',[mealSeats.get(n)?.position||DINING.at(-1)],0,{mount:mealSeats.get(n),meal:true,chosen:true}),stage('return-suite','用餐后沿公共通廊回居',[...reverse(DINING),...homeReturn(n)])]},
-  ...(n===consort?[{id:'visit',label:'去雅集茶厅拜访 Lin',base:.08,traits:{sociability:1.25},needs:{social:2,fatigue:-.35,hunger:.15},relief:{social:-.65},duration:[7,12],cooldown:90,available:!interrupted(host)&&playerState.performing!==host.station.id,steps:[stage('leave-suite','出客居私门 · 经过公共通廊',homeExit(n)),stage('visit-tea','前往雅集茶厅拜访 Lin',[...SHORE.slice(0,2),...TEA]),stage('tea-conversation','在茶案前等 Lin 忙完',[TEA.at(-1)],0,{pair:true,chosen:true}),stage('return-suite','告别茶席 · 沿公共通廊回客居',[...reverse(TEA).slice(1),...reverse(SHORE.slice(0,2)),...homeReturn(n)])]}]:
+  ...(n===consort?[{id:'visit',relationship:{target:host.station.id,weight:.6,gain:.08},label:'去雅集茶厅拜访 Lin',base:.08,traits:{sociability:1.25},needs:{social:2,fatigue:-.35,hunger:.15},relief:{social:-.65},duration:[7,12],cooldown:90,available:!interrupted(host)&&playerState.performing!==host.station.id,steps:[stage('leave-suite','出客居私门 · 经过公共通廊',homeExit(n)),stage('visit-tea','前往雅集茶厅拜访 Lin',[...SHORE.slice(0,2),...TEA]),stage('tea-conversation','在茶案前等 Lin 忙完',[TEA.at(-1)],0,{pair:true,chosen:true}),stage('return-suite','告别茶席 · 沿公共通廊回客居',[...reverse(TEA).slice(1),...reverse(SHORE.slice(0,2)),...homeReturn(n)])]}]:
   [{id:'hall',label:'去正殿静坐',base:.12,traits:{curiosity:.5,quiet:.35},needs:{fatigue:-.2},relief:{fatigue:-.20},duration:[9,15],cooldown:90,available:playerState.facilityId!==throne.id,steps:[stage('public-stairs','离开寝殿 · 沿公共梯厅下楼',homeExit(n)),stage('hall-arrival','穿过仪庭 · 上正殿前阶',COURT),stage('hall-rest','在正殿御座稍坐',[throne.position],0,{mount:throne,chosen:true}),stage('return-residence','离殿回居 · 走公共梯厅',[...reverse(COURT),...homeReturn(n)])]}])
  ];
  function choose(n){
@@ -49,7 +49,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
  function unmount(n,s){if(!s.mount)return true;const landing=furniture.standPoint(navigation,safety(n),s.mount);if(!landing)return false;n.root.position.copy(landing);s.mount=null;furniture.releaseActor(n.station.id);return true;}
  function advance(n,s){if(!unmount(n,s))return false;if(n===consort)releaseHost();if(s.index+1===scripts.get(n).length){if(s.choice)brain.complete(n.station.id,s.choice,{fulfilled:s.choice.fulfilled!==false});s.cycles++;choose(n);}else enter(n,s.index+1);return true;}
  function travel(n,s,to,dt){
-  if(near(n.root.position,to)){n.route=[];s.planned=false;return true;}
+  if(near(n.root.position,to)){n.route=[];s.planned=false;s.retries=0;return true;}
   if(!s.planned){n.route=planPath(n.root.position,point(to),.25);s.planned=true;}
   const direct=near(n.root.position,to,.45)&&canTraverse(n.root.position,point(to),lot.colliders.concat(safety(n)),navigation);
   const step=direct?{waypoint:point(to)}:doors.routeStep(n.route,n.root.position,.025);
@@ -59,7 +59,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
    const blocked=obstacles.some(p=>Math.abs(p.y-n.root.position.y)<.7&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<.70&&(p.x-n.root.position.x)*dx+(p.z-n.root.position.z)*dz>.001&&Math.abs((p.x-n.root.position.x)*dz-(p.z-n.root.position.z)*dx)/Math.max(d,1e-10)<.55);
    if(d>1e-10&&!blocked){const before=n.root.position.clone(),amount=Math.min(d,dt*n.locomotion.walkSpeed*.78);moveActor(n,dx/d*amount,dz/d*amount,.25);n.walking=before.distanceToSquared(n.root.position)>1e-9;n.root.rotation.y=Math.atan2(dx,dz);}
   }
-  s.stalled=n.walking||step.waiting?0:s.stalled+dt;
+  if(n.walking)s.retries=0;s.stalled=n.walking||step.waiting?0:s.stalled+dt;
   if(s.stalled>4){s.stalled=0;s.planned=false;if(++s.retries===3){failures.push({actor:n.station.id,activity:s.choice?.id||null,stage:scripts.get(n)[s.index].id,to:to.slice(),position:n.root.position.toArray()});if(failures.length>8)failures.shift();}}
   return near(n.root.position,to);
  }
