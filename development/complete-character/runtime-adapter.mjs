@@ -58,7 +58,7 @@ export function appendCompleteAdultVertex(channels,mesh,index,position){
  channels.featureCoord.push(g.attributes.featureCoord?.getX(index)??0,g.attributes.featureCoord?.getY(index)??0,g.attributes.featureCoord?.getZ(index)??0);
  channels.featureKind.push(g.attributes.featureKind?.getX(index)??0);
  channels.eyeReflectance.push(['iris','pupil','sclera'].includes(kind)?1:0);channels.featureSheen.push(0);
- const t=clamp((position.y-1.395)/.050);channels.anatomicalTone.push(kind==='hair'?-1:kind==='skin'?t*t*(3-2*t):0);
+ const sourceY=g.attributes.sourceY?.getX(index)??position.y,t=clamp((sourceY-1.395)/.050);channels.anatomicalTone.push(kind==='hair'?-1:kind==='skin'?t*t*(3-2*t):0);
 }
 export function finishCompleteAdultChannels(geometry,channels){
  for(const [name,array]of Object.entries(channels))geometry.setAttribute(name,new THREE.Float32BufferAttribute(array,name==='featureCoord'?3:1));
