@@ -1,8 +1,8 @@
 import {createOnsenTransition} from './onsen-transitions.js';
-import {createJapanServiceOrders,JAPAN_SERVICE_POINTS as P,JAPAN_SERVICE_WORKERS,JAPAN_LOCAL_WORKERS} from './japan-service-orders.js';
+import {createJapanServiceOrders,JAPAN_SERVICE_POINTS as P,JAPAN_SERVICE_WORKERS,JAPAN_LOCAL_WORKERS,japanReceptionReady} from './japan-service-orders.js';
 import {createJapanVisitorIdentity,isJapanEmployeeInteraction} from './japan-visitors.js';
 import {createJapanServiceProps} from './japan-service-props.js';
-import {canTraverse} from './navigation.js';
+import {followActorRoute} from './actor-navigation.js';
 import {createJapanStaffLife} from './japan-staff-life.js';
 import {createJapanPlayerService} from './japan-player-service.js';
 
@@ -44,7 +44,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   if(releaseJob)board.releaseWorker(n.station.id);
  }
  function assign(n,to,options={}) {
-  const task={actor:n,to:to.slice(),duration:0,elapsed:0,stalled:0,retries:0,arrived:false,routeSet:false,trail:[n.root.position.toArray()],...options};
+  const task={actor:n,to:to.slice(),duration:0,elapsed:0,stalled:0,retries:0,arrived:false,routeSet:false,...options};
   tasks.set(n.station.id,task);n.serviceTask=task;n.route=[];tell(n,task.label||'稍作等候');return task;
  }
  function guestEvent(n,event,evidence={}) {
@@ -78,7 +78,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   if(visit){addGuest(visit);record(visit.id,'spawned');nextArrival=time+14;}
  }
  function abortTask(task,reason) {
-  const n=task.actor;failures.push({actor:n.station.id,reason,time:+time.toFixed(2),position:n.root.position.toArray(),destination:task.to.slice(),next:task.avoidRoute?.[0]||n.route[0]||null,player:playerState.position?.toArray?.()||null});if(failures.length>8)failures.shift();
+  const n=task.actor;failures.push({actor:n.station.id,reason,time:+time.toFixed(2),position:n.root.position.toArray(),destination:task.to.slice(),next:n.route[0]||null,player:playerState.position?.toArray?.()||null});if(failures.length>8)failures.shift();
   if(task.staffLife){clear(n);staffLife?.abort(n);cooldowns.set(n.station.id,time+3);return;}
   clear(n,{releaseJob:true});furniture.releaseActor(n.station.id);cooldowns.set(n.station.id,time+3);
  }
@@ -98,11 +98,6 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   tell(n,task.label||'稍作等候');
   if(task.after&&!task.after())return;
   if(!task.arrived) {
-   if(task.yieldToId&&!task.avoidRoute?.length){
-    const other=actors.get(task.yieldToId),p=other?.root.position,yieldAt=task.yieldAt;
-    if(p&&tasks.has(task.yieldToId)&&!tasks.get(task.yieldToId).arrived&&(p.x-yieldAt[0])*task.yieldDirection[0]+(p.z-yieldAt[2])*task.yieldDirection[1]>-.9)return;
-    task.yieldToId=null;task.routeSet=false;task.stalled=0;task.retries=0;
-   }
    if(near(n.root.position,task.to)) {
     n.route=[];task.arrived=true;task.stalled=0;
     if(task.mount) {
@@ -115,54 +110,10 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
     if(task.onArrive?.()===false){abortTask(task,'arrival precondition changed');return;}
    }else {
     if(!task.routeSet){n.route=planPath(n.root.position,point(task.to),.25);task.routeSet=true;}
-    if(task.avoidRoute?.length&&near(n.root.position,task.avoidRoute[0],.08)){
-     task.avoidRoute.shift();if(!task.avoidRoute.length){n.route=planPath(n.root.position,point(task.to),.25);task.routeSet=true;}
-    }
-    // Near the exact work point, a coarse grid corner may be nearer a waiting
-    // customer than the actual destination. Use a checked final floor segment.
-    const direct=near(n.root.position,task.to,.75)&&canTraverse(n.root.position,point(task.to),lot.colliders.concat(safety(n)),navigation);
-    if(direct&&!task.yieldToId)task.avoidRoute=null;
-    const step=direct&&!task.yieldToId?{waypoint:point(task.to)}:task.avoidRoute?.length?{waypoint:point(task.avoidRoute[0])}:doors.routeStep(n.route,n.root.position,.025);
-    if(!step.waiting&&step.waypoint) {
-     const p=step.waypoint,dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz);
-     const obstacles=[...npcs.filter(a=>a!==n).map(a=>a.root.position),...(playerState.position?[playerState.position]:[])];
-     const blocker=obstacles.find(p=>Math.abs(p.y-n.root.position.y)<.65&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<.65&&(p.x-n.root.position.x)*dx+(p.z-n.root.position.z)*dz>.005&&Math.abs((p.x-n.root.position.x)*dz-(p.z-n.root.position.z)*dx)/Math.max(d,1e-10)<.52);
-     const blockerId=blocker&&npcs.find(a=>a.root.position===blocker)?.station.id;
-     if(blocker&&(!blockerId||!tasks.has(blockerId)||tasks.get(blockerId).arrived||n.station.id>blockerId)&&!task.avoidRoute?.length&&d>1e-10) {
-      // A real side-step through checked floor space lets opposite traffic pass
-      // at the stair landing. Never change a route by snapping through an actor.
-      const colliders=lot.colliders.concat(safety(n));
-      for(const side of [1,-1]) {
-       const sx=side*dz/d*.83,sz=-side*dx/d*.83,a=[n.root.position.x+sx,n.root.position.y,n.root.position.z+sz],b=[blocker.x+sx+dx/d*.72,n.root.position.y,blocker.z+sz+dz/d*.72];
-       if(canTraverse(n.root.position,point(a),colliders,navigation)&&canTraverse(point(a),point(b),colliders,navigation)){task.avoidRoute=[a,b];break;}
-      }
-      // A single-file corridor has no safe immediate side step. The yielding
-      // actor retraces its own checked footsteps to the nearest real passing
-      // space, then waits there until opposing traffic has gone past.
-      if(!task.avoidRoute?.length&&blockerId&&tasks.has(blockerId)&&!tasks.get(blockerId).arrived&&task.stalled>1.2){
-       const trail=task.trail||[];
-       for(let i=trail.length-1;i>=0&&!task.avoidRoute?.length;i--){
-        const p=trail[i],distance=Math.hypot(p[0]-n.root.position.x,p[2]-n.root.position.z);
-        // The same saved footsteps safely lead down a sloped stair to its
-        // landing; equal-height-only retreat strands opposing stair traffic.
-        if(distance>12)break;
-        if(distance<1.2)continue;
-        const forward=trail[i+1]||n.root.position.toArray(),tx=forward[0]-p[0],tz=forward[2]-p[2],length=Math.hypot(tx,tz);
-        if(length<.01)continue;
-        const opposingRoute=actors.get(blockerId)?.route||[];
-        for(const side of [1,-1]){
-         const aside=[p[0]+side*tz/length*.83,p[1],p[2]-side*tx/length*.83];
-         // A wide stair corner can still be on the other actor's next turn.
-         if(opposingRoute.some(q=>Math.abs(q.y-aside[1])<.7&&Math.hypot(q.x-aside[0],q.z-aside[2])<.75))continue;
-         if(!canTraverse(point(p),point(aside),colliders,navigation))continue;
-         task.avoidRoute=trail.slice(i).reverse().concat([aside]);task.yieldToId=blockerId;task.yieldAt=aside;task.yieldDirection=[dx/d,dz/d];task.retries=0;break;
-        }
-       }
-      }
-     }
-     if(d>1e-10&&!blocker){const amount=Math.min(d,dt*n.locomotion.walkSpeed*.82),before=n.root.position.clone();moveActor(n,dx/d*amount,dz/d*amount,.25);n.walking=before.distanceToSquared(n.root.position)>1e-8;n.root.rotation.y=Math.atan2(dx,dz);}
-    }
-    if(n.walking&&!task.avoidRoute?.length){const last=task.trail.at(-1);if(!last||Math.hypot(n.root.position.x-last[0],n.root.position.z-last[2])>.4){task.trail.push(n.root.position.toArray());if(task.trail.length>80)task.trail.shift();}}
+    // Jobs own destinations/timing; ordinary walking shares the same full-body
+    // route follower and local grid rejoin as every other actor.
+    const step=followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:playerState.position,radius:.25,speedScale:.82,arrivalTolerance:.025});
+    if(step.waiting&&!step.blocked){task.stalled=0;return;}
     task.stalled=n.walking?0:task.stalled+dt;
     if(task.stalled>5){task.stalled=0;task.routeSet=false;if(++task.retries>3)abortTask(task,'route temporarily obstructed');}
     return;
@@ -187,7 +138,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    assign(n,target,{...config,orderJobId:job.id,label:`${config.label} · ${v.number}号`,handoff:true,face:job.to==='dining'?v.diningPoint:null,ready:()=>job.kind!=='serve'||board.getVisit(v.id)?.stage==='waiting-meal',onDone:complete});
    return true;
   }});
-  else assign(n,P[job.to],{...config,orderJobId:job.id,label:`${config.label} · ${v.number}号`,ready:()=>!['register','checkout'].includes(job.kind)||near(customerActor(v.id)?.root.position||{},v.customerType==='player'?P.playerReception:P.reception,.25),onDone:complete});
+  else assign(n,P[job.to],{...config,orderJobId:job.id,label:`${config.label} · ${v.number}号`,ready:()=>!['register','checkout'].includes(job.kind)||japanReceptionReady(customerActor(v.id)?.root.position,v.customerType),onDone:complete});
  }
  function scheduleWorkers() {
   for(const n of workers) {

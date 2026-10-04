@@ -1,4 +1,4 @@
-import {JAPAN_BATH_BLENDS,JAPAN_DINING_MENU,JAPAN_SERVICE_POINTS as P} from './japan-service-orders.js';
+import {JAPAN_BATH_BLENDS,JAPAN_DINING_MENU,JAPAN_SERVICE_POINTS as P,japanReceptionReady} from './japan-service-orders.js';
 
 const live=v=>v.customerType==='player'&&!['cancelled','departed'].includes(v.stage);
 const array=p=>p?.toArray?p.toArray():p?[p.x,p.y,p.z]:null;
@@ -57,7 +57,7 @@ export function createJapanPlayerService({board,furniture,copperLedger,getPlayer
   activity={visitId:visit().id,event,point:point.slice(),duration,elapsed:0,action,label};return result(true);
  }
  function desk(v) {
-  if(!near(position(),P.playerReception))return false;
+  if(!japanReceptionReady(position()))return false;
   if(!furniture.facilities.request('japan-service-reception',v.id))return false;
   return board.guestStep(v.id,v.stage==='checkout'?'returned-to-desk':'arrived',{position:position()});
  }
@@ -92,7 +92,7 @@ export function createJapanPlayerService({board,furniture,copperLedger,getPlayer
   register(blendId) {
    if(suspended||!actor())return result(false,'先回到汤馆');
    const existing=visit();if(existing){if(existing.orderKind==='dining')return result(false,'先用完或取消本餐，再登记泡汤');deskRequest=true;if(existing.stage==='arriving')desk(existing);return result(true,'已有你的浴牌登记，不会重复开单');}
-   if(!near(position(),P.playerReception))return result(false,'请先走到接待柜台');
+   if(!japanReceptionReady(position()))return result(false,'请先走到接待柜台');
    if(!JAPAN_BATH_BLENDS.some(b=>b.id===blendId))return result(false,'请选择一种汤馆虚构草木浴包');
    const seat=diningSeats[0],appearance=actor().root.userData.appearance;
    if(!seat)return result(false,'休息廊暂时没有可用餐位');
@@ -141,7 +141,7 @@ export function createJapanPlayerService({board,furniture,copperLedger,getPlayer
   },
   returnToken() {
    const v=visit();if(v?.stage!=='checkout')return result(false,'用完汤面后可以回前台归牌');
-   if(!near(position(),P.playerReception))return result(false,'请先回到接待柜台');
+   if(!japanReceptionReady(position()))return result(false,'请先回到接待柜台');
    deskRequest=true;desk(v);return result(true,'等前台收回浴牌');
   },
   stopActivity(){interruptActivity();return result(true);},

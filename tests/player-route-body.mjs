@@ -4,6 +4,7 @@ import vm from 'node:vm';
 import {followActorRoute,moveActorWithCollision} from '../source/game/actor-navigation.js';
 import {blocked} from '../source/game/navigation.js';
 import {createAutomaticRouting} from '../source/game/automatic-routing.js';
+import {nearbyInteraction} from '../source/game/player-interaction-intents.js';
 
 // Execute the actual main automatic-movement/arrival branch without a renderer.
 // This reproduces a one-click seat approach being cancelled at a person's body.
@@ -22,7 +23,7 @@ function fixture({start=[0,0,0],goal=[0,0,3],body=[0,0,1.2],walls=[],movementBud
  const automaticDoors=createAutomaticRouting({doors:[],staticColliders:walls,planningColliders:[],getSweepBoxes:()=>[],requestOpen:()=>{},getVersion:()=>0});
  const route=automaticDoors.planPath(player.root.position,{x:goal[0],y:goal[1],z:goal[2]},options,.34);
  let completed=0,rejected=0,resolved=0;
- const context=vm.createContext({player,npcs,movementBudget,path:route,pendingInteraction:target,targetStation:target,automaticDoors,PLAYER_TRAVEL_SCALE:1,followActorRoute,
+ const context=vm.createContext({player,npcs,movementBudget,path:route,pendingInteraction:target,targetStation:target,automaticDoors,PLAYER_TRAVEL_SCALE:1,followActorRoute,nearbyInteraction,
   intentWaypoint(step){resolved++;return step.waypoint;},moveActor(n,dx,dz,r){return moveActorWithCollision(n,dx,dz,r,{colliders:walls,navigation:options,npcs,playerPosition:player.root.position});},
   startInteraction(){completed++;},toast(){rejected++;},furniture:{releaseActor(){}}});
  return {player,npc,context,route,options,tick:()=>tickScript.runInContext(context),counts:()=>({completed,rejected,resolved})};
