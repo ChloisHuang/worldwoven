@@ -55,3 +55,11 @@ body.in-lot .location-card{background:#fff8e4d9;backdrop-filter:blur(10px)}body.
 @media(pointer:coarse) and (orientation:portrait){.doorway-hint{bottom:calc(max(22px,env(safe-area-inset-bottom)) + 276px)}}
 
 #player-health{display:block;max-width:230px;margin-top:6px;color:#765d44;font-size:10px;line-height:1.5}.npc-health-status{color:#795638}
+/* Nearby chairs: a quiet object anchor inside a generous touch target. */
+.furniture-label.furniture-seat-dot{width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border:0;background:transparent;box-shadow:none;border-radius:50%;transform:translate(-50%,-50%)}
+.furniture-seat-dot::before,.furniture-seat-dot::after{content:'';position:absolute;left:50%;top:50%;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%)}
+.furniture-seat-dot::before{width:8px;height:8px;background:#fff6d4;border:1px solid #6d8c7899;box-shadow:0 0 5px 2px #e7efd5a6}
+.furniture-seat-dot::after{width:20px;height:20px;background:#e9f1d936;box-shadow:0 0 7px 2px #e6efd343;animation:seat-halo 2.8s ease-in-out infinite}
+.furniture-seat-dot:active{transform:translate(-50%,-50%)}
+@keyframes seat-halo{0%,100%{transform:translate(-50%,-50%) scale(.9);opacity:.65}50%{transform:translate(-50%,-50%) scale(1.15);opacity:.9}}
+@media(prefers-reduced-motion:reduce){.furniture-seat-dot::after{animation:none;opacity:.75}}

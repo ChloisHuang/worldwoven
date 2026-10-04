@@ -1,0 +1,54 @@
+{
+  "source": "production run 79da9e4, blocked upper exit before 11:30 exception",
+  "recordedTime": 128.59999999999698,
+  "actors": [
+    {
+      "id": "cn-minister-works",
+      "position": [
+        -2.380339079647542,
+        1.4849999999999999,
+        -2.079773946901639
+      ]
+    },
+    {
+      "id": "cn-minister-granary",
+      "position": [
+        2.3889744037966887,
+        1.4849999999999999,
+        -2.074017064135541
+      ]
+    },
+    {
+      "id": "cn-official-rites",
+      "position": [
+        23.4447872,
+        3.915,
+        32
+      ]
+    },
+    {
+      "id": "cn-official-personnel",
+      "position": [
+        24.133436160000002,
+        3.915,
+        32
+      ]
+    },
+    {
+      "id": "cn-official-justice",
+      "position": [
+        24.88791348146424,
+        3.915,
+        32.080387362455625
+      ]
+    },
+    {
+      "id": "cn-official-records",
+      "position": [
+        24.981406942060197,
+        3.915,
+        31.407917967713516
+      ]
+    }
+  ]
+}
