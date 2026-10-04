@@ -38,6 +38,7 @@ export function constrainActorMove(actor,from,dx,dz,radius,npcs,playerPosition,e
 
 export function moveActorWithCollision(actor,dx,dz,radius,{doors,colliders,navigation,npcs,playerPosition}){
  const p=actor.root.position,before={x:p.x,y:p.y,z:p.z},local=constrainActorMove(actor,before,dx,dz,radius,npcs,playerPosition);
+ let bodyBlocked=!!local.blocker;
  const leaf=doors?.constrainMove?doors.constrainMove(before,local.dx,local.dz,radius):local;
  moveWithCollision(p,leaf.dx,leaf.dz,colliders,radius,navigation);
  // Wall sliding can change direction and support height. Recheck the actual
@@ -46,10 +47,12 @@ export function moveActorWithCollision(actor,dx,dz,radius,{doors,colliders,navig
  for(let attempt=0;attempt<2;attempt++){
   const movedX=p.x-before.x,movedZ=p.z-before.z,allowed=doors?.constrainMove?doors.constrainMove(before,movedX,movedZ,radius):{dx:movedX,dz:movedZ};
   const actual=constrainActorMove(actor,before,allowed.dx,allowed.dz,radius,npcs,playerPosition,p.y);
-  if(Math.abs(actual.dx-movedX)<1e-6&&Math.abs(actual.dz-movedZ)<1e-6)return;
+  bodyBlocked||=!!actual.blocker;
+  if(Math.abs(actual.dx-movedX)<1e-6&&Math.abs(actual.dz-movedZ)<1e-6)return {bodyBlocked};
   Object.assign(p,before);
   if(attempt===0)moveWithCollision(p,actual.dx,actual.dz,colliders,radius,navigation);
  }
+ return {bodyBlocked};
 }
 
 // Jobs supply their existing route and timing; this is the same route executor
@@ -64,9 +67,10 @@ export function followActorRoute(actor,dt,{route=actor.route,doors,moveActor,npc
  const amount=Math.min(d,Math.max(0,dt)*(actor.locomotion?.walkSpeed||1.3)*speedScale),ux=dx/d,uz=dz/d;
  if(amount<EPS)return {...step,blocked:false};
  const ahead=Math.min(d,amount+.10),body=constrainActorMove(actor,from,ux*ahead,uz*ahead,radius,npcs,playerPosition).blocker;
+ let movement=null;
  const move=(x,z)=>{
   const beforeX=from.x,beforeY=from.y,beforeZ=from.z;
-  moveActor(actor,x,z,radius);
+  movement=moveActor(actor,x,z,radius);
   actor.walking=(from.x-beforeX)**2+(from.y-beforeY)**2+(from.z-beforeZ)**2>1e-9;
   if(actor.walking)actor.root.rotation.y=Math.atan2(from.x-beforeX,from.z-beforeZ);
   return actor.walking;
@@ -88,5 +92,5 @@ export function followActorRoute(actor,dt,{route=actor.route,doors,moveActor,npc
  }
  TURNOUT.delete(actor);
  move(ux*amount,uz*amount);
- return {...step,blocked:!actor.walking};
+ return {...step,waiting:!!movement?.bodyBlocked&&!actor.walking,blocked:!actor.walking&&!movement?.bodyBlocked};
 }
