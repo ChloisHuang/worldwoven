@@ -106,6 +106,11 @@ def fit_surface(p):
  # together rather than covering the eye with a painted line or a flat cap.
  yy-=.0017*margin_span*gauss(y,7.332,.050)*smooth(1.27,1.37,z)
  yy-=.00025*margin_span*gauss(y,7.238,.033)*smooth(1.27,1.37,z)
+ # Fit the whole orbital opening and supporting skin together. The initial
+ # surface render exposed the inherited narrow aperture as the limiting
+ # cause of a flat eye, so release vertical room around the globe centre.
+ orbital=gauss(abs(x),.31,.185)*gauss(y,7.284,.112)*smooth(1.27,1.37,z)
+ yy+=.28*(yy-fit((x,7.284,z))[1])*orbital
  upper=y-upper_lid_y(x);lower=y-lower_lid_y(x)
  # The lid rolls follow their actual almond-shaped contact curves. A flat
  # height mask disappears toward both canthi and leaves an inset white oval.
@@ -189,7 +194,7 @@ for side in [-1,1]:
  nu=64;theta=[0,.025,.07,.13,.20,.27,.35,.44,.52,.66,.85,1.05,1.30,1.6,1.95,2.3,2.65,math.pi]
  def globe_point(t,a):
   # A round iris in projection lies on the actual expanded globe surface.
-  circular=1.22/math.sqrt((1.54*math.cos(a))**2+(1.46*math.sin(a))**2)
+  circular=1.12/math.sqrt((1.54*math.cos(a))**2+(1.46*math.sin(a))**2)
   angle=t*(1+(circular-1)*(1-smooth(.52,1.05,t)))
   p=Vector(fit((cx+.164*math.sin(angle)*math.cos(a),cy+.164*math.sin(angle)*math.sin(a),cz+.164*math.cos(angle))))
   # Original corneal crown, continuous with the existing globe and rim.
@@ -269,12 +274,12 @@ for side in [-1,1]:
  # uniformly black eyebrow. Each small tapered ribbon hugs the real skin.
  hp=[];hn=[];hi=[];hc=[]
  for j in range(43):
-  t=.012+j/44.0;x=.145+(.568-.145)*t
+  t=.012+j/44.0+.0045*math.sin(j*2.399);x=.145+(.568-.145)*t
   center=Vector(fit((side*x,profile(brow_y,x),profile(brow_z,x))))
   half=.0027*profile(brow_r,t)
   offset=len(hp)//3;length=.0015+.0024*profile(brow_r,t)
   for k in range(5):
-   q=k/4;dx=side*(.0005+.0020*t)*q;dy=(-.45+1.60*q)*half
+   q=k/4;dx=side*(.0005+.0020*t)*q;dy=(-.40+(1.33+.30*math.sin(j*1.739))*q)*half
    if t>.68:dy=(-.15+.75*q)*half
    width=(.00016+.00005*math.sin(j*2.399))*(1-q*.9)
    for edge in [-1,1]:

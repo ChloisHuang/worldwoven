@@ -54,10 +54,10 @@ if(vFeatureKind>0.5&&vFeatureKind<1.5){
  // The separately modeled tapered perimeter hairs carry the silhouette.
  float t=f.x,v=f.y;
  if(f.z<.5){
-  float edge=.78+.105*sin(t*153.0)+.055*sin(t*337.0);
+  float edge=.89+.043*sin(t*53.0)+.026*sin(t*137.0);
   if(abs(v)>edge)discard;
   float strand=.5+.5*sin(t*314.0-v*3.1);
-  diffuseColor.rgb*=.84+.32*strand;
+  diffuseColor.rgb*=.93+.14*strand;
  }else{diffuseColor.rgb*=1.03;}
 }
 `);
@@ -69,7 +69,8 @@ if(vFeatureKind>0.5&&vFeatureKind<1.5){
   vec3 h=normalize(directionalLights[0].direction+normalize(vViewPosition));
   float glint=pow(max(dot(normal,h),0.0),240.0);
   float gain=clamp(max(directionalLights[0].color.r,max(directionalLights[0].color.g,directionalLights[0].color.b)),0.0,1.0);
-  outgoingLight+=gain*vec3(.46,.45,.42)*smoothstep(.18,.75,glint);
+  outgoingLight+=gain*vec3(.60,.59,.56)*smoothstep(.18,.75,glint);
+  outgoingLight+=gain*vec3(.016,.018,.020)*pow(max(dot(normal,h),0.0),24.0);
  }
  if(vFeatureKind>.5&&vFeatureKind<1.5){
   float lip=featureBell(f.y,6.57,.042)*featureBell(f.x,0.0,.16)*smoothstep(1.48,1.55,f.z);
