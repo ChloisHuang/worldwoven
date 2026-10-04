@@ -12,17 +12,19 @@ export function buildJinyiGarments(g,{loft,surface,ribbon,hand,shoe,conformFront
  loft(g,'jinyi-fitted-robe-body',upper,C.yukata,{steps:28});
  // A waist seam and gathered pleats distinguish this robe from a scholar's
  // continuous gown. The shorter hem exposes riding boots for active practice.
- const pleated=(u,v,offset=0)=>{const a=u*Math.PI*2,y=.30+v*.72,w=.258*(1-v)+.146*v,d=.149*(1-v)+.102*v,fold=Math.cos(a*24)*.0065*(1-v*.55);return[Math.sin(a)*(w+fold+offset),y,-.006+Math.cos(a)*(d+fold+offset)];};
- surface(g,'jinyi-pleated-robe-skirt',48,26,(u,v)=>pleated(u,v),C.yukata);
- surface(g,'jinyi-woven-knee-band',48,4,(u,v)=>pleated(u,.20+v*.125,.0017),tone(C.yukata,.72));
- for(const v of[.20,.325])surface(g,'jinyi-knee-band-piping-'+v,48,2,(u,t)=>pleated(u,v+t*.005,.003),edge);
- // Readable fold edges, with the same skin weights as their robe substrate.
- for(let i=0;i<24;i++){const u=i/24,r=[];for(const v of[.015,.25,.55,.88])r.push(pleated(u,v,.0014));ribbon(g,'jinyi-robe-fold-'+i,r,.003,tone(C.yukata,.83));}
- // A single right-over-left crossing with a cream inner layer. No X-shaped
+ const pleated=(u,v,offset=0)=>{const a=u*Math.PI*2,y=.30+v*.72,w=.258*(1-v)+.146*v,d=.149*(1-v)+.102*v,fold=Math.cos(a*16)*.010*(1-v*.60);return[Math.sin(a)*(w+fold+offset),y,-.006+Math.cos(a)*(d+fold+offset)];};
+ // Keep four samples across each pleat; the common smooth-loft helper caps its
+ // circumference too low for this cloth, which otherwise aliases folds away.
+ const robeSurface=(name,from,to,steps,offset,color)=>{const p=[],idx=[],segments=64;for(let j=0;j<=steps;j++)for(let i=0;i<=segments;i++)p.push(...pleated(i/segments,from+(to-from)*j/steps,offset));for(let j=0;j<steps;j++)for(let i=0;i<segments;i++){const a=j*(segments+1)+i;idx.push(a,a+1,a+segments+1,a+1,a+segments+2,a+segments+1);}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(p,3));geo.setIndex(idx);geo.computeVertexNormals();const m=new THREE.Mesh(geo,{color:new THREE.Color(color),skin:false,isMaterial:false});m.name=name;g.add(m);};
+ robeSurface('jinyi-pleated-robe-skirt',0,1,24,0,C.yukata);
+ robeSurface('jinyi-woven-knee-band',.20,.325,4,.0017,tone(C.yukata,.72));
+ for(const v of[.20,.325])robeSurface('jinyi-knee-band-piping-'+v,v,v+.005,1,.003,edge);
+ // The left lapel overlaps the right, closing at the wearer's right (screen
+ // left in a front view), with a cream inner layer. No X-shaped
  // lapels and no haori sleeves survive in this role-specific construction.
  for(const [name,points,width,color]of[
   ['inner',[[-.035,1.408,.025],[0,1.343,.079],[.025,1.310,.087]],.026,inner],
-  ['right-overlap',[[.034,1.409,.027],[.047,1.366,.062],[-.048,1.231,.088],[-.106,1.11,.071]],.030,tone(C.yukata,.64)],
+  ['left-over-right-lapel',[[.034,1.409,.027],[.047,1.366,.062],[-.048,1.231,.088],[-.106,1.11,.071]],.030,tone(C.yukata,.64)],
   ['collar-edge',[[.034,1.408,.027],[.047,1.365,.062],[-.048,1.231,.088],[-.106,1.11,.071]],.005,edge]
  ])conformFront(ribbon(g,'jinyi-'+name,points,width,color),upper,.004);
  for(const s of[-1,1]){
@@ -34,8 +36,8 @@ export function buildJinyiGarments(g,{loft,surface,ribbon,hand,shoe,conformFront
   loft(g,'jinyi-footwear-boot-shaft-'+s,[[.080,.040,.054,s*.089,-.018],[.15,.040,.046,s*.089,-.019],[.28,.047,.047,s*.089,-.015],[.33,.049,.048,s*.089,-.013]],dark,{steps:16});
   // Restrained original cloud curves evoke woven ornament without inventing a
   // rank badge or claiming an imperial flying-fish grant for every guard.
-  const cloud=[[s*.088,1.30,.073],[s*.13,1.306,.058],[s*.15,1.28,.049],[s*.12,1.259,.069],[s*.09,1.266,.077]];
-  conformFront(ribbon(g,'jinyi-cloud-ornament-'+s,cloud,.005,edge),upper,.0048);
+  const cloud=[[s*.067,1.362,.057],[s*.095,1.335,.067],[s*.135,1.334,.057],[s*.157,1.310,.046],[s*.177,1.306,.026]];
+  conformFront(ribbon(g,'jinyi-cloud-shoulder-border-'+s,cloud,.006,edge),upper,.0048);
  }
  loft(g,'jinyi-leather-waist-belt',[[1.000,.153,.106,0,-.005],[1.049,.147,.103,0,-.005]],dark,{steps:5});
  for(let i=0;i<10;i++){
