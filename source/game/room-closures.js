@@ -34,6 +34,8 @@ const POLICY={
   'jp-4-front-portal':['open','Common service gallery to balcony; individual workrooms are classified separately']
  },
  china:{
+  'cn-money-house-front':['door','Inset timber public money-house entrance'],
+  'cn-money-house-store':['door','Enclosed coin store with a real inset timber door'],
   'cn-tavern-public-entry':['open','Public house stair hall keeps direct access from the court'],
   'cn-tavern-dining-entry':['open','Open commercial restaurant arrival'],
   'cn-tavern-dining-hall':['open','Dining hall joins the public stair corridor'],
@@ -180,6 +182,8 @@ const DOOR_MOTIONS={
  'cn-hall-front':['hinge',1,'Retain the tested paired ceremonial lacquer doors swinging into the hall'],
  'cn-hall-rear':['hinge',-1,'Swing inward/south into the clear rear hall bay, away from the R14 rear terrace stair'],
  'cn-hall-west':['slide',0,'Tall hinged leaves would enter the indoor stair or the short exterior landing and rails; keep a sliding lattice closure'],
+ 'cn-money-house-front':['hinge',1,'Open north into the clear public arrival bay'],
+ 'cn-money-house-store':['hinge',1,'Open north into the clear store arrival; chests stay along the back wall'],
  'cn-clinic-front':['hinge',1,'Open north into the unobstructed public waiting hall'],
  'cn-clinic-consult-door':['hinge',1,'Open north into the clear consultation arrival bay'],
  'cn-clinic-stock-door':['hinge',1,'Open north beside the stock workbench, preserving the full counter-side staff aisle'],
