@@ -58,7 +58,7 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
  const arrived=n=>!!tasks.get(n)?.arrived;
  function animate(n,t){
   const c=poseContext(n,null),stage=order?.stage;let action=null,target=null;
-  c.heldProp=null;c.seatedMeal=false;c.handoff=!!order&&(n===herald&&['herald','transfer'].includes(order.holder)||n===recipient&&order.holder==='recipient'||stage==='scribe-handoff'&&n===scribe);
+  c.heldProp=null;c.seatedMeal=false;c.handoff=!!order&&(n===herald&&['herald','transfer'].includes(order.holder)||n===recipient&&order.holder==='recipient'||stage==='scribe-handoff'&&n===scribe||stage==='recipient-handoff'&&n===recipient);
   if(!paused(n)&&!n.walking){
    if(n===scribe&&stage==='drafting'){action='calligraphy';target=P.draft;}
    if(n===herald&&stage==='sealing'){action='tidy';target=P.seal;}
@@ -95,13 +95,14 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
     else if(stage==='await-recipient'&&arrived(recipient)){enter('reading');face(herald,P.recipient);face(recipient,P.read);say(herald,E.title+'：'+E.text);}
     else if(stage==='reading'&&advanceAfter(6,'response'))say(recipient,'领会。现在就把东岸落叶扫进竹筐，清出这段行路。');
     else if(stage==='response'&&advanceAfter(3,'recipient-handoff'))order.holder='transfer';
-    else if(stage==='recipient-handoff'&&advanceAfter(1.3,'to-work')){order.holder='recipient';record('edict-received',recipient);task(recipient,'walk-to-leaves',[P.work],'Bo 携同号令到东岸落叶处');}
-    else if(stage==='to-work'&&arrived(recipient)){enter('file-receipt');}
-    else if(stage==='file-receipt'&&advanceAfter(1.2,'sweeping')){order.holder='basket';tell(recipient,'按令实作 · 把东岸落叶扫进竹筐');}
+    else if(stage==='recipient-handoff'&&advanceAfter(1.3,'to-work')){order.holder='recipient';record('edict-received',recipient);task(recipient,'walk-to-receipt-basket',[P.file],'Bo 携同号令到竹筐边留存');}
+    else if(stage==='to-work'&&arrived(recipient)){enter('file-receipt');face(recipient,P.basket);}
+    else if(stage==='file-receipt'&&advanceAfter(1.2,'to-sweep')){order.holder='basket';task(recipient,'walk-to-leaves',[P.work],'按令实作 · 到落叶边取帚清扫');}
+    else if(stage==='to-sweep'&&arrived(recipient)){enter('sweeping');tell(recipient,'按令实作 · 把东岸落叶扫进竹筐');}
     else if(stage==='sweeping'&&advanceAfter(7,'returning')){ledger.finish(true);persist();order.claims={scribe:null,herald:null,recipient:null};record('east-shore-cleaned',recipient);say(recipient,'东岸落叶已入筐，这段路清好了。');task(recipient,'return-garden-post',[[10,.145,-14],[0,.295,-14.3],recipient.home.toArray()],'清扫完成 · 沿荷桥返岗');task(herald,'return-seal-stand',[[14,.115,-13.5],...reverse(HALL_EXIT).slice(1),P.sealStand],'传达已办结 · 回传令案');}
     else if(stage==='returning'){if(owned.has(recipient)&&arrived(recipient))release(recipient);if(arrived(herald)&&!owned.has(recipient)){record('closed');order=null;tasks.delete(herald);speaker=null;utterance='';}}
    }
-   for(const n of owned)animate(n,t);props.update(order,actors,phaseTime,!order&&!!ledger.snapshot().completedReceipt,halt);
+   for(const n of owned)animate(n,t);props.update(order,actors,phaseTime,!order&&ledger.snapshot().outcome==='completed',halt);
   },
   state:()=>({time,phaseTime,order:order?copy(order):null,ledger:ledger.snapshot(),speaker:speaker?.station.id||null,utterance,history:copy(history),failures:copy(failures),props:props.state(),actors:[...owned].map(n=>({id:n.station.id,position:n.root.position.toArray(),stage:tasks.get(n)?.id||'waiting',waypoint:tasks.get(n)?.index||0,arrived:arrived(n),walking:n.walking,paused:paused(n)})),rewards:false}),
   dispose(){if(disposed)return;disposed=true;if(order){ledger.finish(false);persist();}palace.releaseDuty(E.owner);palace.setDutyLine(E.owner,null);for(const n of[...owned]){n.route=[];n.walking=false;release(n);}tasks.clear();props.dispose();}

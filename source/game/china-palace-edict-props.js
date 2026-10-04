@@ -40,7 +40,7 @@ export function createPalaceEdictProps(parent){
    else setScroll(hands(actors.herald),actors.herald.root.rotation.y);
   }
   marks.forEach((m,i)=>m.visible=stage!=='drafting'||i<Math.ceil(ratio(5)*marks.length));print.visible=sealed;
-  seal.position.set(4.60,2.39,-5.06);if(stage==='sealing')seal.position.set(P.seal[0]-.22,P.seal[1]+.16+Math.max(0,Math.cos(ratio(2.2)*Math.PI*2))*.16,P.seal[2]+.11);
+  seal.position.set(4.60,2.39,-5.06);if(stage==='sealing'){actors.herald.root.updateWorldMatrix(true,true);const right=actors.herald.root.userData.hands?.[1],p=right?right.getWorldPosition(v).clone():hands(actors.herald);p.y-=.13;seal.position.lerp(p,Math.min(1,phase/.4,(2.2-phase)/.4));}
   workProgress=cleaned?1:stage==='sweeping'?ratio(7):stage==='returning'||stage==='complete'?1:0;
   leaves.forEach((leaf,i)=>{const start=new THREE.Vector3(P.sweep[0]+(i%3-1)*.29,.174,P.sweep[2]+(Math.floor(i/3)-1)*.22),end=new THREE.Vector3(P.basket[0]+(i%3-1)*.12,P.basket[1]+.10+Math.floor(i/3)*.035,P.basket[2]+(Math.floor(i/3)-1)*.10);leaf.position.copy(start).lerp(end,Math.max(0,Math.min(1,workProgress*9-i)));});
   broom.visible=stage==='sweeping';if(broom.visible){actors.recipient.root.updateWorldMatrix(true,true);const h=actors.recipient.root.userData.hands?.[1];broom.position.copy(h?h.getWorldPosition(v):hands(actors.recipient));broom.rotation.set(-.23,actors.recipient.root.rotation.y,paused?0:Math.sin(phase*4)*.20);}
