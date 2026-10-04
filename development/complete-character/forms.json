@@ -395,7 +395,12 @@
         1.5695
       ]
     ],
-    "browFinalHalfWidth": 0.0033
+    "browFinalHalfWidth": 0.0033,
+    "anteriorForeheadZ": {
+      "forehead_plane": 0.079,
+      "upper_forehead": 0.075,
+      "crown_front": 0.046
+    }
   },
   "female": {
     "scale": [
@@ -831,6 +836,11 @@
         1.571
       ]
     ],
-    "browFinalHalfWidth": 0.00255
+    "browFinalHalfWidth": 0.00255,
+    "anteriorForeheadZ": {
+      "forehead_plane": 0.081,
+      "upper_forehead": 0.08,
+      "crown_front": 0.049
+    }
   }
 }

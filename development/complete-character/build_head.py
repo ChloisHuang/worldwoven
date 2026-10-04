@@ -48,9 +48,21 @@ for name,a,b in handles:
   src.append([a[0]*side,a[1],a[2]]);dst.append([b[0]*side,b[1],b[2]]);names.append(name+('-L' if side<0 else '-R' if a[0] else ''))
 S=np.array(src);D=np.array(dst);Q=np.column_stack([np.ones(len(S)),S]);R=np.linalg.norm(S[:,None]-S[None,:],axis=2)
 A=np.block([[R,Q],[Q.T,np.zeros((4,4))]]);coef=np.linalg.solve(A,np.vstack([D,np.zeros((4,3))]))
+# A bounded anterior-frontal cage correction. The original pair's X/Y and
+# all skin below the superior brow remain exact; only the named forehead
+# depth targets blend into the unchanged parietal crown/back of head.
+forehead_D=D.copy()
+for i,name in enumerate(names):
+ key=name.removesuffix('-L').removesuffix('-R')
+ if key in form.get('anteriorForeheadZ',{}):forehead_D[i,2]=form['anteriorForeheadZ'][key]
+forehead_coef=np.linalg.solve(A,np.vstack([forehead_D,np.zeros((4,3))]))
 def cage(points):
- p=np.array(points);r=np.linalg.norm(p[:,None]-S[None,:],axis=2)
- return r@coef[:len(S)]+np.column_stack([np.ones(len(p)),p])@coef[len(S):]
+ p=np.array(points);r=np.linalg.norm(p[:,None]-S[None,:],axis=2);affine=np.column_stack([np.ones(len(p)),p])
+ base=r@coef[:len(S)]+affine@coef[len(S):]
+ corrected=r@forehead_coef[:len(S)]+affine@forehead_coef[len(S):]
+ weight=np.array([smooth(7.47,7.63,q[1])*smooth(.75,1.10,q[2]) for q in p])
+ base[:,2]+=(corrected[:,2]-base[:,2])*weight
+ return base
 def point(p):return Vector(cage([p])[0])
 # Actual lower lip contact loop/inner oral return edits, mirrored by source
 # positions. Move real skin to contact; never add a closure plane or mouth decal.
@@ -170,7 +182,7 @@ for side in [-1,1]:
 for p in parts:
  for k,v in p.items():
   if isinstance(v,list) and k!='index':p[k]=[round(float(x),7) for x in v]
-output={'license':'CC0-1.0 hm08; original cage, eyes and brows','sourceCommit':meta['commit'],'sourceSha256':meta['files']['base.obj']['sha256'],'coordinateSystem':'metres Y up face +Z','method':'named anatomical biharmonic cage plus direct topology contact loops','form':FORM,'prototypeOnly':True,'unimplemented':['facial trait morphs','other body and hairstyle variants'],'parts':parts,'landmarks':{n:list(v) for n,_,v in handles},'sourceVertices':len(raw),'sourceFaces':len(faces)}
+output={'license':'CC0-1.0 hm08; original cage, eyes and brows','sourceCommit':meta['commit'],'sourceSha256':meta['files']['base.obj']['sha256'],'coordinateSystem':'metres Y up face +Z','method':'named anatomical biharmonic cage plus direct topology contact loops','form':FORM,'prototypeOnly':True,'unimplemented':['facial trait morphs','other body and hairstyle variants'],'parts':parts,'landmarks':{n:list(cage([source])[0]) for n,source,_ in handles},'sourceVertices':len(raw),'sourceFaces':len(faces)}
 (ROOT/('adult-head.json' if FORM=='male' else 'adult-head-female.json')).write_text(json.dumps(output,separators=(',',':'))+'\n')
 if os.environ.get('SAVE_SCULPT_BLEND'):bpy.ops.wm.save_as_mainfile(filepath=os.environ['SAVE_SCULPT_BLEND'])
 print(json.dumps({'vertices':sum(len(p['position'])//3 for p in parts),'triangles':sum(len(p['index'])//3 for p in parts),'parts':[(p['name'],len(p['index'])//3) for p in parts],'bounds':[(min(part['position'][k::3]),max(part['position'][k::3])) for k in range(3)]}))
