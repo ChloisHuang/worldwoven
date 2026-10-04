@@ -1,0 +1,44 @@
+// One China scene exercises real controller/doors/seats and numbered clinic flow.
+// Renderer is stubbed: this checks UI state/control geometry, not browser CSS/iOS.
+const fs=require('node:fs'),vm=require('node:vm');
+let harness=fs.readFileSync('tests/fixtures/hotfix-input-harness.cjs','utf8');
+const extras='\nexport function intentReview(){return {player,lot,camera,cameraSolids,furniture,furnitureLabels,chinaClinic,chinaMoneyHouse,chinaTavernUI,chinaSalonUI,chinaLabor,npcs,gameHealth};} export {updatePlayer,updateFurnitureLabels,requestFurniture,requestStationIntent,navigateTo,stationIntent,startInteraction};';
+harness=harness.replace("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),", "new vm.SourceTextModule(fs.readFileSync(file,'utf8')+(file.endsWith('/game/main.js')?"+JSON.stringify(extras)+":''),");
+const begin=harness.indexOf('const report=[];for(let round=0;'),end=harness.indexOf('\nconsole.log(JSON.stringify(',begin);
+const body=String.raw`
+const checks=[],record=s=>{checks.push(s);console.log('PASS',s);},T=three.namespace;
+all.find(e=>e.dataset.region==='china').onclick();ids.travel.onclick();tick(2);
+const r=main.namespace.intentReview(),clinic=r.chinaClinic,chair=r.furniture.items.find(i=>i.id==='china-clinic-consult-seat'),counter=r.lot.stations.find(s=>s.id==='cn-pharmacy-assistant');
+const refresh=()=>{main.namespace.updatePlayer(0,now/1000);main.namespace.updateFurnitureLabels();};
+const frame=(n=1)=>{for(let i=0;i<n;i++){now+=33.333;raf();assert.equal(clinic.state().failures.length,0,'clinic route failures');}};
+const until=(pred,label,max=3200)=>{let n=0;while(!pred()&&n++<max)frame();assert(pred(),label+' '+JSON.stringify({player:state().player,pending:state().pendingInteraction,performing:state().performing,path:state().pathLength,order:clinic.state().order,actors:clinic.state().actors}));};
+const key=code=>events.keydown({code,repeat:false,preventDefault(){}}),cancel=()=>{if(state().pendingInteraction||state().performing||state().seated){key('Escape');frame(2);}};
+const walk=p=>{main.namespace.navigateTo(new T.Vector3(...p));until(()=>state().pathLength===0,'walk reached '+p);frame(2);};
+const row=()=>ids['station-list'].children.find(e=>e.dataset.stationId===counter.id);
+assert(!ids['station-list'].children.some(e=>e.dataset.stationId==='cn-cooking'));assert(r.npcs.some(n=>n.station.id==='cn-cooking'));assert(!row(),'no unaccepted clinic order entry');
+assert(!main.namespace.requestStationIntent(r.lot.stations.find(s=>s.id==='cn-cooking')),'execution gate also rejects unqualified work');
+record('unqualified player work hidden and denied; NPC job remains');
+// UI geometry fixtures never execute a service remotely.
+r.player.root.position.set(...chair.position);r.camera.position.set(chair.position[0],chair.position[1]+1.5,chair.position[2]+3);r.camera.lookAt(r.furniture.markerPoint(chair));r.camera.updateMatrixWorld(true);refresh();
+const dot=r.furnitureLabels.find(x=>x.item.id===chair.id).label;
+assert(dot.className.includes('furniture-seat-dot'));assert.equal(dot.textContent,'');assert(!dot.hidden,'near same-floor visible seat dot');
+r.player.root.position.z+=8;refresh();assert(dot.hidden,'far dot hidden');r.player.root.position.set(chair.position[0],chair.position[1]-3.8,chair.position[2]);refresh();assert(dot.hidden,'wrong-floor dot hidden');
+r.player.root.position.set(...chair.position);const point=r.furniture.markerPoint(chair),middle=r.camera.position.clone().lerp(point,.5),wall={minX:middle.x-.3,maxX:middle.x+.3,minY:middle.y-.3,maxY:middle.y+.3,minZ:middle.z-.3,maxZ:middle.z+.3};r.cameraSolids.push(wall);refresh();assert(dot.hidden,'occluded dot hidden');r.cameraSolids.splice(r.cameraSolids.indexOf(wall),1);refresh();assert(!dot.hidden);
+for(const cls of ['cn-meal-dialog','cn-salon-dialog']){const ui=all.find(e=>e.className===cls);ui.showModal();refresh();assert(dot.hidden);assert.equal(state().nearest,null,'modal suppresses world E candidate');ui.close();refresh();assert(!dot.hidden,'close restores dot');}
+record('seat dot near/far/floor/occlusion and service-menu suppression');
+// One dot click walks to the approach then mounts; E still safely stands.
+r.player.root.position.z+=.65;refresh();dot.onclick();const firstPath=state().pathLength;assert(firstPath>0);dot.onclick();assert.equal(state().pathLength,firstPath,'repeat dot click does not restart');until(()=>state().seated===chair.id,'dot click sits on actual arrival');assert(clinic.state().order);key('KeyE');frame(2);assert(!state().seated);assert(!clinic.state().order,'early E cancels unwritten consultation');
+record('one-click nearby chair approach/mount, repeated click, E exit');
+function consult(){main.namespace.requestFurniture(chair);until(()=>state().seated===chair.id,'consult chair');until(()=>clinic.state().order?.stage==='handoff','numbered card written');return clinic.state().order;}
+let order=consult();refresh();assert(row());assert(row().querySelector('strong').textContent.includes('领取'));row().onclick();assert.equal(state().pendingInteraction,counter.id);const queued=state().pathLength;row().onclick();assert.equal(state().pathLength,queued,'repeat collect click preserves one route');frame(9);key('Escape');frame(2);assert.equal(state().pendingInteraction,null);assert.equal(state().pathLength,0);assert.equal(clinic.state().request,false);assert.equal(clinic.state().order.id,order.id,'cancel walk retains original written order');
+record('collect intent exists upstairs; repeated select and mid-route cancel safe');
+// Manual walk into the public counter area. No station navigation has been requested since cancel.
+walk([24.4,4.015,-24.45]);until(()=>clinic.state().order?.stage==='stock','assistant receives original card');walk([23.6,.215,-25.9]);refresh();assert.equal(state().nearest,counter.id,'manual arrival exposes current collect intent');assert(ids['interact-button'].textContent.includes('领取'));key('KeyE');until(()=>clinic.state().order?.stage==='complete','manual-arrival E auto-aligns and receives original numbered packet');frame(3);assert(!row());assert.equal(clinic.state().history.filter(h=>h.event==='delivered'&&h.orderId===order.id).length,1);record('manual arrival exposes same collect action and delivers once');
+const receiptsBefore=JSON.parse(storage['worlds-days-v1']).gameHealth.deliveredThrough;main.namespace.requestStationIntent({...counter,intentKey:order.id});frame(8);assert.equal(clinic.state().history.filter(h=>h.event==='delivered'&&h.orderId===order.id).length,1);assert.equal(JSON.parse(storage['worlds-days-v1']).gameHealth.deliveredThrough,receiptsBefore,'stale click cannot reapply care');
+order=consult();refresh();row().onclick();until(()=>clinic.state().order?.stage==='complete','one-click collect walks both flights and executes after real arrival',4300);frame(3);assert(!state().pendingInteraction);assert(!state().performing);assert.equal(clinic.state().history.filter(h=>h.event==='delivered'&&h.orderId===order.id).length,1);record('one-click upstairs collection completes same-number physical route without second E');
+// A stale queued task must not begin a different order after cancellation.
+const stale={...counter,intentKey:order.id};assert(!main.namespace.requestStationIntent(stale));r.player.root.position.set(counter.position[0],4.015,counter.position[2]);main.namespace.startInteraction(stale);assert(!state().performing);assert(!clinic.state().request);record('stale phase/order and wrong-floor execution denied');
+ids['return-world'].onclick();assert.equal(state().characterResources.activeReferences,0);assert.equal(state().pendingInteraction,null);console.log(JSON.stringify({status:'PASS',scope:'Production main simulated DOM/control scene; no CSS browser/iOS proof',checks,maxRSSMiB:process.resourceUsage().maxRSS/1024}));
+`;
+harness=harness.slice(0,begin)+body+harness.slice(end);harness=harness.replace(/console.log\(JSON.stringify\(\{status:'PASS',scope:'Production controller[\s\S]*?\},null,2\)\);/,'');
+new vm.Script(harness,{filename:'tests/nearby-interaction-inherited.cjs'}).runInNewContext({require,console,process,Buffer,__dirname:process.cwd()+'/tests',__filename});
