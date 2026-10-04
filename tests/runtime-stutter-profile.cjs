@@ -21,7 +21,7 @@ profileNavigationVersion('patched');
 `;
 const extract=(name,next)=>old.slice(old.indexOf('function '+name+'('),old.indexOf('function '+next+'(',old.indexOf('function '+name+'('))).replace('function '+name+'(','function '+name+'R1644(');
 const intentTest=fs.readFileSync('tests/nearby-interaction-main.cjs','utf8');
-const intentExtras=vm.runInNewContext(intentTest.match(/const extras=([^\n]+);\nharness=/)[1]);
+const intentExtras=vm.runInNewContext(intentTest.match(/const extras=([^\n]+);\nharness=/)[1]).replace('chinaClinic.update(dt,elapsed,{player,position:player.root.position,facilityId:seated?.id||null,conversationActorId:npcSocial?.conversationActorId()||null});','updateNPCs(dt,elapsed);');
 const extras=intentExtras+'\n'+extract('updatePlayer','updateNPCs')+'\n'+extract('updateFurnitureLabels','updatePlayer')+String.raw`
 export function profileScene(){
  for(const [name,service]of Object.entries({chinaAudience,chinaPalace,chinaClinic,chinaSalon,chinaMoneyHouse,chinaTavern,chinaLabor,chinaEdict,chinaArchery,gameHealth,npcSocial,japanService,japanServiceUI}))if(service?.update)service.update=__bench.measure(name,service.update);
