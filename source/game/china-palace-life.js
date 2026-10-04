@@ -41,7 +41,8 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
  function choose(n){
   if(n===emperor&&duty){
    duty.active=true;
-   scripts.set(n,[...(duty.fromPublic?[]:[stage('duty-public-stairs','应召出居 · 沿公共梯厅下楼',homeExit(n))]),stage('duty-hall-arrival','前往朝议 · 沿正殿前阶入殿',COURT),stage('duty-hall-seat','朝议候奏 · 等候大臣依次进言',[throne.position],Infinity,{mount:throne}),stage('duty-return-home','朝议结束 · 沿公共梯厅回居',[...reverse(COURT),...homeReturn(n)])]);
+   const departure=duty.fromPublic?[]:[stage('duty-public-stairs','应召出居 · 沿公共梯厅下楼',homeExit(n))];
+   scripts.set(n,duty.kind==='edict-review'?[...departure,stage('duty-public-review','公共听候处阅批 · 留出院门通行',[HALL.at(-1)],Infinity,{look:[-14.1,.145,-13.35]}),stage('duty-return-home','阅批完毕 · 沿公共梯厅回居',homeReturn(n))]:[...departure,stage('duty-hall-arrival','前往朝议 · 沿正殿前阶入殿',COURT),stage('duty-hall-seat','朝议候奏 · 等候大臣依次进言',[throne.position],Infinity,{mount:throne}),stage('duty-return-home','朝议结束 · 沿公共梯厅回居',[...reverse(COURT),...homeReturn(n)])]);
    stages.set(n,{choice:null,cycles:stages.get(n)?.cycles||0});enter(n,0);return;
   }
   const options=candidates(n).map(c=>{const end=c.steps.find(s=>s.chosen)?.path.at(-1);return {...c,available:c.available!==false&&!!end&&(near(n.root.position,end,.1)||planPath(n.root.position,point(end),.25).length>0)};}),choice=brain.choose(n.station.id,options,playerState.hour??10);
@@ -99,14 +100,14 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   socialStatus(n){if(!owned.has(n)&&!(hostHeld&&n===host))return null;return {busy:false,attention:true,job:n===host?'与月容在茶席叙话':scripts.get(n)[stages.get(n).index].label};},
   // Palace life remains the sole movement/pose owner of its actors. A duty
   // drains unfinished leisure without granting its need/relationship relief.
-  requestDuty(owner){
+  requestDuty(owner,options={}){
    if(disposed||!owner||duty&&duty.owner!==owner)return false;
-   if(!duty){duty={owner,active:false,release:false,yieldSeat:false};const s=stages.get(emperor);if(s.choice){s.choice.fulfilled=false;brain.complete(emperor.station.id,s.choice,{fulfilled:false});}record(emperor,'duty-requested:'+owner);}
+   if(!duty){duty={owner,kind:options.kind==='edict-review'?'edict-review':'audience',active:false,release:false,yieldSeat:false};const s=stages.get(emperor);if(s.choice){s.choice.fulfilled=false;brain.complete(emperor.station.id,s.choice,{fulfilled:false});}record(emperor,'duty-requested:'+owner);}
    return true;
   },
   releaseDuty(owner){if(duty?.owner===owner)duty.release=true;},
   setDutyLine(owner,line){if(duty?.owner===owner)duty.line=line;},
-  dutyState(owner){if(!duty||duty.owner!==owner)return null;const s=stages.get(emperor);return {owner,active:duty.active,stage:scripts.get(emperor)[s.index].id,ready:duty.active&&s.mount===throne&&!duty.release&&!duty.yieldSeat,mounted:s.mount?.id||null,releasing:duty.release};},
+  dutyState(owner){if(!duty||duty.owner!==owner)return null;const s=stages.get(emperor);return {owner,active:duty.active,stage:scripts.get(emperor)[s.index].id,ready:duty.active&&(duty.kind==='edict-review'?scripts.get(emperor)[s.index].id==='duty-public-review'&&s.arrived:s.mount===throne)&&!duty.release&&!duty.yieldSeat,mounted:s.mount?.id||null,releasing:duty.release};},
   playerRequest(id){for(const n of actors){const s=stages.get(n);if(s.mount?.id===id){if(n===emperor&&duty?.active){duty.yieldSeat=true;}else{if(s.choice)s.choice.fulfilled=false;advance(n,s);}}}},
   update(dt,t,state={}){
    if(disposed)return;playerState=state;time+=dt;brain.tick(dt);
@@ -119,6 +120,10 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
        duty.fromPublic=near(n.root.position,HALL.at(-1),.3);
        if(s.choice)brain.complete(n.station.id,s.choice,{fulfilled:false});choose(n);s=stages.get(n);stop=scripts.get(n)[s.index];
       }
+     }
+     if(duty.active&&stop.id==='duty-public-review'){
+      if(duty.release){enter(n,s.index+1);s=stages.get(n);stop=scripts.get(n)[s.index];}
+      else if(duty.line)tell(n,duty.line);
      }
      if(duty.active&&stop.id==='duty-hall-seat'){
       const occupied=state.facilityId===throne.id;
