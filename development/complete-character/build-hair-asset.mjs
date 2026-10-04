@@ -14,7 +14,7 @@ const source=fs.readFileSync(input),head=JSON.parse(source),skin=head.parts.find
 const scalp=new T.BufferGeometry();scalp.setAttribute('position',new T.Float32BufferAttribute(skin.position,3));scalp.setIndex(skin.index);scalp.computeBoundingSphere();
 const g=sculptLayeredHairGeometry({scalpGeometry:scalp,color:0xffffff});
 const round=(array,digits)=>Array.from(array,x=>Number(x.toFixed(digits)));
-const data={version:1,originalAsset:true,style:g.userData.style,scalpSha256:crypto.createHash('sha256').update(source).digest('hex'),position:round(g.attributes.position.array,6),normal:round(g.attributes.normal.array,5),value:Array.from({length:g.attributes.position.count},(_,i)=>Number(g.attributes.color.getX(i).toFixed(4))),index:Array.from(g.index.array)};
+const data={version:1,originalAsset:true,style:g.userData.style,scalpSha256:crypto.createHash('sha256').update(source).digest('hex'),position:round(g.attributes.position.array,6),normal:round(g.attributes.normal.array,5),value:Array.from({length:g.attributes.position.count},(_,i)=>Number(g.attributes.color.getX(i).toFixed(4))),flow:Buffer.from(new Uint16Array(Array.from(g.attributes.featureCoord.array,v=>Math.round(Math.max(0,Math.min(1,v))*65535))).buffer).toString('base64'),index:Array.from(g.index.array)};
 if(!data.position.every(Number.isFinite)||!data.normal.every(Number.isFinite))throw new Error('Non-finite hair vertex');
 if(Math.max(...data.index)>=data.position.length/3)throw new Error('Invalid hair index');
 fs.mkdirSync(path.join(HERE,'assets'),{recursive:true});

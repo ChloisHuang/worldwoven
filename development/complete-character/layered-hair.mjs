@@ -5,6 +5,7 @@
  */
 import * as THREE from 'three';
 import HAIR_DATA from './assets/layered-hair-data.mjs';
+import {attachHairFlow} from './hair-flow-finish.mjs';
 const BASE_CENTER=[0,1.562,-.017], BASE_RADII=[.079,.126,.101];
 const mix=(a,b,t)=>a+(b-a)*t;
 const smooth=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
@@ -82,7 +83,7 @@ export function sculptLayeredHairGeometry({center=BASE_CENTER,radii=BASE_RADII,c
   const a=i/columns*Math.PI*2,phi=phiBounds[i]*j/rows;
   const q=new THREE.Vector3(Math.sin(phi)*Math.sin(a),Math.cos(phi),Math.sin(phi)*Math.cos(a));
   const p=scalpPoint(q.clone().multiply(r).add(root),envelopeLift(q));
-  add(p.toArray(),.975, j/rows, i/columns);
+  add(p.toArray(),.975,j/rows*.32,i/columns*9/16);
  }
  for(let j=0;j<rows;j++)for(let i=0;i<columns;i++){
   const a=j*(columns+1)+i,b=a+1,c=a+columns+1,d=c+1;indices.push(a,c,b,b,c,d);
@@ -105,7 +106,7 @@ export function sculptLayeredHairGeometry({center=BASE_CENTER,radii=BASE_RADII,c
     const point=rooted.lerp(free,rear?0:smooth(.80,1,t));
     // Small continuous longitudinal planes catch the cel light. No incised
     // dark lines or independently extruded strand ridges are required.
-    add(point.toArray(),value,t,k/sides);
+    add(point.toArray(),value,t,k/sides/16);
    }
   }
   for(let j=0;j<steps;j++)for(let k=0;k<sides;k++){
@@ -124,14 +125,14 @@ export function sculptLayeredHairGeometry({center=BASE_CENTER,radii=BASE_RADII,c
 }
 
 /** Reuse the evaluated original mesh. No rays or per-frame work at runtime. */
-export function createLayeredHairGeometry({center=BASE_CENTER,radii=BASE_RADII,color=0x44342f}={}){
+export function createLayeredHairGeometry({center=BASE_CENTER,radii=BASE_RADII,color=0x44342f,flowFinish=false}={}){
  const p=HAIR_DATA.position.slice(),n=HAIR_DATA.normal.slice(),c=[],base=new THREE.Color(color);
  for(let i=0;i<p.length;i+=3){
   for(let k=0;k<3;k++){p[i+k]=center[k]+(p[i+k]-BASE_CENTER[k])*radii[k]/BASE_RADII[k];n[i+k]*=BASE_RADII[k]/radii[k];}
   const length=Math.hypot(n[i],n[i+1],n[i+2])||1;for(let k=0;k<3;k++)n[i+k]/=length;
   const value=HAIR_DATA.value[i/3];c.push(base.r*value,base.g*value,base.b*value);
  }
- const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(n,3));g.setAttribute('color',new THREE.Float32BufferAttribute(c,3));g.setIndex(HAIR_DATA.index);g.computeBoundingBox();g.computeBoundingSphere();g.userData={originalAsset:true,style:HAIR_DATA.style,triangles:HAIR_DATA.index.length/3,locks:LOCKS.length,scalpSha256:HAIR_DATA.scalpSha256};return g;
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(n,3));g.setAttribute('color',new THREE.Float32BufferAttribute(c,3));g.setIndex(HAIR_DATA.index);g.computeBoundingBox();g.computeBoundingSphere();g.userData={originalAsset:true,style:HAIR_DATA.style,triangles:HAIR_DATA.index.length/3,locks:LOCKS.length,scalpSha256:HAIR_DATA.scalpSha256};if(flowFinish)attachHairFlow(g,HAIR_DATA.flow);return g;
 }
 
 /** Replace only head hair. The placeholder matches Worldwoven's mesh batcher.
