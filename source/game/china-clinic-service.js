@@ -52,9 +52,10 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
   owns:n=>owned.has(n),ownsStation:id=>id===assistant.station.id,
   beginConsultation,
   leaveSeat(){if(order&&['consult','writing'].includes(order.stage)){cancel('写单前起身');notify('已起身，本次问诊取消');}},
-  startPlayer(id,p){if(id!==assistant.station.id)return false;player=p;
+  collectionIntent(){return order&&!['consult','writing','complete'].includes(order.stage)?{action:`领取第 ${order.number} 号云纹包`,intentKey:order.id}:null;},
+  startPlayer(id,p,intentKey){if(id!==assistant.station.id)return false;player=p;
    if(!order){notify('请先上二层医馆，在问诊椅坐下，由许宁写下编号单');return false;}
-   if(order.stage==='complete'){notify('这份云纹包已经交付，新的问诊会使用下一编号');return false;}
+   if(order.stage==='complete'||['consult','writing'].includes(order.stage)||intentKey&&intentKey!==order.id){notify('请等当前编号单写好后领取，本次动作已失效');return false;}
    if(!atCounter()){notify('请到药铺柜台前领取');return false;}request=true;return true;
   },
   stopPlayer(){request=false;if(order?.stage==='deliver'){enter('ready');notify('交付暂停，纸包仍留在柜台，回来按 E 领取');}},
