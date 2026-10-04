@@ -3,6 +3,7 @@
  * No museum image, textile pattern or film costume is used as an asset.
  */
 import * as THREE from 'three';
+import {fitActorHeadAttachment} from './complete-adult/attachment-fit.js';
 
 // This authoring hook enters the normal character template, body shaping and
 // skinning pipeline. In particular the sleeves follow the existing bow IK.
@@ -63,6 +64,7 @@ export function attachJinyiCostume(actor){
   const f=part(hat,'jinyi-cap-side-fold-'+s,new THREE.BoxGeometry(.019,.112,.097),0x303941,s*.075,.293,-.031);f.rotation.z=-s*.19;f.rotation.x=-.17;
  }
  const band=part(hat,'jinyi-cap-forehead-band',new THREE.CylinderGeometry(.106,.108,.023,16),0x151e25,0,.216,-.009);band.scale.z=.90;
+ fitActorHeadAttachment(actor,hat);
  const pelvis=actor.root.getObjectByName('pelvis'),saber=new THREE.Group();saber.name='Original sheathed waist saber';pelvis.add(saber);groups.push(saber);saber.position.set(-.203,.055,.017);saber.rotation.set(-.23,0,-.30);
  // The waist-hung scabbard is a restrained interpretation of painted sidearms,
  // not a claim that a unique surviving blade identifies all 绣春刀.

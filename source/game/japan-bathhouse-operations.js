@@ -16,7 +16,7 @@ const JOBS={register:{label:'记入客簿并递出浴牌',duration:2.5,action:'c
 // Replaces (never runs beside) the earlier four-resident demonstration routine.
 // The host supplies the existing movement/door/wardrobe code and lifecycle
 // callbacks so spawned visitors join the ordinary labels, culling and disposal.
-export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,doors,moveActor,poseContext,changeWardrobe,createVisitor,removeVisitor,worldSeed=1,saved={},saveState=()=>{}}) {
+export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,doors,moveActor,poseContext,changeWardrobe,createVisitor,removeVisitor,worldSeed=1,npcShapeVersion=1,saved={},saveState=()=>{}}) {
  const residents=new Map(npcs.map(n=>[n.station.id,n]));
  if(WORKERS.some(id=>!residents.has(id)))return null;
  if(!furniture.resolveBath||!furniture.facilities)throw new Error('Bathhouse operations require shared pool seats');
@@ -72,7 +72,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
  function spawn() {
   if(guests.size>=2||time<nextArrival)return;
   if([...guests.values()].some(n=>near(n.root.position,P.arrival,1.1)))return;
-  const identity=createJapanVisitorIdentity(board.nextIdentity(),worldSeed);
+  const identity=createJapanVisitorIdentity(board.nextIdentity(),worldSeed,npcShapeVersion);
   const used=new Set(board.state().visits.filter(v=>v.customerType!=='player').map(v=>v.restSeatId)),seat=restSeats.find(s=>!used.has(s.id));if(!seat)return;
   const visit=board.spawn({...identity,restPoint:seat.anchor,diningPoint:seat.anchor,servePoint:[seat.position[0]+.7,seat.position[1],seat.position[2]-.12],restSeatId:seat.id});
   if(visit){addGuest(visit);record(visit.id,'spawned');nextArrival=time+14;}
