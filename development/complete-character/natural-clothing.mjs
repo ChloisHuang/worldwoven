@@ -25,7 +25,7 @@ const SLEEVE=[
  [1.099,.039,.041,.275,-.006],[1.18,.044,.047,.241,-.009],
  [1.26,.046,.054,.213,-.011],[1.310,.044,.055,.189,-.011],
  [1.340,.037,.047,.169,-.010],[1.358,.022,.031,.150,-.009],
- [1.369,.003,.007,.138,-.008]
+ [1.369,.003,.007,.120,-.008]
 ];
 function spline(rows,t){
  const j=Math.min(rows.length-2,Math.floor(t)),u=t-j;
@@ -70,13 +70,13 @@ function loft(rows,opts,{arm=false,side=1,nu=32,nv=32}={}){
  },opts,{arm,closed:true});
 }
 function setGeometry(m,g){const old=m.geometry;m.geometry=g;old.dispose();m.userData.naturalClothing=true;}
-function bezier(a,b,c,d,t){const s=1-t;return a.map((x,i)=>s*s*s*x+3*s*s*t*b[i]+3*s*t*t*c[i]+t*t*t*d[i]);}
 function ribbon(points,width,opts,offset=.0032){
  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],p[1],0)));
  return grid(2,24,(u,v)=>{const p=curve.getPoint(v),t=curve.getTangent(v),w=typeof width==='function'?width(v):width;const x=p.x+(u-.5)*w*t.y,y=p.y-(u-.5)*w*t.x;return [x,y,frontAt(x,y)+offset];},opts);
 }
 /** A bounded prototype for the existing male France court-frock-coat.
- * Returns a summary, or null for other outfits. Dimensions are unscaled metres.
+ * Returns a summary, or null for other outfits/nonneutral leg proportions.
+ * Dimensions are unscaled metres.
  * All generated vertices include anatomical sourceY for production weights.
  */
 export function applyNaturalClothing(root,options={}){
@@ -86,6 +86,8 @@ export function applyNaturalClothing(root,options={}){
  const bodice=root.getObjectByName('royal-frock-bodice');
  if(!bodice||bodice.userData.naturalClothing)return null;
  const legLength=options.shapeTraits?.legLength??1;
+ // This representative cut has only been fitted to the neutral adult height.
+ if(legLength!==1)return null;
  const opts={bodyPreset,legLength,offset:createRelaxedArmOffset(bodyPreset,wardrobe,legLength)};
  const changed=[];
  const replace=(name,g)=>{const m=root.getObjectByName(name);if(!m){g.dispose();return;}setGeometry(m,g);changed.push(name);};
@@ -93,11 +95,11 @@ export function applyNaturalClothing(root,options={}){
  for(const side of [-1,1]){
   replace('court-long-sleeve-'+side,loft(SLEEVE,opts,{arm:true,side,nu:28,nv:32}));
   // A collar fold opens naturally from the neck then falls against the chest.
-  // Its outer edge and rounded point are authored, rather than a wide ribbon
+  // Its angular outer edge and short collar point are authored, rather than a wide ribbon
   // whose edges intersect the bodice and look like a floating leaf.
   replace('shirt-collar-'+side,grid(8,18,(u,v)=>{
-   const inner=bezier([.031,1.404],[.024,1.386],[.026,1.362],[.047,1.327],v);
-   const outer=bezier([.048,1.397],[.064,1.382],[.070,1.355],[.047,1.327],v);
+   const inner=[mix(.031,.024,v),mix(1.405,1.380,v)];
+   const outer=[mix(.058,.052,v),mix(1.388,1.350,v)];
    const x=side*mix(inner[0],outer[0],u),y=mix(inner[1],outer[1],u);
    return [x,y,frontAt(x,y)+.0032+.0030*Math.sin(u*Math.PI)*Math.sin(v*Math.PI)];
   },opts));
@@ -105,12 +107,13 @@ export function applyNaturalClothing(root,options={}){
   // Existing restrained seams now follow the actual garment, not open air.
   replace('shirt-fold-'+side,ribbon([[side*.125,1.215],[side*.130,1.115],[side*.118,.971]],.0015,opts,.0017));
  }
- replace('royal-cravat',ribbon([[0,1.403],[0,1.365],[0,1.315]],t=>.020+.010*Math.sin(t*Math.PI),opts,.006));
+ replace('collar-opening',grid(8,12,(u,v)=>{const x=mix(-.036,.036,u)*(1-v),y=mix(1.399,1.339,v);return[x,y,frontAt(x,y)+.0018];},opts));
+ replace('royal-cravat',ribbon([[0,1.403],[0,1.365],[0,1.317]],t=>.020+.007*Math.sin(t*Math.PI),opts,.0055));
  // Reproject the inherited placket, buttons and opening after torso shaping.
  // Their colors/identity remain untouched. A local inverse x factor lets their
  // topology survive; sourceY and every arm/hand source remain intact.
  root.traverse(m=>{
-  if(!m.isMesh||!/^shirt-placket$|^shirt-button-|^collar-opening$/.test(m.name))return;
+  if(!m.isMesh||!/^shirt-placket$|^shirt-button-/.test(m.name))return;
   const p=m.geometry.attributes.position;
   for(let i=0;i<p.count;i++){
    const y=p.getY(i),unit=shapePoint([1,y,0],opts)[0],x=p.getX(i)/unit;
