@@ -1,4 +1,4 @@
-/** Exact production Three + Mesa study; no browser or production-source edits. */
+/** Isolated Three + Mesa study; production or explicit local face-ramp variant. */
 import {registerHooks} from 'node:module';
 import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import assert from 'node:assert/strict';import {fileURLToPath,pathToFileURL} from 'node:url';
 const ROOT=path.dirname(fileURLToPath(import.meta.url)),SOURCE=path.resolve(ROOT,'../../source'),OUT=path.resolve(process.env.OUT_DIR||'');
