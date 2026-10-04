@@ -17,8 +17,8 @@ export function buildPalaceEmperorGarments(g,{loft,surface,ribbon,hand,shoe,conf
  loft(g,'palace-imperial-continuous-long-robe',body,C.yukata,{steps:38});
  // A round standing collar over a vermilion inner edge replaces the generic
  // crossed robe. The robe is ordinary court dress, not Qing court regalia.
- piping(g,loft,'palace-imperial-round-collar',[[1.384,.082,.052,0,0],[1.398,.056,.043,0,.001],[1.414,.043,.036,0,.003]],WINE);
- piping(g,loft,'palace-imperial-collar-gold-edge',[[1.384,.083,.053,0,0],[1.391,.071,.050,0,0]],GOLD);
+ piping(g,loft,'palace-imperial-round-collar',[[1.397,.062,.047,0,0],[1.408,.050,.041,0,.001],[1.422,.046,.038,0,.003]],WINE);
+ piping(g,loft,'palace-imperial-collar-gold-edge',[[1.403,.056,.046,0,.001],[1.409,.052,.043,0,.001]],GOLD);
  for(const side of[-1,1]){
   const sleeve=[[.942,.036,.043,side*.300,-.003],[.99,.050,.062,side*.298,-.008],[1.08,.080,.083,side*.281,-.017],[1.18,.087,.085,side*.250,-.020],[1.28,.079,.077,side*.206,-.016],[1.337,.061,.063,side*.173,-.012]];
   loft(g,'palace-imperial-draped-sleeve-'+side,sleeve,C.yukata,{steps:25});
@@ -61,10 +61,13 @@ export function buildPalaceConsortGarments(g,{loft,surface,ribbon,hand,shoe,conf
  loft(g,'palace-consort-crossed-robe-bodice',upper,C.yukata,{steps:28});
  // An open-front long overrobe exposes a separate ivory skirt. Three curved
  // layers create a court silhouette before embroidery is added.
- const coat=[[.40,.240,.149,0,-.006],[.56,.225,.143,0,-.006],[.80,.198,.130,0,-.004],[1.10,.154,.105,0,-.003]];
- surface(g,'palace-consort-open-overrobe',36,24,(u,v)=>{const y=.40+v*.70,w=.240+(.154-.240)*v,d=.149+(.105-.149)*v,a=(.67-.32*v)+u*(TAU-2*(.67-.32*v));return[Math.sin(a)*w,y,-.004+Math.cos(a)*d];},C.yukata);
+ const coat=[[.40,.255,.158,0,-.004],[.56,.232,.147,0,-.004],[.80,.197,.130,0,-.004],[1.10,.154,.108,0,-.004]];
+ surface(g,'palace-consort-open-overrobe',36,24,(u,v)=>{const y=.40+v*.70,w=.255+(.154-.255)*v,d=.158+(.108-.158)*v,a=(.67-.32*v)+u*(TAU-2*(.67-.32*v));return[Math.sin(a)*w,y,-.004+Math.cos(a)*d];},C.yukata);
+ surface(g,'palace-consort-overrobe-gold-hem',30,2,(u,v)=>{const t=v*.014,a=(.67-.32*t)+u*(TAU-2*(.67-.32*t));return[Math.sin(a)*(.258+(.154-.255)*t),.40+t*.70,-.004+Math.cos(a)*(.161+(.108-.158)*t)];},GOLD);
+ const backFlower=conformFront(floralSpray(g,'palace-consort-back-gold-floral',0,1.225,.097,GOLD),upper,.006),backPoints=backFlower.geometry.attributes.position;
+ for(let i=0;i<backPoints.count;i++)backPoints.setZ(i,-backPoints.getZ(i)-.018);backFlower.geometry.computeVertexNormals();
  for(const side of[-1,1]){
-  const points=Array.from({length:9},(_,i)=>{const v=i/8,a=.67-.32*v;return[side*Math.sin(a)*(.240+(.154-.240)*v),.40+v*.70,-.004+Math.cos(a)*(.149+(.105-.149)*v)+.003];});
+  const points=Array.from({length:9},(_,i)=>{const v=i/8,a=.67-.32*v;return[side*Math.sin(a)*(.255+(.154-.255)*v),.40+v*.70,-.004+Math.cos(a)*(.158+(.108-.158)*v)+.003];});
   ribbon(g,'palace-consort-overrobe-teal-facing-'+side,points,.034,teal);ribbon(g,'palace-consort-overrobe-gold-edge-'+side,points,.006,GOLD,.003);
   const sleeve=[[.939,.043,.049,side*.301,-.004],[.985,.064,.074,side*.299,-.010],[1.065,.098,.102,side*.282,-.027],[1.17,.103,.104,side*.252,-.029],[1.27,.084,.081,side*.207,-.018],[1.337,.060,.064,side*.171,-.012]];
   loft(g,'palace-consort-hanging-sleeve-'+side,sleeve,C.yukata,{steps:25});
@@ -81,8 +84,8 @@ export function buildPalaceConsortGarments(g,{loft,surface,ribbon,hand,shoe,conf
   ['teal-overlap',[[.035,1.405,0],[.060,1.347,0],[-.025,1.239,0],[-.103,1.118,0]],.039,teal,.006],
   ['gold-overlap',[[.035,1.405,0],[.060,1.347,0],[-.025,1.239,0],[-.103,1.118,0]],.006,GOLD,.008]
  ])conformFront(ribbon(g,'palace-consort-collar-'+name,points,width,color),upper,offset);
- piping(g,loft,'palace-consort-wide-silk-sash',[[1.066,.156,.108,0,-.003],[1.126,.153,.105,0,-.003]],deep);
- for(const y of[1.069,1.118])piping(g,loft,'palace-consort-sash-gold-edge-'+y,[[y,.158,.110,0,-.003],[y+.006,.157,.109,0,-.003]],GOLD);
+ piping(g,loft,'palace-consort-wide-silk-sash',[[1.066,.164,.115,0,-.003],[1.126,.157,.108,0,-.003]],deep);
+ for(const y of[1.069,1.118])piping(g,loft,'palace-consort-sash-gold-edge-'+y,[[y,y<1.1?.166:.160,y<1.1?.117:.111,0,-.003],[y+.006,y<1.1?.165:.159,y<1.1?.116:.110,0,-.003]],GOLD);
  const clasp=embroidery(g,'palace-consort-sash-gold-clasp',GOLD);clasp.ellipse(0,1.099,.038,.024,.008);conformFront(clasp.finish(),upper,.019);
  const jade=embroidery(g,'palace-consort-sash-jade',JADE);jade.fill([[-.022,1.100],[0,1.117],[.022,1.100],[0,1.082]]);conformFront(jade.finish(),upper,.020);
  for(const side of[-1,1]){
@@ -126,8 +129,8 @@ export function attachPalaceCostume(actor){
   // wings, fantasy crown spikes or Qing conical hat are used.
   for(const side of[-1,1]){
    const sh=new THREE.Shape();sh.moveTo(-.041,0);sh.lineTo(-.044,.110);sh.bezierCurveTo(-.044,.153,-.014,.170,.018,.153);sh.bezierCurveTo(.038,.145,.047,.120,.046,.094);sh.lineTo(.038,0);sh.closePath();
-   const wing=part('upturned folded cap wing '+side,new THREE.ExtrudeGeometry(sh,{depth:.018,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.004,bevelThickness:.003,curveSegments:7}),0x272e35,side*.049,.286,-.097);wing.rotation.z=-side*.095;wing.rotation.x=-.10;
-   wire('fine gold wing binding '+side,[[side*.015,.313,-.075],[side*.014,.414,-.063],[side*.043,.443,-.060],[side*.083,.412,-.069]],.0017,SHADOW_GOLD);
+   const wing=part('upturned folded cap wing '+side,new THREE.ExtrudeGeometry(sh,{depth:.018,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.004,bevelThickness:.003,curveSegments:7}),0x272e35,side*.049,.286,-.097);wing.scale.y=.70;wing.rotation.z=-side*.095;wing.rotation.x=-.10;
+   wire('fine gold wing binding '+side,[[side*.015,.305,-.075],[side*.014,.376,-.063],[side*.043,.396,-.060],[side*.083,.374,-.069]],.0017,SHADOW_GOLD);
   }
   wire('cap curved gold stitching',[[-.087,.271,.040],[-.050,.290,.064],[0,.294,.070],[.050,.290,.064],[.087,.271,.040]],.0033);
   bead('gold cap jewel setting',GOLD,0,.285,.075,.019).scale.set(1,.84,.30);bead('jade cap jewel',JADE,0,.286,.081,.012).scale.set(1,.78,.26);
