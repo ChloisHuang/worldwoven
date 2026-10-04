@@ -41,7 +41,7 @@ def frame(p):
  weight=smooth(1.38,1.435,p[1]);return list(p+(p-pivot)*(scale-1)*weight)
 handles.append(['orbital_globe_center',[.30775,7.281,1.24535],form['globeCenter']])
 for handle in handles:
- name=handle[0];target=form['overrides'].get(name,forms['common'].get(name,handle[2]));handle[2]=frame(target)
+ name=handle[0];target=form['overrides'].get(name,forms['common'].get(name,handle[2]));handle[2]=form.get('finalOverrides',{}).get(name,frame(target))
 
 for name,a,b in handles:
  for side in ([1,-1] if a[0] else [1]):
@@ -96,7 +96,7 @@ for i,(x,y,z) in enumerate(raw):
  lip=bell(x,0,.265)*smooth(1.39,1.53,z)*smooth(6.44,6.50,y)*(1-smooth(6.70,6.75,y))
  cavity=(1-smooth(1.40,1.52,z))*smooth(.6,1.15,z)*bell(x,0,.23)*smooth(6.45,6.51,y)*(1-smooth(6.68,6.74,y))
  seam=bell(y,6.605,.020)*(1-smooth(1.548,1.566,z))*bell(x,0,.29)*smooth(1.20,1.43,z)
- lid=bell(abs(x),.305,.16)*smooth(1.3,1.38,z)*(.60*bell(y-upper_lid(x),.003,.019)+.08*bell(y-lower_lid(x),-.002,.016))
+ lid=bell(abs(x),.305,.16)*smooth(1.3,1.38,z)*(.36*bell(y-upper_lid(x),.003,.019)+.04*bell(y-lower_lid(x),-.002,.016))
  mesh.attributes['lip_tint'].data[i].value=lip;mesh.attributes['cavity_tint'].data[i].value=max(cavity,seam);mesh.attributes['lid_tint'].data[i].value=lid
 for poly in mesh.polygons:poly.use_smooth=True
 bm=bmesh.new();bm.from_mesh(mesh);bmesh.ops.recalc_face_normals(bm,faces=bm.faces);bm.to_mesh(mesh);bm.free()
@@ -156,9 +156,9 @@ for side in [-1,1]:
  # Shallow skin-fitted eyebrows, one polygon ribbon with tapered fringe.
  bp=[];bf=[];bc=[];bn=38;bw=4
  for j in range(bn+1):
-  t=j/bn;x=.018+(form['browEnd']-.018)*t;y=profile(form['browPath'],t);half=form['browHalfWidth']*profile([(0,.20),(.12,.95),(.32,1),(.67,.73),(1,.015)],t)
+  t=j/bn;span=form.get('browFinalSpan',[.018,form['browEnd']]);x=span[0]+(span[1]-span[0])*t;y=profile(form.get('browFinalPath',form['browPath']),t);half=form.get('browFinalHalfWidth',form['browHalfWidth'])*profile([(0,.20),(.12,.95),(.32,1),(.67,.73),(1,.015)],t)
   for k in range(bw+1):
-   a=k/bw*2-1;p=Vector(frame((side*x,y+a*half,.2)));hit=tree.ray_cast(p,Vector((0,0,-1)),.4)[0]
+   a=k/bw*2-1;p=Vector((side*x,y+a*half,.2) if 'browFinalPath' in form else frame((side*x,y+a*half,.2)));hit=tree.ray_cast(p,Vector((0,0,-1)),.4)[0]
    if hit is not None:p.z=hit.z+.0004+.00018*(1-a*a)
    else:p.z=.06
    bp.append(p);bc += [t,a,0]
