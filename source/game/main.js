@@ -40,7 +40,7 @@ import {buildFrance} from './regions-west.js?rev=R7-20261002';
 import {buildEgypt} from './egypt-temple.js?rev=R7-20261002';
 import {resolveCameraPosition,buildCameraSolids,cameraDistanceToObstacle,cameraClipPlanes} from './camera.js?rev=R7-20261002';
 import {createCharacter,characterResourceStats} from './characters.js?rev=R7-20261002';
-import {blocked,moveWithCollision,findPath} from './navigation.js?rev=R7-20261002';
+import {blocked,moveWithCollision,findPath,canTraverse} from './navigation.js?rev=R7-20261002';
 import * as G from './geometry.js?rev=R7-20261002';
 const $=id=>document.getElementById(id), canvas=$('world');
 const regions=[
@@ -270,7 +270,7 @@ function requestFurniture(item){if(!player||interactionMenuOpen())return;if(pend
  const target=item.seats||item.poolId?furniture.resolveBath(item,'player'):item;
  walkToFurniture(target||item);
 }
-function startFurniture(item){if(interactionMenuOpen())return;if(!nearbyInteraction(item,player.root.position,{radius:.016,clear:nearbyInteractionClear})){path=[];targetStation=null;pendingInteraction=null;furniture.releaseActor?.('player');return;}if(franceTea?.playerRequest(item.id)===false)return;if(chinaSalon&&!chinaSalon.furnitureAccess(item))return;const alreadyWaiting=pendingInteraction===item;japanService?.playerRequest(item.poolId||item.id);chinaAudience?.playerRequest(item.id);chinaPalace?.playerRequest(item.id);path=[];targetStation=null;pendingInteraction=null;performing=null;
+function startFurniture(item){if(interactionMenuOpen())return;if(!nearbyInteraction(item,player.root.position,{radius:.016})){path=[];targetStation=null;pendingInteraction=null;furniture.releaseActor?.('player');return;}if(franceTea?.playerRequest(item.id)===false)return;if(chinaSalon&&!chinaSalon.furnitureAccess(item))return;const alreadyWaiting=pendingInteraction===item;japanService?.playerRequest(item.poolId||item.id);chinaAudience?.playerRequest(item.id);chinaPalace?.playerRequest(item.id);path=[];targetStation=null;pendingInteraction=null;performing=null;
  const access=item.kind==='bath'?japanPlayerService?.bathAccess(item):null;if(access&&!access.allowed){furniture.releaseActor?.('player');toast(access.message);return;}
  if(item.seats||item.poolId){
   const seat=furniture.resolveBath(item,'player');
@@ -350,9 +350,22 @@ function updateFurnitureLabels(){
  function pointDistance(item){return Math.hypot(item.position[0]-player.root.position.x,item.position[2]-player.root.position.z);}
 }
 
+// The last grid point may lie inside a door's live swept keep-out while the
+// authored interaction point is already safely reachable. Walk the short final
+// segment with the same body radius and collision controller; never snap to it.
+function intentWaypoint(step){
+ const next=step.waypoint,item=pendingInteraction,p=player.root.position;
+ if(!item||step.phase!=='walking'||path.length>2||!nearbyInteraction(item,p,{radius:.3}))return next;
+ const end=new THREE.Vector3(...item.position),dx=end.x-p.x,dz=end.z-p.z;
+ if(!canTraverse(p,end,lot.colliders.concat(furnitureSafetyBoxes()),{...navOptions,radius:.34}))return next;
+ const allowed=automaticDoors.constrainMove(p,dx,dz,.34);
+ if(Math.abs(allowed.dx-dx)>1e-5||Math.abs(allowed.dz-dz)>1e-5)return next;
+ path.splice(0,path.length,end);return end;
+}
+
 function updatePlayer(dt,t){player.walking=false;let x=0,z=0;if(keys.has('KeyW')||keys.has('ArrowUp'))z-=1;if(keys.has('KeyS')||keys.has('ArrowDown'))z+=1;if(keys.has('KeyA')||keys.has('ArrowLeft'))x-=1;if(keys.has('KeyD')||keys.has('ArrowRight'))x+=1;x+=joy.x;z+=joy.y;const manual=!interactionMenuOpen()&&Math.hypot(x,z)>.08;showDoorwayHint(manual);if(bathTransition){if(manual)bathTransition.requestExit();updateBathTransition(dt,t);return;}let moving=false;if(manual){arrivalViewUntil=0;if((performing||pendingInteraction||seated||npcSocial?.active()||japanPlayerService?.state().activity)&&!cancelAction())return;path=[];targetStation=null;const len=Math.hypot(x,z),response=movementInputMagnitude(len);x=x/len*response;z=z/len*response;const speed=(keys.has('ShiftLeft')?player.locomotion.hurrySpeed:player.locomotion.walkSpeed)*PLAYER_TRAVEL_SCALE*dt;const dx=(Math.cos(yaw)*x+Math.sin(yaw)*z)*speed,dz=(-Math.sin(yaw)*x+Math.cos(yaw)*z)*speed;const old=player.root.position.clone();moveActor(player,dx,dz,.34);moving=old.distanceToSquared(player.root.position)>1e-8;if(moving){player.root.rotation.y=Math.atan2(dx,dz);if(chinaSalon?.guidesPlayer())chinaSalon.cancel('你主动离开了引路');}}else if(chinaSalon?.guidesPlayer()){moving=chinaSalon.movePlayer(dt);}else if(path.length&&!performing&&!seated&&!interactionMenuOpen()){let budget=dt*player.locomotion.walkSpeed*PLAYER_TRAVEL_SCALE;
  // Consume reached waypoints immediately, without spending a rendered frame standing still.
- while(path.length&&budget>1e-10){const step=automaticDoors.routeStep(path,player.root.position,pendingInteraction?.008:.14);if(step.waiting||!step.waypoint)break;const next=step.waypoint,dx=next.x-player.root.position.x,dz=next.z-player.root.position.z,d=Math.hypot(dx,dz);if(d<1e-10)break;const amount=Math.min(d,budget),old=player.root.position.clone();moveActor(player,dx/d*amount,dz/d*amount,.34);const progressed=old.distanceToSquared(player.root.position)>1e-8;moving=progressed||moving;player.root.rotation.y=Math.atan2(dx,dz);budget-=amount;if(!progressed){if(!automaticDoors.routeBlocked(path,player.root.position))path=[];break;}}
+ while(path.length&&budget>1e-10){const step=automaticDoors.routeStep(path,player.root.position,pendingInteraction?.008:.14);if(step.waiting||!step.waypoint)break;const next=intentWaypoint(step),dx=next.x-player.root.position.x,dz=next.z-player.root.position.z,d=Math.hypot(dx,dz);if(d<1e-10)break;const amount=Math.min(d,budget),old=player.root.position.clone();moveActor(player,dx/d*amount,dz/d*amount,.34);const progressed=old.distanceToSquared(player.root.position)>1e-8;moving=progressed||moving;player.root.rotation.y=Math.atan2(dx,dz);budget-=amount;if(!progressed){if(!automaticDoors.routeBlocked(path,player.root.position))path=[];break;}}
  if(!path.length&&targetStation){const arrived=targetStation;targetStation=null;if(pendingInteraction===arrived){pendingInteraction=null;if(Math.hypot(player.root.position.x-arrived.position[0],player.root.position.z-arrived.position[2])<=.016&&Math.abs(player.root.position.y-arrived.position[1])<.45)startInteraction(arrived);else{furniture.releaseActor?.('player');toast('还没走到操作位置，请沿通道再靠近一点');}}else toast(arrived.furniture?`已走到${arrived.name}`:`已到${arrived.name}`);}}
  // An NPC handover may start with an empty route because the player is already
  // at the approach. Retry from the normal frame loop after manual/E cancellation.
