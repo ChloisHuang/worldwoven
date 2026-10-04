@@ -11,9 +11,11 @@ const smooth=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3
 const gauss=(x,c,w)=>Math.exp(-(((x-c)/w)**2));
 const GATHERED_EDGE=[[0,1.645],[.55,1.640],[.90,1.607],[1.15,1.582],[1.45,1.586],[1.65,1.578],[1.95,1.547],[2.4,1.518],[Math.PI,1.512]];
 function gatheredHairline(a){for(let i=0;i<GATHERED_EDGE.length-1;i++){const[x,y]=GATHERED_EDGE[i],[nx,ny]=GATHERED_EDGE[i+1];if(a<=nx)return mix(y,ny,smooth(x,nx,a));}return 1.512;}
-export function sculptFemaleHairOption({style='long-layered',scalpGeometry,landmarks={}}={}){
+export function sculptFemaleHairOption({style='long-layered',scalpGeometry,garmentGeometry=null,landmarks={}}={}){
  const up=style==='gathered-updo',origin=V([0,1.565,-.008]),ray=new THREE.Raycaster(),mat=new THREE.MeshBasicMaterial({side:THREE.DoubleSide}),scalp=new THREE.Mesh(scalpGeometry,mat);scalp.updateMatrixWorld(true);scalpGeometry.computeBoundingBox();const skullTop=scalpGeometry.boundingBox.max.y;
  const p=[],ix=[],values=[],seams=[],longParts=[];
+ const garment=garmentGeometry?new THREE.Mesh(garmentGeometry,mat):null;garment?.updateMatrixWorld(true);
+ function drape(q,lift=.008){if(!garment||q.y>1.405)return q;ray.set(new THREE.Vector3(q.x,q.y,.5),new THREE.Vector3(0,0,-1));ray.far=1;const hit=ray.intersectObject(garment,false)[0];if(hit)q.z=mix(q.z,hit.point.z+lift,smooth(1.405,1.365,q.y));return q;}
  const add=(q,value=1)=>{p.push(...q.toArray());values.push(value);return p.length/3-1;};
  // Fit horizontal sections so the authored frontal opening retains its actual
  // Y landmark. Radial projection from the head center lowered the hairline.
@@ -36,13 +38,21 @@ export function sculptFemaleHairOption({style='long-layered',scalpGeometry,landm
  },true);
  // Seal the tiny top ring with a low fan, keeping a rounded closed crown.
  const top=new THREE.Vector3();for(let i=0;i<48;i++)top.add(new THREE.Vector3(p[i*3],p[i*3+1],p[i*3+2]));top.multiplyScalar(1/48);top.y+=.0008;const pole=add(top,1.015);for(let i=0;i<48;i++)ix.push(pole,i+1,i);
- function lock(name,points,width,depth,value=1,{rooted=true,steps=22,sides=8,rootEnd=.48,rootLift=.009}={}){
+ function lock(name,points,width,depth,value=1,{rooted=true,steps=22,sides=8,rootEnd=.48,rootLift=.009,draped=false}={}){
   const curve=new THREE.CatmullRomCurve3(points.map(V),false,'centripetal'),start=p.length/3;
+  let fittedZ=null;const samples=96;
+  if(draped){fittedZ=Array.from({length:samples+1},(_,i)=>drape(curve.getPoint(i/samples),.007+depth*.55).z);
+   // Interpolate over the shoulder contact instead of stepping from the free
+   // neck length to the first ray hit. The section tangent follows this real
+   // bent centerline, so the strand does not crease into an angular elbow.
+   for(let pass=0;pass<3;pass++)fittedZ=fittedZ.map((z,i,a)=>{let sum=0,w=0;for(let k=-4;k<=4;k++){const v=Math.exp(-k*k/5);sum+=a[Math.max(0,Math.min(samples,i+k))]*v;w+=v;}return sum/w;});
+  }
+  function centerAt(t){const q=curve.getPoint(t),attach=rooted?1-smooth(rootEnd-.16,rootEnd,t):0;if(attach>0)q.lerp(skin(q.clone(),rootLift),attach);if(draped&&q.y<1.46){const u=t*samples,i=Math.min(samples-1,Math.floor(u));q.z=mix(q.z,mix(fittedZ[i],fittedZ[i+1],u-i),smooth(1.46,1.42,q.y));}return q;}
   for(let j=0;j<=steps;j++){
-   const t=j/steps,guide=curve.getPoint(t),tangent=curve.getTangent(t).normalize(),center=guide.clone();
+   const t=j/steps,guide=curve.getPoint(t),center=centerAt(t),tangent=draped?centerAt(Math.min(1,t+.002)).sub(centerAt(Math.max(0,t-.002))).normalize():curve.getTangent(t).normalize();
    const attach=rooted?1-smooth(rootEnd-.16,rootEnd,t):0;
-   if(attach>0)center.lerp(skin(guide,rootLift),attach);
    let out=center.clone().sub(origin);out.y*=.15;out.normalize();
+   if(draped)out.lerp(new THREE.Vector3(0,0,1),smooth(1.445,1.365,center.y)).normalize();
    const side=new THREE.Vector3().crossVectors(tangent,out).normalize();out.crossVectors(side,tangent).normalize();
    const taper=1-.65*smooth(.68,.90,t)-.31*smooth(.90,1,t);
    const w=width*(.58+.42*smooth(0,.12,t))*taper,d=depth*(.75+.25*Math.sin(Math.PI*t))*(1-.94*smooth(.78,1,t));
@@ -65,8 +75,12 @@ export function sculptFemaleHairOption({style='long-layered',scalpGeometry,landm
   });
   for(const s of[-1,1]){
    const asym=s<0?1:0;
-   lock('front-length-'+s,[[s*.013,1.686,.032],[s*.044,1.650,.080],[s*.079,1.585,.051],[s*.097,1.498,.040],[s*.103,1.433,.071],[s*.126,1.365,.085],[s*.135,1.310,.088],[s*.119,1.260,.091],[s*.103,1.201,.087],[s*.097,1.165+asym*.015,.079],[s*.081,1.140+asym*.020,.070]],.049,.009,1.11,{rootEnd:.34,steps:26});
-   lock('outer-length-'+s,[[s*.035,1.678,.008],[s*.082,1.614,.026],[s*.100,1.540,.012],[s*.111,1.452,.005],[s*.133,1.389,.031],[s*.144,1.337,.044],[s*.126,1.277,.056],[s*.108,1.232+asym*.019,.049]],.047,.008,1.025,{rootEnd:.36,steps:24});
+   // The front lengths fall over the real gown surface. Broad paths have
+   // independent lengths and a shallow S; their section is wide/thin at the
+   // shoulder and rounder in the lower fold, avoiding suspended belt loops.
+   lock('front-length-'+s,[[s*.013,1.686,.032],[s*.044,1.650,.080],[s*.079,1.585,.047],[s*.090,1.498,.036],[s*.092,1.433,.043],[s*.105,1.371,.050],[s*.115,1.316,.063],[s*.102,1.263,.080],[s*.083,1.214,.084],[s*.082,1.169+asym*.015,.081],[s*.065,1.140+asym*.020,.075]],.036,.006,1.11,{rootEnd:.33,steps:26,draped:true});
+   lock('outer-length-'+s,[[s*.035,1.678,.008],[s*.082,1.614,.026],[s*.092,1.540,.008],[s*.099,1.452,.003],[s*.112,1.386,.025],[s*.127,1.337,.044],[s*.117,1.278,.056],[s*.099,1.230+asym*.019,.054]],.040,.0065,1.025,{rootEnd:.36,steps:24,draped:true});
+   lock('inner-layer-'+s,[[s*.022,1.683,.029],[s*.054,1.638,.060],[s*.078,1.575,.039],[s*.083,1.496,.034],[s*.081,1.420,.045],[s*.093,1.355,.065],[s*.098,1.306,.072],[s*.083,1.267,.079],[s*.061,1.235+asym*.026,.082]],.024,.0043,1.18,{rootEnd:.38,steps:20,draped:true});
    lock('cheek-frame-'+s,[[s*.010,1.682,.034],[s*.040,1.644,.078],[s*.072,1.591,.048],[s*.080,1.536,.035],[s*.073,1.492+asym*.006,.028]],.019,.0035,1.10,{rootEnd:.66,steps:22});
   }
  }else{
