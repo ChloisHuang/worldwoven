@@ -6,7 +6,7 @@ const point=a=>({x:a[0],y:a[1],z:a[2]}),copy=x=>JSON.parse(JSON.stringify(x));
 const near=(n,p,r=.075)=>Math.hypot(n.root.position.x-p[0],n.root.position.z-p[2])<r&&Math.abs(n.root.position.y-p[1])<.32;
 const reverse=p=>p.slice().reverse().map(a=>a.slice()),P=E.points;
 // Public front steps, east lane, north crosscourt and the actual two flights.
-const HALL_EXIT=[[3,1.415,3],[3,1.415,6],[3,.13,11],[14,.13,11],[14,.115,-13.5]];
+const HALL_EXIT=[[2,1.415,3],[2,1.415,6],[2,.13,11],[14,.13,11],[14,.115,-13.5]];
 const STUDY_PATH=[[13.7,.145,-20.85],[0,.295,-20.85],[0,.815,-22.3],[0,.815,-24.3],[-7.85,.815,-24.3],[-7.85,2.515,-31],[-5.3,2.515,-31],[-5.3,4.215,-24.3],[4,4.215,-24.3],[4,4.215,-26],P.collect];
 
 // A receipt is consumed before actors move. Interrupted work is retired on
@@ -86,7 +86,7 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
     else if(stage==='to-approval'){
      if(!palace.dutyState(E.owner))palace.requestDuty(E.owner,{kind:'edict-review'});
      if(arrived(herald)&&palace.dutyState(E.owner)?.ready){enter('approval');say(emperor,'准。照此清扫东岸，收好落叶，留宽路给往来的人。');}
-    }else if(stage==='approval'&&palace.dutyState(E.owner)?.ready&&advanceAfter(4,'to-seal')){order.approvedBy=emperor.station.id;record('approved',emperor);palace.releaseDuty(E.owner);task(herald,'carry-approved-draft',[[-14.4,.115,-10],[-14.4,.115,.4],[-8,.13,11],[3,.13,11],[3,1.415,6],[3,1.415,3],P.sealStand],'奉准回东侧传令案用印');}
+    }else if(stage==='approval'&&palace.dutyState(E.owner)?.ready&&advanceAfter(4,'to-seal')){order.approvedBy=emperor.station.id;record('approved',emperor);palace.releaseDuty(E.owner);task(herald,'carry-approved-draft',[[-14.4,.115,-10],[-14.4,.115,.4],[-8,.13,11],[2,.13,11],[2,1.415,6],[2,1.415,3],P.sealStand],'奉准回东侧传令案用印');}
     else if(stage==='to-seal'&&arrived(herald)){enter('seal-place');face(herald,P.seal);}
     else if(stage==='seal-place'&&advanceAfter(1.2,'sealing'))order.holder='seal-stand';
     else if(stage==='sealing'&&advanceAfter(2.2,'seal-pickup')){order.sealed=true;record('sealed',herald);}

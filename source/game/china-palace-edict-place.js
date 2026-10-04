@@ -4,7 +4,7 @@ export const PALACE_EDICT=Object.freeze({
  herald:{id:'cn-palace-herald',npcName:'沈序 · 宫苑传令',ageYears:34,npcPosition:[4.2,1.415,-4.15]},
  points:{draft:[5.15,5.083,-28.34],scribe:[5.2,4.215,-27.68],collect:[6.15,4.215,-27.65],
   seal:[4.2,2.33,-4.84],sealStand:[4.2,1.415,-4.18],approve:[-14.1,.145,-13.35],
-  read:[11.5,.145,-14.0],recipient:[10,.145,-14.0],work:[10,.145,-14.6],file:[11.2,.145,-14.65],sweep:[10,.19,-15.3],basket:[11.2,.145,-15.3]},
+  read:[11.5,.145,-14.0],recipient:[10,.145,-14.0],work:[10,.145,-14.6],file:[11.2,.145,-14.5],sweep:[10,.19,-15.3],basket:[11.2,.145,-15.3]},
 });
 export const palaceHeraldStation=()=>({...PALACE_EDICT.herald,npcOnly:true,name:'正殿东侧 · 传令案',action:'传达宫苑文书',npcAction:'edict-duty',npcLabel:'传令案前候命',position:PALACE_EDICT.herald.npcPosition.slice(),npcRotation:Math.PI,color:'#9b6651'});
 export function palaceHeraldAppearance(region,id,look){return region==='china'&&id===PALACE_EDICT.herald.id?{...look,bodyPreset:'masculine-lean',hairStyle:'low-bun',wardrobePreset:'scholar-long-robe',clothes:0x865c4c,accent:0xc7aa68}:look;}
