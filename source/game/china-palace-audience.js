@@ -57,7 +57,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
   // A safe clear segment to the authored waypoint takes priority over the
   // grid's initial link, which can sit behind a person already in the doorway.
   // Every wall, current door leaf and other body still blocks this segment.
-  const direct=canTraverse(n.root.position,point(target),lot.colliders.concat(safety(n)),navigation);
+  const direct=Math.abs(n.root.position.y-target[1])<.32&&canTraverse(n.root.position,point(target),lot.colliders.concat(safety(n)),navigation);
   const step=direct?{waypoint:point(target)}:doors.routeStep(n.route,n.root.position,.025);
   if(!step.waiting&&step.waypoint){
    const p=step.waypoint,dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz);
