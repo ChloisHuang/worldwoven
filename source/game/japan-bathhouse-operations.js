@@ -2,7 +2,6 @@ import {createOnsenTransition} from './onsen-transitions.js';
 import {createJapanServiceOrders,JAPAN_SERVICE_POINTS as P,JAPAN_SERVICE_WORKERS,JAPAN_LOCAL_WORKERS,japanReceptionReady} from './japan-service-orders.js';
 import {createJapanVisitorIdentity,isJapanEmployeeInteraction} from './japan-visitors.js';
 import {createJapanServiceProps} from './japan-service-props.js';
-import {canTraverse} from './navigation.js';
 import {followActorRoute} from './actor-navigation.js';
 import {createJapanStaffLife} from './japan-staff-life.js';
 import {createJapanPlayerService} from './japan-player-service.js';
@@ -113,8 +112,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
     if(!task.routeSet){n.route=planPath(n.root.position,point(task.to),.25);task.routeSet=true;}
     // Jobs own destinations/timing; ordinary walking shares the same full-body
     // route follower and local grid rejoin as every other actor.
-    const direct=near(n.root.position,task.to,.75)&&canTraverse(n.root.position,point(task.to),lot.colliders.concat(safety(n)),navigation);
-    const step=followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:playerState.position,radius:.25,speedScale:.82,arrivalTolerance:.025,resolveWaypoint:step=>direct?point(task.to):step.waypoint});
+    const step=followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:playerState.position,radius:.25,speedScale:.82,arrivalTolerance:.025});
     if(step.waiting&&!step.blocked){task.stalled=0;return;}
     task.stalled=n.walking?0:task.stalled+dt;
     if(task.stalled>5){task.stalled=0;task.routeSet=false;if(++task.retries>3)abortTask(task,'route temporarily obstructed');}
