@@ -41,7 +41,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
  function choose(n){
   if(n===emperor&&duty){
    duty.active=true;
-   scripts.set(n,[stage('duty-public-stairs','应召出居 · 沿公共梯厅下楼',homeExit(n)),stage('duty-hall-arrival','前往朝议 · 沿正殿前阶入殿',COURT),stage('duty-hall-seat','朝议候奏 · 等候大臣依次进言',[throne.position],Infinity,{mount:throne}),stage('duty-return-home','朝议结束 · 沿公共梯厅回居',[...reverse(COURT),...homeReturn(n)])]);
+   scripts.set(n,[...(duty.fromPublic?[]:[stage('duty-public-stairs','应召出居 · 沿公共梯厅下楼',homeExit(n))]),stage('duty-hall-arrival','前往朝议 · 沿正殿前阶入殿',COURT),stage('duty-hall-seat','朝议候奏 · 等候大臣依次进言',[throne.position],Infinity,{mount:throne}),stage('duty-return-home','朝议结束 · 沿公共梯厅回居',[...reverse(COURT),...homeReturn(n)])]);
    stages.set(n,{choice:null,cycles:stages.get(n)?.cycles||0});enter(n,0);return;
   }
   const options=candidates(n).map(c=>{const end=c.steps.find(s=>s.chosen)?.path.at(-1);return {...c,available:c.available!==false&&!!end&&(near(n.root.position,end,.1)||planPath(n.root.position,point(end),.25).length>0)};}),choice=brain.choose(n.station.id,options,playerState.hour??10);
@@ -115,7 +115,8 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
     if(n===emperor&&duty){
      if(!duty.active&&!interrupted(n)){
       if(!unmount(n,s)){animate(n,s,t);continue;}
-      if(near(n.root.position,n.home.toArray(),.4)){
+      if(near(n.root.position,n.home.toArray(),.4)||near(n.root.position,HALL.at(-1),.3)){
+       duty.fromPublic=near(n.root.position,HALL.at(-1),.3);
        if(s.choice)brain.complete(n.station.id,s.choice,{fulfilled:false});choose(n);s=stages.get(n);stop=scripts.get(n)[s.index];
       }
      }
