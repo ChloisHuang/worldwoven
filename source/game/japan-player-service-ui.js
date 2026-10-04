@@ -100,11 +100,11 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
   if(v){const cancel=make('button',standalone?'取消本餐':'取消本次服务');cancel.type='button';cancel.onclick=()=>{choiceRevision++;service.cancel();close();};actions.append(cancel);}
   dialog.append(actions,make('p',standalone||mode==='dining'?'关闭面板会保留本次餐单。':'草木浴包是游戏中的虚构配方。关闭面板会保留订单。','jp-service-note'));
  }
- function open(context){choiceRevision++;if(!service.state().visit){const local=nearbyDining();if(context==='dining'||local){mode='dining';if(local)selectedDish=local.id;}}onOpen();refresh(true);if(!dialog.open)dialog.showModal();refresh(true);}
+ function open(context){choiceRevision++;if(!service.state().visit){if(context==='bath')mode='bath';else{const local=nearbyDining();if(context==='dining'||local){mode='dining';if(local)selectedDish=local.id;}}}onOpen();refresh(true);if(!dialog.open)dialog.showModal();refresh(true);}
  badge.onclick=()=>open();dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
  return {
   open,close,currentIntent,resolveIntent,executeIntent,isOpen:()=>dialog.open,
-  openStation(id){if(!['jp-sushi','jp-ramen'].includes(id))return false;selectedDish=id==='jp-sushi'?'sushi':'ramen';open('dining');return true;},
+  openStation(id){if(id==='jp-welcome'){open('bath');return true;}if(!['jp-sushi','jp-ramen'].includes(id))return false;selectedDish=id==='jp-sushi'?'sushi':'ramen';open('dining');return true;},
   buttonLabel:target=>({order:'点餐','dining-panel':'点餐',register:'登记',change:'更衣',wash:'清洗',collect:'领浴包',bath:'入汤',meal:'点餐',eat:'用餐',stop:'停止',stand:'离池',wait:'查看',return:'退牌',panel:'浴牌',seat:'入座'}[target.serviceStep?.kind]||'查看'),
   target() {
    if(disposed||dialog.open)return null;const s=service.state(),step=next(),mounted=getMounted();
