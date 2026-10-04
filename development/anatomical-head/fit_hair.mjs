@@ -19,6 +19,10 @@ export function fitAnatomicalHair(head,skin){
    const angle=Math.atan2(Math.abs(point.x),point.z+.017);
    const ear=Math.exp(-(((angle-1.70)/.42)**2));
    point.y+=.035*ear*(1-smooth(1.585,1.629,point.y));
+   // The remaining solid wedge was anterior to the ear arch. Terminate
+   // the bed and side masses above the temple; retain free frontal tips.
+   const temple=Math.exp(-(((angle-1.18)/.34)**2));
+   if(!/front|fine/.test(mesh.name))point.y+=.017*temple*(1-smooth(1.600,1.648,point.y));
    direction.copy(point).sub(origin);const radius=direction.length();direction.normalize();
    ray.set(origin,direction);ray.far=.25;
    const hit=ray.intersectObject(scalp,false)[0];

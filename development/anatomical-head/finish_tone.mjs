@@ -20,7 +20,7 @@ float anatomicalHairTone(float v){
 float anatomicalCelTone(float v){
  // Original four-band mean is 202.5/255. The new five-band mean is
  // 202.8/255: contrast narrows around that value, not toward pale skin.
- float e=max(fwidth(v)*0.65,0.022);
+ float e=max(fwidth(v)*0.65,0.060);
  return (164.0 + 20.0*smoothstep(-0.60-e,-0.60+e,v)
                + 19.0*smoothstep(-0.20-e,-0.20+e,v)
                + 19.0*smoothstep( 0.20-e, 0.20+e,v)

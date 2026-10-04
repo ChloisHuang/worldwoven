@@ -111,6 +111,9 @@ def fit_surface(p):
  # cause of a flat eye, so release vertical room around the globe centre.
  orbital=gauss(abs(x),.31,.185)*gauss(y,7.284,.112)*smooth(1.27,1.37,z)
  yy+=.28*(yy-fit((x,7.284,z))[1])*orbital
+ # Raise the lateral canthus as part of the full supporting skin, not by
+ # rotating a detached eye decal. The globe retains a parallel forward gaze.
+ yy+=.09*(abs(xx)-.040)*gauss(abs(x),.31,.245)*gauss(y,7.285,.180)*smooth(1.27,1.37,z)
  upper=y-upper_lid_y(x);lower=y-lower_lid_y(x)
  # The lid rolls follow their actual almond-shaped contact curves. A flat
  # height mask disappears toward both canthi and leaves an inset white oval.
@@ -254,9 +257,32 @@ for side in [-1,1]:
   bm=bmesh.new();bm.from_mesh(em);bmesh.ops.recalc_face_normals(bm,faces=bm.faces);bm.to_mesh(em);bm.free()
   # Every material ring shares the same complete-globe differential normal.
   parts.append({'name':'eye-'+str(side)+'-'+material,'material':material,'position':[a for p in positions for a in p],'normal':normals,'index':ix,'recessWeight':eye_recess,'featureCoord':eye_coord})
+ # A tiny physical upper lash margin shares the actual lid contour. Its
+ # tapered round cross-section is a contact silhouette, not a plane covering
+ # sclera or a fixed camera-facing stroke. No lower black ring is added.
+ upper_z=[(.1817,1.3835),(.2093,1.3918),(.2353,1.3949),(.2725,1.4055),(.311,1.4107),(.3492,1.4076),(.3835,1.4009),(.4099,1.3895),(.4279,1.3788),(.4385,1.3653)]
+ rim=[];rim_faces=[];rn=64;rv=8
+ centers=[]
+ for j in range(rn+1):
+  t=j/rn;x=.184+(.439-.184)*t
+  q=Vector(fit_surface((side*x,upper_lid_y(x),profile(upper_z,x))))
+  q.z+=.00012;centers.append(q)
+ for j,c in enumerate(centers):
+  t=j/rn;tangent=(centers[min(rn,j+1)]-centers[max(0,j-1)]).normalized()
+  out=Vector((0,0,1));across=tangent.cross(out).normalized()
+  radius=.00047*max(.025,math.sin(math.pi*t)**.55)
+  for k in range(rv):
+   a=math.tau*k/rv;rim.append(c+across*(math.cos(a)*radius)+out*(math.sin(a)*radius))
+ for j in range(rn):
+  for k in range(rv):
+   a=j*rv+k;b=j*rv+(k+1)%rv;c=(j+1)*rv+k;d=(j+1)*rv+(k+1)%rv
+   rim_faces.extend([(a,c,b),(b,c,d)])
+ lm=bpy.data.meshes.new('Continuous upper lash margin');lm.from_pydata(rim,[],rim_faces);lm.update()
+ bm=bmesh.new();bm.from_mesh(lm);bmesh.ops.recalc_face_normals(bm,faces=bm.faces);bm.to_mesh(lm);bm.free()
+ parts.append({'name':'upper-contact-'+str(side),'material':'lash','position':[a for v in lm.vertices for a in v.co],'normal':[a for v in lm.vertices for a in v.normal],'index':[a for p in lm.polygons for a in p.vertices]})
  # Original surface-fitted brow ribbon: fuller inner body, quiet arch, fine
  # tail, shallow cross-section. A round extruded tube read as a heavy sticker.
- brow_y=[(.145,7.390),(.19,7.399),(.28,7.412),(.38,7.419),(.49,7.398),(.568,7.350)]
+ brow_y=[(.145,7.390),(.19,7.399),(.28,7.412),(.38,7.419),(.49,7.409),(.568,7.385)]
  brow_z=[(.145,1.49),(.28,1.43),(.38,1.38),(.49,1.30),(.568,1.23)]
  brow_r=[(0,.05),(.09,.82),(.30,1),(.57,.78),(.80,.43),(1,.015)]
  bp=[];bf=[];bcoords=[];bn=72;bw=8

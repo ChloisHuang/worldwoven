@@ -23,10 +23,10 @@ export function replaceWithAnatomicalStudy(root,C,{clay=false,surface=false}={})
   m.geometry.setAttribute('featureKind',new THREE.Float32BufferAttribute(new Array(p.count).fill(6),1));
  }
  if(clay)for(const m of [...head.children])if(m.isMesh){m.removeFromParent();m.geometry.dispose();}
- const colors={skin:C.skin,lip:new THREE.Color(C.skin).lerp(new THREE.Color(0x925e5b),.52).getHex(),sclera:0xd9d0c5,iris:C.iris,pupil:C.pupil,brow:C.brow};
- const prefixes={skin:'continuous-head-anatomical',sclera:'inset-eye-anatomical',iris:'iris-anatomical',pupil:'pupil-anatomical',brow:'soft-brow-anatomical'};
+ const colors={skin:C.skin,lip:new THREE.Color(C.skin).lerp(new THREE.Color(0x925e5b),.52).getHex(),sclera:0xd9d0c5,iris:C.iris,pupil:C.pupil,brow:C.brow,lash:new THREE.Color(C.skin).lerp(new THREE.Color(C.hair),.78).getHex()};
+ const prefixes={skin:'continuous-head-anatomical',sclera:'inset-eye-anatomical',iris:'iris-anatomical',pupil:'pupil-anatomical',brow:'soft-brow-anatomical',lash:'eyelid-contact-anatomical'};
  for(const p of asset.parts){
-  if(clay&&p.material==='brow')continue;
+  if(clay&&(p.material==='brow'||p.material==='lash'))continue;
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p.position,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(p.normal,3));g.setIndex(p.index);if(surface&&p.featureCoord){g.setAttribute('featureCoord',new THREE.Float32BufferAttribute(p.featureCoord,3));const kind={skin:1,iris:2,pupil:3,sclera:4,brow:5}[p.material];g.setAttribute('featureKind',new THREE.Float32BufferAttribute(new Array(p.position.length/3).fill(kind),1));}g.computeBoundingBox();g.computeBoundingSphere();
   if(p.material==='skin'&&!clay){const c=[];for(let i=0;i<p.position.length/3;i++){const v=new THREE.Color(C.skin).lerp(new THREE.Color(colors.lip),p.lipWeight[i]).multiplyScalar(1-.72*p.cavityWeight[i]-.26*p.lidWeight[i]-.60*p.recessWeight[i]);c.push(v.r,v.g,v.b);}g.setAttribute('color',new THREE.Float32BufferAttribute(c,3));}
   if(!clay&&p.material!=='skin'&&p.recessWeight){const c=[];for(const occlusion of p.recessWeight){const v=new THREE.Color(colors[p.material]).multiplyScalar(1-.38*occlusion);c.push(v.r,v.g,v.b);}g.setAttribute('color',new THREE.Float32BufferAttribute(c,3));}
