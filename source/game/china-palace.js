@@ -543,7 +543,7 @@ export function buildChinaPalace(G,H){
  facilities.push({id:'yunlai-house',name:'云来酒楼、客栈与顶层青楼',targets:['cn-tavern-dining','cn-tavern-lan-entry','cn-tavern-recital'],furnishings:['一层酒楼餐椅','二层独立客榻与衣柜','三层诗乐听席与宴饮雅间'],pendingServices:['订房支付','关系邀约']});
  const moneyHouse=buildChinaMoneyHouse(G,{H,C,group,roofGroup,rooms,colliders,cameraColliders,interiorRooms,explorationTargets,buildings,levels,lightingZones,additionalFurnitureSeats,palaceWall,door,slab,window,upperFixture,solid3});
  facilities.push({id:'money-house',name:'承光钱庄',targets:['cn-money-house-entry','cn-money-house-counter'],furnishings:['候坐长凳','存取柜台','算盘与账簿','独立钱库'],pendingServices:['职业工钱来源','收费联动']});
- const clinic=buildChinaClinic(G,{H,C,group,roofGroup,rooms,colliders,cameraColliders,interiorRooms,explorationTargets,buildings,lightingZones,additionalFurnitureSeats,palaceWall,door,slab,window,table,upperFixture,solid3});
+ const clinic=buildChinaClinic(G,{H,C,group,roofGroup,rooms,colliders,cameraColliders,interiorRooms,doorways,explorationTargets,buildings,levels,lightingZones,additionalFurnitureSeats,palaceWall,door,slab,stairs,rail,landingRail,window,upperFixture,solid3});
  facilities.push({id:'clinic-pharmacy',name:'医馆与药铺',targets:['cn-clinic-entry','cn-clinic-consult','cn-pharmacy-counter'],furnishings:['候诊椅','独立问诊室','编号药铺柜台','备物药柜']});
  // Refresh recorded bounds after any support-local transforms, before batching.
  group.updateMatrixWorld(true);for(const o of ornaments){const b=new THREE.Box3().setFromObject(group.getObjectByName(o.groupName));o.bounds={min:b.min.toArray(),max:b.max.toArray()};}

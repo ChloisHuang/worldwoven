@@ -7,6 +7,7 @@ export function clinicPlaque(G,parent,text,x,y,z,width=3,height=.72){
  for(const xx of [-width/2,width/2])G.box(q,xx,0,.065,.035,height,.035,0xd7af56);
  const scale=Math.min((width-.25)/text.length,height*.82);
  for(const [i,ch]of [...text].entries()){
+  if('12F'.includes(ch)){const segments={1:[[.53,.12,.53,.73],[.36,.59,.53,.73]],2:[[.20,.66,.34,.77],[.34,.77,.65,.77],[.65,.77,.76,.66],[.76,.66,.76,.52],[.76,.52,.20,.12],[.20,.12,.77,.12]],F:[[.23,.12,.23,.77],[.23,.77,.78,.77],[.23,.47,.68,.47]]};for(const[a,b,c,d]of segments[ch]){const m=G.box(q,((a+c)/2+i-text.length/2)*scale,((b+d)/2-.39)*scale,.079,Math.hypot(c-a,d-b)*scale+.045,.065*scale,.014,0xe7c578);m.rotation.z=Math.atan2(d-b,c-a);}continue;}
   const path=new THREE.ShapePath();for(const[c,...a]of glyphs[ch]){if(c==='M')path.moveTo(...a);else if(c==='L')path.lineTo(...a);else if(c==='C')path.bezierCurveTo(...a);else path.currentPath.closePath();}
   const mesh=G.mesh(q,new THREE.ShapeGeometry(path.toShapes(false),3),0xe7c578,(i-text.length/2)*scale,-scale*.39,.073);mesh.scale.setScalar(scale);
  }
