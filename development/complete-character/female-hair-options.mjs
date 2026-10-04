@@ -24,11 +24,13 @@ export function sculptFemaleHairOption({style='long-layered',scalpGeometry,landm
   const contour=front*(.006*Math.cos(signed*3.8)-.007*gauss(signed,.08,.17)+.002*Math.sin(signed*5));
   const edge=(up?1.505+.140*front+.061*ear:1.518+.127*front+.022*ear)+contour;
   const y=crownY-(crownY-edge)*Math.pow(.035+.965*v,1.45),phi=Math.acos(Math.max(-.96,Math.min(.999,(y-origin.y)/.139))),q=new THREE.Vector3(Math.sin(phi)*Math.sin(a)*.096,y,Math.sin(phi)*Math.cos(a)*.135-.015);
-  const part=gauss(q.x,.010,.007)*gauss(q.z,.024,.093)*smooth(1.61,1.69,q.y),rootFlow=up?Math.cos(11*a+2.0*v):Math.cos(12*a+1.2*v);
-  const out=skin(q,.0065+.004*Math.sin(phi)-.003*part+.0015*rootFlow*Math.sin(phi));
+  const part=gauss(q.x,.010,.007)*gauss(q.z,.024,.093)*smooth(1.61,1.69,q.y),rootFlow=up?Math.cos(9*a-3.3*v):Math.cos(12*a+1.2*v);
+  const out=skin(q,.008+.005*Math.sin(phi)-.003*part+(up?.0034:.0020)*rootFlow*Math.sin(phi));
   if(v<.08)out.y=Math.min(out.y,crownY);
-  return[out,.985+.033*rootFlow-.07*part];
+  return[out,1.015+(up?.095:.055)*rootFlow-.075*part];
  },true);
+ // Seal the tiny top ring with a low fan, keeping a rounded closed crown.
+ const top=new THREE.Vector3();for(let i=0;i<48;i++)top.add(new THREE.Vector3(p[i*3],p[i*3+1],p[i*3+2]));top.multiplyScalar(1/48);top.y+=.0008;const pole=add(top,1.015);for(let i=0;i<48;i++)ix.push(pole,i+1,i);
  function lock(name,points,width,depth,value=1,{rooted=true,steps=22,sides=8,rootEnd=.48}={}){
   const curve=new THREE.CatmullRomCurve3(points.map(V),false,'centripetal'),start=p.length/3;
   for(let j=0;j<=steps;j++){
@@ -37,10 +39,11 @@ export function sculptFemaleHairOption({style='long-layered',scalpGeometry,landm
    if(attach>0)center.lerp(skin(guide,.009),attach);
    let out=center.clone().sub(origin);out.y*=.15;out.normalize();
    const side=new THREE.Vector3().crossVectors(tangent,out).normalize();out.crossVectors(side,tangent).normalize();
-   const w=width*(.58+.42*smooth(0,.12,t))*(1-.995*smooth(.62,1,t)),d=depth*(.75+.25*Math.sin(Math.PI*t))*(1-.97*smooth(.76,1,t));
+   const taper=1-.65*smooth(.68,.90,t)-.31*smooth(.90,1,t);
+   const w=width*(.58+.42*smooth(0,.12,t))*taper,d=depth*(.75+.25*Math.sin(Math.PI*t))*(1-.94*smooth(.78,1,t));
    for(let k=0;k<=sides;k++){const a=k/sides*Math.PI*2,q=center.clone().addScaledVector(side,Math.cos(a)*w*.5).addScaledVector(out,Math.sin(a)*d);
     if(attach>0)q.lerp(skin(q,.005+Math.max(0,Math.sin(a))*.009),attach);
-    add(q,value*(.985+.022*Math.sin(a)));
+    add(q,value*(.970+.070*Math.sin(a)));
    }seams.push([start+j*(sides+1),start+j*(sides+1)+sides]);
   }
   for(let j=0;j<steps;j++)for(let k=0;k<sides;k++){const a=start+j*(sides+1)+k,b=a+1,c=a+sides+1,d=c+1;ix.push(a,b,c,b,d,c);}
@@ -57,14 +60,14 @@ export function sculptFemaleHairOption({style='long-layered',scalpGeometry,landm
   });
   for(const s of[-1,1]){
    const asym=s<0?1:0;
-   lock('front-length-'+s,[[s*.013,1.686,.032],[s*.044,1.650,.080],[s*.079,1.585,.051],[s*.096,1.498,.040],[s*.113,1.409,.075],[s*.099,1.305,.084],[s*.111,1.221,.079],[s*.077,1.159+asym*.020,.067]],.046,.007,1.08,{rootEnd:.39,steps:26});
-   lock('outer-length-'+s,[[s*.035,1.678,.008],[s*.082,1.614,.026],[s*.100,1.540,.012],[s*.110,1.452,.005],[s*.128,1.366,.030],[s*.119,1.266,.050],[s*.096,1.180+asym*.025,.051]],.048,.007,.99,{rootEnd:.40,steps:24});
+   lock('front-length-'+s,[[s*.013,1.686,.032],[s*.044,1.650,.080],[s*.079,1.585,.051],[s*.097,1.498,.040],[s*.103,1.433,.071],[s*.126,1.365,.085],[s*.135,1.310,.088],[s*.119,1.260,.091],[s*.103,1.201,.087],[s*.097,1.165+asym*.015,.079],[s*.081,1.140+asym*.020,.070]],.049,.009,1.11,{rootEnd:.34,steps:26});
+   lock('outer-length-'+s,[[s*.035,1.678,.008],[s*.082,1.614,.026],[s*.100,1.540,.012],[s*.111,1.452,.005],[s*.133,1.389,.031],[s*.144,1.337,.044],[s*.126,1.277,.056],[s*.108,1.232+asym*.019,.049]],.047,.008,1.025,{rootEnd:.36,steps:24});
    lock('cheek-frame-'+s,[[s*.010,1.682,.034],[s*.040,1.644,.078],[s*.072,1.591,.048],[s*.080,1.536,.035],[s*.073,1.492+asym*.006,.028]],.019,.0035,1.10,{rootEnd:.66,steps:22});
   }
  }else{
   for(const s of[-1,1]){
-   lock('gather-temple-'+s,[[s*.026,1.682,.023],[s*.069,1.636,.041],[s*.083,1.588,-.015],[s*.074,1.551,-.071],[s*.035,1.539,-.112],[s*.008,1.548,-.126]],.043,.0055,1.045,{rootEnd:.88,steps:20});
-   lock('gather-crown-'+s,[[s*.014,1.689,-.009],[s*.047,1.676,-.054],[s*.063,1.628,-.104],[s*.044,1.578,-.127],[s*.016,1.551,-.130]],.047,.005,1.01,{rootEnd:.88,steps:20});
+   lock('gather-temple-'+s,[[s*.026,1.682,.023],[s*.069,1.636,.041],[s*.083,1.588,-.015],[s*.074,1.551,-.071],[s*.035,1.539,-.112],[s*.008,1.548,-.126]],.043,.0055,1.13,{rootEnd:.88,steps:20});
+   lock('gather-crown-'+s,[[s*.014,1.689,-.009],[s*.047,1.676,-.054],[s*.063,1.628,-.104],[s*.044,1.578,-.127],[s*.016,1.551,-.130]],.047,.005,1.10,{rootEnd:.88,steps:20});
    lock('loose-temple-'+s,[[s*.058,1.637,.046],[s*.076,1.602,.035],[s*.076,1.558,.040],[s*.068,1.519,.044],[s*.074,1.488,.027]],.015,.0034,1.07,{rootEnd:.40,steps:18});
   }
   // Flattened overlapping rolls form a low chignon. Its asymmetric folded
