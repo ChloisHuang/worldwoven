@@ -8,6 +8,10 @@ from mathutils.bvhtree import BVHTree
 ROOT=pathlib.Path(__file__).resolve().parent
 FORM=os.environ.get('CHARACTER_FORM','male')
 forms=json.loads((ROOT/'forms.json').read_text());form=forms[FORM]
+import sys
+sys.path.insert(0,str(ROOT))
+from female_anatomy import native_point,skin_point
+anatomy=form.get('referenceAnatomy')
 UP=ROOT.parent/'anatomical-head/assets/upstream'
 meta=json.loads((UP/'provenance.json').read_text());data=(UP/'base.obj').read_bytes()
 assert hashlib.sha256(data).hexdigest()==meta['files']['base.obj']['sha256']
@@ -43,7 +47,7 @@ handles.append(['orbital_globe_center',[.30775,7.281,1.24535],form['globeCenter'
 handles.extend(form.get('cranialHandles',[]))
 handles.extend(form.get('featureHandles',[]))
 for handle in handles:
- name=handle[0];target=form['overrides'].get(name,forms['common'].get(name,handle[2]));handle[2]=form.get('finalOverrides',{}).get(name,frame(target))
+ name=handle[0];target=form['overrides'].get(name,forms['common'].get(name,handle[2]));handle[2]=form.get('finalOverrides',{}).get(name,list(native_point(handle[1],anatomy)) if anatomy else frame(target))
 
 for name,a,b in handles:
  for side in ([1,-1] if a[0] else [1]):
@@ -88,6 +92,7 @@ for x,y,z in raw:
   _,y,z=sculpt[(abs(x),y,z)]
  sculpted.append((x,y,z))
 positions=np.array([sculpt_forehead(p) for p in cage(sculpted)])
+if anatomy:positions=np.array([skin_point(p,anatomy,c) for p,c in zip(sculpted,cage(sculpted))])
 # Recover the source's continuous braincase and suboccipital curve as one
 # aligned form. Preserve the rounded upper braincase, but end this native
 # reconstruction above the cervical surface: its previous 5.96–6.80 source
@@ -95,7 +100,7 @@ positions=np.array([sculpt_forehead(p) for p in cage(sculpted)])
 # The lower occiput now returns continuously into the authored upper neck.
 posterior=form['posteriorNative']
 for i,(sx,sy,sz) in enumerate(raw):
- weight=(1-smooth(.08,.53,sz))*smooth(*posterior['lowerBlendSourceY'],sy)
+ weight=0. if anatomy else (1-smooth(.08,.53,sz))*smooth(*posterior['lowerBlendSourceY'],sy)
  if weight:
   target=np.array(positions[i])
   target[1]=posterior['crownY']+(sy-8.4913)*posterior['verticalScale']
@@ -106,7 +111,7 @@ for i,(sx,sy,sz) in enumerate(raw):
 loops=json.loads((ROOT/'topology_sculpt.json').read_text())['loops']
 lookup={(round(abs(x),5),round(y,5),round(z,5)):[] for x,y,z in raw}
 for i,(x,y,z) in enumerate(raw):lookup[(round(abs(x),5),round(y,5),round(z,5))].append(i)
-for loop in loops:
+for loop in ([] if anatomy else loops):
  for at,index in enumerate(loop['vertices']):
   x,y,z=verts[index]
   for i in lookup.get((round(abs(x),5),round(y,5),round(z,5)),[]):positions[i]+=np.array(loop['delta'])*np.array(form['scale'])*(loop.get('weights',[1]*len(loop['vertices']))[at])
@@ -194,10 +199,12 @@ for side in [-1,1]:
  for t in theta:
   for k in range(nu):
    a=k/nu*math.tau;sn=math.sin(t);p=point(center+Vector((rad.x*sn*math.cos(a),rad.y*sn*math.sin(a),rad.z*math.cos(t))))
+   if anatomy:p=Vector(native_point(center+Vector((rad.x*sn*math.cos(a),rad.y*sn*math.sin(a),rad.z*math.cos(t))),anatomy))
    source_point=np.array(center+Vector((rad.x*sn*math.cos(a),rad.y*sn*math.sin(a),rad.z*math.cos(t))))
    difference=source_point-S;distance=np.maximum(1e-9,np.linalg.norm(difference,axis=1))
    jacobian=(difference/distance[:,None]).T@coef[:len(S)]+coef[len(S)+1:]
    outward=np.linalg.solve(jacobian,np.array([sn*math.cos(a),sn*math.sin(a),math.cos(t)]))
+   if anatomy:outward=np.array([sn*math.cos(a),sn*math.sin(a),math.cos(t)])/np.array(anatomy['scale'])
    outward/=np.linalg.norm(outward);normals.append(list(outward))
    points.append(p);fc += [math.sin(t)/math.sin(.405)*math.cos(a),math.sin(t)/math.sin(.405)*math.sin(a),t]
    hit=tree.ray_cast(p+Vector((0,.0003,.0002)),Vector((0,.8,.6)),.013)[0];occ.append(.65 if hit is not None else 0.)
@@ -226,7 +233,7 @@ for side in [-1,1]:
 for p in parts:
  for k,v in p.items():
   if isinstance(v,list) and k!='index':p[k]=[round(float(x),7) for x in v]
-output={'license':'CC0-1.0 hm08; original cage, eyes and brows','sourceCommit':meta['commit'],'sourceSha256':meta['files']['base.obj']['sha256'],'coordinateSystem':'metres Y up face +Z','method':'named anatomical biharmonic cage plus direct topology contact loops','form':FORM,'prototypeOnly':True,'unimplemented':['facial trait morphs','other body and hairstyle variants'],'parts':parts,'landmarks':{n:list(sculpt_forehead(cage([source])[0])) for n,source,_ in handles},'sourceVertices':len(raw),'sourceFaces':len(faces)}
+output={'license':'CC0-1.0 hm08; original cage, eyes and brows','sourceCommit':meta['commit'],'sourceSha256':meta['files']['base.obj']['sha256'],'coordinateSystem':'metres Y up face +Z','method':'named anatomical biharmonic cage plus direct topology contact loops','form':FORM,'prototypeOnly':True,'unimplemented':['facial trait morphs','other body and hairstyle variants'],'parts':parts,'landmarks':{n:list(skin_point(source,anatomy,cage([source])[0]) if anatomy else sculpt_forehead(cage([source])[0])) for n,source,_ in handles},'sourceVertices':len(raw),'sourceFaces':len(faces)}
 (ROOT/('adult-head.json' if FORM=='male' else 'adult-head-female.json')).write_text(json.dumps(output,separators=(',',':'))+'\n')
 if os.environ.get('SAVE_SCULPT_BLEND'):bpy.ops.wm.save_as_mainfile(filepath=os.environ['SAVE_SCULPT_BLEND'])
 print(json.dumps({'vertices':sum(len(p['position'])//3 for p in parts),'triangles':sum(len(p['index'])//3 for p in parts),'parts':[(p['name'],len(p['index'])//3) for p in parts],'bounds':[(min(part['position'][k::3]),max(part['position'][k::3])) for k in range(3)]}))
