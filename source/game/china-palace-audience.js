@@ -37,7 +37,7 @@ export function createAudienceSchedule(saved={}){
  return {
   observe(hour){if(!Number.isFinite(hour))return;if(lastHour!==null&&lastHour>18&&hour<6){day++;outcome='waiting';}lastHour=hour;},
   due(hour,night=false){return !night&&hour>=6&&hour<12&&calledDay!==day;},
-  call(){calledDay=day;outcome='called';},finish(value){outcome=value;if(value==='completed')lastCompletedDay=day;},
+  call(){calledDay=day;outcome='called';},finish(value){outcome=value;if(value==='completed')lastCompletedDay=calledDay;},
   snapshot:()=>({version:1,day,calledDay,outcome,lastCompletedDay,completionId:lastCompletedDay>=0?'cn-morning-audience:'+lastCompletedDay:null})
  };
 }
@@ -102,7 +102,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
     const c=poseContext(n,null);c.handoff=n===speaker&&!paused(n)&&phase==='report';c.heldProp=null;c.seatedMeal=false;
     n.animate(t+n.phase,n.walking,n===speaker&&!paused(n)&&phase==='report'?'read':null,c);
    }
-   if(speakingPaused)return;
+   if(speakingPaused||(['report','response','dismissal'].includes(phase)&&!duty?.ready))return;
    phaseTime+=dt;
    if(phase==='arriving'&&allArrived()){
     if(state.night||(state.hour??10)>=12){depart('interrupted');return;}
