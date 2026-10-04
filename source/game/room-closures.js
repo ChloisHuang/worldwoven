@@ -34,6 +34,9 @@ const POLICY={
   'jp-4-front-portal':['open','Common service gallery to balcony; individual workrooms are classified separately']
  },
  china:{
+  'cn-official-upper-entry':['open','Public upper office opens onto a supported balcony and public stair'],
+  'cn-official-dorm-west-door':['full-curtain','Shared two-bed dormitory privacy curtain clear of both individual beds'],
+  'cn-official-dorm-east-door':['full-curtain','Shared two-bed dormitory privacy curtain clear of both individual beds'],
   'cn-official-bureau-entry':['door','Fictional bureau office entry, inset timber leaves'],
   'cn-official-room-gu-door':['door','Gu Heng private duty lodging needs an opaque inset door'],
   'cn-official-room-xu-door':['door','Xu Zhiyuan private duty lodging needs an opaque inset door'],
