@@ -26,10 +26,13 @@ export function buildCourtOfficialGarments(g,{loft,surface,hand,shoe,conformFron
  // The square patch stays on the cloth, so it follows reading and seated poses.
  // Its simplified long-necked bird evokes civil rank without asserting a rank.
  for(const back of[false,true]){
-  const made=[],tag=back?'back':'front',panel=embroidery(g,'court-official-square-bird-badge-'+tag,0x35434b);
-  panel.fill([[-.106,1.119],[.106,1.119],[.106,1.326],[-.106,1.326]]);made.push(panel.finish());
+  const made=[],tag=back?'back':'front';
+  // Subdivide the patch before fitting it: a four-corner flat polygon sinks
+  // through the rounded chest even when its corners touch the cloth.
+  made.push(surface(g,'court-official-square-bird-badge-'+tag,14,14,(u,v)=>[(u-.5)*.212,1.119+v*.207,0],0x35434b));
   const border=embroidery(g,'court-official-badge-gold-border-'+tag,EDGE);
-  border.stroke([[-.104,1.121],[.104,1.121],[.104,1.324],[-.104,1.324]],.006,true);
+  const corners=[[-.104,1.121],[.104,1.121],[.104,1.324],[-.104,1.324]];
+  for(let i=0;i<4;i++)border.stroke([corners[i],corners[(i+1)%4]],.006);
   for(const x of[-.062,0,.062])border.stroke([[x-.020,1.144],[x-.009,1.156],[x+.006,1.153],[x+.024,1.160]],.004);
   border.ellipse(.072,1.292,.011,.011,.004);made.push(border.finish());
   const bird=embroidery(g,'court-official-badge-ivory-bird-'+tag,IVORY);
@@ -39,9 +42,10 @@ export function buildCourtOfficialGarments(g,{loft,surface,hand,shoe,conformFron
   bird.stroke([[-.027,1.214],[-.062,1.192],[-.074,1.181]],.006);
   for(const x of[-.012,.001])bird.stroke([[x,1.204],[x+.008,1.178],[x+.025,1.171]],.0035);
   made.push(bird.finish());
+  const badgeBody=back?body.map(([y,rx,rz,x,z])=>[y,rx,rz,x,-z]):body;
   for(const [i,m]of made.entries()){
-   conformFront(m,body,.003+i*.002);
-   if(back){const p=m.geometry.attributes.position;for(let j=0;j<p.count;j++)p.setZ(j,-p.getZ(j)-.019);m.geometry.computeVertexNormals();}
+   conformFront(m,badgeBody,.003+i*.002);
+   if(back){const p=m.geometry.attributes.position;for(let j=0;j<p.count;j++)p.setZ(j,-p.getZ(j));m.geometry.computeVertexNormals();}
   }
  }
  loft(g,'court-official-black-plaque-belt',[[1.052,.184,.116,0,-.006],[1.099,.184,.115,0,-.006]],INK,{steps:5});
