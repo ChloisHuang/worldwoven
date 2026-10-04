@@ -39,5 +39,13 @@ for(const [id,look]of [['saved-npc',male],['saved-player',female],['official',of
  costume?.dispose();for(const a of[preview,legacy,reload])a.dispose();
 }
 for(const [reason,look]of [['hairstyle-needs-fit',{...female,hairStyle:'braided-tail'}],['role-headgear-needs-fit',{...male,style:'chef'}]]){const a=C.createCharacter(look),b=C.createCharacter({...look,modelPreview});assert.equal(b.root.userData.characterModel.reason,reason);assert.equal(skinMeshes(a)[0].geometry,skinMeshes(b)[0].geometry);assert.equal(skinMeshes(a)[1].material,skinMeshes(b)[1].material);a.dispose();b.dispose();}
+// Complete-pair selection ports only the two already-authored French cuts.
+const pair=[];
+for(const [name,look,triangles]of [['male',male,33316],['female',female,29804]]){
+ const a=C.createCharacter({...look,modelPreview:'complete-adult-pair-v1'}),headOnly=C.createCharacter({...look,modelPreview});
+ assert(a.root.userData.characterModel.garmentRefinement);assert.deepEqual(a.root.userData.appearance,headOnly.root.userData.appearance);assert.equal(C.auditCharacter(a).visibleTriangles,triangles);assert.notEqual(skinMeshes(a)[0].geometry,skinMeshes(headOnly)[0].geometry);
+ pair.push({name,triangles,score:shapePreferenceScore(a.root.userData.appearance.shapeTraits)});a.dispose();headOnly.dispose();
+}
+const unmatched=C.createCharacter({...official,modelPreview:'complete-adult-pair-v1'});assert.equal(unmatched.root.userData.characterModel.reason,'complete-pair-only');unmatched.dispose();
 assert.equal(JSON.stringify(state),saved);assert.equal(C.characterResourceStats().activeReferences,0);
-console.log(JSON.stringify({status:'PASS',result,resources:C.characterResourceStats(),scope:'Actual createCharacter/cache/skeleton/save contracts; no world, browser or phone claim'},null,2));
+console.log(JSON.stringify({status:'PASS',result,pair,resources:C.characterResourceStats(),scope:'Actual createCharacter/cache/skeleton/save contracts; no world, browser or phone claim'},null,2));

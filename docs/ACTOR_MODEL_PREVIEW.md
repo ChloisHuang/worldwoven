@@ -2,7 +2,7 @@
 
 Development only. `createCharacter({...appearance, modelPreview:'complete-adult-head-v1'})` uses the current candidate head; omitted/unknown selection stays legacy. No production call site enables it, and nothing in this branch is an aesthetic approval. `root.userData.characterModel` reports applied/fallback and the asset version; saved appearance fields and scoring are unchanged.
 
-This first runtime stage is **head-only**: it deliberately keeps every original body/clothing mesh. It does not reproduce the standalone French pair's soft-shoulder, folded-collar or gown refinements. Those remain in the art branch.
+`complete-adult-head-v1` is **head-only** and keeps every original body/clothing mesh. A separate `modelPreview:'complete-adult-pair-v1'` ports the existing soft-shoulder/folded-collar and gown refinements only for the exact two French representatives (masculine-lean / side-part / court-frock-coat and feminine-slender / chin-bob / court-gown, casual). Other pair-selection requests fall back unchanged. It is not a cultural wardrobe replacement.
 
 - Both existing masculine body presets support side-part; both feminine presets support chin-bob
 - All four body presets also support the retained low bun through a shared candidate-derived attachment envelope
@@ -20,3 +20,11 @@ The two existing skinned draw buckets and skeleton remain. Preview skin uses a s
 `node tests/actor-model-preview.mjs` passes actual createCharacter saved player/NPC JSON roundtrips, unchanged appearance/score, immutable garment arrays, preview/legacy material/cache separation, collar anchoring under a 0.38 rad head turn, and real official/consort attachment ownership. All actor references return to zero. Reuses the source branch's six-trait morphological contracts rather than adding another endpoint matrix.
 
 `node development/actor-model-preview/render.mjs` renders actual runtime actors without loader replacement. `qa/actor-preview/roles-01` has front, three-quarter, head-turn and 50° / 4.6 m full-body images. Isolated Three/Mesa, 71,460 triangles / 12 draws including separate role ornaments; two skinned buckets per actor. No shader/GL errors, zero remaining references. Own-tree guard: 2.83 s / 332,206,080 B, under 120 s / 600 MiB. Front/three-quarter/full-body images were inspected for retained clothing, hat/bun/facial-hair attachment; aesthetic quality remains under user review. No browser, phone, world-controller or walking-route claim.
+
+## Current visual and loading limits
+
+The Chinese-role images are compatibility evidence, not overall art acceptance: 月容's retained low bun exposes a long straight neck against the old shoulder/collar silhouette, and the inherited official hat is visually large. Common neckline fitting is still being worked on; no claim that these roles reproduce the complete French silhouette is made.
+
+The preview is statically imported by `characters.js`. Default selection and legacy geometry/materials are unchanged, but import still downloads/parses approximately 1.51 MB of candidate form/hair module text. An optional loading boundary is required before considering main/public rollout; the current synchronous createCharacter/build architecture has not been refactored for that.
+
+The explicit full-pair path passes the same saved non-neutral appearance contract and has 33,316 male / 29,804 female triangles. `PREVIEW_PAIR=1` isolated actual-runtime render in `qa/actor-preview/pair-01` shows the matching soft shoulders, collar and gown at normal 50° / 4.6 m distance (63,120 triangles / four draws total), no shader/GL errors or retained actor references. Own-tree guard: 2.02 s / 316,772,352 B. Clean dev build and 124-module / 125-asset content-hash/linkage check pass, including shipped license files. The worktree has no published prior immutable graph, so repeat dev builds must start with clean generated `dist`; production's missing-asset fail-closed guard was not changed.

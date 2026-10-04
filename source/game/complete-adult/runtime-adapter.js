@@ -6,19 +6,24 @@ import {ADULT_FORMS} from './assets/adult-forms-data.js';
 import {attachCompleteHead} from './attach-head.js';
 import {addLayeredHair} from './layered-hair.js';
 import {addFemaleHair} from './female-hair.js';
+import {applyNaturalClothing} from './natural-clothing.js';
+import {applyFemaleSilhouette} from './female-silhouette.js';
+import {fitCompleteAdultClothing} from './fit-clothing.js';
 import {applyAnatomicalFinish} from './face-finish.js';
 import {applySurfaceFinish} from './surface-finish.js';
 import {morphCompleteAdultAsset,fitCompleteAdultAttachments} from './shape-traits.js';
 import {RETAINED_HAIR,createHeadAttachmentFit,fitRetainedHeadMesh,fitRetainedFacialHair} from './attachment-fit.js';
 export const COMPLETE_ADULT_PREVIEW='complete-adult-head-v1';
+export const COMPLETE_ADULT_PAIR_PREVIEW='complete-adult-pair-v1';
 export const COMPLETE_ADULT_VERSION='candidate-a0b2aa3-head-runtime-v1';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const forms={'masculine-lean':'male','masculine-broad':'male','feminine-balanced':'female','feminine-slender':'female'};
 export function completeAdultSupport(options,selection){
  const shapeTraits=normalizeShapeTraits(options.shapeTraits),form=forms[options.bodyPreset];
  const fail=reason=>({supported:false,reason,shapeTraits});
- if(selection!==COMPLETE_ADULT_PREVIEW)return fail(selection?'unknown-preview':'not-requested');
+ if(![COMPLETE_ADULT_PREVIEW,COMPLETE_ADULT_PAIR_PREVIEW].includes(selection))return fail(selection?'unknown-preview':'not-requested');
  if(!form)return fail('unsupported-body');
+ if(selection===COMPLETE_ADULT_PAIR_PREVIEW&&(options.culture!=='france'||(options.style??'casual')!=='casual'||!(options.bodyPreset==='masculine-lean'&&options.hairStyle==='side-part'&&options.wardrobePreset==='court-frock-coat'||options.bodyPreset==='feminine-slender'&&options.hairStyle==='chin-bob'&&options.wardrobePreset==='court-gown')))return fail('complete-pair-only');
  if(options.hairStyle!=='low-bun'&&options.hairStyle!==(form==='male'?'side-part':'chin-bob'))return fail('hairstyle-needs-fit');
  const style=options.style??'casual';
  if(style!=='casual'&&!(style==='artist'&&options.culture==='france'&&form==='male'))return fail('role-headgear-needs-fit');
@@ -41,11 +46,12 @@ export function applyCompleteAdultPreview(root,options,selection){
   // explicit face removal list in attach-head. Facial hair has its own fit.
   if(options.hairStyle!=='low-bun'){const hair=support.form==='male'?addLayeredHair(head,C.hair):addFemaleHair(head,C.hair);hair.userData.softSkin=support.form==='female';hair.userData.completeAdultPart='hair';}
  });
- const result={applied:true,version:COMPLETE_ADULT_VERSION,form:support.form,attachmentFit};
+ if(selection===COMPLETE_ADULT_PAIR_PREVIEW)fitCompleteAdultClothing(root,options,neutral=>{applyNaturalClothing(root,neutral);applyFemaleSilhouette(root,neutral);});
+ const result={applied:true,garmentRefinement:selection===COMPLETE_ADULT_PAIR_PREVIEW,version:COMPLETE_ADULT_VERSION,form:support.form,attachmentFit};
  root.userData.completeAdultRepresentation=result;return result;
 }
 /** Cache selection is never persisted as an appearance version. */
-export function completeAdultCacheTag(options,selection){return completeAdultSupport(options,selection).supported?COMPLETE_ADULT_VERSION:'legacy';}
+export function completeAdultCacheTag(options,selection){return completeAdultSupport(options,selection).supported?COMPLETE_ADULT_VERSION+'|'+selection:'legacy';}
 export function completeAdultWeights(mesh,sourceY){
  if(!mesh.userData.completeAdultPart)return null;
  if(mesh.userData.completeAdultPart==='skin'&&sourceY<1.435){const u=clamp((sourceY-1.365)/.070);return[[2,1-u],[3,u]];}
