@@ -42,7 +42,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   if(!choice){stages.set(n,stage([n.root.position.toArray()],'在廊下稍候',{duration:6}));return;}
   if(choice.facilityId&&!claims.reserve(choice.facilityId,n.station.id,{purpose:choice.id})||choice.roomId&&!claims.reserve(choice.roomId,n.station.id,{purpose:'private-rest'})){claims.releaseActor(n.station.id);brain.complete(n.station.id,choice,{fulfilled:false});return;}
   const path=choice.upstairs?(n.root.position.y>7?[choice.point]:[...TAVERN_UP,choice.point]):publicRoute(n,choice.point);
-  stages.set(n,stage(path,choice.label,{choice,duration:choice.duration,mountTarget:choice.mount,roomId:choice.roomId,waiting:0}));n.route=[];record('life-'+choice.id,n);save();
+  stages.set(n,stage(path,choice.label,{id:'life-'+choice.id,arrived:path.length===1&&near(n.root.position,path[0]),choice,duration:choice.duration,mountTarget:choice.mount,roomId:choice.roomId,waiting:0}));n.route=[];record('life-'+choice.id,n);save();
  }
  function animate(n,s,t){
   const c=poseContext(n,s.choice?.workTarget?{workTarget:s.choice.workTarget}:null);c.handoff=false;c.heldProp=null;c.seatedMeal=false;meals.get(n).show(false);
