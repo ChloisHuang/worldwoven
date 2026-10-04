@@ -105,6 +105,6 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
    for(const n of owned)animate(n,t);props.update(order,actors,phaseTime,!order&&ledger.snapshot().outcome==='completed',halt);
   },
   state:()=>({time,phaseTime,order:order?copy(order):null,ledger:ledger.snapshot(),speaker:speaker?.station.id||null,utterance,history:copy(history),failures:copy(failures),props:props.state(),actors:[...owned].map(n=>({id:n.station.id,position:n.root.position.toArray(),stage:tasks.get(n)?.id||'waiting',waypoint:tasks.get(n)?.index||0,arrived:arrived(n),walking:n.walking,paused:paused(n)})),rewards:false}),
-  dispose(){if(disposed)return;disposed=true;if(order){ledger.finish(false);persist();}palace.releaseDuty(E.owner);palace.setDutyLine(E.owner,null);for(const n of[...owned]){n.route=[];n.walking=false;release(n);}tasks.clear();props.dispose();}
+  dispose(){if(disposed)return;disposed=true;if(order){ledger.finish(false);persist();}palace.releaseDuty(E.owner);palace.setDutyLine(E.owner,null);for(const n of[...owned]){n.route=[];n.walking=false;release(n);}owned.clear();tasks.clear();props.dispose();}
  };
 }
