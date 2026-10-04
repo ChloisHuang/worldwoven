@@ -7,8 +7,8 @@ const point=a=>({x:a[0],y:a[1],z:a[2]}),near=(p,a,r=.14)=>Math.hypot(p.x-a[0],p.
 const TAVERN_UP=[[14,.115,13.8],[16.9,.215,14.1],[17.55,.215,13.8],[17.55,2.115,9.2],[19.95,2.115,9.2],[19.95,4.015,14.1],[17.55,4.015,14.1],[17.55,5.915,9.2],[19.95,5.915,9.2],[19.95,7.815,14.1],[22.5,7.815,14.2]];
 const reverse=a=>a.slice().reverse().map(p=>p.slice());
 
-// This controller owns only the two officials' personal time. Court borrows an
-// official after his current short action and safe furniture exit; it never
+// This controller owns the officials' personal time. Court borrows an
+// official after a safe furniture exit; it never adds personal summon delays,
 // creates, removes, teleports or animates a second emperor.
 export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,reports,worldSeed=1,saved={},saveState=()=>{},record=()=>{}}){
  if(!furniture)return null;
@@ -54,6 +54,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  ready=true;for(const n of officials)choose(n);
  return {
   request(n){const s=stages.get(n);if(s)s.called=true;},
+  courtPlan(n){const s=stages.get(n),landing=s?.mount?furniture.standPoint(navigation,safety(n),s.mount):n.root.position;return {reachable:!!landing,position:landing||n.root.position,path:publicRoute(n,null).filter(Boolean),safeExitSeconds:s?.mount?2:0,doorSeconds:4};},
   ready(n){return stages.get(n)?.courtReady===true;},
   resume(n){stages.delete(n);n.route=[];choose(n);},
   playerRequest(id){for(const n of officials){const s=stages.get(n);if(s?.choice?.facilityId===id)s.evicted=true;}},
@@ -64,10 +65,9 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
    n.walking=false;if(s.courtReady)return;
    const paused=state.conversationActorId===n.station.id;tell(n,s.label+(paused?' · 停步与你交谈':''));
    if(s.evicted&&!paused){if(finish(n,s,false)){if(s.called)stages.set(n,{courtReady:true,label:'让出卧榻后应召赴朝'});else choose(n);}return;}
-   // Finishing a task and clearing a bed are real constraints. A walking actor
-   // responds immediately from his current position; an occupied desk takes
-   // the remaining short work action, with different seeded durations.
-   if(s.called&&!paused&&(!s.arrived||s.elapsed>=Math.min(s.duration,4+brain.state(n.station.id).traits.quiet*9))){
+   // Everyone receives the same advance summons. Only real conversation or a
+   // blocked safe furniture exit can delay departure from the current place.
+   if(s.called&&!paused){
     if(finish(n,s,false)){stages.set(n,{courtReady:true,label:'接到朝议召集 · 从当前位置赴殿'});n.route=[];meals.get(n).show(false);}return;
    }
    if(!paused){
