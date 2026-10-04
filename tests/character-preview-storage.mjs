@@ -102,7 +102,7 @@ test('preview initialization, appearance, health, relationships, ledger and labo
  assert.equal(JSON.parse(session.getItem(PREVIEW_STORAGE_PREFIX+key)).appearance.player.shapeTraits.chinLength,1.12);
  assert(game.copperLedger.openAccount('preview-open').ok);assert(game.copperLedger.deposit(4,'preview-deposit').ok);
  const player=actor('player',{x:22.35,y:.215,z:11.7}),host=actor('cn-tavern-host',{x:24.1,y:.215,z:11.4});
- const labor=createChinaTavernLabor({getPlayer:()=>player,host,copperLedger:game.copperLedger,saved:game.saved.chinaLabor,saveState:game.persistLabor,document:null});
+ const labor=createChinaTavernLabor({employment:{isHired:()=>true,state:()=>({version:1,roleId:'cn-tavern-helper',revision:1})},getPlayer:()=>player,host,copperLedger:game.copperLedger,saved:game.saved.chinaLabor,saveState:game.persistLabor,document:null});
  assert(labor.accept());assert.equal(game.saved.chinaLabor.job.stage,'working');
  for(let table=0;table<2;table++){
   const [x,y,z]=labor.view().target.position;Object.assign(player.root.position,{x,y,z});assert(labor.startCleaning());
@@ -129,7 +129,7 @@ test('session write failures reject ledger/labor transactions and never fall bac
  assert.throws(()=>createGameStorage({preview:true,normal,session}).setItem('arbitrary','write'),/session quota failure/);
  assert.equal(game.copperLedger.openAccount('failing-open').code,'save-failed');assert.deepEqual(game.copperLedger.state(),ledgerBefore);
  const player=actor('player',{x:22.35,y:.215,z:11.7}),host=actor('cn-tavern-host',{x:24.1,y:.215,z:11.4});
- const labor=createChinaTavernLabor({getPlayer:()=>player,host,copperLedger:game.copperLedger,saved:game.saved.chinaLabor,saveState:game.persistLabor,document:null});
+ const labor=createChinaTavernLabor({employment:{isHired:()=>true,state:()=>({version:1,roleId:'cn-tavern-helper',revision:1})},getPlayer:()=>player,host,copperLedger:game.copperLedger,saved:game.saved.chinaLabor,saveState:game.persistLabor,document:null});
  assert.equal(labor.accept(),false);assert.equal(labor.view().lastError,'save-failed');assert.deepEqual(game.saved.chinaLabor,laborBefore);
  game.events.pagehide();assert.deepEqual(session.snapshot(),durable);assert.deepEqual(normal.snapshot(),before);assert.equal(normal.writes.length,0);
 });
