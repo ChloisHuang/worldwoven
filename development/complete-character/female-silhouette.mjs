@@ -8,7 +8,7 @@ export {addFemaleHair} from './female-hair.mjs';
 const mix=(a,b,t)=>a+(b-a)*t,clamp=x=>Math.max(0,Math.min(1,x));
 const BODY={'feminine-balanced':{hip:1.055,waist:.925,chest:1,shoulder:.90,depth:1.01},'feminine-slender':{hip:1.015,waist:.875,chest:.965,shoulder:.87,depth:.955}};
 const BODICE=[[1.066,.140,.084,0,-.001],[1.12,.143,.085,0,-.003],[1.20,.160,.091,0,-.009],[1.28,.174,.079,0,-.012],[1.323,.171,.071,0,-.010],[1.350,.148,.059,0,-.007],[1.377,.102,.047,0,-.003],[1.398,.044,.035,0,-.001],[1.403,.038,.032,0,-.002]];
-const SLEEVE=[[1.166,.047,.054,.253,-.006],[1.220,.060,.063,.231,-.009],[1.280,.060,.066,.203,-.011],[1.316,.044,.057,.177,-.010],[1.340,.025,.035,.152,-.008],[1.357,.002,.004,.121,-.006]];
+const SLEEVE=[[1.158,.046,.051,.265,-.005],[1.220,.058,.063,.243,-.006],[1.280,.060,.066,.207,-.011],[1.316,.044,.057,.177,-.010],[1.340,.025,.035,.152,-.008],[1.357,.002,.004,.121,-.006]];
 function spline(rows,t){const j=Math.min(rows.length-2,Math.floor(t)),u=t-j,a=rows[Math.max(0,j-1)],b=rows[j],c=rows[j+1],d=rows[Math.min(rows.length-1,j+2)];return b.map((x,k)=>.5*(2*x+(-a[k]+c[k])*u+(2*a[k]-5*x+4*c[k]-d[k])*u*u+(-a[k]+3*x-3*c[k]+d[k])*u*u*u));}
 function section(y){let lo=0,hi=BODICE.length-1;for(let i=0;i<24;i++){const t=(lo+hi)/2;if(spline(BODICE,t)[0]<y)lo=t;else hi=t;}return spline(BODICE,(lo+hi)/2);}
 function frontAt(x,y){const r=section(y);return r[4]+r[2]*Math.sqrt(Math.max(.002,1-(x/r[1])**2));}
