@@ -52,7 +52,7 @@ export function buildPalaceEmperorGarments(g,{loft,surface,ribbon,hand,shoe,conf
 }
 
 export function buildPalaceConsortGarments(g,{loft,surface,ribbon,hand,shoe,conformFront,tone},C){
- const cream=0xe9d5a8,teal=0x397c79,deep=0x622c49;
+ const [cream,teal,deep]=C.yukata===0x405875?[0xdce0cb,0x52796f,0x293c56]:C.yukata===0xc37655?[0xf1dbac,0x947235,0x934b40]:[0xe9d5a8,0x397c79,0x622c49];
  const skirt=[[.14,.251,.145,0,-.008],[.34,.241,.141,0,-.006],[.64,.210,.130,0,-.006],[.88,.177,.114,0,-.004],[1.09,.146,.096,0,-.003]];
  loft(g,'palace-consort-ivory-pleated-skirt',skirt,cream,{segs:24,steps:28,deform:(p,a,v)=>{const fold=.004*Math.cos(a*12)*(1-v*.6);p[0]+=Math.sin(a)*fold;p[2]+=Math.cos(a)*fold;return p;}});
  piping(g,loft,'palace-consort-teal-skirt-hem',[[.141,.254,.149,0,-.008],[.241,.249,.148,0,-.007]],teal);
@@ -135,6 +135,15 @@ export function attachPalaceCostume(actor){
   wire('cap curved gold stitching',[[-.087,.271,.040],[-.050,.290,.064],[0,.294,.070],[.050,.290,.064],[.087,.271,.040]],.0033);
   bead('gold cap jewel setting',GOLD,0,.285,.075,.019).scale.set(1,.84,.30);bead('jade cap jewel',JADE,0,.286,.081,.012).scale.set(1,.78,.26);
   for(const side of[-1,1])bead('cap pearl '+side,0xeee2bd,side*.034,.287,.071,.0065);
+ }else if(actor.station.costumeStyle==='jade-pin'){
+  const pin=part('slender silver jade hairpin',new THREE.CylinderGeometry(.0035,.0035,.24,8),0xd8d5bd,.015,.246,-.075);pin.rotation.z=Math.PI/2-.18;
+  for(const [x,y,z]of[[.108,.272,-.065],[.095,.292,-.06],[.074,.282,-.06]]){const leaf=bead('long carved jade leaf',JADE,x,y,z,.022);leaf.scale.set(.45,1.25,.25);leaf.rotation.z=-.5;}
+  wire('jade hairpin leaf stem',[[.072,.237,-.075],[.077,.260,-.063],[.095,.282,-.060]],.0027,0xd8d5bd);
+  wire('single jade pendant',[[.127,.265,-.063],[.14,.216,-.06],[.14,.187,-.06]],.002,0xd8d5bd);bead('single jade pendant drop',JADE,.14,.183,-.06,.011).scale.set(.65,1.5,.4);
+ }else if(actor.station.costumeStyle==='coral-spray'){
+  wire('asymmetric gold spray',[[.072,.255,-.070],[.03,.265,-.067],[.087,.29,-.06],[.138,.33,-.07]],.0035);
+  for(const [x,y,z]of[[.08,.315,-.07],[.13,.33,-.07],[.108,.281,-.055]]){for(let i=0;i<5;i++){const a=i*TAU/5;bead('coral blossom petal',0xdc9876,x+Math.sin(a)*.014,y+Math.cos(a)*.014,z,.010).scale.z=.35;}bead('small gold blossom heart',GOLD,x,y,z+.004,.006);}
+  const comb=part('low gold side comb',new THREE.BoxGeometry(.082,.012,.016),GOLD,.08,.253,-.07);comb.rotation.z=.22;
  }else{
   const pin=part('gold transverse hairpin',new THREE.CylinderGeometry(.004,.004,.296,8),GOLD,0,.287,-.055);pin.rotation.z=Math.PI/2;
   // A low three-flower comb and two pendants, deliberately open around the bun;
