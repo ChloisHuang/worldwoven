@@ -20,6 +20,18 @@ const linker=(s,f)=>mod(s==='three'?path.join(root,'vendor/three/build/three.mod
  palace.update(.1,.1);assert.equal(palace.state().actors[0].mounted,chair.id);assert(palace.requestDuty('test-court'));assert(!palace.requestDuty('other-owner'));assert.equal(palace.state().decisions.people['cn-emperor'].current,null,'unfulfilled choice is saved even while the stand exit is blocked');
  palace.update(.1,.2);assert.equal(palace.state().actors[0].mounted,chair.id,'blocked stand keeps mount intact');assert.equal(palace.dutyState('test-court').active,false);assert.equal(emperor.animations,2,'one controller animates emperor once per frame');
  blockedExit=false;palace.update(.1,.3);assert.equal(palace.state().actors[0].mounted,null);assert.equal(palace.dutyState('test-court').active,true);assert.equal(palace.dutyState('test-court').stage,'duty-public-stairs');assert(emperor.root.position.distanceTo(emperor.home)<.01,'duty starts at actual safe stand point');
- const decision=palace.state().decisions.people['cn-emperor'];assert.equal(decision.current,null);assert.equal(decision.last,'rest');assert(decision.needs.fatigue>=fatigue,'interrupted rest grants no recovery');assert(decision.cooldowns.rest>=65,'interrupted rest retains cooldown');assert.equal(releases,1);palace.dispose();
- console.log('PASS: saved morning window/refresh/midnight and blocked mounted duty handoff, one owner, unfulfilled needs/cooldown');
+ const decision=palace.state().decisions.people['cn-emperor'];assert.equal(decision.current,null);assert.equal(decision.last,'rest');assert(decision.needs.fatigue>=fatigue,'interrupted rest grants no recovery');assert(decision.cooldowns.rest>=65,'interrupted rest retains cooldown');assert.equal(releases,1);
+ // This lease-only fixture supplies arrival coordinates; the scene test owns route physics.
+ for(let i=0;i<100&&!palace.dutyState('test-court').ready;i++){if(emperor.route.length)emperor.root.position.copy(emperor.route.at(-1));palace.update(.01,.3+i*.01);}
+ assert(palace.dutyState('test-court').ready);palace.playerRequest(throne.id);assert(!palace.dutyState('test-court').ready,'player request withdraws readiness before another report can advance');
+ palace.releaseDuty('test-court');for(let i=0;i<100&&palace.dutyState('test-court');i++){if(emperor.route.length)emperor.root.position.copy(emperor.route.at(-1));palace.update(.01,2+i*.01);}
+ assert.equal(palace.dutyState('test-court'),null,'arrival at home releases duty');assert(palace.state().decisions.people['cn-emperor'].current,'home arrival returns to weighted independent choices');palace.dispose();
+ const completed=createAudienceSchedule();completed.call();completed.finish('completed');let durable=completed.snapshot();
+ for(let entry=0;entry<2;entry++){
+  const fresh=audience.namespace.CHINA_COURT_OFFICIALS.map(station=>{const root=new T.Group(),head=new T.Group();root.userData.head=head;root.add(head);root.position.set(...station.npcPosition);return {station,root,home:root.position.clone(),route:[],locomotion:{walkSpeed:1.4},phase:0,animate(){}};});fresh.push(emperor);
+  const service=audience.namespace.createChinaPalaceAudience({npcs:fresh,palace:{dutyState:()=>null,setDutyLine(){},releaseDuty(){}},lot:{colliders:[],walkableSurfaces:[],bounds:{}},doors:{cameraColliders:[]},planPath(){throw Error('completed reentry must not start a route');},moveActor(){throw Error('completed reentry must not move officials');},poseContext:()=>({}),saved:durable,saveState:value=>durable=value});
+  for(let i=0;i<100;i++)service.update(.1,i*.1,{hour:10});assert.equal(fresh.length,3);assert.equal(service.state().actors.length,2);assert.equal(service.state().phase,'waiting');assert.equal(service.state().history.length,0);assert.equal(service.state().schedule.completionId,'cn-morning-audience:0');assert.equal(service.state().schedule.outcome,'completed');service.dispose();
+ }
+
+ console.log('PASS: saved morning window/refresh/midnight and blocked mounted duty handoff, one owner, unfulfilled needs/cooldown, terminal release and completed-save service reentry');
 })().catch(e=>{console.error(e);process.exitCode=1;});
