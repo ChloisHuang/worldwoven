@@ -7,7 +7,7 @@ const point=a=>({x:a[0],y:a[1],z:a[2]}),near=(p,a,r=.14)=>Math.hypot(p.x-a[0],p.
 const TAVERN_UP=[[14,.115,13.8],[16.9,.215,14.1],[17.55,.215,13.8],[17.55,2.115,9.2],[19.95,2.115,9.2],[19.95,4.015,14.1],[17.55,4.015,14.1],[17.55,5.915,9.2],[19.95,5.915,9.2],[19.95,7.815,14.1],[22.5,7.815,14.2]];
 const reverse=a=>a.slice().reverse().map(p=>p.slice());
 // Real clear east-bank standing places, outside the numbered-edict leaf basket.
-export const CHINA_OFFICIAL_GARDEN_PLACES=Object.freeze([[11.7,.145,-14.4],[9.2,.145,-14.4],[8,.145,-14.4],[10.45,.145,-14.4],[11.7,.115,-13.1],[9.2,.115,-13.1]]);
+export const CHINA_OFFICIAL_GARDEN_PLACES=Object.freeze([[11.7,.145,-14.4],[9.2,.145,-14.4],[10.45,.145,-14.4],[8.5,.115,-13.1],[10,.115,-13.1],[11.7,.115,-13.1]]);
 
 // This controller owns the officials' personal time. Court borrows an
 // official after a safe furniture exit; it never adds personal summon delays,
