@@ -13,9 +13,10 @@ export const CHINA_OFFICIAL_BUREAU=Object.freeze({id:'official-bureau',name:'承
  beds:['cn-official-bed-gu','cn-official-bed-xu','cn-official-bed-rites','cn-official-bed-personnel','cn-official-bed-justice','cn-official-bed-records'],
  upperBounds:{minX:16,maxX:27.72,minZ:28.9,maxZ:36.5},upperHall:[24.95,upperY,32.1],entry:[15,.115,32.5],
  // Every change of direction is explicit, with a level supported approach at
- // either end. Court and free-time travel use the same physical public stair.
- stairRoute:[[28.17,.115,36.9],[27.05,.115,36.9],[27.05,.115,36.3],[27.05,upperY,30.5],[27.05,upperY,29.7],[24.95,upperY,29.7],[24.95,upperY,31.25],[24.95,upperY,32.1]],
- stair:{id:'cn-official-public-stair',axis:'z',minX:26.45,maxX:27.65,minZ:30.5,maxZ:36.3,y:upperY,endY:.115,count:20},
+ // either end. The north alley mouth reconnects to the public court's grid.
+ // Court and free-time travel use the same physical public stair.
+ stairRoute:[[28.17,.115,28.2],[28.17,.115,36.9],[26.92,.115,36.9],[26.92,.115,36.3],[26.92,upperY,30.5],[26.92,upperY,29.7],[24.95,upperY,29.7],[24.95,upperY,31.25],[24.95,upperY,32.1]],
+ stair:{id:'cn-official-public-stair',axis:'z',minX:26.32,maxX:27.52,minZ:30.5,maxZ:36.3,y:upperY,endY:.115,count:20},
  dorms:[{id:'cn-official-dorm-west',name:'西值宿室 · 两张独立卧榻',minX:16,maxX:21,aisleX:18.575},{id:'cn-official-dorm-east',name:'东值宿室 · 两张独立卧榻',minX:21,maxX:26,aisleX:23.425}]
 });
 export function isChinaOfficialUpperFloor(p){const b=CHINA_OFFICIAL_BUREAU.upperBounds;return p.y>2.8&&p.x>=b.minX-.5&&p.x<=b.maxX+.5&&p.z>=b.minZ-.5&&p.z<=b.maxZ+.5;}
@@ -73,7 +74,7 @@ export function buildChinaOfficialBureau(G,A){
   slab('cn-official-upper-floor',16,26,30.5,36.5,y);
   slab('cn-official-upper-balcony',23.8,27.72,28.9,30.5,y);
   rail('cn-official-balcony-north',[23.8,28.9],[27.72,28.9],y);rail('cn-official-balcony-west',[23.8,28.9],[23.8,30.5],y);rail('cn-official-balcony-east',[27.72,28.9],[27.72,30.5],y);
-  rail('cn-official-balcony-return',[26,30.5],[26.45,30.5],y);
+  rail('cn-official-balcony-return',[26,30.5],[26.32,30.5],y);
   const stair={...B.stair};walkableSurfaces.push({...stair,owner:root.name});stairways.push({...stair,width:stair.maxX-stair.minX,rise:(stair.y-stair.endY)/stair.count,tread:(stair.maxZ-stair.minZ)/stair.count});
   for(let j=0;j<stair.count;j++){
    const z0=stair.minZ+(stair.maxZ-stair.minZ)*j/stair.count,z1=stair.minZ+(stair.maxZ-stair.minZ)*(j+1)/stair.count,yy=stair.y+(stair.endY-stair.y)*(j+.5)/stair.count,h=.27;
@@ -84,8 +85,9 @@ export function buildChinaOfficialBureau(G,A){
    cameraColliders.push({minX:stair.minX,maxX:stair.maxX,minZ:z0,maxZ:z1,minY:yy-h-.015,maxY:yy-.015,owner:stair.id+'-tread-'+j});
   }
   for(const x of[stair.minX,stair.maxX])rail(stair.id+'-rail-'+x,[x,stair.minZ],[x,stair.maxZ],stair.y,stair.endY);
-  // The stair remains inside the east wall and leaves the existing .895m
-  // ground passage at x28.17; no dormitory is a public through route.
+  // The stair remains inside the east wall and leaves a1.025m
+  // ground passage, including the planner's x28 grid column. No dormitory
+  // is a public through route.
   for(const[x,z,yy]of[[27.45,29.15,y],[26.20,29.15,y],[26.60,32.5,2.60]])G.box(g,x,(yy-.2)/2,z,.16,yy-.2,.16,C.dark);
   const entry=portal('cn-official-upper-entry','承务官舍二层公共办公厅','x',30.5,24.15,25.75,['compound','cn-official-upper-office']);
   wall('x',30.5,16,26,[entry]);wall('x',36.5,16,26);wall('z',16,30.5,36.5);wall('z',26,30.5,36.5);
@@ -109,6 +111,6 @@ export function buildChinaOfficialBureau(G,A){
   culturePlaque(G,g,'承务官舍',22,y+2.8,30.31,2.4,.45).rotation.y=Math.PI;culturePlaque(G,g,'公共梯道',27.1,2.6,36.5,1.6,.37);
   interiorRooms.push({id:'cn-official-upper-office',name:'承务官舍二层 · 公共办公厅',minX:16,maxX:26,minZ:30.5,maxZ:32.9,floorY:y,ceiling});
   levels.push({id:'official-bureau-upper',name:'承务官舍 · 二层文案与合住值宿',y,bounds:B.upperBounds});lightingZones.push({id:'official-bureau-upper',...b,minY:y-.1,maxY:ceiling+.1,floorY:y});upperFixture(g,'official-upper-office',21,ceiling-.55,32.1,y);
-  explorationTargets.push({id:'cn-official-upper-office',name:'承务官舍二层公共办公厅',roomId:'cn-official-upper-office',position:B.upperHall},{id:'cn-official-stair-bottom',name:'承务官舍公共楼梯起点',roomId:'compound',position:B.stairRoute[1]});
+  explorationTargets.push({id:'cn-official-upper-office',name:'承务官舍二层公共办公厅',roomId:'cn-official-upper-office',position:B.upperHall},{id:'cn-official-stair-bottom',name:'承务官舍公共楼梯起点',roomId:'compound',position:[26.92,.115,36.3]});
  }
 }

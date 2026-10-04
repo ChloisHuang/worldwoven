@@ -10,14 +10,17 @@ const linker=(s,f)=>mod(s==='three'?path.join(base,'vendor/three/build/three.mod
  const G=cache.get(path.join(base,'game/geometry.js')).namespace,H=r.namespace,T=G.THREE;
  const bureau=cache.get(path.join(base,'game/china-official-bureau.js')).namespace,B=bureau.CHINA_OFFICIAL_BUREAU;
  const nav=mod(path.join(base,'game/navigation.js'));if(nav.status==='unlinked')await nav.link(linker);if(nav.status==='linked')await nav.evaluate();
- const group=new T.Group(),roofGroup=new T.Group(),colliders=[],cameraColliders=[],walkableSurfaces=[{minX:14,maxX:29,minZ:28,maxZ:38,y:.115}],characterFootSurfaces=[],stairways=[],interiorRooms=[],doorways=[],explorationTargets=[],buildings=[],levels=[],lightingZones=[];
+ const group=new T.Group(),roofGroup=new T.Group(),colliders=[],cameraColliders=[],walkableSurfaces=[{minX:14,maxX:29,minZ:23,maxZ:38,y:.115}],characterFootSurfaces=[],stairways=[],interiorRooms=[],doorways=[],explorationTargets=[],buildings=[],levels=[],lightingZones=[];
  const C={wood:0x805137,dark:0x50362d,red:0xac3b2d,gold:0xd7af56,cream:0xdbc5a0};
  const door=(id,name,axis,at,from,to,top,rooms,bottom)=>{doorways.push({id,name,axis,at,from,to,top,rooms,bottom});return {id,from,to,top,bottom};};
  const solid3=(g,x,y,z,w,h,d,color)=>{G.box(g,x,y,z,w,h,d,color);colliders.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2,minY:y-h/2,maxY:y+h/2});};
  const result=bureau.buildChinaOfficialBureau(G,{H,C,group,roofGroup,colliders,cameraColliders,walkableSurfaces,characterFootSurfaces,stairways,interiorRooms,doorways,explorationTargets,buildings,levels,lightingZones,palaceWall:H.palaceWall,door,upperFixture(){},solid3});
  // Exact adjacent palace wall and its wider lower trim, without a full scene.
- colliders.push({minX:28.615,maxX:29.385,minZ:28,maxZ:38,minY:0,maxY:.7},{minX:28.675,maxX:29.325,minZ:28,maxZ:38,minY:.7,maxY:4.8},{minX:14,maxX:29,minZ:37.615,maxZ:38.385,minY:0,maxY:.7},{minX:14,maxX:29,minZ:37.675,maxZ:38.325,minY:.7,maxY:4.8});
- const options={surfaces:walkableSurfaces,legacyGround:false,bounds:{minX:14,maxX:29,minZ:28,maxZ:38},bodyHeight:1.95,maxStep:.4,radius:.39,pathRadius:.39};
+ colliders.push({minX:28.615,maxX:29.385,minZ:23,maxZ:38,minY:0,maxY:.7},{minX:28.675,maxX:29.325,minZ:23,maxZ:38,minY:.7,maxY:4.8},{minX:14,maxX:29,minZ:37.615,maxZ:38.385,minY:0,maxY:.7},{minX:14,maxX:29,minZ:37.675,maxZ:38.325,minY:.7,maxY:4.8});
+ // Neighboring cherry trunk, bamboo planter and welcoming bench retain their
+ // production footprints while the route exits north of the bureau.
+ colliders.push({minX:21.8005,maxX:22.1995,minZ:26.8005,maxZ:27.1995},{minX:26.9,maxX:27.7,minZ:23.6,maxZ:24.4},{minX:16.5,maxX:21.5,minZ:29.24,maxZ:29.96});
+ const options={gridStep:.5,surfaces:walkableSurfaces,legacyGround:false,bounds:{minX:14,maxX:29,minZ:23,maxZ:38},bodyHeight:1.95,maxStep:.4,radius:.39,pathRadius:.39};
  const point=p=>({x:p[0],y:p[1],z:p[2]});
  const checkSegment=(a,b,label)=>assert(nav.namespace.canTraverse(point(a),point(b),colliders,options),label+' '+JSON.stringify([a,b]));
  assert.equal(B.offices.length,6);assert.equal(new Set(B.beds).size,6);assert.deepEqual(Array.from(B.offices.slice(0,2),p=>Array.from(p)),[[18,.215,32.5],[24,.215,32.5]]);
@@ -27,7 +30,15 @@ const linker=(s,f)=>mod(s==='three'?path.join(base,'vendor/three/build/three.mod
   if(i>=2){assert(!bed.privateRoomId,bed.id+' cannot reserve a shared dorm');assert.equal(bed.sharedRoomId,B.roomIds[i]);assert.equal(bed.anchor[1],B.upperFloorY);}
  }
  for(let i=0;i<B.stairRoute.length-1;i++){checkSegment(B.stairRoute[i],B.stairRoute[i+1],'stair ascent');checkSegment(B.stairRoute[i+1],B.stairRoute[i],'stair descent');}
- checkSegment([28.17,.115,28.5],[28.17,.115,36.9],'existing east passage');
+ checkSegment([28.17,.115,28.2],[28.17,.115,36.9],'existing east passage');
+ // Exact segments alone missed a real failure: a .895m alley between the
+ // rail and wall admitted the actor but neither .5m planner-grid column.
+ assert(!nav.namespace.blocked(28,34,colliders,.39,{...options,y:.115}),'outer alley retains a real x28 grid column');
+ const pathReaches=(a,b,label)=>{const route=nav.namespace.findPath(point(a),point(b),colliders,options),last=route.at(-1);assert(last&&Math.hypot(last.x-b[0],last.z-b[2])<.03&&Math.abs(last.y-b[1])<.06,label);};
+ for(let i=0;i<B.stairRoute.length-1;i++){pathReaches(B.stairRoute[i],B.stairRoute[i+1],'planned stair ascent segment '+i);pathReaches(B.stairRoute[i+1],B.stairRoute[i],'planned stair descent segment '+i);}
+ pathReaches([28.17,.115,36.9],B.stairRoute[0],'stair descent reconnects to north alley mouth');
+ pathReaches(B.stairRoute[0],[15,.115,28.2],'north alley mouth rejoins public apron');
+ pathReaches([15,.115,28.2],B.stairRoute[0],'public apron reaches north alley mouth');
  for(const p of B.offices.slice(2))checkSegment(B.upperHall,p,'upper desk reach');
  for(const [i,bed]of result.additionalFurniture.slice(2).entries()){const room=B.dorms[i<2?0:1],front=[room.aisleX,B.upperFloorY,32.15];checkSegment(B.upperHall,front,'dorm approach');checkSegment(front,bed.position,'bed approach');}
  for(const d of B.dorms){const beds=result.additionalFurniture.filter(f=>f.sharedRoomId===d.id);assert.equal(beds.length,2);assert(Math.abs(beds[0].center[0]-beds[1].center[0])>(beds[0].size[0]+beds[1].size[0])/2+.78,'two bed hulls retain a body-width aisle');assert.equal(interiorRooms.find(r=>r.id===d.id).capacity,2);}
