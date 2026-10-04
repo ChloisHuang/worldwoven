@@ -1,7 +1,7 @@
 """Offline named-cage sculpt on pinned CC0 topology; no reference pixels.
 /usr/bin/blender -b --factory-startup --python development/complete-character/build_head.py
 """
-import bpy,bmesh,json,pathlib,hashlib,math,os
+import bpy,bmesh,json,pathlib,hashlib,math,os,gzip
 import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
@@ -22,6 +22,24 @@ for line in data.decode().splitlines():
  if a[0]=='v':verts.append(tuple(map(float,a[1:4])))
  elif a[0]=='g':group=a[1]
  elif a[0]=='f' and group=='body':faces.append([int(x.split('/')[0])-1 for x in a[1:]])
+# Native numeric targets use the original OBJ vertex IDs and XYZ axes.
+# Keep raw/feature coordinates immutable: they define masks, attachments and
+# runtime traits independently of this candidate's authored geometry.
+native_delta=np.zeros((len(verts),3));native_target_sources=[]
+for target in (anatomy or {}).get('nativeTargets',[]):
+ filename='targets/'+target['file'];payload=(UP/filename).read_bytes()
+ assert hashlib.sha256(payload).hexdigest()==meta['files'][filename]['sha256']
+ decoded=gzip.decompress(payload)
+ assert hashlib.sha256(decoded).hexdigest()==meta['files'][filename]['uncompressedSha256']
+ seen=set()
+ for line in decoded.decode('ascii').splitlines():
+  fields=line.split()
+  if not fields or fields[0].startswith('#'):continue
+  assert len(fields)==4
+  index=int(fields[0]);delta=np.array(list(map(float,fields[1:])))
+  assert 0<=index<len(verts) and index not in seen and np.isfinite(delta).all()
+  seen.add(index);native_delta[index]+=target['weight']*delta
+ native_target_sources.append({**target,'sha256':meta['files'][filename]['sha256']})
 faces=[f for f in faces if all(verts[i][1]>=5.85 for i in f)]
 used=sorted({i for f in faces for i in f});ids={v:i for i,v in enumerate(used)};raw=[verts[i] for i in used];faces=[[ids[v] for v in f] for f in faces]
 def clamp(v):return max(0.,min(1.,v))
@@ -101,6 +119,16 @@ for x,y,z in raw:
  sculpted.append((x,y,z))
 positions=np.array([sculpt_forehead(p) for p in cage(sculpted)])
 if anatomy:positions=np.array([skin_point(p,anatomy,c) for p,c in zip(sculpted,cage(sculpted))])
+# Apply data deltas in the same uniform native anatomical frame. The existing
+# cage and source masks are evaluated on original semantics, never shifted
+# coordinates. The true vermilion/contact region stays in its accepted frame.
+if anatomy and native_target_sources:
+ target_delta=native_delta[used]*np.array(anatomy['scale'])
+ for i,(x,y,z) in enumerate(raw):
+  lip=smooth(6.45,6.48,y)*(1-smooth(6.73,6.78,y))*(1-smooth(.28,.34,abs(x)))*smooth(1.34,1.40,z)
+  target_delta[i]*=1-lip
+ positions+=target_delta
+
 # Recover the source's continuous braincase and suboccipital curve as one
 # aligned form. Preserve the rounded upper braincase, but end this native
 # reconstruction above the cervical surface: its previous 5.96–6.80 source
@@ -248,7 +276,13 @@ for side in [-1,1]:
 for p in parts:
  for k,v in p.items():
   if isinstance(v,list) and k!='index':p[k]=[round(float(x),7) for x in v]
-output={'license':'CC0-1.0 hm08; original cage, eyes and brows','sourceCommit':meta['commit'],'sourceSha256':meta['files']['base.obj']['sha256'],'coordinateSystem':'metres Y up face +Z','method':'named anatomical biharmonic cage plus direct topology contact loops','form':FORM,'prototypeOnly':True,'unimplemented':['facial trait morphs','other body and hairstyle variants'],'parts':parts,'landmarks':{n:list(skin_point(source,anatomy,cage([source])[0]) if anatomy else sculpt_forehead(cage([source])[0])) for n,source,_ in handles},'sourceVertices':len(raw),'sourceFaces':len(faces)}
+def authored_landmark(source):
+ p=skin_point(source,anatomy,cage([source])[0]) if anatomy else sculpt_forehead(cage([source])[0])
+ if native_target_sources:
+  i=int(np.argmin(np.sum((np.asarray(raw)-source)**2,axis=1)))
+  if np.linalg.norm(np.asarray(raw[i])-source)<1e-5:p+=target_delta[i]
+ return list(p)
+output={'license':'CC0-1.0 hm08; original cage, eyes and brows','sourceCommit':meta['commit'],'sourceSha256':meta['files']['base.obj']['sha256'],'coordinateSystem':'metres Y up face +Z','method':'named anatomical biharmonic cage plus direct topology contact loops','form':FORM,'prototypeOnly':True,'unimplemented':['facial trait morphs','other body and hairstyle variants'],'parts':parts,'landmarks':{n:authored_landmark(source) for n,source,_ in handles},'nativeTargets':native_target_sources,'sourceVertices':len(raw),'sourceFaces':len(faces)}
 (ROOT/('adult-head.json' if FORM=='male' else 'adult-head-female.json')).write_text(json.dumps(output,separators=(',',':'))+'\n')
 if os.environ.get('SAVE_SCULPT_BLEND'):bpy.ops.wm.save_as_mainfile(filepath=os.environ['SAVE_SCULPT_BLEND'])
 print(json.dumps({'vertices':sum(len(p['position'])//3 for p in parts),'triangles':sum(len(p['index'])//3 for p in parts),'parts':[(p['name'],len(p['index'])//3) for p in parts],'bounds':[(min(part['position'][k::3]),max(part['position'][k::3])) for k in range(3)]}))

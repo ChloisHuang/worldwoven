@@ -38,3 +38,51 @@ The measured lateral brow support is `(31.330, 1577.460, 68.643)` and its upper 
 A private front-view comparison aligned the photo's two pupil centers to the actual rendered 111.23 px pupil span and removed about 3.8 degrees of image tilt. The visible contour supports a mid-cheek width reduction of roughly 6–10%, a 4–6 mm longer lower face, and a 5–8% longer horizontal opening; the partly occluded/photo-projected contour does not justify exact biometric dimensions. The local contour function narrows the mid-cheek, retains the lower mandibular arc, and extends the chin by up to 5.5 mm. It explicitly excludes the nasal root, vermilion, eye spacing and scalp. The upper lid covers more of the iris; the iris chart compensates for the shared convex eye frame so pupil/iris rings remain round in front projection. No canthal tilt was added. Standard candidate views remain on the same skin, lighting and toon response.
 
 The elongated chin at `chinLength=1.12` reaches Y=1.434127 m. Its 93 sampled source-chin vertices remain fully assigned to the head: cervical blending now checks native source anatomy rather than treating any skin below 1.435 m as neck. The lower neck and 46 collar anchors retain their existing blend.
+
+
+## Bounded original hm08 target comparison (2026-10-04)
+
+This independent candidate starts from the exact restored `61aa3a4` tree
+(local recovery baseline `a6733c3`), not the later rejected stacked/RBF jaw
+experiments. It imports only three numeric CC0 target files from the same
+pinned MPFB2 commit as the existing hm08 base mesh. The pinned `LICENSE.md`
+section C explicitly includes targets and modifiers; section D covers output.
+Original compressed/uncompressed hashes and source URLs are recorded in the
+upstream and shipped provenance records. No MPFB plugin logic or MOD asset is
+imported.
+
+The comparison removes the previous lower-face Y extension (nominally up to
+5.5 mm), retains the transverse contour, and applies `chin-height-decr` at
+0.65 and each side's `cheek-volume-incr` at 0.60. The data supplies 257 nonzero
+retained chin displacements and 210 on each cheek. All delta rows are matched
+by the original zero-based OBJ vertex index before the head subset is selected.
+Deltas use the current uniform 0.105 native XYZ frame; no Blender add-on axis
+conversion is copied. Raw source/feature coordinates remain immutable. The
+existing vermilion guard preserves the accepted actual mouth rim while the
+sublabial transition can follow the chin. The cervical boundary is still fixed.
+No new chin curve, RBF solve, added supporting mesh, or subdivision is used.
+
+Against the restored baseline, measured maximum upward chin displacement is
+12.822 mm including removal of the earlier extension; maximum local cheek
+forward displacement is 4.410 mm and outward displacement 5.229 mm. These are
+actual exported-coordinate differences, not a claim that these dimensions
+establish visual quality. Raw feature coordinates and skin indices are exactly
+identical; eyes/brows including their normals, protected vermilion, scalp and
+collar positions, and the masculine asset hash are unchanged. The head remains
+14,726 triangles and the dressed character uses two material batches.
+
+One neutral front/side/35-degree three-quarter plus dressed view was rendered
+with the same dark skin palette, lighting and eye-distance framing as the
+private reference study. Visual inspection finds a coherent chin volume
+without the previous local upper-chin reversal, a shorter face and fuller
+anterior-lateral cheek. The side underjaw still reads relatively thick and the
+upper-neck turn remains visible; likeness and the complete aesthetic target
+are not established. This finite comparison is a review candidate, not user
+acceptance or authorization to replace the default model. No coefficient
+iteration or older pose/appearance matrix was run.
+
+The four-view capture and build completed in the existing process-tree guard
+in 3.33 seconds at approximately 316 MiB peak, below 768 MiB/90-second bounds.
+Cgroup OOM counters were unavailable and were not interpreted as zero. Render
+and coordinate-check evidence is local under `qa/native-targets/candidate/`;
+private photographs remain outside the repository.
