@@ -1,6 +1,7 @@
 {
-  "publishedSourceCommit": "23cf0563e357a8e0e03b39915b7a713f4b3a798a",
+  "publishedSourceCommit": "8cdd4fb21be763ccabbc23c9dff0dcfba612db4b",
   "assets": [
+    "/assets/player-interaction-intents.93a14924784ef63d.js",
     "/assets/npc-life-decisions.72c81692403e925d.js",
     "/assets/france-tea-props.55d15dde7c2f4b01.js",
     "/assets/floor-support.5f5df2cde18b6e23.js",
@@ -24,7 +25,7 @@
     "/assets/china-tavern-meal-ui.9105f23603b544c1.js",
     "/assets/china-clinic-lettering.1ac244f7c0742a5e.js",
     "/assets/china-clinic.8b54c8ef38badbc3.js",
-    "/assets/china-clinic-service.ad36b523e5008b56.js",
+    "/assets/china-clinic-service.9f89d52c99b64a5f.js",
     "/assets/china-palace-residents.1b9277d3b25428f8.js",
     "/assets/npc-facilities.9588f4c55b52ac1a.js",
     "/assets/china-consort-activities.00ecce7a0df33f80.js",
@@ -97,8 +98,8 @@
     "/assets/approved-surfaces.4167f3e1bf13ca83.js",
     "/assets/character-props.deb24f9b65d5e60a.js",
     "/assets/characters.0fb411b18be505d6.js",
-    "/assets/main.3ba9aadf30023f55.js",
-    "/assets/game.11e654e4467f8777.css",
+    "/assets/main.a28d781cdb98f9d2.js",
+    "/assets/game.445dd032d7c751a2.css",
     "/assets/three.core.9edde002b066a9a0.js",
     "/assets/three.module.d8c0a97fa13a785e.js"
   ]

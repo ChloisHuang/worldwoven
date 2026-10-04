@@ -6,7 +6,7 @@ const LABELS={consult:'许宁正在当面问询',writing:'许宁在纸上写下�
 
 // One bounded player order. Numbers survive reloads; unfinished physical work
 // is cancelled on departure, never remotely delivered or replayed as health.
-export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,poseContext,saved={},saveState=()=>{},notify=()=>{}}){
+export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,poseContext,saved={},saveState=()=>{},notify=()=>{},onInteraction=()=>{}}){
  const doctor=npcs.find(n=>n.station.id===C.roles[0].id),assistant=npcs.find(n=>n.station.id===C.roles[1].id);if(!doctor||!assistant||!lot.clinic)return null;
  const owned=new Set([doctor,assistant]),P=C.points,history=Array.isArray(saved.history)?saved.history.slice(-16):[],failures=[],travelState=new Map();
  let serial=Math.max(0,Number.isSafeInteger(saved.serial)?saved.serial:0),time=0,order=null,player=null,playerState={},disposed=false,request=false,phaseTime=0;
@@ -83,7 +83,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
      else if(order.stage==='prepare'){aa='tidy';atar=P.stockWork;if(near(assistant,P.stock)&&!paused){phaseTime+=dt;if(phaseTime>=4){order.packetId='cn-clinic-packet-'+order.number;record('packet-prepared',{cardId:order.cardId,packetId:order.packetId});enter('counter');}}}
      else if(order.stage==='counter'){ah=true;if(travel(assistant,P.assistant,dt)&&!paused){enter('ready');notify(`第 ${order.number} 号云纹包已到柜台，请当面按 E 领取`);}}
      else if(order.stage==='ready'){face(assistant,P.counter);if(request&&atCounter()&&near(assistant,P.assistant)&&!paused)enter('deliver');}
-     else if(order.stage==='deliver'){ah=true;face(assistant,P.counter);if(!request||!atCounter()){enter('ready');request=false;}else if(!paused){phaseTime+=dt;if(phaseTime>=1.3){order.cardHolder='delivered';order.claims={doctor:null,assistant:null};order.deliveredAt=time;enter('complete');record('delivered',{cardId:order.cardId,packetId:order.packetId,playerPosition:player.root.position.toArray()});persist();notify(`第 ${order.number} 号云纹包已交给你，请收好`);}}}
+     else if(order.stage==='deliver'){ah=true;face(assistant,P.counter);if(!request||!atCounter()){enter('ready');request=false;}else if(!paused){phaseTime+=dt;order.deliveryContactTime=(order.deliveryContactTime||0)+dt;onInteraction({source:'china-clinic-delivery',id:order.id,number:order.number,sceneId:'china',participants:[assistant.station.id,'player'],duration:order.deliveryContactTime});if(phaseTime>=1.3){order.cardHolder='delivered';order.claims={doctor:null,assistant:null};order.deliveredAt=time;enter('complete');record('delivered',{cardId:order.cardId,packetId:order.packetId,playerPosition:player.root.position.toArray()});persist();notify(`第 ${order.number} 号云纹包已交给你，请收好`);}}}
     }
    }
    animate(doctor,t,da,dtar,dh);animate(assistant,t,aa,atar,ah);props.update(order,{doctor,assistant},phaseTime);
