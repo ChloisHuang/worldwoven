@@ -15,7 +15,7 @@ const begin=harness.indexOf('const report=[];for(let round=0;'),end=harness.inde
 const body=String.raw`
 const gameStore=mod(path.join(root,'game/character-preview-gate.js')).namespace.gameStorage,formalBefore=storage['worlds-days-v1'];
 const report=[],review=()=>main.namespace.appearanceReview(),serial=x=>JSON.stringify(x),savedText=()=>serial(review().saved.appearance),draftText=()=>serial(review().outfitDraft),lookText=()=>serial(state().playerLook);
-const ranges=mod(path.join(root,'game/character-traits.js')).namespace.SHAPE_RANGES,scoreOf=mod(path.join(root,'game/character-traits.js')).namespace.shapePreferenceScore;
+const ranges=mod(path.join(root,'game/character-traits.js')).namespace.SHAPE_RANGES,scoreOf=traits=>mod(path.join(root,'game/character-traits.js')).namespace.shapePreferenceScore(traits,{version:2});
 const sliders=()=>all.filter(e=>e.dataset.shapeTrait),slider=key=>sliders().find(e=>e.dataset.shapeTrait===key),scoreHidden=()=>{assert(ids['appearance-score-readout'].hidden);assert.equal(ids['appearance-score'].textContent,'');assert(ids['appearance-score-note'].hidden);},controlsMatch=()=>{assert.equal(sliders().length,Object.keys(ranges).length);for(const [key,{min,max}]of Object.entries(ranges)){const input=slider(key);assert.equal(input.type,'range');assert.equal(Number(input.min),min);assert.equal(Number(input.max),max);assert.equal(Number(input.value),review().outfitDraft.player.shapeTraits[key]);assert(input.getAttribute('aria-label'));}};
 const residentLooks=()=>state().npcLooks.filter(n=>review().lot.stations.some(s=>s.id===n.id));
 const key=(code,repeat=false)=>events.keydown({code,repeat,preventDefault(){}});
