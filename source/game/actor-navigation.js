@@ -58,11 +58,11 @@ export function moveActorWithCollision(actor,dx,dz,radius,{doors,colliders,navig
 // Jobs supply their existing route and timing; this is the same route executor
 // for a passerby, an official and a palace resident. Doors retain ownership of
 // opening/staging, while moveActor retains all real wall/leaf/body collisions.
-export function followActorRoute(actor,dt,{route=actor.route,doors,moveActor,npcs=[],playerPosition=null,radius=.25,speedScale=.82,arrivalTolerance=.025}={}){
+export function followActorRoute(actor,dt,{route=actor.route,doors,moveActor,npcs=[],playerPosition=null,radius=.25,speedScale=.82,arrivalTolerance=.025,resolveWaypoint=step=>step.waypoint}={}){
  actor.walking=false;
  const step=doors.routeStep(route,actor.root.position,arrivalTolerance);
  if(step.waiting||!step.waypoint){TURNOUT.delete(actor);return {...step,blocked:false};}
- const from=actor.root.position,p=step.waypoint,dx=p.x-from.x,dz=p.z-from.z,d=Math.hypot(dx,dz);
+ const from=actor.root.position,p=resolveWaypoint(step),dx=p.x-from.x,dz=p.z-from.z,d=Math.hypot(dx,dz);
  if(d<EPS)return {...step,blocked:false};
  const amount=Math.min(d,Math.max(0,dt)*(actor.locomotion?.walkSpeed||1.3)*speedScale),ux=dx/d,uz=dz/d;
  if(amount<EPS)return {...step,blocked:false};
@@ -88,9 +88,9 @@ export function followActorRoute(actor,dt,{route=actor.route,doors,moveActor,npc
     if(move(sx,sz)){turn.sign=sign;break;}
    }
   }
-  return {...step,waiting:true,blocked:false,body:other?.station?.id||'player',yielding:actor.walking};
+  return {...step,waiting:true,blocked:false,body:other?.station?.id||'player',yielding:actor.walking,travel:amount};
  }
  TURNOUT.delete(actor);
  move(ux*amount,uz*amount);
- return {...step,waiting:!!movement?.bodyBlocked&&!actor.walking,blocked:!actor.walking&&!movement?.bodyBlocked};
+ return {...step,waiting:!!movement?.bodyBlocked&&!actor.walking,blocked:!actor.walking&&!movement?.bodyBlocked,travel:amount};
 }
