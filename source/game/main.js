@@ -405,7 +405,7 @@ function updateNPCs(dt,t){npcSocial?.update(dt);franceGardener?.update(dt,t,{con
 // Existing needs are read from each routine's latest durable checkpoint. No
 // second hunger system or job scheduler is introduced by health.
 function updateGameHealth(dt){
- const lifePeople={...(saved.japanOperations?.staffLife?.decisions?.people||{}),...(saved.chinaPalaceLife?.people||{}),...(saved.chinaAudience?.life?.decisions?.people||{})};
+ const lifePeople={...(saved.japanOperations?.staffLife?.decisions?.people||{}),...(saved.chinaPalaceLife?.people||{}),...(saved.chinaAudience?.life?.decisions?.people||{}),...(saved.franceGardener?.life?.people||{})};
  gameHealth.update(dt,{player,actors:npcs,playerResting:!!seated&&!bathTransition,playerExertion:player.walking?(keys.has('ShiftLeft')?1:.4):0,lifePeople});
  const text=gameHealth.text('player'),label=$('player-health');if(label.textContent!==text)label.textContent=text;label.hidden=!text;
  for(const n of npcs){const text=gameHealth.text(n.actorId||n.station.id);if(!text&&!n.healthLabel)continue;if(!n.healthLabel){n.healthLabel=document.createElement('small');n.healthLabel.className='npc-health-status';n.label.append(n.healthLabel);}if(n.healthLabel.textContent!==text)n.healthLabel.textContent=text;n.healthLabel.hidden=!text;}

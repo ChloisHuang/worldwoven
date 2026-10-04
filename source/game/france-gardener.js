@@ -22,7 +22,7 @@ export function createFranceGardener({npcs,lot,doors,planPath,moveActor,poseCont
  }
  function completeChoice(fulfilled=true){if(commitment)brain.complete(P.id,commitment,{fulfilled});commitment=null;choiceElapsed=choiceTravel=0;}
  function finish(){record(cancelled?'cancelled':'complete');if(!cancelled)cycles++;completeChoice(!cancelled);cancelled=false;jobTime=0;enter('idle');nextDecision=time+3;}
- function cancel(){if(disposed||['idle','rest','garden'].includes(stage))return false;cancelled=true;enter(tool==='can'?'returnCan':tool==='shears'?'returnShears':'idle');if(!tool){completeChoice(false);nextDecision=time+8;}return true;}
+ function cancel(){if(disposed||['idle','rest','garden'].includes(stage))return false;cancelled=true;if(tool)enter(tool==='can'?'returnCan':'returnShears');else{finish();nextDecision=time+8;}return true;}
  function candidates(){return [
   {id:'work',base:.4,traits:{quiet:.25},duration:[70,90],cooldown:55,available:true},
   {id:'rest',base:.3,traits:{quiet:.65},needs:{fatigue:1.6},duration:[12,21],relief:{fatigue:-.20},cooldown:45,point:P.rest},
