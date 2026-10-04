@@ -1,4 +1,5 @@
 import {knownAdult} from './player-age.js';
+import {followActorRoute} from './actor-navigation.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
 import {PERFORMANCE_POINTS as P,PERFORMANCE_ACTIVITIES as ACT,PERFORMANCE_DRINKS as DRINKS} from './japan-performance-cast.js';
 const clone=x=>x==null?null:JSON.parse(JSON.stringify(x));
@@ -40,11 +41,7 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
   n.walking=false;if(near(n,to))return true;if(conversation===n.station.id)return false;
   const key=to.join(',');let r=routes.get(n);
   if(!r||r.key!==key){r={key,path:planPath(n.root.position,{x:to[0],y:to[1],z:to[2]},.25),stalled:0};routes.set(n,r);}
-  const step=doors.routeStep(r.path,n.root.position,.04),p=step.waypoint;if(step.waiting)return false;
-  if(p){const dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz),others=[...npcs.filter(a=>a!==n),getPlayer()].filter(Boolean);
-   const blocked=others.some(a=>{const q=a.root.position,x=q.x-n.root.position.x,z=q.z-n.root.position.z;return Math.abs(q.y-n.root.position.y)<.6&&Math.hypot(x,z)<.63&&x*dx+z*dz>.004&&Math.abs(x*dz-z*dx)/Math.max(d,.001)<.45;});
-   if(!blocked&&d>.001){const before=n.root.position.clone(),amount=Math.min(d,dt*n.locomotion.walkSpeed*.8);moveActor(n,dx/d*amount,dz/d*amount,.25);n.root.rotation.y=Math.atan2(dx,dz);n.walking=n.root.position.distanceToSquared(before)>1e-9;}
-  }
+  followActorRoute(n,dt,{route:r.path,doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,radius:.25,speedScale:.8,arrivalTolerance:.04});
   r.stalled=n.walking?0:r.stalled+dt;if(r.stalled>2){routes.delete(n);if(order)order.stalls=(order.stalls||0)+1;if(order?.stalls>8){failures.push({orderId:order.id,actor:n.station.id,target:to,position:n.root.position.toArray()});cancel('通道暂时不便通行');}}
   return near(n,to);
  }

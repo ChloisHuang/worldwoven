@@ -1,3 +1,4 @@
+import {followActorRoute} from './actor-navigation.js';
 import {createSalonArtistLife} from './china-tavern-salon-life.js';
 import {knownAdult} from './player-age.js';
 import {SALON_ACTIVITIES} from './china-tavern-salon-artists.js';
@@ -46,12 +47,8 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
   a.walking=false;if(near(a,to))return true;if(hold||conversation===a.station?.id)return false;
   const radius=player ? .34 : .25;let s=travelState.get(a),key=to.join(',');
   if(!s||s.key!==key){s={key,route:planPath(a.root.position,{x:to[0],y:to[1],z:to[2]},radius),stalled:0};travelState.set(a,s);}
-  const step=doors.routeStep(s.route,a.root.position,.04);if(step.waiting)return false;const p=step.waypoint;
+  const step=followActorRoute(a,dt,{route:s.route,doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,radius,speedScale:.76,arrivalTolerance:.04});if(step.waiting){s.stalled=0;return false;}const p=step.waypoint;
   if(!p){s.stalled+=dt;if(s.stalled>3){failures.push({actor:player?'player':a.station.id,stage:session?.stage||'return',to:to.slice(),position:a.root.position.toArray()});travelState.delete(a);if(failures.length>8)failures.shift();}return false;}
-  const dx=p.x-a.root.position.x,dz=p.z-a.root.position.z,d=Math.hypot(dx,dz);
-  const others=[...npcs.filter(n=>n!==a),...(getPlayer()&&getPlayer()!==a?[getPlayer()]:[])];
-  if(others.some(n=>{const q=n.root.position,x=q.x-a.root.position.x,z=q.z-a.root.position.z;return Math.abs(q.y-a.root.position.y)<.65&&Math.hypot(x,z)<.75&&x*dx+z*dz>.002&&Math.abs(x*dz-z*dx)/Math.max(d,.001)<.52;}))return false;
-  if(d>.001){const before=a.root.position.clone(),amount=Math.min(d,dt*a.locomotion.walkSpeed*.76);moveActor(a,dx/d*amount,dz/d*amount,radius);a.root.rotation.y=Math.atan2(dx,dz);a.walking=before.distanceToSquared(a.root.position)>1e-9;}
   s.stalled=a.walking?0:s.stalled+dt;if(s.stalled>1.5){doors.routeBlocked?.(s.route,a.root.position);travelState.delete(a);}return near(a,to);
  }
  function roomForSession(){return SALON_ROOMS.find(r=>r.id===session?.roomId);}

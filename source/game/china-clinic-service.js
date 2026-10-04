@@ -1,3 +1,4 @@
+import {followActorRoute} from './actor-navigation.js';
 import * as THREE from 'three';
 import {CHINA_CLINIC as C} from './china-clinic.js';
 
@@ -6,7 +7,7 @@ const LABELS={consult:'许宁正在当面问询',writing:'许宁在纸上写下�
 
 // One bounded player order. Numbers survive reloads; unfinished physical work
 // is cancelled on departure, never remotely delivered or replayed as health.
-export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,poseContext,saved={},saveState=()=>{},notify=()=>{}}){
+export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,poseContext,saved={},saveState=()=>{},notify=()=>{},onInteraction=()=>{}}){
  const doctor=npcs.find(n=>n.station.id===C.roles[0].id),assistant=npcs.find(n=>n.station.id===C.roles[1].id);if(!doctor||!assistant||!lot.clinic)return null;
  const owned=new Set([doctor,assistant]),P=C.points,history=Array.isArray(saved.history)?saved.history.slice(-16):[],failures=[],travelState=new Map();
  let serial=Math.max(0,Number.isSafeInteger(saved.serial)?saved.serial:0),time=0,order=null,player=null,playerState={},disposed=false,request=false,phaseTime=0;
@@ -26,12 +27,8 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
   n.walking=false;if(near(n,to)){n.route=[];return true;}
   if(playerState.conversationActorId===n.station.id)return false;
   let s=travelState.get(n);if(!s||s.key!==to.join(',')){s={key:to.join(','),stalled:0,reported:false};travelState.set(n,s);n.route=planPath(n.root.position,point(to),.25);}
-  const step=doors.routeStep(n.route,n.root.position,.035);if(step.waiting)return false;
+  const step=followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:player?.root.position,speedScale:.75,arrivalTolerance:.035});if(step.waiting){s.stalled=0;return false;}
   const p=step.waypoint;if(!p){s.stalled+=dt;if(s.stalled>3&&!s.reported){failures.push({actor:n.station.id,stage:order?.stage||'return',to:to.slice(),position:n.root.position.toArray()});s.reported=true;}return false;}
-  const dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz);
-  const others=[...npcs.filter(a=>a!==n).map(a=>a.root.position),...(player?[player.root.position]:[])];
-  if(others.some(o=>Math.abs(o.y-n.root.position.y)<.7&&Math.hypot(o.x-n.root.position.x,o.z-n.root.position.z)<.64&&(o.x-n.root.position.x)*dx+(o.z-n.root.position.z)*dz>.001&&Math.abs((o.x-n.root.position.x)*dz-(o.z-n.root.position.z)*dx)/Math.max(d,.001)<.52))return false;
-  if(d>.001){const before=n.root.position.clone(),amount=Math.min(d,dt*n.locomotion.walkSpeed*.75);moveActor(n,dx/d*amount,dz/d*amount,.25);n.root.rotation.y=Math.atan2(dx,dz);n.walking=before.distanceToSquared(n.root.position)>1e-9;}
   s.stalled=n.walking?0:s.stalled+dt;if(s.stalled>2){travelState.delete(n);n.route=[];}return near(n,to);
  }
  function face(n,p){n.root.rotation.y=Math.atan2(p[0]-n.root.position.x,p[2]-n.root.position.z);}
@@ -83,7 +80,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
      else if(order.stage==='prepare'){aa='tidy';atar=P.stockWork;if(near(assistant,P.stock)&&!paused){phaseTime+=dt;if(phaseTime>=4){order.packetId='cn-clinic-packet-'+order.number;record('packet-prepared',{cardId:order.cardId,packetId:order.packetId});enter('counter');}}}
      else if(order.stage==='counter'){ah=true;if(travel(assistant,P.assistant,dt)&&!paused){enter('ready');notify(`第 ${order.number} 号云纹包已到柜台，请当面按 E 领取`);}}
      else if(order.stage==='ready'){face(assistant,P.counter);if(request&&atCounter()&&near(assistant,P.assistant)&&!paused)enter('deliver');}
-     else if(order.stage==='deliver'){ah=true;face(assistant,P.counter);if(!request||!atCounter()){enter('ready');request=false;}else if(!paused){phaseTime+=dt;if(phaseTime>=1.3){order.cardHolder='delivered';order.claims={doctor:null,assistant:null};order.deliveredAt=time;enter('complete');record('delivered',{cardId:order.cardId,packetId:order.packetId,playerPosition:player.root.position.toArray()});persist();notify(`第 ${order.number} 号云纹包已交给你，请收好`);}}}
+     else if(order.stage==='deliver'){ah=true;face(assistant,P.counter);if(!request||!atCounter()){enter('ready');request=false;}else if(!paused){phaseTime+=dt;order.deliveryContactTime=(order.deliveryContactTime||0)+dt;onInteraction({source:'china-clinic-delivery',id:order.id,number:order.number,sceneId:'china',participants:[assistant.station.id,'player'],duration:order.deliveryContactTime});if(phaseTime>=1.3){order.cardHolder='delivered';order.claims={doctor:null,assistant:null};order.deliveredAt=time;enter('complete');record('delivered',{cardId:order.cardId,packetId:order.packetId,playerPosition:player.root.position.toArray()});persist();notify(`第 ${order.number} 号云纹包已交给你，请收好`);}}}
     }
    }
    animate(doctor,t,da,dtar,dh);animate(assistant,t,aa,atar,ah);props.update(order,{doctor,assistant},phaseTime);

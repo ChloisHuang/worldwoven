@@ -1,4 +1,4 @@
-import {canTraverse} from './navigation.js';
+import {followActorRoute} from './actor-navigation.js';
 import {PALACE_EDICT as E} from './china-palace-edict-place.js';
 import {createPalaceEdictProps} from './china-palace-edict-props.js';
 
@@ -25,7 +25,6 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
  const herald=npcs.find(n=>n.station.id===E.herald.id),scribe=npcs.find(n=>n.station.id==='cn-calligraphy'),recipient=npcs.find(n=>n.station.id==='cn-garden'),emperor=npcs.find(n=>n.station.id==='cn-emperor');
  if(!herald||!scribe||!recipient||!emperor||!palace||!audience)return null;
  const actors={herald,scribe,recipient},owned=new Set([herald]),tasks=new Map(),leases=new Map(),ledger=createEdictLedger(saved),props=createPalaceEdictProps(lot.group),history=[],failures=[];
- const navigation={surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4,radius:.25};
  let time=0,phaseTime=0,order=null,state={},disposed=false,speaker=null,utterance='';
  const persist=()=>saveState(ledger.snapshot());
  const record=(event,n)=>{history.push({event,documentId:order?.id||null,audienceId:order?.audienceId||null,actor:n?.station.id||null,time:+time.toFixed(2),position:n?.root.position.toArray()});if(history.length>72)history.shift();};
@@ -37,21 +36,13 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
  function say(n,text){speaker=n;utterance=text;tell(n,text);record('speech:'+text,n);if(n===emperor)palace.setDutyLine(E.owner,text);const p=state.position;if(p&&Math.abs(p.y-n.root.position.y)<2&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<19)notify(n.station.npcName+'：'+text);}
  function enter(stage){order.stage=stage;phaseTime=0;speaker=null;utterance='';palace.setDutyLine(E.owner,null);record(stage);}
  function task(n,id,path,label){tasks.set(n,{id,path,index:0,arrived:false,planned:false,stalled:0,retries:0,label});n.route=[];record(id,n);}
- const safety=n=>[...(doors?.cameraColliders||[]),...npcs.filter(a=>a!==n).map(a=>a.root.position),...(state.position?[state.position]:[])].map(p=>p.minX===undefined?{minX:p.x-.27,maxX:p.x+.27,minZ:p.z-.27,maxZ:p.z+.27,minY:p.y,maxY:p.y+1.95}:p);
  function travel(n,s,dt){
-  if(s.arrived)return true;const target=s.yieldPoint||s.path[s.index];
+  if(s.arrived)return true;const target=s.path[s.index];
   if(near(n,target)){
-   if(s.yieldPoint){const p=s.yieldTo?.root.position||state.position;if(p&&Math.abs(p.y-n.root.position.y)<.7&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<1.1)return false;s.yieldPoint=null;s.yieldTo=null;s.planned=false;return false;}
    n.route=[];s.planned=false;s.retries=0;if(++s.index===s.path.length){s.arrived=true;record(s.id+':arrived',n);return true;}return false;
   }
   if(!s.planned){n.route=planPath(n.root.position,point(target),.25);s.planned=true;}
-  const direct=near(n,target,.45)&&canTraverse(n.root.position,point(target),lot.colliders.concat(safety(n)),navigation),step=direct?{waypoint:point(target)}:doors.routeStep(n.route,n.root.position,.025);
-  if(!step.waiting&&step.waypoint){
-   const p=step.waypoint,dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz),others=npcs.filter(a=>a!==n).map(a=>({actor:a,position:a.root.position}));if(state.position)others.push({position:state.position});
-   const block=others.find(({position:p})=>Math.abs(p.y-n.root.position.y)<.7&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<.74&&(p.x-n.root.position.x)*dx+(p.z-n.root.position.z)*dz>.001&&Math.abs((p.x-n.root.position.x)*dz-(p.z-n.root.position.z)*dx)/Math.max(d,1e-10)<.54);
-   if(block){if(!s.yieldPoint&&(!owned.has(block.actor)||n.station.id>block.actor.station.id))for(const sign of[1,-1]){const aside=[n.root.position.x+sign*dz/d*.82,n.root.position.y,n.root.position.z-sign*dx/d*.82];if(canTraverse(n.root.position,point(aside),lot.colliders.concat(safety(n)),navigation)){s.yieldPoint=aside;s.yieldTo=block.actor;s.planned=false;record('yield-passage',n);break;}}s.stalled=0;return false;}
-   if(d>1e-10){const before=n.root.position.clone(),amount=Math.min(d,dt*n.locomotion.walkSpeed*.78);moveActor(n,dx/d*amount,dz/d*amount,.25);n.root.rotation.y=Math.atan2(dx,dz);n.walking=before.distanceToSquared(n.root.position)>1e-9;}
-  }
+  const step=followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:state.position,speedScale:.78});
   s.stalled=n.walking||step.waiting?0:s.stalled+dt;if(s.stalled>4){s.stalled=0;s.planned=false;if(++s.retries===3){failures.push({actor:n.station.id,stage:s.id,target,position:n.root.position.toArray()});if(failures.length>8)failures.shift();}}
   return false;
  }

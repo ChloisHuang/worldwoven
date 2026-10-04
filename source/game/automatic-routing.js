@@ -58,6 +58,13 @@ export function createAutomaticRouting({doors,staticColliders,planningColliders,
  // unchanged coarse grid. All visibility links are verified by navigation.
  const portals=doors.map(d=>({id:d.id,points:[-1,0,1].map(side=>worldPoint(d,0,side*(d.width/2+.55),d.center[1]))}));
  const currentColliders=(y,height)=>staticColliders.concat(doors.flatMap(d=>d.boxes).filter(b=>y<b.maxY-.01&&y+height>b.minY+.01));
+ function joinStart(route,start,colliders,options){
+  // A nearby coarse-grid seed can be behind the actual actor. Validate its
+  // next link once when planning/rejoining, rather than backtracking or doing
+  // a full destination visibility scan on every frame. Keep all real geometry.
+  if(route.length>1&&distance(start,route[0])<=(options.gridStep??.5)*Math.SQRT2&&canTraverse(start,route[1],colliders,options))route.shift();
+  return route;
+ }
  function profile(options,radius){
   let radii=profiles.get(options);if(!radii){radii=new Map();profiles.set(options,radii);}
   if(!radii.has(radius))radii.set(radius,{...options,radius,pathRadius:options.pathRadius??.39,portals:options.portals??portals});
@@ -137,7 +144,7 @@ export function createAutomaticRouting({doors,staticColliders,planningColliders,
  return {
   planPath(start,end,options={},radius=.34){
    if(disposed)return [];
-   const routeOptions=profile(options,radius);let route=findPath(start,end,openColliders,routeOptions);
+   const routeOptions=profile(options,radius);let route=joinStart(findPath(start,end,openColliders,routeOptions),start,openColliders,routeOptions);
    // A legal closed-door start can be inside a future parked leaf. Only in
    // that case may the initial planning leg omit open poses; staging still
    // uses every current leaf and rejoins the full open-leaf route afterward.
@@ -145,7 +152,7 @@ export function createAutomaticRouting({doors,staticColliders,planningColliders,
     const initial=findPath(start,end,staticColliders,routeOptions),p=point(start),height=routeOptions.bodyHeight??1.95;
     // Eligibility has no opening side effect. A legal closed start may first
     // need a sideways grid link out of a future parked leaf before approaching.
-    if(doors.some(d=>d.fraction<1&&d.openBoxes?.some(b=>overlaps(p,b,radius,height))&&crossingDistance(d,p,initial,Infinity)!==Infinity))route=initial;
+    if(doors.some(d=>d.fraction<1&&d.openBoxes?.some(b=>overlaps(p,b,radius,height))&&crossingDistance(d,p,initial,Infinity)!==Infinity))route=joinStart(initial,start,staticColliders,routeOptions);
    }
    plans.set(route,{target:{...point(end),y:end.y??start.y??0},options:routeOptions,radius,stage:null,door:null,phase:route.length?'walking':'complete'});
    return route;
@@ -170,7 +177,7 @@ export function createAutomaticRouting({doors,staticColliders,planningColliders,
      while(join<route.length&&blocked(route[join].x,route[join].z,openColliders,state.radius,{...state.options,y:route[join].y??p.y}))join++;
      const next=route[join],resumed=next?(canTraverse(p,next,openColliders,state.options)?[{...next}]:findPath(p,next,openColliders,state.options)):[];
      if(!next||!resumed.length||distance(resumed.at(-1),next)>.025){state.phase='blocked';return {waypoint:null,waiting:true,phase:state.phase,doorId:stage.door.id};}
-     route.splice(0,join+1,...resumed);state.stage=null;
+     route.splice(0,join+1,...resumed);joinStart(route,p,openColliders,state.options);state.stage=null;
     }
     while(route.length&&distance(p,route[0])<arrivalTolerance&&Math.abs((route[0].y??p.y)-p.y)<.45)route.shift();
     if(!route.length){state.phase='complete';return {waypoint:null,waiting:false,phase:state.phase,doorId:null};}
@@ -182,6 +189,24 @@ export function createAutomaticRouting({doors,staticColliders,planningColliders,
     state.phase='walking';return {waypoint:route[0],waiting:false,phase:state.phase,doorId:door?.id??null};
    }
    return {waypoint:null,waiting:true,phase:state.phase,doorId:state.stage?.door.id??null};
+  },
+  rejoinAroundBody(route,position,body,radius){
+   const state=plans.get(route);
+   if(!state||state.stage||route.length<2)return false;
+   const occupied=p=>(p.y??position.y)<body.y+1.95-.00001&&(p.y??position.y)+(state.options.bodyHeight??1.95)>body.y+.00001&&distance(p,body)<radius+.025;
+   if(!occupied(route[0]))return false;
+   let join=0;while(join<Math.min(route.length-1,8)&&occupied(route[join]))join++;
+   const next=route[join];
+   // Only bypass occupied intermediate grid links in this immediate encounter.
+   // The actual destination remains claimed even when another person stands on it.
+   if(!join||occupied(next)||distance(position,next)>2)return false;
+   const prior=state.bodyJoin;
+   if(prior&&prior.first===route[0]&&prior.version===getVersion()&&distance(prior.from,position)<.2&&distance(prior.body,body)<.1)return false;
+   state.bodyJoin={first:route[0],from:point(position),body:point(body),version:getVersion()};
+   // Do not bypass closed-door staging or borrow a floor/wall shortcut. Bodies
+   // still constrain every real movement; they are not added to the static map.
+   if(doors.some(d=>d.fraction<1-1e-7&&crossingDistance(d,position,[next],2)!==Infinity)||!canTraverse(position,next,openColliders,state.options))return false;
+   route.splice(0,join);state.bodyJoin=null;return true;
   },
   routeBlocked(route,position){
    const state=plans.get(route);if(!state)return false;
