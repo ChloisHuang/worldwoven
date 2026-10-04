@@ -5,7 +5,7 @@ import {visualSupportHeight} from './floor-support.js';
 // One real place setting, one order, and the existing three palace residents.
 // None of these transient claims or scene objects survive a region unload.
 export const FRANCE_TEA={cook:'france-bakery',host:'france-salon',guest:'france-cafe',table:[6.4,1.230,11.24],
- prep:[-5.9,.258,-9.03],prepTop:[-5.9,1.270,-9.65],cookAside:[-6.95,.258,-10.55],hostHome:[-6.5,.302,-4.45],
+ report:[-5.05,.258,-8.50],prep:[-5.9,.258,-9.03],prepTop:[-5.9,1.270,-9.65],cookAside:[-6.95,.258,-10.55],hostHome:[-6.5,.302,-4.45],
  serve:[5.65,.16,11.88],guestHome:[7.1,.16,8.92],seatCenter:[6.6,.16,12.5]};
 const P=FRANCE_TEA,copy=x=>JSON.parse(JSON.stringify(x)),gap=(n,p)=>Math.hypot(n.root.position.x-p[0],n.root.position.z-p[2]);
 const LABEL={seating:'加布里埃尔正在茶桌入座',requested:'玛农过来记下下午茶',accepted:'玛农记下茶与小蛋糕',ticket:'玛农去糕点房传话',preparing:'卡米耶切好一小份蛋糕',brewing:'卡米耶备好热茶',pickup:'玛农在糕点案边接过茶盘',carrying:'玛农把茶盘送往茶廊',serving:'玛农轻轻把茶盘放上桌',ready:'茶与小蛋糕已上桌',drinking:'坐着慢慢品茶',lowering:'把茶杯放回茶碟',clearing:'玛农过来收拾杯碟',lifting:'玛农收起用过的杯碟',returning:'玛农把杯碟送回糕点房',washing:'玛农清理杯碟',leaving:'加布里埃尔起身让出茶位'};
@@ -98,7 +98,7 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
     if(o.stage==='seating'){if(mountGuest(dt))enter('requested');}
     else if(o.stage==='requested'){if(travel(host,P.serve,dt)&&seatedCustomer()&&!paused)enter('accepted');}
     else if(o.stage==='accepted'){ht=seat.anchor;if(!paused)tick(dt,1.2,()=>enter('ticket'));}
-    else if(o.stage==='ticket'){const h=travel(host,[-6.8,.258,-8.9],dt),c=travel(cook,P.prep,dt);ht=P.prep;ct=host.root.position.toArray();if(h&&c&&!paused)tick(dt,1,()=>{o.trayId=o.id+'-tray';record('chef-received-order');enter('preparing');});}
+    else if(o.stage==='ticket'){const h=travel(host,P.report,dt),c=travel(cook,P.prep,dt);ht=P.prep;ct=host.root.position.toArray();if(h&&c&&!paused)tick(dt,1,()=>{o.trayId=o.id+'-tray';record('chef-received-order');enter('preparing');});}
     else if(o.stage==='preparing'||o.stage==='brewing'){ca=o.stage==='preparing'?'bread':'herb-mix';ct=P.prepTop;if(travel(cook,P.prep,dt)&&!paused)tick(dt,o.stage==='preparing'?3.4:3.2,()=>enter(o.stage==='preparing'?'brewing':'pickup'));}
     else if(o.stage==='pickup'){const away=travel(cook,P.cookAside,dt);if(away&&travel(host,P.prep,dt)&&!paused){carry=true;ht=P.prepTop;tick(dt,1.2,()=>{o.holder='host';record('tray-received',{from:P.cook,to:P.host});enter(o.cancelled?'returning':'carrying');});}}
     else if(o.stage==='carrying'){carry=true;if(travel(host,P.serve,dt)&&seatedCustomer()&&!paused)enter('serving');}
