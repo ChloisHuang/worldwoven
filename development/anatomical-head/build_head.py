@@ -98,9 +98,16 @@ def fit_surface(p):
  # aperture to its brow plane. This deforms skin only, not the eye globe.
  lid_span=gauss(abs(x),.31,.165)*smooth(1.27,1.37,z)
  margin_span=smooth(.165,.245,abs(x))*(1-smooth(.37,.455,abs(x)))
- yy-=.0005*margin_span*gauss(y,7.328,.033)*smooth(1.27,1.37,z)
- yy-=.0008*margin_span*gauss(y,7.238,.033)*smooth(1.27,1.37,z)
- zz+=lid_span*(.0014*gauss(y,7.345,.026)-.0008*gauss(y,7.389,.025))
+ # Rest the upper lid over the iris. Carry the contact edge and its support
+ # together rather than covering the eye with a painted line or a flat cap.
+ yy-=.0017*margin_span*gauss(y,7.332,.050)*smooth(1.27,1.37,z)
+ yy-=.00025*margin_span*gauss(y,7.238,.033)*smooth(1.27,1.37,z)
+ zz+=lid_span*(.0017*gauss(y,7.346,.029)-.0010*gauss(y,7.390,.029))
+ # Continuous alar support and two philtral columns join the nose to the
+ # existing closed vermilion. Preserve the nose width, nostrils and lip seam.
+ front=smooth(1.42,1.54,z)
+ zz+=.0008*gauss(abs(x),.115,.052)*gauss(y,6.905,.060)*front
+ zz+=(.0012*gauss(abs(x),.041,.024)-.00035*gauss(x,0,.025))*gauss(y,6.758,.060)*front
  return xx,yy,zz
 
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
@@ -130,7 +137,7 @@ for i,(x,y,z) in enumerate(raw):
  lip=gauss(x,0,.265)*smooth(1.39,1.53,z)*smooth(6.44,6.50,y)*(1-smooth(6.70,6.75,y))
  # Oral cavity behind lips: darker only on its actual internal geometry.
  cavity=(1-smooth(1.40,1.52,z))*smooth(.6,1.15,z)*gauss(x,0,.23)*smooth(6.45,6.51,y)*(1-smooth(6.68,6.74,y))
- lid=gauss(abs(x),.305,.17)*gauss(y,7.333,.04)*smooth(1.3,1.38,z)*.30
+ lid=gauss(abs(x),.305,.17)*gauss(y,7.335,.041)*smooth(1.3,1.38,z)*.48
  mesh.attributes['lip_tint'].data[i].value=lip
  seam=gauss(y,6.605,.024)*(1-smooth(1.548,1.566,z))*gauss(x,0,.29)*smooth(1.20,1.43,z)
  mesh.attributes['cavity_tint'].data[i].value=max(cavity,seam)
@@ -168,7 +175,7 @@ parts.append(part);ev.to_mesh_clear()
 eye_trees=[]
 for side in [-1,1]:
  cx,cy,cz=side*.30775,7.29415,1.24535
- nu=64;theta=[0,.025,.07,.13,.20,.27,.33,.38,.52,.66,.85,1.05,1.30,1.6,1.95,2.3,2.65,math.pi]
+ nu=64;theta=[0,.025,.07,.13,.20,.27,.35,.44,.52,.66,.85,1.05,1.30,1.6,1.95,2.3,2.65,math.pi]
  def globe_point(t,a):
   # A round iris in projection lies on the actual expanded globe surface.
   circular=1.22/math.sqrt((1.54*math.cos(a))**2+(1.46*math.sin(a))**2)
@@ -201,7 +208,7 @@ for side in [-1,1]:
    a=j*nu+k;b=j*nu+(k+1)%nu;c=(j+1)*nu+k;d=(j+1)*nu+(k+1)%nu
    globe_faces.extend([(a,c,b),(b,c,d)])
  eye_trees.append(BVHTree.FromPolygons(positions,globe_faces))
- for material,condition in [('pupil',lambda t:t<=.13),('iris',lambda t:.13<t<=.38),('sclera',lambda t:t>.38)]:
+ for material,condition in [('pupil',lambda t:t<=.13),('iris',lambda t:.13<t<=.44),('sclera',lambda t:t>.44)]:
   ix=[]
   for j in range(len(theta)-1):
    if not condition(theta[j+1]):continue
@@ -210,14 +217,27 @@ for side in [-1,1]:
   bm=bmesh.new();bm.from_mesh(em);bmesh.ops.recalc_face_normals(bm,faces=bm.faces);bm.to_mesh(em);bm.free()
   # Every material ring shares the same complete-globe differential normal.
   parts.append({'name':'eye-'+str(side)+'-'+material,'material':material,'position':[a for p in positions for a in p],'normal':normals,'index':ix,'recessWeight':eye_recess})
- # Original fine tapered eyebrow follows the actual source brow plane.
- cu=bpy.data.curves.new('Original tapered brow','CURVE');cu.dimensions='3D';cu.resolution_u=12;cu.bevel_depth=.0030;cu.bevel_resolution=2
- sp=cu.splines.new('BEZIER');sp.bezier_points.add(5)
- for p,co,r in zip(sp.bezier_points,[(.143,7.392,1.495),(.185,7.395,1.475),(.285,7.406,1.43),(.385,7.414,1.38),(.49,7.402,1.30),(.57,7.364,1.23)],[.08,.88,1.05,.90,.48,.025]):
-  p.co=fit((side*co[0],co[1],co[2]));hit=skin_tree.ray_cast(Vector((p.co.x,p.co.y,.3)),Vector((0,0,-1)),.6)[0]
-  if hit is not None:p.co.z=hit.z+.0013
-  p.handle_left_type='AUTO';p.handle_right_type='AUTO';p.radius=r
- bo=bpy.data.objects.new('Brow '+str(side),cu);bpy.context.collection.objects.link(bo)
+ # Original surface-fitted brow ribbon: fuller inner body, quiet arch, fine
+ # tail, shallow cross-section. A round extruded tube read as a heavy sticker.
+ brow_y=[(.145,7.390),(.19,7.399),(.28,7.412),(.38,7.419),(.49,7.398),(.568,7.350)]
+ brow_z=[(.145,1.49),(.28,1.43),(.38,1.38),(.49,1.30),(.568,1.23)]
+ brow_r=[(0,.05),(.09,.82),(.30,1),(.57,.78),(.80,.43),(1,.015)]
+ bp=[];bf=[];bn=48;bw=6
+ for j in range(bn+1):
+  t=j/bn;x=.145+(.568-.145)*t
+  center=Vector(fit((side*x,profile(brow_y,x),profile(brow_z,x))))
+  half=.0023*profile(brow_r,t)
+  for k in range(bw+1):
+   a=k/bw*2-1;p=center.copy();p.y+=a*half
+   hit=skin_tree.ray_cast(Vector((p.x,p.y,.3)),Vector((0,0,-1)),.6)[0]
+   if hit is not None:p.z=hit.z+.00045+.00050*(1-a*a)*profile(brow_r,t)
+   bp.append(p)
+ for j in range(bn):
+  for k in range(bw):
+   a=j*(bw+1)+k;bf.append((a,a+1,a+bw+2,a+bw+1))
+ bmsh=bpy.data.meshes.new('Surface fitted brow');bmsh.from_pydata(bp,[],bf);bmsh.update()
+ bo=bpy.data.objects.new('Brow '+str(side),bmsh);bpy.context.collection.objects.link(bo)
+ for poly in bmsh.polygons:poly.use_smooth=True
  deps=bpy.context.evaluated_depsgraph_get();ev=bo.evaluated_get(deps);me=ev.to_mesh();me.calc_loop_triangles()
  parts.append({'name':'brow-'+str(side),'material':'brow','position':[a for v in me.vertices for a in v.co],'normal':[a for v in me.vertices for a in v.normal],'index':[a for t in me.loop_triangles for a in t.vertices]});ev.to_mesh_clear()
 # Reciprocal contact occlusion: the eyelid edge receives occlusion from the

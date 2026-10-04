@@ -22,11 +22,20 @@ export function fitAnatomicalHair(head,skin){
    direction.copy(point).sub(origin);const radius=direction.length();direction.normalize();
    ray.set(origin,direction);ray.far=.25;
    const hit=ray.intersectObject(scalp,false)[0];
-   if(hit&&radius<hit.distance+.0012){point.copy(origin).addScaledVector(direction,hit.distance+.0012);fitted++;}
+   if(hit){
+    // Reduce the inflated crown/back envelope while retaining the same
+    // authored side-part paths, free tips and ear arch. Fit from the actual
+    // scalp, so reducing volume cannot drive a bundle through the head.
+    const isBundle=mesh.name.startsWith('hair-framing-');
+    const excess=Math.max(0,radius-hit.distance-.0012);
+    const retention=isBundle?.82-.24*smooth(1.610,1.700,point.y):1;
+    const fittedRadius=hit.distance+.0012+excess*retention;
+    if(radius<fittedRadius||isBundle){point.copy(origin).addScaledVector(direction,fittedRadius);fitted++;}
+   }
    p.setXYZ(i,point.x,point.y,point.z);
   }
   p.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingBox();mesh.geometry.computeBoundingSphere();
  }
  geometry.dispose();material.dispose();
- head.userData.anatomicalHairFit={fitted,earRelief:true};
+ head.userData.anatomicalHairFit={fitted,earRelief:true,compactCrown:true};
 }

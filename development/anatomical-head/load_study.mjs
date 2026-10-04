@@ -12,7 +12,7 @@ export function replaceWithAnatomicalStudy(root,C,{clay=false}={}){
  reframePrototypeHair(head,C.hair);
  if(!clay)fitAnatomicalHair(head,asset.parts.find(p=>p.material==='skin'));
  if(clay)for(const m of [...head.children])if(m.isMesh){m.removeFromParent();m.geometry.dispose();}
- const colors={skin:C.skin,lip:new THREE.Color(C.skin).lerp(new THREE.Color(0x925e5b),.72).getHex(),sclera:0xe7eaeb,iris:C.iris,pupil:C.pupil,brow:C.brow};
+ const colors={skin:C.skin,lip:new THREE.Color(C.skin).lerp(new THREE.Color(0x925e5b),.52).getHex(),sclera:0xe7eaeb,iris:C.iris,pupil:C.pupil,brow:C.brow};
  const prefixes={skin:'continuous-head-anatomical',sclera:'inset-eye-anatomical',iris:'iris-anatomical',pupil:'pupil-anatomical',brow:'soft-brow-anatomical'};
  for(const p of asset.parts){
   if(clay&&p.material==='brow')continue;
