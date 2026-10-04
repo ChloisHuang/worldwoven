@@ -1,3 +1,4 @@
+import {buildJapanPerformanceHall,performanceStations} from './japan-performance-hall.js';
 import {registerNightFixture} from './night-lighting.js';
 import {createGuestFuton} from './japan-futon.js';
 import {SHOJI_SIDE_OVERLAP} from './room-closures.js';
@@ -699,6 +700,7 @@ export function buildJapan(){
   const y=LEVEL_Y[f];for(const [tag,x,z]of [['entrance',0,7.9],['stair-south',9.1,-.9],['stair-north',9.1,-11.4],['balcony-left',-6.4,10.25],['balcony-right',6.4,10.25],['balcony-center',0,10.25]])explorationTargets.push({id:`jp-${f+1}-${tag}`,name:`Floor ${f+1} ${tag}`,position:[x,y,z]});
   threshold(`jp-${f+1}-front-portal`,[f===3?.5:0,y,8.2],[f===3?.5:0,y,9.8],f===3?2.3:4.2,2.9);
  }
+ const performanceHall=buildJapanPerformanceHall({floor:floorGroups[2],obstacle,sign});
  const stations=[
   {id:'jp-omamori',name:'参道 · 御守与小稻荷祠',action:'欣赏御守绳结与刺绣',position:[4.7,0,33.1],color:'#ad7892',playerAction:'tidy',playerWorkTarget:[4.7,1.14,32.04],interactionRadius:1.1,dialogue:'御守的小布袋绣着樱花，绳结也各不相同。鸟居另一侧的小稻荷祠前，狐狸是稻荷的使者，稻穗与米供传达着丰收的意象。',npcName:'Emi',npcAction:'tidy',npcLabel:'整理绳结与御守布袋',npcPosition:[4.7,0,30.6],workTarget:[4.7,1.12,31.1],npcRotation:0},
   {id:'jp-welcome',name:'一层 · 灯笼接待大厅',action:'领取浴衣与钥匙',position:[-4,0,5.4],color:'#d4a46d',playerAction:'tidy',dialogue:'欢迎来到霞汤屋。男汤与女汤都在二层，三层是暖桌大厅，四层是工作人员的地方。',npcName:'Koharu',npcAction:'tidy',npcLabel:'登记客簿与浴衣钥匙',npcPosition:[-5.4,0,5.7],workTarget:[-5.4,1.25,6.4],npcRotation:0},
@@ -716,6 +718,7 @@ export function buildJapan(){
   {id:'jp-herb-workshop',name:'后院 · 收货与物料房',action:'清点汤屋补给',position:[0,0,-33.3],color:'#a5b47d',playerAction:'tidy',dialogue:'这里收下木桶、布料和食材。药草送到四层药房，米与面送进一层共用厨房。',npcName:'Nao',npcAction:'tidy',npcLabel:'清点补给木箱',npcPosition:[1.5,0,-33],workTarget:[2.8,1.0,-34.65],npcRotation:Math.PI}
  ];
  // Approach flags let the close-TPS controller gate seated/cooking activities.
+ stations.push(...performanceStations());
  for(const s of stations)s.culture='japan';
  program('omamori-display',0,'omamori-cultural-display',4.8,['jp-courtyard-omamori']);program('inari-shrine',0,'small-inari-shrine',3.4,['jp-courtyard-inari']);
  program('reflection-pond',0,'koi-reflection-garden',124,['jp-district-garden-pond']);program('garden-pavilion',0,'garden-shelter',66,['jp-district-garden-pavilion']);program('travel-shop',0,'travel-luggage-retail',135,['jp-district-market-room']);program('public-toilets',0,'public-sanitary-facilities',110,['jp-washroom-private-1','jp-washroom-private-2','jp-washroom-private-3','jp-washroom-sinks']);program('supply-store',0,'delivery-supply-storage',73,['jp-district-supplies']);program('herb-growing',0,'herb-growing',252,['jp-district-herb-yard']);
@@ -757,5 +760,5 @@ export function buildJapan(){
   {id:'jp-weather-rain',kind:'rain',name:'幻想雨天挂偶',position:[5,0,9.14],approach:[5,0,9.86],height:1.78},
  ];
  const characterFloorSurfaces=floorGroups.flatMap(fg=>(fg.userData.characterMatSurfaces||[]).map(s=>({...s,baseY:fg.position.y,minX:s.minX+fg.position.x,maxX:s.maxX+fg.position.x,minZ:s.minZ+fg.position.z,maxZ:s.maxZ+fg.position.z})));
- return {group,weatherCharmPoints,colliders,characterFloorSurfaces,characterFootSurfaces,spawn:[0,0,37.5],stations,roofGroup,walkableSurfaces,cameraColliders,levels,ceilingGroups,floorGroups,explorationTargets,doorways,facilities,roomProgram,interiorRooms,circulation,bounds:LOT_BOUNDS,update(dt,time){for(const update of updates)update(dt,time);}};
+ return {group,performanceHall,additionalFurniture:performanceHall.additionalFurniture,weatherCharmPoints,colliders,characterFloorSurfaces,characterFootSurfaces,spawn:[0,0,37.5],stations,roofGroup,walkableSurfaces,cameraColliders,levels,ceilingGroups,floorGroups,explorationTargets,doorways,facilities,roomProgram,interiorRooms,circulation,bounds:LOT_BOUNDS,update(dt,time){for(const update of updates)update(dt,time);}};
 }
