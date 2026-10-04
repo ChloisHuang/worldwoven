@@ -5,7 +5,7 @@ export function attachCompleteHead(root,C,asset,{clay=false,surface=false}={}){
  for(const m of [...head.children])if(m.isMesh&&/^(continuous-head-|ear-|inset-eye-|iris-|pupil-|eye-catchlight-|eyelid-|soft-brow-|nostril-|upper-lip$|lower-lip$|closed-soft-mouth$)/.test(m.name)){m.removeFromParent();m.geometry.dispose();}
  const neck=root.getObjectByName('neck');if(neck){neck.removeFromParent();neck.geometry.dispose();}
  if(clay)for(const m of [...head.children])if(m.isMesh){m.removeFromParent();m.geometry.dispose();}
- const colors={skin:C.skin,lip:new THREE.Color(C.skin).lerp(new THREE.Color(0x925e5b),.38).getHex(),sclera:0xd9d0c5,iris:C.iris,pupil:C.pupil,brow:C.brow,lash:new THREE.Color(C.skin).lerp(new THREE.Color(C.hair),.78).getHex()};
+ const colors={skin:C.skin,lip:new THREE.Color(C.skin).lerp(new THREE.Color(0x925e5b),.38).getHex(),sclera:0xbeb5a7,iris:C.iris,pupil:C.pupil,brow:C.brow,lash:new THREE.Color(C.skin).lerp(new THREE.Color(C.hair),.78).getHex()};
  const prefixes={skin:'continuous-head-anatomical',sclera:'inset-eye-anatomical',iris:'iris-anatomical',pupil:'pupil-anatomical',brow:'soft-brow-anatomical',lash:'eyelid-contact-anatomical'};
  for(const p of asset.parts){
   if(clay&&(p.material==='brow'||p.material==='lash'))continue;

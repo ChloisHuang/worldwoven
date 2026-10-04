@@ -16,7 +16,7 @@ import {RETAINED_HAIR,createHeadAttachmentFit,fitCandidateHairAttachments,fitRet
 import {FREE_BRAID,planRetainedBraid,applyRetainedBraid} from './retained-hair-fit.js';
 export const COMPLETE_ADULT_PREVIEW='complete-adult-head-v1';
 export const COMPLETE_ADULT_PAIR_PREVIEW='complete-adult-pair-v1';
-export const COMPLETE_ADULT_VERSION='candidate-e850c2b-hair-fcaa901-traits10-v8';
+export const COMPLETE_ADULT_VERSION='candidate-e850c2b-hair-fcaa901-traits10-depth-v1';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const forms={'masculine-lean':'male','masculine-broad':'male','feminine-balanced':'female','feminine-slender':'female'};
 export function completeAdultSupport(options,selection){
@@ -82,7 +82,7 @@ export function appendCompleteAdultVertex(channels,mesh,index,position){
  channels.featureCoord.push(g.attributes.featureCoord?.getX(index)??0,g.attributes.featureCoord?.getY(index)??0,g.attributes.featureCoord?.getZ(index)??0);
  channels.featureKind.push(g.attributes.featureKind?.getX(index)??0);
  channels.eyeReflectance.push(['iris','pupil','sclera'].includes(kind)?1:0);channels.featureSheen.push(0);
- const sourceY=g.attributes.sourceY?.getX(index)??position.y,t=clamp((sourceY-1.395)/.050);channels.anatomicalTone.push(kind==='hair'||kind==='long-hair'?-1:kind==='skin'?t*t*(3-2*t):0);
+ const sourceY=g.attributes.sourceY?.getX(index)??position.y,t=clamp((sourceY-1.395)/.050);channels.anatomicalTone.push(kind==='hair'||kind==='long-hair'?-1:['skin','iris','pupil','sclera'].includes(kind)?t*t*(3-2*t):0);
 }
 export function finishCompleteAdultChannels(geometry,channels){
  for(const [name,array]of Object.entries(channels))geometry.setAttribute(name,new THREE.Float32BufferAttribute(array,name==='featureCoord'?3:1));
@@ -91,7 +91,7 @@ export function readCompleteAdultColor(mesh,index,target){const a=mesh.geometry.
 export function completeAdultMaterialKey(preview){return COMPLETE_ADULT_VERSION+'|flow:'+!!preview.hairFlow;}
 export function prepareCompleteAdultSkinMaterial(material,preview={}){
  if(material.userData.completeAdultFinish)return material;
- applyAnatomicalFinish(material,{narrow:true,reflect:true});applySurfaceFinish(material,{hairFlow:!!preview.hairFlow});material.userData.completeAdultFinish=COMPLETE_ADULT_VERSION;return material;
+ applyAnatomicalFinish(material,{narrow:true,reflect:false});applySurfaceFinish(material,{hairFlow:!!preview.hairFlow});material.userData.completeAdultFinish=COMPLETE_ADULT_VERSION;return material;
 }
 
 export function prepareCompleteAdultClothMaterial(material,preview={}){
