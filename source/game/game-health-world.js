@@ -10,12 +10,12 @@ function hash(text){let h=2166136261;for(const c of text){h^=c.charCodeAt(0);h=M
 // Saved health follows real actor IDs across scene/wardrobe rebuilds. This
 // adapter never creates actors, controls a role, changes looks or slows movement.
 // Only loaded scenes advance simulation time; hidden/offline time is paused.
-export function createGameHealthWorld({worldSeed=1,saved={},visitorFloor=0,clinicFloor=0,saveState=()=>{}}={}){
+export function createGameHealthWorld({worldSeed=1,saved={},visitorFloor=0,clinicFloor=0,retainedVisitorIds=[],saveState=()=>{}}={}){
  let sceneId=null,time=Number.isFinite(saved.health?.time)?saved.health.time:0,lastSave=time,playerFatigue=clamp(saved.playerFatigue??.1);
  let arrivals=Math.max(saved.version===1?saved.arrivals||0:0,visitorFloor);
  let deliveredThrough=Math.max(saved.version===1?saved.deliveredThrough||0:0,clinicFloor);
  const journeys=new Map(Object.entries(saved.version===1?saved.journeys||{}:{}));
- const ids=new Set(['player',...Object.keys(saved.health?.people||{})]),activeVisitors=new Set();
+ const ids=new Set(['player',...Object.keys(saved.health?.people||{})]),activeVisitors=new Set(retainedVisitorIds.filter(visitorId));
  let health=createGameHealth({worldSeed,actorIds:[...ids],saved:saved.health});
  const snapshot=()=>({version:1,playerFatigue,arrivals,deliveredThrough,journeys:copy(Object.fromEntries(journeys)),health:health.snapshot()});
  const persist=()=>{lastSave=time;saveState(snapshot());};
@@ -59,10 +59,10 @@ export function createGameHealthWorld({worldSeed=1,saved={},visitorFloor=0,clini
  }
  prune();
  return {
-  enter(id,actors=[]){sceneId=id;activeVisitors.clear();for(const actor of actors)register(idOf(actor));persist();},
-  leave(){sceneId=null;activeVisitors.clear();persist();},
+  enter(id,actors=[]){sceneId=id;for(const actor of actors)register(idOf(actor));persist();},
+  leave(){sceneId=null;persist();},
   arrive,
-  depart(id){activeVisitors.delete(id);prune();persist();},
+  depart(id){if(sceneId!=='japan')return;activeVisitors.delete(id);prune();persist();},
   clinicReceipts,
   update(dt,{player,actors=[],playerResting=false,playerExertion=0,lifePeople={},restingIds=[],visible=()=>false}={}){
    if(!sceneId||!player||!Number.isFinite(dt)||dt<=0)return;
