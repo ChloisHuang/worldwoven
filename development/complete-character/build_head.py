@@ -71,9 +71,9 @@ loops=json.loads((ROOT/'topology_sculpt.json').read_text())['loops']
 lookup={(round(abs(x),5),round(y,5),round(z,5)):[] for x,y,z in raw}
 for i,(x,y,z) in enumerate(raw):lookup[(round(abs(x),5),round(y,5),round(z,5))].append(i)
 for loop in loops:
- for index in loop['vertices']:
+ for at,index in enumerate(loop['vertices']):
   x,y,z=verts[index]
-  for i in lookup.get((round(abs(x),5),round(y,5),round(z,5)),[]):positions[i]+=np.array(loop['delta'])*np.array(form['scale'])
+  for i in lookup.get((round(abs(x),5),round(y,5),round(z,5)),[]):positions[i]+=np.array(loop['delta'])*np.array(form['scale'])*(loop.get('weights',[1]*len(loop['vertices']))[at])
 # Fit the one open cervical boundary to the existing collar. Interior facial
 # topology is closed and has no boundary in this source mesh.
 from collections import Counter
