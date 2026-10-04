@@ -916,7 +916,7 @@
         6.32
       ],
       "orbitalRimProjection": 0.0048,
-      "orbitalFoldRecess": 0.0014,
+      "orbitalFoldRecess": 0.0011,
       "lowerLipProjection": 0.0012,
       "earTuck": 0.055,
       "nasalProfile": {
@@ -1018,11 +1018,11 @@
           ],
           [
             6.2,
-            1.08
+            1.035
           ],
           [
             6.35,
-            1.07
+            1.03
           ],
           [
             6.48,
@@ -1050,7 +1050,7 @@
       "nativeTargets": [
         {
           "file": "chin-height-decr.target.gz",
-          "weight": 0.65
+          "weight": 0.2
         },
         {
           "file": "l-cheek-volume-incr.target.gz",
@@ -1060,7 +1060,77 @@
           "file": "r-cheek-volume-incr.target.gz",
           "weight": 0.6
         }
-      ]
+      ],
+      "perioralPlacement": {
+        "raiseY": 0.0022,
+        "upperLipShare": 0.2,
+        "scope": "closed upper/lower contact and lower lip move together; upper vermilion moves less; graph transition to actual nasal return and chin-front anchors; immutable source coordinates"
+      },
+      "eyelidShape": {
+        "upperRotation": 0.012,
+        "lowerRotation": 0.09,
+        "tarsalProjection": 0.00055,
+        "upperRimSource": [
+          [
+            0.1752,
+            7.2736
+          ],
+          [
+            0.1817,
+            7.2799
+          ],
+          [
+            0.1952,
+            7.2848
+          ],
+          [
+            0.2093,
+            7.2945
+          ],
+          [
+            0.2353,
+            7.3097
+          ],
+          [
+            0.2725,
+            7.3227
+          ],
+          [
+            0.311,
+            7.3315
+          ],
+          [
+            0.3492,
+            7.3299
+          ],
+          [
+            0.3835,
+            7.3242
+          ],
+          [
+            0.4099,
+            7.3169
+          ],
+          [
+            0.4279,
+            7.3066
+          ],
+          [
+            0.4337,
+            7.3008
+          ],
+          [
+            0.4385,
+            7.2937
+          ],
+          [
+            0.4394,
+            7.2874
+          ]
+        ],
+        "scope": "angular redistribution of the actual lid thickness band in the existing globe frame; canthi fixed; outer tarsal support only"
+      },
+      "irisAngle": 0.47
     },
     "mouthContactSourceVertices": [
       493,
