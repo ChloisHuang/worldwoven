@@ -2,7 +2,7 @@ import {createCourtReports} from './china-court-reports.js';
 import {attachCourtOfficialCostume} from './china-court-official-costume.js';
 import {createChinaOfficialLife} from './china-official-life.js';
 import {CHINA_OFFICIAL_BUREAU as B} from './china-official-bureau.js';
-import {canTraverse} from './navigation.js';
+import {followActorRoute} from './actor-navigation.js';
 import {createAudienceSchedule,courtRouteBudget,cachedCourtPlanner} from './china-court-schedule.js';
 import {createCourtPosture} from './china-court-posture.js';
 export {createAudienceSchedule} from './china-court-schedule.js';
@@ -35,7 +35,6 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
  const officials=CHINA_COURT_OFFICIALS.map(r=>npcs.find(n=>n.station.id===r.id)),emperor=npcs.find(n=>n.station.id==='cn-emperor');
  if(!palace||!emperor||officials.some(n=>!n))return null;
  const owned=new Set(officials),schedule=createAudienceSchedule(saved),caps=officials.map(attachCourtOfficialCostume),tasks=new Map(),postures=officials.map(n=>n.root.userData.body?createCourtPosture(n):null),history=[],failures=[];
- const navigation={surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4,radius:.25};
  const planBudgetPath=cachedCourtPlanner(planPath);
  let phase='waiting',time=0,phaseTime=0,disposed=false,state={},speaker=null,utterance='',reported=0,life=null,reports=null,currentReport=null,budget=null,nextBudgetAt=0,exception=null,disruption=0,departureReason=null;
  const tell=(n,text)=>{const el=n.label?.querySelector?.('small');if(el)el.textContent=text;};
@@ -44,33 +43,16 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
  function setPhase(value){phase=value;phaseTime=0;record(value);}
  function silence(){speaker=null;utterance='';palace.setDutyLine(OWNER,null);}
  function say(n,text){speaker=n;utterance=text;palace.setDutyLine(OWNER,n===emperor?text:null);tell(n,text);record('speech:'+text,n);const p=state.position;if(p&&Math.abs(p.y-n.root.position.y)<2&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<19)notify(n.station.npcName+'：'+text);}
- function task(n,id,path,label){tasks.set(n,{id,path,label,index:0,arrived:false,planned:false,stalled:0,retries:0,yieldPoint:null});n.route=[];record(id,n);}
+ function task(n,id,path,label){tasks.set(n,{id,path,label,index:0,arrived:false,planned:false,stalled:0,retries:0});n.route=[];record(id,n);}
  const safety=n=>[...(doors?.cameraColliders||[]),...npcs.filter(a=>a!==n).map(a=>a.root.position),...(state.position?[state.position]:[])].map(p=>p.minX===undefined?{minX:p.x-.27,maxX:p.x+.27,minZ:p.z-.27,maxZ:p.z+.27,minY:p.y,maxY:p.y+1.95}:p);
  function travel(n,s,dt){
   if(s.arrived)return true;
-  const target=s.yieldPoint||s.path[s.index];
+  const target=s.path[s.index];
   if(near(n.root.position,target)){
-   if(s.yieldPoint){const p=s.yieldTo?.root.position||state.position;if(p&&Math.abs(p.y-n.root.position.y)<.7&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<1.1)return false;s.yieldPoint=null;s.yieldTo=null;s.planned=false;return false;}
    n.route=[];s.planned=false;s.retries=0;if(++s.index===s.path.length){s.arrived=true;record(s.id+':arrived',n);return true;}return false;
   }
   if(!s.planned){n.route=planPath(n.root.position,point(target),.25);s.planned=true;}
-  // A safe clear segment to the authored waypoint takes priority over the
-  // grid's initial link, which can sit behind a person already in the doorway.
-  // Every wall, current door leaf and other body still blocks this segment.
-  const direct=Math.abs(n.root.position.y-target[1])<.32&&canTraverse(n.root.position,point(target),lot.colliders,navigation,safety(n));
-  const step=direct?{waypoint:point(target)}:doors.routeStep(n.route,n.root.position,.025);
-  if(!step.waiting&&step.waypoint){
-   const p=step.waypoint,dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz);
-   const others=npcs.filter(a=>a!==n).map(a=>({actor:a,position:a.root.position}));if(state.position)others.push({position:state.position});
-   const block=others.find(({position:p})=>Math.abs(p.y-n.root.position.y)<.7&&Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z)<.76&&(p.x-n.root.position.x)*dx+(p.z-n.root.position.z)*dz>.001&&Math.abs((p.x-n.root.position.x)*dz-(p.z-n.root.position.z)*dx)/Math.max(d,1e-10)<.55);
-   if(block){
-    // Give the existing guards, royals and player the passage. The two court
-    // lanes are separate, with a checked side-step for unforeseen encounters.
-    if(!s.yieldPoint&&(!owned.has(block.actor)||n.station.id>block.actor.station.id))for(const sign of[1,-1]){const aside=[n.root.position.x+sign*dz/d*.85,n.root.position.y,n.root.position.z-sign*dx/d*.85];if(canTraverse(n.root.position,point(aside),lot.colliders,navigation,safety(n))){s.yieldPoint=aside;s.yieldTo=block.actor;s.planned=false;record('yield-passage',n);break;}}
-    s.stalled=0;return false;
-   }
-   if(d>1e-10){const before=n.root.position.clone(),amount=Math.min(d,dt*n.locomotion.walkSpeed*.78);moveActor(n,dx/d*amount,dz/d*amount,.25);n.walking=before.distanceToSquared(n.root.position)>1e-9;n.root.rotation.y=Math.atan2(dx,dz);}
-  }
+  const step=followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:state.position,speedScale:.78});
   s.stalled=n.walking||step.waiting?0:s.stalled+dt;if(s.stalled>4){s.stalled=0;s.planned=false;if(++s.retries===3){failures.push({actor:n.station.id,stage:s.id,target,position:n.root.position.toArray()});if(failures.length>8)failures.shift();}}
   return false;
  }

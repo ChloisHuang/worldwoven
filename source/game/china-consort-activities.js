@@ -27,15 +27,3 @@ export function createPalaceLeisureClaims(){
   state:()=>[...leases].map(([actor,value])=>({actor,...value})),dispose(){leases.clear();queue.dispose();}
  };
 }
-
-// One passing resident at a time in the 1.29m private corridor. New departures
-// wait inside their own entry bay; arrivals wait in the common anteroom. A
-// conversation keeps the physical passage lease until its occupant leaves.
-export function createConsortPassage(){
- const queue=createFacilityQueue(),admitted=new Map(),inside=p=>p.x<-19.05&&p.x>-20.95&&p.z>-11.0&&p.z<2.0;
- return {
-  allow(n,to){if(!['cn-consort-heng','cn-consort-ling'].includes(n.station.id))return true;const id=n.station.id,required=inside(n.root.position)||inside({x:to[0],z:to[2]});if(!required){queue.releaseActor(id);admitted.delete(id);return true;}const claim=queue.reserve('residence-suite-corridor',id);if(claim&&!admitted.has(id))admitted.set(id,{entered:inside(n.root.position)});return !!claim;},
-  leave(n){const visit=admitted.get(n.station.id);if(!visit)return;if(inside(n.root.position))visit.entered=true;else if(visit.entered){queue.releaseActor(n.station.id);admitted.delete(n.station.id);}},
-  state:()=>queue.state(),dispose(){admitted.clear();queue.dispose();}
- };
-}

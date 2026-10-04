@@ -1,3 +1,4 @@
+import {followActorRoute} from './actor-navigation.js';
 import {TAVERN_MEAL as M} from './china-tavern-kitchen.js';
 import {createTavernMealProps} from './china-tavern-meal-props.js';
 
@@ -31,12 +32,8 @@ export function createChinaTavernMeal({npcs,lot,furniture,doors,planPath,moveAct
  function travel(n,to,dt){
   n.walking=false;if(near(n,to)){n.route=[];return true;}if(conversation===n.station.id)return false;
   let s=travelState.get(n);const key=to.join(',');if(!s||s.key!==key){s={key,stalled:0};travelState.set(n,s);n.route=planPath(n.root.position,{x:to[0],y:to[1],z:to[2]},.25);}
-  const step=doors.routeStep(n.route,n.root.position,.035);if(step.waiting)return false;
+  const step=followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,speedScale:.78,arrivalTolerance:.035});if(step.waiting){s.stalled=0;return false;}
   const p=step.waypoint;if(!p){s.stalled+=dt;if(s.stalled>2.5){failures.push({actor:n.station.id,stage:order?.stage||'return',to:to.slice(),position:n.root.position.toArray()});if(failures.length>12)failures.shift();s.stalled=0;}return false;}
-  const dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz),player=getPlayer();
-  const others=[...npcs.filter(a=>a!==n).map(a=>a.root.position),...(player?[player.root.position]:[])];
-  if(others.some(o=>Math.abs(o.y-n.root.position.y)<.7&&Math.hypot(o.x-n.root.position.x,o.z-n.root.position.z)<.64&&(o.x-n.root.position.x)*dx+(o.z-n.root.position.z)*dz>.001&&Math.abs((o.x-n.root.position.x)*dz-(o.z-n.root.position.z)*dx)/Math.max(d,.001)<.51))return false;
-  if(d>.001){const before=n.root.position.clone(),amount=Math.min(d,dt*n.locomotion.walkSpeed*.78);moveActor(n,dx/d*amount,dz/d*amount,.25);n.root.rotation.y=Math.atan2(dx,dz);n.walking=before.distanceToSquared(n.root.position)>1e-9;}
   s.stalled=n.walking?0:s.stalled+dt;if(s.stalled>2){travelState.delete(n);n.route=[];}return near(n,to);
  }
  function pose(n,t,action=null,target=null,carrying=false){
