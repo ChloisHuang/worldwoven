@@ -2,7 +2,7 @@
 export const PALACE_EDICT=Object.freeze({
  owner:'china-palace-edict',title:'荷庭东岸清扫令',text:'命 Bo 清扫荷庭东岸落叶，收于竹筐，留宽路供人通行。',
  herald:{id:'cn-palace-herald',npcName:'沈序 · 宫苑传令',ageYears:34,npcPosition:[4.2,1.415,-4.15]},
- points:{draft:[5.15,5.083,-28.24],scribe:[5.2,4.215,-27.68],collect:[6.15,4.215,-27.65],
+ points:{draft:[5.15,5.083,-28.34],scribe:[5.2,4.215,-27.68],collect:[6.15,4.215,-27.65],
   seal:[4.2,2.33,-4.84],sealStand:[4.2,1.415,-4.18],approve:[.85,1.415,-5.45],
   read:[11.5,.145,-14.0],recipient:[10,.145,-14.0],work:[10,.145,-14.6],file:[11.2,.145,-14.65],sweep:[10,.19,-15.3],basket:[11.2,.145,-15.3]},
 });
