@@ -11,7 +11,8 @@ import {applyNaturalClothing} from './natural-clothing.mjs';
 import {applyFemaleSilhouette} from './female-silhouette.mjs';
 import {applyAnatomicalFinish} from './face_finish.mjs';
 import {applySurfaceFinish} from '../anatomical-head/surface_finish.mjs';
-export const COMPLETE_ADULT_VERSION='reviewed-pair-2026-10-04';
+import {morphCompleteAdultAsset,fitCompleteAdultAttachments} from './shape-traits.mjs';
+export const COMPLETE_ADULT_VERSION='reviewed-pair-traits-2026-10-04';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const supported={
  'masculine-lean':{form:'male',hair:'side-part',wardrobe:'court-frock-coat'},
@@ -23,7 +24,6 @@ export function completeAdultSupport(options){
  if(!entry)return fail('unreviewed-body');
  if(options.culture!=='france'||(options.style??'casual')!=='casual')return fail('unreviewed-outfit-context');
  if(options.hairStyle!==entry.hair||options.wardrobePreset!==entry.wardrobe)return fail('unreviewed-hair-or-garment');
- if(Object.values(shapeTraits).some(v=>v!==1))return fail('shape-traits-preserved-by-legacy-fallback');
  if(['skin','hair','eyeColor'].some(k=>!Number.isInteger(options[k])))return fail('normalized-colors-required');
  return{supported:true,form:entry.form,shapeTraits};
 }
@@ -31,10 +31,13 @@ export function applyCompleteAdultPreview(root,options){
  const support=completeAdultSupport(options);if(!support.supported)return{applied:false,...support};
  if(!root.getObjectByName('sculpted-head'))return{applied:false,reason:'missing-head-root'};
  const C={skin:options.skin,hair:options.hair,iris:options.eyeColor,pupil:0x25252a,brow:new THREE.Color(options.hair).multiplyScalar(.9).getHex()};
- attachCompleteHead(root,C,ADULT_FORMS[support.form],{surface:true});
+ fitCompleteAdultAttachments(root,options,neutralLegOptions=>{
+  attachCompleteHead(root,C,morphCompleteAdultAsset(ADULT_FORMS[support.form],support.shapeTraits),{surface:true});
+  const head=root.getObjectByName('sculpted-head');
+  if(support.form==='male'){const hair=addLayeredHair(head,C.hair);hair.userData.softSkin=false;} // Preserve the exact reviewed male hair's existing cloth bucket.
+  applyNaturalClothing(root,neutralLegOptions);applyFemaleSilhouette(root,neutralLegOptions);
+ });
  const head=root.getObjectByName('sculpted-head');
- if(support.form==='male'){const hair=addLayeredHair(head,C.hair);hair.userData.softSkin=false;} // Preserve the exact reviewed male hair's existing cloth bucket.
- applyNaturalClothing(root,options);applyFemaleSilhouette(root,options);
  for(const mesh of head.children)if(mesh.isMesh&&/^hair-/.test(mesh.name))mesh.userData.completeAdultPart='hair';
  root.userData.completeAdultRepresentation={version:COMPLETE_ADULT_VERSION,form:support.form,shapeTraits:{...support.shapeTraits}};
  return{applied:true,version:COMPLETE_ADULT_VERSION,form:support.form};
