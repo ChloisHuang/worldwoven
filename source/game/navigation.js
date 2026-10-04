@@ -243,6 +243,8 @@ function legacySegmentSafe(start,end,colliders,r,options) {
   }
   return true;
 }
+// Optional liveColliders are checked against this query's exact current pose;
+// the caller keeps static colliders/options stable to reuse their broad phase.
 export function canTraverse(start,end,colliders=[],options={},liveColliders=EMPTY_SURFACES) {
   const r=optionsOf(options).radius??.34,o=indexedOptions(options,colliders,r);
   // Moving people and door leaves must be tested now, but must not invalidate
