@@ -99,7 +99,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
  function animate(n,s,t){
   const stop=scripts.get(n)[s.index],context=poseContext(n,null);context.handoff=false;context.heldProp=null;context.seatedMeal=false;meals.get(n).show(false);
   if(s.mount){const m=s.mount;context.seatHeight=m.seatY===undefined?undefined:m.seatY-n.root.position.y-context.visualFloorOffset;if(m.kind==='bed'){context.visualFloorOffset=0;context.supportY=m.supportY;context.lieSupport=m.lieSupport;context.lieOffset=m.lieOffset;context.lieSurfaceHeightAt=(x,z)=>furniture.bedSupportAt(m,x,z);}}
-  if(stop.pair&&hostHeld===n&&!interrupted(n)&&!interrupted(host))context.handoff=true;
+  if(stop.pair&&hostHeld===n&&!interrupted(n)&&!interrupted(host)||s.greetingActive&&!interrupted(n))context.handoff=true;
   if(stop.meal&&s.mount&&!interrupted(n)){context.seatedMeal=true;meals.get(n).show(true);}
   n.animate(t+n.phase,n.walking,s.mount?(s.mount.kind==='bed'?'lie-rest':'chair-sit'):s.arrived&&!interrupted(n)?stop.action||null:null,context);meals.get(n).sync();
  }
@@ -121,7 +121,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   update(dt,t,state={}){
    if(disposed)return;playerState=state;time+=dt;brain.tick(dt);
    for(const n of actors){
-    n.walking=false;passage.leave(n);let s=stages.get(n),stop=scripts.get(n)[s.index];tell(n,stop.label);
+    n.walking=false;passage.leave(n);let s=stages.get(n),stop=scripts.get(n)[s.index];tell(n,stop.label);s.greetingActive=false;
     if(claims.tick(n.station.id,dt,interrupted(n)||hostHeld===n&&interrupted(host)))s.abortRequested='等待稍久 · 改日再来';
     if(s.abortRequested&&!(n===emperor&&duty)){if(cancelCommitment(n,s,s.abortRequested)){s=stages.get(n);stop=scripts.get(n)[s.index];}else{animate(n,s,t);continue;}}
     if(n===emperor&&duty){
@@ -166,7 +166,12 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
       if(hostHeld!==n||interrupted(host)||state.performing===host.station.id){if(!interrupted(host)&&(s.waited=(s.waited||0)+dt)>20)s.abortRequested='茶主人正忙 · 改日再访';animate(n,s,t);continue;}
       n.root.rotation.y=Math.atan2(host.root.position.x-n.root.position.x,host.root.position.z-n.root.position.z);host.root.rotation.y=Math.atan2(n.root.position.x-host.root.position.x,n.root.position.z-host.root.position.z);tell(n,'与 Lin 聊今日荷色和茶香');tell(host,'接待'+palaceResident(n.station.id).shortName+' · 茶案前叙话');
      }
-     if(stop.garden&&s.elapsed>=3&&!s.gardenPartner){const other=consorts.find(a=>a!==n&&stages.get(a)?.arrived&&scripts.get(a)?.[stages.get(a).index]?.garden&&!interrupted(a)&&Math.hypot(a.root.position.x-n.root.position.x,a.root.position.z-n.root.position.z)<2.1);if(other){s.gardenPartner=other.station.id;s.choice.relationship={target:other.station.id,gain:.04};brain.observe(n.station.id,s.choice,{observers:[{id:other.station.id,knowledge:'participant'}]});record(n,'garden-greeting:'+other.station.id);tell(n,'与'+palaceResident(other.station.id).shortName+'聊眼前荷色');}}
+     if(stop.garden&&!s.greetingComplete){
+      const nearby=a=>a!==n&&stages.get(a)?.arrived&&scripts.get(a)?.[stages.get(a).index]?.garden&&!interrupted(a)&&Math.hypot(a.root.position.x-n.root.position.x,a.root.position.z-n.root.position.z)<2.1;
+      const other=s.gardenPartner?consorts.find(a=>a.station.id===s.gardenPartner&&nearby(a)):s.elapsed>=3?consorts.find(nearby):null;
+      if(other){s.gardenPartner=other.station.id;s.greetingActive=true;s.greetingElapsed=(s.greetingElapsed||0)+dt;n.root.rotation.y=Math.atan2(other.root.position.x-n.root.position.x,other.root.position.z-n.root.position.z);tell(n,'与'+palaceResident(other.station.id).shortName+'聊眼前荷色');if(s.greetingElapsed>=3.5){s.greetingComplete=true;s.choice.relationship={target:other.station.id,gain:.04};brain.observe(n.station.id,s.choice,{observers:[{id:other.station.id,knowledge:'participant'}]});record(n,'garden-greeting:'+other.station.id);}}
+      else{s.gardenPartner=null;s.greetingElapsed=0;}
+     }
      s.elapsed+=dt;if(s.elapsed>=(n===emperor&&duty&&!duty.active?0:stop.duration))advance(n,s);
     }
     animate(n,stages.get(n),t);
