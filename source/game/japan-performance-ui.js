@@ -1,8 +1,7 @@
 const RECEPTION_ID='jp-performance-reception';
-const RECEPTION_POSITION=[4.3,7.6,-4.6];
 const STAGES={invited:'艺者正在考虑邀请',reply:'听取艺者本人的答复',accepted:'艺者已答应，请核对价目',seating:'席位已留好，请及时入座',performing:'表演或清谈进行中',drinking:'茶酒已上席，正在共饮',returning:'本次会面结束，艺者正在回席'};
 
-export function createJapanPerformanceUI({service,getPlayer,onOpen=()=>{},onNavigate,onFurniture,onStand,document:doc=globalThis.document}){
+export function createJapanPerformanceUI({service,getPlayer,onOpen=()=>{},onFurniture,onStand,document:doc=globalThis.document}){
  const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text!==undefined&&text!==null)e.textContent=text;if(cls)e.className=cls;return e;};
  const style=make('style');
  style.textContent='.jp-performance-ticket{position:fixed;left:max(18px,env(safe-area-inset-left));top:258px;z-index:18;max-width:calc(100vw - 180px);min-height:44px;padding:10px 13px;border-radius:12px;background:#804c3d;color:#fff4dc;font-size:12px;box-shadow:0 3px 12px #3d241e20}.jp-performance-ticket[hidden]{display:none}.jp-performance-dialog{box-sizing:border-box;position:fixed;inset:0;margin:auto;width:min(410px,calc(100vw - 28px));max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain;padding:21px;border:1px solid #bda77c;border-radius:16px;background:#f4eedf;color:#483c32}.jp-performance-dialog::backdrop{background:#30261e66}.jp-performance-dialog h2{margin:0 34px 12px 0;font-size:21px}.jp-performance-dialog h3{font-size:15px;margin:0 0 7px}.jp-performance-dialog p{font-size:13px;line-height:1.55;margin:8px 0;white-space:pre-line}.jp-performance-dialog button{min-height:44px;padding:10px 12px;border-radius:8px;background:#e4d8bf;color:#483c32;cursor:pointer}.jp-performance-dialog button:focus-visible{outline:3px solid #986b30;outline-offset:2px}.jp-performance-dialog button:disabled{opacity:.5;cursor:default}.jp-performance-dialog .jp-performance-close{position:absolute;right:7px;top:7px;background:transparent;font-size:24px}.jp-performance-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.jp-performance-primary{background:#804c3d!important;color:#fff4dc!important}.jp-performance-card{padding:14px 0;border-top:1px solid #d6c7ac;margin-top:14px}.jp-performance-drinks{padding:11px 0 13px;border:0;margin:0}.jp-performance-drinks legend{font-size:13px;font-weight:600}.jp-performance-drinks button[aria-pressed=true]{outline:2px solid #804c3d;background:#ecdbbc}.jp-performance-note{font-size:11px!important;color:#71634f}.jp-performance-progress{padding:10px 12px;background:#e8e5d4;border-radius:9px}.jp-performance-error{color:#8c392f!important}@media(max-height:550px){.jp-performance-ticket{top:210px;font-size:10px;padding:8px 10px}.jp-performance-dialog{padding:16px}.jp-performance-dialog h2{font-size:19px}}';
@@ -39,7 +38,7 @@ export function createJapanPerformanceUI({service,getPlayer,onOpen=()=>{},onNavi
   if(s.paymentError){const error=make('p','铜钱账目尚待核对，暂不能预留新费用。可重试退款核对。','jp-performance-error');error.setAttribute('role','alert');dialog.append(error,button('重试核对铜钱',()=>{service.recoverPayments();refresh(true);}));}
   const actions=make('div',null,'jp-performance-actions');
   if(!o){
-   if(!atReception){dialog.append(make('p','请到三层东厅的接待案前邀请艺者。'));if(onNavigate)actions.append(button('前往接待案',()=>{close();onNavigate([...RECEPTION_POSITION]);},true));}
+   if(!atReception)dialog.append(make('p','请在三层东厅的接待案前邀请艺者。'));
    if(atReception){
     const choices=make('fieldset',null,'jp-performance-drinks');choices.append(make('legend','可选茶酒 · 随本次邀请一并询问'));
     const options=make('div',null,'jp-performance-actions');
@@ -70,7 +69,7 @@ export function createJapanPerformanceUI({service,getPlayer,onOpen=()=>{},onNavi
     const unsettled=(o.actComplete?0:d.actFee)+(d.hasDrink&&!o.drinkComplete?d.drinkFee:0);
     dialog.append(make('p',`已完成的项目分别结算；当前未提供部分 ${unsettled}文，取消时退还。`,'jp-performance-note'));
     if(o.status==='seating'){
-     const seat=service.seat(),go=button('前往预留席位并入座',()=>{const item=service.seat();if(item&&onFurniture){close();onFurniture(item);}else refresh(true);},true);go.disabled=!seat||!onFurniture;actions.append(go);
+     const activityId=typeof o.activity==='object'?o.activity?.id:o.activity,seat=service.seat(),go=button(activityId==='tea'?'入座茶谈':'入座观演',()=>{const item=service.seat();if(item&&onFurniture){close();onFurniture(item);}else refresh(true);},true);go.disabled=!seat||!onFurniture;actions.append(go);
      dialog.append(make('p','请及时入座。离开本层或逾时未到席会取消，未提供部分原额退回。','jp-performance-note'));
     }
    }else if(o.status==='accepted'){

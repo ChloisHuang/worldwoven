@@ -48,7 +48,7 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
   r.stalled=n.walking?0:r.stalled+dt;if(r.stalled>2){routes.delete(n);if(order)order.stalls=(order.stalls||0)+1;if(order?.stalls>8){failures.push({orderId:order.id,actor:n.station.id,target:to,position:n.root.position.toArray()});cancel('通道暂时不便通行');}}
   return near(n,to);
  }
- function unseat(n){if(!n?.serviceMount)return true;const extra=[...npcs.filter(a=>a!==n),getPlayer()].filter(Boolean).map(a=>{const p=a.root.position;return {minX:p.x-.25,maxX:p.x+.25,minZ:p.z-.25,maxZ:p.z+.25,minY:p.y,maxY:p.y+1.9};});const landing=furniture.standPoint(undefined,extra,n.serviceMount);if(!landing)return false;n.root.position.copy(landing);n.serviceMount=null;return true;}
+ function unseat(n){if(!n?.serviceMount)return true;const extra=[...npcs.filter(a=>a!==n),getPlayer()].filter(Boolean).map(a=>{const p=a.root.position;return {minX:p.x-.25,maxX:p.x+.25,minZ:p.z-.25,maxZ:p.z+.25,minY:p.y,maxY:p.y+1.9};});const landing=furniture.standPoint(navigation,extra,n.serviceMount);if(!landing)return false;n.root.position.copy(landing);n.serviceMount=null;return true;}
  function finish(reason,complete=false){
   if(!order)return false;
   for(const part of['act','drink']){const h=copperLedger.reservations().find(h=>h.id===order.id+':'+part);if(h?.status==='reserved'){const r=copperLedger.refund(h.id);if(!r.ok){paymentError=r.code;order.status='refund-pending';notify('未提供部分的退款暂未保存，请重开接待簿重试');return false;}}}

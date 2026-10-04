@@ -10,8 +10,9 @@ function fixture({wallet,saved,saveWallet=()=>{}}={}){
  const npcs=PERFORMANCE_CAST.map(a=>make(a.position,{id:a.id,npcName:a.name,ageYears:a.ageYears,performance:{...a}}));
  const player=make(P.reception,{id:'player',ageYears:24});let mounted=null,snapshot;
  const copperLedger=createCopperLedger({saved:wallet,saveState:saveWallet});if(!wallet)copperLedger.earn(80,'test-completed-labor');
- const furniture={items:PERFORMANCE_SEATS,facilities:createFacilityQueue(),canSit:()=>true,standPoint:(_,__,seat)=>new V(...seat.position)};
- const service=createJapanPerformanceService({npcs,furniture,doors:{routeStep(path,p){while(path.length&&p.distanceToSquared(path[0])<.008)path.shift();return {waypoint:path[0]};}},planPath:(a,b)=>[new V(b.x,b.y,b.z)],moveActor:(a,x,z)=>{a.root.position.x+=x;a.root.position.z+=z;},poseContext:()=>({}),getPlayer:()=>player,getMounted:()=>mounted,copperLedger,saved,saveState:s=>snapshot=s});
+ const navigation={legacyGround:false,surfaces:[{minX:-12,maxX:12,minZ:-15,maxZ:9,y:7.6}]};
+ const furniture={items:PERFORMANCE_SEATS,facilities:createFacilityQueue(),canSit:nav=>{assert.equal(nav,navigation,'Mount retains the provided multi-floor navigation');return true;},standPoint:(nav,extra,seat)=>{assert.equal(nav,navigation,'Unmount retains the same multi-floor navigation');return new V(...seat.position);}};
+ const service=createJapanPerformanceService({npcs,furniture,navigation,doors:{routeStep(path,p){while(path.length&&p.distanceToSquared(path[0])<.008)path.shift();return {waypoint:path[0]};}},planPath:(a,b)=>[new V(b.x,b.y,b.z)],moveActor:(a,x,z)=>{a.root.position.x+=x;a.root.position.z+=z;},poseContext:()=>({}),getPlayer:()=>player,getMounted:()=>mounted,copperLedger,saved,saveState:s=>snapshot=s});
  let time=0;
  const step=(seconds=.1)=>{for(let i=0;i<Math.ceil(seconds/.1);i++){time+=.1;service.update(.1,time);}};
  const until=(fn,max=500)=>{for(let i=0;i<max&&!fn();i++)step();assert(fn(),JSON.stringify(service.state()));};
