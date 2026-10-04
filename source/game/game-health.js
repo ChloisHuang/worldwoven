@@ -121,7 +121,17 @@ export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
     for(const event of events)if(event.in<=step)event.finish();
    }
   },
-  // Future clinic hook: call only after a confirmed physical handoff, using its
+  // One authored exposure that already happened (for example a visitor's
+  // journey). The world owns the event identity and must persist its receipt.
+  // Constitution changes the accumulated dose, not a per-frame random draw.
+  expose(id,{condition='mistbell',dose=0}={}){
+   const p=people.get(id),c=p?.conditions[condition],definition=GAME_HEALTH_CONDITIONS[condition];
+   if(!c||!definition.infectious||!Number.isFinite(dose)||dose<=0||c.stage!=='well'||c.immuneFor>0)return false;
+   c.dose+=Math.min(4,dose)*(1.25-.65*p.constitution);
+   if(c.dose>=c.threshold)transition(c,definition);
+   return true;
+  },
+  // World clinic hook: call only after a confirmed physical handoff, using its
   // persisted provider/serial. A receipt cannot be replayed after save/reload.
   // This starts supportive game care; it never instantly cures or changes needs.
   applyCare(id,{providerId,receiptNumber}={}){
