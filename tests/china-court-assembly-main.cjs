@@ -14,7 +14,7 @@ const out='qa/china-court-assembly',report={status:'RUNNING',checks:[],frames:[]
 const record=s=>{console.log(s);report.checks.push(s);fs.writeFileSync(out+'/court.json',JSON.stringify(report,null,2));};
 all.find(e=>e.dataset.region==='china').onclick();ids.travel.onclick();const r=main.namespace.officialReview(),T=three.namespace,officials=r.npcs.filter(n=>n.station.courtRole),emperor=r.npcs.find(n=>n.station.id==='cn-emperor');
 assert.equal(officials.length,6);assert.equal(new Set(officials.map(n=>n.station.id)).size,6);assert(officials.every(n=>n.root.userData.appearance.bodyPreset==='masculine-lean'));assert.equal(r.furniture.items.filter(b=>b.id.startsWith('cn-official-bed-')).length,6);
-record('six stable official identities, six finite beds and six separate real desks in production lot');
+report.initialRSSMiB=process.resourceUsage().maxRSS/1024;assert(process.memoryUsage().rss<1.2*1024**3,'initial scene RSS cap');record('six stable official identities, six finite beds and six separate real desks in production lot');
 const B=r.lot.architectureProgram.officialBureau,preflight=[],routes=cache.get(path.join(root,'game/china-palace-audience.js')).namespace.chinaCourtAssemblyRoute;
 fs.writeFileSync(out+'/navigation.json',JSON.stringify({colliders:r.lot.colliders,planning:r.automaticDoors.planningColliders,surfaces:r.lot.walkableSurfaces,bounds:r.lot.bounds,doors:r.lot.doorways,bureau:B},null,2));
 for(let i=0;i<6;i++){const n=officials[i],dest=routes(i),targets=[...(i<2?[]:B.stairRoute.slice().reverse()),dest.court,...dest.entry];let from=n.root.position;for(const a of targets){const p=new T.Vector3(...a),route=main.namespace.planPath(from,p,.25);preflight.push({id:n.station.id,from:from.toArray(),to:a,points:route.length});from=p;}}
