@@ -113,6 +113,9 @@ export function createFurnitureInteractions(lot,region,{curtains={},onCurtainCha
  const root=new THREE.Group();root.name='R12 bounded furniture interactions';lot.group.add(root);
  const items=Object.entries(desc).map(([kind,d])=>({...d,id:region+'-furniture-'+kind,kind,furniture:true,action:kind==='seat'?'坐下休息':kind==='canopy'?'开合纱帐':'挑选服装',interactionRadius:2.1,position:d.position.slice()}));
  for(const [i,d]of REST_BATH_DESCRIPTORS[region].entries())items.push({...d,id:region+'-furniture-'+d.kind+'-'+i,furniture:true,action:d.kind==='bed'?(region==='china'?'龙榻安寝':'躺下休息'):d.bathWardrobePreset==='onsen-swimwear'?'换入浴衣着泡汤':'换浴衣泡澡',interactionRadius:2.1,position:d.position.slice()});
+ // Region-authored additions retain explicit stable IDs. Geometry is already
+ // present in the lot; the same mounted bed/changing controller handles them.
+ for(const d of lot.additionalFurniture||[]){if(!d.id||items.some(i=>i.id===d.id))throw new Error('Missing or duplicate authored furniture ID: '+d.id);items.push({...d,furniture:true,interactionRadius:d.interactionRadius??2.1,position:d.position.slice()});}
  // Match the existing continuous submerged bench, not duplicate unsupported
  // mount points. End clearance keeps arms away from perpendicular coping;
  // 1.65m pitch separates the widest supported arms and parallel long legs.

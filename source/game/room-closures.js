@@ -34,6 +34,14 @@ const POLICY={
   'jp-4-front-portal':['open','Common service gallery to balcony; individual workrooms are classified separately']
  },
  china:{
+  'cn-tavern-public-entry':['open','Public house stair hall keeps direct access from the court'],
+  'cn-tavern-dining-entry':['open','Open commercial restaurant arrival'],
+  'cn-tavern-dining-hall':['open','Dining hall joins the public stair corridor'],
+  'cn-tavern-lan-door':['door','Opaque inset timber leaves enclose an independent guest room'],
+  'cn-tavern-zhu-door':['door','Opaque inset timber leaves enclose an independent guest room'],
+  'cn-tavern-performance-entry':['open','Adult recital room opens onto the public third-floor hall'],
+  'cn-tavern-banquet-entry':['open','Banquet salon has its own public-hall entrance'],
+  'cn-tavern-salon-arch':['open','Open social threshold between recital and banquet rooms'],
   'cn-south-gate':['door','Inset central ceremonial timber gate, opening inward to the compound'],
   'cn-south-gate-west':['door','Inset west gatehouse bay preserves the broad ceremonial arrival'],
   'cn-south-gate-east':['door','Inset east gatehouse bay preserves the broad ceremonial arrival'],
@@ -148,6 +156,8 @@ const LEGACY={
 // swing +1 = negative world normal (−Z for axis X, −X for axis Z); −1 reverses.
 // New hinge choices remain candidates pending full swept-room/controller QA.
 const DOOR_MOTIONS={
+ 'cn-tavern-lan-door':['hinge',-1,'Paired inset leaves open south into a clear arrival bay; bed begins beyond the sweep'],
+ 'cn-tavern-zhu-door':['hinge',-1,'Paired inset leaves open south into a clear arrival bay; wardrobe stays at the rear wall'],
  'cn-south-gate':['hinge',1,'Inward compound gate with hinge pins within its source-authored .65 m masonry reveal'],
  'cn-south-gate-west':['hinge',1,'Inward compound gate with hinge pins within its source-authored .65 m masonry reveal'],
  'cn-south-gate-east':['hinge',1,'Inward compound gate with hinge pins within its source-authored .65 m masonry reveal'],
