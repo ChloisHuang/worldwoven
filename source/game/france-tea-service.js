@@ -1,3 +1,4 @@
+import {followActorRoute} from './actor-navigation.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
 import {createFranceTeaProps} from './france-tea-props.js';
 import {visualSupportHeight} from './floor-support.js';
@@ -28,11 +29,8 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
  function travel(n,to,dt){
   n.walking=false;if(near(n,to)){n.route=[];routes.delete(n);return true;}if(busy(n)||n.serviceMount)return false;
   const key=to.join(',');let s=routes.get(n);if(!s||s.key!==key){s={key,stalled:0};routes.set(n,s);n.route=planPath(n.root.position,{x:to[0],y:to[1],z:to[2]},.25);}
-  const step=doors.routeStep(n.route,n.root.position,.045);if(step.waiting){s.stalled=0;return false;}
+  const step=followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,speedScale:.8,arrivalTolerance:.045});if(step.waiting){s.stalled=0;return false;}
   const p=step.waypoint;if(!p){s.stalled+=dt;if(s.stalled>2){routes.delete(n);n.route=[];}return false;}
-  const dx=p.x-n.root.position.x,dz=p.z-n.root.position.z,d=Math.hypot(dx,dz),others=[...npcs.filter(a=>a!==n).map(a=>a.root.position),...(getPlayer()?[getPlayer().root.position]:[])];
-  if(others.some(q=>Math.abs(q.y-n.root.position.y)<.7&&Math.hypot(q.x-n.root.position.x,q.z-n.root.position.z)<.65&&(q.x-n.root.position.x)*dx+(q.z-n.root.position.z)*dz>.001&&Math.abs((q.x-n.root.position.x)*dz-(q.z-n.root.position.z)*dx)/Math.max(d,.001)<.48))return false;
-  if(d>.001){const before=n.root.position.clone(),amount=Math.min(d,dt*(n.locomotion?.walkSpeed||1.3)*.8);moveActor(n,dx/d*amount,dz/d*amount,.25);n.walking=n.root.position.distanceToSquared(before)>1e-9;n.root.rotation.y=Math.atan2(dx,dz);}
   s.stalled=n.walking?0:s.stalled+dt;if(s.stalled>2){routes.delete(n);n.route=[];}return near(n,to);
  }
  function mountGuest(dt){

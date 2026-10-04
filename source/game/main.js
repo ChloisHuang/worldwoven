@@ -1,4 +1,4 @@
-import {constrainActorMove,followActorRoute} from './actor-navigation.js';
+import {moveActorWithCollision,followActorRoute} from './actor-navigation.js';
 import {playerStationIntent,nearbyInteraction,chooseNearbyInteraction} from './player-interaction-intents.js';
 import {createFranceTeaService} from './france-tea-service.js';
 import {createChinaTavernLabor} from './china-tavern-labor.js';
@@ -110,12 +110,7 @@ function installAutomaticDoors(){doorCameraVersion=-1;automaticDoors=createAutom
 function planPath(start,end,radius=.34){return automaticDoors.planPath(start,end,routeOptions,radius);}
 function updateAutomaticDoors(dt){if(!automaticDoors)return;automaticDoors.update(dt,[...(player?[{position:player.root.position,radius:.34,height:1.95}]:[]),...npcs.map(n=>({position:n.root.position,radius:.25,height:1.95}))]);if(doorCameraVersion!==automaticDoors.collisionVersion){cameraSolids=staticCameraSolids.concat(automaticDoors.cameraColliders);doorCameraVersion=automaticDoors.collisionVersion;}}
 function moveActor(person,dx,dz,r){
- const before=person.root.position.clone(),local=constrainActorMove(person,before,dx,dz,r,npcs,player?.root.position),allowed=automaticDoors?automaticDoors.constrainMove(before,local.dx,local.dz,r):local;
- moveWithCollision(person.root.position,allowed.dx,allowed.dz,lot.colliders,r,navOptions);
- // Wall sliding may change the vector or support height. Validate the actual
- // short movement against live leaves and bodies at their real full radii.
- const movedX=person.root.position.x-before.x,movedZ=person.root.position.z-before.z,leaf=automaticDoors?automaticDoors.constrainMove(before,movedX,movedZ,r):{dx:movedX,dz:movedZ},actual=constrainActorMove(person,before,leaf.dx,leaf.dz,r,npcs,player?.root.position,person.root.position.y);
- if(Math.abs(actual.dx-movedX)>1e-5||Math.abs(actual.dz-movedZ)>1e-5){person.root.position.copy(before);moveWithCollision(person.root.position,actual.dx,actual.dz,lot.colliders,r,navOptions);}
+ moveActorWithCollision(person,dx,dz,r,{doors:automaticDoors,colliders:lot.colliders,navigation:navOptions,npcs,playerPosition:player?.root.position});
 }
 
 function lotBounds(){return lot?.bounds||{minX:-15,maxX:15,minZ:-20,maxZ:20};}
