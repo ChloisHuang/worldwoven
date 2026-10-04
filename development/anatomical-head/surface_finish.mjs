@@ -26,7 +26,7 @@ if(vFeatureKind>0.5&&vFeatureKind<1.5){
  float lid=featureBell(f.y-upper,.017,.026)*eyeSpan;
  float tearline=featureBell(f.y-lower,-.005,.012)*eyeSpan;
  float corner=featureBell(x,.176,.020)*featureBell(f.y,7.274,.026)*smoothstep(1.27,1.35,f.z);
- diffuseColor.rgb*=vec3(1.0-.12*crease,1.0-.16*crease,1.0-.18*crease);
+ diffuseColor.rgb*=vec3(1.0-.20*crease,1.0-.23*crease,1.0-.25*crease);
  diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.025,.925,.90),.42*lid+.45*tearline+.40*corner);
  float lip=featureSpan(f.y,6.475,6.731,.050)*featureBell(f.x,0.0,.235)*smoothstep(1.41,1.54,f.z);
  diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.12,.89,.89),.62*lip);
@@ -49,7 +49,7 @@ if(vFeatureKind>0.5&&vFeatureKind<1.5){
  // baked lid contact remains multiplied into the base vertex colour.
  float r=length(f.xy),limbus=featureBell(r,1.04,.14);
  diffuseColor.rgb*=mix(vec3(.96,.945,.91),vec3(.97,.85,.79),.28*limbus);
-}else if(vFeatureKind>4.5){
+}else if(vFeatureKind>4.5&&vFeatureKind<5.5){
  // A lightly broken feather edge and sparse directional strand separation.
  // The separately modeled tapered perimeter hairs carry the silhouette.
  float t=f.x,v=f.y;
@@ -59,6 +59,15 @@ if(vFeatureKind>0.5&&vFeatureKind<1.5){
   float strand=.5+.5*sin(t*314.0-v*3.1);
   diffuseColor.rgb*=.93+.14*strand;
  }else{diffuseColor.rgb*=1.03;}
+}else if(vFeatureKind>5.5){
+ // Flow-aligned original colour separation on the actual hair bundles.
+ // Restrained strand groups, no sampled texture or photographic highlight.
+ float t=f.x,a=f.y;
+ float strand=.5+.5*sin(a*113.097+sin(t*5.0)*.8);
+ float fine=.5+.5*sin(a*226.195+t*2.0);
+ float tip=1.0-smoothstep(.72,1.0,t);
+ float detail=mix(1.0,.95+.075*strand+.025*fine,f.z*tip);
+ diffuseColor.rgb*=detail;
 }
 `);
   // Readable small corneal reflection, still driven by the existing sun and
@@ -85,6 +94,6 @@ if(vFeatureKind>0.5&&vFeatureKind<1.5){
 #include <opaque_fragment>`);
  };
  const oldKey=material.customProgramCacheKey.bind(material);
- material.customProgramCacheKey=()=>oldKey()+'-original-feature-surface-v1';
+ material.customProgramCacheKey=()=>oldKey()+'-original-feature-surface-v2';
  material.needsUpdate=true;
 }

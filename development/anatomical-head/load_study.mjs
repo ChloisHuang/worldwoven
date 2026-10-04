@@ -11,8 +11,19 @@ export function replaceWithAnatomicalStudy(root,C,{clay=false,surface=false}={})
  // Same original hair construction as the round06 comparator.
  reframePrototypeHair(head,C.hair);
  if(!clay)fitAnatomicalHair(head,asset.parts.find(p=>p.material==='skin'));
+ // Original strand coordinates follow each retained bundle's authored path.
+ // They are independent of camera, skin colour and reference image pixels.
+ if(surface&&!clay)for(const m of head.children){
+  if(!m.isMesh||!m.name.startsWith('hair-'))continue;
+  const p=m.geometry.attributes.position,fc=[],bundle=m.name.startsWith('hair-framing-');
+  for(let i=0;i<p.count;i++){
+   fc.push(bundle?Math.floor(i/13)/26:p.getY(i),bundle?(i%13)/12:Math.atan2(p.getX(i),p.getZ(i)+.017)/Math.PI, bundle?1:0);
+  }
+  m.geometry.setAttribute('featureCoord',new THREE.Float32BufferAttribute(fc,3));
+  m.geometry.setAttribute('featureKind',new THREE.Float32BufferAttribute(new Array(p.count).fill(6),1));
+ }
  if(clay)for(const m of [...head.children])if(m.isMesh){m.removeFromParent();m.geometry.dispose();}
- const colors={skin:C.skin,lip:new THREE.Color(C.skin).lerp(new THREE.Color(0x925e5b),.52).getHex(),sclera:0xe7eaeb,iris:C.iris,pupil:C.pupil,brow:C.brow};
+ const colors={skin:C.skin,lip:new THREE.Color(C.skin).lerp(new THREE.Color(0x925e5b),.52).getHex(),sclera:0xd9d0c5,iris:C.iris,pupil:C.pupil,brow:C.brow};
  const prefixes={skin:'continuous-head-anatomical',sclera:'inset-eye-anatomical',iris:'iris-anatomical',pupil:'pupil-anatomical',brow:'soft-brow-anatomical'};
  for(const p of asset.parts){
   if(clay&&p.material==='brow')continue;

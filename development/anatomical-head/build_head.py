@@ -152,7 +152,9 @@ for i,(x,y,z) in enumerate(raw):
  lip=gauss(x,0,.265)*smooth(1.39,1.53,z)*smooth(6.44,6.50,y)*(1-smooth(6.70,6.75,y))
  # Oral cavity behind lips: darker only on its actual internal geometry.
  cavity=(1-smooth(1.40,1.52,z))*smooth(.6,1.15,z)*gauss(x,0,.23)*smooth(6.45,6.51,y)*(1-smooth(6.68,6.74,y))
- lid=gauss(abs(x),.305,.16)*smooth(1.3,1.38,z)*(.48*gauss(y-upper_lid_y(x),.003,.021)+.12*gauss(y-lower_lid_y(x),-.002,.018))
+ # A definite upper contact margin and quiet lower rim make the lid wrap
+ # visible without introducing detached eyeliner or an eye-cover plane.
+ lid=gauss(abs(x),.305,.16)*smooth(1.3,1.38,z)*(.88*gauss(y-upper_lid_y(x),.003,.020)+.13*gauss(y-lower_lid_y(x),-.002,.016))
  mesh.attributes['lip_tint'].data[i].value=lip
  seam=gauss(y,6.605,.024)*(1-smooth(1.548,1.566,z))*gauss(x,0,.29)*smooth(1.20,1.43,z)
  mesh.attributes['cavity_tint'].data[i].value=max(cavity,seam)
@@ -191,14 +193,19 @@ parts.append(part);ev.to_mesh_clear()
 eye_trees=[]
 for side in [-1,1]:
  cx,cy,cz=side*.30775,7.29415,1.24535
- nu=64;theta=[0,.025,.07,.13,.20,.27,.35,.44,.52,.66,.85,1.05,1.30,1.6,1.95,2.3,2.65,math.pi]
+ nu=64;theta=[0,.025,.07,.15,.22,.30,.38,.44,.52,.66,.85,1.05,1.30,1.6,1.95,2.3,2.65,math.pi]
  def globe_point(t,a):
   # A round iris in projection lies on the actual expanded globe surface.
-  circular=1.12/math.sqrt((1.54*math.cos(a))**2+(1.46*math.sin(a))**2)
+  circular=1.26/math.sqrt((1.54*math.cos(a))**2+(1.46*math.sin(a))**2)
   angle=t*(1+(circular-1)*(1-smooth(.52,1.05,t)))
   p=Vector(fit((cx+.164*math.sin(angle)*math.cos(a),cy+.164*math.sin(angle)*math.sin(a),cz+.164*math.cos(angle))))
   # Original corneal crown, continuous with the existing globe and rim.
   # Its differentiated normals put the light on curved cornea, not a flat iris.
+  # The inherited gaze sat high inside the opening, leaving a white
+  # strip below the iris. Seat the globe 1.2 mm lower and make the
+  # iris 12.5% fuller in its real projection. The lower rim now meets
+  # its circumference; the upper lid still masks its upper segment.
+  p.y-=.0012
   p.z+=.00135*(1-smooth(0,.58,t))
   return p
  positions=[];normals=[];eye_recess=[];eye_coord=[]
@@ -238,7 +245,7 @@ for side in [-1,1]:
    a=j*nu+k;b=j*nu+(k+1)%nu;c=(j+1)*nu+k;d=(j+1)*nu+(k+1)%nu
    globe_faces.extend([(a,c,b),(b,c,d)])
  eye_trees.append(BVHTree.FromPolygons(positions,globe_faces))
- for material,condition in [('pupil',lambda t:t<=.13),('iris',lambda t:.13<t<=.44),('sclera',lambda t:t>.44)]:
+ for material,condition in [('pupil',lambda t:t<=.15),('iris',lambda t:.15<t<=.44),('sclera',lambda t:t>.44)]:
   ix=[]
   for j in range(len(theta)-1):
    if not condition(theta[j+1]):continue
