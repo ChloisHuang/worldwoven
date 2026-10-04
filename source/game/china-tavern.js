@@ -31,6 +31,7 @@ export function buildChinaTavern(G,A){
   // full tall box puts the mounted head inside an invisible camera obstacle.
   model.updateWorldMatrix(true,true);for(const m of model.userData.royalSeating.members.filter(m=>m.camera)){const b=m.bounds,q=new THREE.Box3(new THREE.Vector3(b.minX,b.minY,b.minZ),new THREE.Vector3(b.maxX,b.maxY,b.maxZ)).applyMatrix4(model.matrixWorld);cameraColliders.push({minX:q.min.x,maxX:q.max.x,minY:q.min.y,maxY:q.max.y,minZ:q.min.z,maxZ:q.max.z,owner:id});}
   additionalFurnitureSeats.push({id,name,x,y,z,yaw,width:.9,depth:.9,seatY:y+.66,front:.275});};
+ const softLayer=(parent,x,y,z,w,h,d,color)=>{const b=Math.min(.035,h*.30),hw=w/2-b,hd=d/2-b,r=.08,q=new THREE.Shape();q.moveTo(-hw+r,-hd);q.lineTo(hw-r,-hd);q.quadraticCurveTo(hw,-hd,hw,-hd+r);q.lineTo(hw,hd-r);q.quadraticCurveTo(hw,hd,hw-r,hd);q.lineTo(-hw+r,hd);q.quadraticCurveTo(-hw,hd,-hw,hd-r);q.lineTo(-hw,-hd+r);q.quadraticCurveTo(-hw,-hd,-hw+r,-hd);q.closePath();const m=G.mesh(parent,new THREE.ExtrudeGeometry(q,{depth:h-2*b,bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:2,curveSegments:5}),color,x,y-h/2+b,z);m.rotation.x=-Math.PI/2;return m;};
  const consoleTable=(g,x,y,z,w=2.7)=>{const top=table(g,x,y,z,w,.62,.95);H.flowerBranches(g,x-w*.27,top,z);G.vessel(g,x+w*.25,top,z,0x86a8a0,.5);};
 
  for(const[i,f]of CHINA_TAVERN.floors.entries()){
@@ -96,13 +97,13 @@ export function buildChinaTavern(G,A){
   room('tavern-guest-'+key,'云来客栈 · '+name,x0,x0+5,15.2,21,y,7.57);
   const bed=new THREE.Group();bed.name=name+' carved timber bed';bed.position.set(x,y-.015,z);g1.add(bed);
   for(const dx of[-.90,.90])for(const dz of[-1.30,1.30])G.box(bed,dx,.29,dz,.17,.58,.17,C.dark);
-  G.box(bed,0,.57,0,w,.25,d,C.wood);G.box(bed,0,.75,0,w-.10,.16,d-.10,0xefdfc0);
-  G.box(bed,0,.86,.40,w-.16,.07,d-1.0,color);G.box(bed,0,.855,-.96,1.35,.19,.49,0xf1dfbd);
+  G.box(bed,0,.60,0,w,.14,d,C.wood);softLayer(bed,0,.75,0,w-.10,.16,d-.10,0xefdfc0);
+  softLayer(bed,0,.845,.15,w-.16,.045,d-.50,color);softLayer(bed,0,.885,-1.30,1.10,.10,.34,0xf1dfbd);
   G.box(bed,0,1.13,-d/2,w+.10,1.36,.16,C.dark);G.box(bed,0,1.20,-d/2+.10,w-.18,.80,.03,color);
-  for(const dx of[-.82,0,.82]){G.box(bed,dx,1.20,-d/2+.125,.065,.79,.03,C.gold);G.box(bed,dx,.87,.5,.045,.016,1.90,C.gold);}
+  for(const dx of[-.82,0,.82]){G.box(bed,dx,1.20,-d/2+.125,.065,.79,.03,C.gold);if(dx)G.box(bed,dx,.868,.5,.018,.004,1.85,C.gold);}
   // One hull per bed for safe mount exclusion, supported quilt contacts remain real.
   colliders.push({minX:x-w/2,maxX:x+w/2,minY:y-.015,maxY:y+1.78,minZ:z-d/2,maxZ:z+d/2});cameraColliders.push({...colliders.at(-1)});
-  additionalFurniture.push({id:bedId,kind:'bed',name:'云来客栈 · '+name+'安寝',worldLabel:name+'客榻',position:[x0+3.7,y,z],exitPositions:[[x0+3.7,y,z],[x0+3.7,y,20.0]],anchor:[x,y,z],center:[x,y-.015,z],size:[w,1.8,d],yaw:0,supportY:y+.815,lieOffset:.30,lieSupport:{hip:y+.88,back:y+.815,head:y+.94,heel:y+.88},action:'躺下休息'});
+  additionalFurniture.push({id:bedId,kind:'bed',name:'云来客栈 · '+name+'安寝',worldLabel:name+'客榻',position:[x0+3.7,y,z],exitPositions:[[x0+3.7,y,z],[x0+3.7,y,20.0]],anchor:[x,y,z],center:[x,y-.015,z],size:[w,1.8,d],yaw:0,supportY:y+.815,lieOffset:.30,lieSupport:{hip:y+.8525,back:y+.8525,head:y+.920,heel:y+.8525},action:'躺下休息'});
   const wx=x0+3.87,wz=20.45;block(g1,wx,y+1.03,wz,1.15,2.06,.62,C.dark);for(const s of[-1,1]){G.box(g1,wx+s*.27,y+1.11,wz-.325,.50,1.71,.04,color);G.box(g1,wx+s*.12,y+1.14,wz-.36,.045,.18,.055,C.gold);}G.box(g1,wx,y+2.11,wz,1.25,.13,.76,C.wood);
   additionalFurniture.push({id:'china-tavern-wardrobe-'+key,kind:'wardrobe',name:name+'衣柜',position:[wx,y,19.25],center:[wx,y,wz],size:[1.15,2.18,.72],style:'authored',action:'挑选服装'});
   sign(g1,name,x0+3.25,6.99,14.99,1.45,.52,Math.PI);
