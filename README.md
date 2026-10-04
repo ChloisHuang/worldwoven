@@ -6,10 +6,13 @@ An original cel-shaded cultural life and exploration game. The repository name s
 
 Public game: https://alien.doudouai.net/
 
+Optional character candidate: https://alien.doudouai.net/?character-preview=1&hair=long#france
+The candidate uses a separate tab session save; ordinary visits keep the existing models and do not load candidate assets. This is a public test entry, not final art acceptance.
+
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.53-public, 2026-10-04
-Verified published Sites source commit: c272378dcf0355f52a8aef99b83589d09ec8bf13
+Published release: R16.54-public, 2026-10-04
+Verified published Sites source commit: 8c8b8d224f30ca44aa62432d666f0887c26f73a5
 
 ## Working rules
 
