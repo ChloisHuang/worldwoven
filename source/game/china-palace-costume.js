@@ -138,9 +138,10 @@ export function attachPalaceCostume(actor){
  }else if(actor.station.costumeStyle==='jade-pin'){
   const pin=part('slender silver jade hairpin',new THREE.CylinderGeometry(.0035,.0035,.24,8),0xd8d5bd,.015,.246,-.075);pin.rotation.z=Math.PI/2-.18;
   for(const [x,y,z]of[[.108,.272,-.065],[.095,.292,-.06],[.074,.282,-.06]]){const leaf=bead('long carved jade leaf',JADE,x,y,z,.022);leaf.scale.set(.45,1.25,.25);leaf.rotation.z=-.5;}
+  wire('jade hairpin leaf stem',[[.072,.237,-.075],[.077,.260,-.063],[.095,.282,-.060]],.0027,0xd8d5bd);
   wire('single jade pendant',[[.127,.265,-.063],[.14,.216,-.06],[.14,.187,-.06]],.002,0xd8d5bd);bead('single jade pendant drop',JADE,.14,.183,-.06,.011).scale.set(.65,1.5,.4);
  }else if(actor.station.costumeStyle==='coral-spray'){
-  wire('asymmetric gold spray',[[.03,.265,-.067],[.087,.29,-.06],[.138,.33,-.07]],.0035);
+  wire('asymmetric gold spray',[[.072,.255,-.070],[.03,.265,-.067],[.087,.29,-.06],[.138,.33,-.07]],.0035);
   for(const [x,y,z]of[[.08,.315,-.07],[.13,.33,-.07],[.108,.281,-.055]]){for(let i=0;i<5;i++){const a=i*TAU/5;bead('coral blossom petal',0xdc9876,x+Math.sin(a)*.014,y+Math.cos(a)*.014,z,.010).scale.z=.35;}bead('small gold blossom heart',GOLD,x,y,z+.004,.006);}
   const comb=part('low gold side comb',new THREE.BoxGeometry(.082,.012,.016),GOLD,.08,.253,-.07);comb.rotation.z=.22;
  }else{
