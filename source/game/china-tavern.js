@@ -26,7 +26,11 @@ export function buildChinaTavern(G,A){
  const block=(g,x,y,z,w,h,d,color=C.wood)=>solid3(g,x,y,z,w,h,d,color);
  const table=(g,x,y,z,w,d,h=.94)=>{const q=new THREE.Group();q.position.y=y-.015;g.add(q);G.table(q,x,z,w,d,C.wood,h);colliders.push({minX:x-w/2,maxX:x+w/2,minY:y-.015,maxY:y+h+.075,minZ:z-d/2,maxZ:z+d/2});cameraColliders.push({...colliders.at(-1)});return y+h+.075;};
  const rug=(g,x,y,z,w,d,color)=>{G.box(g,x,y+.012,z,w,.024,d,color);for(const side of[-1,1]){G.box(g,x+side*(w/2-.11),y+.03,z,.065,.012,d-.10,C.gold);G.box(g,x,y+.03,z+side*(d/2-.11),w-.10,.012,.065,C.gold);}};
- const chair=(g,id,name,x,y,z,yaw,variant='reading')=>{buildChinaRoyalChair(g,{x,y:y-.015,z,yaw,variant,id});colliders.push({minX:x-.45,maxX:x+.45,minY:y-.015,maxY:y+1.56,minZ:z-.45,maxZ:z+.45});cameraColliders.push({...colliders.at(-1)});additionalFurnitureSeats.push({id,name,x,y,z,yaw,width:.9,depth:.9,seatY:y+.66,front:.275});};
+ const chair=(g,id,name,x,y,z,yaw,variant='reading')=>{const model=buildChinaRoyalChair(g,{x,y:y-.015,z,yaw,variant,id});colliders.push({minX:x-.45,maxX:x+.45,minY:y-.015,maxY:y+1.56,minZ:z-.45,maxZ:z+.45});
+  // Camera solids follow the existing chair's actual seat, back and arms. A
+  // full tall box puts the mounted head inside an invisible camera obstacle.
+  model.updateWorldMatrix(true,true);for(const m of model.userData.royalSeating.members.filter(m=>m.camera)){const b=m.bounds,q=new THREE.Box3(new THREE.Vector3(b.minX,b.minY,b.minZ),new THREE.Vector3(b.maxX,b.maxY,b.maxZ)).applyMatrix4(model.matrixWorld);cameraColliders.push({minX:q.min.x,maxX:q.max.x,minY:q.min.y,maxY:q.max.y,minZ:q.min.z,maxZ:q.max.z,owner:id});}
+  additionalFurnitureSeats.push({id,name,x,y,z,yaw,width:.9,depth:.9,seatY:y+.66,front:.275});};
  const consoleTable=(g,x,y,z,w=2.7)=>{const top=table(g,x,y,z,w,.62,.95);H.flowerBranches(g,x-w*.27,top,z);G.vessel(g,x+w*.25,top,z,0x86a8a0,.5);};
 
  for(const[i,f]of CHINA_TAVERN.floors.entries()){
