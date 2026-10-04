@@ -11,13 +11,15 @@ function hash(text){let h=2166136261;for(const c of text){h^=c.charCodeAt(0);h=M
 // adapter never creates actors, controls a role, changes looks or slows movement.
 // Only loaded scenes advance simulation time; hidden/offline time is paused.
 export function createGameHealthWorld({worldSeed=1,saved={},visitorFloor=0,clinicFloor=0,retainedVisitorIds=[],saveState=()=>{}}={}){
+ let interactionSerial=Number.isSafeInteger(saved.interactionSerial)?saved.interactionSerial:0;
+ const pendingInteractions=new Map();
  let sceneId=null,time=Number.isFinite(saved.health?.time)?saved.health.time:0,lastSave=time,playerFatigue=clamp(saved.playerFatigue??.1);
  let arrivals=Math.max(saved.version===1?saved.arrivals||0:0,visitorFloor);
  let deliveredThrough=Math.max(saved.version===1?saved.deliveredThrough||0:0,clinicFloor);
  const journeys=new Map(Object.entries(saved.version===1?saved.journeys||{}:{}));
  const ids=new Set(['player',...Object.keys(saved.health?.people||{})]),activeVisitors=new Set(retainedVisitorIds.filter(visitorId));
  let health=createGameHealth({worldSeed,actorIds:[...ids],saved:saved.health});
- const snapshot=()=>({version:1,playerFatigue,arrivals,deliveredThrough,journeys:copy(Object.fromEntries(journeys)),health:health.snapshot()});
+ const snapshot=()=>({version:1,playerFatigue,arrivals,deliveredThrough,interactionSerial,journeys:copy(Object.fromEntries(journeys)),health:health.snapshot()});
  const persist=()=>{lastSave=time;saveState(snapshot());};
  function rebuild(){health=createGameHealth({worldSeed,actorIds:[...ids],saved:health.snapshot()});}
  function register(id){if(!id||ids.has(id))return;ids.add(id);rebuild();}
@@ -59,27 +61,33 @@ export function createGameHealthWorld({worldSeed=1,saved={},visitorFloor=0,clini
  }
  prune();
  return {
-  enter(id,actors=[]){sceneId=id;for(const actor of actors)register(idOf(actor));persist();},
-  leave(){sceneId=null;persist();},
+  enter(id,actors=[]){pendingInteractions.clear();sceneId=id;for(const actor of actors)register(idOf(actor));persist();},
+  leave(){pendingInteractions.clear();sceneId=null;persist();},
+  beginInteraction(source,participants){
+   if(!sceneId||!source||participants.length!==2||participants.some(id=>!ids.has(id)))return null;
+   const number=++interactionSerial,event={source,id:`${source}-${number}`,number,sceneId,participants:[...participants],duration:0};persist();return event;
+  },
+  interaction(event){
+   if(!event||!sceneId||event.sceneId!==sceneId||!Array.isArray(event.participants)||event.participants.some(id=>!ids.has(id)))return false;
+   const key=JSON.stringify([event.source,event.id]),previous=pendingInteractions.get(key);
+   if(!previous||event.duration>previous.duration)pendingInteractions.set(key,{...event,participants:[...event.participants]});return true;
+  },
   arrive,
   depart(id){if(sceneId!=='japan')return;activeVisitors.delete(id);prune();persist();},
   clinicReceipts,
-  update(dt,{player,actors=[],playerResting=false,playerExertion=0,lifePeople={},restingIds=[],visible=()=>false}={}){
+  update(dt,{player,actors=[],playerResting=false,playerExertion=0,lifePeople={},restingIds=[]}={}){
    if(!sceneId||!player||!Number.isFinite(dt)||dt<=0)return;
    const exertion=clamp(playerExertion);
    playerFatigue=clamp(playerFatigue+dt*(playerResting?-.01:exertion>0?exertion/600:-1/300));
-   const resting=new Set(restingIds),inputs=[{id:'player',sceneId,position:player.root.position,exertion,resting:playerResting,needs:{fatigue:playerFatigue}}];
+   const resting=new Set(restingIds),inputs=[{id:'player',sceneId,exertion,resting:playerResting,needs:{fatigue:playerFatigue}}];
    for(const actor of actors){
     const id=idOf(actor);if(!ids.has(id))register(id);
     const mount=actor.serviceMount,pose=actor.poseContext,rest=!actor.walking&&(resting.has(id)||!!mount||Number.isFinite(pose?.seatHeight)||!!pose?.lieSupport);
-    inputs.push({id,sceneId,position:actor.root.position,needs:lifePeople[id]?.needs,resting:rest,exertion:actor.walking?.65:0});
+    inputs.push({id,sceneId,needs:lifePeople[id]?.needs,resting:rest,exertion:actor.walking?.65:0});
    }
-   const contacts=[];
-   for(let i=0;i<inputs.length;i++)for(let j=i+1;j<inputs.length;j++){
-    const a=inputs[i],b=inputs[j],p=a.position,q=b.position;
-    if(Math.abs(p.y-q.y)<.65&&Math.hypot(p.x-q.x,p.y-q.y,p.z-q.z)<2&&visible(p,q))contacts.push({a:a.id,b:b.id});
-   }
-   health.tick(dt,{actors:inputs,contacts});time+=dt;
+   // Only explicit interaction callbacks reach health. No actor-pair search,
+   // distance test or line-of-sight work belongs in this clock update.
+   health.tick(dt,{actors:inputs,interactions:[...pendingInteractions.values()]});pendingInteractions.clear();time+=dt;
    if(time-lastSave>=5)persist();
   },
   text,status:id=>health.status(id),snapshot,flush:persist,

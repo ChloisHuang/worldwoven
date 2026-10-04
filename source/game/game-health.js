@@ -1,8 +1,8 @@
 // Fictional game balance, not a model of real illness or medical treatment.
 // No world/UI imports or automatic outbreak. The caller owns saves and supplies
-// actual contacts (including wall/room eligibility) and positions for an interval.
-// Split tick intervals when movement, contacts, needs or rest change. Seconds are
-// simulation time; people without a local contact cannot create remote exposure.
+// actual interaction events with named participants and cumulative duration.
+// Split tick intervals when interactions, needs or rest change. Seconds are
+// simulation time; nearby people alone never create an exposure.
 const clamp=(n,fallback=0)=>Number.isFinite(n)?Math.max(0,Math.min(1,n)):fallback;
 const positive=(n,fallback=0)=>Number.isFinite(n)&&n>=0?n:fallback;
 const copy=value=>JSON.parse(JSON.stringify(value));
@@ -21,7 +21,8 @@ const stages=new Set(['well','incubating','ill','recovering']);
 // a seeded threshold analytically, with rest/exposure clearance between contacts.
 export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
  let time=saved.version===1?positive(saved.time):0;
- const people=new Map();
+ const people=new Map(),interactionProgress=new Map();
+ for(const [source,event]of Object.entries(saved.version===1?saved.interactionProgress||{}:{}))if(typeof event.id==='string'&&Number.isSafeInteger(event.number)&&event.number>0&&Array.isArray(event.participants)&&event.participants.length===2)interactionProgress.set(source,{id:event.id,number:event.number,participants:[...event.participants].sort(),duration:positive(event.duration)});
  for(const id of [...new Set(actorIds)].sort()){
   const key=`game-health-v1|${worldSeed>>>0}|${id}`,old=saved.version===1?saved.people?.[id]:null;
   const p={constitution:clamp(old?.constitution,.4+hash(key)/4294967296*.5),supportRemaining:positive(old?.supportRemaining),careReceipts:{},conditions:{}};
@@ -40,7 +41,7 @@ export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
   }
   people.set(id,p);
  }
- const snapshot=()=>({version:1,time,people:copy(Object.fromEntries(people))});
+ const snapshot=()=>({version:1,time,people:copy(Object.fromEntries(people)),interactionProgress:copy(Object.fromEntries(interactionProgress))});
  function normaliseActors(actors){
   const supplied=new Map(actors.map(a=>[a.id,a]));
   return new Map([...people].map(([id,p])=>{
@@ -49,23 +50,29 @@ export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
     vulnerability:(1.25-.65*p.constitution)*(1+.8*fatigue+.65*(1-nutrition)+.5*(1-hygiene)),protection:clamp(a.protection)}];
   }));
  }
- function localContacts(contacts,actors){
+ // A source emits monotonically numbered sessions/orders. Keep only its latest
+ // watermark: replaying an old event cannot add dose, even after save/reload.
+ // Durations are cumulative actual interaction seconds, never time spent nearby.
+ function interactionContacts(events,actors,dt){
   const pairs=new Map();
-  for(const contact of contacts){
-   const ids=[contact.a,contact.b].sort(),[a,b]=ids.map(id=>actors.get(id));
+  for(const event of events){
+   if(typeof event.source!=='string'||!event.source||typeof event.id!=='string'||!event.id||!Number.isSafeInteger(event.number)||event.number<1||!Array.isArray(event.participants)||event.participants.length!==2||!Number.isFinite(event.duration)||event.duration<=0)continue;
+   const ids=[...event.participants].sort(),[a,b]=ids.map(id=>actors.get(id));
    if(!a||!b||ids[0]===ids[1]||typeof a.sceneId!=='string'||!a.sceneId||a.sceneId!==b.sceneId)continue;
-   if(![a.position,b.position].every(p=>p&&['x','y','z'].every(k=>Number.isFinite(p[k]))))continue;
-   const distance=Math.hypot(a.position.x-b.position.x,a.position.y-b.position.y,a.position.z-b.position.z);
-   if(distance>=2)continue;
-   const key=JSON.stringify(ids),protection=clamp(contact.protection),previous=pairs.get(key);
-   // Duplicate descriptions of one encounter are not extra people/exposure.
-   pairs.set(key,{ids,weight:(1-distance/2)*(1-a.protection)*(1-b.protection),protection:Math.max(protection,previous?.protection||0)});
+   const previous=interactionProgress.get(event.source);
+   if(previous&&(event.number<previous.number||event.number===previous.number&&(event.id!==previous.id||JSON.stringify(ids)!==JSON.stringify(previous.participants))))continue;
+   const before=previous?.number===event.number?previous.duration:0;
+   const duration=event.duration-before;if(duration<=0)continue;
+   interactionProgress.set(event.source,{id:event.id,number:event.number,participants:ids,duration:event.duration});
+   const key=JSON.stringify(ids),pair=pairs.get(key);
+   // Multiple descriptions of the same pair in one interval cannot multiply it.
+   pairs.set(key,{ids,weight:(1-a.protection)*(1-b.protection),protection:Math.max(clamp(event.protection),pair?.protection||0),remaining:Math.max(pair?.remaining||0,Math.min(dt,duration))});
   }
   return [...pairs].sort(([a],[b])=>a.localeCompare(b)).map(([,p])=>p);
  }
  function rates(actors,contacts){
   const exposure=new Map([...people.keys()].map(id=>[id,0]));
-  for(const {ids,weight,protection}of contacts)for(let i=0;i<2;i++){
+  for(const {ids,weight,protection,remaining}of contacts)if(remaining>0)for(let i=0;i<2;i++){
    // Only the invented mistbell's ill stage sheds in this game. Incubation and
    // noninfectious exertion weariness never become a general contagion source.
    if(people.get(ids[1-i]).conditions.mistbell.stage==='ill')exposure.set(ids[i],exposure.get(ids[i])+.018*weight*(1-protection));
@@ -94,15 +101,16 @@ export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
   else{c.stage='well';c.remaining=0;c.dose=0;c.immuneFor=d.immunity;c.threshold=threshold(c);}
  }
  return {
-  tick(dt,{actors=[],contacts=[]}={}){
+  tick(dt,{actors=[],interactions=[]}={}){
    if(!Number.isFinite(dt)||dt<0)throw new RangeError('Health tick requires nonnegative simulation seconds');
    if(!dt)return;
-   const inputs=normaliseActors(actors),local=localContacts(contacts,inputs);
+   const inputs=normaliseActors(actors),local=interactionContacts(interactions,inputs,dt);
    let left=dt;
    // Advance to the next real onset/stage/immunity/care event. Recompute source
    // shedding there so one long tick and subdivided ticks tell the same story.
    while(left>0){
     const rows=rates(inputs,local),events=[];
+    for(const contact of local)if(contact.remaining>0)events.push({in:contact.remaining,finish:()=>{contact.remaining=0;}});
     for(const p of people.values())if(p.supportRemaining>0)events.push({in:p.supportRemaining,finish:()=>{p.supportRemaining=0;}});
     for(const row of rows){
      const {c,definition,speed}=row;
@@ -117,6 +125,7 @@ export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
      else c.dose=Math.max(0,c.dose*Math.exp(-decay*step)+rate/decay*(-Math.expm1(-decay*step)));
     }
     for(const p of people.values())p.supportRemaining=Math.max(0,p.supportRemaining-step);
+    for(const contact of local)contact.remaining=Math.max(0,contact.remaining-step);
     time+=step;left=Math.max(0,left-step);
     for(const event of events)if(event.in<=step)event.finish();
    }
