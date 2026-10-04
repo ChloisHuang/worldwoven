@@ -8,9 +8,12 @@ export const SHAPE_RANGES=Object.freeze(Object.fromEntries(Object.entries({
  chinLength:[.88,1.12],chinProjection:[.85,1.15],
  noseBridgeHeight:[.80,1.20],noseTipSize:[.80,1.20]
 }).map(([key,[min,max]])=>[key,Object.freeze({min,max,default:1})])));
-// The original six score terms remain the compatibility contract. New geometry
-// controls do not silently create additional universal aesthetic preferences.
+// Version 1 remains the normal-entry compatibility contract. The explicitly
+// selected candidate uses version 2 after the player's clarified nose preference:
+// narrow/small wings and tip, but a high, defined bridge. Chin length/projection
+// have no requested score direction and remain geometric controls only.
 export const LEGACY_SHAPE_KEYS=Object.freeze(['jawWidth','legLength','eyeSize','noseSize','noseWidth','socketDepth']);
+const SCORE_V2_KEYS=Object.freeze([...LEGACY_SHAPE_KEYS,'noseBridgeHeight','noseTipSize']);
 export const DEFAULT_SHAPE_TRAITS=Object.freeze(Object.fromEntries(Object.keys(SHAPE_RANGES).map(key=>[key,1])));
 export function normalizeShapeTraits(input){
  const source=input&&typeof input==='object'&&!Array.isArray(input)?input:{};
@@ -23,12 +26,16 @@ export function randomShapeTraits(rng=Math.random,ranges=SHAPE_RANGES){
   return[key,Number((min+(max-min)*t).toFixed(4))];
  }));
 }
-export function shapePreferenceScore(input){
+export function shapePreferenceScore(input,{version=1}={}){
+ if(version!==1&&version!==2)throw new RangeError('Unsupported shape score version');
+ const keys=version===2?SCORE_V2_KEYS:LEGACY_SHAPE_KEYS;
  const traits=normalizeShapeTraits(input);let score=0;
- for(const key of LEGACY_SHAPE_KEYS){const {min,max}=SHAPE_RANGES[key];
-  const value=(traits[key]-min)/(max-min);score+=/^(jawWidth|noseSize|noseWidth)$/.test(key)?1-value:value;
+ for(const key of keys){const {min,max}=SHAPE_RANGES[key];
+  const value=(traits[key]-min)/(max-min);score+=/^(jawWidth|noseSize|noseWidth|noseTipSize)$/.test(key)?1-value:value;
  }
- return Math.round(score/LEGACY_SHAPE_KEYS.length*100);
+ // Missing v2 controls normalize to neutral, never reroll saved traits. Scores
+ // are derived, not persisted; a v1 and v2 score need not be numerically equal.
+ return Math.round(score/keys.length*100);
 }
 /** Sole and head anchors are invariant. Change leg:torso ratio within a fixed
  * standing height; the same map is used for skin, clothes and anatomical joints.
