@@ -24,7 +24,7 @@ export function buildChinaTavern(G,A){
  const sign=(g,text,x,y,z,w=2.9,h=.56,rot=0)=>{const p=tavernPlaque(G,g,text,x,y,z,w,h);p.rotation.y=rot;return p;};
  const win=(g,axis,at,from,to,y,opaque=false)=>{const mid=(from+to)/2,w=to-from;window(g,axis==='x'?mid:at,axis==='x'?at:mid,w,axis,1.65,y+2.06);if(opaque)G.box(g,axis==='x'?mid:at,y+2.06,axis==='x'?at:mid,axis==='x'?w:.035,1.63,axis==='x'?.035:w,0xe6d6b6);return {from,to,bottom:y+1.235,top:y+2.885};};
  const block=(g,x,y,z,w,h,d,color=C.wood)=>solid3(g,x,y,z,w,h,d,color);
- const table=(g,x,y,z,w,d,h=.94)=>{const q=new THREE.Group();q.position.y=y-.015;g.add(q);G.table(q,x,z,w,d,C.wood,h);block(g,x,y+h/2,z,w,h,d);return y+h+.075;};
+ const table=(g,x,y,z,w,d,h=.94)=>{const q=new THREE.Group();q.position.y=y-.015;g.add(q);G.table(q,x,z,w,d,C.wood,h);colliders.push({minX:x-w/2,maxX:x+w/2,minY:y-.015,maxY:y+h+.075,minZ:z-d/2,maxZ:z+d/2});cameraColliders.push({...colliders.at(-1)});return y+h+.075;};
  const rug=(g,x,y,z,w,d,color)=>{G.box(g,x,y+.012,z,w,.024,d,color);for(const side of[-1,1]){G.box(g,x+side*(w/2-.11),y+.03,z,.065,.012,d-.10,C.gold);G.box(g,x,y+.03,z+side*(d/2-.11),w-.10,.012,.065,C.gold);}};
  const chair=(g,id,name,x,y,z,yaw,variant='reading')=>{buildChinaRoyalChair(g,{x,y:y-.015,z,yaw,variant,id});colliders.push({minX:x-.45,maxX:x+.45,minY:y-.015,maxY:y+1.56,minZ:z-.45,maxZ:z+.45});cameraColliders.push({...colliders.at(-1)});additionalFurnitureSeats.push({id,name,x,y,z,yaw,width:.9,depth:.9,seatY:y+.66,front:.275});};
  const consoleTable=(g,x,y,z,w=2.7)=>{const top=table(g,x,y,z,w,.62,.95);H.flowerBranches(g,x-w*.27,top,z);G.vessel(g,x+w*.25,top,z,0x86a8a0,.5);};
@@ -55,7 +55,7 @@ export function buildChinaTavern(G,A){
   for(const z of[8,21]){paintedBand(g,'tavern-'+i+'-'+z,21,top-.40,z+(z===21?.22:-.22),10,z===21?0:Math.PI);for(const x of[16,21,26])if(!(i===0&&z===21&&x===21)){G.box(g,x,y+(top-y)/2,z,.22,top-y,.26,C.red);for(const dy of[.20,.37])G.box(g,x,top-dy,z,.55,.10,.54,C.gold);}}
   for(const x of[16,26])G.box(g,x,y+(top-y)/2,15.2,.25,top-y,.25,C.red);
   room('tavern-hall-'+(i+1),'云来楼'+(i+1)+'层公共梯厅',16,26,8,15.2,y,top);
-  levels.push({id:'tavern-floor-'+(i+1),name:'云来楼 · '+f.name,y});
+  levels.push({id:'tavern-floor-'+(i+1),name:'云来楼 · '+f.name,y,bounds:CHINA_TAVERN.bounds});
   lightingZones.push({id:'tavern-floor-'+(i+1),minX:15.8,maxX:26.2,minZ:7.8,maxZ:21.2,minY:y-.1,maxY:top+.1,floorY:y});
   for(const[x,z]of[[23.55,11.1],[18.5,18],[23.5,18]])upperFixture(g,'tavern-'+i+'-'+x+'-'+z,x,top-.54,z,y);
   sign(g,f.name,23.5,top-.75,8.21,3.5,.57);
@@ -77,7 +77,7 @@ export function buildChinaTavern(G,A){
  // Wide public dining threshold and a side reception/waiting bay.
  wall(g0,'x',15.2,16,26,.215,3.77,[opening('cn-tavern-dining-hall','酒楼与公共梯厅','x',15.2,20.0,23.0,.215,['tavern-dining','tavern-hall-1'])]);
  room('tavern-dining','云来一层酒楼',16,26,15.2,21,.215,3.77);
- for(const[x,z]of[[18.1,18.1],[23.9,18.1]]){const top=table(g0,x,.215,z,1.45,1.12,.90);H.teaSet(g0,x,top,z,0xb9c7ac);H.bowl(g0,x-.35,top,z+.24,.18,0xf1dfbb);for(const[side,yaw]of[[-1,0],[1,Math.PI]])chair(g0,'china-tavern-dining-'+x+'-'+side,'酒楼雕花餐椅',x,.215,z+side*1.32,yaw);}
+ for(const[x,z]of[[18.1,18.1],[23.9,18.1]]){const top=table(g0,x,.215,z,1.45,1.12,.90);H.teaSet(g0,x,top,z,0xb9c7ac);H.bowl(g0,x-.35,top,z+.24,0xf1dfbb,.18);for(const[side,yaw]of[[-1,0],[1,Math.PI]])chair(g0,'china-tavern-dining-'+x+'-'+side,'酒楼雕花餐椅',x,.215,z+side*1.32,yaw);}
  const counter=table(g0,24.35,.215,10.10,2.5,.78,1.0);H.teaSet(g0,24.25,counter,10.10,0xa8b0a0);H.boundBook(g0,23.6,counter,10.1,.55,.40,0x667b6b);for(const x of[23.65,24.35,25.05]){G.vessel(g0,x,.33,8.70,0x7e5c3f,.56);G.box(g0,x,.89,8.70,.21,.12,.21,C.red);}
  sign(g0,'云来酒楼',21,3.23,21.24,3.45,.61);
  sign(g0,'云来酒楼',15.76,3.13,13.4,3.20,.59,-Math.PI/2);
@@ -104,7 +104,7 @@ export function buildChinaTavern(G,A){
   sign(g1,name,x0+3.25,6.99,14.99,1.45,.52,Math.PI);
   target('cn-tavern-'+key+'-entry',name+'空闲前室',[x0+3.2,y,16.35],'tavern-guest-'+key);
  }
- consoleTable(g1,24.0,4.015,9.15,2.7);chair(g1,'china-tavern-lobby-seat','客栈公共候坐椅',24.7,4.015,12.3,Math.PI,'reading');
+ sign(g1,'二层客栈',21,7.03,21.23,3.45,.58);consoleTable(g1,24.0,4.015,9.15,2.7);chair(g1,'china-tavern-lobby-seat','客栈公共候坐椅',24.7,4.015,12.3,Math.PI,'reading');
 
  // Top floor: a deep textile-backed performance room and a separate banquet
  // salon, both reached from the same public hall. No beds or erotic animations.
@@ -117,9 +117,9 @@ export function buildChinaTavern(G,A){
  G.box(g2,19.10,10.90,20.67,5.55,.22,.23,C.gold);
  const qinTop=table(g2,18.8,7.815,19.50,2.42,.61,.90);
  // Original seven-string qin with tapered body, bridges and golden studs.
- const qin=new THREE.Group();qin.name='云来楼 seven-string qin';qin.position.set(18.8,qinTop+.07,19.50);g2.add(qin);G.box(qin,0,0,0,2.12,.12,.37,0x382c2b);for(const x of[-.88,.81])G.box(qin,x,.09,0,.035,.075,.36,C.gold);for(let i=0;i<7;i++)G.box(qin,0,.083,(i-3)*.041,1.98,.009,.007,0xd7c8a0);
+ const qin=new THREE.Group();qin.name='云来楼 seven-string qin';qin.position.set(18.8,qinTop+.07,19.50);g2.add(qin);const outline=new THREE.Shape();outline.moveTo(-1.06,-.13);for(const[x,z]of[[-.88,-.18],[-.65,-.18],[-.43,-.145],[.48,-.14],[.72,-.17],[1.06,-.12],[1.06,.12],[.72,.17],[.48,.14],[-.43,.145],[-.65,.18],[-.88,.18],[-1.06,.13]])outline.lineTo(x,z);outline.closePath();const body=G.mesh(qin,new THREE.ExtrudeGeometry(outline,{depth:.12,bevelEnabled:false}),0x382c2b,0,-.06,0);body.rotation.x=-Math.PI/2;for(const x of[-.88,.81])G.box(qin,x,.09,0,.035,.075,.36,C.gold);for(let i=0;i<7;i++)G.box(qin,0,.083,(i-3)*.041,1.98,.009,.007,0xd7c8a0);
  for(const x of[17.5,20.65])chair(g2,'china-tavern-listening-'+x,'青楼听曲椅',x,7.815,16.85,0,'hall');
- const banquetTop=table(g2,24.2,7.815,18.2,1.36,1.10,.92);H.teaSet(g2,24.2,banquetTop,18.2,0xc29c74);H.bowl(g2,23.85,banquetTop,18.4,.19,0xf0debd);for(const[side,yaw]of[[-1,0],[1,Math.PI]])chair(g2,'china-tavern-banquet-'+side,'青楼宴饮椅',24.2,7.815,18.2+side*1.34,yaw,'hall');
+ const banquetTop=table(g2,24.2,7.815,18.2,1.36,1.10,.92);H.teaSet(g2,24.2,banquetTop,18.2,0xc29c74);H.bowl(g2,23.85,banquetTop,18.4,0xf0debd,.19);for(const[side,yaw]of[[-1,0],[1,Math.PI]])chair(g2,'china-tavern-banquet-'+side,'青楼宴饮椅',24.2,7.815,18.2+side*1.34,yaw,'hall');
  consoleTable(g2,24.25,7.815,9.0,2.9);sign(g2,'琴歌雅集',19.1,10.65,20.46,3.3,.54,Math.PI);sign(g2,'宴饮',24.2,10.87,15.42,1.8,.50);
  sign(g2,'三层青楼',21,10.90,21.23,3.5,.58);
  target('cn-tavern-recital','青楼雅集听曲区',[20.6,7.815,18.4],'tavern-performance');
@@ -132,7 +132,7 @@ export function buildChinaTavern(G,A){
  H.palaceRoof(roof,21,13.20,14.5,5.1,11.1,.82,0x4f7774);
  // No ground porch or column projects west into the accepted x14.9 patrol.
  stations.push({id:'cn-tavern-host',name:'云来酒楼 · 迎客茶案',action:'和掌柜品茶',position:[22.35,.215,11.7],npcPosition:[24.1,.215,11.40],workTarget:[24.1,1.32,10.68],npcName:'许安',npcAction:'tea',npcLabel:'掌柜 · 温茶迎客',npcRotation:Math.PI,route:[[23.6,.215,13.95],[21,.215,18.1]],color:'#bd8b58',age:38,dialogue:'云来楼一层用饭，二层客房，三层雅集。客榻可以暂歇，正式订房和点单还未开办。'});
- stations.push({id:'cn-tavern-reciter',name:'顶层青楼 · 成年诗乐雅集',action:'听诗词吟诵',playerAction:'relax',position:[20.70,7.815,18.25],npcPosition:[18.8,7.815,18.66],workTarget:[18.8,8.98,19.42],npcName:'柳清弦',npcAction:'read',npcLabel:'成年艺者 · 诵词与歇场',npcRotation:0,route:[[20.55,7.815,19.35],[23.1,7.815,14.1]],color:'#ab7287',age:27,dialogue:'这里先有诗词吟诵和茶叙。琴案可观赏，奏琴与舞步还在排练；请在前方听席稍坐。'});
+ stations.push({id:'cn-tavern-reciter',name:'顶层青楼 · 成年诗乐雅集',action:'听诗词吟诵',playerAction:'relax',position:[20.70,7.815,18.25],npcPosition:[18.8,7.815,18.66],workTarget:[18.8,8.98,17.9],playerWorkTarget:[18.8,9.02,18.66],npcName:'柳清弦',npcAction:'read',npcLabel:'成年艺者 · 诵词与歇场',npcRotation:Math.PI,route:[[20.55,7.815,19.35],[23.1,7.815,14.1]],color:'#ab7287',age:27,dialogue:'这里先有诗词吟诵和茶叙。琴案可观赏，奏琴与舞步还在排练；请在前方听席稍坐。'});
  root.traverse(o=>{if(o.userData.nightFixture)o.userData.nightFixture.dayFactor=.48;});
  buildings.push({id:CHINA_TAVERN.id,name:CHINA_TAVERN.name,groupName:root.name,roofGroupName:roof.name,bounds:CHINA_TAVERN.bounds,storeys:3,roomIds:CHINA_TAVERN.floors.flatMap(f=>f.rooms)});
  // Material batches stay per floor, so top-floor decor does not create hundreds
