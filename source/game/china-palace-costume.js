@@ -23,11 +23,11 @@ export function buildPalaceEmperorGarments(g,{loft,surface,ribbon,hand,shoe,conf
 export function createPalaceMealKit(actor){
  const groups=[],materials=new Map(),material=c=>{if(!materials.has(c))materials.set(c,new THREE.MeshToonMaterial({color:c}));return materials.get(c);};
  const add=(p,geo,c,x,y,z)=>{const m=new THREE.Mesh(geo,material(c));m.position.set(x,y,z);p.add(m);return m;};
- const bowl=new THREE.Group();bowl.name='Palace porcelain bowl with dumplings';actor.root.userData.hands[0].add(bowl);groups.push(bowl);bowl.position.set(0,.075,.07);
+ const bowl=new THREE.Group(),palm=new THREE.Vector3();bowl.name='Palace porcelain bowl with dumplings';actor.root.add(bowl);groups.push(bowl);
  add(bowl,new THREE.CylinderGeometry(.125,.080,.055,16),0xb5c5aa,0,.014,0);
  for(const x of[-.045,.045])add(bowl,new THREE.SphereGeometry(.047,10,7),0xf0dfbd,x,.059,0).scale.set(.80,.54,1.15);
  for(const g of groups)g.visible=false;let disposed=false;
- return {show(value){for(const g of groups)g.visible=value;},dispose(){if(disposed)return;disposed=true;for(const g of groups){g.removeFromParent();g.traverse(o=>o.geometry?.dispose());}for(const m of materials.values())m.dispose();}};
+ return {show(value){for(const g of groups)g.visible=value;},sync(){if(!bowl.visible)return;actor.root.updateWorldMatrix(true,true);actor.root.userData.hands[0].getWorldPosition(palm);actor.root.worldToLocal(palm);bowl.position.copy(palm);bowl.position.y+=.02;bowl.position.z+=.035;bowl.rotation.set(0,0,0);},dispose(){if(disposed)return;disposed=true;for(const g of groups){g.removeFromParent();g.traverse(o=>o.geometry?.dispose());}for(const m of materials.values())m.dispose();}};
 }
 
 // Original everyday palace accessories, not a reconstruction of a dynasty's
