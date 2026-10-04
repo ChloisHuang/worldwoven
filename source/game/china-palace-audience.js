@@ -115,7 +115,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
     else if(s&&!FORMAL.has(phase))travel(n,s,dt);
     if(s?.arrived&&!n.walking)n.root.rotation.y=Math.PI;
     const c=poseContext(n,null);c.handoff=false;c.heldProp=null;c.seatedMeal=false;n.animate(t+n.phase,n.walking,null,c);
-    const kneeling=phase==='kneeling'?Math.min(1,phaseTime/1.8):phase==='rising'?Math.max(0,1-phaseTime/1.8):['report','response','dismissal'].includes(phase)?1:0;
+    const kneeling=phase==='kneeling'?Math.min(1,(phaseTime+dt)/1.8):phase==='rising'?Math.max(0,1-(phaseTime+dt)/1.8):['report','response','dismissal'].includes(phase)?1:0;
     postures[i]?.apply({kneeling,holding:phase==='holding'||tasks.get(n)?.id==='enter-hall'&&tasks.get(n).arrived,raised:n===speaker&&phase==='report'?1:.20+(i%3)*.07,time:t,phase:n.phase});
    }
    phaseTime+=dt;
