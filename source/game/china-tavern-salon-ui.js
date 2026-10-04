@@ -22,7 +22,7 @@ export function createChinaTavernSalonUI({service,getPlayer,onOpen,document:doc=
    if(!service.atReception())dialog.append(el('p','请到三层公共梯厅东侧的接待案前，温晚在那里等候。'));
    if(!s.candidates.length)dialog.append(el('p','今日没有合适的引见，听席仍可坐坐。'));
    for(const c of s.candidates){
-    const card=el('div');card.append(el('p',`${c.name} · ${c.gender||'成年艺者'} · ${c.ageYears}岁 · ${c.specialty||'诗词'}`),el('p',c.preference));
+    const card=el('div');card.append(el('p',`${c.name} · ${c.gender||'成年艺者'} · ${c.ageYears}岁 · ${c.specialty||'诗词'}`),el('p',`${c.preference} · ${c.status||'歇场待客'}`));
     const choices=el('div',null,'cn-salon-actions');
     for(const a of c.activities){const b=button(`请引见${c.name} · ${a.name} ${a.fee}文`,()=>{if(service.request(c.id,a.id))close();else refresh(true);},true);b.disabled=!c.available||!service.atReception()||!!s.paymentError;choices.append(b);}
     const banquet=button(`邀${c.name}宴饮 · 8文`,()=>{if(service.request(c.id,'banquet'))close();else refresh(true);});banquet.disabled=!c.available||!service.atReception()||!!s.paymentError;choices.append(banquet);card.append(choices);dialog.append(card);

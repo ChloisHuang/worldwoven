@@ -1,3 +1,4 @@
+import {createSalonArtistLife} from './china-tavern-salon-life.js';
 import {knownAdult} from './player-age.js';
 import {SALON_ACTIVITIES} from './china-tavern-salon-artists.js';
 import {SALON_ROOMS,inSalonRoom,createSalonRoomLedger} from './china-tavern-salon-rooms.js';
@@ -11,11 +12,11 @@ export function salonWillingness(actor,activity,relationship=0){
  if(!p.activities?.includes(activity))return {willing:false,reply:`${p.preference||'我今日更想静谈'}，这次邀约就先谢过了。`};
  return {willing:true,reply:p.yes||'好呀，若有空房，我们一起去坐坐。'};
 }
-export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContext,getPlayer,getMounted=()=>null,copperLedger,saved={},saveState=()=>{},notify=()=>{},isActorBusy=()=>false}){
+export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContext,getPlayer,getMounted=()=>null,copperLedger,worldSeed=1,saved={},saveState=()=>{},notify=()=>{},isActorBusy=()=>false}){
  const receptionist=npcs.find(n=>n.station.id===SALON_RECEPTION),performers=npcs.filter(n=>n.station.salon).slice(0,4);if(!receptionist||!performers.length)return null;
  let performer=performers[0];
  const travelState=new Map(),history=Array.isArray(saved.history)?saved.history.slice(-35):[],responses={...(saved.responses||{})},relationships={...(saved.relationships||{})},failures=[];
- let time=Number(saved.time)||0,serial=Number(saved.serial)||0,session=null,returning=false,phaseTime=0,sessionTime=0,disposed=false,conversation=null,lastReply=saved.lastReply||null,paymentError=null;
+ let time=Number(saved.time)||0,serial=Number(saved.serial)||0,session=null,returning=false,phaseTime=0,sessionTime=0,disposed=false,conversation=null,lastReply=saved.lastReply||null,paymentError=null,life=null;
  const ledger=createSalonRoomLedger({occupants:()=>[...npcs.map(n=>({id:n.station.id,position:n.root.position})),...(getPlayer()?[{id:'player',position:getPlayer().root.position}]:[])]});
  const gap=(a,p)=>Math.hypot(a.root.position.x-p[0],a.root.position.z-p[2]),near=(a,p,r=.07)=>!!a&&gap(a,p)<r&&Math.abs(a.root.position.y-p[1])<.3;
  const eligible=actor=>knownAdult(getPlayer())&&knownAdult(actor)&&knownAdult(receptionist),adult=()=>eligible(performer);
@@ -23,7 +24,7 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
  const name=()=>performer.station.npcName;
  const labels=()=>({invited:`温晚已引见，等${name()}过来答复`,reply:`${name()}正在当面答复`,accepted:`${name()}愿意茶叙，请确认价目`,escort:`随${name()}沿公共楼梯去客房`,entering:'等两人进到雅间',fade:'茶香渐起，你们聊起了各自的见闻',visiting:'茶叙已完成，可以告辞'});
  const record=(event,data={})=>{history.push({event,id:session?.id||null,actorId:session?.actorId||null,roomId:session?.roomId||null,time:+time.toFixed(2),...data});if(history.length>70)history.shift();};
- const persist=()=>{try{return saveState({serial,time,responses:clone(responses),relationships:clone(relationships),lastReply:clone(lastReply),history:clone(history.slice(-35))})!==false;}catch{return false;}};
+ const persist=()=>{try{return saveState({serial,time,responses:clone(responses),relationships:clone(relationships),lastReply:clone(lastReply),history:clone(history.slice(-35)),life:life?.snapshot()||saved.life||{}})!==false;}catch{return false;}};
  const resetRoute=a=>{travelState.delete(a);a.route=[];a.walking=false;};
  const enter=stage=>{session.stage=stage;phaseTime=0;resetRoute(performer);if(getPlayer())resetRoute(getPlayer());record(stage);};
  // Unfinished visits do not survive a scene or browser reload. The durable
@@ -64,10 +65,10 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
   const chosen=performers.find(n=>n.station.id===actorId);
   if(!chosen||!eligible(chosen)){notify('温晚：今日没有合适的引见，请先到听席坐坐');return false;}
   if(!copperLedger||copperLedger.loadError||!recoverPayments()){notify('铜钱账目尚未核对，暂缓新的付费引见');return false;}
-  if(isActorBusy(chosen)){notify(`温晚：${chosen.station.npcName}手边尚有事，等歇场再来吧`);return false;}
+  if(isActorBusy(chosen)||life?.isBusy(chosen)){notify(`温晚：${chosen.station.npcName}手边尚有事，等歇场再来吧`);return false;}
   activity??=chosen.station.salon.activities[0];if(!SALON_ACTIVITIES[activity])return false;
   const prior=responses[actorId];if(prior&&time-prior.at<20){notify(`${chosen.station.npcName}：${prior.reply}`);return false;}
-  performer=chosen;session={id:`cn-salon-${copperLedger.state().nextTransaction}-${++serial}`,actorId,activity,stage:'invited',roomId:null,leg:0,fee:SALON_ACTIVITIES[activity].fee,payment:'unpaid'};resetRoute(performer);performer.returning=false;phaseTime=0;sessionTime=0;record('invited');persist();notify(`温晚：我请${name()}过来，你在案前稍候`);return true;
+  life?.interrupt(chosen);performer=chosen;session={id:`cn-salon-${copperLedger.state().nextTransaction}-${++serial}`,actorId,activity,stage:'invited',roomId:null,leg:0,fee:SALON_ACTIVITIES[activity].fee,payment:'unpaid'};resetRoute(performer);performer.returning=false;phaseTime=0;sessionTime=0;record('invited');persist();notify(`温晚：我请${name()}过来，你在案前稍候`);return true;
  }
  function respond(){
   if(!session||!adult()||!atReception()||!near(performer,MEETING))return false;
@@ -89,11 +90,12 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
  }
  function entryValid(){const room=roomForSession(),p=getPlayer();return adult()&&room&&ledger.claim(room.id)?.owner===session.id&&inSalonRoom(room,p?.root.position)&&inSalonRoom(room,performer.root.position)&&near(p,room.player,.18)&&near(performer,room.actor,.18)&&!npcs.some(n=>n!==performer&&inSalonRoom(room,n.root.position));}
  function pose(a,t,action,target){if(target&&!a.walking)a.root.rotation.y=Math.atan2(target[0]-a.root.position.x,target[2]-a.root.position.z);a.animate(t+(a.phase||0),a.walking,a.walking?null:action,poseContext(a,a===receptionist?a.station:null));}
+ life=createSalonArtistLife({performers,worldSeed,saved:saved.life||{},saveState:()=>persist(),travel,pose,planPath,getPlayer,isActorBusy});
  return {
   receptionist,performers,get performer(){return performer;},ledger,request,startEscort,cancel,atReception,recoverPayments,
   owns:n=>n===receptionist||performers.includes(n),
   active:()=>!!session,guidesPlayer:()=>session?.stage==='escort',playerAction:()=>['fade','visiting'].includes(session?.stage)?'relax':null,
-  socialStatus:n=>n===receptionist?{busy:false,attention:true,job:'在接待案前引见艺者'}:performers.includes(n)?{busy:n===performer&&(!!session||returning),attention:n!==performer||!session&&!returning,job:n===performer&&(session||returning)?session?labels()[session.stage]:'回雅集厅歇场':n.station.npcLabel}:null,
+  socialStatus:n=>n===receptionist?{busy:false,attention:true,job:'在接待案前引见艺者'}:performers.includes(n)?{busy:n===performer&&(!!session||returning)||life.isBusy(n),attention:!(n===performer&&(session||returning))&&!life.isBusy(n),job:n===performer&&(session||returning)?session?labels()[session.stage]:'回雅集厅歇场':life.label(n)||n.station.npcLabel}:null,
   furnitureAccess(item){const room=SALON_ROOMS.find(r=>r.id===item.guestRoomId);if(!room)return true;if(ledger.claim(room.id)||npcs.some(n=>inSalonRoom(room,n.root.position))){notify('这间客房此刻有人茶叙，等客人离开再用吧');return false;}return true;},
   movePlayer(dt){if(session?.stage!=='escort'||!adult())return false;const target=escortLeg()?.player,p=getPlayer();if(!target||!p)return false;travel(p,target,dt,{player:true});return p.walking;},
   update(dt,t,{conversationActorId=null}={}){
@@ -120,10 +122,12 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
     }
     if(session)pose(performer,t,['fade','visiting'].includes(session.stage)?'relax':null,getPlayer().root.position.toArray());
    }else if(returning){if(travel(performer,performer.home.toArray(),dt)){returning=false;resetRoute(performer);record('returned');persist();}pose(performer,t,null);}
-   for(const n of performers){if(n!==performer||!session&&!returning){n.walking=false;n.animate(t+(n.phase||0),false,conversation===n.station.id?null:n.station.npcAction,poseContext(n,n.station));}const e=n.label?.querySelector?.('small');if(e)e.textContent=n===performer&&(session||returning)?session?labels()[session.stage]:'艺者 · 返回雅集厅':n.station.npcLabel;}
+   life.update(dt,t,{excluded:new Set(session||returning?[performer]:[]),conversationActorId});
+   for(const n of performers){const e=n.label?.querySelector?.('small');if(e)e.textContent=n===performer&&(session||returning)?session?labels()[session.stage]:'艺者 · 返回雅集厅':life.label(n)||n.station.npcLabel;}
+
   },
-  view(){return {session:session?clone(session):null,label:session?labels()[session.stage]:returning?`${name()}正回雅集厅`:null,returning,fade:session?.stage==='fade',lastReply:clone(lastReply),candidates:performers.filter(eligible).map(n=>({id:n.station.id,name:n.station.npcName,ageYears:n.ageYears??n.station.ageYears??n.station.age,preference:n.station.salon.preference,specialty:n.station.salon.specialty,gender:n.station.salon.gender,activities:n.station.salon.activities.map(id=>({id,...SALON_ACTIVITIES[id]})),available:!session&&!returning&&!isActorBusy(n)})),rooms:ledger.state(),cash:copperLedger?.state().cash??0,paymentError:paymentError||copperLedger?.loadError||null};},
-  state(){return {...this.view(),serial,history:clone(history),failures:clone(failures),actor:performer.root.position.toArray(),persistentClaims:false};},
-  dispose(){if(disposed)return;if(session)release('离开地区');disposed=true;ledger.clear();travelState.clear();for(const n of [...performers,receptionist])resetRoute(n);session=null;returning=false;persist();}
+  view(){return {session:session?clone(session):null,label:session?labels()[session.stage]:returning?`${name()}正回雅集厅`:null,returning,fade:session?.stage==='fade',lastReply:clone(lastReply),candidates:performers.filter(eligible).map(n=>({id:n.station.id,name:n.station.npcName,ageYears:n.ageYears??n.station.ageYears??n.station.age,preference:n.station.salon.preference,specialty:n.station.salon.specialty,gender:n.station.salon.gender,activities:n.station.salon.activities.map(id=>({id,...SALON_ACTIVITIES[id]})),available:!session&&!returning&&!isActorBusy(n)&&!life.isBusy(n),status:life.label(n)})),rooms:ledger.state(),cash:copperLedger?.state().cash??0,paymentError:paymentError||copperLedger?.loadError||null};},
+  state(){return {...this.view(),serial,life:life.state(),history:clone(history),failures:clone(failures),actor:performer.root.position.toArray(),persistentClaims:false};},
+  dispose(){if(disposed)return;if(session)release('离开地区');life.dispose();disposed=true;ledger.clear();travelState.clear();for(const n of [...performers,receptionist])resetRoute(n);session=null;returning=false;persist();}
  };
 }
