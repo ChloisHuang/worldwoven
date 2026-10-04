@@ -22,3 +22,5 @@ The source lid contact and the exported globe use the same anatomical transform.
 `render-sculpt.mjs` is the strict geometry diagnostic: one opaque grey Standard material on skin and globes, no vertex color, no feature/toon shader, no brow ribbon, no hair, and broad white key/fill lighting. `render.mjs` separately renders the same asset through the real `createCharacter` path with its unchanged chosen palette, existing hair/clothing and production toon material. `CLAY=1` on the game renderer is only a palette comparison, not the strict geometry diagnostic.
 
 This is an original work in progress, not an accepted likeness or a claim that the visual target has been reached.
+
+The lip-contact correction follows actual connected source rim vertices and piecewise-linear upper rim edges. It avoids the old jump onto an adjacent lower vermilion roll and the high lateral upper-roll samples that produced saw teeth. Only contact-loop positions change; the rest of the reconstructed geometry is frozen for material review.

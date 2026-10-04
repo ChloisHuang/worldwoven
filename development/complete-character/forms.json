@@ -896,8 +896,8 @@
     },
     "description": "Complete reference study rebuilt in the original continuous CC0 anatomical frame, replacing the trial female face cage. Nose/eye/lip relationships are explicit in referenceAnatomy; photographs are private visual references only.",
     "mouthContactSourceOffset": [
-      0.0005,
-      -0.002
+      0,
+      -0.001
     ],
     "referenceAnatomy": {
       "method": "one native anatomical frame; integrated native orbital loops and spherical globes; continuous nasal profile",
@@ -997,6 +997,30 @@
           ]
         ]
       }
-    }
+    },
+    "mouthContactSourceVertices": [
+      493,
+      487,
+      481,
+      475,
+      437,
+      444,
+      3707,
+      432
+    ],
+    "mouthContactUpperEdgeVertices": [
+      474,
+      473,
+      472,
+      471,
+      470,
+      5362,
+      469,
+      419,
+      418,
+      430,
+      3733,
+      500
+    ]
   }
 }

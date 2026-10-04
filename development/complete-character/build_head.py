@@ -81,11 +81,19 @@ def sculpt_forehead(p):
 def point(p):return Vector(cage([p])[0])
 # Actual lower lip contact loop/inner oral return edits, mirrored by source
 # positions. Move real skin to contact; never add a closure plane or mouth decal.
-contact=[493,487,481,476,502,503,501];sculpt={}
+contact=form.get('mouthContactSourceVertices',[493,487,481,476,502,503,501]);sculpt={}
 upper_y=[(0,6.6081),(.0215,6.6095),(.0466,6.6114),(.0761,6.6127),(.1014,6.6133),(.156,6.6146),(.196,6.6324),(.2243,6.6214),(.2391,6.6143),(.2494,6.6089)]
 upper_z=[(0,1.553),(.0215,1.5497),(.0466,1.5488),(.0761,1.5452),(.1014,1.5452),(.156,1.5163),(.196,1.4904),(.2243,1.4612),(.2391,1.4354),(.2494,1.4192)]
+# Follow the actual connected vermilion contact edge. The former sampled
+# curve used upper-roll vertices at the lateral mouth and lifted isolated
+# lower-roll vertices, making literal triangular teeth at the seam.
+contact_curve=profile
+if 'mouthContactUpperEdgeVertices' in form:
+ edge=[verts[i] for i in form['mouthContactUpperEdgeVertices']]
+ upper_y=sorted((abs(x),y) for x,y,z in edge);upper_z=sorted((abs(x),z) for x,y,z in edge)
+ def contact_curve(keys,v):return float(np.interp(v,[p[0] for p in keys],[p[1] for p in keys]))
 for i in contact:
- x,y,z=verts[i];u=1-smooth(.23,.25,abs(x));dy,dz=form.get('mouthContactSourceOffset',[.010,.004]);sculpt[(abs(x),y,z)]=(x,profile(upper_y,abs(x))+dy*u,profile(upper_z,abs(x))+dz*u)
+ x,y,z=verts[i];u=1-smooth(.23,.25,abs(x));dy,dz=form.get('mouthContactSourceOffset',[.010,.004]);sculpt[(abs(x),y,z)]=(x,contact_curve(upper_y,abs(x))+dy*u,contact_curve(upper_z,abs(x))+dz*u)
 sculpted=[]
 for x,y,z in raw:
  if (abs(x),y,z) in sculpt:
