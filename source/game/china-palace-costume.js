@@ -26,8 +26,6 @@ export function createPalaceMealKit(actor){
  const bowl=new THREE.Group();bowl.name='Palace porcelain bowl with dumplings';actor.root.userData.hands[0].add(bowl);groups.push(bowl);bowl.position.set(0,.075,.07);
  add(bowl,new THREE.CylinderGeometry(.125,.080,.055,16),0xb5c5aa,0,.014,0);
  for(const x of[-.045,.045])add(bowl,new THREE.SphereGeometry(.047,10,7),0xf0dfbd,x,.059,0).scale.set(.80,.54,1.15);
- const sticks=new THREE.Group();sticks.name='Palace meal bamboo chopsticks';actor.root.userData.hands[1].add(sticks);groups.push(sticks);
- for(const x of[-.014,.014]){const m=add(sticks,new THREE.CylinderGeometry(.006,.004,.24,6),0xa68a58,x-.04,-.035,.10);m.rotation.x=1.1;m.rotation.z=-.25;}
  for(const g of groups)g.visible=false;let disposed=false;
  return {show(value){for(const g of groups)g.visible=value;},dispose(){if(disposed)return;disposed=true;for(const g of groups){g.removeFromParent();g.traverse(o=>o.geometry?.dispose());}for(const m of materials.values())m.dispose();}};
 }

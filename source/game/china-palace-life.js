@@ -47,7 +47,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
  function releaseHost(){if(!hostHeld)return;host.root.rotation.y=hostPreviousYaw;host.breakAt+=time-hostHeldAt;hostHeld=false;tell(host,host.station.npcLabel);}
  function enter(n,index){const previous=stages.get(n)||{};stages.set(n,{choice:previous.choice,cycles:previous.cycles||0,index,waypoint:0,elapsed:0,arrived:false,planned:false,stalled:0,retries:0,mount:null});n.route=[];record(n,scripts.get(n)[index].id);}
  function unmount(n,s){if(!s.mount)return true;const landing=furniture.standPoint(navigation,safety(n),s.mount);if(!landing)return false;n.root.position.copy(landing);s.mount=null;furniture.releaseActor(n.station.id);return true;}
- function advance(n,s){if(!unmount(n,s))return false;if(n===consort)releaseHost();if(s.index+1===scripts.get(n).length){if(s.choice)brain.complete(n.station.id,s.choice,{fulfilled:s.choice.fulfilled!==false});s.cycles++;choose(n);}else enter(n,s.index+1);return true;}
+ function advance(n,s){if(!unmount(n,s))return false;if(n===consort)releaseHost();if(s.index+1===scripts.get(n).length){if(s.choice){brain.complete(n.station.id,s.choice,{fulfilled:s.choice.fulfilled!==false});s.cycles++;}choose(n);}else enter(n,s.index+1);return true;}
  function travel(n,s,to,dt){
   if(s.yieldPoint){
    const target=point(s.yieldPoint),dx=target.x-n.root.position.x,dz=target.z-n.root.position.z,d=Math.hypot(dx,dz);
@@ -98,7 +98,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
     if(!s.arrived){if(travel(n,s,stop.path[s.waypoint],dt)){s.waypoint++;if(s.waypoint===stop.path.length){s.arrived=true;record(n,stop.id+':arrived');}}}
     if(s.arrived){
      if(stop.mount&&!s.mount){
-      if(state.facilityId!==stop.mount.id&&(stop.mount.kind==='bed'?furniture.canUse(navigation,safety(n),stop.mount):furniture.canSit(navigation,safety(n),stop.mount))){n.root.position.set(...stop.mount.anchor);n.root.rotation.y=stop.mount.yaw;s.mount=stop.mount;record(n,stop.id+':seated');}
+      if(state.facilityId!==stop.mount.id&&(stop.mount.kind==='bed'?furniture.canUse(navigation,safety(n),stop.mount):furniture.canSit(navigation,safety(n),stop.mount))){n.root.position.set(...stop.mount.anchor);n.root.rotation.y=stop.mount.yaw;n.walking=false;s.mount=stop.mount;record(n,stop.id+':seated');}
       else{animate(n,s,t);continue;}
      }
      if(stop.look)n.root.rotation.y=Math.atan2(stop.look[0]-n.root.position.x,stop.look[2]-n.root.position.z);
