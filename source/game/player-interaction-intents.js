@@ -24,3 +24,11 @@ export function chooseNearbyInteraction(candidates,position,clear){
  return candidates.filter(c=>c&&nearbyInteraction(c,position,{clear})).sort((a,b)=>(b.priority??20)-(a.priority??20)||
   Math.hypot(a.position[0]-position.x,a.position[2]-position.z)-Math.hypot(b.position[0]-position.x,b.position[2]-position.z))[0]||null;
 }
+
+// Resolve identity against live state, never an old button's callback. Providers
+// supply their own phase/choice key; a new visit cannot inherit an old intent.
+export function currentInteractionIntent(selected,current){
+ if(!selected||!current||selected.id!==current.id||selected.provider!==current.provider)return null;
+ if(selected.intentKey!==undefined&&selected.intentKey!==current.intentKey)return null;
+ return current;
+}
