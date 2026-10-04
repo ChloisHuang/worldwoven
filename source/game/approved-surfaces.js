@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import {applyNaturalHead} from './head-shape.js';
 import {normalizeShapeTraits,hasShapeTraits,shapeHeight} from './character-traits.js';
+import {buildJinyiGarments} from './jinyi-costume.js';
 const gradient = new THREE.DataTexture(new Uint8Array([90, 150, 213, 255]),4,1,THREE.RedFormat);
 gradient.minFilter = gradient.magFilter = THREE.NearestFilter;
 gradient.generateMipmaps=false; gradient.needsUpdate=true;
@@ -243,7 +244,8 @@ function buildJapan(g,masc,preset){
  if(!masc){loft(g,'obi-back-bow',[[1.035,.062,.018,0,-.116],[1.07,.099,.033,0,-.122],[1.116,.064,.02,0,-.117]],C.obi,{segs:20,steps:8});}
 }
 function buildChina(g,masc,preset){
- if(masc||preset==='jinyi-training'){
+ if(preset==='jinyi-training'){buildJinyiGarments(g,{loft,surface,ribbon,hand,shoe,conformFront,tone},C);return;}
+ if(masc){
   buildJapan(g,true,'haori-trouser');removeSurfaces(g,n=>/^haori-lapel|haori-waist-tie|haori-jacket-body/.test(n));loft(g,'scholar-upper-robe',[[1.045,.156,.103,0,-.005],[1.15,.156,.098,0,-.004],[1.28,.185,.087,0,-.01],[1.335,.19,.078,0,-.013],[1.374,.135,.061,0,-.005],[1.407,.049,.038,0,.002]],C.yukata,{steps:26});
   if(preset==='scholar-long-robe'){
    removeSurfaces(g,n=>/^tailored-trouser|trouser-crease/.test(n));
