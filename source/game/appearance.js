@@ -1,5 +1,6 @@
 // Original fictional-character palettes. Color choices are independent traits,
 // not an attempt to infer a real person's ethnicity or identity.
+import {palaceResidentAppearance} from './china-palace-residents.js';
 import {DEFAULT_SHAPE_TRAITS,SHAPE_RANGES,normalizeShapeTraits} from './character-traits.js';
 export const APPEARANCE_VERSION=3;
 export const NPC_SHAPE_VERSION=1;
@@ -45,7 +46,7 @@ export function npcAppearance(region,id,worldSeed=1,shapeVersion=NPC_SHAPE_VERSI
 export function npcRoleAppearance(region,id,worldSeed=1,shapeVersion=NPC_SHAPE_VERSION){
  const look=npcAppearance(region,id,worldSeed,shapeVersion);
  if(region==='china'&&id==='cn-emperor')return {...look,bodyPreset:'masculine-lean',hairStyle:'low-bun',wardrobePreset:'palace-emperor-robe',locomotionWardrobePreset:'scholar-long-robe',clothes:0xd4ae58,accent:0xf3d487};
- if(region==='china'&&id==='cn-consort-yue')return {...look,bodyPreset:'feminine-balanced',hairStyle:'low-bun',wardrobePreset:'palace-consort-ruqun',locomotionWardrobePreset:'ruqun-long-skirt',clothes:0x9b3f5d,accent:0xe1c17b};
+ if(region==='china'){const resident=palaceResidentAppearance(id);if(resident)return {...look,...resident};}
  if(region==='china'&&['cn-archery','cn-range-warden'].includes(id))return {...look,hairStyle:'low-bun',wardrobePreset:'jinyi-training',clothes:id==='cn-archery'?0x853930:0x594638,accent:0xc9aa60};
  return region==='japan'&&id==='jp-omamori'?{...look,hairStyle:'low-bun',wardrobePreset:'miko-hakama',locomotionWardrobePreset:look.wardrobePreset}:look;
 }
