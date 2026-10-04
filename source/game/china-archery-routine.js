@@ -1,13 +1,14 @@
 import * as G from './geometry.js';
+import {attachJinyiCostume} from './jinyi-costume.js';
 import {CHINA_ARCHERY as A,buildPracticeBow,buildPracticeArrow} from './china-archery-court.js';
 const {THREE}=G,point=a=>({x:a[0],y:a[1],z:a[2]}),gap=(p,a)=>Math.hypot(p.x-a[0],p.z-a[2]);
-const labels={fetch:'在弓架取弓',line:'持弓走向金线',aim:'定步 · 引弓 · 瞄准',flight:'放箭 · 保持站位',cease:'收弓停射 · 确认箭已落靶',retrieve:'停射后沿靶道取箭',collect:'从草靶取回练习箭',return:'持弓返回金线',rack:'归还弓箭',relief:'射圃留守 · 等巡查同伴归来',handover:'当面交班 · 互报巡查与弓箭情况', 'player-take':'接过练习弓','player-aim':'定步引弓 · 瞄准草靶','player-flight':'放箭 · 保持站位','player-cease':'收弓停射 · 练习完成'};
+const labels={fetch:'在弓架取弓',line:'持弓走向金线',aim:'定步 · 引弓 · 瞄准',flight:'放箭 · 保持站位',cease:'收弓停射 · 确认箭已落靶',retrieve:'停射后沿靶道取箭',collect:'从草靶取回练习箭',return:'持弓返回金线',rack:'归还弓箭',relief:'射圃留守 · 等巡查同伴归来',handover:'当面交班 · 互报巡查与弓箭情况',release:'留步让行 · 同伴出圃后取弓', 'player-take':'接过练习弓','player-aim':'定步引弓 · 瞄准草靶','player-flight':'放箭 · 保持站位','player-cease':'收弓停射 · 练习完成'};
 
 // Original duty circuit: the rear court opening is the only route out, and
 // both visits to the raised hall use the broad existing front stair.
 const HANDOFF=[[-17.65,A.floorY,18.45],[-17.65,A.floorY,19.8]];
 const PATROL=[
- {id:'range-exit',at:[-17.65,.13,18.9],label:'收弓出射圃 · 从金线后绕行'},
+ {id:'range-exit',at:[-17.15,.13,19.1],label:'收弓出射圃 · 从金线后绕行'},
  {id:'court-entry',at:[-15.25,.13,19],label:'巡看射圃入口',look:[-17.6,19],hold:1.6},
  {id:'west-court',at:[-11.8,.13,21],label:'巡看仪庭西侧',look:[0,23],hold:2.4},
  {id:'gate',at:[-3,.13,33.1],label:'承礼门值察 · 看门廊与来路',look:[0,39],hold:3.2},
@@ -16,7 +17,7 @@ const PATROL=[
  {id:'stair-return',at:[-3,.14,11],label:'沿正殿前阶下行'},
  {id:'return-court',at:[-12,.13,17.8],label:'巡毕沿西庭返岗'},
  {id:'return-entry',at:[-15.25,.13,19],label:'由后方入口返回射圃'},
- {id:'return-strip',at:[-17.65,.13,18.9],label:'归队 · 等候当面交班'}
+ {id:'return-strip',at:[-17.15,.13,19.1],label:'归队 · 等候当面交班'}
 ];
 
 function makeKit(parent){
@@ -31,24 +32,11 @@ function makeKit(parent){
  },hide(){bow.group.visible=nocked.visible=false;},dispose(){for(const q of[bow.group,nocked]){q.removeFromParent();q.traverse(o=>o.geometry?.dispose());}bow.string.material.dispose();}};
 }
 
-function dressGuard(actor){
- const head=actor.root.userData.head,hat=new THREE.Group();hat.name='Original imperial duty cap';head.add(hat);
- // Each kit owns its materials; character disposal never disposes G's cache.
- const materials=new Map(),part=(geo,c,x,y,z)=>{if(!materials.has(c))materials.set(c,new THREE.MeshToonMaterial({color:c}));const m=new THREE.Mesh(geo,materials.get(c));m.position.set(x,y,z);m.castShadow=true;hat.add(m);return m;};
- part(new THREE.CylinderGeometry(.105,.111,.115,10),0x292b2b,0,.29,-.007);
- part(new THREE.CylinderGeometry(.116,.116,.025,12),0x933e31,0,.232,-.007);
- const badge=part(new THREE.BoxGeometry(.048,.065,.014),0xd2b367,0,.286,.103);badge.rotation.z=Math.PI/4;
- part(new THREE.BoxGeometry(.15,.027,.039),0x292b2b,0,.35,-.01);
- const chest=actor.root.getObjectByName('chest'),insignia=new THREE.Group();insignia.name='Imperial training sash badge';chest.add(insignia);
- const panel=new THREE.Mesh(new THREE.BoxGeometry(.105,.14,.018),materials.get(0xd2b367));panel.position.set(0,-.12,.108);panel.rotation.z=Math.PI/4;insignia.add(panel);
- return [hat,insignia];
-}
-
 // All routines use the existing path planner and movement/collision function.
 // Only one bow may fire; a visible cease-fire precedes every retrieval.
 export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseContext}){
  const guards=A.roles.map(id=>npcs.find(n=>n.station.id===id));if(guards.some(n=>!n)||!lot.archery)return null;
- const owned=new Set(guards),kits=new Map(guards.map(n=>[n,makeKit(lot.group)]));guards.forEach(dressGuard);
+ const owned=new Set(guards),kits=new Map(guards.map(n=>[n,makeKit(lot.group)]));const costumes=guards.map(attachJinyiCostume);
  const flying=buildPracticeArrow(G);flying.visible=false;lot.group.add(flying);
  const impacts=A.targets.map(()=>{const q=buildPracticeArrow(G);q.visible=false;lot.group.add(q);return q;});
  const shots=[],history=[],failures=[],forward=new THREE.Vector3(0,0,1),start=new THREE.Vector3(),end=new THREE.Vector3();
@@ -104,7 +92,8 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
  }
  function updateFlight(dt){if(!flying.visible)return;flightTime+=dt;const f=Math.min(1,flightTime/.55);flying.position.copy(start).lerp(end,f);flying.position.y+=Math.sin(Math.PI*f)*.055;if(f===1){flying.visible=false;const q=impacts[flightLane];q.visible=true;q.position.copy(end);q.quaternion.copy(flying.quaternion);}}
  function animateGuard(n,t){
-  let pose=n===shooter()&&!phase.startsWith('player-')?poseFor(phase,phaseTime):null;if(blocked&&['aim','flight'].includes(phase))pose=hold;
+  let pose=n===shooter()&&!phase.startsWith('player-')?poseFor(phase,phaseTime):null;if(n===shooter()&&blocked&&['aim','flight'].includes(phase))pose=hold;
+  if(phase==='handover'&&phaseTime>0){const f=Math.sin(Math.min(1,phaseTime/2.4)*Math.PI);pose={held:false,hands:[[-.30+.20*f,.96+.23*f,.10+.16*f],[.30-.20*f,.96+.20*f,.10+.20*f]]};}
   if(!n.walking&&pose&&['aim','flight','cease'].includes(phase))n.root.rotation.y=-Math.PI/2;
   const c=poseContext(n,null);c.archery=pose;n.animate(t+n.phase,n.walking,null,c);kits.get(n).update(n,pose,A.targets[retrieveLane]);
  }
@@ -126,9 +115,14 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
    if(phase==='handover'){
     const here=travel(n,HANDOFF[active],dt),there=patrol.get(other).stage==='ready'&&gap(other.root.position,HANDOFF[1-active])<.065;
     if(here&&there){
-     for(const actor of guards){const partner=actor===n?other:n;actor.root.rotation.y=Math.atan2(partner.root.position.x-actor.root.position.x,partner.root.position.z-actor.root.position.z);tell(actor,'当面交班 · 门廊、殿前已巡，弓箭已归架');}
-     timed();if(phaseTime>2.4){if(request)enter('player-take');else{if(shiftPending){active=1-active;handoffs++;shiftPending=false;}beginPatrol(guards[1-active]);retrieveLane=0;enter('fetch');}}
+     for(const actor of guards){const partner=actor===n?other:n;actor.root.rotation.y=Math.atan2(partner.root.position.x-actor.root.position.x,partner.root.position.z-actor.root.position.z);tell(actor,rounds?'当面交班 · 门廊、殿前已巡，弓箭已归架':'当面分值 · 一人巡查，一人照看射圃');}
+     timed();if(phaseTime>2.4){if(request)enter('player-take');else{if(shiftPending){active=1-active;handoffs++;shiftPending=false;}beginPatrol(guards[1-active]);retrieveLane=0;enter('release');}}
     }else phaseTime=0;
+   }else if(phase==='release'){
+    // Let the outgoing guard clear the rear opening before the new trainer
+    // walks up the same strip. Their bodies never trade places through each other.
+    tell(n,'留步让行 · 同伴出圃后取弓');
+    const p=patrol.get(other);if(p.index>=2||p.stage==='ready')enter(request?'player-take':'fetch');
    }else if(phase==='relief'){
     tell(n,'射圃留守 · 等巡查同伴归来');
     if(travel(n,HANDOFF[active],dt)){
@@ -166,6 +160,6 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
    for(const actor of guards)animateGuard(actor,t);
   },
   state(){return {phase,phaseTime,rounds,handoffs,active:shooter().station.id,blocked,playerRequested:request,playerComplete:complete,shots:shots.map(s=>({...s})),history:[...history],failures:[...failures],guards:guards.map(n=>({id:n.station.id,position:n.root.position.toArray(),walking:n.walking,route:n.route.length,patrol:{...patrol.get(n),visited:[...patrol.get(n).visited],checkpoint:patrol.get(n).stage==='ready'?'handoff':PATROL[patrol.get(n).index].id},social:socialStatus(n)})),arrows:impacts.map(q=>q.visible),flying:flying.visible};},
-  dispose(){disposed=true;for(const kit of kits.values())kit.dispose();playerKit?.dispose();for(const q of [flying,...impacts]){q.removeFromParent();q.traverse(o=>o.geometry?.dispose());}for(const n of guards){n.route=[];if(n.poseContext)n.poseContext.archery=null;}}
+  dispose(){disposed=true;for(const costume of costumes)costume.dispose();for(const kit of kits.values())kit.dispose();playerKit?.dispose();for(const q of [flying,...impacts]){q.removeFromParent();q.traverse(o=>o.geometry?.dispose());}for(const n of guards){n.route=[];if(n.poseContext)n.poseContext.archery=null;}}
  };
 }
