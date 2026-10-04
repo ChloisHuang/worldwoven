@@ -4,7 +4,7 @@ export const CHINA_MONEY_HOUSE=Object.freeze({
  id:'money-house',name:'承光钱庄',floorY:.215,
  bounds:{minX:-26,maxX:-16,minZ:-33,maxZ:-23},
  stationId:'cn-money-house-teller',
- points:{counter:[-21,.215,-26.35],teller:[-21,.215,-28.50],ledger:[-21.24,1.27,-27.97],abacus:[-20.76,1.29,-27.99]},
+ points:{counter:[-21,.215,-26.35],teller:[-21,.215,-28.25],ledger:[-21.30,1.345,-27.72],abacus:[-20.43,1.369,-27.83]},
  role:{id:'cn-money-house-teller',npcName:'陆昭 · 钱庄账房',ageYears:39},
 });
 
@@ -41,11 +41,11 @@ export function buildChinaMoneyHouse(G,A){
  solid3(g,-23.3,.77,-32.35,4.8,1.11,.66,wood);G.box(g,-23.3,1.36,-32.35,4.96,.10,.76,0x9e7747);
  for(let j=0;j<3;j++)for(let i=0;i<3;i++)H.boundBook(g,-24.9+i*1.1,1.46+j*.115,-32.35,.70,.47,[green,0x866344,0x9c6953][i]);
  // Open ledger has a crease, ruled columns and handwritten-size marks.
- G.box(g,-21.30,1.311,-27.93,.72,.036,.46,0x684b35);for(const x of[-21.48,-21.13])G.box(g,x,1.335,-27.93,.34,.013,.43,0xecdfb6);
- for(let j=0;j<5;j++)for(const x of[-21.52,-21.15]){G.box(g,x,1.344,-28.08+j*.066,.23,.004,.009,0xa88d63);G.box(g,x+.07,1.348,-28.07+j*.066,.032,.004,.017,0x5a5441);}
- H.beam(g,[-21.73,1.36,-28.06],[-21.70,1.36,-27.76],.014,wood);G.box(g,-21.78,1.33,-27.89,.12,.025,.11,0x404334);
+ G.box(g,-21.30,1.311,-27.70,.72,.036,.46,0x684b35);for(const x of[-21.48,-21.13])G.box(g,x,1.335,-27.70,.34,.013,.43,0xecdfb6);
+ for(let j=0;j<5;j++)for(const x of[-21.52,-21.15]){G.box(g,x,1.344,-27.85+j*.066,.23,.004,.009,0xa88d63);G.box(g,x+.07,1.348,-27.84+j*.066,.032,.004,.017,0x5a5441);}
+ H.beam(g,[-21.73,1.36,-27.83],[-21.70,1.36,-27.53],.014,wood);G.box(g,-21.78,1.33,-27.66,.12,.025,.11,0x404334);
  // Eleven working rods: two upper and five lower biconvex beads per rod.
- const abacus=new THREE.Group();abacus.name='钱庄 eleven-rod abacus';abacus.position.set(-20.43,1.31,-27.98);g.add(abacus);
+ const abacus=new THREE.Group();abacus.name='钱庄 eleven-rod abacus';abacus.position.set(-20.43,1.31,-27.71);g.add(abacus);
  for(const x of[-.45,.45])G.box(abacus,x,.045,0,.055,.09,.50,wood);for(const z of[-.25,-.075,.25])G.box(abacus,0,.045,z,.94,.09,.04,wood);
  const beadGeo=new THREE.LatheGeometry([new THREE.Vector2(0,-.021),new THREE.Vector2(.025,-.017),new THREE.Vector2(.035,0),new THREE.Vector2(.025,.017),new THREE.Vector2(0,.021)],8);beadGeo.rotateX(Math.PI/2);
  for(let i=0;i<11;i++){const x=-.38+i*.076;H.beam(abacus,[x,.053,-.235],[x,.053,.23],.009,bronze);for(const z of[-.198,-.147,.005,.05,.095,.14,.185])G.mesh(abacus,beadGeo,0x342e25,x,.059,z);}

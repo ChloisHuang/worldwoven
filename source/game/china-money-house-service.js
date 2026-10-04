@@ -41,7 +41,7 @@ export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,sav
    if(disposed)return;time+=dt;if(dialog.open&&!near())close();
    // One persistent adult works along the same counter. Slow side steps place
    // each object inside the existing hand reach instead of reaching through it.
-   const writing=time%14<8,target=writing?[-21.30,1.345,-27.98]:[-20.43,1.369,-27.98],desiredX=target[0],dx=desiredX-teller.root.position.x;
+   const writing=time%14<8,target=writing?C.points.ledger:C.points.abacus,desiredX=target[0],dx=desiredX-teller.root.position.x;
    const paused=conversationActorId===teller.station.id;teller.walking=!paused&&Math.abs(dx)>.02;
    if(teller.walking){teller.root.position.x+=Math.sign(dx)*Math.min(Math.abs(dx),dt*.38);teller.root.rotation.y=Math.sign(dx)*Math.PI/2;}else teller.root.rotation.y=0;
    activity=writing?'核对账簿 · 落笔记账':'拨动算珠 · 核对铜钱';const small=teller.label?.querySelector?.('small');if(small)small.textContent=activity;
