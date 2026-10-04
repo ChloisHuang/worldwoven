@@ -24,6 +24,7 @@ let html=fs.readFileSync('source/game/index.html','utf8').replace('./game.css?re
 if(html.includes('../tools/')||html.includes('?rev='))throw Error('Private links or blanket cache version remain');
 fs.mkdirSync(path.join(out,'game'),{recursive:true});fs.writeFileSync(path.join(out,'index.html'),html);fs.writeFileSync(path.join(out,'game/index.html'),html);
 fs.writeFileSync(path.join(out,'three-LICENSE.txt'),fs.readFileSync('source/vendor/three/LICENSE'));
+fs.cpSync('source/licenses',path.join(out,'licenses'),{recursive:true});
 const releaseVersion=JSON.parse(fs.readFileSync('package.json','utf8')).version.replace(/^0\./,'');
 const manifest={release:'R'+releaseVersion+'-public',date:'2026-10-04',baseGameCommit:JSON.parse(fs.readFileSync('cache-baseline.json','utf8')).publishedSourceCommit,assets};fs.writeFileSync(path.join(out,'build.json'),JSON.stringify(manifest,null,2)+'\n');
 // No overlapping Cache-Control rules: Cloudflare concatenates matching values.

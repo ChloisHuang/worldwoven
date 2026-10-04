@@ -1,0 +1,43 @@
+/** Narrow regression: model selection must not rewrite saves or strip role dress. */
+import {registerHooks} from 'node:module';
+import {pathToFileURL} from 'node:url';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+registerHooks({resolve(s,c,next){return s==='three'?{url:pathToFileURL(path.resolve('source/vendor/three/build/three.module.js')).href,shortCircuit:true}:next(s,c);}});
+const T=await import('three');
+const C=await import('../source/game/characters.js');
+const {createAppearanceState,playerAppearance,npcRoleAppearance,npcShapeTraits,migrateAppearanceState}=await import('../source/game/appearance.js');
+const {courtOfficialAppearance,CHINA_COURT_OFFICIALS}=await import('../source/game/china-palace-audience.js');
+const {attachCourtOfficialCostume}=await import('../source/game/china-court-official-costume.js');
+const {attachPalaceCostume}=await import('../source/game/china-palace-costume.js');
+const {shapePreferenceScore}=await import('../source/game/character-traits.js');
+const modelPreview='complete-adult-head-v1';
+const skinMeshes=a=>{const out=[];a.root.traverse(m=>{if(m.isSkinnedMesh)out.push(m);});return out;};
+function ranges(actor){return new Map(skinMeshes(actor).flatMap(mesh=>mesh.geometry.userData.sourceRanges.map(r=>[r.name,{r,g:mesh.geometry}])));}
+const state=createAppearanceState(41);Object.assign(state.player,{bodyPreset:'feminine-slender',variant:2,hairStyle:'chin-bob',wardrobeIndex:0,shapeTraits:npcShapeTraits('france','saved-player',41)});
+const saved=JSON.stringify(state),loaded=migrateAppearanceState(JSON.parse(saved));assert.equal(JSON.stringify(loaded),saved);
+const male={...npcRoleAppearance('france','saved-npc',19),culture:'france',bodyPreset:'masculine-lean',hairStyle:'side-part',wardrobePreset:'court-frock-coat'};
+const female={...playerAppearance(loaded,'france'),culture:'france'};
+const official={...courtOfficialAppearance('china',CHINA_COURT_OFFICIALS[0].id,npcRoleAppearance('china',CHINA_COURT_OFFICIALS[0].id,41)),culture:'china'};
+const consort={...npcRoleAppearance('china','cn-consort-yue',41),culture:'china'};
+const result=[];
+for(const [id,look]of [['saved-npc',male],['saved-player',female],['official',official],['consort',consort]]){
+ const original=structuredClone(look),score=shapePreferenceScore(look.shapeTraits),legacy=C.createCharacter(look),preview=C.createCharacter({...look,modelPreview}),reload=C.createCharacter({...JSON.parse(JSON.stringify(look)),modelPreview});
+ assert(preview.root.userData.characterModel.applied,id);assert.deepEqual(look,original);assert.deepEqual(preview.root.userData.appearance,legacy.root.userData.appearance);assert.equal(shapePreferenceScore(preview.root.userData.appearance.shapeTraits),score);
+ const meshes=skinMeshes(preview),legacyMeshes=skinMeshes(legacy);assert.equal(meshes.length,2);assert.notEqual(meshes[1].material,legacyMeshes[1].material);assert.equal(meshes[0].material,legacyMeshes[0].material);assert.equal(meshes[1].geometry,skinMeshes(reload)[1].geometry);assert.notEqual(meshes[1].geometry,legacyMeshes[1].geometry);
+ assert.equal(legacyMeshes[1].material.userData.completeAdultFinish,undefined);assert.equal(legacyMeshes[1].geometry.attributes.featureKind,undefined);
+ const old=ranges(legacy),now=ranges(preview);let retained=0;
+ for(const [name,{r,g}]of old){if(/head|ear-|eye|iris-|pupil-|brow|nostril|lip|mouth|hair|fringe|combed|side-lock|side-flow|^neck$/.test(name))continue;const next=now.get(name);assert(next,`Retained garment ${name}`);for(const key of ['position','normal','color','skinIndex','skinWeight']){const a=g.attributes[key],b=next.g.attributes[key];assert.deepEqual(b.array.slice(next.r.start*b.itemSize,(next.r.start+next.r.count)*b.itemSize),a.array.slice(r.start*a.itemSize,(r.start+r.count)*a.itemSize),`${id} ${name} ${key}`);}retained++;}
+ const head=now.get('continuous-head-anatomical-head-neck'),p=head.g.attributes.position,sy=head.g.attributes.sourceY,si=head.g.attributes.skinIndex,sw=head.g.attributes.skinWeight;let anchors=0,blend=0;const anchorIds=[];
+ for(let i=head.r.start;i<head.r.start+head.r.count;i++){let weight=0;for(let k=0;k<4;k++)if(si.array[i*4+k]===3)weight+=sw.array[i*4+k];if(sy.getX(i)<1.36){assert.equal(weight,0);anchors++;anchorIds.push(i);}if(weight>0&&weight<1)blend++;}
+ assert.equal(anchors,46);assert(blend>0);
+ const mesh=meshes.find(m=>m.geometry===head.g),before=anchorIds.map(i=>mesh.getVertexPosition(i,new T.Vector3()).toArray());preview.root.userData.head.rotation.y=.38;preview.root.updateMatrixWorld(true);mesh.skeleton.update();for(const [j,i]of anchorIds.entries())assert(new T.Vector3(...before[j]).distanceTo(mesh.getVertexPosition(i,new T.Vector3()))<1e-6);
+ let costume;
+ if(id==='official'){assert([...now.keys()].filter(n=>n.startsWith('court-official-facial-hair')).length===3);costume=attachCourtOfficialCostume(preview);const cap=preview.root.getObjectByName('Original civil official black winged cap');assert.equal(cap.parent,preview.root.userData.head);assert(cap.userData.completeAdultFit);}
+ if(id==='consort'){preview.station={royalRole:'consort',costumeStyle:'flower-comb'};costume=attachPalaceCostume(preview);assert(preview.root.userData.palaceCostume.userData.completeAdultFit);}
+ result.push({id,score,body:look.bodyPreset,hair:look.hairStyle,wardrobe:look.wardrobePreset,retainedBodySurfaces:retained,collarAnchors:anchors,neckBlendVertices:blend,fit:preview.root.userData.characterModel.attachmentFit});
+ costume?.dispose();for(const a of[preview,legacy,reload])a.dispose();
+}
+for(const [reason,look]of [['hairstyle-needs-fit',{...female,hairStyle:'braided-tail'}],['role-headgear-needs-fit',{...male,style:'chef'}]]){const a=C.createCharacter(look),b=C.createCharacter({...look,modelPreview});assert.equal(b.root.userData.characterModel.reason,reason);assert.equal(skinMeshes(a)[0].geometry,skinMeshes(b)[0].geometry);assert.equal(skinMeshes(a)[1].material,skinMeshes(b)[1].material);a.dispose();b.dispose();}
+assert.equal(JSON.stringify(state),saved);assert.equal(C.characterResourceStats().activeReferences,0);
+console.log(JSON.stringify({status:'PASS',result,resources:C.characterResourceStats(),scope:'Actual createCharacter/cache/skeleton/save contracts; no world, browser or phone claim'},null,2));
