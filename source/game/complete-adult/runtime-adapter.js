@@ -8,6 +8,7 @@ import {addLayeredHair} from './layered-hair.js';
 import {addFemaleHairOption,FEMALE_HAIR_OPTIONS} from './female-hair-options.js';
 import {applyNaturalClothing} from './natural-clothing.js';
 import {applyFemaleSilhouette} from './female-silhouette.js';
+import {fitFemaleLongHair} from './fit-long-hair.js';
 import {fitCompleteAdultClothing} from './fit-clothing.js';
 import {applyAnatomicalFinish} from './face-finish.js';
 import {applySurfaceFinish} from './surface-finish.js';
@@ -16,7 +17,7 @@ import {RETAINED_HAIR,createHeadAttachmentFit,fitCandidateHairAttachments,fitRet
 import {FREE_BRAID,planRetainedBraid,applyRetainedBraid} from './retained-hair-fit.js';
 export const COMPLETE_ADULT_PREVIEW='complete-adult-head-v1';
 export const COMPLETE_ADULT_PAIR_PREVIEW='complete-adult-pair-v1';
-export const COMPLETE_ADULT_VERSION='candidate-female68a2bec-hair-fcaa901-traits10-depth-v1';
+export const COMPLETE_ADULT_VERSION='candidate-female68a2bec-hair-fcaa901-traits10-depth-v1-long-fit2';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const forms={'masculine-lean':'male','masculine-broad':'male','feminine-balanced':'female','feminine-slender':'female'};
 export function completeAdultSupport(options,selection){
@@ -28,7 +29,7 @@ export function completeAdultSupport(options,selection){
  const bakedHair=options.previewHair==='side-part'||FEMALE_HAIR_OPTIONS.includes(options.previewHair);
  if(options.previewHair==='retained'&&!['low-bun','braided-tail'].includes(options.hairStyle))return fail('retained-hairstyle-needs-fit');
  if(form==='female'&&!options.previewHair)return fail('explicit-female-hair-required');
- if(options.previewHair==='long-layered'&&!(selection===COMPLETE_ADULT_PAIR_PREVIEW&&options.culture==='france'&&options.bodyPreset==='feminine-slender'&&options.wardrobePreset==='court-gown'))return fail('long-hair-needs-matching-gown');
+ if(options.previewHair==='long-layered'&&!(selection===COMPLETE_ADULT_PAIR_PREVIEW&&options.culture==='france'&&form==='female'&&(options.style??'casual')==='casual'&&['court-gown','court-overgown'].includes(options.wardrobePreset)))return fail('long-hair-needs-matching-gown');
  if(selection===COMPLETE_ADULT_PAIR_PREVIEW&&(options.culture!=='france'||(options.style??'casual')!=='casual'||!(options.bodyPreset==='masculine-lean'&&(bakedHair||options.hairStyle==='side-part')&&options.wardrobePreset==='court-frock-coat'||form==='female'&&bakedHair&&['court-gown','court-overgown'].includes(options.wardrobePreset))))return fail('complete-pair-only');
  if(!bakedHair&&options.hairStyle==='braided-tail'&&options.previewHair!=='retained')return fail('retained-braid-opt-in-required');
  if(!bakedHair&&!['low-bun','braided-tail'].includes(options.hairStyle)&&options.hairStyle!==(form==='male'?'side-part':'chin-bob'))return fail('hairstyle-needs-fit');
@@ -55,7 +56,7 @@ export function applyCompleteAdultPreview(root,options,selection){
   attachCompleteHead(root,C,asset,{surface:true});
   // Hair is the only replaced attachment; authored role hats survive the
   // explicit face removal list in attach-head. Facial hair has its own fit.
-  if(!retained){for(const mesh of[...head.children])if(mesh.isMesh&&RETAINED_HAIR.test(mesh.name)){mesh.removeFromParent();mesh.geometry.dispose();}const flowFinish=!!options.previewHairFlow,hair=support.form==='male'?addLayeredHair(head,C.hair,{flowFinish}):addFemaleHairOption(head,C.hair,options.previewHair,{flowFinish});hair.userData.softSkin=support.form==='female';hair.userData.completeAdultPart=options.previewHair==='long-layered'?'long-hair':'hair';if(options.previewHair)fitCandidateHairAttachments(attachmentFit,hair);}
+  if(!retained){for(const mesh of[...head.children])if(mesh.isMesh&&RETAINED_HAIR.test(mesh.name)){mesh.removeFromParent();mesh.geometry.dispose();}const flowFinish=!!options.previewHairFlow,hair=support.form==='male'?addLayeredHair(head,C.hair,{flowFinish}):addFemaleHairOption(head,C.hair,options.previewHair,{flowFinish});hair.userData.softSkin=support.form==='female';hair.userData.completeAdultPart=options.previewHair==='long-layered'?'long-hair':'hair';fitFemaleLongHair(hair,options);if(options.previewHair)fitCandidateHairAttachments(attachmentFit,hair);}
  });
  if(selection===COMPLETE_ADULT_PAIR_PREVIEW)fitCompleteAdultClothing(root,options,neutral=>{applyNaturalClothing(root,neutral);applyFemaleSilhouette(root,neutral);});
  const result={applied:true,hairFlow:!!options.previewHairFlow,previewHair:options.previewHair??null,garmentRefinement:selection===COMPLETE_ADULT_PAIR_PREVIEW,version:COMPLETE_ADULT_VERSION,form:support.form,attachmentFit};
