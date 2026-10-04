@@ -27,7 +27,7 @@ order=null;mounted=null;move(reception.position);const cancelled=card();cancelle
 ui.open();cancelled.onclick();assert.equal(ctx.pendingInteraction,null,'old closed menu button stays stale after reopen');choice().onclick();free=false;move(seat.position);ctx.startInteraction(ctx.pendingInteraction);assert.equal(mounts,1);assert.equal(requests,2,'occupied arrival never orders');free=true;
 move(reception.position);mountSucceeds=false;card().onclick();arrive();assert.equal(requests,2,'failed mount cannot order');mountSucceeds=true;
 move(reception.position);failPath=true;card().onclick();assert.equal(ctx.pendingInteraction,null);assert.equal(requests,2);failPath=false;
-move(reception.position);card().onclick();const departing=ctx.pendingInteraction;ui.dispose();assert.equal(ui.resolveIntent(departing),null);ctx.startInteraction(departing);assert.equal(requests,2,'disposed region cannot submit old choice');
+move(reception.position);card().onclick();const departing=ctx.pendingInteraction;ui.dispose();badge.onclick();assert.equal(ui.resolveIntent(departing),null);ctx.startInteraction(departing);assert.equal(requests,2,'disposed region cannot submit old choice');
 // Badge has no order-driven global fallback; status remains explicitly openable.
 const otherDoc={head:element(),body:element(),createElement:element};
 const other=createChinaTavernMealUI({service,getPlayer:()=>player,getMounted:()=>mounted,getReception:()=>reception,onOpen(){},canOrder:()=>!busy,canSee:()=>visible,canShow:()=>show,document:otherDoc});

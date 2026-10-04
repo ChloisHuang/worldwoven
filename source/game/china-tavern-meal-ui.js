@@ -43,6 +43,6 @@ export function createChinaTavernMealUI({service,getPlayer,getMounted,getRecepti
   if(seated)actions.append(button('起身',()=>{close();onStand();}));dialog.append(actions,make('p',o?'收起菜牌后仍会继续备餐；起身会取消未吃完的饭。':'菌菇饭是酒楼的一份游戏餐点。可在桌边等掌柜送来。'));
  }
  function open(){if(disposed||!nearEntry()&&!service.view().order)return;invalidateIntent();onOpen();refresh(true);if(!dialog.open)dialog.showModal();refresh(true);}
- badge.onclick=()=>{if(nearEntry()&&canShow())open();};dialog.addEventListener('cancel',e=>{e.preventDefault();close();});refresh();
+ badge.onclick=()=>{if(!disposed&&nearEntry()&&canShow())open();};dialog.addEventListener('cancel',e=>{e.preventDefault();close();});refresh();
  return {open,close,intent,resolveIntent,executeIntent,invalidateIntent,isOpen:()=>!!dialog.open,openStation:id=>{if(id!==service.dish.host)return false;open();return true;},update:()=>{if(!disposed)refresh();},dispose(){disposed=true;invalidateIntent();close();badge.remove();dialog.remove();style.remove();}};
 }
