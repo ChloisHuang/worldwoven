@@ -63,7 +63,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
    let s=stages.get(n);if(!s){choose(n);s=stages.get(n);if(!s)return;}
    n.walking=false;if(s.courtReady)return;
    const paused=state.conversationActorId===n.station.id;tell(n,s.label+(paused?' · 停步与你交谈':''));
-   if(s.evicted&&!paused){if(finish(n,s,false))choose(n);return;}
+   if(s.evicted&&!paused){if(finish(n,s,false)){if(s.called)stages.set(n,{courtReady:true,label:'让出卧榻后应召赴朝'});else choose(n);}return;}
    // Finishing a task and clearing a bed are real constraints. A walking actor
    // responds immediately from his current position; an occupied desk takes
    // the remaining short work action, with different seeded durations.

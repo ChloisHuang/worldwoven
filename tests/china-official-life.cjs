@@ -18,7 +18,7 @@ const linker=(s,f)=>mod(s==='three'?path.join(root,'vendor/three/build/three.mod
  let time=0;function tick(){time+=.1;flow.tick(.1,{hour:10});for(const n of officials)flow.update(n,.1,time);}
  tick();assert(flow.state().actors.every(a=>a.mounted));assert.equal(claims.state().filter(f=>f.reservations.length).length,4,'one bed and one private room each');
  assert.equal(claims.reserve(B.roomIds[0],ids[1]),null,'second actor cannot take another reserved private room');claims.release(B.roomIds[0],ids[1]);
- officials.forEach(n=>flow.request(n));for(let i=0;i<130;i++)tick();assert(!flow.ready(officials[0]),'blocked bed exit cannot be teleported away');assert(flow.ready(officials[1]),'other official responds independently');assert.equal(flow.state().actors[0].mounted,beds[0].id);
+ officials.forEach(n=>flow.request(n));flow.playerRequest(beds[0].id);for(let i=0;i<130;i++)tick();assert(!flow.ready(officials[0]),'blocked bed exit cannot be teleported away');assert(flow.ready(officials[1]),'other official responds independently');assert.equal(flow.state().actors[0].mounted,beds[0].id);
  assert(flow.state().decisions.people[ids[1]].needs.fatigue>=saved.people[ids[1]].needs.fatigue,'court interruption grants no rest recovery');
  blockedFirst=false;tick();assert(flow.ready(officials[0]));assert.equal(claims.state().filter(f=>f.reservations.length).length,0,'court releases all finite claims');
  officials[0].root.position.set(-4.6,.13,13.2);const afterCourt=officials[0].root.position.clone();flow.resume(officials[0]);assert(officials[0].root.position.equals(afterCourt),'resume chooses from real dismissal location');assert(flow.state().actors[0].activity,'released actor returns to independent life');
