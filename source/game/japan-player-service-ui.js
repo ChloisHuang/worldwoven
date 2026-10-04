@@ -52,7 +52,8 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
   const s=service.state(),v=s.visit,step=next();
   if(disposed||s.suspended||!getPlayer()||!['register','change','wash','collect','return','order','meal','eat'].includes(step.kind))return null;
   const dish=service.menu.find(d=>d.id===selectedDish);
-  return {id:'jp-player-service-'+step.kind,provider:'japan-player-service',name:'你的汤馆服务',action:step.label,kind:step.kind,position:step.position.slice(),executionRadius:step.kind==='order'?1.25:.34,keepSeat:!!getMounted()&&['order','meal','eat'].includes(step.kind),
+  // The registrar's real handover waits for the guest inside 0.25 m.
+  return {id:'jp-player-service-'+step.kind,provider:'japan-player-service',name:'你的汤馆服务',action:step.label,kind:step.kind,position:step.position.slice(),executionRadius:step.kind==='order'?1.25:['register','return'].includes(step.kind)?.24:.34,keepSeat:!!getMounted()&&['order','meal','eat'].includes(step.kind),
    intentKey:JSON.stringify([choiceRevision,v?.id,v?.stage,v?.tokenId,v?.side,v?.poolId,v?.restSeatId,v?.blendReceived,v?.paymentId,step.kind,v?.blendId||selected,selectedDish,dish?.price])};
  }
  function resolveIntent(candidate){return currentInteractionIntent(candidate,currentIntent());}
