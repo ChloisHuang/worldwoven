@@ -1,5 +1,5 @@
 // Visitor activities are explicit. An NPC's job/animation is never evidence
-// that the player holds that job. Career applications are not implemented yet.
+// that the player holds that job. Registered work has its own live provider.
 const PUBLIC_STATIONS=new Set([
  'jp-omamori','jp-welcome','jp-onsen','jp-women-onsen','jp-sushi','jp-ramen','jp-tea','jp-balcony','jp-performance-reception',
  'cn-tea','cn-calligraphy','cn-rest','cn-garden','cn-archery','cn-range-warden','cn-money-house-teller','cn-tavern-host','cn-tavern-reception',
