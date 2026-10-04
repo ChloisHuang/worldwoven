@@ -8,8 +8,8 @@ Public game: https://alien.doudouai.net/
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Prepared release: R16.24-public, 2026-10-04
-Verified published Sites source commit: c13af8554ffd8741d074e0e52730603dd2861c2c
+Prepared release: R16.25-public, 2026-10-04
+Previous published Sites source commit: cc755c94cf42b6da835e9ac2fd55521f37b4d8d6
 
 ## Working rules
 
@@ -83,3 +83,5 @@ R16.22 refines the Egyptian judgment vignette: a sculpted jackal guardian, suspe
 R16.23 adds the playable bathhouse service menu and fourteen existing residents’ shared staff-life rotation, physical relief, meal/tea/night rest and return. Shrine relief keeps the required temporary miko clothing. Targeted flow and Three/Mesa checks are complete; mobile browser layout and real iOS gameplay remain unverified. The new face study is not included.
 
 R16.24 refines the existing Egyptian royal coffin with an anthropoid lid, nemes mask, regalia and nested casing detail, plus a non-graphic wrapped mummy. Existing collision bounds and interactions are preserved; this is one asset improvement, not completion of all Egyptian art.
+
+R16.25 gives the two original Chinese guards a gate/courtyard/hall-step patrol, observation and physical relief, with safe nearby conversation and existing player archery. Their independent Ming-informed robe, cap, belt and sheathed saber replace the former generic costume; museum images informed original geometry. Patrol and handoff checks use the actual main controller and Three/Mesa, not mobile browser gameplay.
