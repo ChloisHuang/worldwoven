@@ -55,16 +55,27 @@ for x,y,z in raw:
   _,y,z=sculpt[(abs(x),y,z)]
  sculpted.append((x,y,z))
 positions=cage(sculpted)
+# Authored local planes are direct named vertex-loop moves, mirrored by source
+# topology. They are not extra meshes or a global displacement function.
+loops=json.loads((ROOT/'topology_sculpt.json').read_text())['loops']
+lookup={(round(abs(x),5),round(y,5),round(z,5)):[] for x,y,z in raw}
+for i,(x,y,z) in enumerate(raw):lookup[(round(abs(x),5),round(y,5),round(z,5))].append(i)
+for loop in loops:
+ for index in loop['vertices']:
+  x,y,z=verts[index]
+  for i in lookup.get((round(abs(x),5),round(y,5),round(z,5)),[]):positions[i]+=np.array(loop['delta'])
+# Fit the one open cervical boundary to the existing collar. Interior facial
+# topology is closed and has no boundary in this source mesh.
+from collections import Counter
+edges=Counter(tuple(sorted((f[j],f[(j+1)%len(f)]))) for f in faces for j in range(len(f)))
+boundary={v for e,n in edges.items() if n==1 for v in e}
+for i in boundary:
+ x,y,z=raw[i];angle=math.atan2(x,(z-.235)*1.1)
+ positions[i]=(.043*math.sin(angle),1.353,-.008+.037*math.cos(angle))
+
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
 mesh=bpy.data.meshes.new('hm08 authored adult control topology');mesh.from_pydata(positions,[],faces);mesh.update()
 obj=bpy.data.objects.new('Complete adult anatomical surface',mesh);bpy.context.collection.objects.link(obj)
-obj.shape_key_add(name='Basis');sculpt_key=obj.shape_key_add(name='Authored adult cage')
-# Basis remains the normalized unsculpted source for editable Blender comparison.
-for i,p in enumerate(raw):obj.data.shape_keys.key_blocks['Basis'].data[i].co=(p[0]*.11,1.48+(p[1]-6.16)*.11,(p[2]-.76)*.105)
-sculpt_key.value=1
-# Synchronize mesh Basis as well as its key, avoiding a stale edit-mesh basis.
-for i,v in enumerate(mesh.vertices):v.co=obj.data.shape_keys.key_blocks['Basis'].data[i].co
-mesh.update()
 cage_mesh=bpy.data.meshes.new('Named sculpt cage');cage_mesh.from_pydata(dst,[],[]);cage_obj=bpy.data.objects.new('Anatomical cage handles',cage_mesh);bpy.context.collection.objects.link(cage_obj);cage_obj.hide_render=True;cage_obj['names']=json.dumps(names)
 for name in ['feature_coord']:mesh.attributes.new(name,'FLOAT_VECTOR','POINT')
 for name in ['lip_tint','cavity_tint','lid_tint']:mesh.attributes.new(name,'FLOAT','POINT')
@@ -79,14 +90,11 @@ for i,(x,y,z) in enumerate(raw):
  mesh.attributes['lip_tint'].data[i].value=lip;mesh.attributes['cavity_tint'].data[i].value=max(cavity,seam);mesh.attributes['lid_tint'].data[i].value=lid
 for poly in mesh.polygons:poly.use_smooth=True
 bm=bmesh.new();bm.from_mesh(mesh);bmesh.ops.recalc_face_normals(bm,faces=bm.faces);bm.to_mesh(mesh);bm.free()
-# Keep the deliberately structured base loops at game resolution. A single
-# Catmull pass is selectively reduced, preserving the feature loops and ears.
-protect=obj.vertex_groups.new(name='Keep orbital alar labial and ear topology')
-for i,(x,y,z) in enumerate(raw):
- feature=(z>1.25 and ((6.45<y<7.48 and abs(x)<.49))) or abs(x)>.65 and 6.8<y<7.4
- if feature:protect.add([i],1.,'REPLACE')
-sub=obj.modifiers.new('Sculpt cage limit surface','SUBSURF');sub.levels=1
-reduce=obj.modifiers.new('Reduce broad planes preserve anatomical loops','DECIMATE');reduce.ratio=.43;reduce.vertex_group=protect.name;reduce.vertex_group_factor=1.;reduce.invert_vertex_group=True
+# Export the native designed control loops for the light mesh; optional single
+# subdivision is a sculpt comparison only. No collapse/decimation is used.
+level=int(os.environ.get('SCULPT_LEVEL','0'))
+if level:
+ sub=obj.modifiers.new('Sculpt cage limit surface','SUBSURF');sub.levels=level
 parts=[];deps=bpy.context.evaluated_depsgraph_get();ev=obj.evaluated_get(deps);me=ev.to_mesh();me.calc_loop_triangles()
 part={'name':'head-neck','material':'skin','position':[],'normal':[],'index':[],'featureCoord':[],'lipWeight':[],'cavityWeight':[],'lidWeight':[],'recessWeight':[]}
 for v in me.vertices:
@@ -113,14 +121,12 @@ def export(name,material,vs,fs,features=None,occ=None):
 # One continuous convex globe per eye. Iris and pupil are ring sections of
 # that same globe, with a natural round projected iris and lid-sized aperture.
 for side in [-1,1]:
- center=Vector((side*.040,1.614,.053));rad=Vector((.0255,.019,.024));nu=48
+ center=Vector((side*.30775,7.281,1.24535));rad=Vector((.164,.164,.164));nu=48
  theta=[0,.07,.15,.24,.32,.405,.46,.58,.76,1.02,1.30,1.65,2.05,2.50,math.pi]
  points=[];normals=[];fc=[];occ=[]
  for t in theta:
   for k in range(nu):
-   a=k/nu*math.tau;sn=math.sin(t);p=center+Vector((rad.x*sn*math.cos(a),rad.y*sn*math.sin(a),rad.z*math.cos(t)))
-   # More vertical curvature makes the cornea round in front projection.
-   if t<.76:p.y=center.y+(p.y-center.y)*(1.20*(1-smooth(.46,.76,t))+smooth(.46,.76,t))
+   a=k/nu*math.tau;sn=math.sin(t);p=point(center+Vector((rad.x*sn*math.cos(a),rad.y*sn*math.sin(a),rad.z*math.cos(t))))
    points.append(p);fc += [math.sin(t)/math.sin(.405)*math.cos(a),math.sin(t)/math.sin(.405)*math.sin(a),t]
    hit=tree.ray_cast(p+Vector((0,.0003,.0002)),Vector((0,.8,.6)),.013)[0];occ.append(.65 if hit is not None else 0.)
  for material,lo,hi in [('pupil',0,.15),('iris',.15,.405),('sclera',.405,math.pi)]:
@@ -133,7 +139,7 @@ for side in [-1,1]:
  # Shallow skin-fitted eyebrows, one polygon ribbon with tapered fringe.
  bp=[];bf=[];bc=[];bn=38;bw=4
  for j in range(bn+1):
-  t=j/bn;x=.018+(.071-.018)*t;y=profile([(0,1.632),(.24,1.635),(.62,1.636),(1,1.630)],t);half=.0027*profile([(0,.08),(.12,.84),(.32,1),(.67,.73),(1,.015)],t)
+  t=j/bn;x=.018+(.071-.018)*t;y=profile([(0,1.6295),(.24,1.6325),(.62,1.6335),(1,1.6275)],t);half=.0027*profile([(0,.08),(.12,.84),(.32,1),(.67,.73),(1,.015)],t)
   for k in range(bw+1):
    a=k/bw*2-1;p=Vector((side*x,y+a*half,.2));hit=tree.ray_cast(p,Vector((0,0,-1)),.4)[0]
    if hit is not None:p.z=hit.z+.0004+.00018*(1-a*a)
