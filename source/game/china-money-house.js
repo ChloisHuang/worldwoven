@@ -32,11 +32,11 @@ export function buildChinaMoneyHouse(G,A){
  G.box(g,-22,1.235,-27.45,6.02,.12,1.04,0x9e7747);
  for(const x of[-24.25,-22.8,-21.35,-19.9]){G.box(g,x,.735,-26.979,1.25,.66,.035,green);for(const y of[.42,1.05])G.box(g,x,y,-26.95,1.28,.036,.026,bronze);}
  moneyHousePlaque(G,g,'存取',-22.8,.74,-26.93,1.18,.48);
- const coinShape=new THREE.Shape();for(let i=0;i<=20;i++){const a=i*Math.PI/10,x=Math.sin(a)*.15,y=Math.cos(a)*.15;i?coinShape.lineTo(x,y):coinShape.moveTo(x,y);}const hole=new THREE.Path();hole.moveTo(-.045,-.045);hole.lineTo(.045,-.045);hole.lineTo(.045,.045);hole.lineTo(-.045,.045);hole.closePath();coinShape.holes.push(hole);
+ const coinShape=new THREE.Shape();for(let i=0;i<=20;i++){const a=i*Math.PI/10,x=Math.sin(a)*.080,y=Math.cos(a)*.080;i?coinShape.lineTo(x,y):coinShape.moveTo(x,y);}const hole=new THREE.Path();hole.moveTo(-.025,-.025);hole.lineTo(.025,-.025);hole.lineTo(.025,.025);hole.lineTo(-.025,.025);hole.closePath();coinShape.holes.push(hole);
  const coinGeometry=new THREE.ExtrudeGeometry(coinShape,{depth:.025,bevelEnabled:false,curveSegments:2});
  const coin=(q,x,y,z)=>G.mesh(q,coinGeometry,bronze,x,y,z);
  // Square holes are real cutouts. Five vertical strings stay above the counter.
- for(const x of[-24.3,-23.9,-23.5]){H.beam(g,[x,2.63,-32.70],[x,1.18,-32.70],.015,0x874333);for(let i=0;i<5;i++)coin(g,x,2.44-i*.245,-32.71);}
+ for(const x of[-24.3,-23.9,-23.5]){H.beam(g,[x,2.63,-32.70],[x,1.72,-32.70],.015,0x874333);for(let i=0;i<5;i++)coin(g,x,2.44-i*.16,-32.71);}
  // Bound ledgers on the rear work shelf, with cream page blocks and ties.
  solid3(g,-23.3,.77,-32.35,4.8,1.11,.66,wood);G.box(g,-23.3,1.36,-32.35,4.96,.10,.76,0x9e7747);
  for(let j=0;j<3;j++)for(let i=0;i<3;i++)H.boundBook(g,-24.9+i*1.1,1.46+j*.115,-32.35,.70,.47,[green,0x866344,0x9c6953][i]);
