@@ -15,7 +15,7 @@ export function performanceWillingness(actor,activity,opinion=0){
 
 // One finite table and one public stage. The same copper journal owns holds;
 // no free coins, persistent occupancy, intimacy, pregnancy or parallel score.
-export function createJapanPerformanceService({npcs,furniture,doors,planPath,moveActor,poseContext,getPlayer,getMounted=()=>null,copperLedger,props=null,worldSeed=1,saved={},saveState=()=>{},notify=()=>{},isActorBusy=()=>false}){
+export function createJapanPerformanceService({npcs,furniture,doors,navigation,planPath,moveActor,poseContext,getPlayer,getMounted=()=>null,copperLedger,props=null,worldSeed=1,saved={},saveState=()=>{},notify=()=>{},isActorBusy=()=>false}){
  const cast=npcs.filter(n=>n.station.performance),server=cast.find(n=>n.station.id==='jp-performance-reception'),artists=cast.filter(n=>n!==server);
  const guestSeat=furniture.items.find(i=>i.id===GUEST),artistSeat=furniture.items.find(i=>i.id===ARTIST);if(!server||artists.length!==2||!guestSeat||!artistSeat)return null;
  let order=null,lastReply=clone(saved.lastReply),lastResult=null,time=Number(saved.time)||0,serial=Number(saved.serial)||0,disposed=false,paymentError=null,phase=0,elapsed=0,drinkPhase=0,conversation=null;
@@ -106,11 +106,12 @@ export function createJapanPerformanceService({npcs,furniture,doors,planPath,mov
     else if(o.status==='reply'&&phase>=1.1)respond();
     else if(o.status==='seating'){
      if(o.activity==='tea'){
-      if(move(a,artistSeat.position,dt)&&order===o&&furniture.canSit(undefined,[],artistSeat)){a.root.position.set(...artistSeat.anchor);a.root.rotation.y=-Math.PI/2;a.serviceMount=artistSeat;reset(a);}
+      if(!a.serviceMount&&move(a,artistSeat.position,dt)&&order===o&&furniture.canSit(navigation,[],artistSeat)){a.root.position.set(...artistSeat.anchor);a.root.rotation.y=-Math.PI/2;a.serviceMount=artistSeat;reset(a);}
      }else move(a,P.stage,dt);
      if(order===o&&getMounted()?.id===GUEST&&(o.activity==='tea'?!!a.serviceMount:near(a,P.stage,.15))){furniture.facilities.occupy(TABLE,o.id);enter('performing');record('participants-arrived',{positions:{player:getPlayer().root.position.toArray(),artist:a.root.position.toArray()}});}
     }else if(['performing','drinking'].includes(o.status)){
      if(getMounted()?.id!==GUEST||!near(getPlayer(),guestSeat.anchor,.2)){cancel('你提前离开了茶席');}
+     else if(o.activity==='tea'?!a.serviceMount||!near(a,artistSeat.anchor,.2):!near(a,P.stage,.2)){cancel('艺者已离开服务位置');}
      else if(!o.actComplete){o.actSeconds+=dt;if(o.activity==='tea'&&o.actSeconds>=5&&!o.spoke){o.spoke=true;const words=o.artistId==='jp-salon-mai'?'舞：扇面开合很像风停在袖边。我喜欢慢慢看的人，也喜欢慢慢听。':'一郎：那位旅人以为雨声是掌声，连讲了三回。店主只好再添一壶茶。';notify(words);record('conversation',{words});}if(o.actSeconds>=ACT[o.activity].duration&&settle('act')&&order===o)enter('drinking');}
     }
     if(order===o&&o.paid&&o.drink&&!o.drinkComplete){

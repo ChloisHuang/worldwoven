@@ -15,10 +15,13 @@ export function buildJapanPerformanceHall({floor,obstacle,sign}){
  G.box(g,4.5,.235,4.79,4.04,.055,.09,gold);
  // Front is fully open. A three-colour rear curtain and narrow side wings
  // establish the performance silhouette without covering the audience view.
+ const curtain=new THREE.Group();curtain.name='Sewn three-colour stage curtain';curtain.userData.noStaticBatch=true;g.add(curtain);
  for(let i=0;i<15;i++){
-  const x=2.6+i*.272,c=[0x323536,0x54776a,0xbd8051][i%3];
-  G.box(g,x,1.64,7.13,.266,2.67,.075,c);
-  G.cyl(g,x-.082,1.64,7.07,.033,.033,2.67,c,6);
+  const x=2.47+i*.272,c=[0x323536,0x54776a,0xbd8051][i%3],points=[],indices=[];
+  for(let row=0;row<=4;row++)for(let col=0;col<=4;col++){const u=col/4,v=row/4;points.push(x+u*.272,.29+v*2.70,7.12+Math.cos((i+u)*Math.PI*2)*(.026+.012*(1-v)));}
+  for(let row=0;row<4;row++)for(let col=0;col<4;col++){const a=row*5+col;indices.push(a,a+1,a+5,a+1,a+6,a+5);}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(points,3));geo.setIndex(indices);geo.computeVertexNormals();
+  const cloth=G.mesh(curtain,geo,c,0,0,0,{side:THREE.DoubleSide});cloth.receiveShadow=false;cloth.userData.shadowPolicy='toon-lit-casting-cloth-no-shadow-receiver';
  }
  for(const x of[2.43,6.57]){G.box(g,x,1.69,7.1,.14,3.23,.2,wood);G.box(g,x,1.68,6.55,.095,3.18,1.1,wood);obstacle(x,7.6+1.68,6.55,.095,3.18,1.1);}
  G.box(g,4.5,3.29,7.1,4.34,.18,.28,wood);obstacle(4.5,7.6+1.64,7.16,4.34,3.28,.16);

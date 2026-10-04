@@ -24,6 +24,9 @@ function fixture({wallet,saved,saveWallet=()=>{}}={}){
  assert.equal(new Set(s.history.map(e=>e.eventId)).size,s.history.length);f.until(()=>!f.service.view().returning);assert(f.npcs.every(n=>!n.serviceMount));assert(!f.furniture.facilities.state().find(s=>s.owner));f.done();
 }
 {
+ const f=fixture();f.request('tea');f.confirm();f.until(()=>!!f.npcs[1].serviceMount);const arrived=f.npcs[1].root.position.toArray();f.step(3);assert.deepEqual(f.npcs[1].root.position.toArray(),arrived,'Artist remains at the reserved seat while player approaches');f.sit();f.until(()=>f.service.view().order?.status==='performing');f.service.cancel();f.done();
+}
+{
  const f=fixture();f.request('story');assert(!f.service.active());assert.equal(f.service.view().lastReply.willing,false);assert(f.service.state().history.some(e=>e.outcome==='refused'));assert.equal(f.copperLedger.state().cash,80);f.done();
 }
 {

@@ -8,7 +8,7 @@ export function createJapanPerformanceUI({service,getPlayer,onOpen=()=>{},onNavi
  style.textContent='.jp-performance-ticket{position:fixed;left:max(18px,env(safe-area-inset-left));top:258px;z-index:18;max-width:calc(100vw - 180px);min-height:44px;padding:10px 13px;border-radius:12px;background:#804c3d;color:#fff4dc;font-size:12px;box-shadow:0 3px 12px #3d241e20}.jp-performance-ticket[hidden]{display:none}.jp-performance-dialog{box-sizing:border-box;position:fixed;inset:0;margin:auto;width:min(410px,calc(100vw - 28px));max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain;padding:21px;border:1px solid #bda77c;border-radius:16px;background:#f4eedf;color:#483c32}.jp-performance-dialog::backdrop{background:#30261e66}.jp-performance-dialog h2{margin:0 34px 12px 0;font-size:21px}.jp-performance-dialog h3{font-size:15px;margin:0 0 7px}.jp-performance-dialog p{font-size:13px;line-height:1.55;margin:8px 0;white-space:pre-line}.jp-performance-dialog button{min-height:44px;padding:10px 12px;border-radius:8px;background:#e4d8bf;color:#483c32;cursor:pointer}.jp-performance-dialog button:focus-visible{outline:3px solid #986b30;outline-offset:2px}.jp-performance-dialog button:disabled{opacity:.5;cursor:default}.jp-performance-dialog .jp-performance-close{position:absolute;right:7px;top:7px;background:transparent;font-size:24px}.jp-performance-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.jp-performance-primary{background:#804c3d!important;color:#fff4dc!important}.jp-performance-card{padding:14px 0;border-top:1px solid #d6c7ac;margin-top:14px}.jp-performance-drinks{padding:11px 0 13px;border:0;margin:0}.jp-performance-drinks legend{font-size:13px;font-weight:600}.jp-performance-drinks button[aria-pressed=true]{outline:2px solid #804c3d;background:#ecdbbc}.jp-performance-note{font-size:11px!important;color:#71634f}.jp-performance-progress{padding:10px 12px;background:#e8e5d4;border-radius:9px}.jp-performance-error{color:#8c392f!important}@media(max-height:550px){.jp-performance-ticket{top:210px;font-size:10px;padding:8px 10px}.jp-performance-dialog{padding:16px}.jp-performance-dialog h2{font-size:19px}}';
  const badge=make('button','三层戏馆 · 演出与茶叙','jp-performance-ticket'),dialog=make('dialog',null,'jp-performance-dialog');
  badge.type='button';badge.hidden=true;badge.setAttribute('aria-label','查看三层戏馆演出与茶叙');dialog.setAttribute('aria-label','三层戏馆接待簿');
- (doc.head||doc.body).append(style);doc.body.append(badge,dialog);
+ (doc.head||doc.body).append(style);doc.body.append(dialog);
  let selectedDrink=null,signature='',badgeText='',disposed=false;
  const nearFloor=()=>{const p=getPlayer()?.root?.position;return !!p&&Math.abs(p.y-7.6)<.5&&p.x>=1.8&&p.x<=7.3&&p.z>=-7&&p.z<=8;};
  const close=()=>{if(dialog.open)dialog.close();};
@@ -29,7 +29,7 @@ export function createJapanPerformanceUI({service,getPlayer,onOpen=()=>{},onNavi
   const label=s.label||STAGES[o?.status]||'请查看接待簿',text=o?`三层戏馆 · ${label}`:'三层戏馆 · 演出与茶叙';
   if(text!==badgeText){badgeText=text;badge.textContent=text;}
   if(!dialog.open&&!force)return;
-  const key=JSON.stringify([o,s.label,s.lastReply,s.candidates,s.drinks,s.cash,s.paymentError,atReception,selectedDrink]);
+  const key=JSON.stringify([o&&[o.id,o.artistId,o.activity,o.drink,o.status,o.fee,o.paid,o.actComplete,o.drinkComplete],s.label,s.lastReply,s.candidates,s.drinks,s.cash,s.paymentError,atReception,selectedDrink]);
   if(!force&&key===signature)return;signature=key;
   const focused=doc.activeElement?.dataset?.jpPerformanceFocus,scrollTop=dialog.scrollTop;
   dialog.replaceChildren();
@@ -69,13 +69,13 @@ export function createJapanPerformanceUI({service,getPlayer,onOpen=()=>{},onNavi
     dialog.append(make('p',`已预留 ${d.total}文\n${d.activityName}：${o.actComplete?'已完成，已结算':'尚未完成'}\n${d.hasDrink?`${d.drinkName}：${o.drinkComplete?'已完成，已结算':'尚未完成'}`:'茶酒：未点选'}`));
     const unsettled=(o.actComplete?0:d.actFee)+(d.hasDrink&&!o.drinkComplete?d.drinkFee:0);
     dialog.append(make('p',`已完成的项目分别结算；当前未提供部分 ${unsettled}文，取消时退还。`,'jp-performance-note'));
-    if(o.status!=='returning'){
+    if(o.status==='seating'){
      const seat=service.seat(),go=button('前往预留席位并入座',()=>{const item=service.seat();if(item&&onFurniture){close();onFurniture(item);}else refresh(true);},true);go.disabled=!seat||!onFurniture;actions.append(go);
      dialog.append(make('p','请及时入座。离开本层或逾时未到席会取消，未提供部分原额退回。','jp-performance-note'));
     }
    }else if(o.status==='accepted'){
     dialog.append(make('p','艺者已经答应。确认后才从钱袋预留费用并保留席位。'));
-    const pay=button(`确认预留 ${d.total}文`,()=>{service.confirm();refresh(true);},true);pay.disabled=amount(s.cash)<d.total||!!s.paymentError;actions.append(pay);
+    const pay=button(`确认预留 ${d.total}文`,()=>{if(service.confirm()){close();onFurniture?.(service.seat());}else refresh(true);},true);pay.disabled=amount(s.cash)<d.total||!!s.paymentError;actions.append(pay);
     if(amount(s.cash)<d.total)dialog.append(make('p','铜钱不足，尚未扣款。可以先取消邀请。','jp-performance-error'));
    }else if(!o.paid)dialog.append(make('p','尚未预留铜钱；请等艺者本人答复。','jp-performance-note'));
    actions.append(button(o.status==='returning'?'结束并离席':'取消本次邀请',()=>{service.cancel();close();if(o.paid&&onStand)onStand();}));
