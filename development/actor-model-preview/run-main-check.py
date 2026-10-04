@@ -2,14 +2,16 @@
 import json
 import os
 from pathlib import Path
+import resource
+import shutil
 import signal
 import subprocess
 import sys
 import time
 
-LIMIT_BYTES = int(1.2 * 1024 ** 3)
-LIMIT_SECONDS = 175
-ROOT = Path(__file__).resolve().parents[2]
+LIMIT_BYTES = int(float(os.environ.get('WORLDWOVEN_CHECK_RSS_MIB', '1228.8')) * 1024 ** 2)
+LIMIT_SECONDS = float(os.environ.get('WORLDWOVEN_CHECK_SECONDS', '175'))
+ROOT = Path(os.environ.get('WORLDWOVEN_CHECK_CWD', Path(__file__).resolve().parents[2])).resolve()
 OUT = Path(os.environ.get('OUT_DIR', 'qa/actor-preview/main-playable'))
 if not OUT.is_absolute():
     OUT = ROOT / OUT
@@ -55,11 +57,40 @@ def kill_group(pid):
         pass
 
 
+def resource_snapshot():
+    def read(path):
+        try:
+            return Path(path).read_text().strip()
+        except OSError:
+            return None
+    memory = {}
+    for line in (read('/proc/meminfo') or '').splitlines():
+        name, value = line.split(':', 1)
+        if name in ('MemTotal', 'MemAvailable'):
+            memory[name] = int(value.split()[0]) * 1024
+    # Missing cgroup files mean unavailable evidence, never zero OOM events.
+    return {'unix_time': time.time(), 'host': os.uname().nodename,
+            'boot_id': read('/proc/sys/kernel/random/boot_id'),
+            'cgroup_identity': read('/proc/self/cgroup'),
+            'memory_bytes': memory, 'disk_free_bytes': shutil.disk_usage(ROOT).free,
+            'load_average': read('/proc/loadavg'),
+            'cgroup_memory_events': read('/sys/fs/cgroup/memory.events'),
+            'cgroup_memory_current': read('/sys/fs/cgroup/memory.current'),
+            'cgroup_memory_max': read('/sys/fs/cgroup/memory.max'),
+            'cgroup_cpu_stat': read('/sys/fs/cgroup/cpu.stat')}
+
+
 env = os.environ.copy()
 env['OUT_DIR'] = str(OUT)
 env.setdefault('ACTOR_PREVIEW_MESA', '1')
 started = time.monotonic()
-child = subprocess.Popen(['node', '--experimental-vm-modules', 'tests/actor-preview-main.cjs'], cwd=ROOT, env=env, start_new_session=True)
+command = json.loads(env.get('WORLDWOVEN_CHECK_COMMAND', '["node","--experimental-vm-modules","tests/actor-preview-main.cjs"]'))
+if not isinstance(command, list) or not command or not all(isinstance(x, str) for x in command):
+    raise SystemExit('WORLDWOVEN_CHECK_COMMAND must be a JSON argument array')
+if LIMIT_BYTES <= 0 or LIMIT_SECONDS <= 0:
+    raise SystemExit('Resource limits must be positive')
+before = resource_snapshot()
+child = subprocess.Popen(command, cwd=ROOT, env=env, start_new_session=True)
 peak, reason = 0, None
 try:
     while child.poll() is None:
@@ -92,7 +123,10 @@ finally:
               'peak_tree_rss_bytes': peak, 'limit_tree_rss_bytes': LIMIT_BYTES,
               'limit_seconds': LIMIT_SECONDS, 'termination_reason': reason,
               'scope': 'This guard process and its launched Node descendants only',
-              'mesa': env['ACTOR_PREVIEW_MESA'] == '1'}
+              'mesa': env['ACTOR_PREVIEW_MESA'] == '1',
+              'resource_before': before, 'resource_after': resource_snapshot(),
+              'reaped_children_cpu_seconds': resource.getrusage(resource.RUSAGE_CHILDREN).ru_utime +
+                                             resource.getrusage(resource.RUSAGE_CHILDREN).ru_stime}
     (OUT / 'guard.json').write_text(json.dumps(report, indent=2)+'\n')
     print(json.dumps(report), flush=True)
 sys.exit(124 if reason else exit_code)
