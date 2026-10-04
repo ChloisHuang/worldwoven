@@ -38,7 +38,7 @@ export function buildChinaPalace(G,H){
   'cn-study-front':['hinge',1,.32],'cn-bedroom-front':['hinge',-1,.32],'cn-bedroom-west':['hinge',1,.32],
   'cn-kitchen-rear':['hinge',1,.32],'cn-bath-front':['hinge',-1,.32],'cn-bath-west':['hinge',1,.32],'cn-bath-east':['hinge',-1,.32],
   'cn-archive-front':['hinge',1,.32],'cn-archive-rear':['hinge',-1,.32],'cn-archive-west':['pocket',0,.50],'cn-archive-east':['hinge',1,.32],
-  'cn-consort-heng-door':['hinge',-1,.32],'cn-consort-ling-door':['hinge',-1,.32],
+  'cn-consort-heng-door':['pocket',0,.50],'cn-consort-ling-door':['pocket',0,.50],
   'cn-guest-front':['hinge',-1,.32],'cn-guest-east':['hinge',-1,.32]
  };
  function palaceWall(parent,nav,camera,options){

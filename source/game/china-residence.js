@@ -90,7 +90,7 @@ export function buildChinaResidence(G,A){
  palaceRoof(r,-21,12.45,-5,11.65,15.4,1.75,C.roof);
  palaceRoof(r,-21,12.44,-16,11.65,9.5,1.2,C.roof);
  // Ground floor: a self-contained guest suite and furnished reception room.
- wall('x',-12,-26,-16,.2,3.77,[privacy('cn-guest-front','后宫客卧门','x',-12,-24.85,-22.15,.215,['guest','residence-hall-1']),privacy('cn-guest-east','后宫会客厅门','x',-12,-19.65,-16.95,.215,['residence-living','residence-hall-1'])]);
+ wall('x',-12,-26,-16,.2,3.77,[privacy('cn-guest-front','后宫客卧门','x',-12,-24.85,-22.15,.215,['guest','residence-hall-1']),privacy('cn-guest-east','后宫会客厅门','x',-12,-19.75,-17.95,.215,['residence-living','residence-hall-1'])]);
  wall('z',-20.9,-12,2,.2,3.77);
  part('guest','后宫一层客卧',-26,-20.9,-12,2,.215,3.77);
  const additionalFurniture=buildChinaConsortRooms(G,{g,C,wall,privacy,part,table,teaSet,colliders,cameraColliders,additionalFurnitureSeats,explorationTargets});
@@ -116,7 +116,7 @@ export function buildChinaResidence(G,A){
  culturePlaque(G,g,'观景',-18.1,10.75,-19.79,2,.64);
  g.traverse(o=>{if(o.userData.nightFixture)o.userData.nightFixture.dayFactor=.38;});
  const entrySign=residencePlaque(G,g,'静宜后宫',-15.77,3.43,-13.5,3.1,.58);entrySign.rotation.y=Math.PI/2;
- for(const [name,x,y,z]of[['客居',-23.5,3.45,-12.21],['会客',-18.3,3.45,-12.21],['沐浴',-23.5,7.25,-12.21],['净室',-18,7.25,-12.21],['寝殿',-17.7,11.06,-12.21],['梳妆',-18,11.06,-3.21]]){const plaque=residencePlaque(G,g,name,x,y,z,1.7,.55);plaque.rotation.y=Math.PI;}
+ for(const [name,x,y,z]of[['客居',-23.5,3.45,-12.21],['会客',-18.85,3.45,-12.21],['沐浴',-23.5,7.25,-12.21],['净室',-18,7.25,-12.21],['寝殿',-17.7,11.06,-12.21],['梳妆',-18,11.06,-3.21]]){const plaque=residencePlaque(G,g,name,x,y,z,1.7,.55);plaque.rotation.y=Math.PI;}
  buildings.push({id:'rear-palace',name:'静宜后宫',groupName:g.name,roofGroupName:r.name,bounds:CHINA_RESIDENCE.bounds,roomIds:CHINA_RESIDENCE.floors.flatMap(f=>f.rooms),storeys:3});
  for(const [id,name,p,roomId]of[['cn-residence-ground-entry','后宫公共通廊东口',[-15.2,.215,-13.4],'outdoors'],['cn-residence-living','后宫起居茶案',[-18.9,.215,-11],'residence-living'],['cn-residence-dressing','后宫梳妆台前',[-18,7.815,-.05],'residence-dressing'],['cn-residence-linen','后宫布草柜前',[-18,4.015,-1],'residence-linen']])explorationTargets.push({id,name,position:p,roomId});
  return {group:g,roofGroup:r,additionalFurniture};
