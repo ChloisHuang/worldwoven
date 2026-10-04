@@ -89,7 +89,7 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
   session.payment='reserved';record('reserved',{amount:session.fee});session.leg=0;enter('escort');persist();notify(`${name()}：${room.name}在楼下，随我慢慢走`);return true;
  }
  function entryValid(){const room=roomForSession(),p=getPlayer();return adult()&&room&&ledger.claim(room.id)?.owner===session.id&&inSalonRoom(room,p?.root.position)&&inSalonRoom(room,performer.root.position)&&near(p,room.player,.18)&&near(performer,room.actor,.18)&&!npcs.some(n=>n!==performer&&inSalonRoom(room,n.root.position));}
- function pose(a,t,action,target){if(target&&!a.walking)a.root.rotation.y=Math.atan2(target[0]-a.root.position.x,target[2]-a.root.position.z);a.animate(t+(a.phase||0),a.walking,a.walking?null:action,poseContext(a,a===receptionist?a.station:null));}
+ function pose(a,t,action,target){if(target&&!a.walking)a.root.rotation.y=Math.atan2(target[0]-a.root.position.x,target[2]-a.root.position.z);if(a.root.visible!==false)a.animate(t+(a.phase||0),a.walking,a.walking?null:action,poseContext(a,a===receptionist?a.station:null));}
  life=createSalonArtistLife({performers,worldSeed,saved:saved.life||{},saveState:()=>persist(),travel,pose,planPath,getPlayer,isActorBusy});
  return {
   receptionist,performers,get performer(){return performer;},ledger,request,startEscort,cancel,atReception,recoverPayments,
