@@ -47,8 +47,8 @@ const spawn=r.player.root.position.toArray(),chair=r.furniture.items.find(i=>i.i
 const cameraProfile=cache.get(path.join(root,'game/camera.js')).namespace;
 const navigationProfile=cache.get(path.join(root,'game/navigation.js')).namespace;
 let seed=813;const random=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};
-for(let i=0;i<600;i++){const from=new three.namespace.Vector3(random()*60-30,random()*12,random()*80-40),to=from.clone().add(new three.namespace.Vector3(i%5===0?0:random()*12-6,i%7===0?0:random()*6-3,i%3===0?0:random()*12-6));cameraProfile.profileCameraCheck(from,to,r.cameraSolids,i%2?.18:0);}console.log('PASS 600 authored-scene camera sweep parity rays');
-for(const place of [{label:'spawn-idle',position:spawn},{label:'near-seat-movement',position:chair.position}]){
+for(let i=0;i<(process.env.PROFILE_FIXED_ONLY?0:600);i++){const from=new three.namespace.Vector3(random()*60-30,random()*12,random()*80-40),to=from.clone().add(new three.namespace.Vector3(i%5===0?0:random()*12-6,i%7===0?0:random()*6-3,i%3===0?0:random()*12-6));cameraProfile.profileCameraCheck(from,to,r.cameraSolids,i%2?.18:0);}if(!process.env.PROFILE_FIXED_ONLY)console.log('PASS 600 authored-scene camera sweep parity rays');
+for(const place of process.env.PROFILE_FIXED_ONLY?[]:[{label:'spawn-idle',position:spawn},{label:'near-seat-movement',position:chair.position}]){
  main.namespace.profilePosition(...place.position);r.camera.position.set(place.position[0],place.position[1]+1.5,place.position[2]+1);r.camera.lookAt(r.furniture.markerPoint(chair));r.camera.updateMatrixWorld(true);
  for(let round=0;round<3;round++)for(const version of round%2?['patched','original']:['original','patched']){
   cameraProfile.profileCameraVersion(version);
@@ -58,7 +58,7 @@ for(const place of [{label:'spawn-idle',position:spawn},{label:'near-seat-moveme
 }
 main.namespace.profilePosition(...spawn);for(let i=0;i<12;i++)main.namespace.profileStep(1/60);
 const inspector=require('node:inspector'),session=new inspector.Session();session.connect();const post=(name,params={})=>new Promise((resolve,reject)=>session.post(name,params,(err,result)=>err?reject(err):resolve(result)));await post('Profiler.enable');await post('Profiler.start');
-for(let block=0;block<6;block++){const version=block%2?'original':'patched';cameraProfile.profileCameraVersion(version);navigationProfile.profileNavigationVersion(version);bench.reset();bench.start();const times=[];for(let i=0;i<120;i++){const s=performanceHost.now();main.namespace.profileStep(1/60);times.push(performanceHost.now()-s);}bench.stop();times.sort((a,b)=>a-b);console.log(JSON.stringify({sample:'full-current',version,block,mean:times.reduce((a,b)=>a+b,0)/times.length,p95:times[114],max:times.at(-1),rssMiB:process.memoryUsage().rss/1048576}));bench.report('full-current '+version);await new Promise(resolve=>setImmediate(resolve));}
+for(let block=0;block<(process.env.PROFILE_FIXED_ONLY?3:6);block++){const version=process.env.PROFILE_FIXED_ONLY?'patched':block%2?'original':'patched';cameraProfile.profileCameraVersion(version);navigationProfile.profileNavigationVersion(version);bench.reset();bench.start();const times=[];for(let i=0;i<120;i++){const s=performanceHost.now();main.namespace.profileStep(1/60);times.push(performanceHost.now()-s);}bench.stop();times.sort((a,b)=>a-b);console.log(JSON.stringify({sample:'full-current',version,block,mean:times.reduce((a,b)=>a+b,0)/times.length,p95:times[114],max:times.at(-1),rssMiB:process.memoryUsage().rss/1048576}));bench.report('full-current '+version);await new Promise(resolve=>setImmediate(resolve));}
 const profile=await post('Profiler.stop');fs.writeFileSync('/tmp/worldwoven-stutter.cpuprofile',JSON.stringify(profile.profile));session.disconnect();
 cameraProfile.profileCameraVersion('patched');navigationProfile.profileNavigationVersion('patched');
 console.log('PROFILE_DONE');
