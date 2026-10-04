@@ -23,8 +23,8 @@ renderer.debug.onShaderError=(g,p)=>report.errors.push(g.getProgramInfoLog(p));
 const chains=[['upperArmL','forearmL','handL'],['upperArmR','forearmR','handR'],['thighL','shinL','footL'],['thighR','shinR','footR']];
 const lengths=()=>chains.flatMap(chain=>chain.slice(1).map(n=>actor.root.getObjectByName(n).position.length()));
 const originalLengths=lengths();
-function render(name,raised,cameraPosition){
- actor.animate(1.7,false,null);posture.apply({kneeling:1,raised,time:1.7});
+function render(name,raised,cameraPosition,kneeling=1){
+ actor.animate(1.7,false,null);posture.apply({kneeling,raised,time:1.7});
  const errors=lengths().map((n,i)=>Math.abs(n-originalLengths[i]));assert(Math.max(...errors)<1e-6,'Preserve exact limb bone lengths');
  camera.position.fromArray(cameraPosition);camera.lookAt(0,.68,.015);scene.updateMatrixWorld(true);renderer.render(scene,camera);gl.finish();assert.equal(gl.getError(),0);
  fs.writeFileSync(out+'/'+name+'.png',canvas.toBuffer('image/png'));
@@ -34,7 +34,15 @@ function render(name,raised,cameraPosition){
  assert(Math.max(...palmErrors)<1e-6,'Both real palm vertices touch the tablet lower sides');assert(minimumSkinY>=0,'Pose stays above the support plane');
  report.frames.push({name,pose,maximumBoneLengthError:Math.max(...errors),maximumPalmContactError:Math.max(...palmErrors),minimumSkinY,lowestParts:Object.entries(partMin).sort((a,b)=>a[1]-b[1]).slice(0,8)});
 }
-render('raised-threequarter',1,[1.55,1.35,2.75]);render('raised-side',1,[2.9,1.10,.025]);render('lower-threequarter',0,[1.55,1.35,2.75]);
+if(process.env.TRANSITIONS==='1'){
+ render('descending-quarter',0,[1.55,1.35,2.75],.25);render('descending-half-side',0,[2.9,1.10,.025],.55);render('rising-near-kneel',0,[1.55,1.35,2.75],.8);
+}else{render('raised-threequarter',1,[1.55,1.35,2.75]);render('raised-side',1,[2.9,1.10,.025]);render('lower-threequarter',0,[1.55,1.35,2.75]);}
+const bones=actor.root.getObjectByName('continuous-tailored-cloth').skeleton.bones;
+const snapshot=()=>({bones:bones.map(b=>[...b.position.toArray(),...b.quaternion.toArray()]),label:actor.root.userData.labelHeight,root:actor.root.position.toArray()});
+const matches=expected=>{const now=snapshot();assert(now.bones.every((row,i)=>row.every((v,j)=>Math.abs(v-expected.bones[i][j])<1e-8)));assert.equal(now.label,expected.label);assert.deepEqual(now.root,expected.root);assert(!posture.tablet.visible);};
+actor.animate(2,false,null);const before=snapshot();posture.apply({kneeling:.55,raised:0,time:2});posture.stop();matches(before);
+actor.animate(2.1,false,null);posture.apply({kneeling:.55,raised:0,time:2.1});actor.animate(2.2,false,null);const fresh=snapshot();posture.stop();matches(fresh);
+report.transitionExit='PASS: stop restores exact prior bones/label/nav anchor; stop after animate preserves fresh bones and label';
 actor.animate(2,false,null);posture.apply({kneeling:0});assert(!posture.tablet.visible);assert(Math.max(...lengths().map((n,i)=>Math.abs(n-originalLengths[i])))<1e-6);
 posture.dispose();cap.dispose();actor.dispose();renderer.dispose();canvas.dispose();
 report.maxRSSMiB=process.resourceUsage().maxRSS/1024;report.elapsedSeconds=process.uptime();assert.equal(report.errors.length,0);assert(report.maxRSSMiB<350);assert(report.elapsedSeconds<10);fs.writeFileSync(out+'/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify({out,maxRSSMiB:report.maxRSSMiB,elapsedSeconds:report.elapsedSeconds,frames:report.frames.map(({name,minimumSkinY,maximumBoneLengthError})=>({name,minimumSkinY,maximumBoneLengthError}))}));
