@@ -10,7 +10,12 @@ assert(player.root.userData.characterModel.applied);assert.equal(player.root.use
 // Screenshot regression: randomized balanced/overgown must use the fitted
 // shoulders too; the former narrow selector left it on the old shirt sleeves.
 const overgown=createCharacter({...look,bodyPreset:'feminine-balanced',wardrobePreset:'court-overgown',hairStyle:'low-bun',previewSubject:'player',shapeTraits:{legLength:1.048,jawWidth:.868,noseSize:.838}});
-assert.equal(overgown.root.userData.characterModel.requested,'complete-adult-pair-v1');assert(overgown.root.userData.characterModel.garmentRefinement);assert.equal(overgown.root.userData.characterModel.previewHair,'gathered-updo');
+assert.equal(overgown.root.userData.characterModel.requested,'complete-adult-pair-v1');assert(overgown.root.userData.characterModel.garmentRefinement);assert.equal(overgown.root.userData.characterModel.previewHair,'long-layered');
+assert.equal(overgown.root.userData.appearance.hairStyle,'low-bun');assert(!Object.hasOwn(overgown.root.userData.appearance,'previewHair'));assert(!Object.hasOwn(overgown.root.userData.appearance,'previewHairFlow'));
+// The explicit long option survives both supported random body/clothing picks,
+// while country and role-headgear boundaries retain their prior behaviour.
+for(const bodyPreset of ['feminine-slender','feminine-balanced'])for(const wardrobePreset of ['court-gown','court-overgown'])assert.equal(selection.select({...look,bodyPreset,wardrobePreset,style:'casual',previewSubject:'player'}).previewHair,'long-layered');
+for(const outside of [{culture:'china'},{style:'chef'},{style:'artist'}])assert.notEqual(selection.select({...look,style:'casual',...outside,previewSubject:'player'}).previewHair,'long-layered');
 const garmentRanges=[];overgown.root.traverse(m=>{if(m.isSkinnedMesh)garmentRanges.push(...m.geometry.userData.sourceRanges.map(r=>r.name));});assert(garmentRanges.includes('court-puffed-sleeve-1'));assert(!garmentRanges.some(n=>n.startsWith('short-sleeve-')));overgown.dispose();
 assert.equal(player.root.userData.appearance.hairStyle,'chin-bob');assert(!Object.hasOwn(player.root.userData.appearance,'previewSubject'));for(const actor of[player,resident,visitor,rebuilt])actor.dispose();selection.dispose();
 selection=installActorPreview({femaleHair:'long-layered',hairFlow:true,playerOnly:false});const explicitNPC=createCharacter(look);assert(explicitNPC.root.userData.characterModel.applied);explicitNPC.dispose();selection.dispose();
