@@ -1,3 +1,4 @@
+import {buildChinaClinic,chinaClinicStations,CHINA_CLINIC} from './china-clinic.js';
 import {CHINA_PALACE_ROLES} from './china-palace-life.js';
 import {buildChinaTavern,CHINA_TAVERN} from './china-tavern.js';
 import {buildChinaResidence,CHINA_RESIDENCE} from './china-residence.js';
@@ -26,6 +27,7 @@ export function buildChinaPalace(G,H){
  const insetSections=new Map();
  const insetKinds={
   'cn-tavern-lan-door':['hinge',-1,.32],'cn-tavern-zhu-door':['hinge',-1,.32],
+  'cn-clinic-front':['hinge',1,.32],'cn-clinic-consult-door':['hinge',1,.32],'cn-clinic-stock-door':['hinge',1,.32],
   'cn-south-gate':['hinge',1,.65],'cn-south-gate-west':['hinge',1,.65],'cn-south-gate-east':['hinge',1,.65],
   'cn-north-gate':['hinge',1,.65],'cn-north-gate-west':['hinge',1,.65,.13],'cn-north-gate-east':['hinge',1,.65,.13],'cn-west-gate':['hinge',-1,.65],'cn-east-gate':['hinge',1,.65],
   'cn-hall-front':['hinge',1,.32],'cn-hall-rear':['hinge',-1,.32],'cn-hall-west':['pocket',0,.50],'cn-hall-east':['hinge',1,.32],
@@ -537,6 +539,8 @@ export function buildChinaPalace(G,H){
  const residence=buildChinaResidence(G,{H,C,group,roofGroup,rooms,colliders,cameraColliders,walkableSurfaces,stairways,interiorRooms,doorways,explorationTargets,buildings,levels,lightingZones,additionalFurnitureSeats,palaceWall,door,box,slab,stairs,rail,landingRail,paintedBand,window,fixture,table,shelf,stool,teaSet,flowerBranches,solid3,upperFixture});
  const tavern=buildChinaTavern(G,{H,C,group,roofGroup,colliders,cameraColliders,walkableSurfaces,interiorRooms,doorways,explorationTargets,buildings,levels,lightingZones,additionalFurnitureSeats,palaceWall,door,slab,stairs,rail,landingRail,paintedBand,window,upperFixture,solid3});
  facilities.push({id:'yunlai-house',name:'云来酒楼、客栈与顶层青楼',targets:['cn-tavern-dining','cn-tavern-lan-entry','cn-tavern-recital'],furnishings:['一层酒楼餐椅','二层独立客榻与衣柜','三层诗乐听席与宴饮雅间'],pendingServices:['订房支付','点单上菜','关系邀约']});
+ const clinic=buildChinaClinic(G,{H,C,group,roofGroup,rooms,colliders,cameraColliders,interiorRooms,explorationTargets,buildings,lightingZones,additionalFurnitureSeats,palaceWall,door,slab,window,table,upperFixture,solid3});
+ facilities.push({id:'clinic-pharmacy',name:'医馆与药铺',targets:['cn-clinic-entry','cn-clinic-consult','cn-pharmacy-counter'],furnishings:['候诊椅','独立问诊室','编号药铺柜台','备物药柜']});
  // Refresh recorded bounds after any support-local transforms, before batching.
  group.updateMatrixWorld(true);for(const o of ornaments){const b=new THREE.Box3().setFromObject(group.getObjectByName(o.groupName));o.bounds={min:b.min.toArray(),max:b.max.toArray()};}
  const decorativeProgram={revision:'R11 painted palace',sourceStudy:{url:'https://www.sglynp.com/t182446',creator:'mareasia',observed:'Public effect images: layered screens, paired lanterns, wall lattices, textiles, displayed porcelain and paired court composition. All geometry and motifs here are newly authored; no assets copied.'},palette:{vermillion:C.red,gold:C.gold,turquoise:C.jade,indigo:ink},ornaments,physicalPolicy:'Decor remains support-attached; R14 raised halls, real upper floors, stair voids and landing heights are explicit; living facilities and 60x80 envelope preserved',newPointLights:0};
@@ -553,13 +557,14 @@ export function buildChinaPalace(G,H){
  // swing:1 opens both leaves toward world negative z, into these clear rooms.
  for(const x of[19.8,22.2])additionalFurnitureSeats.push({id:'china-palace-dining-seat-'+x,name:'御膳餐厅坐凳',x,y:.215,z:.3,yaw:0,width:.86,depth:.86,seatY:.82,front:0});
  for(const role of CHINA_PALACE_ROLES)stations.push({...role,npcOnly:true,name:role.royalRole==='emperor'?'静宜寝殿 · 皇帝起居':'静宜客居 · 月容私室',action:'宫苑日常',npcAction:'read',npcLabel:'晨间起居',position:ground(role.npcPosition),npcPosition:ground(role.npcPosition),color:role.royalRole==='emperor'?'#bd964e':'#a56d81'});
+ stations.push(...chinaClinicStations());
  const automaticDoorways=[{id:'cn-hall-front',center:[0,1.415,5],width:6,height:4.315,axis:'x',style:'palace',motion:'hinge',swing:1}];
  const architectureProgram={gallery:{building:'hall',room:'hall-gallery',floorY:6.015,slabUnderside:5.785,ceiling:9.215,void:{minX:-6,maxX:7.8,minZ:-11,maxZ:2}},sideLaneWidth:2.15,stairways,levels,lightingZones,raisedBuildings:[{id:'hall',offset:1.2,floorY:1.415},{id:'archive',offset:.6,floorY:.815}],loft:{building:'archive',room:'archive-loft',floorY:7.615,slabUnderside:7.385,ceiling:11.015,stairHole:{minX:-9.2,maxX:-4.05,minZ:-32,maxZ:-25.4}},revision:'R17 three-storey 雅集楼 and cleared southern courts',axisWidth:12,perimeterWalls,buildings,courts,minimumBuildingGap:5,sourceStudy:{url:'https://www.sglynp.com/t182446',creator:'mareasia',method:'Effect-image visual study; original procedural geometry; no assets reused'}};
- architectureProgram.tavern=CHINA_TAVERN;architectureProgram.cultureTower=CHINA_CULTURE_TOWER;architectureProgram.residence=CHINA_RESIDENCE;group.userData.architectureProgram=architectureProgram;group.userData.facilities=facilities;group.userData.interiorRooms=interiorRooms;group.userData.doorways=doorways;group.userData.explorationTargets=explorationTargets;
+ architectureProgram.tavern=CHINA_TAVERN;architectureProgram.clinic=CHINA_CLINIC;architectureProgram.cultureTower=CHINA_CULTURE_TOWER;architectureProgram.residence=CHINA_RESIDENCE;group.userData.architectureProgram=architectureProgram;group.userData.facilities=facilities;group.userData.interiorRooms=interiorRooms;group.userData.doorways=doorways;group.userData.explorationTargets=explorationTargets;
  // Preserve actual named geometry groups so independent architecture tests can
  // inspect each detached envelope, not only trust declarative metadata.
  tavern.pack();for(const {g,r}of Object.values(rooms)){packStatic(g);packStatic(r);}packStatic(gate);packStatic(gateRoof);for(const w of [...exterior.children].filter(o=>o.name.startsWith('China perimeter ')))packStatic(w);
  // Outer ground stays in its own group; omit perimeter groups while batching it.
  const walls=exterior.children.filter(o=>o.name.startsWith('China perimeter '));for(const w of walls)exterior.remove(w);packStatic(exterior);for(const w of walls)exterior.add(w);
- return {requiredInsetDoorIds:Object.keys(insetKinds),group,roofGroup,colliders,cameraColliders,bounds,spawn:ground([0,0,39]),heightAware:true,levels,lightingZones,additionalFurnitureSeats,additionalFurniture:tavern.additionalFurniture,characterFootSurfaces,walkableSurfaces,interiorRooms,doorways,explorationTargets,facilities,stations,architectureProgram,automaticDoorways,archery};
+ return {requiredInsetDoorIds:Object.keys(insetKinds),group,roofGroup,colliders,cameraColliders,bounds,spawn:ground([0,0,39]),heightAware:true,levels,lightingZones,additionalFurnitureSeats,additionalFurniture:tavern.additionalFurniture,characterFootSurfaces,walkableSurfaces,interiorRooms,doorways,explorationTargets,facilities,stations,architectureProgram,automaticDoorways,archery,clinic};
 }
