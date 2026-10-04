@@ -68,9 +68,15 @@ export function followActorRoute(actor,dt,{route=actor.route,doors,moveActor,npc
  if(amount<EPS)return {...step,blocked:false};
  const ahead=Math.min(d,amount+.10),body=constrainActorMove(actor,from,ux*ahead,uz*ahead,radius,npcs,playerPosition).blocker;
  let movement=null;
- const move=(x,z)=>{
+ const move=(x,z,minForwardFraction=0)=>{
   const beforeX=from.x,beforeY=from.y,beforeZ=from.z;
   movement=moveActor(actor,x,z,radius);
+  // A wall can slide a requested side-step by only a tiny tangential amount.
+  // That does not make this side available: discard the trial and try the
+  // other side, rather than slowly scraping along a desk forever.
+  if(minForwardFraction&&(from.x-beforeX)*x+(from.z-beforeZ)*z<(x*x+z*z)*minForwardFraction){
+   from.x=beforeX;from.y=beforeY;from.z=beforeZ;actor.walking=false;return false;
+  }
   actor.walking=(from.x-beforeX)**2+(from.y-beforeY)**2+(from.z-beforeZ)**2>1e-9;
   if(actor.walking)actor.root.rotation.y=Math.atan2(from.x-beforeX,from.z-beforeZ);
   return actor.walking;
@@ -82,16 +88,26 @@ export function followActorRoute(actor,dt,{route=actor.route,doors,moveActor,npc
   // the other can also make room locally; no role owns an entire corridor.
   if(!sameDirection&&(!other?.walking||TURNOUT.has(other)||actorId(actor)>actorId(other))){
    let turn=TURNOUT.get(actor);
-   if(!turn||turn.route!==route||turn.position!==body.position){turn={route,position:body.position,sign:1,ux,uz};TURNOUT.set(actor,turn);}
+   if(!turn||turn.route!==route||turn.position!==body.position){turn={route,position:body.position,sign:1,ux,uz,clearance:radius+(body.actor?.collisionRadius??(body.actor ? .25 : .34))+.1};TURNOUT.set(actor,turn);}
+   let bodyClosesSide=false;
    for(const sign of [turn.sign,-turn.sign]){
     const sx=turn.uz*amount*sign,sz=-turn.ux*amount*sign;
-    if(constrainActorMove(actor,from,sx,sz,radius,npcs,playerPosition).blocker)continue;
-    if(move(sx,sz)){turn.sign=sign;break;}
+    if(constrainActorMove(actor,from,sx,sz,radius,npcs,playerPosition).blocker){bodyClosesSide=true;if(turn.started&&sign===turn.sign)break;continue;}
+    if(move(sx,sz,.25)){turn.sign=sign;turn.started=true;break;}
    }
+   // At exact body contact, the open side can initially point into its circle
+   // while a desk closes the other side. A bounded collision-checked retreat
+   // creates turning room independently of frame rate, without backing down
+   // the route indefinitely or reversing the already chosen passing side.
+   if(!actor.walking&&bodyClosesSide&&(turn.backedOff||0)<.15){const back=Math.min(amount,.15-(turn.backedOff||0)),x=from.x,z=from.z;move(-turn.ux*back,-turn.uz*back,.25);turn.backedOff=(turn.backedOff||0)+Math.hypot(from.x-x,from.z-z);}
   }
   return {...step,waiting:true,blocked:false,body:other?.station?.id||'player',yielding:actor.walking,travel:amount};
  }
- TURNOUT.delete(actor);
+ const turn=TURNOUT.get(actor);
+ // Keep the chosen side through this local encounter. A single clear forward
+ // step is not proof that we have passed the body; resetting here oscillates
+ // between a desk and the person standing beside it.
+ if(turn&&(turn.route!==route||Math.hypot(turn.position.x-from.x,turn.position.z-from.z)>1.5||Math.abs(turn.position.y-from.y)>1.95||(turn.position.x-from.x)*turn.ux+(turn.position.z-from.z)*turn.uz< -turn.clearance))TURNOUT.delete(actor);
  move(ux*amount,uz*amount);
  return {...step,waiting:!!movement?.bodyBlocked&&!actor.walking,blocked:!actor.walking&&!movement?.bodyBlocked,travel:amount};
 }
