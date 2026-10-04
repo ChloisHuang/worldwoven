@@ -9,7 +9,7 @@ function setup(saved = {}) {
   const host = {walking: false, root: {position: {x: 24.1, y: .215, z: 11.4}}, station: {npcPosition: [24.1, .215, 11.4]}};
   const flags = {busy: false, mounted: null, rejectLabor: false, rejectLedger: false, cleanup: false};
   const ledger = createCopperLedger({saved: store.ledger, saveState: next => { if (flags.rejectLedger) return false; store.ledger = next; }});
-  const labor = createChinaTavernLabor({getPlayer: () => player, getMounted: () => flags.mounted, host,
+  const labor = createChinaTavernLabor({getPlayer: () => player, getMounted: () => flags.mounted, host, employment: {isHired: () => true, state: () => ({revision: 1})},
     isHostAvailable: () => !flags.busy, copperLedger: ledger, saved: store.labor, document: null,
     saveState: next => { if (flags.rejectLabor || flags.cleanup && next.job === null) return false; store.labor = next; }});
   const move = point => { Object.assign(player.root.position, {x: point[0], y: point[1], z: point[2]}); player.walking = false; };
@@ -76,7 +76,7 @@ const advanced = setup(); assert(advanced.ledger.openAccount('open-before-labor'
 assert(advanced.labor.accept()); assert.equal(advanced.labor.state().serial, 2);
 for (const saveState of [() => { throw Error('quota'); }, () => Promise.reject(Error('async'))]) {
   const f = setup();
-  const rejected = createChinaTavernLabor({getPlayer: () => f.player, host: f.host, copperLedger: f.ledger, saveState, document: null});
+  const rejected = createChinaTavernLabor({getPlayer: () => f.player, host: f.host, employment: {isHired: () => true, state: () => ({revision: 1})}, copperLedger: f.ledger, saveState, document: null});
   assert.equal(rejected.accept(), false); assert.equal(rejected.active(), false); assert.equal(rejected.state().serial, 0); assert.equal(f.ledger.state().cash, 0);
   await Promise.resolve();
 }

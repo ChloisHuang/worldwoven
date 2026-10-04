@@ -86,6 +86,25 @@ export function buildChinaTavern(G,A){
  room('tavern-dining','云来一层酒楼',16,26,15.2,21,.215,3.77);
  for(const[x,z]of[[18.1,18.1],[23.9,18.1]]){const top=table(g0,x,.215,z,1.45,1.12,.90);H.teaSet(g0,x,top,z,0xb9c7ac);H.bowl(g0,x-.35,top,z+.24,0xf1dfbb,.18);for(const[side,yaw]of[[-1,0],[1,Math.PI]])chair(g0,'china-tavern-dining-'+x+'-'+side,'酒楼雕花餐椅',x,.215,z+side*1.32,yaw);}
  const counter=table(g0,24.35,.215,10.34,2.5,.78,1.0);H.teaSet(g0,23.50,counter,10.34,0xa8b0a0);buildTavernKitchen(G,{group:g0,block,table,H});
+ // Hiring belongs to this reception desk. Its small fixed writing ledge leaves
+ // the existing tea, central meal pass and east wash bowl in their own places.
+ const hiring=new THREE.Group();hiring.name='云来酒楼 招工登记案';g0.add(hiring);
+ block(hiring,23.45,counter-.04,10.83,.76,.08,.32,C.wood);
+ for(const x of[23.17,23.73])G.box(hiring,x,counter-.16,10.735,.065,.24,.12,C.dark);
+ const ledger=new THREE.Group();ledger.name='云来酒楼 招工登记簿';ledger.position.set(23.40,counter,10.83);hiring.add(ledger);
+ G.box(ledger,0,.016,0,.48,.032,.28,0x763f34);
+ for(const side of[-1,1]){
+  G.box(ledger,side*.116,.040,0,.217,.024,.25,0xeadbb8);
+  for(const z of[-.082,-.039,.004,.047,.090])G.box(ledger,side*.116,.053,z,.164,.003,.005,0x9c8a69);
+ }
+ G.box(ledger,0,.038,0,.018,.028,.25,0x9a7854);
+ // A small inkstone and a resting bamboo brush make this an actual writing place.
+ G.box(hiring,23.745,counter+.022,10.76,.105,.044,.10,0x4a5149);
+ G.box(hiring,23.745,counter+.046,10.76,.070,.006,.065,0x272d2b);
+ const brush=G.cyl(hiring,23.714,counter+.065,10.866,.009,.011,.22,0x9b7544,8);brush.rotation.z=Math.PI/2;brush.rotation.y=-.28;
+ const nib=G.mesh(hiring,new THREE.ConeGeometry(.014,.058,8),0x323d37,23.581,counter+.065,10.828);nib.rotation.z=Math.PI/2;nib.rotation.y=-.28;
+ const hiringSign=sign(hiring,'招工登记',23.38,2.61,10.95,2.04,.55);
+ for(const x of[-.77,.77])G.box(hiringSign,x,.72,-.018,.028,.89,.028,C.gold);
  room('tavern-kitchen','云来酒楼 · 后厨备餐间',21.95,26,8,10.65,.215,3.77);
  sign(g0,'云来酒楼',21,3.23,21.24,3.45,.61);
  sign(g0,'云来酒楼',15.76,3.13,13.4,3.20,.59,-Math.PI/2);
