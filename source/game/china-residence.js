@@ -1,16 +1,17 @@
 import {residencePlaque} from './china-residence-lettering.js';
 import {culturePlaque} from './china-culture-lettering.js';
-import {buildChinaRoyalChair} from './china-royal-seating.js';
+import {buildChinaConsortRooms,CONSORT_ROOM_PROGRAM} from './china-consort-rooms.js';
 
 // One inhabited royal residence. The public stair hall is a separate northern
 // wing: reaching a floor never requires passing through a sleeping/bathing room.
 export const CHINA_RESIDENCE=Object.freeze({
  id:'rear-palace',name:'静宜后宫',storeys:3,
  bounds:{minX:-26,maxX:-16,minZ:-20,maxZ:2},
- floors:[{y:.215,ceiling:3.77,rooms:['guest','residence-living','residence-hall-1']},{y:4.015,ceiling:7.57,rooms:['bath','washroom','residence-linen','residence-hall-2']},{y:7.815,ceiling:12.215,rooms:['bedroom','residence-dressing','residence-sitting','residence-hall-3']}],
+ floors:[{y:.215,ceiling:3.77,rooms:['guest','residence-living','residence-suite-corridor','consort-heng','consort-ling','residence-hall-1']},{y:4.015,ceiling:7.57,rooms:['bath','washroom','residence-linen','residence-hall-2']},{y:7.815,ceiling:12.215,rooms:['bedroom','residence-dressing','residence-sitting','residence-hall-3']}],
  freedPlots:[{id:'former-bath',minX:-26,maxX:-16,minZ:-33,maxZ:-23},{id:'former-guest',minX:16,maxX:26,minZ:-33,maxZ:-23}],
  stairHall:{minX:-26,maxX:-16,minZ:-20,maxZ:-12,publicCrossPassage:{minZ:-14.1,maxZ:-12,width:2.1}},
- privateEntrances:['cn-guest-front','cn-guest-east','cn-bath-front','cn-bath-east','cn-bedroom-front','cn-bedroom-west','cn-bath-west'],
+ consortRooms:CONSORT_ROOM_PROGRAM,
+ privateEntrances:['cn-guest-front','cn-guest-east','cn-bath-front','cn-bath-east','cn-bedroom-front','cn-bedroom-west','cn-bath-west','cn-consort-heng-door','cn-consort-ling-door'],
 });
 export function buildChinaResidence(G,A){
  const {THREE}=G,{H,C,group,roofGroup,rooms,colliders,cameraColliders,interiorRooms,explorationTargets,buildings,levels,lightingZones,additionalFurnitureSeats,palaceWall,door,box,slab,stairs,rail,landingRail,paintedBand,window,table,shelf,stool,teaSet,flowerBranches,solid3,upperFixture}=A;
@@ -91,10 +92,8 @@ export function buildChinaResidence(G,A){
  // Ground floor: a self-contained guest suite and furnished reception room.
  wall('x',-12,-26,-16,.2,3.77,[privacy('cn-guest-front','后宫客卧门','x',-12,-24.85,-22.15,.215,['guest','residence-hall-1']),privacy('cn-guest-east','后宫会客厅门','x',-12,-19.65,-16.95,.215,['residence-living','residence-hall-1'])]);
  wall('z',-20.9,-12,2,.2,3.77);
- part('guest','后宫一层客卧',-26,-20.9,-12,2,.215,3.77);part('residence-living','后宫一层起居会客厅',-20.9,-16,-12,2,.215,3.77);
- G.rug(g,-18.3,-5.2,3.9,5.3,0x9d7b59,0xd6bd85);table(g,-18.3,-5.5,2.6,1.1,.93);teaSet(g,-18.3,1.02,-5.5,0x93b0a4);
- for(const [x,z,yaw]of[[-18.3,-7.2,0],[-18.3,-3.7,Math.PI]]){buildChinaRoyalChair(g,{x,y:.2,z,yaw,variant:'reading'});G.collider(colliders,x,z,.9,.9);cameraColliders.push({minX:x-.5,maxX:x+.5,minY:.2,maxY:2.0,minZ:z-.5,maxZ:z+.5});additionalFurnitureSeats.push({id:'china-residence-reception-seat-'+z,name:'后宫会客椅',x,y:.215,z,yaw,width:.9,depth:.9,seatY:.875,front:.275});}
- table(g,-18.2,.9,3.2,.65,1.0);flowerBranches(g,-18.7,1.08,.9);G.vessel(g,-17.4,1.09,.9,0xaac6ba,.6);
+ part('guest','后宫一层客卧',-26,-20.9,-12,2,.215,3.77);
+ const additionalFurniture=buildChinaConsortRooms(G,{g,C,wall,privacy,part,table,teaSet,colliders,cameraColliders,additionalFurnitureSeats,explorationTargets});
  culturePlaque(G,g,'茶叙',-18.3,3.17,-11.79,2,.6);
  // Second floor: opaque arrival doors, an internal full silk screen to the WC,
  // and a separate linen/dressing room; no wet room is a stair access route.
@@ -119,6 +118,6 @@ export function buildChinaResidence(G,A){
  const entrySign=residencePlaque(G,g,'静宜后宫',-15.77,3.43,-13.5,3.1,.58);entrySign.rotation.y=Math.PI/2;
  for(const [name,x,y,z]of[['客居',-23.5,3.45,-12.21],['会客',-18.3,3.45,-12.21],['沐浴',-23.5,7.25,-12.21],['净室',-18,7.25,-12.21],['寝殿',-17.7,11.06,-12.21],['梳妆',-18,11.06,-3.21]]){const plaque=residencePlaque(G,g,name,x,y,z,1.7,.55);plaque.rotation.y=Math.PI;}
  buildings.push({id:'rear-palace',name:'静宜后宫',groupName:g.name,roofGroupName:r.name,bounds:CHINA_RESIDENCE.bounds,roomIds:CHINA_RESIDENCE.floors.flatMap(f=>f.rooms),storeys:3});
- for(const [id,name,p,roomId]of[['cn-residence-ground-entry','后宫公共通廊东口',[-15.2,.215,-13.4],'outdoors'],['cn-residence-living','后宫起居茶案',[-18.3,.215,-9.1],'residence-living'],['cn-residence-dressing','后宫梳妆台前',[-18,7.815,-.05],'residence-dressing'],['cn-residence-linen','后宫布草柜前',[-18,4.015,-1],'residence-linen']])explorationTargets.push({id,name,position:p,roomId});
- return {group:g,roofGroup:r};
+ for(const [id,name,p,roomId]of[['cn-residence-ground-entry','后宫公共通廊东口',[-15.2,.215,-13.4],'outdoors'],['cn-residence-living','后宫起居茶案',[-18.25,.215,-10.95],'residence-living'],['cn-residence-dressing','后宫梳妆台前',[-18,7.815,-.05],'residence-dressing'],['cn-residence-linen','后宫布草柜前',[-18,4.015,-1],'residence-linen']])explorationTargets.push({id,name,position:p,roomId});
+ return {group:g,roofGroup:r,additionalFurniture};
 }

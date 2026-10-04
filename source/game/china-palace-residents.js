@@ -1,0 +1,26 @@
+import {createLifeDecisions} from './npc-life-decisions.js';
+
+// Stable authored adults. Seeded faces remain on the shared identity contract;
+// dress, hair and personal values make these residents readable at play distance.
+export const CHINA_CONSORTS=Object.freeze([
+ {id:'cn-consort-yue',npcName:'月容 · 妃嫔',shortName:'月容',royalRole:'consort',ageYears:29,privateRoomId:'guest',privateBedId:'china-furniture-bed-2',npcPosition:[-23.5,.215,-2.2],costumeStyle:'flower-comb',personality:'温和好客，喜欢茶香与庭中闲谈',appearance:{bodyPreset:'feminine-balanced',hairStyle:'low-bun',clothes:0x9b3f5d,accent:0xe1c17b},traits:{curiosity:.55,outdoors:.54,sociability:.87,quiet:.45,appetite:.60},relations:{'cn-tea':.40,'cn-consort-heng':.24,'cn-consort-ling':.34}},
+ {id:'cn-consort-heng',npcName:'沈蘅 · 妃嫔',shortName:'沈蘅',royalRole:'consort',ageYears:34,privateRoomId:'consort-heng',privateBedId:'china-consort-bed-heng',npcPosition:[-18.2,.215,-3.9],costumeStyle:'jade-pin',personality:'沉静审慎，爱读书，也会独自看荷',appearance:{bodyPreset:'feminine-slender',hairStyle:'braided-tail',hair:0x262526,clothes:0x405875,accent:0xb8cfbc},traits:{curiosity:.94,outdoors:.58,sociability:.25,quiet:.92,appetite:.38},relations:{'cn-tea':.12,'cn-consort-yue':.30,'cn-consort-ling':.15}},
+ {id:'cn-consort-ling',npcName:'令仪 · 妃嫔',shortName:'令仪',royalRole:'consort',ageYears:25,privateRoomId:'consort-ling',privateBedId:'china-consort-bed-ling',npcPosition:[-18.2,.215,.9],costumeStyle:'coral-spray',personality:'爽朗好奇，常去赏景，喜欢找熟人叙话',appearance:{bodyPreset:'feminine-balanced',hairStyle:'shoulder-wave',hair:0x58412f,clothes:0xc37655,accent:0xf0cf8e},traits:{curiosity:.63,outdoors:.95,sociability:.82,quiet:.22,appetite:.70},relations:{'cn-tea':.24,'cn-consort-yue':.42,'cn-consort-heng':.18}}
+]);
+export const palaceResident=id=>CHINA_CONSORTS.find(p=>p.id===id);
+export function palaceResidentAppearance(id){const p=palaceResident(id);return p?{...p.appearance,wardrobePreset:'palace-consort-ruqun',locomotionWardrobePreset:'ruqun-long-skirt'}:null;}
+// A scene migration supplies authored values only for an unseen identity. It
+// never resets an existing resident's PRNG, needs, choices or earned relations.
+export function palaceResidentSave({worldSeed,actorIds,saved={}}){
+ const initial=createLifeDecisions({worldSeed,actorIds,saved}).snapshot();
+ for(const profile of CHINA_CONSORTS){
+  const person=initial.people[profile.id];if(!person||saved.version===1&&saved.people?.[profile.id])continue;
+  person.traits={...profile.traits};person.values={company:profile.traits.sociability,quiet:profile.traits.quiet,curiosity:profile.traits.curiosity};person.relations={...profile.relations};
+ }
+ return initial;
+}
+export const CONSORT_ROUTES=Object.freeze({
+ 'cn-consort-yue':[[-21.65,.215,-4.5],[-21.65,.215,-10.5],[-23.5,.215,-10.6],[-23.5,.215,-13.35]],
+ 'cn-consort-heng':[[-18.6,.215,-4.1],[-20.1,.215,-4.1],[-20.1,.215,-10.7],[-18.3,.215,-10.7],[-18.3,.215,-13.35]],
+ 'cn-consort-ling':[[-18.6,.215,.9],[-20.1,.215,.9],[-20.1,.215,-10.7],[-18.3,.215,-10.7],[-18.3,.215,-13.35]]
+});
