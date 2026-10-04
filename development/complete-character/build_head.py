@@ -121,7 +121,27 @@ for i,(x,y,z) in enumerate(raw):
  lid=bell(abs(x),.305,.16)*smooth(1.3,1.38,z)*(.36*bell(y-upper_lid(x),.003,.019)+.04*bell(y-lower_lid(x),-.002,.016))
  mesh.attributes['lip_tint'].data[i].value=lip;mesh.attributes['cavity_tint'].data[i].value=max(cavity,seam);mesh.attributes['lid_tint'].data[i].value=lid
 for poly in mesh.polygons:poly.use_smooth=True
-bm=bmesh.new();bm.from_mesh(mesh);bmesh.ops.recalc_face_normals(bm,faces=bm.faces);bm.to_mesh(mesh);bm.free()
+bm=bmesh.new();bm.from_mesh(mesh)
+# The source concentrates loops in the face/ears. Refine only its sparse
+# upper/posterior cranial cage, keeping the anatomical face loops intact.
+semantic=bm.verts.layers.float_vector.get('feature_coord')
+def cranial_weight(v):
+ sx,sy,sz=v[semantic]
+ top=smooth(7.43,7.78,sy)
+ back=(1-smooth(.18,.62,sz))*smooth(6.38,6.93,sy)
+ ear_guard=1-smooth(.63,.76,abs(sx))*(1-smooth(7.35,7.62,sy))
+ return max(top,back)*ear_guard
+edges=[e for e in bm.edges if all(cranial_weight(v)>.08 for v in e.verts)]
+bmesh.ops.subdivide_edges(bm,edges=edges,cuts=1,use_grid_fill=True)
+for _ in range(2):
+ old_positions={v:v.co.copy() for v in bm.verts}
+ for v in bm.verts:
+  weight=cranial_weight(v)
+  if weight<=0 or not v.link_edges:continue
+  neighbors=[edge.other_vert(v) for edge in v.link_edges]
+  average=sum((old_positions[n] for n in neighbors),Vector())/len(neighbors)
+  v.co=old_positions[v].lerp(average,.40*weight)
+bmesh.ops.recalc_face_normals(bm,faces=bm.faces);bm.to_mesh(mesh);bm.free()
 # Export the native designed control loops for the light mesh; optional single
 # subdivision is a sculpt comparison only. No collapse/decimation is used.
 level=int(os.environ.get('SCULPT_LEVEL','0'))
