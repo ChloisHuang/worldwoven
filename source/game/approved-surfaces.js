@@ -8,6 +8,7 @@ import {applyNaturalHead} from './head-shape.js';
 import {normalizeShapeTraits,hasShapeTraits,shapeHeight} from './character-traits.js';
 import {buildPalaceEmperorGarments,buildPalaceConsortGarments} from './china-palace-costume.js';
 import {buildJinyiGarments} from './jinyi-costume.js';
+import {buildCourtOfficialGarments,buildCourtOfficialFacialHair} from './china-court-official-costume.js';
 const gradient = new THREE.DataTexture(new Uint8Array([90, 150, 213, 255]),4,1,THREE.RedFormat);
 gradient.minFilter = gradient.magFilter = THREE.NearestFilter;
 gradient.generateMipmaps=false; gradient.needsUpdate=true;
@@ -245,6 +246,7 @@ function buildJapan(g,masc,preset){
  if(!masc){loft(g,'obi-back-bow',[[1.035,.062,.018,0,-.116],[1.07,.099,.033,0,-.122],[1.116,.064,.02,0,-.117]],C.obi,{segs:20,steps:8});}
 }
 function buildChina(g,masc,preset){
+ if(preset==='court-official-long-robe'){buildCourtOfficialGarments(g,{loft,surface,ribbon,hand,shoe,conformFront,tone},C);return;}
  if(preset==='palace-consort-ruqun'){buildPalaceConsortGarments(g,{loft,surface,ribbon,hand,shoe,conformFront,tone},C);return;}
  if(preset==='palace-emperor-robe'){buildPalaceEmperorGarments(g,{loft,surface,ribbon,hand,shoe,conformFront,tone},C);return;}
  if(preset==='jinyi-training'){buildJinyiGarments(g,{loft,surface,ribbon,hand,shoe,conformFront,tone},C);return;}
@@ -327,7 +329,7 @@ function unshapeHeight(y,legLength){
 }
 export function createRelaxedArmOffset(preset,wardrobe,legLength=1){
  if(!BODY_SCULPT[preset])return null;
- const cut=wardrobe==='court-overgown'?'overgown':wardrobe==='miko-hakama'?'miko':/yukata|kimono|ruqun|bath-robe/.test(wardrobe)?'wide':/scholar|jinyi/.test(wardrobe)?'robe':'fitted';
+ const cut=wardrobe==='court-overgown'?'overgown':wardrobe==='miko-hakama'?'miko':/yukata|kimono|ruqun|bath-robe/.test(wardrobe)?'wide':/scholar|jinyi|court-official/.test(wardrobe)?'robe':'fitted';
  const [upperOut,lowerOut,forward]=ARM_HANG[cut],shoulder=[.171*armWidthAtHeight(1.326,preset),shapeHeight(1.326,legLength),-.010],elbow=[.277*armWidthAtHeight(1.099,preset),shapeHeight(1.099,legLength),-.006],wrist=[.304,shapeHeight(.926,legLength),0];
  const length=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i])),upper=length(shoulder,elbow),lower=length(elbow,wrist);
  // Solve in the shaped body, then map back to anatomical Y for the shared mesh
@@ -393,6 +395,7 @@ export function createApprovedSurfaces({culture=null,masc=false,style='casual',b
  // R9 individual Egyptian dye survives both tailoring presets.
  if(culture==='egypt')C.yukata=new THREE.Color(C.yukata).lerp(new THREE.Color(0xe2d7b9),.28).getHex();
  const root=new THREE.Group();buildHead(root,masc,hairStyle,traits,culture==='japan'&&wardrobePreset==='onsen-swimwear'&&hairStyle==='braided-tail');
+ if(culture==='china'&&masc&&wardrobePreset==='court-official-long-robe')buildCourtOfficialFacialHair(root.getObjectByName('sculpted-head'),{surface,faceSurface:(x,y)=>headSurface(x,y,masc,traits)},C);
  // Temporary opaque ankle-length bath robe; saved cultural outfits remain untouched.
  if(culture==='japan'&&wardrobePreset==='onsen-swimwear')buildOnsenSwimwear(root);
  else if(wardrobePreset==='bath-robe'){

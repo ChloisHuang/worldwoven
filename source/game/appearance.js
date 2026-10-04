@@ -16,7 +16,7 @@ export const WARDROBE_PRESETS={
  france:{feminine:['court-gown','court-overgown'],masculine:['court-frock-coat','court-waistcoat']}
 };
 // Explicit NPC roles are outside the seeded/player wardrobe cycle.
-export const ROLE_WARDROBE_PRESETS={japan:['miko-hakama'],china:['jinyi-training','palace-emperor-robe','palace-consort-ruqun']};
+export const ROLE_WARDROBE_PRESETS={japan:['miko-hakama'],china:['jinyi-training','palace-emperor-robe','palace-consort-ruqun','court-official-long-robe']};
 const skin=[[0xefc6a6,3],[0xdfb18d,3],[0xca9672,2],[0xa87050,2],[0x7e5037,1],[0x593725,1]];
 const palettes={
  japan:{skin:[[0xefc6a6,3],[0xdfb18d,4],[0xca9672,3],[0xa87050,2],[0x7e5037,1]],hair:[[0x252329,5],[0x362c2a,4],[0x53382d,3],[0x725442,1],[0x6c6661,1]],eyes:[[0x332923,5],[0x4a3428,4],[0x674830,2],[0x80704b,1]],clothes:[0x587e7a,0x596d89,0x91606a,0xb19870,0x777159,0x776789,0xa77565,0x697c65]},
