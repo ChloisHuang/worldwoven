@@ -5,7 +5,7 @@ import test from 'node:test';
 import {consortPetitionView,createChinaConsortPetitionUI} from '../source/game/china-consort-petition-ui.js';
 const target={id:'reception',position:[1,.2,1],radius:1.1},meeting={id:'audience',position:[5,.2,5],radius:1.1};
 const walk=e=>[e,...e.children.flatMap(walk)];
-function fixture(){
+function fixture(options={}){
  let doc;
  class Element{
   constructor(tag){this.tag=tag;this.children=[];this.attrs={};this._text='';this.listeners={};this.scrollTop=0;this.replacements=0;}
@@ -21,7 +21,7 @@ function fixture(){
  const player={root:{position:{x:0,y:.2,z:0}}},intents=[],choices=[];
  const service={statusCard:()=>structuredClone(card),interactionTarget:()=>['submitted','accepted','charter-held'].includes(card.stage)?meeting:target,
   respond(choice){choices.push(choice);card.stage=choice==='accept'?'accepted':'declined';return {ok:true};},submit(){throw Error('UI must not call physical service methods');},requestAudience(){throw Error('UI must not call physical service methods');},requestInvestiture(){throw Error('UI must not call physical service methods');}};
- const ui=createChinaConsortPetitionUI({service,getPlayer:()=>player,getDetails:()=>details,getLedger:()=>({history:()=>rows}),onIntent:intent=>{assert.equal(ui.isOpen(),false);intents.push(intent);return true;},document:doc});
+ const ui=createChinaConsortPetitionUI({service,getPlayer:()=>player,getDetails:()=>details,getLedger:()=>({history:()=>rows}),onIntent:intent=>{assert.equal(ui.isOpen(),false);intents.push(intent);return true;},document:doc,...options});
  const dialog=doc.body.children[0],find=id=>walk(dialog).find(e=>e.attrs['data-consort-action']===id),visible=()=>walk(dialog).filter(e=>e.tag==='button'&&!e.hidden);
  return {doc,dialog,ui,find,visible,intents,choices,player,service,setCard:v=>{card=v;},getCard:()=>card,setDetails:v=>{details=v;},setRows:v=>{rows=v;}};
 }
@@ -58,4 +58,13 @@ test('active physical sequence is read-only at site, with return route when away
 });
 test('close/Escape retains application and dispose removes owned DOM/styles',()=>{
  const f=fixture();f.setCard({stage:'submitted',blockers:[]});f.ui.open();f.dialog.listeners.cancel({preventDefault(){}});assert.equal(f.ui.isOpen(),false);assert.equal(f.getCard().stage,'submitted');assert.equal(f.choices.length,0);assert.equal(f.intents.length,0);f.ui.dispose();assert.equal(f.doc.head.children.length,0);assert.equal(f.doc.body.children.length,0);assert.equal(f.ui.open(),false);
+});
+test('appointed meal uses the existing live intent and blocks unavailable stock',()=>{
+ const f=fixture(),mealIntent={...target,provider:'china-royal-player-meal',kind:'eat',orderId:'one-real-order'};f.setCard({stage:'appointed',titleId:'consort',residence:{},blockers:[]});f.setDetails({meal:{target:mealIntent,label:'享用青蔬膳',statusLabel:'青蔬膳已备好',remaining:86,capacity:120}});f.ui.open();assert.equal(f.find('meal').textContent,'享用青蔬膳');assert(f.dialog.textContent.includes('青蔬膳已备好 · 余 86 / 120 份'));f.find('meal').onclick();assert.deepEqual(f.intents.at(-1).target,mealIntent);f.setDetails({meal:{available:false,reason:'原库存已用尽',remaining:0,capacity:120}});f.ui.open();assert.equal(f.find('meal').disabled,true);assert(f.dialog.textContent.includes('原库存已用尽'));f.ui.dispose();
+});
+test('title release needs a fresh explicit confirmation and live bridge permission',()=>{
+ let active=true,id='appointment-one',ok=true,f;const calls=[];
+ const titleBridge={titleStatus:()=>({active,appointmentId:id}),releaseTitleAvailability:()=>({ok,reasons:ok?[]:['title-rights-busy']}),resignTitle(value,options){calls.push({id:value,options});active=false;f.setCard({stage:'resigned',blockers:[]});return {ok:true};}};
+ f=fixture({titleBridge});f.setCard({stage:'appointed',titleId:'consort',residence:{},blockers:[]});f.ui.open();f.find('resign-title').onclick();assert.equal(calls.length,0);assert(f.dialog.textContent.includes('辞去后交还寝房与御膳资格'));f.find('cancel-resignation').onclick();assert.equal(calls.length,0);
+ f.find('resign-title').onclick();const stale=f.find('confirm-resignation').onclick;ok=false;stale();assert.equal(calls.length,0);assert.equal(f.find('confirm-resignation').disabled,true);assert(f.dialog.textContent.includes('先结束寝居、用膳或册书中的活动'));ok=true;id='appointment-two';f.ui.update();stale();assert.equal(calls.length,0);assert.equal(f.find('confirm-resignation').hidden,true);f.find('resign-title').onclick();f.find('confirm-resignation').onclick();assert.deepEqual(calls,[{id:'appointment-two',options:{confirmed:true}}]);assert.equal(f.getCard().stage,'resigned');assert(!f.dialog.textContent.includes('appointment-two'));f.ui.dispose();
 });
