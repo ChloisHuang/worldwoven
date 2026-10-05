@@ -1,3 +1,4 @@
+import {ROYAL_KITCHEN_CHEF_DAYS,validTavernChefServiceReceipt} from './china-royal-kitchen-role.js';
 import {CHINA_OFFICIAL_IDS} from './china-official-economy.js';
 import {validSalonVisitor} from './china-salon-payments.js';
 import {validPlayerStay} from './china-tavern-lodging.js';
@@ -22,6 +23,7 @@ function validWorld(w){
  if(!w||w.version!==1||!integer(w.serial)||!integer(w.till)||!Array.isArray(w.orders)||w.orders.length>6||!Array.isArray(w.tables)||w.tables.length!==2||!Array.isArray(w.rooms)||w.rooms.length!==2||!Array.isArray(w.visitors)||w.visitors.length!==2)return false;
  if(!['west','east'].every(id=>w.tables.filter(t=>t.id===id&&typeof t.dirty==='boolean').length===1)||!['lan','zhu'].every(id=>w.rooms.filter(r=>r.id===id&&typeof r.dirty==='boolean'&&(r.guestId===null||['player',...GUESTS].includes(r.guestId))).length===1))return false;
  for(const o of w.orders){const dish=TAVERN_DISHES.find(d=>d.id===o.dishId);if(!integer(o.number)||!o.number||o.number>w.serial||o.id!=='cn-tavern-order-'+o.number||ids.has(o.id)||!dish||!stages.has(o.stage)||!['west','east'].includes(o.tableId)||!Array.isArray(o.reviews)||typeof o.collected!=='boolean'||o.price!==dish.price||!['player',...GUESTS,...CHINA_OFFICIAL_IDS].includes(o.customerId))return false;ids.add(o.id);}
+ if(w.chefServiceReceipts!==undefined&&(!Array.isArray(w.chefServiceReceipts)||w.chefServiceReceipts.length>ROYAL_KITCHEN_CHEF_DAYS||w.chefServiceReceipts.some(r=>!validTavernChefServiceReceipt(r)||r.number>w.serial)||['day','number','workReceiptId'].some(key=>new Set(w.chefServiceReceipts.map(r=>r[key])).size!==w.chefServiceReceipts.length)))return false;
  if(!validPlayerStay(w))return false;
  const lease=w.officialDiner;if(lease&&(!CHINA_OFFICIAL_IDS.includes(lease.actorId)||!['dining','leaving'].includes(lease.mode)||!w.orders.some(o=>o.id===lease.orderId&&o.customerId===lease.actorId)))return false;
  if(w.orders.some(o=>CHINA_OFFICIAL_IDS.includes(o.customerId)&&!o.cancelled&&!['dirty','return','wash','done'].includes(o.stage)&&lease?.orderId!==o.id))return false;
@@ -147,14 +149,14 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   const tableId=index?'east':'west',x=index?23.9:18.1,seat=furniture.items.find(s=>s.id===`china-tavern-dining-${x}--1`),dish=TAVERN_DISHES[index],inward=index?-1:1;
   return {id:`cn-tavern-order-${offset+index+1}`,number:offset+index+1,guestIndex:index,customerId:n.station.id,customerName:n.station.npcName,tableId,seatId:seat.id,seatAnchor:seat.anchor.slice(),servePoint:[x+inward*1.2,.215,17.86],mealPoint:[x+inward*.36,1.21,17.83],passPoint:PASS_SLOTS[index].slice(),dishId:dish.id,dishName:dish.name,price:dish.price,customerCopper:30,stage:'arriving',mealId:null,holder:null,collected:false,reviews:[],cleaned:false};
  });}
- function start({roleId,receiptId,snapshot=null}){
+ function start({roleId,receiptId,day=getClock()?.day,snapshot=null}){
   if(loadError)return false;if(snapshot&&!validWorld(snapshot)){loadError='invalid-tavern-world';notify('酒楼现场记录暂时无法核对，请保留当前存档');return false;}
   if(state&&state.stage!=='finished'||!Object.values(ROLE).includes(roleId)||guests.some(n=>!n))return false;
   let next=snapshot?copy(snapshot):state?copy(state):null;
   if(!next){const orders=makeOrders(receiptId);next={version:1,serial:2,orders,till:0,
     tables:[{id:'west',dirty:false},{id:'east',dirty:false}],rooms:['lan','zhu'].map((id,index)=>({id,name:index?'竹房':'兰房',price:12,dirty:false,guestId:null,bedId:'china-tavern-bed-'+id})),
     visitors:guests.map((n,i)=>({id:n.station.id,mode:'dining',orderId:orders[i].id,visits:1,roomId:null,copper:30}))};}
-  Object.assign(next,{roleId,receiptId,stage:'handover-in',selectedOrderId:null,heldTrayId:null,completedTasks:snapshot?.receiptId===receiptId?snapshot.completedTasks||0:0});
+  Object.assign(next,{roleId,receiptId,chefShiftDay:roleId===ROLE.chef&&Number.isSafeInteger(day)&&day>=0?day:null,stage:'handover-in',selectedOrderId:null,heldTrayId:null,completedTasks:snapshot?.receiptId===receiptId?snapshot.completedTasks||0:0});
   // Restored scene identities/dirty flags survive. Only unfinished hand-held
   // props return to their real pass; money and review receipts never replay.
   if(snapshot){for(const o of next.orders){if(['preparing','heating'].includes(o.stage))o.stage=o.stage==='preparing'?'paid':'prepared';if(['cooked','carrying'].includes(o.stage)){o.stage='pass';o.holder='pass';delete o.placedTableId;delete o.placedMealPoint;}if(o.stage==='return'){o.stage='dirty';o.holder='table';}}}
@@ -235,12 +237,25 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   const durations={'take-order':1.3,'rent-room':1.3,collect:1.1,prep:3.2,heat:4.2,pass:1.1,clear:1.1,wash:2.8,'clean-table':5,'clean-room':5};
   if(!durations[current.kind])return false;activity={...current,elapsed:0,duration:durations[current.kind],origin:getPlayer().root.position.toArray()};return true;
  }
+ // Only this player's three completed physical stages can produce evidence.
+ // Legacy cooked dishes, partial handovers and aggregate task totals cannot.
+ function chefContext(){const day=getClock()?.day;return playerOwns('chef')&&Number.isSafeInteger(day)&&day>=0&&day===state.chefShiftDay&&/^cn-tavern-chef-labor-[1-9][0-9]*$/.test(state.receiptId)?{actorId:'player',roleId:ROLE.chef,workReceiptId:state.receiptId,day}:null;}
+ const sameChefContext=(proof,context)=>!!proof&&!!context&&['actorId','roleId','workReceiptId','day'].every(key=>proof[key]===context[key]);
+ function passChefDish(o){
+  const context=chefContext(),proof=o.chefPreparation,receipt=context&&sameChefContext(proof,context)&&proof.prepared===true&&proof.cooked===true&&o.mealId===o.id+'-dish'&&o.collected&&!o.cancelled?
+    {source:'china-tavern-chef',number:o.number,orderId:o.id,mealId:o.mealId,actorId:'player',day:context.day,workReceiptId:context.workReceiptId,completed:true}:null;
+  const changed=changeWorld(next=>{const row=next.orders.find(q=>q.id===o.id);Object.assign(row,{stage:'pass',holder:'pass'});
+    const receipts=next.chefServiceReceipts||[];
+    if(receipt&&receipts.length<ROYAL_KITCHEN_CHEF_DAYS&&!receipts.some(r=>r.day===receipt.day||r.number===receipt.number))next.chefServiceReceipts=[...receipts,receipt];
+  });
+  if(changed)record('dish-on-pass',{orderId:o.id});return changed;
+ }
  function finishActivity(a){const o=order(a.orderId);let result=false;
   if(a.kind==='rent-room')result=rentRoom(state.visitors.find(v=>v.id===a.guestId),state.rooms.find(r=>r.id===a.roomId),false,true);
   else if(a.kind==='clean-table')result=changeWorld(next=>{next.tables.find(t=>t.id===a.tableId).dirty=false;});
   else if(a.kind==='clean-room')result=changeWorld(next=>{next.rooms.find(r=>r.id===a.roomId).dirty=false;});
   else if(!o)return false;
-  else if(a.kind==='take-order')result=stage(o,'ordered');else if(a.kind==='collect')result=collect(o);else if(a.kind==='prep')result=stage(o,'prepared');else if(a.kind==='heat')result=prepareDish(o);else if(a.kind==='pass')result=stage(o,'pass',{holder:'pass'});
+  else if(a.kind==='take-order')result=stage(o,'ordered');else if(a.kind==='collect')result=collect(o);else if(a.kind==='prep'){const context=chefContext();result=stage(o,'prepared',{chefPreparation:context?{...context,prepared:true,cooked:false}:null});}else if(a.kind==='heat'){const context=chefContext();result=prepareDish(o,{chefPreparation:sameChefContext(o.chefPreparation,context)&&o.chefPreparation.prepared?{...o.chefPreparation,cooked:true}:null});}else if(a.kind==='pass')result=passChefDish(o);
   else if(a.kind==='clear')result=clear(o);else if(a.kind==='wash')result=stage(o,'done',{holder:null,portionsRemaining:0});
   if(result)changeWorld(next=>next.completedTasks++);return result;
  }
@@ -280,7 +295,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  const customer=o=>o.customerId==='player'?getPlayer():CHINA_OFFICIAL_IDS.includes(o.customerId)?officialActor(o.customerId):guests[o.guestIndex];
  const customerSeated=o=>!!o&&(o.customerId==='player'?getMounted()?.id===o.seatId&&at(getPlayer(),o.seatAnchor,.35):customer(o)?.serviceMount?.id===o.seatId);
  const freePassSlot=()=>{const used=new Set(state.orders.filter(o=>['cooked','pass','carrying','wrong'].includes(o.stage)).map(o=>o.passSlot??o.guestIndex));return [0,1].find(i=>!used.has(i))??null;};
- function prepareDish(o){const slot=freePassSlot();return slot!==null&&stage(o,'cooked',{mealId:o.id+'-dish',holder:'cook',passSlot:slot,passPoint:PASS_SLOTS[slot].slice()});}
+ function prepareDish(o,fields={}){const slot=freePassSlot();return slot!==null&&stage(o,'cooked',{mealId:o.id+'-dish',holder:'cook',passSlot:slot,passPoint:PASS_SLOTS[slot].slice(),...fields});}
 
  // Official prepayments stay refundable against their order and never enter
  // earned till until the actual dish is delivered. Owners can withdraw only
