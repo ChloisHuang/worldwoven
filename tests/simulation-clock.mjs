@@ -22,3 +22,15 @@ test('existing court day migrates without replaying completed wages or changing 
   assert.equal(clock.state().day,7);assert.equal(clock.state().hour,10);
   a.observe(clock.state().hour,clock.state().day);assert.equal(a.due(10,false,999),false);assert.equal(a.snapshot().courtStart,11.5);
 });
+
+test('legacy and persistent-clock unfinished summons recover before the same fixed start',()=>{
+  for(const saved of [undefined,{version:1,seconds:4*1440/.7}]){
+    const clock=createSimulationClock(saved,4),court=createAudienceSchedule({version:2,day:4,calledDay:4,outcome:'called'});
+    court.observe(clock.state().hour,clock.state().day);
+    assert(court.due(clock.state().hour,false,120));assert.equal(court.snapshot().day,4);
+    court.call(clock.state().hour,120);
+    for(let n=0;n<1285;n++){const s=clock.advance(.1);court.observe(s.hour,s.day);assert(!court.atStart(s.hour));}
+    const s=clock.advance(.1);court.observe(s.hour,s.day);assert(court.atStart(s.hour));
+    assert.equal(court.snapshot().completionId,null,'recovered summons grants no completion');
+  }
+});

@@ -11,7 +11,7 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.60-public, 2026-10-05
+Published release: R16.61-public, 2026-10-05
 Verified published Sites source commit: 00ab703d79526bcafe0f8910c48c12ef49ad0f7c
 
 ## Working rules
@@ -114,3 +114,5 @@ R16.58 adds French garden-helper registration, physical shared-can work on two r
 R16.59 fixes shared displayed-canvas sizing and pointer/label coordinates, listens to orientation and dynamic viewport changes, and compacts the landscape HUD with label avoidance. Source/build and coordinate checks passed. Local browser access was blocked, so real CSS layout and iOS rotation remain unverified; this release is for phone confirmation. R16.58 / Site v85 remains the rollback baseline. No pending career or new character candidate is included.
 
 R16.60 adds the fictional Chinese court-recording appointment: public study, skill eligibility, a real vacant slot, the shared court schedule, archive work, supervisor reviews and a daily bank wage. The physical money house supports withdrawals and displayed fixed game exchange rates. The folding wallet shows cash notes and a separate bank/account book; art loads only when opened (four WebP images total 389,948 bytes). Old copper jobs and service prices stay compatible. Passport and other countries' banks remain pending. Actual natural court and counter routes plus targeted persistence/UI-module checks passed; browser/iOS layout remains unverified. The optional face preview is unchanged.
+
+R16.61 repairs unfinished summons restored before11:30, releases stale idle-conversation pauses when duties become busy, and marks pending imperial duty as busy. Help now exposes existing saved postponement records with named officials and imperial readiness. One natural legacy run reached all six officials and a kneeling ceremony; it did not reproduce the user's exact deadline absence, which remains open pending that saved record. New failures save one bounded arrival diagnostic. No late start, teleports, new job catalogue, new face or passport is included.

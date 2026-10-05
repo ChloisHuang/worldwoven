@@ -32,7 +32,17 @@ export function createAudienceSchedule(saved={}){
  let calledAt=null,leadSeconds=null,exception=saved.exception||null;
  const secondsUntil=hour=>(COURT_START_HOUR-hour)*60/COURT_CLOCK_MINUTES_PER_SECOND;
  return {
-  observe(hour,simulationDay){if(!Number.isFinite(hour))return;const nextDay=Number.isSafeInteger(simulationDay)&&simulationDay>=day?simulationDay:lastHour!==null&&lastHour>18&&hour<6?day+1:day;if(nextDay>day){day=nextDay;outcome='waiting';exception=null;}lastHour=hour;},
+  observe(hour,simulationDay){
+   if(!Number.isFinite(hour))return;
+   const nextDay=Number.isSafeInteger(simulationDay)&&simulationDay>=day?simulationDay:lastHour!==null&&lastHour>18&&hour<6?day+1:day;
+   if(nextDay>day){day=nextDay;outcome='waiting';exception=null;}
+   // A saved summons is not a completed ceremony. Re-entering before the
+   // fixed start must let the live controller gather everyone from their real
+   // positions again; keeping today's calledDay would lock it out all day.
+   // Completed/explicitly postponed days and their receipts remain terminal.
+   if(outcome==='interrupted'&&calledDay===day&&lastCompletedDay!==day&&hour>=6&&hour<COURT_START_HOUR){calledDay=-1;outcome='waiting';exception=null;}
+   lastHour=hour;
+  },
   secondsUntil,
   due(hour,night=false,budgetSeconds=90){return !night&&hour>=6&&hour<COURT_START_HOUR&&calledDay!==day&&secondsUntil(hour)<=Math.max(0,budgetSeconds)+COURT_CONGESTION_SECONDS;},
   missed(hour){return hour>=COURT_START_HOUR&&calledDay!==day;},
