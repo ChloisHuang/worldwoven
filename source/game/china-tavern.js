@@ -85,30 +85,29 @@ export function buildChinaTavern(G,A){
  wall(g0,'x',15.2,16,26,.215,3.77,[opening('cn-tavern-dining-hall','酒楼与公共梯厅','x',15.2,20.0,23.0,.215,['tavern-dining','tavern-hall-1'])]);
  room('tavern-dining','云来一层酒楼',16,26,15.2,21,.215,3.77);
  for(const[x,z]of[[18.1,18.1],[23.9,18.1]]){const top=table(g0,x,.215,z,1.45,1.12,.90);H.teaSet(g0,x,top,z,0xb9c7ac);H.bowl(g0,x-.35,top,z+.24,0xf1dfbb,.18);for(const[side,yaw]of[[-1,0],[1,Math.PI]])chair(g0,'china-tavern-dining-'+x+'-'+side,'酒楼雕花餐椅',x,.215,z+side*1.32,yaw);}
- const counter=table(g0,24.35,.215,10.34,2.5,.78,1.0);H.teaSet(g0,23.50,counter,10.34,0xa8b0a0);buildTavernKitchen(G,{group:g0,block,table,H});
- // Hiring belongs to this reception desk. Its small fixed writing ledge leaves
- // the existing tea, central meal pass and east wash bowl in their own places.
- const hiring=new THREE.Group();hiring.name='云来酒楼 招工登记案';g0.add(hiring);
- block(hiring,23.45,counter-.04,10.83,.76,.08,.32,C.wood);
- for(const x of[23.17,23.73])G.box(hiring,x,counter-.16,10.735,.065,.24,.12,C.dark);
- const ledger=new THREE.Group();ledger.name='云来酒楼 招工登记簿';ledger.position.set(23.40,counter,10.83);hiring.add(ledger);
+ // The north table belongs to the kitchen: cook hands dishes over it, and
+ // returned bowls go to its east wash basin. Reception has its own west-facing
+ // counter, with the shopkeeper inside the L and visitors in the public aisle.
+ table(g0,24.35,.215,10.34,2.5,.78,1.0);buildTavernKitchen(G,{group:g0,block,table,H});
+ const counter=table(g0,23.4,.215,11.7,.8,2.1,1.0);
+ const reception=new THREE.Group();reception.name='云来酒楼 掌柜内侧接待柜台';g0.add(reception);
+ // A modest tea service fits this counter's south end, separately from the
+ // ledger and the kitchen's real tray pass. Cups stay supported by the top.
+ const receptionTea=new THREE.Group();receptionTea.name='掌柜接待茶具';receptionTea.position.set(23.4,counter,12.4);receptionTea.rotation.y=-Math.PI/2;receptionTea.scale.setScalar(.56);reception.add(receptionTea);H.teaSet(receptionTea,0,0,0,0xa8b0a0);
+ const hiring=new THREE.Group();hiring.name='云来酒楼 招工登记案';reception.add(hiring);
+ const ledger=new THREE.Group();ledger.name='云来酒楼 招工登记簿';ledger.position.set(23.29,counter,11.7);ledger.rotation.y=-Math.PI/2;hiring.add(ledger);
  G.box(ledger,0,.016,0,.48,.032,.28,0x763f34);
  for(const side of[-1,1]){
   G.box(ledger,side*.116,.040,0,.217,.024,.25,0xeadbb8);
   for(const z of[-.082,-.039,.004,.047,.090])G.box(ledger,side*.116,.053,z,.164,.003,.005,0x9c8a69);
  }
  G.box(ledger,0,.038,0,.018,.028,.25,0x9a7854);
- // A small inkstone and a resting bamboo brush make this an actual writing place.
- G.box(hiring,23.745,counter+.022,10.76,.105,.044,.10,0x4a5149);
- G.box(hiring,23.745,counter+.046,10.76,.070,.006,.065,0x272d2b);
- const brush=G.cyl(hiring,23.714,counter+.065,10.866,.009,.011,.22,0x9b7544,8);brush.rotation.z=Math.PI/2;brush.rotation.y=-.28;
- const nib=G.mesh(hiring,new THREE.ConeGeometry(.014,.058,8),0x323d37,23.581,counter+.065,10.828);nib.rotation.z=Math.PI/2;nib.rotation.y=-.28;
- // Desk-sized lettering sits below face height, beside the open register. The
- // reception and kitchen remain visible from the normal ground-floor camera.
- // The back edge is clear of the full teapot/spout/handle, all three cups,
- // the live .62×.46 meal tray and the wash bowl. Keep both feet on the top.
- const hiringSign=sign(hiring,'招工登记',24.32,counter+.18,10.00,.76,.26);
- for(const x of[-.27,.27])G.box(hiringSign,x,-.17,.02,.025,.10,.08,C.dark);
+ G.box(hiring,23.34,counter+.022,11.35,.10,.044,.105,0x4a5149);
+ G.box(hiring,23.34,counter+.046,11.35,.065,.006,.070,0x272d2b);
+ const brush=G.cyl(hiring,23.46,counter+.065,11.52,.009,.011,.22,0x9b7544,8);brush.rotation.x=Math.PI/2;
+ const nib=G.mesh(hiring,new THREE.ConeGeometry(.014,.058,8),0x323d37,23.46,counter+.065,11.381);nib.rotation.x=-Math.PI/2;
+ const hiringSign=sign(hiring,'招工登记',23.26,counter+.18,11.05,.70,.26,-Math.PI/2);
+ for(const x of[-.25,.25])G.box(hiringSign,x,-.17,.02,.025,.10,.08,C.dark);
  room('tavern-kitchen','云来酒楼 · 后厨备餐间',21.95,26,8,10.65,.215,3.77);
  sign(g0,'云来酒楼',21,3.23,21.24,3.45,.61);
  sign(g0,'云来酒楼',15.76,3.13,13.4,3.20,.59,-Math.PI/2);
@@ -164,7 +163,7 @@ export function buildChinaTavern(G,A){
  H.palaceRoof(roof,21,11.83,14.5,11.65,14.75,1.55,0x4f7774);
  H.palaceRoof(roof,21,13.20,14.5,5.1,11.1,.82,0x4f7774);
  // No ground porch or column projects west into the accepted x14.9 patrol.
- stations.push({id:'cn-tavern-host',name:'云来酒楼 · 迎客茶案',action:'看看酒楼菜牌',position:[22.35,.215,11.7],npcPosition:[24.1,.215,11.40],workTarget:[24.1,1.32,10.68],npcName:'许安',npcAction:'tea',npcLabel:'掌柜 · 迎客点菜',npcRotation:Math.PI,route:[[23.6,.215,13.95],[21,.215,18.1]],color:'#bd8b58',age:38,dialogue:'云来楼一层用饭，二层客房，三层雅集。客榻可以暂歇，坐到餐椅后招呼我，今日有云来菌菇饭。客房先供暂歇，订房账册还未开。'});
+ stations.push({id:'cn-tavern-host',name:'云来酒楼 · 迎客茶案',action:'看看酒楼菜牌',position:[22.35,.215,11.7],npcPosition:[24.1,.215,11.40],workTarget:[23.4,1.32,11.4],npcName:'许安',npcAction:'tea',npcLabel:'掌柜 · 柜内迎客登记',npcRotation:Math.PI,route:[[23.6,.215,13.95],[21,.215,18.1]],color:'#bd8b58',age:38,dialogue:'云来楼一层用饭，二层客房，三层雅集。客榻可以暂歇，坐到餐椅后招呼我，今日有云来菌菇饭。客房先供暂歇，订房账册还未开。'});
  stations.push({id:'cn-tavern-cook',name:'云来酒楼 · 后厨',npcOnly:true,action:'照料灶火',position:[23.3,.215,9.36],npcPosition:[23.3,.215,9.36],workTarget:[23.3,1.29,8.86],npcName:'沈禾',npcAction:'cook',npcLabel:'厨师 · 备菜候单',npcRotation:Math.PI,color:'#6f8470',age:32,ageYears:32,dialogue:'今日菌菇新鲜。掌柜报了桌位，我便动手，热饭要趁热端去。'});
  stations.push({id:'cn-tavern-reception',name:'三层青楼 · 雅集接待',action:'请接待引见艺者',position:[24.15,7.815,12.65],npcPosition:[24.15,7.815,10.45],workTarget:[24.15,8.95,11.3],npcName:'温晚',npcAction:'tea',npcLabel:'接待 · 引见与安排雅间',npcRotation:0,color:'#9e617a',age:41,ageYears:41,dialogue:'四位艺者各有所好。我先引见，由本人答复；愿意且有空房，才请你确认价目。茶叙完成前取消，全额退回铜钱。'});
  stations.push(...salonArtistStations());
