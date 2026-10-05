@@ -87,6 +87,9 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
   c.workHeight=target?(target[1]-n.root.position.y)/(n.characterScale||1):undefined;c.workDistance=target?gap(n,target)/(n.characterScale||1):undefined;
   n.animate(t+(n.phase||0),n.walking,n.walking?null:action,c);
  }
+ // Reconcile an already durable source receipt immediately on region entry.
+ // The shared receiver owns the persisted watermark and rejects replay.
+ deliverReceipts();
  return {seat,owns:n=>owned.has(n),request,cancel,drink,
   ownsStation:id=>id===P.guest,
   playerPose(t){return order?.customer==='player'&&['drinking','lowering'].includes(order.stage)&&atSeat()?{archery:cupPose(getPlayer(),t).archery,handoff:true}:null;},
