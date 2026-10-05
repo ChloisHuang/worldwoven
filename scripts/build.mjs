@@ -18,12 +18,19 @@ if(fs.existsSync('cache-baseline.json')&&fs.existsSync(path.join(out,'build.json
 fs.rmSync('dist',{recursive:true,force:true});fs.mkdirSync(path.join(out,'assets'),{recursive:true});
 for(const[url,body]of prior)fs.writeFileSync(path.join(out,url),body);
 const assets={},busy=new Set();
-function emit(rel){if(assets[rel])return assets[rel];if(busy.has(rel))throw Error('Cyclic module graph '+rel);busy.add(rel);let body=fs.readFileSync(path.join(root,rel),'utf8');if(rel.endsWith('.js')){
+function emit(rel){if(assets[rel])return assets[rel];if(busy.has(rel))throw Error('Cyclic module graph '+rel);busy.add(rel);let body=fs.readFileSync(path.join(root,rel),rel.endsWith('.webp')?undefined:'utf8');if(rel.endsWith('.js')){
  const dependency=specifier=>emit(path.posix.normalize(path.posix.join(path.posix.dirname(rel),specifier.split('?')[0])));
  body=body.replace(/((?:from\s*|import\s*)['"])(\.\.?\/[^'"]+)(['"])/g,(_,a,s,b)=>a+dependency(s)+b);
  // Only literal relative import() expressions are supported. No bundler,
  // expression evaluation or eager browser fetch is introduced by emitting them.
  body=body.replace(/(\bimport\s*\(\s*['"])(\.\.?\/[^'"]+)(['"]\s*\))/g,(_,a,s,b)=>a+dependency(s)+b);
+ // Wallet art stays as URL strings until the panel creates its images. Keep
+ // this narrowly scoped: no generic CSS parser, glob loader or eager preload.
+ body=body.replace(/(\bnew URL\(\s*['"])(\.\/[^'"]+)(['"]\s*,\s*import\.meta\.url\s*\))/g,(_,a,s,b)=>{
+  const asset=path.posix.normalize(path.posix.join(path.posix.dirname(rel),s));
+  if(asset!=='game/wallet.css'&&!/^game\/assets\/currency\/(?:china|japan|egypt|france)\.webp$/.test(asset))throw Error('Unsupported URL asset '+asset);
+  return a+emit(asset)+b;
+ });
  }const ext=path.extname(rel),stem=path.basename(rel,ext),url='/assets/'+stem+'.'+hash(body)+ext;fs.writeFileSync(path.join(out,url),body);assets[rel]=url;busy.delete(rel);return url;}
 const main=emit('game/main.js'),entry=emit('game/entry.js'),css=emit('game/game.css'),three=emit('vendor/three/build/three.module.js');
 let html=fs.readFileSync('source/game/index.html','utf8').replace('./game.css?rev=R7-20261002',css).replace('./entry.js',entry).replace('../vendor/three/build/three.module.js',three);

@@ -1,0 +1,13 @@
+# Folding currency wallet
+
+`createCurrencyWallet({mount, ledger, onOpen, onClose})` in `source/game/wallet.js` adds the wallet trigger to the shared `.career-wallet-slot`. Pass the committed shared `createGameCurrencyLedger` instance. The optional callbacks stop world inputs and close competing dialogs. The facade supplies `open`, `close`, `isOpen`, `refresh` and `dispose`.
+
+Use the career handbook's optional `walletFactory({mount})` hook. Keep a reference to the returned wallet; include `wallet?.isOpen()` in `interactionMenuOpen()` and close it when leaving a region. `onOpen` should close the career handbook, stop paths/activities, clear keys and reset the joystick, using the existing modal callback. The wallet itself stops modal keyboard events and restores focus when dismissed. No per-frame refresh is needed: the committed event subscription updates the view.
+
+The UI only reads `balances()` and `history()` and subscribes to `subscribeCommitted`. No wallet action can write money. Successful wages animate into the bank, withdrawals from bank to wallet, deposits in reverse, exchanges from old currency to new, and reservations out of cash. Settlement records explicitly say no second cash deduction; refunds return reserved funds. Replayed and failed transactions emit no committed event. Closed-wallet events show a small text-only receipt animation without fetching art, and are never replayed when opening the panel.
+
+Each owned currency has one image/node with the total cash amount in DOM text, not one node per unit or an invented banknote count. Bank deposits and held prepayments are labeled separately. These fictional currencies currently track units only, not denomination inventories. Invalid ledger balances show “待核对”, never a made-up zero. History is newest-first with 60 entries per page and an accessible button for older entries.
+
+The four supplied original drawings were inspected before conversion. Local transparent WebP art is at most 800 pixels wide, totaling 389,948 bytes (381 KiB); amounts and currency names remain crisp DOM text. Images are created only after opening the wallet and only for currencies with cash. A scoped `wallet.css` is linked independently. The build's literal `new URL()` handling accepts only this stylesheet and the four known WebP paths; binaries are hashed and copied as bytes. It does not introduce generic CSS parsing or asset preloading.
+
+Initial source checks: JS syntax and whitespace passed. Focused DOM/event and binary build checks follow in the next small commit. Browser routes on this task are blocked by organization policy; actual rendered desktop and iOS/landscape appearance is not yet visually verified. No 3D scene, collision or game-wide regression was run for this isolated UI.
