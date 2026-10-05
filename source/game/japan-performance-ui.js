@@ -1,3 +1,4 @@
+import {JAPAN_SERVICE_CURRENCY,japanServiceMoney} from './japan-service-payment.js';
 import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
 import {AIRY_UI_THEME} from './china-money-house-theme.js';
 const RECEPTION_ID='jp-performance-reception';
@@ -25,11 +26,11 @@ export function createJapanPerformanceUI({service,getPlayer,onOpen=()=>{},onFurn
   const activity=typeof o.activity==='object'&&o.activity?o.activity:artist?.activities?.find(a=>a.id===activityId);
   const drinkId=typeof o.drink==='object'?o.drink?.id:o.drink;
   const drink=typeof o.drink==='object'&&o.drink?o.drink:(s.drinks||[]).find(d=>d.id===drinkId);
-  const drinkFee=drinkId?amount(drink?.fee):0,total=amount(o.fee);
-  return {artist,activityName:activity?.name||({dance:'舞台演出',story:'故事演出',tea:'席间清谈'}[activityId])||'演出或清谈',actFee:activity?.fee===undefined?Math.max(0,total-drinkFee):amount(activity.fee),drinkName:drink?.name||(drinkId?'所选茶酒':'不点茶酒'),drinkFee,total,hasDrink:!!drinkId};
+  const drinkFee=drinkId?amount(o.drinkFee??drink?.fee):0,total=amount(o.fee);
+  return {artist,activityName:activity?.name||({dance:'舞台演出',story:'故事演出',tea:'席间清谈'}[activityId])||'演出或清谈',actFee:amount(o.actFee??Math.max(0,total-drinkFee)),drinkName:drink?.name||(drinkId?'所选茶酒':'不点茶酒'),drinkFee,total,hasDrink:!!drinkId};
  }
  function refresh(force=false){
-  const s=service.view(),o=s.order,atReception=service.atReception(),active=service.active(),drinks=(s.drinks||[]).filter(d=>d.id&&d.id!=='none'),candidates=s.candidates||[];
+  const s=service.view(),o=s.order,money=japanServiceMoney(s.currency||(o?o.currency||'copper':JAPAN_SERVICE_CURRENCY)),unit=money.displayUnit,atReception=service.atReception(),active=service.active(),drinks=(s.drinks||[]).filter(d=>d.id&&d.id!=='none'),candidates=s.candidates||[];
   if(selectedDrink!==null&&!drinks.some(d=>d.id===selectedDrink))selectedDrink=null;
   if(!candidates.some(c=>c.id===selectedArtist)){selectedArtist=(candidates.find(c=>c.available)||candidates[0])?.id||null;selectedActivity=null;}
   const selected=candidates.find(c=>c.id===selectedArtist);
@@ -39,13 +40,13 @@ export function createJapanPerformanceUI({service,getPlayer,onOpen=()=>{},onFurn
   const label=s.label||STAGES[o?.status]||'请查看接待簿',text=o?`三层戏馆 · ${label}`:'三层戏馆 · 演出与茶叙';
   if(text!==badgeText){badgeText=text;badge.textContent=text;}
   if(!dialog.open&&!force)return;
-  const key=JSON.stringify([o&&[o.id,o.artistId,o.activity,o.drink,o.status,o.fee,o.paid,o.actComplete,o.drinkComplete],s.label,s.lastReply,candidates,s.drinks,s.cash,s.paymentError,atReception,selectedDrink,selectedArtist,selectedActivity]);
+  const key=JSON.stringify([o&&[o.id,o.artistId,o.activity,o.drink,o.status,o.currency,o.actFee,o.drinkFee,o.fee,o.paid,o.actComplete,o.drinkComplete],s.label,s.lastReply,candidates,s.drinks,s.currency,s.cash,s.paymentError,atReception,selectedDrink,selectedArtist,selectedActivity]);
   if(!force&&key===signature)return;signature=key;generation++;
   const focused=doc.activeElement?.dataset?.jpPerformanceFocus,scrolls=[...dialog.querySelectorAll('.jp-performance-cast,.jp-performance-detail')].map(e=>e.scrollTop);
   dialog.replaceChildren();
   const x=button('×',close);x.className='jp-performance-close';x.setAttribute('aria-label','收起接待簿');x.dataset.jpPerformanceFocus='close';
   const {header,body,actions}=createAiryPanelParts(doc);header.className+=' jp-performance-heading';body.className+=' jp-performance-content';actions.className+=' jp-performance-actions';
-  header.append(make('h2','三层戏馆 · 演艺茶席'),make('span',`随身 ${amount(s.cash)} 铜文`));
+  header.append(make('h2','三层戏馆 · 演艺茶席'),make('span',`${money.label} · 随身 ${amount(s.cash)} ${unit}`));
   const cast=make('section',null,'jp-performance-cast'),detail=make('section',null,'jp-performance-detail');
   const note=make('p',o?'收起面板保留安排':'成年艺者自愿参与 · 答应后确认预付','jp-performance-footer-note');actions.append(note);
   if(!o){
@@ -55,7 +56,7 @@ export function createJapanPerformanceUI({service,getPlayer,onOpen=()=>{},onFurn
     card.append(heading,make('p',c.available?'可邀请':'歇场 / 已有安排',c.available?'jp-performance-available':undefined));
     for(const a of c.activities||[]){
      const b=button(null,()=>{selectedArtist=c.id;selectedActivity=a.id;refresh(true);});b.className='jp-performance-activity';b.setAttribute('aria-pressed',String(selectedArtist===c.id&&selectedActivity===a.id));b.dataset.jpPerformanceFocus=`activity-${c.id}-${a.id}`;
-     b.append(make('span',a.name.replace('成年艺者陪席茶谈','席间清谈')),make('span',`${amount(a.fee)} 铜文`));b.disabled=!c.available||!(c.ageYears>=18);b.setAttribute('aria-label',`${c.name} · ${a.name} · ${amount(a.fee)} 铜文`);card.append(b);
+     b.append(make('span',a.name.replace('成年艺者陪席茶谈','席间清谈')),make('span',`${amount(a.fee)} ${unit}`));b.disabled=!c.available||!(c.ageYears>=18);b.setAttribute('aria-label',`${c.name} · ${a.name} · ${amount(a.fee)} ${unit}`);card.append(b);
     }
     cards.append(card);
    }
@@ -64,9 +65,10 @@ export function createJapanPerformanceUI({service,getPlayer,onOpen=()=>{},onFurn
    if(selected?.preference)cast.append(make('p',`${selected.name} · ${selected.preference}`,'jp-performance-note'));
    const choices=make('fieldset',null,'jp-performance-drinks');choices.append(make('legend','茶酒 · 随邀请询问'));
    const options=make('div',null,'jp-performance-drink-options');
-   for(const d of [{id:null,name:'不点茶酒',fee:0},...drinks]){const b=button(null,()=>{selectedDrink=d.id;refresh(true);});b.append(make('span',d.name),make('span',`${amount(d.fee)} 文`));b.setAttribute('aria-pressed',String(selectedDrink===d.id));b.dataset.jpPerformanceFocus=`drink-${d.id||'none'}`;options.append(b);}choices.append(options);detail.append(choices);
-   const price=make('div',null,'jp-performance-total');price.append(make('span','本次合计'),make('strong',`${total} 铜文`));detail.append(price);
-   const invite=button(selected?`邀请${selected.name} · ${total}文`:'暂无可邀请的艺者',()=>{service.request(selectedArtist,selectedActivity,selectedDrink);refresh(true);},true);invite.disabled=!atReception||!selected?.available||!(selected?.ageYears>=18)||!activity||!!s.paymentError;invite.dataset.jpPerformanceFocus='invite';actions.append(invite);
+   for(const d of [{id:null,name:'不点茶酒',fee:0},...drinks]){const b=button(null,()=>{selectedDrink=d.id;refresh(true);});b.append(make('span',d.name),make('span',`${amount(d.fee)} ${unit}`));b.setAttribute('aria-pressed',String(selectedDrink===d.id));b.dataset.jpPerformanceFocus=`drink-${d.id||'none'}`;options.append(b);}choices.append(options);detail.append(choices);
+   const price=make('div',null,'jp-performance-total');price.append(make('span','本次合计'),make('strong',`${total} ${unit}`));detail.append(price);
+   const invite=button(selected?`邀请${selected.name} · ${total}${unit}`:'暂无可邀请的艺者',()=>{service.request(selectedArtist,selectedActivity,selectedDrink);refresh(true);},true);invite.disabled=!atReception||!selected?.available||!(selected?.ageYears>=18)||!activity||!!s.paymentError||amount(s.cash)<total;invite.dataset.jpPerformanceFocus='invite';actions.append(invite);
+   if(amount(s.cash)<total)detail.append(make('p',`余额不足 · 还差 ${total-amount(s.cash)} ${unit}，可到本地银行兑换或提款`,'jp-performance-error'));
    if(!atReception)note.textContent='三层东厅接待案前可邀请 · 尚未扣款';
    if(s.lastReply){const reply=make('p',`${s.lastReply.name||'艺者'}：${s.lastReply.reply||'正在答复'}${s.lastReply.willing===false?'（未收费）':''}`,'jp-performance-reply');reply.setAttribute('role','status');cast.append(reply);}
   }else{
@@ -76,19 +78,19 @@ export function createJapanPerformanceUI({service,getPlayer,onOpen=()=>{},onFurn
    if(o.status==='seating')order.append(make('p','离层或逾时未入座，取消并退回未提供部分。','jp-performance-note'));
    cast.append(order);
    const bill=make('dl',null,'jp-performance-bill'),line=(label,value)=>{const row=make('div');row.append(make('dt',label),make('dd',value));bill.append(row);};
-   line('演出 / 清谈',`${d.actFee} 文${o.paid?o.actComplete?' · 已结算':' · 未完成':''}`);line(d.drinkName,d.hasDrink?`${d.drinkFee} 文${o.paid?o.drinkComplete?' · 已结算':' · 未完成':''}`:'0 文');
-   detail.append(bill);const price=make('div',null,'jp-performance-total');price.append(make('span',o.paid?'已预留':'确认时预留'),make('strong',`${d.total} 铜文`));detail.append(price);
-   if(o.paid){const unsettled=(o.actComplete?0:d.actFee)+(d.hasDrink&&!o.drinkComplete?d.drinkFee:0);detail.append(make('p',`未提供 ${unsettled} 文 · 取消时退还`,'jp-performance-refund'),make('p','演艺与茶酒各自完成后结算。','jp-performance-note'));}
+   line('演出 / 清谈',`${d.actFee} ${unit}${o.paid?o.actComplete?' · 已结算':' · 未完成':''}`);line(d.drinkName,d.hasDrink?`${d.drinkFee} ${unit}${o.paid?o.drinkComplete?' · 已结算':' · 未完成':''}`:`0 ${unit}`);
+   detail.append(bill);const price=make('div',null,'jp-performance-total');price.append(make('span',o.paid?'已预留':'确认时预留'),make('strong',`${d.total} ${unit}`));detail.append(price);
+   if(o.paid){const unsettled=(o.actComplete?0:d.actFee)+(d.hasDrink&&!o.drinkComplete?d.drinkFee:0);detail.append(make('p',`未提供 ${unsettled} ${unit} · 取消时退还`,'jp-performance-refund'),make('p','演艺与茶酒各自完成后结算。','jp-performance-note'));}
    else detail.append(make('p','拒绝不收费 · 艺者答应后才可预留','jp-performance-note'),make('p','演艺与茶酒各自完成后结算，未提供部分退款。','jp-performance-note'));
    if(o.paid&&o.status==='seating'){
     const activityId=typeof o.activity==='object'?o.activity?.id:o.activity,seat=service.seat(),go=button(activityId==='tea'?'入座茶谈':'入座观演',()=>{const item=service.seat();if(item&&onFurniture){close();onFurniture(item);}else refresh(true);},true);go.disabled=!seat||!onFurniture;actions.append(go);
    }else if(!o.paid&&o.status==='accepted'){
-    const pay=button(`确认预留 ${d.total}文`,()=>{if(service.confirm()){close();onFurniture?.(service.seat());}else refresh(true);},true);pay.disabled=amount(s.cash)<d.total||!!s.paymentError;actions.append(pay);
-    if(amount(s.cash)<d.total){const error=make('p',`余额不足 · 还差 ${d.total-amount(s.cash)} 文，尚未扣款`,'jp-performance-error');error.setAttribute('role','status');detail.append(error);}
+    const pay=button(`确认预留 ${d.total}${unit}`,()=>{if(service.confirm()){close();onFurniture?.(service.seat());}else refresh(true);},true);pay.disabled=amount(s.cash)<d.total||!!s.paymentError;actions.append(pay);
+    if(amount(s.cash)<d.total){const error=make('p',`余额不足 · 还差 ${d.total-amount(s.cash)} ${unit}，尚未扣款`,'jp-performance-error');error.setAttribute('role','status');detail.append(error);}
    }else if(!o.paid&&o.status!=='refund-pending'){const wait=button('等待本人答复',()=>{},true);wait.disabled=true;actions.append(wait);}
    actions.append(button(o.status==='returning'?'结束并离席':'取消本次邀请',()=>{service.cancel();close();if(o.paid&&onStand)onStand();}));
   }
-  if(s.paymentError){const error=make('p','铜钱账目待核对，暂不能预留新费用。','jp-performance-error');error.setAttribute('role','alert');detail.append(error);const retry=button('重试核对铜钱',()=>{service.recoverPayments();refresh(true);});retry.className='jp-performance-recover';detail.append(retry);}
+  if(s.paymentError){const error=make('p','钱款账目待核对，暂不能预留新费用。','jp-performance-error');error.setAttribute('role','alert');detail.append(error);const retry=button('重试核对钱款',()=>{service.recoverPayments();refresh(true);});retry.className='jp-performance-recover';detail.append(retry);}
   body.append(cast,detail);dialog.append(x,header,body,actions);
   if(focused){const target=[...dialog.querySelectorAll('[data-jp-performance-focus]')].find(e=>e.dataset.jpPerformanceFocus===focused);target?.focus({preventScroll:true});}[cast,detail].forEach((e,i)=>{e.scrollTop=scrolls[i]||0;});
  }
