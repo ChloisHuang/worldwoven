@@ -13,12 +13,12 @@ export function salonWillingness(actor,activity,relationship=0){
  if(!p.activities?.includes(activity))return {willing:false,reply:`${p.preference||'我今日更想静谈'}，这次邀约就先谢过了。`};
  return {willing:true,reply:p.yes||'好呀，若有空房，我们一起去坐坐。'};
 }
-export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContext,getPlayer,getMounted=()=>null,copperLedger,worldSeed=1,saved={},saveState=()=>{},notify=()=>{},isActorBusy=()=>false}){
+export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContext,getPlayer,getMounted=()=>null,copperLedger,worldSeed=1,saved={},saveState=()=>{},notify=()=>{},isActorBusy=()=>false,roomAvailable=()=>true}){
  const receptionist=npcs.find(n=>n.station.id===SALON_RECEPTION),performers=npcs.filter(n=>n.station.salon).slice(0,4);if(!receptionist||!performers.length)return null;
  let performer=performers[0];
  const travelState=new Map(),history=Array.isArray(saved.history)?saved.history.slice(-35):[],responses={...(saved.responses||{})},relationships={...(saved.relationships||{})},failures=[];
  let time=Number(saved.time)||0,serial=Number(saved.serial)||0,session=null,returning=false,phaseTime=0,sessionTime=0,disposed=false,conversation=null,lastReply=saved.lastReply||null,paymentError=null,life=null;
- const ledger=createSalonRoomLedger({occupants:()=>[...npcs.map(n=>({id:n.station.id,position:n.root.position})),...(getPlayer()?[{id:'player',position:getPlayer().root.position}]:[])]});
+ const ledger=createSalonRoomLedger({roomAvailable,occupants:()=>[...npcs.map(n=>({id:n.station.id,position:n.root.position})),...(getPlayer()?[{id:'player',position:getPlayer().root.position}]:[])]});
  const gap=(a,p)=>Math.hypot(a.root.position.x-p[0],a.root.position.z-p[2]),near=(a,p,r=.07)=>!!a&&gap(a,p)<r&&Math.abs(a.root.position.y-p[1])<.3;
  const eligible=actor=>knownAdult(getPlayer())&&knownAdult(actor)&&knownAdult(receptionist),adult=()=>eligible(performer);
  const atReception=()=>near(getPlayer(),RECEPTION,1.25)&&!getMounted();
@@ -78,14 +78,14 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
  function startEscort(){
   if(!session||session.stage!=='accepted'||!atReception()||!adult()||!near(performer,MEETING))return false;
   const room=roomForSession();
-  if(ledger.claim(room.id)?.owner!==session.id||!salonWillingness(performer,session.activity,relationships[session.actorId]||0).willing){cancel(`${name()}暂且改了主意`);return false;}
+  if(!roomAvailable(room.id)||ledger.claim(room.id)?.owner!==session.id||!salonWillingness(performer,session.activity,relationships[session.actorId]||0).willing){cancel(`${name()}暂且改了主意`);return false;}
   // A third party may enter a reserved room before the two guests depart.
   if(npcs.some(n=>n!==performer&&inSalonRoom(room,n.root.position))){cancel('雅间刚有客人到访');return false;}
   const result=copperLedger.reserve(session.fee,session.id);
   if(!result.ok){notify(result.code==='insufficient-cash'?`手头不足${session.fee}文，可先到一层向许安接洒扫短工`:'这笔尚未记妥，请稍后再试');return false;}
   session.payment='reserved';record('reserved',{amount:session.fee});session.leg=0;enter('escort');persist();notify(`${name()}：${room.name}在楼下，随我慢慢走`);return true;
  }
- function entryValid(){const room=roomForSession(),p=getPlayer();return adult()&&room&&ledger.claim(room.id)?.owner===session.id&&inSalonRoom(room,p?.root.position)&&inSalonRoom(room,performer.root.position)&&near(p,room.player,.18)&&near(performer,room.actor,.18)&&!npcs.some(n=>n!==performer&&inSalonRoom(room,n.root.position));}
+ function entryValid(){const room=roomForSession(),p=getPlayer();return adult()&&room&&roomAvailable(room.id)&&ledger.claim(room.id)?.owner===session.id&&inSalonRoom(room,p?.root.position)&&inSalonRoom(room,performer.root.position)&&near(p,room.player,.18)&&near(performer,room.actor,.18)&&!npcs.some(n=>n!==performer&&inSalonRoom(room,n.root.position));}
  function pose(a,t,action,target){if(target&&!a.walking)a.root.rotation.y=Math.atan2(target[0]-a.root.position.x,target[2]-a.root.position.z);if(a.root.visible!==false)a.animate(t+(a.phase||0),a.walking,a.walking?null:action,poseContext(a,a===receptionist?a.station:null));}
  life=createSalonArtistLife({performers,worldSeed,saved:saved.continuity?.life||saved.life||{},saveState:()=>persist(),travel,pose,planPath,getPlayer,isActorBusy});
  return {
