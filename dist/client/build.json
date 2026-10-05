@@ -1,8 +1,10 @@
 {
-  "release": "R16.63-public",
+  "release": "R16.64-public",
   "date": "2026-10-05",
-  "baseGameCommit": "2bdbc81b8cac4b0db2992d99fb8103c13d63431a",
+  "baseGameCommit": "7f9d95e32ceb56ac1b0d49c9775b8f188fd3a3a1",
   "assets": {
+    "game/travel-passport.css": "/assets/travel-passport.1e5fe191aee4c313.css",
+    "game/travel-passport.js": "/assets/travel-passport.9312f6e83fc6d9f2.js",
     "game/viewport-layout.js": "/assets/viewport-layout.3c2eccc73f66e2e0.js",
     "game/study-lessons.js": "/assets/study-lessons.62fc90cda83954bb.js",
     "game/formal-careers.js": "/assets/formal-careers.7f281f498e218bc1.js",
@@ -134,7 +136,7 @@
     "game/approved-surfaces.js": "/assets/approved-surfaces.d0f31ec9c7f21c1a.js",
     "game/character-props.js": "/assets/character-props.deb24f9b65d5e60a.js",
     "game/characters.js": "/assets/characters.2c406ca56e43d01b.js",
-    "game/main.js": "/assets/main.1463da2d9518293e.js",
+    "game/main.js": "/assets/main.b6568d5085d94636.js",
     "game/complete-adult/assets/adult-forms-data.js": "/assets/adult-forms-data.f5c3eae422bf2d5b.js",
     "game/complete-adult/attach-head.js": "/assets/attach-head.cd715d43de06238a.js",
     "game/complete-adult/assets/layered-hair-data.js": "/assets/layered-hair-data.909c7058087b476c.js",
@@ -154,7 +156,7 @@
     "game/complete-adult/register.js": "/assets/register.457d37fb5252fdc6.js",
     "game/complete-adult/selection.js": "/assets/selection.da7382d63b4983be.js",
     "game/character-preview-entry.js": "/assets/character-preview-entry.bed7ff9f51addd24.js",
-    "game/entry.js": "/assets/entry.81d483a09f86be1b.js",
+    "game/entry.js": "/assets/entry.2550e594a243cab3.js",
     "game/game.css": "/assets/game.8fe63c1e02771337.css",
     "vendor/three/build/three.core.js": "/assets/three.core.9edde002b066a9a0.js",
     "vendor/three/build/three.module.js": "/assets/three.module.d8c0a97fa13a785e.js"
