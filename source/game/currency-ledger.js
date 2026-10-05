@@ -10,7 +10,7 @@ export const GAME_CURRENCIES = Object.freeze({
 });
 export const EXCHANGE_RATE_VERSION = 'worldwoven-fixed-v1';
 const CURRENCIES = Object.keys(GAME_CURRENCIES);
-const ACTIONS = new Set(['open', 'deposit', 'withdraw', 'earn', 'wage', 'reserve', 'settle', 'refund', 'exchange']);
+const ACTIONS = new Set(['open', 'deposit', 'withdraw', 'earn', 'wage', 'reserve', 'settle', 'refund', 'exchange', 'business']);
 const copy = value => JSON.parse(JSON.stringify(value));
 const integer = value => Number.isSafeInteger(value) && value >= 0;
 const positive = value => integer(value) && value > 0;
@@ -43,6 +43,7 @@ function makeQuote({from, to, amount, version = EXCHANGE_RATE_VERSION} = {}) {
 function signature(tx) {
   return {action: tx.action, currency: tx.currency, amount: tx.amount,
     ...(tx.action === 'wage' ? {roleId: tx.roleId, slotId: tx.slotId, day: tx.day} : {}),
+    ...(tx.action === 'business' ? {businessId: tx.businessId, operation: tx.operation} : {}),
     ...(tx.action === 'exchange' ? {quote: copy(tx.quote)} : {}),
     ...(terminal(tx.action) ? {reservationId: tx.reservationId} : {})};
 }
@@ -53,6 +54,7 @@ function validateRequest(tx) {
   if (terminal(tx.action) ? !idValid(tx.reservationId) || tx.requestId !== terminalId(tx.action, tx.reservationId) : !idValid(tx.requestId)) return 'invalid-request-id';
   if (tx.action === 'open' ? tx.amount !== 0 : !positive(tx.amount)) return 'invalid-amount';
   if (tx.action === 'wage' && (!idValid(tx.roleId) || !idValid(tx.slotId) || !integer(tx.day))) return 'invalid-wage-receipt';
+  if (tx.action === 'business' && (tx.currency !== 'copper' || tx.businessId !== 'cn-yunlai-tavern' || !['purchase','sale','invest','draw'].includes(tx.operation))) return 'invalid-business-receipt';
   if (tx.action === 'exchange') {
     const q = makeQuote(tx.quote);
     if (!q.ok) return q.code;
@@ -74,6 +76,11 @@ function calculate(balances, reservations, tx) {
   } else if (tx.action === 'wage') {
     b.accountOpened = true;
     b.bank += amount;
+  } else if (tx.action === 'business') {
+    if (['purchase','invest'].includes(tx.operation)) {
+      if (amount > b.bank) return {error: 'insufficient-bank'};
+      b.bank -= amount;
+    } else { b.accountOpened = true; b.bank += amount; }
   } else if (tx.action === 'earn') b.cash += amount; // Legacy helper compatibility only.
   else if (tx.action === 'deposit' || tx.action === 'withdraw') {
     if (!b.accountOpened) return {error: 'account-not-open'};
@@ -190,8 +197,8 @@ export function createCurrencyLedger({saved, saveState, onTransaction} = {}) {
     const next = {...current, balances: result.balances, nextTransaction: current.nextTransaction + 1, transactions: [...current.transactions, transaction]};
     saving = true;
     try {
-      const saved = saveState(copy(next));
-      if (saved === false) return failure('save-failed');
+      const saved = saveState(copy(next), copy(transaction));
+      if (saved === false || saved?.ok === false) return failure(saved?.code || 'save-failed');
       if (saved && typeof saved.then === 'function') {
         Promise.resolve(saved).catch(() => {});
         return failure('async-save-unsupported');
@@ -225,6 +232,8 @@ export function createCurrencyLedger({saved, saveState, onTransaction} = {}) {
     settle: id => finish('settle', id), refund: id => finish('refund', id),
     creditWageToBank: ({amount, receiptId, currency = 'copper', roleId, slotId, day} = {}) =>
       transact({action: 'wage', amount, requestId: receiptId, currency, roleId, slotId, day}),
+    transferBusiness: ({amount, receiptId, operation, businessId = 'cn-yunlai-tavern'} = {}) =>
+      transact({action: 'business', amount, requestId: receiptId, currency: 'copper', businessId, operation}),
     quoteExchange: request => loadError ? {ok: false, code: loadError} : makeQuote(request),
     exchange: ({quote, requestId} = {}) => transact({action: 'exchange', currency: quote?.from, amount: quote?.amount, requestId, quote}),
     subscribeCommitted(listener) {
@@ -236,11 +245,16 @@ export function createCurrencyLedger({saved, saveState, onTransaction} = {}) {
 
 // Storage is injected, including the isolated preview store. Update the enclosing
 // save only after the complete game snapshot has synchronously reached storage.
-export function createGameCurrencyLedger({saved, storage, key = 'worlds-days-v1', onTransaction}) {
-  return createCurrencyLedger({saved: saved.copperLedger, onTransaction, saveState: nextLedger => {
-    const next = {...saved, copperLedger: nextLedger};
+export function createGameCurrencyLedger({saved, storage, key = 'worlds-days-v1', onTransaction, transactionParticipant = () => null}) {
+  return createCurrencyLedger({saved: saved.copperLedger, onTransaction, saveState: (nextLedger, transaction) => {
+    const participant = transactionParticipant(transaction);
+    if (participant?.ok === false) return participant;
+    // A property transfer or business-funded wage and its money receipt reach
+    // the same game snapshot. Neither participant advances before this write.
+    const next = {...saved, ...participant?.patch, copperLedger: nextLedger};
     const result = storage.setItem(key, JSON.stringify(next));
     if (result === false || result && typeof result.then === 'function') return result;
-    saved.copperLedger = nextLedger;
+    Object.assign(saved, participant?.patch, {copperLedger: nextLedger});
+    participant?.committed?.();
   }});
 }
