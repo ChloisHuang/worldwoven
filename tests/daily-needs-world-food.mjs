@@ -30,7 +30,7 @@ function fixture(){
 
 test('paid sushi and ramen need actual complete eating, survive retire/reload, and never replay',()=>{
  const f=fixture();for(const dish of['sushi','ramen']){
-  f.clock.seconds+=12*H;f.needs.update();f.unmount();move(P[dish+'Counter']);assert(f.service.orderDining(dish).ok);const v=f.deliver(),before=f.needs.hunger('player');
+  f.clock.seconds+=24*H;f.needs.update();f.unmount();move(P[dish+'Counter']);assert(f.service.orderDining(dish).ok);const v=f.deliver(),before=f.needs.hunger('player');
   assert.equal(before,1,'delivery alone does not feed');assert(f.service.eat().ok);f.tick(20);assert.equal(f.needs.hunger('player'),before,'partial eating does not feed');
   move([0,0,30]);f.tick(1);assert.equal(f.service.state().activity,null);assert.equal(f.needs.hunger('player'),before,'walking away interrupts');f.mount(seats.find(s=>s.diningKind===dish));assert(f.service.eat().ok);f.tick(61);
   assert(f.needs.hunger('player')<.001);const receipt=f.stored.playerMealReceipts[0];assert.equal(receipt.mealId,v.id+':meal');assert.equal(receipt.paymentReceipt,v.paymentId);assert.equal(f.needs.japanMealReceipts([receipt],f.ledger.reservations()),false);
@@ -58,7 +58,11 @@ test('existing bath-token meal is real food and uses the original kitchen item r
 
 test('French cake gives bounded food relief, and foreign receipts cannot be forged from readiness',()=>{
  const f=fixture(),r={source:'france-tea-food',id:'france-tea-1-consumed',number:1,actorId:'player',orderId:'france-tea-1',mealId:'france-tea-1-tray',dishId:'tea-cake',supplyReceipt:'france-tea-1',completed:true};
- assert.equal(f.needs.mealReceipts([{...r,completed:false}]),false);assert.equal(f.needs.mealReceipts([{...r,mealId:'not-prepared'}]),false);assert(f.needs.mealReceipts([r]));assert.equal(f.needs.hunger('player'),.75);assert.equal(f.needs.mealReceipts([r]),false);
+ assert.equal(f.needs.mealReceipts([{...r,completed:false}]),false);assert.equal(f.needs.mealReceipts([{...r,mealId:'not-prepared'}]),false);assert(f.needs.mealReceipts([r]));assert.equal(f.needs.hunger('player'),.875);assert.equal(f.needs.mealReceipts([r]),false);
+ for(const hours of[0,1,2]){
+  const m=createDailyNeeds({saved:{version:1,people:{player:{foodAge:hours*H,receipts:{}}}}});assert(m.mealReceipts([r]));
+  assert(Math.abs(m.hunger('player')-Math.max(0,hours*2-3)/24)<1e-12,'small snack subtracts three hours across migration offset, never a whole meal');
+ }
 });
 
 
