@@ -1,5 +1,6 @@
 import {addInsetClosureSection} from './inset-closures.js';
 import {registerNightFixture} from './night-lighting.js';
+import {buildFranceExchangeCounter,franceExchangeStation} from './france-exchange-counter.js';
 import {addFranceGardenerPlace,FRANCE_GARDENER} from './france-gardener-place.js';
 import {addRoyalGardenBench,addGardenTree,addFlowerShrub,addGardenHedge} from './france-garden.js';
 import * as G from './geometry.js?rev=R7-20261002';
@@ -1224,6 +1225,7 @@ export function buildFrance({pack=true}={}){
   for(const x of [-9,-5,5,9]){G.cyl(group,x,.34,-16.70,.58,.66,.65,C.white,12);addGardenTree(group,x,-16.70,{base:.67,scale:.58,seed:Math.abs(x)});G.collider(colliders,x,-16.7,1.35,1.35);}
   addFranceGardenerPlace(group,colliders,cameraBox);
   const stations=[
+    franceExchangeStation(),
     {id:'france-bakery',name:'宫廷糕点房',action:'烘烤法式面包',position:[-5.3,0,-9.05],playerWorkTarget:[-5.3,1.30,-9.65],color:'#b6cbb5',workTarget:[-5.7,1.30,-10.15],npcName:'卡米耶',npcAction:'cook',npcLabel:'准备宫廷面包与糕点',npcPosition:[-6.95,0,-10.55],route:[[-7.1,0,-10.55],[-6.8,0,-8.1]]},
     {id:'france-atelier',name:'皇家艺术书斋',action:'描绘宫苑的光影',position:[7.1,0,-9.25],color:'#97bba0',workTarget:[7.1,1.95,-10.90],npcName:'卢西安',npcAction:'paint',npcLabel:'调色与观察宫苑光线',npcPosition:[5.55,0,-9.4],route:[[5.55,0,-9.4],[4.3,0,-9.4]]},
     {id:'france-salon',name:'翡翠镜厅',action:'翻阅一本诗集',position:[-6.7,0,.1],color:'#629776',workTarget:[-7.1,1.08,-1.55],npcName:'玛农',npcAction:'read',npcLabel:'整理诗集与瓷器茶具',npcPosition:[-6.5,0,-4.45],route:[[-6.5,0,-4.45],[-4.0,0,-4.7]]},
@@ -1306,6 +1308,7 @@ export function buildFrance({pack=true}={}){
   reserveBlock(22.7,.58,-.85,1.53,.60,.75);pianoBench(22.7,-.85);
   // Face the music/social space, with a side landing in the clear south aisle.
   chairAt(18.63,.88,Math.PI/2,C.green,0);chairAt(21,1.35,Math.PI,C.sage);urn(19.05,-5.10,.65);
+  const exchangeCounter=buildFranceExchangeCounter(G,{group,colliders,cameraColliders});
   const musicMirror=local(24.73,.2,-Math.PI/2);mirror(musicMirror,0,3.15,0,1.6,2.5);
   // Supported pastry boards follow the adults' separate working positions.
   box(-6.43,1.285,-10.62,.22,.03,.30,C.gold);box(-5.46,1.285,-9.67,.60,.03,.40,C.gold);
@@ -1359,5 +1362,5 @@ export function buildFrance({pack=true}={}){
   group.userData.furnitureRevision='R11-sculpted-rocaille-french-furniture';
   group.userData.furnitureAssemblies=furniture.map(q=>{const b=new THREE.Box3().setFromObject(q);return {name:q.name,kind:q.userData.furnitureKind,min:b.min.toArray(),max:b.max.toArray()};});
   if(pack){packPalaceChunks(roofGroup);packPalaceChunks(group,roofGroup);}
-  return {group,colliders,cameraColliders,spawn:[0,0,32],stations,roofGroup,walkableSurfaces,explorationTargets,doorways,bounds};
+  return {group,colliders,cameraColliders,exchangeCounter,spawn:[0,0,32],stations,roofGroup,walkableSurfaces,explorationTargets,doorways,bounds};
 }
