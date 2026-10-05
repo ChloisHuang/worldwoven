@@ -161,6 +161,23 @@ function fixture({reduced=false,saved,manualImages=false}={}){
   const f=fixture({reduced:true});f.wallet.open();f.ledger.earn(6,'reduced-fold');const fan=one(f.doc,'ww-wallet-fan');
   fan.click();assert.equal(fan.dataset.motion,'spread');assert.equal(f.doc.pendingFrames(),0);fan.click();assert.equal(fan.dataset.motion,'closed');f.wallet.dispose();
 }
+{
+  const seed=createCurrencyLedger({saveState:()=>{}});seed.earn(6,'saved-cash');seed.creditWageToBank({currency:'france',amount:12,receiptId:'saved-bank',roleId:'gardener',slotId:'garden-1',day:1});
+  const f=fixture({saved:seed.state()});assert.equal(f.doc.images.length,1,'construction predecodes only an already-owned cash currency');
+  const primed=f.doc.images[0];assert.match(primed.src,/china.webp$/);assert.equal(all(f.doc,'ww-wallet-dialog').length,0,'predecoding does not open or build the dialog');
+  for(let i=0;i<6;i++)await Promise.resolve();f.wallet.open();assert.equal(one(f.doc,'ww-wallet-note').children[0],primed,'first open adopts its predecoded image');f.wallet.dispose();
+}
+{
+  const f=fixture({manualImages:true});f.wallet.open();f.ledger.earn(6,'failed-art');
+  const note=one(f.doc,'ww-wallet-note'),img=note.children[0],receipt=one(f.doc,'ww-wallet-transfer');
+  img.failDecode(new Error('network'));img.onerror();for(const other of f.doc.images)if(other!==img){other.failDecode(new Error('network'));other.onerror();}
+  for(let i=0;i<12;i++)await Promise.resolve();
+  assert.equal(note.dataset.artState,'error');assert(!receipt.className.includes('is-ready'),'failed art cannot start a flying placeholder');
+  const writes=f.writes(),count=f.doc.images.length;f.wallet.refresh();assert.equal(note.dataset.artState,'error','ordinary refresh does not keep retrying failed images');
+  f.wallet.close();f.wallet.open();assert.equal(note.dataset.artState,'loading','reopening makes one controlled retry of a failed ticket');
+  assert.equal(note.children[0],img);assert.equal(f.doc.images.length,count,'retry reuses the same country node and URL');img.finishDecode();
+  for(let i=0;i<8;i++)await Promise.resolve();assert.equal(note.dataset.artState,'ready','successful retry recovers the actual ticket');assert.equal(f.writes(),writes,'art failure and retry never write money');f.wallet.dispose();
+}
 assert.equal(walletTransactionView({id:'legacy',action:'earn',amount:5}).currency,'copper','legacy journal rows retain copper');
 assert.equal(walletTransactionView({id:'settled',action:'settle',currency:'japan',amount:5}).route,null);
 console.log('PASS wallet DOM: lazy cash-only art, aggregated notes, separate banks/holds, committed receipts, failure/replay, FX, spend/settle, repeated and interrupted modal, reduced motion, invalid ledger and journal paging');

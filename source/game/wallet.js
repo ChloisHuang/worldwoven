@@ -1,7 +1,7 @@
 import {GAME_CURRENCIES} from './currency-ledger.js';
 
 // Merely resolving these URLs does not fetch the pictures. Create images only
-// for owned currencies on open, or the currency in a committed receipt.
+// for already-owned cash, or the currency in a committed receipt.
 const ART = Object.freeze({
   copper: new URL('./assets/currency/china.webp', import.meta.url).href,
   japan: new URL('./assets/currency/japan.webp', import.meta.url).href,
@@ -27,18 +27,18 @@ export function walletGeometry(width,height,count=1) {
   const pocketHeight=Math.min(104,Math.max(48,height*.28)),bottom=8;
   const front={x:width*.07,y:height-bottom-pocketHeight,width:width*.86,height:pocketHeight};
   const back={x:front.x+3,y:front.y-13,width:front.width-6,height:pocketHeight+11};
-  const pocketTravel=count>1?pocketHeight*.6:0,step=Math.min(23,Math.max(14,height*.09));
-  const noteWidth=Math.max(24,Math.min(295,width*.82,(front.y+pocketTravel-20-(count-1)*step)/.48));
+  const pocketTravel=count>1?pocketHeight*.75:0,step=Math.min(23,Math.max(19,height*.09));
+  const noteWidth=Math.max(24,Math.min(295,width*.82,(front.y-18)/.455,(front.y+pocketTravel-19-(count-1)*step)/.48));
   return {width,height,count,front,back,pocketTravel,step,noteWidth,noteHeight:noteWidth*.455};
 }
 export function walletPocketFrame(layout,progress) {
-  const offset=layout.pocketTravel*ease(progress);
+  const offset=layout.pocketTravel*ease(progress*2-1);
   return {front:{...layout.front,y:layout.front.y+offset},back:{...layout.back,y:layout.back.y+offset}};
 }
 export function walletNoteFrame(layout,index,progress) {
   const {width,count,front,noteWidth:w,noteHeight:h,pocketTravel,step}=layout,mid=(count-1)/2;
-  const lift=ease(progress),fan=ease(progress-1),clearY=front.y+pocketTravel-h-12-index*2;
-  const tuckedY=front.y-h*.34-index*2,spreadY=12+index*step;
+  const lift=ease(progress),fan=ease(progress-1),clearY=front.y-h-12-index*2;
+  const tuckedY=Math.min(front.y-h*.34,front.y+front.height-h-12)-index*2,spreadY=12+index*step;
   return {x:width/2-w/2+(index-mid)*Math.min(8,width*.025)*fan,
     y:mix(mix(tuckedY,clearY,lift),spreadY,fan),width:w,height:h,
     angle:(index-mid)*fan};
@@ -88,12 +88,12 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
   function prepareArtwork(note,img,id) {
     note.dataset.artState='loading';
     img.alt='';img.width=800;img.height=364;img.decoding='async';img.draggable=false;
-    const loaded=new Promise((resolve,reject)=>{
-      img.onload=resolve;img.onerror=()=>reject(new Error('ticket artwork unavailable'));
-      if(!img.src)img.src=ART[id];
-      if(img.complete&&img.naturalWidth>0)resolve();
+    const loaded=new Promise(resolve=>{
+      img.onload=()=>resolve(true);img.onerror=()=>resolve(false);
+      img.src=ART[id];
+      if(img.complete&&img.naturalWidth>0)resolve(true);
     });
-    const decoded=typeof img.decode==='function'?img.decode().catch(()=>loaded.then(()=>img.decode())):loaded;
+    const decoded=typeof img.decode==='function'?img.decode().catch(()=>loaded.then(ok=>{if(!ok)throw new Error('ticket artwork unavailable');return img.decode();})):loaded.then(ok=>{if(!ok)throw new Error('ticket artwork unavailable');});
     // Keep decoded country artwork and note nodes across closes. Other notes
     // and committed receipts use the identical optimized, cacheable URL.
     const cached=artwork.get(id);
@@ -188,6 +188,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
   function advanceWallet(time) {
     frame=null;
     const target=folded?0:2;
+    if(reducedMotion())progress=target;
     if(lastTime!==null)progress=clamp(progress+Math.sign(target-progress)*(time-lastTime)/340,Math.min(progress,target),Math.max(progress,target));
     lastTime=time;drawWallet();
     if(progress!==target)frame=requestFrame(advanceWallet);else lastTime=null;
@@ -202,7 +203,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     }else if(frame===null){lastTime=null;frame=requestFrame(advanceWallet);}
     drawWallet();
   }
-  function renderBalances() {
+  function renderBalances(retryArtwork=false) {
     const balances=ledger.balances();
     ui.notice.hidden=!!balances;ui.notice.textContent=balances?'':'账目暂时无法核对，请保留当前存档。余额不会显示为零。';
     const owned=balances?Object.keys(GAME_CURRENCIES).filter(id=>validAmount(balances[id]?.cash)&&balances[id].cash>0):[];
@@ -211,6 +212,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     for(const [id,note] of notes)if(!owned.includes(id)){note.remove();notes.delete(id);}
     owned.forEach((id,index)=>{
       const c=currency(id);let note=notes.get(id);
+      if(retryArtwork&&note?.dataset.artState==='error')prepareArtwork(note,note.children[0],id);
       if(!note){
         note=make('span',null,'ww-wallet-note');note.dataset.currency=id;
         const img=artworkImage(note,id);
@@ -265,7 +267,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
   function refresh(){if(disposed)return;refreshBadge();if(!ui?.dialog.open)return;renderBalances();renderHistory();}
   function open(){
     if(disposed||ui?.dialog.open)return;clearTransfer();onOpen();ensureUI();priorFocus=doc.activeElement;folded=true;historyLimit=60;setFold();
-    renderBalances();renderHistory();ui.scroll.scrollTop=0;ui.dialog.showModal();drawWallet();trigger.setAttribute('aria-expanded','true');ui.closeButton.focus({preventScroll:true});
+    renderBalances(true);renderHistory();ui.scroll.scrollTop=0;ui.dialog.showModal();drawWallet();trigger.setAttribute('aria-expanded','true');ui.closeButton.focus({preventScroll:true});
   }
   function clearTransfer(){receiptEpoch++;clearTimeout(transferTimer);transferTimer=null;transfer?.remove();transfer=null;mini.hidden=true;mini.replaceChildren();mini.classList.remove('in-modal');if(!disposed)mount.append(mini);}
   function finishClose(){
@@ -294,8 +296,8 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
       slip.append(receiptNote(view.currency,tx.amount));
       if(view.received)slip.append(receiptNote(view.received.currency,view.received.amount,true));
       mini.append(title,route,slip);mini.hidden=false;
-      const epoch=receiptEpoch;
-      Promise.all([...slip.children].map(n=>n.artReady)).then(ready=>{if(disposed||epoch!==receiptEpoch)return;if(ready.every(Boolean))slip.classList.add('is-ready');transferTimer=setTimeout(clearTransfer,reducedMotion()?2600:2200);});
+      const epoch=receiptEpoch;transferTimer=setTimeout(clearTransfer,6000);
+      Promise.all([...slip.children].map(n=>n.artReady)).then(ready=>{if(disposed||epoch!==receiptEpoch)return;clearTimeout(transferTimer);if(ready.every(Boolean))slip.classList.add('is-ready');transferTimer=setTimeout(clearTransfer,reducedMotion()?2600:2200);});
       // Bank services may rebuild their dialog synchronously after each save.
       // Attach after that render, within its top layer, so a successful real
       // withdrawal is visible rather than hiding behind the modal backdrop.
@@ -306,8 +308,8 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     transfer=make('div',null,`ww-wallet-transfer is-${view.action}`);
     transfer.append(receiptNote(view.currency,tx.amount));
     if(view.received)transfer.append(receiptNote(view.received.currency,view.received.amount,true));
-    ui.effects.append(transfer);const epoch=receiptEpoch,receipt=transfer;
-    Promise.all([...receipt.children].map(n=>n.artReady)).then(ready=>{if(disposed||epoch!==receiptEpoch)return;if(ready.every(Boolean))receipt.classList.add('is-ready');transferTimer=setTimeout(clearTransfer,1450);});
+    ui.effects.append(transfer);const epoch=receiptEpoch,receipt=transfer;transferTimer=setTimeout(clearTransfer,6000);
+    Promise.all([...receipt.children].map(n=>n.artReady)).then(ready=>{if(disposed||epoch!==receiptEpoch)return;clearTimeout(transferTimer);if(ready.every(Boolean))receipt.classList.add('is-ready');transferTimer=setTimeout(clearTransfer,1450);});
   }
   trigger.onclick=open;
   refreshBadge();
