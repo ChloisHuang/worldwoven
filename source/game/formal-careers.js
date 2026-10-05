@@ -30,7 +30,12 @@ export const GARDEN_ASSISTANT_ROLE = Object.freeze({id:'fr-garden-assistant',nam
   slotId:'fr-garden-assistant-1',country:'france',currency:'france',employer:'埃米尔',workplace:'西苑工具架登记簿',
   supervisorId:'france-gardener',workSource:'fr-garden-labor',wage:8,minimumAgeYears:18,
   skillRequirements:Object.freeze({gardening:2}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1});
-export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE]);
+export const PHARMACY_ASSISTANT_ROLE = Object.freeze({id:'cn-pharmacy-apprentice',name:'安和药铺助手',
+  slotId:'cn-pharmacy-apprentice-1',country:'china',currency:'copper',employer:'许宁',workplace:'安和医馆 · 二层交单平台',
+  supervisorId:'cn-clinic-physician',incumbentId:'cn-pharmacy-assistant',incumbentName:'苏禾',vacancyKind:'exclusive',workSource:'cn-pharmacy-labor',wage:12,minimumAgeYears:18,
+  skillRequirements:Object.freeze({writing:1,ritual:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1,
+  duties:'每日完成一位真实来客：二层接原单、一层按号折包、核对本人交付，再找许宁验收；没有来客或未交付不结薪'});
+export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE,PHARMACY_ASSISTANT_ROLE]);
 export const FORMAL_CAREER_SLOTS = Object.freeze([
   ...FORMAL_CAREER_ROLES.map(role => Object.freeze({id:role.slotId,roleId:role.id,holderId:role.incumbentId||null,...(role.vacancyKind==='rotation'?{rotation:true}:role.vacancyKind==='exclusive'?{replacement:true}:{})})),
 ]);
