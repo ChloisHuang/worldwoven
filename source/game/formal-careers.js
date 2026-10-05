@@ -364,7 +364,7 @@ function restore(saved, roleMap, slotMap) {
  * Missing bank credit support locks settlement only; cash is never a fallback.
  * No passive simulation or wages. Failed paid-state cleanup keeps ready intact.
  */
-export function createFormalCareers({saved, worldDuty=null, saveState, creditWageToBank, getClock, worldSeed=1, getHiringContext=()=>({}),
+export function createFormalCareers({saved, worldDuty=null, saveState, creditWageToBank, getClock, worldSeed=1, getHiringContext=()=>({}), getPoliticalTitle=()=>null,
   roles = FORMAL_CAREER_ROLES, slots = FORMAL_CAREER_SLOTS} = {}) {
   if (typeof saveState !== 'function' || typeof getClock !== 'function') {
     throw new TypeError('formal careers require synchronous saveState and getClock');
@@ -442,9 +442,10 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
   }
   // The registry and the final physical application use the same requirements.
   // Reading eligibility never changes the clock, save, vacancy or error state.
+  const politicalBlocker=()=>{try{const title=getPoliticalTitle();return title?.loadError?'political-state-unavailable':title?.active?'political-title-held':null;}catch{return 'political-state-unavailable';}};
   function eligibility(roleId = COURT_CLERK_ROLE.id, {ageYears} = {}) {
     const role = roleMap.get(roleId);
-    const blocked = loadError || (!role ? 'unknown-role' : current.tenure ? 'already-employed' : null);
+    const blocked = loadError || (!role ? 'unknown-role' : current.tenure ? 'already-employed' : politicalBlocker());
     if (blocked) return {ok: false, code: blocked, reasons: [blocked]};
     const reasons = [];
     if (!Number.isFinite(ageYears) || ageYears < role.minimumAgeYears) reasons.push('adult-required');
