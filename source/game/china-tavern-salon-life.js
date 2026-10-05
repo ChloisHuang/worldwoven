@@ -5,12 +5,13 @@ const copy=value=>JSON.parse(JSON.stringify(value));
 const point=p=>({x:p[0],y:p[1],z:p[2]});
 const position=actor=>[actor.root.position.x,actor.root.position.y,actor.root.position.z];
 const near=(p,to,r=.08)=>Math.hypot(p.x-to[0],p.z-to[2])<r&&Math.abs(p.y-to[1])<.3;
+const OLD_SONGWRITER_POINTS=[[23.1,7.815,16.6],[23.1,7.815,16.05]];
 // These are short, same-floor floor-space pauses beside each authored station.
 // They avoid the qin table, listening chairs, banquet chairs and both openings.
 const PROFILES={
  'cn-tavern-reciter':{offset:[-.55,0],work:'低声推敲诗句',study:'独自翻读旧词',pause:'停卷歇一歇',workWeight:.75,studyWeight:1.1,pauseWeight:.35},
  'cn-tavern-storyteller':{offset:[-.55,0],work:'整理江行说书稿',study:'翻阅山川手札',pause:'踱两步回想旅途',workWeight:1.1,studyWeight:.5,pauseWeight:.7},
- 'cn-tavern-songwriter':{offset:[0,-.55],work:'推敲新填曲词',study:'静读曲词韵谱',pause:'离案稍作歇息',workWeight:.65,studyWeight:1.3,pauseWeight:.3},
+ 'cn-tavern-songwriter':{offset:[0,.55],work:'推敲新填曲词',study:'静读曲词韵谱',pause:'离案稍作歇息',workWeight:.65,studyWeight:1.3,pauseWeight:.3},
  'cn-tavern-chess-poet':{offset:[0,-.55],work:'默演棋局掌故',study:'翻读弈棋旧谱',pause:'缓步思索棋理',workWeight:.8,studyWeight:.6,pauseWeight:.8},
 };
 
@@ -81,6 +82,20 @@ export function createSalonArtistLife({performers=[],worldSeed=1,saved={},saveSt
  function returnHome(n,s){
   s.phase='returning';s.target=home(n);s.wait=0;s.elapsed=0;stop(n);
  }
+ function restoreStage(n,state){
+  const s=copy(state);
+  // Old checkpoints can still hold an intention at the chair's narrow aisle.
+  // Change only that intention: the restored body stays at its real position
+  // and uses ordinary travel before resuming its saved activity.
+  if(n.station.id==='cn-tavern-songwriter'&&OLD_SONGWRITER_POINTS.some(p=>near(point(s.target),p,.01))){
+   const to=s.choice?.id==='pause'?aside(n):home(n);
+   if(s.choice)s.choice.to=to.slice();
+   s.target=s.phase==='returning'?home(n):to;
+   if(s.phase==='acting')s.phase='approaching';
+   s.elapsed=0;s.wait=0;
+  }
+  return s;
+ }
  function updateActor(n,dt,t){
   let s=stages.get(n);
   if(!s&&clock>=readyAt.get(n)){
@@ -132,7 +147,7 @@ export function createSalonArtistLife({performers=[],worldSeed=1,saved={},saveSt
   isBusy:busy,
   label(n){const s=stages.get(n);return !owned.has(n)?null:s?.phase==='returning'?'歇场后回到原处':s?.phase==='approaching'?'缓步去旁边歇息':s?.choice?.label||'歇场待客';},
   continuity:()=>({version:1,clock,stages:[...stages].map(([n,s])=>[n.station.id,copy(s)]),readyAt:[...readyAt].map(([n,t])=>[n.station.id,t]),roamingId:roaming?.station.id||null,events:copy(events)}),
-  restore(s){if(s?.version!==1)return false;clock=Math.max(0,s.clock||0);stages.clear();for(const [id,state]of s.stages||[]){const n=artists.find(n=>n.station.id===id);if(n&&['approaching','acting','returning'].includes(state.phase)&&Array.isArray(state.target))stages.set(n,copy(state));}for(const[id,t]of s.readyAt||[]){const n=artists.find(n=>n.station.id===id);if(n&&Number.isFinite(t))readyAt.set(n,t);}roaming=artists.find(n=>n.station.id===s.roamingId)||null;events.splice(0,events.length,...copy(s.events||[]));return true;},
+  restore(s){if(s?.version!==1)return false;clock=Math.max(0,s.clock||0);stages.clear();for(const [id,state]of s.stages||[]){const n=artists.find(n=>n.station.id===id);if(n&&['approaching','acting','returning'].includes(state.phase)&&Array.isArray(state.target))stages.set(n,restoreStage(n,state));}for(const[id,t]of s.readyAt||[]){const n=artists.find(n=>n.station.id===id);if(n&&Number.isFinite(t))readyAt.set(n,t);}roaming=artists.find(n=>n.station.id===s.roamingId)||null;events.splice(0,events.length,...copy(s.events||[]));return true;},
   snapshot:()=>brain.snapshot(),
   state:()=>({roamingId:roaming?.station.id||null,saveError,actors:artists.map(n=>{const s=stages.get(n);return {id:n.station.id,phase:s?.phase||'idle',choice:s?.choice?.id||null,busy:busy(n),elapsed:s?.elapsed||0,duration:s?.choice?.duration||0,position:position(n),target:s?.target.slice()||home(n)};}),events:copy(events),decisions:brain.snapshot()}),
   dispose(){if(disposed)return;disposed=true;brain.dispose();for(const n of stages.keys())stop(n);stages.clear();roaming=null;},
