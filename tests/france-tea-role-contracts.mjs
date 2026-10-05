@@ -22,7 +22,7 @@ function fixture({role=TEA,saved,clock:previous,bank={amount:0,receipts:new Map(
 }
 const review=(f,number=1)=>({roleId:TEA.id,receiptId:f.receiptId,reviewId:`france-tea-${number}-order-done`,customerId:'france-cafe',customerName:'加布里埃尔',tableId:'real-loggia-south',tableName:'宫苑茶廊原座',dishId:'tea-cake',dishName:'热茶与小蛋糕',reasonCode:'tea-completed'});
 
-assert.equal(FORMAL_CAREER_ROLES.length,6);
+assert.equal(FORMAL_CAREER_ROLES.length,7);
 assert(!FORMAL_CAREER_ROLES.some(r=>r.id==='cn-tavern-host'),'ownership stays outside salaried vacancies');
 assert.deepEqual(TEA.skillRequirements,{ritual:2,writing:1});
 assert.deepEqual(FORMAL_CAREER_SLOTS.find(s=>s.roleId===TEA.id),{id:'fr-tea-server-1',roleId:TEA.id,holderId:'france-salon',replacement:true});

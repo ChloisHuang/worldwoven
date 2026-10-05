@@ -106,7 +106,7 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
   if(duty.status==='queued')return {waiting:true,label:'原员工正在收好原茶单，完成后交班'};
   const candidate=SPECS[order?.stage],spec=(playerServing()&&!candidate?.role||playerPreparing()&&candidate?.role==='cook')?candidate:null;
   if(!spec)return {waiting:true,label:!order?`${duty.role==='cook'?'糕点房':'茶廊'}候班 · 等加布里埃尔自行来点茶`:duty.role==='cook'?'等玛农实到报单、原茶盘送席或原杯碟收洗':['preparing','brewing'].includes(order.stage)?'等卡米耶备好同号茶点':'等来客用茶、离座与下一份真实订单'};
-  const waiting=order.stage==='ticket'&&!near(cook,P.prep)||order.stage==='pickup'&&!near(cook,P.cookAside)||['receiving'].includes(order.stage)&&!near(host,P.report)||order.stage==='releasing'&&!near(host,P.prep);
+  const waiting=order.stage==='ticket'&&!near(cook,P.prep)||order.stage==='pickup'&&!near(cook,P.cookAside)||['receiving'].includes(order.stage)&&!near(host,P.report);
   return {...copy(spec),orderId:order.id,trayId:order.trayId,waiting,label:waiting?'等卡米耶实到交接位置':spec.label};
  }
  function claimDuty(id,role='host'){
@@ -155,6 +155,7 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
  const staffOwnership=(role='host')=>{const hired=role==='cook'?isCookHired():isServerHired(),npc=role==='cook'?P.cook:P.host,working=duty?.role===role,active=working&&duty.status==='active';return {holderId:hired?'player':npc,controller:active?'player':npc,taskOwner:order?playerRole(role)?'player':npc:null,status:working?duty.status==='queued'?'handover':'on-duty':hired?'off-duty':'npc',cover:hired&&!working};};
  const hostLabel=()=>duty?.role==='host'&&duty.status==='active'?'玩家当班 · 玛农候援':isServerHired()?'玛农临时代班 · 玩家未报到':host.station.npcLabel;
  const cookLabel=()=>duty?.role==='cook'&&duty.status==='active'?'玩家当班 · 卡米耶候援':isCookHired()?'卡米耶临时代班 · 玩家未报到':cook.station.npcLabel;
+ const orderLabel=()=>playerPreparing()?({preparing:'玩家按原单分切蛋糕',brewing:'玩家为原单备热茶'}[order?.stage]||LABEL[order?.stage]):LABEL[order?.stage];
  function cupPose(n,t){const c=n.poseContext||{},sip=Math.pow((Math.sin(t*1.4)+1)*.5,2);c.seatHeight=(seat.seatY-n.root.position.y-(c.visualFloorOffset||0));c.handoff=true;c.seatedMeal=false;c.heldProp=null;c.archery={hands:[[-.18,c.seatHeight+.15,.25],[.13-sip*.055,c.seatHeight+.30+sip*.28,.37-sip*.23]]};return c;}
  function pose(n,t,action,target,carry=false){
   if(!n.serviceMount)n.root.position.y=visualSupportHeight(lot,n.root.position.x,n.root.position.z,0,false)??n.root.position.y;
@@ -170,17 +171,17 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
  const api={seat,owns:n=>owned.has(n),request,cancel,drink,
   registry:registry.slice(),canClaimDuty:()=>!intent&&order?.customer!=='player',hasWorkReceiptAfter:(id,n)=>workReceipts.some(r=>r.receiptId===id&&r.number>n),claimDuty,releaseDuty,dutyStep,startDutyStep,workReceipts:id=>copy(workReceipts.filter(r=>r.receiptId===id)),
   dutyState:()=>duty?{...duty,step}:null,requestMeeting:(active,role='host')=>{meeting[role]=!!active;},meetingReady:(role='host')=>{const n=role==='cook'?cook:host;return near(n,role==='cook'?P.cookAside:P.hostHome)&&!busy(n)&&(!order||duty?.role===role&&duty.status==='active');},
-  canEndDuty:id=>duty?.id===id&&!step&&!(playerServing()&&order.holder==='host')&&!(playerPreparing()&&order.stage!=='leaving'),
+  canEndDuty:id=>duty?.id===id&&!step&&!(playerServing()&&order.holder==='host')&&!(playerPreparing()&&order.preparation&&order.stage!=='leaving'),
   stopDutyStep(){if(step){step=null;phase=0;}},dutyPlayerAction:()=>step?SPECS[order?.stage]?.action:null,dutyPlayerStation:()=>step?{playerWorkTarget:SPECS[order?.stage]?.target}:null,
   held:()=>playerServing()&&order?.holder==='host',
   ownsStation:id=>id===P.guest,
   playerPose(t){if(playerServing()&&(order.holder==='host'||['take-tray','clear-tray'].includes(step)))return {handoff:true,heldProp:null,archery:{hands:[[-.19,1.12,.43],[.19,1.12,.43]]}};return order?.customer==='player'&&['drinking','lowering'].includes(order.stage)&&atSeat()?{archery:cupPose(getPlayer(),t).archery,handoff:true}:null;},
   playerRequest(id){if(duty){notify('请先当面交班，再坐下休息或点茶');return false;}if(id!==seat.id){cancel('换了座位');return;}if(order?.customer==='guest'||guest.serviceMount){notify('加布里埃尔还在茶位，请稍候');return false;}return true;},
   leaveSeat(id){if(id===seat.id)cancel('起身离开茶位');},
-  target(){const p=getPlayer();if(!p||duty)return null;const nearby=gap(p,[6.6,.16,8.35])<2.3||atSeat();if(!nearby&&!intent)return null;const label=intent?'取消前往茶位':order?.customer==='player'&&!order.cancelled?(order.stage==='ready'?'举杯品茶':'取消下午茶'):order?'茶席使用中 · 稍候':'请玛农准备下午茶';return {franceTea:true,id:'france-tea-service',name:'宫苑下午茶 · 玛农',action:label,status:intent?'正在走向茶位':order?LABEL[order.stage]:'一壶茶与一小份蛋糕'};},
+  target(){const p=getPlayer();if(!p||duty)return null;const nearby=gap(p,[6.6,.16,8.35])<2.3||atSeat();if(!nearby&&!intent)return null;const label=intent?'取消前往茶位':order?.customer==='player'&&!order.cancelled?(order.stage==='ready'?'举杯品茶':'取消下午茶'):order?'茶席使用中 · 稍候':'请玛农准备下午茶';return {franceTea:true,id:'france-tea-service',name:'宫苑下午茶 · 玛农',action:label,status:intent?'正在走向茶位':order?orderLabel():'一壶茶与一小份蛋糕'};},
   interact(){if(intent){intent=false;return 'cancel-walk';}if(order?.customer==='player'&&!order.cancelled)return order.stage==='ready'?drink():cancel();return request();},
-  statusLabel:id=>id===seat.id&&order?LABEL[order.stage]:null,
-  socialStatus:n=>({busy:!!order||n.walking,attention:!order,job:n===host?hostLabel()+(order?' · '+LABEL[order.stage]:''):n===cook?cookLabel()+(order?' · '+LABEL[order.stage]:''):order?LABEL[order.stage]:n.station.npcLabel}),
+  statusLabel:id=>id===seat.id&&order?orderLabel():null,
+  socialStatus:n=>({busy:!!order||n.walking,attention:!order,job:n===host?hostLabel()+(order?' · '+orderLabel():''):n===cook?cookLabel()+(order?' · '+orderLabel():''):order?orderLabel():n.station.npcLabel}),
   update(dt,t,{conversationActorId=null,performing=null,hour=15}={}){
    if(disposed)return;time+=dt;life.tick(dt);conversation=conversationActorId;stationBusy=performing;for(const n of actors)n.walking=false;
    if(duty?.status==='queued'&&!order&&!intent){duty.status='active';record('duty-accepted',{dutyId:duty.id});}
@@ -189,7 +190,7 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
    if(order?.customer==='player'&&!order.cancelled&&!['clearing','lifting','returning','washing'].includes(order.stage)&&!atSeat())cancel('离开茶位');
    let ca=null,ha=null,ct=null,ht=null,carry=false;
    if(!order){
-    travel(cook,P.cookAside,dt);travel(host,P.hostHome,dt);ca=near(cook,P.cookAside)?cook.station.npcAction:null;ct=cook.station.workTarget;ha=near(host,P.hostHome)?host.station.npcAction:null;ht=host.station.workTarget;
+    travel(cook,P.cookAside,dt);travel(host,P.hostHome,dt);ca=near(cook,P.cookAside)&&!(duty?.role==='cook'&&duty.status==='active')?cook.station.npcAction:null;ct=cook.station.workTarget;ha=near(host,P.hostHome)?host.station.npcAction:null;ht=host.station.workTarget;
     if(!Object.values(meeting).some(Boolean)&&!intent&&!atSeat()&&!busy(guest)&&time>=nextChoice){
      choice??=life.choose(P.guest,[{id:'tea',base:.6,traits:{appetite:.8,quiet:.4},needs:{hunger:1.2},duration:[9,13],relief:{hunger:-.25},cooldown:70,available:!guest.serviceMount},{id:'garden',base:.25,traits:{outdoors:.8,curiosity:.3},duration:[10,16],relief:{fatigue:-.04},cooldown:15}],hour);
      if(choice?.id==='tea'){if(furniture.facilities.reserve(seat.id,P.guest,{purpose:'afternoon-tea'}))begin('guest');else{life.complete(P.guest,choice,{fulfilled:false});choice=null;nextChoice=time+5;}}
@@ -221,7 +222,7 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
     else if(o.stage==='leaving'){if(unmountGuest()&&travel(guest,P.guestHome,dt))finish();}
    }
    pose(cook,t,ca,ct);pose(host,t,ha,ht,carry);pose(guest,t,guest.serviceMount?'chair-sit':null,null);
-   for(const n of actors){const label=n.label?.querySelector?.('small');if(label)label.textContent=n===host?hostLabel()+(order?' · '+LABEL[order.stage]:''):n===cook?cookLabel()+(order?' · '+LABEL[order.stage]:''):order?LABEL[order.stage]:n===guest?(choice?.id==='garden'?'散步看看宫苑':n.station.npcLabel):n.station.npcLabel;}
+   for(const n of actors){const label=n.label?.querySelector?.('small');if(label)label.textContent=n===host?hostLabel()+(order?' · '+orderLabel():''):n===cook?cookLabel()+(order?' · '+orderLabel():''):order?orderLabel():n===guest?(choice?.id==='garden'?'散步看看宫苑':n.station.npcLabel):n.station.npcLabel;}
    renderProps();
   },
   snapshot:()=>({version:1,duty:copy(duty),step,workReceipts:copy(workReceipts),time,phase,serial,mealReceipts:copy(mealReceipts),order:copy(order),intent,choice:copy(choice),choiceTime,nextChoice,history:copy(history),life:life.snapshot()}),
