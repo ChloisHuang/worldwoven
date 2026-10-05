@@ -1,3 +1,4 @@
+import {captureWorldRuntime,restoreWorldRuntime} from './world-continuity.js';
 import {CHINA_CONSORTS,CONSORT_ROUTES,palaceResidentSave,palaceResident} from './china-palace-residents.js';
 import {consortActivities,createPalaceLeisureClaims} from './china-consort-activities.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
@@ -24,7 +25,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
  const throne=seat('china-furniture-throne'),privateSeat=seat('china-furniture-seat');if(!throne||!privateSeat){for(const c of costumes)c?.dispose();return null;}
  const meals=new Map(actors.map(n=>[n,createPalaceMealKit(n)]));
  const actorIds=[...actors,host].map(n=>n.station.id),claims=createPalaceLeisureClaims();
- const stages=new Map(),history=[],failures=[],brain=createLifeDecisions({worldSeed,actorIds,saved:palaceResidentSave({worldSeed,actorIds,saved}),onChange:saveState}),navigation={surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4,radius:.25};
+ const stages=new Map(),history=[],failures=[],brain=createLifeDecisions({worldSeed,actorIds,saved:palaceResidentSave({worldSeed,actorIds,saved:saved.continuity?.decisions||saved}),onChange:saveState}),navigation={surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4,radius:.25};
  const planDutyPath=cachedCourtPlanner(planPath);
  let time=0,disposed=false,playerState={},hostHeld=null,hostPreviousYaw=0,hostHeldAt=0,duty=null;
  const tell=(n,label)=>{const el=n.label?.querySelector?.('small');if(el)el.textContent=label;};
@@ -87,8 +88,15 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   if(stop.meal&&s.mount&&!interrupted(n)){context.seatedMeal=true;meals.get(n).show(true);}
   n.animate(t+n.phase,n.walking,s.mount?(s.mount.kind==='bed'?'lie-rest':'chair-sit'):s.arrived&&!interrupted(n)?stop.action||null:null,context);meals.get(n).sync();
  }
- for(const n of actors)choose(n);
+ function restore(snapshot){
+  if(snapshot?.version!==1)return false;const state=restoreWorldRuntime(snapshot.runtime,{npcs,furniture});if(!state||!state.scripts||!state.stages)return false;
+  time=Math.max(0,state.time||0);duty=state.duty;hostHeld=actors.find(n=>n.station.id===state.hostHeldId)||null;hostPreviousYaw=state.hostPreviousYaw||0;hostHeldAt=state.hostHeldAt||0;history.splice(0,history.length,...(state.history||[]));
+  for(const n of actors){const steps=state.scripts[n.station.id],stageState=state.stages[n.station.id];if(!steps?.length||!stageState||!steps[stageState.index]){choose(n);continue;}scripts.set(n,steps);stages.set(n,{...stageState,planned:false,stalled:0});n.route=[];n.serviceMount=null;if(stageState.mount){furniture.facilities.reserve(stageState.mount.poolId||stageState.mount.id,n.station.id,{eligible:id=>id===stageState.mount.id});furniture.facilities.occupy(stageState.mount.poolId||stageState.mount.id,n.station.id);}}
+  for(const n of actors)claims.release(n.station.id);for(const lease of state.claims||[])if(actors.some(n=>n.station.id===lease.actor))claims.reserve(lease.id,lease.actor,Math.max(0,lease.remaining));return true;
+ }
+ if(!restore(saved.continuity))for(const n of actors)choose(n);
  return {
+  mountForActor:n=>stages.get(n)?.mount||null,
   owns:n=>owned.has(n)||hostHeld&&n===host,
   socialStatus(n){if(!owned.has(n)&&!(hostHeld&&n===host))return null;const busy=n===emperor&&!!duty&&!duty.release;return {busy,attention:!busy,job:n===host?'与'+(palaceResident(hostHeld?.station.id)?.shortName||'来客')+'在茶席叙话':scripts.get(n)[stages.get(n).index].label};},
   // Palace life remains the sole movement/pose owner of its actors. A duty
@@ -187,6 +195,8 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
    }
    if(hostHeld){host.walking=false;const c=poseContext(host,null);c.handoff=!interrupted(host)&&!interrupted(hostHeld);host.animate(t+host.phase,false,null,c);}
   },
+  snapshot:()=>({version:1,decisions:brain.snapshot(),runtime:captureWorldRuntime({time,duty,hostHeldId:hostHeld?.station.id||null,hostPreviousYaw,hostHeldAt,history,scripts:Object.fromEntries([...scripts].map(([n,s])=>[n.station.id,s])),stages:Object.fromEntries([...stages].map(([n,s])=>[n.station.id,s])),claims:claims.state()})}),
+  restore,
   state(){return {time,hostHeld:!!hostHeld,hostActorId:hostHeld?.station.id||null,claims:claims.state(),duty:duty?{...duty}:null,decisions:brain.snapshot(),history:history.map(e=>({...e})),failures:failures.map(e=>({...e})),actors:actors.map(n=>{const s=stages.get(n);return {id:n.station.id,role:n.station.royalRole,ageYears:n.station.ageYears,privateRoomId:n.station.privateRoomId,activity:s.choice?.id||null,stage:scripts.get(n)[s.index].id,waypoint:s.waypoint,elapsed:s.elapsed,arrived:s.arrived,mounted:s.mount?.id||null,cycles:s.cycles,position:n.root.position.toArray(),walking:n.walking,paused:interrupted(n)};})};},
   dispose(){if(disposed)return;disposed=true;releaseHost();claims.dispose();brain.dispose();for(const n of actors){n.route=[];furniture.releaseActor(n.station.id);if(n.poseContext){n.poseContext.handoff=false;n.poseContext.seatHeight=undefined;}}for(const c of costumes)c?.dispose();for(const kit of meals.values())kit.dispose();}
  };

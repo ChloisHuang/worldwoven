@@ -1,3 +1,4 @@
+import {captureWorldRuntime,restoreWorldRuntime} from './world-continuity.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
 import {blocked,canTraverse} from './navigation.js';
 import {createPalaceMealKit} from './china-palace-costume.js';
@@ -18,7 +19,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  const stages=new Map(),meals=new Map(officials.map(n=>[n,createPalaceMealKit(n)])),brain=createLifeDecisions({worldSeed,actorIds:officials.map(n=>n.station.id),saved:saved.decisions,onChange:()=>save()}),claims=furniture.facilities;
  let state={},time=0,ready=false;
  const seat=id=>furniture.items.find(m=>m.id===id),index=n=>officials.indexOf(n),tell=(n,label)=>{const el=n.label?.querySelector?.('small');if(el)el.textContent=label;};
- const snapshot=()=>({version:1,decisions:brain.snapshot(),positions:Object.fromEntries(officials.map(n=>[n.station.id,n.root.position.toArray()]))});
+ const snapshot=()=>({version:1,decisions:brain.snapshot(),positions:Object.fromEntries(officials.map(n=>[n.station.id,n.root.position.toArray()])),runtime:captureWorldRuntime({time,stages:[...stages].map(([n,s])=>[n.station.id,s])})});
  function save(){if(ready)saveState(snapshot());}
  const occupied=(id,n)=>state.facilityId===id||claims.state().some(f=>f.id===id&&(f.player||f.reservations.some(r=>r.actor!==n.station.id)));
  const stage=(path,label,options={})=>({path:path.map(a=>a.slice()),label,index:0,arrived:false,planned:false,stalled:0,retries:0,elapsed:0,...options});
@@ -74,7 +75,8 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   n.animate(t+n.phase,n.walking,s.mount?(s.mount.kind==='bed'?'lie-rest':'chair-sit'):s.arrived&&!paused?s.choice?.action||null:null,c);meals.get(n).sync();
  }
  for(const n of officials){const p=saved.version===1?saved.positions?.[n.station.id]:null;if(Array.isArray(p)&&p.length===3&&p.every(Number.isFinite)&&!blocked(p[0],p[2],lot.colliders,.25,{...navigation,y:p[1]}))n.root.position.set(...p);}
- ready=true;for(const n of officials)choose(n);
+ function restore(snapshot){const data=restoreWorldRuntime(snapshot?.runtime,{npcs,furniture});if(!data?.stages)return false;time=Math.max(0,data.time||0);stages.clear();for(const[id,s]of data.stages){const n=officials.find(n=>n.station.id===id);if(!n)continue;stages.set(n,{...s,planned:false,stalled:0});n.route=[];n.serviceMount=null;for(const id of [s.choice?.facilityId,s.roomId].filter(Boolean))claims.reserve(id,n.station.id,{purpose:s.choice?.id||'resumed'});if(s.mount)claims.occupy(s.mount.id,n.station.id);}return true;}
+ ready=true;if(!restore(saved))for(const n of officials)choose(n);
  return {
   request(n){const s=stages.get(n);if(s)s.called=true;},
   cancelCourt(n){const s=stages.get(n);if(s?.courtReady){stages.delete(n);choose(n);}else if(s)s.called=false;},
@@ -105,7 +107,8 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
    }
    animate(n,stages.get(n)||s,t);
   },
+  restore,mountForActor:n=>stages.get(n)?.mount||null,
   state:()=>({decisions:brain.snapshot(),actors:officials.map(n=>{const s=stages.get(n);return {id:n.station.id,activity:s?.choice?.id||null,stage:s?.courtReady?'court-ready':s?.arrived?'activity':'travel',arrived:s?.arrived||false,elapsed:s?.elapsed||0,mounted:s?.mount?.id||null,roomId:s?.roomId||null,called:!!s?.called,position:n.root.position.toArray()};})}),snapshot,
-  dispose(){brain.dispose();save();for(const n of officials){claims.releaseActor(n.station.id);meals.get(n).dispose();}}
+  dispose({suspend=false}={}){brain.dispose();if(!suspend)save();for(const n of officials){claims.releaseActor(n.station.id);meals.get(n).dispose();}}
  };
 }
