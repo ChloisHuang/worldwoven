@@ -127,6 +127,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
         const p=place(item),own=s.tenure?.roleId===item.id,vacancy=item.vacancy??(own?0:1),card=make('section',null,'career-role-card');
         card.append(make('h3',item.name),make('p',`${COUNTRIES[p.country]||p.country} · ${p.workplace} · 主管${employer(item)}`,'career-role-place'));
         const facts=make('div',null,'career-role-facts');for(const[label,value]of [[item.vacancyKind==='rotation'?'轮值空缺':'正式空缺',own?'本人在职':`${vacancy} / 1席`],['日薪 · 验收后存银行',wageRange(item)]]){const fact=make('div',null,'career-role-fact');fact.append(make('span',label),make('strong',value));facts.append(fact);}card.append(facts,make('p',`职责：${dutySummary(item)}`));
+        if(item.vacancyKind==='exclusive')card.append(make('p',own?`本岗位由你独任 · ${item.incumbentName}已卸任`:`本岗位仅1席 · 录用后${item.incumbentName}卸任`));
         if(item.vacancyKind==='rotation')card.append(make('p',`${item.incumbentName}在岗 · 1席长期轮值 · 当面接班`));
         showRequirements(card,item);showResult(card,item);card.append(make('p','每个岗位每天可提交一次，满足门槛后仍须面谈决定。'));
         const row=make('div',null,'career-actions');

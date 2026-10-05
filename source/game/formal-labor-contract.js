@@ -22,7 +22,7 @@ export function createFormalLaborContract({careers,role,getJob,getPlayer,meetHos
   const duty=job=>{const d=state()?.lastDuty;return pinned(job)&&d?.roleId===role.id&&d.workReceiptId===job.receiptId?d:null;};
   function result(r,text){if(!r?.ok)notify((r?.reasons||[r?.code]).map(c=>MESSAGES[c]||'这次办理未完成，请稍后重试').join('；'));else if(text)notify(text);return r;}
   function apply(){if(getJob())return result({ok:false,code:'wage-ready'}).ok;if(!meetHost())return false;
-    const applied=result(careers.apply(role.id,{ageYears:getPlayer()?.ageYears}),`${role.employer}：已录用为${role.name}，${role.vacancyKind==='rotation'?`已登记唯一轮值席，${role.incumbentName}继续在岗；请主动开始班次再当面交接`:'专设助理空缺由你任职；请主动开始当天班次'}。每天完成职责后，日薪存入银行账户。`);
+    const applied=result(careers.apply(role.id,{ageYears:getPlayer()?.ageYears}),`${role.employer}：已录用为${role.name}，${role.vacancyKind==='exclusive'?`唯一岗位已由你任职，${role.incumbentName}已卸任；请主动报到开始当天工作`:role.vacancyKind==='rotation'?`已登记唯一轮值席，${role.incumbentName}继续在岗；请主动开始班次再当面交接`:'专设助理空缺由你任职；请主动开始当天班次'}。每天完成职责后，日薪存入银行账户。`);
     openRegistration({country:role.country,roleId:role.id,scope:'role'});return !!applied.ok;}
   function resign(){if(getJob())return result({ok:false,code:'wage-ready'}).ok;if(!meetHost())return false;
     return !!result(careers.resign(),'长期岗位离职已登记，已有技能和评价保留。').ok;}

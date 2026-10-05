@@ -23,14 +23,15 @@ function validWorld(w){
 
 // Two stable adult visitors produce bounded meal and lodging events. Durable boundaries
 // are saved before effects; the physical action timer itself is never restored.
-export function createTavernServiceScene({npcs,lot,furniture,doors,planPath,moveActor,poseContext,getPlayer,getMounted,
+export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({hour:10}),worldSeed=1,npcs,lot,furniture,doors,planPath,moveActor,poseContext,getPlayer,getMounted,
   saveState=()=>true,onReview=()=>({ok:true}),chargePlayer=()=>({ok:false,code:'wallet-unavailable'}),notify=()=>{},navigation=lot.navigation||{},propsFactory=createTavernMealProps}){
  const host=npcs.find(n=>n.station.id===M.host),chef=npcs.find(n=>n.station.id===M.cook),assistant=npcs.find(n=>n.station.id===M.assistant);
  const guests=GUESTS.map(id=>npcs.find(n=>n.station.id===id)),staff={host,chef,assistant},actors=[host,chef,assistant,...guests].filter(Boolean);
  const dirt=createTavernDirtProps(lot.group,furniture);
  const paths=new Map(),effects=new Map(),props=new Map(),phases=new Map(),history=[],failures=[];
  let state=null,activity=null,pendingChoice=null,conversation=null,time=0,disposed=false,handoverRequest=null,loadError=null,restoredWorldRevision=0;
- const role=()=>Object.keys(ROLE).find(k=>ROLE[k]===state?.roleId),playerOwns=r=>['working','handover-out'].includes(state?.stage)&&role()===r;
+ const role=()=>Object.keys(ROLE).find(k=>ROLE[k]===state?.roleId),activePlayer=r=>['working','handover-out'].includes(state?.stage)&&role()===r;
+ const tenureOwns=r=>getTenureRoleId?getTenureRoleId()===ROLE[r]:activePlayer(r),playerOwns=r=>tenureOwns(r)&&activePlayer(r);
  const actor=r=>playerOwns(r)?getPlayer():staff[r],order=id=>state?.orders.find(o=>o.id===id);
  const nearPlayer=p=>!getMounted()&&at(getPlayer(),p,.23);
  const record=(event,data={})=>{const o=state?.orders.find(o=>o.id===data.orderId);history.push({event,time:+time.toFixed(2),mealId:o?.mealId||null,seatId:o?.seatId||null,...data});if(history.length>70)history.shift();};
@@ -84,7 +85,7 @@ export function createTavernServiceScene({npcs,lot,furniture,doors,planPath,move
   if(!persist({...copy(state),stage:'working'}))return false;record('handover-in',{role:r,from:staff[r].station.id,to:'player'});notify('班次已当面交接。现在由你完成这个岗位的工作');return true;}
 
  function handoverOut(){const r=role(),h=HANDOVER[r];if(state?.stage!=='handover-out'||!nearPlayer(h.player)||!at(staff[r],h.npc,.15)||state.heldTrayId)return false;
-  if(!persist({...copy(state),stage:'finished'}))return false;record('handover-out',{role:r,from:'player',to:staff[r].station.id});return true;}
+  if(!persist({...copy(state),stage:'finished'}))return false;record('handover-out',{role:r,from:'player',to:'storage',holderId:tenureOwns(r)?'player':staff[r].station.id});return true;}
  function beginReturn(){if(state?.stage!=='working'||state.heldTrayId||state.orders.some(o=>o.holder===(role()==='chef'?'cook':'assistant')&&['cooked','return'].includes(o.stage)))return false;activity=null;pendingChoice=null;return persist({...copy(state),stage:'handover-out'});}
  function collect(o){if(o.stage!=='ordered'||o.collected)return false;const next=copy(state),row=next.orders.find(q=>q.id===o.id),visitor=next.visitors.find(v=>v.id===o.customerId);if(visitor&&(visitor.copper??0)<o.price)return false;if(visitor)visitor.copper-=o.price;Object.assign(row,{collected:true,customerCopper:visitor?.copper??0,stage:'paid'});if(visitor)next.till+=row.price;if(!persist(next))return false;record(visitor?'customer-payment':'player-payment-held',{orderId:o.id,amount:o.price,to:visitor?'tavern-till':'wallet-reservation',from:o.customerId});record('cook-received-order',{orderId:o.id});return true;}
  function markDirty(next,tableId){const table=next.tables.find(t=>t.id===tableId);table.dirty=true;table.dirtyVersion=(table.dirtyVersion||0)+1;table.responsibility=playerOwns('assistant')?{actorId:'player',roleId:state.roleId,receiptId:state.receiptId}:{actorId:M.assistant,roleId:ROLE.assistant,receiptId:null};}
@@ -123,8 +124,8 @@ export function createTavernServiceScene({npcs,lot,furniture,doors,planPath,move
  function describe(kind,o,position,label,extra={}){return {kind,orderId:o?.id||null,position:position.slice(),name:'云来酒楼 · 当班',action:label,executionRadius:.23,...extra};}
  function choices(){
   if(!state||state.stage==='finished')return [];
-  const r=role(),h=HANDOVER[r];if(state.stage==='handover-in')return [describe('handover-in',null,h.player,`与${staff[r].station.npcName}当面接班`)];
-  if(state.stage==='handover-out')return [describe('handover-out',null,h.player,`向${staff[r].station.npcName}交还岗位`)];
+  const r=role(),h=HANDOVER[r];if(state.stage==='handover-in')return [describe('handover-in',null,h.player,`与${staff[r].station.npcName}交接物品并报到`)];
+  if(state.stage==='handover-out')return [describe('handover-out',null,h.player,`交回当班物品 · 收工登记`)];
   if(activity||pendingChoice)return [];
   if(r==='host')return [...state.orders.filter(o=>['requested','ordered'].includes(o.stage)).map(o=>describe(o.stage==='requested'?'take-order':'collect',o,o.servePoint,o.stage==='requested'?`听${o.customerName}点菜 · ${seatName(o)}`:`收取${o.price}铜文 · 记入酒楼账`)),
     ...state.visitors.filter(v=>v.mode==='lodging-wait').flatMap(v=>state.rooms.filter(room=>!room.dirty&&!room.guestId).map(room=>describe('rent-room',null,P.host,`为${guests.find(n=>n.station.id===v.id).station.npcName}登记${room.name} · 收12铜文`,{guestId:v.id,roomId:room.id})))];
@@ -219,16 +220,16 @@ export function createTavernServiceScene({npcs,lot,furniture,doors,planPath,move
   for(const n of actors)n.walking=false;
   const handoverRole=role(),waitingIn=state.stage==='handover-in',r=state.stage==='finished'||waitingIn&&!safeHandover(handoverRole)?null:handoverRole,h=r?HANDOVER[r]:null;
   {
-   if(r)travel(staff[r],['handover-in','handover-out'].includes(state.stage)?h.npc:h.rest,dt);
+   if(r&&['handover-in','handover-out'].includes(state.stage))travel(staff[r],h.npc,dt);
    updateVisitors(dt);
-   if(r!=='host'){const o=state.orders.find(o=>['requested','ordered'].includes(o.stage)&&customerSeated(o));
+   if(r!=='host'&&!tenureOwns('host')){const o=state.orders.find(o=>['requested','ordered'].includes(o.stage)&&customerSeated(o));
     if(o){effect(host,null,o.seatAnchor);if(travel(host,o.servePoint,dt))tick(o,dt,1.3,()=>o.stage==='requested'?stage(o,'ordered'):collect(o));}
     else{travel(host,P.host,dt);const v=state.visitors.find(v=>v.mode==='lodging-wait'),room=state.rooms.find(r=>!r.dirty&&!r.guestId);if(v&&room&&at(host,P.host,.15))rentRoom(v,room);}}
-   if(r!=='chef'){const o=state.orders.find(o=>['preparing','prepared','heating','cooked'].includes(o.stage))||state.orders.find(o=>o.stage==='paid'&&freePassSlot()!==null);if(!o)travel(chef,P.prep,dt);
+   if(r!=='chef'&&!tenureOwns('chef')){const o=state.orders.find(o=>['preparing','prepared','heating','cooked'].includes(o.stage))||state.orders.find(o=>o.stage==='paid'&&freePassSlot()!==null);if(!o)travel(chef,P.prep,dt);
     else if(['paid','preparing'].includes(o.stage)){effect(chef,'cook',P.prepTop);if(travel(chef,P.prep,dt))tick(o,dt,3.2,()=>stage(o,'prepared'));}
     else if(['prepared','heating'].includes(o.stage)){effect(chef,'herb-mix',P.stoveTop);if(travel(chef,P.stove,dt))tick(o,dt,4.2,()=>prepareDish(o));}
     else{effect(chef,null,P.passTop,true);if(travel(chef,P.cookPass,dt))tick(o,dt,1.1,()=>stage(o,'pass',{holder:'pass'}));}}
-   if(r!=='assistant'){const o=state.orders.find(o=>['carrying','return','wrong'].includes(o.stage))||state.orders.find(o=>o.stage==='pass')||state.orders.find(o=>o.stage==='dirty');
+   if(r!=='assistant'&&!tenureOwns('assistant')){const o=state.orders.find(o=>['carrying','return','wrong'].includes(o.stage))||state.orders.find(o=>o.stage==='pass')||state.orders.find(o=>o.stage==='dirty');
     if(o){
      if(o.stage==='pass'){effect(assistant,null,o.passPoint);if(travel(assistant,P.hostPass,dt))tick(o,dt,1.1,()=>stage(o,'carrying',{holder:'assistant'}));}
      else if(o.stage==='carrying'){effect(assistant,null,o.mealPoint,true);if(o.cancelled){stage(o,'return');}else if(travel(assistant,o.servePoint,dt)&&customerSeated(o))tick(o,dt,1.1,()=>completeDelivery(o));}
