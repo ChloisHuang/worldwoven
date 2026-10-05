@@ -11,7 +11,7 @@ const begin=harness.indexOf('const report=[];for(let round=0;'),end=harness.inde
 const body=String.raw`
 const checks=[],record=s=>{checks.push(s);console.log('PASS',s);};
 const find=(e,p)=>p(e)?e:e.children?.map(c=>find(c,p)).find(Boolean),text=e=>[e.textContent||'',...(e.children||[]).map(text)].join('\n');
-const dialog=find(document.body,e=>e.className==='study-dialog');
+const dialog=find(document.body,e=>e.className.split(' ').includes('study-dialog'));
 const button=label=>{const b=find(dialog,e=>e.tagName==='button'&&e.textContent===label);assert(b,'button '+label);assert(!b.disabled);return b;};
 const choose=skill=>{const b=find(dialog,e=>e.className==='study-option'&&text(e).includes(skill));assert(b,skill);b.onclick();};
 const key=code=>events.keydown({code,repeat:false,preventDefault(){}}),up=code=>events.keyup({code});
@@ -23,18 +23,18 @@ at(reading);assert.equal(state().nearest,'cn-rest');key('KeyE');assert(state().s
 assert.equal(r.formalCareers.state().learning['cn-rest'].issued,0);key('KeyE');key('KeyW');step(3);up('KeyW');assert.equal(state().performing,null);assert.equal(state().pathLength,0);
 choose('文书');const stale=button('开始阅读 · 8秒');stale.onclick();assert.equal(state().performing,'cn-rest');assert.equal(state().study.lessonId,'writing-intro');stale.onclick();assert.equal(r.formalCareers.state().learning['cn-rest'].issued,1);
 step(79);assert.equal(state().formalCareers.skills.writing,0);assert(ids['player-state'].textContent.includes('/8秒'));
-step(2);assert.equal(state().formalCareers.skills.writing,1);assert.equal(state().formalCareers.skills.ritual,0);assert.equal(state().performing,null);assert(ids.toast.textContent.includes('文书经验 +1'),'completion receipt survives the first station stamp');assert(ids.toast.textContent.includes('书信与文书'));
-step(20);assert.equal(state().formalCareers.skills.writing,1);record('manual E chooses writing, actual 8-second action grants only writing once and receipt survives first stamp');
+step(2);assert.equal(state().formalCareers.skills.writing,0);assert.equal(state().formalCareers.skillXP.writing,10);assert.equal(state().formalCareers.skills.ritual,0);assert.equal(state().performing,null);assert(ids.toast.textContent.includes('文书 +10 XP'),'completion receipt survives the first station stamp');assert(ids.toast.textContent.includes('书信与文书'));
+step(20);assert.equal(state().formalCareers.skills.writing,0);assert.equal(state().formalCareers.skillXP.writing,10);record('manual E chooses writing, actual 8-second action grants only writing once and receipt survives first stamp');
 key('KeyE');choose('艺术');button('开始阅读 · 8秒').onclick();step(25);key('KeyW');step();up('KeyW');assert.equal(state().performing,null);assert.equal(state().formalCareers.skills.art,0);assert.equal(state().study,null);record('actual movement cancels incomplete reading without art XP');
 // A nearby selected activity traverses the shared approach before choosing a
 // book; no prior visit/action flag is needed and no XP is issued by the route.
 at(reading);r.player.root.position.z+=.7;step();main.namespace.requestStationIntent(main.namespace.stationIntent(reading));
 assert(state().pendingInteraction||state().studyMenuOpen);for(let n=0;n<100&&!state().studyMenuOpen;n++)step();assert(state().studyMenuOpen,'automatic intent arrives at book menu');assert.equal(state().formalCareers.skills.art,0);
-choose('园艺');button('开始阅读 · 8秒').onclick();step(81);assert.equal(state().formalCareers.skills.gardening,1);assert.equal(state().formalCareers.skills.ritual,0);record('existing automatic approach opens the same choices and awards selected gardening only');
-const writing=r.lot.stations.find(s=>s.id==='cn-calligraphy');at(writing);key('KeyE');button('开始习字 · 8秒').onclick();assert.equal(state().performing,'cn-calligraphy');step(81);assert.equal(state().formalCareers.skills.writing,2);record('physical calligraphy remains an 8-second writing exercise');
+assert(!text(dialog).includes('园艺'));choose('烹饪');button('开始阅读 · 8秒').onclick();step(81);assert.equal(state().formalCareers.skillXP.cooking,10);assert.equal(state().formalCareers.skills.ritual,0);record('existing automatic approach opens the same choices and awards selected local cooking only');
+const writing=r.lot.stations.find(s=>s.id==='cn-calligraphy');at(writing);key('KeyE');button('开始习字 · 8秒').onclick();assert.equal(state().performing,'cn-calligraphy');step(81);assert.equal(state().formalCareers.skills.writing,0);assert.equal(state().formalCareers.skillXP.writing,20);record('physical calligraphy remains an 8-second writing exercise');
 at(reading);key('KeyE');const exitStale=button('开始阅读 · 8秒');ids['return-world'].onclick();assert(!state().studyMenuOpen);exitStale.onclick();assert.equal(state().performing,null);
-r=enter('france');const salon=r.lot.stations.find(s=>s.id==='france-salon');at(salon);key('KeyE');assert(state().studyMenuOpen,'French salon manual entry '+JSON.stringify({nearest:state().nearest,pending:state().pendingInteraction,performing:state().performing,seated:state().seated,toast:ids.toast.textContent}));choose('艺术');button('开始阅读 · 8秒').onclick();step(81);assert.equal(state().formalCareers.skills.art,1);
-const atelier=r.lot.stations.find(s=>s.id==='france-atelier');at(atelier);key('KeyE');assert(text(dialog).includes('艺术家职位尚未开放'));button('开始绘画 · 8秒').onclick();step(81);assert.equal(state().formalCareers.skills.art,2);assert.equal(state().formalCareers.skills.writing,2);record('France real reading/painting stations share chosen arts progression, with no invented artist job');
+r=enter('france');const salon=r.lot.stations.find(s=>s.id==='france-salon');at(salon);key('KeyE');assert(state().studyMenuOpen,'French salon manual entry '+JSON.stringify({nearest:state().nearest,pending:state().pendingInteraction,performing:state().performing,seated:state().seated,toast:ids.toast.textContent}));choose('艺术');button('开始阅读 · 8秒').onclick();step(81);assert.equal(state().formalCareers.skills.art,0);assert.equal(state().formalCareers.skillXP.art,10);
+const atelier=r.lot.stations.find(s=>s.id==='france-atelier');at(atelier);key('KeyE');assert(text(dialog).includes('艺术家职位尚未开放'));button('开始绘画 · 8秒').onclick();step(81);assert.equal(state().formalCareers.skills.art,0);assert.equal(state().formalCareers.skillXP.art,20);assert.equal(state().formalCareers.skills.writing,0);assert.equal(state().formalCareers.skillXP.writing,20);record('France real reading/painting stations share chosen arts progression, with no invented artist job');
 ids['return-world'].onclick();assert.equal(state().characterResources.activeReferences,0);
 console.log(JSON.stringify({status:'PASS',checks,scope:'Actual main and four existing station hooks; simulated DOM/renderer, not browser or iOS verification'}));
 `;

@@ -1,7 +1,7 @@
 // The live labor controller owns tools, physical work and employer proximity.
 // This bridge pins each new work slip to its pay source before it can start.
 // An old unmarked slip always remains temporary, even after another job is held.
-const MESSAGES={'interview-rejected':'本次面谈未录用，结果已保存，下一模拟日可再申请','already-applied-today':'本岗位今天已提交过申请，请查看已保存结果，下一模拟日再来',
+const MESSAGES={'application-pending':'申请已保存，请继续当面审核','no-pending-application':'没有待审申请','interview-rejected':'本次面谈未录用，结果已保存，下一模拟日可再申请','already-applied-today':'本岗位今天已提交过申请，请查看已保存结果，下一模拟日再来',
   'adult-required':'需年满18岁','ritual-required':'待客礼仪未达本岗位要求，可先读书练习',
   'cooking-required':'烹饪需要2点，先在藏书处读《灶间切配与火候》',
   'writing-required':'文书需要1点，可读书或在书案习字',
@@ -22,8 +22,12 @@ export function createFormalLaborContract({careers,role,getJob,getPlayer,meetHos
   const duty=job=>{const d=state()?.lastDuty;return pinned(job)&&d?.roleId===role.id&&d.workReceiptId===job.receiptId?d:null;};
   function result(r,text){if(!r?.ok)notify((r?.reasons||[r?.code]).map(c=>MESSAGES[c]||'这次办理未完成，请稍后重试').join('；'));else if(text)notify(text);return r;}
   function apply(){if(getJob())return result({ok:false,code:'wage-ready'}).ok;if(!meetHost())return false;
-    const applied=result(careers.apply(role.id,{ageYears:getPlayer()?.ageYears}),`${role.employer}：已录用为${role.name}，${role.vacancyKind==='exclusive'?`唯一岗位已由你任职，${role.incumbentName}已卸任；请主动报到开始当天工作`:role.vacancyKind==='rotation'?`已登记唯一轮值席，${role.incumbentName}继续在岗；请主动开始班次再当面交接`:'专设助理空缺由你任职；请主动开始当天班次'}。每天完成职责后，日薪存入银行账户。`);
+    const applied=result(careers.apply(role.id,{ageYears:getPlayer()?.ageYears}),`${role.employer}：申请已收下。请当面确认职责，再核验你的技能与空缺。`);
     openRegistration({country:role.country,roleId:role.id,scope:'role'});return !!applied.ok;}
+  function review(){if(getJob()||!meetHost())return false;
+    const application=careers.applicationResult(role.id);if(application?.status!=='pending')return false;
+    const reviewed=result(careers.reviewApplication(role.id,{ageYears:getPlayer()?.ageYears,applicationId:application.id}),`${role.employer}：审核通过，已正式录用。班次请另行报到。`);
+    openRegistration({country:role.country,roleId:role.id,scope:'role'});return !!reviewed.ok;}
   function resign(){if(getJob())return result({ok:false,code:'wage-ready'}).ok;if(!meetHost())return false;
     return !!result(careers.resign(),'长期岗位离职已登记，已有技能和评价保留。').ok;}
   function begin(receiptId,options={}){if(!hired())return {ok:true,formalRoleId:null};const r=result(careers.beginDuty({receiptId,...options}));return {...r,formalRoleId:r.ok?role.id:null};}
@@ -38,7 +42,7 @@ export function createFormalLaborContract({careers,role,getJob,getPlayer,meetHos
   function canWork(job){const d=duty(job);return !pinned(job)||!!d&&careers.canContinueLabor(job.receiptId);}
   const pendingReceipt=()=>{const d=state()?.lastDuty;return hired()&&!getJob()&&d?.roleId===role.id&&d.stage==='working'?d.workReceiptId:null;};
   const beginAvailability=()=>hired()?careers.beginDutyAvailability(role.id,{receiptId:pendingReceipt()||undefined}):{ok:true};
-  return {role,hired,state,pinned,duty,pendingReceipt,apply,resign,begin,beginAvailability,complete,inspect,pay,cancel,canWork,
+  return {role,hired,state,pinned,duty,pendingReceipt,apply,review,resign,begin,beginAvailability,complete,inspect,pay,cancel,canWork,
     open:(context={})=>openRegistration({country:role.country,roleId:role.id,scope:context.scope==='catalogue'?'catalogue':'role'}),
     unit:role.currency==='france'?'法国券':'铜文',
     salary:`${role.wage}–${role.wage+role.preparationBonus}${role.currency==='france'?'法国券':'铜文'}`};
