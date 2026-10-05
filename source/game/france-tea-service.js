@@ -60,7 +60,7 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
   const n=staff[role];
   if(!released(role)){endLeisure(role);return null;}
   if(meeting[role]){endLeisure(role);travel(n,role==='cook'?P.cookAside:P.hostHome,dt);return null;}
-  if(busy(n))return offDuty[role]?.choice||null;
+  if(busy(n))return offDuty[role]&&near(n,offDuty[role].choice.point)?offDuty[role].choice:null;
   let s=offDuty[role];
   if(!s){
    if(time<staffNext[role])return null;
@@ -123,7 +123,9 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
  // recovery. Hiring, continuing demand, receipts and attendance use current core.
  // The original NPC point is only .31m clear of the table. Keep its route,
  // and give the wider player capsule a legal place beside the same seat.
- const registry=[-5.5,.302,-4.45],cookRegistry=[-7.9,.258,-10.55],playerServe=[5.4,.16,12.0];
+ // Wait on the open southwest apron, outside the original cook's return
+ // approach from the west gallery and the rear counter's narrow edge.
+ const registry=[-5.5,.302,-4.45],cookRegistry=[-7.7,.258,-9.3],playerServe=[5.4,.16,12.0];
  const SPECS={
   receiving:{role:'cook',key:'receive-order',position:P.prep,target:P.report,seconds:1,action:'calligraphy',label:'核对玛农的原单与茶点用料'},
   preparing:{role:'cook',key:'cut-cake',position:P.prep,target:P.prepTop,seconds:3.4,action:'bread',label:'按原单分切一份蛋糕'},

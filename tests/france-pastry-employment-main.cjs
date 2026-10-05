@@ -19,7 +19,7 @@ const begin=harness.indexOf('const report=[];for(let round=0;');
 const body=String.raw`
 const out=process.env.OUT_DIR||'qa/france-pastry-employment-main';fs.mkdirSync(out,{recursive:true});
 all.find(e=>e.dataset.region==='france').onclick();ids.travel.onclick();const r=main.namespace.teaReview(),T=three.namespace;
-for(const [x,y,z] of [[-7.9,.258,-10.55],[-5.9,.258,-9.03],[-5.05,.258,-8.5]])assert(!main.namespace.blocked(x,z,r.lot.colliders,.39,{...r.navOptions,y}),'authored pastry player point clears .39 planning capsule');
+for(const [x,y,z] of [[...r.franceTea.forRole('cook').registry],[-5.9,.258,-9.03],[-5.05,.258,-8.5]])assert(!main.namespace.blocked(x,z,r.lot.colliders,.39,{...r.navOptions,y}),'authored pastry player point clears .39 planning capsule');
 const report={scope:'Production main in simulated DOM; actual Three scene and common paths; not browser or iOS QA',checks:[]};
 const mark=label=>{report.checks.push(label);console.log(label);};let frames=0,previous=r.player.root.position.clone();
 function step(){main.namespace.teaStep(.1);frames++;assert(previous.distanceTo(r.player.root.position)<.65,'shared walking must not teleport');previous.copy(r.player.root.position);}

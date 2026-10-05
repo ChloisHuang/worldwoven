@@ -8,9 +8,8 @@ registerHooks({resolve(id,c,next){return id==='three'?{url:pathToFileURL(process
 const T=await import('three');
 const {createFranceTeaService,FRANCE_TEA:P}=await import('../source/game/france-tea-service.js');
 const {createFacilityQueue}=await import('../source/game/npc-facilities.js');
-const copy=x=>JSON.parse(JSON.stringify(x));
 function fixture(saved=null,{blocked=false,hired=false}={}){
- const actor=(id,position)=>{const root=new T.Group();root.position.set(...position);return {root,station:{id,npcLabel:id,npcAction:'read'},route:[],locomotion:{walkSpeed:3},animate(){}};};
+ const actor=(id,position)=>{const root=new T.Group();root.position.set(...position);return {root,station:{id,npcLabel:id,npcAction:'read'},route:[],locomotion:{walkSpeed:3},animate(t,walking,action){this.action=action;}};};
  const npcs=[actor(P.cook,P.cookAside),actor(P.host,P.hostHome),actor(P.guest,P.guestHome)],player=actor('player',[25,0,25]);
  const seat={id:'tea-seat',kind:'seat',center:P.seatCenter,position:[5.37,.16,12.5],anchor:[6.6,.16,12.21],seatY:.9535,yaw:Math.PI},facilities=createFacilityQueue();let time=0,plans=0;
  const furniture={items:[seat],facilities,canSit:()=>true,standPoint:()=>new T.Vector3(...seat.position),releaseActor:id=>facilities.releaseActor(id)};
@@ -20,7 +19,7 @@ function fixture(saved=null,{blocked=false,hired=false}={}){
   worldSeed:1,saved:saved?{continuity:saved.tea}:{},saveState:()=>true,isServerHired:()=>hired,isCookHired:()=>hired,
   propsFactory:()=>({state:()=>({}),update(){},clear(){},dispose(){}})});
  if(saved){npcs.forEach((n,i)=>{n.root.position.set(...saved.actors[i].position);n.serviceMount=saved.actors[i].mounted?seat:null;});tea.restore(saved.tea);time=saved.time;}
- const tick=(n=1)=>{for(let i=0;i<n;i++){const positions=npcs.map(n=>n.root.position.clone());time+=.1;tea.update(.1,time);npcs.slice(0,2).forEach((n,j)=>assert(n.root.position.distanceTo(positions[j])<.45,'one physical movement per staff actor/tick'));}};
+ const tick=(n=1,context={})=>{for(let i=0;i<n;i++){const positions=npcs.map(n=>n.root.position.clone());time+=.1;tea.update(.1,time,context);npcs.slice(0,2).forEach((n,j)=>assert(n.root.position.distanceTo(positions[j])<.45,'one physical movement per staff actor/tick'));}};
  const until=(predicate,label,limit=5000)=>{for(let i=0;i<limit&&!predicate();i++)tick();assert(predicate(),label+' '+JSON.stringify(tea.state()));};
  const checkpoint=()=>({time,tea:tea.snapshot(),actors:npcs.map(n=>({position:n.root.position.toArray(),mounted:!!n.serviceMount}))});
  return {tea,npcs,player,tick,until,checkpoint,plans:()=>plans};
@@ -52,4 +51,12 @@ for(const role of ['host','cook']){
  const f=fixture(null,{hired:true});f.tick(4);assert.deepEqual(f.tea.state().offDuty,{host:null,cook:null});assert.equal(f.tea.state().duty,null);assert.equal(f.tea.state().staffOwnership.cover,true);assert.equal(f.tea.state().cookOwnership.cover,true);
  const blocked=fixture(null,{blocked:true});blocked.tea.claimDuty('fr-tea-labor-1');blocked.tick();const plans=blocked.plans();blocked.tick(30);assert.equal(blocked.plans(),plans,'unreachable choices wait without per-frame path scans');assert.equal(blocked.tea.state().life.people[P.host].choices,0);assert.equal(blocked.tea.state().offDuty.host,null);
  console.log('PASS hiring alone preserves explicit cover; unreachable activities are not sampled or rescanned every frame');
+}
+
+{
+ const f=fixture(),host=f.npcs.find(n=>n.station.id===P.host);f.tea.claimDuty('fr-tea-labor-1');
+ f.until(()=>f.tea.state().offDuty.host?.choice.id==='read'&&f.tea.state().offDuty.host.elapsed===0,'book choice before physical arrival');
+ const before=f.checkpoint();f.tick(20,{conversationActorId:P.host});assert.deepEqual(host.root.position.toArray(),before.actors[1].position);assert.equal(host.action,null,'conversation in transit cannot pretend to read a distant book');assert.equal(f.tea.state().offDuty.host.elapsed,0);
+ f.tea.requestMeeting(true);assert.equal(f.tea.state().offDuty.host,null);assert.equal(f.tea.state().life.people[P.host].current,null);
+ console.log('PASS conversation pauses travel without premature activity or relief; meeting cancels the commitment');
 }
