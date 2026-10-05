@@ -12,7 +12,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,
   let tab='duties',registration=false,signature='',reviewId=careers.state().lastEvaluation?.id||null,feedbackUntil=-1;
   const close=()=>{if(dialog.open)dialog.close();};
   const action=(kind)=>{const service=getService(),intent=service?.intent(kind);if(!intent)return null;const b=make('button',intent.action);b.type='button';b.onclick=()=>{close();onIntent(intent);};return b;};
-  const stages={arrived:'已在班位候朝',attending:'正在随班听记',archive:'朝会完成，待回官署归档',ready:'归档完成，工钱待入账',paid:'今日履职已结清',missed:'本轮未完整履职，没有日薪'};
+  const stages={arrived:'已在班位候朝',attending:'正在随班听记',archive:'朝会完成，待回官署归档',ready:'归档完成，工资待钱庄入账',paid:'今日工资已存入钱庄',missed:'本轮未完整履职，没有日薪'};
   function render(force=false) {
     const s=careers.state(),c=getClock(),d=s.lastDuty,hired=careers.isHired();
     const key=[s.revision,tab,registration,Math.floor(c.hour*60),!!getService()].join(':');if(!force&&key===signature)return;signature=key;
@@ -23,10 +23,10 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,
     const text=(title,content)=>dialog.append(make('h3',title),make('p',content));
     if(tab==='duties'){
       text('长期任职 · 独立名额1',hired?'你已占用录事职位，可一直任职，也可在登记案办理离职。六位原任官员各守原职。':'现有一个专设空缺。成年人可凭礼仪与文书各2点申请，由登记簿给出录用或拒绝原因。');
-      text('每日实际职责','11:30之前到正殿第七录事班位候朝，随六位官员行礼并听记；退朝后沿公共通路回官署，抄录归档8秒，再结算本日工资。');
+      text('每日实际职责','11:30之前到正殿第七录事班位候朝，随六位官员行礼并听记；退朝后沿公共通路回官署，抄录归档8秒，本日工资自动存入当地钱庄。');
       text('申请能力',`礼仪 ${s.skills.ritual}/2 · 文书 ${s.skills.writing}/2。藏书处完成一次读书得礼仪，翰墨书房完成一次习字得文书；做完酒楼两桌擦拭也积累待客礼仪。`);
     }else if(tab==='today'){
-      text(`第${c.day+1}日 · 朝会11:30`,d?.day===c.day?stages[d.stage]||'等待本日安排':hired?(c.hour<11.5?'请预留从当前位置走到正殿的时间。11:25前到班可得勤勉奖励。':'本日朝会时刻已过。下一模拟日再提前赴班。'):'先在官署铨录登记案申请任职。');
+      text(`第${c.day+1}日 · 朝会11:30`,d?.day===c.day?d.reason==='court-postponed'?'朝会延期，本轮不计薪，也不记你的缺勤差评。':stages[d.stage]||'等待本日安排':hired?(c.hour<11.5?'请预留从当前位置走到正殿的时间。11:25前到班可得勤勉奖励。':'本日朝会时刻已过。下一模拟日再提前赴班。'):'先在官署铨录登记案申请任职。');
       text('自己安排路程','点下方当前工作会走到实际操作位置；手动走到同一班位或案边也可按E。途中可以取消，岗位身份保留。错过或未完成当班不会自动领薪。');
       text('世界时钟','只在实际游玩地区时推进；离线、隐藏页面和回到世界地图时暂停。切换白天/夜晚只换灯光，不会变出工资日。');
     }else if(tab==='reviews'){
@@ -37,7 +37,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,
     }else if(tab==='wage'){
       text('日薪 · 18–20铜文','完成本日朝仪与归档：18铜文；11:25前到班且完成全轮：另加2文，共20文。缺勤、中断或朝会未成：0文，不扣已有铜钱。');
       text('本日结算',d?.day===c.day?`${stages[d.stage]||''}${d.wage!=null?' · 核定'+d.wage+'铜文':''}`:'尚无本日工资记录。');
-      text('按日发放','完整归档后自动入现有铜文账；若保存失败，会保留待领凭记，可回归档案重试。同一岗位同一天只入账一次。没有离线自动收入。');
+      text('按日发放','完整归档后自动存入当地钱庄，不直接增加随身现金；只有去真实钱庄取款，才会进入钱包。若保存失败，会保留应计凭记并自动重试，同一岗位同一天只入账一次。没有离线自动收入。');
     }else{
       text('学习门槛',`当前礼仪${s.skills.ritual}、文书${s.skills.writing}；本职位各需2。每次完整阅读/习字8秒才计一次，每技能每日最多4点，技能总计最多100点。`);
       text('成长记录',`已累计${s.promotionProgress??0}次有效成长记录。工作评价会影响以后可申请职位的条件；更高品级、晋升名额和门槛尚未开放，本批不能升官。`);

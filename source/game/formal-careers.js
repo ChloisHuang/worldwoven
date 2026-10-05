@@ -20,6 +20,7 @@ const integer = value => Number.isSafeInteger(value) && value >= 0;
 const dayOrNull = value => value === null || integer(value);
 const identifier = value => typeof value === 'string' && /^[a-z][a-z0-9-]{0,63}$/.test(value);
 const own = (value, key) => Object.hasOwn(value, key);
+const excused = duty => duty?.stage === 'missed' && duty.reason === 'court-postponed';
 const completedWage = (role, arrivalHour) => role.wage + (COURT_SUPERVISOR.conscientiousness >= .8 &&
   arrivalHour <= role.dutyWindow.endHour - COURT_SUPERVISOR.earlyArrivalMinutes / 60 ? COURT_SUPERVISOR.preparationBonus : 0);
 const empty = () => ({version: 1, revision: 0, skills: {ritual: 0, writing: 0}, tenure: null,
@@ -118,12 +119,15 @@ function restore(saved, roleMap, slotMap) {
  * seconds. Only the newest ticket per source can complete, on its original day.
  * completedLowerWork is a trusted callback at the labor module's verified ready
  * boundary, before its receipt clears. Acceptance/cancellation must not call it.
- * No passive simulation or wages. Failed ledger cleanup keeps the ready receipt.
+ * creditWageToBank({amount,receiptId,currency,roleId,slotId,day}) must atomically
+ * credit bank copper with durable receipt dedupe and return synchronously.
+ * Missing bank credit support locks settlement only; cash is never a fallback.
+ * No passive simulation or wages. Failed paid-state cleanup keeps ready intact.
  */
-export function createFormalCareers({saved, saveState, copperLedger, getClock,
+export function createFormalCareers({saved, saveState, creditWageToBank, getClock,
   roles = FORMAL_CAREER_ROLES, slots = FORMAL_CAREER_SLOTS} = {}) {
-  if (typeof saveState !== 'function' || typeof getClock !== 'function' || typeof copperLedger?.earn !== 'function') {
-    throw new TypeError('formal careers require synchronous saveState, copperLedger and getClock');
+  if (typeof saveState !== 'function' || typeof getClock !== 'function') {
+    throw new TypeError('formal careers require synchronous saveState and getClock');
   }
   let current = empty(), loadError = null, lastError = null, saving = false, paying = false, lastClock = null;
   let observedDay = null, interruptedUnsaved = false;
@@ -178,6 +182,9 @@ export function createFormalCareers({saved, saveState, copperLedger, getClock,
   }
   function missed(next, reason) {
     next = {...next, lastDuty: {...next.lastDuty, stage: 'missed', reason, wage: null}};
+    // The court's own cancellation is not a player absence. Keep its terminal
+    // receipt without manufacturing either a positive or a negative review.
+    if (excused(next.lastDuty)) return next;
     return next.lastDuty.started ? evaluate(next, false, reason) : next;
   }
   // Reloads cannot resume a live ceremony. Persist the recovery and evaluation
@@ -250,10 +257,12 @@ export function createFormalCareers({saved, saveState, copperLedger, getClock,
     const blocked = allowed(); if (blocked) return blocked;
     if (interruptedUnsaved) return failure('interruption-unsaved');
     if (!current.tenure) return failure('not-employed');
+    const rollover = observeDay(); if (!rollover.ok) return rollover;
     const clock = now(); if (!clock) return failure('invalid-clock');
     const duty = current.lastDuty;
     if (duty?.stage === 'ready') return failure('wage-ready');
     if (current.lastPaidDay === clock.day) return failure('already-paid-today');
+    if (duty?.day === clock.day && excused(duty)) return failure('court-postponed');
     if (duty?.day === clock.day && (duty.started || duty.stage === 'arrived')) return failure(duty.stage === 'missed' ? 'duty-missed' : 'duty-active');
     const role = roleMap.get(current.tenure.roleId);
     if (clock.hour < role.dutyWindow.startHour || clock.hour >= role.dutyWindow.endHour) return failure('outside-arrival-window');
@@ -267,8 +276,10 @@ export function createFormalCareers({saved, saveState, copperLedger, getClock,
     const transitions = {'court-start': ['arrived', 'attending'], 'court-completed': ['attending', 'archive'], 'archive-completed': ['archive', 'ready']};
     if (!own(transitions, event)) return failure('unknown-duty-event');
     if (!current.tenure) return failure('not-employed');
+    const rollover = observeDay(); if (!rollover.ok) return rollover;
     const clock = now(); if (!clock) return failure('invalid-clock');
     const duty = current.lastDuty;
+    if (duty?.day === clock.day && excused(duty)) return {ok: true, unchanged: true, excused: true};
     if (event === 'court-start' && (!duty || duty.day !== clock.day || duty.stage === 'missed' && !duty.started)) {
       if (current.tenure.sinceDay === clock.day && current.tenure.sinceHour >= roleMap.get(current.tenure.roleId).dutyWindow.endHour) return {ok: true, unchanged: true, exempt: true};
       if (duty?.stage === 'ready') return failure('wage-ready');
@@ -300,7 +311,8 @@ export function createFormalCareers({saved, saveState, copperLedger, getClock,
     const day = observedDay, tenure = current.tenure, duty = current.lastDuty;
     if (!tenure || tenure.sinceDay > day || tenure.sinceDay === day &&
       tenure.sinceHour >= roleMap.get(tenure.roleId).dutyWindow.endHour ||
-      current.lastEvaluatedDay !== null && current.lastEvaluatedDay >= day || duty?.stage === 'ready') {
+      current.lastEvaluatedDay !== null && current.lastEvaluatedDay >= day || duty?.stage === 'ready' ||
+      duty?.day === day && excused(duty)) {
       observedDay = clock.day; return {ok: true, unchanged: true};
     }
     const incomplete = duty?.day === day ? {...duty, started: true} : {roleId: tenure.roleId, slotId: tenure.slotId,
@@ -315,15 +327,21 @@ export function createFormalCareers({saved, saveState, copperLedger, getClock,
     const duty = current.lastDuty;
     if (duty?.stage !== 'ready') return failure('work-incomplete');
     if (!now()) return failure('invalid-clock');
-    if (copperLedger.loadError) return failure(copperLedger.loadError);
+    if (typeof creditWageToBank !== 'function') return failure('bank-unavailable');
     const receiptId = `career:${duty.slotId}:${duty.day}`;
+    const deposit = {amount: duty.wage, receiptId, currency: 'copper',
+      roleId: duty.roleId, slotId: duty.slotId, day: duty.day};
     paying = true; let payment;
-    try { payment = copperLedger.earn(duty.wage, receiptId); }
+    try { payment = creditWageToBank({...deposit}); }
     catch { return failure('payment-failed'); }
     finally { paying = false; }
-    if (!payment?.ok) return failure(payment?.code || 'payment-failed');
+    if (payment && typeof payment.then === 'function') {
+      Promise.resolve(payment).catch(() => {}); return failure('async-bank-credit-unsupported');
+    }
+    if (payment?.ok !== true) return failure(payment?.code || 'payment-failed');
+    if (payment.receiptId !== undefined && payment.receiptId !== receiptId) return failure('bank-receipt-mismatch');
     const result = persist({...current, lastPaidDay: duty.day, lastDuty: {...duty, stage: 'paid'}});
-    return {ok: true, paid: true, wage: duty.wage, receiptId, replayed: !!payment.replayed,
+    return {ok: true, paid: true, wage: duty.wage, receiptId, replayed: !!payment.replayed, deposit,
       cleanupPending: !result.ok, ...(result.ok ? {} : {code: result.code})};
   }
   return Object.freeze({state, isHired: (roleId = COURT_CLERK_ROLE.id) => !loadError && current.tenure?.roleId === roleId,

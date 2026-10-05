@@ -2,16 +2,26 @@
 // finite vacancies, evaluation dedupe and exactly-once copper across reloads.
 import assert from 'node:assert/strict';
 import {createFormalCareers, COURT_CLERK_ROLE, FORMAL_CAREER_SLOTS} from '../source/game/formal-careers.js';
-import {createCopperLedger} from '../source/game/copper-ledger.js';
 const clone = value => JSON.parse(JSON.stringify(value));
 const ROLE = COURT_CLERK_ROLE.id;
 function setup(saved = {}, options = {}) {
-  const store = clone(saved), flags = {reject: false, rejectLedger: false, throw: false, async: false};
+  const store = clone(saved), flags = {reject: false, rejectBank: false, throw: false, async: false};
   const clock = {...{day: 1, hour: 8, seconds: 0}, ...options.clock};
-  const ledger = createCopperLedger({saved: store.ledger, saveState: state => {
-    if (flags.rejectLedger) return false; store.ledger = state;
-  }});
-  const careers = createFormalCareers({saved: store.careers, copperLedger: ledger, getClock: () => clock,
+  // The core owns no banking implementation. This durable fixture implements
+  // the injected credit contract, including receipt conflicts and replay.
+  store.bank ??= {cash: 0, bank: 0, credits: []};
+  const bank = {state: () => clone(store.bank), history: () => clone(store.bank.credits)};
+  const creditWageToBank = deposit => {
+    assert.equal(deposit.currency, 'copper');
+    assert.equal(deposit.receiptId, `career:${deposit.slotId}:${deposit.day}`);
+    const old = store.bank.credits.find(credit => credit.receiptId === deposit.receiptId);
+    if (old) return old.amount === deposit.amount ? {ok: true, replayed: true, receiptId: old.receiptId} : {ok: false, code: 'request-conflict'};
+    if (flags.rejectBank) return {ok: false, code: 'save-failed'};
+    store.bank = {...store.bank, bank: store.bank.bank + deposit.amount,
+      credits: [...store.bank.credits, clone(deposit)]};
+    return {ok: true, replayed: false, receiptId: deposit.receiptId};
+  };
+  const careers = createFormalCareers({saved: store.careers, creditWageToBank, getClock: () => clock,
     ...options, saveState: state => {
       if (flags.throw) throw Error('quota');
       if (flags.async) return Promise.reject(Error('unsupported'));
@@ -30,7 +40,7 @@ function setup(saved = {}, options = {}) {
     clock.hour = 12; assert(careers.dutyEvent('court-completed').ok);
     assert(careers.dutyEvent('archive-completed').ok);
   };
-  return {store, flags, clock, ledger, careers, study, qualify, hire, ready};
+  return {store, flags, clock, bank, careers, study, qualify, hire, ready};
 }
 const fresh = setup();
 assert.equal(fresh.careers.isHired(), false);
@@ -61,7 +71,7 @@ firstReload.clock.day = 2;
 assert.equal(firstReload.careers.completeLearning(expired, {seconds: 8}).code, 'learning-expired');
 assert.equal(firstReload.careers.completedLowerWork({source: 'cn-tavern-labor', receiptId: 'cn-tavern-labor-3'}).code, 'work-replayed');
 assert.equal(firstReload.study().gained, 1);
-assert.equal(firstReload.ledger.state().cash, 0, 'learning and lower-work progression never pay wages');
+assert.equal(firstReload.bank.state().cash, 0, 'learning and lower-work progression never pay wages');
 const capSave = clone(firstReload.store); capSave.careers.skills = {ritual: 99, writing: 1};
 const capped = setup(capSave, {clock: {day: 3}});
 assert.equal(capped.study('cn-calligraphy').limited, 'skill-limit');
@@ -99,9 +109,9 @@ assert.equal(setup(attendingReload.store, {clock: {hour: 11.6}}).careers.state()
 assert.equal(attendingReload.careers.dutyEvent('court-completed').code, 'invalid-duty-stage');
 assert(attendingReload.careers.resign().ok); assert(attendingReload.careers.apply(ROLE, {ageYears: 18}).ok);
 assert.equal(attendingReload.careers.beginDuty().code, 'duty-missed');
-assert.equal(attendingReload.ledger.state().cash, 0);
+assert.equal(attendingReload.bank.state().cash, 0);
 const blockedRecovery = createFormalCareers({saved: attendingSave.careers, saveState: () => false,
-  copperLedger: attendingReload.ledger, getClock: () => ({day: 1, hour: 12, seconds: 0})});
+  getClock: () => ({day: 1, hour: 12, seconds: 0})});
 assert.equal(blockedRecovery.state().loadError, 'recovery-save-failed'); assert(!blockedRecovery.settle().ok);
 
 const paid = setup(); paid.hire(); paid.ready();
@@ -111,22 +121,44 @@ assert.equal(paid.careers.state().lastEvaluation.positive, true);
 assert.equal(paid.careers.state().performance, 1); assert.equal(paid.careers.state().promotionProgress, 1);
 assert.equal(paid.careers.dutyEvent('archive-completed').code, 'invalid-duty-stage');
 assert(paid.careers.interruptDuty('walking').unchanged); assert.equal(paid.careers.resign().code, 'wage-ready');
-paid.flags.rejectLedger = true; assert.equal(paid.careers.settle().code, 'save-failed');
-assert.equal(paid.ledger.state().cash, 0); assert.equal(paid.careers.state().lastDuty.stage, 'ready');
-paid.flags.rejectLedger = false; paid.flags.reject = true;
+paid.flags.rejectBank = true; assert.equal(paid.careers.settle().code, 'save-failed');
+assert.equal(paid.bank.state().cash, 0); assert.equal(paid.careers.state().lastDuty.stage, 'ready');
+paid.flags.rejectBank = false; paid.flags.reject = true;
 const cleanup = paid.careers.settle(); assert(cleanup.ok && cleanup.cleanupPending);
-assert.equal(paid.ledger.state().cash, 20); assert.equal(paid.careers.state().lastDuty.stage, 'ready');
+assert.deepEqual(cleanup.deposit, {amount: 20, receiptId: 'career:cn-court-clerk-1:1',
+  currency: 'copper', roleId: ROLE, slotId: 'cn-court-clerk-1', day: 1});
+assert.equal(paid.bank.state().cash, 0); assert.equal(paid.bank.state().bank, 20); assert.equal(paid.careers.state().lastDuty.stage, 'ready');
 const cleanupReload = setup(paid.store, {clock: {day: 2, hour: 9}});
 assert.equal(cleanupReload.careers.beginDuty().code, 'wage-ready');
 const recoveredPay = cleanupReload.careers.settle(); assert(recoveredPay.ok && recoveredPay.replayed && !recoveredPay.cleanupPending);
-assert.equal(cleanupReload.ledger.state().cash, 20); assert.equal(cleanupReload.careers.state().performance, 1);
+assert.equal(cleanupReload.bank.state().cash, 0); assert.equal(cleanupReload.bank.state().bank, 20); assert.equal(cleanupReload.careers.state().performance, 1);
 assert.equal(cleanupReload.careers.settle().code, 'work-incomplete');
 assert(cleanupReload.careers.resign().ok); assert(cleanupReload.careers.apply(ROLE, {ageYears: 18}).ok);
 cleanupReload.ready(11.49); assert.equal(cleanupReload.careers.state().lastDuty.wage, 18);
-assert(cleanupReload.careers.settle().ok); assert.equal(cleanupReload.ledger.state().cash, 38);
+assert(cleanupReload.careers.settle().ok); assert.equal(cleanupReload.bank.state().cash, 0); assert.equal(cleanupReload.bank.state().bank, 38);
 assert(cleanupReload.careers.resign().ok); assert(cleanupReload.careers.apply(ROLE, {ageYears: 18}).ok);
 assert.equal(cleanupReload.careers.beginDuty().code, 'already-paid-today');
-assert.equal(cleanupReload.ledger.history().filter(tx => tx.action === 'earn').length, 2);
+assert.equal(cleanupReload.bank.history().length, 2);
+let cashFallbackCalls = 0;
+const unavailableBank = setup({}, {creditWageToBank: null,
+  copperLedger: {earn() { cashFallbackCalls++; throw Error('cash fallback forbidden'); }}});
+unavailableBank.hire(); unavailableBank.ready();
+assert(unavailableBank.careers.isHired(), 'missing bank support must not block study or employment');
+assert.equal(unavailableBank.careers.settle().code, 'bank-unavailable');
+assert.equal(unavailableBank.careers.state().lastDuty.stage, 'ready');
+assert.equal(unavailableBank.bank.state().bank, 0); assert.equal(unavailableBank.bank.state().cash, 0);
+assert.equal(cashFallbackCalls, 0, 'formal wages must never fall back to earn/cash');
+for (const [creditWageToBank, expected] of [
+  [() => { throw Error('bank write failed'); }, 'payment-failed'],
+  [() => Promise.reject(Error('unsupported async bank')), 'async-bank-credit-unsupported'],
+  [() => ({ok: true, receiptId: 'wrong-receipt'}), 'bank-receipt-mismatch'],
+]) {
+  const failed = setup({}, {creditWageToBank}); failed.hire(); failed.ready();
+  assert.equal(failed.careers.settle().code, expected);
+  assert.equal(failed.careers.state().lastDuty.stage, 'ready');
+  assert.equal(failed.careers.state().lastPaidDay, null);
+  assert.equal(failed.bank.state().cash, 0); await Promise.resolve();
+}
 for (const corrupt of [
   state => { state.lastDuty.arrivalHour = 12; },
   state => { state.lastDuty.wage = 20; state.lastEvaluation.wage = 20; },
@@ -142,7 +174,7 @@ const archiveReload = setup(archived.store, {clock: {hour: 13}});
 assert.equal(archiveReload.careers.state().lastDuty.stage, 'archive');
 assert(archiveReload.careers.dutyEvent('archive-completed').ok);
 const oldArchive = setup(archived.store, {clock: {day: 2, hour: 8}});
-assert.equal(oldArchive.careers.dutyEvent('archive-completed').code, 'duty-expired'); assert.equal(oldArchive.ledger.state().cash, 0);
+assert.equal(oldArchive.careers.dutyEvent('archive-completed').code, 'duty-expired'); assert.equal(oldArchive.bank.state().cash, 0);
 const interrupted = setup(); interrupted.hire(); assert(interrupted.careers.beginDuty().ok);
 interrupted.clock.hour = 11.5; assert(interrupted.careers.dutyEvent('court-start').ok);
 interrupted.flags.reject = true; assert.equal(interrupted.careers.interruptDuty('walking').code, 'save-failed');
@@ -150,6 +182,48 @@ assert.equal(interrupted.careers.dutyEvent('court-completed').code, 'interruptio
 interrupted.flags.reject = false; assert(interrupted.careers.interruptDuty('walking').ok);
 assert.equal(interrupted.careers.state().performance, -1); assert(interrupted.careers.interruptDuty('walking').unchanged);
 assert.equal(interrupted.careers.state().performance, -1);
+
+// NPC-caused postponement is terminal but excused, before or after court start.
+// The same fact survives reload/resignation and cannot become a later absence.
+for (const started of [false, true]) {
+  const postponed = setup(); postponed.hire(); assert(postponed.careers.beginDuty().ok);
+  if (started) { postponed.clock.hour = 11.5; assert(postponed.careers.dutyEvent('court-start').ok); }
+  assert(postponed.careers.interruptDuty('court-postponed').ok);
+  assert.equal(postponed.careers.state().lastDuty.reason, 'court-postponed');
+  assert.equal(postponed.careers.state().performance, 0);
+  assert.equal(postponed.careers.state().lastEvaluation, null);
+  assert.equal(postponed.careers.state().lastEvaluatedDay, null);
+  assert.equal(postponed.careers.beginDuty().code, 'court-postponed');
+  assert(postponed.careers.dutyEvent('court-start').excused);
+  assert.equal(postponed.careers.settle().code, 'work-incomplete');
+  const reload = setup(postponed.store, {clock: {hour: started ? 11.6 : 8}});
+  assert.equal(reload.careers.state().performance, 0);
+  assert(reload.careers.resign().ok); assert(reload.careers.apply(ROLE, {ageYears: 18}).ok);
+  assert.equal(reload.careers.beginDuty().code, 'court-postponed');
+  reload.clock.day = 2; reload.clock.hour = 8;
+  assert(reload.careers.observeDay().unchanged);
+  assert.equal(reload.careers.state().performance, 0);
+  assert.equal(reload.bank.state().cash, 0);
+  assert(reload.careers.beginDuty().ok, 'an excused day must not block the next shift');
+  assert.equal(reload.careers.state().lastEvaluation, null);
+
+  // Starting the next shift before the adapter's explicit observeDay call must
+  // also preserve the previous day's exemption before replacing lastDuty.
+  const beforeTick = setup(postponed.store, {clock: {hour: started ? 11.6 : 8}});
+  beforeTick.clock.day = 2; beforeTick.clock.hour = 8;
+  assert(beforeTick.careers.beginDuty().ok);
+  assert(beforeTick.careers.observeDay().unchanged);
+  assert.equal(beforeTick.careers.state().performance, 0);
+  assert.equal(beforeTick.careers.state().lastEvaluatedDay, null);
+}
+const previousReview = setup(); previousReview.hire(); previousReview.ready(); assert(previousReview.careers.settle().ok);
+const earnedReview = clone(previousReview.careers.state().lastEvaluation);
+previousReview.clock.day = 2; previousReview.clock.hour = 8; assert(previousReview.careers.beginDuty().ok);
+assert(previousReview.careers.interruptDuty('court-postponed').ok);
+previousReview.clock.day = 3; assert(previousReview.careers.observeDay().unchanged);
+assert.equal(previousReview.careers.state().performance, 1);
+assert.deepEqual(previousReview.careers.state().lastEvaluation, earnedReview, 'excusal preserves an earlier real review');
+assert.equal(previousReview.careers.state().lastEvaluatedDay, 1);
 
 const absent = setup(); absent.hire(); absent.clock.hour = 11.5;
 assert(absent.careers.dutyEvent('court-start').ok); assert.equal(absent.careers.state().performance, -1);
