@@ -20,6 +20,7 @@ const failure = code => ({ok: false, code});
 const dayKey = (actorId, day) => JSON.stringify([actorId, day]);
 const mealReceipt = (action, orderId) => `official-${action}:${orderId}`;
 const balances = state => ({treasury: state.treasury, accounts: copy(state.accounts), destinations: copy(state.destinations)});
+const fundingAccount = (actorId, split) => `${actorId}:${split.cash === 0 ? 'bank' : split.bank === 0 ? 'cash' : 'cash+bank'}`;
 
 function source(value) {
   if (value === undefined) return {amount: 0, sourceId: null};
@@ -83,12 +84,12 @@ function indexTransaction(index, transaction) {
     index.meals.set(transaction.orderId, meal);
   }
 }
-function transfer(state, index, request) {
+function transfer(state, index, request, legacyMeal = false) {
   if (index.receipts.has(request.receiptId)) return failure('request-conflict');
   if (state.transactions.length >= JOURNAL_LIMIT || !Number.isSafeInteger(state.nextTransaction + 1)) return failure('transaction-limit');
   const next = {...state, accounts: copy(state.accounts), destinations: {...state.destinations}, transactions: [...state.transactions]},
     account = next.accounts[request.actorId], amount = request.amount;
-  let from, to;
+  let from, to, sourceSplit;
   if (request.action === 'duty') {
     if (index.duties.has(dayKey(request.actorId, request.day))) return failure('duty-already-paid');
     if (amount > next.treasury) return failure('insufficient-treasury');
@@ -100,20 +101,29 @@ function transfer(state, index, request) {
     from = `${request.actorId}:bank`; to = `${request.actorId}:cash`;
   } else if (request.action === 'meal-payment') {
     if (index.meals.has(request.orderId)) return failure('order-already-paid');
-    if (amount > account.cash) return failure('insufficient-cash');
-    account.cash -= amount; next.destinations[CHINA_OFFICIAL_TAVERN_ID] += amount;
-    from = `${request.actorId}:cash`; to = CHINA_OFFICIAL_TAVERN_ID;
+    // Historical receipts without a split retain their original cash-only
+    // replay. Every new meal pays from this NPC's cash, then their own bank.
+    if (legacyMeal && amount > account.cash) return failure('insufficient-cash');
+    if (amount > account.cash + account.bank) return failure('insufficient-funds');
+    const split = {cash: Math.min(amount, account.cash), bank: Math.max(0, amount - account.cash)};
+    account.cash -= split.cash; account.bank -= split.bank; next.destinations[CHINA_OFFICIAL_TAVERN_ID] += amount;
+    if (!legacyMeal) sourceSplit = split;
+    from = fundingAccount(request.actorId, split); to = CHINA_OFFICIAL_TAVERN_ID;
   } else if (request.action === 'meal-refund') {
     const meal = index.meals.get(request.orderId);
     if (!meal?.payment) return failure('payment-not-found');
     if (meal.refund) return failure('order-already-refunded');
     if (meal.payment.actorId !== request.actorId || meal.payment.amount !== amount) return failure('request-conflict');
+    if (legacyMeal && Object.hasOwn(meal.payment, 'sourceSplit')) return failure('invalid-source-split');
     if (amount > next.destinations[CHINA_OFFICIAL_TAVERN_ID]) return failure('insufficient-tavern-funds');
-    next.destinations[CHINA_OFFICIAL_TAVERN_ID] -= amount; account.cash += amount;
-    from = CHINA_OFFICIAL_TAVERN_ID; to = `${request.actorId}:cash`;
+    const split = meal.payment.sourceSplit || {cash: amount, bank: 0};
+    next.destinations[CHINA_OFFICIAL_TAVERN_ID] -= amount; account.cash += split.cash; account.bank += split.bank;
+    if (!legacyMeal) sourceSplit = copy(split);
+    from = CHINA_OFFICIAL_TAVERN_ID; to = fundingAccount(request.actorId, split);
   } else return failure('invalid-action');
   if (!conserved(next)) return failure('balance-overflow');
   const transaction = {id: `official-${state.nextTransaction}`, ...copy(request), from, to,
+    ...(sourceSplit ? {sourceSplit} : {}),
     before: balances(state), after: balances(next)};
   next.transactions.push(transaction); next.nextTransaction++;
   return {ok: true, next, transaction};
@@ -127,7 +137,7 @@ function restore(saved, initialTreasury) {
     if (!object(transaction) || !ACTIONS.has(transaction.action)) throw Error('invalid-saved-state');
     const normalized = requestFor(transaction.action, transaction, current);
     if (!normalized.ok || !same(normalized.request, requestOf(transaction))) throw Error('invalid-saved-state');
-    const result = transfer(current, index, normalized.request);
+    const result = transfer(current, index, normalized.request, !Object.hasOwn(transaction, 'sourceSplit'));
     if (!result.ok || !same(transaction, result.transaction)) throw Error('invalid-saved-state');
     current = result.next; indexTransaction(index, result.transaction);
   }
@@ -151,6 +161,11 @@ function restore(saved, initialTreasury) {
  * future certificates are rejected. This ledger never synthesizes back pay.
  * The caller issues a duty certificate only after a completed audience and
  * actual archival work at that actor's assigned desk.
+ *
+ * Meals use the NPC's cash + bank total, cash first, in one transaction.
+ * New meal receipts record sourceSplit: {cash, bank}; refunds restore that
+ * exact split even after later transfers. Version-1 cash-only journal entries
+ * without sourceSplit replay unchanged. This ledger has no bank interest.
  */
 export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 24, isAppointed = () => false,
   getDay = () => null, saveState} = {}) {
@@ -190,7 +205,8 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
       const next = result.next, transaction = result.transaction;
       let accepted = false;
       const receipt = wasReplay => ({ok: true, replayed: wasReplay, receiptId: transaction.receiptId,
-        amount: transaction.amount, actorId: transaction.actorId, ...(transaction.orderId ? {orderId: transaction.orderId} : {}), transaction: copy(transaction)});
+        amount: transaction.amount, actorId: transaction.actorId, ...(transaction.orderId ? {orderId: transaction.orderId} : {}),
+        ...(transaction.sourceSplit ? {sourceSplit: copy(transaction.sourceSplit)} : {}), transaction: copy(transaction)});
       const valid = () => !loadError && !busy && (accepted || current === base);
       function accept() {
         if (accepted) return receipt(true);

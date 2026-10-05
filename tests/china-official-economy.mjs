@@ -60,7 +60,8 @@ assert(economy.completeDuty(duty()).replayed, 'Old completed receipts stay idemp
 assert.equal(writes, 6);
 
 const meal = {actorId, orderId: 'official-lunch-1', amount: 7};
-code(economy.prepareMealPayment(meal), 'insufficient-cash');
+code(economy.prepareMealPayment({...meal, amount: 25}), 'insufficient-funds');
+assert.deepEqual(economy.prepareMealPayment(meal).sourceSplit, {cash: 0, bank: 7}, 'Bank copper can buy food without a withdrawal');
 code(economy.withdraw({actorId, amount: 25, receiptId: 'too-large'}), 'insufficient-bank');
 for (const amount of [0, -1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, '7', null, 1n]) {
   code(economy.withdraw({actorId, amount, receiptId: 'bad'}), 'invalid-amount');
@@ -94,6 +95,8 @@ assert.deepEqual(durable.chinaServiceWorld, world);
 assert.deepEqual(durable.chinaOfficialEconomy, economy.snapshot());
 assert.equal(paid.transaction.from, `${actorId}:cash`);
 assert.equal(paid.transaction.to, CHINA_OFFICIAL_TAVERN_ID);
+assert.deepEqual(paid.sourceSplit, {cash: 7, bank: 0});
+assert.deepEqual(paid.transaction.sourceSplit, paid.sourceSplit);
 const afterMealWrites = writes;
 assert(pending.commit({chinaServiceWorld: world}).replayed);
 assert(economy.prepareMealPayment(meal).commit().replayed);
@@ -144,6 +147,162 @@ assert.deepEqual(restored.snapshot(), roundtrip);
 assert(restored.prepareMealPayment({...meal, orderId: 'coordinated', amount: 2}).commit().replayed);
 assert(restored.prepareMealRefund(meal).commit().replayed);
 conserve(restored.snapshot());
+
+// The real meal risks are bank-funded starvation, partial charges on failed
+// order saves, and refunds moving money to the wrong pocket after later work.
+for (const scenario of [
+  {name: 'bank-only', withdrawn: 0, amount: 7, split: {cash: 0, bank: 7}},
+  {name: 'mixed', withdrawn: 4, amount: 7, split: {cash: 4, bank: 3}},
+  {name: 'cash-only', withdrawn: 12, amount: 7, split: {cash: 7, bank: 0}},
+  {name: 'exact-total', withdrawn: 4, amount: 24, split: {cash: 4, bank: 20}},
+]) {
+  let savedWorld, saveFails = false, count = 0;
+  const localOptions = {...options, getDay: () => 4, saveState: (next, transaction, patch) => {
+    if (saveFails) return false;
+    savedWorld = {...savedWorld, ...patch, chinaOfficialEconomy: clone(next)};
+    conserve(next); count++;
+  }};
+  let ledger = createChinaOfficialEconomy(localOptions);
+  assert(ledger.completeDuty(duty()).ok);
+  if (scenario.withdrawn) assert(ledger.withdraw({actorId, amount: scenario.withdrawn, receiptId: 'existing-withdrawal'}).ok);
+  const request = {actorId, orderId: `combined-${scenario.name}`, amount: scenario.amount};
+  const before = ledger.snapshot(), storageBefore = clone(savedWorld), countBefore = count;
+  code(ledger.prepareMealPayment({...request, amount: 25}), 'insufficient-funds');
+  code(ledger.prepareMealPayment({...request, actorId: otherId}), 'insufficient-funds');
+  const payment = ledger.prepareMealPayment(request);
+  assert(payment.ok && payment.valid());
+  assert.deepEqual(payment.sourceSplit, scenario.split);
+  assert.deepEqual(payment.transaction.sourceSplit, scenario.split);
+  assert.equal(payment.snapshot.transactions.length, before.transactions.length + 1, 'Both pockets produce one journal receipt');
+  assert.equal(payment.snapshot.transactions.at(-1).action, 'meal-payment', 'Payment creates no synthetic withdrawal');
+  assert.deepEqual(ledger.snapshot(), before);
+  payment.sourceSplit.cash = 999;
+  payment.transaction.sourceSplit.bank = 999;
+  payment.snapshot.transactions.at(-1).sourceSplit.cash = 999;
+  saveFails = true;
+  code(payment.commit({chinaServiceWorld: {orderId: request.orderId, till: request.amount}}), 'save-failed');
+  assert.deepEqual(ledger.snapshot(), before);
+  assert.deepEqual(savedWorld, storageBefore);
+  assert.equal(count, countBefore);
+  assert(payment.valid());
+  saveFails = false;
+  const receipt = payment.commit({chinaServiceWorld: {orderId: request.orderId, till: request.amount}});
+  assert(receipt.ok && !receipt.replayed);
+  assert.deepEqual(receipt.sourceSplit, scenario.split);
+  assert.equal(count, countBefore + 1, 'Combined payment and order use one durable write');
+  assert.deepEqual(ledger.account(actorId), {cash: scenario.withdrawn - scenario.split.cash,
+    bank: 24 - scenario.withdrawn - scenario.split.bank});
+  assert.deepEqual(savedWorld.chinaOfficialEconomy, ledger.snapshot());
+  assert.equal(savedWorld.chinaServiceWorld.till, request.amount);
+  assert(payment.commit().replayed);
+  assert.equal(count, countBefore + 1);
+
+  // Reload while paid, then change both balances before reversing the meal.
+  const paidState = ledger.snapshot();
+  ledger = createChinaOfficialEconomy({...localOptions, saved: paidState});
+  assert.equal(ledger.loadError, null);
+  assert.deepEqual(ledger.snapshot(), paidState);
+  assert(ledger.prepareMealPayment(request).commit().replayed);
+  assert.deepEqual(ledger.prepareMealPayment(request).sourceSplit, scenario.split);
+  assert(ledger.completeDuty(duty(actorId, 4)).ok);
+  assert(ledger.withdraw({actorId, amount: 3, receiptId: 'later-legitimate-withdrawal'}).ok);
+  const beforeReverse = ledger.snapshot(), beforeReverseStorage = clone(savedWorld);
+  const reverse = ledger.prepareMealRefund(request);
+  assert.deepEqual(reverse.sourceSplit, scenario.split);
+  saveFails = true;
+  code(reverse.commit({chinaServiceWorld: {orderId: request.orderId, till: 0}}), 'save-failed');
+  assert.deepEqual(ledger.snapshot(), beforeReverse);
+  assert.deepEqual(savedWorld, beforeReverseStorage);
+  saveFails = false;
+  const refunded = reverse.commit({chinaServiceWorld: {orderId: request.orderId, till: 0}});
+  assert(refunded.ok);
+  assert.deepEqual(refunded.sourceSplit, scenario.split);
+  assert.deepEqual(ledger.account(actorId), {cash: scenario.withdrawn + 3, bank: 48 - scenario.withdrawn - 3},
+    'Refund restores the exact original sources, independent of current balances');
+  assert.equal(ledger.snapshot().destinations[CHINA_OFFICIAL_TAVERN_ID], 0);
+  const refundedState = ledger.snapshot(), refundedCount = count;
+  ledger = createChinaOfficialEconomy({...localOptions, saved: refundedState});
+  assert.equal(ledger.loadError, null);
+  assert.deepEqual(ledger.snapshot(), refundedState);
+  assert(ledger.prepareMealRefund(request).commit().replayed);
+  assert.deepEqual(ledger.prepareMealRefund(request).sourceSplit, scenario.split);
+  assert.equal(count, refundedCount);
+  code(ledger.prepareMealPayment(request), 'order-already-refunded');
+}
+
+// A stale split must be discarded and recalculated from the current accounts.
+const staleLedger = createChinaOfficialEconomy({...options, getDay: () => 3, saveState: () => true});
+assert(staleLedger.completeDuty(duty()).ok);
+const staleRequest = {actorId, orderId: 'cash-appears-before-commit', amount: 7};
+const stalePayment = staleLedger.prepareMealPayment(staleRequest);
+assert.deepEqual(stalePayment.sourceSplit, {cash: 0, bank: 7});
+assert(staleLedger.withdraw({actorId, amount: 4, receiptId: 'withdraw-before-commit'}).ok);
+code(stalePayment.commit(), 'stale-candidate');
+code(stalePayment.committed(), 'stale-candidate');
+const refreshed = staleLedger.prepareMealPayment(staleRequest).commit();
+assert(refreshed.ok);
+assert.deepEqual(refreshed.sourceSplit, {cash: 4, bank: 3});
+assert.deepEqual(staleLedger.account(actorId), {cash: 0, bank: 17});
+
+// Independently reproduce the R96 cash-only journal format. Old payments,
+// refunds and legitimate withdrawals must restore without rewriting history.
+const legacy = {version: 1, initialTreasury: clone(initialTreasury), dailyWage: 24, treasury: 150,
+  accounts: Object.fromEntries(CHINA_OFFICIAL_IDS.map(id => [id, {bank: 0, cash: 0}])),
+  destinations: {[CHINA_OFFICIAL_TAVERN_ID]: 0}, nextTransaction: 1, transactions: []};
+const legacyBalances = () => ({treasury: legacy.treasury, accounts: clone(legacy.accounts), destinations: clone(legacy.destinations)});
+const legacyTransfer = (request, from, to, change) => {
+  const before = legacyBalances(); change();
+  legacy.transactions.push({id: `official-${legacy.nextTransaction}`, ...request, from, to, before, after: legacyBalances()});
+  legacy.nextTransaction++;
+};
+legacyTransfer({action: 'duty', actorId, amount: 24, receiptId: duty().receiptId, day: 3, evidence: duty().evidence},
+  'official-treasury', `${actorId}:bank`, () => {legacy.treasury -= 24; legacy.accounts[actorId].bank += 24;});
+legacyTransfer({action: 'withdraw', actorId, amount: 12, receiptId: 'old-bank-visit'},
+  `${actorId}:bank`, `${actorId}:cash`, () => {legacy.accounts[actorId].bank -= 12; legacy.accounts[actorId].cash += 12;});
+for (const [action, orderId, amount] of [['meal-payment', 'legacy-refunded', 7], ['meal-refund', 'legacy-refunded', 7], ['meal-payment', 'legacy-outstanding', 5]]) {
+  const paying = action === 'meal-payment';
+  legacyTransfer({action, actorId, amount, receiptId: `official-${action}:${orderId}`, orderId},
+    paying ? `${actorId}:cash` : CHINA_OFFICIAL_TAVERN_ID, paying ? CHINA_OFFICIAL_TAVERN_ID : `${actorId}:cash`, () => {
+      legacy.accounts[actorId].cash += paying ? -amount : amount;
+      legacy.destinations[CHINA_OFFICIAL_TAVERN_ID] += paying ? amount : -amount;
+    });
+}
+const legacyJournal = clone(legacy.transactions), originalLegacy = clone(legacy);
+const oldLedger = createChinaOfficialEconomy({...options, saved: legacy, saveState: () => true});
+assert.equal(oldLedger.loadError, null);
+assert.deepEqual(oldLedger.snapshot(), originalLegacy);
+assert.deepEqual(legacy, originalLegacy);
+assert(oldLedger.withdraw({actorId, amount: 12, receiptId: 'old-bank-visit'}).replayed);
+assert(oldLedger.prepareMealRefund({actorId, orderId: 'legacy-refunded', amount: 7}).commit().replayed);
+const oldRequest = {actorId, orderId: 'legacy-outstanding', amount: 5};
+assert(oldLedger.prepareMealPayment(oldRequest).commit().replayed);
+assert(oldLedger.withdraw({actorId, amount: 2, receiptId: 'withdraw-after-upgrade'}).ok);
+const newRefund = oldLedger.prepareMealRefund(oldRequest).commit();
+assert.deepEqual(newRefund.sourceSplit, {cash: 5, bank: 0});
+assert.deepEqual(oldLedger.account(actorId), {cash: 14, bank: 10});
+const newMixed = oldLedger.prepareMealPayment({actorId, orderId: 'combined-after-upgrade', amount: 17}).commit();
+assert.deepEqual(newMixed.sourceSplit, {cash: 14, bank: 3});
+assert.deepEqual(oldLedger.history().slice(0, legacyJournal.length), legacyJournal);
+const upgraded = oldLedger.snapshot(), reloadedUpgrade = createChinaOfficialEconomy({...options, saved: upgraded});
+assert.equal(reloadedUpgrade.loadError, null);
+assert.deepEqual(reloadedUpgrade.snapshot(), upgraded);
+assert.deepEqual(reloadedUpgrade.history().slice(0, legacyJournal.length), legacyJournal);
+
+// Reject forged funding metadata and legacy-shaped bank-funded transactions.
+const splitPaymentIndex = upgraded.transactions.findIndex(transaction => transaction.orderId === 'combined-after-upgrade');
+for (const corrupt of [
+  saved => { saved.transactions[splitPaymentIndex].sourceSplit = {cash: 13, bank: 4}; },
+  saved => { saved.transactions[splitPaymentIndex].sourceSplit.cash = -1; },
+  saved => { saved.transactions[splitPaymentIndex].sourceSplit.bank = 0.5; },
+  saved => { saved.transactions[splitPaymentIndex].sourceSplit.extra = true; },
+  saved => { saved.transactions[splitPaymentIndex].sourceSplit = null; },
+  saved => { delete saved.transactions[splitPaymentIndex].sourceSplit; },
+  saved => { saved.transactions[0].sourceSplit = {cash: 0, bank: 24}; },
+  saved => { saved.transactions.find(transaction => transaction.sourceSplit && transaction.action === 'meal-refund').sourceSplit = {cash: 0, bank: 5}; },
+]) {
+  const damaged = clone(upgraded); corrupt(damaged);
+  assert.equal(createChinaOfficialEconomy({...options, saved: damaged}).loadError, 'invalid-saved-state');
+}
 
 // Failed, asynchronous or reentrant saves must leave bank, treasury, receipts
 // and sequence untouched so the exact same operation can safely retry.
@@ -231,4 +390,4 @@ for (const corrupt of corruptions) {
 }
 const changedSource = createChinaOfficialEconomy({...options, saved: roundtrip, initialTreasury: {...initialTreasury, amount: 9999}});
 assert.equal(changedSource.loadError, 'invalid-saved-state');
-console.log('PASS official economy: bounded source, six isolated accounts, completed-duty wages, atomic meals/refunds, replay and corrupt-save rejection');
+console.log('PASS official economy: bounded source, six isolated accounts, cash + bank meals, exact-source refunds, atomic retries, legacy journals and corrupt-save rejection');
