@@ -4,7 +4,7 @@ const clamp=x=>Math.max(0,Math.min(1,x)),opinion=x=>Math.max(-1,Math.min(1,x));
 function hash(text){let h=2166136261;for(const c of text){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0||1;}
 const copy=x=>JSON.parse(JSON.stringify(x));
 // Conversation topics are evidence of completed actions, never invented news.
-const topicFit=(p,kind)=>kind==='read'?p.traits.curiosity*.65+p.traits.quiet*.35:p.traits.outdoors*.8+p.traits.quiet*.2;
+const topicFit=(p,kind)=>kind==='staff-work'?p.traits.curiosity*.45+p.traits.quiet*.35+p.traits.sociability*.20:kind==='staff-rest'?p.traits.quiet*.70+p.traits.sociability*.30:kind==='read'?p.traits.curiosity*.65+p.traits.quiet*.35:p.traits.outdoors*.8+p.traits.quiet*.2;
 export function conversationDisposition(person,other,kind,targetId){
  const familiarity=person.experiences?.some(e=>e.kind===kind)?.06:0;
  const alignment=1-(Math.abs(person.values.company-other.values.company)+Math.abs(person.values.quiet-other.values.quiet));
@@ -87,6 +87,7 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
  return {
   decisionDue:id=>!!people[id]&&time>=people[id].nextDecisionAt,
   defer(id,seconds=12){const p=people[id];if(p&&!p.current){p.nextDecisionAt=Math.max(p.nextDecisionAt,time+seconds);save();}},
+  recordExperience(id,evidence){const p=people[id];if(!p||!evidence?.id||evidence.completed!==true||!['staff-work'].includes(evidence.kind))return {ok:false,reason:'unfinished'};if(p.experiences.some(e=>e.id===evidence.id))return {ok:true,replayed:true};return transaction(()=>{p.experiences.push({id:evidence.id,kind:evidence.kind,label:evidence.label,completedAt:time});p.experiences=p.experiences.slice(-4);return {ok:true};});},
   experience(id){const p=people[id];return p?.experiences.length?copy(p.experiences.at(-1)):null;},
   fatigued:id=>(people[id]?.needs.fatigue||0)>.88,
   canReply(id){const p=people[id];return !!p&&!p.current&&time>=p.replyAfter;},
@@ -135,7 +136,7 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
    p.current={id:c.id,...(target?{targetId:target.id}:{}),duration,startedAt:time};p.choices++;save();return {...c,...p.current};
   },
   complete(id,c,{fulfilled=true,observers=[]}={}){const p=people[id];if(!p?.current||p.current.id!==c.id||p.current.targetId!==(c.targetId??c.relationship?.target))return;
-   if(fulfilled){if(c.experience&&['read','garden'].includes(c.experience.kind)){const eventId=`experience:${id}:${p.choices}`;if(!p.experiences.some(e=>e.id===eventId)){p.experiences.push({id:eventId,kind:c.experience.kind,label:c.experience.label,completedAt:time});p.experiences=p.experiences.slice(-4);}}observe(id,c,{observers});for(const[k,delta]of Object.entries(c.relief||{}))if(k!=='hunger'||!Number.isFinite(sharedHunger(id)))p.needs[k]=clamp(p.needs[k]+delta);if(c.relationship){const r=c.relationship;p.relations[r.target]=opinion((p.relations[r.target]||0)+(r.gain??.08));}}
+   if(fulfilled){if(c.experience&&['read','garden','staff-rest'].includes(c.experience.kind)){const eventId=`experience:${id}:${p.choices}`;if(!p.experiences.some(e=>e.id===eventId)){p.experiences.push({id:eventId,kind:c.experience.kind,label:c.experience.label,completedAt:time});p.experiences=p.experiences.slice(-4);}}observe(id,c,{observers});for(const[k,delta]of Object.entries(c.relief||{}))if(k!=='hunger'||!Number.isFinite(sharedHunger(id)))p.needs[k]=clamp(p.needs[k]+delta);if(c.relationship){const r=c.relationship;p.relations[r.target]=opinion((p.relations[r.target]||0)+(r.gain??.08));}}
    p.last=c.id;p.cooldowns[c.id]=time+(c.cooldown??45);p.current=null;p.nextDecisionAt=time;save();
   },
   observe,
