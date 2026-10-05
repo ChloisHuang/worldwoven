@@ -113,7 +113,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       const skills=make('div',null,'career-skill-chips');for(const[id,need]of Object.entries(requirements(item))){const value=s.skills[id]??0,pass=value>=need,chip=make('span',`${pass?'✓':'○'} ${SKILLS[id]||id} ${value}/${need}`,pass?'career-skill-met':'career-skill-missing');chip.setAttribute('aria-label',`${SKILLS[id]||id} 当前${value}级，要求${need}级，${pass?'已达标':'未达标'}`);skills.append(chip);}card.append(skills);
       if(pending&&isLocal)showReceipt(card,receipt,item);
       else if(receipt)card.append(make('p',receiptTitle(receipt),'career-card-status'));
-      const details=make('details',null,'career-card-details');details.append(make('summary','岗位详情'));details.append(make('p',dutySummary(item)));showRequirements(details,item);
+      const details=make('details',null,'career-card-details');details.append(make('summary','岗位详情'));details.append(make('p',dutySummary(item)));if(item.vacancyKind==='exclusive')details.append(make('p',own?`本岗位由你任职，${item.incumbentName}已卸任。`:`本岗位仅一席；录用后${item.incumbentName}卸任。`));showRequirements(details,item);
       if(receipt&&!pending)showReceipt(details,receipt,item);
       details.append(make('p',`完成职责后，日薪 ${wageRange(item)} 存银行。每个岗位每天提交一次。`));
       if(pending){const cancel=buttonFor('撤回这份申请',()=>{careers.cancelApplication(item.id,receipt.id);render(true);});cancel.className='career-withdraw';details.append(cancel);}

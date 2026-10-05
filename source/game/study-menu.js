@@ -21,7 +21,7 @@ export function createStudyMenu({careers,getClock,getCountry=()=>null,onOpen=()=
   const fresh=()=>dialog.open&&token===generation&&(!getCountry()||getCountry()===country);
   dialog.replaceChildren();
   const x=button('×',close);x.className='study-close';x.setAttribute('aria-label','关闭学习菜单');
-  const heading=make('header',null,'study-heading ww-airy-panel-heading');heading.append(make('h2',lesson.action==='read'?'书页之间':'研习时光'),make('span',station.name,'study-place'));dialog.append(x,heading);
+  const heading=make('header',null,'study-heading ww-airy-panel-heading');heading.append(make('h2',lesson.action==='read'?'藏书':'研习'),make('span',station.name,'study-place'));dialog.append(x,heading);
   const content=make('div',null,'study-content ww-airy-panel-body'),list=make('div',null,'study-options');list.setAttribute('aria-label','当地书目，可滚动查看');
   for(const option of options){
    const p=studySkillProgress(state,option.skill,day),b=button(null,()=>{if(!fresh())return;selected=option.id;render();});
@@ -33,7 +33,7 @@ export function createStudyMenu({careers,getClock,getCountry=()=>null,onOpen=()=
   const p=studySkillProgress(state,lesson.skill,day),detail=make('section',null,'study-detail'),top=make('div',null,'study-detail-top'),level=make('div');
   level.append(make('h3',STUDY_SKILL_NAMES[lesson.skill]),make('div',`Lv.${p.level}`,'study-level'));top.append(icon(lesson.skill),level);detail.append(top);
   const caption=make('div',null,'study-xp-caption');caption.append(make('span',p.capped?'已到当前技能上限':`升级进度 · 前往 Lv.${p.level+1}`),make('span',`${p.xp} / ${p.required} XP`));
-  detail.append(caption,meter(p,lesson.skill),make('p',p.canGain?`完整${lesson.verb} ${lesson.seconds} 秒 · +${p.reward} XP`:p.capped?'可继续研习 · 技能已达上限':'今日有效学习次数已用完 · 可继续研习','study-reward'),make('p',lesson.description));
+  detail.append(caption,meter(p,lesson.skill),make('p',p.canGain?`完整${lesson.verb} ${lesson.seconds} 秒 · +${p.reward} XP`:p.capped?'可继续研习 · 技能已达上限':'今日有效学习次数已用完 · 可继续研习','study-reward'));
   if(lesson.excerpt)detail.append(make('p',lesson.excerpt,'study-quote'));
   const notes=make('details'),summary=make('summary','学习次数与相关职位');
   notes.append(summary,make('p',`今日还可获得奖励 ${p.remaining} 次（每天最多 4 次）；升级进度会跨日保留。`),make('p',studyJobLinks(careers,lesson.skill,country),'study-jobs'));detail.append(notes);

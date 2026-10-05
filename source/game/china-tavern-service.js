@@ -51,7 +51,7 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
   if(kind==='work-view'||kind==='end-shift'){position=getPlayer()?.root.position.toArray()||REG;executionRadius=.4;}
   if(!action)return null;
   return {id:`cn-tavern-service-${role.id}-${kind}`,provider:'china-tavern-service',kind,roleId:role.id,name:'云来酒楼 · 工作登记',npcName:'许安',action,position:position.slice(),executionRadius,interactionRadius:2.8,priority:46,
-   ...(chosen?{choice:copy(chosen)}:{}),...(kind==='formal-view'?{registration:{scope:'role',roleId:role.id}}:{}),
+   ...(chosen?{choice:copy(chosen)}:{}),...(kind==='formal-view'?{registration:{scope:'catalogue',roleId:role.id}}:{}),
    intentKey:[['task','work-view','end-shift'].includes(kind)?'-':careers.state().revision,job?.receiptId||'-',job?.stage||'-',kind,chosen?key(chosen):'-'].join(':')};
  }
  const key=c=>[c.kind,c.orderId,c.guestId,c.roomId,c.tableId,c.ticketId].join(':');

@@ -31,4 +31,4 @@ request('formal-review');until(()=>r.formalCareers.applicationResult(roleId)?.st
 ids['return-world'].onclick();assert.equal(state().characterResources.activeReferences,0);console.log(JSON.stringify({status:'PASS',checks,scope:'Actual production main, simulated DOM and renderer with real Three actors; not iOS',seconds:(Date.now()-started)/1000}));
 })().catch(e=>{console.error(e);process.exit(1)});
 `;
-new vm.Script(harness,{filename:'tests/career-application-inherited.cjs',importModuleDynamically:vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER}).runInNewContext({Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,require,console,process,Buffer,__dirname:process.cwd()+'/tests',__filename:__filename});
+new vm.Script(harness,{filename:'tests/career-application-inherited.cjs',importModuleDynamically:vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER}).runInNewContext({URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,require,console,process,Buffer,__dirname:process.cwd()+'/tests',__filename:__filename});
