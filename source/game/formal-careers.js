@@ -260,7 +260,11 @@ function restore(saved, roleMap, slotMap) {
   const officialCareer=restoreOfficialCareer(saved.officialCareer,{tenure:saved.tenure,lastDuty:duty,lastEvaluation:review});
   for(const row of [duty,review])if(row?.officialPayVersion===1){
     const appointment=officialCareer.appointments.find(a=>a.id===row.officialTenureId);
-    if(!appointment||row.day<appointment.tenure.sinceDay||appointment.endedAt&&row.day>appointment.endedAt.day||row.officialRankId===CLERK_NEXT_RANK&&!officialCareer.applications.some(a=>a.appointmentId===appointment.id&&a.status==='approved'&&a.decidedAt.day<=row.day))throw Error('invalid-career-state');
+    const promoted=officialCareer.applications.find(a=>a.appointmentId===appointment?.id&&a.status==='approved');
+    const arrival=row===duty?duty.arrivalHour:row.day===duty?.day?duty.arrivalHour:null;
+    if(!appointment||row.day<appointment.tenure.sinceDay||appointment.endedAt&&row.day>appointment.endedAt.day||
+      row.officialRankId===CLERK_NEXT_RANK&&(!promoted||promoted.decidedAt.day>row.day||promoted.decidedAt.day===row.day&&arrival!==null&&arrival<promoted.decidedAt.hour))throw Error('invalid-career-state');
+    if(row===review){const evidence=officialCareer.service.find(r=>r.id===review.id);if(!evidence||evidence.appointmentId!==row.officialTenureId||evidence.rankId!==row.officialRankId||['positive','score','wage','reasonCode'].some(key=>evidence[key]!==row[key]))throw Error('invalid-career-state');}
   }
   return {version: 5, officialCareer, skillXP: saved.version===5?{...saved.skillXP}:Object.fromEntries(SKILLS.map(skill=>[skill,0])), revision: saved.revision, applications: restoreApplications(saved.applications, roleMap, slotMap), skills: {...saved.skills},
     tenure: saved.tenure === null ? null : {roleId: saved.tenure.roleId, slotId: saved.tenure.slotId,
@@ -334,7 +338,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
   function evaluate(next, positive, reason) {
     const duty = next.lastDuty;
     if (next.lastEvaluatedDay !== null && next.lastEvaluatedDay >= duty.day) return next;
-    const role=roleMap.get(duty.roleId),hours=duty.shiftKind==='continuous'?coveredHours(duty):null,score=positive?(hours===null||hours>=12-1e-9?1:0):-1;
+    const role=salaryRole(roleMap.get(duty.roleId),duty),hours=duty.shiftKind==='continuous'?coveredHours(duty):null,score=positive?(hours===null||hours>=12-1e-9?1:0):-1;
     // The conscientious supervisor rewards completing both actual duties and
     // gives a small preparation bonus for arrival at least five minutes early.
     const servicePenalty=customerPenalty(duty),wage = positive ? dutyWage(role,duty) : 0;

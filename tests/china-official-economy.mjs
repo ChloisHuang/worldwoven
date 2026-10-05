@@ -2,6 +2,7 @@
 // money across order saves, replayed receipts, and corrupted restored balances.
 import assert from 'node:assert/strict';
 import {createChinaOfficialEconomy, CHINA_OFFICIAL_IDS, CHINA_OFFICIAL_TAVERN_ID} from '../source/game/china-official-economy.js';
+import {CHINA_COURT_OFFICIAL_DAILY_WAGES, getChinaRecordsCareerRank} from '../source/game/china-official-ranks.js';
 const clone = value => JSON.parse(JSON.stringify(value));
 const [actorId, otherId] = CHINA_OFFICIAL_IDS;
 const initialTreasury = {amount: 150, sourceId: 'test-one-time-world-budget'};
@@ -201,6 +202,54 @@ code(unfundedArrears.completeDuty(earnedCertificate), 'insufficient-treasury');
 arrearsDay = 6;
 code(unfundedArrears.completeDuty(earnedCertificate), 'insufficient-treasury');
 assert.deepEqual(unfundedArrears.snapshot(), unpaid, 'Insufficient funding must not mark an earned certificate as paid');
+
+// Rank labels cannot reprice R96 receipts or mint a second starting treasury.
+// A saved policy remains authoritative even if today's caller has new rates.
+const worldBudget = {amount: 4320, sourceId: 'world-fiscal-initialization-v1'};
+const policyOptions = {...options, initialTreasury: worldBudget, getDay: () => 9, saveState: () => true};
+const r96 = createChinaOfficialEconomy(policyOptions);
+for (const id of CHINA_OFFICIAL_IDS) {
+  assert.equal(r96.dailyWageFor(id), CHINA_COURT_OFFICIAL_DAILY_WAGES[id]);
+  assert.equal(r96.completeDuty(duty(id)).amount, 24);
+}
+const oldReceipts = r96.snapshot();
+assert.equal(oldReceipts.treasury, 4320 - 6 * 24);
+assert(!Object.hasOwn(oldReceipts, 'dailyWages'), 'Legacy scalar policy remains in its original format');
+const newRates = Object.fromEntries(CHINA_OFFICIAL_IDS.map(id => [id, 99]));
+const kept = createChinaOfficialEconomy({...policyOptions, saved: oldReceipts, dailyWage: 99, dailyWages: newRates});
+assert.deepEqual(kept.snapshot(), oldReceipts);
+assert.equal(kept.completeDuty(duty()).amount, 24);
+assert(kept.completeDuty(duty()).replayed);
+assert.equal(kept.history().length, 6);
+assert.equal(kept.completeDuty(duty(actorId, 4)).amount, 24);
+assert.equal(kept.state().treasury, 4320 - 7 * 24);
+conserve(kept.snapshot());
+
+// Per-actor amounts are explicit configuration, frozen once for a new ledger.
+// Caller mutation and rank-table changes cannot rewrite completed transfers.
+const rates = {[actorId]: 31, [otherId]: 19};
+const configured = createChinaOfficialEconomy({...policyOptions, dailyWages: rates});
+rates[actorId] = 999;
+assert.equal(configured.dailyWageFor(actorId), 31);
+assert.equal(configured.dailyWageFor(otherId), 19);
+assert.equal(configured.dailyWageFor(CHINA_OFFICIAL_IDS[2]), 24);
+assert.equal(configured.dailyWageFor('player'), null);
+assert.equal(configured.completeDuty(duty(actorId, 3, {amount: 999})).amount, 31);
+assert.equal(configured.completeDuty(duty(otherId)).amount, 19);
+const configuredSaved = configured.snapshot();
+const configuredReload = createChinaOfficialEconomy({...policyOptions, saved: configuredSaved, dailyWages: newRates});
+assert.deepEqual(configuredReload.snapshot(), configuredSaved);
+assert(configuredReload.completeDuty(duty()).replayed);
+assert.equal(configuredReload.completeDuty(duty(actorId, 4)).amount, 31);
+conserve(configuredReload.snapshot());
+const invalidRateSave = clone(configuredSaved);
+invalidRateSave.dailyWages[actorId]++;
+assert.equal(createChinaOfficialEconomy({...policyOptions, saved: invalidRateSave}).loadError, 'invalid-saved-state');
+for (const dailyWages of [null, [], {[actorId]: 0}, {[actorId]: 1.5}, {player: 18}]) {
+  assert.equal(createChinaOfficialEconomy({...policyOptions, dailyWages}).loadError, 'invalid-config');
+}
+assert.equal(getChinaRecordsCareerRank('cn-records-junior').basePay, 18);
+assert.equal(getChinaRecordsCareerRank('cn-records-regular').basePay, 22);
 
 const corruptions = [
   saved => { saved.accounts[actorId].bank++; },
