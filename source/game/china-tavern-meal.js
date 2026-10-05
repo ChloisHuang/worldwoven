@@ -69,7 +69,7 @@ export function createChinaTavernMeal({npcs,lot,furniture,doors,planPath,moveAct
     // the public register instead of staring into the counter without a task.
     const visitor=getPlayer()?.root.position;
     ht=visitor&&visitor.x>21.4&&visitor.x<25.65&&Math.abs(visitor.y-M.floorY)<.45&&gap(host,[visitor.x,visitor.y,visitor.z])<2.8&&visitor.z>P.host[2]
-     ?[visitor.x,visitor.y+1.3,visitor.z]:[P.host[0],1.3,13.0];
+     ?[visitor.x,visitor.y+1.3,visitor.z]:[22.35,1.3,11.7];
     ct=P.prepTop;
    }
    else{
@@ -111,7 +111,7 @@ export function createChinaTavernMeal({npcs,lot,furniture,doors,planPath,moveAct
     }
    }
    pose(host,t,ha,ht,hcarry);pose(cook,t,ca,ct,ccarry);
-   const label=order?LABELS[order.stage]:null;for(const n of actors){const e=n.label?.querySelector?.('small');if(e)e.textContent=label||(n===host?n.walking?'掌柜 · 返回迎客茶案':'掌柜 · 候客与招工':'厨师 · 备菜候单');}
+   const label=order?LABELS[order.stage]:null;for(const n of actors){const e=n.label?.querySelector?.('small');if(e)e.textContent=label||(n===host?n.walking?'掌柜 · 返回迎客茶案':'掌柜 · 柜内候客与招工':'厨师 · 备菜候单');}
    props.update(order,{host,cook,player:getPlayer()},phaseTime);
   },
   view:()=>({order:order?{id:order.id,seatId:order.seatId,stage:order.stage,cancelled:order.cancelled}:null,label:order?LABELS[order.stage]:null}),
