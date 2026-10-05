@@ -1,5 +1,5 @@
 import {GAME_MINUTES_PER_SECOND} from './simulation-clock.js';
-import {emptyApplications, restoreApplications, careerInterview, careerInterviewRoll, applicationId, pendingApplication} from './career-applications.js';
+import {emptyApplications, restoreApplications, careerInterview, careerInterviewRoll, applicationId} from './career-applications.js';
 import {STUDY_SOURCES, studyLesson, savedStudyLesson, defaultStudyLesson} from './study-lessons.js';
 import {STUDY_XP, skillXPRequired, addSkillXP} from './skill-progress.js';
 // Finite vacancies and one rotating player seat alongside each real incumbent.
@@ -323,8 +323,8 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     return copy(lastApplication?.roleId===id?lastApplication:current.applications.byRole[id]?{...current.applications.byRole[id],saved:true}:null);
   }
   function applicationAvailability(roleId = COURT_CLERK_ROLE.id, applicant = {}) {
-    const clock=readClock(),previous=current.applications.byRole[roleId],pending=pendingApplication(current.applications);
-    if(pending)return {ok:false,code:'application-pending',reasons:['application-pending'],applicationId:pending.id,roleId:pending.roleId};
+    const clock=readClock(),previous=current.applications.byRole[roleId];
+    if(previous?.status==='pending')return {ok:false,code:'application-pending',reasons:['application-pending'],applicationId:previous.id,roleId};
     if(clock&&previous?.day===clock.day)return {ok:false,code:'already-applied-today',reasons:['already-applied-today'],nextDay:clock.day+1};
     return eligibility(roleId,applicant);
   }
@@ -339,9 +339,8 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const blocked = allowed(); if (blocked) return finish(blocked);
     const role=roleMap.get(roleId);if(!role)return finish(failure('unknown-role'));
     const clock=now();if(!clock)return finish(failure('invalid-clock'));
-    const pending=pendingApplication(current.applications);
-    if(pending){lastApplication=null;return failure('application-pending');}
     const previous=current.applications.byRole[roleId];
+    if(previous?.status==='pending'){lastApplication=null;return failure('application-pending');}
     if(previous?.day===clock.day){lastApplication={...copy(previous),saved:true};return failure('already-applied-today');}
     const eligible=eligibility(roleId,applicant),receipt={id:applicationId(roleId,clock.day),roleId,status:eligible.ok?'pending':'rejected',
       stage:eligible.ok?'submitted':'decided',ok:false,code:eligible.ok?'submitted':eligible.code,reasons:eligible.reasons||[],

@@ -18,7 +18,7 @@ const untouchedWork=core=>{const {revision,applications,...state}=durable(core);
 test('submission is pending, reserves no job, and cannot be rerolled by closing/reloading or another day',()=>{
  const f=fixture(),before=untouchedWork(f.careers),vacancy=f.careers.catalogue();
  assert.equal(f.careers.apply(TAVERN.id,{ageYears:18}).code,'submitted');const r=f.careers.applicationResult();assert.equal(r.status,'pending');assert.equal(r.interview,null);assert.equal(r.tenure,null);assert.equal(f.calls.context,0);assert.equal(f.calls.bank,0);assert.deepEqual(untouchedWork(f.careers),before);assert.deepEqual(f.careers.catalogue(),vacancy);
- assert.equal(f.careers.beginDuty().code,'not-employed');assert.equal(f.careers.apply(TAVERN.id,{ageYears:18}).code,'application-pending');assert.equal(f.careers.apply(CLERK.id,{ageYears:18}).code,'application-pending');
+ assert.equal(f.careers.beginDuty().code,'not-employed');assert.equal(f.careers.apply(TAVERN.id,{ageYears:18}).code,'application-pending');assert(f.careers.applicationAvailability(CLERK.id,{ageYears:18}).ok,'another role keeps its own submission allowance');
  const re=fixture({saved:f.store.saved,worldSeed:1,day:2});assert.deepEqual(re.careers.applicationResult(),r);assert.equal(re.careers.apply(TAVERN.id,{ageYears:18}).code,'application-pending');assert.equal(re.careers.state().loadError,null);
  assert.equal(re.review(TAVERN).code,'approved');assert.equal(re.careers.state().tenure.sinceDay,2);assert.equal(re.careers.state().lastDuty,null);assert.equal(re.calls.context,1);assert.equal(re.calls.bank,0);assert.equal(re.review(TAVERN).code,'no-pending-application');
 });
@@ -57,4 +57,17 @@ test('chef recruitment reads Xu An at the hiring counter, retaining Shen He as t
  const host={traits:{quiet:.8},relations:{player:.3}},cook={traits:{quiet:.1},relations:{player:-.7}};
  const read=new Function('chinaTavern','chinaAudience','franceGardener','saved','return ('+main.slice(start,end)+');')({staffScene:{state:()=>({staffLife:{decisions:{people:{'cn-tavern-host':host,'cn-tavern-cook':cook}}}})}},null,null,{});
  assert.deepEqual(read(chef).recruiterTraits,host.traits);assert.equal(read(chef).relationship,.3);
+});
+
+test('rejection and daily limits are specific to each role; another qualified role remains available',()=>{
+ const f=fixture({worldSeed:2});assert(f.careers.apply(TAVERN.id,{ageYears:18}).ok);assert.equal(f.review(TAVERN).code,'interview-rejected');const rejected=f.careers.applicationResult(TAVERN.id);
+ assert(f.careers.applicationAvailability('cn-tavern-chef',{ageYears:18}).ok);assert.equal(f.careers.applicationResult('cn-tavern-chef'),null);assert.equal(f.careers.apply('cn-tavern-chef',{ageYears:18}).code,'submitted');
+ assert.equal(f.careers.apply(TAVERN.id,{ageYears:18}).code,'already-applied-today');assert.deepEqual(f.careers.applicationResult(TAVERN.id),rejected);
+ f.clock.day=2;assert(f.careers.applicationAvailability(TAVERN.id,{ageYears:18}).ok);assert.equal(f.careers.apply(TAVERN.id,{ageYears:18}).code,'submitted');
+ const re=fixture({saved:f.store.saved,day:2});assert.equal(re.careers.state().loadError,null);assert.equal(re.careers.applicationResult(TAVERN.id).status,'pending');assert.equal(re.careers.applicationResult('cn-tavern-chef').status,'pending');assert.equal(re.careers.state().tenure,null);
+});
+test('pending applications are role-local; real skill deficits stay distinct and one approval still owns the only job',()=>{
+ const f=fixture();assert(f.careers.apply(TAVERN.id,{ageYears:18}).ok);assert.equal(f.careers.apply(CLERK.id,{ageYears:18}).code,'submitted');assert.equal(f.careers.apply(TAVERN.id,{ageYears:18}).code,'application-pending');
+ const re=fixture({saved:f.store.saved});assert.equal(re.careers.state().loadError,null);assert(re.review(TAVERN).ok);assert.deepEqual(re.review(CLERK).reasons,['already-employed']);assert.equal(re.careers.state().tenure.roleId,TAVERN.id);assert.equal(re.careers.state().lastDuty,null);
+ const unqualified=fixture({skills:{ritual:2,cooking:0}});assert(unqualified.careers.apply(TAVERN.id,{ageYears:18}).ok);assert.deepEqual(unqualified.careers.applicationAvailability('cn-tavern-chef',{ageYears:18}).reasons,['cooking-required']);assert.equal(unqualified.careers.applicationResult('cn-tavern-chef'),null);
 });
