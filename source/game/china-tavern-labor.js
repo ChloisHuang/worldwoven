@@ -207,13 +207,26 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     if(next.kind==='formal-apply')return formal.apply();
     if(next.kind==='formal-resign')return formal.resign();
     if (next.kind === 'view') { ui?.open(); return true; }
-    if (next.kind === 'apply' || next.kind === 'resign') return employment[next.kind]();
+    if (next.kind === 'apply' || next.kind === 'resign') {
+      const changed = employment[next.kind]();
+      // Registration grants permission to choose work, never an automatic job.
+      // Keep the local result and its explicit next action in the same panel.
+      if (changed) ui?.open();
+      return changed;
+    }
     if (next.kind === 'clean') { pendingClean = true; return true; }
-    return next.kind === 'accept' ? accept() : claim();
+    if (next.kind === 'accept') {
+      if (!accept()) return false;
+      // Accepting this named two-table job also requests its first physical
+      // work point. Main still owns the route, cancellation and final recheck.
+      onIntent(intent('clean'));
+      return true;
+    }
+    return claim();
   }
   const service = {
     active, accept, startCleaning, claim, cancel, update, view, state: view, meetHost, intent, resolveIntent, executeIntent,
-    stopCleaning, employment, formal,
+    stopCleaning, isCleaning: () => cleaning, employment, formal,
     playerAction: () => cleaning && stationary() ? 'tidy' : null,
     playerStation: () => cleaning && stationary() ? copy(target()) : null,
     open: () => ui?.open(), close: () => ui?.close(), isOpen: () => !!ui?.isOpen(),
@@ -225,10 +238,10 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
 
 function createUI({doc, service, getPlayer, onIntent, canSee, onOpen}) {
   const make = (tag, text, cls) => { const e = doc.createElement(tag); if (text) e.textContent = text; if (cls) e.className = cls; return e; };
-  const badge = make('button', '酒楼短工 · 挣 12 铜文', 'cn-labor-badge'), dialog = make('dialog', null, 'cn-labor-dialog'), style = make('style');
-  badge.type = 'button'; badge.setAttribute('aria-label', '酒楼擦桌短工'); dialog.setAttribute('aria-label', '酒楼短工与工钱');
-  style.textContent = '.cn-labor-badge{position:fixed;left:max(18px,env(safe-area-inset-left));top:262px;z-index:18;max-width:calc(100vw - 180px);min-height:44px;padding:10px 14px;border:1px solid #bda575;border-radius:12px;background:#786345;color:#fff6de;font-size:12px}.cn-labor-dialog{position:fixed;inset:0;margin:auto;width:min(380px,calc(100vw - 28px));max-height:calc(100dvh - 32px);overflow:auto;padding:22px;border:1px solid #c5af82;border-radius:16px;background:#f2ead7;color:#493f32}.cn-labor-dialog::backdrop{background:#30281966}.cn-labor-dialog h2{margin:0 30px 12px 0;font-size:22px}.cn-labor-dialog h3{margin:0 0 10px;font-size:16px}.cn-labor-role{padding:14px;margin:0 0 18px;border:1px solid #c5af82;border-radius:12px;background:#fff7e8}.cn-labor-dialog p{font-size:13px;line-height:1.6}.cn-labor-dialog button{min-height:44px;padding:10px 13px;border-radius:8px;background:#ded2b9;color:#493f32}.cn-labor-dialog button:disabled{opacity:.5}.cn-labor-dialog button:focus-visible,.cn-labor-badge:focus-visible{outline:3px solid #647e70;outline-offset:2px}.cn-labor-close{position:absolute;right:7px;top:7px;background:transparent!important;font-size:24px}.cn-labor-actions{display:flex;flex-wrap:wrap;gap:9px}.cn-labor-primary{background:#786345!important;color:#fff6de!important}@media(max-height:550px){.cn-labor-badge{top:215px;font-size:10px;padding:8px 10px}.cn-labor-dialog{padding:16px}}';
-  (doc.head || doc.body).append(style); doc.body.append(badge, dialog);
+  const dialog = make('dialog', null, 'cn-labor-dialog'), style = make('style');
+  dialog.setAttribute('aria-label', '酒楼短工与工钱');
+  style.textContent = '.cn-labor-dialog{position:fixed;inset:0;margin:auto;width:min(380px,calc(100vw - 28px));max-height:calc(100dvh - 32px);overflow:auto;padding:22px;border:1px solid #c5af82;border-radius:16px;background:#f2ead7;color:#493f32}.cn-labor-dialog::backdrop{background:#30281966}.cn-labor-dialog h2{margin:0 30px 12px 0;font-size:22px}.cn-labor-dialog h3{margin:0 0 10px;font-size:16px}.cn-labor-role{padding:14px;margin:0 0 18px;border:1px solid #c5af82;border-radius:12px;background:#fff7e8}.cn-labor-dialog p{font-size:13px;line-height:1.6}.cn-labor-dialog button{min-height:44px;padding:10px 13px;border-radius:8px;background:#ded2b9;color:#493f32}.cn-labor-dialog button:disabled{opacity:.5}.cn-labor-dialog button:focus-visible{outline:3px solid #647e70;outline-offset:2px}.cn-labor-close{position:absolute;right:7px;top:7px;background:transparent!important;font-size:24px}.cn-labor-actions{display:flex;flex-wrap:wrap;gap:9px}.cn-labor-primary{background:#786345!important;color:#fff6de!important}@media(max-height:550px){.cn-labor-dialog{padding:16px}}';
+  (doc.head || doc.body).append(style); doc.body.append(dialog);
   let signature = '';
   const nearHouse = () => { const p = getPlayer()?.root.position; return p && [service.view().target, HOST].some(current => current && near(p, current.position, 2.8) && canSee(current)); };
   const close = () => { if (dialog.open) dialog.close(); };
@@ -238,8 +251,6 @@ function createUI({doc, service, getPlayer, onIntent, canSee, onOpen}) {
   function refresh(force = false) {
     const s = service.view(), ready = s.job?.stage === 'ready', age = getPlayer()?.ageYears;
     const ageText = Number.isFinite(age) ? `${Math.floor(age)}岁` : '未读取', skill = s.formalState?.skills?.ritual ?? 0;
-    badge.hidden = !nearHouse();
-    badge.textContent = s.formalHired ? (ready?'常任当班 · 待验收':s.active?`常任服务 · ${s.job.completedTables}/2桌`:'常任服务助理 · 每日班次') : ready ? '领取工钱 · 12 铜文' : s.cleaning ? `擦拭中 · ${Math.ceil((1 - s.progress) * SECONDS)} 秒` : s.active ? `擦桌活 · ${s.job.completedTables}/2 桌` : s.hired ? '酒楼帮工 · 接活' : '招工登记 · 酒楼帮工';
     if (dialog.open && !nearHouse()) { close(); return; }
     if (!dialog.open && !force) return;
     const key = [s.job?.id, s.job?.stage, s.job?.completedTables, s.cleaning, s.atTarget, s.atHost, s.hostAvailable, s.loadError, s.lastError, s.employment?.revision, s.employment?.lastError,s.formalState?.revision, s.formalHired, age, skill].join('|');
@@ -278,6 +289,6 @@ function createUI({doc, service, getPlayer, onIntent, canSee, onOpen}) {
     dialog.append(actions, make('p', '工钱为游戏铜文。关闭面板会保留当前任务。'));
   }
   const open = () => { if (!nearHouse()) return; onOpen(); refresh(true); if (!dialog.open) dialog.showModal(); refresh(true); };
-  badge.onclick = open; dialog.addEventListener('cancel', e => { e.preventDefault(); close(); }); refresh();
-  return {open, close, refresh, isOpen: () => dialog.open, dispose() { close(); badge.remove(); dialog.remove(); style.remove(); }};
+  dialog.addEventListener('cancel', e => { e.preventDefault(); close(); }); refresh();
+  return {open, close, refresh, isOpen: () => dialog.open, dispose() { close(); dialog.remove(); style.remove(); }};
 }
