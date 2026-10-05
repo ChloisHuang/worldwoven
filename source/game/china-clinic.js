@@ -13,7 +13,7 @@ export const CHINA_CLINIC=Object.freeze({
   assistant:[23.6,.215,-29.18],counter:[23.6,.215,-26.87],counterTop:[23.6,1.13,-27.48],
   stockDoor:[24,.215,-30.4],stock:[24,.215,-31.65],stockWork:[24,1.08,-32.14]},
  roles:[{id:'cn-clinic-physician',npcName:'许宁 · 医师',ageYears:43},{id:'cn-pharmacy-assistant',npcName:'苏禾 · 药铺助手',ageYears:27}],
- packet:{id:'cloud-letter',name:'云纹包',description:'宫苑故事用的虚构纸包，无现实药物配方或健康效果'},
+ packet:{id:'cloud-letter',name:'云纹包',description:'凭问询单按号领取，配合休息进行照护'},
 });
 
 export function buildChinaClinic(G,A){

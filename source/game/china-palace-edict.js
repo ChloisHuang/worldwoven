@@ -82,7 +82,7 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
  function prepare(data,reissued=false){if(!data)return false;order={...data,title:E.title,stage:'preparing',holder:'scribe-desk',sealed:false,reissued,claims:{scribe:scribe.station.id,herald:herald.station.id,recipient:null},rooms:[]};phaseTime=0;speaker=null;utterance='';claim(scribe);task(scribe,'return-writing-desk',[scribe.home.toArray()],reissued?'奉查问补拟荷庭东岸清扫令':'回书案拟定荷庭清扫令');task(herald,'collect-draft',[...HALL_EXIT,...STUDY_PATH],'沿公共楼梯前往书画室取稿');record(reissued?'reissued-after-inquiry':'begin');persist();return true;}
  persist();
  return {
-  owns:n=>owned.has(n),socialStatus:n=>owned.has(n)?{busy:false,attention:true,job:n===speaker?utterance:tasks.get(n)?.label||'在传令案前候命'}:null,
+  owns:n=>owned.has(n),socialStatus:n=>owned.has(n)?{busy:!!order,canPause:!order,attention:!order,job:n===speaker?utterance:tasks.get(n)?.label||'在传令案前候命'}:null,
   // Only the original idle herald may be lent. Wen, Bo and an unfinished
   // decree remain under this controller, including after a cancelled loan.
   heraldAvailability(owner){const a=(audience.courtStatus?.()||audience.state()),l=ledger.snapshot();return disposed?{ok:false,reason:'service-unavailable'}:borrower&&borrower!==owner?{ok:false,reason:'herald-borrowed'}:order||l.outcome==='interrupted'||ledger.canBegin(a.schedule)?{ok:false,reason:'edict-unfinished'}:a.phase!=='waiting'?{ok:false,reason:'court-busy'}:tasks.has(herald)?{ok:false,reason:'herald-returning'}:paused(herald)?{ok:false,reason:'herald-in-conversation'}:{ok:true,reason:null};},

@@ -2,6 +2,7 @@
 // target. Pure social rules; actual main input/render has a separate small scene.
 import assert from 'node:assert/strict';
 import {createNpcSocial,npcSocialReply} from '../source/game/npc-social.js';
+import {isJapanEmployeeInteraction} from '../source/game/japan-visitors.js';
 const actor=(id,x=0,y=0,z=0)=>({station:{id,npcName:'Koharu',name:'汤馆前台',npcAction:'tidy'},root:{position:{x,y,z},rotation:{y:0},visible:true},route:[{x:4,y:0,z:0}],breakAt:25,phase:.7});
 const n=actor('jp-welcome'),visitor=actor('jp-visitor-17-1',5),player={root:{position:{x:1,y:0,z:1}}};let people=[n],wall=false,busy=false;
 const social=createNpcSocial({actors:()=>people,player:()=>player,visible:()=>!wall,status:()=>({busy,job:'给客人递手巾'})});
@@ -35,3 +36,7 @@ assert.match(npcSocialReply({...n,station:{id:'cn-calligraphy',npcAction:'callig
  assert(s.reserveMeeting(n,{owner:'review'}));s.end();assert.equal(s.meetingState(),null);assert(s.reserveMeeting(n,{owner:'review'}));s.dispose();assert.equal(s.meetingState(),null);assert.equal(n.route,route);
  console.log('PASS explicit bounded meeting pause, exclusive owner, duty preemption, expiry, cancel and disposal; no actor movement or fabricated conversation');
 }
+
+// The same physical radius must reach the original Japan route owner. A click
+// caught between frames cannot open a paused greeting while its owner walks on.
+{const a=actor('jp-welcome'),p={x:2.3,y:0,z:0};assert(isJapanEmployeeInteraction(a,{position:p,conversationActorId:a.station.id}));assert(!isJapanEmployeeInteraction(a,{position:p,performing:a.station.id}));assert(!isJapanEmployeeInteraction(a,{position:{...p,x:2.5},conversationActorId:a.station.id}));assert(!isJapanEmployeeInteraction(a,{position:{...p,y:3.8},conversationActorId:a.station.id}));console.log('PASS Japan owner uses the same physical conversation radius while station activities remain local');}

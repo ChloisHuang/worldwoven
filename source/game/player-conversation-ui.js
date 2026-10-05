@@ -4,7 +4,8 @@ import {PLAYER_CONVERSATION_TOPICS} from './player-conversation-ledger.js';
 import {conversationTopicLabel} from './npc-social.js';
 
 // A menu chooses a topic. It closes before the real shared-world conversation
-// starts; opening or reading it never holds an employee or runs a countdown.
+// starts. A walking greeting may briefly hold an interruptible routine; menu
+// time never counts toward the conversation or its rewards.
 export function createPlayerConversationUI({getSocial,getCountry,onOpen=()=>{},onClose=()=>{},document:doc=globalThis.document}){
  const make=(tag,text,cls)=>{const el=doc.createElement(tag);if(text)el.textContent=text;if(cls)el.className=cls;return el;};
  const dialog=make('dialog',null,'player-conversation-dialog ww-airy-theme ww-airy-panel'),style=make('style');

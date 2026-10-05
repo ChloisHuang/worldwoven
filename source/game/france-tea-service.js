@@ -239,7 +239,7 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
   target(){const p=getPlayer();if(!p||duty)return null;const nearby=gap(p,[6.6,.16,8.35])<2.3||atSeat();if(!nearby&&!intent)return null;return {franceTea:true,id:'france-tea-service',name:'宫苑茶廊 · 玛农',action:order?.customer==='player'?'查看当前餐单':'查看食单 · 正餐与下午茶',status:intent?'正在走向茶位':order?orderLabel():'免费下午茶 · 4法国券正餐'};},
   interact(){if(intent){intent=false;return 'cancel-walk';}if(order?.customer==='player'&&!order.cancelled)return order.stage==='ready'?drink():cancel();return request();},
   statusLabel:id=>id===seat.id&&order?orderLabel():null,
-  socialStatus:n=>{const role=n===host?'host':n===cook?'cook':null,working=!!order&&!released(role);return {busy:working||n.walking,attention:!working,job:role?staffLabel(role):order?orderLabel():n.station.npcLabel};},
+  socialStatus:n=>{const role=n===host?'host':n===cook?'cook':null,working=!!order&&!released(role);return {busy:working,canPause:!working,attention:!working,job:role?staffLabel(role):order?orderLabel():n.station.npcLabel};},
   update(dt,t,{conversationActorId=null,performing=null,hour=15}={}){
    if(disposed)return;time+=dt;life.tick(dt);orphanRetry+=dt;if(orphanRetry>=3){orphanRetry=0;reconcileHolds();if(fullMeal(order)&&order.cancelled)payment(order,'refund');}conversation=conversationActorId;stationBusy=performing;for(const n of actors)n.walking=false;
    if(duty?.status==='queued'&&!order&&!intent){duty.status='active';record('duty-accepted',{dutyId:duty.id});}

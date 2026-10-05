@@ -44,6 +44,25 @@ test('at-site labels do not bypass herald presence or explicit acceptance blocke
  const f=fixture();f.player.root.position={x:1,y:.2,z:1};f.setCard({stage:'none',blockers:[],physical:{heraldPresent:false}});f.ui.open();assert.equal(f.find('primary').disabled,true);assert.equal(f.find('primary').textContent,'等候沈序接待');
  f.setCard({stage:'awaiting-choice',result:{passed:true},blockers:[{code:'finish-current-duty',text:'先完成原职位班次'},{code:'leave-formal-career',text:'先办妥原正式职位离任'}]});f.ui.update();assert.equal(f.find('accept').disabled,true);assert.equal(f.find('decline').disabled,false);assert(f.dialog.textContent.includes('先完成原职位班次'));f.find('accept').onclick();assert.equal(f.choices.length,0);f.find('decline').onclick();assert.deepEqual(f.choices,['decline']);assert.equal(f.getCard().stage,'declined');f.ui.dispose();
 });
+test('emperor invitation is an explicit choice with its own source and expiry wording',()=>{
+ const card={applicationId:'invitation-one',source:'emperor-invitation',stage:'awaiting-choice',blockers:[],expiresAt:2*1440+14*60+30,result:{passed:true}};
+ const v=consortPetitionView({card,target,history:[{...card,submittedAt:{day:2}}]});
+ assert.equal(v.identity,'无宫廷名位');assert.equal(v.stageLabel,'皇帝相邀 · 待你答复');assert.equal(v.result,'皇帝相邀');assert(v.note.includes('第3日 14:30 前答复'));assert.equal(v.historyLabel,'宫廷往来');assert(!JSON.stringify(v).includes('自荐'));
+ assert.deepEqual(v.actions.map(a=>[a.action,a.label]),[['accept','接受皇帝邀约'],['decline','婉拒邀约']]);
+ const speaking=consortPetitionView({card:{stage:'none',blockers:[],physical:{phase:'invitation'}},target});assert.equal(speaking.actions.length,0);assert.equal(speaking.note,'皇帝正在与你说话');
+ const expired=consortPetitionView({card:{...card,stage:'expired'},target});assert.equal(expired.stageLabel,'皇帝邀约已过期');assert.equal(expired.result,'邀约已过期');assert(!expired.actions.some(a=>a.action==='accept'||a.action==='decline'));
+});
+test('invitation close and Escape never accept, and a fresh explicit choice does',()=>{
+ const f=fixture();f.setCard({applicationId:'invitation-one',source:'emperor-invitation',stage:'awaiting-choice',blockers:[]});f.ui.open();assert.equal(f.choices.length,0);
+ walk(f.dialog).find(e=>e.attrs['aria-label']==='关闭名位状态').onclick();assert.equal(f.ui.isOpen(),false);assert.equal(f.getCard().stage,'awaiting-choice');
+ f.ui.open();f.dialog.listeners.cancel({preventDefault(){}});assert.equal(f.choices.length,0);assert.equal(f.getCard().stage,'awaiting-choice');
+ f.ui.open();f.find('accept').onclick();assert.deepEqual(f.choices,['accept']);assert.equal(f.getCard().stage,'accepted');assert(f.dialog.textContent.includes('已接受皇帝邀约'));f.ui.dispose();
+});
+test('replaced or expired invitations invalidate captured answers before the service is called',()=>{
+ const f=fixture();f.setCard({applicationId:'invitation-one',source:'emperor-invitation',stage:'awaiting-choice',blockers:[]});f.ui.open();const old=f.find('accept').onclick;
+ f.getCard().applicationId='invitation-two';old();assert.equal(f.choices.length,0);assert.equal(f.getCard().stage,'awaiting-choice');
+ const current=f.find('accept').onclick;f.getCard().stage='expired';current();assert.equal(f.choices.length,0);assert.equal(f.find('accept').hidden,true);assert(f.dialog.textContent.includes('邀约已过期'));f.ui.dispose();
+});
 test('semantic changes invalidate captured actions; focus, history and scroll survive updates',()=>{
  const f=fixture();f.setCard({stage:'awaiting-choice',blockers:[],historyCount:1});f.setRows([{id:'secret-id',stage:'awaiting-choice',submittedAt:{day:2}}]);f.ui.open();const accept=f.find('accept'),captured=accept.onclick,history=walk(f.dialog).find(e=>e.tag==='details'),body=walk(f.dialog).find(e=>e.className?.includes('cn-consort-content'));
  accept.focus();history.open=true;body.scrollTop=34;const children=[...f.dialog.children];for(let n=0;n<20;n++)f.ui.update();assert.deepEqual(f.dialog.children,children);assert.equal(f.doc.activeElement,accept);assert.equal(body.scrollTop,34);assert.equal(history.open,true);

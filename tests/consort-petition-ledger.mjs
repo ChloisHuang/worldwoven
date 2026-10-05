@@ -176,3 +176,42 @@ test('voluntary title resignation preserves the witnessed history, releases only
   assert.equal(f.core.availability().reasons.includes('already-petitioned-today'),true);assert.deepEqual(f.career,career);assert.deepEqual(f.court,court);
   const re=fixture({seed:GOOD,saved:f.saved.value,clock:{day:2,hour:8}});assert.equal(re.core.state().loadError,null);assert.equal(re.core.availability().ok,false);re.clock.day=3;assert(re.submit().ok);assert.equal(re.core.history()[0].stage,'resigned');
 });
+
+// New invitation regressions: a physical initiative shares the adult/title
+// ledger without inventing a submission or bypassing the existing paper chain.
+function invitationFixture(options={}){
+  let seed=1;while(consortPetitionRoll(seed,consortPetitionId('player',1))>=.4)seed++;
+  const f=fixture({seed,...options});f.invite=()=>{const r=f.receipt('invitation');r.participants=['player','cn-emperor'];f.evidence.set(r.id,copy(r));return f.core.considerInvitation(r,'palace-action:cn-emperor:1:garden');};return f;
+}
+test('emperor physical initiative reaches explicit choice once, restores, and uses the existing same-paper handoff',()=>{
+ const f=invitationFixture();assert.equal(f.invite().code,'invited');const p=f.core.petition();assert.equal(p.source,'emperor-invitation');assert.equal(p.stage,'awaiting-choice');assert.equal(p.submission.kind,'invitation');assert.equal(p.audience,null);assert.equal(f.core.appointment(),null);assert.equal(f.core.residenceFor(),null);assert.equal(f.core.availability().ok,false);
+ const revision=f.core.state().revision;assert(f.invite().replayed);assert.equal(f.core.state().revision,revision);
+ const re=invitationFixture({saved:f.saved.value});assert.equal(re.core.state().loadError,null);assert.deepEqual(re.core.petition(),p);assert.equal(re.invite().replayed,true);
+ assert(f.accept().ok);f.clock.hour=12;assert(f.accept().replayed,'accepted invitation remains idempotent beyond reply deadline');assert(f.handoff().ok);assert(f.read().ok);assert.equal(f.core.appointment().receiptId,f.core.petition().reading.id);assert.equal(f.core.petition().handoff.documentId,consortCharterId(p.id));
+});
+test('initiative is neutral to global shape score and protected traits, but uses real known relations, needs and bounded individual preferences',()=>{
+ const a=invitationFixture({player:{appearanceScore:0,skin:'dark',gender:'male',ethnicity:'A'}}),b=invitationFixture({player:{appearanceScore:100,skin:'light',gender:'female',ethnicity:'B'}});assert(a.invite().ok&&b.invite().ok);assert.deepEqual(a.core.petition().review,b.core.petition().review);assert.equal(a.core.petition().review.factors.appearance,0);
+ const known=invitationFixture({emperor:{relations:{player:.8},needs:{fatigue:.3}},deps:{getReviewContext:()=>({appearancePreference:.5})}});assert(known.invite().ok);assert(known.core.petition().review.relationshipKnown);assert(known.core.petition().review.factors.relationship>0);assert(known.core.petition().review.factors.circumstances<0);assert.equal(known.core.petition().review.factors.appearance,.02);
+});
+test('unselected initiative is durable and bounded, keeps self petition available and cannot reroll after restoration',()=>{
+ let seed=1;while(consortPetitionRoll(seed,consortPetitionId('player',1))<.8)seed++;
+ const f=invitationFixture({seed});assert.equal(f.invite().code,'not-invited');assert.equal(f.core.petition(),null);assert(f.core.availability().ok);assert.equal(f.core.invitationAvailability().ok,false);const re=invitationFixture({seed,saved:f.saved.value});assert(re.invite().replayed);assert.equal(re.core.petition(),null);assert(re.submit().ok);
+});
+test('underage, occupied room, existing petition and old duty cannot be bypassed by emperor initiation',()=>{
+ for(const actor of ['player','emperor']){const f=invitationFixture({[actor]:{ageYears:17}});assert.equal(f.invite().code,'adults-required');assert.equal(f.core.state().revision,0);}
+ const occupied=invitationFixture({vacancy:{roomOwnerId:'someone'}});assert.equal(occupied.invite().code,'residence-occupied');
+ const pending=invitationFixture();assert(pending.submit().ok);assert.equal(pending.invite().code,'petition-pending');
+ const f=invitationFixture({career:{tenure:{roleId:'cn-court-clerk'},lastDuty:{stage:'working'}}}),before=copy(f.career);assert(f.invite().offered);assert.equal(f.accept().ok,false);assert.deepEqual(f.career,before);assert.equal(f.core.respond(f.core.petition().id,'decline').code,'declined');assert.equal(f.core.appointment(),null);f.clock.day=2;assert(f.core.availability().ok);assert(f.core.invitationAvailability().reasons.includes('invitation-declined-cooldown'));f.clock.day=8;assert(f.core.invitationAvailability().ok);
+});
+test('unanswered invitation expires without granting a room, cancel never accepts, and age changes fail on accept and reload',()=>{
+ const f=invitationFixture();assert(f.invite().offered);f.clock.hour=11;assert.equal(f.accept().code,'invitation-expired');assert.equal(f.core.expireInvitation().code,'expired');assert.equal(f.core.appointment(),null);assert.equal(invitationFixture({saved:f.saved.value}).core.state().loadError,null);
+ const cancelled=invitationFixture();assert(cancelled.invite().offered);assert.equal(cancelled.core.withdraw(cancelled.core.petition().id).code,'withdrawn');assert.equal(cancelled.core.appointment(),null);
+ const child=invitationFixture();assert(child.invite().offered);child.player.ageYears=17;assert.equal(child.accept().code,'adults-required');const re=invitationFixture({saved:child.saved.value,player:{ageYears:17}});assert.equal(re.accept().code,'adults-required');assert.equal(re.core.charterRequest(),null);
+});
+test('failed invitation/response saves do not publish a decision, lose a refusal or grant rights',()=>{
+ const f=invitationFixture();f.flags.fail=true;assert.equal(f.invite().code,'save-failed');assert.equal(f.core.petition(),null);assert.equal(f.core.state().invitationDecisions.length,0);f.flags.fail=false;assert(f.invite().offered);const before=copy(f.core.state());f.flags.fail=true;assert.equal(f.accept().code,'save-failed');assert.equal(f.core.petition().stage,'awaiting-choice');assert.equal(f.core.state().revision,before.revision);assert.equal(f.core.appointment(),null);f.flags.fail=false;assert(f.core.respond(f.core.petition().id,'decline').ok);
+});
+test('malformed invitation origin/stage and receipt substitutions fail closed',()=>{
+ const f=invitationFixture();assert(f.invite().offered);const malformed=copy(f.saved.value);malformed.petitions[0].stage='submitted';assert.equal(invitationFixture({saved:malformed}).core.state().loadError,'invalid-consort-state');
+ const other=f.receipt('invitation');other.targetId='elsewhere';f.evidence.set(other.id,copy(other));assert.equal(f.core.considerInvitation(other,'palace-action:cn-emperor:1:garden').code,'receipt-conflict');
+});
