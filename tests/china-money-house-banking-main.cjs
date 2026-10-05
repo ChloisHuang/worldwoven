@@ -15,7 +15,7 @@ const station=lot.stations.find(s=>s.id==='cn-money-house-teller');
 assert(service && ledger.creditWageToBank, 'Main must use the shared currency ledger');
 const frame=()=>{now+=33.333;raf();assert(Date.now()-started<100000,'Bounded counter route');};
 const until=(check,label)=>{for(let i=0;i<700&&!check();i++)frame();assert(check(),label+' '+JSON.stringify(state().player));};
-const desc=e=>[e,...e.children.flatMap(desc)],dialog=()=>all.find(e=>e.className==='cn-money-dialog');
+const desc=e=>[e,...e.children.flatMap(desc)],dialog=()=>all.find(e=>e.className.split(' ').includes('cn-money-dialog'));
 const button=kind=>desc(dialog()).find(e=>e.dataset.moneyAction===kind);
 assert.equal(service.open(),false,'Cannot open from China arrival');
 const wage={amount:20,receiptId:'test-formal-payroll',currency:'copper',roleId:'test-role',slotId:'test-slot',day:1};
