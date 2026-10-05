@@ -11,8 +11,8 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.88-public, 2026-10-05
-Verified published Sites source commit: b6822f64a14daeaf56eec3078afcab0fdc8ec67a
+Published release: R16.89-public, 2026-10-05
+Verified published Sites source commit: 278c3f0ed37144ad7cb04db6b4e4f97b1e025650
 
 ## Working rules
 
@@ -174,3 +174,5 @@ R16.86 adds local French tea/pastry preparation employment and a cooking book in
 R16.87 keeps salon selection/scroll/focus stable through background updates, clears Lu Huaichuan’s invitation aisle with natural old-save continuation, fixes the inn footer under the full late CSS cascade, and removes the obsolete daily/furniture count HUD. Directed logic/route checks and offline product layouts passed; user-save and real iOS feedback remain open.
 
 R16.88 gives the original relieved French tea staff stable personality-weighted reading, rest and walks with physical meeting/role recall; the active colleague keeps the original order. A clear visitor meeting point fixes the observed return obstruction without navigation exceptions. The money-house frame also gains only two locally rounded right-shoulder joins. Full NPC physiological supply remains unfinished.
+
+R16.89 excludes unaffordable autonomous meals before reservation and again at execution, and durably cancels old unpaid impossible orders so the original guests can leave the waiting area for ordinary free activities. Identity, hunger, purses, paid food, room and clinic claims remain intact. No NPC bank, income system or free money is invented.
