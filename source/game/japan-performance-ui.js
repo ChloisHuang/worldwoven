@@ -79,7 +79,7 @@ export function createJapanPerformanceUI({service,getPlayer,onOpen=()=>{},onFurn
    line('演出 / 清谈',`${d.actFee} 文${o.paid?o.actComplete?' · 已结算':' · 未完成':''}`);line(d.drinkName,d.hasDrink?`${d.drinkFee} 文${o.paid?o.drinkComplete?' · 已结算':' · 未完成':''}`:'0 文');
    detail.append(bill);const price=make('div',null,'jp-performance-total');price.append(make('span',o.paid?'已预留':'确认时预留'),make('strong',`${d.total} 铜文`));detail.append(price);
    if(o.paid){const unsettled=(o.actComplete?0:d.actFee)+(d.hasDrink&&!o.drinkComplete?d.drinkFee:0);detail.append(make('p',`未提供 ${unsettled} 文 · 取消时退还`,'jp-performance-refund'),make('p','演艺与茶酒各自完成后结算。','jp-performance-note'));}
-   else detail.append(make('p','拒绝不收费 · 艺者答应后才可预留','jp-performance-note'));
+   else detail.append(make('p','拒绝不收费 · 艺者答应后才可预留','jp-performance-note'),make('p','演艺与茶酒各自完成后结算，未提供部分退款。','jp-performance-note'));
    if(o.paid&&o.status==='seating'){
     const activityId=typeof o.activity==='object'?o.activity?.id:o.activity,seat=service.seat(),go=button(activityId==='tea'?'入座茶谈':'入座观演',()=>{const item=service.seat();if(item&&onFurniture){close();onFurniture(item);}else refresh(true);},true);go.disabled=!seat||!onFurniture;actions.append(go);
    }else if(!o.paid&&o.status==='accepted'){
