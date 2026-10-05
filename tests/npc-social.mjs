@@ -21,3 +21,17 @@ assert.match(npcSocialReply({...n,station:{id:'cn-calligraphy',npcAction:'callig
 {
  let interactions=0;player.root.position={x:0,y:0,z:1};const make=()=>createNpcSocial({actors:()=>[n],player:()=>player,beginInteraction:()=>({source:'conversation',id:'same-chat'}),onInteraction:()=>interactions++});const f=make();f.begin(n);f.update(.7);const snapshot=JSON.parse(JSON.stringify(f.snapshot())),g=make();assert(g.restore(snapshot));assert.equal(interactions,1);assert.equal(g.snapshot().conversation.duration,.7);assert.equal(g.snapshot().conversation.interaction.id,'same-chat');g.update(.2);assert(Math.abs(g.snapshot().conversation.duration-.9)<1e-9);assert.equal(interactions,2);g.dispose();console.log('PASS conversation resumes exact interaction identity and duration without emitting an arrival effect');
 }
+
+// Explicit meeting approaches may briefly pause an available routine from afar;
+// menu reads, hard duties, cancellation and region teardown cannot pin an NPC.
+{
+ const n=actor('cn-official-rites',17.35,3.915,32.15),p={root:{position:{x:20.55,y:.215,z:32.25}}};let busy=false;const ended=[];
+ const s=createNpcSocial({actors:()=>[n],player:()=>p,status:()=>({busy}),onMeetingEnded:(m,why)=>ended.push(why)}),route=n.route;
+ assert.equal(s.meetingState(),null);assert.equal(s.conversationActorId(),null);
+ assert(s.reserveMeeting(n,{owner:'review',duration:90}));assert.equal(s.conversationActorId(),n.station.id);assert.equal(s.active(),false);assert.equal(s.isPaused(n),true);assert.equal(s.canInteract(n),false);assert.equal(n.route,route);
+ assert.equal(s.reserveMeeting(n,{owner:'other'}),false);assert.equal(s.releaseMeeting('other'),false);s.update(10);assert.equal(s.meetingState().remaining,80);
+ busy=true;s.update(.1);assert.equal(s.meetingState(),null);assert.equal(s.conversationActorId(),null);assert.deepEqual(ended,['duty']);assert.equal(s.reserveMeeting(n,{owner:'review'}),false);
+ busy=false;assert(s.reserveMeeting(n,{owner:'review',duration:5}));s.update(5);assert.equal(s.meetingState(),null);assert.equal(ended.at(-1),'expired');
+ assert(s.reserveMeeting(n,{owner:'review'}));s.end();assert.equal(s.meetingState(),null);assert(s.reserveMeeting(n,{owner:'review'}));s.dispose();assert.equal(s.meetingState(),null);assert.equal(n.route,route);
+ console.log('PASS explicit bounded meeting pause, exclusive owner, duty preemption, expiry, cancel and disposal; no actor movement or fabricated conversation');
+}

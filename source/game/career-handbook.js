@@ -1,3 +1,4 @@
+import {appendOfficialPromotionPanel,appendOfficialCareerHistory} from './official-career-panel.js';
 import {appendSalonCareerPanel} from './china-salon-career-panel.js';
 import {FORMAL_CAREER_ROLES} from './formal-careers.js';
 import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
@@ -172,6 +173,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       if(service){
         if(job)next=service.intent();
         else if(isClerk(held)&&current&&['archive','ready'].includes(current.stage))next=service.intent(current.stage==='archive'?'archive':'settle');
+        else if(isClerk(held)&&careers.promotionSummary?.().application?.status==='pending'&&careers.promotionSummary?.().eligible)next=service.intent();
         else if(availability.ok)next=service.intent(isClerk(held)?'attend':'accept');
       }
       if(next&&!['view','formal-view'].includes(next.kind)){
@@ -186,7 +188,8 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       metric('✓ 评价',customer?`${customer.positive?customer.reasonCode==='tea-completed'?'👍 顾客好评 +1':'👍 已纠正 +1':'👎 顾客差评 −2'}`:review?`${review.positive?review.score===0?'交班已验收':'好评 +1':'差评 −1'} · 第${review.day+1}日`:patientReview?'✓ 来客确认同号交付':'暂无当班评价',customer?`${customer.customerName} · ${customer.reason}${penalty?` · 当班扣薪${penalty}${unit(held)}`:''}`:review?`${employer(held)} · ${review.reason}`:patientReview?`${patientReview.recipientName} · 第${patientReview.number}号原单与纸包已当面核对`:`主管 ${employer(held)}`);
       const salary=current?.wage!=null?`${current.wage}${unit(held)} · ${current.stage==='paid'?'已入账':'待入账'}`:current?.stage==='inspection'?'已完成 · 待核薪':current?.stage==='working'?'当班未结薪':'本日未产生工资';
       metric('¤ 银行薪资',salary,`日薪 ${wageRange(held)}${d?.shiftKind==='continuous'?' · 06–18完整班，按实际工时核算':''}${penalty?' · 顾客评价扣薪'+penalty+unit(held):''} · ${held.currency==='france'?'法国券':'铜文'}账户${pendingDuty?' · 第'+(d.day+1)+'日待结':''}`);
-      metric('↗ 晋升','尚未开放',`${skillLine(held)} · 成长 ${s.promotionProgress??0}`);
+      if(isClerk(held))appendOfficialPromotionPanel({careers,role:held,panel,metric,make,action,buttonFor});
+      else metric('↗ 晋升','尚未开放',`${skillLine(held)} · 成长 ${s.promotionProgress??0}`);
       panel.body.append(rows);
       if(!current&&availability.code==='already-paid-today')panel.body.append(make('p','今日已在另一班次结薪；此岗位可于下一模拟日开始。','career-status-note'));
       if(appliedRole){const history=make('details',null,'career-card-details career-employment-history');history.append(make('summary','录用记录'));showReceipt(history,result,appliedRole);for(const old of (careers.applicationHistory?.(held.id)||[]).slice().reverse())showReceipt(history,old,held);panel.body.append(history);}
@@ -196,6 +199,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
         const resign=action(held,isClerk(held)?'resign':'formal-resign');if(resign)panel.body.append(resign);const cancel=['cn-pharmacy-apprentice',TEA,PASTRY,GUARD].includes(held.id)?action(held,'cancel'):null;if(cancel)panel.body.append(cancel);
       }
     }
+    appendOfficialCareerHistory({careers,panel,make});
     if(s.loadError)panel.body.append(make('p','职业存档暂时无法核对，请保留当前存档后再试。','career-negative'));
   }
   function open(options=false){

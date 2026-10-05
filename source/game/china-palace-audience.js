@@ -6,6 +6,7 @@ import {CHINA_OFFICIAL_BUREAU as B} from './china-official-bureau.js';
 import {followActorRoute} from './actor-navigation.js';
 import {createAudienceSchedule,courtRouteBudget,cachedCourtPlanner} from './china-court-schedule.js';
 import {createCourtPosture} from './china-court-posture.js';
+import {getChinaCourtOfficialRank,CHINA_OFFICIAL_RANK_CONTEXT} from './china-official-ranks.js';
 export {createAudienceSchedule} from './china-court-schedule.js';
 
 // Fictional adult officials retain the same seeded identities on every visit.
@@ -16,7 +17,12 @@ export const CHINA_COURT_OFFICIALS=Object.freeze([
  {id:'cn-official-personnel',npcName:'陆谦 · 吏务官',ageYears:42,npcPosition:B.offices[3],gender:'male',courtRole:'personnel',workLabel:'整理署内值勤名册',color:'#72564f'},
  {id:'cn-official-justice',npcName:'周惟正 · 刑名官',ageYears:51,npcPosition:B.offices[4],gender:'male',courtRole:'justice',workLabel:'静读律例 · 未有案件不作案报',color:'#4f6962'},
  {id:'cn-official-records',npcName:'宋承简 · 文书官',ageYears:35,npcPosition:B.offices[5],gender:'male',courtRole:'records',workLabel:'抄录官署来文 · 整理案卷',color:'#78624f'}
-]);
+].map(official=>{
+ const rank=getChinaCourtOfficialRank(official.id);
+ return Object.freeze({...official,gradeId:rank.gradeId,gradeLabel:rank.gradeLabel,gradeOrder:rank.gradeOrder,
+  currentWage:rank.currentWage,automaticPromotion:rank.automaticPromotion,officialRankContext:CHINA_OFFICIAL_RANK_CONTEXT,
+  npcName:official.npcName+'（'+rank.gradeLabel+'）'});
+}));
 export function courtOfficialAppearance(region,id,look){
  if(region!=='china'||!CHINA_COURT_OFFICIALS.some(r=>r.id===id))return look;
  return {...look,bodyPreset:'masculine-lean',hairStyle:'low-bun',wardrobePreset:'court-official-long-robe',clothes:[0x526e7b,0x814b45,0x546371,0x765049,0x476259,0x79634a][CHINA_COURT_OFFICIALS.findIndex(r=>r.id===id)],accent:0xb49c65};
@@ -115,6 +121,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
   summary:()=>chinaCourtStatusSummary(schedule.snapshot(),phase),
   labelVisible(n,player){return !owned.has(n)||!FORMAL.has(phase)&&phase!=='holding'||n===speaker||!!player&&n.root.position.distanceTo(player)<1.8;},
   socialStatus(n){return owned.has(n)?{busy:FORMAL.has(phase)||['assembling','holding'].includes(phase),attention:!FORMAL.has(phase)&&!['assembling','holding'].includes(phase),job:interruptedToday?interruptedLabel:tasks.get(n)?.label||life?.label(n)||'承务官署 · 日常起居'}:null;},
+  meetingAvailable:n=>owned.has(n)&&!FORMAL.has(phase)&&!['assembling','holding','departing'].includes(phase)&&!tasks.has(n)&&!!life?.meetingAvailable(n),
   playerRequest(id){life?.playerRequest(id);},
   update(dt,t,playerState={}){
    if(disposed)return;state=playerState;time+=dt;life?.tick(dt,state);const hour=state.hour??10;schedule.observe(hour,state.day);

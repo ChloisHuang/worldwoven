@@ -1,9 +1,7 @@
 // Fictional copper only. The six officials never borrow the player's wallet.
 // A configured, one-time source is conserved through every recorded transfer.
-export const CHINA_OFFICIAL_IDS = Object.freeze([
-  'cn-minister-works', 'cn-minister-granary', 'cn-official-rites',
-  'cn-official-personnel', 'cn-official-justice', 'cn-official-records',
-]);
+import {CHINA_COURT_OFFICIAL_RANKS, CHINA_OFFICIAL_DAILY_WAGE} from './china-official-ranks.js';
+export const CHINA_OFFICIAL_IDS = Object.freeze(CHINA_COURT_OFFICIAL_RANKS.map(rank => rank.actorId));
 export const CHINA_OFFICIAL_TAVERN_ID = 'cn-yunlai-tavern';
 const OFFICIALS = new Set(CHINA_OFFICIAL_IDS);
 const ACTIONS = new Set(['duty', 'withdraw', 'meal-payment', 'meal-refund']);
@@ -27,13 +25,16 @@ function source(value) {
   if (!object(value) || !integer(value.amount) || !(identifier(value.sourceId) || value.amount === 0 && value.sourceId === null)) throw Error('invalid-treasury-source');
   return {amount: value.amount, sourceId: value.sourceId};
 }
-function fresh(initialTreasury, dailyWage) {
+function fresh(initialTreasury, dailyWage, dailyWages) {
   if (!positive(dailyWage)) throw Error('invalid-wage');
+  if (dailyWages !== undefined && (!object(dailyWages) || Object.entries(dailyWages).some(([id, wage]) =>
+      !OFFICIALS.has(id) || !positive(wage)))) throw Error('invalid-wages');
   const origin = source(initialTreasury);
-  return {version: 1, initialTreasury: origin, dailyWage, treasury: origin.amount,
+  return {version: 1, initialTreasury: origin, dailyWage, ...(dailyWages === undefined ? {} : {dailyWages: copy(dailyWages)}), treasury: origin.amount,
     accounts: Object.fromEntries(CHINA_OFFICIAL_IDS.map(id => [id, {bank: 0, cash: 0}])),
     destinations: {[CHINA_OFFICIAL_TAVERN_ID]: 0}, nextTransaction: 1, transactions: []};
 }
+const wageFor = (state, actorId) => state.dailyWages?.[actorId] ?? state.dailyWage;
 function conserved(state) {
   if (!integer(state.treasury) || !object(state.accounts) || Object.keys(state.accounts).length !== CHINA_OFFICIAL_IDS.length ||
       !object(state.destinations) || Object.keys(state.destinations).length !== 1 || !integer(state.destinations[CHINA_OFFICIAL_TAVERN_ID])) return false;
@@ -54,7 +55,7 @@ function evidenceFor(evidence, actorId, day) {
 }
 function requestFor(action, input, state) {
   if (!object(input) || !OFFICIALS.has(input.actorId)) return failure('invalid-actor');
-  const request = {action, actorId: input.actorId, amount: action === 'duty' ? state.dailyWage : input.amount,
+  const request = {action, actorId: input.actorId, amount: action === 'duty' ? wageFor(state, input.actorId) : input.amount,
     receiptId: action.startsWith('meal-') ? mealReceipt(action, input.orderId) : input.receiptId};
   if (!positive(request.amount)) return failure('invalid-amount');
   if (!identifier(request.receiptId, 256)) return failure('invalid-receipt-id');
@@ -130,7 +131,7 @@ function transfer(state, index, request, legacyMeal = false) {
 }
 function restore(saved, initialTreasury) {
   if (!object(saved) || saved.version !== 1 || !Array.isArray(saved.transactions) || saved.transactions.length > JOURNAL_LIMIT) throw Error('invalid-saved-state');
-  let current = fresh(saved.initialTreasury, saved.dailyWage);
+  let current = fresh(saved.initialTreasury, saved.dailyWage, saved.dailyWages);
   if (initialTreasury !== undefined && !same(current.initialTreasury, source(initialTreasury))) throw Error('invalid-saved-state');
   const index = indexes();
   for (const transaction of saved.transactions) {
@@ -166,13 +167,18 @@ function restore(saved, initialTreasury) {
  * New meal receipts record sourceSplit: {cash, bank}; refunds restore that
  * exact split even after later transfers. Version-1 cash-only journal entries
  * without sourceSplit replay unchanged. This ledger has no bank interest.
+ * dailyWage and optional per-actor dailyWages are frozen at ledger creation.
+ * Restore reads that saved policy, never today's rank catalogue or new caller
+ * defaults. Existing version-1 scalar policies/receipts round-trip unchanged.
+ * Changing a rank label cannot replenish the source or synthesize back pay.
+ * NPC automatic promotion and in-world salary-policy changes are not wired.
  */
-export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 24, isAppointed = () => false,
+export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = CHINA_OFFICIAL_DAILY_WAGE, dailyWages, isAppointed = () => false,
   getDay = () => null, saveState} = {}) {
   let current = null, index = indexes(), busy = false, loadError = null;
   if (typeof isAppointed !== 'function' || typeof getDay !== 'function' || saveState !== undefined && typeof saveState !== 'function') throw TypeError('official economy requires synchronous callbacks');
   try {
-    if (saved === undefined || saved === null) current = fresh(initialTreasury, dailyWage);
+    if (saved === undefined || saved === null) current = fresh(initialTreasury, dailyWage, dailyWages);
     else ({current, index} = restore(saved, initialTreasury));
   } catch { loadError = saved === undefined || saved === null ? 'invalid-config' : 'invalid-saved-state'; }
   function liveCheck(request) {
@@ -251,6 +257,7 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
   const account = actorId => current && OFFICIALS.has(actorId) ? copy(current.accounts[actorId]) : null;
   return {loadError, state: () => current ? copy(current) : null, snapshot: () => current ? copy(current) : null,
     account, balance: account, history: () => current ? copy(current.transactions) : [],
+    dailyWageFor: actorId => current && OFFICIALS.has(actorId) ? wageFor(current, actorId) : null,
     completeDuty(input) { const payment = prepare('duty', input); return payment.ok ? payment.commit() : payment; },
     withdraw(input) { const payment = prepare('withdraw', input); return payment.ok ? payment.commit() : payment; },
     prepareMealPayment: input => prepare('meal-payment', input),
