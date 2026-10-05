@@ -45,7 +45,7 @@ test('failed writes cannot mint orders, food or nutrition; consumed outbox repai
  f.flags.saveFail=true;f.tick(150);assert.equal(f.kitchen.supplyState().remaining,120);assert.equal(f.kitchen.state().heldMeals.length,0);f.flags.saveFail=false;f.until(()=>f.kitchen.mealReady(o.id,'player'),'retry same order');assert(f.meal.executeIntent(f.meal.intent('eat')));
  f.flags.saveFail=true;f.tick(125);assert.equal(f.kitchen.mealFor('player').stage,'eating');assert.equal(f.needs.snapshot().people.player.receipts['china-royal-kitchen'],undefined);
  f.flags.saveFail=false;f.flags.needsFail=true;f.tick();assert.equal(f.kitchen.mealFor('player').stage,'consumed');assert.equal(f.needs.snapshot().people.player.receipts['china-royal-kitchen'],undefined);
- const g=fixture(f.checkpoint());g.flags.proof='different-reading';g.tick();assert.equal(g.needs.snapshot().people.player.receipts['china-royal-kitchen'],undefined);assert.equal(g.kitchen.mealReceipts().length,1,'historical consumption stays visible after evidence changes');g.flags.proof=EL.appointmentReceiptId;g.tick();assert(g.needs.hunger('player')<.001);assert.equal(g.needs.snapshot().people.player.receipts['china-royal-kitchen'],o.number);assert.equal(g.kitchen.supplyState().remaining,119);
+ const g=fixture(f.checkpoint());g.flags.proof='different-reading';assert.equal(g.needs.mealReceipts(g.kitchen.mealReceipts()),false,'ordinary receipt path cannot use changed current proof');g.tick();assert.equal(g.kitchen.mealReceipts().length,1,'historical consumption stays visible after evidence changes');assert(g.needs.hunger('player')<.001);assert.equal(g.needs.snapshot().people.player.receipts['china-royal-kitchen'],o.number);assert.equal(g.kitchen.supplyState().remaining,119);
 });
 test('cancellation, lost seat and underage restore write off only the original prepared portion without relief',()=>{
  const early=fixture();early.request();assert(early.meal.cancel());assert.equal(early.kitchen.supplyState().remaining,120);
@@ -59,4 +59,23 @@ test('orders cannot claim the diner as own kitchen worker, and exhausted invento
  const o=orders.request({actorId:'player',seatId:SEAT});assert(o);assert.equal(orders.claim('cn-royal-kitchen-labor-1',2),false);assert.equal(orders.request({actorId:'player',seatId:SEAT,workerId:'player',workReceiptId:'cn-royal-kitchen-labor-1'}),null);assert(orders.cancel('player'));
  for(let i=0;i<120;i++){const n=orders.request({actorId:'cn-emperor',seatId:SEAT});assert(orders.prepare(n.id));assert(orders.cancel('cn-emperor'));}
  assert.equal(orders.request({actorId:'player',seatId:SEAT}),null);const restored=createRoyalKitchenOrders({saved,getPlayerMealEligibility:()=>EL});assert.equal(restored.available('player'),false);assert.equal(restored.snapshot().supply.remaining,0);
+});
+
+test('a saved consumed portion repairs failed needs write after resignation and reload, without granting new dining rights',()=>{
+ const f=fixture(),o=f.request();f.until(()=>f.kitchen.mealReady(o.id,'player'),'original meal served');assert(f.meal.executeIntent(f.meal.intent('eat')));
+ f.flags.needsFail=true;f.tick(125);assert.equal(f.kitchen.mealFor('player').stage,'consumed');assert.equal(f.meal.active(),false);assert.equal(f.needs.snapshot().people.player.receipts['china-royal-kitchen'],undefined);
+ f.flags.eligible=false;f.flags.proof=null;assert.equal(f.meal.availability().code,'not-appointed');assert.equal(f.meal.intent('request'),null);
+ const g=fixture(f.checkpoint());g.flags.eligible=false;g.flags.proof=null;
+ const receipt=g.kitchen.mealReceipts()[0],source=g.kitchen.snapshot().orders;
+ assert.equal(g.needs.mealReceipts([receipt]),false,'no current title grants no ordinary receipt authority');
+ g.tick();assert(g.needs.hunger('player')<.001,'saved consumed meal must repair needs after resignation');
+ const uncredited=createDailyNeeds({getRoyalMealEligibility:()=>null});
+ assert.equal(uncredited.royalMealReceipts([receipt],null),false,'a receipt alone cannot prove the source consumed order');
+ const partial=copy(source);partial.orders[0].stage='eating';partial.orders[0].receipt=null;
+ assert.equal(uncredited.royalMealReceipts([receipt],partial),false,'prepared or partial source cannot feed');
+ for(const changed of [{mealId:'another-dish'},{eatingSeconds:11},{eligibility:{...receipt.eligibility,appointmentReceiptId:'another-reading'}}])assert.equal(uncredited.royalMealReceipts([{...receipt,...changed}],source),false);
+ assert.equal(g.needs.snapshot().people.player.receipts['china-royal-kitchen'],o.number);assert.equal(g.kitchen.supplyState().remaining,119);
+ assert.equal(g.kitchen.requestMeal({actorId:'player',seatId:SEAT}),null,'historical repair never authorizes a new meal');
+ g.tick(30);const hunger=g.needs.hunger('player');assert(g.kitchen.completeMeal(o.id,'player'));assert.equal(g.needs.hunger('player'),hunger);assert.equal(g.needs.royalMealReceipts([receipt],source),false);
+ const h=fixture(g.checkpoint());h.flags.eligible=false;h.flags.proof=null;const before=h.needs.hunger('player');h.tick();assert(h.needs.hunger('player')>=before,'second reload does not feed again');assert.equal(h.kitchen.snapshot().orders.serial,1);
 });

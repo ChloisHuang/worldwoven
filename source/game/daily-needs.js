@@ -1,4 +1,4 @@
-import {sameRoyalPlayerEligibility} from './china-royal-kitchen-orders.js';
+import {sameRoyalPlayerEligibility,validRoyalKitchenState} from './china-royal-kitchen-orders.js';
 import {EGYPT_MEAL,validEgyptMealReceipt} from './egypt-meal-definition.js';
 import {CHINA_OFFICIAL_IDS} from './china-official-economy.js';
 import {GAME_MINUTES_PER_SECOND} from './simulation-clock.js';
@@ -20,14 +20,14 @@ const clamp=x=>Math.max(0,Math.min(1,x));
 const mealSource='china-tavern-meal';
 const mealSources=new Set([mealSource,'japan-player-meal','france-tea-food','france-full-meal','egypt-visitor-meal','japan-staff-meal','china-royal-kitchen']);
 const toiletFacilities={'china-toilet':'cn-bath-toilet','japan-toilet':'jp-washroom-private-1','france-toilet':'fr-royal-bath-toilet','egypt-toilet':'eg-private-bath-toilet'};
-function validMeal(receipt,getRoyalMealEligibility){
+function validMeal(receipt,getRoyalMealEligibility,verifiedRoyalConsumption=false){
  const r=receipt,n=r.number;
  if(r.source==='egypt-visitor-meal')return r.paid===true&&validEgyptMealReceipt(r);
  if(r.source===mealSource)return r.orderId===`cn-tavern-order-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-dish'&&['yunlai-mushroom-rice','yunlai-green-noodles'].includes(r.dishId)&&r.paymentReceipt===r.orderId;
  if(r.source==='japan-staff-meal')return JAPAN_STAFF_CREW.includes(r.actorId)&&r.orderId===`jp-staff-meal-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+':bowl'&&r.dishId==='staff-ramen'&&r.supplyReceipt===r.orderId+':prepared';
  if(r.source==='china-royal-kitchen'){
-  const eligibility=r.actorId==='player'?getRoyalMealEligibility():null;
-  return (royalActors.has(r.actorId)||r.actorId==='player'&&sameRoyalPlayerEligibility(r.eligibility,eligibility)&&Number.isFinite(r.eatingSeconds)&&r.eatingSeconds>=12)&&r.orderId===`cn-royal-meal-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-meal'&&r.dishId==='royal-steamed-meal'&&r.supplyReceipt===r.orderId+'-prepared';
+  const eligibility=r.actorId==='player'&&!verifiedRoyalConsumption?getRoyalMealEligibility():null;
+  return (royalActors.has(r.actorId)||r.actorId==='player'&&(verifiedRoyalConsumption||sameRoyalPlayerEligibility(r.eligibility,eligibility))&&Number.isFinite(r.eatingSeconds)&&r.eatingSeconds>=12)&&r.orderId===`cn-royal-meal-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-meal'&&r.dishId==='royal-steamed-meal'&&r.supplyReceipt===r.orderId+'-prepared';
  }
  if(r.actorId!=='player')return false;
  if(r.source==='france-full-meal')return r.orderId===`france-tea-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-tray'&&r.dishId==='country-soup-bread'&&r.supplyReceipt===r.orderId+'-prepared'&&r.paymentReceipt===r.orderId+'-meal'&&r.paid===true;
@@ -59,10 +59,10 @@ export function createDailyNeeds({saved={},getClock=()=>({seconds:0}),saveState=
   const toilet=!mealOnlyActors.has(id)&&p.toiletAge>=36*DAILY_NEEDS_HOUR?'如厕拖延较久':need.toilet>=1?'该如厕了':null;
   return {food,toilet,seekMeal:need.hunger>=1,seekToilet:!!toilet,text:[food&&'🍚 '+food,toilet&&'🚻 '+toilet].filter(Boolean).join(' · ')};
  }
- function apply(receipt,kind){
+ function apply(receipt,kind,verifiedRoyalConsumption=false){
   sync();const p=people[receipt?.actorId],source=receipt?.source,n=receipt?.number;
   if(!p||receipt.source!==source||kind==='meal'&&!mealSources.has(source)||!Number.isSafeInteger(n)||n<=0||n<=(p.receipts[source]||0)||receipt.completed!==true)return false;
-  if(kind==='meal'){try{if(!validMeal(receipt,getRoyalMealEligibility))return false;}catch{return false;}}
+  if(kind==='meal'){try{if(!validMeal(receipt,getRoyalMealEligibility,verifiedRoyalConsumption))return false;}catch{return false;}}
   if(kind==='toilet'&&(!toiletFacilities[source]||receipt.id!==`${source}-${n}`||receipt.facilityId!==toiletFacilities[source]))return false;
   const next={version:2,people:copy(people)},row=next.people[receipt.actorId];
   if(kind==='toilet')row.toiletAge=0;
@@ -80,6 +80,20 @@ export function createDailyNeeds({saved={},getClock=()=>({seconds:0}),saveState=
   update(){if(positive(getClock()?.seconds,lastClock)-lastSample>=1)sync();},
   has:id=>!!people[id],read,hunger:id=>read(id)?.hunger??null,status,
   mealReceipts(receipts=[]){let applied=false;for(const receipt of receipts)applied=apply(receipt,'meal')||applied;return applied;},
+  // A durable consumed source order is an event that already happened. A
+  // later resignation cannot revoke it when a failed needs write is retried.
+  // This path cannot authorize new food: it requires the complete original
+  // inventory graph and the exact same consumed order, dish and charter proof.
+  royalMealReceipts(receipts=[],kitchenState=null){
+   try{if(!validRoyalKitchenState(kitchenState))return false;}catch{return false;}
+   const consumed=new Map(kitchenState.orders.filter(o=>o.stage==='consumed').map(o=>[o.id,o.receipt]));let applied=false;
+   const fields=['source','id','number','actorId','orderId','mealId','dishId','supplyReceipt','completed','eatingSeconds'];
+   for(const receipt of receipts){const original=consumed.get(receipt?.orderId);
+    if(!original||!fields.every(key=>receipt[key]===original[key])||receipt.actorId==='player'&&!sameRoyalPlayerEligibility(receipt.eligibility,original.eligibility))continue;
+    applied=apply(receipt,'meal',true)||applied;
+   }
+   return applied;
+  },
   franceMealReceipts(receipts=[],reservations=[]){let applied=false;for(const receipt of receipts)applied=apply({...receipt,...(receipt.source==='france-full-meal'?{paid:reservations.some(h=>h.id===receipt.paymentReceipt&&h.status==='settled'&&h.currency==='france'&&h.amount===4)}:{})},'meal')||applied;return applied;},
   japanMealReceipts(receipts=[],reservations=[]){let applied=false;for(const receipt of receipts)applied=apply({...receipt,paid:receipt.supplyKind==='paid-dining'&&reservations.some(h=>h.id===receipt.paymentReceipt&&h.status==='settled')},'meal')||applied;return applied;},
   egyptMealReceipts(receipts=[],reservations=[]){let applied=false;for(const r of receipts)applied=apply({...r,paid:reservations.some(h=>h.id===r.paymentReceipt&&h.status==='settled'&&h.currency===EGYPT_MEAL.currency&&h.amount===EGYPT_MEAL.price)},'meal')||applied;return applied;},
