@@ -6,11 +6,13 @@ One connected bilateral cheek surface is faired in physical XY and projected
 forward as a broad infraorbital/malar volume. Eye rims, nose, lips, chin and
 neck are outside the field. No runtime vertices or triangles are added.
 """
-import base64, hashlib, json, pathlib, subprocess
+import argparse, base64, hashlib, json, pathlib, subprocess
 import numpy as np
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-BASE = '49c744a00d6dc1a0681a0e1f290d5f4b0dcb154c'
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--base-revision', default='c354b91b6221f53337e744db34316240d79373b1')
+BASE = parser.parse_args().base_revision
 ASSET = 'source/game/complete-adult/assets/adult-forms-data.js'
 code = subprocess.check_output(['git', 'show', BASE + ':' + ASSET], cwd=ROOT).decode()
 start = code.index('const packed=') + len('const packed=')
