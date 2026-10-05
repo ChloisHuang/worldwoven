@@ -1,4 +1,4 @@
-/** Actual createCharacter: one fixed light-skinned face, optional albedo makeup. */
+/** Actual createCharacter: pinned light-skin midface comparison and diagnostics. */
 import {registerHooks} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
@@ -36,14 +36,14 @@ const repeats=C.createCharacter({...opts,previewMakeup:'natural'});
 assert.equal(skins(repeats),skins(made));repeats.dispose();
 assert.equal(clothes(bare),clothes(made));
 if(!process.env.BASELINE_ONLY){assert.notEqual(skins(bare),skins(made));assert.equal(made.root.userData.characterModel.makeup,'natural');}
-const report={scope:'Isolated actual-createCharacter render, not a France world screenshot; fixed latest candidate head, long hair and neutral 10 parameters; only display skin and optional makeup',baseCommit:'008b1a4dad0c079f5f0c992dabf87b0f3000fc3f',options:opts,ordinaryModel,ordinaryFingerprint,bareFingerprint,makeupFingerprint,models:{bare:bare.root.userData.characterModel,makeup:made.root.userData.characterModel},renderer:{outputColorSpace:renderer.outputColorSpace,toneMapping:renderer.toneMapping,exposure:renderer.toneMappingExposure,shadowMap:renderer.shadowMap.enabled},lights:[hemi,sun,fill].map(l=>({type:l.type,color:l.color.getHex(),ground:l.groundColor?.getHex(),intensity:l.intensity,position:l.position.toArray()})),frames:[],errors};
+const report={scope:'Isolated actual-createCharacter render, not a France world screenshot; pinned light skin, long hair, neutral 10 parameters, camera and lights; sculpt changes are confined to female anterior cheek skin',baseCommit:'49c744a00d6dc1a0681a0e1f290d5f4b0dcb154c',options:opts,ordinaryModel,ordinaryFingerprint,bareFingerprint,makeupFingerprint,models:{bare:bare.root.userData.characterModel,makeup:made.root.userData.characterModel},renderer:{outputColorSpace:renderer.outputColorSpace,toneMapping:renderer.toneMapping,exposure:renderer.toneMappingExposure,shadowMap:renderer.shadowMap.enabled},lights:[hemi,sun,fill].map(l=>({type:l.type,color:l.color.getHex(),ground:l.groundColor?.getHex(),intensity:l.intensity,position:l.position.toArray()})),frames:[],errors};
 fs.mkdirSync(OUT,{recursive:true});
 if(process.env.DIAGNOSTIC)for(const actor of[bare,made])actor.root.traverse(mesh=>{
  if(!mesh.isSkinnedMesh)return;
  const kind=mesh.geometry.attributes.featureKind,c=mesh.geometry.attributes.color;
  if(kind&&c)for(let i=0;i<c.count;i++)if(kind.getX(i)>.5&&kind.getX(i)<1.5)c.setXYZ(i,.46,.46,.46);
  if(c)c.needsUpdate=true;
- if(process.env.DIAGNOSTIC==='lambert')mesh.material=new T.MeshLambertMaterial({vertexColors:true});
+ if(process.env.DIAGNOSTIC==='lambert')mesh.material=new T.MeshLambertMaterial({vertexColors:true,side:mesh.material.side});
 });
 report.diagnostic=process.env.DIAGNOSTIC||null;
 const yaw=-Math.PI/4,focus=new T.Vector3(0,1.565*bare.root.scale.y,-.01),close=new T.OrthographicCamera(-.19,.19,.19,-.19,.01,10);

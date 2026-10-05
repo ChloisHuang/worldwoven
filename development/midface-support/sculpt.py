@@ -35,7 +35,7 @@ ax, sy, sz = np.abs(raw[:, 0]), raw[:, 1], raw[:, 2]
 
 # Front-ray visibility excludes the inward eye and oral returns, which also
 # have semantic coordinates inside the same broad box. It is an offline test.
-candidate = np.flatnonzero((ax > .16) & (ax < .70) & (sy > 6.60) & (sy < 7.245) & (sz > 1.04))
+candidate = np.flatnonzero((ax > .205) & (ax < .70) & (sy > 6.75) & (sy < 7.245) & (sz > 1.04))
 a, b, c = [position[tri[:, k]].astype(float) for k in range(3)]
 v0, v1 = b-a, c-a
 denom = v0[:, 0]*v1[:, 1]-v0[:, 1]*v1[:, 0]
@@ -50,8 +50,8 @@ for i in candidate:
     if position[i, 2] >= front-2e-5:
         exterior.append(i)
 exterior = np.array(exterior)
-mask = smooth(.16, .265, ax)*(1-smooth(.53, .70, ax))
-mask *= smooth(6.60, 6.84, sy)*(1-smooth(7.12, 7.245, sy))
+mask = smooth(.205, .335, ax)*(1-smooth(.53, .70, ax))
+mask *= smooth(6.75, 6.91, sy)*(1-smooth(7.10, 7.245, sy))
 
 # Locally fit one continuous cheek sheet, using a quadratic physical surface.
 # This removes small alternating ridges in the old sculpt, without smoothing
@@ -69,9 +69,9 @@ for i in exterior:
     fit = np.linalg.lstsq(matrix*np.sqrt(weights[:, None]), position[same, 2]*np.sqrt(weights), rcond=None)[0]
     fair[i] = np.clip(fit[0]-position[i, 2], -.0025, .0025)
 
-support = .0072*np.exp(-((ax-.405)/.235)**2-((sy-7.105)/.22)**2)
+support = .0058*np.exp(-((ax-.405)/.235)**2-((sy-7.105)/.24)**2)
 delta = np.zeros(len(position))
-delta[exterior] = mask[exterior]*(.85*fair[exterior]+support[exterior])
+delta[exterior] = mask[exterior]*(.50*fair[exterior]+support[exterior])
 position[:, 2] += delta
 
 def area_normals(points):
@@ -106,7 +106,7 @@ packed['female']['reviewedAssetSha256'] = hashlib.sha256(json.dumps(packed['fema
 assert np.array_equal(position[:, :2], before[:, :2])
 assert np.max(delta) < .009
 assert np.isfinite(position).all() and np.isfinite(normal).all()
-report = {'base': BASE, 'exteriorVertices': len(exterior), 'movedVertices': int(np.count_nonzero(delta)), 'peakForwardMm': float(np.max(delta)*1000), 'fairingRangeMm': [float(np.min(fair)*1000), float(np.max(fair)*1000)], 'changedNormals': int(np.count_nonzero(changed)), 'clearedStaleCheekRecessVertices': int(np.count_nonzero(cleared)), 'vertices': len(position), 'triangles': len(tri), 'unchangedXY': True, 'runtimeTopologyUnchanged': True}
+report = {'base': BASE, 'exteriorVertices': len(exterior), 'movedVertices': int(np.count_nonzero(position[:, 2] != before[:, 2])), 'peakForwardMm': float(np.max(delta)*1000), 'fairingRangeMm': [float(np.min(fair)*1000), float(np.max(fair)*1000)], 'changedNormals': int(np.count_nonzero(changed)), 'clearedStaleCheekRecessVertices': int(np.count_nonzero(cleared)), 'vertices': len(position), 'triangles': len(tri), 'unchangedXY': True, 'runtimeTopologyUnchanged': True}
 out = ROOT/'qa/midface-support'
 out.mkdir(parents=True, exist_ok=True)
 (out/'sculpt-report.json').write_text(json.dumps(report, indent=2)+'\n')
