@@ -53,9 +53,9 @@ export function createFranceMealUI({service,onOpen=()=>{},onStand=()=>{},onCance
   }
   detail.append(make('p',view.seated?'已在茶桌入座':'宫苑 · 茶廊','fr-meal-kicker'),make('h3',dish?.name||'食单'));
   if(!o||own){
-   const amount=make('div',null,'fr-meal-price'),payment=o?.payment==='refunded'?'已退回':settled(o)?'已结账':o?.payment==='reserved'?'已预留':o?'待核对':'确认时预留';amount.append(make('strong',paid?String(price):'免费'),make('span',paid?`法国券 · ${payment}`:'茶与小蛋糕'));detail.append(amount);
+   const amount=make('div',null,'fr-meal-price'),payment=o?.payment==='refunded'?'已退回':o?.cancelled&&o.payment==='reserved'?'退款待恢复':settled(o)?'已结账':o?.payment==='reserved'?'已预留':o?'待核对':'确认时预留';amount.append(make('strong',paid?String(price):'免费'),make('span',paid?`法国券 · ${payment}`:'茶与小蛋糕'));detail.append(amount);
    if(dish?.detail)detail.append(make('p',dish.detail,'fr-meal-status'));
-   if(paid)detail.append(make('p',o?.payment==='refunded'?'餐费已退回':settled(o)?'已开始用餐，提前收餐不退费':'开吃前取消全额退回；开吃后不退费','fr-meal-note'));
+   if(paid)detail.append(make('p',o?.payment==='refunded'?'餐费已退回':o?.cancelled&&o.payment==='reserved'?'餐费会在记录恢复后原额退回':settled(o)?'已开始用餐，提前收餐不退费':'开吃前取消全额退回；开吃后不退费','fr-meal-note'));
   }else detail.append(make('p',view.blockedReason||'等这一席收拾好后再点餐','fr-meal-note'));
   if(!o&&!view.intent){
    const reason=view.canOrder===false?(view.blockedReason||'暂时不能点餐'):paid&&!Number.isFinite(view.cash)?'法国券余额待核对':paid&&view.cash<price?`余额不足 · 还差 ${price-view.cash} 法国券`:null;
