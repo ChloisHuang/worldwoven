@@ -40,6 +40,7 @@ const report={scope:'Isolated actual-createCharacter render, not a France world 
 fs.mkdirSync(OUT,{recursive:true});
 const yaw=-Math.PI/4,focus=new T.Vector3(0,1.565*bare.root.scale.y,-.01),close=new T.OrthographicCamera(-.19,.19,.19,-.19,.01,10);
 close.position.copy(focus).add(new T.Vector3(Math.sin(yaw)*2,0,Math.cos(yaw)*2));close.lookAt(focus);
+const front=close.clone();front.position.copy(focus).add(new T.Vector3(0,0,2));front.lookAt(focus);
 const game=new T.PerspectiveCamera(50,1280/720,.2,150),gameFocus=new T.Vector3(0,.97,0),distance=4.6,pitch=.22;
 game.position.copy(gameFocus).add(new T.Vector3(Math.sin(yaw)*Math.cos(pitch)*distance,Math.sin(pitch)*distance,Math.cos(yaw)*Math.cos(pitch)*distance));game.lookAt(gameFocus);
 function save(actor,camera,name,w,h){
@@ -49,8 +50,8 @@ function save(actor,camera,name,w,h){
  report.frames.push({name,width:w,height:h,position:camera.position.toArray(),projection:camera.projectionMatrix.toArray(),triangles:renderer.info.render.triangles,drawCalls:renderer.info.render.calls});actor.root.removeFromParent();
 }
 if(!process.env.BASELINE_ONLY)for(const [name,actor]of[['bare',bare],['natural',made]]){
- save(actor,close,'light-'+name+'-threequarter-detail',640,640);
- save(actor,game,'light-'+name+'-threequarter-game',1280,720);
+ if(process.env.FRONT_ONLY)save(actor,front,'light-'+name+'-front-detail',640,640);
+ else{save(actor,close,'light-'+name+'-threequarter-detail',640,640);save(actor,game,'light-'+name+'-threequarter-game',1280,720);}
 }
 bare.dispose();made.dispose();report.resourceStats=C.characterResourceStats();report.remainingReferences=report.resourceStats.activeReferences;assert.equal(report.remainingReferences,0);
 report.maxRssMiB=process.resourceUsage().maxRSS/1024;report.status='RENDERED_PENDING_VISUAL_REVIEW';

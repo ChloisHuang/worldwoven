@@ -35,3 +35,10 @@ JavaScript module, no new textures or models. Closeup pigment is readable;
 its change at 4.6 m is modest. Overall character art remains unaccepted.
 
 No main merge, published site update or default selection change is included.
+
+Current front evidence uses `FRONT_ONLY=1 OUT_DIR=qa/candidate-light-makeup/front`
+with the same command. Only camera yaw changes to zero; all appearance, light
+and material fingerprints match the 8a8a35c comparison. Both 640px front images
+are 34,902 triangles / 2 draws / zero GL errors (1.5 s / 280 MiB). The weak
+under-eye-to-cheek transition remains an open art issue; this capture does not
+change face geometry or increase contour pigment.
