@@ -1,4 +1,5 @@
 import {COURT_CLERK_ROLE} from './formal-careers.js';
+import {CHINA_OFFICIAL_BUREAU as B} from './china-official-bureau.js';
 import {COURT_CAREER_PLACE as P} from './china-court-career-place.js';
 import {createCourtPosture} from './china-court-posture.js';
 import {nearbyInteraction} from './player-interaction-intents.js';
@@ -44,7 +45,11 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
     if(reviewKinds.includes(kind)&&(kind!==nextKind()||activity))return null;
     if(kind==='attend'&&(activity||!careers.beginDutyAvailability(COURT_CLERK_ROLE.id).ok))return null;
     if(kind==='archive'&&(activity||d?.stage!=='archive')||kind==='settle'&&s.lastDuty?.stage!=='ready')return null;
-    const npc=getRecruiter(),reviewPoint=npc?[npc.root.position.x,npc.root.position.y,npc.root.position.z+.72]:P.registration;
+    const npc=getRecruiter(),q=npc?.root.position;
+    // The upstairs desk aisle is bounded by the dormitory wall to the south.
+    // Meet alongside the official there, not inside that wall.
+    const inDeskAisle=q&&Math.abs(q.y-B.upperFloorY)<.3&&q.z>31.7&&q.z<32.5&&q.x>=16.6&&q.x<25.4;
+    const reviewPoint=q?[q.x+(inDeskAisle?(q.x>24.5?-.72:.72):0),q.y,q.z+(inDeskAisle?0:.72)]:P.registration;
     const position=['review','promotion-review'].includes(kind)?reviewPoint:kind==='attend'?P.court:['archive','settle','receive-document','promotion-receive-document'].includes(kind)?P.archive:P.registration;
     return {id:'cn-court-career-'+kind,provider:'china-court-career',kind,position:[...position],...(kind==='view'?{registration:{scope:'role',roleId:COURT_CLERK_ROLE.id}}:{}),
       name:kind==='attend'?'承光正殿 · 第七录事班位':kind==='archive'||kind==='settle'?'承务官署 · 礼务归档案':'承务官署 · 铨录登记',
