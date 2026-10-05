@@ -72,7 +72,7 @@ const excused = duty => duty?.stage === 'missed' && duty.reason === 'court-postp
 const supervisor = role => role.supervisorId || COURT_SUPERVISOR.id;
 const completedWage = (role, arrivalHour) => role.workSource ? role.wage + (arrivalHour < role.earlyBeforeHour ? role.preparationBonus : 0) : role.wage + (COURT_SUPERVISOR.conscientiousness >= .8 &&
   arrivalHour <= role.dutyWindow.endHour - COURT_SUPERVISOR.earlyArrivalMinutes / 60 ? COURT_SUPERVISOR.preparationBonus : 0);
-const empty = () => ({version: 5, revision: 0, skillXP: Object.fromEntries(SKILLS.map(skill=>[skill,0])), skills: {ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0, martial: 0}, tenure: null,
+const empty = () => ({version: 6, revision: 0, skillXP: Object.fromEntries(SKILLS.map(skill=>[skill,0])), skills: {ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0, martial: 0}, tenure: null,
   lastDuty: null, lastPaidDay: null, daily: {day: null, ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0, martial: 0},
   learning: Object.fromEntries(STUDY_SOURCES.map(source => [source, emptyStudy()])),
   lowerWork: {'cn-tavern-labor': 0, 'fr-garden-labor': 0}, performance: 0, promotionProgress: 0,
@@ -202,7 +202,7 @@ function restore(saved, roleMap, slotMap) {
       ...(saved.version===5?{skillXP:{...saved.skillXP,martial:0}}:{}),learning:{...saved.learning,'cn-archery':emptyStudy()}};
   }
   const validSlot = (roleId, slotId) => roleMap.has(roleId) && slotMap.get(slotId)?.roleId === roleId && availableSlot(slotMap.get(slotId),roleMap.get(roleId));
-  if (!object(saved) || ![4,5].includes(saved.version) || !integer(saved.revision) || !object(saved.skills) ||
+  if (!object(saved) || ![4,5,6].includes(saved.version) || !integer(saved.revision) || !object(saved.skills) ||
     Object.keys(saved.skills).length !== SKILLS.length || SKILLS.some(key => !integer(saved.skills[key])) ||
     SKILLS.some(key=>saved.skills[key]>100) || saved.skills.ritual + saved.skills.writing > 100 || !dayOrNull(saved.lastPaidDay) ||
     !object(saved.daily) || !dayOrNull(saved.daily.day) || SKILLS.some(key => !integer(saved.daily[key]) ||
@@ -212,7 +212,7 @@ function restore(saved, roleMap, slotMap) {
     !object(saved.lowerWork) || Object.keys(saved.lowerWork).length !== 2 || Object.keys(WORK).some(source=>!integer(saved.lowerWork[source])) ||
     !Number.isInteger(saved.performance) || Math.abs(saved.performance) > 100 ||
     !integer(saved.promotionProgress) || saved.promotionProgress > 100 || !dayOrNull(saved.lastEvaluatedDay)) throw Error('invalid-career-state');
-  if(saved.version===5&&(!object(saved.skillXP)||Object.keys(saved.skillXP).length!==SKILLS.length||
+  if(saved.version>=5&&(!object(saved.skillXP)||Object.keys(saved.skillXP).length!==SKILLS.length||
     SKILLS.some(key=>!integer(saved.skillXP[key])||saved.skillXP[key]>=skillXPRequired(saved.skills[key])||saved.skills[key]===100&&saved.skillXP[key]!==0)))throw Error('invalid-career-state');
   for (const source of STUDY_SOURCES) {
     const study = saved.learning[source];
@@ -257,6 +257,8 @@ function restore(saved, roleMap, slotMap) {
       (JSON.stringify(officialFields(review))!==JSON.stringify(officialFields(duty))) ||
       (review.positive ? !['ready', 'paid'].includes(duty.stage) || duty.wage !== review.wage || (duty.shiftKind==='continuous'?review.coverageHours!==coveredHours(duty):review.coverageHours!==undefined) || (review.servicePenalty??0)!==customerPenalty(duty) : duty.stage !== 'missed'))) throw Error('invalid-career-state');
   if (duty && ['ready', 'paid'].includes(duty.stage) && (!review || review.day !== duty.day || !review.positive)) throw Error('invalid-career-state');
+  // Older clients reject v6 instead of silently dropping earned rank history.
+  if(saved.version===6&&saved.officialCareer===undefined)throw Error('invalid-career-state');
   const officialCareer=restoreOfficialCareer(saved.officialCareer,{tenure:saved.tenure,lastDuty:duty,lastEvaluation:review});
   for(const row of [duty,review])if(row?.officialPayVersion===1){
     const appointment=officialCareer.appointments.find(a=>a.id===row.officialTenureId);
@@ -266,7 +268,7 @@ function restore(saved, roleMap, slotMap) {
       row.officialRankId===CLERK_NEXT_RANK&&(!promoted||promoted.decidedAt.day>row.day||promoted.decidedAt.day===row.day&&arrival!==null&&arrival<promoted.decidedAt.hour))throw Error('invalid-career-state');
     if(row===review){const evidence=officialCareer.service.find(r=>r.id===review.id);if(!evidence||evidence.appointmentId!==row.officialTenureId||evidence.rankId!==row.officialRankId||['positive','score','wage','reasonCode'].some(key=>evidence[key]!==row[key]))throw Error('invalid-career-state');}
   }
-  return {version: 5, officialCareer, skillXP: saved.version===5?{...saved.skillXP}:Object.fromEntries(SKILLS.map(skill=>[skill,0])), revision: saved.revision, applications: restoreApplications(saved.applications, roleMap, slotMap), skills: {...saved.skills},
+  return {version: 6, officialCareer, skillXP: saved.version>=5?{...saved.skillXP}:Object.fromEntries(SKILLS.map(skill=>[skill,0])), revision: saved.revision, applications: restoreApplications(saved.applications, roleMap, slotMap), skills: {...saved.skills},
     tenure: saved.tenure === null ? null : {roleId: saved.tenure.roleId, slotId: saved.tenure.slotId,
       sinceDay: saved.tenure.sinceDay, sinceHour: saved.tenure.sinceHour,...(saved.tenure.applicationId!==undefined?{applicationId:saved.tenure.applicationId}:{})},
     lastDuty: duty === null ? null : {roleId: duty.roleId, slotId: duty.slotId, day: duty.day, stage: duty.stage,
