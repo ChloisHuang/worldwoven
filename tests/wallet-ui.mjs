@@ -2,7 +2,7 @@
 // interrupted/repeated panel flows. It does not claim browser layout coverage.
 import assert from 'node:assert/strict';
 import {createCurrencyLedger} from '../source/game/currency-ledger.js';
-import {createCurrencyWallet, walletTransactionView} from '../source/game/wallet.js';
+import {createCurrencyWallet, walletTransactionView, walletReceiptFrame} from '../source/game/wallet.js';
 
 class Element {
   constructor(tag,doc){this.tagName=tag.toUpperCase();this.doc=doc;this.children=[];this.attrs={};this.listeners={};this.dataset={};this.style={setProperty:(k,v)=>this.style[k]=v};this.className='';this.hidden=false;this.open=false;this.scrollTop=0;this._text='';
@@ -177,6 +177,31 @@ function fixture({reduced=false,saved,manualImages=false}={}){
   f.wallet.close();f.wallet.open();assert.equal(note.dataset.artState,'loading','reopening makes one controlled retry of a failed ticket');
   assert.equal(note.children[0],img);assert.equal(f.doc.images.length,count,'retry reuses the same country node and URL');img.finishDecode();
   for(let i=0;i<8;i++)await Promise.resolve();assert.equal(note.dataset.artState,'ready','successful retry recovers the actual ticket');assert.equal(f.writes(),writes,'art failure and retry never write money');f.wallet.dispose();
+}
+{
+  const f=fixture(),{doc,ledger}=f,mini=one(doc,'ww-wallet-mini'),bank=doc.createElement('dialog'),field=doc.createElement('input');
+  doc.defaultView.innerWidth=852;doc.defaultView.innerHeight=393;doc.defaultView.visualViewport={offsetLeft:0,offsetTop:0,width:852,height:393};
+  // This feature is detected at wallet construction; use a fresh wallet with
+  // the same fixture so the mock explicitly exercises the browser popover API.
+  f.wallet.dispose();const original=doc.createElement;doc.createElement=t=>{const e=original(t);e.showPopover=function(){this.popoverOpen=true;};e.hidePopover=function(){this.popoverOpen=false;};return e;};
+  const wallet=createCurrencyWallet({mount:f.mount,ledger,document:doc});doc.body.append(bank);bank.append(field);bank.showModal();field.focus();
+  ledger.earn(8,'popover-cash');ledger.openAccount('popover-account');ledger.deposit(3,'popover-deposit');bank.scrollTop=180;
+  await Promise.resolve();const receipt=one(doc,'ww-wallet-mini');assert.equal(receipt.parent,doc.body,'Receipt escapes the scrolling modal');assert(receipt.popoverOpen);assert.equal(receipt.getAttribute('popover'),'manual');assert.equal(doc.activeElement,field,'A receipt must not steal amount input focus');
+  assert.deepEqual([receipt.style.left,receipt.style.top],['570px','12px']);assert.equal(receipt.dataset.action,'deposit','Only the newest repeated receipt is shown');
+  const same=one(doc,'ww-wallet-mini-slip');ledger.deposit(3,'popover-deposit');await Promise.resolve();assert.equal(one(doc,'ww-wallet-mini-slip'),same,'Idempotent replay cannot restart the paper path');
+  wallet.dispose();assert(!receipt.popoverOpen);assert.equal(doc.activeElement,field);
+}
+{
+  for(const [viewport,game,safe] of [
+    [{left:0,top:0,width:852,height:393},{left:0,top:60,width:852,height:333},{left:44,right:44}],
+    [{left:0,top:0,width:852,height:190},{left:0,top:0,width:852,height:393},{right:44}],
+    [{left:15,top:20,width:280,height:120},{left:0,top:0,width:852,height:393},{}],
+  ]){
+    const frame=walletReceiptFrame(viewport,game,safe);
+    assert(frame.left>=Math.max(viewport.left+(safe.left||0),game.left));assert(frame.top>=Math.max(viewport.top+(safe.top||0),game.top));
+    assert(frame.left+frame.width*frame.scale<=Math.min(viewport.left+viewport.width-(safe.right||0),game.left+game.width));
+    assert(frame.top+frame.height*frame.scale<=Math.min(viewport.top+viewport.height-(safe.bottom||0),game.top+game.height));
+  }
 }
 assert.equal(walletTransactionView({id:'legacy',action:'earn',amount:5}).currency,'copper','legacy journal rows retain copper');
 assert.equal(walletTransactionView({id:'settled',action:'settle',currency:'japan',amount:5}).route,null);

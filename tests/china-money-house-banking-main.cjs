@@ -28,7 +28,7 @@ assert(!state().performing);
 const amount=desc(dialog()).find(e=>e.getAttribute('aria-label')==='本次存取数目');amount.value='6';
 const withdraw=button('withdraw');withdraw.onclick();withdraw.onclick();
 assert.deepEqual([ledger.state().cash,ledger.state().bank],[6,14]);
-assert(desc(dialog()).some(e=>e.textContent?.includes('固定游戏汇率：2 文中国铜钱 = 1 券日本票券')));
+assert(desc(dialog()).some(e=>e.getAttribute('aria-label')?.includes('固定游戏汇率：2 文中国铜钱 = 1 券日本票券')));
 const exchange=button('exchange');exchange.onclick();exchange.onclick();
 assert.deepEqual([ledger.balances().copper.cash,ledger.balances().japan.cash],[4,1]);
 assert.equal(ledger.history().filter(t=>t.action==='exchange').length,1);
