@@ -8,9 +8,10 @@ const topicFit=(p,kind)=>kind==='read'?p.traits.curiosity*.65+p.traits.quiet*.35
 export function conversationDisposition(person,other,kind,targetId){
  const familiarity=person.experiences?.some(e=>e.kind===kind)?.06:0;
  const alignment=1-(Math.abs(person.values.company-other.values.company)+Math.abs(person.values.quiet-other.values.quiet));
- const fit=(topicFit(person,kind)-.5)*.85+alignment*.17+familiarity+(person.relations[targetId]||0)*.08+(person.opinions[targetId]||0)*.12-(person.needs.fatigue||0)*.10;
+ // Enjoying a topic need not mean enjoying this person's preferred company.
+ const fit=(topicFit(person,kind)-.5)*.85+alignment*.17-(1-alignment)*(1-topicFit(person,kind))*.36+familiarity+(person.relations[targetId]||0)*.08+(person.opinions[targetId]||0)*.12-(person.needs.fatigue||0)*.10;
  const feeling=fit>.16?'appreciated':fit<-.09?'mismatched':'neutral';
- return {feeling,relation:feeling==='appreciated'?.07:feeling==='mismatched'?-.035:.012,opinion:feeling==='appreciated'?.07:feeling==='mismatched'?-.06:.006};
+ return {feeling,relation:feeling==='appreciated'?.07:feeling==='mismatched'?-.035:.012,opinion:feeling==='appreciated'?.07:feeling==='mismatched'?-.06:0};
 }
 const available=c=>c.available!==false&&c.reachable!==false;
 const unique=items=>[...new Map(items.filter(available).map(c=>[c.id,c])).values()].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
