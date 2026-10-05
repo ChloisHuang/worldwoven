@@ -2,6 +2,8 @@ import {addInsetClosureSection} from './inset-closures.js';
 import {registerNightFixture} from './night-lighting.js';
 import {addAnubisGuardian,addJudgmentBalance,addHorusRelief} from './egypt-ritual-sculpture.js';
 import {addRoyalCoffin} from './egypt-royal-coffin.js';
+import {buildEgyptExchangeCounter,egyptExchangeStation} from './egypt-exchange-counter.js';
+import * as exchangeGeometry from './geometry.js?rev=R7-20261002';
 import * as THREE from 'three';
 import {material as celMaterial} from './geometry.js?rev=R7-20261002';
 
@@ -564,6 +566,7 @@ export function buildEgypt(){
   roomWall(temple,-3.6,.55,8.35,3.0,1.1,1.25,C.shadow);box(temple,-3.6,1.17,8.35,3.2,.14,1.4,C.edge);box(temple,-3.6,1.26,8.35,1.5,.035,.8,C.linen);urn(temple,-4.55,1.26,8.35,.42,C.blue);
   // Court markers keep the expanded circulation legible without crowding it.
   for(const x of [-7.3,7.3])column(temple,colliders,cameraColliders,x,9.85,4.2);
+  const exchangeCounter=buildEgyptExchangeCounter(exchangeGeometry,{group:temple,colliders,cameraColliders});
   const stations=[
     {id:'egypt-sphinx',name:'沙海守望者',action:'观察狮身人面像',position:[-4.4,0,29.5],npcName:'哈桑',npcAction:'read',npcLabel:'描摹风化石纹',npcPosition:[-4.5,0,31.5],workTarget:[-7.7,2.3,29.8],route:[[-4.5,0,31.5],[-3.6,0,28.3]],dialogue:'看看狮身、人的面孔，还有风在石头上留下的细痕。它一直守着从沙漠通向神殿的路。'},
     {id:'egypt-glyphs',name:'彩绘柱廊',action:'辨认墙上的象形图案',position:[-4.5,0,3.35],npcName:'莱拉',npcAction:'read',npcLabel:'讲述太阳与河流',npcPosition:[-3.0,0,2.2],workTarget:[-5.5,3.1,5.0],route:[[-3,0,2.2],[-4.6,0,1.7]],dialogue:'柱头像盛开的纸莎草。墙上的水纹、眼睛与羽毛，组成了这座神殿自己的故事。'},
@@ -585,6 +588,7 @@ export function buildEgypt(){
     {id:'egypt-royal-kitchen',name:'王室厨房',action:'准备陶锅与矿物色餐具',position:[21.60,0,-15.1],playerWorkTarget:[22.08,kitchenPlayerBoardTop,-15.1],npcName:'赫特',npcAction:'cook',npcLabel:'照看陶锅并整理食材',npcPosition:[21.62,0,-17.1],workTarget:[22.10,kitchenNpcBoardTop,-17.1],route:[[20.6,0,-17.3],[20.6,0,-14.2]],dialogue:'这条工作台把陶锅、食材和案板排在墙边，中央留下足够的走动空间。隔壁的小储藏室也可以走进去。'},
     {id:'egypt-private-bath',name:'王室沐浴间',action:'查看蓝色浴池与更衣器物',position:[17.2,0,-1],npcName:'赛提',npcAction:'clean',npcLabel:'整理沐浴用的亚麻织物',npcPosition:[17.2,0,.8],workTarget:[14.05,.65,-1.05],route:[[17.2,0,.8],[17.2,0,-2.8]],dialogue:'寝室旁另有一间带石质浴池的沐浴室。蓝色水面、亚麻织物和陶罐让它与仪式空间有了不同的日常气息。'}
   );
+  stations.push(egyptExchangeStation());
   const explorationTargets=[
     {id:'pyramid-vestibule',name:'厚石入口甬道',position:[0,0,16.0]},
     {id:'west-column-aisle',name:'西侧彩绘柱廊',position:[-3.1,0,.25]},
@@ -636,5 +640,5 @@ export function buildEgypt(){
   for(const x of [-3.0,3.0])torch(desert,x,2.55,21.45,cameraColliders,0,true);
   for(const q of [desert,temple,passage,burial,pyramid,throne,privateRoom,judgment,ascending,service,roofGroup])batchZone(q);
   group.userData={...group.userData,interior:true,defaultRoofVisible:true,cameraMode:'close-third-person',theme:'dry-desert-pyramid',pyramidShell:{...shell,frontZ:front,rearZ:rear,solidBands:shellSolids.length,mainEntry:true},ambientIntensity:.38,sunIntensity:2.4,interiorZones:[{name:'神殿柱厅',minX:-9,maxX:9,minZ:-6.8,maxZ:.5,minY:-.1,maxY:5.1},{name:'金字塔墓室',minX:-13,maxX:12.5,minZ:-35,maxZ:-22.2,minY:-6.1,maxY:-.6}],originalProceduralArt:true,stoneFlights:flights.map(({sections,...f})=>f),constructionRevision:'Egypt-thick-passage-deep-tomb',tombSequence:{entryClearance:3.45,tunnelClearance:2.95,antechamberClearance:3.25,burialClearance:5.4,burialFloor:-6,route:[[0,0,23],[0,0,10],[0,0,-6.2],[0,-3,-14.6],[-6,-3,-14.6],[-6,-3,-16.2],[-6,-6,-23.3],[-5,-6,-26],[.3,-6,-26],[.6,-6,-30.1]]}};
-  return {group,colliders,spawn:[0,0,35.5],bounds:{minX:-30,maxX:30,minZ:-40,maxZ:40},stations,roofGroup,walkableSurfaces,cameraColliders,explorationTargets,doorways,facilities,levels:[{id:'desert',name:'沙漠与神殿',y:0},{id:'burial',name:'金字塔地下墓室',y:-6},{id:'burial-turn',name:'地下转折甬道',y:-3},{id:'throne',name:'上层法老王殿',y:4}]};
+  return {group,colliders,exchangeCounter,spawn:[0,0,35.5],bounds:{minX:-30,maxX:30,minZ:-40,maxZ:40},stations,roofGroup,walkableSurfaces,cameraColliders,explorationTargets,doorways,facilities,levels:[{id:'desert',name:'沙漠与神殿',y:0},{id:'burial',name:'金字塔地下墓室',y:-6},{id:'burial-turn',name:'地下转折甬道',y:-3},{id:'throne',name:'上层法老王殿',y:4}]};
 }
