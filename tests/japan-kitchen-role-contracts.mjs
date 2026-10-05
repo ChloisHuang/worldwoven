@@ -77,9 +77,9 @@ assert.equal(shared.careers.recordJapanKitchenReview(receipt(shared)).xpGained,1
 // The published v8 shape predates the empty Japanese library source. Keep
 // real cooking reviews, active tenure and paid-bank identities when it migrates.
 for(const previous of [live,full,shared]){
- const v8=clone(previous.store.careers);v8.version=8;delete v8.learning['jp-library'];
+ const v8=clone(previous.store.careers);v8.version=8;delete v8.learning['jp-library'];delete v8.learning['egypt-papyrus'];
  const migrated=fixture({store:{careers:v8,currency:previous.store.currency},clock:previous.clock});
- assert.equal(migrated.careers.state().loadError,null);assert.equal(migrated.careers.state().version,9);
+ assert.equal(migrated.careers.state().loadError,null);assert.equal(migrated.careers.state().version,10);
  for(const key of Object.keys(v8))if(!['version','learning'].includes(key))assert.deepEqual(migrated.careers.state()[key],v8[key],key+' cooking v8 preserved');
  for(const [key,row]of Object.entries(v8.learning))assert.deepEqual(migrated.careers.state().learning[key],row);
  assert.deepEqual(migrated.careers.state().learning['jp-library'],{issued:0,completed:0,issuedDay:null,lessonId:null});

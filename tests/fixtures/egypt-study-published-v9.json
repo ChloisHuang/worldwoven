@@ -1,0 +1,378 @@
+{
+  "provenance": "Produced by published schema-v9 createFormalCareers at 306178c. Starts from genuine v8 paid reception fixture, completes Japanese ritual to the daily cap and writing, issues an unfinished Japanese cooking ticket, then starts a real next-day reception duty. No source fields or duty records are hand-created.",
+  "worldSeed": 2,
+  "paid": {
+    "clock": {
+      "day": 1,
+      "hour": 12,
+      "seconds": 514.2857142857143
+    },
+    "saved": {
+      "version": 9,
+      "workExperience": {
+        "tavernChef": [],
+        "royalKitchen": {
+          "receipts": []
+        }
+      },
+      "officialCareer": {
+        "version": 1,
+        "appointments": [],
+        "service": [],
+        "applications": []
+      },
+      "skillXP": {
+        "ritual": 10,
+        "writing": 20,
+        "gardening": 0,
+        "art": 0,
+        "cooking": 0,
+        "martial": 0,
+        "care": 0
+      },
+      "revision": 20,
+      "applications": {
+        "lastRoleId": "jp-reception-apprentice",
+        "byRole": {
+          "jp-reception-apprentice": {
+            "id": "career-application:jp-reception-apprentice:1",
+            "roleId": "jp-reception-apprentice",
+            "status": "approved",
+            "stage": "decided",
+            "ok": true,
+            "code": "approved",
+            "reasons": [],
+            "day": 1,
+            "hour": 6,
+            "roll": 0.07846902147866786,
+            "checked": {
+              "ageYears": 22,
+              "skills": {
+                "ritual": 0,
+                "writing": 0
+              }
+            },
+            "interview": {
+              "chance": 0.6,
+              "roll": 0.07846902147866786,
+              "factors": {
+                "personality": 0,
+                "skills": 0,
+                "performance": 0,
+                "relationship": 0,
+                "recruiter": 0
+              }
+            },
+            "reviewedAt": {
+              "day": 1,
+              "hour": 6
+            },
+            "decidedAt": {
+              "day": 1,
+              "hour": 6
+            },
+            "appointment": null,
+            "tenure": {
+              "roleId": "jp-reception-apprentice",
+              "slotId": "jp-reception-apprentice-1",
+              "sinceDay": 1,
+              "sinceHour": 6,
+              "applicationId": "career-application:jp-reception-apprentice:1"
+            }
+          }
+        }
+      },
+      "skills": {
+        "ritual": 1,
+        "writing": 0,
+        "gardening": 0,
+        "art": 0,
+        "cooking": 0,
+        "martial": 0,
+        "care": 0
+      },
+      "tenure": {
+        "roleId": "jp-reception-apprentice",
+        "slotId": "jp-reception-apprentice-1",
+        "sinceDay": 1,
+        "sinceHour": 6,
+        "applicationId": "career-application:jp-reception-apprentice:1"
+      },
+      "lastDuty": {
+        "roleId": "jp-reception-apprentice",
+        "slotId": "jp-reception-apprentice-1",
+        "day": 1,
+        "stage": "paid",
+        "started": true,
+        "reason": null,
+        "arrivalHour": 6,
+        "wage": 6,
+        "workReceiptId": "jp-reception-labor-1",
+        "customerReviews": [],
+        "shiftKind": "continuous",
+        "startedSeconds": 0,
+        "coveredSeconds": 514.2857142857143,
+        "completedTasks": 0,
+        "endedHour": 12,
+        "endedSeconds": 514.2857142857143
+      },
+      "lastPaidDay": 1,
+      "daily": {
+        "day": 1,
+        "ritual": 4,
+        "writing": 2,
+        "gardening": 0,
+        "art": 0,
+        "cooking": 0,
+        "martial": 0,
+        "care": 0
+      },
+      "learning": {
+        "cn-rest": {
+          "issued": 1,
+          "completed": 1,
+          "issuedDay": 1,
+          "lessonId": "ritual-intro"
+        },
+        "cn-calligraphy": {
+          "issued": 1,
+          "completed": 1,
+          "issuedDay": 1,
+          "lessonId": "writing-practice"
+        },
+        "cn-archery": {
+          "issued": 0,
+          "completed": 0,
+          "issuedDay": null,
+          "lessonId": null
+        },
+        "france-salon": {
+          "issued": 1,
+          "completed": 0,
+          "issuedDay": 1,
+          "lessonId": "fr-cooking-intro"
+        },
+        "france-atelier": {
+          "issued": 0,
+          "completed": 0,
+          "issuedDay": null,
+          "lessonId": null
+        },
+        "jp-library": {
+          "issued": 5,
+          "completed": 4,
+          "issuedDay": 1,
+          "lessonId": "jp-cooking-intro"
+        }
+      },
+      "lowerWork": {
+        "cn-tavern-labor": 0,
+        "fr-garden-labor": 0,
+        "cn-pharmacy-labor": 0
+      },
+      "performance": 0,
+      "promotionProgress": 0,
+      "lastEvaluatedDay": 1,
+      "lastEvaluation": {
+        "id": "career-review:jp-reception-apprentice-1:1",
+        "evaluatorId": "jp-welcome",
+        "day": 1,
+        "roleId": "jp-reception-apprentice",
+        "slotId": "jp-reception-apprentice-1",
+        "positive": true,
+        "score": 0,
+        "reason": "当面交班已验收；实际当班6.00小时，按工时计薪6日本券",
+        "reasonCode": "labor-inspected",
+        "wage": 6,
+        "coverageHours": 6
+      }
+    }
+  },
+  "active": {
+    "clock": {
+      "day": 2,
+      "hour": 6,
+      "seconds": 2057.142857142857
+    },
+    "saved": {
+      "version": 9,
+      "workExperience": {
+        "tavernChef": [],
+        "royalKitchen": {
+          "receipts": []
+        }
+      },
+      "officialCareer": {
+        "version": 1,
+        "appointments": [],
+        "service": [],
+        "applications": []
+      },
+      "skillXP": {
+        "ritual": 10,
+        "writing": 20,
+        "gardening": 0,
+        "art": 0,
+        "cooking": 0,
+        "martial": 0,
+        "care": 0
+      },
+      "revision": 21,
+      "applications": {
+        "lastRoleId": "jp-reception-apprentice",
+        "byRole": {
+          "jp-reception-apprentice": {
+            "id": "career-application:jp-reception-apprentice:1",
+            "roleId": "jp-reception-apprentice",
+            "status": "approved",
+            "stage": "decided",
+            "ok": true,
+            "code": "approved",
+            "reasons": [],
+            "day": 1,
+            "hour": 6,
+            "roll": 0.07846902147866786,
+            "checked": {
+              "ageYears": 22,
+              "skills": {
+                "ritual": 0,
+                "writing": 0
+              }
+            },
+            "interview": {
+              "chance": 0.6,
+              "roll": 0.07846902147866786,
+              "factors": {
+                "personality": 0,
+                "skills": 0,
+                "performance": 0,
+                "relationship": 0,
+                "recruiter": 0
+              }
+            },
+            "reviewedAt": {
+              "day": 1,
+              "hour": 6
+            },
+            "decidedAt": {
+              "day": 1,
+              "hour": 6
+            },
+            "appointment": null,
+            "tenure": {
+              "roleId": "jp-reception-apprentice",
+              "slotId": "jp-reception-apprentice-1",
+              "sinceDay": 1,
+              "sinceHour": 6,
+              "applicationId": "career-application:jp-reception-apprentice:1"
+            }
+          }
+        }
+      },
+      "skills": {
+        "ritual": 1,
+        "writing": 0,
+        "gardening": 0,
+        "art": 0,
+        "cooking": 0,
+        "martial": 0,
+        "care": 0
+      },
+      "tenure": {
+        "roleId": "jp-reception-apprentice",
+        "slotId": "jp-reception-apprentice-1",
+        "sinceDay": 1,
+        "sinceHour": 6,
+        "applicationId": "career-application:jp-reception-apprentice:1"
+      },
+      "lastDuty": {
+        "roleId": "jp-reception-apprentice",
+        "slotId": "jp-reception-apprentice-1",
+        "day": 2,
+        "stage": "working",
+        "started": true,
+        "reason": null,
+        "arrivalHour": 6,
+        "wage": null,
+        "workReceiptId": "jp-reception-labor-2",
+        "customerReviews": [],
+        "shiftKind": "continuous",
+        "startedSeconds": 2057.142857142857,
+        "coveredSeconds": null,
+        "completedTasks": null,
+        "endedHour": null,
+        "endedSeconds": null
+      },
+      "lastPaidDay": 1,
+      "daily": {
+        "day": 1,
+        "ritual": 4,
+        "writing": 2,
+        "gardening": 0,
+        "art": 0,
+        "cooking": 0,
+        "martial": 0,
+        "care": 0
+      },
+      "learning": {
+        "cn-rest": {
+          "issued": 1,
+          "completed": 1,
+          "issuedDay": 1,
+          "lessonId": "ritual-intro"
+        },
+        "cn-calligraphy": {
+          "issued": 1,
+          "completed": 1,
+          "issuedDay": 1,
+          "lessonId": "writing-practice"
+        },
+        "cn-archery": {
+          "issued": 0,
+          "completed": 0,
+          "issuedDay": null,
+          "lessonId": null
+        },
+        "france-salon": {
+          "issued": 1,
+          "completed": 0,
+          "issuedDay": 1,
+          "lessonId": "fr-cooking-intro"
+        },
+        "france-atelier": {
+          "issued": 0,
+          "completed": 0,
+          "issuedDay": null,
+          "lessonId": null
+        },
+        "jp-library": {
+          "issued": 5,
+          "completed": 4,
+          "issuedDay": 1,
+          "lessonId": "jp-cooking-intro"
+        }
+      },
+      "lowerWork": {
+        "cn-tavern-labor": 0,
+        "fr-garden-labor": 0,
+        "cn-pharmacy-labor": 0
+      },
+      "performance": 0,
+      "promotionProgress": 0,
+      "lastEvaluatedDay": 1,
+      "lastEvaluation": {
+        "id": "career-review:jp-reception-apprentice-1:1",
+        "evaluatorId": "jp-welcome",
+        "day": 1,
+        "roleId": "jp-reception-apprentice",
+        "slotId": "jp-reception-apprentice-1",
+        "positive": true,
+        "score": 0,
+        "reason": "当面交班已验收；实际当班6.00小时，按工时计薪6日本券",
+        "reasonCode": "labor-inspected",
+        "wage": 6,
+        "coverageHours": 6
+      }
+    }
+  }
+}
