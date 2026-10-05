@@ -25,8 +25,9 @@ const LOCAL_WAIT={'jp-omamori':[7.5,0,30.5],'jp-garden-onsen':[-17.1,0,-6],'jp-t
 // Seven bounded coverage pairs. No live claim, held meal, seat lock or
 // sleeping pose is restored from a save; an interrupted break gets its turn
 // again after both real workers have safely met at their service counter.
-export function createJapanStaffLife({actors,board,furniture,assign,clear,unmount,taskOf,changeWardrobe=()=>{},canReach=()=>true,worldSeed=1,saved={},sharedNeeds=null,getToilet=()=>null,saveState=()=>true,onMealReceipt=()=>true,getReceptionCoverage=()=>false}) {
+export function createJapanStaffLife({actors,board,furniture,assign,clear,unmount,taskOf,changeWardrobe=()=>{},canReach=()=>true,worldSeed=1,saved={},sharedNeeds=null,getToilet=()=>null,saveState=()=>true,onMealReceipt=()=>true,getReceptionCoverage=()=>false,getExternalCoverage=()=>false}) {
  // A reduced scene can omit a whole pair, but never schedule half a pair.
+ const external=id=>getExternalCoverage(id)||['jp-welcome','jp-market-tea'].includes(id)&&getReceptionCoverage();
  const crew=JAPAN_STAFF_CREW.filter(id=>profile(id).ids.every(other=>actors.has(other))).map(id=>actors.get(id));
  const seats=furniture.items.filter(i=>i.kind==='seat'&&i.center[1]===11.4&&i.center[2]===-7.45);
  const beds=furniture.items.filter(i=>i.kind==='bed'&&i.center[1]===11.4);
@@ -124,7 +125,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   const met=()=>{if(active.retireReady&&active.reliefReady){active.covering=!!shift.local;dressRelief();note('relief-arrived');active.phase=active.returnOnly?'returning':'choosing';}return true;};
     // Distinct adjacent positions let the retiring worker hand over without
     // occupying the point the replacement must reach.
-    if(active.externalCoverage){active.reliefReady=true;go(n,shift.retire,{label:'把原前台交给当班的你，收好随身物品轮休',duration:1,onDone:()=>{active.retireReady=true;return met();}});return;}
+    if(active.externalCoverage){active.reliefReady=true;go(n,shift.retire,{label:`把${shift.duty}交给当班的你，收好随身物品轮休`,duration:1,onDone:()=>{active.retireReady=true;return met();}});return;}
     const reliefPost=shift.local?post(active.id):null;
     if(reliefPost?.mount&&!furniture.facilities.request(reliefPost.mount.id,active.reliefId)){active.phase='draining';return;}
     if(!active.retireReady)go(n,shift.retire,{face:shift===APOTHECARY||shift.side||shift.local?shift.relief:null,label:`把${shift.duty}交给 ${relief.station.npcName}`,duration:1,onDone:()=>{active.retireReady=true;return met();}});
@@ -164,7 +165,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   // permanent reassignment away from the rear-yard crates.
   canClaim(id,kind){
    if(JAPAN_LOCAL_WORKERS.includes(id))return false;
-   if(['jp-welcome','jp-market-tea'].includes(id)&&getReceptionCoverage())return false;
+   if(external(id))return false;
    const primary=id==='jp-market-tea'&&['register','checkout'].includes(kind)?'jp-welcome':id==='jp-herb-workshop'&&kind==='prepare'?'jp-incense':id==='jp-steam'&&kind==='deliverMix'?'jp-onsen':id==='jp-rest'&&kind==='deliverMix'?'jp-women-onsen':null;
    return !primary||(active?.id===primary&&active.reliefId===id&&!['draining','handoff'].includes(active.phase));
   },
@@ -176,7 +177,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   },
   canWork(id){return !active||(id!==active.id&&!(id===active.reliefId&&!active.externalCoverage&&['draining','handoff'].includes(active.phase)));},
   update(dt,state={}) {
-   time+=dt;decisions.tick(dt);if(active?.externalCoverage&&!getReceptionCoverage())active.externalCoverage=false;
+   time+=dt;decisions.tick(dt);if(active?.externalCoverage&&!external(active.id))active.externalCoverage=false;
    if(time>=receiptRetryAt){receiptRetryAt=time+1;deliverMeals();}
    // One bounded needs check each second; decisions still happen only after
    // the existing real handoff, and no claimed order is interrupted.
@@ -186,7 +187,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
     // Reserve only the relief slot now. Existing jobs drain before the real
     // handoff establishes eligibility for an action; no per-frame lottery.
     const candidate=resumeReturn?crew[next]:crew.filter(n=>due[n.station.id]<=time).sort(dueOrder)[0];
-    if(!candidate)return;const id=candidate.station.id;next=crew.indexOf(candidate);active={id,reliefId:profile(id).ids.find(other=>other!==id),externalCoverage:profile(id)===FRONT_DESK&&getReceptionCoverage(),covering:false,phase:'draining',choice:null,meal:false,wait:0,interrupted:resumeReturn&&!!saved.returnInterrupted,returnOnly:resumeReturn};resumeReturn=false;note('break-due');
+    if(!candidate)return;const id=candidate.station.id;next=crew.indexOf(candidate);active={id,reliefId:profile(id).ids.find(other=>other!==id),externalCoverage:external(id),covering:false,phase:'draining',choice:null,meal:false,wait:0,interrupted:resumeReturn&&!!saved.returnInterrupted,returnOnly:resumeReturn};resumeReturn=false;note('break-due');
    }
    const n=actors.get(active.id),relief=actors.get(active.reliefId),shift=shiftFor(active.id);
    if(active.phase==='draining') {

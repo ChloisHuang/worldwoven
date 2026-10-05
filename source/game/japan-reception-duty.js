@@ -74,7 +74,7 @@ export function createJapanReceptionDuty({board,actors,assign,clear,unmount,task
   isActing:()=>!!step,held:()=>false,stopWorkAction:stopWork,
   workLabel:()=>step?`${step.number}号 · ${step.kind==='register'?'核对客簿，递出浴牌':'核对原牌，销号收回'}`:paused?'离开前台已暂停 · 原人代管，请当面接回':board.receptionDuty()?.status==='draining'?'等原客办完 · 当面接回前台':'在前台候单 · 原来客逐号办理',
   playerPose:()=>step?{action:'calligraphy',workTarget:P.receptionLedger.slice(),receptionWriting:true,station:{workTarget:P.receptionLedger.slice(),receptionWriting:true}}:null,
-  snapshot:()=>({version:1,desired,paused,status:board.receptionDuty()?.status||'inactive',step:step?copy(step):null}),
+  snapshot:()=>({version:1,desired,paused:paused||!!desired&&!board.receptionDuty(),status:board.receptionDuty()?.status||'inactive',step:step?copy(step):null}),
   restore(s){if(s?.version!==1)return false;desired=s.desired||null;paused=!!s.paused;step=null;if(desired&&!paused&&inWorkplace()){board.setReceptionDuty(desired,s.status==='draining'?'draining':'active');if(s.step&&board.receptionDuty()?.status==='active'&&board.claim(s.step.jobId,'player'))step=copy(s.step);}else if(desired)paused=true;return true;},
   dispose(){disposed=true;stopWork();if(desired)board.releaseReceptionDuty(desired);desired=null;}
  };
