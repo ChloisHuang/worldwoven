@@ -14,7 +14,8 @@ export const TAVERN_STEWARD_ROLE = Object.freeze({id:'cn-tavern-steward',name:'�
   slotId:'cn-tavern-steward-1',country:'china',currency:'copper',employer:'许安',workplace:'云来酒楼',
   supervisorId:'cn-tavern-host',incumbentId:'cn-tavern-assistant',incumbentName:'陆青',vacancyKind:'rotation',workSource:'cn-tavern-labor',wage:16,minimumAgeYears:18,
   skillRequirements:Object.freeze({ritual:2}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1});
-export const TAVERN_HOST_ROLE = Object.freeze({id:'cn-tavern-host',name:'酒楼轮值掌柜',
+// Unpublished host prototype is excluded from salaried vacancies: ownership purchase is required.
+export const TAVERN_HOST_ROLE = Object.freeze({id:'cn-tavern-host',name:'酒楼掌柜（须购买经营权）',ownershipRequired:true,
   slotId:'cn-tavern-host-rotation-1',country:'china',currency:'copper',employer:'许安',workplace:'云来酒楼 · 掌柜登记案',
   supervisorId:'cn-tavern-host',incumbentId:'cn-tavern-host',incumbentName:'许安',vacancyKind:'rotation',workSource:'cn-tavern-host-labor',wage:24,minimumAgeYears:18,
   skillRequirements:Object.freeze({ritual:3,writing:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1,
@@ -28,7 +29,7 @@ export const GARDEN_ASSISTANT_ROLE = Object.freeze({id:'fr-garden-assistant',nam
   slotId:'fr-garden-assistant-1',country:'france',currency:'france',employer:'埃米尔',workplace:'西苑工具架登记簿',
   supervisorId:'france-gardener',workSource:'fr-garden-labor',wage:8,minimumAgeYears:18,
   skillRequirements:Object.freeze({gardening:2}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1});
-export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_HOST_ROLE,TAVERN_CHEF_ROLE]);
+export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE]);
 export const FORMAL_CAREER_SLOTS = Object.freeze([
   ...FORMAL_CAREER_ROLES.map(role => Object.freeze({id:role.slotId,roleId:role.id,holderId:role.incumbentId||null,...(role.vacancyKind==='rotation'?{rotation:true}:{})})),
 ]);

@@ -12,7 +12,7 @@ function fixture(saved,bank={amount:0,receipts:new Map()},options={}){
  const train=role=>{for(const[skill,minimum]of Object.entries(role.skillRequirements))for(let i=0;i<minimum;i++)study(skill);};
  return {careers,clock,flags,bank,study,train,saved:()=>copy(durable)};
 }
-for(const role of [HOST,CHEF]){
+for(const role of [CHEF]){
  const f=fixture();assert(!f.careers.apply(role.id,{ageYears:18}).ok);assert.equal(f.careers.state().tenure,null);
  f.train(role);f.clock.day=2;assert(f.careers.eligibility(role.id,{ageYears:18}).ok);
  const slot=FORMAL_CAREER_SLOTS.find(s=>s.id===role.slotId);assert.equal(slot.holderId,role.incumbentId);assert.equal(slot.rotation,true);
@@ -43,29 +43,29 @@ for(const key of ['tenure','lastPaidDay','learning','lowerWork','performance','p
 assert.deepEqual(migrated.careers.state().lastDuty,{...v3.lastDuty,customerReviews:[]});assert.equal(migrated.careers.settle().code,'work-incomplete');
 for(const corrupt of [s=>s.skills.ritual=101,s=>{s.lastDuty.wage=16;s.lastEvaluation.wage=16;},s=>s.skills.cooking=8,s=>s.lastEvaluation.servicePenalty=1]){const bad=copy(v3);corrupt(bad);assert.equal(fixture(bad).careers.state().loadError,'invalid-career-state');}
 const cancelled=fixture();cancelled.train(ASSISTANT);cancelled.careers.apply(ASSISTANT.id,{ageYears:18});cancelled.careers.beginDuty({receiptId});cancelled.careers.customerReview(bad);assert(cancelled.careers.interruptDuty('cancelled').ok);assert.equal(cancelled.careers.beginDuty({receiptId:'cn-tavern-labor-2'}).code,'duty-missed');assert.equal(fixture(cancelled.saved()).careers.state().performance,-3);assert.equal(cancelled.bank.amount,0);
-console.log('PASS tavern roles: exact cooking/host requirements, explicit start/18:00, incumbent rotation, v3 paid migration, durable bad/corrected reviews, no correction farm, cancel/reload and one bank wage');
+console.log('PASS tavern roles: exact cooking requirements, explicit start/18:00, incumbent rotation, v3 paid migration, durable bad/corrected reviews, no correction farm, cancel/reload and one bank wage');
 // Continuous careers cover the real 06–18 window. A couple of orders cannot
 // mint a full day's salary; quiet waiting remains paid and premature/replayed receipts retain legacy safety.
 const secondsFor=hours=>hours*60/.7;
-function continuous({arrival=6,ended=18,hours=ended-arrival,tasks=1,role=HOST}={}){
+function continuous({arrival=6,ended=18,hours=ended-arrival,tasks=1,role=ASSISTANT}={}){
  const f=fixture();f.clock.hour=arrival;f.train(role);f.careers.apply(role.id,{ageYears:18});const receiptId=`${role.workSource}-1`;
  assert(f.careers.beginDuty({receiptId,shiftKind:'continuous'}).ok);f.clock.hour=ended;f.clock.seconds=secondsFor(ended-arrival);
  const work={roleId:role.id,receiptId,coveredSeconds:secondsFor(hours),completedTasks:tasks};
  return {...f,work};
 }
-for(const [args,expected] of [[{},25],[{arrival:10},16],[{ended:8},4],[{arrival:17.99,ended:18},0]]){
- let f=continuous(args);assert(f.careers.laborEvent('completed',f.work).ok);assert(f.careers.laborEvent('inspected',f.work).ok);assert.equal(f.careers.state().lastDuty.wage,expected);assert.equal(f.careers.state().promotionProgress,expected===25?1:0);
+for(const [args,expected] of [[{},17],[{arrival:10},10],[{ended:8},2],[{arrival:17.99,ended:18},0]]){
+ let f=continuous(args);assert(f.careers.laborEvent('completed',f.work).ok);assert(f.careers.laborEvent('inspected',f.work).ok);assert.equal(f.careers.state().lastDuty.wage,expected);assert.equal(f.careers.state().promotionProgress,expected===17?1:0);
  const snapshot=f.saved(),restored=fixture(snapshot,f.bank);restored.clock.hour=f.clock.hour;restored.clock.seconds=f.clock.seconds;assert.equal(restored.careers.state().loadError,null);assert(restored.careers.settle().ok);assert.equal(restored.bank.amount,expected);assert.equal(restored.bank.receipts.size,expected?1:0);assert.equal(restored.careers.settle().code,'work-incomplete');
 }
 for(const work of [{coveredSeconds:-1},{coveredSeconds:secondsFor(15)},{completedTasks:-1},{completedTasks:1.5}]){const f=continuous();assert.equal(f.careers.laborEvent('completed',{...f.work,...work}).code,'invalid-shift-work');assert.equal(f.careers.state().lastDuty.stage,'working');}
-const capped=continuous({arrival:8,ended:19,hours:10});assert(capped.careers.laborEvent('completed',capped.work).ok);assert(capped.careers.laborEvent('inspected',capped.work).ok);assert.equal(capped.careers.state().lastDuty.wage,20,'On-duty time stops paying at18:00');
-const dirty=continuous();const dirt={...bad,roleId:HOST.id,receiptId:dirty.work.receiptId,reviewId:dirty.work.receiptId+'-order-2-dirty-table',reasonCode:'dirty-table'};
+const capped=continuous({arrival:8,ended:19,hours:10});assert(capped.careers.laborEvent('completed',capped.work).ok);assert(capped.careers.laborEvent('inspected',capped.work).ok);assert.equal(capped.careers.state().lastDuty.wage,13,'On-duty time stops paying at18:00');
+const dirty=continuous();const dirt={...bad,roleId:ASSISTANT.id,receiptId:dirty.work.receiptId,reviewId:dirty.work.receiptId+'-order-2-dirty-table',reasonCode:'dirty-table'};
 assert(dirty.careers.customerReview(dirt).ok);assert(dirty.careers.customerReview(dirt).unchanged);assert.equal(dirty.careers.state().performance,-2);assert(dirty.careers.state().lastDuty.customerReviews[0].reason.includes('上一位客人'));
-assert(dirty.careers.laborEvent('completed',dirty.work).ok);assert(dirty.careers.laborEvent('inspected',dirty.work).ok);assert.equal(dirty.careers.state().lastDuty.wage,23);assert.equal(fixture(dirty.saved()).careers.state().loadError,null);
-const zero=continuous({arrival:17.99,ended:18});zero.careers.laborEvent('completed',zero.work);zero.careers.laborEvent('inspected',zero.work);zero.flags.fail=true;assert.equal(zero.careers.settle().code,'save-failed');zero.flags.fail=false;assert(zero.careers.settle().ok);assert.equal(zero.bank.receipts.size,0);assert(zero.careers.resign().ok);assert.equal(zero.careers.apply(HOST.id,{ageYears:18}).code,'already-applied-today');assert.equal(zero.careers.beginDuty({receiptId:'cn-tavern-host-labor-2'}).code,'not-employed');
+assert(dirty.careers.laborEvent('completed',dirty.work).ok);assert(dirty.careers.laborEvent('inspected',dirty.work).ok);assert.equal(dirty.careers.state().lastDuty.wage,15);assert.equal(fixture(dirty.saved()).careers.state().loadError,null);
+const zero=continuous({arrival:17.99,ended:18});zero.careers.laborEvent('completed',zero.work);zero.careers.laborEvent('inspected',zero.work);zero.flags.fail=true;assert.equal(zero.careers.settle().code,'save-failed');zero.flags.fail=false;assert(zero.careers.settle().ok);assert.equal(zero.bank.receipts.size,0);assert(zero.careers.resign().ok);assert.equal(zero.careers.apply(ASSISTANT.id,{ageYears:18}).code,'already-applied-today');assert.equal(zero.careers.beginDuty({receiptId:'cn-tavern-labor-2'}).code,'not-employed');
 console.log('PASS continuous contracts: full12h vs late/early prorated salary, witnessed-time/task bounds,18:00 cap, dirty-table dedupe, zero-pay no-mint and saved restoration');
 
-const quiet=continuous({tasks:0});assert(quiet.careers.laborEvent('completed',quiet.work).ok);assert(quiet.careers.laborEvent('inspected',quiet.work).ok);assert.equal(quiet.careers.state().lastDuty.wage,25,'A real quiet shift is paid without inventing customer work');assert(quiet.careers.settle().ok);
+const quiet=continuous({tasks:0});assert(quiet.careers.laborEvent('completed',quiet.work).ok);assert(quiet.careers.laborEvent('inspected',quiet.work).ok);assert.equal(quiet.careers.state().lastDuty.wage,17,'A real quiet shift is paid without inventing customer work');assert(quiet.careers.settle().ok);
 
 // The published steward seat keeps its identity while the real assistant takes
 // the other side of handover. Correction describes the actual corrected target.
@@ -82,3 +82,5 @@ for(const [reviewId,reasonCode]of [['cn-tavern-delivery-1-wrong-dish','wrong-dis
 }
 for(const [reviewId,reasonCode]of [['cn-tavern-delivery-0-wrong-dish','wrong-dish'],['cn-tavern-delivery-1-wrong-table','wrong-dish'],['cn-tavern-table-use-3-west--1','dirty-table'],['cn-tavern-table-use-3-west-01','dirty-table'],['cn-tavern-delivery-9007199254740992-wrong-dish','wrong-dish']]){const f=continuous({role:ASSISTANT});assert.equal(f.careers.customerReview({...bad,reviewId,reasonCode}).code,'invalid-customer-review');}
 console.log('PASS stable world review IDs: delivery and table-use events, current receipt ownership, legacy IDs, duplicate/reload/correction and invalid serials');
+
+const ownership=fixture();ownership.train(HOST);assert(!ownership.careers.catalogue().some(r=>r.id===HOST.id));assert(!FORMAL_CAREER_SLOTS.some(slot=>slot.roleId===HOST.id));assert.equal(ownership.careers.apply(HOST.id,{ageYears:18}).code,'unknown-role');assert.equal(ownership.careers.state().tenure,null);assert.equal(ownership.careers.state().lastDuty,null);assert.equal(ownership.bank.amount,0);console.log('PASS proprietor cannot be obtained by salaried application; purchase system remains unavailable');

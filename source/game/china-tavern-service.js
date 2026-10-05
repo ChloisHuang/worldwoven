@@ -35,7 +35,7 @@ export function createChinaTavernService({meal,careers,getPlayer,getMounted=()=>
   const paid=careers.state().lastDuty.stage==='paid'?{ok:true}:careers.settle();if(!paid.ok)return failure('工资尚未入账，完成记录会保留，请稍后再试');
   const wage=careers.state().lastDuty.wage;if(!save({...current,job:null}))return false;selected=null;notify(`许安：已按实际在岗工时及服务评价结算${wage}铜文，工资存入银行`);return true;
  }
- function intent(kind=null,roleId=null,choice=null){const role=roleFor(roleId),job=current.job,registered=careers.isHired(role.id);
+ function intent(kind=null,roleId=null,choice=null){if(roleId===TAVERN_HOST_ROLE.id)return null;const role=roleFor(roleId),job=current.job,registered=careers.isHired(role.id);
   kind||=job?job.stage==='inspection'?'claim':selected?'task':'work-view':'formal-view';
   if(kind==='view')kind='formal-view';
   if(kind==='accept'&&(!registered||job||getLegacyJob()||!beginAvailability(role).ok))return null;
