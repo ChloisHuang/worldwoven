@@ -16,18 +16,18 @@ const {createFranceGardenerEmployment}=await import('../source/game/france-garde
 const {createFranceGardener}=await import('../source/game/france-gardener.js');
 const {FRANCE_GARDENER:P}=await import('../source/game/france-gardener-place.js');
 const copy=x=>JSON.parse(JSON.stringify(x));
-function fixture(t,role,saved={}){
+function fixture(t,role,saved={},options={}){
  const store=copy(saved),clock={day:1,hour:8,seconds:0,...store.clock},flags={labor:false,career:false,bank:false,cleanup:false,paidCleanup:false};
  const save=key=>next=>{if(flags[key]||key==='labor'&&flags.cleanup&&next.job===null||key==='career'&&flags.paidCleanup&&next.lastDuty?.stage==='paid')return false;store[key]=copy(next);store.clock=copy(clock);};
  const bank=createCurrencyLedger({saved:store.bank,saveState:save('bank')});
  const careers=createFormalCareers({saved:store.career,saveState:save('career'),getClock:()=>clock,creditWageToBank:bank.creditWageToBank});
  const group=new T.Group();function person(point){const root=new T.Group(),hands=[new T.Object3D(),new T.Object3D()];root.add(...hands);root.userData.hands=hands;root.position.set(...point);group.add(root);return {ageYears:22,root,walking:false,route:[],characterScale:1,locomotion:{walkSpeed:2},animate(){}};}
- const garden=role.id===GARDEN.id,player=person(garden?P.registration:[22.35,.215,11.7]);let labor,employment,gardener;
+ const garden=role.id===GARDEN.id,player=person(garden?P.registration:[22.35,.215,11.7]),notices=[],registrations=[];player.ageYears=options.ageYears??22;let labor,employment,gardener;
  if(garden){const actor=person(P.approach);actor.station={id:P.id,npcAction:'garden'};
   gardener=createFranceGardener({npcs:[actor],lot:{group,walkableSurfaces:[]},doors:{routeStep(route,p){while(route[0]&&p.distanceTo(route[0])<.035)route.shift();return {waypoint:route[0]};}},planPath:(_a,b)=>[new T.Vector3(b.x,b.y,b.z)],moveActor:(n,x,z)=>{n.root.position.x+=x;n.root.position.z+=z;},poseContext:n=>n.poseContext??={},getPlayer:()=>player,getBorrowedPose:()=>labor?.toolPose(),worldSeed:1});
   employment=createFranceGardenerEmployment({saved:store.employment,saveState:save('employment'),getJob:()=>labor?.state().job,meetHost:()=>labor.meetHost()});
  }else employment=createChinaTavernEmployment({saved:store.employment,saveState:save('employment'),getJob:()=>labor?.state().job,meetHost:()=>labor.meetHost()});
- const props={employment,careers,getClock:()=>clock,getPlayer:()=>player,copperLedger:bank,saved:store.labor,saveState:save('labor'),onCompleted:job=>careers.completedLowerWork({source:role.workSource,receiptId:job.receiptId}),document:null};
+ const props={employment,careers,getClock:()=>clock,getPlayer:()=>player,copperLedger:bank,saved:store.labor,saveState:save('labor'),onCompleted:job=>careers.completedLowerWork({source:role.workSource,receiptId:job.receiptId}),notify:text=>notices.push(text),openRegistration:context=>registrations.push({context,result:careers.applicationResult()}),document:null};
  labor=garden?createFranceGardenerLabor({...props,gardener}):createChinaTavernLabor({...props,host:{walking:false,root:{position:{x:24.1,y:.215,z:11.4}},station:{npcPosition:[24.1,.215,11.4]}}});
  const tick=(count=1)=>{for(let i=0;i<count;i++){clock.seconds+=.1;labor.update(.1);gardener?.update(.1,clock.seconds);}};
  const move=point=>{player.root.position.set(...point);player.walking=false;};
@@ -36,8 +36,53 @@ function fixture(t,role,saved={}){
  const act=kind=>{execute(kind);tick(kind==='take'||kind==='return'?15:51);};
  const finish=()=>{visit('accept');if(garden){act('take');act('water');act('water');act('return');}else{act('clean');act('clean');}assert.equal(labor.state().job.stage,'ready');};
  const train=()=>{visit('apply');for(let i=0;i<2;i++){finish();visit('claim');}assert.equal(careers.state().skills[garden?'gardening':'ritual'],2);};
- t.after(()=>{labor.dispose();gardener?.dispose();});return {store,clock,flags,bank,careers,labor,employment,gardener,player,tick,move,execute,visit,act,finish,train};
+ t.after(()=>{labor.dispose();gardener?.dispose();});return {store,clock,flags,bank,careers,labor,employment,gardener,player,notices,registrations,tick,move,execute,visit,act,finish,train};
 }
+// A rejected physical application must not be confused with reaching the host,
+// particularly the garden's asynchronous meeting acknowledgement. Keep both
+// durable work/economy records and the adapter's separate temporary role intact.
+const durableCareer=careers=>{const {lastError,loadError,...state}=careers.state();return state;};
+function guardState(f){return copy({career:durableCareer(f.careers),catalogue:f.careers.catalogue(),job:f.labor.state().job,
+ serial:f.labor.state().serial,formalHired:f.labor.state().formalHired,hired:f.labor.state().hired,
+ bank:f.bank.state(),employment:f.employment.state(),store:f.store});}
+function applicationSeed(skills={},tenure=null){
+ const core=createFormalCareers({saveState:()=>{},getClock:()=>({day:1,hour:8,seconds:0})});
+ return {career:{...durableCareer(core),skills:{...core.state().skills,...skills},tenure}};
+}
+function rejectApplication(f,role,reasons){
+ const before=guardState(f),notices=f.notices.length,registrations=f.registrations.length;
+ f.visit('formal-apply',role.id===GARDEN.id);
+ assert.deepEqual(guardState(f),before,'rejection cannot mutate tenure, vacancy, work, money or temporary employment');
+ assert.deepEqual(f.careers.applicationResult().reasons,reasons);assert.equal(f.careers.applicationResult().ok,false);
+ assert.equal(f.registrations.length,registrations+1,'physical application reopens registration with its final result');
+ assert.deepEqual(f.registrations.at(-1),{context:{country:role.country,roleId:role.id},result:f.careers.applicationResult()});
+ assert(!f.notices.slice(notices).some(text=>text.includes('已录用')),'rejected application never announces a hire');
+}
+for(const role of [TAVERN,GARDEN])await test(`${role.id}: actual application rejects underage/missing skill/reload without false employment; exact threshold hires`,t=>{
+ const skill=role.id===GARDEN.id?'gardening':'ritual';
+ for(const [ageYears,points,reasons] of [[17,2,['adult-required']],[18,1,[`${skill}-required`]],[17,0,['adult-required',`${skill}-required`]]]){
+  const f=fixture(t,role,applicationSeed({[skill]:points}),{ageYears});rejectApplication(f,role,reasons);
+  assert.equal(f.labor.intent('accept'),null,'a rejected applicant has no work access');assert.equal(f.labor.intent('formal-resign'),null);
+  const reloaded=fixture(t,role,f.store,{ageYears});assert.equal(reloaded.careers.applicationResult(),null,'rejection is session feedback, not a saved hire');
+  assert.equal(reloaded.careers.state().tenure,null);assert.equal(reloaded.labor.state().hired,false);rejectApplication(reloaded,role,reasons);
+ }
+ const eligible=fixture(t,role,applicationSeed({[skill]:2}),{ageYears:18}),before=guardState(eligible);
+ eligible.visit('formal-apply');assert.equal(eligible.careers.applicationResult().ok,true);assert(eligible.labor.state().formalHired);
+ assert.equal(eligible.careers.state().tenure.roleId,role.id);assert.equal(eligible.careers.catalogue().find(r=>r.id===role.id).vacancy,0);
+ assert.equal(eligible.labor.state().job,null);assert.deepEqual(eligible.bank.state(),before.bank);assert.deepEqual(eligible.employment.state(),before.employment);
+ assert.equal(eligible.registrations.at(-1).result.ok,true);assert.equal(fixture(t,role,eligible.store).careers.state().tenure.roleId,role.id);
+});
+for(const role of [TAVERN,GARDEN])await test(`${role.id}: rejected formal application preserves temporary employment, another role and failed-save state`,t=>{
+ const skill=role.id===GARDEN.id?'gardening':'ritual',temporary=fixture(t,role,applicationSeed({[skill]:1}),{ageYears:18});
+ temporary.visit('apply');assert(temporary.employment.isHired());rejectApplication(temporary,role,[`${skill}-required`]);
+ temporary.visit('accept');assert.equal(temporary.labor.state().job.formalRoleId,undefined,'rejected formal application still starts only a temporary work slip');
+ const other=role.id===TAVERN.id?GARDEN:TAVERN;
+ const employed=fixture(t,role,applicationSeed({ritual:2,gardening:2},{roleId:other.id,slotId:other.slotId,sinceDay:1,sinceHour:8}),{ageYears:18});
+ rejectApplication(employed,role,['already-employed']);assert(employed.careers.isHired(other.id));
+ const reloaded=fixture(t,role,employed.store,{ageYears:18});rejectApplication(reloaded,role,['already-employed']);assert(reloaded.careers.isHired(other.id));
+ const failed=fixture(t,role,applicationSeed({[skill]:2}),{ageYears:18});failed.flags.career=true;rejectApplication(failed,role,['save-failed']);
+ assert.equal(fixture(t,role,failed.store).careers.state().tenure,null);
+});
 for(const role of [TAVERN,GARDEN])await test(`${role.id}: real practice, local acceptance, tools/work, native bank salary, daily lock and reload`,t=>{
  const f=fixture(t,role),garden=role.id===GARDEN.id;
  const apply=f.labor.intent('formal-apply');f.move([0,0,0]);assert.equal(f.labor.executeIntent(apply),false);
