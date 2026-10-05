@@ -1,7 +1,7 @@
 import {captureWorldActor,storeWorldRegion,readWorldRegion,restoreWorldActor,nearestContinuityPosition,continuityCopy} from './world-continuity.js';
 import {createTravelPassport} from './travel-passport.js';
 import {createPassportPortrait} from './passport-portrait.js';
-import {displayedViewport,createHudLayout} from './viewport-layout.js';
+import {displayedViewport,createHudLayout,syncUiViewport} from './viewport-layout.js';
 import {createCareerHandbook} from './career-handbook.js';
 import {createSimulationClock} from './simulation-clock.js';
 import {createChinaTavernService} from './china-tavern-service.js';
@@ -66,7 +66,7 @@ import {createCharacter,characterResourceStats} from './characters.js?rev=R7-202
 import {blocked,moveWithCollision,findPath,canTraverse,resolveSurfaceHeight} from './navigation.js?rev=R7-20261002';
 import * as G from './geometry.js?rev=R7-20261002';
 const $=id=>document.getElementById(id), canvas=$('world');
-let viewport=displayedViewport(canvas);const hudLayout=createHudLayout();
+let viewport=displayedViewport(canvas);const hudLayout=createHudLayout();syncUiViewport();
 const regions=[
 {id:'japan',country:'日本',en:'JAPAN',name:'云隐汤馆',subtitle:'樱花鸟居 · 男女温泉 · 回转寿司与暖炉',description:'跨过樱花与鸟居，在食街、温泉、暖炉大厅和汤馆职人层之间漫游。',icon:'❀',color:'#edd0c5',accent:0xc7857a,build:buildJapan},
 {id:'china',country:'中国',en:'CHINA',name:'承光宫苑',subtitle:'赤柱金瓦 · 中轴重殿 · 宫廷庭院',description:'穿过层层宫门，走进金瓦映照的殿阁与庭院。',icon:'亭',color:'#d1ddca',accent:0x789777,build:buildChina},
@@ -555,9 +555,10 @@ function updateGameHealth(dt){
 }
 let frame=0;function animate(){requestAnimationFrame(animate);const {dt,steps,stepDt}=simulationFrame(clock.getDelta());if(paused){beginActorNavigationStep(0);return;}flushShapePreview();if(mode==='globe'){elapsed+=dt;if(focusedGlobe){globe.group.quaternion.slerp(focusedGlobe,Math.min(1,dt*3));if(globe.group.quaternion.angleTo(focusedGlobe)<.006)focusedGlobe=null;}else if(!drag&&!matchMedia('(prefers-reduced-motion: reduce)').matches){const q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),dt*.012);globe.group.quaternion.premultiply(q);}globe.update?.(dt,elapsed);}else{for(let step=0;step<steps;step++){beginActorNavigationStep(stepDt);elapsed+=stepDt;advanceWorldClock(stepDt);updateAutomaticDoors(stepDt);updatePlayer(stepDt,elapsed);japanWeatherCharms?.update(elapsed);updateNPCs(stepDt,elapsed);updateGameHealth(stepDt);japanServiceUI?.update();japanPerformanceUI?.update();chinaTavernUI?.update();chinaSalonUI?.update();}lotAnimationTime+=dt;lot.update?.(dt,lotAnimationTime);furniture?.update(dt);const total=Math.floor(simulationClock.state().hour*60);$('game-time').title=`第 ${simulationClock.state().day+1} 日 · 仅游玩时推进`; $('game-time').textContent=`${String(Math.floor(total/60)%24).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;}careerHandbook.update(mode);studyMenu.update();if(mode==='lot'&&player)lighting.update(player.root.position);updateCamera(dt);renderer.render(scene,camera);if(frame++%2===0){updateLabels();updateFurnitureLabels();}}
 addEventListener('pagehide',()=>{gameHealth.flush();save();});
-function resize(){viewport=displayedViewport(canvas);hudLayout.invalidate();if(viewport.height>viewport.width&&matchMedia('(pointer: coarse)').matches&&outfitPreview.state().open)closeOutfitPreview(false);camera.aspect=viewport.width/viewport.height;camera.updateProjectionMatrix();renderer.setSize(viewport.width,viewport.height,false);renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));updateCamera(1,true);}
+function resize(){syncUiViewport();viewport=displayedViewport(canvas);hudLayout.invalidate();if(viewport.height>viewport.width&&matchMedia('(pointer: coarse)').matches&&outfitPreview.state().open)closeOutfitPreview(false);camera.aspect=viewport.width/viewport.height;camera.updateProjectionMatrix();renderer.setSize(viewport.width,viewport.height,false);renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));updateCamera(1,true);}
 let resizeFrame;const queueResize=()=>{cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(resize);};
 addEventListener('resize',queueResize);addEventListener('orientationchange',queueResize);addEventListener('pageshow',queueResize);window.visualViewport?.addEventListener('resize',queueResize);
+let uiViewportFrame;window.visualViewport?.addEventListener('scroll',()=>{cancelAnimationFrame(uiViewportFrame);uiViewportFrame=requestAnimationFrame(()=>{syncUiViewport();hudLayout.invalidate();});});
 if(typeof ResizeObserver==='function')new ResizeObserver(queueResize).observe(canvas);
 const touches=new Map();let pinchDistance=0;
 canvas.addEventListener('pointerdown',e=>{if(e.button!==0&&e.button!==2)return;canvas.setPointerCapture(e.pointerId);touches.set(e.pointerId,{x:e.clientX,y:e.clientY});drag={id:e.pointerId,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,moved:false};focusedGlobe=null;if(touches.size===2){const a=[...touches.values()];pinchDistance=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);} });

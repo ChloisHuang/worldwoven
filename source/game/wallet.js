@@ -1,4 +1,5 @@
 import {GAME_CURRENCIES} from './currency-ledger.js';
+import {safeUiRect} from './viewport-layout.js';
 
 // Merely resolving these URLs does not fetch the pictures. Create images only
 // for already-owned cash, or the currency in a committed receipt.
@@ -22,11 +23,10 @@ const ease = n => {const t=clamp(n);return t*t*(3-2*t);};
 
 // Receipt coordinates are independent of any scrolling service dialog. The
 // whole paper path fits this card, including when the keyboard shrinks the view.
-export function walletReceiptFrame(viewport,game=viewport,safe={}) {
-  const left=Math.max(viewport.left+(safe.left||0),game.left)+12;
-  const top=Math.max(viewport.top+(safe.top||0),game.top)+12;
-  const right=Math.min(viewport.left+viewport.width-(safe.right||0),game.left+game.width)-12;
-  const bottom=Math.min(viewport.top+viewport.height-(safe.bottom||0),game.top+game.height)-12;
+export function walletReceiptFrame(viewport,game=viewport,safe={},layout=game) {
+  const frame=safeUiRect(viewport,layout,safe);
+  const left=Math.max(frame.left,game.left+12),top=Math.max(frame.top,game.top+12);
+  const right=Math.min(frame.right,game.left+game.width-12),bottom=Math.min(frame.bottom,game.top+game.height-12);
   const scale=Math.max(0,Math.min(1,(right-left)/270,(bottom-top)/105));
   return {left:Math.max(left,right-270*scale),top,width:270,height:105,scale};
 }
@@ -110,6 +110,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
       width:visual?.width||view?.innerWidth||doc.documentElement?.clientWidth||294,
       height:visual?.height||view?.innerHeight||doc.documentElement?.clientHeight||129};
     const game=doc.getElementById?.('world')?.getBoundingClientRect?.()||viewport;
+    const layout={left:0,top:0,width:doc.documentElement?.clientWidth||view?.innerWidth||viewport.width,height:doc.documentElement?.clientHeight||view?.innerHeight||viewport.height};
     const styles=view?.getComputedStyle?.(mini),safe=Object.fromEntries(['left','top','right','bottom'].map(side=>[side,parseFloat(styles?.getPropertyValue(`--receipt-safe-${side}`))||0]));
     let bounds=game,origin={left:0,top:0};
     if(receiptModal){
@@ -118,7 +119,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
       bounds={left,top,width:Math.max(0,Math.min(game.left+game.width,rect.left+rect.width)-left),height:Math.max(0,Math.min(game.top+game.height,rect.top+rect.height)-top)};
       origin={left:rect.left+(receiptModal.clientLeft||0)-(receiptModal.scrollLeft||0),top:rect.top+(receiptModal.clientTop||0)-(receiptModal.scrollTop||0)};
     }
-    const frame=walletReceiptFrame(viewport,bounds,safe);
+    const frame=walletReceiptFrame(viewport,bounds,safe,layout);
     mini.style.position=receiptModal?'absolute':'fixed';mini.style.left=`${frame.left-origin.left}px`;mini.style.top=`${frame.top-origin.top}px`;mini.style.transform=`scale(${frame.scale})`;
   }
   function presentReceipt(epoch){

@@ -111,7 +111,7 @@ export function createTravelPassport({mount,trigger:externalTrigger,helpContent,
       el.setAttribute('aria-label',hot.label);if(hot.current)el.setAttribute('aria-current','page');
       if(hot.action==='link'){el.href=hot.href;el.target='_blank';el.rel='noopener';el.onclick=e=>{if(motionState)e.preventDefault();};el.append(make('span','ww-passport-sr',hot.label));}
       else el.onclick=()=>act(hot.action,hot.value);
-      el.style.left=(hot.x/scene.width*100)+'%';el.style.top=(hot.y/scene.height*100)+'%';el.style.width=(hot.w/scene.width*100)+'%';el.style.height=(hot.h/scene.height*100)+'%';
+      el.style.left=`min(${hot.x/scene.width*100}%, calc(100% - 44px))`;el.style.top=`min(${hot.y/scene.height*100}%, calc(100% - 44px))`;el.style.width=(hot.w/scene.width*100)+'%';el.style.height=(hot.h/scene.height*100)+'%';
       ui.controls.append(el);ui.buttons.push(el);
     }
   }
