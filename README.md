@@ -11,8 +11,8 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.83-public, 2026-10-05
-Verified published Sites source commit: 0d48921db4d5d0ffe7cee73d67a5e52401830cfc
+Published release: R16.84-public, 2026-10-05
+Verified published Sites source commit: f8ff87bc5599c177bb2c7b05688a8d360291ee5b
 
 ## Working rules
 
@@ -164,3 +164,5 @@ R16.81 adds Japan’s public reception exchange desk and stable adult teller, re
 R16.82 opens the Egyptian public-court ticket exchange desk and adult teller, using the original local vouchers and shared bank accounts, quotes and interest. The desert-entry/counter/transaction/exit route and normal scene views passed. All four regions now have physical bank counters; full local economies and bank careers remain unfinished.
 
 R16.83 connects paid player stays to Yunlai’s existing two guest rooms and Xu An’s physical check-in. Twelve copper covers 24 simulated hours; pre-check-in cancellation refunds, completed check-in settles once, and checkout leaves persistent dirt for the existing assistant to clean. NPC lodging and salon reservations share room exclusion. A complete actual route passed; browser/iOS remains unverified.
+
+R16.84 makes the existing tavern property panel compact: asking price, bank funds, actual bid response, operating totals and selected buyer offer stay distinct, with one fixed primary action. Property and ledger behavior is unchanged; product DOM/CSS was inspected offline, not on iOS.

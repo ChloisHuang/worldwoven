@@ -1,5 +1,5 @@
 {
-  "publishedSourceCommit": "0d48921db4d5d0ffe7cee73d67a5e52401830cfc",
+  "publishedSourceCommit": "f8ff87bc5599c177bb2c7b05688a8d360291ee5b",
   "assets": [
     "/assets/navigation.8b75df4e99fa6099.js",
     "/assets/daily-toilet.b76f537aa14b7b3a.js",
@@ -25,8 +25,8 @@
     "/assets/copper-ledger.f6042e8d69939eb3.js",
     "/assets/currency-ledger.b132143affe34a8c.js",
     "/assets/career-handbook.91c80caf00203cf9.js",
-    "/assets/china-tavern-property-ui.7111d28a1a5efdee.js",
-    "/assets/china-tavern-service.070a93826bcc6778.js",
+    "/assets/china-tavern-property-ui.848b1b4be50e2b8c.js",
+    "/assets/china-tavern-service.e40ae355df90ae99.js",
     "/assets/china-tavern-property.0e804de113e0d292.js",
     "/assets/study-theme.2bcc44da3f311ea9.js",
     "/assets/study-menu.36e1e5149ce44207.js",
@@ -158,7 +158,7 @@
     "/assets/approved-surfaces.d0f31ec9c7f21c1a.js",
     "/assets/character-props.deb24f9b65d5e60a.js",
     "/assets/characters.6858fcd60988b683.js",
-    "/assets/main.83583414ea38d980.js",
+    "/assets/main.83e2a72e689750ca.js",
     "/assets/adult-forms-data.f5c3eae422bf2d5b.js",
     "/assets/attach-head.cd715d43de06238a.js",
     "/assets/layered-hair-data.909c7058087b476c.js",
@@ -178,7 +178,7 @@
     "/assets/register.457d37fb5252fdc6.js",
     "/assets/selection.da7382d63b4983be.js",
     "/assets/character-preview-entry.bed7ff9f51addd24.js",
-    "/assets/entry.cc9adbb1b423f200.js",
+    "/assets/entry.4d9be1264ff6b490.js",
     "/assets/game.c08438ea85b1cd96.css",
     "/assets/three.core.9edde002b066a9a0.js",
     "/assets/three.module.d8c0a97fa13a785e.js"
