@@ -1,3 +1,4 @@
+import {CHINA_OFFICIAL_IDS} from './china-official-economy.js';
 import {GAME_MINUTES_PER_SECOND} from './simulation-clock.js';
 import {JAPAN_STAFF_CREW} from './japan-service-orders.js';
 
@@ -5,7 +6,10 @@ import {JAPAN_STAFF_CREW} from './japan-service-orders.js';
 // own actions and supplies; an intention, animation or scene entry grants nothing.
 export const DAILY_NEEDS_HOUR=60/GAME_MINUTES_PER_SECOND;
 const FOOD_DAY=24*DAILY_NEEDS_HOUR;
-export const DAILY_NEEDS_ACTORS=Object.freeze(['player','cn-tavern-diner-west','cn-tavern-diner-east',...JAPAN_STAFF_CREW]);
+// Officials join the verified food loop only. Their toilet service is not yet
+// connected, so this release must not create an impossible toilet obligation.
+const mealOnlyActors=new Set(CHINA_OFFICIAL_IDS);
+export const DAILY_NEEDS_ACTORS=Object.freeze(['player','cn-tavern-diner-west','cn-tavern-diner-east',...CHINA_OFFICIAL_IDS,...JAPAN_STAFF_CREW]);
 const copy=x=>JSON.parse(JSON.stringify(x));
 const positive=(x,fallback=0)=>Number.isFinite(x)&&x>=0?x:fallback;
 const clamp=x=>Math.max(0,Math.min(1,x));
@@ -35,14 +39,14 @@ export function createDailyNeeds({saved={},getClock=()=>({seconds:0}),saveState=
   for(const[source,number]of Object.entries(old?.receipts||{}))if((mealSources.has(source)||toiletFacilities[source])&&Number.isSafeInteger(number)&&number>0)people[id].receipts[source]=number;
  }
  function sync(){const now=positive(getClock()?.seconds,lastClock),dt=Math.max(0,now-lastClock);lastClock=now;lastSample=now;
-  if(!sceneId||!dt)return;for(const id of activeIds){const p=people[id];if(p){p.foodAge+=dt;p.toiletAge+=dt;}}
+  if(!sceneId||!dt)return;for(const id of activeIds){const p=people[id];if(p){p.foodAge+=dt;if(!mealOnlyActors.has(id))p.toiletAge+=dt;}}
  }
  const snapshot=()=>{sync();return {version:2,people:copy(people)};};
  const foodBalanceAge=p=>p.foodAge+p.foodBalanceOffset;
- function read(id){const p=people[id];if(!p)return null;return {hunger:clamp(foodBalanceAge(p)/FOOD_DAY),toilet:clamp(p.toiletAge/(24*DAILY_NEEDS_HOUR)),foodStrain:clamp((foodBalanceAge(p)-2*FOOD_DAY)/(2*FOOD_DAY)),toiletStrain:clamp((p.toiletAge/DAILY_NEEDS_HOUR-36)/24)};}
+ function read(id){const p=people[id];if(!p)return null;return {hunger:clamp(foodBalanceAge(p)/FOOD_DAY),toilet:mealOnlyActors.has(id)?0:clamp(p.toiletAge/(24*DAILY_NEEDS_HOUR)),foodStrain:clamp((foodBalanceAge(p)-2*FOOD_DAY)/(2*FOOD_DAY)),toiletStrain:mealOnlyActors.has(id)?0:clamp((p.toiletAge/DAILY_NEEDS_HOUR-36)/24)};}
  function status(id){const p=people[id],need=read(id);if(!p)return null;
   const food=foodBalanceAge(p)>=2*FOOD_DAY?'久未进食':need.hunger>=1?'很饿了':need.hunger>=.75?'有些饿了':null;
-  const toilet=p.toiletAge>=36*DAILY_NEEDS_HOUR?'如厕拖延较久':need.toilet>=1?'该如厕了':null;
+  const toilet=!mealOnlyActors.has(id)&&p.toiletAge>=36*DAILY_NEEDS_HOUR?'如厕拖延较久':need.toilet>=1?'该如厕了':null;
   return {food,toilet,seekMeal:need.hunger>=1,seekToilet:!!toilet,text:[food&&'🍚 '+food,toilet&&'🚻 '+toilet].filter(Boolean).join(' · ')};
  }
  function apply(receipt,kind){

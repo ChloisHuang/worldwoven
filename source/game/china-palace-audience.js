@@ -48,7 +48,7 @@ export function chinaCourtStatusSummary(schedule,phase='waiting'){
  return day+'朝会定于11:30。'+(phase==='holding'?'官员已到班位，持笏静候到点行礼。':phase==='assembling'?'官员正从各自所在处赴班；到点统一行礼。':'官员按各自实际路程提前赴班。');
 }
 
-export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveActor,poseContext,furniture,worldSeed=1,readEdict=()=>null,reissueEdict=()=>false,saved={},saveState=()=>{},notify=()=>{}}){
+export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveActor,poseContext,furniture,economy=null,sharedNeeds=null,getTavern=()=>null,getBank=()=>null,getClock=()=>({day:0}),worldSeed=1,readEdict=()=>null,reissueEdict=()=>false,saved={},saveState=()=>{},notify=()=>{}}){
  if(saved.continuity?.version===1)saved={...saved,...saved.continuity.schedule,life:saved.continuity.life,reports:saved.continuity.reports,preservePhysical:true};
  const officials=CHINA_COURT_OFFICIALS.map(r=>npcs.find(n=>n.station.id===r.id)),emperor=npcs.find(n=>n.station.id==='cn-emperor');
  if(!palace||!emperor||officials.some(n=>!n))return null;
@@ -83,7 +83,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
   actors.push({actor:emperor.station.id,...royal});return {actors,seconds:Math.max(...actors.map(a=>a.seconds)),measuredAt:time};
  }
  function depart(reason){
-  departureReason=reason;schedule.finish(reason,exception);palace.releaseDuty(OWNER);silence();
+  departureReason=reason;schedule.finish(reason,exception);if(reason==='completed')life?.courtCompleted(schedule.snapshot().day);palace.releaseDuty(OWNER);silence();
   officials.forEach((n,i)=>{postures[i]?.stop();const s=tasks.get(n);if(s?.id==='enter-hall'&&s.arrived)task(n,'wait-dismissal',[n.root.position.toArray()],'散朝 · 在班位等前方通道腾出');else{tasks.delete(n);if(s)life?.resume(n);else life?.cancelCourt(n);record('released-to-personal-life',n);}});setPhase('departing');save();
  }
  function postpone(reason){
@@ -107,7 +107,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
   else if(['completed','postponed','missed'].includes(outcome)&&(['assembling','holding'].includes(phase)||FORMAL.has(phase)))depart(outcome);
  }
  reports=createCourtReports({readEdict,reissueEdict,saved:saved.reports,saveState:()=>save()});
- life=createChinaOfficialLife({officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,reports,worldSeed,saved:saved.life,saveState:()=>save(),record});
+ life=createChinaOfficialLife({officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,reports,economy,sharedNeeds,getTavern,getBank,getClock,worldSeed,saved:saved.life,saveState:()=>save(),record});
  save();
  return {
   mountForActor:n=>life?.mountForActor(n)||null,
