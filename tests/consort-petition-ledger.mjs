@@ -94,7 +94,7 @@ test('both ages are enforced on submission, audience, acceptance, paper receipt,
 test('finite fourth seat protects all three original residents and emperor bed; changing occupancy blocks every grant boundary',()=>{
   for(const vacancy of [
     {roomExists:false},{bedExists:false},{accessible:false},{roomOwnerId:'other'},{bedOwnerId:'other'},
-    {roomId:'guest'},{bedId:'china-consort-bed-heng'},{roomId:'bedroom'},
+    {roomId:'guest'},{bedId:'china-consort-bed-heng'},{roomId:'bedroom'},{bedId:'china-furniture-bed-0'},
   ]){const f=fixture({seed:GOOD,vacancy});assert.equal(f.submit().ok,false);assert.equal(f.calls.save,0);}
   const full=fixture({seed:GOOD});full.court.consorts.push({actorId:'other',roomId:'elsewhere',bedId:'other-bed'});assert.equal(full.submit().code,'no-consort-vacancy');
   for(const [stage,method]of [['submitted','review'],['awaiting-choice','accept'],['accepted','handoff'],['charter-held','read']]){
@@ -106,7 +106,7 @@ test('finite fourth seat protects all three original residents and emperor bed; 
 
 test('an employed adult can petition; acceptance and investiture never clear duty, wages, tenure, applications or history',()=>{
   const f=fixture({seed:GOOD,career:{tenure:{roleId:'cn-court-clerk'},lastDuty:{stage:'working'}}}),initial=copy(f.career);advance(f,'awaiting-choice');
-  assert.deepEqual(f.accept().reasons,['finish-current-duty','leave-formal-career']);assert.deepEqual(f.career,initial);
+  assert.deepEqual(f.accept().reasons,['finish-current-duty','leave-formal-career']);assert.deepEqual(f.core.statusCard().blockers.map(b=>b.code),['finish-current-duty','leave-formal-career']);assert.deepEqual(f.career,initial);
   f.career.lastDuty.stage='ready';assert.deepEqual(f.accept().reasons,['settle-current-wages','leave-formal-career']);
   f.career.lastDuty.stage='paid';assert.deepEqual(f.accept().reasons,['leave-formal-career']);f.career.tenure=null;assert(f.accept().ok);assert(f.handoff().ok);
   f.career.tenure={roleId:'another-real-job'};assert.equal(f.read().code,'leave-formal-career');assert.equal(f.core.state().appointment,null);
@@ -126,6 +126,8 @@ test('each durable stage reloads, final duplicate receipt is idempotent and conf
   const f=fixture({seed:GOOD});advance(f,'appointed');f.vacancy.roomOwnerId='player';f.vacancy.bedOwnerId='player';f.court.consorts.push({actorId:'player',roomId:f.vacancy.roomId,bedId:f.vacancy.bedId});
   const before=copy(f.saved.value),count=f.calls.save;assert.equal(f.read().replayed,true);assert.equal(f.calls.save,count);assert.deepEqual(f.saved.value,before);
   const re=fixture({seed:GOOD,saved:f.saved.value,vacancy:f.vacancy,court:f.court});assert.equal(re.core.state().loadError,null);assert.equal(re.core.royalMealEligibility().eligible,true);assert.equal(re.read().replayed,true);assert.equal(re.calls.save,0);
+  const reordered=Object.fromEntries(Object.entries(re.receipt('charter-reading')).reverse());reordered.at={hour:re.clock.hour,day:re.clock.day};reordered.participants.reverse();
+  assert.equal(re.core.completeInvestiture(re.core.petition().id,reordered).replayed,true);assert.equal(re.calls.save,0);
   const forged=re.receipt('charter-reading');forged.targetId='different-target';assert.equal(re.core.completeInvestiture(re.core.petition().id,forged).code,'receipt-conflict');
   assert.equal(re.core.availability().ok,false);assert.equal(re.core.withdraw(re.core.petition().id).code,'wrong-petition-stage');
 });
@@ -150,4 +152,16 @@ test('review uses multiple existing factors, missing relations are neutral and s
 
 test('backward simulation time cannot reset daily limits or finish an old event',()=>{
   const f=fixture({seed:GOOD});advance(f,'charter-held');f.clock.day=0;assert.equal(f.read().code,'invalid-clock');assert.equal(f.core.availability().ok,false);assert.equal(f.core.state().appointment,null);
+});
+
+// The scene keeps its actual finished event checkpoint while storage retries.
+// A newer simulation tick must not force a new paper/event or change its time.
+test('completed physical checkpoints can retry after time advances without changing their stable receipt',()=>{
+  for(const [stage,kind,method]of [[null,'submission','submit'],['submitted','audience','reviewAudience'],['accepted','charter-handoff','receiveCharter'],['charter-held','charter-reading','completeInvestiture']]){
+    const f=fixture({seed:GOOD});if(stage)advance(f,stage);const receipt=f.receipt(kind),id=receipt.applicationId;f.flags.fail=true;
+    const call=()=>method==='submit'?f.core.submit(receipt):f.core[method](id,receipt);assert.equal(call().code,'save-failed');
+    f.flags.fail=false;f.clock.hour+=.1;assert(call().ok);assert.equal(fixture({seed:GOOD,saved:f.saved.value,clock:f.clock}).core.state().loadError,null);
+  }
+  const f=fixture({seed:GOOD});advance(f,'awaiting-choice');f.clock.hour=9;assert(f.accept().ok);const receipt=f.receipt('charter-handoff');receipt.at.hour=8;f.evidence.set(receipt.id,copy(receipt));
+  assert.equal(f.core.receiveCharter(f.core.petition().id,receipt).code,'physical-charter-required');
 });

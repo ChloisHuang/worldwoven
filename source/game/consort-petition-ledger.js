@@ -16,6 +16,8 @@ const text=x=>typeof x==='string'&&x.length>0&&x.length<=200;
 const time=x=>object(x)&&integer(x.day)&&Number.isFinite(x.hour)&&x.hour>=0&&x.hour<24;
 const after=(a,b)=>a.day>b.day||a.day===b.day&&a.hour>=b.hour;
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+const sameReceipt=(a,b)=>object(a)&&object(b)&&['id','kind','applicationId','playerId','emperorId','heraldId','targetId','completed','documentId'].every(k=>a[k]===b[k])&&
+  a.at?.day===b.at?.day&&a.at?.hour===b.at?.hour&&Array.isArray(b.participants)&&same([...a.participants].sort(),[...b.participants].sort());
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const finite=(n,fallback)=>Number.isFinite(n)?n:fallback;
 const round=n=>Math.round(n*1000000)/1000000;
@@ -77,7 +79,7 @@ function validReceipt(r,kind,p){
 const receiptTime=p=>p.reading?.at||p.handoff?.at||p.choice?.at||p.audience?.at||p.submission.at;
 function validAges(ages){return object(ages)&&adult(ages.player)&&adult(ages.emperor);}
 function validResidence(r){return object(r)&&r.slotId===CONSORT_SEAT_ID&&text(r.roomId)&&text(r.bedId)&&
-  !CONSORT_INCUMBENTS.some(c=>c.roomId===r.roomId||c.bedId===r.bedId)&&r.roomId!=='bedroom'&&r.bedId!=='china-dragon-bed';}
+  !CONSORT_INCUMBENTS.some(c=>c.roomId===r.roomId||c.bedId===r.bedId)&&r.roomId!=='bedroom'&&!['china-dragon-bed','china-furniture-bed-0'].includes(r.bedId);}
 const residence=v=>({slotId:CONSORT_SEAT_ID,roomId:v.roomId,bedId:v.bedId});
 const empty=worldSeed=>({version:1,revision:0,worldSeed:worldSeed>>>0,petitions:[],appointment:null});
 function validate(value,worldSeed,actorId){
@@ -188,7 +190,7 @@ export function createConsortPetitionLedger({saved,worldSeed=1,actorId='player',
     return {ok:reasons.length===0,reasons,applicationId:at?consortPetitionId(actorId,at.day):null,residence:g.residence};
   }
   function checkReceipt(receipt,kind,p,at){
-    if(!validReceipt(receipt,kind,p)||!same(receipt.at,at))return false;
+    if(!validReceipt(receipt,kind,p)||!after(at,receipt.at)||!after(receipt.at,receiptTime(p)))return false;
     try{return typeof verifyReceipt==='function'&&verifyReceipt(copy(receipt),{kind,applicationId:p.id,documentId:kind.startsWith('charter-')?consortCharterId(p.id):null})===true;}catch{return false;}
   }
   function persist(next){
@@ -209,21 +211,22 @@ export function createConsortPetitionLedger({saved,worldSeed=1,actorId='player',
   function guard(id){if(loadError||busy)return fail(loadError||'consort-busy');const p=latest();return !p||p.id!==id?fail('stale-petition'):null;}
   function submit(receipt){
     if(loadError||busy)return fail(loadError||'consort-busy');
-    const prior=latest();if(prior?.submission.id===receipt?.id)return same(prior.submission,receipt)&&people().ok?{...result(prior),replayed:true}:fail('receipt-conflict');
+    const prior=latest();if(prior?.submission.id===receipt?.id)return sameReceipt(prior.submission,receipt)&&people().ok?{...result(prior),replayed:true}:fail('receipt-conflict');
     const a=availability();if(!a.ok)return fail(a.reasons[0],a.reasons);
-    const at=clock(),g=gates(),p={id:a.applicationId,playerId:actorId,emperorId:EMPEROR_ID,stage:'submitted',submittedAt:at,endedAt:null,
+    const at=clock(),g=gates();if(!time(receipt?.at)||receipt.at.day!==at.day)return fail('physical-submission-required');
+    const p={id:a.applicationId,playerId:actorId,emperorId:EMPEROR_ID,stage:'submitted',submittedAt:copy(receipt.at),endedAt:null,
       residence:a.residence,roll:consortPetitionRoll(current.worldSeed,a.applicationId),ages:{submitted:ageRecord(g)},submission:copy(receipt||null),audience:null,review:null,choice:null,handoff:null,reading:null};
     if(!checkReceipt(receipt,'submission',p,at))return fail('physical-submission-required');
     const out=persist({...current,petitions:[...current.petitions,p]});return out.ok?result(p):out;
   }
   function reviewAudience(id,receipt){
     const blocked=guard(id);if(blocked)return blocked;const p=latest(),g=gates({residence:p.residence});if(!g.ok)return fail(g.reasons[0],g.reasons);
-    if(p.audience)return same(p.audience,receipt)?{...result(p),replayed:true}:fail('receipt-conflict');
+    if(p.audience)return sameReceipt(p.audience,receipt)?{...result(p),replayed:true}:fail('receipt-conflict');
     if(p.stage!=='submitted')return fail('wrong-petition-stage');
     const at=clock();if(!at)return fail('invalid-clock');if(!checkReceipt(receipt,'audience',p,at))return fail('physical-audience-required');
     const career=read(getCareers);if(!object(career?.skills)||career.loadError)return fail('career-state-unavailable');
     const review=reviewSnapshot(g.people.player,g.people.emperor,career.skills,p.roll);
-    return update({...p,review,audience:copy(receipt),ages:{...p.ages,reviewed:ageRecord(g)},stage:review.passed?'awaiting-choice':'rejected',endedAt:review.passed?null:at});
+    return update({...p,review,audience:copy(receipt),ages:{...p.ages,reviewed:ageRecord(g)},stage:review.passed?'awaiting-choice':'rejected',endedAt:review.passed?null:copy(receipt.at)});
   }
   function respond(id,choice){
     const blocked=guard(id);if(blocked)return blocked;const p=latest();if(!['accept','decline'].includes(choice))return fail('explicit-choice-required');
@@ -237,18 +240,18 @@ export function createConsortPetitionLedger({saved,worldSeed=1,actorId='player',
   }
   function receiveCharter(id,receipt){
     const blocked=guard(id);if(blocked)return blocked;const p=latest(),g=gates({residence:p.residence,career:true});if(!g.ok)return fail(g.reasons[0],g.reasons);
-    if(p.handoff)return same(p.handoff,receipt)?{...result(p),replayed:true}:fail('receipt-conflict');
+    if(p.handoff)return sameReceipt(p.handoff,receipt)?{...result(p),replayed:true}:fail('receipt-conflict');
     if(p.stage!=='accepted')return fail('wrong-petition-stage');
     const at=clock();if(!at)return fail('invalid-clock');if(!checkReceipt(receipt,'charter-handoff',p,at))return fail('physical-charter-required');
     return update({...p,handoff:copy(receipt),stage:'charter-held',ages:{...p.ages,received:ageRecord(g)}});
   }
   function completeInvestiture(id,receipt){
     const blocked=guard(id);if(blocked)return blocked;const p=latest(),g=gates({residence:p.residence,career:true,appointed:p.stage==='appointed'});if(!g.ok)return fail(g.reasons[0],g.reasons);
-    if(p.reading)return same(p.reading,receipt)?{...result(p),replayed:true}:fail('receipt-conflict');
+    if(p.reading)return sameReceipt(p.reading,receipt)?{...result(p),replayed:true}:fail('receipt-conflict');
     if(p.stage!=='charter-held')return fail('wrong-petition-stage');
     const at=clock();if(!at)return fail('invalid-clock');if(!checkReceipt(receipt,'charter-reading',p,at))return fail('physical-reading-required');
-    const next={...p,reading:copy(receipt),stage:'appointed',endedAt:at,ages:{...p.ages,appointed:ageRecord(g)}};
-    const appointment={id:`consort-appointment:${p.id}`,applicationId:p.id,actorId,emperorId:EMPEROR_ID,titleId:'consort',residence:copy(p.residence),since:at,receiptId:receipt.id};
+    const next={...p,reading:copy(receipt),stage:'appointed',endedAt:copy(receipt.at),ages:{...p.ages,appointed:ageRecord(g)}};
+    const appointment={id:`consort-appointment:${p.id}`,applicationId:p.id,actorId,emperorId:EMPEROR_ID,titleId:'consort',residence:copy(p.residence),since:copy(receipt.at),receiptId:receipt.id};
     return update(next,appointment);
   }
   function withdraw(id){
@@ -260,7 +263,11 @@ export function createConsortPetitionLedger({saved,worldSeed=1,actorId='player',
     const g=gates({residence:current.appointment.residence,appointed:true});
     return {eligible:g.ok,reasons:g.reasons,appointment:g.ok?copy(current.appointment):null};
   }
-  const api={state:()=>({...copy(current),loadError,lastError}),availability,submit,reviewAudience,respond,receiveCharter,completeInvestiture,withdraw,
+  function acceptanceAvailability(){
+    const p=latest();if(!p||!['awaiting-choice','accepted','charter-held'].includes(p.stage))return {ok:false,reasons:[loadError||'wrong-petition-stage']};
+    const g=gates({residence:p.residence,career:true});return {ok:g.ok,reasons:g.reasons};
+  }
+  const api={acceptanceAvailability,state:()=>({...copy(current),loadError,lastError}),availability,submit,reviewAudience,respond,receiveCharter,completeInvestiture,withdraw,
     petition:()=>copy(latest()),history:()=>copy(current.petitions),
     residenceFor:()=>entitlement().appointment?.residence||null,
     royalMealEligibility:()=>{const e=entitlement();return {eligible:e.eligible,reasons:e.reasons,actorId,titleId:e.eligible?'consort':null,appointmentId:e.appointment?.id||null};},
@@ -281,13 +288,14 @@ export const CONSORT_REASON_TEXT=Object.freeze({
 // appointment action, empress/emperor route or intimacy button is introduced.
 export function consortPetitionStatusCard(ledger){
   const p=ledger.petition(),s=ledger.state(),meal=ledger.royalMealEligibility(),availability=ledger.availability(),stage=p?.stage||'none';
+  const blockers=['awaiting-choice','accepted','charter-held'].includes(stage)?ledger.acceptanceAvailability().reasons:stage==='appointed'?meal.reasons:availability.reasons.filter(code=>code!=='petition-pending');
   let primaryAction=null;
   if(!s.loadError){
-    if(stage==='awaiting-choice')primaryAction={id:'respond',label:'答复册封意向',requiresPhysical:false};
+    if(stage==='awaiting-choice')primaryAction=blockers.includes('adults-required')?{id:'withdraw',label:'撤回自荐',requiresPhysical:false}:{id:'respond',label:'答复册封意向',requiresPhysical:false};
     else if(stage==='charter-held'&&ledger.charterRequest())primaryAction={id:'read-charter',label:'当面宣读册书',requiresPhysical:true};
     else if(['none','rejected','declined','withdrawn'].includes(stage)&&availability.ok)primaryAction={id:'visit-petition-desk',label:'到宫廷自荐处',requiresPhysical:true};
   }
-  return {identity:meal.eligible?'妃嫔':'无宫廷名位',titleId:meal.eligible?'consort':null,residence:ledger.residenceFor(),stage,stageLabel:STAGE_LABELS[stage],
+  return {identity:meal.eligible?'妃嫔':s.appointment?'册封记录待核':'无宫廷名位',titleId:meal.eligible?'consort':null,residence:ledger.residenceFor(),stage,stageLabel:stage==='appointed'&&!meal.eligible?'已有册封记录 · 资格待核':STAGE_LABELS[stage],
     primaryAction,result:p?.review?{passed:p.review.passed,reasons:p.review.reasons.map(code=>({code,text:CONSORT_REASON_TEXT[code]||code}))}:null,
-    blockers:availability.reasons.map(code=>({code,text:CONSORT_REASON_TEXT[code]||code})),historyCount:ledger.history().length};
+    blockers:blockers.map(code=>({code,text:CONSORT_REASON_TEXT[code]||code})),historyCount:ledger.history().length};
 }
