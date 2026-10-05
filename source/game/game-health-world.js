@@ -46,9 +46,10 @@ export function createGameHealthWorld({worldSeed=1,saved={},visitorFloor=0,clini
   for(const receipt of state?.history||[]){
    const n=receipt.number;
    if(receipt.event!=='delivered'||!Number.isSafeInteger(n)||n<=deliveredThrough||receipt.orderId!==`cn-clinic-order-${n}`||receipt.cardId!==`cn-clinic-card-${n}`||receipt.packetId!==`cn-clinic-packet-${n}`)continue;
-   // Only an actual physical delivered event contains the player's handoff spot.
-   if(!Array.isArray(receipt.playerPosition)||receipt.playerPosition.length!==3||!receipt.playerPosition.every(Number.isFinite))continue;
-   deliveredThrough=n;applied=health.applyCare('player',{providerId:'china-clinic',receiptNumber:n})||applied;
+   // Legacy player receipts and new named NPC receipts both require the actual handoff spot.
+   const recipientId=receipt.recipientId||'player',position=receipt.recipientPosition||receipt.playerPosition;
+   if(!ids.has(recipientId)||!Array.isArray(position)||position.length!==3||!position.every(Number.isFinite))continue;
+   deliveredThrough=n;applied=health.applyCare(recipientId,{providerId:'china-clinic',receiptNumber:n})||applied;
   }
   if(applied)persist();return applied;
  }
