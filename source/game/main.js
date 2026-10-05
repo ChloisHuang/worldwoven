@@ -185,16 +185,16 @@ const serviceMenus=createServiceMenuIntents();
 const contextMenu=createContextualActionMenu({button:$('touch-action'),onSelect:executeNearbyAction,onOpen:()=>{keys.clear();joyActionAnchor=joyPointer!==null&&joyLastPoint?{...joyLastPoint}:null;joy={x:0,y:0};$('joystick-knob').style.transform='';hudLayout.invalidate();},onClose:()=>{canvas.focus({preventScroll:true});hudLayout.invalidate();}});
 function consortSceneIntent(kind='panel'){
  if(!chinaConsortCourt||active?.id!=='china')return null;
- const p=consortBridge.ledger.petition(),stage=p?.stage||'none';let target=chinaConsortCourt.interactionTarget();
+ const p=consortBridge.ledger.petition(),stage=p?.stage||'none',invitation=p?.source==='emperor-invitation'&&stage==='awaiting-choice';let target=chinaConsortCourt.interactionTarget();
  if(kind==='submit'&&!consortBridge.ledger.availability().ok||kind==='audience'&&stage!=='submitted'||kind==='investiture'&&stage!=='accepted'||kind==='read-charter'&&stage!=='charter-held')return null;
  if(kind==='residence'){
   if(!consortBridge.ledger.residenceFor())return null;
   target={id:RESERVED_CONSORT_QUARTERS.roomId,name:RESERVED_CONSORT_QUARTERS.name,position:[...RESERVED_CONSORT_QUARTERS.waitingPoint],radius:.3};
  }
- const labels={panel:'查看宫廷自荐与名位',submit:'呈交自荐',audience:'请候皇帝召见',investiture:'请领册书','read-charter':'听宣册书',return:'返回听候处',residence:'前往自己的寝居'};
+ const labels={panel:invitation?'答复皇帝邀约':'查看宫廷自荐与名位',submit:'呈交自荐',audience:'请候皇帝召见',investiture:'请领册书','read-charter':'听宣册书',return:'返回听候处',residence:'前往自己的寝居'};
  if(!labels[kind]||!target?.position)return null;
- return {...target,id:'cn-consort-'+kind,provider:'china-consort-petition',kind,targetKey:'cn-palace-herald',targetName:'沈序 · 宫廷接待',action:labels[kind],position:target.position.slice(),executionRadius:kind==='residence'?.3:.8,interactionRadius:2,priority:48,
-  intentKey:[kind,p?.id||'-',stage,consortBridge.titleStatus().active?'appointed':''].join('|')};
+ return {...target,id:'cn-consort-'+kind,provider:'china-consort-petition',kind,targetKey:target.targetKey||'cn-palace-herald',targetName:target.targetName||'沈序 · 宫廷接待',action:labels[kind],position:target.position.slice(),executionRadius:kind==='residence'?.3:invitation?target.radius||1.1:.8,interactionRadius:2,priority:48,
+  intentKey:[kind,p?.id||'-',stage,p?.source||'',consortBridge.titleStatus().active?'appointed':''].join('|')};
 }
 function requestConsortSceneIntent(packet){
  const target=packet?.action==='meal'?packet.target:consortSceneIntent(packet?.action);return !!target&&requestStationIntent(target);
@@ -269,6 +269,7 @@ playerSocialContext=createPlayerSocialContext({getProfile:getNPCProfile,ledger:p
 consortBridge=createConsortRuntimeBridge({saved,quarters:RESERVED_CONSORT_QUARTERS,worldSeed:saved.appearance.seed,
  getScene:()=>({country:active?.id,lot,furniture,npcs,palace:chinaPalace}),getPlayerProfile:()=>saved.playerProfile,
  getAppearanceScore:()=>shapePreferenceScore(saved.appearance.player.shapeTraits,{version:CHARACTER_PREVIEW_ENABLED?2:1}),
+ getAppearancePreference:()=>0,
  getPlayerTraits:()=>getNPCProfile('player')?.traits,getNPCProfile:id=>playerSocialContext.profileFor(id),getCareers:()=>formalCareers.state(),getClock:()=>simulationClock.state(),getService:()=>chinaConsortCourt,
  captureWorld:()=>worldSnapshotWriter?.(),writeWorld:next=>{const r=gameStorage.setItem('worlds-days-v1',JSON.stringify(next));return r!==false&&!r?.then;},
  canReleaseTitle:()=>({ok:!(seated?.id===RESERVED_CONSORT_QUARTERS.bedId||chinaRoyalPlayerMeal?.active()||chinaConsortCourt?.state().flow),reasons:seated?.id===RESERVED_CONSORT_QUARTERS.bedId?['leave-private-bed']:chinaRoyalPlayerMeal?.active()?['finish-royal-meal']:chinaConsortCourt?.state().flow?['finish-court-ceremony']:[]})});
@@ -455,7 +456,8 @@ function consortVisible(from,to){
 }
 function configureChinaConsortCourt(){
  chinaConsortCourt=active.id==='china'?createChinaConsortPetitionService({npcs,lot,palace:chinaPalace,audience:chinaAudience,edict:chinaEdict,doors:automaticDoors,planPath,moveActor,poseContext:characterPoseContext,
- getPlayer:()=>player,getClock:()=>simulationClock.state(),getLedger:()=>consortBridge.ledger,getBusy:()=>!!(seated||bathTransition||performing||npcSocial?.active()),canSee:consortVisible,
+ getPlayer:()=>player,getClock:()=>simulationClock.state(),getLedger:()=>consortBridge.ledger,getBusy:()=>!!(seated||bathTransition||performing||npcSocial?.active()),
+ getInvitationBusy:()=>!!(seated||bathTransition||performing||npcSocial?.active()||pendingInteraction||path.length||interactionMenuOpen()||keys.size||Math.hypot(joy.x,joy.y)>.05),canSee:consortVisible,
  saved:loadingWorldContinuity?.controllers?.chinaConsortCourt||saved.chinaConsortCourt||{},saveState:state=>consortBridge.commitService(state),notify:toast}):null;
  chinaConsortUI=chinaConsortCourt||consortBridge.titleStatus().active?createChinaConsortPetitionUI({service:chinaConsortCourt||{statusCard:()=>consortBridge.statusCard(),interactionTarget:()=>null},getLedger:()=>consortBridge.ledger,getPlayer:()=>player,titleBridge:consortBridge,onOpen:pauseForReadOnlyPanel,
  onIntent:requestConsortSceneIntent,getDetails:()=>{const meal=chinaRoyalPlayerMeal?.view(),target=chinaRoyalPlayerMeal?.intent(),residence=consortBridge.titleStatus().residence;return {

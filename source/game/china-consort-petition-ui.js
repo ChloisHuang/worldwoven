@@ -1,19 +1,21 @@
 import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
 import {AIRY_UI_THEME} from './china-money-house-theme.js';
 
-const STAGES={none:'尚未自荐',submitted:'待皇帝召见','awaiting-choice':'已获准 · 待你答复',accepted:'已接受 · 待授册','charter-held':'册书在手 · 待宣读',appointed:'册封已生效',rejected:'本次未获准',declined:'你已婉拒',withdrawn:'自荐已撤回',resigned:'已辞去名位'};
-const PHASES={summoning:'等候皇帝与沈序到场',audience:'当面召见中','commit-audience':'正在确认召见结果','to-desk':'沈序前往传令案','place-charter':'沈序展开册书',drafting:'沈序正在拟册',sealing:'沈序正在用印','pickup-charter':'沈序收起册书','to-meeting':'沈序持册前来','await-handoff':'等候当面授册',handoff:'正在当面授册','commit-handoff':'正在确认授册',reading:'沈序正在宣读','commit-reading':'正在确认册封'};
+const STAGES={none:'尚未自荐',submitted:'待皇帝召见','awaiting-choice':'已获准 · 待你答复',accepted:'已接受 · 待授册','charter-held':'册书在手 · 待宣读',appointed:'册封已生效',rejected:'本次未获准',declined:'你已婉拒',withdrawn:'自荐已撤回',resigned:'已辞去名位',expired:'此次邀约已过期'};
+const INVITATION_STAGES={'awaiting-choice':'皇帝相邀 · 待你答复',accepted:'已接受皇帝邀约 · 待授册',declined:'已婉拒皇帝邀约',expired:'皇帝邀约已过期'};
+const PHASES={invitation:'皇帝正在与你说话',summoning:'等候皇帝与沈序到场',audience:'当面召见中','commit-audience':'正在确认召见结果','to-desk':'沈序前往传令案','place-charter':'沈序展开册书',drafting:'沈序正在拟册',sealing:'沈序正在用印','pickup-charter':'沈序收起册书','to-meeting':'沈序持册前来','await-handoff':'等候当面授册',handoff:'正在当面授册','commit-handoff':'正在确认授册',reading:'沈序正在宣读','commit-reading':'正在确认册封'};
 const ERRORS={'save-failed':'此次答复未能保存，请重试','invalid-consort-state':'自荐记录暂不可核验','invalid-clock':'当前时间暂不可核验','service-unavailable':'接待暂不可用','finish-current-duty':'先完成原职位班次','settle-current-wages':'先结清原职位待领工资','leave-formal-career':'先办妥原正式职位离任','adults-required':'双方须年满18岁','already-petitioned-today':'今日已自荐，次日可再试','relationship-reservations':'既有相处留下顾虑','different-dispositions':'性情取向尚不契合','emperor-unsettled':'此次召见时皇帝疲惫或饥饿','emperor-cautious':'皇帝性情审慎','personal-preference':'个人偏好未合','review-not-selected':'皇帝未予批准','title-rights-busy':'先结束寝居、用膳或册书中的活动','explicit-resignation-required':'请明确确认辞去名位','stale-appointment':'名位已变化，请重新查看'};
 const safeText=(value,fallback='')=>typeof value==='string'&&!/^[a-z][a-z0-9-]*$/.test(value)?value:fallback;
 const reasonText=reason=>safeText(reason?.text)||ERRORS[reason?.code||reason]||'当前条件暂不满足';
 const targetValid=target=>!!target&&typeof target.id==='string'&&Array.isArray(target.position)&&target.position.length===3&&target.position.every(Number.isFinite);
 const atTarget=(player,target)=>{const p=player?.root?.position;return targetValid(target)&&!!p&&Math.hypot(p.x-target.position[0],p.z-target.position[2])<=(target.radius||1.1)&&Math.abs(p.y-target.position[1])<.35;};
 const read=(fn,fallback=null)=>{try{return typeof fn==='function'?fn()??fallback:fallback;}catch{return fallback;}};
+const invitationDeadline=value=>{if(!Number.isFinite(value)||value<0)return '';const minutes=Math.floor(value),day=Math.floor(minutes/1440)+1,hour=String(Math.floor(minutes%1440/60)).padStart(2,'0'),minute=String(minutes%60).padStart(2,'0');return `请在第${day}日 ${hour}:${minute} 前答复，逾期邀约自行结束`;};
 
 // Read-only projection. Physical actions are intents for the host's existing
 // navigation/nearby interaction path; this module never submits or appoints.
 export function consortPetitionView({card={},target=null,player=null,details={},history=[]}={}){
- const stage=Object.hasOwn(STAGES,card.stage)?card.stage:'none',physical=card.physical||{},near=physical.atTarget===true||atTarget(player,target),phase=physical.phase;
+ const stage=Object.hasOwn(STAGES,card.stage)?card.stage:'none',invitation=card.source==='emperor-invitation',physical=card.physical||{},near=physical.atTarget===true||atTarget(player,target),phase=physical.phase;
  const blockers=Object.hasOwn(STAGES,card.stage)?(card.blockers||[]).map(reasonText):['接待状态暂不可核验'],phaseText=PHASES[phase]||'',waitingText=safeText(physical.waitingText);
  const appointed=stage==='appointed'&&card.titleId==='consort',seat=details.seat;
  const seatText=Number.isInteger(seat?.occupied)&&Number.isInteger(seat?.capacity)&&seat.occupied>=0&&seat.capacity>0&&seat.occupied<=seat.capacity?`${seat.occupied} / ${seat.capacity} 席已占`:'名额待核对';
@@ -23,8 +25,11 @@ export function consortPetitionView({card={},target=null,player=null,details={},
  const actions=[],add=(id,label,action,target,disabled=false)=>actions.push({id,label,action,target:targetValid(target)?target:null,disabled});
  let note=['awaiting-choice','appointed'].includes(stage)?'':[phaseText,waitingText].filter(Boolean).join(' · ');
  if(stage==='awaiting-choice'){
-  add('accept','接受册封意向','accept',null,blockers.length>0);
-  add('decline','婉拒','decline',null);
+  if(invitation)note=['皇帝愿授予你妃嫔名位，是否接受由你决定',invitationDeadline(card.expiresAt)].filter(Boolean).join('。');
+  add('accept',invitation?'接受皇帝邀约':'接受册封意向','accept',null,blockers.length>0);
+  add('decline',invitation?'婉拒邀约':'婉拒','decline',null);
+ }else if(phase==='invitation'){
+  // The encounter must finish and persist before there is a choice to answer.
  }else if(phase&&stage!=='appointed'){
   add('primary',near?'现场等候':'返回听候处','return',target,near||!targetValid(target));
  }else if(stage==='appointed'){
@@ -39,10 +44,10 @@ export function consortPetitionView({card={},target=null,player=null,details={},
   add('primary',localWait?'等候沈序接待':label,action,target,blockers.length>0||!targetValid(target)||localWait);
   if(localWait&&!note)note='沈序尚未到场';
  }
- const result=stage==='rejected'?'本次未获准':stage==='declined'?'已婉拒':stage==='withdrawn'?'已撤回':stage==='resigned'?'已辞去':appointed?'名位生效':card.result?.passed?'召见获准':null;
+ const result=stage==='rejected'?'本次未获准':stage==='declined'?(invitation?'已婉拒邀约':'已婉拒'):stage==='expired'?'邀约已过期':stage==='withdrawn'?'已撤回':stage==='resigned'?'已辞去':appointed?'名位生效':invitation&&stage==='accepted'?'已接受邀约':invitation&&stage==='awaiting-choice'?'皇帝相邀':card.result?.passed?'召见获准':null;
  const resultReasons=stage==='rejected'?(card.result?.reasons||[]).map(reasonText):[];
- const rows=history.map(p=>({day:Number.isSafeInteger(p?.submittedAt?.day)?p.submittedAt.day+1:null,label:STAGES[p?.stage]||'记录待核',reasons:p?.stage==='rejected'?(p.review?.reasons||[]).map(reasonText):[]})).reverse();
- return {stage,identity:appointed?'妃嫔':stage==='appointed'?'册封记录待核':'无宫廷名位',stageLabel:safeText(card.stageLabel,STAGES[stage]),seatText,residenceText,mealText,result,resultReasons,blockers,note,actions,history:rows,historyCount:Math.max(rows.length,Number.isInteger(card.historyCount)?card.historyCount:0)};
+ const rows=history.map(p=>({day:Number.isSafeInteger(p?.submittedAt?.day)?p.submittedAt.day+1:null,label:p?.source==='emperor-invitation'?(INVITATION_STAGES[p.stage]||`皇帝相邀 · ${STAGES[p.stage]||'记录待核'}`):STAGES[p?.stage]||'记录待核',reasons:p?.stage==='rejected'?(p.review?.reasons||[]).map(reasonText):[]})).reverse();
+ return {stage,source:card.source||null,applicationId:card.applicationId||null,identity:appointed?'妃嫔':stage==='appointed'?'册封记录待核':'无宫廷名位',stageLabel:invitation&&INVITATION_STAGES[stage]||safeText(card.stageLabel,STAGES[stage]),seatText,residenceText,mealText,result,resultReasons,blockers,note,actions,history:rows,historyLabel:invitation||history.some(p=>p?.source==='emperor-invitation')?'宫廷往来':'自荐记录',historyCount:Math.max(rows.length,Number.isInteger(card.historyCount)?card.historyCount:0)};
 }
 
 export const CONSORT_PETITION_UI_STYLE=AIRY_UI_THEME+AIRY_PANEL_STYLE+`
@@ -61,7 +66,7 @@ export function createChinaConsortPetitionUI({service,titleBridge=null,getLedger
  if(!doc||!service?.statusCard)throw new TypeError('Consort status UI requires a document and live status service');
  const make=(tag,text,cls)=>{const el=doc.createElement(tag);if(text!=null)el.textContent=text;if(cls)el.className=cls;return el;};
  const dialog=make('dialog',null,'cn-consort-dialog ww-airy-theme ww-airy-panel'),style=make('style');style.textContent=CONSORT_PETITION_UI_STYLE;
- dialog.setAttribute('aria-label','宫廷自荐与名位');(doc.head||doc.body).append(style);doc.body.append(dialog);
+ dialog.setAttribute('aria-label','宫廷往来与名位');(doc.head||doc.body).append(style);doc.body.append(dialog);
  const {header,body,actions}=createAiryPanelParts(doc);header.className+=' cn-consort-heading';body.className+=' cn-consort-content';actions.className+=' cn-consort-actions';
  const title=make('h2'),stageLabel=make('span',null,'cn-consort-stage'),closeButton=make('button','×','cn-consort-close');closeButton.type='button';closeButton.setAttribute('aria-label','关闭名位状态');
  header.append(title,stageLabel);const facts=make('dl',null,'cn-consort-facts'),factNodes={};
@@ -72,7 +77,7 @@ export function createChinaConsortPetitionUI({service,titleBridge=null,getLedger
  let disposed=false,current=null,signature='',historySignature='',epoch=0,errorText='',sending=false,releaseId=null;
  const buttons=new Map();
  const set=(node,text)=>{if(node.textContent!==text)node.textContent=text;};
- function view(){const card=read(()=>service.statusCard(),{}),ledger=read(getLedger),title=read(()=>titleBridge?.titleStatus?.()),gate=title?.active?read(()=>titleBridge?.releaseTitleAvailability?.(),{ok:false,reasons:['service-unavailable']}):null;return {...consortPetitionView({card,target:read(()=>service.interactionTarget?.(),card.physical?.target),player:read(getPlayer),details:read(getDetails,{}),history:read(()=>ledger?.history?.(),[])}),release:title?.active&&typeof title.appointmentId==='string'?{id:title.appointmentId,ok:gate?.ok===true,reasons:(gate?.reasons||[]).map(reasonText),confirm:releaseId===title.appointmentId}:null};}
+ function view(){const card=read(()=>service.statusCard(),{}),ledger=read(getLedger),petition=read(()=>ledger?.petition?.()),title=read(()=>titleBridge?.titleStatus?.()),gate=title?.active?read(()=>titleBridge?.releaseTitleAvailability?.(),{ok:false,reasons:['service-unavailable']}):null;return {...consortPetitionView({card:{...card,applicationId:card.applicationId||petition?.id||null,source:card.source||petition?.source||null,expiresAt:card.expiresAt??petition?.expiresAt},target:read(()=>service.interactionTarget?.(),card.physical?.target),player:read(getPlayer),details:read(getDetails,{}),history:read(()=>ledger?.history?.(),[])}),release:title?.active&&typeof title.appointmentId==='string'?{id:title.appointmentId,ok:gate?.ok===true,reasons:(gate?.reasons||[]).map(reasonText),confirm:releaseId===title.appointmentId}:null};}
  function close(){epoch++;releaseId=null;if(dialog.open)dialog.close();}
  function showError(out){errorText=safeText(out?.message)||ERRORS[out?.code]||(out?.reasons?.length?out.reasons.map(reasonText).join('；'):'暂不能办理，请稍后重试');}
  function act(id){
@@ -104,7 +109,7 @@ export function createChinaConsortPetitionUI({service,titleBridge=null,getLedger
   const nextSignature=JSON.stringify(next);if(nextSignature===signature&&error.textContent===errorText)return;
   epoch++;signature=nextSignature;current=next;set(title,next.identity);set(stageLabel,next.stageLabel);set(factNodes.seat,next.seatText);set(factNodes.residence,next.residenceText);set(factNodes.meal,next.mealText);
   for(const [node,text]of [[result,next.result||''],[resultNote,next.resultReasons.join('；')],[note,next.note],[blockers,next.blockers.join('；')],[error,errorText]]){set(node,text);node.hidden=!text;}
-  history.hidden=next.historyCount===0&&!next.release;set(summary,`自荐记录 · ${next.historyCount}`);
+  history.hidden=next.historyCount===0&&!next.release;set(summary,`${next.historyLabel} · ${next.historyCount}`);
   const nextHistory=JSON.stringify(next.history);if(nextHistory!==historySignature){historySignature=nextHistory;historyBody.replaceChildren(...next.history.map(row=>make('p',`${row.day===null?'':`第${row.day}日 · `}${row.label}${row.reasons.length?` · ${row.reasons.join('；')}`:''}`)));}
   releaseBox.hidden=!next.release;releaseStart.hidden=!!next.release?.confirm;releaseConfirm.hidden=releaseCancel.hidden=!next.release?.confirm;releaseStart.disabled=releaseConfirm.disabled=!next.release?.ok;
   set(releaseNote,next.release?.reasons.length?next.release.reasons.join('；'):next.release?.confirm?'辞去后交还寝房与御膳资格':'');releaseNote.hidden=!releaseNote.textContent;
