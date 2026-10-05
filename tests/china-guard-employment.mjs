@@ -34,7 +34,7 @@ function fixture(){
  console.log('PASS interrupted observation earns no checkpoint; canceled duty releases original guard and cannot pay');
 }
 {
- const f=fixture(),old=copy(f.careers.state());delete old.skills.martial;delete old.skillXP.martial;delete old.daily.martial;delete old.learning['cn-archery'];
+ const f=fixture(),old=copy(f.careers.state());old.version=5;delete old.officialCareer;delete old.skills.martial;delete old.skillXP.martial;delete old.daily.martial;delete old.learning['cn-archery'];
  let migrated=createFormalCareers({saved:old,getClock:()=>f.clock,saveState:()=>true});assert.equal(migrated.state().loadError,null);assert.equal(migrated.state().skills.martial,0);
  const legacy={version:1,revision:0,skills:{ritual:2,writing:2},tenure:null,lastDuty:null,lastPaidDay:null,daily:{day:null,ritual:0,writing:0},learning:{'cn-rest':{issued:0,completed:0,issuedDay:null},'cn-calligraphy':{issued:0,completed:0,issuedDay:null}},lowerWork:{'cn-tavern-labor':0},performance:0,promotionProgress:0,lastEvaluatedDay:null,lastEvaluation:null};
  migrated=createFormalCareers({saved:legacy,getClock:()=>f.clock,saveState:()=>true});assert.equal(migrated.state().loadError,null);assert.equal(migrated.state().skills.ritual,2);assert.equal(migrated.state().skills.martial,0);

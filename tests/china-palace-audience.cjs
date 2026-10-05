@@ -6,6 +6,18 @@ function mod(file){if(cache.has(file))return cache.get(file);const m=new vm.Sour
 const linker=(s,f)=>mod(s==='three'?path.join(root,'vendor/three/build/three.module.js'):path.resolve(path.dirname(f.identifier),s.split('?')[0]));
 (async()=>{
  const audience=mod(path.join(root,'game/china-palace-audience.js'));await audience.link(linker);await audience.evaluate();
+ // Rank metadata may sort a handbook, but must not move an incumbent's office
+ // or assign another route lane to the actor when a saved world is restored.
+ const physicalIds=['cn-minister-works','cn-minister-granary','cn-official-rites','cn-official-personnel','cn-official-justice','cn-official-records'];
+ const stations=audience.namespace.chinaCourtOfficialStations();
+ assert.deepEqual(Array.from(stations,station=>station.id),physicalIds);
+ const offices=cache.get(path.join(root,'game/china-official-bureau.js')).namespace.CHINA_OFFICIAL_BUREAU.offices;
+ for(const [i,station] of stations.entries()){
+  assert.deepEqual(station.position,offices[i]);assert(station.npcName.includes(station.gradeLabel));
+  assert.equal(station.currentWage,24);assert.equal(station.automaticPromotion,false);
+ }
+ assert.equal(Array.from(stations).sort((a,b)=>a.gradeOrder-b.gradeOrder)[0].id,'cn-official-justice');
+ assert.equal(stations[0].id,'cn-minister-works','handbook rank sorting leaves physical order intact');
  const socialModule=mod(path.join(root,'game/npc-social.js'));await socialModule.link(linker);await socialModule.evaluate();
  const {createAudienceSchedule}=audience.namespace,a=createAudienceSchedule();assert(a.due(10,false,120));assert(!a.due(10,true));assert(!a.due(22));a.call();assert(!a.due(10));
  const interrupted=createAudienceSchedule(a.snapshot());assert.equal(interrupted.snapshot().outcome,'interrupted');interrupted.observe(10,0);assert(interrupted.due(10,false,120),'reload before the fixed start resumes unfinished assembly');
