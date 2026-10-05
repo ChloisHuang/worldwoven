@@ -11,8 +11,8 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.87-public, 2026-10-05
-Verified published Sites source commit: c0d43dec65b69a5d3b2007f36ace918c54a32494
+Published release: R16.88-public, 2026-10-05
+Verified published Sites source commit: b6822f64a14daeaf56eec3078afcab0fdc8ec67a
 
 ## Working rules
 
@@ -172,3 +172,5 @@ R16.85 opens France’s local tea-serving career with persistent interviews, exc
 R16.86 adds local French tea/pastry preparation employment and a cooking book in the existing library. The original order and tray pass from the player to Manon, then to the original guest, with review only after the same cups return and are cleaned. Continuous shifts pay actual on-duty time to the French bank. Existing serving and player-needs paths are preserved; full baking inventory and individualized quality reviews remain open.
 
 R16.87 keeps salon selection/scroll/focus stable through background updates, clears Lu Huaichuan’s invitation aisle with natural old-save continuation, fixes the inn footer under the full late CSS cascade, and removes the obsolete daily/furniture count HUD. Directed logic/route checks and offline product layouts passed; user-save and real iOS feedback remain open.
+
+R16.88 gives the original relieved French tea staff stable personality-weighted reading, rest and walks with physical meeting/role recall; the active colleague keeps the original order. A clear visitor meeting point fixes the observed return obstruction without navigation exceptions. The money-house frame also gains only two locally rounded right-shoulder joins. Full NPC physiological supply remains unfinished.
