@@ -11,7 +11,7 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.63-public, 2026-10-05
+Prepared release: R16.64-public, 2026-10-05
 Verified published Sites source commit: 00ab703d79526bcafe0f8910c48c12ef49ad0f7c
 
 ## Working rules
@@ -120,3 +120,5 @@ R16.61 repairs unfinished summons restored before11:30, releases stale idle-conv
 R16.62 extends the shared catalogue to three real permanent posts: court clerk, Chinese tavern service assistant and French garden assistant. Empty assistant slots preserve incumbents. Local employers verify actual work; skill gates, daily duty, reviews and 16–17 copper / 8–9 French-voucher bank wages are connected. New temporary12/6-copper settlements also enter bank, while already-paid legacy cash receipts stay untouched and cannot be paid again. Old clerk saves and pending work migrate. Targeted actual-service, storage and handbook checks passed; routes were reused, no unrelated scene rerun or iOS claim. Chinese court postponement investigation remains open.
 
 R16.63 adds shared player/NPC body-only recovery after five seconds of sustained blocked movement, capped at1.25 seconds/1.4 metres and ending when clear. Static walls, leaves, furniture and floors remain enforced. Reading now offers ritual/writing/gardening/art books with real8-second completion, visible skill progress, cancellation and save migration; French reading/chair targets remain separately usable. Narrow navigation and actual four-station main checks passed; user-phone deadlock and iOS layout still require field confirmation. No passport or new character model included.
+
+R16.64 adds the fictional read-only travel passport inside Help, before lengthy control instructions. It uses saved visits, activity stamps and the current character palette, with original cover and four regional seals; dates absent from old progress stay unknown. Returning from the passport refreshes the existing Chinese court-status panel. Wallet/passport browsing stops movement input without cancelling existing work or orders. No new save fields, face model or raster downloads; targeted modal/progress checks and build passed, real iOS layout unverified.
