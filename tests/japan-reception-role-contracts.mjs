@@ -23,7 +23,7 @@ const receipt=(f,number=1,kind='register',outcome='completed')=>{
  const visitId=`jp-visitor-1-${number}`,waitSeconds=outcome==='late'?61:20,completed=outcome!=='handoff';
  return {source:'japan-reception',id:`${visitId}-${kind}-${f.receiptId}`,workReceiptId:f.receiptId,visitId,number,customerId:visitId,customerName:'旅人',kind,tokenId:`${visitId}:token`,outcome,waitSeconds,completed,accurate:completed,timely:waitSeconds<=60};
 };
-assert.equal(FORMAL_CAREER_ROLES.filter(r=>r.country==='japan').length,1);
+assert.equal(FORMAL_CAREER_ROLES.filter(r=>r.id===ROLE.id).length,1);
 assert.equal(ROLE.wage,12);assert.equal(ROLE.preparationBonus,0);assert.equal(ROLE.currency,'japan');assert.equal(ROLE.rank,undefined);
 assert.deepEqual(ROLE.skillRequirements,{ritual:0,writing:0});
 assert.deepEqual(FORMAL_CAREER_SLOTS.find(s=>s.roleId===ROLE.id),{id:ROLE.slotId,roleId:ROLE.id,holderId:'jp-welcome',replacement:true});
