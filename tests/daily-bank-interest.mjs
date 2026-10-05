@@ -5,6 +5,7 @@ import {test} from 'node:test';
 import {createCurrencyLedger, createGameCurrencyLedger} from '../source/game/currency-ledger.js';
 import {createSimulationClock, GAME_MINUTES_PER_SECOND} from '../source/game/simulation-clock.js';
 import {walletTransactionView} from '../source/game/wallet.js';
+import {createChinaTavernProperty} from '../source/game/china-tavern-property.js';
 const copy = x => JSON.parse(JSON.stringify(x));
 const legacy = (bank=0,cash=0) => ({version:1,cash,bank,accountOpened:bank>0,nextTransaction:1,transactions:[]});
 const wage = (amount,receiptId='salary',currency='copper',day=0) => ({amount,receiptId,currency,roleId:'clerk',slotId:'one',day});
@@ -21,6 +22,25 @@ function fixture({saved=legacy(),day=0}={}) {
   return {ledger,clock,events,control};
 }
 const interest = ledger => ledger.history().filter(t=>t.action==='interest');
+
+test('real property purchase shares the daily-minimum snapshot and reload boundary',()=>{
+ let day=0,fail=false,durable,property,ledger;
+ let saved={copperLedger:legacy(1000),chinaServiceWorld:{till:0}};
+ const storage={setItem:(key,json)=>{if(fail)return false;durable=JSON.parse(json);}};
+ function load(){
+  ledger=createGameCurrencyLedger({saved,storage,getClock:()=>({day}),transactionParticipant:tx=>property?.prepareCurrencyCommit(tx)});
+  property=createChinaTavernProperty({saved:saved.chinaTavernProperty,copperLedger:ledger,getClock:()=>({day}),getTill:()=>0,worldSeed:1,saveState:next=>{const r=storage.setItem('worlds-days-v1',JSON.stringify({...saved,chinaTavernProperty:next}));if(r===false)return false;saved.chinaTavernProperty=next;}});
+ }
+ load();assert(ledger.observeDay().ok);day=1;
+ for(;day<8;day++){assert(property.refreshDay().ok);if(property.state().market.willing)break;}
+ assert(day<8);const quote=property.state();assert(property.applyPurchase(quote.market.price,quote.revision).ok);
+ fail=true;assert.equal(property.confirmPurchase().ok,false);assert.equal(property.state().ownerId,quote.ownerId);assert.equal(ledger.state().bank,1000);
+ fail=false;assert(property.confirmPurchase().ok);const balance=ledger.state().bank;
+ assert.equal(property.state().ownerId,'player');assert.equal(ledger.state().interest.minimum.copper,balance);
+ assert.equal(durable.chinaTavernProperty.events.filter(e=>e.kind==='transfer').length,1);
+ saved=copy(durable);load();assert(ledger.observeDay().replayed);assert.equal(property.confirmPurchase().ok,false);assert.equal(ledger.state().bank,balance);
+ day++;assert(ledger.observeDay().ok);assert.equal(ledger.state().bank,balance+Math.floor(balance/100));
+});
 
 test('each currency earns floor(daily minimum / 100), with explicit bank receipts',()=>{
   const seed=createCurrencyLedger({saved:legacy(100),saveState:()=>{}});
