@@ -84,13 +84,15 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
  const tick=(dt,duration,next)=>{phase+=dt;if(phase>=duration)next();};
  // The existing R63 serving prototype contributes physical steps and tray
  // recovery. Hiring, continuing demand, receipts and attendance use current core.
- const registry=[-5.5,.302,-4.45];
+ // The original NPC point is only .31m clear of the table. Keep its route,
+ // and give the wider player capsule a legal place beside the same seat.
+ const registry=[-5.5,.302,-4.45],playerServe=[5.4,.16,12.0];
  const SPECS={
-  requested:{key:'take-order',position:P.serve,target:P.seatCenter,seconds:1.2,action:'calligraphy',label:'听取加布里埃尔的茶点单'},
+  requested:{key:'take-order',position:playerServe,target:P.seatCenter,seconds:1.2,action:'calligraphy',label:'听取加布里埃尔的茶点单'},
   ticket:{key:'report-order',position:P.report,target:P.prepTop,seconds:1,action:'calligraphy',label:'向卡米耶报同号茶点单'},
   pickup:{key:'take-tray',position:P.prep,target:P.prepTop,seconds:1.2,action:null,label:'取走同号原茶盘'},
-  carrying:{key:'serve-tray',position:P.serve,target:P.table,seconds:1.2,action:null,label:'把原茶盘放到加布里埃尔席前'},
-  clearing:{key:'clear-tray',position:P.serve,target:P.table,seconds:1.2,action:null,label:'收回这一席的原杯碟'},
+  carrying:{key:'serve-tray',position:playerServe,target:P.table,seconds:1.2,action:null,label:'把原茶盘放到加布里埃尔席前'},
+  clearing:{key:'clear-tray',position:playerServe,target:P.table,seconds:1.2,action:null,label:'收回这一席的原杯碟'},
   returning:{key:'wash-cups',position:P.prep,target:P.prepTop,seconds:2.5,action:'tidy',label:'将原杯碟带回糕点房并洗净'},
  };
  function dutyStep(id){
@@ -136,7 +138,7 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
   const visual=order&&playerServing()?{...order,stage:step==='serve-tray'?'serving':step==='clear-tray'?'lifting':order.stage==='pickup'&&!step?'preparing':order.stage}:order;
   props.update(visual,{host:server(),cook,customer:customer()},phase);
  }
- const staffOwnership=()=>({holderId:isServerHired()?'player':P.host,controller:playerServing()?'player':P.host,status:duty?duty.status==='queued'?'handover':'on-duty':isServerHired()?'off-duty':'npc',cover:isServerHired()&&!duty});
+ const staffOwnership=()=>({holderId:isServerHired()?'player':P.host,controller:duty?.status==='active'?'player':P.host,taskOwner:order?playerServing()?'player':P.host:null,status:duty?duty.status==='queued'?'handover':'on-duty':isServerHired()?'off-duty':'npc',cover:isServerHired()&&!duty});
  const hostLabel=()=>duty?.status==='active'?'玩家当班 · 玛农候援':isServerHired()?'玛农临时代班 · 玩家未报到':host.station.npcLabel;
  function cupPose(n,t){const c=n.poseContext||{},sip=Math.pow((Math.sin(t*1.4)+1)*.5,2);c.seatHeight=(seat.seatY-n.root.position.y-(c.visualFloorOffset||0));c.handoff=true;c.seatedMeal=false;c.heldProp=null;c.archery={hands:[[-.18,c.seatHeight+.15,.25],[.13-sip*.055,c.seatHeight+.30+sip*.28,.37-sip*.23]]};return c;}
  function pose(n,t,action,target,carry=false){

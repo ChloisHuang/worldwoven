@@ -358,6 +358,7 @@ function resolvePlayerIntent(station){return station?.provider==='china-tavern-l
 function requestStationIntent(station){
  if(!player||interactionMenuOpen())return false;
  const next=resolvePlayerIntent(station);if(!next)return false;if(next.provider==='china-daily-toilet'&&(chinaService?.active()||chinaLabor?.active()||chinaCareer?.isActing()||formalCareers.state().lastDuty?.roleId==='cn-court-clerk'&&['arrived','working'].includes(formalCareers.state().lastDuty.stage))){toast('请先完成手头工作并交班，再去净室');return false;}
+ if(franceTeaEmployment?.held()&&next.provider!=='france-tea-employment'){toast('请先把原茶盘送到客席，或把杯碟归还糕点房');return false;}
  if(franceLabor?.held()&&next.provider!=='france-gardener-labor'){toast('手里还提着借来的水壶，请先在工具架归还');return false;}
  if((pendingInteraction?.id===next.id&&pendingInteraction?.intentKey===next.intentKey)||performing?.id===next.id)return true;
  arrivalViewUntil=0;if(!cancelAction({keepSeat:next.keepSeat===true}))return false;

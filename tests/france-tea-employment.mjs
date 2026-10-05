@@ -45,7 +45,7 @@ function fixture(saved={},options={}){
  console.log('PASS physical persistent pending/review, exclusive tenure, role/day limit, no auto-work/pay');
 }
 {
- const f=fixture();f.hire();f.act('accept');assert(!f.tea.request(),'employee cannot order for themselves');assert.equal(f.tea.state().staffOwnership.controller,P.host,'no customer claim while idle');
+ const f=fixture();f.hire();f.act('accept');assert(!f.tea.request(),'employee cannot order for themselves');assert.equal(f.tea.state().staffOwnership.controller,'player','active duty remains player-owned while idle');assert.equal(f.tea.state().staffOwnership.taskOwner,null,'no customer claim while idle');
  const first=f.completeOrder();assert.equal(first.customerId,P.guest);assert.equal(first.trayId,first.orderId+'-tray');assert.equal(f.employment.state().job.stage,'working');assert.equal(f.careers.state().lastDuty.customerReviews.length,1);assert.equal(f.bank.state().balances.france.bank,0);
  const g=fixture(f.checkpoint());g.tick(5);assert.equal(g.employment.state().job.completedTasks,1);assert.equal(g.careers.state().lastDuty.customerReviews.length,1);const second=g.completeOrder();assert.notEqual(second.orderId,first.orderId);assert.equal(g.employment.state().job.completedTasks,2);assert.equal(g.careers.state().lastDuty.customerReviews.length,2);assert.equal(g.employment.state().job.stage,'working');
  // Qualified on-duty standby counts; no artificial task is needed to earn time.
