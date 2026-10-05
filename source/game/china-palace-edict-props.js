@@ -50,5 +50,5 @@ export function createPalaceEdictProps(parent){
    broom.scale.y=(broom.position.y-P.work[1]-.008-.1525*Math.abs(xY)-.025*Math.abs(zY))/(.98*Math.abs(yY));
   }
  }
- return {update,state:()=>({documentId,holder,sealed,scrollCount:scroll.visible?1:0,scrollPosition:scroll.visible?scroll.position.toArray():null,workProgress,broomVisible:broom.visible,leafPositions:leaves.map(l=>l.position.toArray())}),dispose(){root.removeFromParent();for(const g of geometries)g.dispose();for(const m of materials.values())m.dispose();}};
+ return {update,animateBorrowedSeal(actor,phase,elapsed=0){seal.position.set(4.60,2.39,-5.06);if(phase==='sealing'&&actor){actor.root.updateWorldMatrix(true,true);const hand=actor.root.userData.hands?.[1],p=hand?hand.getWorldPosition(v).clone():hands(actor);p.y-=.13;seal.position.lerp(p,Math.max(0,Math.min(1,elapsed/.4,(2.2-elapsed)/.4)));}},state:()=>({documentId,holder,sealed,scrollCount:scroll.visible?1:0,scrollPosition:scroll.visible?scroll.position.toArray():null,workProgress,broomVisible:broom.visible,leafPositions:leaves.map(l=>l.position.toArray())}),dispose(){root.removeFromParent();for(const g of geometries)g.dispose();for(const m of materials.values())m.dispose();}};
 }

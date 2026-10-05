@@ -186,8 +186,11 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   // Palace life remains the sole movement/pose owner of its actors. A duty
   // drains unfinished leisure without granting its need/relationship relief.
   requestDuty(owner,options={}){
-   if(disposed||!owner||duty&&duty.owner!==owner)return false;
-   if(!duty){duty={owner,kind:options.kind==='edict-review'?'edict-review':'audience',active:false,release:false,yieldSeat:false};const s=stages.get(emperor);cancelMeal(emperor,s,'royal-duty');if(s.choice){s.choice.fulfilled=false;brain.complete(emperor.station.id,s.choice,{fulfilled:false});}record(emperor,'duty-requested:'+owner);}
+   if(disposed||!owner)return false;
+   // A background public visit yields its existing real route to the morning
+   // court; the sole life controller changes duty only at a safe handoff.
+   if(duty&&duty.owner!==owner){if(!duty.background||options.background)return false;record(emperor,'duty-preempted:'+duty.owner);duty={owner,kind:options.kind==='edict-review'?'edict-review':'audience',active:false,release:false,yieldSeat:false,background:false};return true;}
+   if(!duty){duty={owner,kind:options.kind==='edict-review'?'edict-review':'audience',active:false,release:false,yieldSeat:false,background:!!options.background};const s=stages.get(emperor);cancelMeal(emperor,s,'royal-duty');if(s.choice){s.choice.fulfilled=false;brain.complete(emperor.station.id,s.choice,{fulfilled:false});}record(emperor,'duty-requested:'+owner);}
    return true;
   },
   // Read-only estimate of the exact existing handoff/duty itinerary. This does

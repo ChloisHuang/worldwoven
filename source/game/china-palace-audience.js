@@ -116,6 +116,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
  life=createChinaOfficialLife({officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,reports,economy,sharedNeeds,getTavern,getClock,worldSeed,saved:saved.life,saveState:()=>save(),beginInteraction,onInteraction,record});
  save();
  return {
+  courtStatus:()=>({phase,schedule:schedule.snapshot()}),
   mountForActor:n=>life?.mountForActor(n)||null,
   owns:n=>owned.has(n),
   summary:()=>chinaCourtStatusSummary(schedule.snapshot(),phase),
