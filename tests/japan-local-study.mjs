@@ -41,7 +41,7 @@ assert.equal(studySkillProgress(f.careers.state(),'care',1).remaining,0);assert.
 f.clock.day=2;assert.equal(studySkillProgress(f.careers.state(),'care',2).remaining,4);assert.equal(finish('care').result.xp,20);
 assert(studyJobLinks(f.careers,'ritual','japan').includes('男汤浴包配送员'));assert(!studyJobLinks(f.careers,'writing','japan').includes('礼务录事'));
 const published=JSON.parse(fs.readFileSync(new URL('./fixtures/japan-study-published-v8.json',import.meta.url))),old=published.saved,migrated=fixture(old,published.clock,published.worldSeed).careers;
-assert.equal(migrated.state().loadError,null);assert.equal(migrated.state().version,9);
+assert.equal(migrated.state().loadError,null);assert.equal(migrated.state().version,10);
 for(const key of Object.keys(old))if(!['version','learning'].includes(key))assert.deepEqual(migrated.state()[key],old[key],key+' preserved');
 for(const [source,row]of Object.entries(old.learning))assert.deepEqual(migrated.state().learning[source],row,'old ticket retained');
 assert.deepEqual(migrated.state().learning['jp-library'],{issued:0,completed:0,issuedDay:null,lessonId:null});
@@ -61,4 +61,4 @@ for(const lesson of local){find(e=>e.className==='study-option'&&text(e).include
 const stale=button('开始阅读 · 8秒');button('暂时不学').onclick();stale.onclick();assert.equal(requests.length,0);assert.deepEqual(f.store.saved,before);
 assert(ui.open(station));find(e=>e.className==='study-option'&&text(e).includes('文书')).onclick();const start=button('开始阅读 · 8秒');start.onclick();start.onclick();assert.deepEqual(requests,[['jp-library','jp-writing-intro']]);assert.deepEqual(f.store.saved,before,'browsing never mints a ticket');
 ui.open(station);const foreign=button('开始阅读 · 8秒');country='france';foreign.onclick();assert.equal(requests.length,1);ui.update();assert(!ui.isOpen());assert.equal(ui.open(station),false);ui.dispose();
-console.log('PASS Japan local study: four local skills/icons; shared XP/day cap; completion/cancel/reload/replay/save failure; authentic v8 paid/applications/tickets preserved; strict v9 row; menu country/stale-action guards (simulated DOM)');
+console.log('PASS Japan local study: four local skills/icons; shared XP/day cap; completion/cancel/reload/replay/save failure; authentic v8 paid/applications/tickets preserved; strict current-schema row; menu country/stale-action guards (simulated DOM)');

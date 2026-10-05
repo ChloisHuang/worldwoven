@@ -25,9 +25,9 @@ const japan=Object.freeze([
 ]);
 // Original books for this fictional temple, not historical Egyptian manuals.
 const egypt=Object.freeze([
- book('eg-ritual-intro','ritual','《沙河神殿迎客札记》','在这座幻想神殿练习问安、来访指引与观礼分寸。','迎客先问来意，再说明柱廊与书案的位置。观礼时留出通道，进入起居或沐浴处前先征得同意；来客可以选择停留或离开。'),
+ book('eg-ritual-intro','ritual','《沙河神殿迎客札记》','在神殿练习问安、来访指引与观礼分寸。','迎客先问来意，再说明柱廊与书案的位置。观礼时留出通道，进入起居或沐浴处前先征得同意；来客可以选择停留或离开。'),
  book('eg-writing-intro','writing','《纸莎草来访与收存簿》','练习这座神殿的姓名、日期、物件编号与卷册收存记录。','先把姓名、日期和来意分栏记录，再给本次收存的卷册记号。逐行核对原件与抄本，交接时双方确认同一个编号，再把卷册放回标记处。'),
- book('eg-art-intro','art','《柱廊纹样与纸莎草配色》','观察眼形、水纹与纸莎草柱头，练习架空神殿的纹样构图。','先看柱头与水纹的轮廓，画出大小与间隔。用青蓝、赭红与金色区分主纹和边饰，留出纸莎草底色；这些纹样是这座幻想神殿的创作。'),
+ book('eg-art-intro','art','《柱廊纹样与纸莎草配色》','观察眼形、水纹与纸莎草柱头，练习神殿的纹样构图。','先看柱头与水纹的轮廓，画出大小与间隔。用青蓝、赭红与金色区分主纹和边饰，留出纸莎草底色，让主纹和边饰彼此呼应。'),
  book('eg-cooking-intro','cooking','《面包果盘与陶锅餐食手记》','认识神殿餐厅的面包、果盘、陶锅与同单出餐。','先看餐单和餐位，再分好面包、洗净水果，按份备料。处理食物前清洁双手和案面，分开生熟器具；出餐时核对原单，把同一份餐食送回对应餐位。'),
 ]);
 const writing=Object.freeze({id:'writing-practice',skill:'writing',title:'楷书与文书誊写',description:'在书案蘸墨落笔，练习端正誊写。',action:'calligraphy',verb:'习字',seconds:STUDY_DURATION});
