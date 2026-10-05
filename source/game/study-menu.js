@@ -5,7 +5,7 @@ import {STUDY_STYLE,studyIcon} from './study-theme.js';
 // returns through the existing physical station and witnessed-completion path.
 export function createStudyMenu({careers,getClock,getCountry=()=>null,onOpen=()=>{},onClose=()=>{},onChoose=()=>{},document:doc=globalThis.document}) {
  const make=(tag,text,cls)=>{const el=doc.createElement(tag);if(text)el.textContent=text;if(cls)el.className=cls;return el;};
- const dialog=make('dialog',null,'study-dialog ww-airy-theme'),style=make('style');
+ const dialog=make('dialog',null,'study-dialog ww-airy-theme ww-airy-panel'),style=make('style');
  dialog.setAttribute('aria-label','选择书目与学习技能');style.textContent=STUDY_STYLE;
  (doc.head||doc.body).append(style);doc.body.append(dialog);
  let station=null,selected=null,generation=0,signature='';
@@ -21,8 +21,8 @@ export function createStudyMenu({careers,getClock,getCountry=()=>null,onOpen=()=
   const fresh=()=>dialog.open&&token===generation&&(!getCountry()||getCountry()===country);
   dialog.replaceChildren();
   const x=button('×',close);x.className='study-close';x.setAttribute('aria-label','关闭学习菜单');
-  const heading=make('header',null,'study-heading');heading.append(make('h2',lesson.action==='read'?'书页之间':'研习时光'),make('span',station.name,'study-place'));dialog.append(x,heading);
-  const content=make('div',null,'study-content'),list=make('div',null,'study-options');
+  const heading=make('header',null,'study-heading ww-airy-panel-heading');heading.append(make('h2',lesson.action==='read'?'书页之间':'研习时光'),make('span',station.name,'study-place'));dialog.append(x,heading);
+  const content=make('div',null,'study-content ww-airy-panel-body'),list=make('div',null,'study-options');list.setAttribute('aria-label','当地书目，可滚动查看');
   for(const option of options){
    const p=studySkillProgress(state,option.skill,day),b=button(null,()=>{if(!fresh())return;selected=option.id;render();});
    b.className='study-option';b.setAttribute('aria-pressed',option.id===selected);
@@ -39,7 +39,7 @@ export function createStudyMenu({careers,getClock,getCountry=()=>null,onOpen=()=
   notes.append(summary,make('p',`今日还可获得奖励 ${p.remaining} 次（每天最多 4 次）；升级进度会跨日保留。`),make('p',studyJobLinks(careers,lesson.skill,country),'study-jobs'));detail.append(notes);
   if(state.loadError)detail.append(make('p','学习记录暂时无法核对，请保留存档后重试。'));
   content.append(list,detail);dialog.append(content);
-  const actions=make('footer',null,'study-actions'),start=button(`开始${lesson.verb} · ${lesson.seconds}秒`,()=>{
+  const actions=make('footer',null,'study-actions ww-airy-panel-actions'),start=button(`开始${lesson.verb} · ${lesson.seconds}秒`,()=>{
    if(!fresh())return;const target=station,id=selected;close();onChoose(target,id);
   }),cancel=button('暂时不学',close);
   start.className='study-start ww-airy-action';start.disabled=!!state.loadError;cancel.className='study-cancel';
