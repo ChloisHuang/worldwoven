@@ -25,13 +25,22 @@ class Element {
   showModal(){assert(this.isConnected);this.open=true;}
   close(){this.open=false;this.dispatch('close');}
 }
-function documentFixture(reduced=false){const d={images:[],defaultView:{matchMedia:()=>({matches:reduced})}};d.createElement=t=>{const e=new Element(t,d);if(t==='img')d.images.push(e);return e;};d.head=d.createElement('head');d.body=d.createElement('body');d.activeElement=d.body;d.querySelectorAll=()=>walk(d.body).filter(n=>n.tagName==='DIALOG'&&n.open);return d;}
+function documentFixture(reduced=false,manualImages=false){
+  let clock=0,nextFrame=0;const frames=new Map();
+  const d={images:[],defaultView:{matchMedia:()=>({matches:reduced}),requestAnimationFrame:fn=>{frames.set(++nextFrame,fn);return nextFrame;},cancelAnimationFrame:id=>frames.delete(id)}};
+  d.tick=ms=>{clock+=ms;const jobs=[...frames.values()];frames.clear();jobs.forEach(fn=>fn(clock));};
+  d.pendingFrames=()=>frames.size;
+  d.createElement=t=>{const e=new Element(t,d);if(t==='img'){
+    e.decode=()=>manualImages?new Promise((resolve,reject)=>{e.finishDecode=resolve;e.failDecode=reject;}):Promise.resolve();d.images.push(e);
+  }return e;};
+  d.head=d.createElement('head');d.body=d.createElement('body');d.activeElement=d.body;d.querySelectorAll=()=>walk(d.body).filter(n=>n.tagName==='DIALOG'&&n.open);return d;
+}
 const walk=node=>[node,...node.children.flatMap(walk)];
 const all=(doc,cls)=>walk(doc.body).filter(n=>n.className.split(' ').includes(cls));
 const one=(doc,cls)=>{const nodes=all(doc,cls);assert.equal(nodes.length,1,cls);return nodes[0];};
 const receiptArt=doc=>all(doc,'ww-wallet-transfer-note').map(n=>({currency:n.dataset.currency,file:n.children[0].src.split('/').at(-1),text:n.textContent}));
-function fixture({reduced=false,saved}={}){
-  const doc=documentFixture(reduced),mount=doc.createElement('div');doc.body.append(mount);let writes=0,opens=0,closes=0,currentCurrency='copper';
+function fixture({reduced=false,saved,manualImages=false}={}){
+  const doc=documentFixture(reduced,manualImages),mount=doc.createElement('div');doc.body.append(mount);let writes=0,opens=0,closes=0,currentCurrency='copper';
   const ledger=createCurrencyLedger({saved,saveState:()=>{writes++;}});
   const wallet=createCurrencyWallet({mount,ledger,document:doc,getCurrency:()=>currentCurrency,onOpen:()=>opens++,onClose:()=>closes++});
   return {doc,mount,ledger,wallet,writes:()=>writes,opens:()=>opens,closes:()=>closes,setCurrency:id=>{currentCurrency=id;wallet.refresh();}};
@@ -113,7 +122,7 @@ function fixture({reduced=false,saved}={}){
     assert(f.ledger.withdraw(4,`cash:${id}`,id).ok);
   }
   assert.equal(all(f.doc,'ww-wallet-note').length,4);assert.equal(all(f.doc,'ww-wallet-note').flatMap(n=>n.children.filter(c=>c.tagName==='IMG')).length,4,'one original image per owned currency');
-  assert.deepEqual(all(f.doc,'ww-wallet-note').map(n=>n.style['--note-progress']),['0',String(1/3),String(2/3),'1'],'all four notes share the available fan height');
+  assert.equal(new Set(all(f.doc,'ww-wallet-note').map(n=>n.style.width)).size,1,'all country notes share the responsive paper size');
   const before=f.writes();one(f.doc,'ww-wallet-fan').click();f.wallet.refresh();
   assert.equal(one(f.doc,'ww-wallet-fan').getAttribute('aria-expanded'),'true','balance refresh preserves opened fan');
   assert.equal(f.writes(),before,'presentation refresh and decorative serials never change money');f.wallet.dispose();
@@ -123,6 +132,51 @@ function fixture({reduced=false,saved}={}){
 }
 {
   const f=fixture();for(let i=0;i<65;i++)assert(f.ledger.earn(1,`journal:${i}`).ok);f.wallet.open();assert.equal(all(f.doc,'ww-wallet-entry').length,60);one(f.doc,'ww-wallet-more-button').click();assert.equal(all(f.doc,'ww-wallet-entry').length,65);f.wallet.dispose();
+}
+{
+  const f=fixture({manualImages:true});f.wallet.open();f.ledger.earn(6,'first-art');
+  const note=one(f.doc,'ww-wallet-note'),img=note.children[0];
+  assert.equal(note.dataset.artState,'loading','first open reserves a paper-shaped loading placeholder');
+  assert.equal(note.getAttribute('aria-busy'),'true');
+  const count=f.doc.images.length;f.wallet.close();f.wallet.open();
+  assert.equal(f.doc.images.length,count,'pending artwork is reused on repeated open');
+  img.finishDecode();for(let i=0;i<6;i++)await Promise.resolve();
+  assert.equal(note.dataset.artState,'ready','labels and paper become visible together after decoding');
+  f.wallet.close();f.wallet.open();assert.equal(note.children[0],img);assert.equal(f.doc.images.length,count,'decoded images stay cached across opens');
+  f.wallet.dispose();
+}
+{
+  const f=fixture();f.wallet.open();f.ledger.earn(6,'motion');const fan=one(f.doc,'ww-wallet-fan');
+  assert.equal(fan.dataset.motion,'closed');fan.click();f.doc.tick(0);f.doc.tick(170);
+  assert.equal(fan.dataset.motion,'lifting');const half=one(f.doc,'ww-wallet-note').style.transform;
+  fan.click();assert.equal(one(f.doc,'ww-wallet-note').style.transform,half,'reversing mid-lift does not teleport paper');
+  f.doc.tick(85);assert.equal(fan.dataset.motion,'returning');f.doc.tick(85);assert.equal(fan.dataset.motion,'closed');
+  fan.click();f.doc.tick(0);f.doc.tick(340);assert.equal(fan.dataset.motion,'spreading');f.doc.tick(340);assert.equal(fan.dataset.motion,'spread');
+  fan.click();f.doc.tick(0);f.doc.tick(170);assert.equal(fan.dataset.motion,'gathering');
+  const gathering=one(f.doc,'ww-wallet-note').style.transform;fan.click();assert.equal(one(f.doc,'ww-wallet-note').style.transform,gathering,'reverse during gathering keeps the current paper pose');
+  f.doc.tick(170);assert.equal(fan.dataset.motion,'spread');fan.click();f.doc.tick(0);f.doc.tick(340);assert.equal(fan.dataset.motion,'returning');
+  f.wallet.close();assert.equal(f.doc.pendingFrames(),0,'close cancels animation');f.wallet.open();assert.equal(fan.dataset.motion,'closed');f.doc.tick(1000);assert.equal(fan.dataset.motion,'closed','stale callbacks cannot reopen notes');f.wallet.dispose();
+}
+{
+  const f=fixture({reduced:true});f.wallet.open();f.ledger.earn(6,'reduced-fold');const fan=one(f.doc,'ww-wallet-fan');
+  fan.click();assert.equal(fan.dataset.motion,'spread');assert.equal(f.doc.pendingFrames(),0);fan.click();assert.equal(fan.dataset.motion,'closed');f.wallet.dispose();
+}
+{
+  const seed=createCurrencyLedger({saveState:()=>{}});seed.earn(6,'saved-cash');seed.creditWageToBank({currency:'france',amount:12,receiptId:'saved-bank',roleId:'gardener',slotId:'garden-1',day:1});
+  const f=fixture({saved:seed.state()});assert.equal(f.doc.images.length,1,'construction predecodes only an already-owned cash currency');
+  const primed=f.doc.images[0];assert.match(primed.src,/china.webp$/);assert.equal(all(f.doc,'ww-wallet-dialog').length,0,'predecoding does not open or build the dialog');
+  for(let i=0;i<6;i++)await Promise.resolve();f.wallet.open();assert.equal(one(f.doc,'ww-wallet-note').children[0],primed,'first open adopts its predecoded image');f.wallet.dispose();
+}
+{
+  const f=fixture({manualImages:true});f.wallet.open();f.ledger.earn(6,'failed-art');
+  const note=one(f.doc,'ww-wallet-note'),img=note.children[0],receipt=one(f.doc,'ww-wallet-transfer');
+  img.failDecode(new Error('network'));img.onerror();for(const other of f.doc.images)if(other!==img){other.failDecode(new Error('network'));other.onerror();}
+  for(let i=0;i<12;i++)await Promise.resolve();
+  assert.equal(note.dataset.artState,'error');assert(!receipt.className.includes('is-ready'),'failed art cannot start a flying placeholder');
+  const writes=f.writes(),count=f.doc.images.length;f.wallet.refresh();assert.equal(note.dataset.artState,'error','ordinary refresh does not keep retrying failed images');
+  f.wallet.close();f.wallet.open();assert.equal(note.dataset.artState,'loading','reopening makes one controlled retry of a failed ticket');
+  assert.equal(note.children[0],img);assert.equal(f.doc.images.length,count,'retry reuses the same country node and URL');img.finishDecode();
+  for(let i=0;i<8;i++)await Promise.resolve();assert.equal(note.dataset.artState,'ready','successful retry recovers the actual ticket');assert.equal(f.writes(),writes,'art failure and retry never write money');f.wallet.dispose();
 }
 assert.equal(walletTransactionView({id:'legacy',action:'earn',amount:5}).currency,'copper','legacy journal rows retain copper');
 assert.equal(walletTransactionView({id:'settled',action:'settle',currency:'japan',amount:5}).route,null);

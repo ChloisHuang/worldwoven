@@ -63,7 +63,15 @@ export function createChinaTavernMeal({npcs,lot,furniture,doors,planPath,moveAct
    if(order&&!order.cancelled&&!['clear-table','lifting','return','washing'].includes(order.stage)&&(!present()||!mounted()))cancel('离开餐位或酒楼');
    let ha=null,ca=null,ht=null,ct=null,hcarry=false,ccarry=false;
    const paused=!!conversation&&actors.some(n=>n.station.id===conversation);
-   if(!order){travel(host,P.host,dt);travel(cook,P.prep,dt);ht=P.passTop;ct=P.prepTop;}
+   if(!order){
+    travel(host,P.host,dt);travel(cook,P.prep,dt);
+    // Waiting at reception is not a blocked route. Face a nearby visitor at
+    // the public register instead of staring into the counter without a task.
+    const visitor=getPlayer()?.root.position;
+    ht=visitor&&visitor.x>21.4&&visitor.x<25.65&&Math.abs(visitor.y-M.floorY)<.45&&gap(host,[visitor.x,visitor.y,visitor.z])<2.8&&visitor.z>P.host[2]
+     ?[visitor.x,visitor.y+1.3,visitor.z]:[P.host[0],1.3,13.0];
+    ct=P.prepTop;
+   }
    else{
     const o=order;
     if(o.stage==='requested'){if(travel(host,o.servePoint,dt)&&!paused)enter('accepted');}
@@ -103,7 +111,7 @@ export function createChinaTavernMeal({npcs,lot,furniture,doors,planPath,moveAct
     }
    }
    pose(host,t,ha,ht,hcarry);pose(cook,t,ca,ct,ccarry);
-   const label=order?LABELS[order.stage]:null;for(const n of actors){const e=n.label?.querySelector?.('small');if(e)e.textContent=label||(n===host?'掌柜 · 请入座点菜':'厨师 · 备菜候单');}
+   const label=order?LABELS[order.stage]:null;for(const n of actors){const e=n.label?.querySelector?.('small');if(e)e.textContent=label||(n===host?n.walking?'掌柜 · 返回迎客茶案':'掌柜 · 候客与招工':'厨师 · 备菜候单');}
    props.update(order,{host,cook,player:getPlayer()},phaseTime);
   },
   view:()=>({order:order?{id:order.id,seatId:order.seatId,stage:order.stage,cancelled:order.cancelled}:null,label:order?LABELS[order.stage]:null}),
