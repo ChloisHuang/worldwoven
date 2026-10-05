@@ -1295,7 +1295,9 @@ export function buildFrance({pack=true}={}){
   block(-19.20,.82,-12.65,2.64,1.13,.90,C.white);box(-19.20,1.46,-12.65,2.81,.15,1.03,C.gold);G.sphere(group,-19.2,1.56,-12.55,.52,C.ivory,1.1,.20,.7);G.sphere(group,-19.2,1.665,-12.55,.33,C.sage,1.1,.035,.72);G.cyl(group,-19.2,1.81,-12.91,.035,.035,.45,C.gold,8);mirror(group,-19.2,3.02,-13.25,1.48,2.0);
   for(let i=0;i<3;i++)box(-18.35,1.60+i*.09,-12.52,.61,.075,.47,[C.white,C.sage,C.white][i]);
   block(-19.0,1.46,-7.45,1.37,2.45,.71,C.ivory);for(const x of [-19.31,-18.69]){box(x,1.49,-7.06,.52,2.13,.05,C.sage);box(x,1.52,-7.015,.046,.15,.05,C.gold);}
-  block(-24.17,.65,-7.66,.91,.85,1.3,C.ivory);G.sphere(group,-24.17,1.00,-7.51,.47,C.white,1,.20,1.3);box(-24.17,1.3,-8.1,.87,1.1,.27,C.white);
+  // Keep the existing seat/cistern, with its supporting pedestal behind the
+  // knees so seated lower legs can reach the front footrest.
+  block(-24.17,.65,-7.82,.91,.85,.98,C.ivory);G.sphere(group,-24.17,1.00,-7.51,.47,C.white,1,.20,1.3);box(-24.17,1.3,-8.1,.87,1.1,.27,C.white);
   // Retain this WC and rotate its full sage screen behind the cistern.
   // The old east-side screen sealed the fixture against the tub/wall; this
   // local rearrangement leaves a real east approach at the full route radius.
