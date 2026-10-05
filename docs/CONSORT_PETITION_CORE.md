@@ -27,7 +27,7 @@
 4. 仅接受后 `charterRequest()` 返回需由原场景制作和传递的 `{applicationId,documentId,playerId,emperorId,residence}`；它不产生实体册书。原沈序确实交出同一实体后 `receiveCharter(id,handoffReceipt)`，存为 `charter-held`
 5. 同一实体册书在皇帝/沈序真实见证下完整宣读后 `completeInvestiture(id,readingReceipt)`。同次存档写入 `appointment` 内的有限第四席、actor、roomId、bedId 与实体回执，完成前仍没有名位。失败保存可同号重试；重复成功回执不再授予
 
-所有提交/审核/接受/授册/宣读及恢复后的可用资格均重核双方18+。更改房床占用、原工作未结算、皇帝/名册冲突都会阻塞；未成年人不会通过缓存结果得到权利。`withdraw(id)` 允许退出尚未完成的申请，不能撤销已生效名位。没有皇后申请、皇帝继位或亲密按钮；册封绝不表达亲密同意。
+所有提交/审核/接受/授册/宣读及恢复后的可用资格均重核双方18+。更改房床占用、原工作未结算、皇帝/名册冲突都会阻塞；未成年人不会通过缓存结果得到权利。`withdraw(id)` 允许退出尚未完成的申请；已生效名位只能经下述自愿辞位出口结束。没有皇后申请、皇帝继位或亲密按钮；册封绝不表达亲密同意。
 
 ## 四种真实回执
 
@@ -44,11 +44,28 @@
 
 - `state()` / `petition()` / `history()` 为 detached 副本；原阶段和拒绝结果可回看
 - `residenceFor()` 只在有效成年名位及实际房床/名册资格仍通过时返回 `{slotId,roomId,bedId}`。适配器据此设置新寝房家具 `privateOwnerId:'player'`；所有空房家具仍遵守 assignmentRequired，pending 无使用权
-- `royalMealEligibility()` 仅返回有效名位资格及 appointmentId；不能据此直接减饥饿或发食物。后续必须由原120份库存、Jia、真实餐单、落座与完整食用回执接入。普通御膳厨役没有食权
+- `royalMealEligibility()` 仅返回有效名位资格及 appointmentId、appointmentReceiptId；后者是原实体宣读事件的不透明ID，不能用格式推断替代真实匹配。不能据此直接减饥饿或发食物。后续必须由原120份库存、Jia、真实餐单、落座与完整食用回执接入。普通御膳厨役没有食权
 - 银钱供俸未接：六官4320文公库和普通 `creditWage` 均未改，不承诺现金或银行奖励
 - `acceptanceAvailability()` 返回接受/授册当前真实阻塞；状态卡在获准后直接显示未结班、待薪或未离任原因，拒绝仍可独立选择
 - `statusCard()` 提供名位、实际住所、阶段、唯一当前主操作及可回看结果，供原 B+A 卡消费；不包含远程任命、换衣、开工、亲密或妊娠动作
 
 ## 已验证范围
 
-`node --test tests/consort-petition-ledger.mjs` 14项纯逻辑通过：成年逐阶段/恢复、有限原房床保护、真实回执闭锁、固定审核与每日限制、玩家拒绝、旧职阻塞、每次存档失败回滚、同号重放、时钟前进后的原事件重试和坏档闭锁。该测试用可信事件夹具验证账本契约，不是实际现场/浏览器/iOS/住房/御膳验收。初次跨日申请测试失败为夹具误用旧 applicationId，改用当天 availability ID 后通过；未改产品放宽条件。
+`node --test tests/consort-petition-ledger.mjs tests/consort-runtime-bridge.mjs` 共21项（15核心＋6桥接）纯逻辑通过：成年逐阶段/恢复、有限原房床保护、真实回执闭锁、固定审核与每日限制、玩家拒绝、旧职阻塞、每次存档失败回滚、同号重放、时钟前进后的原事件重试和坏档闭锁。该测试用可信事件夹具验证账本契约，不是实际现场/浏览器/iOS/住房/御膳验收。初次跨日申请测试失败为夹具误用旧 applicationId，改用当天 availability ID 后通过；未改产品放宽条件。
+
+## Runtime bridge（`eaaf186`，仍由主集成接 main）
+
+`createConsortRuntimeBridge` 在 `source/game/consort-runtime-bridge.js`。参数为 `saved` 根对象、`quarters: RESERVED_CONSORT_QUARTERS`、`getScene:()=>({country,lot,furniture,npcs,palace})`、`getPlayerProfile`、`getAppearanceScore`、可选现有 `getPlayerTraits`、`getCareers`、`getClock`、`getService`、`captureWorld`、`writeWorld`、`canReleaseTitle` 和 `worldSeed`。读取器回调在constructor期间可以尚无scene/service；先实例化bridge，再构造实体service，传 `getLedger:()=>bridge.ledger`、`saveState:next=>bridge.commitService(next)`。
+
+- 名位根键 `consortPetitions`；实体service根键与中国continuity controller键均为 `chinaConsortCourt`
+- `commitLedger(next)` 供核心saveState使用；`commitService(next)` 接完整可恢复service checkpoint。两者先capture真实世界，再覆盖最新service snapshot，并把名位＋service＋continuity写入同一world JSON。若旧无参 `worldSnapshotWriter` 临时替换root的dailyNeeds/worldContinuity，写入前恢复原引用；失败不污染saved或房床。新的capture也可直接填入传入candidate根对象
+- `writeWorld(next)` 必须同步原子写完整JSON；成功后才更新原saved根对象和房床投影。false/throw/Promise均失败。模拟时间保存为原 `{version:1,seconds}`，不会把state误存为snapshot
+- `projectOwnership()` 在进入中国并造出真实room/bed/NPC后、`restoreWorldContinuity`尝试挂床前调用；实体初始空owner才可据有效名位投影玩家，不覆盖别人
+- `titleStatus()` 返回 `{active,titleId,appointmentId,appointmentReceiptId,residence,reasons}`，跨国保留有效名位；只轻读成年人身份、小appointment和三原住民，不复制全脑/全历史。既有技能、外貌、皇帝完整脑数据只在首次真实审核读取
+- `royalMealEligibility()` 与 `residenceFor()` 仍须中国实际实体资格。跨国不能提交新自荐或凭名位远程领膳；状态卡不会把离开中国表示成注销身份
+
+### 自愿辞去与普通职业边界
+
+已册封者再申请普通正式工作应由主集成读取 `bridge.titleStatus().active` 阻塞，不修改旧职业账。唯一退出方式是玩家明确确认 `bridge.resignTitle(appointmentId,{confirmed:true})`；不可调用纯账方法绕过bridge现场守门。`releaseTitleAvailability()` 先调用注入的 `canReleaseTitle({appointment,scene})`，只接受严格true或 `{ok:true}`；躺新床、占皇家餐席、有未完御膳单或册书仪式进行时返回 `{ok:false,reasons:[...]}`，必须先实际结束，不能清lease强退。缺少守门回调默认不允许辞位。
+
+成功只将该份申请记为 `resigned` 并记录自愿辞位时刻、清玩家当前appointment和第四房床投影；原授读/申请历史、NPC、工资、财物均保留，辞位当模拟日不得重申。存档失败不撤名位或释放房床，重试幂等。此出口没有册废皇后、撤他人名位或亲密含义。UI使用明确二次确认且可取消。
