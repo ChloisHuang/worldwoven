@@ -91,7 +91,7 @@ export function createEgyptMealService({npcs,lot,furniture,doors,planPath,moveAc
  function restore(s){accept(latest(state,s));routes.clear();for(const n of[cook,host])n.route=[];const o=state.order,r=state.mealReceipts[0];if(o&&r?.orderId===o.id&&!o.finished){o.finished=true;o.stage='lowering';state.phase=0;}deliver();props.update(state.order,{cook,host,player:getPlayer()},state.phase);return true;}
  deliver();
  return {seat,request,eat,cancel,update,snapshot:()=>copy(state),restore,owns:n=>n===cook||n===host,
-  leaveSeat:id=>id!==seat.id||cancel(),socialStatus:n=>({available:!state.order,reason:state.order?'正在准备访客餐点':null}),
+  leaveSeat:id=>id!==seat.id||cancel(),socialStatus:n=>n!==cook&&n!==host?null:{busy:!!state.order||!!n.walking,attention:!state.order,job:state.order?labels[state.order.stage]:n===cook?'访客餐厨役 · 等候餐单':'访客餐厅侍者 · 等候来访'},
   playerPose:()=>state.order&&seated()&&['eating','lowering'].includes(state.order.stage)?{seatedMeal:true}:null,
   statusLabel:id=>id===seat.id&&state.order?labels[state.order.stage]:null,
   view(){const o=state.order;return {order:copy(o),seatId:seat.id,seated:seated(),cash:cash(),price:P.price,name:P.name,canOrder:!o&&canRequest()&&cash()!==null&&cash()>=P.price,label:o?labels[o.stage]:null};},
