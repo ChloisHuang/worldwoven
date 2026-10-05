@@ -206,32 +206,40 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
   const view = () => ({...copy(current), active: active(), cleaning, progress: elapsed / SECONDS,
     wage: WAGE, seconds: SECONDS, target: copy(target()), atTarget: at(target().position),
     atHost: at(HOST.position), hostAvailable: hostReady(), employment: employment?.state() || null,
-    hired: hired(), waitingRegistration: waitingRegistration?.kind || null, formalHired:formal.hired(),formalRole:formal.role,formalState:formal.state(),formalJob:formal.pinned(current.job),formalSalary:formal.salary, loadError: loadError || copperLedger.loadError || null, lastError});
+    hired: hired(), waitingRegistration: waitingRegistration?.kind || null, formalHired:formal.hired(),formalRole:formal.role,formalState:formal.state(),formalJob:formal.pinned(current.job),formalSalary:formal.salary,formalBeginAvailability:formal.beginAvailability(), loadError: loadError || copperLedger.loadError || null, lastError});
   function intent(kind) {
     const job = current.job, employed = hired(), registration = employment?.state();
-    kind ||= job ? job.stage === 'ready' ? 'claim' : 'clean' : formal.hired() ? 'accept' : 'view';
+    kind ||= job ? job.stage === 'ready' ? 'claim' : 'clean' : formal.hired() ? 'formal-view' : 'view';
     if (disposed || !['view', 'apply', 'accept', 'claim', 'clean', 'resign', 'formal-view', 'formal-apply', 'formal-resign'].includes(kind)) return null;
     if (!['view','formal-view'].includes(kind) && (!permitted() || kind !== 'claim' && kind !== 'clean' && registration?.loadError)) return null;
     if (kind === 'apply' && (job || employed) || kind === 'resign' && (job || !employed || formal.hired()) ||
       kind === 'accept' && (job || !employed) || kind === 'claim' && job?.stage !== 'ready' ||
       kind === 'clean' && (job?.stage !== 'working' || cleaning || pendingClean)) return null;
     if(kind==='formal-apply'&&(job||formal.hired()||!careers)||kind==='formal-resign'&&(job||!formal.hired()))return null;
+    if(kind==='accept'&&formal.hired()&&!formal.beginAvailability().ok)return null;
     if(kind==='clean'&&!formal.canWork(job))return null;
     const point = kind === 'clean' ? target() : HOST;
     return {...copy(point), id: `cn-tavern-labor-${kind}`, provider: 'china-tavern-labor', kind,
       name: kind === 'clean' ? point.name : '云来酒楼 · 招工登记案', npcName: '许安',
-      action: {'formal-view':'查看正式职位与申请条件','formal-apply':'申请常任服务助理','formal-resign':'办理常任助理离职',view:'查看酒楼职位与办理登记',apply:'申请酒楼帮工',accept:formal.hired()?'开始今日酒楼班次':'接下擦桌活',claim:formal.pinned(job)?'提交当班验收 · 工资存银行':'验收后工资存银行 · 12 铜文',clean:'擦拭餐桌 · 5 秒',resign:'办理离职'}[kind],
+      action: {'formal-view':formal.hired()?'查看今日安排与任职登记':'查看正式职位与申请条件','formal-apply':'申请常任服务助理','formal-resign':'办理常任助理离职',view:'查看酒楼职位与办理登记',apply:'申请酒楼帮工',accept:formal.hired()?'开始今日酒楼班次':'接下擦桌活',claim:formal.pinned(job)?'提交当班验收 · 工资存银行':'验收后工资存银行 · 12 铜文',clean:'擦拭餐桌 · 5 秒',resign:'办理离职'}[kind],
+      ...(kind==='formal-view'?{registration:{scope:'role',roleId:formal.role.id}}:{}),
       intentKey: [registration?.revision ?? 0, formal.state()?.revision??0, job?.id || '-', job?.stage || '-', job?.completedTables || 0, kind].join(':'),
       interactionRadius: 2.8, executionRadius: registrationKinds.has(kind) ? REGISTRATION_RADIUS : .18, priority: 45};
   }
   function resolveIntent(selected) {
     const next = intent(selected?.kind);
-    return next && selected?.provider === next.provider && selected.id === next.id && selected.intentKey === next.intentKey ? next : null;
+    if(!next || selected?.provider !== next.provider || selected.id !== next.id || selected.intentKey !== next.intentKey)return null;
+    if(next.kind==='formal-view'){
+      const context=selected.registration||next.registration;
+      if(context.roleId!==formal.role.id||!['role','catalogue'].includes(context.scope))return null;
+      next.registration=copy(context);
+    }
+    return next;
   }
   function executeIntent(selected) {
     const next = resolveIntent(selected);
     if (!next || !(registrationKinds.has(next.kind) ? atRegistration() : at(next.position)) || !canSee(next)) return false;
-    if(next.kind==='formal-view'){formal.open();return true;}
+    if(next.kind==='formal-view'){formal.open(next.registration);return true;}
     if (next.kind === 'view') { ui?.open(); return true; }
     if (registrationKinds.has(next.kind)) return finishRegistration(next);
     if (next.kind === 'clean') { pendingClean = true; return true; }
@@ -273,7 +281,7 @@ function createUI({doc, service, getPlayer, onIntent, canSee, onOpen}) {
     const ageText = Number.isFinite(age) ? `${Math.floor(age)}岁` : '未读取', skill = s.formalState?.skills?.ritual ?? 0;
     if (dialog.open && !nearHouse()) { close(); return; }
     if (!dialog.open && !force) return;
-    const key = [s.job?.id, s.job?.stage, s.job?.completedTables, s.cleaning, s.waitingRegistration, s.atTarget, s.atHost, s.hostAvailable, s.loadError, s.lastError, s.employment?.revision, s.employment?.lastError,s.formalState?.revision, s.formalHired, age, skill].join('|');
+    const key = [s.job?.id, s.job?.stage, s.job?.completedTables, s.cleaning, s.waitingRegistration, s.atTarget, s.atHost, s.hostAvailable, s.loadError, s.lastError, s.employment?.revision, s.employment?.lastError,s.formalState?.revision, s.formalHired, s.formalBeginAvailability.ok, s.formalBeginAvailability.code, age, skill].join('|');
     if (!force && key === signature) return; signature = key; dialog.replaceChildren();
     const x = button('×', close); x.className = 'cn-labor-close'; x.setAttribute('aria-label', '关闭短工面板，保留当前进度');
     dialog.append(x, make('h2', '云来酒楼 · 工作登记'));
@@ -297,6 +305,9 @@ function createUI({doc, service, getPlayer, onIntent, canSee, onOpen}) {
     if (s.loadError) dialog.append(make('p', '工钱记录暂时无法读取，请保留当前存档，稍后再试。'));
     else if (!s.active && s.formalHired) {
       dialog.append(make('p','你已长期任职。每天最多一班；今日结算后，下一模拟日再来。临工工资不会与同一份正式工作重复支付。'));
+      if(!s.formalBeginAvailability.ok)dialog.append(make('p',s.formalBeginAvailability.code==='outside-arrival-window'
+        ?`现在休班，可开班时段为 ${String(s.formalBeginAvailability.window.startHour).padStart(2,'0')}:00–${String(s.formalBeginAvailability.window.endHour).padStart(2,'0')}:00。`
+        :'当前不能开始新班次，请查看职业手册中的本日安排。'));
       const next=actionButton('accept',true);if(next)actions.append(next);
     } else if (!s.active) {
       dialog.append(make('p', '职责：擦净西窗、东窗两张餐桌，每张站稳擦拭 5 秒。工资：每完成两桌 12 铜文，回许安处验收后自动存银行，到中国钱庄取款后才进入钱包；可重复接活。'), make('p', '临工门槛：无需资历、技能或报名费，登记后可按次接活。结清手上活计后可取消登记、重新登记。'));

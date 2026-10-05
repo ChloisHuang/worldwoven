@@ -105,8 +105,10 @@ export function buildChinaTavern(G,A){
  const nib=G.mesh(hiring,new THREE.ConeGeometry(.014,.058,8),0x323d37,23.581,counter+.065,10.828);nib.rotation.z=Math.PI/2;nib.rotation.y=-.28;
  // Desk-sized lettering sits below face height, beside the open register. The
  // reception and kitchen remain visible from the normal ground-floor camera.
- const hiringSign=sign(hiring,'招工登记',23.38,counter+.18,10.40,.92,.26);
- for(const x of[-.34,.34])G.box(hiringSign,x,-.17,-.018,.025,.10,.15,C.dark);
+ // The back edge is clear of the full teapot/spout/handle, all three cups,
+ // the live .62×.46 meal tray and the wash bowl. Keep both feet on the top.
+ const hiringSign=sign(hiring,'招工登记',24.32,counter+.18,10.00,.76,.26);
+ for(const x of[-.27,.27])G.box(hiringSign,x,-.17,.02,.025,.10,.08,C.dark);
  room('tavern-kitchen','云来酒楼 · 后厨备餐间',21.95,26,8,10.65,.215,3.77);
  sign(g0,'云来酒楼',21,3.23,21.24,3.45,.61);
  sign(g0,'云来酒楼',15.76,3.13,13.4,3.20,.59,-Math.PI/2);
