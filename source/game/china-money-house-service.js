@@ -33,8 +33,7 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
  const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
  const style=make('style',MONEY_HOUSE_STYLE);
  const dialog=make('dialog',undefined,'cn-money-dialog');dialog.className+=' ww-airy-theme';dialog.setAttribute('aria-label',`${C.name}账簿`);(doc.head||doc.body).append(style);doc.body.append(dialog);
- let disposed=false,message='',currency=C.defaultCurrency||'copper',exchangeTo=C.exchangeTo||'japan',exchangeAmount='2',requestSerial=0,time=0,activity='核对账簿',renderVersion=0,npcClient=null,conversationId=null;
- const npcCounterAvailable=id=>{const p=getPlayer()?.root.position;return !disposed&&!dialog.open&&(!npcClient||npcClient===id)&&conversationId!==C.stationId&&!(p&&Math.abs(p.y-C.floorY)<.45&&Math.hypot(p.x-C.points.counter[0],p.z-C.points.counter[2])<1.05);};
+ let disposed=false,message='',currency=C.defaultCurrency||'copper',exchangeTo=C.exchangeTo||'japan',exchangeAmount='2',requestSerial=0,time=0,activity='核对账簿',renderVersion=0;
  const near=()=>{const p=getPlayer()?.root.position;return !!p&&Math.abs(p.y-C.floorY)<.45&&Math.hypot(p.x-C.points.counter[0],p.z-C.points.counter[2])<.60&&canSee(teller.station)===true;};
  function close(){renderVersion++;if(dialog.open){dialog.close();onClose();}}
  const available=version=>!disposed&&version===renderVersion&&dialog.open&&near();
@@ -125,25 +124,24 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
  dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
  const unsubscribe=ledger.subscribeCommitted?.(()=>{if(dialog.open&&!disposed)render();});
  return {
-  npcCounterAvailable,claimNpcCounter(id){const n=npcs.find(n=>n.station.id===id),p=n?.root.position;if(!p||!npcCounterAvailable(id)||Math.abs(p.y-C.floorY)>.4||Math.hypot(p.x-C.points.counter[0],p.z-C.points.counter[2])>.24)return false;npcClient=id;return true;},releaseNpcCounter(id){if(npcClient===id)npcClient=null;},npcCounterReady:id=>npcClient===id&&npcCounterAvailable(id)&&!teller.walking&&Math.abs(teller.root.position.x-C.points.ledger[0])<.04,
   owns:n=>n===teller,ownsStation:id=>id===C.stationId,
   isOpen:()=>!!dialog.open,
-  open(){if(disposed||!near()){notify(C.approachMessage||'请走到钱庄柜台前，再请账房办理');return false;}npcClient=null;onOpen();message='';render();if(!dialog.open)dialog.showModal();return true;},close,
+  open(){if(disposed||!near()){notify(C.approachMessage||'请走到钱庄柜台前，再请账房办理');return false;}onOpen();message='';render();if(!dialog.open)dialog.showModal();return true;},close,
   socialStatus:n=>n===teller?{busy:!!dialog.open,attention:true,job:activity}:null,
   update(dt,t,{conversationActorId=null}={}){
-   if(disposed)return;time+=dt;conversationId=conversationActorId;if(dialog.open&&!near())close();if(npcClient&&!npcCounterAvailable(npcClient))npcClient=null;
+   if(disposed)return;time+=dt;if(dialog.open&&!near())close();
    // One persistent adult works along the same counter. Slow side steps place
    // each object inside the existing hand reach instead of reaching through it.
-   const writing=!!npcClient||time%14<8,target=writing?C.points.ledger:(C.points.counting||C.points.abacus),desiredX=target[0],dx=desiredX-teller.root.position.x;
+   const writing=time%14<8,target=writing?C.points.ledger:(C.points.counting||C.points.abacus),desiredX=target[0],dx=desiredX-teller.root.position.x;
    const paused=conversationActorId===teller.station.id;teller.walking=!paused&&Math.abs(dx)>.02;
    if(teller.walking){teller.root.position.x+=Math.sign(dx)*Math.min(Math.abs(dx),dt*.38);teller.root.rotation.y=Math.sign(dx)*Math.PI/2;}else teller.root.rotation.y=C.tellerYaw||0;
-   activity=paused?'和来客交谈':npcClient?'核对本人账簿 · 办理取款':writing?'核对账簿 · 落笔记账':C.countingLabel||'拨动算珠 · 核对铜钱';const small=teller.label?.querySelector?.('small');if(small)small.textContent=activity;
+   activity=paused?'和来客交谈':writing?'核对账簿 · 落笔记账':C.countingLabel||'拨动算珠 · 核对铜钱';const small=teller.label?.querySelector?.('small');if(small)small.textContent=activity;
    const context=poseContext(teller,null);context.receptionWriting=writing;context.handoff=false;context.heldProp=null;context.workHeight=(target[1]-teller.root.position.y)/(teller.characterScale||1);context.workDistance=((target[0]-teller.root.position.x)*Math.sin(C.tellerYaw||0)+(target[2]-teller.root.position.z)*Math.cos(C.tellerYaw||0))/(teller.characterScale||1);
    teller.animate(t+teller.phase,teller.walking,paused||teller.walking?null:writing?'calligraphy':'tidy',context);
    // Existing tidy reach supplies the hands only; an abacus is not a wash rag.
    if(teller.root.userData.tools?.cloth)teller.root.userData.tools.cloth.visible=false;
   },
-  state:()=>({open:!!dialog.open,npcClient,ledger:ledger.state(),loadError:ledger.loadError||null,actor:{id:teller.station.id,ageYears:C.role.ageYears,activity,position:teller.root.position.toArray()}}),
+  state:()=>({open:!!dialog.open,ledger:ledger.state(),loadError:ledger.loadError||null,actor:{id:teller.station.id,ageYears:C.role.ageYears,activity,position:teller.root.position.toArray()}}),
   dispose(){if(disposed)return;close();disposed=true;unsubscribe?.();dialog.remove();style.remove();if(teller.poseContext)teller.poseContext.receptionWriting=false;}
  };
 }
