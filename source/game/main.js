@@ -372,7 +372,7 @@ function configureNpcSocial(){
   if(chinaRoyalKitchen?.owns(n))return chinaRoyalKitchen.socialStatus(n);
   if(chinaArchery?.owns(n))return chinaArchery.socialStatus(n);
   const task=n.serviceTask,action=task?.action||n.station?.npcAction||'';
-  const roaming=!!n.route?.length,busy=!!(task?.handoff||n.serviceMount||!roaming&&/cook|sushi|knead|bread|bake|ramen|kotatsu|chair-sit|bathe|lie-rest/.test(action));
+  const roaming=!!n.route?.length,busy=!!(task?.handoff||task?.held||task&&!task.idle||n.serviceMount||!roaming&&/cook|sushi|knead|bread|bake|ramen|kotatsu|chair-sit|bathe|lie-rest/.test(action));
   return {busy,canPause:!busy,job:task?.label||n.station?.npcLabel||n.station?.action};
  }});
 }
