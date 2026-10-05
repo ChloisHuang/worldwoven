@@ -17,12 +17,18 @@ const france=Object.freeze([
  book('fr-art-intro','art','《色彩与光影初读》','观察宫苑的冷暖、明暗与光色。','先眯眼找出大块明暗，再铺主色。把最亮的地方留住，细节最后落笔。'),
  book('fr-cooking-intro','cooking','《糕点切配与热茶》','学习分切、茶温与同盘核对，在宫苑糕点房应用。','先核对客人和茶点单，再分切一份蛋糕、备好热茶。检查同盘杯碟与份量，让开案边交给侍茶员。'),
 ]);
+const japan=Object.freeze([
+ book('jp-ritual-intro','ritual','《霞汤屋迎客与入汤礼仪》','认识霞汤屋的问安、更衣指引与浴包交接礼节。','先问来客需要，再说明更衣、清洗与入汤的次序。递浴包前核对本人和浴牌；让出门口与行走通道，给来客留好空间。'),
+ book('jp-writing-intro','writing','《霞汤屋浴牌与客簿》','练习客簿登记、同号浴牌与归还核对。','在客簿记下来客姓名与浴牌编号，发牌前逐项复核。收回时对照原客簿与同号浴牌，再记归还；认不清的编号先问清，不猜填。'),
+ book('jp-cooking-intro','cooking','《寿司与拉面出膳手记》','认识汤屋食堂的原单、切配与同盘出膳。','先认清原客单与餐位，再整理寿司小盘或拉面碗。分开生熟食材，保持案面清洁；出膳前复核菜名与份数，把同单餐点交回原餐位。'),
+ book('jp-care-intro','care','《草木浴包照护与核号》','学习游戏中草木浴包的问询、牌签核对与原客交接。','先询问来客在游戏中选择的草木香型，再把浴牌、原单与浴包牌签逐一对号。封包后留好标签，交给配送员送回原客并记录交付。草木浴包为架空道具，不含真实治疗配方或剂量。'),
+]);
 const writing=Object.freeze({id:'writing-practice',skill:'writing',title:'楷书与文书誊写',description:'在书案蘸墨落笔，练习端正誊写。',action:'calligraphy',verb:'习字',seconds:STUDY_DURATION});
 const painting=Object.freeze({id:'art-practice',skill:'art',title:'宫苑光影写生',description:'在画架前调色落笔，观察宫苑的光与影。',action:'paint',verb:'绘画',seconds:STUDY_DURATION});
 const archery=Object.freeze({id:'archery-practice',skill:'martial',title:'射圃安全习射',description:'等候停射，在金线后接弓、瞄靶、放箭并收弓；由原守卫照看靶道。',action:'archery',verb:'练习',seconds:5.8});
-const SOURCES=Object.freeze({'cn-rest':china,'cn-calligraphy':Object.freeze([writing]),'cn-archery':Object.freeze([archery]),'france-salon':france,'france-atelier':Object.freeze([painting])});
+const SOURCES=Object.freeze({'cn-rest':china,'cn-calligraphy':Object.freeze([writing]),'cn-archery':Object.freeze([archery]),'france-salon':france,'france-atelier':Object.freeze([painting]),'jp-library':japan});
 export const STUDY_SOURCES=Object.freeze(Object.keys(SOURCES));
-export const studyCountry=source=>source?.startsWith('cn-')?'china':source?.startsWith('france-')?'france':null;
+export const studyCountry=source=>source?.startsWith('cn-')?'china':source?.startsWith('france-')?'france':source?.startsWith('jp-')?'japan':null;
 export const studyOptions=(source,country=null)=>country&&studyCountry(source)!==country?[]:SOURCES[source]||[];
 export const studyLesson=(source,id)=>studyOptions(source).find(lesson=>lesson.id===id)||null;
 export const defaultStudyLesson=source=>studyOptions(source)[0]||null;
