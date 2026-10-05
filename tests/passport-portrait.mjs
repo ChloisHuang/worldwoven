@@ -93,3 +93,16 @@ portrait.dispose();portrait.dispose();assert.equal(targetDisposals,1);assert.equ
 assert.equal(createPassportPortrait({renderer,getPlayer:()=>actor,document:{createElement:()=>({getContext:()=>null})}}).capture(),null);
 actor.root.removeFromParent();actor.dispose();replacement.dispose();
 console.log('PASS passport portrait: actual posed rig, isolated bones, shared materials, lazy appearance cache, vertical PNG readback, failure restoration, owned-resource disposal and no fabricated fallback');
+
+// Borrowed rigid role hats are head-bone children rather than skinned cloth.
+// Their top must fit the lazy portrait and lending/returning invalidates it once.
+const {attachJinyiCostume}=await import('../source/game/jinyi-costume.js');
+for(const bodyPreset of ['feminine-slender','masculine-broad']){
+ const dutyActor=createCharacter({culture:'china',bodyPreset,hairStyle:'swept-short',wardrobePreset:'jinyi-training'}),loan=attachJinyiCostume(dutyActor);
+ dutyActor.animate(.7,false,'observe',{headLook:{yaw:.4,pitch:.12,weight:1}});dutyActor.root.updateMatrixWorld(true);
+ const renderer=rendererFixture(),doc=documentFixture();let highest=-Infinity;
+ renderer.inspect=(scene,camera)=>{camera.updateMatrixWorld(true);scene.getObjectByName('Original Ming folded black duty cap')?.traverseVisible(mesh=>{if(!mesh.isMesh)return;const p=new T.Vector3(),position=mesh.geometry.attributes.position;for(let i=0;i<position.count;i++){p.fromBufferAttribute(position,i).applyMatrix4(mesh.matrixWorld).project(camera);highest=Math.max(highest,p.y);}});};
+ const photo=createPassportPortrait({renderer,getPlayer:()=>dutyActor,document:doc});assert(photo.capture());assert(highest<1,'original folded cap must fit portrait: '+highest);photo.capture();assert.equal(renderer.renders,1);
+ loan.dispose();assert(photo.capture());assert.equal(renderer.renders,2,'returning borrowed accessories invalidates photo once');photo.capture();assert.equal(renderer.renders,2);photo.dispose();dutyActor.dispose();
+ console.log('PASS borrowed duty hat fits lazy portrait and return invalidates once',bodyPreset);
+}

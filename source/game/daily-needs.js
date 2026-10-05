@@ -1,3 +1,4 @@
+import {EGYPT_MEAL,validEgyptMealReceipt} from './egypt-meal-definition.js';
 import {CHINA_OFFICIAL_IDS} from './china-official-economy.js';
 import {GAME_MINUTES_PER_SECOND} from './simulation-clock.js';
 import {JAPAN_STAFF_CREW} from './japan-service-orders.js';
@@ -16,10 +17,11 @@ const copy=x=>JSON.parse(JSON.stringify(x));
 const positive=(x,fallback=0)=>Number.isFinite(x)&&x>=0?x:fallback;
 const clamp=x=>Math.max(0,Math.min(1,x));
 const mealSource='china-tavern-meal';
-const mealSources=new Set([mealSource,'japan-player-meal','france-tea-food','france-full-meal','japan-staff-meal','china-royal-kitchen']);
+const mealSources=new Set([mealSource,'japan-player-meal','france-tea-food','france-full-meal','egypt-visitor-meal','japan-staff-meal','china-royal-kitchen']);
 const toiletFacilities={'china-toilet':'cn-bath-toilet','japan-toilet':'jp-washroom-private-1','france-toilet':'fr-royal-bath-toilet'};
 function validMeal(receipt){
  const r=receipt,n=r.number;
+ if(r.source==='egypt-visitor-meal')return r.paid===true&&validEgyptMealReceipt(r);
  if(r.source===mealSource)return r.orderId===`cn-tavern-order-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-dish'&&['yunlai-mushroom-rice','yunlai-green-noodles'].includes(r.dishId)&&r.paymentReceipt===r.orderId;
  if(r.source==='japan-staff-meal')return JAPAN_STAFF_CREW.includes(r.actorId)&&r.orderId===`jp-staff-meal-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+':bowl'&&r.dishId==='staff-ramen'&&r.supplyReceipt===r.orderId+':prepared';
  if(r.source==='china-royal-kitchen')return royalActors.has(r.actorId)&&r.orderId===`cn-royal-meal-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-meal'&&r.dishId==='royal-steamed-meal'&&r.supplyReceipt===r.orderId+'-prepared';
@@ -76,6 +78,7 @@ export function createDailyNeeds({saved={},getClock=()=>({seconds:0}),saveState=
   mealReceipts(receipts=[]){let applied=false;for(const receipt of receipts)applied=apply(receipt,'meal')||applied;return applied;},
   franceMealReceipts(receipts=[],reservations=[]){let applied=false;for(const receipt of receipts)applied=apply({...receipt,...(receipt.source==='france-full-meal'?{paid:reservations.some(h=>h.id===receipt.paymentReceipt&&h.status==='settled'&&h.currency==='france'&&h.amount===4)}:{})},'meal')||applied;return applied;},
   japanMealReceipts(receipts=[],reservations=[]){let applied=false;for(const receipt of receipts)applied=apply({...receipt,paid:receipt.supplyKind==='paid-dining'&&reservations.some(h=>h.id===receipt.paymentReceipt&&h.status==='settled')},'meal')||applied;return applied;},
+  egyptMealReceipts(receipts=[],reservations=[]){let applied=false;for(const r of receipts)applied=apply({...r,paid:reservations.some(h=>h.id===r.paymentReceipt&&h.status==='settled'&&h.currency===EGYPT_MEAL.currency&&h.amount===EGYPT_MEAL.price)},'meal')||applied;return applied;},
   toiletReceipt:receipt=>apply(receipt,'toilet'),
   snapshot,state:()=>({sceneId,player:status('player'),enrolledActors:DAILY_NEEDS_ACTORS.slice(),automaticActors:DAILY_NEEDS_ACTORS.slice(1)})
  };
