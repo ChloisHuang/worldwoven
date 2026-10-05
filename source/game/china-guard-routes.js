@@ -1,3 +1,4 @@
+export const GUARD_REGISTRATION=[-16.7,.13,20.1];
 // Both shifts retain the accepted gate / front-stair duty circuit. The relief
 // guards then cover opposite public side lanes and the building backs. Close
 // corner waypoints keep the planner outside the residence and raised halls.

@@ -7,7 +7,6 @@ const {THREE}=G,point=a=>({x:a[0],y:a[1],z:a[2]}),gap=(p,a)=>Math.hypot(p.x-a[0]
 const labels={fetch:'在弓架取弓',line:'持弓走向金线',aim:'定步 · 引弓 · 瞄准',flight:'放箭 · 保持站位',cease:'收弓停射 · 确认箭已落靶',retrieve:'停射后沿靶道取箭',collect:'从草靶取回练习箭',return:'持弓返回金线',rack:'归还弓箭',relief:'射圃留守 · 等巡查同伴归来',handover:'当面交班 · 互报巡查与弓箭情况',release:'留步让行 · 同伴出圃后取弓', 'player-take':'接过练习弓','player-aim':'定步引弓 · 瞄准草靶','player-flight':'放箭 · 保持站位','player-cease':'收弓停射 · 练习完成'};
 
 // Keep the two visible guards and their physical, staged range handoff.
-export const GUARD_REGISTRATION=[-16.7,A.floorY,20.45];
 const LEISURE=[[-15.8,A.floorY,22.1],[-12.8,A.floorY,23.8],[-15.8,A.floorY,24.6]];
 const HANDOFF=[[-17.65,A.floorY,18.45],[-17.65,A.floorY,19.8]];
 

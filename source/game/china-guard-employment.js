@@ -1,12 +1,20 @@
 import {PALACE_GUARD_ROLE as ROLE} from './formal-careers.js';
 import {createFormalLaborContract} from './formal-labor-contract.js';
-import {CHINA_GUARD_ROUTES} from './china-guard-routes.js';
-import {GUARD_REGISTRATION as REG} from './china-archery-routine.js';
+import {CHINA_GUARD_ROUTES,GUARD_REGISTRATION as REG} from './china-guard-routes.js';
 import {GAME_MINUTES_PER_SECOND} from './simulation-clock.js';
 
 const copy=x=>JSON.parse(JSON.stringify(x)),integer=n=>Number.isSafeInteger(n)&&n>=0;
 const near=(p,q,r=.25)=>p&&Math.hypot(p.x-q[0],p.z-q[2])<=r&&Math.abs(p.y-q[1])<.4;
 const routeFor=j=>CHINA_GUARD_ROUTES[j.routeId];
+// Manual walking and selected navigation share the same live checkpoint. Only
+// the current authored leg is inspected; no global path or actor scan is added.
+function advancingOnLeg(job,p,previous){
+ const route=routeFor(job),a=job.index?route[job.index-1].at:REG,b=route[job.index].at,dx=b[0]-a[0],dz=b[2]-a[2],length2=dx*dx+dz*dz;
+ const fraction=length2?Math.max(0,Math.min(1,((p.x-a[0])*dx+(p.z-a[2])*dz)/length2)):0;
+ return Math.hypot(p.x-a[0]-dx*fraction,p.z-a[2]-dz*fraction)<2.4&&
+  Math.abs(p.y-(a[1]+(b[1]-a[1])*fraction))<1.6&&
+  (p.x-previous.x)*(b[0]-previous.x)+(p.z-previous.z)*(b[2]-previous.z)>0;
+}
 const validJob=j=>j===null||j?.formalRoleId===ROLE.id&&/^cn-guard-labor-[1-9][0-9]*$/.test(j.receiptId)&&integer(j.day)&&
  ['working','ready'].includes(j.stage)&&['requested','patrol','returning'].includes(j.assignment)&&
  Number.isFinite(j.coveredSeconds)&&j.coveredSeconds>=0&&integer(j.completedTasks)&&integer(j.circuits)&&
@@ -95,7 +103,7 @@ export function createChinaGuardEmployment({archery,careers,getPlayer,getMounted
   const action=stop?`${observation?'驻察':'继续巡值'} · ${stop.label}`:({'formal-view':'查看锦衣卫巡值岗位','formal-apply':'提交锦衣卫巡值申请','formal-review':'当面确认职责 · 请陆衡审核','formal-resign':'办理锦衣卫巡值离职',accept:'当面接班 · 开始今日巡值',wait:'等候原守卫安全交班','end-shift':'回圃交班 · 按实工时结薪',claim:'请陆衡验收 · 工资入银行',cancel:'中断本班 · 不结薪'})[kind];
   if(!action)return null;
   return {id:`cn-guard-job-${kind}`,provider:'china-guard-employment',roleId:ROLE.id,kind,name:'锦衣卫 · 巡值工作',npcName:'陆衡',action,
-   position:(stop?.at||REG).slice(),executionRadius:stop?.hold?.valueOf()>=0?.19:.26,interactionRadius:1.8,priority:47,
+   position:(stop?.at||REG).slice(),executionRadius:stop?.hold!==undefined ? .19 : .26,interactionRadius:1.8,priority:47,
    ...(kind==='formal-view'?{registration:{scope:'role',roleId:ROLE.id}}:{}),
    intentKey:[careers.state().revision,job?.receiptId||'-',job?.stage||'-',job?.assignment||'-',kind,stop?`${job.routeId}:${job.circuits}:${job.index}`:'-'].join(':')};
  }
@@ -142,9 +150,9 @@ export function createChinaGuardEmployment({archery,careers,getPlayer,getMounted
   if(observation){const target=intent('task');if(!canWork||!target||target.intentKey!==observation.key||!near(p,target.position,target.executionRadius)){observation=null;autoPatrol=false;}
    else{const stop=routeFor(job)[job.index],hold=Math.max(.15,stop.hold||0);worked=Math.min(Math.max(0,dt),hold-observation.seconds);observation.seconds+=worked;
     if(stop.look)getPlayer().root.rotation.y=Math.atan2(stop.look[0]-p.x,stop.look[1]-p.z);}
-  }else if(canWork&&isNavigating()&&previous&&Math.hypot(p.x-previous.x,p.z-previous.z)>.0001)worked=Math.max(0,dt);
+  }else if(canWork&&previous&&Math.hypot(p.x-previous.x,p.z-previous.z)>.0001&&(isNavigating()||advancingOnLeg(job,p,previous)))worked=Math.max(0,dt);
   const maxSeconds=Math.max(0,(Math.min(18,clock.hour)-duty.arrivalHour)*60/GAME_MINUTES_PER_SECOND);
-  attendance+=Math.min(.1,worked,Math.max(0,maxSeconds-job.coveredSeconds-attendance));
+  attendance+=Math.min(worked,Math.max(0,maxSeconds-job.coveredSeconds-attendance));
   previous=p?{x:p.x,z:p.z}:null;
   if(observation&&observation.seconds>=Math.max(.15,routeFor(job)[job.index].hold||0))completeCheckpoint();
   else if(attendance>=1)flushAttendance();

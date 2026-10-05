@@ -187,7 +187,8 @@ function restore(saved, roleMap, slotMap) {
   // Match the complete old shape so malformed or partial new saves still fail.
   if(object(saved)&&[4,5].includes(saved.version)&&object(saved.skills)&&Object.keys(saved.skills).length===5&&
     ['ritual','writing','gardening','art','cooking'].every(key=>own(saved.skills,key))&&object(saved.daily)&&Object.keys(saved.daily).length===6&&
-    object(saved.learning)&&Object.keys(saved.learning).length===4&&['cn-rest','cn-calligraphy','france-salon','france-atelier'].every(key=>own(saved.learning,key))&&
+    object(saved.learning)&&[4,5].includes(Object.keys(saved.learning).length)&&['cn-rest','cn-calligraphy','france-salon','france-atelier'].every(key=>own(saved.learning,key))&&
+    (!own(saved.learning,'cn-archery')||JSON.stringify(saved.learning['cn-archery'])===JSON.stringify(emptyStudy()))&&
     (saved.version===4||object(saved.skillXP)&&Object.keys(saved.skillXP).length===5&&!own(saved.skillXP,'martial'))){
     saved={...copy(saved),skills:{...saved.skills,martial:0},daily:{...saved.daily,martial:0},
       ...(saved.version===5?{skillXP:{...saved.skillXP,martial:0}}:{}),learning:{...saved.learning,'cn-archery':emptyStudy()}};
