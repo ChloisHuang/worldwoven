@@ -75,14 +75,14 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
   return {kind,key:[order.id,order.stage,receiptId].join(':'),orderId:order.id,recipientId:order.recipientId,number:order.number,cardId:order.cardId,packetId:order.packetId,position:(kind==='take'?P.assistantHandoff:kind==='prepare'?P.stock:P.assistant).slice(),executionRadius:.28,
    action:kind==='take'?`接第 ${order.number} 号原单 · ${order.recipientName}`:kind==='prepare'?`按第 ${order.number} 号原单折云纹包`:`核对第 ${order.number} 号 · 交给${order.recipientName}`};
  }
- function executeWork(choice,receiptId,p){const current=workIntent(receiptId),job=getEmployment();if(!current||job?.receiptId!==receiptId||job.stage!=='working'||!isAssistantHired()||getMounted()||!p||p.walking||!near(p,current.position,.28)||['kind','key','orderId','recipientId','number','cardId','packetId'].some(k=>choice?.[k]!==current[k]))return false;
+ function executeWork(choice,receiptId,p){const current=workIntent(receiptId),job=getEmployment();if(!current||job?.receiptId!==receiptId||job.stage!=='working'||!isAssistantHired()||getMounted()||!p||!near(p,current.position,.28)||['kind','key','orderId','recipientId','number','cardId','packetId'].some(k=>choice?.[k]!==current[k]))return false;
   if(current.kind==='take'&&!near(doctor,P.doctorHandoff)||current.kind==='deliver'&&!atCounter()){notify('请等许宁或这一编号的来客就位，再核对交接');return false;}
   workAction={...current,elapsed:0,duration:current.kind==='prepare'?4:1.3,origin:p.root.position.toArray()};return true;
  }
  function delivered(){const recipient=npcOrder()?patient():player;if(!recipient||!atCounter()||!order.packetId)return false;
   const before=copy(order),size=history.length,receipts=copy(workReceipts);order.cardHolder='delivered';order.claims={doctor:null,assistant:null};order.deliveredAt=time;order.stage='complete';order.patientPhase=npcOrder()?'returning':null;
   const receipt={event:'delivered',orderId:order.id,number:order.number,time:+time.toFixed(2),cardId:order.cardId,packetId:order.packetId,recipientId:order.recipientId,recipientPosition:recipient.root.position.toArray(),dispenserId:order.worker==='player'?'player':assistant.station.id,...(!npcOrder()?{playerPosition:recipient.root.position.toArray()}:{}),workReceiptId:order.workReceiptId};history.push(receipt);
-  if(order.worker==='player'&&order.workReceiptId&&!workReceipts.some(r=>r.orderId===order.id)){workReceipts.push({receiptId:order.workReceiptId,orderId:order.id,number:order.number,cardId:order.cardId,packetId:order.packetId,recipientId:order.recipientId,review:{evaluatorId:order.recipientId,positive:true,reason:'原单与云纹包同号，已当面交付本人'}});if(workReceipts.length>8)workReceipts.shift();}
+  if(order.worker==='player'&&order.workReceiptId&&!workReceipts.some(r=>r.orderId===order.id)){workReceipts.push({receiptId:order.workReceiptId,orderId:order.id,number:order.number,cardId:order.cardId,packetId:order.packetId,recipientId:order.recipientId,recipientName:order.recipientName,review:{evaluatorId:order.recipientId,positive:true,reason:'原单与云纹包同号，已当面交付本人'}});if(workReceipts.length>8)workReceipts.shift();}
   if(!persist()){order=before;history.splice(size);workReceipts.splice(0,workReceipts.length,...receipts);return false;}
   phaseTime=0;workAction=null;notify(npcOrder()?`第 ${order.number} 号云纹包已交给${order.recipientName}，请许宁验收`:`第 ${order.number} 号云纹包已交给你，请收好`);return true;
  }
@@ -97,11 +97,12 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
   beginWork,workIntent,executeWork,cancelWork,canEndWork:receiptId=>!workAction&&(!order||order.workReceiptId!==receiptId||order.cardHolder!=='player'||order.stage==='complete'),finishWork:receiptId=>{workAction=null;if(order?.workReceiptId===receiptId&&!['complete','cancelled'].includes(order.stage))cancelWork(receiptId);},stopWorkAction:()=>{workAction=null;},workReceipt:id=>copy(workReceipts.find(r=>r.receiptId===id)||null),workReceipts:id=>copy(workReceipts.filter(r=>r.receiptId===id)),
   workLabel:()=>order&&npcOrder()?`第 ${order.number} 号 · ${order.recipientName} · ${label()}`:null,
   workPose:()=>order?.worker==='player'&&order.cardHolder==='player'?{handoff:!workAction||workAction.kind!=='prepare',action:workAction?.kind==='prepare'?'tidy':null,station:workAction?{position:workAction.position,playerWorkTarget:workAction.kind==='prepare'?P.stockWork:workAction.kind==='take'?P.doctorHandoff:P.counter}:null}:null,
+  syncPlayer(){if(workAction?.kind==='prepare'&&player?.root.userData.tools?.cloth)player.root.userData.tools.cloth.visible=false;},
   leaveSeat(){if(!npcOrder()&&order&&['consult','writing'].includes(order.stage)){cancel('写单前起身');notify('已起身，本次问诊取消');}},
   collectionIntent(){return order&&!npcOrder()&&!['consult','writing','complete'].includes(order.stage)?{action:`领取第 ${order.number} 号云纹包`,intentKey:order.id,executionRadius:.6}:null;},
   startPlayer(id,p,intentKey){if(id!==assistant.station.id)return false;player=p;if(!order||npcOrder()){notify('请先上二层医馆，在问诊椅坐下，由许宁写下编号单');return false;}if(order.stage==='complete'||['consult','writing'].includes(order.stage)||intentKey&&intentKey!==order.id){notify('请等当前编号单写好后领取，本次动作已失效');return false;}if(!atCounter()){notify('请到药铺柜台前领取');return false;}request=true;return true;},
   stopPlayer(){request=false;if(!npcOrder()&&order?.stage==='deliver'){enter('ready');notify('交付暂停，纸包仍留在柜台，回来按 E 领取');}},cancel:()=>cancel('主动取消'),
-  socialStatus(n){return owned.has(n)?{busy:!!order&&order.stage!=='complete',attention:!order||order.stage==='ready',job:n===patient()?`来客 · ${label()}`:n===assistant&&isAssistantHired()&&!(!npcOrder()&&order)?'已交出独任岗位 · 休息候援':order?label():n===doctor?'在问诊室等候来客':'药铺柜台候单'}:null;},
+  socialStatus(n){if(!owned.has(n))return null;if(n===assistant&&isAssistantHired()){const cover=order?.worker==='assistant'&&!['complete','cancelled'].includes(order.stage);return {busy:!!cover,attention:!cover,job:cover?'临时代办 · '+label():'已交出独任岗位 · 读书候援'};}return {busy:!!order&&order.stage!=='complete',attention:!order||order.stage==='ready',job:n===patient()?`来客 · ${label()}`:order?label():n===doctor?'在问诊室等候来客':'药铺柜台候单'};},
   statusLabel(seatId){return seatId===C.seatId&&order?`第 ${order.number} 号 · ${label()}`:null;},
   playerStatus(){return request&&order?{label:`第 ${order.number} 号 · ${label()}`,progress:order.stage==='complete'?1:order.stage==='deliver'?phaseTime/1.3:0,complete:order.stage==='complete'}:null;},
   update(dt,t,state={}){
@@ -139,7 +140,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
       else if(order.stage==='deliver'){ah=true;face(assistant,P.counter);if((!npcOrder()&&!request)||!atCounter()){enter('ready');request=false;}else if(!paused){phaseTime+=dt;contact(dt);if(phaseTime>=1.3)delivered();}}
      }
     }
-    if(workAction){const a=workAction;if(!getEmployment()||getEmployment().receiptId!==order.workReceiptId||getMounted()||player.walking||!near(player,a.origin,.035)){workAction=null;notify('已停下当前动作，原单仍在，可回原处继续');}
+    if(workAction){const a=workAction;if(!getEmployment()||getEmployment().receiptId!==order.workReceiptId||getMounted()||!near(player,a.origin,.035)){workAction=null;notify('已停下当前动作，原单仍在，可回原处继续');}
      else if(!paused&&(a.kind!=='take'||near(doctor,P.doctorHandoff))&&(a.kind!=='deliver'||atCounter())){a.elapsed+=Math.min(.1,Math.max(0,dt));if(a.kind==='deliver')contact(dt);if(a.elapsed>=a.duration){
       if(a.kind==='take'){order.cardHolder='player';order.claims={doctor:null,assistant:'player'};record('card-received',{cardId:order.cardId,from:doctor.station.id,to:'player'});enter('stock');}
       else if(a.kind==='prepare'){order.packetId='cn-clinic-packet-'+order.number;record('packet-prepared',{cardId:order.cardId,packetId:order.packetId,by:'player'});enter('counter');}
