@@ -65,30 +65,39 @@ function ruledPaper(m){
   const wave=(cx,cy)=>Array.from({length:8},(_,i)=>`<ellipse cx="${cx}" cy="${cy}" rx="${42+i*7}" ry="${32+i*5}" fill="none" stroke="#928f69" stroke-width=".55" opacity=".10" transform="rotate(${i*19} ${cx} ${cy})"/>`).join('');
   return s+wave(half*.53,h*.59)+wave(half*1.5,h*.59);
 }
+function rigidCover(m,side='right'){
+  const {width:w,height:h,half}=m,x=side==='right'?half-2:14,cw=half-12;
+  return `<rect x="${x+2}" y="21" width="${cw}" height="${h-39}" rx="10" fill="#173c32"/><rect x="${x}" y="17" width="${cw}" height="${h-40}" rx="9" fill="url(#leather)" stroke="#234d3d" stroke-width="2"/><rect x="${x+7}" y="24" width="${cw-14}" height="${h-54}" rx="4" fill="none" stroke="#8ca484" stroke-width=".8" opacity=".45"/>`;
+}
 function coverArt(m,cover){
-  const {width:w,height:h,compact}=m,cw=compact?346:410,ch=h-40,x=(w-cw)/2,y=12;
-  let s=`<rect x="${x+7}" y="${y+9}" width="${cw}" height="${ch}" rx="14" fill="#0c2624" opacity=".18"/><rect x="${x+4}" y="${y+4}" width="${cw}" height="${ch}" rx="13" fill="#c4b996"/><rect x="${x+2}" y="${y+2}" width="${cw}" height="${ch}" rx="12" fill="#e3d7b5"/><rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="12" fill="url(#leather)" stroke="#244638" stroke-width="2"/>`;
+  const {width:w,height:h,half}=m,cw=half-14,ch=h-40,x=half,y=17,cx=x+cw/2;
+  // Cover and open halves have the same dimensions. Every paper edge lies
+  // inside this rigid board, including when the book is fully closed.
+  let s=`<rect x="${x}" y="${y}" width="${cw}" height="${ch}" rx="9" fill="url(#leather)" stroke="#244638" stroke-width="2"/>`;
   for(let i=x+12;i<x+cw-7;i+=5)s+=`<path d="M${i} ${y+10}v${ch-20}" stroke="#cfdbb1" stroke-width=".7" opacity="${i%2?.028:.04}"/>`;
-  s+=`<path d="M${x+13} ${y+9}v${ch-18}" stroke="#173d34" stroke-width="8" opacity=".62"/><path d="M${x+20} ${y+10}v${ch-20}" stroke="#78a184" stroke-width="1" opacity=".40"/><rect x="${x+29}" y="${y+25}" width="${cw-52}" height="${ch-49}" rx="4" fill="none" stroke="${GOLD}" opacity=".5"/><rect x="${x+34}" y="${y+30}" width="${cw-62}" height="${ch-59}" rx="3" fill="none" stroke="${GOLD}" stroke-width=".65" opacity=".27"/>`;
-  s+=text(w/2,y+106,'四 方 生 活',25,GOLD,'text-anchor="middle"');
-  s+=svgImage(cover,w/2-96,y+151,192,192,GOLD);
-  s+=text(w/2,y+392,'旅行护照',39,GOLD,'text-anchor="middle" letter-spacing="5"');
-  s+=text(w/2,y+426,'WORLDWOVEN',14,GOLD,'text-anchor="middle" letter-spacing="3"');
-  s+=text(w/2,y+ch-83,'把日常，收进旅途',18,GOLD,'text-anchor="middle" opacity=".8"');
-  s+=text(w/2,y+ch-43,'轻触翻开  ›',17,GOLD,'text-anchor="middle"');
+  s+=`<path d="M${x+9} ${y+9}v${ch-18}" stroke="#173d34" stroke-width="7" opacity=".62"/><path d="M${x+16} ${y+10}v${ch-20}" stroke="#78a184" stroke-width="1" opacity=".40"/><rect x="${x+25}" y="${y+25}" width="${cw-47}" height="${ch-49}" rx="4" fill="none" stroke="${GOLD}" opacity=".5"/><rect x="${x+30}" y="${y+30}" width="${cw-57}" height="${ch-59}" rx="3" fill="none" stroke="${GOLD}" stroke-width=".65" opacity=".27"/>`;
+  s+=text(cx,y+106,'四 方 生 活',25,GOLD,'text-anchor="middle"');
+  s+=svgImage(cover,cx-86,y+151,172,172,GOLD);
+  s+=text(cx,y+392,'旅行护照',35,GOLD,'text-anchor="middle" letter-spacing="3"');
+  s+=text(cx,y+426,'WORLDWOVEN',14,GOLD,'text-anchor="middle" letter-spacing="3"');
+  s+=text(cx,y+ch-83,'把日常，收进旅途',18,GOLD,'text-anchor="middle" opacity=".8"');
+  s+=text(cx,y+ch-43,'轻触翻开  ›',17,GOLD,'text-anchor="middle"');
   s+=text(x+cw-43,y+55,'×',25,GOLD,'text-anchor="middle" opacity=".75"');
-  return {art:s,hotspots:[{action:'open',label:'翻开旅行护照',x:x+25,y:y+70,w:cw-50,h:ch-100},{action:'close',label:'收好护照，继续探索',x:x+cw-70,y:y+20,w:52,h:48}]};
+  const shift=-cw/2;
+  return {art:s,shift,hotspots:[{action:'open',label:'翻开旅行护照',x:x+shift+25,y:y+70,w:cw-50,h:ch-100},{action:'close',label:'收好护照，继续探索',x:x+shift+cw-70,y:y+20,w:52,h:48}]};
 }
 export function renderPassportBook({view,portrait='',stamps={},cover='',spread=null,index=0,count=1,compact=false}={}){
   const m=passportMetrics(compact),{width:w,height:h,half,textWidth:tw}=m;
-  const hotspots=[],transcript=[];let art='';
+  const hotspots=[],transcript=[];let art='',backing='',paper='';
+  const coverFace=coverArt(m,cover);
   const defs=`<defs><linearGradient id="leather" x1="0%" y1="0%" x2="100%" y2="100%"><stop stop-color="#386957"/><stop offset=".52" stop-color="#2b5749"/><stop offset="1" stop-color="#204b40"/></linearGradient><linearGradient id="paperL"><stop stop-color="#eee4c6"/><stop offset=".14" stop-color="#faf3dd"/><stop offset=".86" stop-color="#f6eed7"/><stop offset="1" stop-color="#c8b997"/></linearGradient><linearGradient id="paperR"><stop stop-color="#b8a985"/><stop offset=".045" stop-color="#e6dcc0"/><stop offset=".16" stop-color="#faf4e1"/><stop offset="1" stop-color="#f1e7cd"/></linearGradient><linearGradient id="fold"><stop stop-color="#9b8b65" stop-opacity=".2"/><stop offset=".47" stop-color="#655c43" stop-opacity=".16"/><stop offset=".51" stop-color="#fffbea" stop-opacity=".7"/><stop offset="1" stop-color="#a0926a" stop-opacity="0"/></linearGradient><clipPath id="paperClip"><path d="M27 28Q${half-70} 13 ${half} 30Q${half+70} 13 ${w-27} 28V${h-37}Q${half+85} ${h-48} ${half} ${h-31}Q${half-85} ${h-48} 27 ${h-37}Z"/></clipPath></defs>`;
   if(!spread){
-    const result=coverArt(m,cover);art=result.art;hotspots.push(...result.hotspots);transcript.push('四方生活 · 旅行护照。轻触翻开。');
+    art=`<g transform="translate(${coverFace.shift} 0)">${rigidCover(m)}${coverFace.art}</g>`;hotspots.push(...coverFace.hotspots);transcript.push('四方生活 · 旅行护照。轻触翻开。');
   }else{
     // Each page includes its own complete contents, paper, corners and spine.
-    art+=`<rect x="18" y="21" width="${w-30}" height="${h-30}" rx="11" fill="#102d28" opacity=".22"/><path d="M14 17Q${half-60} 4 ${half} 20Q${half+60} 4 ${w-14} 17V${h-23}Q${half+75} ${h-33} ${half} ${h-13}Q${half-75} ${h-33} 14 ${h-23}Z" fill="url(#leather)" stroke="#234d3d" stroke-width="3"/>`;
+    art+=rigidCover(m,'left')+rigidCover(m);
     for(let j=6;j>0;j-=2)art+=`<path d="M25 ${30+j}Q${half-65} ${16+j} ${half} ${32+j}Q${half+65} ${16+j} ${w-25} ${30+j}V${h-37+j}Q${half+85} ${h-48+j} ${half} ${h-31+j}Q${half-85} ${h-48+j} 25 ${h-37+j}Z" fill="${j%4?'#d8ccaa':'#f1e8cc'}" stroke="#a39874" stroke-width=".7"/>`;
+    backing=art;art='';
     art+=`<path d="M27 28Q${half-70} 13 ${half} 30V${h-31}Q${half-85} ${h-48} 27 ${h-37}Z" fill="url(#paperL)"/><path d="M${half} 30Q${half+70} 13 ${w-27} 28V${h-37}Q${half+85} ${h-48} ${half} ${h-31}Z" fill="url(#paperR)"/>`;
     art+=`<g clip-path="url(#paperClip)">${ruledPaper(m)}`;
     const addLines=(value,x,y,font=22,color=INK,width=tw,attrs='')=>{const lines=passportLines(value,width,font);art+=lines.map((l,i)=>text(x,y+i*(font+9),l,font,color,attrs)).join('');return lines.length*(font+9);};
@@ -171,5 +180,58 @@ export function renderPassportBook({view,portrait='',stamps={},cover='',spread=n
     art+=`<path d="M28 ${h-77}l33 35-33-1Z" fill="#e0d4b6" opacity=".7"/><path d="M${w-28} ${h-77}l-33 35 33-1Z" fill="#dfd1b0" opacity=".78"/>`;
     hotspots.push({action:'previous',label:index?'翻到护照上一页':'合回护照封面',x:28,y:h-90,w:130,h:58},{action:'next',label:index===count-1?'合回护照封面':'翻到护照下一页',x:w-158,y:h-90,w:130,h:58});
   }
-  return {width:w,height:h,svg:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="${spread?'打开的四方旅行护照':'合起的四方旅行护照'}">${defs}${art}</svg>`,hotspots,transcript:transcript.join('。')};
+  if(spread){paper=art;art=backing+paper;}
+  return {width:w,height:h,compact,defs,backing,paper,cover:coverFace.art,coverShift:coverFace.shift,svg:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="${spread?'打开的四方旅行护照':'合起的四方旅行护照'}">${defs}${art}</svg>`,hotspots,transcript:transcript.join('。')};
+}
+
+// Orthographic book geometry is rendered by the product itself. Covers are
+// single rigid planes around the spine; ink is part of each moving paper face.
+// The same SVG frame is used on screen and in offline review, with no CSS 3D,
+// hidden pseudo-elements, opacity cross-fades or independently moving text.
+export function passportMotionGeometry({width,height,kind='turning',direction='forward',progress=0}){
+  const p=Math.max(0,Math.min(1,progress)),opening=kind==='unfolding',cover=kind!=='turning';
+  const phase=cover?(opening?p:1-p):p,angle=Math.PI*phase;
+  const cosine=Math.abs(Math.cos(angle))<1e-9?0:Math.cos(angle),sine=Math.sin(angle),half=width/2;
+  const hinge=cover?half-(half-14)/2*(1-phase):half,lift=cover?30:43;
+  const face=cosine>=0?'front':'back';
+  const side=cover?(face==='front'?'right':'left'):(direction==='forward'?(face==='front'?'right':'left'):(face==='front'?'left':'right'));
+  const sign=side==='right'?1:-1,rotationSign=cover||direction==='forward'?1:-1;
+  const a=rotationSign*cosine*sign,b=-sine*lift/(half-14)*sign;
+  return {progress:p,phase,face,side,hinge,cosine,sine,cover,
+    matrix:[a,b,0,1,hinge-a*half,-b*half],edgeX:hinge+rotationSign*cosine*(half-14),edgeLift:-sine*lift,
+    width,height};
+}
+export function renderPassportMotion({from,to,kind='turning',direction='forward',progress=0}){
+  const p=Math.max(0,Math.min(1,progress));
+  if(p===0)return from.svg;if(p===1)return to.svg;
+  const {width:w,height:h}=to,half=w/2,g=passportMotionGeometry({width:w,height:h,kind,direction,progress:p});
+  const clipDefs=`<clipPath id="motion-left"><rect x="0" y="0" width="${half}" height="${h}"/></clipPath><clipPath id="motion-right"><rect x="${half}" y="0" width="${half}" height="${h}"/></clipPath>`;
+  const side=(content,name)=>`<g clip-path="url(#motion-${name})">${content}</g>`;
+  const sheet=(scene,name)=>side(scene.paper,name);
+  let art='',face='';
+  if(g.cover){
+    const open=kind==='unfolding'?to:from,closed=kind==='unfolding'?from:to;
+    // Only the right packet rests below the moving front board. The inside
+    // cover and its printed left page belong to the reverse face of that board.
+    art=`<g transform="translate(${g.hinge-half} 0)">${side(open.backing,'right')}${sheet(open,'right')}</g>`;
+    face=g.face==='front'?closed.cover:side(open.backing+open.paper,'left');
+  }else{
+    const forward=direction==='forward';
+    // Unturned paper retains the OLD opposite face. The next face is exposed
+    // from the outside edge only where the opaque moving paper uncovers it.
+    art=to.backing+sheet(forward?from:to,'left')+sheet(forward?to:from,'right');
+    face=sheet(g.face==='front'?from:to,g.side);
+  }
+  const matrix=g.matrix.map(n=>Number(n.toFixed(8))).join(' ');
+  if(g.cosine!==0){
+    art+=`<g data-moving-face="${g.face}" data-source-side="${g.side}" transform="matrix(${matrix})">${face}</g>`;
+    // Lighting follows the physical face, never substitutes for occlusion.
+    const left=g.side==='left',x=left?27:half,pw=half-27;
+    const shade=g.cover?0:Math.sin(Math.PI*p)*.13;
+    if(shade)art+=`<g transform="matrix(${matrix})"><rect x="${x}" y="31" width="${pw}" height="${h-69}" fill="#66573b" opacity="${shade.toFixed(4)}"/></g>`;
+  }
+  // A board has a visible material edge at 90 degrees. Paper has a fine edge.
+  const top=g.cover?17:30,bottom=g.cover?h-23:h-31,edge=g.cover?3.6:1.1;
+  art+=`<path data-moving-edge="${g.cover?'board':'paper'}" d="M${g.edgeX} ${top+g.edgeLift}V${bottom+g.edgeLift}" fill="none" stroke="${g.cover?'#193e34':'#c9b996'}" stroke-width="${edge}" stroke-linecap="round"/>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="${g.cover?'开合中的旅行护照':'翻页中的旅行护照'}" data-motion="${kind}" data-progress="${p}">${to.defs}<defs>${clipDefs}</defs>${art}</svg>`;
 }

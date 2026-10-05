@@ -122,11 +122,17 @@ function go(doc,index){let guard=50;while(page(doc)!=='pages-'+index&&guard--){c
   one(doc,'ww-passport-dialog').dispatch('keydown',{key:'ArrowLeft'});assert.equal(page(doc),'pages-2');
   hot(doc,'close').click();assert(!passport.isOpen());assert(!host.open);assert.equal(doc.activeElement,trigger);assert.equal(f.returns(),0);assert.equal(trigger.getAttribute('aria-expanded'),'false');
   trigger.click();doc.flushCloseEvents();assert(passport.isOpen());assert.equal(page(doc),'closed');unfold(doc);
-  doc.defaultView={innerWidth:852,innerHeight:393,matchMedia:()=>({matches:false})};
+  let now=0,frameId=0;const frames=new Map(),realNow=Date.now;Date.now=()=>now;
+  const advance=ms=>{now+=ms;const active=[...frames.values()];frames.clear();for(const fn of active)fn();};
+  doc.defaultView={innerWidth:852,innerHeight:393,matchMedia:()=>({matches:false}),requestAnimationFrame:fn=>{frames.set(++frameId,fn);return frameId;},cancelAnimationFrame:id=>frames.delete(id)};
   hot(doc,'close').click();assert(passport.isOpen(),'input remains held until the book folds');assert.equal(page(doc),'closed');assert(one(doc,'ww-passport-book').className.includes('is-folding'));
-  passport.open();assert(passport.isOpen());assert.equal(page(doc),'pages-0','quick reopen restores interrupted spread');
-  hot(doc,'next').click();hot(doc,'next').click();assert.equal(page(doc),'pages-2');assert.equal(all(doc,'ww-passport-turn-leaf').length,1,'obsolete moving sheets removed');
-  hot(doc,'close').click();await new Promise(resolve=>setTimeout(resolve,810));assert(!passport.isOpen());assert.equal(doc.activeElement,trigger);
+  advance(190);assert.match(art(doc),/data-progress="0.25"/);
+  passport.open();assert(passport.isOpen());assert.equal(page(doc),'pages-0','quick reopen restores interrupted spread');assert.match(art(doc),/data-progress="0.75"/,'reopening reverses the existing rigid cover angle');
+  hot(doc,'next').click();hot(doc,'next').click();assert.equal(page(doc),'pages-0','repeated turns queue until the physical cover has opened');
+  advance(190);assert.equal(page(doc),'pages-1');advance(540);assert.equal(page(doc),'pages-2');advance(135);
+  assert.match(art(doc),/data-motion="turning"/);assert.equal(all(doc,'ww-passport-motion').length,0,'one SVG owns geometry, clipping and stacking');
+  hot(doc,'close').click();assert.equal(page(doc),'pages-2','close waits for the moving sheet instead of snapping it away');advance(405);assert.equal(page(doc),'closed');advance(760);
+  await new Promise(resolve=>setTimeout(resolve,810));assert(!passport.isOpen());assert.equal(doc.activeElement,trigger);Date.now=realNow;
   assert.equal(JSON.stringify(progress),before);passport.dispose();assert(trigger.isConnected);assert(helpContent.isConnected);assert(helpContent.hidden);assert.equal(trigger.onclick,null);
 }
 console.log('PASS passport: actual-photo callback and explicit pending state, no country navigation, sequential independent visa sheets, expandable country sequence, bounded legacy records/notes, read-only saves, retained live source callbacks, touch/keyboard and interrupted modal focus');
