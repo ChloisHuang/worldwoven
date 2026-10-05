@@ -11,6 +11,7 @@ const ART = Object.freeze({
 });
 const STYLE = new URL('./wallet.css', import.meta.url).href;
 const SERIES = Object.freeze({copper:'CN',japan:'JP',egypt:'EG',france:'FR'});
+const COUNTRIES = Object.freeze({copper:'中国',japan:'日本',egypt:'埃及',france:'法国'});
 const validAmount = n => Number.isSafeInteger(n) && n >= 0;
 const number = n => validAmount(n) ? n.toLocaleString('zh-CN') : '—';
 const currency = id => GAME_CURRENCIES[id] || GAME_CURRENCIES.copper;
@@ -47,18 +48,29 @@ export function walletGeometry(width,height,count=1,compact=height<310) {
   // This is the slim curved opening from the original wallet, behind paper.
   const back={x:front.x+2+(front.width-4)*.08,y:front.y-7,width:(front.width-4)*.84,height:15,angle:-2};
   const lipY=front.y-9-Math.sin(2*Math.PI/180)*front.width/2;
-  return {width,height,viewportHeight,count,front,back,lipY,step,noteWidth,noteHeight};
+  // Space real tickets across the cash panel, allowing for rotated corners.
+  // The paper retains its original tucked size until it is completely clear.
+  const fanAngle=[0,0,7,11,14][Math.min(4,count)];
+  const stride=[0,0,.32,.245,.20][Math.min(4,count)];
+  const radians=fanAngle*Math.PI/180;
+  const fanWidth=Math.min(noteWidth,(width-16)/(Math.cos(radians)+.455*Math.sin(radians)+(count-1)*stride));
+  const fanStep=fanWidth*stride;
+  const fanHalfHeight=(fanWidth*.455*Math.cos(radians)+fanWidth*Math.sin(radians))/2;
+  return {width,height,viewportHeight,count,front,back,lipY,step,noteWidth,noteHeight,fanWidth,fanStep,fanAngle,fanHalfHeight};
 }
 export function walletPocketFrame(layout) {
   return {front:layout.front,back:layout.back};
 }
-export function walletNoteFrame(layout,index,progress) {
-  const {width,count,front,lipY,noteWidth:w,noteHeight:h,step}=layout,mid=(count-1)/2;
-  const lift=ease(progress),fan=ease(progress-1),clearY=lipY-h-12-index*2;
-  const tuckedY=front.y-h*.44-index*2,spreadY=8+index*step;
-  return {x:width/2-w/2+(index-mid)*Math.min(8,width*.025)*fan,
-    y:mix(mix(tuckedY,clearY,lift),spreadY,fan),width:w,height:h,
-    angle:(index-mid)*.4*fan};
+export function walletNoteFrame(layout,index,progress,inspection=0) {
+  const {width,count,front,lipY,noteWidth,noteHeight,fanWidth,fanStep,fanAngle,fanHalfHeight}=layout,mid=(count-1)/2;
+  const lift=ease(progress),fan=ease(progress-1),inspect=ease(inspection)*fan;
+  const offset=mid?(index-mid)/mid:0;
+  const w=mix(mix(noteWidth,fanWidth,fan),noteWidth,inspect),h=w*.455;
+  const clearY=lipY-noteHeight-12-index*2,tuckedY=front.y-noteHeight*.44-index*2;
+  const spreadCenter=8+fanHalfHeight+offset*offset*4;
+  return {x:width/2-w/2+(index-mid)*fanStep*fan*(1-inspect),
+    y:mix(mix(mix(tuckedY,clearY,lift)+noteHeight/2,spreadCenter,fan),8+noteHeight/2,inspect)-h/2,
+    width:w,height:h,angle:offset*fanAngle*fan*(1-inspect)};
 }
 
 /** Read-only presentation. Never calculate wages, exchange rates or balances. */
@@ -96,7 +108,8 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
   trigger.setAttribute('aria-haspopup','dialog');trigger.setAttribute('aria-expanded','false');mount.prepend(trigger);
   const status=make('span',null,'ww-wallet-status');status.setAttribute('role','status');status.setAttribute('aria-live','polite');mount.append(status);
   let ui=null, disposed=false, folded=true, priorFocus=null, pulseTimer=null, transferTimer=null, transfer=null;
-  let progress=0, frame=null, lastTime=null, resizeObserver=null, receiptEpoch=0;
+  let progress=0, frame=null, lastTime=null, resizeObserver=null, receiptEpoch=0, selectedId=null;
+  const inspections=new Map();
   const view=doc.defaultView, requestFrame=fn=>view?.requestAnimationFrame?view.requestAnimationFrame(fn):setTimeout(()=>fn(Date.now()),16);
   const cancelFrame=id=>view?.cancelAnimationFrame?view.cancelAnimationFrame(id):clearTimeout(id);
   const mini=make('div',null,'ww-wallet-mini');mini.setAttribute('aria-hidden','true');mini.hidden=true;doc.body.append(mini);
@@ -191,11 +204,12 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     title.append(make('span','旅途里的小积蓄','ww-wallet-eyebrow'),make('h2','钱包与账本'));header.append(title,closeButton);
     const body=make('div',null,'ww-wallet-body'),left=make('section',null,'ww-wallet-cash'),right=make('section',null,'ww-wallet-book');
     const cashHeading=make('div',null,'ww-wallet-section-heading');cashHeading.append(make('h3','随身现金'),make('span','装在口袋里的钱'));
-    const fan=button(null,'ww-wallet-fan','抽出并展开随身纸币');fan.setAttribute('aria-expanded','false');
-    const canvas=make('span',null,'ww-wallet-canvas'),back=make('span',null,'ww-wallet-back'),stack=make('span',null,'ww-wallet-stack'),pocket=make('span',null,'ww-wallet-pocket'),seam=make('span',null,'ww-wallet-seam');
+    const fan=make('div',null,'ww-wallet-fan');fan.setAttribute('role','group');fan.setAttribute('aria-label','随身现金钱包');
+    const toggle=button(null,'ww-wallet-toggle','抽出并展开随身纸币');toggle.setAttribute('aria-expanded','false');
+    const canvas=make('div',null,'ww-wallet-canvas'),back=make('span',null,'ww-wallet-back'),stack=make('span',null,'ww-wallet-stack'),pocket=make('span',null,'ww-wallet-pocket'),seam=make('span',null,'ww-wallet-seam');
     back.setAttribute('aria-hidden','true');
     pocket.setAttribute('aria-hidden','true');pocket.append(seam,make('span','四方 · 随行','ww-wallet-pocket-mark'));
-    const empty=make('span','钱包还空着\n去银行取些现金，就能装进口袋','ww-wallet-empty');stack.append(empty);canvas.append(back,stack,pocket);fan.append(canvas);
+    const empty=make('span','钱包还空着\n去银行取些现金，就能装进口袋','ww-wallet-empty');stack.append(empty);canvas.append(toggle,back,stack,pocket);fan.append(canvas);
     const hint=make('p','轻点钱包，抽出并展开纸币','ww-wallet-hint'),cashList=make('p',null,'ww-wallet-cash-list');
     left.append(cashHeading,fan,hint,cashList);
     const cashSummary=make('div',null,'ww-wallet-cash-summary'),cashSummaryAmount=make('strong');
@@ -208,9 +222,9 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     const notice=make('p',null,'ww-wallet-notice');notice.setAttribute('role','status');
     const effects=make('div',null,'ww-wallet-effects');effects.setAttribute('aria-hidden','true');
     body.append(left,right);dialog.append(header,body,notice,effects);doc.body.append(dialog);
-    ui={dialog,closeButton,fan,canvas,back,pocket,stack,empty,hint,cashList,cashSummaryAmount,bankList,journal,scroll,notice,effects};
+    ui={dialog,closeButton,fan,toggle,canvas,back,pocket,stack,empty,hint,cashList,cashSummaryAmount,bankList,journal,scroll,notice,effects};
     closeButton.onclick=close;
-    fan.onclick=()=>{folded=!folded;setFold(true);};
+    fan.onclick=()=>{if(ui.toggle.disabled)return;folded=!folded;if(folded)selectedId=null;setFold(true);};
     if(view?.ResizeObserver){resizeObserver=new view.ResizeObserver(drawWallet);resizeObserver.observe(fan);}
     // Stopping at the modal keeps game shortcuts from turning an Escape close
     // or a Space press on the fan into an action in the world underneath.
@@ -237,10 +251,18 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
       element.style.transform=`rotate(${box.angle}deg)`;
     }
     [...notes.values()].forEach((note,index)=>{
-      const f=walletNoteFrame(geometry,index,progress);
+      const id=note.dataset.currency,inspection=inspections.get(id)||0;
+      const f=walletNoteFrame(geometry,index,progress,inspection);
       note.style.width=`${f.width}px`;note.style.height=`${f.height}px`;
       note.style.transform=`translate(${f.x}px,${f.y}px) rotate(${f.angle}deg)`;
-      note.style.setProperty('--note-index',String(index));
+      // Selection changes order only inside the paper stack, after it has left
+      // the pocket. The physical back/paper/front order never changes.
+      note.style.setProperty('--note-index',String(selectedId===id?20+index:inspection>0?10+index:index));
+      note.style.setProperty('--tab-width',`${Math.max(18,geometry.fanStep*.7)}px`);
+      note.style.setProperty('--tab-font',`${clamp(geometry.fanStep*.32,8,11)}px`);
+      note.disabled=folded||progress!==2;note.tabIndex=note.disabled?-1:0;
+      note.setAttribute('aria-pressed',String(selectedId===id));
+      note.dataset.inspected=String(inspection>0);
       note.style.setProperty('--paper-scale',String(Math.min(1,f.width/245)));
       note.dataset.multiple=String(notes.size>1);
     });
@@ -248,19 +270,36 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
   }
   function advanceWallet(time) {
     frame=null;
-    const target=folded?0:2;
+    const target=folded?0:2,elapsed=lastTime===null?0:Math.max(0,time-lastTime);
+    const inspecting=[...inspections.values()].some(value=>value>0);
+    let inspectingMotion=false;
+    for(const id of notes.keys()){
+      const value=inspections.get(id)||0,wanted=!folded&&selectedId===id?1:0;
+      const next=reducedMotion()?wanted:clamp(value+Math.sign(wanted-value)*elapsed/220,Math.min(value,wanted),Math.max(value,wanted));
+      inspections.set(id,next);if(next!==wanted)inspectingMotion=true;
+    }
     if(reducedMotion())progress=target;
-    if(lastTime!==null)progress=clamp(progress+Math.sign(target-progress)*(time-lastTime)/340,Math.min(progress,target),Math.max(progress,target));
+    // Lower the inspected ticket into the fan before gathering the stack.
+    if(!folded||!inspecting)progress=clamp(progress+Math.sign(target-progress)*elapsed/340,Math.min(progress,target),Math.max(progress,target));
     lastTime=time;drawWallet();
-    if(progress!==target)frame=requestFrame(advanceWallet);else lastTime=null;
+    if(progress!==target||inspectingMotion)frame=requestFrame(advanceWallet);else lastTime=null;
+  }
+  function inspectNote(id) {
+    if(folded||progress!==2)return;
+    selectedId=selectedId===id?null:id;
+    if(reducedMotion())for(const key of notes.keys())inspections.set(key,key===selectedId?1:0);
+    else if(frame===null){lastTime=null;frame=requestFrame(advanceWallet);}
+    drawWallet();
   }
   function setFold(animate=false) {
     if (!ui) return;
+    if(folded&&[...notes.values()].includes(doc.activeElement))ui.toggle.focus({preventScroll:true});
     ui.fan.setAttribute('aria-expanded',String(!folded));
-    ui.fan.setAttribute('aria-label',folded?'抽出并展开随身纸币':'收拢纸币放回钱包');
-    ui.hint.textContent=folded?'轻点钱包，抽出并展开纸币':'再点一下，把纸币收回钱包';
+    ui.toggle.setAttribute('aria-expanded',String(!folded));
+    ui.toggle.setAttribute('aria-label',folded?'抽出并展开随身纸币':'收拢纸币放回钱包');
+    ui.hint.textContent=folded?'轻点钱包，抽出并展开纸币':'点票券抬起查看 · 点钱包收回';
     if(!animate||reducedMotion()){
-      if(frame!==null)cancelFrame(frame);frame=null;lastTime=null;progress=folded?0:2;drawWallet();
+      if(frame!==null)cancelFrame(frame);frame=null;lastTime=null;progress=folded?0:2;selectedId=null;inspections.clear();drawWallet();
     }else if(frame===null){lastTime=null;frame=requestFrame(advanceWallet);}
     drawWallet();
   }
@@ -268,27 +307,29 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     const balances=ledger.balances();
     ui.notice.hidden=!!balances;ui.notice.textContent=balances?'':'账目暂时无法核对，请保留当前存档。余额不会显示为零。';
     const owned=balances?Object.keys(GAME_CURRENCIES).filter(id=>validAmount(balances[id]?.cash)&&balances[id].cash>0):[];
-    ui.fan.disabled=!balances||!owned.length;ui.empty.hidden=!!owned.length;
+    ui.toggle.disabled=ui.fan.disabled=!balances||!owned.length;ui.empty.hidden=!!owned.length;
     ui.empty.textContent=balances?'钱包还空着\n去银行取些现金，就能装进口袋':'账目核对中';
-    for(const [id,note] of notes)if(!owned.includes(id)){note.remove();notes.delete(id);}
+    for(const [id,note] of notes)if(!owned.includes(id)){note.remove();notes.delete(id);inspections.delete(id);if(selectedId===id)selectedId=null;}
     owned.forEach((id,index)=>{
       const c=currency(id);let note=notes.get(id);
       if(retryArtwork&&note?.dataset.artState==='error')prepareArtwork(note,note.children[0],id);
       if(!note){
-        note=make('span',null,'ww-wallet-note');note.dataset.currency=id;
+        note=button(null,'ww-wallet-note');note.dataset.currency=id;
+        note.onclick=e=>{e.stopPropagation?.();inspectNote(id);};
         const img=artworkImage(note,id);
         const seal=make('span',null,'ww-wallet-note-seal');seal.setAttribute('aria-hidden','true');seal.append(make('span','四方'),make('span','随行'));
         const serial=make('span',`${SERIES[id]} · 0001`,'ww-wallet-note-serial');serial.setAttribute('aria-hidden','true');
         // A currency's note represents its cash total, not an invented banknote
         // denomination. Type stays in the artwork's blank right-hand fields.
-        note.append(img,make('span',null,'ww-wallet-note-tab'),make('span',c.label,'ww-wallet-note-title'),make('span','随身现金','ww-wallet-note-caption'),seal,serial,make('strong',null,'ww-wallet-note-amount'));
+        const tab=make('span',null,'ww-wallet-note-tab');tab.setAttribute('aria-hidden','true');tab.append(make('span',COUNTRIES[id]),make('strong'));
+        note.append(img,tab,make('span',c.label,'ww-wallet-note-title'),make('span','随身现金','ww-wallet-note-caption'),seal,serial,make('strong',null,'ww-wallet-note-amount'));
         notes.set(id,note);ui.stack.append(note);
       }
       const amount=money(balances[id].cash,id);
       note.style.setProperty('--amount-scale',String(Math.min(1,7/amount.length)));
       note.lastElementChild.textContent=amount;
-      note.children[1].textContent=`${c.label} · ${amount}`;
-      note.style.setProperty('--tab-scale',String(Math.min(1,22/note.children[1].textContent.length)));
+      note.children[1].lastElementChild.textContent=amount.replace(' ','');
+      note.style.setProperty('--tab-scale',String(Math.min(1,4/amount.replace(' ','').length)));
       note.setAttribute('aria-label',`${c.label}，随身现金 ${money(balances[id].cash,id)}`);
     });
     drawWallet();
