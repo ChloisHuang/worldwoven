@@ -17,7 +17,7 @@ export function createChinaTavernService({meal,careers,getPlayer,getMounted=()=>
  if(current.job){const role=roleFor(current.job.formalRoleId),d=careers.state().lastDuty;
   if(d?.workReceiptId===current.job.receiptId&&d.stage==='working')scene.start({roleId:role.id,receiptId:current.job.receiptId,snapshot:world});
   else {scene.restoreWorld(world);if(d?.workReceiptId!==current.job.receiptId||!['inspection','ready','paid'].includes(d.stage))save({...current,job:null});}
- }else scene.restoreWorld(world);
+ }else if(world&&!scene.snapshot())scene.restoreWorld(world);
  const beginAvailability=role=>careers.beginDutyAvailability(role.id,{receiptId:current.job?.receiptId});
  function accept(role=heldRole()){
   if(!role||!careers.isHired(role.id)||current.job||getLegacyJob())return failure('先结清手上的工作，再开始新班次');
@@ -103,11 +103,11 @@ function createUI({doc,service,scene,onIntent,onOpen,choose}){
  function refresh(force=false){if(!dialog.open&&!force)return;const live=scene.state(),s=service.state(),choices=scene.choices(),key=JSON.stringify([s.job?.stage,live.stage,live.orders.map(o=>[o.id,o.stage,o.collected,o.reviews]),live.tables,live.rooms,choices,live.activity?.kind]);if(!force&&key===signature)return;signature=key;generation++;dialog.replaceChildren();
   const x=button('×',close);x.className='cn-service-close';x.setAttribute('aria-label','关闭待办并保留现场');dialog.append(x,make('h2','云来酒楼 · 当前待办'));
   if(!s.job){dialog.append(make('p','尚未报到。申请录用后，仍需单独选择开始今日班次。'));return;}
-  if(live.stage==='working')dialog.append(make('p',`在岗 ${Math.floor(s.job.coveredSeconds*.7)} 游戏分钟 · 餐饮与住宿收款 ${live.till} 文记在酒楼账。日薪在交班后另行核算。`));
+  if(live.stage==='working')dialog.append(make('p',`在岗 ${Math.floor(s.job.coveredSeconds*.7)} 分钟 · 酒楼账 ${live.till} 文`));
   if(live.selectedOrderId){const order=live.orders.find(o=>o.id===live.selectedOrderId);dialog.append(make('div',`${order.tableId==='west'?'西窗桌':'东窗桌'} · ${order.customerName}\n${order.dishId==='yunlai-green-noodles'?'🥬':'🍚'} ${order.dishName} ×1 · 待交付`,'cn-service-order'));}
   else if(!choices.length)dialog.append(make('p',live.activity?.action||'当前没有可办理的待办。客人和同事正在真实行走、用餐或备菜。'));
   const list=make('div',null,'cn-service-tasks');for(const c of choices)list.append(button(c.action,()=>{const intent=choose(c);close();if(intent)onIntent(intent);}));dialog.append(list);
-  if(live.stage==='working'){const footer=make('div',null,'cn-service-footer');footer.append(button('交班 · 按实际工时结算',()=>{const intent=service.intent('end-shift');close();if(intent)onIntent(intent);}));dialog.append(footer,make('p','06:00–18:00为日班。可主动提前交班；桌脏、退房待扫和未送餐不会因关面板、换班或重载消失。'));}
+  if(live.stage==='working'){const footer=make('div',null,'cn-service-footer');footer.append(button('交班 · 按实际工时结算',()=>{const intent=service.intent('end-shift');close();if(intent)onIntent(intent);}));dialog.append(footer);}
  }
  function open(){onOpen();refresh(true);if(!dialog.open)dialog.showModal();refresh(true);}
  dialog.addEventListener('cancel',e=>{e.preventDefault();close();});return {open,close,refresh,isOpen:()=>!!dialog.open,dispose(){close();dialog.remove();style.remove();}};

@@ -48,3 +48,15 @@ export function createTavernMealProps(parent){
   dispose(){clear();root.removeFromParent();for(const geo of geos)geo.dispose();for(const m of mats.values())m.dispose();}
  };
 }
+
+// Persistent dirt is visible scene state, never a label pretending a surface
+// was cleaned. Both stains and checkout linen disappear only at real cleaning.
+export function createTavernDirtProps(parent,furniture){
+ const root=new THREE.Group();root.name='云来酒楼 待清洁桌面与退房布草';root.userData.dynamic=true;parent.add(root);
+ const materials=[],geometries=[],tables=new Map(),rooms=new Map();
+ const stain=new THREE.MeshBasicMaterial({color:0x5f4430,transparent:true,opacity:.48,depthWrite:false,side:THREE.DoubleSide});materials.push(stain);
+ const towel=new THREE.MeshToonMaterial({color:0xc3b399});materials.push(towel);
+ for(const [id,x]of[['west',18.1],['east',23.9]]){const group=new THREE.Group();group.name=id+' table persistent spills';for(let i=0;i<4;i++){const geo=new THREE.CircleGeometry(.075+i*.007,12);geometries.push(geo);const mesh=new THREE.Mesh(geo,stain);mesh.rotation.x=-Math.PI/2;mesh.position.set(x-.48+i*.27,1.197,18.06+(i%2?.17:-.08));mesh.scale.set(1,.6,1);group.add(mesh);}group.visible=false;tables.set(id,group);root.add(group);}
+ for(const id of['lan','zhu']){const bed=furniture.items.find(i=>i.id==='china-tavern-bed-'+id);if(!bed)continue;const group=new THREE.Group();group.name=id+' checkout linen';const geo=new THREE.BoxGeometry(.43,.09,.34);geometries.push(geo);const cloth=new THREE.Mesh(geo,towel);cloth.position.set(bed.center[0]+.55,bed.supportY+.085,bed.center[2]+.45);cloth.rotation.y=.45;group.add(cloth);group.visible=false;rooms.set(id,group);root.add(group);}
+ return {update(tableState=[],roomState=[]){for(const [id,g]of tables)g.visible=!!tableState.find(t=>t.id===id)?.dirty;for(const [id,g]of rooms)g.visible=!!roomState.find(r=>r.id===id)?.dirty;},dispose(){root.removeFromParent();for(const g of geometries)g.dispose();for(const m of materials)m.dispose();}};
+}

@@ -32,7 +32,7 @@ export function createChinaTavernMealUI({service,getPlayer,getMounted,getRecepti
   badge.hidden=!near||!canShow();badge.textContent=o?`云来酒楼 · ${o.cancelled?'正在收拾餐具':s.label}`:seated?'云来酒楼 · 招呼掌柜点菜':'云来酒楼 · 选座点菜';
   if(dialog.open&&!near&&!o){close();return;}if(!dialog.open&&!force)return;const key=[o?.id,o?.stage,o?.cancelled,mounted?.id,available,...service.seats.map(seat=>canChooseSeat(seat))].join('|');if(!force&&key===signature)return;signature=key;invalidateIntent();dialog.replaceChildren();
   const x=button('×',close);x.className='cn-meal-close';x.setAttribute('aria-label','关闭酒楼菜牌');dialog.append(x,make('h2','云来酒楼'),make('p','今日一味 · 云来菌菇饭'));
-  if(o){dialog.append(make('p',`${seatName(service.seats.find(i=>i.id===o.seatId))} · ${o.cancelled?'饭已取消，许安正在收拾餐具':s.label}`));}
+  if(o){dialog.append(make('p',`${seatName(service.seats.find(i=>i.id===o.seatId))} · ${o.cancelled?'饭已取消，陆青正在收拾餐具':s.label}`));}
   else if(!available)dialog.append(make('p','手上的擦桌短工还未收工，请完成或取消后再点菜。'));
   else if(seated)dialog.append(make('p',`${seatName(seated)}已入座。招呼许安，他会到桌边听你点菜。`));
   else{dialog.append(make('p','选一处餐位点菌菇饭，会自动走到餐椅坐好并招呼许安。'));const list=make('div',null,'cn-meal-seats');for(const seat of service.seats){const selected=intent(seat.id),b=button(selected?.action||`${seatName(seat)} · 暂时有人`,()=>request(selected));b.disabled=!selected;list.append(b);}dialog.append(list);}
@@ -40,7 +40,7 @@ export function createChinaTavernMealUI({service,getPlayer,getMounted,getRecepti
   if(seated&&!o&&available){const selected=intent(seated.id);actions.append(button('招呼掌柜 · 点菌菇饭',()=>request(selected),true));}
   if(o?.stage==='ready'&&!o.cancelled)actions.append(button('吃送来的菌菇饭',()=>{if(service.view().order?.id===o.id&&service.eat())close();else refresh(true);},true));
   if(o&&!o.cancelled&&!['clear-table','lifting','return','washing'].includes(o.stage))actions.append(button('取消这份饭',()=>{if(service.view().order?.id===o.id)service.cancel();close();}));
-  if(seated)actions.append(button('起身',()=>{close();onStand();}));dialog.append(actions,make('p',o?'收起菜牌后仍会继续备餐；起身会取消未吃完的饭。':'菌菇饭是酒楼的一份游戏餐点。可在桌边等掌柜送来。'));
+  if(seated)actions.append(button('起身',()=>{close();onStand();}));dialog.append(actions,make('p',o?'收起菜牌后仍会继续备餐；起身会取消未吃完的饭。':'菌菇饭是酒楼的一份游戏餐点。可在桌边等服务助理送来。'));
  }
  function open(){if(disposed||!nearEntry()&&!service.view().order)return;invalidateIntent();onOpen();refresh(true);if(!dialog.open)dialog.showModal();refresh(true);}
  badge.onclick=()=>{if(!disposed&&nearEntry()&&canShow())open();};dialog.addEventListener('cancel',e=>{e.preventDefault();close();});refresh();
