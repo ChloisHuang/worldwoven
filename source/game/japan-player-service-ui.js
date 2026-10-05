@@ -105,7 +105,7 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
    const price=standalone?v.price:dish.price,amount=make('div',null,'jp-service-price');amount.append(make('strong',String(price)),make('span',`${unit}${standalone?` · ${s.payment==='settled'?'已结算':'已预留'}`:' · 确认时预留'}`));
    detail.append(make('p','一楼食堂','jp-service-kicker'),make('h3',dish.name),amount);
    if(!v)detail.append(make('p','后厨现做 · 送至吧台餐位','jp-service-status'));
-   detail.append(make('p','开吃时结算，开吃后不退。此前取消、离馆或重载，原额退款。','jp-service-note'));
+   detail.append(make('p','开吃时结算，开吃后不退。未开吃时取消退回原款；重载不重复扣款。','jp-service-note'));
    if(!v&&s.cash<dish.price){const error=make('p',`余额不足 · 还差 ${dish.price-s.cash} ${unit}，可到本地银行兑换或提款`,'jp-service-error');error.setAttribute('role','status');detail.append(error);}
    if(s.paymentError){const error=make('p','钱款账目待核对，请稍后重试。','jp-service-error');error.setAttribute('role','alert');detail.append(error);}
   }else{
