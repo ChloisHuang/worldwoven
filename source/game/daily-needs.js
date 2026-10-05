@@ -1,3 +1,4 @@
+import {CHINA_OFFICIAL_IDS} from './china-official-economy.js';
 import {GAME_MINUTES_PER_SECOND} from './simulation-clock.js';
 import {JAPAN_STAFF_CREW} from './japan-service-orders.js';
 
@@ -5,7 +6,7 @@ import {JAPAN_STAFF_CREW} from './japan-service-orders.js';
 // own actions and supplies; an intention, animation or scene entry grants nothing.
 export const DAILY_NEEDS_HOUR=60/GAME_MINUTES_PER_SECOND;
 const FOOD_DAY=24*DAILY_NEEDS_HOUR;
-export const DAILY_NEEDS_ACTORS=Object.freeze(['player','cn-tavern-diner-west','cn-tavern-diner-east',...JAPAN_STAFF_CREW]);
+export const DAILY_NEEDS_ACTORS=Object.freeze(['player','cn-tavern-diner-west','cn-tavern-diner-east',...CHINA_OFFICIAL_IDS,...JAPAN_STAFF_CREW]);
 const copy=x=>JSON.parse(JSON.stringify(x));
 const positive=(x,fallback=0)=>Number.isFinite(x)&&x>=0?x:fallback;
 const clamp=x=>Math.max(0,Math.min(1,x));
