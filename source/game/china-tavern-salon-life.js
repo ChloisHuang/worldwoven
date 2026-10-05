@@ -10,7 +10,7 @@ const near=(p,to,r=.08)=>Math.hypot(p.x-to[0],p.z-to[2])<r&&Math.abs(p.y-to[1])<
 const PROFILES={
  'cn-tavern-reciter':{offset:[-.55,0],work:'低声推敲诗句',study:'独自翻读旧词',pause:'停卷歇一歇',workWeight:.75,studyWeight:1.1,pauseWeight:.35},
  'cn-tavern-storyteller':{offset:[-.55,0],work:'整理江行说书稿',study:'翻阅山川手札',pause:'踱两步回想旅途',workWeight:1.1,studyWeight:.5,pauseWeight:.7},
- 'cn-tavern-songwriter':{offset:[0,-.55],work:'推敲新填曲词',study:'静读曲词韵谱',pause:'离案稍作歇息',workWeight:.65,studyWeight:1.3,pauseWeight:.3},
+ 'cn-tavern-songwriter':{offset:[0,.55],work:'推敲新填曲词',study:'静读曲词韵谱',pause:'离案稍作歇息',workWeight:.65,studyWeight:1.3,pauseWeight:.3},
  'cn-tavern-chess-poet':{offset:[0,-.55],work:'默演棋局掌故',study:'翻读弈棋旧谱',pause:'缓步思索棋理',workWeight:.8,studyWeight:.6,pauseWeight:.8},
 };
 
