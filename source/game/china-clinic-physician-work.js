@@ -19,7 +19,7 @@ export function validPhysicianOrder(order){
   (order.physician==='player'?/^cn-clinic-physician-labor-[1-9][0-9]*$/.test(order.physicianReceiptId):order.physicianReceiptId===null)&&
   (!order.careCorrect||order.questioned&&order.carePlanId===clinicCarePlan(order.symptoms));
 }
-export function createClinicPhysicianWork({getOrder,getJob,getPlayer,getMounted,isHired,near,seated,assistant,changeOrder,cancelOrder,notify}){
+export function createClinicPhysicianWork({getOrder,getJob,getPlayer,getMounted,isHired,near,seated,assistant,changeOrder,notify}){
  let action=null;
  const owns=receipt=>{const o=getOrder(),job=getJob();return !!o&&o.physician==='player'&&o.physicianReceiptId===receipt&&job?.receiptId===receipt&&job.stage==='working'&&isHired();};
  const current=()=>owns(getJob()?.receiptId);
@@ -35,7 +35,8 @@ export function createClinicPhysicianWork({getOrder,getJob,getPlayer,getMounted,
  function execute(choice,receipt,player){
   const next=intent(receipt,choice?.planId);if(!next||getMounted()||!near(player,next.position,.3)||['key','kind','planId','orderId','recipientId','number','cardId'].some(k=>choice?.[k]!==next[k]))return false;
   if(next.kind==='choose')return false;
-  if(next.kind==='handoff'?!near(assistant,C.points.assistantHandoff,.1):!seated()){notify('请等原来客或苏禾到位，再当面办理');return false;}
+  if(next.kind!=='handoff'&&!seated()){notify('请等原来客落座后再当面问询');return false;}
+  if(next.kind==='handoff'&&!near(assistant,C.points.assistantHandoff,.1))notify('在平台等苏禾到位，再核对同号原单');
   if(next.kind==='write'&&choice.planId!==clinicCarePlan(getOrder().symptoms)){
    if(getOrder().lastMismatchPlan!==choice.planId&&!changeOrder(o=>{o.lastMismatchPlan=choice.planId;},'physician-plan-mismatch',{planId:choice.planId}))return false;
    notify('照护单与原症状记录不符，还未发单。请重新核对记录，选择相符照护单');return true;
@@ -60,5 +61,5 @@ export function createClinicPhysicianWork({getOrder,getJob,getPlayer,getMounted,
  return {intent,execute,update,current,active,owns,stop:()=>{action=null;},isActing:()=>!!action,
   canEnd:receipt=>!owns(receipt)||['complete','cancelled'].includes(getOrder().stage),
   pose:()=>action?{action:action.kind==='write'?'calligraphy':'wave',station:{position:action.position,playerWorkTarget:action.kind==='write'?C.points.paper:action.kind==='handoff'?C.points.assistantHandoff:C.points.consult}}:getOrder()?.cardHolder==='physician-player'?{action:null,station:null,handoff:true}:null,
-  details:()=>getOrder()?.physician==='player'?{orderId:getOrder().id,number:getOrder().number,recipientName:getOrder().recipientName,symptoms:getOrder().questioned?getOrder().symptoms.slice():[],stage:getOrder().stage,mismatch:!!getOrder().lastMismatchPlan,plans:getOrder().stage==='writing'?CLINIC_CARE_PLANS.map(({id,name})=>({id,name})):[]}:null};
+  details:()=>getOrder()?.physician==='player'?{orderId:getOrder().id,number:getOrder().number,recipientName:getOrder().recipientName,symptoms:getOrder().questioned?getOrder().symptoms.slice():[],stage:getOrder().stage,selectedPlanId:action?.planId||getOrder().carePlanId||null,acting:!!action,mismatch:!!getOrder().lastMismatchPlan,plans:getOrder().stage==='writing'?CLINIC_CARE_PLANS.map(({id,name})=>({id,name})):[]}:null};
 }
