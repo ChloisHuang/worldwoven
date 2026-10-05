@@ -1,7 +1,7 @@
 import {GAME_CURRENCIES} from './currency-ledger.js';
 
-// Merely resolving these URLs does not fetch the pictures. Images are created
-// only after the player opens the wallet; there is one per owned currency.
+// Merely resolving these URLs does not fetch the pictures. Create images only
+// for owned currencies on open, or the currency in a committed receipt.
 const ART = Object.freeze({
   copper: new URL('./assets/currency/china.webp', import.meta.url).href,
   japan: new URL('./assets/currency/japan.webp', import.meta.url).href,
@@ -53,6 +53,15 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
   const mini=make('div',null,'ww-wallet-mini');mini.setAttribute('aria-hidden','true');mini.hidden=true;mount.append(mini);
   const seen=new Set(), notes=new Map();
   const reducedMotion=()=>!!doc.defaultView?.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+  function receiptNote(id,amount,received=false) {
+    const note=make('span',null,`ww-wallet-transfer-note${received?' is-received':''}`);note.dataset.currency=id;
+    const img=make('img');img.src=ART[id];img.alt='';img.width=800;img.height=364;img.decoding='async';img.draggable=false;
+    const label=make('span',null,'ww-wallet-transfer-label'),value=money(amount,id);
+    label.append(make('span',currency(id).label),make('strong',value));
+    note.style.setProperty('--amount-scale',String(Math.min(1,7/value.length)));
+    note.append(img,label);return note;
+  }
 
   function ensureUI() {
     if (ui) return;
@@ -161,7 +170,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     if(disposed||ui?.dialog.open)return;clearTransfer();onOpen();ensureUI();priorFocus=doc.activeElement;folded=true;historyLimit=60;setFold();
     renderBalances();renderHistory();ui.scroll.scrollTop=0;ui.dialog.showModal();trigger.setAttribute('aria-expanded','true');ui.closeButton.focus({preventScroll:true});
   }
-  function clearTransfer(){clearTimeout(transferTimer);transferTimer=null;transfer?.remove();transfer=null;mini.hidden=true;mini.classList.remove('in-modal');if(!disposed)mount.append(mini);}
+  function clearTransfer(){clearTimeout(transferTimer);transferTimer=null;transfer?.remove();transfer=null;mini.hidden=true;mini.replaceChildren();mini.classList.remove('in-modal');if(!disposed)mount.append(mini);}
   function finishClose(){
     if(trigger.getAttribute('aria-expanded')!=='true')return;
     trigger.setAttribute('aria-expanded','false');clearTransfer();folded=true;setFold();onClose();
@@ -174,8 +183,8 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     const view=walletTransactionView(tx);status.textContent=`${view.title}，${view.badge}，${view.detail}`;
     refresh();if(!view.route)return;
     trigger.classList.remove('has-receipt');clearTimeout(pulseTimer);
-    // The small receipt animates during play as well. It uses plain paper and
-    // DOM text, so a committed wage does not preload the full wallet artwork.
+    // Receipts borrow only their actual currency's compressed ticket artwork;
+    // no new image is requested until the ledger confirms the transaction.
     trigger.dataset.receipt=view.action;trigger.classList.add('has-receipt');
     pulseTimer=setTimeout(()=>{trigger.classList.remove('has-receipt');delete trigger.dataset.receipt;},2200);
     clearTransfer();
@@ -185,8 +194,8 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
       const title=make('strong',`${view.title} · ${view.badge}`,'ww-wallet-mini-title'),route=make('div',null,'ww-wallet-mini-route');
       route.append(make('span',places[view.route[0]]),make('span',places[view.route[1]]));
       const slip=make('span',null,'ww-wallet-mini-slip');
-      slip.append(make('span',currency(view.currency).label));
-      if(view.received)slip.append(make('span',currency(view.received.currency).label,'is-received'));
+      slip.append(receiptNote(view.currency,tx.amount));
+      if(view.received)slip.append(receiptNote(view.received.currency,view.received.amount,true));
       mini.append(title,route,slip);mini.hidden=false;
       // Bank services may rebuild their dialog synchronously after each save.
       // Attach after that render, within its top layer, so a successful real
@@ -196,9 +205,8 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     }
     if(reducedMotion())return;
     transfer=make('div',null,`ww-wallet-transfer is-${view.action}`);
-    const from=make('span',`${currency(view.currency).label} ${money(tx.amount,view.currency)}`,'ww-wallet-transfer-note');
-    transfer.append(from);
-    if(view.received)transfer.append(make('span',`${currency(view.received.currency).label} ${money(view.received.amount,view.received.currency)}`,'ww-wallet-transfer-note is-received'));
+    transfer.append(receiptNote(view.currency,tx.amount));
+    if(view.received)transfer.append(receiptNote(view.received.currency,view.received.amount,true));
     ui.effects.append(transfer);transferTimer=setTimeout(clearTransfer,1450);
   }
   trigger.onclick=open;
