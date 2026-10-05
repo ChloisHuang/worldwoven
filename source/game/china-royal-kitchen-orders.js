@@ -42,5 +42,6 @@ export function createRoyalKitchenOrders({saved=null,getClock=()=>({day:0}),save
   return change(id,'eating','consumed',{eatingSeconds:elapsed,receipt:{source:'china-royal-kitchen',id:id+'-consumed',number:row.number,actorId,orderId:id,mealId:row.mealId,dishId:'royal-steamed-meal',supplyReceipt:row.supplyReceipt,completed:true}});
  }
  function reassign(receiptId,workerId,nextReceipt=null,workDay=getClock().day){return transaction(s=>{for(const o of s.orders){if(!active(o)||o.workReceiptId!==receiptId)continue;if(o.stage==='carrying')return false;Object.assign(o,{workerId,workReceiptId:nextReceipt,workDay});}});}
- return {snapshot,loadError:()=>loadError,available,request,prepare,cancel,consume,reassign,change,lookup:id=>{const o=lookup(id);return o?copy(o):null;},forActor:id=>{const o=forActor(id);return o?copy(o):null;},active:()=>state.orders.filter(active).map(copy),receipts:()=>state.orders.filter(o=>o.stage==='consumed').map(o=>copy(o.receipt))};
+ function claim(receiptId,day){return transaction(s=>{for(const o of s.orders)if(o.stage==='ordered'&&o.workerId==='cn-cooking')Object.assign(o,{workerId:'player',workReceiptId:receiptId,workDay:day});});}
+ return {snapshot,claim,loadError:()=>loadError,available,request,prepare,cancel,consume,reassign,change,lookup:id=>{const o=lookup(id);return o?copy(o):null;},forActor:id=>{const o=forActor(id);return o?copy(o):null;},active:()=>state.orders.filter(active).map(copy),receipts:()=>state.orders.filter(o=>o.stage==='consumed').map(o=>copy(o.receipt))};
 }

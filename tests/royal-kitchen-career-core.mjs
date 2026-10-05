@@ -55,6 +55,15 @@ const later={...royal,number:3,orderId:'cn-royal-meal-3',mealId:'cn-royal-meal-3
 clock.hour=18;clock.seconds=12*60/GAME_MINUTES_PER_SECOND;
 assert(careers.laborEvent('completed',{roleId:ROYAL.id,receiptId:royal.workReceiptId,coveredSeconds:clock.seconds,completedTasks:1}).ok);assert(careers.laborEvent('inspected',{roleId:ROYAL.id,receiptId:royal.workReceiptId}).ok);assert.equal(careers.state().lastDuty.wage,32);assert(careers.settle().ok);assert.equal(bank.size,1);assert.equal([...bank.values()][0].amount,32);
 careers=make(saved);assert.equal(careers.state().loadError,null);assert(careers.recordRoyalKitchenService(royal).replayed);assert.equal(bank.size,1);assert(careers.resign().ok);assert.equal(careers.royalKitchenQualification().qualifiedDays,3);
+// The world can durably consume the original meal just before midnight, then
+// observeDay marks its still-open shift missed before the receipt bridge runs.
+clock.day=4;clock.hour=23.99;clock.seconds=18*60/GAME_MINUTES_PER_SECOND-1;careers=make(before);
+clock.day=5;clock.hour=0;clock.seconds+=1;assert(careers.observeDay().ok);assert.equal(careers.state().lastDuty.stage,'missed');
+const missed=careers.state(),bankBeforeLate=bank.size;
+assert.equal(missed.lastEvaluation.wage,0);assert.equal(careers.recordRoyalKitchenService({...royal,completed:false}).code,'invalid-work-receipt');assert.equal(careers.recordRoyalKitchenService({...royal,workReceiptId:'cn-royal-kitchen-labor-2'}).code,'wrong-duty-source');
+assert.equal(careers.recordRoyalKitchenService(royal).xpGained,10,'durable consumed proof survives the day-rollover race');
+assert.equal(careers.state().performance,missed.performance+1);assert.equal(careers.state().lastDuty.stage,'missed');assert.equal(careers.state().lastDuty.wage,null);assert.deepEqual(careers.state().lastEvaluation,missed.lastEvaluation);assert.equal(careers.settle().code,'work-incomplete');assert.equal(bank.size,bankBeforeLate);
+careers=make(saved);assert.equal(careers.state().loadError,null);assert(careers.recordRoyalKitchenService(royal).replayed);assert.equal(careers.state().skillXP.cooking,10);assert.equal(careers.state().lastDuty.customerReviews.length,1);assert.equal(careers.state().lastEvaluation.wage,0);assert.equal(bank.size,bankBeforeLate);
 // Exercise the actual tavern adapter's outbox recovery with a rejected career
 // write: it cannot retire the job before its original-order proof is durable.
 clock.day=1;clock.hour=6;clock.seconds=0;careers=make(fresh);

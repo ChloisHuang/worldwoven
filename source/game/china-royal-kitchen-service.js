@@ -47,9 +47,9 @@ export function createChinaRoyalKitchenService({npcs,lot,doors,planPath,moveActo
  function meetingReady(){return near(jia,P.host,.12)&&!orders.active().some(o=>o.workerId==='cn-cooking'&&['prepared','cooked','carrying'].includes(o.stage));}
  function claimDuty(receiptId){
   if(playerOwns())return duty.receiptId===receiptId;const job=activeJob();if(job?.receiptId!==receiptId||!meetingReady())return false;
-  const before=duty;duty={receiptId,status:'active'};if(!persist()){duty=before;return false;}
-  // Unstarted slips can pass at the real handover; a cooked/held dish cannot.
-  for(const o of orders.active())if(o.stage==='ordered'&&o.workerId==='cn-cooking')orders.change(o.id,'ordered','ordered',{workerId:'player',workReceiptId:receiptId,workDay:job.day});
+  // Persist the producer lease and all unstarted original slips together.
+  // A failed save leaves Jia responsible and cannot split the unique role.
+  const before=duty;duty={receiptId,status:'active'};if(!orders.claim(receiptId,job.day)){duty=before;return false;}
   jia.route=[];travelState.delete(jia);record('jia-handed-over');persist();return true;
  }
  function canEndDuty(receiptId){return !orders.active().some(o=>o.workReceiptId===receiptId);}

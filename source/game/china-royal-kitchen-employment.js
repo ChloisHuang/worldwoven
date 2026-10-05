@@ -42,23 +42,23 @@ export function createChinaRoyalKitchenEmployment({kitchen,careers,getPlayer,get
   if(kind==='claim'&&j?.stage!=='ready'||kind==='task'&&!work||['wait','cancel','end-shift'].includes(kind)&&j?.stage!=='working')return null;
   const action=kind==='task'?work.action:({'formal-view':'查看御膳厨役技术岗','formal-apply':'提交御膳厨役申请','formal-review':'请Jia本人审核','formal-resign':'办理御膳厨役离职',accept:'报到 · 与Jia当面接班',claim:'Jia验收 · 工资入银行',wait:kitchen.workLabel(),'end-shift':'当面交班 · 按工时结薪',cancel:'中断本班 · 注销未用原膳'})[kind];
   return action?{id:'cn-royal-kitchen-job-'+kind,provider,roleId:ROLE.id,kind,name:'御膳备餐间 · 技术岗',npcName:'Jia',action,position:(kind==='task'?work.position:REG).slice(),executionRadius:kind==='task'?work.executionRadius:.35,interactionRadius:1.8,priority:47,
-   ...(kind==='formal-view'?{registration:{scope:'role',roleId:ROLE.id}}:{}),...(kind==='task'?{work:copy(work),playerWorkTarget:work.target}:{}),intentKey:[careers.state().revision,j?.receiptId||'-',j?.stage||'-',kind,kind==='task'?work.key:'-'].join(':')}:null;
+   ...(kind==='formal-view'?{registration:{scope:'role',roleId:ROLE.id}}:{}),...(kind==='task'?{work:copy(work),playerWorkTarget:work.target}:{}),intentKey:[['task','wait','end-shift','cancel'].includes(kind)?'-':careers.state().revision,j?.receiptId||'-',j?.stage||'-',kind,kind==='task'?work.key:'-'].join(':')}:null;
  }
  const resolveIntent=old=>{const next=intent(old?.kind);return next&&next.provider===old.provider&&next.id===old.id&&next.intentKey===old.intentKey?next:null;};
  function executeIntent(old){const next=resolveIntent(old);if(!next||getMounted()||!near(getPlayer()?.root.position,next.position,next.executionRadius)||!canSee(next))return false;
   if(next.kind==='formal-view'){formal.open();return true;}
   if(next.kind==='task')return kitchen.executeWork(next.work,current.job.receiptId,getPlayer());
   if(next.kind==='wait'){const s=kitchen.supplyState();notify(`${next.action} · 开局储备余${s.remaining}/120份，已损耗${s.wasted}份；工作不授用膳资格`);return true;}
-  if(next.kind==='cancel'){if(!formal.cancel(current.job))return false;if(!kitchen.releaseDuty(current.job.receiptId,{cancel:true}))return false;if(!save({...current,job:null}))return false;attendance=0;return true;}
-  if(!meet()){waiting=next;kitchen.requestMeeting(true);notify('Jia收好原膳后回来当面办理，请在案旁稍候');return true;}
+  if(next.kind==='cancel'){if(!flush())return false;if(!formal.cancel(current.job))return false;if(!kitchen.releaseDuty(current.job.receiptId,{cancel:true}))return false;if(!save({...current,job:null}))return false;attendance=0;return true;}
+  if(!meet()||next.kind==='end-shift'&&!kitchen.canEndDuty(current.job.receiptId)){waiting=next;kitchen.requestMeeting(true);notify('等原膳用毕、Jia回来当面交班；如尚有备制，请先完成手上原单');return true;}
   waiting=null;return next.kind==='formal-apply'?formal.apply():next.kind==='formal-review'?formal.review():next.kind==='formal-resign'?formal.resign():next.kind==='accept'?accept():next.kind==='claim'?claim():next.kind==='end-shift'?endShift():false;
  }
  const inWorkplace=()=>{const p=getPlayer()?.root.position;return p&&p.x>=16&&p.x<=26&&p.z>=-12&&p.z<=2&&p.y>=-.05&&p.y<=.55;};
- function update(dt=0){if(disposed||lastError)return;kitchen.requestMeeting(!!waiting||atRegistration()&&current.job?.stage!=='working');
-  if(waiting){if(!atRegistration()||!resolveIntent(waiting))waiting=null;else if(meet()){const next=waiting;waiting=null;executeIntent(next);}}
+ function update(dt=0){if(disposed||lastError)return;kitchen.requestMeeting(!!waiting||atRegistration()&&(current.job?.stage!=='working'||!kitchen.dutyActive(current.job.receiptId)));
+  if(waiting){if(!atRegistration()||!resolveIntent(waiting))waiting=null;else if(meet()&&(waiting.kind!=='end-shift'||kitchen.canEndDuty(current.job.receiptId))){const next=waiting;waiting=null;executeIntent(next);}}
   const j=current.job;if(j?.stage!=='working')return;const d=careers.state().lastDuty;
   if(d?.workReceiptId===j.receiptId&&['inspection','ready','paid'].includes(d.stage)){kitchen.releaseDuty(j.receiptId);save({...current,job:{...j,stage:'ready'}});return;}
-  if(!formal.canWork(j)){if(kitchen.releaseDuty(j.receiptId,{cancel:true})&&save({...current,job:null}))attendance=0;return;}
+  if(!formal.canWork(j)){if(!flush())return;if(kitchen.releaseDuty(j.receiptId,{cancel:true})&&save({...current,job:null}))attendance=0;return;}
   kitchen.claimDuty(j.receiptId);
   if(getClock().hour<18&&inWorkplace()&&!getMounted()&&kitchen.dutyActive(j.receiptId))attendance+=Math.min(.1,Math.max(0,dt));
   if(attendance>=1||kitchen.workReceipts(j.receiptId).some(r=>!j.completedOrderIds.includes(r.orderId)))flush();

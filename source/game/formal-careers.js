@@ -663,7 +663,9 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if(prior)return sameKitchenReceipt(prior,receipt)?{ok:true,unchanged:true,replayed:true,xpGained:0}:failure('work-receipt-conflict');
     if(receipts.length>=120)return failure('invalid-work-receipt');
     const duty=current.lastDuty;
-    if(duty?.roleId!==ROYAL_KITCHEN_ROLE.id||duty.shiftKind!=='continuous'||duty.workReceiptId!==receipt.workReceiptId||duty.day!==receipt.day||!['working','inspection','ready','paid'].includes(duty.stage))return failure('wrong-duty-source');
+    // A durable original meal may arrive after day rollover marked its shift
+    // missed. Record service only; never reopen that shift or its unpaid wage.
+    if(duty?.roleId!==ROYAL_KITCHEN_ROLE.id||duty.shiftKind!=='continuous'||duty.workReceiptId!==receipt.workReceiptId||duty.day!==receipt.day||!['working','inspection','ready','paid','missed'].includes(duty.stage))return failure('wrong-duty-source');
     const clock=now();if(!clock)return failure('invalid-clock');
     const review={id:receipt.orderId+'-completed',customerId:receipt.actorId,customerName:ROYAL_KITCHEN_CUSTOMERS[receipt.actorId],tableId:receipt.actorId,tableName:'原来客用膳处',dishId:'royal-meal',dishName:'御膳原单',reasonCode:'royal-kitchen-completed',correctedReviewId:null,positive:true,score:1,reason:'同号御膳已交原来客用毕，原单服务完成'};
     const nextDuty={...duty,customerReviews:[...duty.customerReviews,review]};
