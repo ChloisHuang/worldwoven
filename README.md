@@ -11,8 +11,8 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.75-public, 2026-10-05
-Verified published Sites source commit: 7517d45cdddee31a04efd444386b052ca95e0e75
+Published release: R16.76-public, 2026-10-05
+Verified published Sites source commit: 491a4cb54a81c4ccabfaf124b08e1476600768b2
 
 ## Working rules
 
@@ -148,3 +148,5 @@ Before R16.71 publication, the salaried proprietor application was removed: beco
 R16.71 public source: `557513ef85d1e0ef49000422937dc2936593f8c7` (Sites v99, 2026-10-05T06:46:57Z).
 
 R16.75 repairs shared NPC blocked-body recovery and coherent court checkpoints, separates each role’s application queue and ended appointment history, offers actual workplace choice before travel, and follows the marked bank contour with one live allocation row. Focused logic, one natural court save/resume ceremony, and offline DOM evidence were reused; exact user-save and real iOS verification remain open.
+
+R16.76 adds one persistent player daily-needs clock, receipt-backed real food relief in China/Japan/France, two Chinese visitors fulfilling needs when free, and a private Chinese toilet. Incomplete/cancelled consumption grants no relief. Other NPCs, Egyptian food service and other countries’ toilets remain open. Japan dining/bath and performance menus now use compact selection/status cards with one fixed primary action. Focused source checks, one natural China main chain and offline UI/Mesa images passed; no real iOS claim.
