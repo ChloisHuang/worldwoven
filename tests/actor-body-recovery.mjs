@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {beginActorNavigationStep,moveActorWithCollision,followActorRoute} from '../source/game/actor-navigation.js';
 import {blocked} from '../source/game/navigation.js';
+import {createAutomaticRouting} from '../source/game/automatic-routing.js';
 
 // This reproduces the reported face-to-face doorway deadlock and uses the real
 // main mover for both route-driven NPCs and continuous manual player input.
@@ -22,6 +23,18 @@ function fixture(npcs,{player=null,walls=[],doors=router,navigation=options}={})
  return {move:context.moveActor,route:n=>followActorRoute(n,dt,{doors,moveActor:context.moveActor,npcs,playerPosition:player?.root.position,speedScale:1}),walls,navigation};
 }
 const tick=()=>beginActorNavigationStep(dt);
+for(const goal of [0,.4]){
+ // A shared passage waypoint can be occupied by another actor taking his
+ // next turn. One clear frame used to erase waiting before the same turnout
+ // moved the walker back, leaving ordinary NPCs oscillating here forever.
+ const n=actor('walker',0,-.55),body=actor('blocker'),doors=createAutomaticRouting({doors:[],staticColliders:[],planningColliders:[],getSweepBoxes:()=>[],requestOpen:()=>{},getVersion:()=>0}),f=fixture([n,body],{doors});
+ n.route=doors.planPath(n.root.position,{x:0,y:0,z:goal},options,.25);
+ let first=Infinity;
+ for(let i=1;i<=900;i++){tick();const before={...n.root.position},result=f.route(n);if(result.bodyBypassed)first=Math.min(first,i*dt);assert(Math.hypot(n.root.position.x-before.x,n.root.position.z-before.z)<=dt+1e-6,'recovery stays continuous');}
+ assert(first>=5&&first<8,`brief clear trials cannot restart the same body's five-second wait: ${first}`);
+ assert.equal(n.route.length,0,'occupied waypoint is reached using the retained real route');
+ doors.dispose();
+}
 {
  const a=actor('a',0,-.251),b=actor('b',0,.251),f=fixture([a,b],{walls:corridor});a.route=[{x:0,y:0,z:3}];b.route=[{x:0,y:0,z:-3}];
  let first=Infinity,escaped=0;
@@ -37,6 +50,14 @@ const tick=()=>beginActorNavigationStep(dt);
 function blockedManual(radius=.34,{walls=[],doors=router,bodyY=0,speed=1}={}){
  const n=actor('mover',0,-radius-.251),body=actor('blocker',0,0,bodyY),f=fixture([body],{player:n,walls,doors});
  return {...f,n,body,step:()=>f.move(n,0,speed*dt,radius)};
+}
+for(const clear of ['open','wall']){
+ const f=blockedManual();for(let i=0;i<147;i++){tick();f.step();}
+ if(clear==='open')f.body.root.position.x=4;
+ else f.walls.push({minX:-5,maxX:5,minZ:-.22,maxZ:-.12,minY:0,maxY:3});
+ for(let i=0;i<9;i++){tick();assert(!f.step().bodyBypassed);}
+ f.walls.length=0;f.body.root.position.x=0;f.body.root.position.z=f.n.root.position.z+.591;
+ for(let i=0;i<10;i++){tick();assert(!f.step().bodyBypassed,`${clear} clears the previous encounter rather than banking escape time`);}
 }
 {
  // The original diagonal misses the body, but the real wall slide hits it.

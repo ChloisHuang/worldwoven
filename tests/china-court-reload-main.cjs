@@ -1,10 +1,12 @@
 // A plausible old two-official save with an unfinished summons. No saved
 // positions, relocated actors, forced court phase or pose overrides are used.
+// Once natural gathering starts, reload its actual physical world checkpoint.
 const fs=require('node:fs'),vm=require('node:vm');
 let harness=fs.readFileSync('tests/fixtures/hotfix-input-harness.cjs','utf8');
 const extra=`
 export function reloadCourtReview(){return {player,npcs,chinaAudience,chinaPalace};}
-export function reloadCourtStep(dt){elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);}
+export function reloadCourtStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);}
+export {save,enterRegion};
 `;
 harness=harness.replace("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),", "new vm.SourceTextModule(fs.readFileSync(file,'utf8')+(file.endsWith('/game/main.js')?"+JSON.stringify(extra)+":''),");
 harness=harness.replace('vm.createContext({console,','vm.createContext({URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,console,');
@@ -26,14 +28,14 @@ const body=String.raw`
 const out=process.env.OUT_DIR||'qa/china-court-reload-main';fs.mkdirSync(out,{recursive:true});
 const report={status:'RUNNING',fixture:'Legacy day4 unfinished summon; two official decisions, old palace roster, no simulationClock or actor positions',checks:[],phases:[]};
 const record=text=>{console.log(text);report.checks.push(text);fs.writeFileSync(out+'/result.json',JSON.stringify(report,null,2));};
-all.find(e=>e.dataset.region==='china').onclick();ids.travel.onclick();const r=main.namespace.reloadCourtReview();
-const officials=r.npcs.filter(n=>n.station.courtRole),emperor=r.npcs.find(n=>n.station.id==='cn-emperor');
+all.find(e=>e.dataset.region==='china').onclick();ids.travel.onclick();let r=main.namespace.reloadCourtReview();
+let officials=r.npcs.filter(n=>n.station.courtRole),emperor=r.npcs.find(n=>n.station.id==='cn-emperor');
 assert.equal(officials.length,6);assert.equal(state().simulationClock.day,4);assert.equal(state().simulationClock.hour,10);
 assert(officials.every(n=>n.root.position.distanceTo(n.home)<.001));assert(emperor.root.position.distanceTo(emperor.home)<.001);
 const before=JSON.parse(storage['worlds-days-v1']),oldPeople=before.chinaAudience.life.decisions.people;
 assert.equal(Object.keys(oldPeople).length,6);assert.equal(before.chinaAudience.lastCompletedDay,3);
 record('All six fixed official identities initialize from the two-person legacy save; emperor and officials start at their authored homes');
-let phase='',frames=0,reportFrames=0,standingPair=false;
+let phase='',frames=0,reportFrames=0,standingPair=false,reloaded=false;
 for(;frames<4900;frames++){
  const positions=officials.map(n=>n.root.position.clone()),beforeCourt=r.chinaAudience.state();main.namespace.reloadCourtStep(1/30);
  const s=r.chinaAudience.state(),clock=state().simulationClock;
@@ -50,9 +52,17 @@ for(;frames<4900;frames++){
   reportFrames++;assert(clock.hour>=11.5);assert.equal(arrived,6);
   assert(officials.every(n=>n.root.userData.courtPosture?.kneeling===1),'each real rig stays kneeling after the complete updateNPCs controller chain');
  }
+ if(!reloaded&&s.phase==='assembling'&&clock.hour>10.55){
+  main.namespace.save();const checkpoint=JSON.parse(storage['worlds-days-v1']).worldContinuity.regions.china;
+  assert.equal(checkpoint.controllers.chinaAudience.schedule.outcome,'called');assert.equal(checkpoint.controllers.chinaAudience.runtime.phase,'assembling');
+  main.namespace.enterRegion('china');r=main.namespace.reloadCourtReview();officials=r.npcs.filter(n=>n.station.courtRole);emperor=r.npcs.find(n=>n.station.id==='cn-emperor');
+  for(const n of officials){assert.deepEqual(n.root.position.toArray(),checkpoint.actors[n.station.id].position,'real official position survives gathering reload');assert.equal(n.route.length,0,'restored controller discards old routes before replanning');assert(r.chinaAudience.socialStatus(n).busy,'gathering remains busy after reload');}
+  assert.equal(state().simulationClock.seconds,clock.seconds,'reentry adds no offline or simulated time');assert.equal(r.chinaAudience.state().phase,'assembling');assert.equal(r.chinaAudience.state().schedule.courtStart,11.5);reloaded=true;
+  record('Actual assembling checkpoint restores exact official positions, clears stale routes, keeps duty busy and retains the same fixed-start summons');
+ }
  if(s.schedule.outcome==='completed')break;
 }
-assert(frames<4900,'fixed-start ceremony completes naturally');assert(reportFrames>20,'kneeling remains installed across frames');
+assert(reloaded,'physical gathering save/reentry was exercised');assert(frames<4900,'fixed-start ceremony completes naturally');assert(reportFrames>20,'kneeling remains installed across frames');
 const final=r.chinaAudience.state();assert.equal(final.schedule.completionId,'cn-morning-audience:4');assert.equal(final.schedule.lastCompletedDay,4);assert.equal(final.failures.length,0);
 report.frames=frames;report.reportFrames=reportFrames;report.standingPairBeforeStart=standingPair;report.final={schedule:final.schedule,actors:final.actors,clock:state().simulationClock};
 record('Interrupted legacy summons resumes real travel; all six officials assemble, kneel at fixed11:30, and complete the day4 ceremony without route failure or pose overwrite');
