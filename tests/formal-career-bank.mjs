@@ -1,3 +1,4 @@
+import {approvePending} from './fixtures/career-application.mjs';
 // Real career + currency-ledger integration. Override only while the bank
 // implementation lives in a parallel worktree; merged checkouts need no env.
 import assert from 'node:assert/strict';
@@ -36,6 +37,7 @@ function load(day = 1, hour = 8) {
   };
   return {bank, careers, clock, failures, ready};
 }
+const qualification=createFormalCareers({saveState:()=>{},getClock:()=>({day:0,hour:8,seconds:0})}).state();qualification.skills.ritual=2;qualification.skills.writing=2;durable.careers=qualification;
 const first = load();
 for (const source of ['cn-rest', 'cn-calligraphy']) {
   for (let i = 0; i < 2; i++) {
@@ -43,7 +45,7 @@ for (const source of ['cn-rest', 'cn-calligraphy']) {
     assert.equal(first.careers.completeLearning(issued.ticket, {seconds: 8}).gained, 1);
   }
 }
-assert(first.careers.apply(COURT_CLERK_ROLE.id, {ageYears: 22}).ok);
+assert(first.careers.apply(COURT_CLERK_ROLE.id, {ageYears: 22}).ok);approvePending(first.careers);
 first.ready(10);
 assert.equal(first.careers.state().lastDuty.wage, 20);
 assert.equal(events.length, 0, 'study, hiring and duty completion do not emit money events');

@@ -1,3 +1,4 @@
+import {skillXPReceipt} from './skill-progress.js';
 import {GARDEN_ASSISTANT_ROLE} from './formal-careers.js';
 import {createFormalLaborContract} from './formal-labor-contract.js';
 import {GARDEN_HELPER_ROLE} from './france-gardener-employment.js';
@@ -90,18 +91,19 @@ export function createFranceGardenerLabor({gardener,employment,careers,openRegis
  function intent(kind){
   const j=current.job,employed=hired(),registration=employment?.state();
   kind||=j?j.stage==='ready'?'claim':held()?j.cancelled||j.completedBeds===2?'return':'water':'take':formal.hired()?'formal-view':'view';
-  if(disposed||!['view','apply','resign','accept','claim','take','water','return','formal-view','formal-apply','formal-resign'].includes(kind))return null;
+  if(disposed||!['view','apply','resign','accept','claim','take','water','return','formal-view','formal-apply','formal-review','formal-resign'].includes(kind))return null;
   if(!['view','formal-view'].includes(kind)&&!permitted())return null;
   if(['apply','resign','accept'].includes(kind)&&registration?.loadError)return null;
   if(kind==='apply'&&(employed||j)||kind==='resign'&&(!employed||j||formal.hired())||kind==='accept'&&(!employed||j)||
    kind==='claim'&&j?.stage!=='ready'||['take','water','return'].includes(kind)&&(!employed||j?.stage!=='working')||
    kind==='take'&&held()||kind==='water'&&(!held()||j.cancelled||j.completedBeds===2)||kind==='return'&&!held())return null;
   if(kind==='accept'&&formal.hired()&&!formal.beginAvailability().ok)return null;
+  if(kind==='formal-review'&&(j||formal.hired()||careers?.applicationResult(GARDEN_ASSISTANT_ROLE.id)?.status!=='pending'))return null;
   if(kind==='formal-apply'&&(j||formal.hired()||!careers)||kind==='formal-resign'&&(j||!formal.hired()))return null;
   if(['take','water'].includes(kind)&&!formal.canWork(j))return null;
   const point=kind==='water'?target():['take','return'].includes(kind)?RACK:REGISTRY;
   return {...copy(point),id:`fr-garden-labor-${kind}`,provider:'france-gardener-labor',kind,npcName:'埃米尔',...(kind==='formal-view'?{registration:{scope:'role',roleId:GARDEN_ASSISTANT_ROLE.id}}:{}),
-   action:{'formal-view':formal.hired()?'查看岗位状态':'查看正式职位与申请条件','formal-apply':'申请常任园艺助理','formal-resign':'办理常任园艺离职',view:'查看临工与长期职位',apply:'申请园艺帮工',resign:'办理园艺离职',accept:formal.hired()?'开始今日园艺班次':'接下浇花活',claim:formal.pinned(j)?'提交当班验收 · 工资存法国券账户':'验收后工资存银行 · 6 铜文',take:'领取浇水壶',water:'亲手浇花 · 5 秒',return:'归还浇水壶'}[kind],
+   action:{'formal-view':formal.hired()?'查看岗位状态':'查看正式职位与申请条件','formal-apply':'提交园艺助理申请','formal-review':'当面确认职责并接受审核','formal-resign':'办理常任园艺离职',view:'查看临工与长期职位',apply:'申请园艺帮工',resign:'办理园艺离职',accept:formal.hired()?'开始今日园艺班次':'接下浇花活',claim:formal.pinned(j)?'提交当班验收 · 工资存法国券账户':'验收后工资存银行 · 6 铜文',take:'领取浇水壶',water:'亲手浇花 · 5 秒',return:'归还浇水壶'}[kind],
    intentKey:[registration?.revision||0,formal.state()?.revision||0,j?.id||'-',j?.stage||'-',j?.completedBeds||0,j?.cancelled||false,held(),kind].join(':'),
    interactionRadius:2.4,executionRadius:.16,priority:kind==='view'?1:45};
  }
@@ -110,7 +112,7 @@ export function createFranceGardenerLabor({gardener,employment,careers,openRegis
   const next=resolveIntent(selected);if(!next||!at(next.position)||!canSee(next))return false;
   if(next.kind==='formal-view'){formal.open(next.registration);return true;}
   if(next.kind==='view'){if(formal.hired())formal.open();else ui?.open();return true;}
-  if(['apply','resign','accept','claim','formal-apply','formal-resign'].includes(next.kind)){
+  if(['apply','resign','accept','claim','formal-apply','formal-review','formal-resign'].includes(next.kind)){
    if(meetingIntent)return false;meetingIntent=next;gardener.requestMeeting();
    notify('埃米尔：在登记簿旁稍候，我放好工具就来。');return true;
   }
@@ -129,7 +131,7 @@ export function createFranceGardenerLabor({gardener,employment,careers,openRegis
    if(!resolveIntent(selected)||!at(P.registration)||!canSee(REGISTRY)){meetingIntent=null;gardener.releaseMeeting();}
    else if(!getPlayer()?.walking&&gardener.requestMeeting()&&meetHost()){
     meetingIntent=null;
-    if(selected.kind==='formal-apply')formal.apply();else if(selected.kind==='formal-resign')formal.resign();else if(selected.kind==='apply'||selected.kind==='resign')employment[selected.kind]();else if(selected.kind==='accept')accept();else claim();
+    if(selected.kind==='formal-apply')formal.apply();else if(selected.kind==='formal-review')formal.review();else if(selected.kind==='formal-resign')formal.resign();else if(selected.kind==='apply'||selected.kind==='resign')employment[selected.kind]();else if(selected.kind==='accept')accept();else claim();
     gardener.releaseMeeting();
    }
   }
@@ -151,7 +153,7 @@ export function createFranceGardenerLabor({gardener,employment,careers,openRegis
       // Save a completed return before releasing the only can. On failure the
       // player keeps it and can retry; a ready receipt precedes bank credit.
       if(!j.cancelled&&j.completedBeds===2&&!formal.complete(j))return;
-      if(persist(next)){if(j.completedBeds===2&&!formal.pinned(j))onCompleted(copy(next.job));gardener.returnCan(id);notify(j.cancelled?'水壶已归位，这份活已取消':j.completedBeds===2?formal.pinned(j)?'水壶已归位，请到登记簿旁验收当班':'水壶已归位，请到登记簿旁验收，6 铜文工资自动存银行':'水壶已归位，已完成的花畦保留；可再领取继续');}
+      if(persist(next)){const learned=j.completedBeds===2&&!j.cancelled&&!formal.pinned(j)?onCompleted(copy(next.job)):null;gardener.returnCan(id);notify((j.cancelled?'水壶已归位，这份活已取消':j.completedBeds===2?formal.pinned(j)?'水壶已归位，请到登记簿旁验收当班':'水壶已归位，请到登记簿旁验收，6 铜文工资自动存银行':'水壶已归位，已完成的花畦保留；可再领取继续')+skillXPReceipt(learned,'园艺'));}
      }
     }
    }
@@ -211,7 +213,7 @@ function createUI({doc,service,getPlayer,canSee,onIntent,onOpen}){
   if(s.formalJob||s.formalHired&&!s.job)dialog.append(make('h3','正式班次'));
   else{
    dialog.append(make('h3','临工 · 按次接活'),make('p',s.employment?.loadError?'临工登记：记录暂时无法读取':s.employment?.roleId===GARDEN_HELPER_ROLE?'临工登记：可按次接活':'临工登记：尚未登记'));
-   dialog.append(make('p','职责：亲手领取架上的浇水壶，在两畦玫瑰各站稳浇水 5 秒，再归还原壶。整份工钱 6 铜文，验收后自动存银行，到中国钱庄取款后才进入钱包；每份完整临工积累1点园艺。'),make('p','临工门槛：无需资历、技能或报名费，登记后可按次接活。结清工钱后可取消登记、重新登记。'));
+   dialog.append(make('p','职责：亲手领取架上的浇水壶，在两畦玫瑰各站稳浇水 5 秒，再归还原壶。整份工钱 6 铜文，验收后自动存银行，到中国钱庄取款后才进入钱包；每份完整临工获得当前一级门槛的园艺 XP（每天最多4份有效成长）。'),make('p','临工门槛：无需资历、技能或报名费，登记后可按次接活。结清工钱后可取消登记、重新登记。'));
   }
   if(s.formalHired)dialog.append(make('p','每天最多一班，正式工作不再另发临工铜文。法国券账户提款目前请去中国钱庄办理。'));
   if(s.loadError||s.employment?.loadError)dialog.append(make('p','记录暂时无法读取，请保留存档后再试。'));

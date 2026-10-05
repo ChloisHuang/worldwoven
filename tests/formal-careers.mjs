@@ -1,3 +1,4 @@
+import {approvePending} from './fixtures/career-application.mjs';
 // These cases protect durable eligibility, physical-completion boundaries,
 // finite vacancies, evaluation dedupe and exactly-once copper across reloads.
 import assert from 'node:assert/strict';
@@ -21,19 +22,22 @@ function setup(saved = {}, options = {}) {
       credits: [...store.bank.credits, clone(deposit)]};
     return {ok: true, replayed: false, receiptId: deposit.receiptId};
   };
-  const careers = createFormalCareers({worldSeed:785,saved: store.careers, creditWageToBank, getClock: () => clock,
+  const createCareer = state => createFormalCareers({worldSeed:785,saved: state, creditWageToBank, getClock: () => clock,
     ...options, saveState: state => {
       if (flags.throw) throw Error('quota');
       if (flags.async) return Promise.reject(Error('unsupported'));
       if (flags.reject) return false;
       store.careers = state;
     }});
+  const careers = {...createCareer(store.careers)};
   const study = (source = 'cn-rest', seconds = 8) => {
     const issued = careers.learningTicket(source); assert(issued.ok);
     return careers.completeLearning(issued.ticket, {seconds});
   };
-  const qualify = () => { for (const source of ['cn-rest', 'cn-calligraphy']) for (let i = 0; i < 2; i++) assert.equal(study(source).gained, 1); };
-  const hire = () => { qualify(); assert(careers.apply(ROLE, {ageYears: 18}).ok); };
+  // Salary/attendance cases start from an earned qualification; gradual lesson
+  // accumulation is covered by study-xp, without moving these duty clocks.
+  const qualify = () => {const saved=careers.state();saved.skills.ritual=2;saved.skills.writing=2;Object.assign(careers,createCareer(saved));};
+  const hire = () => { qualify(); assert(careers.apply(ROLE, {ageYears: 18}).ok);approvePending(careers); };
   const ready = (hour = 10) => {
     clock.hour = hour; assert(careers.beginDuty().ok);
     clock.hour = 11.5; assert(careers.dutyEvent('court-start').ok);
@@ -79,7 +83,7 @@ assert.equal(capped.careers.state().skills.writing, 1);
 
 const eligible = setup(); eligible.qualify(); eligible.flags.reject = true;
 assert.equal(eligible.careers.apply(ROLE, {ageYears: 18}).code, 'save-failed'); assert(!eligible.careers.isHired());
-eligible.flags.reject = false; assert(eligible.careers.apply(ROLE, {ageYears: 18}).ok);
+eligible.flags.reject = false; assert(eligible.careers.apply(ROLE, {ageYears: 18}).ok);approvePending(eligible.careers);
 assert.equal(eligible.careers.state().tenure.sinceHour, 8);
 assert.equal(eligible.careers.apply(ROLE, {ageYears: 18}).code, 'already-applied-today');
 assert(setup(eligible.store).careers.isHired());
@@ -89,7 +93,7 @@ assert.equal(occupied.careers.state().tenure, null); assert.equal(FORMAL_CAREER_
 assert.equal(setup({}, {slots: [{...FORMAL_CAREER_SLOTS[0], roleId: 'unknown'}]}).careers.state().loadError, 'invalid-career-catalogue');
 const futureRole = {...COURT_CLERK_ROLE, id: 'fr-court-clerk', slotId: 'fr-court-clerk-1', wage: 24};
 const generic = setup({}, {roles: [futureRole], slots: [{id: futureRole.slotId, roleId: futureRole.id, holderId: null}]});
-generic.qualify(); assert(generic.careers.apply(futureRole.id, {ageYears: 18}).ok);
+generic.qualify(); assert(generic.careers.apply(futureRole.id, {ageYears: 18}).ok);approvePending(generic.careers);
 assert(generic.careers.isHired(futureRole.id)); assert(!generic.careers.isHired());
 
 const early = setup(); early.hire(); early.clock.hour = 5.99;
@@ -133,7 +137,7 @@ assert.equal(cleanupReload.careers.beginDuty().code, 'wage-ready');
 const recoveredPay = cleanupReload.careers.settle(); assert(recoveredPay.ok && recoveredPay.replayed && !recoveredPay.cleanupPending);
 assert.equal(cleanupReload.bank.state().cash, 0); assert.equal(cleanupReload.bank.state().bank, 20); assert.equal(cleanupReload.careers.state().performance, 1);
 assert.equal(cleanupReload.careers.settle().code, 'work-incomplete');
-assert(cleanupReload.careers.resign().ok); assert(cleanupReload.careers.apply(ROLE, {ageYears: 18}).ok);
+assert(cleanupReload.careers.resign().ok); assert(cleanupReload.careers.apply(ROLE, {ageYears: 18}).ok);approvePending(cleanupReload.careers);
 cleanupReload.ready(11.49); assert.equal(cleanupReload.careers.state().lastDuty.wage, 18);
 assert(cleanupReload.careers.settle().ok); assert.equal(cleanupReload.bank.state().cash, 0); assert.equal(cleanupReload.bank.state().bank, 38);
 assert.equal(cleanupReload.careers.beginDuty().code, 'already-paid-today');
@@ -204,7 +208,7 @@ for (const started of [false, true]) {
   assert(reload.careers.observeDay().unchanged);
   assert.equal(reload.careers.state().performance, 0);
   assert.equal(reload.bank.state().cash, 0);
-  assert(reload.careers.apply(ROLE, {ageYears:18}).ok);
+  assert(reload.careers.apply(ROLE, {ageYears:18}).ok);approvePending(reload.careers);
   assert(reload.careers.beginDuty().ok, 'an excused day must not block the next shift');
   assert.equal(reload.careers.state().lastEvaluation, null);
 
