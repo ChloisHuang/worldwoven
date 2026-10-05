@@ -271,8 +271,18 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     activeStudies.set(source,ticket.id);
     return {ok: true, ticket};
   }
-  // Cancellation and reload lose the live witness; a saved unfinished ticket
-  // cannot be submitted later as if the player had actually finished a lesson.
+  // Cancellation loses the live witness. Only a matching world checkpoint
+  // may resume it; loading the career ledger alone never grants completion.
+  // A world checkpoint proves observed active progress, but cannot create a
+  // ticket, change its day, or complete one that already has a receipt.
+  function resumeLearning(ticket, {seconds} = {}) {
+    if (!object(ticket) || !STUDY_SOURCES.includes(ticket.source) || !Number.isFinite(seconds) || seconds < 0) return failure('invalid-learning-ticket');
+    const clock=now(), study=current.learning[ticket.source];
+    if (!clock || study.issuedDay !== clock.day) return failure('learning-expired');
+    if (study.issued===0 || ticket.id!==`${ticket.source}:${study.issued}:${study.issuedDay}` || ticket.lessonId!==study.lessonId) return failure('invalid-learning-ticket');
+    if (study.completed>=study.issued) return failure('learning-replayed');
+    activeStudies.set(ticket.source,ticket.id);return {ok:true,ticket};
+  }
   function cancelLearning(ticket) {
     if (ticket && activeStudies.get(ticket.source) === ticket.id) activeStudies.delete(ticket.source);
   }
@@ -444,5 +454,5 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     currentRole:()=>copy(roleMap.get(current.tenure?.roleId)||null),
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&slot.holderId===null&&slot.id!==current.tenure?.slotId).length})),
     eligibility, beginDutyAvailability, applicationResult:()=>copy(lastApplication),
-    laborEvent, apply, resign, learningTicket, cancelLearning, completeLearning, completedLowerWork, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
+    laborEvent, apply, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
 }
