@@ -1,3 +1,4 @@
+import {approvePending} from './fixtures/career-application.mjs';
 // Real regressions: user-selected books previously had no choices and all
 // reading awarded ritual. Protect intent/skill binding and old salary saves.
 import assert from 'node:assert/strict';
@@ -41,7 +42,7 @@ assert(studyJobLinks(f.careers,'art').includes('艺术家职位尚未开放'));a
 // without losing tenure, bank receipt identity, reviews, skill or work serials.
 const legacySeed=f.careers.state();legacySeed.version=4;delete legacySeed.skillXP;legacySeed.skills={ritual:2,writing:2,gardening:0,art:5,cooking:0};legacySeed.daily={day:null,ritual:0,writing:0,gardening:0,art:0,cooking:0};for(const row of Object.values(legacySeed.learning))if(row.issuedDay!==null)row.issuedDay=1;const old=fixture(legacySeed);
 old.careers.completedLowerWork({source:'fr-garden-labor',receiptId:'fr-garden-labor-5'});
-assert(old.careers.apply(undefined,{ageYears:22}).ok);assert(old.careers.beginDuty().ok);
+assert(old.careers.apply(undefined,{ageYears:22}).ok);approvePending(old.careers);assert(old.careers.beginDuty().ok);
 old.clock.hour=11.5;assert(old.careers.dutyEvent('court-start').ok);assert(old.careers.dutyEvent('court-completed').ok);assert(old.careers.dutyEvent('archive-completed').ok);assert(old.careers.settle().ok);
 const v2=clone(old.store.saved);v2.version=2;delete v2.skillXP;delete v2.skills.cooking;delete v2.daily.cooking;delete v2.skills.art;delete v2.daily.art;delete v2.learning['france-salon'];delete v2.learning['france-atelier'];for(const row of Object.values(v2.learning))delete row.lessonId;
 const restored=fixture(v2).careers;assert.equal(restored.state().loadError,null);assert.equal(restored.state().version,5);

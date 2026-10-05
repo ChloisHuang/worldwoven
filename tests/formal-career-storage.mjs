@@ -1,3 +1,4 @@
+import {approvePending} from './fixtures/career-application.mjs';
 // Exercise the exact new main constructors/save callbacks in the preview
 // facade. This does not depend on the unavailable historical appearance SHA.
 import assert from 'node:assert/strict';
@@ -10,12 +11,12 @@ import {createFormalCareers} from '../source/game/formal-careers.js';
 import {createGameCurrencyLedger} from '../source/game/currency-ledger.js';
 const main=fs.readFileSync(new URL('../source/game/main.js',import.meta.url),'utf8');
 const code=['simulationClock','copperLedger','creditWageToBank','formalCareers'].map(name=>main.split('\n').find(line=>line.startsWith(`const ${name}=`))).join('\n');
-const initialize=new Function('saved','gameStorage','createSimulationClock','createGameCurrencyLedger','createFormalCareers','readWorldRegion','const worldSnapshotWriter=null,tavernProperty=null;'+code+'\nreturn {careers:formalCareers,ledger:copperLedger,clock:simulationClock};');
+const initialize=new Function('saved','gameStorage','createSimulationClock','createGameCurrencyLedger','createFormalCareers','readWorldRegion','const worldSnapshotWriter=null,tavernProperty=null,chinaAudience=null,franceGardener=null,chinaTavern=null;'+code+'\nreturn {careers:formalCareers,ledger:copperLedger,clock:simulationClock};');
 const storage=()=>{const values=new Map();return{values,fail:false,getItem:k=>values.get(k)??null,setItem(k,v){if(this.fail)throw Error('quota');values.set(k,v);}};};
 function fixture(){const normal=storage(),session=storage();normal.setItem('worlds-days-v1',JSON.stringify({appearance:{seed:785},visited:['china'],stamps:{},unrelated:'keep',copperLedger:{version:1,cash:17,bank:41,accountOpened:true,nextTransaction:1,transactions:[]}}));const before=[...normal.values];const facade=createGameStorage({preview:true,normal,session});const saved=JSON.parse(facade.getItem('worlds-days-v1'));saved.formalCareers=createFormalCareers({saveState:()=>{},getClock:()=>({day:0,hour:8,seconds:0})}).state();saved.formalCareers.skills.ritual=2;saved.formalCareers.skills.writing=2;const app=initialize(saved,facade,createSimulationClock,createGameCurrencyLedger,createFormalCareers,readWorldRegion);return{...app,saved,normal,session,before};}
 const qualify=careers=>{for(const source of ['cn-rest','cn-calligraphy'])for(let n=0;n<2;n++){const ticket=careers.learningTicket(source);assert(careers.completeLearning(ticket.ticket,{seconds:8}).ok);}};
 test('actual main career callbacks and injected bank credit remain isolated in preview',()=>{
-  const f=fixture();qualify(f.careers);assert(f.careers.apply(undefined,{ageYears:22}).ok);assert(f.careers.beginDuty().ok);
+  const f=fixture();qualify(f.careers);assert(f.careers.apply(undefined,{ageYears:22}).ok);approvePending(f.careers);assert(f.careers.beginDuty().ok);
   for(let n=0;n<520;n++)f.clock.advance(.25);f.saved.simulationClock=f.clock.snapshot();
   for(const e of ['court-start','court-completed','archive-completed'])assert(f.careers.dutyEvent(e).ok);
   assert(f.careers.settle().ok);assert.equal(f.ledger.state().cash,17);assert.equal(f.ledger.state().bank,61);assert.deepEqual([...f.normal.values],f.before);
@@ -26,7 +27,7 @@ test('actual main career callbacks and injected bank credit remain isolated in p
 });
 test('preview storage failures never fall back to a formal tenure or wage',()=>{
   const f=fixture();qualify(f.careers);f.session.fail=true;assert.equal(f.careers.apply(undefined,{ageYears:22}).code,'save-failed');assert(!f.careers.isHired());assert.deepEqual([...f.normal.values],f.before);
-  f.session.fail=false;assert(f.careers.apply(undefined,{ageYears:22}).ok);assert(f.careers.beginDuty().ok);
+  f.session.fail=false;assert(f.careers.apply(undefined,{ageYears:22}).ok);approvePending(f.careers);assert(f.careers.beginDuty().ok);
   for(let n=0;n<520;n++)f.clock.advance(.25);
   for(const e of ['court-start','court-completed','archive-completed'])assert(f.careers.dutyEvent(e).ok);
   f.session.fail=true;assert.equal(f.careers.settle().ok,false);assert.equal(f.ledger.state().cash,17);assert.equal(f.ledger.state().bank,41);assert.equal(f.careers.state().lastDuty.stage,'ready');assert.deepEqual([...f.normal.values],f.before);

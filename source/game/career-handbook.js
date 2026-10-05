@@ -55,7 +55,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
   };
   const nearbyRegistries=()=>{
     const p=getPlayer()?.root?.position;if(!p)return [];
-    return roles().filter(role=>place(role).country===getCountry()).map(role=>({role,intent:localService(role)?.intent(registryKind(role))})).filter(({intent})=>intent?.position&&Math.abs(p.y-intent.position[1])<1&&Math.hypot(p.x-intent.position[0],p.z-intent.position[2])<=8).sort((a,b)=>Math.hypot(p.x-a.intent.position[0],p.z-a.intent.position[2])-Math.hypot(p.x-b.intent.position[0],p.z-b.intent.position[2]));
+    return roles().filter(role=>place(role).country===getCountry()).map(role=>({role,intent:localService(role)?.intent(registryKind(role))})).filter(({intent})=>intent?.position).sort((a,b)=>Math.hypot(p.x-a.intent.position[0],p.z-a.intent.position[2])-Math.hypot(p.x-b.intent.position[0],p.z-b.intent.position[2]));
   };
   const close=()=>{generation++;if(dialog.open)dialog.close();};
   const buttonFor=(title,run)=>{const b=make('button',title),token=generation;b.type='button';b.onclick=()=>{if(dialog.open&&token===generation)run();};return b;};
