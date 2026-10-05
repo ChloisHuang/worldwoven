@@ -1,4 +1,5 @@
 import {JAPAN_BATH_BLENDS,JAPAN_DINING_MENU,JAPAN_SERVICE_POINTS as P,japanReceptionReady} from './japan-service-orders.js';
+import {JAPAN_SERVICE_CURRENCY,japanServiceCash,japanServiceMoney,japanServicePayment} from './japan-service-payment.js';
 
 const live=v=>v.customerType==='player'&&!['cancelled','departed'].includes(v.stage);
 const array=p=>p?.toArray?p.toArray():p?[p.x,p.y,p.z]:null;
@@ -35,7 +36,7 @@ export function createJapanPlayerService({board,furniture,copperLedger,getPlayer
   if(!hold){paymentError='reservation-not-found';return false;}
   const r=copperLedger.refund(v.paymentId);paymentError=r.ok?null:r.code;return r.ok;
  }
- // Only this service's reserved copper is recovered. A bath visit, another
+ // Only this service's original holds are recovered. A bath visit, another
  // country's holds and a meal already paid at the first bite are untouched.
  function recoverDining(){
   paymentError=copperLedger?.loadError||null;
@@ -69,7 +70,7 @@ export function createJapanPlayerService({board,furniture,copperLedger,getPlayer
  }
  if(continuity?.version!==1){recoverDining();restorePresence();}
  const api={
-  actor,wardrobePreset,blends:JAPAN_BATH_BLENDS,menu:JAPAN_DINING_MENU,
+  actor,wardrobePreset,blends:JAPAN_BATH_BLENDS,menu:JAPAN_DINING_MENU.map(d=>({...d,currency:JAPAN_SERVICE_CURRENCY})),
   orderDining(dishId) {
    if(!canStart())return result(false,'请先交完前台班次，再作为顾客点餐');
    if(suspended||!actor())return result(false,'先回到一楼食堂');
@@ -77,18 +78,18 @@ export function createJapanPlayerService({board,furniture,copperLedger,getPlayer
    const dish=JAPAN_DINING_MENU.find(d=>d.id===dishId),mounted=getMounted();
    if(!dish)return result(false,'请选择寿司或拉面');
    if(!Object.values(JAPAN_DINING_MENU).some(d=>near(position(),P[d.counter],1.25))&&!counterSeats.some(s=>near(position(),s.position,.4)||mounted?.id===s.id&&near(position(),s.anchor,.4)))return result(false,'请先到一楼寿司或拉面柜台');
-   if(!copperLedger||copperLedger.loadError||paymentError&&!recoverDining())return result(false,'铜钱账目尚未核对，请稍后再试');
+   if(!copperLedger||copperLedger.loadError||paymentError&&!recoverDining())return result(false,'钱款账目尚未核对，请稍后再试');
    const seats=counterSeats.filter(s=>s.diningKind===dishId),occupied=new Set(furniture.facilities.state().filter(f=>f.reservations.length||f.player).map(f=>f.id));
    const seat=seats.find(s=>s.id===mounted?.id&&!occupied.has(s.id))||seats.find(s=>!occupied.has(s.id));
    if(!seat)return result(false,'吧台餐位暂满，请稍后再来');
    const paymentId=`jp-dining-${board.state().worldSeed}-${copperLedger.state().nextTransaction}`;
-   const hold=copperLedger.reserve(dish.price,paymentId);
-   if(!hold.ok)return result(false,hold.code==='insufficient-cash'?`随身铜文不足：${dish.name}需 ${dish.price} 铜文。`:'本次预留未能保存，请稍后再试');
-   const v=board.spawnDining({appearance:actor().root.userData.appearance,dishId,paymentId,position:position(),restPoint:seat.anchor,diningPoint:seat.anchor,servePoint:[seat.center[0],0,seat.center[2]+1.13],mealPoint:[seat.center[0],dishId==='sushi'?1.17:1.09,seat.center[2]-(dishId==='sushi'?.59:.78)],restSeatId:seat.id});
+   const currency=JAPAN_SERVICE_CURRENCY,hold=copperLedger.reserve(dish.price,paymentId,currency);
+   if(!hold.ok)return result(false,hold.code==='insufficient-cash'?`随身日本票券不足：${dish.name}需 ${dish.price} 券，可到本地银行兑换或提款。`:'本次预留未能保存，请稍后再试');
+   const v=board.spawnDining({appearance:actor().root.userData.appearance,dishId,paymentId,currency,price:dish.price,position:position(),restPoint:seat.anchor,diningPoint:seat.anchor,servePoint:[seat.center[0],0,seat.center[2]+1.13],mealPoint:[seat.center[0],dishId==='sushi'?1.17:1.09,seat.center[2]-(dishId==='sushi'?.59:.78)],restSeatId:seat.id});
    if(!v){const refund=copperLedger.refund(paymentId);if(!refund.ok)paymentError=refund.code;return result(false,'餐单未能建立，预留正在退回');}
    if(!furniture.facilities.request(seat.id,v.id)){refundMeal(v);board.cancel(v.id,'seat-unavailable');board.forgetFinished([v.id]);return result(false,'餐位已被使用，请重新点餐');}
    board.setPlayerDiningPresent(v.id,mounted?.id===seat.id);
-   return result(true,`${dish.name}已交给后厨，预留 ${dish.price} 铜文；请到自己的吧台凳等餐`);
+   return result(true,`${dish.name}已交给后厨，预留 ${dish.price} 券（日本票券）；请到自己的吧台凳等餐`);
   },
   register(blendId) {
    if(!canStart())return result(false,'请先交完前台班次，再登记自己的泡汤服务');
@@ -193,7 +194,7 @@ export function createJapanPlayerService({board,furniture,copperLedger,getPlayer
    v=visit();if(v?.stage!==lastStage){lastStage=v?.stage||null;if(v?.stage==='changing')notify(`已领取第 ${v.number} 号浴牌`);if(v?.stage==='meal-ready')notify('你的餐点已经送到餐位');}
    syncWardrobe();
   },
-  state:()=>{const snapshot=board.state(),v=snapshot.visits.find(live)||null;return {visit:v,activity:copy(activity),soakSeconds:soak,soakReady:soak>=10,suspended,progress:japanPlayerOrderProgress(snapshot,v),cash:copperLedger?.state().cash??0,paymentError:paymentError||copperLedger?.loadError||null,payment:v?.paymentId?copperLedger?.reservations().find(h=>h.id===v.paymentId)?.status:null};},
+  state:()=>{const snapshot=board.state(),v=snapshot.visits.find(live)||null,payment=v?.paymentId?japanServicePayment(copperLedger,v.paymentId,{currency:v.currency,amount:v.price}):null,currency=payment?.currency||JAPAN_SERVICE_CURRENCY;if(payment){v.currency=currency;v.price=payment.amount;}return {visit:v,activity:copy(activity),soakSeconds:soak,soakReady:soak>=10,suspended,progress:japanPlayerOrderProgress(snapshot,v),currency,money:japanServiceMoney(currency),cash:japanServiceCash(copperLedger,currency),paymentError:paymentError||copperLedger?.loadError||null,payment:payment?.status||null};},
   pose:()=>activity?{action:activity.action,heldProp:['changed','dried'].includes(activity.event)?'cloth':null,seatedMeal:activity.event==='ate',workTarget:activity.event==='washed'?(visit()?.side==='men'?[-10.35,4.6,-3.7]:[4.6,4.6,-4.15]):null}:null,
  };
  return api;
