@@ -1,17 +1,19 @@
 import {residencePlaque} from './china-residence-lettering.js';
 import {culturePlaque} from './china-culture-lettering.js';
-import {buildChinaConsortRooms,CONSORT_ROOM_PROGRAM} from './china-consort-rooms.js';
+import {buildChinaConsortRooms,buildReservedConsortQuarter,CONSORT_ROOM_PROGRAM} from './china-consort-rooms.js';
+import {RESERVED_CONSORT_QUARTERS} from './china-consort-quarters.js';
 
 // One inhabited royal residence. The public stair hall is a separate northern
 // wing: reaching a floor never requires passing through a sleeping/bathing room.
 export const CHINA_RESIDENCE=Object.freeze({
  id:'rear-palace',name:'静宜后宫',storeys:3,
  bounds:{minX:-26,maxX:-16,minZ:-20,maxZ:2},
- floors:[{y:.215,ceiling:3.77,rooms:['guest','residence-living','residence-suite-corridor','consort-heng','consort-ling','residence-hall-1']},{y:4.015,ceiling:7.57,rooms:['bath','washroom','residence-linen','residence-hall-2']},{y:7.815,ceiling:12.215,rooms:['bedroom','residence-dressing','residence-sitting','residence-hall-3']}],
+ floors:[{y:.215,ceiling:3.77,rooms:['guest','residence-living','residence-suite-corridor','consort-heng','consort-ling','consort-reserve-1','residence-hall-1']},{y:4.015,ceiling:7.57,rooms:['bath','washroom','residence-linen','residence-hall-2']},{y:7.815,ceiling:12.215,rooms:['bedroom','residence-dressing','residence-sitting','residence-hall-3']}],
  freedPlots:[{id:'former-bath',minX:-26,maxX:-16,minZ:-33,maxZ:-23},{id:'former-guest',minX:16,maxX:26,minZ:-33,maxZ:-23}],
  stairHall:{minX:-26,maxX:-16,minZ:-20,maxZ:-12,publicCrossPassage:{minZ:-14.1,maxZ:-12,width:2.1}},
  consortRooms:CONSORT_ROOM_PROGRAM,
- privateEntrances:['cn-guest-front','cn-guest-east','cn-bath-front','cn-bath-east','cn-bedroom-front','cn-bedroom-west','cn-bath-west','cn-consort-heng-door','cn-consort-ling-door'],
+ assignableQuarters:[RESERVED_CONSORT_QUARTERS],
+ privateEntrances:['cn-guest-front','cn-guest-east','cn-bath-front','cn-bath-east','cn-bedroom-front','cn-bedroom-west','cn-bath-west','cn-consort-heng-door','cn-consort-ling-door','cn-consort-reserve-1-door'],
 });
 export function buildChinaResidence(G,A){
  const {THREE}=G,{H,C,group,roofGroup,rooms,colliders,cameraColliders,interiorRooms,explorationTargets,buildings,levels,lightingZones,additionalFurnitureSeats,palaceWall,door,box,slab,stairs,rail,landingRail,paintedBand,window,table,shelf,stool,teaSet,flowerBranches,solid3,upperFixture}=A;
@@ -91,9 +93,11 @@ export function buildChinaResidence(G,A){
  palaceRoof(r,-21,12.44,-16,11.65,9.5,1.2,C.roof);
  // Ground floor: a self-contained guest suite and furnished reception room.
  wall('x',-12,-26,-16,.2,3.77,[privacy('cn-guest-front','后宫客卧门','x',-12,-24.85,-22.15,.215,['guest','residence-hall-1']),privacy('cn-guest-east','后宫会客厅门','x',-12,-19.75,-17.95,.215,['residence-living','residence-hall-1'])]);
- wall('z',-20.9,-12,2,.2,3.77);
- part('guest','后宫一层客卧',-26,-20.9,-12,2,.215,3.77);
+ wall('z',-20.9,-12,-1.4,.2,3.77);
+ wall('z',-20.9,-1.4,2,.2,3.77,[privacy('cn-consort-reserve-1-door','后宫南间私门','z',-20.9,-.375,.975,.215,['consort-reserve-1','residence-suite-corridor'])],.50);
+ part('guest','后宫一层客卧',-26,-20.9,-12,-1.4,.215,3.77);
  const additionalFurniture=buildChinaConsortRooms(G,{g,C,wall,privacy,part,table,teaSet,colliders,cameraColliders,additionalFurnitureSeats,explorationTargets});
+ additionalFurniture.push(buildReservedConsortQuarter(G,{g,C,wall,part,colliders,cameraColliders,explorationTargets}));
  culturePlaque(G,g,'茶叙',-18.3,3.17,-11.79,2,.6);
  // Second floor: opaque arrival doors, an internal full silk screen to the WC,
  // and a separate linen/dressing room; no wet room is a stair access route.

@@ -1,5 +1,6 @@
 import {buildChinaRoyalChair} from './china-royal-seating.js';
 import {residencePlaque} from './china-residence-lettering.js';
+import {RESERVED_CONSORT_QUARTERS as Q} from './china-consort-quarters.js';
 
 export const CONSORT_ROOM_PROGRAM=Object.freeze({
  reception:{minX:-20.9,maxX:-16,minZ:-12,maxZ:-7.8},corridor:{minX:-20.9,maxX:-19.2,minZ:-7.8,maxZ:2,clearWidth:1.29},
@@ -21,6 +22,44 @@ function privateBed(G,parent,{x,z,color,C}){
  stroke([[-.30,1.11,-1.072],[-.18,1.19,-1.072],[-.09,1.17,-1.072],[0,1.28,-1.072],[.12,1.18,-1.072],[.28,1.11,-1.072]],.014);
  for(const dx of[-.68,.68])stroke([[dx,.859,-.65],[dx,.859,.70],[dx*.92,.854,1.04]],.007);
  return bed;
+}
+
+// Compact original timber-and-silk fittings. Posts and gathered panels remain
+// inside the bed footprint; the east bedside transfer stays completely clear.
+function reserveBedCanopy(G,parent,{x,z,C}){
+ const {THREE}=G,g=new THREE.Group();g.name='Reserved chamber timber and gathered silk canopy';g.position.set(x,.2,z);parent.add(g);
+ for(const dx of[-.73,.73])for(const dz of[-1.12,1.12]){G.cyl(g,dx,1.5,dz,.037,.045,2.60,C.dark,8);G.box(g,dx,2.70,dz,.12,.12,.12,C.gold);}
+ for(const dx of[-.73,.73])G.box(g,dx,2.77,0,.08,.11,2.34,C.dark);
+ for(const dz of[-1.12,1.12]){G.box(g,0,2.77,dz,1.54,.11,.08,C.dark);G.box(g,0,2.70,dz,1.48,.035,.10,C.gold);}
+ const cloth=(side,dz)=>{const vertices=[],quad=(a,b,c,d)=>vertices.push(...a,...b,...c,...a,...c,...d),steps=8;
+  for(let i=0;i<steps;i++){const a=i/steps,b=(i+1)/steps;const p=(u,v)=>[side*(.73-(.12+.09*Math.sin(v*Math.PI))*u),2.70-v*1.66,dz+.025*Math.cos(u*Math.PI*6)];quad(p(a,0),p(b,0),p(b,1),p(a,1));}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.computeVertexNormals();G.mesh(g,geo,0x947783,0,0,0,{side:THREE.DoubleSide}).name='Gathered brocade bed curtain';G.box(g,side*.65,1.72,dz,.19,.04,.072,C.gold);
+ };
+ for(const side of[-1,1])for(const dz of[-1.12,1.12])cloth(side,dz);
+}
+
+export function buildReservedConsortQuarter(G,{g,C,wall,part,colliders,cameraColliders,explorationTargets}){
+ const q=Q,{minX,maxX,minZ,maxZ}=q.bounds,[x,,z]=q.bedCenter,y=q.floorY,roomId=q.roomId;
+ wall('x',minZ,minX,maxX,.2,q.ceiling);
+ part(roomId,q.name+' · 尚未分配',minX,maxX,minZ,maxZ,y,q.ceiling);
+ privateBed(G,g,{x,z,color:0x947783,C});reserveBedCanopy(G,g,{x,z,C});
+ const bedBox={minX:x-.775,maxX:x+.775,minY:.2,maxY:1.92,minZ:z-1.265,maxZ:z+1.2};colliders.push(bedBox);cameraColliders.push({...bedBox});
+ for(const dx of[-.73,.73])for(const dz of[-1.12,1.12])cameraColliders.push({minX:x+dx-.06,maxX:x+dx+.06,minY:.2,maxY:2.96,minZ:z+dz-.06,maxZ:z+dz+.06});
+ for(const dx of[-.73,.73])cameraColliders.push({minX:x+dx-.04,maxX:x+dx+.04,minY:2.90,maxY:3.025,minZ:z-1.17,maxZ:z+1.17});
+ for(const dz of[-1.12,1.12])cameraColliders.push({minX:x-.77,maxX:x+.77,minY:2.90,maxY:3.025,minZ:z+dz-.05,maxZ:z+dz+.05});
+ // Lacquered clothing chest, folded silk, and fitted wall trim make this a
+ // furnished chamber. None occupies the doorway or its straight bedside aisle.
+ const cx=-21.98,cz=1.30;
+ for(const dx of[-.46,.46])for(const dz of[-.23,.23])G.box(g,cx+dx,.34,cz+dz,.11,.25,.11,C.dark);
+ G.box(g,cx,.64,cz,1.20,.55,.65,C.wood);G.box(g,cx,.94,cz,1.24,.09,.69,C.dark);
+ for(const dx of[-.48,.48])G.box(g,cx+dx,.66,cz-.333,.035,.51,.026,C.gold);
+ G.box(g,cx,.73,cz-.35,.12,.16,.025,C.gold);for(const [i,c]of[0xdfcba0,0x947783].entries())G.box(g,cx-.19,1.025+i*.05,cz,.54,.045,.40,c);
+ const chest={minX:cx-.62,maxX:cx+.62,minY:.2,maxY:1.13,minZ:cz-.345,maxZ:cz+.345};colliders.push(chest);cameraColliders.push({...chest});
+ for(const yy of[.48,3.35])G.box(g,-23.45,yy,minZ+.18,4.62,yy<1?.08:.15,.045,C.dark);
+ G.box(g,-23.45,3.39,minZ+.209,4.58,.035,.035,C.gold);
+ const plaque=residencePlaque(G,g,'客居',-20.60,3.34,.3,1.05,.32);plaque.rotation.y=Math.PI/2;
+ explorationTargets.push({id:'cn-consort-reserve-1-wait',name:'后宫南间门外等候',roomId:'residence-suite-corridor',position:[...q.waitingPoint]},{id:'cn-consort-reserve-1-entry',name:'后宫南间门内',roomId,position:[...q.entryPoint]},{id:'cn-consort-reserve-1-bed',name:'后宫南间卧榻旁',roomId,position:[...q.bedsidePoint]});
+ return {id:q.bedId,privateOwnerId:null,privateRoomId:roomId,assignmentRequired:true,assignmentSource:q.assignmentSource,kind:'bed',name:'后宫南间卧榻 · 尚未分配',worldLabel:'南间卧榻 · 尚未分配',position:[...q.bedsidePoint],exitPositions:q.exitPoints.map(p=>[...p]),anchor:[x,y,z],center:[...q.bedCenter],size:[...q.bedSize],yaw:0,supportY:1.055,lieOffset:.70,lieSupport:{hip:1.055,back:1.055,head:1.12,heel:1.055},action:'躺下休息'};
 }
 
 // The existing east reception is deep enough for two proper bedchambers behind
