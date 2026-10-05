@@ -1130,7 +1130,114 @@
         ],
         "scope": "angular redistribution of the actual lid thickness band in the existing globe frame; canthi fixed; outer tarsal support only"
       },
-      "irisAngle": 0.47
+      "irisAngle": 0.47,
+      "cheekContinuity": {
+        "method": "one native-topology biharmonic displacement field; fixed feature cores and two boundary rings",
+        "scope": "concentrate anterior malar support, taper the lower cheek, turn the mandibular underside continuously into the upper neck; photographed proportions guide the form, not exact millimetre landmarks",
+        "planes": [
+          {
+            "name": "anterior-malar-support",
+            "sourceVertices": [
+              11910,
+              11667,
+              6968
+            ],
+            "delta": [
+              0.0003,
+              0.0014,
+              0.002
+            ]
+          },
+          {
+            "name": "lateral-malar-return",
+            "sourceVertices": [
+              7604,
+              11787
+            ],
+            "delta": [
+              -0.0006,
+              0.001,
+              0.0006
+            ]
+          },
+          {
+            "name": "mid-cheek-transition",
+            "sourceVertices": [
+              11767,
+              11906
+            ],
+            "delta": [
+              -0.0018,
+              0.0005,
+              -0.0012
+            ]
+          },
+          {
+            "name": "lower-cheek-taper",
+            "sourceVertices": [
+              11782,
+              11786,
+              11836
+            ],
+            "delta": [
+              -0.0024,
+              0.0005,
+              -0.0028
+            ]
+          },
+          {
+            "name": "mandibular-angle-return",
+            "sourceVertices": [
+              7695,
+              7460
+            ],
+            "delta": [
+              -0.001,
+              0.0008,
+              -0.0008
+            ]
+          },
+          {
+            "name": "mandibular-body-turn",
+            "sourceVertices": [
+              7593,
+              7463,
+              7622
+            ],
+            "delta": [
+              -0.0015,
+              0.002,
+              -0.0018
+            ]
+          },
+          {
+            "name": "submandibular-transition",
+            "sourceVertices": [
+              7628,
+              7688,
+              7500
+            ],
+            "delta": [
+              -0.0008,
+              0.0035,
+              -0.003
+            ]
+          },
+          {
+            "name": "submental-to-throat",
+            "sourceVertices": [
+              787,
+              7502,
+              783
+            ],
+            "delta": [
+              0,
+              0.0045,
+              -0.0038
+            ]
+          }
+        ]
+      }
     },
     "mouthContactSourceVertices": [
       493,

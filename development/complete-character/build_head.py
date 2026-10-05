@@ -12,6 +12,7 @@ import sys
 sys.path.insert(0,str(ROOT))
 from female_anatomy import native_point,skin_point,eye_point,eye_normal
 from perioral_placement import place_perioral
+from cheek_continuity import redistribute_cheek
 anatomy=form.get('referenceAnatomy')
 UP=ROOT.parent/'anatomical-head/assets/upstream'
 meta=json.loads((UP/'provenance.json').read_text());data=(UP/'base.obj').read_bytes()
@@ -133,6 +134,8 @@ if anatomy and native_target_sources:
 # All masks and feature coordinates still refer to the immutable raw mesh.
 perioral_delta=place_perioral(verts,raw,faces,(anatomy or {}).get('perioralPlacement'))
 positions+=perioral_delta
+cheek_delta=redistribute_cheek(verts,raw,faces,(anatomy or {}).get('cheekContinuity'))
+positions+=cheek_delta
 
 # Recover the source's continuous braincase and suboccipital curve as one
 # aligned form. Preserve the rounded upper braincase, but end this native
@@ -294,7 +297,7 @@ def authored_landmark(source):
  p=skin_point(source,anatomy,cage([source])[0]) if anatomy else sculpt_forehead(cage([source])[0])
  if native_target_sources:
   i=int(np.argmin(np.sum((np.asarray(raw)-source)**2,axis=1)))
-  if np.linalg.norm(np.asarray(raw[i])-source)<1e-5:p+=target_delta[i]+perioral_delta[i]
+  if np.linalg.norm(np.asarray(raw[i])-source)<1e-5:p+=target_delta[i]+perioral_delta[i]+cheek_delta[i]
  return list(p)
 output={'license':'CC0-1.0 hm08; original cage, eyes and brows','sourceCommit':meta['commit'],'sourceSha256':meta['files']['base.obj']['sha256'],'coordinateSystem':'metres Y up face +Z','method':'named anatomical biharmonic cage plus direct topology contact loops','form':FORM,'prototypeOnly':True,'unimplemented':['facial trait morphs','other body and hairstyle variants'],'parts':parts,'landmarks':{n:authored_landmark(source) for n,source,_ in handles},'nativeTargets':native_target_sources,'perioralPlacement':(anatomy or {}).get('perioralPlacement'),'sourceVertices':len(raw),'sourceFaces':len(faces)}
 (ROOT/('adult-head.json' if FORM=='male' else 'adult-head-female.json')).write_text(json.dumps(output,separators=(',',':'))+'\n')
