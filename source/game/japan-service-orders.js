@@ -178,7 +178,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   }else if(job.kind==='deliverMix'||job.kind==='serve') {
    const cargo=item(job.itemId);
    if(!cargo||cargo.visitId!==v.id||evidence.itemId!==cargo.id||evidence.tokenId!==v.tokenId||cargo.tokenId!==v.tokenId||cargo.location.type!=='worker'||cargo.location.id!==workerId)return false;
-   if(workerId==='player'&&job.kind==='deliverMix'&&(v.stage!=='waiting-bath'||!near(evidence.guestPosition,JAPAN_SERVICE_POINTS.menReceive)))return false;
+   if(workerId==='player'&&job.kind==='deliverMix'&&(v.stage!=='waiting-bath'||item(v.tokenId)?.location.type!=='guest'||item(v.tokenId)?.location.id!==v.id||!near(evidence.guestPosition,JAPAN_SERVICE_POINTS.menReceive)))return false;
    if(job.kind==='serve'&&(v.stage!=='waiting-meal'||!near(evidence.guestPosition,v.diningPoint,.8)))return false;
    cargo.location={type:'point',id:job.to};
    if(job.kind==='serve')v.stage=v.customerType==='player'?'meal-ready':'eating';

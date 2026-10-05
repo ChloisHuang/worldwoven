@@ -151,3 +151,9 @@ test('carried-pouch pause retains custody while the original crew can claim othe
  assert(re.board.pickup(next.id+':deliverMix','jp-onsen',{position:P.apothecaryPickup}));assert(re.board.complete(next.id+':deliverMix','jp-onsen',re.evidence(next)));re.duty.update(0);assert.equal(re.duty.dutyState().status,'active');
  re.begin();re.tick(20);assert.equal(re.duty.workReceipts(RECEIPT).length,1);assert.equal(re.duty.workReceipts(RECEIPT)[0].visitId,v.id);assert.equal(re.completed.filter(([,kind])=>kind==='pickup').length,0);
 });
+
+test('a persisted terminal handover retries closure after reload and cannot reopen paid work',()=>{
+ const f=fixture();f.start();const v=f.spawn();f.flags.career=s=>s.lastDuty?.stage==='inspection';assert.equal(f.employment.endShift(),false);
+ assert.equal(f.employment.state().job.handoff,'end');assert.equal(f.duty.workReceipts(RECEIPT).length,1);assert.equal(f.duty.dutyState().status,'inactive');assert.equal(f.careers.state().lastDuty.stage,'working');
+ const re=restore(f.checkpoint());re.tick(2);assert.equal(re.employment.state().job.stage,'ready');assert.equal(re.careers.state().lastDuty.stage,'inspection');assert.equal(re.duty.workReceipts(RECEIPT).length,1);assert.equal(re.careers.state().lastDuty.customerReviews.length,1);assert.equal(re.careers.state().skillXP.care,0);assert.equal(re.employment.intent('resume'),null);assert.equal(re.employment.intent('task'),null);assert(re.board.claim(v.id+':deliverMix','jp-onsen'));
+});
