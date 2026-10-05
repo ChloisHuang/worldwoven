@@ -48,7 +48,7 @@ export function japanReceptionReady(position,customerType='player') {
 const mealSource=v=>v.dishId==='sushi'?'sushiPickup':'kitchenPickup';
 const sourceOf=item=>item.kind==='mixture'?'apothecaryPickup':item.kind==='meal'?mealSource(item):'reception';
 
-export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},capacity=2}={}) {
+export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},capacity=2,preservePhysical=false}={}) {
  const state={version:1,worldSeed:worldSeed>>>0,nextVisit:1,completed:0,cancelled:0,visits:[],items:[],diningReceipts:[]};
  if(saved?.version===1&&saved.worldSeed===(worldSeed>>>0)) {
   state.nextVisit=Math.max(1,Number.isSafeInteger(saved.nextVisit)?saved.nextVisit:1);
@@ -59,11 +59,10 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   state.items=clone((saved.items||[]).filter(i=>ids.has(i.visitId)));
   // A carrier and a bath reservation are scene-local. Restore the exact same
   // visit and order, returning an interrupted carried tray to its source.
-  for(const item of state.items)if(item.location?.type==='worker')item.location={type:'point',id:sourceOf(item)};
+  for(const item of state.items)if(!preservePhysical&&item.location?.type==='worker')item.location={type:'point',id:sourceOf(item)};
   for(const v of state.visits) {
-   if(v.stage==='bathing')v.stage='waiting-bath';
-   if(v.customerType==='player')v.present=false;
-   v.seatId=null;
+   if(!preservePhysical&&v.stage==='bathing')v.stage='waiting-bath';
+   if(!preservePhysical){if(v.customerType==='player')v.present=false;v.seatId=null;}
    state.nextVisit=Math.max(state.nextVisit,(v.number||0)+1);
   }
  }
@@ -235,7 +234,8 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   // Save safe walking positions periodically, not per rendered frame. No locks.
   checkpoint(positions={}) {for(const v of state.visits)if(active(v)&&Array.isArray(positions[v.id])&&positions[v.id].length===3&&positions[v.id].every(Number.isFinite))v.position=positions[v.id].slice();persist();},
   getVisit:id=>visit(id)?clone(visit(id)):null,
+  restoreClaims(savedClaims=[]){for(const savedClaim of savedClaims)claim(savedClaim.id,savedClaim.workerId);},
   state:()=>({...clone(state),claims:[...claims.values()].map(clone)}),
-  dispose() {if(disposed)return;for(const id of [...claims.keys()])dropClaim(id);resources.clear();staffResources.clear();persist();disposed=true;},
+  dispose({suspend=false}={}) {if(disposed)return;for(const id of [...claims.keys()])dropClaim(id);resources.clear();staffResources.clear();if(!suspend)persist();disposed=true;},
  };
 }

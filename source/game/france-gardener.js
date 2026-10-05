@@ -9,7 +9,7 @@ const copy=x=>JSON.parse(JSON.stringify(x)),gap=(n,p)=>Math.hypot(n.root.positio
 export function createFranceGardener({npcs,lot,doors,planPath,moveActor,poseContext,getPlayer,getBorrowedPose=()=>null,worldSeed=1,saved={},saveState=()=>{},notify=()=>{},propsFactory=createFranceGardenerProps}){
  const n=npcs.find(a=>a.station.id===P.id);if(!n)return null;
  const props=propsFactory(lot.group),history=[];let brain;
- brain=createLifeDecisions({worldSeed,actorIds:[P.id],saved:saved.life,onChange:life=>saveState({life})});
+ brain=createLifeDecisions({worldSeed,actorIds:[P.id],saved:saved.continuity?.life||saved.life,onChange:life=>saveState({life})});
  let time=0,stage='collect',phase=0,tool=null,routeKey=null,stalled=0,commitment=null,choiceElapsed=0,choiceTravel=0,jobTime=0,nextDecision=0,disposed=false,paused=false,cycles=0,cancelled=false;
  let meeting=false,loanOwner=null,borrowed=false;
  const transferBusy=()=>['takeCan','putCan','takeShears','putShears'].includes(stage);
@@ -41,7 +41,7 @@ export function createFranceGardener({npcs,lot,doors,planPath,moveActor,poseCont
   {id:'garden',base:.35,traits:{outdoors:.8,curiosity:.45},duration:[10,18],relief:{fatigue:-.07,social:-.03},cooldown:38,point:P.walk}
  ];}
  function request(){if(disposed)return false;if(loanOwner||meeting){notify('埃米尔：帮工正在使用苗圃和水壶，归还后我再照料');return false;}if(!['idle','rest','garden'].includes(stage)){notify('埃米尔：这两畦花和黄杨篱正在照料，工具用完会放回去');return false;}completeChoice(false);cancelled=false;jobTime=0;enter('collect');notify('埃米尔：先浇两畦玫瑰，再换剪刀修一段黄杨');return true;}
- return {owns:a=>a===n,ownsStation:id=>id===P.id,request,cancel,requestMeeting,releaseMeeting,reserveTools,releaseTools,takeCan,returnCan,
+ const api={owns:a=>a===n,ownsStation:id=>id===P.id,request,cancel,requestMeeting,releaseMeeting,reserveTools,releaseTools,takeCan,returnCan,
   hostReady:()=>meeting&&stage==='meeting'&&!n.walking&&gap(n,P.host)<.08&&!paused,
   loanState:()=>({owner:loanOwner,borrowed,toolHolder:borrowed?'player':tool==='can'?'gardener':'rack',beds:loanOwner?['player','player']:['bedA','waterA','bedB','waterB'].includes(stage)?['gardener','gardener']:[null,null]}),
   socialStatus:()=>({busy:['takeCan','putCan','takeShears','putShears'].includes(stage),attention:true,job:labels[stage]}),
@@ -96,7 +96,9 @@ export function createFranceGardener({npcs,lot,doors,planPath,moveActor,poseCont
    props.update(borrowedPose|| (borrowed?{actor:getPlayer(),tool:'can'}:{actor:n,tool,action,target,phase,transfer,paused}));
    const label=n.label?.querySelector?.('small');if(label)label.textContent=paused?'停下手边的工具聊两句':labels[stage];
   },
+  snapshot:()=>({version:1,time,stage,phase,tool,commitment:copy(commitment),choiceElapsed,choiceTravel,jobTime,nextDecision,cycles,cancelled,meeting,loanOwner,borrowed,history:copy(history),life:brain.snapshot()}),
+  restore(s){if(s?.version!==1||!labels[s.stage])return false;time=Math.max(0,s.time||0);stage=s.stage;phase=Math.max(0,s.phase||0);tool=['can','shears'].includes(s.tool)?s.tool:null;commitment=copy(s.commitment);choiceElapsed=Math.max(0,s.choiceElapsed||0);choiceTravel=Math.max(0,s.choiceTravel||0);jobTime=Math.max(0,s.jobTime||0);nextDecision=Math.max(time,s.nextDecision||0);cycles=Math.max(0,s.cycles||0);cancelled=!!s.cancelled;meeting=!!s.meeting;loanOwner=s.loanOwner||null;borrowed=!!s.borrowed;history.splice(0,history.length,...copy(s.history||[]));routeKey=null;stalled=0;n.route=[];return true;},
   state:()=>({actorId:P.id,loan:{owner:loanOwner,borrowed,meeting},stage,phase,tool,paused,cycles,cancelled,position:n.root.position.toArray(),history:copy(history),props:props.state(),choice:commitment?{id:commitment.id,duration:commitment.duration}:null,life:brain.snapshot()}),
-  dispose(){if(disposed)return;disposed=true;meeting=false;loanOwner=null;borrowed=false;completeChoice(false);n.route=[];n.walking=false;if(n.poseContext){n.poseContext.archery=null;n.poseContext.handoff=false;n.poseContext.heldProp=null;}brain.dispose();props.dispose();}
- };
+  dispose({suspend=false}={}){if(disposed)return;disposed=true;meeting=false;loanOwner=null;borrowed=false;if(!suspend)completeChoice(false);n.route=[];n.walking=false;if(n.poseContext){n.poseContext.archery=null;n.poseContext.handoff=false;n.poseContext.heldProp=null;}brain.dispose();props.dispose();}
+ };if(saved.continuity)api.restore(saved.continuity);return api;
 }

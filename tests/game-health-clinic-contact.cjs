@@ -13,7 +13,7 @@ const resolve=(specifier,from)=>moduleAt(specifier==='three'?root+'/vendor/three
  const initial=createGameHealthWorld({worldSeed:3});initial.enter('china',npcs);const seeded=initial.snapshot();Object.assign(seeded.health.people[assistant.station.id].conditions.mistbell,{stage:'ill',remaining:240});
  const health=createGameHealthWorld({worldSeed:3,saved:seeded});health.enter('china',npcs);let events=[],time=0,durable;
  const make=saved=>service.namespace.createChinaClinicService({npcs,lot:{group:new T.Group(),clinic:true},doors:{routeStep:()=>({waiting:false,waypoint:null})},planPath:()=>[],moveActor(){},poseContext:()=>({}),saved,saveState:s=>{durable=s;health.clinicReceipts(s);},onInteraction:event=>{events.push(event);health.interaction(event);}});
- const clinic=make({}),state={player,facilityId:C.seatId};
+ let clinic=make({});const state={player,facilityId:C.seatId};
  const step=dt=>{time+=dt;clinic.update(dt,time,state);health.update(dt,{player,actors:npcs});};
  assert(clinic.beginConsultation({id:C.seatId},player));step(2.2);step(3.4);
  doctor.root.position.fromArray(C.points.doctorHandoff);assistant.root.position.fromArray(C.points.assistantHandoff);step(1.3);
@@ -22,6 +22,7 @@ const resolve=(specifier,from)=>moduleAt(specifier==='three'?root+'/vendor/three
  const order=clinic.state().order;assert(clinic.startPlayer(assistant.station.id,player,order.id));step(.1);step(.5);
  assert.equal(events.length,1);assert.deepEqual(events[0].participants,[assistant.station.id,'player']);assert.equal(events[0].id,order.id);assert.equal(events[0].duration,.5);
  assert(health.snapshot().health.people.player.conditions.mistbell.dose>0);assert.equal(health.snapshot().health.people[doctor.station.id].conditions.mistbell.dose,0);
+ const interrupted=JSON.parse(JSON.stringify(clinic.snapshot())),sameOrder=clinic.state().order.id;clinic.dispose({suspend:true});clinic=make(durable);assert(clinic.restore(interrupted,{player}));assert.equal(clinic.state().order.id,sameOrder);assert.equal(clinic.snapshot().phaseTime,.5);assert.equal(events.length,1,'restore does not emit contact or replay receipt');
  clinic.stopPlayer();step(2);assert.equal(events.length,1,'cancelled handoff emits nothing');assert(clinic.startPlayer(assistant.station.id,player,order.id));step(.1);step(1.3);
  assert.equal(clinic.state().order.stage,'complete');assert.equal(events.at(-1).duration,1.8,'resume preserves only actual handoff time');assert.equal(health.snapshot().health.interactionProgress['china-clinic-delivery'].duration,1.8);
  const count=events.length;step(5);assert.equal(events.length,count,'completed handoff cannot continue emitting');clinic.dispose();

@@ -6,7 +6,7 @@ const point=a=>({x:a[0],y:a[1],z:a[2]}),distance=(p,a)=>Math.hypot(p.x-a[0],p.z-
 const LABELS={consult:'许宁正在当面问询',writing:'许宁在纸上写下编号单',handoff:'二层平台当面核对编号',stock:'苏禾带原单下楼去备物间',prepare:'苏禾按号折好云纹包',counter:'苏禾把同号纸包带到柜台',ready:'云纹包已备好 · 下楼到一层药铺柜台按 E 领取',deliver:'苏禾当面交付同号云纹包',complete:'已收到云纹包 · 请收好'};
 
 // One bounded player order. Numbers survive reloads; unfinished physical work
-// is cancelled on departure, never remotely delivered or replayed as health.
+// resumes from a world checkpoint; only live contact can deliver or affect health.
 export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,poseContext,saved={},saveState=()=>{},notify=()=>{},onInteraction=()=>{}}){
  const doctor=npcs.find(n=>n.station.id===C.roles[0].id),assistant=npcs.find(n=>n.station.id===C.roles[1].id);if(!doctor||!assistant||!lot.clinic)return null;
  const owned=new Set([doctor,assistant]),P=C.points,history=Array.isArray(saved.history)?saved.history.slice(-16):[],failures=[],travelState=new Map();
@@ -85,8 +85,10 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
    }
    animate(doctor,t,da,dtar,dh);animate(assistant,t,aa,atar,ah);props.update(order,{doctor,assistant},phaseTime);
   },
+  snapshot:()=>({version:1,serial,time,order:order?copy(order):null,request,phaseTime,history:copy(history)}),
+  restore(snapshot,{player:restoredPlayer}={}){if(snapshot?.version!==1||snapshot.order&&(!LABELS[snapshot.order.stage]||snapshot.order.id!=='cn-clinic-order-'+snapshot.order.number))return false;serial=Math.max(serial,snapshot.serial||0);time=Math.max(0,snapshot.time||0);order=copy(snapshot.order);phaseTime=Math.max(0,snapshot.phaseTime||0);request=!!snapshot.request;player=restoredPlayer||null;history.splice(0,history.length,...copy(snapshot.history||[]));travelState.clear();for(const n of owned)n.route=[];props.update(order,{doctor,assistant},phaseTime);return true;},
   state(){return {serial,order:order?copy(order):null,request,history:copy(history),failures:copy(failures),actors:[doctor,assistant].map(n=>({id:n.station.id,ageYears:n.station.ageYears,position:n.root.position.toArray(),walking:n.walking})),healthEffects:false};},
-  dispose(){if(disposed)return;cancel('离开地区');disposed=true;for(const n of owned){n.route=[];if(n.poseContext){n.poseContext.handoff=false;n.poseContext.receptionWriting=false;}}props.dispose();}
+  dispose({suspend=false}={}){if(disposed)return;if(!suspend)cancel('离开地区');disposed=true;for(const n of owned){n.route=[];if(n.poseContext){n.poseContext.handoff=false;n.poseContext.receptionWriting=false;}}props.dispose();}
  };
 }
 

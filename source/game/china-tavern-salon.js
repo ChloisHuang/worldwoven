@@ -30,8 +30,8 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
  const enter=stage=>{session.stage=stage;phaseTime=0;resetRoute(performer);if(getPlayer())resetRoute(getPlayer());record(stage);};
  // Unfinished visits do not survive a scene or browser reload. The durable
  // wallet journal, rather than a transient session, owns their refund identity.
- function recoverPayments(){paymentError=null;for(const hold of copperLedger?.reservations()||[]){if(hold.id.startsWith('cn-salon-')&&hold.status==='reserved'){const r=copperLedger.refund(hold.id);if(!r.ok)paymentError=r.code;}}return !paymentError;}
- recoverPayments();
+ function recoverPayments(){paymentError=null;for(const hold of copperLedger?.reservations()||[]){if(hold.id.startsWith('cn-salon-')&&hold.status==='reserved'&&hold.id!==session?.id){const r=copperLedger.refund(hold.id);if(!r.ok)paymentError=r.code;}}return !paymentError;}
+ if(saved.continuity?.version!==1)recoverPayments();
  function beginReturn(){returning=true;resetRoute(performer);}
  function release(reason,complete=false){
   if(!session)return false;
@@ -87,7 +87,7 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
  }
  function entryValid(){const room=roomForSession(),p=getPlayer();return adult()&&room&&ledger.claim(room.id)?.owner===session.id&&inSalonRoom(room,p?.root.position)&&inSalonRoom(room,performer.root.position)&&near(p,room.player,.18)&&near(performer,room.actor,.18)&&!npcs.some(n=>n!==performer&&inSalonRoom(room,n.root.position));}
  function pose(a,t,action,target){if(target&&!a.walking)a.root.rotation.y=Math.atan2(target[0]-a.root.position.x,target[2]-a.root.position.z);if(a.root.visible!==false)a.animate(t+(a.phase||0),a.walking,a.walking?null:action,poseContext(a,a===receptionist?a.station:null));}
- life=createSalonArtistLife({performers,worldSeed,saved:saved.life||{},saveState:()=>persist(),travel,pose,planPath,getPlayer,isActorBusy});
+ life=createSalonArtistLife({performers,worldSeed,saved:saved.continuity?.life||saved.life||{},saveState:()=>persist(),travel,pose,planPath,getPlayer,isActorBusy});
  return {
   receptionist,performers,get performer(){return performer;},ledger,request,startEscort,cancel,atReception,recoverPayments,
   owns:n=>n===receptionist||performers.includes(n),
@@ -124,7 +124,9 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
 
   },
   view(){return {session:session?clone(session):null,label:session?labels()[session.stage]:returning?`${name()}正回雅集厅`:null,returning,fade:session?.stage==='fade',lastReply:clone(lastReply),candidates:performers.filter(eligible).map(n=>({id:n.station.id,name:n.station.npcName,ageYears:n.ageYears??n.station.ageYears??n.station.age,preference:n.station.salon.preference,specialty:n.station.salon.specialty,gender:n.station.salon.gender,activities:n.station.salon.activities.map(id=>({id,...SALON_ACTIVITIES[id]})),available:!session&&!returning&&!isActorBusy(n)&&!life.isBusy(n),status:life.label(n)})),rooms:ledger.state(),cash:copperLedger?.state().cash??0,paymentError:paymentError||copperLedger?.loadError||null};},
+  snapshot:()=>({version:1,time,serial,session:clone(session),performerId:performer.station.id,returning,phaseTime,sessionTime,lastReply:clone(lastReply),history:clone(history),life:life.snapshot(),artistLife:life.continuity()}),
+  restore(s){const a=performers.find(n=>n.station.id===(s?.session?.actorId||s?.performerId));if(s?.version!==1||!a||s.session&&!['invited','reply','accepted','escort','entering','fade','visiting'].includes(s.session.stage))return false;performer=a;time=Math.max(0,s.time||0);serial=Math.max(serial,s.serial||0);session=clone(s.session);returning=!!s.returning;phaseTime=Math.max(0,s.phaseTime||0);sessionTime=Math.max(0,s.sessionTime||0);lastReply=clone(s.lastReply);history.splice(0,history.length,...clone(s.history||[]));travelState.clear();life.restore(s.artistLife);if(session?.roomId){if(!ledger.reserve(session.roomId,session.id,['player',performer.station.id])){session=null;return false;}if(['fade','visiting'].includes(session.stage))ledger.occupy(session.roomId,session.id);}if(session?.payment==='reserved'){const hold=copperLedger.reservations().find(h=>h.id===session.id);if(hold?.status==='settled'){session.payment='settled';session.stage='visiting';phaseTime=0;}else if(hold?.status!=='reserved'){ledger.release(session.id);session=null;returning=true;}}return true;},
   state(){return {...this.view(),serial,life:life.state(),history:clone(history),failures:clone(failures),actor:performer.root.position.toArray(),persistentClaims:false};},
-  dispose(){if(disposed)return;if(session)release('离开地区');life.dispose();disposed=true;ledger.clear();travelState.clear();for(const n of [...performers,receptionist])resetRoute(n);session=null;returning=false;persist();}
+  dispose({suspend=false}={}){if(disposed)return;if(session&&!suspend)release('离开地区');life.dispose();disposed=true;ledger.clear();travelState.clear();for(const n of [...performers,receptionist])resetRoute(n);session=null;returning=false;if(!suspend)persist();}
  };
 }

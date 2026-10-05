@@ -1,3 +1,4 @@
+import {captureWorldRuntime,restoreWorldRuntime} from './world-continuity.js';
 import {followActorRoute} from './actor-navigation.js';
 import {PALACE_EDICT as E} from './china-palace-edict-place.js';
 import {createPalaceEdictProps} from './china-palace-edict-props.js';
@@ -12,7 +13,7 @@ const STUDY_PATH=[[13.7,.145,-20.85],[0,.295,-20.85],[0,.815,-22.3],[0,.815,-24.
 // A receipt is consumed before actors move. Interrupted work is retired on
 // reload/departure, never replayed or granted remote completion/rewards.
 export function createEdictLedger(saved={}){
- let lastDay=Number.isInteger(saved.lastDay)?saved.lastDay:-1,lastReceipt=saved.lastReceipt||null,outcome=saved.outcome==='active'?'interrupted':saved.outcome||'waiting',completedReceipt=saved.completedReceipt||null;
+ let lastDay=Number.isInteger(saved.lastDay)?saved.lastDay:-1,lastReceipt=saved.lastReceipt||null,outcome=saved.outcome==='active'&&!saved.preservePhysical?'interrupted':saved.outcome||'waiting',completedReceipt=saved.completedReceipt||null;
  return {
   canBegin(s){return Number.isInteger(s?.lastCompletedDay)&&s.lastCompletedDay>lastDay&&s.completionId==='cn-morning-audience:'+s.lastCompletedDay;},
   begin(s){if(!this.canBegin(s))return null;lastDay=s.lastCompletedDay;lastReceipt=s.completionId;outcome='active';return {id:'cn-edict-east-shore:'+lastDay,audienceId:lastReceipt,day:lastDay};},
@@ -22,6 +23,7 @@ export function createEdictLedger(saved={}){
 }
 
 export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,moveActor,poseContext,saved={},saveState=()=>{},notify=()=>{}}){
+ if(saved.continuity?.version===1)saved={...saved,...saved.continuity.ledger,preservePhysical:true};
  const herald=npcs.find(n=>n.station.id===E.herald.id),scribe=npcs.find(n=>n.station.id==='cn-calligraphy'),recipient=npcs.find(n=>n.station.id==='cn-garden'),emperor=npcs.find(n=>n.station.id==='cn-emperor');
  if(!herald||!scribe||!recipient||!emperor||!palace||!audience)return null;
  const actors={herald,scribe,recipient},owned=new Set([herald]),tasks=new Map(),leases=new Map(),ledger=createEdictLedger(saved),props=createPalaceEdictProps(lot.group),history=[],failures=[];
@@ -95,7 +97,9 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
    }
    for(const n of owned)animate(n,t);props.update(order,actors,phaseTime,!order&&ledger.snapshot().outcome==='completed',halt);
   },
+  snapshot:()=>({version:1,ledger:ledger.snapshot(),runtime:captureWorldRuntime({time,phaseTime,order,speakerId:speaker?.station.id||null,utterance,history,owned:[...owned].map(n=>n.station.id),leases:[...leases].map(([n,t])=>[n.station.id,t]),tasks:[...tasks].map(([n,s])=>[n.station.id,s])})}),
+  restore(snapshot){if(snapshot?.version!==1)return false;const s=restoreWorldRuntime(snapshot.runtime,{npcs});if(!s||s.order&&!['preparing','drafting','await-pickup','scribe-handoff','to-approval','approval','to-seal','seal-place','sealing','seal-pickup','to-recipient','await-recipient','reading','response','recipient-handoff','to-work','file-receipt','to-sweep','sweeping','returning'].includes(s.order.stage))return false;time=Math.max(0,s.time||0);phaseTime=Math.max(0,s.phaseTime||0);order=s.order;speaker=npcs.find(n=>n.station.id===s.speakerId)||null;utterance=s.utterance||'';history.splice(0,history.length,...(s.history||[]));owned.clear();owned.add(herald);for(const id of s.owned||[]){const n=npcs.find(n=>n.station.id===id);if(n&&[herald,scribe,recipient].includes(n))owned.add(n);}leases.clear();for(const[id,t]of s.leases||[]){const n=npcs.find(n=>n.station.id===id);if(owned.has(n))leases.set(n,t);}tasks.clear();for(const[id,t]of s.tasks||[]){const n=npcs.find(n=>n.station.id===id);if(owned.has(n)){tasks.set(n,{...t,planned:false,stalled:0});n.route=[];}}if(speaker===emperor)palace.setDutyLine(E.owner,utterance);props.update(order,actors,phaseTime,!order&&ledger.snapshot().outcome==='completed',false);return true;},
   state:()=>({time,phaseTime,order:order?copy(order):null,ledger:ledger.snapshot(),speaker:speaker?.station.id||null,utterance,history:copy(history),failures:copy(failures),props:props.state(),actors:[...owned].map(n=>({id:n.station.id,position:n.root.position.toArray(),stage:tasks.get(n)?.id||'waiting',waypoint:tasks.get(n)?.index||0,arrived:arrived(n),walking:n.walking,paused:paused(n)})),rewards:false}),
-  dispose(){if(disposed)return;disposed=true;if(order){ledger.finish(false);persist();}palace.releaseDuty(E.owner);palace.setDutyLine(E.owner,null);for(const n of[...owned]){n.route=[];n.walking=false;release(n);}owned.clear();tasks.clear();props.dispose();}
+  dispose({suspend=false}={}){if(disposed)return;disposed=true;if(order&&!suspend){ledger.finish(false);persist();}if(!suspend)palace.releaseDuty(E.owner);palace.setDutyLine(E.owner,null);for(const n of[...owned]){n.route=[];n.walking=false;release(n);}owned.clear();tasks.clear();props.dispose();}
  };
 }

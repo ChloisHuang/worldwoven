@@ -50,3 +50,7 @@ const solo=fixture({},[-6.8,-4.3]);Object.assign(solo.actors.get('jp-welcome').r
 const soloChoice=solo.handoff().choice;assert.equal(soloChoice.id,'tea');assert.equal(soloChoice.relationship,null);
 solo.done('jp-ramen');assert.deepEqual(solo.life.snapshot().decisions.people['jp-ramen'].relations,{});assert.deepEqual(solo.life.snapshot().decisions.people['jp-welcome'].opinions,{});solo.dispose();
 console.log('PASS: per-worker clock/population invariance, reload, facility target multiplicity, and no social credit for co-presence');
+
+{
+ const f=fixture();f.update();const id=f.life.state().active.id,reliefId=f.life.state().active.reliefId;f.done(id);const continuity=JSON.parse(JSON.stringify(f.life.continuity())),saved=f.life.snapshot();assert.equal(continuity.active.phase,'handoff');assert(continuity.active.retireReady);f.dispose();const g=fixture(saved);assert(g.life.restore(continuity));assert(!g.tasks.has(id),'completed handoff half is not repeated');assert(g.tasks.has(reliefId),'remaining physical handoff callback reconstructed');g.done(reliefId);g.update();assert.equal(g.life.state().active.phase,'preparing');const c=JSON.parse(JSON.stringify(g.life.continuity())),v=g.life.snapshot();g.dispose();const h=fixture(v);assert(h.life.restore(c));h.update(0);assert.equal(h.tasks.get(id).action,'ramen');assert.equal(h.life.state().decisions.people[id].choices,v.decisions.people[id].choices,'restore does not reroll choice');h.dispose();console.log('PASS staff handoff and held meal preparation rebuild callback tasks without replaying completed half');
+}

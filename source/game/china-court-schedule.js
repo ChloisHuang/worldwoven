@@ -28,8 +28,8 @@ export function courtRouteBudget({position,path,walkSpeed,planPath,safeExitSecon
 export function createAudienceSchedule(saved={}){
  let day=Math.max(0,Math.floor(saved.day||0)),calledDay=Number.isInteger(saved.calledDay)?saved.calledDay:-1,lastHour=null;
  let lastCompletedDay=Number.isInteger(saved.lastCompletedDay)?saved.lastCompletedDay:saved.outcome==='completed'?calledDay:-1;
- let outcome=calledDay===day?(['completed','postponed','missed'].includes(saved.outcome)?saved.outcome:'interrupted'):'waiting';
- let calledAt=null,leadSeconds=null,exception=saved.exception||null;
+ let outcome=calledDay===day?(['completed','postponed','missed',...(saved.preservePhysical?['called','in-session']:[])].includes(saved.outcome)?saved.outcome:'interrupted'):'waiting';
+ let calledAt=saved.preservePhysical&&Number.isFinite(saved.calledAt)?saved.calledAt:null,leadSeconds=saved.preservePhysical&&Number.isFinite(saved.leadSeconds)?saved.leadSeconds:null,exception=saved.exception||null;
  const secondsUntil=hour=>(COURT_START_HOUR-hour)*60/COURT_CLOCK_MINUTES_PER_SECOND;
  return {
   observe(hour,simulationDay){

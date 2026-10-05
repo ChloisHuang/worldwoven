@@ -19,24 +19,25 @@ export function createTavernMealProps(parent){
   box(tray,.62,.036,.46,0x774b35);for(const x of[-.3,.3])box(tray,.025,.055,.46,0xa0764c,[x,.017,0]);for(const z of[-.22,.22])box(tray,.61,.055,.025,0xa0764c,[0,.017,z]);
   for(const x of[-.25,-.215])box(tray,.013,.014,.34,0xc09a5b,[x,.03,0]);
   bowl=new THREE.Group();bowl.name=id;bowl.userData={orderId:o.id,mealId:id,seatId:o.seatId};root.add(bowl);
-  const profile=[[.085,0],[.12,.025],[.19,.075],[.205,.14],[.205,.15],[.19,.15],[.177,.076],[.104,.039],[.085,.035]].map(p=>new THREE.Vector2(...p));mesh(bowl,new THREE.LatheGeometry(profile,28),0xe6dcc6);torus(bowl,.202,.010,0x4d837b,[0,.147,0]);cyl(bowl,.09,.075,.023,0x508078,[0,.003,0]);
+  const profile=[[.085,0],[.12,.025],[.19,.075],[.205,.14],[.205,.15],[.19,.15],[.177,.076],[.104,.039],[.085,.035]].map(p=>new THREE.Vector2(...p));mesh(bowl,new THREE.LatheGeometry(profile,28),o.dishId==='yunlai-green-noodles'?0x93ad8c:0xe6dcc6);torus(bowl,.202,.010,0x4d837b,[0,.147,0]);cyl(bowl,.09,.075,.023,0x508078,[0,.003,0]);
   food=new THREE.Group();food.position.y=.10;bowl.add(food);const rice=mesh(food,new THREE.SphereGeometry(.17,18,10),0xead8a8,[0,0,0]);rice.scale.y=.3;
-  for(let i=0;i<6;i++){const theta=i*2.4,r=.06+(i%2)*.045,x=Math.cos(theta)*r,z=Math.sin(theta)*r,m=mesh(food,new THREE.SphereGeometry(.057,10,6),i%2?0x89684a:0xa18360,[x,.056,z]);m.scale.set(1,.42,.72);box(food,.018,.009,.063,0x658358,[x+.025,.079,z-.019]);}
+  if(o.dishId==='yunlai-green-noodles'){rice.material=mat(0xd1ae6c);for(let i=0;i<5;i++){const leaf=mesh(food,new THREE.SphereGeometry(.085,10,6),i%2?0x557647:0x729457,[(i%3-1)*.08,.05,Math.floor(i/3)*.12-.06]);leaf.scale.set(.65,.15,1.2);}}
+  else for(let i=0;i<6;i++){const theta=i*2.4,r=.06+(i%2)*.045,x=Math.cos(theta)*r,z=Math.sin(theta)*r,m=mesh(food,new THREE.SphereGeometry(.057,10,6),i%2?0x89684a:0xa18360,[x,.056,z]);m.scale.set(1,.42,.72);box(food,.018,.009,.063,0x658358,[x+.025,.079,z-.019]);}
  }
  function clear(){for(const q of[tray,bowl])if(q){q.traverse(m=>{if(m.geometry){m.geometry.dispose();geos.delete(m.geometry);}});q.removeFromParent();}tray=bowl=food=null;id=null;ingredients.visible=false;}
  return {
   clear,update(o,actors,phase){
    ingredients.visible=o?.stage==='preparing';if(!o?.mealId){if(id)clear();return;}if(id!==o.mealId){clear();create(o);}
-   const P=M.points,stage=o.stage,ratio=d=>Math.min(1,phase/d);let tp;
+   const P={...M.points,passTop:o.passPoint||M.points.passTop},stage=o.stage,ratio=d=>Math.min(1,phase/d);let tp;
    if(stage==='placing')tp=hand(actors.cook).lerp(new THREE.Vector3(...P.passTop),ratio(1.1));
-   else if(stage==='pickup')tp=new THREE.Vector3(...P.passTop).lerp(hand(actors.host),ratio(1.1));
-   else if(stage==='serving')tp=hand(actors.host).lerp(new THREE.Vector3(...o.mealPoint),ratio(1.1));
-   else if(stage==='recall')tp=new THREE.Vector3(...o.recallPoint).lerp(hand(actors.host),ratio(1.1));
-   else if(stage==='lifting')tp=new THREE.Vector3(...o.mealPoint).lerp(hand(actors.host),ratio(1.1));
+   else if(stage==='pickup')tp=new THREE.Vector3(...P.passTop).lerp(hand(actors.assistant||actors.host),ratio(1.1));
+   else if(stage==='serving')tp=hand(actors.assistant||actors.host).lerp(new THREE.Vector3(...o.mealPoint),ratio(1.1));
+   else if(stage==='recall')tp=new THREE.Vector3(...o.recallPoint).lerp(hand(actors.assistant||actors.host),ratio(1.1));
+   else if(stage==='lifting')tp=new THREE.Vector3(...o.mealPoint).lerp(hand(actors.assistant||actors.host),ratio(1.1));
    else if(o.holder==='cook')tp=hand(actors.cook);
-   else if(o.holder==='host')tp=hand(actors.host);
+   else if(['host','assistant'].includes(o.holder))tp=hand(actors.assistant||actors.host);
    else tp=new THREE.Vector3(...(o.holder==='pass'?P.passTop:o.holder==='wash'?P.washTop:o.mealPoint));
-   tray.position.copy(tp);tray.rotation.y=['host','cook'].includes(o.holder)?actors[o.holder].root.rotation.y:0;
+   tray.position.copy(tp);tray.rotation.y=['host','assistant','cook'].includes(o.holder)?actors[o.holder].root.rotation.y:0;
    bowl.position.copy(tp).add(new THREE.Vector3(.035,.035,0));bowl.rotation.set(0,0,0);
    if(stage==='eating')bowl.position.copy(hand(actors.player,true));
    if(stage==='finish-bite')bowl.position.copy(o.returnBowlFrom?new THREE.Vector3(...o.returnBowlFrom):hand(actors.player,true)).lerp(new THREE.Vector3(...o.mealPoint).add(new THREE.Vector3(.035,.035,0)),ratio(.8));
@@ -46,4 +47,16 @@ export function createTavernMealProps(parent){
   state(){return {trayCount:tray?1:0,bowlCount:bowl?1:0,mealId:id,trayPosition:tray?.position.toArray()||null,bowlPosition:bowl?.position.toArray()||null,foodVisible:food?.visible||false,prepVisible:ingredients.visible};},
   dispose(){clear();root.removeFromParent();for(const geo of geos)geo.dispose();for(const m of mats.values())m.dispose();}
  };
+}
+
+// Persistent dirt is visible scene state, never a label pretending a surface
+// was cleaned. Both stains and checkout linen disappear only at real cleaning.
+export function createTavernDirtProps(parent,furniture){
+ const root=new THREE.Group();root.name='云来酒楼 待清洁桌面与退房布草';root.userData.dynamic=true;parent.add(root);
+ const materials=[],geometries=[],tables=new Map(),rooms=new Map();
+ const stain=new THREE.MeshBasicMaterial({color:0x5f4430,transparent:true,opacity:.48,depthWrite:false,side:THREE.DoubleSide});materials.push(stain);
+ const towel=new THREE.MeshToonMaterial({color:0xc3b399});materials.push(towel);
+ for(const [id,x]of[['west',18.1],['east',23.9]]){const group=new THREE.Group();group.name=id+' table persistent spills';for(let i=0;i<4;i++){const geo=new THREE.CircleGeometry(.075+i*.007,12);geometries.push(geo);const mesh=new THREE.Mesh(geo,stain);mesh.rotation.x=-Math.PI/2;mesh.position.set(x-.48+i*.27,1.197,18.06+(i%2?.17:-.08));mesh.scale.set(1,.6,1);group.add(mesh);}group.visible=false;tables.set(id,group);root.add(group);}
+ for(const id of['lan','zhu']){const bed=furniture.items.find(i=>i.id==='china-tavern-bed-'+id);if(!bed)continue;const group=new THREE.Group();group.name=id+' checkout linen';const geo=new THREE.BoxGeometry(.43,.09,.34);geometries.push(geo);const cloth=new THREE.Mesh(geo,towel);cloth.position.set(bed.center[0]+.55,bed.supportY+.085,bed.center[2]+.45);cloth.rotation.y=.45;group.add(cloth);group.visible=false;rooms.set(id,group);root.add(group);}
+ return {update(tableState=[],roomState=[]){for(const [id,g]of tables)g.visible=!!tableState.find(t=>t.id===id)?.dirty;for(const [id,g]of rooms)g.visible=!!roomState.find(r=>r.id===id)?.dirty;},dispose(){root.removeFromParent();for(const g of geometries)g.dispose();for(const m of materials)m.dispose();}};
 }

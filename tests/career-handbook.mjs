@@ -40,7 +40,7 @@ ui=createCareerHandbook({careers,copperLedger:bank,getClock:()=>clock,getCountry
 const dialog=find(doc.body,e=>e.className==='career-dialog'),openButton=find(doc.body,e=>e.className==='career-open');
 const buttons=label=>all(dialog).filter(e=>e.tag==='button'&&e.textContent===label);
 const click=(label,index=0)=>{const b=buttons(label)[index];assert(b,`Missing button: ${label}`);b.onclick();return b;};
-const assertCatalogue=()=>{const cards=all(dialog).filter(e=>e.className==='career-role-card');assert.equal(cards.length,country==='china'?2:1);for(const role of FORMAL_CAREER_ROLES)assert.equal(cards.some(card=>text(card).includes(role.name)),role.country===country);assert.equal(all(dialog).filter(e=>e.className==='career-tabs'||e.attributes.role==='tab').length,0);assert.equal(buttons('查看职责').length,0);};
+const assertCatalogue=()=>{const cards=all(dialog).filter(e=>e.className==='career-role-card');assert.equal(cards.length,country==='china'?3:1);for(const role of FORMAL_CAREER_ROLES)assert.equal(cards.some(card=>text(card).includes(role.name)),role.country===country);assert.equal(all(dialog).filter(e=>e.className==='career-tabs'||e.attributes.role==='tab').length,0);assert.equal(buttons('查看职责').length,0);};
 const assertIcon=()=>{assert.equal(openButton.textContent,'');assert(openButton.children.some(e=>e.className==='career-icon'&&e.attributes['aria-hidden']==='true'&&e.innerHTML.includes('<svg')));const css=text(doc.head);assert(css.includes('width:44px;height:44px'));assert(css.includes('border:0;border-radius:0;background:transparent;box-shadow:none'));};
 
 ui.update('lot');assertIcon();assert.equal(openButton.attributes['aria-label'],'前往当地职业登记处');openButton.onclick();

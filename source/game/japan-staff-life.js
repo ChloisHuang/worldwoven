@@ -106,6 +106,15 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   if(active.phase==='handoff'){const relief=actors.get(active.reliefId);if(taskOf(relief)?.staffLife)clear(relief);}
   clear(n);release(n);completeChoice(false);active.meal=false;active.interrupted=true;active.phase='returning';active.wait=0;return true;
  }
+ function rebuildHandoff(n,relief,shift){
+  const met=()=>{if(active.retireReady&&active.reliefReady){active.covering=!!shift.local;dressRelief();note('relief-arrived');active.phase=active.returnOnly?'returning':'choosing';}return true;};
+    // Distinct adjacent positions let the retiring worker hand over without
+    // occupying the point the replacement must reach.
+    const reliefPost=shift.local?post(active.id):null;
+    if(reliefPost?.mount&&!furniture.facilities.request(reliefPost.mount.id,active.reliefId)){active.phase='draining';return;}
+    if(!active.retireReady)go(n,shift.retire,{face:shift===APOTHECARY||shift.side||shift.local?shift.relief:null,label:`把${shift.duty}交给 ${relief.station.npcName}`,duration:1,onDone:()=>{active.retireReady=true;return met();}});
+    if(!active.reliefReady)go(relief,shift.relief,{...(reliefPost?.mount?{mount:reliefPost.mount,action:reliefPost.action,workTarget:reliefPost.workTarget}:{}),face:reliefPost?.mount?reliefPost.workTarget:shift===APOTHECARY||shift.side||shift.local?shift.retire:null,label:`接替 ${n.station.npcName} 的${shift.duty}`,duration:1,onDone:()=>{active.reliefReady=true;return met();}});
+ }
  return {
   idlePoint(id){return active?.reliefId===id&&(!profile(id).local||active.covering)?shiftFor(active.id).relief:id==='jp-tea'?KOTATSU.position:id==='jp-welcome'?FRONT_DESK.retire:id==='jp-incense'?APOTHECARY.retire:null;},
   // Nao stays the supply clerk between relief shifts; training is not a
@@ -137,13 +146,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
     // claim another job until the relief physically reaches this handoff.
     if(busy(n)||busy(relief)||!unmount(n)||!unmount(relief))return;
     clear(n);clear(relief);furniture.releaseActor(n.station.id);furniture.releaseActor(relief.station.id);active.phase='handoff';active.retireReady=false;active.reliefReady=false;
-    const met=()=>{if(active.retireReady&&active.reliefReady){active.covering=!!shift.local;dressRelief();note('relief-arrived');active.phase=active.returnOnly?'returning':'choosing';}return true;};
-    // Distinct adjacent positions let the retiring worker hand over without
-    // occupying the point the replacement must reach.
-    const reliefPost=shift.local?post(active.id):null;
-    if(reliefPost?.mount&&!furniture.facilities.request(reliefPost.mount.id,active.reliefId)){active.phase='draining';return;}
-    go(n,shift.retire,{face:shift===APOTHECARY||shift.side||shift.local?shift.relief:null,label:`把${shift.duty}交给 ${relief.station.npcName}`,duration:1,onDone:()=>{active.retireReady=true;return met();}});
-    go(relief,shift.relief,{...(reliefPost?.mount?{mount:reliefPost.mount,action:reliefPost.action,workTarget:reliefPost.workTarget}:{}),face:reliefPost?.mount?reliefPost.workTarget:shift===APOTHECARY||shift.side||shift.local?shift.retire:null,label:`接替 ${n.station.npcName} 的${shift.duty}`,duration:1,onDone:()=>{active.reliefReady=true;return met();}});return;
+    rebuildHandoff(n,relief,shift);return;
    }
    if(active.phase==='handoff'||busy(n))return;
    if(active.phase==='choosing')chooseBreak(n,state);
@@ -178,6 +181,8 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   playerRequest(id){if(active){const n=actors.get(active.id);if(active.choice?.facilityId===id||n.serviceMount?.id===id||taskOf(n)?.mount?.id===id)interrupt(n);}},
   meals:()=>active?.meal?[{workerId:active.id,eating:taskOf(actors.get(active.id))?.arrived&&active.phase==='meal'}]:[],
   snapshot:()=>({version:7,next:crew.indexOf(nextWorker()),nextId:nextWorker().station.id,clock:time,night,breakDue:{...due},dueIn:active?0:Math.max(0,due[nextWorker().station.id]-time),completed,interrupted,returning:active?['returning','reclaiming'].includes(active.phase):resumeReturn,returnInterrupted:active?active.interrupted:resumeReturn&&!!saved.returnInterrupted,decisions:decisions.snapshot()}),
+  continuity:()=>({version:1,active:active?JSON.parse(JSON.stringify(active)):null,time,night,due:{...due},completed,interrupted,resumeReturn,reliefLook,events:events.slice()}),
+  restore(s){if(s?.version!==1||s.active&&(!actors.has(s.active.id)||!actors.has(s.active.reliefId)))return false;time=Math.max(0,s.time||0);night=!!s.night;completed=Math.max(0,s.completed||0);interrupted=Math.max(0,s.interrupted||0);Object.assign(due,s.due||{});active=s.active?JSON.parse(JSON.stringify(s.active)):null;resumeReturn=!!s.resumeReturn;events.splice(0,events.length,...(s.events||[]));if(active?.choice?.facilityId)furniture.facilities.request(active.choice.facilityId,active.id);if(active?.phase==='preparing')board.holdWorkplace('kitchen',active.id);if(active?.covering&&active.id==='jp-omamori')dressRelief();if(active?.phase==='handoff')rebuildHandoff(actors.get(active.id),actors.get(active.reliefId),shiftFor(active.id));return true;},
   state:()=>({crew:crew.map(n=>n.station.id),nextWorkerId:nextWorker().station.id,dueIn:Math.max(0,due[nextWorker().station.id]-time),completed,interrupted,active:active?JSON.parse(JSON.stringify(active)):null,decisions:decisions.snapshot(),events:events.slice()}),
   dispose(){decisions.dispose();if(active)restoreRelief();for(const n of crew)release(n);active=null;},
  };

@@ -1,0 +1,9 @@
+// Real routine and small props only: interrupted projectile/hand-off state must
+// not launch a second shot or restart the other guard's patrol checkpoint.
+import assert from 'node:assert/strict';
+import {registerHooks} from 'node:module';import {pathToFileURL} from 'node:url';
+registerHooks({resolve(id,ctx,next){return id==='three'?{url:pathToFileURL(process.cwd()+'/source/vendor/three/build/three.module.js').href,shortCircuit:true}:next(id,ctx);}});
+const T=await import('three'),{createChinaArcheryRoutine}=await import('../source/game/china-archery-routine.js'),{CHINA_ARCHERY:A}=await import('../source/game/china-archery-court.js');
+const npcs=A.roles.map((id,i)=>{const root=new T.Group(),head=new T.Group(),hands=[new T.Group(),new T.Group()];const pelvis=new T.Group();pelvis.name='pelvis';root.userData={head,hands};root.add(head,pelvis,...hands);root.position.set(-17.65,A.floorY,18.45+i*1.35);return {station:{id},root,route:[],phase:0,breakAt:10,locomotion:{walkSpeed:2},animate(){}};});
+const make=()=>createChinaArcheryRoutine({npcs,lot:{group:new T.Group(),archery:true},planPath:()=>[],moveActor(){},poseContext:()=>({})});
+let flow=make();flow.update(.8,.8);const handoff=JSON.parse(JSON.stringify(flow.snapshot()));assert(handoff.phaseTime>0);flow.dispose();flow=make();assert(flow.restore(handoff));assert.equal(flow.state().phaseTime,handoff.phaseTime);assert.equal(flow.state().handoffs,handoff.handoffs);const flight={...handoff,phase:'flight',flightTime:.2,flightLane:0,start:[-17,1,18],end:[-24,1,18],flying:true,shots:[{actor:A.roles[0],lane:0,rangeClear:true}]};assert(flow.restore(flight));assert(flow.state().flying);flow.update(.1,1);assert.equal(flow.state().shots.length,1);assert(flow.state().flying);flow.update(.3,1.3);assert(!flow.state().flying);assert(flow.state().arrows[0]);assert.equal(flow.state().shots.length,1);flow.dispose();console.log('PASS guard handoff time and single in-flight arrow resume without launching again');

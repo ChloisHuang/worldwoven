@@ -6,12 +6,15 @@ const smooth=x=>{x=clamp(x);return x*x*(3-2*x);};
 const span=(p,a,b)=>smooth((p-a)/(b-a));
 const mix=(a,b,t)=>a+(b-a)*t;
 const turn=(a,b,t)=>a+Math.atan2(Math.sin(b-a),Math.cos(b-a))*t;
-export function createOnsenTransition({item,position,yaw,direction='enter',landing}) {
+export function createOnsenTransition({item,position,yaw,direction='enter',landing,saved}) {
  if(!item?.bathEntry)return null;
+ if(saved&&(!Array.isArray(saved.bank)||saved.bank.length!==3||!saved.bank.every(Number.isFinite)||!Number.isFinite(saved.bankYaw)||!Number.isFinite(saved.progress)))return null;
+ if(saved?.seatId===item.id){direction=saved.direction==='exit'?'exit':'enter';landing=saved.bank;yaw=saved.bankYaw;}
  const bank=(landing?.toArray?.()||landing||position?.toArray?.()||position||item.position).slice();
  const entry=item.bathEntry,seat=item.anchor,away=item.yaw+Math.PI;
  const bankYaw=direction==='enter'?yaw:away;
  let progress=direction==='enter'?0:1,velocity=direction==='enter'?1:-1,done=false;
+ if(saved?.seatId===item.id&&Number.isFinite(saved.progress)){progress=clamp(saved.progress);done=velocity<0?progress===0:progress===1;}
  function sample(){
   const p=progress,approach=span(p,.14,.27),sit=span(p,.27,.38),cross=span(p,.42,.73),inward=span(p,.73,.85),seatBlend=span(p,.85,1);
   const bankX=mix(bank[0],entry.east+.37,approach),x=mix(mix(bankX,mix(entry.east+.26,entry.east+.025,span(p,.56,.73)),sit),seat[0],inward),z=mix(bank[2],seat[2],span(p,0,.27));
@@ -28,6 +31,7 @@ export function createOnsenTransition({item,position,yaw,direction='enter',landi
  return {
   item,
   sample,
+  snapshot(){return {seatId:item.id,bank:bank.slice(),bankYaw,direction:velocity<0?'exit':'enter',progress};},
   update(dt){if(!done){progress=clamp(progress+velocity*Math.min(.1,Math.max(0,dt))/4.8);done=velocity<0?progress===0:progress===1;}return sample();},
   // Repeated E/movement is idempotent. Reverse the same checked corridor and
   // keep ownership until the bank endpoint; never snap a crossing to a seat.

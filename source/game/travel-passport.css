@@ -3,44 +3,20 @@
 .ww-passport-dialog{position:fixed;inset:0;margin:auto;padding:0;--passport-width:min(1080px,calc(100vw - 16px),calc((100dvh - 16px)*1.5384615385));width:var(--passport-width);height:calc(var(--passport-width)*.65);aspect-ratio:960/624;max-width:none;max-height:none;overflow:visible;border:0;border-radius:0;background:transparent;color:#514d3e;box-shadow:none;outline:none}
 .ww-passport-dialog[open]{display:block}.ww-passport-dialog::backdrop{background:#17352fe0;backdrop-filter:blur(3px)}
 .ww-passport-dialog[data-layout=portrait]{--passport-width:min(calc(100vw - 12px),calc((100dvh - 20px)*.7777777778));width:var(--passport-width);height:calc(var(--passport-width)*1.2857142857);aspect-ratio:560/720}
-.ww-passport-book{position:relative;width:100%;height:100%;aspect-ratio:inherit;perspective:1600px;isolation:isolate;touch-action:pan-y}
-.ww-passport-art,.ww-passport-motion,.ww-passport-controls{position:absolute;inset:0}.ww-passport-art,.ww-passport-motion{pointer-events:none}.ww-passport-art svg,.ww-passport-motion svg{display:block;width:100%;height:100%;overflow:visible}
-.ww-passport-art{z-index:1}.ww-passport-motion{z-index:2;perspective:1600px}.ww-passport-controls{z-index:3;pointer-events:none}
+.ww-passport-book{position:relative;width:100%;height:100%;aspect-ratio:inherit;isolation:isolate;touch-action:pan-y}
+.ww-passport-art,.ww-passport-controls{position:absolute;inset:0}.ww-passport-art{pointer-events:none}.ww-passport-art svg{display:block;width:100%;height:100%;overflow:visible}
+.ww-passport-art{z-index:1}.ww-passport-controls{z-index:3;pointer-events:none}
 .ww-passport-dialog .ww-passport-hotspot{position:absolute;display:block;min-width:44px;min-height:44px;box-sizing:border-box;margin:0;padding:0;border:0;border-radius:3px;box-shadow:none;background:transparent;color:transparent;font:inherit;cursor:pointer;pointer-events:auto;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .ww-passport-dialog .ww-passport-hotspot:hover{background:#8a7f5210}.ww-passport-dialog .ww-passport-hotspot[data-action=open]:hover{background:transparent}
 .ww-passport-dialog .ww-passport-hotspot:focus-visible{outline:2px solid #986738;outline-offset:-2px;background:#e6c07918}
 .ww-passport-sr{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 /* Original help/reference nodes stay live for the existing summary callbacks. */
 .ww-passport-dialog .ww-passport-notes[hidden]{display:none!important}
-/* A moving leaf contains the entire printed sheet, including its text. */
-.ww-passport-turn-leaf,.ww-passport-fold-paper,.ww-passport-cover-leaf{position:absolute;top:0;bottom:0;width:50%;transform-style:preserve-3d;backface-visibility:hidden;pointer-events:none}
-.ww-passport-leaf-art,.ww-passport-leaf-back{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden}
-.ww-passport-leaf-art>svg,.ww-passport-leaf-back>svg{position:absolute;top:0;width:200%;height:100%}
-.ww-passport-turn-leaf{backface-visibility:visible}
-.ww-passport-turn-leaf[data-side=right]{left:50%;transform-origin:left center;animation:ww-leaf-forward .48s cubic-bezier(.25,.6,.35,1) both}
-.ww-passport-turn-leaf[data-side=right] .ww-passport-leaf-art>svg{left:-100%}
-.ww-passport-turn-leaf[data-side=right] .ww-passport-leaf-back>svg{left:0}
-.ww-passport-turn-leaf[data-side=left]{left:0;transform-origin:right center;animation:ww-leaf-back .48s cubic-bezier(.25,.6,.35,1) both}
-.ww-passport-turn-leaf[data-side=left] .ww-passport-leaf-art>svg{left:0}
-.ww-passport-turn-leaf[data-side=left] .ww-passport-leaf-back>svg{left:-100%}
-.ww-passport-leaf-back{transform:rotateY(180deg)}
-.ww-passport-turn-leaf:after,.ww-passport-fold-paper:after{content:'';position:absolute;inset:4% 1% 6%;background:linear-gradient(90deg,#51472722,transparent);pointer-events:none}
-.ww-passport-cover-leaf{left:50%;transform-origin:left center}.ww-passport-cover-leaf .ww-passport-leaf-art{overflow:visible}.ww-passport-cover-leaf .ww-passport-leaf-art>svg{left:-50%}
-.is-unfolding>.ww-passport-art{animation:ww-paper-reveal .73s ease both}.is-unfolding .ww-passport-cover-leaf{animation:ww-cover-open .73s cubic-bezier(.25,.6,.3,1) both}
-.ww-passport-fold-underlay{position:absolute;inset:0;clip-path:inset(0 0 0 50%);animation:ww-paper-away .74s ease both}.ww-passport-fold-underlay .ww-passport-leaf-art>svg{left:0;width:100%}
-.ww-passport-fold-paper{left:0;transform-origin:right center;animation:ww-paper-fold .72s cubic-bezier(.25,.6,.3,1) both}.ww-passport-fold-paper .ww-passport-leaf-art>svg{left:0}
-.is-folding>.ww-passport-art{animation:ww-cover-reveal .74s ease both}.is-folding .ww-passport-cover-leaf{animation:ww-cover-close .74s cubic-bezier(.25,.6,.3,1) both}
+/* All physical occlusion and motion live in the product SVG, including the
+   rigid cover edge and both printed paper faces. CSS adds no hidden layers. */
 .is-putting-away{animation:ww-put-away .22s ease both}
-@keyframes ww-leaf-forward{0%{transform:rotateY(0)}100%{transform:rotateY(-180deg)}}
-@keyframes ww-leaf-back{0%{transform:rotateY(0)}100%{transform:rotateY(180deg)}}
-@keyframes ww-cover-open{0%{transform:translateX(-50%) rotateY(0);opacity:1}22%{transform:translateX(0) rotateY(0);opacity:1}90%{opacity:1}100%{transform:translateX(0) rotateY(-179deg);opacity:0}}
-@keyframes ww-paper-reveal{0%,10%{opacity:0}35%,100%{opacity:1}}
-@keyframes ww-paper-fold{0%{transform:rotateY(0);opacity:1}70%{transform:rotateY(178deg);opacity:1}100%{transform:rotateY(178deg);opacity:0}}
-@keyframes ww-paper-away{0%,55%{opacity:1}75%,100%{opacity:0}}
-@keyframes ww-cover-close{0%,15%{transform:translateX(0) rotateY(-178deg);opacity:0}25%{opacity:1}72%{transform:translateX(0) rotateY(0);opacity:1}100%{transform:translateX(-50%) rotateY(0);opacity:1}}
-@keyframes ww-cover-reveal{0%,98%{opacity:0}100%{opacity:1}}
 @keyframes ww-put-away{from{opacity:1;transform:none}to{opacity:0;transform:translateY(14px) scale(.94)}}
-@media(prefers-reduced-motion:reduce){.ww-passport-dialog *{animation:none!important;transition:none!important}.ww-passport-motion{display:none}}
+@media(prefers-reduced-motion:reduce){.ww-passport-dialog *{animation:none!important;transition:none!important}}
 /* An unframed passport icon; only the hit area is 44px. */
 .ww-passport-hud{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border:0!important;border-radius:0;background:transparent!important;box-shadow:none!important;color:#e6cc8b;line-height:1}
 .ww-passport-trigger-icon{display:grid;place-items:center;width:21px;height:28px;box-sizing:border-box;border:1px solid #cbb575;border-radius:2px 4px 4px 2px;background:#315d51;color:#e8cd89;box-shadow:inset 3px 0 #24453d;font-size:15px}

@@ -16,7 +16,7 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
  const seat=furniture.items.find(i=>i.kind==='seat'&&Math.hypot(i.center[0]-P.seatCenter[0],i.center[2]-P.seatCenter[2])<.05);
  if(!cook||!host||!guest||!seat)return null;
  const actors=[cook,host,guest],owned=new Set(actors),routes=new Map(),history=[],props=propsFactory(lot.group),navigation={bounds:lot.bounds,multilevel:false};
- const life=createLifeDecisions({worldSeed,actorIds:[P.guest],saved:saved.life,onChange:life=>saveState({life})});
+ const life=createLifeDecisions({worldSeed,actorIds:[P.guest],saved:saved.continuity?.life||saved.life,onChange:life=>saveState({life})});
  let time=0,phase=0,serial=0,order=null,intent=false,choice=null,choiceTime=0,nextChoice=8,disposed=false,conversation=null,stationBusy=null;
  const record=(event,extra={})=>{history.push({event,time:+time.toFixed(2),orderId:order?.id,customer:order?.customer,...extra});if(history.length>64)history.shift();};
  const near=(n,p,r=.07)=>gap(n,p)<r;
@@ -115,6 +115,8 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
    for(const n of actors){const label=n.label?.querySelector?.('small');if(label)label.textContent=order?LABEL[order.stage]:n===guest?(choice?.id==='garden'?'散步看看宫苑':n.station.npcLabel):n.station.npcLabel;}
    props.update(order,{host,cook,customer:customer()},phase);
   },
+  snapshot:()=>({version:1,time,phase,serial,order:copy(order),intent,choice:copy(choice),choiceTime,nextChoice,history:copy(history),life:life.snapshot()}),
+  restore(s){if(s?.version!==1||s.order&&(!LABEL[s.order.stage]&&s.order.stage!=='recalling'||s.order.seatId!==seat.id))return false;time=Math.max(0,s.time||0);phase=Math.max(0,s.phase||0);serial=Math.max(0,s.serial||0);order=copy(s.order);intent=!!s.intent;choice=copy(s.choice);choiceTime=Math.max(0,s.choiceTime||0);nextChoice=Math.max(time,s.nextChoice||0);history.splice(0,history.length,...copy(s.history||[]));routes.clear();for(const n of actors)n.route=[];if(order?.customer==='guest'){furniture.facilities.reserve(seat.id,P.guest,{purpose:'afternoon-tea'});if(guest.serviceMount)furniture.facilities.occupy(seat.id,P.guest);}props.update(order,{host,cook,customer:customer()},phase);return true;},
   state:()=>({order:order?copy(order):null,intent,phase,history:copy(history),props:props.state(),seatId:seat.id,life:life.snapshot()}),
   dispose(){if(disposed)return;disposed=true;intent=false;order=null;for(const n of actors){n.route=[];n.serviceMount=null;if(n.poseContext){n.poseContext.handoff=false;n.poseContext.archery=null;}}furniture.releaseActor(P.guest);life.dispose();props.dispose();}
  };

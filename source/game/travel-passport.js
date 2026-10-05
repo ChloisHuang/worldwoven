@@ -1,4 +1,4 @@
-import {buildPassportSpreads,renderPassportBook} from './travel-passport-art.js';
+import {buildPassportSpreads,renderPassportBook,renderPassportMotion} from './travel-passport-art.js';
 // A fictional, read-only travel booklet. Existing progress is the only source
 // of earned marks; visiting or opening this UI never writes a date or a stamp.
 const STYLE = new URL('./travel-passport.css', import.meta.url).href;
@@ -71,27 +71,30 @@ export function createTravelPassport({mount,trigger:externalTrigger,helpContent,
   const stamps=Object.fromEntries(PASSPORT_REGIONS.map(r=>[r.id,travelStampSVG(r.id)]));
   const reducedMotion=()=>doc.defaultView?.matchMedia?.('(prefers-reduced-motion: reduce)').matches??true;
   const compact=()=>{const win=doc.defaultView;return !!(win?.innerWidth&&win?.innerHeight&&win.innerWidth/win.innerHeight<.8);};
-  let ui=null,opened=false,disposed=false,restoreHost=false,priorFocus=null,current='closed',spreads=[],closing=false,closingFrom='closed',closeTimer=null,motionTimer=null;
-  const cancelMotion=()=>{if(motionTimer!==null){clearTimeout(motionTimer);motionTimer=null;}if(ui){ui.motion.replaceChildren();ui.book.className='ww-passport-book';}};
+  let ui=null,opened=false,disposed=false,restoreHost=false,priorFocus=null,current='closed',spreads=[],closing=false,closingFrom='closed',closeTimer=null,motionTimer=null,motionState=null,pendingTurn=null,pendingSteps=[],pendingClose=false;
+  const stopFrame=()=>{if(motionTimer!==null){if(doc.defaultView?.cancelAnimationFrame)doc.defaultView.cancelAnimationFrame(motionTimer);else clearTimeout(motionTimer);motionTimer=null;}};
+  const cancelMotion=()=>{stopFrame();motionState=null;pendingTurn=null;pendingSteps=[];pendingClose=false;if(ui){ui.book.className='ww-passport-book';if(ui.scene)ui.art.innerHTML=ui.scene.svg;}};
   const cancelClose=()=>{if(closeTimer!==null){clearTimeout(closeTimer);closeTimer=null;}closing=false;};
   function focusAction(action,value){const el=ui.buttons.find(b=>b.dataset.action===action&&(value==null||b.dataset.value===value));el?.focus({preventScroll:true});}
-  function createLeaf(svg,cls,side='right'){
-    const leaf=make('div',cls),face=make('div','ww-passport-leaf-art');leaf.dataset.side=side;face.innerHTML=svg;leaf.append(face);ui.motion.append(leaf);return leaf;
-  }
-  function animateBook(previous,next,kind,direction='forward'){
-    cancelMotion();if(reducedMotion())return;
+  function animateBook(from,to,kind,direction='forward',startProgress=0){
+    stopFrame();motionState=null;if(reducedMotion()){ui.art.innerHTML=to.svg;return;}
+    const duration=kind==='turning'?540:760,start=Date.now()-duration*startProgress;
+    const state={from,to,kind,direction,progress:startProgress};motionState=state;
     ui.book.className='ww-passport-book is-'+kind;
-    if(kind==='unfolding')createLeaf(previous,'ww-passport-cover-leaf');
-    else if(kind==='folding'){
-      createLeaf(previous,'ww-passport-fold-underlay');
-      createLeaf(previous,'ww-passport-fold-paper','left');
-      createLeaf(next,'ww-passport-cover-leaf');
-    }else{
-      const leaf=createLeaf(previous,'ww-passport-turn-leaf',direction==='forward'?'right':'left');
-      leaf.dataset.direction=direction;
-      const back=make('div','ww-passport-leaf-back');back.innerHTML=next;leaf.append(back);
+    function frame(){
+      if(motionState!==state)return;
+      const progress=Math.min(1,(Date.now()-start)/duration);state.progress=progress;
+      ui.art.innerHTML=renderPassportMotion({from,to,kind,direction,progress});
+      if(progress<1){motionTimer=doc.defaultView?.requestAnimationFrame?doc.defaultView.requestAnimationFrame(frame):setTimeout(frame,16);return;}
+      motionTimer=null;motionState=null;ui.book.className='ww-passport-book';
+      if(pendingClose){pendingClose=false;requestClose();}
+      else if(pendingTurn){const next=pendingTurn;pendingTurn=null;turnTo(...next);}
+      else if(pendingSteps.length)turnBy(pendingSteps.shift());
     }
-    motionTimer=setTimeout(cancelMotion,kind==='turning'?490:760);
+    // The old surface is the first visible frame. Destination ink never gets
+    // painted as an uncovered static spread before the physical turn starts.
+    ui.art.innerHTML=renderPassportMotion({from,to,kind,direction,progress:startProgress});
+    motionTimer=doc.defaultView?.requestAnimationFrame?doc.defaultView.requestAnimationFrame(frame):setTimeout(frame,16);
   }
   function render(){
     const view=travelPassportView(getProgress(),getClock()),isCompact=compact();
@@ -101,12 +104,12 @@ export function createTravelPassport({mount,trigger:externalTrigger,helpContent,
     let portrait=null;if(spread&&(spread.left.type==='identity'||spread.right.type==='identity')){try{portrait=getPortrait();}catch{portrait=null;}}
     const scene=renderPassportBook({view,portrait,stamps,cover:COVER,spread,index:Math.max(index,0),count:spreads.length,compact:isCompact});
     ui.dialog.dataset.layout=isCompact?'portrait':'landscape';ui.dialog.dataset.page=current;
-    ui.art.innerHTML=scene.svg;ui.transcript.textContent=scene.transcript;ui.controls.replaceChildren();ui.buttons=[];
+    ui.scene=scene;ui.art.innerHTML=scene.svg;ui.transcript.textContent=scene.transcript;ui.controls.replaceChildren();ui.buttons=[];
     for(const hot of scene.hotspots){
       const el=hot.action==='link'?make('a','ww-passport-hotspot'):button(hot.label,'ww-passport-hotspot');
       el.dataset.action=hot.action;if(hot.value)el.dataset.value=hot.value;
       el.setAttribute('aria-label',hot.label);if(hot.current)el.setAttribute('aria-current','page');
-      if(hot.action==='link'){el.href=hot.href;el.target='_blank';el.rel='noopener';el.append(make('span','ww-passport-sr',hot.label));}
+      if(hot.action==='link'){el.href=hot.href;el.target='_blank';el.rel='noopener';el.onclick=e=>{if(motionState)e.preventDefault();};el.append(make('span','ww-passport-sr',hot.label));}
       else el.onclick=()=>act(hot.action,hot.value);
       el.style.left=(hot.x/scene.width*100)+'%';el.style.top=(hot.y/scene.height*100)+'%';el.style.width=(hot.w/scene.width*100)+'%';el.style.height=(hot.h/scene.height*100)+'%';
       ui.controls.append(el);ui.buttons.push(el);
@@ -114,12 +117,14 @@ export function createTravelPassport({mount,trigger:externalTrigger,helpContent,
   }
   function turnTo(id,focus='next',focusValue){
     if(!opened||closing||id===current)return;
-    const old=current,oldIndex=spreads.findIndex(p=>p.id===old),oldSvg=ui.art.innerHTML;
+    if(motionState){pendingTurn=[id,focus,focusValue];return;}
+    const old=current,oldIndex=spreads.findIndex(p=>p.id===old),oldScene=ui.scene;
     current=id;if(spreads.find(p=>p.id===id)?.hasNotes)onHelp();render();
-    animateBook(oldSvg,ui.art.innerHTML,id==='closed'?'folding':old==='closed'?'unfolding':'turning',spreads.findIndex(p=>p.id===id)>oldIndex?'forward':'back');
+    animateBook(oldScene,ui.scene,id==='closed'?'folding':old==='closed'?'unfolding':'turning',spreads.findIndex(p=>p.id===id)>oldIndex?'forward':'back');
     focusAction(id==='closed'?'open':focus,focusValue);
   }
   function turnBy(delta){
+    if(motionState&&!closing){if(pendingSteps.length<8)pendingSteps.push(delta);return;}
     if(current==='closed'){if(delta>0)turnTo(spreads[0].id);return;}
     const index=spreads.findIndex(p=>p.id===current),next=spreads[index+delta];turnTo(next?.id||'closed',delta>0?'next':'previous');
   }
@@ -134,10 +139,10 @@ export function createTravelPassport({mount,trigger:externalTrigger,helpContent,
   function ensureUI(){
     if(ui)return;
     const dialog=make('dialog','ww-passport-dialog');dialog.setAttribute('aria-label','四方旅行护照 · 游戏旅行册');
-    const book=make('div','ww-passport-book'),art=make('div','ww-passport-art'),controls=make('div','ww-passport-controls'),motion=make('div','ww-passport-motion'),transcript=make('p','ww-passport-sr');
-    art.setAttribute('aria-hidden','true');motion.setAttribute('aria-hidden','true');transcript.setAttribute('aria-live','polite');
-    book.append(art,motion,controls,transcript);dialog.append(book);if(helpContent){helpContent.hidden=true;dialog.append(helpContent);}doc.body.append(dialog);
-    ui={dialog,book,art,motion,controls,transcript,buttons:[]};
+    const book=make('div','ww-passport-book'),art=make('div','ww-passport-art'),controls=make('div','ww-passport-controls'),transcript=make('p','ww-passport-sr');
+    art.setAttribute('aria-hidden','true');transcript.setAttribute('aria-live','polite');
+    book.append(art,controls,transcript);dialog.append(book);if(helpContent){helpContent.hidden=true;dialog.append(helpContent);}doc.body.append(dialog);
+    ui={dialog,book,art,controls,transcript,buttons:[],scene:null};
     let swipe=null;
     book.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch'||e.target.closest?.('button,a'))return;swipe={x:e.clientX,y:e.clientY};});
     book.addEventListener('pointercancel',()=>{swipe=null;});
@@ -154,7 +159,7 @@ export function createTravelPassport({mount,trigger:externalTrigger,helpContent,
   function resize(){if(opened){const active=doc.activeElement,action=active?.dataset?.action,value=active?.dataset?.value;cancelMotion();render();if(action)focusAction(action,value);}}
   function open(){
     if(disposed)return;
-    if(opened){if(closing){cancelClose();cancelMotion();current=closingFrom;render();focusAction(current==='closed'?'open':'close');}return;}
+    if(opened){if(closing){const prior=motionState;cancelClose();stopFrame();motionState=null;pendingClose=false;pendingTurn=null;pendingSteps=[];current=closingFrom;render();if(prior?.kind==='folding')animateBook(prior.to,ui.scene,'unfolding','forward',1-prior.progress);else ui.book.className='ww-passport-book';focusAction(current==='closed'?'open':'close');}return;}
     ensureUI();priorFocus=doc.activeElement;restoreHost=mount?.tagName==='DIALOG'&&mount.open;
     if(restoreHost)mount.close();onOpen();current='closed';render();ui.dialog.showModal();opened=true;trigger.setAttribute('aria-expanded','true');focusAction('open');
   }
@@ -166,10 +171,12 @@ export function createTravelPassport({mount,trigger:externalTrigger,helpContent,
     restoreHost=false;onClose();
   }
   function requestClose(){
-    if(!opened||closing)return;closingFrom=current;
+    if(!opened||closing)return;
+    if(motionState){pendingTurn=null;pendingSteps=[];pendingClose=true;return;}
+    closingFrom=current;
     if(reducedMotion()){close();return;}
-    closing=true;const oldSvg=ui.art.innerHTML;
-    if(current!=='closed'){current='closed';render();animateBook(oldSvg,ui.art.innerHTML,'folding');closeTimer=setTimeout(close,780);}
+    closing=true;const oldScene=ui.scene;
+    if(current!=='closed'){current='closed';render();animateBook(oldScene,ui.scene,'folding');closeTimer=setTimeout(close,780);}
     else{cancelMotion();ui.book.className='ww-passport-book is-putting-away';closeTimer=setTimeout(close,230);}
   }
   function close(){cancelClose();cancelMotion();if(ui?.dialog.open){ui.dialog.close();finishClose();}}
