@@ -11,8 +11,8 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.81-public, 2026-10-05
-Verified published Sites source commit: 17b3c5a6d540bbb17f64c03ddf3c62b78eef7b8b
+Published release: R16.82-public, 2026-10-05
+Verified published Sites source commit: 76d838fd990bfbacf1bb2e2473e7270f54d85f4c
 
 ## Working rules
 
@@ -160,3 +160,5 @@ R16.79 opens the locally reviewed pharmacy assistant role: real symptomatic exis
 R16.80 opens the French music-reception bank/exchange desk with Claire. Local French wage withdrawals and exchanges use the same existing currency buckets, quotes, interest and transaction receipts. China defaults are preserved. One actual France route and transaction chain plus normal scene images passed; real browser/iOS verification remains open.
 
 R16.81 adds Japan’s public reception exchange desk and stable adult teller, retaining the original14 staff, performers and bath/dining routes. It uses the shared bank accounts, original Japanese vouchers and unchanged quotes/interest. The entry/transaction/exit route passed with inspected normal views; French wage text now points to its local bank.
+
+R16.82 opens the Egyptian public-court ticket exchange desk and adult teller, using the original local vouchers and shared bank accounts, quotes and interest. The desert-entry/counter/transaction/exit route and normal scene views passed. All four regions now have physical bank counters; full local economies and bank careers remain unfinished.
