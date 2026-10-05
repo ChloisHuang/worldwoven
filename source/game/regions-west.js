@@ -1296,10 +1296,10 @@ export function buildFrance({pack=true}={}){
   for(let i=0;i<3;i++)box(-18.35,1.60+i*.09,-12.52,.61,.075,.47,[C.white,C.sage,C.white][i]);
   block(-19.0,1.46,-7.45,1.37,2.45,.71,C.ivory);for(const x of [-19.31,-18.69]){box(x,1.49,-7.06,.52,2.13,.05,C.sage);box(x,1.52,-7.015,.046,.15,.05,C.gold);}
   block(-24.17,.65,-7.66,.91,.85,1.3,C.ivory);G.sphere(group,-24.17,1.00,-7.51,.47,C.white,1,.20,1.3);box(-24.17,1.3,-8.1,.87,1.1,.27,C.white);
-  // Retain this WC and its sage screen. The old long screen sealed the
-  // fixture against the tub/wall; a shorter panel 20cm east opens a real
-  // south/east approach without moving the bath or the linen wardrobe.
-  block(-22.9,1.47,-8.05,.12,2.43,.80,C.sage);for(const z of [-8.415,-7.685])box(-22.88,1.48,z,.19,2.58,.075,C.gold);
+  // Retain this WC and rotate its full sage screen behind the cistern.
+  // The old east-side screen sealed the fixture against the tub/wall; this
+  // local rearrangement leaves a real east approach at the full route radius.
+  block(-23.9,1.47,-8.36,1.91,2.43,.12,C.sage);for(const x of [-24.81,-22.99])box(x,1.48,-8.34,.075,2.58,.19,C.gold);
   // The existing high porcelain seat needs a small supported footrest.
   const toiletFootrest=box(-24.17,.3765,-7.13,.88,.225,.45,C.wood);toiletFootrest.name='Royal bath WC footrest';
   const toiletFootrestSolid={minX:-24.61,maxX:-23.73,minY:.264,maxY:.489,minZ:-7.355,maxZ:-6.905,franceToiletFootrest:true};
@@ -1360,7 +1360,7 @@ export function buildFrance({pack=true}={}){
   for(const x of [-29.5,29.5]){block(x,.56,0,.36,1.08,79,C.ivory);for(let z=-38;z<39;z+=1.5)box(x,1.26,z,.15,.42,.15,C.gold);box(x,1.50,0,.16,.08,78,C.green);}
   for(const z of [-39.5,39.5])for(const s of [-1,1]){block(s*16.7,.56,z,25.6,1.08,.36,C.ivory);box(s*16.7,1.50,z,25.7,.08,.16,C.green);}
   for(const x of [-3.7,3.7])for(const z of [-39.3,39.3]){block(x,1.50,z,.93,3,.93,C.white);G.vessel(group,x,3.05,z,C.gold,.8);}
-  explorationTargets.push({id:'fr-royal-bath-toilet',name:'白金沐浴室 · 私密净室',position:[-23.34,.264,-7.17]},{id:'royal-bath',name:'白金沐浴室与盥洗间',position:[-20.2,.23,-8.8]},{id:'orangery',name:'冬季柑橘暖房',position:[-21,.23,.6]},{id:'dining-room',name:'皇家瓷器餐厅',position:[18.0,.23,-10]},{id:'music-room',name:'绿锦音乐接待厅',position:[19.2,.23,-1.3]},{id:'west-service-gallery',name:'西翼服务柱廊',position:[-14,.23,-9.5]},{id:'east-state-gallery',name:'东翼仪典柱廊',position:[14,.23,-5]},{id:'south-promenade',name:'王宫入场大道',position:[0,0,32]},{id:'west-rose-garden',name:'西玫瑰花园游径',position:[-16,0,26]},{id:'east-rose-garden',name:'东玫瑰花园游径',position:[16,0,26]},{id:'north-pools',name:'北侧水镜花园主轴',position:[0,0,-27]},{id:'north-gate',name:'北门长景',position:[0,0,-36]});
+  explorationTargets.push({id:'fr-royal-bath-toilet',name:'白金沐浴室 · 私密净室',position:[-23.15,.264,-7.35]},{id:'royal-bath',name:'白金沐浴室与盥洗间',position:[-20.2,.23,-8.8]},{id:'orangery',name:'冬季柑橘暖房',position:[-21,.23,.6]},{id:'dining-room',name:'皇家瓷器餐厅',position:[18.0,.23,-10]},{id:'music-room',name:'绿锦音乐接待厅',position:[19.2,.23,-1.3]},{id:'west-service-gallery',name:'西翼服务柱廊',position:[-14,.23,-9.5]},{id:'east-state-gallery',name:'东翼仪典柱廊',position:[14,.23,-5]},{id:'south-promenade',name:'王宫入场大道',position:[0,0,32]},{id:'west-rose-garden',name:'西玫瑰花园游径',position:[-16,0,26]},{id:'east-rose-garden',name:'东玫瑰花园游径',position:[16,0,26]},{id:'north-pools',name:'北侧水镜花园主轴',position:[0,0,-27]},{id:'north-gate',name:'北门长景',position:[0,0,-36]});
   group.userData.interiorRooms.push({id:'royal-bath',name:'白金沐浴室',minX:-25,maxX:-17,minZ:-13.5,maxZ:-6.6,ceiling:5.25},{id:'orangery',name:'冬季柑橘暖房',minX:-25,maxX:-17,minZ:-6.6,maxZ:3.5,ceiling:5.25},{id:'dining-room',name:'皇家瓷器餐厅',minX:17,maxX:25,minZ:-13.5,maxZ:-6.6,ceiling:5.25},{id:'music-room',name:'绿锦音乐接待厅',minX:17,maxX:25,minZ:-6.6,maxZ:3.5,ceiling:5.25});
   group.userData.facilities=[{kind:'entry/reception',location:'front portico, state gallery, music reception'},{kind:'cooking',location:'west rear royal pastry kitchen'},{kind:'dining',location:'east rear formal dining room with6covers; garden tea loggia'},{kind:'sleeping',location:'east front canopy bedroom'},{kind:'bathing/toilet',location:'west rear service wing; tub, washbasin, screenedWC, towels'},{kind:'storage',location:'bath linen cabinet, kitchen cabinets, salon library, dining sideboard'},{kind:'service circulation',location:'kitchen to west service gallery to bath/orangery; bedroom/art wing to east dining/music wing'}];
 

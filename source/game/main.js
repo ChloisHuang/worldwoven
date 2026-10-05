@@ -378,7 +378,7 @@ function doInteraction(){if(interactionMenuOpen()||!player)return;if(activeDaily
 function startInteraction(station,{lessonId=null}={}){if(interactionMenuOpen())return;if(station.furniture){startFurniture(station);return;}const current=resolvePlayerIntent(station);
  if(!current||station.intentKey&&station.intentKey!==current.intentKey||!nearbyInteraction(current,player.root.position,{radius:current.executionRadius??.016,clear:nearbyInteractionClear})){path=[];targetStation=null;pendingInteraction=null;toast('当前动作已变化，请重新选择');return;}
  station=current;path=[];targetStation=null;pendingInteraction=null;formalCareers.cancelLearning(studyTicket);studyTicket=null;
- if(['china-daily-toilet','japan-daily-toilet','france-daily-toilet'].includes(station.provider)){activeDailyToilet()?.executeIntent(station);return;}
+ if(['china-daily-toilet','japan-daily-toilet','france-daily-toilet'].includes(station.provider)){const started=activeDailyToilet()?.executeIntent(station);if(started&&station.provider==='france-daily-toilet')yaw=Math.PI/2;return;}
  if(station.provider==='china-tavern-service'){chinaService.executeIntent(station);return;}
  if(station.provider==='france-tea-employment'){franceTeaEmployment.executeIntent(station);return;}
  if(station.provider==='china-clinic-employment'){chinaClinicEmployment.executeIntent(station);return;}
