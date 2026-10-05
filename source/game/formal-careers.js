@@ -1,3 +1,4 @@
+import {emptyApplications, restoreApplications, careerInterview} from './career-applications.js';
 import {STUDY_SOURCES, studyLesson, defaultStudyLesson} from './study-lessons.js';
 // Fictional finite vacancies, independent of the six existing world NPCs.
 export const COURT_CLERK_ROLE = Object.freeze({
@@ -38,7 +39,7 @@ const empty = () => ({version: 3, revision: 0, skills: {ritual: 0, writing: 0, g
   lastDuty: null, lastPaidDay: null, daily: {day: null, ritual: 0, writing: 0, gardening: 0, art: 0},
   learning: Object.fromEntries(STUDY_SOURCES.map(source => [source, emptyStudy()])),
   lowerWork: {'cn-tavern-labor': 0, 'fr-garden-labor': 0}, performance: 0, promotionProgress: 0,
-  lastEvaluatedDay: null, lastEvaluation: null});
+  lastEvaluatedDay: null, lastEvaluation: null, applications: emptyApplications()});
 
 function validWorkReceipt(source,receiptId){const m=typeof receiptId==='string'&&new RegExp('^'+source+'-([1-9][0-9]*)$').exec(receiptId);return !!m&&integer(Number(m[1]));}
 
@@ -130,7 +131,7 @@ function restore(saved, roleMap, slotMap) {
     !duty || review.day > duty.day || review.day === duty.day && (review.slotId !== duty.slotId ||
       (review.positive ? !['ready', 'paid'].includes(duty.stage) || duty.wage !== review.wage : duty.stage !== 'missed'))) throw Error('invalid-career-state');
   if (duty && ['ready', 'paid'].includes(duty.stage) && (!review || review.day !== duty.day || !review.positive)) throw Error('invalid-career-state');
-  return {version: 3, revision: saved.revision, skills: {...saved.skills},
+  return {version: 3, revision: saved.revision, applications: restoreApplications(saved.applications, roleMap, slotMap), skills: {...saved.skills},
     tenure: saved.tenure === null ? null : {roleId: saved.tenure.roleId, slotId: saved.tenure.slotId,
       sinceDay: saved.tenure.sinceDay, sinceHour: saved.tenure.sinceHour},
     lastDuty: duty === null ? null : {roleId: duty.roleId, slotId: duty.slotId, day: duty.day, stage: duty.stage,
@@ -156,7 +157,7 @@ function restore(saved, roleMap, slotMap) {
  * Missing bank credit support locks settlement only; cash is never a fallback.
  * No passive simulation or wages. Failed paid-state cleanup keeps ready intact.
  */
-export function createFormalCareers({saved, saveState, creditWageToBank, getClock,
+export function createFormalCareers({saved, saveState, creditWageToBank, getClock, worldSeed=1, getHiringContext=()=>({}),
   roles = FORMAL_CAREER_ROLES, slots = FORMAL_CAREER_SLOTS} = {}) {
   if (typeof saveState !== 'function' || typeof getClock !== 'function') {
     throw new TypeError('formal careers require synchronous saveState and getClock');
@@ -176,7 +177,7 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     if (!object(clock) || !integer(clock.day) || !Number.isFinite(clock.hour) || clock.hour < 0 || clock.hour >= 24 ||
       !Number.isFinite(clock.seconds) || clock.seconds < 0) return null;
     const days = [current.lastDuty?.day, current.tenure?.sinceDay, current.lastPaidDay, current.daily.day, current.lastEvaluatedDay,
-      ...Object.values(current.learning).map(study => study.issuedDay)].filter(day => day != null);
+      ...Object.values(current.learning).map(study => study.issuedDay), ...Object.values(current.applications.byRole).map(result=>result.day)].filter(day => day != null);
     if (days.some(day => day > clock.day) || lastClock &&
       (clock.day < lastClock.day || clock.day === lastClock.day && clock.hour < lastClock.hour)) return null;
     return clock;
@@ -241,15 +242,37 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     if (!slot) reasons.push('no-vacancy');
     return reasons.length ? {ok: false, code: 'ineligible', reasons} : {ok: true, slotId: slot.id};
   }
+  function applicationResult(roleId) {
+    const id=roleId??lastApplication?.roleId??current.applications.lastRoleId;
+    return copy(lastApplication?.roleId===id?lastApplication:current.applications.byRole[id]?{...current.applications.byRole[id],saved:true}:null);
+  }
+  function applicationAvailability(roleId = COURT_CLERK_ROLE.id, applicant = {}) {
+    const check=eligibility(roleId,applicant),clock=readClock(),previous=current.applications.byRole[roleId];
+    if(clock&&previous?.day===clock.day)return {ok:false,code:'already-applied-today',reasons:['already-applied-today'],nextDay:clock.day+1};
+    return check;
+  }
   function apply(roleId = COURT_CLERK_ROLE.id, applicant = {}) {
-    const finish = result => {lastApplication = {roleId, ...copy(result)}; return result;};
+    const finish = result => {lastApplication = {roleId, ...copy(result),saved:false}; return result;};
     const blocked = allowed(); if (blocked) return finish(blocked);
-    const eligible = eligibility(roleId, applicant);
-    if (!eligible.ok) return finish(failure(eligible.code, eligible.reasons));
+    const role=roleMap.get(roleId);if(!role)return finish(failure('unknown-role'));
     const clock = now(); if (!clock) return finish(failure('invalid-clock'));
-    const slot = slotMap.get(eligible.slotId);
-    const result = persist({...current, tenure: {roleId, slotId: slot.id, sinceDay: clock.day, sinceHour: clock.hour}});
-    return finish(result.ok ? {...result, tenure: copy(current.tenure)} : result);
+    const previous=current.applications.byRole[roleId];
+    if(previous?.day===clock.day){lastApplication={...copy(previous),saved:true};return failure('already-applied-today');}
+    const eligible = eligibility(roleId, applicant);
+    let interview=null,tenure=null,result;
+    if(!eligible.ok)result={ok:false,code:eligible.code,reasons:[...eligible.reasons]};
+    else{
+      let context;try{context=getHiringContext(role)||{};}catch{return finish(failure('hiring-context-unavailable'));}
+      if(role.id===COURT_CLERK_ROLE.id)context={...context,recruiterTraits:{conscientiousness:COURT_SUPERVISOR.conscientiousness,...context.recruiterTraits}};
+      interview=careerInterview({role,skills:current.skills,performance:current.performance,context,worldSeed,day:clock.day});
+      if(interview.roll<interview.chance){tenure={roleId,slotId:eligible.slotId,sinceDay:clock.day,sinceHour:clock.hour};result={ok:true,tenure:copy(tenure)};}
+      else result={ok:false,code:'interview-rejected',reasons:['interview-rejected']};
+    }
+    const receipt={roleId,ok:result.ok,code:result.ok?'approved':result.code,reasons:result.reasons||[],day:clock.day,hour:clock.hour,
+      checked:{ageYears:Number.isFinite(applicant.ageYears)&&applicant.ageYears>=0?applicant.ageYears:null,skills:Object.fromEntries(Object.keys(role.skillRequirements).map(key=>[key,current.skills[key]]))},interview,tenure};
+    const saved=persist({...current,...(tenure?{tenure}:{}),applications:{lastRoleId:roleId,byRole:{...current.applications.byRole,[roleId]:receipt}}});
+    if(!saved.ok)return finish(saved);
+    lastApplication=null;lastError=result.ok?null:result.code;return result;
   }
   function resign() {
     const blocked = allowed(); if (blocked) return blocked;
@@ -443,6 +466,6 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     canContinueLabor:receiptId=>{const d=current.lastDuty;let c;try{c=getClock();}catch{return false;}return !loadError&&d?.workReceiptId===receiptId&&(d.stage==='inspection'||d.stage==='working'&&d.day===c?.day);},
     currentRole:()=>copy(roleMap.get(current.tenure?.roleId)||null),
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&slot.holderId===null&&slot.id!==current.tenure?.slotId).length})),
-    eligibility, beginDutyAvailability, applicationResult:()=>copy(lastApplication),
+    eligibility, applicationAvailability, beginDutyAvailability, applicationResult,
     laborEvent, apply, resign, learningTicket, cancelLearning, completeLearning, completedLowerWork, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
 }

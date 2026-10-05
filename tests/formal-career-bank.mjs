@@ -23,7 +23,7 @@ function load(day = 1, hour = 8) {
   }});
   bank.subscribeCommitted(transaction => events.push({transaction,
     wasDurable: JSON.stringify(durable.currency.transactions.at(-1)) === JSON.stringify(transaction)}));
-  const careers = createFormalCareers({saved: saved.careers, getClock: () => clock,
+  const careers = createFormalCareers({worldSeed:785,saved: saved.careers, getClock: () => clock,
     creditWageToBank: bank.creditWageToBank, saveState: next => {
       if (failures.career) return false;
       save('careers', next);

@@ -5,7 +5,7 @@ import {createFormalCareers} from '../source/game/formal-careers.js';
 import {studyOptions,studySkillProgress,studyJobLinks} from '../source/game/study-lessons.js';
 import {createStudyMenu} from '../source/game/study-menu.js';
 const clone=structuredClone;
-function fixture(saved){const clock={day:1,hour:8,seconds:0},store={saved},flags={fail:false};const careers=createFormalCareers({saved,getClock:()=>clock,saveState:s=>{if(flags.fail)return false;store.saved=clone(s);},creditWageToBank:()=>({ok:true})});return{clock,store,flags,careers};}
+function fixture(saved){const clock={day:1,hour:8,seconds:0},store={saved},flags={fail:false};const careers=createFormalCareers({worldSeed:785,saved,getClock:()=>clock,saveState:s=>{if(flags.fail)return false;store.saved=clone(s);},creditWageToBank:()=>({ok:true})});return{clock,store,flags,careers};}
 const f=fixture();
 assert.deepEqual(studyOptions('cn-rest').map(o=>o.skill),['ritual','writing','gardening','art']);
 assert.deepEqual(studyOptions('cn-calligraphy').map(o=>o.action),['calligraphy']);

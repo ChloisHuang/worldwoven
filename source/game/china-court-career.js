@@ -5,7 +5,7 @@ import {nearbyInteraction} from './player-interaction-intents.js';
 
 const FORMAL = new Set(['kneeling','report','response','dismissal','rising']);
 const copy = value => JSON.parse(JSON.stringify(value));
-const REASONS={'bank-unavailable':'钱庄入账暂不可用，已完成工资会保留并自动重试','adult-required':'需年满18岁','ritual-required':'礼仪经验需达到2点','writing-required':'文书经验需达到2点','no-vacancy':'当前没有可申请的空缺','already-employed':'你已有长期职位','save-failed':'登记没能保存，请稍后重试','async-save-unsupported':'登记没能保存，请稍后重试','outside-arrival-window':'请在06:00至11:30之间提前到班','court-postponed':'本日朝会已延期，不计薪也不记缺勤差评','duty-missed':'本日朝班已经错过，下一模拟日再来','duty-evaluated':'本日履职已结算或评价','wage-ready':'先等已完成的工资存入钱庄，再办理离职','work-incomplete':'本轮工作尚未完整完成','not-employed':'请先在铨录登记案申请任职','invalid-career-state':'职业存档暂时无法核对，请保留存档后再试'};
+const REASONS={'interview-rejected':'本次面谈未录用，结果已保存，下一模拟日可再申请','already-applied-today':'本岗位今天已提交过申请，请查看已保存结果，下一模拟日再来','bank-unavailable':'钱庄入账暂不可用，已完成工资会保留并自动重试','adult-required':'需年满18岁','ritual-required':'礼仪经验需达到2点','writing-required':'文书经验需达到2点','no-vacancy':'当前没有可申请的空缺','already-employed':'你已有长期职位','save-failed':'登记没能保存，请稍后重试','async-save-unsupported':'登记没能保存，请稍后重试','outside-arrival-window':'请在06:00至11:30之间提前到班','court-postponed':'本日朝会已延期，不计薪也不记缺勤差评','duty-missed':'本日朝班已经错过，下一模拟日再来','duty-evaluated':'本日履职已结算或评价','wage-ready':'先等已完成的工资存入钱庄，再办理离职','work-incomplete':'本轮工作尚未完整完成','not-employed':'请先在铨录登记案申请任职','invalid-career-state':'职业存档暂时无法核对，请保留存档后再试'};
 
 // A world adapter only: every journey uses the controller's shared intent
 // planner. This module neither moves actors nor changes the six NPC holders.

@@ -20,7 +20,7 @@ const all=e=>[e,...e.children.flatMap(all)],find=(e,p)=>all(e).find(p),text=e=>a
 const clock={day:0,hour:10,seconds:0},requests=[],store={},loan={owner:null,borrowed:false};
 let country='china',failBank=false,ui;
 const bank=createCurrencyLedger({saveState:s=>{if(failBank)return false;store.bank=structuredClone(s);}});
-const careers=createFormalCareers({getClock:()=>clock,saveState:s=>{store.careers=structuredClone(s);},creditWageToBank:bank.creditWageToBank});
+const careers=createFormalCareers({worldSeed:785,getClock:()=>clock,saveState:s=>{store.careers=structuredClone(s);},creditWageToBank:bank.creditWageToBank});
 const player={ageYears:22,walking:false,root:{position:{x:0,y:0,z:0},rotation:{y:0}}};
 const move=p=>Object.assign(player.root.position,{x:p[0],y:p[1],z:p[2]});
 const gardener={loanState:()=>({...loan}),hostReady:()=>true,requestMeeting:()=>true,releaseMeeting(){},
@@ -62,14 +62,14 @@ click('选择西苑常任园艺助理');const roleIntent=requests.at(-1);assert.
 assert(labor.executeIntent(roleIntent));assert(text(dialog).includes('岗位柜台'));assert(!text(dialog).includes('总登记处'));
 assert.equal(buttons('选择西苑常任园艺助理').length,0);assert.equal(buttons('条件不足 · 暂不可申请').length,1);
 assert.equal(labor.resolveIntent({...roleIntent,registration:{scope:'role',roleId:'cn-tavern-steward'}}),null,'Counter cannot be retargeted to a foreign role');
-assert(labor.executeIntent(labor.intent('formal-apply')));labor.update(.1);assert(text(dialog).includes('申请未通过 · 未建立正式任职'));
+assert(labor.executeIntent(labor.intent('formal-apply')));labor.update(.1);assert(text(dialog).includes('申请未通过'));assert(text(dialog).includes('未建立正式任职'));assert(text(dialog).includes('园艺 0 / 2点'));assert(text(dialog).includes('今日次数已用'));const rejectedReceipt=careers.applicationResult();ui.close();ui.open({scope:'role',roleId:GARDEN_ASSISTANT_ROLE.id});assert(text(dialog).includes('申请未通过'));assert.equal(careers.applicationResult().day,rejectedReceipt.day);
 for(let serial=1;serial<=2;serial++)assert(careers.completedLowerWork({source:'fr-garden-labor',receiptId:`fr-garden-labor-${serial}`}).ok);
-ui.update('lot');const apply=click('申请常任园艺助理'),application=requests.at(-1);assert.equal(careers.currentRole(),null);
+ui.update('lot');assert.equal(buttons('今日已申请 · 次日再来')[0].disabled,true);clock.day=1;ui.update('lot');const apply=click('申请常任园艺助理'),application=requests.at(-1);assert.equal(careers.currentRole(),null);
 const count=requests.length;apply.onclick();assert.equal(requests.length,count);move([0,0,0]);assert.equal(labor.executeIntent(application),false);
 move(P.registration);assert(labor.executeIntent(application));labor.update(.1);assert.equal(careers.currentRole().id,GARDEN_ASSISTANT_ROLE.id);
-assert(text(dialog).includes('已任职 · 未报到'));assert.equal(all(dialog).filter(e=>e.className==='career-role-card').length,0,'Owned counter shows this role status/report action only');
+assert(text(dialog).includes('申请通过 · 正式任职已保存'));assert(text(dialog).includes('第2日 10:00生效'));assert.equal(labor.state().job,null);assert.equal(careers.state().lastDuty,null);assert(text(dialog).includes('已任职 · 未报到'));assert.equal(all(dialog).filter(e=>e.className==='career-role-card').length,0,'Owned counter shows this role status/report action only');
 
-ui.close();ui.update('lot');assertIcon();openButton.onclick();
+ui.close();ui.update('lot');assertIcon();openButton.onclick();assert(text(dialog).includes('申请通过 · 正式任职已保存'));const reloadCore=createFormalCareers({worldSeed:785,saved:store.careers,getClock:()=>clock,saveState:()=>{}});assert.deepEqual(reloadCore.applicationResult(),careers.applicationResult());
 assert.equal(all(dialog).filter(e=>e.className==='career-metric').length,4);assert.equal(buttons('开始今日园艺班次').length,1,'Admission is explicit even though the world defaults to role status');
 assert.equal(labor.intent().kind,'formal-view');assert(text(dialog).includes('未开始'));assert(text(dialog).includes('日薪 8–9法国券'));
 assert(!text(dialog).includes('先到'));assert(!text(dialog).includes('再找'));assert(!text(dialog).includes('本日开工时段已过。下一模拟日再来办理'));
@@ -86,7 +86,7 @@ clock.hour=19+46/60;ui.open();assert(text(dialog).includes('当班中'));assert(
 assert.equal(buttons('领取浇水壶').length,1);assert.equal(buttons('开始今日园艺班次').length,0);assert.equal(buttons('亲手浇花 · 5 秒').length,0);
 ui.close();act('take');ui.open();assert.equal(buttons('亲手浇花 · 5 秒').length,1);assert.equal(buttons('归还浇水壶').length,0);
 ui.close();act('water');act('water');act('return');ui.open();assert.equal(buttons('提交当班验收 · 工资存法国券账户').length,1);
-clock.day=1;clock.hour=9;clock.seconds=100;assert(careers.observeDay().ok);ui.update('lot');assert(text(dialog).includes('第1日未结班次'));assert(text(dialog).includes('已完成 · 待核薪'));
+clock.day=2;clock.hour=9;clock.seconds=100;assert(careers.observeDay().ok);ui.update('lot');assert(text(dialog).includes('第2日未结班次'));assert(text(dialog).includes('已完成 · 待核薪'));
 failBank=true;click('提交当班验收 · 工资存法国券账户');const claim=requests.at(-1);move(claim.position);assert(labor.executeIntent(claim));labor.update(.1);ui.open();
 assert(text(dialog).includes('9法国券 · 待入账'));assert(text(dialog).includes('好评 +1'));assert.equal(bank.balances().france.bank,0);
 
