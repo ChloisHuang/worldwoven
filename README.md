@@ -11,8 +11,8 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.80-public, 2026-10-05
-Verified published Sites source commit: 9750ac149d2a358fa2de9b570f575b616ed5b3fd
+Published release: R16.81-public, 2026-10-05
+Verified published Sites source commit: 17b3c5a6d540bbb17f64c03ddf3c62b78eef7b8b
 
 ## Working rules
 
@@ -158,3 +158,5 @@ R16.78 refreshes the French garden’s local work panel with temporary/long-term
 R16.79 opens the locally reviewed pharmacy assistant role: real symptomatic existing guests, controlled owner handoff, the same numbered paper and packet, continuous attendance, explicit shift handover and one bank wage settlement. One completed order does not end the shift. The legacy tavern work panel is now compact without changing its narrow temporary contract. Directed logic and a natural clinic chain passed; this remains simulated DOM/Three/Mesa evidence rather than iOS verification.
 
 R16.80 opens the French music-reception bank/exchange desk with Claire. Local French wage withdrawals and exchanges use the same existing currency buckets, quotes, interest and transaction receipts. China defaults are preserved. One actual France route and transaction chain plus normal scene images passed; real browser/iOS verification remains open.
+
+R16.81 adds Japan’s public reception exchange desk and stable adult teller, retaining the original14 staff, performers and bath/dining routes. It uses the shared bank accounts, original Japanese vouchers and unchanged quotes/interest. The entry/transaction/exit route passed with inspected normal views; French wage text now points to its local bank.
