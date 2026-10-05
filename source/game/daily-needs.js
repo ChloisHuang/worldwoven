@@ -1,17 +1,20 @@
 import {GAME_MINUTES_PER_SECOND} from './simulation-clock.js';
+import {JAPAN_STAFF_CREW} from './japan-service-orders.js';
 
 // One physiological clock for enrolled identities. Country controllers still
 // own actions and supplies; an intention, animation or scene entry grants nothing.
 export const DAILY_NEEDS_HOUR=60/GAME_MINUTES_PER_SECOND;
-export const DAILY_NEEDS_ACTORS=Object.freeze(['player','cn-tavern-diner-west','cn-tavern-diner-east']);
+export const DAILY_NEEDS_ACTORS=Object.freeze(['player','cn-tavern-diner-west','cn-tavern-diner-east',...JAPAN_STAFF_CREW]);
 const copy=x=>JSON.parse(JSON.stringify(x));
 const positive=(x,fallback=0)=>Number.isFinite(x)&&x>=0?x:fallback;
 const clamp=x=>Math.max(0,Math.min(1,x));
-const mealSource='china-tavern-meal',toiletSource='china-toilet';
-const mealSources=new Set([mealSource,'japan-player-meal','france-tea-food']);
+const mealSource='china-tavern-meal';
+const mealSources=new Set([mealSource,'japan-player-meal','france-tea-food','japan-staff-meal']);
+const toiletFacilities={'china-toilet':'cn-bath-toilet','japan-toilet':'jp-washroom-private-1'};
 function validMeal(receipt){
  const r=receipt,n=r.number;
  if(r.source===mealSource)return r.orderId===`cn-tavern-order-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-dish'&&['yunlai-mushroom-rice','yunlai-green-noodles'].includes(r.dishId)&&r.paymentReceipt===r.orderId;
+ if(r.source==='japan-staff-meal')return JAPAN_STAFF_CREW.includes(r.actorId)&&r.orderId===`jp-staff-meal-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+':bowl'&&r.dishId==='staff-ramen'&&r.supplyReceipt===r.orderId+':prepared';
  if(r.actorId!=='player')return false;
  if(r.source==='japan-player-meal'){
   const match=/^jp-player-(dining|service)-(\d+)-(\d+)$/.exec(r.orderId||'');
@@ -24,7 +27,7 @@ export function createDailyNeeds({saved={},getClock=()=>({seconds:0}),saveState=
  for(const id of DAILY_NEEDS_ACTORS){
   const old=saved.version===1?saved.people?.[id]:null,legacy=legacyPeople[id]?.needs?.hunger;
   people[id]={foodAge:positive(old?.foodAge,Number.isFinite(legacy)?clamp(legacy)*12*DAILY_NEEDS_HOUR:(id==='player'?2:7)*DAILY_NEEDS_HOUR),toiletAge:positive(old?.toiletAge),receipts:{}};
-  for(const[source,number]of Object.entries(old?.receipts||{}))if((mealSources.has(source)||source===toiletSource)&&Number.isSafeInteger(number)&&number>0)people[id].receipts[source]=number;
+  for(const[source,number]of Object.entries(old?.receipts||{}))if((mealSources.has(source)||toiletFacilities[source])&&Number.isSafeInteger(number)&&number>0)people[id].receipts[source]=number;
  }
  function sync(){const now=positive(getClock()?.seconds,lastClock),dt=Math.max(0,now-lastClock);lastClock=now;lastSample=now;
   if(!sceneId||!dt)return;for(const id of activeIds){const p=people[id];if(p){p.foodAge+=dt;p.toiletAge+=dt;}}
@@ -37,10 +40,10 @@ export function createDailyNeeds({saved={},getClock=()=>({seconds:0}),saveState=
   return {food,toilet,seekMeal:!!food,seekToilet:!!toilet,text:[food&&'🍚 '+food,toilet&&'🚻 '+toilet].filter(Boolean).join(' · ')};
  }
  function apply(receipt,kind){
-  sync();const p=people[receipt?.actorId],source=kind==='meal'?receipt?.source:toiletSource,n=receipt?.number;
+  sync();const p=people[receipt?.actorId],source=receipt?.source,n=receipt?.number;
   if(!p||receipt.source!==source||kind==='meal'&&!mealSources.has(source)||!Number.isSafeInteger(n)||n<=0||n<=(p.receipts[source]||0)||receipt.completed!==true)return false;
   if(kind==='meal'&&!validMeal(receipt))return false;
-  if(kind==='toilet'&&(receipt.id!==`china-toilet-${n}`||receipt.facilityId!=='cn-bath-toilet'))return false;
+  if(kind==='toilet'&&(!toiletFacilities[source]||receipt.id!==`${source}-${n}`||receipt.facilityId!==toiletFacilities[source]))return false;
   const next={version:1,people:copy(people)},row=next.people[receipt.actorId];row[kind==='meal'?'foodAge':'toiletAge']=source==='france-tea-food'?Math.max(0,row.foodAge-3*DAILY_NEEDS_HOUR):0;row.receipts[source]=n;
   try{const result=saveState(next);if(result===false||result?.then)return false;}catch{return false;}
   Object.assign(p,row);return true;
