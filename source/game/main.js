@@ -151,7 +151,7 @@ let furniture=null,seated=null,bathTransition=null,outfitView=null,outfitDraft=n
 const globeLabels=new Map(),npcLabels=[];
 let currencyWallet=null;
 const serviceMenus=createServiceMenuIntents();
-const contextMenu=createContextualActionMenu({button:$('touch-action'),onSelect:executeNearbyAction,onOpen:()=>{keys.clear();joy={x:0,y:0};$('joystick-knob').style.transform='';hudLayout.invalidate();},onClose:()=>{canvas.focus({preventScroll:true});hudLayout.invalidate();}});
+const contextMenu=createContextualActionMenu({button:$('touch-action'),onSelect:executeNearbyAction,onOpen:()=>{keys.clear();joyActionAnchor=joyPointer!==null&&joyLastPoint?{...joyLastPoint}:null;joy={x:0,y:0};$('joystick-knob').style.transform='';hudLayout.invalidate();},onClose:()=>{canvas.focus({preventScroll:true});hudLayout.invalidate();}});
 function configureContextualServices(){
  serviceMenus.clear();const stations=new Map(lot.stations.map(s=>[s.id,s]));
  const counter=(id,action,extra={})=>{const station=stations.get(id);return station?{...station,action,targetKey:id,targetName:station.npcName||station.name,...extra}:null;};
