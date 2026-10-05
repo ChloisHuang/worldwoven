@@ -45,11 +45,16 @@ export const TEA_PASTRY_ROLE = Object.freeze({id:'fr-tea-pastry',name:'宫苑茶
   supervisorId:'france-bakery',incumbentId:'france-bakery',incumbentName:'卡米耶',vacancyKind:'exclusive',workSource:'fr-pastry-labor',wage:14,minimumAgeYears:18,
   skillRequirements:Object.freeze({cooking:2,ritual:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:0,
   duties:'06:00–18:00在糕点房候班；核对玛农的原客单、分切蛋糕、备热茶、核对装盘并交原茶盘，等原杯碟收洗后记评价；另行交班按实际在岗工时计薪'});
-export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE,PHARMACY_ASSISTANT_ROLE,TEA_SERVER_ROLE,TEA_PASTRY_ROLE]);
+export const PALACE_GUARD_ROLE = Object.freeze({id:'cn-palace-guard',name:'锦衣卫巡值',
+  slotId:'cn-palace-guard-1',country:'china',currency:'copper',employer:'陆衡',workplace:'射圃 · 巡值登记',
+  supervisorId:'cn-range-warden',incumbentId:'cn-archery',incumbentName:'沈砚',vacancyKind:'exclusive',workSource:'cn-guard-labor',wage:24,minimumAgeYears:18,
+  skillRequirements:Object.freeze({martial:1,ritual:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:0,
+  duties:'06:00–18:00主动接班；沿门廊、殿阶及东西巷逐点巡查驻察，回圃当面交班；持续轮巡按实际巡行与驻察工时计薪。武艺须在射圃完成受控习射，陆衡继续照看射场'});
+export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE,PHARMACY_ASSISTANT_ROLE,TEA_SERVER_ROLE,TEA_PASTRY_ROLE,PALACE_GUARD_ROLE]);
 export const FORMAL_CAREER_SLOTS = Object.freeze([
   ...FORMAL_CAREER_ROLES.map(role => Object.freeze({id:role.slotId,roleId:role.id,holderId:role.incumbentId||null,...(role.vacancyKind==='rotation'?{rotation:true}:role.vacancyKind==='exclusive'?{replacement:true}:{})})),
 ]);
-const SKILLS = Object.freeze(['ritual', 'writing', 'gardening', 'art', 'cooking']);
+const SKILLS = Object.freeze(['ritual', 'writing', 'gardening', 'art', 'cooking', 'martial']);
 const emptyStudy = () => ({issued: 0, completed: 0, issuedDay: null, lessonId: null});
 const WORK = Object.freeze({'cn-tavern-labor':'ritual','fr-garden-labor':'gardening'});
 const STAGES = new Set(['arrived', 'attending', 'archive', 'ready', 'missed', 'paid', 'working', 'inspection']);
@@ -64,8 +69,8 @@ const excused = duty => duty?.stage === 'missed' && duty.reason === 'court-postp
 const supervisor = role => role.supervisorId || COURT_SUPERVISOR.id;
 const completedWage = (role, arrivalHour) => role.workSource ? role.wage + (arrivalHour < role.earlyBeforeHour ? role.preparationBonus : 0) : role.wage + (COURT_SUPERVISOR.conscientiousness >= .8 &&
   arrivalHour <= role.dutyWindow.endHour - COURT_SUPERVISOR.earlyArrivalMinutes / 60 ? COURT_SUPERVISOR.preparationBonus : 0);
-const empty = () => ({version: 5, revision: 0, skillXP: Object.fromEntries(SKILLS.map(skill=>[skill,0])), skills: {ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0}, tenure: null,
-  lastDuty: null, lastPaidDay: null, daily: {day: null, ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0},
+const empty = () => ({version: 5, revision: 0, skillXP: Object.fromEntries(SKILLS.map(skill=>[skill,0])), skills: {ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0, martial: 0}, tenure: null,
+  lastDuty: null, lastPaidDay: null, daily: {day: null, ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0, martial: 0},
   learning: Object.fromEntries(STUDY_SOURCES.map(source => [source, emptyStudy()])),
   lowerWork: {'cn-tavern-labor': 0, 'fr-garden-labor': 0}, performance: 0, promotionProgress: 0,
   lastEvaluatedDay: null, lastEvaluation: null, applications: emptyApplications()});
@@ -73,7 +78,7 @@ const empty = () => ({version: 5, revision: 0, skillXP: Object.fromEntries(SKILL
 const tavernRole = role => role?.workSource?.startsWith('cn-tavern-');
 const teaRole=role=>[TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id].includes(role?.id);
 const reviewRole=role=>tavernRole(role)||teaRole(role);
-const continuousRole=role=>tavernRole(role)||role?.id===PHARMACY_ASSISTANT_ROLE.id||teaRole(role);
+const continuousRole=role=>tavernRole(role)||[PHARMACY_ASSISTANT_ROLE.id,PALACE_GUARD_ROLE.id].includes(role?.id)||teaRole(role);
 const availableSlot = (slot,role) => slot.holderId === null || slot.replacement === true && role.vacancyKind === 'exclusive' && slot.holderId === role.incumbentId || slot.rotation === true && role.vacancyKind === 'rotation' && slot.holderId === role.incumbentId;
 // Tea outcomes improve the service record only. Tavern error/correction pairs
 // retain their existing net deduction; genuine good service never mints wages.
@@ -82,7 +87,7 @@ const coveredHours = duty => (duty.coveredSeconds||0)*GAME_MINUTES_PER_SECOND/60
 const attendanceWage = (role,hours) => Math.floor(role.wage*Math.min(1,hours/(role.dutyWindow.endHour-role.dutyWindow.startHour))+1e-9)+(hours>=role.dutyWindow.endHour-role.dutyWindow.startHour-1e-9?(role.preparationBonus||0):0);
 const dutyWage = (role,duty) => duty.shiftKind==='continuous'?Math.max(0,attendanceWage(role,coveredHours(duty))-customerPenalty(duty)):Math.max(1,completedWage(role,duty.arrivalHour)-customerPenalty(duty));
 function validShift(duty,role){
- if(duty.shiftKind===undefined)return (!['cn-tavern-host','cn-tavern-chef','cn-pharmacy-apprentice',TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id].includes(role.id)||duty.stage==='missed')&&!['startedSeconds','coveredSeconds','completedTasks','endedHour','endedSeconds'].some(key=>own(duty,key));
+ if(duty.shiftKind===undefined)return (!['cn-tavern-host','cn-tavern-chef','cn-pharmacy-apprentice',TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id,PALACE_GUARD_ROLE.id].includes(role.id)||duty.stage==='missed')&&!['startedSeconds','coveredSeconds','completedTasks','endedHour','endedSeconds'].some(key=>own(duty,key));
  if(duty.shiftKind!=='continuous'||!continuousRole(role)||!Number.isFinite(duty.startedSeconds)||duty.startedSeconds<0)return false;
  const done=['inspection','ready','paid'].includes(duty.stage),keys=['coveredSeconds','completedTasks','endedHour','endedSeconds'];
  if(!done)return keys.every(key=>duty[key]===null);
@@ -177,6 +182,15 @@ function restore(saved, roleMap, slotMap) {
     !Object.values(saved.learning||{}).some(row=>row?.lessonId==='cooking-intro')){
     saved={...copy(saved),version:4,skills:{...saved.skills,cooking:0},daily:{...saved.daily,cooking:0},
       lastDuty:saved.lastDuty&&tavernRole(roleMap.get(saved.lastDuty.roleId))?{...saved.lastDuty,customerReviews:[]}:saved.lastDuty};
+  }
+  // Published five-skill saves gain only the new, unearned range skill/ticket.
+  // Match the complete old shape so malformed or partial new saves still fail.
+  if(object(saved)&&[4,5].includes(saved.version)&&object(saved.skills)&&Object.keys(saved.skills).length===5&&
+    ['ritual','writing','gardening','art','cooking'].every(key=>own(saved.skills,key))&&object(saved.daily)&&Object.keys(saved.daily).length===6&&
+    object(saved.learning)&&Object.keys(saved.learning).length===4&&['cn-rest','cn-calligraphy','france-salon','france-atelier'].every(key=>own(saved.learning,key))&&
+    (saved.version===4||object(saved.skillXP)&&Object.keys(saved.skillXP).length===5&&!own(saved.skillXP,'martial'))){
+    saved={...copy(saved),skills:{...saved.skills,martial:0},daily:{...saved.daily,martial:0},
+      ...(saved.version===5?{skillXP:{...saved.skillXP,martial:0}}:{}),learning:{...saved.learning,'cn-archery':emptyStudy()}};
   }
   const validSlot = (roleId, slotId) => roleMap.has(roleId) && slotMap.get(slotId)?.roleId === roleId && availableSlot(slotMap.get(slotId),roleMap.get(roleId));
   if (!object(saved) || ![4,5].includes(saved.version) || !integer(saved.revision) || !object(saved.skills) ||
@@ -462,7 +476,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if (ticket && activeStudies.get(ticket.source) === ticket.id) activeStudies.delete(ticket.source);
   }
   function grantSkill(next, skill, clock, fullWork=false) {
-    const daily = current.daily.day === clock.day ? {...current.daily} : {day: clock.day, ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0};
+    const daily = current.daily.day === clock.day ? {...current.daily} : {day: clock.day, ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0, martial: 0};
     const limited = daily[skill] >= 4 ? 'daily-skill-limit' : (['gardening','art','cooking'].includes(skill)?current.skills[skill]>=100:current.skills.ritual + current.skills.writing >= 100) ? 'skill-limit' : null;
     const gained = limited ? 0 : 1;
     // A complete work contract retains its published one-level reward. A short
@@ -526,7 +540,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const rollover = observeDay(); if (!rollover.ok) return rollover;
     const clock = now(); if (!clock) return failure('invalid-clock');
     const duty = current.lastDuty, role = roleMap.get(current.tenure.roleId);
-    shiftKind??=[TAVERN_HOST_ROLE.id,TAVERN_CHEF_ROLE.id,PHARMACY_ASSISTANT_ROLE.id,TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id].includes(role.id)?'continuous':undefined;
+    shiftKind??=[TAVERN_HOST_ROLE.id,TAVERN_CHEF_ROLE.id,PHARMACY_ASSISTANT_ROLE.id,TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id,PALACE_GUARD_ROLE.id].includes(role.id)?'continuous':undefined;
     if(shiftKind!==undefined&&(shiftKind!=='continuous'||!continuousRole(role)))return failure('invalid-shift-kind');
     if (role.workSource && !validWorkReceipt(role.workSource,receiptId)) return failure('invalid-work-receipt');
     const availability=beginDutyAvailability(role.id,{receiptId});

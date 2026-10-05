@@ -7,6 +7,8 @@ const {THREE}=G,point=a=>({x:a[0],y:a[1],z:a[2]}),gap=(p,a)=>Math.hypot(p.x-a[0]
 const labels={fetch:'在弓架取弓',line:'持弓走向金线',aim:'定步 · 引弓 · 瞄准',flight:'放箭 · 保持站位',cease:'收弓停射 · 确认箭已落靶',retrieve:'停射后沿靶道取箭',collect:'从草靶取回练习箭',return:'持弓返回金线',rack:'归还弓箭',relief:'射圃留守 · 等巡查同伴归来',handover:'当面交班 · 互报巡查与弓箭情况',release:'留步让行 · 同伴出圃后取弓', 'player-take':'接过练习弓','player-aim':'定步引弓 · 瞄准草靶','player-flight':'放箭 · 保持站位','player-cease':'收弓停射 · 练习完成'};
 
 // Keep the two visible guards and their physical, staged range handoff.
+export const GUARD_REGISTRATION=[-16.7,A.floorY,20.45];
+const LEISURE=[[-15.8,A.floorY,22.1],[-12.8,A.floorY,23.8],[-15.8,A.floorY,24.6]];
 const HANDOFF=[[-17.65,A.floorY,18.45],[-17.65,A.floorY,19.8]];
 
 function makeKit(parent){
@@ -30,6 +32,7 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
  const impacts=A.targets.map(()=>{const q=buildPracticeArrow(G);q.visible=false;lot.group.add(q);return q;});
  const shots=[],history=[],failures=[],forward=new THREE.Vector3(0,0,1),start=new THREE.Vector3(),end=new THREE.Vector3();
  let active=0,phase='handover',phaseTime=0,rounds=0,retrieveLane=0,player=null,playerKit=null,request=false,complete=false,playerShot=false,flightTime=0,flightLane=0,blocked=false,disposed=false,shiftPending=false,handoffs=0,conversationActorId=null;
+ let guardTenure=false,registrationRequested=false,guardWork=null,leisure={index:0,time:0};
  const patrol=new Map(guards.map((n,i)=>[n,{routeId:i?'west':'east',stage:'ready',index:0,time:0,paused:false,yielding:false,visited:[]}]));
  const shooter=()=>guards[active],tell=(n,text)=>{const el=n.label?.querySelector?.('small');if(el)el.textContent=text;};
  function resetTravel(n){n.route=[];n.archeryDestination=null;n.archeryStall=0;}
@@ -63,8 +66,15 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
    p.time+=dt;if(p.time>=(stop.hold||0)){p.visited.push(stop.id);p.time=0;p.index++;if(p.index===route.length){p.stage='ready';p.index=0;}else p.stage='travel';}
   }
  }
+ function updateRelieved(n,dt){
+  tell(n,guardWork?.stage==='returning'?'回射圃 · 等玩家当面交班':'沈砚 · 已让出巡值，庭边歇脚读札');
+  const to=guardWork?.stage==='returning'?HANDOFF[0]:LEISURE[leisure.index];
+  if(travel(n,to,dt)&&guardWork?.stage!=='returning'){leisure.time+=dt;if(leisure.time>18){leisure.index=(leisure.index+1)%LEISURE.length;leisure.time=0;resetTravel(n);}}
+ }
+ function supervisorReady(){return shooter()===guards[1]&&phase==='relief'&&!request&&!flying.visible&&!impacts.some(q=>q.visible)&&gap(guards[1].root.position,HANDOFF[1])<.08;}
  function socialStatus(n){
   if(!owned.has(n))return null;
+  if(n===guards[0]&&guardWork&&['active','returning','returned'].includes(guardWork.stage))return {busy:false,attention:true,job:guardWork.stage==='active'?'已让出巡值 · 在庭边休息':'回射圃等候交班'};
   if(n!==shooter()&&phase!=='handover')return {busy:false,attention:true,job:patrolLabel(n)};
   return {busy:true,attention:phase==='relief',job:phase==='handover'?'当面交接巡查和射圃值守':phase==='relief'?'射圃留守，等巡查同伴归来':'照看射场和弓箭，请先留在靶道外'};
  }
@@ -90,10 +100,17 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
   let pose=n===shooter()&&!phase.startsWith('player-')?poseFor(phase,phaseTime):null;if(n===shooter()&&blocked&&['aim','flight'].includes(phase))pose=hold;
   if(phase==='handover'&&phaseTime>0){const f=Math.sin(Math.min(1,phaseTime/2.4)*Math.PI);pose={held:false,hands:[[-.30+.20*f,.96+.23*f,.10+.16*f],[.30-.20*f,.96+.20*f,.10+.20*f]]};}
   if(!n.walking&&pose&&['aim','flight','cease'].includes(phase))n.root.rotation.y=-Math.PI/2;
-  const c=poseContext(n,null);c.archery=pose;n.animate(t+n.phase,n.walking,null,c);kits.get(n).update(n,pose,A.targets[retrieveLane]);
+  const c=poseContext(n,null);c.archery=pose;n.animate(t+n.phase,n.walking,n===guards[0]&&guardWork?.stage==='active'&&!n.walking?'read':null,c);kits.get(n).update(n,pose,A.targets[retrieveLane]);
  }
  enter('handover');
  return {
+  setGuardTenure(hired){guardTenure=!!hired;},
+  requestSupervisor(value=true){registrationRequested=!!value;},supervisorReady,
+  requestGuardWork(receiptId){if(guardWork&&guardWork.receiptId!==receiptId)return false;if(!guardWork)guardWork={receiptId,stage:'requested'};return true;},
+  guardWorkState:()=>guardWork?{...guardWork}:null,
+  requestGuardReturn(receiptId){if(guardWork?.receiptId!==receiptId)return false;if(guardWork.stage==='active'){guardWork.stage='returning';resetTravel(guards[0]);}return ['returning','returned'].includes(guardWork.stage);},
+  finishGuardWork(receiptId){if(guardWork?.receiptId!==receiptId)return false;if(guardWork.stage!=='returned')return false;guardWork=null;beginPatrol(guards[0]);return true;},
+  cancelGuardWork(receiptId){if(guardWork?.receiptId!==receiptId)return false;guardWork=null;beginPatrol(guards[0]);return true;},
   owns:n=>owned.has(n),ownsStation:id=>A.roles.includes(id),socialStatus,
   startPlayer(actor){if(player!==actor){playerKit?.dispose();playerKit=makeKit(lot.group);player=actor;}request=true;complete=false;playerShot=false;},
   stopPlayer(){request=false;complete=false;playerKit?.hide();if(phase.startsWith('player-')){retrieveLane=playerShot?1:0;enter(playerShot?'cease':'relief');}player=null;},
@@ -105,13 +122,21 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
    const n=shooter(),other=guards[1-active];
    // Range phases never reset the partner's route or observation timer.
    // A talk can delay relief, but may not hand the absent guard a new shift.
-   updatePatrol(other,dt,position);
+   if(other===guards[0]&&guardWork&&['active','returning','returned'].includes(guardWork.stage))updateRelieved(other,dt);
+   else updatePatrol(other,dt,position);
+   if(guardWork?.stage==='returning'&&supervisorReady()&&gap(guards[0].root.position,HANDOFF[0])<.08){guardWork.handoverSeconds=(guardWork.handoverSeconds||0)+dt;tell(guards[0],'当面收回巡值 · 等陆衡核对凭记');if(guardWork.handoverSeconds>=2.4)guardWork.stage='returned';}
+
    const timed=()=>{phaseTime+=dt;};
    if(phase==='handover'){
     const here=travel(n,HANDOFF[active],dt),there=patrol.get(other).stage==='ready'&&gap(other.root.position,HANDOFF[1-active])<.065;
     if(here&&there){
      for(const actor of guards){const partner=actor===n?other:n;actor.root.rotation.y=Math.atan2(partner.root.position.x-actor.root.position.x,partner.root.position.z-actor.root.position.z);tell(actor,rounds?'当面交班 · 门廊、殿前与侧巷已巡，弓箭已归架':'当面分值 · 一人巡查，一人照看射圃');}
-     timed();if(phaseTime>2.4){if(request)enter('player-take');else{if(shiftPending){active=1-active;handoffs++;shiftPending=false;}beginPatrol(guards[1-active]);retrieveLane=0;enter('release');}}
+     timed();if(phaseTime>2.4){if(request)enter('player-take');else{
+      if(guardTenure||registrationRequested||guardWork){if(active!==1){active=1;handoffs++;}shiftPending=false;
+       if(guardWork?.stage==='requested'){guardWork.stage='active';leisure={index:0,time:0};resetTravel(guards[0]);}
+       else if(!guardWork&&!registrationRequested)beginPatrol(guards[0]);
+      }else{if(shiftPending){active=1-active;handoffs++;shiftPending=false;}beginPatrol(guards[1-active]);}
+      retrieveLane=0;enter(registrationRequested?'relief':'release');}}
     }else phaseTime=0;
    }else if(phase==='release'){
     // Let the outgoing guard clear the rear opening before the new trainer
@@ -123,6 +148,8 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
     if(travel(n,HANDOFF[active],dt)){
      n.root.rotation.y=-Math.PI/2;
      if(request)enter('player-take');
+     else if(guardWork&&['active','returning','returned'].includes(guardWork.stage)){if(guardWork.stage==='active'&&!registrationRequested)enter('fetch');}
+     else if(registrationRequested&&n===guards[1]&&guardWork?.stage!=='requested')tell(n,guardTenure?'陆衡 · 射圃值守，办理巡值登记；沈砚暂代巡查':'陆衡 · 射圃登记，等你当面办理');
      else if(!patrol.get(other).paused&&patrol.get(other).stage==='ready'&&gap(other.root.position,HANDOFF[1-active])<.065)enter('handover');
     }
    }else if(phase==='fetch'){
@@ -154,9 +181,9 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
    }
    for(const actor of guards)animateGuard(actor,t);
   },
-  snapshot:()=>({version:1,activeId:shooter().station.id,phase,phaseTime,rounds,retrieveLane,request,complete,playerShot,flightTime,flightLane,shiftPending,handoffs,start:start.toArray(),end:end.toArray(),flying:flying.visible,impacts:impacts.map(q=>({visible:q.visible,position:q.position.toArray(),quaternion:q.quaternion.toArray()})),patrol:[...patrol].map(([n,p])=>[n.station.id,continuityCopy(p)]),shots:continuityCopy(shots),history:[...history]}),
-  restore(s,{player:restoredPlayer}={}){const index=guards.findIndex(n=>n.station.id===s?.activeId);if(s?.version!==1||index<0||!labels[s.phase])return false;active=index;phase=s.phase;phaseTime=Math.max(0,s.phaseTime||0);rounds=Math.max(0,s.rounds||0);retrieveLane=s.retrieveLane||0;request=!!s.request;complete=!!s.complete;playerShot=!!s.playerShot;flightTime=Math.max(0,s.flightTime||0);flightLane=s.flightLane||0;shiftPending=!!s.shiftPending;handoffs=Math.max(0,s.handoffs||0);if(request&&restoredPlayer){player=restoredPlayer;playerKit??=makeKit(lot.group);}start.fromArray(s.start);end.fromArray(s.end);flying.visible=!!s.flying;flying.quaternion.setFromUnitVectors(forward,end.clone().sub(start).normalize());updateFlight(0);for(const [i,p]of(s.impacts||[]).entries()){if(!impacts[i])continue;impacts[i].visible=!!p.visible;impacts[i].position.fromArray(p.position);impacts[i].quaternion.fromArray(p.quaternion);}for(const[id,p]of s.patrol||[]){const n=guards.find(n=>n.station.id===id);if(n&&CHINA_GUARD_ROUTES[p.routeId]?.[p.index])patrol.set(n,continuityCopy(p));}shots.splice(0,shots.length,...continuityCopy(s.shots||[]));history.splice(0,history.length,...(s.history||[]));for(const n of guards)resetTravel(n);return true;},
-  state(){return {phase,phaseTime,rounds,handoffs,active:shooter().station.id,blocked,playerRequested:request,playerComplete:complete,shots:shots.map(s=>({...s})),history:[...history],failures:[...failures],guards:guards.map(n=>({id:n.station.id,position:n.root.position.toArray(),walking:n.walking,route:n.route.length,patrol:{...patrol.get(n),visited:[...patrol.get(n).visited],checkpoint:patrol.get(n).stage==='ready'?'handoff':CHINA_GUARD_ROUTES[patrol.get(n).routeId][patrol.get(n).index].id},social:socialStatus(n)})),arrows:impacts.map(q=>q.visible),flying:flying.visible};},
+  snapshot:()=>({version:1,guardWork:continuityCopy(guardWork),leisure:{...leisure},activeId:shooter().station.id,phase,phaseTime,rounds,retrieveLane,request,complete,playerShot,flightTime,flightLane,shiftPending,handoffs,start:start.toArray(),end:end.toArray(),flying:flying.visible,impacts:impacts.map(q=>({visible:q.visible,position:q.position.toArray(),quaternion:q.quaternion.toArray()})),patrol:[...patrol].map(([n,p])=>[n.station.id,continuityCopy(p)]),shots:continuityCopy(shots),history:[...history]}),
+  restore(s,{player:restoredPlayer}={}){const index=guards.findIndex(n=>n.station.id===s?.activeId);if(s?.version!==1||index<0||!labels[s.phase])return false;active=index;guardWork=s.guardWork&&/^cn-guard-labor-[1-9][0-9]*$/.test(s.guardWork.receiptId)&&['requested','active','returning','returned'].includes(s.guardWork.stage)?continuityCopy(s.guardWork):null;leisure=s.leisure&&Number.isInteger(s.leisure.index)&&LEISURE[s.leisure.index]&&Number.isFinite(s.leisure.time)?{...s.leisure}:{index:0,time:0};phase=s.phase;phaseTime=Math.max(0,s.phaseTime||0);rounds=Math.max(0,s.rounds||0);retrieveLane=s.retrieveLane||0;request=!!s.request;complete=!!s.complete;playerShot=!!s.playerShot;flightTime=Math.max(0,s.flightTime||0);flightLane=s.flightLane||0;shiftPending=!!s.shiftPending;handoffs=Math.max(0,s.handoffs||0);if(request&&restoredPlayer){player=restoredPlayer;playerKit??=makeKit(lot.group);}start.fromArray(s.start);end.fromArray(s.end);flying.visible=!!s.flying;flying.quaternion.setFromUnitVectors(forward,end.clone().sub(start).normalize());updateFlight(0);for(const [i,p]of(s.impacts||[]).entries()){if(!impacts[i])continue;impacts[i].visible=!!p.visible;impacts[i].position.fromArray(p.position);impacts[i].quaternion.fromArray(p.quaternion);}for(const[id,p]of s.patrol||[]){const n=guards.find(n=>n.station.id===id);if(n&&CHINA_GUARD_ROUTES[p.routeId]?.[p.index])patrol.set(n,continuityCopy(p));}shots.splice(0,shots.length,...continuityCopy(s.shots||[]));history.splice(0,history.length,...(s.history||[]));for(const n of guards)resetTravel(n);return true;},
+  state(){return {phase,phaseTime,rounds,handoffs,guardTenure,guardWork:continuityCopy(guardWork),supervisorReady:supervisorReady(),active:shooter().station.id,blocked,playerRequested:request,playerComplete:complete,shots:shots.map(s=>({...s})),history:[...history],failures:[...failures],guards:guards.map(n=>({id:n.station.id,position:n.root.position.toArray(),walking:n.walking,route:n.route.length,patrol:{...patrol.get(n),visited:[...patrol.get(n).visited],checkpoint:patrol.get(n).stage==='ready'?'handoff':CHINA_GUARD_ROUTES[patrol.get(n).routeId][patrol.get(n).index].id},social:socialStatus(n)})),arrows:impacts.map(q=>q.visible),flying:flying.visible};},
   dispose(){disposed=true;for(const costume of costumes)costume.dispose();for(const kit of kits.values())kit.dispose();playerKit?.dispose();for(const q of [flying,...impacts]){q.removeFromParent();q.traverse(o=>o.geometry?.dispose());}for(const n of guards){n.route=[];if(n.poseContext)n.poseContext.archery=null;}}
  };
 }
