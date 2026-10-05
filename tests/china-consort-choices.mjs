@@ -1,7 +1,7 @@
 // Reproduces multi-resident seat/host contention and save migrations: cheap,
 // deterministic coverage of shared decision integration, without a full scene.
 import assert from 'node:assert/strict';
-import {createLifeDecisions} from '../source/game/npc-life-decisions.js';
+import {createLifeDecisions,conversationDisposition} from '../source/game/npc-life-decisions.js';
 import {CHINA_CONSORTS,palaceResidentSave} from '../source/game/china-palace-residents.js';
 import {consortActivities,createPalaceLeisureClaims} from '../source/game/china-consort-activities.js';
 import {npcRoleAppearance} from '../source/game/appearance.js';
@@ -21,3 +21,7 @@ const original=brain.snapshot();original.people[yue.id].traits.quiet=.71;origina
 assert.deepEqual(palaceResidentSave({worldSeed:42,actorIds:ids,saved:original}),original,'existing personality, relationship, intention, cooldown and PRNG remain byte-for-byte stable');
 const migrated=structuredClone(original);delete migrated.people[heng.id];const restored=palaceResidentSave({worldSeed:42,actorIds:ids,saved:migrated});assert.deepEqual(restored.people[yue.id],original.people[yue.id]);assert.deepEqual(restored.people[heng.id].traits,heng.traits);
 console.log('PASS: adult/private identity, distinct conditional probabilities, finite host/garden claims, timeout/conversation pause, migrated and retained per-person state');
+
+const personalities=brain.snapshot().people,ling=CHINA_CONSORTS[2];
+assert.equal(conversationDisposition(personalities[heng.id],personalities[ling.id],'read',ling.id).feeling,'appreciated');
+assert.equal(conversationDisposition(personalities[ling.id],personalities[heng.id],'read',heng.id).feeling,'mismatched','authored quiet reader and outgoing companion can disagree, without changing either identity');
