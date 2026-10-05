@@ -3,9 +3,11 @@
 // An old unmarked slip always remains temporary, even after another job is held.
 const MESSAGES={'application-pending':'申请已保存，请继续当面审核','no-pending-application':'没有待审申请','interview-rejected':'本次面谈未录用，结果已保存，下一模拟日可再申请','already-applied-today':'本岗位今天已提交过申请，请查看已保存结果，下一模拟日再来',
   'adult-required':'需年满18岁','age-range-required':'本台班招募年龄为18–40岁','art-required':'艺术需要1级，可在当地藏书处读艺术书目','ritual-required':'待客礼仪未达本岗位要求，可先读书练习',
+  'care-required':'照护需要2级，可在藏书处读《照护问询与编号核对》，并完成药铺原单交付',
+  'clinic-experience-required':'至少完成一次药铺助手原单服务，核对同号纸包并当面交给原来客',
   'martial-required':'武艺需要1级，请到射圃完成安全习射练习',
   'cooking-required':'烹饪需要2级，先在当地藏书处学习烹饪书目',
-  'writing-required':'文书需要1级，可在当地读书或书案习字积累经验',
+  'writing-required':'文书未达本岗位要求，可在当地读书或书案习字积累经验',
   'gardening-required':'园艺需要2级，可在当地读园艺书或做浇花临工积累经验',
   'already-employed':'你已有长期职位，结清并离职后才能转职','no-vacancy':'这个岗位暂无空缺',
   'outside-arrival-window':'请在06:00至18:00之间开始当天班次',
