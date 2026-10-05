@@ -28,3 +28,13 @@ Animation is presentation only. It must never issue or replay a money command. A
 ## Targeted validation
 
 `node tests/currency-ledger.mjs` covers exact v1 migration with pending/settled holds and old receipts; one wage credit, metadata conflict and reload replay; new-account atomicity; failed/async/missing persistence; invalid/overflow amounts including refundable holds; atomic two-currency exchange, quote mismatches and nonprofitable round trips; original-currency refunds; animation listener isolation; corrupt-save lockout; and injected preview storage. `node tests/copper-ledger.mjs` remains the unchanged v1 behavioral baseline. Scenery and unrelated world systems are outside this check.
+
+## Existing money-house counter
+
+`createChinaMoneyHouseService` now requires `canSee: nearbyInteractionClear` from main. The existing intent system owns clicking/navigation and manual E arrival; the service rechecks same floor, less than 0.60 m from the authored counter point, and visibility before opening and before every mutation. Leaving closes the modal. Render/close generations invalidate old buttons, including buttons retained before an automatic payroll update.
+
+The existing dialog selects a currency, separates bank savings from carried cash, explains atomic payroll-account creation, and displays the fixed rate and exact received quantity before exchange. Only this existing Chinese counter exposes these operations; no foreign building or remote withdrawal was added. It listens to committed events to refresh balances but never changes money from an event.
+
+Additional checks: `node tests/china-money-house-banking.mjs` passes current counter UI against the real ledger, including failure, close/reopen, stale buttons, same-floor/visibility and refund-safe persistence. After main integration, `node --experimental-vm-modules tests/china-money-house-banking-main.cjs` passed the single existing-counter path (43.049 s, 620 MiB): intent navigation, bank-only wage, physical withdrawal, displayed-rate exchange once, modal input isolation, manual E reentry, and scene cleanup. This is production main with a simulated DOM/renderer, not browser visual evidence. Existing Chinese helper, French gardener (9 checks), and Japanese performance-payment tests also passed with only their ledger factory switched to v2, retaining original copper behavior.
+
+Source-only build passed with 138 assets and no retained prior graph. The fresh worktree lacked some old published hashes, so the normal retained-graph build could not run there; publication must retain the prior graph in the integration workspace. No old scene/model/art changes were needed.
