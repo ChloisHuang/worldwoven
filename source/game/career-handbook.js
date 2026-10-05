@@ -1,7 +1,7 @@
 import {FORMAL_CAREER_ROLES} from './formal-careers.js';
 import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
 import {AIRY_UI_THEME} from './china-money-house-theme.js';
-import {CAREER_CARD_STYLE,careerRoleMark} from './career-registration-cards.js';
+import {CAREER_CARD_STYLE,careerRoleMark,careerWorkplaceMark} from './career-registration-cards.js';
 import {GAME_CURRENCIES} from './currency-ledger.js';
 
 // The shared catalogue only reads career state. Applications and work still
@@ -78,7 +78,8 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     const s=careers.state(),c=getClock(),list=roles(),held=currentRole(s,list),ageYears=getPlayer()?.ageYears;
     const registrationMode=!!registrationRoleId&&!(registrationScope==='role'&&held?.id===registrationRoleId);
     const country=getCountry(),countryRoles=list.filter(r=>place(r).country===country),registeredPlace=countryRoles.find(r=>r.id===registrationRoleId),localRoles=registeredPlace?countryRoles.filter(r=>workplaceKey(r)===workplaceKey(registeredPlace)):[];
-    const role=held||localRoles.find(r=>r.id===registrationRoleId)||localRoles[0]||null,displayRoles=registrationScope==='role'?localRoles.filter(r=>r.id===registrationRoleId):localRoles;
+    const focusedResult=registrationRoleId&&careers.applicationResult?.(registrationRoleId),showWorkplace=registrationScope==='catalogue'||focusedResult?.saved!==false&&focusedResult?.ok===false&&['rejected',undefined].includes(focusedResult?.status)&&localRoles.length>1;
+    const role=held||localRoles.find(r=>r.id===registrationRoleId)||localRoles[0]||null,displayRoles=showWorkplace?localRoles:localRoles.filter(r=>r.id===registrationRoleId);
     const belongsToTenure=row=>row&&held&&row.roleId===held.id&&(row.day>s.tenure.sinceDay||row.day===s.tenure.sinceDay&&(row.arrivalHour??24)>=s.tenure.sinceHour);
     const hired=!!held,d=belongsToTenure(s.lastDuty)?s.lastDuty:null;
     const pendingDuty=d&&d.day<c.day&&['inspection','ready'].includes(d.stage);
@@ -86,10 +87,10 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       ...localRoles.map(r=>`${r.id}:${r.vacancy}:${atRegistration(r)}`)].join(':');
     if(!force&&key===signature)return;signature=key;generation++;
     dialog.replaceChildren();const x=buttonFor('×',close);x.className='career-close';x.setAttribute('aria-label','关闭职业手册');
-    const heading=registrationMode?registrationScope==='role'?displayRoles[0]?.name||'岗位登记':`${WORKPLACE_NAMES[workplaceKey(registeredPlace)]||place(registeredPlace).workplace||'附近'} · 招工`:held?held.name:'附近招工';
+    const heading=registrationMode?!showWorkplace?displayRoles[0]?.name||'岗位登记':`${WORKPLACE_NAMES[workplaceKey(registeredPlace)]||place(registeredPlace).workplace||'附近'} · 招工`:held?held.name:`${COUNTRIES[country]||'当地'} · 求职场所`;
     dialog.setAttribute('aria-label',heading);
     const panel=createAiryPanelParts(doc);dialog.append(x,panel.header,panel.body,panel.actions);
-    panel.header.append(make('h2',heading),make('p',registrationMode?registrationScope==='role'?'岗位柜台 · 任职登记':'本处岗位 · 当面申请':held?`${COUNTRIES[place(held).country]||place(held).country} · ${place(held).workplace}`:'走近场所负责人，了解这里的岗位。'));
+    panel.header.append(make('h2',heading),make('p',registrationMode?!showWorkplace?'岗位柜台 · 任职登记':'本处岗位 · 当面申请':held?`${COUNTRIES[place(held).country]||place(held).country} · ${place(held).workplace}`:'先选场所，到负责人面前查看和申请岗位。'));
     const text=(title,content)=>panel.body.append(make('h3',title),make('p',content));
     const skillLine=r=>Object.entries(requirements(r)).map(([id,need])=>`${SKILLS[id]||id} ${s.skills[id]??0}/${need}`).join(' · ');
     const eligibility=r=>careers.eligibility?.(r.id,{ageYears})||{ok:false,code:'unavailable'};
@@ -111,19 +112,24 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       root.append(box);
     };
     const cardFor=item=>{
-      const own=s.tenure?.roleId===item.id,check=applicationCheck(item),receipt=careers.applicationResult?.(item.id),pending=receipt?.status==='pending',isLocal=registrationScope==='role',p=place(item);
+      const own=s.tenure?.roleId===item.id,check=applicationCheck(item),receipt=careers.applicationResult?.(item.id),pending=receipt?.status==='pending',isLocal=!showWorkplace,p=place(item);
       const card=make('section',null,'career-role-card');if(pending&&isLocal)card.setAttribute('data-pending','true');const head=make('div',null,'career-card-heading'),mark=make('span',null,'career-role-mark');mark.innerHTML=careerRoleMark(item.id);mark.setAttribute('aria-hidden','true');
       const title=make('div');title.append(make('h3',item.name),make('p',`${p.workplace} · ${employer(item)}`,'career-role-place'));head.append(mark,title);card.append(head);
       const facts=make('div',null,'career-card-facts');facts.append(make('strong',`${item.wage}${unit(item)}`, 'career-card-wage'),make('span','/ 日'),make('span',own?'任职中':`空缺 ${item.vacancy??1}`,own?'career-vacancy held':'career-vacancy'));card.append(facts);
       const skills=make('div',null,'career-skill-chips');for(const[id,need]of Object.entries(requirements(item))){const value=s.skills[id]??0,pass=value>=need,chip=make('span',`${pass?'✓':'○'} ${SKILLS[id]||id} ${value}/${need}`,pass?'career-skill-met':'career-skill-missing');chip.setAttribute('aria-label',`${SKILLS[id]||id} 当前${value}级，要求${need}级，${pass?'已达标':'未达标'}`);skills.append(chip);}card.append(skills);
       if(pending&&isLocal)showReceipt(card,receipt,item);
-      else if(receipt)card.append(make('p',receiptTitle(receipt),'career-card-status'));
+      else if(pending)card.append(make('p',receiptTitle(receipt),'career-card-status'));
+      else{
+        const reason=code=>code==='already-applied-today'?'本岗位今日次数已用':code==='application-pending'?'本岗位待面谈':code==='adult-required'?`需满${item.minimumAgeYears}岁`:(code.endsWith('-required')&&code.replace('-required','') in requirements(item))?`${SKILLS[code.replace('-required','')]}需${requirements(item)[code.replace('-required','')]}级（当前${s.skills[code.replace('-required','')]??0}）`:resultReason(code);
+        const status=!check.ok?(check.reasons||[check.code]).map(reason).join('；'):'条件已满足 · 可申请';
+        card.append(make('p',`${receipt?.day===c.day&&receipt.status==='rejected'?'申请未通过 · ':''}${status}`,'career-card-status '+(check.ok?'career-positive':'career-negative')));
+      }
       const details=make('details',null,'career-card-details');details.append(make('summary','岗位详情'));details.append(make('p',dutySummary(item)));if(item.vacancyKind==='exclusive')details.append(make('p',own?`本岗位由你任职，${item.incumbentName}已卸任。`:`本岗位仅一席；录用后${item.incumbentName}卸任。`));showRequirements(details,item);
       if(receipt&&!pending)showReceipt(details,receipt,item);
       details.append(make('p',`完成职责后，日薪 ${wageRange(item)} 存银行。每个岗位每天提交一次。`));
       if(pending){const cancel=buttonFor('撤回这份申请',()=>{careers.cancelApplication(item.id,receipt.id);render(true);});cancel.className='career-withdraw';details.append(cancel);}
       let primary;
-      if(!atRegistration(item)&&!pending||!isLocal&&(own||pending||receipt&&receipt.day===c.day)){primary=action(item,registryKind(item),own?'查看职位':pending?'继续审核':receipt&&receipt.day===c.day?'查看申请结果':'前往申请',{scope:'role',roleId:item.id});}
+      if(!atRegistration(item)&&!pending||!isLocal&&(own||pending)){primary=action(item,registryKind(item),own?'查看职位':pending?'继续审核':receipt&&receipt.day===c.day?'查看申请结果':'前往申请',{scope:'role',roleId:item.id});}
       else if(pending){const kind=isClerk(item)?({submitted:'review','document-ready':'receive-document','document-held':'appointment'})[receipt.stage]:'formal-review';primary=action(item,kind);}
       else if(receipt&&receipt.saved!==false&&receipt.day===c.day){primary=buttonFor('查看申请结果',()=>{details.open=!details.open;});}
       else{primary=action(item,isClerk(item)?'apply':'formal-apply',check.ok?'提交职位申请':'查看申请条件');if(primary&&!check.ok){primary.onclick=()=>{details.open=!details.open;};}}
@@ -133,7 +139,18 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     const result=careers.applicationResult?.(held&&!registrationMode?held.id:registrationScope==='role'&&registrationRoleId?registrationRoleId:undefined),appliedRole=result&&list.find(r=>r.id===result.roleId);
 
     if(!registrationMode&&!held){
-      const seen=new Set();for(const {role:item}of nearbyRegistries()){if(seen.has(workplaceKey(item)))continue;seen.add(workplaceKey(item));const go=action(item,registryKind(item),`前往${WORKPLACE_NAMES[workplaceKey(item)]||place(item).workplace}`,{scope:'catalogue',roleId:item.id});if(go)panel.body.append(go);}if(!seen.size)panel.body.append(make('p','走近场所负责人，即可查看这里的招工。'));
+      const seen=new Set(),cards=make('div',null,'career-card-grid career-venue-grid');
+      for(const {role:item}of nearbyRegistries()){
+        const site=workplaceKey(item);if(seen.has(site))continue;seen.add(site);
+        const here=countryRoles.filter(r=>workplaceKey(r)===site),card=make('section',null,'career-role-card career-venue-card');card.setAttribute('data-workplace',site);
+        const art=make('div',null,'career-venue-art');art.innerHTML=careerWorkplaceMark(site);art.setAttribute('aria-hidden','true');
+        card.append(art,make('h3',WORKPLACE_NAMES[site]||place(item).workplace),make('p',site==='tavern'?'许安 · 服务助理、厨师':site==='bureau'?'沈叙 · 礼务录事':'埃米尔 · 园艺助理','career-venue-roles'));
+        if(here.some(r=>careers.applicationResult?.(r.id)?.status==='pending'))card.append(make('span','有待面谈申请','career-venue-pending'));
+        const go=action(item,registryKind(item),`前往${WORKPLACE_NAMES[site]||place(item).workplace}`,{scope:'catalogue',roleId:item.id});if(go){go.className='career-card-primary ww-airy-action';card.append(go);}cards.append(card);
+      }
+      panel.body.append(cards);
+      if(country==='china')panel.body.append(make('p','帝位与后宫身份路径尚未开放。','career-venue-note'));
+      if(!seen.size)panel.body.append(make('p','这里暂未开放可申请的工作场所。'));
     }else if(registrationMode){
       const cards=make('div',null,'career-card-grid');for(const item of displayRoles)cards.append(cardFor(item));panel.body.append(cards);
       if(!displayRoles.length)panel.body.append(make('p','当地暂未开放正式职业登记。'));
@@ -179,13 +196,9 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     registrationScope=options===true||options?.scope==='catalogue'?'catalogue':'role';
     onOpen();render(true);if(!dialog.open)dialog.showModal();
   }
-  button.onclick=()=>{
-    const s=careers.state(),list=roles();if(currentRole(s,list))return open(false);
-    const nearby=nearbyRegistries()[0],local=nearby?.role,next=nearby?.intent;
-    if(!next)return open(false);wallet?.close();close();onOpen();onIntent({...next,registration:{scope:'catalogue',roleId:local.id}});
-  };dialog.addEventListener('cancel',()=>close());dialog.addEventListener('click',e=>{if(e.target===dialog)close();});
+  button.onclick=()=>open(false);dialog.addEventListener('cancel',()=>close());dialog.addEventListener('click',e=>{if(e.target===dialog)close();});
   return {open,close,isOpen:()=>!!dialog.open,
-    update(mode){const s=careers.state(),r=s.lastEvaluation,c=getClock();slot.hidden=mode!=='lot';if(!wallet){money.textContent=`${copperLedger.state().cash} 铜文`;money.setAttribute('aria-label',`手头${copperLedger.state().cash}铜文`);}const employed=!!s.tenure&&!s.loadError;button.hidden=!employed&&!nearbyRegistries().length;button.setAttribute('aria-label',employed?'打开当前职业手册':'查看附近场所招工');
+    update(mode){const s=careers.state(),r=s.lastEvaluation,c=getClock();slot.hidden=mode!=='lot';if(!wallet){money.textContent=`${copperLedger.state().cash} 铜文`;money.setAttribute('aria-label',`手头${copperLedger.state().cash}铜文`);}const employed=!!s.tenure&&!s.loadError;button.hidden=!employed&&!nearbyRegistries().length;button.setAttribute('aria-label',employed?'打开当前职业手册':'选择本国求职场所');
       const customer=s.lastDuty?.customerReviews?.at(-1);
       if(customer&&customer.id!==customerReviewId){customerReviewId=customer.id;feedback.textContent=`${customer.positive?'👍':'👎'} ${customer.customerName}：${customer.reason}`;feedback.className='career-review-pop '+(customer.positive?'career-positive':'career-negative');feedbackUntil=c.seconds+6;feedback.hidden=false;}
       else if(r&&r.id!==reviewId){reviewId=r.id;const role=roles().find(item=>item.id===r.roleId);feedback.textContent=`${r.positive?'👍':'👎'} ${employer(role)}：${r.reason}`;feedback.className='career-review-pop '+(r.positive?'career-positive':'career-negative');feedbackUntil=c.seconds+6;feedback.hidden=false;}
