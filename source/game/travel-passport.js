@@ -50,46 +50,60 @@ function portraitSVG(look={}) {
     `<rect x="1" y="1" width="62" height="74" rx="4" fill="#e5d8b6"/>${long?`<path d="M14 48V25C12 1 52 1 51 25v23z" fill="${hair}"/>`:''}<path d="M6 76c1-22 14-29 26-29s25 7 26 29" fill="${shirt}"/><path d="M24 44h16l-8 12z" fill="${skin}"/><ellipse cx="32" cy="29" rx="16" ry="20" fill="${skin}"/><path d="M15 26C11 7 22 4 33 5s20 10 16 24l-5-9-8-3-7 8-8-7z" fill="${hair}"/><ellipse cx="26" cy="30" rx="2.1" ry="2.8" fill="${eyes}"/><ellipse cx="39" cy="30" rx="2.1" ry="2.8" fill="${eyes}"/><path d="M28 40q5 4 9-1" fill="none" stroke="#a86252" stroke-width="1.5" stroke-linecap="round"/></svg>`;
 }
 
-export function createTravelPassport({mount,getProgress=()=>({}),getClock=()=>({}),getLook=()=>({}),onOpen=()=>{},onReturn=()=>{},document:doc=globalThis.document}={}) {
-  if(!mount)throw TypeError('passport requires a help or travel menu mount');
+export function createTravelPassport({mount,trigger:externalTrigger,helpContent,onHelp=()=>{},getProgress=()=>({}),getClock=()=>({}),getLook=()=>({}),onOpen=()=>{},onReturn=()=>{},onClose=()=>{},document:doc=globalThis.document}={}) {
+  if(!mount&&!externalTrigger)throw TypeError('passport requires a trigger or menu mount');
   const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text!=null)e.textContent=text;if(cls)e.className=cls;return e;};
   const button=(text,cls,label)=>{const b=make('button',text,cls);b.type='button';if(label)b.setAttribute('aria-label',label);return b;};
   const art=(svg,cls)=>{const e=make('div',null,cls);e.setAttribute('aria-hidden','true');e.innerHTML=svg;return e;};
   const style=make('link');style.rel='stylesheet';style.href=STYLE;(doc.head||doc.body).append(style);
-  const trigger=button(null,'ww-passport-trigger','打开四方旅行护照');trigger.setAttribute('aria-haspopup','dialog');trigger.setAttribute('aria-expanded','false');
-  trigger.append(make('span','✦','ww-passport-trigger-icon'),make('strong','旅行护照'),make('span','收好沿途的印记 →','ww-passport-trigger-hint'));
-  const instructions=mount.querySelector?.('ul');if(instructions)mount.insertBefore(trigger,instructions);else mount.append(trigger);
-  let ui=null,opened=false,disposed=false,restoreHost=false,priorFocus=null,page='cover',activityLimit=24;
+  const trigger=externalTrigger||button(null,'ww-passport-trigger','打开四方旅行护照');trigger.setAttribute('aria-haspopup','dialog');trigger.setAttribute('aria-expanded','false');
+  if(!externalTrigger){trigger.append(make('span','✦','ww-passport-trigger-icon'),make('strong','旅行护照'),make('span','收好沿途的印记 →','ww-passport-trigger-hint'));
+    const instructions=mount.querySelector?.('ul');if(instructions)mount.insertBefore(trigger,instructions);else mount.append(trigger);}
+  const pages=[{id:'cover',country:'旅人页'},...PASSPORT_REGIONS,...(helpContent?[{id:'notes',country:'说明与记录'}]:[])];
+  const reducedMotion=()=>doc.defaultView?.matchMedia?.('(prefers-reduced-motion: reduce)').matches??true;
+  let ui=null,opened=false,disposed=false,restoreHost=false,priorFocus=null,page='cover',activityLimit=24,closeTimer=null;
+  function makeCover(cls='ww-passport-cover'){const cover=make('section',null,cls);cover.append(make('span','四 方 生 活','ww-passport-cover-brand'),art(COVER,'ww-passport-cover-art'),make('h3','旅行护照'),make('span','WANDER · NOTICE · REMEMBER','ww-passport-cover-latin'),make('span','万千日常，装进一本小书','ww-passport-cover-motto'));return cover;}
+  function turnTo(next){if(next===page||ui?.dialog.className.includes('is-closing'))return;const direction=pages.findIndex(p=>p.id===next)>pages.findIndex(p=>p.id===page)?'forward':'back';page=next;activityLimit=24;render();ui.body.dataset.turn=direction;ui.body.scrollTop=0;}
+  function turnBy(delta){const index=pages.findIndex(p=>p.id===page),next=pages[index+delta];if(next)turnTo(next.id);}
   function ensureUI(){
     if(ui)return;
     const dialog=make('dialog',null,'ww-passport-dialog');dialog.setAttribute('aria-label','四方旅行护照 · 游戏旅行册');
-    const header=make('header',null,'ww-passport-header'),title=make('div'),closeButton=button('×','ww-passport-close','收好护照，返回帮助');
+    const header=make('header',null,'ww-passport-header'),title=make('div'),closeButton=button('×','ww-passport-close',externalTrigger?'收好护照，继续探索':'收好护照，返回帮助');
     title.append(make('span','WORLDWOVEN · 旅人随身册','ww-passport-eyebrow'),make('h2','四方旅行护照'));header.append(title,closeButton);
     const body=make('div',null,'ww-passport-body');body.tabIndex=0;body.setAttribute('aria-label','滚动阅读护照');
     const nav=make('nav',null,'ww-passport-nav');nav.setAttribute('aria-label','护照书签');
-    const tabs=new Map();for(const p of [{id:'cover',country:'旅人页'},...PASSPORT_REGIONS]){const b=button(p.country,'ww-passport-tab');b.dataset.page=p.id;b.onclick=()=>{page=p.id;activityLimit=24;render();ui.body.scrollTop=0;};nav.append(b);tabs.set(p.id,b);}
-    const note=make('p','四方生活中的原创游戏旅行册','ww-passport-fiction');dialog.append(header,body,nav,note);doc.body.append(dialog);
-    ui={dialog,closeButton,body,tabs};closeButton.onclick=close;
+    const tabs=new Map();for(const p of pages){const b=button(p.country,'ww-passport-tab');b.dataset.page=p.id;b.onclick=()=>turnTo(p.id);nav.append(b);tabs.set(p.id,b);}
+    const book=make('div',null,'ww-passport-book'),flap=makeCover('ww-passport-cover ww-passport-flap');flap.setAttribute('aria-hidden','true');book.append(body,flap);if(helpContent)body.append(helpContent);
+    const corners=make('div',null,'ww-passport-corners'),previous=button('‹ 上一页','ww-passport-page-turn','翻到护照上一页'),next=button('下一页 ›','ww-passport-page-turn','翻到护照下一页'),pageNumber=make('span',null,'ww-passport-page-number');corners.append(previous,pageNumber,next);
+    previous.onclick=()=>turnBy(-1);next.onclick=()=>turnBy(1);
+    const note=make('p','四方生活中的原创游戏旅行册','ww-passport-fiction');dialog.append(header,book,corners,nav,note);doc.body.append(dialog);
+    ui={dialog,closeButton,body,tabs,previous,next,pageNumber};closeButton.onclick=requestClose;
+    dialog.addEventListener('animationend',e=>{if(e.target===dialog&&dialog.className.includes('is-closing'))close();});
+    let swipe=null;body.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch'||e.target.closest?.('button,a,summary'))return;swipe={x:e.clientX,y:e.clientY};});
+    body.addEventListener('pointercancel',()=>{swipe=null;});body.addEventListener('pointerup',e=>{const start=swipe;swipe=null;if(!start)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;if(Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.7)turnBy(dx<0?1:-1);});
     dialog.addEventListener('keydown',e=>e.stopPropagation());
-    dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
+    dialog.addEventListener('cancel',e=>{e.preventDefault();requestClose();});
     dialog.addEventListener('close',()=>{if(!dialog.open)finishClose();});
     let backdropPointer=false;dialog.addEventListener('pointerdown',e=>{backdropPointer=e.target===dialog;});
     dialog.addEventListener('pointercancel',()=>{backdropPointer=false;});
-    dialog.addEventListener('click',e=>{const dismiss=backdropPointer&&e.target===dialog;backdropPointer=false;if(dismiss)close();});
+    dialog.addEventListener('click',e=>{const dismiss=backdropPointer&&e.target===dialog;backdropPointer=false;if(dismiss)requestClose();});
   }
   function render(){
-    const view=travelPassportView(getProgress(),getClock());ui.body.replaceChildren();
+    const view=travelPassportView(getProgress(),getClock());ui.body.replaceChildren(...(helpContent?[helpContent]:[]));delete ui.body.dataset.turn;
+    if(helpContent)helpContent.hidden=page!=='notes';
+    const index=pages.findIndex(p=>p.id===page);ui.previous.disabled=index===0;ui.next.disabled=index===pages.length-1;ui.pageNumber.textContent=`${index+1} / ${pages.length}`;
     for(const [id,b]of ui.tabs){b.setAttribute('aria-current',id===page?'page':'false');}
     if(page==='cover'){
-      const cover=make('section',null,'ww-passport-cover');cover.append(make('span','四 方 生 活','ww-passport-cover-brand'),art(COVER,'ww-passport-cover-art'),make('h3','旅行护照'),make('span','WANDER · NOTICE · REMEMBER','ww-passport-cover-latin'),make('span','万千日常，装进一本小书','ww-passport-cover-motto'));
+      const cover=makeCover();
       const holder=make('section',null,'ww-passport-holder'),identity=make('div',null,'ww-passport-identity'),portrait=art(portraitSVG(getLook()),'ww-passport-portrait');
       portrait.removeAttribute('aria-hidden');portrait.setAttribute('role','img');portrait.setAttribute('aria-label','沿用游戏角色配色的小像');
       const name=make('div');name.append(make('span','游戏称呼','ww-passport-eyebrow'),make('h3',view.nickname),make('span','四方之间，自在旅居','ww-passport-holder-caption'));identity.append(portrait,name);
       holder.append(make('span','TRAVELER’S NOTEBOOK','ww-passport-page-kicker'),identity,make('p','把走过的地方、做过的小事，轻轻盖在这里。','ww-passport-intro'));
       const totals=make('div',null,'ww-passport-totals');totals.append(make('strong',`${view.visitedCount} / 4 个地区`),make('span',`${view.activityCount} 枚日常印记`));holder.append(totals);
-      const mini=make('div',null,'ww-passport-region-grid');for(const r of view.regions){const b=button(null,`ww-passport-region-link${r.visited?' is-visited':''}`,`翻到${r.country}，${r.visited?'已到访':'未到访'}`);b.style.setProperty('--stamp-ink',r.ink);b.append(art(travelStampSVG(r.id),'ww-passport-mini-art'),make('span',r.country),make('small',r.visited?'已到访':'待启程'));b.onclick=()=>{page=r.id;activityLimit=24;render();ui.body.scrollTop=0;ui.tabs.get(r.id).focus({preventScroll:true});};mini.append(b);}holder.append(mini);
+      const mini=make('div',null,'ww-passport-region-grid');for(const r of view.regions){const b=button(null,`ww-passport-region-link${r.visited?' is-visited':''}`,`翻到${r.country}，${r.visited?'已到访':'未到访'}`);b.style.setProperty('--stamp-ink',r.ink);b.append(art(travelStampSVG(r.id),'ww-passport-mini-art'),make('span',r.country),make('small',r.visited?'已到访':'待启程'));b.onclick=()=>{turnTo(r.id);ui.tabs.get(r.id).focus({preventScroll:true});};mini.append(b);}holder.append(mini);
       holder.append(make('p',`翻阅时：${view.clockLabel}`,'ww-passport-clock'),make('p','旧旅程的到访日期没有留下记录，印记仍在。','ww-passport-date-note'));
       ui.body.append(cover,holder);
+    }else if(page==='notes'){onHelp();
     }else{
       const r=view.regions.find(r=>r.id===page),hero=make('section',null,`ww-passport-region-page${r.visited?' is-visited':''}`);hero.style.setProperty('--stamp-ink',r.ink);hero.style.setProperty('--stamp-tilt',r.tilt);
       hero.append(make('span',r.en,'ww-passport-page-kicker'),make('h3',r.place),make('span',r.country,'ww-passport-country'),art(travelStampSVG(r.id),'ww-passport-stamp-art'),make('strong',r.visited?'已盖章 · 到访留念':'留白 · 等你来盖章','ww-passport-visit-status'),make('span',r.motif,'ww-passport-motif'),make('p',r.visited?'到访日期 · 未记录':'下一程，可以从这里开始','ww-passport-date-note'));
@@ -103,19 +117,21 @@ export function createTravelPassport({mount,getProgress=()=>({}),getClock=()=>({
     }
   }
   function open(){
-    if(disposed||opened)return;ensureUI();priorFocus=doc.activeElement;restoreHost=mount.tagName==='DIALOG'&&mount.open;
+    if(disposed)return;if(opened){if(closeTimer!==null){clearTimeout(closeTimer);closeTimer=null;ui.dialog.className='ww-passport-dialog';}return;}ensureUI();priorFocus=doc.activeElement;restoreHost=mount?.tagName==='DIALOG'&&mount.open;
     if(restoreHost)mount.close();onOpen();page='cover';activityLimit=24;render();ui.body.scrollTop=0;
-    ui.dialog.showModal();opened=true;trigger.setAttribute('aria-expanded','true');ui.closeButton.focus({preventScroll:true});
+    ui.dialog.className='ww-passport-dialog is-opening';ui.dialog.showModal();opened=true;trigger.setAttribute('aria-expanded','true');ui.closeButton.focus({preventScroll:true});
   }
   function finishClose(){
+    if(closeTimer!==null){clearTimeout(closeTimer);closeTimer=null;}
     if(!opened)return;opened=false;trigger.setAttribute('aria-expanded','false');
     if(disposed)return;
     if(restoreHost&&mount.isConnected){onReturn();if(!mount.open)mount.showModal();trigger.focus({preventScroll:true});}
     else if(priorFocus?.isConnected)priorFocus.focus({preventScroll:true});
-    restoreHost=false;
+    restoreHost=false;onClose();
   }
-  function close(){if(ui?.dialog.open){ui.dialog.close();finishClose();}}
+  function requestClose(){if(!opened||closeTimer!==null)return;if(reducedMotion()){close();return;}ui.dialog.className='ww-passport-dialog is-closing';closeTimer=setTimeout(close,340);}
+  function close(){if(closeTimer!==null){clearTimeout(closeTimer);closeTimer=null;}if(ui?.dialog.open){ui.dialog.close();finishClose();}}
   trigger.onclick=open;
   return {open,close,isOpen:()=>!!ui?.dialog.open,refresh(){if(opened)render();},
-    dispose(){if(disposed)return;disposed=true;close();trigger.remove();ui?.dialog.remove();style.remove();}};
+    dispose(){if(disposed)return;disposed=true;close();trigger.onclick=null;if(!externalTrigger)trigger.remove();if(helpContent){helpContent.hidden=true;doc.body.append(helpContent);}ui?.dialog.remove();style.remove();}};
 }

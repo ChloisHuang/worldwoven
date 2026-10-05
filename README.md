@@ -11,7 +11,7 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.64-public, 2026-10-05
+Published release: R16.65-public, 2026-10-05
 Verified published Sites source commit: 00ab703d79526bcafe0f8910c48c12ef49ad0f7c
 
 ## Working rules
@@ -122,3 +122,5 @@ R16.62 extends the shared catalogue to three real permanent posts: court clerk, 
 R16.63 adds shared player/NPC body-only recovery after five seconds of sustained blocked movement, capped at1.25 seconds/1.4 metres and ending when clear. Static walls, leaves, furniture and floors remain enforced. Reading now offers ritual/writing/gardening/art books with real8-second completion, visible skill progress, cancellation and save migration; French reading/chair targets remain separately usable. Narrow navigation and actual four-station main checks passed; user-phone deadlock and iOS layout still require field confirmation. No passport or new character model included.
 
 R16.64 adds the fictional read-only travel passport inside Help, before lengthy control instructions. It uses saved visits, activity stamps and the current character palette, with original cover and four regional seals; dates absent from old progress stay unknown. Returning from the passport refreshes the existing Chinese court-status panel. Wallet/passport browsing stops movement input without cancelling existing work or orders. No new save fields, face model or raster downloads; targeted modal/progress checks and build passed, real iOS layout unverified.
+
+R16.65 puts the passport directly in the upper-right HUD with opening, page-turn and closing motions; controls and current court diagnostics remain in its notes page. Wallet notes rise in front of the pocket, blank ticket fields receive currency/value/series artwork, and cash totals are explicitly separate from bank deposits. Actual transaction animations use the corresponding optimized country ticket only after ledger commitment. Focused DOM and resource checks passed; real browser/iOS animation and the reported top blank strip remain unverified. No new careers or face model included.
