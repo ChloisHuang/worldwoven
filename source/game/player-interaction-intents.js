@@ -22,8 +22,57 @@ export function nearbyInteraction(candidate,position,{radius=candidate?.interact
 
 // Task actions beat optional chats; distance breaks ties between equal choices.
 export function chooseNearbyInteraction(candidates,position,clear){
- return candidates.filter(c=>c&&nearbyInteraction(c,position,{clear})).sort((a,b)=>(b.priority??20)-(a.priority??20)||
-  Math.hypot(a.position[0]-position.x,a.position[2]-position.z)-Math.hypot(b.position[0]-position.x,b.position[2]-position.z))[0]||null;
+ return nearbyInteractions(candidates,position,clear)[0]||null;
+}
+
+// The HUD and chooser share this one spatial pass. Service actions at the same
+// counter share its visibility result; furniture retains its own marker test.
+export function nearbyInteractions(candidates,position,clear=()=>true){
+ const visibility=new Map(),seen=new Set(),near=[];
+ for(const candidate of candidates){
+  if(!candidate||!position||!nearbyInteraction(candidate,position))continue;
+  const identity=interactionIdentity(candidate);if(seen.has(identity))continue;
+  const key=candidate.furniture?'furniture:'+candidate.id:candidate.position.join(':');
+  if(!candidate.visibilityChecked){if(!visibility.has(key))visibility.set(key,clear(candidate));if(!visibility.get(key))continue;}
+  seen.add(identity);near.push(candidate);
+ }
+ return near.sort((a,b)=>(b.priority??20)-(a.priority??20)||
+  Math.hypot(a.position[0]-position.x,a.position[2]-position.z)-Math.hypot(b.position[0]-position.x,b.position[2]-position.z));
+}
+
+// Equivalent legacy entry points collapse after priority sorting. Identity and
+// backend intent keys stay intact, so deduplication never grants permission.
+export function uniqueInteractionActions(candidates){const seen=new Set();return candidates.filter(item=>{const key=item.actionKey||interactionIdentity(item);if(seen.has(key))return false;seen.add(key);return true;});}
+
+export function interactionIdentity(item){return [item?.provider||'',item?.social?'social':'',item?.id||'',item?.intentKey??''].join('|');}
+
+export function interactionIcon(item){
+ if(item?.icon)return item.icon;
+ if(item?.social)return 'chat';
+ if(item?.furniture&&item.kind==='seat')return 'chair';
+ return 'hand';
+}
+
+export function groupInteractions(candidates){
+ const groups=new Map();
+ for(const action of candidates){const id=action.targetKey||action.actor?.station?.id||action.id;
+  if(!groups.has(id))groups.set(id,{id,name:action.targetName||action.name||'附近',actions:[]});
+  groups.get(id).actions.push(action);
+ }
+ return [...groups.values()];
+}
+
+// Menu entries are navigation intents, never transactions. Existing service
+// panels own their confirmation, money, occupancy and cancellation semantics.
+export function createServiceMenuIntents(){
+ const providers=new Map();
+ function intent(id){const source=providers.get(id),target=source?.target();return target?{...target,id:'menu-'+id,provider:'service-menu',menuId:id,kind:'view',intentKey:target.intentKey??id,executionRadius:target.executionRadius??1.8,interactionRadius:target.interactionRadius??2.8,keepSeat:true}:null;}
+ function resolveIntent(selected){return currentInteractionIntent(selected,intent(selected?.menuId));}
+ return {
+  register(id,source){providers.set(id,source);},clear(){providers.clear();},
+  candidates(){return [...providers.keys()].map(intent).filter(Boolean);},intent,resolveIntent,
+  executeIntent(selected){const current=resolveIntent(selected);return current?providers.get(current.menuId).open(current)!==false:false;},
+ };
 }
 
 // Resolve identity against live state, never an old button's callback. Providers

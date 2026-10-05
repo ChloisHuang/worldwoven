@@ -184,7 +184,7 @@ export function createFranceGardenerLabor({gardener,employment,careers,openRegis
   snapshot:()=>({version:1,jobId:current.job?.id||null,completedBeds:current.job?.completedBeds||0,activity,pending:copy(pending),meetingIntent:copy(meetingIntent),elapsed,origin:copy(origin),activityPoint:copy(activityPoint),nextPayAt}),
   restore(s){if(s?.version!==1||s.jobId!==(current.job?.id||null)||s.completedBeds!==(current.job?.completedBeds||0))return false;activity=['take','water','return'].includes(s.activity)?s.activity:null;pending=copy(s.pending);meetingIntent=copy(s.meetingIntent);elapsed=Math.max(0,s.elapsed||0);origin=copy(s.origin);activityPoint=copy(s.activityPoint);nextPayAt=Math.max(0,s.nextPayAt||0);return true;},
   employment,formal,playerPose,toolPose,label:()=>meetingIntent?'等埃米尔收好工具':activity==='water'?`正在浇花 · ${Math.ceil(SECONDS-elapsed)} 秒`:activity==='take'?'拿起浇水壶':activity==='return'?'放回浇水壶':held()?'提着浇水壶':null,
-  open:()=>ui?.open(),close:()=>ui?.close(),isOpen:()=>!!ui?.isOpen(),
+  menuContext:()=>ui?.menuContext(),open:()=>ui?.open(),close:()=>ui?.close(),isOpen:()=>!!ui?.isOpen(),
   dispose({suspend=false}={}){if(disposed)return;if(!suspend)stopActivity();disposed=true;ui?.dispose();}};
  if(doc?.createElement&&doc.body)ui=createUI({doc,service,getPlayer,canSee,onIntent,onOpen});
  ensureReservation();return service;
@@ -201,16 +201,16 @@ function createUI({doc,service,getPlayer,canSee,onIntent,onOpen}){
 @media(max-height:500px){.fr-labor-dialog.ww-airy-panel{padding:12px 18px 10px}.fr-labor-heading{height:30px;padding-bottom:5px;margin-bottom:7px}.fr-labor-dialog h2{font-size:18px}.fr-labor-dialog h3{font-size:17px}.fr-labor-detail{padding:8px 13px}.fr-labor-value{margin:5px 0}.fr-labor-value strong{font-size:26px}.fr-labor-actions{padding-top:5px}.fr-labor-badge{top:215px;font-size:10px;padding:8px 10px}}
 @media(max-width:600px){.fr-labor-dialog.ww-airy-panel{height:min(540px,var(--ww-ui-height,calc(100dvh - 24px)));padding:16px}.fr-labor-heading{display:block}.fr-labor-heading>span{display:block;margin-top:3px}.fr-labor-content{display:block;overflow:auto}.fr-labor-menu,.fr-labor-detail{overflow:visible}.fr-labor-menu{margin-bottom:12px}.fr-labor-choices{grid-template-columns:1fr 1fr}.fr-labor-choices button{padding:8px}.fr-labor-choices strong{font-size:14px}.fr-labor-choices span{font-size:11px}}
 `;
- (doc.head||doc.body).append(style);doc.body.append(badge,dialog);let signature='',selected='temporary',revision=0,detailsOpen=false,disposed=false;
- const nearby=()=>[REGISTRY,service.view().target].some(t=>near(getPlayer()?.root.position,t.position,2.4)&&canSee(t));
+ (doc.head||doc.body).append(style);doc.body.append(badge,dialog);let menuState={available:false},signature='',selected='temporary',revision=0,detailsOpen=false,disposed=false;
+ const nearby=(state=service.view())=>[REGISTRY,state.target].some(t=>near(getPlayer()?.root.position,t.position,2.4)&&canSee(t));
  const close=()=>{revision++;if(dialog.open)dialog.close();};
  const button=(text,fn,cls)=>{const e=make('button',text,cls);e.type='button';e.onclick=fn;return e;};
  const request=choice=>{if(!service.resolveIntent(choice)){refresh(true);return;}close();onIntent(choice);};
  const secondsLeft=s=>s.activity==='water'?Math.ceil((1-s.progress)*s.seconds):null;
  const stateKey=s=>JSON.stringify([selected,s.job,s.hired,s.activity,secondsLeft(s),s.held,s.waitingForHost,s.loadError,s.lastError,s.employment?.revision,s.employment?.loadError,s.formalState?.revision,s.formalState?.loadError,s.formalHired,getPlayer()?.ageYears,s.beginAvailability?.code,s.beginAvailability?.ok]);
  function refresh(force=false){
-  const s=service.view();badge.hidden=!nearby();badge.textContent=s.formalHired?(s.job?.stage==='ready'?'园艺正式班次 · 待验收':s.job?`常任园艺 · ${s.job.completedBeds}/2畦`:'常任园艺助理 · 每日班次'):s.activity==='water'?`浇花中 · ${secondsLeft(s)} 秒`:s.waitingForHost?'等埃米尔到登记簿旁':s.job?.stage==='ready'?`园艺工钱 · ${s.wage} 铜文`:s.job?`园艺活 · ${s.job.completedBeds}/2 畦${s.held?' · 持壶':''}`:s.hired?'园艺帮工 · 接活':'招工登记 · 园艺帮工';
-  if(dialog.open&&!nearby()){close();return;}if(!dialog.open&&!force)return;
+  const s=service.view(),near=nearby(s);menuState={available:near};badge.hidden=!near;badge.textContent=s.formalHired?(s.job?.stage==='ready'?'园艺正式班次 · 待验收':s.job?`常任园艺 · ${s.job.completedBeds}/2畦`:'常任园艺助理 · 每日班次'):s.activity==='water'?`浇花中 · ${secondsLeft(s)} 秒`:s.waitingForHost?'等埃米尔到登记簿旁':s.job?.stage==='ready'?`园艺工钱 · ${s.wage} 铜文`:s.job?`园艺活 · ${s.job.completedBeds}/2 畦${s.held?' · 持壶':''}`:s.hired?'园艺帮工 · 接活':'招工登记 · 园艺帮工';
+  if(dialog.open&&!near){close();return;}if(!dialog.open&&!force)return;
   const key=stateKey(s);if(!force&&key===signature)return;signature=key;const rendered=++revision;dialog.replaceChildren();
   // A closed, replaced or superseded control cannot issue another navigation
   // request or cancel a newer work slip. Physical execution stays in service.
@@ -251,5 +251,5 @@ function createUI({doc,service,getPlayer,canSee,onIntent,onOpen}){
   detail.append(more);const primary=button(label,guard(()=>request(choice)),'fr-labor-primary ww-airy-action');primary.disabled=blocked||!choice;actions.append(primary);body.append(menu,detail);dialog.append(x,header,body,actions);
  }
  const open=()=>{if(disposed||!nearby())return;revision++;if(service.view().formalHired){close();service.formal.open();return;}onOpen();if(service.view().job)selected='temporary';refresh(true);if(!dialog.open)dialog.showModal();refresh(true);};badge.onclick=open;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});refresh();
- return {open,close,refresh,isOpen:()=>dialog.open,dispose(){disposed=true;close();badge.remove();dialog.remove();style.remove();}};
+ return {menuContext:()=>disposed?null:menuState,open,close,refresh,isOpen:()=>dialog.open,dispose(){disposed=true;close();badge.remove();dialog.remove();style.remove();}};
 }

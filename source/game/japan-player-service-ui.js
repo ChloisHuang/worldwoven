@@ -17,7 +17,7 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
 @media(max-width:600px){.jp-service-dialog.ww-airy-panel{height:min(530px,var(--ww-ui-height,calc(100dvh - 24px)));padding:16px}.jp-service-heading{display:block}.jp-service-heading>span{display:block;margin-top:3px}.jp-service-content{display:block;overflow:auto}.jp-service-menu,.jp-service-detail{overflow:visible}.jp-service-menu{margin-bottom:12px}.jp-service-choices{grid-template-columns:1fr 1fr}.jp-service-choices button{font-size:13px}.jp-service-current{padding:3px}.jp-service-actions{gap:4px}.jp-service-actions button{padding:7px}}
 `;
  const badge=make('button','汤馆服务','jp-service-ticket'),dialog=make('dialog',null,'jp-service-dialog ww-airy-theme ww-airy-panel');badge.type='button';badge.setAttribute('aria-label','查看汤馆服务与浴牌');dialog.setAttribute('aria-label','汤馆服务');doc.head.append(style);doc.body.append(badge,dialog);
- let selected=service.blends[0].id,selectedDish='ramen',mode='bath',signature='',badgeText='',disposed=false,placed=false,choiceRevision=0;
+ let liveVisit=false,selected=service.blends[0].id,selectedDish='ramen',mode='bath',signature='',badgeText='',disposed=false,placed=false,choiceRevision=0;
  const uiWindow=doc.defaultView||globalThis,onResize=()=>{placed=false;};uiWindow.addEventListener?.('resize',onResize);
  function placeBadge(){if(placed)return;const rect=doc.querySelector?.('.location-card')?.getBoundingClientRect();if(rect?.height>0){badge.style.top=Math.ceil(rect.bottom+9)+'px';placed=true;}}
  const distance=a=>{const p=getPlayer()?.root.position;return p&&Math.abs(p.y-a[1])<.65?Math.hypot(p.x-a[0],p.z-a[2]):Infinity;};
@@ -82,6 +82,7 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
  }
  function refresh(force=false) {
   const s=service.state(),v=s.visit,step=next(),mounted=getMounted(),key=[v?.id,v?.stage,v?.blendReceived,s.progress?.blend?.code,s.progress?.meal.code,selected,selectedDish,mode,s.cash,s.payment,s.paymentError,step.kind,step.label,distance(step.position)<=.34,mounted?.id].join('|');
+  liveVisit=!!v;
   const standalone=v?.orderKind==='dining',dish=service.menu.find(d=>d.id===(v?.dishId||selectedDish));
   const current=standalone?(s.activity?.label||s.progress.meal.text):s.activity?s.activity.label:v?.stage==='waiting-bath'?s.progress.blend.text:v?.stage==='waiting-meal'?s.progress.meal.text:LABELS[v?.stage]||'汤馆服务';
   const text=v?`${standalone?'餐单':'浴牌'} ${v.number} · ${current}`:'一楼点餐 · 泡汤服务';if(text!==badgeText){badgeText=text;badge.textContent=text;}
@@ -124,7 +125,7 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
  function open(context){choiceRevision++;if(!service.state().visit){if(context==='bath')mode='bath';else{const local=nearbyDining();if(context==='dining'||local){mode='dining';if(local)selectedDish=local.id;}}}onOpen();refresh(true);if(!dialog.open)dialog.showModal();refresh(true);}
  badge.onclick=()=>open();dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
  return {
-  open,close,currentIntent,resolveIntent,executeIntent,isOpen:()=>dialog.open,
+  hasVisit:()=>liveVisit,open,close,currentIntent,resolveIntent,executeIntent,isOpen:()=>dialog.open,
   openStation(id){if(id==='jp-welcome'){open('bath');return true;}if(!['jp-sushi','jp-ramen'].includes(id))return false;selectedDish=id==='jp-sushi'?'sushi':'ramen';open('dining');return true;},
   buttonLabel:target=>({order:'点餐','dining-panel':'点餐',register:'登记',change:'更衣',wash:'清洗',collect:'领浴包',bath:'入汤',meal:'点餐',eat:'用餐',stop:'停止',stand:'离池',wait:'查看',return:'退牌',panel:'浴牌',seat:'入座'}[target.serviceStep?.kind]||'查看'),
   target() {

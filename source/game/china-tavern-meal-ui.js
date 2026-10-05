@@ -12,7 +12,7 @@ export function createChinaTavernMealUI({service,getPlayer,getMounted,getRecepti
 @media(max-width:600px){.cn-meal-dialog.ww-airy-panel{height:min(560px,var(--ww-ui-height,calc(100dvh - 24px)));padding:16px}.cn-meal-heading{display:block;height:auto;flex-basis:auto}.cn-meal-heading>span{display:block;margin-top:3px}.cn-meal-content{display:block;overflow:auto}.cn-meal-menu,.cn-meal-detail{overflow:visible}.cn-meal-menu{margin-bottom:12px}.cn-meal-actions{flex-wrap:wrap;gap:4px}.cn-meal-dialog.ww-airy-theme .cn-meal-primary{flex-basis:100%}}
 `;
  badge.type='button';badge.setAttribute('aria-label','云来酒楼选座与点菜');dialog.setAttribute('aria-label','云来酒楼菜牌');(doc.head||doc.body).append(style);doc.body.append(badge,dialog);
- let signature='',disposed=false,choiceRevision=0,chosenSeat=null,chosenDish=service.menu?.[0]?.id||service.dish.id;
+ let menuState={order:false,seated:null},signature='',disposed=false,choiceRevision=0,chosenSeat=null,chosenDish=service.menu?.[0]?.id||service.dish.id;
  const nearEntry=()=>[getReception(),...service.seats].some(item=>nearbyInteraction(item,getPlayer()?.root.position,{radius:1.8,clear:canSee}));
  const seatName=s=>s?`${s.center[0]<21?'西窗':'东窗'}桌 · ${s.center[2]<18.1?'里侧':'门侧'}`:'原餐位';
  function invalidateIntent(){choiceRevision++;}
@@ -36,6 +36,7 @@ export function createChinaTavernMealUI({service,getPlayer,getMounted,getRecepti
  function request(selected){if(!resolveIntent(selected)){refresh(true);return;}dialog.close();onIntent(selected);}
  function refresh(force=false){
   const s=service.view(),o=s.order,mounted=getMounted(),seated=service.seats.find(i=>i.id===mounted?.id),available=canOrder(),near=nearEntry(),cash=service.walletCash?.();
+  menuState={order:!!o,seated};
   if(seated)chosenSeat=seated.id;else if(!service.seats.some(seat=>seat.id===chosenSeat))chosenSeat=service.seats.find(seat=>canChooseSeat(seat))?.id||service.seats[0]?.id;
   badge.hidden=!near||!canShow();badge.textContent=o?`云来酒楼 · ${o.cancelled?'正在收拾餐具':s.label}`:seated?'云来酒楼 · 招呼许安点菜':'云来酒楼 · 选座点菜';
   if(dialog.open&&!near&&!o){close();return;}if(!dialog.open&&!force)return;
@@ -69,5 +70,5 @@ export function createChinaTavernMealUI({service,getPlayer,getMounted,getRecepti
  }
  function open(){if(disposed||!nearEntry()&&!service.view().order)return;invalidateIntent();onOpen();refresh(true);if(!dialog.open)dialog.showModal();refresh(true);}
  badge.onclick=()=>{if(!disposed&&nearEntry()&&canShow())open();};dialog.addEventListener('cancel',e=>{e.preventDefault();close();});refresh();
- return {open,close,intent,resolveIntent,executeIntent,invalidateIntent,isOpen:()=>!!dialog.open,openStation:id=>{if(id!==service.dish.host)return false;open();return true;},update:()=>{if(!disposed)refresh();},dispose(){disposed=true;invalidateIntent();close();badge.remove();dialog.remove();style.remove();}};
+ return {menuContext:()=>menuState,open,close,intent,resolveIntent,executeIntent,invalidateIntent,isOpen:()=>!!dialog.open,openStation:id=>{if(id!==service.dish.host)return false;open();return true;},update:()=>{if(!disposed)refresh();},dispose(){disposed=true;invalidateIntent();close();badge.remove();dialog.remove();style.remove();}};
 }
