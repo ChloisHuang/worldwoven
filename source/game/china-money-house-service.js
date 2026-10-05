@@ -28,7 +28,7 @@ export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,sav
  .cn-money-dialog h2{font-size:18px;font-weight:700;line-height:1.25;margin:0;color:#374d3e}.cn-money-dialog h3{font-size:14px;line-height:1.3;margin:0 0 8px}
  .cn-money-dialog p{font-size:12px;line-height:1.4;margin:0}.cn-money-dialog button{min-height:44px;padding:8px 10px;border:0;border-radius:8px;box-shadow:inset 0 1px #ffffff30;background:linear-gradient(#709268 0 76%,#56754f 76% 100%);color:#fff4d8;font-size:13px;line-height:1.3;cursor:pointer}
  .cn-money-dialog button:disabled{opacity:.45;cursor:default;box-shadow:none}.cn-money-dialog button:not(:disabled):active{transform:translateY(1px);background:linear-gradient(#4e704c 0 24%,#62875b 24% 100%);box-shadow:inset 0 2px #3f5e3f30}.cn-money-dialog button:focus-visible,.cn-money-dialog input:focus-visible,.cn-money-dialog select:focus-visible,.cn-money-dialog summary:focus-visible{outline:2px solid #8b9768;outline-offset:2px}
- .cn-money-dialog .cn-money-close{position:absolute;top:8px;right:8px;min-width:40px;padding:0;border:0;box-shadow:none;background:transparent;color:#4b4434;font-size:23px}
+ .cn-money-dialog .cn-money-close{position:absolute;top:8px;right:8px;width:44px;height:44px;min-width:44px;z-index:1;padding:0;border:0;box-shadow:none;background:transparent;color:#4b4434;font-size:23px}
  .cn-money-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-right:44px;margin-bottom:10px}.cn-money-header label{display:flex;align-items:center;gap:8px;white-space:nowrap}.cn-money-header select{width:145px}
  .cn-money-balances{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:10px}.cn-money-balance{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:8px 12px;background:#f0dfac;border:0;border-radius:8px;box-shadow:inset 0 3px #fff3cf}.cn-money-balance[data-money-balance=bank]{background:#dbe7cf;box-shadow:inset 0 3px #edf4e4}.cn-money-balance span{font-size:12px}.cn-money-balance strong{font-size:22px;line-height:1.2;font-variant-numeric:tabular-nums}.cn-money-balance small{font-size:12px;font-weight:normal;margin-left:4px}
  .cn-money-workspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}.cn-money-panel{min-width:0;padding:10px;border:0;background:#f8f1dc;border-radius:9px;box-shadow:inset 0 3px #ffffff70}
@@ -49,7 +49,7 @@ export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,sav
  function render(){
   const version=++renderVersion,state=ledger.state(),all=ledger.balances?.();
   dialog.replaceChildren();const sheet=make('div',undefined,'cn-money-sheet');const x=make('button','×','cn-money-close');x.type='button';x.setAttribute('aria-label','合上账簿');x.onclick=close;
-  const header=make('header',undefined,'cn-money-header');header.append(make('h2','承光钱庄'));dialog.append(sheet,x);sheet.append(header);
+  const header=make('header',undefined,'cn-money-header');header.append(make('h2','承光钱庄'));dialog.append(x,sheet);sheet.append(header);
   if(ledger.loadError||!all){sheet.append(make('p',ERRORS['invalid-saved-state']));return;}
   const b=all[currency],unit=GAME_CURRENCIES[currency].unit;
   const selector=(labelText,value,change,excluded)=>{
@@ -89,7 +89,8 @@ export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,sav
    const deposit=addAction('deposit','',input),withdraw=addAction('withdraw','',input),error=make('p',undefined,'cn-money-error');error.setAttribute('role','status');
    const update=()=>{input.updateSteps();amountText=input.value;const amount=Number(amountText),valid=Number.isSafeInteger(amount)&&amount>0;
     deposit.textContent=valid?`存入 ${amount} ${unit}`:'存入银行';withdraw.textContent=valid?`取出 ${amount} ${unit}`:'取到钱袋';
-    deposit.disabled=!valid||b.cash===0;withdraw.disabled=!valid||b.bank===0;error.textContent=valid?'':ERRORS['invalid-amount'];
+    deposit.disabled=!valid||amount>b.cash;withdraw.disabled=!valid||amount>b.bank;
+    error.textContent=!valid?ERRORS['invalid-amount']:amount>b.cash&&amount>b.bank?'现金与存款均不足，请减少数目':amount>b.cash?`随身现金不足，最多可存 ${b.cash} ${unit}`:amount>b.bank?`存款不足，最多可取 ${b.bank} ${unit}`:'';
    };input.oninput=()=>{if(available(version))update();};update();bank.append(error);
   }
   bank.append(actions);workspace.append(bank);

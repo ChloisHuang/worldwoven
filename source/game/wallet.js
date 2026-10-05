@@ -126,7 +126,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     doc.body.append(mini);receiptModal=null;
     // A manual, non-focusable popover has its own top-layer box. It neither
     // inherits a dialog's clip nor opens a second modal or steals input focus.
-    if(hasPopover){try{mini.showPopover();popoverShown=true;}catch{popoverShown=false;}}
+    if(hasPopover){try{mini.setAttribute('popover','manual');mini.showPopover();popoverShown=true;}catch{popoverShown=false;mini.removeAttribute?.('popover');}}
     if(!popoverShown){
       receiptModal=[...(doc.querySelectorAll?.('dialog[open]')||[])].at(-1)||null;
       if(receiptModal)receiptModal.append(mini);
