@@ -13,6 +13,7 @@ const france=Object.freeze([
  book('fr-writing-intro','writing','《法式书信与花园札记》','练习邀请信、清单与花园观察记录。','写明日期、收信人和来意。把观察与安排分开记录，让下一位读者也能顺着线索找到答案。'),
  book('fr-gardening-intro','gardening','《西苑花圃养护手记》','认识西苑花圃的土壤、浇水与养护。','照料花圃先观察土壤和叶片。沿根部缓缓浇水，再收好工具，记下这次照料。'),
  book('fr-art-intro','art','《色彩与光影初读》','观察宫苑的冷暖、明暗与光色。','先眯眼找出大块明暗，再铺主色。把最亮的地方留住，细节最后落笔。'),
+ book('fr-cooking-intro','cooking','《糕点切配与热茶》','学习分切、茶温与同盘核对，在宫苑糕点房应用。','先核对客人和茶点单，再分切一份蛋糕、备好热茶。检查同盘杯碟与份量，让开案边交给侍茶员。'),
 ]);
 const writing=Object.freeze({id:'writing-practice',skill:'writing',title:'楷书与文书誊写',description:'在书案蘸墨落笔，练习端正誊写。',action:'calligraphy',verb:'习字',seconds:STUDY_DURATION});
 const painting=Object.freeze({id:'art-practice',skill:'art',title:'宫苑光影写生',description:'在画架前调色落笔，观察宫苑的光与影。',action:'paint',verb:'绘画',seconds:STUDY_DURATION});
