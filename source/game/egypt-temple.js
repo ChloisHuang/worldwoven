@@ -3,6 +3,7 @@ import {registerNightFixture} from './night-lighting.js';
 import {addAnubisGuardian,addJudgmentBalance,addHorusRelief} from './egypt-ritual-sculpture.js';
 import {addRoyalCoffin} from './egypt-royal-coffin.js';
 import {buildEgyptExchangeCounter,egyptExchangeStation} from './egypt-exchange-counter.js';
+import {EGYPT_DAILY_TOILET} from './egypt-daily-toilet.js';
 import * as exchangeGeometry from './geometry.js?rev=R7-20261002';
 import * as THREE from 'three';
 import {material as celMaterial} from './geometry.js?rev=R7-20261002';
@@ -98,6 +99,44 @@ function batchZone(zone){
   zone.updateMatrixWorld(true);const inverse=new THREE.Matrix4().copy(zone.matrixWorld).invert(),buckets=new Map(),remove=[];
   zone.traverse(o=>{if(!o.isMesh||Array.isArray(o.material)||o.userData.noBatch)return;let b=buckets.get(o.material);if(!b){b={positions:[],normals:[]};buckets.set(o.material,b);}const geo=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone(),m=new THREE.Matrix4().multiplyMatrices(inverse,o.matrixWorld);geo.applyMatrix4(m);const p=geo.attributes.position.array,n=geo.attributes.normal?.array;for(let i=0;i<p.length;i++)b.positions.push(p[i]);for(let i=0;i<p.length;i++)b.normals.push(n?n[i]:(i%3===1?1:0));geo.dispose();remove.push(o);});
   for(const o of remove){o.parent.remove(o);o.geometry.dispose();}for(const [material,b]of buckets){const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(b.positions,3));geo.setAttribute('normal',new THREE.Float32BufferAttribute(b.normals,3));geo.computeBoundingSphere();const m=new THREE.Mesh(geo,material);m.name=zone.name+' / stone & paint';m.castShadow=true;m.receiveShadow=true;zone.add(m);}
+}
+
+// Original cultural-fantasy furnishing, not a claim of a historical flushing
+// toilet: a carved stone support, pierced timber seat, removable ceramic vessel
+// and propped wooden lid. All parts stand on the existing bath floor.
+function privateBathToilet(parent,colliders,cameraColliders){
+  const P=EGYPT_DAILY_TOILET,g=new THREE.Group();g.name='Egypt private stone and timber toilet';parent.add(g);
+  g.position.set(...P.anchor);g.rotation.y=P.yaw;
+  for(const x of[-.32,.32]){
+    ashlar(g,x,.245,0,.17,.49,.70,C.lightSand,.025);
+    stoneCourse(g,x,.045,0,.22,.09,.74,C.edge);
+    box(g,x,.36,.353,.08,.17,.012,C.blue);
+  }
+  ashlar(g,0,.25,-.285,.58,.50,.13,C.stone,.02);
+  cyl(g,0,.18,0,.24,.18,.32,C.red,20);torus(g,0,.35,0,.24,.025,C.edge,Math.PI/2);
+  const seat=new THREE.Shape();seat.absellipse(0,0,.44,.36,0,Math.PI*2,false);const hole=new THREE.Path();hole.absellipse(0,0,.225,.19,0,Math.PI*2,true);seat.holes.push(hole);
+  const geo=new THREE.ExtrudeGeometry(seat,{depth:.105,bevelEnabled:false,curveSegments:32});geo.rotateX(-Math.PI/2);mesh(g,geo,C.shadow,0,.5,0);
+  const lip=torus(g,0,.593,0,.255,.012,C.gold,Math.PI/2);lip.scale.set(1.30,1,.95);
+  const lid=new THREE.Group();lid.position.set(0,.59,-.345);lid.rotation.x=-.11;g.add(lid);
+  const panel=new THREE.Shape();panel.absellipse(0,.34,.425,.34,0,Math.PI*2,false);
+  const panelGeo=new THREE.ExtrudeGeometry(panel,{depth:.055,bevelEnabled:true,bevelSize:.012,bevelThickness:.008,bevelSegments:1,curveSegments:24});mesh(lid,panelGeo,C.shadow);
+  for(const x of[-.22,.22])box(lid,x,.05,.075,.07,.15,.045,C.gold);
+  for(const y of[.15,.35,.55])box(lid,0,y,.059,.59,.018,.012,C.edge);
+  torus(lid,0,.39,.08,.09,.018,C.gold);
+  // Fixture solid follows its actual rotated base; the 0.89m east aisle and
+  // the north approach remain clear for an ordinary adult capsule.
+  for(const arr of[colliders,cameraColliders])volume(arr,P.anchor[0],.31,P.anchor[2],.74,.62,.88);
+  // Wash vessel and small linen roll hug the northern wall, west of the seat.
+  urn(parent,13.87,0,-3.68,.66,C.red);cyl(parent,13.87,.61,-3.68,.19,.16,.035,C.shadow,20);
+  torus(parent,13.87,.66,-3.68,.18,.023,C.edge,Math.PI/2);
+  for(const arr of[colliders,cameraColliders])volume(arr,13.87,.31,-3.68,.48,.62,.48);
+  box(parent,14.65,1.03,-4.18,1.82,1.65,.045,C.linen);
+  for(const x of[13.70,15.60])rod(parent,[x,.1,-4.13],[x,1.99,-4.13],.035,C.shadow);
+  rod(parent,[13.68,1.98,-4.13],[15.62,1.98,-4.13],.035,C.shadow);
+  for(const x of[13.86,14.12,14.38,14.64,14.90,15.16,15.42])box(parent,x,1.03,-4.148,.024,1.62,.012,C.lightSand);
+  for(const y of[.28,1.78])box(parent,14.65,y,-4.147,1.8,.045,.014,C.blue);
+  g.userData={originalProceduralArt:true,facilityId:P.id,seatHeight:P.seatY,fictionalUnplumbedFixture:true};
+  return g;
 }
 
 export function buildEgypt(){
@@ -562,6 +601,7 @@ export function buildEgypt(){
   for(const z of [-2.9,.8])box(privateRoom,14.05,.53,z,2.7,.76,.18,C.edge);
   box(privateRoom,14.05,.56,-1.05,2.45,.05,3.5,C.blue);volume(colliders,14.05,.53,-1.05,2.7,1.06,3.8);volume(cameraColliders,14.05,.53,-1.05,2.7,1.06,3.8);
   urn(privateRoom,12.8,0,1.9,.7,C.gold);box(privateRoom,15.1,.32,1.8,1.4,.64,.7,C.shadow);box(privateRoom,15.1,.68,1.8,1.25,.08,.6,C.linen);volume(colliders,15.1,.36,1.8,1.4,.72,.7);volume(cameraColliders,15.1,.36,1.8,1.4,.72,.7);
+  privateBathToilet(privateRoom,colliders,cameraColliders);
   // Reception desk sits beside, not across, the central entry procession.
   roomWall(temple,-3.6,.55,8.35,3.0,1.1,1.25,C.shadow);box(temple,-3.6,1.17,8.35,3.2,.14,1.4,C.edge);box(temple,-3.6,1.26,8.35,1.5,.035,.8,C.linen);urn(temple,-4.55,1.26,8.35,.42,C.blue);
   // Court markers keep the expanded circulation legible without crowding it.
@@ -604,7 +644,8 @@ export function buildEgypt(){
     {id:'private-sleeping-room',name:'王室独立寝室',position:[17.8,0,-1.5]},
     {id:'throne-west-aisle',name:'王殿西侧回廊',position:[-5.2,4,-23.7]},
     {id:'royal-storage',name:'王室储物室',position:[14.15,0,-17.7]},
-    {id:'private-bath-interior',name:'独立沐浴间内侧',position:[15.8,0,-1]}
+    {id:'private-bath-interior',name:'独立沐浴间内侧',position:[15.8,0,-1]},
+    {id:EGYPT_DAILY_TOILET.id,name:'沐浴间北侧净室',position:[...EGYPT_DAILY_TOILET.approach]}
 
   ];
   const doorways=[

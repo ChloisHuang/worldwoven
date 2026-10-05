@@ -18,7 +18,7 @@ const positive=(x,fallback=0)=>Number.isFinite(x)&&x>=0?x:fallback;
 const clamp=x=>Math.max(0,Math.min(1,x));
 const mealSource='china-tavern-meal';
 const mealSources=new Set([mealSource,'japan-player-meal','france-tea-food','france-full-meal','egypt-visitor-meal','japan-staff-meal','china-royal-kitchen']);
-const toiletFacilities={'china-toilet':'cn-bath-toilet','japan-toilet':'jp-washroom-private-1','france-toilet':'fr-royal-bath-toilet'};
+const toiletFacilities={'china-toilet':'cn-bath-toilet','japan-toilet':'jp-washroom-private-1','france-toilet':'fr-royal-bath-toilet','egypt-toilet':'eg-private-bath-toilet'};
 function validMeal(receipt){
  const r=receipt,n=r.number;
  if(r.source==='egypt-visitor-meal')return r.paid===true&&validEgyptMealReceipt(r);
