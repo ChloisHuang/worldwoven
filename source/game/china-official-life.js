@@ -46,7 +46,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   return [...publicExit(from),...(target?[target]:[])];
  }
  function candidates(n){
-  const i=index(n),bed=seat(B.beds[i]),listen=seat('china-tavern-listening-'+(i%2?20.65:17.5)),experience=brain.experience(n.station.id),partners=!conversation&&experience?officials.filter(other=>other!==n&&idleEligible(other)&&Math.abs(other.root.position.y-n.root.position.y)<.4&&other.root.position.distanceTo(n.root.position)<6.5&&canTraverse(n.root.position,other.root.position,lot.colliders.concat(doors?.planningColliders||[]),navigation)):[];
+  const i=index(n),bed=seat(B.beds[i]),listen=seat('china-tavern-listening-'+(i%2?20.65:17.5)),experience=brain.experience(n.station.id),partners=!conversation&&experience&&[1,2].every(slot=>!occupied('cn-official-garden-place-'+slot,n))?officials.filter(other=>other!==n&&idleEligible(other)&&Math.abs(other.root.position.y-n.root.position.y)<.4&&other.root.position.distanceTo(n.root.position)<6.5&&canTraverse(n.root.position,other.root.position,lot.colliders.concat(doors?.planningColliders||[]),navigation)):[];
   const inspection=i===0?reports?.inspection():null,duty=duties[n.station.id];
   return [
    ...(duty?.stage==='awaiting-archive'&&duty.day===getClock().day?[{id:'archive-duty',label:'回本署核对今日朝班凭记 · 归档后领俸',base:10,point:B.offices[i],workTarget:B.workTargets[i],action:'calligraphy',duration:[8,8],cooldown:0,relief:{},dutyDay:duty.day}]:[]),
