@@ -11,7 +11,7 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.66-public, 2026-10-05
+Prepared release: R16.67-public, 2026-10-05
 Verified published Sites source commit: 00ab703d79526bcafe0f8910c48c12ef49ad0f7c
 
 ## Working rules
@@ -126,3 +126,5 @@ R16.64 adds the fictional read-only travel passport inside Help, before lengthy 
 R16.65 puts the passport directly in the upper-right HUD with opening, page-turn and closing motions; controls and current court diagnostics remain in its notes page. Wallet notes rise in front of the pocket, blank ticket fields receive currency/value/series artwork, and cash totals are explicitly separate from bank deposits. Actual transaction animations use the corresponding optimized country ticket only after ledger commitment. Focused DOM and resource checks passed; real browser/iOS animation and the reported top blank strip remain unverified. No new careers or face model included.
 
 R16.66 separates recruitment from the employed handbook. Unemployed HUD navigation goes to a physical local registry; employed pages describe only the actual current job. Registry cards compare each current skill and age with the requirements and show the real application result. Temporary-worker roster membership is explicitly distinct from formal tenure. Actual adapters did not reproduce ineligible tenure writes; the reproduced defect was misleading shared labels and showing employed sections without a formal post. Existing core guards are now also the read-only UI eligibility source. Targeted DOM, adapter, storage and bank checks passed; actual browser/iOS appearance remains unverified. Passport and wallet physical-design field feedback remains open.
+
+R16.67 replaces the passport panel with the book itself: closed cover, two printed pages and spine, page-contained records/help, leaf turns and fold/close. The HUD passport and career actions use unframed icons; the career handbook has one page for the actual job, and recruitment lists only local vacancies. Wallet paper follows fixed back/paper/front layering through continuous extraction and insertion, with decoded country artwork and controlled retry. Accepted tavern work continues through the shared intent to the first table; the large hanging hiring sign and redundant helper controls are removed. Static passport/wallet review images come from product vectors/coordinates, not a browser; tavern chain is simulated DOM plus Three/Mesa. Real iOS visual/animation and intermittent blank strip remain open.
