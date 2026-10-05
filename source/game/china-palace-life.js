@@ -183,7 +183,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   mountForActor:n=>stages.get(n)?.mount||null,
   owns:n=>owned.has(n)||hostHeld&&n===host,
   socialProfile:id=>brain.state(id),
-  socialStatus(n){if(!owned.has(n)&&!(hostHeld&&n===host))return null;const busy=n===emperor&&!!duty&&!duty.release;return {busy,attention:!busy,job:n===host?'与'+(palaceResident(hostHeld?.station.id)?.shortName||'来客')+'在茶席叙话':scripts.get(n)[stages.get(n).index].label};},
+  socialStatus(n){if(!owned.has(n)&&!(hostHeld&&n===host))return null;const busy=n===emperor&&!!duty&&!duty.release||!!conversation?.participants.includes(n.station.id)||!!hostHeld&&(n===host||n===hostHeld);return {busy,attention:!busy,job:n===host?'与'+(palaceResident(hostHeld?.station.id)?.shortName||'来客')+'在茶席叙话':scripts.get(n)[stages.get(n).index].label};},
   // Palace life remains the sole movement/pose owner of its actors. A duty
   // drains unfinished leisure without granting its need/relationship relief.
   requestDuty(owner,options={}){

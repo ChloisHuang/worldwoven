@@ -2,7 +2,7 @@
 // restored scene must never manufacture elapsed conversation or repeat rewards.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createPlayerConversationLedger, PLAYER_CONVERSATION_TOPICS} from '../source/game/player-conversation-ledger.js';
+import {createPlayerConversationLedger, PLAYER_CONVERSATION_TOPICS, PLAYER_CONVERSATION_HISTORY_LIMIT} from '../source/game/player-conversation-ledger.js';
 import {conversationDisposition} from '../source/game/npc-life-decisions.js';
 import {CHINA_CONSORTS, palaceResidentSave} from '../source/game/china-palace-residents.js';
 
@@ -253,4 +253,72 @@ test('corrupt saves, clock reversal, missing/async saves, invalid inputs and ree
   assert.equal(h.ledger.start('listener', 'unknown').reason, 'invalid-topic');
   const detached = h.ledger.snapshot(); detached.events[0].elapsed = 100;
   assert.equal(h.ledger.event(event.id).elapsed, 0);
+});
+
+test('history compacts to 128 while actor totals, IDs, cooldowns and pending evidence survive atomic failure and reload', () => {
+  const h = setup(); h.profiles.listener = person(1);
+  h.profiles.unrelated = {...person(1), needs: {social: 1, hunger: 0, fatigue: 0}, relations: {player: 1}, opinions: {player: 1}};
+  const first = invite(h.ledger);
+  finish(h, first);
+  const legacy = h.ledger.snapshot(); delete legacy.archive;
+  assert.equal(createPlayerConversationLedger({...h.settings, saved: legacy}).knownOpinion('listener'), .07);
+  const total = PLAYER_CONVERSATION_HISTORY_LIMIT + 13;
+  for (let serial = 2; serial <= total; serial++) {
+    h.clock.seconds += 90;
+    if (serial === PLAYER_CONVERSATION_HISTORY_LIMIT + 1) {
+      const before = h.ledger.snapshot(), persisted = h.stored();
+      h.fail(true);
+      assert.equal(h.ledger.start('unrelated', 'art').reason, 'save-failed');
+      assert.deepEqual(h.ledger.snapshot(), before, 'failed compaction cannot advance the archive or counters');
+      assert.deepEqual(h.stored(), persisted);
+      h.fail(false);
+    }
+    const event = invite(h.ledger, 'unrelated');
+    assert.equal(event.serial, serial);
+    assert.equal(event.attempt, serial - 1);
+    finish(h, event);
+    assert(h.ledger.snapshot().events.length <= PLAYER_CONVERSATION_HISTORY_LIMIT);
+  }
+  const saved = h.ledger.snapshot(), archivedActor = saved.archive.actors.find(actor => actor.actorId === 'listener');
+  assert.equal(saved.events.length, PLAYER_CONVERSATION_HISTORY_LIMIT);
+  assert.equal(saved.archive.throughSerial, total - PLAYER_CONVERSATION_HISTORY_LIMIT);
+  assert.equal(saved.nextSerial, total + 1);
+  assert.equal(saved.events[0].serial, saved.archive.throughSerial + 1);
+  assert.equal(archivedActor.attempts, 1);
+  assert.equal(archivedActor.relation, .07);
+  assert.equal(archivedActor.opinion, .07);
+  assert.equal(h.ledger.event(first.id), null);
+  assert.equal(h.ledger.lastCompleted('listener').id, first.id);
+  const resumed = createPlayerConversationLedger({...h.settings, saved});
+  assert.equal(resumed.loadError, null);
+  assert.deepEqual(resumed.snapshot(), saved);
+  assert.equal(resumed.relationFor('listener'), .07);
+  assert.equal(resumed.knownOpinion('listener'), .07);
+  assert.equal(resumed.lastCompleted('listener').id, first.id);
+  const writes = h.writes();
+  assert.equal(resumed.complete(first.id, {elapsed: first.duration}).reason, 'unknown-event');
+  assert.equal(resumed.cancel(first.id).reason, 'unknown-event');
+  assert.equal(h.writes(), writes);
+  assert.deepEqual(resumed.snapshot(), saved, 'late archived callbacks cannot change totals or history');
+  assert.equal(resumed.start('unrelated', 'rest').reason, 'cooldown');
+  h.clock.seconds += 90;
+  const next = invite(resumed, 'unrelated');
+  assert.equal(next.serial, total + 1);
+  assert.equal(next.attempt, total);
+  const accepted = resumed.snapshot();
+  h.fail(true); h.clock.seconds += next.duration;
+  assert.equal(resumed.complete(next.id, {elapsed: next.duration}).reason, 'save-failed');
+  assert.deepEqual(resumed.snapshot().archive, accepted.archive);
+  assert.equal(resumed.snapshot().events.length, PLAYER_CONVERSATION_HISTORY_LIMIT);
+  assert.equal(resumed.pending().id, next.id);
+  const retry = createPlayerConversationLedger({...h.settings, saved: resumed.snapshot()});
+  assert.equal(retry.loadError, null);
+  h.fail(false);
+  assert.equal(retry.retryPending().ok, true);
+  assert.equal(retry.complete(next.id).replayed, true);
+  assert.deepEqual(retry.snapshot().archive, accepted.archive);
+  assert.equal(retry.lastCompleted('unrelated').id, next.id);
+  assert.equal(retry.relationFor('listener'), .07);
+  const corrupt = copy(saved); corrupt.archive.actors[0].attempts++;
+  assert.equal(createPlayerConversationLedger({saved: corrupt}).loadError, 'invalid-saved-state');
 });

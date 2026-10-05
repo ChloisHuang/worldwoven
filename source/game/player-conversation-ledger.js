@@ -6,6 +6,7 @@ export const PLAYER_CONVERSATION_TOPICS = Object.freeze([
   Object.freeze({id: 'rest', kind: 'staff-rest', label: '说说休息', duration: 6}),
 ]);
 export const PLAYER_CONVERSATION_COOLDOWN = 90;
+export const PLAYER_CONVERSATION_HISTORY_LIMIT = 128;
 const TOPICS = new Map(PLAYER_CONVERSATION_TOPICS.map(topic => [topic.id, topic]));
 const copy = value => JSON.parse(JSON.stringify(value));
 const object = value => value && typeof value === 'object' && !Array.isArray(value);
@@ -20,7 +21,8 @@ const live = event => event.status === 'accepted' || event.status === 'pending-c
 const eventId = (actorId, attempt) => `player-conversation:${encodeURIComponent(actorId)}:${attempt}`;
 const validClock = clock => object(clock) && finite(clock.seconds) && clock.seconds >= 0 && Number.isSafeInteger(clock.day) && clock.day >= 0;
 const hash = text => { let h = 2166136261; for (const c of text) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
-const empty = () => ({version: 1, nextSerial: 1, events: []});
+const emptyArchive = () => ({throughSerial: 0, endedAt: 0, endedDay: 0, actors: []});
+const empty = () => ({version: 1, nextSerial: 1, archive: emptyArchive(), events: []});
 
 // Read only the small decision projection, never copy or change a controller.
 // A missing player/profile supplies the same neutral traits and values.
@@ -36,45 +38,61 @@ function profile(source, relation = 0, opinion = 0) {
   };
 }
 
+const archivedActors = archive => new Map(archive.actors.map(actor => [actor.actorId, {...actor}]));
+function fold(actors, event) {
+  const actor = actors.get(event.actorId) || {actorId: event.actorId, attempts: 0, relation: 0, opinion: 0, lastCompleted: null, cooldownUntil: 0};
+  actor.attempts = event.attempt;
+  actor.cooldownUntil = event.cooldownUntil;
+  if (completed(event)) {
+    actor.relation = signed(actor.relation + event.result.relation);
+    actor.opinion = signed(actor.opinion + event.result.opinion);
+    actor.lastCompleted = event;
+  }
+  actors.set(event.actorId, actor);
+}
+
+// Only settled events leave the recent journal. The compact per-person base
+// keeps sequential clamp semantics, cooldowns and attempts without old receipts.
+// This creates a candidate; it never changes the previously committed archive.
+function compact(current) {
+  const excess = current.events.length - PLAYER_CONVERSATION_HISTORY_LIMIT;
+  if (excess <= 0) return current;
+  const actors = archivedActors(current.archive);
+  let count = 0, last;
+  while (count < excess) {
+    const event = current.events[count];
+    if (live(event) || pending(event)) break;
+    fold(actors, event);
+    last = event;
+    count++;
+  }
+  return !count ? current : {...current, events: current.events.slice(count), archive: {
+    throughSerial: last.serial, endedAt: last.endedAt, endedDay: last.endedDay, actors: [...actors.values()],
+  }};
+}
+
 function index(current) {
-  const events = new Map(), actors = new Map();
+  const events = new Map(), actors = archivedActors(current.archive);
   let active = null, awaitingSave = null;
   for (const event of current.events) {
     events.set(event.id, event);
-    const actor = actors.get(event.actorId) || {attempts: 0, relation: 0, opinion: 0, lastCompleted: null, cooldownUntil: 0};
-    actor.attempts++;
-    actor.cooldownUntil = event.cooldownUntil;
-    if (completed(event)) {
-      actor.relation = signed(actor.relation + event.result.relation);
-      actor.opinion = signed(actor.opinion + event.result.opinion);
-      actor.lastCompleted = event;
-    }
-    actors.set(event.actorId, actor);
+    fold(actors, event);
     if (live(event)) active = event;
     if (pending(event)) awaitingSave = event;
   }
   return {events, actors, active, awaitingSave};
 }
 
-function restore(saved) {
-  if (saved == null) return empty();
-  if (!object(saved) || saved.version !== 1 || !Number.isSafeInteger(saved.nextSerial) || saved.nextSerial < 1 ||
-      !Array.isArray(saved.events) || saved.nextSerial !== saved.events.length + 1) throw Error('invalid-saved-state');
-  const attempts = new Map(), cooldowns = new Map();
-  let unsettled = 0, lastBoundary = 0, lastDay = 0;
-  for (let i = 0; i < saved.events.length; i++) {
-    const e = saved.events[i], topic = TOPICS.get(e?.topicId), attempt = (attempts.get(e?.actorId) || 0) + 1;
-    if (!object(e) || !idValid(e.actorId) || !topic || e.serial !== i + 1 || e.attempt !== attempt ||
+function validateEvent(e, {serial, attempt, lastBoundary = 0, lastDay = 0, cooldown = 0}) {
+    const topic = TOPICS.get(e?.topicId);
+    if (!object(e) || !idValid(e.actorId) || !topic || !Number.isSafeInteger(e.serial) || e.serial < 1 ||
+        !Number.isSafeInteger(e.attempt) || e.attempt < 1 || e.serial !== serial || e.attempt !== attempt ||
         e.id !== eventId(e.actorId, attempt) || !states.has(e.status) || e.kind !== topic.kind || e.duration !== topic.duration ||
         !finite(e.elapsed) || e.elapsed < 0 || e.elapsed > e.duration || !finite(e.startedAt) || e.startedAt < lastBoundary ||
-        e.startedAt < (cooldowns.get(e.actorId) || 0) || !Number.isSafeInteger(e.startedDay) || e.startedDay < lastDay ||
+        e.startedAt < cooldown || !Number.isSafeInteger(e.startedDay) || e.startedDay < lastDay ||
         !finite(e.roll) || e.roll < 0 || e.roll >= 1 || !finite(e.chance) || e.chance < 0 || e.chance > 1 ||
         !finite(e.appearanceAffinity) || Math.abs(e.appearanceAffinity) > .04 ||
         !finite(e.cooldownUntil) || e.cooldownUntil < e.startedAt + PLAYER_CONVERSATION_COOLDOWN) throw Error('invalid-saved-event');
-    attempts.set(e.actorId, attempt);
-    lastBoundary = e.endedAt ?? e.startedAt;
-    lastDay = e.endedDay ?? e.startedDay;
-    cooldowns.set(e.actorId, e.cooldownUntil);
     if ((e.status === 'declined') !== (e.roll >= e.chance)) throw Error('invalid-saved-acceptance');
     if (e.status === 'accepted') {
       if (e.endedAt !== undefined || e.result !== undefined || e.cooldownUntil !== e.startedAt + PLAYER_CONVERSATION_COOLDOWN) throw Error('invalid-saved-active');
@@ -89,10 +107,49 @@ function restore(saved) {
       if (e.status === 'declined' && (e.elapsed !== 0 || e.endedAt !== e.startedAt || e.endedDay !== e.startedDay)) throw Error('invalid-saved-decline');
       if ((e.status === 'cancelled' || e.status === 'pending-cancellation') && (typeof e.reason !== 'string' || !e.reason || e.reason.length > 128)) throw Error('invalid-saved-cancellation');
     }
+}
+
+function restore(saved) {
+  if (saved == null) return empty();
+  if (!object(saved) || saved.version !== 1 || !Number.isSafeInteger(saved.nextSerial) || saved.nextSerial < 1 ||
+      !Array.isArray(saved.events)) throw Error('invalid-saved-state');
+  // Existing v1 journals migrate losslessly when they have no archive yet.
+  const archive = saved.archive ?? emptyArchive();
+  if (!object(archive) || !Number.isSafeInteger(archive.throughSerial) || archive.throughSerial < 0 ||
+      !finite(archive.endedAt) || archive.endedAt < 0 || !Number.isSafeInteger(archive.endedDay) || archive.endedDay < 0 ||
+      !Array.isArray(archive.actors) || saved.nextSerial !== archive.throughSerial + saved.events.length + 1) throw Error('invalid-saved-archive');
+  const attempts = new Map(), cooldowns = new Map();
+  let archivedCount = 0, maximumCooldown = 0;
+  for (const actor of archive.actors) {
+    if (!object(actor) || !idValid(actor.actorId) || attempts.has(actor.actorId) || !Number.isSafeInteger(actor.attempts) || actor.attempts < 1 ||
+        !finite(actor.relation) || Math.abs(actor.relation) > 1 || !finite(actor.opinion) || Math.abs(actor.opinion) > 1 ||
+        !finite(actor.cooldownUntil) || actor.cooldownUntil < PLAYER_CONVERSATION_COOLDOWN ||
+        actor.cooldownUntil > archive.endedAt + PLAYER_CONVERSATION_COOLDOWN) throw Error('invalid-saved-archive');
+    if (actor.lastCompleted !== null) {
+      const e = actor.lastCompleted;
+      if (!object(e) || !completed(e) || e.actorId !== actor.actorId || e.serial > archive.throughSerial || e.attempt > actor.attempts ||
+          e.cooldownUntil > actor.cooldownUntil || e.endedDay > archive.endedDay) throw Error('invalid-saved-archive');
+      validateEvent(e, {serial: e.serial, attempt: e.attempt});
+    } else if (actor.relation !== 0 || actor.opinion !== 0) throw Error('invalid-saved-archive');
+    archivedCount += actor.attempts;
+    maximumCooldown = Math.max(maximumCooldown, actor.cooldownUntil);
+    attempts.set(actor.actorId, actor.attempts);
+    cooldowns.set(actor.actorId, actor.cooldownUntil);
+  }
+  if (!Number.isSafeInteger(archivedCount) || archivedCount !== archive.throughSerial ||
+      (archivedCount ? maximumCooldown !== archive.endedAt + PLAYER_CONVERSATION_COOLDOWN : archive.endedAt !== 0 || archive.endedDay !== 0)) throw Error('invalid-saved-archive');
+  let unsettled = 0, lastBoundary = archive.endedAt, lastDay = archive.endedDay;
+  for (let i = 0; i < saved.events.length; i++) {
+    const e = saved.events[i], attempt = (attempts.get(e?.actorId) || 0) + 1;
+    validateEvent(e, {serial: archive.throughSerial + i + 1, attempt, lastBoundary, lastDay, cooldown: cooldowns.get(e?.actorId) || 0});
+    attempts.set(e.actorId, attempt);
+    lastBoundary = e.endedAt ?? e.startedAt;
+    lastDay = e.endedDay ?? e.startedDay;
+    cooldowns.set(e.actorId, e.cooldownUntil);
     if (live(e) || pending(e)) { unsettled++; if (i !== saved.events.length - 1) throw Error('invalid-saved-active'); }
   }
   if (unsettled > 1) throw Error('invalid-saved-active');
-  return copy(saved);
+  return compact(copy({...saved, archive}));
 }
 
 /** The single player invitation writer, separate from NPC controllers.
@@ -134,6 +191,7 @@ export function createPlayerConversationLedger({saved, saveState, getClock = () 
   function persist(next, event) {
     saving = true;
     try {
+      next = compact(next);
       const result = saveState(copy(next), copy(event));
       if (result && typeof result.then === 'function') {
         Promise.resolve(result).catch(() => {});
@@ -185,7 +243,8 @@ export function createPlayerConversationLedger({saved, saveState, getClock = () 
     const now = clock(), actor = view.actors.get(actorId);
     if (!now) return failure('invalid-clock');
     const latest = current.events.at(-1);
-    if (latest && (now.seconds < (latest.endedAt ?? latest.startedAt) || now.day < (latest.endedDay ?? latest.startedDay))) return failure('clock-reversed');
+    if (now.seconds < (latest?.endedAt ?? latest?.startedAt ?? current.archive.endedAt) ||
+        now.day < (latest?.endedDay ?? latest?.startedDay ?? current.archive.endedDay)) return failure('clock-reversed');
     if (actor && now.seconds < actor.cooldownUntil) return failure('cooldown', null, {cooldownUntil: actor.cooldownUntil, remaining: actor.cooldownUntil - now.seconds});
     if (!Number.isSafeInteger(current.nextSerial + 1)) return failure('event-limit');
     const attempt = (actor?.attempts || 0) + 1, id = eventId(actorId, attempt);
