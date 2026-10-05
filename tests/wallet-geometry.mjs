@@ -21,14 +21,21 @@ for(const [width,height] of cases)for(let count=1;count<=4;count++){
    const reverse=walletNoteFrame(g,index,2-(200-tick)/100);assert(Math.abs(reverse.y-f.y)<1e-10&&Math.abs(reverse.angle-f.angle)<1e-10,'return uses exactly the reverse path');
   }
  }
- if(count===4&&width>=290){assert(g.noteWidth>=160,'four currency notes retain readable illustrated width');assert(g.step>=15,'each currency summary has an exposed readable top strip');}
+ if(count>1){
+  const fan=Array.from({length:count},(_,i)=>walletNoteFrame(g,i,2));
+  assert(fan.at(-1).x-fan[0].x>=g.fanWidth*.2*(count-1)-1e-8,'currency tickets expose horizontal edges instead of a nearly vertical stack');
+  assert(fan[0].angle<0&&fan.at(-1).angle>0,'outer tickets fan to opposite sides');
+  const inspected=bounds(walletNoteFrame(g,0,2,1));
+  assert(inspected.left>=0&&inspected.right<=width&&inspected.top>=0&&inspected.bottom<g.lipY,'inspecting the larger original ticket stays in the cash pane above the lip');
+ }
+ if(count===4&&width>=290)assert(g.fanWidth>=160,'four currency notes retain readable illustrated width');
 }
 const css=fs.readFileSync(new URL('../source/game/wallet.css',import.meta.url),'utf8');
 assert(!css.includes('is-unfolded'),'no conditional z-index switch');
 assert.match(css,/\.ww-wallet-back\{[^}]*z-index:0/);assert.match(css,/\.ww-wallet-stack\{[^}]*z-index:10/);assert.match(css,/\.ww-wallet-pocket\{[^}]*z-index:20/);
 assert.doesNotMatch(css,/\.ww-wallet-pocket::?before\s*\{/,'a negative-z lip inside the transformed front still covers paper; the back must remain a separate sibling');
 assert.match(css,/not\(\[data-art-state=ready\]\)>\*[^}]*visibility:hidden/,'unloaded paper cannot expose floating amount labels');
-console.log('PASS wallet geometry: 1–4 currencies, 5 stage sizes, 201 forward/reverse samples each; fixed layers, straight lift, cleared fan corners, tucked return and readable summary strips');
+console.log('PASS wallet geometry: 1–4 currencies, 5 stage sizes, 201 forward/reverse samples each; fixed layers, straight lift, cleared fan corners, tucked return and horizontal note edges with bounded inspection');
 if(process.argv[2]){
  const out=[];
  for(const [width,height] of [[345,260],[290,185]])for(const count of [1,4])for(const [name,progress] of [['closed',0],['half-extracted',.5],['clear-of-pocket',1],['fan',2],['gathering',1.5],['reinsertion',.5]]){

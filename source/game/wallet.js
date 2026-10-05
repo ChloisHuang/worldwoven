@@ -257,7 +257,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
       note.style.transform=`translate(${f.x}px,${f.y}px) rotate(${f.angle}deg)`;
       // Selection changes order only inside the paper stack, after it has left
       // the pocket. The physical back/paper/front order never changes.
-      note.style.setProperty('--note-index',String(inspection>0||selectedId===id?10+index:index));
+      note.style.setProperty('--note-index',String(selectedId===id?20+index:inspection>0?10+index:index));
       note.style.setProperty('--tab-width',`${Math.max(18,geometry.fanStep*.7)}px`);
       note.style.setProperty('--tab-font',`${clamp(geometry.fanStep*.32,8,11)}px`);
       note.disabled=folded||progress!==2;note.tabIndex=note.disabled?-1:0;
@@ -293,6 +293,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
   }
   function setFold(animate=false) {
     if (!ui) return;
+    if(folded&&[...notes.values()].includes(doc.activeElement))ui.toggle.focus({preventScroll:true});
     ui.fan.setAttribute('aria-expanded',String(!folded));
     ui.toggle.setAttribute('aria-expanded',String(!folded));
     ui.toggle.setAttribute('aria-label',folded?'抽出并展开随身纸币':'收拢纸币放回钱包');

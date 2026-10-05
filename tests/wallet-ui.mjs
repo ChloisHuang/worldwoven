@@ -161,6 +161,38 @@ function fixture({reduced=false,saved,manualImages=false}={}){
   const f=fixture({reduced:true});f.wallet.open();f.ledger.earn(6,'reduced-fold');const fan=one(f.doc,'ww-wallet-fan');
   fan.click();assert.equal(fan.dataset.motion,'spread');assert.equal(f.doc.pendingFrames(),0);fan.click();assert.equal(fan.dataset.motion,'closed');f.wallet.dispose();
 }
+// The reported stacked tickets need selectable exposed edges. This catches
+// nested-button markup, lost focus, overlapping selection order, and closing
+// before an inspected ticket has returned to the fan.
+{
+  const f=fixture();for(const id of ['copper','japan','egypt','france']){
+    f.ledger.creditWageToBank({currency:id,amount:4,receiptId:`fan-bank:${id}`,roleId:'clerk',slotId:`clerk-${id}`,day:1});
+    f.ledger.withdraw(4,`fan-cash:${id}`,id);
+  }
+  f.wallet.open();const fan=one(f.doc,'ww-wallet-fan'),toggle=one(f.doc,'ww-wallet-toggle'),notes=all(f.doc,'ww-wallet-note');
+  assert.equal(fan.tagName,'DIV','individual note buttons are not nested inside another button');
+  assert.equal(toggle.tagName,'BUTTON');assert(notes.every(n=>n.tagName==='BUTTON'&&n.disabled&&n.tabIndex===-1));
+  assert.deepEqual(notes.map(n=>n.children[1].textContent),['中国4文','日本4券','埃及4券','法国4券']);
+  const writes=f.writes(),images=f.doc.images.length;fan.click();f.doc.tick(0);f.doc.tick(680);
+  assert(notes.every(n=>!n.disabled&&n.tabIndex===0),'only fully extracted tickets enter the keyboard tab order');
+  const pose=notes[0].style.transform,width=parseFloat(notes[0].style.width);
+  notes[3].click();f.doc.tick(0);f.doc.tick(110);notes[0].click();
+  assert(Number(notes[0].style['--note-index'])>Number(notes[3].style['--note-index']),'newly selected rear currency comes above the previously inspected one');
+  f.doc.tick(220);assert.equal(notes[0].getAttribute('aria-pressed'),'true');
+  assert(parseFloat(notes[0].style.width)>width,'inspection restores the larger original ticket size');
+  assert.notEqual(notes[0].style.transform,pose);notes[0].focus();const inspected=notes[0].style.transform;fan.click();
+  assert.equal(notes[0].style.transform,inspected,'closing does not teleport the inspected ticket');assert.equal(f.doc.activeElement,toggle,'closing returns note focus to the wallet control');
+  f.doc.tick(0);f.doc.tick(110);assert.equal(fan.dataset.motion,'spread','the paper returns to the fan before gathering');
+  f.doc.tick(110);assert.equal(notes[0].style.transform,pose);f.doc.tick(340);assert.equal(fan.dataset.motion,'returning','only the fully gathered stack enters the pocket');
+  f.doc.tick(340);assert.equal(fan.dataset.motion,'closed');assert(notes.every(n=>n.disabled));
+  assert.equal(f.writes(),writes);assert.equal(f.doc.images.length,images,'inspection reuses decoded real currency artwork');f.wallet.dispose();
+}
+{
+  const f=fixture({reduced:true});f.ledger.earn(4,'still:copper');f.ledger.creditWageToBank({currency:'japan',amount:4,receiptId:'still-bank',roleId:'clerk',slotId:'clerk-japan',day:1});f.ledger.withdraw(4,'still-cash','japan');f.wallet.open();
+  const fan=one(f.doc,'ww-wallet-fan'),note=all(f.doc,'ww-wallet-note')[0];fan.click();const pose=note.style.transform;note.click();
+  assert.equal(note.getAttribute('aria-pressed'),'true');assert.notEqual(note.style.transform,pose);assert.equal(f.doc.pendingFrames(),0,'reduced motion inspects without animation');
+  note.click();assert.equal(note.style.transform,pose,'a second press returns the note to its original fan position');fan.click();assert.equal(fan.dataset.motion,'closed');assert.equal(f.doc.pendingFrames(),0);f.wallet.dispose();
+}
 {
   const seed=createCurrencyLedger({saveState:()=>{}});seed.earn(6,'saved-cash');seed.creditWageToBank({currency:'france',amount:12,receiptId:'saved-bank',roleId:'gardener',slotId:'garden-1',day:1});
   const f=fixture({saved:seed.state()});assert.equal(f.doc.images.length,1,'construction predecodes only an already-owned cash currency');
