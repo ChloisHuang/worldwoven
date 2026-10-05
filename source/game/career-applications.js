@@ -26,7 +26,7 @@ function restoreLegacyApplications(value,roleMap,slotMap){
  if(value===undefined)return emptyApplications();
  if(!object(value)||!object(value.byRole)||!(value.lastRoleId===null||roleMap.has(value.lastRoleId))||
   (value.lastRoleId===null)!==(Object.keys(value.byRole).length===0)||value.lastRoleId!==null&&!Object.hasOwn(value.byRole,value.lastRoleId))throw Error('invalid-career-state');
- const reasons=new Set(['adult-required','ritual-required','writing-required','gardening-required','art-required','cooking-required','no-vacancy','already-employed','interview-rejected']);
+ const reasons=new Set(['adult-required','age-range-required','ritual-required','writing-required','gardening-required','art-required','cooking-required','no-vacancy','already-employed','interview-rejected']);
  for(const [roleId,r]of Object.entries(value.byRole)){
   const role=roleMap.get(roleId);
   if(!role||!object(r)||r.roleId!==roleId||typeof r.ok!=='boolean'||!Number.isSafeInteger(r.day)||r.day<0||
@@ -56,7 +56,7 @@ export function restoreApplications(value,roleMap,slotMap){
  if(value===undefined)return emptyApplications();
  if(!object(value)||!object(value.byRole)||!(value.lastRoleId===null||roleMap.has(value.lastRoleId))||
   (value.lastRoleId===null)!==(Object.keys(value.byRole).length===0)||value.lastRoleId!==null&&!Object.hasOwn(value.byRole,value.lastRoleId))throw Error('invalid-career-state');
- const reasons=new Set(['adult-required','ritual-required','writing-required','gardening-required','art-required','cooking-required','no-vacancy','already-employed','interview-rejected','withdrawn']);
+ const reasons=new Set(['adult-required','age-range-required','ritual-required','writing-required','gardening-required','art-required','cooking-required','no-vacancy','already-employed','interview-rejected','withdrawn']);
  for(const[roleId,r]of Object.entries(value.byRole)){
   if(!r?.status){restoreLegacyApplications({lastRoleId:roleId,byRole:{[roleId]:r}},roleMap,slotMap);continue;}
   const role=roleMap.get(roleId),isPending=r.status==='pending',approved=r.status==='approved';

@@ -6,7 +6,7 @@ const near=(n,p,r=.12)=>Math.hypot(n.root.position.x-p[0],n.root.position.z-p[2]
 const WALKS=[[20,.115,22.4],[22,.115,22.4],[21.4,.215,19.9],[22.1,.215,14.15]];
 // This is the existing personality/need sampler applied at activity boundaries.
 // It never claims an order, changes a post, scans routes, or creates wages.
-export function createTavernStaffLife({actors,furniture,getPlayer,getMounted,getClock,worldSeed=1,travel,unmount,effect,onChanged=()=>{},sharedNeeds=null}){
+export function createTavernStaffLife({actors,furniture,getPlayer,getMounted,getClock,worldSeed=1,travel,unmount,effect,onChanged=()=>{},sharedNeeds=null,getAdditionalChoices=()=>[],onExternalChoice=()=>false}){
  const rows=new Map(),nextAt=new Map(),snacks=new Map(actors.map(n=>[n.station.id,1])),kits=new Map();
  let time=0,dirty=false,disposed=false,brain=null,events=[];
  const makeBrain=saved=>createLifeDecisions({worldSeed,actorIds:actors.map(n=>n.station.id),saved,sharedNeeds,onChange:()=>{dirty=true;}});
@@ -26,6 +26,7 @@ export function createTavernStaffLife({actors,furniture,getPlayer,getMounted,get
    {id:'meal',label:'吃自备点心',action:'meal',targets:seatTargets,available:!sharedNeeds?.has(n.station.id)&&!onDuty&&(snacks.get(n.station.id)||0)>0,base:.4,needs:{hunger:2},traits:{appetite:.8},relief:{hunger:-.35},duration:[8,12],cooldown:90},
    {id:'garden',label:onDuty?'在厅中活动片刻':'到院里散步',action:'relax',targets:(onDuty?WALKS.slice(2):WALKS).map((p,i)=>({p,i})).filter(({p})=>!near(n,p,.8)&&!actors.some(other=>other!==n&&near(other,p,.65))&&![...rows].some(([other,s])=>other!==n&&Math.hypot(s.target[0]-p[0],s.target[2]-p[2])<.65)).map(({p,i})=>({id:'walk-'+i,choice:{target:p.slice(),label:p[2]>21?'到院里散步':'在厅里走动'}})),base:.6,traits:{outdoors:1,curiosity:.4},relief:{fatigue:-.06},duration:[5,9],cooldown:8},
    {id:'social',label:'与熟人闲聊',action:'relax',targets:people.map(a=>({id:a.station.id,relationship:{target:a.station.id,gain:.025},choice:{target:n.root.position.toArray(),partnerId:a.station.id}})),base:.3,needs:{social:1.5},traits:{sociability:.8},relief:{social:-.2},duration:[4,7],cooldown:15},
+   ...getAdditionalChoices(n,{onDuty}),
    {id:'pause',label:onDuty?'候客，舒展肩背':'伸展片刻',action:'relax',target:n.root.position.toArray(),base:.15,relief:{fatigue:-.03},duration:[3,5],cooldown:18},
   ];
  }
@@ -34,6 +35,7 @@ export function createTavernStaffLife({actors,furniture,getPlayer,getMounted,get
   if(conversationActorId===n.station.id){if(s&&!interrupt(n))return;n.walking=false;const p=getPlayer()?.root.position;effect(n,'relax',p?[p.x,p.y+1,p.z]:null);nextAt.set(n,time+3);return;}
   if(!s&&time>=(nextAt.get(n)||0)){
    const choice=brain.choose(n.station.id,candidates(n,{onDuty}),getClock()?.hour??10);
+   if(choice?.external){const fulfilled=onExternalChoice(n,choice);brain.complete(n.station.id,choice,{fulfilled});nextAt.set(n,time+6);note(n,'external:'+choice.id);return;}
    if(choice){s={choice,target:choice.target.slice(),seatId:choice.seatId||null,phase:'approaching',elapsed:0,wait:0};rows.set(n,s);n.route=[];note(n,'chosen:'+choice.id);}else nextAt.set(n,time+3);
   }
   if(!s){effect(n,'relax');return;}
