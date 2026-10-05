@@ -47,12 +47,12 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
   return gap(n.root.position,to)<.055;
  }
  function beginPatrol(n){const p=patrol.get(n);Object.assign(p,{stage:'travel',index:0,time:0,paused:false,yielding:false,visited:[]});resetTravel(n);}
- function patrolLabel(n){const p=patrol.get(n);return p.stage==='ready'?'巡查完毕 · 在射圃候交班':CHINA_GUARD_ROUTES[p.routeId][p.index].label;}
+ function patrolLabel(n){const p=patrol.get(n);return (guardTenure&&n===guards[0]&&!guardWork?'代巡 · 玩家未在班 · ':'')+(p.stage==='ready'?'巡查完毕 · 在射圃候交班':CHINA_GUARD_ROUTES[p.routeId][p.index].label);}
  function updatePatrol(n,dt,position){
   const p=patrol.get(n);p.paused=conversationActorId===n.station.id&&phase!=='handover';p.yielding=false;
   if(p.paused){tell(n,patrolLabel(n)+' · 稍停交谈');if(position)n.root.rotation.y=Math.atan2(position.x-n.root.position.x,position.z-n.root.position.z);return;}
-  if(p.stage==='ready'){tell(n,'巡查完毕 · 在射圃候交班');travel(n,HANDOFF[guards.indexOf(n)],dt);return;}
-  const route=CHINA_GUARD_ROUTES[p.routeId],stop=route[p.index];tell(n,stop.label);
+  if(p.stage==='ready'){tell(n,patrolLabel(n));travel(n,HANDOFF[guards.indexOf(n)],dt);return;}
+  const route=CHINA_GUARD_ROUTES[p.routeId],stop=route[p.index];tell(n,patrolLabel(n));
   // A person met in a narrow public lane gets space to pass. Keep the same
   // route/checkpoint so a short stop never skips a hidden corner or a shift.
   if(p.stage==='travel'&&position&&Math.abs(position.y-n.root.position.y)<1.5){
