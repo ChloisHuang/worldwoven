@@ -25,13 +25,16 @@ const validJob=j=>j===null||j?.formalRoleId===ROLE.id&&/^cn-guard-labor-[1-9][0-
 // patrol circuit, observed checkpoints and bounded attendance. Merely accepting
 // the role, idling nearby or practising at the range never earns patrol wages.
 export function createChinaGuardEmployment({archery,careers,getPlayer,getMounted=()=>null,getClock,
- isNavigating=()=>false,onIntent=()=>false,saved=null,saveState=()=>true,canSee=()=>true,openRegistration=()=>{},notify=()=>{}}){
+ isNavigating=()=>false,onIntent=()=>false,saved=null,saveState=()=>true,canSee=()=>true,openRegistration=()=>{},onWardrobeChange=()=>{},notify=()=>{}}){
  let current={version:1,serial:0,job:null},lastError=null,waiting=null,observation=null,attendance=0,autoPatrol=false,disposed=false,previous=null;
  if(saved!=null){if(saved.version===1&&integer(saved.serial)&&validJob(saved.job))current=copy(saved);else lastError='invalid-employment-state';}
- const save=next=>{try{const result=saveState(copy(next));if(result===false||result?.then){lastError='save-failed';return false;}current=next;lastError=null;return true;}catch{lastError='save-failed';return false;}};
+ const save=next=>{try{const result=saveState(copy(next));if(result===false||result?.then){lastError='save-failed';return false;}current=next;lastError=null;}catch{lastError='save-failed';return false;}syncWardrobe();return true;};
  const atRegistration=()=>!getMounted()&&near(getPlayer()?.root.position,REG,.32)&&canSee({position:REG});
  const meet=()=>atRegistration()&&archery.supervisorReady();
  const formal=createFormalLaborContract({careers,role:ROLE,getJob:()=>current.job,getPlayer,meetHost:meet,notify,openRegistration});
+ const wardrobePreset=()=>!disposed&&current.job?.stage==='working'&&formal.hired()&&formal.canWork(current.job)?'jinyi-training':null;
+ let lastWardrobe=wardrobePreset();
+ const syncWardrobe=()=>{const preset=wardrobePreset();if(preset!==lastWardrobe){lastWardrobe=preset;onWardrobeChange(preset);}};
  const freshJob=(receiptId,day)=>({receiptId,formalRoleId:ROLE.id,stage:'working',assignment:'requested',day,shiftKind:'continuous',coveredSeconds:0,completedTasks:0,circuits:0,routeId:'east',index:0,checkpoints:[]});
  const fail=text=>{notify(text);return false;};
  function recover(){
@@ -47,7 +50,7 @@ export function createChinaGuardEmployment({archery,careers,getPlayer,getMounted
   const receiptId=formal.pendingReceipt()||`${ROLE.workSource}-${current.serial+1}`,serial=Number(receiptId.split('-').at(-1));
   if(!formal.begin(receiptId,{shiftKind:'continuous'}).ok)return false;
   if(!save({version:1,serial:Math.max(current.serial,serial),job:freshJob(receiptId,getClock().day)}))return fail('接班记录未保存，请留在原处重试');
-  archery.requestGuardWork(receiptId);notify('陆衡：等沈砚当面交清巡线、弓箭归架后，由你开始巡值。此后逐点驻察，回圃交班时按实工时结薪');return true;
+  archery.requestGuardWork(receiptId);notify('已借穿值勤袍、折帽与佩刀。陆衡：等沈砚交清巡线、弓箭归架后开始巡值；回圃交班归还衣装，按实工时结薪');return true;
  }
  function flushAttendance(){
   if(!current.job)return false;
@@ -77,7 +80,7 @@ export function createChinaGuardEmployment({archery,careers,getPlayer,getMounted
   if(archery.guardWorkState()?.stage!=='returned')return requestEnd();
   if(!flushAttendance()||!formal.complete(current.job))return false;
   if(!save({...current,job:{...current.job,stage:'ready'}}))return false;
-  notify(`陆衡：已核对${current.job.completedTasks}处检查点、${current.job.circuits}轮完整巡查；当班工时已封存，请验收结薪`);return true;
+  notify(`值勤装已归还，恢复个人衣装。陆衡：已核对${current.job.completedTasks}处检查点、${current.job.circuits}轮巡查；工时已封存，请验收结薪`);return true;
  }
  function claim(){
   const job=current.job;if(!job||job.stage!=='ready'||!meet())return false;
@@ -100,7 +103,7 @@ export function createChinaGuardEmployment({archery,careers,getPlayer,getMounted
   if(kind==='claim'&&job?.stage!=='ready'||['wait','cancel','end-shift','task'].includes(kind)&&!work)return null;
   if(kind==='task'&&(!owned||job.assignment!=='patrol'||getClock().hour>=18))return null;
   const stop=kind==='task'?routeFor(job)[job.index]:null;
-  const action=stop?`${observation?'驻察':'继续巡值'} · ${stop.label}`:({'formal-view':'查看锦衣卫巡值岗位','formal-apply':'提交锦衣卫巡值申请','formal-review':'当面确认职责 · 请陆衡审核','formal-resign':'办理锦衣卫巡值离职',accept:'当面接班 · 开始今日巡值',wait:'等候原守卫安全交班','end-shift':'回圃交班 · 按实工时结薪',claim:'请陆衡验收 · 工资入银行',cancel:'中断本班 · 不结薪'})[kind];
+  const action=stop?`${observation?'驻察':'继续巡值'} · ${stop.label}`:({'formal-view':'查看锦衣卫巡值岗位','formal-apply':'提交锦衣卫巡值申请','formal-review':'当面确认职责 · 请陆衡审核','formal-resign':'办理锦衣卫巡值离职',accept:'领取值勤装 · 接班巡值',wait:'已换值勤装 · 等安全交班','end-shift':'回圃交班还装 · 按实工时结薪',claim:'请陆衡验收 · 工资入银行',cancel:'中断本班并还装 · 不结薪'})[kind];
   if(!action)return null;
   return {id:`cn-guard-job-${kind}`,provider:'china-guard-employment',roleId:ROLE.id,kind,name:'锦衣卫 · 巡值工作',npcName:'陆衡',action,
    position:(stop?.at||REG).slice(),executionRadius:stop?.hold!==undefined ? .19 : .26,interactionRadius:1.8,priority:47,
@@ -120,7 +123,7 @@ export function createChinaGuardEmployment({archery,careers,getPlayer,getMounted
   if(next.kind==='cancel'){
    if(!formal.cancel(current.job))return false;
    const receipt=current.job.receiptId;if(!save({...current,job:null}))return false;
-   attendance=0;observation=null;autoPatrol=false;waiting=null;archery.cancelGuardWork(receipt);return true;
+   attendance=0;observation=null;autoPatrol=false;waiting=null;archery.cancelGuardWork(receipt);notify('本班已中断，值勤装已归还，恢复个人衣装');return true;
   }
   if(next.kind==='end-shift')return requestEnd();
   if(!meet()){waiting=next.kind;archery.requestSupervisor(true);notify('陆衡先照看停射与归弓，请在射圃登记处等他当面办理');return true;}
@@ -128,6 +131,7 @@ export function createChinaGuardEmployment({archery,careers,getPlayer,getMounted
   return next.kind==='formal-apply'?formal.apply():next.kind==='formal-review'?formal.review():next.kind==='formal-resign'?formal.resign():next.kind==='accept'?accept():next.kind==='claim'?claim():false;
  }
  function update(dt=0){
+  try{
   if(disposed)return;recover();archery.setGuardTenure(formal.hired());archery.requestSupervisor(atRegistration());
   if(waiting&&!atRegistration())waiting=null;
   if(waiting&&meet()){
@@ -156,11 +160,12 @@ export function createChinaGuardEmployment({archery,careers,getPlayer,getMounted
   previous=p?{x:p.x,z:p.z}:null;
   if(observation&&observation.seconds>=Math.max(.15,routeFor(job)[job.index].hold||0))completeCheckpoint();
   else if(attendance>=1)flushAttendance();
+  }finally{syncWardrobe();}
  }
- return {intent,resolveIntent,executeIntent,update,accept,endShift,claim,formal,atRegistration,
+ return {intent,resolveIntent,executeIntent,update,accept,endShift,claim,formal,atRegistration,wardrobePreset,
   state:()=>({...copy(current),lastError,waiting,observation:copy(observation),autoPatrol,job:current.job?{...copy(current.job),coveredSeconds:current.job.coveredSeconds+attendance}:null}),
   active:()=>!!current.job,isActing:()=>!!observation,playerAction:()=>observation?'observe':null,playerStation:()=>null,
-  label:()=>current.job?current.job.stage==='ready'?'巡值已交班 · 待陆衡验收':current.job.assignment==='requested'?'射圃候交班 · 暂不计薪':current.job.assignment==='returning'?'等原守卫当面接回巡线':observation?routeFor(current.job)[current.job.index].label:`锦衣卫巡值 · ${current.job.routeId==='east'?'东':'西'}线 ${current.job.index+1}/${routeFor(current.job).length}`:null,
+  label:()=>current.job?current.job.stage==='ready'?'已还值勤装 · 待陆衡验收':current.job.assignment==='requested'?'已换值勤装 · 候交班不计薪':current.job.assignment==='returning'?'等原守卫当面接回巡线':observation?routeFor(current.job)[current.job.index].label:`锦衣卫巡值 · ${current.job.routeId==='east'?'东':'西'}线 ${current.job.index+1}/${routeFor(current.job).length}`:null,
   stopActivity(){observation=null;autoPatrol=false;waiting=null;},
   snapshot:()=>({version:1,receiptId:current.job?.receiptId||null,coveredSeconds:current.job?.coveredSeconds||0,attendance,observation:copy(observation),autoPatrol}),
   restore(s){if(s?.version!==1||s.receiptId!==(current.job?.receiptId||null)||!Number.isFinite(s.attendance)||s.attendance<0||s.attendance>1.1)return false;
