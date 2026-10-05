@@ -6,8 +6,9 @@ const load=require('./fixtures/browser-module-loader.cjs').createBrowserModuleLo
 (async()=>{
  const {createChinaDailyToilet,CHINA_DAILY_TOILET}=await load('game/china-daily-toilet.js');
  const {createJapanDailyToilet,JAPAN_DAILY_TOILET}=await load('game/japan-daily-toilet.js');
+ const {createFranceDailyToilet,FRANCE_DAILY_TOILET}=await load('game/france-daily-toilet.js');
  const {THREE,torus}=await load('game/geometry.js');
- const cases=[['china',createChinaDailyToilet,CHINA_DAILY_TOILET],['japan',createJapanDailyToilet,JAPAN_DAILY_TOILET]];
+ const cases=[['china',createChinaDailyToilet,CHINA_DAILY_TOILET],['japan',createJapanDailyToilet,JAPAN_DAILY_TOILET],['france',createFranceDailyToilet,FRANCE_DAILY_TOILET]];
  function harness(region,create,P){
   const make=(id,p)=>{const root=new THREE.Group();root.position.set(...p);return {station:{id},root,route:[],walking:false,collisionRadius:.34};};
   const outside=[0,P.approach[1],0],player=make('player',outside),staff=make(region+'-staff',outside),other=make('other',outside);
@@ -31,7 +32,7 @@ const load=require('./fixtures/browser-module-loader.cjs').createBrowserModuleLo
   f.start();assert.deepEqual(f.player.root.position.toArray(),P.anchor);assert.equal(f.service.playerPose().context.seatHeight,P.seatY-P.anchor[1]);
   f.tick(79);assert.equal(f.events.length,0,'relief waits for the entire use');assert(f.service.cancel());assert.deepEqual(f.player.root.position.toArray(),P.approach);f.tick(20);assert.equal(f.events.length,0);
   f.start();f.closures[0].fraction=.2;f.tick(3);assert(!f.service.active());assert.equal(f.events.length,0,'an open closure interrupts without relief');f.closures[0].fraction=0;
-  f.tick(3);f.start();f.other.root.position.set(P.anchor[0]+.6,P.approach[1],P.anchor[2]);f.tick(3);assert(!f.service.active());assert.equal(f.events.length,0,'another person inside this enclosure interrupts use');f.other.root.position.set(0,P.approach[1],0);
+  f.tick(3);f.start();f.other.root.position.set(...(region==='france'?[-19,P.approach[1],-10]:[P.anchor[0]+.6,P.approach[1],P.anchor[2]]));f.tick(3);assert(!f.service.active());assert.equal(f.events.length,0,'another person inside this enclosure interrupts use');f.other.root.position.set(0,P.approach[1],0);
   f.tick(3);f.start();f.tick(20);const interrupted=structuredClone(f.saved);f.reload(interrupted);f.tick();assert.equal(f.saved.lastOutcome.status,'interrupted');assert.deepEqual(f.player.root.position.toArray(),P.approach);assert.equal(f.events.length,0);
   f.start();f.failSave=true;f.tick(90);assert.equal(f.events.length,0,'failed completion write cannot grant relief');assert.equal(f.service.state().activity.elapsed,P.seconds);f.failSave=false;f.tick();assert.equal(f.events.length,1);assert.equal(f.events[0].source,region+'-toilet');assert.equal(f.events[0].facilityId,P.id);assert.match(f.events[0].id,new RegExp('^'+region+'-toilet-'));
   f.reload();f.tick(20);assert.equal(f.events.length,1,'acknowledged receipt does not replay');
@@ -50,5 +51,5 @@ const load=require('./fixtures/browser-module-loader.cjs').createBrowserModuleLo
  japan.service.cancel();japan.closures[0].kind='half-curtain';japan.tick(3);japan.arrive();assert(japan.service.executeIntent(japan.service.intent()));japan.tick(151);assert(!japan.service.active(),'half curtains never count as private cubicle doors');assert.equal(japan.events.length,0);
  const foreign={id:'china-toilet-4',number:4,actorId:'player',source:'china-toilet',facilityId:C.id,completed:true,delivered:false};japan.reload({serial:4,receipts:[foreign],pending:{...foreign,stage:'using'}});japan.tick();assert.equal(japan.service.state().receipts.length,0,'regional outboxes cannot consume each other');assert.equal(japan.events.length,0);
  china.service.dispose();japan.service.dispose();
- console.log('PASS: shared private toilet adapters, China saved IDs/footrest/legacy root, Japan enclosure/rim/namespace, player/staff exclusivity, route ownership, complete-only relief, interruption and durable outbox recovery');
+ console.log('PASS: shared private toilet adapters, China saved IDs/footrest/legacy root, Japan enclosure/rim/namespace, France existing private bath namespace, player/staff exclusivity, route ownership, complete-only relief, interruption and durable outbox recovery');
 })().catch(error=>{console.error(error);process.exitCode=1;});
