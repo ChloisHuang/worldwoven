@@ -6,7 +6,7 @@ const copy=x=>JSON.parse(JSON.stringify(x));
 const Q={roomId:'consort-reserve-1',bedId:'china-consort-bed-reserve-1',doorId:'cn-consort-reserve-1-door'};
 const seed=Array.from({length:100},(_,i)=>i+1).find(n=>consortPetitionRoll(n,consortPetitionId('player',1))<.53);
 function fixture(options={}){
-  const saved=options.saved?copy(options.saved):{appearance:{seed},playerProfile:{ageYears:22},formalCareers:{version:9,tenure:null,lastDuty:null,skills:{ritual:2,art:2}},dailyNeeds:{before:true},worldContinuity:{version:1,activeRegion:'china',regions:{china:{version:1,region:'china',player:{id:'player'},actors:{},controllers:{original:{preserve:true}}}}}};
+  const saved=options.saved?copy(options.saved):{appearance:{seed:options.seed??seed},playerProfile:{ageYears:22},formalCareers:{version:9,tenure:null,lastDuty:null,skills:{ritual:2,art:2}},dailyNeeds:{before:true},worldContinuity:{version:1,activeRegion:'china',regions:{china:{version:1,region:'china',player:{id:'player'},actors:{},controllers:{original:{preserve:true}}}}}};
   const clock={day:1,hour:8,seconds:222,...options.clock},calls={write:0,capture:0,brain:0},flags={fail:false,throw:false,async:false,captureThrow:false,busy:false},writes=[];
   const scene={country:'china',lot:{interiorRooms:[{id:Q.roomId},{id:'residence-suite-corridor'}],doorways:[{id:Q.doorId,rooms:[Q.roomId,'residence-suite-corridor']}]},
     furniture:{items:[{id:Q.bedId,kind:'bed',privateRoomId:Q.roomId,privateOwnerId:null},{id:'original-bed',privateRoomId:'guest',privateOwnerId:'cn-consort-yue'}]},npcs:[{station:{id:'cn-emperor',ageYears:36}}],
@@ -18,7 +18,7 @@ function fixture(options={}){
     canReleaseTitle:()=>flags.busy?{ok:false,reasons:['royal-meal-in-progress']}:true});
   // The constructor above sees a null service. Wire it only after the ledger exists.
   const physical={version:1,flow:{stage:'idle'},receipts:[]};service={snapshot:()=>copy(physical),verifyReceipt:r=>physical.receipts.some(old=>JSON.stringify(old)===JSON.stringify(r))};
-  function record(kind){const id=kind==='submission'?consortPetitionId('player',clock.day):bridge.ledger.petition().id;
+  function record(kind){const id=['submission','invitation'].includes(kind)?consortPetitionId('player',clock.day):bridge.ledger.petition().id;
     const receipt={id:`actual:${kind}:${id}`,kind,applicationId:id,playerId:'player',emperorId:'cn-emperor',heraldId:'cn-palace-herald',targetId:'actual-desk',completed:true,participants:['player','cn-emperor','cn-palace-herald'],at:{day:clock.day,hour:clock.hour}};
     if(kind.startsWith('charter-'))receipt.documentId=consortCharterId(id);physical.receipts.push(copy(receipt));physical.flow.stage=kind;return receipt;
   }
@@ -70,4 +70,14 @@ test('resignation waits for real rights to finish, then atomically releases only
 test('projection never overwrites other occupants or turns a malformed historical ledger into a new empty one',()=>{
   const f=fixture();f.advance();f.scene.furniture.items[0].privateOwnerId='another-person';assert.equal(f.bridge.projectOwnership().projected,false);assert.equal(f.scene.furniture.items[0].privateOwnerId,'another-person');assert.equal(f.scene.lot.interiorRooms[0].privateOwnerId,null);assert.equal(f.bridge.royalMealEligibility().eligible,false);
   const corrupt=copy(f.saved);corrupt[LK].version=999;const re=fixture({saved:corrupt});assert.equal(re.bridge.ledger.state().loadError,'invalid-consort-state');assert(re.bridge.commitService({version:1,flow:{stage:'idle'},receipts:[]}));assert.equal(re.saved[LK].version,999);assert.equal(re.bridge.titleStatus().active,false);
+});
+
+test('invitation and physical receipt share one atomic world write; country round-trip and reconstruction cannot reroll or grant rights',()=>{
+ const f=fixture({seed:3}),before=copy(f.saved),receipt=f.record('invitation');f.flags.fail=true;
+ assert.equal(f.bridge.ledger.considerInvitation(receipt,'palace-action:cn-emperor:4:hall-rest').code,'save-failed');assert.deepEqual(f.saved,before);assert.equal(f.bridge.ledger.petition(),null);
+ f.flags.fail=false;assert(f.bridge.ledger.considerInvitation(receipt,'palace-action:cn-emperor:4:hall-rest').offered);const saved=copy(f.saved),p=f.bridge.ledger.petition();assert.equal(saved[SK].receipts[0].id,p.submission.id);assert.deepEqual(saved.worldContinuity.regions.china.controllers[SK],saved[SK]);assert.equal(f.scene.furniture.items[0].privateOwnerId,null);
+ f.scene.country='france';f.scene.npcs=[];assert.equal(f.bridge.ledger.invitationAvailability().ok,false);assert.equal(f.bridge.royalMealEligibility().eligible,false);assert.deepEqual(f.bridge.ledger.petition(),p);
+ const re=fixture({saved});re.scene.country='japan';re.scene.npcs=[];assert.equal(re.bridge.ledger.charterRequest(),null);assert.deepEqual(re.bridge.ledger.petition(),p);assert.equal(re.calls.write,0);
+ re.scene.country='china';re.scene.npcs=[{station:{id:'cn-emperor',ageYears:17}}];assert.equal(re.bridge.ledger.respond(p.id,'accept').code,'adults-required');re.scene.npcs[0].station.ageYears=36;
+ assert(re.bridge.ledger.considerInvitation(receipt,'palace-action:cn-emperor:4:hall-rest').replayed);assert.equal(re.calls.write,0);assert(re.bridge.ledger.respond(p.id,'accept').ok);assert.equal(re.bridge.titleStatus().active,false);assert.equal(re.scene.furniture.items[0].privateOwnerId,null);
 });
