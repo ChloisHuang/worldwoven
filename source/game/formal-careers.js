@@ -83,7 +83,7 @@ const supervisor = role => role.supervisorId || COURT_SUPERVISOR.id;
 const completedWage = (role, arrivalHour) => role.workSource ? role.wage + (arrivalHour < role.earlyBeforeHour ? role.preparationBonus : 0) : role.wage + (COURT_SUPERVISOR.conscientiousness >= .8 &&
   arrivalHour <= role.dutyWindow.endHour - COURT_SUPERVISOR.earlyArrivalMinutes / 60 ? COURT_SUPERVISOR.preparationBonus : 0);
 const emptyWorkExperience=()=>({tavernChef:[],royalKitchen:{receipts:[]}});
-const empty = () => ({version: 8, workExperience:emptyWorkExperience(), revision: 0, skillXP: Object.fromEntries(SKILLS.map(skill=>[skill,0])), skills: {ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0, martial: 0, care: 0}, tenure: null,
+const empty = () => ({version: 9, workExperience:emptyWorkExperience(), revision: 0, skillXP: Object.fromEntries(SKILLS.map(skill=>[skill,0])), skills: {ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0, martial: 0, care: 0}, tenure: null,
   lastDuty: null, lastPaidDay: null, daily: {day: null, ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0, martial: 0, care: 0},
   learning: Object.fromEntries(STUDY_SOURCES.map(source => [source, emptyStudy()])),
   lowerWork: {'cn-tavern-labor': 0, 'fr-garden-labor': 0, 'cn-pharmacy-labor': 0}, performance: 0, promotionProgress: 0,
@@ -213,7 +213,7 @@ function restore(saved, roleMap, slotMap) {
     object(saved.daily) && object(saved.learning) && Object.keys(saved.learning).length === 2 &&
     ['cn-rest','cn-calligraphy'].every(source => object(saved.learning[source]) && Object.keys(saved.learning[source]).length === 3)) {
     saved = {...copy(saved), version:3, skills:{...saved.skills,art:0}, daily:{...saved.daily,art:0},
-      learning:Object.fromEntries(STUDY_SOURCES.map(source => [source, saved.learning[source] ?
+      learning:Object.fromEntries(STUDY_SOURCES.filter(source=>source!=='jp-library').map(source => [source, saved.learning[source] ?
         {...saved.learning[source],lessonId:saved.learning[source].issued?defaultStudyLesson(source).id:null}:emptyStudy()]))};
   }
   // Only the exact published four-skill v3 shape may gain a fresh cooking skill.
@@ -249,8 +249,15 @@ function restore(saved, roleMap, slotMap) {
     saved={...copy(saved),skills:{...saved.skills,care:0},daily:{...saved.daily,care:0},
       ...(saved.version>=5?{skillXP:{...saved.skillXP,care:0}}:{}),lowerWork:{...saved.lowerWork,'cn-pharmacy-labor':0}};
   }
+  // Published saves have exactly these five physical learning sources. Add
+  // only an unissued local library ticket; never infer progress or receipts.
+  // A v9 save missing this row is damaged, not another migration opportunity.
+  if(object(saved)&&[4,5,6,7,8].includes(saved.version)&&object(saved.learning)&&
+    Object.keys(saved.learning).length===5&&['cn-rest','cn-calligraphy','cn-archery','france-salon','france-atelier'].every(source=>own(saved.learning,source))){
+    saved={...copy(saved),learning:{...saved.learning,'jp-library':emptyStudy()}};
+  }
   const validSlot = (roleId, slotId) => roleMap.has(roleId) && slotMap.get(slotId)?.roleId === roleId && availableSlot(slotMap.get(slotId),roleMap.get(roleId));
-  if (!object(saved) || ![4,5,6,7,8].includes(saved.version) || !integer(saved.revision) || !object(saved.skills) ||
+  if (!object(saved) || ![4,5,6,7,8,9].includes(saved.version) || !integer(saved.revision) || !object(saved.skills) ||
     Object.keys(saved.skills).length !== SKILLS.length || SKILLS.some(key => !integer(saved.skills[key])) ||
     SKILLS.some(key=>saved.skills[key]>100) || saved.skills.ritual + saved.skills.writing > 100 || !dayOrNull(saved.lastPaidDay) ||
     !object(saved.daily) || !dayOrNull(saved.daily.day) || SKILLS.some(key => !integer(saved.daily[key]) ||
@@ -322,7 +329,7 @@ function restore(saved, roleMap, slotMap) {
     workExperience.tavernChef.some(row=>!validTavernChefServiceReceipt(row))||['day','number','workReceiptId'].some(key=>new Set(workExperience.tavernChef.map(row=>row[key])).size!==workExperience.tavernChef.length)||
     !object(workExperience.royalKitchen)||Object.keys(workExperience.royalKitchen).length!==1||!Array.isArray(workExperience.royalKitchen.receipts)||workExperience.royalKitchen.receipts.length>120||workExperience.royalKitchen.receipts.some(row=>!validRoyalKitchenServiceReceipt(row))||new Set(workExperience.royalKitchen.receipts.map(row=>row.number)).size!==workExperience.royalKitchen.receipts.length)throw Error('invalid-career-state');
   if([saved.tenure,saved.lastDuty,saved.lastEvaluation].some(row=>row?.roleId===ROYAL_KITCHEN_ROLE.id)&&workExperience.tavernChef.length<ROYAL_KITCHEN_CHEF_DAYS)throw Error('invalid-career-state');
-  return {version: 8, workExperience:copy(workExperience), officialCareer, skillXP: saved.version>=5?{...saved.skillXP}:Object.fromEntries(SKILLS.map(skill=>[skill,0])), revision: saved.revision, applications: restoreApplications(saved.applications, roleMap, slotMap), skills: {...saved.skills},
+  return {version: 9, workExperience:copy(workExperience), officialCareer, skillXP: saved.version>=5?{...saved.skillXP}:Object.fromEntries(SKILLS.map(skill=>[skill,0])), revision: saved.revision, applications: restoreApplications(saved.applications, roleMap, slotMap), skills: {...saved.skills},
     tenure: saved.tenure === null ? null : {roleId: saved.tenure.roleId, slotId: saved.tenure.slotId,
       sinceDay: saved.tenure.sinceDay, sinceHour: saved.tenure.sinceHour,...(saved.tenure.applicationId!==undefined?{applicationId:saved.tenure.applicationId}:{})},
     lastDuty: duty === null ? null : {roleId: duty.roleId, slotId: duty.slotId, day: duty.day, stage: duty.stage,

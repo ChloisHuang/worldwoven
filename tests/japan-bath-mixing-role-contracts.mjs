@@ -71,4 +71,16 @@ assert(uiFixture.careers.reviewApplication(ROLE.id,{ageYears:18,applicationId:ui
 // Shared care training must consume the existing daily budget across activities.
 const shared=fixture();shared.start();for(let i=0;i<3;i++){const lesson=shared.careers.learningTicket('cn-rest','care-intro');assert(lesson.ok);assert.equal(shared.careers.completeLearning(lesson.ticket,{seconds:8}).xpGained,10);}
 assert.equal(shared.careers.recordJapanBathMixingReview(receipt(shared)).xpGained,10);const limited=shared.careers.recordJapanBathMixingReview(receipt(shared,2));assert.equal(limited.xpGained,0);assert.equal(limited.limited,'daily-skill-limit');assert.equal(shared.careers.state().lastDuty.customerReviews.length,2);
+// The published v8 shape predates the empty Japanese library source. Keep
+// real mixing reviews, active tenure and paid-bank identities when it migrates.
+for(const previous of [live,full,shared]){
+ const v8=clone(previous.store.careers);v8.version=8;delete v8.learning['jp-library'];
+ const migrated=fixture({store:{careers:v8,currency:previous.store.currency},clock:previous.clock});
+ assert.equal(migrated.careers.state().loadError,null);assert.equal(migrated.careers.state().version,9);
+ for(const key of Object.keys(v8))if(!['version','learning'].includes(key))assert.deepEqual(migrated.careers.state()[key],v8[key],key+' mixing v8 preserved');
+ for(const [key,row]of Object.entries(v8.learning))assert.deepEqual(migrated.careers.state().learning[key],row);
+ assert.deepEqual(migrated.careers.state().learning['jp-library'],{issued:0,completed:0,issuedDay:null,lessonId:null});
+ assert.deepEqual(migrated.bank.state(),createCurrencyLedger({saved:previous.store.currency}).state());
+ if(v8.daily.care===4){const t=migrated.careers.learningTicket('jp-library','jp-care-intro').ticket;assert.equal(migrated.careers.completeLearning(t,{seconds:8}).limited,'daily-skill-limit');}
+}
 console.log('PASS Japan bath mixing role: persistent Itsuki hiring, same-number receipts, capped atomic care XP, Japanese bank salary, reload/failures and physical handbook routes');
