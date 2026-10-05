@@ -40,8 +40,9 @@ const STAMPS={
 };
 export function travelStampSVG(region){return SVG_HEAD+(STAMPS[region]||'')+'</svg>';}
 const COVER=SVG_HEAD+'<circle cx="80" cy="80" r="59"/><circle cx="80" cy="80" r="51" stroke-dasharray="1 6"/><path d="M80 24v112M24 80h112" stroke-width="1.2"/><path d="M80 40q23 19 0 40-23-21 0-40zm40 40q-19 23-40 0 21-23 40 0zm-40 40q-23-19 0-40 23 21 0 40zm-40-40q19-23 40 0-21 23-40 0z"/><path d="M80 62l6 12 14 6-14 6-6 14-6-14-14-6 14-6z"/><circle cx="80" cy="80" r="5"/><path d="M43 37l5 7m64 72 5 7m6-80-7 5M44 112l-7 5"/>'+ '</svg>';
+export function travelPassportCoverSVG(){return COVER;}
 const color=(n,fallback)=>Number.isInteger(n)&&n>=0&&n<=0xffffff?'#'+n.toString(16).padStart(6,'0'):fallback;
-function portraitSVG(look={}) {
+export function portraitSVG(look={}) {
   const skin=color(look?.skin,'#d8a680'),hair=color(look?.hair,'#3b3230'),eyes=color(look?.eyeColor,'#34444a'),shirt=color(look?.clothes,'#5c9198');
   // Reuse the HUD's illustrated portrait language and the saved character's
   // palette, with hair silhouettes corresponding to its appearance record.
