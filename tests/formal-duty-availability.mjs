@@ -20,7 +20,7 @@ function seed(role, stage = null) {
   saved.tenure = {roleId: role.id, slotId: role.slotId, sinceDay: 1, sinceHour: 8};
   if (stage) saved.lastDuty = {roleId: role.id, slotId: role.slotId, day: 1, stage,
     started: true, reason: null, arrivalHour: beforeClosing, wage: stage === 'paid' ? role.wage : null,
-    workReceiptId: `${role.workSource}-1`};
+    workReceiptId: `${role.workSource}-1`,...(role===TAVERN?{customerReviews:[]}:{})};
   if (stage === 'paid') {
     saved.lastPaidDay = saved.lastEvaluatedDay = 1;
     saved.performance = saved.promotionProgress = 1;
