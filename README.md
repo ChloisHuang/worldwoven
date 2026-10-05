@@ -11,8 +11,8 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.85-public, 2026-10-05
-Verified published Sites source commit: 57dbd895a30d1d44d62be5b93f51a487c0e385d7
+Published release: R16.86-public, 2026-10-05
+Verified published Sites source commit: 669722866dc30e7b65c3708699b8937222d90a09
 
 ## Working rules
 
@@ -168,3 +168,5 @@ R16.83 connects paid player stays to Yunlai’s existing two guest rooms and Xu 
 R16.84 makes the existing tavern property panel compact: asking price, bank funds, actual bid response, operating totals and selected buyer offer stay distinct, with one fixed primary action. Property and ledger behavior is unchanged; product DOM/CSS was inspected offline, not on iOS.
 
 R16.85 opens France’s local tea-serving career with persistent interviews, exclusive tenure, explicit continuous shifts, original guest/tray/cup handling and French bank wages. The retained French bath WC now completes the shared player need behind closed doors and opaque inner curtains; active tray work blocks toilet use. Directed real-scene routes passed, with one normal WC contact view inspected in Mesa; real browser/iOS and full NPC needs remain open.
+
+R16.86 adds local French tea/pastry preparation employment and a cooking book in the existing library. The original order and tray pass from the player to Manon, then to the original guest, with review only after the same cups return and are cleaned. Continuous shifts pay actual on-duty time to the French bank. Existing serving and player-needs paths are preserved; full baking inventory and individualized quality reviews remain open.
