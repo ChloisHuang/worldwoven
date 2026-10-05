@@ -11,7 +11,7 @@ export function conversationDisposition(person,other,kind,targetId){
  // Enjoying a topic need not mean enjoying this person's preferred company.
  const fit=(topicFit(person,kind)-.5)*.85+alignment*.17-(1-alignment)*(1-topicFit(person,kind))*.36+familiarity+(person.relations[targetId]||0)*.08+(person.opinions[targetId]||0)*.12-(person.needs.fatigue||0)*.10;
  const feeling=fit>.16?'appreciated':fit<-.09?'mismatched':'neutral';
- return {feeling,relation:feeling==='appreciated'?.07:feeling==='mismatched'?-.035:.012,opinion:feeling==='appreciated'?.07:feeling==='mismatched'?-.06:.006};
+ return {feeling,relation:feeling==='appreciated'?.07:feeling==='mismatched'?-.035:.012,opinion:feeling==='appreciated'?.07:feeling==='mismatched'?-.06:0};
 }
 const available=c=>c.available!==false&&c.reachable!==false;
 const unique=items=>[...new Map(items.filter(available).map(c=>[c.id,c])).values()].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
