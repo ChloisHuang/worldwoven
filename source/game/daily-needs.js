@@ -4,6 +4,7 @@ import {JAPAN_STAFF_CREW} from './japan-service-orders.js';
 // One physiological clock for enrolled identities. Country controllers still
 // own actions and supplies; an intention, animation or scene entry grants nothing.
 export const DAILY_NEEDS_HOUR=60/GAME_MINUTES_PER_SECOND;
+const FOOD_DAY=24*DAILY_NEEDS_HOUR;
 export const DAILY_NEEDS_ACTORS=Object.freeze(['player','cn-tavern-diner-west','cn-tavern-diner-east',...JAPAN_STAFF_CREW]);
 const copy=x=>JSON.parse(JSON.stringify(x));
 const positive=(x,fallback=0)=>Number.isFinite(x)&&x>=0?x:fallback;
@@ -25,26 +26,37 @@ function validMeal(receipt){
 export function createDailyNeeds({saved={},getClock=()=>({seconds:0}),saveState=()=>true,legacyPeople={}}={}){
  const people={};let sceneId=null,activeIds=new Set(),lastClock=positive(getClock()?.seconds),lastSample=lastClock;
  for(const id of DAILY_NEEDS_ACTORS){
-  const old=saved.version===1?saved.people?.[id]:null,legacy=legacyPeople[id]?.needs?.hunger;
-  people[id]={foodAge:positive(old?.foodAge,Number.isFinite(legacy)?clamp(legacy)*12*DAILY_NEEDS_HOUR:(id==='player'?2:7)*DAILY_NEEDS_HOUR),toiletAge:positive(old?.toiletAge),receipts:{}};
+  const old=[1,2].includes(saved.version)?saved.people?.[id]:null,legacy=legacyPeople[id]?.needs?.hunger;
+  // v1 used a twelve-hour hunger scale. Keep its recorded age and receipts;
+  // a one-time balance offset preserves hunger/strain until real food relieves it.
+  const foodAge=positive(old?.foodAge,Number.isFinite(legacy)?clamp(legacy)*12*DAILY_NEEDS_HOUR:(id==='player'?2:7)*DAILY_NEEDS_HOUR);
+  const foodBalanceOffset=old?saved.version===1?foodAge:positive(old.foodBalanceOffset):Number.isFinite(legacy)?foodAge:0;
+  people[id]={foodAge,foodBalanceOffset,toiletAge:positive(old?.toiletAge),receipts:{}};
   for(const[source,number]of Object.entries(old?.receipts||{}))if((mealSources.has(source)||toiletFacilities[source])&&Number.isSafeInteger(number)&&number>0)people[id].receipts[source]=number;
  }
  function sync(){const now=positive(getClock()?.seconds,lastClock),dt=Math.max(0,now-lastClock);lastClock=now;lastSample=now;
   if(!sceneId||!dt)return;for(const id of activeIds){const p=people[id];if(p){p.foodAge+=dt;p.toiletAge+=dt;}}
  }
- const snapshot=()=>{sync();return {version:1,people:copy(people)};};
- function read(id){const p=people[id];if(!p)return null;return {hunger:clamp(p.foodAge/(12*DAILY_NEEDS_HOUR)),toilet:clamp(p.toiletAge/(24*DAILY_NEEDS_HOUR)),foodStrain:clamp((p.foodAge/DAILY_NEEDS_HOUR-24)/24),toiletStrain:clamp((p.toiletAge/DAILY_NEEDS_HOUR-36)/24)};}
+ const snapshot=()=>{sync();return {version:2,people:copy(people)};};
+ const foodBalanceAge=p=>p.foodAge+p.foodBalanceOffset;
+ function read(id){const p=people[id];if(!p)return null;return {hunger:clamp(foodBalanceAge(p)/FOOD_DAY),toilet:clamp(p.toiletAge/(24*DAILY_NEEDS_HOUR)),foodStrain:clamp((foodBalanceAge(p)-2*FOOD_DAY)/(2*FOOD_DAY)),toiletStrain:clamp((p.toiletAge/DAILY_NEEDS_HOUR-36)/24)};}
  function status(id){const p=people[id],need=read(id);if(!p)return null;
-  const food=p.foodAge>=24*DAILY_NEEDS_HOUR?'久未进食':need.hunger>=.85?'很饿了':need.hunger>=.5?'有些饿了':null;
+  const food=foodBalanceAge(p)>=2*FOOD_DAY?'久未进食':need.hunger>=1?'很饿了':need.hunger>=.75?'有些饿了':null;
   const toilet=p.toiletAge>=36*DAILY_NEEDS_HOUR?'如厕拖延较久':need.toilet>=1?'该如厕了':null;
-  return {food,toilet,seekMeal:!!food,seekToilet:!!toilet,text:[food&&'🍚 '+food,toilet&&'🚻 '+toilet].filter(Boolean).join(' · ')};
+  return {food,toilet,seekMeal:need.hunger>=1,seekToilet:!!toilet,text:[food&&'🍚 '+food,toilet&&'🚻 '+toilet].filter(Boolean).join(' · ')};
  }
  function apply(receipt,kind){
   sync();const p=people[receipt?.actorId],source=receipt?.source,n=receipt?.number;
   if(!p||receipt.source!==source||kind==='meal'&&!mealSources.has(source)||!Number.isSafeInteger(n)||n<=0||n<=(p.receipts[source]||0)||receipt.completed!==true)return false;
   if(kind==='meal'&&!validMeal(receipt))return false;
   if(kind==='toilet'&&(!toiletFacilities[source]||receipt.id!==`${source}-${n}`||receipt.facilityId!==toiletFacilities[source]))return false;
-  const next={version:1,people:copy(people)},row=next.people[receipt.actorId];row[kind==='meal'?'foodAge':'toiletAge']=source==='france-tea-food'?Math.max(0,row.foodAge-3*DAILY_NEEDS_HOUR):0;row.receipts[source]=n;
+  const next={version:2,people:copy(people)},row=next.people[receipt.actorId];
+  if(kind==='toilet')row.toiletAge=0;
+  else if(source==='france-tea-food'){
+   const relief=3*DAILY_NEEDS_HOUR;
+   row.foodBalanceOffset=Math.max(0,row.foodBalanceOffset-Math.max(0,relief-row.foodAge));row.foodAge=Math.max(0,row.foodAge-relief);
+  }else {row.foodAge=0;row.foodBalanceOffset=0;}
+  row.receipts[source]=n;
   try{const result=saveState(next);if(result===false||result?.then)return false;}catch{return false;}
   Object.assign(p,row);return true;
  }

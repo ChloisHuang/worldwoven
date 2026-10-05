@@ -73,7 +73,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   const teaClear=![...actors.values()].some(other=>other!==n&&nearPoint(other,TEA,.7))&&!(state.position&&Math.hypot(state.position.x-TEA[0],state.position.z-TEA[2])<.7&&Math.abs(state.position.y-TEA[1])<1);
   const targets=items=>items.map(item=>({id:item.id,available:vacant(item.id,state)&&canReach(n,item.position),choice:{facilityId:item.id}}));
   return [
-   {id:'meal',targets:targets(seats),available:!board.state().claims.some(j=>j.resource==='kitchen')&&canReach(n,P.kitchen),base:.15,traits:{appetite:.9},needs:{hunger:3.4},relief:{hunger:-.72},duration:[8,12],cooldown:90},
+   {id:'meal',targets:targets(seats),available:(sharedNeeds?.status(n.station.id)?.seekMeal!==false||decisions.state(n.station.id).current?.id==='meal')&&!board.state().claims.some(j=>j.resource==='kitchen')&&canReach(n,P.kitchen),base:.15,traits:{appetite:.9},needs:{hunger:3.4},relief:{hunger:-.72},duration:[8,12],cooldown:90},
    // Drinking nearby is not a conversation: no invented partner, social relief,
    // familiarity or observer opinion is awarded for merely sharing the room.
    {id:'tea',targets:[{id:TEA_FACILITY,available:vacant(TEA_FACILITY,state)&&teaClear&&canReach(n,TEA),choice:{facilityId:TEA_FACILITY}}],base:.3,traits:{quiet:.65,sociability:.2},needs:{fatigue:.2},relief:{fatigue:-.12},duration:[6,11],cooldown:55},
@@ -90,7 +90,9 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
    active.choice=null;active.phase='toilet';note('toilet-chosen');
    go(n,toilet.state().approach,{arrivalRadius:.04,label:'交班后前往东侧净室',onDone:()=>{active.phase='toilet-use';return true;}});return;
   }
-  const choices=candidates(n,state),choice=decisions.choose(active.id,need?.seekMeal?choices.filter(c=>c.id==='meal'):choices,Number.isFinite(state.hour)?state.hour:night?22:12);
+  // A daily meal is due only after a full day. Honor an existing leisure
+  // commitment; safe work draining and the physical handoff still happen first.
+  const choices=candidates(n,state),committed=decisions.state(active.id).current,choice=decisions.choose(active.id,need?.seekMeal&&!committed?choices.filter(c=>c.id==='meal'):choices,Number.isFinite(state.hour)?state.hour:night?22:12);
   if(!choice){active.phase='returning';note('no-leisure-available');return;}
   active.choice=choice;
   if(!furniture.facilities.request(choice.facilityId,active.id)||(choice.id==='meal'&&!board.holdWorkplace('kitchen',active.id))){interrupt(n);return;}

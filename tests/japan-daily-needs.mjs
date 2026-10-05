@@ -7,6 +7,7 @@ import {createJapanStaffLife,JAPAN_STAFF_CREW} from '../source/game/japan-staff-
 import {createJapanServiceOrders} from '../source/game/japan-service-orders.js';
 import {createDailyNeeds,DAILY_NEEDS_HOUR as H} from '../source/game/daily-needs.js';
 import {createFacilityQueue} from '../source/game/npc-facilities.js';
+import {createLifeDecisions} from '../source/game/npc-life-decisions.js';
 function fixture({saved={},needsSaved,actorId='jp-ramen',toilet=null}={}){
  const clock={seconds:0};let allowSource=true,allowNeeds=true,staffSaved,physSaved;
  const actors=new Map(JAPAN_STAFF_CREW.map((id,i)=>[id,{station:{id,npcName:id},home:{toArray:()=>[i,0,0]},root:{position:{x:i,y:0,z:0},userData:{appearance:{}}}}])),tasks=new Map(),facilities=createFacilityQueue(),board=createJapanServiceOrders();
@@ -17,6 +18,16 @@ function fixture({saved={},needsSaved,actorId='jp-ramen',toilet=null}={}){
  function handoff(){step();assert.equal(life.state().active.phase,'handoff');done(life.state().active.reliefId);done();step();}
  return {life,needs,actors,tasks,step,done,handoff,rejectSource:v=>allowSource=!v,rejectNeeds:v=>allowNeeds=!v,get saved(){return structuredClone(staffSaved);},get physSaved(){return structuredClone(physSaved);},dispose(){life.dispose();board.dispose();facilities.dispose();}};
 }
+test('fed staff retain ordinary breaks, request a full meal only at 24 hours, and resume existing commitments',()=>{
+ const seed=hours=>({version:2,people:Object.fromEntries(JAPAN_STAFF_CREW.map(id=>[id,{foodAge:id==='jp-ramen'?hours*H:0,toiletAge:0,receipts:{}}]))});
+ for(const hours of[0,6,12,18,23.99,24]){
+  const f=fixture({needsSaved:seed(hours)});f.handoff();assert.equal(f.life.state().active.choice.id==='meal',hours>=24,'meal eligibility at '+hours+' hours');f.dispose();
+ }
+ const selected=fixture();selected.handoff();const saved=selected.life.snapshot(),random=saved.decisions.people['jp-ramen'].random;selected.dispose();
+ const restored=fixture({saved,needsSaved:seed(0)});restored.handoff();assert.equal(restored.life.state().active.phase,'preparing');assert(restored.life.state().active.choice.resumed);assert.equal(restored.life.snapshot().decisions.people['jp-ramen'].random,random,'balance changes do not discard or redraw a saved meal commitment');restored.dispose();
+ const brain=createLifeDecisions({actorIds:JAPAN_STAFF_CREW});brain.choose('jp-ramen',[{id:'tea',targets:[{id:'japan-staff-tea',choice:{facilityId:'japan-staff-tea'}}],duration:[6,6]}]);
+ const tea=fixture({saved:{decisions:brain.snapshot()},needsSaved:seed(24)});tea.handoff();assert.equal(tea.life.state().active.choice.id,'tea','newly due hunger does not replace a committed leisure choice');assert(tea.life.state().active.choice.resumed);tea.dispose();
+});
 test('all fourteen stable staff migrate legacy hunger into one shared source and pause offscreen',()=>{
  const legacy=Object.fromEntries(JAPAN_STAFF_CREW.map((id,i)=>[id,{needs:{hunger:(i+1)/20}}])),clock={seconds:0},needs=createDailyNeeds({legacyPeople:legacy,getClock:()=>clock});
  for(const id of JAPAN_STAFF_CREW)assert(Math.abs(needs.hunger(id)-legacy[id].needs.hunger)<1e-12);
