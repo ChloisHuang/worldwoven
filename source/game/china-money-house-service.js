@@ -30,7 +30,9 @@ export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,sav
  .cn-money-dialog button:disabled{opacity:.45;cursor:default;box-shadow:none}.cn-money-dialog button:not(:disabled):active{transform:none;background:#55784e;box-shadow:none}.cn-money-dialog button:focus-visible,.cn-money-dialog input:focus-visible,.cn-money-dialog select:focus-visible,.cn-money-dialog summary:focus-visible{outline:2px solid #8b9768;outline-offset:2px}
  .cn-money-dialog .cn-money-close{position:absolute;top:8px;right:8px;width:44px;height:44px;min-width:44px;z-index:1;padding:0;border:0;box-shadow:none;background:transparent;color:#4b4434;font-size:23px}
  .cn-money-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-right:44px;margin-bottom:10px}.cn-money-header label{display:flex;align-items:center;gap:8px;white-space:nowrap}.cn-money-header select{width:145px}
- .cn-money-balances{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:10px}.cn-money-balance{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:8px 12px;background:#f0dfac;border:0;border-radius:8px;box-shadow:inset 0 3px #fff3cf}.cn-money-balance[data-money-balance=bank]{background:#dbe7cf;box-shadow:inset 0 3px #edf4e4}.cn-money-balance span{font-size:12px}.cn-money-balance strong{font-size:22px;line-height:1.2;font-variant-numeric:tabular-nums}.cn-money-balance small{font-size:12px;font-weight:normal;margin-left:4px}
+ .cn-money-allocation-caption{display:flex;justify-content:space-between;align-items:center;margin:0 0 5px;font-size:11px;color:#736b54}.cn-money-strip{position:relative;height:58px;margin-bottom:8px;border-radius:9px;background:#f0dfac;overflow:hidden}.cn-money-bank-fill{position:absolute;right:0;top:0;bottom:0;background:#dbe7cf;pointer-events:none}.cn-money-balance{position:absolute;top:6px;z-index:1;pointer-events:none}.cn-money-balance[data-money-balance=cash]{left:12px}.cn-money-balance[data-money-balance=bank]{right:12px;text-align:right}.cn-money-balance span{display:block;font-size:11px}.cn-money-balance strong{display:block;font-size:20px;line-height:1.25;font-variant-numeric:tabular-nums}.cn-money-balance small{font-size:12px;font-weight:normal;margin-left:4px}
+ .cn-money-dialog .cn-money-allocation-range{position:absolute;inset:0;width:100%;height:58px;min-height:58px;padding:0;margin:0;border:0;opacity:0;cursor:ew-resize;z-index:3;appearance:none;touch-action:pan-y}.cn-money-allocation-range::-webkit-slider-thumb{appearance:none;width:24px;height:58px}.cn-money-allocation-range::-moz-range-thumb{width:24px;height:58px;border:0}.cn-money-split{position:absolute;top:0;bottom:0;width:2px;background:#a2af7c;pointer-events:none;transform:translateX(-50%);z-index:2}.cn-money-split>span{position:absolute;bottom:1px;left:50%;transform:translateX(-50%);width:28px;height:18px;border-radius:5px;text-align:center;line-height:18px;font-size:17px;background:#7e966e;color:#fff9e8}.cn-money-allocation-range:focus-visible+.cn-money-split>span{outline:2px solid #516e4d;outline-offset:2px}.cn-money-allocation-range:disabled+.cn-money-split{opacity:.35}.cn-money-dialog .cn-money-allocation-preview{font-size:16px;font-weight:600;line-height:1.5;margin-bottom:5px}.cn-money-fine{display:flex;align-items:center;gap:8px;margin:8px 0}.cn-money-fine>span{flex:1;text-align:center;font-size:11px;color:#736b54}.cn-money-fine button{width:44px;flex:0 0 44px;min-width:44px;padding:0;background:#e2d9a8;color:#536443;font-size:22px}.cn-money-confirm{width:100%}
+
  .cn-money-workspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}.cn-money-panel{min-width:0;padding:10px;border:0;background:#f8f1dc;border-radius:9px;box-shadow:inset 0 3px #ffffff70}
  .cn-money-dialog label{font-size:12px;margin:0}.cn-money-dialog input,.cn-money-dialog select{display:block;width:100%;min-width:0;min-height:44px;margin:4px 0 0;padding:7px 9px;color:#4b4434;background:#fff9e8;border:1px solid #d2ceb1;border-radius:6px;box-shadow:inset 0 2px #e5ddc3;font:inherit;font-size:16px;line-height:1.3}.cn-money-header select{width:145px;margin:0}.cn-money-select{position:relative}.cn-money-select select{appearance:none;padding-right:27px;font-size:14px}.cn-money-select>span{position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:16px;color:#526750}
  .cn-money-amount{display:flex;align-items:stretch;gap:4px;margin-top:4px}.cn-money-amount input{flex:1;width:40px;min-width:30px;margin:0;text-align:center;font-size:17px;font-weight:700;appearance:textfield}.cn-money-amount input::-webkit-inner-spin-button,.cn-money-amount input::-webkit-outer-spin-button{appearance:none;margin:0}.cn-money-dialog .cn-money-step{flex:0 0 44px;min-width:44px;padding:0;background:#e2d9a8;color:#536443;font-size:22px;box-shadow:none}.cn-money-dialog input:focus,.cn-money-dialog select:focus{border-color:#9da980;background:#eef3dc}
@@ -39,10 +41,10 @@ export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,sav
  .cn-money-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}.cn-money-quote{margin:7px 0}.cn-money-quote strong{display:block;font-size:15px;line-height:1.35}.cn-money-dialog .cn-money-rate{font-size:11px;color:#736b54;margin-top:3px}.cn-money-dialog .cn-money-error{font-size:12px;color:#8e382e;margin-top:6px}.cn-money-dialog .cn-money-error:empty{display:none}.cn-money-exchange>button{width:100%}
  .cn-money-dialog .cn-money-note{font-size:11px;color:#736b54}.cn-money-dialog .cn-money-hold{margin:-3px 0 8px}.cn-money-dialog .cn-money-status{padding:8px 10px;margin-top:8px;background:#e6dcc0;border-radius:6px}.cn-money-status:empty{display:none}
  .cn-money-more{border-top:1px solid #c5b38c;margin-top:10px;padding-top:6px}.cn-money-more summary{cursor:pointer;font-size:12px;min-height:30px;padding:6px 0}.cn-money-more p{margin:6px 0}.cn-money-history{font-size:12px;line-height:1.5;padding-left:20px;margin:6px 0;max-height:160px;overflow:auto}
- @media(max-width:560px){.cn-money-workspace{grid-template-columns:1fr}.cn-money-header{flex-wrap:wrap;gap:8px}.cn-money-header h2{font-size:17px}.cn-money-header label{font-size:11px}.cn-money-header select{width:135px}.cn-money-balance{padding:8px}.cn-money-balance strong{font-size:20px}}
+ @media(max-width:560px){.cn-money-workspace{grid-template-columns:1fr}.cn-money-header{flex-wrap:wrap;gap:8px}.cn-money-header h2{font-size:17px}.cn-money-header label{font-size:11px}.cn-money-header select{width:135px}.cn-money-balance strong{font-size:20px}}
  `);
  const dialog=make('dialog',undefined,'cn-money-dialog');dialog.setAttribute('aria-label','承光钱庄账簿');(doc.head||doc.body).append(style);doc.body.append(dialog);
- let disposed=false,message='',amountText='1',currency='copper',exchangeTo='japan',exchangeAmount='2',requestSerial=0,time=0,activity='核对账簿',renderVersion=0;
+ let disposed=false,message='',currency='copper',exchangeTo='japan',exchangeAmount='2',requestSerial=0,time=0,activity='核对账簿',renderVersion=0;
  const near=()=>{const p=getPlayer()?.root.position;return !!p&&Math.abs(p.y-C.floorY)<.45&&Math.hypot(p.x-C.points.counter[0],p.z-C.points.counter[2])<.60&&canSee(teller.station)===true;};
  function close(){renderVersion++;if(dialog.open){dialog.close();onClose();}}
  const available=version=>!disposed&&version===renderVersion&&dialog.open&&near();
@@ -66,34 +68,46 @@ export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,sav
    input.updateSteps=()=>{const n=Number(input.value);steps[0].disabled=Number.isSafeInteger(n)&&n<=1;steps[1].disabled=n>=Number.MAX_SAFE_INTEGER;};input.updateSteps();row.append(steps[0],input,steps[1]);label.append(row);return {label,input};
   };
   header.append(selector('办理币种',currency,value=>{currency=value;if(exchangeTo===currency)exchangeTo=Object.keys(GAME_CURRENCIES).find(id=>id!==currency);}));
-  const balances=make('div',undefined,'cn-money-balances');
+  const total=b.cash+b.bank,caption=make('div',undefined,'cn-money-allocation-caption');caption.append(make('span',`现金与存款 · 共 ${total} ${unit}`),make('span','拖动分界，确认后入账'));
+  const strip=make('div',undefined,'cn-money-strip'),bankFill=make('div',undefined,'cn-money-bank-fill'),values={};strip.append(bankFill);
   for(const [key,label] of [['cash','随身现金'],['bank','银行存款']]){
-   const card=make('div',undefined,'cn-money-balance'),value=make('strong',String(b[key]));value.append(make('small',unit));
-   card.dataset.moneyBalance=key;card.setAttribute('aria-label',`${label}：${currencyText(currency,b[key])}`);card.append(make('span',label),value);balances.append(card);
+   const card=make('div',undefined,'cn-money-balance'),value=make('strong');card.dataset.moneyBalance=key;card.append(make('span',label),value);strip.append(card);values[key]={card,value,label};
   }
-  sheet.append(balances);if(b.held)sheet.append(make('p',`服务预留 ${b.held} ${unit}`,'cn-money-note cn-money-hold'));
-  const workspace=make('div',undefined,'cn-money-workspace'),bank=make('section',undefined,'cn-money-panel');bank.append(make('h3','⇅ 存取款'));
-  const actions=make('div',undefined,'cn-money-actions');
-  const addAction=(kind,label,amountInput)=>{
-   const button=make('button',label);button.type='button';button.dataset.moneyAction=kind;
-   const requestId=`money-house-${state.nextTransaction}-${kind}-${++requestSerial}`;let submitted=false;
-   button.onclick=()=>{if(submitted||button.disabled||!available(version))return;submitted=true;button.disabled=true;
-    const amount=amountInput?Number(amountInput.value):undefined;if(amountInput)amountText=amountInput.value;
-    const result=kind==='open'?ledger.openAccount(requestId,currency):ledger[kind](amount,requestId,currency);
-    message=result.ok?(kind==='open'?'账簿已经立好，不收费用':`${kind==='deposit'?'存入银行':'取到钱袋'} ${currencyText(currency,amount)}，账房已经记清`):(ERRORS[result.code]||'这笔尚未记入，请核对后再试');render();
-   };actions.append(button);return button;
+  const slider=make('input',undefined,'cn-money-allocation-range');slider.type='range';slider.min='0';slider.max=String(total);slider.step='1';slider.value=String(b.cash);slider.disabled=!b.accountOpened||total===0;slider.setAttribute('aria-label','随身现金分配');
+  const split=make('div',undefined,'cn-money-split'),grip=make('span','‹›');split.setAttribute('aria-hidden','true');split.append(grip);strip.append(slider,split);sheet.append(caption,strip);
+  if(b.held)sheet.append(make('p',`服务预留 ${b.held} ${unit}`,'cn-money-note cn-money-hold'));
+  const workspace=make('div',undefined,'cn-money-workspace'),bank=make('section',undefined,'cn-money-panel');bank.append(make('h3','分配确认'));
+  const preview=make('p',undefined,'cn-money-allocation-preview'),hint=make('p',undefined,'cn-money-note'),fine=make('div',undefined,'cn-money-fine'),minus=make('button','−'),plus=make('button','+');
+  minus.type=plus.type='button';minus.setAttribute('aria-label','随身现金减少一单位');plus.setAttribute('aria-label','随身现金增加一单位');fine.append(minus,make('span',`每次调整 1 ${unit}随身现金`),plus);
+  const confirm=make('button',undefined,'cn-money-confirm');confirm.type='button';confirm.dataset.moneyAction='allocation';preview.setAttribute('role','status');
+  let targetCash=b.cash,submitted=false;const allocationCurrency=currency,requestId=`money-house-${state.nextTransaction}-allocation-${++requestSerial}`;
+  const updateAllocation=()=>{
+   const candidate=Number(slider.value),valid=Number.isSafeInteger(candidate)&&candidate>=0&&candidate<=total;
+   targetCash=valid?candidate:b.cash;const targetBank=total-targetCash,delta=targetCash-b.cash,ratio=total?targetCash/total:.5;
+   const divider=`calc(12px + (100% - 24px) * ${ratio})`;bankFill.style.left=divider;split.style.left=divider;
+   for(const [key,value] of [['cash',targetCash],['bank',targetBank]]){values[key].value.textContent=String(value);values[key].value.append(make('small',unit));values[key].card.setAttribute('aria-label',`${values[key].label}：${currencyText(currency,value)}`);}
+   slider.setAttribute('aria-valuetext',`随身现金 ${targetCash} ${unit}，银行存款 ${targetBank} ${unit}`);
+   preview.textContent=!b.accountOpened?'请先免费立账':!total?'暂无可分配余额':!valid?'分配数目无效':delta===0?'当前分配未改变':delta>0?`从银行取出 ${delta} ${unit}`:`向银行存入 ${-delta} ${unit}`;
+   hint.textContent=delta?'余额将在确认后更新':'向左存款，向右取款';
+   confirm.textContent=delta>0?`确认取出 ${delta} ${unit}`:delta<0?`确认存入 ${-delta} ${unit}`:'确认分配';confirm.disabled=!valid||!b.accountOpened||total===0||delta===0;
+   minus.disabled=slider.disabled||targetCash===0;plus.disabled=slider.disabled||targetCash===total;
   };
-  if(!b.accountOpened){bank.append(make('p','开立此币种账簿后，即可存取。','cn-money-note'));addAction('open','免费立账');}
-  else{
-   const {label,input}=amountField(`本次数目（${unit}）`,'本次存取数目',amountText,'存取');bank.append(label);
-   const deposit=addAction('deposit','',input),withdraw=addAction('withdraw','',input),error=make('p',undefined,'cn-money-error');error.setAttribute('role','status');
-   const update=()=>{input.updateSteps();amountText=input.value;const amount=Number(amountText),valid=Number.isSafeInteger(amount)&&amount>0;
-    deposit.textContent=valid?`存入 ${amount} ${unit}`:'存入银行';withdraw.textContent=valid?`取出 ${amount} ${unit}`:'取到钱袋';
-    deposit.disabled=!valid||amount>b.cash;withdraw.disabled=!valid||amount>b.bank;
-    error.textContent=!valid?ERRORS['invalid-amount']:amount>b.cash&&amount>b.bank?'现金与存款均不足，请减少数目':amount>b.cash?`随身现金不足，最多可存 ${b.cash} ${unit}`:amount>b.bank?`存款不足，最多可取 ${b.bank} ${unit}`:'';
-   };input.oninput=()=>{if(available(version))update();};update();bank.append(error);
+  slider.oninput=()=>{if(available(version))updateAllocation();};slider.addEventListener('keydown',e=>e.stopPropagation());
+  const step=delta=>{if(!available(version)||slider.disabled)return;slider.value=String(Math.max(0,Math.min(total,targetCash+delta)));updateAllocation();};minus.onclick=()=>{if(!minus.disabled)step(-1);};plus.onclick=()=>{if(!plus.disabled)step(1);};
+  confirm.onclick=()=>{
+   if(submitted||confirm.disabled||!available(version)||currency!==allocationCurrency)return;
+   const current=ledger.balances?.()?.[currency];
+   if(!current||current.cash!==b.cash||current.bank!==b.bank||current.accountOpened!==b.accountOpened){message='余额已变化，请重新调整分配';render();return;}
+   const amount=Number(slider.value),delta=amount-b.cash;if(!Number.isSafeInteger(amount)||amount<0||amount>total||amount!==targetCash||delta===0)return;
+   submitted=true;confirm.disabled=true;const kind=delta>0?'withdraw':'deposit',result=ledger[kind](Math.abs(delta),requestId,currency);
+   message=result.ok?`${kind==='deposit'?'存入银行':'取到钱袋'} ${currencyText(currency,Math.abs(delta))}，账房已经记清`:(ERRORS[result.code]||'这笔尚未记入，请核对后再试');render();
+  };
+  updateAllocation();const bankActions=make('div',undefined,'cn-money-actions');bankActions.append(confirm);bank.append(preview,hint,fine,bankActions);
+  if(!b.accountOpened){
+   const open=make('button','免费立账','cn-money-confirm');open.type='button';open.dataset.moneyAction='open';const openId=`money-house-${state.nextTransaction}-open-${++requestSerial}`;let opened=false;
+   open.onclick=()=>{if(opened||!available(version))return;opened=true;open.disabled=true;const result=ledger.openAccount(openId,currency);message=result.ok?'账簿已经立好，不收费用':ERRORS[result.code]||'账簿尚未保存，请稍后再试';render();};bankActions.append(open);
   }
-  bank.append(actions);workspace.append(bank);
+  workspace.append(bank);
   if(typeof ledger.quoteExchange==='function'){
    const area=make('section',undefined,'cn-money-panel cn-money-exchange');area.append(make('h3','⇄ 现金兑换'));
    const fields=make('div',undefined,'cn-money-fields');fields.append(selector('换成币种',exchangeTo,value=>{exchangeTo=value;},currency));
