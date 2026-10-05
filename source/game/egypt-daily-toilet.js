@@ -39,7 +39,7 @@ export function createEgyptDailyToilet(options){
    if(conversationActorId===P.attendantId)return;
    const destination=attending==='returning'?staff.home.toArray():P.standby;
    if(travel(destination,dt)){
-    if(attending==='returning'){attending=null;staff.breakAt=t+10;staff.returning=false;staff.label?.querySelector('small')&&(staff.label.querySelector('small').textContent=staff.station.npcLabel);return;}
+    if(attending==='returning'){attending=null;staff.breakAt=t+10;staff.returning=false;const label=staff.label?.querySelector('small');if(label)label.textContent=staff.station.npcLabel;return;}
     attending='waiting';staff.root.rotation.y=-Math.PI/2;
    }
    const label=staff.label?.querySelector('small');if(label)label.textContent=attending==='returning'?'回到原处整理亚麻':attending==='waiting'?'在门外备好干净亚麻':'让出净室门口';

@@ -130,11 +130,11 @@ function privateBathToilet(parent,colliders,cameraColliders){
   urn(parent,13.87,0,-3.68,.66,C.red);cyl(parent,13.87,.61,-3.68,.19,.16,.035,C.shadow,20);
   torus(parent,13.87,.66,-3.68,.18,.023,C.edge,Math.PI/2);
   for(const arr of[colliders,cameraColliders])volume(arr,13.87,.31,-3.68,.48,.62,.48);
-  box(parent,14.65,1.03,-4.18,1.82,1.65,.045,C.linen);
-  for(const x of[13.70,15.60])rod(parent,[x,.1,-4.13],[x,1.99,-4.13],.035,C.shadow);
-  rod(parent,[13.68,1.98,-4.13],[15.62,1.98,-4.13],.035,C.shadow);
-  for(const x of[13.86,14.12,14.38,14.64,14.90,15.16,15.42])box(parent,x,1.03,-4.148,.024,1.62,.012,C.lightSand);
-  for(const y of[.28,1.78])box(parent,14.65,y,-4.147,1.8,.045,.014,C.blue);
+  box(parent,14.65,1.03,-4.10,1.82,1.65,.045,C.linen);
+  for(const x of[13.70,15.60])rod(parent,[x,.1,-4.055],[x,1.99,-4.055],.035,C.shadow);
+  rod(parent,[13.68,1.98,-4.055],[15.62,1.98,-4.055],.035,C.shadow);
+  for(const x of[13.86,14.12,14.38,14.64,14.90,15.16,15.42])box(parent,x,1.03,-4.068,.024,1.62,.012,C.lightSand);
+  for(const y of[.28,1.78])box(parent,14.65,y,-4.067,1.8,.045,.014,C.blue);
   g.userData={originalProceduralArt:true,facilityId:P.id,seatHeight:P.seatY,fictionalUnplumbedFixture:true};
   return g;
 }
@@ -681,5 +681,8 @@ export function buildEgypt(){
   for(const x of [-3.0,3.0])torch(desert,x,2.55,21.45,cameraColliders,0,true);
   for(const q of [desert,temple,passage,burial,pyramid,throne,privateRoom,judgment,ascending,service,roofGroup])batchZone(q);
   group.userData={...group.userData,interior:true,defaultRoofVisible:true,cameraMode:'close-third-person',theme:'dry-desert-pyramid',pyramidShell:{...shell,frontZ:front,rearZ:rear,solidBands:shellSolids.length,mainEntry:true},ambientIntensity:.38,sunIntensity:2.4,interiorZones:[{name:'神殿柱厅',minX:-9,maxX:9,minZ:-6.8,maxZ:.5,minY:-.1,maxY:5.1},{name:'金字塔墓室',minX:-13,maxX:12.5,minZ:-35,maxZ:-22.2,minY:-6.1,maxY:-.6}],originalProceduralArt:true,stoneFlights:flights.map(({sections,...f})=>f),constructionRevision:'Egypt-thick-passage-deep-tomb',tombSequence:{entryClearance:3.45,tunnelClearance:2.95,antechamberClearance:3.25,burialClearance:5.4,burialFloor:-6,route:[[0,0,23],[0,0,10],[0,0,-6.2],[0,-3,-14.6],[-6,-3,-14.6],[-6,-3,-16.2],[-6,-6,-23.3],[-5,-6,-26],[.3,-6,-26],[.6,-6,-30.1]]}};
-  return {group,colliders,exchangeCounter,spawn:[0,0,35.5],bounds:{minX:-30,maxX:30,minZ:-40,maxZ:40},stations,roofGroup,walkableSurfaces,cameraColliders,explorationTargets,doorways,facilities,levels:[{id:'desert',name:'沙漠与神殿',y:0},{id:'burial',name:'金字塔地下墓室',y:-6},{id:'burial-turn',name:'地下转折甬道',y:-3},{id:'throne',name:'上层法老王殿',y:4}]};
+  // Sparse exact aisle points supplement the existing door portals for every
+  // actor. The unchanged navigation engine validates their .39m-radius edges.
+  const navigationPortals=[{id:'egypt-bath-east-aisle',points:[-1,-2,-3.62].map(z=>({x:EGYPT_DAILY_TOILET.approach[0],y:0,z}))}];
+  return {group,colliders,exchangeCounter,navigationPortals,spawn:[0,0,35.5],bounds:{minX:-30,maxX:30,minZ:-40,maxZ:40},stations,roofGroup,walkableSurfaces,cameraColliders,explorationTargets,doorways,facilities,levels:[{id:'desert',name:'沙漠与神殿',y:0},{id:'burial',name:'金字塔地下墓室',y:-6},{id:'burial-turn',name:'地下转折甬道',y:-3},{id:'throne',name:'上层法老王殿',y:4}]};
 }
