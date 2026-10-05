@@ -2,6 +2,7 @@
 // holds, atomic wages/FX, durable replay, failed saves, and presentation isolation.
 import assert from 'node:assert/strict';
 import {createCopperLedger} from '../source/game/copper-ledger.js';
+import {createGameStorage, PREVIEW_STORAGE_PREFIX} from '../source/game/game-storage.js';
 import {createCurrencyLedger, createGameCurrencyLedger, EXCHANGE_RATE_VERSION} from '../source/game/currency-ledger.js';
 const clone = value => JSON.parse(JSON.stringify(value));
 const code = (result, expected) => {assert.equal(result.ok, false); assert.equal(result.code, expected);};
@@ -163,12 +164,15 @@ for (const corrupt of [{...fixture(), cash: -1}, {...fxSaved, balances: {...fxSa
 
 // The game integration accepts the selected store; an appearance preview must
 // write only that injected store and retain unrelated game progress.
-const production = new Map([['worlds-days-v1', 'do-not-touch']]), preview = new Map();
 const game = {visited: ['china'], stamps: {china: 2}, copperLedger: clone(unchangedLegacy)};
-const injected = createGameCurrencyLedger({saved: game, storage: {setItem: (key, value) => {preview.set(key, value);}}});
+const originalGame = JSON.stringify(game), production = new Map([['worlds-days-v1', originalGame]]), preview = new Map();
+const storage = createGameStorage({preview: true, normal: {getItem: key => production.get(key), setItem: () => {throw Error('preview cannot write production');}},
+  session: {getItem: key => preview.get(key) ?? null, setItem: (key, value) => {preview.set(key, value);}}});
+assert.equal(storage.getItem('worlds-days-v1'), originalGame);
+const injected = createGameCurrencyLedger({saved: game, storage});
 assert(injected.creditWageToBank(wage()).ok);
-assert.equal(production.get('worlds-days-v1'), 'do-not-touch');
-assert.deepEqual(JSON.parse(preview.get('worlds-days-v1')).stamps, {china: 2});
+assert.equal(production.get('worlds-days-v1'), originalGame);
+assert.deepEqual(JSON.parse(preview.get(PREVIEW_STORAGE_PREFIX + 'worlds-days-v1')).stamps, {china: 2});
 assert.equal(game.copperLedger.balances.copper.bank, 30);
 for (const failure of ['throw', 'false', 'promise']) {
   const game = {copperLedger: clone(unchangedLegacy)}, before = clone(game);

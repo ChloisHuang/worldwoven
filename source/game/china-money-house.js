@@ -68,5 +68,5 @@ export function buildChinaMoneyHouse(G,A){
  return CHINA_MONEY_HOUSE;
 }
 
-export function chinaMoneyHouseStation(){return {...CHINA_MONEY_HOUSE.role,name:'承光钱庄 · 存取账簿',action:'办理存取与查账',position:CHINA_MONEY_HOUSE.points.counter,npcPosition:CHINA_MONEY_HOUSE.points.teller,npcAction:'money-house-duty',npcRotation:0,npcLabel:'核对账簿 · 拨珠记账',color:'#b39355',interactionRadius:1.4,dialogue:'先立一本账簿，再凭手头铜钱存入。取钱时，账上须有足额存钱。'};}
+export function chinaMoneyHouseStation(){return {...CHINA_MONEY_HOUSE.role,name:'承光钱庄 · 存取与兑换',action:'办理存取、兑换与查账',position:CHINA_MONEY_HOUSE.points.counter,npcPosition:CHINA_MONEY_HOUSE.points.teller,npcAction:'money-house-duty',npcRotation:0,npcLabel:'核对账簿 · 拨珠记账',color:'#b39355',interactionRadius:1.4,dialogue:'正式岗位工钱直接记入银行，亲自到柜台才能取出花用。兑换前先看清本次汇率与能收到的数目。'};}
 export function moneyHouseRoleAppearance(region,id,look){return region==='china'&&id===CHINA_MONEY_HOUSE.stationId?{...look,bodyPreset:'masculine-lean',hairStyle:'low-bun',wardrobePreset:'scholar-long-robe',clothes:0x605e4b,accent:0xb89a61}:look;}
