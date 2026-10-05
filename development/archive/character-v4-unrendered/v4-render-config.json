@@ -1,0 +1,45 @@
+{
+  "status": "PREPARED_NOT_RENDERED",
+  "prototype": {
+    "file": "original-head-hair.v4.mjs",
+    "sha256": "9ccad3ae36f3368afb95b0234c39da655e985770f8e37ef5bf423a2fa642ae41"
+  },
+  "renderer": {
+    "file": "render-prototype.v4.mjs",
+    "sha256": "d19f67efd724008c21863f304c0ccaf68c26bd5fe330042d8459280ec5c6c050"
+  },
+  "baselineSource": "/workspace/scratch/1eb6172ab681/fourfang-public-alien/source",
+  "sourceHashes": {
+    "approved-surfaces.js": "7ce28f18b8927dc6c639f06b1b2652c6d4a2ddf313890cb32c1fb653338c21fb",
+    "characters.js": "5a949e69d527902a048fa9abf6c8f651c78e9f399c747a9cd76e7626b6e60c91",
+    "appearance.js": "7e87b9041fe824716c0bdf30168adf4f6a1c5f9098ac4a44e9298f32a382bb8f",
+    "character-traits.js": "c581cc6d4bbbc1409428d3502f8fe690fd1327d4c372c402ebb2fa9e6560e76a",
+    "character-props.js": "deb24f9b65d5e60a052b934d262191794dc70712dce1271d9adf160c863e1352"
+  },
+  "passes": [
+    {
+      "presentation": "male",
+      "styles": [
+        "side-quiff"
+      ],
+      "views": [
+        "front",
+        "side",
+        "rear-threequarter"
+      ],
+      "imageSize": 640,
+      "bald": false,
+      "purpose": "One hairstyle controlled before-after comparison"
+    }
+  ],
+  "resourceLimits": {
+    "secondsPerProcess": 180,
+    "processTreeMiB": 1200,
+    "nodeHeapMiB": 640,
+    "serialOnly": true
+  },
+  "candidate": "V4_ONE_PLANNED_SHORT_SIDE_SWEEP",
+  "v2PreservedSha256": "f9681fddf808a684092d271a341d878d354517a169a9a48f28e54ba2d3d73b61",
+  "skullUnchangedFromV3": true,
+  "diagnosticNote": "V4 preserves exactly the V3 sculptHeadPoint/profile code; use prior V3 bald diagnostic unless owner requests a repeat."
+}

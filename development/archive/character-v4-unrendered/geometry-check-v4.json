@@ -1,0 +1,134 @@
+{
+  "status": "PASS",
+  "scope": "Lightweight geometry checks only; visual and gameplay acceptance pending",
+  "results": [
+    {
+      "masc": false,
+      "style": "side-quiff",
+      "before": {
+        "width": 0.1779293715953827,
+        "height": 0.25199997425079346,
+        "depth": 0.17725571990013123
+      },
+      "after": {
+        "width": 0.178929403424263,
+        "height": 0.25899994373321533,
+        "depth": 0.21887066960334778
+      },
+      "beforeTriangles": 29056,
+      "afterTriangles": 29392
+    },
+    {
+      "masc": false,
+      "style": "center-curtains",
+      "before": {
+        "width": 0.1779293715953827,
+        "height": 0.25199997425079346,
+        "depth": 0.17725571990013123
+      },
+      "after": {
+        "width": 0.178929403424263,
+        "height": 0.25899994373321533,
+        "depth": 0.21887066960334778
+      },
+      "beforeTriangles": 29056,
+      "afterTriangles": 31056
+    },
+    {
+      "masc": false,
+      "style": "layered-bob",
+      "before": {
+        "width": 0.1779293715953827,
+        "height": 0.25199997425079346,
+        "depth": 0.17725571990013123
+      },
+      "after": {
+        "width": 0.178929403424263,
+        "height": 0.25899994373321533,
+        "depth": 0.21887066960334778
+      },
+      "beforeTriangles": 29056,
+      "afterTriangles": 30032
+    },
+    {
+      "masc": false,
+      "style": "shoulder-waves",
+      "before": {
+        "width": 0.1779293715953827,
+        "height": 0.25199997425079346,
+        "depth": 0.17725571990013123
+      },
+      "after": {
+        "width": 0.178929403424263,
+        "height": 0.25899994373321533,
+        "depth": 0.21887066960334778
+      },
+      "beforeTriangles": 29056,
+      "afterTriangles": 30032
+    },
+    {
+      "masc": true,
+      "style": "side-quiff",
+      "before": {
+        "width": 0.1779293715953827,
+        "height": 0.25199997425079346,
+        "depth": 0.17725571990013123
+      },
+      "after": {
+        "width": 0.178929403424263,
+        "height": 0.25899994373321533,
+        "depth": 0.21887066960334778
+      },
+      "beforeTriangles": 27832,
+      "afterTriangles": 29392
+    },
+    {
+      "masc": true,
+      "style": "center-curtains",
+      "before": {
+        "width": 0.1779293715953827,
+        "height": 0.25199997425079346,
+        "depth": 0.17725571990013123
+      },
+      "after": {
+        "width": 0.178929403424263,
+        "height": 0.25899994373321533,
+        "depth": 0.21887066960334778
+      },
+      "beforeTriangles": 27832,
+      "afterTriangles": 31056
+    },
+    {
+      "masc": true,
+      "style": "layered-bob",
+      "before": {
+        "width": 0.1779293715953827,
+        "height": 0.25199997425079346,
+        "depth": 0.17725571990013123
+      },
+      "after": {
+        "width": 0.178929403424263,
+        "height": 0.25899994373321533,
+        "depth": 0.21887066960334778
+      },
+      "beforeTriangles": 27832,
+      "afterTriangles": 30032
+    },
+    {
+      "masc": true,
+      "style": "shoulder-waves",
+      "before": {
+        "width": 0.1779293715953827,
+        "height": 0.25199997425079346,
+        "depth": 0.17725571990013123
+      },
+      "after": {
+        "width": 0.178929403424263,
+        "height": 0.25899994373321533,
+        "depth": 0.21887066960334778
+      },
+      "beforeTriangles": 27832,
+      "afterTriangles": 30032
+    }
+  ]
+}

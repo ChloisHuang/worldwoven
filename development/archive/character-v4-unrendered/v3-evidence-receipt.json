@@ -1,0 +1,152 @@
+{
+  "status": "RENDER_SUCCEEDED_NOT_FINAL_ART_ACCEPTANCE",
+  "workerVisualReview": "V3 removes crossed crown strips and the horizontal/spiky nape; actual posterior skull and neck transition are smoother. However hair now reads too uniformly smooth/helmet-like. The intended side part and few large flow bundles are not clear enough in production toon lighting. Keep connected fitted base as progress; do not count this as finished side-quiff. Parent independent review pending. Other families, female, actual TPS and performance unverified.",
+  "segments": [
+    {
+      "directory": "/workspace/shared/worldwoven-r18-character-design/quiff-v3-20261003-0809",
+      "sourceHashes": {
+        "approved-surfaces.js": "7ce28f18b8927dc6c639f06b1b2652c6d4a2ddf313890cb32c1fb653338c21fb",
+        "characters.js": "5a949e69d527902a048fa9abf6c8f651c78e9f399c747a9cd76e7626b6e60c91",
+        "appearance.js": "7e87b9041fe824716c0bdf30168adf4f6a1c5f9098ac4a44e9298f32a382bb8f",
+        "character-traits.js": "c581cc6d4bbbc1409428d3502f8fe690fd1327d4c372c402ebb2fa9e6560e76a",
+        "character-props.js": "deb24f9b65d5e60a052b934d262191794dc70712dce1271d9adf160c863e1352"
+      },
+      "prototypeSHA": "04a6b3b6c55b44535e4daa9307ec8a476a3602d80f2994404448fe2b789dcda8",
+      "sourceUnchanged": true,
+      "renderer": {
+        "three": "186",
+        "display": {
+          "backend": "egl",
+          "vendor": "Mesa Project",
+          "version": "1.5",
+          "extensions": "EGL_ANDROID_blob_cache EGL_EXT_config_select_group EGL_EXT_create_context_robustness EGL_EXT_image_dma_buf_import EGL_EXT_image_dma_buf_import_modifiers EGL_EXT_query_reset_notification_strategy EGL_EXT_surface_compression EGL_KHR_cl_event2 EGL_KHR_config_attribs EGL_KHR_context_flush_control EGL_KHR_create_context EGL_KHR_create_context_no_error EGL_KHR_fence_sync EGL_KHR_get_all_proc_addresses EGL_KHR_gl_colorspace EGL_KHR_gl_renderbuffer_image EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_3D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_image_base EGL_KHR_no_config_context EGL_KHR_reusable_sync EGL_KHR_surfaceless_context EGL_EXT_pixel_format_float EGL_KHR_wait_sync EGL_MESA_configless_context EGL_MESA_gl_interop EGL_MESA_query_driver EGL_MESA_x11_native_visual_id ",
+          "surfaceless": true,
+          "dynamic": true,
+          "angle": false,
+          "api": "gles",
+          "glVersion": 0
+        },
+        "version": "WebGL 2.0 (OpenGL ES 3.0 ANGLE)",
+        "renderer": "llvmpipe (LLVM 19.1.7, 256 bits)"
+      },
+      "frames": [
+        {
+          "file": "male-side-quiff-baseline-front.png",
+          "pixelSHA256": "3eca2dce1070aab2951323f89a7083ff716ec23184afe19120f8071fa4ede303",
+          "drawCalls": 2,
+          "triangles": 27832
+        },
+        {
+          "file": "male-side-quiff-baseline-side.png",
+          "pixelSHA256": "47996410134202e3708c8887299331154b4524e4dbb59c5314242baa42964ed5",
+          "drawCalls": 2,
+          "triangles": 27832
+        },
+        {
+          "file": "male-side-quiff-baseline-rear-threequarter.png",
+          "pixelSHA256": "76588ef724cbfa8e96c0bddbfea6557506fe115e2056c6b2fccf21d81eb15a90",
+          "drawCalls": 2,
+          "triangles": 27832
+        },
+        {
+          "file": "male-side-quiff-prototype-front.png",
+          "pixelSHA256": "243b78a45149b0647795a9edc1781432995810a1ee3b79571e2b916135b3eda3",
+          "drawCalls": 2,
+          "triangles": 28368
+        },
+        {
+          "file": "male-side-quiff-prototype-side.png",
+          "pixelSHA256": "445e7c230ef8eb19c5f911a16f06cca909d25221a7b1847cee3d03713136956f",
+          "drawCalls": 2,
+          "triangles": 28368
+        },
+        {
+          "file": "male-side-quiff-prototype-rear-threequarter.png",
+          "pixelSHA256": "20667dbbf0c49cf3d24ad5f9635f39de5be5f03f5ba37fd37eb5aceaed81a22f",
+          "drawCalls": 2,
+          "triangles": 28368
+        }
+      ],
+      "resources": {
+        "status": "PASS",
+        "command": [
+          "node",
+          "/workspace/shared/worldwoven-r18-character-design/render-prototype.v3.mjs"
+        ],
+        "exit": 0,
+        "seconds": 1.8092521250000573,
+        "peakObservedTreeRSSBytes": 239419392,
+        "maxProcesses": 2,
+        "termination": null
+      },
+      "errors": []
+    },
+    {
+      "directory": "/workspace/shared/worldwoven-r18-character-design/skull-v3-20261003-0809",
+      "sourceHashes": {
+        "approved-surfaces.js": "7ce28f18b8927dc6c639f06b1b2652c6d4a2ddf313890cb32c1fb653338c21fb",
+        "characters.js": "5a949e69d527902a048fa9abf6c8f651c78e9f399c747a9cd76e7626b6e60c91",
+        "appearance.js": "7e87b9041fe824716c0bdf30168adf4f6a1c5f9098ac4a44e9298f32a382bb8f",
+        "character-traits.js": "c581cc6d4bbbc1409428d3502f8fe690fd1327d4c372c402ebb2fa9e6560e76a",
+        "character-props.js": "deb24f9b65d5e60a052b934d262191794dc70712dce1271d9adf160c863e1352"
+      },
+      "prototypeSHA": "04a6b3b6c55b44535e4daa9307ec8a476a3602d80f2994404448fe2b789dcda8",
+      "sourceUnchanged": true,
+      "renderer": {
+        "three": "186",
+        "display": {
+          "backend": "egl",
+          "vendor": "Mesa Project",
+          "version": "1.5",
+          "extensions": "EGL_ANDROID_blob_cache EGL_EXT_config_select_group EGL_EXT_create_context_robustness EGL_EXT_image_dma_buf_import EGL_EXT_image_dma_buf_import_modifiers EGL_EXT_query_reset_notification_strategy EGL_EXT_surface_compression EGL_KHR_cl_event2 EGL_KHR_config_attribs EGL_KHR_context_flush_control EGL_KHR_create_context EGL_KHR_create_context_no_error EGL_KHR_fence_sync EGL_KHR_get_all_proc_addresses EGL_KHR_gl_colorspace EGL_KHR_gl_renderbuffer_image EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_3D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_image_base EGL_KHR_no_config_context EGL_KHR_reusable_sync EGL_KHR_surfaceless_context EGL_EXT_pixel_format_float EGL_KHR_wait_sync EGL_MESA_configless_context EGL_MESA_gl_interop EGL_MESA_query_driver EGL_MESA_x11_native_visual_id ",
+          "surfaceless": true,
+          "dynamic": true,
+          "angle": false,
+          "api": "gles",
+          "glVersion": 0
+        },
+        "version": "WebGL 2.0 (OpenGL ES 3.0 ANGLE)",
+        "renderer": "llvmpipe (LLVM 19.1.7, 256 bits)"
+      },
+      "frames": [
+        {
+          "file": "male-side-quiff-baseline-side-bald.png",
+          "pixelSHA256": "21ca5b97dce1714709f039dfeb7d9bccd5f2a0c49d7604c3b2eb8e0b714bafa1",
+          "drawCalls": 2,
+          "triangles": 24784
+        },
+        {
+          "file": "male-side-quiff-baseline-rear-threequarter-bald.png",
+          "pixelSHA256": "a3730e43af3aa5ade176663120dc5ac1d744de125899f130f9e7de4d2fd3bbce",
+          "drawCalls": 2,
+          "triangles": 24784
+        },
+        {
+          "file": "male-side-quiff-prototype-side-bald.png",
+          "pixelSHA256": "45bb158f3292797e817ec5308f6c8a17f38e80cfb6d2b1b326c393172e5a8ab3",
+          "drawCalls": 2,
+          "triangles": 24784
+        },
+        {
+          "file": "male-side-quiff-prototype-rear-threequarter-bald.png",
+          "pixelSHA256": "c1ff6c2ccebe63aa6309ba54ddfca7b2a0d2f3dfca7952d7656cd6ad17ec2bb4",
+          "drawCalls": 2,
+          "triangles": 24784
+        }
+      ],
+      "resources": {
+        "status": "PASS",
+        "command": [
+          "node",
+          "/workspace/shared/worldwoven-r18-character-design/render-prototype.v3.mjs"
+        ],
+        "exit": 0,
+        "seconds": 1.2078602749998026,
+        "peakObservedTreeRSSBytes": 216547328,
+        "maxProcesses": 2,
+        "termination": null
+      },
+      "errors": []
+    }
+  ]
+}

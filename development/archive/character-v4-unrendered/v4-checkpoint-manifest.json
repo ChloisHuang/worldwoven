@@ -1,0 +1,42 @@
+{
+  "status": "V4_SOURCE_NOT_RENDERED",
+  "files": {
+    "original-head-hair.v4.mjs": {
+      "sha256": "9ccad3ae36f3368afb95b0234c39da655e985770f8e37ef5bf423a2fa642ae41",
+      "bytes": 13418
+    },
+    "render-prototype.v4.mjs": {
+      "sha256": "d19f67efd724008c21863f304c0ccaf68c26bd5fe330042d8459280ec5c6c050",
+      "bytes": 7044
+    },
+    "check-prototype.v4.cjs": {
+      "sha256": "ad9350de692f7433dd4fb9b302af60942672e0d32b44869ddb73cfed8fb78f64",
+      "bytes": 2833
+    },
+    "geometry-check-v4.json": {
+      "sha256": "bbcba747bc5e7a1875d85ef33a6754c5fc25cf361bc7de973a5aa85a98d99438",
+      "bytes": 3369
+    },
+    "v4-render-config.json": {
+      "sha256": "27730acdb9bc30843e037549800bb480f9f177a41ca050809eec0864281e8382",
+      "bytes": 1652
+    },
+    "v3-evidence-receipt.json": {
+      "sha256": "c2280a7e39360f2f3f2baae6647d6dda3918b6109f7e83fee7b4984c1e1d5059",
+      "bytes": 7621
+    },
+    "v4-silhouette-plan.svg": {
+      "sha256": "5bf86b7a56828e6321545b5a3054cf28f82c5a7b72c0f83eedd3e7875844a0ff",
+      "bytes": 3904
+    },
+    "v4-silhouette-plan.png": {
+      "sha256": "e9ed62ca23112c0034a5dd685c3d2bfe3338be5c0072e2e3aa0213eb61849746",
+      "bytes": 141047
+    },
+    "v4-silhouette-plan.md": {
+      "sha256": "e05c6ca3bdf8714c0fd0e2a849a963ce188fb847600db06ec991ac790d5b3d84",
+      "bytes": 1834
+    }
+  },
+  "excludes": "Copyrighted research-only images; no production source changed"
+}
