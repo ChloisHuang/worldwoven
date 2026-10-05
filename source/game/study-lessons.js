@@ -1,5 +1,5 @@
 import {STUDY_XP,skillXPRequired} from './skill-progress.js';
-export const STUDY_SKILL_NAMES = Object.freeze({ritual:'礼仪',writing:'文书',gardening:'园艺',art:'艺术',cooking:'烹饪',martial:'武艺'});
+export const STUDY_SKILL_NAMES = Object.freeze({ritual:'礼仪',writing:'文书',gardening:'园艺',art:'艺术',cooking:'烹饪',martial:'武艺',care:'照护'});
 export const STUDY_DURATION = 8;
 const book=(id,skill,title,description,excerpt)=>Object.freeze({id,skill,title,description,excerpt,action:'read',verb:'阅读',seconds:STUDY_DURATION});
 const china=Object.freeze([
@@ -7,6 +7,7 @@ const china=Object.freeze([
  book('writing-intro','writing','《书信与文书入门》','认识书信、记事与归档的基本格式。','先写日期与来意，再记人名和待办事项。誊写后逐行核对，把回执与原文放在一起。'),
  book('cooking-intro','cooking','《灶间切配与火候》','读懂切配、灶火与按单出菜。','先核对桌号和菜名，再洗净食材、分开生熟。按份切配，掌握下锅次序与火候。'),
  book('art-intro','art','《水墨与留白初读》','从墨色浓淡与疏密留白，认识画面构成。','落笔前先看虚实。淡墨铺远山，浓墨点近枝，让未落墨的纸面也成为景色。'),
+ book('care-intro','care','《照护问询与编号核对》','学习虚构症状问询、记录来意及同号交接，不含真实诊疗方法。','先请来客说出游戏中的虚构不适，再按来意记录问询卡。核对本人、原单和云纹包的编号；交付后留存原单回执。云纹包是虚构道具，不作真实治疗说明。'),
  book('poetry-intro','art','《诗词诵读与题意》','练习按来意选诗、停连诵读与说明题意。','先问来客想听远行还是归家。按题意选篇，诵读时留出停顿；用诗中的景物解释情绪，听对方回应。'),
 ]);
 const france=Object.freeze([

@@ -1,4 +1,5 @@
 import {appendOfficialPromotionPanel,appendOfficialCareerHistory} from './official-career-panel.js';
+import {appendClinicPhysicianPanel,CLINIC_PHYSICIAN_PANEL_STYLE} from './china-clinic-physician-panel.js';
 import {appendSalonCareerPanel} from './china-salon-career-panel.js';
 import {FORMAL_CAREER_ROLES} from './formal-careers.js';
 import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
@@ -15,10 +16,10 @@ const PLACES={
   [GARDEN]:{country:'france',currency:'france',workplace:'西苑',employer:'埃米尔',destination:'西苑工具架 · 埃米尔的园艺登记簿'},
   [TEA]:{country:'france',currency:'france',workplace:'宫苑茶廊 · 侍茶登记',employer:'玛农',destination:'宫苑茶廊 · 侍茶登记'},
 };
-const WORKPLACES={'cn-court-clerk':'bureau','cn-tavern-steward':'tavern','cn-tavern-chef':'tavern','fr-garden-assistant':'garden','cn-pharmacy-apprentice':'clinic','cn-salon-poet':'salon',[TEA]:'tea',[PASTRY]:'pastry',[GUARD]:'guard'},WORKPLACE_NAMES={bureau:'承务官署',tavern:'云来酒楼',garden:'西苑工具架',clinic:'安和医馆',salon:'云来楼三层雅集',tea:'宫苑茶廊',pastry:'宫苑糕点房',guard:'射圃巡值登记'};
-const WORKPLACE_ROLES={bureau:'沈叙 · 礼务录事',tavern:'许安 · 服务助理、厨师',garden:'埃米尔 · 园艺助理',clinic:'许宁 · 药铺助手',salon:'温晚 · 诗词艺者',tea:'玛农 · 侍茶员',pastry:'卡米耶 · 茶点制作员',guard:'陆衡 · 锦衣卫巡值'};
+const WORKPLACES={'cn-court-clerk':'bureau','cn-tavern-steward':'tavern','cn-tavern-chef':'tavern','fr-garden-assistant':'garden','cn-pharmacy-apprentice':'clinic','cn-clinic-physician':'clinic','cn-salon-poet':'salon',[TEA]:'tea',[PASTRY]:'pastry',[GUARD]:'guard'},WORKPLACE_NAMES={bureau:'承务官署',tavern:'云来酒楼',garden:'西苑工具架',clinic:'安和医馆',salon:'云来楼三层雅集',tea:'宫苑茶廊',pastry:'宫苑糕点房',guard:'射圃巡值登记'};
+const WORKPLACE_ROLES={bureau:'沈叙 · 礼务录事',tavern:'许安 · 服务助理、厨师',garden:'埃米尔 · 园艺助理',clinic:'许宁 · 医师、药铺助手',salon:'温晚 · 诗词艺者',tea:'玛农 · 侍茶员',pastry:'卡米耶 · 茶点制作员',guard:'陆衡 · 锦衣卫巡值'};
 const workplaceKey=role=>WORKPLACES[role?.id]||role?.id;
-const COUNTRIES={china:'中国',france:'法国'},SKILLS={ritual:'礼仪',writing:'文书',gardening:'园艺',art:'艺术',cooking:'烹饪',martial:'武艺'};
+const COUNTRIES={china:'中国',france:'法国'},SKILLS={ritual:'礼仪',writing:'文书',gardening:'园艺',art:'艺术',cooking:'烹饪',martial:'武艺',care:'照护'};
 const place=role=>({...PLACES[role?.id],...role});
 const unit=role=>{const id=place(role).currency;return id==='copper'?'铜文':id==='france'?'法国券':GAME_CURRENCIES[id]?.unit||'';};
 const wageRange=role=>{const bonus=role.preparationBonus??(role.id===CLERK?2:0);return `${role.wage}${bonus?'–'+(role.wage+bonus):''}${unit(role)}`;};
@@ -27,7 +28,7 @@ const employer=role=>place(role).employer||'岗位主管';
 const isClerk=role=>role?.id===CLERK;
 const registryKind=role=>isClerk(role)?'view':'formal-view';
 const dutySummary=role=>role.duties|| (isClerk(role)?'11:30朝仪听记 · 官署归档':role.id===TAVERN?'06:00–18:00 · 持续送餐、清洁脏桌、打扫退房客房；提前交班按工时计薪':'06:00–18:00 · 原壶浇两畦、归还与验收');
-const resultReason=code=>({'already-applied-today':'本岗位今日已提交，下一模拟日可再申请','interview-rejected':'硬门槛已满足，本次面谈未获录用','hiring-context-unavailable':'招聘信息暂不可用，请稍后重试','adult-required':'年龄未达要求','age-range-required':'台班招募年龄为18–40岁','ritual-required':'礼仪未达要求','writing-required':'文书未达要求','gardening-required':'园艺未达要求','art-required':'艺术未达要求','cooking-required':'烹饪未达要求，可在藏书处学习','martial-required':'武艺未达要求，请在射圃完成安全习射','already-employed':'已有正式职位，请先在原岗位办理离职','no-vacancy':'当前没有空缺','save-failed':'登记未能保存，请重试','async-save-unsupported':'登记未能保存，请重试','invalid-clock':'世界时钟暂不可用','invalid-career-state':'职业存档暂时无法核对'}[code]||'本次登记未完成，请稍后重试');
+const resultReason=code=>({'already-applied-today':'本岗位今日已提交，下一模拟日可再申请','interview-rejected':'硬门槛已满足，本次面谈未获录用','hiring-context-unavailable':'招聘信息暂不可用，请稍后重试','adult-required':'年龄未达要求','age-range-required':'台班招募年龄为18–40岁','ritual-required':'礼仪未达要求','writing-required':'文书未达要求','gardening-required':'园艺未达要求','art-required':'艺术未达要求','cooking-required':'烹饪未达要求，可在藏书处学习','martial-required':'武艺未达要求，请在射圃完成安全习射','care-required':'照护未达要求，可读虚构照护书并完成原助手服务','clinic-experience-required':'须先完成一单药铺助手原单与本人交付，作为入门履历','already-employed':'已有正式职位，请先在原岗位办理离职','no-vacancy':'当前没有空缺','save-failed':'登记未能保存，请重试','async-save-unsupported':'登记未能保存，请重试','invalid-clock':'世界时钟暂不可用','invalid-career-state':'职业存档暂时无法核对'}[code]||'本次登记未完成，请稍后重试');
 
 
 export function createCareerHandbook({careers,copperLedger,getClock,getService,getCountry=()=>null,getPlayer=()=>null,
@@ -47,6 +48,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
   style.textContent+='.career-dialog{padding:16px;color:#594833;border-color:#b49665}.career-dialog h2{font-size:17px;margin-bottom:4px}.career-dialog h3{font-size:13px;margin:10px 0 5px}.career-dialog p{font-size:12px;line-height:1.45;margin:6px 0}.career-shift-status{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:5px;margin:10px 0}.career-shift-status strong{font-size:13px;color:#815829}.career-shift-status span{font-size:11px;color:#786c58}.career-dialog .career-primary{background:#8c6237;color:#fff5da}.career-current-action{width:100%;margin:2px 0 8px}.career-metrics{margin:8px 0 0}.career-metric{display:grid;grid-template-columns:88px minmax(0,1fr);gap:10px;align-items:start;border-top:1px solid #d7c9aa;padding:9px 0;font-size:12px}.career-metric dt{color:#837259;padding-top:2px}.career-metric dd{margin:0}.career-metric strong{font-size:13px;font-weight:600}.career-metric small{display:block;font-size:11px;line-height:1.35;color:#84725c;margin-top:3px}.career-status-note{color:#84725c}.career-role-card h3{font-size:15px}.career-role-card{padding:12px;margin:10px 0}.career-role-facts{margin:8px 0}.career-role-fact strong{font-size:13px}.career-role-fact span{font-size:11px}.career-requirement{font-size:12px;padding:3px 0}';
   style.textContent+='@media(max-height:500px) and (min-width:640px){.career-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:18px;margin-top:6px}.career-metric{grid-template-columns:70px minmax(0,1fr);gap:7px;padding:8px 0}}';
   style.textContent+=AIRY_UI_THEME+CAREER_CARD_STYLE+AIRY_PANEL_STYLE;
+  style.textContent+=CLINIC_PHYSICIAN_PANEL_STYLE;
   (doc.head||doc.body).append(style);doc.body.append(slot,dialog,feedback);
   let registrationRoleId=null,registrationScope='role',signature='',generation=0;
   let reviewId=careers.state().lastEvaluation?.id||null,customerReviewId=careers.state().lastDuty?.customerReviews?.at(-1)?.id||null,feedbackUntil=-1;
@@ -109,7 +111,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     const showReceipt=(root,r,role)=>{
       const box=make('section',null,'career-application-result '+(r.ok?r.employmentStatus==='active'?'career-positive':'career-history':r.status==='pending'?'career-pending':'career-negative'));box.setAttribute('role','status');box.append(make('strong',receiptTitle(r)));
       if(r.status==='pending'){
-        if(r.stage==='submitted')box.append(make('p',isClerk(role)?'沈叙：请当面呈上履历。听记朝议、礼仪与文书，均须核验。':role.paymentKind==='commission'?'温晚：诗词台班仅一席，须成年且不超过40岁。每次邀约由你自主接受或谢绝；选诗、实际诵读并回应题意，完成后按场入银行。普通茶叙不含亲密安排。你愿意按这份职责任职吗？':role.id===GARDEN?'埃米尔：你愿意亲手浇护两畦玫瑰、归还原壶，再找我验收吗？':role.id===GUARD?'陆衡：安全接班后逐点巡查门廊、殿阶及东西巷，检查盲角并驻察；我继续照看射圃。你可持续轮巡，回圃交班按实际巡行与驻察工时结薪，愿意吗？':role.id===PASTRY?'卡米耶：在糕点房候班，核对玛农的原单，分切蛋糕、备热茶并核对装盘，把原茶盘交给玛农。原杯碟收洗后记评价，另行交班按实际工时结薪，你愿意吗？':role.id===TEA?'玛农：记下客人的原单，去糕点房传单，接取茶盘送到原座，用毕再收回杯碟。06:00–18:00持续当班，按实际工时结薪，你愿意吗？':role.id==='cn-pharmacy-apprentice'?'许宁：在医馆候班，接原单、按同号折包并交给本人。持续当班，交班按实际工时结薪，你愿意吗？':role.id==='cn-tavern-chef'?'许安：后厨需要按客单备料、烹制并核对出菜。你愿意按这份职责当班吗？':'许安：送餐要看清客人和餐点，脏桌、退房客房也要及时清理。你愿意照此当班吗？'));
+        if(r.stage==='submitted')box.append(make('p',isClerk(role)?'沈叙：请当面呈上履历。听记朝议、礼仪与文书，均须核验。':role.paymentKind==='commission'?'温晚：诗词台班仅一席，须成年且不超过40岁。每次邀约由你自主接受或谢绝；选诗、实际诵读并回应题意，完成后按场入银行。普通茶叙不含亲密安排。你愿意按这份职责任职吗？':role.id===GARDEN?'埃米尔：你愿意亲手浇护两畦玫瑰、归还原壶，再找我验收吗？':role.id===GUARD?'陆衡：安全接班后逐点巡查门廊、殿阶及东西巷，检查盲角并驻察；我继续照看射圃。你可持续轮巡，回圃交班按实际巡行与驻察工时结薪，愿意吗？':role.id===PASTRY?'卡米耶：在糕点房候班，核对玛农的原单，分切蛋糕、备热茶并核对装盘，把原茶盘交给玛农。原杯碟收洗后记评价，另行交班按实际工时结薪，你愿意吗？':role.id===TEA?'玛农：记下客人的原单，去糕点房传单，接取茶盘送到原座，用毕再收回杯碟。06:00–18:00持续当班，按实际工时结薪，你愿意吗？':role.id==='cn-clinic-physician'?'许宁：需先有药铺原单服务履历。开班后当面问询原来客，按症状记录选择虚构照护单，再交苏禾；现场候诊与实际工作持续计时，交班按工时结薪。选单不符须更正，原患者领取后才记评价，你愿意吗？':role.id==='cn-pharmacy-apprentice'?'许宁：在医馆候班，接原单、按同号折包并交给本人。持续当班，交班按实际工时结薪，你愿意吗？':role.id==='cn-tavern-chef'?'许安：后厨需要按客单备料、烹制并核对出菜。你愿意按这份职责当班吗？':'许安：送餐要看清客人和餐点，脏桌、退房客房也要及时清理。你愿意照此当班吗？'));
         else box.append(make('p',r.appointment?.text||'请继续办理任命文书'));
       }else if(r.ok){const hour=r.tenure.sinceHour,minutes=Math.floor(hour*60);box.append(make('p',`第${r.tenure.sinceDay+1}日 ${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}${r.employmentStatus==='active'?'受职':'的录用记录'}`));}
       else box.append(make('p',r.saved===false?'本次结果未保存，也未占用今日申请次数。请重试。':`${(r.reasons||[r.code]).map(code=>code==='withdrawn'?'已撤回，未建立正式任职':resultReason(code)).join('；')} · ${c.day===r.day?`今日次数已用，第${r.day+2}日可再申请`:'今日可重新申请'}`));
@@ -128,7 +130,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
         const status=!check.ok?(check.reasons||[check.code]).map(reason).join('；'):'条件已满足 · 可申请';
         card.append(make('p',`${receipt?.day===c.day&&receipt.status==='rejected'?'申请未通过 · ':''}${status}`,'career-card-status '+(check.ok?'career-positive':'career-negative')));
       }
-      const details=make('details',null,'career-card-details');details.append(make('summary',(receipt?.ok&&receipt.employmentStatus==='ended'||past.length)?'岗位详情与录用历史':'岗位详情'));details.append(make('p',dutySummary(item)));if(item.paymentKind==='commission')details.append(make('p','长期台班仅一席；你开班时柳清弦歇场，未开班由她明确代管，另外三专长不变。'));else if(item.vacancyKind==='exclusive')details.append(make('p',item.id===GUARD?`本岗位仅一席；${own?'你已任职，':''}主动开班后沈砚当面交出巡线去歇脚，未开班时明确代巡。陆衡继续照看射场。`:own?`本岗位由你任职，${item.incumbentName}已卸任。`:`本岗位仅一席；录用后${item.incumbentName}卸任。`));showRequirements(details,item);
+      const details=make('details',null,'career-card-details');details.append(make('summary',(receipt?.ok&&receipt.employmentStatus==='ended'||past.length)?'岗位详情与录用历史':'岗位详情'));details.append(make('p',dutySummary(item)));if(item.paymentKind==='commission')details.append(make('p','长期台班仅一席；你开班时柳清弦歇场，未开班由她明确代管，另外三专长不变。'));else if(item.vacancyKind==='exclusive')details.append(make('p',item.id===GUARD?`本岗位仅一席；${own?'你已任职，':''}主动开班后沈砚当面交出巡线去歇脚，未开班时明确代巡。陆衡继续照看射场。`:own?`本岗位由你任职，${item.incumbentName}已卸任。`:`本岗位仅一席；录用后${item.incumbentName}卸任。`));showRequirements(details,item);if(item.id==='cn-clinic-physician')details.append(make('p',`药铺助手原单履历：${s.lowerWork?.['cn-pharmacy-labor']?'已有可核验的本人交付':'未完成'} · 入门经历，不授官品`));
       if(receipt&&!pending)showReceipt(details,receipt,item);for(const old of past.slice().reverse())showReceipt(details,old,item);
       details.append(make('p',item.paymentKind==='commission'?'完成诗词茶叙后，原客款按场存银行；无客不生薪，任职不会随一场结束。每个岗位每天提交一次。':`完成职责后，日薪 ${wageRange(item)} 存银行。每个岗位每天提交一次。`));
       if(pending){const cancel=buttonFor('撤回这份申请',()=>{careers.cancelApplication(item.id,receipt.id);render(true);});cancel.className='career-withdraw';details.append(cancel);}
@@ -176,14 +178,15 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
         else if(isClerk(held)&&careers.promotionSummary?.().application?.status==='pending'&&careers.promotionSummary?.().eligible)next=service.intent();
         else if(availability.ok)next=service.intent(isClerk(held)?'attend':'accept');
       }
-      if(next&&!['view','formal-view'].includes(next.kind)){
+      if(next&&!['view','formal-view'].includes(next.kind)&&!(held.id==='cn-clinic-physician'&&next.work?.kind==='choose')){
         const primary=action(held,next.kind,availability.unchanged&&!job?'继续当前班次':next.action);if(primary){primary.className='career-current-action ww-airy-action';panel.actions.append(primary);}
       }
+      if(held.id==='cn-clinic-physician')appendClinicPhysicianPanel({panel,role:held,service,make,action});
       const rows=make('dl',null,'career-metrics');
       const metric=(label,value,detail='')=>{const row=make('div',null,'career-metric'),valueCell=make('dd');valueCell.append(make('strong',value));if(detail)valueCell.append(make('small',detail));row.append(make('dt',label),valueCell);rows.append(row);};
       const progress=job?.formalRoleId===held.id?job.shiftKind==='continuous'||current?.shiftKind==='continuous'?`${((job.coveredSeconds||0)*.7/60).toFixed(2)} 小时 · 已完成 ${job.completedTasks??0} 项`:Number.isInteger(job.completedOrders)?`${job.completedOrders} / ${job.requiredOrders??2} 单`:held.id===TAVERN?`${job.completedTables??0} / 2 桌`:held.id===GARDEN?`${job.completedBeds??0} / 2 畦`:current?.stage||'进行中':current?({arrived:'已报到',attending:'朝会进行中',archive:'待归档',inspection:'完成 · 待验收',ready:'完成',paid:'完成',missed:'未完成'}[current.stage]||'进行中'):'未开始';
       metric('◷ 进度',progress,pendingDuty?`第${d.day+1}日未结班次`:current?.stage==='working'&&job&&next?next.action:'');
-      const patientReview=held.id==='cn-pharmacy-apprentice'?live?.latestReview:null;
+      const patientReview=['cn-pharmacy-apprentice','cn-clinic-physician'].includes(held.id)?live?.latestReview:null;
       const review=s.lastEvaluation?.roleId===held.id&&d&&s.lastEvaluation.day===d.day?s.lastEvaluation:null,customer=d?.customerReviews?.at(-1),penalty=(d?.customerReviews||[]).reduce((sum,r)=>sum-(r.reasonCode==='tea-completed'?0:r.score),0);
       metric('✓ 评价',customer?`${customer.positive?customer.reasonCode==='tea-completed'?'👍 顾客好评 +1':'👍 已纠正 +1':'👎 顾客差评 −2'}`:review?`${review.positive?review.score===0?'交班已验收':'好评 +1':'差评 −1'} · 第${review.day+1}日`:patientReview?'✓ 来客确认同号交付':'暂无当班评价',customer?`${customer.customerName} · ${customer.reason}${penalty?` · 当班扣薪${penalty}${unit(held)}`:''}`:review?`${employer(held)} · ${review.reason}`:patientReview?`${patientReview.recipientName} · 第${patientReview.number}号原单与纸包已当面核对`:`主管 ${employer(held)}`);
       const salary=current?.wage!=null?`${current.wage}${unit(held)} · ${current.stage==='paid'?'已入账':'待入账'}`:current?.stage==='inspection'?'已完成 · 待核薪':current?.stage==='working'?'当班未结薪':'本日未产生工资';
@@ -194,9 +197,9 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       if(!current&&availability.code==='already-paid-today')panel.body.append(make('p','今日已在另一班次结薪；此岗位可于下一模拟日开始。','career-status-note'));
       if(appliedRole){const history=make('details',null,'career-card-details career-employment-history');history.append(make('summary','录用记录'));showReceipt(history,result,appliedRole);for(const old of (careers.applicationHistory?.(held.id)||[]).slice().reverse())showReceipt(history,old,held);panel.body.append(history);}
       if(!service)panel.body.append(make('p',`工作地点：${COUNTRIES[place(held).country]||place(held).country} · ${place(held).workplace}`,'career-status-note'));
-      if(['cn-pharmacy-apprentice',TEA,PASTRY,GUARD].includes(held.id)&&job?.stage==='working'){const end=action(held,'end-shift');if(end)panel.actions.append(end);}
+      if(['cn-pharmacy-apprentice','cn-clinic-physician',TEA,PASTRY,GUARD].includes(held.id)&&job?.stage==='working'){const end=action(held,'end-shift');if(end){end.classList.add('ww-airy-action');panel.actions.append(end);}}
       if(registrationRoleId===held.id&&registrationScope==='role'){
-        const resign=action(held,isClerk(held)?'resign':'formal-resign');if(resign)panel.body.append(resign);const cancel=['cn-pharmacy-apprentice',TEA,PASTRY,GUARD].includes(held.id)?action(held,'cancel'):null;if(cancel)panel.body.append(cancel);
+        const resign=action(held,isClerk(held)?'resign':'formal-resign');if(resign)panel.body.append(resign);const cancel=['cn-pharmacy-apprentice','cn-clinic-physician',TEA,PASTRY,GUARD].includes(held.id)?action(held,'cancel'):null;if(cancel)panel.body.append(cancel);
       }
     }
     appendOfficialCareerHistory({careers,panel,make});

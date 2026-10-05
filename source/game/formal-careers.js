@@ -1,6 +1,8 @@
 import {getChinaRecordsCareerRank} from './china-official-ranks.js';
 import {CLERK_ENTRY_RANK, CLERK_NEXT_RANK, emptyOfficialCareer, officialTenureId, officialRankId, recordOfficialAppointment, recordOfficialService, closeOfficialAppointment, officialPromotionSummary, restoreOfficialCareer} from './official-career-progress.js';
 import {SALON_POET_ROLE} from './china-salon-career-role.js';
+import {CLINIC_PHYSICIAN_ROLE} from './china-clinic-career-role.js';
+export {CLINIC_PHYSICIAN_ROLE} from './china-clinic-career-role.js';
 import {GAME_MINUTES_PER_SECOND} from './simulation-clock.js';
 import {emptyApplications, restoreApplications, careerInterview, careerInterviewRoll, applicationId} from './career-applications.js';
 import {STUDY_SOURCES, studyLesson, savedStudyLesson, defaultStudyLesson} from './study-lessons.js';
@@ -53,11 +55,11 @@ export const PALACE_GUARD_ROLE = Object.freeze({id:'cn-palace-guard',name:'锦�
   supervisorId:'cn-range-warden',incumbentId:'cn-archery',incumbentName:'沈砚',vacancyKind:'exclusive',workSource:'cn-guard-labor',wage:24,minimumAgeYears:18,
   skillRequirements:Object.freeze({martial:1,ritual:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:0,
   duties:'06:00–18:00主动接班；沿门廊、殿阶及东西巷逐点巡查驻察，回圃当面交班；持续轮巡按实际巡行与驻察工时计薪。武艺须在射圃完成受控习射，陆衡继续照看射场'});
-export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE,PHARMACY_ASSISTANT_ROLE,TEA_SERVER_ROLE,TEA_PASTRY_ROLE,PALACE_GUARD_ROLE,SALON_POET_ROLE]);
+export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE,PHARMACY_ASSISTANT_ROLE,TEA_SERVER_ROLE,TEA_PASTRY_ROLE,PALACE_GUARD_ROLE,SALON_POET_ROLE,CLINIC_PHYSICIAN_ROLE]);
 export const FORMAL_CAREER_SLOTS = Object.freeze([
   ...FORMAL_CAREER_ROLES.map(role => Object.freeze({id:role.slotId,roleId:role.id,holderId:role.incumbentId||null,...(role.vacancyKind==='rotation'?{rotation:true}:role.vacancyKind==='exclusive'?{replacement:true}:{})})),
 ]);
-const SKILLS = Object.freeze(['ritual', 'writing', 'gardening', 'art', 'cooking', 'martial']);
+const SKILLS = Object.freeze(['ritual', 'writing', 'gardening', 'art', 'cooking', 'martial', 'care']);
 const emptyStudy = () => ({issued: 0, completed: 0, issuedDay: null, lessonId: null});
 const WORK = Object.freeze({'cn-tavern-labor':'ritual','fr-garden-labor':'gardening'});
 const STAGES = new Set(['arrived', 'attending', 'archive', 'ready', 'missed', 'paid', 'working', 'inspection']);
@@ -72,16 +74,16 @@ const excused = duty => duty?.stage === 'missed' && duty.reason === 'court-postp
 const supervisor = role => role.supervisorId || COURT_SUPERVISOR.id;
 const completedWage = (role, arrivalHour) => role.workSource ? role.wage + (arrivalHour < role.earlyBeforeHour ? role.preparationBonus : 0) : role.wage + (COURT_SUPERVISOR.conscientiousness >= .8 &&
   arrivalHour <= role.dutyWindow.endHour - COURT_SUPERVISOR.earlyArrivalMinutes / 60 ? COURT_SUPERVISOR.preparationBonus : 0);
-const empty = () => ({version: 6, revision: 0, skillXP: Object.fromEntries(SKILLS.map(skill=>[skill,0])), skills: {ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0, martial: 0}, tenure: null,
-  lastDuty: null, lastPaidDay: null, daily: {day: null, ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0, martial: 0},
+const empty = () => ({version: 7, revision: 0, skillXP: Object.fromEntries(SKILLS.map(skill=>[skill,0])), skills: {ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0, martial: 0, care: 0}, tenure: null,
+  lastDuty: null, lastPaidDay: null, daily: {day: null, ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0, martial: 0, care: 0},
   learning: Object.fromEntries(STUDY_SOURCES.map(source => [source, emptyStudy()])),
-  lowerWork: {'cn-tavern-labor': 0, 'fr-garden-labor': 0}, performance: 0, promotionProgress: 0,
+  lowerWork: {'cn-tavern-labor': 0, 'fr-garden-labor': 0, 'cn-pharmacy-labor': 0}, performance: 0, promotionProgress: 0,
   lastEvaluatedDay: null, lastEvaluation: null, applications: emptyApplications(), officialCareer: emptyOfficialCareer()});
 
 const tavernRole = role => role?.workSource?.startsWith('cn-tavern-');
 const teaRole=role=>[TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id].includes(role?.id);
 const reviewRole=role=>tavernRole(role)||teaRole(role);
-const continuousRole=role=>tavernRole(role)||[PHARMACY_ASSISTANT_ROLE.id,PALACE_GUARD_ROLE.id].includes(role?.id)||teaRole(role);
+const continuousRole=role=>tavernRole(role)||[PHARMACY_ASSISTANT_ROLE.id,CLINIC_PHYSICIAN_ROLE.id,PALACE_GUARD_ROLE.id].includes(role?.id)||teaRole(role);
 const availableSlot = (slot,role) => slot.holderId === null || slot.replacement === true && role.vacancyKind === 'exclusive' && slot.holderId === role.incumbentId || slot.rotation === true && role.vacancyKind === 'rotation' && slot.holderId === role.incumbentId;
 // Tea outcomes improve the service record only. Tavern error/correction pairs
 // retain their existing net deduction; genuine good service never mints wages.
@@ -95,7 +97,7 @@ const officialFields=row=>row?.officialPayVersion===1?{officialPayVersion:1,offi
 const validOfficialFields=(row,role)=>row.officialPayVersion===undefined?row.officialRankId===undefined&&row.officialTenureId===undefined:role.id===COURT_CLERK_ROLE.id&&row.officialPayVersion===1&&Object.hasOwn(CLERK_PAY_V1,row.officialRankId)&&typeof row.officialTenureId==='string';
 const dutyWage = (rawRole,duty) => {const role=salaryRole(rawRole,duty);return duty.shiftKind==='continuous'?Math.max(0,attendanceWage(role,coveredHours(duty))-customerPenalty(duty)):Math.max(1,completedWage(role,duty.arrivalHour)-customerPenalty(duty));};
 function validShift(duty,role){
- if(duty.shiftKind===undefined)return (!['cn-tavern-host','cn-tavern-chef','cn-pharmacy-apprentice',TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id,PALACE_GUARD_ROLE.id].includes(role.id)||duty.stage==='missed')&&!['startedSeconds','coveredSeconds','completedTasks','endedHour','endedSeconds'].some(key=>own(duty,key));
+ if(duty.shiftKind===undefined)return (!['cn-tavern-host','cn-tavern-chef','cn-pharmacy-apprentice',CLINIC_PHYSICIAN_ROLE.id,TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id,PALACE_GUARD_ROLE.id].includes(role.id)||duty.stage==='missed')&&!['startedSeconds','coveredSeconds','completedTasks','endedHour','endedSeconds'].some(key=>own(duty,key));
  if(duty.shiftKind!=='continuous'||!continuousRole(role)||!Number.isFinite(duty.startedSeconds)||duty.startedSeconds<0)return false;
  const done=['inspection','ready','paid'].includes(duty.stage),keys=['coveredSeconds','completedTasks','endedHour','endedSeconds'];
  if(!done)return keys.every(key=>duty[key]===null);
@@ -201,15 +203,26 @@ function restore(saved, roleMap, slotMap) {
     saved={...copy(saved),skills:{...saved.skills,martial:0},daily:{...saved.daily,martial:0},
       ...(saved.version===5?{skillXP:{...saved.skillXP,martial:0}}:{}),learning:{...saved.learning,'cn-archery':emptyStudy()}};
   }
+  // Published six-skill saves gain no inferred clinic experience. Only the
+  // clinic's original delivery receipts may establish the new order watermark.
+  if(object(saved)&&[4,5,6].includes(saved.version)&&object(saved.skills)&&Object.keys(saved.skills).length===6&&
+    SKILLS.filter(key=>key!=='care').every(key=>own(saved.skills,key))&&object(saved.daily)&&Object.keys(saved.daily).length===7&&!own(saved.daily,'care')&&
+    object(saved.lowerWork)&&Object.keys(saved.lowerWork).length===2&&Object.keys(WORK).every(key=>own(saved.lowerWork,key))&&
+    (saved.version===4||object(saved.skillXP)&&Object.keys(saved.skillXP).length===6&&!own(saved.skillXP,'care'))&&
+    ![saved.tenure,saved.lastDuty,saved.lastEvaluation].some(row=>row?.roleId===CLINIC_PHYSICIAN_ROLE.id)&&
+    !Object.values(saved.learning||{}).some(row=>row?.lessonId==='care-intro')){
+    saved={...copy(saved),skills:{...saved.skills,care:0},daily:{...saved.daily,care:0},
+      ...(saved.version>=5?{skillXP:{...saved.skillXP,care:0}}:{}),lowerWork:{...saved.lowerWork,'cn-pharmacy-labor':0}};
+  }
   const validSlot = (roleId, slotId) => roleMap.has(roleId) && slotMap.get(slotId)?.roleId === roleId && availableSlot(slotMap.get(slotId),roleMap.get(roleId));
-  if (!object(saved) || ![4,5,6].includes(saved.version) || !integer(saved.revision) || !object(saved.skills) ||
+  if (!object(saved) || ![4,5,6,7].includes(saved.version) || !integer(saved.revision) || !object(saved.skills) ||
     Object.keys(saved.skills).length !== SKILLS.length || SKILLS.some(key => !integer(saved.skills[key])) ||
     SKILLS.some(key=>saved.skills[key]>100) || saved.skills.ritual + saved.skills.writing > 100 || !dayOrNull(saved.lastPaidDay) ||
     !object(saved.daily) || !dayOrNull(saved.daily.day) || SKILLS.some(key => !integer(saved.daily[key]) ||
       saved.daily[key] > 4 || saved.version===4 && saved.daily[key] > saved.skills[key]) ||
     (saved.daily.day === null && SKILLS.some(key => saved.daily[key] !== 0)) ||
     !object(saved.learning) || Object.keys(saved.learning).length !== STUDY_SOURCES.length ||
-    !object(saved.lowerWork) || Object.keys(saved.lowerWork).length !== 2 || Object.keys(WORK).some(source=>!integer(saved.lowerWork[source])) ||
+    !object(saved.lowerWork) || Object.keys(saved.lowerWork).length !== 3 || [...Object.keys(WORK),PHARMACY_ASSISTANT_ROLE.workSource].some(source=>!integer(saved.lowerWork[source])) ||
     !Number.isInteger(saved.performance) || Math.abs(saved.performance) > 100 ||
     !integer(saved.promotionProgress) || saved.promotionProgress > 100 || !dayOrNull(saved.lastEvaluatedDay)) throw Error('invalid-career-state');
   if(saved.version>=5&&(!object(saved.skillXP)||Object.keys(saved.skillXP).length!==SKILLS.length||
@@ -257,8 +270,8 @@ function restore(saved, roleMap, slotMap) {
       (JSON.stringify(officialFields(review))!==JSON.stringify(officialFields(duty))) ||
       (review.positive ? !['ready', 'paid'].includes(duty.stage) || duty.wage !== review.wage || (duty.shiftKind==='continuous'?review.coverageHours!==coveredHours(duty):review.coverageHours!==undefined) || (review.servicePenalty??0)!==customerPenalty(duty) : duty.stage !== 'missed'))) throw Error('invalid-career-state');
   if (duty && ['ready', 'paid'].includes(duty.stage) && (!review || review.day !== duty.day || !review.positive)) throw Error('invalid-career-state');
-  // Older clients reject v6 instead of silently dropping earned rank history.
-  if(saved.version===6&&saved.officialCareer===undefined)throw Error('invalid-career-state');
+  // Versioned saves retain earned rank history; v7 also protects care proof.
+  if(saved.version>=6&&saved.officialCareer===undefined)throw Error('invalid-career-state');
   const officialCareer=restoreOfficialCareer(saved.officialCareer,{tenure:saved.tenure,lastDuty:duty,lastEvaluation:review});
   for(const row of [duty,review])if(row?.officialPayVersion===1){
     const appointment=officialCareer.appointments.find(a=>a.id===row.officialTenureId);
@@ -268,7 +281,7 @@ function restore(saved, roleMap, slotMap) {
       row.officialRankId===CLERK_NEXT_RANK&&(!promoted||promoted.decidedAt.day>row.day||promoted.decidedAt.day===row.day&&arrival!==null&&arrival<promoted.decidedAt.hour))throw Error('invalid-career-state');
     if(row===review){const evidence=officialCareer.service.find(r=>r.id===review.id);if(!evidence||evidence.appointmentId!==row.officialTenureId||evidence.rankId!==row.officialRankId||['positive','score','wage','reasonCode'].some(key=>evidence[key]!==row[key]))throw Error('invalid-career-state');}
   }
-  return {version: 6, officialCareer, skillXP: saved.version>=5?{...saved.skillXP}:Object.fromEntries(SKILLS.map(skill=>[skill,0])), revision: saved.revision, applications: restoreApplications(saved.applications, roleMap, slotMap), skills: {...saved.skills},
+  return {version: 7, officialCareer, skillXP: saved.version>=5?{...saved.skillXP}:Object.fromEntries(SKILLS.map(skill=>[skill,0])), revision: saved.revision, applications: restoreApplications(saved.applications, roleMap, slotMap), skills: {...saved.skills},
     tenure: saved.tenure === null ? null : {roleId: saved.tenure.roleId, slotId: saved.tenure.slotId,
       sinceDay: saved.tenure.sinceDay, sinceHour: saved.tenure.sinceHour,...(saved.tenure.applicationId!==undefined?{applicationId:saved.tenure.applicationId}:{})},
     lastDuty: duty === null ? null : {roleId: duty.roleId, slotId: duty.slotId, day: duty.day, stage: duty.stage,
@@ -380,6 +393,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if (!Number.isFinite(ageYears) || ageYears < role.minimumAgeYears) reasons.push('adult-required');
     if (Number.isFinite(ageYears) && role.maximumAgeYears!==undefined && ageYears>role.maximumAgeYears) reasons.push('age-range-required');
     for (const [skill, minimum] of Object.entries(role.skillRequirements)) if (current.skills[skill] < minimum) reasons.push(`${skill}-required`);
+    if(roleId===CLINIC_PHYSICIAN_ROLE.id&&current.lowerWork[PHARMACY_ASSISTANT_ROLE.workSource]===0)reasons.push('clinic-experience-required');
     const slot = [...slotMap.values()].find(candidate => candidate.roleId === roleId && availableSlot(candidate,role));
     if (!slot) reasons.push('no-vacancy');
     return reasons.length ? {ok: false, code: 'ineligible', reasons} : {ok: true, slotId: slot.id};
@@ -565,8 +579,8 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if (ticket && activeStudies.get(ticket.source) === ticket.id) activeStudies.delete(ticket.source);
   }
   function grantSkill(next, skill, clock, fullWork=false) {
-    const daily = current.daily.day === clock.day ? {...current.daily} : {day: clock.day, ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0, martial: 0};
-    const limited = daily[skill] >= 4 ? 'daily-skill-limit' : (['gardening','art','cooking'].includes(skill)?current.skills[skill]>=100:current.skills.ritual + current.skills.writing >= 100) ? 'skill-limit' : null;
+    const daily = current.daily.day === clock.day ? {...current.daily} : {day: clock.day, ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0, martial: 0, care: 0};
+    const limited = daily[skill] >= 4 ? 'daily-skill-limit' : (['gardening','art','cooking','care'].includes(skill)?current.skills[skill]>=100:current.skills.ritual + current.skills.writing >= 100) ? 'skill-limit' : null;
     const gained = limited ? 0 : 1;
     // A complete work contract retains its published one-level reward. A short
     // lesson earns 10 XP; it never increments a level directly.
@@ -601,6 +615,21 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const clock = now(); if (!clock) return failure('invalid-clock');
     return grantSkill({...current, lowerWork: {...current.lowerWork, [source]: serial}}, WORK[source], clock, true);
   }
+  // Trusted clinic callback after the original patient receives the same-number
+  // card/packet. Wage slips alone and aggregate old task counts are not evidence.
+  // The global order watermark is durable even when short clinic history rotates.
+  function recordClinicAssistantService(receipt) {
+    const blocked=allowed();if(blocked)return blocked;
+    if(!object(receipt)||!integer(receipt.number)||receipt.number<1||
+      !validWorkReceipt(PHARMACY_ASSISTANT_ROLE.workSource,receipt.receiptId)||
+      receipt.orderId!==`cn-clinic-order-${receipt.number}`||receipt.cardId!==`cn-clinic-card-${receipt.number}`||
+      receipt.packetId!==`cn-clinic-packet-${receipt.number}`||
+      !['cn-tavern-diner-west','cn-tavern-diner-east'].includes(receipt.recipientId)||
+      receipt.review?.positive!==true||receipt.review.evaluatorId!==receipt.recipientId)return failure('invalid-work-receipt');
+    if(receipt.number<=current.lowerWork[PHARMACY_ASSISTANT_ROLE.workSource])return {ok:true,unchanged:true,replayed:true,xpGained:0};
+    const clock=now();if(!clock)return failure('invalid-clock');
+    return grantSkill({...current,lowerWork:{...current.lowerWork,[PHARMACY_ASSISTANT_ROLE.workSource]:receipt.number}},'care',clock);
+  }
   // The handbook, world intents and final mutation share one start decision.
   // Reads do not observe a day, save state, advance lastClock or change errors.
   function beginDutyAvailability(roleId=current.tenure?.roleId,{receiptId}={}){
@@ -631,7 +660,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const rollover = observeDay(); if (!rollover.ok) return rollover;
     const clock = now(); if (!clock) return failure('invalid-clock');
     const duty = current.lastDuty, role = roleMap.get(current.tenure.roleId);
-    shiftKind??=[TAVERN_HOST_ROLE.id,TAVERN_CHEF_ROLE.id,PHARMACY_ASSISTANT_ROLE.id,TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id,PALACE_GUARD_ROLE.id].includes(role.id)?'continuous':undefined;
+    shiftKind??=[TAVERN_HOST_ROLE.id,TAVERN_CHEF_ROLE.id,PHARMACY_ASSISTANT_ROLE.id,CLINIC_PHYSICIAN_ROLE.id,TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id,PALACE_GUARD_ROLE.id].includes(role.id)?'continuous':undefined;
     if(shiftKind!==undefined&&(shiftKind!=='continuous'||!continuousRole(role)))return failure('invalid-shift-kind');
     if (role.workSource && !validWorkReceipt(role.workSource,receiptId)) return failure('invalid-work-receipt');
     const availability=beginDutyAvailability(role.id,{receiptId});
@@ -767,5 +796,5 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&availableSlot(slot,role)&&slot.id!==current.tenure?.slotId).length})),
     eligibility, applicationAvailability, beginDutyAvailability, applicationResult, applicationHistory,
     promotionSummary, promotionAvailability, applyPromotion, reviewPromotion, cancelPromotion,
-    laborEvent, customerReview, apply, reviewApplication, cancelApplication, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
+    laborEvent, customerReview, apply, reviewApplication, cancelApplication, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, recordClinicAssistantService, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
 }
