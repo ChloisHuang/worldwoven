@@ -79,11 +79,19 @@ export function restoreApplications(value,roleMap,slotMap){
     !validTime(r.reviewedAt)||!after(r.reviewedAt,r)||r.decidedAt&&!after(r.decidedAt,r.reviewedAt)||
     (approved||isPending?i.roll>=i.chance:r.code==='interview-rejected'&&i.roll<i.chance))throw Error('invalid-career-state');
   }else if(approved||r.code==='interview-rejected'||isPending&&r.stage!=='submitted'||r.reviewedAt!==null)throw Error('invalid-career-state');
-  if(approved? !object(r.tenure)||r.tenure.roleId!==roleId||slotMap.get(r.tenure.slotId)?.roleId!==roleId||r.tenure.sinceDay!==r.decidedAt.day||r.tenure.sinceHour!==r.decidedAt.hour:r.tenure!==null)throw Error('invalid-career-state');
+  if(approved? !object(r.tenure)||r.tenure.roleId!==roleId||slotMap.get(r.tenure.slotId)?.roleId!==roleId||r.tenure.sinceDay!==r.decidedAt.day||r.tenure.sinceHour!==r.decidedAt.hour||r.tenure.applicationId!==undefined&&r.tenure.applicationId!==r.id:r.tenure!==null)throw Error('invalid-career-state');
   if(r.appointment!==null){
    if(roleId!=='cn-court-clerk'||!object(r.appointment)||r.appointment.id!==`appointment:${r.id}`||typeof r.appointment.text!=='string'||r.appointment.text.length<1||r.appointment.text.length>300||
     !r.interview||r.interview.roll>=r.interview.chance)throw Error('invalid-career-state');
   }else if(isPending&&r.stage!=='submitted'||approved&&roleId==='cn-court-clerk')throw Error('invalid-career-state');
+ }
+ if(value.history!==undefined){
+  if(!Array.isArray(value.history))throw Error('invalid-career-state');const seen=new Set();
+  for(const r of value.history){
+   if(!r?.ok||r.code!=='approved')throw Error('invalid-career-state');
+   const key=r.id||`${r.roleId}:${r.tenure?.sinceDay}:${r.tenure?.sinceHour}`;if(seen.has(key))throw Error('invalid-career-state');seen.add(key);
+   restoreApplications({lastRoleId:r.roleId,byRole:{[r.roleId]:r}},roleMap,slotMap);
+  }
  }
  return JSON.parse(JSON.stringify(value));
 }

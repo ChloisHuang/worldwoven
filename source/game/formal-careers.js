@@ -42,6 +42,7 @@ const copy = value => JSON.parse(JSON.stringify(value));
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const integer = value => Number.isSafeInteger(value) && value >= 0;
 const dayOrNull = value => value === null || integer(value);
+const validTenureApplication=tenure=>{if(tenure.applicationId===undefined)return true;const day=Number(String(tenure.applicationId).split(':').at(-1));return integer(day)&&day<=tenure.sinceDay&&tenure.applicationId===applicationId(tenure.roleId,day);};
 const identifier = value => typeof value === 'string' && /^[a-z][a-z0-9-]{0,63}$/.test(value);
 const own = (value, key) => Object.hasOwn(value, key);
 const excused = duty => duty?.stage === 'missed' && duty.reason === 'court-postponed';
@@ -172,7 +173,7 @@ function restore(saved, roleMap, slotMap) {
   }
   if (saved.tenure !== null && (!object(saved.tenure) || !validSlot(saved.tenure.roleId, saved.tenure.slotId) ||
     !integer(saved.tenure.sinceDay) || !Number.isFinite(saved.tenure.sinceHour) ||
-    saved.tenure.sinceHour < 0 || saved.tenure.sinceHour >= 24)) throw Error('invalid-career-state');
+    saved.tenure.sinceHour < 0 || saved.tenure.sinceHour >= 24 || !validTenureApplication(saved.tenure))) throw Error('invalid-career-state');
   const duty = saved.lastDuty;
   if (duty !== null && (!object(duty) || !validSlot(duty.roleId, duty.slotId) || !integer(duty.day) ||
     !STAGES.has(duty.stage) || typeof duty.started !== 'boolean' || !validShift(duty,roleMap.get(duty.roleId)) || !validCustomerReviews(duty,roleMap.get(duty.roleId)) ||
@@ -208,7 +209,7 @@ function restore(saved, roleMap, slotMap) {
   if (duty && ['ready', 'paid'].includes(duty.stage) && (!review || review.day !== duty.day || !review.positive)) throw Error('invalid-career-state');
   return {version: 5, skillXP: saved.version===5?{...saved.skillXP}:Object.fromEntries(SKILLS.map(skill=>[skill,0])), revision: saved.revision, applications: restoreApplications(saved.applications, roleMap, slotMap), skills: {...saved.skills},
     tenure: saved.tenure === null ? null : {roleId: saved.tenure.roleId, slotId: saved.tenure.slotId,
-      sinceDay: saved.tenure.sinceDay, sinceHour: saved.tenure.sinceHour},
+      sinceDay: saved.tenure.sinceDay, sinceHour: saved.tenure.sinceHour,...(saved.tenure.applicationId!==undefined?{applicationId:saved.tenure.applicationId}:{})},
     lastDuty: duty === null ? null : {roleId: duty.roleId, slotId: duty.slotId, day: duty.day, stage: duty.stage,
       started: duty.started, reason: duty.reason, arrivalHour: duty.arrivalHour, wage: duty.wage,...(roleMap.get(duty.roleId).workSource?{workReceiptId:duty.workReceiptId}: {}),...(tavernRole(roleMap.get(duty.roleId))?{customerReviews:copy(duty.customerReviews)}:{}),...(duty.shiftKind?{shiftKind:duty.shiftKind,startedSeconds:duty.startedSeconds,coveredSeconds:duty.coveredSeconds,completedTasks:duty.completedTasks,endedHour:duty.endedHour,endedSeconds:duty.endedSeconds}:{})},
     lastPaidDay: saved.lastPaidDay, daily: {...saved.daily},
@@ -318,10 +319,16 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if (!slot) reasons.push('no-vacancy');
     return reasons.length ? {ok: false, code: 'ineligible', reasons} : {ok: true, slotId: slot.id};
   }
+  function applicationView(value){
+    if(!value)return null;const receipt=copy(value);
+    const active=receipt.ok&&receipt.tenure&&current.tenure&&['roleId','slotId','sinceDay','sinceHour'].every(key=>current.tenure[key]===receipt.tenure[key])&&(!current.tenure.applicationId||current.tenure.applicationId===(receipt.id||receipt.tenure.applicationId));
+    return {...receipt,employmentStatus:receipt.ok?(active?'active':'ended'):null};
+  }
   function applicationResult(roleId) {
     const id=roleId??lastApplication?.roleId??current.applications.lastRoleId;
-    return copy(lastApplication?.roleId===id?lastApplication:current.applications.byRole[id]?{...current.applications.byRole[id],saved:true}:null);
+    return applicationView(lastApplication?.roleId===id?lastApplication:current.applications.byRole[id]?{...current.applications.byRole[id],saved:true}:null);
   }
+  const applicationHistory=roleId=>(current.applications.history||[]).filter(r=>!roleId||r.roleId===roleId).map(r=>applicationView({...r,saved:true}));
   function applicationAvailability(roleId = COURT_CLERK_ROLE.id, applicant = {}) {
     const clock=readClock(),previous=current.applications.byRole[roleId];
     if(previous?.status==='pending')return {ok:false,code:'application-pending',reasons:['application-pending'],applicationId:previous.id,roleId};
@@ -331,7 +338,9 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
   const checkedApplicant=(role,applicant)=>({ageYears:Number.isFinite(applicant.ageYears)&&applicant.ageYears>=0?applicant.ageYears:null,
     skills:Object.fromEntries(Object.keys(role.skillRequirements).map(key=>[key,current.skills[key]]))});
   function saveApplication(receipt,extra={}){
-    const result=persist({...current,...extra,applications:{lastRoleId:receipt.roleId,byRole:{...current.applications.byRole,[receipt.roleId]:receipt}}});
+    const previous=current.applications.byRole[receipt.roleId],history=current.applications.history||[];
+    const archived=previous?.ok&&previous.id!==receipt.id?[...history,copy(previous)]:history;
+    const result=persist({...current,...extra,applications:{...current.applications,lastRoleId:receipt.roleId,byRole:{...current.applications.byRole,[receipt.roleId]:receipt},...(archived.length?{history:archived}:{})}});
     if(result.ok)lastApplication=null;return result;
   }
   function apply(roleId = COURT_CLERK_ROLE.id, applicant = {}) {
@@ -376,7 +385,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
       return saved.ok?{ok:true,code:'document-ready',applicationId:receipt.id}:saved;
     }
     const code=approved?'approved':eligible.ok?'interview-rejected':eligible.code,reasons=approved?[]:eligible.ok?['interview-rejected']:eligible.reasons;
-    const tenure=approved?{roleId,slotId:eligible.slotId,sinceDay:clock.day,sinceHour:clock.hour}:null;
+    const tenure=approved?{roleId,slotId:eligible.slotId,sinceDay:clock.day,sinceHour:clock.hour,applicationId:receipt.id}:null;
     const saved=saveApplication({...receipt,status:approved?'approved':'rejected',stage:'decided',ok:approved,code,reasons,checked:checkedApplicant(role,{ageYears}),interview,reviewedAt,appointment,decidedAt:timestamp,tenure},tenure?{tenure}:{});
     if(!saved.ok)return saved;lastError=approved?null:code;
     return {ok:approved,code,reasons,...(tenure?{tenure:copy(tenure)}:{})};
@@ -624,6 +633,6 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     currentRole:()=>copy(roleMap.get(current.tenure?.roleId)||null),
     slotHolder:roleId=>{if(loadError)return null;const slot=[...slotMap.values()].find(s=>s.roleId===roleId);return slot?current.tenure?.slotId===slot.id?'player':slot.holderId:null;},
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&availableSlot(slot,role)&&slot.id!==current.tenure?.slotId).length})),
-    eligibility, applicationAvailability, beginDutyAvailability, applicationResult,
+    eligibility, applicationAvailability, beginDutyAvailability, applicationResult, applicationHistory,
     laborEvent, customerReview, apply, reviewApplication, cancelApplication, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
 }

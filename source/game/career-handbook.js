@@ -101,18 +101,18 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
         const pass=value!==null&&value>=need,row=make('div',null,'career-requirement');row.append(make('span',name),make('span',`${value===null?'待核对':value}${unit} / ${need}${unit}`),make('strong',pass?'✓':'未达',pass?'career-positive':'career-negative'));box.append(row);
       }root.append(box);
     };
-    const receiptTitle=r=>r.saved===false?'申请未保存':r.status==='pending'?({submitted:'申请已提交 · 待面谈','document-ready':'审核已完成 · 待领文','document-held':'文书已领取 · 待宣读'})[r.stage]:r.status==='cancelled'?'申请已撤回':r.ok?'录用通过':'申请未通过';
+    const receiptTitle=r=>r.saved===false?'申请未保存':r.status==='pending'?({submitted:'申请已提交 · 待面谈','document-ready':'审核已完成 · 待领文','document-held':'文书已领取 · 待宣读'})[r.stage]:r.status==='cancelled'?'申请已撤回':r.ok?r.employmentStatus==='active'?'录用通过':'历史录用 · 已离职':'申请未通过';
     const showReceipt=(root,r,role)=>{
-      const box=make('section',null,'career-application-result '+(r.ok?'career-positive':r.status==='pending'?'career-pending':'career-negative'));box.setAttribute('role','status');box.append(make('strong',receiptTitle(r)));
+      const box=make('section',null,'career-application-result '+(r.ok?r.employmentStatus==='active'?'career-positive':'career-history':r.status==='pending'?'career-pending':'career-negative'));box.setAttribute('role','status');box.append(make('strong',receiptTitle(r)));
       if(r.status==='pending'){
         if(r.stage==='submitted')box.append(make('p',isClerk(role)?'沈叙：请当面呈上履历。听记朝议、礼仪与文书，均须核验。':role.id===GARDEN?'埃米尔：你愿意亲手浇护两畦玫瑰、归还原壶，再找我验收吗？':role.id==='cn-tavern-chef'?'许安：后厨需要按客单备料、烹制并核对出菜。你愿意按这份职责当班吗？':'许安：送餐要看清客人和餐点，脏桌、退房客房也要及时清理。你愿意照此当班吗？'));
         else box.append(make('p',r.appointment?.text||'请继续办理任命文书'));
-      }else if(r.ok){const hour=r.tenure.sinceHour,minutes=Math.floor(hour*60);box.append(make('p',`第${r.tenure.sinceDay+1}日 ${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}受职`));}
+      }else if(r.ok){const hour=r.tenure.sinceHour,minutes=Math.floor(hour*60);box.append(make('p',`第${r.tenure.sinceDay+1}日 ${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}${r.employmentStatus==='active'?'受职':'的录用记录'}`));}
       else box.append(make('p',r.saved===false?'本次结果未保存，也未占用今日申请次数。请重试。':`${(r.reasons||[r.code]).map(code=>code==='withdrawn'?'已撤回，未建立正式任职':resultReason(code)).join('；')} · ${c.day===r.day?`今日次数已用，第${r.day+2}日可再申请`:'今日可重新申请'}`));
       root.append(box);
     };
     const cardFor=item=>{
-      const own=s.tenure?.roleId===item.id,check=applicationCheck(item),receipt=careers.applicationResult?.(item.id),pending=receipt?.status==='pending',isLocal=!showWorkplace,p=place(item);
+      const own=s.tenure?.roleId===item.id,check=applicationCheck(item),receipt=careers.applicationResult?.(item.id),past=careers.applicationHistory?.(item.id)||[],pending=receipt?.status==='pending',isLocal=!showWorkplace,p=place(item);
       const card=make('section',null,'career-role-card');if(pending&&isLocal)card.setAttribute('data-pending','true');const head=make('div',null,'career-card-heading'),mark=make('span',null,'career-role-mark');mark.innerHTML=careerRoleMark(item.id);mark.setAttribute('aria-hidden','true');
       const title=make('div');title.append(make('h3',item.name),make('p',`${p.workplace} · ${employer(item)}`,'career-role-place'));head.append(mark,title);card.append(head);
       const facts=make('div',null,'career-card-facts');facts.append(make('strong',`${item.wage}${unit(item)}`, 'career-card-wage'),make('span','/ 日'),make('span',own?'任职中':`空缺 ${item.vacancy??1}`,own?'career-vacancy held':'career-vacancy'));card.append(facts);
@@ -124,8 +124,8 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
         const status=!check.ok?(check.reasons||[check.code]).map(reason).join('；'):'条件已满足 · 可申请';
         card.append(make('p',`${receipt?.day===c.day&&receipt.status==='rejected'?'申请未通过 · ':''}${status}`,'career-card-status '+(check.ok?'career-positive':'career-negative')));
       }
-      const details=make('details',null,'career-card-details');details.append(make('summary','岗位详情'));details.append(make('p',dutySummary(item)));if(item.vacancyKind==='exclusive')details.append(make('p',own?`本岗位由你任职，${item.incumbentName}已卸任。`:`本岗位仅一席；录用后${item.incumbentName}卸任。`));showRequirements(details,item);
-      if(receipt&&!pending)showReceipt(details,receipt,item);
+      const details=make('details',null,'career-card-details');details.append(make('summary',(receipt?.ok&&receipt.employmentStatus==='ended'||past.length)?'岗位详情与录用历史':'岗位详情'));details.append(make('p',dutySummary(item)));if(item.vacancyKind==='exclusive')details.append(make('p',own?`本岗位由你任职，${item.incumbentName}已卸任。`:`本岗位仅一席；录用后${item.incumbentName}卸任。`));showRequirements(details,item);
+      if(receipt&&!pending)showReceipt(details,receipt,item);for(const old of past.slice().reverse())showReceipt(details,old,item);
       details.append(make('p',`完成职责后，日薪 ${wageRange(item)} 存银行。每个岗位每天提交一次。`));
       if(pending){const cancel=buttonFor('撤回这份申请',()=>{careers.cancelApplication(item.id,receipt.id);render(true);});cancel.className='career-withdraw';details.append(cancel);}
       let primary;
@@ -182,7 +182,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       metric('↗ 晋升','尚未开放',`${skillLine(held)} · 成长 ${s.promotionProgress??0}`);
       panel.body.append(rows);
       if(!current&&availability.code==='already-paid-today')panel.body.append(make('p','今日已在另一班次结薪；此岗位可于下一模拟日开始。','career-status-note'));
-      if(appliedRole){const history=make('details',null,'career-card-details career-employment-history');history.append(make('summary','录用记录'));showReceipt(history,result,appliedRole);panel.body.append(history);}
+      if(appliedRole){const history=make('details',null,'career-card-details career-employment-history');history.append(make('summary','录用记录'));showReceipt(history,result,appliedRole);for(const old of (careers.applicationHistory?.(held.id)||[]).slice().reverse())showReceipt(history,old,held);panel.body.append(history);}
       if(!service)panel.body.append(make('p',`工作地点：${COUNTRIES[place(held).country]||place(held).country} · ${place(held).workplace}`,'career-status-note'));
       if(registrationRoleId===held.id&&registrationScope==='role'){
         const resign=action(held,isClerk(held)?'resign':'formal-resign');if(resign)panel.body.append(resign);
