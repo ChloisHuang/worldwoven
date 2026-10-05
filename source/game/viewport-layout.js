@@ -6,23 +6,21 @@ export function displayedViewport(canvas){
  return {width:Math.max(1,Math.round(width)),height:Math.max(1,Math.round(height)),left,top};
 }
 
-const HUD='.topbar a,.topbar button,.location-card,.lot-tools,.daybook,.character-card,.interaction,.joystick,.touch-action,.camera-tools,.career-wallet-slot,.jp-service-ticket,.jp-performance-ticket,#toast,#arrival,dialog[open]';
+const HUD='.topbar a,.topbar button,.topbar .logo,.location-card,.lot-tools,.daybook,.character-card,.interaction,.joystick,.touch-action,.camera-tools,.career-wallet-slot,.jp-service-ticket,.jp-performance-ticket,#toast,#arrival,dialog[open]';
 export function createHudLayout(root=document){
  let dirty=true,rects=[];
  const dimensions=new WeakMap(),observed=new WeakSet(),invalidate=()=>{dirty=true;};
- const resizeObserver=new ResizeObserver(invalidate);
+ const resizeObserver=typeof ResizeObserver==='function'?new ResizeObserver(invalidate):null;
  // New service / career dialogs join lazily; movement of world labels does not
  // invalidate the HUD. Cache reads until layout or actual HUD content changes.
- const mutationObserver=new MutationObserver(records=>{
-  if(records.some(r=>!r.target.closest?.('#labels,#furniture-labels')))invalidate();
- });
- mutationObserver.observe(root.body,{childList:true,subtree:true});
+ const mutationObserver=typeof MutationObserver==='function'?new MutationObserver(invalidate):null;
+ mutationObserver?.observe(root.body,{childList:true});
  return {
   invalidate,
   rects(){
    if(dirty){
     const elements=[...root.querySelectorAll(HUD)];
-    for(const el of elements)if(!observed.has(el)){observed.add(el);resizeObserver.observe(el);}
+    for(const el of elements)if(!observed.has(el)){observed.add(el);resizeObserver?.observe(el);}
     rects=elements.filter(el=>!el.hidden&&el.getClientRects().length).map(el=>el.getBoundingClientRect());
     dirty=false;
    }

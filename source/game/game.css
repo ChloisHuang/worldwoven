@@ -116,3 +116,12 @@ body.in-lot:has(.career-wallet-slot:not([hidden])) .build-badge{display:none}
  .interaction button{min-width:44px;min-height:44px;padding:7px 9px}
  #toast{top:calc(var(--hud-top) + 50px);max-width:calc(100vw - 430px);padding:8px 12px;font-size:11px}
 }
+/* Browser bars can leave only ~300px of landscape height. An opened journal
+   uses the clear middle column; walking and camera controls stay reachable. */
+@media(pointer:coarse) and (orientation:landscape) and (max-height:360px){
+ #arrival{display:none}
+ body.in-lot .jp-service-ticket,body.in-lot .jp-performance-ticket{left:calc(var(--hud-left) + 200px);max-width:min(180px,calc(100vw - var(--hud-left) - var(--hud-right) - 416px));top:calc(var(--hud-top) + 50px)}
+ body.in-lot .jp-performance-ticket{top:calc(var(--hud-top) + 100px)}
+ .daybook:has(#daybook-toggle[aria-expanded=true]){left:50%;right:auto;transform:translateX(-50%);top:calc(var(--hud-top) + 50px);width:min(290px,calc(100vw - var(--hud-left) - var(--hud-right) - 400px));max-height:calc(100dvh - var(--hud-top) - var(--hud-bottom) - 50px);z-index:18}
+ body.in-lot:has(#daybook-toggle[aria-expanded=true]) .interaction,body.in-lot:has(#daybook-toggle[aria-expanded=true]) .jp-service-ticket,body.in-lot:has(#daybook-toggle[aria-expanded=true]) .jp-performance-ticket{display:none}
+}
