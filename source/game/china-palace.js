@@ -40,7 +40,7 @@ export function buildChinaPalace(G,H){
   'cn-study-front':['hinge',1,.32],'cn-bedroom-front':['hinge',-1,.32],'cn-bedroom-west':['hinge',1,.32],
   'cn-kitchen-rear':['hinge',1,.32],'cn-bath-front':['hinge',-1,.32],'cn-bath-west':['hinge',1,.32],'cn-bath-east':['hinge',-1,.32],
   'cn-archive-front':['hinge',1,.32],'cn-archive-rear':['hinge',-1,.32],'cn-archive-west':['pocket',0,.50],'cn-archive-east':['hinge',1,.32],
-  'cn-consort-heng-door':['pocket',0,.50],'cn-consort-ling-door':['pocket',0,.50],
+  'cn-consort-heng-door':['pocket',0,.50],'cn-consort-ling-door':['pocket',0,.50],'cn-consort-reserve-1-door':['pocket',0,.50],
   'cn-guest-front':['hinge',-1,.32],'cn-guest-east':['hinge',-1,.32]
  };
  function palaceWall(parent,nav,camera,options){
@@ -268,7 +268,7 @@ export function buildChinaPalace(G,H){
  markCulture('library');
  {const g=libraryFurniture;for(const x of [-8,-4,4,8])shelf(g,x,-32.8,3,3.2,.72);for(const [x,zz] of [[-1.6,-30.2],[archiveEastTableX,-28]]){table(g,x,zz,4.2,1.7,1);for(const dx of [-1.1,0,1.1])boundBook(g,x+dx,1.13,zz,.8,.6,0x7d9583);}G.rug(g,0,-27.5,4.5,5,0xa28f69,0xd2bf90);target('cn-archive-center','藏书殿中央',0,-28,'archive');target('cn-archive-west','西书案前',-1.6,-28.5,'archive');target('cn-archive-east','东书案前',archiveEastTableX,-26.3,'archive');target('cn-archive-rear','北门书廊',0,-32,'archive');}
  finishCulture('library');
- {const g=rooms.guest.g;const b=new THREE.Group();b.position.y=.2;g.add(b);G.bed(b,-23.5,-7.5,0x728f89,2.8,3.3);G.collider(colliders,-23.5,-7.5,2.9,3.4);cameraColliders.push({minX:-24.95,maxX:-22.05,minY:.2,maxY:1.3,minZ:-9.2,maxZ:-5.8});table(g,-23.5,-3.7,2.7,1.4,.95);teaSet(g,-23.5,1.04,-3.7,0x9cbfb5);shelf(g,-25.5,-.1,2.1,2.5,.7,Math.PI/2);target('cn-guest-front','后宫客卧门内',-23.5,-10.6,'guest');target('cn-guest-bed','客榻东侧',-21.6,-7.5,'guest');target('cn-guest-tea','客居茶席',-23.5,-2.2,'guest');}
+ {const g=rooms.guest.g;const b=new THREE.Group();b.position.y=.2;g.add(b);G.bed(b,-23.5,-7.5,0x728f89,2.8,3.3);G.collider(colliders,-23.5,-7.5,2.9,3.4);cameraColliders.push({minX:-24.95,maxX:-22.05,minY:.2,maxY:1.3,minZ:-9.2,maxZ:-5.8});table(g,-23.5,-3.7,2.7,1.4,.95);teaSet(g,-23.5,1.04,-3.7,0x9cbfb5);shelf(g,-25.5,-10.55,2.1,2.5,.7,Math.PI/2);target('cn-guest-front','后宫客卧门内',-23.5,-10.6,'guest');target('cn-guest-bed','客榻东侧',-21.6,-7.5,'guest');target('cn-guest-tea','客居茶席',-23.5,-2.2,'guest');}
  // Rear lotus court. Broad cross lanes continue to both side gates, and a
  // four-metre level bridge crosses the water without hidden sine-wave footing.
  floor(exterior,0,-18,30,7.5,.13,0xc9c3ad);for(const side of [-1,1]){box(exterior,side*5.1,.18,-18,6.1,.16,4.5,0x7d9685,true);G.box(exterior,side*5.1,.273,-18,5.8,.025,4.2,0x75a69d);for(const z of [-19.2,-16.9])for(const x of [side*3.6,side*6.5]){G.cyl(exterior,x,.3,z,.37,.37,.025,0x78916b,12);G.sphere(exterior,x,.39,z,.19,0xdea6a4,1,.5,1);}}
@@ -304,7 +304,7 @@ export function buildChinaPalace(G,H){
  const hanging=(g,id,x,y,z,w,h,motif='lotus')=>ornament(g,id,'framed-silk-panel','existing solid wall',q=>{G.box(q,x,y,z,w,h,.045,ink);frame(q,x,y,z+.039,w+.07,h+.08);G.box(q,x,y,z+.05,w-.13,h-.13,.018,C.jade);if(motif==='lotus'){lotus(q,x,y-h*.25,z+.083,Math.min(w*.75,h*.70));for(const dx of [-w*.28,w*.28])cloud(q,x+dx,y+h*.30,z+.091,w*.27);}else{for(const k of [-1,0,1]){stroke(q,[[x+k*w*.2,y-h*.35,z+.086],[x+k*w*.12,y+h*.34,z+.086]],.015,C.gold);for(const j of [-1,0,1])petal(q,x+k*w*.14,y+j*h*.19,z+.09,w*.13,h*.20,ivory,(k+j)%2*.9);}}});
  hanging(rooms.tea.g,'tea-floral-panel',-27.7,2.45,9.19,1.2,1.75);hanging(rooms.tea.g,'tea-floral-panel-pair',-18.3,2.45,9.19,1.2,1.75);
  const studyPanel=hanging(rooms.study.g,'study-bamboo-panel',0,2.25,0,1.7,1.62,'bamboo');studyPanel.position.set(25.81,0,11.85);studyPanel.rotation.y=-Math.PI/2; // Solid east-wall bay, clear of front/side doors and both windows.
- hanging(rooms.bedroom.g,'bedroom-silk-panel',-24.05,2.50,-11.81,1.3,1.9);const guestPanel=hanging(rooms.guest.g,'guest-silk-panel',0,2.45,0,1.9,1.8);guestPanel.position.set(-23.5,0,1.79);guestPanel.rotation.y=Math.PI;
+ hanging(rooms.bedroom.g,'bedroom-silk-panel',-24.05,2.50,-11.81,1.3,1.9);const guestPanel=hanging(rooms.guest.g,'guest-silk-panel',0,2.45,0,1.9,1.8);guestPanel.position.set(-23.5,0,-1.61);guestPanel.rotation.y=Math.PI;
  for(const x of [-8,-4,4,8])hanging(libraryFurniture,'archive-painted-panel-'+x,x,3.22,-33.81,2.6,.46,'bamboo');
  ornament(rooms.tea.g,'tea-brocade-tray','tabletop-vignette','existing tea table outside work approach',q=>{G.box(q,-21,1.11,11.05,3.2,.018,.32,C.red);for(const z of [10.91,11.19])G.box(q,-21,1.124,z,3.18,.015,.022,C.gold);for(const x of [-22,-21,-20]){G.cyl(q,x,1.14,11.06,.12,.12,.025,C.gold,12);}});
  ornament(rooms.study.g,'scholar-scroll-vignette','tabletop-vignette','existing study table behind supported working papers',q=>{for(const x of [20.2,21.1]){const m=G.cyl(q,x,1.13,11.03,.085,.085,.70,0xe8d5a7,10);m.rotation.z=Math.PI/2;for(const dx of [-.36,.36]){const cap=G.cyl(q,x+dx,1.13,11.03,.103,.103,.06,C.dark,10);cap.rotation.z=Math.PI/2;}}G.box(q,21.9,1.17,10.95,.90,.24,.50,C.red);frame(q,21.9,1.18,11.21,.77,.15);});
