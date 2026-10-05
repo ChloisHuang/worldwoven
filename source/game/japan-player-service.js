@@ -17,7 +17,7 @@ export function japanPlayerOrderProgress(snapshot,v) {
 // Player interaction adapter over the same board used by the NPC employees.
 // It never creates its own workers, delivery clock, pool locks or meal queue.
 // The main scene supplies its actual player/mount getters and renders activity.
-export function createJapanPlayerService({board,furniture,copperLedger,getPlayer,getMounted=()=>null,onWardrobeChange=()=>{},notify=()=>{}}) {
+export function createJapanPlayerService({board,furniture,copperLedger,getPlayer,getMounted=()=>null,onWardrobeChange=()=>{},notify=()=>{},continuity=null}) {
  const diningSeats=furniture.items.filter(i=>i.kind==='seat'&&i.center[1]===3.8&&i.center[2]===7.55);
  const counterSeats=furniture.items.filter(i=>i.kind==='seat'&&i.diningKind);
  let activity=null,soak=0,soakSeat=null,deskRequest=false,suspended=false,lastStage=null,lastWardrobe=null;
@@ -67,7 +67,7 @@ export function createJapanPlayerService({board,furniture,copperLedger,getPlayer
   // reception claim, eating pose or bath seat that no longer exists there.
   board.setPlayerPresent(v.id,false);board.setPlayerPresent(v.id,true);
  }
- recoverDining();restorePresence();
+ if(continuity?.version!==1){recoverDining();restorePresence();}
  const api={
   actor,wardrobePreset,blends:JAPAN_BATH_BLENDS,menu:JAPAN_DINING_MENU,
   orderDining(dishId) {
@@ -154,7 +154,10 @@ export function createJapanPlayerService({board,furniture,copperLedger,getPlayer
    syncWardrobe();
    return result(true,v.orderKind==='dining'?'本餐已取消；未开吃的预留已退回，开吃后的餐费不退':'本次服务已取消，员工任务和未送出的物品已释放');
   },
-  suspend() {
+  snapshot:()=>({version:1,visitId:visit()?.id||null,activity:copy(activity),soak,soakSeat,deskRequest,lastStage,lastWardrobe}),
+  restore(s){if(s?.version!==1||s.visitId!==(visit()?.id||null))return false;activity=copy(s.activity);soak=Math.max(0,s.soak||0);soakSeat=s.soakSeat||null;deskRequest=!!s.deskRequest;lastStage=s.lastStage||null;lastWardrobe=s.lastWardrobe||null;suspended=false;const v=visit();if(v&&deskRequest)furniture.facilities.request('japan-service-reception',v.id);if(v?.orderKind==='dining')furniture.facilities.request(v.restSeatId,v.id);return true;},
+  suspend({preserve=false}={}) {
+   if(preserve){suspended=true;return;}
    if(visit()?.orderKind==='dining')api.cancel('region-left');
    interruptActivity();const v=visit();if(v){board.checkpoint({[v.id]:getMounted()?.position||position()});releaseDesk(v);board.setPlayerPresent(v.id,false);}
    if(!getMounted())furniture.releaseActor?.('player');deskRequest=false;soak=0;soakSeat=null;suspended=true;syncWardrobe();

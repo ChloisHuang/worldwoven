@@ -49,3 +49,8 @@ function fixture({wallet,saved,saveWallet=()=>{}}={}){
  let reject=false;const f=fixture({saveWallet:()=>!reject});f.request();f.confirm();reject=true;assert.equal(f.service.cancel(),false);assert.equal(f.service.view().order.status,'refund-pending');assert.equal(f.copperLedger.state().cash,72);reject=false;f.service.recoverPayments();assert(!f.service.active());assert.equal(f.copperLedger.state().cash,80);f.done();
 }
 console.log('PASS: accepted tea + drink, personal refusal, cancel/partial/reload/refund retry, occupied capacity, adult execution and participant-only observations');
+
+{
+ const f=fixture();f.request('dance','tea');f.confirm();f.sit();f.until(()=>f.service.view().order?.status==='performing');f.step(.7);const checkpoint=JSON.parse(JSON.stringify(f.service.snapshot())),positions=f.npcs.map(n=>n.root.position.toArray()),wallet=f.copperLedger.state(),paid=wallet.cash;f.service.dispose({suspend:true});
+ const g=fixture({wallet,saved:{...f.snapshot(),continuity:checkpoint}});g.sit();g.npcs.forEach((n,i)=>n.root.position.set(...positions[i]));assert(g.service.restore(checkpoint));assert.equal(g.copperLedger.state().cash,paid,'reload keeps reservation, never refunds/recharges');assert.equal(g.service.snapshot().phase,checkpoint.phase);assert.equal(g.service.view().order.id,checkpoint.order.id);g.until(()=>!g.service.active());assert.equal(g.service.state().history.filter(e=>e.outcome==='act-completed').length,1);assert.equal(g.service.state().history.filter(e=>e.outcome==='drink-completed').length,1);assert.equal(g.copperLedger.state().cash,paid);g.done();console.log('PASS interrupted paid performance resumes same order/timers and settles each part once');
+}

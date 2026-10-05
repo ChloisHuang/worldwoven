@@ -35,3 +35,22 @@ export function restoreWorldActor(actor,snapshot,{id=actor.station?.id,region,el
  if(mount)actor.serviceMount=mount;
  return {restored:true,relocated:!!result.relocated};
 }
+// Controller scripts may point to actors/furniture. Store only stable IDs for
+// those references and recreate them from this scene, never serialize meshes.
+export function captureWorldRuntime(value){
+ if(value===Infinity)return {$worldRef:'infinity'};
+ if(value==null||typeof value!=='object')return typeof value==='function'?null:value;
+ if(value.station?.id&&value.root)return {$worldRef:'actor',id:value.station.id};
+ if(value.id&&Array.isArray(value.anchor)&&Array.isArray(value.position))return {$worldRef:'furniture',id:value.id};
+ if(value.isObject3D||value.isMaterial||value.isBufferGeometry)return null;
+ if(Array.isArray(value))return value.map(captureWorldRuntime);
+ return Object.fromEntries(Object.entries(value).filter(([,v])=>typeof v!=='function').map(([k,v])=>[k,captureWorldRuntime(v)]));
+}
+export function restoreWorldRuntime(value,{npcs=[],furniture}={}){
+ if(value==null||typeof value!=='object')return value;
+ if(value.$worldRef==='infinity')return Infinity;
+ if(value.$worldRef==='actor')return npcs.find(n=>n.station.id===value.id)||null;
+ if(value.$worldRef==='furniture')return furniture?.items.flatMap(i=>[i,...(i.seats||[])]).find(i=>i.id===value.id)||null;
+ if(Array.isArray(value))return value.map(v=>restoreWorldRuntime(v,{npcs,furniture}));
+ return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,restoreWorldRuntime(v,{npcs,furniture})]));
+}

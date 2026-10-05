@@ -177,9 +177,11 @@ export function createFranceGardenerLabor({gardener,employment,careers,openRegis
   waitingForHost:!!meetingIntent,progress:elapsed/(activity==='water'?SECONDS:TRANSFER),wage:WAGE,seconds:SECONDS,
   target:copy(target()),loan:gardener.loanState(),loadError:loadError||copperLedger.loadError,lastError});
  const service={active,held,isActing:()=>!!activity||!!pending||!!meetingIntent,accept,claim,cancel,meetHost,stopActivity,update,intent,resolveIntent,executeIntent,view,state:view,
+  snapshot:()=>({version:1,jobId:current.job?.id||null,completedBeds:current.job?.completedBeds||0,activity,pending:copy(pending),meetingIntent:copy(meetingIntent),elapsed,origin:copy(origin),activityPoint:copy(activityPoint),nextPayAt}),
+  restore(s){if(s?.version!==1||s.jobId!==(current.job?.id||null)||s.completedBeds!==(current.job?.completedBeds||0))return false;activity=['take','water','return'].includes(s.activity)?s.activity:null;pending=copy(s.pending);meetingIntent=copy(s.meetingIntent);elapsed=Math.max(0,s.elapsed||0);origin=copy(s.origin);activityPoint=copy(s.activityPoint);nextPayAt=Math.max(0,s.nextPayAt||0);return true;},
   employment,formal,playerPose,toolPose,label:()=>meetingIntent?'等埃米尔收好工具':activity==='water'?`正在浇花 · ${Math.ceil(SECONDS-elapsed)} 秒`:activity==='take'?'拿起浇水壶':activity==='return'?'放回浇水壶':held()?'提着浇水壶':null,
   open:()=>ui?.open(),close:()=>ui?.close(),isOpen:()=>!!ui?.isOpen(),
-  dispose(){if(disposed)return;stopActivity();disposed=true;ui?.dispose();}};
+  dispose({suspend=false}={}){if(disposed)return;if(!suspend)stopActivity();disposed=true;ui?.dispose();}};
  if(doc?.createElement&&doc.body)ui=createUI({doc,service,getPlayer,canSee,onIntent,onOpen});
  ensureReservation();return service;
 }

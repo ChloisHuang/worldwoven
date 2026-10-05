@@ -23,7 +23,7 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
  const history=clone(saved.history)||[],responses=clone(saved.responses)||{},returns=new Set(),routes=new Map(),failures=[];
  let life;
  const persist=()=>{try{return saveState({serial,time,lastReply:clone(lastReply),history:clone(history.slice(-60)),responses:clone(responses),life:life?.snapshot()||saved.life||{}})!==false;}catch{return false;}};
- life=createLifeDecisions({worldSeed,actorIds:['player',...cast.map(n=>n.station.id)],saved:saved.life||{},onChange:()=>persist()});
+ life=createLifeDecisions({worldSeed,actorIds:['player',...cast.map(n=>n.station.id)],saved:saved.continuity?.life||saved.life||{},onChange:()=>persist()});
  const artist=()=>artists.find(n=>n.station.id===order?.artistId);
  const eligible=n=>knownAdult(getPlayer())&&knownAdult(server)&&knownAdult(n);
  const atReception=()=>!!getPlayer()&&!getMounted()&&near(getPlayer(),P.reception,1.15);
@@ -31,7 +31,7 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
  const opinion=n=>life.state(n.station.id)?.opinions?.player||0;
  const willingness=()=>performanceWillingness(artist(),order.activity,opinion(artist()));
  function recoverPayments(){if(order?.status==='refund-pending')finish('取消后重试退款');paymentError=copperLedger?.loadError||null;if(!copperLedger)return false;for(const h of copperLedger.reservations())if(h.id.startsWith('jp-performance-')&&h.status==='reserved'&&h.id!==order?.id+':act'&&h.id!==order?.id+':drink'){const r=copperLedger.refund(h.id);if(!r.ok)paymentError=r.code;}return !paymentError;}
- recoverPayments();
+ if(saved.continuity?.version!==1)recoverPayments();
  function occupied(){
   const lock=furniture.facilities.state().find(f=>f.id===TABLE);if(lock?.owner&&lock.owner!==order?.id||lock?.player)return true;
   return npcs.some(n=>n!==artist()&&n!==server&&(near(n,guestSeat.anchor,.75)||near(n,artistSeat.anchor,.75)||near(n,P.stage,1.15)))||getMounted()?.id===ARTIST;
@@ -132,7 +132,9 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
    props?.update(order,{server,artist:artist(),player:getPlayer()},t);
   },
   view(){return {order:clone(order),label:order?labels[order.status]:returns.size?'艺者与侍者正在返位':null,lastReply:clone(lastReply),lastResult:clone(lastResult),candidates:artists.filter(eligible).map(n=>({id:n.station.id,name:n.station.npcName,ageYears:n.station.ageYears,specialty:n.station.performance.specialty,preference:n.station.performance.preference,available:!order&&!returns.size&&!isActorBusy(n),activities:n.station.performance.activities.map(id=>ACT[id])})),drinks:DRINKS,cash:copperLedger?.state().cash||0,paymentError,returning:returns.size>0};},
+  snapshot:()=>({version:1,time,serial,order:clone(order),lastReply:clone(lastReply),lastResult:clone(lastResult),phase,elapsed,drinkPhase,returns:[...returns].map(n=>n.station.id),history:clone(history),life:life.snapshot()}),
+  restore(s){if(s?.version!==1||s.order&&(!artists.some(n=>n.station.id===s.order.artistId)||!labels[s.order.status]||!ACT[s.order.activity]))return false;time=Math.max(0,s.time||0);serial=Math.max(serial,s.serial||0);order=clone(s.order);lastReply=clone(s.lastReply);lastResult=clone(s.lastResult);phase=Math.max(0,s.phase||0);elapsed=Math.max(0,s.elapsed||0);drinkPhase=Math.max(0,s.drinkPhase||0);returns.clear();for(const id of s.returns||[]){const n=cast.find(n=>n.station.id===id);if(n)returns.add(n);}history.splice(0,history.length,...clone(s.history||[]));routes.clear();if(order&&order.status!=='invited'&&order.status!=='reply'){if(!furniture.facilities.request(TABLE,order.id)){order=null;return false;}if(['performing','drinking'].includes(order.status))furniture.facilities.occupy(TABLE,order.id);}if(order?.paid)for(const part of ['act','drink']){const hold=copperLedger.reservations().find(h=>h.id===order.id+':'+part);if(hold?.status==='settled')order[part+'Complete']=true;}props?.update(order,{server,artist:artist(),player:getPlayer()},time);return true;},
   state(){return {...api.view(),history:clone(history),failures:clone(failures),life:life.snapshot(),actors:cast.map(n=>({id:n.station.id,position:n.root.position.toArray(),mounted:n.serviceMount?.id||null})),props:props?.state()||null};},
-  dispose(){if(disposed)return;finish('离开地区');disposed=true;for(const n of cast){n.serviceMount=null;reset(n);}returns.clear();props?.dispose();life.dispose();persist();}
+  dispose({suspend=false}={}){if(disposed)return;if(!suspend)finish('离开地区');disposed=true;for(const n of cast){n.serviceMount=null;reset(n);}returns.clear();props?.dispose();life.dispose();if(!suspend)persist();}
  };return api;
 }

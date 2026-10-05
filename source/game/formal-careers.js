@@ -156,7 +156,7 @@ function restore(saved, roleMap, slotMap) {
  * Missing bank credit support locks settlement only; cash is never a fallback.
  * No passive simulation or wages. Failed paid-state cleanup keeps ready intact.
  */
-export function createFormalCareers({saved, saveState, creditWageToBank, getClock,
+export function createFormalCareers({saved, worldDuty=null, saveState, creditWageToBank, getClock,
   roles = FORMAL_CAREER_ROLES, slots = FORMAL_CAREER_SLOTS} = {}) {
   if (typeof saveState !== 'function' || typeof getClock !== 'function') {
     throw new TypeError('formal careers require synchronous saveState and getClock');
@@ -223,7 +223,8 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
   }
   // Reloads cannot resume a live ceremony. Persist the recovery and evaluation
   // together; if recovery cannot save, all mutations remain locked fail closed.
-  if (!loadError && ['arrived', 'attending'].includes(current.lastDuty?.stage)) {
+  const resumableDuty=worldDuty?.version===1&&worldDuty.activity==='court'&&worldDuty.duty&&['roleId','slotId','day'].every(key=>worldDuty.duty[key]===current.lastDuty?.[key])&&worldDuty.duty.day===getClock()?.day;
+  if (!loadError && !resumableDuty && ['arrived', 'attending'].includes(current.lastDuty?.stage)) {
     const recovered = missed(current, 'reloaded');
     const result = persist(recovered);
     if (!result.ok) { current = recovered; loadError = 'recovery-save-failed'; }

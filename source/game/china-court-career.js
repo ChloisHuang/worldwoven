@@ -109,7 +109,9 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
     playerAction:()=>activity==='archive'&&!pending?'calligraphy':null,
     playerStation:()=>activity==='archive'?{playerWorkTarget:P.archiveTarget}:null,
     label:()=>activity==='court'?(duty()?.stage==='attending'?'随班行礼 · 听记朝议':'第七班位持笏候朝 · 11:30'):activity==='archive'?`抄录归档 · ${Math.ceil(8-progress)}秒`:null,
+    snapshot:()=>({version:1,duty:copy(duty()),activity,progress,pending,lastNotice,nextSettlementAt}),
+    restore(s){if(s?.version!==1||s.duty&&['roleId','slotId','day'].some(k=>s.duty[k]!==duty()?.[k]))return false;activity=['court','archive'].includes(s.activity)?s.activity:null;progress=Math.max(0,Math.min(8,s.progress||0));pending=!!s.pending;lastNotice=s.lastNotice||null;nextSettlementAt=Math.max(0,s.nextSettlementAt||0);return true;},
     state:()=>({...careers.state(),activity,progress:progress/8,place:copy(P)}),
-    dispose(){if(disposed)return;stopActivity('离开地区');posture?.dispose();disposed=true;},
+    dispose({suspend=false}={}){if(disposed)return;if(!suspend)stopActivity('离开地区');posture?.dispose();disposed=true;},
   };
 }

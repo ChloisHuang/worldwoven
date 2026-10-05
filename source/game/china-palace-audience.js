@@ -1,3 +1,4 @@
+import {captureWorldRuntime,restoreWorldRuntime} from './world-continuity.js';
 import {createCourtReports} from './china-court-reports.js';
 import {attachCourtOfficialCostume} from './china-court-official-costume.js';
 import {createChinaOfficialLife} from './china-official-life.js';
@@ -48,6 +49,7 @@ export function chinaCourtStatusSummary(schedule,phase='waiting'){
 }
 
 export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveActor,poseContext,furniture,worldSeed=1,readEdict=()=>null,saved={},saveState=()=>{},notify=()=>{}}){
+ if(saved.continuity?.version===1)saved={...saved,...saved.continuity.schedule,life:saved.continuity.life,reports:saved.continuity.reports,preservePhysical:true};
  const officials=CHINA_COURT_OFFICIALS.map(r=>npcs.find(n=>n.station.id===r.id)),emperor=npcs.find(n=>n.station.id==='cn-emperor');
  if(!palace||!emperor||officials.some(n=>!n))return null;
  const owned=new Set(officials),schedule=createAudienceSchedule(saved),caps=officials.map(attachCourtOfficialCostume),tasks=new Map(),postures=officials.map(n=>n.root.userData.body?createCourtPosture(n):null),history=[],failures=[];
@@ -99,6 +101,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
  life=createChinaOfficialLife({officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,reports,worldSeed,saved:saved.life,saveState:()=>save(),record});
  save();
  return {
+  mountForActor:n=>life?.mountForActor(n)||null,
   owns:n=>owned.has(n),
   summary:()=>chinaCourtStatusSummary(schedule.snapshot(),phase),
   labelVisible(n,player){return !owned.has(n)||!FORMAL.has(phase)&&phase!=='holding'||n===speaker||!!player&&n.root.position.distanceTo(player)<1.8;},
@@ -152,7 +155,9 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
     if(!tasks.size&&!palace.dutyState(OWNER))setPhase(reports.hasPending()?'followup':'waiting');
    }else if(phase==='followup'&&!reports.hasPending())setPhase('waiting');
   },
+  snapshot:()=>({version:1,schedule:schedule.snapshot(),life:life?.snapshot(),reports:reports?.snapshot(),runtime:captureWorldRuntime({phase,time,phaseTime,speakerId:speaker?.station.id||null,utterance,reported,currentReport,nextBudgetAt,exception,disruption,departureReason,interruptedToday,interruptionNotified,postponementNotified,history,tasks:[...tasks].map(([n,s])=>[n.station.id,s])})}),
+  restore(snapshot){if(snapshot?.version!==1)return false;const s=restoreWorldRuntime(snapshot.runtime,{npcs,furniture});if(!s||!['waiting','assembling','holding','kneeling','report','response','dismissal','rising','departing','followup'].includes(s.phase))return false;phase=s.phase;time=Math.max(0,s.time||0);phaseTime=Math.max(0,s.phaseTime||0);speaker=npcs.find(n=>n.station.id===s.speakerId)||null;utterance=s.utterance||'';reported=Math.max(0,s.reported||0);currentReport=s.currentReport;nextBudgetAt=Math.max(time,s.nextBudgetAt||0);exception=s.exception;disruption=Math.max(0,s.disruption||0);departureReason=s.departureReason;interruptedToday=!!s.interruptedToday;interruptionNotified=!!s.interruptionNotified;postponementNotified=!!s.postponementNotified;history.splice(0,history.length,...(s.history||[]));tasks.clear();for(const[id,t]of s.tasks||[]){const n=officials.find(n=>n.station.id===id);if(n){tasks.set(n,{...t,planned:false,stalled:0});n.route=[];}}life?.restore(snapshot.life);if(speaker===emperor)palace.setDutyLine(OWNER,utterance);return true;},
   state:()=>({phase,time,phaseTime,budget,exception,departureReason,life:life?.state()||null,reports:reports?.state()||null,currentReport,schedule:schedule.snapshot(),reported,speaker:speaker?.station.id||null,utterance,history:history.map(e=>({...e})),failures:failures.map(e=>({...e})),actors:officials.map(n=>({id:n.station.id,ageYears:n.station.ageYears,position:n.root.position.toArray(),stage:tasks.get(n)?.id||life?.label(n)||'waiting',waypoint:tasks.get(n)?.index||0,arrived:tasks.get(n)?.arrived||false,walking:n.walking,paused:paused(n)}))}),
-  dispose(){if(disposed)return;disposed=true;if(!['waiting','departing','followup'].includes(phase)){schedule.finish('interrupted');save();}palace.releaseDuty(OWNER);life?.dispose();for(const n of officials)n.route=[];for(const p of postures)p?.dispose();for(const costume of caps)costume?.dispose();}
+  dispose({suspend=false}={}){if(disposed)return;disposed=true;if(!suspend&&!['waiting','departing','followup'].includes(phase)){schedule.finish('interrupted');save();}if(!suspend)palace.releaseDuty(OWNER);life?.dispose({suspend});for(const n of officials)n.route=[];for(const p of postures)p?.dispose();for(const costume of caps)costume?.dispose();}
  };
 }
