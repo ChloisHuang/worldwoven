@@ -4,7 +4,7 @@ import {studyOptions} from './study-lessons.js';
 const PUBLIC_STATIONS=new Set([
  'jp-omamori','jp-welcome','jp-onsen','jp-women-onsen','jp-sushi','jp-ramen','jp-tea','jp-balcony','jp-performance-reception',
  'cn-tea','cn-calligraphy','cn-rest','cn-garden','cn-archery','cn-range-warden','cn-money-house-teller','cn-tavern-host','cn-tavern-reception',
- 'france-atelier','france-salon','france-cafe',
+ 'france-atelier','france-salon','france-cafe','france-exchange-teller',
  'egypt-sphinx','egypt-glyphs','egypt-papyrus','egypt-scales','egypt-guardian','egypt-burial','egypt-stars',
  'egypt-anubis-judgment','egypt-horus-eye','egypt-cleopatra-suite','egypt-pharaoh-throne','egypt-royal-reception','egypt-private-bath',
 ]);
@@ -12,7 +12,7 @@ export function playerStationIntent(station,{clinicCollection=null}={}){
  if(!station||station.npcOnly)return null;
  if(station.id==='cn-pharmacy-assistant')return clinicCollection?{...station,...clinicCollection,priority:40}:null;
  if(!PUBLIC_STATIONS.has(station.id))return null;
- return {...station,action:({'jp-sushi':'点寿司','jp-ramen':'点拉面','cn-rest':'选择书目与技能','cn-calligraphy':'选择习字练习','france-salon':'选择书目与技能','france-atelier':'选择艺术练习','cn-archery':'参加习射','cn-range-warden':'参加习射'}[station.id]||station.action),priority:studyOptions(station.id).length?20:10};
+ return {...station,action:({'jp-sushi':'点寿司','jp-ramen':'点拉面','cn-rest':'选择书目与技能','cn-calligraphy':'选择习字练习','france-salon':'选择书目与技能','france-atelier':'选择艺术练习','cn-archery':'参加习射','cn-range-warden':'参加习射'}[station.id]||station.action),priority:station.priority??(studyOptions(station.id).length?20:10)};
 }
 
 export function nearbyInteraction(candidate,position,{radius=candidate?.interactionRadius??2.8,clear=()=>true}={}){

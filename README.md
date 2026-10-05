@@ -11,8 +11,8 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.78-public, 2026-10-05
-Verified published Sites source commit: a01ba1287b48c3df0f15494a7b6cc4f0608c8f54
+Published release: R16.79-public, 2026-10-05
+Verified published Sites source commit: 2e426d9e9e51ff0ce846576801c074ed51af0ddd
 
 ## Working rules
 
@@ -154,3 +154,5 @@ R16.76 adds one persistent player daily-needs clock, receipt-backed real food re
 R16.77 extends the shared needs source to Japan’s existing14 staff, retaining real handoffs and prepared staff meals, and reuses one enclosed washhouse cubicle for player/staff private relief. China’s original private facility uses the same service adapter. China dining and salon menus now use compact local selection, price/status cards and a fixed action. One natural Japan staff/player/meal main chain and targeted save/cancel checks passed; dynamic visitors, performers and remaining regions still need physiology adapters.
 
 R16.78 refreshes the French garden’s local work panel with temporary/long-term selection, actual progress and one fixed primary action. Rules are expandable; hiring, service, bank wages and XP behavior are unchanged. Focused UI and existing garden/career checks plus offline landscape layout passed, without an iOS claim.
+
+R16.79 opens the locally reviewed pharmacy assistant role: real symptomatic existing guests, controlled owner handoff, the same numbered paper and packet, continuous attendance, explicit shift handover and one bank wage settlement. One completed order does not end the shift. The legacy tavern work panel is now compact without changing its narrow temporary contract. Directed logic and a natural clinic chain passed; this remains simulated DOM/Three/Mesa evidence rather than iOS verification.
