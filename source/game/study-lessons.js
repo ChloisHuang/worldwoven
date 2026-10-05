@@ -23,12 +23,19 @@ const japan=Object.freeze([
  book('jp-cooking-intro','cooking','《寿司与拉面出膳手记》','认识汤屋食堂的原单、切配与同盘出膳。','先认清原客单与餐位，再整理寿司小盘或拉面碗。分开生熟食材，保持案面清洁；出膳前复核菜名与份数，把同单餐点交回原餐位。'),
  book('jp-care-intro','care','《草木浴包照护与核号》','辨认浴牌香型，核对封签与交接记录。','先核对来客姓名、浴牌号与香型，再封签交给配送员。遇到模糊标记，先向来客问清。'),
 ]);
+// Original books for this fictional temple, not historical Egyptian manuals.
+const egypt=Object.freeze([
+ book('eg-ritual-intro','ritual','《沙河神殿迎客札记》','在这座幻想神殿练习问安、来访指引与观礼分寸。','迎客先问来意，再说明柱廊与书案的位置。观礼时留出通道，进入起居或沐浴处前先征得同意；来客可以选择停留或离开。'),
+ book('eg-writing-intro','writing','《纸莎草来访与收存簿》','练习这座神殿的姓名、日期、物件编号与卷册收存记录。','先把姓名、日期和来意分栏记录，再给本次收存的卷册记号。逐行核对原件与抄本，交接时双方确认同一个编号，再把卷册放回标记处。'),
+ book('eg-art-intro','art','《柱廊纹样与纸莎草配色》','观察眼形、水纹与纸莎草柱头，练习架空神殿的纹样构图。','先看柱头与水纹的轮廓，画出大小与间隔。用青蓝、赭红与金色区分主纹和边饰，留出纸莎草底色；这些纹样是这座幻想神殿的创作。'),
+ book('eg-cooking-intro','cooking','《面包果盘与陶锅餐食手记》','认识神殿餐厅的面包、果盘、陶锅与同单出餐。','先看餐单和餐位，再分好面包、洗净水果，按份备料。处理食物前清洁双手和案面，分开生熟器具；出餐时核对原单，把同一份餐食送回对应餐位。'),
+]);
 const writing=Object.freeze({id:'writing-practice',skill:'writing',title:'楷书与文书誊写',description:'在书案蘸墨落笔，练习端正誊写。',action:'calligraphy',verb:'习字',seconds:STUDY_DURATION});
 const painting=Object.freeze({id:'art-practice',skill:'art',title:'宫苑光影写生',description:'在画架前调色落笔，观察宫苑的光与影。',action:'paint',verb:'绘画',seconds:STUDY_DURATION});
 const archery=Object.freeze({id:'archery-practice',skill:'martial',title:'射圃安全习射',description:'等候停射，在金线后接弓、瞄靶、放箭并收弓；由原守卫照看靶道。',action:'archery',verb:'练习',seconds:5.8});
-const SOURCES=Object.freeze({'cn-rest':china,'cn-calligraphy':Object.freeze([writing]),'cn-archery':Object.freeze([archery]),'france-salon':france,'france-atelier':Object.freeze([painting]),'jp-library':japan});
+const SOURCES=Object.freeze({'cn-rest':china,'cn-calligraphy':Object.freeze([writing]),'cn-archery':Object.freeze([archery]),'france-salon':france,'france-atelier':Object.freeze([painting]),'jp-library':japan,'egypt-papyrus':egypt});
 export const STUDY_SOURCES=Object.freeze(Object.keys(SOURCES));
-export const studyCountry=source=>source?.startsWith('cn-')?'china':source?.startsWith('france-')?'france':source?.startsWith('jp-')?'japan':null;
+export const studyCountry=source=>source?.startsWith('cn-')?'china':source?.startsWith('france-')?'france':source?.startsWith('jp-')?'japan':source?.startsWith('egypt-')?'egypt':null;
 export const studyOptions=(source,country=null)=>country&&studyCountry(source)!==country?[]:SOURCES[source]||[];
 export const studyLesson=(source,id)=>studyOptions(source).find(lesson=>lesson.id===id)||null;
 export const defaultStudyLesson=source=>studyOptions(source)[0]||null;
