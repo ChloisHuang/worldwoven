@@ -162,3 +162,25 @@ body :is(.jp-service-ticket,.jp-performance-ticket,.cn-meal-ticket,.cn-salon-tic
  body.in-lot :is(.jp-service-ticket,.jp-performance-ticket){left:calc(var(--hud-left) + 200px);max-width:min(180px,max(44px,calc(var(--ww-ui-width) - 416px)));--ww-ticket-offset:50px}
  body.in-lot .jp-performance-ticket{--ww-ticket-offset:100px}
 }
+
+/* One contextual action entry on every input device. Labels live in the
+   chooser or accessible name, never outside the circular control. */
+body.in-lot .touch-action{display:grid;place-items:center;position:fixed;right:calc(var(--hud-right) + 12px);bottom:calc(var(--hud-bottom) + 52px);width:56px;height:56px;min-width:44px;min-height:44px;padding:14px;border:1px solid #cbded6;border-radius:50%;background:#edf5edee;color:#456b73;box-shadow:0 3px 14px #264b6414;z-index:19;touch-action:manipulation}
+.touch-action svg{display:block;width:26px;height:26px}
+body.in-lot .interaction{left:auto;right:calc(var(--hud-right) + 18px);bottom:calc(var(--hud-bottom) + 44px);width:44px;height:3px;min-height:0;max-width:44px;padding:0;border:0;border-radius:0;transform:none;background:#dce8df;box-shadow:none;pointer-events:none}
+body.in-lot :is(.cn-meal-ticket,.cn-inn-ticket,.cn-salon-ticket,.jp-service-ticket,.jp-performance-ticket,.fr-labor-badge){display:none!important}
+.context-action-menu{position:fixed;inset:auto;margin:0;left:auto;right:var(--ww-ui-right,12px);bottom:calc(var(--ww-ui-bottom,12px) + 54px);width:min(310px,var(--ww-ui-width,calc(100vw - 24px)));max-width:var(--ww-ui-width,calc(100vw - 24px));max-height:min(440px,calc(var(--ww-ui-height,calc(100dvh - 24px)) - 54px));padding:12px 14px;border:1px solid #d4e5dc;border-radius:16px 5px 16px 5px;background:#f6f8f0;color:#456872;box-shadow:0 10px 32px #274b6426;font-family:Georgia,"Songti SC","Noto Serif CJK SC",serif;overflow:hidden}
+.context-action-menu[open]{display:flex;flex-direction:column}
+.context-action-menu::backdrop{background:#173b4929;backdrop-filter:blur(1px)}
+.context-action-heading{display:flex;align-items:center;justify-content:space-between;flex:none;gap:8px;border-bottom:1px solid #dbe6dc;padding-bottom:4px}
+.context-action-heading h2{font-family:inherit;font-size:17px;font-weight:500;margin:0;letter-spacing:.04em}
+.context-action-close{display:grid;place-items:center;flex:none;width:44px;height:44px;padding:11px;background:transparent;color:#80999c;border:0;border-radius:0}
+.context-action-close svg{width:22px;height:22px}
+.context-action-list{min-height:0;overflow:auto;overscroll-behavior:contain;touch-action:pan-y;padding-top:4px}
+.context-action-group h3{font-size:12px;font-weight:400;color:#849b9b;margin:10px 4px 3px}
+.context-action-row{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:9px 6px;background:transparent;text-align:left;color:#456872;border:0;border-radius:3px;font-family:inherit;font-size:14px;line-height:1.4;touch-action:manipulation}
+.context-action-row:hover,.context-action-row:focus-visible{background:#e5f0e6;filter:none}
+.context-action-row:focus-visible,.context-action-close:focus-visible{outline:2px solid #94b9b0;outline-offset:-2px}
+.context-action-icon{display:grid;place-items:center;flex:none;width:24px;height:24px;color:#789a9c}
+.context-action-icon svg{width:23px;height:23px}
+@media(max-height:420px){.context-action-menu{bottom:var(--ww-ui-bottom,12px);max-height:var(--ww-ui-height,calc(100dvh - 24px));padding:6px 12px}.context-action-group h3{margin-top:5px}}
