@@ -16,6 +16,16 @@ assert.equal(late.snapshot().courtStart,11.5,'an obstruction never slides the st
 assert(!createAudienceSchedule(late.snapshot()).due(10,false,999));assert.equal(late.snapshot().completionId,null);
 const missed=createAudienceSchedule();assert(missed.missed(12));missed.finish('missed','entered-after-court-start');assert(!missed.due(10,false,999));
 const interrupted=createAudienceSchedule();interrupted.call();assert.equal(createAudienceSchedule(interrupted.snapshot()).snapshot().outcome,'interrupted');
+for(const outcome of ['called','in-session','interrupted']){
+ const resumed=createAudienceSchedule({version:2,day:4,calledDay:4,outcome});resumed.observe(10,4);
+ assert(resumed.due(10,false,120),'unfinished '+outcome+' save must gather again before11:30');
+ resumed.call(10,120);assert(!resumed.atStart(11.49));assert(resumed.start(11.5));
+}
+for(const outcome of ['completed','postponed','missed']){
+ const terminal=createAudienceSchedule({day:4,calledDay:4,outcome});terminal.observe(10,4);assert(!terminal.due(10,false,999),outcome+' remains terminal');
+}
+const afterStart=createAudienceSchedule({day:4,calledDay:4,outcome:'called'});afterStart.observe(11.51,4);assert(!afterStart.due(11.51,false,999),'late reload cannot shift the fixed ceremony');
+const recordedCompletion=createAudienceSchedule({day:4,calledDay:4,outcome:'interrupted',lastCompletedDay:4});recordedCompletion.observe(10,4);assert(!recordedCompletion.due(10,false,999),'a durable completion receipt blocks a replay even if the transient outcome differs');
 schedule.observe(23.99);schedule.observe(.01);assert.equal(schedule.snapshot().day,1);assert(schedule.due(11,false,80));
 const budget=courtRouteBudget({position:{x:0,y:0,z:0},path:[[3,0,4],[6,0,8]],walkSpeed:2,planPath:(_,p)=>[p],safeExitSeconds:2,doorSeconds:3});
 assert(budget.reachable);assert.equal(budget.distance,10);assert.equal(budget.seconds,10/1.56+5);

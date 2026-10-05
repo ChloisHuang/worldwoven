@@ -25,7 +25,11 @@ export function createNpcSocial({actors,player,visible=()=>true,status=()=>({}),
  function canInteract(n,radius=1.8){const p=player()?.root?.position,q=n?.root?.position;return !!(p&&q&&present(n)&&Math.abs(p.y-q.y)<.65&&gap(p,q)<=radius&&visible(n,p));}
  function end(){if(!conversation)return false;const {actor,paused,started}=conversation;if(paused&&Number.isFinite(actor.breakAt))actor.breakAt+=time-started;conversation=null;return true;}
  function begin(n){if(!canInteract(n))return null;end();const info=status(n)||{},reply=npcSocialReply(n,info);conversation={actor:n,id:npcActorId(n),reply,paused:!info.busy,started:time,interaction:beginInteraction(['player',npcActorId(n)]),duration:0};let a=attention.get(n);if(!a){a={inside:true,until:0,cooldown:0};attention.set(n,a);}a.until=time+(info.busy?1.15:1.7);a.cooldown=time+9;return {name:name(n),reply,paused:!info.busy};}
- function update(dt){time+=dt;const people=actors(),p=player()?.root?.position;if(conversation&&!canInteract(conversation.actor,2.4))end();
+ function update(dt){time+=dt;const people=actors(),p=player()?.root?.position;
+  // A pause is borrowed from the actor's current routine, not a permanent
+  // entitlement. A summons or new service duty can make that routine busy
+  // while a nearby player still has yesterday's idle reply open.
+  if(conversation&&(!canInteract(conversation.actor,2.4)||conversation.paused&&status(conversation.actor)?.busy))end();
   if(conversation?.interaction){const duration=conversation.paused?conversation.duration+dt:Math.min(1.15,conversation.duration+dt);if(duration>conversation.duration){conversation.duration=duration;onInteraction({...conversation.interaction,duration});}}
   for(const n of attention.keys())if(!people.includes(n))attention.delete(n);
   if(!p)return;for(const n of people){let a=attention.get(n);if(!a){a={inside:false,until:0,cooldown:0};attention.set(n,a);}const q=n.root.position,range=gap(p,q),bearing=angle(Math.atan2(p.x-q.x,p.z-q.z)-n.root.rotation.y),inside=n.root.visible!==false&&range<3.1&&Math.abs(p.y-q.y)<.65;
