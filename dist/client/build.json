@@ -1,7 +1,7 @@
 {
-  "release": "R16.68-public",
+  "release": "R16.69-public",
   "date": "2026-10-05",
-  "baseGameCommit": "3be8675cb1881243fc3dddbe3c6273977d2321e3",
+  "baseGameCommit": "8320479a693b7a884514066dfec946a37fbee416",
   "assets": {
     "game/travel-passport-art.js": "/assets/travel-passport-art.c2e6a6e5c2fe0dda.js",
     "game/travel-passport.css": "/assets/travel-passport.95fbc088a56dedc2.css",
@@ -42,8 +42,8 @@
     "game/assets/currency/japan.webp": "/assets/japan.f896fd0b085e8100.webp",
     "game/assets/currency/egypt.webp": "/assets/egypt.997e07fe903369b4.webp",
     "game/assets/currency/france.webp": "/assets/france.397562b7963a3abb.webp",
-    "game/wallet.css": "/assets/wallet.71f036eacb4076ce.css",
-    "game/wallet.js": "/assets/wallet.9d1ee2a97efc9f2e.js",
+    "game/wallet.css": "/assets/wallet.7ea17950c384b1df.css",
+    "game/wallet.js": "/assets/wallet.2c64d71496666a8a.js",
     "game/china-tavern-salon-artists.js": "/assets/china-tavern-salon-artists.ec5d743be0dbb318.js",
     "game/player-age.js": "/assets/player-age.9c469b6c97407661.js",
     "game/china-tavern-salon-life.js": "/assets/china-tavern-salon-life.db4ccae8099f4cc1.js",
@@ -138,7 +138,7 @@
     "game/approved-surfaces.js": "/assets/approved-surfaces.d0f31ec9c7f21c1a.js",
     "game/character-props.js": "/assets/character-props.deb24f9b65d5e60a.js",
     "game/characters.js": "/assets/characters.2c406ca56e43d01b.js",
-    "game/main.js": "/assets/main.75c7d36741a34569.js",
+    "game/main.js": "/assets/main.e2f987bfe7e5b289.js",
     "game/complete-adult/assets/adult-forms-data.js": "/assets/adult-forms-data.f5c3eae422bf2d5b.js",
     "game/complete-adult/attach-head.js": "/assets/attach-head.cd715d43de06238a.js",
     "game/complete-adult/assets/layered-hair-data.js": "/assets/layered-hair-data.909c7058087b476c.js",
@@ -158,7 +158,7 @@
     "game/complete-adult/register.js": "/assets/register.457d37fb5252fdc6.js",
     "game/complete-adult/selection.js": "/assets/selection.da7382d63b4983be.js",
     "game/character-preview-entry.js": "/assets/character-preview-entry.bed7ff9f51addd24.js",
-    "game/entry.js": "/assets/entry.e6c820d9e0ad0d98.js",
+    "game/entry.js": "/assets/entry.70c0a93b18bf8a66.js",
     "game/game.css": "/assets/game.8fe63c1e02771337.css",
     "vendor/three/build/three.core.js": "/assets/three.core.9edde002b066a9a0.js",
     "vendor/three/build/three.module.js": "/assets/three.module.d8c0a97fa13a785e.js"

@@ -11,7 +11,7 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.68-public, 2026-10-05
+Published release: R16.69-public, 2026-10-05
 Verified published Sites source commit: 00ab703d79526bcafe0f8910c48c12ef49ad0f7c
 
 ## Working rules
@@ -132,3 +132,5 @@ R16.67 fixes continuous wallet extraction/insertion and decoded ticket artwork, 
 R16.68 uses the passport book itself for cover, turning sheets and one visa page per country, with a cached photograph rendered from the actual current player. The career panel keeps one current action above compact shift, progress, evaluation, bank salary and progression data. Role-specific registration context, manual nearby access, shared 06:00–18:00 start gating and the unobstructed tavern desk placard are fixed. Integration checks reuse the affected module results; product SVG/DOM layouts and Three/Mesa views are not real iOS validation. The intermittent phone blank strip remains open.
 
 R16.68 also restores the original rounded, tilted wallet proportions while preserving continuous paper movement and decoded artwork. The tavern now has a separate reception counter: the host stands inside and the visitor outside, with the existing kitchen and pass behind it. Chef/host player employment and assistant food-delivery/review work remain pending. Published source: `8320479a693b7a884514066dfec946a37fbee416` (Sites v96, 2026-10-05T04:37:30Z).
+
+R16.69 removes the duplicate dark lip from the front-pocket pseudo-element. The independent back layer remains behind the notes; restored leather proportions, angle and extraction geometry are unchanged. CSS stacking root cause and the focused regression were checked; real iOS confirmation remains open.
