@@ -42,7 +42,7 @@ function restore(saved) {
  */
 export function createChinaTavernLabor({getPlayer, getMounted = () => null, host, employment,
   isHostAvailable = () => true, copperLedger, saved, saveState = () => {},
-  notify = () => {}, onIntent = () => {}, canSee = () => true, onOpen = () => {}, document: doc = globalThis.document} = {}) {
+  notify = () => {}, onCompleted = () => {}, onIntent = () => {}, canSee = () => true, onOpen = () => {}, document: doc = globalThis.document} = {}) {
   if (typeof getPlayer !== 'function' || !copperLedger || typeof saveState !== 'function') throw new TypeError('labor requires player, ledger and synchronous saveState');
   let current, loadError = null;
   try { current = restore(saved); } catch { current = empty(); loadError = 'invalid-saved-state'; }
@@ -107,6 +107,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     if (!permitted()) return failure(loadError || copperLedger.loadError || 'labor-busy');
     if (current.job?.stage !== 'ready') return failure('work-incomplete', '两张餐桌都擦净后，才能领工钱');
     if (!meetHost()) return false;
+    onCompleted(copy(current.job));
     paying = true;
     let result;
     try { result = copperLedger.earn(WAGE, current.job.receiptId); }
@@ -146,7 +147,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
           const done = current.job.completedTables + 1;
           const next = {...current, job: {...current.job, completedTables: done, stage: done === 2 ? 'ready' : 'working'}};
           stopCleaning();
-          if (persist(next)) notify(done === 2 ? '两张桌面都擦净了，请回许安处领 12 铜文' : '西窗桌擦净了，请走到东窗桌靠过道的一侧');
+          if (persist(next)) {if(done===2)onCompleted(copy(next.job));notify(done === 2 ? '两张桌面都擦净了，请回许安处领 12 铜文' : '西窗桌擦净了，请走到东窗桌靠过道的一侧');}
         }
       }
     }

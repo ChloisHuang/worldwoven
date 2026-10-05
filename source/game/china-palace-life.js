@@ -73,7 +73,11 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   const step=followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:playerState.position,speedScale:.78});
   if(n.walking)s.retries=0;s.stalled=n.walking||step.waiting?0:s.stalled+dt;
   if(s.stalled>4){s.stalled=0;s.planned=false;if(++s.retries===3){failures.push({actor:n.station.id,activity:s.choice?.id||null,stage:scripts.get(n)[s.index].id,to:to.slice(),position:n.root.position.toArray()});if(failures.length>8)failures.shift();}}
-  return near(n.root.position,to);
+  // Arrival can happen during this move. Release this completed plan before
+  // the caller advances its authored waypoint; otherwise the next leg follows
+  // an empty old route until the four-second obstruction retry fires.
+  if(near(n.root.position,to)){n.route=[];s.planned=false;s.retries=0;s.stalled=0;return true;}
+  return false;
  }
  function interrupted(n){return playerState.conversationActorId===n.station.id;}
  function animate(n,s,t){

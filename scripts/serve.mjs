@@ -3,7 +3,7 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 const root=path.resolve(process.argv[2]||'source'),port=Number(process.argv[3]||5173);
-const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.txt':'text/plain; charset=utf-8','.svg':'image/svg+xml'};
+const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.txt':'text/plain; charset=utf-8','.svg':'image/svg+xml','.webp':'image/webp'};
 http.createServer(async(req,res)=>{try{
   let url=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
   if(url==='/'&&path.basename(root)==='source'){res.writeHead(302,{Location:'/game/'});res.end();return;}
