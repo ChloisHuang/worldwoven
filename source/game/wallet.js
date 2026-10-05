@@ -38,14 +38,14 @@ export function walletTransactionView(tx) {
     received: tx.action === 'exchange' && tx.quote ? {currency:tx.quote.to, amount:tx.quote.received} : null};
 }
 
-export function createCurrencyWallet({mount, ledger, onOpen=()=>{}, onClose=()=>{}, document:doc=globalThis.document}={}) {
+export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', onOpen=()=>{}, onClose=()=>{}, document:doc=globalThis.document}={}) {
   if (!mount || !ledger?.balances || !ledger?.history || !ledger?.subscribeCommitted) throw TypeError('wallet requires mount and committed ledger');
   const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text != null)e.textContent=text;if(cls)e.className=cls;return e;};
   const button=(text,cls,label)=>{const b=make('button',text,cls);b.type='button';if(label)b.setAttribute('aria-label',label);return b;};
   const style=make('link');style.rel='stylesheet';style.href=STYLE;(doc.head||doc.body).append(style);
   const trigger=button(null,'ww-wallet-trigger','打开钱包与账本');
   const icon=make('span',null,'ww-wallet-icon');icon.setAttribute('aria-hidden','true');
-  const strap=make('span',null,'ww-wallet-strap');icon.append(strap);trigger.append(icon,make('span','钱包','ww-wallet-trigger-label'));
+  const strap=make('span',null,'ww-wallet-strap'),cashBadge=make('span',null,'ww-wallet-trigger-number');icon.append(strap);trigger.append(icon,make('span','钱包','ww-wallet-trigger-label'),cashBadge);
   trigger.setAttribute('aria-haspopup','dialog');trigger.setAttribute('aria-expanded','false');mount.prepend(trigger);
   const status=make('span',null,'ww-wallet-status');status.setAttribute('role','status');status.setAttribute('aria-live','polite');mount.append(status);
   let ui=null, disposed=false, folded=true, priorFocus=null, pulseTimer=null, transferTimer=null, transfer=null;
@@ -139,12 +139,17 @@ export function createCurrencyWallet({mount, ledger, onOpen=()=>{}, onClose=()=>
     ui.scroll.scrollTop=scroll;
   }
   let historyLimit=60;
-  function refresh(){if(disposed||!ui?.dialog.open)return;renderBalances();renderHistory();}
+  function refreshBadge(){
+    const requested=getCurrency(),id=GAME_CURRENCIES[requested]?requested:'copper',b=ledger.balances()?.[id];
+    cashBadge.textContent=money(b?.cash,id);trigger.setAttribute('aria-label',`打开钱包与账本，${currency(id).label}随身现金 ${money(b?.cash,id)}`);
+    cashBadge.title=`${currency(id).label} · 随身现金`;cashBadge.dataset.currency=id;
+  }
+  function refresh(){if(disposed)return;refreshBadge();if(!ui?.dialog.open)return;renderBalances();renderHistory();}
   function open(){
-    if(disposed||ui?.dialog.open)return;onOpen();ensureUI();priorFocus=doc.activeElement;folded=true;historyLimit=60;setFold();
+    if(disposed||ui?.dialog.open)return;clearTransfer();onOpen();ensureUI();priorFocus=doc.activeElement;folded=true;historyLimit=60;setFold();
     renderBalances();renderHistory();ui.scroll.scrollTop=0;ui.dialog.showModal();trigger.setAttribute('aria-expanded','true');ui.closeButton.focus({preventScroll:true});
   }
-  function clearTransfer(){clearTimeout(transferTimer);transferTimer=null;transfer?.remove();transfer=null;mini.hidden=true;}
+  function clearTransfer(){clearTimeout(transferTimer);transferTimer=null;transfer?.remove();transfer=null;mini.hidden=true;mini.classList.remove('in-modal');if(!disposed)mount.append(mini);}
   function finishClose(){
     if(trigger.getAttribute('aria-expanded')!=='true')return;
     trigger.setAttribute('aria-expanded','false');clearTransfer();folded=true;setFold();onClose();
@@ -170,7 +175,12 @@ export function createCurrencyWallet({mount, ledger, onOpen=()=>{}, onClose=()=>
       const slip=make('span',null,'ww-wallet-mini-slip');
       slip.append(make('span',currency(view.currency).label));
       if(view.received)slip.append(make('span',currency(view.received.currency).label,'is-received'));
-      mini.append(title,route,slip);mini.hidden=false;transferTimer=setTimeout(clearTransfer,reducedMotion()?2600:2200);return;
+      mini.append(title,route,slip);mini.hidden=false;
+      // Bank services may rebuild their dialog synchronously after each save.
+      // Attach after that render, within its top layer, so a successful real
+      // withdrawal is visible rather than hiding behind the modal backdrop.
+      queueMicrotask(()=>{if(disposed||mini.hidden||ui?.dialog.open)return;const modal=[...(doc.querySelectorAll?.('dialog[open]')||[])].at(-1);if(modal){modal.append(mini);mini.classList.add('in-modal');}});
+      transferTimer=setTimeout(clearTransfer,reducedMotion()?2600:2200);return;
     }
     if(reducedMotion())return;
     transfer=make('div',null,`ww-wallet-transfer is-${view.action}`);
@@ -180,6 +190,7 @@ export function createCurrencyWallet({mount, ledger, onOpen=()=>{}, onClose=()=>
     ui.effects.append(transfer);transferTimer=setTimeout(clearTransfer,1450);
   }
   trigger.onclick=open;
+  refreshBadge();
   const unsubscribe=ledger.subscribeCommitted(animateCommitted);
   return {open,close,refresh,isOpen:()=>!!ui?.dialog.open,
     dispose(){if(disposed)return;close();disposed=true;unsubscribe();clearTransfer();clearTimeout(pulseTimer);trigger.remove();status.remove();mini.remove();ui?.dialog.remove();style.remove();notes.clear();seen.clear();}};
