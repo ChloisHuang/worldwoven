@@ -22,7 +22,7 @@ export const TAVERN_HOST_ROLE = Object.freeze({id:'cn-tavern-host',name:'酒楼�
   skillRequirements:Object.freeze({ritual:3,writing:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1,
   duties:'持续处理餐饮点单、餐费与住宿收款、招工登记；06:00–18:00当班，提前收工按实际工时计薪'});
 export const TAVERN_CHEF_ROLE = Object.freeze({id:'cn-tavern-chef',name:'酒楼厨师',
-  slotId:'cn-tavern-chef-rotation-1',country:'china',currency:'copper',employer:'沈禾',workplace:'云来酒楼 · 后厨登记簿',
+  slotId:'cn-tavern-chef-rotation-1',country:'china',currency:'copper',employer:'许安',workplace:'云来酒楼 · 招工柜台',
   supervisorId:'cn-tavern-cook',incumbentId:'cn-tavern-cook',incumbentName:'沈禾',vacancyKind:'exclusive',workSource:'cn-tavern-chef-labor',wage:26,minimumAgeYears:18,
   skillRequirements:Object.freeze({cooking:2,ritual:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1,
   duties:'持续按订单备料、烹制、核对并出菜；06:00–18:00当班，提前收工按实际工时计薪'});

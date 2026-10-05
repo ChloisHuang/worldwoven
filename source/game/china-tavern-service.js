@@ -93,7 +93,7 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
   }ui?.refresh();propertyUI?.refresh();
  }
  const state=()=>{const live=scene.snapshot(),job=current.job?{...copy(current.job),completedOrders:live?.completedTasks||0,completedTasks:live?.completedTasks||0,completedTables:live?.tables.filter(t=>!t.dirty).length||0,continuous:true}:null;return {...copy(current),job,world:scene.state(),selected:selected?copy(selected):null,lastError};};
- const forRole=roleId=>({intent:kind=>intent(kind,roleId),resolveIntent,executeIntent,state,active:()=>!!current.job,formal:{beginAvailability:()=>beginAvailability(roleFor(roleId)),hired:()=>careers.isHired(roleId)},accept:()=>accept(roleFor(roleId))});
+ const forRole=roleId=>({intent:kind=>intent(kind,roleId),atRegistration:atRegister,resolveIntent,executeIntent,state,active:()=>!!current.job,formal:{beginAvailability:()=>beginAvailability(roleFor(roleId)),hired:()=>careers.isHired(roleId)},accept:()=>accept(roleFor(roleId))});
  const service={intent,resolveIntent,executeIntent,forRole,state,view:state,accept,claim,update,active:()=>!!current.job,formal:{beginAvailability:()=>beginAvailability(heldRole()||TAVERN_STEWARD_ROLE)},
   label:()=>current.job?selected?.action||scene.label():null,playerPose:()=>scene.playerPose(),playerAction:()=>scene.playerAction(),playerStation:()=>scene.playerStation(),stopActivity:()=>{waitingRegistration=null;scene.stopActivity();},open:()=>ui?.open(),close:()=>{ui?.close();propertyUI?.close();},isOpen:()=>!!(ui?.isOpen()||propertyUI?.isOpen()),
   snapshot:()=>({version:1,receiptId:current.job?.receiptId||null,selected:selected?copy(selected):null,waitingRegistration:waitingRegistration?copy(waitingRegistration):null,attendance}),

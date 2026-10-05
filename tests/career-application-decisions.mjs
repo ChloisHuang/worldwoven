@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 // Submission used to synchronously hire. Exercise the durable boundary rather
 // than a timer: no tenure until a recruiter reviews the persisted application.
 import assert from 'node:assert/strict';
@@ -48,4 +49,12 @@ test('legacy approved receipts remain valid; malformed pending state fails close
  for(const mutate of [r=>r.id+='changed',r=>r.ok=true,r=>r.roll=2,r=>r.stage='document-held',r=>r.tenure={roleId:TAVERN.id}]){const bad=copy(valid);mutate(bad.applications.byRole[TAVERN.id]);assert.equal(fixture({saved:bad}).careers.state().loadError,'invalid-career-state');}
  assert(f.review(TAVERN).ok);const old=copy(f.store.saved),receipt=old.applications.byRole[TAVERN.id];for(const k of ['id','status','stage','roll','reviewedAt','decidedAt','appointment'])delete receipt[k];assert.equal(fixture({saved:old}).careers.state().loadError,null);assert(fixture({saved:old}).careers.isHired(TAVERN.id));
  const args={role:CLERK,skills:{ritual:2,writing:2},performance:0,worldSeed:1,day:1};assert.equal(careerInterview(args).roll,careerInterviewRoll(1,CLERK.id,1));
+});
+
+test('chef recruitment reads Xu An at the hiring counter, retaining Shen He as the technical incumbent',()=>{
+ const chef=fixture().careers.catalogue().find(r=>r.id==='cn-tavern-chef');assert.equal(chef.employer,'许安');assert.equal(chef.workplace,'云来酒楼 · 招工柜台');assert.equal(chef.incumbentName,'沈禾');
+ const main=fs.readFileSync(new URL('../source/game/main.js',import.meta.url),'utf8'),start=main.indexOf('getHiringContext:')+'getHiringContext:'.length,end=main.indexOf(',creditWageToBank',start);assert(start>0&&end>start);
+ const host={traits:{quiet:.8},relations:{player:.3}},cook={traits:{quiet:.1},relations:{player:-.7}};
+ const read=new Function('chinaTavern','chinaAudience','franceGardener','saved','return ('+main.slice(start,end)+');')({staffScene:{state:()=>({staffLife:{decisions:{people:{'cn-tavern-host':host,'cn-tavern-cook':cook}}}})}},null,null,{});
+ assert.deepEqual(read(chef).recruiterTraits,host.traits);assert.equal(read(chef).relationship,.3);
 });

@@ -53,6 +53,11 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     if(!role||country&&country!==place(role).country)return null;
     return getService?.(role.id)||null;
   };
+  const atRegistration=role=>{
+    const service=localService(role);if(service?.atRegistration)return !!service.atRegistration();
+    const point=service?.intent(registryKind(role)),p=getPlayer()?.root?.position;
+    return !!(p&&point?.position&&Math.abs(p.y-point.position[1])<.3&&Math.hypot(p.x-point.position[0],p.z-point.position[2])<=(point.executionRadius??.18));
+  };
   const nearbyRegistries=()=>{
     const p=getPlayer()?.root?.position;if(!p)return [];
     return roles().filter(role=>place(role).country===getCountry()).map(role=>({role,intent:localService(role)?.intent(registryKind(role))})).filter(({intent})=>intent?.position).sort((a,b)=>Math.hypot(p.x-a.intent.position[0],p.z-a.intent.position[2])-Math.hypot(p.x-b.intent.position[0],p.z-b.intent.position[2]));
@@ -78,7 +83,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     const hired=!!held,d=belongsToTenure(s.lastDuty)?s.lastDuty:null;
     const pendingDuty=d&&d.day<c.day&&['inspection','ready'].includes(d.stage);
     const service=localService(role),key=[s.revision,registrationRoleId,registrationScope,held?.id,country,c.day,Math.floor(c.hour*60),!!service,service?.intent()?.intentKey,ageYears,JSON.stringify(careers.applicationResult?.()),
-      ...localRoles.map(r=>`${r.id}:${r.vacancy}`)].join(':');
+      ...localRoles.map(r=>`${r.id}:${r.vacancy}:${atRegistration(r)}`)].join(':');
     if(!force&&key===signature)return;signature=key;generation++;
     dialog.replaceChildren();const x=buttonFor('×',close);x.className='career-close';x.setAttribute('aria-label','关闭职业手册');
     const heading=registrationMode?registrationScope==='role'?displayRoles[0]?.name||'岗位登记':`${WORKPLACE_NAMES[workplaceKey(registeredPlace)]||place(registeredPlace).workplace||'附近'} · 招工`:held?held.name:'附近招工';
@@ -118,7 +123,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       details.append(make('p',`完成职责后，日薪 ${wageRange(item)} 存银行。每个岗位每天提交一次。`));
       if(pending){const cancel=buttonFor('撤回这份申请',()=>{careers.cancelApplication(item.id,receipt.id);render(true);});cancel.className='career-withdraw';details.append(cancel);}
       let primary;
-      if(!isLocal){primary=action(item,registryKind(item),own?'查看职位':pending?'继续审核':receipt&&receipt.day===c.day?'查看申请结果':'前往申请',{scope:'role',roleId:item.id});}
+      if(!atRegistration(item)&&!pending||!isLocal&&(own||pending||receipt&&receipt.day===c.day)){primary=action(item,registryKind(item),own?'查看职位':pending?'继续审核':receipt&&receipt.day===c.day?'查看申请结果':'前往申请',{scope:'role',roleId:item.id});}
       else if(pending){const kind=isClerk(item)?({submitted:'review','document-ready':'receive-document','document-held':'appointment'})[receipt.stage]:'formal-review';primary=action(item,kind);}
       else if(receipt&&receipt.saved!==false&&receipt.day===c.day){primary=buttonFor('查看申请结果',()=>{details.open=!details.open;});}
       else{primary=action(item,isClerk(item)?'apply':'formal-apply',check.ok?'提交职位申请':'查看申请条件');if(primary&&!check.ok){primary.onclick=()=>{details.open=!details.open;};}}
