@@ -28,7 +28,7 @@ const LOCAL_WAIT={'jp-omamori':[7.5,0,30.5],'jp-garden-onsen':[-17.1,0,-6],'jp-t
 // again after both real workers have safely met at their service counter.
 export function createJapanStaffLife({actors,board,furniture,assign,clear,unmount,taskOf,changeWardrobe=()=>{},canReach=()=>true,worldSeed=1,saved={},sharedNeeds=null,getToilet=()=>null,saveState=()=>true,onMealReceipt=()=>true,getReceptionCoverage=()=>false,getExternalCoverage=()=>false,getMeetingHeld=()=>false,beginInteraction=()=>null,onInteraction=()=>{}}) {
  // A reduced scene can omit a whole pair, but never schedule half a pair.
- const external=id=>getExternalCoverage(id)||['jp-welcome','jp-market-tea'].includes(id)&&getReceptionCoverage();
+ const external=(id,kind=null)=>getExternalCoverage(id,kind)||['jp-welcome','jp-market-tea'].includes(id)&&getReceptionCoverage();
  const crew=JAPAN_STAFF_CREW.filter(id=>profile(id).ids.every(other=>actors.has(other))).map(id=>actors.get(id));
  const seats=furniture.items.filter(i=>i.kind==='seat'&&i.center[1]===11.4&&i.center[2]===-7.45);
  const beds=furniture.items.filter(i=>i.kind==='bed'&&i.center[1]===11.4);
@@ -49,7 +49,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
  const dueOrder=(a,b)=>due[a.station.id]-due[b.station.id]||(a.station.id<b.station.id?-1:1);
  const nextWorker=()=>active?actors.get(active.id):crew.slice().sort(dueOrder)[0];
  const post=id=>{const n=actors.get(id),mount=id==='jp-tea'?KOTATSU:null;return {to:mount?mount.position:n.home.toArray(),mount,action:n.station.npcAction,workTarget:n.station.workTarget,face:n.station.workTarget,label:n.station.npcLabel};};
- const shiftFor=id=>{const shift=profile(id);return shift.local?{...shift,retire:LOCAL_WAIT[id],relief:post(id).to}:shift;};
+ const shiftFor=id=>{const shift=profile(id);if(shift===KITCHEN&&getExternalCoverage('jp-sushi','cook'))return {...shift,duty:id==='jp-sushi'?'厨房制作班':'送餐班',retire:id==='jp-sushi'?[-2.75,0,-12.05]:P.kitchen,back:id==='jp-sushi'?[-2.75,0,-12.05]:shift.back};return shift.local?{...shift,retire:LOCAL_WAIT[id],relief:post(id).to}:shift;};
  function dressRelief(){
   if(active.id!=='jp-omamori'||reliefLook)return;
   const n=actors.get(active.reliefId);reliefLook={...n.root.userData.appearance};
@@ -180,7 +180,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   // permanent reassignment away from the rear-yard crates.
   canClaim(id,kind){
    if(JAPAN_LOCAL_WORKERS.includes(id))return false;
-   if(external(id))return false;
+   if(external(id,kind))return false;
    const primary=id==='jp-market-tea'&&['register','checkout'].includes(kind)?'jp-welcome':id==='jp-herb-workshop'&&kind==='prepare'?'jp-incense':id==='jp-steam'&&kind==='deliverMix'?'jp-onsen':id==='jp-rest'&&kind==='deliverMix'?'jp-women-onsen':null;
    return !primary||(active?.id===primary&&active.reliefId===id&&!['draining','handoff'].includes(active.phase));
   },
@@ -205,7 +205,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
    if(!active){
     // Reserve only the relief slot now. Existing jobs drain before the real
     // handoff establishes eligibility for an action; no per-frame lottery.
-    const candidate=resumeReturn?crew[next]:crew.filter(n=>!conversations.owns(n.station.id)&&due[n.station.id]<=time).sort(dueOrder)[0];
+    const candidate=resumeReturn?crew[next]:crew.filter(n=>!conversations.owns(n.station.id)&&!getMeetingHeld(n.station.id)&&(external(n.station.id)||!getMeetingHeld(profile(n.station.id).ids.find(id=>id!==n.station.id)))&&due[n.station.id]<=time).sort(dueOrder)[0];
     if(!candidate)return;const id=candidate.station.id;next=crew.indexOf(candidate);active={id,reliefId:profile(id).ids.find(other=>other!==id),externalCoverage:external(id),covering:false,phase:'draining',choice:null,meal:false,wait:0,interrupted:resumeReturn&&!!saved.returnInterrupted,returnOnly:resumeReturn};resumeReturn=false;note('break-due');
    }
    const n=actors.get(active.id),relief=actors.get(active.reliefId),shift=shiftFor(active.id);

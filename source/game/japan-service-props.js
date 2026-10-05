@@ -72,6 +72,8 @@ export function createJapanServiceProps(parent) {
   const lane=(v.number%2?-.22:.22);
   if(item.location.id==='apothecaryWork')return [P.blendWork[0]-.28,P.blendWork[1],P.blendWork[2]];
   if(item.location.id==='apothecaryPickup')return [P.mixtureTray[0]+lane,P.mixtureTray[1],P.mixtureTray[2]];
+  if(item.location.id==='kitchenWork')return [2.1,1.47,-13.4];
+  if(item.location.id==='sushiWork')return [-6.6,1.18,-13.65];
   if(item.location.id==='kitchenPickup')return [P.mealTray[0]+lane,P.mealTray[1],P.mealTray[2]];
   if(item.location.id==='sushiPickup')return [P.sushiTray[0]+lane,P.sushiTray[1],P.sushiTray[2]];
   if(item.location.id==='menService')return [-4.2+lane,4.48,-3.1];
