@@ -99,6 +99,7 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
  }
  const labels={invited:'艺者前来亲自答复',reply:'听取艺者的回应',accepted:'本人已接受 · 等你确认价目',seating:'请到专属客席入座',performing:'正在表演或陪席茶谈',drinking:'节目已完成 · 饮品服务中','refund-pending':'退款待保存，请重开接待簿'};
  const api={request,confirm,cancel,atReception,recoverPayments,active:()=>!!order,seat:()=>guestSeat,
+  socialProfile:id=>life.state(id),
   owns:n=>cast.includes(n),socialStatus:n=>({busy:!!order||returns.has(n),attention:!order&&!returns.has(n),job:n.station.npcLabel}),
   furnitureAccess(item){if(item.id===ARTIST&&(order||returns.size)){notify('这是本次艺者陪席位置');return false;}return true;},
   leaveSeat(id){if(id===GUEST&&order?.paid&&order.status!=='seating')cancel('你提前离开了茶席');},

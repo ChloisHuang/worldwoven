@@ -148,6 +148,7 @@ export function createSalonArtistLife({performers=[],worldSeed=1,saved={},saveSt
   label(n){const s=stages.get(n);return !owned.has(n)?null:s?.phase==='returning'?'歇场后回到原处':s?.phase==='approaching'?'缓步去旁边歇息':s?.choice?.label||'歇场待客';},
   continuity:()=>({version:1,clock,stages:[...stages].map(([n,s])=>[n.station.id,copy(s)]),readyAt:[...readyAt].map(([n,t])=>[n.station.id,t]),roamingId:roaming?.station.id||null,events:copy(events)}),
   restore(s){if(s?.version!==1)return false;clock=Math.max(0,s.clock||0);stages.clear();for(const [id,state]of s.stages||[]){const n=artists.find(n=>n.station.id===id);if(n&&['approaching','acting','returning'].includes(state.phase)&&Array.isArray(state.target))stages.set(n,restoreStage(n,state));}for(const[id,t]of s.readyAt||[]){const n=artists.find(n=>n.station.id===id);if(n&&Number.isFinite(t))readyAt.set(n,t);}roaming=artists.find(n=>n.station.id===s.roamingId)||null;events.splice(0,events.length,...copy(s.events||[]));return true;},
+  socialProfile:id=>brain.state(id),
   snapshot:()=>brain.snapshot(),
   state:()=>({roamingId:roaming?.station.id||null,saveError,actors:artists.map(n=>{const s=stages.get(n);return {id:n.station.id,phase:s?.phase||'idle',choice:s?.choice?.id||null,busy:busy(n),elapsed:s?.elapsed||0,duration:s?.choice?.duration||0,position:position(n),target:s?.target.slice()||home(n)};}),events:copy(events),decisions:brain.snapshot()}),
   dispose(){if(disposed)return;disposed=true;brain.dispose();for(const n of stages.keys())stop(n);stages.clear();roaming=null;},

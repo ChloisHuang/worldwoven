@@ -12,7 +12,7 @@ export function createChinaTavernMeal({getTenureRoleId=null,getClock=()=>({hour:
  const seats=furniture.items.filter(i=>i.id.startsWith('china-tavern-dining-'));let disposed=false;
  const current=()=>staffScene.playerOrder();
  function requestMeal(dishId=M.id){if(!canRequest()){notify('请先交还手上的岗位或结清临工，再坐下点菜');return false;}const seat=getMounted();if(!seat||!seats.includes(seat)){notify('请先挑一个空餐位坐好');return false;}if(current()){notify('已经有一份待处理的点餐，稍等即可');return false;}return staffScene.requestPlayerMeal(seat,dishId);}
- return {seats,dish:M,menu:TAVERN_DISHES,walletCash:()=>copperLedger?.balances()?.copper?.cash??null,staffScene,requestMeal,owns:n=>staffScene.owns(n),socialStatus:n=>staffScene.socialStatus(n),
+ return {socialProfile:id=>staffScene.socialProfile(id),seats,dish:M,menu:TAVERN_DISHES,walletCash:()=>copperLedger?.balances()?.copper?.cash??null,staffScene,requestMeal,owns:n=>staffScene.owns(n),socialStatus:n=>staffScene.socialStatus(n),
   cancel:()=>staffScene.cancelPlayerMeal(),leaveSeat(id){if(current()?.seatId===id)staffScene.cancelPlayerMeal();},
   eat:()=>staffScene.eatPlayerMeal(),playerPose:()=>staffScene.playerPose(),statusLabel:seatId=>current()?.seatId===seatId?(LABELS[current().stage]||current().stage).replaceAll('菌菇饭',current().dishName):null,
   update(dt,t,options={}){if(!disposed)staffScene.update(dt,t,options);},
