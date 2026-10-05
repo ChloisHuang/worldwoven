@@ -52,7 +52,7 @@
 | 雅集接待 `cn-tavern-reception` 温晚 | [china-tavern-salon](../source/game/china-tavern-salon.js)：引见指定艺者→本人到案答复→有限空房→确认价目/预留→实际到房完成或取消退款 | **工序已在 / 未接职**；接待者当前主要站案姿态，真实业务在服务控制器。补接待空缺、玩家招呼客人/引见/留房/结账权限，保留艺者自主答复与房间锁 |
 | 诗词 `cn-tavern-reciter` 柳清弦；说书 `cn-tavern-storyteller` 沈砚舟；曲词 `cn-tavern-songwriter` 顾流萤；棋谈 `cn-tavern-chess-poet` 陆怀川 | [艺者定义](../source/game/china-tavern-salon-artists.js)、[salon](../source/game/china-tavern-salon.js)、[salon-life](../source/game/china-tavern-salon-life.js)：各自练习/阅读/歇场→引见时亲自答复→愿意才引路到空雅间→非露骨茶叙→返岗 | **工序已在 / 未接职**；四个专长逐一纳入，不把诗词一职代表全部。诗词一席已在开发分支接长期任职、原客钱包概率邀约、自主接受/拒绝及实际选诗诵读回应，见上表；说书/曲词/棋谈其余三专长仍待接职。当前曲词/棋谈为各自茶叙类型，不能声称完整乐器演奏/棋局规则已实现 |
 
-中国边界项：[china-palace-life](../source/game/china-palace-life.js) / [china-consort-activities](../source/game/china-consort-activities.js) 中 `cn-tea` Lin 有真实接待妃嫔、等候与双方交谈/释放，但没有点茶订单或付薪员工链，列**部分接待工序**，后续补职业登记与来客服务凭记。`cn-cooking` Jia 当前为包饺子姿态/短路线，御膳餐厅的皇帝、妃嫔和官员吃点心并未向其下单；须先接厨房出品/送膳链再算御膳职业完成。`cn-rest` Lan 为读书居民；玩家读书学习不把Lan变成已实现书吏岗位。客栈床位可用，但订房账册尚未开，无已实现客栈住宿雇员工序。来源：[china-palace.js](../source/game/china-palace.js)、[china-tavern.js](../source/game/china-tavern.js)。
+中国边界项：[china-palace-life](../source/game/china-palace-life.js) / [china-consort-activities](../source/game/china-consort-activities.js) 中 `cn-tea` Lin 有真实接待妃嫔、等候与双方交谈/释放，但没有点茶订单或付薪员工链，列**部分接待工序**，后续补职业登记与来客服务凭记。`cn-cooking` Jia 当前为包饺子姿态/短路线，御膳餐厅的皇帝、妃嫔原点心动画并未向其下单；六官自费酒楼替代链已在独立分支验证待发布；须先接厨房出品/送膳链再算御膳职业完成。`cn-rest` Lan 为读书居民；玩家读书学习不把Lan变成已实现书吏岗位。客栈床位可用，但订房账册尚未开，无已实现客栈住宿雇员工序。来源：[china-palace.js](../source/game/china-palace.js)、[china-tavern.js](../source/game/china-tavern.js)。
 
 ## 日本：14名汤馆员工及3名演艺人员
 
@@ -94,6 +94,10 @@
 | 讲解/观摩 `egypt-sphinx` 哈桑、`egypt-glyphs` 莱拉、`egypt-guardian` 努尔、`egypt-burial` 阿米娜、`egypt-stars` 梅丽特、`egypt-horus-eye` 塔雅 | 石纹、壁画、神像、墓室、星图与护符的静读/讲解 | 普通居民/参观互动；未定义有客团、交付结果与工资的导览职业，不凭场景名字生成已实现工作 |
 
 没有源码证据的工匠、采购、祭司等职业流程记“未实现/未证实”，不由文化设定推定已经存在；后续内容仍沿 W03、CR01 与 CL03 建设。
+
+## 六官本人俸资与用餐（独立分支已验证，未发布）
+
+六官原固定身份与岗位不变，不赋予未经实现的历史官品。首段24铜文为统一值勤俸：完整真实朝班→本人回原署归档8秒→每日唯一应付凭记→本人银行；资金来自一次性4320文“世界财政初始化”公库，不称税收或无限每日拨款。财源不足/保存失败保应付记录；尚无完整税收、官品差异俸表或升迁体系。本人先实走陆昭柜台核账取现，再自费酒楼复用原订单/厨师/助理，与皇家御膳资格分开。高品必须低阶真实任职资历与表现后获得审核机会，不能只凭高烹饪直授正四品。
 
 ## 特殊政治身份：已授权排队，尚未实现
 
