@@ -11,8 +11,8 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.82-public, 2026-10-05
-Verified published Sites source commit: 76d838fd990bfbacf1bb2e2473e7270f54d85f4c
+Published release: R16.83-public, 2026-10-05
+Verified published Sites source commit: 0d48921db4d5d0ffe7cee73d67a5e52401830cfc
 
 ## Working rules
 
@@ -162,3 +162,5 @@ R16.80 opens the French music-reception bank/exchange desk with Claire. Local Fr
 R16.81 adds Japan’s public reception exchange desk and stable adult teller, retaining the original14 staff, performers and bath/dining routes. It uses the shared bank accounts, original Japanese vouchers and unchanged quotes/interest. The entry/transaction/exit route passed with inspected normal views; French wage text now points to its local bank.
 
 R16.82 opens the Egyptian public-court ticket exchange desk and adult teller, using the original local vouchers and shared bank accounts, quotes and interest. The desert-entry/counter/transaction/exit route and normal scene views passed. All four regions now have physical bank counters; full local economies and bank careers remain unfinished.
+
+R16.83 connects paid player stays to Yunlai’s existing two guest rooms and Xu An’s physical check-in. Twelve copper covers 24 simulated hours; pre-check-in cancellation refunds, completed check-in settles once, and checkout leaves persistent dirt for the existing assistant to clean. NPC lodging and salon reservations share room exclusion. A complete actual route passed; browser/iOS remains unverified.
