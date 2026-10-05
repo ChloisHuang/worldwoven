@@ -16,7 +16,7 @@ import {createStudyMenu} from './study-menu.js';
 import {studyOptions,studyLesson,STUDY_SKILL_NAMES} from './study-lessons.js';
 import {createChinaCourtCareer} from './china-court-career.js';
 import {moveActorWithCollision,followActorRoute,beginActorNavigationStep} from './actor-navigation.js';
-import {playerStationIntent,nearbyInteraction,nearbyInteractions,currentInteractionIntent,createServiceMenuIntents} from './player-interaction-intents.js';
+import {playerStationIntent,nearbyInteraction,nearbyInteractions,uniqueInteractionActions,currentInteractionIntent,createServiceMenuIntents} from './player-interaction-intents.js';
 import {createContextualActionMenu} from './contextual-action-menu.js';
 import {createFranceGardener} from './france-gardener.js';
 import {createFranceGardenerEmployment} from './france-gardener-employment.js';
@@ -155,16 +155,21 @@ const contextMenu=createContextualActionMenu({button:$('touch-action'),onSelect:
 function configureContextualServices(){
  serviceMenus.clear();const stations=new Map(lot.stations.map(s=>[s.id,s]));
  const counter=(id,action,extra={})=>{const station=stations.get(id);return station?{...station,action,targetKey:id,targetName:station.npcName||station.name,...extra}:null;};
- const current=(id,action,extra={})=>({id,name:extra.name||'当前安排',action,position:player.root.position.toArray(),interactionRadius:.4,executionRadius:.4,priority:48,continuation:true,...extra});
+ const current=(id,action,extra={})=>({id,name:extra.name||'当前安排',action,position:player.root.position.toArray(),interactionRadius:.4,executionRadius:.4,priority:48,continuation:true,visibilityChecked:true,...extra});
  if(chinaTavernUI)serviceMenus.register('china-meal',{target:()=>{const meal=chinaTavernUI.menuContext();return meal.order?current('cn-tavern-host','查看当前餐单',{targetKey:'cn-tavern-host',targetName:'许安 · 云来酒楼'}):meal.seated?{...meal.seated,action:'查看食单 · 点菜',furniture:false,targetKey:meal.seated.id,targetName:meal.seated.name,position:meal.seated.anchor,executionRadius:1.8}:counter('cn-tavern-host','查看食单 · 选座点菜',{executionRadius:1.8});},open:()=>chinaTavernUI.open()});
  if(chinaLodgingUI)serviceMenus.register('china-stay',{target:()=>{const stay=chinaLodgingUI.menuContext();return stay?.bookingId&&stay.inRoom?current('cn-tavern-lodging','查看住宿 · 客房与退房',{name:'云来客栈',targetKey:'cn-tavern-lodging',intentKey:stay.bookingId+':'+stay.stage}):null;},open:()=>chinaLodgingUI.open()});
  if(chinaSalonUI)serviceMenus.register('china-salon',{target:()=>chinaSalon.active()?current('cn-tavern-reception','查看当前引见与茶叙',{targetKey:'cn-tavern-reception',targetName:'温晚 · 雅集接待'}):counter('cn-tavern-reception','查看雅集 · 请温晚引见',{executionRadius:1.2}),open:()=>chinaSalonUI.open()});
- if(franceLabor){const registration=franceLabor.intent('view');if(registration)serviceMenus.register('france-labor',{target:()=>franceLabor.active()?{...registration,action:'查看园艺工作与登记',targetKey:'france-gardener',targetName:'埃米尔 · 园艺登记'}:null,open:()=>franceLabor.open()});}
+ if(franceLabor)serviceMenus.register('france-labor',{target:()=>franceLabor.active()&&franceLabor.menuContext()?.available?current('france-gardener','查看园艺工作与登记',{targetKey:'france-gardener',targetName:'埃米尔 · 园艺登记'}):null,open:()=>franceLabor.open()});
  if(japanServiceUI)serviceMenus.register('japan-visit',{target:()=>japanServiceUI.hasVisit()?current('jp-welcome','查看浴牌或餐单',{targetKey:'jp-welcome',targetName:'汤馆服务'}):null,open:()=>japanServiceUI.open()});
  if(japanPerformanceUI)serviceMenus.register('japan-performance',{target:()=>japanPerformance.active()?current('jp-performance-reception','查看当前演出与茶席',{targetKey:'jp-performance-reception',targetName:'戏馆接待'}):counter('jp-performance-reception','查看演出与茶席',{executionRadius:1.2}),open:()=>japanPerformanceUI.open()});
 }
 function contextualTarget(item){
  if(!item)return item;
+ const visit=japanServiceUI?.hasVisit();
+ if(item.menuId==='japan-visit')return {...item,actionKey:'jp-service-panel'};
+ if(['jp-welcome','jp-sushi','jp-ramen'].includes(item.id)&&!item.social)return {...item,targetKey:item.id,actionKey:visit?'jp-service-panel':item.id};
+ if(item.playerService&&['dining-panel','register','wait','panel','order'].includes(item.serviceStep?.kind)){const id=item.serviceStep.kind==='dining-panel'?item.id.replace('jp-dining-','jp-'):item.id==='jp-player-service-desk'||item.serviceStep.kind==='register'?'jp-welcome':item.id;return {...item,targetKey:id,actionKey:visit?'jp-service-panel':id};}
+ if(item.franceTea||item.id==='france-cafe'&&!item.social)return {...item,targetKey:'france-cafe',actionKey:'france-tea-service'};
  const host=item.id==='cn-tavern-host'||['china-tavern-lodging','china-tavern-service','china-tavern-labor'].includes(item.provider)&&!['task','clean','work-view','end-shift'].includes(item.kind);
  return host?{...item,targetKey:'cn-tavern-host',targetName:'许安 · 云来酒楼',action:item.provider==='china-tavern-labor'&&item.kind==='view'?'临时帮工 · 查看招工登记':item.provider==='china-tavern-service'&&item.kind==='formal-view'?'长期职位 · 查看申请条件':item.action}:item;
 }
@@ -174,7 +179,7 @@ function currentControl(){
  if(chinaLabor?.isCleaning())return {...base,intentKey:'clean',action:'停止擦拭'};
  if(chinaCareer?.isActing()||franceLabor?.isActing()||franceTeaEmployment?.isActing()||francePastryEmployment?.isActing())return {...base,intentKey:'work',action:'停止当前工作'};
  if(bathTransition)return {...base,intentKey:'bath',action:'离开浴池'};
- if(pendingInteraction)return {...base,intentKey:'pending:'+pendingInteraction.id,action:'取消前往'};
+ if(pendingInteraction)return {...base,intentKey:['pending',pendingInteraction.provider,pendingInteraction.id,pendingInteraction.intentKey].join(':'),action:'取消前往'};
  if(performing)return {...base,intentKey:'performing:'+performing.id,action:'结束当前动作'};
  if(npcSocial?.active())return {...base,intentKey:'chat:'+npcSocial.state().id,icon:'chat',action:'结束交谈'};
  if(seated)return {...base,id:seated.id,intentKey:'seated:'+seated.id,name:seated.name,targetKey:seated.id,icon:seated.kind==='seat'?'chair':'hand',action:furnitureExit(seated)};
@@ -396,8 +401,8 @@ function requestStationIntent(station){
 }
 function goToStation(s){if(outfitPreview.state().open)return;arrivalViewUntil=0;if(!cancelAction())return;const dest={x:s.position[0],y:s.position[1]||0,z:s.position[2]};path=planPath(player.root.position,dest);targetStation=s;if(!path.length&&player.root.position.distanceTo(new THREE.Vector3(...s.position))>3){toast('这里暂时走不过去，可以从另一侧绕过去');targetStation=null;}else toast(`正在走向${s.name}`);}
 function cancelAction({keepSeat=false}={}){if(activeDailyToilet()?.active()&&!activeDailyToilet().cancel())return false;studyMenu.close();formalCareers.cancelLearning(studyTicket);if(pendingInteraction?.provider==='china-tavern-meal')chinaTavernUI?.invalidateIntent();studyTicket=null;chinaCareer?.stopActivity();chinaClinicEmployment?.stopActivity();franceTeaEmployment?.stopActivity();francePastryEmployment?.stopActivity();chinaService?.stopActivity();chinaLabor?.stopCleaning();franceLabor?.stopActivity();franceTea?.cancel('取消当前动作');chinaMoneyHouse?.close();if(!keepSeat&&!standFromSeat())return false;if(!seated)furniture?.releaseActor?.('player');npcSocial?.end();chinaSalon?.cancel();chinaArchery?.stopPlayer();chinaClinic?.stopPlayer();japanPlayerService?.stopActivity();pendingInteraction=null;performing=null;actionTime=0;$('activity-progress').hidden=true;$('player-state').textContent='自在散步';return true;}
-function doInteraction(){if(!interactionMenuOpen()&&player)contextMenu.activate();}
-function executeNearbyAction(selected){if(interactionMenuOpen()||!player||!selected)return false;if(selected.contextControl){if(selected.intentKey!==currentControl()?.intentKey)return false;}else if(!nearbyInteraction(selected,player.root.position,{clear:nearbyInteractionClear}))return false;const nearest=selected;if(nearest.provider==='service-menu')return requestStationIntent(nearest);if(activeDailyToilet()?.active()){activeDailyToilet().cancel();return;}if(chinaLabor?.isCleaning()){chinaLabor.stopCleaning();return;}if(chinaCareer?.isActing()){chinaCareer.stopActivity();return;}if(franceLabor?.isActing()){franceLabor.stopActivity();return;}if(franceTeaEmployment?.isActing()||francePastryEmployment?.isActing()){franceTeaEmployment?.stopActivity();francePastryEmployment?.stopActivity();return;}if(bathTransition){standFromSeat();return;}if(nearest?.franceTea){npcSocial?.end();const result=franceTea.interact();if(result==='cancel-walk'){cancelAction();path=[];targetStation=null;}return;}if(nearest?.weatherCharm){path=[];targetStation=null;keys.clear();joy={x:0,y:0};$('joystick-knob').style.transform='';japanWeatherCharms.interact(nearest.id);return;}if(nearest?.playerService){path=[];targetStation=null;pendingInteraction=null;performing=null;npcSocial?.end();keys.clear();joy={x:0,y:0};$('joystick-knob').style.transform='';japanServiceUI.interact(nearest);return;}if(seated){standFromSeat();return;}if(npcSocial?.active()){npcSocial.end();return;}if(performing||pendingInteraction){cancelAction();path=[];targetStation=null;return;}if(!nearest)return;if(nearest.social){const reply=npcSocial?.begin(nearest.actor);if(reply){path=[];targetStation=null;toast(`${reply.name}：${reply.reply}`);}return;}if(nearest.furniture){requestFurniture(nearest);return;}requestStationIntent(nearest);}
+function doInteraction(){if(!roofShown&&!interactionMenuOpen()&&player)contextMenu.activate();}
+function executeNearbyAction(selected){if(roofShown||interactionMenuOpen()||!player||!selected)return false;if(selected.contextControl){if(selected.intentKey!==currentControl()?.intentKey)return false;}else if(!nearbyInteraction(selected,player.root.position,{clear:nearbyInteractionClear}))return false;const nearest=selected;if(nearest.provider==='service-menu')return requestStationIntent(nearest);if(activeDailyToilet()?.active()){activeDailyToilet().cancel();return;}if(chinaLabor?.isCleaning()){chinaLabor.stopCleaning();return;}if(chinaCareer?.isActing()){chinaCareer.stopActivity();return;}if(franceLabor?.isActing()){franceLabor.stopActivity();return;}if(franceTeaEmployment?.isActing()||francePastryEmployment?.isActing()){franceTeaEmployment?.stopActivity();francePastryEmployment?.stopActivity();return;}if(bathTransition){standFromSeat();return;}if(nearest?.franceTea){const live=franceTea.target();if(live?.id!==nearest.id||live.action!==nearest.action)return false;npcSocial?.end();const result=franceTea.interact();if(result==='cancel-walk'){cancelAction();path=[];targetStation=null;}return;}if(nearest?.weatherCharm){const live=japanWeatherCharms.target();if(live?.id!==nearest.id||live.action!==nearest.action)return false;path=[];targetStation=null;keys.clear();joy={x:0,y:0};$('joystick-knob').style.transform='';japanWeatherCharms.interact(nearest.id);return;}if(nearest?.playerService){const live=japanServiceUI.target();if(live?.id!==nearest.id||live.action!==nearest.action||nearest.serviceIntent&&!currentInteractionIntent(nearest.serviceIntent,live.serviceIntent))return false;path=[];targetStation=null;pendingInteraction=null;performing=null;npcSocial?.end();keys.clear();joy={x:0,y:0};$('joystick-knob').style.transform='';japanServiceUI.interact(nearest);return;}if(seated){standFromSeat();return;}if(npcSocial?.active()){npcSocial.end();return;}if(performing||pendingInteraction){cancelAction();path=[];targetStation=null;return;}if(!nearest)return;if(nearest.social){const reply=npcSocial?.begin(nearest.actor);if(reply){path=[];targetStation=null;toast(`${reply.name}：${reply.reply}`);}return;}if(nearest.furniture){requestFurniture(nearest);return;}requestStationIntent(nearest);}
 
 function startInteraction(station,{lessonId=null}={}){if(interactionMenuOpen())return;if(station.furniture){startFurniture(station);return;}const current=resolvePlayerIntent(station);
  if(!current||station.intentKey&&station.intentKey!==current.intentKey||!nearbyInteraction(current,player.root.position,{radius:current.executionRadius??.016,clear:nearbyInteractionClear})){path=[];targetStation=null;pendingInteraction=null;toast('当前动作已变化，请重新选择');return;}
@@ -605,14 +610,14 @@ function updatePlayer(dt,t){player.walking=false;let x=0,z=0;if(keys.has('KeyW')
 
  candidates.push(...serviceMenus.candidates());
  if(!performing&&!seated&&chinaCareer){const registration=chinaCareer.intent('view');if(registration)candidates.push(registration);}
- const socialTarget=!performing&&!pendingInteraction&&!seated?npcSocial?.target():null;
- if(socialTarget)candidates.push({...socialTarget,position:socialTarget.actor.root.position.toArray(),priority:5});
+ const socialTargets=!performing&&!pendingInteraction&&!seated?npcSocial?.targets()||[]:[],socialTarget=socialTargets[0]||null;
+ for(const target of socialTargets)candidates.push({...target,position:target.actor.root.position.toArray(),priority:5,visibilityChecked:true});
  const playerServiceTarget=!performing&&!pendingInteraction&&!npcSocial?.active()?japanServiceUI?.target():null;
  if(playerServiceTarget)candidates.push({...playerServiceTarget,priority:50});
  const weatherCharmTarget=japanWeatherCharms?.target();if(weatherCharmTarget)candidates.push({...weatherCharmTarget,priority:30});
  const franceTeaTarget=!performing&&!npcSocial?.active()?franceTea?.target():null;
  if(franceTeaTarget)candidates.push({...franceTeaTarget,position:lot.stations.find(s=>s.id==='france-cafe').position,priority:50});
- const nearby=nearbyInteractions(candidates,player.root.position,nearbyInteractionClear).map(contextualTarget);
+ const nearby=uniqueInteractionActions(nearbyInteractions(candidates,player.root.position,nearbyInteractionClear).map(contextualTarget));
  nearest=nearby[0]||null;
  if(seated)nearest=playerServiceTarget||franceTeaTarget||seated;
  if(npcSocial?.active()&&socialTarget)nearest=socialTarget;

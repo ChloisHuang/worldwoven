@@ -33,13 +33,16 @@ export function nearbyInteractions(candidates,position,clear=()=>true){
   if(!candidate||!position||!nearbyInteraction(candidate,position))continue;
   const identity=interactionIdentity(candidate);if(seen.has(identity))continue;
   const key=candidate.furniture?'furniture:'+candidate.id:candidate.position.join(':');
-  if(!visibility.has(key))visibility.set(key,clear(candidate));
-  if(!visibility.get(key))continue;
+  if(!candidate.visibilityChecked){if(!visibility.has(key))visibility.set(key,clear(candidate));if(!visibility.get(key))continue;}
   seen.add(identity);near.push(candidate);
  }
  return near.sort((a,b)=>(b.priority??20)-(a.priority??20)||
   Math.hypot(a.position[0]-position.x,a.position[2]-position.z)-Math.hypot(b.position[0]-position.x,b.position[2]-position.z));
 }
+
+// Equivalent legacy entry points collapse after priority sorting. Identity and
+// backend intent keys stay intact, so deduplication never grants permission.
+export function uniqueInteractionActions(candidates){const seen=new Set();return candidates.filter(item=>{const key=item.actionKey||interactionIdentity(item);if(seen.has(key))return false;seen.add(key);return true;});}
 
 export function interactionIdentity(item){return [item?.provider||'',item?.social?'social':'',item?.id||'',item?.intentKey??''].join('|');}
 
