@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const main=fs.readFileSync(new URL('../source/game/main.js',import.meta.url),'utf8'),html=fs.readFileSync(new URL('../source/game/index.html',import.meta.url),'utf8'),css=fs.readFileSync(new URL('../source/game/game.css',import.meta.url),'utf8');
-const obsolete=/daybook|discovery-count|activity-heading|station-list|furniture-list/;
+const obsolete=/daybook|discovery-count|activity-heading|station-list|furniture-list|interact-(button|title|npc)/;
 for(const source of [html,main,css])assert(!obsolete.test(source),'retired HUD has no markup, CSS or runtime selectors at any viewport');
 const element=()=>({children:[],dataset:{},style:{},attrs:{},hidden:false,append(node){this.children.push(node);node.parent=this;},remove(){if(this.parent)this.parent.children.splice(this.parent.children.indexOf(this),1);},setAttribute(k,v){this.attrs[k]=String(v);}});
 const ids=Object.fromEntries([...html.matchAll(/\bid="([^"]+)"/g)].map(m=>[m[1],element()]));
@@ -16,6 +16,10 @@ vm.runInContext(take('function furnitureAction(','function stationIntent(')+take
 assert.equal(context.mode,'globe');assert(!ids['daybook-toggle']);assert(!ids['interact-button'],'duplicate bottom action removed');assert(!ids['interact-title'],'duplicate long action label removed');ids.travel.onclick();vm.runInContext('renderStations()',context);assert.equal(furnitureLabels.length,5);
 for(const item of fixtures){const label=furnitureLabels.find(x=>x.item===item).label;label.onclick();assert.equal(requested.at(-1),item.id);assert(label.attrs['aria-label'].includes(item.name));}
 context.isNear=false;const before=requested.length;furnitureLabels[0].label.onclick();assert.equal(requested.length,before,'far furniture label cannot submit');ids['return-world'].onclick();assert.equal(context.mode,'globe');assert(ids['lot-ui'].hidden);
+// Production bath crossing still runs while the main player loop returns early.
+// It must not touch the removed bottom button or replace the semantic SVG.
+context.bathTransition={update:()=>({position:[0,0,0],yaw:0}),state:()=>({direction:'enter'}),done:false};context.characterPoseContext=()=>null;context.player={root:{position:{fromArray(){}},rotation:{}},animate(){}};ids['touch-action'].innerHTML='<svg></svg>';
+vm.runInContext(take('function updateBathTransition(','function walkToFurniture('),context);vm.runInContext('updateBathTransition(.1,1)',context);assert.equal(ids['touch-action'].innerHTML,'<svg></svg>');assert(ids['player-state'].textContent.includes('慢慢入汤'));
 // Evaluate the actual needs/health readout assignment with a live DOM target.
 context.dailyNeeds={status:()=>({text:'有些饿了'})};context.gameHealth={text:()=> '需要休息'};vm.runInContext(take("const needText=dailyNeeds.status('player')",'\n'),context);assert.equal(ids['player-health'].textContent,'有些饿了 · 需要休息');assert(!ids['player-health'].hidden);
 console.log('PASS HUD: retired inventory/bottom labels absent; nearby furniture labels retain actions/range guards; live needs prompt retained. Context icon/chooser behavior covered by contextual-action-menu.mjs (DOM only).');
