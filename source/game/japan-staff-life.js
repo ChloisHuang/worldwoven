@@ -38,7 +38,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
  let active=null,night=!!saved.night,completed=Math.max(0,saved.completed|0),interrupted=Math.max(0,saved.interrupted|0);
  if(saved.nextId&&crew.some(n=>n.station.id===saved.nextId))next=crew.findIndex(n=>n.station.id===saved.nextId);
  const events=[];let reliefLook=null,resumeReturn=saved.version>=6&&!!saved.returning;
- let ready=false,conversations=null;
+ let ready=false,conversations=null,socialReads=null;
  const decisions=createLifeDecisions({worldSeed,actorIds:crew.map(n=>n.station.id),saved:saved.decisions,sharedNeeds,onChange:()=>ready?saveState(snapshot()):true});
  const copy=x=>JSON.parse(JSON.stringify(x));
  let mealSerial=Math.max(0,Number.isSafeInteger(saved.mealSerial)?saved.mealSerial:0),mealReceipts=(Array.isArray(saved.mealReceipts)?saved.mealReceipts:[]).filter(r=>r?.source==='japan-staff-meal'&&Number.isSafeInteger(r.number)&&r.number>0&&r.id===`jp-staff-meal-${r.number}-consumed`&&r.completed===true&&JAPAN_STAFF_CREW.includes(r.actorId)).map(copy),needCheckAt=0,receiptRetryAt=0;
@@ -66,14 +66,14 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
  const go=(n,to,options)=>assign(n,to,{staffLife:true,...options});
  const release=n=>{board.releaseWorkplace(n.station.id);furniture.releaseActor(n.station.id);};
  function sociallyAvailable(n,state){
-  const id=n.station.id,need=sharedNeeds?.status(id),task=taskOf(n),work=board.state();
+  if(active?.phase!=='returning'||active.interrupted||active.socialPauseDone||active.id==='jp-incense'||!actors.has('jp-incense')||!['jp-incense',active.id].includes(n.station.id))return false;
+  const id=n.station.id,need=sharedNeeds?.status(id),task=taskOf(n),work=socialReads?(socialReads.board??=board.state()):board.state();
   if(getMeetingHeld(id)||need?.seekMeal||need?.seekToilet||decisions.fatigued(id)||state.conversationActorId===id||state.meetingActorId===id||state.performing===id||n.serviceMount||n.bathTransition||task&&!task.idle&&!task.staffConversation||work.claims.some(j=>j.workerId===id)||work.items.some(i=>i.location?.type==='worker'&&i.location.id===id))return false;
-  if(external(id)&&active?.id!==id&&active?.reliefId!==id)return 'released';
   // The retiring worker has actually finished a break and still has coverage.
   // An idle apothecary stays within the original dispatch area, relinquishing
   // the conversation immediately when any original preparation order arrives.
-  const gap=active?.phase==='returning'&&!active.interrupted&&!active.socialPauseDone&&decisions.experience(active.id)&&actors.get(active.id).root.position.y>11&& !work.claims.some(j=>j.kind==='prepare')&&!board.jobs().some(j=>j.kind==='prepare');
-  if(gap&&(id===active.id||id==='jp-incense')&&n.root.position.y>11&&nearPoint(n,[-5.25,11.4,-.3],7))return id===active.id?'break':'standby';
+  const gap=active?.phase==='returning'&&!active.interrupted&&!active.socialPauseDone&&decisions.experience(active.id)&&actors.get(active.id).root.position.y>11&& !work.claims.some(j=>j.kind==='prepare')&&!(socialReads?(socialReads.jobs??=board.jobs()):board.jobs()).some(j=>j.kind==='prepare');
+  if(gap&&(id===active.id||id==='jp-incense')&&n.root.position.y>11&&(conversations?.owns(id)||nearPoint(n,[-5.25,11.4,-.3],7)))return id===active.id?'break':'standby';
   return false;
  }
  // Availability is a hard gate, independent of preference. Check it once at
@@ -192,6 +192,9 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   },
   canWork(id){if(conversations.owns(id))return false;return !active||(id!==active.id&&!(id===active.reliefId&&!active.externalCoverage&&['draining','handoff'].includes(active.phase)));},
   update(dt,state={}) {
+   // Social eligibility shares one lazy read in this synchronous simulation
+   // step. External recall/restore and the next step always read fresh work.
+   socialReads={};try {
    time+=dt;decisions.tick(dt);if(active?.externalCoverage&&!external(active.id))active.externalCoverage=false;
    if(time>=receiptRetryAt){receiptRetryAt=time+1;deliverMeals();}
    // One bounded needs check each second; decisions still happen only after
@@ -245,6 +248,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
     const work=post(active.id);if(work.mount&&!furniture.facilities.request(work.mount.id,active.id))return;
     go(n,work.to,{...work,duration:1,onDone:finish});
    }
+   }finally{socialReads=null;}
   },
   abort(n){
    if(conversations.abort(n))return;
