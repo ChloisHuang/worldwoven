@@ -9,7 +9,7 @@ const PLACES={
   [TAVERN]:{country:'china',currency:'copper',workplace:'云来酒楼',employer:'许安',destination:'云来酒楼 · 许安的招工登记案'},
   [GARDEN]:{country:'france',currency:'france',workplace:'西苑',employer:'埃米尔',destination:'西苑工具架 · 埃米尔的园艺登记簿'},
 };
-const COUNTRIES={china:'中国',france:'法国'},SKILLS={ritual:'礼仪',writing:'文书',gardening:'园艺'};
+const COUNTRIES={china:'中国',france:'法国'},SKILLS={ritual:'礼仪',writing:'文书',gardening:'园艺',art:'艺术'};
 const place=role=>({...PLACES[role?.id],...role});
 const unit=role=>{const id=place(role).currency;return id==='copper'?'铜文':id==='france'?'法国券':GAME_CURRENCIES[id]?.unit||'';};
 const wageRange=role=>`${role.wage}–${role.wage+(role.id===CLERK?2:1)}${unit(role)}`;
@@ -94,7 +94,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       const vacancy=role.vacancy??(hired?0:1);
       text('长期任职 · 独立名额1',hired?`你已占用${role.name}职位，可一直任职，也可回登记处办理离职。现有NPC各守原职。`:`当前空缺 ${vacancy}/1。成年人须在当地登记处核对申请条件；正在进行的临时活须先完成或取消。`);
       text('每日实际职责',isClerk(role)?'11:30之前到正殿第七录事班位候朝，随六位官员行礼并听记；退朝后沿公共通路回官署，抄录归档8秒，本日工资自动存入当地钱庄。':role.id===TAVERN?'06:00–18:00到云来酒楼许安处开工，亲自走到两张指定餐桌旁逐桌擦净，再回许安处当面验收。完成验收后才会把日薪存入铜钱账户。':'06:00–18:00到西苑埃米尔处开工，领取工具架上的真实浇水壶，亲自浇完两畦玫瑰、归还水壶，再找埃米尔验收。完成验收后才会把日薪存入法国券账户。');
-      text('申请能力',`${skillLine(role)}。礼仪可通过藏书处读书或完成酒楼两桌擦拭积累；文书来自翰墨书房习字；园艺来自完整完成西苑浇花工作。`);
+      text('申请能力',`${skillLine(role)}。中国藏书处或法国镜厅可选择礼仪、文书、园艺及艺术读物；书案习字积累文书，画室写生积累艺术。完成酒楼两桌擦拭积累礼仪，完整西苑浇花积累园艺。`);
       text('登记地点',`${place(role).workplace} · ${employer(role)}。${service?'下方导航会带你走到实际登记位置，申请仍须在当地办理。':travel(role)}`);
     }else if(tab==='today'){
       const title=`第${c.day+1}日 · ${isClerk(role)?'朝会11:30':'开工06:00–18:00'}`;
@@ -114,7 +114,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       text('保存与结算','若保存失败，会保留应计凭记并自动重试；同一岗位同一天只入账一次。没有离线自动收入。');
       if(role.id===GARDEN)text('临时活与正式职位','原园艺临时活仍为每次6铜文；正式园艺岗位使用法国券计日薪，两种工作各按实际完成情况结算。');
     }else{
-      text('技能与申请',`当前礼仪${s.skills.ritual??0}、文书${s.skills.writing??0}、园艺${s.skills.gardening??0}。${role.name}申请门槛：${skillLine(role)}。完整学习或实际完成工作才会积累技能。`);
+      text('技能与申请',`当前礼仪${s.skills.ritual??0}、文书${s.skills.writing??0}、园艺${s.skills.gardening??0}、艺术${s.skills.art??0}。${role.name}申请门槛：${skillLine(role)}。完整学习或实际完成工作才会积累技能。`);
       text('成长记录',`已累计${s.promotionProgress??0}次有效成长记录。正式工作的评价与技能会保留，可据此准备其他已开放职位。`);
       text('晋升 · 尚未开放','更高品级、主管职位与后续晋升名额均未开放。当前不能解锁新头衔；手册目录只列出实际可登记的三份正式职位。');
       text('起步与转职','中国酒楼帮工、法国园艺帮工仍是可选计件活。转入正式职位前，须先完成或取消手头的临时活；在职转岗须先回原岗位离职。原任NPC保留其职位。');

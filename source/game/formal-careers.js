@@ -1,3 +1,4 @@
+import {STUDY_SOURCES, studyLesson, defaultStudyLesson} from './study-lessons.js';
 // Fictional finite vacancies, independent of the six existing world NPCs.
 export const COURT_CLERK_ROLE = Object.freeze({
   id: 'cn-court-clerk', name: '礼务录事', rank: 9, slotId: 'cn-court-clerk-1', country: 'china', currency: 'copper', employer: '沈叙', workplace: '承务官署',
@@ -19,8 +20,8 @@ export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWAR
 export const FORMAL_CAREER_SLOTS = Object.freeze([
   ...FORMAL_CAREER_ROLES.map(role => Object.freeze({id:role.slotId,roleId:role.id,holderId:null})),
 ]);
-const STUDIES = Object.freeze({'cn-rest': 'ritual', 'cn-calligraphy': 'writing'});
-const SKILLS = Object.freeze(['ritual', 'writing', 'gardening']);
+const SKILLS = Object.freeze(['ritual', 'writing', 'gardening', 'art']);
+const emptyStudy = () => ({issued: 0, completed: 0, issuedDay: null, lessonId: null});
 const WORK = Object.freeze({'cn-tavern-labor':'ritual','fr-garden-labor':'gardening'});
 const STAGES = new Set(['arrived', 'attending', 'archive', 'ready', 'missed', 'paid', 'working', 'inspection']);
 const copy = value => JSON.parse(JSON.stringify(value));
@@ -33,10 +34,9 @@ const excused = duty => duty?.stage === 'missed' && duty.reason === 'court-postp
 const supervisor = role => role.supervisorId || COURT_SUPERVISOR.id;
 const completedWage = (role, arrivalHour) => role.workSource ? role.wage + (arrivalHour < role.earlyBeforeHour ? role.preparationBonus : 0) : role.wage + (COURT_SUPERVISOR.conscientiousness >= .8 &&
   arrivalHour <= role.dutyWindow.endHour - COURT_SUPERVISOR.earlyArrivalMinutes / 60 ? COURT_SUPERVISOR.preparationBonus : 0);
-const empty = () => ({version: 2, revision: 0, skills: {ritual: 0, writing: 0, gardening: 0}, tenure: null,
-  lastDuty: null, lastPaidDay: null, daily: {day: null, ritual: 0, writing: 0, gardening: 0},
-  learning: {'cn-rest': {issued: 0, completed: 0, issuedDay: null},
-    'cn-calligraphy': {issued: 0, completed: 0, issuedDay: null}},
+const empty = () => ({version: 3, revision: 0, skills: {ritual: 0, writing: 0, gardening: 0, art: 0}, tenure: null,
+  lastDuty: null, lastPaidDay: null, daily: {day: null, ritual: 0, writing: 0, gardening: 0, art: 0},
+  learning: Object.fromEntries(STUDY_SOURCES.map(source => [source, emptyStudy()])),
   lowerWork: {'cn-tavern-labor': 0, 'fr-garden-labor': 0}, performance: 0, promotionProgress: 0,
   lastEvaluatedDay: null, lastEvaluation: null});
 
@@ -72,21 +72,31 @@ function restore(saved, roleMap, slotMap) {
     saved = {...copy(saved), version:2,skills:{...saved.skills,gardening:0},
       daily:{...saved.daily,gardening:0},lowerWork:{...saved.lowerWork,'fr-garden-labor':0}};
   }
+  // Published v2 saves retain all earned progress, employment and receipts.
+  // Reject malformed old study rows before adding the selected lesson field.
+  if (object(saved) && saved.version === 2 && object(saved.skills) && Object.keys(saved.skills).length === 3 &&
+    object(saved.daily) && object(saved.learning) && Object.keys(saved.learning).length === 2 &&
+    ['cn-rest','cn-calligraphy'].every(source => object(saved.learning[source]) && Object.keys(saved.learning[source]).length === 3)) {
+    saved = {...copy(saved), version:3, skills:{...saved.skills,art:0}, daily:{...saved.daily,art:0},
+      learning:Object.fromEntries(STUDY_SOURCES.map(source => [source, saved.learning[source] ?
+        {...saved.learning[source],lessonId:saved.learning[source].issued?defaultStudyLesson(source).id:null}:emptyStudy()]))};
+  }
   const validSlot = (roleId, slotId) => roleMap.has(roleId) && slotMap.get(slotId)?.roleId === roleId && slotMap.get(slotId).holderId === null;
-  if (!object(saved) || saved.version !== 2 || !integer(saved.revision) || !object(saved.skills) ||
+  if (!object(saved) || saved.version !== 3 || !integer(saved.revision) || !object(saved.skills) ||
     Object.keys(saved.skills).length !== SKILLS.length || SKILLS.some(key => !integer(saved.skills[key])) ||
     SKILLS.some(key=>saved.skills[key]>100) || saved.skills.ritual + saved.skills.writing > 100 || !dayOrNull(saved.lastPaidDay) ||
     !object(saved.daily) || !dayOrNull(saved.daily.day) || SKILLS.some(key => !integer(saved.daily[key]) ||
       saved.daily[key] > 4 || saved.daily[key] > saved.skills[key]) ||
     (saved.daily.day === null && SKILLS.some(key => saved.daily[key] !== 0)) ||
-    !object(saved.learning) || Object.keys(saved.learning).length !== Object.keys(STUDIES).length ||
+    !object(saved.learning) || Object.keys(saved.learning).length !== STUDY_SOURCES.length ||
     !object(saved.lowerWork) || Object.keys(saved.lowerWork).length !== 2 || Object.keys(WORK).some(source=>!integer(saved.lowerWork[source])) ||
     !Number.isInteger(saved.performance) || Math.abs(saved.performance) > 100 ||
     !integer(saved.promotionProgress) || saved.promotionProgress > 100 || !dayOrNull(saved.lastEvaluatedDay)) throw Error('invalid-career-state');
-  for (const source of Object.keys(STUDIES)) {
+  for (const source of STUDY_SOURCES) {
     const study = saved.learning[source];
-    if (!object(study) || Object.keys(study).length !== 3 || !integer(study.issued) || !integer(study.completed) || study.completed > study.issued ||
-      !dayOrNull(study.issuedDay) || (study.issued === 0) !== (study.issuedDay === null)) throw Error('invalid-career-state');
+    if (!object(study) || Object.keys(study).length !== 4 || !integer(study.issued) || !integer(study.completed) || study.completed > study.issued ||
+      !dayOrNull(study.issuedDay) || (study.issued === 0) !== (study.issuedDay === null) ||
+      (study.issued === 0 ? study.lessonId !== null : !studyLesson(source,study.lessonId))) throw Error('invalid-career-state');
   }
   if (saved.tenure !== null && (!object(saved.tenure) || !validSlot(saved.tenure.roleId, saved.tenure.slotId) ||
     !integer(saved.tenure.sinceDay) || !Number.isFinite(saved.tenure.sinceHour) ||
@@ -120,13 +130,13 @@ function restore(saved, roleMap, slotMap) {
     !duty || review.day > duty.day || review.day === duty.day && (review.slotId !== duty.slotId ||
       (review.positive ? !['ready', 'paid'].includes(duty.stage) || duty.wage !== review.wage : duty.stage !== 'missed'))) throw Error('invalid-career-state');
   if (duty && ['ready', 'paid'].includes(duty.stage) && (!review || review.day !== duty.day || !review.positive)) throw Error('invalid-career-state');
-  return {version: 2, revision: saved.revision, skills: {...saved.skills},
+  return {version: 3, revision: saved.revision, skills: {...saved.skills},
     tenure: saved.tenure === null ? null : {roleId: saved.tenure.roleId, slotId: saved.tenure.slotId,
       sinceDay: saved.tenure.sinceDay, sinceHour: saved.tenure.sinceHour},
     lastDuty: duty === null ? null : {roleId: duty.roleId, slotId: duty.slotId, day: duty.day, stage: duty.stage,
       started: duty.started, reason: duty.reason, arrivalHour: duty.arrivalHour, wage: duty.wage,...(roleMap.get(duty.roleId).workSource?{workReceiptId:duty.workReceiptId}: {})},
     lastPaidDay: saved.lastPaidDay, daily: {...saved.daily},
-    learning: Object.fromEntries(Object.keys(STUDIES).map(source => [source, {...saved.learning[source]}])),
+    learning: Object.fromEntries(STUDY_SOURCES.map(source => [source, {...saved.learning[source]}])),
     lowerWork: {...saved.lowerWork}, performance: saved.performance,
     promotionProgress: saved.promotionProgress, lastEvaluatedDay: saved.lastEvaluatedDay,
     lastEvaluation: review === null ? null : {id: review.id, evaluatorId: review.evaluatorId, day: review.day,
@@ -153,6 +163,7 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
   }
   let current = empty(), loadError = null, lastError = null, saving = false, paying = false, lastClock = null;
   let observedDay = null, interruptedUnsaved = false;
+  const activeStudies = new Map();
   let roleMap = new Map(), slotMap = new Map();
   try { ({roleMap, slotMap} = catalogue(roles, slots)); current = restore(saved, roleMap, slotMap); }
   catch (error) { loadError = error.message === 'invalid-career-catalogue' ? error.message : 'invalid-career-state'; }
@@ -237,18 +248,27 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     const next = ['arrived', 'attending', 'archive', 'working'].includes(current.lastDuty?.stage) ? missed(current, 'resigned') : current;
     return persist({...next, tenure: null});
   }
-  function learningTicket(source) {
+  function learningTicket(source, lessonId = defaultStudyLesson(source)?.id) {
     const blocked = allowed(); if (blocked) return blocked;
-    if (!own(STUDIES, source)) return failure('unknown-learning-source');
+    if (!STUDY_SOURCES.includes(source)) return failure('unknown-learning-source');
+    const lesson = studyLesson(source,lessonId); if (!lesson) return failure('unknown-learning-choice');
     const clock = now(); if (!clock) return failure('invalid-clock');
     const issued = current.learning[source].issued + 1;
     if (!Number.isSafeInteger(issued)) return failure('learning-limit');
-    const result = persist({...current, learning: {...current.learning, [source]: {...current.learning[source], issued, issuedDay: clock.day}}});
-    return result.ok ? {ok: true, ticket: {source, id: `${source}:${issued}:${clock.day}`}} : result;
+    const result = persist({...current, learning: {...current.learning, [source]: {...current.learning[source], issued, issuedDay: clock.day, lessonId}}});
+    if (!result.ok) return result;
+    const ticket = {source, id: `${source}:${issued}:${clock.day}`, lessonId};
+    activeStudies.set(source,ticket.id);
+    return {ok: true, ticket};
+  }
+  // Cancellation and reload lose the live witness; a saved unfinished ticket
+  // cannot be submitted later as if the player had actually finished a lesson.
+  function cancelLearning(ticket) {
+    if (ticket && activeStudies.get(ticket.source) === ticket.id) activeStudies.delete(ticket.source);
   }
   function grantSkill(next, skill, clock) {
-    const daily = current.daily.day === clock.day ? {...current.daily} : {day: clock.day, ritual: 0, writing: 0, gardening: 0};
-    const limited = daily[skill] >= 4 ? 'daily-skill-limit' : (skill==='gardening'?current.skills.gardening>=100:current.skills.ritual + current.skills.writing >= 100) ? 'skill-limit' : null;
+    const daily = current.daily.day === clock.day ? {...current.daily} : {day: clock.day, ritual: 0, writing: 0, gardening: 0, art: 0};
+    const limited = daily[skill] >= 4 ? 'daily-skill-limit' : (['gardening','art'].includes(skill)?current.skills[skill]>=100:current.skills.ritual + current.skills.writing >= 100) ? 'skill-limit' : null;
     const gained = limited ? 0 : 1;
     const result = persist({...next, daily: {...daily, [skill]: daily[skill] + gained},
       skills: {...current.skills, [skill]: current.skills[skill] + gained}});
@@ -256,14 +276,17 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
   }
   function completeLearning(ticket, {seconds} = {}) {
     const blocked = allowed(); if (blocked) return blocked;
-    if (!object(ticket) || !own(STUDIES, ticket.source)) return failure('invalid-learning-ticket');
+    if (!object(ticket) || !STUDY_SOURCES.includes(ticket.source)) return failure('invalid-learning-ticket');
     const clock = now(); if (!clock) return failure('invalid-clock');
-    const study = current.learning[ticket.source];
-    if (study.issued === 0 || ticket.id !== `${ticket.source}:${study.issued}:${study.issuedDay}`) return failure('invalid-learning-ticket');
+    const study = current.learning[ticket.source], lesson = studyLesson(ticket.source,study.lessonId);
+    if (study.issued === 0 || ticket.id !== `${ticket.source}:${study.issued}:${study.issuedDay}` || ticket.lessonId !== study.lessonId) return failure('invalid-learning-ticket');
     if (study.completed >= study.issued) return failure('learning-replayed');
     if (study.issuedDay !== clock.day) return failure('learning-expired');
-    if (!Number.isFinite(seconds) || seconds < 8) return failure('learning-incomplete');
-    return grantSkill({...current, learning: {...current.learning, [ticket.source]: {...study, completed: study.issued}}}, STUDIES[ticket.source], clock);
+    if (activeStudies.get(ticket.source) !== ticket.id) return failure('learning-interrupted');
+    if (!Number.isFinite(seconds) || seconds < lesson.seconds) return failure('learning-incomplete');
+    const result = grantSkill({...current, learning: {...current.learning, [ticket.source]: {...study, completed: study.issued}}}, lesson.skill, clock);
+    if (result.ok) activeStudies.delete(ticket.source);
+    return result;
   }
   function completedLowerWork({source, receiptId} = {}) {
     const blocked = allowed(); if (blocked) return blocked;
@@ -392,5 +415,5 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     canContinueLabor:receiptId=>{const d=current.lastDuty;let c;try{c=getClock();}catch{return false;}return !loadError&&d?.workReceiptId===receiptId&&(d.stage==='inspection'||d.stage==='working'&&d.day===c?.day);},
     currentRole:()=>copy(roleMap.get(current.tenure?.roleId)||null),
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&slot.holderId===null&&slot.id!==current.tenure?.slotId).length})),
-    laborEvent, apply, resign, learningTicket, completeLearning, completedLowerWork, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
+    laborEvent, apply, resign, learningTicket, cancelLearning, completeLearning, completedLowerWork, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
 }
