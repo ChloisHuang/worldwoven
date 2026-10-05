@@ -9,8 +9,16 @@ let rays=0;const near=nearbyInteractions(actions,position,()=>{rays++;return tru
 assert.equal(uniqueInteractionActions([at('current',{actionKey:'dining'}),at('legacy',{actionKey:'dining'})]).length,1,'equivalent dining entries do not create a fake multiple choice');
 assert.equal(nearbyInteractions([actions[0],actions[0]],position).length,1,'shared and legacy providers cannot duplicate identical intent');
 class Element{
- constructor(tag){this.tagName=tag;this.children=[];this.attrs={};this.dataset={};this.hidden=false;this.listeners={};this.scrollTop=0;this.rebuilds=0;}
- append(...nodes){this.children.push(...nodes);}replaceChildren(...nodes){this.rebuilds++;this.children=nodes;}setAttribute(k,v){this.attrs[k]=String(v);}getAttribute(k){return this.attrs[k];}addEventListener(k,fn){this.listeners[k]=fn;}showModal(){this.open=true;}close(){this.open=false;}remove(){}focus(){doc.activeElement=this;}
+ constructor(tag){this.tagName=tag;this.children=[];this.attrs={};this.dataset={};this.hidden=false;this.listeners={};this.scrollTop=0;this.rebuilds=0;this.parentNode=null;this.focusCalls=0;}
+ get isConnected(){return this===doc.body||!!this.parentNode?.isConnected;}
+ contains(node){return !!node&&(node===this||this.children.some(child=>child.contains(node)));}
+ append(...nodes){for(const node of nodes){node.remove();node.parentNode=this;this.children.push(node);}}
+ replaceChildren(...nodes){this.rebuilds++;for(const child of [...this.children])child.remove();this.append(...nodes);}
+ setAttribute(k,v){this.attrs[k]=String(v);}getAttribute(k){return this.attrs[k];}addEventListener(k,fn){this.listeners[k]=fn;}showModal(){this.open=true;}
+ close(){this.open=false;if(this.contains(doc.activeElement))doc.activeElement=doc.body;}
+ remove(){if(this.contains(doc.activeElement))doc.activeElement=doc.body;if(this.parentNode)this.parentNode.children=this.parentNode.children.filter(child=>child!==this);this.parentNode=null;}
+ focus(options){this.focusCalls++;if(!this.isConnected)return;for(let node=this;node;node=node.parentNode)if(node.tagName==='dialog'&&!node.open)return;doc.activeElement=this;this.focusOptions=options;}
+
 }
 const doc={body:new Element('body'),createElement:tag=>new Element(tag)},button=new Element('button'),selected=[];
 const menu=createContextualActionMenu({button,document:doc,onSelect:item=>selected.push(item.id)}),dialog=doc.body.children[0],list=dialog.children[1];
@@ -20,6 +28,12 @@ menu.update([actions[2]]);assert.equal(button.dataset.actionIcon,'chat');menu.up
 menu.update(near);assert.equal(button.dataset.actionIcon,'more');menu.activate();assert(dialog.open);assert.equal(selected.length,1,'opening chooser does not execute/charge');assert.equal(list.children[0].children.length,4,'all three grouped actions visible');const row=list.children[0].children[1],rebuilds=list.rebuilds;list.scrollTop=67;for(let i=0;i<30;i++)menu.update(near);assert.equal(list.rebuilds,rebuilds,'unchanged frames keep actual scroll DOM');assert.equal(list.scrollTop,67);menu.update([...near].reverse());assert.equal(list.rebuilds,rebuilds,'nearby actor distance changes do not reorder an open chooser');
 menu.update(near.slice(1));row.onclick();assert.equal(selected.length,1,'detached stale row cannot execute');dialog.listeners.cancel({preventDefault(){}});assert(!dialog.open);menu.update(near);menu.activate();list.children[0].children[1].onclick();assert.equal(selected.at(-1),'food','reopened chooser works');
 menu.update(near);menu.activate();menu.update([]);assert(!dialog.open);assert(button.hidden,'lost range closes chooser');
+// A real browser cannot focus detached rows. Refresh must attach every group
+// first, then restore the surviving action without scrolling or grabbing focus.
+menu.update(near);menu.activate();const oldFocused=list.children[0].children[2];oldFocused.focus();assert.equal(doc.activeElement,oldFocused);list.scrollTop=53;
+menu.update([...near,at('other',{targetKey:'other'})]);const restored=list.children[0].children[2];assert.notEqual(restored,oldFocused);assert(restored.isConnected);assert.equal(doc.activeElement,restored,'surviving action regains focus after its new row is attached');assert.deepEqual(restored.focusOptions,{preventScroll:true});assert.equal(list.scrollTop,53);
+menu.update([near[0],near[2]]);assert.equal(doc.activeElement,doc.body,'disappearing action does not focus another row');assert(list.children[0].children.slice(1).every(row=>row.focusCalls===0),'no fallback steals focus');
+const outside=new Element('button');doc.body.append(outside);list.children[0].children[1].focus();dialog.listeners.cancel({preventDefault(){}});outside.focus();menu.update(near);assert.equal(doc.activeElement,outside,'updates after cancel preserve outside focus');menu.activate();assert.equal(doc.activeElement,outside,'reopening never restores a cancelled action before showModal');assert(list.children[0].children.slice(1).every(row=>row.focusCalls===0));menu.close();
 let revision=1,available=true,opens=0;const services=createServiceMenuIntents();services.register('food',{target:()=>available?at('host',{intentKey:revision}):null,open:()=>{opens++;}});const old=services.intent('food');assert.equal(opens,0);revision++;assert.equal(services.resolveIntent(old),null);assert.equal(services.executeIntent(old),false);assert.equal(opens,0);assert(services.executeIntent(services.intent('food')));assert.equal(opens,1);available=false;assert.equal(services.candidates().length,0);services.clear();assert.equal(services.executeIntent(old),false);
 console.log('PASS contextual menu: shared near/floor/occlusion pass, all grouped actions, zero/single/multiple icons, stable DOM, stale/double click/cancel and live service identity');
 
