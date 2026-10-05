@@ -44,7 +44,8 @@ export function createFranceGardener({npcs,lot,doors,planPath,moveActor,poseCont
  const api={owns:a=>a===n,ownsStation:id=>id===P.id,request,cancel,requestMeeting,releaseMeeting,reserveTools,releaseTools,takeCan,returnCan,
   hostReady:()=>meeting&&stage==='meeting'&&!n.walking&&gap(n,P.host)<.08&&!paused,
   loanState:()=>({owner:loanOwner,borrowed,toolHolder:borrowed?'player':tool==='can'?'gardener':'rack',beds:loanOwner?['player','player']:['bedA','waterA','bedB','waterB'].includes(stage)?['gardener','gardener']:[null,null]}),
-  socialStatus:()=>({busy:['takeCan','putCan','takeShears','putShears'].includes(stage),attention:true,job:labels[stage]}),
+  socialProfile:id=>id===P.id?brain.state(id):null,
+  socialStatus:()=>({busy:!['idle','rest','garden','meeting'].includes(stage)||n.walking,attention:true,job:labels[stage]}),
   update(dt,t,{conversationActorId=null,hour=10}={}){
    if(disposed)return;time+=dt;brain.tick(dt);n.walking=false;paused=conversationActorId===P.id;
    let target=null,action=null,transfer=null;

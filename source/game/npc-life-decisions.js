@@ -4,7 +4,8 @@ const clamp=x=>Math.max(0,Math.min(1,x)),opinion=x=>Math.max(-1,Math.min(1,x));
 function hash(text){let h=2166136261;for(const c of text){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0||1;}
 const copy=x=>JSON.parse(JSON.stringify(x));
 // Conversation topics are evidence of completed actions, never invented news.
-const topicFit=(p,kind)=>kind==='staff-work'?p.traits.curiosity*.45+p.traits.quiet*.35+p.traits.sociability*.20:kind==='staff-rest'?p.traits.quiet*.70+p.traits.sociability*.30:kind==='read'?p.traits.curiosity*.65+p.traits.quiet*.35:p.traits.outdoors*.8+p.traits.quiet*.2;
+export const conversationTopicFit=(p,kind)=>kind==='staff-work'?p.traits.curiosity*.45+p.traits.quiet*.35+p.traits.sociability*.20:kind==='staff-rest'?p.traits.quiet*.70+p.traits.sociability*.30:kind==='read'?p.traits.curiosity*.65+p.traits.quiet*.35:p.traits.outdoors*.8+p.traits.quiet*.2;
+const topicFit=conversationTopicFit;
 export function conversationDisposition(person,other,kind,targetId){
  const familiarity=person.experiences?.some(e=>e.kind===kind)?.06:0;
  const alignment=1-(Math.abs(person.values.company-other.values.company)+Math.abs(person.values.quiet-other.values.quiet));
@@ -141,6 +142,6 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
   },
   observe,
   distribution(id,candidates,hour=10){const p=people[id];if(!p)return [];const entries=actions(p,candidates,hour),total=entries.reduce((sum,e)=>sum+e.weight,0);return entries.map(e=>{const targetTotal=e.targets?.reduce((sum,t)=>sum+t.weight,0);return {id:e.choice.id,probability:e.weight/total,targets:e.targets?.map(t=>({id:t.choice.id,probability:t.weight/targetTotal}))||[]};});},
-  state(id){syncHunger();return id?copy(people[id]):snapshot();},snapshot,dispose:save
+  state(id){if(id){const p=people[id];if(!p)return null;const h=sharedHunger(id);if(Number.isFinite(h))p.needs.hunger=h;return copy(p);}return snapshot();},snapshot,dispose:save
  };
 }

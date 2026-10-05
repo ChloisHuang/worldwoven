@@ -25,6 +25,6 @@ export function createClinicPhysicianLife({doctor,planPath,travel,near,worldSeed
   const pose=arrived?current:null;if(current.elapsed>=current.duration)end(true);else if(current.travelled>60)end();
   return pose;
  }
- return {update,restore,recall:end,label:()=>current?.label||'候诊厅稍歇',snapshot:()=>({version:1,time,next,current:current?{id:current.id,elapsed:current.elapsed,travelled:current.travelled}:null,brain:life.snapshot()}),
+ return {socialProfile:actorId=>actorId===id?life.state(id):null,update,restore,recall:end,label:()=>current?.label||'候诊厅稍歇',snapshot:()=>({version:1,time,next,current:current?{id:current.id,elapsed:current.elapsed,travelled:current.travelled}:null,brain:life.snapshot()}),
   flush:()=>{if(!dirty)return true;if(onChange()===false)return false;dirty=false;return true;}};
 }
