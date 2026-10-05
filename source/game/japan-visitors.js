@@ -9,7 +9,7 @@ export function createJapanVisitorIdentity({id,number},worldSeed=1,shapeVersion=
 }
 
 export function japanVisitorStation(visit) {
- return {id:visit.id,npcName:visit.name,name:'汤馆来客',culture:'japan',npcAction:null,npcLabel:'沿参道来到汤馆',npcPosition:visit.position.slice(),position:visit.position.slice(),dialogue:`我领的是第 ${visit.number} 号浴牌，泡完汤想吃一碗热面。`};
+ return {id:visit.id,npcName:visit.name,name:'汤馆来客',culture:'japan',npcAction:null,npcLabel:'沿参道来到汤馆',npcPosition:visit.position.slice(),position:visit.position.slice(),dialogue:`我领的是第 ${visit.number} 号浴牌，泡完汤想坐下吃份喜欢的餐点。`};
 }
 
 // Facility experiences still use station IDs. A mobile employee participates
