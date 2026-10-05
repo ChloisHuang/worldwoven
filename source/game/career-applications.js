@@ -56,7 +56,7 @@ export function restoreApplications(value,roleMap,slotMap){
  if(value===undefined)return emptyApplications();
  if(!object(value)||!object(value.byRole)||!(value.lastRoleId===null||roleMap.has(value.lastRoleId))||
   (value.lastRoleId===null)!==(Object.keys(value.byRole).length===0)||value.lastRoleId!==null&&!Object.hasOwn(value.byRole,value.lastRoleId))throw Error('invalid-career-state');
- const reasons=new Set(['adult-required','age-range-required','ritual-required','writing-required','gardening-required','art-required','cooking-required','martial-required','care-required','clinic-experience-required','tavern-chef-days-required','no-vacancy','already-employed','interview-rejected','withdrawn']);
+ const reasons=new Set(['adult-required','age-range-required','ritual-required','writing-required','gardening-required','art-required','cooking-required','martial-required','care-required','clinic-experience-required','tavern-chef-days-required','no-vacancy','already-employed','political-title-held','political-state-unavailable','interview-rejected','withdrawn']);
  for(const[roleId,r]of Object.entries(value.byRole)){
   if(!r?.status){restoreLegacyApplications({lastRoleId:roleId,byRole:{[roleId]:r}},roleMap,slotMap);continue;}
   const role=roleMap.get(roleId),isPending=r.status==='pending',approved=r.status==='approved';
@@ -71,7 +71,7 @@ export function restoreApplications(value,roleMap,slotMap){
   if(isPending){
    if(!['submitted','document-ready','document-held'].includes(r.stage)||r.code!==r.stage||
     (r.stage!=='submitted'&&roleId!=='cn-court-clerk')||r.tenure!==null)throw Error('invalid-career-state');
-  }else if(r.stage!=='decided'||(approved?r.code!=='approved':r.status==='cancelled'?r.code!=='withdrawn':!['ineligible','already-employed','interview-rejected'].includes(r.code)))throw Error('invalid-career-state');
+  }else if(r.stage!=='decided'||(approved?r.code!=='approved':r.status==='cancelled'?r.code!=='withdrawn':!['ineligible','already-employed','political-title-held','political-state-unavailable','interview-rejected'].includes(r.code)))throw Error('invalid-career-state');
   if(r.interview!==null){
    const i=r.interview;
    if(isPending&&r.stage==='submitted'||!object(i)||!Number.isFinite(i.chance)||i.chance<.2||i.chance>.95||i.roll!==r.roll||

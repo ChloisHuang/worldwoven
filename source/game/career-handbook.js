@@ -28,11 +28,11 @@ const employer=role=>place(role).employer||'岗位主管';
 const isClerk=role=>role?.id===CLERK;
 const registryKind=role=>isClerk(role)?'view':'formal-view';
 const dutySummary=role=>role.duties|| (isClerk(role)?'11:30朝仪听记 · 官署归档':role.id===TAVERN?'06:00–18:00 · 持续送餐、清洁脏桌、打扫退房客房；提前交班按工时计薪':'06:00–18:00 · 原壶浇两畦、归还与验收');
-const resultReason=code=>({'already-applied-today':'本岗位今日已提交，下一模拟日可再申请','interview-rejected':'硬门槛已满足，本次面谈未获录用','hiring-context-unavailable':'招聘信息暂不可用，请稍后重试','adult-required':'年龄未达要求','age-range-required':'台班招募年龄为18–40岁','ritual-required':'礼仪未达要求','writing-required':'文书未达要求','gardening-required':'园艺未达要求','art-required':'艺术未达要求','cooking-required':'烹饪未达要求，可在藏书处学习','martial-required':'武艺未达要求，请在射圃完成安全习射','care-required':'照护未达要求，可读虚构照护书并完成原助手服务','tavern-chef-days-required':'须在三个不同模拟日完成正式酒楼厨师原客单','clinic-experience-required':'须先完成一单药铺助手原单与本人交付，作为入门履历','already-employed':'已有正式职位，请先在原岗位办理离职','no-vacancy':'当前没有空缺','save-failed':'登记未能保存，请重试','async-save-unsupported':'登记未能保存，请重试','invalid-clock':'世界时钟暂不可用','invalid-career-state':'职业存档暂时无法核对'}[code]||'本次登记未完成，请稍后重试');
+const resultReason=code=>({'already-applied-today':'本岗位今日已提交，下一模拟日可再申请','interview-rejected':'硬门槛已满足，本次面谈未获录用','hiring-context-unavailable':'招聘信息暂不可用，请稍后重试','adult-required':'年龄未达要求','age-range-required':'台班招募年龄为18–40岁','ritual-required':'礼仪未达要求','writing-required':'文书未达要求','gardening-required':'园艺未达要求','art-required':'艺术未达要求','cooking-required':'烹饪未达要求，可在藏书处学习','martial-required':'武艺未达要求，请在射圃完成安全习射','care-required':'照护未达要求，可读虚构照护书并完成原助手服务','tavern-chef-days-required':'须在三个不同模拟日完成正式酒楼厨师原客单','clinic-experience-required':'须先完成一单药铺助手原单与本人交付，作为入门履历','already-employed':'已有正式职位，请先在原岗位办理离职','political-title-held':'已有宫廷名位，须先明确辞去名位','political-state-unavailable':'宫廷身份暂不可核验','no-vacancy':'当前没有空缺','save-failed':'登记未能保存，请重试','async-save-unsupported':'登记未能保存，请重试','invalid-clock':'世界时钟暂不可用','invalid-career-state':'职业存档暂时无法核对'}[code]||'本次登记未完成，请稍后重试');
 
 
 export function createCareerHandbook({careers,copperLedger,getClock,getService,getCountry=()=>null,getPlayer=()=>null,
-  onIntent=()=>{},onOpen=()=>{},walletFactory=null,document:doc=globalThis.document}) {
+  onIntent=()=>{},onOpen=()=>{},walletFactory=null,getPoliticalTitle=()=>null,onPoliticalTitleOpen=null,document:doc=globalThis.document}) {
   const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;};
   const slot=make('div',null,'career-wallet-slot'),money=make('span',null,'career-money'),button=make('button',null,'career-open');
   // Original guild-knot emblem: a mint star, open gold yoke and lavender ties.
@@ -217,9 +217,9 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     registrationScope=options===true||options?.scope==='catalogue'?'catalogue':'role';
     onOpen();render(true);if(!dialog.open)dialog.showModal();
   }
-  button.onclick=()=>open(false);dialog.addEventListener('cancel',()=>close());dialog.addEventListener('click',e=>{if(e.target===dialog)close();});
+  button.onclick=()=>{if(!careers.state().tenure&&getPoliticalTitle()?.active&&onPoliticalTitleOpen){close();onPoliticalTitleOpen();}else open(false);};dialog.addEventListener('cancel',()=>close());dialog.addEventListener('click',e=>{if(e.target===dialog)close();});
   return {open,close,isOpen:()=>!!dialog.open,
-    update(mode){const s=careers.state(),r=s.lastEvaluation,c=getClock();slot.hidden=mode!=='lot';if(!wallet){money.textContent=`${copperLedger.state().cash} 铜文`;money.setAttribute('aria-label',`手头${copperLedger.state().cash}铜文`);}const employed=!!s.tenure&&!s.loadError;button.hidden=!employed&&!nearbyRegistries().length;button.setAttribute('aria-label',employed?'打开当前职业手册':'选择本国求职场所');
+    update(mode){const s=careers.state(),r=s.lastEvaluation,c=getClock();slot.hidden=mode!=='lot';if(!wallet){money.textContent=`${copperLedger.state().cash} 铜文`;money.setAttribute('aria-label',`手头${copperLedger.state().cash}铜文`);}const employed=!!s.tenure&&!s.loadError,titled=!employed&&!!getPoliticalTitle()?.active&&!!onPoliticalTitleOpen;button.hidden=!employed&&!titled&&!nearbyRegistries().length;button.setAttribute('aria-label',titled?'查看宫廷名位':employed?'打开当前职业手册':'选择本国求职场所');
       const customer=s.lastDuty?.customerReviews?.at(-1);
       if(customer&&customer.id!==customerReviewId){customerReviewId=customer.id;feedback.textContent=`${customer.score===0?'○':customer.positive?'👍':'👎'} ${customer.customerName}：${customer.reason}`;feedback.className='career-review-pop '+(customer.score===0?'':customer.positive?'career-positive':'career-negative');feedbackUntil=c.seconds+6;feedback.hidden=false;}
       else if(r&&r.id!==reviewId){reviewId=r.id;const role=roles().find(item=>item.id===r.roleId);feedback.textContent=`${r.positive?'👍':'👎'} ${employer(role)}：${r.reason}`;feedback.className='career-review-pop '+(r.positive?'career-positive':'career-negative');feedbackUntil=c.seconds+6;feedback.hidden=false;}
