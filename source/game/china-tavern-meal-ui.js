@@ -29,7 +29,7 @@ export function createChinaTavernMealUI({service,getPlayer,getMounted,getRecepti
  function request(selected){if(!resolveIntent(selected)){refresh(true);return;}dialog.close();onIntent(selected);}
  function refresh(force=false){
   const s=service.view(),o=s.order,mounted=getMounted(),seated=service.seats.find(i=>i.id===mounted?.id),available=canOrder(),near=nearEntry();
-  badge.hidden=!near||!canShow();badge.textContent=o?`云来酒楼 · ${o.cancelled?'正在收拾餐具':s.label}`:seated?'云来酒楼 · 招呼掌柜点菜':'云来酒楼 · 选座点菜';
+  badge.hidden=!near||!canShow();badge.textContent=o?`云来酒楼 · ${o.cancelled?'正在收拾餐具':s.label}`:seated?'云来酒楼 · 招呼许安点菜':'云来酒楼 · 选座点菜';
   if(dialog.open&&!near&&!o){close();return;}if(!dialog.open&&!force)return;const key=[o?.id,o?.stage,o?.cancelled,mounted?.id,available,chosenDish,service.walletCash?.(),...service.seats.map(seat=>canChooseSeat(seat))].join('|');if(!force&&key===signature)return;signature=key;invalidateIntent();dialog.replaceChildren();
   const x=button('×',close);x.className='cn-meal-close';x.setAttribute('aria-label','关闭酒楼菜牌');dialog.append(x,make('h2','云来酒楼'),make('p',service.walletCash?.()==null?'钱包记录待核对':`钱包 ${service.walletCash()} 铜文`));
   if(!o){const dishes=make('div',null,'cn-meal-actions');for(const dish of service.menu||[]){const b=button(`${dish.name} · ${dish.price}文`,()=>{chosenDish=dish.id;refresh(true);},chosenDish===dish.id);dishes.append(b);}dialog.append(dishes);}

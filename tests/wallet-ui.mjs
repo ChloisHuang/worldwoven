@@ -205,4 +205,20 @@ function fixture({reduced=false,saved,manualImages=false}={}){
 }
 assert.equal(walletTransactionView({id:'legacy',action:'earn',amount:5}).currency,'copper','legacy journal rows retain copper');
 assert.equal(walletTransactionView({id:'settled',action:'settle',currency:'japan',amount:5}).route,null);
+{
+  const f=fixture({saved:{version:1,cash:0,bank:250,accountOpened:true,nextTransaction:1,transactions:[]}});
+  const {doc,ledger,wallet}=f;
+  assert(ledger.observeDay(6).ok);assert.equal(doc.images.length,0,'interest initialization fetches no cash artwork');
+  assert(ledger.observeDay(7).ok);
+  assert.deepEqual(receiptArt(doc),[{currency:'copper',file:'china.webp',text:'中国铜钱2 文'}]);
+  assert.equal(one(doc,'ww-wallet-mini').dataset.action,'interest');assert.match(one(doc,'ww-wallet-mini').textContent,/每日利息.*1%.*银行/);
+  wallet.open();assert.equal(all(doc,'ww-wallet-note').length,0,'interest belongs to bank, never the wallet cash stack');
+  assert.match(one(doc,'ww-wallet-bank-list').textContent,/252 文/);
+  assert.match(one(doc,'ww-wallet-journal').textContent,/每日利息.*日息1%.*最低存款 250 文.*已到账银行/);
+  assert(ledger.observeDay(8).ok);assert.equal(one(doc,'ww-wallet-transfer').className,'ww-wallet-transfer is-interest');
+  assert.deepEqual(receiptArt(doc),[{currency:'copper',file:'china.webp',text:'中国铜钱2 文'}]);
+  const current=one(doc,'ww-wallet-transfer');assert(ledger.observeDay(8).replayed);
+  assert.equal(one(doc,'ww-wallet-transfer'),current,'same-day observe cannot restart the receipt');
+  wallet.dispose();
+}
 console.log('PASS wallet DOM: lazy cash-only art, aggregated notes, separate banks/holds, committed receipts, failure/replay, FX, spend/settle, repeated and interrupted modal, reduced motion, invalid ledger and journal paging');

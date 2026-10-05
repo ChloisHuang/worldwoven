@@ -6,7 +6,34 @@ export function displayedViewport(canvas){
  return {width:Math.max(1,Math.round(width)),height:Math.max(1,Math.round(height)),left,top};
 }
 
-const HUD='.topbar a,.topbar button,.topbar .logo,.location-card,.lot-tools,.daybook,.character-card,.interaction,.joystick,.touch-action,.camera-tools,.career-wallet-slot,.jp-service-ticket,.jp-performance-ticket,#toast,#arrival,dialog[open]';
+// Insets belong to the layout viewport. Intersect its safe frame with the
+// visual viewport before adding a margin; an offset viewport must not apply
+// the notch inset twice. This frame never moves the WebGL canvas.
+export function safeUiRect(visual,layout=visual,safe={},gutter=12){
+ const left=Math.max(visual.left,layout.left+(safe.left||0));
+ const top=Math.max(visual.top,layout.top+(safe.top||0));
+ const right=Math.max(left,Math.min(visual.left+visual.width,layout.left+layout.width-(safe.right||0)));
+ const bottom=Math.max(top,Math.min(visual.top+visual.height,layout.top+layout.height-(safe.bottom||0)));
+ const x=Math.min(gutter,(right-left)/2),y=Math.min(gutter,(bottom-top)/2);
+ return {left:left+x,top:top+y,right:right-x,bottom:bottom-y,width:Math.max(0,right-left-x*2),height:Math.max(0,bottom-top-y*2)};
+}
+
+// The fixed HUD and all dialogs consume these same measured CSS coordinates.
+const uiFrames=new WeakMap();
+export function syncUiViewport(root=document){
+ const el=root.documentElement,view=root.defaultView;
+ if(!el?.style?.setProperty||!view)return null;
+ const layout={left:0,top:0,width:el.clientWidth||view.innerWidth,height:el.clientHeight||view.innerHeight};
+ const vv=view.visualViewport,visual=vv?{left:vv.offsetLeft,top:vv.offsetTop,width:vv.width,height:vv.height}:layout;
+ const style=view.getComputedStyle(el),safe=Object.fromEntries(['left','top','right','bottom'].map(side=>[side,parseFloat(style.getPropertyValue(`--ww-safe-${side}`))||0]));
+ const rect=safeUiRect(visual,layout,safe);
+ uiFrames.set(root,rect);
+ const values={left:rect.left,right:layout.width-rect.right,top:rect.top,bottom:layout.height-rect.bottom,width:rect.width,height:rect.height,'center-x':rect.left+rect.width/2,'center-y':rect.top+rect.height/2};
+ for(const [key,value] of Object.entries(values))el.style.setProperty(`--ww-ui-${key}`,`${value}px`);
+ return rect;
+}
+
+const HUD='.topbar a,.topbar button,.topbar .logo,.location-card,.lot-tools,.daybook,.character-card,.interaction,.joystick,.touch-action,.camera-tools,.career-wallet-slot,.jp-service-ticket,.jp-performance-ticket,.cn-meal-ticket,.cn-salon-ticket,.fr-labor-badge,#toast,#arrival,dialog[open]';
 export function createHudLayout(root=document){
  let dirty=true,rects=[];
  const dimensions=new WeakMap(),observed=new WeakSet(),invalidate=()=>{dirty=true;};
@@ -31,7 +58,7 @@ export function createHudLayout(root=document){
    let size=dimensions.get(label);
    if(!size||size.key!==key){size={key,width:label.offsetWidth,height:label.offsetHeight};dimensions.set(label,size);}
    const x=parseFloat(label.style.left),y=parseFloat(label.style.top);
-   return labelOverlapsHud({left:x-size.width/2,right:x+size.width/2,top:y-size.height,bottom:y},this.rects(),viewport,padding);
+   return labelOverlapsHud({left:x-size.width/2,right:x+size.width/2,top:y-size.height,bottom:y},this.rects(),uiFrames.get(root)||viewport,padding);
   }
  };
 }

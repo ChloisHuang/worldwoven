@@ -1,8 +1,8 @@
 /* The dialog is only an invisible accessibility/focus shell. The artwork is
    the whole object: two printed sheets and a spine, or one closed cover. */
-.ww-passport-dialog{position:fixed;inset:0;margin:auto;padding:0;--passport-width:min(1080px,calc(100vw - 16px),calc((100dvh - 16px)*1.5384615385));width:var(--passport-width);height:calc(var(--passport-width)*.65);aspect-ratio:960/624;max-width:none;max-height:none;overflow:visible;border:0;border-radius:0;background:transparent;color:#514d3e;box-shadow:none;outline:none}
+.ww-passport-dialog{position:fixed;inset:0;margin:auto;padding:0;--passport-width:min(1080px,var(--ww-ui-width),calc(var(--ww-ui-height)*1.5384615385));width:var(--passport-width);height:calc(var(--passport-width)*.65);aspect-ratio:960/624;max-width:none;max-height:none;overflow:visible;border:0;border-radius:0;background:transparent;color:#514d3e;box-shadow:none;outline:none}
 .ww-passport-dialog[open]{display:block}.ww-passport-dialog::backdrop{background:#17352fe0;backdrop-filter:blur(3px)}
-.ww-passport-dialog[data-layout=portrait]{--passport-width:min(calc(100vw - 12px),calc((100dvh - 20px)*.7777777778));width:var(--passport-width);height:calc(var(--passport-width)*1.2857142857);aspect-ratio:560/720}
+.ww-passport-dialog[data-layout=portrait]{--passport-width:min(var(--ww-ui-width),calc(var(--ww-ui-height)*.7777777778));width:var(--passport-width);height:calc(var(--passport-width)*1.2857142857);aspect-ratio:560/720}
 .ww-passport-book{position:relative;width:100%;height:100%;aspect-ratio:inherit;isolation:isolate;touch-action:pan-y}
 .ww-passport-art,.ww-passport-controls{position:absolute;inset:0}.ww-passport-art{pointer-events:none}.ww-passport-art svg{display:block;width:100%;height:100%;overflow:visible}
 .ww-passport-art{z-index:1}.ww-passport-controls{z-index:3;pointer-events:none}

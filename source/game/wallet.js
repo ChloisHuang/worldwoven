@@ -1,4 +1,5 @@
 import {GAME_CURRENCIES} from './currency-ledger.js';
+import {safeUiRect} from './viewport-layout.js';
 
 // Merely resolving these URLs does not fetch the pictures. Create images only
 // for already-owned cash, or the currency in a committed receipt.
@@ -14,7 +15,7 @@ const validAmount = n => Number.isSafeInteger(n) && n >= 0;
 const number = n => validAmount(n) ? n.toLocaleString('zh-CN') : '—';
 const currency = id => GAME_CURRENCIES[id] || GAME_CURRENCIES.copper;
 const money = (amount, id) => `${number(amount)} ${currency(id).unit}`;
-const ACTIONS = {open:'开立账户', wage:'工资入账', earn:'计件工钱', deposit:'存入银行', withdraw:'取出现金', exchange:'兑换现金', reserve:'预付消费', settle:'消费结清', refund:'退回现金'};
+const ACTIONS = {open:'开立账户', wage:'工资入账', interest:'每日利息', earn:'计件工钱', deposit:'存入银行', withdraw:'取出现金', exchange:'兑换现金', reserve:'预付消费', settle:'消费结清', refund:'退回现金'};
 
 const clamp = (n, lo=0, hi=1) => Math.min(hi,Math.max(lo,n));
 const mix = (a,b,t) => a+(b-a)*t;
@@ -22,11 +23,10 @@ const ease = n => {const t=clamp(n);return t*t*(3-2*t);};
 
 // Receipt coordinates are independent of any scrolling service dialog. The
 // whole paper path fits this card, including when the keyboard shrinks the view.
-export function walletReceiptFrame(viewport,game=viewport,safe={}) {
-  const left=Math.max(viewport.left+(safe.left||0),game.left)+12;
-  const top=Math.max(viewport.top+(safe.top||0),game.top)+12;
-  const right=Math.min(viewport.left+viewport.width-(safe.right||0),game.left+game.width)-12;
-  const bottom=Math.min(viewport.top+viewport.height-(safe.bottom||0),game.top+game.height)-12;
+export function walletReceiptFrame(viewport,game=viewport,safe={},layout=game) {
+  const frame=safeUiRect(viewport,layout,safe);
+  const left=Math.max(frame.left,game.left+12),top=Math.max(frame.top,game.top+12);
+  const right=Math.min(frame.right,game.left+game.width-12),bottom=Math.min(frame.bottom,game.top+game.height-12);
   const scale=Math.max(0,Math.min(1,(right-left)/270,(bottom-top)/105));
   return {left:Math.max(left,right-270*scale),top,width:270,height:105,scale};
 }
@@ -67,6 +67,7 @@ export function walletTransactionView(tx) {
   let detail = c.label, route = null, badge = amount;
   switch (tx.action) {
     case 'wage': detail = `${c.label} · 第${number((tx.day ?? 0) + 1)}日工资`; route = ['work','bank']; badge = `+${amount}`; break;
+    case 'interest': detail = `${c.label} · 第${number(tx.day + 1)}日 · 日息1% · 最低存款 ${money(tx.principal,id)} · 已到账银行`; route = ['interest','bank']; badge = `+${amount}`; break;
     case 'earn': detail += ' · 随身现金'; route = ['work','cash']; badge = `+${amount}`; break;
     case 'withdraw': detail += ' · 银行 → 钱包'; route = ['bank','cash']; break;
     case 'deposit': detail += ' · 钱包 → 银行'; route = ['cash','bank']; break;
@@ -110,6 +111,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
       width:visual?.width||view?.innerWidth||doc.documentElement?.clientWidth||294,
       height:visual?.height||view?.innerHeight||doc.documentElement?.clientHeight||129};
     const game=doc.getElementById?.('world')?.getBoundingClientRect?.()||viewport;
+    const layout={left:0,top:0,width:doc.documentElement?.clientWidth||view?.innerWidth||viewport.width,height:doc.documentElement?.clientHeight||view?.innerHeight||viewport.height};
     const styles=view?.getComputedStyle?.(mini),safe=Object.fromEntries(['left','top','right','bottom'].map(side=>[side,parseFloat(styles?.getPropertyValue(`--receipt-safe-${side}`))||0]));
     let bounds=game,origin={left:0,top:0};
     if(receiptModal){
@@ -118,7 +120,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
       bounds={left,top,width:Math.max(0,Math.min(game.left+game.width,rect.left+rect.width)-left),height:Math.max(0,Math.min(game.top+game.height,rect.top+rect.height)-top)};
       origin={left:rect.left+(receiptModal.clientLeft||0)-(receiptModal.scrollLeft||0),top:rect.top+(receiptModal.clientTop||0)-(receiptModal.scrollTop||0)};
     }
-    const frame=walletReceiptFrame(viewport,bounds,safe);
+    const frame=walletReceiptFrame(viewport,bounds,safe,layout);
     mini.style.position=receiptModal?'absolute':'fixed';mini.style.left=`${frame.left-origin.left}px`;mini.style.top=`${frame.top-origin.top}px`;mini.style.transform=`scale(${frame.scale})`;
   }
   function presentReceipt(epoch){
@@ -198,7 +200,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     left.append(cashHeading,fan,hint,cashList);
     const cashSummary=make('div',null,'ww-wallet-cash-summary'),cashSummaryAmount=make('strong');
     cashSummary.append(make('span','钱包现金'),cashSummaryAmount);cashSummary.setAttribute('aria-label','随身现金汇总');
-    const bankHeading=make('div',null,'ww-wallet-section-heading');bankHeading.append(make('h3','银行存款'),make('span','独立账户 · 与现金分开'));
+    const bankHeading=make('div',null,'ww-wallet-section-heading');bankHeading.append(make('h3','银行存款'),make('span','每游戏日 1% · 最低存款向下取整'));
     const bankList=make('dl',null,'ww-wallet-bank-list');bankList.setAttribute('aria-label','各币种银行存款');
     const ledgerHeading=make('h3','收支手记','ww-wallet-ledger-title'),scroll=make('div',null,'ww-wallet-ledger-scroll');scroll.tabIndex=0;scroll.setAttribute('aria-label','滚动查看收支记录');
     const journal=make('ol',null,'ww-wallet-journal');scroll.append(journal);
@@ -347,7 +349,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     pulseTimer=setTimeout(()=>{trigger.classList.remove('has-receipt');delete trigger.dataset.receipt;},2200);
     clearTransfer();
     if(!ui?.dialog.open){
-      const places={work:'工作',bank:'银行',cash:'钱包',spend:'消费',exchange:'兑换'};
+      const places={interest:'每日利息 · 1%',work:'工作',bank:'银行',cash:'钱包',spend:'消费',exchange:'兑换'};
       mini.replaceChildren();mini.dataset.action=view.action;
       const title=make('strong',`${view.title} · ${view.badge}`,'ww-wallet-mini-title'),route=make('div',null,'ww-wallet-mini-route');
       route.append(make('span',places[view.route[0]]),make('span',places[view.route[1]]));

@@ -16,7 +16,7 @@
 .ww-wallet-mini[data-action=exchange] .ww-wallet-mini-slip>span:first-child{animation:ww-wallet-old-note 1.8s both}
 .ww-wallet-mini-slip>.is-received{animation:ww-wallet-new-note 1.8s both}
 @keyframes ww-wallet-mini-move{0%{opacity:0;transform:translate(0,8px) rotate(-12deg) scale(.65)}20%,75%{opacity:1}50%{transform:translate(73px,-10px) rotate(0) scale(1)}100%{opacity:0;transform:translate(145px,6px) rotate(10deg) scale(.6)}}
-.ww-wallet-dialog{position:fixed;inset:0;margin:auto;width:min(800px,calc(100vw - max(24px,env(safe-area-inset-left)) - max(24px,env(safe-area-inset-right))));max-width:none;height:min(550px,calc(100dvh - max(20px,env(safe-area-inset-top)) - max(20px,env(safe-area-inset-bottom))));max-height:none;padding:0;overflow:hidden;border:2px solid #a37c54;border-radius:19px 22px 20px 16px;background:#faf0d6;color:#554532;box-shadow:0 22px 65px #21362965,0 0 0 4px #d4b27a70}
+.ww-wallet-dialog{position:fixed;inset:0;margin:auto;width:min(800px,var(--ww-ui-width));max-width:none;height:min(550px,var(--ww-ui-height));max-height:none;padding:0;overflow:hidden;border:2px solid #a37c54;border-radius:19px 22px 20px 16px;background:#faf0d6;color:#554532;box-shadow:0 22px 65px #21362965,0 0 0 4px #d4b27a70}
 .ww-wallet-dialog[open]{display:flex;flex-direction:column}
 .ww-wallet-dialog::backdrop{background:#20362f7a;backdrop-filter:blur(2px)}
 .ww-wallet-header{display:flex;align-items:center;justify-content:space-between;flex:0 0 auto;padding:14px 20px 10px;border-bottom:1px dashed #b8996b}
@@ -89,7 +89,7 @@
 .ww-wallet-transfer-label>strong{font:700 calc(14px*var(--amount-scale,1))/1.1 Georgia,'Songti SC',serif}
 .ww-wallet-mini-slip .ww-wallet-transfer-label{font-size:6px;gap:2px}.ww-wallet-mini-slip .ww-wallet-transfer-label>strong{font-size:calc(10px*var(--amount-scale,1))}
 .ww-wallet-transfer.is-withdraw{animation-name:ww-wallet-from-bank}
-.ww-wallet-transfer.is-wage{animation-name:ww-wallet-wage}
+.ww-wallet-transfer.is-wage,.ww-wallet-transfer.is-interest{animation-name:ww-wallet-wage}
 .ww-wallet-transfer.is-reserve{animation-name:ww-wallet-spend}
 .ww-wallet-transfer.is-earn,.ww-wallet-transfer.is-refund{animation-name:ww-wallet-refund}
 .ww-wallet-transfer.is-exchange{animation-name:ww-wallet-exchange}
@@ -105,7 +105,7 @@
 @keyframes ww-wallet-old-note{0%,40%{opacity:1;transform:rotate(-7deg)}55%,100%{opacity:0;transform:rotate(-18deg) translateX(-20px)}}
 @keyframes ww-wallet-new-note{0%,40%{opacity:0;transform:rotate(18deg) translateX(20px)}60%,100%{opacity:1;transform:rotate(5deg)}}
 @media(max-height:500px){
- .ww-wallet-dialog{width:min(750px,calc(100vw - max(16px,env(safe-area-inset-left)) - max(16px,env(safe-area-inset-right))));height:calc(100dvh - max(8px,env(safe-area-inset-top)) - max(8px,env(safe-area-inset-bottom)));border-radius:13px}
+ .ww-wallet-dialog{width:min(750px,var(--ww-ui-width));height:var(--ww-ui-height);border-radius:13px}
  .ww-wallet-header{padding:3px 13px}.ww-wallet-eyebrow{display:none}.ww-wallet-dialog h2{font-size:18px}
  .ww-wallet-cash{padding:7px 14px 5px}.ww-wallet-book{padding:7px 13px 5px 17px}.ww-wallet-section-heading>span{font-size:8px}.ww-wallet-dialog h3{font-size:13px;margin-bottom:2px}
 

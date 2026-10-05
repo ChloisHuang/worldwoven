@@ -10,7 +10,7 @@ export const GAME_CURRENCIES = Object.freeze({
 });
 export const EXCHANGE_RATE_VERSION = 'worldwoven-fixed-v1';
 const CURRENCIES = Object.keys(GAME_CURRENCIES);
-const ACTIONS = new Set(['open', 'deposit', 'withdraw', 'earn', 'wage', 'reserve', 'settle', 'refund', 'exchange']);
+const ACTIONS = new Set(['open', 'deposit', 'withdraw', 'earn', 'wage', 'reserve', 'settle', 'refund', 'exchange', 'business', 'interest']);
 const copy = value => JSON.parse(JSON.stringify(value));
 const integer = value => Number.isSafeInteger(value) && value >= 0;
 const positive = value => integer(value) && value > 0;
@@ -43,6 +43,8 @@ function makeQuote({from, to, amount, version = EXCHANGE_RATE_VERSION} = {}) {
 function signature(tx) {
   return {action: tx.action, currency: tx.currency, amount: tx.amount,
     ...(tx.action === 'wage' ? {roleId: tx.roleId, slotId: tx.slotId, day: tx.day} : {}),
+    ...(tx.action === 'business' ? {businessId: tx.businessId, operation: tx.operation} : {}),
+    ...(tx.action === 'interest' ? {day: tx.day, principal: tx.principal, ratePercent: tx.ratePercent} : {}),
     ...(tx.action === 'exchange' ? {quote: copy(tx.quote)} : {}),
     ...(terminal(tx.action) ? {reservationId: tx.reservationId} : {})};
 }
@@ -53,6 +55,10 @@ function validateRequest(tx) {
   if (terminal(tx.action) ? !idValid(tx.reservationId) || tx.requestId !== terminalId(tx.action, tx.reservationId) : !idValid(tx.requestId)) return 'invalid-request-id';
   if (tx.action === 'open' ? tx.amount !== 0 : !positive(tx.amount)) return 'invalid-amount';
   if (tx.action === 'wage' && (!idValid(tx.roleId) || !idValid(tx.slotId) || !integer(tx.day))) return 'invalid-wage-receipt';
+  if (tx.action === 'interest' && (!integer(tx.day) || !Number.isSafeInteger(tx.day + 1) || !positive(tx.principal) ||
+      tx.ratePercent !== 1 || tx.amount !== Number(BigInt(tx.principal) / 100n) ||
+      tx.requestId !== `bank-interest:${tx.day}:${tx.currency}`)) return 'invalid-interest-receipt';
+  if (tx.action === 'business' && (tx.currency !== 'copper' || tx.businessId !== 'cn-yunlai-tavern' || !['purchase','sale','invest','draw'].includes(tx.operation))) return 'invalid-business-receipt';
   if (tx.action === 'exchange') {
     const q = makeQuote(tx.quote);
     if (!q.ok) return q.code;
@@ -71,9 +77,15 @@ function calculate(balances, reservations, tx) {
   if (tx.action === 'open') {
     if (b.accountOpened) return {error: 'account-already-open'};
     b.accountOpened = true;
-  } else if (tx.action === 'wage') {
+  } else if (tx.action === 'wage' || tx.action === 'interest') {
+    if (tx.action === 'interest' && (!b.accountOpened || tx.principal > b.bank)) return {error: 'invalid-interest-principal'};
     b.accountOpened = true;
     b.bank += amount;
+  } else if (tx.action === 'business') {
+    if (['purchase','invest'].includes(tx.operation)) {
+      if (amount > b.bank) return {error: 'insufficient-bank'};
+      b.bank -= amount;
+    } else { b.accountOpened = true; b.bank += amount; }
   } else if (tx.action === 'earn') b.cash += amount; // Legacy helper compatibility only.
   else if (tx.action === 'deposit' || tx.action === 'withdraw') {
     if (!b.accountOpened) return {error: 'account-not-open'};
@@ -118,23 +130,97 @@ function fromLegacy(saved) {
   return {current: {version: 2, legacyCopper: original, balances, nextTransaction: copper.nextTransaction, transactions: []}, reservations, requests};
 }
 
+// This checkpoint starts at the first observed simulation day, never day zero
+// for an old save. Journal bankDay stamps let restore independently rebuild
+// every daily minimum and interest receipt instead of trusting a saved balance.
+const bankAmounts = balances => Object.fromEntries(CURRENCIES.map(id => [id, balances[id].bank]));
+function initializeInterest(current, day) {
+  current.interest = {version: 1, startDay: day, startTransaction: current.nextTransaction,
+    day, minimum: bankAmounts(current.balances)};
+}
+function appendTransaction(candidate, request, bankDay, verify) {
+  const {current, reservations, requests} = candidate;
+  if (!Number.isSafeInteger(current.nextTransaction + 1)) return {error: 'transaction-limit'};
+  const key = keyFor(request.action, request.requestId);
+  if (requests.has(key)) return {error: 'request-conflict'};
+  const result = calculate(current.balances, reservations, request);
+  if (result.error) return result;
+  const transaction = {id: `currency-${current.nextTransaction}`, requestId: request.requestId, ...signature(request),
+    ...(bankDay === undefined ? {} : {bankDay}), before: copy(current.balances), after: result.balances};
+  verify?.(transaction);
+  current.balances = result.balances;
+  current.nextTransaction++;
+  current.transactions.push(transaction);
+  if (current.interest) for (const id of CURRENCIES) {
+    current.interest.minimum[id] = Math.min(current.interest.minimum[id], result.balances[id].bank);
+  }
+  if (result.hold) reservations.set(result.hold.id, result.hold);
+  requests.set(key, transaction);
+  candidate.events?.push(transaction);
+  return {transaction};
+}
+function advanceInterest(candidate, day, verify) {
+  const {current} = candidate;
+  if (!integer(day)) return {error: 'invalid-clock'};
+  if (!current.interest) { initializeInterest(current, day); return {}; }
+  if (day < current.interest.day) return {error: 'clock-reversed'};
+  while (current.interest.day < day) {
+    const endedDay = current.interest.day;
+    // No payout is possible while every bank balance is below one whole unit
+    // of interest. This also bounds restore of long, empty-account calendars.
+    if (CURRENCIES.every(id => current.balances[id].bank < 100)) {
+      current.interest.day = day;
+      current.interest.minimum = bankAmounts(current.balances);
+      break;
+    }
+    for (const currency of CURRENCIES) {
+      const principal = current.interest.minimum[currency], amount = Number(BigInt(principal) / 100n);
+      if (!amount) continue;
+      const result = appendTransaction(candidate, {action: 'interest', currency, amount, day: endedDay,
+        principal, ratePercent: 1, requestId: `bank-interest:${endedDay}:${currency}`}, endedDay + 1, verify);
+      if (result.error) return result;
+    }
+    current.interest.day++;
+    // Today's interest becomes principal only for the next complete game day.
+    current.interest.minimum = bankAmounts(current.balances);
+  }
+  return {};
+}
+
 function restore(saved) {
   if (!object(saved) || saved.version !== 2) return fromLegacy(saved);
   if (!object(saved.legacyCopper) || !Array.isArray(saved.transactions)) throw Error('invalid-saved-state');
-  const restored = fromLegacy(saved.legacyCopper), {current, reservations, requests} = restored;
-  for (const tx of saved.transactions) {
-    if (!object(tx) || tx.id !== `currency-${current.nextTransaction}` || requests.has(keyFor(tx.action, tx.requestId)) ||
-        !balancesEqual(tx.before, current.balances)) throw Error('invalid-saved-state');
-    const result = calculate(current.balances, reservations, tx);
-    if (result.error || !balancesEqual(tx.after, result.balances) || !Number.isSafeInteger(current.nextTransaction + 1)) throw Error('invalid-saved-state');
-    const canonical = {id: tx.id, requestId: tx.requestId, ...signature(tx), before: copy(current.balances), after: result.balances};
-    current.balances = result.balances;
-    current.nextTransaction++;
-    current.transactions.push(canonical);
-    if (result.hold) reservations.set(result.hold.id, result.hold);
-    requests.set(keyFor(tx.action, tx.requestId), canonical);
+  const restored = fromLegacy(saved.legacyCopper), {current} = restored, interest = saved.interest;
+  if (interest !== undefined && (!object(interest) || interest.version !== 1 || !integer(interest.startDay) ||
+      !integer(interest.day) || interest.day < interest.startDay || !integer(interest.startTransaction) ||
+      interest.startTransaction < current.nextTransaction || interest.startTransaction > saved.nextTransaction ||
+      !object(interest.minimum) || Object.keys(interest.minimum).length !== CURRENCIES.length ||
+      CURRENCIES.some(id => !integer(interest.minimum[id])))) throw Error('invalid-saved-interest');
+  let index = 0;
+  const initialize = () => {
+    if (interest && !current.interest && current.nextTransaction === interest.startTransaction) initializeInterest(current, interest.startDay);
+  };
+  const verify = canonical => {
+    const tx = saved.transactions[index++];
+    if (!object(tx) || tx.id !== canonical.id || tx.requestId !== canonical.requestId || tx.bankDay !== canonical.bankDay ||
+        !same(signature(tx), signature(canonical)) || !balancesEqual(tx.before, canonical.before) ||
+        !balancesEqual(tx.after, canonical.after)) throw Error('invalid-saved-state');
+  };
+  while (index < saved.transactions.length) {
+    initialize();
+    const tx = saved.transactions[index];
+    if (!object(tx)) throw Error('invalid-saved-state');
+    if (current.interest) {
+      if (!integer(tx.bankDay) || tx.bankDay > interest.day || advanceInterest(restored, tx.bankDay, verify).error) throw Error('invalid-saved-interest');
+      if (saved.transactions[index] !== tx) continue; // Generated interest consumed the recorded boundary receipts.
+    } else if (tx.bankDay !== undefined) throw Error('invalid-saved-interest');
+    if (tx.action === 'interest' || appendTransaction(restored, tx, current.interest?.day, verify).error) throw Error('invalid-saved-state');
   }
-  if (saved.nextTransaction !== current.nextTransaction || !balancesEqual(saved.balances, current.balances)) throw Error('invalid-saved-state');
+  initialize();
+  if (interest && (!current.interest || advanceInterest(restored, interest.day, verify).error ||
+      !same(current.interest, interest))) throw Error('invalid-saved-interest');
+  if (index !== saved.transactions.length || saved.nextTransaction !== current.nextTransaction ||
+      !balancesEqual(saved.balances, current.balances)) throw Error('invalid-saved-state');
   return restored;
 }
 
@@ -155,8 +241,9 @@ function restore(saved) {
  * save, never during restore or receipt replay. Listener failure cannot undo or
  * repeat money movement. UI listeners must animate only, never call money APIs.
  */
-export function createCurrencyLedger({saved, saveState, onTransaction} = {}) {
+export function createCurrencyLedger({saved, saveState, onTransaction, getClock} = {}) {
   if (saveState !== undefined && typeof saveState !== 'function') throw TypeError('saveState must be a function');
+  if (getClock !== undefined && typeof getClock !== 'function') throw TypeError('getClock must be a function');
   let current, reservations, requests, loadError = null;
   try { ({current, reservations, requests} = restore(saved)); }
   catch { ({current, reservations, requests} = fromLegacy()); loadError = 'invalid-saved-state'; }
@@ -174,6 +261,36 @@ export function createCurrencyLedger({saved, saveState, onTransaction} = {}) {
   const failure = code => ({ok: false, code, state: state()});
   const success = (transaction, replayed) => ({ok: true, replayed, receiptId: transaction.requestId, transaction: copy(transaction), state: state()});
 
+  const candidate = () => ({current: {...current, balances: copy(current.balances), transactions: [...current.transactions],
+    ...(current.interest ? {interest: copy(current.interest)} : {})}, reservations: new Map(reservations), requests: new Map(requests), events: []});
+  function persist(next, transaction = null) {
+    saving = true;
+    try {
+      // Any newly due interest and this requested wage/transfer share one save.
+      // The participant still receives only the requested business transaction.
+      const saved = saveState(copy(next.current), transaction && copy(transaction));
+      if (saved === false || saved?.ok === false) return failure(saved?.code || 'save-failed');
+      if (saved && typeof saved.then === 'function') {
+        Promise.resolve(saved).catch(() => {});
+        return failure('async-save-unsupported');
+      }
+      ({current, reservations, requests} = next);
+      for (const committed of next.events) for (const listener of listeners) { try { listener(copy(committed)); } catch {} }
+      return transaction ? success(transaction, false) : {ok: true, replayed: false, day: current.interest.day, transactions: copy(next.events)};
+    } catch { return failure('save-failed'); }
+    finally { saving = false; }
+  }
+  function observeDay(day = getClock?.()?.day) {
+    if (loadError) return failure(loadError);
+    if (saving) return failure('ledger-busy');
+    if (!integer(day)) return failure('invalid-clock');
+    // The animation loop observes this on every active frame. Do no copying or
+    // storage work until an actual day boundary, including repeated scene entry.
+    if (current.interest?.day === day) return {ok: true, replayed: true, day, transactions: []};
+    if (!saveState) return failure('persistence-unavailable');
+    const next = candidate(), result = advanceInterest(next, day);
+    return result.error ? failure(result.error) : persist(next);
+  }
   function transact(request) {
     if (loadError) return failure(loadError);
     if (saving) return failure('ledger-busy');
@@ -182,27 +299,13 @@ export function createCurrencyLedger({saved, saveState, onTransaction} = {}) {
     const key = keyFor(request.action, request.requestId), replay = requests.get(key);
     if (replay) return same(signature(replay), signature(request)) ? success(replay, true) : failure('request-conflict');
     if (!saveState) return failure('persistence-unavailable');
-    if (!Number.isSafeInteger(current.nextTransaction + 1)) return failure('transaction-limit');
-    const result = calculate(current.balances, reservations, request);
-    if (result.error) return failure(result.error);
-    const transaction = {id: `currency-${current.nextTransaction}`, requestId: request.requestId, ...signature(request),
-      before: copy(current.balances), after: result.balances};
-    const next = {...current, balances: result.balances, nextTransaction: current.nextTransaction + 1, transactions: [...current.transactions, transaction]};
-    saving = true;
-    try {
-      const saved = saveState(copy(next));
-      if (saved === false) return failure('save-failed');
-      if (saved && typeof saved.then === 'function') {
-        Promise.resolve(saved).catch(() => {});
-        return failure('async-save-unsupported');
-      }
-      current = next;
-      if (result.hold) reservations.set(result.hold.id, result.hold);
-      requests.set(key, transaction);
-      for (const listener of listeners) { try { listener(copy(transaction)); } catch {} }
-      return success(transaction, false);
-    } catch { return failure('save-failed'); }
-    finally { saving = false; }
+    const next = candidate();
+    if (getClock) {
+      const result = advanceInterest(next, getClock()?.day);
+      if (result.error) return failure(result.error);
+    }
+    const result = appendTransaction(next, request, next.current.interest?.day);
+    return result.error ? failure(result.error) : persist(next, result.transaction);
   }
   const simple = (action, amount, requestId, currency = 'copper') => transact({action, amount, requestId, currency});
   function finish(action, reservationId) {
@@ -213,7 +316,7 @@ export function createCurrencyLedger({saved, saveState, onTransaction} = {}) {
     return transact({action, amount: hold.amount, currency: hold.currency, requestId: terminalId(action, reservationId), reservationId});
   }
   return Object.freeze({
-    loadError, state, balances: leanBalances,
+    loadError, state, observeDay, balances: leanBalances,
     snapshot: () => ({version: 2, balances: leanBalances(), nextTransaction: loadError ? null : current.nextTransaction, loadError}),
     history: () => [...copy(current.legacyCopper.transactions), ...copy(current.transactions)],
     reservations: () => loadError ? [] : copy([...reservations.values()]),
@@ -225,6 +328,8 @@ export function createCurrencyLedger({saved, saveState, onTransaction} = {}) {
     settle: id => finish('settle', id), refund: id => finish('refund', id),
     creditWageToBank: ({amount, receiptId, currency = 'copper', roleId, slotId, day} = {}) =>
       transact({action: 'wage', amount, requestId: receiptId, currency, roleId, slotId, day}),
+    transferBusiness: ({amount, receiptId, operation, businessId = 'cn-yunlai-tavern'} = {}) =>
+      transact({action: 'business', amount, requestId: receiptId, currency: 'copper', businessId, operation}),
     quoteExchange: request => loadError ? {ok: false, code: loadError} : makeQuote(request),
     exchange: ({quote, requestId} = {}) => transact({action: 'exchange', currency: quote?.from, amount: quote?.amount, requestId, quote}),
     subscribeCommitted(listener) {
@@ -236,11 +341,16 @@ export function createCurrencyLedger({saved, saveState, onTransaction} = {}) {
 
 // Storage is injected, including the isolated preview store. Update the enclosing
 // save only after the complete game snapshot has synchronously reached storage.
-export function createGameCurrencyLedger({saved, storage, key = 'worlds-days-v1', onTransaction}) {
-  return createCurrencyLedger({saved: saved.copperLedger, onTransaction, saveState: nextLedger => {
-    const next = {...saved, copperLedger: nextLedger};
+export function createGameCurrencyLedger({saved, storage, key = 'worlds-days-v1', onTransaction, getClock, transactionParticipant = () => null}) {
+  return createCurrencyLedger({saved: saved.copperLedger, onTransaction, getClock, saveState: (nextLedger, transaction) => {
+    const participant = transaction ? transactionParticipant(transaction) : null;
+    if (participant?.ok === false) return participant;
+    // A property transfer or business-funded wage and its money receipt reach
+    // the same game snapshot. Neither participant advances before this write.
+    const next = {...saved, ...participant?.patch, copperLedger: nextLedger};
     const result = storage.setItem(key, JSON.stringify(next));
     if (result === false || result && typeof result.then === 'function') return result;
-    saved.copperLedger = nextLedger;
+    Object.assign(saved, participant?.patch, {copperLedger: nextLedger});
+    participant?.committed?.();
   }});
 }
