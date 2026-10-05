@@ -81,10 +81,10 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       ...localRoles.map(r=>`${r.id}:${r.vacancy}`)].join(':');
     if(!force&&key===signature)return;signature=key;generation++;
     dialog.replaceChildren();const x=buttonFor('×',close);x.className='career-close';x.setAttribute('aria-label','关闭职业手册');
-    const heading=registrationMode?registrationScope==='role'?displayRoles[0]?.name||'岗位登记':`${WORKPLACE_NAMES[workplaceKey(registeredPlace)]||place(registeredPlace).workplace||'附近'} · 招工`:held?held.name:'职业登记处';
+    const heading=registrationMode?registrationScope==='role'?displayRoles[0]?.name||'岗位登记':`${WORKPLACE_NAMES[workplaceKey(registeredPlace)]||place(registeredPlace).workplace||'附近'} · 招工`:held?held.name:'附近招工';
     dialog.setAttribute('aria-label',heading);
     const panel=createAiryPanelParts(doc);dialog.append(x,panel.header,panel.body,panel.actions);
-    panel.header.append(make('h2',heading),make('p',registrationMode?registrationScope==='role'?'岗位柜台 · 任职登记':'本处岗位 · 当面申请':held?`${COUNTRIES[place(held).country]||place(held).country} · ${place(held).workplace}`:localRoles.length?'先到当地登记处了解岗位与申请条件。':'当地暂未开放正式职业登记。'));
+    panel.header.append(make('h2',heading),make('p',registrationMode?registrationScope==='role'?'岗位柜台 · 任职登记':'本处岗位 · 当面申请':held?`${COUNTRIES[place(held).country]||place(held).country} · ${place(held).workplace}`:'走近场所负责人，了解这里的岗位。'));
     const text=(title,content)=>panel.body.append(make('h3',title),make('p',content));
     const skillLine=r=>Object.entries(requirements(r)).map(([id,need])=>`${SKILLS[id]||id} ${s.skills[id]??0}/${need}`).join(' · ');
     const eligibility=r=>careers.eligibility?.(r.id,{ageYears})||{ok:false,code:'unavailable'};
