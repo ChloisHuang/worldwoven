@@ -1,3 +1,4 @@
+import {SALON_MIN_FEE} from './china-salon-pricing.js';
 import {SALON_RECEPTION} from './china-tavern-salon.js';
 import {SALON_ACTIVITIES} from './china-tavern-salon-artists.js';
 import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
@@ -47,7 +48,7 @@ export function createChinaTavernSalonUI({service,getPlayer,onOpen=()=>{},docume
  function refresh(force=false){
   const s=service.view(),o=s.session,candidates=s.candidates||[],atReception=service.atReception();
   if(!candidates.some(c=>c.id===selectedArtist)){selectedArtist=(candidates.find(c=>c.available)||candidates[0])?.id||null;selectedActivity=null;}
-  const selected=candidates.find(c=>c.id===selectedArtist),activities=selected?[...selected.activities,...(selected.activities.some(a=>a.id==='banquet')?[]:[{id:'banquet',...SALON_ACTIVITIES.banquet}])]:[];
+  const selected=candidates.find(c=>c.id===selectedArtist),activities=selected?[...selected.activities,...(selected.activities.some(a=>a.id==='banquet')?[]:[{id:'banquet',...SALON_ACTIVITIES.banquet,fee:selected.quoteFee??selected.activities[0]?.fee??SALON_MIN_FEE}])]:[];
   if(!activities.some(a=>a.id===selectedActivity))selectedActivity=activities[0]?.id||null;
   const activity=activities.find(a=>a.id===selectedActivity),artist=o?candidates.find(c=>c.id===o.actorId):selected,fee=o?.fee??activity?.fee??0;
   // Observe displayed/decision fields, never route progress or background clocks.
@@ -76,7 +77,7 @@ export function createChinaTavernSalonUI({service,getPlayer,onOpen=()=>{},docume
   if(p.actionKey!==actionKey){
    p.actionButtons.forEach(node=>node.remove());p.actionButtons=[];p.actionKey=actionKey;
    const action=(label,fn,primary=false,key='primary')=>{const node=button(label,fn,primary);node.setAttribute('data-cn-salon-focus',key);p.actions.append(node);p.actionButtons.push(node);return node;};
-   if(!o){const id=selectedArtist,activityId=selectedActivity;p.primary=action('',()=>{const now=service.view(),candidate=now.candidates?.find(c=>c.id===id),currentActivity=candidate?.activities.find(a=>a.id===activityId)||(activityId==='banquet'?SALON_ACTIVITIES.banquet:null);if(now.session||!service.atReception()||!candidate?.available||!(candidate.ageYears>=18)||now.paymentError||currentActivity?.fee!==fee){refresh(true);return;}if(service.request(id,activityId))close();else refresh(true);},true,'invite');}
+   if(!o){const id=selectedArtist,activityId=selectedActivity;p.primary=action('',()=>{const now=service.view(),candidate=now.candidates?.find(c=>c.id===id),currentActivity=candidate?.activities.find(a=>a.id===activityId)||(activityId==='banquet'?{...SALON_ACTIVITIES.banquet,fee:candidate?.quoteFee??candidate?.activities[0]?.fee??SALON_MIN_FEE}:null);if(now.session||!service.atReception()||!candidate?.available||!(candidate.ageYears>=18)||now.paymentError||currentActivity?.fee!==fee){refresh(true);return;}if(service.request(id,activityId,fee))close();else refresh(true);},true,'invite');}
    else{const sameSession=()=>{const current=service.view().session;return current?.id===o.id&&current.stage===o.stage&&current.payment===o.payment&&current.fee===o.fee;};
     if(o.stage==='accepted')p.primary=action(`确认预留 ${fee}文 · 随艺者下楼`,()=>{if(sameSession()&&service.startEscort())close();else refresh(true);},true);
     else if(o.stage==='visiting')p.primary=action('告辞离席',()=>{if(sameSession()&&service.cancel())close();else refresh(true);},true);

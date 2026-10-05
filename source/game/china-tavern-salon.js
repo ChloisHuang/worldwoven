@@ -1,3 +1,4 @@
+import {quoteSalonService,validSalonFee,SALON_QUOTE_VERSION} from './china-salon-pricing.js';
 import {followActorRoute} from './actor-navigation.js';
 import {createSalonArtistLife} from './china-tavern-salon-life.js';
 import {knownAdult} from './player-age.js';
@@ -16,6 +17,8 @@ export function salonWillingness(actor,activity,relationship=0){
 export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContext,getPlayer,getMounted=()=>null,copperLedger,worldSeed=1,saved={},saveState=()=>{},notify=()=>{},isActorBusy=()=>false,roomAvailable=()=>true}){
  const receptionist=npcs.find(n=>n.station.id===SALON_RECEPTION),performers=npcs.filter(n=>n.station.salon).slice(0,4);if(!receptionist||!performers.length)return null;
  let performer=performers[0];
+ // NPC skill/review ledgers are not implemented; do not invent those bonuses.
+ const quote=actor=>quoteSalonService({appearanceScore:actor.preferenceScore,shapeTraits:actor.root.userData?.appearance?.shapeTraits});
  const travelState=new Map(),history=Array.isArray(saved.history)?saved.history.slice(-35):[],responses={...(saved.responses||{})},relationships={...(saved.relationships||{})},failures=[];
  let time=Number(saved.time)||0,serial=Number(saved.serial)||0,session=null,returning=false,phaseTime=0,sessionTime=0,disposed=false,conversation=null,lastReply=saved.lastReply||null,paymentError=null,life=null,employment=null;
  const ledger=createSalonRoomLedger({roomAvailable,occupants:()=>[...npcs.map(n=>({id:n.station.id,position:n.root.position})),...(getPlayer()?[{id:'player',position:getPlayer().root.position}]:[])]});
@@ -57,15 +60,16 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
   {actor:[18.65,4.015,14.25],player:[17.55,4.015,14.25]},
   {actor:r.actor,player:r.player}
  ][session.leg]:null;}
- function request(actorId,activity){
+ function request(actorId,activity,expectedFee=null){
   if(disposed||session||returning||!atReception()||employment?.onShift())return false;
   const chosen=performers.find(n=>n.station.id===actorId);
   if(!chosen||!eligible(chosen)){notify('温晚：今日没有合适的引见，请先到听席坐坐');return false;}
   if(!copperLedger||copperLedger.loadError||!recoverPayments()){notify('铜钱账目尚未核对，暂缓新的付费引见');return false;}
   if(isActorBusy(chosen)||life?.isBusy(chosen)){notify(`温晚：${chosen.station.npcName}手边尚有事，等歇场再来吧`);return false;}
   activity??=chosen.station.salon.activities[0];if(!SALON_ACTIVITIES[activity])return false;
+  const fee=quote(chosen);if(expectedFee!==null&&expectedFee!==fee){notify('价目已变化，请先查看本场报价');return false;}
   const prior=responses[actorId];if(prior&&time-prior.at<20){notify(`${chosen.station.npcName}：${prior.reply}`);return false;}
-  life?.interrupt(chosen);performer=chosen;session={id:`cn-salon-${copperLedger.state().nextTransaction}-${++serial}`,actorId,activity,stage:'invited',roomId:null,leg:0,fee:SALON_ACTIVITIES[activity].fee,payment:'unpaid'};resetRoute(performer);performer.returning=false;phaseTime=0;sessionTime=0;record('invited');persist();notify(`温晚：我请${name()}过来，你在案前稍候`);return true;
+  life?.interrupt(chosen);performer=chosen;session={id:`cn-salon-${copperLedger.state().nextTransaction}-${++serial}`,actorId,activity,stage:'invited',roomId:null,leg:0,fee,quoteVersion:SALON_QUOTE_VERSION,payment:'unpaid'};resetRoute(performer);performer.returning=false;phaseTime=0;sessionTime=0;record('invited');persist();notify(`温晚：我请${name()}过来，你在案前稍候`);return true;
  }
  function respond(){
   if(!session||!adult()||!atReception()||!near(performer,MEETING))return false;
@@ -124,9 +128,9 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
    for(const n of performers){const e=n.label?.querySelector?.('small');if(e)e.textContent=n.station.id===SALON_PERFORMER&&employment?.onShift()?'诗词台班由你当值 · 柳清弦歇场':n===performer&&(session||returning)?session?labels()[session.stage]:'艺者 · 返回雅集厅':life.label(n)||n.station.npcLabel;}
 
   },
-  view(){return {session:session?clone(session):null,label:session?labels()[session.stage]:returning?`${name()}正回雅集厅`:null,returning,fade:session?.stage==='fade',lastReply:clone(lastReply),candidates:performers.filter(eligible).map(n=>({id:n.station.id,name:n.station.npcName,ageYears:n.ageYears??n.station.ageYears??n.station.age,preference:n.station.salon.preference,specialty:n.station.salon.specialty,gender:n.station.salon.gender,activities:n.station.salon.activities.map(id=>({id,...SALON_ACTIVITIES[id]})),available:!employment?.onShift()&&!session&&!returning&&!isActorBusy(n)&&!life.isBusy(n),status:life.label(n)})),rooms:ledger.state(),cash:copperLedger?.state().cash??0,paymentError:paymentError||copperLedger?.loadError||null};},
+  view(){return {session:session?clone(session):null,label:session?labels()[session.stage]:returning?`${name()}正回雅集厅`:null,returning,fade:session?.stage==='fade',lastReply:clone(lastReply),candidates:performers.filter(eligible).map(n=>({id:n.station.id,name:n.station.npcName,ageYears:n.ageYears??n.station.ageYears??n.station.age,preference:n.station.salon.preference,specialty:n.station.salon.specialty,gender:n.station.salon.gender,quoteFee:quote(n),activities:n.station.salon.activities.map(id=>({id,...SALON_ACTIVITIES[id],fee:quote(n)})),available:!employment?.onShift()&&!session&&!returning&&!isActorBusy(n)&&!life.isBusy(n),status:life.label(n)})),rooms:ledger.state(),cash:copperLedger?.state().cash??0,paymentError:paymentError||copperLedger?.loadError||null};},
   snapshot:()=>({version:1,time,serial,session:clone(session),performerId:performer.station.id,returning,phaseTime,sessionTime,lastReply:clone(lastReply),history:clone(history),life:life.snapshot(),artistLife:life.continuity()}),
-  restore(s){const a=performers.find(n=>n.station.id===(s?.session?.actorId||s?.performerId));if(s?.version!==1||!a||s.session&&!['invited','reply','accepted','escort','entering','fade','visiting'].includes(s.session.stage))return false;performer=a;time=Math.max(0,s.time||0);serial=Math.max(serial,s.serial||0);session=clone(s.session);returning=!!s.returning;phaseTime=Math.max(0,s.phaseTime||0);sessionTime=Math.max(0,s.sessionTime||0);lastReply=clone(s.lastReply);history.splice(0,history.length,...clone(s.history||[]));travelState.clear();life.restore(s.artistLife);if(session?.roomId){if(!ledger.reserve(session.roomId,session.id,['player',performer.station.id])){session=null;return false;}if(['fade','visiting'].includes(session.stage))ledger.occupy(session.roomId,session.id);}if(session?.payment==='reserved'){const hold=copperLedger.reservations().find(h=>h.id===session.id);if(hold?.status==='settled'){session.payment='settled';session.stage='visiting';phaseTime=0;}else if(hold?.status!=='reserved'){ledger.release(session.id);session=null;returning=true;}}return true;},
+  restore(s){const a=performers.find(n=>n.station.id===(s?.session?.actorId||s?.performerId));if(s?.version!==1||!a||s.session&&!validSalonFee(s.session.fee,s.session.quoteVersion)||s.session&&!['invited','reply','accepted','escort','entering','fade','visiting'].includes(s.session.stage))return false;performer=a;time=Math.max(0,s.time||0);serial=Math.max(serial,s.serial||0);session=clone(s.session);returning=!!s.returning;phaseTime=Math.max(0,s.phaseTime||0);sessionTime=Math.max(0,s.sessionTime||0);lastReply=clone(s.lastReply);history.splice(0,history.length,...clone(s.history||[]));travelState.clear();life.restore(s.artistLife);if(session?.roomId){if(!ledger.reserve(session.roomId,session.id,['player',performer.station.id])){session=null;return false;}if(['fade','visiting'].includes(session.stage))ledger.occupy(session.roomId,session.id);}if(session?.payment==='reserved'){const hold=copperLedger.reservations().find(h=>h.id===session.id);if(hold?.status==='settled'){session.payment='settled';session.stage='visiting';phaseTime=0;}else if(hold?.status!=='reserved'){ledger.release(session.id);session=null;returning=true;}}return true;},
   state(){return {...this.view(),serial,life:life.state(),history:clone(history),failures:clone(failures),actor:performer.root.position.toArray(),persistentClaims:false};},
   dispose({suspend=false}={}){if(disposed)return;if(session&&!suspend)release('离开地区');life.dispose();disposed=true;ledger.clear();travelState.clear();for(const n of [...performers,receptionist])resetRoute(n);session=null;returning=false;if(!suspend)persist();}
  };

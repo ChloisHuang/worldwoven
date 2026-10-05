@@ -1,3 +1,4 @@
+import {SALON_MIN_FEE} from './china-salon-pricing.js';
 // Compact live work card within the existing handbook and physical intents.
 export function appendSalonCareerPanel({panel,role,service,make,action}){
  const s=service?.state(),o=s?.order,review=s?.latestReview;
@@ -5,7 +6,7 @@ export function appendSalonCareerPanel({panel,role,service,make,action}){
  const rows=make('dl',null,'career-metrics');
  const metric=(label,value)=>{const row=make('div',null,'career-metric'),dd=make('dd');dd.append(make('strong',value));row.append(make('dt',label),dd);rows.append(row);};
  metric('来客',o?.customerName||'暂无邀约');metric('题意',o?o.request==='river'?'远行见闻':'归家心绪':'—');
- metric('本场报价',`${o?.fee??s?.quote??6} 铜文`);metric('累计入账',`${s?.income??0} 铜文`);
+ metric('本场报价',`${o?.fee??s?.quote??SALON_MIN_FEE} 铜文`);metric('累计入账',`${s?.income??0} 铜文`);
  metric('最近评价',review?`${review.customerName} · ${review.positive?'好评':review.score===0?'一般':'待改进'}`:'暂无');panel.body.append(rows);
  if(o?.stage==='reciting'){const progress=make('progress');progress.max=8;progress.value=s.progressSeconds;progress.setAttribute('aria-label','实际诵读进度');progress.style.width='100%';panel.body.append(progress,make('p',`${Math.floor(s.progressSeconds)} / 8 秒`,'career-status-note'));}
  if(o?.stage==='discussion')panel.body.append(make('p','“刚才这篇，主要写的是什么？”'));

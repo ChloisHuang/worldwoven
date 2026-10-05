@@ -1,3 +1,4 @@
+import {quoteSalonService,validSalonFee,SALON_QUOTE_VERSION} from './china-salon-pricing.js';
 import {shapePreferenceScore} from './character-traits.js';
 import {SALON_POET_ROLE as ROLE} from './china-salon-career-role.js';
 import {knownAdult} from './player-age.js';
@@ -14,7 +15,7 @@ function valid(s){
  const integer=n=>Number.isSafeInteger(n)&&n>=0,o=s?.order;
  return s?.version===1&&['revision','serial','shiftSerial','income'].every(k=>integer(s[k]))&&Array.isArray(s.reviews)&&s.reviews.length<=40&&
   (!s.shift||integer(s.shift.serial)&&s.shift.serial>0&&s.shift.serial<=s.shiftSerial&&integer(s.shift.day))&&
-  (!o||salonReceipt(o.id)&&Number(o.id.split('-').at(-1))===s.serial&&['cn-tavern-diner-west','cn-tavern-diner-east'].includes(o.customerId)&&STAGES.includes(o.stage)&&integer(o.day)&&integer(o.fee)&&o.fee>=6&&o.fee<=10&&POEMS[o.request]&&
+  (!o||salonReceipt(o.id)&&Number(o.id.split('-').at(-1))===s.serial&&['cn-tavern-diner-west','cn-tavern-diner-east'].includes(o.customerId)&&STAGES.includes(o.stage)&&integer(o.day)&&validSalonFee(o.fee,o.quoteVersion)&&POEMS[o.request]&&
     (o.roomId===null||SALON_ROOMS.some(r=>r.id===o.roomId))&&(o.poem===null||POEMS[o.poem])&&s.shift);
 }
 // The career registry owns the continuing appointment. This controller owns
@@ -34,7 +35,7 @@ export function createChinaSalonEmployment({salon,scene,careers,copperLedger,npc
   if(participant?.ok===false)return fail('客单记录已变化，请重试','stale-world');
   try{const result=saveState(candidate,participant);if(result===false||result?.then)return fail('记录未保存，请重试','save-failed');current=candidate;lastError=null;return true;}catch{return fail('记录未保存，请重试','save-failed');}
  };
- const quote=()=>{const score=getAppearanceScore();return 6+(score>=70?1:0)+(score>=90?1:0)+Math.min(1,Math.floor((careers.state().skills.art||0)/5))+Math.min(1,Math.floor(current.reviews.filter(r=>r.positive).length/3));};
+ const quote=()=>quoteSalonService({appearanceScore:getAppearanceScore(),artLevel:careers.state().skills.art,positiveReviews:current.reviews.filter(r=>r.positive).length});
  const inVenue=()=>{const p=getPlayer()?.root.position;return p&&p.x>16&&p.x<26&&p.z>8&&p.z<21&&Math.abs(p.y-7.815)<.45;};
  const startAvailable=()=>!loadError&&!current.shift&&!current.order&&hired()&&adultArtist(getPlayer())&&!salon.active()&&getClock().hour>=6&&getClock().hour<22;
  function start(){if(!meet()||!startAvailable())return false;const serial=current.shiftSerial+1;
@@ -49,7 +50,7 @@ export function createChinaSalonEmployment({salon,scene,careers,copperLedger,npc
  function invite(n,choice){
   if(!lifeChoices(n).length||choice?.id!=='salon-poetry')return false;
   if(!salon.workReachable(n,GUEST))return false;
-  const serial=current.serial+1,o={id:`cn-salon-work-${serial}`,customerId:n.station.id,customerName:n.station.npcName,day:getClock().day,fee:quote(),request:choice.topic==='home'?'home':'river',stage:'approaching',roomId:null,poem:null,answer:null};
+  const serial=current.serial+1,o={id:`cn-salon-work-${serial}`,customerId:n.station.id,customerName:n.station.npcName,day:getClock().day,fee:quote(),quoteVersion:SALON_QUOTE_VERSION,request:choice.topic==='home'?'home':'river',stage:'approaching',roomId:null,poem:null,answer:null};
   const world=changeSalonVisitor(scene.snapshot(),o,'invite');if(!world||!persist({...current,serial,order:o},world))return false;
   scene.resetSalonRoute(n);elapsed=wait=0;notify(`${o.customerName}想听${POEMS[o.request].meaning}，正在上楼请温晚引见；你可以婉拒`);return true;
  }
