@@ -1,3 +1,4 @@
+import {createJapanStaffConversations} from './japan-staff-conversations.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
 import {JAPAN_SERVICE_POINTS as P,JAPAN_BATH_CREWS,JAPAN_LOCAL_WORKERS,JAPAN_STAFF_CREW} from './japan-service-orders.js';
 
@@ -25,7 +26,7 @@ const LOCAL_WAIT={'jp-omamori':[7.5,0,30.5],'jp-garden-onsen':[-17.1,0,-6],'jp-t
 // Seven bounded coverage pairs. No live claim, held meal, seat lock or
 // sleeping pose is restored from a save; an interrupted break gets its turn
 // again after both real workers have safely met at their service counter.
-export function createJapanStaffLife({actors,board,furniture,assign,clear,unmount,taskOf,changeWardrobe=()=>{},canReach=()=>true,worldSeed=1,saved={},sharedNeeds=null,getToilet=()=>null,saveState=()=>true,onMealReceipt=()=>true,getReceptionCoverage=()=>false,getExternalCoverage=()=>false}) {
+export function createJapanStaffLife({actors,board,furniture,assign,clear,unmount,taskOf,changeWardrobe=()=>{},canReach=()=>true,worldSeed=1,saved={},sharedNeeds=null,getToilet=()=>null,saveState=()=>true,onMealReceipt=()=>true,getReceptionCoverage=()=>false,getExternalCoverage=()=>false,getMeetingHeld=()=>false,beginInteraction=()=>null,onInteraction=()=>{}}) {
  // A reduced scene can omit a whole pair, but never schedule half a pair.
  const external=id=>getExternalCoverage(id)||['jp-welcome','jp-market-tea'].includes(id)&&getReceptionCoverage();
  const crew=JAPAN_STAFF_CREW.filter(id=>profile(id).ids.every(other=>actors.has(other))).map(id=>actors.get(id));
@@ -37,7 +38,8 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
  let active=null,night=!!saved.night,completed=Math.max(0,saved.completed|0),interrupted=Math.max(0,saved.interrupted|0);
  if(saved.nextId&&crew.some(n=>n.station.id===saved.nextId))next=crew.findIndex(n=>n.station.id===saved.nextId);
  const events=[];let reliefLook=null,resumeReturn=saved.version>=6&&!!saved.returning;
- const decisions=createLifeDecisions({worldSeed,actorIds:crew.map(n=>n.station.id),saved:saved.decisions,sharedNeeds});
+ let ready=false,conversations=null,socialReads=null;
+ const decisions=createLifeDecisions({worldSeed,actorIds:crew.map(n=>n.station.id),saved:saved.decisions,sharedNeeds,onChange:()=>ready?saveState(snapshot()):true});
  const copy=x=>JSON.parse(JSON.stringify(x));
  let mealSerial=Math.max(0,Number.isSafeInteger(saved.mealSerial)?saved.mealSerial:0),mealReceipts=(Array.isArray(saved.mealReceipts)?saved.mealReceipts:[]).filter(r=>r?.source==='japan-staff-meal'&&Number.isSafeInteger(r.number)&&r.number>0&&r.id===`jp-staff-meal-${r.number}-consumed`&&r.completed===true&&JAPAN_STAFF_CREW.includes(r.actorId)).map(copy),needCheckAt=0,receiptRetryAt=0;
  mealSerial=Math.max(mealSerial,...mealReceipts.map(r=>r.number));
@@ -63,6 +65,17 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
  const busy=n=>{const t=taskOf(n);return !!t&&!t.idle;};
  const go=(n,to,options)=>assign(n,to,{staffLife:true,...options});
  const release=n=>{board.releaseWorkplace(n.station.id);furniture.releaseActor(n.station.id);};
+ function sociallyAvailable(n,state){
+  if(active?.phase!=='returning'||active.interrupted||active.socialPauseDone||active.id==='jp-incense'||!actors.has('jp-incense')||!['jp-incense',active.id].includes(n.station.id))return false;
+  const id=n.station.id,need=sharedNeeds?.status(id),task=taskOf(n),work=socialReads?(socialReads.board??=board.state()):board.state();
+  if(getMeetingHeld(id)||need?.seekMeal||need?.seekToilet||decisions.fatigued(id)||state.conversationActorId===id||state.meetingActorId===id||state.performing===id||n.serviceMount||n.bathTransition||task&&!task.idle&&!task.staffConversation||work.claims.some(j=>j.workerId===id)||work.items.some(i=>i.location?.type==='worker'&&i.location.id===id))return false;
+  // The retiring worker has actually finished a break and still has coverage.
+  // An idle apothecary stays within the original dispatch area, relinquishing
+  // the conversation immediately when any original preparation order arrives.
+  const gap=active?.phase==='returning'&&!active.interrupted&&!active.socialPauseDone&&decisions.experience(active.id)&&actors.get(active.id).root.position.y>11&& !work.claims.some(j=>j.kind==='prepare')&&!(socialReads?(socialReads.jobs??=board.jobs()):board.jobs()).some(j=>j.kind==='prepare');
+  if(gap&&(id===active.id||id==='jp-incense')&&n.root.position.y>11&&(conversations?.owns(id)||nearPoint(n,[-5.25,11.4,-.3],7)))return id===active.id?'break':'standby';
+  return false;
+ }
  // Availability is a hard gate, independent of preference. Check it once at
  // the real handoff, then reserve only the chosen facility for this break.
  const nearPoint=(n,p,r=1)=>n?.root.position&&Math.hypot(n.root.position.x-p[0],n.root.position.z-p[2])<r&&Math.abs(n.root.position.y-p[1])<1;
@@ -77,7 +90,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
    {id:'meal',targets:targets(seats),available:(sharedNeeds?.status(n.station.id)?.seekMeal!==false||decisions.state(n.station.id).current?.id==='meal')&&!board.state().claims.some(j=>j.resource==='kitchen')&&canReach(n,P.kitchen),base:.15,traits:{appetite:.9},needs:{hunger:3.4},relief:{hunger:-.72},duration:[8,12],cooldown:90},
    // Drinking nearby is not a conversation: no invented partner, social relief,
    // familiarity or observer opinion is awarded for merely sharing the room.
-   {id:'tea',targets:[{id:TEA_FACILITY,available:vacant(TEA_FACILITY,state)&&teaClear&&canReach(n,TEA),choice:{facilityId:TEA_FACILITY}}],base:.3,traits:{quiet:.65,sociability:.2},needs:{fatigue:.2},relief:{fatigue:-.12},duration:[6,11],cooldown:55},
+   {id:'tea',experience:{kind:'staff-rest',label:'刚在事务室茶具旁歇过，聊起忙完一班后的休息'},targets:[{id:TEA_FACILITY,available:vacant(TEA_FACILITY,state)&&teaClear&&canReach(n,TEA),choice:{facilityId:TEA_FACILITY}}],base:.3,traits:{quiet:.65,sociability:.2},needs:{fatigue:.2},relief:{fatigue:-.12},duration:[6,11],cooldown:55},
    {id:'rest',targets:targets(beds),base:.12,traits:{quiet:.45},needs:{fatigue:3.5},relief:{fatigue:-.78},duration:[20,34],cooldown:140},
   ];
  }
@@ -116,6 +129,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
  }
  function interrupt(n,{coverageAborted=false}={}) {
   if(!active||n.station.id!==active.id)return false;
+  conversations?.abort(n);
   if(getToilet()?.ownsActor(n)&&!getToilet().cancel('staff-break-interrupted',active.id))return false;
   if(!unmount(n)||(coverageAborted&&!endLocalCoverage()))return false;
   if(active.phase==='handoff'){const relief=actors.get(active.reliefId);if(taskOf(relief)?.staffLife)clear(relief);}
@@ -159,6 +173,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   }
   deliverMeals();return true;
  }
+ conversations=createJapanStaffConversations({crew,brain:decisions,furniture,assign,clear,unmount,taskOf,available:sociallyAvailable,canReach,save:()=>saveState(snapshot()),beginInteraction,onInteraction,note,onRelease:id=>{if(active?.id===id)active.socialPauseDone=true;}});ready=true;
  return {
   idlePoint(id){return active?.reliefId===id&&!active.externalCoverage&&(!profile(id).local||active.covering)?shiftFor(active.id).relief:id==='jp-tea'?KOTATSU.position:id==='jp-welcome'?FRONT_DESK.retire:id==='jp-incense'?APOTHECARY.retire:null;},
   // Nao stays the supply clerk between relief shifts; training is not a
@@ -175,18 +190,22 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
    if(active?.reliefId===id&&!active.externalCoverage){const shift=profile(id);return {duration:4,face:shift===KITCHEN?P.mealTray:shift===FRONT_DESK?P.tokenTray:shift.side?P[shift.side+'Service']:P.blendWork,label:'留在代班岗位，等候下一张单'};}
    return id==='jp-herb-workshop'?{duration:4,action:n.station.npcAction,workTarget:n.station.workTarget,label:n.station.npcLabel}:null;
   },
-  canWork(id){return !active||(id!==active.id&&!(id===active.reliefId&&!active.externalCoverage&&['draining','handoff'].includes(active.phase)));},
+  canWork(id){if(conversations.owns(id))return false;return !active||(id!==active.id&&!(id===active.reliefId&&!active.externalCoverage&&['draining','handoff'].includes(active.phase)));},
   update(dt,state={}) {
+   // Social eligibility shares one lazy read in this synchronous simulation
+   // step. External recall/restore and the next step always read fresh work.
+   socialReads={};try {
    time+=dt;decisions.tick(dt);if(active?.externalCoverage&&!external(active.id))active.externalCoverage=false;
    if(time>=receiptRetryAt){receiptRetryAt=time+1;deliverMeals();}
    // One bounded needs check each second; decisions still happen only after
    // the existing real handoff, and no claimed order is interrupted.
    if(sharedNeeds&&time>=needCheckAt){needCheckAt=time+1;for(const n of crew){const id=n.station.id,need=sharedNeeds.status(id);if(time>=(needRetryAt[id]||0)&&(need?.seekMeal||need?.seekToilet))due[id]=Math.min(due[id],time);}}
    if(!!state.night!==night){night=!!state.night;if(night)for(const n of crew){const id=n.station.id;due[id]=Math.min(due[id],time+10+phase(id));}}
+   conversations.update(dt,state);
    if(!active){
     // Reserve only the relief slot now. Existing jobs drain before the real
     // handoff establishes eligibility for an action; no per-frame lottery.
-    const candidate=resumeReturn?crew[next]:crew.filter(n=>due[n.station.id]<=time).sort(dueOrder)[0];
+    const candidate=resumeReturn?crew[next]:crew.filter(n=>!conversations.owns(n.station.id)&&due[n.station.id]<=time).sort(dueOrder)[0];
     if(!candidate)return;const id=candidate.station.id;next=crew.indexOf(candidate);active={id,reliefId:profile(id).ids.find(other=>other!==id),externalCoverage:external(id),covering:false,phase:'draining',choice:null,meal:false,wait:0,interrupted:resumeReturn&&!!saved.returnInterrupted,returnOnly:resumeReturn};resumeReturn=false;note('break-due');
    }
    const n=actors.get(active.id),relief=actors.get(active.reliefId),shift=shiftFor(active.id);
@@ -204,7 +223,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
     const outcome=toilet?.state().lastOutcome,completed=outcome?.actorId===active.id&&outcome.status==='completed';
     clear(n);active.phase='returning';if(!completed)active.interrupted=true;note(completed?'toilet-finished':'toilet-interrupted');return;
    }
-   if(active.phase==='handoff'||busy(n))return;
+   if(conversations.owns(n.station.id)||active.phase==='handoff'||busy(n))return;
    if(active.phase==='choosing')chooseBreak(n,state);
    if(active.phase==='preparing') {
     if(!vacant(active.choice.facilityId,state)||!board.holdWorkplace('kitchen',active.id)){interrupt(n);return;}
@@ -229,20 +248,23 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
     const work=post(active.id);if(work.mount&&!furniture.facilities.request(work.mount.id,active.id))return;
     go(n,work.to,{...work,duration:1,onDone:finish});
    }
+   }finally{socialReads=null;}
   },
   abort(n){
+   if(conversations.abort(n))return;
    if(!active)return;
    if(n.station.id===active.reliefId){if(active.phase==='handoff'){restoreRelief();active.phase='draining';return;}if(profile(active.id).local&&active.covering)interrupt(actors.get(active.id),{coverageAborted:true});return;}
    interrupt(n);
   },
-  recall(id){if(active?.id!==id&&active?.reliefId!==id)return true;if(active.id===id&&!['returning','reclaiming'].includes(active.phase))interrupt(actors.get(id));return false;},
-  playerRequest(id){if(active){const n=actors.get(active.id);if(active.choice?.facilityId===id||n.serviceMount?.id===id||taskOf(n)?.mount?.id===id)interrupt(n);}},
+  recall(id){const n=actors.get(id);if(n)conversations.abort(n);if(active?.id!==id&&active?.reliefId!==id)return true;if(active.id===id&&!['returning','reclaiming'].includes(active.phase))interrupt(actors.get(id));return false;},
+  playerRequest(id){conversations.playerRequest(id);if(active){const n=actors.get(active.id);if(active.choice?.facilityId===id||n.serviceMount?.id===id||taskOf(n)?.mount?.id===id)interrupt(n);}},
   meals:()=>active?.meal?[{workerId:active.id,eating:taskOf(actors.get(active.id))?.arrived&&active.phase==='meal'}]:[],
   snapshot:()=>snapshot(),
 
-  continuity:()=>({version:1,active:active?JSON.parse(JSON.stringify(active)):null,time,night,due:{...due},completed,interrupted,resumeReturn,reliefLook,events:events.slice()}),
-  restore(s){if(s?.version!==1||s.active&&(!actors.has(s.active.id)||!actors.has(s.active.reliefId)))return false;time=Math.max(0,s.time||0);night=!!s.night;completed=Math.max(0,s.completed||0);interrupted=Math.max(0,s.interrupted||0);Object.assign(due,s.due||{});active=s.active?JSON.parse(JSON.stringify(s.active)):null;if(active&&(['toilet','toilet-use'].includes(active.phase)||active.phase==='meal'&&!active.mealSupply)){active.phase='returning';active.choice=null;active.meal=false;active.interrupted=true;}resumeReturn=!!s.resumeReturn;events.splice(0,events.length,...(s.events||[]));if(active?.choice?.facilityId)furniture.facilities.request(active.choice.facilityId,active.id);if(active?.phase==='preparing')board.holdWorkplace('kitchen',active.id);if(active?.covering&&active.id==='jp-omamori')dressRelief();if(active?.phase==='handoff')rebuildHandoff(actors.get(active.id),actors.get(active.reliefId),shiftFor(active.id));return true;},
-  state:()=>({mealSerial,mealReceipts:copy(mealReceipts),crew:crew.map(n=>n.station.id),nextWorkerId:nextWorker().station.id,dueIn:Math.max(0,due[nextWorker().station.id]-time),completed,interrupted,active:active?JSON.parse(JSON.stringify(active)):null,decisions:decisions.snapshot(),events:events.slice()}),
-  dispose(){if(active&&getToilet()?.ownsActor(actors.get(active.id)))getToilet().cancel('staff-left-lot',active.id);decisions.dispose();if(active)restoreRelief();for(const n of crew)release(n);active=null;},
+  continuity:()=>({version:1,conversations:conversations.snapshot(),active:active?JSON.parse(JSON.stringify(active)):null,time,night,due:{...due},completed,interrupted,resumeReturn,reliefLook,events:events.slice()}),
+  restore(s){if(s?.version!==1||s.active&&(!actors.has(s.active.id)||!actors.has(s.active.reliefId)))return false;time=Math.max(0,s.time||0);night=!!s.night;completed=Math.max(0,s.completed||0);interrupted=Math.max(0,s.interrupted||0);Object.assign(due,s.due||{});active=s.active?JSON.parse(JSON.stringify(s.active)):null;if(active&&(['toilet','toilet-use'].includes(active.phase)||active.phase==='meal'&&!active.mealSupply)){active.phase='returning';active.choice=null;active.meal=false;active.interrupted=true;}resumeReturn=!!s.resumeReturn;events.splice(0,events.length,...(s.events||[]));if(active?.choice?.facilityId)furniture.facilities.request(active.choice.facilityId,active.id);if(active?.phase==='preparing')board.holdWorkplace('kitchen',active.id);if(active?.covering&&active.id==='jp-omamori')dressRelief();conversations.restore(s.conversations);if(active?.phase==='handoff')rebuildHandoff(actors.get(active.id),actors.get(active.reliefId),shiftFor(active.id));return true;},
+  workCompleted(id,job,visit){return decisions.recordExperience(id,{id:'japan-staff-work:'+job.id+':'+id,kind:'staff-work',completed:true,label:`刚办完${visit.number}号${({register:'浴牌登记',checkout:'归还浴牌',prepare:'配料',deliverMix:'送浴包',cook:'做餐',serve:'送餐'})[job.kind]||'服务'}，想聊聊怎样忙中有序`});},
+  state:()=>({conversations:conversations.state(),mealSerial,mealReceipts:copy(mealReceipts),crew:crew.map(n=>n.station.id),nextWorkerId:nextWorker().station.id,dueIn:Math.max(0,due[nextWorker().station.id]-time),completed,interrupted,active:active?JSON.parse(JSON.stringify(active)):null,decisions:decisions.snapshot(),events:events.slice()}),
+  dispose(){if(active&&getToilet()?.ownsActor(actors.get(active.id)))getToilet().cancel('staff-left-lot',active.id);decisions.dispose();conversations.dispose();if(active)restoreRelief();for(const n of crew)release(n);active=null;},
  };
 }

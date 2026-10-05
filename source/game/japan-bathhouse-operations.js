@@ -18,7 +18,7 @@ const JOBS={register:{label:'记入客簿并递出浴牌',duration:2.5,action:'c
 // Replaces (never runs beside) the earlier four-resident demonstration routine.
 // The host supplies the existing movement/door/wardrobe code and lifecycle
 // callbacks so spawned visitors join the ordinary labels, culling and disposal.
-export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,doors,moveActor,poseContext,changeWardrobe,createVisitor,removeVisitor,worldSeed=1,npcShapeVersion=1,saved={},saveState=()=>{},sharedNeeds=null,getToilet=()=>null}) {
+export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,doors,moveActor,poseContext,changeWardrobe,createVisitor,removeVisitor,worldSeed=1,npcShapeVersion=1,saved={},saveState=()=>{},sharedNeeds=null,getToilet=()=>null,beginInteraction=()=>null,onInteraction=()=>{}}) {
  const checkpoint=saved.continuity?.version===1?saved.continuity:null;if(checkpoint?.board)saved={...saved,...checkpoint.board,staffLife:{...(checkpoint.staffLife||saved.staffLife),...(saved.staffLife?.mealSerial!==undefined?{mealSerial:saved.staffLife.mealSerial,mealReceipts:saved.staffLife.mealReceipts}: {})}};
  const residents=new Map(npcs.map(n=>[n.station.id,n]));
  if(WORKERS.some(id=>!residents.has(id)))return null;
@@ -132,7 +132,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   const v=board.getVisit(job.visitId),dish=v.dishId==='sushi'?'寿司拼盘':'汤面',config={...JOBS[job.kind],...(job.kind==='cook'&&v.dishId==='sushi'?{label:'为来客制作寿司拼盘',action:'sushi',workTarget:[-6.6,1.18,-13.65]}:{}),...(job.kind==='serve'?{label:`把${dish}送给点餐来客`}:{})},carrying=!!job.itemId;
   const complete=()=>{
    const guest=customerActor(job.visitId),ok=board.complete(job.id,n.station.id,{position:n.root.position.toArray(),guestPosition:guest?.root.position.toArray(),itemId:job.itemId,tokenId:job.tokenId||v.tokenId});
-   if(ok){record(job.visitId,job.kind);if(['register','checkout'].includes(job.kind))furniture.facilities.release('japan-service-reception',job.visitId);}
+   if(ok){staffLife?.workCompleted(n.station.id,job,v);record(job.visitId,job.kind);if(['register','checkout'].includes(job.kind))furniture.facilities.release('japan-service-reception',job.visitId);}
    return ok;
   };
   const held=carrying&&board.state().items.some(i=>i.id===job.itemId&&i.location.type==='worker'&&i.location.id===n.station.id);
@@ -235,7 +235,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   const working=!n.walking&&task?.arrived&&(!task.idle||near(n.root.position,mount?.anchor||task.to,.18));
   n.animate(t+n.phase,n.walking,sharedActivity?n.station.npcAction:mount?(mount.kind==='bath'?'bathe':mount.kind==='bed'?'lie-rest':mount.poseAction||'chair-sit'):chatting?null:working?task.action:null,context);
  }
- staffLife=createJapanStaffLife({getReceptionCoverage:()=>receptionDuty?.isCovering()||false,getExternalCoverage:id=>['jp-onsen','jp-steam'].includes(id)&&deliveryDuty?.isCovering()||false,sharedNeeds,getToilet,saveState:state=>saveState({...board.state(),staffLife:state}),onMealReceipt:receipt=>!sharedNeeds||sharedNeeds.mealReceipts([receipt])||(sharedNeeds.snapshot().people[receipt.actorId]?.receipts['japan-staff-meal']||0)>=receipt.number,actors,board,furniture,assign,clear,unmount,taskOf:n=>tasks.get(n.station.id),changeWardrobe,worldSeed,canReach:(n,to)=>near(n.root.position,to)||planPath(n.root.position,point(to),.25).length>0,saved:saved.staffLife});
+ staffLife=createJapanStaffLife({beginInteraction,onInteraction,getMeetingHeld:id=>id==='jp-welcome'&&receptionDuty?.holdsHost()||id==='jp-onsen'&&deliveryDuty?.holdsHost(),getReceptionCoverage:()=>receptionDuty?.isCovering()||false,getExternalCoverage:id=>['jp-onsen','jp-steam'].includes(id)&&deliveryDuty?.isCovering()||false,sharedNeeds,getToilet,saveState:state=>saveState({...board.state(),staffLife:state}),onMealReceipt:receipt=>!sharedNeeds||sharedNeeds.mealReceipts([receipt])||(sharedNeeds.snapshot().people[receipt.actorId]?.receipts['japan-staff-meal']||0)>=receipt.number,actors,board,furniture,assign,clear,unmount,taskOf:n=>tasks.get(n.station.id),changeWardrobe,worldSeed,canReach:(n,to)=>near(n.root.position,to)||planPath(n.root.position,point(to),.25).length>0,saved:saved.staffLife});
  return {
   owns:n=>actors.has(n.station.id),
   connectPlayerService(options) {return playerCustomerService??=createJapanPlayerService({...options,board,furniture,continuity:checkpoint?.playerService});},
@@ -271,7 +271,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   snapshot:()=>({version:1,board:board.state(),time,nextArrival,checkpointAt,staffLife:staffLife?.snapshot(),staffRuntime:staffLife?.continuity(),playerService:playerCustomerService?.snapshot(),receptionDuty:receptionDuty?.snapshot(),deliveryDuty:deliveryDuty?.snapshot(),cooldowns:[...cooldowns],tasks:[...tasks].map(([id,t])=>({id,to:t.to.slice(),orderJobId:t.orderJobId||null,staffLife:!!t.staffLife,idle:!!t.idle,elapsed:t.elapsed,arrived:t.arrived,mountId:t.mount?.id||null})),transitions:[...actors].filter(([,n])=>n.bathTransition).map(([id,n])=>[id,n.bathTransition.snapshot()]),history:history.slice()}),
   restore(s){
    if(s?.version!==1)return false;time=Math.max(0,s.time||0);nextArrival=Math.max(time,s.nextArrival||0);checkpointAt=Math.max(time,s.checkpointAt||0);cooldowns.clear();for(const [id,t]of s.cooldowns||[])if(actors.has(id)&&Number.isFinite(t))cooldowns.set(id,t);history.splice(0,history.length,...(s.history||[]));
-   playerCustomerService?.restore(s.playerService);staffLife?.restore(s.staffRuntime);board.restoreClaims(s.board?.claims);receptionDuty?.restore(s.receptionDuty);deliveryDuty?.restore(s.deliveryDuty);
+   playerCustomerService?.restore(s.playerService);board.restoreClaims(s.board?.claims);staffLife?.restore(s.staffRuntime);receptionDuty?.restore(s.receptionDuty);deliveryDuty?.restore(s.deliveryDuty);
    for(const job of board.state().claims){const n=actors.get(job.workerId);if(n)workerTask(n,job);}
    for(const [id,n]of guests){const v=board.getVisit(id);if(v)scheduleGuest(n,v);}
    staffLife?.update(0,{night:!!s.staffRuntime?.night});scheduleWorkers();
