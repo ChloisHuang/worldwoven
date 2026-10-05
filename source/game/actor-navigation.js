@@ -3,7 +3,7 @@ import {moveWithCollision} from './navigation.js';
 // Routes describe static passages. Other people only constrain this movement
 // step, never the whole route or its distant destination.
 const EPS=1e-6,PERSON_HEIGHT=1.95,TURNOUT=new WeakMap(),BODY_RECOVERY=new WeakMap();
-const BODY_WAIT=5,BODY_ESCAPE_SECONDS=1.25,BODY_ESCAPE_DISTANCE=1.4,ROUTE_PROGRESS=.12;
+const BODY_WAIT=5,BODY_ESCAPE_SECONDS=1.25,BODY_ESCAPE_DISTANCE=1.4,ROUTE_PROGRESS=.12,BODY_CLEAR_GRACE=.25;
 let movementStep=0,movementTime=0,movementDt=0;
 
 // One tick per simulation substep, including ticks with no movement. Neither
@@ -29,14 +29,24 @@ function bodyRecovery(actor,from,dx,dz,radius,{doors,colliders,navigation,npcs,p
  // must permit useful movement before a character can be blamed for the stop.
  // The prior actual result also catches a wall slide that meets a body even
  // when the original diagonal intent was clear, without probing every walker.
- let blocked=false;
- if(local.blocker||state.lastBodyBlocked||state.escapeUntil){
+ let blocked=false,staticBlocked=false;
+ if(local.blocker||state.lastBodyBlocked||state.escapeUntil||state.wait>0){
   const candidate={...from},leaf=doors?.constrainMove?doors.constrainMove(from,dx,dz,radius):{dx,dz};
   moveWithCollision(candidate,leaf.dx,leaf.dz,colliders,radius,navigation);
   const allowed=doors?.constrainMove?doors.constrainMove(from,candidate.x-from.x,candidate.z-from.z,radius):{dx:candidate.x-from.x,dz:candidate.z-from.z};
-  if(allowed.dx*dx+allowed.dz*dz>=length*length*.25)blocked=!!constrainActorMove(actor,from,allowed.dx,allowed.dz,radius,npcs,playerPosition,candidate.y).blocker;
+  staticBlocked=allowed.dx*dx+allowed.dz*dz<length*length*.25;
+  if(!staticBlocked)blocked=!!constrainActorMove(actor,from,allowed.dx,allowed.dz,radius,npcs,playerPosition,candidate.y).blocker;
  }
- if(!blocked){state.wait=0;state.escapeUntil=0;state.x=from.x;state.y=from.y;state.z=from.z;state.ux=dx/length;state.uz=dz/length;return state;}
+ if(!blocked){
+  // A local turnout can make one tiny forward trial look clear, then put the
+  // walker straight back beside the same body. Keep that short gap in the
+  // encounter until there is real net progress or a sustained clear route.
+  // An active escape still ends immediately once ordinary collision is clear.
+  state.clearTime=(state.clearTime||0)+movementDt;
+  if(!staticBlocked&&!state.escapeUntil&&state.wait>0&&state.clearTime<BODY_CLEAR_GRACE&&(from.x-state.x)*state.ux+(from.z-state.z)*state.uz<ROUTE_PROGRESS){state.wait+=movementDt;return state;}
+  state.wait=0;state.escapeUntil=0;state.x=from.x;state.y=from.y;state.z=from.z;state.ux=dx/length;state.uz=dz/length;return state;
+ }
+ state.clearTime=0;
  if(!state.escapeUntil){
   // Net forward progress resets waiting. Tiny sideways yielding/backtracking
   // does not, even when those trials briefly set actor.walking=true.
