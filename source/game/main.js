@@ -177,7 +177,7 @@ function pauseForReadOnlyPanel(){keys.clear();joy={x:0,y:0};$('joystick-knob').s
 function refreshCourtHelp(){const status=$('china-court-status');status.textContent=chinaAudience?.summary()||'';status.hidden=!chinaAudience;}
 function pauseForCareerPanel(){if(!chinaCareer?.isActing()){cancelAction();path=[];targetStation=null;pendingInteraction=null;}keys.clear();joy={x:0,y:0};$('joystick-knob').style.transform='';}
 const careerHandbook=createCareerHandbook({careers:formalCareers,copperLedger,getClock:()=>simulationClock.state(),getCountry:()=>active?.id,getPlayer:()=>player,getService:roleId=>['cn-tavern-host','cn-tavern-chef','cn-tavern-steward'].includes(roleId)?(roleId==='cn-tavern-steward'&&chinaLabor?.active()?chinaLabor:chinaService?.forRole(roleId)):roleId==='fr-garden-assistant'?franceLabor:chinaCareer,onIntent:requestStationIntent,onOpen:pauseForCareerPanel,walletFactory:({mount})=>(currencyWallet=createCurrencyWallet({mount,ledger:copperLedger,getCurrency:()=>active?.id==='china'?'copper':active?.id||'copper',onOpen:()=>{careerHandbook.close();pauseForReadOnlyPanel();},onClose:()=>canvas.focus({preventScroll:true})}))});
-const studyMenu=createStudyMenu({careers:formalCareers,getClock:()=>simulationClock.state(),onOpen:()=>{pauseForCareerPanel();joyActionAnchor=joyPointer!==null&&joyLastPoint?{...joyLastPoint}:null;},onClose:()=>canvas.focus({preventScroll:true}),onChoose:(station,lessonId)=>startInteraction(station,{lessonId})});
+const studyMenu=createStudyMenu({careers:formalCareers,getCountry:()=>active?.id,getClock:()=>simulationClock.state(),onOpen:()=>{pauseForCareerPanel();joyActionAnchor=joyPointer!==null&&joyLastPoint?{...joyLastPoint}:null;},onClose:()=>canvas.focus({preventScroll:true}),onChoose:(station,lessonId)=>startInteraction(station,{lessonId})});
 const passportPortrait=createPassportPortrait({renderer,getPlayer:()=>player});
 window.addEventListener('pagehide',event=>{if(!event.persisted)passportPortrait.dispose();});
 const travelPassport=createTravelPassport({trigger:$('passport-button'),helpContent:$('passport-help'),onHelp:refreshCourtHelp,getProgress:()=>({visited:saved.visited,stamps:saved.stamps,nickname:saved.playerProfile?.nickname}),getClock:()=>simulationClock.state(),getPortrait:()=>passportPortrait.capture(),onOpen:()=>{currencyWallet?.close();careerHandbook.close();studyMenu.close();pauseForReadOnlyPanel();},onClose:()=>canvas.focus({preventScroll:true})});
@@ -469,7 +469,7 @@ function finishInteraction(){
  let receipt=null;
  if(studyTicket&&station.studyLesson&&studyTicket.source===station.id&&studyTicket.lessonId===station.studyLesson.id){
   const learned=formalCareers.completeLearning(studyTicket,{seconds:actionTime});
-  if(learned.ok){const name=STUDY_SKILL_NAMES[learned.skill],level=formalCareers.state().skills[learned.skill];receipt=`${station.studyLesson.title} · ${learned.gained?`${name}经验 +1 · Lv.${level}`:learned.limited==='daily-skill-limit'?`${name}今日经验已满（4/4）`:`${name}已到当前技能上限`}`;}
+  if(learned.ok){const name=STUDY_SKILL_NAMES[learned.skill],level=formalCareers.state().skills[learned.skill];receipt=`${station.studyLesson.title} · ${learned.gained?`${name} +${learned.xpGained} XP · Lv.${level} · ${learned.xp}/${learned.required} XP${learned.levelsGained?' · 升级！':''}`:learned.limited==='daily-skill-limit'?`${name}今日有效学习次数已用完`:`${name}已到当前技能上限`}`;}
   else receipt=learned.code==='learning-expired'?'学习跨过了模拟日，请重新选书开始；本次未计经验':'本次学习未能记入，请重新选择后再试';
  }
  const id=active.id;saved.stamps[id]??=[];

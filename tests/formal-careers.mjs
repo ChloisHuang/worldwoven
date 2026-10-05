@@ -21,18 +21,21 @@ function setup(saved = {}, options = {}) {
       credits: [...store.bank.credits, clone(deposit)]};
     return {ok: true, replayed: false, receiptId: deposit.receiptId};
   };
-  const careers = createFormalCareers({worldSeed:785,saved: store.careers, creditWageToBank, getClock: () => clock,
+  const createCareer = state => createFormalCareers({worldSeed:785,saved: state, creditWageToBank, getClock: () => clock,
     ...options, saveState: state => {
       if (flags.throw) throw Error('quota');
       if (flags.async) return Promise.reject(Error('unsupported'));
       if (flags.reject) return false;
       store.careers = state;
     }});
+  const careers = {...createCareer(store.careers)};
   const study = (source = 'cn-rest', seconds = 8) => {
     const issued = careers.learningTicket(source); assert(issued.ok);
     return careers.completeLearning(issued.ticket, {seconds});
   };
-  const qualify = () => { for (const source of ['cn-rest', 'cn-calligraphy']) for (let i = 0; i < 2; i++) assert.equal(study(source).gained, 1); };
+  // Salary/attendance cases start from an earned qualification; gradual lesson
+  // accumulation is covered by study-xp, without moving these duty clocks.
+  const qualify = () => {const saved=careers.state();saved.skills.ritual=2;saved.skills.writing=2;Object.assign(careers,createCareer(saved));};
   const hire = () => { qualify(); assert(careers.apply(ROLE, {ageYears: 18}).ok); };
   const ready = (hour = 10) => {
     clock.hour = hour; assert(careers.beginDuty().ok);

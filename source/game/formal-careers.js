@@ -1,6 +1,7 @@
 import {GAME_MINUTES_PER_SECOND} from './simulation-clock.js';
 import {emptyApplications, restoreApplications, careerInterview} from './career-applications.js';
-import {STUDY_SOURCES, studyLesson, defaultStudyLesson} from './study-lessons.js';
+import {STUDY_SOURCES, studyLesson, savedStudyLesson, defaultStudyLesson} from './study-lessons.js';
+import {STUDY_XP, skillXPRequired, addSkillXP} from './skill-progress.js';
 // Finite vacancies and one rotating player seat alongside each real incumbent.
 export const COURT_CLERK_ROLE = Object.freeze({
   id: 'cn-court-clerk', name: '礼务录事', rank: 9, slotId: 'cn-court-clerk-1', country: 'china', currency: 'copper', employer: '沈叙', workplace: '承务官署',
@@ -47,7 +48,7 @@ const excused = duty => duty?.stage === 'missed' && duty.reason === 'court-postp
 const supervisor = role => role.supervisorId || COURT_SUPERVISOR.id;
 const completedWage = (role, arrivalHour) => role.workSource ? role.wage + (arrivalHour < role.earlyBeforeHour ? role.preparationBonus : 0) : role.wage + (COURT_SUPERVISOR.conscientiousness >= .8 &&
   arrivalHour <= role.dutyWindow.endHour - COURT_SUPERVISOR.earlyArrivalMinutes / 60 ? COURT_SUPERVISOR.preparationBonus : 0);
-const empty = () => ({version: 4, revision: 0, skills: {ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0}, tenure: null,
+const empty = () => ({version: 5, revision: 0, skillXP: Object.fromEntries(SKILLS.map(skill=>[skill,0])), skills: {ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0}, tenure: null,
   lastDuty: null, lastPaidDay: null, daily: {day: null, ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0},
   learning: Object.fromEntries(STUDY_SOURCES.map(source => [source, emptyStudy()])),
   lowerWork: {'cn-tavern-labor': 0, 'fr-garden-labor': 0}, performance: 0, promotionProgress: 0,
@@ -151,21 +152,23 @@ function restore(saved, roleMap, slotMap) {
       lastDuty:saved.lastDuty&&tavernRole(roleMap.get(saved.lastDuty.roleId))?{...saved.lastDuty,customerReviews:[]}:saved.lastDuty};
   }
   const validSlot = (roleId, slotId) => roleMap.has(roleId) && slotMap.get(slotId)?.roleId === roleId && availableSlot(slotMap.get(slotId),roleMap.get(roleId));
-  if (!object(saved) || saved.version !== 4 || !integer(saved.revision) || !object(saved.skills) ||
+  if (!object(saved) || ![4,5].includes(saved.version) || !integer(saved.revision) || !object(saved.skills) ||
     Object.keys(saved.skills).length !== SKILLS.length || SKILLS.some(key => !integer(saved.skills[key])) ||
     SKILLS.some(key=>saved.skills[key]>100) || saved.skills.ritual + saved.skills.writing > 100 || !dayOrNull(saved.lastPaidDay) ||
     !object(saved.daily) || !dayOrNull(saved.daily.day) || SKILLS.some(key => !integer(saved.daily[key]) ||
-      saved.daily[key] > 4 || saved.daily[key] > saved.skills[key]) ||
+      saved.daily[key] > 4 || saved.version===4 && saved.daily[key] > saved.skills[key]) ||
     (saved.daily.day === null && SKILLS.some(key => saved.daily[key] !== 0)) ||
     !object(saved.learning) || Object.keys(saved.learning).length !== STUDY_SOURCES.length ||
     !object(saved.lowerWork) || Object.keys(saved.lowerWork).length !== 2 || Object.keys(WORK).some(source=>!integer(saved.lowerWork[source])) ||
     !Number.isInteger(saved.performance) || Math.abs(saved.performance) > 100 ||
     !integer(saved.promotionProgress) || saved.promotionProgress > 100 || !dayOrNull(saved.lastEvaluatedDay)) throw Error('invalid-career-state');
+  if(saved.version===5&&(!object(saved.skillXP)||Object.keys(saved.skillXP).length!==SKILLS.length||
+    SKILLS.some(key=>!integer(saved.skillXP[key])||saved.skillXP[key]>=skillXPRequired(saved.skills[key])||saved.skills[key]===100&&saved.skillXP[key]!==0)))throw Error('invalid-career-state');
   for (const source of STUDY_SOURCES) {
     const study = saved.learning[source];
     if (!object(study) || Object.keys(study).length !== 4 || !integer(study.issued) || !integer(study.completed) || study.completed > study.issued ||
       !dayOrNull(study.issuedDay) || (study.issued === 0) !== (study.issuedDay === null) ||
-      (study.issued === 0 ? study.lessonId !== null : !studyLesson(source,study.lessonId))) throw Error('invalid-career-state');
+      (study.issued === 0 ? study.lessonId !== null : !savedStudyLesson(source,study.lessonId))) throw Error('invalid-career-state');
   }
   if (saved.tenure !== null && (!object(saved.tenure) || !validSlot(saved.tenure.roleId, saved.tenure.slotId) ||
     !integer(saved.tenure.sinceDay) || !Number.isFinite(saved.tenure.sinceHour) ||
@@ -203,7 +206,7 @@ function restore(saved, roleMap, slotMap) {
     !duty || review.day > duty.day || review.day === duty.day && (review.slotId !== duty.slotId ||
       (review.positive ? !['ready', 'paid'].includes(duty.stage) || duty.wage !== review.wage || (duty.shiftKind==='continuous'?review.coverageHours!==coveredHours(duty):review.coverageHours!==undefined) || (review.servicePenalty??0)!==customerPenalty(duty) : duty.stage !== 'missed'))) throw Error('invalid-career-state');
   if (duty && ['ready', 'paid'].includes(duty.stage) && (!review || review.day !== duty.day || !review.positive)) throw Error('invalid-career-state');
-  return {version: 4, revision: saved.revision, applications: restoreApplications(saved.applications, roleMap, slotMap), skills: {...saved.skills},
+  return {version: 5, skillXP: saved.version===5?{...saved.skillXP}:Object.fromEntries(SKILLS.map(skill=>[skill,0])), revision: saved.revision, applications: restoreApplications(saved.applications, roleMap, slotMap), skills: {...saved.skills},
     tenure: saved.tenure === null ? null : {roleId: saved.tenure.roleId, slotId: saved.tenure.slotId,
       sinceDay: saved.tenure.sinceDay, sinceHour: saved.tenure.sinceHour},
     lastDuty: duty === null ? null : {roleId: duty.roleId, slotId: duty.slotId, day: duty.day, stage: duty.stage,
@@ -377,18 +380,23 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if (!clock || study.issuedDay !== clock.day) return failure('learning-expired');
     if (study.issued===0 || ticket.id!==`${ticket.source}:${study.issued}:${study.issuedDay}` || ticket.lessonId!==study.lessonId) return failure('invalid-learning-ticket');
     if (study.completed>=study.issued) return failure('learning-replayed');
+    if (!studyLesson(ticket.source,study.lessonId)) return failure('unknown-learning-choice');
     activeStudies.set(ticket.source,ticket.id);return {ok:true,ticket};
   }
   function cancelLearning(ticket) {
     if (ticket && activeStudies.get(ticket.source) === ticket.id) activeStudies.delete(ticket.source);
   }
-  function grantSkill(next, skill, clock) {
+  function grantSkill(next, skill, clock, fullWork=false) {
     const daily = current.daily.day === clock.day ? {...current.daily} : {day: clock.day, ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0};
     const limited = daily[skill] >= 4 ? 'daily-skill-limit' : (['gardening','art','cooking'].includes(skill)?current.skills[skill]>=100:current.skills.ritual + current.skills.writing >= 100) ? 'skill-limit' : null;
     const gained = limited ? 0 : 1;
+    // A complete work contract retains its published one-level reward. A short
+    // lesson earns 10 XP; it never increments a level directly.
+    const xpGained=gained?(fullWork?skillXPRequired(current.skills[skill]):STUDY_XP):0;
+    const progress=addSkillXP(current.skills[skill],current.skillXP[skill],xpGained);
     const result = persist({...next, daily: {...daily, [skill]: daily[skill] + gained},
-      skills: {...current.skills, [skill]: current.skills[skill] + gained}});
-    return result.ok ? {ok: true, skill, gained, limited} : result;
+      skillXP:{...current.skillXP,[skill]:progress.xp},skills:{...current.skills,[skill]:progress.level}});
+    return result.ok ? {ok:true,skill,gained,xpGained,level:progress.level,xp:progress.xp,required:skillXPRequired(progress.level),levelsGained:progress.levelsGained,limited} : result;
   }
   function completeLearning(ticket, {seconds} = {}) {
     const blocked = allowed(); if (blocked) return blocked;
@@ -399,6 +407,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if (study.completed >= study.issued) return failure('learning-replayed');
     if (study.issuedDay !== clock.day) return failure('learning-expired');
     if (activeStudies.get(ticket.source) !== ticket.id) return failure('learning-interrupted');
+    if (!lesson) return failure('unknown-learning-choice');
     if (!Number.isFinite(seconds) || seconds < lesson.seconds) return failure('learning-incomplete');
     const result = grantSkill({...current, learning: {...current.learning, [ticket.source]: {...study, completed: study.issued}}}, lesson.skill, clock);
     if (result.ok) activeStudies.delete(ticket.source);
@@ -412,7 +421,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if (!integer(serial)) return failure('invalid-work-receipt');
     if (serial <= current.lowerWork[source]) return failure('work-replayed');
     const clock = now(); if (!clock) return failure('invalid-clock');
-    return grantSkill({...current, lowerWork: {...current.lowerWork, [source]: serial}}, WORK[source], clock);
+    return grantSkill({...current, lowerWork: {...current.lowerWork, [source]: serial}}, WORK[source], clock, true);
   }
   // The handbook, world intents and final mutation share one start decision.
   // Reads do not observe a day, save state, advance lastClock or change errors.

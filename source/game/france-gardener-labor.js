@@ -1,3 +1,4 @@
+import {skillXPReceipt} from './skill-progress.js';
 import {GARDEN_ASSISTANT_ROLE} from './formal-careers.js';
 import {createFormalLaborContract} from './formal-labor-contract.js';
 import {GARDEN_HELPER_ROLE} from './france-gardener-employment.js';
@@ -151,7 +152,7 @@ export function createFranceGardenerLabor({gardener,employment,careers,openRegis
       // Save a completed return before releasing the only can. On failure the
       // player keeps it and can retry; a ready receipt precedes bank credit.
       if(!j.cancelled&&j.completedBeds===2&&!formal.complete(j))return;
-      if(persist(next)){if(j.completedBeds===2&&!formal.pinned(j))onCompleted(copy(next.job));gardener.returnCan(id);notify(j.cancelled?'水壶已归位，这份活已取消':j.completedBeds===2?formal.pinned(j)?'水壶已归位，请到登记簿旁验收当班':'水壶已归位，请到登记簿旁验收，6 铜文工资自动存银行':'水壶已归位，已完成的花畦保留；可再领取继续');}
+      if(persist(next)){const learned=j.completedBeds===2&&!j.cancelled&&!formal.pinned(j)?onCompleted(copy(next.job)):null;gardener.returnCan(id);notify((j.cancelled?'水壶已归位，这份活已取消':j.completedBeds===2?formal.pinned(j)?'水壶已归位，请到登记簿旁验收当班':'水壶已归位，请到登记簿旁验收，6 铜文工资自动存银行':'水壶已归位，已完成的花畦保留；可再领取继续')+skillXPReceipt(learned,'园艺'));}
      }
     }
    }
@@ -211,7 +212,7 @@ function createUI({doc,service,getPlayer,canSee,onIntent,onOpen}){
   if(s.formalJob||s.formalHired&&!s.job)dialog.append(make('h3','正式班次'));
   else{
    dialog.append(make('h3','临工 · 按次接活'),make('p',s.employment?.loadError?'临工登记：记录暂时无法读取':s.employment?.roleId===GARDEN_HELPER_ROLE?'临工登记：可按次接活':'临工登记：尚未登记'));
-   dialog.append(make('p','职责：亲手领取架上的浇水壶，在两畦玫瑰各站稳浇水 5 秒，再归还原壶。整份工钱 6 铜文，验收后自动存银行，到中国钱庄取款后才进入钱包；每份完整临工积累1点园艺。'),make('p','临工门槛：无需资历、技能或报名费，登记后可按次接活。结清工钱后可取消登记、重新登记。'));
+   dialog.append(make('p','职责：亲手领取架上的浇水壶，在两畦玫瑰各站稳浇水 5 秒，再归还原壶。整份工钱 6 铜文，验收后自动存银行，到中国钱庄取款后才进入钱包；每份完整临工获得当前一级门槛的园艺 XP（每天最多4份有效成长）。'),make('p','临工门槛：无需资历、技能或报名费，登记后可按次接活。结清工钱后可取消登记、重新登记。'));
   }
   if(s.formalHired)dialog.append(make('p','每天最多一班，正式工作不再另发临工铜文。法国券账户提款目前请去中国钱庄办理。'));
   if(s.loadError||s.employment?.loadError)dialog.append(make('p','记录暂时无法读取，请保留存档后再试。'));

@@ -1,3 +1,4 @@
+import {skillXPReceipt} from './skill-progress.js';
 import {TAVERN_STEWARD_ROLE} from './formal-careers.js';
 import {createFormalLaborContract} from './formal-labor-contract.js';
 import {TAVERN_HELPER_ROLE} from './china-tavern-employment.js';
@@ -196,7 +197,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
           const next = {...current, job: {...current.job, completedTables: done, stage: done === 2 ? 'ready' : 'working'}};
           stopCleaning();
           if (done===2&&!formal.complete(next.job))return;
-          if (persist(next)) {if(done===2&&!formal.pinned(next.job))onCompleted(copy(next.job));notify(done === 2 ? formal.pinned(next.job)?'两桌已完成，回许安处验收今日班次':'两张桌面都擦净了，请回许安处验收，12 铜文工资自动存银行' : '西窗桌擦净了，请走到东窗桌靠过道的一侧');}
+          if (persist(next)) {const learned=done===2&&!formal.pinned(next.job)?onCompleted(copy(next.job)):null;notify((done === 2 ? formal.pinned(next.job)?'两桌已完成，回许安处验收今日班次':'两张桌面都擦净了，请回许安处验收，12 铜文工资自动存银行' : '西窗桌擦净了，请走到东窗桌靠过道的一侧')+skillXPReceipt(learned,'礼仪'));}
         }
       }
     }

@@ -36,6 +36,7 @@ function load(day = 1, hour = 8) {
   };
   return {bank, careers, clock, failures, ready};
 }
+const qualification=createFormalCareers({saveState:()=>{},getClock:()=>({day:0,hour:8,seconds:0})}).state();qualification.skills.ritual=2;qualification.skills.writing=2;durable.careers=qualification;
 const first = load();
 for (const source of ['cn-rest', 'cn-calligraphy']) {
   for (let i = 0; i < 2; i++) {

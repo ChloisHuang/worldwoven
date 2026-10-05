@@ -25,9 +25,10 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
   onIntent=()=>{},onOpen=()=>{},walletFactory=null,document:doc=globalThis.document}) {
   const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;};
   const slot=make('div',null,'career-wallet-slot'),money=make('span',null,'career-money'),button=make('button',null,'career-open');
-  // Original paper-and-quill emblem; only the artwork is visible in the HUD.
+  // Original guild-knot emblem: a mint star, open gold yoke and lavender ties.
+  // Artwork floats directly on the HUD; the transparent touch target stays 44px.
   const icon=make('span',null,'career-icon');icon.setAttribute('aria-hidden','true');
-  icon.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" fill="none" focusable="false"><path d="M10 7 28 5l6 6-1 27-23 2-3-4V11z" fill="#ead6a5" stroke="#625846" stroke-width="1.7" stroke-linejoin="round"/><path d="m10 9 3-1v29l-3 1z" fill="#9b6b35"/><path d="m28 5-1 8 7-2" fill="#fff0c9" stroke="#625846" stroke-width="1.5" stroke-linejoin="round"/><path d="m16 20 11-1m-11 6 9-1m-9 6 5-.5" stroke="#aa9775" stroke-width="1.6" stroke-linecap="round"/><path d="M23 30c1-10 5-19 15-24 1 10-4 16-11 19l-4 5Z" fill="#c9a46b" stroke="#785331" stroke-width="1.5" stroke-linejoin="round"/><path d="M21 34 35 11m-9 15 5-1m-2-5 .5-5" stroke="#785331" stroke-width="1.4" stroke-linecap="round"/></svg>';
+  icon.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" fill="none" focusable="false"><path d="m16 25-3 14 7-4 3 4 2-14" fill="#c3cdee"/><path d="m23 26 5 11 3-6 6 1-9-11" fill="#aad9cd"/><path d="M12 20 8 12l8-4m12 0 8 4-4 8" stroke="#eee0b9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="m22 7 5 10 10 5-10 5-5 10-5-10-10-5 10-5Z" fill="#b7ded2" stroke="#f5f5dd" stroke-width="1.25" stroke-linejoin="round"/><path d="m22 13 3 7 7 2-7 3-3 7-3-7-7-3 7-2Z" fill="#80b6b2"/><path d="m22 16 3 6-3 6-3-6Z" fill="#f6efcf"/><path d="m5 26 2 2m30-22 1-3" stroke="#d3d9ee" stroke-width="1.2" stroke-linecap="round"/></svg>';
   button.append(icon);
   button.type='button';button.setAttribute('aria-label','打开职业手册');const wallet=walletFactory?.({mount:slot})||null;if(!wallet)slot.append(money);slot.append(button);
   const dialog=make('dialog',null,'career-dialog'),feedback=make('div',null,'career-review-pop'),style=make('style');
