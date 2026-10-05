@@ -74,6 +74,16 @@ function portraitCamera(actor,source){
       top=Math.max(top,point.dot(up));
     }
   });
+  // Borrowed hats are rigid children of the existing head bone. Include their
+  // actual vertices in the same upright frame; no change to the live actor.
+  head.traverseVisible(mesh=>{
+    if(!mesh.isMesh||mesh.isSkinnedMesh)return;
+    const position=mesh.geometry?.attributes.position;if(!position)return;
+    for(let i=0;i<position.count;i++){
+      point.fromBufferAttribute(position,i).applyMatrix4(mesh.matrixWorld).sub(origin);
+      top=Math.max(top,point.dot(up));
+    }
+  });
   if(!Number.isFinite(top))return null;
   const height=Math.max(.78*unit,top+.43*unit),width=height*WIDTH/HEIGHT;
   const center=origin.clone().addScaledVector(up,top+.055*unit-height/2);
