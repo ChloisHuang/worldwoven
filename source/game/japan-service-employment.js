@@ -1,5 +1,6 @@
 import {createFormalLaborContract} from './formal-labor-contract.js';
 const copy=x=>JSON.parse(JSON.stringify(x)),near=(p,q,r=.3)=>p&&Math.hypot(p.x-q[0],p.z-q[2])<=r&&Math.abs(p.y-q[1])<.35;
+const taskKind=kind=>kind==='task'||typeof kind==='string'&&kind.startsWith('task:');
 const integer=n=>Number.isSafeInteger(n)&&n>=0;
 // Hiring, time wages and reviews share the formal ledger. Only the original
 // service board produces evidence of a same-number guest/token operation.
@@ -38,7 +39,7 @@ export function createJapanServiceEmployment({duty:reception,role:ROLE,provider,
   if(careers.state().lastDuty?.stage!=='paid'){notify('工资已入银行，封账待重试，不会重复发放');return true;}
   if(!save({...current,job:null}))return fail('工资已入账，交班记录待重试');notify(`${ROLE.employer}：${careers.state().lastDuty.wage}日本券日薪已存入银行`);return true;
  }
- function intent(kind=null){if(disposed||lastError)return null;const j=current.job,work=j?.stage==='working'?reception.workIntent(j.receiptId):null,paused=reception.dutyState().status==='paused';
+ function intent(kind=null){if(disposed||lastError)return null;const j=current.job,work=j?.stage==='working'?reception.workIntent(j.receiptId,kind?.startsWith('task:')?kind.slice(5):null):null,paused=reception.dutyState().status==='paused';
   kind||=j?j.stage==='ready'?'claim':getClock().hour>=18&&!reception.held()?'end-shift':paused?'resume':work?'task':'wait':careers.applicationResult(ROLE.id)?.status==='pending'?'formal-review':'formal-view';
   if(kind==='view')kind='formal-view';if(kind==='work')kind='task';
   if(['formal-apply','formal-review','formal-resign','accept'].includes(kind)&&j)return null;
@@ -46,15 +47,15 @@ export function createJapanServiceEmployment({duty:reception,role:ROLE,provider,
   if(kind==='formal-review'&&careers.applicationResult(ROLE.id)?.status!=='pending')return null;
   if(kind==='formal-resign'&&!formal.hired())return null;
   if(kind==='accept'&&(!formal.hired()||!formal.beginAvailability().ok))return null;
-  if(kind==='claim'&&j?.stage!=='ready'||kind==='task'&&!work||['wait','cancel','end-shift','resume'].includes(kind)&&j?.stage!=='working'||kind==='resume'&&!paused)return null;
-  const action=kind==='task'?work.action:kind==='wait'?reception.workLabel():text.actions[kind];
-  return action?{id:provider+'-'+kind,provider,roleId:ROLE.id,kind,name:ROLE.workplace,npcName:ROLE.employer,action,position:(kind==='task'?work.position:kind==='cancel'&&reception.held()?reception.returnPosition():REG).slice(),executionRadius:kind==='task'?work.executionRadius:.3,interactionRadius:1.8,priority:47,
-   ...(kind==='formal-view'?{registration:{scope:'role',roleId:ROLE.id}}:{}),...(kind==='task'?{work:copy(work),playerWorkTarget:work.target}:{}),intentKey:[['task','wait','resume','end-shift','cancel'].includes(kind)?'-':careers.state().revision,j?.receiptId||'-',j?.stage||'-',kind,kind==='task'?work.key:'-'].join(':')}:null;
+  if(kind==='claim'&&j?.stage!=='ready'||taskKind(kind)&&!work||['wait','cancel','end-shift','resume'].includes(kind)&&j?.stage!=='working'||kind==='resume'&&!paused)return null;
+  const action=taskKind(kind)?work.action:kind==='wait'?reception.workLabel():text.actions[kind];
+  return action?{id:provider+'-'+kind,provider,roleId:ROLE.id,kind,name:ROLE.workplace,npcName:ROLE.employer,action,position:(taskKind(kind)?work.position:kind==='cancel'&&reception.held()?reception.returnPosition():REG).slice(),executionRadius:taskKind(kind)?work.executionRadius:.3,interactionRadius:1.8,priority:47,
+   ...(kind==='formal-view'?{registration:{scope:'role',roleId:ROLE.id}}:{}),...(taskKind(kind)?{work:copy(work),playerWorkTarget:work.target}:{}),intentKey:[taskKind(kind)||['wait','resume','end-shift','cancel'].includes(kind)?'-':careers.state().revision,j?.receiptId||'-',j?.stage||'-',kind,taskKind(kind)?work.key:'-'].join(':')}:null;
  }
  const resolveIntent=old=>{const next=intent(old?.kind);return next&&old&&next.provider===old.provider&&next.id===old.id&&next.intentKey===old.intentKey?next:null;};
  function executeIntent(old){const next=resolveIntent(old);if(!next||getMounted()||!near(getPlayer()?.root.position,next.position,next.executionRadius)||!canSee(next))return false;
   if(next.kind==='formal-view'){formal.open();return true;}
-  if(next.kind==='task')return reception.executeWork(next.work,current.job.receiptId);
+  if(taskKind(next.kind))return reception.executeWork(next.work,current.job.receiptId);
   if(next.kind==='wait'){notify(next.action+'；职业手册可选择交班');return true;}
   if(next.kind==='cancel'){if(current.job.handoff==='end')return false;if(!current.job.handoff&&(!flush()||!save({...current,job:{...current.job,handoff:'cancel'}})))return false;return finishHandoff();}
   if(!meet()){waiting=next;reception.requestMeeting(true);notify(text.meeting);return true;}
@@ -72,6 +73,7 @@ export function createJapanServiceEmployment({duty:reception,role:ROLE,provider,
   if(attendance>=1||reception.workReceipts(j.receiptId).some(r=>!j.reviewIds.includes(r.id)))flush();
  }
  return {formal,intent,resolveIntent,executeIntent,accept,claim,endShift,update,atRegistration,
+  taskChoices:()=>current.job?.stage==='working'?(reception.workChoices?.(current.job.receiptId)||[]).map(w=>({kind:'task:'+w.key,action:w.action})):[],
   active:()=>!!current.job,isActing:()=>!!waiting||reception.isActing(),held:()=>reception.held(),stopActivity(){waiting=null;reception.stopWorkAction();reception.requestMeeting(false);},
   playerAction:()=>reception.playerPose()?.action||null,playerStation:()=>reception.playerPose()?.station||null,playerPose:()=>reception.playerPose(),label:()=>current.job?current.job.stage==='ready'?`当班已封存 · 请${ROLE.employer}验收`:reception.workLabel():null,
   state:()=>({...copy(current),lastError,waiting:!!waiting,duty:reception.dutyState(),job:current.job?{...copy(current.job),coveredSeconds:current.job.coveredSeconds+attendance,completedOrders:current.job.completedTasks}:null}),

@@ -33,12 +33,13 @@ export function createJapanServiceProps(parent) {
     box(g,.36,.027,.26,0xe6dcc2,[0,.032,0]);
     for(const [i,x]of [-.105,0,.105].entries()){
      const rice=part(g,new THREE.SphereGeometry(.062,10,7),0xf3e8cc,[x,.079,0]);rice.scale.set(.66,.45,1.2);
-     const topping=box(g,.076,.025,.14,[0xd17e66,0xe6bc68,0x40594b][i],[x,.106,0]);topping.rotation.z=(i-1)*.08;
+     rice.name='meal-food';
+     const topping=box(g,.076,.025,.14,[0xd17e66,0xe6bc68,0x40594b][i],[x,.106,0]);topping.name='meal-food';topping.rotation.z=(i-1)*.08;
     }
    }else {
-    cylinder(g,.17,.105,.13,0xe6dcc2,[0,.08,0]);cylinder(g,.147,.147,.007,0xc49148,[0,.149,0]);
-    for(const x of [-.05,.02,.08])box(g,.027,.009,.083,0x638469,[x,.159,0]);
-    for(const x of [-.06,.005]){const noodle=part(g,new THREE.TorusGeometry(.045,.006,4,12),0xe8cf88,[x,.157,.012]);noodle.rotation.x=Math.PI/2;}
+    cylinder(g,.17,.105,.13,0xe6dcc2,[0,.08,0]);cylinder(g,.147,.147,.007,0xc49148,[0,.149,0]).name='meal-food';
+    for(const x of [-.05,.02,.08])box(g,.027,.009,.083,0x638469,[x,.159,0]).name='meal-food';
+    for(const x of [-.06,.005]){const noodle=part(g,new THREE.TorusGeometry(.045,.006,4,12),0xe8cf88,[x,.157,.012]);noodle.name='meal-food';noodle.rotation.x=Math.PI/2;}
    }
    if(!item.staffMeal){const tag=badge(visit.number,color);tag.scale.setScalar(.48);tag.position.set(.16,.09,.14);g.add(tag);}
   }
@@ -78,7 +79,7 @@ export function createJapanServiceProps(parent) {
   if(item.location.id==='sushiPickup')return [P.sushiTray[0]+lane,P.sushiTray[1],P.sushiTray[2]];
   if(item.location.id==='menService')return [-4.2+lane,4.48,-3.1];
   if(item.location.id==='womenService')return [1.35+lane,4.48,-3.1];
-  if(item.location.id==='dining')return v.mealPoint||[v.diningPoint[0]+.5,v.diningPoint[1]+.60,v.diningPoint[2]];
+  if(item.location.id==='dining'||item.location.id==='wrong-table')return v.mealPoint||[v.diningPoint[0]+.5,v.diningPoint[1]+.60,v.diningPoint[2]];
   return [P.tokenTray[0]-.44,P.tokenTray[1]+.065,P.tokenTray[2]];
  }
  return {
@@ -102,7 +103,8 @@ export function createJapanServiceProps(parent) {
       if(hands?.length===2){hands[0].getWorldPosition(handA);hands[1].getWorldPosition(handB);if(eating)g.position.copy(handA);else g.position.copy(handA).add(handB).multiplyScalar(.5);g.position.y-=.07;}
       else g.position.set(0,1,.4).applyMatrix4(actor.root.matrixWorld);
      }
-    }else {g.position.set(...itemPoint(item,v));g.rotation.set(item.kind==='token'?-Math.PI/2:0,0,0);}
+    }else {g.position.set(...itemPoint(item,item.location.targetVisitId?visits.get(item.location.targetVisitId)||v:v));g.rotation.set(item.kind==='token'?-Math.PI/2:0,0,0);}
+    g.traverse(o=>{if(o.name==='meal-food')o.visible=!item.dirty;});
     const tie=g.getObjectByName('sealed-pouch-tie');if(tie)tie.visible=item.preparation!=='mixed';
     g.visible=actor&&(held||guest||eating)?actor.root.visible:true;
    }
