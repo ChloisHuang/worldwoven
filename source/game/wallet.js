@@ -24,24 +24,23 @@ const ease = n => {const t=clamp(n);return t*t*(3-2*t);};
 // review. The front never changes layers: a note must clear its lip to fan.
 export function walletGeometry(width,height,count=1) {
   count=Math.max(1,count);
-  const pocketHeight=Math.min(104,Math.max(48,height*.28)),bottom=8;
+  const pocketHeight=count>1?Math.min(92,Math.max(48,height*.24)):Math.min(104,Math.max(48,height*.28)),bottom=8;
   const front={x:width*.07,y:height-bottom-pocketHeight,width:width*.86,height:pocketHeight};
   const back={x:front.x+3,y:front.y-13,width:front.width-6,height:pocketHeight+11};
-  const pocketTravel=count>1?pocketHeight*.75:0,step=Math.min(23,Math.max(19,height*.09));
-  const noteWidth=Math.max(24,Math.min(295,width*.82,(front.y-18)/.455,(front.y+pocketTravel-19-(count-1)*step)/.48));
-  return {width,height,count,front,back,pocketTravel,step,noteWidth,noteHeight:noteWidth*.455};
+  const step=15;
+  const noteWidth=Math.max(24,Math.min(295,width*.82,(front.y-18)/.455,(front.y-(count>1?6:19)-(count-1)*step)/(count>1?.465:.48)));
+  return {width,height,count,front,back,step,noteWidth,noteHeight:noteWidth*.455};
 }
-export function walletPocketFrame(layout,progress) {
-  const offset=layout.pocketTravel*ease(progress*2-1);
-  return {front:{...layout.front,y:layout.front.y+offset},back:{...layout.back,y:layout.back.y+offset}};
+export function walletPocketFrame(layout) {
+  return {front:layout.front,back:layout.back};
 }
 export function walletNoteFrame(layout,index,progress) {
-  const {width,count,front,noteWidth:w,noteHeight:h,pocketTravel,step}=layout,mid=(count-1)/2;
+  const {width,count,front,noteWidth:w,noteHeight:h,step}=layout,mid=(count-1)/2;
   const lift=ease(progress),fan=ease(progress-1),clearY=front.y-h-12-index*2;
-  const tuckedY=Math.min(front.y-h*.34,front.y+front.height-h-12)-index*2,spreadY=12+index*step;
+  const tuckedY=Math.min(front.y-h*.34,front.y+front.height-h-12)-index*2,spreadY=(count>1?2:12)+index*step;
   return {x:width/2-w/2+(index-mid)*Math.min(8,width*.025)*fan,
     y:mix(mix(tuckedY,clearY,lift),spreadY,fan),width:w,height:h,
-    angle:(index-mid)*fan};
+    angle:(index-mid)*.4*fan};
 }
 
 /** Read-only presentation. Never calculate wages, exchange rates or balances. */

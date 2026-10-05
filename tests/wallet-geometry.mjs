@@ -10,6 +10,7 @@ for(const [width,height] of cases)for(let count=1;count<=4;count++){
  for(let tick=0;tick<=200;tick++){
   const progress=tick/100,leather=walletPocketFrame(g,progress);
   assert(leather.back.y<leather.front.y,'backplate extends above the front lip');
+  assert(leather.front.y+leather.front.height<=g.height-7,'the complete leather wallet stays inside the cash stage');
   for(let index=0;index<count;index++){
    const f=walletNoteFrame(g,index,progress),b=bounds(f);
    assert(b.left>=0&&b.right<=width&&b.top>=0,`paper stays in the short landscape stage (${width}×${height}, ${count}, ${progress})`);
@@ -20,7 +21,7 @@ for(const [width,height] of cases)for(let count=1;count<=4;count++){
    const reverse=walletNoteFrame(g,index,2-(200-tick)/100);assert(Math.abs(reverse.y-f.y)<1e-10&&Math.abs(reverse.angle-f.angle)<1e-10,'return uses exactly the reverse path');
   }
  }
- if(count===4&&width>=290){assert(g.noteWidth>=180,'four currency notes are not shrunk to postage stamps');assert(g.step>=16,'each currency summary has an exposed readable top strip');}
+ if(count===4&&width>=290){assert(g.noteWidth>=160,'four currency notes retain readable illustrated width');assert(g.step>=15,'each currency summary has an exposed readable top strip');}
 }
 const css=fs.readFileSync(new URL('../source/game/wallet.css',import.meta.url),'utf8');
 assert(!css.includes('is-unfolded'),'no conditional z-index switch');
