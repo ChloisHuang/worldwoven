@@ -45,14 +45,18 @@ function fixture({reduced=false,saved}={}){
   assert.equal(one(doc,'ww-wallet-mini').dataset.action,'wage');assert.match(one(doc,'ww-wallet-mini').textContent,/银行/);
   wallet.open();wallet.open();assert.equal(f.opens(),1,'repeat open is idempotent');
   assert.equal(doc.images.length,0,'bank-only money is not shown as cash art');assert(one(doc,'ww-wallet-fan').disabled);
+  assert.match(one(doc,'ww-wallet-cash-summary').textContent,/0 · 暂无随身现金/);
   assert.match(one(doc,'ww-wallet-bank-list').textContent,/20 文/);
   assert(ledger.withdraw(12,'withdraw:1','copper').ok);assert.equal(doc.images.length,1);assert.equal(all(doc,'ww-wallet-note').length,1);
   assert.match(one(doc,'ww-wallet-note').textContent,/12 文/);assert.match(one(doc,'ww-wallet-bank-list').textContent,/8 文/);
+  assert.match(one(doc,'ww-wallet-cash-summary').textContent,/钱包现金中国铜钱 12 文/,'cash summary is separate from the bank amount');
+  assert.equal(one(doc,'ww-wallet-note-seal').textContent,'四方随行');assert.equal(one(doc,'ww-wallet-note-serial').textContent,'CN · 0001');
   assert.equal(one(doc,'ww-wallet-trigger-number').textContent,'12 文');
   const before=f.writes();one(doc,'ww-wallet-fan').click();assert.equal(one(doc,'ww-wallet-fan').getAttribute('aria-expanded'),'true');
   one(doc,'ww-wallet-fan').click();assert.equal(one(doc,'ww-wallet-fan').getAttribute('aria-expanded'),'false');assert.equal(f.writes(),before,'fan never writes money');
   assert(ledger.earn(1000000,'large-cash','copper').ok);assert.equal(all(doc,'ww-wallet-note').length,1,'one node per currency regardless of cash count');
   assert.equal(doc.images.length,1,'existing currency art reused on refresh');assert.match(one(doc,'ww-wallet-note').textContent,/1,000,012/);
+  assert(Number(one(doc,'ww-wallet-note').style['--amount-scale'])<1,'large amounts fit the illustrated amount field');
   const failed=ledger.withdraw(999999999,'cannot-withdraw','copper');assert(!failed.ok);assert.equal(all(doc,'ww-wallet-entry').length,3,'failed transaction makes no history row');
   const replay=ledger.earn(1000000,'large-cash','copper');assert(replay.replayed);assert.equal(all(doc,'ww-wallet-entry').length,3,'replayed receipt makes no duplicate row');
   assert(ledger.reserve(3,'meal','copper').ok);assert.match(one(doc,'ww-wallet-bank-list').textContent,/已预付/);assert.equal(one(doc,'ww-wallet-transfer').className,'ww-wallet-transfer is-reserve');
@@ -80,6 +84,20 @@ function fixture({reduced=false,saved}={}){
 {
   const f=fixture({reduced:true});f.wallet.open();assert(f.ledger.earn(8,'reduced').ok);assert.equal(all(f.doc,'ww-wallet-transfer').length,0,'reduced motion keeps semantic receipt without animated note');
   f.wallet.close();assert(f.ledger.earn(1,'reduced-closed').ok);assert(!one(f.doc,'ww-wallet-mini').hidden,'reduced motion still conveys transaction');f.wallet.dispose();
+}
+{
+  const f=fixture();assert(f.ledger.openAccount('open-cash-bank-example','copper').ok);assert(f.ledger.earn(6,'legacy-piecework').ok);f.wallet.open();
+  assert.match(one(f.doc,'ww-wallet-cash-summary').textContent,/中国铜钱 6 文/);
+  assert.equal(all(f.doc,'ww-wallet-bank-row')[0].textContent,'中国铜钱0 文','cash earnings do not become bank deposits');
+  for(const id of ['japan','egypt','france']){
+    assert(f.ledger.creditWageToBank({currency:id,amount:4,receiptId:`salary:${id}`,roleId:'clerk',slotId:`clerk-${id}`,day:1}).ok);
+    assert(f.ledger.withdraw(4,`cash:${id}`,id).ok);
+  }
+  assert.equal(all(f.doc,'ww-wallet-note').length,4);assert.equal(f.doc.images.length,4,'one original image per owned currency');
+  assert.deepEqual(all(f.doc,'ww-wallet-note').map(n=>n.style['--note-progress']),['0',String(1/3),String(2/3),'1'],'all four notes share the available fan height');
+  const before=f.writes();one(f.doc,'ww-wallet-fan').click();f.wallet.refresh();
+  assert.equal(one(f.doc,'ww-wallet-fan').getAttribute('aria-expanded'),'true','balance refresh preserves opened fan');
+  assert.equal(f.writes(),before,'presentation refresh and decorative serials never change money');f.wallet.dispose();
 }
 {
   const f=fixture({saved:{version:2,balances:{}}});assert(f.ledger.loadError);assert.equal(one(f.doc,'ww-wallet-trigger-number').textContent,'— 文');f.wallet.open();assert.match(one(f.doc,'ww-wallet-notice').textContent,/无法核对/);assert.match(one(f.doc,'ww-wallet-bank-list').textContent,/待核对/);assert(!one(f.doc,'ww-wallet-bank-list').textContent.includes('0 文'));assert.equal(f.doc.images.length,0);f.wallet.dispose();

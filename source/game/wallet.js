@@ -9,6 +9,7 @@ const ART = Object.freeze({
   france: new URL('./assets/currency/france.webp', import.meta.url).href,
 });
 const STYLE = new URL('./wallet.css', import.meta.url).href;
+const SERIES = Object.freeze({copper:'CN',japan:'JP',egypt:'EG',france:'FR'});
 const validAmount = n => Number.isSafeInteger(n) && n >= 0;
 const number = n => validAmount(n) ? n.toLocaleString('zh-CN') : '—';
 const currency = id => GAME_CURRENCIES[id] || GAME_CURRENCIES.copper;
@@ -66,15 +67,17 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     const empty=make('span','钱包还空着\n去银行取些现金，就能装进口袋','ww-wallet-empty');stack.append(empty);fan.append(stack,pocket);
     const hint=make('p','轻点钱包，抽出并展开纸币','ww-wallet-hint'),cashList=make('p',null,'ww-wallet-cash-list');
     left.append(cashHeading,fan,hint,cashList);
-    const bankHeading=make('div',null,'ww-wallet-section-heading');bankHeading.append(make('h3','银行存款'),make('span','另存银行 · 不计入现金'));
+    const cashSummary=make('div',null,'ww-wallet-cash-summary'),cashSummaryAmount=make('strong');
+    cashSummary.append(make('span','钱包现金'),cashSummaryAmount);cashSummary.setAttribute('aria-label','随身现金汇总');
+    const bankHeading=make('div',null,'ww-wallet-section-heading');bankHeading.append(make('h3','银行存款'),make('span','独立账户 · 与现金分开'));
     const bankList=make('dl',null,'ww-wallet-bank-list');bankList.setAttribute('aria-label','各币种银行存款');
     const ledgerHeading=make('h3','收支手记','ww-wallet-ledger-title'),scroll=make('div',null,'ww-wallet-ledger-scroll');scroll.tabIndex=0;scroll.setAttribute('aria-label','滚动查看收支记录');
     const journal=make('ol',null,'ww-wallet-journal');scroll.append(journal);
-    right.append(bankHeading,bankList,ledgerHeading,scroll);
+    right.append(cashSummary,bankHeading,bankList,ledgerHeading,scroll);
     const notice=make('p',null,'ww-wallet-notice');notice.setAttribute('role','status');
     const effects=make('div',null,'ww-wallet-effects');effects.setAttribute('aria-hidden','true');
     body.append(left,right);dialog.append(header,body,notice,effects);doc.body.append(dialog);
-    ui={dialog,closeButton,fan,stack,empty,hint,cashList,bankList,journal,scroll,notice,effects};
+    ui={dialog,closeButton,fan,stack,empty,hint,cashList,cashSummaryAmount,bankList,journal,scroll,notice,effects};
     closeButton.onclick=close;
     fan.onclick=()=>{folded=!folded;setFold();};
     // Stopping at the modal keeps game shortcuts from turning an Escape close
@@ -105,15 +108,24 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
       if(!note){
         note=make('span',null,'ww-wallet-note');note.dataset.currency=id;
         const img=make('img');img.src=ART[id];img.alt='';img.width=800;img.height=364;img.decoding='async';img.draggable=false;
-        note.append(img,make('span',c.label,'ww-wallet-note-title'),make('strong',null,'ww-wallet-note-amount'));
+        const seal=make('span',null,'ww-wallet-note-seal');seal.setAttribute('aria-hidden','true');seal.append(make('span','四方'),make('span','随行'));
+        const serial=make('span',`${SERIES[id]} · 0001`,'ww-wallet-note-serial');serial.setAttribute('aria-hidden','true');
+        // A currency's note represents its cash total, not an invented banknote
+        // denomination. Type stays in the artwork's blank right-hand fields.
+        note.append(img,make('span',c.label,'ww-wallet-note-title'),make('span','随身现金','ww-wallet-note-caption'),seal,serial,make('strong',null,'ww-wallet-note-amount'));
         notes.set(id,note);ui.stack.append(note);
       }
       note.style.setProperty('--note-index',String(index));note.style.setProperty('--note-count',String(owned.length));
+      note.style.setProperty('--note-progress',String(index/Math.max(1,owned.length-1)));
       note.style.setProperty('--note-angle',`${(index-(owned.length-1)/2)*5}deg`);
-      note.lastElementChild.textContent=money(balances[id].cash,id);
+      note.style.setProperty('--note-open-angle',`${(index-(owned.length-1)/2)*2}deg`);
+      const amount=money(balances[id].cash,id);
+      note.style.setProperty('--amount-scale',String(Math.min(1,7/amount.length)));
+      note.lastElementChild.textContent=amount;
       note.setAttribute('aria-label',`${c.label}，随身现金 ${money(balances[id].cash,id)}`);
     });
-    ui.cashList.textContent=balances?owned.map(id=>`${currency(id).label} ${money(balances[id].cash,id)}`).join(' · '):'现金金额待核对';
+    const cashText=balances?owned.map(id=>`${currency(id).label} ${money(balances[id].cash,id)}`).join(' · ')||'0 · 暂无随身现金':'现金金额待核对';
+    ui.cashList.textContent=cashText;ui.cashSummaryAmount.textContent=cashText;
     ui.bankList.replaceChildren();
     for(const [id,c] of Object.entries(GAME_CURRENCIES)){
       const row=make('div',null,'ww-wallet-bank-row'),name=make('dt',c.label),amount=make('dd');
