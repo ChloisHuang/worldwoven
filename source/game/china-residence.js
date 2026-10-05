@@ -43,7 +43,9 @@ export function buildChinaResidence(G,A){
   // Full-height walls, actual window cuts and supported paired beams on each
   // of the three enterable storeys. Room furniture is never scaled to fit.
   wall('x',2,-26,-16,y-.015,top,[panel('x',2,-24.8,-22.2,y,top),panel('x',2,-19.5,-16.7,y,top)]);
-  for(const x of[-26,-16])wall('z',x,-12,2,y-.015,top,[-8.4,-.3].map(z=>panel('z',x,z-1.25,z+1.25,y,top)));
+  // The west ground-floor window belongs wholly to the new southern room,
+  // clear of its partition; every other existing window stays in its bay.
+  for(const x of[-26,-16])wall('z',x,-12,2,y-.015,top,[-8.4,i===0&&x===-26?.3:-.3].map(z=>panel('z',x,z-1.25,z+1.25,y,top)));
   wall('x',-20,-26,-16,y-.015,top,[panel('x',-20,-19.7,-16.6,y,top)]);
   for(const x of[-26,-16]){
    const arch=i===0?[{from:-15,to:-12.05,bottom:y-.015,top:y+3.05}]:[panel('z',x,-14.85,-12.55,y,top)];
@@ -98,6 +100,7 @@ export function buildChinaResidence(G,A){
  part('guest','后宫一层客卧',-26,-20.9,-12,-1.4,.215,3.77);
  const additionalFurniture=buildChinaConsortRooms(G,{g,C,wall,privacy,part,table,teaSet,colliders,cameraColliders,additionalFurnitureSeats,explorationTargets});
  additionalFurniture.push(buildReservedConsortQuarter(G,{g,C,wall,part,colliders,cameraColliders,explorationTargets}));
+ upperFixture(g,'residence-reserve-lantern',-22.75,3.17,.3,.215);
  culturePlaque(G,g,'茶叙',-18.3,3.17,-11.79,2,.6);
  // Second floor: opaque arrival doors, an internal full silk screen to the WC,
  // and a separate linen/dressing room; no wet room is a stair access route.
