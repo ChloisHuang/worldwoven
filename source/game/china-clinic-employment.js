@@ -63,7 +63,7 @@ export function createChinaClinicEmployment({clinic,role:ROLE=PHARMACY_ASSISTANT
  }
  const inWorkplace=()=>{const p=getPlayer()?.root.position;return p&&p.x>=16&&p.x<=26&&p.z>=-33&&p.z<=-23&&p.y>=C.floorY-.3&&p.y<=C.clinicFloorY+.4;};
  function update(dt=0){if(disposed)return;
-  if(!physician)for(const receipt of clinic.allWorkReceipts?.()||[])careers.recordClinicAssistantService?.(receipt);clinic.requestDoctor(atRegistration());
+  if(!physician)for(const receipt of clinic.allWorkReceipts?.()||[])if(receipt.receiptId?.startsWith(ROLE.workSource+'-'))careers.recordClinicAssistantService?.(receipt);clinic.requestDoctor(atRegistration());
   if(waiting){if(!atRegistration()||!resolveIntent(waiting))waiting=null;else if(meet()){const next=waiting;waiting=null;executeIntent(next);}}
   const job=current.job;if(!job)return;
   if(job.stage==='working'){

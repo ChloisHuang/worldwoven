@@ -71,7 +71,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
   if(disposed||order||!furniture||!PATIENTS.has(n?.station.id)||(n.ageYears??n.station.ageYears)<18||!Number.isFinite(n.ageYears??n.station.ageYears)||status?.careStatus!=='care-advised'||!status.symptoms?.length||!patientAvailable(n)||getMounted()?.id===C.seatId)return false;
   if(time<(nextPatientAttempt.get(n.station.id)||0))return false;nextPatientAttempt.set(n.station.id,time+5);const next=newOrder(n.station.id,n.station.npcName);if(!claimPatient(n.station.id,next.id)){serial--;return false;}
   Object.assign(next,{physician:isPhysicianHired()&&getPhysicianEmployment()?.stage==='working'?'player':doctor.station.id,physicianReceiptId:isPhysicianHired()&&getPhysicianEmployment()?.stage==='working'?getPhysicianEmployment().receiptId:null,physicianCover:isPhysicianHired()&&getPhysicianEmployment()?.stage!=='working',symptoms:status.symptoms.slice(),questioned:false,carePlanId:null,careCorrect:false});
-  order=next;owned.add(n);n.route=[];n.walking=false;travelState.delete(n);record('patient-admitted',{recipientId:n.station.id,reason:status.symptoms.join('；')});props.order(order);
+  next.claims.doctor=next.physician;order=next;owned.add(n);n.route=[];n.walking=false;travelState.delete(n);record('patient-admitted',{recipientId:n.station.id,reason:status.symptoms.join('；')});props.order(order);
   if(!persist()){order=null;owned.delete(n);releasePatient(n.station.id,next.id);props.clear();return false;}return true;
  }
  function beginConsultation(item,p){
