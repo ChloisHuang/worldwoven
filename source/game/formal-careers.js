@@ -12,26 +12,26 @@ export const COURT_SUPERVISOR = Object.freeze({id: 'cn-official-rites', conscien
   earlyArrivalMinutes: 5, preparationBonus: 2});
 export const TAVERN_STEWARD_ROLE = Object.freeze({id:'cn-tavern-steward',name:'酒楼常任服务助理',
   slotId:'cn-tavern-steward-1',country:'china',currency:'copper',employer:'许安',workplace:'云来酒楼',
-  supervisorId:'cn-tavern-host',incumbentId:'cn-tavern-assistant',incumbentName:'陆青',vacancyKind:'rotation',workSource:'cn-tavern-labor',wage:16,minimumAgeYears:18,
+  supervisorId:'cn-tavern-host',incumbentId:'cn-tavern-assistant',incumbentName:'陆青',vacancyKind:'exclusive',workSource:'cn-tavern-labor',wage:16,minimumAgeYears:18,
   skillRequirements:Object.freeze({ritual:2}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1});
 // Unpublished host prototype is excluded from salaried vacancies: ownership purchase is required.
 export const TAVERN_HOST_ROLE = Object.freeze({id:'cn-tavern-host',name:'酒楼掌柜（须购买经营权）',ownershipRequired:true,
   slotId:'cn-tavern-host-rotation-1',country:'china',currency:'copper',employer:'许安',workplace:'云来酒楼 · 掌柜登记案',
   supervisorId:'cn-tavern-host',incumbentId:'cn-tavern-host',incumbentName:'许安',vacancyKind:'rotation',workSource:'cn-tavern-host-labor',wage:24,minimumAgeYears:18,
   skillRequirements:Object.freeze({ritual:3,writing:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1,
-  duties:'持续处理餐饮点单、餐费与住宿收款、招工登记；06:00–18:00轮值，提前交班按实际工时计薪'});
-export const TAVERN_CHEF_ROLE = Object.freeze({id:'cn-tavern-chef',name:'酒楼轮值厨师',
+  duties:'持续处理餐饮点单、餐费与住宿收款、招工登记；06:00–18:00当班，提前收工按实际工时计薪'});
+export const TAVERN_CHEF_ROLE = Object.freeze({id:'cn-tavern-chef',name:'酒楼厨师',
   slotId:'cn-tavern-chef-rotation-1',country:'china',currency:'copper',employer:'沈禾',workplace:'云来酒楼 · 后厨登记簿',
-  supervisorId:'cn-tavern-cook',incumbentId:'cn-tavern-cook',incumbentName:'沈禾',vacancyKind:'rotation',workSource:'cn-tavern-chef-labor',wage:26,minimumAgeYears:18,
+  supervisorId:'cn-tavern-cook',incumbentId:'cn-tavern-cook',incumbentName:'沈禾',vacancyKind:'exclusive',workSource:'cn-tavern-chef-labor',wage:26,minimumAgeYears:18,
   skillRequirements:Object.freeze({cooking:2,ritual:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1,
-  duties:'持续按订单备料、烹制、核对并出菜；06:00–18:00轮值，提前交班按实际工时计薪'});
+  duties:'持续按订单备料、烹制、核对并出菜；06:00–18:00当班，提前收工按实际工时计薪'});
 export const GARDEN_ASSISTANT_ROLE = Object.freeze({id:'fr-garden-assistant',name:'西苑常任园艺助理',
   slotId:'fr-garden-assistant-1',country:'france',currency:'france',employer:'埃米尔',workplace:'西苑工具架登记簿',
   supervisorId:'france-gardener',workSource:'fr-garden-labor',wage:8,minimumAgeYears:18,
   skillRequirements:Object.freeze({gardening:2}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1});
 export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE]);
 export const FORMAL_CAREER_SLOTS = Object.freeze([
-  ...FORMAL_CAREER_ROLES.map(role => Object.freeze({id:role.slotId,roleId:role.id,holderId:role.incumbentId||null,...(role.vacancyKind==='rotation'?{rotation:true}:{})})),
+  ...FORMAL_CAREER_ROLES.map(role => Object.freeze({id:role.slotId,roleId:role.id,holderId:role.incumbentId||null,...(role.vacancyKind==='rotation'?{rotation:true}:role.vacancyKind==='exclusive'?{replacement:true}:{})})),
 ]);
 const SKILLS = Object.freeze(['ritual', 'writing', 'gardening', 'art', 'cooking']);
 const emptyStudy = () => ({issued: 0, completed: 0, issuedDay: null, lessonId: null});
@@ -54,7 +54,7 @@ const empty = () => ({version: 4, revision: 0, skills: {ritual: 0, writing: 0, g
   lastEvaluatedDay: null, lastEvaluation: null, applications: emptyApplications()});
 
 const tavernRole = role => role?.workSource?.startsWith('cn-tavern-');
-const availableSlot = (slot,role) => slot.holderId === null || slot.rotation === true && role.vacancyKind === 'rotation' && slot.holderId === role.incumbentId;
+const availableSlot = (slot,role) => slot.holderId === null || slot.replacement === true && role.vacancyKind === 'exclusive' && slot.holderId === role.incumbentId || slot.rotation === true && role.vacancyKind === 'rotation' && slot.holderId === role.incumbentId;
 const customerPenalty = duty => (duty?.customerReviews||[]).reduce((total,review)=>total-review.score,0);
 const coveredHours = duty => (duty.coveredSeconds||0)*GAME_MINUTES_PER_SECOND/60;
 const attendanceWage = (role,hours) => Math.floor(role.wage*Math.min(1,hours/(role.dutyWindow.endHour-role.dutyWindow.startHour))+1e-9)+(hours>=role.dutyWindow.endHour-role.dutyWindow.startHour-1e-9?(role.preparationBonus||0):0);
@@ -574,6 +574,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
   return Object.freeze({state, isHired: (roleId = COURT_CLERK_ROLE.id) => !loadError && current.tenure?.roleId === roleId,
     canContinueLabor:receiptId=>{const d=current.lastDuty;let c;try{c=getClock();}catch{return false;}return !loadError&&d?.workReceiptId===receiptId&&(d.stage==='inspection'||d.stage==='working'&&d.day===c?.day);},
     currentRole:()=>copy(roleMap.get(current.tenure?.roleId)||null),
+    slotHolder:roleId=>{if(loadError)return null;const slot=[...slotMap.values()].find(s=>s.roleId===roleId);return slot?current.tenure?.slotId===slot.id?'player':slot.holderId:null;},
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&availableSlot(slot,role)&&slot.id!==current.tenure?.slotId).length})),
     eligibility, applicationAvailability, beginDutyAvailability, applicationResult,
     laborEvent, customerReview, apply, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
