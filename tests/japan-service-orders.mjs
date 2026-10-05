@@ -46,8 +46,8 @@ for(const [event,position]of [['changed',P[va.side+'Changing']],['washed',P[va.s
 const seatId=va.poolId+'-seat-1';
 assert(board.guestStep(va.id,'bath-mounted',{poolId:va.poolId,seatId}));assert(board.guestStep(va.id,'bathed',{seatId}));
 assert(board.guestStep(va.id,'dried',{position:P[va.side+'Changing']}));assert(board.guestStep(va.id,'rested',{position:va.restPoint}));
-const cooking=claim(va,'cook','jp-ramen');assert(board.complete(cooking.id,'jp-ramen',{position:P.kitchen}));
-const meal=board.getVisit(va.id),serving=claim(meal,'serve','jp-sushi');assert(board.pickup(serving.id,'jp-sushi',{position:P.kitchenPickup}));
+const cooking=claim(va,'cook','jp-ramen');assert(board.complete(cooking.id,'jp-ramen',{position:P[cooking.to]}));
+const meal=board.getVisit(va.id),serving=claim(meal,'serve','jp-sushi');assert(board.pickup(serving.id,'jp-sushi',{position:P[serving.from]}));
 const servingEvidence={position:meal.servePoint,guestPosition:meal.diningPoint,itemId:meal.mealId,tokenId:meal.tokenId};
 assert.equal(board.complete(serving.id,'jp-sushi',servingEvidence),false,'Serving waits until the diner actually sits');
 assert(board.guestStep(va.id,'sat-to-eat',{position:va.diningPoint}));assert(board.complete(serving.id,'jp-sushi',servingEvidence));
@@ -56,7 +56,7 @@ assert.equal(board.jobs().some(j=>j.kind==='checkout'),false,'A guest still upst
 assert(board.guestStep(va.id,'returned-to-desk',{position:P.reception}));
 const checkout=claim(va,'checkout','jp-welcome');assert(board.complete(checkout.id,'jp-welcome',{position:P.registrar,guestPosition:P.reception,tokenId:va.tokenId}));
 assert(board.guestStep(va.id,'left',{position:P.departure}));assert.equal(board.state().completed,1);
-board.forgetFinished([va.id]);assert.equal(board.getVisit(vb.id).stage,'cancelled','Retiring one guest must not forget a cancelled guest who is still walking out');
+board.forgetFinished([va.id]);assert(board.getVisit(va.id),'departed original guest retains their actual dirty plate until collected');const washing=claim(meal,'wash','jp-ramen');assert(board.pickup(washing.id,'jp-ramen',{position:meal.servePoint}));assert(board.complete(washing.id,'jp-ramen',{position:P.kitchenPickup,itemId:meal.mealId,tokenId:meal.tokenId}));board.forgetFinished([va.id]);assert.equal(board.getVisit(va.id),null);assert.equal(board.getVisit(vb.id).stage,'cancelled','Retiring one guest must not forget a cancelled guest who is still walking out');
 board.dispose();resumed.dispose();
 const employee={station:{id:'jp-sushi'},root:{position:{x:4,y:11.4,z:-2}}};
 assert(isJapanEmployeeInteraction(employee,{performing:'jp-sushi',position:{x:4.7,y:11.4,z:-2}}),'Nearby employee can pause for the player');
