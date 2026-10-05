@@ -7,7 +7,8 @@ const linker=(s,f)=>mod(s==='three'?path.join(root,'vendor/three/build/three.mod
 (async()=>{
  const lifeModule=mod(path.join(root,'game/china-official-life.js'));await lifeModule.link(linker);await lifeModule.evaluate();
  const facilitiesModule=mod(path.join(root,'game/npc-facilities.js'));await facilitiesModule.link(linker);await facilitiesModule.evaluate();
- const T=cache.get(path.join(root,'vendor/three/build/three.module.js')).namespace,B=cache.get(path.join(root,'game/china-official-bureau.js')).namespace.CHINA_OFFICIAL_BUREAU;
+ const three=mod(path.join(root,'vendor/three/build/three.module.js'));if(three.status==='unlinked')await three.link(linker);if(three.status!=='evaluated')await three.evaluate();
+ const T=three.namespace,B=cache.get(path.join(root,'game/china-official-bureau.js')).namespace.CHINA_OFFICIAL_BUREAU;
  const brain=cache.get(path.join(root,'game/npc-life-decisions.js')).namespace,ids=['cn-minister-works','cn-minister-granary','cn-official-rites','cn-official-personnel','cn-official-justice','cn-official-records'];
  const officials=ids.map((id,i)=>{const root=new T.Group();root.position.set(...B.offices[i]);root.userData.hands=[new T.Group(),new T.Group()];root.add(...root.userData.hands);return {station:{id},root,home:root.position.clone(),phase:0,route:[],animate(){}};});
  const beds=ids.map((id,i)=>({id:B.beds[i],kind:'bed',position:[i?22.65:19.35,.215,34.5],anchor:[i?24.15:17.85,.215,34.5],yaw:0,supportY:1.055,lieSupport:{hip:1.055}}));
