@@ -2,7 +2,7 @@ import {followActorRoute} from './actor-navigation.js';
 import {EGYPT_MEAL as P,validEgyptMealReceipt} from './egypt-meal-definition.js';
 import {createEgyptMealProps} from './egypt-meal-props.js';
 const copy=x=>JSON.parse(JSON.stringify(x)),integer=x=>Number.isSafeInteger(x)&&x>=0;
-const labels={reserving:'正在预留餐费',seating:'前往原餐厅西侧坐凳',requested:'达娜到桌边核对访客餐单',accepted:'达娜记下这一席的餐点',ticket:'达娜到厨房递交同号餐单',preparing:'赫特在原案板切配蔬食',heating:'赫特照看陶锅，烹热蔬食',plating:'赫特在案边装好面包与陶碗',collecting:'达娜前往厨房领取这一份餐',pickup:'达娜托起同号餐盘',carrying:'达娜把原餐盘送往西侧餐位',serving:'达娜将餐点放上原餐桌',ready:'餐已上桌，请明确选择开吃',eating:'坐着慢慢享用正餐',lowering:'放回吃过的陶碗',clearing:'达娜来收回餐具',lifting:'达娜收起原餐盘',returning:'达娜把餐具送回厨房',washing:'达娜清洗陶碗并擦整餐盘',refund:'正在退回未食用餐费'};
+const labels={reserving:'正在预留餐费',seating:'前往餐厅西席',requested:'达娜过来点餐',accepted:'达娜记下这一席的餐点',ticket:'达娜把餐单送进厨房',preparing:'赫特正在切配蔬食',heating:'赫特照看陶锅，烹热蔬食',plating:'赫特在案边装好面包与陶碗',collecting:'达娜前往厨房领取这一份餐',pickup:'达娜端起餐盘',carrying:'达娜正在送餐',serving:'达娜把餐点摆上桌',ready:'餐已上桌，可以开吃',eating:'坐着慢慢享用正餐',lowering:'放回吃过的陶碗',clearing:'达娜来收回餐具',lifting:'达娜收起餐盘',returning:'达娜把餐具送回厨房',washing:'达娜清洗陶碗并擦整餐盘',refund:'正在退回未食用餐费'};
 const latest=(a,b)=>!a?b:!b?a:(b.revision||0)>(a.revision||0)||(b.revision||0)===(a.revision||0)&&(b.time||0)>(a.time||0)?b:a;
 // Two original residents share this single controller. Every durable boundary
 // precedes its money action; ledger holds reconcile interrupted commits by ID.
