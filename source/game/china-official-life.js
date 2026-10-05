@@ -13,7 +13,7 @@ export const CHINA_OFFICIAL_GARDEN_PLACES=Object.freeze([[11.7,.145,-14.4],[9.2,
 // This controller owns the officials' personal time. Court borrows an
 // official after a safe furniture exit; it never adds personal summon delays,
 // creates, removes, teleports or animates a second emperor.
-export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,reports,economy=null,sharedNeeds=null,getTavern=()=>null,getClock=()=>({day:0}),worldSeed=1,saved={},saveState=()=>{},record=()=>{}}){
+export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,reports,economy=null,sharedNeeds=null,getTavern=()=>null,getClock=()=>({day:0}),worldSeed=1,saved={},saveState=()=>{},beginInteraction=()=>null,onInteraction=()=>{},record=()=>{}}){
  if(!furniture)return null;
  const navigation={surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4,radius:.25};
  const stages=new Map(),duties=JSON.parse(JSON.stringify(saved.duties||{})),unpaidDuties=JSON.parse(JSON.stringify(saved.unpaidDuties||[])),brain=createLifeDecisions({worldSeed,actorIds:officials.map(n=>n.station.id),sharedNeeds,saved:saved.decisions,onChange:()=>save()}),claims=furniture.facilities;
@@ -100,7 +100,19 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   if(pair.age>150){endConversation(false,'路上耽搁了，改日再聊');return;}
   n.walking=false;if(!s.arrived)travel(n,s,dt);
   const both=actors.every(a=>stages.get(a)?.arrived),other=actors.find(a=>a!==n);
-  if(both){if(pair.phase!=='talking'){pair.phase='talking';record('conversation-talking:'+pair.id,n);save();}pair.elapsed+=step;
+  if(both){
+   const starting=pair.phase!=='talking',newInteraction=!Object.hasOwn(pair,'interaction');
+   if(starting){pair.phase='talking';record('conversation-talking:'+pair.id,n);}
+   // One serial stream for this controller, separate from player greetings.
+   // The token and cumulative spoken seconds travel with the pair checkpoint.
+   // Older in-progress conversations begin at zero; never invent past contact.
+   if(newInteraction){const event=beginInteraction(pair.participants.slice());pair.interaction=event?{...event,participants:[...event.participants],duration:0}:null;}
+   if(starting||newInteraction)save();
+   // The frame that finishes the walk establishes contact, but contributes no
+   // walking time. Only subsequent shared talking intervals can add exposure.
+   const spoken=starting?0:Math.max(0,Math.min(step,pair.duration-pair.elapsed));pair.elapsed+=spoken;
+   if(pair.interaction&&spoken>0){pair.interaction.duration+=spoken;onInteraction({...pair.interaction,participants:[...pair.interaction.participants]});}
+
    const p=other.root.position;n.root.rotation.y=Math.atan2(p.x-n.root.position.x,p.z-n.root.position.z);
    const opening=pair.topic==='read'?'方才读过书卷，想听听你的喜好':'方才看过荷塘，想听听你的喜好';
    const response=pair.responses?.[n.station.id];
