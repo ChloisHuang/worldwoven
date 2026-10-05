@@ -7,7 +7,7 @@ const linker=(s,f)=>mod(s==='three'?path.join(root,'vendor/three/build/three.mod
 (async()=>{
  const audience=mod(path.join(root,'game/china-palace-audience.js'));await audience.link(linker);await audience.evaluate();
  const {createAudienceSchedule}=audience.namespace,a=createAudienceSchedule();assert(a.due(10,false,120));assert(!a.due(10,true));assert(!a.due(22));a.call();assert(!a.due(10));
- const interrupted=createAudienceSchedule(a.snapshot());assert.equal(interrupted.snapshot().outcome,'interrupted');assert(!interrupted.due(10),'refresh at 10:00 must not replay an interrupted call');
+ const interrupted=createAudienceSchedule(a.snapshot());assert.equal(interrupted.snapshot().outcome,'interrupted');interrupted.observe(10,0);assert(interrupted.due(10,false,120),'reload before the fixed start resumes unfinished assembly');
  a.finish('completed');const done=createAudienceSchedule(a.snapshot());assert(!done.due(10));assert.equal(done.snapshot().outcome,'completed');done.observe(22);done.observe(10);assert(!done.due(10),'backward clock at refresh is not a new day');done.observe(23.99);done.observe(.01);assert(!done.due(.01));assert(done.due(11,false,80));assert.equal(done.snapshot().day,1);assert.equal(done.snapshot().completionId,'cn-morning-audience:0','completion receipt remains stable on the next day');
  const delayed=createAudienceSchedule();delayed.call();delayed.observe(23);delayed.observe(1);delayed.finish('completed');assert.equal(delayed.snapshot().completionId,'cn-morning-audience:0','delayed completion belongs to the original called day');
  const life=mod(path.join(root,'game/china-palace-life.js'));await life.link(linker);await life.evaluate();
@@ -35,6 +35,13 @@ const linker=(s,f)=>mod(s==='three'?path.join(root,'vendor/three/build/three.mod
   const service=audience.namespace.createChinaPalaceAudience({npcs:fresh,palace:{dutyState:()=>null,setDutyLine(){},releaseDuty(){}},lot:{colliders:[],walkableSurfaces:[],bounds:{}},doors:{cameraColliders:[]},planPath(){throw Error('completed reentry must not start a route');},moveActor(){throw Error('completed reentry must not move officials');},poseContext:()=>({}),saved:durable,saveState:value=>durable=value});
   for(let i=0;i<100;i++)service.update(.1,i*.1,{hour:10});assert.equal(fresh.length,7);assert.equal(service.state().actors.length,6);assert.equal(service.state().phase,'waiting');assert.equal(service.state().history.length,0);assert.equal(service.state().schedule.completionId,'cn-morning-audience:0');assert.equal(service.state().schedule.outcome,'completed');service.dispose();
  }
+
+ const lateOfficials=audience.namespace.CHINA_COURT_OFFICIALS.map(station=>{const root=new T.Group(),head=new T.Group(),small={textContent:''};root.userData.head=head;root.add(head);root.position.set(...station.npcPosition);return {station,root,home:root.position.clone(),label:{querySelector:()=>small},route:[],locomotion:{walkSpeed:1.4},phase:0,animate(){}};});
+ const notices=[],lateService=audience.namespace.createChinaPalaceAudience({npcs:[...lateOfficials,emperor],palace:{dutyState:()=>null,setDutyLine(){},releaseDuty(){}},lot:{colliders:[],walkableSurfaces:[],bounds:{}},doors:{cameraColliders:[]},planPath(){throw Error('late interrupted reload cannot restart court');},moveActor(){throw Error('late interrupted reload cannot place officials');},poseContext:()=>({}),saved:{day:0,calledDay:0,outcome:'in-session'},notify:message=>notices.push(message)});
+ for(let i=0;i<3;i++)lateService.update(.1,i*.1,{hour:11.6,day:0});
+ assert.equal(lateService.state().schedule.outcome,'interrupted');assert.equal(lateService.state().schedule.completionId,null);
+ assert.equal(notices.length,1);assert.match(notices[0],/已中断/);assert.match(lateService.socialStatus(lateOfficials[0]).job,/明日11:30/);assert.match(lateOfficials[0].label.querySelector('small').textContent,/明日11:30/);
+ lateService.dispose();
 
  console.log('PASS: saved morning window/refresh/midnight and blocked mounted duty handoff, one owner, unfulfilled needs/cooldown, terminal release and completed-save service reentry');
 })().catch(e=>{console.error(e);process.exitCode=1;});
