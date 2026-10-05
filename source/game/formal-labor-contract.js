@@ -21,6 +21,7 @@ const MESSAGES={'application-pending':'申请已保存，请继续当面审核',
   'invalid-career-state':'职业存档暂时无法核对，请保留存档',
 };
 export function createFormalLaborContract({careers,role,getJob,getPlayer,meetHost,notify=()=>{},openRegistration=()=>{}}){
+  const unit=role.currency==='japan'?'日本券':role.currency==='france'?'法国券':'铜文';
   const hired=()=>!!careers?.isHired(role.id),state=()=>careers?.state();
   const pinned=job=>job?.formalRoleId===role.id;
   const duty=job=>{const d=state()?.lastDuty;return pinned(job)&&d?.roleId===role.id&&d.workReceiptId===job.receiptId?d:null;};
@@ -48,6 +49,6 @@ export function createFormalLaborContract({careers,role,getJob,getPlayer,meetHos
   const beginAvailability=()=>hired()?careers.beginDutyAvailability(role.id,{receiptId:pendingReceipt()||undefined}):{ok:true};
   return {role,hired,state,pinned,duty,pendingReceipt,apply,review,resign,begin,beginAvailability,complete,inspect,pay,cancel,canWork,
     open:(context={})=>openRegistration({country:role.country,roleId:role.id,scope:context.scope==='catalogue'?'catalogue':'role'}),
-    unit:role.currency==='france'?'法国券':'铜文',
-    salary:`${role.wage}–${role.wage+role.preparationBonus}${role.currency==='france'?'法国券':'铜文'}`};
+    unit,
+    salary:`${role.wage}${role.preparationBonus?'–'+(role.wage+role.preparationBonus):''}${unit}`};
 }
