@@ -1,5 +1,5 @@
 import {STUDY_SOURCES, studyLesson, defaultStudyLesson} from './study-lessons.js';
-// Fictional finite vacancies, independent of the six existing world NPCs.
+// Fictional finite vacancies, independent of the existing world NPC roles.
 export const COURT_CLERK_ROLE = Object.freeze({
   id: 'cn-court-clerk', name: '礼务录事', rank: 9, slotId: 'cn-court-clerk-1', country: 'china', currency: 'copper', employer: '沈叙', workplace: '承务官署',
   wage: 18, minimumAgeYears: 18,
@@ -16,7 +16,15 @@ export const GARDEN_ASSISTANT_ROLE = Object.freeze({id:'fr-garden-assistant',nam
   slotId:'fr-garden-assistant-1',country:'france',currency:'france',employer:'埃米尔',workplace:'西苑工具架登记簿',
   supervisorId:'france-gardener',workSource:'fr-garden-labor',wage:8,minimumAgeYears:18,
   skillRequirements:Object.freeze({gardening:2}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1});
-export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE]);
+export const TEA_PREPARER_ROLE = Object.freeze({id:'fr-tea-preparer',name:'茶点备制助理',
+  slotId:'fr-tea-preparer-1',country:'france',currency:'france',employer:'卡米耶',workplace:'糕点房备茶案',
+  supervisorId:'france-bakery',workSource:'fr-tea-preparer',wage:9,minimumAgeYears:18,
+  skillRequirements:Object.freeze({ritual:2,writing:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1});
+export const TEA_SERVER_ROLE = Object.freeze({id:'fr-tea-server',name:'侍茶服务助理',
+  slotId:'fr-tea-server-1',country:'france',currency:'france',employer:'玛农',workplace:'镜厅入口',
+  supervisorId:'france-salon',workSource:'fr-tea-server',wage:8,minimumAgeYears:18,
+  skillRequirements:Object.freeze({ritual:2}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1});
+export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TEA_PREPARER_ROLE,TEA_SERVER_ROLE]);
 export const FORMAL_CAREER_SLOTS = Object.freeze([
   ...FORMAL_CAREER_ROLES.map(role => Object.freeze({id:role.slotId,roleId:role.id,holderId:null})),
 ]);
@@ -30,7 +38,10 @@ const integer = value => Number.isSafeInteger(value) && value >= 0;
 const dayOrNull = value => value === null || integer(value);
 const identifier = value => typeof value === 'string' && /^[a-z][a-z0-9-]{0,63}$/.test(value);
 const own = (value, key) => Object.hasOwn(value, key);
-const excused = duty => duty?.stage === 'missed' && duty.reason === 'court-postponed';
+const teaHandoffWait = (duty, role) => duty?.stage === 'missed' && duty.reason === 'tea-handoff-wait' &&
+  [TEA_PREPARER_ROLE.workSource, TEA_SERVER_ROLE.workSource].includes(role?.workSource);
+const excused = (duty, role) => duty?.stage === 'missed' &&
+  (duty.reason === 'court-postponed' || teaHandoffWait(duty, role));
 const supervisor = role => role.supervisorId || COURT_SUPERVISOR.id;
 const completedWage = (role, arrivalHour) => role.workSource ? role.wage + (arrivalHour < role.earlyBeforeHour ? role.preparationBonus : 0) : role.wage + (COURT_SUPERVISOR.conscientiousness >= .8 &&
   arrivalHour <= role.dutyWindow.endHour - COURT_SUPERVISOR.earlyArrivalMinutes / 60 ? COURT_SUPERVISOR.preparationBonus : 0);
@@ -152,7 +163,7 @@ function restore(saved, roleMap, slotMap) {
  * completedLowerWork is a trusted callback at the labor module's verified ready
  * boundary, before its receipt clears. Acceptance/cancellation must not call it.
  * creditWageToBank({amount,receiptId,currency,roleId,slotId,day}) must atomically
- * credit bank copper with durable receipt dedupe and return synchronously.
+ * credit the corresponding currency account with durable receipt dedupe and return synchronously.
  * Missing bank credit support locks settlement only; cash is never a fallback.
  * No passive simulation or wages. Failed paid-state cleanup keeps ready intact.
  */
@@ -215,9 +226,9 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
   }
   function missed(next, reason) {
     next = {...next, lastDuty: {...next.lastDuty, stage: 'missed', reason, wage: null}};
-    // The court's own cancellation is not a player absence. Keep its terminal
-    // receipt without manufacturing either a positive or a negative review.
-    if (excused(next.lastDuty)) return next;
+    // NPC cancellation or an unfinished tea handoff is not a player absence.
+    // Keep its terminal receipt without inventing a positive or negative review.
+    if (excused(next.lastDuty, roleMap.get(next.lastDuty.roleId))) return next;
     return next.lastDuty.started ? evaluate(next, false, reason) : next;
   }
   // Reloads cannot resume a live ceremony. Persist the recovery and evaluation
@@ -309,8 +320,8 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     if (role.workSource && duty?.day===clock.day && duty.workReceiptId===receiptId && duty.stage==='working') return {ok:true,unchanged:true};
     if (['ready','inspection'].includes(duty?.stage)) return failure('wage-ready');
     if (current.lastPaidDay === clock.day) return failure('already-paid-today');
-    if (duty?.day === clock.day && excused(duty)) return failure('court-postponed');
-    if (duty?.day === clock.day && (duty.started || duty.stage === 'arrived')) return failure(duty.stage === 'missed' ? 'duty-missed' : 'duty-active');
+    if (duty?.day === clock.day && excused(duty, roleMap.get(duty.roleId)) && duty.reason === 'court-postponed') return failure('court-postponed');
+    if (duty?.day === clock.day && (duty.started || duty.stage === 'arrived') && !teaHandoffWait(duty, roleMap.get(duty.roleId))) return failure(duty.stage === 'missed' ? 'duty-missed' : 'duty-active');
     if (clock.hour < role.dutyWindow.startHour || clock.hour >= role.dutyWindow.endHour) return failure('outside-arrival-window');
     const next = duty && duty.day < clock.day && ['arrived', 'attending', 'archive','working'].includes(duty.stage) ? missed(current, 'day-ended') : current;
     return persist({...next, lastDuty: {roleId: current.tenure.roleId, slotId: current.tenure.slotId,
@@ -326,7 +337,7 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     const rollover = observeDay(); if (!rollover.ok) return rollover;
     const clock = now(); if (!clock) return failure('invalid-clock');
     const duty = current.lastDuty;
-    if (duty?.day === clock.day && excused(duty)) return {ok: true, unchanged: true, excused: true};
+    if (duty?.day === clock.day && excused(duty, roleMap.get(duty.roleId))) return {ok: true, unchanged: true, excused: true};
     if (event === 'court-start' && (!duty || duty.day !== clock.day || duty.stage === 'missed' && !duty.started)) {
       if (current.tenure.sinceDay === clock.day && current.tenure.sinceHour >= roleMap.get(current.tenure.roleId).dutyWindow.endHour) return {ok: true, unchanged: true, exempt: true};
       if (duty?.stage === 'ready') return failure('wage-ready');
@@ -359,7 +370,7 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     if (!tenure || tenure.sinceDay > day || tenure.sinceDay === day &&
       tenure.sinceHour >= roleMap.get(tenure.roleId).dutyWindow.endHour ||
       current.lastEvaluatedDay !== null && current.lastEvaluatedDay >= day || ['ready','inspection'].includes(duty?.stage) ||
-      duty?.day === day && excused(duty)) {
+      duty?.day === day && excused(duty, roleMap.get(duty.roleId))) {
       observedDay = clock.day; return {ok: true, unchanged: true};
     }
     const incomplete = duty?.day === day ? {...duty, started: true} : {roleId: tenure.roleId, slotId: tenure.slotId,

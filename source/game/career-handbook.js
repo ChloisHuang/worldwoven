@@ -3,11 +3,13 @@ import {GAME_CURRENCIES} from './currency-ledger.js';
 
 // The shared catalogue only reads career state. Applications and work still
 // travel through the live country's physical intent and visibility checks.
-const CLERK='cn-court-clerk',TAVERN='cn-tavern-steward',GARDEN='fr-garden-assistant';
+const CLERK='cn-court-clerk',TAVERN='cn-tavern-steward',GARDEN='fr-garden-assistant',TEA_PREPARER='fr-tea-preparer',TEA_SERVER='fr-tea-server';
 const PLACES={
   [CLERK]:{country:'china',currency:'copper',workplace:'承务官署',employer:'沈叙（礼仪官）',destination:'承务官署 · 铨录登记案'},
   [TAVERN]:{country:'china',currency:'copper',workplace:'云来酒楼',employer:'许安',destination:'云来酒楼 · 许安的招工登记案'},
   [GARDEN]:{country:'france',currency:'france',workplace:'西苑',employer:'埃米尔',destination:'西苑工具架 · 埃米尔的园艺登记簿'},
+  [TEA_PREPARER]:{country:'france',currency:'france',workplace:'糕点房备茶案',employer:'卡米耶',destination:'糕点房备茶案旁 · 卡米耶的茶点备制登记处'},
+  [TEA_SERVER]:{country:'france',currency:'france',workplace:'镜厅入口',employer:'玛农',destination:'镜厅入口 · 玛农的侍茶服务登记处'},
 };
 const COUNTRIES={china:'中国',france:'法国'},SKILLS={ritual:'礼仪',writing:'文书',gardening:'园艺',art:'艺术'};
 const place=role=>({...PLACES[role?.id],...role});
@@ -16,10 +18,24 @@ const wageRange=role=>`${role.wage}–${role.wage+(role.id===CLERK?2:1)}${unit(r
 const requirements=role=>role.skillRequirements||role.requirements||{};
 const employer=role=>place(role).employer||'岗位主管';
 const isClerk=role=>role?.id===CLERK;
+const isTea=role=>[TEA_PREPARER,TEA_SERVER].includes(role?.id);
+const DUTIES={
+  [CLERK]:'11:30之前到正殿第七录事班位候朝，随六位官员行礼并听记；退朝后沿公共通路回官署，抄录归档8秒，本日工资自动存入当地钱庄。',
+  [TAVERN]:'06:00–18:00到云来酒楼许安处开工，亲自走到两张指定餐桌旁逐桌擦净，再回许安处当面验收。完成验收后才会把日薪存入铜钱账户。',
+  [GARDEN]:'06:00–18:00到西苑埃米尔处开工，领取工具架上的真实浇水壶，亲自浇完两畦玫瑰、归还水壶，再找埃米尔验收。完成验收后才会把日薪存入法国券账户。',
+  [TEA_PREPARER]:'06:00–18:00到糕点房备茶案旁找卡米耶开班。等玛农送来加布里埃尔的真实茶单，亲手切好小蛋糕、冲泡热茶，把同一份茶盘备妥放回交接处供玛农取走，再找卡米耶验收；日薪存入法国券账户。',
+  [TEA_SERVER]:'06:00–18:00到镜厅入口找玛农开班。到原茶席询问加布里埃尔，把茶单送到糕点房；等卡米耶备好后取走同一份茶盘，送回加布里埃尔原座位。待他用毕后收盘、送回糕点房洗净杯碟，再找玛农验收；日薪存入法国券账户。',
+};
+const WORKING={
+  [TAVERN]:'本轮酒楼工作进行中：亲手完成两张指定桌面的擦拭',
+  [GARDEN]:'本轮园艺工作进行中：领取真实水壶、完成两畦浇花，再归还水壶',
+  [TEA_PREPARER]:'本轮茶点备制进行中：收到加布里埃尔的茶单后切蛋糕、冲泡热茶，再放回原茶盘供取走',
+  [TEA_SERVER]:'本轮侍茶服务进行中：问单、传单、取原茶盘送回原座位，用毕后收盘并洗净杯碟',
+};
 const stageText=(d,role)=>({arrived:'已在班位候朝',attending:'正在随班听记',archive:'朝会完成，待回官署归档',
-  working:role?.id===GARDEN?'本轮园艺工作进行中：领取真实水壶、完成两畦浇花，再归还水壶':'本轮酒楼工作进行中：亲手完成两张指定桌面的擦拭',
+  working:WORKING[role?.id]||'本轮实际工作进行中',
   inspection:`职责已完成，待${employer(role)}当面验收`,ready:isClerk(role)?'归档完成，工资待钱庄入账':'验收完成，工资待账户入账',
-  paid:'今日工资已存入账户',missed:'本轮未完整履职，没有日薪'}[d?.stage]||'等待本日安排');
+  paid:'今日工资已存入账户',missed:isTea(role)&&d?.reason==='tea-handoff-wait'?'茶单或厨房交接尚未就绪，本轮不计薪，也不记缺勤差评；可在今日开班时段内重新接班':'本轮未完整履职，没有日薪'}[d?.stage]||'等待本日安排');
 
 export function createCareerHandbook({careers,copperLedger,getClock,getService,getCountry=()=>null,
   onIntent=()=>{},onOpen=()=>{},walletFactory=null,document:doc=globalThis.document}) {
@@ -89,11 +105,12 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
         const go=action(item,'view',`前往${p.workplace}登记`);if(go)row.append(go);else dialog.append(make('p',travel(item)));
         dialog.append(row);
       }
-      text('日薪依据','完成真实职责并由主管验收后，工资自动存入对应币种账户。酒楼与园艺岗位在12:00前开始、完整完成本轮职责，可得1单位本币的准时奖励；礼务录事按11:25到班规则计奖。');
+      text('日薪依据','完成真实职责并由主管验收后，工资自动存入对应币种账户。酒楼、园艺与茶务助理在12:00前开始、完整完成本轮职责，可得1单位本币的准时奖励；礼务录事按11:25到班规则计奖。');
     }else if(tab==='duties'){
       const vacancy=role.vacancy??(hired?0:1);
       text('长期任职 · 独立名额1',hired?`你已占用${role.name}职位，可一直任职，也可回登记处办理离职。现有NPC各守原职。`:`当前空缺 ${vacancy}/1。成年人须在当地登记处核对申请条件；正在进行的临时活须先完成或取消。`);
-      text('每日实际职责',isClerk(role)?'11:30之前到正殿第七录事班位候朝，随六位官员行礼并听记；退朝后沿公共通路回官署，抄录归档8秒，本日工资自动存入当地钱庄。':role.id===TAVERN?'06:00–18:00到云来酒楼许安处开工，亲自走到两张指定餐桌旁逐桌擦净，再回许安处当面验收。完成验收后才会把日薪存入铜钱账户。':'06:00–18:00到西苑埃米尔处开工，领取工具架上的真实浇水壶，亲自浇完两畦玫瑰、归还水壶，再找埃米尔验收。完成验收后才会把日薪存入法国券账户。');
+      text('每日实际职责',DUTIES[role.id]||'到当地主管处开班，完成岗位实际职责后当面验收。');
+      if(isTea(role))text('等待与交接','茶席、茶单和茶盘沿用原有下午茶流程。等待加布里埃尔入席或厨房备妥时可取消本轮，不计缺勤差评；已开始的实际职责须完整完成，原有NPC仍负责各自岗位。');
       text('申请能力',`${skillLine(role)}。中国藏书处或法国镜厅可选择礼仪、文书、园艺及艺术读物；书案习字积累文书，画室写生积累艺术。完成酒楼两桌擦拭积累礼仪，完整西苑浇花积累园艺。`);
       text('登记地点',`${place(role).workplace} · ${employer(role)}。${service?'下方导航会带你走到实际登记位置，申请仍须在当地办理。':travel(role)}`);
     }else if(tab==='today'){
@@ -107,16 +124,17 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       text(`主管 · ${isClerk(role)?'沈叙（礼仪官）':employer(role)}`,isClerk(role)?'性情认真，重视准时到班、完整听记和归档。评价来自这轮实际工作，关系好坏与付款各自记账。':`评价来自本轮的开工时间、实际完成情况与${employer(role)}的当面验收。未完整履职不会获得工资或好评。`);
       if(r){const p=make('p',`${r.positive?'👍 好评':'👎 差评'} · 第${r.day+1}日 · ${r.reason}`,r.positive?'career-positive':'career-negative');dialog.append(p);}else dialog.append(make('p','该职位尚无当班评价。查看手册或登记申请不会制造评价。'));
       text('累计表现',`${s.performance??0}。这是各次正式工作累计的表现记录；完整履职得+1，已开始却中断或缺勤得−1。`);
+      if(isTea(role))text('上游等待','茶单或厨房尚未就绪导致的等待不记缺勤差评，也不会产生工资或好评。');
     }else if(tab==='wage'){
       text(`日薪 · ${wageRange(role)}`,isClerk(role)?'完成本日朝仪与归档：18铜文；11:25前到班且完成全轮：另加2文，共20文。缺勤、中断或朝会未成：0文，不扣已有铜钱。':`完成本轮真实职责并当面验收：${role.wage}${unit(role)}；12:00前开工且完成全轮：另加1${unit(role)}，共${role.wage+1}${unit(role)}。未完整完成或未验收：0，不扣已有余额。`);
       text(pendingDuty?`第${d.day+1}日 · 待结清工资`:'本日结算',d?.day===c.day||pendingDuty?`${stageText(d,role)}${d.wage!=null?' · 核定'+d.wage+unit(role):''}${pendingDuty?'。已完成工作不会因跨日消失；验收并结清后才能开始新班次。':''}`:'该职位尚无本日工资记录。');
-      text('按日存入账户',role.id===GARDEN?'验收后自动存入法国券账户，不直接增加随身现金。法国目前没有实体钱庄；须前往中国钱庄，选择法国券账户取款后才会进入钱包。':'完整履职后自动存入铜钱账户，不直接增加随身现金；须前往中国的真实钱庄取款后才会进入钱包。');
+      text('按日存入账户',place(role).currency==='france'?'验收后自动存入法国券账户，不直接增加随身现金。法国目前没有实体钱庄；须前往中国钱庄，选择法国券账户取款后才会进入钱包。':'完整履职后自动存入铜钱账户，不直接增加随身现金；须前往中国的真实钱庄取款后才会进入钱包。');
       text('保存与结算','若保存失败，会保留应计凭记并自动重试；同一岗位同一天只入账一次。没有离线自动收入。');
       if(role.id===GARDEN)text('临时活与正式职位','原园艺临时活仍为每次6铜文；正式园艺岗位使用法国券计日薪，两种工作各按实际完成情况结算。');
     }else{
       text('技能与申请',`当前礼仪${s.skills.ritual??0}、文书${s.skills.writing??0}、园艺${s.skills.gardening??0}、艺术${s.skills.art??0}。${role.name}申请门槛：${skillLine(role)}。完整学习或实际完成工作才会积累技能。`);
       text('成长记录',`已累计${s.promotionProgress??0}次有效成长记录。正式工作的评价与技能会保留，可据此准备其他已开放职位。`);
-      text('晋升 · 尚未开放','更高品级、主管职位与后续晋升名额均未开放。当前不能解锁新头衔；手册目录只列出实际可登记的三份正式职位。');
+      text('晋升 · 尚未开放','更高品级、主管职位与后续晋升名额均未开放。当前不能解锁新头衔；手册目录只列出实际可登记的正式职位。');
       text('起步与转职','中国酒楼帮工、法国园艺帮工仍是可选计件活。转入正式职位前，须先完成或取消手头的临时活；在职转岗须先回原岗位离职。原任NPC保留其职位。');
     }
     if(s.loadError)dialog.append(make('p','职业存档暂时无法核对，请保留当前存档后再试。','career-negative'));
@@ -124,6 +142,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     if(hired&&['today','duties','wage'].includes(tab)){
       const next=service?.intent();if(next&&!['view','formal-view'].includes(next.kind))kinds.push(next.kind);
     }
+    if(hired&&isTea(role)&&['today','duties'].includes(tab)&&service?.intent('cancel'))kinds.push('cancel');
     if(tab!=='catalogue'){const kind=registrationKind(role);if(kind)kinds.push(kind);}
     if(tab!=='catalogue')kinds.push('view');
     for(const kind of new Set(kinds)){const b=action(role,kind,kind==='view'?`前往${place(role).workplace}登记`:null);if(b)actions.append(b);}

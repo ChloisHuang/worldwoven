@@ -90,4 +90,4 @@ ui.open({country:'france',roleId:GARDEN_ASSISTANT_ROLE.id});const route=buttons(
 country='china';const routed=requests.length;route.onclick();assert.equal(requests.length,routed);
 ui.close();route.onclick();assert.equal(requests.length,routed);ui.update('globe');assert(find(doc.body,e=>e.className==='career-wallet-slot').hidden);
 ui.dispose();labor.dispose();
-console.log('PASS career handbook: all3 roles before hiring and from court; employer-specific registration; real French intent handshake; actual tenure and review; prior-day inspection/ready wages; stale/cross-country actions');
+console.log('PASS career handbook: all registered roles before hiring and from court; employer-specific registration; real French intent handshake; actual tenure and review; prior-day inspection/ready wages; stale/cross-country actions');

@@ -3,6 +3,7 @@
 // An old unmarked slip always remains temporary, even after another job is held.
 const MESSAGES={
   'adult-required':'需年满18岁','ritual-required':'待客礼仪需要2点，先完成酒楼临工或读书',
+  'writing-required':'文书能力不足，先在镜厅或藏书处阅读文书读物',
   'gardening-required':'园艺需要2点，先完成两份真实浇花临工',
   'already-employed':'你已有长期职位，结清并离职后才能转职','no-vacancy':'这个岗位暂无空缺',
   'outside-arrival-window':'请在06:00至18:00之间开始当天班次',
