@@ -89,26 +89,27 @@ export function createFranceGardenerLabor({gardener,employment,careers,openRegis
  }
  function intent(kind){
   const j=current.job,employed=hired(),registration=employment?.state();
-  kind||=j?j.stage==='ready'?'claim':held()?j.cancelled||j.completedBeds===2?'return':'water':'take':employed?'accept':'view';
+  kind||=j?j.stage==='ready'?'claim':held()?j.cancelled||j.completedBeds===2?'return':'water':'take':formal.hired()?'formal-view':'view';
   if(disposed||!['view','apply','resign','accept','claim','take','water','return','formal-view','formal-apply','formal-resign'].includes(kind))return null;
   if(!['view','formal-view'].includes(kind)&&!permitted())return null;
   if(['apply','resign','accept'].includes(kind)&&registration?.loadError)return null;
   if(kind==='apply'&&(employed||j)||kind==='resign'&&(!employed||j||formal.hired())||kind==='accept'&&(!employed||j)||
    kind==='claim'&&j?.stage!=='ready'||['take','water','return'].includes(kind)&&(!employed||j?.stage!=='working')||
    kind==='take'&&held()||kind==='water'&&(!held()||j.cancelled||j.completedBeds===2)||kind==='return'&&!held())return null;
+  if(kind==='accept'&&formal.hired()&&!formal.beginAvailability().ok)return null;
   if(kind==='formal-apply'&&(j||formal.hired()||!careers)||kind==='formal-resign'&&(j||!formal.hired()))return null;
   if(['take','water'].includes(kind)&&!formal.canWork(j))return null;
   const point=kind==='water'?target():['take','return'].includes(kind)?RACK:REGISTRY;
-  return {...copy(point),id:`fr-garden-labor-${kind}`,provider:'france-gardener-labor',kind,npcName:'埃米尔',
-   action:{'formal-view':'查看正式职位与申请条件','formal-apply':'申请常任园艺助理','formal-resign':'办理常任园艺离职',view:'查看临工与长期职位',apply:'申请园艺帮工',resign:'办理园艺离职',accept:formal.hired()?'开始今日园艺班次':'接下浇花活',claim:formal.pinned(j)?'提交当班验收 · 工资存法国券账户':'验收后工资存银行 · 6 铜文',take:'领取浇水壶',water:'亲手浇花 · 5 秒',return:'归还浇水壶'}[kind],
+  return {...copy(point),id:`fr-garden-labor-${kind}`,provider:'france-gardener-labor',kind,npcName:'埃米尔',...(kind==='formal-view'?{registration:{scope:'role',roleId:GARDEN_ASSISTANT_ROLE.id}}:{}),
+   action:{'formal-view':formal.hired()?'查看岗位状态':'查看正式职位与申请条件','formal-apply':'申请常任园艺助理','formal-resign':'办理常任园艺离职',view:'查看临工与长期职位',apply:'申请园艺帮工',resign:'办理园艺离职',accept:formal.hired()?'开始今日园艺班次':'接下浇花活',claim:formal.pinned(j)?'提交当班验收 · 工资存法国券账户':'验收后工资存银行 · 6 铜文',take:'领取浇水壶',water:'亲手浇花 · 5 秒',return:'归还浇水壶'}[kind],
    intentKey:[registration?.revision||0,formal.state()?.revision||0,j?.id||'-',j?.stage||'-',j?.completedBeds||0,j?.cancelled||false,held(),kind].join(':'),
    interactionRadius:2.4,executionRadius:.16,priority:kind==='view'?1:45};
  }
- function resolveIntent(selected){const next=intent(selected?.kind);return next&&selected?.provider===next.provider&&selected.id===next.id&&selected.intentKey===next.intentKey?next:null;}
+ function resolveIntent(selected){const next=intent(selected?.kind);if(!next||selected?.provider!==next.provider||selected.id!==next.id||selected.intentKey!==next.intentKey)return null;if(next.kind==='formal-view'){const context=selected.registration||next.registration;if(context.roleId!==GARDEN_ASSISTANT_ROLE.id||!['role','catalogue'].includes(context.scope))return null;return {...next,registration:{...context}};}return next;}
  function executeIntent(selected){
   const next=resolveIntent(selected);if(!next||!at(next.position)||!canSee(next))return false;
-  if(next.kind==='formal-view'){formal.open();return true;}
-  if(next.kind==='view'){ui?.open();return true;}
+  if(next.kind==='formal-view'){formal.open(next.registration);return true;}
+  if(next.kind==='view'){if(formal.hired())formal.open();else ui?.open();return true;}
   if(['apply','resign','accept','claim','formal-apply','formal-resign'].includes(next.kind)){
    if(meetingIntent)return false;meetingIntent=next;gardener.requestMeeting();
    notify('埃米尔：在登记簿旁稍候，我放好工具就来。');return true;
@@ -172,7 +173,7 @@ export function createFranceGardenerLabor({gardener,employment,careers,openRegis
    target:activity==='water'?target().playerWorkTarget:null,phase:elapsed,
    transfer:activity==='take'||activity==='return'?{tool:'can',pickup:activity==='take',ratio:Math.min(1,elapsed/TRANSFER)}:null};
  }
- const view=()=>({...copy(current),hired:hired(),formalHired:formal.hired(),formalRole:formal.role,formalState:formal.state(),formalJob:formal.pinned(current.job),formalExpired:formal.pinned(current.job)&&current.job.stage==='working'&&!formal.canWork(current.job),formalSalary:formal.salary,employment:employment?.state(),held:held(),activity,
+ const view=()=>({...copy(current),hired:hired(),formalHired:formal.hired(),formalRole:formal.role,formalState:formal.state(),formalJob:formal.pinned(current.job),formalExpired:formal.pinned(current.job)&&current.job.stage==='working'&&!formal.canWork(current.job),formalSalary:formal.salary,beginAvailability:formal.beginAvailability(),employment:employment?.state(),held:held(),activity,
   waitingForHost:!!meetingIntent,progress:elapsed/(activity==='water'?SECONDS:TRANSFER),wage:WAGE,seconds:SECONDS,
   target:copy(target()),loan:gardener.loanState(),loadError:loadError||copperLedger.loadError,lastError});
  const service={active,held,isActing:()=>!!activity||!!pending||!!meetingIntent,accept,claim,cancel,meetHost,stopActivity,update,intent,resolveIntent,executeIntent,view,state:view,
@@ -195,7 +196,7 @@ function createUI({doc,service,getPlayer,canSee,onIntent,onOpen}){
  function refresh(force=false){
   const s=service.view(),age=getPlayer()?.ageYears,ageText=Number.isFinite(age)?`${Math.floor(age)}岁`:'未读取',skill=s.formalState?.skills?.gardening??0;badge.hidden=!nearby();badge.textContent=s.formalHired?(s.job?.stage==='ready'?'园艺正式班次 · 待验收':s.job?`常任园艺 · ${s.job.completedBeds}/2畦`:'常任园艺助理 · 每日班次'):s.activity==='water'?`浇花中 · ${Math.ceil((1-s.progress)*SECONDS)} 秒`:s.waitingForHost?'等埃米尔到登记簿旁':s.job?.stage==='ready'?'园艺工钱 · 6 铜文':s.job?`园艺活 · ${s.job.completedBeds}/2 畦${s.held?' · 持壶':''}`:s.hired?'园艺帮工 · 接活':'招工登记 · 园艺帮工';
   if(dialog.open&&!nearby()){close();return;}if(!dialog.open&&!force)return;
-  const key=JSON.stringify([s.job,s.hired,s.activity,s.held,s.waitingForHost,s.loadError,s.lastError,s.employment?.revision,s.formalState?.revision,s.formalHired,age,skill]);if(!force&&key===signature)return;signature=key;dialog.replaceChildren();
+  const key=JSON.stringify([s.job,s.hired,s.activity,s.held,s.waitingForHost,s.loadError,s.lastError,s.employment?.revision,s.formalState?.revision,s.formalHired,age,skill,s.beginAvailability?.code,s.beginAvailability?.ok]);if(!force&&key===signature)return;signature=key;dialog.replaceChildren();
   const x=button('×',close);x.className='fr-labor-close';x.setAttribute('aria-label','关闭园艺面板，保留进度');dialog.append(x,make('h2','西苑 · 工作登记'));
   const actions=make('div',null,'fr-labor-actions'),formalActions=make('div',null,'fr-labor-actions'),roleCard=make('section',null,'fr-labor-role');
   roleCard.append(make('h3','正式职位 · 西苑常任园艺助理'),
@@ -220,6 +221,6 @@ function createUI({doc,service,getPlayer,canSee,onIntent,onOpen}){
   }
   dialog.append(actions,make('p','埃米尔忙时会先收好原工具，再沿路过来。移动会停止浇水计时；已完成花畦保留。铜文仅为游戏币。'));
  }
- const open=()=>{if(!nearby())return;onOpen();refresh(true);if(!dialog.open)dialog.showModal();refresh(true);};badge.onclick=open;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});refresh();
+ const open=()=>{if(!nearby())return;if(service.view().formalHired){close();service.formal.open();return;}onOpen();refresh(true);if(!dialog.open)dialog.showModal();refresh(true);};badge.onclick=open;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});refresh();
  return {open,close,refresh,isOpen:()=>dialog.open,dispose(){close();badge.remove();dialog.remove();style.remove();}};
 }
