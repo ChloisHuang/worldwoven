@@ -72,7 +72,7 @@ export function createJapanPlayerService({board,furniture,copperLedger,getPlayer
  const api={
   actor,wardrobePreset,blends:JAPAN_BATH_BLENDS,menu:JAPAN_DINING_MENU.map(d=>({...d,currency:JAPAN_SERVICE_CURRENCY})),
   orderDining(dishId) {
-   if(!canStart())return result(false,'请先交完前台班次，再作为顾客点餐');
+   if(!canStart())return result(false,'请先交完当前班次，再作为顾客点餐');
    if(suspended||!actor())return result(false,'先回到一楼食堂');
    const existing=visit();if(existing)return result(false,existing.orderKind==='dining'?'已有你的餐单，请先用餐或取消':'你还有一份泡汤服务，请先完成或取消后再单独点餐');
    const dish=JAPAN_DINING_MENU.find(d=>d.id===dishId),mounted=getMounted();
@@ -92,7 +92,7 @@ export function createJapanPlayerService({board,furniture,copperLedger,getPlayer
    return result(true,`${dish.name}已交给后厨，预留 ${dish.price} 券（日本票券）；请到自己的吧台凳等餐`);
   },
   register(blendId) {
-   if(!canStart())return result(false,'请先交完前台班次，再登记自己的泡汤服务');
+   if(!canStart())return result(false,'请先交完当前班次，再登记自己的泡汤服务');
    if(suspended||!actor())return result(false,'先回到汤馆');
    const existing=visit();if(existing){if(existing.orderKind==='dining')return result(false,'先用完或取消本餐，再登记泡汤');deskRequest=true;if(existing.stage==='arriving')desk(existing);return result(true,'已有你的浴牌登记，不会重复开单');}
    if(!japanReceptionReady(position()))return result(false,'请先走到接待柜台');

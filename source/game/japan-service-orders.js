@@ -129,7 +129,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
    if(v.tokenId&&!v.mixtureId)result.push(descriptor(v,'prepare','apothecary','apothecary','apothecary'));
    const mix=item(v.mixtureId);
    // The small apothecary has one dispatch corner. A second carrier remains at
-   // their own post until the first complete dispatch releases that workspace.
+   // their own post until the first successful pickup releases that workspace.
    if(mix&&mix.location.id!==service(v)&&mix.location.type!=='used')result.push(descriptor(v,'deliverMix','apothecaryPickup',service(v),'apothecary-dispatch',{itemId:mix.id,tokenId:v.tokenId,side:v.side}));
    if(v.mealRequested&&!v.mealId){const kitchen=v.dishId==='sushi'?'sushiKitchen':'kitchen';result.push(descriptor(v,'cook',kitchen,kitchen,'kitchen'));}
    const meal=item(v.mealId);
@@ -152,12 +152,13 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   if(prior)return prior.workerId===workerId?clone(prior):null;
   const job=jobs().find(j=>j.id===jobId);
   if(!job||workers.has(workerId)||staffResources.has(workerId))return null;
-  if(workerId==='player'){if(staffDuties.get(dutyKey(job))?.status!=='active'||visit(job.visitId)?.customerType==='player')return null;}
-  else if(!JAPAN_SERVICE_WORKERS[job.kind].includes(workerId)||staffDuties.has(dutyKey(job)))return null;
+  if(workerId==='player'){const duty=staffDuties.get(dutyKey(job)),held=item(job.itemId)?.location;if(!duty||duty.status!=='active'&&!(held?.type==='worker'&&held.id==='player')||visit(job.visitId)?.customerType==='player')return null;}
+  else if(!JAPAN_SERVICE_WORKERS[job.kind].includes(workerId)||staffDuties.has(dutyKey(job))&&staffDuties.get(dutyKey(job)).status!=='paused')return null;
   if(job.kind==='deliverMix'&&workerId!=='player'&&!JAPAN_BATH_CREWS[job.side]?.includes(workerId))return null;
-  if(job.resource&&resources.has(job.resource))return null;
-  const claimed={...job,workerId};claims.set(job.id,claimed);workers.set(workerId,job.id);
-  if(job.resource)resources.set(job.resource,job.id);
+  const resource=job.kind==='deliverMix'&&item(job.itemId)?.location.type==='worker'?null:job.resource;
+  if(resource&&resources.has(resource))return null;
+  const claimed={...job,resource,workerId};claims.set(job.id,claimed);workers.set(workerId,job.id);
+  if(resource)resources.set(resource,job.id);
   return clone(claimed);
  }
  function pointFor(v,key){return key==='dining'?v.servePoint:JAPAN_SERVICE_POINTS[key];}
@@ -258,6 +259,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
    persist();return true;
   },
   setStaffDuty,releaseStaffDuty,tickStaffDuty,
+  pauseStaffDuty(key,receiptId){const duty=staffDuties.get(key);if(!duty||duty.receiptId!==receiptId)return false;return transaction(()=>staffDuties.set(key,{receiptId,status:'paused'}));},
   staffDuty:key=>staffDuties.has(key)?clone(staffDuties.get(key)):null,
   staffReceipts:(key,receiptId)=>clone((key==='reception'?state.receptionReceipts:state.deliveryReceipts).filter(r=>r.workReceiptId===receiptId)),
   setReceptionDuty:(receiptId,status)=>setStaffDuty('reception',receiptId,status),
@@ -270,8 +272,8 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   pickup(jobId,workerId,evidence={}) {
    const job=claims.get(jobId),v=job&&visit(job.visitId),cargo=item(job?.itemId);
    if(disposed||!job||job.workerId!==workerId||!v||!cargo||!near(evidence.position,pointFor(v,job.from))||cargo.location.type!=='point'||cargo.location.id!==job.from)return false;
-   if(workerId==='player'){const duty=staffDuties.get(dutyKey(job));if(duty?.status!=='active'||evidence.receiptId!==duty.receiptId||evidence.itemId!==cargo.id||evidence.tokenId!==v.tokenId)return false;return transaction(()=>{cargo.location={type:'worker',id:workerId};});}
-   cargo.location={type:'worker',id:workerId};persist();return true;
+   if(workerId==='player'){const duty=staffDuties.get(dutyKey(job));if(duty?.status!=='active'||evidence.receiptId!==duty.receiptId||evidence.itemId!==cargo.id||evidence.visitId!==v.id||evidence.number!==v.number||cargo.visitId!==v.id||cargo.tokenId!==v.tokenId||evidence.tokenId!==v.tokenId)return false;return transaction(()=>{cargo.location={type:'worker',id:workerId};if(job.kind==='deliverMix'&&resources.get(job.resource)===job.id){resources.delete(job.resource);job.resource=null;}});}
+   cargo.location={type:'worker',id:workerId};if(job.kind==='deliverMix'&&resources.get(job.resource)===job.id){resources.delete(job.resource);job.resource=null;}persist();return true;
   },
   complete,guestStep,
   // A staff meal uses the same kitchen as orders. A pending break reserves it
