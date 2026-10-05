@@ -1,5 +1,5 @@
-// Shared-catalogue regressions: the clerk-only entry point, selected registration
-// and old unpaid receipts must not hide other careers or act on the wrong role.
+// Local registration and a single current-role handbook must not mix countries,
+// show tabs, or turn an unemployed HUD icon into a remote application.
 // Real core + French labor intents; only DOM, actor and tool surfaces are stubs.
 import assert from 'node:assert/strict';
 import {createCareerHandbook} from '../source/game/career-handbook.js';
@@ -39,24 +39,27 @@ ui=createCareerHandbook({careers,copperLedger:bank,getClock:()=>clock,getCountry
 const dialog=find(doc.body,e=>e.className==='career-dialog'),openButton=find(doc.body,e=>e.className==='career-open');
 const buttons=label=>all(dialog).filter(e=>e.tag==='button'&&e.textContent===label);
 const click=(label,index=0)=>{const b=buttons(label)[index];assert(b,`Missing button: ${label}`);b.onclick();return b;};
-const assertCatalogue=()=>{for(const role of FORMAL_CAREER_ROLES)assert(text(dialog).includes(role.name));assert(text(dialog).includes('16–17铜文'));assert(text(dialog).includes('8–9法国券'));};
+const assertCatalogue=()=>{const cards=all(dialog).filter(e=>e.className==='career-role-card');assert.equal(cards.length,country==='china'?2:1);for(const role of FORMAL_CAREER_ROLES)assert.equal(cards.some(card=>text(card).includes(role.name)),role.country===country);assert.equal(all(dialog).filter(e=>e.className==='career-tabs'||e.attributes.role==='tab').length,0);assert.equal(buttons('查看职责').length,0);};
+const assertIcon=()=>{assert.equal(openButton.textContent,'');assert(openButton.children.some(e=>e.className==='career-icon'&&e.attributes['aria-hidden']==='true'&&e.innerHTML.includes('<svg')));const css=text(doc.head);assert(css.includes('width:44px;height:44px'));assert(css.includes('border:0;border-radius:0;background:transparent;box-shadow:none'));};
 
-ui.update('lot');assert.equal(openButton.textContent,'前往职业登记处');openButton.onclick();
+ui.update('lot');assertIcon();assert.equal(openButton.attributes['aria-label'],'前往当地职业登记处');openButton.onclick();
 assert.equal(dialog.open,false,'Unemployed HUD navigates instead of opening a work handbook');
 assert.equal(requests.at(-1).kind,'view');assert.equal(requests.at(-1).provider,'china-court-career');
 assert.equal(careers.currentRole(),null);assert.equal(careers.state().lastDuty,null);
 ui.open();assert.equal(buttons('工资').length,0);assert.equal(buttons('评价').length,0);assert.equal(buttons('晋升').length,0);
 assert.equal(all(dialog).filter(e=>e.className==='career-role-card').length,0,'No remote job catalogue from unemployed handbook');
 const before=careers.state();ui.open(true);assertCatalogue();
-assert.equal(all(dialog).filter(e=>e.className==='career-role-card').length,3);
+assert.equal(all(dialog).filter(e=>e.className==='career-role-card').length,2);
 assert(text(dialog).includes('22岁 / 18岁'));assert(text(dialog).includes('0点 / 2点'));
 assert.equal(buttons('条件不足 · 暂不可申请').length,1);assert.equal(buttons('条件不足 · 暂不可申请')[0].disabled,true);
 const requestCount=requests.length;click('条件不足 · 暂不可申请');assert.equal(requests.length,requestCount);
-click('查看职责',0);assert.equal(buttons('条件不足 · 暂不可申请').length,1);
 assert.deepEqual(careers.state(),before,'Reading requirements never changes career state');
-click('职位目录');click('前往云来酒楼登记');assert.equal(requests.at(-1).provider,'china-tavern-labor');assert.equal(requests.at(-1).kind,'formal-view');
+click('前往云来酒楼登记');assert.equal(requests.at(-1).provider,'china-tavern-labor');assert.equal(requests.at(-1).kind,'formal-view');
 
-// The physical employer renders its registry, including a rejected real application.
+// Countries without a registry never offer a false route or a foreign catalogue.
+for(const unsupported of ['japan','egypt']){country=unsupported;ui.update('lot');assert.equal(openButton.hidden,true);const count=requests.length;openButton.onclick();assert.equal(requests.length,count);assert.equal(all(dialog).filter(e=>e.className==='career-role-card').length,0);ui.close();}
+
+// The physical employer renders only its country's registry and actual result.
 country='france';ui.update('lot');openButton.onclick();assert.equal(requests.at(-1).kind,'formal-view');
 assert.equal(dialog.open,false);move(P.registration);assert(labor.executeIntent(labor.intent('formal-view')));assertCatalogue();
 assert(text(dialog).includes('当前登记处'));assert(text(dialog).includes('埃米尔'));
@@ -64,7 +67,7 @@ assert.equal(buttons('条件不足 · 暂不可申请').length,1);
 assert(labor.executeIntent(labor.intent('formal-apply')));labor.update(.1);
 assert(text(dialog).includes('申请未通过 · 未建立正式任职'));assert.equal(careers.currentRole(),null);
 assert.equal(labor.state().job,null);assert.equal(labor.state().formalHired,false);assert.equal(bank.state().bank,0);
-click('查看职责',2);assert.equal(buttons('条件不足 · 暂不可申请').length,1);
+assert.equal(buttons('条件不足 · 暂不可申请').length,1);
 for(let serial=1;serial<=2;serial++)assert(careers.completedLowerWork({source:'fr-garden-labor',receiptId:`fr-garden-labor-${serial}`}).ok);
 ui.update('lot');const applyButton=click('申请常任园艺助理');const application=requests.at(-1);
 assert.equal(application.kind,'formal-apply');assert.equal(application.provider,'france-gardener-labor');
@@ -74,10 +77,12 @@ move([0,0,0]);assert.equal(labor.executeIntent(application),false,'The actual co
 move(P.registration);assert(labor.executeIntent(application));labor.update(.1);assert.equal(careers.currentRole().id,GARDEN_ASSISTANT_ROLE.id);
 
 // The current-role handbook is separate from the registry catalogue.
-assert(text(dialog).includes('申请通过 · 正式任职已保存'));ui.close();ui.update('lot');assert.equal(openButton.textContent,'职业手册');openButton.onclick();assert.equal(buttons('职位目录').length,0);click('今日工作');assert(text(dialog).includes('西苑常任园艺助理'));
+assert(text(dialog).includes('申请通过 · 正式任职已保存'));ui.close();ui.update('lot');assertIcon();assert.equal(openButton.attributes['aria-label'],'打开当前职业手册');openButton.onclick();assert.equal(buttons('职位目录').length,0);assert(text(dialog).includes('西苑常任园艺助理'));
 assert(!text(dialog).includes('朝会11:30'));assert.equal(buttons('开始今日园艺班次').length,1);
-click('工资');assert(text(dialog).includes('日薪 · 8–9法国券'));assert(text(dialog).includes('法国银行'));
-click('评价');assert(text(dialog).includes('主管 · 埃米尔'));assert(!text(dialog).includes('沈叙'));click('晋升');assert(text(dialog).includes('晋升 · 尚未开放'));click('职责');assert(!text(dialog).includes('礼务录事'));assert.equal(buttons('录事apply').length,0);
+assert(text(dialog).includes('银行薪资 · 日薪 8–9法国券'));assert(text(dialog).includes('法国银行'));
+assert(text(dialog).includes('主管 · 埃米尔'));assert(!text(dialog).includes('沈叙'));assert(text(dialog).includes('晋升条件 · 尚未开放'));assert(!text(dialog).includes('礼务录事'));assert.equal(buttons('录事apply').length,0);
+for(const abroad of ['china','japan','egypt']){country=abroad;ui.close();ui.update('lot');assert.equal(openButton.hidden,false);openButton.onclick();assert(text(dialog).includes('西苑常任园艺助理'));assert(text(dialog).includes('法国 ·'));assert.equal(all(dialog).filter(e=>e.className==='career-role-card'||e.className==='career-tabs').length,0);assert.equal(buttons('开始今日园艺班次').length,0);}
+country='france';ui.close();openButton.onclick();
 
 // Real labor completion leaves an inspection receipt that remains due tomorrow.
 const act=kind=>{const intent=labor.intent(kind);assert(intent,kind);move(intent.position);assert(labor.executeIntent(intent));for(let n=0;n<(kind==='water'?51:15);n++)labor.update(.1);};
@@ -85,12 +90,12 @@ ui.close();act('accept');act('take');act('water');act('water');act('return');ass
 clock.day=1;clock.hour=9;clock.seconds=100;assert(careers.observeDay().ok);ui.open();
 assert(text(dialog).includes('第1日的工作仍待结清'));assert(text(dialog).includes('待埃米尔当面验收'));
 assert.equal(buttons('提交当班验收 · 工资存法国券账户').length,1);
-click('工资');assert(text(dialog).includes('第1日 · 待结清工资'));
+assert(text(dialog).includes('第1日 · 待结清工资'));
 failBank=true;click('提交当班验收 · 工资存法国券账户');const claim=requests.at(-1);move(claim.position);assert(labor.executeIntent(claim));labor.update(.1);
 assert.equal(careers.state().lastDuty.stage,'ready');clock.day=2;clock.seconds=200;assert(careers.observeDay().ok);ui.open();
 assert(text(dialog).includes('第1日的工作仍待结清'));assert(text(dialog).includes('工资待账户入账'));
-click('工资');assert(text(dialog).includes('第1日 · 待结清工资'));assert(text(dialog).includes('核定9法国券'));
-ui.update('lot');click('评价');assert(text(dialog).includes('主管 · 埃米尔'));assert(text(dialog).includes('第1日'));
+assert(text(dialog).includes('第1日 · 待结清工资'));assert(text(dialog).includes('核定9法国券'));
+ui.update('lot');assert(text(dialog).includes('主管 · 埃米尔'));assert(text(dialog).includes('第1日'));
 assert(text(find(doc.body,e=>e.className?.startsWith('career-review-pop'))).includes('埃米尔'));
 assert.equal(bank.balances().france.cash,0);assert.equal(bank.balances().france.bank,0);
 
@@ -99,4 +104,4 @@ ui.open({country:'france',roleId:'cn-court-clerk'});const route=buttons(`前往$
 country='china';const routed=requests.length;route.onclick();assert.equal(requests.length,routed);
 ui.close();route.onclick();assert.equal(requests.length,routed);ui.update('globe');assert(find(doc.body,e=>e.className==='career-wallet-slot').hidden);
 ui.dispose();labor.dispose();
-console.log('PASS career handbook: unemployed physical registry navigation; hierarchical requirement cards and rejected result; successful local hiring; current-role work/wage/review/promotion only; pending salary and stale/cross-country actions');
+console.log('PASS career handbook: original icon-only HUD; no tabs or duties page; China/France local catalogues; no false Japan/Egypt registry; actual held-role single page abroad; existing physical apply and pending wage UI preserved');
