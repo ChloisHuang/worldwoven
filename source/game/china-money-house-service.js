@@ -1,9 +1,9 @@
 import {createCurrencyLedger, GAME_CURRENCIES} from './currency-ledger.js';
 import {CHINA_MONEY_HOUSE as C} from './china-money-house.js';
-import {MONEY_HOUSE_STYLE, MONEY_HOUSE_COPPER_ART} from './china-money-house-theme.js';
+import {MONEY_HOUSE_STYLE} from './china-money-house-theme.js';
 
 const TICKET_ART={
- copper:MONEY_HOUSE_COPPER_ART,
+ copper:new URL('./assets/currency/china.webp',import.meta.url).href,
  japan:new URL('./assets/currency/japan.webp',import.meta.url).href,
  egypt:new URL('./assets/currency/egypt.webp',import.meta.url).href,
  france:new URL('./assets/currency/france.webp',import.meta.url).href,
@@ -120,7 +120,7 @@ export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,sav
    };fxPreview.append(quoteText);area.append(label,button);sheet.append(area);
   }
   const status=make('p',message,'cn-money-status');status.setAttribute('role','status');main.append(status);
-  const more=make('details',undefined,'cn-money-more');more.append(make('summary','往来账与办理说明'));
+  const more=make('details',undefined,'cn-money-more');const moreTitle=make('summary','往来账');moreTitle.setAttribute('aria-label','往来账与办理说明');more.append(moreTitle);
   more.append(make('p','正式工资存入银行，亲自取款后可花用。首次正式岗位工钱入账时，会免费建立工资账簿。','cn-money-note'));
   const history=ledger.history();if(!history.length)more.append(make('p','尚无往来账'));
   else{const list=make('ol',undefined,'cn-money-history');for(const row of history.slice(-12).reverse()){
