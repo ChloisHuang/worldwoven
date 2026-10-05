@@ -182,6 +182,7 @@ function contextualTarget(item){
  if(['jp-welcome','jp-sushi','jp-ramen'].includes(item.id)&&!item.social)return {...item,targetKey:item.id,actionKey:visit?'jp-service-panel':item.id};
  if(item.playerService&&['dining-panel','register','wait','panel','order'].includes(item.serviceStep?.kind)){const id=item.serviceStep.kind==='dining-panel'?item.id.replace('jp-dining-','jp-'):item.id==='jp-player-service-desk'||item.serviceStep.kind==='register'?'jp-welcome':item.id;return {...item,targetKey:id,actionKey:visit?'jp-service-panel':id};}
  if(item.franceTea||item.id==='france-cafe'&&!item.social)return {...item,targetKey:'france-cafe',actionKey:'france-tea-service'};
+ if(item.provider==='japan-reception-employment')return {...item,targetKey:'jp-welcome',targetName:'Koharu · 汤馆接待'};
  if(item.provider==='china-salon-employment')return {...item,targetKey:'cn-tavern-reception',targetName:'温晚 · 雅集接待'};
  const host=item.id==='cn-tavern-host'||['china-tavern-lodging','china-tavern-service','china-tavern-labor'].includes(item.provider)&&!['task','clean','work-view','end-shift'].includes(item.kind);
  return host?{...item,targetKey:'cn-tavern-host',targetName:'许安 · 云来酒楼',action:item.provider==='china-tavern-labor'&&item.kind==='view'?'临时帮工 · 查看招工登记':item.provider==='china-tavern-service'&&item.kind==='formal-view'?'长期职位 · 查看申请条件':item.action}:item;
@@ -190,7 +191,7 @@ function currentControl(){
  const base={id:'current-action',contextControl:true,icon:'hand',name:'当前动作',position:player?.root.position.toArray()};
  if(activeDailyToilet()?.active())return {...base,intentKey:'toilet',action:'取消如厕'};
  if(chinaLabor?.isCleaning())return {...base,intentKey:'clean',action:'停止擦拭'};
- if(chinaRoyalKitchenEmployment?.isActing()||chinaClinicPhysicianEmployment?.isActing()||chinaCareer?.isActing()||chinaGuardEmployment?.isActing()||franceLabor?.isActing()||franceTeaEmployment?.isActing()||francePastryEmployment?.isActing())return {...base,intentKey:'work',action:'停止当前工作'};
+ if(japanReceptionEmployment?.isActing()||chinaRoyalKitchenEmployment?.isActing()||chinaClinicPhysicianEmployment?.isActing()||chinaCareer?.isActing()||chinaGuardEmployment?.isActing()||franceLabor?.isActing()||franceTeaEmployment?.isActing()||francePastryEmployment?.isActing())return {...base,intentKey:'work',action:'停止当前工作'};
  if(bathTransition)return {...base,intentKey:'bath',action:'离开浴池'};
  if(pendingInteraction)return {...base,intentKey:['pending',pendingInteraction.provider,pendingInteraction.id,pendingInteraction.intentKey].join(':'),action:'取消前往'};
  if(performing)return {...base,intentKey:'performing:'+performing.id,action:'结束当前动作'};
