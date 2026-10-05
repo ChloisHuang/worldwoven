@@ -18,9 +18,8 @@ export function createConsortCharterProps(parent){
   documentId=document?.id||null;holder=document?.holder||null;sealed=!!document?.sealed;scroll.visible=!!document&&!document.filed;
   if(!scroll.visible)return;scroll.name=documentId;scroll.userData={documentId,holder};
   const desk=new THREE.Vector3(...PALACE_EDICT.points.seal),ratio=n=>Math.min(1,elapsed/n);
-  let p=holder==='world'?new THREE.Vector3(...document.position):holder==='desk'?desk:holder==='player'&&player?hands(player):hands(herald);
+  let p=holder==='desk'?desk:holder==='player'&&player?hands(player):hands(herald);
   if(phase==='place-charter')p=hands(herald).lerp(desk,ratio(1.2));
-  if(phase==='recover-charter')p=new THREE.Vector3(...document.position).lerp(hands(herald),ratio(1.2));
   if(phase==='pickup-charter')p=desk.lerp(hands(herald),ratio(1.2));
   if(phase==='handoff'&&player)p=hands(herald).lerp(hands(player),ratio(1.5));
   scroll.position.copy(p);scroll.rotation.set(0,holder==='player'&&player?player.root.rotation.y:holder==='desk'?0:herald.root.rotation.y,0);

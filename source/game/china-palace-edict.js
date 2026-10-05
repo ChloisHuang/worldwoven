@@ -85,17 +85,17 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
   owns:n=>owned.has(n),socialStatus:n=>owned.has(n)?{busy:false,attention:true,job:n===speaker?utterance:tasks.get(n)?.label||'在传令案前候命'}:null,
   // Only the original idle herald may be lent. Wen, Bo and an unfinished
   // decree remain under this controller, including after a cancelled loan.
-  heraldAvailability(owner){const a=audience.state(),l=ledger.snapshot();return disposed?{ok:false,reason:'service-unavailable'}:borrower&&borrower!==owner?{ok:false,reason:'herald-borrowed'}:order||l.outcome==='interrupted'||ledger.canBegin(a.schedule)?{ok:false,reason:'edict-unfinished'}:a.phase!=='waiting'?{ok:false,reason:'court-busy'}:tasks.has(herald)&&!arrived(herald)?{ok:false,reason:'herald-returning'}:paused(herald)?{ok:false,reason:'herald-in-conversation'}:{ok:true,reason:null};},
+  heraldAvailability(owner){const a=(audience.courtStatus?.()||audience.state()),l=ledger.snapshot();return disposed?{ok:false,reason:'service-unavailable'}:borrower&&borrower!==owner?{ok:false,reason:'herald-borrowed'}:order||l.outcome==='interrupted'||ledger.canBegin(a.schedule)?{ok:false,reason:'edict-unfinished'}:a.phase!=='waiting'?{ok:false,reason:'court-busy'}:tasks.has(herald)?{ok:false,reason:'herald-returning'}:paused(herald)?{ok:false,reason:'herald-in-conversation'}:{ok:true,reason:null};},
   borrowHerald(owner){if(!owner||!this.heraldAvailability(owner).ok)return false;if(!borrower){borrower=owner;owned.delete(herald);tasks.delete(herald);herald.route=[];record('herald-loaned:'+owner,herald);}borrowUntil=time+8;return true;},
-  releaseHerald(owner){if(borrower!==owner)return false;borrower=null;owned.add(herald);herald.route=[];herald.walking=false;if(herald.poseContext){herald.poseContext.handoff=false;herald.poseContext.receptionWriting=false;}task(herald,'return-after-loan',[[-16.8,.215,-14.4],[-14.4,.145,-14.4],[-14.4,.115,-10],[-14.4,.115,.4],[-3,.13,11],[2,.13,11],[2,1.415,6],[2,1.415,3],P.sealStand],'文书接待告一段落 · 沿公共通道回传令案');record('herald-returned:'+owner,herald);return true;},
+  releaseHerald(owner){if(borrower!==owner)return false;borrower=null;owned.add(herald);herald.route=[];herald.walking=false;if(herald.poseContext){herald.poseContext.handoff=false;herald.poseContext.receptionWriting=false;}task(herald,'return-after-loan',near(herald,P.sealStand,.2)?[P.sealStand]:[[-16.8,.215,-14.4],[-14.4,.145,-14.4],[-14.4,.115,-10],[-14.4,.115,.4],[-3,.13,11],[2,.13,11],[2,1.415,6],[2,1.415,3],P.sealStand],'文书接待告一段落 · 沿公共通道回传令案');record('herald-returned:'+owner,herald);return true;},
   borrowedHerald:owner=>borrower===owner,
   animateBorrowedSeal(owner,phase,elapsed){if(borrower!==owner)return false;props.animateBorrowedSeal(herald,phase,elapsed);return true;},
-  reissueInterrupted(documentId){if(disposed||order||borrower)return false;return prepare(ledger.reissue(documentId,audience.state().schedule),true);},
+  reissueInterrupted(documentId){if(disposed||order||borrower)return false;return prepare(ledger.reissue(documentId,(audience.courtStatus?.()||audience.state()).schedule),true);},
   update(dt,t,playerState={}){
    if(disposed)return;state=playerState;time+=dt;
    if(borrower&&time>borrowUntil)this.releaseHerald(borrower);
-   if(!borrower&&!order&&arrived(herald))tasks.delete(herald);
-   const a=audience.state();if(!borrower&&!order&&!tasks.has(herald)&&a.phase==='waiting'&&a.schedule.outcome==='completed'&&ledger.canBegin(a.schedule)&&!paused(scribe)&&!paused(recipient))prepare(ledger.begin(a.schedule));
+   if(!borrower&&!order&&arrived(herald)){const returning=tasks.get(herald);returning.settleElapsed=(returning.settleElapsed||0)+dt;if(returning.settleElapsed>=1.3)tasks.delete(herald);}
+   const a=(audience.courtStatus?.()||audience.state());if(!borrower&&!order&&!tasks.has(herald)&&a.phase==='waiting'&&a.schedule.outcome==='completed'&&ledger.canBegin(a.schedule)&&!paused(scribe)&&!paused(recipient))prepare(ledger.begin(a.schedule));
    for(const n of owned){n.walking=false;const s=tasks.get(n);tell(n,n===speaker?utterance:s?.label||'在传令案前候命');if(!paused(n)&&s)travel(n,s,dt);}
    const stage=order?.stage,halt=!!order&&[...owned].some(paused)||state.conversationActorId===emperor.station.id;
    if(order&&!halt){
