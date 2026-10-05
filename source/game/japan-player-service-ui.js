@@ -1,5 +1,7 @@
 import {JAPAN_SERVICE_POINTS as P,JAPAN_RECEPTION_RADIUS} from './japan-service-orders.js';
 import {currentInteractionIntent} from './player-interaction-intents.js';
+import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
+import {AIRY_UI_THEME} from './china-money-house-theme.js';
 
 const LABELS={arriving:'回到前台完成登记','check-in':'前台正在登记浴牌',changing:'去更衣柜整理入浴衣着',washing:'到洗浴位洗净后入汤','waiting-bath':'去汤室木凳接收自己的浴包',bathing:'在浴牌对应的共享池座泡汤',drying:'回更衣柜擦干并收好手巾',resting:'坐到休息廊长椅，点一碗汤面',dining:'在餐位等候','waiting-meal':'后厨与服务员正在准备你的汤面','meal-ready':'汤面已送到，坐好后可以用餐',eating:'慢慢吃完这碗汤面',checkout:'回前台归还浴牌','checkout-ready':'前台正在收回浴牌'};
 
@@ -7,8 +9,14 @@ const LABELS={arriving:'回到前台完成登记','check-in':'前台正在登记
 // and all employee work remain owned by the existing scene and order board.
 export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMounted,onIntent,onFurniture,onStand,onOpen=()=>{},document:doc=globalThis.document}) {
  const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;};
- const style=make('style');style.textContent='.jp-service-ticket{position:fixed;left:max(18px,env(safe-area-inset-left));top:205px;z-index:18;max-width:calc(100vw - 212px);padding:11px 14px;min-height:44px;border-radius:12px;background:#315e60;color:#fff8e8;font-size:12px;box-shadow:0 3px 12px #173b3320}.jp-service-dialog{position:fixed;inset:0;margin:auto;width:min(360px,calc(100vw - 30px));max-height:calc(100dvh - 32px);padding:22px;overflow:auto;color:#304e44;background:#f3eedf;border:1px solid #c7c5ab;border-radius:16px}.jp-service-dialog::backdrop{background:#173b3366}.jp-service-dialog h2{font-size:22px;margin:0 34px 13px 0}.jp-service-dialog p{font-size:13px;line-height:1.5;margin:8px 0}.jp-service-dialog button{min-height:44px;padding:11px 13px;border-radius:9px;background:#e4dfcb;color:#304e44}.jp-service-dialog button:focus-visible{outline:3px solid #af7b3f;outline-offset:2px}.jp-service-dialog .jp-service-close{position:absolute;right:8px;top:7px;background:transparent;font-size:23px}.jp-service-choices{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:16px 0}.jp-service-choices [aria-pressed=true]{outline:2px solid #497165;background:#dbe8d9}.jp-service-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.jp-service-actions .jp-service-primary{flex:1;background:#315e60;color:#fff8e8}.jp-service-dialog button:disabled{opacity:.55}.jp-service-note{font-size:11px!important;color:#657168}@media(max-height:550px){.jp-service-ticket{top:160px;font-size:10px;padding:8px 10px}.jp-service-dialog{padding:17px}.jp-service-dialog h2{font-size:19px}}';
- const badge=make('button','汤馆服务','jp-service-ticket'),dialog=make('dialog',null,'jp-service-dialog');badge.type='button';badge.setAttribute('aria-label','查看汤馆服务与浴牌');dialog.setAttribute('aria-label','汤馆服务');doc.head.append(style);doc.body.append(badge,dialog);
+ const style=make('style');style.textContent=AIRY_UI_THEME+AIRY_PANEL_STYLE+`
+.jp-service-ticket{position:fixed;left:max(18px,env(safe-area-inset-left));top:205px;z-index:18;max-width:calc(100vw - 212px);padding:9px 13px;min-height:44px;border-radius:3px;background:#e8f1e7;color:#416b6d;font-size:12px;box-shadow:0 3px 12px #173b3315}
+.jp-service-dialog.ww-airy-panel{width:min(720px,var(--ww-ui-width,calc(100vw - 24px)));max-width:none;height:min(340px,var(--ww-ui-height,calc(100dvh - 24px)));padding:16px 20px 12px;border:1px solid #d4e5dc;border-radius:20px 7px 20px 7px;background:linear-gradient(115deg,#f7f9ef,#edf5f1 72%,#eff0fa);color:#355e68;box-shadow:0 14px 42px #274b6426;font-family:Georgia,"Songti SC","Noto Serif CJK SC",serif;line-height:1.4}
+.jp-service-dialog::backdrop{background:#173b493d;backdrop-filter:blur(3px)}.jp-service-dialog *{box-sizing:border-box}.jp-service-dialog h2{font-family:inherit;font-weight:600;font-size:21px;line-height:1.3;letter-spacing:.08em;margin:0}.jp-service-dialog h3{font-size:19px;line-height:1.3;margin:0 0 5px;font-weight:500}.jp-service-dialog p{font-size:13px;line-height:1.5;margin:5px 0}.jp-service-dialog button{font-family:inherit;min-height:44px;cursor:pointer;box-shadow:none}.jp-service-dialog button:disabled{opacity:.5;cursor:default}.jp-service-dialog .jp-service-close{position:absolute;right:8px;top:7px;width:44px;padding:0;border:0;border-radius:0;background:transparent;color:#7b999b;font-size:26px}.jp-service-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-right:34px;border-bottom:1px solid #d5e5dc;padding-bottom:9px;margin-bottom:10px}.jp-service-heading>span{font-size:12px;color:#759297;white-space:nowrap}.jp-service-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:18px;overflow:hidden}.jp-service-menu,.jp-service-detail{min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain}.jp-service-tabs{display:flex;gap:4px;margin:0 0 6px}.jp-service-tabs button{flex:1;padding:4px;background:transparent;color:#829a9a;border:0;border-bottom:1px solid transparent;border-radius:0;font-size:13px}.jp-service-tabs button[aria-pressed=true]{color:#386b72;border-bottom-color:#8ec5b5;background:#e9f1e680}.jp-service-choices{display:grid;gap:6px}.jp-service-choices button{display:block;width:100%;min-height:54px;padding:10px 12px;text-align:left;border:0;border-left:2px solid transparent;border-radius:3px;background:#ffffff65;color:#61848a;font-size:14px}.jp-service-choices button[aria-pressed=true]{border-left-color:#84bdb0;background:linear-gradient(90deg,#dceee4,#e9f4eb70);color:#305f66}.jp-service-detail{position:relative;padding:10px 15px;background:#fffefa80;border:1px solid #dfebe2;border-radius:10px 3px 13px 3px}.jp-service-detail:before{content:'湯';position:absolute;right:14px;top:6px;font-size:52px;line-height:1;color:#cadcd443;pointer-events:none}.jp-service-detail[data-service-kind=dining]:before{content:'食'}.jp-service-kicker{font-size:11px!important;color:#83a0a0;margin:0 0 4px!important;letter-spacing:.08em}.jp-service-price{display:flex;align-items:baseline;gap:5px;margin:6px 0;color:#5b7b94;font-size:12px}.jp-service-price strong{font-size:29px;line-height:1;font-weight:500}.jp-service-status{color:#557c7a}.jp-service-note{font-size:12px!important;color:#819698}.jp-service-error{color:#aa726b!important}.jp-service-actions{display:flex;gap:8px;align-items:center;padding-top:8px;border-top:1px solid #d5e5dc}.jp-service-actions button{width:auto;min-height:44px;padding:8px 12px;border:0;border-radius:0;background:transparent;color:#7b9194;font-size:13px}.jp-service-dialog.ww-airy-theme .jp-service-primary{flex:1;min-width:0;font-size:14px;letter-spacing:.02em;padding:8px 14px}.jp-service-current{padding:12px 8px}.jp-service-current strong{display:block;font-size:21px;font-weight:500;margin-bottom:6px}.jp-service-current p{font-size:13px}
+@media(max-height:500px){.jp-service-dialog.ww-airy-panel{padding:12px 18px 10px}.jp-service-heading{padding-bottom:5px;margin-bottom:7px}.jp-service-dialog h2{font-size:18px}.jp-service-dialog h3{font-size:17px}.jp-service-detail{padding:8px 13px}.jp-service-price{margin:5px 0}.jp-service-price strong{font-size:26px}.jp-service-actions{padding-top:5px}.jp-service-ticket{top:160px;font-size:10px}}
+@media(max-width:600px){.jp-service-dialog.ww-airy-panel{height:min(530px,var(--ww-ui-height,calc(100dvh - 24px)));padding:16px}.jp-service-heading{display:block}.jp-service-heading>span{display:block;margin-top:3px}.jp-service-content{display:block;overflow:auto}.jp-service-menu,.jp-service-detail{overflow:visible}.jp-service-menu{margin-bottom:12px}.jp-service-choices{grid-template-columns:1fr 1fr}.jp-service-choices button{font-size:13px}.jp-service-current{padding:3px}.jp-service-actions{gap:4px}.jp-service-actions button{padding:7px}}
+`;
+ const badge=make('button','汤馆服务','jp-service-ticket'),dialog=make('dialog',null,'jp-service-dialog ww-airy-theme ww-airy-panel');badge.type='button';badge.setAttribute('aria-label','查看汤馆服务与浴牌');dialog.setAttribute('aria-label','汤馆服务');doc.head.append(style);doc.body.append(badge,dialog);
  let selected=service.blends[0].id,selectedDish='ramen',mode='bath',signature='',badgeText='',disposed=false,placed=false,choiceRevision=0;
  const uiWindow=doc.defaultView||globalThis,onResize=()=>{placed=false;};uiWindow.addEventListener?.('resize',onResize);
  function placeBadge(){if(placed)return;const rect=doc.querySelector?.('.location-card')?.getBoundingClientRect();if(rect?.height>0){badge.style.top=Math.ceil(rect.bottom+9)+'px';placed=true;}}
@@ -79,26 +87,39 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
   const text=v?`${standalone?'餐单':'浴牌'} ${v.number} · ${current}`:'一楼点餐 · 泡汤服务';if(text!==badgeText){badgeText=text;badge.textContent=text;}
   if(!dialog.open&&!force)return;if(!force&&signature===key)return;signature=key;dialog.replaceChildren();
   const x=make('button','×','jp-service-close');x.type='button';x.setAttribute('aria-label','关闭汤馆服务');x.onclick=close;
-  dialog.append(x,make('h2',v?`第 ${v.number} 号${standalone?'餐单':'浴牌'}`:mode==='dining'?'一楼寿司与拉面':'登记汤馆服务'));
-  const blend=v&&service.blends.find(b=>b.id===v.blendId);
-  if(!v){const tabs=make('div',null,'jp-service-choices');for(const [id,label]of [['dining','一楼点餐'],['bath','登记泡汤']]){const b=make('button',label);b.type='button';b.setAttribute('aria-pressed',String(mode===id));b.onclick=()=>{choiceRevision++;mode=id;refresh(true);};tabs.append(b);}dialog.append(tabs);}
+  const {header,body,actions}=createAiryPanelParts(doc);header.className+=' jp-service-heading';body.className+=' jp-service-content';actions.className+=' jp-service-actions';
+  header.append(make('h2',v?`第 ${v.number} 号${standalone?'餐单':'浴牌'}`:'汤馆 · 食与汤'),make('span',`随身 ${s.cash} 铜文`));
+  const menu=make('section',null,'jp-service-menu'),detail=make('section',null,'jp-service-detail');detail.setAttribute('data-service-kind',standalone||!v&&mode==='dining'?'dining':'bath');
+  const blend=service.blends.find(b=>b.id===(v?.blendId||selected));
+  if(!v){
+   const tabs=make('div',null,'jp-service-tabs');
+   for(const [id,label]of [['dining','一楼点餐'],['bath','登记泡汤']]){const b=make('button',label);b.type='button';b.setAttribute('aria-pressed',String(mode===id));b.onclick=()=>{choiceRevision++;mode=id;refresh(true);};tabs.append(b);}menu.append(tabs);
+   const choices=make('div',null,'jp-service-choices');
+   for(const option of mode==='dining'?service.menu:service.blends){const b=make('button',mode==='dining'?`${option.name} · ${option.price} 铜文`:option.name);b.type='button';b.setAttribute('aria-pressed',String((mode==='dining'?selectedDish:selected)===option.id));b.onclick=()=>{choiceRevision++;if(mode==='dining')selectedDish=option.id;else selected=option.id;refresh(true);};choices.append(b);}menu.append(choices);
+  }else{
+   const card=make('div',null,'jp-service-current');card.append(make('p',standalone?'一楼 · 吧台餐位':`${v.side==='men'?'男汤':'女汤'} · 草木浴`,'jp-service-kicker'),make('strong',standalone?dish.name:blend?.name||'草木浴包'),make('p',current,'jp-service-status'));card.setAttribute('role','status');menu.append(card);
+  }
   if(standalone||!v&&mode==='dining'){
-   dialog.append(make('p',standalone?`${dish.name} · ${v.price} 铜文\n${s.progress.meal.text}`:'在一楼直接点餐，不需要浴牌。厨师会在共用后厨制作，再送到你的吧台餐位。'));
-   dialog.append(make('p',`随身余额：${s.cash} 铜文${standalone?` · 本餐${s.payment==='settled'?'已结算':'已预留'} ${v.price} 铜文`:''}`));
-   dialog.append(make('p','确认时预留餐费，开始吃时结算。未开吃取消、离馆或重新载入会原额退款；开吃后不退。','jp-service-note'));
-   if(!v){const choices=make('div',null,'jp-service-choices');for(const dish of service.menu){const b=make('button',`${dish.name} · ${dish.price} 铜文`);b.type='button';b.setAttribute('aria-pressed',String(selectedDish===dish.id));b.onclick=()=>{choiceRevision++;selectedDish=dish.id;refresh(true);};choices.append(b);}dialog.append(choices);if(s.cash<dish.price)dialog.append(make('p','铜文不足。可在中国酒馆向许安接擦桌活，擦净两桌后回来领 12 铜文。','jp-service-note'));}
-   if(s.paymentError)dialog.append(make('p','铜钱账目尚未核对，请稍后重试。'));
-  }else dialog.append(make('p',v?`${blend?.name||''} · ${v.side==='men'?'男汤':'女汤'}\n${LABELS[v.stage]||'服务已完成'}`:'在前台领取自己的浴牌，选择一份草木浴包，泡汤后可以点汤面。'));
-  if(v?.tokenId)dialog.append(make('p',`浴包：${s.progress.blend.text}`));
-  if(v?.mealRequested&&!standalone)dialog.append(make('p',`汤面：${s.progress.meal.text}`));
-  if(v?.stage==='waiting-bath'&&s.progress.blend.code!=='delivered')dialog.append(make('p','可以离开交接木凳看看汤馆，浴包送到后再回来领取。','jp-service-note'));
-  if(v?.stage==='waiting-meal')dialog.append(make('p','离开座位会暂停上菜，回来坐好后会继续。','jp-service-note'));
-  if(!v&&mode==='bath'){const choices=make('div',null,'jp-service-choices');for(const blend of service.blends){const b=make('button',blend.name);b.type='button';b.setAttribute('aria-pressed',String(selected===blend.id));b.onclick=()=>{choiceRevision++;selected=blend.id;refresh(true);};choices.append(b);}dialog.append(choices);}
-  if(v?.stage==='bathing')dialog.append(make('p',s.soakReady?'泡汤已完成，可以离池。':'泡满10秒再离池，提前离池会保留本次浴包，稍后可以继续。'));
-  const intent=currentIntent(),actions=make('div',null,'jp-service-actions'),button=make('button',step.label,'jp-service-primary');button.type='button';button.disabled=step.kind==='wait'||step.kind==='panel'||step.kind==='order'&&(s.cash<dish.price||!!s.paymentError);button.onclick=()=>act(step,intent);actions.append(button);
+   const price=standalone?v.price:dish.price,amount=make('div',null,'jp-service-price');amount.append(make('strong',String(price)),make('span',`铜文${standalone?` · ${s.payment==='settled'?'已结算':'已预留'}`:' · 确认时预留'}`));
+   detail.append(make('p','一楼食堂','jp-service-kicker'),make('h3',dish.name),amount);
+   if(!v)detail.append(make('p','后厨现做 · 送至吧台餐位','jp-service-status'));
+   detail.append(make('p','开吃时结算，开吃后不退。此前取消、离馆或重载，原额退款。','jp-service-note'));
+   if(!v&&s.cash<dish.price){const error=make('p',`余额不足 · 还差 ${dish.price-s.cash} 铜文`,'jp-service-error');error.setAttribute('role','status');detail.append(error);}
+   if(s.paymentError){const error=make('p','铜钱账目待核对，请稍后重试。','jp-service-error');error.setAttribute('role','alert');detail.append(error);}
+  }else{
+   detail.append(make('p',v?'浴牌进度':'草木浴包','jp-service-kicker'),make('h3',v?LABELS[v.stage]||'服务已完成':blend?.name||'草木浴'));
+   if(!v)detail.append(make('p','前台领牌 · 更衣清洗 · 入汤','jp-service-status'),make('p','泡汤后可在休息廊点汤面。','jp-service-note'));
+   if(v?.tokenId)detail.append(make('p',`浴包 · ${s.progress.blend.text}`,'jp-service-status'));
+   if(v?.mealRequested)detail.append(make('p',`汤面 · ${s.progress.meal.text}`,'jp-service-status'));
+   if(v?.stage==='bathing')detail.append(make('p',s.soakReady?'已泡满 10 秒，可以离池。':`已泡 ${Math.floor(s.soakSeconds)}/10 秒 · 提前离池可稍后继续。`,'jp-service-note'));
+   detail.append(make('p','草木浴包为游戏虚构配方。','jp-service-note'));
+  }
+  if(v?.stage==='waiting-meal')detail.append(make('p','离席暂停上菜，回座后继续。','jp-service-note'));
+  const intent=currentIntent(),button=make('button',step.label,'jp-service-primary ww-airy-action');button.type='button';button.disabled=step.kind==='wait'||step.kind==='panel'||step.kind==='order'&&(s.cash<dish.price||!!s.paymentError);button.onclick=()=>act(step,intent);actions.append(button);
   if(mounted&&step.kind!=='stand'){const stand=make('button','起身');stand.type='button';stand.onclick=()=>{close();service.stopActivity();onStand();};actions.append(stand);}
   if(v){const cancel=make('button',standalone?'取消本餐':'取消本次服务');cancel.type='button';cancel.onclick=()=>{choiceRevision++;service.cancel();close();};actions.append(cancel);}
-  dialog.append(actions,make('p',standalone||mode==='dining'?'关闭面板会保留本次餐单。':'草木浴包是游戏中的虚构配方。关闭面板会保留订单。','jp-service-note'));
+  body.append(menu,detail);dialog.append(x,header,body,actions);
+
  }
  function open(context){choiceRevision++;if(!service.state().visit){if(context==='bath')mode='bath';else{const local=nearbyDining();if(context==='dining'||local){mode='dining';if(local)selectedDish=local.id;}}}onOpen();refresh(true);if(!dialog.open)dialog.showModal();refresh(true);}
  badge.onclick=()=>open();dialog.addEventListener('cancel',e=>{e.preventDefault();close();});

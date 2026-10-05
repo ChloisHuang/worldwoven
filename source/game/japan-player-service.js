@@ -82,7 +82,7 @@ export function createJapanPlayerService({board,furniture,copperLedger,getPlayer
    if(!seat)return result(false,'吧台餐位暂满，请稍后再来');
    const paymentId=`jp-dining-${board.state().worldSeed}-${copperLedger.state().nextTransaction}`;
    const hold=copperLedger.reserve(dish.price,paymentId);
-   if(!hold.ok)return result(false,hold.code==='insufficient-cash'?`随身铜文不足：${dish.name}需 ${dish.price} 铜文。可在中国酒馆向许安接擦桌活，完成后领 12 铜文。`:'本次预留未能保存，请稍后再试');
+   if(!hold.ok)return result(false,hold.code==='insufficient-cash'?`随身铜文不足：${dish.name}需 ${dish.price} 铜文。`:'本次预留未能保存，请稍后再试');
    const v=board.spawnDining({appearance:actor().root.userData.appearance,dishId,paymentId,position:position(),restPoint:seat.anchor,diningPoint:seat.anchor,servePoint:[seat.center[0],0,seat.center[2]+1.13],mealPoint:[seat.center[0],dishId==='sushi'?1.17:1.09,seat.center[2]-(dishId==='sushi'?.59:.78)],restSeatId:seat.id});
    if(!v){const refund=copperLedger.refund(paymentId);if(!refund.ok)paymentError=refund.code;return result(false,'餐单未能建立，预留正在退回');}
    if(!furniture.facilities.request(seat.id,v.id)){refundMeal(v);board.cancel(v.id,'seat-unavailable');board.forgetFinished([v.id]);return result(false,'餐位已被使用，请重新点餐');}
