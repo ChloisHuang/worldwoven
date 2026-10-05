@@ -265,7 +265,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    playerCustomerService?.restore(s.playerService);staffLife?.restore(s.staffRuntime);board.restoreClaims(s.board?.claims);
    for(const job of board.state().claims){const n=actors.get(job.workerId);if(n)workerTask(n,job);}
    for(const [id,n]of guests){const v=board.getVisit(id);if(v)scheduleGuest(n,v);}
-   staffLife?.update(0,{});scheduleWorkers();
+   staffLife?.update(0,{night:!!s.staffRuntime?.night});scheduleWorkers();
    for(const previous of s.tasks||[]){const t=tasks.get(previous.id);if(!t||t.orderJobId!==(previous.orderJobId||undefined)||t.to.some((v,i)=>Math.abs(v-previous.to[i])>.05))continue;t.elapsed=Math.max(0,previous.elapsed||0);t.arrived=!!previous.arrived;t.routeSet=false;t.stalled=0;t.actor.route=[];}
    for(const [id,state]of s.transitions||[]){const n=actors.get(id),item=furniture.items.flatMap(i=>[i,...(i.seats||[])]).find(i=>i.id===state.seatId);if(n&&item?.bathEntry){furniture.facilities.reserve(item.poolId||item.id,id,{eligible:seat=>seat===item.id});furniture.occupyBath(item,id);n.bathTransition=createOnsenTransition({item,saved:state});}}
    return true;

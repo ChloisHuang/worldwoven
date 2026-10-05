@@ -8,6 +8,7 @@ const mix=(a,b,t)=>a+(b-a)*t;
 const turn=(a,b,t)=>a+Math.atan2(Math.sin(b-a),Math.cos(b-a))*t;
 export function createOnsenTransition({item,position,yaw,direction='enter',landing,saved}) {
  if(!item?.bathEntry)return null;
+ if(saved&&(!Array.isArray(saved.bank)||saved.bank.length!==3||!saved.bank.every(Number.isFinite)||!Number.isFinite(saved.bankYaw)||!Number.isFinite(saved.progress)))return null;
  if(saved?.seatId===item.id){direction=saved.direction==='exit'?'exit':'enter';landing=saved.bank;yaw=saved.bankYaw;}
  const bank=(landing?.toArray?.()||landing||position?.toArray?.()||position||item.position).slice();
  const entry=item.bathEntry,seat=item.anchor,away=item.yaw+Math.PI;

@@ -9,7 +9,7 @@ export function readWorldRegion(saved,region){const world=saved?.worldContinuity
 export function captureWorldActor(actor,{id=actor.station?.id,region,elapsed=0,floor=null,mountId=null}={}){
  const position=continuityPoint(actor.root?.position);if(typeof id!=='string'||!AREAS.has(region)||!position)return null;
  const target=actor.route?.length?continuityPoint(actor.route.at(-1)):null;
- return {id,region,position,yaw:finite(actor.root.rotation.y)?actor.root.rotation.y:0,floor:floor||null,mountId:mountId||actor.serviceMount?.id||null,target,returning:!!actor.returning,breakRemaining:finite(actor.breakAt)?Math.max(0,actor.breakAt-elapsed):null,phase:finite(actor.phase)?actor.phase:0};
+ return {id,region,position,yaw:finite(actor.root.rotation.y)?actor.root.rotation.y:0,floor:floor||null,mountId:mountId||actor.serviceMount?.id||actor.bathTransition?.item.id||null,transition:actor.bathTransition?.snapshot?.()||null,target,returning:!!actor.returning,breakRemaining:finite(actor.breakAt)?actor.breakAt-elapsed:null,phase:finite(actor.phase)?actor.phase:0};
 }
 export function storeWorldRegion(saved,region,{player,actors,controllers={},activity=null,camera=null,animationTime=0}){
  if(!AREAS.has(region)||!player)return false;
@@ -30,9 +30,9 @@ export function restoreWorldActor(actor,snapshot,{id=actor.station?.id,region,el
  const result=resolvePosition(snapshot,mount);if(!result?.position)return {restored:false,reason:'position'};
  actor.root.position.set(...result.position);actor.root.rotation.y=finite(snapshot.yaw)?snapshot.yaw:actor.root.rotation.y;
  actor.returning=!!snapshot.returning;if(finite(snapshot.phase))actor.phase=snapshot.phase;
- actor.breakAt=snapshot.breakRemaining===null?Infinity:elapsed+Math.max(0,Number(snapshot.breakRemaining)||0);
+ actor.breakAt=snapshot.breakRemaining===null?Infinity:elapsed+(Number(snapshot.breakRemaining)||0);
  const target=continuityPoint(snapshot.target);actor.route=target&&!mount?planPath(actor.root.position,{x:target[0],y:target[1],z:target[2]},id==='player'?.34:.25):[];actor.walking=false;
- if(mount)actor.serviceMount=mount;
+ actor.serviceMount=mount||null;
  return {restored:true,relocated:!!result.relocated};
 }
 // Controller scripts may point to actors/furniture. Store only stable IDs for

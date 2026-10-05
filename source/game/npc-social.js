@@ -1,5 +1,6 @@
 // Small, transient social state. Identities and job ownership remain with each
 // region's routine; a station coordinate is never an interaction target here.
+const copy=x=>x==null?null:JSON.parse(JSON.stringify(x));
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const angle=x=>Math.atan2(Math.sin(x),Math.cos(x));
 export const npcActorId=n=>n.actorId||n.station?.id;
@@ -43,5 +44,5 @@ export function createNpcSocial({actors,player,visible=()=>true,status=()=>({}),
   const yaw=angle(Math.atan2(p.x-q.x,p.z-q.z)-n.root.rotation.y);if(Math.abs(yaw)>1.85&&conversation?.actor!==n)return null;const pitch=-Math.atan2((p.y+1.6)-(q.y+(n.getPoseMetrics?.().headHeight||1.6)),Math.max(.6,gap(p,q)));return {yaw:clamp(yaw,-.68,.68),pitch:clamp(pitch,-.16,.16),weight:talking?.85:.72};
  }
  function target(){if(conversation)return {social:true,id:conversation.id,actor:conversation.actor,name:name(conversation.actor),action:conversation.reply};let found=null,distance=1.8;for(const n of actors()){const d=gap(player().root.position,n.root.position);if(d<distance&&canInteract(n)){found=n;distance=d;}}return found?{social:true,id:npcActorId(found),actor:found,name:name(found),action:'打个招呼 · 聊聊天',distance}:null;}
- return {update,begin,end,look,target,canInteract,canPause:n=>canInteract(n)&&!status(n)?.busy,isPaused:n=>conversation?.actor===n&&conversation.paused,conversationActorId:()=>conversation?.paused?conversation.id:null,active:()=>!!conversation,state:()=>conversation?{id:conversation.id,name:name(conversation.actor),reply:conversation.reply,paused:conversation.paused}:null,dispose(){end();attention.clear();}};
+ return {snapshot:()=>({version:1,time,conversation:conversation?{...copy({...conversation,actor:undefined}),actorId:npcActorId(conversation.actor)}:null,attention:[...attention].map(([n,a])=>[npcActorId(n),{...a}])}),restore(s){if(s?.version!==1)return false;time=Math.max(0,s.time||0);attention.clear();for(const[id,a]of s.attention||[]){const n=actors().find(n=>npcActorId(n)===id);if(n)attention.set(n,{...a});}const n=actors().find(n=>npcActorId(n)===s.conversation?.actorId);conversation=n&&canInteract(n,2.4)?{...copy(s.conversation),actor:n}:null;return true;},update,begin,end,look,target,canInteract,canPause:n=>canInteract(n)&&!status(n)?.busy,isPaused:n=>conversation?.actor===n&&conversation.paused,conversationActorId:()=>conversation?.paused?conversation.id:null,active:()=>!!conversation,state:()=>conversation?{id:conversation.id,name:name(conversation.actor),reply:conversation.reply,paused:conversation.paused}:null,dispose(){end();attention.clear();}};
 }

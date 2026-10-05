@@ -19,3 +19,7 @@ const moved=nearestContinuityPosition([0,4,0],{legal:p=>Math.hypot(p[0],p[2])>=.
 assert.equal(nearestContinuityPosition([0,4,0],{legal:()=>true,project:p=>[p[0],0,p[2]],maxRadius:.2}),null,'never falls through a floor');
 const item={id:'bath-seat',position:[1,0,0],anchor:[0,0,0],yaw:0,bathEntry:{east:.5,top:.4}};const crossing=createOnsenTransition({item,position:[1,0,0],yaw:2});for(let i=0;i<13;i++)crossing.update(.1);crossing.requestExit();const resumed=createOnsenTransition({item,saved:JSON.parse(JSON.stringify(crossing.snapshot()))});assert.deepEqual(resumed.sample(),crossing.sample());assert.deepEqual(resumed.update(.1),crossing.update(.1));
 console.log('PASS world continuity: stable ID/region/floor, country return, fresh routes, active-time delay, nearest safe correction, bath phase');
+// Controller references retain identity without retaining any former scene root.
+{
+ const {captureWorldRuntime,restoreWorldRuntime}=await import('../source/game/world-continuity.js');const person=actor('resident'),seat={id:'chair',anchor:[1,4,1],position:[1,4,2]},state={partner:person,mount:seat,duration:Infinity};const encoded=JSON.parse(JSON.stringify(captureWorldRuntime(state)));assert.deepEqual(encoded.partner,{$worldRef:'actor',id:'resident'});assert(!JSON.stringify(encoded).includes('rotation'));const decoded=restoreWorldRuntime(encoded,{npcs:[person],furniture:{items:[seat]}});assert.equal(decoded.partner,person);assert.equal(decoded.mount,seat);assert.equal(decoded.duration,Infinity);
+}

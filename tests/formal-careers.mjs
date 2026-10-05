@@ -255,3 +255,8 @@ for (const corrupt of [
 const detached = eligible.careers.state(); detached.skills.ritual = 99; detached.tenure.roleId = 'changed';
 assert.equal(eligible.careers.state().skills.ritual, 2); assert(eligible.careers.isHired());
 console.log('PASS: formal career eligibility, finite vacancies, study/work dedupe, attendance/reload, evaluations, daily wage replay and failed saves');
+
+{
+ const f=setup();f.hire();assert(f.careers.beginDuty().ok);f.clock.hour=11.5;assert(f.careers.dutyEvent('court-start').ok);const duty=f.careers.state().lastDuty,worldDuty={version:1,activity:'court',duty};const restored=setup(f.store,{clock:{hour:11.5},worldDuty});assert.equal(restored.careers.state().lastDuty.stage,'attending');assert.equal(restored.careers.state().performance,0);assert.equal(restored.careers.state().lastEvaluation,null);const stale=setup(f.store,{clock:{hour:11.5},worldDuty:{...worldDuty,duty:{...duty,slotId:'other'}}});assert.equal(stale.careers.state().lastDuty.stage,'missed');
+ const a=setup(),issued=a.careers.learningTicket('cn-rest'),b=setup(a.store);assert(issued.ok);assert(b.careers.resumeLearning(issued.ticket,{seconds:3}).ok);assert.equal(b.careers.completeLearning(issued.ticket,{seconds:3}).code,'learning-incomplete');assert(b.careers.completeLearning(issued.ticket,{seconds:8}).ok);assert.equal(b.careers.resumeLearning(issued.ticket,{seconds:8}).code,'learning-replayed');console.log('PASS matched world duty avoids false absence; resumed study preserves ticket and exactly one completion');
+}

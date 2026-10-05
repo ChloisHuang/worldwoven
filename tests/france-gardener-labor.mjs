@@ -176,7 +176,7 @@ await test('actual main save callbacks isolate preview and preserve China/appear
     const start = line.indexOf('saveState:') + 'saveState:'.length;
     const tail = `saved.${field}=state;}`, end = line.indexOf(tail, start);
     assert(start >= 'saveState:'.length && end > start, `Missing ${field} save callback`);
-    return new Function('saved', 'gameStorage', `return ${line.slice(start, end + tail.length)}`)(saved, storage);
+    return new Function('saved', 'gameStorage', 'worldSnapshotWriter', `return ${line.slice(start, end + tail.length)}`)(saved, storage, null);
   };
   const registrationSave = extract('createFranceGardenerEmployment', 'franceEmployment');
   const laborSave = extract('createFranceGardenerLabor', 'franceLabor');
@@ -199,4 +199,8 @@ await test('actual main save callbacks isolate preview and preserve China/appear
   assert.deepEqual(saved, memoryBefore, 'Rejected writes do not mutate the live saved object');
   assert.equal(session.get(PREVIEW_STORAGE_PREFIX + key), durable);
   assert.equal(formal.get(key), formalBefore, 'A preview failure never falls back to formal storage');
+});
+
+await test('world checkpoint keeps original can and remaining watering seconds',t=>{
+ const f=fixture(t);f.hire();f.accept();f.act('take');f.execute('water');f.tick(13);const checkpoint=copy(f.labor.snapshot()),gardener=f.gardener.snapshot(),before=f.labor.state();assert(checkpoint.elapsed>1);f.labor.stopActivity();assert(f.gardener.restore(gardener));assert(f.labor.restore(checkpoint));assert.equal(f.labor.state().job.id,before.job.id);assert.equal(f.labor.state().progress,before.progress);assert(f.labor.held());f.tick(39);assert.equal(f.labor.state().job.completedBeds,1);assert.equal(f.labor.restore(checkpoint),false,'old table/bed progress checkpoint cannot rewind completed work');
 });

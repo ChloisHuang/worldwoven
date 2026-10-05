@@ -155,7 +155,7 @@ export function createJapanPlayerService({board,furniture,copperLedger,getPlayer
    return result(true,v.orderKind==='dining'?'本餐已取消；未开吃的预留已退回，开吃后的餐费不退':'本次服务已取消，员工任务和未送出的物品已释放');
   },
   snapshot:()=>({version:1,visitId:visit()?.id||null,activity:copy(activity),soak,soakSeat,deskRequest,lastStage,lastWardrobe}),
-  restore(s){if(s?.version!==1||s.visitId!==(visit()?.id||null))return false;activity=copy(s.activity);soak=Math.max(0,s.soak||0);soakSeat=s.soakSeat||null;deskRequest=!!s.deskRequest;lastStage=s.lastStage||null;lastWardrobe=s.lastWardrobe||null;suspended=false;const v=visit();if(v&&deskRequest)furniture.facilities.request('japan-service-reception',v.id);if(v?.orderKind==='dining')furniture.facilities.request(v.restSeatId,v.id);return true;},
+  restore(s){if(s?.version!==1||s.visitId!==(visit()?.id||null))return false;activity=copy(s.activity);if(activity&&({changed:'changing',washed:'washing',dried:'drying',ate:'eating'})[activity.event]!==visit()?.stage)activity=null;if(!activity&&visit()?.stage==='eating'){const v=visit();activity={visitId:v.id,event:'ate',point:v.diningPoint.slice(),duration:6,elapsed:0,action:'chair-sit',label:v.dishId==='sushi'?'吃送来的寿司':'吃送来的汤面'};}soak=Math.max(0,s.soak||0);soakSeat=s.soakSeat||null;deskRequest=!!s.deskRequest;lastStage=s.lastStage||null;lastWardrobe=s.lastWardrobe||null;suspended=false;const v=visit();if(v&&deskRequest)furniture.facilities.request('japan-service-reception',v.id);if(v?.orderKind==='dining')furniture.facilities.request(v.restSeatId,v.id);return true;},
   suspend({preserve=false}={}) {
    if(preserve){suspended=true;return;}
    if(visit()?.orderKind==='dining')api.cancel('region-left');
