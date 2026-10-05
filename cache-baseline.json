@@ -1,6 +1,8 @@
 {
-  "publishedSourceCommit": "7f9d95e32ceb56ac1b0d49c9775b8f188fd3a3a1",
+  "publishedSourceCommit": "91eaa37ef2eb5135267d1058a7488b6b6d03efbe",
   "assets": [
+    "/assets/travel-passport.1e5fe191aee4c313.css",
+    "/assets/travel-passport.9312f6e83fc6d9f2.js",
     "/assets/viewport-layout.3c2eccc73f66e2e0.js",
     "/assets/study-lessons.62fc90cda83954bb.js",
     "/assets/formal-careers.7f281f498e218bc1.js",
@@ -132,7 +134,7 @@
     "/assets/approved-surfaces.d0f31ec9c7f21c1a.js",
     "/assets/character-props.deb24f9b65d5e60a.js",
     "/assets/characters.2c406ca56e43d01b.js",
-    "/assets/main.1463da2d9518293e.js",
+    "/assets/main.b6568d5085d94636.js",
     "/assets/adult-forms-data.f5c3eae422bf2d5b.js",
     "/assets/attach-head.cd715d43de06238a.js",
     "/assets/layered-hair-data.909c7058087b476c.js",
@@ -152,7 +154,7 @@
     "/assets/register.457d37fb5252fdc6.js",
     "/assets/selection.da7382d63b4983be.js",
     "/assets/character-preview-entry.bed7ff9f51addd24.js",
-    "/assets/entry.81d483a09f86be1b.js",
+    "/assets/entry.2550e594a243cab3.js",
     "/assets/game.8fe63c1e02771337.css",
     "/assets/three.core.9edde002b066a9a0.js",
     "/assets/three.module.d8c0a97fa13a785e.js"
