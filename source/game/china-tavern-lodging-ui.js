@@ -28,10 +28,10 @@ export function createChinaTavernLodgingUI({service,getPlayer,onIntent,onRoom,on
   const rooms=make('section',null,'cn-inn-rooms'),detail=make('section',null,'cn-inn-detail');
   for(const r of s.rooms){const status=r.guestId==='player'?'为你留房':r.guestId?'已有住客':r.dirty?'待打扫':r.available?'干净空房':'茶叙使用中',row=button(r.name,()=>{selection=r.id;error='';refresh(true);});row.append(make('span',`${r.price}文 · ${status}`));row.disabled=!!b||!r.available;row.setAttribute('aria-pressed',String(r.id===room?.id));rooms.append(row);}
   detail.append(make('h3',room?.name||'暂无空房'));const amount=make('div',null,'cn-inn-price');amount.append(make('strong',String(room?.price??12)),make('span',' 铜文 / 一日'));detail.append(amount);
-  if(b?.stage==='active')detail.append(make('p',`许安已登记 · ${innTimeLabel(b.endsAt)}退房`),make('p','房费已入酒楼账；可以自行上楼，也可选择前往客房。','cn-inn-note'));
-  else if(b)detail.append(make('p','已预留房费 · 等许安在柜台登记'),make('p','请留在案前，掌柜办完手头客单就会回应。','cn-inn-note'));
+  if(b?.stage==='active')detail.append(make('p',`已入住 · ${innTimeLabel(b.endsAt)}退房`));
+  else if(b)detail.append(make('p','房费已预留 · 在案前等许安登记'));
   else detail.append(make('p','入住起24游戏小时 · 仅游玩时推进'),make('p','入住前取消全退；登记入住后，提前退房不退费。','cn-inn-note'));
-  if(b)detail.append(make('p',b.stage==='active'?'收起保留住宿；退房后由服务助理清扫。':'入住前取消全退；收起保留预留。','cn-inn-note'));
+  if(b)detail.append(make('p',b.stage==='active'?'房费已结清 · 提前退房不退费':'入住前取消全退；入住后提前退房不退费','cn-inn-note'));
   const warning=error||(!s.hostAvailable&&!b?'掌柜岗位目前由你独任，许安不代办入住':!b&&s.cash<room?.price?'随身铜文不足，可先到钱庄取款':!b&&!s.atCounter?'请到一层柜台前确认入住':'');if(warning)detail.append(make('p',warning,'cn-inn-error'));
   if(!b){const confirm=button(`确认留房 · ${room?.price??12}文`,()=>result(service.confirm(room.id,s.revision)),true);confirm.disabled=!room?.available||!s.atCounter||!s.hostAvailable||s.cash==null||s.cash<room.price||!!s.loadError;actions.append(confirm,button('暂不入住',close));}
   else if(b.stage==='waiting')actions.append(button('收起 · 等待登记',close,true),button('取消留房 · 全额退回',()=>result(service.cancel(s.revision))));

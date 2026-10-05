@@ -21,12 +21,15 @@ export function closePlayerStayWorld(world,reason='checkout'){
 export function expiredPlayerStay(world,clock){const b=world?.playerStay?.booking,now=innMinutes(clock);return b?.stage==='active'&&now!==null&&now>=b.endsAt;}
 
 export function createChinaTavernLodging({scene,copperLedger,getClock,getPlayer,getMounted=()=>null,canSee=()=>true,roomAvailable=()=>true,onLeaveRoom=()=>true,notify=()=>{}}){
- let pending=null,lastError=null,disposed=false;
- const state=()=>scene.snapshot(),record=()=>state()?.playerStay||{version:1,serial:0,revision:0,booking:null};
+ let pending=null,lastError=null,disposed=false,loadError=null,nextExpiryRetryAt=0,expiryError=null;
+ const loaded=scene.lodgingState().playerStay?.booking,holds=copperLedger.reservations();
+ if(loaded){const h=holds.find(h=>h.id===loaded.id);if(!h||h.amount!==loaded.price||h.currency!=='copper'||h.status!==(loaded.stage==='active'?'settled':'reserved'))loadError='invalid-inn-receipt';}
+ if(holds.some(h=>h.id.startsWith('cn-inn-stay-')&&h.status==='reserved'&&h.id!==loaded?.id))loadError='unmatched-inn-payment';
+ const state=()=>scene.snapshot(),read=()=>scene.lodgingState(),record=()=>read().playerStay||{version:1,serial:0,revision:0,booking:null};
  const fail=code=>{lastError=code;return {ok:false,code};};
  const atCounter=()=>{const p=getPlayer()?.root.position;return !!p&&!getMounted()&&Math.hypot(p.x-INN_COUNTER[0],p.z-INN_COUNTER[2])<=.9&&Math.abs(p.y-INN_COUNTER[1])<.4&&canSee({position:INN_COUNTER});};
  function available(room){return !!room&&!room.dirty&&!room.guestId&&roomAvailable(room.id);}
- function ready(revision){if(disposed||scene.state().loadError||copperLedger.loadError)return fail('records-unavailable');if(pending)return fail('busy');if(revision!==record().revision)return fail('stale-choice');return {ok:true};}
+ function ready(revision){if(disposed||loadError||read().loadError||copperLedger.loadError)return fail('records-unavailable');if(pending)return fail('busy');if(revision!==record().revision)return fail('stale-choice');return {ok:true};}
  function money(action,next,booking){
   pending={action,next,booking};
   try{const result=action==='reserve'?copperLedger.reserve(booking.price,booking.id,'copper'):copperLedger[action](booking.id);if(!result.ok)return fail(result.code);lastError=null;return result;}
@@ -43,7 +46,7 @@ export function createChinaTavernLodging({scene,copperLedger,getClock,getPlayer,
   const result=money('reserve',next,b);if(result.ok)notify('房费已预留，请在案前等许安登记；入住前可取消并全额退回');return result;
  }
  function checkIn(){
-  const s=record(),b=s.booking;if(disposed||pending||b?.stage!=='waiting'||!atCounter()||!scene.lodgingHostReady())return false;
+  const s=record(),b=s.booking;if(disposed||loadError||pending||b?.stage!=='waiting'||!atCounter()||!scene.lodgingHostReady())return false;
   const next=state(),now=innMinutes(getClock());if(now===null)return false;
   next.playerStay={...s,revision:s.revision+1,booking:{...b,stage:'active',checkedInAt:now,endsAt:now+1440}};next.till+=b.price;
   const result=money('settle',next,b);if(result.ok)notify(`许安：${next.rooms.find(r=>r.id===b.roomId).name}已记在你名下，${innTimeLabel(now+1440)}退房。房费${b.price}文已入酒楼账`);return result.ok;
@@ -65,12 +68,12 @@ export function createChinaTavernLodging({scene,copperLedger,getClock,getPlayer,
   return scene.prepareLodgingWorld(pending.next);
  }
  function furnitureAccess(item,{quiet=false}={}){
-  const room=state()?.rooms.find(r=>`tavern-guest-${r.id}`===item?.guestRoomId);if(!room)return true;
-  const b=record().booking,ok=b?.stage==='active'&&b.roomId===room.id&&room.guestId==='player'&&!room.dirty&&!expiredPlayerStay(state(),getClock());
+  if(!item?.guestRoomId?.startsWith('tavern-guest-'))return true;const world=read(),room=world.rooms.find(r=>`tavern-guest-${r.id}`===item.guestRoomId);if(!room)return true;
+  const b=world.playerStay?.booking,ok=!loadError&&b?.stage==='active'&&b.roomId===room.id&&room.guestId==='player'&&!room.dirty&&!expiredPlayerStay(world,getClock());
   if(!ok&&!quiet)notify(room.dirty?'这间客房还未打扫，请等服务助理清理':room.guestId&&room.guestId!=='player'?'这间客房已有住客，请尊重对方的房间':b?.stage==='waiting'?'先到一层让许安完成入住登记':'请先到一层向许安登记客房');return !!ok;
  }
- function view(){const world=state(),s=record();return {...s,rooms:(world?.rooms||[]).map(r=>({...r,available:available(r)})),cash:copperLedger.balances()?.copper.cash??null,atCounter:atCounter(),hostAvailable:scene.canHostLodging(),lastError,loadError:world?scene.state().loadError:'world-unavailable'};}
+ function view(){const world=read(),s=world.playerStay||{version:1,serial:0,revision:0,booking:null};return {...s,rooms:(world?.rooms||[]).map(r=>({...r,available:available(r)})),cash:copperLedger.balances()?.copper.cash??null,atCounter:atCounter(),hostAvailable:scene.canHostLodging(),lastError,loadError:loadError||world.loadError};}
  const service={view,confirm,cancel,checkout,furnitureAccess,prepareCurrencyCommit,atCounter,hostPending:()=>record().booking?.stage==='waiting'&&atCounter(),hostRespond:checkIn,
-  update(){if(!disposed&&expiredPlayerStay(state(),getClock()))checkout(record().revision,true);},dispose(){disposed=true;scene.setPlayerLodging(null);}};
+  update(){if(disposed||loadError)return;const clock=getClock(),now=innMinutes(clock);if(now===null||now<nextExpiryRetryAt)return;const world=read();if(!expiredPlayerStay(world,clock))return;nextExpiryRetryAt=now+.7;const result=checkout(world.playerStay.revision,true);if(!result.ok&&expiryError!==result.code){expiryError=result.code;notify(result.code==='exit-blocked'?'住宿已到期，床边出口畅通后会自动起身退房':'退房记录尚未保存，房间仍保留，稍后会重试');}if(result.ok)expiryError=null;},dispose(){disposed=true;scene.setPlayerLodging(null);}};
  scene.setPlayerLodging(service);return service;
 }
