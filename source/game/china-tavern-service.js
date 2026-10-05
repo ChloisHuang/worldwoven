@@ -38,13 +38,14 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
  }
  function intent(kind=null,roleId=null,choice=null){if(roleId===TAVERN_HOST_ROLE.id)return null;const role=roleFor(roleId),job=current.job,registered=careers.isHired(role.id);
   if(kind==='property'){if(!property)return null;return {id:'cn-tavern-property',provider:'china-tavern-service',kind:'property',name:'云来酒楼 · 产权柜台',npcName:'许安',action:'查看酒楼产权与经营账',position:REG.slice(),executionRadius:.9,interactionRadius:2.8,priority:45,intentKey:'yunlai-property-counter'};}
-  kind||=job?job.stage==='inspection'?'claim':selected?'task':'work-view':'formal-view';
+  kind||=job?job.stage==='inspection'?'claim':selected?'task':'work-view':careers.applicationResult?.(role.id)?.status==='pending'?'formal-review':'formal-view';
   if(kind==='view')kind='formal-view';
   if(kind==='accept'&&(!registered||job||getLegacyJob()||!beginAvailability(role).ok))return null;
-  if(kind==='formal-apply'&&(registered||job||getLegacyJob()))return null;if(kind==='formal-resign'&&(!registered||job||getLegacyJob()))return null;
+  if(kind==='formal-apply'&&(registered||job||getLegacyJob()||careers.applicationResult?.(role.id)?.status==='pending'))return null;
+  if(kind==='formal-review'&&(!careers.reviewApplication||careers.applicationResult?.(role.id)?.status!=='pending'||job))return null;if(kind==='formal-resign'&&(!registered||job||getLegacyJob()))return null;
   if(['work-view','task','end-shift','claim'].includes(kind)&&!job)return null;
   if(kind==='claim'&&job.stage!=='inspection')return null;
-  let action=({'formal-view':'查看酒楼职位与申请条件','formal-apply':`申请${role.name}`,'formal-resign':'办理本岗位离职',accept:'报到并开始今日班次','work-view':'选择当前待办',claim:'当面验收 · 按工时结算','end-shift':'交还岗位 · 结算已做工时'})[kind],position=REG,executionRadius=.9;
+  let action=({'formal-view':'查看酒楼职位与申请条件','formal-review':'当面确认职责并接受审核','formal-apply':`申请${role.name}`,'formal-resign':'办理本岗位离职',accept:'报到并开始今日班次','work-view':'选择当前待办',claim:'当面验收 · 按工时结算','end-shift':'交还岗位 · 结算已做工时'})[kind],position=REG,executionRadius=.9;
   const chosen=kind==='task'?choice||selected:null;
   if(chosen){const live=scene.choices().find(c=>key(c)===key(chosen));if(!live)return null;action=live.action;position=live.position;executionRadius=live.executionRadius;}
   if(kind==='work-view'||kind==='end-shift'){position=getPlayer()?.root.position.toArray()||REG;executionRadius=.4;}
@@ -60,8 +61,8 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
   if(next.kind==='property')return propertyUI?.open()||false;
   const role=roleFor(next.roleId);
   if(next.kind==='formal-view'){openRegistration({country:'china',roleId:role.id,scope:next.registration.scope});return true;}
-  if(next.kind==='formal-apply'||next.kind==='formal-resign'){
-   if(!atRegister())return false;if(!hostReady()){waitingRegistration=copy(next);notify('已在登记案等候许安；他回案后会核对这次申请，离开登记处则取消等候');return true;}waitingRegistration=null;const result=next.kind==='formal-apply'?careers.apply(role.id,{ageYears:getPlayer()?.ageYears}):careers.resign();
+  if(['formal-apply','formal-review','formal-resign'].includes(next.kind)){
+   if(!atRegister())return false;if(!hostReady()){waitingRegistration=copy(next);notify('已在登记案等候许安；他回案后会核对这次申请，离开登记处则取消等候');return true;}waitingRegistration=null;const result=next.kind==='formal-apply'?careers.apply(role.id,{ageYears:getPlayer()?.ageYears}):next.kind==='formal-review'?careers.reviewApplication(role.id,{ageYears:getPlayer()?.ageYears,applicationId:careers.applicationResult(role.id)?.id}):careers.resign();
    openRegistration({country:'china',roleId:role.id,scope:'role'});return !!result.ok;
   }
   if(next.kind==='accept'){if(!accept(role))return false;const first=scene.choices()[0];if(first){selected=first;onIntent(intent('task',role.id,first));}return true;}
@@ -88,7 +89,7 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
 
    }
    if(selected&&!scene.choices().some(c=>key(c)===key(selected)))selected=null;
-   if(current.job?.stage==='working'&&getClock().hour>=18&&scene.snapshot()?.stage==='working'&&scene.beginReturn()){selected=scene.choices()[0];notify('18:00到了，先当面交还岗位；未完客单与清洁会交给接班同事');if(selected)onIntent(intent('task',null,selected));}
+   if(current.job?.stage==='working'&&getClock().hour>=18&&scene.snapshot()?.stage==='working'&&scene.beginReturn()){selected=scene.choices()[0];notify('18:00到了，请交回当班物品收工；未完工作保留，岗位仍由你独任');if(selected)onIntent(intent('task',null,selected));}
   }ui?.refresh();propertyUI?.refresh();
  }
  const state=()=>{const live=scene.snapshot(),job=current.job?{...copy(current.job),completedOrders:live?.completedTasks||0,completedTasks:live?.completedTasks||0,completedTables:live?.tables.filter(t=>!t.dirty).length||0,continuous:true}:null;return {...copy(current),job,world:scene.state(),selected:selected?copy(selected):null,lastError};};

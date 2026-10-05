@@ -1,4 +1,5 @@
 import {captureWorldRuntime,restoreWorldRuntime} from './world-continuity.js';
+import {formatCourtEdictText} from './china-court-reports.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
 import {blocked,canTraverse} from './navigation.js';
 import {createPalaceMealKit} from './china-palace-costume.js';
@@ -18,7 +19,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  const navigation={surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4,radius:.25};
  const stages=new Map(),meals=new Map(officials.map(n=>[n,createPalaceMealKit(n)])),brain=createLifeDecisions({worldSeed,actorIds:officials.map(n=>n.station.id),saved:saved.decisions,onChange:()=>save()}),claims=furniture.facilities;
  let state={},time=0,ready=false;
- const seat=id=>furniture.items.find(m=>m.id===id),index=n=>officials.indexOf(n),tell=(n,label)=>{const el=n.label?.querySelector?.('small');if(el)el.textContent=label;};
+ const seat=id=>furniture.items.find(m=>m.id===id),index=n=>officials.indexOf(n),tell=(n,label)=>{const el=n.label?.querySelector?.('small');if(el)el.textContent=formatCourtEdictText(label);};
  const snapshot=()=>({version:1,decisions:brain.snapshot(),positions:Object.fromEntries(officials.map(n=>[n.station.id,n.root.position.toArray()])),runtime:captureWorldRuntime({time,stages:[...stages].map(([n,s])=>[n.station.id,s])})});
  function save(){if(ready)saveState(snapshot());}
  const occupied=(id,n)=>state.facilityId===id||claims.state().some(f=>f.id===id&&(f.player||f.reservations.some(r=>r.actor!==n.station.id)));
@@ -84,7 +85,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   ready(n){return stages.get(n)?.courtReady===true;},
   resume(n){stages.delete(n);n.route=[];choose(n);},
   playerRequest(id){for(const n of officials){const s=stages.get(n);if(s?.choice?.facilityId===id)s.evicted=true;}},
-  label:n=>stages.get(n)?.label||'承务官署 · 日常起居',
+  label:n=>formatCourtEdictText(stages.get(n)?.label)||'承务官署 · 日常起居',
   tick(dt,playerState){state=playerState;time+=dt;brain.tick(dt);},
   update(n,dt,t){
    let s=stages.get(n);if(!s){choose(n);s=stages.get(n);if(!s)return;}
