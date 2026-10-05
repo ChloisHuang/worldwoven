@@ -51,7 +51,7 @@ function restore(saved) {
  * must resolve the live intent again at the legal interaction point. playerStation() supplies the tidy target
  * to the normal player pose context. document:null supports headless logic.
  */
-export function createChinaTavernLabor({getPlayer, getMounted = () => null, host, employment, careers, openRegistration,
+export function createChinaTavernLabor({getPlayer, getMounted = () => null, host, employment, careers, openRegistration,serviceAdapter=()=>null,
   isHostAvailable = () => true, copperLedger, getClock, saved, saveState = () => {},
   notify = () => {}, onCompleted = () => {}, onIntent = () => {}, canSee = () => true, onOpen = () => {}, document: doc = globalThis.document} = {}) {
   if (typeof getPlayer !== 'function' || !copperLedger || typeof saveState !== 'function') throw new TypeError('labor requires player, ledger and synchronous saveState');
@@ -106,6 +106,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     return changed;
   }
   function accept() {
+    if(formal.hired()&&!current.job&&serviceAdapter())return serviceAdapter().accept();
     if (!permitted()) return failure(loadError || copperLedger.loadError || 'labor-busy');
     if (active()) return failure('job-active', '先完成或取消手上这份活');
     if (!hired()) return failure('not-employed', '先在迎客茶案的招工登记处应聘酒楼帮工，再向许安接活');
@@ -208,6 +209,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     atHost: at(HOST.position), hostAvailable: hostReady(), employment: employment?.state() || null,
     hired: hired(), waitingRegistration: waitingRegistration?.kind || null, formalHired:formal.hired(),formalRole:formal.role,formalState:formal.state(),formalJob:formal.pinned(current.job),formalSalary:formal.salary,formalBeginAvailability:formal.beginAvailability(), loadError: loadError || copperLedger.loadError || null, lastError});
   function intent(kind) {
+    if(formal.hired()&&!current.job&&serviceAdapter())return serviceAdapter().intent(kind==='view'?'formal-view':kind);
     const job = current.job, employed = hired(), registration = employment?.state();
     kind ||= job ? job.stage === 'ready' ? 'claim' : 'clean' : formal.hired() ? 'formal-view' : 'view';
     if (disposed || !['view', 'apply', 'accept', 'claim', 'clean', 'resign', 'formal-view', 'formal-apply', 'formal-resign'].includes(kind)) return null;
@@ -296,7 +298,7 @@ function createUI({doc, service, getPlayer, onIntent, canSee, onOpen}) {
       make('p', s.formalState?.loadError ? '正式任职：记录暂时无法读取' : s.formalHired ? '正式任职：已任职' : '正式任职：尚未任职'),
       make('p', `年龄：当前${ageText} / 要求年满${s.formalRole.minimumAgeYears}岁。待客礼仪：当前${skill}点 / 要求${s.formalRole.skillRequirements.ritual}点。`),
       make('p', `日薪：${s.formalSalary}，验收后存铜文账户；午前开班并完成另奖1文已计入上限。`),
-      make('p', '职责：06:00–18:00开班，亲手擦净两张餐桌，再由许安当面验收。专设助理名额1席，许安保留原职。'));
+      make('p', '职责：06:00–18:00接班，按真实客单送菜、收碗擦桌、打扫退房客房。陆青当面交接；提前交班按实际工时结薪。'));
     const catalogue=actionButton('formal-view');if(catalogue)formalActions.append(catalogue);
     if(!s.active&&s.formalHired){const resign=actionButton('formal-resign');if(resign)formalActions.append(resign);}
     roleCard.append(formalActions);dialog.append(roleCard);

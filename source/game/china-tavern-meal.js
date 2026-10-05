@@ -1,3 +1,4 @@
+import {createTavernServiceScene} from './china-tavern-service-scene.js';
 import {followActorRoute} from './actor-navigation.js';
 import {TAVERN_MEAL as M} from './china-tavern-kitchen.js';
 import {createTavernMealProps} from './china-tavern-meal-props.js';
@@ -7,10 +8,11 @@ const LABELS={requested:'许安正过来听你点菜',accepted:'许安当面记�
 
 // One meal has one tray/bowl identity. Arrival, cook work, the shared counter,
 // the same dining seat and cleanup all gate progress; no generic stamp timer.
-export function createChinaTavernMeal({npcs,lot,furniture,doors,planPath,moveActor,poseContext,getPlayer,getMounted,canRequest=()=>true,saved={},saveState=()=>{},notify=()=>{}}){
+export function createChinaTavernMeal({npcs,lot,furniture,doors,planPath,moveActor,poseContext,getPlayer,getMounted,canRequest=()=>true,saved={},saveState=()=>{},notify=()=>{},navigation,saveServiceState=()=>true,onServiceReview=()=>({ok:true})}){
  const host=npcs.find(n=>n.station.id===M.host),cook=npcs.find(n=>n.station.id===M.cook),assistant=npcs.find(n=>n.station.id===M.assistant);if(!host||!cook||!assistant)return null;
  const actors=[host,cook,assistant],owned=new Set(actors),P=M.points,travelState=new Map(),history=Array.isArray(saved.history)?saved.history.slice(-30):[],failures=[];
  const seats=furniture.items.filter(i=>i.id.startsWith('china-tavern-dining-')),props=createTavernMealProps(lot.group);
+ const staffScene=createTavernServiceScene({npcs,lot,furniture,doors,planPath,moveActor,poseContext,getPlayer,getMounted,navigation,saveState:saveServiceState,onReview:onServiceReview,notify});
  let serial=Number.isSafeInteger(saved.serial)?saved.serial:0,time=0,order=null,phaseTime=0,disposed=false,conversation=null;
  const record=(event,details={})=>{history.push({event,orderId:order?.id||null,mealId:order?.mealId||null,seatId:order?.seatId||null,time:+time.toFixed(2),...details});if(history.length>60)history.shift();};
  const persist=()=>saveState({serial,history:copy(history.slice(-30))});
@@ -44,6 +46,7 @@ export function createChinaTavernMeal({npcs,lot,furniture,doors,planPath,moveAct
  }
  const tick=(dt,duration,next)=>{phaseTime+=dt;if(phaseTime>=duration)next();};
  function requestMeal(){
+  if(staffScene.active()){notify('同事正在处理酒楼客单，请稍候；现场完成交接后可点餐');return false;}
   if(!canRequest()){notify('手上的擦桌短工还未收工，请完成或取消后再点菜');return false;}
   const item=getMounted(),player=getPlayer();if(order){notify(order.cancelled?'请稍等，餐具还在收拾':'已经记下这份饭了，请稍候');return false;}
   if(!item||!seats.includes(item)||!player||gap(player,item.anchor)>.35||!present()){notify('先挑一把一层餐椅坐好，再招呼掌柜点菜');return false;}
@@ -52,14 +55,14 @@ export function createChinaTavernMeal({npcs,lot,furniture,doors,planPath,moveAct
   phaseTime=0;record('requested');persist();notify('许安：稍候，我这就过来听你点菜');return true;
  }
  return {
-  seats,dish:M,owns:n=>owned.has(n),requestMeal,cancel:()=>cancel(),
+  seats,dish:M,staffScene,owns:n=>owned.has(n)||staffScene.owns(n),requestMeal,cancel:()=>cancel(),
   leaveSeat(id){if(order?.seatId===id&&!['clear-table','lifting','return','washing'].includes(order.stage))cancel('起身离开餐位');},
   eat(){if(!order||order.stage!=='ready'||!mounted()||!present()){notify('请坐在点菜时的餐位，等饭送到面前再吃');return false;}enter('eating');order.holder='player';return true;},
-  playerPose:()=>order&&!order.cancelled&&['eating','finish-bite'].includes(order.stage)?{seatedMeal:true}:null,
+  playerPose:()=>staffScene.active()?staffScene.playerPose():order&&!order.cancelled&&['eating','finish-bite'].includes(order.stage)?{seatedMeal:true}:null,
   statusLabel:seatId=>order?.seatId===seatId?(order.cancelled?'陆青正在收回餐具':LABELS[order.stage]):null,
-  socialStatus:n=>owned.has(n)?{busy:!!order||n.walking,attention:!order,job:order?LABELS[order.stage]:n===host?'在酒楼迎客':'在后厨备菜'}:null,
+  socialStatus:n=>staffScene.active()||!owned.has(n)?staffScene.socialStatus(n):owned.has(n)?{busy:!!order||n.walking,attention:!order,job:order?LABELS[order.stage]:n===host?'在酒楼迎客':'在后厨备菜'}:null,
   update(dt,t,{conversationActorId=null}={}){
-   if(disposed)return;time+=dt;conversation=conversationActorId;for(const n of actors)n.walking=false;
+   if(disposed)return;staffScene.update(dt,t,{conversationActorId});if(staffScene.active())return;time+=dt;conversation=conversationActorId;for(const n of actors)n.walking=false;
    if(order&&!order.cancelled&&!['clear-table','lifting','return','washing'].includes(order.stage)&&(!present()||!mounted()))cancel('离开餐位或酒楼');
    let ha=null,ca=null,aa=null,ht=null,ct=null,at=null,acarry=false,ccarry=false;
    const paused=!!conversation&&actors.some(n=>n.station.id===conversation);
@@ -116,7 +119,7 @@ export function createChinaTavernMeal({npcs,lot,furniture,doors,planPath,moveAct
    props.update(order,{host,assistant,cook,player:getPlayer()},phaseTime);
   },
   view:()=>({order:order?{id:order.id,seatId:order.seatId,stage:order.stage,cancelled:order.cancelled}:null,label:order?LABELS[order.stage]:null}),
-  state(){return {serial,order:order?copy(order):null,label:order?LABELS[order.stage]:null,history:copy(history),failures:copy(failures),props:props.state(),actors:actors.map(n=>({id:n.station.id,ageYears:n.station.ageYears||n.station.age,position:n.root.position.toArray(),walking:n.walking})),persistentClaims:false};},
-  dispose(){if(disposed)return;if(order){record('cancel',{reason:'离开地区'});order=null;persist();}disposed=true;for(const n of actors){n.route=[];if(n.poseContext)n.poseContext.handoff=false;}travelState.clear();props.dispose();}
+  state(){return {serial,order:order?copy(order):null,label:order?LABELS[order.stage]:null,history:copy(history),failures:copy(failures),props:props.state(),actors:actors.map(n=>({id:n.station.id,ageYears:n.station.ageYears||n.station.age,position:n.root.position.toArray(),walking:n.walking})),staffScene:staffScene.state(),persistentClaims:false};},
+  dispose(){if(disposed)return;staffScene.dispose();if(order){record('cancel',{reason:'离开地区'});order=null;persist();}disposed=true;for(const n of actors){n.route=[];if(n.poseContext)n.poseContext.handoff=false;}travelState.clear();props.dispose();}
  };
 }
