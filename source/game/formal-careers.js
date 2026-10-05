@@ -13,7 +13,7 @@ export const TAVERN_STEWARD_ROLE = Object.freeze({id:'cn-tavern-steward',name:'�
   skillRequirements:Object.freeze({ritual:2}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1});
 export const GARDEN_ASSISTANT_ROLE = Object.freeze({id:'fr-garden-assistant',name:'西苑常任园艺助理',
   slotId:'fr-garden-assistant-1',country:'france',currency:'france',employer:'埃米尔',workplace:'西苑工具架登记簿',
-  supervisorId:'fr-gardener',workSource:'fr-garden-labor',wage:8,minimumAgeYears:18,
+  supervisorId:'france-gardener',workSource:'fr-garden-labor',wage:8,minimumAgeYears:18,
   skillRequirements:Object.freeze({gardening:2}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1});
 export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE]);
 export const FORMAL_CAREER_SLOTS = Object.freeze([
@@ -289,7 +289,7 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     if (duty?.day === clock.day && excused(duty)) return failure('court-postponed');
     if (duty?.day === clock.day && (duty.started || duty.stage === 'arrived')) return failure(duty.stage === 'missed' ? 'duty-missed' : 'duty-active');
     if (clock.hour < role.dutyWindow.startHour || clock.hour >= role.dutyWindow.endHour) return failure('outside-arrival-window');
-    const next = duty && duty.day < clock.day && ['arrived', 'attending', 'archive'].includes(duty.stage) ? missed(current, 'day-ended') : current;
+    const next = duty && duty.day < clock.day && ['arrived', 'attending', 'archive','working'].includes(duty.stage) ? missed(current, 'day-ended') : current;
     return persist({...next, lastDuty: {roleId: current.tenure.roleId, slotId: current.tenure.slotId,
       day: clock.day, stage: role.workSource?'working':'arrived', started:!!role.workSource, reason: null, arrivalHour: clock.hour, wage: null,...(role.workSource?{workReceiptId:receiptId}:{})}});
   }
@@ -308,7 +308,7 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
       if (current.tenure.sinceDay === clock.day && current.tenure.sinceHour >= roleMap.get(current.tenure.roleId).dutyWindow.endHour) return {ok: true, unchanged: true, exempt: true};
       if (duty?.stage === 'ready') return failure('wage-ready');
       if (current.lastPaidDay === clock.day || current.lastEvaluatedDay === clock.day) return failure('duty-evaluated');
-      const next = duty && duty.day < clock.day && ['arrived', 'attending', 'archive'].includes(duty.stage) ? missed(current, 'day-ended') : current;
+      const next = duty && duty.day < clock.day && ['arrived', 'attending', 'archive','working'].includes(duty.stage) ? missed(current, 'day-ended') : current;
       return persist(evaluate({...next, lastDuty: {roleId: current.tenure.roleId, slotId: current.tenure.slotId,
         day: clock.day, stage: 'missed', started: true, reason: 'absent', arrivalHour: null, wage: null}}, false, 'absent'));
     }
@@ -389,6 +389,7 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
       cleanupPending: !result.ok, ...(result.ok ? {} : {code: result.code})};
   }
   return Object.freeze({state, isHired: (roleId = COURT_CLERK_ROLE.id) => !loadError && current.tenure?.roleId === roleId,
+    canContinueLabor:receiptId=>{const d=current.lastDuty;let c;try{c=getClock();}catch{return false;}return !loadError&&d?.workReceiptId===receiptId&&(d.stage==='inspection'||d.stage==='working'&&d.day===c?.day);},
     currentRole:()=>copy(roleMap.get(current.tenure?.roleId)||null),
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&slot.holderId===null&&slot.id!==current.tenure?.slotId).length})),
     laborEvent, apply, resign, learningTicket, completeLearning, completedLowerWork, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
