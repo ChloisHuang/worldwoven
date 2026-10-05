@@ -29,14 +29,14 @@ export function createTavernMealProps(parent){
    ingredients.visible=o?.stage==='preparing';if(!o?.mealId){if(id)clear();return;}if(id!==o.mealId){clear();create(o);}
    const P=M.points,stage=o.stage,ratio=d=>Math.min(1,phase/d);let tp;
    if(stage==='placing')tp=hand(actors.cook).lerp(new THREE.Vector3(...P.passTop),ratio(1.1));
-   else if(stage==='pickup')tp=new THREE.Vector3(...P.passTop).lerp(hand(actors.host),ratio(1.1));
-   else if(stage==='serving')tp=hand(actors.host).lerp(new THREE.Vector3(...o.mealPoint),ratio(1.1));
-   else if(stage==='recall')tp=new THREE.Vector3(...o.recallPoint).lerp(hand(actors.host),ratio(1.1));
-   else if(stage==='lifting')tp=new THREE.Vector3(...o.mealPoint).lerp(hand(actors.host),ratio(1.1));
+   else if(stage==='pickup')tp=new THREE.Vector3(...P.passTop).lerp(hand(actors.assistant||actors.host),ratio(1.1));
+   else if(stage==='serving')tp=hand(actors.assistant||actors.host).lerp(new THREE.Vector3(...o.mealPoint),ratio(1.1));
+   else if(stage==='recall')tp=new THREE.Vector3(...o.recallPoint).lerp(hand(actors.assistant||actors.host),ratio(1.1));
+   else if(stage==='lifting')tp=new THREE.Vector3(...o.mealPoint).lerp(hand(actors.assistant||actors.host),ratio(1.1));
    else if(o.holder==='cook')tp=hand(actors.cook);
-   else if(o.holder==='host')tp=hand(actors.host);
+   else if(['host','assistant'].includes(o.holder))tp=hand(actors.assistant||actors.host);
    else tp=new THREE.Vector3(...(o.holder==='pass'?P.passTop:o.holder==='wash'?P.washTop:o.mealPoint));
-   tray.position.copy(tp);tray.rotation.y=['host','cook'].includes(o.holder)?actors[o.holder].root.rotation.y:0;
+   tray.position.copy(tp);tray.rotation.y=['host','assistant','cook'].includes(o.holder)?actors[o.holder].root.rotation.y:0;
    bowl.position.copy(tp).add(new THREE.Vector3(.035,.035,0));bowl.rotation.set(0,0,0);
    if(stage==='eating')bowl.position.copy(hand(actors.player,true));
    if(stage==='finish-bite')bowl.position.copy(o.returnBowlFrom?new THREE.Vector3(...o.returnBowlFrom):hand(actors.player,true)).lerp(new THREE.Vector3(...o.mealPoint).add(new THREE.Vector3(.035,.035,0)),ratio(.8));
