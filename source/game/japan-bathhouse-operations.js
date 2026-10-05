@@ -16,8 +16,8 @@ const JOBS={register:{label:'记入客簿并递出浴牌',duration:2.5,action:'c
 // Replaces (never runs beside) the earlier four-resident demonstration routine.
 // The host supplies the existing movement/door/wardrobe code and lifecycle
 // callbacks so spawned visitors join the ordinary labels, culling and disposal.
-export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,doors,moveActor,poseContext,changeWardrobe,createVisitor,removeVisitor,worldSeed=1,npcShapeVersion=1,saved={},saveState=()=>{}}) {
- const checkpoint=saved.continuity?.version===1?saved.continuity:null;if(checkpoint?.board)saved={...saved,...checkpoint.board,staffLife:checkpoint.staffLife||saved.staffLife};
+export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,doors,moveActor,poseContext,changeWardrobe,createVisitor,removeVisitor,worldSeed=1,npcShapeVersion=1,saved={},saveState=()=>{},sharedNeeds=null,getToilet=()=>null}) {
+ const checkpoint=saved.continuity?.version===1?saved.continuity:null;if(checkpoint?.board)saved={...saved,...checkpoint.board,staffLife:{...(checkpoint.staffLife||saved.staffLife),...(saved.staffLife?.mealSerial!==undefined?{mealSerial:saved.staffLife.mealSerial,mealReceipts:saved.staffLife.mealReceipts}: {})}};
  const residents=new Map(npcs.map(n=>[n.station.id,n]));
  if(WORKERS.some(id=>!residents.has(id)))return null;
  if(!furniture.resolveBath||!furniture.facilities)throw new Error('Bathhouse operations require shared pool seats');
@@ -218,6 +218,8 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   scheduleGuest(n,board.getVisit(id));return true;
  }
  function animate(n,t) {
+  const toiletPose=getToilet()?.actorPose(n);
+  if(toiletPose){tell(n,getToilet().label(n.station.id));n.animate(t+n.phase,false,toiletPose.action,{...poseContext(n,null),...toiletPose.context});return;}
   const task=tasks.get(n.station.id),v=guests.has(n.station.id)?board.getVisit(n.station.id):null,mount=n.serviceMount||n.bathTransition?.item;
   const helping=isJapanEmployeeInteraction(n,playerState),chatting=helping&&playerState.conversationActorId===n.station.id,sharedActivity=helping&&!chatting;
   const context=poseContext(n,sharedActivity?n.station:chatting?null:task?.workTarget?{workTarget:task.workTarget}:null);
@@ -229,7 +231,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   const working=!n.walking&&task?.arrived&&(!task.idle||near(n.root.position,mount?.anchor||task.to,.18));
   n.animate(t+n.phase,n.walking,sharedActivity?n.station.npcAction:mount?(mount.kind==='bath'?'bathe':mount.kind==='bed'?'lie-rest':mount.poseAction||'chair-sit'):chatting?null:working?task.action:null,context);
  }
- staffLife=createJapanStaffLife({actors,board,furniture,assign,clear,unmount,taskOf:n=>tasks.get(n.station.id),changeWardrobe,worldSeed,canReach:(n,to)=>near(n.root.position,to)||planPath(n.root.position,point(to),.25).length>0,saved:saved.staffLife});
+ staffLife=createJapanStaffLife({sharedNeeds,getToilet,saveState:state=>saveState({...board.state(),staffLife:state}),onMealReceipt:receipt=>!sharedNeeds||sharedNeeds.mealReceipts([receipt])||(sharedNeeds.snapshot().people[receipt.actorId]?.receipts['japan-staff-meal']||0)>=receipt.number,actors,board,furniture,assign,clear,unmount,taskOf:n=>tasks.get(n.station.id),changeWardrobe,worldSeed,canReach:(n,to)=>near(n.root.position,to)||planPath(n.root.position,point(to),.25).length>0,saved:saved.staffLife});
  return {
   owns:n=>actors.has(n.station.id),
   connectPlayerService(options) {return playerCustomerService??=createJapanPlayerService({...options,board,furniture,continuity:checkpoint?.playerService});},
