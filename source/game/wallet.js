@@ -22,22 +22,29 @@ const ease = n => {const t=clamp(n);return t*t*(3-2*t);};
 
 // These are the actual product coordinates, shared with the focused vector
 // review. The front never changes layers: a note must clear its lip to fan.
-export function walletGeometry(width,height,count=1) {
+export function walletGeometry(width,height,count=1,compact=height<310) {
   count=Math.max(1,count);
-  const pocketHeight=count>1?Math.min(92,Math.max(48,height*.24)):Math.min(104,Math.max(48,height*.28)),bottom=8;
-  const front={x:width*.07,y:height-bottom-pocketHeight,width:width*.86,height:pocketHeight};
-  const back={x:front.x+3,y:front.y-13,width:front.width-6,height:pocketHeight+11};
+  // Retain the original leather silhouette. Extra currencies need more paper
+  // space, not a shorter or wider wallet. Short stages scroll at this size.
+  const pocketHeight=compact?82:clamp(height*.26,82,115)+4,bottom=compact?6:16;
+  const noteWidth=Math.min(compact?245:295,width*(compact?.76:.87));
+  const noteHeight=noteWidth*.455;
   const step=15;
-  const noteWidth=Math.max(24,Math.min(295,width*.82,(front.y-18)/.455,(front.y-(count>1?6:19)-(count-1)*step)/(count>1?.465:.48)));
-  return {width,height,count,front,back,step,noteWidth,noteHeight:noteWidth*.455};
+  const viewportHeight=height;
+  height=Math.max(height,noteHeight+(count-1)*step+pocketHeight+bottom+30);
+  const front={x:width*(compact?.1:.06),y:height-bottom-pocketHeight,width:width*(compact?.8:.88),height:pocketHeight,angle:-2};
+  // This is the slim curved opening from the original wallet, behind paper.
+  const back={x:front.x+2+(front.width-4)*.08,y:front.y-7,width:(front.width-4)*.84,height:15,angle:-2};
+  const lipY=front.y-9-Math.sin(2*Math.PI/180)*front.width/2;
+  return {width,height,viewportHeight,count,front,back,lipY,step,noteWidth,noteHeight};
 }
 export function walletPocketFrame(layout) {
   return {front:layout.front,back:layout.back};
 }
 export function walletNoteFrame(layout,index,progress) {
-  const {width,count,front,noteWidth:w,noteHeight:h,step}=layout,mid=(count-1)/2;
-  const lift=ease(progress),fan=ease(progress-1),clearY=front.y-h-12-index*2;
-  const tuckedY=Math.min(front.y-h*.34,front.y+front.height-h-12)-index*2,spreadY=(count>1?2:12)+index*step;
+  const {width,count,front,lipY,noteWidth:w,noteHeight:h,step}=layout,mid=(count-1)/2;
+  const lift=ease(progress),fan=ease(progress-1),clearY=lipY-h-12-index*2;
+  const tuckedY=front.y-h*.44-index*2,spreadY=8+index*step;
   return {x:width/2-w/2+(index-mid)*Math.min(8,width*.025)*fan,
     y:mix(mix(tuckedY,clearY,lift),spreadY,fan),width:w,height:h,
     angle:(index-mid)*.4*fan};
@@ -136,10 +143,10 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     const body=make('div',null,'ww-wallet-body'),left=make('section',null,'ww-wallet-cash'),right=make('section',null,'ww-wallet-book');
     const cashHeading=make('div',null,'ww-wallet-section-heading');cashHeading.append(make('h3','随身现金'),make('span','装在口袋里的钱'));
     const fan=button(null,'ww-wallet-fan','抽出并展开随身纸币');fan.setAttribute('aria-expanded','false');
-    const back=make('span',null,'ww-wallet-back'),stack=make('span',null,'ww-wallet-stack'),pocket=make('span',null,'ww-wallet-pocket'),seam=make('span',null,'ww-wallet-seam');
+    const canvas=make('span',null,'ww-wallet-canvas'),back=make('span',null,'ww-wallet-back'),stack=make('span',null,'ww-wallet-stack'),pocket=make('span',null,'ww-wallet-pocket'),seam=make('span',null,'ww-wallet-seam');
     back.setAttribute('aria-hidden','true');
     pocket.setAttribute('aria-hidden','true');pocket.append(seam,make('span','四方 · 随行','ww-wallet-pocket-mark'));
-    const empty=make('span','钱包还空着\n去银行取些现金，就能装进口袋','ww-wallet-empty');stack.append(empty);fan.append(back,stack,pocket);
+    const empty=make('span','钱包还空着\n去银行取些现金，就能装进口袋','ww-wallet-empty');stack.append(empty);canvas.append(back,stack,pocket);fan.append(canvas);
     const hint=make('p','轻点钱包，抽出并展开纸币','ww-wallet-hint'),cashList=make('p',null,'ww-wallet-cash-list');
     left.append(cashHeading,fan,hint,cashList);
     const cashSummary=make('div',null,'ww-wallet-cash-summary'),cashSummaryAmount=make('strong');
@@ -152,7 +159,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     const notice=make('p',null,'ww-wallet-notice');notice.setAttribute('role','status');
     const effects=make('div',null,'ww-wallet-effects');effects.setAttribute('aria-hidden','true');
     body.append(left,right);dialog.append(header,body,notice,effects);doc.body.append(dialog);
-    ui={dialog,closeButton,fan,back,pocket,stack,empty,hint,cashList,cashSummaryAmount,bankList,journal,scroll,notice,effects};
+    ui={dialog,closeButton,fan,canvas,back,pocket,stack,empty,hint,cashList,cashSummaryAmount,bankList,journal,scroll,notice,effects};
     closeButton.onclick=close;
     fan.onclick=()=>{folded=!folded;setFold(true);};
     if(view?.ResizeObserver){resizeObserver=new view.ResizeObserver(drawWallet);resizeObserver.observe(fan);}
@@ -168,11 +175,17 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
   }
   function drawWallet() {
     if(!ui)return;
-    const geometry=walletGeometry(ui.fan.clientWidth||320,ui.fan.clientHeight||280,notes.size);
+    const geometry=walletGeometry(ui.fan.clientWidth||320,ui.fan.clientHeight||280,notes.size,view?.innerHeight?view.innerHeight<=500:undefined);
+    ui.canvas.style.height=`${geometry.height}px`;
+    // Follow the paper as it leaves the pocket on small screens. The cash
+    // panel remains touch-scrollable after motion stops, with no rescaling.
+    ui.fan.scrollTop=(geometry.height-geometry.viewportHeight)*(1-ease(progress));
     const leather=walletPocketFrame(geometry,progress);
     for(const [element,box] of [[ui.back,leather.back],[ui.pocket,leather.front]]){
       for(const key of ['width','height'])element.style[key]=`${box[key]}px`;
       element.style.left=`${box.x}px`;element.style.top=`${box.y}px`;
+      element.style.transformOrigin=`${leather.front.x+leather.front.width/2-box.x}px ${leather.front.y+leather.front.height/2-box.y}px`;
+      element.style.transform=`rotate(${box.angle}deg)`;
     }
     [...notes.values()].forEach((note,index)=>{
       const f=walletNoteFrame(geometry,index,progress);

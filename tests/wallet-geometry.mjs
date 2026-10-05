@@ -10,12 +10,12 @@ for(const [width,height] of cases)for(let count=1;count<=4;count++){
  for(let tick=0;tick<=200;tick++){
   const progress=tick/100,leather=walletPocketFrame(g,progress);
   assert(leather.back.y<leather.front.y,'backplate extends above the front lip');
-  assert(leather.front.y+leather.front.height<=g.height-7,'the complete leather wallet stays inside the cash stage');
+  assert(bounds(leather.front).bottom<=g.height,'the complete tilted wallet stays inside the scrollable cash stage');
   for(let index=0;index<count;index++){
    const f=walletNoteFrame(g,index,progress),b=bounds(f);
    assert(b.left>=0&&b.right<=width&&b.top>=0,`paper stays in the short landscape stage (${width}×${height}, ${count}, ${progress})`);
    if(progress<=1){assert(f.angle===0,'lift and return are straight through the pocket');assert.equal(f.x,width/2-f.width/2,'no sideways fan before the lip clears');}
-   if(progress>=1)assert(b.bottom<=leather.front.y-3,`all paper corners clear the front before fanning (${width}×${height}, ${count}, ${progress})`);
+   if(progress>=1)assert(b.bottom<=g.lipY-3,`all paper corners clear the tilted front before fanning (${width}×${height}, ${count}, ${progress})`);
    if(progress===0){assert(b.bottom>leather.front.y,'closed paper is inside the front pocket');assert(b.bottom<leather.front.y+leather.front.height,'closed paper does not stick out below leather');}
    if(tick){const prev=walletNoteFrame(g,index,(tick-1)/100);assert(Math.abs(f.y-prev.y)<4,'no position jump at the lift/fan boundary');}
    const reverse=walletNoteFrame(g,index,2-(200-tick)/100);assert(Math.abs(reverse.y-f.y)<1e-10&&Math.abs(reverse.angle-f.angle)<1e-10,'return uses exactly the reverse path');
