@@ -1,4 +1,4 @@
-import {validRoyalPlayerEligibility} from './china-royal-kitchen-orders.js';
+import {sameRoyalPlayerEligibility} from './china-royal-kitchen-orders.js';
 import {EGYPT_MEAL,validEgyptMealReceipt} from './egypt-meal-definition.js';
 import {CHINA_OFFICIAL_IDS} from './china-official-economy.js';
 import {GAME_MINUTES_PER_SECOND} from './simulation-clock.js';
@@ -27,7 +27,7 @@ function validMeal(receipt,getRoyalMealEligibility){
  if(r.source==='japan-staff-meal')return JAPAN_STAFF_CREW.includes(r.actorId)&&r.orderId===`jp-staff-meal-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+':bowl'&&r.dishId==='staff-ramen'&&r.supplyReceipt===r.orderId+':prepared';
  if(r.source==='china-royal-kitchen'){
   const eligibility=r.actorId==='player'?getRoyalMealEligibility():null;
-  return (royalActors.has(r.actorId)||r.actorId==='player'&&validRoyalPlayerEligibility(r.eligibility)&&validRoyalPlayerEligibility(eligibility)&&r.eligibility.appointmentId===eligibility.appointmentId&&Number.isFinite(r.eatingSeconds)&&r.eatingSeconds>=12)&&r.orderId===`cn-royal-meal-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-meal'&&r.dishId==='royal-steamed-meal'&&r.supplyReceipt===r.orderId+'-prepared';
+  return (royalActors.has(r.actorId)||r.actorId==='player'&&sameRoyalPlayerEligibility(r.eligibility,eligibility)&&Number.isFinite(r.eatingSeconds)&&r.eatingSeconds>=12)&&r.orderId===`cn-royal-meal-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-meal'&&r.dishId==='royal-steamed-meal'&&r.supplyReceipt===r.orderId+'-prepared';
  }
  if(r.actorId!=='player')return false;
  if(r.source==='france-full-meal')return r.orderId===`france-tea-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-tray'&&r.dishId==='country-soup-bread'&&r.supplyReceipt===r.orderId+'-prepared'&&r.paymentReceipt===r.orderId+'-meal'&&r.paid===true;

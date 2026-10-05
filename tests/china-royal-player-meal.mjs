@@ -10,17 +10,17 @@ const {createChinaRoyalKitchenService,ROYAL_KITCHEN_POINTS:P}=await import('../s
 const {createChinaRoyalPlayerMeal}=await import('../source/game/china-royal-player-meal.js');
 const {createDailyNeeds}=await import('../source/game/daily-needs.js');
 const {createRoyalKitchenOrders,validRoyalKitchenState}=await import('../source/game/china-royal-kitchen-orders.js');
-const copy=x=>JSON.parse(JSON.stringify(x)),EL={eligible:true,actorId:'player',titleId:'consort',appointmentId:'consort-appointment:consort-petition:player:1'},SEAT='china-palace-dining-seat-19.8';
+const copy=x=>JSON.parse(JSON.stringify(x)),EL={eligible:true,actorId:'player',titleId:'consort',appointmentId:'consort-appointment:consort-petition:player:1',appointmentReceiptId:'physical-charter-reading-1'},SEAT='china-palace-dining-seat-19.8';
 function fixture(saved={}){
- const store=copy(saved),clock={day:2,hour:10,seconds:5000,...store.clock},flags={eligible:true,age:24,job:null,occupied:null,saveFail:false,needsFail:false};
+ const store=copy(saved),clock={day:2,hour:10,seconds:5000,...store.clock},flags={eligible:true,proof:EL.appointmentReceiptId,age:24,job:null,occupied:null,saveFail:false,needsFail:false};
  const group=new T.Group(),actor=(id,p)=>{const root=new T.Group();root.position.set(...p);group.add(root);return {root,station:{id,npcName:id,ageYears:30},ageYears:30,phase:0,route:[],walking:false,locomotion:{walkSpeed:12},animate(){}};};
  const jia=actor('cn-cooking',P.host),player=actor('player',[19.8,.215,.3]);player.ageYears=24;
  const seats=[{id:SEAT,position:[19.8,.215,1.3],anchor:[19.8,.215,.3]},{id:'china-palace-dining-seat-22.2',position:[22.2,.215,1.3],anchor:[22.2,.215,.3]}];let mounted=store.unmounted?null:seats[0];
- const eligible=()=>flags.eligible?copy(EL):{eligible:false,actorId:'player',titleId:null,appointmentId:null};
+ const eligible=()=>flags.eligible?{...copy(EL),appointmentReceiptId:flags.proof}:{eligible:false,actorId:'player',titleId:null,appointmentId:null};
  const needs=createDailyNeeds({saved:store.needs,getClock:()=>clock,getRoyalMealEligibility:()=>player.ageYears>=18?eligible():null,saveState:s=>{if(flags.needsFail)return false;store.needs=copy(s);return true;}});needs.enter('china',['cn-cooking']);
  const kitchen=createChinaRoyalKitchenService({npcs:[jia],lot:{group},doors:{routeStep(route,p){while(route[0]&&Math.hypot(route[0].x-p.x,route[0].z-p.z)<.03)route.shift();return {waypoint:route[0],phase:'walking'};}},planPath:(_a,b)=>[new T.Vector3(b.x,b.y,b.z)],moveActor:(a,x,z)=>{a.root.position.x+=x;a.root.position.z+=z;},poseContext:()=>({}),getPlayer:()=>player,getMounted:()=>mounted,getPlayerSeat:()=>mounted,getPlayerMealEligibility:eligible,getSeatOccupant:()=>flags.occupied,getEmployment:()=>flags.job,isHired:()=>!!flags.job,getClock:()=>clock,sharedNeeds:needs,saved:store.kitchen,saveState:s=>{if(flags.saveFail)return false;store.kitchen=copy(s);return true;}});
  const meal=createChinaRoyalPlayerMeal({kitchen,furniture:{items:seats},getPlayer:()=>player,getMounted:()=>mounted,onMountSeat:s=>{mounted=s;player.root.position.set(...s.anchor);},canChooseSeat:()=>!flags.occupied});
- const tick=(n=1)=>{for(let i=0;i<n;i++){clock.seconds+=.1;kitchen.update(.1,clock.seconds);meal.update();}};
+ const tick=(n=1,state={})=>{for(let i=0;i<n;i++){clock.seconds+=.1;kitchen.update(.1,clock.seconds,state);meal.update();}};
  const until=(fn,label,max=1500)=>{for(let i=0;i<max&&!fn();i++)tick();assert(fn(),label);};
  const request=()=>{const i=meal.intent('request',SEAT);assert(i);assert(meal.executeIntent(i));return kitchen.mealFor('player');};
  const checkpoint=()=>({...copy(store),kitchen:kitchen.snapshot(),needs:needs.snapshot(),clock:copy(clock),unmounted:!mounted});
@@ -28,7 +28,7 @@ function fixture(saved={}){
 }
 test('only a current adult appointment grants access; original seat and real kitchen handover are required',()=>{
  const f=fixture();for(const status of ['submitted','rejected','accepted','charter-held']){f.flags.eligible=false;assert.equal(f.meal.intent('request'),null,status);assert.equal(f.kitchen.requestMeal({actorId:'player',seatId:SEAT}),null);}
- f.flags.eligible=true;f.player.ageYears=17;assert.equal(f.meal.availability().code,'adult-required');f.player.ageYears=24;
+ f.flags.eligible=true;f.flags.proof=null;assert.equal(f.meal.availability().code,'not-appointed');f.flags.proof=EL.appointmentReceiptId;f.player.ageYears=17;assert.equal(f.meal.availability().code,'adult-required');f.player.ageYears=24;
  f.flags.job={stage:'working',receiptId:'cn-royal-kitchen-labor-1',day:2};assert.equal(f.meal.availability().code,'finish-kitchen-duty');f.flags.job=null;
  f.flags.occupied='cn-emperor';assert.equal(f.meal.availability().code,'seat-busy');assert.equal(f.kitchen.requestMeal({actorId:'player',seatId:SEAT}),null);f.flags.occupied=null;
  f.unmount();assert.equal(f.kitchen.requestMeal({actorId:'player',seatId:SEAT}),null,'remote direct request cannot invent a seated diner');assert.equal(f.kitchen.supplyState().remaining,120);
@@ -36,7 +36,7 @@ test('only a current adult appointment grants access; original seat and real kit
 test('one original portion travels through Jia, survives reload, and only twelve seated seconds grant one shared meal',()=>{
  const f=fixture(),o=f.request();assert.equal(f.kitchen.requestMeal({actorId:'player',seatId:SEAT}).id,o.id);assert.equal(f.kitchen.supplyState().remaining,120);
  f.until(()=>f.kitchen.mealReady(o.id,'player'),'same Jia delivers original portion');assert.equal(f.kitchen.supplyState().remaining,119);assert.equal(f.kitchen.state().heldMeals.length,1);
- assert(f.meal.executeIntent(f.meal.intent('eat')));f.tick(60);assert.equal(f.kitchen.mealFor('player').stage,'eating');assert.equal(f.needs.snapshot().people.player.receipts['china-royal-kitchen'],undefined);
+ assert(f.meal.executeIntent(f.meal.intent('eat')));assert.equal(f.meal.playerPose()?.seatedMeal,true);f.tick(30,{conversationActorId:'cn-cooking'});assert.equal(f.kitchen.mealProgress(o.id),0);assert.equal(f.meal.playerPose(),null);f.tick(60);assert.equal(f.kitchen.mealFor('player').stage,'eating');assert.equal(f.needs.snapshot().people.player.receipts['china-royal-kitchen'],undefined);
  const g=fixture(f.checkpoint());g.tick(61);assert.equal(g.kitchen.mealFor('player').stage,'consumed');assert.equal(g.kitchen.mealReceipts()[0].mealId,o.id+'-meal');assert.equal(g.needs.hunger('player'),0);assert.equal(g.kitchen.supplyState().remaining,119);
  g.tick(30);const hunger=g.needs.hunger('player');assert(g.kitchen.completeMeal(o.id,'player'));assert.equal(g.needs.hunger('player'),hunger);assert.equal(g.needs.snapshot().people.player.receipts['china-royal-kitchen'],o.number);assert.equal(g.kitchen.workReceipts().length,0);
 });
@@ -45,7 +45,7 @@ test('failed writes cannot mint orders, food or nutrition; consumed outbox repai
  f.flags.saveFail=true;f.tick(150);assert.equal(f.kitchen.supplyState().remaining,120);assert.equal(f.kitchen.state().heldMeals.length,0);f.flags.saveFail=false;f.until(()=>f.kitchen.mealReady(o.id,'player'),'retry same order');assert(f.meal.executeIntent(f.meal.intent('eat')));
  f.flags.saveFail=true;f.tick(125);assert.equal(f.kitchen.mealFor('player').stage,'eating');assert.equal(f.needs.snapshot().people.player.receipts['china-royal-kitchen'],undefined);
  f.flags.saveFail=false;f.flags.needsFail=true;f.tick();assert.equal(f.kitchen.mealFor('player').stage,'consumed');assert.equal(f.needs.snapshot().people.player.receipts['china-royal-kitchen'],undefined);
- const g=fixture(f.checkpoint());g.tick();assert(g.needs.hunger('player')<.001);assert.equal(g.needs.snapshot().people.player.receipts['china-royal-kitchen'],o.number);assert.equal(g.kitchen.supplyState().remaining,119);
+ const g=fixture(f.checkpoint());g.flags.proof='different-reading';g.tick();assert.equal(g.needs.snapshot().people.player.receipts['china-royal-kitchen'],undefined);assert.equal(g.kitchen.mealReceipts().length,1,'historical consumption stays visible after evidence changes');g.flags.proof=EL.appointmentReceiptId;g.tick();assert(g.needs.hunger('player')<.001);assert.equal(g.needs.snapshot().people.player.receipts['china-royal-kitchen'],o.number);assert.equal(g.kitchen.supplyState().remaining,119);
 });
 test('cancellation, lost seat and underage restore write off only the original prepared portion without relief',()=>{
  const early=fixture();early.request();assert(early.meal.cancel());assert.equal(early.kitchen.supplyState().remaining,120);
