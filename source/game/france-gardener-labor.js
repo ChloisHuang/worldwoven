@@ -67,12 +67,12 @@ export function createFranceGardenerLabor({gardener,employment,careers,openRegis
    getClock,saveJob:job=>persist({...current,job})});}catch{return fail('payment-failed','工钱尚未入账，稍后可重试');}finally{paying=false;}
   if(!result?.ok)return fail(result?.code||'payment-failed','工钱尚未入账，稍后可重试');
   if(!persist({...current,job:null})){notify(result.legacyCash?'旧工钱已在钱包中，收工记录待确认；再来不会重复发薪':'6 铜文工资已存银行；收工记录待确认，再来不会重复发薪');return true;}
-  notify(result.legacyCash?'已在钱包的旧工钱保留，收工记录已确认':'埃米尔：验收完成，6 铜文工资已存银行；到中国钱庄取款后才进入钱包。');return true;
+  notify(result.legacyCash?'已在钱包的旧工钱保留，收工记录已确认':'埃米尔：验收完成，6 铜文工资已存银行；可在音乐接待厅柜台选择铜文提款。');return true;
  }
  function finishFormalPay(r){
   if(!r.ok||r.cleanupPending)return false;
   if(!persist({...current,job:null}))return false;
-  notify(`${r.wage}法国券日薪已存入法国券账户；到中国钱庄选择法国券账户取款后才进入钱包。`);return true;
+  notify(`${r.wage}法国券日薪已存入法国券账户；可在音乐接待厅银行柜台取出。`);return true;
  }
  function cancel(){
   if(!permitted()||!current.job)return false;
@@ -232,7 +232,7 @@ function createUI({doc,service,getPlayer,canSee,onIntent,onOpen}){
    const value=make('div',null,'fr-labor-value');value.append(make('strong',s.formalSalary),make('span','/ 日 · 存法国券账户'));detail.append(value);
    detail.append(make('p',`年龄 ${Number.isFinite(age)?Math.floor(age)+'岁':'未读取'} / ${role.minimumAgeYears}岁 · 园艺 ${Number.isFinite(skill)?skill+'点':'未读取'} / ${role.skillRequirements.gardening}点`,'fr-labor-status'));
    detail.append(make('p',s.formalState?.loadError?'职业记录暂时无法读取':s.formalHired?'已任职 · 查看实际岗位与班次':s.job?'先结清手上的活，再办理长期任职':'申请、审核与开班，在岗位手册中分别办理',s.formalState?.loadError?'fr-labor-error':'fr-labor-note'));
-   more.append(make('summary','职责与日薪说明'),make('p',`${String(role.dutyWindow.startHour).padStart(2,'0')}:00–${String(role.dutyWindow.endHour).padStart(2,'0')}:00 开班，每天一班。用原壶浇完两畦并归还，由埃米尔验收。`),make('p',`午前开班并完成另奖 ${role.preparationBonus} 券，已计入日薪上限；正式班次不另发临工铜文。法国券到账后，到中国钱庄取款。`));
+   more.append(make('summary','职责与日薪说明'),make('p',`${String(role.dutyWindow.startHour).padStart(2,'0')}:00–${String(role.dutyWindow.endHour).padStart(2,'0')}:00 开班，每天一班。用原壶浇完两畦并归还，由埃米尔验收。`),make('p',`午前开班并完成另奖 ${role.preparationBonus} 券，已计入日薪上限；正式班次不另发临工铜文。法国券到账后，可在本地音乐接待厅柜台取款。`));
    choice=service.intent('formal-view');label=s.formalHired?'查看岗位与班次':'查看职位与申请条件';
   }else{
    const j=s.job,ready=j?.stage==='ready';
@@ -241,7 +241,7 @@ function createUI({doc,service,getPlayer,canSee,onIntent,onOpen}){
    const status=s.loadError||s.employment?.loadError?'记录暂时无法读取，请保留存档':s.waitingForHost?'等埃米尔收好工具，到登记簿旁见面':s.activity==='water'?`正在浇花 · 还需 ${secondsLeft(s)} 秒`:s.activity==='take'?'正在拿起原浇水壶':s.activity==='return'?'正在放回原浇水壶':j?.cancelled?'已申请取消 · 先把手里的原壶归还':ready?'原壶已归还 · 工钱待当面验收':j?s.held?j.completedBeds===2?'两畦已完成 · 请归还原壶':`水壶在手 · 下一处：${s.target.name}`:'水壶在架上 · 领取后继续':s.hired?'登记已保存 · 可以接下一份活':'无需资历或技能 · 报名费 0 铜文';
    detail.append(make('p',status,s.loadError||s.employment?.loadError?'fr-labor-error':'fr-labor-status'));
    detail.append(make('p',j?'关闭保留进度；移动会停止当前浇水。':`每畦站稳浇水 ${s.seconds} 秒，完成后还壶验收。`,'fr-labor-note'));
-   more.append(make('summary','工钱、成长与退出'),make('p',`${s.wage} 铜文验收后存银行，到中国钱庄取款后进入钱包。完整临工获得当前一级门槛的园艺 XP，每天最多 4 份有效成长。`),make('p','未完成就取消，没有工钱；持壶时须先归还。两畦完成后工钱保留，不能取消。'));
+   more.append(make('summary','工钱、成长与退出'),make('p',`${s.wage} 铜文验收后存银行，可在音乐接待厅柜台选择铜文提款。完整临工获得当前一级门槛的园艺 XP，每天最多 4 份有效成长。`),make('p','未完成就取消，没有工钱；持壶时须先归还。两畦完成后工钱保留，不能取消。'));
    if(!j&&s.hired){const resign=service.intent('resign');if(resign)more.append(button('取消临工登记',guard(()=>request(resign))));}
    if(j&&s.held&&j.completedBeds<2&&!j.cancelled){const back=service.intent('return');if(back)more.append(button('先还壶，保留已完成花畦',guard(()=>request(back))));}
    if(j?.stage==='working'&&!j.cancelled&&(j.completedBeds<2||s.formalExpired))more.append(button('取消这份活 · 无工钱',guard(()=>{if(service.cancel())close();else refresh(true);})));

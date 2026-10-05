@@ -1,3 +1,4 @@
+import {JAPAN_EXCHANGE_COUNTER,buildJapanExchangeCounter,japanExchangeStation} from './japan-exchange-counter.js';
 import {buildJapanPerformanceHall,performanceStations} from './japan-performance-hall.js';
 import {registerNightFixture} from './night-lighting.js';
 import {createGuestFuton} from './japan-futon.js';
@@ -363,6 +364,7 @@ export function buildJapan(){
   for(const x of [-9.2,-7.8,-6.4,-5]){G.box(f,x,.51,7.54,1.25,.74,.05,P.red);cloud(f,x-.2,.66,7.58,.7);folded(f,x,1.18,6.95,P.indigo,.58,.39);}
   {const q=new THREE.Group();q.position.set(-7.1,0,8.7);q.rotation.y=Math.PI;f.add(q);drawers(q,0,1.45,0,7,3,6.2,1.4);}
   vase(f,-10,1.18,6.9);sign(f,-7,2.65,8.62,'WELCOME',P.red,5.9);
+  buildJapanExchangeCounter(G,{group:f,colliders,cameraColliders});
   bench(f,y,-9.2,3.1,3.5);shelf(f,y,-11.16,.55,3.4,.65,Math.PI/2);
   furnishing(createConveyorSushi,0,-6,-3.3,{width:7.8,depth:3.0});
   furnishing(createRamenCounter,0,4.1,3.6,{width:5.3});
@@ -719,13 +721,14 @@ export function buildJapan(){
   {id:'jp-herb-workshop',name:'后院 · 收货与物料房',action:'清点汤屋补给',position:[0,0,-33.3],color:'#a5b47d',playerAction:'tidy',dialogue:'这里收下木桶、布料和食材。药草送到四层药房，米与面送进一层共用厨房。',npcName:'Nao',npcAction:'tidy',npcLabel:'清点补给木箱',npcPosition:[1.5,0,-33],workTarget:[2.8,1.0,-34.65],npcRotation:Math.PI}
  ];
  // Approach flags let the close-TPS controller gate seated/cooking activities.
- stations.push(...performanceStations());
+ stations.push(...performanceStations(),japanExchangeStation());
  for(const s of stations)s.culture='japan';
  program('omamori-display',0,'omamori-cultural-display',4.8,['jp-courtyard-omamori']);program('inari-shrine',0,'small-inari-shrine',3.4,['jp-courtyard-inari']);
  program('reflection-pond',0,'koi-reflection-garden',124,['jp-district-garden-pond']);program('garden-pavilion',0,'garden-shelter',66,['jp-district-garden-pavilion']);program('travel-shop',0,'travel-luggage-retail',135,['jp-district-market-room']);program('public-toilets',0,'public-sanitary-facilities',110,['jp-washroom-private-1','jp-washroom-private-2','jp-washroom-private-3','jp-washroom-sinks']);program('supply-store',0,'delivery-supply-storage',73,['jp-district-supplies']);program('herb-growing',0,'herb-growing',252,['jp-district-herb-yard']);
  const facilities=[
   {kind:'performing-arts',name:'Original kabuki-inspired performance and voluntary adult tea conversation',location:'Third-floor east hall',targetIds:['jp-performance-reception','jp-performance-stage']},
   {kind:'shrine approach',name:'Sakura torii, embroidered omamori and a compact Inari shrine with paired fox messengers',location:'One compact shrine-approach courtyard flanking the torii',targetIds:['jp-arrival-torii','jp-courtyard-omamori','jp-courtyard-inari']},
+  {kind:'bank/exchange',name:'Kasumi-yu local game-ticket exchange and shared bank ledger',location:'Ground-floor southeast reception pocket',targetIds:['jp-exchange-teller']},
   {kind:'entry/reception',name:'Grand arrival hall, keys and yukata reception',location:'Ground floor',targetIds:['jp-room-welcome','jp-district-arrival-gate']},
   {kind:'bathing',name:'Separate MEN and WOMEN onsen with screened changing and washing sequences',location:'Second floor only',targetIds:['jp-room-men-changing','jp-room-men-wash','jp-room-men-bath','jp-room-women-changing','jp-room-women-wash','jp-room-women-bath']},
   {kind:'washing/toilet',name:'Gender wet wash stations and enclosed public washhouse',location:'Second-floor wet areas; eastern ground washhouse',targetIds:['jp-room-men-wash','jp-room-women-wash','jp-washroom-private-1','jp-washroom-private-2','jp-washroom-private-3','jp-washroom-sinks']},
@@ -762,5 +765,5 @@ export function buildJapan(){
   {id:'jp-weather-rain',kind:'rain',name:'幻想雨天挂偶',position:[5,0,9.14],approach:[5,0,9.86],height:1.78},
  ];
  const characterFloorSurfaces=floorGroups.flatMap(fg=>(fg.userData.characterMatSurfaces||[]).map(s=>({...s,baseY:fg.position.y,minX:s.minX+fg.position.x,maxX:s.maxX+fg.position.x,minZ:s.minZ+fg.position.z,maxZ:s.maxZ+fg.position.z})));
- return {group,performanceHall,additionalFurniture:performanceHall.additionalFurniture,weatherCharmPoints,colliders,characterFloorSurfaces,characterFootSurfaces,spawn:[0,0,37.5],stations,roofGroup,walkableSurfaces,cameraColliders,levels,ceilingGroups,floorGroups,explorationTargets,doorways,facilities,roomProgram,interiorRooms,circulation,bounds:LOT_BOUNDS,update(dt,time){for(const update of updates)update(dt,time);}};
+ return {group,exchangeCounter:JAPAN_EXCHANGE_COUNTER,performanceHall,additionalFurniture:performanceHall.additionalFurniture,weatherCharmPoints,colliders,characterFloorSurfaces,characterFootSurfaces,spawn:[0,0,37.5],stations,roofGroup,walkableSurfaces,cameraColliders,levels,ceilingGroups,floorGroups,explorationTargets,doorways,facilities,roomProgram,interiorRooms,circulation,bounds:LOT_BOUNDS,update(dt,time){for(const update of updates)update(dt,time);}};
 }
