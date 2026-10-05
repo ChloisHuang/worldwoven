@@ -49,11 +49,12 @@ const mealSource=v=>v.dishId==='sushi'?'sushiPickup':'kitchenPickup';
 const sourceOf=item=>item.kind==='mixture'?'apothecaryPickup':item.kind==='meal'?mealSource(item):'reception';
 
 export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},capacity=2,preservePhysical=false}={}) {
- const state={version:1,worldSeed:worldSeed>>>0,nextVisit:1,completed:0,cancelled:0,visits:[],items:[],diningReceipts:[]};
+ const state={version:1,worldSeed:worldSeed>>>0,nextVisit:1,completed:0,cancelled:0,visits:[],items:[],diningReceipts:[],playerMealReceipts:[]};
  if(saved?.version===1&&saved.worldSeed===(worldSeed>>>0)) {
   state.nextVisit=Math.max(1,Number.isSafeInteger(saved.nextVisit)?saved.nextVisit:1);
   state.completed=Math.max(0,saved.completed|0);state.cancelled=Math.max(0,saved.cancelled|0);
   state.diningReceipts=clone((saved.diningReceipts||[]).slice(-24));
+  state.playerMealReceipts=clone((saved.playerMealReceipts||[]).slice(-1));
   state.visits=clone((saved.visits||[]).filter(v=>active(v)&&typeof v.id==='string'));
   const ids=new Set(state.visits.map(v=>v.id));
   state.items=clone((saved.items||[]).filter(i=>ids.has(i.visitId)));
@@ -156,7 +157,11 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   if(event==='sat-to-eat'&&v.stage==='dining'&&near(evidence.position,v.diningPoint,.8))next='waiting-meal';
   if(event==='begin-eating'&&v.customerType==='player'&&v.stage==='meal-ready'&&near(evidence.position,v.diningPoint,.8))next='eating';
   if(event==='eating-interrupted'&&v.customerType==='player'&&v.stage==='eating')next='meal-ready';
-  if(event==='ate'&&v.stage==='eating'&&item(v.mealId)?.location.id==='dining'&&near(evidence.position,v.diningPoint,.8)) {next=v.orderKind==='dining'?'departed':'checkout';item(v.mealId).location={type:'used',id:v.id};if(v.orderKind==='dining'){state.completed++;receipt(v,'ate');}}
+  if(event==='ate'&&v.stage==='eating'&&item(v.mealId)?.location.id==='dining'&&near(evidence.position,v.diningPoint,.8)) {next=v.orderKind==='dining'?'departed':'checkout';item(v.mealId).location={type:'used',id:v.id};if(v.orderKind==='dining'){state.completed++;receipt(v,'ate');}
+   // The existing six-second player eating action reaches this actual item
+   // boundary. Keep its supply receipt after checkout/forgetFinished/reload.
+   if(v.customerType==='player')state.playerMealReceipts=[{source:'japan-player-meal',id:v.id+'-consumed',number:v.number,actorId:'player',orderId:v.id,mealId:v.mealId,dishId:v.dishId||'ramen',supplyKind:v.orderKind==='dining'?'paid-dining':'bath-meal',paymentReceipt:v.paymentId||v.tokenId,completed:true}];
+  }
   if(event==='returned-to-desk'&&v.stage==='checkout'&&japanReceptionReady(evidence.position,v.customerType))next='checkout-ready';
   if(event==='left'&&v.stage==='leaving'&&near(evidence.position,JAPAN_SERVICE_POINTS.departure)){next='departed';state.completed++;}
   if(!next)return false;

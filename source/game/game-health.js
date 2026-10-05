@@ -11,7 +11,9 @@ function threshold(c){let x=c.random;x^=x<<13;x^=x>>>17;x^=x<<5;c.random=x>>>0||
 
 export const GAME_HEALTH_CONDITIONS=Object.freeze({
  'ember-weariness':Object.freeze({name:'余烬倦怠（虚构）',infectious:false,incubation:0,ill:150,recovery:120,immunity:0,symptom:'脚步发沉，想歇一会儿'}),
- mistbell:Object.freeze({name:'雾铃困倦（虚构）',infectious:true,incubation:90,ill:240,recovery:180,immunity:900,symptom:'声音发闷，有些乏力'})
+ mistbell:Object.freeze({name:'雾铃困倦（虚构）',infectious:true,incubation:90,ill:240,recovery:180,immunity:900,symptom:'声音发闷，有些乏力'}),
+ 'hollow-grain':Object.freeze({name:'空谷乏意（虚构）',infectious:false,need:'foodStrain',incubation:0,ill:300,recovery:180,immunity:0,symptom:'空谷乏意：久饿后精神不济'}),
+ 'stillwater-ache':Object.freeze({name:'滞露不适（虚构）',infectious:false,need:'toiletStrain',incubation:0,ill:240,recovery:180,immunity:0,symptom:'滞露不适：如厕拖延后有些难受'})
 });
 const conditions=Object.entries(GAME_HEALTH_CONDITIONS);
 const stages=new Set(['well','incubating','ill','recovering']);
@@ -84,8 +86,8 @@ export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
    for(const [name,definition]of conditions){
     const c=p.conditions[name],infectious=definition.infectious;
     result.push({c,definition,speed:c.stage==='incubating'?1:speed,
-     rate:(infectious?exposure.get(id):(a.resting?0:Math.max(0,a.exertion-.55)*(.4+a.fatigue)*.012))*a.vulnerability,
-     decay:infectious?.002:.006+.02*Number(a.resting)+.003*a.nutrition+.001*a.hygiene});
+     rate:(infectious?exposure.get(id):definition.need?clamp(a.dailyNeeds?.[definition.need])*.016:(a.resting?0:Math.max(0,a.exertion-.55)*(.4+a.fatigue)*.012))*a.vulnerability,
+     decay:infectious?.002:definition.need?.003:.006+.02*Number(a.resting)+.003*a.nutrition+.001*a.hygiene});
    }
   }
   return result;

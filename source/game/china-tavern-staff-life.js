@@ -6,10 +6,10 @@ const near=(n,p,r=.12)=>Math.hypot(n.root.position.x-p[0],n.root.position.z-p[2]
 const WALKS=[[20,.115,22.4],[22,.115,22.4],[21.4,.215,19.9],[22.1,.215,14.15]];
 // This is the existing personality/need sampler applied at activity boundaries.
 // It never claims an order, changes a post, scans routes, or creates wages.
-export function createTavernStaffLife({actors,furniture,getPlayer,getMounted,getClock,worldSeed=1,travel,unmount,effect,onChanged=()=>{}}){
+export function createTavernStaffLife({actors,furniture,getPlayer,getMounted,getClock,worldSeed=1,travel,unmount,effect,onChanged=()=>{},sharedNeeds=null}){
  const rows=new Map(),nextAt=new Map(),snacks=new Map(actors.map(n=>[n.station.id,1])),kits=new Map();
  let time=0,dirty=false,disposed=false,brain=null,events=[];
- const makeBrain=saved=>createLifeDecisions({worldSeed,actorIds:actors.map(n=>n.station.id),saved,onChange:()=>{dirty=true;}});
+ const makeBrain=saved=>createLifeDecisions({worldSeed,actorIds:actors.map(n=>n.station.id),saved,sharedNeeds,onChange:()=>{dirty=true;}});
  brain=makeBrain({});
  const note=(n,event)=>{events.push({actorId:n.station.id,event,time});if(events.length>30)events.shift();dirty=true;};
  const snapshot=()=>({version:1,time,brain:brain.snapshot(),rows:[...rows].map(([n,s])=>[n.station.id,copy(s)]),nextAt:[...nextAt].map(([n,t])=>[n.station.id,t]),snacks:[...snacks],events:copy(events)});
@@ -23,7 +23,7 @@ export function createTavernStaffLife({actors,furniture,getPlayer,getMounted,get
   const people=actors.filter(a=>a!==n&&!a.walking&&Math.abs(a.root.position.y-n.root.position.y)<.3&&Math.hypot(a.root.position.x-n.root.position.x,a.root.position.z-n.root.position.z)<3.5);
   return [
    {id:'rest',label:onDuty?'短暂坐歇':'坐下休息',action:'relax',targets:seatTargets,base:.7,needs:{fatigue:2},traits:{quiet:.5},relief:{fatigue:-.22},duration:onDuty?[5,8]:[9,16],cooldown:12},
-   {id:'meal',label:'吃自备点心',action:'meal',targets:seatTargets,available:!onDuty&&(snacks.get(n.station.id)||0)>0,base:.4,needs:{hunger:2},traits:{appetite:.8},relief:{hunger:-.35},duration:[8,12],cooldown:90},
+   {id:'meal',label:'吃自备点心',action:'meal',targets:seatTargets,available:!sharedNeeds?.has(n.station.id)&&!onDuty&&(snacks.get(n.station.id)||0)>0,base:.4,needs:{hunger:2},traits:{appetite:.8},relief:{hunger:-.35},duration:[8,12],cooldown:90},
    {id:'garden',label:onDuty?'在厅中活动片刻':'到院里散步',action:'relax',targets:(onDuty?WALKS.slice(2):WALKS).map((p,i)=>({p,i})).filter(({p})=>!near(n,p,.8)&&!actors.some(other=>other!==n&&near(other,p,.65))&&![...rows].some(([other,s])=>other!==n&&Math.hypot(s.target[0]-p[0],s.target[2]-p[2])<.65)).map(({p,i})=>({id:'walk-'+i,choice:{target:p.slice(),label:p[2]>21?'到院里散步':'在厅里走动'}})),base:.6,traits:{outdoors:1,curiosity:.4},relief:{fatigue:-.06},duration:[5,9],cooldown:8},
    {id:'social',label:'与熟人闲聊',action:'relax',targets:people.map(a=>({id:a.station.id,relationship:{target:a.station.id,gain:.025},choice:{target:n.root.position.toArray(),partnerId:a.station.id}})),base:.3,needs:{social:1.5},traits:{sociability:.8},relief:{social:-.2},duration:[4,7],cooldown:15},
    {id:'pause',label:onDuty?'候客，舒展肩背':'伸展片刻',action:'relax',target:n.root.position.toArray(),base:.15,relief:{fatigue:-.03},duration:[3,5],cooldown:18},
@@ -58,7 +58,7 @@ export function createTavernStaffLife({actors,furniture,getPlayer,getMounted,get
   flush(){if(dirty){dirty=false;onChanged(snapshot());}},sync(){for(const kit of kits.values())kit.sync();},
   isActive:n=>rows.has(n),claimsSeat:(id,seatId)=>[...rows].some(([n,s])=>n.station.id===id&&s.seatId===seatId),
   label:n=>rows.get(n)?.phase==='approaching'?'前往'+rows.get(n).choice.label:rows.get(n)?.choice.label||'歇息片刻',
-  snapshot,restore(s){if(s?.version!==1)return false;time=Math.max(0,s.time||0);brain=makeBrain(s.brain||{});rows.clear();for(const[id,row]of s.rows||[]){const n=actors.find(n=>n.station.id===id);if(n&&row.choice&&Array.isArray(row.target))rows.set(n,copy(row));}nextAt.clear();for(const[id,t]of s.nextAt||[]){const n=actors.find(n=>n.station.id===id);if(n&&Number.isFinite(t))nextAt.set(n,t);}for(const[id,count]of s.snacks||[])if(snacks.has(id)&&Number.isInteger(count)&&count>=0)snacks.set(id,count);events=copy((s.events||[]).slice(-30));dirty=false;return true;},
+  snapshot,restore(s){if(s?.version!==1)return false;time=Math.max(0,s.time||0);brain=makeBrain(s.brain||{});rows.clear();for(const[id,row]of s.rows||[]){const n=actors.find(n=>n.station.id===id);if(n&&row.choice&&Array.isArray(row.target)&&!(sharedNeeds?.has(id)&&row.choice.id==='meal'))rows.set(n,copy(row));}nextAt.clear();for(const[id,t]of s.nextAt||[]){const n=actors.find(n=>n.station.id===id);if(n&&Number.isFinite(t))nextAt.set(n,t);}for(const[id,count]of s.snacks||[])if(snacks.has(id)&&Number.isInteger(count)&&count>=0)snacks.set(id,count);events=copy((s.events||[]).slice(-30));dirty=false;return true;},
   state:()=>({time,actors:actors.map(n=>({id:n.station.id,choice:rows.get(n)?.choice.id||null,phase:rows.get(n)?.phase||'idle',target:rows.get(n)?.target||null,elapsed:rows.get(n)?.elapsed||0,label:rows.get(n)?.choice.label||null})),events:copy(events),decisions:brain.snapshot()}),
   dispose(){disposed=true;for(const kit of kits.values())kit.dispose();kits.clear();rows.clear();}
  };

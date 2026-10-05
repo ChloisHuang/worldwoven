@@ -68,15 +68,15 @@ export function createGameHealthWorld({worldSeed=1,saved={},visitorFloor=0,clini
   arrive,
   depart(id){if(sceneId!=='japan')return;activeVisitors.delete(id);prune();persist();},
   clinicReceipts,
-  update(dt,{player,actors=[],playerResting=false,playerExertion=0,lifePeople={},restingIds=[]}={}){
+  update(dt,{player,actors=[],playerResting=false,playerExertion=0,lifePeople={},restingIds=[],dailyNeeds=null}={}){
    if(!sceneId||!player||!Number.isFinite(dt)||dt<=0)return;
    const exertion=clamp(playerExertion);
    playerFatigue=clamp(playerFatigue+dt*(playerResting?-.01:exertion>0?exertion/600:-1/300));
-   const resting=new Set(restingIds),inputs=[{id:'player',sceneId,exertion,resting:playerResting,needs:{fatigue:playerFatigue}}];
+   const playerNeeds=dailyNeeds?.read('player'),resting=new Set(restingIds),inputs=[{id:'player',sceneId,exertion,resting:playerResting,needs:{fatigue:playerFatigue,...(playerNeeds?{hunger:playerNeeds.hunger}:{})},dailyNeeds:playerNeeds}];
    for(const actor of actors){
     const id=idOf(actor);if(!ids.has(id))register(id);
     const mount=actor.serviceMount,pose=actor.poseContext,rest=!actor.walking&&(resting.has(id)||!!mount||Number.isFinite(pose?.seatHeight)||!!pose?.lieSupport);
-    inputs.push({id,sceneId,needs:lifePeople[id]?.needs,resting:rest,exertion:actor.walking?.65:0});
+    const shared=dailyNeeds?.read(id);inputs.push({id,sceneId,needs:{...lifePeople[id]?.needs,...(shared?{hunger:shared.hunger}:{})},dailyNeeds:shared,resting:rest,exertion:actor.walking?.65:0});
    }
    // Only explicit interaction callbacks reach health. No actor-pair search,
    // distance test or line-of-sight work belongs in this clock update.

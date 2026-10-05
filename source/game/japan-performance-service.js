@@ -16,14 +16,14 @@ export function performanceWillingness(actor,activity,opinion=0){
 
 // One finite table and one public stage. The same copper journal owns holds;
 // no free coins, persistent occupancy, intimacy, pregnancy or parallel score.
-export function createJapanPerformanceService({npcs,furniture,doors,navigation,planPath,moveActor,poseContext,getPlayer,getMounted=()=>null,copperLedger,props=null,worldSeed=1,saved={},saveState=()=>{},notify=()=>{},isActorBusy=()=>false}){
+export function createJapanPerformanceService({npcs,furniture,doors,navigation,planPath,moveActor,poseContext,getPlayer,getMounted=()=>null,copperLedger,props=null,worldSeed=1,saved={},saveState=()=>{},notify=()=>{},isActorBusy=()=>false,sharedNeeds=null}){
  const cast=npcs.filter(n=>n.station.performance),server=cast.find(n=>n.station.id==='jp-performance-reception'),artists=cast.filter(n=>n!==server);
  const guestSeat=furniture.items.find(i=>i.id===GUEST),artistSeat=furniture.items.find(i=>i.id===ARTIST);if(!server||artists.length!==2||!guestSeat||!artistSeat)return null;
  let order=null,lastReply=clone(saved.lastReply),lastResult=null,time=Number(saved.time)||0,serial=Number(saved.serial)||0,disposed=false,paymentError=null,phase=0,elapsed=0,drinkPhase=0,conversation=null;
  const history=clone(saved.history)||[],responses=clone(saved.responses)||{},returns=new Set(),routes=new Map(),failures=[];
  let life;
  const persist=()=>{try{return saveState({serial,time,lastReply:clone(lastReply),history:clone(history.slice(-60)),responses:clone(responses),life:life?.snapshot()||saved.life||{}})!==false;}catch{return false;}};
- life=createLifeDecisions({worldSeed,actorIds:['player',...cast.map(n=>n.station.id)],saved:saved.continuity?.life||saved.life||{},onChange:()=>persist()});
+ life=createLifeDecisions({worldSeed,sharedNeeds,actorIds:['player',...cast.map(n=>n.station.id)],saved:saved.continuity?.life||saved.life||{},onChange:()=>persist()});
  const artist=()=>artists.find(n=>n.station.id===order?.artistId);
  const eligible=n=>knownAdult(getPlayer())&&knownAdult(server)&&knownAdult(n);
  const atReception=()=>!!getPlayer()&&!getMounted()&&near(getPlayer(),P.reception,1.15);
