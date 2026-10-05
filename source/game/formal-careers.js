@@ -757,8 +757,8 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const prior=duty.customerReviews.find(r=>r.id===receipt.id);
     if(prior)return sameJapanBathMixingReceipt(prior.bathMixingReceipt,receipt)?{ok:true,unchanged:true,replayed:true,xpGained:0,review:copy(prior),servicePenalty:0}:failure('review-conflict');
     const clock=now();if(!clock)return failure('invalid-clock');
-    const score=japanBathMixingReviewScore(receipt),task='同号浴包配制归队';
-    const review={id:receipt.id,customerId:receipt.customerId,customerName:receipt.customerName,tableId:'jp-bath-mixing',tableName:'四层原浴包配送队列',
+    const score=japanBathMixingReviewScore(receipt),task='浴包配制与封签';
+    const review={id:receipt.id,customerId:receipt.customerId,customerName:receipt.customerName,tableId:'jp-bath-mixing',tableName:'四层草木工台',
       dishId:receipt.kind,dishName:task,reasonCode:'japan-bath-mixing-completed',correctedReviewId:null,positive:score>0,score,
       reason:receipt.outcome==='handoff'?`${task}未完成，原客单已交回Itsuki接续`:receipt.outcome==='late'?`${task}准确完成，等候较久；记入照护经验，不改变工时工资`:`${task}准确且及时完成`,bathMixingReceipt:copy(receipt)};
     const nextDuty={...duty,customerReviews:[...duty.customerReviews,review]};

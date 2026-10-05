@@ -5,7 +5,7 @@ export const JAPAN_BATH_MIXING_ROLE=Object.freeze({
  employer:'Itsuki',workplace:'霞汤屋 · 四层浴包配制登记处',supervisorId:'jp-incense',incumbentId:'jp-incense',incumbentName:'Itsuki',
  vacancyKind:'exclusive',careerKind:'technical-service',workSource:'jp-bath-mixing-labor',wage:16,minimumAgeYears:18,
  skillRequirements:Object.freeze({care:1,writing:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:0,
- duties:'须满18岁、照护1级、文书1级，由Itsuki当面审核。录用后另行开班，06:00–18:00在四层药房候单；核对原来客号、浴牌、汤区与虚构配方，配制原同号浴包并放回原配送队列。交班按实际现场工时计薪；及时、迟配与交回分别记评价，不增扣工资。成品准确放回后积累有限照护经验，无须等待客人使用。技术服务不授官品，工作不授免费泡汤或用餐资格。',
+ duties:'须满18岁、照护1级、文书1级，由Itsuki当面审核。录用后另行开班：按浴牌核对客名、汤区与草木种类，在四层工台配制、封签，再放到取件角交配送。06:00–18:00按实际在岗工时计薪，完整一班16日本券存入银行。一单完成后继续候单；准确出品积累照护经验，及时、迟配与未完交班分别记录评价。草木浴包是虚构游戏道具，不含真实疗效。工作不包含泡汤或餐食。',
 });
 
 export const JAPAN_BATH_MIXING_TIMELY_SECONDS=90;

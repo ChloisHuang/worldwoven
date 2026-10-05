@@ -28,7 +28,7 @@ export function createJapanServiceProps(parent) {
    if(item.kind==='mixture') {
     const bag=part(g,new THREE.SphereGeometry(.13,10,8),color,[0,.115,0]);bag.scale.set(1,.85,.8);
     cylinder(g,.043,.052,.095,0xeadcba,[0,.22,0]);
-    const tie=part(g,new THREE.TorusGeometry(.053,.014,5,12),0xa35f49,[0,.195,0]);tie.rotation.x=Math.PI/2;
+    const tie=part(g,new THREE.TorusGeometry(.053,.014,5,12),0xa35f49,[0,.195,0]);tie.rotation.x=Math.PI/2;tie.name='sealed-pouch-tie';
    }else if(item.dishId==='sushi') {
     box(g,.36,.027,.26,0xe6dcc2,[0,.032,0]);
     for(const [i,x]of [-.105,0,.105].entries()){
@@ -101,6 +101,7 @@ export function createJapanServiceProps(parent) {
       else g.position.set(0,1,.4).applyMatrix4(actor.root.matrixWorld);
      }
     }else {g.position.set(...itemPoint(item,v));g.rotation.set(item.kind==='token'?-Math.PI/2:0,0,0);}
+    const tie=g.getObjectByName('sealed-pouch-tie');if(tie)tie.visible=item.preparation!=='mixed';
     g.visible=actor&&(held||guest||eating)?actor.root.visible:true;
    }
    for(const [id,g]of objects)if(!seen.has(id)){g.traverse(o=>{if(o.geometry){o.geometry.dispose();geometries.delete(o.geometry);}});g.removeFromParent();objects.delete(id);}
