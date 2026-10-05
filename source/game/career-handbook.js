@@ -1,10 +1,10 @@
 // A portable read-only handbook; any job action still goes through the live
 // country's physical intent and common route/visibility checks.
 export function createCareerHandbook({careers,copperLedger,getClock,getService,
-  onIntent=()=>{},onOpen=()=>{},document:doc=globalThis.document}) {
+  onIntent=()=>{},onOpen=()=>{},walletFactory=null,document:doc=globalThis.document}) {
   const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;};
   const slot=make('div',null,'career-wallet-slot'),money=make('span',null,'career-money'),button=make('button','职业手册','career-open');
-  button.type='button';button.setAttribute('aria-label','打开职业手册');slot.append(money,button);
+  button.type='button';button.setAttribute('aria-label','打开职业手册');const wallet=walletFactory?.({mount:slot})||null;if(!wallet)slot.append(money);slot.append(button);
   const dialog=make('dialog',null,'career-dialog'),feedback=make('div',null,'career-review-pop'),style=make('style');
   dialog.setAttribute('aria-label','职业手册与铨录登记');feedback.setAttribute('role','status');feedback.hidden=true;
   style.textContent='.career-wallet-slot{display:flex;align-items:center;gap:7px}.career-dialog{position:fixed;inset:0;margin:auto;width:min(520px,calc(100vw - max(28px,env(safe-area-inset-left)) - max(28px,env(safe-area-inset-right))));max-height:calc(100dvh - max(16px,env(safe-area-inset-top)) - max(16px,env(safe-area-inset-bottom)));overflow:auto;overscroll-behavior:contain;border:1px solid #baa476;border-radius:16px;padding:20px;background:#f5efde;color:#3e4d44}.career-dialog::backdrop{background:#253d3866}.career-dialog h2{margin:0 35px 6px 0;font-size:21px}.career-dialog h3{font-size:15px;margin:16px 0 8px}.career-dialog p{font-size:13px;line-height:1.65;margin:8px 0}.career-dialog button{min-height:44px;border-radius:9px;padding:9px 12px;background:#dedcc8;color:#344d44}.career-dialog button:focus-visible{outline:3px solid #3e7763;outline-offset:2px}.career-dialog .career-close{position:absolute;right:9px;top:8px;background:transparent;font-size:24px}.career-tabs{display:flex;flex-wrap:wrap;gap:5px;margin:14px 0}.career-tabs button{flex:1;white-space:nowrap;font-size:12px}.career-tabs button[aria-pressed=true]{background:#3d6659;color:#fff9e7}.career-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}.career-positive{color:#256742!important}.career-negative{color:#a13e36!important}.career-review-pop{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:24;max-width:calc(100vw - 56px);padding:12px 18px;border-radius:12px;background:#fff7e8;box-shadow:0 5px 25px #20372933;font-size:13px;pointer-events:none}@media(max-height:500px){.career-dialog{padding:14px 18px}.career-dialog h2{font-size:18px}.career-tabs{margin:8px 0}.career-dialog p{margin:6px 0}.career-dialog h3{margin:10px 0 6px}}';
@@ -51,12 +51,12 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,
     for(const kind of new Set(kinds)){const b=action(kind);if(b)actions.append(b);}dialog.append(actions);
     if(hired&&!getService())dialog.append(make('p','目前不在中国宫苑。回到承务官署后可办理与工作有关的操作。'));
   }
-  function open(isRegistration=false){registration=isRegistration;tab=isRegistration?'duties':'today';onOpen();render(true);if(!dialog.open)dialog.showModal();}
+  function open(isRegistration=false){wallet?.close();registration=isRegistration;tab=isRegistration?'duties':'today';onOpen();render(true);if(!dialog.open)dialog.showModal();}
   button.onclick=()=>open(false);dialog.addEventListener('cancel',()=>close());dialog.addEventListener('click',e=>{if(e.target===dialog)close();});
   return {open,close,isOpen:()=>!!dialog.open,
-    update(mode){const s=careers.state(),r=s.lastEvaluation,c=getClock();slot.hidden=mode!=='lot';money.textContent=`${copperLedger.state().cash} 铜文`;money.setAttribute('aria-label',`手头${copperLedger.state().cash}铜文`);button.hidden=!careers.isHired();
+    update(mode){const s=careers.state(),r=s.lastEvaluation,c=getClock();slot.hidden=mode!=='lot';if(!wallet){money.textContent=`${copperLedger.state().cash} 铜文`;money.setAttribute('aria-label',`手头${copperLedger.state().cash}铜文`);}button.hidden=!careers.isHired();
       if(r&&r.id!==reviewId){reviewId=r.id;feedback.textContent=`${r.positive?'👍':'👎'} 沈叙：${r.reason}`;feedback.className='career-review-pop '+(r.positive?'career-positive':'career-negative');feedbackUntil=c.seconds+6;feedback.hidden=false;}
       if(c.seconds>=feedbackUntil||mode!=='lot')feedback.hidden=true;if(dialog.open)render();},
-    dispose(){close();slot.remove();dialog.remove();feedback.remove();style.remove();},
+    dispose(){close();wallet?.dispose();slot.remove();dialog.remove();feedback.remove();style.remove();},
   };
 }
