@@ -60,6 +60,7 @@ export function createTavernStaffLife({actors,furniture,getPlayer,getMounted,get
   flush(){if(dirty){dirty=false;onChanged(snapshot());}},sync(){for(const kit of kits.values())kit.sync();},
   isActive:n=>rows.has(n),claimsSeat:(id,seatId)=>[...rows].some(([n,s])=>n.station.id===id&&s.seatId===seatId),
   label:n=>rows.get(n)?.phase==='approaching'?'前往'+rows.get(n).choice.label:rows.get(n)?.choice.label||'歇息片刻',
+  socialProfile:id=>brain.state(id),
   snapshot,restore(s){if(s?.version!==1)return false;time=Math.max(0,s.time||0);brain=makeBrain(s.brain||{});rows.clear();for(const[id,row]of s.rows||[]){const n=actors.find(n=>n.station.id===id);if(n&&row.choice&&Array.isArray(row.target)&&!(sharedNeeds?.has(id)&&row.choice.id==='meal'))rows.set(n,copy(row));}nextAt.clear();for(const[id,t]of s.nextAt||[]){const n=actors.find(n=>n.station.id===id);if(n&&Number.isFinite(t))nextAt.set(n,t);}for(const[id,count]of s.snacks||[])if(snacks.has(id)&&Number.isInteger(count)&&count>=0)snacks.set(id,count);events=copy((s.events||[]).slice(-30));dirty=false;return true;},
   state:()=>({time,actors:actors.map(n=>({id:n.station.id,choice:rows.get(n)?.choice.id||null,phase:rows.get(n)?.phase||'idle',target:rows.get(n)?.target||null,elapsed:rows.get(n)?.elapsed||0,label:rows.get(n)?.choice.label||null})),events:copy(events),decisions:brain.snapshot()}),
   dispose(){disposed=true;for(const kit of kits.values())kit.dispose();kits.clear();rows.clear();}

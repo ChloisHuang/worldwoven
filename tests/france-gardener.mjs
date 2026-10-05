@@ -16,7 +16,7 @@ function fixture({blocked=false,saved={}}={}){
  return {service,actor,other,group,tick,until,setBlocked:v=>waiting=v,talk:v=>conversationActorId=v?P.id:null};
 }
 {
- const f=fixture();assert(f.service.owns(f.actor));assert(!f.service.owns(f.other));f.until(s=>s.stage==='waterA'&&s.phase>.5);const before=f.service.state();f.talk(true);f.tick(25);const paused=f.service.state();assert.equal(paused.phase,before.phase);assert.equal(paused.props.waterVisible,false);assert.equal(paused.props.held,'can');assert.equal(paused.position[0],before.position[0]);f.talk(false);f.tick();assert(f.service.state().props.waterVisible);f.until(s=>s.cycles===1);
+ const f=fixture();assert(f.service.owns(f.actor));assert(!f.service.owns(f.other));f.until(s=>s.stage==='waterA'&&s.phase>.5);const before=f.service.state();assert.equal(f.service.socialStatus(f.actor).busy,true,'active watering offers only a short greeting');f.talk(true);f.tick(25);const paused=f.service.state();assert.equal(paused.phase,before.phase);assert.equal(paused.props.waterVisible,false);assert.equal(paused.props.held,'can');assert.equal(paused.position[0],before.position[0]);f.talk(false);f.tick();assert(f.service.state().props.waterVisible);f.until(s=>s.cycles===1);
  const state=f.service.state();for(const event of['takeCan','waterA','waterB','putCan','takeShears','prune','putShears','complete'])assert(state.history.some(e=>e.event===event),event);assert.equal(state.tool,null);assert(!state.props.waterVisible);assert(!state.props.clippingsVisible);f.until(s=>s.choice);assert(['rest','garden','work'].includes(f.service.state().choice.id));f.service.dispose();assert.equal(f.group.children.length,1);assert.equal(f.actor.poseContext.archery,null);f.service.dispose();
 }
 {
@@ -30,7 +30,7 @@ for(const stage of['waterA','waterB','prune']){
 }
 {
  const person={needs:{hunger:.4,fatigue:.6}},main=fs.readFileSync('source/game/main.js','utf8'),start=main.indexOf('function updateGameHealth('),end=main.indexOf('\n}',start)+2;
- let observed=null;const state={saved:{franceGardener:{life:{people:{[P.id]:person}}}},gameHealth:{update(_dt,context){observed=context.lifePeople;},text:()=>''},$:()=>({textContent:'',hidden:true}),npcs:[],player:{walking:false},seated:null,bathTransition:null,keys:new Set()};
+ let observed=null;const state={dailyNeeds:{status:()=>null},saved:{franceGardener:{life:{people:{[P.id]:person}}}},gameHealth:{update(_dt,context){observed=context.lifePeople;},text:()=>''},$:()=>({textContent:'',hidden:true}),npcs:[],player:{walking:false},seated:null,bathTransition:null,keys:new Set()};
  vm.createContext(state);vm.runInContext(main.slice(start,end)+';updateGameHealth(.1);',state);assert.equal(observed[P.id],person,'Existing gardener needs are passed directly to health');
 }
 console.log('PASS French gardener: full two-bed / shears chain, physical arrival wait, social pause/resume, three tool-return cancellations, exclusive actor ownership and idempotent disposal');

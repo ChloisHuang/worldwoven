@@ -259,6 +259,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   recall(id){const n=actors.get(id);if(n)conversations.abort(n);if(active?.id!==id&&active?.reliefId!==id)return true;if(active.id===id&&!['returning','reclaiming'].includes(active.phase))interrupt(actors.get(id));return false;},
   playerRequest(id){conversations.playerRequest(id);if(active){const n=actors.get(active.id);if(active.choice?.facilityId===id||n.serviceMount?.id===id||taskOf(n)?.mount?.id===id)interrupt(n);}},
   meals:()=>active?.meal?[{workerId:active.id,eating:taskOf(actors.get(active.id))?.arrived&&active.phase==='meal'}]:[],
+  socialProfile:id=>decisions.state(id),
   snapshot:()=>snapshot(),
 
   continuity:()=>({version:1,conversations:conversations.snapshot(),active:active?JSON.parse(JSON.stringify(active)):null,time,night,due:{...due},completed,interrupted,resumeReturn,reliefLook,events:events.slice()}),
