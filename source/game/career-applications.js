@@ -13,7 +13,7 @@ export function careerInterviewRoll(worldSeed,roleId,day){
 }
 export function careerInterview({role,skills,performance,context={},worldSeed,day}){
  const traits=context.recruiterTraits||{},care=clamp(finite(traits.conscientiousness,finite(traits.quiet,.5)),0,1);
- const fitKeys=role.id==='cn-tavern-steward'?['sociability']:role.id==='fr-garden-assistant'?['outdoors']:['quiet','curiosity'];
+ const fitKeys=['cn-tavern-steward','cn-tavern-host'].includes(role.id)?['sociability']:role.id==='fr-garden-assistant'?['outdoors']:['quiet','curiosity'];
  const personality=fitKeys.map(key=>context.playerTraits?.[key]).filter(Number.isFinite);
  const fit=personality.length?personality.reduce((sum,n)=>sum+clamp(n,0,1),0)/personality.length:.5;
  const surplus=Object.entries(role.skillRequirements).reduce((sum,[key,minimum])=>sum+Math.max(0,skills[key]-minimum),0);
@@ -26,7 +26,7 @@ export function restoreApplications(value,roleMap,slotMap){
  if(value===undefined)return emptyApplications();
  if(!object(value)||!object(value.byRole)||!(value.lastRoleId===null||roleMap.has(value.lastRoleId))||
   (value.lastRoleId===null)!==(Object.keys(value.byRole).length===0)||value.lastRoleId!==null&&!Object.hasOwn(value.byRole,value.lastRoleId))throw Error('invalid-career-state');
- const reasons=new Set(['adult-required','ritual-required','writing-required','gardening-required','art-required','no-vacancy','already-employed','interview-rejected']);
+ const reasons=new Set(['adult-required','ritual-required','writing-required','gardening-required','art-required','cooking-required','no-vacancy','already-employed','interview-rejected']);
  for(const [roleId,r]of Object.entries(value.byRole)){
   const role=roleMap.get(roleId);
   if(!role||!object(r)||r.roleId!==roleId||typeof r.ok!=='boolean'||!Number.isSafeInteger(r.day)||r.day<0||

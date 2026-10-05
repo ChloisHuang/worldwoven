@@ -61,9 +61,9 @@ const c = setup(); c.finish(); c.home(); c.flags.cleanup = true; assert(c.labor.
 assert.equal(c.ledger.state().bank, 12); assert.equal(c.store.labor.job.stage, 'ready');
 const replay = setup(c.store); assert(replay.labor.claim()); assert.equal(replay.ledger.state().bank, 12); assert.equal(replay.ledger.history().length, 1); assert.equal(replay.labor.active(), false);
 
-// Incomplete reload restarts work without pay; cancel preserves serial uniqueness.
+// Completed tables survive reload without pay; cancel preserves serial uniqueness.
 const d = setup(); assert(d.labor.accept()); d.clean(); const id = d.labor.state().job.id;
-const reset = setup(d.store); assert.equal(reset.labor.state().job.completedTables, 0); assert.equal(reset.labor.claim(), false); assert.equal(reset.ledger.state().cash, 0);
+const reset = setup(d.store); assert.equal(reset.labor.state().job.completedTables, 1); assert.equal(reset.labor.claim(), false); assert.equal(reset.ledger.state().cash, 0);
 assert(reset.labor.cancel()); assert(reset.labor.accept()); assert.notEqual(reset.labor.state().job.id, id); assert.equal(reset.ledger.state().cash, 0);
 reset.clean(); reset.clean(); assert.equal(reset.labor.cancel(), false, 'Completed unpaid work cannot accidentally discard the wage');
 const detached = reset.labor.state(); detached.job.stage = 'working'; assert.equal(reset.labor.state().job.stage, 'ready');
@@ -82,3 +82,6 @@ for (const saveState of [() => { throw Error('quota'); }, () => Promise.reject(E
 }
 
 console.log('PASS: actual tavern labor, physical/table/host gates, durable completion, atomic failures, cancellation and wage replay after reload');
+
+// A matching physical checkpoint resumes only this table and this receipt.
+const partial=setup();assert(partial.labor.accept());partial.move(partial.labor.state().target.position);assert(partial.labor.startCleaning());partial.tick(20);const checkpoint=partial.labor.snapshot(),continued=setup(partial.store);continued.move([checkpoint.origin.x,checkpoint.origin.y,checkpoint.origin.z]);assert(continued.labor.restore(checkpoint));assert(continued.labor.state().cleaning);continued.tick(31);assert.equal(continued.labor.state().job.completedTables,1);assert.equal(continued.ledger.state().bank,0);assert.equal(continued.labor.restore(checkpoint),false);

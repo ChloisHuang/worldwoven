@@ -3,7 +3,7 @@
 // grant a job, wage or skill. Existing adapter tests cover physical submission.
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {createFormalCareers,COURT_CLERK_ROLE as CLERK,TAVERN_STEWARD_ROLE as TAVERN,FORMAL_CAREER_SLOTS} from '../source/game/formal-careers.js';
+import {createFormalCareers,COURT_CLERK_ROLE as CLERK,TAVERN_STEWARD_ROLE as TAVERN,TAVERN_CHEF_ROLE as CHEF,FORMAL_CAREER_SLOTS} from '../source/game/formal-careers.js';
 import {careerInterview,careerInterviewRoll} from '../source/game/career-applications.js';
 import {createCareerHandbook} from '../source/game/career-handbook.js';
 const copy=structuredClone;
@@ -56,7 +56,7 @@ test('false/throw/async save failures never approve or consume the day and retry
  await Promise.resolve();
 });
 test('legacy v3 saves retain employment; malformed new receipts fail closed',()=>{
- const f=fixture({worldSeed:785});f.qualify();assert(f.careers.apply(CLERK.id,{ageYears:18}).ok);const legacy=copy(f.store.saved);delete legacy.applications;const restored=fixture({saved:legacy});assert(restored.careers.isHired());assert.equal(restored.careers.applicationResult(),null);assert.deepEqual(restored.careers.state().tenure,f.careers.state().tenure);
+ const f=fixture({worldSeed:785});f.qualify();assert(f.careers.apply(CLERK.id,{ageYears:18}).ok);const legacy=copy(f.store.saved);legacy.version=3;delete legacy.skills.cooking;delete legacy.daily.cooking;delete legacy.applications;const restored=fixture({saved:legacy});assert(restored.careers.isHired());assert.equal(restored.careers.applicationResult(),null);assert.deepEqual(restored.careers.state().tenure,f.careers.state().tenure);
  for(const corrupt of [r=>r.ok=false,r=>r.day=-1,r=>r.interview.roll=2,r=>r.checked.skills.ritual=-1]){const saved=copy(f.store.saved);corrupt(saved.applications.byRole[CLERK.id]);assert.equal(fixture({saved}).careers.state().loadError,'invalid-career-state');}
 });
 test('odds use bounded career and real-profile factors while the day/role draw stays fixed',()=>{
@@ -65,4 +65,10 @@ test('odds use bounded career and real-profile factors while the day/role draw s
  const strict=careerInterview({...args,context:{recruiterTraits:{conscientiousness:.85}}});assert(strict.chance<base.chance);assert.equal(strict.roll,base.roll);
  const best=careerInterview({...args,skills:{ritual:100,writing:100},performance:100,context:{relationship:10,playerTraits:{quiet:100,curiosity:100}}});assert(best.chance<=.95);assert(best.chance<1,'hard gates and strong skills never guarantee hiring');
  assert.notEqual(base.roll,careerInterview({...args,day:2}).roll);assert.notEqual(base.roll,careerInterview({...args,role:TAVERN}).roll);
+});
+
+test('cooking deficits and chef interview receipts persist across v4 reload',()=>{
+ const f=fixture({worldSeed:26});assert.deepEqual(f.careers.apply(CHEF.id,{ageYears:18}).reasons,['cooking-required','ritual-required']);const old=copy(f.store.saved);const reload=fixture({saved:old,worldSeed:26});assert.equal(reload.careers.state().loadError,null);assert.deepEqual(reload.careers.applicationResult(CHEF.id).checked.skills,{cooking:0,ritual:0});assert.equal(reload.careers.apply(CHEF.id,{ageYears:18}).code,'already-applied-today');
+ for(const lesson of ['cooking-intro','cooking-intro','ritual-intro']){const t=reload.careers.learningTicket('cn-rest',lesson);assert(reload.careers.completeLearning(t.ticket,{seconds:8}).ok);}
+ reload.clock.day=2;assert(reload.careers.apply(CHEF.id,{ageYears:18}).ok);assert.equal(reload.careers.state().lastDuty,null);const restored=fixture({saved:reload.store.saved,worldSeed:26,day:2});assert.equal(restored.careers.state().loadError,null);assert(restored.careers.isHired(CHEF.id));assert.equal(restored.careers.applicationResult(CHEF.id).code,'approved');assert.equal(restored.careers.catalogue().find(r=>r.id===CHEF.id).vacancy,0);
 });

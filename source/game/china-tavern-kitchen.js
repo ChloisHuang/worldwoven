@@ -1,8 +1,9 @@
+export const TAVERN_DISHES=Object.freeze([{id:'yunlai-mushroom-rice',name:'云来菌菇饭',price:6},{id:'yunlai-green-noodles',name:'青蔬汤面',price:8}].map(Object.freeze));
 // The north service bay is the working kitchen, with its own prep bench, stove,
 // two-sided dish pass and wash basin. The perpendicular reception counter faces
 // the public aisle; its register and guest tea never occupy the kitchen pass.
-export const TAVERN_MEAL={id:'yunlai-mushroom-rice',name:'云来菌菇饭',host:'cn-tavern-host',cook:'cn-tavern-cook',floorY:.215,
- points:{host:[24.1,.215,11.4],prep:[23.3,.215,9.36],prepTop:[23.3,1.30,8.88],stove:[25.0,.215,9.36],stoveTop:[25.0,1.32,8.88],cookPass:[24.35,.215,9.56],hostPass:[24.35,.215,11.19],passTop:[24.35,1.31,10.34],wash:[25.1,.215,11.19],washTop:[25.1,1.30,10.34]}};
+export const TAVERN_MEAL={id:'yunlai-mushroom-rice',name:'云来菌菇饭',host:'cn-tavern-host',cook:'cn-tavern-cook',assistant:'cn-tavern-assistant',floorY:.215,
+ points:{assistant:[22.0,.215,14.1],host:[24.1,.215,11.4],prep:[23.3,.215,9.36],prepTop:[23.3,1.30,8.88],stove:[25.0,.215,9.36],stoveTop:[25.0,1.32,8.88],cookPass:[24.35,.215,9.56],hostPass:[24.9,.215,11.19],passTop:[24.35,1.31,10.34],wash:[25.1,.215,11.19],washTop:[25.1,1.30,10.34]}};
 export function buildTavernKitchen(G,{group:g,block,table,H}){
  // An actual timber screen separates prep from the stair bay; the 1.2m side
  // opening and front of the pass remain usable from the public hall.
