@@ -23,7 +23,7 @@ const finite=(n,fallback)=>Number.isFinite(n)?n:fallback;
 const round=n=>Math.round(n*1000000)/1000000;
 const adult=n=>Number.isFinite(n)&&n>=18;
 const OPEN=new Set(['submitted','awaiting-choice','accepted','charter-held']);
-const TERMINAL=new Set(['rejected','declined','withdrawn','appointed']);
+const TERMINAL=new Set(['rejected','declined','withdrawn','appointed','resigned']);
 const STAGES=new Set([...OPEN,...TERMINAL]);
 const ACTOR_TRAITS=['curiosity','quiet','sociability','outdoors'];
 const AGE_STAGES=['submitted','reviewed','accepted','received','appointed'];
@@ -116,7 +116,9 @@ function validate(value,worldSeed,actorId){
       p.stage==='declined'&&(p.choice?.value!=='decline'||p.handoff!==null||p.reading!==null)||
       p.stage==='accepted'&&(p.choice?.value!=='accept'||p.handoff!==null||p.reading!==null)||
       p.stage==='charter-held'&&(p.handoff===null||p.reading!==null)||
-      p.stage==='appointed'&&p.reading===null||p.stage==='withdrawn'&&p.reading!==null)fail();
+      ['appointed','resigned'].includes(p.stage)&&p.reading===null||p.stage==='withdrawn'&&p.reading!==null)fail();
+    if(p.stage==='resigned'){const r=p.resignation;if(!object(r)||r.reason!=='voluntary'||r.appointmentId!==`consort-appointment:${p.id}`||!time(r.at)||!after(r.at,p.reading.at)||!same(r.at,p.endedAt))fail();}
+    else if(p.resignation!=null)fail();
     last=p.endedAt||receiptTime(p);
   }
   if(open>1||open===1&&!OPEN.has(value.petitions.at(-1).stage))fail();
@@ -140,7 +142,7 @@ const REVIEW_REASONS=new Set(['relationship-reservations','different-disposition
  * a caller-supplied completed:true, dialogue timer or menu click is insufficient.
  * Every physical provider fails closed if absent. No host/world is auto-created.
  */
-export function createConsortPetitionLedger({saved,worldSeed=1,actorId='player',saveState,getClock,getPlayer,getEmperor,getCourt,getVacancy,getCareers,verifyReceipt}={}){
+export function createConsortPetitionLedger({saved,worldSeed=1,actorId='player',saveState,getClock,getPlayer,getEmperor,getCourt,getVacancy,getCareers,getReviewContext,verifyReceipt}={}){
   if(!text(actorId)||[EMPEROR_ID,HERALD_ID,...CONSORT_INCUMBENTS.map(c=>c.actorId)].includes(actorId)||typeof saveState!=='function'||typeof getClock!=='function')throw new TypeError('consort ledger requires a player identity, synchronous saveState and getClock');
   let current=empty(worldSeed),loadError=null,lastError=null,busy=false;
   try{if(saved!==undefined&&saved!==null)current=validate(saved,worldSeed,actorId);}catch{loadError='invalid-consort-state';}
@@ -186,7 +188,7 @@ export function createConsortPetitionLedger({saved,worldSeed=1,actorId='player',
     if(!at)reasons.push('invalid-clock');
     if(current.appointment)reasons.push('already-appointed');
     else if(p&&OPEN.has(p.stage))reasons.push('petition-pending');
-    else if(at&&current.petitions.some(p=>p.submittedAt.day===at.day))reasons.push('already-petitioned-today');
+    else if(at&&current.petitions.some(p=>p.submittedAt.day===at.day||p.resignation?.at.day===at.day))reasons.push('already-petitioned-today');
     return {ok:reasons.length===0,reasons,applicationId:at?consortPetitionId(actorId,at.day):null,residence:g.residence};
   }
   function checkReceipt(receipt,kind,p,at){
@@ -225,7 +227,8 @@ export function createConsortPetitionLedger({saved,worldSeed=1,actorId='player',
     if(p.stage!=='submitted')return fail('wrong-petition-stage');
     const at=clock();if(!at)return fail('invalid-clock');if(!checkReceipt(receipt,'audience',p,at))return fail('physical-audience-required');
     const career=read(getCareers);if(!object(career?.skills)||career.loadError)return fail('career-state-unavailable');
-    const review=reviewSnapshot(g.people.player,g.people.emperor,career.skills,p.roll);
+    const context=read(getReviewContext)||{};
+    const review=reviewSnapshot({...g.people.player,...context.player,id:actorId},{...g.people.emperor,...context.emperor,id:EMPEROR_ID},career.skills,p.roll);
     return update({...p,review,audience:copy(receipt),ages:{...p.ages,reviewed:ageRecord(g)},stage:review.passed?'awaiting-choice':'rejected',endedAt:review.passed?null:copy(receipt.at)});
   }
   function respond(id,choice){
@@ -258,6 +261,17 @@ export function createConsortPetitionLedger({saved,worldSeed=1,actorId='player',
     const blocked=guard(id);if(blocked)return blocked;const p=latest();if(p.stage==='withdrawn')return {...result(p),replayed:true};if(!OPEN.has(p.stage))return fail('wrong-petition-stage');
     const at=clock();if(!at)return fail('invalid-clock');return update({...p,stage:'withdrawn',endedAt:at});
   }
+  function titleStatus(){
+    const a=current.appointment,reasons=[];if(loadError)reasons.push(loadError);if(!a)reasons.push('not-appointed');
+    else {if(!people().ok)reasons.push('adults-required');reasons.push(...courtReasons());}
+    return {loadError,active:reasons.length===0,titleId:reasons.length===0?'consort':null,appointmentId:a?.id||null,appointmentReceiptId:a?.receiptId||null,residence:a?copy(a.residence):null,reasons};
+  }
+  function resignTitle(appointmentId,{confirmed=false}={}){
+    if(loadError||busy)return fail(loadError||'consort-busy');if(confirmed!==true)return fail('explicit-resignation-required');
+    const p=latest(),a=current.appointment;if(!a)return p?.stage==='resigned'&&p.resignation.appointmentId===appointmentId?{...result(p),replayed:true}:fail('not-appointed');
+    if(a.id!==appointmentId)return fail('stale-appointment');const at=clock();if(!at)return fail('invalid-clock');
+    return update({...p,stage:'resigned',endedAt:at,resignation:{appointmentId:a.id,reason:'voluntary',at}},null);
+  }
   function entitlement(){
     if(!current.appointment)return {eligible:false,reasons:[loadError||'not-appointed'],appointment:null};
     const g=gates({residence:current.appointment.residence,appointed:true});
@@ -267,35 +281,36 @@ export function createConsortPetitionLedger({saved,worldSeed=1,actorId='player',
     const p=latest();if(!p||!['awaiting-choice','accepted','charter-held'].includes(p.stage))return {ok:false,reasons:[loadError||'wrong-petition-stage']};
     const g=gates({residence:p.residence,career:true});return {ok:g.ok,reasons:g.reasons};
   }
-  const api={acceptanceAvailability,state:()=>({...copy(current),loadError,lastError}),availability,submit,reviewAudience,respond,receiveCharter,completeInvestiture,withdraw,
+  const api={titleStatus,resignTitle,acceptanceAvailability,appointment:()=>copy(current.appointment),witnessedEmperorAge:()=>current.appointment?latest()?.ages.appointed.emperor:null,state:()=>({...copy(current),loadError,lastError}),availability,submit,reviewAudience,respond,receiveCharter,completeInvestiture,withdraw,
     petition:()=>copy(latest()),history:()=>copy(current.petitions),
     residenceFor:()=>entitlement().appointment?.residence||null,
-    royalMealEligibility:()=>{const e=entitlement();return {eligible:e.eligible,reasons:e.reasons,actorId,titleId:e.eligible?'consort':null,appointmentId:e.appointment?.id||null};},
+    royalMealEligibility:()=>{const e=entitlement();return {eligible:e.eligible,reasons:e.reasons,actorId,titleId:e.eligible?'consort':null,appointmentId:e.appointment?.id||null,appointmentReceiptId:e.appointment?.receiptId||null};},
     charterRequest:()=>{const p=latest();return p&&['accepted','charter-held'].includes(p.stage)&&gates({residence:p.residence,career:true}).ok?{applicationId:p.id,documentId:consortCharterId(p.id),playerId:actorId,emperorId:EMPEROR_ID,residence:copy(p.residence)}:null;},
     statusCard:()=>consortPetitionStatusCard(api)};
   return api;
 }
 
-const STAGE_LABELS={none:'尚未自荐',submitted:'待皇帝召见', 'awaiting-choice':'已获准 · 待你答复',accepted:'已接受 · 待授册','charter-held':'册书在手 · 待宣读',appointed:'册封已生效',rejected:'本次未获准',declined:'你已婉拒',withdrawn:'自荐已撤回'};
+const STAGE_LABELS={none:'尚未自荐',submitted:'待皇帝召见', 'awaiting-choice':'已获准 · 待你答复',accepted:'已接受 · 待授册','charter-held':'册书在手 · 待宣读',appointed:'册封已生效',rejected:'本次未获准',declined:'你已婉拒',withdrawn:'自荐已撤回',resigned:'已自愿辞去名位'};
 export const CONSORT_REASON_TEXT=Object.freeze({
   'adults-required':'双方须年满18岁','real-residence-required':'须先有真实可用的独立寝房','residence-occupied':'寝房或卧榻已有归属','residence-changed':'申请中的寝房发生变化',
   'no-consort-vacancy':'妃嫔席位已满','already-petitioned-today':'今日已自荐，次日可再试','petition-pending':'已有自荐待办','already-appointed':'已有妃嫔名位',
   'finish-current-duty':'先完成原职位班次','settle-current-wages':'先结清原职位待领工资','leave-formal-career':'须由你先办妥原正式职位离任',
-  'career-state-unavailable':'原职业账暂不可核验','court-state-unavailable':'宫廷名册暂不可核验','court-registry-conflict':'宫廷名册有归属冲突','already-holds-political-title':'已有其他宫廷名位',
+  'career-state-unavailable':'原职业账暂不可核验','court-state-unavailable':'宫廷名册暂不可核验','court-registry-conflict':'宫廷名册有归属冲突','already-holds-political-title':'已有其他宫廷名位','explicit-resignation-required':'请明确确认辞去名位','title-rights-busy':'先结束寝居、用膳或册书中的活动',
   'relationship-reservations':'既有相处留下顾虑','different-dispositions':'性情取向尚不契合','emperor-unsettled':'此次召见时皇帝疲惫或饥饿','emperor-cautious':'皇帝性情审慎','personal-preference':'个人偏好未合','review-not-selected':'综合此次召见，皇帝未予批准',
 });
 // A compact data contract for the existing B+A card. No new HUD, remote
 // appointment action, empress/emperor route or intimacy button is introduced.
 export function consortPetitionStatusCard(ledger){
-  const p=ledger.petition(),s=ledger.state(),meal=ledger.royalMealEligibility(),availability=ledger.availability(),stage=p?.stage||'none';
-  const blockers=['awaiting-choice','accepted','charter-held'].includes(stage)?ledger.acceptanceAvailability().reasons:stage==='appointed'?meal.reasons:availability.reasons.filter(code=>code!=='petition-pending');
+  const p=ledger.petition(),s=ledger.state(),title=ledger.titleStatus(),availability=ledger.availability(),stage=p?.stage||'none';
+  const blockers=['awaiting-choice','accepted','charter-held'].includes(stage)?ledger.acceptanceAvailability().reasons:stage==='appointed'?title.reasons:availability.reasons.filter(code=>code!=='petition-pending');
   let primaryAction=null;
   if(!s.loadError){
     if(stage==='awaiting-choice')primaryAction=blockers.includes('adults-required')?{id:'withdraw',label:'撤回自荐',requiresPhysical:false}:{id:'respond',label:'答复册封意向',requiresPhysical:false};
     else if(stage==='charter-held'&&ledger.charterRequest())primaryAction={id:'read-charter',label:'当面宣读册书',requiresPhysical:true};
-    else if(['none','rejected','declined','withdrawn'].includes(stage)&&availability.ok)primaryAction={id:'visit-petition-desk',label:'到宫廷自荐处',requiresPhysical:true};
+    else if(stage==='appointed'&&title.active)primaryAction={id:'resign-title',label:'辞去名位',requiresPhysical:false};
+    else if(['none','rejected','declined','withdrawn','resigned'].includes(stage)&&availability.ok)primaryAction={id:'visit-petition-desk',label:'到宫廷自荐处',requiresPhysical:true};
   }
-  return {identity:meal.eligible?'妃嫔':s.appointment?'册封记录待核':'无宫廷名位',titleId:meal.eligible?'consort':null,residence:ledger.residenceFor(),stage,stageLabel:stage==='appointed'&&!meal.eligible?'已有册封记录 · 资格待核':STAGE_LABELS[stage],
+  return {identity:title.active?'妃嫔':s.appointment?'册封记录待核':'无宫廷名位',titleId:title.titleId,residence:title.active?title.residence:null,stage,stageLabel:stage==='appointed'&&!title.active?'已有册封记录 · 资格待核':STAGE_LABELS[stage],
     primaryAction,result:p?.review?{passed:p.review.passed,reasons:p.review.reasons.map(code=>({code,text:CONSORT_REASON_TEXT[code]||code}))}:null,
-    blockers:blockers.map(code=>({code,text:CONSORT_REASON_TEXT[code]||code})),historyCount:ledger.history().length};
+    blockers:blockers.map(code=>({code,text:CONSORT_REASON_TEXT[code]||code})),historyCount:s.petitions.length};
 }

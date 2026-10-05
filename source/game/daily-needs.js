@@ -1,3 +1,4 @@
+import {sameRoyalPlayerEligibility} from './china-royal-kitchen-orders.js';
 import {EGYPT_MEAL,validEgyptMealReceipt} from './egypt-meal-definition.js';
 import {CHINA_OFFICIAL_IDS} from './china-official-economy.js';
 import {GAME_MINUTES_PER_SECOND} from './simulation-clock.js';
@@ -19,12 +20,15 @@ const clamp=x=>Math.max(0,Math.min(1,x));
 const mealSource='china-tavern-meal';
 const mealSources=new Set([mealSource,'japan-player-meal','france-tea-food','france-full-meal','egypt-visitor-meal','japan-staff-meal','china-royal-kitchen']);
 const toiletFacilities={'china-toilet':'cn-bath-toilet','japan-toilet':'jp-washroom-private-1','france-toilet':'fr-royal-bath-toilet','egypt-toilet':'eg-private-bath-toilet'};
-function validMeal(receipt){
+function validMeal(receipt,getRoyalMealEligibility){
  const r=receipt,n=r.number;
  if(r.source==='egypt-visitor-meal')return r.paid===true&&validEgyptMealReceipt(r);
  if(r.source===mealSource)return r.orderId===`cn-tavern-order-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-dish'&&['yunlai-mushroom-rice','yunlai-green-noodles'].includes(r.dishId)&&r.paymentReceipt===r.orderId;
  if(r.source==='japan-staff-meal')return JAPAN_STAFF_CREW.includes(r.actorId)&&r.orderId===`jp-staff-meal-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+':bowl'&&r.dishId==='staff-ramen'&&r.supplyReceipt===r.orderId+':prepared';
- if(r.source==='china-royal-kitchen')return royalActors.has(r.actorId)&&r.orderId===`cn-royal-meal-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-meal'&&r.dishId==='royal-steamed-meal'&&r.supplyReceipt===r.orderId+'-prepared';
+ if(r.source==='china-royal-kitchen'){
+  const eligibility=r.actorId==='player'?getRoyalMealEligibility():null;
+  return (royalActors.has(r.actorId)||r.actorId==='player'&&sameRoyalPlayerEligibility(r.eligibility,eligibility)&&Number.isFinite(r.eatingSeconds)&&r.eatingSeconds>=12)&&r.orderId===`cn-royal-meal-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-meal'&&r.dishId==='royal-steamed-meal'&&r.supplyReceipt===r.orderId+'-prepared';
+ }
  if(r.actorId!=='player')return false;
  if(r.source==='france-full-meal')return r.orderId===`france-tea-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-tray'&&r.dishId==='country-soup-bread'&&r.supplyReceipt===r.orderId+'-prepared'&&r.paymentReceipt===r.orderId+'-meal'&&r.paid===true;
  if(r.source==='japan-player-meal'){
@@ -33,7 +37,7 @@ function validMeal(receipt){
  }
  return r.source==='france-tea-food'&&r.orderId===`france-tea-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-tray'&&r.dishId==='tea-cake'&&r.supplyReceipt===r.orderId;
 }
-export function createDailyNeeds({saved={},getClock=()=>({seconds:0}),saveState=()=>true,legacyPeople={}}={}){
+export function createDailyNeeds({saved={},getClock=()=>({seconds:0}),saveState=()=>true,legacyPeople={},getRoyalMealEligibility=()=>null}={}){
  const people={};let sceneId=null,activeIds=new Set(),lastClock=positive(getClock()?.seconds),lastSample=lastClock;
  for(const id of DAILY_NEEDS_ACTORS){
   const old=[1,2].includes(saved.version)?saved.people?.[id]:null,legacy=legacyPeople[id]?.needs?.hunger;
@@ -58,7 +62,7 @@ export function createDailyNeeds({saved={},getClock=()=>({seconds:0}),saveState=
  function apply(receipt,kind){
   sync();const p=people[receipt?.actorId],source=receipt?.source,n=receipt?.number;
   if(!p||receipt.source!==source||kind==='meal'&&!mealSources.has(source)||!Number.isSafeInteger(n)||n<=0||n<=(p.receipts[source]||0)||receipt.completed!==true)return false;
-  if(kind==='meal'&&!validMeal(receipt))return false;
+  if(kind==='meal'){try{if(!validMeal(receipt,getRoyalMealEligibility))return false;}catch{return false;}}
   if(kind==='toilet'&&(!toiletFacilities[source]||receipt.id!==`${source}-${n}`||receipt.facilityId!==toiletFacilities[source]))return false;
   const next={version:2,people:copy(people)},row=next.people[receipt.actorId];
   if(kind==='toilet')row.toiletAge=0;

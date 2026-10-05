@@ -39,7 +39,7 @@ test('physical adult petition, audience, explicit choice, handoff and reading co
   const held=f.core.petition();assert.equal(f.core.charterRequest().documentId,consortCharterId(held.id));
   assert.equal(f.read().code,'appointed');const a=f.core.state().appointment;
   assert.equal(a.titleId,'consort');assert.equal(a.residence.slotId,CONSORT_SEAT_ID);assert.equal(a.residence.roomId,'consort-reserve-1');assert.equal(a.residence.bedId,'china-consort-bed-reserve-1');
-  assert.equal(f.core.royalMealEligibility().eligible,true);assert.equal(f.core.statusCard().identity,'妃嫔');assert.equal(f.core.statusCard().primaryAction,null);
+  assert.equal(f.core.royalMealEligibility().eligible,true);assert.equal(f.core.statusCard().identity,'妃嫔');assert.equal(f.core.statusCard().primaryAction.id,'resign-title');
   assert.deepEqual(f.career,originalCareer);assert.deepEqual(f.court,originalCourt);assert.equal(f.calls.save,5);
 });
 
@@ -164,4 +164,15 @@ test('completed physical checkpoints can retry after time advances without chang
   }
   const f=fixture({seed:GOOD});advance(f,'awaiting-choice');f.clock.hour=9;assert(f.accept().ok);const receipt=f.receipt('charter-handoff');receipt.at.hour=8;f.evidence.set(receipt.id,copy(receipt));
   assert.equal(f.core.receiveCharter(f.core.petition().id,receipt).code,'physical-charter-required');
+});
+
+test('voluntary title resignation preserves the witnessed history, releases only the fourth claim and locks the resignation day',()=>{
+  const f=fixture({seed:GOOD});advance(f,'appointed');const id=f.core.state().appointment.id,career=copy(f.career),court=copy(f.court);
+  assert.equal(f.core.titleStatus().active,true);assert.equal(f.core.royalMealEligibility().appointmentReceiptId,f.core.petition().reading.id);
+  assert.equal(f.core.resignTitle(id).code,'explicit-resignation-required');assert.equal(f.core.resignTitle('wrong',{confirmed:true}).code,'stale-appointment');
+  f.clock.day=2;f.flags.fail=true;assert.equal(f.core.resignTitle(id,{confirmed:true}).code,'save-failed');assert(f.core.titleStatus().active);f.flags.fail=false;
+  assert.equal(f.core.resignTitle(id,{confirmed:true}).code,'resigned');assert.equal(f.core.resignTitle(id,{confirmed:true}).replayed,true);
+  assert.equal(f.core.titleStatus().active,false);assert.equal(f.core.state().appointment,null);assert.equal(f.core.petition().reading.kind,'charter-reading');assert.equal(f.core.history().length,1);
+  assert.equal(f.core.availability().reasons.includes('already-petitioned-today'),true);assert.deepEqual(f.career,career);assert.deepEqual(f.court,court);
+  const re=fixture({seed:GOOD,saved:f.saved.value,clock:{day:2,hour:8}});assert.equal(re.core.state().loadError,null);assert.equal(re.core.availability().ok,false);re.clock.day=3;assert(re.submit().ok);assert.equal(re.core.history()[0].stage,'resigned');
 });

@@ -1,3 +1,4 @@
+import {canUseConsortQuarterFurniture} from '../source/game/china-consort-quarters.js';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
@@ -37,14 +38,14 @@ function fixture({distance=.03,route=true,provider=true}={}){
   PLAYER_TRAVEL_SCALE:1,automaticDoors:router,followActorRoute,nearbyInteraction,currentInteractionIntent,canTraverse,
   menuOpen:false,interactionMenuOpen:()=>c.menuOpen,showDoorwayHint(){},activeDailyToilet:()=>null,groundHeight:()=>0,
   movementInputMagnitude:n=>Math.min(1,n),characterPoseContext:()=>({}),levelForPosition:()=>null,
-  stationIntent:s=>s,nearbyInteractions:()=>[],uniqueInteractionActions:s=>s,contextualTarget:s=>s,nearbyInteractionClear:()=>true,
+  canUseConsortQuarterFurniture,stationIntent:s=>s,nearbyInteractions:()=>[],uniqueInteractionActions:s=>s,contextualTarget:s=>s,nearbyInteractionClear:()=>true,
   serviceMenus:{candidates:()=>[]},studyMenu:{close(){}},formalCareers:{cancelLearning(){}},outfitPreview:{state:()=>({open:false})},
   furniture:{items:[],releaseActor(){counts.released++;},canSit:()=>true,canUse:()=>true,resolveBath:item=>item,occupyBath(){},standPoint:()=>new THREE.Vector3()},
   furniturePose:()=> 'sit',furnitureStatus:()=> '坐下',furnitureExit:()=> '起身',clearFeetPulse(){},buildPlayer(){},finishInteraction(){},
   toast:s=>messages.push(s),$:id=>{if(!elements.has(id))elements.set(id,{style:{}});return elements.get(id);},
   addEventListener:(name,fn)=>events[name]=fn,
  };
- for(const name of ['egyptMeal','egyptMealUI','japanPerformance','japanPerformanceUI','franceTea','franceMealUI','franceTeaEmployment','francePastryEmployment','franceGardener','franceLabor','japanWeatherCharms','japanService','japanPlayerService','japanServiceUI','japanReceptionEmployment','japanBathDeliveryEmployment','japanBathMixingEmployment','japanKitchenEmployment','chinaArchery','chinaGuardEmployment','chinaRoyalKitchen','chinaRoyalKitchenEmployment','chinaPalace','chinaAudience','chinaEdict','chinaClinic','chinaClinicEmployment','chinaClinicPhysicianEmployment','chinaMoneyHouse','chinaTavern','chinaTavernUI','chinaLodging','chinaLodgingUI','chinaSalon','chinaSalonEmployment','chinaSalonUI','chinaLabor','chinaService','chinaCareer','npcSocial'])c[name]=null;
+ for(const name of ['chinaConsortUI','chinaConsortCourt','chinaRoyalPlayerMeal','consortBridge','egyptMeal','egyptMealUI','japanPerformance','japanPerformanceUI','franceTea','franceMealUI','franceTeaEmployment','francePastryEmployment','franceGardener','franceLabor','japanWeatherCharms','japanService','japanPlayerService','japanServiceUI','japanReceptionEmployment','japanBathDeliveryEmployment','japanBathMixingEmployment','japanKitchenEmployment','chinaArchery','chinaGuardEmployment','chinaRoyalKitchen','chinaRoyalKitchenEmployment','chinaPalace','chinaAudience','chinaEdict','chinaClinic','chinaClinicEmployment','chinaClinicPhysicianEmployment','chinaMoneyHouse','chinaTavern','chinaTavernUI','chinaLodging','chinaLodgingUI','chinaSalon','chinaSalonEmployment','chinaSalonUI','chinaLabor','chinaService','chinaCareer','npcSocial'])c[name]=null;
  let live=target,acting=false;
  c.chinaService={resolveIntent:selected=>currentInteractionIntent(selected,live),executeIntent(selected){assert.equal(c.player.walking,false,'provider must begin on a stationary frame');counts.started++;acting=true;},stopActivity(){if(acting)counts.cancelled++;acting=false;},playerAction:()=>acting?'tidy':null,playerStation:()=>null,label:()=>null,intent:()=>null};
  c.contextMenu={update(){},activate(){c.executeNearbyAction(c.currentControl()||live);}};
