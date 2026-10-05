@@ -1,0 +1,45 @@
+// One production-main Japanese handoff → private cubicle → covered return,
+// then supplied staff meal. Player travels normally, cancels and completes at
+// the same occupied fixture. Simulated DOM; optional normal TPS Mesa capture.
+const fs=require('node:fs'),vm=require('node:vm');
+let harness=fs.readFileSync('tests/fixtures/hotfix-input-harness.cjs','utf8');
+const additions="\nexport function dailyReview(){return {player,npcs,lot,camera,scene,sun,lighting,furniture,japanDailyToilet,japanService,dailyNeeds,saved,copperLedger};} export {requestStationIntent,navigateTo};";
+harness=harness.replace("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),","new vm.SourceTextModule(fs.readFileSync(file,'utf8')+(file.endsWith('/game/main.js')?"+JSON.stringify(additions)+":''),");
+harness=harness.replace('vm.createContext({console,','vm.createContext({URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,console,').replace('{identifier:file,context}','{identifier:file,context,initializeImportMeta:meta=>{meta.url=require("node:url").pathToFileURL(file).href;}}').replace('add(...e){this.append(...e)}','prepend(...els){for(const e of els.reverse()){e.remove?.();e.parent=this;this.children.unshift(e);}}add(...e){this.append(...e)}');
+harness=harness.replace("const document={body:new E('body'),","const document={head:new E('head'),body:new E('body'),");
+harness=harness.replace('getBoundingClientRect(){return', 'getClientRects(){return this.hidden?[]:[this.getBoundingClientRect()]}getBoundingClientRect(){return');
+const crew=['jp-ramen','jp-sushi','jp-welcome','jp-market-tea','jp-incense','jp-herb-workshop','jp-onsen','jp-steam','jp-women-onsen','jp-rest','jp-omamori','jp-garden-onsen','jp-tea','jp-balcony'];
+const seed={version:1,people:Object.fromEntries(['player',...crew].map(id=>[id,{foodAge:id==='jp-ramen'?12*60/.7:0,toiletAge:['player','jp-ramen'].includes(id)?25*60/.7:0,receipts:{}}]))};
+if(process.env.TOILET_CAPTURE_ONLY==='1')for(const id of crew){seed.people[id].foodAge=0;seed.people[id].toiletAge=0;}
+const life={version:8,nextId:'jp-ramen',dueIn:0,breakDue:Object.fromEntries(crew.map(id=>[id,id==='jp-ramen'?0:1e9]))};
+if(process.env.TOILET_CAPTURE_ONLY==='1')life.breakDue['jp-ramen']=1e9;
+harness=harness.replace('let context=vm.createContext(',"const needsSeed=JSON.parse(storage['worlds-days-v1']);needsSeed.dailyNeeds="+JSON.stringify(seed)+";needsSeed.japanOperations={staffLife:"+JSON.stringify(life)+"};storage['worlds-days-v1']=JSON.stringify(needsSeed);let context=vm.createContext(");
+const begin=harness.indexOf('const report=[];for(let round=0;'),end=harness.indexOf('\nconsole.log(JSON.stringify(',begin);
+const body=String.raw`
+const report={status:'RUNNING',scope:'One Japan production-main physiology lifecycle; simulated DOM and optional Mesa image',checks:[]};
+const record=label=>{report.checks.push(label);console.log(label);};
+let r,last='';const observed=new Set();
+const frame=(n=1)=>{for(let i=0;i<n;i++){now+=33.333;raf();if(r){const a=r.japanService.state().staffLife.active,phase=a?.id+':'+a?.phase;if(phase!==last){last=phase;console.log(JSON.stringify({phase,at:state().simulationClock.seconds,position:r.npcs.find(n=>n.station.id===a?.id)?.root.position.toArray()}));}if(a?.id==='jp-ramen'){observed.add(a.phase);if(['toilet','toilet-use','preparing','meal','returning'].includes(a.phase))assert(r.japanService.state().staffLife.active.reliefId==='jp-sushi');}}}};
+const until=(pred,label,max=10000)=>{let n=0;for(;n<max&&!pred();n++)frame();assert(pred(),label+' '+JSON.stringify({player:state().player,toilet:state().japanDailyToilet,staff:r?.japanService.state().staffLife,failures:r?.japanService.state().failures}));record(label);};
+const key=code=>events.keydown({code,repeat:false,preventDefault(){}});
+const capture=async()=>{
+if(process.env.OUT_DIR){
+ const W=await import('/workspace/shared/cultural-life-r12-webgl/node_modules/@onirenaud/node-webgl/dist/index.js');W.installDOM({fetch:false});W.init({api:'gles'});const canvas=W.createCanvas(844,390),renderer=new three.namespace.WebGLRenderer({canvas,antialias:true});renderer.setSize(844,390,false);renderer.outputColorSpace=three.namespace.SRGBColorSpace;const camera=r.camera.clone();camera.aspect=844/390;camera.updateProjectionMatrix();renderer.render(r.scene,camera);renderer.getContext().finish();assert.equal(renderer.getContext().getError(),0);fs.mkdirSync(process.env.OUT_DIR,{recursive:true});fs.writeFileSync(process.env.OUT_DIR+'/japan-private-toilet-tps.png',canvas.toBuffer('image/png'));renderer.dispose();canvas.dispose();record('captured actual private use from the normal production follow camera');
+}
+};
+all.find(e=>e.dataset.region==='japan').onclick();ids.travel.onclick();r=main.namespace.dailyReview();frame();assert(r.japanDailyToilet.state().available);assert.equal(r.japanService.state().staffLife.crew.length,14);
+if(process.env.TOILET_CAPTURE_ONLY==='1'){assert(main.namespace.requestStationIntent(r.japanDailyToilet.intent()));until(()=>r.japanDailyToilet.state().activity?.stage==='using','player naturally reaches the private cubicle for revised seated follow camera');frame(30);await capture();ids['return-world'].onclick();console.log(JSON.stringify({status:'PASS',scope:'Bounded normal seated camera recapture; prior full needs lifecycle reused'}));return;}
+const cash=r.copperLedger.balances().copper.cash,hunger=r.dailyNeeds.hunger('jp-ramen');
+until(()=>r.japanDailyToilet.state().activity?.actorId==='jp-ramen'&&r.japanDailyToilet.state().activity?.stage==='using','same staff member hands over real work and walks through the washhouse door');assert(observed.has('handoff'));assert(observed.has('toilet'));assert.equal(r.npcs.find(n=>n.station.id==='jp-ramen').getPoseMetrics().action,'chair-sit');assert(!r.japanDailyToilet.requestActor(r.player),'the shared occupied cubicle rejects another user');
+until(()=>r.japanDailyToilet.state().receipts.some(v=>v.actorId==='jp-ramen'),'staff private use completes one durable receipt');assert(r.dailyNeeds.snapshot().people['jp-ramen'].toiletAge<1);assert.equal(r.dailyNeeds.hunger('jp-ramen'),hunger,'toilet cannot satisfy hunger');
+until(()=>r.japanService.state().staffLife.completed>=1,'retiring staff actually returns before duty is available');assert.equal(r.japanService.state().staffLife.active,null);
+assert(main.namespace.requestStationIntent(r.japanDailyToilet.intent()));until(()=>r.japanDailyToilet.state().activity?.actorId==='player'&&r.japanDailyToilet.state().activity?.stage==='using','player follows the ordinary public route to the same closed private cubicle');assert(state().playerPose.seated);frame(20);const beforeCancel=r.dailyNeeds.snapshot().people.player.toiletAge;key('KeyE');frame();assert(!r.japanDailyToilet.active());assert(r.dailyNeeds.snapshot().people.player.toiletAge>=beforeCancel);assert(!r.japanDailyToilet.state().receipts.some(v=>v.actorId==='player'));record('player E cancellation gives no receipt and no relief');
+assert(main.namespace.requestStationIntent(r.japanDailyToilet.intent()));until(()=>r.japanDailyToilet.state().activity?.stage==='using','cancelled fixture is reusable');
+await capture();
+until(()=>r.japanDailyToilet.state().receipts.some(v=>v.actorId==='player'),'player completed use relieves exactly once');assert(r.dailyNeeds.snapshot().people.player.toiletAge<1);assert(!r.japanDailyToilet.active());
+until(()=>r.japanService.state().staffLife.mealReceipts.some(v=>v.actorId==='jp-ramen'&&v.delivered),'hungry staff prepares one existing kitchen meal, walks upstairs and actually finishes eating',12000);assert(r.dailyNeeds.hunger('jp-ramen')<.005);assert(observed.has('preparing')&&observed.has('meal'));assert.equal(r.copperLedger.balances().copper.cash,cash,'staff meals do not create player money');
+events.pagehide();const saved=r.dailyNeeds.snapshot(),receipts=r.japanService.state().staffLife.mealReceipts;assert.equal(receipts.length,1);assert(r.saved.japanOperations.staffLife.mealReceipts.some(v=>v.id===receipts[0].id));assert.equal(r.dailyNeeds.mealReceipts(receipts),false);record('completed source/save receipt is durable and cannot replay hunger relief');
+ids['return-world'].onclick();assert.equal(state().characterResources.activeReferences,0);frame(20);assert.deepEqual(r.dailyNeeds.snapshot(),saved);report.status='PASS';report.maxRSSMiB=process.resourceUsage().maxRSS/1024;console.log(JSON.stringify(report));
+`;
+harness=harness.slice(0,begin)+body+harness.slice(end);harness=harness.replace(/console.log\(JSON.stringify\(\{status:'PASS',scope:'Production controller[\s\S]*?\},null,2\)\);/,'');
+new vm.Script(harness,{filename:'tests/japan-daily-needs-main-inherited.cjs',importModuleDynamically:vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER}).runInNewContext({URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,require,console,process,Buffer,global,__dirname:process.cwd()+'/tests',__filename});

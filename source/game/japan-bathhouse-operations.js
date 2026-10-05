@@ -99,7 +99,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   tell(n,task.label||'稍作等候');
   if(task.after&&!task.after())return;
   if(!task.arrived) {
-   if(near(n.root.position,task.to)) {
+   if(near(n.root.position,task.to,task.arrivalRadius??.08)) {
     n.route=[];task.arrived=true;task.stalled=0;
     if(task.mount) {
      const allowed=task.mount.kind!=='seat'?furniture.canUse(navigation,safety(n),task.mount):furniture.canSit(navigation,safety(n),task.mount);

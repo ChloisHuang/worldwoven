@@ -38,10 +38,11 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
  const events=[];let reliefLook=null,resumeReturn=saved.version>=6&&!!saved.returning;
  const decisions=createLifeDecisions({worldSeed,actorIds:crew.map(n=>n.station.id),saved:saved.decisions,sharedNeeds});
  const copy=x=>JSON.parse(JSON.stringify(x));
- let mealSerial=Math.max(0,Number.isSafeInteger(saved.mealSerial)?saved.mealSerial:0),mealReceipts=(saved.mealReceipts||[]).filter(r=>r?.source==='japan-staff-meal'&&Number.isSafeInteger(r.number)&&r.number>0&&r.id===`jp-staff-meal-${r.number}-consumed`&&r.completed===true&&JAPAN_STAFF_CREW.includes(r.actorId)).map(copy),needCheckAt=0,receiptRetryAt=0;
+ let mealSerial=Math.max(0,Number.isSafeInteger(saved.mealSerial)?saved.mealSerial:0),mealReceipts=(Array.isArray(saved.mealReceipts)?saved.mealReceipts:[]).filter(r=>r?.source==='japan-staff-meal'&&Number.isSafeInteger(r.number)&&r.number>0&&r.id===`jp-staff-meal-${r.number}-consumed`&&r.completed===true&&JAPAN_STAFF_CREW.includes(r.actorId)).map(copy),needCheckAt=0,receiptRetryAt=0;
  mealSerial=Math.max(mealSerial,...mealReceipts.map(r=>r.number));
  const phase=id=>decisions.state(id).traits.quiet*45;
  const due=Object.fromEntries(crew.map(n=>{const id=n.station.id;return [id,Number.isFinite(saved.breakDue?.[id])?saved.breakDue[id]:time+(saved.version&&id===crew[next].station.id?dueIn:dueIn+phase(id)+1)];}));
+ const needRetryAt={...(saved.needRetryAt||{})};
  const dueOrder=(a,b)=>due[a.station.id]-due[b.station.id]||(a.station.id<b.station.id?-1:1);
  const nextWorker=()=>active?actors.get(active.id):crew.slice().sort(dueOrder)[0];
  const post=id=>{const n=actors.get(id),mount=id==='jp-tea'?KOTATSU:null;return {to:mount?mount.position:n.home.toArray(),mount,action:n.station.npcAction,workTarget:n.station.workTarget,face:n.station.workTarget,label:n.station.npcLabel};};
@@ -87,7 +88,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   const need=sharedNeeds?.status(active.id),toilet=getToilet();
   if(need?.seekToilet&&toilet?.requestActor(n)){
    active.choice=null;active.phase='toilet';note('toilet-chosen');
-   go(n,toilet.state().approach,{label:'交班后前往东侧净室',onDone:()=>{active.phase='toilet-use';return true;}});return;
+   go(n,toilet.state().approach,{arrivalRadius:.04,label:'交班后前往东侧净室',onDone:()=>{active.phase='toilet-use';return true;}});return;
   }
   const choices=candidates(n,state),choice=decisions.choose(active.id,need?.seekMeal?choices.filter(c=>c.id==='meal'):choices,Number.isFinite(state.hour)?state.hour:night?22:12);
   if(!choice){active.phase='returning';note('no-leisure-available');return;}
@@ -102,6 +103,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   // A person's next due time does not stretch when unrelated workers are added.
   // The one shared relief slot still imposes real capacity and coverage limits.
   const need=sharedNeeds?.status(active.id);
+  needRetryAt[active.id]=time+20;
   due[active.id]=time+(active.interrupted||need?.seekMeal||need?.seekToilet?20:night?420:900);
   active=null;return true;
  }
@@ -125,7 +127,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
     if(!active.retireReady)go(n,shift.retire,{face:shift===APOTHECARY||shift.side||shift.local?shift.relief:null,label:`把${shift.duty}交给 ${relief.station.npcName}`,duration:1,onDone:()=>{active.retireReady=true;return met();}});
     if(!active.reliefReady)go(relief,shift.relief,{...(reliefPost?.mount?{mount:reliefPost.mount,action:reliefPost.action,workTarget:reliefPost.workTarget}:{}),face:reliefPost?.mount?reliefPost.workTarget:shift===APOTHECARY||shift.side||shift.local?shift.retire:null,label:`接替 ${n.station.npcName} 的${shift.duty}`,duration:1,onDone:()=>{active.reliefReady=true;return met();}});
  }
- function snapshot(){return ({version:8,mealSerial,mealReceipts:copy(mealReceipts),next:crew.indexOf(nextWorker()),nextId:nextWorker().station.id,clock:time,night,breakDue:{...due},dueIn:active?0:Math.max(0,due[nextWorker().station.id]-time),completed,interrupted,returning:active?['returning','reclaiming'].includes(active.phase):resumeReturn,returnInterrupted:active?active.interrupted:resumeReturn&&!!saved.returnInterrupted,decisions:decisions.snapshot()});}
+ function snapshot(){return ({version:8,mealSerial,mealReceipts:copy(mealReceipts),needRetryAt:{...needRetryAt},next:crew.indexOf(nextWorker()),nextId:nextWorker().station.id,clock:time,night,breakDue:{...due},dueIn:active?0:Math.max(0,due[nextWorker().station.id]-time),completed,interrupted,returning:active?['returning','reclaiming'].includes(active.phase):resumeReturn,returnInterrupted:active?active.interrupted:resumeReturn&&!!saved.returnInterrupted,decisions:decisions.snapshot()});}
  function persistMeals(nextSerial,nextReceipts){
   try{const result=saveState({...snapshot(),mealSerial:nextSerial,mealReceipts:copy(nextReceipts)});if(result===false||result?.then)return false;}catch{return false;}
   mealSerial=nextSerial;mealReceipts=nextReceipts;return true;
@@ -174,7 +176,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
    if(time>=receiptRetryAt){receiptRetryAt=time+1;deliverMeals();}
    // One bounded needs check each second; decisions still happen only after
    // the existing real handoff, and no claimed order is interrupted.
-   if(sharedNeeds&&time>=needCheckAt){needCheckAt=time+1;for(const n of crew){const id=n.station.id,need=sharedNeeds.status(id);if(need?.seekMeal||need?.seekToilet)due[id]=Math.min(due[id],time);}}
+   if(sharedNeeds&&time>=needCheckAt){needCheckAt=time+1;for(const n of crew){const id=n.station.id,need=sharedNeeds.status(id);if(time>=(needRetryAt[id]||0)&&(need?.seekMeal||need?.seekToilet))due[id]=Math.min(due[id],time);}}
    if(!!state.night!==night){night=!!state.night;if(night)for(const n of crew){const id=n.station.id;due[id]=Math.min(due[id],time+10+phase(id));}}
    if(!active){
     // Reserve only the relief slot now. Existing jobs drain before the real
@@ -194,7 +196,8 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
     const toilet=getToilet();
     if(state.conversationActorId===active.id){interrupt(n);return;}
     if(toilet?.ownsActor(n)){toilet.updateActor(n,dt);const label=toilet.label(active.id);if(taskOf(n)&&label)taskOf(n).label=label;return;}
-    clear(n);active.phase='returning';note('toilet-finished');return;
+    const outcome=toilet?.state().lastOutcome,completed=outcome?.actorId===active.id&&outcome.status==='completed';
+    clear(n);active.phase='returning';if(!completed)active.interrupted=true;note(completed?'toilet-finished':'toilet-interrupted');return;
    }
    if(active.phase==='handoff'||busy(n))return;
    if(active.phase==='choosing')chooseBreak(n,state);

@@ -19,6 +19,7 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
  const receiptId=number=>P.receiptSource+'-'+number;
  const validReceipt=r=>r&&Number.isSafeInteger(r.number)&&r.number>0&&r.id===receiptId(r.number)&&typeof r.actorId==='string'&&r.source===P.receiptSource&&r.facilityId===P.id&&r.completed===true;
  const target=lot?.explorationTargets?.find(t=>t.id===P.id),room=P.privacyBounds||lot?.interiorRooms?.find(r=>r.id===P.roomId);
+ const atApproach=actor=>at(actor,P.approach,P.executionRadius??.12);
  const mountedAt=actor=>at(actor,P.anchor,.2)||(P.legacyAnchors||[]).some(point=>at(actor,point,.2));
  const available=!!target&&target.position.every((v,i)=>Math.abs(v-P.approach[i])<.03)&&!!room;
  if(available)prepareLot(lot);
@@ -86,7 +87,7 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
  function reserve(actor){
   if(disposed||!available||!actor?.root||!recover()||current||getBusy(idOf(actor),actor))return false;
   const actorId=idOf(actor);if(!actorId||(cooldowns.get(actorId)||0)>time)return false;
-  const number=durable.serial+1,id=receiptId(number),stage=at(actor,P.approach)?'waiting-privacy':'approaching';
+  const number=durable.serial+1,id=receiptId(number),stage=atApproach(actor)?'waiting-privacy':'approaching';
   const pending={id,number,actorId,facilityId:P.id,stage,...clock()};
   if(!persist({...durable,serial:number,pending}))return false;
   const p=actor.root.position;
@@ -103,7 +104,7 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
   return release();
  }
  function mount(){
-  const c=current;if(!c||!at(c.actor,P.approach)||!privacy(c.actor,true).ok)return false;
+  const c=current;if(!c||!atApproach(c.actor)||!privacy(c.actor,true).ok)return false;
   if(!persist({...durable,pending:{...durable.pending,stage:'using'}}))return false;
   c.stage='using';c.mounted=true;c.elapsed=0;c.actor.root.position.set(...P.anchor);c.actor.root.rotation.y=P.yaw;c.actor.walking=false;c.actor.route=[];return true;
  }
@@ -120,11 +121,11 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
   const c=current;c.lastDriven=time;dt=finiteSeconds(dt);
   if(c.stage==='leaving'){release();return true;}
   if(c.stage==='approaching'){
-   if(!at(actor,P.approach)&&travel)travel([...P.approach],dt);
-   if(at(actor,P.approach)){c.stage='waiting-privacy';c.wait=0;actor.walking=false;actor.route=[];}return true;
+   if(!atApproach(actor)&&travel)travel([...P.approach],dt);
+   if(atApproach(actor)){c.stage='waiting-privacy';c.wait=0;actor.walking=false;actor.route=[];}return true;
   }
   if(c.stage==='waiting-privacy'){
-   if(!at(actor,P.approach)){cancel('left-approach',c.actorId);return true;}
+   if(!atApproach(actor)){cancel('left-approach',c.actorId);return true;}
    actor.walking=false;c.wait+=dt;
    if(privacy(actor).ok){mount();return true;}
    if(c.wait>=15){cancel('privacy-unavailable',c.actorId);if(c.actorId==='player')notify('净室还未空闲，请稍后再来');}return true;
@@ -147,7 +148,7 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
   return current.stage==='approaching'?P.approachLabel:current.stage==='waiting-privacy'?P.privacyLabel:current.stage==='leaving'?'等出口让开':lastError==='save-failed'?'正在保存如厕记录':`如厕中 · ${Math.floor(current.elapsed)}/${P.seconds}秒`;
  }
  return {
-  intent,resolveIntent,executeIntent(selected){if(!resolveIntent(selected)||!at(getPlayer(),P.approach))return false;const ok=reserve(getPlayer());if(!ok)notify(current?'净室有人使用，请稍后再来':'暂时无法使用净室，请稍后再试');return ok;},
+  intent,resolveIntent,executeIntent(selected){if(!resolveIntent(selected)||!atApproach(getPlayer()))return false;const ok=reserve(getPlayer());if(!ok)notify(current?'净室有人使用，请稍后再来':'暂时无法使用净室，请稍后再试');return ok;},
   requestActor:reserve,updateActor:(actor,dt,{travel}={})=>tick(actor,dt,travel),ownsActor:actor=>!!current&&current.actor===actor,
   active:(actorId='player')=>!!current&&(!actorId||current.actorId===actorId),cancel,
   actorPose:pose,playerPose:()=>pose(getPlayer()),playerAction:()=>pose(getPlayer())?.action||null,label,
