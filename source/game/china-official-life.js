@@ -191,7 +191,8 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   },
   restore,mountForActor:n=>stages.get(n)?.mount||null,
   socialProfile:id=>brain.state(id),
-  socialBusy:id=>!!conversation?.participants.includes(id),
+  socialBusy:id=>{const n=officials.find(n=>n.station.id===id),s=stages.get(n);return !!conversation?.participants.includes(id)||!!s&&(s.called||s.courtReady||s.borrowed||!!s.choice?.meal||!!s.choice?.inspection||s.choice?.id==='archive-duty')||!!n&&urgent(n);},
+  socialCanPause:n=>!!stages.get(n)&&!stages.get(n).mount,
   state:()=>({decisions:brain.snapshot(),conversation:conversation?JSON.parse(JSON.stringify(conversation)):null,actors:officials.map(n=>{const s=stages.get(n);return {id:n.station.id,activity:s?.choice?.id||null,stage:s?.courtReady?'court-ready':s?.arrived?'activity':'travel',arrived:s?.arrived||false,elapsed:s?.elapsed||0,mounted:s?.mount?.id||null,borrowed:!!s?.borrowed,duty:duties[n.station.id]||null,roomId:s?.roomId||null,called:!!s?.called,position:n.root.position.toArray()};})}),snapshot,
   dispose({suspend=false}={}){brain.dispose();if(!suspend)save();for(const n of officials){claims.releaseActor(n.station.id);}}
  };

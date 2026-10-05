@@ -13,7 +13,7 @@ const linker=(s,f)=>mod(s==='three'?path.join(root,'vendor/three/build/three.mod
  let clock={day:0,hour:14},schedule={day:0,calledDay:0,outcome:'completed',lastCompletedDay:0,completionId:'cn-morning-audience:0'},duty=null,saveFails=false,lastSaved=null,ledgerSaved=null,service,ledger;
  let fullAudienceReads=0,lightAudienceReads=0;const audience={state:()=>{fullAudienceReads++;return {phase:'waiting',schedule};},courtStatus:()=>{lightAudienceReads++;return {phase:'waiting',schedule};}},palace={requestDuty(owner){if(duty&&duty.owner!==owner)return false;duty={owner,ready:true};return true;},dutyState:owner=>duty?.owner===owner?duty:null,releaseDuty:owner=>{if(duty?.owner===owner)duty=null;},setDutyLine(){}};
  const args={npcs,lot:{group:new T.Group()},audience,palace,doors:{routeStep(route,p){while(route.length&&Math.hypot(p.x-route[0].x,p.z-route[0].z)<.025)route.shift();return {waypoint:route[0]};}},planPath:(_,p)=>[p],moveActor(n,dx,dz){n.root.position.x+=dx;n.root.position.z+=dz;if(n.route[0])n.root.position.y=n.route[0].y;},poseContext:()=>({})};
- const edict=createChinaPalaceEdict({...args,saved:{lastDay:0,lastReceipt:'cn-morning-audience:0',outcome:'completed',completedReceipt:'cn-morning-audience:0',consumedThroughDay:0}});
+ let edict=createChinaPalaceEdict({...args,saved:{lastDay:0,lastReceipt:'cn-morning-audience:0',outcome:'completed',completedReceipt:'cn-morning-audience:0',consumedThroughDay:0}});
  let seed=1;while(core.consortPetitionRoll(seed,'consort-petition:player:0')>.4)seed++;
  const coreArgs={worldSeed:seed,getClock:()=>clock,getPlayer:()=>({id:'player',ageYears:player.ageYears}),getEmperor:()=>({id:'cn-emperor',ageYears:36}),getCourt:()=>({emperorId:'cn-emperor',empressId:null,consorts:core.CONSORT_INCUMBENTS}),getVacancy:()=>({slotId:'cn-consort-4',roomId:'consort-reserve-1',bedId:'china-consort-bed-reserve-1',roomExists:true,bedExists:true,accessible:true,roomOwnerId:null,bedOwnerId:null}),getCareers:()=>({tenure:null,lastDuty:null,skills:{ritual:6,art:6}}),verifyReceipt:(...a)=>service.verifyReceipt(...a),saveState(next){if(saveFails)return false;ledgerSaved=JSON.parse(JSON.stringify(next));lastSaved=service.snapshot();return true;}};
  ledger=core.createConsortPetitionLedger(coreArgs);
@@ -31,6 +31,33 @@ const linker=(s,f)=>mod(s==='three'?path.join(root,'vendor/three/build/three.mod
  until(()=>service.state().flow?.phase==='to-meeting');player.root.position.set(25,.1,20);tick();assert.equal(service.state().flow,null);assert.equal(ledger.petition().stage,'accepted');until(()=>edict.heraldAvailability(C.owner).ok);assert.equal(service.state().document.holder,'desk','cancelled paper is carried back and placed on the original desk');assert.equal(service.state().document.id,paper);assert(service.state().document.sealed);player.root.position.set(...C.player);assert(service.requestInvestiture().ok);until(()=>service.state().flow?.phase==='handoff');assert.equal(service.state().document.id,paper);saveFails=true;tick(20);assert.equal(ledger.petition().stage,'accepted');assert.equal(service.state().flow.phase,'commit-handoff');const receipt=service.snapshot().receipts.find(e=>e.receipt.kind==='charter-handoff').receipt;assert.equal(receipt.documentId,paper);tick(30);saveFails=false;until(()=>ledger.petition().stage==='charter-held');assert.equal(ledger.petition().handoff.id,receipt.id);assert.equal(ledger.petition().handoff.at.hour,receipt.at.hour);
  until(()=>ledger.petition().stage==='appointed');assert.equal(ledger.state().appointment.titleId,'consort');assert.equal(ledger.petition().reading.documentId,paper);assert.equal(service.state().props.scrollCount,0);assert.equal(service.snapshot().receipts.length,4);const final=service.snapshot(),revision=ledger.state().revision;service.dispose({suspend:true});service=createChinaConsortPetitionService({...serviceArgs,saved:final});tick(50);assert.equal(ledger.state().revision,revision);assert.equal(service.state().flow,null);assert.equal(service.state().props.scrollCount,0);
  assert.equal(fullAudienceReads,0,'new checks and original edict use the lightweight court view');assert(lightAudienceReads>0);const reads=lightAudienceReads;service.statusCard();assert.equal(lightAudienceReads-reads,2,'one window read plus the real herald arbitration read, no repeated card window reads');service.dispose();edict.dispose();
+ // One low-frequency autonomous check uses only an original idle emperor,
+ // same-level sight, real availability and atomic ledger/service persistence.
+ let invitationBusy=false,opportunity=true,visible=true,holds=0,notes=0;
+ palace.invitationOpportunity=()=>opportunity?{id:'palace-action:cn-emperor:7:garden-view'}:null;
+ palace.holdInvitation=()=>{holds++;return true;};palace.releaseInvitation=()=>{};
+ edict=createChinaPalaceEdict({...args,saved:{lastDay:0,lastReceipt:'cn-morning-audience:0',outcome:'completed',completedReceipt:'cn-morning-audience:0',consumedThroughDay:0}});
+ clock={day:0,hour:14,seconds:0};player.root.position.set(-9.1,.145,-19.6);emperor.root.position.set(-9.1,.145,-20.85);herald.root.position.set(4.2,1.415,-4.15);
+ palace.mountForActor=()=>({kind:'seat',position:[-9.1,.145,-20]});emperor.root.position.y+=.5;
+ ledger=core.createConsortPetitionLedger(coreArgs);
+ const inviteArgs={...serviceArgs,edict,getInvitationBusy:()=>invitationBusy,canSee:()=>visible,notify:()=>notes++};
+ service=createChinaConsortPetitionService(inviteArgs);
+ const opportunityTick=()=>{clock.seconds+=1.1;clock.hour+=.0001;service.update(.1,clock.seconds,{});};
+ invitationBusy=true;opportunityTick();assert.equal(holds,0,'work/movement/menu never initiates');
+ invitationBusy=false;visible=false;opportunityTick();assert.equal(holds,0,'occluded encounter is excluded before draw');
+ visible=true;player.root.position.y+=4;opportunityTick();assert.equal(holds,0,'different floor never initiates');player.root.position.set(-9.1,.145,-19.6);
+ opportunity=false;opportunityTick();assert.equal(holds,0,'walking/mounted/court/other busy actor supplies no opportunity');
+ opportunity=true;player.ageYears=17;opportunityTick();assert.equal(holds,0);player.ageYears=22;
+ // Reception may independently borrow Shen nearby. End that unrelated lease
+ // before testing this original emperor's invitation; no invitation borrows him.
+ service.cancel();while(!edict.heraldAvailability(C.owner).ok){t+=.1;edict.update(.1,t,{});}
+ saveFails=true;opportunityTick();assert.equal(ledger.petition(),null);assert.equal(ledger.state().invitationDecisions.length,0);assert.equal(notes,0);assert.equal(service.snapshot().receipts.filter(e=>e.receipt.kind==='invitation').length,0);
+ saveFails=false;opportunityTick();assert.equal(ledger.petition().source,'emperor-invitation');assert.equal(ledger.petition().stage,'awaiting-choice');assert.equal(ledger.petition().submission.participants.length,2);assert.equal(notes,1);const revision2=ledger.state().revision,invitedCheckpoint=service.snapshot();
+ for(let i=0;i<10;i++)service.update(.01,clock.seconds,{});assert.equal(ledger.state().revision,revision2);assert.equal(notes,1);assert.equal(service.interactionTarget().targetKey,'cn-emperor');assert.equal(service.interactionTarget().position[1],.145,'seated menu uses the actual standing approach floor');
+ service.cancel();assert.equal(ledger.petition().stage,'awaiting-choice','cancel scene leaves explicit answer pending');
+ service.dispose({suspend:true});service=createChinaConsortPetitionService({...inviteArgs,saved:invitedCheckpoint});opportunityTick();assert.equal(notes,1,'reload does not announce again or reroll');assert.equal(ledger.state().revision,revision2);
+ player.ageYears=17;assert.equal(service.respond('accept').code,'adults-required');player.ageYears=22;
+ assert(service.respond('decline').ok);opportunityTick();assert.equal(notes,1);assert.equal(ledger.appointment(),null);assert.equal(ledger.petition().stage,'declined');assert(!ledger.invitationAvailability().ok);service.dispose();edict.dispose();
  // Current or interrupted original edict cannot be borrowed even after court.
  const waiting=createChinaPalaceEdict({...args,saved:{outcome:'waiting'}});assert.equal(waiting.heraldAvailability(C.owner).reason,'edict-unfinished');assert(!waiting.borrowHerald(C.owner));waiting.dispose();
  console.log('PASS: actual edict loan is exclusive, remote submission fails, afternoon gate, real route-double arrivals, completed receipts, two phase restores, failed save retry keeps receipt, final reload does not replay; full palace geometry deferred to integrated chain');

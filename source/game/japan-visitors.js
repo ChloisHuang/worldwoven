@@ -16,5 +16,5 @@ export function japanVisitorStation(visit) {
 // only when actually beside the player, never remotely from another floor.
 export function isJapanEmployeeInteraction(actor,state) {
  const p=state.position,n=actor.root.position;
- return (state.conversationActorId||state.performing)===actor.station.id&&!!p&&Math.abs(p.y-n.y)<.65&&Math.hypot(p.x-n.x,p.z-n.z)<1.8;
+ return (state.conversationActorId||state.performing)===actor.station.id&&!!p&&Math.abs(p.y-n.y)<.65&&Math.hypot(p.x-n.x,p.z-n.z)<=(state.conversationActorId===actor.station.id?2.4:1.8);
 }

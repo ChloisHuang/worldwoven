@@ -45,7 +45,7 @@ export function createFranceGardener({npcs,lot,doors,planPath,moveActor,poseCont
   hostReady:()=>meeting&&stage==='meeting'&&!n.walking&&gap(n,P.host)<.08&&!paused,
   loanState:()=>({owner:loanOwner,borrowed,toolHolder:borrowed?'player':tool==='can'?'gardener':'rack',beds:loanOwner?['player','player']:['bedA','waterA','bedB','waterB'].includes(stage)?['gardener','gardener']:[null,null]}),
   socialProfile:id=>id===P.id?brain.state(id):null,
-  socialStatus:()=>({busy:!['idle','rest','garden','meeting'].includes(stage)||n.walking,attention:true,job:labels[stage]}),
+  socialStatus:()=>{const busy=!!tool||!['idle','rest','garden','meeting'].includes(stage)||stage==='meeting'&&gap(n,P.host)>.08;return {busy,canPause:!busy,attention:true,job:labels[stage]};},
   update(dt,t,{conversationActorId=null,hour=10}={}){
    if(disposed)return;time+=dt;brain.tick(dt);n.walking=false;paused=conversationActorId===P.id;
    let target=null,action=null,transfer=null;

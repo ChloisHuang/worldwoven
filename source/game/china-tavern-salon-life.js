@@ -138,7 +138,7 @@ export function createSalonArtistLife({performers=[],worldSeed=1,saved={},saveSt
    for(const n of artists){
     if(excluded.has(n)||excluded.has(n.station.id)||isActorBusy(n)||n.serviceMount){yieldActor(n);continue;}
     if(conversationActorId===n.station.id){
-     yieldActor(n);stop(n);pose(n,t,null,getPlayer()?.root?.position?position(getPlayer()):null);continue;
+     n.walking=false;pose(n,t,null,getPlayer()?.root?.position?position(getPlayer()):null);continue;
     }
     updateActor(n,dt,t);
    }

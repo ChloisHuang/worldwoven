@@ -18,7 +18,7 @@ const durable=state=>{const {loadError,lastError,...data}=state;return data;};
  * writeWorld(next) must synchronously persist one whole world JSON atomically.
  * The original saved root retains its identity and changes only after success.
  */
-export function createConsortRuntimeBridge({saved,quarters,getScene,getPlayerProfile,getAppearanceScore,getPlayerTraits,getNPCProfile,getCareers,getClock,getService,
+export function createConsortRuntimeBridge({saved,quarters,getScene,getPlayerProfile,getAppearanceScore,getAppearancePreference,getPlayerTraits,getNPCProfile,getCareers,getClock,getService,
   captureWorld,writeWorld,canReleaseTitle,worldSeed=saved?.appearance?.seed??1}={}){
   if(!object(saved)||!object(quarters)||!quarters.roomId||!quarters.bedId||!quarters.doorId||typeof writeWorld!=='function'||typeof getClock!=='function')throw new TypeError('consort bridge needs saved root, authored quarters, clock and atomic world writer');
   let ledger=null,committing=false,lastEmperorAge=null;
@@ -34,7 +34,7 @@ export function createConsortRuntimeBridge({saved,quarters,getScene,getPlayerPro
     return {id:'cn-emperor',ageYears:s.country==='china'?undefined:lastEmperorAge??recorded};
   }
   const player=()=>({id:'player',ageYears:profile().ageYears});
-  function reviewContext(){return {player:{appearanceScore:read(getAppearanceScore),traits:read(getPlayerTraits)||profile().traits||saved.japanPerformance?.life?.people?.player?.traits},emperor:read(()=>getNPCProfile?.('cn-emperor'))||read(()=>scene().palace?.state())?.decisions?.people?.['cn-emperor']||{}};}
+  function reviewContext(){return {appearancePreference:read(()=>getAppearancePreference?.('cn-emperor','player')),player:{appearanceScore:read(getAppearanceScore),traits:read(getPlayerTraits)||profile().traits||saved.japanPerformance?.life?.people?.player?.traits},emperor:read(()=>getNPCProfile?.('cn-emperor'))||read(()=>scene().palace?.state())?.decisions?.people?.['cn-emperor']||{}};}
   function court(){
     const a=ledger?.appointment();
     return {emperorId:'cn-emperor',empressId:null,consorts:[...CHINA_CONSORTS.map(c=>({actorId:c.id,roomId:c.privateRoomId,bedId:c.privateBedId})),...(a?[{actorId:a.actorId,roomId:a.residence.roomId,bedId:a.residence.bedId}]:[])]};
