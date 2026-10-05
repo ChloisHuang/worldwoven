@@ -26,7 +26,7 @@ function notePages(blocks,m){
     if(block.href&&lines.length<=capacity&&used+lines.length+1>capacity)finish();
     for(let i=0;i<lines.length;i++){
       if(used>=capacity)finish();
-      rows.push({...block,text:lines[i],line:used,first:i===0});used++;
+      rows.push({...block,sourceText:block.text,text:lines[i],line:used,first:i===0});used++;
     }
     if(used<capacity)used++;
   }
@@ -88,7 +88,7 @@ export function renderPassportBook({view,portrait='',stamps={},cover='',spread=n
     const addLines=(value,x,y,font=22,color=INK,width=tw,attrs='')=>{const lines=passportLines(value,width,font);art+=lines.map((l,i)=>text(x,y+i*(font+9),l,font,color,attrs)).join('');return lines.length*(font+9);};
     const heading=(x,title,small='')=>{art+=text(x,113,title,compact?25:28,GREEN);if(small)art+=text(x,140,small,compact?12:14,MUTED,'letter-spacing="1.2"');art+=line(x,151,x+tw,151,'#b4a67e','opacity=".55"');};
     function physicalPage(page,side){
-      const x=side?m.right:m.left,cx=side?half*1.5:half*.5;transcript.push(page.type);
+      const x=side?m.right:m.left,cx=side?half*1.5:half*.5;
       if(page.type==='identity'){
         heading(x,'旅人资料','TRAVELER');
         const pw=compact?116:126,ph=pw*76/64,py=175;
@@ -104,15 +104,16 @@ export function renderPassportBook({view,portrait='',stamps={},cover='',spread=n
         heading(x,'沿途印记','PLACES & LITTLE MOMENTS');
         art+=text(x,182,`${view.visitedCount} / 4 个地区`,compact?20:23,GREEN);
         art+=text(x,212,`${view.activityCount} 枚日常印记`,compact?18:20,MUTED);
-        const size=compact?78:95,step=compact?105:185,startY=compact?250:230;
+        const size=compact?78:95,step=compact?105:185,startY=compact?250:225;
         view.regions.forEach((r,i)=>{
-          const bx=x+(i%2)*step,by=startY+Math.floor(i/2)*(compact?157:160),mx=bx+(compact?40:63);
+          transcript.push(r.country+'，'+(r.visited?'已到访':'待启程'));
+          const bx=x+(i%2)*step,by=startY+Math.floor(i/2)*(compact?157:150),mx=bx+(compact?40:63);
           art+=`<g opacity="${r.visited?'.93':'.28'}" transform="rotate(${parseFloat(r.tilt)||0} ${mx} ${by+size/2})">${svgImage(stamps[r.id]||'',mx-size/2,by,size,size,r.ink)}</g>`;
           art+=text(mx,by+size+25,r.country,compact?20:21,r.visited?r.ink:MUTED,'text-anchor="middle"');
           art+=text(mx,by+size+47,r.visited?'已到访':'待启程',compact?15:16,MUTED,'text-anchor="middle"');
           hotspots.push({action:'section',value:r.id,label:`翻到${r.country}，${r.visited?'已到访':'未到访'}`,x:bx-3,y:by-2,w:compact?92:145,h:size+52});
         });
-        const cy=compact?613:555;
+        const cy=compact?613:544;
         addLines(view.clockLabel,x,cy,compact?15:17,MUTED,tw);transcript.push(view.clockLabel,`${view.visitedCount} / 4 个地区，${view.activityCount} 枚日常印记`);
       }else if(page.type==='visa'){
         const r=page.region;heading(x,r.country,r.en);addLines(r.place,x,189,compact?23:28,INK,tw);
@@ -121,7 +122,7 @@ export function renderPassportBook({view,portrait='',stamps={},cover='',spread=n
         const fy=compact?480:473;
         addLines(r.visited?'已盖章 · 到访留念':'留白 · 等你来盖章',x,fy,compact?20:23,r.visited?r.ink:MUTED,tw);
         addLines(r.visited?'到访日期 · 未记录':'下一程，从这里开始',x,fy+45,compact?18:20,MUTED,tw);
-        addLines(r.motif,x,compact?604:558,compact?17:18,MUTED,tw);transcript.push(r.country,r.place,r.visited?'已到访；到访日期未记录':'未到访');
+        addLines(r.motif,x,compact?604:535,compact?17:18,MUTED,tw);transcript.push(r.country,r.place,r.visited?'已到访；到访日期未记录':'未到访');
       }else if(page.type==='activities'){
         const r=page.region;heading(x,'日常印记',r.country+' · LITTLE MOMENTS');
         art+=text(x,184,`${r.activities.length} 枚已收集`,compact?19:21,MUTED);
@@ -135,18 +136,19 @@ export function renderPassportBook({view,portrait='',stamps={},cover='',spread=n
           addLines(a.label,tx,y,compact?20:22,INK,tw-31);
           art+=line(x,y+57,x+tw,y+57,'#b4a67e','stroke-dasharray="2 5" opacity=".5"');transcript.push(a.label);
         });
-        addLines('完成的日常 · 未记录日期',x,compact?624:565,compact?15:17,MUTED,tw);
+        addLines('完成的日常 · 未记录日期',x,compact?624:545,compact?15:17,MUTED,tw);
       }else if(page.type==='notes'){
-        heading(x,'随身说明','FIELD NOTES');
+        heading(x,'随身说明','FIELD NOTES');const linkGroups=[];
         for(const row of page.rows){
           const y=m.top+row.line*m.line+24,fill=row.href?GREEN:row.kind==='heading'?GREEN:INK,size=row.kind==='heading'?24:m.font;
           art+=text(x,y,row.text,size,fill);
           if(row.href){
             art+=line(x,y+5,Math.min(x+tw,x+[...row.text].reduce((n,c)=>n+(/[\u0020-\u007e]/.test(c)?size*.57:size),0)),y+5,'#718b70','opacity=".45"');
-            hotspots.push({action:'link',href:row.href,label:row.text,x,y:y-23,w:tw,h:31});
+            const prior=linkGroups.at(-1);if(prior?.href===row.href&&prior.line===row.line-1){prior.line=row.line;prior.h+=m.line;}else linkGroups.push({action:'link',href:row.href,label:row.sourceText||row.text,x,y:y-23,w:tw,h:31,line:row.line});
           }
           transcript.push(row.text);
         }
+        hotspots.push(...linkGroups);
       }else{
         heading(x,'旅途未完','TO BE CONTINUED');
         art+=svgImage(cover,cx-75,compact?270:230,150,150,'#b4b391');
