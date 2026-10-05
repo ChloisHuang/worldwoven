@@ -151,7 +151,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   if(conversation&&!(brain.conversation(conversation.id)?.status==='accepted'&&conversation.participants.every(id=>stages.get(consorts.find(n=>n.station.id===id))?.choice?.id==='conversation'&&claims.state().some(c=>c.actor===id))))endConversation(false);
   for(const n of consorts){const current=brain.state(n.station.id)?.current;if(current?.conversationId&&!conversation){brain.cancelConversation(current.conversationId);claims.release(n.station.id);idle(n);}}return true;
  }
- if(!restore(saved.continuity))for(const n of actors)choose(n);
+ if(!restore(saved.continuity)){for(const n of consorts){const current=brain.state(n.station.id)?.current;if(current?.conversationId)brain.cancelConversation(current.conversationId);}for(const n of actors)choose(n);}
  return {
   mountForActor:n=>stages.get(n)?.mount||null,
   owns:n=>owned.has(n)||hostHeld&&n===host,
