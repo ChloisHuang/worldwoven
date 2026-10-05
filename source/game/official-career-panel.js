@@ -1,4 +1,4 @@
-import {getChinaRecordsCareerRank,CHINA_COURT_OFFICIAL_RANKS} from './china-official-ranks.js';
+import {getChinaRecordsCareerRank} from './china-official-ranks.js';
 const stageText={submitted:'待沈叙当面考核','document-ready':'考核通过 · 待领文','document-held':'文书在手 · 待宣读',approved:'授任已生效','promotion-review-rejected':'当面考核未通过',withdrawn:'已撤回','appointment-ended':'离任终止申请'};
 const reasonText={'service-days-required':'需3日合格朝班与归档','tenure-days-required':'本次任职需满3日','service-performance-required':'本任考语净值需达3','promotion-duty-unsettled':'先完成本班并结清工资','promotion-applied-today':'今日已申请 · 次日可再试','ritual-required':'礼仪需2级','writing-required':'文书需2级','promotion-route-complete':'更高实职路线尚未开放'};
 export function appendOfficialPromotionPanel({careers,role,panel,metric,make,action,buttonFor}){
@@ -22,7 +22,5 @@ export function appendOfficialCareerHistory({careers,panel,make}){
   for(const r of promotions)details.append(make('p',`第${r.day+1}日申请正九品 · ${stageText[r.code]||stageText[r.stage]||r.code}${r.review?` · 沈叙已当面考核${r.review.passed?'通过':'未通过'}`:''}${r.status==='approved'?` · 第${r.decidedAt.day+1}日宣读生效`:''}`));
  }
  details.append(make('p','离任保留履历；新任期重新积累升阶资历。'));
- details.append(make('p',CHINA_COURT_OFFICIAL_RANKS.slice().sort((a,b)=>a.gradeOrder-b.gradeOrder).map(r=>`${r.roleLabel} ${r.gradeLabel}`).join(' · ')));
- details.append(make('p','官署现行值勤俸：24文／日。'));
  panel.body.append(details);
 }
