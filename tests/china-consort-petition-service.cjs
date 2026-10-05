@@ -38,6 +38,7 @@ const linker=(s,f)=>mod(s==='three'?path.join(root,'vendor/three/build/three.mod
  palace.holdInvitation=()=>{holds++;return true;};palace.releaseInvitation=()=>{};
  edict=createChinaPalaceEdict({...args,saved:{lastDay:0,lastReceipt:'cn-morning-audience:0',outcome:'completed',completedReceipt:'cn-morning-audience:0',consumedThroughDay:0}});
  clock={day:0,hour:14,seconds:0};player.root.position.set(-9.1,.145,-19.6);emperor.root.position.set(-9.1,.145,-20.85);herald.root.position.set(4.2,1.415,-4.15);
+ palace.mountForActor=()=>({kind:'seat',position:[-9.1,.145,-20]});emperor.root.position.y+=.5;
  ledger=core.createConsortPetitionLedger(coreArgs);
  const inviteArgs={...serviceArgs,edict,getInvitationBusy:()=>invitationBusy,canSee:()=>visible,notify:()=>notes++};
  service=createChinaConsortPetitionService(inviteArgs);
@@ -52,7 +53,7 @@ const linker=(s,f)=>mod(s==='three'?path.join(root,'vendor/three/build/three.mod
  service.cancel();while(!edict.heraldAvailability(C.owner).ok){t+=.1;edict.update(.1,t,{});}
  saveFails=true;opportunityTick();assert.equal(ledger.petition(),null);assert.equal(ledger.state().invitationDecisions.length,0);assert.equal(notes,0);assert.equal(service.snapshot().receipts.filter(e=>e.receipt.kind==='invitation').length,0);
  saveFails=false;opportunityTick();assert.equal(ledger.petition().source,'emperor-invitation');assert.equal(ledger.petition().stage,'awaiting-choice');assert.equal(ledger.petition().submission.participants.length,2);assert.equal(notes,1);const revision2=ledger.state().revision,invitedCheckpoint=service.snapshot();
- for(let i=0;i<10;i++)service.update(.01,clock.seconds,{});assert.equal(ledger.state().revision,revision2);assert.equal(notes,1);assert.equal(service.interactionTarget().targetKey,'cn-emperor');
+ for(let i=0;i<10;i++)service.update(.01,clock.seconds,{});assert.equal(ledger.state().revision,revision2);assert.equal(notes,1);assert.equal(service.interactionTarget().targetKey,'cn-emperor');assert.equal(service.interactionTarget().position[1],.145,'seated menu uses the actual standing approach floor');
  service.cancel();assert.equal(ledger.petition().stage,'awaiting-choice','cancel scene leaves explicit answer pending');
  service.dispose({suspend:true});service=createChinaConsortPetitionService({...inviteArgs,saved:invitedCheckpoint});opportunityTick();assert.equal(notes,1,'reload does not announce again or reroll');assert.equal(ledger.state().revision,revision2);
  player.ageYears=17;assert.equal(service.respond('accept').code,'adults-required');player.ageYears=22;
