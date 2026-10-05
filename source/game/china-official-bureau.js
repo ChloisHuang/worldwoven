@@ -1,4 +1,5 @@
 import {officialBureauPlaque as culturePlaque} from './china-official-lettering.js';
+import {buildCourtCareerDesk} from './china-court-career-place.js';
 
 // Fictional duty lodging, not a claim that Ming civil officers lived in the
 // inner palace. The southeast plot is below the existing cherry and tavern.
@@ -50,6 +51,7 @@ export function buildChinaOfficialBureau(G,A){
   interiorRooms.push({id:roomId,name:(i?'许知远':'顾衡')+'的值宿私室',minX:i?21:16,maxX:i?26:21,minZ:33.5,maxZ:36.5,floorY:y,ceiling:top,ownerId});
   explorationTargets.push({id:roomId,name:(i?'许知远':'顾衡')+'值宿室',roomId,position:p});
  }
+ buildCourtCareerDesk(G,{root,H,solid3});
  culturePlaque(G,root,'承务官舍',15.80,3.34,32.45,2.25,.46).rotation.y=-Math.PI/2;
  culturePlaque(G,root,'架空官署·六人值宿',21,2.78,30.69,3.4,.42);
  upperFixture(root,'official-office',21,3.11,32.2,y);

@@ -10,6 +10,8 @@ import {createGameStorage,PREVIEW_STORAGE_PREFIX} from '../source/game/game-stor
 import * as appearance from '../source/game/appearance.js';
 import {ensurePlayerAge} from '../source/game/player-age.js';
 import {createCopperLedger} from '../source/game/copper-ledger.js';
+import {createSimulationClock} from '../source/game/simulation-clock.js';
+import {createFormalCareers} from '../source/game/formal-careers.js';
 import {createGameHealthWorld} from '../source/game/game-health-world.js';
 import {createChinaTavernLabor} from '../source/game/china-tavern-labor.js';
 
@@ -68,7 +70,7 @@ function initialize(gameStorage,preview){
  const visibility=balancedBlock(main,visibilityStart+"document.addEventListener('visibilitychange',()=>".length);
  const dependencies={gameStorage,CHARACTER_PREVIEW_ENABLED:preview,ensurePlayerAge,
   validAppearanceState:appearance.validAppearanceState,migrateAppearanceState:appearance.migrateAppearanceState,
-  createAppearanceState:appearance.createAppearanceState,createCopperLedger,createGameHealthWorld,crypto:webcrypto};
+  createAppearanceState:appearance.createAppearanceState,createCopperLedger,createSimulationClock,createFormalCareers,createGameHealthWorld,crypto:webcrypto};
  const code=main.slice(begin,end)+`
  const events={},addEventListener=(name,fn)=>events[name]=fn;
  ${pagehide[0]}

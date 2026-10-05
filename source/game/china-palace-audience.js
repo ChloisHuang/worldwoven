@@ -78,7 +78,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
   socialStatus(n){return owned.has(n)?{busy:FORMAL.has(phase)||['assembling','holding'].includes(phase),attention:!FORMAL.has(phase)&&!['assembling','holding'].includes(phase),job:tasks.get(n)?.label||life?.label(n)||'承务官署 · 日常起居'}:null;},
   playerRequest(id){life?.playerRequest(id);},
   update(dt,t,playerState={}){
-   if(disposed)return;state=playerState;time+=dt;life?.tick(dt,state);const hour=state.hour??10;schedule.observe(hour);
+   if(disposed)return;state=playerState;time+=dt;life?.tick(dt,state);const hour=state.hour??10;schedule.observe(hour,state.day);
    if(phase==='waiting'&&schedule.snapshot().outcome==='completed'&&reports.hasPending())setPhase('followup');
    if(phase==='waiting'&&schedule.snapshot().calledDay!==schedule.snapshot().day){
     if(schedule.missed(hour)){schedule.finish('missed',{reason:'entered-after-court-start',atHour:hour});save();record('court-missed');}
