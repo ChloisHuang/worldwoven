@@ -11,7 +11,7 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.69-public, 2026-10-05
+Published release: R16.70-public, 2026-10-05
 Verified published Sites source commit: 00ab703d79526bcafe0f8910c48c12ef49ad0f7c
 
 ## Working rules
@@ -136,3 +136,5 @@ R16.68 also restores the original rounded, tilted wallet proportions while prese
 R16.69 removes the duplicate dark lip from the front-pocket pseudo-element. The independent back layer remains behind the notes; restored leather proportions, angle and extraction geometry are unchanged. CSS stacking root cause and the focused regression were checked; real iOS confirmation remains open.
 
 R16.69 public source: `62dd0608b6f1ec372253d2329c30b5984a3c2436` (Sites v97, 2026-10-05T04:50:43Z).
+
+R16.70 replaces bank deposit/withdraw forms with one cash/bank allocation slider and checked-delta confirmation, preserves separate exchange and unclipped currency receipt animations, and uses flat fill-state controls. Career applications now retain approval/rejection receipts and enforce one submission per role per simulation day; eligibility enables a single durable interview decision rather than guaranteeing admission. Missing relationship data stays neutral. Approval does not start work. Targeted banking, wallet, application and storage checks pass; rendered DOM reviews remain offline rather than iOS validation.
