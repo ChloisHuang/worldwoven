@@ -1,5 +1,5 @@
 {
-  "publishedSourceCommit": "8320479a693b7a884514066dfec946a37fbee416",
+  "publishedSourceCommit": "62dd0608b6f1ec372253d2329c30b5984a3c2436",
   "assets": [
     "/assets/travel-passport-art.c2e6a6e5c2fe0dda.js",
     "/assets/travel-passport.95fbc088a56dedc2.css",
@@ -40,8 +40,8 @@
     "/assets/japan.f896fd0b085e8100.webp",
     "/assets/egypt.997e07fe903369b4.webp",
     "/assets/france.397562b7963a3abb.webp",
-    "/assets/wallet.71f036eacb4076ce.css",
-    "/assets/wallet.9d1ee2a97efc9f2e.js",
+    "/assets/wallet.7ea17950c384b1df.css",
+    "/assets/wallet.2c64d71496666a8a.js",
     "/assets/china-tavern-salon-artists.ec5d743be0dbb318.js",
     "/assets/player-age.9c469b6c97407661.js",
     "/assets/china-tavern-salon-life.db4ccae8099f4cc1.js",
@@ -136,7 +136,7 @@
     "/assets/approved-surfaces.d0f31ec9c7f21c1a.js",
     "/assets/character-props.deb24f9b65d5e60a.js",
     "/assets/characters.2c406ca56e43d01b.js",
-    "/assets/main.75c7d36741a34569.js",
+    "/assets/main.e2f987bfe7e5b289.js",
     "/assets/adult-forms-data.f5c3eae422bf2d5b.js",
     "/assets/attach-head.cd715d43de06238a.js",
     "/assets/layered-hair-data.909c7058087b476c.js",
@@ -156,7 +156,7 @@
     "/assets/register.457d37fb5252fdc6.js",
     "/assets/selection.da7382d63b4983be.js",
     "/assets/character-preview-entry.bed7ff9f51addd24.js",
-    "/assets/entry.e6c820d9e0ad0d98.js",
+    "/assets/entry.70c0a93b18bf8a66.js",
     "/assets/game.8fe63c1e02771337.css",
     "/assets/three.core.9edde002b066a9a0.js",
     "/assets/three.module.d8c0a97fa13a785e.js"
