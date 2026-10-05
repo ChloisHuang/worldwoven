@@ -11,8 +11,8 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.84-public, 2026-10-05
-Verified published Sites source commit: f8ff87bc5599c177bb2c7b05688a8d360291ee5b
+Published release: R16.85-public, 2026-10-05
+Verified published Sites source commit: 57dbd895a30d1d44d62be5b93f51a487c0e385d7
 
 ## Working rules
 
@@ -166,3 +166,5 @@ R16.82 opens the Egyptian public-court ticket exchange desk and adult teller, us
 R16.83 connects paid player stays to Yunlai’s existing two guest rooms and Xu An’s physical check-in. Twelve copper covers 24 simulated hours; pre-check-in cancellation refunds, completed check-in settles once, and checkout leaves persistent dirt for the existing assistant to clean. NPC lodging and salon reservations share room exclusion. A complete actual route passed; browser/iOS remains unverified.
 
 R16.84 makes the existing tavern property panel compact: asking price, bank funds, actual bid response, operating totals and selected buyer offer stay distinct, with one fixed primary action. Property and ledger behavior is unchanged; product DOM/CSS was inspected offline, not on iOS.
+
+R16.85 opens France’s local tea-serving career with persistent interviews, exclusive tenure, explicit continuous shifts, original guest/tray/cup handling and French bank wages. The retained French bath WC now completes the shared player need behind closed doors and opaque inner curtains; active tray work blocks toilet use. Directed real-scene routes passed, with one normal WC contact view inspected in Mesa; real browser/iOS and full NPC needs remain open.
