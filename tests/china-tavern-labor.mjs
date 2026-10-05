@@ -1,16 +1,16 @@
 // Regression boundaries for actual paid work: remote timers, interrupted poses,
-// rejected saves and replay/reload must never create unearned or duplicate cash.
+// rejected saves and replay/reload must never create unearned or duplicate wages.
 import assert from 'node:assert/strict';
 import {createChinaTavernLabor} from '../source/game/china-tavern-labor.js';
-import {createCopperLedger} from '../source/game/copper-ledger.js';
+import {createCurrencyLedger} from '../source/game/currency-ledger.js';
 const clone = x => JSON.parse(JSON.stringify(x));
 function setup(saved = {}) {
   const store = clone(saved), player = {walking: false, root: {position: {x: 22.35, y: .215, z: 11.7}, rotation: {y: 0}}};
   const host = {walking: false, root: {position: {x: 24.1, y: .215, z: 11.4}}, station: {npcPosition: [24.1, .215, 11.4]}};
   const flags = {busy: false, mounted: null, rejectLabor: false, rejectLedger: false, cleanup: false};
-  const ledger = createCopperLedger({saved: store.ledger, saveState: next => { if (flags.rejectLedger) return false; store.ledger = next; }});
+  const ledger = createCurrencyLedger({saved: store.ledger, saveState: next => { if (flags.rejectLedger) return false; store.ledger = next; }});
   const labor = createChinaTavernLabor({getPlayer: () => player, getMounted: () => flags.mounted, host, employment: {isHired: () => true, state: () => ({revision: 1})},
-    isHostAvailable: () => !flags.busy, copperLedger: ledger, saved: store.labor, document: null,
+    isHostAvailable: () => !flags.busy, copperLedger: ledger, getClock: () => ({day: 7}), saved: store.labor, document: null,
     saveState: next => { if (flags.rejectLabor || flags.cleanup && next.job === null) return false; store.labor = next; }});
   const move = point => { Object.assign(player.root.position, {x: point[0], y: point[1], z: point[2]}); player.walking = false; };
   const tick = (n = 51) => { for (let i = 0; i < n; i++) labor.update(.1); };
@@ -44,9 +44,9 @@ a.clean(); assert.equal(a.ledger.state().cash, 0, 'Completed labor is a receipt,
 assert.equal(a.labor.claim(), false, 'Must return to the actual host'); a.home();
 a.flags.busy = true; assert.equal(a.labor.claim(), false); a.flags.busy = false;
 a.host.walking = true; assert.equal(a.labor.claim(), false); a.host.walking = false;
-assert(a.labor.claim()); assert.equal(a.ledger.state().cash, 12); assert.equal(a.labor.claim(), false); assert.equal(a.ledger.state().cash, 12);
+assert(a.labor.claim()); assert.equal(a.ledger.state().bank, 12); assert.equal(a.labor.claim(), false); assert.equal(a.ledger.state().bank, 12);
 const firstId = a.ledger.history()[0].requestId;
-a.finish(); a.home(); assert(a.labor.claim()); assert.equal(a.ledger.state().cash, 24); assert.notEqual(a.ledger.history()[1].requestId, firstId);
+a.finish(); a.home(); assert(a.labor.claim()); assert.equal(a.ledger.state().bank, 24); assert.notEqual(a.ledger.history()[1].requestId, firstId);
 
 // Failed writes neither complete a table nor pay; retry remains possible.
 const b = setup(); b.flags.rejectLabor = true; assert.equal(b.labor.accept(), false); assert.equal(b.labor.active(), false); b.flags.rejectLabor = false;
@@ -54,12 +54,12 @@ assert(b.labor.accept()); b.clean(); b.flags.rejectLabor = true; b.clean();
 assert.equal(b.labor.state().job.stage, 'working'); assert.equal(b.labor.state().job.completedTables, 1); assert.equal(b.ledger.state().cash, 0);
 b.home(); assert.equal(b.labor.claim(), false); b.flags.rejectLabor = false; b.clean(); b.home();
 b.flags.rejectLedger = true; assert.equal(b.labor.claim(), false); assert.equal(b.ledger.state().cash, 0); assert.equal(b.labor.state().job.stage, 'ready'); b.flags.rejectLedger = false;
-const unpaid = setup(b.store); assert.equal(unpaid.labor.state().job.stage, 'ready'); assert(unpaid.labor.claim()); assert.equal(unpaid.ledger.state().cash, 12);
+const unpaid = setup(b.store); assert.equal(unpaid.labor.state().job.stage, 'ready'); assert(unpaid.labor.claim()); assert.equal(unpaid.ledger.state().bank, 12);
 
 // Ledger write succeeds but cleanup fails: a restored receipt is a safe replay.
 const c = setup(); c.finish(); c.home(); c.flags.cleanup = true; assert(c.labor.claim());
-assert.equal(c.ledger.state().cash, 12); assert.equal(c.store.labor.job.stage, 'ready');
-const replay = setup(c.store); assert(replay.labor.claim()); assert.equal(replay.ledger.state().cash, 12); assert.equal(replay.ledger.history().length, 1); assert.equal(replay.labor.active(), false);
+assert.equal(c.ledger.state().bank, 12); assert.equal(c.store.labor.job.stage, 'ready');
+const replay = setup(c.store); assert(replay.labor.claim()); assert.equal(replay.ledger.state().bank, 12); assert.equal(replay.ledger.history().length, 1); assert.equal(replay.labor.active(), false);
 
 // Incomplete reload restarts work without pay; cancel preserves serial uniqueness.
 const d = setup(); assert(d.labor.accept()); d.clean(); const id = d.labor.state().job.id;

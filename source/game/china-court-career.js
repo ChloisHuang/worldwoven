@@ -13,7 +13,7 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
   getBusy=()=>false, canSee=()=>true, notify=()=>{}, openRegistration=()=>{}}) {
   let activity=null, progress=0, pending=false, disposed=false, posture=null, postureActor=null, lastNotice=null, nextSettlementAt=0;
   const at = point => nearbyInteraction({position:point},getPlayer()?.root.position,{radius:.18,clear:canSee});
-  const duty = () => careers.state().lastDuty;
+  const duty = () => {const d=careers.state().lastDuty;return d?.roleId===COURT_CLERK_ROLE.id?d:null;};
   const relevantDuty = () => duty()?.day===getClock().day ? duty() : null;
   const result = (r, text) => {if(!r?.ok)notify(r?.reasons?.map(reason=>REASONS[reason]||'本次办理未完成，请稍后再试').join('；')||'登记暂未保存，请稍后再试');else if(text)notify(text);return !!r?.ok;};
   function nextKind() {
@@ -40,7 +40,7 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
   function executeIntent(selected) {
     const next=resolveIntent(selected);if(!next||getBusy()||!at(next.position))return false;
     if(next.kind==='view'){openRegistration();return true;}
-    if(next.kind==='apply')return result(careers.apply(COURT_CLERK_ROLE.id,{ageYears:getPlayer().ageYears}),'已录用：九品礼务录事，独立空缺已由你任职。请查看职业手册与11:30朝班。');
+    if(next.kind==='apply'){const ok=result(careers.apply(COURT_CLERK_ROLE.id,{ageYears:getPlayer().ageYears}),'已录用：九品礼务录事，独立空缺已由你任职。请查看职业手册与11:30朝班。');openRegistration();return ok;}
     if(next.kind==='resign'){const ok=result(careers.resign(),'离职已登记，录事空缺重新开放；已得技能和评价保留。');if(ok)stopActivity();return ok;}
     if(next.kind==='settle')return result(careers.settle(),'本日工资已核对存入钱庄，同一日不会重复发放。');
     if(next.kind==='attend'){
@@ -54,7 +54,7 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
     activity=null;progress=0;pending=false;posture?.stop();
   }
   function reviewNotice() {
-    const review=careers.state().lastEvaluation;if(review&&review.id!==lastNotice){lastNotice=review.id;notify(`${review.positive?'👍':'👎'} 沈叙：${review.reason}`);}
+    const review=careers.state().lastEvaluation;if(review?.roleId===COURT_CLERK_ROLE.id&&review.id!==lastNotice){lastNotice=review.id;notify(`${review.positive?'👍':'👎'} 沈叙：${review.reason}`);}
   }
   function settleReady() {
     if(duty()?.stage!=='ready'||getClock().seconds<nextSettlementAt)return;

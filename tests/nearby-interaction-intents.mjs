@@ -12,6 +12,11 @@ assert.equal(collect.intentKey,'cn-clinic-order-3');
 assert(nearbyInteraction(collect,p));assert(!nearbyInteraction(collect,{x:0,y:4,z:0}));assert(!nearbyInteraction(collect,{x:0,y:0,z:9}));assert(!nearbyInteraction(collect,p,{clear:()=>false}));
 assert.equal(chooseNearbyInteraction([{...station('chat'),priority:5,position:[0,0,.9]},collect],p,()=>true).id,collect.id,'task outranks an incidental closer chat');
 assert.equal(chooseNearbyInteraction([collect],p,()=>false),null);
+// A real learning anchor must remain reachable by E beside a chair. Equal
+// priority lets distance choose, preserving E at the chair's own anchor.
+const reading=playerStationIntent({...station('france-salon'),position:[-6.7,0,.1]}),chair={...station('salon-chair'),furniture:true,position:[-6.65,.302,.68]};
+assert.equal(chooseNearbyInteraction([reading,chair],{x:-6.7,y:.23,z:.1},()=>true).id,'france-salon');
+assert.equal(chooseNearbyInteraction([reading,chair],{x:-6.65,y:.302,z:.68},()=>true).id,'salon-chair');
 const main=fs.readFileSync('source/game/main.js','utf8');
 for(const hook of ['japanServiceUI?.openStation(station.id)','franceTea?.ownsStation(station.id)','chinaSalonUI?.openStation(station.id)','chinaTavernUI?.openStation(station.id)','chinaMoneyHouse?.ownsStation(station.id)','chinaClinic.startPlayer(station.id,player,station.intentKey)','onIntent:requestStationIntent,canSee:station=>nearbyInteractionClear(station)'])assert(main.includes(hook),'existing service dispatch retained: '+hook);
 assert(!main.includes('n.station===performing'),'cloned intents keep NPC identity via stable ID');

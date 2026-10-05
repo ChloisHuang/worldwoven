@@ -72,7 +72,7 @@ assert.equal(firstReload.careers.completeLearning(expired, {seconds: 8}).code, '
 assert.equal(firstReload.careers.completedLowerWork({source: 'cn-tavern-labor', receiptId: 'cn-tavern-labor-3'}).code, 'work-replayed');
 assert.equal(firstReload.study().gained, 1);
 assert.equal(firstReload.bank.state().cash, 0, 'learning and lower-work progression never pay wages');
-const capSave = clone(firstReload.store); capSave.careers.skills = {ritual: 99, writing: 1};
+const capSave = clone(firstReload.store); capSave.careers.skills = {...capSave.careers.skills, ritual: 99, writing: 1};
 const capped = setup(capSave, {clock: {day: 3}});
 assert.equal(capped.study('cn-calligraphy').limited, 'skill-limit');
 assert.equal(capped.careers.state().skills.writing, 1);

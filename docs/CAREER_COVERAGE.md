@@ -1,0 +1,113 @@
+# 职业覆盖清单：从现有工序接入玩家任职
+
+核对基线：R16.62/v89，发布源码 `2bdbc81b8cac4b0db2992d99fb8103c13d63431a`；清单元数据 `f40e49b`。2026-10-05只读源码盘点，未运行游戏、测试或构建；下列“已有”是源码实现范围，不新增实玩验收声明。
+
+落实用户新增要求（Slack 消息 `1791163766.472729`）：**所有已有职业流程的岗位都须进入可申请、可审核、可实际履职的覆盖队列；三项正式岗位只是首批，不是终点，也不按用户逐个点名才接一个。** 对应主清单 [CR01 / CR02 / CR03 / CR06](PROJECT_CHECKLIST.md#l-后续职业与地下黑市低优先级排在st故事系统之后) 和 [W03](PROJECT_CHECKLIST.md)。未接入项均为已授权排队实施，不是等待再次批准。本清单不另建职业框架。
+
+范围以 [main.js](../source/game/main.js) 的实际导入与 `configure*` 为准：中国由 `regions-east.js → china-palace.js` 建场，日本为 `japan-bathhouse.js`，法国为 `regions-west.js`，埃及为 `egypt-temple.js`。旧 `regions-east.js` 日本五居民、`regions-west.js` 埃及五居民及未被 main 调用的 `japan-service-routine.js` 不重复计入现行岗位。
+
+## 状态与共同缺口
+
+- **已任职**：玩家已有申请/拒绝、持久身份、实际职责和结算；不代表该职业族全部完成
+- **工序已在 / 未接职**：NPC有真实订单、物件交接、到位或值班状态；玩家作为顾客、旁观者或练习者不算任职
+- **部分工序**：交班、朝班或真实业务存在，但某专业工作仍只是姿态；两部分分别记录
+- **姿态 / 居民**：原地动作、短路线、读书、用餐或观景，不能宣称已有完整生产/服务工作流
+
+除前三项正式职位外，下列尚未接职的角色均**没有已实现的正式 `roleId/slotId`**。表中只列现有 actor/station ID，避免把拟议岗位名冒充源码ID。每批须补本地登记与有据通过/拒绝、有限编制或明确轮班名额、实际审批者、玩家职责适配与NPC安全交班、评价及按岗位/日幂等银行工资。保留现有NPC；占用职位不凭申请消失，满额应拒绝或候补。技能/属性、性格、关系可解锁不同选项和结果，当前不可伪报艺术/医药等未实现技能或晋升已完成。
+
+## 已可申请并履职
+
+| 地区 / 职位与稳定ID | 真实办理、模块和职责 | 当前完成范围 / 仍有限制 |
+|---|---|---|
+| 中国·礼务录事 `cn-court-clerk`；编制 `cn-court-clerk-1`；主管 `cn-official-rites` 沈叙 | [formal-careers](../source/game/formal-careers.js)、[china-court-career](../source/game/china-court-career.js)：铨录案申请→11:30前实到第七班位→随实际朝会听记→回署8秒归档 | **已任职**；18岁、礼仪2/文书2；18–20铜文日薪入银行；六官不变。未开放六官职务、升品或政治身份 |
+| 中国·酒楼常任服务助理 `cn-tavern-steward`；编制 `cn-tavern-steward-1`；主管 `cn-tavern-host` 许安 | [china-tavern-labor](../source/game/china-tavern-labor.js)＋正式核心：当地登记→06:00–18:00开班→擦净两桌→回案当面验收 | **已任职**；18岁、礼仪2；16–17铜文日薪入银行。此职责仅擦桌，**未覆盖点菜、报菜、烹制、传菜、收碗洗碗** |
+| 法国·西苑常任园艺助理 `fr-garden-assistant`；编制 `fr-garden-assistant-1`；主管 `france-gardener` 埃米尔 | [france-gardener-labor](../source/game/france-gardener-labor.js)＋正式核心：工具架登记→06:00–18:00开班→领取原壶→两畦各浇水→归还→验收 | **已任职**；18岁、园艺2；8–9法国券日薪入银行。未覆盖NPC换剪修篱工序或园丁晋升 |
+| 中国·计件帮工 `cn-tavern-helper`；工单 `cn-tavern-labor-*` | [china-tavern-employment](../source/game/china-tavern-employment.js)＋劳动模块：许安登记→两桌→结清→可离职再申请 | **已任职（临工）**；每份12铜文，非长期日薪/正式编制 |
+| 法国·计件帮工 `fr-garden-helper`；工单 `fr-garden-labor-*` | [france-gardener-employment](../source/game/france-gardener-employment.js)＋劳动模块：埃米尔登记→借原壶→两畦→归还→结清 | **已任职（临工）**；每份6铜文，非6法国券；非长期日薪/正式编制 |
+
+工资现状以 [temporary-work-payroll.js](../source/game/temporary-work-payroll.js)、[currency-ledger.js](../source/game/currency-ledger.js) 和上述实际劳动模块为准：**R16.62所有新正式/临工结算都入银行**，既有已付现金回执只重放，不补发、不追扣。[FORMAL_JOB_CATALOGUE](FORMAL_JOB_CATALOGUE.md) 中“旧临工仍以原方式领取”的旧句不适用于新结算。目前仅中国钱庄有实体存取/兑换柜台，法国券也须到该柜台选对应账户提款；日本、法国、埃及本地实体银行仍未建。当前一人同时一份正式职位，并非终身只能选一次；完整晋升、请假与全部职业评价仍未覆盖。
+
+## 中国：已有业务与任职缺口
+
+| 现有职业 / actor ID | 已有控制器与真实步骤 | 玩家状态与具体缺口 |
+|---|---|---|
+| 酒楼点菜/传菜服务 `cn-tavern-host` 许安 | [china-tavern-meal](../source/game/china-tavern-meal.js)：桌边接单→按桌报后厨→原盘接餐→端到原客席→收碗→带回洗净；亦接待擦桌帮工 | **工序已在 / 未接职**；玩家可点餐或擦桌，不能执行本行整链。给服务职位增加真实订单领取、盘碗持有人及餐位交接；与掌柜招工/验收错峰，不能只把现有擦桌助理更名 |
+| 酒楼厨师 `cn-tavern-cook` 沈禾 | 同上＋[china-tavern-kitchen](../source/game/china-tavern-kitchen.js)：接报菜→切配→灶前加热→端同号餐盘→放传菜台→交给服务者 | **工序已在 / 未接职**；补厨房编制、雇主审核/烹饪资格与玩家备菜、灶、传菜台工序；现订单客人固定为玩家，雇员玩法还需真实顾客来源，不能让玩家同时当自己的客人 |
+| 医师 `cn-clinic-physician` 许宁 | [china-clinic-service](../source/game/china-clinic-service.js)：实际问诊椅来客→当面问询→写编号单→二层平台将原单交助手 | **工序已在 / 未接职**；当前玩家为唯一病人。补医师申请条件、非玩家来客、开单权限及玩家→助手原单交接；只做本作虚构诊疗，不把健康系统数值当新医嘱 |
+| 药铺助手 `cn-pharmacy-assistant` 苏禾 | 同上：到二层接原单→下楼备物间→按号折云纹包→带回柜台→向同号来客当面交付 | **工序已在 / 未接职**；补助手空缺/审批、玩家接单与纸包持有权、跨楼层交付凭记和恢复。现云纹包明确虚构、无现实药物配方/健康效果 |
+| 锦衣卫/轮值守卫 `cn-archery` 沈砚、`cn-range-warden` 陆衡 | [china-archery-routine](../source/game/china-archery-routine.js)＋[china-guard-routes](../source/game/china-guard-routes.js)：当面交班→一人取弓、金线习射、停射取箭归架；另一人巡门廊/殿阶/东西侧巷→逐点驻察→返圃交班换值 | **工序已在 / 未接职**；玩家只有受控习射体验。补轮值编制/武艺资格、巡查检查点凭记、接班/交班和射场独占；保两NPC与安全停射，不能用一次练箭冒充值勤完成 |
+| 工部官 `cn-minister-works` 顾衡 | [china-palace-audience](../source/game/china-palace-audience.js)、[china-official-life](../source/game/china-official-life.js)、[china-court-reports](../source/game/china-court-reports.js)：离案/值宿赴班→11:30行礼奏报→奉准亲到荷庭或传令案核验真实编号令→结果留待下次上报 | **工序已在 / 未接职**；补官署职位与授任条件、玩家参奏/核验适配；报告与 `inspected` 当前绑定原角色ID，不可仅添目录按钮 |
+| 仓务官 `cn-minister-granary` 许知远 | 同三模块：真实赴班/奏报→回署；报告仅据待核验队列或“未有可核验新文书” | **部分工序 / 未接职**；补编制与朝班/回署交接。无真实粮仓收货、存量/出库工序，不能宣称仓务专业链完成 |
+| 礼仪官 `cn-official-rites` 沈叙；吏务官 `cn-official-personnel` 陆谦；刑名官 `cn-official-justice` 周惟正；文书官 `cn-official-records` 宋承简 | 同朝会/官员日常模块：各自文案→共同赴班持笏行礼→退朝→回署工作/学习/值宿；工作分别显示核对班位、值勤名册、读律例、抄来文 | **部分工序 / 未接职**；四ID均纳入申请队列，分别补编制/资格、实际可做职责与交班。当前只有前两官轮流奏报；四人桌案工作主要为定时动作，未有任免、案件审理或独立公文业务链。玩家录事不等于这四职已开放 |
+| 宫苑传令 `cn-palace-herald` 沈序 | [china-palace-edict](../source/game/china-palace-edict.js)、[china-palace-edict-place](../source/game/china-palace-edict-place.js)：朝会凭记触发→上楼取原稿→当面呈准→回案用印→送东岸宣读→交原令→返岗 | **工序已在 / 未接职**；补传令编制/授任、玩家持同号稿令与NPC职责租借交接；现仅荷庭清扫令一例，不是完整诏令系统 |
+| 拟稿书写 `cn-calligraphy` Wen | 同敕令模块：回原案→拟清扫稿→等传令者→交原稿→释放回日常 | **工序已在 / 未接职**；玩家目前习字可得文书经验，不能承担这份原稿。补书写岗位与玩家拟稿/交接/凭记，区别于已开放录事归档 |
+| 荷庭勤务 `cn-garden` Bo | 同敕令模块：到东岸听令答复→接同号令→竹筐旁留存→到落叶处清扫入筐→办结返岗 | **工序已在 / 未接职**；补勤务编制/本地批准、玩家接令/留档/实际清扫与办结；不是法国园艺助理换名复用 |
+| 钱庄账房 `cn-money-house-teller` 陆昭 | [china-money-house-service](../source/game/china-money-house-service.js)＋货币账本：柜台客户开户/存取/报价兑换/查账；NPC在账簿与算盘间侧移、写账/拨珠 | **部分工序 / 未接职**；玩家仅办理自己的账户，NPC动画并不驱动每笔账务。补实名雇主/编制、客户请求→核对→授权执行→回执的雇员工单；不得给玩家任意改他人余额的“职业按钮” |
+| 雅集接待 `cn-tavern-reception` 温晚 | [china-tavern-salon](../source/game/china-tavern-salon.js)：引见指定艺者→本人到案答复→有限空房→确认价目/预留→实际到房完成或取消退款 | **工序已在 / 未接职**；接待者当前主要站案姿态，真实业务在服务控制器。补接待空缺、玩家招呼客人/引见/留房/结账权限，保留艺者自主答复与房间锁 |
+| 诗词 `cn-tavern-reciter` 柳清弦；说书 `cn-tavern-storyteller` 沈砚舟；曲词 `cn-tavern-songwriter` 顾流萤；棋谈 `cn-tavern-chess-poet` 陆怀川 | [艺者定义](../source/game/china-tavern-salon-artists.js)、[salon](../source/game/china-tavern-salon.js)、[salon-life](../source/game/china-tavern-salon-life.js)：各自练习/阅读/歇场→引见时亲自答复→愿意才引路到空雅间→非露骨茶叙→返岗 | **工序已在 / 未接职**；四个专长逐一纳入，不把诗词一职代表全部。补艺术技能、申请与台班、NPC客人邀约、玩家接受/拒绝和服务结果；目前曲词/棋谈为各自茶叙类型，不能声称完整乐器演奏/棋局规则已实现 |
+
+中国边界项：[china-palace-life](../source/game/china-palace-life.js) / [china-consort-activities](../source/game/china-consort-activities.js) 中 `cn-tea` Lin 有真实接待妃嫔、等候与双方交谈/释放，但没有点茶订单或付薪员工链，列**部分接待工序**，后续补职业登记与来客服务凭记。`cn-cooking` Jia 当前为包饺子姿态/短路线，御膳餐厅的皇帝、妃嫔和官员吃点心并未向其下单；须先接厨房出品/送膳链再算御膳职业完成。`cn-rest` Lan 为读书居民；玩家读书学习不把Lan变成已实现书吏岗位。客栈床位可用，但订房账册尚未开，无已实现客栈住宿雇员工序。来源：[china-palace.js](../source/game/china-palace.js)、[china-tavern.js](../source/game/china-tavern.js)。
+
+## 日本：14名汤馆员工及3名演艺人员
+
+主依据：[JAPAN_SERVICE_WORKERS / JOBS / claim / complete](../source/game/japan-service-orders.js)、[workerTask / scheduleWorkers](../source/game/japan-bathhouse-operations.js)、[JAPAN_STAFF_CREW / 七组交班](../source/game/japan-staff-life.js)、[现行站位与人名](../source/game/japan-bathhouse.js)。七组覆盖共14人，不能遗漏厨房、布草、接待或将轮休本身算作完成对客业务。
+
+| 岗位组 / 全部稳定 actor ID | 真实工序及范围 | 玩家状态与具体缺口 |
+|---|---|---|
+| 前台 `jp-welcome` Koharu、行李铺兼代班 `jp-market-tea` Tomo | 对实际来客写簿发浴牌 `register`→结束后销号收牌 `checkout`；双方到交班点才轮休/返岗 | **工序已在 / 未接职**；玩家可登记泡汤。补前台编制/审批、玩家按访客号登记归牌、柜台锁与覆盖交接；Tomo行李地图整理仍是岗位姿态，无行李托存订单 |
+| 草木浴包 `jp-incense` Itsuki、收货物料兼代班 `jp-herb-workshop` Nao | 按真实浴牌 `prepare`→药房产生同号浴包→交配送；Nao仅主配料员轮休时承接配料，平时回补给箱 | **工序已在 / 未接职**；补配料空缺、玩家单号/工台/成品交接，保持虚构浴包；Nao收货清点无独立库存/采购链，需另补验收业务 |
+| 男汤服务 `jp-onsen` Sora、锅炉兼代班 `jp-steam` Nagi | 从药房取同号包 `pickup`→送男汤交接凳 `deliverMix`；真实岗位覆盖交接。Nagi仅Sora轮休时接配送 | **工序已在 / 未接职**；补玩家配送与服务侧资格、原物件/浴牌匹配及值班交接。木桶检查、锅炉刻度为日常姿态，尚无加热/维修/补水任务链 |
+| 女汤服务 `jp-women-onsen` Mei、客房布草兼代班 `jp-rest` Yuki | 同号浴包取件→女汤交接凳→交班；Yuki仅Mei轮休时接配送，平时整理客房被褥 | **工序已在 / 未接职**；补女汤适配与覆盖空缺；毛巾木篮/被褥整理现为姿态，无脏布收集→洗涤→晾晒→补给工单，不能宣称布草业务已完整 |
+| 寿司/拉面制作和送餐 `jp-sushi` Haru、`jp-ramen` Daichi | 实际寿司/拉面单 `cook`→对应厨房出品→原盘 `pickup`→按来客/座位 `serve`；两人共用厨房与交班，源码允许两人接制作/送餐，非硬绑定一人一种菜 | **工序已在 / 未接职**；补制作及送餐职位/班次、技能、玩家认领/完工/移交和厨房独占。现有NPC浴客可复用为真实顾客；玩家点餐/吃饭不算上班 |
+| 御守照料 `jp-omamori` Emi、庭园 `jp-garden-onsen` Akari | **部分工序**：二人实到岗位交班→一人代岗，必要时换巫女服→原人用餐/饮茶/睡眠→安全返岗；本业仅整理御守/照看鱼池姿态，无对客订单权限 | **未接职**；两者都保留覆盖项。补登记/资格、可验收的御守整理或庭园照料步骤，再接玩家与代班；不能仅让玩家站岗计时就标“业务已完整” |
+| 暖桌 `jp-tea` Aoi、望景廊 `jp-balcony` Ren | **部分工序**：实到交班、代看暖桌/廊厅、共享员工休息设施后返岗；暖桌坐饮与廊下静读为本业表现，`JAPAN_LOCAL_WORKERS` 明确不能认领客单 | **未接职**；补接待职责、有限班次、真实来客/服务结果与玩家交班。不能把喝茶/读书的普通动作当完整接待职业 |
+| 演艺接待/饮品 `jp-performance-reception` 绫乃 | [japan-performance-service](../source/game/japan-performance-service.js)：引见→艺者亲自回应→单个茶席/舞台→价目预留；饮品另走吧台准备→送席→按实际完成结账 | **工序已在 / 未接职**；补演艺场所登记、玩家接待/饮品工单及账务交接，与14人汤馆班表区分 |
+| 扇舞/茶谈 `jp-salon-mai` 舞；说书/茶谈 `jp-salon-ichiro` 一郎 | [japan-performance-cast](../source/game/japan-performance-cast.js)＋演艺服务：受邀到案→按专长/意愿回应→赴舞台或艺者席→表演/茶谈实际计时→完成结算→起身返位 | **工序已在 / 未接职**；两专长都入队，补艺术技能/演艺申请/有限台班、NPC客人和玩家自主接单；艺者不等同性工作者 |
+
+上述七组的共用 `staffLife` 是真实交班→自主选择员工餐/茶/床→返岗，可复用于玩家雇员生活；不等于原料供应、布草洗涤、锅炉维护都已完成。动态 `jp-visitor-*` 是顾客；窗边晴雨挂偶取放是玩家物件互动，均不是漏接职业。
+
+## 法国：茶会两岗、园丁及其余居民
+
+| 职业 / actor ID | 真实控制器与步骤 | 玩家状态与具体缺口 |
+|---|---|---|
+| 糕点/茶点制作 `france-bakery` 卡米耶 | [france-tea-service](../source/game/france-tea-service.js)：接玛农报单→切一份蛋糕→备热茶→原茶盘待取→让开交接点 | **工序已在 / 未接职**；补庄园厨房空缺/雇主审批、玩家准备与茶盘移交；可复用加布里埃尔为NPC顾客。原“烘面包”站点动作不代表已另有烘焙生产链 |
+| 侍茶/接待 `france-salon` 玛农 | 同上：到茶桌记单→去糕点房传话→接原盘→送原客席→收杯碟→带回清洗；取消也清回物件 | **工序已在 / 未接职**；补侍茶编制、玩家记单/托盘/收洗适配与订单职责归属 |
+| 园丁 `france-gardener` 埃米尔 | [france-gardener](../source/game/france-gardener.js)：取壶→两畦浇灌→还壶→取剪→修黄杨篱→还剪→按需歇脚/散步 | **部分已接职**：前表两种帮工仅浇水。下一段须开放修篱工具与可验收剪篱职责、园丁资格/晋升或明确轮班空缺；保原NPC和借工具互斥 |
+| `france-atelier` 卢西安；`france-bedroom` 朱丽叶 | [regions-west](../source/game/regions-west.js)：调色/作画、整理床品动作及短路线，无出品订单/布草交付控制器 | **姿态 / 未接职**；以后补艺术交付、寝务工序再纳职业验收，不假报已有完整工艺链 |
+| `france-cafe` 加布里埃尔 | 茶会服务中的真实顾客：选茶或散步→入座→喝茶→让位 | **居民/顾客**，不是侍茶员工，不给“顾客职业”凑数 |
+
+## 埃及：现有15名居民均未形成可接管职业订单
+
+依据 [egypt-temple.js 的 stations](../source/game/egypt-temple.js) 与 main 当前通用NPC/站点逻辑：有工作姿态、短路线、玩家单点动作或参观盖章，未发现埃及独立的职业订单、物件交接、班次或雇用控制器。以下逐一保留身份，**不称已完成职业工作流**。
+
+| 原场景身份 / 全部稳定ID | 当前真实表现 | 下一步缺口 |
+|---|---|---|
+| 书吏 `egypt-papyrus` 萨米拉；王室接待 `egypt-royal-reception` 阿赫；王室卷轴 `egypt-cleopatra-suite` 伊西 | 纸莎草绘制/写簿/读卷姿态和短路线 | 先有可交付画稿/编号来访登记/卷轴收存业务，再补本地名册、审核、玩家职责与报酬 |
+| 餐厅 `egypt-royal-dining` 达娜；厨房 `egypt-royal-kitchen` 赫特；沐浴布草 `egypt-private-bath` 赛提 | 摆餐/照看陶锅/整理亚麻姿态；厨房与储藏室实体存在 | 先补原料或餐单→出品→传餐、布草收整交付；当前无已实施埃及厨房/布草多步链 |
+| 仪式陈设 `egypt-scales` 奥马尔、`egypt-anubis-judgment` 奈菲、`egypt-pharaoh-throne` 拉美 | 天平/王殿的仪式动作和讲解 | 无祭司/法老继承或仪式工单。拉美的ID/站位不是已存在法老政治职位 |
+| 讲解/观摩 `egypt-sphinx` 哈桑、`egypt-glyphs` 莱拉、`egypt-guardian` 努尔、`egypt-burial` 阿米娜、`egypt-stars` 梅丽特、`egypt-horus-eye` 塔雅 | 石纹、壁画、神像、墓室、星图与护符的静读/讲解 | 普通居民/参观互动；未定义有客团、交付结果与工资的导览职业，不凭场景名字生成已实现工作 |
+
+没有源码证据的工匠、采购、祭司等职业流程记“未实现/未证实”，不由文化设定推定已经存在；后续内容仍沿 W03、CR01 与 CL03 建设。
+
+## 特殊政治身份：已授权排队，尚未实现
+
+现有 `cn-emperor` 景珩有实际朝议/阅批职责；`cn-consort-yue` 月容、`cn-consort-heng` 沈蘅、`cn-consort-ling` 令仪有各自私室、日常与关系。来源为 [palace-life](../source/game/china-palace-life.js) / [palace-residents](../source/game/china-palace-residents.js)。它们目前是固定NPC身份，不在职业目录；源码未有皇后 `roleId/slotId`、选举、驾崩继承、册妃、立后或废后状态机。
+
+- 有限名位分别建模：皇帝唯一、皇后至多一位且可空缺、妃嫔有限席位；不把三个既有妃嫔NPC的数量直接当完整编制规则
+- 皇帝路线包含**实际NPC投票**（确定选民范围、法定参选资格、逐人选择与可核验票数）、驾崩后的合法继承（依赖 ST08 年龄/生命事件/亲缘和继承资格），以及虚构宫斗夺权；**派系支持另记**，不能用好感总分或派系值冒充投票。失败、调查与政治后果须成立
+- 成年妃嫔可由皇帝倾心后**亲自下诏邀请**，受邀者接受或拒绝；也可自主申请、由皇帝批准或拒绝。邀请、批准、个人意愿分别记录，不以一封诏令强制恋爱或亲密
+- 皇后允许空缺、册立与废黜；每次身份变更要同步头衔、原职位/名额、住房与床位归属、职责/日程、安全退场及持久存档，不复制或抹除原NPC
+- 属性、性格、关系、资格和情境共同解锁不同选择；政治名位不自动改变恋爱关系或同意。亲密仅成年人、自愿、可拒绝、淡出；无性暴力，不提供现实投毒材料/剂量或夺权伤害操作指南
+
+归属 [CR04 / ST08 / CL01](PROJECT_CHECKLIST.md)，是已排队设计与实现要求；此处不宣称已上线，也不要求用户重新批准。
+
+## 下一批次顺序与完成口径
+
+先完成当前门口停滞与可选读书/学习入口修复，再按相邻真实控制器成批接入：
+
+1. 中国酒楼完整厨师/服务链、法国茶点/侍茶与园丁修篱：现工具、雇主与顾客能力最近，避免第三个“仅擦桌”变体
+2. 日本订单板上的前台、配料、男女汤配送、厨房/送餐：一次接通共用玩家认领与七组交班，再逐组落实岗位资格/职责；同批登记全部14人的覆盖状态，明确四名本地员工及布草/物料/锅炉本业还需补的工序
+3. 中国医馆双岗、守卫巡值、钱庄账房，以及中日雅集/演艺各专长：沿已有编号单、班位、房间和服务票据接任职，不把消费者入口当雇员入口
+4. 中国原稿/传令/清扫与六官：逐岗接实际授任、审批及任务交接；政治身份沿 CR04/ST08/CL01 的生命/亲缘与合法资格依赖实施。埃及及各区姿态岗位先补 W03 实作，再进入 CR01 验收
+
+每一岗位覆盖完成须同时成立：目录可查真实职责/条件/薪酬/办理处与名额→当面申请获通过或有原因拒绝→NPC安全交接→玩家实际完成本岗工作→有姓名的评价与一次银行工资→中断/离职/重载不抢占、不重复发钱。局部完成逐行更新；不因三个正式角色可玩，就关闭 CR01、W03 或“全职业可申请”要求。

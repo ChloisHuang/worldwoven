@@ -1,3 +1,4 @@
+import {studyOptions} from './study-lessons.js';
 // Visitor activities are explicit. An NPC's job/animation is never evidence
 // that the player holds that job. Registered work has its own live provider.
 const PUBLIC_STATIONS=new Set([
@@ -11,7 +12,7 @@ export function playerStationIntent(station,{clinicCollection=null}={}){
  if(!station||station.npcOnly)return null;
  if(station.id==='cn-pharmacy-assistant')return clinicCollection?{...station,...clinicCollection,priority:40}:null;
  if(!PUBLIC_STATIONS.has(station.id))return null;
- return {...station,action:({'jp-sushi':'点寿司','jp-ramen':'点拉面','cn-archery':'参加习射','cn-range-warden':'参加习射'}[station.id]||station.action),priority:10};
+ return {...station,action:({'jp-sushi':'点寿司','jp-ramen':'点拉面','cn-rest':'选择书目与技能','cn-calligraphy':'选择习字练习','france-salon':'选择书目与技能','france-atelier':'选择艺术练习','cn-archery':'参加习射','cn-range-warden':'参加习射'}[station.id]||station.action),priority:studyOptions(station.id).length?20:10};
 }
 
 export function nearbyInteraction(candidate,position,{radius=candidate?.interactionRadius??2.8,clear=()=>true}={}){

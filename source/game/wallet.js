@@ -1,7 +1,7 @@
 import {GAME_CURRENCIES} from './currency-ledger.js';
 
-// Merely resolving these URLs does not fetch the pictures. Images are created
-// only after the player opens the wallet; there is one per owned currency.
+// Merely resolving these URLs does not fetch the pictures. Create images only
+// for owned currencies on open, or the currency in a committed receipt.
 const ART = Object.freeze({
   copper: new URL('./assets/currency/china.webp', import.meta.url).href,
   japan: new URL('./assets/currency/japan.webp', import.meta.url).href,
@@ -9,6 +9,7 @@ const ART = Object.freeze({
   france: new URL('./assets/currency/france.webp', import.meta.url).href,
 });
 const STYLE = new URL('./wallet.css', import.meta.url).href;
+const SERIES = Object.freeze({copper:'CN',japan:'JP',egypt:'EG',france:'FR'});
 const validAmount = n => Number.isSafeInteger(n) && n >= 0;
 const number = n => validAmount(n) ? n.toLocaleString('zh-CN') : '—';
 const currency = id => GAME_CURRENCIES[id] || GAME_CURRENCIES.copper;
@@ -53,6 +54,15 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
   const seen=new Set(), notes=new Map();
   const reducedMotion=()=>!!doc.defaultView?.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
+  function receiptNote(id,amount,received=false) {
+    const note=make('span',null,`ww-wallet-transfer-note${received?' is-received':''}`);note.dataset.currency=id;
+    const img=make('img');img.src=ART[id];img.alt='';img.width=800;img.height=364;img.decoding='async';img.draggable=false;
+    const label=make('span',null,'ww-wallet-transfer-label'),value=money(amount,id);
+    label.append(make('span',currency(id).label),make('strong',value));
+    note.style.setProperty('--amount-scale',String(Math.min(1,7/value.length)));
+    note.append(img,label);return note;
+  }
+
   function ensureUI() {
     if (ui) return;
     const dialog=make('dialog',null,'ww-wallet-dialog');dialog.setAttribute('aria-label','钱包与账本');
@@ -66,15 +76,17 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     const empty=make('span','钱包还空着\n去银行取些现金，就能装进口袋','ww-wallet-empty');stack.append(empty);fan.append(stack,pocket);
     const hint=make('p','轻点钱包，抽出并展开纸币','ww-wallet-hint'),cashList=make('p',null,'ww-wallet-cash-list');
     left.append(cashHeading,fan,hint,cashList);
-    const bankHeading=make('div',null,'ww-wallet-section-heading');bankHeading.append(make('h3','银行存款'),make('span','另存银行 · 不计入现金'));
+    const cashSummary=make('div',null,'ww-wallet-cash-summary'),cashSummaryAmount=make('strong');
+    cashSummary.append(make('span','钱包现金'),cashSummaryAmount);cashSummary.setAttribute('aria-label','随身现金汇总');
+    const bankHeading=make('div',null,'ww-wallet-section-heading');bankHeading.append(make('h3','银行存款'),make('span','独立账户 · 与现金分开'));
     const bankList=make('dl',null,'ww-wallet-bank-list');bankList.setAttribute('aria-label','各币种银行存款');
     const ledgerHeading=make('h3','收支手记','ww-wallet-ledger-title'),scroll=make('div',null,'ww-wallet-ledger-scroll');scroll.tabIndex=0;scroll.setAttribute('aria-label','滚动查看收支记录');
     const journal=make('ol',null,'ww-wallet-journal');scroll.append(journal);
-    right.append(bankHeading,bankList,ledgerHeading,scroll);
+    right.append(cashSummary,bankHeading,bankList,ledgerHeading,scroll);
     const notice=make('p',null,'ww-wallet-notice');notice.setAttribute('role','status');
     const effects=make('div',null,'ww-wallet-effects');effects.setAttribute('aria-hidden','true');
     body.append(left,right);dialog.append(header,body,notice,effects);doc.body.append(dialog);
-    ui={dialog,closeButton,fan,stack,empty,hint,cashList,bankList,journal,scroll,notice,effects};
+    ui={dialog,closeButton,fan,stack,empty,hint,cashList,cashSummaryAmount,bankList,journal,scroll,notice,effects};
     closeButton.onclick=close;
     fan.onclick=()=>{folded=!folded;setFold();};
     // Stopping at the modal keeps game shortcuts from turning an Escape close
@@ -105,15 +117,24 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
       if(!note){
         note=make('span',null,'ww-wallet-note');note.dataset.currency=id;
         const img=make('img');img.src=ART[id];img.alt='';img.width=800;img.height=364;img.decoding='async';img.draggable=false;
-        note.append(img,make('span',c.label,'ww-wallet-note-title'),make('strong',null,'ww-wallet-note-amount'));
+        const seal=make('span',null,'ww-wallet-note-seal');seal.setAttribute('aria-hidden','true');seal.append(make('span','四方'),make('span','随行'));
+        const serial=make('span',`${SERIES[id]} · 0001`,'ww-wallet-note-serial');serial.setAttribute('aria-hidden','true');
+        // A currency's note represents its cash total, not an invented banknote
+        // denomination. Type stays in the artwork's blank right-hand fields.
+        note.append(img,make('span',c.label,'ww-wallet-note-title'),make('span','随身现金','ww-wallet-note-caption'),seal,serial,make('strong',null,'ww-wallet-note-amount'));
         notes.set(id,note);ui.stack.append(note);
       }
       note.style.setProperty('--note-index',String(index));note.style.setProperty('--note-count',String(owned.length));
+      note.style.setProperty('--note-progress',String(index/Math.max(1,owned.length-1)));
       note.style.setProperty('--note-angle',`${(index-(owned.length-1)/2)*5}deg`);
-      note.lastElementChild.textContent=money(balances[id].cash,id);
+      note.style.setProperty('--note-open-angle',`${(index-(owned.length-1)/2)*2}deg`);
+      const amount=money(balances[id].cash,id);
+      note.style.setProperty('--amount-scale',String(Math.min(1,7/amount.length)));
+      note.lastElementChild.textContent=amount;
       note.setAttribute('aria-label',`${c.label}，随身现金 ${money(balances[id].cash,id)}`);
     });
-    ui.cashList.textContent=balances?owned.map(id=>`${currency(id).label} ${money(balances[id].cash,id)}`).join(' · '):'现金金额待核对';
+    const cashText=balances?owned.map(id=>`${currency(id).label} ${money(balances[id].cash,id)}`).join(' · ')||'0 · 暂无随身现金':'现金金额待核对';
+    ui.cashList.textContent=cashText;ui.cashSummaryAmount.textContent=cashText;
     ui.bankList.replaceChildren();
     for(const [id,c] of Object.entries(GAME_CURRENCIES)){
       const row=make('div',null,'ww-wallet-bank-row'),name=make('dt',c.label),amount=make('dd');
@@ -149,7 +170,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     if(disposed||ui?.dialog.open)return;clearTransfer();onOpen();ensureUI();priorFocus=doc.activeElement;folded=true;historyLimit=60;setFold();
     renderBalances();renderHistory();ui.scroll.scrollTop=0;ui.dialog.showModal();trigger.setAttribute('aria-expanded','true');ui.closeButton.focus({preventScroll:true});
   }
-  function clearTransfer(){clearTimeout(transferTimer);transferTimer=null;transfer?.remove();transfer=null;mini.hidden=true;mini.classList.remove('in-modal');if(!disposed)mount.append(mini);}
+  function clearTransfer(){clearTimeout(transferTimer);transferTimer=null;transfer?.remove();transfer=null;mini.hidden=true;mini.replaceChildren();mini.classList.remove('in-modal');if(!disposed)mount.append(mini);}
   function finishClose(){
     if(trigger.getAttribute('aria-expanded')!=='true')return;
     trigger.setAttribute('aria-expanded','false');clearTransfer();folded=true;setFold();onClose();
@@ -162,8 +183,8 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     const view=walletTransactionView(tx);status.textContent=`${view.title}，${view.badge}，${view.detail}`;
     refresh();if(!view.route)return;
     trigger.classList.remove('has-receipt');clearTimeout(pulseTimer);
-    // The small receipt animates during play as well. It uses plain paper and
-    // DOM text, so a committed wage does not preload the full wallet artwork.
+    // Receipts borrow only their actual currency's compressed ticket artwork;
+    // no new image is requested until the ledger confirms the transaction.
     trigger.dataset.receipt=view.action;trigger.classList.add('has-receipt');
     pulseTimer=setTimeout(()=>{trigger.classList.remove('has-receipt');delete trigger.dataset.receipt;},2200);
     clearTransfer();
@@ -173,8 +194,8 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
       const title=make('strong',`${view.title} · ${view.badge}`,'ww-wallet-mini-title'),route=make('div',null,'ww-wallet-mini-route');
       route.append(make('span',places[view.route[0]]),make('span',places[view.route[1]]));
       const slip=make('span',null,'ww-wallet-mini-slip');
-      slip.append(make('span',currency(view.currency).label));
-      if(view.received)slip.append(make('span',currency(view.received.currency).label,'is-received'));
+      slip.append(receiptNote(view.currency,tx.amount));
+      if(view.received)slip.append(receiptNote(view.received.currency,view.received.amount,true));
       mini.append(title,route,slip);mini.hidden=false;
       // Bank services may rebuild their dialog synchronously after each save.
       // Attach after that render, within its top layer, so a successful real
@@ -184,9 +205,8 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     }
     if(reducedMotion())return;
     transfer=make('div',null,`ww-wallet-transfer is-${view.action}`);
-    const from=make('span',`${currency(view.currency).label} ${money(tx.amount,view.currency)}`,'ww-wallet-transfer-note');
-    transfer.append(from);
-    if(view.received)transfer.append(make('span',`${currency(view.received.currency).label} ${money(view.received.amount,view.received.currency)}`,'ww-wallet-transfer-note is-received'));
+    transfer.append(receiptNote(view.currency,tx.amount));
+    if(view.received)transfer.append(receiptNote(view.received.currency,view.received.amount,true));
     ui.effects.append(transfer);transferTimer=setTimeout(clearTransfer,1450);
   }
   trigger.onclick=open;

@@ -1,5 +1,5 @@
-// Protect the read-only saved-progress contract and the help → passport → help
-// modal flow. These are pure DOM/state checks, not CSS or browser visual QA.
+// Protect the read-only saved-progress contract and direct HUD / legacy host
+// modal flows. These are pure DOM/state checks, not CSS or browser visual QA.
 import assert from 'node:assert/strict';
 import {createTravelPassport,travelPassportView,PASSPORT_REGIONS,travelStampSVG} from '../source/game/travel-passport.js';
 const freeze=o=>{Object.freeze(o);for(const v of Object.values(o))if(v&&typeof v==='object'&&!Object.isFrozen(v))freeze(v);return o;};
@@ -41,12 +41,14 @@ class Element {
 const walk=node=>[node,...node.children.flatMap(walk)];
 const all=(doc,cls)=>walk(doc.body).filter(n=>n.className.split(' ').includes(cls));
 const one=(doc,cls)=>{const nodes=all(doc,cls);assert.equal(nodes.length,1,cls);return nodes[0];};
-function fixture(progress={}){
+function fixture(progress={},direct=false){
   const doc={closeEvents:[],createElement(tag){return new Element(tag,this);},flushCloseEvents(){const events=this.closeEvents.splice(0);for(const fn of events)fn();}};
   doc.head=doc.createElement('head');doc.body=doc.createElement('body');doc.activeElement=doc.body;
-  const host=doc.createElement('dialog');host.append(doc.createElement('p'),doc.createElement('ul'));doc.body.append(host);let opens=0,reads=0,clock={day:2,hour:13.25};
-  const passport=createTravelPassport({mount:host,getProgress:()=>{reads++;return progress;},getClock:()=>clock,getLook:()=>({skin:0x123456,hair:0x456789,eyeColor:0x345678,clothes:0x567890,hairStyle:'shoulder-wave'}),onOpen:()=>opens++,document:doc});
-  return {doc,host,passport,opens:()=>opens,reads:()=>reads,setProgress:p=>{progress=p;},setClock:c=>{clock=c;}};
+  const host=doc.createElement(direct?'header':'dialog');host.append(doc.createElement('p'),doc.createElement('ul'));doc.body.append(host);let opens=0,returns=0,reads=0,clock={day:2,hour:13.25};
+  const trigger=direct?doc.createElement('button'):null,helpContent=direct?doc.createElement('section'):null;let helpReads=0,summary='朝会记录 · 尚未开始';
+  if(direct){trigger.className='ww-passport-hud';host.append(trigger);helpContent.className='ww-passport-notes';helpContent.hidden=true;const status=doc.createElement('p'),references=doc.createElement('div');status.setAttribute('id','china-court-status');references.setAttribute('id','references');references.append(doc.createElement('a'));helpContent.append(status,references);doc.body.append(helpContent);}
+  const passport=createTravelPassport({mount:direct?undefined:host,trigger,helpContent,onHelp:()=>{helpReads++;helpContent.children[0].textContent=summary;},getProgress:()=>{reads++;return progress;},getClock:()=>clock,getLook:()=>({skin:0x123456,hair:0x456789,eyeColor:0x345678,clothes:0x567890,hairStyle:'shoulder-wave'}),onOpen:()=>opens++,onReturn:()=>returns++,document:doc});
+  return {doc,host,trigger,helpContent,passport,helpReads:()=>helpReads,setSummary:s=>{summary=s;},opens:()=>opens,returns:()=>returns,reads:()=>reads,setProgress:p=>{progress=p;},setClock:c=>{clock=c;}};
 }
 {
   const progress=freeze({visited:['china'],stamps:{china:['cn-tea','cn-rest']},nickname:'<img src=x onerror=evil>'}),f=fixture(progress),{doc,host,passport}=f;
@@ -59,7 +61,7 @@ function fixture(progress={}){
   tab('china').click();assert.equal(tab('china').getAttribute('aria-current'),'page');assert.equal(all(doc,'ww-passport-activity').length,2);assert.match(one(doc,'ww-passport-region-page').textContent,/到访日期 · 未记录/);
   tab('france').click();assert.equal(all(doc,'ww-passport-activity').length,0);assert.match(one(doc,'ww-passport-region-page').textContent,/留白/);assert.match(one(doc,'ww-passport-empty').textContent,/完成后/);
   const modal=one(doc,'ww-passport-dialog');assert(modal.dispatch('keydown',{code:'Space'}).stopped);assert(modal.dispatch('cancel').defaultPrevented);
-  assert(!passport.isOpen());assert(host.open);assert.equal(doc.activeElement,one(doc,'ww-passport-trigger'),'returns to the open help panel');
+  assert(!passport.isOpen());assert(host.open);assert.equal(f.returns(),1,'help diagnostics refresh on return');assert.equal(doc.activeElement,one(doc,'ww-passport-trigger'),'returns to the open help panel');
   // Native close events are queued. A fast reopen must not be undone by the
   // previous close event, nor reopen a second help modal over this one.
   passport.open();doc.flushCloseEvents();assert(passport.isOpen());assert(!host.open);assert.equal(one(doc,'ww-passport-trigger').getAttribute('aria-expanded'),'true');
@@ -76,4 +78,22 @@ function fixture(progress={}){
   assert.equal(all(f.doc,'ww-passport-activity').length,24);one(f.doc,'ww-passport-more').click();assert.equal(all(f.doc,'ww-passport-activity').length,48);one(f.doc,'ww-passport-more').click();assert.equal(all(f.doc,'ww-passport-activity').length,52);assert.equal(all(f.doc,'ww-passport-more').length,0);
   f.passport.close();assert.equal(f.doc.activeElement,f.doc.body,'programmatic open restores original focus when host was closed');f.passport.dispose();
 }
-console.log('PASS passport: read-only saved visits and unique activity marks, unknown dates, saved-color portrait, fictional nickname, empty/legacy progress, bounded DOM, lazy/repeated/interrupted modal, queued close, help return and disposal');
+// Relocating controls must keep live reference/diagnostic nodes connected and
+// make dismissal return straight to gameplay, including queued close events.
+{
+  const progress=freeze({visited:['china'],stamps:{china:['cn-tea']}}),before=JSON.stringify(progress),f=fixture(progress,true),{doc,host,trigger,helpContent,passport}=f;
+  const status=helpContent.children[0],references=helpContent.children[1],tab=id=>all(doc,'ww-passport-tab').find(b=>b.dataset.page===id);
+  trigger.focus();trigger.click();assert(passport.isOpen());assert(!host.open);assert.equal(all(doc,'ww-passport-trigger').length,0);assert(helpContent.hidden);assert(references.isConnected);
+  tab('notes').click();assert.equal(f.helpReads(),1);assert(!helpContent.hidden);assert.equal(helpContent.children[1],references);assert.match(status.textContent,/尚未开始/);
+  f.setSummary('朝会记录 · 今日已完成');tab('china').click();assert(helpContent.hidden);assert(status.isConnected);tab('notes').click();assert.match(status.textContent,/今日已完成/);
+  assert(all(doc,'ww-passport-page-turn')[1].disabled);all(doc,'ww-passport-page-turn')[0].click();assert.equal(tab('france').getAttribute('aria-current'),'page');
+  const body=one(doc,'ww-passport-body');body.dispatch('pointerdown',{pointerType:'touch',clientX:200,clientY:100});body.dispatch('pointerup',{clientX:100,clientY:200});assert.equal(tab('france').getAttribute('aria-current'),'page','vertical reading cannot turn a page');
+  body.dispatch('pointerdown',{pointerType:'touch',clientX:200,clientY:100});body.dispatch('pointerup',{clientX:90,clientY:105});assert.equal(tab('notes').getAttribute('aria-current'),'page','horizontal touch swipe turns the page');
+  one(doc,'ww-passport-close').click();assert(!passport.isOpen());assert(!host.open);assert.equal(doc.activeElement,trigger);assert.equal(f.returns(),0);assert.equal(trigger.getAttribute('aria-expanded'),'false');
+  trigger.click();doc.flushCloseEvents();assert(passport.isOpen());assert.equal(tab('cover').getAttribute('aria-current'),'page');
+  doc.defaultView={matchMedia:()=>({matches:false})};one(doc,'ww-passport-close').click();assert(passport.isOpen(),'modal retains input during the closing cover animation');
+  passport.open();one(doc,'ww-passport-dialog').dispatch('animationend');assert(passport.isOpen(),'reopening cancels an unfinished close');
+  one(doc,'ww-passport-close').click();one(doc,'ww-passport-dialog').dispatch('animationend');assert(!passport.isOpen());assert.equal(doc.activeElement,trigger);
+  assert.equal(JSON.stringify(progress),before);passport.dispose();assert(trigger.isConnected);assert(helpContent.isConnected);assert(helpContent.hidden);assert.equal(trigger.onclick,null);
+}
+console.log('PASS passport: read-only saved visits and unique activity marks, unknown dates, saved-color portrait, fictional nickname, empty/legacy progress, bounded DOM, lazy/repeated/interrupted modal, queued/animated close, direct HUD, retained notes/references, swipe/page buttons, legacy help return and disposal');

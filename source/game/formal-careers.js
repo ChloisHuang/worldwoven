@@ -1,19 +1,29 @@
+import {STUDY_SOURCES, studyLesson, defaultStudyLesson} from './study-lessons.js';
 // Fictional finite vacancies, independent of the six existing world NPCs.
 export const COURT_CLERK_ROLE = Object.freeze({
-  id: 'cn-court-clerk', name: '礼务录事', rank: 9, slotId: 'cn-court-clerk-1',
+  id: 'cn-court-clerk', name: '礼务录事', rank: 9, slotId: 'cn-court-clerk-1', country: 'china', currency: 'copper', employer: '沈叙', workplace: '承务官署',
   wage: 18, minimumAgeYears: 18,
   skillRequirements: Object.freeze({ritual: 2, writing: 2}),
   dutyWindow: Object.freeze({startHour: 6, endHour: 11.5}),
 });
 export const COURT_SUPERVISOR = Object.freeze({id: 'cn-official-rites', conscientiousness: .85,
   earlyArrivalMinutes: 5, preparationBonus: 2});
-export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE]);
+export const TAVERN_STEWARD_ROLE = Object.freeze({id:'cn-tavern-steward',name:'酒楼常任服务助理',
+  slotId:'cn-tavern-steward-1',country:'china',currency:'copper',employer:'许安',workplace:'云来酒楼',
+  supervisorId:'cn-tavern-host',workSource:'cn-tavern-labor',wage:16,minimumAgeYears:18,
+  skillRequirements:Object.freeze({ritual:2}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1});
+export const GARDEN_ASSISTANT_ROLE = Object.freeze({id:'fr-garden-assistant',name:'西苑常任园艺助理',
+  slotId:'fr-garden-assistant-1',country:'france',currency:'france',employer:'埃米尔',workplace:'西苑工具架登记簿',
+  supervisorId:'france-gardener',workSource:'fr-garden-labor',wage:8,minimumAgeYears:18,
+  skillRequirements:Object.freeze({gardening:2}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1});
+export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE]);
 export const FORMAL_CAREER_SLOTS = Object.freeze([
-  Object.freeze({id: 'cn-court-clerk-1', roleId: COURT_CLERK_ROLE.id, holderId: null}),
+  ...FORMAL_CAREER_ROLES.map(role => Object.freeze({id:role.slotId,roleId:role.id,holderId:null})),
 ]);
-const STUDIES = Object.freeze({'cn-rest': 'ritual', 'cn-calligraphy': 'writing'});
-const SKILLS = Object.freeze(['ritual', 'writing']);
-const STAGES = new Set(['arrived', 'attending', 'archive', 'ready', 'missed', 'paid']);
+const SKILLS = Object.freeze(['ritual', 'writing', 'gardening', 'art']);
+const emptyStudy = () => ({issued: 0, completed: 0, issuedDay: null, lessonId: null});
+const WORK = Object.freeze({'cn-tavern-labor':'ritual','fr-garden-labor':'gardening'});
+const STAGES = new Set(['arrived', 'attending', 'archive', 'ready', 'missed', 'paid', 'working', 'inspection']);
 const copy = value => JSON.parse(JSON.stringify(value));
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const integer = value => Number.isSafeInteger(value) && value >= 0;
@@ -21,14 +31,16 @@ const dayOrNull = value => value === null || integer(value);
 const identifier = value => typeof value === 'string' && /^[a-z][a-z0-9-]{0,63}$/.test(value);
 const own = (value, key) => Object.hasOwn(value, key);
 const excused = duty => duty?.stage === 'missed' && duty.reason === 'court-postponed';
-const completedWage = (role, arrivalHour) => role.wage + (COURT_SUPERVISOR.conscientiousness >= .8 &&
+const supervisor = role => role.supervisorId || COURT_SUPERVISOR.id;
+const completedWage = (role, arrivalHour) => role.workSource ? role.wage + (arrivalHour < role.earlyBeforeHour ? role.preparationBonus : 0) : role.wage + (COURT_SUPERVISOR.conscientiousness >= .8 &&
   arrivalHour <= role.dutyWindow.endHour - COURT_SUPERVISOR.earlyArrivalMinutes / 60 ? COURT_SUPERVISOR.preparationBonus : 0);
-const empty = () => ({version: 1, revision: 0, skills: {ritual: 0, writing: 0}, tenure: null,
-  lastDuty: null, lastPaidDay: null, daily: {day: null, ritual: 0, writing: 0},
-  learning: {'cn-rest': {issued: 0, completed: 0, issuedDay: null},
-    'cn-calligraphy': {issued: 0, completed: 0, issuedDay: null}},
-  lowerWork: {'cn-tavern-labor': 0}, performance: 0, promotionProgress: 0,
+const empty = () => ({version: 3, revision: 0, skills: {ritual: 0, writing: 0, gardening: 0, art: 0}, tenure: null,
+  lastDuty: null, lastPaidDay: null, daily: {day: null, ritual: 0, writing: 0, gardening: 0, art: 0},
+  learning: Object.fromEntries(STUDY_SOURCES.map(source => [source, emptyStudy()])),
+  lowerWork: {'cn-tavern-labor': 0, 'fr-garden-labor': 0}, performance: 0, promotionProgress: 0,
   lastEvaluatedDay: null, lastEvaluation: null});
+
+function validWorkReceipt(source,receiptId){const m=typeof receiptId==='string'&&new RegExp('^'+source+'-([1-9][0-9]*)$').exec(receiptId);return !!m&&integer(Number(m[1]));}
 
 function catalogue(roles, slots) {
   if (!Array.isArray(roles) || !roles.length || !Array.isArray(slots) || !slots.length) throw Error('invalid-career-catalogue');
@@ -53,21 +65,38 @@ function catalogue(roles, slots) {
 
 function restore(saved, roleMap, slotMap) {
   if (saved == null) return empty();
+  // Version 1 is the published clerk save. Add only the new practice skill and
+  // receipt counter; preserve its tenure, duty, earned salary and study tickets.
+  if (object(saved) && saved.version === 1 && object(saved.skills) && Object.keys(saved.skills).length === 2 &&
+    object(saved.daily) && object(saved.lowerWork) && Object.keys(saved.lowerWork).length === 1) {
+    saved = {...copy(saved), version:2,skills:{...saved.skills,gardening:0},
+      daily:{...saved.daily,gardening:0},lowerWork:{...saved.lowerWork,'fr-garden-labor':0}};
+  }
+  // Published v2 saves retain all earned progress, employment and receipts.
+  // Reject malformed old study rows before adding the selected lesson field.
+  if (object(saved) && saved.version === 2 && object(saved.skills) && Object.keys(saved.skills).length === 3 &&
+    object(saved.daily) && object(saved.learning) && Object.keys(saved.learning).length === 2 &&
+    ['cn-rest','cn-calligraphy'].every(source => object(saved.learning[source]) && Object.keys(saved.learning[source]).length === 3)) {
+    saved = {...copy(saved), version:3, skills:{...saved.skills,art:0}, daily:{...saved.daily,art:0},
+      learning:Object.fromEntries(STUDY_SOURCES.map(source => [source, saved.learning[source] ?
+        {...saved.learning[source],lessonId:saved.learning[source].issued?defaultStudyLesson(source).id:null}:emptyStudy()]))};
+  }
   const validSlot = (roleId, slotId) => roleMap.has(roleId) && slotMap.get(slotId)?.roleId === roleId && slotMap.get(slotId).holderId === null;
-  if (!object(saved) || saved.version !== 1 || !integer(saved.revision) || !object(saved.skills) ||
+  if (!object(saved) || saved.version !== 3 || !integer(saved.revision) || !object(saved.skills) ||
     Object.keys(saved.skills).length !== SKILLS.length || SKILLS.some(key => !integer(saved.skills[key])) ||
-    saved.skills.ritual + saved.skills.writing > 100 || !dayOrNull(saved.lastPaidDay) ||
+    SKILLS.some(key=>saved.skills[key]>100) || saved.skills.ritual + saved.skills.writing > 100 || !dayOrNull(saved.lastPaidDay) ||
     !object(saved.daily) || !dayOrNull(saved.daily.day) || SKILLS.some(key => !integer(saved.daily[key]) ||
       saved.daily[key] > 4 || saved.daily[key] > saved.skills[key]) ||
     (saved.daily.day === null && SKILLS.some(key => saved.daily[key] !== 0)) ||
-    !object(saved.learning) || Object.keys(saved.learning).length !== Object.keys(STUDIES).length ||
-    !object(saved.lowerWork) || Object.keys(saved.lowerWork).length !== 1 || !integer(saved.lowerWork['cn-tavern-labor']) ||
+    !object(saved.learning) || Object.keys(saved.learning).length !== STUDY_SOURCES.length ||
+    !object(saved.lowerWork) || Object.keys(saved.lowerWork).length !== 2 || Object.keys(WORK).some(source=>!integer(saved.lowerWork[source])) ||
     !Number.isInteger(saved.performance) || Math.abs(saved.performance) > 100 ||
     !integer(saved.promotionProgress) || saved.promotionProgress > 100 || !dayOrNull(saved.lastEvaluatedDay)) throw Error('invalid-career-state');
-  for (const source of Object.keys(STUDIES)) {
+  for (const source of STUDY_SOURCES) {
     const study = saved.learning[source];
-    if (!object(study) || Object.keys(study).length !== 3 || !integer(study.issued) || !integer(study.completed) || study.completed > study.issued ||
-      !dayOrNull(study.issuedDay) || (study.issued === 0) !== (study.issuedDay === null)) throw Error('invalid-career-state');
+    if (!object(study) || Object.keys(study).length !== 4 || !integer(study.issued) || !integer(study.completed) || study.completed > study.issued ||
+      !dayOrNull(study.issuedDay) || (study.issued === 0) !== (study.issuedDay === null) ||
+      (study.issued === 0 ? study.lessonId !== null : !studyLesson(source,study.lessonId))) throw Error('invalid-career-state');
   }
   if (saved.tenure !== null && (!object(saved.tenure) || !validSlot(saved.tenure.roleId, saved.tenure.slotId) ||
     !integer(saved.tenure.sinceDay) || !Number.isFinite(saved.tenure.sinceHour) ||
@@ -80,8 +109,11 @@ function restore(saved, roleMap, slotMap) {
       duty.arrivalHour >= roleMap.get(duty.roleId).dutyWindow.startHour && duty.arrivalHour < roleMap.get(duty.roleId).dutyWindow.endHour) ||
     (duty.stage !== 'missed' && duty.arrivalHour === null) ||
     (duty.stage === 'arrived' && duty.started) ||
-    (['attending', 'archive', 'ready', 'paid'].includes(duty.stage) && !duty.started) ||
-    (['arrived', 'attending', 'archive', 'ready'].includes(duty.stage) &&
+    (roleMap.get(duty.roleId).workSource ? !['working','inspection','ready','paid','missed'].includes(duty.stage) ||
+      !(duty.workReceiptId === null && duty.stage === 'missed' || validWorkReceipt(roleMap.get(duty.roleId).workSource,duty.workReceiptId)) :
+      ['working','inspection'].includes(duty.stage) || duty.workReceiptId != null) ||
+    (['attending', 'archive', 'ready', 'paid', 'working', 'inspection'].includes(duty.stage) && !duty.started) ||
+    (['arrived', 'attending', 'archive', 'ready', 'working', 'inspection'].includes(duty.stage) &&
       (!saved.tenure || duty.roleId !== saved.tenure.roleId || duty.slotId !== saved.tenure.slotId || duty.day < saved.tenure.sinceDay)) ||
     (['ready', 'paid'].includes(duty.stage) ? duty.wage !== completedWage(roleMap.get(duty.roleId), duty.arrivalHour) : duty.wage !== null) ||
     (duty.stage === 'paid' && saved.lastPaidDay !== duty.day) ||
@@ -91,21 +123,21 @@ function restore(saved, roleMap, slotMap) {
   if (review === null ? saved.lastEvaluatedDay !== null || saved.performance !== 0 || saved.promotionProgress !== 0 :
     !object(review) || !validSlot(review.roleId, review.slotId) || !integer(review.day) ||
     review.day !== saved.lastEvaluatedDay || review.id !== `career-review:${review.slotId}:${review.day}` ||
-    review.evaluatorId !== COURT_SUPERVISOR.id || typeof review.positive !== 'boolean' ||
+    review.evaluatorId !== supervisor(roleMap.get(review.roleId)) || typeof review.positive !== 'boolean' ||
     review.score !== (review.positive ? 1 : -1) || typeof review.reason !== 'string' || review.reason.length > 80 ||
     typeof review.reasonCode !== 'string' || review.reasonCode.length > 80 ||
-    (review.positive ? ![roleMap.get(review.roleId).wage, roleMap.get(review.roleId).wage + 2].includes(review.wage) : review.wage !== 0) ||
+    (review.positive ? ![roleMap.get(review.roleId).wage,roleMap.get(review.roleId).wage+(roleMap.get(review.roleId).preparationBonus??2)].includes(review.wage) : review.wage !== 0) ||
     !duty || review.day > duty.day || review.day === duty.day && (review.slotId !== duty.slotId ||
       (review.positive ? !['ready', 'paid'].includes(duty.stage) || duty.wage !== review.wage : duty.stage !== 'missed'))) throw Error('invalid-career-state');
   if (duty && ['ready', 'paid'].includes(duty.stage) && (!review || review.day !== duty.day || !review.positive)) throw Error('invalid-career-state');
-  return {version: 1, revision: saved.revision, skills: {ritual: saved.skills.ritual, writing: saved.skills.writing},
+  return {version: 3, revision: saved.revision, skills: {...saved.skills},
     tenure: saved.tenure === null ? null : {roleId: saved.tenure.roleId, slotId: saved.tenure.slotId,
       sinceDay: saved.tenure.sinceDay, sinceHour: saved.tenure.sinceHour},
     lastDuty: duty === null ? null : {roleId: duty.roleId, slotId: duty.slotId, day: duty.day, stage: duty.stage,
-      started: duty.started, reason: duty.reason, arrivalHour: duty.arrivalHour, wage: duty.wage},
-    lastPaidDay: saved.lastPaidDay, daily: {day: saved.daily.day, ritual: saved.daily.ritual, writing: saved.daily.writing},
-    learning: Object.fromEntries(Object.keys(STUDIES).map(source => [source, {...saved.learning[source]}])),
-    lowerWork: {'cn-tavern-labor': saved.lowerWork['cn-tavern-labor']}, performance: saved.performance,
+      started: duty.started, reason: duty.reason, arrivalHour: duty.arrivalHour, wage: duty.wage,...(roleMap.get(duty.roleId).workSource?{workReceiptId:duty.workReceiptId}: {})},
+    lastPaidDay: saved.lastPaidDay, daily: {...saved.daily},
+    learning: Object.fromEntries(STUDY_SOURCES.map(source => [source, {...saved.learning[source]}])),
+    lowerWork: {...saved.lowerWork}, performance: saved.performance,
     promotionProgress: saved.promotionProgress, lastEvaluatedDay: saved.lastEvaluatedDay,
     lastEvaluation: review === null ? null : {id: review.id, evaluatorId: review.evaluatorId, day: review.day,
       roleId: review.roleId, slotId: review.slotId, positive: review.positive, score: review.score,
@@ -130,7 +162,8 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     throw new TypeError('formal careers require synchronous saveState and getClock');
   }
   let current = empty(), loadError = null, lastError = null, saving = false, paying = false, lastClock = null;
-  let observedDay = null, interruptedUnsaved = false;
+  let observedDay = null, interruptedUnsaved = false, lastApplication = null;
+  const activeStudies = new Map();
   let roleMap = new Map(), slotMap = new Map();
   try { ({roleMap, slotMap} = catalogue(roles, slots)); current = restore(saved, roleMap, slotMap); }
   catch (error) { loadError = error.message === 'invalid-career-catalogue' ? error.message : 'invalid-career-state'; }
@@ -171,13 +204,13 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     // The conscientious supervisor rewards completing both actual duties and
     // gives a small preparation bonus for arrival at least five minutes early.
     const wage = positive ? completedWage(role, duty.arrivalHour) : 0;
-    const reasonText = positive ? wage > role.wage ? '提前到岗，朝会记录与归档均已完成' : '按时到岗，朝会记录与归档均已完成' :
+    const reasonText = role.workSource ? positive ? `${role.employer}已验收完整当班职责${wage>role.wage?'；午前开班，勤勉奖励+1':''}` : '当班职责未完成，没有日薪' : positive ? wage > role.wage ? '提前到岗，朝会记录与归档均已完成' : '按时到岗，朝会记录与归档均已完成' :
       ({absent: '未按时到岗，缺席当日朝会', reloaded: '朝会中途离开，出勤记录未完成',
         resigned: '当日职责未完成即离任', 'day-ended': '当日朝会或归档未完成'})[reason] || '出勤中断，当日职责未完成';
     return {...next, performance: Math.max(-100, Math.min(100, next.performance + score)),
       promotionProgress: Math.max(0, Math.min(100, next.promotionProgress + score)), lastEvaluatedDay: duty.day,
       lastDuty: {...duty, wage: positive ? wage : null}, lastEvaluation: {
-        id: `career-review:${duty.slotId}:${duty.day}`, evaluatorId: COURT_SUPERVISOR.id,
+        id: `career-review:${duty.slotId}:${duty.day}`, evaluatorId: supervisor(role),
         day: duty.day, roleId: duty.roleId, slotId: duty.slotId, positive, score, reason: reasonText, reasonCode: reason, wage}};
   }
   function missed(next, reason) {
@@ -194,39 +227,57 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     const result = persist(recovered);
     if (!result.ok) { current = recovered; loadError = 'recovery-save-failed'; }
   }
-  function apply(roleId = COURT_CLERK_ROLE.id, {ageYears} = {}) {
-    const blocked = allowed(); if (blocked) return blocked;
-    const role = roleMap.get(roleId); if (!role) return failure('unknown-role');
-    if (current.tenure) return failure('already-employed');
-    const clock = now(); if (!clock) return failure('invalid-clock');
+  // The registry and the final physical application use the same requirements.
+  // Reading eligibility never changes the clock, save, vacancy or error state.
+  function eligibility(roleId = COURT_CLERK_ROLE.id, {ageYears} = {}) {
+    const role = roleMap.get(roleId);
+    const blocked = loadError || (!role ? 'unknown-role' : current.tenure ? 'already-employed' : null);
+    if (blocked) return {ok: false, code: blocked, reasons: [blocked]};
     const reasons = [];
     if (!Number.isFinite(ageYears) || ageYears < role.minimumAgeYears) reasons.push('adult-required');
     for (const [skill, minimum] of Object.entries(role.skillRequirements)) if (current.skills[skill] < minimum) reasons.push(`${skill}-required`);
     const slot = [...slotMap.values()].find(candidate => candidate.roleId === roleId && candidate.holderId === null);
     if (!slot) reasons.push('no-vacancy');
-    if (reasons.length) return failure('ineligible', reasons);
+    return reasons.length ? {ok: false, code: 'ineligible', reasons} : {ok: true, slotId: slot.id};
+  }
+  function apply(roleId = COURT_CLERK_ROLE.id, applicant = {}) {
+    const finish = result => {lastApplication = {roleId, ...copy(result)}; return result;};
+    const blocked = allowed(); if (blocked) return finish(blocked);
+    const eligible = eligibility(roleId, applicant);
+    if (!eligible.ok) return finish(failure(eligible.code, eligible.reasons));
+    const clock = now(); if (!clock) return finish(failure('invalid-clock'));
+    const slot = slotMap.get(eligible.slotId);
     const result = persist({...current, tenure: {roleId, slotId: slot.id, sinceDay: clock.day, sinceHour: clock.hour}});
-    return result.ok ? {...result, tenure: copy(current.tenure)} : result;
+    return finish(result.ok ? {...result, tenure: copy(current.tenure)} : result);
   }
   function resign() {
     const blocked = allowed(); if (blocked) return blocked;
     if (!current.tenure) return failure('not-employed');
-    if (current.lastDuty?.stage === 'ready') return failure('wage-ready');
-    const next = ['arrived', 'attending', 'archive'].includes(current.lastDuty?.stage) ? missed(current, 'resigned') : current;
+    if (['ready','inspection'].includes(current.lastDuty?.stage)) return failure('wage-ready');
+    const next = ['arrived', 'attending', 'archive', 'working'].includes(current.lastDuty?.stage) ? missed(current, 'resigned') : current;
     return persist({...next, tenure: null});
   }
-  function learningTicket(source) {
+  function learningTicket(source, lessonId = defaultStudyLesson(source)?.id) {
     const blocked = allowed(); if (blocked) return blocked;
-    if (!own(STUDIES, source)) return failure('unknown-learning-source');
+    if (!STUDY_SOURCES.includes(source)) return failure('unknown-learning-source');
+    const lesson = studyLesson(source,lessonId); if (!lesson) return failure('unknown-learning-choice');
     const clock = now(); if (!clock) return failure('invalid-clock');
     const issued = current.learning[source].issued + 1;
     if (!Number.isSafeInteger(issued)) return failure('learning-limit');
-    const result = persist({...current, learning: {...current.learning, [source]: {...current.learning[source], issued, issuedDay: clock.day}}});
-    return result.ok ? {ok: true, ticket: {source, id: `${source}:${issued}:${clock.day}`}} : result;
+    const result = persist({...current, learning: {...current.learning, [source]: {...current.learning[source], issued, issuedDay: clock.day, lessonId}}});
+    if (!result.ok) return result;
+    const ticket = {source, id: `${source}:${issued}:${clock.day}`, lessonId};
+    activeStudies.set(source,ticket.id);
+    return {ok: true, ticket};
+  }
+  // Cancellation and reload lose the live witness; a saved unfinished ticket
+  // cannot be submitted later as if the player had actually finished a lesson.
+  function cancelLearning(ticket) {
+    if (ticket && activeStudies.get(ticket.source) === ticket.id) activeStudies.delete(ticket.source);
   }
   function grantSkill(next, skill, clock) {
-    const daily = current.daily.day === clock.day ? {...current.daily} : {day: clock.day, ritual: 0, writing: 0};
-    const limited = daily[skill] >= 4 ? 'daily-skill-limit' : current.skills.ritual + current.skills.writing >= 100 ? 'skill-limit' : null;
+    const daily = current.daily.day === clock.day ? {...current.daily} : {day: clock.day, ritual: 0, writing: 0, gardening: 0, art: 0};
+    const limited = daily[skill] >= 4 ? 'daily-skill-limit' : (['gardening','art'].includes(skill)?current.skills[skill]>=100:current.skills.ritual + current.skills.writing >= 100) ? 'skill-limit' : null;
     const gained = limited ? 0 : 1;
     const result = persist({...next, daily: {...daily, [skill]: daily[skill] + gained},
       skills: {...current.skills, [skill]: current.skills[skill] + gained}});
@@ -234,45 +285,50 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
   }
   function completeLearning(ticket, {seconds} = {}) {
     const blocked = allowed(); if (blocked) return blocked;
-    if (!object(ticket) || !own(STUDIES, ticket.source)) return failure('invalid-learning-ticket');
+    if (!object(ticket) || !STUDY_SOURCES.includes(ticket.source)) return failure('invalid-learning-ticket');
     const clock = now(); if (!clock) return failure('invalid-clock');
-    const study = current.learning[ticket.source];
-    if (study.issued === 0 || ticket.id !== `${ticket.source}:${study.issued}:${study.issuedDay}`) return failure('invalid-learning-ticket');
+    const study = current.learning[ticket.source], lesson = studyLesson(ticket.source,study.lessonId);
+    if (study.issued === 0 || ticket.id !== `${ticket.source}:${study.issued}:${study.issuedDay}` || ticket.lessonId !== study.lessonId) return failure('invalid-learning-ticket');
     if (study.completed >= study.issued) return failure('learning-replayed');
     if (study.issuedDay !== clock.day) return failure('learning-expired');
-    if (!Number.isFinite(seconds) || seconds < 8) return failure('learning-incomplete');
-    return grantSkill({...current, learning: {...current.learning, [ticket.source]: {...study, completed: study.issued}}}, STUDIES[ticket.source], clock);
+    if (activeStudies.get(ticket.source) !== ticket.id) return failure('learning-interrupted');
+    if (!Number.isFinite(seconds) || seconds < lesson.seconds) return failure('learning-incomplete');
+    const result = grantSkill({...current, learning: {...current.learning, [ticket.source]: {...study, completed: study.issued}}}, lesson.skill, clock);
+    if (result.ok) activeStudies.delete(ticket.source);
+    return result;
   }
   function completedLowerWork({source, receiptId} = {}) {
     const blocked = allowed(); if (blocked) return blocked;
-    if (source !== 'cn-tavern-labor') return failure('unknown-work-source');
-    const match = typeof receiptId === 'string' && /^cn-tavern-labor-([1-9][0-9]*)$/.exec(receiptId);
+    if (!own(WORK,source)) return failure('unknown-work-source');
+    const match = typeof receiptId === 'string' && new RegExp('^'+source+'-([1-9][0-9]*)$').exec(receiptId);
     const serial = match ? Number(match[1]) : NaN;
     if (!integer(serial)) return failure('invalid-work-receipt');
     if (serial <= current.lowerWork[source]) return failure('work-replayed');
     const clock = now(); if (!clock) return failure('invalid-clock');
-    return grantSkill({...current, lowerWork: {...current.lowerWork, [source]: serial}}, 'ritual', clock);
+    return grantSkill({...current, lowerWork: {...current.lowerWork, [source]: serial}}, WORK[source], clock);
   }
-  function beginDuty() {
+  function beginDuty({receiptId} = {}) {
     const blocked = allowed(); if (blocked) return blocked;
     if (interruptedUnsaved) return failure('interruption-unsaved');
     if (!current.tenure) return failure('not-employed');
     const rollover = observeDay(); if (!rollover.ok) return rollover;
     const clock = now(); if (!clock) return failure('invalid-clock');
-    const duty = current.lastDuty;
-    if (duty?.stage === 'ready') return failure('wage-ready');
+    const duty = current.lastDuty, role = roleMap.get(current.tenure.roleId);
+    if (role.workSource && !validWorkReceipt(role.workSource,receiptId)) return failure('invalid-work-receipt');
+    if (role.workSource && duty?.day===clock.day && duty.workReceiptId===receiptId && duty.stage==='working') return {ok:true,unchanged:true};
+    if (['ready','inspection'].includes(duty?.stage)) return failure('wage-ready');
     if (current.lastPaidDay === clock.day) return failure('already-paid-today');
     if (duty?.day === clock.day && excused(duty)) return failure('court-postponed');
     if (duty?.day === clock.day && (duty.started || duty.stage === 'arrived')) return failure(duty.stage === 'missed' ? 'duty-missed' : 'duty-active');
-    const role = roleMap.get(current.tenure.roleId);
     if (clock.hour < role.dutyWindow.startHour || clock.hour >= role.dutyWindow.endHour) return failure('outside-arrival-window');
-    const next = duty && duty.day < clock.day && ['arrived', 'attending', 'archive'].includes(duty.stage) ? missed(current, 'day-ended') : current;
+    const next = duty && duty.day < clock.day && ['arrived', 'attending', 'archive','working'].includes(duty.stage) ? missed(current, 'day-ended') : current;
     return persist({...next, lastDuty: {roleId: current.tenure.roleId, slotId: current.tenure.slotId,
-      day: clock.day, stage: 'arrived', started: false, reason: null, arrivalHour: clock.hour, wage: null}});
+      day: clock.day, stage: role.workSource?'working':'arrived', started:!!role.workSource, reason: null, arrivalHour: clock.hour, wage: null,...(role.workSource?{workReceiptId:receiptId}:{})}});
   }
   function dutyEvent(event) {
     const blocked = allowed(); if (blocked) return blocked;
     if (interruptedUnsaved) return failure('interruption-unsaved');
+    if (roleMap.get(current.tenure?.roleId)?.workSource) return failure('wrong-duty-source');
     const transitions = {'court-start': ['arrived', 'attending'], 'court-completed': ['attending', 'archive'], 'archive-completed': ['archive', 'ready']};
     if (!own(transitions, event)) return failure('unknown-duty-event');
     if (!current.tenure) return failure('not-employed');
@@ -284,7 +340,7 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
       if (current.tenure.sinceDay === clock.day && current.tenure.sinceHour >= roleMap.get(current.tenure.roleId).dutyWindow.endHour) return {ok: true, unchanged: true, exempt: true};
       if (duty?.stage === 'ready') return failure('wage-ready');
       if (current.lastPaidDay === clock.day || current.lastEvaluatedDay === clock.day) return failure('duty-evaluated');
-      const next = duty && duty.day < clock.day && ['arrived', 'attending', 'archive'].includes(duty.stage) ? missed(current, 'day-ended') : current;
+      const next = duty && duty.day < clock.day && ['arrived', 'attending', 'archive','working'].includes(duty.stage) ? missed(current, 'day-ended') : current;
       return persist(evaluate({...next, lastDuty: {roleId: current.tenure.roleId, slotId: current.tenure.slotId,
         day: clock.day, stage: 'missed', started: true, reason: 'absent', arrivalHour: null, wage: null}}, false, 'absent'));
     }
@@ -299,7 +355,7 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
   function interruptDuty(reason = 'interrupted') {
     const blocked = allowed(); if (blocked) return blocked;
     if (typeof reason !== 'string' || !reason.length || reason.length > 80) return failure('invalid-interruption');
-    if (!current.lastDuty || ['missed', 'paid', 'ready'].includes(current.lastDuty.stage)) return {ok: true, unchanged: true};
+    if (!current.lastDuty || ['missed', 'paid', 'ready', 'inspection'].includes(current.lastDuty.stage)) return {ok: true, unchanged: true};
     const result = persist(missed(current, reason));
     interruptedUnsaved = !result.ok;
     return result;
@@ -311,15 +367,35 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     const day = observedDay, tenure = current.tenure, duty = current.lastDuty;
     if (!tenure || tenure.sinceDay > day || tenure.sinceDay === day &&
       tenure.sinceHour >= roleMap.get(tenure.roleId).dutyWindow.endHour ||
-      current.lastEvaluatedDay !== null && current.lastEvaluatedDay >= day || duty?.stage === 'ready' ||
+      current.lastEvaluatedDay !== null && current.lastEvaluatedDay >= day || ['ready','inspection'].includes(duty?.stage) ||
       duty?.day === day && excused(duty)) {
       observedDay = clock.day; return {ok: true, unchanged: true};
     }
     const incomplete = duty?.day === day ? {...duty, started: true} : {roleId: tenure.roleId, slotId: tenure.slotId,
-      day, stage: 'missed', started: true, reason: null, arrivalHour: null, wage: null};
+      day, stage: 'missed', started: true, reason: null, arrivalHour: null, wage: null,...(roleMap.get(tenure.roleId).workSource?{workReceiptId:null}:{})};
     const result = persist(missed({...current, lastDuty: incomplete}, 'day-ended'));
     if (result.ok) { observedDay = clock.day; interruptedUnsaved = false; }
     return result;
+  }
+  // Called only by the actual labor workflow, at durable physical completion
+  // and by its real employer encounter. Raw court events cannot finish these.
+  function laborEvent(event, {roleId, receiptId} = {}) {
+    const blocked=allowed();if(blocked)return blocked;
+    const duty=current.lastDuty,role=roleMap.get(roleId);
+    if(!role?.workSource||!duty||duty.roleId!==roleId||duty.workReceiptId!==receiptId)return failure('wrong-duty-source');
+    if(!now())return failure('invalid-clock');
+    if(event==='completed'){
+      if(['inspection','ready','paid'].includes(duty.stage))return {ok:true,unchanged:true};
+      if(duty.stage!=='working')return failure('invalid-duty-stage');
+      if(duty.day!==lastClock.day)return failure('duty-expired');
+      return persist({...current,lastDuty:{...duty,stage:'inspection'}});
+    }
+    if(event==='inspected'){
+      if(['ready','paid'].includes(duty.stage))return {ok:true,unchanged:true};
+      if(duty.stage!=='inspection')return failure('work-incomplete');
+      return persist(evaluate({...current,lastDuty:{...duty,stage:'ready'}},true,'labor-inspected'));
+    }
+    return failure('unknown-duty-event');
   }
   function settle() {
     const blocked = allowed(); if (blocked) return blocked;
@@ -329,7 +405,7 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     if (!now()) return failure('invalid-clock');
     if (typeof creditWageToBank !== 'function') return failure('bank-unavailable');
     const receiptId = `career:${duty.slotId}:${duty.day}`;
-    const deposit = {amount: duty.wage, receiptId, currency: 'copper',
+    const deposit = {amount: duty.wage, receiptId, currency: roleMap.get(duty.roleId).currency || 'copper',
       roleId: duty.roleId, slotId: duty.slotId, day: duty.day};
     paying = true; let payment;
     try { payment = creditWageToBank({...deposit}); }
@@ -345,5 +421,9 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
       cleanupPending: !result.ok, ...(result.ok ? {} : {code: result.code})};
   }
   return Object.freeze({state, isHired: (roleId = COURT_CLERK_ROLE.id) => !loadError && current.tenure?.roleId === roleId,
-    apply, resign, learningTicket, completeLearning, completedLowerWork, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
+    canContinueLabor:receiptId=>{const d=current.lastDuty;let c;try{c=getClock();}catch{return false;}return !loadError&&d?.workReceiptId===receiptId&&(d.stage==='inspection'||d.stage==='working'&&d.day===c?.day);},
+    currentRole:()=>copy(roleMap.get(current.tenure?.roleId)||null),
+    catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&slot.holderId===null&&slot.id!==current.tenure?.slotId).length})),
+    eligibility, applicationResult:()=>copy(lastApplication),
+    laborEvent, apply, resign, learningTicket, cancelLearning, completeLearning, completedLowerWork, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
 }
