@@ -1,5 +1,5 @@
 import {createCurrencyLedger, GAME_CURRENCIES} from './currency-ledger.js';
-import {CHINA_MONEY_HOUSE as C} from './china-money-house.js';
+import {CHINA_MONEY_HOUSE} from './china-money-house.js';
 import {MONEY_HOUSE_STYLE} from './china-money-house-theme.js';
 
 const TICKET_ART={
@@ -24,21 +24,23 @@ const currencyText=(id,amount)=>`${amount} ${GAME_CURRENCIES[id].unit}（${GAME_
 
 // Only the existing physically reached counter can expose transfer/exchange
 // commands. The shared ledger owns persistence and successful transaction events.
-export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,saved,saveState,copperLedger,
- canSee=()=>false,notify=()=>{},onOpen=()=>{},onClose=()=>{},document:doc=globalThis.document}){
- const teller=npcs.find(n=>n.station.id===C.stationId);if(!teller||!lot.moneyHouse)return null;
+export function createChinaMoneyHouseService(options){return createBankCounterService(options);}
+
+export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,saveState,copperLedger,
+ counter:C=CHINA_MONEY_HOUSE,facilityKey='moneyHouse',canSee=()=>false,notify=()=>{},onOpen=()=>{},onClose=()=>{},document:doc=globalThis.document}){
+ const teller=npcs.find(n=>n.station.id===C.stationId);if(!teller||!lot[facilityKey])return null;
  const ledger=copperLedger||createCurrencyLedger({saved,saveState});
  const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
  const style=make('style',MONEY_HOUSE_STYLE);
- const dialog=make('dialog',undefined,'cn-money-dialog');dialog.className+=' ww-airy-theme';dialog.setAttribute('aria-label','承光钱庄账簿');(doc.head||doc.body).append(style);doc.body.append(dialog);
- let disposed=false,message='',currency='copper',exchangeTo='japan',exchangeAmount='2',requestSerial=0,time=0,activity='核对账簿',renderVersion=0;
+ const dialog=make('dialog',undefined,'cn-money-dialog');dialog.className+=' ww-airy-theme';dialog.setAttribute('aria-label',`${C.name}账簿`);(doc.head||doc.body).append(style);doc.body.append(dialog);
+ let disposed=false,message='',currency=C.defaultCurrency||'copper',exchangeTo=C.exchangeTo||'japan',exchangeAmount='2',requestSerial=0,time=0,activity='核对账簿',renderVersion=0;
  const near=()=>{const p=getPlayer()?.root.position;return !!p&&Math.abs(p.y-C.floorY)<.45&&Math.hypot(p.x-C.points.counter[0],p.z-C.points.counter[2])<.60&&canSee(teller.station)===true;};
  function close(){renderVersion++;if(dialog.open){dialog.close();onClose();}}
  const available=version=>!disposed&&version===renderVersion&&dialog.open&&near();
  function render(){
   const version=++renderVersion,state=ledger.state(),all=ledger.balances?.();
   dialog.replaceChildren();const sheet=make('div',undefined,'cn-money-sheet'),main=make('section',undefined,'cn-money-main');const x=make('button','×','cn-money-close');x.type='button';x.setAttribute('aria-label','合上账簿');x.onclick=close;
-  const header=make('header',undefined,'cn-money-header');header.append(make('h2','承光钱庄'));dialog.append(x,sheet);sheet.append(main);main.append(header);
+  const header=make('header',undefined,'cn-money-header');header.append(make('h2',C.name));dialog.append(x,sheet);sheet.append(main);main.append(header);
   if(ledger.loadError||!all){main.append(make('p',ERRORS['invalid-saved-state']));return;}
   const b=all[currency],unit=GAME_CURRENCIES[currency].unit;
   const selector=(labelText,value,change,excluded)=>{
@@ -60,7 +62,7 @@ export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,sav
   const bank=make('section',undefined,'cn-money-allocation');
   const preview=make('p',undefined,'cn-money-allocation-preview'),fine=make('div',undefined,'cn-money-fine');fine.append(strip);
   const confirm=make('button',undefined,'cn-money-confirm ww-airy-action');confirm.type='button';confirm.dataset.moneyAction='allocation';preview.setAttribute('role','status');
-  let targetCash=b.cash,submitted=false;const allocationCurrency=currency,requestId=`money-house-${state.nextTransaction}-allocation-${++requestSerial}`;
+  let targetCash=b.cash,submitted=false;const allocationCurrency=currency,requestId=`${C.id}-${state.nextTransaction}-allocation-${++requestSerial}`;
   const updateAllocation=()=>{
    const candidate=Number(slider.value),valid=Number.isSafeInteger(candidate)&&candidate>=0&&candidate<=total;
    targetCash=valid?candidate:b.cash;const targetBank=total-targetCash,delta=targetCash-b.cash,ratio=total?targetCash/total:.5;
@@ -81,7 +83,7 @@ export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,sav
   };
   updateAllocation();const bankActions=make('div',undefined,'cn-money-actions');bankActions.append(confirm);bank.append(fine,preview,bankActions);
   if(!b.accountOpened){
-   const open=make('button','免费立账','cn-money-confirm ww-airy-action');open.type='button';open.dataset.moneyAction='open';const openId=`money-house-${state.nextTransaction}-open-${++requestSerial}`;let opened=false;
+   const open=make('button','免费立账','cn-money-confirm ww-airy-action');open.type='button';open.dataset.moneyAction='open';const openId=`${C.id}-${state.nextTransaction}-open-${++requestSerial}`;let opened=false;
    open.onclick=()=>{if(opened||!available(version))return;opened=true;open.disabled=true;const result=ledger.openAccount(openId,currency);message=result.ok?'账簿已经立好，不收费用':ERRORS[result.code]||'账簿尚未保存，请稍后再试';render();};bankActions.append(open);
   }
   main.append(bank);
@@ -91,7 +93,7 @@ export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,sav
    const {label,input}=amountField(`交出数目（${unit}）`,'交出兑换数目',exchangeAmount);const art=make('div',undefined,'cn-money-fx-art');art.setAttribute('aria-hidden','true');const fromArt=make('img'),toArt=make('img');fromArt.src=TICKET_ART[currency];toArt.src=TICKET_ART[exchangeTo];fromArt.alt=toArt.alt='';fromArt.draggable=toArt.draggable=false;art.append(fromArt,make('span','→'),toArt);const fxPreview=make('div',undefined,'cn-money-fx-preview');fxPreview.append(art);area.append(fxPreview);
    const quoteText=make('div',undefined,'cn-money-quote'),quoteAmount=make('strong'),rateText=make('p',undefined,'cn-money-rate'),error=make('p',undefined,'cn-money-error'),button=make('button','确认兑换','ww-airy-action');button.type='button';button.dataset.moneyAction='exchange';error.setAttribute('role','status');quoteText.append(quoteAmount,rateText,error);
    let lockedQuote=null,submitted=false;
-   const requestId=`money-house-${state.nextTransaction}-exchange-${++requestSerial}`;
+   const requestId=`${C.id}-${state.nextTransaction}-exchange-${++requestSerial}`;
    const quote=()=>{exchangeAmount=input.value;const result=ledger.quoteExchange({from:currency,to:exchangeTo,amount:Number(input.value)});lockedQuote=result.ok?result.quote:null;
     const from=GAME_CURRENCIES[currency],to=GAME_CURRENCIES[exchangeTo];
     quoteAmount.className=result.ok?'':'is-invalid';quoteAmount.replaceChildren();if(result.ok)quoteAmount.append(make('span',`${lockedQuote.amount} ${from.unit}`,'is-from'),make('span','→','is-arrow'),make('span',`${lockedQuote.received} ${to.unit}`,'is-to'));else quoteAmount.textContent='请核对兑换数目';
@@ -117,24 +119,24 @@ export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,sav
    else if(kind==='exchange')text=`兑换：${currencyText(row.quote.from,row.quote.amount)} → ${currencyText(row.quote.to,row.quote.received)}`;
    else text=`${({deposit:'存入银行',withdraw:'取到钱袋',earn:'旧制计件工钱',wage:'正式工资入银行',reserve:'服务预留',settle:'服务结清（不再扣钱）',refund:'退回原币种'})[kind]||'往来'} ${currencyText(id,row.amount)}`;
    list.append(make('li',text));}more.append(list);}
-  more.append(make('p','仅游戏票券；存取及兑换只在钱庄柜台办理。合上账簿保留已记好的账；未按按钮的数目不会入账。','cn-money-note'));main.append(more);
+  more.append(make('p','仅游戏票券；存取及兑换只在银行柜台办理。合上账簿保留已记好的账；未按按钮的数目不会入账。','cn-money-note'));main.append(more);
  }
  dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
  const unsubscribe=ledger.subscribeCommitted?.(()=>{if(dialog.open&&!disposed)render();});
  return {
   owns:n=>n===teller,ownsStation:id=>id===C.stationId,
   isOpen:()=>!!dialog.open,
-  open(){if(disposed||!near()){notify('请走到钱庄柜台前，再请账房办理');return false;}onOpen();message='';render();if(!dialog.open)dialog.showModal();return true;},close,
+  open(){if(disposed||!near()){notify(C.approachMessage||'请走到钱庄柜台前，再请账房办理');return false;}onOpen();message='';render();if(!dialog.open)dialog.showModal();return true;},close,
   socialStatus:n=>n===teller?{busy:!!dialog.open,attention:true,job:activity}:null,
   update(dt,t,{conversationActorId=null}={}){
    if(disposed)return;time+=dt;if(dialog.open&&!near())close();
    // One persistent adult works along the same counter. Slow side steps place
    // each object inside the existing hand reach instead of reaching through it.
-   const writing=time%14<8,target=writing?C.points.ledger:C.points.abacus,desiredX=target[0],dx=desiredX-teller.root.position.x;
+   const writing=time%14<8,target=writing?C.points.ledger:(C.points.counting||C.points.abacus),desiredX=target[0],dx=desiredX-teller.root.position.x;
    const paused=conversationActorId===teller.station.id;teller.walking=!paused&&Math.abs(dx)>.02;
-   if(teller.walking){teller.root.position.x+=Math.sign(dx)*Math.min(Math.abs(dx),dt*.38);teller.root.rotation.y=Math.sign(dx)*Math.PI/2;}else teller.root.rotation.y=0;
-   activity=writing?'核对账簿 · 落笔记账':'拨动算珠 · 核对铜钱';const small=teller.label?.querySelector?.('small');if(small)small.textContent=activity;
-   const context=poseContext(teller,null);context.receptionWriting=writing;context.handoff=false;context.heldProp=null;context.workHeight=(target[1]-teller.root.position.y)/(teller.characterScale||1);context.workDistance=(target[2]-teller.root.position.z)/(teller.characterScale||1);
+   if(teller.walking){teller.root.position.x+=Math.sign(dx)*Math.min(Math.abs(dx),dt*.38);teller.root.rotation.y=Math.sign(dx)*Math.PI/2;}else teller.root.rotation.y=C.tellerYaw||0;
+   activity=paused?'和来客交谈':writing?'核对账簿 · 落笔记账':C.countingLabel||'拨动算珠 · 核对铜钱';const small=teller.label?.querySelector?.('small');if(small)small.textContent=activity;
+   const context=poseContext(teller,null);context.receptionWriting=writing;context.handoff=false;context.heldProp=null;context.workHeight=(target[1]-teller.root.position.y)/(teller.characterScale||1);context.workDistance=((target[0]-teller.root.position.x)*Math.sin(C.tellerYaw||0)+(target[2]-teller.root.position.z)*Math.cos(C.tellerYaw||0))/(teller.characterScale||1);
    teller.animate(t+teller.phase,teller.walking,paused||teller.walking?null:writing?'calligraphy':'tidy',context);
    // Existing tidy reach supplies the hands only; an abacus is not a wash rag.
    if(teller.root.userData.tools?.cloth)teller.root.userData.tools.cloth.visible=false;
