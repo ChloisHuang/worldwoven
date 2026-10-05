@@ -58,7 +58,7 @@ export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,sav
   const split=make('div',undefined,'cn-money-split'),grip=make('span','‹›');split.setAttribute('aria-hidden','true');split.append(grip);strip.append(slider,split);
   if(b.held)main.append(make('p',`服务预留 ${b.held} ${unit}`,'cn-money-note cn-money-hold'));
   const bank=make('section',undefined,'cn-money-allocation');
-  const preview=make('p',undefined,'cn-money-allocation-preview'),hint=make('p',undefined,'cn-money-allocation-hint'),fine=make('div',undefined,'cn-money-fine');fine.append(strip);
+  const preview=make('p',undefined,'cn-money-allocation-preview'),fine=make('div',undefined,'cn-money-fine');fine.append(strip);
   const confirm=make('button',undefined,'cn-money-confirm ww-airy-action');confirm.type='button';confirm.dataset.moneyAction='allocation';preview.setAttribute('role','status');
   let targetCash=b.cash,submitted=false;const allocationCurrency=currency,requestId=`money-house-${state.nextTransaction}-allocation-${++requestSerial}`;
   const updateAllocation=()=>{
@@ -68,7 +68,6 @@ export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,sav
    currentCash.textContent=`现金 ${targetCash} ${unit}`;currentBank.textContent=`存款 ${targetBank} ${unit}`;currentCash.setAttribute('aria-label',`随身现金：${currencyText(currency,targetCash)}`);currentBank.setAttribute('aria-label',`银行存款：${currencyText(currency,targetBank)}`);
    slider.setAttribute('aria-valuetext',`随身现金 ${targetCash} ${unit}，银行存款 ${targetBank} ${unit}`);
    preview.textContent=!b.accountOpened?'请先免费立账':!total?'暂无可分配余额':!valid?'分配数目无效':delta===0?'当前分配未改变':delta>0?`从银行取出 ${delta} ${unit}`:`向银行存入 ${-delta} ${unit}`;
-   hint.textContent=!b.accountOpened?'立账免费 · 仅游戏票券':!total?'尚无可分配余额':!valid?'请分配整数数目':delta?'确认前不会改变余额':'向左存款 · 向右取款';
    confirm.textContent=delta>0?`取出 ${delta} ${unit}`:delta<0?`存入 ${-delta} ${unit}`:'确认分配';confirm.disabled=!valid||!b.accountOpened||total===0||delta===0;
   };
   slider.oninput=()=>{if(available(version))updateAllocation();};slider.addEventListener('keydown',e=>e.stopPropagation());
@@ -80,7 +79,7 @@ export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,sav
    submitted=true;confirm.disabled=true;const kind=delta>0?'withdraw':'deposit',result=ledger[kind](Math.abs(delta),requestId,currency);
    message=result.ok?`${kind==='deposit'?'存入银行':'取到钱袋'} ${currencyText(currency,Math.abs(delta))}，账房已经记清`:(ERRORS[result.code]||'这笔尚未记入，请核对后再试');render();
   };
-  updateAllocation();const bankActions=make('div',undefined,'cn-money-actions');bankActions.append(confirm);bank.append(fine,preview,bankActions,hint);
+  updateAllocation();const bankActions=make('div',undefined,'cn-money-actions');bankActions.append(confirm);bank.append(fine,preview,bankActions);
   if(!b.accountOpened){
    const open=make('button','免费立账','cn-money-confirm ww-airy-action');open.type='button';open.dataset.moneyAction='open';const openId=`money-house-${state.nextTransaction}-open-${++requestSerial}`;let opened=false;
    open.onclick=()=>{if(opened||!available(version))return;opened=true;open.disabled=true;const result=ledger.openAccount(openId,currency);message=result.ok?'账簿已经立好，不收费用':ERRORS[result.code]||'账簿尚未保存，请稍后再试';render();};bankActions.append(open);
