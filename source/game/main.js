@@ -457,7 +457,7 @@ function consortVisible(from,to){
 function configureChinaConsortCourt(){
  chinaConsortCourt=active.id==='china'?createChinaConsortPetitionService({npcs,lot,palace:chinaPalace,audience:chinaAudience,edict:chinaEdict,doors:automaticDoors,planPath,moveActor,poseContext:characterPoseContext,
  getPlayer:()=>player,getClock:()=>simulationClock.state(),getLedger:()=>consortBridge.ledger,getBusy:()=>!!(seated||bathTransition||performing||npcSocial?.active()),
- getInvitationBusy:()=>!!(seated||bathTransition||performing||npcSocial?.active()||pendingInteraction||path.length||interactionMenuOpen()||keys.size||Math.hypot(joy.x,joy.y)>.05),canSee:consortVisible,
+ getInvitationBusy:()=>!!(currentControl()||pendingInteraction||path.length||interactionMenuOpen()||keys.size||Math.hypot(joy.x,joy.y)>.05),canSee:consortVisible,
  saved:loadingWorldContinuity?.controllers?.chinaConsortCourt||saved.chinaConsortCourt||{},saveState:state=>consortBridge.commitService(state),notify:toast}):null;
  chinaConsortUI=chinaConsortCourt||consortBridge.titleStatus().active?createChinaConsortPetitionUI({service:chinaConsortCourt||{statusCard:()=>consortBridge.statusCard(),interactionTarget:()=>null},getLedger:()=>consortBridge.ledger,getPlayer:()=>player,titleBridge:consortBridge,onOpen:pauseForReadOnlyPanel,
  onIntent:requestConsortSceneIntent,getDetails:()=>{const meal=chinaRoyalPlayerMeal?.view(),target=chinaRoyalPlayerMeal?.intent(),residence=consortBridge.titleStatus().residence;return {

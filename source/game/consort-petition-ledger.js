@@ -93,7 +93,7 @@ function validate(value,worldSeed,actorId){
       !STAGES.has(p.stage)||p.roll!==consortPetitionRoll(value.worldSeed,p.id)||!validResidence(p.residence)||!validAges(p.ages?.submitted)||
       Object.keys(p.ages).some(k=>!AGE_STAGES.includes(k)||!validAges(p.ages[k]))||!validReceipt(p.submission,invited(p)?'invitation':'submission',p)||!same(p.submission.at,p.submittedAt)||
       last&&!after(p.submittedAt,last))fail();
-    if(p.source!==undefined&&!['emperor-invitation','self-petition'].includes(p.source)||invited(p)&&(!text(p.opportunityId)||p.expiresAt!==minutes(p.submittedAt)+180||p.audience!==null||!p.review?.passed||!validAges(p.ages.reviewed)))fail();
+    if(p.source!==undefined&&!['emperor-invitation','self-petition'].includes(p.source)||invited(p)&&(p.stage==='submitted'||!text(p.opportunityId)||p.expiresAt!==minutes(p.submittedAt)+180||p.audience!==null||!p.review?.passed||!validAges(p.ages.reviewed)))fail();
     days.add(p.submittedAt.day);if(OPEN.has(p.stage))open++;
     let prior=p.submittedAt;
     for(const[kind,key]of Object.entries(RECEIPTS)){
@@ -135,7 +135,7 @@ function validate(value,worldSeed,actorId){
   const decisions=value.invitationDecisions??[];
   if(!Array.isArray(decisions)||decisions.length>8)fail();
   let priorDay=-1;
-  for(const d of decisions){if(!object(d)||!integer(d.day)||d.day<=priorDay||d.id!==consortPetitionId(actorId,d.day)||!text(d.opportunityId)||typeof d.offered!=='boolean'||d.roll!==consortPetitionRoll(value.worldSeed,d.id)||!time(d.at)||d.at.day!==d.day||!Number.isFinite(d.chance)||d.chance<.12||d.chance>.92||d.offered!==(d.roll<d.chance)||d.nextDay!==d.day+1)fail();priorDay=d.day;}
+  for(const d of decisions){if(!object(d)||!integer(d.day)||d.day<=priorDay||d.id!==consortPetitionId(actorId,d.day)||!text(d.opportunityId)||typeof d.offered!=='boolean'||d.roll!==consortPetitionRoll(value.worldSeed,d.id)||!time(d.at)||d.at.day!==d.day||!Number.isFinite(d.chance)||d.chance<.12||d.chance>.92||d.offered!==(d.roll<d.chance)||d.nextDay!==d.day+1||!validReceipt(d.receipt,'invitation',{id:d.id,playerId:actorId,emperorId:EMPEROR_ID})||!same(d.receipt.at,d.at))fail();const p=value.petitions.find(p=>p.id===d.id&&invited(p));if(d.offered?(!p||p.opportunityId!==d.opportunityId||!sameReceipt(p.submission,d.receipt)||p.review.chance!==d.chance):p)fail();priorDay=d.day;}
   return {...copy(value),invitationDecisions:copy(decisions)};
 }
 const REVIEW_REASONS=new Set(['relationship-reservations','different-dispositions','emperor-unsettled','emperor-cautious','personal-preference','review-not-selected']);
@@ -238,7 +238,7 @@ export function createConsortPetitionLedger({saved,worldSeed=1,actorId='player',
   function considerInvitation(receipt,opportunityId){
     if(loadError||busy)return fail(loadError||'consort-busy');
     const previous=current.invitationDecisions.find(d=>d.id===receipt?.applicationId);
-    if(previous)return people().ok?{ok:true,code:previous.offered?'invitation-recorded':'not-invited',replayed:true,offered:previous.offered}:fail('adults-required');
+    if(previous){if(!people().ok)return fail('adults-required');return opportunityId===previous.opportunityId&&sameReceipt(previous.receipt,receipt)?{ok:true,code:previous.offered?'invitation-recorded':'not-invited',replayed:true,offered:previous.offered}:fail('receipt-conflict');}
     const a=invitationAvailability();if(!a.ok)return fail(a.reasons[0],a.reasons);
     const at=clock(),g=gates();if(!text(opportunityId)||receipt?.at?.day!==at.day)return fail('physical-invitation-required');
     const p={id:a.applicationId,source:'emperor-invitation',opportunityId,playerId:actorId,emperorId:EMPEROR_ID,stage:'awaiting-choice',submittedAt:copy(receipt.at),endedAt:null,expiresAt:minutes(receipt.at)+180,
@@ -248,7 +248,7 @@ export function createConsortPetitionLedger({saved,worldSeed=1,actorId='player',
     // This is an observer-specific, bounded hook. Absent preferences are
     // neutral; the global player shape score never determines an invitation.
     p.review=reviewSnapshot({...g.people.player,...context.player,id:actorId,appearanceScore:50+preference*50},{...g.people.emperor,...context.emperor,id:EMPEROR_ID},{},p.roll);
-    const decision={id:p.id,day:at.day,opportunityId,at:copy(receipt.at),roll:p.roll,chance:p.review.chance,offered:p.review.passed,nextDay:at.day+1};
+    const decision={id:p.id,day:at.day,opportunityId,receipt:copy(receipt),at:copy(receipt.at),roll:p.roll,chance:p.review.chance,offered:p.review.passed,nextDay:at.day+1};
     const out=persist({...current,invitationDecisions:[...current.invitationDecisions,decision].slice(-8),petitions:p.review.passed?[...current.petitions,p]:current.petitions});
     return out.ok?{ok:true,code:decision.offered?'invited':'not-invited',offered:decision.offered,...(decision.offered?{petition:copy(p)}:{})}:out;
   }
@@ -271,7 +271,7 @@ export function createConsortPetitionLedger({saved,worldSeed=1,actorId='player',
     const g=gates({residence:p.residence,career:choice==='accept'});
     // Declining always remains possible, including when the room/old job changes.
     if(choice==='accept'&&!g.ok)return fail(g.reasons[0],g.reasons);
-    if(choice==='accept'&&invited(p)&&clock()&&minutes(clock())>=p.expiresAt)return fail('invitation-expired');
+    if(choice==='accept'&&invited(p)&&p.stage==='awaiting-choice'&&clock()&&minutes(clock())>=p.expiresAt)return fail('invitation-expired');
     if(p.choice)return p.choice.value===choice?{...result(p),replayed:true}:fail('choice-already-recorded');
     if(p.stage!=='awaiting-choice')return fail('wrong-petition-stage');
     const at=clock();if(!at)return fail('invalid-clock');

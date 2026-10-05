@@ -187,7 +187,7 @@ test('emperor physical initiative reaches explicit choice once, restores, and us
  const f=invitationFixture();assert.equal(f.invite().code,'invited');const p=f.core.petition();assert.equal(p.source,'emperor-invitation');assert.equal(p.stage,'awaiting-choice');assert.equal(p.submission.kind,'invitation');assert.equal(p.audience,null);assert.equal(f.core.appointment(),null);assert.equal(f.core.residenceFor(),null);assert.equal(f.core.availability().ok,false);
  const revision=f.core.state().revision;assert(f.invite().replayed);assert.equal(f.core.state().revision,revision);
  const re=invitationFixture({saved:f.saved.value});assert.equal(re.core.state().loadError,null);assert.deepEqual(re.core.petition(),p);assert.equal(re.invite().replayed,true);
- assert(f.accept().ok);assert(f.handoff().ok);assert(f.read().ok);assert.equal(f.core.appointment().receiptId,f.core.petition().reading.id);assert.equal(f.core.petition().handoff.documentId,consortCharterId(p.id));
+ assert(f.accept().ok);f.clock.hour=12;assert(f.accept().replayed,'accepted invitation remains idempotent beyond reply deadline');assert(f.handoff().ok);assert(f.read().ok);assert.equal(f.core.appointment().receiptId,f.core.petition().reading.id);assert.equal(f.core.petition().handoff.documentId,consortCharterId(p.id));
 });
 test('initiative is neutral to global shape score and protected traits, but uses real known relations, needs and bounded individual preferences',()=>{
  const a=invitationFixture({player:{appearanceScore:0,skin:'dark',gender:'male',ethnicity:'A'}}),b=invitationFixture({player:{appearanceScore:100,skin:'light',gender:'female',ethnicity:'B'}});assert(a.invite().ok&&b.invite().ok);assert.deepEqual(a.core.petition().review,b.core.petition().review);assert.equal(a.core.petition().review.factors.appearance,0);
@@ -210,4 +210,8 @@ test('unanswered invitation expires without granting a room, cancel never accept
 });
 test('failed invitation/response saves do not publish a decision, lose a refusal or grant rights',()=>{
  const f=invitationFixture();f.flags.fail=true;assert.equal(f.invite().code,'save-failed');assert.equal(f.core.petition(),null);assert.equal(f.core.state().invitationDecisions.length,0);f.flags.fail=false;assert(f.invite().offered);const before=copy(f.core.state());f.flags.fail=true;assert.equal(f.accept().code,'save-failed');assert.equal(f.core.petition().stage,'awaiting-choice');assert.equal(f.core.state().revision,before.revision);assert.equal(f.core.appointment(),null);f.flags.fail=false;assert(f.core.respond(f.core.petition().id,'decline').ok);
+});
+test('malformed invitation origin/stage and receipt substitutions fail closed',()=>{
+ const f=invitationFixture();assert(f.invite().offered);const malformed=copy(f.saved.value);malformed.petitions[0].stage='submitted';assert.equal(invitationFixture({saved:malformed}).core.state().loadError,'invalid-consort-state');
+ const other=f.receipt('invitation');other.targetId='elsewhere';f.evidence.set(other.id,copy(other));assert.equal(f.core.considerInvitation(other,'palace-action:cn-emperor:1:garden').code,'receipt-conflict');
 });

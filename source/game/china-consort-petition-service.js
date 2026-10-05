@@ -85,7 +85,11 @@ export function createChinaConsortPetitionService({npcs,lot,palace,audience,edic
   const expired=ledger()?.expireInvitation?.();if(expired?.changed)palace.releaseInvitation?.(OWNER);
   if(flow||pendingSubmission||loan||!adults()||getInvitationBusy()||state.conversationActorId===emperor.station.id||!ledger()?.invitationAvailability?.().ok)return;
   const pos=player()?.root.position,other=emperor.root.position;
-  if(!pos||emperor.root.visible===false||Math.hypot(pos.x-other.x,pos.z-other.z)>2.2||Math.abs(pos.y-other.y)>.35||!canSee(pos,other))return;
+  // A seated actor's foot support can be raised (the original throne has a
+  // footrest). Compare the real standing approach level, still ray-test the
+  // actual actor; never regard another storey as the same encounter.
+  const floorY=palace.mountForActor?.(emperor)?.position?.[1]??other.y;
+  if(!pos||emperor.root.visible===false||Math.hypot(pos.x-other.x,pos.z-other.z)>2.2||Math.abs(pos.y-floorY)>.35||!canSee(pos,other))return;
   const w=window();if(!w.ok)return;
   const opportunity=palace.invitationOpportunity?.();if(!opportunity||!palace.holdInvitation?.(OWNER,opportunity.id,pos))return;
   const applicationId=ledger().invitationAvailability().applicationId,id=applicationId+':invitation';

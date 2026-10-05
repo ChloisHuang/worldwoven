@@ -165,10 +165,12 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
  function interrupted(n){return playerState.conversationActorId===n.station.id;}
  function invitationOpportunity(){
   const s=stages.get(emperor),stop=scripts.get(emperor)?.[s?.index];
-  // Only an arrived, unmounted leisure action supplies an opportunity. The
+  // Only an arrived leisure pause supplies an opportunity. Quiet seated rest
+  // is eligible; eating, lying down, travelling and work are never interrupted.
   // original shared brain remains the sole chooser and owner of that action.
-  if(disposed||duty||interrupted(emperor)||urgent(emperor)||!s?.arrived||!stop?.chosen||s.mount||stop.mount||stop.meal||emperor.walking||emperor.route.length||!s.choice)return null;
+  if(disposed||duty||interrupted(emperor)||urgent(emperor)||!s?.arrived||!stop?.chosen||s.mount?.kind==='bed'||stop.mount&&!s.mount||stop.meal||emperor.walking||emperor.route.length||!s.choice)return null;
   const p=brain.state(emperor.station.id);
+  if(!p.current||p.current.id!==s.choice.id||!Number.isFinite(p.current.startedAt))return null;
   return {id:`palace-action:${emperor.station.id}:${p.choices}:${p.current?.startedAt}:${stop.id}`,actorId:emperor.station.id,actionId:s.choice.id};
  }
  function animate(n,s,t){
@@ -276,7 +278,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
       if(duty?.line)tell(n,duty.line);
      }
     }
-    if(n===emperor&&invitationHold){if(time>=invitationHold.until||!invitationOpportunity())invitationHold=null;else{const p=invitationHold.position;n.root.rotation.y=Math.atan2(p[0]-n.root.position.x,p[2]-n.root.position.z);tell(n,'愿邀你受妃嫔名位。是否接受，听从你的心意。');animate(n,s,t);continue;}}
+    if(n===emperor&&invitationHold){if(time>=invitationHold.until||!invitationOpportunity())invitationHold=null;else{const p=invitationHold.position;if(!s.mount)n.root.rotation.y=Math.atan2(p[0]-n.root.position.x,p[2]-n.root.position.z);tell(n,'愿邀你受妃嫔名位。是否接受，听从你的心意。');animate(n,s,t);continue;}}
     if(interrupted(n)){tell(n,stop.label+' · 停步与你交谈');if(!s.mount&&state.position)n.root.rotation.y=Math.atan2(state.position.x-n.root.position.x,state.position.z-n.root.position.z);animate(n,s,t);continue;}
     if(!s.arrived){if(travel(n,s,stop.path[s.waypoint],dt)){s.waypoint++;if(s.waypoint===stop.path.length){s.arrived=true;record(n,stop.id+':arrived');}}}
     if(s.arrived){
