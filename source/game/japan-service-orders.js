@@ -22,8 +22,8 @@ export const JAPAN_BATH_BLENDS = Object.freeze([
  {id:'lantern-petal',name:'灯花浴包',color:0xc79080},
 ]);
 export const JAPAN_DINING_MENU=Object.freeze([
- {id:'sushi',name:'寿司拼盘',price:8,counter:'sushiCounter'},
- {id:'ramen',name:'热汤拉面',price:6,counter:'ramenCounter'},
+ {id:'sushi',name:'寿司拼盘',price:8,currency:'japan',counter:'sushiCounter'},
+ {id:'ramen',name:'热汤拉面',price:6,currency:'japan',counter:'ramenCounter'},
 ]);
 // Bath duty follows the assigned service side, not a resident's appearance.
 export const JAPAN_BATH_CREWS = Object.freeze({men:['jp-onsen','jp-steam'],women:['jp-women-onsen','jp-rest']});
@@ -156,7 +156,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   if(workerId==='player'){receptionReceipt(job,v,'completed');if(!persist()){restoreBoard(prior);return false;}dropClaim(jobId);return true;}
   dropClaim(jobId);persist();return true;
  }
- function receipt(v,outcome){if(v.orderKind!=='dining'||state.diningReceipts.some(r=>r.id===v.id))return;state.diningReceipts.push({id:v.id,dishId:v.dishId,paymentId:v.paymentId,participants:clone(v.participants||{}),outcome});state.diningReceipts=state.diningReceipts.slice(-24);}
+ function receipt(v,outcome){if(v.orderKind!=='dining'||state.diningReceipts.some(r=>r.id===v.id))return;state.diningReceipts.push({id:v.id,dishId:v.dishId,price:v.price,...(v.currency?{currency:v.currency}:{}),paymentId:v.paymentId,participants:clone(v.participants||{}),outcome});state.diningReceipts=state.diningReceipts.slice(-24);}
  function guestStep(id,event,evidence={}) {
   if(disposed)return false;
   const v=visit(id);if(!v||!active(v))return false;
@@ -184,12 +184,13 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   v.stage=next;if(evidence.position)v.position=evidence.position.slice();persist();return true;
  }
  return {
-  spawnDining({appearance,dishId,position,restPoint,diningPoint,servePoint,mealPoint,restSeatId,paymentId}={}) {
+  spawnDining({appearance,dishId,position,restPoint,diningPoint,servePoint,mealPoint,restSeatId,paymentId,currency='japan',price}={}) {
    const dish=JAPAN_DINING_MENU.find(d=>d.id===dishId),points=[position,restPoint,diningPoint,servePoint,mealPoint];
+   price??=dish?.price;if(!['japan','copper'].includes(currency)||!Number.isSafeInteger(price)||price<1)return null;
    if(disposed||state.visits.some(v=>active(v)&&v.customerType==='player'))return null;
    if(!dish||!appearance||typeof paymentId!=='string'||!paymentId.startsWith('jp-dining-')||typeof restSeatId!=='string'||points.some(p=>!Array.isArray(p)||p.length!==3||!p.every(Number.isFinite)))return null;
    const number=state.nextVisit++,id=`jp-player-dining-${state.worldSeed}-${number}`;
-   const v={id,number,name:'你',appearance:clone(appearance),customerType:'player',orderKind:'dining',present:true,dishId,price:dish.price,paymentId,participants:{},stage:'waiting-meal',position:position.slice(),restPoint:restPoint.slice(),diningPoint:diningPoint.slice(),servePoint:servePoint.slice(),mealPoint:mealPoint.slice(),restSeatId,tokenId:null,mixtureId:null,mealRequested:true,mealId:null,seatId:null,diningPresent:false};
+   const v={id,number,name:'你',appearance:clone(appearance),customerType:'player',orderKind:'dining',present:true,dishId,price,currency,paymentId,participants:{},stage:'waiting-meal',position:position.slice(),restPoint:restPoint.slice(),diningPoint:diningPoint.slice(),servePoint:servePoint.slice(),mealPoint:mealPoint.slice(),restSeatId,tokenId:null,mixtureId:null,mealRequested:true,mealId:null,seatId:null,diningPresent:false};
    visits.set(id,v);state.visits.push(v);persist();return clone(v);
   },
   spawn({side,appearance,name,restPoint,diningPoint,servePoint,restSeatId,blendId,customerType='npc',position=JAPAN_SERVICE_POINTS.arrival}={}) {

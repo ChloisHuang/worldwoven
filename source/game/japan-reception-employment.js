@@ -57,11 +57,12 @@ export function createJapanReceptionEmployment({reception,careers,getPlayer,getM
   waiting=null;if(next.kind==='resume')return reception.canClaimDuty()&&formal.canWork(current.job)&&reception.claimDuty(current.job.receiptId);
   return next.kind==='formal-apply'?formal.apply():next.kind==='formal-review'?formal.review():next.kind==='formal-resign'?formal.resign():next.kind==='accept'?accept():next.kind==='claim'?claim():next.kind==='end-shift'?endShift():false;
  }
- function update(dt=0){if(disposed||lastError)return;reception.requestMeeting(!!waiting||atRegistration()&&current.job?.stage!=='working');
+ function update(dt=0){if(disposed||lastError)return;reception.requestMeeting(!!waiting);
   if(waiting){if(!atRegistration()||!resolveIntent(waiting))waiting=null;else if(meet()){const next=waiting;waiting=null;executeIntent(next);}}
   const j=current.job;if(j?.stage!=='working')return;const d=careers.state().lastDuty;
   if(d?.workReceiptId===j.receiptId&&['inspection','ready','paid'].includes(d.stage)){reception.releaseDuty(j.receiptId);save({...current,job:{...j,stage:'ready'}});return;}
-  if(!formal.canWork(j)){if(!flush())return;if(reception.releaseDuty(j.receiptId,{evaluate:true})&&save({...current,job:null}))attendance=0;return;}
+  if(formal.canWork(j)&&reception.dutyState().receiptId!==j.receiptId)reception.holdDuty(j.receiptId);
+  if(!formal.canWork(j)){if(!flush())return;if(reception.releaseDuty(j.receiptId,{evaluate:true})&&flush()&&save({...current,job:null}))attendance=0;return;}
   if(getClock().hour<18&&reception.inWorkplace()&&!getMounted()&&reception.dutyActive(j.receiptId))attendance+=Math.min(.1,Math.max(0,dt));
   if(attendance>=1||reception.workReceipts(j.receiptId).some(r=>!j.reviewIds.includes(r.id)))flush();
  }
