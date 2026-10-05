@@ -89,7 +89,7 @@
 .ww-wallet-transfer-label>strong{font:700 calc(14px*var(--amount-scale,1))/1.1 Georgia,'Songti SC',serif}
 .ww-wallet-mini-slip .ww-wallet-transfer-label{font-size:6px;gap:2px}.ww-wallet-mini-slip .ww-wallet-transfer-label>strong{font-size:calc(10px*var(--amount-scale,1))}
 .ww-wallet-transfer.is-withdraw{animation-name:ww-wallet-from-bank}
-.ww-wallet-transfer.is-wage{animation-name:ww-wallet-wage}
+.ww-wallet-transfer.is-wage,.ww-wallet-transfer.is-interest{animation-name:ww-wallet-wage}
 .ww-wallet-transfer.is-reserve{animation-name:ww-wallet-spend}
 .ww-wallet-transfer.is-earn,.ww-wallet-transfer.is-refund{animation-name:ww-wallet-refund}
 .ww-wallet-transfer.is-exchange{animation-name:ww-wallet-exchange}

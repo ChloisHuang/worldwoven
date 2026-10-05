@@ -15,7 +15,7 @@ const validAmount = n => Number.isSafeInteger(n) && n >= 0;
 const number = n => validAmount(n) ? n.toLocaleString('zh-CN') : '—';
 const currency = id => GAME_CURRENCIES[id] || GAME_CURRENCIES.copper;
 const money = (amount, id) => `${number(amount)} ${currency(id).unit}`;
-const ACTIONS = {open:'开立账户', wage:'工资入账', earn:'计件工钱', deposit:'存入银行', withdraw:'取出现金', exchange:'兑换现金', reserve:'预付消费', settle:'消费结清', refund:'退回现金'};
+const ACTIONS = {open:'开立账户', wage:'工资入账', interest:'每日利息', earn:'计件工钱', deposit:'存入银行', withdraw:'取出现金', exchange:'兑换现金', reserve:'预付消费', settle:'消费结清', refund:'退回现金'};
 
 const clamp = (n, lo=0, hi=1) => Math.min(hi,Math.max(lo,n));
 const mix = (a,b,t) => a+(b-a)*t;
@@ -67,6 +67,7 @@ export function walletTransactionView(tx) {
   let detail = c.label, route = null, badge = amount;
   switch (tx.action) {
     case 'wage': detail = `${c.label} · 第${number((tx.day ?? 0) + 1)}日工资`; route = ['work','bank']; badge = `+${amount}`; break;
+    case 'interest': detail = `${c.label} · 第${number(tx.day + 1)}日 · 日息1% · 最低存款 ${money(tx.principal,id)} · 已到账银行`; route = ['interest','bank']; badge = `+${amount}`; break;
     case 'earn': detail += ' · 随身现金'; route = ['work','cash']; badge = `+${amount}`; break;
     case 'withdraw': detail += ' · 银行 → 钱包'; route = ['bank','cash']; break;
     case 'deposit': detail += ' · 钱包 → 银行'; route = ['cash','bank']; break;
@@ -199,7 +200,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     left.append(cashHeading,fan,hint,cashList);
     const cashSummary=make('div',null,'ww-wallet-cash-summary'),cashSummaryAmount=make('strong');
     cashSummary.append(make('span','钱包现金'),cashSummaryAmount);cashSummary.setAttribute('aria-label','随身现金汇总');
-    const bankHeading=make('div',null,'ww-wallet-section-heading');bankHeading.append(make('h3','银行存款'),make('span','独立账户 · 与现金分开'));
+    const bankHeading=make('div',null,'ww-wallet-section-heading');bankHeading.append(make('h3','银行存款'),make('span','每游戏日 1% · 最低存款向下取整'));
     const bankList=make('dl',null,'ww-wallet-bank-list');bankList.setAttribute('aria-label','各币种银行存款');
     const ledgerHeading=make('h3','收支手记','ww-wallet-ledger-title'),scroll=make('div',null,'ww-wallet-ledger-scroll');scroll.tabIndex=0;scroll.setAttribute('aria-label','滚动查看收支记录');
     const journal=make('ol',null,'ww-wallet-journal');scroll.append(journal);
@@ -348,7 +349,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     pulseTimer=setTimeout(()=>{trigger.classList.remove('has-receipt');delete trigger.dataset.receipt;},2200);
     clearTransfer();
     if(!ui?.dialog.open){
-      const places={work:'工作',bank:'银行',cash:'钱包',spend:'消费',exchange:'兑换'};
+      const places={interest:'每日利息 · 1%',work:'工作',bank:'银行',cash:'钱包',spend:'消费',exchange:'兑换'};
       mini.replaceChildren();mini.dataset.action=view.action;
       const title=make('strong',`${view.title} · ${view.badge}`,'ww-wallet-mini-title'),route=make('div',null,'ww-wallet-mini-route');
       route.append(make('span',places[view.route[0]]),make('span',places[view.route[1]]));

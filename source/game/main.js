@@ -108,7 +108,7 @@ let saved={visited:[],stamps:{},outfit:0};try{const s=JSON.parse(gameStorage.get
 const simulationClock=createSimulationClock(saved.simulationClock,saved.chinaAudience?.day);
 saved.simulationClock=simulationClock.snapshot();
 let clockSaveAt=simulationClock.state().seconds;
-function advanceWorldClock(dt){simulationClock.advance(dt);saved.simulationClock=simulationClock.snapshot();formalCareers.observeDay();if(simulationClock.state().seconds-clockSaveAt>=5){if(formalCareers.state().lastDuty?.stage==='ready')formalCareers.settle();save();clockSaveAt=simulationClock.state().seconds;}}
+function advanceWorldClock(dt){simulationClock.advance(dt);saved.simulationClock=simulationClock.snapshot();copperLedger.observeDay();formalCareers.observeDay();if(simulationClock.state().seconds-clockSaveAt>=5){if(formalCareers.state().lastDuty?.stage==='ready')formalCareers.settle();save();clockSaveAt=simulationClock.state().seconds;}}
 let worldSnapshotWriter=null;
 const save=()=>{try{worldSnapshotWriter?.();gameStorage.setItem('worlds-days-v1',JSON.stringify(saved));}catch{}};
 if(ensurePlayerAge(saved))save();
@@ -116,7 +116,8 @@ if(saved.curtains&&Object.prototype.hasOwnProperty.call(saved.curtains,'japan'))
 if(!validAppearanceState(saved.appearance,{extended:CHARACTER_PREVIEW_ENABLED})){const migrated=migrateAppearanceState(saved.appearance,{extended:CHARACTER_PREVIEW_ENABLED});if(migrated){saved.appearance=migrated;save();}}
 if(!validAppearanceState(saved.appearance,{extended:CHARACTER_PREVIEW_ENABLED})){let seed;try{const n=new Uint32Array(1);crypto.getRandomValues(n);seed=n[0];}catch{seed=(Math.random()*4294967296)>>>0;}saved.appearance=createAppearanceState(seed,{extended:CHARACTER_PREVIEW_ENABLED});save();}
 let tavernProperty=null;
-const copperLedger=createGameCurrencyLedger({saved,storage:gameStorage,transactionParticipant:tx=>tavernProperty?.prepareCurrencyCommit(tx)});
+const copperLedger=createGameCurrencyLedger({saved,storage:gameStorage,getClock:()=>simulationClock.state(),transactionParticipant:tx=>tavernProperty?.prepareCurrencyCommit(tx)});
+copperLedger.observeDay();
 tavernProperty=createChinaTavernProperty({saved:saved.chinaTavernProperty,copperLedger,getClock:()=>simulationClock.state(),getTill:()=>saved.chinaServiceWorld?.till??0,worldSeed:saved.appearance.seed,saveState:state=>{worldSnapshotWriter?.();const next={...saved,chinaTavernProperty:state};const result=gameStorage.setItem('worlds-days-v1',JSON.stringify(next));if(result===false||result?.then)return result;saved.chinaTavernProperty=state;}});
 // Supplied by the shared bank integration. Never fall back to wallet earnings.
 const creditWageToBank=request=>copperLedger.creditWageToBank?.(request)??{ok:false,code:'bank-unavailable',receiptId:request.receiptId};
