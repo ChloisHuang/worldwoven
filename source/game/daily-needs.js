@@ -10,7 +10,7 @@ const positive=(x,fallback=0)=>Number.isFinite(x)&&x>=0?x:fallback;
 const clamp=x=>Math.max(0,Math.min(1,x));
 const mealSource='china-tavern-meal';
 const mealSources=new Set([mealSource,'japan-player-meal','france-tea-food','japan-staff-meal']);
-const toiletFacilities={'china-toilet':'cn-bath-toilet','japan-toilet':'jp-washroom-private-1'};
+const toiletFacilities={'china-toilet':'cn-bath-toilet','japan-toilet':'jp-washroom-private-1','france-toilet':'fr-royal-bath-toilet'};
 function validMeal(receipt){
  const r=receipt,n=r.number;
  if(r.source===mealSource)return r.orderId===`cn-tavern-order-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-dish'&&['yunlai-mushroom-rice','yunlai-green-noodles'].includes(r.dishId)&&r.paymentReceipt===r.orderId;
