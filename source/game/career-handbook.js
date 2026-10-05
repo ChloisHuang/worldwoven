@@ -12,6 +12,8 @@ const PLACES={
   [TAVERN]:{country:'china',currency:'copper',workplace:'云来酒楼',employer:'许安',destination:'云来酒楼 · 许安的招工登记案'},
   [GARDEN]:{country:'france',currency:'france',workplace:'西苑',employer:'埃米尔',destination:'西苑工具架 · 埃米尔的园艺登记簿'},
 };
+const WORKPLACES={'cn-court-clerk':'bureau','cn-tavern-steward':'tavern','cn-tavern-chef':'tavern','fr-garden-assistant':'garden'},WORKPLACE_NAMES={bureau:'承务官署',tavern:'云来酒楼',garden:'西苑工具架'};
+const workplaceKey=role=>WORKPLACES[role?.id]||role?.id;
 const COUNTRIES={china:'中国',france:'法国'},SKILLS={ritual:'礼仪',writing:'文书',gardening:'园艺',art:'艺术',cooking:'烹饪'};
 const place=role=>({...PLACES[role?.id],...role});
 const unit=role=>{const id=place(role).currency;return id==='copper'?'铜文':id==='france'?'法国券':GAME_CURRENCIES[id]?.unit||'';};
@@ -51,6 +53,10 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     if(!role||country&&country!==place(role).country)return null;
     return getService?.(role.id)||null;
   };
+  const nearbyRegistries=()=>{
+    const p=getPlayer()?.root?.position;if(!p)return [];
+    return roles().filter(role=>place(role).country===getCountry()).map(role=>({role,intent:localService(role)?.intent(registryKind(role))})).filter(({intent})=>intent?.position&&Math.abs(p.y-intent.position[1])<1&&Math.hypot(p.x-intent.position[0],p.z-intent.position[2])<=8).sort((a,b)=>Math.hypot(p.x-a.intent.position[0],p.z-a.intent.position[2])-Math.hypot(p.x-b.intent.position[0],p.z-b.intent.position[2]));
+  };
   const close=()=>{generation++;if(dialog.open)dialog.close();};
   const buttonFor=(title,run)=>{const b=make('button',title),token=generation;b.type='button';b.onclick=()=>{if(dialog.open&&token===generation)run();};return b;};
   const action=(role,kind,label,registration=null)=>{
@@ -66,7 +72,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
   function render(force=false) {
     const s=careers.state(),c=getClock(),list=roles(),held=currentRole(s,list),ageYears=getPlayer()?.ageYears;
     const registrationMode=!!registrationRoleId&&!(registrationScope==='role'&&held?.id===registrationRoleId);
-    const country=getCountry(),localRoles=list.filter(r=>place(r).country===country);
+    const country=getCountry(),countryRoles=list.filter(r=>place(r).country===country),registeredPlace=countryRoles.find(r=>r.id===registrationRoleId),localRoles=registeredPlace?countryRoles.filter(r=>workplaceKey(r)===workplaceKey(registeredPlace)):[];
     const role=held||localRoles.find(r=>r.id===registrationRoleId)||localRoles[0]||null,displayRoles=registrationScope==='role'?localRoles.filter(r=>r.id===registrationRoleId):localRoles;
     const belongsToTenure=row=>row&&held&&row.roleId===held.id&&(row.day>s.tenure.sinceDay||row.day===s.tenure.sinceDay&&(row.arrivalHour??24)>=s.tenure.sinceHour);
     const hired=!!held,d=belongsToTenure(s.lastDuty)?s.lastDuty:null;
@@ -75,10 +81,10 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       ...localRoles.map(r=>`${r.id}:${r.vacancy}`)].join(':');
     if(!force&&key===signature)return;signature=key;generation++;
     dialog.replaceChildren();const x=buttonFor('×',close);x.className='career-close';x.setAttribute('aria-label','关闭职业手册');
-    const heading=registrationMode?registrationScope==='role'?displayRoles[0]?.name||'岗位登记':`${COUNTRIES[country]||'当地'}职业登记`:held?held.name:'职业登记处';
+    const heading=registrationMode?registrationScope==='role'?displayRoles[0]?.name||'岗位登记':`${WORKPLACE_NAMES[workplaceKey(registeredPlace)]||place(registeredPlace).workplace||'附近'} · 招工`:held?held.name:'职业登记处';
     dialog.setAttribute('aria-label',heading);
     const panel=createAiryPanelParts(doc);dialog.append(x,panel.header,panel.body,panel.actions);
-    panel.header.append(make('h2',heading),make('p',registrationMode?registrationScope==='role'?'岗位柜台 · 任职登记':'本地岗位 · 总登记处':held?`${COUNTRIES[place(held).country]||place(held).country} · ${place(held).workplace}`:localRoles.length?'先到当地登记处了解岗位与申请条件。':'当地暂未开放正式职业登记。'));
+    panel.header.append(make('h2',heading),make('p',registrationMode?registrationScope==='role'?'岗位柜台 · 任职登记':'本处岗位 · 当面申请':held?`${COUNTRIES[place(held).country]||place(held).country} · ${place(held).workplace}`:localRoles.length?'先到当地登记处了解岗位与申请条件。':'当地暂未开放正式职业登记。'));
     const text=(title,content)=>panel.body.append(make('h3',title),make('p',content));
     const skillLine=r=>Object.entries(requirements(r)).map(([id,need])=>`${SKILLS[id]||id} ${s.skills[id]??0}/${need}`).join(' · ');
     const eligibility=r=>careers.eligibility?.(r.id,{ageYears})||{ok:false,code:'unavailable'};
@@ -122,7 +128,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     const result=careers.applicationResult?.(held&&!registrationMode?held.id:registrationScope==='role'&&registrationRoleId?registrationRoleId:undefined),appliedRole=result&&list.find(r=>r.id===result.roleId);
 
     if(!registrationMode&&!held){
-      for(const item of localRoles){const go=action(item,registryKind(item),`前往${place(item).workplace}登记`);if(go)panel.body.append(go);}
+      const seen=new Set();for(const {role:item}of nearbyRegistries()){if(seen.has(workplaceKey(item)))continue;seen.add(workplaceKey(item));const go=action(item,registryKind(item),`前往${WORKPLACE_NAMES[workplaceKey(item)]||place(item).workplace}`,{scope:'catalogue',roleId:item.id});if(go)panel.body.append(go);}if(!seen.size)panel.body.append(make('p','走近场所负责人，即可查看这里的招工。'));
     }else if(registrationMode){
       const cards=make('div',null,'career-card-grid');for(const item of displayRoles)cards.append(cardFor(item));panel.body.append(cards);
       if(!displayRoles.length)panel.body.append(make('p','当地暂未开放正式职业登记。'));
@@ -170,12 +176,11 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
   }
   button.onclick=()=>{
     const s=careers.state(),list=roles();if(currentRole(s,list))return open(false);
-    const local=list.find(r=>place(r).country===getCountry()&&localService(r));
-    const next=local&&localService(local)?.intent(registryKind(local));
+    const nearby=nearbyRegistries()[0],local=nearby?.role,next=nearby?.intent;
     if(!next)return open(false);wallet?.close();close();onOpen();onIntent({...next,registration:{scope:'catalogue',roleId:local.id}});
   };dialog.addEventListener('cancel',()=>close());dialog.addEventListener('click',e=>{if(e.target===dialog)close();});
   return {open,close,isOpen:()=>!!dialog.open,
-    update(mode){const s=careers.state(),r=s.lastEvaluation,c=getClock();slot.hidden=mode!=='lot';if(!wallet){money.textContent=`${copperLedger.state().cash} 铜文`;money.setAttribute('aria-label',`手头${copperLedger.state().cash}铜文`);}const employed=!!s.tenure&&!s.loadError;button.hidden=!employed&&!roles().some(role=>place(role).country===getCountry()&&localService(role)?.intent(registryKind(role)));button.setAttribute('aria-label',employed?'打开当前职业手册':'前往当地职业登记处');
+    update(mode){const s=careers.state(),r=s.lastEvaluation,c=getClock();slot.hidden=mode!=='lot';if(!wallet){money.textContent=`${copperLedger.state().cash} 铜文`;money.setAttribute('aria-label',`手头${copperLedger.state().cash}铜文`);}const employed=!!s.tenure&&!s.loadError;button.hidden=!employed&&!nearbyRegistries().length;button.setAttribute('aria-label',employed?'打开当前职业手册':'查看附近场所招工');
       const customer=s.lastDuty?.customerReviews?.at(-1);
       if(customer&&customer.id!==customerReviewId){customerReviewId=customer.id;feedback.textContent=`${customer.positive?'👍':'👎'} ${customer.customerName}：${customer.reason}`;feedback.className='career-review-pop '+(customer.positive?'career-positive':'career-negative');feedbackUntil=c.seconds+6;feedback.hidden=false;}
       else if(r&&r.id!==reviewId){reviewId=r.id;const role=roles().find(item=>item.id===r.roleId);feedback.textContent=`${r.positive?'👍':'👎'} ${employer(role)}：${r.reason}`;feedback.className='career-review-pop '+(r.positive?'career-positive':'career-negative');feedbackUntil=c.seconds+6;feedback.hidden=false;}
