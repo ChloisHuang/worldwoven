@@ -5,10 +5,10 @@ function hash(text){let h=2166136261;for(const c of text){h^=c.charCodeAt(0);h=M
 const copy=x=>JSON.parse(JSON.stringify(x));
 // Conversation topics are evidence of completed actions, never invented news.
 const topicFit=(p,kind)=>kind==='read'?p.traits.curiosity*.65+p.traits.quiet*.35:p.traits.outdoors*.8+p.traits.quiet*.2;
-export function conversationDisposition(person,other,kind){
+export function conversationDisposition(person,other,kind,targetId){
  const familiarity=person.experiences?.some(e=>e.kind===kind)?.06:0;
  const alignment=1-(Math.abs(person.values.company-other.values.company)+Math.abs(person.values.quiet-other.values.quiet));
- const fit=(topicFit(person,kind)-.5)*.85+alignment*.17+familiarity-(person.needs.fatigue||0)*.10;
+ const fit=(topicFit(person,kind)-.5)*.85+alignment*.17+familiarity+(person.relations[targetId]||0)*.08+(person.opinions[targetId]||0)*.12-(person.needs.fatigue||0)*.10;
  const feeling=fit>.16?'appreciated':fit<-.09?'mismatched':'neutral';
  return {feeling,relation:feeling==='appreciated'?.07:feeling==='mismatched'?-.035:.012,opinion:feeling==='appreciated'?.07:feeling==='mismatched'?-.06:.006};
 }
@@ -96,7 +96,7 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
    if(!current||current.id!=='conversation'||current.targetId!==choice.targetId||!experience||!other||other.current||time<other.replyAfter)return {ok:false,reason:'unavailable'};
    return transaction(()=>{
     const chance=clamp(.20+other.traits.sociability*.24+other.needs.social*.18+topicFit(other,experience.kind)*.30+(other.experiences.some(e=>e.kind===experience.kind)?.08:0)+(other.relations[id]||0)*.12+(other.opinions[id]||0)*.10-other.needs.fatigue*.24-other.needs.hunger*.30);
-    const accepted=random(other)<chance,event={id:eventId,ok:true,status:accepted?'accepted':'declined',responses:{[id]:conversationDisposition(p,other,experience.kind).feeling,[choice.targetId]:conversationDisposition(other,p,experience.kind).feeling},participants:[id,choice.targetId],experience:copy(experience),startedAt:time,duration:current.duration};
+    const accepted=random(other)<chance,event={id:eventId,ok:true,status:accepted?'accepted':'declined',responses:{[id]:conversationDisposition(p,other,experience.kind,choice.targetId).feeling,[choice.targetId]:conversationDisposition(other,p,experience.kind,id).feeling},participants:[id,choice.targetId],experience:copy(experience),startedAt:time,duration:current.duration};
     conversations.push(event);p.current.conversationId=event.id;other.replyAfter=time+24;
     if(accepted)other.current={id:'conversation',targetId:id,conversationId:event.id,duration:current.duration,startedAt:time,invited:true};
     else endConversation(event,'declined');
@@ -108,7 +108,7 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
    if(!event)return {ok:false,reason:'unknown-event'};if(event.status==='completed')return {ok:true,replayed:true,event:copy(event)};
    if(event.status!=='accepted'||elapsed<event.duration||!event.participants.every(id=>arrived.includes(id)&&people[id]?.current?.conversationId===eventId))return {ok:false,reason:'unfinished'};
    return transaction(()=>{
-    event.results=event.participants.map((id,i)=>{const target=event.participants[1-i],p=people[id],result=conversationDisposition(p,people[target],event.experience.kind);const relation=p.relations[target]||0,previous=p.opinions[target]||0;p.relations[target]=opinion(relation+result.relation);p.opinions[target]=opinion(previous+result.opinion);p.needs.social=clamp(p.needs.social-.32);return {actorId:id,targetId:target,feeling:result.feeling,relation:p.relations[target]-relation,opinion:p.opinions[target]-previous};});
+    event.results=event.participants.map((id,i)=>{const target=event.participants[1-i],p=people[id],result=conversationDisposition(p,people[target],event.experience.kind,target);const relation=p.relations[target]||0,previous=p.opinions[target]||0;p.relations[target]=opinion(relation+result.relation);p.opinions[target]=opinion(previous+result.opinion);p.needs.social=clamp(p.needs.social-.32);return {actorId:id,targetId:target,feeling:result.feeling,relation:p.relations[target]-relation,opinion:p.opinions[target]-previous};});
     endConversation(event,'completed');return {ok:true,event:copy(event)};
    });
   },

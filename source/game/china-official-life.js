@@ -61,7 +61,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   ].map(c=>({...c,available:c.available!==false&&!!c.point&&(!c.facilityId||!occupied(c.facilityId,n))&&(!c.roomId||!occupied(c.roomId,n))}));
  }
  function urgent(n){const need=sharedNeeds?.status(n.station.id);return !!need?.seekMeal||!!need?.seekToilet||brain.fatigued(n.station.id)||duties[n.station.id]?.stage==='awaiting-archive'||index(n)===0&&!!reports?.inspection();}
- function idleEligible(n){const s=stages.get(n);return !!s?.idle&&!s.called&&!s.courtReady&&!s.borrowed&&!s.mount&&state.conversationActorId!==n.station.id&&state.performing!==n.station.id&&!urgent(n)&&brain.canReply(n.station.id);}
+ function idleEligible(n){const s=stages.get(n);return !!s?.idle&&!s.called&&!s.courtReady&&!s.borrowed&&!s.mount&&state.conversationActorId!==n.station.id&&state.meetingActorId!==n.station.id&&state.performing!==n.station.id&&!urgent(n)&&brain.canReply(n.station.id);}
  function idle(n,label='手边事情告一段落 · 在原处歇一会儿'){
   brain.defer(n.station.id,12);stages.set(n,stage([n.root.position.toArray()],label,{idle:true,arrived:true,duration:12}));n.route=[];
  }
@@ -95,14 +95,14 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  function updateConversation(n,s,dt,t){
   const pair=conversation;if(!pair||pair.id!==s.pairId){brain.complete(n.station.id,s.choice,{fulfilled:false});claims.releaseActor(n.station.id);idle(n);return;}
   const actors=pair.participants.map(id=>officials.find(a=>a.station.id===id));
-  if(actors.some(a=>!a||stages.get(a)?.called||urgent(a)||state.conversationActorId===a.station.id||state.performing===a.station.id)){endConversation(false);return;}
+  if(actors.some(a=>!a||stages.get(a)?.called||urgent(a)||state.conversationActorId===a.station.id||state.meetingActorId===a.station.id||state.performing===a.station.id)){endConversation(false);return;}
   const step=Math.max(0,time-pair.lastAt);pair.lastAt=time;pair.age+=step;
   if(pair.age>150){endConversation(false,'路上耽搁了，改日再聊');return;}
   n.walking=false;if(!s.arrived)travel(n,s,dt);
   const both=actors.every(a=>stages.get(a)?.arrived),other=actors.find(a=>a!==n);
   if(both){if(pair.phase!=='talking'){pair.phase='talking';record('conversation-talking:'+pair.id,n);save();}pair.elapsed+=step;
    const p=other.root.position;n.root.rotation.y=Math.atan2(p.x-n.root.position.x,p.z-n.root.position.z);
-   const opening=pair.topic==='read'?'方才读了书卷，静读真有意思':'方才赏了荷塘，水边真舒畅';
+   const opening=pair.topic==='read'?'方才读过书卷，想听听你的喜好':'方才看过荷塘，想听听你的喜好';
    const response=pair.responses?.[n.station.id];
    s.label=pair.elapsed<3?(n===actors[0]?opening:'愿闻其详'):pair.elapsed<6?(n===actors[1]?(response==='appreciated'?'我也喜欢这样的闲暇':response==='mismatched'?'我更喜欢别的消遣':'各有趣味，听你说说'):'你平日更喜欢什么？'):(n===actors[0]?'原来你是这样想的':'改日有空再聊');
    if(pair.elapsed>=pair.duration){endConversation(true);return;}
@@ -138,7 +138,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   if(s.choice){delete s.choice.withdraw;if(s.choice.facilityId==='cn-money-house-public-counter')delete s.choice.facilityId;s.choice.point=[14,.115,13.8];s.choice.label='去云来酒楼自费吃饭';}
   if(!s.borrowed){s.path=publicRoute(n,[14,.115,13.8]);s.index=0;s.arrived=false;s.planned=false;s.stalled=0;s.label='去云来酒楼自费吃饭';n.route=[];}
  }
- function restore(snapshot){const data=restoreWorldRuntime(snapshot?.runtime,{npcs,furniture});if(!data?.stages)return false;time=Math.max(0,data.time||0);if(snapshot.duties){for(const id of Object.keys(duties))delete duties[id];Object.assign(duties,JSON.parse(JSON.stringify(snapshot.duties)));}if(snapshot.unpaidDuties)unpaidDuties.splice(0,unpaidDuties.length,...JSON.parse(JSON.stringify(snapshot.unpaidDuties)));stages.clear();conversation=data.conversation||null;for(const[id,s]of data.stages){const n=officials.find(n=>n.station.id===id);if(!n)continue;if(getTavern()?.officialMeal(n.station.id))s.borrowed=true;retireBankJourney(n,s);if(s.choice?.meal&&!s.borrowed&&s.choice.facilityId?.startsWith('china-palace-dining-')){if(s.mount){s.mountTarget=null;s.evicted=true;}else continue;}stages.set(n,{...s,planned:false,stalled:0});n.route=[];if(!s.borrowed)n.serviceMount=null;for(const id of [s.facilityId,s.choice?.facilityId,s.roomId].filter(Boolean))claims.reserve(id,n.station.id,{purpose:s.choice?.id||'resumed'});if(s.mount)claims.occupy(s.mount.id,n.station.id);}if(conversation){const event=brain.conversation(conversation.id);if(event?.status!=='accepted'||!conversation.participants.every(id=>stages.get(officials.find(n=>n.station.id===id))?.pairId===conversation.id))endConversation(false);else conversation.lastAt=time;}for(const n of officials){const current=brain.state(n.station.id)?.current;if(current?.conversationId&&!conversation){brain.cancelConversation(current.conversationId);claims.releaseActor(n.station.id);idle(n);}}return true;}
+ function restore(snapshot){const data=restoreWorldRuntime(snapshot?.runtime,{npcs,furniture});if(!data?.stages)return false;time=Math.max(0,data.time||0);if(snapshot.duties){for(const id of Object.keys(duties))delete duties[id];Object.assign(duties,JSON.parse(JSON.stringify(snapshot.duties)));}if(snapshot.unpaidDuties)unpaidDuties.splice(0,unpaidDuties.length,...JSON.parse(JSON.stringify(snapshot.unpaidDuties)));stages.clear();conversation=data.conversation||null;for(const[id,s]of data.stages){const n=officials.find(n=>n.station.id===id);if(!n)continue;if(getTavern()?.officialMeal(n.station.id))s.borrowed=true;retireBankJourney(n,s);if(s.choice?.meal&&!s.borrowed&&s.choice.facilityId?.startsWith('china-palace-dining-')){if(s.mount){s.mountTarget=null;s.evicted=true;}else continue;}stages.set(n,{...s,planned:false,stalled:0});n.route=[];if(!s.borrowed)n.serviceMount=null;for(const id of [s.facilityId,s.choice?.facilityId,s.roomId].filter(Boolean))claims.reserve(id,n.station.id,{purpose:s.choice?.id||'resumed'});if(s.mount)claims.occupy(s.mount.id,n.station.id);}if(conversation){const event=brain.conversation(conversation.id);if(event?.status!=='accepted'||!conversation.participants.every(id=>stages.get(officials.find(n=>n.station.id===id))?.pairId===conversation.id&&claims.reservation(stages.get(officials.find(n=>n.station.id===id)).facilityId,id)))endConversation(false);else conversation.lastAt=time;}for(const n of officials){const current=brain.state(n.station.id)?.current;if(current?.conversationId&&!conversation){brain.cancelConversation(current.conversationId);claims.releaseActor(n.station.id);idle(n);}}return true;}
  ready=true;if(!restore(saved))for(const n of officials)choose(n);
  return {
   courtCompleted(day){for(const n of officials){const previous=duties[n.station.id];if(previous?.day===day)continue;if(previous?.stage==='archived'&&!unpaidDuties.some(d=>d.actorId===n.station.id&&d.day===previous.day))unpaidDuties.push({actorId:n.station.id,...previous});duties[n.station.id]={day,stage:'awaiting-archive'};}save();},
@@ -146,7 +146,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   cancelCourt(n){const s=stages.get(n);if(s?.courtReady){stages.delete(n);choose(n);}else if(s)s.called=false;},
   courtPlan(n){const s=stages.get(n),landing=s?.mount?furniture.standPoint(navigation,safety(n),s.mount):n.root.position;return {reachable:!!landing,position:landing||n.root.position,path:publicRoute(n,null).filter(Boolean),safeExitSeconds:s?.mount?2:0,doorSeconds:4};},
   ready(n){return stages.get(n)?.courtReady===true;},
-  resume(n){stages.delete(n);n.route=[];choose(n);},
+  resume(n){if(stages.get(n)?.pairId)endConversation(false);stages.delete(n);n.route=[];choose(n);},
   playerRequest(id){for(const n of officials){const s=stages.get(n);if(s?.choice?.facilityId===id||s?.facilityId===id){s.evicted=true;if(s.pairId)endConversation(false,'让出位置，改日再聊');}}},
   label:n=>formatCourtEdictText(stages.get(n)?.label)||'承务官署 · 日常起居',
   tick(dt,playerState){state=playerState;time+=dt;brain.tick(dt);if(time>=nextPayrollAt){nextPayrollAt=time+5;for(const n of officials)settleDuty(n);for(const duty of unpaidDuties){const n=officials.find(n=>n.station.id===duty.actorId);if(n)settleDuty(n,duty);}for(let i=unpaidDuties.length-1;i>=0;i--)if(unpaidDuties[i].stage==='paid')unpaidDuties.splice(i,1);}},
