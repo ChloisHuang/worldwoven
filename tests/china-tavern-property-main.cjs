@@ -11,7 +11,7 @@ harness=harness.replace('visited:[],stamps:{},outfit:0,appearance:',"visited:[],
 const begin=harness.indexOf('const report=[];for(let round=0;'),end=harness.indexOf('\nconsole.log(JSON.stringify(',begin);
 const body=String.raw`
 const started=Date.now();all.find(e=>e.dataset.region==='china').onclick();ids.travel.onclick();
-const r=main.namespace.propertyReview(),find=(e,p)=>p(e)?e:e.children?.map(c=>find(c,p)).find(Boolean),panel=()=>find(document.body,e=>e.className==='cn-property-dialog ww-airy-theme'),text=e=>[e.textContent||'',...(e.children||[]).map(text)].join('\n');
+const r=main.namespace.propertyReview(),find=(e,p)=>p(e)?e:e.children?.map(c=>find(c,p)).find(Boolean),panel=()=>find(document.body,e=>e.className?.split(' ').includes('cn-property-dialog')),text=e=>[e.textContent||'',...(e.children||[]).map(text)].join('\n');
 const button=label=>{const b=find(panel(),e=>e.tagName==='button'&&e.textContent===label);assert(b,label);assert(!b.disabled,label+' enabled');return b;};
 const frame=()=>{now+=100;main.namespace.propertyStep(.1);};
 r.player.root.position.set(14.8,.215,13.4);
@@ -23,9 +23,9 @@ button('向业主申请购买').onclick();const app=r.tavernProperty.state().mar
 const pay=button('支付 '+app.amount+' 文 · 买下酒楼');pay.onclick();const bank=r.copperLedger.state().bank;pay.onclick();assert.equal(r.copperLedger.state().bank,bank,'stale UI cannot buy twice');
 assert.equal(r.tavernProperty.state().ownerId,'player');assert.equal(r.npcs.length,npcCount);assert.strictEqual(r.npcs.find(n=>n.station.id==='cn-tavern-host'),host);assert.equal(r.formalCareers.state().tenure,null);assert(!r.chinaService.active());assert.deepEqual(r.chinaTavern.staffScene.snapshot(),sceneBefore,'ownership does not reset orders, dirt or staff shifts');
 button('注资 20 文').onclick();assert.equal(r.copperLedger.state().bank,bank-20);button('提取 10 文').onclick();assert.equal(r.copperLedger.state().bank,bank-10);
-button('挂牌出售').onclick();assert(r.tavernProperty.state().market.offers.length);button('拒绝').onclick();assert.equal(r.tavernProperty.state().market.offers[0].status,'rejected');
-button('降价一成').onclick();assert.equal(r.tavernProperty.state().market.price,324);const offer=r.tavernProperty.state().market.offers.find(o=>o.status==='open');button('收 '+offer.amount+' 文 · 出售').onclick();assert.equal(r.tavernProperty.state().ownerId,offer.buyerId);assert.equal(r.copperLedger.state().bank,bank-10+offer.amount);assert(!r.chinaService.active());assert.equal(r.formalCareers.state().tenure,null);
-assert(text(panel()).includes('全员NPC日薪、食材成本和招聘管理尚未开放'));
+button('挂牌出售').onclick();assert(r.tavernProperty.state().market.offers.length);button('买方报价 · 3').onclick();button('拒绝').onclick();assert.equal(r.tavernProperty.state().market.offers[0].status,'rejected');
+button('挂牌改价').onclick();button('降价一成').onclick();assert.equal(r.tavernProperty.state().market.price,324);const offer=r.tavernProperty.state().market.offers.find(o=>o.status==='open');button('买方报价 · 2').onclick();const choice=find(panel(),e=>e.tagName==='button'&&e.getAttribute?.('aria-label')===r.tavernProperty.state().npcNames[offer.buyerId]+'出价'+offer.amount+'文');assert(choice);choice.onclick();button('收 '+offer.amount+' 文 · 出售').onclick();assert.equal(r.tavernProperty.state().ownerId,offer.buyerId);assert.equal(r.copperLedger.state().bank,bank-10+offer.amount);assert(!r.chinaService.active());assert.equal(r.formalCareers.state().tenure,null);
+button('账簿').onclick();assert(text(panel()).includes('全员NPC日薪、食材成本和招聘管理尚未开放'));
 button('×').onclick();assert(!panel().open);assert(!r.chinaService.isOpen());ids['return-world'].onclick();assert.equal(state().characterResources.activeReferences,0);
 console.log(JSON.stringify({status:'PASS',frames,seconds:(Date.now()-started)/1000,scope:'One production main counter route, buy/capital/draw/reject/discount/sell through simulated DOM; existing NPC identities and world orders unchanged. Not browser/iOS QA.'}));
 `;

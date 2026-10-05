@@ -1,67 +1,97 @@
 import {AIRY_UI_THEME} from './china-money-house-theme.js';
+import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
 const messages={
  'already-applied-today':'今日申请已有答复，明日再议','seller-consent-required':'卖方尚未同意出售','insufficient-bank':'银行铜文不足，可先到钱庄存款','insufficient-npc-funds':'买方资金不足，报价无法成交',
- 'insufficient-business-funds':'经营余额不足，先注入周转金','stale-property-intent':'账目已变化，请按当前报价重新操作','save-failed':'尚未成交，保存失败后可重试','async-save-unsupported':'尚未成交，保存暂不可用',
- 'invalid-price':'请填写1至1000000之间的整数铜文','invalid-offer':'出价须为正整数，且不高于挂牌价','invalid-amount':'金额须为正整数','offer-unavailable':'这份报价已结束','unchanged':'挂牌价格没有变化',
+ 'insufficient-business-funds':'经营余额不足，先注入周转金','stale-property-intent':'账目已变化，请按当前报价重新操作','save-failed':'保存失败，本次操作未完成，可重试','async-save-unsupported':'保存暂不可用，本次操作未完成',
+ 'invalid-price':'请填写1至1000000之间的整数铜文','invalid-offer':'出价须为正整数，且不高于挂牌价','invalid-amount':'金额须为正整数','offer-unavailable':'这份报价已结束','unchanged':'挂牌价格没有变化','property-busy':'账簿正在处理，请稍后重试',
 };
+const validAmount=(value,max=1000000)=>Number.isSafeInteger(value)&&value>0&&value<=max;
 export function createChinaTavernPropertyUI({property,canOperate=()=>true,isNearby=()=>true,onOpen=()=>{},notify=()=>{},document:doc=globalThis.document}) {
  const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text!=null)e.textContent=text;if(cls)e.className=cls;return e;};
- const dialog=make('dialog',null,'cn-property-dialog ww-airy-theme'),style=make('style');dialog.setAttribute('aria-label','云来酒楼产权与经营账');
- style.textContent=AIRY_UI_THEME+`
-.cn-property-dialog{position:fixed;inset:0;margin:auto;width:min(460px,calc(100vw - 28px));max-height:calc(100dvh - 28px);overflow:auto;overscroll-behavior:contain;border:1px solid #d0e1d8;border-radius:8px;padding:18px;background:#f4f9f1f7;box-shadow:0 4px 20px #345c651c;font-family:Georgia,"Songti SC",serif}
-.cn-property-dialog::backdrop{background:#173b4945}.cn-property-dialog *{box-sizing:border-box}.cn-property-dialog h2{font-family:inherit;font-weight:600;font-size:22px;line-height:1.3;margin:0 34px 5px 0}.cn-property-dialog h3{font-size:15px;margin:15px 0 8px}.cn-property-dialog p{font-size:12px;line-height:1.45;margin:7px 0}.cn-property-dialog button,.cn-property-dialog input{font-family:inherit}.cn-property-dialog .ww-airy-action{font-size:13px;padding:8px 12px;letter-spacing:0;flex:1}.cn-property-close{position:absolute;right:8px;top:7px;width:44px;height:44px;padding:0;border:0;border-radius:0;background:transparent;color:#426b74;font-size:26px;box-shadow:none}.cn-property-close:active{background:#dfeee6}.cn-property-line{display:flex;align-items:center;gap:8px;margin:8px 0}.cn-property-line>span{flex:1;font-size:13px}.cn-property-price{flex:1;min-width:0;height:44px;border:0;border-bottom:1px solid #9abeb8;border-radius:0;background:transparent;font-size:18px;color:#285968;text-align:center;box-shadow:none}.cn-property-metrics{display:grid;grid-template-columns:1fr auto;gap:6px;margin:12px 0;font-size:13px}.cn-property-metrics dt{color:#70898c}.cn-property-metrics dd{margin:0;font-variant-numeric:tabular-nums}.cn-property-offer{border-top:1px solid #cbdeda;padding:6px 0}.cn-property-note{color:#70898c}.cn-property-dialog details{margin-top:12px;font-size:11px;color:#70898c}.cn-property-dialog summary{min-height:30px;cursor:pointer}.cn-property-dialog ol{padding-left:18px;line-height:1.6}.cn-property-status{min-height:18px;color:#416d70}
+ const dialog=make('dialog',null,'cn-property-dialog ww-airy-theme ww-airy-panel'),style=make('style');dialog.setAttribute('aria-label','云来酒楼产权与经营账');
+ style.textContent=AIRY_UI_THEME+AIRY_PANEL_STYLE+`
+.cn-property-dialog.ww-airy-panel{position:fixed;inset:var(--ww-ui-top,12px) var(--ww-ui-right,12px) var(--ww-ui-bottom,12px) var(--ww-ui-left,12px);margin:auto;width:min(760px,var(--ww-ui-width,calc(100vw - 24px)));height:min(360px,var(--ww-ui-height,calc(100dvh - 24px)));max-width:none;padding:16px 20px 12px;border:1px solid #d4e5dc;border-radius:20px 7px 20px 7px;background:linear-gradient(115deg,#f9f8ee,#eef6ee 72%,#eff2f8);color:#355e68;box-shadow:0 14px 42px #274b6426;font-family:Georgia,"Songti SC","Noto Serif CJK SC",serif;line-height:1.4}
+.cn-property-dialog::backdrop{background:#173b493d;backdrop-filter:blur(3px)}.cn-property-dialog *{box-sizing:border-box}.cn-property-dialog h2{margin:0;font-family:inherit;font-size:21px;line-height:1.3;font-weight:600;letter-spacing:.08em}.cn-property-dialog h3{margin:0 0 5px;font-size:17px;font-weight:500;line-height:1.3}.cn-property-dialog p{font-size:12px;line-height:1.5;margin:5px 0}.cn-property-dialog button,.cn-property-dialog input{font-family:inherit}.cn-property-dialog button{min-height:44px;cursor:pointer;box-shadow:none}.cn-property-dialog button:disabled{opacity:.5;cursor:default}.cn-property-dialog button:focus-visible,.cn-property-dialog input:focus-visible{outline:2px solid #76aba7;outline-offset:2px}.cn-property-dialog .cn-property-close{position:absolute;right:8px;top:7px;width:44px;height:44px;padding:0;border:0;border-radius:0;background:transparent;color:#7b999b;font-size:26px}.cn-property-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-right:34px;padding-bottom:9px;margin-bottom:10px;border-bottom:1px solid #d5e5dc}.cn-property-heading p{margin:3px 0 0;font-size:11px;color:#789197}.cn-property-bank{text-align:right;font-size:11px;color:#789197;white-space:nowrap}.cn-property-bank strong{display:block;font-size:20px;font-weight:500;color:#4e758e;font-variant-numeric:tabular-nums}.cn-property-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:18px;overflow:hidden}.cn-property-summary,.cn-property-detail{min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain}.cn-property-summary{padding:3px 1px}.cn-property-detail{padding:10px 14px;border:1px solid #dfebe2;border-radius:10px 3px 13px 3px;background:#fffefa80}.cn-property-kicker{font-size:11px!important;color:#78999a;letter-spacing:.06em;margin:0 0 4px!important}.cn-property-amount{display:flex;align-items:baseline;gap:6px;margin:5px 0;color:#5b7b94;font-size:12px}.cn-property-amount strong{font-size:30px;line-height:1.15;font-weight:500;font-variant-numeric:tabular-nums}.cn-property-note{color:#789195}.cn-property-error{color:#a26b64!important}.cn-property-metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin:3px 0 8px}.cn-property-metrics div{min-width:0}.cn-property-metrics dt{font-size:11px;color:#789195}.cn-property-metrics dd{margin:2px 0 0;font-size:20px;line-height:1.3;color:#4e758e;font-variant-numeric:tabular-nums}.cn-property-metrics dd small{font-size:11px;margin-left:4px}.cn-property-capital{display:flex;gap:6px;margin-top:6px}.cn-property-capital button{flex:1;min-width:0;padding:5px 8px;border:0;border-radius:0;background:#e3eee7;color:#547b7b;font-size:12px}.cn-property-tabs{display:flex;gap:4px;margin:-6px 0 7px}.cn-property-tabs button{flex:1;padding:4px;border:0;border-bottom:1px solid transparent;border-radius:0;background:transparent;color:#7d989a;font-size:12px}.cn-property-tabs button[aria-pressed=true]{border-bottom-color:#8ec5b5;background:#e9f1e680;color:#386b72}.cn-property-line{display:flex;align-items:center;gap:6px;margin:4px 0}.cn-property-price{width:80px;flex:1;min-width:0;height:44px;border:0;border-bottom:1px solid #a9c6bf;border-radius:0;background:#ffffff60;font-size:20px;color:#426c7d;text-align:center;box-shadow:none;appearance:textfield}.cn-property-price::-webkit-inner-spin-button,.cn-property-price::-webkit-outer-spin-button{appearance:none;margin:0}.cn-property-dialog .ww-airy-step{font-size:20px;font-weight:400}.cn-property-offers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.cn-property-offers button{min-width:0;min-height:70px;padding:6px 4px;border:0;border-bottom:2px solid transparent;border-radius:0;background:#f2f5ed;color:#6b8b90;font-size:11px;text-align:center}.cn-property-offers button[aria-pressed=true]{border-bottom-color:#85b8a9;background:#dfefe5;color:#315f68}.cn-property-offers strong{display:block;font-size:19px;line-height:1.4;font-weight:500}.cn-property-offers span{display:block}.cn-property-dialog .cn-property-discount{min-height:44px;border:0;border-radius:0;padding:4px 7px;background:transparent;color:#65858a;font-size:11px}.cn-property-actions{display:flex;flex-direction:column;gap:4px;padding-top:6px;border-top:1px solid #d5e5dc}.cn-property-dialog .cn-property-status{margin:0;min-height:17px;font-size:11px;line-height:1.5;color:#668587}.cn-property-action-row{display:flex;align-items:center;gap:6px}.cn-property-action-row button{width:auto;flex:0 0 auto;min-width:44px;padding:7px 10px;border:0;border-radius:0;background:transparent;color:#789195;font-size:12px}.cn-property-dialog.ww-airy-theme .cn-property-primary{flex:1;min-width:0;padding:8px 12px;font-size:14px;letter-spacing:.02em}.cn-property-ledger{display:block;overflow:auto;padding:3px 8px}.cn-property-ledger h3{font-size:15px;margin:8px 0 5px}.cn-property-ledger ol{padding-left:18px;margin:4px 0;font-size:12px;line-height:1.7}
+@media(max-height:500px){.cn-property-dialog.ww-airy-panel{padding:10px 18px 9px}.cn-property-heading{height:49px;flex:0 0 49px;padding-bottom:5px;margin-bottom:7px}.cn-property-dialog h2{font-size:18px}.cn-property-heading p{margin-top:1px}.cn-property-bank strong{font-size:19px}.cn-property-content{gap:14px}.cn-property-detail{padding:8px 12px}.cn-property-metrics{gap:6px 12px;margin-bottom:5px}.cn-property-metrics dd{font-size:19px}.cn-property-amount strong{font-size:27px}.cn-property-actions{padding-top:4px;margin-top:6px}.cn-property-dialog p{margin:4px 0}.cn-property-tabs{margin-bottom:5px}.cn-property-offers button{min-height:66px}}
+@media(max-width:600px){.cn-property-dialog.ww-airy-panel{height:min(580px,var(--ww-ui-height,calc(100dvh - 24px)));padding:14px}.cn-property-heading{gap:8px}.cn-property-heading h2{font-size:18px}.cn-property-bank strong{font-size:17px}.cn-property-content{display:block;overflow:auto}.cn-property-summary,.cn-property-detail{overflow:visible}.cn-property-summary{margin-bottom:12px}.cn-property-metrics{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.cn-property-metrics dd{font-size:17px}.cn-property-action-row{gap:2px}.cn-property-action-row button{padding:7px}.cn-property-dialog.ww-airy-theme .cn-property-primary{font-size:13px;padding:8px}}
 `;
  (doc.head||doc.body).append(style);doc.body.append(dialog);
- let generation=0,signature='',offerDraft=null,askDraft=null,feedback='',disposed=false;
+ let generation=0,signature='',offerDraft=null,askDraft=null,feedback='',feedbackError=false,feedbackRevision=null,disposed=false,ownerTab=null,selectedOffer=null,showLedger=false,marketContext='',lastPrice;
  const close=()=>{generation++;if(dialog.open)dialog.close();};
- const button=(title,run,disabled=false,cls='ww-airy-action')=>{const e=make('button',title,cls),g=generation;e.type='button';e.disabled=disabled;e.onclick=()=>{if(!disposed&&dialog.open&&g===generation&&!e.disabled&&isNearby())run();};return e;};
+ const button=(title,run,disabled=false,cls='')=>{const e=make('button',title,cls),g=generation;e.type='button';e.disabled=disabled;e.onclick=()=>{if(!disposed&&dialog.open&&g===generation&&!e.disabled&&isNearby())run();};return e;};
  function perform(run,success) {
-   if(!canOperate()){feedback='许安回案后即可办理';refresh(true);return;}
-   const result=run();feedback=result?.ok?(typeof success==='function'?success(result):success||'已记入账簿'):messages[result?.code]||'账簿暂时无法核对，未执行交易';
-   if(result?.ok)notify(feedback);refresh(true);
+   if(!canOperate()){feedback='许安回案后即可办理';feedbackError=true;refresh(true);return;}
+   generation++; // Consume this control before a synchronous storage/notification callback.
+   const result=run();feedbackError=!result?.ok;feedback=result?.ok?(typeof success==='function'?success(result):success||'已记入账簿'):messages[result?.code]||'账簿暂时无法核对，未执行交易';
+   feedbackRevision=property.state().revision;if(result?.ok)notify(feedback);refresh(true);
  }
  function amountRow(value,onChange,label,max=1000000) {
-   const row=make('div',null,'cn-property-line'),input=make('input',null,'cn-property-price');input.type='number';input.min='1';input.max=String(max);input.step='1';input.inputMode='numeric';input.value=String(value);input.setAttribute('aria-label',label);
-   const change=n=>{onChange(n);input.value=String(n);};input.oninput=()=>onChange(Number(input.value));
-   row.append(button('−',()=>change(Math.max(1,Number(input.value)-10)),false,'ww-airy-step'),input,button('+',()=>change(Math.min(max,Number(input.value)+10)),false,'ww-airy-step'));return row;
+   const row=make('div',null,'cn-property-line'),input=make('input',null,'cn-property-price'),g=generation;input.type='number';input.min='1';input.max=String(max);input.step='1';input.inputMode='numeric';input.value=String(value);input.setAttribute('aria-label',label);input.setAttribute('data-cn-property-focus',label);
+   const change=n=>{input.value=String(n);onChange(n);};input.oninput=()=>{if(!disposed&&dialog.open&&g===generation)onChange(Number(input.value));};
+   const step=delta=>change(Math.max(1,Math.min(max,(Number(input.value)||0)+delta)));
+   const minus=button('−',()=>step(-10),false,'ww-airy-step'),plus=button('+',()=>step(10),false,'ww-airy-step');minus.setAttribute('aria-label',`${label}减少10文`);plus.setAttribute('aria-label',`${label}增加10文`);row.append(minus,input,plus);return row;
  }
+ function amount(value,label){const row=make('div',null,'cn-property-amount');row.append(make('strong',String(value)),make('span',label));return row;}
+ function metrics(s,owned){const dl=make('dl',null,'cn-property-metrics');for(const [label,value]of owned?[['经营余额',s.balance],['营业实收',s.revenue],['已付玩家工资',s.paidWages]]:[['经营余额',s.balance],['营业实收',s.revenue]]){const row=make('div'),dd=make('dd',String(value));dd.append(make('small','文'));row.append(make('dt',label),dd);dl.append(row);}return dl;}
  function refresh(force=false) {
-   if(!dialog.open&&!force)return;if(!isNearby()){close();return;}
-   const daily=property.refreshDay(),s=property.state(),available=canOperate(),key=JSON.stringify([s.revision,s.balance,s.bank,s.loadError,available]);
-   if(!force&&key===signature)return;signature=key;generation++;dialog.replaceChildren();
-   dialog.append(button('×',close,false,'cn-property-close'),make('h2','云来酒楼'),make('p',`业主 ${s.ownerName||'待核对'} · 许安代管柜台`));
-   if(s.loadError||!daily.ok){dialog.append(make('p','产权账簿暂时无法核对，请保留存档。'));return;}
-   const m=s.market,revision=s.revision,owned=s.ownerId==='player';
-   const metrics=make('dl',null,'cn-property-metrics');
-   for(const [label,amount]of [['营业实收',s.revenue],['已付玩家工资',s.paidWages],['经营余额',s.balance],['你的银行',s.bank]])metrics.append(make('dt',label),make('dd',`${amount} 文`));
-   dialog.append(metrics);
-   if(!available)dialog.append(make('p','许安回案后即可办理','cn-property-note'));
+   if(disposed||!dialog.open&&!force)return;if(!isNearby()){close();return;}
+   const daily=property.refreshDay(),s=property.state(),available=canOperate(),key=JSON.stringify([s.revision,s.balance,s.bank,s.loadError,daily.code,available]);
+   if(!force&&key===signature)return;signature=key;generation++;
+   const focused=doc.activeElement?.getAttribute?.('data-cn-property-focus');dialog.replaceChildren();
+   const x=button('×',close,false,'cn-property-close');x.setAttribute('aria-label','关闭产权与经营账');
+   const {header,body,actions}=createAiryPanelParts(doc);header.className+=' cn-property-heading';body.className+=' cn-property-content';actions.className+=' cn-property-actions';
+   const heading=make('div');heading.append(make('h2','云来酒楼 · 产权'),make('p',`业主 ${s.ownerName||'待核对'} · 许安代管柜台`));const bank=make('div','你的银行','cn-property-bank');bank.append(make('strong',s.bank==null?'待核对':`${s.bank} 文`));header.append(heading,bank);
+   const status=make('p',null,'cn-property-status'),controls=make('div',null,'cn-property-action-row');status.setAttribute('role','status');status.setAttribute('aria-live','polite');actions.append(status,controls);dialog.append(x,header,body,actions);
+   if(s.loadError||!daily.ok||!s.market){body.className+=' cn-property-ledger';body.append(make('h3','账簿待核对'),make('p','产权账簿暂时无法核对，请保留存档。','cn-property-error'));status.textContent='未执行交易';controls.append(button('重试核对',()=>refresh(true),false,'cn-property-primary ww-airy-action'));return;}
+   const m=s.market,revision=s.revision,owned=s.ownerId==='player',context=`${m.ownership}:${m.day}`;
+   if(context!==marketContext){if(marketContext&&feedbackRevision!==s.revision){feedback='';feedbackError=false;}marketContext=context;offerDraft=null;askDraft=null;ownerTab=null;selectedOffer=null;}
+   if(lastPrice!==m.price){askDraft=null;lastPrice=m.price;}
+   const defaultStatus=!available?'许安回案后即可办理':owned?'转让含经营余额，售款存入银行':'申请不扣款；业主同意后，再确认付款';
+   status.textContent=feedback||defaultStatus;if(feedbackError||!available)status.className+=' cn-property-error';
+   if(showLedger){
+     body.className+=' cn-property-ledger';body.append(make('h3','账簿与经营范围'),make('p',`经营余额 ${s.balance} 文 · 营业实收 ${s.revenue} 文 · 已付玩家工资 ${s.paidWages} 文`),make('p','转让含店内经营余额；个人款项从银行收付。许安继续柜台服务，产权不会自动接班。'),make('p','当前成本记实际玩家工资；全员NPC日薪、食材成本和招聘管理尚未开放。'),make('h3','最近往来'));
+     const history=make('ol');for(const e of s.events.slice(-6).reverse()){const text=e.kind==='transfer'?`${s.npcNames[e.from]||'你'} → ${s.npcNames[e.to]||'你'} · 转让 ${e.amount} 文`:e.kind==='wage'?`支付玩家工资 ${e.amount} 文`:e.kind==='invest'?`注入经营账 ${e.amount} 文`:`提取到银行 ${e.amount} 文`;history.append(make('li',`第${e.day+1}日 · ${text}`));}if(!s.events.length)body.append(make('p','暂无产权与资金往来','cn-property-note'));else body.append(history);
+     controls.append(button('返回产权',()=>{showLedger=false;refresh(true);},false,'cn-property-primary ww-airy-action'));return;
+   }
+   const summary=make('section',null,'cn-property-summary'),detail=make('section',null,'cn-property-detail');body.append(summary,detail);
+   controls.append(button('账簿',()=>{showLedger=true;refresh(true);}));
    if(!owned) {
-     dialog.append(make('h3',`第${m.day+1}日挂牌 · ${m.price}文`));
+     summary.append(make('p',`第${m.day+1}日 · 业主挂牌`,'cn-property-kicker'),amount(m.price,'铜文'),metrics(s,false),make('p','经营余额随产权一并交割','cn-property-note'));
      const app=m.application;
      if(!app) {
-       offerDraft=Math.min(offerDraft??m.price,m.price);dialog.append(amountRow(offerDraft,v=>offerDraft=v,'申请购买出价（铜文）',m.price));
-       dialog.append(button('向业主申请购买',()=>perform(()=>property.applyPurchase(offerDraft,revision),r=>r.application.status==='accepted'?`${s.ownerName}同意了，确认付款后交割`:`${s.ownerName}婉拒了这次申请`),!available));
+       offerDraft=offerDraft??m.price;detail.append(make('h3','向业主出价'));
+       const hint=make('p',null,'cn-property-note'),primary=button('向业主申请购买',()=>perform(()=>property.applyPurchase(offerDraft,revision),r=>r.application.status==='accepted'?`${s.ownerName}同意了，确认付款后交割`:`${s.ownerName}婉拒了这次申请`),!available,'cn-property-primary ww-airy-action');
+       const update=()=>{const valid=validAmount(offerDraft,m.price);primary.disabled=!available||!valid;hint.className=valid?'cn-property-note':'cn-property-error';hint.textContent=!valid?messages['invalid-offer']:s.bank<offerDraft?`确认付款还差 ${offerDraft-s.bank} 文，可先申请`:'确认付款时从你的银行扣除';};
+       detail.append(amountRow(offerDraft,v=>{offerDraft=v;update();},'申请购买出价（铜文）',m.price),make('p','每日一次申请 · 答复当日有效','cn-property-note'),hint);controls.append(primary);update();
+     } else if(app.status==='accepted') {
+       detail.append(make('p','业主已同意出售','cn-property-kicker'),amount(app.amount,'铜文 · 待你确认'),make('p','今日有效 · 确认后立即交割产权','cn-property-note'),make('p',s.bank<app.amount?`银行不足，还差 ${app.amount-s.bank} 文`:`支付后银行剩余 ${s.bank-app.amount} 文`,s.bank<app.amount?'cn-property-error':'cn-property-note'));
+       controls.append(button(`支付 ${app.amount} 文 · 买下酒楼`,()=>perform(()=>property.confirmPurchase(revision),'产权已交割，许安继续代管柜台'),!available||s.bank==null||s.bank<app.amount,'cn-property-primary ww-airy-action'));
      } else {
-       dialog.append(make('p',app.status==='accepted'?`${s.ownerName}同意 ${app.amount} 文出售`:`${s.ownerName}已婉拒 · ${app.reason==='price-too-low'?'出价未达预期':'今日想继续经营'}`));
-       if(app.status==='accepted')dialog.append(button(`支付 ${app.amount} 文 · 买下酒楼`,()=>perform(()=>property.confirmPurchase(revision),'产权已交割，许安继续代管柜台'),!available));
+       detail.append(make('p','本次申请未通过','cn-property-kicker'),make('h3',`${s.ownerName}已婉拒`),make('p',`你的出价 ${app.amount} 文`),make('p',app.reason==='price-too-low'?'出价未达业主预期':'业主今日想继续经营','cn-property-note'),make('p','未扣款 · 明日可再次申请','cn-property-note'));
+       controls.append(button('今日申请已结束',()=>{},true,'cn-property-primary ww-airy-action'));
      }
    } else {
-     dialog.append(make('h3','经营与转让'));
-     const actions=make('div',null,'cn-property-line');actions.append(button('注资 20 文',()=>perform(()=>property.invest(20,revision),'20文周转金已入经营账'),!available||s.bank<20),button('提取 10 文',()=>perform(()=>property.draw(10,revision),'10文经营结余已入银行'),!available||s.balance<10));dialog.append(actions);
-     askDraft=askDraft??m.price??360;dialog.append(amountRow(askDraft,v=>askDraft=v,'酒楼挂牌价（铜文）'));
-     const listing=make('div',null,'cn-property-line');listing.append(button(m.price===null?'挂牌出售':`改价 · 当前 ${m.price} 文`,()=>perform(()=>property.setPrice(askDraft,revision),'挂牌价已保存'),!available));
-     if(m.price!==null)listing.append(button('降价一成',()=>{askDraft=Math.max(1,Math.floor(m.price*.9));perform(()=>property.setPrice(askDraft,revision),'新的折价已挂牌');},!available));dialog.append(listing);
-     if(m.price!==null) {
-       for(const o of m.offers){const row=make('div',null,'cn-property-offer');row.append(make('p',`${s.npcNames[o.buyerId]} · 出价 ${o.amount} 文${o.amount<m.price?'（折价）':''}${o.status==='rejected'?' · 已拒绝':''}`));
-         if(o.status==='open'){const controls=make('div',null,'cn-property-line');controls.append(button('拒绝',()=>perform(()=>property.replyOffer(o.id,false,revision),'已拒绝这份报价'),!available),button(`收 ${o.amount} 文 · 出售`,()=>perform(()=>property.replyOffer(o.id,true,revision),`已转让给${s.npcNames[o.buyerId]}，款项存入银行`),!available||o.amount>s.npcFunds[o.buyerId]));row.append(controls);}dialog.append(row);}
-       dialog.append(button('撤下挂牌',()=>perform(()=>property.setPrice(null,revision),'已撤下挂牌'),!available));
+     summary.append(make('p','经营账 · 铜文','cn-property-kicker'),metrics(s,true));
+     const capital=make('div',null,'cn-property-capital');capital.append(button('注资 20 文',()=>perform(()=>property.invest(20,revision),'20文周转金已入经营账'),!available||s.bank==null||s.bank<20),button('提取 10 文',()=>perform(()=>property.draw(10,revision),'10文经营结余已入银行'),!available||s.balance<10));summary.append(capital);
+     const openOffers=m.offers.filter(o=>o.status==='open');ownerTab=ownerTab||(m.price!==null&&openOffers.length?'offers':'listing');
+     const tabs=make('div',null,'cn-property-tabs');for(const [id,label]of [['offers',`买方报价 · ${openOffers.length}`],['listing',m.price===null?'挂牌出售':'挂牌改价']]){const tab=button(label,()=>{ownerTab=id;feedback='';feedbackError=false;refresh(true);});tab.setAttribute('aria-pressed',String(ownerTab===id));tabs.append(tab);}detail.append(tabs);
+     if(ownerTab==='offers') {
+       let selected=m.offers.find(o=>o.id===selectedOffer);if(!selected)selected=openOffers[0]||m.offers[0];selectedOffer=selected?.id||null;
+       if(!m.offers.length){detail.append(make('h3',m.price===null?'尚未挂牌':'今日暂无报价'),make('p',m.price===null?'先设定挂牌价，再查看买方报价':'明日会重新核对买方报价','cn-property-note'));controls.append(button(m.price===null?'设定挂牌价':'查看挂牌价',()=>{ownerTab='listing';refresh(true);},false,'cn-property-primary ww-airy-action'));}
+       else {
+         const offers=make('div',null,'cn-property-offers');for(const o of m.offers){const choice=button(null,()=>{selectedOffer=o.id;feedback='';feedbackError=false;refresh(true);});choice.append(make('span',s.npcNames[o.buyerId]),make('strong',`${o.amount} 文`),make('span',o.status==='rejected'?'已拒绝':o.amount<m.price?'折价报价':'按挂牌价'));choice.setAttribute('aria-pressed',String(o.id===selectedOffer));choice.setAttribute('aria-label',`${s.npcNames[o.buyerId]}出价${o.amount}文${o.status==='rejected'?'，已拒绝':''}`);offers.append(choice);}detail.append(offers,make('p',`挂牌 ${m.price} 文 · 报价仅今日有效`,'cn-property-note'));
+         if(selected.status==='open'){controls.append(button('拒绝',()=>perform(()=>property.replyOffer(selected.id,false,revision),'已拒绝这份报价'),!available));controls.append(button(`收 ${selected.amount} 文 · 出售`,()=>perform(()=>property.replyOffer(selected.id,true,revision),`已转让给${s.npcNames[selected.buyerId]}，款项存入银行`),!available||selected.amount>s.npcFunds[selected.buyerId],'cn-property-primary ww-airy-action'));if(selected.amount>s.npcFunds[selected.buyerId])status.textContent='买方资金不足，无法成交';}
+         else controls.append(button('这份报价已拒绝',()=>{},true,'cn-property-primary ww-airy-action'));
+       }
+     } else {
+       askDraft=askDraft??m.price??360;const hint=make('p',null,'cn-property-note'),primary=button(m.price===null?'挂牌出售':'保存挂牌价',()=>perform(()=>property.setPrice(askDraft,revision),'挂牌价已保存'),!available,'cn-property-primary ww-airy-action');
+       const update=()=>{const valid=validAmount(askDraft);primary.disabled=!available||!valid||askDraft===m.price;hint.textContent=!valid?messages['invalid-price']:m.price===null?'挂牌后仍由你决定是否接受买方报价':`当前 ${m.price} 文 · 改价会更新报价金额`;hint.className=valid?'cn-property-note':'cn-property-error';};
+       detail.append(amountRow(askDraft,v=>{askDraft=v;update();},'酒楼挂牌价（铜文）'),hint);
+       if(m.price!==null){detail.append(button('降价一成',()=>{askDraft=Math.max(1,Math.floor(m.price*.9));perform(()=>property.setPrice(askDraft,revision),'新的折价已挂牌');},!available,'cn-property-discount'));controls.append(button('撤下挂牌',()=>perform(()=>property.setPrice(null,revision),'已撤下挂牌'),!available));}controls.append(primary);update();
      }
    }
-   const status=make('p',feedback,'cn-property-status');status.setAttribute('role','status');dialog.append(status);
-   const details=make('details');details.append(make('summary','账簿与经营范围'),make('p','转让含店内经营余额；个人款项从银行收付。许安继续柜台服务，产权不会自动接班。'),make('p','当前成本记实际玩家工资；全员NPC日薪、食材成本和招聘管理尚未开放。'));
-   const history=make('ol');for(const e of s.events.slice(-6).reverse()){const text=e.kind==='transfer'?`${s.npcNames[e.from]||'你'} → ${s.npcNames[e.to]||'你'} · 转让 ${e.amount} 文`:e.kind==='wage'?`支付玩家工资 ${e.amount} 文`:e.kind==='invest'?`注入经营账 ${e.amount} 文`:`提取到银行 ${e.amount} 文`;history.append(make('li',text));}details.append(history);dialog.append(details);
+   if(focused)Array.from(dialog.querySelectorAll?.('[data-cn-property-focus]')||[]).find(e=>e.getAttribute('data-cn-property-focus')===focused)?.focus({preventScroll:true});
  }
- function open(){if(disposed||!isNearby())return false;feedback='';offerDraft=null;askDraft=null;onOpen();if(!dialog.open)dialog.showModal();refresh(true);return true;}
+ function open(){if(disposed||!isNearby())return false;feedback='';feedbackError=false;offerDraft=null;askDraft=null;ownerTab=null;selectedOffer=null;showLedger=false;onOpen();if(!dialog.open)dialog.showModal();refresh(true);return true;}
  dialog.addEventListener('cancel',event=>{event.preventDefault();close();});return {open,close,refresh,isOpen:()=>!!dialog.open,dispose(){disposed=true;close();dialog.remove();style.remove();}};
 }
