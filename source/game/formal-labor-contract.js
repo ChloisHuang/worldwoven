@@ -2,7 +2,7 @@
 // This bridge pins each new work slip to its pay source before it can start.
 // An old unmarked slip always remains temporary, even after another job is held.
 const MESSAGES={'application-pending':'申请已保存，请继续当面审核','no-pending-application':'没有待审申请','interview-rejected':'本次面谈未录用，结果已保存，下一模拟日可再申请','already-applied-today':'本岗位今天已提交过申请，请查看已保存结果，下一模拟日再来',
-  'adult-required':'需年满18岁','ritual-required':'待客礼仪未达本岗位要求，可先读书练习',
+  'adult-required':'需年满18岁','age-range-required':'本台班招募年龄为18–40岁','art-required':'艺术需要1级，可在当地藏书处读艺术书目','ritual-required':'待客礼仪未达本岗位要求，可先读书练习',
   'cooking-required':'烹饪需要2级，先在当地藏书处学习烹饪书目',
   'writing-required':'文书需要1级，可在当地读书或书案习字积累经验',
   'gardening-required':'园艺需要2级，可在当地读园艺书或做浇花临工积累经验',
