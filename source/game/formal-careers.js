@@ -1,3 +1,4 @@
+import {SALON_POET_ROLE} from './china-salon-career-role.js';
 import {GAME_MINUTES_PER_SECOND} from './simulation-clock.js';
 import {emptyApplications, restoreApplications, careerInterview, careerInterviewRoll, applicationId} from './career-applications.js';
 import {STUDY_SOURCES, studyLesson, savedStudyLesson, defaultStudyLesson} from './study-lessons.js';
@@ -50,7 +51,7 @@ export const PALACE_GUARD_ROLE = Object.freeze({id:'cn-palace-guard',name:'锦�
   supervisorId:'cn-range-warden',incumbentId:'cn-archery',incumbentName:'沈砚',vacancyKind:'exclusive',workSource:'cn-guard-labor',wage:24,minimumAgeYears:18,
   skillRequirements:Object.freeze({martial:1,ritual:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:0,
   duties:'06:00–18:00主动接班；沿门廊、殿阶及东西巷逐点巡查驻察，回圃当面交班；持续轮巡按实际巡行与驻察工时计薪。武艺须在射圃完成受控习射，陆衡继续照看射场'});
-export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE,PHARMACY_ASSISTANT_ROLE,TEA_SERVER_ROLE,TEA_PASTRY_ROLE,PALACE_GUARD_ROLE]);
+export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE,PHARMACY_ASSISTANT_ROLE,TEA_SERVER_ROLE,TEA_PASTRY_ROLE,PALACE_GUARD_ROLE,SALON_POET_ROLE]);
 export const FORMAL_CAREER_SLOTS = Object.freeze([
   ...FORMAL_CAREER_ROLES.map(role => Object.freeze({id:role.slotId,roleId:role.id,holderId:role.incumbentId||null,...(role.vacancyKind==='rotation'?{rotation:true}:role.vacancyKind==='exclusive'?{replacement:true}:{})})),
 ]);
@@ -356,6 +357,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if (blocked) return {ok: false, code: blocked, reasons: [blocked]};
     const reasons = [];
     if (!Number.isFinite(ageYears) || ageYears < role.minimumAgeYears) reasons.push('adult-required');
+    if (Number.isFinite(ageYears) && role.maximumAgeYears!==undefined && ageYears>role.maximumAgeYears) reasons.push('age-range-required');
     for (const [skill, minimum] of Object.entries(role.skillRequirements)) if (current.skills[skill] < minimum) reasons.push(`${skill}-required`);
     const slot = [...slotMap.values()].find(candidate => candidate.roleId === roleId && availableSlot(candidate,role));
     if (!slot) reasons.push('no-vacancy');
@@ -524,6 +526,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if(interruptedUnsaved)return no('interruption-unsaved');
     if(!current.tenure||current.tenure.roleId!==roleId||!role)return no('not-employed');
     if(!clock)return no('invalid-clock');
+    if(role.paymentKind==='commission')return no('commission-service-required');
     if(role.workSource&&receiptId!==undefined&&!validWorkReceipt(role.workSource,receiptId))return no('invalid-work-receipt');
     // Recover an already admitted work slip even after the new-shift window closes.
     if(role.workSource&&duty?.day===clock.day&&duty.workReceiptId===receiptId&&duty.stage==='working')return {...context,ok:true,unchanged:true};
@@ -591,7 +594,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const clock = now(); if (!clock) return failure('invalid-clock');
     if (observedDay === null || observedDay === clock.day) { observedDay = clock.day; return {ok: true, unchanged: true}; }
     const day = observedDay, tenure = current.tenure, duty = current.lastDuty;
-    if (!tenure || tenure.sinceDay > day || tenure.sinceDay === day &&
+    if (!tenure || roleMap.get(tenure.roleId)?.paymentKind==='commission' || tenure.sinceDay > day || tenure.sinceDay === day &&
       tenure.sinceHour >= roleMap.get(tenure.roleId).dutyWindow.endHour ||
       current.lastEvaluatedDay !== null && current.lastEvaluatedDay >= day || ['ready','inspection'].includes(duty?.stage) ||
       duty?.day === day && excused(duty)) {
