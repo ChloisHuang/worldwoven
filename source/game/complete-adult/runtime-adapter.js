@@ -11,6 +11,7 @@ import {applyFemaleSilhouette} from './female-silhouette.js';
 import {fitCompleteAdultClothing} from './fit-clothing.js';
 import {applyAnatomicalFinish} from './face-finish.js';
 import {applySurfaceFinish} from './surface-finish.js';
+import {applyNaturalMakeup} from './natural-makeup.js';
 import {morphCompleteAdultAsset,fitCompleteAdultAttachments} from './shape-traits.js';
 import {RETAINED_HAIR,createHeadAttachmentFit,fitCandidateHairAttachments,fitRetainedHeadMesh,fitRetainedFacialHair} from './attachment-fit.js';
 import {FREE_BRAID,planRetainedBraid,applyRetainedBraid} from './retained-hair-fit.js';
@@ -58,11 +59,11 @@ export function applyCompleteAdultPreview(root,options,selection){
   if(!retained){for(const mesh of[...head.children])if(mesh.isMesh&&RETAINED_HAIR.test(mesh.name)){mesh.removeFromParent();mesh.geometry.dispose();}const flowFinish=!!options.previewHairFlow,hair=support.form==='male'?addLayeredHair(head,C.hair,{flowFinish}):addFemaleHairOption(head,C.hair,options.previewHair,{flowFinish});hair.userData.softSkin=support.form==='female';hair.userData.completeAdultPart=options.previewHair==='long-layered'?'long-hair':'hair';if(options.previewHair)fitCandidateHairAttachments(attachmentFit,hair);}
  });
  if(selection===COMPLETE_ADULT_PAIR_PREVIEW)fitCompleteAdultClothing(root,options,neutral=>{applyNaturalClothing(root,neutral);applyFemaleSilhouette(root,neutral);});
- const result={applied:true,hairFlow:!!options.previewHairFlow,previewHair:options.previewHair??null,garmentRefinement:selection===COMPLETE_ADULT_PAIR_PREVIEW,version:COMPLETE_ADULT_VERSION,form:support.form,attachmentFit};
+ const result={applied:true,hairFlow:!!options.previewHairFlow,previewHair:options.previewHair??null,...(options.previewMakeup==='natural'?{makeup:'natural'}:{}),garmentRefinement:selection===COMPLETE_ADULT_PAIR_PREVIEW,version:COMPLETE_ADULT_VERSION,form:support.form,attachmentFit};
  root.userData.completeAdultRepresentation=result;return result;
 }
 /** Cache selection is never persisted as an appearance version. */
-export function completeAdultCacheTag(options,selection){return completeAdultSupport(options,selection).supported?COMPLETE_ADULT_VERSION+'|'+selection+'|'+(options.previewHair??'saved-hair')+'|flow:'+!!options.previewHairFlow:'legacy';}
+export function completeAdultCacheTag(options,selection){return completeAdultSupport(options,selection).supported?COMPLETE_ADULT_VERSION+'|'+selection+'|'+(options.previewHair??'saved-hair')+'|flow:'+!!options.previewHairFlow+(options.previewMakeup==='natural'?'|makeup:natural-v1':''):'legacy';}
 export function completeAdultWeights(mesh,sourceY,index){
  if(!mesh.userData.completeAdultPart)return null;
  if(mesh.userData.completeAdultPart==='long-hair'){
@@ -94,10 +95,10 @@ export function finishCompleteAdultChannels(geometry,channels){
  for(const [name,array]of Object.entries(channels))geometry.setAttribute(name,new THREE.Float32BufferAttribute(array,name==='featureCoord'?3:1));
 }
 export function readCompleteAdultColor(mesh,index,target){const a=mesh.geometry.attributes.color;return a?target.setRGB(a.getX(index),a.getY(index),a.getZ(index)):target.copy(mesh.material.color);}
-export function completeAdultMaterialKey(preview){return COMPLETE_ADULT_VERSION+'|flow:'+!!preview.hairFlow;}
+export function completeAdultMaterialKey(preview,section){return COMPLETE_ADULT_VERSION+'|flow:'+!!preview.hairFlow+(preview.makeup==='natural'&&section!=='cloth'?'|makeup:natural-v1':'');}
 export function prepareCompleteAdultSkinMaterial(material,preview={}){
  if(material.userData.completeAdultFinish)return material;
- applyAnatomicalFinish(material,{narrow:true,reflect:false});applySurfaceFinish(material,{hairFlow:!!preview.hairFlow});material.userData.completeAdultFinish=COMPLETE_ADULT_VERSION;return material;
+ applyAnatomicalFinish(material,{narrow:true,reflect:false});applySurfaceFinish(material,{hairFlow:!!preview.hairFlow});if(preview.makeup==='natural')applyNaturalMakeup(material);material.userData.completeAdultFinish=COMPLETE_ADULT_VERSION;return material;
 }
 
 export function prepareCompleteAdultClothMaterial(material,preview={}){
