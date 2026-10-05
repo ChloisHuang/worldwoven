@@ -25,7 +25,7 @@ export function createFormalLaborContract({careers,role,getJob,getPlayer,meetHos
   const hired=()=>!!careers?.isHired(role.id),state=()=>careers?.state();
   const pinned=job=>job?.formalRoleId===role.id;
   const duty=job=>{const d=state()?.lastDuty;return pinned(job)&&d?.roleId===role.id&&d.workReceiptId===job.receiptId?d:null;};
-  function result(r,text){if(!r?.ok)notify((r?.reasons||[r?.code]).map(c=>MESSAGES[c]||'这次办理未完成，请稍后重试').join('；'));else if(text)notify(text);return r;}
+  function result(r,text){if(!r?.ok)notify((r?.reasons||[r?.code]).map(c=>c==='care-required'?`照护需要${role.skillRequirements.care}级，可完成当地原客照护交付积累经验`:MESSAGES[c]||'这次办理未完成，请稍后重试').join('；'));else if(text)notify(text);return r;}
   function apply(){if(getJob())return result({ok:false,code:'wage-ready'}).ok;if(!meetHost())return false;
     const applied=result(careers.apply(role.id,{ageYears:getPlayer()?.ageYears}),`${role.employer}：申请已收下。请当面确认职责，再核验你的技能与空缺。`);
     openRegistration({country:role.country,roleId:role.id,scope:'role'});return !!applied.ok;}

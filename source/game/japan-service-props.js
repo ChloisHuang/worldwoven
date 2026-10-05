@@ -70,6 +70,7 @@ export function createJapanServiceProps(parent) {
  cylinder(pestle,.024,.017,.14,0x886343,[0,-.035,0]);part(pestle,new THREE.SphereGeometry(.027,8,6),0xa98255,[0,.035,0]);
  function itemPoint(item,v) {
   const lane=(v.number%2?-.22:.22);
+  if(item.location.id==='apothecaryWork')return [P.blendWork[0]-.28,P.blendWork[1],P.blendWork[2]];
   if(item.location.id==='apothecaryPickup')return [P.mixtureTray[0]+lane,P.mixtureTray[1],P.mixtureTray[2]];
   if(item.location.id==='kitchenPickup')return [P.mealTray[0]+lane,P.mealTray[1],P.mealTray[2]];
   if(item.location.id==='sushiPickup')return [P.sushiTray[0]+lane,P.sushiTray[1],P.sushiTray[2]];
@@ -84,7 +85,7 @@ export function createJapanServiceProps(parent) {
    const visits=new Map(state.visits.map(v=>[v.id,v])),seen=new Set();
    for(const m of staffMeals)visits.set(m.workerId,{id:m.workerId,number:0,blendId:JAPAN_BATH_BLENDS[0].id});
    const preparation=state.claims?.find(j=>j.kind==='prepare'),preparer=preparation&&actorById.get(preparation.workerId);
-   const working=!!(preparer?.serviceTask?.arrived&&preparer.serviceTask.action==='herb-mix'&&preparer.root.userData.poseQA.action==='herb-mix');mixing.visible=pestle.visible=working;
+   const working=!!(preparer&&preparer.root.userData.poseQA?.action==='herb-mix'&&(preparation.workerId==='player'||preparer.serviceTask?.arrived&&preparer.serviceTask.action==='herb-mix')); mixing.visible=pestle.visible=working;
    if(working){preparer.root.updateWorldMatrix(true,true);preparer.root.userData.hands[1].getWorldPosition(handB);pestle.position.copy(handB);pestle.position.x+=Math.sin(preparer.root.rotation.y)*.07;pestle.position.z+=Math.cos(preparer.root.rotation.y)*.07;pestle.rotation.y=preparer.root.rotation.y;}
    for(const item of [...state.items,...staffItems]) {
     const v=visits.get(item.visitId);if(!v||['cancelled','used'].includes(item.location.type))continue;

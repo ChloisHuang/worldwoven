@@ -9,6 +9,8 @@ import {JAPAN_RECEPTION_ROLE,validJapanReceptionReceipt,sameJapanReceptionReceip
 export {JAPAN_RECEPTION_ROLE} from './japan-reception-role.js';
 import {JAPAN_BATH_DELIVERY_ROLE,validJapanBathDeliveryReceipt,sameJapanBathDeliveryReceipt,japanBathDeliveryReviewScore} from './japan-bath-delivery-role.js';
 export {JAPAN_BATH_DELIVERY_ROLE} from './japan-bath-delivery-role.js';
+import {JAPAN_BATH_MIXING_ROLE,validJapanBathMixingReceipt,sameJapanBathMixingReceipt,japanBathMixingReviewScore} from './japan-bath-mixing-role.js';
+export {JAPAN_BATH_MIXING_ROLE} from './japan-bath-mixing-role.js';
 import {GAME_MINUTES_PER_SECOND} from './simulation-clock.js';
 import {emptyApplications, restoreApplications, careerInterview, careerInterviewRoll, applicationId} from './career-applications.js';
 import {STUDY_SOURCES, studyLesson, savedStudyLesson, defaultStudyLesson} from './study-lessons.js';
@@ -61,7 +63,7 @@ export const PALACE_GUARD_ROLE = Object.freeze({id:'cn-palace-guard',name:'锦�
   supervisorId:'cn-range-warden',incumbentId:'cn-archery',incumbentName:'沈砚',vacancyKind:'exclusive',workSource:'cn-guard-labor',wage:24,minimumAgeYears:18,
   skillRequirements:Object.freeze({martial:1,ritual:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:0,
   duties:'06:00–18:00主动接班；沿门廊、殿阶及东西巷逐点巡查驻察，回圃当面交班；持续轮巡按实际巡行与驻察工时计薪。武艺须在射圃完成受控习射，陆衡继续照看射场'});
-export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE,PHARMACY_ASSISTANT_ROLE,TEA_SERVER_ROLE,TEA_PASTRY_ROLE,PALACE_GUARD_ROLE,SALON_POET_ROLE,CLINIC_PHYSICIAN_ROLE,ROYAL_KITCHEN_ROLE,JAPAN_RECEPTION_ROLE,JAPAN_BATH_DELIVERY_ROLE]);
+export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE,PHARMACY_ASSISTANT_ROLE,TEA_SERVER_ROLE,TEA_PASTRY_ROLE,PALACE_GUARD_ROLE,SALON_POET_ROLE,CLINIC_PHYSICIAN_ROLE,ROYAL_KITCHEN_ROLE,JAPAN_RECEPTION_ROLE,JAPAN_BATH_DELIVERY_ROLE,JAPAN_BATH_MIXING_ROLE]);
 export const FORMAL_CAREER_SLOTS = Object.freeze([
   ...FORMAL_CAREER_ROLES.map(role => Object.freeze({id:role.slotId,roleId:role.id,holderId:role.incumbentId||null,...(role.vacancyKind==='rotation'?{rotation:true}:role.vacancyKind==='exclusive'?{replacement:true}:{})})),
 ]);
@@ -89,12 +91,12 @@ const empty = () => ({version: 8, workExperience:emptyWorkExperience(), revision
 
 const tavernRole = role => role?.workSource?.startsWith('cn-tavern-');
 const teaRole=role=>[TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id].includes(role?.id);
-const reviewRole=role=>tavernRole(role)||teaRole(role)||[ROYAL_KITCHEN_ROLE.id,JAPAN_RECEPTION_ROLE.id,JAPAN_BATH_DELIVERY_ROLE.id].includes(role?.id);
-const continuousRole=role=>tavernRole(role)||[PHARMACY_ASSISTANT_ROLE.id,CLINIC_PHYSICIAN_ROLE.id,ROYAL_KITCHEN_ROLE.id,PALACE_GUARD_ROLE.id,JAPAN_RECEPTION_ROLE.id,JAPAN_BATH_DELIVERY_ROLE.id].includes(role?.id)||teaRole(role);
+const reviewRole=role=>tavernRole(role)||teaRole(role)||[ROYAL_KITCHEN_ROLE.id,JAPAN_RECEPTION_ROLE.id,JAPAN_BATH_DELIVERY_ROLE.id,JAPAN_BATH_MIXING_ROLE.id].includes(role?.id);
+const continuousRole=role=>tavernRole(role)||[PHARMACY_ASSISTANT_ROLE.id,CLINIC_PHYSICIAN_ROLE.id,ROYAL_KITCHEN_ROLE.id,PALACE_GUARD_ROLE.id,JAPAN_RECEPTION_ROLE.id,JAPAN_BATH_DELIVERY_ROLE.id,JAPAN_BATH_MIXING_ROLE.id].includes(role?.id)||teaRole(role);
 const availableSlot = (slot,role) => slot.holderId === null || slot.replacement === true && role.vacancyKind === 'exclusive' && slot.holderId === role.incumbentId || slot.rotation === true && role.vacancyKind === 'rotation' && slot.holderId === role.incumbentId;
 // Tea, royal kitchen and bathhouse outcomes change the service record only. Tavern error/correction pairs
 // retain their existing net deduction; genuine good service never mints wages.
-const customerPenalty = duty => (duty?.customerReviews||[]).reduce((total,review)=>total-(['tea-completed','royal-kitchen-completed','japan-reception-completed','japan-bath-delivery-completed'].includes(review.reasonCode)?0:review.score),0);
+const customerPenalty = duty => (duty?.customerReviews||[]).reduce((total,review)=>total-(['tea-completed','royal-kitchen-completed','japan-reception-completed','japan-bath-delivery-completed','japan-bath-mixing-completed'].includes(review.reasonCode)?0:review.score),0);
 const coveredHours = duty => (duty.coveredSeconds||0)*GAME_MINUTES_PER_SECOND/60;
 const attendanceWage = (role,hours) => Math.floor(role.wage*Math.min(1,hours/(role.dutyWindow.endHour-role.dutyWindow.startHour))+1e-9)+(hours>=role.dutyWindow.endHour-role.dutyWindow.startHour-1e-9?(role.preparationBonus||0):0);
 // Versioned pay belongs to the admitted shift, never to today's rank.
@@ -104,7 +106,7 @@ const officialFields=row=>row?.officialPayVersion===1?{officialPayVersion:1,offi
 const validOfficialFields=(row,role)=>row.officialPayVersion===undefined?row.officialRankId===undefined&&row.officialTenureId===undefined:role.id===COURT_CLERK_ROLE.id&&row.officialPayVersion===1&&Object.hasOwn(CLERK_PAY_V1,row.officialRankId)&&typeof row.officialTenureId==='string';
 const dutyWage = (rawRole,duty) => {const role=salaryRole(rawRole,duty);return duty.shiftKind==='continuous'?Math.max(0,attendanceWage(role,coveredHours(duty))-customerPenalty(duty)):Math.max(1,completedWage(role,duty.arrivalHour)-customerPenalty(duty));};
 function validShift(duty,role){
- if(duty.shiftKind===undefined)return (!['cn-tavern-host','cn-tavern-chef','cn-pharmacy-apprentice',CLINIC_PHYSICIAN_ROLE.id,ROYAL_KITCHEN_ROLE.id,TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id,PALACE_GUARD_ROLE.id,JAPAN_RECEPTION_ROLE.id,JAPAN_BATH_DELIVERY_ROLE.id].includes(role.id)||duty.stage==='missed')&&!['startedSeconds','coveredSeconds','completedTasks','endedHour','endedSeconds'].some(key=>own(duty,key));
+ if(duty.shiftKind===undefined)return (!['cn-tavern-host','cn-tavern-chef','cn-pharmacy-apprentice',CLINIC_PHYSICIAN_ROLE.id,ROYAL_KITCHEN_ROLE.id,TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id,PALACE_GUARD_ROLE.id,JAPAN_RECEPTION_ROLE.id,JAPAN_BATH_DELIVERY_ROLE.id,JAPAN_BATH_MIXING_ROLE.id].includes(role.id)||duty.stage==='missed')&&!['startedSeconds','coveredSeconds','completedTasks','endedHour','endedSeconds'].some(key=>own(duty,key));
  if(duty.shiftKind!=='continuous'||!continuousRole(role)||!Number.isFinite(duty.startedSeconds)||duty.startedSeconds<0)return false;
  const done=['inspection','ready','paid'].includes(duty.stage),keys=['coveredSeconds','completedTasks','endedHour','endedSeconds'];
  if(!done)return keys.every(key=>duty[key]===null);
@@ -124,7 +126,7 @@ function validCustomerReviewId(review,receiptId){
 }
 function validCustomerReviews(duty,role){
   if(!reviewRole(role))return duty.customerReviews===undefined;
-  if(!Array.isArray(duty.customerReviews)||duty.customerReviews.length>(role.id===ROYAL_KITCHEN_ROLE.id?120:[JAPAN_RECEPTION_ROLE.id,JAPAN_BATH_DELIVERY_ROLE.id].includes(role.id)?128:64))return false;
+  if(!Array.isArray(duty.customerReviews)||duty.customerReviews.length>(role.id===ROYAL_KITCHEN_ROLE.id?120:[JAPAN_RECEPTION_ROLE.id,JAPAN_BATH_DELIVERY_ROLE.id,JAPAN_BATH_MIXING_ROLE.id].includes(role.id)?128:64))return false;
   const seen=new Map();
   for(const review of duty.customerReviews){
     if(!object(review)||!textField(review.id,200)||seen.has(review.id)||!identifier(review.customerId)||
@@ -142,6 +144,13 @@ function validCustomerReviews(duty,role){
       if(!validJapanBathDeliveryReceipt(receipt)||receipt.workReceiptId!==duty.workReceiptId||review.id!==receipt.id||
         review.customerId!==receipt.customerId||review.customerName!==receipt.customerName||review.tableId!=='jp-bath-delivery'||review.dishId!==receipt.kind||
         review.reasonCode!=='japan-bath-delivery-completed'||review.correctedReviewId!==null||review.score!==japanBathDeliveryReviewScore(receipt)||review.positive!==(review.score>0))return false;
+      seen.set(review.id,review);continue;
+    }
+    if(role.id===JAPAN_BATH_MIXING_ROLE.id){
+      const receipt=review.bathMixingReceipt;
+      if(!validJapanBathMixingReceipt(receipt)||receipt.workReceiptId!==duty.workReceiptId||review.id!==receipt.id||
+        review.customerId!==receipt.customerId||review.customerName!==receipt.customerName||review.tableId!=='jp-bath-mixing'||review.dishId!==receipt.kind||
+        review.reasonCode!=='japan-bath-mixing-completed'||review.correctedReviewId!==null||review.score!==japanBathMixingReviewScore(receipt)||review.positive!==(review.score>0))return false;
       seen.set(review.id,review);continue;
     }
     if(role.id===ROYAL_KITCHEN_ROLE.id){
@@ -736,6 +745,29 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const result=receipt.completed?grantSkill(next,'care',clock):persist(next);
     return result.ok?{...result,review:copy(review),servicePenalty:0,...(!receipt.completed?{xpGained:0}:{})}:result;
   }
+  // The board supplies this when the original completed bag returns to its
+  // delivery queue. Customer use is a later step and does not gate mixing XP.
+  // Commit the review and capped care XP together so retries teach only once.
+  function recordJapanBathMixingReview(receipt){
+    const blocked=allowed();if(blocked)return blocked;
+    if(!validJapanBathMixingReceipt(receipt))return failure('invalid-work-receipt');
+    const duty=current.lastDuty;
+    if(duty?.roleId!==JAPAN_BATH_MIXING_ROLE.id||duty.shiftKind!=='continuous'||duty.workReceiptId!==receipt.workReceiptId||
+      !['working','inspection','ready','paid','missed'].includes(duty.stage))return failure('wrong-duty-source');
+    const prior=duty.customerReviews.find(r=>r.id===receipt.id);
+    if(prior)return sameJapanBathMixingReceipt(prior.bathMixingReceipt,receipt)?{ok:true,unchanged:true,replayed:true,xpGained:0,review:copy(prior),servicePenalty:0}:failure('review-conflict');
+    const clock=now();if(!clock)return failure('invalid-clock');
+    const score=japanBathMixingReviewScore(receipt),task='同号浴包配制归队';
+    const review={id:receipt.id,customerId:receipt.customerId,customerName:receipt.customerName,tableId:'jp-bath-mixing',tableName:'四层原浴包配送队列',
+      dishId:receipt.kind,dishName:task,reasonCode:'japan-bath-mixing-completed',correctedReviewId:null,positive:score>0,score,
+      reason:receipt.outcome==='handoff'?`${task}未完成，原客单已交回Itsuki接续`:receipt.outcome==='late'?`${task}准确完成，等候较久；记入照护经验，不改变工时工资`:`${task}准确且及时完成`,bathMixingReceipt:copy(receipt)};
+    const nextDuty={...duty,customerReviews:[...duty.customerReviews,review]};
+    if(!validCustomerReviews(nextDuty,JAPAN_BATH_MIXING_ROLE))return failure('invalid-customer-review');
+    const next={...current,lastDuty:nextDuty,performance:Math.max(-100,Math.min(100,current.performance+score)),
+      promotionProgress:Math.max(0,Math.min(100,current.promotionProgress+Math.min(0,score)))};
+    const result=receipt.completed?grantSkill(next,'care',clock):persist(next);
+    return result.ok?{...result,review:copy(review),servicePenalty:0,...(!receipt.completed?{xpGained:0}:{})}:result;
+  }
   // The handbook, world intents and final mutation share one start decision.
   // Reads do not observe a day, save state, advance lastClock or change errors.
   function beginDutyAvailability(roleId=current.tenure?.roleId,{receiptId}={}){
@@ -766,7 +798,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const rollover = observeDay(); if (!rollover.ok) return rollover;
     const clock = now(); if (!clock) return failure('invalid-clock');
     const duty = current.lastDuty, role = roleMap.get(current.tenure.roleId);
-    shiftKind??=[TAVERN_HOST_ROLE.id,TAVERN_CHEF_ROLE.id,PHARMACY_ASSISTANT_ROLE.id,CLINIC_PHYSICIAN_ROLE.id,ROYAL_KITCHEN_ROLE.id,TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id,PALACE_GUARD_ROLE.id,JAPAN_RECEPTION_ROLE.id,JAPAN_BATH_DELIVERY_ROLE.id].includes(role.id)?'continuous':undefined;
+    shiftKind??=[TAVERN_HOST_ROLE.id,TAVERN_CHEF_ROLE.id,PHARMACY_ASSISTANT_ROLE.id,CLINIC_PHYSICIAN_ROLE.id,ROYAL_KITCHEN_ROLE.id,TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id,PALACE_GUARD_ROLE.id,JAPAN_RECEPTION_ROLE.id,JAPAN_BATH_DELIVERY_ROLE.id,JAPAN_BATH_MIXING_ROLE.id].includes(role.id)?'continuous':undefined;
     if(shiftKind!==undefined&&(shiftKind!=='continuous'||!continuousRole(role)))return failure('invalid-shift-kind');
     if (role.workSource && !validWorkReceipt(role.workSource,receiptId)) return failure('invalid-work-receipt');
     const availability=beginDutyAvailability(role.id,{receiptId});
@@ -902,5 +934,5 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&availableSlot(slot,role)&&slot.id!==current.tenure?.slotId).length})),
     eligibility, applicationAvailability, beginDutyAvailability, applicationResult, applicationHistory,
     promotionSummary, promotionAvailability, applyPromotion, reviewPromotion, cancelPromotion,
-    laborEvent, customerReview, apply, reviewApplication, cancelApplication, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, recordClinicAssistantService, recordTavernChefService, royalKitchenQualification, recordRoyalKitchenService, recordJapanReceptionReview, recordJapanBathDeliveryReview, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
+    laborEvent, customerReview, apply, reviewApplication, cancelApplication, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, recordClinicAssistantService, recordTavernChefService, royalKitchenQualification, recordRoyalKitchenService, recordJapanReceptionReview, recordJapanBathDeliveryReview, recordJapanBathMixingReview, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
 }
