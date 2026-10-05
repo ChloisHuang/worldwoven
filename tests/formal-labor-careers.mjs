@@ -55,7 +55,7 @@ function rejectApplication(f,role,reasons){
  assert.deepEqual(guardState(f),before,'rejection cannot mutate tenure, vacancy, work, money or temporary employment');
  assert.deepEqual(f.careers.applicationResult().reasons,reasons);assert.equal(f.careers.applicationResult().ok,false);
  assert.equal(f.registrations.length,registrations+1,'physical application reopens registration with its final result');
- assert.deepEqual(f.registrations.at(-1),{context:{country:role.country,roleId:role.id},result:f.careers.applicationResult()});
+ assert.deepEqual(f.registrations.at(-1),{context:{country:role.country,roleId:role.id,scope:'role'},result:f.careers.applicationResult()});
  assert(!f.notices.slice(notices).some(text=>text.includes('已录用')),'rejected application never announces a hire');
 }
 for(const role of [TAVERN,GARDEN])await test(`${role.id}: actual application rejects underage/missing skill/reload without false employment; exact threshold hires`,t=>{

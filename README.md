@@ -11,7 +11,7 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.67-public, 2026-10-05
+Published release: R16.68-public, 2026-10-05
 Verified published Sites source commit: 00ab703d79526bcafe0f8910c48c12ef49ad0f7c
 
 ## Working rules
@@ -128,3 +128,5 @@ R16.65 puts the passport directly in the upper-right HUD with opening, page-turn
 R16.66 separates recruitment from the employed handbook. Unemployed HUD navigation goes to a physical local registry; employed pages describe only the actual current job. Registry cards compare each current skill and age with the requirements and show the real application result. Temporary-worker roster membership is explicitly distinct from formal tenure. Actual adapters did not reproduce ineligible tenure writes; the reproduced defect was misleading shared labels and showing employed sections without a formal post. Existing core guards are now also the read-only UI eligibility source. Targeted DOM, adapter, storage and bank checks passed; actual browser/iOS appearance remains unverified. Passport and wallet physical-design field feedback remains open.
 
 R16.67 fixes continuous wallet extraction/insertion and decoded ticket artwork, uses an unframed career icon with one current-job page and local-only vacancies, and continues accepted tavern work to its first actual table. The tavern hiring sign is now a small desk placard and duplicate helper controls are removed. Wallet review uses actual product coordinates and WebP artwork; the natural tavern chain is simulated DOM plus Three/Mesa. The published passport is unchanged in this release: its separately developed book design, country-page structure and real-player portrait are still pending. Real iOS visual/animation and intermittent blank strip remain open.
+
+R16.68 uses the passport book itself for cover, turning sheets and one visa page per country, with a cached photograph rendered from the actual current player. The career panel keeps one current action above compact shift, progress, evaluation, bank salary and progression data. Role-specific registration context, manual nearby access, shared 06:00–18:00 start gating and the unobstructed tavern desk placard are fixed. Integration checks reuse the affected module results; product SVG/DOM layouts and Three/Mesa views are not real iOS validation. The intermittent phone blank strip remains open.

@@ -20,27 +20,27 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
     if(!careers.isHired())return 'view';
     const d=duty();if(d?.stage==='ready')return 'settle';
     if(relevantDuty()?.stage==='archive')return 'archive';
-    if(!activity&&getClock().hour>=6&&getClock().hour<11.5&&(!relevantDuty()||!['paid','ready','archive'].includes(d.stage)&&!d.started&&d.reason!=='court-postponed'))return 'attend';
+    if(!activity&&careers.beginDutyAvailability(COURT_CLERK_ROLE.id).ok)return 'attend';
     return 'view';
   }
   function intent(kind=nextKind()) {
     if(disposed||!['view','apply','resign','attend','archive','settle'].includes(kind))return null;
     const s=careers.state(),d=relevantDuty(),hired=careers.isHired();
     if(kind==='apply'&&hired||kind==='resign'&&!hired||!['view','apply'].includes(kind)&&!hired)return null;
-    if(kind==='attend'&&(activity||getClock().hour<6||getClock().hour>=11.5||d&&(['archive','ready','paid'].includes(d.stage)||d.started||d.reason==='court-postponed')))return null;
+    if(kind==='attend'&&(activity||!careers.beginDutyAvailability(COURT_CLERK_ROLE.id).ok))return null;
     if(kind==='archive'&&(activity||d?.stage!=='archive')||kind==='settle'&&s.lastDuty?.stage!=='ready')return null;
     const position=kind==='attend'?P.court:kind==='archive'||kind==='settle'?P.archive:P.registration;
-    return {id:'cn-court-career-'+kind,provider:'china-court-career',kind,position:[...position],
+    return {id:'cn-court-career-'+kind,provider:'china-court-career',kind,position:[...position],...(kind==='view'?{registration:{scope:'role',roleId:COURT_CLERK_ROLE.id}}:{}),
       name:kind==='attend'?'承光正殿 · 第七录事班位':kind==='archive'||kind==='settle'?'承务官署 · 礼务归档案':'承务官署 · 铨录登记',
       npcName:kind==='attend'?'礼务录事':'铨录簿',
       action:{view:'查看正式职位',apply:'申请九品礼务录事',resign:'办理录事离职',attend:'11:30前赴班 · 持笏候朝',archive:'抄录朝会归档 · 8秒',settle:'核对本日工资银行入账'}[kind],
       intentKey:[s.revision,getClock().day,kind].join(':'),interactionRadius:2.8,executionRadius:.18,priority:55};
   }
-  const resolveIntent = selected => {const next=intent(selected?.kind);return selected?.provider===next?.provider&&selected?.id===next?.id&&selected?.intentKey===next?.intentKey?next:null;};
+  const resolveIntent = selected => {const next=intent(selected?.kind);if(!next||selected?.provider!==next.provider||selected.id!==next.id||selected.intentKey!==next.intentKey)return null;if(next.kind==='view'){const context=selected.registration||next.registration;if(context.roleId!==COURT_CLERK_ROLE.id||!['role','catalogue'].includes(context.scope))return null;return {...next,registration:{...context}};}return next;};
   function executeIntent(selected) {
     const next=resolveIntent(selected);if(!next||getBusy()||!at(next.position))return false;
-    if(next.kind==='view'){openRegistration();return true;}
-    if(next.kind==='apply'){const ok=result(careers.apply(COURT_CLERK_ROLE.id,{ageYears:getPlayer().ageYears}),'已录用：九品礼务录事，独立空缺已由你任职。请查看职业手册与11:30朝班。');openRegistration();return ok;}
+    if(next.kind==='view'){openRegistration({...next.registration,country:'china'});return true;}
+    if(next.kind==='apply'){const ok=result(careers.apply(COURT_CLERK_ROLE.id,{ageYears:getPlayer().ageYears}),'已录用：九品礼务录事，独立空缺已由你任职。请查看职业手册与11:30朝班。');openRegistration({country:'china',roleId:COURT_CLERK_ROLE.id,scope:'role'});return ok;}
     if(next.kind==='resign'){const ok=result(careers.resign(),'离职已登记，录事空缺重新开放；已得技能和评价保留。');if(ok)stopActivity();return ok;}
     if(next.kind==='settle')return result(careers.settle(),'本日工资已核对存入钱庄，同一日不会重复发放。');
     if(next.kind==='attend'){
