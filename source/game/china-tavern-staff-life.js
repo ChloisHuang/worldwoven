@@ -24,7 +24,7 @@ export function createTavernStaffLife({actors,furniture,getPlayer,getMounted,get
   return [
    {id:'rest',label:onDuty?'短暂坐歇':'坐下休息',action:'relax',targets:seatTargets,base:.7,needs:{fatigue:2},traits:{quiet:.5},relief:{fatigue:-.22},duration:onDuty?[5,8]:[9,16],cooldown:12},
    {id:'meal',label:'吃自备点心',action:'meal',targets:seatTargets,available:!onDuty&&(snacks.get(n.station.id)||0)>0,base:.4,needs:{hunger:2},traits:{appetite:.8},relief:{hunger:-.35},duration:[8,12],cooldown:90},
-   {id:'garden',label:onDuty?'在厅中活动片刻':'到院里散步',action:'relax',targets:(onDuty?WALKS.slice(2):WALKS).map((p,i)=>({id:'walk-'+i,choice:{target:p.slice()}})),base:.6,traits:{outdoors:1,curiosity:.4},relief:{fatigue:-.06},duration:[5,9],cooldown:8},
+   {id:'garden',label:onDuty?'在厅中活动片刻':'到院里散步',action:'relax',targets:(onDuty?WALKS.slice(2):WALKS).map((p,i)=>({p,i})).filter(({p})=>!near(n,p,.8)&&!actors.some(other=>other!==n&&near(other,p,.65))&&![...rows].some(([other,s])=>other!==n&&Math.hypot(s.target[0]-p[0],s.target[2]-p[2])<.65)).map(({p,i})=>({id:'walk-'+i,choice:{target:p.slice(),label:p[2]>21?'到院里散步':'在厅里走动'}})),base:.6,traits:{outdoors:1,curiosity:.4},relief:{fatigue:-.06},duration:[5,9],cooldown:8},
    {id:'social',label:'与熟人闲聊',action:'relax',targets:people.map(a=>({id:a.station.id,relationship:{target:a.station.id,gain:.025},choice:{target:n.root.position.toArray(),partnerId:a.station.id}})),base:.3,needs:{social:1.5},traits:{sociability:.8},relief:{social:-.2},duration:[4,7],cooldown:15},
    {id:'pause',label:onDuty?'候客，舒展肩背':'伸展片刻',action:'relax',target:n.root.position.toArray(),base:.15,relief:{fatigue:-.03},duration:[3,5],cooldown:18},
   ];

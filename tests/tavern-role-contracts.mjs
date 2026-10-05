@@ -1,4 +1,4 @@
-// Protect real skill gating, occupied-incumbent rotation slots, v3 migration,
+// Protect real skill gating, exclusive replacement slots, v3 migration,
 // durable customer correction and salary dedupe across split-save/reload.
 import assert from 'node:assert/strict';
 import {createFormalCareers,TAVERN_HOST_ROLE as HOST,TAVERN_CHEF_ROLE as CHEF,TAVERN_STEWARD_ROLE as ASSISTANT,FORMAL_CAREER_SLOTS} from '../source/game/formal-careers.js';
@@ -15,13 +15,13 @@ function fixture(saved,bank={amount:0,receipts:new Map()},options={}){
 for(const role of [CHEF]){
  const f=fixture();assert(!f.careers.apply(role.id,{ageYears:18}).ok);assert.equal(f.careers.state().tenure,null);
  f.train(role);f.clock.day=2;assert(f.careers.eligibility(role.id,{ageYears:18}).ok);
- const slot=FORMAL_CAREER_SLOTS.find(s=>s.id===role.slotId);assert.equal(slot.holderId,role.incumbentId);assert.equal(slot.rotation,true);
+ const slot=FORMAL_CAREER_SLOTS.find(s=>s.id===role.slotId);assert.equal(slot.holderId,role.incumbentId);assert.equal(slot.replacement,true);
  assert(f.careers.apply(role.id,{ageYears:18}).ok);assert.equal(f.careers.state().lastDuty,null,'Application never creates or moves physical work');
- assert.equal(f.careers.catalogue().find(r=>r.id===role.id).vacancy,0);assert.equal(slot.holderId,role.incumbentId,'NPC incumbent remains real');
+ assert.equal(f.careers.catalogue().find(r=>r.id===role.id).vacancy,0);assert.equal(f.careers.slotHolder(role.id),'player','formal tenure exclusively owns the slot');
  const before=f.saved();f.clock.hour=18;assert.equal(f.careers.beginDutyAvailability(role.id).code,'outside-arrival-window');assert.deepEqual(f.saved(),before);
  f.clock.hour=17+59/60;assert(f.careers.beginDuty({receiptId:`${role.workSource}-1`}).ok);
  const recovered=fixture(f.saved(),f.bank);assert.equal(recovered.careers.state().loadError,null);assert.equal(recovered.careers.state().lastDuty.workReceiptId,`${role.workSource}-1`);
- const occupied=fixture(undefined,undefined,{roles:[role],slots:[{...slot,rotation:undefined}]});occupied.train(role);assert.deepEqual(occupied.careers.apply(role.id,{ageYears:18}).reasons,['no-vacancy']);
+ const occupied=fixture(undefined,undefined,{roles:[role],slots:[{...slot,replacement:undefined}]});occupied.train(role);assert.deepEqual(occupied.careers.apply(role.id,{ageYears:18}).reasons,['no-vacancy']);
 }
 const noArt=fixture();noArt.study('art');noArt.study('art');noArt.study('ritual');assert(noArt.careers.eligibility(CHEF.id,{ageYears:18}).reasons.includes('cooking-required'));
 noArt.study('cooking');const incomplete=noArt.careers.learningTicket('cn-rest','cooking-intro');noArt.careers.cancelLearning(incomplete.ticket);assert.equal(noArt.careers.completeLearning(incomplete.ticket,{seconds:8}).code,'learning-interrupted');assert.equal(noArt.careers.state().skills.cooking,1);
@@ -43,7 +43,7 @@ for(const key of ['tenure','lastPaidDay','learning','lowerWork','performance','p
 assert.deepEqual(migrated.careers.state().lastDuty,{...v3.lastDuty,customerReviews:[]});assert.equal(migrated.careers.settle().code,'work-incomplete');
 for(const corrupt of [s=>s.skills.ritual=101,s=>{s.lastDuty.wage=16;s.lastEvaluation.wage=16;},s=>s.skills.cooking=8,s=>s.lastEvaluation.servicePenalty=1]){const bad=copy(v3);corrupt(bad);assert.equal(fixture(bad).careers.state().loadError,'invalid-career-state');}
 const cancelled=fixture();cancelled.train(ASSISTANT);cancelled.careers.apply(ASSISTANT.id,{ageYears:18});cancelled.careers.beginDuty({receiptId});cancelled.careers.customerReview(bad);assert(cancelled.careers.interruptDuty('cancelled').ok);assert.equal(cancelled.careers.beginDuty({receiptId:'cn-tavern-labor-2'}).code,'duty-missed');assert.equal(fixture(cancelled.saved()).careers.state().performance,-3);assert.equal(cancelled.bank.amount,0);
-console.log('PASS tavern roles: exact cooking requirements, explicit start/18:00, incumbent rotation, v3 paid migration, durable bad/corrected reviews, no correction farm, cancel/reload and one bank wage');
+console.log('PASS tavern roles: exact cooking requirements, explicit start/18:00, exclusive incumbent replacement, v3 paid migration, durable bad/corrected reviews, no correction farm, cancel/reload and one bank wage');
 // Continuous careers cover the real 06–18 window. A couple of orders cannot
 // mint a full day's salary; quiet waiting remains paid and premature/replayed receipts retain legacy safety.
 const secondsFor=hours=>hours*60/.7;
@@ -69,7 +69,7 @@ const quiet=continuous({tasks:0});assert(quiet.careers.laborEvent('completed',qu
 
 // The published steward seat keeps its identity while the real assistant takes
 // the other side of handover. Correction describes the actual corrected target.
-const assistantSlot=FORMAL_CAREER_SLOTS.find(slot=>slot.id===ASSISTANT.slotId);assert.equal(assistantSlot.holderId,'cn-tavern-assistant');assert.equal(assistantSlot.rotation,true);
+const assistantSlot=FORMAL_CAREER_SLOTS.find(slot=>slot.id===ASSISTANT.slotId);assert.equal(assistantSlot.holderId,'cn-tavern-assistant');assert.equal(assistantSlot.replacement,true);
 const correctedTarget=continuous({role:ASSISTANT});const wrongTarget={...bad,tableId:'wrong-table-2',tableName:'误放的二桌'};assert(correctedTarget.careers.customerReview(wrongTarget).ok);
 assert(correctedTarget.careers.customerReview({...fixed,tableId:'china-tavern-table-1',tableName:'实际应送的一桌'}).ok);assert.equal(correctedTarget.careers.state().lastDuty.customerReviews[0].tableName,'误放的二桌');assert.equal(fixture(correctedTarget.saved()).careers.state().loadError,null);
 
