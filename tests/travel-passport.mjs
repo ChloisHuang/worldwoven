@@ -2,7 +2,7 @@
 // modal flows. These are pure DOM/state checks, not CSS or browser visual QA.
 import assert from 'node:assert/strict';
 import {createTravelPassport,travelPassportView,PASSPORT_REGIONS,travelStampSVG,passportHelpBlocks} from '../source/game/travel-passport.js';
-import {buildPassportSpreads,renderPassportBook,passportMetrics} from '../source/game/travel-passport-art.js';
+import {buildPassportSpreads,renderPassportBook,passportMetrics,renderPassportMotion,passportMotionGeometry} from '../source/game/travel-passport-art.js';
 const freeze=o=>{Object.freeze(o);for(const v of Object.values(o))if(v&&typeof v==='object'&&!Object.isFrozen(v))freeze(v);return o;};
 {
   const saved=freeze({visited:['china','china','unknown','japan'],stamps:{china:['cn-tea','cn-tea','old-activity','constructor'],japan:['jp-flowers'],france:['france-cafe']},nickname:'  小云  '});
@@ -95,6 +95,28 @@ function go(doc,index){let guard=50;while(page(doc)!=='pages-'+index&&guard--){c
   }
   const f=fixture(saved);f.passport.open();unfold(f.doc);go(f.doc,2);assert.match(art(f.doc),/埃及/);hot(f.doc,'next').click();assert.equal(page(f.doc),'pages-3');assert.equal((art(f.doc).match(/往日活动纪念/g)||[]).length,16);
   f.passport.close();assert.equal(f.doc.activeElement,f.doc.body);f.passport.dispose();
+}
+// The reported early target-page leak and detached cover dimensions both
+// came from separate CSS layers. Geometry endpoints and each rigid hinge now
+// belong to the same product renderer as static paper and printed contents.
+{
+  const view=travelPassportView(),spreads=buildPassportSpreads(view);
+  for(const compact of [false,true]){
+    const scene=spread=>renderPassportBook({view,spread,compact}),closed=scene(null),a=scene(spreads[0]),b=scene(spreads[1]);
+    for(const [from,to,kind,direction] of [[closed,a,'unfolding','forward'],[a,closed,'folding','forward'],[a,b,'turning','forward'],[b,a,'turning','back']]){
+      assert.equal(renderPassportMotion({from,to,kind,direction,progress:0}),from.svg);
+      assert.equal(renderPassportMotion({from,to,kind,direction,progress:1}),to.svg);
+      for(const progress of [.25,.5,.75]){
+        const g=passportMotionGeometry({...to,kind,direction,progress}),[x,y,,,tx,ty]=g.matrix;
+        assert(Math.abs(x*to.width/2+tx-g.hinge)<1e-7,'the full printed plane is hinged at the spine');
+        assert(Math.abs(y*to.width/2+ty)<1e-7,'the spine does not slide vertically');
+        if(progress!==.5)assert.equal(g.face,kind==='folding'?(progress>.5?'front':'back'):(progress<.5?'front':'back'));
+        assert(g.edgeLift+(g.cover?17:28)>=0,'physical edge stays inside the exact product SVG viewBox');
+        const frame=renderPassportMotion({from,to,kind,direction,progress});
+        assert.match(frame,/data-moving-edge=/);assert.doesNotMatch(frame,/foreignObject|rotateY|display:none/);
+      }
+    }
+  }
 }
 // Notes retain source URLs across bounded sheets, including small-phone wraps.
 {

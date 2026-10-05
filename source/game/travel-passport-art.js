@@ -192,13 +192,13 @@ export function passportMotionGeometry({width,height,kind='turning',direction='f
   const p=Math.max(0,Math.min(1,progress)),opening=kind==='unfolding',cover=kind!=='turning';
   const phase=cover?(opening?p:1-p):p,angle=Math.PI*phase;
   const cosine=Math.abs(Math.cos(angle))<1e-9?0:Math.cos(angle),sine=Math.sin(angle),half=width/2;
-  const hinge=cover?half-(half-14)/2*(1-phase):half,lift=cover?30:43;
+  const hinge=cover?half-(half-14)/2*(1-phase):half,span=half-(cover?14:27),lift=cover?12:20;
   const face=cosine>=0?'front':'back';
   const side=cover?(face==='front'?'right':'left'):(direction==='forward'?(face==='front'?'right':'left'):(face==='front'?'left':'right'));
   const sign=side==='right'?1:-1,rotationSign=cover||direction==='forward'?1:-1;
-  const a=rotationSign*cosine*sign,b=-sine*lift/(half-14)*sign;
+  const a=rotationSign*cosine*sign,b=-sine*lift/span*sign;
   return {progress:p,phase,face,side,hinge,cosine,sine,cover,
-    matrix:[a,b,0,1,hinge-a*half,-b*half],edgeX:hinge+rotationSign*cosine*(half-14),edgeLift:-sine*lift,
+    matrix:[a,b,0,1,hinge-a*half,-b*half],edgeX:hinge+rotationSign*cosine*span,edgeLift:-sine*lift,
     width,height};
 }
 export function renderPassportMotion({from,to,kind='turning',direction='forward',progress=0}){
@@ -231,7 +231,7 @@ export function renderPassportMotion({from,to,kind='turning',direction='forward'
     if(shade)art+=`<g transform="matrix(${matrix})"><rect x="${x}" y="31" width="${pw}" height="${h-69}" fill="#66573b" opacity="${shade.toFixed(4)}"/></g>`;
   }
   // A board has a visible material edge at 90 degrees. Paper has a fine edge.
-  const top=g.cover?17:30,bottom=g.cover?h-23:h-31,edge=g.cover?3.6:1.1;
+  const top=g.cover?17:28,bottom=g.cover?h-23:h-37,edge=g.cover?3.6:1.1;
   art+=`<path data-moving-edge="${g.cover?'board':'paper'}" d="M${g.edgeX} ${top+g.edgeLift}V${bottom+g.edgeLift}" fill="none" stroke="${g.cover?'#193e34':'#c9b996'}" stroke-width="${edge}" stroke-linecap="round"/>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="${g.cover?'开合中的旅行护照':'翻页中的旅行护照'}" data-motion="${kind}" data-progress="${p}">${to.defs}<defs>${clipDefs}</defs>${art}</svg>`;
 }

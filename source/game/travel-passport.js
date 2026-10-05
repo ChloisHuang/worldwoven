@@ -109,7 +109,7 @@ export function createTravelPassport({mount,trigger:externalTrigger,helpContent,
       const el=hot.action==='link'?make('a','ww-passport-hotspot'):button(hot.label,'ww-passport-hotspot');
       el.dataset.action=hot.action;if(hot.value)el.dataset.value=hot.value;
       el.setAttribute('aria-label',hot.label);if(hot.current)el.setAttribute('aria-current','page');
-      if(hot.action==='link'){el.href=hot.href;el.target='_blank';el.rel='noopener';el.append(make('span','ww-passport-sr',hot.label));}
+      if(hot.action==='link'){el.href=hot.href;el.target='_blank';el.rel='noopener';el.onclick=e=>{if(motionState)e.preventDefault();};el.append(make('span','ww-passport-sr',hot.label));}
       else el.onclick=()=>act(hot.action,hot.value);
       el.style.left=(hot.x/scene.width*100)+'%';el.style.top=(hot.y/scene.height*100)+'%';el.style.width=(hot.w/scene.width*100)+'%';el.style.height=(hot.h/scene.height*100)+'%';
       ui.controls.append(el);ui.buttons.push(el);
