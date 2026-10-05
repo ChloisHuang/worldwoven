@@ -1,9 +1,9 @@
 import {createCurrencyLedger, GAME_CURRENCIES} from './currency-ledger.js';
 import {CHINA_MONEY_HOUSE as C} from './china-money-house.js';
-import {MONEY_HOUSE_STYLE} from './china-money-house-theme.js';
+import {MONEY_HOUSE_STYLE, MONEY_HOUSE_COPPER_ART} from './china-money-house-theme.js';
 
 const TICKET_ART={
- copper:new URL('./assets/currency/china.webp',import.meta.url).href,
+ copper:MONEY_HOUSE_COPPER_ART,
  japan:new URL('./assets/currency/japan.webp',import.meta.url).href,
  egypt:new URL('./assets/currency/egypt.webp',import.meta.url).href,
  france:new URL('./assets/currency/france.webp',import.meta.url).href,
@@ -100,13 +100,13 @@ export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,sav
   if(typeof ledger.quoteExchange==='function'){
    const area=make('section',undefined,'cn-money-exchange');area.append(make('h3','现金兑换'));
    area.append(selector('换成币种',exchangeTo,value=>{exchangeTo=value;},currency));
-   const {label,input}=amountField(`交出数目（${unit}）`,'交出兑换数目',exchangeAmount,'兑换');const art=make('div',undefined,'cn-money-fx-art');art.setAttribute('aria-hidden','true');const fromArt=make('img'),toArt=make('img');fromArt.src=TICKET_ART[currency];toArt.src=TICKET_ART[exchangeTo];fromArt.alt=toArt.alt='';fromArt.draggable=toArt.draggable=false;art.append(fromArt,make('span','→'),toArt);area.append(art);
+   const {label,input}=amountField(`交出数目（${unit}）`,'交出兑换数目',exchangeAmount,'兑换');const art=make('div',undefined,'cn-money-fx-art');art.setAttribute('aria-hidden','true');const fromArt=make('img'),toArt=make('img');fromArt.src=TICKET_ART[currency];toArt.src=TICKET_ART[exchangeTo];fromArt.alt=toArt.alt='';fromArt.draggable=toArt.draggable=false;art.append(fromArt,make('span','→'),toArt);const fxPreview=make('div',undefined,'cn-money-fx-preview');fxPreview.append(art);area.append(fxPreview);
    const quoteText=make('div',undefined,'cn-money-quote'),quoteAmount=make('strong'),rateText=make('p',undefined,'cn-money-rate'),error=make('p',undefined,'cn-money-error'),button=make('button','确认兑换','ww-airy-action');button.type='button';button.dataset.moneyAction='exchange';error.setAttribute('role','status');quoteText.append(quoteAmount,rateText,error);
    let lockedQuote=null,submitted=false;
    const requestId=`money-house-${state.nextTransaction}-exchange-${++requestSerial}`;
    const quote=()=>{input.updateSteps();exchangeAmount=input.value;const result=ledger.quoteExchange({from:currency,to:exchangeTo,amount:Number(input.value)});lockedQuote=result.ok?result.quote:null;
     const from=GAME_CURRENCIES[currency],to=GAME_CURRENCIES[exchangeTo];
-    quoteAmount.replaceChildren();if(result.ok)quoteAmount.append(make('span',`${lockedQuote.amount} ${from.unit}`,'is-from'),make('span','→','is-arrow'),make('span',`${lockedQuote.received} ${to.unit}`,'is-to'));else quoteAmount.textContent='请核对兑换数目';
+    quoteAmount.className=result.ok?'':'is-invalid';quoteAmount.replaceChildren();if(result.ok)quoteAmount.append(make('span',`${lockedQuote.amount} ${from.unit}`,'is-from'),make('span','→','is-arrow'),make('span',`${lockedQuote.received} ${to.unit}`,'is-to'));else quoteAmount.textContent='请核对兑换数目';
     quoteAmount.setAttribute('aria-label',result.ok?`本次交出 ${currencyText(currency,lockedQuote.amount)}，收到 ${currencyText(exchangeTo,lockedQuote.received)}`:'请核对兑换数目');
     rateText.textContent=`汇率 ${to.value} ${from.unit} = ${from.value} ${to.unit} · 免手续费 · 向下取整`;
     rateText.setAttribute('aria-label',`固定游戏汇率：${to.value} ${from.unit}${from.label} = ${from.value} ${to.unit}${to.label}；无手续费；不足一整单位的部分向下取整`);
@@ -117,7 +117,7 @@ export function createChinaMoneyHouseService({npcs,lot,getPlayer,poseContext,sav
    button.onclick=()=>{if(submitted||button.disabled||!available(version)||!lockedQuote||Number(input.value)!==lockedQuote.amount)return;submitted=true;button.disabled=true;
     const result=ledger.exchange({quote:lockedQuote,requestId});
     message=result.ok?`兑换已记清：交出 ${currencyText(currency,lockedQuote.amount)}，收到 ${currencyText(exchangeTo,lockedQuote.received)}`:(ERRORS[result.code]||'兑换尚未保存，请稍后再试');render();
-   };area.append(quoteText,label,button);sheet.append(area);
+   };fxPreview.append(quoteText);area.append(label,button);sheet.append(area);
   }
   const status=make('p',message,'cn-money-status');status.setAttribute('role','status');main.append(status);
   const more=make('details',undefined,'cn-money-more');more.append(make('summary','往来账与办理说明'));
