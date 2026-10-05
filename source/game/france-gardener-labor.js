@@ -100,7 +100,7 @@ export function createFranceGardenerLabor({gardener,employment,careers,openRegis
   if(['take','water'].includes(kind)&&!formal.canWork(j))return null;
   const point=kind==='water'?target():['take','return'].includes(kind)?RACK:REGISTRY;
   return {...copy(point),id:`fr-garden-labor-${kind}`,provider:'france-gardener-labor',kind,npcName:'埃米尔',
-   action:{'formal-view':'查看全部正式职位','formal-apply':'申请常任园艺助理','formal-resign':'办理常任园艺离职',view:'查看临工与长期职位',apply:'申请园艺帮工',resign:'办理园艺离职',accept:formal.hired()?'开始今日园艺班次':'接下浇花活',claim:formal.pinned(j)?'提交当班验收 · 工资存法国券账户':'验收后工资存银行 · 6 铜文',take:'领取浇水壶',water:'亲手浇花 · 5 秒',return:'归还浇水壶'}[kind],
+   action:{'formal-view':'查看正式职位与申请条件','formal-apply':'申请常任园艺助理','formal-resign':'办理常任园艺离职',view:'查看临工与长期职位',apply:'申请园艺帮工',resign:'办理园艺离职',accept:formal.hired()?'开始今日园艺班次':'接下浇花活',claim:formal.pinned(j)?'提交当班验收 · 工资存法国券账户':'验收后工资存银行 · 6 铜文',take:'领取浇水壶',water:'亲手浇花 · 5 秒',return:'归还浇水壶'}[kind],
    intentKey:[registration?.revision||0,formal.state()?.revision||0,j?.id||'-',j?.stage||'-',j?.completedBeds||0,j?.cancelled||false,held(),kind].join(':'),
    interactionRadius:2.4,executionRadius:.16,priority:kind==='view'?1:45};
  }
@@ -186,25 +186,34 @@ function createUI({doc,service,getPlayer,canSee,onIntent,onOpen}){
  const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;};
  const badge=make('button','园艺帮工 · 登记','fr-labor-badge'),dialog=make('dialog',null,'fr-labor-dialog'),style=make('style');
  badge.type='button';badge.setAttribute('aria-label','西苑园艺帮工');dialog.setAttribute('aria-label','园艺帮工与工钱');
- style.textContent='.fr-labor-badge{position:fixed;left:max(18px,env(safe-area-inset-left));top:262px;z-index:18;max-width:calc(100vw - 180px);min-height:44px;padding:10px 14px;border:1px solid #8ca789;border-radius:12px;background:#466556;color:#fff6de;font-size:12px}.fr-labor-dialog{position:fixed;inset:0;margin:auto;width:min(380px,calc(100vw - 28px));max-height:calc(100dvh - 32px);overflow:auto;padding:22px;border:1px solid #93a890;border-radius:16px;background:#f1eedf;color:#384d40}.fr-labor-dialog::backdrop{background:#26392a66}.fr-labor-dialog h2{margin:0 28px 12px 0;font-size:22px}.fr-labor-dialog p{font-size:13px;line-height:1.6}.fr-labor-dialog button{min-height:44px;padding:10px 13px;border-radius:8px;background:#d6dfcd;color:#384d40}.fr-labor-dialog button:disabled{opacity:.5}.fr-labor-dialog button:focus-visible,.fr-labor-badge:focus-visible{outline:3px solid #647e70;outline-offset:2px}.fr-labor-actions{display:flex;flex-wrap:wrap;gap:9px}.fr-labor-close{position:absolute;right:7px;top:7px;font-size:24px}@media(max-height:550px){.fr-labor-badge{top:215px;font-size:10px;padding:8px 10px}.fr-labor-dialog{padding:16px}}';
+ style.textContent='.fr-labor-badge{position:fixed;left:max(18px,env(safe-area-inset-left));top:262px;z-index:18;max-width:calc(100vw - 180px);min-height:44px;padding:10px 14px;border:1px solid #8ca789;border-radius:12px;background:#466556;color:#fff6de;font-size:12px}.fr-labor-dialog{position:fixed;inset:0;margin:auto;width:min(380px,calc(100vw - 28px));max-height:calc(100dvh - 32px);overflow:auto;padding:22px;border:1px solid #93a890;border-radius:16px;background:#f1eedf;color:#384d40}.fr-labor-dialog::backdrop{background:#26392a66}.fr-labor-dialog h2{margin:0 28px 12px 0;font-size:22px}.fr-labor-dialog h3{margin:0 0 10px;font-size:16px}.fr-labor-role{padding:14px;margin:0 0 18px;border:1px solid #93a890;border-radius:12px;background:#f9f8ef}.fr-labor-dialog p{font-size:13px;line-height:1.6}.fr-labor-dialog button{min-height:44px;padding:10px 13px;border-radius:8px;background:#d6dfcd;color:#384d40}.fr-labor-dialog button:disabled{opacity:.5}.fr-labor-dialog button:focus-visible,.fr-labor-badge:focus-visible{outline:3px solid #647e70;outline-offset:2px}.fr-labor-actions{display:flex;flex-wrap:wrap;gap:9px}.fr-labor-close{position:absolute;right:7px;top:7px;font-size:24px}@media(max-height:550px){.fr-labor-badge{top:215px;font-size:10px;padding:8px 10px}.fr-labor-dialog{padding:16px}}';
  (doc.head||doc.body).append(style);doc.body.append(badge,dialog);let signature='';
  const nearby=()=>[REGISTRY,service.view().target].some(t=>near(getPlayer()?.root.position,t.position,2.4)&&canSee(t));
  const close=()=>{if(dialog.open)dialog.close();};
  const button=(text,fn)=>{const e=make('button',text);e.type='button';e.onclick=fn;return e;};
  const request=choice=>{close();if(service.resolveIntent(choice))onIntent(choice);};
  function refresh(force=false){
-  const s=service.view();badge.hidden=!nearby();badge.textContent=s.formalHired?(s.job?.stage==='ready'?'园艺正式班次 · 待验收':s.job?`常任园艺 · ${s.job.completedBeds}/2畦`:'常任园艺助理 · 每日班次'):s.activity==='water'?`浇花中 · ${Math.ceil((1-s.progress)*SECONDS)} 秒`:s.waitingForHost?'等埃米尔到登记簿旁':s.job?.stage==='ready'?'园艺工钱 · 6 铜文':s.job?`园艺活 · ${s.job.completedBeds}/2 畦${s.held?' · 持壶':''}`:s.hired?'园艺帮工 · 接活':'招工登记 · 园艺帮工';
+  const s=service.view(),age=getPlayer()?.ageYears,ageText=Number.isFinite(age)?`${Math.floor(age)}岁`:'未读取',skill=s.formalState?.skills?.gardening??0;badge.hidden=!nearby();badge.textContent=s.formalHired?(s.job?.stage==='ready'?'园艺正式班次 · 待验收':s.job?`常任园艺 · ${s.job.completedBeds}/2畦`:'常任园艺助理 · 每日班次'):s.activity==='water'?`浇花中 · ${Math.ceil((1-s.progress)*SECONDS)} 秒`:s.waitingForHost?'等埃米尔到登记簿旁':s.job?.stage==='ready'?'园艺工钱 · 6 铜文':s.job?`园艺活 · ${s.job.completedBeds}/2 畦${s.held?' · 持壶':''}`:s.hired?'园艺帮工 · 接活':'招工登记 · 园艺帮工';
   if(dialog.open&&!nearby()){close();return;}if(!dialog.open&&!force)return;
-  const key=JSON.stringify([s.job,s.hired,s.activity,s.held,s.waitingForHost,s.loadError,s.lastError,s.employment?.revision,s.formalState?.revision]);if(!force&&key===signature)return;signature=key;dialog.replaceChildren();
-  const x=button('×',close);x.className='fr-labor-close';x.setAttribute('aria-label','关闭园艺面板，保留进度');dialog.append(x,make('h2','西苑 · 园艺帮工登记'));
-  if(!s.formalHired)dialog.append(make('p','职责：亲手领取架上的浇水壶，在两畦玫瑰各站稳浇水 5 秒，再归还原壶。整份工钱 6 铜文，验收后自动存银行，到中国钱庄取款后才进入钱包；可重复接活。'),make('p','门槛：无需资历、技能或报名费。录用后才可接活；结清工钱后可离职或重新申请。'));
-  const actions=make('div',null,'fr-labor-actions');
-  dialog.append(make('p',`长期职位：西苑常任园艺助理 · 专设空缺1席 · 18岁、园艺2点（每份完整临工+1）。06:00–18:00开班，原壶浇两畦、归还后由埃米尔验收，日薪${s.formalSalary}存法国券账户；午前开班完成另奖1券。埃米尔保留原职。`));
-  for(const kind of ['formal-view',...(!s.job?[s.formalHired?'formal-resign':'formal-apply']:[])]){const choice=service.intent(kind);if(choice)actions.append(button(choice.action,()=>request(choice)));}
+  const key=JSON.stringify([s.job,s.hired,s.activity,s.held,s.waitingForHost,s.loadError,s.lastError,s.employment?.revision,s.formalState?.revision,s.formalHired,age,skill]);if(!force&&key===signature)return;signature=key;dialog.replaceChildren();
+  const x=button('×',close);x.className='fr-labor-close';x.setAttribute('aria-label','关闭园艺面板，保留进度');dialog.append(x,make('h2','西苑 · 工作登记'));
+  const actions=make('div',null,'fr-labor-actions'),formalActions=make('div',null,'fr-labor-actions'),roleCard=make('section',null,'fr-labor-role');
+  roleCard.append(make('h3','正式职位 · 西苑常任园艺助理'),
+   make('p',s.formalState?.loadError?'正式任职：记录暂时无法读取':s.formalHired?'正式任职：已任职':'正式任职：尚未任职'),
+   make('p',`年龄：当前${ageText} / 要求年满${s.formalRole.minimumAgeYears}岁。园艺：当前${skill}点 / 要求${s.formalRole.skillRequirements.gardening}点。`),
+   make('p',`日薪：${s.formalSalary}，验收后存法国券账户；午前开班并完成另奖1券已计入上限。`),
+   make('p','职责：06:00–18:00开班，用原浇水壶浇完两畦玫瑰并归还，由埃米尔验收。专设助理名额1席，埃米尔保留原职。'));
+  for(const kind of ['formal-view',...(!s.job&&s.formalHired?['formal-resign']:[])]){const choice=service.intent(kind);if(choice)formalActions.append(button(choice.action,()=>request(choice)));}
+  roleCard.append(formalActions);dialog.append(roleCard);
+  if(s.formalJob||s.formalHired&&!s.job)dialog.append(make('h3','正式班次'));
+  else{
+   dialog.append(make('h3','临工 · 按次接活'),make('p',s.employment?.loadError?'临工登记：记录暂时无法读取':s.employment?.roleId===GARDEN_HELPER_ROLE?'临工登记：可按次接活':'临工登记：尚未登记'));
+   dialog.append(make('p','职责：亲手领取架上的浇水壶，在两畦玫瑰各站稳浇水 5 秒，再归还原壶。整份工钱 6 铜文，验收后自动存银行，到中国钱庄取款后才进入钱包；每份完整临工积累1点园艺。'),make('p','临工门槛：无需资历、技能或报名费，登记后可按次接活。结清工钱后可取消登记、重新登记。'));
+  }
   if(s.formalHired)dialog.append(make('p','每天最多一班，正式工作不再另发临工铜文。法国券账户提款目前请去中国钱庄办理。'));
   if(s.loadError||s.employment?.loadError)dialog.append(make('p','记录暂时无法读取，请保留存档后再试。'));
   else{
-   dialog.append(make('p',s.job?.stage==='ready'?s.formalJob?'当班浇花与归还已完成，到登记簿旁等埃米尔验收，工资自动存银行。':'两畦和归还已记妥，工钱会保留。到登记簿旁等埃米尔当面验收，工资自动存铜文账户。':s.job?`已浇好 ${s.job.completedBeds}/2 畦。${s.held?'水壶在你手里，离开前请归还。':'水壶在架上，先领取再继续。'}`:s.hired?'职业身份：西苑园艺帮工 · 已录用':'招募中 · 尚未录用'));
+   dialog.append(make('p',s.job?.stage==='ready'?s.formalJob?'当班浇花与归还已完成，到登记簿旁等埃米尔验收，工资自动存银行。':'两畦和归还已记妥，工钱会保留。到登记簿旁等埃米尔当面验收，工资自动存铜文账户。':s.job?`已浇好 ${s.job.completedBeds}/2 畦。${s.held?'水壶在你手里，离开前请归还。':'水壶在架上，先领取再继续。'}`:s.formalHired?'已任正式职位，可开始今日班次。':'临工按份验收结算，可重复接活。'));
    const kinds=s.job?[service.intent()?.kind,...(s.held&&s.job.completedBeds<2?['return']:[])]:s.hired?s.formalHired?['accept']:['accept','resign']:['apply'];
    for(const kind of new Set(kinds)){const choice=service.intent(kind);if(choice)actions.append(button(choice.action,()=>request(choice)));}
    if(s.job?.stage==='working'&&(s.job.completedBeds<2||s.formalExpired))actions.append(button('取消这份活 · 无工钱',()=>{if(service.cancel())close();}));

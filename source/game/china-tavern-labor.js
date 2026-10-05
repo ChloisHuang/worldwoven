@@ -192,7 +192,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     const point = kind === 'clean' ? target() : HOST;
     return {...copy(point), id: `cn-tavern-labor-${kind}`, provider: 'china-tavern-labor', kind,
       name: kind === 'clean' ? point.name : '云来酒楼 · 招工登记案', npcName: '许安',
-      action: {'formal-view':'查看全部正式职位','formal-apply':'申请常任服务助理','formal-resign':'办理常任助理离职',view:'查看帮工与长期职位',apply:'申请酒楼帮工',accept:formal.hired()?'开始今日酒楼班次':'接下擦桌活',claim:formal.pinned(job)?'提交当班验收 · 工资存银行':'验收后工资存银行 · 12 铜文',clean:'擦拭餐桌 · 5 秒',resign:'办理离职'}[kind],
+      action: {'formal-view':'查看正式职位与申请条件','formal-apply':'申请常任服务助理','formal-resign':'办理常任助理离职',view:'查看帮工与长期职位',apply:'申请酒楼帮工',accept:formal.hired()?'开始今日酒楼班次':'接下擦桌活',claim:formal.pinned(job)?'提交当班验收 · 工资存银行':'验收后工资存银行 · 12 铜文',clean:'擦拭餐桌 · 5 秒',resign:'办理离职'}[kind],
       intentKey: [registration?.revision ?? 0, formal.state()?.revision??0, job?.id || '-', job?.stage || '-', job?.completedTables || 0, kind].join(':'),
       interactionRadius: 2.8, executionRadius: .18, priority: 45};
   }
@@ -227,7 +227,7 @@ function createUI({doc, service, getPlayer, onIntent, canSee, onOpen}) {
   const make = (tag, text, cls) => { const e = doc.createElement(tag); if (text) e.textContent = text; if (cls) e.className = cls; return e; };
   const badge = make('button', '酒楼短工 · 挣 12 铜文', 'cn-labor-badge'), dialog = make('dialog', null, 'cn-labor-dialog'), style = make('style');
   badge.type = 'button'; badge.setAttribute('aria-label', '酒楼擦桌短工'); dialog.setAttribute('aria-label', '酒楼短工与工钱');
-  style.textContent = '.cn-labor-badge{position:fixed;left:max(18px,env(safe-area-inset-left));top:262px;z-index:18;max-width:calc(100vw - 180px);min-height:44px;padding:10px 14px;border:1px solid #bda575;border-radius:12px;background:#786345;color:#fff6de;font-size:12px}.cn-labor-dialog{position:fixed;inset:0;margin:auto;width:min(380px,calc(100vw - 28px));max-height:calc(100dvh - 32px);overflow:auto;padding:22px;border:1px solid #c5af82;border-radius:16px;background:#f2ead7;color:#493f32}.cn-labor-dialog::backdrop{background:#30281966}.cn-labor-dialog h2{margin:0 30px 12px 0;font-size:22px}.cn-labor-dialog p{font-size:13px;line-height:1.6}.cn-labor-dialog button{min-height:44px;padding:10px 13px;border-radius:8px;background:#ded2b9;color:#493f32}.cn-labor-dialog button:disabled{opacity:.5}.cn-labor-dialog button:focus-visible,.cn-labor-badge:focus-visible{outline:3px solid #647e70;outline-offset:2px}.cn-labor-close{position:absolute;right:7px;top:7px;background:transparent!important;font-size:24px}.cn-labor-actions{display:flex;flex-wrap:wrap;gap:9px}.cn-labor-primary{background:#786345!important;color:#fff6de!important}@media(max-height:550px){.cn-labor-badge{top:215px;font-size:10px;padding:8px 10px}.cn-labor-dialog{padding:16px}}';
+  style.textContent = '.cn-labor-badge{position:fixed;left:max(18px,env(safe-area-inset-left));top:262px;z-index:18;max-width:calc(100vw - 180px);min-height:44px;padding:10px 14px;border:1px solid #bda575;border-radius:12px;background:#786345;color:#fff6de;font-size:12px}.cn-labor-dialog{position:fixed;inset:0;margin:auto;width:min(380px,calc(100vw - 28px));max-height:calc(100dvh - 32px);overflow:auto;padding:22px;border:1px solid #c5af82;border-radius:16px;background:#f2ead7;color:#493f32}.cn-labor-dialog::backdrop{background:#30281966}.cn-labor-dialog h2{margin:0 30px 12px 0;font-size:22px}.cn-labor-dialog h3{margin:0 0 10px;font-size:16px}.cn-labor-role{padding:14px;margin:0 0 18px;border:1px solid #c5af82;border-radius:12px;background:#fff7e8}.cn-labor-dialog p{font-size:13px;line-height:1.6}.cn-labor-dialog button{min-height:44px;padding:10px 13px;border-radius:8px;background:#ded2b9;color:#493f32}.cn-labor-dialog button:disabled{opacity:.5}.cn-labor-dialog button:focus-visible,.cn-labor-badge:focus-visible{outline:3px solid #647e70;outline-offset:2px}.cn-labor-close{position:absolute;right:7px;top:7px;background:transparent!important;font-size:24px}.cn-labor-actions{display:flex;flex-wrap:wrap;gap:9px}.cn-labor-primary{background:#786345!important;color:#fff6de!important}@media(max-height:550px){.cn-labor-badge{top:215px;font-size:10px;padding:8px 10px}.cn-labor-dialog{padding:16px}}';
   (doc.head || doc.body).append(style); doc.body.append(badge, dialog);
   let signature = '';
   const nearHouse = () => { const p = getPlayer()?.root.position; return p && [service.view().target, HOST].some(current => current && near(p, current.position, 2.8) && canSee(current)); };
@@ -236,26 +236,34 @@ function createUI({doc, service, getPlayer, onIntent, canSee, onOpen}) {
   const request = selected => { close(); if (service.resolveIntent(selected)) onIntent(selected); };
   const actionButton = (kind, primary = false) => { const choice = service.intent(kind); return choice ? button(choice.action, () => request(choice), true, primary) : null; };
   function refresh(force = false) {
-    const s = service.view(), ready = s.job?.stage === 'ready';
+    const s = service.view(), ready = s.job?.stage === 'ready', age = getPlayer()?.ageYears;
+    const ageText = Number.isFinite(age) ? `${Math.floor(age)}岁` : '未读取', skill = s.formalState?.skills?.ritual ?? 0;
     badge.hidden = !nearHouse();
     badge.textContent = s.formalHired ? (ready?'常任当班 · 待验收':s.active?`常任服务 · ${s.job.completedTables}/2桌`:'常任服务助理 · 每日班次') : ready ? '领取工钱 · 12 铜文' : s.cleaning ? `擦拭中 · ${Math.ceil((1 - s.progress) * SECONDS)} 秒` : s.active ? `擦桌活 · ${s.job.completedTables}/2 桌` : s.hired ? '酒楼帮工 · 接活' : '招工登记 · 酒楼帮工';
     if (dialog.open && !nearHouse()) { close(); return; }
     if (!dialog.open && !force) return;
-    const key = [s.job?.id, s.job?.stage, s.job?.completedTables, s.cleaning, s.atTarget, s.atHost, s.hostAvailable, s.loadError, s.lastError, s.employment?.revision, s.employment?.lastError,s.formalState?.revision].join('|');
+    const key = [s.job?.id, s.job?.stage, s.job?.completedTables, s.cleaning, s.atTarget, s.atHost, s.hostAvailable, s.loadError, s.lastError, s.employment?.revision, s.employment?.lastError,s.formalState?.revision, s.formalHired, age, skill].join('|');
     if (!force && key === signature) return; signature = key; dialog.replaceChildren();
     const x = button('×', close); x.className = 'cn-labor-close'; x.setAttribute('aria-label', '关闭短工面板，保留当前进度');
-    dialog.append(x, make('h2', '云来酒楼 · 帮工登记'));
-    const actions = make('div', null, 'cn-labor-actions');
-    dialog.append(make('p',`长期职位：常任服务助理 · 专设空缺1席 · 18岁、待客礼仪2点。06:00–18:00开班，完成两桌并由许安验收；日薪${s.formalSalary}存银行，午前开班完成另奖1文。许安保留原职。`));
-    const catalogue=actionButton('formal-view');if(catalogue)actions.append(catalogue);
-    if(!s.active){const apply=actionButton(s.formalHired?'formal-resign':'formal-apply');if(apply)actions.append(apply);}
+    dialog.append(x, make('h2', '云来酒楼 · 工作登记'));
+    const actions = make('div', null, 'cn-labor-actions'), formalActions = make('div', null, 'cn-labor-actions');
+    const roleCard = make('section', null, 'cn-labor-role');
+    roleCard.append(make('h3', '正式职位 · 酒楼常任服务助理'),
+      make('p', s.formalState?.loadError ? '正式任职：记录暂时无法读取' : s.formalHired ? '正式任职：已任职' : '正式任职：尚未任职'),
+      make('p', `年龄：当前${ageText} / 要求年满${s.formalRole.minimumAgeYears}岁。待客礼仪：当前${skill}点 / 要求${s.formalRole.skillRequirements.ritual}点。`),
+      make('p', `日薪：${s.formalSalary}，验收后存铜文账户；午前开班并完成另奖1文已计入上限。`),
+      make('p', '职责：06:00–18:00开班，亲手擦净两张餐桌，再由许安当面验收。专设助理名额1席，许安保留原职。'));
+    const catalogue=actionButton('formal-view');if(catalogue)formalActions.append(catalogue);
+    if(!s.active&&s.formalHired){const resign=actionButton('formal-resign');if(resign)formalActions.append(resign);}
+    roleCard.append(formalActions);dialog.append(roleCard);
+    if(s.formalJob||s.formalHired&&!s.active)dialog.append(make('h3', '正式班次'));
+    else dialog.append(make('h3', '临工 · 按次接活'), make('p', s.employment?.loadError ? '临工登记：记录暂时无法读取' : s.employment?.roleId === TAVERN_HELPER_ROLE ? '临工登记：可按次接活' : '临工登记：尚未登记'));
     if (s.loadError) dialog.append(make('p', '工钱记录暂时无法读取，请保留当前存档，稍后再试。'));
     else if (!s.active && s.formalHired) {
       dialog.append(make('p','你已长期任职。每天最多一班；今日结算后，下一模拟日再来。临工工资不会与同一份正式工作重复支付。'));
       const next=actionButton('accept',true);if(next)actions.append(next);
     } else if (!s.active) {
-      dialog.append(make('p', '职责：擦净西窗、东窗两张餐桌，每张站稳擦拭 5 秒。工资：每完成两桌 12 铜文，回许安处验收后自动存银行，到中国钱庄取款后才进入钱包；可重复接活。'), make('p', '门槛：无需资历、技能或报名费，新来者可应聘。结清手上活计后可离职、重新申请。'));
-      dialog.append(make('p', s.employment?.loadError ? '登记册暂时无法读取，请保留存档后再试。' : s.hired ? '职业身份：云来酒楼帮工 · 已录用' : '招募中 · 尚未登记'));
+      dialog.append(make('p', '职责：擦净西窗、东窗两张餐桌，每张站稳擦拭 5 秒。工资：每完成两桌 12 铜文，回许安处验收后自动存银行，到中国钱庄取款后才进入钱包；可重复接活。'), make('p', '临工门槛：无需资历、技能或报名费，登记后可按次接活。结清手上活计后可取消登记、重新登记。'));
       dialog.append(make('p', s.hostAvailable ? '许安在迎客茶案，可当面办理登记或接活。' : '许安正在忙，回到迎客茶案后才可办理。'));
       const primary = actionButton(s.hired ? 'accept' : 'apply', true); if (primary) actions.append(primary);
       const resign = actionButton('resign'); if (resign) actions.append(resign);
