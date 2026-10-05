@@ -721,7 +721,10 @@ export function buildJapan(){
   {id:'jp-herb-workshop',name:'后院 · 收货与物料房',action:'清点汤屋补给',position:[0,0,-33.3],color:'#a5b47d',playerAction:'tidy',dialogue:'这里收下木桶、布料和食材。药草送到四层药房，米与面送进一层共用厨房。',npcName:'Nao',npcAction:'tidy',npcLabel:'清点补给木箱',npcPosition:[1.5,0,-33],workTarget:[2.8,1.0,-34.65],npcRotation:Math.PI}
  ];
  // Approach flags let the close-TPS controller gate seated/cooking activities.
- stations.push(...performanceStations(),japanExchangeStation());
+ stations.push(...performanceStations(),japanExchangeStation(),
+  // The original rear library shelf is a quiet self-study point, without a
+  // new resident or furniture in the open doorway or the reading-bench aisle.
+  {id:'jp-library',name:'三层 · 藏书间北墙书架',action:'选择汤屋书目',position:[-7.5,7.6,-13.3],color:'#8caf9e',playerAction:'read',playerWorkTarget:[-7.5,8.95,-14.35],interactionRadius:1.25,npc:false});
  for(const s of stations)s.culture='japan';
  program('omamori-display',0,'omamori-cultural-display',4.8,['jp-courtyard-omamori']);program('inari-shrine',0,'small-inari-shrine',3.4,['jp-courtyard-inari']);
  program('reflection-pond',0,'koi-reflection-garden',124,['jp-district-garden-pond']);program('garden-pavilion',0,'garden-shelter',66,['jp-district-garden-pavilion']);program('travel-shop',0,'travel-luggage-retail',135,['jp-district-market-room']);program('public-toilets',0,'public-sanitary-facilities',110,['jp-washroom-private-1','jp-washroom-private-2','jp-washroom-private-3','jp-washroom-sinks']);program('supply-store',0,'delivery-supply-storage',73,['jp-district-supplies']);program('herb-growing',0,'herb-growing',252,['jp-district-herb-yard']);
