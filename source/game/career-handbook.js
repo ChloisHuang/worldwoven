@@ -1,5 +1,5 @@
 import {appendOfficialPromotionPanel,appendOfficialCareerHistory} from './official-career-panel.js';
-import {appendClinicPhysicianPanel} from './china-clinic-physician-panel.js';
+import {appendClinicPhysicianPanel,CLINIC_PHYSICIAN_PANEL_STYLE} from './china-clinic-physician-panel.js';
 import {appendSalonCareerPanel} from './china-salon-career-panel.js';
 import {FORMAL_CAREER_ROLES} from './formal-careers.js';
 import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
@@ -48,6 +48,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
   style.textContent+='.career-dialog{padding:16px;color:#594833;border-color:#b49665}.career-dialog h2{font-size:17px;margin-bottom:4px}.career-dialog h3{font-size:13px;margin:10px 0 5px}.career-dialog p{font-size:12px;line-height:1.45;margin:6px 0}.career-shift-status{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:5px;margin:10px 0}.career-shift-status strong{font-size:13px;color:#815829}.career-shift-status span{font-size:11px;color:#786c58}.career-dialog .career-primary{background:#8c6237;color:#fff5da}.career-current-action{width:100%;margin:2px 0 8px}.career-metrics{margin:8px 0 0}.career-metric{display:grid;grid-template-columns:88px minmax(0,1fr);gap:10px;align-items:start;border-top:1px solid #d7c9aa;padding:9px 0;font-size:12px}.career-metric dt{color:#837259;padding-top:2px}.career-metric dd{margin:0}.career-metric strong{font-size:13px;font-weight:600}.career-metric small{display:block;font-size:11px;line-height:1.35;color:#84725c;margin-top:3px}.career-status-note{color:#84725c}.career-role-card h3{font-size:15px}.career-role-card{padding:12px;margin:10px 0}.career-role-facts{margin:8px 0}.career-role-fact strong{font-size:13px}.career-role-fact span{font-size:11px}.career-requirement{font-size:12px;padding:3px 0}';
   style.textContent+='@media(max-height:500px) and (min-width:640px){.career-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:18px;margin-top:6px}.career-metric{grid-template-columns:70px minmax(0,1fr);gap:7px;padding:8px 0}}';
   style.textContent+=AIRY_UI_THEME+CAREER_CARD_STYLE+AIRY_PANEL_STYLE;
+  style.textContent+=CLINIC_PHYSICIAN_PANEL_STYLE;
   (doc.head||doc.body).append(style);doc.body.append(slot,dialog,feedback);
   let registrationRoleId=null,registrationScope='role',signature='',generation=0;
   let reviewId=careers.state().lastEvaluation?.id||null,customerReviewId=careers.state().lastDuty?.customerReviews?.at(-1)?.id||null,feedbackUntil=-1;
@@ -177,7 +178,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
         else if(isClerk(held)&&careers.promotionSummary?.().application?.status==='pending'&&careers.promotionSummary?.().eligible)next=service.intent();
         else if(availability.ok)next=service.intent(isClerk(held)?'attend':'accept');
       }
-      if(next&&!['view','formal-view'].includes(next.kind)){
+      if(next&&!['view','formal-view'].includes(next.kind)&&!(held.id==='cn-clinic-physician'&&next.work?.kind==='choose')){
         const primary=action(held,next.kind,availability.unchanged&&!job?'继续当前班次':next.action);if(primary){primary.className='career-current-action ww-airy-action';panel.actions.append(primary);}
       }
       if(held.id==='cn-clinic-physician')appendClinicPhysicianPanel({panel,role:held,service,make,action});
@@ -196,7 +197,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       if(!current&&availability.code==='already-paid-today')panel.body.append(make('p','今日已在另一班次结薪；此岗位可于下一模拟日开始。','career-status-note'));
       if(appliedRole){const history=make('details',null,'career-card-details career-employment-history');history.append(make('summary','录用记录'));showReceipt(history,result,appliedRole);for(const old of (careers.applicationHistory?.(held.id)||[]).slice().reverse())showReceipt(history,old,held);panel.body.append(history);}
       if(!service)panel.body.append(make('p',`工作地点：${COUNTRIES[place(held).country]||place(held).country} · ${place(held).workplace}`,'career-status-note'));
-      if(['cn-pharmacy-apprentice','cn-clinic-physician',TEA,PASTRY,GUARD].includes(held.id)&&job?.stage==='working'){const end=action(held,'end-shift');if(end)panel.actions.append(end);}
+      if(['cn-pharmacy-apprentice','cn-clinic-physician',TEA,PASTRY,GUARD].includes(held.id)&&job?.stage==='working'){const end=action(held,'end-shift');if(end){end.classList.add('ww-airy-action');panel.actions.append(end);}}
       if(registrationRoleId===held.id&&registrationScope==='role'){
         const resign=action(held,isClerk(held)?'resign':'formal-resign');if(resign)panel.body.append(resign);const cancel=['cn-pharmacy-apprentice','cn-clinic-physician',TEA,PASTRY,GUARD].includes(held.id)?action(held,'cancel'):null;if(cancel)panel.body.append(cancel);
       }
