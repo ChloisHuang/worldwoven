@@ -19,6 +19,7 @@ export function createFranceTeaProps(parent){
  function clear(){for(const q of[tray,cup])if(q){q.traverse(m=>{if(m.geometry){m.geometry.dispose();geos.delete(m.geometry);}});q.removeFromParent();}tray=cup=cake=null;id=null;}
  return {clear,update(o,actors,phase){if(!o?.trayId){if(id)clear();return;}if(id!==o.trayId){clear();create(o);}const ratio=Math.min(1,phase/1.2),table=new THREE.Vector3(...o.tablePoint),prep=new THREE.Vector3(...kitchen);let p;
    if(o.stage==='pickup')p=prep.lerp(hand(actors.host),ratio);
+   else if(o.stage==='recover-host')p=new THREE.Vector3(...o.recovery.trayPosition).lerp(hand(actors.host),ratio);
    else if(o.stage==='recalling')p=new THREE.Vector3(...o.recallFrom).lerp(hand(actors.host),ratio);
    else if(o.stage==='serving')p=hand(actors.host).lerp(table,ratio);
    else if(o.stage==='lifting')p=table.lerp(hand(actors.host),ratio);
