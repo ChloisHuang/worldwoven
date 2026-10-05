@@ -1,0 +1,36 @@
+// Economy/review/dirty-state boundaries of the shared world. Physical routes
+// use the separate production-main scenario; this fixture isolates persistence.
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import {createDailyNeeds} from '../source/game/daily-needs.js';
+import {createCurrencyLedger} from '../source/game/currency-ledger.js';
+const copy=x=>JSON.parse(JSON.stringify(x)),context=vm.createContext({console}),cache=new Map();
+const position=(x=0,y=.215,z=0)=>({x,y,z,set(x,y,z){Object.assign(this,{x,y,z});},toArray(){return [this.x,this.y,this.z];},copy(p){Object.assign(this,{x:p.x,y:p.y,z:p.z});}});
+const nav=new vm.SyntheticModule(['followActorRoute'],function(){this.setExport('followActorRoute',(n,dt)=>{const p=n.route[0];if(!p)return {};const d=Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z),step=Math.min(d,dt*3);if(d<.07){n.root.position.set(p.x,p.y,p.z);n.route.shift();return {};}n.root.position.x+=(p.x-n.root.position.x)/d*step;n.root.position.z+=(p.z-n.root.position.z)/d*step;n.root.position.y=p.y;n.walking=true;return {};});},{context});
+const props=new vm.SyntheticModule(['createTavernMealProps','createTavernDirtProps'],function(){this.setExport('createTavernMealProps',()=>({update(){},clear(){},state:()=>({}),dispose(){}}));this.setExport('createTavernDirtProps',()=>({update(){},dispose(){}}));},{context});
+const mealKit=new vm.SyntheticModule(['createPalaceMealKit'],function(){this.setExport('createPalaceMealKit',()=>({show(){},sync(){},dispose(){}}));},{context});
+function module(file){if(cache.has(file))return cache.get(file);const m=new vm.SourceTextModule(fs.readFileSync(file,'utf8'),{context,identifier:file});cache.set(file,m);return m;}
+const mod=module('source/game/china-tavern-service-scene.js');await mod.link(s=>s.includes('actor-navigation')?nav:s.includes('meal-props')?props:s.includes('china-palace-costume')?mealKit:module('source/game/'+s.replace('./','')));await mod.evaluate();
+function fixture(saved,{cash=0,needs=false}={}){let mounted=null;const sharedClock={seconds:0},sharedNeeds=needs?createDailyNeeds({getClock:()=>sharedClock}):null;sharedNeeds?.enter('china',['cn-tavern-diner-west','cn-tavern-diner-east']);const ledger=createCurrencyLedger({saveState:()=>{}});if(cash)assert(ledger.earn(cash,'fixture-earned-work').ok);const chargePlayer=(action,o)=>{const hold=ledger.reservations().find(h=>h.id===o.id);if(action==='status')return {ok:true,status:hold?.status||'unpaid'};if(action==='reserve')return ledger.reserve(o.price,o.id,'copper');if(action==='settle')return ledger.settle(o.id);return !hold||hold.status==='refunded'?{ok:true}:ledger.refund(o.id);};let stored=copy(saved||null),reject=false,rejectWhen=null;const reviews=new Map(),p={root:{position:position(21.5,.215,14),rotation:{y:0}},walking:false},names=['许安','沈禾','陆青','顾谨','周棠'],ids=['cn-tavern-host','cn-tavern-cook','cn-tavern-assistant','cn-tavern-diner-west','cn-tavern-diner-east'];
+ const homes=[[24.1,.215,11.4],[23.3,.215,9.36],[22,.215,14.1],[20,.215,22.4],[22,.215,22.4]],npcs=ids.map((id,i)=>({station:{id,npcName:names[i],npcPosition:homes[i]},root:{position:position(...homes[i]),rotation:{y:0}},route:[],phase:0,animate(){}}));
+ const items=[18.1,23.9].flatMap(x=>[-1,1].map(side=>({id:`china-tavern-dining-${x}-${side}`,position:[x+1,.215,18.1+side*1.32],anchor:[x,.215,18.1+side*1.32],center:[x,.215,18.1+side*1.32],seatY:.9,yaw:0}))).concat(['lan','zhu'].map((id,i)=>({id:'china-tavern-bed-'+id,kind:'bed',position:[18+i*5,4.015,19.5],anchor:[18+i*5,4.015,18.5],center:[18+i*5,4.015,18.5],supportY:4.9,yaw:0})));
+ const scene=mod.namespace.createTavernServiceScene({npcs,lot:{group:{}},furniture:{items,facilities:{reserve:()=>true,occupy:()=>true},releaseActor(){},standPoint:(nav,extra,seat)=>position(...seat.position)},doors:{},planPath:(from,to)=>[to],moveActor(){},poseContext:()=>({}),sharedNeeds,onMealReceipts:receipts=>sharedNeeds?.mealReceipts(receipts),getPlayer:()=>p,getMounted:()=>mounted,chargePlayer,saveState:s=>{if(reject||rejectWhen?.(s))return false;stored=s;},onReview:r=>{if(reject)return {ok:false};if(!reviews.has(r.reviewId))reviews.set(r.reviewId,r);return {ok:true};}});
+ if(saved)scene.restoreWorld(saved);else scene.initializeWorld();let t=0;const tick=(count=1)=>{for(let i=0;i<count;i++){t+=.1;sharedClock.seconds+=.1;sharedNeeds?.update();scene.update(.1,t);}},until=(fn,msg)=>{for(let i=0;i<2500&&!fn();i++)tick();assert(fn(),msg+JSON.stringify(scene.state()));};
+ const choose=(kind,id=null,extra={})=>{const c=scene.choices().find(c=>c.kind===kind&&(!id||c.orderId===id)&&Object.entries(extra).every(([k,v])=>c[k]===v));assert(c,kind+' choice');p.root.position.set(...c.position);assert(scene.execute(c),kind+' executes');return c;};
+ return {scene,p,npcs,reviews,ledger,sharedNeeds,tick,until,choose,mountPlayer(){mounted=items.find(i=>i.id==='china-tavern-dining-18.1-1');p.root.position.set(...mounted.anchor);return mounted;},get saved(){return stored;},reject(value){reject=value;},rejectWhen(fn){rejectWhen=fn;}};
+}
+// This boundary is the only meal relief source for enrolled people.
+const nourished=fixture(null,{cash:14,needs:true}),diningSeat=nourished.mountPlayer();
+const beforeFood=nourished.sharedNeeds.hunger('player');assert(nourished.scene.requestPlayerMeal(diningSeat));
+nourished.until(()=>nourished.scene.playerOrder()?.stage==='ready','meal with actual paid ticket reaches player');
+assert(nourished.sharedNeeds.hunger('player')>=beforeFood,'delivering the food does not eat it');assert(nourished.scene.eatPlayerMeal());nourished.tick(20);assert(nourished.scene.cancelPlayerMeal());nourished.tick(20);assert(nourished.sharedNeeds.hunger('player')>=beforeFood,'cancelled partial meal grants no relief');
+assert(!nourished.scene.state().mealReceipts?.some(r=>r.actorId==='player'));
+nourished.until(()=>!nourished.scene.playerOrder(),'cancelled bowl cleaned');assert(nourished.scene.requestPlayerMeal(diningSeat));
+nourished.until(()=>nourished.scene.playerOrder()?.stage==='ready','second paid ticket delivered');assert(nourished.scene.eatPlayerMeal());
+nourished.until(()=>nourished.scene.state().mealReceipts?.some(r=>r.actorId==='player'),'full physical eating stores one consumed receipt');
+assert(nourished.sharedNeeds.hunger('player')<.01);assert.equal(nourished.ledger.balances().copper.cash,2,'two supplied meals charge their real prices');
+const receiptAfter=nourished.scene.state().mealReceipts.find(r=>r.actorId==='player');assert.equal(nourished.sharedNeeds.mealReceipts([receiptAfter]),false);
+nourished.until(()=>nourished.scene.state().visitors.every(v=>v.mode==='idle'),'both real guests finish dining and lodging');const serialFed=nourished.scene.state().serial;nourished.tick(600);assert.equal(nourished.scene.state().serial,serialFed,'fed guests do not loop free/needless repeat meals');
+assert(nourished.scene.state().mealReceipts.filter(r=>r.actorId!=='player').every(r=>r.paymentReceipt===r.orderId&&r.mealId===r.orderId+'-dish'));
+console.log('PASS one shared hunger source, actual paid/full eating, cancellation without relief, unique receipts and fed NPC idle guard');

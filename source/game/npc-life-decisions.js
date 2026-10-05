@@ -5,7 +5,7 @@ function hash(text){let h=2166136261;for(const c of text){h^=c.charCodeAt(0);h=M
 const copy=x=>JSON.parse(JSON.stringify(x));
 const available=c=>c.available!==false&&c.reachable!==false;
 const unique=items=>[...new Map(items.filter(available).map(c=>[c.id,c])).values()].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
-export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>{}}){
+export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>{},sharedNeeds=null}){
  let time=Number.isFinite(saved.time)?saved.time:0,lastSave=time;
  const people={};
  for(const id of actorIds){
@@ -14,7 +14,10 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
   p.relations??={};p.opinions??={};p.values??={company:p.traits.sociability,quiet:p.traits.quiet,curiosity:p.traits.curiosity};p.nextDecisionAt??=0;
   // Saved targets are intentions, never live scene objects or occupied seats.
  }
- const snapshot=()=>({version:1,time,people:copy(people)}),save=()=>{lastSave=time;onChange(snapshot());};
+ // An enrolled actor's hunger is a projection of the shared physiological
+ // source. Legacy relief cannot feed them without a completed supply receipt.
+ const sharedHunger=id=>sharedNeeds?.hunger(id),syncHunger=()=>{for(const[id,p]of Object.entries(people)){const h=sharedHunger(id);if(Number.isFinite(h))p.needs.hunger=h;}};
+ const snapshot=()=>{syncHunger();return {version:1,time,people:copy(people)};},save=()=>{lastSave=time;onChange(snapshot());};
  function random(p){let x=p.random>>>0;x^=x<<13;x^=x>>>17;x^=x<<5;p.random=x>>>0||1;return p.random/4294967296;}
  function preference(p,c,base){
   let value=c.base??base;
@@ -66,7 +69,7 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
   if(changed.length)save();return changed;
  }
  return {
-  tick(dt){if(!Number.isFinite(dt)||dt<=0)return;time+=dt;for(const p of Object.values(people)){p.needs.hunger=clamp(p.needs.hunger+dt/850);p.needs.fatigue=clamp(p.needs.fatigue+dt/1100);p.needs.social=clamp(p.needs.social+dt/1000);}if(time-lastSave>=30)save();},
+  tick(dt){if(!Number.isFinite(dt)||dt<=0)return;time+=dt;for(const[id,p]of Object.entries(people)){const h=sharedHunger(id);p.needs.hunger=Number.isFinite(h)?h:clamp(p.needs.hunger+dt/850);p.needs.fatigue=clamp(p.needs.fatigue+dt/1100);p.needs.social=clamp(p.needs.social+dt/1000);}if(time-lastSave>=30)save();},
   choose(id,candidates,hour=10){const p=people[id];if(!p)return null;
    const entries=actions(p,candidates,hour);
    if(p.current){
@@ -86,11 +89,11 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
    p.current={id:c.id,...(target?{targetId:target.id}:{}),duration,startedAt:time};p.choices++;save();return {...c,...p.current};
   },
   complete(id,c,{fulfilled=true,observers=[]}={}){const p=people[id];if(!p?.current||p.current.id!==c.id||p.current.targetId!==(c.targetId??c.relationship?.target))return;
-   if(fulfilled){observe(id,c,{observers});for(const[k,delta]of Object.entries(c.relief||{}))p.needs[k]=clamp(p.needs[k]+delta);if(c.relationship){const r=c.relationship;p.relations[r.target]=clamp((p.relations[r.target]||0)+(r.gain??.08));}}
+   if(fulfilled){observe(id,c,{observers});for(const[k,delta]of Object.entries(c.relief||{}))if(k!=='hunger'||!Number.isFinite(sharedHunger(id)))p.needs[k]=clamp(p.needs[k]+delta);if(c.relationship){const r=c.relationship;p.relations[r.target]=clamp((p.relations[r.target]||0)+(r.gain??.08));}}
    p.last=c.id;p.cooldowns[c.id]=time+(c.cooldown??45);p.current=null;p.nextDecisionAt=time;save();
   },
   observe,
   distribution(id,candidates,hour=10){const p=people[id];if(!p)return [];const entries=actions(p,candidates,hour),total=entries.reduce((sum,e)=>sum+e.weight,0);return entries.map(e=>{const targetTotal=e.targets?.reduce((sum,t)=>sum+t.weight,0);return {id:e.choice.id,probability:e.weight/total,targets:e.targets?.map(t=>({id:t.choice.id,probability:t.weight/targetTotal}))||[]};});},
-  state(id){return id?copy(people[id]):snapshot();},snapshot,dispose:save
+  state(id){syncHunger();return id?copy(people[id]):snapshot();},snapshot,dispose:save
  };
 }
