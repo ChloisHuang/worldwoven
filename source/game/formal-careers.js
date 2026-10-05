@@ -40,7 +40,12 @@ export const TEA_SERVER_ROLE = Object.freeze({id:'fr-tea-server',name:'宫苑茶
   supervisorId:'france-salon',incumbentId:'france-salon',incumbentName:'玛农',vacancyKind:'exclusive',workSource:'fr-tea-labor',wage:10,minimumAgeYears:18,
   skillRequirements:Object.freeze({ritual:2,writing:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:0,
   duties:'06:00–18:00在茶廊候班；记下原单、传单、接取茶盘、送到原座并收回杯碟；持续当班，交班按实际在岗工时计薪，顾客评价不另加薪'});
-export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE,PHARMACY_ASSISTANT_ROLE,TEA_SERVER_ROLE]);
+export const TEA_PASTRY_ROLE = Object.freeze({id:'fr-tea-pastry',name:'宫苑茶点制作员',
+  slotId:'fr-tea-pastry-1',country:'france',currency:'france',employer:'卡米耶',workplace:'宫苑糕点房 · 制作登记',
+  supervisorId:'france-bakery',incumbentId:'france-bakery',incumbentName:'卡米耶',vacancyKind:'exclusive',workSource:'fr-pastry-labor',wage:14,minimumAgeYears:18,
+  skillRequirements:Object.freeze({cooking:2,ritual:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:0,
+  duties:'06:00–18:00在糕点房候班；核对玛农的原客单、分切蛋糕、备热茶、核对装盘并交原茶盘，等原杯碟收洗后记评价；另行交班按实际在岗工时计薪'});
+export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE,PHARMACY_ASSISTANT_ROLE,TEA_SERVER_ROLE,TEA_PASTRY_ROLE]);
 export const FORMAL_CAREER_SLOTS = Object.freeze([
   ...FORMAL_CAREER_ROLES.map(role => Object.freeze({id:role.slotId,roleId:role.id,holderId:role.incumbentId||null,...(role.vacancyKind==='rotation'?{rotation:true}:role.vacancyKind==='exclusive'?{replacement:true}:{})})),
 ]);
@@ -66,8 +71,9 @@ const empty = () => ({version: 5, revision: 0, skillXP: Object.fromEntries(SKILL
   lastEvaluatedDay: null, lastEvaluation: null, applications: emptyApplications()});
 
 const tavernRole = role => role?.workSource?.startsWith('cn-tavern-');
-const reviewRole=role=>tavernRole(role)||role?.id===TEA_SERVER_ROLE.id;
-const continuousRole=role=>tavernRole(role)||[PHARMACY_ASSISTANT_ROLE.id,TEA_SERVER_ROLE.id].includes(role?.id);
+const teaRole=role=>[TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id].includes(role?.id);
+const reviewRole=role=>tavernRole(role)||teaRole(role);
+const continuousRole=role=>tavernRole(role)||role?.id===PHARMACY_ASSISTANT_ROLE.id||teaRole(role);
 const availableSlot = (slot,role) => slot.holderId === null || slot.replacement === true && role.vacancyKind === 'exclusive' && slot.holderId === role.incumbentId || slot.rotation === true && role.vacancyKind === 'rotation' && slot.holderId === role.incumbentId;
 // Tea outcomes improve the service record only. Tavern error/correction pairs
 // retain their existing net deduction; genuine good service never mints wages.
@@ -76,7 +82,7 @@ const coveredHours = duty => (duty.coveredSeconds||0)*GAME_MINUTES_PER_SECOND/60
 const attendanceWage = (role,hours) => Math.floor(role.wage*Math.min(1,hours/(role.dutyWindow.endHour-role.dutyWindow.startHour))+1e-9)+(hours>=role.dutyWindow.endHour-role.dutyWindow.startHour-1e-9?(role.preparationBonus||0):0);
 const dutyWage = (role,duty) => duty.shiftKind==='continuous'?Math.max(0,attendanceWage(role,coveredHours(duty))-customerPenalty(duty)):Math.max(1,completedWage(role,duty.arrivalHour)-customerPenalty(duty));
 function validShift(duty,role){
- if(duty.shiftKind===undefined)return (!['cn-tavern-host','cn-tavern-chef','cn-pharmacy-apprentice',TEA_SERVER_ROLE.id].includes(role.id)||duty.stage==='missed')&&!['startedSeconds','coveredSeconds','completedTasks','endedHour','endedSeconds'].some(key=>own(duty,key));
+ if(duty.shiftKind===undefined)return (!['cn-tavern-host','cn-tavern-chef','cn-pharmacy-apprentice',TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id].includes(role.id)||duty.stage==='missed')&&!['startedSeconds','coveredSeconds','completedTasks','endedHour','endedSeconds'].some(key=>own(duty,key));
  if(duty.shiftKind!=='continuous'||!continuousRole(role)||!Number.isFinite(duty.startedSeconds)||duty.startedSeconds<0)return false;
  const done=['inspection','ready','paid'].includes(duty.stage),keys=['coveredSeconds','completedTasks','endedHour','endedSeconds'];
  if(!done)return keys.every(key=>duty[key]===null);
@@ -102,7 +108,7 @@ function validCustomerReviews(duty,role){
     if(!object(review)||!textField(review.id,200)||seen.has(review.id)||!identifier(review.customerId)||
       !textField(review.customerName)||!textField(review.tableId,64)||!textField(review.dishId,64)||
       !textField(review.tableName)||!textField(review.dishName)||!textField(review.reason,320))return false;
-    if(role.id===TEA_SERVER_ROLE.id){
+    if(teaRole(role)){
       const order=/^france-tea-([1-9][0-9]*)-order-done$/.exec(review.id);
       if(!order||!integer(Number(order[1]))||review.reasonCode!=='tea-completed'||review.customerId!=='france-cafe'||review.dishId!=='tea-cake'||
         review.correctedReviewId!==null||review.score!==1||review.positive!==true)return false;
@@ -520,7 +526,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const rollover = observeDay(); if (!rollover.ok) return rollover;
     const clock = now(); if (!clock) return failure('invalid-clock');
     const duty = current.lastDuty, role = roleMap.get(current.tenure.roleId);
-    shiftKind??=[TAVERN_HOST_ROLE.id,TAVERN_CHEF_ROLE.id,PHARMACY_ASSISTANT_ROLE.id,TEA_SERVER_ROLE.id].includes(role.id)?'continuous':undefined;
+    shiftKind??=[TAVERN_HOST_ROLE.id,TAVERN_CHEF_ROLE.id,PHARMACY_ASSISTANT_ROLE.id,TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id].includes(role.id)?'continuous':undefined;
     if(shiftKind!==undefined&&(shiftKind!=='continuous'||!continuousRole(role)))return failure('invalid-shift-kind');
     if (role.workSource && !validWorkReceipt(role.workSource,receiptId)) return failure('invalid-work-receipt');
     const availability=beginDutyAvailability(role.id,{receiptId});
@@ -614,7 +620,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if(prior)return ['customerId','customerName','tableId','dishId','tableName','dishName','reasonCode','correctedReviewId'].every(key=>prior[key]===({customerId,customerName,tableId,dishId,tableName,dishName,reasonCode,correctedReviewId})[key])?{ok:true,unchanged:true,review:copy(prior)}:failure('review-conflict');
     const clock=now();if(!clock)return failure('invalid-clock');
     if(duty.stage!=='working'||duty.day!==clock.day)return failure('invalid-duty-stage');
-    const teaCompleted=role.id===TEA_SERVER_ROLE.id&&reasonCode==='tea-completed',positive=teaCompleted||reasonCode==='corrected',original=duty.customerReviews.find(r=>r.id===correctedReviewId);
+    const teaCompleted=teaRole(role)&&reasonCode==='tea-completed',positive=teaCompleted||reasonCode==='corrected',original=duty.customerReviews.find(r=>r.id===correctedReviewId);
     const review={id:reviewId,customerId,customerName,tableId,dishId,tableName,dishName,reasonCode,correctedReviewId,positive,score:positive?1:-2,
       reason:teaCompleted?`原座茶点已用毕，杯碟已收回：${tableName} · ${dishName}`:positive?`已改正${original?.reasonCode==='dirty-table'?'脏桌未清洁':original?.reasonCode==='wrong-table'?'送错桌位':'菜品不符'}：${tableName} · ${dishName}`:reasonCode==='dirty-table'?`脏桌未清洁：${tableName}还留着上一位客人的餐具和污渍`:reasonCode==='wrong-table'?`送错桌位：这份${dishName}应送到${tableName}`:`菜品不符：${tableName}点的是${dishName}`};
     const nextDuty={...duty,customerReviews:[...duty.customerReviews,review]};
