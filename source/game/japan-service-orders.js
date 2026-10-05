@@ -34,7 +34,8 @@ export const JAPAN_SERVICE_WORKERS = Object.freeze({
 });
 // These residents share staff facilities, never customer-order permissions.
 export const JAPAN_LOCAL_WORKERS=Object.freeze(['jp-omamori','jp-garden-onsen','jp-tea','jp-balcony']);
-const STAFF_MEALS=[...new Set(Object.values(JAPAN_SERVICE_WORKERS).flat()),...JAPAN_LOCAL_WORKERS];
+export const JAPAN_STAFF_CREW=Object.freeze(['jp-ramen','jp-sushi','jp-welcome','jp-market-tea','jp-incense','jp-herb-workshop','jp-onsen','jp-steam','jp-women-onsen','jp-rest',...JAPAN_LOCAL_WORKERS]);
+const STAFF_MEALS=JAPAN_STAFF_CREW;
 const clone=value=>JSON.parse(JSON.stringify(value));
 const active=v=>!['departed','cancelled'].includes(v.stage);
 const near=(p,q,r=.34)=>Array.isArray(p)&&Array.isArray(q)&&p.length===3&&p.every(Number.isFinite)&&Math.hypot(p[0]-q[0],p[2]-q[2])<=r&&Math.abs(p[1]-q[1])<.4;
