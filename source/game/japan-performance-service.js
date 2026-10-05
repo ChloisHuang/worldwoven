@@ -2,6 +2,7 @@ import {knownAdult} from './player-age.js';
 import {followActorRoute} from './actor-navigation.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
 import {PERFORMANCE_POINTS as P,PERFORMANCE_ACTIVITIES as ACT,PERFORMANCE_DRINKS as DRINKS} from './japan-performance-cast.js';
+import {JAPAN_SERVICE_CURRENCY,japanServiceCash,japanServiceMoney,japanServicePayment} from './japan-service-payment.js';
 const clone=x=>x==null?null:JSON.parse(JSON.stringify(x));
 const TABLE='jp-performance-table',GUEST='jp-performance-guest-seat',ARTIST='jp-performance-artist-seat';
 const near=(a,p,r=.09)=>a&&Math.abs(a.root.position.y-p[1])<.35&&Math.hypot(a.root.position.x-p[0],a.root.position.z-p[2])<r;
@@ -14,7 +15,7 @@ export function performanceWillingness(actor,activity,opinion=0){
  return {willing:true,reply:p.yes};
 }
 
-// One finite table and one public stage. The same copper journal owns holds;
+// One finite table and one public stage. The same currency journal owns holds;
 // no free coins, persistent occupancy, intimacy, pregnancy or parallel score.
 export function createJapanPerformanceService({npcs,furniture,doors,navigation,planPath,moveActor,poseContext,getPlayer,getMounted=()=>null,copperLedger,props=null,worldSeed=1,saved={},saveState=()=>{},notify=()=>{},isActorBusy=()=>false,sharedNeeds=null}){
  const cast=npcs.filter(n=>n.station.performance),server=cast.find(n=>n.station.id==='jp-performance-reception'),artists=cast.filter(n=>n!==server);
@@ -30,7 +31,16 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
  const record=(outcome,extra={})=>{const id=order?.id;if(!id)return;const eventId=id+':'+outcome;if(history.some(e=>e.eventId===eventId))return;history.push({eventId,orderId:id,outcome,activity:order.activity,artistId:order.artistId,participants:['player',order.artistId,server.station.id],time:+time.toFixed(2),...extra});if(history.length>90)history.shift();persist();};
  const opinion=n=>life.state(n.station.id)?.opinions?.player||0;
  const willingness=()=>performanceWillingness(artist(),order.activity,opinion(artist()));
- function recoverPayments(){if(order?.status==='refund-pending')finish('取消后重试退款');paymentError=copperLedger?.loadError||null;if(!copperLedger)return false;for(const h of copperLedger.reservations())if(h.id.startsWith('jp-performance-')&&h.status==='reserved'&&h.id!==order?.id+':act'&&h.id!==order?.id+':drink'){const r=copperLedger.refund(h.id);if(!r.ok)paymentError=r.code;}return !paymentError;}
+ const hold=part=>order&&copperLedger?.reservations().find(h=>h.id===order.id+':'+part);
+ function bindQuote(o){
+  if(!o)return;
+  const act=japanServicePayment(copperLedger,o.id+':act',{currency:o.currency,amount:o.actFee}),drink=japanServicePayment(copperLedger,o.id+':drink',{currency:o.currency,amount:o.drinkFee});
+  o.currency=act.status?act.currency:drink.status?drink.currency:o.currency||'copper';
+  o.drinkFee=drink.amount??(o.drink?DRINKS.find(d=>d.id===o.drink)?.fee||0:0);
+  o.actFee=act.amount??Math.max(0,o.fee-o.drinkFee);o.fee=o.actFee+o.drinkFee;
+ }
+ const unpaidTotal=()=>['act','drink'].reduce((sum,part)=>sum+(hold(part)?0:order[part+'Fee']),0);
+ function recoverPayments(){paymentError=copperLedger?.loadError||null;if(order?.status==='refund-pending'&&!finish('取消后重试退款'))return false;if(!copperLedger)return false;for(const h of copperLedger.reservations())if(h.id.startsWith('jp-performance-')&&h.status==='reserved'&&h.id!==order?.id+':act'&&h.id!==order?.id+':drink'){const r=copperLedger.refund(h.id);if(!r.ok)paymentError=r.code;}return !paymentError;}
  if(saved.continuity?.version!==1)recoverPayments();
  function occupied(){
   const lock=furniture.facilities.state().find(f=>f.id===TABLE);if(lock?.owner&&lock.owner!==order?.id||lock?.player)return true;
@@ -59,26 +69,29 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
   if(disposed||order||returns.size||!atReception())return false;const a=artists.find(n=>n.station.id===artistId),d=DRINKS.find(d=>d.id===drink);
   if(!a||!eligible(a)||!ACT[activity]||drink&&!d)return false;
   if(isActorBusy(a)||conversation===a.station.id){notify(`${a.station.npcName}还在和别人说话，稍后再来吧`);return false;}
-  if(!recoverPayments()||occupied()){notify(paymentError?'铜钱账目尚未核对':'演艺茶席或舞台有人使用，稍后再来');return false;}
+  if(!recoverPayments()||occupied()){notify(paymentError?'钱款账目尚未核对':'演艺茶席或舞台有人使用，稍后再来');return false;}
+  const currency=JAPAN_SERVICE_CURRENCY,actFee=ACT[activity].fee,drinkFee=d?.fee||0;
+  if(japanServiceCash(copperLedger,currency)<actFee+drinkFee){notify(`本次需 ${actFee+drinkFee} 券（日本票券），可到本地银行兑换或提款`);return false;}
   const prior=responses[artistId];if(prior&&time-prior.at<15){notify(`${a.station.npcName}：${prior.reply}`);return false;}
   const id=`jp-performance-${worldSeed}-${++serial}-${copperLedger.state().nextTransaction}`;
-  order={id,artistId,activity,drink:drink||null,status:'invited',fee:ACT[activity].fee+(d?.fee||0),paid:false,actComplete:false,drinkComplete:!d,drinkStatus:d?'waiting':'none',actSeconds:0,drinkSeconds:0,stalls:0};
+  order={id,artistId,activity,drink:drink||null,status:'invited',currency,actFee,drinkFee,fee:actFee+drinkFee,paid:false,actComplete:false,drinkComplete:!d,drinkStatus:d?'waiting':'none',actSeconds:0,drinkSeconds:0,stalls:0};
   order.socialChoice=life.choose('player',[{id,targets:[{id:artistId}],socialEvent:{values:{company:activity==='tea'?1:.25,quiet:.4,curiosity:.6},strength:.06}}]);
   reset(a);elapsed=phase=drinkPhase=0;record('requested');notify(`绫乃：我请${a.station.npcName}亲自过来答复`);return true;
  }
  function respond(){
   const a=artist(),r=willingness();lastReply={name:a.station.npcName,artistId:a.station.id,...r};responses[a.station.id]={...lastReply,at:time};record(r.willing?'accepted-response':'refused',{reply:r.reply,positions:{player:getPlayer().root.position.toArray(),artist:a.root.position.toArray()}});notify(`${a.station.npcName}：${r.reply}`);
   if(!r.willing){finish('艺者婉拒');return;}
-  if(occupied()||!furniture.facilities.request(TABLE,order.id)){finish('茶席已有人');notify('绫乃：茶席已有人，未收取铜钱');return;}enter('accepted');
+  if(japanServiceCash(copperLedger,order.currency)<unpaidTotal()){cancel('随身钱款不足，可到本地银行兑换或提款');return;}
+  if(occupied()||!furniture.facilities.request(TABLE,order.id)){finish('茶席已有人');notify('绫乃：茶席已有人，未收取钱款');return;}enter('accepted');
  }
  function confirm(){
   if(!order||order.status!=='accepted'||!atReception()||!eligible(artist())||!near(artist(),P.reply,.15))return false;
   if(!willingness().willing||occupied()){cancel('艺者意愿或茶席状态已改变');return false;}
-  if(copperLedger.state().cash<order.fee){notify(`本次需${order.fee}铜文，钱袋不足；可先取消安排，去中国酒馆做洒扫短工`);return false;}
-  for(const [part,fee]of[['act',ACT[order.activity].fee],['drink',DRINKS.find(d=>d.id===order.drink)?.fee||0]])if(fee){const r=copperLedger.reserve(fee,order.id+':'+part);if(!r.ok){paymentError=r.code;cancel('预留未能保存');return false;}}
-  order.paid=true;record('reserved',{amount:order.fee});enter('seating');reset(artist());notify('价目已确认，请到本次客席坐好；节目和饮品各自完成后结账');return true;
+  if(japanServiceCash(copperLedger,order.currency)<unpaidTotal()){cancel(`本次需 ${order.fee} ${japanServiceMoney(order.currency).displayUnit}，随身钱款不足`);return false;}
+  for(const part of ['act','drink'])if(order[part+'Fee']){const h=hold(part);if(h?.status==='refunded'){cancel('原预留已退回，请重新邀请');return false;}const r=copperLedger.reserve(order[part+'Fee'],order.id+':'+part,order.currency);if(!r.ok){paymentError=r.code;cancel('预留未能保存');return false;}if(h?.status==='settled')order[part+'Complete']=true;}
+  order.paid=true;record('reserved',{amount:order.fee,currency:order.currency});enter('seating');reset(artist());notify('价目已确认，请到本次客席坐好；节目和饮品各自完成后结账');return true;
  }
- function settle(part){const r=copperLedger.settle(order.id+':'+part);if(!r.ok){paymentError=r.code;cancel('结算尚未记妥');return false;}paymentError=null;order[part+'Complete']=true;record(part+'-completed',{amount:part==='act'?ACT[order.activity].fee:DRINKS.find(d=>d.id===order.drink).fee});
+ function settle(part){const r=copperLedger.settle(order.id+':'+part);if(!r.ok){paymentError=r.code;cancel('结算尚未记妥');return false;}paymentError=null;order[part+'Complete']=true;const receipt=hold(part);record(part+'-completed',{amount:receipt.amount,currency:receipt.currency||'copper'});
   if(part==='act')life.observe('player',order.socialChoice,{observers:[{id:order.artistId,knowledge:'participant'}]});return true;}
  function pose(n,t,action=null,hands=null){
   const c={...poseContext(n,null),archery:hands?{hands}:null,heldProp:null,handoff:false};if(n.serviceMount)c.seatHeight=n.serviceMount.seatY-n.root.position.y-(c.visualFloorOffset||0);
@@ -117,7 +130,7 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
      else if(o.drinkStatus==='serving'&&getMounted()?.id===GUEST){drinkPhase+=dt;if(drinkPhase>=1.2){o.drinkStatus='drinking';drinkPhase=0;record('drink-delivered');reset(server);}}
      else if(o.drinkStatus==='drinking'){move(server,P.bar,dt);if(getMounted()?.id===GUEST){o.drinkSeconds+=dt;if(o.drinkSeconds>=6&&settle('drink')&&order===o)o.drinkStatus='finished';}}
     }
-    if(order===o&&o.actComplete&&o.drinkComplete){finish('节目与饮品已完成',true);notify('这次演艺茶席已完成，绫乃按实际完成的服务结清铜文');}
+    if(order===o&&o.actComplete&&o.drinkComplete){const unit=japanServiceMoney(o.currency).displayUnit;finish('节目与饮品已完成',true);notify(`这次演艺茶席已完成，绫乃按实际完成的服务结清${unit}`);}
    }
    for(const n of [...returns]){if(!unseat(n))continue;if(move(n,n.home.toArray(),dt)){returns.delete(n);reset(n);}}
    for(const n of cast){const a=order&&n===artist(),performing=a&&order.status==='performing',tea=a&&n.serviceMount;
@@ -131,9 +144,9 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
    }
    props?.update(order,{server,artist:artist(),player:getPlayer()},t);
   },
-  view(){return {order:clone(order),label:order?labels[order.status]:returns.size?'艺者与侍者正在返位':null,lastReply:clone(lastReply),lastResult:clone(lastResult),candidates:artists.filter(eligible).map(n=>({id:n.station.id,name:n.station.npcName,ageYears:n.station.ageYears,specialty:n.station.performance.specialty,preference:n.station.performance.preference,available:!order&&!returns.size&&!isActorBusy(n),activities:n.station.performance.activities.map(id=>ACT[id])})),drinks:DRINKS,cash:copperLedger?.state().cash||0,paymentError,returning:returns.size>0};},
+  view(){return {order:clone(order),label:order?labels[order.status]:returns.size?'艺者与侍者正在返位':null,lastReply:clone(lastReply),lastResult:clone(lastResult),candidates:artists.filter(eligible).map(n=>({id:n.station.id,name:n.station.npcName,ageYears:n.station.ageYears,specialty:n.station.performance.specialty,preference:n.station.performance.preference,available:!order&&!returns.size&&!isActorBusy(n),activities:n.station.performance.activities.map(id=>({...ACT[id],currency:JAPAN_SERVICE_CURRENCY}))})),drinks:DRINKS.map(d=>({...d,currency:JAPAN_SERVICE_CURRENCY})),currency:order?.currency||JAPAN_SERVICE_CURRENCY,money:japanServiceMoney(order?.currency||JAPAN_SERVICE_CURRENCY),cash:japanServiceCash(copperLedger,order?.currency||JAPAN_SERVICE_CURRENCY),paymentError,returning:returns.size>0};},
   snapshot:()=>({version:1,time,serial,order:clone(order),lastReply:clone(lastReply),lastResult:clone(lastResult),phase,elapsed,drinkPhase,returns:[...returns].map(n=>n.station.id),history:clone(history),life:life.snapshot()}),
-  restore(s){if(s?.version!==1||s.order&&(!artists.some(n=>n.station.id===s.order.artistId)||!labels[s.order.status]||!ACT[s.order.activity]))return false;time=Math.max(0,s.time||0);serial=Math.max(serial,s.serial||0);order=clone(s.order);lastReply=clone(s.lastReply);lastResult=clone(s.lastResult);phase=Math.max(0,s.phase||0);elapsed=Math.max(0,s.elapsed||0);drinkPhase=Math.max(0,s.drinkPhase||0);returns.clear();for(const id of s.returns||[]){const n=cast.find(n=>n.station.id===id);if(n)returns.add(n);}history.splice(0,history.length,...clone(s.history||[]));routes.clear();if(order&&order.status!=='invited'&&order.status!=='reply'){if(!furniture.facilities.request(TABLE,order.id)){order=null;return false;}if(['performing','drinking'].includes(order.status))furniture.facilities.occupy(TABLE,order.id);}if(order?.paid)for(const part of ['act','drink']){const hold=copperLedger.reservations().find(h=>h.id===order.id+':'+part);if(hold?.status==='settled')order[part+'Complete']=true;}props?.update(order,{server,artist:artist(),player:getPlayer()},time);return true;},
+  restore(s){if(s?.version!==1||s.order&&(!artists.some(n=>n.station.id===s.order.artistId)||!labels[s.order.status]||!ACT[s.order.activity]))return false;time=Math.max(0,s.time||0);serial=Math.max(serial,s.serial||0);order=clone(s.order);bindQuote(order);lastReply=clone(s.lastReply);lastResult=clone(s.lastResult);phase=Math.max(0,s.phase||0);elapsed=Math.max(0,s.elapsed||0);drinkPhase=Math.max(0,s.drinkPhase||0);returns.clear();for(const id of s.returns||[]){const n=cast.find(n=>n.station.id===id);if(n)returns.add(n);}history.splice(0,history.length,...clone(s.history||[]));routes.clear();if(order&&order.status!=='invited'&&order.status!=='reply'){if(!furniture.facilities.request(TABLE,order.id)){order=null;return false;}if(['performing','drinking'].includes(order.status))furniture.facilities.occupy(TABLE,order.id);}if(order?.paid)for(const part of ['act','drink']){const hold=copperLedger.reservations().find(h=>h.id===order.id+':'+part);if(hold?.status==='settled')order[part+'Complete']=true;}props?.update(order,{server,artist:artist(),player:getPlayer()},time);return true;},
   state(){return {...api.view(),history:clone(history),failures:clone(failures),life:life.snapshot(),actors:cast.map(n=>({id:n.station.id,position:n.root.position.toArray(),mounted:n.serviceMount?.id||null})),props:props?.state()||null};},
   dispose({suspend=false}={}){if(disposed)return;if(!suspend)finish('离开地区');disposed=true;for(const n of cast){n.serviceMount=null;reset(n);}returns.clear();props?.dispose();life.dispose();if(!suspend)persist();}
  };return api;
