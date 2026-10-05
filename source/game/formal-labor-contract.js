@@ -19,7 +19,7 @@ export function createFormalLaborContract({careers,role,getJob,getPlayer,meetHos
   function result(r,text){if(!r?.ok)notify((r?.reasons||[r?.code]).map(c=>MESSAGES[c]||'这次办理未完成，请稍后重试').join('；'));else if(text)notify(text);return r;}
   function apply(){if(getJob())return result({ok:false,code:'wage-ready'}).ok;if(!meetHost())return false;
     const applied=result(careers.apply(role.id,{ageYears:getPlayer()?.ageYears}),`${role.employer}：已录用为${role.name}，专设助理空缺由你任职。每天完成职责后，日薪存入银行账户。`);
-    openRegistration({country:role.country,roleId:role.id});return !!applied.ok;}
+    openRegistration({country:role.country,roleId:role.id,scope:'role'});return !!applied.ok;}
   function resign(){if(getJob())return result({ok:false,code:'wage-ready'}).ok;if(!meetHost())return false;
     return !!result(careers.resign(),'长期岗位离职已登记，已有技能和评价保留。').ok;}
   function begin(receiptId){if(!hired())return {ok:true,formalRoleId:null};const r=result(careers.beginDuty({receiptId}));return {...r,formalRoleId:r.ok?role.id:null};}
@@ -33,8 +33,9 @@ export function createFormalLaborContract({careers,role,getJob,getPlayer,meetHos
     return !!result(careers.interruptDuty('cancelled')).ok;}
   function canWork(job){const d=duty(job);return !pinned(job)||!!d&&careers.canContinueLabor(job.receiptId);}
   const pendingReceipt=()=>{const d=state()?.lastDuty;return hired()&&!getJob()&&d?.roleId===role.id&&d.stage==='working'?d.workReceiptId:null;};
-  return {role,hired,state,pinned,duty,pendingReceipt,apply,resign,begin,complete,inspect,pay,cancel,canWork,
-    open:()=>openRegistration({country:role.country,roleId:role.id}),
+  const beginAvailability=()=>hired()?careers.beginDutyAvailability(role.id,{receiptId:pendingReceipt()||undefined}):{ok:true};
+  return {role,hired,state,pinned,duty,pendingReceipt,apply,resign,begin,beginAvailability,complete,inspect,pay,cancel,canWork,
+    open:(context={})=>openRegistration({country:role.country,roleId:role.id,scope:context.scope==='catalogue'?'catalogue':'role'}),
     unit:role.currency==='france'?'法国券':'铜文',
     salary:`${role.wage}–${role.wage+role.preparationBonus}${role.currency==='france'?'法国券':'铜文'}`};
 }

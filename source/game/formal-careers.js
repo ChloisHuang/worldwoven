@@ -170,7 +170,7 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
   try { const clock = getClock(); if (integer(clock?.day)) observedDay = clock.day; } catch { /* checked at mutation */ }
   const state = () => ({...copy(current), loadError, lastError});
   const failure = (code, reasons = [code]) => { lastError = code; return {ok: false, code, reasons: [...reasons]}; };
-  function now() {
+  function readClock() {
     let clock;
     try { clock = getClock(); } catch { return null; }
     if (!object(clock) || !integer(clock.day) || !Number.isFinite(clock.hour) || clock.hour < 0 || clock.hour >= 24 ||
@@ -179,8 +179,9 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
       ...Object.values(current.learning).map(study => study.issuedDay)].filter(day => day != null);
     if (days.some(day => day > clock.day) || lastClock &&
       (clock.day < lastClock.day || clock.day === lastClock.day && clock.hour < lastClock.hour)) return null;
-    lastClock = {...clock}; return clock;
+    return clock;
   }
+  function now(){const clock=readClock();if(clock)lastClock={...clock};return clock;}
   function allowed() {
     return loadError || saving || paying ? failure(loadError || 'career-busy') : null;
   }
@@ -307,6 +308,27 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     const clock = now(); if (!clock) return failure('invalid-clock');
     return grantSkill({...current, lowerWork: {...current.lowerWork, [source]: serial}}, WORK[source], clock);
   }
+  // The handbook, world intents and final mutation share one start decision.
+  // Reads do not observe a day, save state, advance lastClock or change errors.
+  function beginDutyAvailability(roleId=current.tenure?.roleId,{receiptId}={}){
+    const clock=readClock(),role=roleMap.get(roleId),duty=current.lastDuty;
+    const context={roleId:roleId||null,day:clock?.day??null,hour:clock?.hour??null,
+      window:role?copy(role.dutyWindow):null,stage:duty?.roleId===roleId?duty.stage:null};
+    const no=code=>({...context,ok:false,code,reasons:[code]});
+    if(loadError||saving||paying)return no(loadError||'career-busy');
+    if(interruptedUnsaved)return no('interruption-unsaved');
+    if(!current.tenure||current.tenure.roleId!==roleId||!role)return no('not-employed');
+    if(!clock)return no('invalid-clock');
+    if(role.workSource&&receiptId!==undefined&&!validWorkReceipt(role.workSource,receiptId))return no('invalid-work-receipt');
+    // Recover an already admitted work slip even after the new-shift window closes.
+    if(role.workSource&&duty?.day===clock.day&&duty.workReceiptId===receiptId&&duty.stage==='working')return {...context,ok:true,unchanged:true};
+    if(['ready','inspection'].includes(duty?.stage))return no('wage-ready');
+    if(current.lastPaidDay===clock.day)return no('already-paid-today');
+    if(duty?.day===clock.day&&excused(duty))return no('court-postponed');
+    if(duty?.day===clock.day&&(duty.started||duty.stage==='arrived'))return no(duty.stage==='missed'?'duty-missed':'duty-active');
+    if(clock.hour<role.dutyWindow.startHour||clock.hour>=role.dutyWindow.endHour)return no('outside-arrival-window');
+    return {...context,ok:true};
+  }
   function beginDuty({receiptId} = {}) {
     const blocked = allowed(); if (blocked) return blocked;
     if (interruptedUnsaved) return failure('interruption-unsaved');
@@ -315,12 +337,9 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     const clock = now(); if (!clock) return failure('invalid-clock');
     const duty = current.lastDuty, role = roleMap.get(current.tenure.roleId);
     if (role.workSource && !validWorkReceipt(role.workSource,receiptId)) return failure('invalid-work-receipt');
-    if (role.workSource && duty?.day===clock.day && duty.workReceiptId===receiptId && duty.stage==='working') return {ok:true,unchanged:true};
-    if (['ready','inspection'].includes(duty?.stage)) return failure('wage-ready');
-    if (current.lastPaidDay === clock.day) return failure('already-paid-today');
-    if (duty?.day === clock.day && excused(duty)) return failure('court-postponed');
-    if (duty?.day === clock.day && (duty.started || duty.stage === 'arrived')) return failure(duty.stage === 'missed' ? 'duty-missed' : 'duty-active');
-    if (clock.hour < role.dutyWindow.startHour || clock.hour >= role.dutyWindow.endHour) return failure('outside-arrival-window');
+    const availability=beginDutyAvailability(role.id,{receiptId});
+    if(!availability.ok)return failure(availability.code,availability.reasons);
+    if(availability.unchanged)return {ok:true,unchanged:true};
     const next = duty && duty.day < clock.day && ['arrived', 'attending', 'archive','working'].includes(duty.stage) ? missed(current, 'day-ended') : current;
     return persist({...next, lastDuty: {roleId: current.tenure.roleId, slotId: current.tenure.slotId,
       day: clock.day, stage: role.workSource?'working':'arrived', started:!!role.workSource, reason: null, arrivalHour: clock.hour, wage: null,...(role.workSource?{workReceiptId:receiptId}:{})}});
@@ -424,6 +443,6 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     canContinueLabor:receiptId=>{const d=current.lastDuty;let c;try{c=getClock();}catch{return false;}return !loadError&&d?.workReceiptId===receiptId&&(d.stage==='inspection'||d.stage==='working'&&d.day===c?.day);},
     currentRole:()=>copy(roleMap.get(current.tenure?.roleId)||null),
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&slot.holderId===null&&slot.id!==current.tenure?.slotId).length})),
-    eligibility, applicationResult:()=>copy(lastApplication),
+    eligibility, beginDutyAvailability, applicationResult:()=>copy(lastApplication),
     laborEvent, apply, resign, learningTicket, cancelLearning, completeLearning, completedLowerWork, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
 }
