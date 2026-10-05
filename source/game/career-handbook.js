@@ -18,7 +18,7 @@ const employer=role=>place(role).employer||'岗位主管';
 const isClerk=role=>role?.id===CLERK;
 const registryKind=role=>isClerk(role)?'view':'formal-view';
 const dutySummary=role=>isClerk(role)?'11:30朝仪听记 · 官署归档':role.id===TAVERN?'06:00–18:00 · 两桌擦拭与验收':'06:00–18:00 · 原壶浇两畦、归还与验收';
-const resultReason=code=>({'adult-required':'年龄未达要求','ritual-required':'礼仪未达要求','writing-required':'文书未达要求','gardening-required':'园艺未达要求','art-required':'艺术未达要求','already-employed':'已有正式职位，请先在原岗位办理离职','no-vacancy':'当前没有空缺','save-failed':'登记未能保存，请重试','async-save-unsupported':'登记未能保存，请重试','invalid-clock':'世界时钟暂不可用','invalid-career-state':'职业存档暂时无法核对'}[code]||'本次登记未完成，请稍后重试');
+const resultReason=code=>({'already-applied-today':'本岗位今日已提交，下一模拟日可再申请','interview-rejected':'硬门槛已满足，本次面谈未获录用','hiring-context-unavailable':'招聘信息暂不可用，请稍后重试','adult-required':'年龄未达要求','ritual-required':'礼仪未达要求','writing-required':'文书未达要求','gardening-required':'园艺未达要求','art-required':'艺术未达要求','already-employed':'已有正式职位，请先在原岗位办理离职','no-vacancy':'当前没有空缺','save-failed':'登记未能保存，请重试','async-save-unsupported':'登记未能保存，请重试','invalid-clock':'世界时钟暂不可用','invalid-career-state':'职业存档暂时无法核对'}[code]||'本次登记未完成，请稍后重试');
 
 
 export function createCareerHandbook({careers,copperLedger,getClock,getService,getCountry=()=>null,getPlayer=()=>null,
@@ -65,7 +65,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     const role=held||localRoles.find(r=>r.id===registrationRoleId)||localRoles[0]||null,displayRoles=registrationScope==='role'?localRoles.filter(r=>r.id===registrationRoleId):localRoles;
     const hired=!!held,d=held&&s.lastDuty?.roleId===held.id?s.lastDuty:null;
     const pendingDuty=d&&d.day<c.day&&['inspection','ready'].includes(d.stage);
-    const service=localService(role),key=[s.revision,registrationRoleId,registrationScope,held?.id,country,Math.floor(c.hour*60),!!service,service?.intent()?.intentKey,ageYears,JSON.stringify(careers.applicationResult?.()),
+    const service=localService(role),key=[s.revision,registrationRoleId,registrationScope,held?.id,country,c.day,Math.floor(c.hour*60),!!service,service?.intent()?.intentKey,ageYears,JSON.stringify(careers.applicationResult?.()),
       ...localRoles.map(r=>`${r.id}:${r.vacancy}`)].join(':');
     if(!force&&key===signature)return;signature=key;generation++;
     dialog.replaceChildren();const x=buttonFor('×',close);x.className='career-close';x.setAttribute('aria-label','关闭职业手册');
@@ -76,9 +76,10 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     const skillLine=r=>Object.entries(requirements(r)).map(([id,need])=>`${SKILLS[id]||id} ${s.skills[id]??0}/${need}`).join(' · ');
     const registrationKind=r=>registrationRoleId!==r.id?null:s.tenure?.roleId===r.id?(isClerk(r)?'resign':'formal-resign'):!held?(isClerk(r)?'apply':'formal-apply'):null;
     const eligibility=r=>careers.eligibility?.(r.id,{ageYears})||{ok:false,code:'unavailable'};
+    const applicationCheck=r=>careers.applicationAvailability?.(r.id,{ageYears})||eligibility(r);
     const applicationButton=r=>{
       const kind=registrationKind(r),b=kind&&action(r,kind);if(!b)return null;
-      if(['apply','formal-apply'].includes(kind)&&!eligibility(r).ok){b.textContent='条件不足 · 暂不可申请';b.disabled=true;b.onclick=()=>{};}
+      if(['apply','formal-apply'].includes(kind)&&!applicationCheck(r).ok){b.textContent=applicationCheck(r).code==='already-applied-today'?'今日已申请 · 次日再来':'条件不足 · 暂不可申请';b.disabled=true;b.onclick=()=>{};}
       else b.className='career-primary';return b;
     };
     const showRequirements=(root,r)=>{
@@ -88,14 +89,34 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       root.append(box);
     };
     const showResult=(root,r)=>{
-      const own=s.tenure?.roleId===r.id,check=eligibility(r),result=careers.applicationResult?.();
-      const status=own?'已正式任职':check.ok?'条件已满足 · 可在本岗位登记处提交申请':(check.reasons||[check.code]).map(resultReason).join('；');
+      const own=s.tenure?.roleId===r.id,check=applicationCheck(r);
+      const status=own?'已正式任职':check.ok?'硬门槛已满足 · 面谈后决定是否录用':(check.reasons||[check.code]).map(resultReason).join('；');
       root.append(make('p',status,own||check.ok?'career-positive':'career-negative'));
-      if(result?.roleId===r.id&&(!result.ok||own)){
-        const message=result.ok?'申请通过 · 正式任职已保存':`申请未通过 · ${held?'原有正式任职不变':'未建立正式任职'}。${(result.reasons||[result.code]).map(resultReason).join('；')}`;
-        const notice=make('p',message,'career-application-result '+(result.ok?'career-positive':'career-negative'));notice.setAttribute('role','status');root.append(notice);
-      }
     };
+    // Render before either the registry or the held-role branch: a successful
+    // application immediately switches branches but must never hide its result.
+    const result=careers.applicationResult?.(registrationScope==='role'&&registrationRoleId?registrationRoleId:undefined);
+    const appliedRole=result&&list.find(r=>r.id===result.roleId);
+    if(appliedRole){
+      const stillHeld=s.tenure?.roleId===appliedRole.id&&s.tenure?.sinceDay===result.tenure?.sinceDay&&s.tenure?.sinceHour===result.tenure?.sinceHour;
+      const stamp=hour=>{const minutes=Math.floor(hour*60);return `${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}`;};
+      const reason=code=>{
+        const checked=result.checked;
+        if(code==='adult-required'&&checked)return `年龄 ${checked.ageYears??'待核对'} / ${appliedRole.minimumAgeYears}岁`;
+        const skill=code.replace('-required','');
+        if(checked&&skill in requirements(appliedRole))return `${SKILLS[skill]||skill} ${checked.skills[skill]} / ${requirements(appliedRole)[skill]}点`;
+        return resultReason(code);
+      };
+      const notice=make('section',null,'career-application-result '+(result.ok?'career-positive':'career-negative'));notice.setAttribute('role','status');
+      const title=result.saved===false?'申请未完成':result.ok?stillHeld?'申请通过 · 正式任职已保存':'此前申请通过 · 当前已离任':'申请未通过';
+      notice.append(make('strong',title),make('p',`${appliedRole.name} · ${employer(appliedRole)}`));
+      if(result.ok)notice.append(make('p',`第${result.tenure.sinceDay+1}日 ${stamp(result.tenure.sinceHour)}生效${stillHeld?' · 班次由你另行开始':c.day===result.day?` · 第${result.day+2}日可再申请`:''}`));
+      else{
+        const retry=result.saved===false?'本次结果未保存，也未占用今日申请次数。请重试。':c.day===result.day?`今日次数已用 · 第${result.day+2}日可再申请`:'今日可重新核对条件并申请';
+        notice.append(make('p',`${held?'原有正式任职不变':'未建立正式任职'}。${(result.reasons||[result.code]).map(reason).join('；')}。${retry}`));
+      }
+      dialog.append(notice);
+    }
     if(!registrationMode&&!held){
       for(const item of localRoles){const go=action(item,registryKind(item),`前往${place(item).workplace}登记`);if(go)dialog.append(go);}
     }else if(registrationMode){
@@ -106,7 +127,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
         const p=place(item),own=s.tenure?.roleId===item.id,vacancy=item.vacancy??(own?0:1),card=make('section',null,'career-role-card');
         card.append(make('h3',item.name),make('p',`${COUNTRIES[p.country]||p.country} · ${p.workplace} · 主管${employer(item)}`,'career-role-place'));
         const facts=make('div',null,'career-role-facts');for(const[label,value]of [['正式空缺',own?'本人在职':`${vacancy} / 1席`],['日薪 · 验收后存银行',wageRange(item)]]){const fact=make('div',null,'career-role-fact');fact.append(make('span',label),make('strong',value));facts.append(fact);}card.append(facts,make('p',`职责：${dutySummary(item)}`));
-        showRequirements(card,item);showResult(card,item);
+        showRequirements(card,item);showResult(card,item);card.append(make('p','每个岗位每天可提交一次，满足门槛后仍须面谈决定。'));
         const row=make('div',null,'career-actions');
         if(registrationScope==='role'){const apply=applicationButton(item);if(apply)row.append(apply);}
         else{const go=action(item,registryKind(item),`选择${item.name}`,{scope:'role',roleId:item.id});if(go)row.append(go);}

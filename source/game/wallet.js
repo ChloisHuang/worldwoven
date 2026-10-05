@@ -20,6 +20,17 @@ const clamp = (n, lo=0, hi=1) => Math.min(hi,Math.max(lo,n));
 const mix = (a,b,t) => a+(b-a)*t;
 const ease = n => {const t=clamp(n);return t*t*(3-2*t);};
 
+// Receipt coordinates are independent of any scrolling service dialog. The
+// whole paper path fits this card, including when the keyboard shrinks the view.
+export function walletReceiptFrame(viewport,game=viewport,safe={}) {
+  const left=Math.max(viewport.left+(safe.left||0),game.left)+12;
+  const top=Math.max(viewport.top+(safe.top||0),game.top)+12;
+  const right=Math.min(viewport.left+viewport.width-(safe.right||0),game.left+game.width)-12;
+  const bottom=Math.min(viewport.top+viewport.height-(safe.bottom||0),game.top+game.height)-12;
+  const scale=Math.max(0,Math.min(1,(right-left)/270,(bottom-top)/105));
+  return {left:Math.max(left,right-270*scale),top,width:270,height:105,scale};
+}
+
 // These are the actual product coordinates, shared with the focused vector
 // review. The front never changes layers: a note must clear its lip to fan.
 export function walletGeometry(width,height,count=1,compact=height<310) {
@@ -87,9 +98,45 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
   let progress=0, frame=null, lastTime=null, resizeObserver=null, receiptEpoch=0;
   const view=doc.defaultView, requestFrame=fn=>view?.requestAnimationFrame?view.requestAnimationFrame(fn):setTimeout(()=>fn(Date.now()),16);
   const cancelFrame=id=>view?.cancelAnimationFrame?view.cancelAnimationFrame(id):clearTimeout(id);
-  const mini=make('div',null,'ww-wallet-mini');mini.setAttribute('aria-hidden','true');mini.hidden=true;mount.append(mini);
+  const mini=make('div',null,'ww-wallet-mini');mini.setAttribute('aria-hidden','true');mini.hidden=true;doc.body.append(mini);
+  const hasPopover=typeof mini.showPopover==='function';if(hasPopover)mini.setAttribute('popover','manual');
+  let receiptModal=null,popoverShown=false;
   const seen=new Set(), notes=new Map(), artwork=new Map();
   const reducedMotion=()=>!!doc.defaultView?.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+  function positionReceipt(){
+    if(mini.hidden)return;
+    const visual=view?.visualViewport,viewport={left:visual?.offsetLeft||0,top:visual?.offsetTop||0,
+      width:visual?.width||view?.innerWidth||doc.documentElement?.clientWidth||294,
+      height:visual?.height||view?.innerHeight||doc.documentElement?.clientHeight||129};
+    const game=doc.getElementById?.('world')?.getBoundingClientRect?.()||viewport;
+    const styles=view?.getComputedStyle?.(mini),safe=Object.fromEntries(['left','top','right','bottom'].map(side=>[side,parseFloat(styles?.getPropertyValue(`--receipt-safe-${side}`))||0]));
+    let bounds=game,origin={left:0,top:0};
+    if(receiptModal){
+      const rect=receiptModal.getBoundingClientRect?.()||viewport;
+      const left=Math.max(game.left,rect.left),top=Math.max(game.top,rect.top);
+      bounds={left,top,width:Math.max(0,Math.min(game.left+game.width,rect.left+rect.width)-left),height:Math.max(0,Math.min(game.top+game.height,rect.top+rect.height)-top)};
+      origin={left:rect.left+(receiptModal.clientLeft||0)-(receiptModal.scrollLeft||0),top:rect.top+(receiptModal.clientTop||0)-(receiptModal.scrollTop||0)};
+    }
+    const frame=walletReceiptFrame(viewport,bounds,safe);
+    mini.style.position=receiptModal?'absolute':'fixed';mini.style.left=`${frame.left-origin.left}px`;mini.style.top=`${frame.top-origin.top}px`;mini.style.transform=`scale(${frame.scale})`;
+  }
+  function presentReceipt(epoch){
+    if(disposed||epoch!==receiptEpoch||mini.hidden||ui?.dialog.open)return;
+    doc.body.append(mini);receiptModal=null;
+    // A manual, non-focusable popover has its own top-layer box. It neither
+    // inherits a dialog's clip nor opens a second modal or steals input focus.
+    if(hasPopover){try{mini.setAttribute('popover','manual');mini.showPopover();popoverShown=true;}catch{popoverShown=false;mini.removeAttribute?.('popover');}}
+    if(!popoverShown){
+      receiptModal=[...(doc.querySelectorAll?.('dialog[open]')||[])].at(-1)||null;
+      if(receiptModal)receiptModal.append(mini);
+    }
+    positionReceipt();
+  }
+  view?.addEventListener?.('resize',positionReceipt);
+  view?.visualViewport?.addEventListener?.('resize',positionReceipt);
+  view?.visualViewport?.addEventListener?.('scroll',positionReceipt);
+  doc.addEventListener?.('scroll',positionReceipt,true);
 
   function prepareArtwork(note,img,id) {
     note.dataset.artState='loading';
@@ -281,7 +328,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     if(disposed||ui?.dialog.open)return;clearTransfer();onOpen();ensureUI();priorFocus=doc.activeElement;folded=true;historyLimit=60;setFold();
     renderBalances(true);renderHistory();ui.scroll.scrollTop=0;ui.dialog.showModal();drawWallet();trigger.setAttribute('aria-expanded','true');ui.closeButton.focus({preventScroll:true});
   }
-  function clearTransfer(){receiptEpoch++;clearTimeout(transferTimer);transferTimer=null;transfer?.remove();transfer=null;mini.hidden=true;mini.replaceChildren();mini.classList.remove('in-modal');if(!disposed)mount.append(mini);}
+  function clearTransfer(){receiptEpoch++;clearTimeout(transferTimer);transferTimer=null;transfer?.remove();transfer=null;if(popoverShown){try{mini.hidePopover();}catch{}popoverShown=false;}mini.hidden=true;mini.replaceChildren();receiptModal=null;if(!disposed)doc.body.append(mini);}
   function finishClose(){
     if(trigger.getAttribute('aria-expanded')!=='true')return;
     trigger.setAttribute('aria-expanded','false');clearTransfer();folded=true;setFold();onClose();
@@ -310,10 +357,9 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
       mini.append(title,route,slip);mini.hidden=false;
       const epoch=receiptEpoch;transferTimer=setTimeout(clearTransfer,6000);
       Promise.all([...slip.children].map(n=>n.artReady)).then(ready=>{if(disposed||epoch!==receiptEpoch)return;clearTimeout(transferTimer);if(ready.every(Boolean))slip.classList.add('is-ready');transferTimer=setTimeout(clearTransfer,reducedMotion()?2600:2200);});
-      // Bank services may rebuild their dialog synchronously after each save.
-      // Attach after that render, within its top layer, so a successful real
-      // withdrawal is visible rather than hiding behind the modal backdrop.
-      queueMicrotask(()=>{if(disposed||mini.hidden||ui?.dialog.open)return;const modal=[...(doc.querySelectorAll?.('dialog[open]')||[])].at(-1);if(modal){modal.append(mini);mini.classList.add('in-modal');}});
+      // Wait for synchronous bank rerenders; old queued receipts cannot move
+      // a newer one back into a previous modal or restart its animation.
+      queueMicrotask(()=>presentReceipt(epoch));
       return;
     }
     if(reducedMotion())return;
@@ -327,5 +373,5 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
   refreshBadge();
   const unsubscribe=ledger.subscribeCommitted(animateCommitted);
   return {open,close,refresh,isOpen:()=>!!ui?.dialog.open,
-    dispose(){if(disposed)return;close();disposed=true;unsubscribe();clearTransfer();clearTimeout(pulseTimer);if(frame!==null)cancelFrame(frame);resizeObserver?.disconnect();trigger.remove();status.remove();mini.remove();ui?.dialog.remove();style.remove();notes.clear();artwork.clear();seen.clear();}};
+    dispose(){if(disposed)return;close();disposed=true;unsubscribe();clearTransfer();clearTimeout(pulseTimer);if(frame!==null)cancelFrame(frame);resizeObserver?.disconnect();view?.removeEventListener?.('resize',positionReceipt);view?.visualViewport?.removeEventListener?.('resize',positionReceipt);view?.visualViewport?.removeEventListener?.('scroll',positionReceipt);doc.removeEventListener?.('scroll',positionReceipt,true);trigger.remove();status.remove();mini.remove();ui?.dialog.remove();style.remove();notes.clear();artwork.clear();seen.clear();}};
 }

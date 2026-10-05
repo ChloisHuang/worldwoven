@@ -21,7 +21,7 @@ function setup(saved = {}, options = {}) {
       credits: [...store.bank.credits, clone(deposit)]};
     return {ok: true, replayed: false, receiptId: deposit.receiptId};
   };
-  const careers = createFormalCareers({saved: store.careers, creditWageToBank, getClock: () => clock,
+  const careers = createFormalCareers({worldSeed:785,saved: store.careers, creditWageToBank, getClock: () => clock,
     ...options, saveState: state => {
       if (flags.throw) throw Error('quota');
       if (flags.async) return Promise.reject(Error('unsupported'));
@@ -81,7 +81,7 @@ const eligible = setup(); eligible.qualify(); eligible.flags.reject = true;
 assert.equal(eligible.careers.apply(ROLE, {ageYears: 18}).code, 'save-failed'); assert(!eligible.careers.isHired());
 eligible.flags.reject = false; assert(eligible.careers.apply(ROLE, {ageYears: 18}).ok);
 assert.equal(eligible.careers.state().tenure.sinceHour, 8);
-assert.equal(eligible.careers.apply(ROLE, {ageYears: 18}).code, 'already-employed');
+assert.equal(eligible.careers.apply(ROLE, {ageYears: 18}).code, 'already-applied-today');
 assert(setup(eligible.store).careers.isHired());
 const occupied = setup({}, {slots: [{...FORMAL_CAREER_SLOTS[0], holderId: 'existing-official'}]});
 occupied.qualify(); assert.deepEqual(occupied.careers.apply(ROLE, {ageYears: 18}).reasons, ['no-vacancy']);
@@ -107,8 +107,8 @@ assert.equal(attendingReload.careers.state().lastDuty.stage, 'missed');
 assert.equal(attendingReload.careers.state().performance, -1);
 assert.equal(setup(attendingReload.store, {clock: {hour: 11.6}}).careers.state().performance, -1, 'reloading cannot repeat an evaluation');
 assert.equal(attendingReload.careers.dutyEvent('court-completed').code, 'invalid-duty-stage');
-assert(attendingReload.careers.resign().ok); assert(attendingReload.careers.apply(ROLE, {ageYears: 18}).ok);
-assert.equal(attendingReload.careers.beginDuty().code, 'duty-missed');
+assert(attendingReload.careers.resign().ok); assert.equal(attendingReload.careers.apply(ROLE, {ageYears: 18}).code,'already-applied-today');
+assert.equal(attendingReload.careers.state().lastDuty.reason,'reloaded');
 assert.equal(attendingReload.bank.state().cash, 0);
 const blockedRecovery = createFormalCareers({saved: attendingSave.careers, saveState: () => false,
   getClock: () => ({day: 1, hour: 12, seconds: 0})});
@@ -136,8 +136,8 @@ assert.equal(cleanupReload.careers.settle().code, 'work-incomplete');
 assert(cleanupReload.careers.resign().ok); assert(cleanupReload.careers.apply(ROLE, {ageYears: 18}).ok);
 cleanupReload.ready(11.49); assert.equal(cleanupReload.careers.state().lastDuty.wage, 18);
 assert(cleanupReload.careers.settle().ok); assert.equal(cleanupReload.bank.state().cash, 0); assert.equal(cleanupReload.bank.state().bank, 38);
-assert(cleanupReload.careers.resign().ok); assert(cleanupReload.careers.apply(ROLE, {ageYears: 18}).ok);
 assert.equal(cleanupReload.careers.beginDuty().code, 'already-paid-today');
+assert(cleanupReload.careers.resign().ok); assert.equal(cleanupReload.careers.apply(ROLE, {ageYears: 18}).code,'already-applied-today');
 assert.equal(cleanupReload.bank.history().length, 2);
 let cashFallbackCalls = 0;
 const unavailableBank = setup({}, {creditWageToBank: null,
@@ -198,12 +198,13 @@ for (const started of [false, true]) {
   assert.equal(postponed.careers.settle().code, 'work-incomplete');
   const reload = setup(postponed.store, {clock: {hour: started ? 11.6 : 8}});
   assert.equal(reload.careers.state().performance, 0);
-  assert(reload.careers.resign().ok); assert(reload.careers.apply(ROLE, {ageYears: 18}).ok);
   assert.equal(reload.careers.beginDuty().code, 'court-postponed');
+  assert(reload.careers.resign().ok); assert.equal(reload.careers.apply(ROLE, {ageYears: 18}).code,'already-applied-today');
   reload.clock.day = 2; reload.clock.hour = 8;
   assert(reload.careers.observeDay().unchanged);
   assert.equal(reload.careers.state().performance, 0);
   assert.equal(reload.bank.state().cash, 0);
+  assert(reload.careers.apply(ROLE, {ageYears:18}).ok);
   assert(reload.careers.beginDuty().ok, 'an excused day must not block the next shift');
   assert.equal(reload.careers.state().lastEvaluation, null);
 

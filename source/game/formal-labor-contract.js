@@ -1,7 +1,7 @@
 // The live labor controller owns tools, physical work and employer proximity.
 // This bridge pins each new work slip to its pay source before it can start.
 // An old unmarked slip always remains temporary, even after another job is held.
-const MESSAGES={
+const MESSAGES={'interview-rejected':'本次面谈未录用，结果已保存，下一模拟日可再申请','already-applied-today':'本岗位今天已提交过申请，请查看已保存结果，下一模拟日再来',
   'adult-required':'需年满18岁','ritual-required':'待客礼仪需要2点，先完成酒楼临工或读书',
   'gardening-required':'园艺需要2点，先完成两份真实浇花临工',
   'already-employed':'你已有长期职位，结清并离职后才能转职','no-vacancy':'这个岗位暂无空缺',
