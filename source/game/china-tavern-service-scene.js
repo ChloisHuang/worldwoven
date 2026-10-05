@@ -172,7 +172,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  function handoverOut(){const r=role(),h=HANDOVER[r];if(state?.stage!=='handover-out'||!nearPlayer(h.player)||!at(staff[r],h.npc,.15)||state.heldTrayId)return false;
   if(!persist({...copy(state),stage:'finished'}))return false;record('handover-out',{role:r,from:'player',to:'storage',holderId:tenureOwns(r)?'player':staff[r].station.id});return true;}
  function beginReturn(){if(state?.stage!=='working'||state.heldTrayId||state.orders.some(o=>o.holder===(role()==='chef'?'cook':'assistant')&&['cooked','return'].includes(o.stage)))return false;activity=null;pendingChoice=null;return persist({...copy(state),stage:'handover-out'});}
- function collect(o){if(o.stage!=='ordered'||o.collected)return false;if(CHINA_OFFICIAL_IDS.includes(o.customerId)){const payment=officialEconomy?.prepareMealPayment({actorId:o.customerId,orderId:o.id,amount:o.price});if(!payment?.ok)return false;const next=copy(state),row=next.orders.find(q=>q.id===o.id);Object.assign(row,{collected:true,customerCopper:payment.snapshot.accounts?.[o.customerId]?.cash??0,stage:'paid',payment:'settled'});if(!payment.replayed)next.till+=o.price;if(!persist(next,true,payment))return false;record('customer-payment',{orderId:o.id,amount:o.price,to:'tavern-till',from:o.customerId});return true;}const next=copy(state),row=next.orders.find(q=>q.id===o.id),visitor=next.visitors.find(v=>v.id===o.customerId);if(visitor&&!affordable(visitor,o.price)){deferGuestMeal(visitor,guests.find(n=>n.station.id===visitor.id));return false;}if(visitor)visitor.copper-=o.price;Object.assign(row,{collected:true,customerCopper:visitor?.copper??0,stage:'paid'});if(visitor)next.till+=row.price;if(!persist(next))return false;record(visitor?'customer-payment':'player-payment-held',{orderId:o.id,amount:o.price,to:visitor?'tavern-till':'wallet-reservation',from:o.customerId});record('cook-received-order',{orderId:o.id});return true;}
+ function collect(o){if(o.stage!=='ordered'||o.collected)return false;if(CHINA_OFFICIAL_IDS.includes(o.customerId)){const payment=officialEconomy?.prepareMealPayment({actorId:o.customerId,orderId:o.id,amount:o.price});if(!payment?.ok)return false;const next=copy(state),row=next.orders.find(q=>q.id===o.id);Object.assign(row,{collected:true,customerCopper:payment.snapshot.accounts?.[o.customerId]?.cash??0,stage:'paid',payment:'reserved'});if(!persist(next,true,payment))return false;record('customer-prepayment',{orderId:o.id,amount:o.price,to:'order-reserve',from:o.customerId});return true;}const next=copy(state),row=next.orders.find(q=>q.id===o.id),visitor=next.visitors.find(v=>v.id===o.customerId);if(visitor&&!affordable(visitor,o.price)){deferGuestMeal(visitor,guests.find(n=>n.station.id===visitor.id));return false;}if(visitor)visitor.copper-=o.price;Object.assign(row,{collected:true,customerCopper:visitor?.copper??0,stage:'paid'});if(visitor)next.till+=row.price;if(!persist(next))return false;record(visitor?'customer-payment':'player-payment-held',{orderId:o.id,amount:o.price,to:visitor?'tavern-till':'wallet-reservation',from:o.customerId});record('cook-received-order',{orderId:o.id});return true;}
  function markDirty(next,tableId){const table=next.tables.find(t=>t.id===tableId);table.dirty=true;table.dirtyVersion=(table.dirtyVersion||0)+1;table.responsibility=tenureOwns('assistant')?{actorId:'player',roleId:ROLE.assistant,receiptId:playerOwns('assistant')?state.receiptId:null}:{actorId:M.assistant,roleId:ROLE.assistant,receiptId:null};}
  function dirtyUse(o,table){
   if(o.dirtyUse)return true;
@@ -198,7 +198,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   if(code&&!review(ticket,code,target,tray))return false;if(!code&&!correctReviews(ticket))return false;
   const next=copy(state),t=next.orders.find(o=>o.id===tray.id),intended=next.orders.find(o=>o.id===ticket.id);
   Object.assign(t,{stage:code?'wrong':ticket.customerId==='player'?'ready':'eating',holder:'table',placedTableId:target.tableId,placedMealPoint:target.mealPoint.slice(),deliveryTicketId:ticket.id});
-  if(!code){for(const r of intended.reviews)if(r.code!=='dirty-table')r.corrected=true;next.selectedOrderId=null;next.completedTasks++;}
+  if(!code){if(CHINA_OFFICIAL_IDS.includes(t.customerId)&&t.payment==='reserved'){next.till+=t.price;t.payment='settled';}for(const r of intended.reviews)if(r.code!=='dirty-table')r.corrected=true;next.selectedOrderId=null;next.completedTasks++;}
   next.heldTrayId=null;if(!persist(next))return false;record(code||'delivered',{orderId:ticket.id,trayId:tray.id,tableId:target.tableId});return true;
  }
  function pickup(o){if(state.heldTrayId||o.stage!=='pass'||!nearPlayer(P.hostPass))return false;const next=copy(state);next.heldTrayId=o.id;next.orders.find(q=>q.id===o.id).stage='carrying';next.orders.find(q=>q.id===o.id).holder='assistant';return persist(next);}
@@ -281,6 +281,9 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  const freePassSlot=()=>{const used=new Set(state.orders.filter(o=>['cooked','pass','carrying','wrong'].includes(o.stage)).map(o=>o.passSlot??o.guestIndex));return [0,1].find(i=>!used.has(i))??null;};
  function prepareDish(o){const slot=freePassSlot();return slot!==null&&stage(o,'cooked',{mealId:o.id+'-dish',holder:'cook',passSlot:slot,passPoint:PASS_SLOTS[slot].slice()});}
 
+ // Official prepayments stay refundable against their order and never enter
+ // earned till until the actual dish is delivered. Owners can withdraw only
+ // earned revenue; cancellation before delivery cannot reduce prior till.
  // A bounded lease borrows one existing official. His court controller pauses
  // while this lease owns movement; the two established visitors never change.
  function officialMeal(id){return state?.officialDiner?.actorId===id?copy(state.officialDiner):null;}
@@ -297,9 +300,9 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  function releaseOfficialMeal(id){const n=officialActor(id);if(!officialMeal(id)||!n||!unmount(n))return false;if(!changeWorld(next=>{next.officialDiner=null;}))return false;furniture.releaseActor(id);paths.delete(n);n.route=[];n.walking=false;record('official-meal-returned',{customerId:id});return true;}
  function cancelOfficialMeal(id){
   const lease=officialMeal(id),n=officialActor(id),o=lease&&order(lease.orderId);if(!lease||!n||!o)return false;if(lease.mode==='leaving'||o.consumed)return releaseOfficialMeal(id);if(!unmount(n))return false;
-  const refund=o.collected?officialEconomy?.prepareMealRefund({actorId:id,orderId:o.id,amount:o.price}):null;if(o.collected&&!refund?.ok)return false;
-  const next=copy(state),row=next.orders.find(q=>q.id===o.id);if(refund&&!refund.replayed)next.till-=o.price;
-  Object.assign(row,{cancelled:true,collected:false,payment:refund?'refunded':'unpaid'});
+  const refundable=o.collected&&o.payment==='reserved',refund=refundable?officialEconomy?.prepareMealRefund({actorId:id,orderId:o.id,amount:o.price}):null;if(refundable&&!refund?.ok)return false;
+  const next=copy(state),row=next.orders.find(q=>q.id===o.id);
+  Object.assign(row,{cancelled:true,collected:o.payment==='settled',payment:refund?'refunded':o.payment==='settled'?'settled':'unpaid'});
   if(!row.mealId){row.stage='done';row.holder=null;}else if(row.holder==='table'){row.stage='dirty';markDirty(next,row.tableId);}else if(row.holder==='assistant')row.stage='return';
   next.officialDiner=null;if(!persist(next,true,refund))return false;phases.delete(o.id);if(activity?.orderId===o.id)activity=null;if(pendingChoice?.orderId===o.id)pendingChoice=null;furniture.releaseActor(id);paths.delete(n);n.route=[];n.walking=false;record('official-meal-cancelled',{customerId:id,orderId:o.id});return true;
  }
@@ -312,7 +315,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   next.orders=next.orders.filter(o=>o.customerId!=='player'||o.stage!=='done');next.orders.push(o);if(!persist(next))return false;record('requested',{orderId:o.id});const paid=reservePlayerMeal(order(o.id));if(paid)notify(`已暂扣${dish.price}铜文，许安将按客单过来；送达前取消可退回`);return paid;
  }
  function reservePlayerMeal(o){const result=chargePlayer('reserve',o);if(!result.ok){stage(o,'done',{cancelled:true,payment:'unpaid'});notify(result.code==='insufficient-cash'?'钱包铜文不足，请先到钱庄取款':'点餐款暂未记妥，请稍后重试');return false;}return stage(o,'requested',{payment:'reserved'});}
- function completeDelivery(o){if(o.customerId!=='player')return stage(o,'eating',{holder:'table'});
+ function completeDelivery(o){if(CHINA_OFFICIAL_IDS.includes(o.customerId)){if(!o.collected||!['reserved','settled'].includes(o.payment))return false;const next=copy(state),row=next.orders.find(q=>q.id===o.id);if(row.payment!=='settled')next.till+=row.price;Object.assign(row,{stage:'eating',holder:'table',payment:'settled'});if(!persist(next))return false;phases.delete(o.id);record('delivered',{orderId:o.id});record('customer-payment',{orderId:o.id,amount:o.price,to:'tavern-till',from:o.customerId});return true;}if(o.customerId!=='player')return stage(o,'eating',{holder:'table'});
   const result=chargePlayer('settle',o);if(!result.ok)return false;const next=copy(state),row=next.orders.find(q=>q.id===o.id);if(row.payment!=='settled')next.till+=row.price;Object.assign(row,{stage:'ready',holder:'table',payment:'settled'});if(!persist(next))return false;phases.delete(o.id);record('delivered',{orderId:o.id});record('customer-payment',{orderId:o.id,amount:o.price,to:'tavern-till',from:'player'});return true;
  }
  function cancelPlayerMeal(){const o=state?.orders.find(o=>o.customerId==='player'&&o.stage!=='done');if(!o||o.cancelled)return false;
