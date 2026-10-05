@@ -45,7 +45,7 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
  const herald=npcs.find(n=>n.station.id===E.herald.id),scribe=npcs.find(n=>n.station.id==='cn-calligraphy'),recipient=npcs.find(n=>n.station.id==='cn-garden'),emperor=npcs.find(n=>n.station.id==='cn-emperor');
  if(!herald||!scribe||!recipient||!emperor||!palace||!audience)return null;
  const actors={herald,scribe,recipient},owned=new Set([herald]),tasks=new Map(),leases=new Map(),ledger=createEdictLedger(saved),props=createPalaceEdictProps(lot.group),history=[],failures=[];
- let time=0,phaseTime=0,order=null,state={},disposed=false,speaker=null,utterance='';
+ let time=0,phaseTime=0,order=null,state={},disposed=false,speaker=null,utterance='',borrower=null,borrowUntil=0;
  const persist=()=>saveState(ledger.snapshot());
  const record=(event,n)=>{history.push({event,documentId:order?.id||null,audienceId:order?.audienceId||null,actor:n?.station.id||null,time:+time.toFixed(2),position:n?.root.position.toArray()});if(history.length>72)history.shift();};
  const tell=(n,text)=>{const el=n.label?.querySelector?.('small');if(el)el.textContent=text;};
@@ -83,10 +83,19 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
  persist();
  return {
   owns:n=>owned.has(n),socialStatus:n=>owned.has(n)?{busy:false,attention:true,job:n===speaker?utterance:tasks.get(n)?.label||'在传令案前候命'}:null,
-  reissueInterrupted(documentId){if(disposed||order)return false;return prepare(ledger.reissue(documentId,audience.state().schedule),true);},
+  // Only the original idle herald may be lent. Wen, Bo and an unfinished
+  // decree remain under this controller, including after a cancelled loan.
+  heraldAvailability(owner){const a=audience.state(),l=ledger.snapshot();return disposed?{ok:false,reason:'service-unavailable'}:borrower&&borrower!==owner?{ok:false,reason:'herald-borrowed'}:order||l.outcome==='interrupted'||ledger.canBegin(a.schedule)?{ok:false,reason:'edict-unfinished'}:a.phase!=='waiting'?{ok:false,reason:'court-busy'}:tasks.has(herald)&&!arrived(herald)?{ok:false,reason:'herald-returning'}:paused(herald)?{ok:false,reason:'herald-in-conversation'}:{ok:true,reason:null};},
+  borrowHerald(owner){if(!owner||!this.heraldAvailability(owner).ok)return false;if(!borrower){borrower=owner;owned.delete(herald);tasks.delete(herald);herald.route=[];record('herald-loaned:'+owner,herald);}borrowUntil=time+8;return true;},
+  releaseHerald(owner){if(borrower!==owner)return false;borrower=null;owned.add(herald);herald.route=[];herald.walking=false;if(herald.poseContext){herald.poseContext.handoff=false;herald.poseContext.receptionWriting=false;}task(herald,'return-after-loan',[[-16.8,.215,-14.4],[-14.4,.145,-14.4],[-14.4,.115,-10],[-14.4,.115,.4],[-3,.13,11],[2,.13,11],[2,1.415,6],[2,1.415,3],P.sealStand],'文书接待告一段落 · 沿公共通道回传令案');record('herald-returned:'+owner,herald);return true;},
+  borrowedHerald:owner=>borrower===owner,
+  animateBorrowedSeal(owner,phase,elapsed){if(borrower!==owner)return false;props.animateBorrowedSeal(herald,phase,elapsed);return true;},
+  reissueInterrupted(documentId){if(disposed||order||borrower)return false;return prepare(ledger.reissue(documentId,audience.state().schedule),true);},
   update(dt,t,playerState={}){
    if(disposed)return;state=playerState;time+=dt;
-   const a=audience.state();if(!order&&a.phase==='waiting'&&a.schedule.outcome==='completed'&&ledger.canBegin(a.schedule)&&!paused(scribe)&&!paused(recipient))prepare(ledger.begin(a.schedule));
+   if(borrower&&time>borrowUntil)this.releaseHerald(borrower);
+   if(!borrower&&!order&&arrived(herald))tasks.delete(herald);
+   const a=audience.state();if(!borrower&&!order&&!tasks.has(herald)&&a.phase==='waiting'&&a.schedule.outcome==='completed'&&ledger.canBegin(a.schedule)&&!paused(scribe)&&!paused(recipient))prepare(ledger.begin(a.schedule));
    for(const n of owned){n.walking=false;const s=tasks.get(n);tell(n,n===speaker?utterance:s?.label||'在传令案前候命');if(!paused(n)&&s)travel(n,s,dt);}
    const stage=order?.stage,halt=!!order&&[...owned].some(paused)||state.conversationActorId===emperor.station.id;
    if(order&&!halt){
@@ -118,7 +127,7 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
   },
   snapshot:()=>({version:1,ledger:ledger.snapshot(),runtime:captureWorldRuntime({time,phaseTime,order,speakerId:speaker?.station.id||null,utterance,history,owned:[...owned].map(n=>n.station.id),leases:[...leases].map(([n,t])=>[n.station.id,t]),tasks:[...tasks].map(([n,s])=>[n.station.id,s])})}),
   restore(snapshot){if(!resumable(snapshot))return false;const s=restoreWorldRuntime(snapshot.runtime,{npcs});time=Math.max(0,s.time||0);phaseTime=Math.max(0,s.phaseTime||0);order=s.order;speaker=npcs.find(n=>n.station.id===s.speakerId)||null;utterance=s.utterance||'';history.splice(0,history.length,...(s.history||[]));owned.clear();owned.add(herald);for(const id of s.owned||[]){const n=npcs.find(n=>n.station.id===id);if(n&&[herald,scribe,recipient].includes(n))owned.add(n);}leases.clear();for(const[id,t]of s.leases||[]){const n=npcs.find(n=>n.station.id===id);if(owned.has(n))leases.set(n,t);}tasks.clear();for(const[id,t]of s.tasks||[]){const n=npcs.find(n=>n.station.id===id);if(owned.has(n)){tasks.set(n,{...t,planned:false,stalled:0});n.route=[];}}if(speaker===emperor)palace.setDutyLine(E.owner,utterance);props.update(order,actors,phaseTime,!order&&ledger.snapshot().outcome==='completed',false);return true;},
-  state:()=>({time,phaseTime,order:order?copy(order):null,ledger:ledger.snapshot(),speaker:speaker?.station.id||null,utterance,history:copy(history),failures:copy(failures),props:props.state(),actors:[...owned].map(n=>({id:n.station.id,position:n.root.position.toArray(),stage:tasks.get(n)?.id||'waiting',waypoint:tasks.get(n)?.index||0,arrived:arrived(n),walking:n.walking,paused:paused(n)})),rewards:false}),
+  state:()=>({time,phaseTime,heraldBorrower:borrower,order:order?copy(order):null,ledger:ledger.snapshot(),speaker:speaker?.station.id||null,utterance,history:copy(history),failures:copy(failures),props:props.state(),actors:[...owned].map(n=>({id:n.station.id,position:n.root.position.toArray(),stage:tasks.get(n)?.id||'waiting',waypoint:tasks.get(n)?.index||0,arrived:arrived(n),walking:n.walking,paused:paused(n)})),rewards:false}),
   dispose({suspend=false}={}){if(disposed)return;disposed=true;if(order&&!suspend){ledger.finish(false);persist();}if(!suspend)palace.releaseDuty(E.owner);palace.setDutyLine(E.owner,null);for(const n of[...owned]){n.route=[];n.walking=false;release(n);}owned.clear();tasks.clear();props.dispose();}
  };
 }

@@ -1,0 +1,144 @@
+import {followActorRoute} from './actor-navigation.js';
+import {PALACE_EDICT} from './china-palace-edict-place.js';
+import {consortCharterId} from './consort-petition-ledger.js';
+import {createConsortCharterProps} from './china-consort-petition-props.js';
+
+export const CONSORT_PETITION_PLACE=Object.freeze({
+ owner:'china-consort-petition',reception:[-18.85,.215,-10.5],receptionPlayer:[-18.85,.215,-9.3],
+ emperor:[-15.1,.215,-13.35],herald:[-16.8,.215,-13.35],player:[-15.1,.145,-14.6],
+ targetId:'cn-consort-public-audience',receptionTargetId:'cn-residence-living',
+});
+const C=CONSORT_PETITION_PLACE,OWNER=C.owner,E=PALACE_EDICT.points;
+const TO_PUBLIC=[[2,1.415,3],[2,1.415,6],[2,.13,11],[-3,.13,11],[-14.4,.115,.4],[-14.4,.115,-10],[-14.4,.145,-14.4],[-16.8,.215,-14.4],C.herald];
+const RECEPTION_PATH=[[-18.85,.215,-13.35],C.reception];
+const TO_DESK=[C.herald,...TO_PUBLIC.slice(0,-1).reverse(),E.sealStand];
+const copy=v=>JSON.parse(JSON.stringify(v)),point=a=>({x:a[0],y:a[1],z:a[2]});
+const near=(p,a,r=.12)=>!!p&&Math.hypot(p.x-a[0],p.z-a[2])<r&&Math.abs(p.y-a[1])<.35;
+const TERMINAL=new Set(['completed','missed','postponed','interrupted']);
+const PHASES=new Set(['summoning','audience','commit-audience','to-desk','place-charter','drafting','sealing','pickup-charter','to-meeting','await-handoff','handoff','commit-handoff','reading','commit-reading','retrieve-charter','recover-charter']);
+const REASONS={
+ 'court-busy':'朝会及朝后事务尚未结束，请稍后再来','court-unfinished':'今日11:30朝会尚未结束，暂不另排召见','outside-hours':'召见安排在朝后至晚间，明日再来',
+ 'edict-unfinished':'沈序正在办理原宫苑文书，办结后才能接待','herald-returning':'沈序正沿公共通道回传令案，稍后再来','herald-borrowed':'沈序正在接待另一件事务',
+ 'herald-in-conversation':'沈序正在交谈，请稍候','herald-away':'沈序正在前往后宫公共接待处','come-to-reception':'请到后宫公共接待处，当面向沈序自荐',
+ 'come-to-audience':'请到后宫公共通廊东口的听候处','emperor-busy':'皇帝手边公务尚未结束，请稍后再候召','player-busy':'请先结束当前活动',
+ 'left-meeting':'你已离开听候处，本次会面暂停，申请仍然保留','audience-timeout':'此次等候超时，已释放公务安排，可回来重新候召','save-failed':'进度暂未保存，完成动作将保留并重试',
+ 'adults-required':'参与者均须年满18岁','service-unavailable':'接待暂不可用','awaiting-choice':'皇帝已给出答复，请由你明确接受或婉拒',
+};
+
+// Clock/court checks are cheap and use the existing services. No timer creates
+// approval: only actual arrival plus a completed, uninterrupted encounter does.
+export function consortCourtWindow({clock,audience,edict,owner=OWNER}={}){
+ if(!clock||!Number.isSafeInteger(clock.day)||!Number.isFinite(clock.hour))return {ok:false,reason:'service-unavailable'};
+ if(clock.hour<12||clock.hour>=21)return {ok:false,reason:clock.hour<12?'court-unfinished':'outside-hours'};
+ const a=audience?.state?.(),s=a?.schedule;
+ if(!s||s.day!==clock.day||s.calledDay!==clock.day||!TERMINAL.has(s.outcome))return {ok:false,reason:'court-unfinished'};
+ if(a.phase!=='waiting')return {ok:false,reason:'court-busy'};
+ return edict?.heraldAvailability?.(owner)||{ok:false,reason:'service-unavailable'};
+}
+
+export function createChinaConsortPetitionService({npcs,lot,palace,audience,edict,doors,planPath,moveActor,poseContext,getPlayer,getClock,getLedger,getBusy=()=>false,canSee=()=>true,saved={},saveState=()=>true,notify=()=>{}}){
+ const herald=npcs.find(n=>n.station.id==='cn-palace-herald'),emperor=npcs.find(n=>n.station.id==='cn-emperor');
+ if(!herald||!emperor||!palace||!edict||!audience)return null;
+ const props=createConsortCharterProps(lot.group),receipts=new Map();
+ let flow=null,document=null,task=null,state={},time=0,loan=false,disposed=false,lastReason=null,dirty=false,retryAt=0;
+ const ledger=()=>getLedger?.(),petition=()=>ledger()?.petition(),clock=()=>getClock?.(),player=()=>getPlayer?.();
+ const adults=()=>player()?.ageYears>=18&&emperor.station.ageYears>=18&&herald.station.ageYears>=18;
+ const tell=text=>{const el=herald.label?.querySelector?.('small');if(el)el.textContent=text;};
+ const emit=reason=>{lastReason=reason;return {ok:false,code:reason,message:REASONS[reason]||reason};};
+ const window=()=>consortCourtWindow({clock:clock(),audience,edict});
+ const paused=()=>state.conversationActorId===herald.station.id||state.conversationActorId===emperor.station.id||!!getBusy();
+ const atReception=()=>loan&&!task?.arrived?false:loan&&near(herald.root.position,C.reception,.25)&&near(player()?.root.position,C.receptionPlayer,1.35)&&canSee(player().root.position,herald.root.position);
+ const atMeeting=()=>near(player()?.root.position,C.player,1.15)&&canSee(player().root.position,emperor.root.position);
+ const emperorReady=()=>palace.dutyState(OWNER)?.ready&&near(emperor.root.position,C.emperor,.3);
+ const present=()=>loan&&edict.borrowedHerald(OWNER)&&near(herald.root.position,C.herald,.25)&&emperorReady()&&atMeeting()&&!paused()&&adults();
+ const snapshot=()=>({version:1,time,flow:copy(flow),document:copy(document),task:copy(task),receipts:[...receipts.values()].map(copy),lastReason});
+ function save(){try{const result=saveState(snapshot());dirty=result===false||!!result?.then;if(result?.then)Promise.resolve(result).catch(()=>{});}catch{dirty=true;}if(dirty)lastReason='save-failed';return !dirty;}
+ function phase(value){flow.phase=value;flow.elapsed=0;task=null;save();}
+ function route(path,label){task={path:path.map(a=>a.slice()),index:0,arrived:false,planned:false,stalled:0,retries:0,label};herald.route=[];}
+ function borrow(){if(!edict.borrowHerald(OWNER))return false;loan=true;return true;}
+ function release(){palace.setDutyLine(OWNER,null);palace.releaseDuty(OWNER);if(loan)edict.releaseHerald(OWNER);loan=false;task=null;}
+ function cancel(reason){if(document&&!document.filed&&document.holder==='herald'){document.position=props.state().scrollPosition||[herald.root.position.x,herald.root.position.y+1,herald.root.position.z];document.restPoint=herald.root.position.toArray();document.holder='world';}flow=null;release();lastReason=reason;save();return emit(reason);}
+ function begin(kind){flow={kind,phase:kind==='audience'?'summoning':'to-desk',elapsed:0,age:0,day:clock().day,applicationId:petition().id};lastReason=null;}
+ function move(dt){
+  if(!task||task.arrived)return;const p=task.path[task.index];
+  if(near(herald.root.position,p)){herald.route=[];task.planned=false;task.retries=0;if(++task.index===task.path.length)task.arrived=true;return;}
+  if(!task.planned){herald.route=planPath(herald.root.position,point(p),.25);task.planned=true;}
+  const step=followActorRoute(herald,dt,{doors,moveActor,npcs,playerPosition:player()?.root.position,speedScale:.78});
+  task.stalled=herald.walking||step.waiting?0:task.stalled+dt;if(task.stalled>4){task.stalled=0;task.planned=false;task.retries++;}
+ }
+ function record(kind){
+  const p=petition(),applicationId=kind==='submission'?ledger().availability().applicationId:p?.id,id=`${applicationId}:${kind}`,existing=receipts.get(id);if(existing)return existing.receipt;
+  const participants=kind==='submission'||kind==='charter-handoff'?['player',herald.station.id]:['player',emperor.station.id,herald.station.id];
+  const r={id:applicationId+':'+kind,kind,applicationId,playerId:'player',emperorId:emperor.station.id,heraldId:herald.station.id,targetId:kind==='submission'?C.receptionTargetId:C.targetId,completed:true,participants,at:{day:clock().day,hour:clock().hour},...(kind.startsWith('charter-')?{documentId:document.id}:{})};
+  receipts.set(r.id,{receipt:r,positions:{player:player().root.position.toArray(),herald:herald.root.position.toArray(),emperor:emperor.root.position.toArray()},documentId:document?.id||null,sealed:!!document?.sealed});return r;
+ }
+ function settle(kind){
+  const p=petition(),r=receipts.get(p.id+':'+kind)?.receipt;if(!r){lastReason='physical-receipt-missing';return false;}const result=kind==='audience'?ledger().reviewAudience(p.id,r):kind==='charter-handoff'?ledger().receiveCharter(p.id,r):ledger().completeInvestiture(p.id,r);
+  if(!result.ok){lastReason=result.code;return false;}
+  if(kind==='charter-handoff'){document.holder='player';phase('reading');palace.setDutyLine(OWNER,'册封不代替个人意愿，日常交往仍须彼此同意。');}
+  else {if(document&&kind==='charter-reading')document.filed=true;flow=null;release();save();notify(kind==='audience'?(result.petition.stage==='awaiting-choice'?'皇帝已准予自荐。是否接受，由你决定。':'皇帝未准本次自荐，今日结果已记下。'):'沈序宣读完毕，册封回执已落定，你取得独立妃嫔名位。');}
+  return true;
+ }
+ function publicReady(stage){const p=petition();if(p?.stage!==stage)return emit('wrong-petition-stage');if(!adults())return emit('adults-required');if(getBusy())return emit('player-busy');const w=window();if(!w.ok)return emit(w.reason);if(!atMeeting())return emit('come-to-audience');if(!borrow())return emit('herald-away');return {ok:true};}
+ const api={
+  owns:n=>loan&&edict.borrowedHerald(OWNER)&&n===herald,
+  socialStatus:n=>loan&&n===herald?{busy:!!flow,attention:!flow,job:task?.label||'后宫公共接待 · 自荐与册封问询'}:null,
+  interactionTarget(){const p=petition(),meeting=p&&['submitted','accepted','charter-held'].includes(p.stage);return {id:meeting?C.targetId:C.receptionTargetId,name:meeting?'后宫公共听候处':'后宫公共接待 · 沈序',position:(meeting?C.player:C.receptionPlayer).slice(),roomId:meeting?'outdoors':'residence-living',radius:1.1};},
+  reception(){const w=window();if(!w.ok)return emit(w.reason);if(!adults())return emit('adults-required');if(!loan){if(!borrow())return emit('herald-away');route([...TO_PUBLIC,...RECEPTION_PATH],'沈序沿公共通道前往后宫接待处');save();}return {ok:true,ready:atReception()};},
+  submit(){if(disposed)return emit('service-unavailable');if(getBusy())return emit('player-busy');if(!adults())return emit('adults-required');const w=window();if(!w.ok)return emit(w.reason);if(!atReception())return emit('come-to-reception');const available=ledger().availability();if(!available.ok)return available;const r=record('submission'),out=ledger().submit(r);if(out.ok){lastReason=null;save();notify('沈序已收下自荐，请到公共通廊东口候召。');}else lastReason=out.code;return out;},
+  requestAudience(){if(flow)return emit('petition-busy');const out=publicReady('submitted');if(!out.ok)return out;if(!palace.requestDuty(OWNER,{kind:'edict-review',background:true}))return emit('emperor-busy');begin('audience');route(near(herald.root.position,C.reception,.4)?[...RECEPTION_PATH.slice(0,1),C.herald]:[C.herald],'沈序到公共听候处陪同召见');save();return {ok:true};},
+  respond(choice){const p=petition();if(!p)return emit('wrong-petition-stage');const out=ledger().respond(p.id,choice);if(out.ok){lastReason=null;if(choice==='decline')release();save();}else lastReason=out.code;return out;},
+  requestInvestiture(){if(flow)return emit('petition-busy');const p=petition(),out=publicReady(p?.stage==='charter-held'?'charter-held':'accepted');if(!out.ok)return out;const gate=ledger().acceptanceAvailability();if(!gate.ok)return gate;begin('investiture');if(!document||document.id!==consortCharterId(p.id))document={id:consortCharterId(p.id),applicationId:p.id,holder:p.stage==='charter-held'?'player':'herald',drafted:p.stage==='charter-held',sealed:p.stage==='charter-held',filed:false};if(document.holder==='world'){flow.phase='retrieve-charter';route([document.restPoint],'沈序沿路取回上次留存的同号册书');}else if(document.sealed){flow.phase='to-meeting';route([C.herald],'沈序携同号册书回到公共听候处');}else route(TO_DESK,'沈序沿原通道回传令案拟册并用印');save();return {ok:true};},
+  cancel:()=>cancel('left-meeting'),
+  verifyReceipt(r,context={}){const e=receipts.get(r?.id);return !!e&&JSON.stringify(e.receipt)===JSON.stringify(r)&&r.kind===context.kind&&r.applicationId===context.applicationId&&(!context.documentId||context.documentId===e.documentId&&e.sealed);},
+  update(dt,t,playerState={}){
+   if(disposed)return;state=playerState;time+=Math.max(0,dt);
+   if(dirty){if(time>=retryAt){retryAt=time+1;save();}if(dirty)return;}
+   // A saved completed action may commit after the people have left. The
+   // registry proves that past event; retry never performs it a second time.
+   if(flow?.phase?.startsWith('commit-')){const kind=flow.phase==='commit-audience'?'audience':flow.phase==='commit-handoff'?'charter-handoff':'charter-reading';if(!settle(kind)){release();props.update(document,{herald,player:player()},null);return;}if(!flow)return;if(!loan){flow=null;save();return;}}
+   const w=window();if(loan&&(!w.ok||!borrow())){cancel(w.reason||'herald-away');return;}
+   if(loan&&!flow&&!near(player()?.root.position,C.receptionPlayer,9)&&!near(player()?.root.position,C.player,9)){cancel('left-meeting');return;}
+   if(flow){
+    flow.age+=dt;if(flow.day!==clock().day||flow.age>300){cancel('audience-timeout');return;}
+    if(!atMeeting()){cancel('left-meeting');return;}
+    if(!adults()){cancel('adults-required');return;}
+   }else if(!loan&&near(player()?.root.position,C.receptionPlayer,7)&&w.ok&&adults())api.reception();
+   if(!loan){props.update(document,{herald,player:player()},null);return;}
+   herald.walking=false;if(!paused())move(dt);tell(task?.label||'后宫公共接待 · 自荐与册封问询');
+   const f=flow;
+   if(f&&!paused()){
+    if(f.phase==='summoning'&&!palace.dutyState(OWNER))palace.requestDuty(OWNER,{kind:'edict-review',background:true});
+    if(f.phase==='summoning'&&task?.arrived&&present()){phase('audience');palace.setDutyLine(OWNER,'请当面陈明自荐心意。名位一事，须由你自愿选择。');}
+    else if(f.phase==='audience'&&present()){f.elapsed+=dt;if(f.elapsed>=6){record('audience');phase('commit-audience');if(!dirty)settle('audience');}}
+    else if(f.phase==='commit-audience')settle('audience');
+    else if(f.phase==='retrieve-charter'&&task?.arrived)phase('recover-charter');
+    else if(f.phase==='recover-charter'&&(f.elapsed+=dt)>=1.2){document.holder='herald';if(document.sealed){phase('to-meeting');route([C.herald],'取回原册书，回听候处继续授册');}else{phase('to-desk');route(TO_DESK,'取回原稿，回传令案继续拟册');}save();}
+    else if(f.phase==='to-desk'&&task?.arrived)phase('place-charter');
+    else if(f.phase==='place-charter'&&(f.elapsed+=dt)>=1.2){document.holder='desk';phase(document.drafted?'sealing':'drafting');}
+    else if(f.phase==='drafting'&&(f.elapsed+=dt)>=5){document.drafted=true;phase('sealing');}
+    else if(f.phase==='sealing'&&(f.elapsed+=dt)>=2.2){document.sealed=true;phase('pickup-charter');}
+    else if(f.phase==='pickup-charter'&&(f.elapsed+=dt)>=1.2){document.holder='herald';phase('to-meeting');route([...TO_PUBLIC,C.herald],'沈序持已用印的同号册书回听候处');save();}
+    else if(f.phase==='to-meeting'){
+     if(!palace.dutyState(OWNER))palace.requestDuty(OWNER,{kind:'edict-review',background:true});
+     if(task?.arrived&&present())phase(petition().stage==='charter-held'?'reading':'await-handoff');
+    }else if(f.phase==='await-handoff'&&present())phase('handoff');
+    else if(f.phase==='handoff'&&present()){f.elapsed+=dt;if(f.elapsed>=1.5){document.holder='player';record('charter-handoff');phase('commit-handoff');if(!dirty)settle('charter-handoff');}}
+    else if(f.phase==='commit-handoff')settle('charter-handoff');
+    else if(f.phase==='reading'&&present()){tell('沈序宣读册书：独立寝房与名位自愿承受，亲密交往另须双方同意');f.elapsed+=dt;if(f.elapsed>=6){record('charter-reading');phase('commit-reading');if(!dirty)settle('charter-reading');}}
+    else if(f.phase==='commit-reading')settle('charter-reading');
+   }
+   if(loan){const c=poseContext(herald,null),p=flow?.phase;c.handoff=!!document&&!document.filed&&document.holder==='herald'||['handoff','reading'].includes(p);c.heldProp=null;c.receptionWriting=p==='drafting';const action=!paused()&&!herald.walking?(p==='drafting'?'calligraphy':p==='sealing'?'tidy':null):null;if(action){herald.root.rotation.y=Math.atan2(E.seal[0]-herald.root.position.x,E.seal[2]-herald.root.position.z);c.workHeight=(E.seal[1]-herald.root.position.y)/(herald.characterScale||1);c.workDistance=Math.hypot(E.seal[0]-herald.root.position.x,E.seal[2]-herald.root.position.z)/(herald.characterScale||1);}herald.animate(t+herald.phase,herald.walking,action,c);}
+   edict.animateBorrowedSeal?.(OWNER,flow?.phase,flow?.elapsed||0);props.update(document,{herald,player:player()},flow?.phase,flow?.elapsed||0);
+  },
+  playerPose:()=>flow&&['handoff','commit-handoff','reading','commit-reading'].includes(flow.phase)?{handoff:true}:null,
+  snapshot,checkpoint:snapshot,
+  restore(s){if(s?.version!==1||!Array.isArray(s.receipts)||s.flow&&!PHASES.has(s.flow.phase))return false;time=Number.isFinite(s.time)?s.time:0;flow=copy(s.flow||null);document=copy(s.document||null);task=copy(s.task||null);if(task){task.planned=false;task.stalled=0;herald.route=[];}receipts.clear();for(const e of s.receipts)if(e?.receipt?.id&&e.positions?.player&&e.positions?.herald&&e.positions?.emperor)receipts.set(e.receipt.id,copy(e));lastReason=s.lastReason||null;
+   const p=petition();if(flow&&p&&flow.applicationId!==p.id)flow=null;if(p?.stage==='appointed'){flow=null;if(document)document.filed=true;}if(flow||task){if(window().ok&&borrow()){}else{if(!flow?.phase?.startsWith('commit-'))flow=null;task=null;lastReason=window().reason;}}props.update(document,{herald,player:player()},flow?.phase,flow?.elapsed||0);return true;},
+  statusCard(){const card=ledger()?.statusCard?.()||{};return {...card,physical:{phase:flow?.phase||null,waitingReason:lastReason||(!window().ok?window().reason:null),waitingText:REASONS[lastReason||window().reason]||null,heraldPresent:atReception(),atTarget:petition()&&['submitted','accepted','charter-held'].includes(petition().stage)?atMeeting():atReception(),label:task?.label||null,target:api.interactionTarget(),documentId:document?.id||null}};},
+  state:()=>({...snapshot(),loan,props:props.state()}),
+  dispose({suspend=false}={}){if(disposed)return;if(!suspend){flow=null;save();}release();disposed=true;props.dispose();},
+ };
+ if(saved?.version===1)api.restore(saved);
+ return api;
+}
