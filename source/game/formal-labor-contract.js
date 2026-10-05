@@ -3,9 +3,9 @@
 // An old unmarked slip always remains temporary, even after another job is held.
 const MESSAGES={'application-pending':'申请已保存，请继续当面审核','no-pending-application':'没有待审申请','interview-rejected':'本次面谈未录用，结果已保存，下一模拟日可再申请','already-applied-today':'本岗位今天已提交过申请，请查看已保存结果，下一模拟日再来',
   'adult-required':'需年满18岁','ritual-required':'待客礼仪未达本岗位要求，可先读书练习',
-  'cooking-required':'烹饪需要2点，先在藏书处读《灶间切配与火候》',
-  'writing-required':'文书需要1点，可读书或在书案习字',
-  'gardening-required':'园艺需要2点，先完成两份真实浇花临工',
+  'cooking-required':'烹饪需要2级，先在当地藏书处学习烹饪书目',
+  'writing-required':'文书需要1级，可在当地读书或书案习字积累经验',
+  'gardening-required':'园艺需要2级，可在当地读园艺书或做浇花临工积累经验',
   'already-employed':'你已有长期职位，结清并离职后才能转职','no-vacancy':'这个岗位暂无空缺',
   'outside-arrival-window':'请在06:00至18:00之间开始当天班次',
   'already-paid-today':'今天已领过正式日薪，下一模拟日再开班',
