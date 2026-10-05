@@ -20,13 +20,22 @@ export function npcSocialReply(n,{busy=false,job=n.serviceTask?.label||n.station
  if(/tea/.test(verb))return '你好！我在这里照看茶席。茶香和窗外的景色都适合慢慢感受，很高兴和你聊两句。';
  return `你好，我是${name(n)}。平时在${n.station?.name||'这里'}忙碌，闲下来也喜欢看看周围的风景。`;
 }
-export function createNpcSocial({actors,player,visible=()=>true,status=()=>({}),beginInteraction=()=>null,onInteraction=()=>{}}){
- const attention=new Map();let conversation=null,time=0;
+export function createNpcSocial({actors,player,visible=()=>true,status=()=>({}),beginInteraction=()=>null,onInteraction=()=>{},onMeetingEnded=()=>{}}){
+ const attention=new Map();let conversation=null,meeting=null,time=0;
  const present=n=>!!n&&actors().includes(n)&&n.root.visible!==false;
  function canInteract(n,radius=1.8){const p=player()?.root?.position,q=n?.root?.position;return !!(p&&q&&present(n)&&Math.abs(p.y-q.y)<.65&&gap(p,q)<=radius&&visible(n,p));}
- function end(){if(!conversation)return false;const {actor,paused,started}=conversation;if(paused&&Number.isFinite(actor.breakAt))actor.breakAt+=time-started;conversation=null;return true;}
+ function releaseMeeting(owner,reason='released'){if(!meeting||owner&&meeting.owner!==owner)return false;const held=meeting;meeting=null;if(Number.isFinite(held.actor.breakAt))held.actor.breakAt+=time-held.started;onMeetingEnded({id:held.id,owner:held.owner},reason);return true;}
+ function reserveMeeting(n,{owner,duration=75}={}){
+  if(typeof owner!=='string'||!owner||!n||!actors().includes(n)||n.walking||n.serviceMount||status(n)?.busy||conversation)return false;
+  if(meeting&&meeting.owner!==owner)return false;releaseMeeting(owner);
+  meeting={actor:n,id:npcActorId(n),owner,started:time,until:time+Math.max(5,Math.min(90,Number.isFinite(duration)?duration:75))};return true;
+ }
+ function end(){const released=releaseMeeting();if(!conversation)return released;const {actor,paused,started}=conversation;if(paused&&Number.isFinite(actor.breakAt))actor.breakAt+=time-started;conversation=null;return true;}
  function begin(n){if(!canInteract(n))return null;end();const info=status(n)||{},reply=npcSocialReply(n,info);conversation={actor:n,id:npcActorId(n),reply,paused:!info.busy,started:time,interaction:beginInteraction(['player',npcActorId(n)]),duration:0};let a=attention.get(n);if(!a){a={inside:true,until:0,cooldown:0};attention.set(n,a);}a.until=time+(info.busy?1.15:1.7);a.cooldown=time+9;return {name:name(n),reply,paused:!info.busy};}
  function update(dt){time+=dt;const people=actors(),p=player()?.root?.position;
+  // An explicit approach borrows the existing social pause for a bounded time.
+  // Summons/new service duties revoke it; reading a menu never creates one.
+  if(meeting){const reason=!people.includes(meeting.actor)?'removed':status(meeting.actor)?.busy?'duty':time>=meeting.until?'expired':null;if(reason)releaseMeeting(undefined,reason);}
   // A pause is borrowed from the actor's current routine, not a permanent
   // entitlement. A summons or new service duty can make that routine busy
   // while a nearby player still has yesterday's idle reply open.
@@ -45,5 +54,5 @@ export function createNpcSocial({actors,player,visible=()=>true,status=()=>({}),
  }
  function targets(){if(conversation)return [{social:true,id:conversation.id,actor:conversation.actor,name:name(conversation.actor),action:conversation.reply}];const result=[],p=player()?.root.position;if(!p)return result;for(const n of actors()){const distance=gap(p,n.root.position);if(distance<1.8&&canInteract(n))result.push({social:true,id:npcActorId(n),actor:n,name:name(n),action:'打个招呼 · 聊聊天',distance});}return result.sort((a,b)=>a.distance-b.distance);}
  function target(){return targets()[0]||null;}
- return {snapshot:()=>({version:1,time,conversation:conversation?{...copy({...conversation,actor:undefined}),actorId:npcActorId(conversation.actor)}:null,attention:[...attention].map(([n,a])=>[npcActorId(n),{...a}])}),restore(s){if(s?.version!==1)return false;time=Math.max(0,s.time||0);attention.clear();for(const[id,a]of s.attention||[]){const n=actors().find(n=>npcActorId(n)===id);if(n)attention.set(n,{...a});}const n=actors().find(n=>npcActorId(n)===s.conversation?.actorId);conversation=n&&canInteract(n,2.4)?{...copy(s.conversation),actor:n}:null;return true;},update,begin,end,look,target,targets,canInteract,canPause:n=>canInteract(n)&&!status(n)?.busy,isPaused:n=>conversation?.actor===n&&conversation.paused,conversationActorId:()=>conversation?.paused?conversation.id:null,active:()=>!!conversation,state:()=>conversation?{id:conversation.id,name:name(conversation.actor),reply:conversation.reply,paused:conversation.paused}:null,dispose(){end();attention.clear();}};
+ return {snapshot:()=>({version:1,time,conversation:conversation?{...copy({...conversation,actor:undefined}),actorId:npcActorId(conversation.actor)}:null,attention:[...attention].map(([n,a])=>[npcActorId(n),{...a}])}),restore(s){if(s?.version!==1)return false;releaseMeeting();time=Math.max(0,s.time||0);attention.clear();for(const[id,a]of s.attention||[]){const n=actors().find(n=>npcActorId(n)===id);if(n)attention.set(n,{...a});}const n=actors().find(n=>npcActorId(n)===s.conversation?.actorId);conversation=n&&canInteract(n,2.4)?{...copy(s.conversation),actor:n}:null;return true;},update,begin,end,look,target,targets,canInteract,canPause:n=>canInteract(n)&&!status(n)?.busy,reserveMeeting,releaseMeeting,meetingState:()=>meeting?{id:meeting.id,owner:meeting.owner,remaining:Math.max(0,meeting.until-time)}:null,isPaused:n=>conversation?.actor===n&&conversation.paused||meeting?.actor===n,conversationActorId:()=>conversation?.paused?conversation.id:meeting?.id||null,active:()=>!!conversation,state:()=>conversation?{id:conversation.id,name:name(conversation.actor),reply:conversation.reply,paused:conversation.paused}:null,dispose(){end();attention.clear();}};
 }
