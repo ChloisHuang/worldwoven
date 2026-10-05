@@ -23,7 +23,7 @@ export function createChinaClinicEmployment({clinic,role:ROLE=PHARMACY_ASSISTANT
   const receiptId=formal.pendingReceipt()||`${ROLE.workSource}-${current.serial+1}`,serial=Number(receiptId.split('-').at(-1));
   if(!formal.begin(receiptId,{shiftKind:'continuous'}).ok)return false;
   if(!save({version:1,serial:Math.max(current.serial,serial),job:{receiptId,formalRoleId:ROLE.id,day:getClock().day,stage:'working',shiftKind:'continuous',coveredSeconds:0,completedTasks:0,completedThrough:0}}))return fail('报到保存失败，请在原处重试');
-  clinic.beginWork(receiptId);notify(physician?'已开医师班。真实候诊计入工时；问询原来客，选择对应虚构照护单并交苏禾，原患者领取后记评价':'已报到。真实来客依次办理，医馆内候班计入当班时段；交班后按实际工时结薪');return true;
+  attendance=0;clinic.beginWork(receiptId);notify(physician?'已开医师班。真实候诊计入工时；问询原来客，选择对应虚构照护单并交苏禾，原患者领取后记评价':'已报到。真实来客依次办理，医馆内候班计入当班时段；交班后按实际工时结薪');return true;
  }
  function claim(){const job=current.job;if(!job||job.stage!=='ready'||!meet())return false;
   const result=formal.inspect(job);if(!result.ok)return false;
@@ -51,7 +51,7 @@ export function createChinaClinicEmployment({clinic,role:ROLE=PHARMACY_ASSISTANT
   if(next.kind==='formal-view'){formal.open();return true;}
   if(next.work){if(next.work.kind==='choose'){formal.open();return true;}return clinic.executeWork(next.work,current.job.receiptId,getPlayer());}
   if(next.kind==='wait'){notify(clinic.workLabel()||(physician?'等候原来客，现场候诊计入当班工时；可从职业手册当面交班':'目前没有待办，在医馆候班计入在岗工时；可从职业手册当面交班'));return true;}
-  if(next.kind==='cancel'){if(!formal.cancel(current.job))return false;if(clinic.cancelWork(current.job.receiptId)===false)return false;return save({...current,job:null});}
+  if(next.kind==='cancel'){if(!formal.cancel(current.job))return false;if(clinic.cancelWork(current.job.receiptId)===false)return false;if(!save({...current,job:null}))return false;attendance=0;return true;}
   if(!meet()){waiting=next;clinic.requestDoctor(true);notify('请在二层平台稍候，许宁忙完会来当面办理');return true;}
   waiting=null;if(next.kind==='end-shift')return endShift();return next.kind==='formal-apply'?formal.apply():next.kind==='formal-review'?formal.review():next.kind==='formal-resign'?formal.resign():next.kind==='accept'?accept():next.kind==='claim'?claim():false;
  }
@@ -68,7 +68,7 @@ export function createChinaClinicEmployment({clinic,role:ROLE=PHARMACY_ASSISTANT
   const job=current.job;if(!job)return;
   if(job.stage==='working'){
    const duty=careers.state().lastDuty;if(duty?.workReceiptId===job.receiptId&&['inspection','ready','paid'].includes(duty.stage)){save({...current,job:{...job,stage:'ready'}});return;}
-   if(!formal.canWork(job)){clinic.cancelWork(job.receiptId);save({...current,job:null});return;}
+   if(!formal.canWork(job)){if(clinic.cancelWork(job.receiptId)!==false&&save({...current,job:null}))attendance=0;return;}
    clinic.beginWork(job.receiptId);
    if(getClock().hour<18&&inWorkplace()&&!getMounted())attendance+=Math.min(.1,Math.max(0,dt));
    if(attendance>=1||clinic.workReceipts(job.receiptId).some(r=>r.number>job.completedThrough))flushAttendance();
