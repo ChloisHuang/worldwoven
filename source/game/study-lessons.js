@@ -1,5 +1,5 @@
 import {STUDY_XP,skillXPRequired} from './skill-progress.js';
-export const STUDY_SKILL_NAMES = Object.freeze({ritual:'礼仪',writing:'文书',gardening:'园艺',art:'艺术',cooking:'烹饪'});
+export const STUDY_SKILL_NAMES = Object.freeze({ritual:'礼仪',writing:'文书',gardening:'园艺',art:'艺术',cooking:'烹饪',martial:'武艺'});
 export const STUDY_DURATION = 8;
 const book=(id,skill,title,description,excerpt)=>Object.freeze({id,skill,title,description,excerpt,action:'read',verb:'阅读',seconds:STUDY_DURATION});
 const china=Object.freeze([
@@ -17,7 +17,8 @@ const france=Object.freeze([
 ]);
 const writing=Object.freeze({id:'writing-practice',skill:'writing',title:'楷书与文书誊写',description:'在书案蘸墨落笔，练习端正誊写。',action:'calligraphy',verb:'习字',seconds:STUDY_DURATION});
 const painting=Object.freeze({id:'art-practice',skill:'art',title:'宫苑光影写生',description:'在画架前调色落笔，观察宫苑的光与影。',action:'paint',verb:'绘画',seconds:STUDY_DURATION});
-const SOURCES=Object.freeze({'cn-rest':china,'cn-calligraphy':Object.freeze([writing]),'france-salon':france,'france-atelier':Object.freeze([painting])});
+const archery=Object.freeze({id:'archery-practice',skill:'martial',title:'射圃安全习射',description:'等候停射，在金线后接弓、瞄靶、放箭并收弓；由原守卫照看靶道。',action:'archery',verb:'练习',seconds:5.8});
+const SOURCES=Object.freeze({'cn-rest':china,'cn-calligraphy':Object.freeze([writing]),'cn-archery':Object.freeze([archery]),'france-salon':france,'france-atelier':Object.freeze([painting])});
 export const STUDY_SOURCES=Object.freeze(Object.keys(SOURCES));
 export const studyCountry=source=>source?.startsWith('cn-')?'china':source?.startsWith('france-')?'france':null;
 export const studyOptions=(source,country=null)=>country&&studyCountry(source)!==country?[]:SOURCES[source]||[];

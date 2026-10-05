@@ -18,11 +18,12 @@ export function createContextualActionMenu({button,document:doc=globalThis.docum
  let actions=[],signature='',rendered='',buttonKey='',generation=0,disposed=false;
  const close=()=>{generation++;rendered='';if(dialog.open){dialog.close();button.setAttribute('aria-expanded','false');onClose();}};
  function select(action){if(disposed)return false;const current=actions.find(item=>interactionIdentity(item)===interactionIdentity(action));if(!current)return false;close();actions=[];signature='';button.hidden=true;return onSelect(current);}
- function render(){if(signature===rendered)return;rendered=signature;generation++;const token=generation,scroll=list.scrollTop,focusKey=doc.activeElement?.getAttribute?.('data-context-action');list.replaceChildren();
+ function render(){if(signature===rendered)return;rendered=signature;generation++;const token=generation,scroll=list.scrollTop,focusKey=doc.activeElement?.getAttribute?.('data-context-action');let focusTarget=null;list.replaceChildren();
   for(const group of groupInteractions(actions)){const section=make('section','context-action-group'),label=make('h3',null,group.name);section.append(label);
-   for(const action of group.actions){const row=make('button','context-action-row'),icon=make('span','context-action-icon'),text=make('span',null,action.action||'互动');row.type='button';const key=interactionIdentity(action);row.setAttribute('data-context-action',key);row.setAttribute('aria-label',`${group.name} · ${action.action||'互动'}`);icon.innerHTML=actionIconSvg(interactionIcon(action));row.append(icon,text);row.onclick=()=>{if(dialog.open&&token===generation&&!row.disabled)select(action);};section.append(row);if(focusKey===key)row.focus?.({preventScroll:true});}
+   for(const action of group.actions){const row=make('button','context-action-row'),icon=make('span','context-action-icon'),text=make('span',null,action.action||'互动');row.type='button';const key=interactionIdentity(action);row.setAttribute('data-context-action',key);row.setAttribute('aria-label',`${group.name} · ${action.action||'互动'}`);icon.innerHTML=actionIconSvg(interactionIcon(action));row.append(icon,text);row.onclick=()=>{if(dialog.open&&token===generation&&!row.disabled)select(action);};section.append(row);if(focusKey===key)focusTarget=row;}
    list.append(section);
   }
+  if(dialog.open)focusTarget?.focus?.({preventScroll:true});
   if(list.scrollTop!==scroll)list.scrollTop=scroll;
  }
  function update(next,{hidden=false}={}){
