@@ -828,11 +828,17 @@ export function buildFrance({pack=true}={}){
     // Original, low-relief palmettes and hanging laurel devices.
     for(const yy of [1.83,4.15]){G.sphere(q,x,yy,z+.09,.11,C.gold,1,.85,.2);for(const side of [-1,1])for(let k=0;k<3;k++){const leaf=G.sphere(q,x+side*(.12+k*.09),yy-.035-k*.075,z+.09,.092,C.gold,.48,1.55,.19);leaf.rotation.z=side*.60;}}
   }
-  function windowAt(x,z,w=2.05,rot=0){
+  function windowAt(x,z,w=2.05,rot=0,privateBath=false){
     const q=local(x,z,rot);frenchGlazedWindow(q,0,.9,0,w,3.64,C.white);
     for(const side of [-1,1]){G.box(q,side*(w/2+.15),2.76,.045,.16,3.97,.23,C.white);G.box(q,side*(w/2+.17),2.76,.18,.043,3.7,.04,C.gold);}
     for(const y of [.85,4.67])G.box(q,0,y,.10,w+.55,.17,.35,C.white);
     G.box(q,0,4.82,.04,w+.72,.10,.26,C.gold);
+    // The bathing room's real glazed windows need opaque linen as well as
+    // its two doors. Keep the windows/frame and add full cloth on their inside.
+    if(privateBath){
+      const cloth=G.box(q,0,2.72,.24,w+.06,3.70,.035,C.ivory);cloth.name='Royal bath opaque window curtain';
+      for(let i=0;i<12;i++)G.box(q,-w/2+(i+.5)*w/12,2.72,.263,.035,3.66,.018,i%2?0xe3e6d8:0xf7f4e7);
+    }
     // Drapery is gathered at the edges, leaving a clear central glass view.
     for(const side of [-1,1])for(let j=0;j<4;j++)G.cyl(q,side*(w/2-.05)+j*.08*side,2.59+j*.006,.29,.10,.11,3.28,j%2?C.green:C.emerald,8);
     for(const side of [-1,1])G.box(q,side*(w/2+.08),2.05,.40,.44,.09,.10,C.gold);
@@ -1251,7 +1257,7 @@ export function buildFrance({pack=true}={}){
     wall({at:3.5,from:xc-4,to:xc+4,openings:[{from:xc-1.25,to:xc+1.25,top:3.9}]});
     wall({at:-6.6,from:xc-4,to:xc+4,openings:[{from:xc-1.25,to:xc+1.25,top:3.9}]});
     doorway(s*17,-9.5,2.3,Math.PI/2);doorway(s*17,-5,2.2,Math.PI/2);doorway(s*10.8,-9.5,2.3,Math.PI/2);doorway(s*10.8,-5,2,Math.PI/2,3.9,s>0);doorway(xc,3.5,2.5);doorway(xc,-6.6,2.5);
-    windowAt(s*25,-10.5,2.4,s<0?Math.PI/2:-Math.PI/2);windowAt(s*25,-1.5,2.8,s<0?Math.PI/2:-Math.PI/2);windowAt(xc,-13.5,2.8);
+    windowAt(s*25,-10.5,2.4,s<0?Math.PI/2:-Math.PI/2,s<0);windowAt(s*25,-1.5,2.8,s<0?Math.PI/2:-Math.PI/2);windowAt(xc,-13.5,2.8,0,s<0);
     ceiling(xc,-10.05,8,6.9);ceiling(xc,-1.55,8,10.1);chandelier(xc,-10.05,.8);chandelier(xc,-1.55,.9);
     for(const z of [-13.5,3.5]){box(xc,5.48,z,8.45,.19,.51,C.gold,roofGroup);box(xc,5.68,z,8.67,.18,.60,C.ivory,roofGroup);for(let x=xc-3.8;x<xc+4;x+=.50){G.cyl(roofGroup,x,6.04,z,.065,.07,.51,C.white,8);}box(xc,6.33,z,8.62,.15,.40,C.white,roofGroup);}
     box(xc,5.55,-5,8.1,.45,16.9,C.sage,roofGroup);
@@ -1289,8 +1295,19 @@ export function buildFrance({pack=true}={}){
   block(-19.20,.82,-12.65,2.64,1.13,.90,C.white);box(-19.20,1.46,-12.65,2.81,.15,1.03,C.gold);G.sphere(group,-19.2,1.56,-12.55,.52,C.ivory,1.1,.20,.7);G.sphere(group,-19.2,1.665,-12.55,.33,C.sage,1.1,.035,.72);G.cyl(group,-19.2,1.81,-12.91,.035,.035,.45,C.gold,8);mirror(group,-19.2,3.02,-13.25,1.48,2.0);
   for(let i=0;i<3;i++)box(-18.35,1.60+i*.09,-12.52,.61,.075,.47,[C.white,C.sage,C.white][i]);
   block(-19.0,1.46,-7.45,1.37,2.45,.71,C.ivory);for(const x of [-19.31,-18.69]){box(x,1.49,-7.06,.52,2.13,.05,C.sage);box(x,1.52,-7.015,.046,.15,.05,C.gold);}
-  block(-24.17,.65,-7.66,.91,.85,1.3,C.ivory);G.sphere(group,-24.17,1.00,-7.51,.47,C.white,1,.20,1.3);box(-24.17,1.3,-8.1,.87,1.1,.27,C.white);
-  block(-23.1,1.47,-7.9,.12,2.43,1.91,C.sage);for(const z of [-8.81,-7.0])box(-23.08,1.48,z,.19,2.58,.075,C.gold);
+  // Keep the existing seat/cistern, with its supporting pedestal behind the
+  // knees so seated lower legs can reach the front footrest.
+  block(-24.17,.65,-7.82,.91,.85,.98,C.ivory);G.sphere(group,-24.17,1.00,-7.51,.47,C.white,1,.20,1.3);box(-24.17,1.3,-8.1,.87,1.1,.27,C.white);
+  // Retain this WC and rotate its full sage screen behind the cistern.
+  // The old east-side screen sealed the fixture against the tub/wall; this
+  // local rearrangement leaves a real east approach at the full route radius.
+  block(-23.9,1.47,-8.36,1.91,2.43,.12,C.sage);for(const x of [-24.81,-22.99])box(x,1.48,-8.34,.075,2.58,.19,C.gold);
+  // The existing high porcelain seat needs a small supported footrest.
+  const toiletFootrest=box(-24.17,.3765,-7.13,.88,.225,.45,C.wood);toiletFootrest.name='Royal bath WC footrest';
+  const toiletFootrestSolid={minX:-24.61,maxX:-23.73,minY:.264,maxY:.489,minZ:-7.355,maxZ:-6.905,franceToiletFootrest:true};
+  colliders.push(toiletFootrestSolid);cameraColliders.push(toiletFootrestSolid);
+  walkableSurfaces.push({...toiletFootrestSolid,y:.489});
+
   box(-24.65,2.18,-11.85,.12,.065,1.55,C.gold);box(-24.58,1.85,-11.85,.065,.70,1.1,C.white);
   // Winter orangery with indoor citrus, balanced benches and worktable.
   G.rug(group,-21,-1.55,5.3,6.2,0xdce3cf,C.gold);
@@ -1345,7 +1362,7 @@ export function buildFrance({pack=true}={}){
   for(const x of [-29.5,29.5]){block(x,.56,0,.36,1.08,79,C.ivory);for(let z=-38;z<39;z+=1.5)box(x,1.26,z,.15,.42,.15,C.gold);box(x,1.50,0,.16,.08,78,C.green);}
   for(const z of [-39.5,39.5])for(const s of [-1,1]){block(s*16.7,.56,z,25.6,1.08,.36,C.ivory);box(s*16.7,1.50,z,25.7,.08,.16,C.green);}
   for(const x of [-3.7,3.7])for(const z of [-39.3,39.3]){block(x,1.50,z,.93,3,.93,C.white);G.vessel(group,x,3.05,z,C.gold,.8);}
-  explorationTargets.push({id:'royal-bath',name:'白金沐浴室与盥洗间',position:[-20.2,.23,-8.8]},{id:'orangery',name:'冬季柑橘暖房',position:[-21,.23,.6]},{id:'dining-room',name:'皇家瓷器餐厅',position:[18.0,.23,-10]},{id:'music-room',name:'绿锦音乐接待厅',position:[19.2,.23,-1.3]},{id:'west-service-gallery',name:'西翼服务柱廊',position:[-14,.23,-9.5]},{id:'east-state-gallery',name:'东翼仪典柱廊',position:[14,.23,-5]},{id:'south-promenade',name:'王宫入场大道',position:[0,0,32]},{id:'west-rose-garden',name:'西玫瑰花园游径',position:[-16,0,26]},{id:'east-rose-garden',name:'东玫瑰花园游径',position:[16,0,26]},{id:'north-pools',name:'北侧水镜花园主轴',position:[0,0,-27]},{id:'north-gate',name:'北门长景',position:[0,0,-36]});
+  explorationTargets.push({id:'fr-royal-bath-toilet',name:'白金沐浴室 · 私密净室',position:[-23.15,.264,-7.35]},{id:'royal-bath',name:'白金沐浴室与盥洗间',position:[-20.2,.23,-8.8]},{id:'orangery',name:'冬季柑橘暖房',position:[-21,.23,.6]},{id:'dining-room',name:'皇家瓷器餐厅',position:[18.0,.23,-10]},{id:'music-room',name:'绿锦音乐接待厅',position:[19.2,.23,-1.3]},{id:'west-service-gallery',name:'西翼服务柱廊',position:[-14,.23,-9.5]},{id:'east-state-gallery',name:'东翼仪典柱廊',position:[14,.23,-5]},{id:'south-promenade',name:'王宫入场大道',position:[0,0,32]},{id:'west-rose-garden',name:'西玫瑰花园游径',position:[-16,0,26]},{id:'east-rose-garden',name:'东玫瑰花园游径',position:[16,0,26]},{id:'north-pools',name:'北侧水镜花园主轴',position:[0,0,-27]},{id:'north-gate',name:'北门长景',position:[0,0,-36]});
   group.userData.interiorRooms.push({id:'royal-bath',name:'白金沐浴室',minX:-25,maxX:-17,minZ:-13.5,maxZ:-6.6,ceiling:5.25},{id:'orangery',name:'冬季柑橘暖房',minX:-25,maxX:-17,minZ:-6.6,maxZ:3.5,ceiling:5.25},{id:'dining-room',name:'皇家瓷器餐厅',minX:17,maxX:25,minZ:-13.5,maxZ:-6.6,ceiling:5.25},{id:'music-room',name:'绿锦音乐接待厅',minX:17,maxX:25,minZ:-6.6,maxZ:3.5,ceiling:5.25});
   group.userData.facilities=[{kind:'entry/reception',location:'front portico, state gallery, music reception'},{kind:'cooking',location:'west rear royal pastry kitchen'},{kind:'dining',location:'east rear formal dining room with6covers; garden tea loggia'},{kind:'sleeping',location:'east front canopy bedroom'},{kind:'bathing/toilet',location:'west rear service wing; tub, washbasin, screenedWC, towels'},{kind:'storage',location:'bath linen cabinet, kitchen cabinets, salon library, dining sideboard'},{kind:'service circulation',location:'kitchen to west service gallery to bath/orangery; bedroom/art wing to east dining/music wing'}];
 

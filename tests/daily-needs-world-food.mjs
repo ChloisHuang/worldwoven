@@ -60,3 +60,17 @@ test('French cake gives bounded food relief, and foreign receipts cannot be forg
  const f=fixture(),r={source:'france-tea-food',id:'france-tea-1-consumed',number:1,actorId:'player',orderId:'france-tea-1',mealId:'france-tea-1-tray',dishId:'tea-cake',supplyReceipt:'france-tea-1',completed:true};
  assert.equal(f.needs.mealReceipts([{...r,completed:false}]),false);assert.equal(f.needs.mealReceipts([{...r,mealId:'not-prepared'}]),false);assert(f.needs.mealReceipts([r]));assert.equal(f.needs.hunger('player'),.75);assert.equal(f.needs.mealReceipts([r]),false);
 });
+
+
+test('French completed private-use receipts retain one player identity across countries and reload',()=>{
+ const clock={seconds:0};let saved,fail=false;
+ const needs=createDailyNeeds({saved:{version:1,people:{player:{foodAge:12*H,toiletAge:25*H,receipts:{'japan-toilet':4}}}},getClock:()=>clock,saveState:s=>{if(fail)return false;saved=s;return true;}});
+ needs.enter('france');const receipt={id:'france-toilet-1',number:1,actorId:'player',source:'france-toilet',facilityId:'fr-royal-bath-toilet',completed:true};
+ assert.equal(needs.toiletReceipt({...receipt,completed:false}),false);
+ assert.equal(needs.toiletReceipt({...receipt,facilityId:'royal-bath'}),false);
+ fail=true;assert.equal(needs.toiletReceipt(receipt),false);assert.equal(needs.read('player').toilet,1);
+ fail=false;assert.equal(needs.toiletReceipt(receipt),true);assert.equal(needs.read('player').toilet,0);assert.equal(needs.hunger('player'),1);
+ needs.leave();clock.seconds+=1000;needs.enter('japan');assert.equal(needs.read('player').toilet,0,'unloaded time never advances physiology');
+ assert.equal(needs.toiletReceipt(receipt),false);const restored=createDailyNeeds({saved,getClock:()=>clock});restored.enter('china');
+ assert.equal(restored.toiletReceipt(receipt),false);assert.equal(restored.snapshot().people.player.receipts['japan-toilet'],4);assert.equal(restored.snapshot().people.player.receipts['france-toilet'],1);
+});
