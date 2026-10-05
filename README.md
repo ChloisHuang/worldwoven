@@ -11,7 +11,7 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.60-public, 2026-10-05
+Prepared release: R16.61-public, 2026-10-05
 Verified published Sites source commit: 00ab703d79526bcafe0f8910c48c12ef49ad0f7c
 
 ## Working rules
@@ -114,3 +114,5 @@ R16.58 adds French garden-helper registration, physical shared-can work on two r
 R16.59 fixes shared displayed-canvas sizing and pointer/label coordinates, listens to orientation and dynamic viewport changes, and compacts the landscape HUD with label avoidance. Source/build and coordinate checks passed. Local browser access was blocked, so real CSS layout and iOS rotation remain unverified; this release is for phone confirmation. R16.58 / Site v85 remains the rollback baseline. No pending career or new character candidate is included.
 
 R16.60 adds the fictional Chinese court-recording appointment: public study, skill eligibility, a real vacant slot, the shared court schedule, archive work, supervisor reviews and a daily bank wage. The physical money house supports withdrawals and displayed fixed game exchange rates. The folding wallet shows cash notes and a separate bank/account book; art loads only when opened (four WebP images total 389,948 bytes). Old copper jobs and service prices stay compatible. Passport and other countries' banks remain pending. Actual natural court and counter routes plus targeted persistence/UI-module checks passed; browser/iOS layout remains unverified. The optional face preview is unchanged.
+
+R16.61 adds the read-only fictional travel passport inside Help, before the control instructions. It shows the saved player palette, four regional stamps, actual visited regions and earned activities; unknown visit dates remain unknown. Opening the passport or wallet pauses movement input without cancelling existing orders or work. The booklet has no new save fields or image downloads. Targeted read-only/modal checks and build passed; browser/iOS layout remains unverified.

@@ -1,3 +1,4 @@
+import {createTravelPassport} from './travel-passport.js';
 import {displayedViewport,createHudLayout} from './viewport-layout.js';
 import {createCareerHandbook} from './career-handbook.js';
 import {createSimulationClock} from './simulation-clock.js';
@@ -125,8 +126,10 @@ let japanPerformance=null,japanPerformanceUI=null,franceTea=null,franceGardener=
 let furniture=null,seated=null,bathTransition=null,outfitView=null,outfitDraft=null,outfitShapeDirty=false,outfitShapeLastAt=-Infinity,outfitRandomScoreVisible=false,outfitBackdropPointer=false,daybookTab='activities';const furnitureLabels=[];const outfitPreview=createOutfitPreview();
 const globeLabels=new Map(),npcLabels=[];
 let currencyWallet=null;
+function pauseForReadOnlyPanel(){keys.clear();joy={x:0,y:0};$('joystick-knob').style.transform='';}
 function pauseForCareerPanel(){if(!chinaCareer?.isActing()){cancelAction();path=[];targetStation=null;pendingInteraction=null;}keys.clear();joy={x:0,y:0};$('joystick-knob').style.transform='';}
-const careerHandbook=createCareerHandbook({careers:formalCareers,copperLedger,getClock:()=>simulationClock.state(),getService:()=>chinaCareer,onIntent:requestStationIntent,onOpen:pauseForCareerPanel,walletFactory:({mount})=>(currencyWallet=createCurrencyWallet({mount,ledger:copperLedger,getCurrency:()=>active?.id==='china'?'copper':active?.id||'copper',onOpen:()=>{careerHandbook.close();pauseForCareerPanel();},onClose:()=>canvas.focus({preventScroll:true})}))});
+const careerHandbook=createCareerHandbook({careers:formalCareers,copperLedger,getClock:()=>simulationClock.state(),getService:()=>chinaCareer,onIntent:requestStationIntent,onOpen:pauseForCareerPanel,walletFactory:({mount})=>(currencyWallet=createCurrencyWallet({mount,ledger:copperLedger,getCurrency:()=>active?.id==='china'?'copper':active?.id||'copper',onOpen:()=>{careerHandbook.close();pauseForReadOnlyPanel();},onClose:()=>canvas.focus({preventScroll:true})}))});
+const travelPassport=createTravelPassport({mount:$('help-dialog'),getProgress:()=>({visited:saved.visited,stamps:saved.stamps,nickname:saved.playerProfile?.nickname}),getClock:()=>simulationClock.state(),getLook:()=>playerAppearance(saved.appearance,active?.id,saved.outfit),onOpen:()=>{currencyWallet?.close();careerHandbook.close();pauseForReadOnlyPanel();}});
 for(const r of regions){const b=document.createElement('button');b.className='region-card';b.dataset.region=r.id;b.style.setProperty('--card-color',r.color);b.innerHTML=`<span class="region-icon">${r.icon}</span><span><strong>${r.country}</strong><small>${r.en}</small></span><span class="visited">${saved.visited.includes(r.id)?'✓':''}</span>`;b.onclick=()=>selectRegion(r.id,true);$('region-cards').append(b);const label=document.createElement('div');label.className='world-label';label.textContent=r.country;$('labels').append(label);globeLabels.set(r.id,label);}
 function showDoorwayHint(manual=false){const visible=!!(manual&&mode==='lot'&&player&&automaticDoors?.isOpeningObstructedBy(player.root.position));const hint=$('doorway-hint');if(hint.hidden===visible)hint.hidden=!visible;}
 function toast(text){clearTimeout(toastTimer);$('toast').textContent=text;$('toast').hidden=false;toastTimer=setTimeout(()=>$('toast').hidden=true,4200);}
@@ -253,7 +256,7 @@ function renderStations(){
 }
 function setDaybook(open,tab=daybookTab){daybookOpen=open;daybookTab=tab;$('station-list').hidden=!open||tab!=='activities';$('furniture-list').hidden=!open||tab!=='furniture';$('daybook-toggle').setAttribute('aria-expanded',open);$('daybook-activities').setAttribute('aria-selected',tab==='activities'&&open);$('daybook-furniture').setAttribute('aria-selected',tab==='furniture'&&open);}
 
-function interactionMenuOpen(){return currencyWallet?.isOpen()||careerHandbook.isOpen()||outfitPreview.state().open||japanPerformanceUI?.isOpen()||japanServiceUI?.isOpen()||chinaTavernUI?.isOpen()||chinaMoneyHouse?.isOpen()||chinaLabor?.isOpen()||franceLabor?.isOpen()||chinaSalonUI?.isOpen();}
+function interactionMenuOpen(){return travelPassport.isOpen()||currencyWallet?.isOpen()||careerHandbook.isOpen()||outfitPreview.state().open||japanPerformanceUI?.isOpen()||japanServiceUI?.isOpen()||chinaTavernUI?.isOpen()||chinaMoneyHouse?.isOpen()||chinaLabor?.isOpen()||franceLabor?.isOpen()||chinaSalonUI?.isOpen();}
 function nearbyInteractionClear(item){
  if(item.furniture){const eye=player.root.position.clone().add(new THREE.Vector3(0,1.45,0));return furniture.isVisible(item,eye,furniture.markerPoint(item),cameraSolids);}
  const origin=player.root.position.clone().add(new THREE.Vector3(0,1.15,0)),target=new THREE.Vector3(...item.position).add(new THREE.Vector3(0,1.15,0));

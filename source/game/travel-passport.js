@@ -57,7 +57,8 @@ export function createTravelPassport({mount,getProgress=()=>({}),getClock=()=>({
   const art=(svg,cls)=>{const e=make('div',null,cls);e.setAttribute('aria-hidden','true');e.innerHTML=svg;return e;};
   const style=make('link');style.rel='stylesheet';style.href=STYLE;(doc.head||doc.body).append(style);
   const trigger=button(null,'ww-passport-trigger','打开四方旅行护照');trigger.setAttribute('aria-haspopup','dialog');trigger.setAttribute('aria-expanded','false');
-  trigger.append(make('span','✦','ww-passport-trigger-icon'),make('strong','旅行护照'),make('span','收好沿途的印记 →','ww-passport-trigger-hint'));mount.append(trigger);
+  trigger.append(make('span','✦','ww-passport-trigger-icon'),make('strong','旅行护照'),make('span','收好沿途的印记 →','ww-passport-trigger-hint'));
+  const instructions=mount.querySelector?.('ul');if(instructions)mount.insertBefore(trigger,instructions);else mount.append(trigger);
   let ui=null,opened=false,disposed=false,restoreHost=false,priorFocus=null,page='cover',activityLimit=24;
   function ensureUI(){
     if(ui)return;
