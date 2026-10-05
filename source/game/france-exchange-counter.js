@@ -8,7 +8,7 @@ export const FRANCE_EXCHANGE_COUNTER=Object.freeze({
  countingLabel:'清点票券 · 核对收支',approachMessage:'请走到音乐接待厅的银行柜台前，再办理存取与兑换',
 });
 
-export function franceExchangeStation(){const c=FRANCE_EXCHANGE_COUNTER;return {...c.role,name:c.name,action:'办理存取、兑换与查账',position:c.points.counter,npcPosition:c.points.teller,npcAction:'money-house-duty',npcRotation:c.tellerYaw,npcLabel:'核对账簿 · 清点票券',color:'#729582',interactionRadius:1.4,dialogue:'正式岗位工钱已记入同一本银行账。你可以在这里取出法国券，也可以先查看报价，再兑换其他游戏币种。'};}
+export function franceExchangeStation(){const c=FRANCE_EXCHANGE_COUNTER;return {...c.role,name:c.name,action:'办理存取、兑换与查账',position:c.points.counter,npcPosition:c.points.teller,npcAction:'money-house-duty',npcRotation:c.tellerYaw,npcLabel:'核对账簿 · 清点票券',color:'#729582',interactionRadius:1.4,priority:30,dialogue:'正式岗位工钱已记入同一本银行账。你可以在这里取出法国券，也可以先查看报价，再兑换其他游戏币种。'};}
 
 export function franceExchangeAppearance(region,id,look){return region==='france'&&id===FRANCE_EXCHANGE_COUNTER.stationId?{...look,bodyPreset:'feminine-lean',hairStyle:'low-bun',wardrobePreset:'court-overgown',clothes:0x466e61,accent:0xc7aa61}:look;}
 
