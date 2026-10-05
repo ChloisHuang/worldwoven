@@ -333,6 +333,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
    if(phase==='checked'&&current!=='pending')phase=current;
    return transaction(()=>{v.cooking={phase,workReceiptId:duty.receiptId,tokenId:v.tokenId,dishId:v.dishId||'ramen'};if(phase!=='checked'){const meal=item(`${v.id}:meal`)||addItem(v,'meal',{type:'point',id:v.dishId==='sushi'?'sushiWork':'kitchenWork'});meal.preparation=phase;}});
   },
+  tableWork:()=>({visits:clone(state.visits.filter(v=>v.customerType!=='player')),items:clone(state.items.filter(i=>i.kind==='meal')),claims:[...claims.values()].filter(j=>['serve','wash'].includes(j.kind)).map(clone),jobs:jobs().filter(j=>['serve','wash'].includes(j.kind)).map(j=>({...clone(j),workerId:claims.get(j.id)?.workerId||null}))}),
   kitchenWork:()=>({jobs:jobs().filter(j=>j.kind==='cook').map(j=>({...clone(j),workerId:claims.get(j.id)?.workerId||null,visit:clone(visit(j.visitId))})),claims:[...claims.values()].filter(j=>j.kind==='cook').map(clone)}),
   mixingWork:()=>({jobs:jobs().filter(j=>j.kind==='prepare').map(j=>({...clone(j),workerId:claims.get(j.id)?.workerId||null,visit:clone(visit(j.visitId))})),claims:[...claims.values()].filter(j=>j.kind==='prepare').map(clone)}),
   complete,guestStep,
@@ -354,7 +355,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
    v.stage='cancelled';v.cancelReason=reason;v.seatId=null;state.cancelled++;receipt(v,reason);persist();return true;
   },
   forgetFinished(visitIds=null) {
-   const finished=new Set(state.visits.filter(v=>!active(v)&&(!v.mealConsumed||v.mealWashed)&&(!visitIds||visitIds.includes(v.id))).map(v=>v.id));
+   const finished=new Set(state.visits.filter(v=>!active(v)&&(!v.mealConsumed||v.mealWashed)&&!state.items.some(i=>i.location.targetVisitId===v.id)&&(!visitIds||visitIds.includes(v.id))).map(v=>v.id));
    for(const id of finished)visits.delete(id);
    for(const cargo of state.items)if(finished.has(cargo.visitId))items.delete(cargo.id);
    state.visits=state.visits.filter(v=>!finished.has(v.id));state.items=state.items.filter(i=>!finished.has(i.visitId));persist();

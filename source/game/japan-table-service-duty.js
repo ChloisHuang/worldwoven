@@ -1,18 +1,19 @@
 import {JAPAN_SERVICE_POINTS as P,JAPAN_DINING_MENU} from './japan-service-orders.js';
-export const JAPAN_TABLE_SERVICE_REGISTRY=Object.freeze([3.1,0,-10.7]);
+export const JAPAN_TABLE_SERVICE_REGISTRY=Object.freeze([3.1,0,-11.3]);
 const HOME=[4.35,0,-11.3],KEY='tableService',HOST='jp-ramen',CREW=[HOST,'jp-sushi'],REG=JAPAN_TABLE_SERVICE_REGISTRY,copy=x=>JSON.parse(JSON.stringify(x));
 const near=(p,q,r=.3)=>p&&q&&Math.hypot(p.x-q[0],p.z-q[2])<=r&&Math.abs(p.y-q[1])<.35;
 const point=a=>({x:a[0],y:a[1],z:a[2]}),dish=v=>JAPAN_DINING_MENU.find(d=>d.id===(v.dishId||'ramen'))?.name||'餐点';
 // The original order, plate, guest and staff pair remain the sole owners.
 export function createJapanTableServiceDuty({board,actors,assign,clear,unmount,taskOf,getStaffLife,customerActor,onComplete=()=>{},getPlayer,getMounted=()=>null,planPath,isDutyRoute=()=>false}){
- const host=actors.get(HOST);let desired=null,meeting=false,step=null,paused=false,disposed=false,corridors=[];
- const jobs=()=>board.jobs().filter(j=>['serve','wash'].includes(j.kind)&&board.getVisit(j.visitId)?.customerType!=='player');
- const claims=()=>board.state().claims.filter(j=>['serve','wash'].includes(j.kind));
- const cargo=job=>board.state().items.find(i=>i.id===job?.itemId);
+ const host=actors.get(HOST);let desired=null,meeting=false,step=null,paused=false,disposed=false,corridors=[],routeSignature='',reads=null;
+ const read=()=>reads||board.tableWork(),scoped=fn=>{if(reads)return fn();reads=board.tableWork();try{return fn();}finally{reads=null;}};
+ const jobs=()=>read().jobs.filter(j=>['serve','wash'].includes(j.kind)&&board.getVisit(j.visitId)?.customerType!=='player');
+ const claims=()=>read().claims.filter(j=>['serve','wash'].includes(j.kind));
+ const cargo=job=>read().items.find(i=>i.id===job?.itemId);
  const heldJob=()=>claims().find(j=>j.workerId==='player'&&cargo(j)?.location.type==='worker'&&cargo(j)?.location.id==='player');
- function refreshRoutes(){const stations=[REG,P.kitchenPickup,P.sushiPickup,...board.state().visits.filter(v=>v.customerType!=='player').map(v=>v.servePoint)];corridors=stations.flatMap((p,i)=>stations.slice(i+1).flatMap(q=>{const route=planPath?.(point(p),point(q),.34);if(!route?.length)return [];const nodes=[point(p),...route,point(q)];return nodes.slice(1).map((b,j)=>[nodes[j],b]);}));}
+ function refreshRoutes(){const stations=[...new Map([REG,P.kitchenPickup,P.sushiPickup,...read().visits.map(v=>v.servePoint)].map(p=>[p.join(','),p])).values()],signature=JSON.stringify(stations);if(signature===routeSignature)return;routeSignature=signature;corridors=stations.flatMap((p,i)=>stations.slice(i+1).flatMap(q=>{const route=planPath?.(point(p),point(q),.34);if(!route?.length)return [];const nodes=[point(p),...route,point(q)];return nodes.slice(1).map((b,j)=>[nodes[j],b]);}));}
  const nearRoute=p=>corridors.some(([a,b])=>{const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,d=dx*dx+dy*dy+dz*dz,t=d?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy+(p.z-a.z)*dz)/d)):0;return Math.hypot(p.x-a.x-t*dx,p.y-a.y-t*dy,p.z-a.z-t*dz)<.8;});
- const inWorkplace=()=>{const p=getPlayer()?.root.position;return !!p&&(Math.abs(p.y)<.35&&p.x>=-8&&p.x<=5.6&&p.z>=-14.5&&p.z<=-9.5||board.state().visits.some(v=>near(p,v.servePoint,1.3))||nearRoute(p)||isDutyRoute());};
+ const inWorkplace=()=>{const p=getPlayer()?.root.position;return !!p&&(Math.abs(p.y)<.35&&p.x>=-8&&p.x<=5.6&&p.z>=-14.5&&p.z<=-9.5||read().visits.some(v=>near(p,v.servePoint,1.3))||nearRoute(p)||isDutyRoute());};
  const busy=n=>{const t=taskOf(n);return !!t&&!t.idle&&!t.tableMeeting;};
  const meetingReady=()=>near(host.root.position,HOME,.2)&&!host.serviceMount&&!busy(host)&&getStaffLife()?.state().active?.id!==HOST;
  const dutyActive=id=>desired===id&&board.staffDuty(KEY)?.status==='active',covering=()=>board.staffDuty(KEY)?.status==='active';
@@ -24,10 +25,10 @@ export function createJapanTableServiceDuty({board,actors,assign,clear,unmount,t
    const add=(kind,target,position,focus,label,duration=.9)=>result.push({...base,key:j.id+':'+kind+':'+target.id,kind,targetVisitId:target.id,position:position.slice(),target:focus.slice(),action:`${v.number}号 ${v.name} · 原单${dish(v)} · ${label}`,duration});
    if(j.kind==='wash'){add(held?'wash':'collect',v,held?P.kitchenPickup:v.servePoint,held?P.mealTray:v.diningPoint,held?'归原厨房清洗同一餐盘':'收回原客已吃完的餐盘',held?2:.9);continue;}
    if(!held){add(wrong?'retrieve':'pickup',wrongGuest||v,wrong?wrongGuest.servePoint:P[j.from],wrong?wrongGuest.diningPoint:v.dishId==='sushi'?P.sushiTray:P.mealTray,wrong?`从${wrongGuest.number}号 ${wrongGuest.name}桌取回送错的原盘`:'领取这份原盘');continue;}
-   for(const target of board.state().visits.filter(t=>t.customerType!=='player'&&['waiting-meal','eating'].includes(t.stage)))add('serve',target,target.servePoint,target.diningPoint,`送到${target.number}号 ${target.name}桌（该桌原单：${dish(target)}）`,1.3);
+   for(const target of read().visits.filter(t=>t.customerType!=='player'&&['waiting-meal','eating'].includes(t.stage)))add('serve',target,target.servePoint,target.diningPoint,`送到${target.number}号 ${target.name}桌（该桌原单：${dish(target)}）`,1.3);
   }return result;
  }
- const workIntent=(id,key=null)=>{const choices=workChoices(id);return (key?choices.find(w=>w.key===key):choices[0])||null;};
+ const workIntent=(id,key=null)=>scoped(()=>{const choices=workChoices(id);return (key?choices.find(w=>w.key===key):choices[0])||null;});
  function executeWork(work,id){const next=workIntent(id,work.key);if(!next||!near(getPlayer()?.root.position,next.position,.22)||getMounted()||!board.claim(next.jobId,'player'))return false;step={...next,receiptId:id,elapsed:0};return true;}
  function releaseDuty(id,{evaluate=false}={}){const held=heldJob();if(held&&!near(getPlayer()?.root.position,held.kind==='wash'?board.getVisit(held.visitId).servePoint:P[held.from],.3))return false;if(!board.releaseStaffDuty(KEY,id,{evaluate}))return false;desired=null;step=null;paused=false;return true;}
  function update(dt){if(disposed)return;if(meeting)recall();if(desired&&!paused&&(!inWorkplace()||getMounted())){if(heldJob()?board.pauseStaffDuty(KEY,desired):board.releaseStaffDuty(KEY,desired)){step=null;paused=true;}}
@@ -37,9 +38,9 @@ export function createJapanTableServiceDuty({board,actors,assign,clear,unmount,t
   player.root.rotation.y=Math.atan2(step.target[0]-player.root.position.x,step.target[2]-player.root.position.z);step.elapsed+=Math.max(0,Math.min(.1,dt));if(step.elapsed<step.duration)return;
   const evidence={receiptId:step.receiptId,visitId:v.id,number:v.number,itemId:step.itemId,tokenId:step.tokenId,position:player.root.position.toArray(),guestPosition:guest?.root.position.toArray(),targetVisitId:target.id};
   const ok=['pickup','retrieve','collect'].includes(step.kind)?board.pickup(step.jobId,'player',evidence):step.kind==='serve'&&target.id!==v.id?board.rejectTableDelivery(step.jobId,evidence):board.complete(step.jobId,'player',evidence);
-  if(ok){onComplete(v.id,step.kind==='serve'&&target.id!==v.id?'wrong-table':step.kind);step=null;refreshRoutes();}
+  if(ok){if(step.kind==='wash'&&['departed','cancelled'].includes(v.stage))board.forgetFinished([v.id]);reads=null;onComplete(v.id,step.kind==='serve'&&target.id!==v.id?'wrong-table':step.kind);step=null;refreshRoutes();}
  }
- return {registry:REG.slice(),meetingReady,inWorkplace,dutyActive,workIntent,workChoices,executeWork,releaseDuty,update,
+ return {registry:REG.slice(),meetingReady,inWorkplace:()=>scoped(inWorkplace),dutyActive,workIntent,workChoices:id=>scoped(()=>workChoices(id)),executeWork,releaseDuty,update:dt=>scoped(()=>update(dt)),
   holdDuty(id){desired=id;paused=true;},canClaimDuty:()=>!board.state().visits.some(v=>v.customerType==='player'&&!['departed','cancelled'].includes(v.stage)),
   claimDuty(id){if(disposed||desired&&desired!==id||!this.canClaimDuty())return false;desired=id;paused=false;refreshRoutes();return board.setStaffDuty(KEY,id,dutyActive(id)?'active':'draining');},
   canEndDuty:id=>desired===id&&!step&&!claims().some(j=>j.workerId==='player'),requestMeeting:value=>{meeting=!!value;},
