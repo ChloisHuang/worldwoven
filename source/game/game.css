@@ -178,9 +178,14 @@ body.in-lot :is(.cn-meal-ticket,.cn-inn-ticket,.cn-salon-ticket,.jp-service-tick
 .context-action-close svg{width:22px;height:22px}
 .context-action-list{min-height:0;overflow:auto;overscroll-behavior:contain;touch-action:pan-y;padding-top:4px}
 .context-action-group h3{font-size:12px;font-weight:400;color:#849b9b;margin:10px 4px 3px}
-.context-action-row{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:9px 6px;background:transparent;text-align:left;color:#456872;border:0;border-radius:3px;font-family:inherit;font-size:14px;line-height:1.4;touch-action:manipulation}
+.context-action-row{display:flex;align-items:center;gap:10px;width:100%;height:auto;min-height:44px;padding:9px 6px;background:transparent;text-align:left;color:#456872;border:0;border-radius:3px;font-family:inherit;font-size:14px;line-height:1.4;touch-action:manipulation}
 .context-action-row:hover,.context-action-row:focus-visible{background:#e5f0e6;filter:none}
 .context-action-row:focus-visible,.context-action-close:focus-visible{outline:2px solid #94b9b0;outline-offset:-2px}
 .context-action-icon{display:grid;place-items:center;flex:none;width:24px;height:24px;color:#789a9c}
 .context-action-icon svg{width:23px;height:23px}
 @media(max-height:420px){.context-action-menu{bottom:var(--ww-ui-bottom,12px);max-height:var(--ww-ui-height,calc(100dvh - 24px));padding:6px 12px}.context-action-group h3{margin-top:5px}}
+
+/* The compact chooser owns its anchor inside the shared safe frame. */
+body dialog.context-action-menu{inset:auto var(--ww-ui-right,12px) calc(var(--ww-ui-bottom,12px) + 54px) auto!important;margin:0!important;max-height:min(440px,calc(var(--ww-ui-height,calc(100dvh - 24px)) - 54px))!important}
+@media(max-height:420px){body dialog.context-action-menu{bottom:var(--ww-ui-bottom,12px)!important;max-height:var(--ww-ui-height,calc(100dvh - 24px))!important}}
+@media(max-height:420px) and (min-width:640px){.context-action-menu{width:min(540px,var(--ww-ui-width,calc(100vw - 24px)))}.context-action-group{display:grid;grid-template-columns:1fr 1fr;column-gap:8px}.context-action-group h3{grid-column:1 / span 2}}
