@@ -7,6 +7,10 @@ import {settleTemporaryWage} from './temporary-work-payroll.js';
 const VERSION = 2, WAGE = 12, SECONDS = 5, FLOOR = .215;
 const copy = value => JSON.parse(JSON.stringify(value));
 const HOST = {id: 'cn-tavern-labor-host', name: '向许安接活或领工钱', position: [22.35, FLOOR, 11.7]};
+// Registration is a conversation in the public reception bay, not precision
+// table work. A visitor must not occupy the same floor dot as a passing actor.
+const REGISTRATION_RADIUS = .9;
+const registrationKinds = new Set(['view', 'formal-view', 'apply', 'resign', 'formal-apply', 'formal-resign']);
 const TABLES = [
   {id: 'cn-tavern-labor-west', name: '西窗餐桌 · 靠过道一侧', position: [19.3, FLOOR, 18.1], playerWorkTarget: [18.825, 1.19, 18.1]},
   {id: 'cn-tavern-labor-east', name: '东窗餐桌 · 靠过道一侧', position: [22.7, FLOOR, 18.1], playerWorkTarget: [23.175, 1.19, 18.1]},
@@ -54,8 +58,8 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
   let current, loadError = null;
   try { current = restore(saved); } catch { current = empty(); loadError = 'invalid-saved-state'; }
   let cleaning = false, pendingClean = false, elapsed = 0, origin = null, saving = false, paying = false, disposed = false, lastError = null;
-  let ui = null, nextPayAt=0;
-  const formal=createFormalLaborContract({careers,role:TAVERN_STEWARD_ROLE,getJob:()=>current.job,getPlayer,meetHost,notify,openRegistration});
+  let ui = null, nextPayAt=0, waitingRegistration=null;
+  const formal=createFormalLaborContract({careers,role:TAVERN_STEWARD_ROLE,getJob:()=>current.job,getPlayer,meetHost:meetRegistrationHost,notify,openRegistration});
   const hired=()=>formal.hired()||!!employment?.isHired();
   const player = () => getPlayer()?.root?.position;
   const active = () => !!current.job;
@@ -80,10 +84,26 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     } catch { return failure('save-failed', '进度没能保存，请稍后再试'); }
     finally { saving = false; }
   }
-  function meetHost() {
-    if (!at(HOST.position)) return failure('not-at-host', '请走到一层许安的迎客茶案前，站稳后再招呼他');
+  function meetHost(radius = .2) {
+    if (getMounted() || !near(player(), HOST.position, radius) || !canSee(HOST)) return failure('not-at-host', '请走到一层许安的迎客茶案前，站稳后再招呼他');
     if (!hostReady()) return failure('host-unavailable', '许安还在忙，请等他回到迎客茶案再来');
     return true;
+  }
+  function meetRegistrationHost() { return meetHost(REGISTRATION_RADIUS); }
+  const atRegistration = () => !getMounted() && near(player(), HOST.position, REGISTRATION_RADIUS) && canSee(HOST);
+  const cancelRegistration = () => { waitingRegistration = null; };
+  function finishRegistration(selected) {
+    const next = resolveIntent(selected);
+    if (!next || !atRegistration()) return false;
+    if (!hostReady()) {
+      waitingRegistration = copy(next);
+      notify('许安正在忙，已在登记处等候；等他回案后办理这次登记，关闭面板可取消');
+      ui?.open(); return true;
+    }
+    if (next.kind === 'formal-apply' || next.kind === 'formal-resign') return next.kind === 'formal-apply' ? formal.apply() : formal.resign();
+    const changed = employment[next.kind]();
+    if (changed) ui?.open();
+    return changed;
   }
   function accept() {
     if (!permitted()) return failure(loadError || copperLedger.loadError || 'labor-busy');
@@ -148,6 +168,14 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
   }
   function update(dt) {
     if (disposed) return;
+    if (waitingRegistration) {
+      const selected = waitingRegistration;
+      if (!atRegistration() || !resolveIntent(selected)) {
+        cancelRegistration(); notify('登记等候已取消；需要办理时请重新选择');
+      } else if (hostReady()) {
+        cancelRegistration(); ui?.close(); finishRegistration(selected);
+      }
+    }
     // Route arrival can still carry this frame's walking flag. Begin on the
     // next settled frame, at the same physical table, without a second click.
     if (pendingClean) {
@@ -178,10 +206,10 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
   const view = () => ({...copy(current), active: active(), cleaning, progress: elapsed / SECONDS,
     wage: WAGE, seconds: SECONDS, target: copy(target()), atTarget: at(target().position),
     atHost: at(HOST.position), hostAvailable: hostReady(), employment: employment?.state() || null,
-    hired: hired(), formalHired:formal.hired(),formalRole:formal.role,formalState:formal.state(),formalJob:formal.pinned(current.job),formalSalary:formal.salary, loadError: loadError || copperLedger.loadError || null, lastError});
+    hired: hired(), waitingRegistration: waitingRegistration?.kind || null, formalHired:formal.hired(),formalRole:formal.role,formalState:formal.state(),formalJob:formal.pinned(current.job),formalSalary:formal.salary, loadError: loadError || copperLedger.loadError || null, lastError});
   function intent(kind) {
     const job = current.job, employed = hired(), registration = employment?.state();
-    kind ||= job ? job.stage === 'ready' ? 'claim' : 'clean' : employed ? 'accept' : 'view';
+    kind ||= job ? job.stage === 'ready' ? 'claim' : 'clean' : formal.hired() ? 'accept' : 'view';
     if (disposed || !['view', 'apply', 'accept', 'claim', 'clean', 'resign', 'formal-view', 'formal-apply', 'formal-resign'].includes(kind)) return null;
     if (!['view','formal-view'].includes(kind) && (!permitted() || kind !== 'claim' && kind !== 'clean' && registration?.loadError)) return null;
     if (kind === 'apply' && (job || employed) || kind === 'resign' && (job || !employed || formal.hired()) ||
@@ -192,9 +220,9 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     const point = kind === 'clean' ? target() : HOST;
     return {...copy(point), id: `cn-tavern-labor-${kind}`, provider: 'china-tavern-labor', kind,
       name: kind === 'clean' ? point.name : '云来酒楼 · 招工登记案', npcName: '许安',
-      action: {'formal-view':'查看正式职位与申请条件','formal-apply':'申请常任服务助理','formal-resign':'办理常任助理离职',view:'查看帮工与长期职位',apply:'申请酒楼帮工',accept:formal.hired()?'开始今日酒楼班次':'接下擦桌活',claim:formal.pinned(job)?'提交当班验收 · 工资存银行':'验收后工资存银行 · 12 铜文',clean:'擦拭餐桌 · 5 秒',resign:'办理离职'}[kind],
+      action: {'formal-view':'查看正式职位与申请条件','formal-apply':'申请常任服务助理','formal-resign':'办理常任助理离职',view:'查看酒楼职位与办理登记',apply:'申请酒楼帮工',accept:formal.hired()?'开始今日酒楼班次':'接下擦桌活',claim:formal.pinned(job)?'提交当班验收 · 工资存银行':'验收后工资存银行 · 12 铜文',clean:'擦拭餐桌 · 5 秒',resign:'办理离职'}[kind],
       intentKey: [registration?.revision ?? 0, formal.state()?.revision??0, job?.id || '-', job?.stage || '-', job?.completedTables || 0, kind].join(':'),
-      interactionRadius: 2.8, executionRadius: .18, priority: 45};
+      interactionRadius: 2.8, executionRadius: registrationKinds.has(kind) ? REGISTRATION_RADIUS : .18, priority: 45};
   }
   function resolveIntent(selected) {
     const next = intent(selected?.kind);
@@ -202,18 +230,10 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
   }
   function executeIntent(selected) {
     const next = resolveIntent(selected);
-    if (!next || !at(next.position) || !canSee(next)) return false;
+    if (!next || !(registrationKinds.has(next.kind) ? atRegistration() : at(next.position)) || !canSee(next)) return false;
     if(next.kind==='formal-view'){formal.open();return true;}
-    if(next.kind==='formal-apply')return formal.apply();
-    if(next.kind==='formal-resign')return formal.resign();
     if (next.kind === 'view') { ui?.open(); return true; }
-    if (next.kind === 'apply' || next.kind === 'resign') {
-      const changed = employment[next.kind]();
-      // Registration grants permission to choose work, never an automatic job.
-      // Keep the local result and its explicit next action in the same panel.
-      if (changed) ui?.open();
-      return changed;
-    }
+    if (registrationKinds.has(next.kind)) return finishRegistration(next);
     if (next.kind === 'clean') { pendingClean = true; return true; }
     if (next.kind === 'accept') {
       if (!accept()) return false;
@@ -225,12 +245,12 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     return claim();
   }
   const service = {
-    active, accept, startCleaning, claim, cancel, update, view, state: view, meetHost, intent, resolveIntent, executeIntent,
+    active, accept, startCleaning, claim, cancel, update, view, state: view, meetHost, meetRegistrationHost, intent, resolveIntent, executeIntent, cancelRegistration,
     stopCleaning, isCleaning: () => cleaning, employment, formal,
     playerAction: () => cleaning && stationary() ? 'tidy' : null,
     playerStation: () => cleaning && stationary() ? copy(target()) : null,
     open: () => ui?.open(), close: () => ui?.close(), isOpen: () => !!ui?.isOpen(),
-    dispose() { if (disposed) return; stopCleaning(); disposed = true; ui?.dispose(); },
+    dispose() { if (disposed) return; cancelRegistration(); stopCleaning(); disposed = true; ui?.dispose(); },
   };
   if (doc?.createElement && doc.body) ui = createUI({doc, service, getPlayer, onIntent, canSee, onOpen});
   return service;
@@ -244,7 +264,7 @@ function createUI({doc, service, getPlayer, onIntent, canSee, onOpen}) {
   (doc.head || doc.body).append(style); doc.body.append(dialog);
   let signature = '';
   const nearHouse = () => { const p = getPlayer()?.root.position; return p && [service.view().target, HOST].some(current => current && near(p, current.position, 2.8) && canSee(current)); };
-  const close = () => { if (dialog.open) dialog.close(); };
+  const close = () => { service.cancelRegistration(); if (dialog.open) dialog.close(); };
   const button = (text, handler, enabled = true, primary = false) => { const b = make('button', text, primary ? 'cn-labor-primary' : ''); b.type = 'button'; b.disabled = !enabled; b.onclick = handler; return b; };
   const request = selected => { close(); if (service.resolveIntent(selected)) onIntent(selected); };
   const actionButton = (kind, primary = false) => { const choice = service.intent(kind); return choice ? button(choice.action, () => request(choice), true, primary) : null; };
@@ -253,10 +273,15 @@ function createUI({doc, service, getPlayer, onIntent, canSee, onOpen}) {
     const ageText = Number.isFinite(age) ? `${Math.floor(age)}岁` : '未读取', skill = s.formalState?.skills?.ritual ?? 0;
     if (dialog.open && !nearHouse()) { close(); return; }
     if (!dialog.open && !force) return;
-    const key = [s.job?.id, s.job?.stage, s.job?.completedTables, s.cleaning, s.atTarget, s.atHost, s.hostAvailable, s.loadError, s.lastError, s.employment?.revision, s.employment?.lastError,s.formalState?.revision, s.formalHired, age, skill].join('|');
+    const key = [s.job?.id, s.job?.stage, s.job?.completedTables, s.cleaning, s.waitingRegistration, s.atTarget, s.atHost, s.hostAvailable, s.loadError, s.lastError, s.employment?.revision, s.employment?.lastError,s.formalState?.revision, s.formalHired, age, skill].join('|');
     if (!force && key === signature) return; signature = key; dialog.replaceChildren();
     const x = button('×', close); x.className = 'cn-labor-close'; x.setAttribute('aria-label', '关闭短工面板，保留当前进度');
     dialog.append(x, make('h2', '云来酒楼 · 工作登记'));
+    if (s.waitingRegistration) {
+      dialog.append(make('p', '正在登记案旁等候许安回案。尚未办理，也没有开始工作；许安空闲后会核对你刚才选择的申请或离职。'),
+        button('取消等候', () => { service.cancelRegistration(); refresh(true); }, true, true));
+      return;
+    }
     const actions = make('div', null, 'cn-labor-actions'), formalActions = make('div', null, 'cn-labor-actions');
     const roleCard = make('section', null, 'cn-labor-role');
     roleCard.append(make('h3', '正式职位 · 酒楼常任服务助理'),
