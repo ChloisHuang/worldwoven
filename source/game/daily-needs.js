@@ -1,25 +1,28 @@
 import {CHINA_OFFICIAL_IDS} from './china-official-economy.js';
 import {GAME_MINUTES_PER_SECOND} from './simulation-clock.js';
 import {JAPAN_STAFF_CREW} from './japan-service-orders.js';
+import {CHINA_CONSORTS} from './china-palace-residents.js';
 
 // One physiological clock for enrolled identities. Country controllers still
 // own actions and supplies; an intention, animation or scene entry grants nothing.
 export const DAILY_NEEDS_HOUR=60/GAME_MINUTES_PER_SECOND;
 const FOOD_DAY=24*DAILY_NEEDS_HOUR;
-// Officials join the verified food loop only. Their toilet service is not yet
+// Officials and the original royal adults join the verified food loop only. Their toilet service is not yet
 // connected, so this release must not create an impossible toilet obligation.
-const mealOnlyActors=new Set(CHINA_OFFICIAL_IDS);
-export const DAILY_NEEDS_ACTORS=Object.freeze(['player','cn-tavern-diner-west','cn-tavern-diner-east',...CHINA_OFFICIAL_IDS,...JAPAN_STAFF_CREW]);
+const royalActors=new Set(['cn-emperor',...CHINA_CONSORTS.map(p=>p.id)]);
+const mealOnlyActors=new Set([...CHINA_OFFICIAL_IDS,...royalActors]);
+export const DAILY_NEEDS_ACTORS=Object.freeze(['player','cn-tavern-diner-west','cn-tavern-diner-east',...CHINA_OFFICIAL_IDS,...JAPAN_STAFF_CREW,...royalActors]);
 const copy=x=>JSON.parse(JSON.stringify(x));
 const positive=(x,fallback=0)=>Number.isFinite(x)&&x>=0?x:fallback;
 const clamp=x=>Math.max(0,Math.min(1,x));
 const mealSource='china-tavern-meal';
-const mealSources=new Set([mealSource,'japan-player-meal','france-tea-food','japan-staff-meal']);
+const mealSources=new Set([mealSource,'japan-player-meal','france-tea-food','japan-staff-meal','china-royal-kitchen']);
 const toiletFacilities={'china-toilet':'cn-bath-toilet','japan-toilet':'jp-washroom-private-1','france-toilet':'fr-royal-bath-toilet'};
 function validMeal(receipt){
  const r=receipt,n=r.number;
  if(r.source===mealSource)return r.orderId===`cn-tavern-order-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-dish'&&['yunlai-mushroom-rice','yunlai-green-noodles'].includes(r.dishId)&&r.paymentReceipt===r.orderId;
  if(r.source==='japan-staff-meal')return JAPAN_STAFF_CREW.includes(r.actorId)&&r.orderId===`jp-staff-meal-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+':bowl'&&r.dishId==='staff-ramen'&&r.supplyReceipt===r.orderId+':prepared';
+ if(r.source==='china-royal-kitchen')return royalActors.has(r.actorId)&&r.orderId===`cn-royal-meal-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-meal'&&r.dishId==='royal-steamed-meal'&&r.supplyReceipt===r.orderId+'-prepared';
  if(r.actorId!=='player')return false;
  if(r.source==='japan-player-meal'){
   const match=/^jp-player-(dining|service)-(\d+)-(\d+)$/.exec(r.orderId||'');

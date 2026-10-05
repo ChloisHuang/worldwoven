@@ -1,0 +1,74 @@
+// Real order/needs/career controllers, with route doubles. Protect original
+// supply, recipient and continuous-pay receipts across retries and reload.
+import assert from 'node:assert/strict';
+import {test} from 'node:test';
+import {registerHooks} from 'node:module';
+import {pathToFileURL} from 'node:url';
+registerHooks({resolve(id,c,next){return id==='three'?{url:pathToFileURL(process.cwd()+'/source/vendor/three/build/three.module.js').href,shortCircuit:true}:next(id,c);}});
+const T=await import('three');
+const {createRoyalKitchenOrders,validRoyalKitchenState}=await import('../source/game/china-royal-kitchen-orders.js');
+const {createChinaRoyalKitchenService,ROYAL_KITCHEN_POINTS:P}=await import('../source/game/china-royal-kitchen-service.js');
+const {createChinaRoyalKitchenEmployment}=await import('../source/game/china-royal-kitchen-employment.js');
+const {createFormalCareers}=await import('../source/game/formal-careers.js');
+const {createCurrencyLedger}=await import('../source/game/currency-ledger.js');
+const {createDailyNeeds}=await import('../source/game/daily-needs.js');
+const {careerInterviewRoll}=await import('../source/game/career-applications.js');
+const copy=x=>JSON.parse(JSON.stringify(x)),RID='cn-royal-kitchen-cook',SEAT='china-palace-dining-seat-19.8';
+function fixture(stored={}){
+ const store=copy(stored),clock={day:4,hour:8,seconds:7200,...store.clock},fail={};let service,employment,mounted=null;const writes=[];
+ const save=key=>value=>{if(fail[key])return false;store[key]=copy(value);store.clock=copy(clock);writes.push(key);return true;};
+ const bank=createCurrencyLedger({saved:store.bank,saveState:save('bank')});let seed=1;while(careerInterviewRoll(seed,RID,4)>.1)seed++;
+ const clean=createFormalCareers({getClock:()=>clock,saveState:()=>true}).state();Object.assign(clean.skills,{cooking:3,ritual:2});clean.workExperience.tavernChef=[1,2,3].map(n=>({source:'china-tavern-chef',number:n,orderId:'cn-tavern-order-'+n,mealId:'cn-tavern-order-'+n+'-dish',actorId:'player',day:n,workReceiptId:'cn-tavern-chef-labor-'+n,completed:true}));
+ const careers=createFormalCareers({worldSeed:seed,saved:store.career||clean,getClock:()=>clock,saveState:save('career'),creditWageToBank:bank.creditWageToBank});assert.equal(careers.state().loadError,null);
+ const group=new T.Group(),actor=(id,p,age=30)=>{const root=new T.Group(),hand=new T.Group();root.add(hand);root.userData.hands=[hand];root.position.set(...p);group.add(root);return {root,station:{id,npcName:id,ageYears:age},ageYears:age,phase:0,route:[],walking:false,locomotion:{walkSpeed:8},animate(){}};};
+ const jia=actor('cn-cooking',P.host),guest=actor('cn-consort-yue',[19.8,.215,.3]),emperor=actor('cn-emperor',[0,1.415,-4]),player=actor('player',P.registry),npcs=[jia,guest,emperor],seat={id:SEAT,anchor:[19.8,.215,.3]};
+ for(const a of [...npcs,player])if(store.positions?.[a.station.id])a.root.position.set(...store.positions[a.station.id]);
+ if(store.guestMounted)guest.mount=seat;
+ const needs=createDailyNeeds({saved:store.needs,getClock:()=>clock,saveState:save('needs')});needs.enter('china',npcs.map(n=>n.station.id));
+ const doors={routeStep(route,p){while(route[0]&&Math.hypot(route[0].x-p.x,route[0].z-p.z)<.03)route.shift();return {waypoint:route[0],phase:'walking'};}};
+ const tokens=[],contacts=[];
+ service=createChinaRoyalKitchenService({npcs,lot:{group},doors,planPath:(_a,b)=>[new T.Vector3(b.x,b.y,b.z)],moveActor:(a,x,z)=>{a.root.position.x+=x;a.root.position.z+=z;},poseContext:()=>({}),getPlayer:()=>player,getMounted:()=>mounted,getMountedActor:n=>n?.mount,getClock:()=>clock,getEmployment:()=>employment?.state().job,isHired:()=>careers.isHired(RID),sharedNeeds:needs,saved:store.service,saveState:save('service'),beginInteraction:p=>{const e={source:'china-royal-kitchen-handoff',id:'contact-'+(tokens.length+1),participants:p,duration:0};tokens.push(e);return e;},onInteraction:e=>contacts.push(copy(e))});
+ employment=createChinaRoyalKitchenEmployment({kitchen:service,careers,getPlayer:()=>player,getMounted:()=>mounted,getClock:()=>clock,saved:store.employment,saveState:save('employment')});
+ const tick=(n=1,s={})=>{for(let i=0;i<n;i++){clock.seconds+=.1;clock.hour+=.1*.7/60;employment.update(.1);service.update(.1,clock.seconds,s);}};
+ const until=(fn,label,max=2000)=>{for(let i=0;i<max&&!fn();i++)tick();assert(fn(),label+' '+JSON.stringify(service.state()));};
+ const act=kind=>{const intent=employment.intent(kind);assert(intent,kind);player.root.position.set(...intent.position);player.walking=false;assert(employment.executeIntent(intent));tick();};
+ const meet=()=>{player.root.position.set(...P.registry);service.requestMeeting(true);until(()=>service.meetingReady(),'Jia returned to real handoff');};
+ const hire=()=>{meet();act('formal-apply');assert.equal(careers.applicationResult(RID).status,'pending');act('formal-review');assert(careers.isHired(RID));assert.equal(employment.state().job,null);act('accept');assert(service.dutyActive(employment.state().job.receiptId));};
+ const checkpoint=()=>({...copy(store),service:service.snapshot(),employment:store.employment?copy(store.employment):null,needs:needs.snapshot(),clock:copy(clock),positions:Object.fromEntries([...npcs,player].map(a=>[a.station.id,a.root.position.toArray()])),guestMounted:!!guest.mount});
+ return {store,clock,fail,writes,service,employment,needs,careers,bank,jia,guest,player,seat,tick,until,act,meet,hire,checkpoint,tokens,contacts,group};
+}
+test('finite opening pantry, invalid identity, failed debit, original prepared loss and exhausted restore',()=>{
+ let saved=null,fail=false;const create=()=>createRoyalKitchenOrders({saved,saveState:s=>{if(fail)return false;saved=s;return true;}});let o=create();assert.equal(o.request({actorId:'player',seatId:SEAT}),null);
+ let order=o.request({actorId:'cn-emperor',seatId:SEAT});assert.equal(o.request({actorId:'cn-emperor',seatId:SEAT}).id,order.id);fail=true;assert.equal(o.prepare(order.id),false);assert.equal(o.snapshot().supply.remaining,120);fail=false;assert(o.prepare(order.id));assert(o.cancel('cn-emperor'));assert.equal(o.snapshot().supply.wasted,1);assert(o.cancel('cn-emperor'));o=create();assert.equal(o.snapshot().supply.remaining,119);
+ for(let i=0;i<119;i++){order=o.request({actorId:'cn-emperor',seatId:SEAT});assert(order);assert(o.prepare(order.id));assert(o.cancel('cn-emperor'));}assert.equal(o.available('cn-emperor'),false);assert.equal(create().snapshot().supply.remaining,0);assert(validRoyalKitchenState(saved));saved.supply.remaining=120;assert.equal(create().loadError(),'invalid-royal-kitchen-state');
+});
+test('original Jia physically prepares and carries one dish; only actual same-seat complete meal relieves hunger once',()=>{
+ const f=fixture(),o=f.service.requestMeal({actorId:'cn-consort-yue',seatId:SEAT});assert(o);assert.equal(f.service.requestMeal({actorId:'player',seatId:SEAT}),null);f.player.root.position.set(0,.215,0);
+ f.until(()=>f.service.mealReady(o.id,o.actorId),'Jia delivered original meal');assert.equal(f.service.state().supply.remaining,119);assert.equal(f.service.state().heldMeals.length,1);assert.equal(f.service.state().heldMeals[0].mealId,o.id+'-meal');assert.equal(f.service.startMeal(o.id,o.actorId),false);f.guest.mount=f.seat;assert(f.service.startMeal(o.id,o.actorId));f.tick(60);assert.equal(f.service.completeMeal(o.id,o.actorId),false);const g=fixture(f.checkpoint());g.tick(65);assert(g.service.completeMeal(o.id,o.actorId));assert.equal(g.needs.hunger(o.actorId),0);assert.equal(g.service.workReceipts().length,0);const needs=g.needs.snapshot();g.tick(40);assert(g.service.completeMeal(o.id,o.actorId));assert(g.needs.hunger(o.actorId)>0,'replaying consumed order grants no second meal');assert.equal(g.needs.snapshot().people[o.actorId].receipts['china-royal-kitchen'],1);assert.equal(g.service.state().supply.remaining,119);assert.equal(needs.people[o.actorId].toiletAge,0);
+});
+test('player explicitly inherits Jia role, waits for original orders, works same meal and stays employed until explicit bank handover',()=>{
+ const f=fixture();f.hire();const receipt=f.employment.state().job.receiptId;f.tick(120);assert(f.employment.state().job.coveredSeconds>10);assert.equal(f.bank.state().bank,0);assert(f.service.state().life.brain.people['cn-cooking'].choices>0,'same Jia makes leisure choices');
+ const o=f.service.requestMeal({actorId:'cn-consort-yue',seatId:SEAT});assert.equal(o.workerId,'player');f.guest.mount=f.seat;
+ for(const target of ['prepared','cooked','carrying','served']){f.act('task');f.until(()=>f.service.lookupMeal(o.id,o.actorId).stage===target,'real player step '+target);}
+ assert(f.service.startMeal(o.id,o.actorId));f.tick(60);const g=fixture(f.checkpoint());g.tick(65);g.fail.service=true;assert.equal(g.service.completeMeal(o.id,o.actorId),false);assert.equal(g.needs.snapshot().people[o.actorId].receipts['china-royal-kitchen'],undefined);g.fail.service=false;assert(g.service.completeMeal(o.id,o.actorId));g.tick(2);assert.equal(g.employment.state().job.completedTasks,1);assert.equal(g.employment.state().job.stage,'working');assert.equal(g.bank.state().bank,0);assert.equal(g.careers.state().lastDuty.customerReviews.length,1);g.tick(240);g.act('end-shift');g.until(()=>g.employment.state().job?.stage==='ready','Jia recalled and actual end-shift');assert.equal(g.employment.state().job.stage,'ready');g.act('claim');assert.equal(g.careers.state().lastDuty.stage,'paid');assert(g.bank.state().bank>0);assert.equal(g.bank.state().cash,0);assert.equal(g.employment.state().job,null);assert.equal(g.employment.intent('accept'),null);const h=fixture(g.checkpoint());assert.equal(h.careers.state().loadError,null);assert.equal(h.bank.state().bank,g.bank.state().bank);assert.equal(h.service.workReceipts(receipt).length,1);
+});
+test('manual stop, leaving and cancelled shift preserve original supply identities without relief or stray attendance',()=>{
+ const f=fixture();f.hire();const o=f.service.requestMeal({actorId:'cn-consort-yue',seatId:SEAT});f.act('task');f.tick(8);f.employment.stopActivity();f.tick(40);assert.equal(f.service.lookupMeal(o.id,o.actorId).stage,'ordered');f.act('task');f.until(()=>f.service.lookupMeal(o.id,o.actorId).stage==='prepared','completed original prep');const before=f.employment.state().job.coveredSeconds;f.player.root.position.set(0,.215,0);f.tick(100);assert(Math.abs(f.employment.state().job.coveredSeconds-before)<.2);f.act('cancel');assert.equal(f.service.lookupMeal(o.id,o.actorId).stage,'cancelled');assert.equal(f.service.state().supply.remaining,119);assert.equal(f.service.state().supply.wasted,1);assert.equal(f.service.workReceipts().length,0);assert.equal(f.employment.snapshot().attendance,0);assert.equal(f.bank.state().bank,0);
+});
+test('committed consumed meal repairs failed shared-needs save after reload exactly once',()=>{
+ const f=fixture(),o=f.service.requestMeal({actorId:'cn-consort-yue',seatId:SEAT});f.player.root.position.set(0,.215,0);f.until(()=>f.service.mealReady(o.id,o.actorId),'original dish delivered');f.guest.mount=f.seat;assert(f.service.startMeal(o.id,o.actorId));f.tick(125);f.needs.snapshot();const before=f.needs.hunger(o.actorId);f.fail.needs=true;assert(f.service.completeMeal(o.id,o.actorId));assert.equal(f.service.lookupMeal(o.id,o.actorId).stage,'consumed');assert.equal(f.needs.hunger(o.actorId),before);assert.equal(f.needs.snapshot().people[o.actorId].receipts['china-royal-kitchen'],undefined);
+ const g=fixture(f.checkpoint());g.tick();assert(g.needs.hunger(o.actorId)<.001);assert.equal(g.needs.snapshot().people[o.actorId].receipts['china-royal-kitchen'],o.number);assert.equal(g.service.state().supply.remaining,119);g.tick(40);const after=g.needs.hunger(o.actorId);assert(g.service.completeMeal(o.id,o.actorId));assert.equal(g.needs.hunger(o.actorId),after);assert.equal(g.service.state().orders.serial,1);
+});
+test('failed local shift admission and failed original-slip handover retry the same duty without split producer ownership',()=>{
+ const f=fixture();f.meet();f.act('formal-apply');f.act('formal-review');const original=f.service.requestMeal({actorId:'cn-consort-yue',seatId:SEAT});assert.equal(original.workerId,'cn-cooking');f.fail.employment=true;const accept=f.employment.intent('accept');assert.equal(f.employment.executeIntent(accept),false);assert.equal(f.employment.state().job,null);assert.equal(f.careers.state().lastDuty.workReceiptId,'cn-royal-kitchen-labor-1');f.fail.employment=false;f.fail.service=true;f.act('accept');assert.equal(f.service.dutyActive('cn-royal-kitchen-labor-1'),false);assert.equal(f.service.lookupMeal(original.id,original.actorId).workerId,'cn-cooking');assert.equal(f.employment.state().job.coveredSeconds,0);f.fail.service=false;f.tick();assert.equal(f.service.lookupMeal(original.id,original.actorId).workerId,'player');assert(f.service.dutyActive('cn-royal-kitchen-labor-1'));assert.equal(f.careers.state().lastDuty.workReceiptId,'cn-royal-kitchen-labor-1');assert.equal(f.employment.state().serial,1);
+});
+test('unrelated completed-meal credit keeps the next work intent and explicit handover alive',()=>{
+ const f=fixture();f.hire();const o=f.service.requestMeal({actorId:'cn-consort-yue',seatId:SEAT});f.guest.mount=f.seat;
+ for(const target of ['prepared','cooked','carrying','served']){f.act('task');f.until(()=>f.service.lookupMeal(o.id,o.actorId).stage===target,target);}
+ assert(f.service.startMeal(o.id,o.actorId));f.tick(125);f.act('end-shift');assert(f.employment.state().waiting);assert(f.service.completeMeal(o.id,o.actorId));f.until(()=>f.employment.state().job?.stage==='ready','pending handover survives completed receipt credit');assert.equal(f.employment.state().job.completedTasks,1);
+});
+test('cancel retains already completed original meal outbox through rejected career save',()=>{
+ const f=fixture();f.hire();const o=f.service.requestMeal({actorId:'cn-consort-yue',seatId:SEAT});f.guest.mount=f.seat;
+ for(const target of ['prepared','cooked','carrying','served']){f.act('task');f.until(()=>f.service.lookupMeal(o.id,o.actorId).stage===target,target);}
+ assert(f.service.startMeal(o.id,o.actorId));f.tick(125);assert(f.service.completeMeal(o.id,o.actorId));f.player.root.position.set(...P.registry);f.fail.career=true;assert.equal(f.employment.executeIntent(f.employment.intent('cancel')),false);assert(f.employment.state().job);f.fail.career=false;assert(f.employment.executeIntent(f.employment.intent('cancel')));assert.equal(f.employment.state().job,null);assert.equal(f.careers.state().lastDuty.stage,'missed');assert.equal(f.careers.state().lastDuty.customerReviews.length,1);assert.equal(f.careers.state().workExperience.royalKitchen.receipts.length,1);assert.equal(f.bank.state().bank,0);
+});
