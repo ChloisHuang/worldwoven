@@ -1,3 +1,4 @@
+import {createChinaTavernPropertyUI} from './china-tavern-property-ui.js';
 import {TAVERN_STEWARD_ROLE,TAVERN_HOST_ROLE,TAVERN_CHEF_ROLE} from './formal-careers.js';
 const ROLES=[TAVERN_STEWARD_ROLE,TAVERN_HOST_ROLE,TAVERN_CHEF_ROLE],REG=[22.35,.215,11.7];
 const copy=x=>JSON.parse(JSON.stringify(x));
@@ -5,9 +6,9 @@ const near=(p,point,r=.9)=>p&&Math.hypot(p.x-point[0],p.z-point[2])<=r&&Math.abs
 
 // Career registration, persistent attendance and the current selected task.
 // Scene owns the people and dirty objects; the contract owns salary/reviews.
-export function createChinaTavernService({meal,careers,getPlayer,getMounted=()=>null,getClock,host,getLegacyJob=()=>null,
+export function createChinaTavernService({meal,property=null,careers,getPlayer,getMounted=()=>null,getClock,host,getLegacyJob=()=>null,
   saved=null,world=null,saveState=()=>true,openRegistration=()=>{},onIntent=()=>{},notify=()=>{},canSee=()=>true,onOpen=()=>{},document:doc=globalThis.document}){
- const scene=meal.staffScene;let current=saved&&saved.version===1?copy(saved):{version:1,serial:0,job:null},selected=null,disposed=false,ui=null,attendance=0,lastError=null,waitingRegistration=null,retryScene=0;
+ const scene=meal.staffScene;let current=saved&&saved.version===1?copy(saved):{version:1,serial:0,job:null},selected=null,disposed=false,ui=null,propertyUI=null,attendance=0,lastError=null,waitingRegistration=null,retryScene=0;
  const heldRole=()=>ROLES.find(r=>careers.isHired(r.id));
  const roleFor=id=>ROLES.find(r=>r.id===id)||heldRole()||TAVERN_STEWARD_ROLE;
  const save=next=>{try{const result=saveState(copy(next));if(result===false||result?.then)return false;current=next;return true;}catch{return false;}};
@@ -36,6 +37,7 @@ export function createChinaTavernService({meal,careers,getPlayer,getMounted=()=>
   const wage=careers.state().lastDuty.wage;if(!save({...current,job:null}))return false;selected=null;notify(`许安：已按实际在岗工时及服务评价结算${wage}铜文，工资存入银行`);return true;
  }
  function intent(kind=null,roleId=null,choice=null){if(roleId===TAVERN_HOST_ROLE.id)return null;const role=roleFor(roleId),job=current.job,registered=careers.isHired(role.id);
+  if(kind==='property'){if(!property)return null;return {id:'cn-tavern-property',provider:'china-tavern-service',kind:'property',name:'云来酒楼 · 产权柜台',npcName:'许安',action:'查看酒楼产权与经营账',position:REG.slice(),executionRadius:.9,interactionRadius:2.8,priority:45,intentKey:'yunlai-property-counter'};}
   kind||=job?job.stage==='inspection'?'claim':selected?'task':'work-view':'formal-view';
   if(kind==='view')kind='formal-view';
   if(kind==='accept'&&(!registered||job||getLegacyJob()||!beginAvailability(role).ok))return null;
@@ -55,6 +57,7 @@ export function createChinaTavernService({meal,careers,getPlayer,getMounted=()=>
  function resolveIntent(old){const next=intent(old?.kind,old?.roleId,old?.choice);if(!next||old?.provider!==next.provider||old.id!==next.id||old.intentKey!==next.intentKey)return null;
   if(next.kind==='formal-view'&&old.registration){if(old.registration.roleId!==next.roleId||!['role','catalogue'].includes(old.registration.scope))return null;next.registration=copy(old.registration);}return next;}
  function executeIntent(old){const next=resolveIntent(old);if(!next||getMounted()||!near(getPlayer()?.root.position,next.position,next.executionRadius)||!canSee(next))return false;
+  if(next.kind==='property')return propertyUI?.open()||false;
   const role=roleFor(next.roleId);
   if(next.kind==='formal-view'){openRegistration({country:'china',roleId:role.id,scope:next.registration.scope});return true;}
   if(next.kind==='formal-apply'||next.kind==='formal-resign'){
@@ -86,15 +89,16 @@ export function createChinaTavernService({meal,careers,getPlayer,getMounted=()=>
    }
    if(selected&&!scene.choices().some(c=>key(c)===key(selected)))selected=null;
    if(current.job?.stage==='working'&&getClock().hour>=18&&scene.snapshot()?.stage==='working'&&scene.beginReturn()){selected=scene.choices()[0];notify('18:00到了，先当面交还岗位；未完客单与清洁会交给接班同事');if(selected)onIntent(intent('task',null,selected));}
-  }ui?.refresh();
+  }ui?.refresh();propertyUI?.refresh();
  }
  const state=()=>{const live=scene.snapshot(),job=current.job?{...copy(current.job),completedOrders:live?.completedTasks||0,completedTasks:live?.completedTasks||0,completedTables:live?.tables.filter(t=>!t.dirty).length||0,continuous:true}:null;return {...copy(current),job,world:scene.state(),selected:selected?copy(selected):null,lastError};};
  const forRole=roleId=>({intent:kind=>intent(kind,roleId),resolveIntent,executeIntent,state,active:()=>!!current.job,formal:{beginAvailability:()=>beginAvailability(roleFor(roleId)),hired:()=>careers.isHired(roleId)},accept:()=>accept(roleFor(roleId))});
  const service={intent,resolveIntent,executeIntent,forRole,state,view:state,accept,claim,update,active:()=>!!current.job,formal:{beginAvailability:()=>beginAvailability(heldRole()||TAVERN_STEWARD_ROLE)},
-  label:()=>current.job?selected?.action||scene.label():null,playerPose:()=>scene.playerPose(),playerAction:()=>scene.playerAction(),playerStation:()=>scene.playerStation(),stopActivity:()=>{waitingRegistration=null;scene.stopActivity();},open:()=>ui?.open(),close:()=>ui?.close(),isOpen:()=>!!ui?.isOpen(),
+  label:()=>current.job?selected?.action||scene.label():null,playerPose:()=>scene.playerPose(),playerAction:()=>scene.playerAction(),playerStation:()=>scene.playerStation(),stopActivity:()=>{waitingRegistration=null;scene.stopActivity();},open:()=>ui?.open(),close:()=>{ui?.close();propertyUI?.close();},isOpen:()=>!!(ui?.isOpen()||propertyUI?.isOpen()),
   snapshot:()=>({version:1,receiptId:current.job?.receiptId||null,selected:selected?copy(selected):null,waitingRegistration:waitingRegistration?copy(waitingRegistration):null,attendance}),
   restore(s){if(!s||s.version!==1||s.receiptId!==(current.job?.receiptId||null)||!Number.isFinite(s.attendance)||s.attendance<0||s.attendance>=1.1)return false;selected=s.selected&&scene.choices().some(c=>key(c)===key(s.selected))?copy(s.selected):null;waitingRegistration=s.waitingRegistration&&resolveIntent(s.waitingRegistration)?copy(s.waitingRegistration):null;attendance=s.attendance;return true;},
-  dispose(){attendance=0;disposed=true;ui?.dispose();}};
+  dispose(){attendance=0;disposed=true;ui?.dispose();propertyUI?.dispose();}};
+ if(property&&doc?.createElement&&doc.body)propertyUI=createChinaTavernPropertyUI({property,document:doc,canOperate:()=>atRegister()&&hostReady(),isNearby:()=>atRegister(),notify,onOpen:()=>{ui?.close();onOpen();}});
  if(doc?.createElement&&doc.body)ui=createUI({doc,service,scene,onIntent,notify,onOpen,choose:c=>{selected=c;return intent('task',null,c);}});return service;
 }
 function createUI({doc,service,scene,onIntent,onOpen,choose}){

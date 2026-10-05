@@ -23,23 +23,23 @@ function accounts(state,till) {
   const funds=Object.fromEntries(Object.entries(NPCS).map(([id,n])=>[id,n.funds]));
   funds[OWNER]-=CAPITAL;
   let ownerId=OWNER,invested=CAPITAL,paidWages=0,drawn=0,ownership=0;
-  const ids=new Set();
+  const ids=new Set();let previousTill=0;
   for(const e of state.events) {
-    if(!e || !integer(e.day) || !priceValid(e.amount) || typeof e.id!=='string' || ids.has(e.id)) throw Error('invalid-property-event');
-    ids.add(e.id);
+    if(!e || !integer(e.day) || !integer(e.till) || e.till<previousTill || e.till>till || !priceValid(e.amount) || typeof e.id!=='string' || ids.has(e.id)) throw Error('invalid-property-event');
+    ids.add(e.id);previousTill=e.till;
     if(e.kind==='transfer') {
       if(e.from!==ownerId || !person(e.to) || e.to===ownerId || (e.from!=='player'&&e.to!=='player')) throw Error('invalid-property-owner');
       if(e.from!=='player')funds[e.from]+=e.amount;
       if(e.to!=='player')funds[e.to]-=e.amount;
       ownerId=e.to;ownership++;
     } else if(e.kind==='wage') {
-      if(!integer(e.funding)||e.funding>e.amount||e.funder!==ownerId)throw Error('invalid-property-wage');
+      if(!integer(e.funding)||e.funding!==Math.max(0,e.amount-(invested+e.till-paidWages-drawn))||e.funder!==ownerId)throw Error('invalid-property-wage');
       if(e.funding) {if(e.funder==='player')throw Error('invalid-property-funding');funds[e.funder]-=e.funding;invested+=e.funding;}
       paidWages+=e.amount;
     } else if(e.kind==='invest') {if(ownerId!=='player')throw Error('invalid-property-investment');invested+=e.amount;}
     else if(e.kind==='draw') {if(ownerId!=='player')throw Error('invalid-property-draw');drawn+=e.amount;}
     else throw Error('invalid-property-event');
-    if(Object.values(funds).some(n=>!integer(n)))throw Error('invalid-npc-funds');
+    if(!integer(invested+e.till-paidWages-drawn)||Object.values(funds).some(n=>!integer(n)))throw Error('invalid-npc-funds');
   }
   const balance=invested+till-paidWages-drawn;
   if(!integer(balance)||![invested,paidWages,drawn].every(integer))throw Error('invalid-business-balance');
@@ -49,11 +49,11 @@ function validate(state,till,ledger) {
   if(!state||state.version!==1||!integer(state.revision)||!Array.isArray(state.events))throw Error('invalid-property-state');
   const a=accounts(state,till),m=state.market;
   if(m && (!integer(m.day)||m.ownerId!==a.ownerId||m.ownership!==a.ownership||!integer(m.revision)||
-    (m.price!==null&&!priceValid(m.price))||!Array.isArray(m.offers)||m.offers.length>3))throw Error('invalid-property-market');
+    (m.price!==null&&!priceValid(m.price))||!Array.isArray(m.declined)||m.declined.length>3||new Set(m.declined).size!==m.declined.length||m.declined.some(id=>!Object.hasOwn(NPCS,id))||!Array.isArray(m.offers)||m.offers.length>3))throw Error('invalid-property-market');
   if(m) {
     const seen=new Set();
     for(const o of m.offers) {
-      if(!Object.hasOwn(NPCS,o.buyerId)||seen.has(o.buyerId)||!priceValid(o.amount)||!['open','rejected'].includes(o.status)||o.id!==`yunlai-bid:${m.ownership}:${m.day}:${o.buyerId}`)throw Error('invalid-property-offer');
+      if(!Object.hasOwn(NPCS,o.buyerId)||seen.has(o.buyerId)||!priceValid(o.amount)||!['open','rejected'].includes(o.status)||(o.status==='rejected')!==m.declined.includes(o.buyerId)||o.id!==`yunlai-bid:${m.ownership}:${m.day}:${o.buyerId}`)throw Error('invalid-property-offer');
       seen.add(o.buyerId);
     }
     const app=m.application;
@@ -92,7 +92,7 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
       if(amount<1)return [];
       return [{id:`yunlai-bid:${owner.ownership}:${d}:${id}`,buyerId:id,amount,status:'open'}];
     }):[];
-    return {day:d,ownerId:owner.ownerId,ownership:owner.ownership,revision:0,price,minimum:player?null:Math.ceil(price*(.85+(n%3)*.05)),willing:player?null:n%5!==0,application:null,offers};
+    return {day:d,ownerId:owner.ownerId,ownership:owner.ownership,revision:0,price,minimum:player?null:Math.ceil(price*(.85+(n%3)*.05)),willing:player?null:n%5!==0,application:null,declined:[],offers};
   }
   function refreshDay() {
     if(loadError)return fail(loadError);const d=day();if(d===null)return fail('invalid-clock');
@@ -121,7 +121,7 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
     finally{pending=null;}
   }
   function transfer(to,amount,id) {
-    const before=a(),event={id,kind:'transfer',from:before.ownerId,to,amount,day:day()};
+    const before=a(),event={id,kind:'transfer',from:before.ownerId,to,amount,day:day(),till:getTill()};
     const next={...copy(current),revision:current.revision+1,events:[...current.events,event],market:null};
     next.market=marketFor(accounts(next,getTill()));
     return money(next,to==='player'?'purchase':'sale',amount,id);
@@ -137,9 +137,9 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
     if(price!==null&&!priceValid(price))return fail('invalid-price');
     const previous=current.market;
     if(price===previous.price)return fail('unchanged');
-    const nextMarket=marketFor(a(),{price});nextMarket.revision=previous.revision+1;
+    const nextMarket=marketFor(a(),{price});nextMarket.revision=previous.revision+1;nextMarket.declined=previous.declined.slice();
     // Repricing does not reroll today's people or undo a seller rejection.
-    nextMarket.offers=nextMarket.offers.map(o=>({...o,status:previous.offers.find(p=>p.buyerId===o.buyerId)?.status||'open'}));
+    nextMarket.offers=nextMarket.offers.map(o=>({...o,status:previous.declined.includes(o.buyerId)?'rejected':'open'}));
     return persist({...copy(current),revision:current.revision+1,market:nextMarket});
   }
   function replyOffer(id,accept,revision) {
@@ -147,7 +147,7 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
     const owner=a(),offer=current.market.offers.find(o=>o.id===id);
     if(owner.ownerId!=='player')return fail('not-owner');
     if(!offer||offer.status!=='open'||current.market.price===null)return fail('offer-unavailable');
-    if(!accept)return persist({...copy(current),revision:current.revision+1,market:{...copy(current.market),offers:current.market.offers.map(o=>o.id===id?{...o,status:'rejected'}:o)}});
+    if(!accept)return persist({...copy(current),revision:current.revision+1,market:{...copy(current.market),declined:[...current.market.declined,offer.buyerId],offers:current.market.offers.map(o=>o.id===id?{...o,status:'rejected'}:o)}});
     if(offer.amount>owner.npcFunds[offer.buyerId])return fail('insufficient-npc-funds');
     return transfer(offer.buyerId,offer.amount,id);
   }
@@ -155,7 +155,7 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
     const result=ready(revision);if(!result.ok)return result;
     const owner=a();if(owner.ownerId!=='player')return fail('not-owner');if(!priceValid(amount))return fail('invalid-amount');
     if(kind==='draw'&&amount>owner.balance)return fail('insufficient-business-funds');
-    const id=`yunlai-${kind}:${current.revision}`,event={id,kind,amount,day:day()};
+    const id=`yunlai-${kind}:${current.revision}`,event={id,kind,amount,day:day(),till:getTill()};
     return money({...copy(current),revision:current.revision+1,events:[...current.events,event]},kind,amount,id);
   }
   // Called by the shared game ledger before its atomic storage write. A paid
@@ -170,7 +170,7 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
     } else {
       const owner=a(),shortfall=Math.max(0,tx.amount-owner.balance);
       if(shortfall&&(owner.ownerId==='player'||owner.npcFunds[owner.ownerId]<shortfall))return fail('insufficient-business-funds');
-      next={...copy(current),revision:current.revision+1,events:[...current.events,{id:tx.requestId,kind:'wage',amount:tx.amount,day:tx.day,funding:shortfall,funder:owner.ownerId}]};
+      next={...copy(current),revision:current.revision+1,events:[...current.events,{id:tx.requestId,kind:'wage',amount:tx.amount,day:tx.day,till:getTill(),funding:shortfall,funder:owner.ownerId}]};
     }
     try{validate(next,getTill());}catch{return fail('invalid-property-state');}
     return {ok:true,patch:{chinaTavernProperty:copy(next)},committed:()=>{current=next;lastError=null;}};
