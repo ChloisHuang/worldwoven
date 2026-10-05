@@ -7,7 +7,7 @@ const near=(p,point,r=.9)=>p&&Math.hypot(p.x-point[0],p.z-point[2])<=r&&Math.abs
 // Scene owns the people and dirty objects; the contract owns salary/reviews.
 export function createChinaTavernService({meal,careers,getPlayer,getMounted=()=>null,getClock,host,getLegacyJob=()=>null,
   saved=null,world=null,saveState=()=>true,openRegistration=()=>{},onIntent=()=>{},notify=()=>{},canSee=()=>true,onOpen=()=>{},document:doc=globalThis.document}){
- const scene=meal.staffScene;let current=saved&&saved.version===1?copy(saved):{version:1,serial:0,job:null},selected=null,disposed=false,ui=null,attendance=0,lastError=null;
+ const scene=meal.staffScene;let current=saved&&saved.version===1?copy(saved):{version:1,serial:0,job:null},selected=null,disposed=false,ui=null,attendance=0,lastError=null,waitingRegistration=null,retryScene=0;
  const heldRole=()=>ROLES.find(r=>careers.isHired(r.id));
  const roleFor=id=>ROLES.find(r=>r.id===id)||heldRole()||TAVERN_STEWARD_ROLE;
  const save=next=>{try{const result=saveState(copy(next));if(result===false||result?.then)return false;current=next;return true;}catch{return false;}};
@@ -49,7 +49,7 @@ export function createChinaTavernService({meal,careers,getPlayer,getMounted=()=>
   if(!action)return null;
   return {id:`cn-tavern-service-${role.id}-${kind}`,provider:'china-tavern-service',kind,roleId:role.id,name:'云来酒楼 · 工作登记',npcName:'许安',action,position:position.slice(),executionRadius,interactionRadius:2.8,priority:46,
    ...(chosen?{choice:copy(chosen)}:{}),...(kind==='formal-view'?{registration:{scope:'role',roleId:role.id}}:{}),
-   intentKey:[careers.state().revision,job?.receiptId||'-',job?.stage||'-',kind,chosen?key(chosen):'-'].join(':')};
+   intentKey:[['task','work-view','end-shift'].includes(kind)?'-':careers.state().revision,job?.receiptId||'-',job?.stage||'-',kind,chosen?key(chosen):'-'].join(':')};
  }
  const key=c=>[c.kind,c.orderId,c.guestId,c.roomId,c.tableId,c.ticketId].join(':');
  function resolveIntent(old){const next=intent(old?.kind,old?.roleId,old?.choice);if(!next||old?.provider!==next.provider||old.id!==next.id||old.intentKey!==next.intentKey)return null;
@@ -58,7 +58,7 @@ export function createChinaTavernService({meal,careers,getPlayer,getMounted=()=>
   const role=roleFor(next.roleId);
   if(next.kind==='formal-view'){openRegistration({country:'china',roleId:role.id,scope:next.registration.scope});return true;}
   if(next.kind==='formal-apply'||next.kind==='formal-resign'){
-   if(!atRegister()||!hostReady())return failure('许安正在忙，请等他回登记案再办理');const result=next.kind==='formal-apply'?careers.apply(role.id,{ageYears:getPlayer()?.ageYears}):careers.resign();
+   if(!atRegister())return false;if(!hostReady()){waitingRegistration=copy(next);notify('已在登记案等候许安；他回案后会核对这次申请，离开登记处则取消等候');return true;}waitingRegistration=null;const result=next.kind==='formal-apply'?careers.apply(role.id,{ageYears:getPlayer()?.ageYears}):careers.resign();
    openRegistration({country:'china',roleId:role.id,scope:'role'});return !!result.ok;
   }
   if(next.kind==='accept'){if(!accept(role))return false;const first=scene.choices()[0];if(first){selected=first;onIntent(intent('task',role.id,first));}return true;}
@@ -72,31 +72,32 @@ export function createChinaTavernService({meal,careers,getPlayer,getMounted=()=>
   return false;
  }
  const insideWorkplace=()=>{const p=getPlayer()?.root.position;return p&&p.x>16&&p.x<26&&p.z>8&&p.z<21&&p.y>=0&&p.y<9;};
- function update(dt){if(disposed)return;const job=current.job;
-  if(job){const live=scene.snapshot();
-   if(live?.stage==='working'&&getClock().hour<18&&insideWorkplace())attendance+=Math.min(.1,Math.max(0,dt));
+ function update(dt){if(disposed)return;if(waitingRegistration){if(!atRegister()||!resolveIntent(waitingRegistration))waitingRegistration=null;else if(hostReady()){const pending=waitingRegistration;waitingRegistration=null;executeIntent(pending);}}const job=current.job;
+  if(job){let live=scene.snapshot();retryScene+=Math.max(0,dt);if(job.stage==='working'&&live?.receiptId!==job.receiptId&&retryScene>=2){retryScene=0;scene.start({roleId:job.formalRoleId,receiptId:job.receiptId});live=scene.snapshot();}
+   if(live?.receiptId===job.receiptId&&live?.stage==='working'&&getClock().hour<18&&insideWorkplace())attendance+=Math.min(.1,Math.max(0,dt));
    if(attendance>=1||scene.finished()){
     const next={...current,job:{...job,coveredSeconds:job.coveredSeconds+attendance,completedTasks:live?.completedTasks||job.completedTasks}};
     if(save(next))attendance=0;
    }
-   if(scene.finished()&&current.job.stage==='working'){
+   if(scene.finished()&&live?.receiptId===job.receiptId&&current.job.stage==='working'){
     const result=careers.laborEvent('completed',{roleId:job.formalRoleId,receiptId:job.receiptId,coveredSeconds:current.job.coveredSeconds,completedTasks:current.job.completedTasks});
     if(result.ok)save({...current,job:{...current.job,stage:'inspection'}});
     
    }
    if(selected&&!scene.choices().some(c=>key(c)===key(selected)))selected=null;
+   if(current.job?.stage==='working'&&getClock().hour>=18&&scene.snapshot()?.stage==='working'&&scene.beginReturn()){selected=scene.choices()[0];notify('18:00到了，先当面交还岗位；未完客单与清洁会交给接班同事');if(selected)onIntent(intent('task',null,selected));}
   }ui?.refresh();
  }
  const state=()=>{const live=scene.snapshot(),job=current.job?{...copy(current.job),completedOrders:live?.completedTasks||0,completedTasks:live?.completedTasks||0,completedTables:live?.tables.filter(t=>!t.dirty).length||0,continuous:true}:null;return {...copy(current),job,world:scene.state(),selected:selected?copy(selected):null,lastError};};
  const forRole=roleId=>({intent:kind=>intent(kind,roleId),resolveIntent,executeIntent,state,active:()=>!!current.job,formal:{beginAvailability:()=>beginAvailability(roleFor(roleId)),hired:()=>careers.isHired(roleId)},accept:()=>accept(roleFor(roleId))});
  const service={intent,resolveIntent,executeIntent,forRole,state,view:state,accept,claim,update,active:()=>!!current.job,formal:{beginAvailability:()=>beginAvailability(heldRole()||TAVERN_STEWARD_ROLE)},
-  label:()=>current.job?scene.label():null,playerPose:()=>scene.playerPose(),playerAction:()=>scene.playerAction(),playerStation:()=>scene.playerStation(),stopActivity:()=>scene.stopActivity(),open:()=>ui?.open(),close:()=>ui?.close(),isOpen:()=>!!ui?.isOpen(),
+  label:()=>current.job?selected?.action||scene.label():null,playerPose:()=>scene.playerPose(),playerAction:()=>scene.playerAction(),playerStation:()=>scene.playerStation(),stopActivity:()=>{waitingRegistration=null;scene.stopActivity();},open:()=>ui?.open(),close:()=>ui?.close(),isOpen:()=>!!ui?.isOpen(),
   dispose(){attendance=0;disposed=true;ui?.dispose();}};
  if(doc?.createElement&&doc.body)ui=createUI({doc,service,scene,onIntent,notify,onOpen,choose:c=>{selected=c;return intent('task',null,c);}});return service;
 }
 function createUI({doc,service,scene,onIntent,onOpen,choose}){
  const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;},dialog=make('dialog',null,'cn-service-dialog'),style=make('style');
- dialog.setAttribute('aria-label','酒楼当前客单与待办');style.textContent='.cn-service-dialog{position:fixed;inset:0;margin:auto;width:min(400px,calc(100vw - 28px));max-height:calc(100dvh - 32px);overflow:auto;padding:18px;border:1px solid #bda773;border-radius:14px;background:#f4ecd9;color:#4e4332}.cn-service-dialog::backdrop{background:#31291f66}.cn-service-dialog h2{font-size:18px;margin:0 35px 14px 0}.cn-service-dialog p{font-size:12px;line-height:1.5}.cn-service-dialog button{min-height:44px;border-radius:9px;padding:10px;background:#e1d4b6;color:#443924}.cn-service-tasks{display:grid;gap:8px}.cn-service-order{padding:10px;border:1px solid #d2c29f;border-radius:9px;margin:8px 0;font-size:13px}.cn-service-close{position:absolute;top:6px;right:6px;font-size:23px;background:transparent!important}.cn-service-footer{display:flex;gap:8px;margin-top:12px}';
+ dialog.setAttribute('aria-label','酒楼当前客单与待办');style.textContent='.cn-service-dialog{position:fixed;inset:0;margin:auto;width:min(400px,calc(100vw - 28px));max-height:calc(100dvh - 32px);overflow:auto;padding:18px;border:0;border-radius:12px;background:#f3eddf;color:#4e4332;box-shadow:0 8px 28px #302b2320}.cn-service-dialog::backdrop{background:#31291f66}.cn-service-dialog h2{font-size:16px;margin:0 35px 12px 0}.cn-service-dialog p{font-size:12px;line-height:1.5}.cn-service-dialog button{appearance:none;min-height:44px;border:0;border-radius:6px;padding:10px 12px;background:#e8e1d1;color:#443924;box-shadow:none;text-align:left}.cn-service-dialog button:hover{background:#ded3bb}.cn-service-dialog button:active{background:#cdbb96}.cn-service-dialog button:focus-visible{outline:1px solid #967645;outline-offset:-2px}.cn-service-tasks{display:grid;gap:5px}.cn-service-order{padding:10px 12px;border:0;border-radius:6px;background:#e3dbc8;margin:8px 0;font-size:13px;white-space:pre-line}.cn-service-close{position:absolute;top:6px;right:6px;font-size:23px;background:transparent!important}.cn-service-footer{display:flex;gap:8px;margin-top:12px}';
  (doc.head||doc.body).append(style);doc.body.append(dialog);let signature='',generation=0;
  const close=()=>{generation++;if(dialog.open)dialog.close();};
  const button=(text,fn)=>{const b=make('button',text);b.type='button';const g=generation;b.onclick=()=>{if(dialog.open&&g===generation)fn();};return b;};

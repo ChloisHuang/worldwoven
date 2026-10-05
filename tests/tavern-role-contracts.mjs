@@ -72,3 +72,13 @@ const quiet=continuous({tasks:0});assert(quiet.careers.laborEvent('completed',qu
 const assistantSlot=FORMAL_CAREER_SLOTS.find(slot=>slot.id===ASSISTANT.slotId);assert.equal(assistantSlot.holderId,'cn-tavern-assistant');assert.equal(assistantSlot.rotation,true);
 const correctedTarget=continuous({role:ASSISTANT});const wrongTarget={...bad,tableId:'wrong-table-2',tableName:'误放的二桌'};assert(correctedTarget.careers.customerReview(wrongTarget).ok);
 assert(correctedTarget.careers.customerReview({...fixed,tableId:'china-tavern-table-1',tableName:'实际应送的一桌'}).ok);assert.equal(correctedTarget.careers.state().lastDuty.customerReviews[0].tableName,'误放的二桌');assert.equal(fixture(correctedTarget.saved()).careers.state().loadError,null);
+
+// World events outlive work slips; receipt ownership is still checked before
+// a stable order/table-use fact can affect the current employee's account.
+for(const [reviewId,reasonCode]of [['cn-tavern-delivery-1-wrong-dish','wrong-dish'],['cn-tavern-delivery-2-wrong-table','wrong-table'],['cn-tavern-table-use-3-west-1','dirty-table'],['cn-tavern-table-use-4-east-0','dirty-table']]){
+ const f=continuous({role:ASSISTANT}),fact={...bad,reviewId,reasonCode};assert.equal(f.careers.customerReview({...fact,receiptId:'cn-tavern-labor-2'}).code,'wrong-duty-source');assert(f.careers.customerReview(fact).ok);assert(f.careers.customerReview(fact).unchanged);
+ const reload=fixture(f.saved());assert.equal(reload.careers.state().loadError,null);assert(reload.careers.customerReview(fact).unchanged);assert.equal(reload.careers.state().performance,-2);
+ const correction={...fact,reviewId:reviewId+'-corrected',reasonCode:'corrected',correctedReviewId:reviewId};assert(reload.careers.customerReview(correction).ok);assert(reload.careers.customerReview(correction).unchanged);assert.equal(reload.careers.state().performance,-1);
+}
+for(const [reviewId,reasonCode]of [['cn-tavern-delivery-0-wrong-dish','wrong-dish'],['cn-tavern-delivery-1-wrong-table','wrong-dish'],['cn-tavern-table-use-3-west--1','dirty-table'],['cn-tavern-table-use-3-west-01','dirty-table'],['cn-tavern-delivery-9007199254740992-wrong-dish','wrong-dish']]){const f=continuous({role:ASSISTANT});assert.equal(f.careers.customerReview({...bad,reviewId,reasonCode}).code,'invalid-customer-review');}
+console.log('PASS stable world review IDs: delivery and table-use events, current receipt ownership, legacy IDs, duplicate/reload/correction and invalid serials');

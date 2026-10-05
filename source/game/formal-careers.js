@@ -69,6 +69,13 @@ function validShift(duty,role){
    duty.coveredSeconds<=(Math.min(role.dutyWindow.endHour,duty.endedHour)-duty.arrivalHour)*60/GAME_MINUTES_PER_SECOND+1e-7;
 }
 const textField = (value,max=80) => typeof value==='string' && value.length>0 && value.length<=max;
+function validCustomerReviewId(review,receiptId){
+  const legacy=new RegExp('^'+receiptId+'-order-([1-9][0-9]*)-'+review.reasonCode+'$').exec(review.id);
+  if(legacy)return integer(Number(legacy[1]));
+  const world=review.reasonCode==='dirty-table'?/^cn-tavern-table-use-([1-9][0-9]*)-(west|east)-(0|[1-9][0-9]*)$/.exec(review.id):
+    ['wrong-table','wrong-dish'].includes(review.reasonCode)?new RegExp('^cn-tavern-delivery-([1-9][0-9]*)-'+review.reasonCode+'$').exec(review.id):null;
+  return !!world&&integer(Number(world[1]))&&(review.reasonCode!=='dirty-table'||integer(Number(world[3])));
+}
 function validCustomerReviews(duty,role){
   if(!tavernRole(role))return duty.customerReviews===undefined;
   if(!Array.isArray(duty.customerReviews)||duty.customerReviews.length>64)return false;
@@ -81,7 +88,7 @@ function validCustomerReviews(duty,role){
     if(corrected ? !original||original.positive||review.id!==original.id+'-corrected'||review.score!==1||review.positive!==true||
       ['customerId','customerName'].some(key=>review[key]!==original[key]) :
       !['wrong-table','wrong-dish','dirty-table'].includes(review.reasonCode)||review.correctedReviewId!==null||review.score!==-2||review.positive!==false||
-      !new RegExp('^'+duty.workReceiptId+'-order-([1-9][0-9]*)-'+review.reasonCode+'$').test(review.id))return false;
+      !validCustomerReviewId(review,duty.workReceiptId))return false;
     seen.set(review.id,review);
   }
   return true;
