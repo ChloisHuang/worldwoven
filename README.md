@@ -11,7 +11,7 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.62-public, 2026-10-05
+Published release: R16.63-public, 2026-10-05
 Verified published Sites source commit: 00ab703d79526bcafe0f8910c48c12ef49ad0f7c
 
 ## Working rules
@@ -118,3 +118,5 @@ R16.60 adds the fictional Chinese court-recording appointment: public study, ski
 R16.61 repairs unfinished summons restored before11:30, releases stale idle-conversation pauses when duties become busy, and marks pending imperial duty as busy. Help now exposes existing saved postponement records with named officials and imperial readiness. One natural legacy run reached all six officials and a kneeling ceremony; it did not reproduce the user's exact deadline absence, which remains open pending that saved record. New failures save one bounded arrival diagnostic. No late start, teleports, new job catalogue, new face or passport is included.
 
 R16.62 extends the shared catalogue to three real permanent posts: court clerk, Chinese tavern service assistant and French garden assistant. Empty assistant slots preserve incumbents. Local employers verify actual work; skill gates, daily duty, reviews and 16–17 copper / 8–9 French-voucher bank wages are connected. New temporary12/6-copper settlements also enter bank, while already-paid legacy cash receipts stay untouched and cannot be paid again. Old clerk saves and pending work migrate. Targeted actual-service, storage and handbook checks passed; routes were reused, no unrelated scene rerun or iOS claim. Chinese court postponement investigation remains open.
+
+R16.63 adds shared player/NPC body-only recovery after five seconds of sustained blocked movement, capped at1.25 seconds/1.4 metres and ending when clear. Static walls, leaves, furniture and floors remain enforced. Reading now offers ritual/writing/gardening/art books with real8-second completion, visible skill progress, cancellation and save migration; French reading/chair targets remain separately usable. Narrow navigation and actual four-station main checks passed; user-phone deadlock and iOS layout still require field confirmation. No passport or new character model included.

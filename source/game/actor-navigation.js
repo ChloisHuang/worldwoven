@@ -2,7 +2,50 @@ import {moveWithCollision} from './navigation.js';
 
 // Routes describe static passages. Other people only constrain this movement
 // step, never the whole route or its distant destination.
-const EPS=1e-6,PERSON_HEIGHT=1.95,TURNOUT=new WeakMap();
+const EPS=1e-6,PERSON_HEIGHT=1.95,TURNOUT=new WeakMap(),BODY_RECOVERY=new WeakMap();
+const BODY_WAIT=5,BODY_ESCAPE_SECONDS=1.25,BODY_ESCAPE_DISTANCE=1.4,ROUTE_PROGRESS=.12;
+let movementStep=0,movementTime=0,movementDt=0;
+
+// One tick per simulation substep, including ticks with no movement. Neither
+// wall time nor repeated movement/yield trials can advance a person's timer.
+export function beginActorNavigationStep(dt){
+ movementStep++;movementDt=Number.isFinite(dt)?Math.max(0,dt):0;movementTime+=movementDt;
+}
+
+function bodyRecovery(actor,from,dx,dz,radius,{doors,colliders,navigation,npcs,playerPosition},local){
+ const length=Math.hypot(dx,dz);
+ let state=BODY_RECOVERY.get(actor);
+ if(!movementDt||length<EPS){BODY_RECOVERY.delete(actor);return null;}
+ if(state?.step===movementStep)return state;
+ if(!state||state.step!==movementStep-1||Math.abs(from.y-state.y)>.5||dx/length*state.ux+dz/length*state.uz<.25){
+  state={step:movementStep,wait:0,x:from.x,y:from.y,z:from.z,ux:dx/length,uz:dz/length};
+  BODY_RECOVERY.set(actor,state);
+ }
+ state.step=movementStep;
+ if(state.escapeUntil&&(movementTime>=state.escapeUntil-EPS||state.remaining<EPS)){
+  state.escapeUntil=0;state.wait=0;
+ }
+ // Probe only a local body encounter. Static geometry, support and live leaves
+ // must permit useful movement before a character can be blamed for the stop.
+ // The prior actual result also catches a wall slide that meets a body even
+ // when the original diagonal intent was clear, without probing every walker.
+ let blocked=false;
+ if(local.blocker||state.lastBodyBlocked||state.escapeUntil){
+  const candidate={...from},leaf=doors?.constrainMove?doors.constrainMove(from,dx,dz,radius):{dx,dz};
+  moveWithCollision(candidate,leaf.dx,leaf.dz,colliders,radius,navigation);
+  const allowed=doors?.constrainMove?doors.constrainMove(from,candidate.x-from.x,candidate.z-from.z,radius):{dx:candidate.x-from.x,dz:candidate.z-from.z};
+  if(allowed.dx*dx+allowed.dz*dz>=length*length*.25)blocked=!!constrainActorMove(actor,from,allowed.dx,allowed.dz,radius,npcs,playerPosition,candidate.y).blocker;
+ }
+ if(!blocked){state.wait=0;state.escapeUntil=0;state.x=from.x;state.y=from.y;state.z=from.z;state.ux=dx/length;state.uz=dz/length;return state;}
+ if(!state.escapeUntil){
+  // Net forward progress resets waiting. Tiny sideways yielding/backtracking
+  // does not, even when those trials briefly set actor.walking=true.
+  if((from.x-state.x)*state.ux+(from.z-state.z)*state.uz>=ROUTE_PROGRESS){state.wait=0;state.x=from.x;state.y=from.y;state.z=from.z;}
+  state.wait+=movementDt;
+  if(state.wait+EPS>=BODY_WAIT){state.escapeUntil=movementTime+BODY_ESCAPE_SECONDS;state.remaining=BODY_ESCAPE_DISTANCE;state.wait=0;}
+ }
+ return state;
+}
 const actorId=n=>n.station?.id||'';
 
 export function constrainActorMove(actor,from,dx,dz,radius,npcs,playerPosition,endY=from.y){
@@ -36,9 +79,14 @@ export function constrainActorMove(actor,from,dx,dz,radius,npcs,playerPosition,e
  return {dx:dx*fraction,dz:dz*fraction,blocker};
 }
 
-export function moveActorWithCollision(actor,dx,dz,radius,{doors,colliders,navigation,npcs,playerPosition}){
- const p=actor.root.position,before={x:p.x,y:p.y,z:p.z},local=constrainActorMove(actor,before,dx,dz,radius,npcs,playerPosition);
+export function moveActorWithCollision(actor,dx,dz,radius,context){
+ const {doors,colliders,navigation,npcs,playerPosition}=context,p=actor.root.position,before={x:p.x,y:p.y,z:p.z};
+ let local=constrainActorMove(actor,before,dx,dz,radius,npcs,playerPosition);
+ const recovery=bodyRecovery(actor,before,dx,dz,radius,context,local),bodyBypassed=!!(recovery?.escapeUntil&&movementTime<recovery.escapeUntil-EPS&&recovery.remaining>EPS);
+ if(context.probeOnly)return {bodyBlocked:!!local.blocker,bodyBypassed};
+ if(bodyBypassed){const scale=Math.min(1,recovery.remaining/Math.max(EPS,Math.hypot(dx,dz)));local={dx:dx*scale,dz:dz*scale};}
  let bodyBlocked=!!local.blocker;
+ const result=()=>{if(recovery)recovery.lastBodyBlocked=bodyBlocked;if(bodyBypassed)recovery.remaining=Math.max(0,recovery.remaining-Math.hypot(p.x-before.x,p.z-before.z));return {bodyBlocked,bodyBypassed};};
  const leaf=doors?.constrainMove?doors.constrainMove(before,local.dx,local.dz,radius):local;
  moveWithCollision(p,leaf.dx,leaf.dz,colliders,radius,navigation);
  // Wall sliding can change direction and support height. Recheck the actual
@@ -46,13 +94,13 @@ export function moveActorWithCollision(actor,dx,dz,radius,{doors,colliders,navig
  // remain safe; otherwise wait at the original position for this single step.
  for(let attempt=0;attempt<2;attempt++){
   const movedX=p.x-before.x,movedZ=p.z-before.z,allowed=doors?.constrainMove?doors.constrainMove(before,movedX,movedZ,radius):{dx:movedX,dz:movedZ};
-  const actual=constrainActorMove(actor,before,allowed.dx,allowed.dz,radius,npcs,playerPosition,p.y);
+  const actual=bodyBypassed?allowed:constrainActorMove(actor,before,allowed.dx,allowed.dz,radius,npcs,playerPosition,p.y);
   bodyBlocked||=!!actual.blocker;
-  if(Math.abs(actual.dx-movedX)<1e-6&&Math.abs(actual.dz-movedZ)<1e-6)return {bodyBlocked};
+  if(Math.abs(actual.dx-movedX)<1e-6&&Math.abs(actual.dz-movedZ)<1e-6)return result();
   Object.assign(p,before);
   if(attempt===0)moveWithCollision(p,actual.dx,actual.dz,colliders,radius,navigation);
  }
- return {bodyBlocked};
+ return result();
 }
 
 // Jobs supply their existing route and timing; this is the same route executor
@@ -82,6 +130,12 @@ export function followActorRoute(actor,dt,{route=actor.route,doors,moveActor,npc
   return actor.walking;
  };
  if(body){
+  // Probe this route's forward intent once, without moving. Yield trials stay
+  // collision checked but cannot reset or double-count the same step's wait.
+  if(moveActor.probeBodyRecovery?.(actor,ux*ahead,uz*ahead,radius)?.bodyBypassed){
+   TURNOUT.delete(actor);move(ux*amount,uz*amount);
+   return {...step,waiting:false,blocked:!actor.walking,travel:amount,bodyBypassed:!!movement?.bodyBypassed};
+  }
   if(step.phase==='walking')doors.rejoinAroundBody?.(route,from,body.position,radius+(body.actor?.collisionRadius??(body.actor ? .25 : .34)));
   const other=body.actor,sameDirection=other?.walking&&!TURNOUT.has(other)&&Math.sin(other.root.rotation.y)*ux+Math.cos(other.root.rotation.y)*uz>.35;
   // Follow a moving queue. In a crossing, one actor starts yielding and
