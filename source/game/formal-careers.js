@@ -162,7 +162,7 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     throw new TypeError('formal careers require synchronous saveState and getClock');
   }
   let current = empty(), loadError = null, lastError = null, saving = false, paying = false, lastClock = null;
-  let observedDay = null, interruptedUnsaved = false;
+  let observedDay = null, interruptedUnsaved = false, lastApplication = null;
   const activeStudies = new Map();
   let roleMap = new Map(), slotMap = new Map();
   try { ({roleMap, slotMap} = catalogue(roles, slots)); current = restore(saved, roleMap, slotMap); }
@@ -227,19 +227,28 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     const result = persist(recovered);
     if (!result.ok) { current = recovered; loadError = 'recovery-save-failed'; }
   }
-  function apply(roleId = COURT_CLERK_ROLE.id, {ageYears} = {}) {
-    const blocked = allowed(); if (blocked) return blocked;
-    const role = roleMap.get(roleId); if (!role) return failure('unknown-role');
-    if (current.tenure) return failure('already-employed');
-    const clock = now(); if (!clock) return failure('invalid-clock');
+  // The registry and the final physical application use the same requirements.
+  // Reading eligibility never changes the clock, save, vacancy or error state.
+  function eligibility(roleId = COURT_CLERK_ROLE.id, {ageYears} = {}) {
+    const role = roleMap.get(roleId);
+    const blocked = loadError || (!role ? 'unknown-role' : current.tenure ? 'already-employed' : null);
+    if (blocked) return {ok: false, code: blocked, reasons: [blocked]};
     const reasons = [];
     if (!Number.isFinite(ageYears) || ageYears < role.minimumAgeYears) reasons.push('adult-required');
     for (const [skill, minimum] of Object.entries(role.skillRequirements)) if (current.skills[skill] < minimum) reasons.push(`${skill}-required`);
     const slot = [...slotMap.values()].find(candidate => candidate.roleId === roleId && candidate.holderId === null);
     if (!slot) reasons.push('no-vacancy');
-    if (reasons.length) return failure('ineligible', reasons);
+    return reasons.length ? {ok: false, code: 'ineligible', reasons} : {ok: true, slotId: slot.id};
+  }
+  function apply(roleId = COURT_CLERK_ROLE.id, applicant = {}) {
+    const finish = result => {lastApplication = {roleId, ...copy(result)}; return result;};
+    const blocked = allowed(); if (blocked) return finish(blocked);
+    const eligible = eligibility(roleId, applicant);
+    if (!eligible.ok) return finish(failure(eligible.code, eligible.reasons));
+    const clock = now(); if (!clock) return finish(failure('invalid-clock'));
+    const slot = slotMap.get(eligible.slotId);
     const result = persist({...current, tenure: {roleId, slotId: slot.id, sinceDay: clock.day, sinceHour: clock.hour}});
-    return result.ok ? {...result, tenure: copy(current.tenure)} : result;
+    return finish(result.ok ? {...result, tenure: copy(current.tenure)} : result);
   }
   function resign() {
     const blocked = allowed(); if (blocked) return blocked;
@@ -415,5 +424,6 @@ export function createFormalCareers({saved, saveState, creditWageToBank, getCloc
     canContinueLabor:receiptId=>{const d=current.lastDuty;let c;try{c=getClock();}catch{return false;}return !loadError&&d?.workReceiptId===receiptId&&(d.stage==='inspection'||d.stage==='working'&&d.day===c?.day);},
     currentRole:()=>copy(roleMap.get(current.tenure?.roleId)||null),
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&slot.holderId===null&&slot.id!==current.tenure?.slotId).length})),
+    eligibility, applicationResult:()=>copy(lastApplication),
     laborEvent, apply, resign, learningTicket, cancelLearning, completeLearning, completedLowerWork, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
 }
