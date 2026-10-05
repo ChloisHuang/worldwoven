@@ -11,8 +11,8 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.74-public, 2026-10-05
-Verified published Sites source commit: 8f469b72b4f2039aa5b6c23ef6b3f5b5e09ab689
+Published release: R16.75-public, 2026-10-05
+Verified published Sites source commit: 7517d45cdddee31a04efd444386b052ca95e0e75
 
 ## Working rules
 
@@ -146,3 +146,5 @@ R16.71 integrates world actor/activity checkpoints, continuous tavern chef/assis
 Before R16.71 publication, the salaried proprietor application was removed: becoming proprietor requires a future ownership purchase and mutual offer acceptance. Chef/assistant employment remains available. This release also fixes the passport rigid-cover and page-occlusion animation using the same product SVG frames inspected offline.
 
 R16.71 public source: `557513ef85d1e0ef49000422937dc2936593f8c7` (Sites v99, 2026-10-05T06:46:57Z).
+
+R16.75 repairs shared NPC blocked-body recovery and coherent court checkpoints, separates each role’s application queue and ended appointment history, offers actual workplace choice before travel, and follows the marked bank contour with one live allocation row. Focused logic, one natural court save/resume ceremony, and offline DOM evidence were reused; exact user-save and real iOS verification remain open.
