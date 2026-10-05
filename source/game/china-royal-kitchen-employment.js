@@ -54,7 +54,7 @@ export function createChinaRoyalKitchenEmployment({kitchen,careers,getPlayer,get
   waiting=null;return next.kind==='formal-apply'?formal.apply():next.kind==='formal-review'?formal.review():next.kind==='formal-resign'?formal.resign():next.kind==='accept'?accept():next.kind==='claim'?claim():next.kind==='end-shift'?endShift():false;
  }
  const inWorkplace=()=>{const p=getPlayer()?.root.position;return p&&p.x>=16&&p.x<=26&&p.z>=-12&&p.z<=2&&p.y>=-.05&&p.y<=.55;};
- function update(dt=0){if(disposed||lastError)return;kitchen.requestMeeting(!!waiting||atRegistration()&&current.job?.stage!=='working');
+ function update(dt=0){if(disposed||lastError)return;kitchen.requestMeeting(!!waiting||atRegistration()&&(current.job?.stage!=='working'||!kitchen.dutyActive(current.job.receiptId)));
   if(waiting){if(!atRegistration()||!resolveIntent(waiting))waiting=null;else if(meet()){const next=waiting;waiting=null;executeIntent(next);}}
   const j=current.job;if(j?.stage!=='working')return;const d=careers.state().lastDuty;
   if(d?.workReceiptId===j.receiptId&&['inspection','ready','paid'].includes(d.stage)){kitchen.releaseDuty(j.receiptId);save({...current,job:{...j,stage:'ready'}});return;}
