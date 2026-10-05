@@ -1,7 +1,7 @@
 // A finite, authored adult company. Stable IDs retain their own appearance and
 // preferences across visits; only one hosted visit runs at a time.
 export const SALON_ACTIVITIES=Object.freeze({
- poetry:{name:'茶叙诗词',fee:6},story:{name:'茶叙游记',fee:8},music:{name:'茶叙曲词',fee:7},chess:{name:'茶叙棋理',fee:5},banquet:{name:'宴饮邀约',fee:8}
+ poetry:{name:'茶叙诗词'},story:{name:'茶叙游记'},music:{name:'茶叙曲词'},chess:{name:'茶叙棋理'},banquet:{name:'宴饮邀约'}
 });
 export const SALON_ARTISTS=Object.freeze([
  {id:'cn-tavern-reciter',name:'柳清弦',age:27,gender:'女',specialty:'诗词',preference:'喜静谈与诗词，不喜喧闹宴饮',activity:'poetry',position:[18.8,7.815,18.66],target:[18.8,8.98,17.9],action:'read',look:{bodyPreset:'feminine-balanced',hairStyle:'low-bun',wardrobePreset:'ruqun-long-skirt',clothes:0x995f7f,hair:0x262526},yes:'好呀，正有两句词想与你说。若有空房，我们一起去坐坐。'},
