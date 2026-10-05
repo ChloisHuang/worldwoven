@@ -157,6 +157,7 @@ function configureContextualServices(){
  const counter=(id,action,extra={})=>{const station=stations.get(id);return station?{...station,action,targetKey:id,targetName:station.npcName||station.name,...extra}:null;};
  const current=(id,action,extra={})=>({id,name:extra.name||'当前安排',action,position:player.root.position.toArray(),interactionRadius:.4,executionRadius:.4,priority:48,continuation:true,...extra});
  if(chinaTavernUI)serviceMenus.register('china-meal',{target:()=>{const meal=chinaTavernUI.menuContext();return meal.order?current('cn-tavern-host','查看当前餐单',{targetKey:'cn-tavern-host',targetName:'许安 · 云来酒楼'}):meal.seated?{...meal.seated,action:'查看食单 · 点菜',furniture:false,targetKey:meal.seated.id,targetName:meal.seated.name,position:meal.seated.anchor,executionRadius:1.8}:counter('cn-tavern-host','查看食单 · 选座点菜',{executionRadius:1.8});},open:()=>chinaTavernUI.open()});
+ if(chinaLodgingUI)serviceMenus.register('china-stay',{target:()=>{const stay=chinaLodgingUI.menuContext();return stay?.bookingId&&stay.inRoom?current('cn-tavern-lodging','查看住宿 · 客房与退房',{name:'云来客栈',targetKey:'cn-tavern-lodging',intentKey:stay.bookingId+':'+stay.stage}):null;},open:()=>chinaLodgingUI.open()});
  if(chinaSalonUI)serviceMenus.register('china-salon',{target:()=>chinaSalon.active()?current('cn-tavern-reception','查看当前引见与茶叙',{targetKey:'cn-tavern-reception',targetName:'温晚 · 雅集接待'}):counter('cn-tavern-reception','查看雅集 · 请温晚引见',{executionRadius:1.2}),open:()=>chinaSalonUI.open()});
  if(franceLabor){const registration=franceLabor.intent('view');if(registration)serviceMenus.register('france-labor',{target:()=>franceLabor.active()?{...registration,action:'查看园艺工作与登记',targetKey:'france-gardener',targetName:'埃米尔 · 园艺登记'}:null,open:()=>franceLabor.open()});}
  if(japanServiceUI)serviceMenus.register('japan-visit',{target:()=>japanServiceUI.hasVisit()?current('jp-welcome','查看浴牌或餐单',{targetKey:'jp-welcome',targetName:'汤馆服务'}):null,open:()=>japanServiceUI.open()});
@@ -165,7 +166,7 @@ function configureContextualServices(){
 function contextualTarget(item){
  if(!item)return item;
  const host=item.id==='cn-tavern-host'||['china-tavern-lodging','china-tavern-service','china-tavern-labor'].includes(item.provider)&&!['task','clean','work-view','end-shift'].includes(item.kind);
- return host?{...item,targetKey:'cn-tavern-host',targetName:'许安 · 云来酒楼'}:item;
+ return host?{...item,targetKey:'cn-tavern-host',targetName:'许安 · 云来酒楼',action:item.provider==='china-tavern-labor'&&item.kind==='view'?'临时帮工 · 查看招工登记':item.provider==='china-tavern-service'&&item.kind==='formal-view'?'长期职位 · 查看申请条件':item.action}:item;
 }
 function currentControl(){
  const base={id:'current-action',contextControl:true,icon:'hand',name:'当前动作',position:player?.root.position.toArray()};

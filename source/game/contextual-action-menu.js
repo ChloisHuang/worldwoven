@@ -26,7 +26,7 @@ export function createContextualActionMenu({button,document:doc=globalThis.docum
   if(list.scrollTop!==scroll)list.scrollTop=scroll;
  }
  function update(next,{hidden=false}={}){
-  actions=next.filter(Boolean);signature=actions.map(item=>[interactionIdentity(item),item.targetKey||'',item.targetName||item.name,interactionIcon(item),item.action].join('\u001f')).join('\u001e');
+  const nextActions=next.filter(Boolean);if(dialog.open){const remaining=new Map(nextActions.map(item=>[interactionIdentity(item),item]));actions=actions.flatMap(item=>{const key=interactionIdentity(item),current=remaining.get(key);remaining.delete(key);return current?[current]:[];}).concat([...remaining.values()]);}else actions=nextActions;signature=actions.map(item=>[interactionIdentity(item),item.targetKey||'',item.targetName||item.name,interactionIcon(item),item.action].join('\u001f')).join('\u001e');
   if(hidden||!actions.length){button.hidden=true;if(dialog.open)close();return;}
   const many=actions.length>1,icon=many?'more':interactionIcon(actions[0]),label=many?'选择附近的互动':`${actions[0].name||''} · ${actions[0].action||'互动'}`,key=icon+'|'+label;
   button.hidden=!!dialog.open;if(key!==buttonKey){buttonKey=key;button.innerHTML=actionIconSvg(icon);button.setAttribute('aria-label',label+'（E）');button.title=label+' · E';button.dataset.actionIcon=icon;button.setAttribute('aria-haspopup',many?'dialog':'false');button.setAttribute('aria-controls',dialog.id);}
