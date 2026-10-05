@@ -1,0 +1,37 @@
+// Local job selection must only dispatch the live physical intent. Old controls
+// may otherwise re-apply, navigate after dismissal, or cancel a newer work slip.
+// Actual service + simulated DOM; visual rendering is checked separately.
+import assert from 'node:assert/strict';
+import {registerHooks} from 'node:module';
+registerHooks({resolve(id,context,next){return id==='three'?{url:new URL('../source/vendor/three/build/three.module.js',import.meta.url).href,shortCircuit:true}:next(id,context);}});
+const {createFranceGardenerLabor}=await import('../source/game/france-gardener-labor.js');
+const {createFranceGardenerEmployment}=await import('../source/game/france-gardener-employment.js');
+const {createFormalCareers,GARDEN_ASSISTANT_ROLE}=await import('../source/game/formal-careers.js');
+const {createCurrencyLedger}=await import('../source/game/currency-ledger.js');
+const {FRANCE_GARDENER:P}=await import('../source/game/france-gardener-place.js');
+class Element{
+ constructor(tag){this.tag=tag;this.children=[];this.attributes={};this.style={};this.className='';this._text='';this.open=false;}
+ set textContent(v){this._text=String(v);this.children=[];}get textContent(){return this._text+this.children.map(e=>e.textContent).join('');}
+ append(...items){this.children.push(...items);}replaceChildren(...items){this._text='';this.children=items;}setAttribute(k,v){this.attributes[k]=String(v);}
+ addEventListener(k,fn){this[k]=fn;}showModal(){this.open=true;}close(){this.open=false;}remove(){}
+}
+const walk=e=>[e,...e.children.flatMap(walk)];
+const doc={head:new Element('head'),body:new Element('body'),createElement:t=>new Element(t)};
+const player={ageYears:22,walking:false,root:{position:{x:P.registration[0],y:P.registration[1],z:P.registration[2]},rotation:{y:0}}};
+const move=point=>{[player.root.position.x,player.root.position.y,player.root.position.z]=point;};
+const requests=[],registrations=[];let labor,owner=null,borrowed=false,hostReady=true;
+const gardener={loanState:()=>({owner,borrowed}),hostReady:()=>hostReady,requestMeeting:()=>true,releaseMeeting(){},reserveTools(id){owner=id;return true;},releaseTools(){owner=null;},takeCan(){borrowed=true;return true;},returnCan(){borrowed=false;owner=null;}};
+const clock={day:1,hour:8,seconds:0},careers=createFormalCareers({worldSeed:785,getClock:()=>clock,saveState:()=>{}}),ledger=createCurrencyLedger({saveState:()=>{}});
+const employment=createFranceGardenerEmployment({saveState:()=>{},getJob:()=>labor?.view().job,meetHost:()=>labor.meetHost()});
+labor=createFranceGardenerLabor({gardener,employment,careers,copperLedger:ledger,getClock:()=>clock,getPlayer:()=>player,saveState:()=>{},document:doc,onIntent:x=>requests.push(x),openRegistration:x=>registrations.push(x)});
+const dialog=doc.body.children.find(e=>e.tag==='dialog'),buttons=()=>walk(dialog).filter(e=>e.tag==='button'),byText=t=>buttons().find(e=>e.textContent===t),primary=()=>buttons().find(e=>e.className.includes('fr-labor-primary')),select=t=>buttons().find(e=>e.children[0]?.textContent===t),click=e=>{assert(e&&!e.disabled);e.onclick();},tick=n=>{for(let i=0;i<n;i++)labor.update(.1);};
+const perform=kind=>{const intent=labor.intent(kind);assert(intent,kind);move(intent.position);assert(labor.executeIntent(intent));tick(kind==='water'?51:15);};
+labor.open();assert(dialog.open);assert.equal(requests.length,0);assert.equal(buttons().filter(e=>e.className.includes('fr-labor-primary')).length,1);assert(dialog.textContent.includes('报名费 0 铜文'));assert.equal(walk(dialog).find(e=>e.tag==='details').open,false);
+const firstApply=primary(),oldClose=byText('×');click(select('长期职位'));assert.equal(requests.length,0);assert.equal(careers.applicationResult(),null);assert.equal(labor.view().job,null);assert(dialog.textContent.includes('年龄 22岁 / 18岁 · 园艺 0点 / 2点'));assert(dialog.textContent.includes('8–9法国券'));assert(!dialog.textContent.includes('酒楼'));firstApply.onclick();assert.equal(requests.length,0,'selection invalidates previous action');
+const view=primary();click(view);view.onclick();assert.equal(requests.length,1);assert.equal(requests[0].kind,'formal-view');assert.equal(requests[0].registration.scope,'role');assert.equal(careers.applicationResult(),null);assert(labor.executeIntent(requests[0]));assert.deepEqual(registrations.at(-1),{country:'france',roleId:GARDEN_ASSISTANT_ROLE.id,scope:'role'});assert.equal(labor.view().job,null,'viewing never opens a shift');
+labor.open();oldClose.onclick();assert(dialog.open,'old close cannot dismiss reopened panel');click(select('临时帮工'));const closedApply=primary();dialog.cancel({preventDefault(){}});assert(!dialog.open);closedApply.onclick();assert.equal(requests.length,1);labor.open();closedApply.onclick();assert.equal(requests.length,1,'old controls stay inert after reopen');
+const apply=primary();click(apply);apply.onclick();assert.equal(requests.length,2);assert(!employment.isHired(),'UI only requests physical registration');hostReady=false;move(requests.at(-1).position);assert(labor.executeIntent(requests.at(-1)));labor.open();assert(primary().disabled);assert(dialog.textContent.includes('等埃米尔'));hostReady=true;tick(1);assert(employment.isHired());assert.equal(labor.view().job,null);assert.equal(primary().textContent,'接下浇花活');
+const oldAccept=primary();employment.resign();oldAccept.onclick();assert.equal(requests.length,2,'service revision changes invalidate a rendered action before refresh');assert.equal(primary().textContent,'当面登记临时帮工');employment.apply();labor.update(.1);click(primary());assert.equal(labor.view().job,null);move(requests.at(-1).position);assert(labor.executeIntent(requests.at(-1)));tick(1);assert(labor.view().job);perform('take');perform('water');move(P.registration);labor.open();assert(dialog.textContent.includes('1 / 2'));assert(dialog.textContent.includes('水壶在手'));const staleCancel=byText('取消这份活 · 无工钱');labor.close();labor.open();staleCancel.onclick();assert.equal(labor.view().job.cancelled,false);click(byText('先还壶，保留已完成花畦'));assert.equal(requests.at(-1).kind,'return');move(requests.at(-1).position);assert(labor.executeIntent(requests.at(-1)));tick(15);assert.equal(labor.view().job.completedBeds,1);assert.equal(labor.view().held,false);
+perform('take');labor.open();click(byText('取消这份活 · 无工钱'));assert.equal(labor.view().job.cancelled,true);assert.equal(requests.at(-1).kind,'return');assert(labor.view().held,'cancel must keep original can until physical return');move(requests.at(-1).position);assert(labor.executeIntent(requests.at(-1)));tick(15);assert.equal(labor.view().job,null);assert.equal(ledger.state().bank,0);
+move(P.registration);labor.open();perform('accept');perform('take');perform('water');perform('water');perform('return');move(P.registration);labor.open();assert(dialog.textContent.includes('2 / 2'));assert.equal(primary().textContent,'当面验收 · 6 铜文存银行');assert(!byText('取消这份活 · 无工钱'));labor.close();assert.equal(labor.view().job.stage,'ready','close preserves earned wage');labor.open();const claim=primary();move([0,0,0]);labor.update(.1);assert(!dialog.open);claim.onclick();assert.notEqual(requests.at(-1).kind,'claim','leaving dismisses and invalidates the old action');assert.equal(labor.view().job.stage,'ready');
+labor.dispose();assert(!dialog.open);console.log('PASS garden UI: local choice, one primary, real status, physical apply/handbook routing, no auto shift, host wait, stale selection/close/reopen/service changes, early return, cancellation and preserved wage');
