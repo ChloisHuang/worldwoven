@@ -9,9 +9,10 @@ import {nearbyInteraction} from '../source/game/player-interaction-intents.js';
 // Execute the actual main automatic-movement/arrival branch without a renderer.
 // This reproduces a one-click seat approach being cancelled at a person's body.
 const main=fs.readFileSync(new URL('../source/game/main.js',import.meta.url),'utf8');
-const begin=main.indexOf(' while(path.length&&budget>1e-10)'),end=main.indexOf('\n // An NPC handover',begin);
+const begin=main.indexOf(' while(path.length&&budget>1e-10)'),end=main.indexOf('\n // Finish the last moving frame',begin);
 assert(begin>=0&&end>begin);
-const tickScript=new vm.Script('moving=false;if(path.length){let budget=movementBudget;'+main.slice(begin,end));
+const arrival=main.slice(main.indexOf('function dispatchPlayerArrival('),main.indexOf('function updatePlayer('));
+const tickScript=new vm.Script(arrival+'\nmoving=false;if(path.length){let budget=movementBudget;'+main.slice(begin,end)+'\nif(!moving&&!path.length)dispatchPlayerArrival();');
 class Position{
  constructor(x,y,z){Object.assign(this,{x,y,z});}
  clone(){return new Position(this.x,this.y,this.z);}
@@ -25,7 +26,7 @@ function fixture({start=[0,0,0],goal=[0,0,3],body=[0,0,1.2],walls=[],movementBud
  let completed=0,rejected=0,resolved=0;
  const context=vm.createContext({player,npcs,movementBudget,path:route,pendingInteraction:target,targetStation:target,automaticDoors,PLAYER_TRAVEL_SCALE:1,followActorRoute,nearbyInteraction,
   intentWaypoint(step){resolved++;return step.waypoint;},moveActor(n,dx,dz,r,probeOnly=false){return moveActorWithCollision(n,dx,dz,r,{colliders:walls,navigation:options,npcs,playerPosition:player.root.position,probeOnly});},
-  startInteraction(){completed++;},toast(){rejected++;},furniture:{releaseActor(){}}});
+  startInteraction(){completed++;context.pendingInteraction=null;context.targetStation=null;},toast(){rejected++;},furniture:{releaseActor(){}}});
  context.moveActor.probeBodyRecovery=(n,dx,dz,r)=>context.moveActor(n,dx,dz,r,true);
  return {player,npc,context,route,options,tick:()=>{beginActorNavigationStep(movementBudget/player.locomotion.walkSpeed);return tickScript.runInContext(context);},counts:()=>({completed,rejected,resolved})};
 }
@@ -48,12 +49,14 @@ for(const movementBudget of [.075,.025])for(const start of [[24.1216137,4.015,-3
  for(let i=0;i<20*1.5/movementBudget&&f.context.path.length;i++){
   f.tick();assert(!blocked(f.player.root.position.x,f.player.root.position.z,walls,.34,f.options),'the full-size player stays outside the real desk and north wall');passedNorth ||= f.player.root.position.z < doctor.z-.59;assert(Math.hypot(f.player.root.position.x-doctor.x,f.player.root.position.z-doctor.z)>=.59-1e-6,'automatic player retains .34 + .25 body radii');
  }
+ f.tick(); // Arrival actions run on the next stationary frame.
  assert(passedNorth,'the desk blocks south, so the full-size player goes north of the stationary doctor');assert.equal(f.counts().completed,1,'the stationary doctor is passed using the common local yield');assert.equal(f.counts().rejected,0);assert(f.counts().resolved>0,'existing endpoint resolver is used');assert.deepEqual(f.npc.root.position,doctor,'the worker is not moved from the job');
 }
 {
  const f=fixture({body:[5,0,5],walls:[{minX:-4,maxX:4,minZ:.8,maxZ:1}]});
  f.route.splice(0,f.route.length,{x:0,y:0,z:3});
  for(let i=0;i<40&&f.context.path.length;i++)f.tick();
+ f.tick();
  assert.equal(f.context.path.length,0,'a true static blockage still abandons an impossible route');assert.equal(f.counts().completed,0);assert.equal(f.counts().rejected,1);
 }
 for(const obstruction of ['wall','floor','closed-door','occupied-destination']){
