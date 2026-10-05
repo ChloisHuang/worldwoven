@@ -45,7 +45,7 @@ export function createChinaDailyToilet({lot,doors,getPlayer=()=>null,getActors=(
  const serial=Math.max(Number.isSafeInteger(saved.serial)&&saved.serial>=0?saved.serial:0,...receipts.map(r=>r.number));
  let durable={version:1,serial,receipts:retainReceipts(receipts),pending:saved.pending&&saved.pending.id===receiptId(serial)&&saved.pending.facilityId===P.id?copy(saved.pending):null,lastOutcome:saved.lastOutcome||null};
  let current=null,disposed=false,lastError=null,retryIn=0,recovery=durable.pending,time=0;
- const cooldowns=new Map();
+ const cooldowns=new Map();let privacyCache=null;
  const idOf=actor=>actor===getPlayer()?'player':actor?.station?.id||actor?.id||null;
  const people=()=>[...new Set([getPlayer(),...(getActors()||[])].filter(Boolean))];
  const actorById=id=>people().find(a=>idOf(a)===id);
@@ -53,7 +53,7 @@ export function createChinaDailyToilet({lot,doors,getPlayer=()=>null,getActors=(
  function persist(next){
   try{const result=saveState(copy(next));if(result===false||result?.then){lastError='save-failed';return false;}durable=next;lastError=null;return true;}catch{lastError='save-failed';return false;}
  }
- function privacy(actor){
+ function inspectPrivacy(actor){
   if(!available)return {ok:false,reason:'facility-unavailable'};
   const states=doors?.getState?.()||[],closures=P.closures.map(id=>states.find(d=>d.id===id||d.openingId===id));
   if(closures.some((d,i)=>!d||!['door','full-curtain'].includes(d.kind)||i===2&&d.kind!=='full-curtain'))return {ok:false,reason:'privacy-unavailable'};
@@ -61,6 +61,9 @@ export function createChinaDailyToilet({lot,doors,getPlayer=()=>null,getActors=(
   const other=people().find(a=>{if(a===actor)return false;const p=a.root?.position;return p&&Math.abs(p.y-P.approach[1])<1&&p.x>room.minX-.05&&p.x<room.maxX+.05&&p.z>room.minZ-.05&&p.z<room.maxZ+.05;});
   return other?{ok:false,reason:'room-occupied',actorId:idOf(other)}:{ok:true,reason:null};
  }
+ // Door/room occupancy is sampled only while this one facility is in use,
+ // at 4 Hz. Mount and completion recheck live state at their durable boundary.
+ function privacy(actor,force=false){if(!force&&privacyCache?.actor===actor&&time-privacyCache.time<.25)return privacyCache.result;const result=inspectPrivacy(actor);privacyCache={actor,time,result};return result;}
  function exitClear(actor){
   const p=P.approach,r=actor?.collisionRadius??.34;
   if(people().some(a=>a!==actor&&a.root?.position&&Math.abs(a.root.position.y-p[1])<1&&Math.hypot(a.root.position.x-p[0],a.root.position.z-p[2])<r+(a.collisionRadius??.34)+.08))return false;
@@ -119,17 +122,17 @@ export function createChinaDailyToilet({lot,doors,getPlayer=()=>null,getActors=(
   return release();
  }
  function mount(){
-  const c=current;if(!c||!at(c.actor,P.approach)||!privacy(c.actor).ok)return false;
+  const c=current;if(!c||!at(c.actor,P.approach)||!privacy(c.actor,true).ok)return false;
   if(!persist({...durable,pending:{...durable.pending,stage:'using'}}))return false;
   c.stage='using';c.mounted=true;c.elapsed=0;c.actor.root.position.set(...P.anchor);c.actor.root.rotation.y=P.yaw;c.actor.walking=false;c.actor.route=[];return true;
  }
  function complete(){
-  const c=current;if(!c||c.cancelled||!at(c.actor,P.anchor,.025)||!privacy(c.actor).ok)return false;
+  const c=current;if(!c||c.cancelled||!at(c.actor,P.anchor,.025)||!privacy(c.actor,true).ok)return false;
   const receipt={id:c.id,number:c.number,actorId:c.actorId,source:'china-toilet',facilityId:P.id,completed:true,...clock(),delivered:false};
   const pending={id:c.id,number:c.number,actorId:c.actorId,facilityId:P.id,stage:'leaving',completed:true};
   const next={...durable,pending,receipts:retainReceipts([...durable.receipts,receipt]),lastOutcome:{id:c.id,actorId:c.actorId,status:'completed',...clock()}};
   if(!persist(next))return false;
-  c.stage='leaving';c.completed=true;deliver();const isPlayer=c.actorId==='player';release();if(isPlayer)notify(lastError?'如厕结束，记录正在保存':'如厕结束，身体轻松了一些');return true;
+  c.stage='leaving';c.completed=true;const delivered=deliver(),isPlayer=c.actorId==='player';release();if(isPlayer)notify(delivered?'如厕结束，身体轻松了一些':'如厕结束，记录正在保存');return true;
  }
  function tick(actor,dt,travel){
   if(disposed||!current||current.actor!==actor)return false;
