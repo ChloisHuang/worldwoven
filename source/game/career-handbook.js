@@ -86,7 +86,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     const belongsToTenure=row=>row&&held&&row.roleId===held.id&&(row.day>s.tenure.sinceDay||row.day===s.tenure.sinceDay&&(row.arrivalHour??24)>=s.tenure.sinceHour);
     const hired=!!held,d=belongsToTenure(s.lastDuty)?s.lastDuty:null;
     const pendingDuty=d&&d.day<c.day&&['inspection','ready'].includes(d.stage);
-    const service=localService(role),key=[s.revision,registrationRoleId,registrationScope,held?.id,country,c.day,Math.floor(c.hour*60),!!service,service?.intent()?.intentKey,ageYears,JSON.stringify(careers.applicationResult?.()),
+    const service=localService(role),key=[s.revision,registrationRoleId,registrationScope,held?.id,country,c.day,Math.floor(c.hour*60),!!service,service?.intent()?.intentKey,held?.paymentKind==='commission'?Math.floor(service?.state?.().progressSeconds||0):null,ageYears,JSON.stringify(careers.applicationResult?.()),
       ...localRoles.map(r=>`${r.id}:${r.vacancy}:${atRegistration(r)}`)].join(':');
     if(!force&&key===signature)return;signature=key;generation++;
     dialog.replaceChildren();const x=buttonFor('×',close);x.className='career-close';x.setAttribute('aria-label','关闭职业手册');

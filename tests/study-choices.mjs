@@ -8,7 +8,7 @@ import {createStudyMenu} from '../source/game/study-menu.js';
 const clone=structuredClone;
 function fixture(saved){const clock={day:1,hour:8,seconds:0},store={saved},flags={fail:false};const careers=createFormalCareers({worldSeed:785,saved,getClock:()=>clock,saveState:s=>{if(flags.fail)return false;store.saved=clone(s);},creditWageToBank:()=>({ok:true})});return{clock,store,flags,careers};}
 const f=fixture();
-assert.deepEqual(studyOptions('cn-rest').map(o=>o.skill),['ritual','writing','cooking','art']);
+assert.deepEqual(studyOptions('cn-rest').map(o=>o.skill),['ritual','writing','cooking','art','art']);
 assert.deepEqual(studyOptions('cn-calligraphy').map(o=>o.action),['calligraphy']);
 assert.deepEqual(studyOptions('france-atelier').map(o=>o.action),['paint']);
 for(const station of ['cn-tea','cn-garden','cn-cooking','france-cafe'])assert.equal(studyOptions(station).length,0);
@@ -36,7 +36,7 @@ ticket=f.careers.learningTicket('cn-rest','art-intro').ticket;assert.equal(f.car
 assert.equal(studySkillProgress(f.careers.state(),'art',1).remaining,0);
 f.clock.day=2;assert.equal(studySkillProgress(f.careers.state(),'art',2).remaining,4);
 ticket=f.careers.learningTicket('cn-rest','art-intro').ticket;assert.equal(f.careers.completeLearning(ticket,{seconds:8}).gained,1);
-assert(studyJobLinks(f.careers,'art').includes('艺术家职位尚未开放'));assert(studyJobLinks(f.careers,'writing').includes('礼务录事'));assert(studyJobLinks(f.careers,'ritual').includes('酒楼常任服务助理'));assert(studyJobLinks(f.careers,'gardening').includes('西苑常任园艺助理'));
+assert(studyJobLinks(f.careers,'art').includes('云来诗词艺者'));assert(studyJobLinks(f.careers,'writing').includes('礼务录事'));assert(studyJobLinks(f.careers,'ritual').includes('酒楼常任服务助理'));assert(studyJobLinks(f.careers,'gardening').includes('西苑常任园艺助理'));
 
 // A real qualified/paid clerk snapshot in the published v2 shape migrates
 // without losing tenure, bank receipt identity, reviews, skill or work serials.
@@ -58,11 +58,11 @@ const element=tag=>({tag,children:[],attributes:{},textContent:'',open:false,eve
 const doc={head:element('head'),body:element('body'),createElement:element},all=e=>[e,...e.children.flatMap(all)],text=e=>all(e).map(e=>e.textContent).join('\n');
 let country='china';const requests=[],ui=createStudyMenu({careers:f.careers,getClock:()=>f.clock,getCountry:()=>country,document:doc,onChoose:(station,id)=>requests.push([station.id,id])});
 const dialog=doc.body.children[0],find=predicate=>all(dialog).find(predicate),button=title=>find(e=>e.tag==='button'&&e.textContent===title),station={id:'cn-rest',name:'雅集楼三层 · 藏书观景'};
-let before=clone(f.store.saved);assert(ui.open(station));assert.equal(all(dialog).filter(e=>e.className==='study-option').length,4);
+let before=clone(f.store.saved);assert(ui.open(station));assert.equal(all(dialog).filter(e=>e.className==='study-option').length,5);
 assert(text(dialog).includes('升级进度 · 前往 Lv.1'));assert(text(dialog).includes('10 / 30 XP')||text(dialog).includes('0 / 30 XP'));find(e=>e.className==='study-option'&&text(e).includes('文书')).onclick();
 assert(text(dialog).includes('Lv.0'));assert(text(dialog).includes('10 / 30 XP'));assert(text(dialog).includes('礼务录事：文书 Lv.2'));
 const stale=button('开始阅读 · 8秒');button('暂时不学').onclick();stale.onclick();assert.equal(requests.length,0);assert.deepEqual(f.store.saved,before);
-ui.open(station);find(e=>e.className==='study-option'&&text(e).includes('艺术')).onclick();assert(text(dialog).includes('艺术家职位尚未开放'));assert(text(dialog).includes('淡墨铺远山'));
+ui.open(station);find(e=>e.className==='study-option'&&text(e).includes('艺术')).onclick();assert(text(dialog).includes('云来诗词艺者'));assert(text(dialog).includes('淡墨铺远山'));
 const start=button('开始阅读 · 8秒');start.onclick();start.onclick();assert.deepEqual(requests,[['cn-rest','art-intro']]);assert.deepEqual(f.store.saved,before,'UI does not mint tickets');
 ui.open(station);const changed=button('开始阅读 · 8秒');f.clock.day++;ui.update();changed.onclick();assert.equal(requests.length,1);
 dialog.events.cancel({preventDefault(){}});assert(!ui.isOpen());

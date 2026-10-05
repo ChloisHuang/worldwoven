@@ -1,3 +1,4 @@
+import {shapePreferenceScore} from './character-traits.js';
 import {SALON_POET_ROLE as ROLE} from './china-salon-career-role.js';
 import {knownAdult} from './player-age.js';
 import {SALON_ROOMS,inSalonRoom} from './china-tavern-salon-rooms.js';
@@ -18,7 +19,7 @@ function valid(s){
 }
 // The career registry owns the continuing appointment. This controller owns
 // voluntary, separately priced services, backed by an existing visitor purse.
-export function createChinaSalonEmployment({salon,scene,careers,copperLedger,npcs,getPlayer,getClock,getMounted=()=>null,getBusy=()=>false,canSee=()=>true,saved=null,saveState=()=>true,openRegistration=()=>{},notify=()=>{}}){
+export function createChinaSalonEmployment({salon,scene,careers,copperLedger,npcs,getPlayer,getClock,getMounted=()=>null,getBusy=()=>false,getAppearanceScore=()=>shapePreferenceScore(getPlayer()?.root.userData?.appearance?.shapeTraits),canSee=()=>true,saved=null,saveState=()=>true,openRegistration=()=>{},notify=()=>{}}){
  let current=blank(),loadError=null,lastError=null,disposed=false,elapsed=0,wait=0,reconciled=false,pendingPayment=null;
  if(saved!=null){if(valid(saved))current=copy(saved);else loadError='invalid-salon-employment';}
  const customer=()=>npcs.find(n=>n.station.id===current.order?.customerId),room=()=>SALON_ROOMS.find(r=>r.id===current.order?.roomId);
@@ -33,7 +34,7 @@ export function createChinaSalonEmployment({salon,scene,careers,copperLedger,npc
   if(participant?.ok===false)return fail('客单记录已变化，请重试','stale-world');
   try{const result=saveState(candidate,participant);if(result===false||result?.then)return fail('记录未保存，请重试','save-failed');current=candidate;lastError=null;return true;}catch{return fail('记录未保存，请重试','save-failed');}
  };
- const quote=()=>6+Math.min(2,Math.floor((careers.state().skills.art||0)/5))+Math.min(2,Math.floor(current.reviews.filter(r=>r.positive).length/3));
+ const quote=()=>{const score=getAppearanceScore();return 6+(score>=70?1:0)+(score>=90?1:0)+Math.min(1,Math.floor((careers.state().skills.art||0)/5))+Math.min(1,Math.floor(current.reviews.filter(r=>r.positive).length/3));};
  const inVenue=()=>{const p=getPlayer()?.root.position;return p&&p.x>16&&p.x<26&&p.z>8&&p.z<21&&Math.abs(p.y-7.815)<.45;};
  const startAvailable=()=>!loadError&&!current.shift&&!current.order&&hired()&&adultArtist(getPlayer())&&!salon.active()&&getClock().hour>=6&&getClock().hour<22;
  function start(){if(!meet()||!startAvailable())return false;const serial=current.shiftSerial+1;
@@ -52,7 +53,6 @@ export function createChinaSalonEmployment({salon,scene,careers,copperLedger,npc
   const world=changeSalonVisitor(scene.snapshot(),o,'invite');if(!world||!persist({...current,serial,order:o},world))return false;
   scene.resetSalonRoute(n);elapsed=wait=0;notify(`${o.customerName}想听${POEMS[o.request].meaning}，正在上楼请温晚引见；你可以婉拒`);return true;
  }
- function clearRoom(id){salon.ledger.release(id);const n=customer();if(n)salon.resetWorkRoute(n);}
  function cancel(reason='你婉拒了这次邀约',endShift=false){
   const o=current.order;if(!o)return endShift?persist({...current,shift:null,lastEvent:'已交班，柳清弦代管诗词台班。'}):false;
   if(o.stage==='ready')return fail('服务已完成，先请温晚将原客款结入银行；不会重新扣款');
@@ -69,7 +69,7 @@ export function createChinaSalonEmployment({salon,scene,careers,copperLedger,npc
  }
  const bothInRoom=()=>{const o=current.order,r=room(),n=customer(),p=getPlayer();return !!o&&!!r&&salon.ledger.claim(r.id)?.owner===o.id&&salon.workRoomAvailable(r.id)&&adultArtist(p)&&knownAdult(n)&&knownAdult(salon.receptionist)&&inSalonRoom(r,p?.root.position)&&inSalonRoom(r,n?.root.position)&&near(p,r.player,.28)&&near(n,r.actor,.22)&&!npcs.some(other=>other!==n&&inSalonRoom(r,other.root.position));};
  function recite(key){const o=current.order;if(o?.stage!=='choose'||!POEMS[key]||!bothInRoom()||getBusy())return false;
-  if(!persist({...current,order:{...o,stage:'reciting',poem:key}}))return false;elapsed=0;notify(`${POEMS[key].name}：${POEMS[key].text}（诵读8秒）`);return true;
+  if(!persist({...current,order:{...o,stage:'reciting',poem:key}}))return false;const p=getPlayer(),n=customer();p.root.rotation.y=Math.atan2(n.root.position.x-p.root.position.x,n.root.position.z-p.root.position.z);elapsed=0;notify(`${POEMS[key].name}：${POEMS[key].text}（诵读8秒）`);return true;
  }
  function answer(key){const o=current.order;if(o?.stage!=='discussion'||!POEMS[key]||!bothInRoom()||getBusy())return false;
   const matched=o.poem===o.request,correct=key===o.poem,positive=matched&&correct;
@@ -104,7 +104,7 @@ export function createChinaSalonEmployment({salon,scene,careers,copperLedger,npc
    if(v?.mode!=='salon'||v.salonClaimId!==o.id){loadError='missing-salon-lease';return false;}
    if(o.roomId){const r=room(),held=v.salonPayment;
     if(held?.id!==o.id||held.status!=='reserved'||held.amount!==o.fee){loadError='missing-salon-hold';return false;}
-    if(!salon.ledger.claim(r.id)&&!salon.ledger.reserve(r.id,o.id,['player',o.customerId])){if(o.stage==='ready'){loadError='salon-room-conflict';return false;}return cancel('房间恢复时已有其他安排');}
+    if(o.stage!=='ready'&&!salon.ledger.claim(r.id)&&!salon.ledger.reserve(r.id,o.id,['player',o.customerId]))return cancel('房间恢复时已有其他安排');
    }
   }
   reconciled=true;return true;
@@ -146,7 +146,7 @@ export function createChinaSalonEmployment({salon,scene,careers,copperLedger,npc
   if(!action)return null;
   const remote=kind==='work-view'||kind==='decline',inRoom=kind==='go-room'||kind.startsWith('poem-')||kind.startsWith('answer-');
   const position=remote?getPlayer()?.root.position.toArray():inRoom?room()?.player:REG;if(!position)return null;
-  return {id:'cn-salon-job-'+kind,provider:'china-salon-employment',kind,roleId:ROLE.id,name:'云来诗词台班',npcName:'温晚',targetKey:'cn-tavern-reception',targetName:'温晚 · 雅集接待',action,position:position.slice(),executionRadius:remote?.5:inRoom?.25:.45,interactionRadius:remote?.6:1.8,priority:47,visibilityChecked:remote,...(kind==='formal-view'?{registration:{scope:'role',roleId:ROLE.id}}:{}),intentKey:[current.revision,careers.state().revision,kind,o?.id||'-',o?.stage||'-'].join(':')};
+  return {id:'cn-salon-job-'+kind,provider:'china-salon-employment',kind,roleId:ROLE.id,name:'云来诗词台班',npcName:'温晚',targetKey:'cn-tavern-reception',targetName:'温晚 · 雅集接待',action,position:position.slice(),executionRadius:remote ? .5 : inRoom ? .25 : .45,interactionRadius:remote ? .6 : 1.8,priority:47,visibilityChecked:remote,...(kind==='formal-view'?{registration:{scope:'role',roleId:ROLE.id}}:{}),intentKey:[current.revision,careers.state().revision,kind,o?.id||'-',o?.stage||'-'].join(':')};
  }
  function resolveIntent(old){const next=intent(old?.kind);return next&&next.provider===old?.provider&&next.intentKey===old.intentKey?next:null;}
  function executeIntent(old){const q=resolveIntent(old);if(!q||!near(getPlayer(),q.position,q.executionRadius)||getMounted()||!q.visibilityChecked&&!canSee(q))return false;
@@ -161,7 +161,7 @@ export function createChinaSalonEmployment({salon,scene,careers,copperLedger,npc
   owns:n=>n?.station.id===current.order?.customerId,onShift:()=>!!current.shift,active:()=>!!current.order,label,workChoices,
   playerAction:()=>current.order?.stage==='reciting'?'read':null,
   playerStation:()=>current.order?.stage==='reciting'?{workTarget:room().actor.map((v,i)=>i===1?v+1.2:v)}:null,
-  state:()=>({...copy(current),loadError,lastError,label:label(),quote:quote(),latestReview:current.order?.review||copy(current.reviews.at(-1)||null),job:current.shift?{formalRoleId:ROLE.id,stage:'working',completedTasks:current.reviews.length}:null}),
+  state:()=>({...copy(current),loadError,lastError,label:label(),progressSeconds:current.order?.stage==='reciting'?Math.min(8,elapsed):0,quote:quote(),latestReview:current.order?.review||copy(current.reviews.at(-1)||null),job:current.shift?{formalRoleId:ROLE.id,stage:'working',completedTasks:current.reviews.length}:null}),
   snapshot:()=>({version:1,revision:current.revision,orderId:current.order?.id||null,stage:current.order?.stage||null,elapsed,wait}),
   restore:s=>{if(s?.version!==1||s.revision!==current.revision||s.orderId!==(current.order?.id||null)||s.stage!==(current.order?.stage||null))return false;elapsed=Number.isFinite(s.elapsed)?Math.max(0,Math.min(8,s.elapsed)):0;wait=Number.isFinite(s.wait)?Math.max(0,Math.min(220,s.wait)):0;reconciled=false;return true;},
   dispose(){disposed=true;scene.setSalonService(null);if(current.order)salon.ledger.release(current.order.id);}
