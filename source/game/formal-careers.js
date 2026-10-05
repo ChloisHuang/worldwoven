@@ -1,5 +1,5 @@
 import {GAME_MINUTES_PER_SECOND} from './simulation-clock.js';
-import {emptyApplications, restoreApplications, careerInterview} from './career-applications.js';
+import {emptyApplications, restoreApplications, careerInterview, careerInterviewRoll, applicationId, pendingApplication} from './career-applications.js';
 import {STUDY_SOURCES, studyLesson, savedStudyLesson, defaultStudyLesson} from './study-lessons.js';
 import {STUDY_XP, skillXPRequired, addSkillXP} from './skill-progress.js';
 // Finite vacancies and one rotating player seat alongside each real incumbent.
@@ -252,7 +252,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if (!object(clock) || !integer(clock.day) || !Number.isFinite(clock.hour) || clock.hour < 0 || clock.hour >= 24 ||
       !Number.isFinite(clock.seconds) || clock.seconds < 0) return null;
     const days = [current.lastDuty?.day, current.tenure?.sinceDay, current.lastPaidDay, current.daily.day, current.lastEvaluatedDay,
-      ...Object.values(current.learning).map(study => study.issuedDay), ...Object.values(current.applications.byRole).map(result=>result.day)].filter(day => day != null);
+      ...Object.values(current.learning).map(study => study.issuedDay), ...Object.values(current.applications.byRole).flatMap(result=>[result.day,result.reviewedAt?.day,result.decidedAt?.day])].filter(day => day != null);
     if (days.some(day => day > clock.day) || lastClock &&
       (clock.day < lastClock.day || clock.day === lastClock.day && clock.hour < lastClock.hour)) return null;
     return clock;
@@ -323,32 +323,72 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     return copy(lastApplication?.roleId===id?lastApplication:current.applications.byRole[id]?{...current.applications.byRole[id],saved:true}:null);
   }
   function applicationAvailability(roleId = COURT_CLERK_ROLE.id, applicant = {}) {
-    const check=eligibility(roleId,applicant),clock=readClock(),previous=current.applications.byRole[roleId];
+    const clock=readClock(),previous=current.applications.byRole[roleId],pending=pendingApplication(current.applications);
+    if(pending)return {ok:false,code:'application-pending',reasons:['application-pending'],applicationId:pending.id,roleId:pending.roleId};
     if(clock&&previous?.day===clock.day)return {ok:false,code:'already-applied-today',reasons:['already-applied-today'],nextDay:clock.day+1};
-    return check;
+    return eligibility(roleId,applicant);
+  }
+  const checkedApplicant=(role,applicant)=>({ageYears:Number.isFinite(applicant.ageYears)&&applicant.ageYears>=0?applicant.ageYears:null,
+    skills:Object.fromEntries(Object.keys(role.skillRequirements).map(key=>[key,current.skills[key]]))});
+  function saveApplication(receipt,extra={}){
+    const result=persist({...current,...extra,applications:{lastRoleId:receipt.roleId,byRole:{...current.applications.byRole,[receipt.roleId]:receipt}}});
+    if(result.ok)lastApplication=null;return result;
   }
   function apply(roleId = COURT_CLERK_ROLE.id, applicant = {}) {
     const finish = result => {lastApplication = {roleId, ...copy(result),saved:false}; return result;};
     const blocked = allowed(); if (blocked) return finish(blocked);
     const role=roleMap.get(roleId);if(!role)return finish(failure('unknown-role'));
-    const clock = now(); if (!clock) return finish(failure('invalid-clock'));
+    const clock=now();if(!clock)return finish(failure('invalid-clock'));
+    const pending=pendingApplication(current.applications);
+    if(pending){lastApplication=null;return failure('application-pending');}
     const previous=current.applications.byRole[roleId];
     if(previous?.day===clock.day){lastApplication={...copy(previous),saved:true};return failure('already-applied-today');}
-    const eligible = eligibility(roleId, applicant);
-    let interview=null,tenure=null,result;
-    if(!eligible.ok)result={ok:false,code:eligible.code,reasons:[...eligible.reasons]};
-    else{
-      let context;try{context=getHiringContext(role)||{};}catch{return finish(failure('hiring-context-unavailable'));}
-      if(role.id===COURT_CLERK_ROLE.id)context={...context,recruiterTraits:{conscientiousness:COURT_SUPERVISOR.conscientiousness,...context.recruiterTraits}};
-      interview=careerInterview({role,skills:current.skills,performance:current.performance,context,worldSeed,day:clock.day});
-      if(interview.roll<interview.chance){tenure={roleId,slotId:eligible.slotId,sinceDay:clock.day,sinceHour:clock.hour};result={ok:true,tenure:copy(tenure)};}
-      else result={ok:false,code:'interview-rejected',reasons:['interview-rejected']};
+    const eligible=eligibility(roleId,applicant),receipt={id:applicationId(roleId,clock.day),roleId,status:eligible.ok?'pending':'rejected',
+      stage:eligible.ok?'submitted':'decided',ok:false,code:eligible.ok?'submitted':eligible.code,reasons:eligible.reasons||[],
+      day:clock.day,hour:clock.hour,roll:careerInterviewRoll(worldSeed,roleId,clock.day),checked:checkedApplicant(role,applicant),
+      interview:null,reviewedAt:null,decidedAt:eligible.ok?null:{day:clock.day,hour:clock.hour},appointment:null,tenure:null};
+    const saved=saveApplication(receipt);if(!saved.ok)return finish(saved);
+    lastError=eligible.ok?null:eligible.code;
+    return eligible.ok?{ok:true,code:'submitted',applicationId:receipt.id}:{ok:false,code:receipt.code,reasons:receipt.reasons};
+  }
+  function reviewApplication(roleId,{ageYears,applicationId:expectedId,step='interview'}={}){
+    const blocked=allowed();if(blocked)return blocked;
+    const role=roleMap.get(roleId),receipt=current.applications.byRole[roleId];
+    if(!role||!receipt||receipt.status!=='pending')return failure('no-pending-application');
+    if(expectedId!==receipt.id)return failure('stale-application');
+    const clock=now();if(!clock)return failure('invalid-clock');
+    const timestamp={day:clock.day,hour:clock.hour};
+    if(step==='receive-document'){
+      if(receipt.stage!=='document-ready')return failure('wrong-review-step');
+      const saved=saveApplication({...receipt,stage:'document-held',code:'document-held'});
+      return saved.ok?{ok:true,code:'document-held',applicationId:receipt.id}:saved;
     }
-    const receipt={roleId,ok:result.ok,code:result.ok?'approved':result.code,reasons:result.reasons||[],day:clock.day,hour:clock.hour,
-      checked:{ageYears:Number.isFinite(applicant.ageYears)&&applicant.ageYears>=0?applicant.ageYears:null,skills:Object.fromEntries(Object.keys(role.skillRequirements).map(key=>[key,current.skills[key]]))},interview,tenure};
-    const saved=persist({...current,...(tenure?{tenure}:{}),applications:{lastRoleId:roleId,byRole:{...current.applications.byRole,[roleId]:receipt}}});
-    if(!saved.ok)return finish(saved);
-    lastApplication=null;lastError=result.ok?null:result.code;return result;
+    if(step!=='interview'&&step!=='appointment'||step==='interview'&&receipt.stage!=='submitted'||step==='appointment'&&receipt.stage!=='document-held')return failure('wrong-review-step');
+    const eligible=eligibility(roleId,{ageYears});let interview=receipt.interview,reviewedAt=receipt.reviewedAt,appointment=receipt.appointment;
+    if(eligible.ok&&step==='interview'){
+      let context;try{context=getHiringContext(role)||{};}catch{return failure('hiring-context-unavailable');}
+      if(roleId===COURT_CLERK_ROLE.id)context={...context,recruiterTraits:{conscientiousness:COURT_SUPERVISOR.conscientiousness,...context.recruiterTraits}};
+      interview={...careerInterview({role,skills:current.skills,performance:current.performance,context,worldSeed,day:receipt.day}),roll:receipt.roll};reviewedAt=timestamp;
+    }
+    const approved=eligible.ok&&interview.roll<interview.chance;
+    if(approved&&roleId===COURT_CLERK_ROLE.id&&step==='interview'){
+      appointment={id:`appointment:${receipt.id}`,text:'承务官署任命文书：履历与礼仪文书考核已核验。授九品礼务录事，依班听记朝议，归档当日文书。领文宣读后生效。'};
+      const saved=saveApplication({...receipt,stage:'document-ready',code:'document-ready',checked:checkedApplicant(role,{ageYears}),interview,reviewedAt,appointment});
+      return saved.ok?{ok:true,code:'document-ready',applicationId:receipt.id}:saved;
+    }
+    const code=approved?'approved':eligible.ok?'interview-rejected':eligible.code,reasons=approved?[]:eligible.ok?['interview-rejected']:eligible.reasons;
+    const tenure=approved?{roleId,slotId:eligible.slotId,sinceDay:clock.day,sinceHour:clock.hour}:null;
+    const saved=saveApplication({...receipt,status:approved?'approved':'rejected',stage:'decided',ok:approved,code,reasons,checked:checkedApplicant(role,{ageYears}),interview,reviewedAt,appointment,decidedAt:timestamp,tenure},tenure?{tenure}:{});
+    if(!saved.ok)return saved;lastError=approved?null:code;
+    return {ok:approved,code,reasons,...(tenure?{tenure:copy(tenure)}:{})};
+  }
+  function cancelApplication(roleId,expectedId){
+    const blocked=allowed();if(blocked)return blocked;
+    const receipt=current.applications.byRole[roleId];if(receipt?.status!=='pending')return failure('no-pending-application');
+    if(receipt.id!==expectedId)return failure('stale-application');
+    const clock=now();if(!clock)return failure('invalid-clock');
+    const saved=saveApplication({...receipt,status:'cancelled',stage:'decided',ok:false,code:'withdrawn',reasons:['withdrawn'],decidedAt:{day:clock.day,hour:clock.hour}});
+    return saved.ok?{ok:true,code:'withdrawn'}:saved;
   }
   function resign() {
     const blocked = allowed(); if (blocked) return blocked;
@@ -586,5 +626,5 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     slotHolder:roleId=>{if(loadError)return null;const slot=[...slotMap.values()].find(s=>s.roleId===roleId);return slot?current.tenure?.slotId===slot.id?'player':slot.holderId:null;},
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&availableSlot(slot,role)&&slot.id!==current.tenure?.slotId).length})),
     eligibility, applicationAvailability, beginDutyAvailability, applicationResult,
-    laborEvent, customerReview, apply, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
+    laborEvent, customerReview, apply, reviewApplication, cancelApplication, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
 }

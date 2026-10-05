@@ -12,8 +12,10 @@ export function buildCourtCareerDesk(G, {root, H, solid3}) {
   desk.position.y = .2; G.table(desk, 21, 31.32, 1.5, .82, 0x775744, .92);
   solid3(root, 21, 1.13, 31.32, 1.5, .15, .82, 0x775744);
   H.boundBook(root, 20.63, 1.235, 31.47, .40, .44, 0x506d70);
-  G.box(root, 21.44, 1.235, 31.55, .38, .025, .29, 0xe8d9ba);
-  for (let n=0;n<4;n++) G.box(root, 21.31+n*.075, 1.251, 31.55, .01, .004, .20, 0x555346);
+  const document=new G.THREE.Group();document.name='career-appointment-document';document.position.set(21.44,1.235,31.55);root.add(document);
+  G.box(document,0,0,0,.38,.025,.29,0xe8d9ba);
+  for(let n=0;n<4;n++)G.box(document,-.13+n*.075,.016,0,.01,.004,.20,0x555346);
+  G.box(document,.11,.019,.075,.065,.008,.055,0x963f32);
   careerPlaque(G, root, '铨录登记', 21, 2.20, 30.69, 1.70, .34);
   for(const x of [20.48,21.52])G.box(root,x,1.28,31.75,.035,.16,.035,0x775744);
   careerPlaque(G, root, '礼务录事', 21, 1.38, 31.75, 1.24, .22);
