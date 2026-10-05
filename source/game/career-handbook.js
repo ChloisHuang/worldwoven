@@ -12,7 +12,7 @@ const PLACES={
   [TAVERN]:{country:'china',currency:'copper',workplace:'云来酒楼',employer:'许安',destination:'云来酒楼 · 许安的招工登记案'},
   [GARDEN]:{country:'france',currency:'france',workplace:'西苑',employer:'埃米尔',destination:'西苑工具架 · 埃米尔的园艺登记簿'},
 };
-const WORKPLACES={'cn-court-clerk':'bureau','cn-tavern-steward':'tavern','cn-tavern-chef':'tavern','fr-garden-assistant':'garden'},WORKPLACE_NAMES={bureau:'承务官署',tavern:'云来酒楼',garden:'西苑工具架'};
+const WORKPLACES={'cn-court-clerk':'bureau','cn-tavern-steward':'tavern','cn-tavern-chef':'tavern','fr-garden-assistant':'garden','cn-pharmacy-apprentice':'clinic'},WORKPLACE_NAMES={bureau:'承务官署',tavern:'云来酒楼',garden:'西苑工具架',clinic:'安和医馆'};
 const workplaceKey=role=>WORKPLACES[role?.id]||role?.id;
 const COUNTRIES={china:'中国',france:'法国'},SKILLS={ritual:'礼仪',writing:'文书',gardening:'园艺',art:'艺术',cooking:'烹饪'};
 const place=role=>({...PLACES[role?.id],...role});
@@ -105,7 +105,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     const showReceipt=(root,r,role)=>{
       const box=make('section',null,'career-application-result '+(r.ok?r.employmentStatus==='active'?'career-positive':'career-history':r.status==='pending'?'career-pending':'career-negative'));box.setAttribute('role','status');box.append(make('strong',receiptTitle(r)));
       if(r.status==='pending'){
-        if(r.stage==='submitted')box.append(make('p',isClerk(role)?'沈叙：请当面呈上履历。听记朝议、礼仪与文书，均须核验。':role.id===GARDEN?'埃米尔：你愿意亲手浇护两畦玫瑰、归还原壶，再找我验收吗？':role.id==='cn-tavern-chef'?'许安：后厨需要按客单备料、烹制并核对出菜。你愿意按这份职责当班吗？':'许安：送餐要看清客人和餐点，脏桌、退房客房也要及时清理。你愿意照此当班吗？'));
+        if(r.stage==='submitted')box.append(make('p',isClerk(role)?'沈叙：请当面呈上履历。听记朝议、礼仪与文书，均须核验。':role.id===GARDEN?'埃米尔：你愿意亲手浇护两畦玫瑰、归还原壶，再找我验收吗？':role.id==='cn-pharmacy-apprentice'?'许宁：在医馆候班，接原单、按同号折包并交给本人。持续当班，交班按实际工时结薪，你愿意吗？':role.id==='cn-tavern-chef'?'许安：后厨需要按客单备料、烹制并核对出菜。你愿意按这份职责当班吗？':'许安：送餐要看清客人和餐点，脏桌、退房客房也要及时清理。你愿意照此当班吗？'));
         else box.append(make('p',r.appointment?.text||'请继续办理任命文书'));
       }else if(r.ok){const hour=r.tenure.sinceHour,minutes=Math.floor(hour*60);box.append(make('p',`第${r.tenure.sinceDay+1}日 ${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}${r.employmentStatus==='active'?'受职':'的录用记录'}`));}
       else box.append(make('p',r.saved===false?'本次结果未保存，也未占用今日申请次数。请重试。':`${(r.reasons||[r.code]).map(code=>code==='withdrawn'?'已撤回，未建立正式任职':resultReason(code)).join('；')} · ${c.day===r.day?`今日次数已用，第${r.day+2}日可再申请`:'今日可重新申请'}`));
@@ -175,8 +175,9 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       const metric=(label,value,detail='')=>{const row=make('div',null,'career-metric'),valueCell=make('dd');valueCell.append(make('strong',value));if(detail)valueCell.append(make('small',detail));row.append(make('dt',label),valueCell);rows.append(row);};
       const progress=job?.formalRoleId===held.id?job.shiftKind==='continuous'||current?.shiftKind==='continuous'?`${((job.coveredSeconds||0)*.7/60).toFixed(2)} 小时 · 已完成 ${job.completedTasks??0} 项`:Number.isInteger(job.completedOrders)?`${job.completedOrders} / ${job.requiredOrders??2} 单`:held.id===TAVERN?`${job.completedTables??0} / 2 桌`:held.id===GARDEN?`${job.completedBeds??0} / 2 畦`:current?.stage||'进行中':current?({arrived:'已报到',attending:'朝会进行中',archive:'待归档',inspection:'完成 · 待验收',ready:'完成',paid:'完成',missed:'未完成'}[current.stage]||'进行中'):'未开始';
       metric('◷ 进度',progress,pendingDuty?`第${d.day+1}日未结班次`:current?.stage==='working'&&job&&next?next.action:'');
+      const patientReview=held.id==='cn-pharmacy-apprentice'?live?.latestReview:null;
       const review=s.lastEvaluation?.roleId===held.id&&d&&s.lastEvaluation.day===d.day?s.lastEvaluation:null,customer=d?.customerReviews?.at(-1),penalty=(d?.customerReviews||[]).reduce((sum,r)=>sum-r.score,0);
-      metric('✓ 评价',customer?`${customer.positive?'👍 已纠正 +1':'👎 顾客差评 −2'}`:review?`${review.positive?review.score===0?'交班已验收':'好评 +1':'差评 −1'} · 第${review.day+1}日`:'暂无当班评价',customer?`${customer.customerName} · ${customer.reason}${penalty?` · 当班扣薪${penalty}铜文`:''}`:review?`${employer(held)} · ${review.reason}`:`主管 ${employer(held)}`);
+      metric('✓ 评价',customer?`${customer.positive?'👍 已纠正 +1':'👎 顾客差评 −2'}`:review?`${review.positive?review.score===0?'交班已验收':'好评 +1':'差评 −1'} · 第${review.day+1}日`:patientReview?'✓ 来客确认同号交付':'暂无当班评价',customer?`${customer.customerName} · ${customer.reason}${penalty?` · 当班扣薪${penalty}铜文`:''}`:review?`${employer(held)} · ${review.reason}`:patientReview?`${patientReview.recipientName} · 第${patientReview.number}号原单与纸包已当面核对`:`主管 ${employer(held)}`);
       const salary=current?.wage!=null?`${current.wage}${unit(held)} · ${current.stage==='paid'?'已入账':'待入账'}`:current?.stage==='inspection'?'已完成 · 待核薪':current?.stage==='working'?'当班未结薪':'本日未产生工资';
       metric('¤ 银行薪资',salary,`日薪 ${wageRange(held)}${d?.shiftKind==='continuous'?' · 06–18完整班，按实际工时核算':''}${penalty?' · 顾客评价扣薪'+penalty+'铜文':''} · ${held.currency==='france'?'法国券':'铜文'}账户${pendingDuty?' · 第'+(d.day+1)+'日待结':''}`);
       metric('↗ 晋升','尚未开放',`${skillLine(held)} · 成长 ${s.promotionProgress??0}`);
@@ -184,8 +185,9 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       if(!current&&availability.code==='already-paid-today')panel.body.append(make('p','今日已在另一班次结薪；此岗位可于下一模拟日开始。','career-status-note'));
       if(appliedRole){const history=make('details',null,'career-card-details career-employment-history');history.append(make('summary','录用记录'));showReceipt(history,result,appliedRole);for(const old of (careers.applicationHistory?.(held.id)||[]).slice().reverse())showReceipt(history,old,held);panel.body.append(history);}
       if(!service)panel.body.append(make('p',`工作地点：${COUNTRIES[place(held).country]||place(held).country} · ${place(held).workplace}`,'career-status-note'));
+      if(held.id==='cn-pharmacy-apprentice'&&job?.stage==='working'){const end=action(held,'end-shift');if(end)panel.actions.append(end);}
       if(registrationRoleId===held.id&&registrationScope==='role'){
-        const resign=action(held,isClerk(held)?'resign':'formal-resign');if(resign)panel.body.append(resign);
+        const resign=action(held,isClerk(held)?'resign':'formal-resign');if(resign)panel.body.append(resign);const cancel=held.id==='cn-pharmacy-apprentice'?action(held,'cancel'):null;if(cancel)panel.body.append(cancel);
       }
     }
     if(s.loadError)panel.body.append(make('p','职业存档暂时无法核对，请保留当前存档后再试。','career-negative'));

@@ -30,7 +30,12 @@ export const GARDEN_ASSISTANT_ROLE = Object.freeze({id:'fr-garden-assistant',nam
   slotId:'fr-garden-assistant-1',country:'france',currency:'france',employer:'埃米尔',workplace:'西苑工具架登记簿',
   supervisorId:'france-gardener',workSource:'fr-garden-labor',wage:8,minimumAgeYears:18,
   skillRequirements:Object.freeze({gardening:2}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1});
-export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE]);
+export const PHARMACY_ASSISTANT_ROLE = Object.freeze({id:'cn-pharmacy-apprentice',name:'安和药铺助手',
+  slotId:'cn-pharmacy-apprentice-1',country:'china',currency:'copper',employer:'许宁',workplace:'安和医馆 · 二层交单平台',
+  supervisorId:'cn-clinic-physician',incumbentId:'cn-pharmacy-assistant',incumbentName:'苏禾',vacancyKind:'exclusive',workSource:'cn-pharmacy-labor',wage:12,minimumAgeYears:18,
+  skillRequirements:Object.freeze({writing:1,ritual:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1,
+  duties:'06:00–18:00在医馆候班；持续接原单、按号折包并交给本人，交班后按实际在岗工时结算，来客单独记评价'});
+export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE,PHARMACY_ASSISTANT_ROLE]);
 export const FORMAL_CAREER_SLOTS = Object.freeze([
   ...FORMAL_CAREER_ROLES.map(role => Object.freeze({id:role.slotId,roleId:role.id,holderId:role.incumbentId||null,...(role.vacancyKind==='rotation'?{rotation:true}:role.vacancyKind==='exclusive'?{replacement:true}:{})})),
 ]);
@@ -56,14 +61,15 @@ const empty = () => ({version: 5, revision: 0, skillXP: Object.fromEntries(SKILL
   lastEvaluatedDay: null, lastEvaluation: null, applications: emptyApplications()});
 
 const tavernRole = role => role?.workSource?.startsWith('cn-tavern-');
+const continuousRole=role=>tavernRole(role)||role?.id===PHARMACY_ASSISTANT_ROLE.id;
 const availableSlot = (slot,role) => slot.holderId === null || slot.replacement === true && role.vacancyKind === 'exclusive' && slot.holderId === role.incumbentId || slot.rotation === true && role.vacancyKind === 'rotation' && slot.holderId === role.incumbentId;
 const customerPenalty = duty => (duty?.customerReviews||[]).reduce((total,review)=>total-review.score,0);
 const coveredHours = duty => (duty.coveredSeconds||0)*GAME_MINUTES_PER_SECOND/60;
 const attendanceWage = (role,hours) => Math.floor(role.wage*Math.min(1,hours/(role.dutyWindow.endHour-role.dutyWindow.startHour))+1e-9)+(hours>=role.dutyWindow.endHour-role.dutyWindow.startHour-1e-9?(role.preparationBonus||0):0);
 const dutyWage = (role,duty) => duty.shiftKind==='continuous'?Math.max(0,attendanceWage(role,coveredHours(duty))-customerPenalty(duty)):Math.max(1,completedWage(role,duty.arrivalHour)-customerPenalty(duty));
 function validShift(duty,role){
- if(duty.shiftKind===undefined)return (!['cn-tavern-host','cn-tavern-chef'].includes(role.id)||duty.stage==='missed')&&!['startedSeconds','coveredSeconds','completedTasks','endedHour','endedSeconds'].some(key=>own(duty,key));
- if(duty.shiftKind!=='continuous'||!tavernRole(role)||!Number.isFinite(duty.startedSeconds)||duty.startedSeconds<0)return false;
+ if(duty.shiftKind===undefined)return (!['cn-tavern-host','cn-tavern-chef','cn-pharmacy-apprentice'].includes(role.id)||duty.stage==='missed')&&!['startedSeconds','coveredSeconds','completedTasks','endedHour','endedSeconds'].some(key=>own(duty,key));
+ if(duty.shiftKind!=='continuous'||!continuousRole(role)||!Number.isFinite(duty.startedSeconds)||duty.startedSeconds<0)return false;
  const done=['inspection','ready','paid'].includes(duty.stage),keys=['coveredSeconds','completedTasks','endedHour','endedSeconds'];
  if(!done)return keys.every(key=>duty[key]===null);
  const maxSeconds=(role.dutyWindow.endHour-duty.arrivalHour)*60/GAME_MINUTES_PER_SECOND;
@@ -499,8 +505,8 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const rollover = observeDay(); if (!rollover.ok) return rollover;
     const clock = now(); if (!clock) return failure('invalid-clock');
     const duty = current.lastDuty, role = roleMap.get(current.tenure.roleId);
-    shiftKind??=[TAVERN_HOST_ROLE.id,TAVERN_CHEF_ROLE.id].includes(role.id)?'continuous':undefined;
-    if(shiftKind!==undefined&&(shiftKind!=='continuous'||!tavernRole(role)))return failure('invalid-shift-kind');
+    shiftKind??=[TAVERN_HOST_ROLE.id,TAVERN_CHEF_ROLE.id,PHARMACY_ASSISTANT_ROLE.id].includes(role.id)?'continuous':undefined;
+    if(shiftKind!==undefined&&(shiftKind!=='continuous'||!continuousRole(role)))return failure('invalid-shift-kind');
     if (role.workSource && !validWorkReceipt(role.workSource,receiptId)) return failure('invalid-work-receipt');
     const availability=beginDutyAvailability(role.id,{receiptId});
     if(!availability.ok)return failure(availability.code,availability.reasons);
