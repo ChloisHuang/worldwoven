@@ -13,7 +13,7 @@ const T = await import('three');
 const {createFranceGardener} = await import('../source/game/france-gardener.js');
 const {createFranceGardenerEmployment, GARDEN_HELPER_ROLE} = await import('../source/game/france-gardener-employment.js');
 const {createFranceGardenerLabor} = await import('../source/game/france-gardener-labor.js');
-const {createCopperLedger} = await import('../source/game/copper-ledger.js');
+const {createCurrencyLedger} = await import('../source/game/currency-ledger.js');
 const {FRANCE_GARDENER: P} = await import('../source/game/france-gardener-place.js');
 const copy = value => JSON.parse(JSON.stringify(value));
 function fixture(t, saved = {}) {
@@ -27,7 +27,7 @@ function fixture(t, saved = {}) {
   const player = person(P.registration), actor = person(P.approach); actor.station = {id: P.id, npcAction: 'garden'};
   const notices = [], requests = []; let clock = 0, labor;
   const save = (key, rejected) => next => { if (rejected()) return false; store[key] = copy(next); };
-  const ledger = createCopperLedger({saved: store.ledger, saveState: save('ledger', () => flags.rejectLedger)});
+  const ledger = createCurrencyLedger({saved: store.ledger, saveState: save('ledger', () => flags.rejectLedger)});
   const gardener = createFranceGardener({npcs: [actor], lot: {group, walkableSurfaces: []},
     doors: {routeStep(route, p) { if (flags.blocked) return {waiting: true}; while (route[0] && p.distanceTo(route[0]) < .035) route.shift(); return {waypoint: route[0]}; }},
     planPath: (_a, b) => [new T.Vector3(b.x, b.y, b.z)],
@@ -37,7 +37,7 @@ function fixture(t, saved = {}) {
     getJob: () => labor?.state().job, meetHost: () => labor.meetHost(),
     saveState: save('employment', () => flags.rejectEmployment), notify: message => notices.push(message)});
   labor = createFranceGardenerLabor({gardener, employment, getPlayer: () => player, getMounted: () => flags.mounted,
-    copperLedger: ledger, saved: store.labor, saveState: next => {
+    copperLedger: ledger, getClock: () => ({day: 7}), saved: store.labor, saveState: next => {
       if (flags.rejectLabor || flags.rejectCleanup && next.job === null) return false;
       store.labor = copy(next);
     }, canSee: () => flags.visible, onIntent: choice => requests.push(choice), notify: message => notices.push(message), document: null});
@@ -105,12 +105,12 @@ await test('unpaid work blocks resignation and pays exactly once per job', t => 
   f.act('return'); const ready = copy(f.store.labor); assert.equal(ready.job.stage, 'ready');
   assert.equal(f.gardener.loanState().owner, null); assert.equal(f.gardener.loanState().toolHolder, 'rack');
   assert.equal(f.employment.resign(), false); assert.deepEqual(f.store.labor, ready); assert.equal(f.labor.claim(), false, 'Must return to registry');
-  const claim = f.visit('claim'); assert.equal(f.ledger.state().cash, 6); assert.equal(f.ledger.history().length, 1);
-  assert.equal(f.labor.resolveIntent(claim), null); assert.equal(f.labor.claim(), false); assert.equal(f.ledger.state().cash, 6);
+  const claim = f.visit('claim'); assert.equal(f.ledger.state().bank, 6); assert.equal(f.ledger.history().length, 1);
+  assert.equal(f.labor.resolveIntent(claim), null); assert.equal(f.labor.claim(), false); assert.equal(f.ledger.state().bank, 6);
   const firstId = f.ledger.history()[0].requestId;
-  f.finish(); f.visit('claim'); assert.equal(f.ledger.state().cash, 12); assert.notEqual(f.ledger.history()[1].requestId, firstId);
+  f.finish(); f.visit('claim'); assert.equal(f.ledger.state().bank, 12); assert.notEqual(f.ledger.history()[1].requestId, firstId);
   f.flags.rejectEmployment = true; f.visit('resign'); assert(f.employment.isHired());
-  f.flags.rejectEmployment = false; f.visit('resign'); assert(!f.employment.isHired()); assert.equal(f.ledger.state().cash, 12);
+  f.flags.rejectEmployment = false; f.visit('resign'); assert(!f.employment.isHired()); assert.equal(f.ledger.state().bank, 12);
 });
 
 await test('failed writes preserve progress and the can until successful return; unpaid reload remains collectible', t => {
@@ -122,13 +122,13 @@ await test('failed writes preserve progress and the can until successful return;
   assert(f.labor.held()); assert.equal(f.labor.state().job.stage, 'working'); assert.equal(f.gardener.loanState().toolHolder, 'player');
   f.flags.rejectLabor = false; f.act('return'); assert(!f.labor.held()); assert.equal(f.labor.state().job.stage, 'ready');
   f.flags.rejectLedger = true; f.visit('claim'); assert.equal(f.ledger.state().cash, 0); assert.equal(f.labor.state().job.stage, 'ready');
-  const loaded = fixture(t, f.store); assert.equal(loaded.labor.state().job.stage, 'ready'); loaded.visit('claim'); assert.equal(loaded.ledger.state().cash, 6);
+  const loaded = fixture(t, f.store); assert.equal(loaded.labor.state().job.stage, 'ready'); loaded.visit('claim'); assert.equal(loaded.ledger.state().bank, 6);
 });
 
 await test('ledger success followed by cleanup failure replays safely after reload', t => {
   const f = fixture(t); f.finish(); f.flags.rejectCleanup = true; f.visit('claim');
-  assert.equal(f.ledger.state().cash, 6); assert.equal(f.store.labor.job.stage, 'ready'); assert.equal(f.ledger.history().length, 1);
-  const loaded = fixture(t, f.store); loaded.visit('claim'); assert.equal(loaded.ledger.state().cash, 6);
+  assert.equal(f.ledger.state().bank, 6); assert.equal(f.store.labor.job.stage, 'ready'); assert.equal(f.ledger.history().length, 1);
+  const loaded = fixture(t, f.store); loaded.visit('claim'); assert.equal(loaded.ledger.state().bank, 6);
   assert.equal(loaded.ledger.history().length, 1); assert.equal(loaded.labor.active(), false); assert.equal(loaded.labor.claim(), false);
 });
 
@@ -136,7 +136,7 @@ await test('incomplete voluntary return keeps completed beds and permits taking 
   const f = fixture(t); f.hire(); f.accept(); f.act('take'); f.act('water');
   f.act('return'); assert.equal(f.labor.held(), false, 'Returning early must run at rack, not next bed');
   assert.equal(f.labor.state().job.completedBeds, 1); assert.equal(f.labor.state().job.stage, 'working'); assert.equal(f.ledger.state().cash, 0);
-  f.act('take'); assert(f.labor.held()); f.act('water'); f.act('return'); f.visit('claim'); assert.equal(f.ledger.state().cash, 6);
+  f.act('take'); assert(f.labor.held()); f.act('water'); f.act('return'); f.visit('claim'); assert.equal(f.ledger.state().bank, 6);
 });
 
 await test('reload keeps beds and exclusive can ownership; cancellation requires physical return', t => {
@@ -164,7 +164,7 @@ await test('actual main save callbacks isolate preview and preserve China/appear
   const original = {appearance: {seed: 42, npcShapeVersion: 3},
     chinaEmployment: {version: 1, roleId: 'cn-tavern-helper', revision: 2},
     chinaLabor: {version: 1, serial: 4, job: {id: 'cn-tavern-labor-4', receiptId: 'cn-tavern-labor-4', stage: 'ready', completedTables: 2}},
-    copperLedger: createCopperLedger().state()};
+    copperLedger: createCurrencyLedger().state()};
   const key = 'worlds-days-v1', formal = new Map([[key, JSON.stringify(original)]]), session = new Map();
   const normal = {getItem: k => formal.get(k) ?? null, setItem: (k, value) => formal.set(k, value)};
   const isolated = {getItem: k => session.get(k) ?? null, setItem: (k, value) => session.set(k, value)};
