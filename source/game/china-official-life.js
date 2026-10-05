@@ -88,6 +88,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   ready(n){return stages.get(n)?.courtReady===true;},
   resume(n){stages.delete(n);n.route=[];choose(n);},
   playerRequest(id){for(const n of officials){const s=stages.get(n);if(s?.choice?.facilityId===id)s.evicted=true;}},
+  meetingAvailable:n=>{const s=stages.get(n);return !!s&&s.arrived&&!s.called&&!s.courtReady&&!s.mount&&!s.borrowed&&!s.choice?.meal&&!s.choice?.inspection&&s.choice?.id!=='archive-duty';},
   label:n=>formatCourtEdictText(stages.get(n)?.label)||'承务官署 · 日常起居',
   tick(dt,playerState){state=playerState;time+=dt;brain.tick(dt);if(time>=nextPayrollAt){nextPayrollAt=time+5;for(const n of officials)settleDuty(n);for(const duty of unpaidDuties){const n=officials.find(n=>n.station.id===duty.actorId);if(n)settleDuty(n,duty);}for(let i=unpaidDuties.length-1;i>=0;i--)if(unpaidDuties[i].stage==='paid')unpaidDuties.splice(i,1);}},
   update(n,dt,t){
@@ -95,7 +96,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
    if(getTavern()?.officialMeal(n.station.id))s.borrowed=true;
    if(s.borrowed){const tavern=getTavern(),lease=tavern?.officialMeal(n.station.id);if(lease){if(s.called&&state.conversationActorId!==n.station.id)tavern.cancelOfficialMeal(n.station.id);if(tavern.officialMeal(n.station.id))return;}if(finish(n,s,!s.called)){if(s.called)stages.set(n,{courtReady:true,label:'已归还酒楼餐位 · 应召赴朝'});else choose(n);}return;}
    n.walking=false;if(s.courtReady)return;
-   const paused=state.conversationActorId===n.station.id;tell(n,s.label+(paused?' · 停步与你交谈':''));
+   const paused=state.conversationActorId===n.station.id;tell(n,s.label+(paused?state.meetingActorId===n.station.id?' · 等候当面审核':' · 停步与你交谈':''));
    if(s.evicted&&!paused){if(finish(n,s,false)){if(s.called)stages.set(n,{courtReady:true,label:'让出卧榻后应召赴朝'});else choose(n);}return;}
    // Everyone receives the same advance summons. Only real conversation or a
    // blocked safe furniture exit can delay departure from the current place.
