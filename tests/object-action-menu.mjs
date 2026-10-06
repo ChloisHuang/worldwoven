@@ -3,6 +3,8 @@
 // Real Three.js projection is exercised without constructing a renderer/GPU.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import fs from 'node:fs';
+import vm from 'node:vm';
 import * as THREE from '../source/vendor/three/build/three.module.js';
 import {createObjectActionMenu} from '../source/game/object-action-menu.js';
 import {interactionIdentity} from '../source/game/player-interaction-intents.js';
@@ -97,10 +99,22 @@ test('an actor moving after projection is validated against that same actor befo
 test('stale intent rows, disabled rows, cancel/reopen, and removed objects cannot dispatch old callbacks',()=>{
  const h=harness(),target=anchor('counter'),old=action('meal',target,{provider:'service',intentKey:'old'}),chat=action('chat',target);h.update([old,chat]);h.menu.activateTarget(target.id);const stale=h.list.children[0];
  const live={...old,intentKey:'new'};h.update([live,chat]);stale.onclick();assert.equal(h.selected.length,0);const disabled=h.list.children.find(row=>row.getAttribute('data-context-action')===interactionIdentity(live));disabled.disabled=true;disabled.onclick();assert.equal(h.selected.length,0);disabled.disabled=false;
- let prevented=false;h.doc.dispatch('keydown',{code:'Escape',preventDefault(){prevented=true;}});assert(prevented);assert(!h.menu.isOpen());disabled.onclick();assert.equal(h.selected.length,0);
+ let prevented=false;h.doc.dispatch('keydown',{code:'Escape',preventDefault(){prevented=true;},stopPropagation(){}});assert(prevented);assert(!h.menu.isOpen());disabled.onclick();assert.equal(h.selected.length,0);
  h.menu.project();h.menu.activateTarget(target.id);assert(!h.popover.hidden);assert.equal(h.selected.length,0);disabled.onclick();assert.equal(h.selected.length,0,'a cancelled row stays stale after reopen');
  const reopened=h.list.children.find(row=>row.getAttribute('data-context-action')===interactionIdentity(live));reopened.onclick();reopened.onclick();assert.deepEqual(h.selected,[live]);
  h.update([live,chat]);h.menu.activateTarget(target.id);const removedRow=h.list.children[0],removedButton=h.menu.targets()[0].button;h.update([]);assert(!h.menu.isOpen());assert(!removedButton.isConnected);removedRow.onclick();removedButton.onclick();assert.deepEqual(h.selected,[live]);h.menu.dispose();
+});
+
+test('Escape dismisses only the object chooser before the production window handler',()=>{
+ const h=harness(),target=anchor('counter');h.update([action('one',target),action('two',target)]);h.menu.activateTarget(target.id);
+ const source=fs.readFileSync(new URL('../source/game/main.js',import.meta.url),'utf8'),start=source.indexOf("addEventListener('keydown',e=>{if(interactionMenuOpen())return;");
+ assert(start>=0,'extract the actual game keyboard handler');const end=source.indexOf("addEventListener('keyup'",start);assert(end>start);
+ let windowKeydown,left=0,cancelled=0;const context={addEventListener:(type,handler)=>{if(type==='keydown')windowKeydown=handler;},interactionMenuOpen:()=>h.menu.isOpen(),mode:'lot',keys:new Set(),leaveLot:()=>left++,cancelAction:()=>cancelled++,path:[],targetStation:null};
+ for(const name of ['pendingStand','performing','pendingInteraction','seated','bathTransition','npcSocial','japanPlayerService','egyptTableServiceEmployment','egyptKitchenEmployment','japanTableServiceEmployment','japanKitchenEmployment','japanBathMixingEmployment','japanBathDeliveryEmployment','japanWomenBathDeliveryEmployment','japanReceptionEmployment','chinaSalon','chinaCareer'])context[name]=null;
+ vm.runInNewContext(source.slice(start,end),context);
+ const escape=()=>{const event={code:'Escape',defaultPrevented:false,cancelBubble:false,preventDefault(){this.defaultPrevented=true;},stopPropagation(){this.cancelBubble=true;}};h.doc.dispatch('keydown',event);if(!event.cancelBubble)windowKeydown(event);return event;};
+ const first=escape();assert(!h.menu.isOpen());assert(first.defaultPrevented);assert.equal(left,0,'closing the chooser must not also leave the country');assert.equal(cancelled,0,'closing the chooser cannot cancel a game action');
+ escape();assert.equal(left,1,'a later Escape retains the ordinary leave-country control');h.menu.dispose();assert.equal(h.doc.listeners.get('keydown').size,0,'disposed menus release their document listener');
 });
 
 test('seat entry and standing stay hidden while cancel, bed exit, and continuation remain controls',()=>{

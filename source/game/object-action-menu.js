@@ -48,6 +48,9 @@ export function createObjectActionMenu({button,root,document:doc=globalThis.docu
    }
   }
  }
- closeButton.onclick=close;doc.addEventListener('keydown',e=>{if(e.code==='Escape'&&active){e.preventDefault();close();}});
- return {update,project,close(){close();controls.close();},isOpen:()=>!!active||controls.isOpen(),actions:()=>all.slice(),activate(){if(controls.actions().length)return controls.activate();return activate([...records.values()].find(r=>r.visible));},activateTarget(id){return activate(records.get(id));},targets:()=>[...records.values()],dispose(){disposed=true;close();controls.dispose();layer.remove();}};
+ // Dismissal owns this Escape. Otherwise it bubbles to the game after close()
+ // and the same key can leave the country or cancel an ongoing action.
+ const onKeyDown=e=>{if(e.code==='Escape'&&active){e.preventDefault();e.stopPropagation();close();}};
+ closeButton.onclick=close;doc.addEventListener('keydown',onKeyDown);
+ return {update,project,close(){close();controls.close();},isOpen:()=>!!active||controls.isOpen(),actions:()=>all.slice(),activate(){if(controls.actions().length)return controls.activate();return activate([...records.values()].find(r=>r.visible));},activateTarget(id){return activate(records.get(id));},targets:()=>[...records.values()],dispose(){disposed=true;close();doc.removeEventListener('keydown',onKeyDown);controls.dispose();layer.remove();}};
 }
