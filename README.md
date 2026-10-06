@@ -11,8 +11,8 @@ R16.131 ordinary visits use the current supported character model with the origi
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.142-public, 2026-10-06
-Verified published Sites source commit: c5b4af68bc430d3bd3ed12ba4a131a9647c9084e
+Published release: R16.143-public, 2026-10-06
+Verified published Sites source commit: 52dc9e5b5babed431ee44d7d983e86453e71e249
 
 Opt-in same-save performance panel: https://alien.doudouai.net/?perf=1#china
 It reads runtime timing/render counts and the initial save length; it does not reset storage or send telemetry. CPU submission timing is not GPU timing. R16.128 removes repeated full-history copies from closed salon panels and China job/HUD reads. R16.129 extends current-career reads to the existing Japan/Egypt employment adapters and French tea/pastry/gardening controllers. Those controllers only run in their respective countries. The user reported R16.130 runs without lag; broader device performance remains unverified.
@@ -40,6 +40,8 @@ R16.140 applies patient-rated pay to new marked player clinic shifts: physician/
 R16.141 pays current clinic NPC holders from actually observed on-duty time into their own banks, using unique government wage receipts and existing patient feedback. Staff replacement preserves personal identity, funds and numbered items; review/handoff markers follow the current people. No offline wages, patient charges or treasury-arrears gate is added. NPC meal/toilet activation remains separate, so needs coverage stays 19/31.
 
 R16.142 connects current clinic NPCs to meals paid from their own earned cash-plus-bank total, the original public toilet and physical duty return. Real receipts alone relieve needs; reservations, refunds and reloads preserve the same person and order. Fresh staff earn before their first meal without grants or bank trips. Default China needs coverage is now 21/31, with 10 still open.
+
+R16.143 connects the royal cook’s existing 32-copper/12-hour employer contract to observed personal bank wages, a self-paid original tavern meal, public toilet and physical return. Needs begin only after real first income; no grants or bank trip are added. Recruitment and handoff UI follows the current live reviewer. Default China coverage is 22/31, with nine still open.
 
 ## Working rules
 
