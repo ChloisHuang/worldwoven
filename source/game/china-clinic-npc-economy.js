@@ -43,11 +43,12 @@ function append(state,receipt){
 export function createClinicNPCEconomy({saved,saveState=()=>false}={}){
  let current=empty(),loadError=null,busy=false;
  try{if(saved!==undefined&&saved!==null){if(saved.version!==1||!Array.isArray(saved.receipts))throw Error('invalid-clinic-economy');const seen=new Set();for(const row of saved.receipts){const verified=clinicNPCWageReceipt(row.evidence);if(!same(row,verified)||seen.has(row.id))throw Error('invalid-clinic-receipt');seen.add(row.id);current=append(current,verified);}if(!same(saved,current))throw Error('invalid-clinic-balance');}}catch(e){loadError=e.message;current=empty();}
- return {get loadError(){return loadError;},snapshot:()=>copy(current),account:id=>loadError?null:copy(current.accounts[id]||{bank:0,cash:0}),
+ const issued=new Map(current.receipts.map(r=>[r.id,r]));
+ return {hasReceipt:id=>issued.has(id),get loadError(){return loadError;},snapshot:()=>copy(current),account:id=>loadError?null:copy(current.accounts[id]||{bank:0,cash:0}),
   settle(proof){
    if(loadError||busy)return {ok:false,code:loadError||'clinic-ledger-busy'};
-   let receipt,next;try{receipt=clinicNPCWageReceipt(proof);const old=current.receipts.find(r=>r.id===receipt.id);if(old)return same(old,receipt)?{ok:true,replayed:true,receipt:copy(old)}:{ok:false,code:'clinic-wage-conflict'};next=append(current,receipt);}catch(e){return {ok:false,code:e.message};}
-   busy=true;try{const result=saveState(copy(next));if(result===false||result?.ok===false||result?.then)return {ok:false,code:'save-failed'};current=next;return {ok:true,receipt:copy(receipt)};}catch{return {ok:false,code:'save-failed'};}finally{busy=false;}
+   let receipt,next;try{receipt=clinicNPCWageReceipt(proof);const old=issued.get(receipt.id);if(old)return same(old,receipt)?{ok:true,replayed:true,receipt:copy(old)}:{ok:false,code:'clinic-wage-conflict'};next=append(current,receipt);}catch(e){return {ok:false,code:e.message};}
+   busy=true;try{const result=saveState(copy(next));if(result===false||result?.ok===false||result?.then)return {ok:false,code:'save-failed'};current=next;issued.set(receipt.id,receipt);return {ok:true,receipt:copy(receipt)};}catch{return {ok:false,code:'save-failed'};}finally{busy=false;}
   }
  };
 }

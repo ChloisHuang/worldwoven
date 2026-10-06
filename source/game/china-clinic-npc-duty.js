@@ -24,6 +24,7 @@ export function clinicNPCCoverage({doctor,assistant,getHolder,isPlayerHired,conv
 export function createClinicNPCDutyObserver({saved,saveState=()=>false}={}){
  let rows=[],last=null,loadError=null,dirty=false;
  try{if(saved!=null){if(saved.version!==1||!Array.isArray(saved.rows))throw Error('invalid-clinic-duty-observer');rows=copy(saved.rows);const seen=new Set();for(const r of rows){const role=roles.find(v=>v.id===r.roleId),id=key(r.actorId,r.roleId,r.day);if(!role||r.kind!=='clinic-npc-duty'||r.slotId!==role.slotId||!/^cn-[a-z0-9-]{1,60}$/.test(r.actorId)||!Number.isSafeInteger(r.day)||r.day<0||typeof r.closed!=='boolean'||seen.has(id)||!Array.isArray(r.segments)||!r.segments.length||!Array.isArray(r.reviews))throw Error('invalid-clinic-duty-observer');seen.add(id);let end=6;for(const s of r.segments){if(!Number.isFinite(s.startHour)||!Number.isFinite(s.endHour)||s.startHour<end||s.endHour<=s.startHour||s.endHour>18||!Number.isSafeInteger(s.holderRevision)||s.holderRevision<0)throw Error('invalid-clinic-duty-observer');end=s.endHour;}clinicNPCWageReceipt({...r,closed:true});}}}catch(e){rows=[];loadError=e.message;}
+ let rowIndex=new Map(),openRows=new Set();const reindex=()=>{rowIndex=new Map(rows.map(r=>[key(r.actorId,r.roleId,r.day),r]));openRows=new Set(rows.filter(r=>!r.closed));};reindex();
  const snapshot=()=>({version:1,rows:copy(rows)});
  function persist(next){try{const result=saveState({version:1,rows:copy(next)});return result!==false&&result?.ok!==false&&!result?.then;}catch{return false;}}
  return {get loadError(){return loadError;},snapshot,
@@ -37,28 +38,29 @@ export function createClinicNPCDutyObserver({saved,saveState=()=>false}={}){
     const start=minute(previous.seconds),finish=minute(now);
     for(let day=Math.floor(start/1440);day<=Math.floor(finish/1440);day++){
      const a=Math.max(start,day*1440+360),b=Math.min(finish,day*1440+1080);if(b<=a)continue;
-     let row=rows.find(r=>key(r.actorId,r.roleId,r.day)===key(c.actorId,c.roleId,day));if(row?.closed)continue;
-     row??=(()=>{const r={kind:'clinic-npc-duty',closed:false,actorId:c.actorId,roleId:c.roleId,slotId:c.slotId,day,segments:[],reviews:[]};rows.push(r);return r;})();
+     let row=rowIndex.get(key(c.actorId,c.roleId,day));if(row?.closed)continue;
+     row??=(()=>{const r={kind:'clinic-npc-duty',closed:false,actorId:c.actorId,roleId:c.roleId,slotId:c.slotId,day,segments:[],reviews:[]};rows.push(r);rowIndex.set(key(r.actorId,r.roleId,r.day),r);openRows.add(r);return r;})();
      const s={startHour:(a-day*1440)/60,endHour:(b-day*1440)/60,holderRevision:c.holderRevision},tail=row.segments.at(-1);
      if(tail&&tail.holderRevision===s.holderRevision&&Math.abs(tail.endHour-s.startHour)<1e-9)tail.endHour=s.endHour;else row.segments.push(s);dirty=true;
     }
    }return true;
   },
   recordPatient(receipt){
-   if(loadError)return false;const row=rows.find(r=>key(r.actorId,r.roleId,r.day)===key(receipt?.actorId,receipt?.roleId,receipt?.day));if(!row)return false;
+   if(loadError)return false;const row=rowIndex.get(key(receipt?.actorId,receipt?.roleId,receipt?.day));if(!row)return false;
    const old=row.reviews.find(r=>r.orderId===receipt.orderId);let verified;
    try{verified=clinicNPCWageReceipt({...row,closed:true,reviews:[receipt]}).evidence.reviews[0];}catch{return false;}
    if(old)return JSON.stringify(old)===JSON.stringify(verified);if(row.closed)return false;
    const next=copy(rows),target=next.find(r=>key(r.actorId,r.roleId,r.day)===key(row.actorId,row.roleId,row.day));target.reviews.push(verified);
-   if(!persist(next))return false;rows=next;dirty=false;return true;
+   if(!persist(next))return false;rows=next;reindex();dirty=false;return true;
   },
+  dutyClosed:r=>rowIndex.get(key(r?.actorId,r?.roleId,r?.day))?.closed===true,hasDuty:r=>rowIndex.has(key(r?.actorId,r?.roleId,r?.day)),openDuties:()=>[...openRows].map(r=>({actorId:r.actorId,roleId:r.roleId,day:r.day})),closedDuties:()=>rows.filter(r=>r.closed).map(r=>copy(r)),
   suspend(){last=null;},flush(){if(!dirty)return true;if(!persist(rows))return false;dirty=false;return true;},
   // A caller must first reconcile every original pending patient order. This
   // deliberately has no automatic day-rollover payout while evidence is open.
-  seal({actorId,roleId,day,currentDay,pendingOrders=true}){
-   if(loadError||pendingOrders||!Number.isSafeInteger(currentDay)||day>=currentDay)return null;
-   const row=rows.find(r=>key(r.actorId,r.roleId,r.day)===key(actorId,roleId,day));if(!row)return null;if(row.closed)return copy(row);
-   const next=copy(rows),target=next.find(r=>key(r.actorId,r.roleId,r.day)===key(actorId,roleId,day));target.closed=true;if(!persist(next))return null;rows=next;dirty=false;return copy(target);
+  seal({actorId,roleId,day,currentDay,currentHour=0,pendingOrders=true}){
+   if(loadError||pendingOrders||!Number.isSafeInteger(currentDay)||(day>currentDay||day===currentDay&&currentHour<18))return null;
+   const row=rowIndex.get(key(actorId,roleId,day));if(!row)return null;if(row.closed)return copy(row);
+   const next=copy(rows),target=next.find(r=>key(r.actorId,r.roleId,r.day)===key(actorId,roleId,day));target.closed=true;if(!persist(next))return null;rows=next;reindex();dirty=false;return copy(target);
   }
  };
 }
