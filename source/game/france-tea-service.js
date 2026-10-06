@@ -1,4 +1,4 @@
-import {followActorRoute} from './actor-navigation.js';
+import {followActorRoute,findActorStandPoint} from './actor-navigation.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
 import {createFranceTeaConversations} from './france-tea-conversations.js';
 import {franceTeaStaffChoices} from './france-tea-staff-life.js';
@@ -120,7 +120,7 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
   if(guest.serviceMount)return true;if(!furniture.facilities.reservation(seat.id,P.guest)||!travel(guest,seat.position,dt)||!furniture.canSit(navigation,safety(guest),seat))return false;
   if(!furniture.facilities.occupy(seat.id,P.guest))return false;guest.root.position.set(...seat.anchor);guest.root.rotation.y=seat.yaw;guest.serviceMount=seat;record('guest-seated',{seatId:seat.id});return true;
  }
- function unmountGuest(){if(!guest.serviceMount)return true;const landing=furniture.standPoint(navigation,safety(guest),seat);if(!landing)return false;guest.root.position.copy(landing);guest.serviceMount=null;furniture.releaseActor(P.guest);return true;}
+ function unmountGuest(){if(!guest.serviceMount)return true;const landing=findActorStandPoint(guest,guest.serviceMount,({ignoreDynamicBodies})=>furniture.standPoint(navigation,ignoreDynamicBodies?[...(doors?.cameraColliders||[])]:safety(guest),guest.serviceMount,guest.collisionRadius??.25));if(!landing)return false;guest.root.position.copy(landing);guest.serviceMount=null;furniture.releaseActor(P.guest);return true;}
  function finish(){if(!sourceExperiences())return false;if(fullMeal(order)){if(order.cancelled&&!payment(order,'refund'))return false;const closed=orderNumber(order.id);if(!persist({paidOrder:null,mealClosed:Math.max(mealClosed,closed)}))return false;}const cancelled=order.cancelled,completed=order.customer==='player'&&order.finished&&!cancelled;record(cancelled?'cancel-cleared':'complete');props.clear();order=null;phase=0;intent=false;furniture.releaseActor(P.guest);for(const n of actors){if(n===staff[duty?.role]&&released(duty.role))continue;n.route=[];routes.delete(n);}if(choice){life.complete(P.guest,choice,{fulfilled:!cancelled});choice=null;}nextChoice=time+12;if(completed)onComplete();return true;}
  function cancel(reason='取消下午茶'){
   intent=false;if(!order||order.customer!=='player'||order.cancelled)return false;order.cancelled=true;if(fullMeal(order))order.revision=(order.revision||0)+1;record('cancel',{reason});if(fullMeal(order)){payment(order,'refund');persist();notify(order.payment==='settled'?'已停止用餐；开吃后餐费不退':order.payment==='refunded'?'已取消正餐，4法国券已退回':'已取消正餐，退款将在保存恢复后重试');}else notify('已取消，玛农会收回已备好的杯碟');

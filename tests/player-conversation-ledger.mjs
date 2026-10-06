@@ -285,6 +285,14 @@ test('history compacts to 128 while actor totals, IDs, cooldowns and pending evi
   assert.equal(saved.nextSerial, total + 1);
   assert.equal(saved.events[0].serial, saved.archive.throughSerial + 1);
   assert.equal(archivedActor.attempts, 1);
+  assert.equal(h.ledger.completedCount('listener'), 1);
+  assert.equal(h.ledger.completedCount('unrelated'), total - 1);
+  const oldArchive = copy(saved); for (const a of oldArchive.archive.actors) delete a.completedCount;
+  const conservative = createPlayerConversationLedger({...h.settings, saved: oldArchive});
+  assert.equal(conservative.completedCount('listener'), 1);
+  assert.equal(conservative.completedCount('unrelated'), 1 + oldArchive.events.filter(e => e.actorId === 'unrelated' && e.status === 'completed').length);
+  const badCount = copy(saved); badCount.archive.actors[0].completedCount = 2;
+  assert.equal(createPlayerConversationLedger({...h.settings, saved: badCount}).loadError, 'invalid-saved-state');
   assert.equal(archivedActor.relation, .07);
   assert.equal(archivedActor.opinion, .07);
   assert.equal(h.ledger.event(first.id), null);
@@ -318,6 +326,7 @@ test('history compacts to 128 while actor totals, IDs, cooldowns and pending evi
   assert.equal(retry.complete(next.id).replayed, true);
   assert.deepEqual(retry.snapshot().archive, accepted.archive);
   assert.equal(retry.lastCompleted('unrelated').id, next.id);
+  assert.equal(retry.completedCount('unrelated'), total);
   assert.equal(retry.relationFor('listener'), .07);
   const corrupt = copy(saved); corrupt.archive.actors[0].attempts++;
   assert.equal(createPlayerConversationLedger({saved: corrupt}).loadError, 'invalid-saved-state');

@@ -160,7 +160,7 @@ export function createFurnitureInteractions(lot,region,{curtains={},onCurtainCha
  // Visibility ignores only a compact proxy belonging to the clicked object.
  // A wall, ceiling, other furniture, or moving door is never removed.
  function ownCameraBox(item,c){const w=item.width??item.size[0],d=item.depth??item.size[2],h=item.top?item.top-item.center[1]:item.size[1];return c.minY>=item.center[1]-.30&&c.maxY<=item.center[1]+h+.30&& c.minX<=item.center[0]+.16&&c.maxX>=item.center[0]-.16&&c.minZ<=item.center[2]+.16&&c.maxZ>=item.center[2]-.16&&c.maxX-c.minX<=w+.45&&c.maxZ-c.minZ<=d+.45&&Math.abs((c.minX+c.maxX)/2-item.center[0])<.20&&Math.abs((c.minZ+c.maxZ)/2-item.center[2])<.20;}
- function transferClear(a,b,options,extra=[],item=seat){const own=seatBoxes.get(item.poolId||item.id)||[],colliders=lot.colliders.filter(c=>!own.includes(c)).concat(extra);return canTraverse(a,b,colliders,{...options,radius:.34});}
+ function transferClear(a,b,options,extra=[],item=seat,radius=.34){const own=seatBoxes.get(item.poolId||item.id)||[],colliders=lot.colliders.filter(c=>!own.includes(c)).concat(extra);return canTraverse(a,b,colliders,{...options,radius});}
  const seatColliders=seatBoxes.get(seat.id);
  return {items,root,cloth,seatColliders,facilities,
   resolveBath(item,actor,eligible=()=>true,purpose='bathe'){
@@ -186,7 +186,7 @@ export function createFurnitureInteractions(lot,region,{curtains={},onCurtainCha
   canSit(options,extra=[],item=seat){return (seatBoxes.get(item.poolId||item.id)||[]).length>0&&transferClear(point(item.position),point(item.anchor),options,extra,item);},
   // A shared-pool waiter may stand at the center entry. Wider aisle landings
   // keep the actual swept transfer clear of that person, with all walls retained.
-  standPoint(navigation=options,extra=[],item=seat){const anchor=point(item.anchor);for(const a of[item.position,...(item.exitPositions||[]),...(item.poolId?[-.3,.3,-1.35,1.35]:[-.3,.3]).map(offset=>[item.position[0]+Math.cos(item.yaw)*offset,item.position[1],item.position[2]-Math.sin(item.yaw)*offset])]){const p=point(a);if(!blocked(p.x,p.z,lot.colliders.concat(extra),.34,{...navigation,y:p.y})&&transferClear(anchor,p,navigation,extra,item))return p;}return null;},
+  standPoint(navigation=options,extra=[],item=seat,actorRadius=navigation.radius){const anchor=point(item.anchor),radius=Number.isFinite(actorRadius)&&actorRadius>0?actorRadius:.34;for(const a of[item.position,...(item.exitPositions||[]),...(item.poolId?[-.3,.3,-1.35,1.35]:[-.3,.3]).map(offset=>[item.position[0]+Math.cos(item.yaw)*offset,item.position[1],item.position[2]-Math.sin(item.yaw)*offset])]){const p=point(a);if(!blocked(p.x,p.z,lot.colliders.concat(extra),radius,{...navigation,y:p.y})&&transferClear(anchor,p,navigation,extra,item,radius))return p;}return null;},
   state:()=>({region,facilities:facilities.state(),rejectedSeats:rejected,hasCanopy:!!cloth,curtainsOpen:cloth?!!target:null,curtainProgress:cloth?amount:null,items:items.map(({id,kind,name,position,anchor,seatY,center,yaw,supportY,waterY,capacity,seats})=>({id,kind,name,position,anchor,seatY,center,yaw,supportY,waterY,capacity,seats:seats?.map(({id,poolId,anchor,position})=>({id,poolId,anchor,position}))})),seatColliderCount:seatColliders.length}),
   dispose(){if(disposed)return;disposed=true;facilities.dispose();root.traverse(o=>{o.geometry?.dispose();if(o.isInstancedMesh)o.dispose();});cloth?.material.dispose();root.removeFromParent();}
  };

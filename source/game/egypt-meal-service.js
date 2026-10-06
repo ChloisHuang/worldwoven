@@ -1,4 +1,4 @@
-import {followActorRoute} from './actor-navigation.js';
+import {followActorRoute,findActorStandPoint} from './actor-navigation.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
 import {EGYPT_MEAL as P,validEgyptMealReceipt} from './egypt-meal-definition.js';
 import {initialEgyptResidentSupply,validEgyptResidentSupply} from './egypt-resident-supply.js';
@@ -32,7 +32,7 @@ export function createEgyptMealService({npcs,lot,furniture,doors,navigation:scen
  function face(n,p){n.root.rotation.y=Math.atan2(p[0]-n.root.position.x,p[2]-n.root.position.z);}
  const safety=n=>[...(doors.cameraColliders||[]),...npcs.filter(a=>a!==n).map(a=>a.root.position),...(getPlayer()?[getPlayer().root.position]:[])].map(p=>p.minX===undefined?{minX:p.x-.25,maxX:p.x+.25,minZ:p.z-.25,maxZ:p.z+.25,minY:p.y,maxY:p.y+1.95}:p);
  function mountGuest(dt){if(guest.serviceMount)return true;if(!furniture.facilities.reserve(seat.id,GUEST)||!travel(guest,seat.position,dt)||!furniture.canSit(navigation,safety(guest),seat))return false;if(!furniture.facilities.occupy(seat.id,GUEST))return false;guest.root.position.set(...seat.anchor);guest.root.rotation.y=seat.yaw;guest.serviceMount=seat;return true;}
- function unmountGuest(){if(!guest?.serviceMount)return true;const landing=furniture.standPoint(navigation,safety(guest),seat);if(!landing)return false;guest.root.position.copy(landing);guest.serviceMount=null;furniture.releaseActor(GUEST);return true;}
+ function unmountGuest(){if(!guest?.serviceMount)return true;const landing=findActorStandPoint(guest,guest.serviceMount,({ignoreDynamicBodies})=>furniture.standPoint(navigation,ignoreDynamicBodies?[...(doors?.cameraColliders||[])]:safety(guest),guest.serviceMount,guest.collisionRadius??.25));if(!landing)return false;guest.root.position.copy(landing);guest.serviceMount=null;furniture.releaseActor(GUEST);return true;}
  function finish(){const residentOrder=resident(state.order),cancelled=state.order?.cancelled;if(residentOrder&&!unmountGuest())return false;if(!commit(s=>{s.order=null;s.phase=0;s.resident.nextChoice=s.time+15;s.resident.choice=null;s.resident.elapsed=0;}))return false;if(residentOrder){const c=life.state(GUEST).current;if(c)life.complete(GUEST,c,{fulfilled:!cancelled});}props.clear();furniture.releaseActor(GUEST);routes.clear();for(const n of[cook,host])n.route=[];record('cleaned');return true;}
  const cleanStage=o=>!o.mealId?'done':o.holder==='table'?'clearing':o.holder==='host'?'returning':'collecting';
  function reconcile(){const o=state.order;if(!o||resident(o))return;const h=payment(o);if(h&&!matching(h))return;

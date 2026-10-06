@@ -1,3 +1,4 @@
+import {findActorStandPoint} from '../source/game/actor-navigation.js';
 // Reproduces two controllers moving/posing one tavern guest during clinic care.
 // The real tavern workflow and save format run with inert props and direct routes;
 // this bounded test deliberately excludes production collision and rendering QA.
@@ -17,7 +18,7 @@ const position=(x=0,y=.215,z=0)=>({x,y,z,
   distanceTo(p){return Math.hypot(this.x-p.x,this.y-p.y,this.z-p.z);}
 });
 const context=vm.createContext({console}),modules=new Map();
-const navigation=new vm.SyntheticModule(['followActorRoute'],function(){
+const navigation=new vm.SyntheticModule(['followActorRoute','findActorStandPoint'],function(){this.setExport('findActorStandPoint',findActorStandPoint);
   this.setExport('followActorRoute',(n,dt)=>{
     const p=n.route[0];if(!p)return {};
     const d=n.root.position.distanceTo(p),step=Math.min(d,dt*3);

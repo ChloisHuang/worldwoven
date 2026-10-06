@@ -1,4 +1,4 @@
-import {followActorRoute} from './actor-navigation.js';
+import {followActorRoute,findActorStandPoint} from './actor-navigation.js';
 import * as THREE from 'three';
 import {CHINA_CLINIC as C} from './china-clinic.js';
 import {createClinicPhysicianLife} from './china-clinic-physician-life.js';
@@ -57,7 +57,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
   if(action==='tidy'&&n.root.userData.tools?.cloth)n.root.userData.tools.cloth.visible=false;
  }
  const safety=n=>npcs.filter(other=>other!==n).map(other=>{const p=other.root.position;return {minX:p.x-.25,maxX:p.x+.25,minZ:p.z-.25,maxZ:p.z+.25,minY:p.y,maxY:p.y+1.95};}).concat(player?[{minX:player.root.position.x-.34,maxX:player.root.position.x+.34,minZ:player.root.position.z-.34,maxZ:player.root.position.z+.34,minY:player.root.position.y,maxY:player.root.position.y+1.95}]:[]);
- function unmount(n){if(!n?.serviceMount)return true;const landing=furniture?.standPoint(navigation,safety(n),n.serviceMount);if(!landing)return false;n.root.position.copy(landing);n.serviceMount=null;furniture.releaseActor(n.station.id);travelState.delete(n);n.route=[];return true;}
+ function unmount(n){if(!n?.serviceMount)return true;const landing=findActorStandPoint(n,n.serviceMount,({ignoreDynamicBodies})=>furniture?.standPoint(navigation,[...(doors?.cameraColliders||[]),...(ignoreDynamicBodies?[]:safety(n))],n.serviceMount,n.collisionRadius??.25));if(!landing)return false;n.root.position.copy(landing);n.serviceMount=null;furniture.releaseActor(n.station.id);travelState.delete(n);n.route=[];return true;}
  function mountPatient(dt){const n=patient(),seat=furniture?.items.find(s=>s.id===C.seatId);if(!n||!seat||getMounted()?.id===C.seatId)return false;
   if(n.serviceMount?.id===seat.id)return !!furniture.facilities.reserve(seat.id,n.station.id)&&furniture.facilities.occupy(seat.id,n.station.id);
   if(!furniture.facilities.reserve(seat.id,n.station.id,{purpose:'clinic-consult'})||!travel(n,seat.position,dt))return false;

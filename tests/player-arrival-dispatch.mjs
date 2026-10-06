@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import * as THREE from '../source/vendor/three/build/three.module.js';
-import {followActorRoute,moveActorWithCollision,beginActorNavigationStep} from '../source/game/actor-navigation.js';
+import {followActorRoute,moveActorWithCollision,beginActorNavigationStep,findActorStandPoint,cancelActorStandIntent} from '../source/game/actor-navigation.js';
 import {createAutomaticRouting} from '../source/game/automatic-routing.js';
+import {createOnsenTransition} from '../source/game/onsen-transitions.js';
 import {canTraverse} from '../source/game/navigation.js';
 import {nearbyInteraction,currentInteractionIntent} from '../source/game/player-interaction-intents.js';
 
@@ -17,7 +18,7 @@ const functions=[
  ['requestStationIntent','\nfunction goToStation'],['cancelAction','\nfunction doInteraction'],
  ['doInteraction','\nfunction executeNearbyAction'],['executeNearbyAction','\nfunction startInteraction'],
  ['startInteraction','\nfunction furnitureSafetyBoxes'],['furnitureSafetyBoxes','\nfunction standFromSeat'],
- ['standFromSeat','\nfunction updateBathTransition'],['walkToFurniture','\nfunction requestFurniture'],
+ ['standFromSeat','\nfunction updateBathTransition'],['updateBathTransition','\n// Keep the menu/pick'],['walkToFurniture','\nfunction requestFurniture'],
  ['startFurniture','\n\n\n\nconst shapeLabels'],['intentWaypoint','\nfunction dispatchPlayerArrival'],
  ['dispatchPlayerArrival','\nfunction updatePlayer'],['updatePlayer','\nfunction updateNPCs'],
  ['pauseForCareerPanel','\nconst careerHandbook'],
@@ -32,10 +33,10 @@ function fixture({distance=.03,route=true,provider=true}={}){
  const router=createAutomaticRouting({doors:[],staticColliders:[],planningColliders:[],getSweepBoxes:()=>[],requestOpen:()=>{},getVersion:()=>0});
  router.constrainMove=(from,dx,dz)=>({dx,dz});
  const c={THREE,console,player:{root:{position,rotation:{y:0}},locomotion:{walkSpeed:1.5,hurrySpeed:2},walking:false,animate(){}},
-  path:route?[new THREE.Vector3(...target.position)]:[],targetStation:target,pendingInteraction:target,performing:null,seated:null,bathTransition:null,
+  path:route?[new THREE.Vector3(...target.position)]:[],targetStation:target,pendingInteraction:target,performing:null,seated:null,pendingStand:null,bathTransition:null,
   keys:new Set(),joy:{x:0,y:0},joyPointer:null,joyLastPoint:null,joyActionAnchor:null,yaw:0,mode:'lot',roofShown:false,multiLevel:true,
   actionTime:0,studyTicket:null,walkTime:0,elapsed:0,arrivalViewUntil:0,nearest:null,npcs:[],lot:{stations:[],colliders:[]},navOptions:options,
-  PLAYER_TRAVEL_SCALE:1,automaticDoors:router,followActorRoute,nearbyInteraction,currentInteractionIntent,canTraverse,
+  PLAYER_TRAVEL_SCALE:1,automaticDoors:router,followActorRoute,findActorStandPoint,cancelActorStandIntent,createOnsenTransition,nearbyInteraction,currentInteractionIntent,canTraverse,
   menuOpen:false,interactionMenuOpen:()=>c.menuOpen,showDoorwayHint(){},activeDailyToilet:()=>null,groundHeight:()=>0,
   movementInputMagnitude:n=>Math.min(1,n),characterPoseContext:()=>({}),levelForPosition:()=>null,
   canUseConsortQuarterFurniture,stationIntent:s=>s,nearbyInteractions:()=>[],uniqueInteractionActions:s=>s,contextualTarget:s=>s,nearbyInteractionClear:()=>true,
@@ -111,4 +112,48 @@ for(const invalid of ['stale','missing','away','other-floor','occluded']){
  f.frame();f.frame();assert.equal(f.c.pendingInteraction,pool);assert.equal(f.c.targetStation,pool);assert.equal(f.counts.released,0);assert.equal(f.messages.length,0,'retained wait does not repeat the arrival toast');
  f.key('KeyE');f.frame();assert.equal(f.c.pendingInteraction,null);assert.equal(f.c.targetStation,null);checks.push('full-pool empty-route wait remains cancellable without losing reservation early');
 }
+
+// The same real input/arrival fixture also exercises the one-click get-up wait.
+// A callback distinguishes body-only blockage from the live door boxes it keeps.
+function seatedFixture({bath=false}={}){
+ const f=fixture({route:false}),c=f.c,seat={id:'blocked-seat',kind:bath?'bath':'seat',name:'原座位',position:[1,0,0],anchor:[0,0,0],yaw:0,...(bath?{bathEntry:{east:.4,top:.6,handY:.7}}:{})};
+ c.pendingInteraction=c.targetStation=null;c.seated=seat;c.player.root.position.set(...seat.anchor);
+ c.npcs=[{root:{position:new THREE.Vector3(1,0,0)}}];c.automaticDoors.cameraColliders=[{door:true}];
+ let staticBlocked=false,bodyBlocked=true,readFails=false;
+ c.furniture.standPoint=(nav,extra,item,radius)=>{assert.equal(nav,c.navOptions);assert.equal(item,c.seated);assert.equal(radius,c.player.collisionRadius??.34);assert(extra.includes(c.automaticDoors.cameraColliders[0]),'normal and recovery retain live door leaves');if(readFails)throw Error('temporarily unavailable');return staticBlocked||bodyBlocked&&extra.length>1?null:new THREE.Vector3(...item.position);};
+ return {...f,seat,setStatic:v=>staticBlocked=v,setBody:v=>bodyBlocked=v,setReadFailure:v=>readFails=v,frames(n){for(let i=0;i<n;i++)f.frame();}};
+}
+{
+ const f=seatedFixture();f.frames(70);assert.equal(f.c.seated,f.seat,'idle sitting never creates get-up intent');
+ beginActorNavigationStep(0);f.key('KeyE');f.frames(49);assert.equal(f.c.seated,f.seat);assert.equal(f.counts.released,0);assert.equal(f.c.currentControl().action,'取消起身');
+ f.frame();assert.equal(f.c.seated,null);assert.equal(f.counts.released,1);assert.equal(f.c.pendingStand,null);assert.deepEqual(f.c.player.root.position.toArray(),f.seat.position);assert.equal(f.messages.length,1,'one button press retries without repeated warning toasts');checks.push('one explicit get-up click waits exactly five dynamic-blocked simulation seconds and exits once');
+}
+for(const input of ['keyboard','joystick']){
+ const f=seatedFixture(),press=()=>input==='keyboard'?f.c.keys.add('KeyW'):f.c.joy={x:1,y:0},release=()=>{f.c.keys.clear();f.c.joy={x:0,y:0};};
+ press();f.frames(40);release();f.frame();assert.equal(f.c.pendingStand,null);f.frames(70);assert.equal(f.c.seated,f.seat);
+ press();f.frames(49);assert.equal(f.c.seated,f.seat);f.frame();assert.equal(f.c.seated,null);assert.equal(f.counts.released,2,'existing cancelAction performs its idempotent final release after standFromSeat');checks.push(input+' release cancels direction-only get-up and a new held direction starts a fresh five seconds');
+}
+for(const key of ['KeyE','Escape']){
+ const f=seatedFixture();beginActorNavigationStep(0);f.key('KeyE');f.frames(40);f.key(key);assert.equal(f.c.pendingStand,null);f.frames(70);assert.equal(f.c.seated,f.seat);assert.equal(f.counts.released,0);
+ beginActorNavigationStep(0);f.key('KeyE');f.frames(49);assert.equal(f.c.seated,f.seat);f.frame();assert.equal(f.c.seated,null);checks.push(key+' cancels pending explicit get-up without ejecting the player later');
+}
+{
+ const f=seatedFixture();f.setStatic(true);beginActorNavigationStep(0);f.key('KeyE');f.frames(80);assert.equal(f.c.seated,f.seat);assert.equal(f.counts.released,0);
+ f.setStatic(false);f.frames(49);assert.equal(f.c.seated,f.seat);f.frame();assert.equal(f.c.seated,null);checks.push('a true wall/door rejection never contributes to the body-only five second wait');
+}
+{
+ const f=seatedFixture();beginActorNavigationStep(0);f.key('KeyE');f.frames(40);const other={...f.seat,id:'other-seat'};f.c.seated=other;f.frame();assert.equal(f.c.pendingStand,null);f.frames(70);assert.equal(f.c.seated,other);
+ f.c.player.collisionRadius=.39;beginActorNavigationStep(0);f.key('KeyE');f.frames(49);assert.equal(f.c.seated,other);f.frame();assert.equal(f.c.seated,null);checks.push('mount change cancels old request and actual player radius reaches the shared resolver');
+}
+{
+ const f=seatedFixture();beginActorNavigationStep(0);f.key('KeyE');f.frames(40);f.c.menuOpen=true;f.frames(10);assert.equal(f.c.seated,f.seat);f.c.menuOpen=false;f.frames(49);assert.equal(f.c.seated,f.seat);f.frame();assert.equal(f.c.seated,null);checks.push('read-only panel pauses explicit request and breaks continuous body-blockage timing');
+}
+{
+ const f=seatedFixture();f.setReadFailure(true);beginActorNavigationStep(0);f.key('KeyE');f.frames(80);assert.equal(f.c.seated,f.seat);assert.equal(f.counts.released,0);f.setReadFailure(false);f.setBody(false);
+ let allowed=false;f.c.egyptMeal={leaveSeat:()=>allowed,statusLabel:()=>null};f.frame();assert.equal(f.c.seated,f.seat);assert.equal(f.counts.released,0);allowed=true;f.frame();assert.equal(f.c.seated,null);assert.equal(f.counts.released,1);checks.push('failed geometry reads and refused meal leave callbacks retain original seat and reservation');
+}
+{
+ const f=seatedFixture({bath:true});beginActorNavigationStep(0);f.key('KeyE');f.frames(50);assert(f.c.bathTransition);assert.equal(f.c.seated,f.seat);assert.equal(f.counts.released,0);assert.equal(f.c.pendingStand,null);f.frames(50);assert.equal(f.c.bathTransition,null);assert.equal(f.c.seated,null);assert.equal(f.counts.released,1);assert.deepEqual(f.c.player.root.position.toArray(),f.seat.position);checks.push('body-only recovery starts the original onsen transition and releases occupancy only at its bank endpoint');
+}
+
 console.log(JSON.stringify({status:'PASS',scope:'Production main updatePlayer, arrival/intent/input/furniture functions with real route execution; no scene or browser claims',checks,maxRSSMiB:process.resourceUsage().maxRSS/1024},null,2));
