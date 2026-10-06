@@ -11,8 +11,8 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.124-public, 2026-10-06
-Verified published Sites source commit: 41268050ef3cbfc11f3b46a6b4fb7e644bc05820
+Published release: R16.125-public, 2026-10-06
+Verified published Sites source commit: e73d4fb95dfc50039affee9301837369151804d7
 
 ## Working rules
 
