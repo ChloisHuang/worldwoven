@@ -1,0 +1,23 @@
+// Durable assignment only. Personal needs, money and history stay on actors.
+export const personId=actor=>actor?.actorId||actor?.station?.id||actor?.id||null;
+const id=value=>typeof value==='string'&&/^[a-z][a-z0-9-]{0,63}$/.test(value);
+export function createTavernRole({roleId,slotId,originalHolderId,errorName='role',saved=null,resolveActor=()=>null,getPlayer=()=>null,isActorAlive=actor=>actor?.alive!==false,canAssign=()=>true,canRelease=()=>true,saveState=()=>true}={}){
+ const initial={version:1,roleId:roleId,slotId:slotId,holderId:originalHolderId,revision:0};
+ let current=saved==null?initial:{...saved},loadError=null;
+ if(!current||current.version!==1||current.roleId!==roleId||current.slotId!==slotId||!(current.holderId===null||id(current.holderId))||!Number.isSafeInteger(current.revision)||current.revision<0)loadError=`invalid-${errorName}-assignment`;
+ function state(){return loadError?{...initial,holderId:null,loadError}:{...current,loadError:null};}
+ function resolve(){const row=state(),isPlayer=row.holderId==='player',actor=row.holderId?(isPlayer?getPlayer():resolveActor(row.holderId)):null,alive=!!actor&&isActorAlive(actor)!==false;
+  return {...row,actor,alive,isPlayer,available:!loadError&&alive&&canAssign(row.holderId,actor),status:loadError?'invalid':row.holderId===null?'vacant':!actor?'unloaded':!alive?'inactive':!canAssign(row.holderId,actor)?'busy':isPlayer?'player':'npc'};
+ }
+ function assign(holderId,{expectedRevision=current.revision}={}){
+  if(loadError)return {ok:false,code:loadError};if(expectedRevision!==current.revision)return {ok:false,code:`stale-${errorName}-assignment`};
+  if(!(holderId===null||id(holderId)))return {ok:false,code:'invalid-holder'};
+  if(holderId!==null){const actor=holderId==='player'?getPlayer():resolveActor(holderId);if(!actor||isActorAlive(actor)===false||holderId!=='player'&&personId(actor)!==holderId||!canAssign(holderId,actor))return {ok:false,code:'holder-unavailable'};}
+  if(holderId===current.holderId)return {ok:true,replayed:true};
+  const boundary=canRelease(current.holderId,holderId);if(boundary===false||boundary?.ok===false)return {ok:false,code:'handoff-pending',...(boundary?.blockers?{blockers:boundary.blockers}: {})};
+  const next={...current,holderId,revision:current.revision+1};
+  try{const result=saveState({...next});if(result===false||result?.ok===false||result?.then)return {ok:false,code:'save-failed'};}catch{return {ok:false,code:'save-failed'};}
+  current=next;return {ok:true,revision:current.revision};
+ }
+ return {state,resolve,assign,isAlive:actor=>!!actor&&isActorAlive(actor)!==false,get loadError(){return loadError;}};
+}
