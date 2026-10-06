@@ -1,5 +1,6 @@
 import {SALON_ARTISTS,SALON_ACTIVITIES} from './china-tavern-salon-artists.js';
 import {CHINA_COURT_OFFICIAL_RANKS} from './china-official-ranks.js';
+import {receptionProofMatchesSession} from './china-salon-reception-proof.js';
 import {TAVERN_BUSINESS_ID} from './china-tavern-property.js';
 
 // Provisional game-design split, not a service price or a free daily allowance.
@@ -14,8 +15,10 @@ const empty=()=>({version:2,revision:0,grossRevenue:0,performerPaid:0,businessPr
 const validSource=(tx,id,amount)=>tx?.action==='settle'&&tx.currency==='copper'&&tx.reservationId===id&&tx.requestId===JSON.stringify(['settle',id])&&tx.amount===amount;
 function receiptFor(tx,proof){
  if(!proof||!sessionId(proof.id)||!SALON_ARTIST_IDS.includes(proof.actorId)||!SALON_ACTIVITIES[proof.activity]||!SALON_ARTISTS.find(a=>a.id===proof.actorId)?.activity||SALON_ARTISTS.find(a=>a.id===proof.actorId).activity!==proof.activity||proof.completed!==true||!integer(proof.fee)||proof.fee<1||!validSalonIncomePolicy(proof.incomePolicy)||!validSource(tx,proof.id,proof.fee)||typeof tx.id!=='string')return null;
+ if(proof.receptionWork&&!receptionProofMatchesSession(proof.receptionWork,proof))return null;
+ const reception=proof.receptionWork?{receptionWork:copy(proof.receptionWork)}:{};
  const paid=share(proof.fee,proof.incomePolicy.performerShareBps);
- return {id:'salon-income:'+proof.id,sessionId:proof.id,settlementId:tx.id,actorId:proof.actorId,activity:proof.activity,businessId:TAVERN_BUSINESS_ID,currency:'copper',gross:proof.fee,incomePolicy:copy(proof.incomePolicy),businessCredit:proof.fee,businessDebit:paid,performerPaid:paid,businessProceeds:proof.fee-paid};
+ return {...reception,id:'salon-income:'+proof.id,sessionId:proof.id,settlementId:tx.id,actorId:proof.actorId,activity:proof.activity,businessId:TAVERN_BUSINESS_ID,currency:'copper',gross:proof.fee,incomePolicy:copy(proof.incomePolicy),businessCredit:proof.fee,businessDebit:paid,performerPaid:paid,businessProceeds:proof.fee-paid};
 }
 // A second, explicitly typed source: an existing official's own reserved pay.
 // Never turn an NPC service into a fabricated player-wallet settlement.
@@ -23,8 +26,10 @@ function officialReceiptFor(tx,proof){
  if(!proof||!/^cn-salon-npc-[1-9][0-9]*$/.test(proof.id||'')||proof.completed!==true||!SALON_ARTIST_IDS.includes(proof.actorId)||SALON_ARTISTS.find(a=>a.id===proof.actorId)?.activity!==proof.activity||!integer(proof.fee)||proof.fee<1||!validSalonIncomePolicy(proof.incomePolicy)||proof.incomePolicy.performerShareBps!==5000)return null;
  const e=tx?.evidence;
  if(!CHINA_COURT_OFFICIAL_RANKS.some(r=>r.actorId===proof.customerId)||tx?.receiptId!=='official-salon-settle:'+proof.id||tx?.action!=='salon-settle'||tx.orderId!==proof.id||tx.amount!==proof.fee||tx.artistId!==proof.actorId||tx.activity!==proof.activity||tx.actorId!==proof.customerId||JSON.stringify(tx.incomePolicy)!==JSON.stringify(proof.incomePolicy)||typeof tx.id!=='string'||e?.kind!=='salon-service'||e.completed!==true||e.orderId!==proof.id||e.customerId!==proof.customerId||e.artistId!==proof.actorId||e.activity!==proof.activity||!Number.isFinite(e.elapsed)||!Number.isFinite(e.duration)||e.duration<2.2||e.elapsed<e.duration)return null;
+ if(proof.receptionWork&&!receptionProofMatchesSession(proof.receptionWork,proof))return null;
+ const reception=proof.receptionWork?{receptionWork:copy(proof.receptionWork)}:{};
  const paid=share(proof.fee,proof.incomePolicy.performerShareBps);
- return {id:'salon-income:'+proof.id,sessionId:proof.id,settlementId:tx.id,sourceProvider:'china-official-economy',customerId:proof.customerId,actorId:proof.actorId,activity:proof.activity,businessId:TAVERN_BUSINESS_ID,currency:'copper',gross:proof.fee,incomePolicy:copy(proof.incomePolicy),businessCredit:proof.fee,businessDebit:paid,performerPaid:paid,businessProceeds:proof.fee-paid};
+ return {...reception,id:'salon-income:'+proof.id,sessionId:proof.id,settlementId:tx.id,sourceProvider:'china-official-economy',customerId:proof.customerId,actorId:proof.actorId,activity:proof.activity,businessId:TAVERN_BUSINESS_ID,currency:'copper',gross:proof.fee,incomePolicy:copy(proof.incomePolicy),businessCredit:proof.fee,businessDebit:paid,performerPaid:paid,businessProceeds:proof.fee-paid};
 }
 function append(current,r){
  const next=copy(current);next.revision++;next.grossRevenue+=r.gross;next.performerPaid+=r.performerPaid;next.businessProceeds+=r.businessProceeds;next.accounts[r.actorId].bank+=r.performerPaid;next.receipts.push({...r,sequence:next.revision});
@@ -52,7 +57,7 @@ function restore(saved,history,officialHistory=[]){
   if(!r||r.sequence!==expected.revision+1)throw Error('invalid-salon-sequence');
   if(type==='income'){
    if(seen.has(r.sessionId))throw Error('duplicate-salon-income');
-   const official=r.sourceProvider==='china-official-economy',tx=(official?officialTransactions:transactions).get(r.settlementId),verified=(official?officialReceiptFor:receiptFor)(tx,{id:r.sessionId,actorId:r.actorId,customerId:r.customerId,activity:r.activity,fee:r.gross,incomePolicy:r.incomePolicy,completed:true});
+   const official=r.sourceProvider==='china-official-economy',tx=(official?officialTransactions:transactions).get(r.settlementId),verified=(official?officialReceiptFor:receiptFor)(tx,{id:r.sessionId,actorId:r.actorId,customerId:r.customerId,activity:r.activity,fee:r.gross,incomePolicy:r.incomePolicy,completed:true,...(r.receptionWork?{roomId:r.receptionWork.roomId,receptionWork:r.receptionWork}:{})});
    if(!verified||Object.keys(r).length!==Object.keys(verified).length+1||Object.keys(verified).some(k=>JSON.stringify(r[k])!==JSON.stringify(verified[k])))throw Error('unverified-salon-income');
    seen.add(r.sessionId);expected=append(expected,verified);
   }else{if(!['meal-payment','meal-refund'].includes(r.kind))throw Error('invalid-artist-meal');const result=mealChange(expected,r,r.kind);if(JSON.stringify(result.record)!==JSON.stringify(r))throw Error('invalid-artist-meal-proof');expected=result.next;}
@@ -61,13 +66,21 @@ function restore(saved,history,officialHistory=[]){
  if(!saved.accounts||Object.keys(saved.accounts).length!==SALON_ARTIST_IDS.length||SALON_ARTIST_IDS.some(id=>!saved.accounts[id]||Object.keys(saved.accounts[id]).length!==2||['cash','bank'].some(k=>saved.accounts[id][k]!==expected.accounts[id][k])))throw Error('invalid-artist-balance');
  return expected;
 }
-export function createChinaSalonEconomy({saved,copperLedger,officialEconomy=null,performerShareBps=SALON_PERFORMER_SHARE_BPS,saveState=null}={}){
+export function createChinaSalonEconomy({saved,copperLedger,officialEconomy=null,performerShareBps=SALON_PERFORMER_SHARE_BPS,saveState=null,getReceptionAccount=()=>null}={}){
  const policy={version:1,performerShareBps,rounding:'floor'};
  if(!validSalonIncomePolicy(policy))throw Error('invalid-salon-income-policy');
  let current=empty(),loadError=null;
  // Full journal verification occurs once at restore, never in the NPC update.
  try{if(copperLedger?.loadError)throw Error('currency-ledger-unavailable');if(saved?.receipts?.some(r=>r.sourceProvider==='china-official-economy')&&officialEconomy?.loadError)throw Error('official-ledger-unavailable');current=restore(saved,saved?.receipts?.length?copperLedger?.history?.()||[]:[],saved?.receipts?.some(r=>r.sourceProvider==='china-official-economy')?officialEconomy?.history?.()||[]:[]);}catch(e){loadError=e.message;}
  const indexed=new Map(current.receipts.map(r=>{const {sequence,...receipt}=r;return [r.sessionId,receipt];}));let saving=false;
+ // Optional dormant receptionist participant: the original payer save owns all
+ // four legs (payer, artist, business expense and receptionist private income).
+ function prepareReception(receipt){
+  if(!receipt.receptionWork)return {ok:true,patch:{},valid:()=>true,committed:()=>true};
+  const account=getReceptionAccount();
+  if(!account||account.loadError)return {ok:false,code:account?.loadError||'reception-account-unavailable'};
+  return account.prepareWage({proof:receipt.receptionWork,settlementReceipt:receipt});
+ }
  function prepareMeal(input,kind){
   if(loadError||saving)return {ok:false,code:loadError||'artist-ledger-busy'};
   const base=current,old=current.mealTransfers.find(r=>r.kind===kind&&r.orderId===input?.orderId);let result;
@@ -92,14 +105,16 @@ export function createChinaSalonEconomy({saved,copperLedger,officialEconomy=null
    const receipt=officialReceiptFor(tx,proof),source=officialEconomy.prepareSalonSettle?.(tx);if(!receipt||!source?.ok||JSON.stringify(source.transaction)!==JSON.stringify(tx))return {ok:false,code:'unverified-official-salon-service'};
    const old=indexed.get(receipt.sessionId);if(old)return JSON.stringify(old)===JSON.stringify(receipt)?{ok:true,replayed:true,patch:{},valid:()=>true,committed(){}}:{ok:false,code:'salon-income-conflict'};
    const base=current;let next;try{next=append(current,receipt);}catch{return {ok:false,code:'salon-income-overflow'};}
-   let accepted=false;return {ok:true,patch:{chinaSalonEconomy:copy(next)},valid:()=>!saving&&(accepted||current===base),committed(){if(accepted)return true;if(saving||current!==base)return false;current=next;indexed.set(receipt.sessionId,receipt);accepted=true;return true;}};
+   const reception=prepareReception(receipt);if(!reception.ok)return reception;
+   let accepted=false;return {ok:true,patch:{chinaSalonEconomy:copy(next),...reception.patch},valid:()=>!saving&&(accepted||current===base&&reception.valid()),committed(){if(accepted)return true;if(saving||current!==base)return false;if(reception.committed()===false)return false;current=next;indexed.set(receipt.sessionId,receipt);accepted=true;return true;}};
   },
   prepareIncome(tx,proof){
    if(loadError)return {ok:false,code:loadError};
    const receipt=receiptFor(tx,proof);if(!receipt)return {ok:false,code:'unverified-salon-service'};
    const old=indexed.get(receipt.sessionId);if(old)return JSON.stringify(old)===JSON.stringify(receipt)?{ok:true,replayed:true,patch:{},committed(){}}:{ok:false,code:'salon-income-conflict'};
-   let next;try{next=append(current,receipt);}catch{return {ok:false,code:'salon-income-overflow'};}
-   return {ok:true,patch:{chinaSalonEconomy:copy(next)},committed(){current=next;indexed.set(receipt.sessionId,receipt);}};
+   const base=current;let next;try{next=append(current,receipt);}catch{return {ok:false,code:'salon-income-overflow'};}
+   const reception=prepareReception(receipt);if(!reception.ok)return reception;
+   let accepted=false;return {ok:true,patch:{chinaSalonEconomy:copy(next),...reception.patch},valid:()=>accepted||current===base&&reception.valid(),committed(){if(accepted)return true;if(current!==base||reception.committed()===false)return false;current=next;indexed.set(receipt.sessionId,receipt);accepted=true;return true;}};
   }
  };
 }

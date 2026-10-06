@@ -1,0 +1,47 @@
+// Original production salon + official wallet + artist ledger + business debit
+// + receptionist account. Direct arrivals isolate transaction/controller risk;
+// this is not natural-demand, pathfinding, pose-contact or browser evidence.
+import assert from 'node:assert/strict';
+import {createChinaOfficialEconomy,CHINA_OFFICIAL_IDS} from '../source/game/china-official-economy.js';
+import {createChinaSalonEconomy} from '../source/game/china-salon-economy.js';
+import {createChinaSalonReceptionAccount} from '../source/game/china-salon-reception-account.js';
+import {createChinaTavernProperty} from '../source/game/china-tavern-property.js';
+import {createChinaOfficialSalonPayments} from '../source/game/china-official-salon-payments.js';
+import {createChinaTavernSalon} from '../source/game/china-tavern-salon.js';
+import {SALON_ROOMS} from '../source/game/china-tavern-salon-rooms.js';
+import {createGameCurrencyLedger} from '../source/game/currency-ledger.js';
+const copy=structuredClone,customerId=CHINA_OFFICIAL_IDS[5],artistId='cn-tavern-reciter',hostId='cn-tavern-reception';
+class V{constructor(...p){this.set(...p);}set(x=0,y=0,z=0){Object.assign(this,{x,y,z});return this;}toArray(){return [this.x,this.y,this.z];}distanceTo(p){return Math.hypot(this.x-p.x,this.y-p.y,this.z-p.z);}clone(){return new V(...this.toArray());}}
+function fixture(input={},dormant=true){
+ let saved=copy(input),service,fail=null,need={},account,property,artistEconomy,elapsed=0,revision=0;const npcs=[],poses=[];
+ const actor=(id,pos,extra={})=>{const n={station:{id,npcName:id,ageYears:35,...extra},ageYears:35,alive:true,root:{position:new V(...(saved.positions?.[id]||pos)),rotation:{y:0}},home:new V(...pos),preferenceScore:0,locomotion:{walkSpeed:2},route:[],animate(t,walking,action,c){if(id===hostId)poses.push({walking,action,writing:!!c?.receptionWriting});}};npcs.push(n);return n;};
+ const artist=actor(artistId,[18.8,7.815,18.66],{salon:{activities:['poetry'],willing:true}}),host=actor(hostId,[24.15,7.815,5.45],{workTarget:[24.15,8.95,6.15]}),guest=actor(customerId,[24.15,7.815,7.65]),player={ageYears:25,root:{position:new V(30,.215,20),rotation:{y:0}},locomotion:{walkSpeed:2}};
+ function checkpoint(next){saved={...saved,...copy(next),...(service?{checkpoint:service.snapshot(),positions:Object.fromEntries(npcs.map(n=>[n.station.id,n.root.position.toArray()]))}:{})};return true;}
+ const official=createChinaOfficialEconomy({saved:saved.chinaOfficialEconomy,getDay:()=>20,isAppointed:id=>CHINA_OFFICIAL_IDS.includes(id),saveState:(next,tx,patch={})=>{if(fail==='all'||fail===tx.action)return false;return checkpoint({...patch,chinaOfficialEconomy:next});}});
+ const bank=createGameCurrencyLedger({saved,storage:{setItem:()=>true}});
+ // Lazy counterpart access removes initialization cycles, while saved sources
+ // remain available for strict replay before the live income ledger exists.
+ property=createChinaTavernProperty({saved:saved.chinaTavernProperty,copperLedger:bank,getClock:()=>({day:20}),getTill:()=>artistEconomy?.summary().businessProceeds??saved.chinaSalonEconomy?.businessProceeds??0,getReceptionAccount:()=>account||saved.chinaSalonReceptionAccount,saveState:()=>false});
+ account=createChinaSalonReceptionAccount({saved:saved.chinaSalonReceptionAccount,getSalonIncome:()=>artistEconomy?.snapshot()||saved.chinaSalonEconomy,getProperty:()=>property});
+ artistEconomy=createChinaSalonEconomy({saved:saved.chinaSalonEconomy,copperLedger:bank,officialEconomy:official,getReceptionAccount:()=>account});
+ assert.equal(artistEconomy.loadError,null);assert.equal(account.loadError,null);assert.equal(property.loadError??property.state().loadError,null);
+ const port=createChinaOfficialSalonPayments({officialEconomy:official,artistEconomy});
+ service=createChinaTavernSalon({npcs,copperLedger:bank,economy:artistEconomy,npcPayments:port,...(dormant?{receptionDuty:{resolve:()=>({holderId:hostId,actor:host,revision,available:host.alive,alive:host.alive})}}:{}),sharedNeeds:{status:id=>need[id]||null,hunger:()=>.1},getPlayer:()=>player,poseContext:()=>({}),doors:{routeStep:r=>({waypoint:r[0]})},planPath:(_,p)=>[p],moveActor(n,x,z){n.root.position.x+=x;n.root.position.z+=z;},saved:saved.checkpoint?{continuity:saved.checkpoint}:{},saveState:()=>{if(fail==='all'||fail==='source')return false;return checkpoint({chinaSalonEconomy:artistEconomy.snapshot()});}});
+ if(saved.checkpoint)assert(service.restore(saved.checkpoint));
+ const pay=()=>{for(let day=0;day<2;day++)assert(official.completeDuty({actorId:customerId,day,receiptId:`cn-official-duty:${customerId}:${day}`,evidence:{kind:'office-work',completed:true,actorId:customerId,day,audienceDay:day,audienceCompleted:true,elapsed:8,duration:8}}).ok);};
+ const tick=(count=1,context={})=>{for(let i=0;i<count;i++){elapsed+=.1;service.update(.1,elapsed,context);}};
+ return {service,official,artistEconomy,account,property,artist,guest,host,player,pay,tick,poses,need,get saved(){return copy(saved);},set fail(v){fail=v;},changeHolder(){revision++;}};
+}
+function invited(f){f.pay();assert(f.service.requestNPC(customerId,artistId,'poetry',20));assert.equal(f.service.snapshot().session.receptionWork.steps.registerSeconds,0);}
+function accepted(f){invited(f);f.artist.root.position.set(22.85,7.815,7.65);f.tick(33);assert.equal(f.service.snapshot().session.stage,'accepted');}
+function reserved(f){accepted(f);f.tick(20);assert.equal(f.service.snapshot().session.stage,'escort');assert.equal(f.official.account(customerId).bank,28);}
+function fade(f){reserved(f);for(const[a,p]of[[[19.95,7.815,9.22],[21.2,7.815,9.22]],[[18.65,4.015,9.25],[17.55,4.015,9.25]],[SALON_ROOMS[0].actor,SALON_ROOMS[0].player]]){f.artist.root.position.set(...a);f.guest.root.position.set(...p);f.tick();}f.tick();assert.equal(f.service.snapshot().session.stage,'fade');}
+const f=fixture();assert.equal(f.account.account(hostId)?.bank||0,0);f.tick(50);assert.equal(f.account.snapshot().receipts.length,0,'idle tea earns nothing');fade(f);f.tick(23);assert.equal(f.artistEconomy.account(artistId).bank,0,'service complete alone cannot pay before physical closing');assert.equal(f.account.snapshot().receipts.length,0);f.tick(20);assert.equal(f.service.snapshot().session.stage,'visiting');assert.equal(f.artistEconomy.account(artistId).bank,10);assert.equal(f.account.account(hostId).bank,8);assert.equal(f.artistEconomy.summary().businessProceeds,10);assert.equal(f.property.state().balance,122,'original120 capital plus net10 minus true8 expense');assert.equal(f.official.account(customerId).bank,28);assert.equal(f.account.snapshot().receipts.length,1);assert(f.poses.filter(p=>p.writing&&p.action==='calligraphy').length>=60);
+const restored=fixture(f.saved);assert.equal(restored.service.snapshot().session.stage,'visiting');restored.tick(70);assert.equal(restored.account.account(hostId).bank,8);assert.equal(restored.property.state().balance,122);assert.equal(restored.account.snapshot().receipts.length,1);
+const paused=fixture();invited(paused);const before=paused.service.snapshot().session.receptionWork;paused.tick(30,{conversationActorId:hostId});assert.deepEqual(paused.service.snapshot().session.receptionWork,before);assert.equal(paused.account.snapshot().receipts.length,0);
+const changed=fixture();invited(changed);changed.tick(10);changed.changeHolder();changed.tick();assert.equal(changed.service.snapshot().session,null);assert.equal(changed.account.snapshot().receipts.length,0);
+const cancelled=fixture();reserved(cancelled);assert(cancelled.service.cancelNPC(customerId));assert.equal(cancelled.official.account(customerId).bank,48);assert.equal(cancelled.account.snapshot().receipts.length,0);assert.equal(cancelled.property.state().balance,120);
+const failed=fixture();fade(failed);failed.fail='salon-settle';failed.tick(45);assert.equal(failed.account.account(hostId)?.bank||0,0);assert.equal(failed.artistEconomy.account(artistId).bank,0);assert.equal(failed.property.state().balance,120);assert.equal(failed.official.account(customerId).bank,48,'same original funds refunded after failed settlement');
+const saveSource=fixture();fade(saveSource);saveSource.fail='source';saveSource.tick(45);const reload=fixture(saveSource.saved);assert.equal(reload.account.account(hostId).bank,8);assert.equal(reload.service.snapshot().session.stage,'visiting');reload.tick(70);assert.equal(reload.account.snapshot().receipts.length,1);
+const old=fixture({},false);old.pay();assert(old.service.requestNPC(customerId,artistId,'poetry',20));assert(!old.service.snapshot().session.receptionWork);const legacy=fixture(old.saved,true);assert(!legacy.service.snapshot().session.receptionWork,'old in-flight session is not enrolled retroactively');
+console.log('PASS original session three finite desk operations → official real20 → artist10 + business10 → receptionist8/business expense8 atomically; pause, changed holder, refund, failed save, post-save interruption, reload and old-session no-backpay');
