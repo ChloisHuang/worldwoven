@@ -128,7 +128,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   }
   const reachable=steps=>{const end=steps?.find(s=>s.chosen)?.path.at(-1);return !!end&&(near(n.root.position,end,.1)||planPath(n.root.position,point(end),.25).length>0);};
   const options=[...candidates(n),toiletChoice(n)].filter(Boolean).map(c=>c.targets?{...c,targets:c.targets.map(t=>({...t,available:t.available!==false&&reachable(t.choice?.steps||c.steps)}))}:{...c,available:c.available!==false&&reachable(c.steps)});
-  const need=n!==emperor?brain.state(n.station.id).needs:null,priority=options.some(c=>c.id==='toilet'&&c.available)?options.filter(c=>c.id==='toilet'&&c.available):need?.fatigue>.88?options.filter(c=>c.id==='rest'&&c.available):null;
+  const person=brain.state(n.station.id),need=n!==emperor?person.needs:null,priority=!person.current&&options.some(c=>c.id==='toilet'&&c.available)?options.filter(c=>c.id==='toilet'&&c.available):need?.fatigue>.88?options.filter(c=>c.id==='rest'&&c.available):null;
   let choice=brain.choose(n.station.id,priority?.length?priority:options,playerState.hour??10);
   if(!choice&&n!==emperor){idle(n,'暂时自己歇歇 · 稍后再作打算');return;}
   if(choice?.id==='conversation'){if(!invitation(n,choice)){brain.complete(n.station.id,choice,{fulfilled:false});idle(n,'对方正在忙 · 改日再访');}return;}
