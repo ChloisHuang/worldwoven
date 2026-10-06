@@ -19,9 +19,14 @@ export function createChinaOfficialSalonPayments({officialEconomy,artistEconomy}
    const p=officialEconomy.prepareSalonSettle({...terms(o),evidence});if(!p.ok)return p;
    const income=artistEconomy.prepareOfficialIncome(p.transaction,{...o,completed:true});if(!income.ok)return income;
    if(!p.valid()||!income.valid())return no('stale-salon-settlement');
-   const result=p.commit(income.patch);if(!result.ok)return result;
-   if(income.committed()===false)throw Error('salon-income-commit-conflict');
-   return result;
+   const lockAware=typeof income.lock==='function';let attempted=false;
+   if(lockAware&&typeof income.release!=='function')return no('invalid-salon-participant');
+   try{
+    if(lockAware){attempted=true;if(!income.lock())return no('stale-salon-settlement');}
+    const result=p.commit(income.patch);if(!result.ok)return result;
+    if(income.committed()===false)throw Error('salon-income-commit-conflict');
+    return result;
+   }finally{if(attempted)income.release();}
   },
  };
 }
