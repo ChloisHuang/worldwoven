@@ -2,6 +2,7 @@
  * Derived from the supplied candidate, so changing the neutral sculpt does not
  * duplicate art landmarks in costume code. No per-frame fitting or raycasts. */
 import * as THREE from 'three';
+import {fitCompleteAdultCostumeHeadgear} from './costume-headgear-fit.js';
 const HEAD_PIVOT=1.455;
 export const RETAINED_HAIR=/^(continuous-swept-hair|side-swept-fringe|side-part-hair|hair-|combed-|tapered-side-lock|side-flow)/;
 function bounds(position,minimumY=-Infinity){
@@ -42,7 +43,7 @@ export function fitRetainedHeadMesh(mesh,fit){
 export function fitActorHeadAttachment(actor,group){
  const fit=actor.root.userData.characterModel?.attachmentFit;if(!fit||group.userData.completeAdultFit)return group;
  group.position.set(group.position.x*fit.scale[0]+fit.offset[0],(group.position.y+HEAD_PIVOT)*fit.scale[1]+fit.offset[1]-HEAD_PIVOT+(fit.hairOffsetY??0),group.position.z*fit.scale[2]+fit.offset[2]);
- group.scale.multiply(new THREE.Vector3(...fit.scale));group.userData.completeAdultFit=true;return group;
+ group.scale.multiply(new THREE.Vector3(...fit.scale));fitCompleteAdultCostumeHeadgear(actor,group);group.userData.completeAdultFit=true;return group;
 }
 // Project a retained lower-face surface onto the new front triangle surface.
 // X/Y barycentrics evaluate the cached mesh directly, without rays or a scene.

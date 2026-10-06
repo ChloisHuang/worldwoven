@@ -5,6 +5,7 @@ let harness=fs.readFileSync(path.join(__dirname,'fixtures/hotfix-input-harness.c
 function replaceOnce(a,b){if(!harness.includes(a)||harness.indexOf(a)!==harness.lastIndexOf(a))throw Error('Fixture seam changed: '+a);harness=harness.replace(a,b);}
 replaceOnce('{identifier:file,context}','{identifier:file,context,initializeImportMeta:meta=>{meta.url=require("node:url").pathToFileURL(file).href;}}');
 replaceOnce('const document={body:',"const document={head:new E('head'),body:");
+replaceOnce('getBoundingClientRect(){return', 'getClientRects(){return this.hidden?[]:[this.getBoundingClientRect()];}getBoundingClientRect(){return');
 replaceOnce('add(...e){this.append(...e)}','prepend(...els){for(const e of els.reverse()){e.remove?.();e.parent=this;this.children.unshift(e);}}add(...e){this.append(...e)}');
 replaceOnce('vm.createContext({console,','vm.createContext({structuredClone,Float32Array,Float64Array,Uint8Array,Uint8ClampedArray,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,DataView,atob,btoa,TextEncoder,TextDecoder,URL,URLSearchParams,console,');
 replaceOnce("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),","new vm.SourceTextModule(fs.readFileSync(file,'utf8')+(file.endsWith('/game/main.js')?'\\nexport function liveCharacterReview(){return {saved,player,npcs,lot};}':''),");
