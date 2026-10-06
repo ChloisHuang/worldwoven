@@ -11,11 +11,11 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.127-public, 2026-10-06
-Verified published Sites source commit: 312d104ec199794d9251fc40ad6d5ba20914e52b
+Published release: R16.128-public, 2026-10-06
+Verified published Sites source commit: 806605f8dfc7115253f026f25c183c036e8f479a
 
 Opt-in same-save performance panel: https://alien.doudouai.net/?perf=1#china
-It reads runtime timing/render counts and the initial save length; it does not reset storage or send telemetry. CPU submission timing is not GPU timing.
+It reads runtime timing/render counts and the initial save length; it does not reset storage or send telemetry. CPU submission timing is not GPU timing. R16.128 removes repeated full-history copies from closed salon panels and China job/HUD reads; the reported mobile stutter still needs device verification.
 
 ## Working rules
 
