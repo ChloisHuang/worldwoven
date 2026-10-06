@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {createClinicPhysicianWork} from '../source/game/china-clinic-physician-work.js';
+import {createObjectInteractionAnchors} from '../source/game/object-interaction-anchors.js';
+const original={station:{id:'cn-pharmacy-assistant'},root:{position:{x:23.6,y:.215,z:-29.18}}},replacement={station:{id:'cn-new-assistant',npcName:'新任助手'},alive:true,root:{position:{x:22.1,y:4.015,z:-24.75}}};
+const order={id:'cn-clinic-order-1',number:1,cardId:'cn-clinic-card-1',recipientId:'cn-tavern-diner-west',recipientName:'顾谨',stage:'handoff',physician:'player',physicianReceiptId:'cn-clinic-physician-labor-1'};
+const work=createClinicPhysicianWork({getOrder:()=>order,getJob:()=>({receiptId:order.physicianReceiptId,stage:'working'}),getPlayer:()=>({}),getMounted:()=>null,isHired:()=>true,near:()=>true,seated:()=>true,assistant:replacement,changeOrder:()=>true,notify(){}});
+const intent=work.intent(order.physicianReceiptId);assert.equal(intent.visualAnchor.actorId,replacement.station.id);assert(intent.action.includes('新任助手'));
+const anchors=createObjectInteractionAnchors({actors:()=>[original,replacement],stations:()=>[],furniture:()=>[]});anchors.refresh();assert.equal(anchors.resolve({provider:'china-clinic-physician-employment',work:intent}).actor,replacement);
+replacement.alive=false;const unavailable=work.intent(order.physicianReceiptId);assert.deepEqual(unavailable.visualAnchor,{});assert.equal(anchors.resolve({provider:'china-clinic-physician-employment',work:unavailable}),null);assert.equal(work.execute(unavailable,order.physicianReceiptId,{}),false);
+assert.equal(anchors.resolve({provider:'china-clinic-employment',visualAnchor:{}}),null,'explicit vacancy must not fall back to original employer');
+console.log('PASS real physician handoff intent and anchor resolver use actual assistant; absent person metadata blocks original-identity fallback and inactive direct execution');
