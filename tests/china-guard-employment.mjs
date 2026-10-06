@@ -8,7 +8,7 @@ const copy=x=>JSON.parse(JSON.stringify(x));
 function fixture(){
  const clock={day:0,hour:10,seconds:0},store={career:null,employment:null,bank:0,receipts:new Set()},flags={rejectEmployment:false,rejectCareer:false},player={ageYears:22,root:{position:{x:REG[0],y:REG[1],z:REG[2]},rotation:{y:0}}};
  let work=null,navigating=false,service;const wardrobeChanges=[];
- const archery={setGuardTenure(){},requestSupervisor(){},supervisorReady:()=>true,requestGuardWork(id){work??={receiptId:id,stage:'requested'};},guardWorkState:()=>work,
+ const archery={reviewerContext:()=>({actorId:'cn-range-warden',name:'陆衡'}),patrolHolderContext:()=>({actorId:'cn-archery',name:'沈砚',revision:0}),setGuardTenure(){},requestSupervisor(){},supervisorReady:()=>true,requestGuardWork(id){work??={receiptId:id,stage:'requested'};},guardWorkState:()=>work,
  requestGuardReturn(id){if(work?.receiptId!==id)return false;work.stage='returned';return true;},finishGuardWork(){work=null;},cancelGuardWork(){work=null;}};
  const buildCareer=()=>createFormalCareers({saved:store.career,worldSeed:42,getClock:()=>clock,saveState:s=>{if(flags.rejectCareer)return false;store.career=copy(s);},creditWageToBank:d=>{if(!store.receipts.has(d.receiptId)){store.receipts.add(d.receiptId);store.bank+=d.amount;}return {ok:true,receiptId:d.receiptId};}});
  let careers=buildCareer();
