@@ -214,10 +214,7 @@ function validCustomerReviews(duty,role){
       !validCustomerReviewId(review,duty.workReceiptId))return false;
     seen.set(review.id,review);
   }
-  // This finite resident supply cannot pay a shift with no actual resident
-  // meal completed. Handoff evidence alone never qualifies a shift for pay.
-  return role.id!==EGYPT_KITCHEN_ROLE.id||!['inspection','ready','paid'].includes(duty.stage)||
-    duty.customerReviews.some(review=>review.egyptKitchenReceipt?.completed===true);
+  return true;
 }
 
 function validWorkReceipt(source,receiptId){const m=typeof receiptId==='string'&&new RegExp('^'+source+'-([1-9][0-9]*)$').exec(receiptId);return !!m&&integer(Number(m[1]));}
@@ -1020,8 +1017,6 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const duty=current.lastDuty,role=roleMap.get(roleId);
     if(!role?.workSource||!duty||duty.roleId!==roleId||duty.workReceiptId!==receiptId)return failure('wrong-duty-source');
     if(!now())return failure('invalid-clock');
-    if(role.id===EGYPT_KITCHEN_ROLE.id&&['completed','inspected'].includes(event)&&
-      !duty.customerReviews.some(review=>review.egyptKitchenReceipt?.completed===true))return failure('resident-meal-required');
     if(event==='completed'){
       if(['inspection','ready','paid'].includes(duty.stage))return {ok:true,unchanged:true};
       if(duty.stage!=='working')return failure('invalid-duty-stage');

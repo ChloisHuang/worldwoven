@@ -5,7 +5,7 @@ export const EGYPT_KITCHEN_ROLE=Object.freeze({
  employer:'赫特',workplace:'尼罗厨房 · 赫特的供膳登记处',supervisorId:'egypt-royal-kitchen',incumbentId:'egypt-royal-kitchen',incumbentName:'赫特',
  vacancyKind:'exclusive',careerKind:'technical-service',workSource:'eg-kitchen-labor',wage:18,minimumAgeYears:18,
  skillRequirements:Object.freeze({cooking:1,ritual:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:0,
- duties:'须满18岁、烹饪1级、礼仪1级，由赫特当面审核。录用后主动接班，核对萨米拉的原居民餐单，备料、烹制、装盘并送交同一份陶锅蔬食与面包，原居民实际用毕后才记评价与烹饪经验。06:00–18:00按实际在岗工时计薪，须有已用毕原单才可验收，完整一班18埃及券存入银行；及时、迟做与未完交班分别记评价，不增扣工时工资。架空技术服务岗位，不授官品。居民供膳仅有一次性24份开局储备，无每日补货，完整财政未接；玩家访客餐仍须另付5埃及券。',
+ duties:'须满18岁、烹饪1级、礼仪1级，由赫特当面审核。录用后主动接班，核对萨米拉的原居民餐单，备料、烹制、装盘并送交同一份陶锅蔬食与面包，原居民实际用毕后才记评价与烹饪经验。06:00–18:00真实安全交接后按现场职责覆盖工时计薪，正常候单计薪；上岗前、离岗与无效挂靠不计时，完整一班18埃及券存入银行；及时、迟做与未完交班分别记评价，不增扣工时工资。架空技术服务岗位，不授官品。居民供膳仅有一次性24份开局储备，无每日补货，完整财政未接；玩家访客餐仍须另付5埃及券。',
 });
 
 export const EGYPT_KITCHEN_TIMELY_SECONDS=90;
