@@ -36,6 +36,20 @@ for(const form of ['male','female']){
   for(let i=0;i<skin.index.length;i+=3){const ids=skin.index.slice(i,i+3),a=faceNormal(skin.position,ids),b=faceNormal(p.position,ids),length=Math.hypot(...a)*Math.hypot(...b);if(length<1e-16)continue;assert(a.reduce((s,x,k)=>s+x*b[k],0)>0,'local sculpt cannot overturn a source triangle');changedFaces++;}
   endpoints.push({height,deltaFromNeutralMm:d,checkedFaces:changedFaces});
  }
- result.push({form,fixedVertices:fixed,protectedLipVertices:lips,neutralDeltaMm:delta,profileAngleDiagnostic:{before:angle(skin),after:angle(neutral)},endpoints});
+ // Interpolated brow anatomy must also follow the skin between ribbon
+ // vertices when the existing eye-size control reaches either endpoint.
+ const browContacts=[];
+ for(const traits of [{noseBridgeHeight:.8,eyeSize:1.2},{noseBridgeHeight:1.2,eyeSize:.82}]){
+  const morphed=morphCompleteAdultAsset(base,traits),surface=morphed.parts.find(p=>p.material==='skin');let minimum=Infinity;
+  for(const part of morphed.parts.filter(p=>p.material==='brow'))for(let i=0;i<part.index.length;i+=3){
+   const vs=Array.from(part.index.slice(i,i+3),j=>Array.from(part.position.slice(j*3,j*3+3)));
+   for(const weights of [[1/3,1/3,1/3],[.5,.5,0],[0,.5,.5],[.5,0,.5]]){
+    const p=[0,0,0];for(let j=0;j<3;j++)for(let k=0;k<3;k++)p[k]+=vs[j][k]*weights[j];
+    minimum=Math.min(minimum,p[2]-frontSurface(surface,p[0],p[1]));
+   }
+  }
+  assert(minimum>-.000001,'brow triangle interiors must not cross the supported skin at combined eye/bridge endpoints');browContacts.push({traits,minimumClearanceMm:minimum*1000});
+ }
+ result.push({form,fixedVertices:fixed,protectedLipVertices:lips,neutralDeltaMm:delta,profileAngleDiagnostic:{before:angle(skin),after:angle(neutral)},browContacts,endpoints});
 }
 console.log(JSON.stringify({status:'PASS',scope:'Local geometry/control regression. Profile angle is an internal three-landmark diagnostic, not a clinical anatomy claim or visual acceptance.',result},null,2));
