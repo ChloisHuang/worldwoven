@@ -497,8 +497,8 @@ export function buildEgypt(){
   roomWall(privateRoom,17.9,4.05,2.6,3.2,1.3,.22);roomRoof(17.9,4.9,3.5,12.4,16.1);
   mural(privateRoom,17.9,2.35,-4.21,11.5,3.6,0,4);
   for(const z of [5.7,-1])glyphPanel(privateRoom,23.77,2.5,z,3.4,3.4,-Math.PI/2,5);
-  roomWall(privateRoom,20.4,.3,-1.25,2.6,.6,4.1,C.shadow);box(privateRoom,20.4,.68,-1.25,2.5,.24,3.9,C.linen);box(privateRoom,20.4,.85,-.7,2.45,.10,2.7,C.blue);
-  box(privateRoom,20.4,1.18,-3.13,2.8,1.6,.2,C.gold);for(const x of [19.8,21])ball(privateRoom,x,.94,-2.55,.46,C.linen,1.1,.3,.7);
+  roomWall(privateRoom,20.4,.3,-1.25,2.6,.6,4.1,C.shadow);box(privateRoom,20.4,.68,-1.25,2.5,.24,3.9,C.linen);box(privateRoom,20.4,.85,-.9,2.45,.10,3.1,C.blue);
+  box(privateRoom,20.4,1.18,-3.13,2.8,1.6,.2,C.gold);for(const x of [19.8,21])ball(privateRoom,x,.864,-2.55,.46,C.linen,1.1,.1,.7);
   // Royal canopy: human-scale gilded posts, hanging linen and a cobra crest
   // make the private bed distinct without narrowing the surrounding aisles.
   for(const x of [19.17,21.63])for(const z of [-3.1,.55]){

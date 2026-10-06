@@ -29,18 +29,18 @@ function japanBathCameraParts(x,z,w,d){
  return parts;
 }
 export const REST_BATH_DESCRIPTORS={
- china:[{kind:'bed',cameraParts:chinaDragonBedCameraParts().map(p=>({...p,minY:p.minY+7.6,maxY:p.maxY+7.6})),worldLabel:'龙榻安寝',name:'静宜寝殿 · 雕龙龙榻',position:[-18.4,7.815,-8.5],anchor:[-21.55,7.815,-9],center:[-21,7.8,-9],size:[4,3.1,4.2],yaw:0,supportY:8.655,lieOffset:.30,lieSupport:{hip:8.655,back:8.655,head:8.74,heel:8.655}},
+ china:[{kind:'bed',cameraParts:chinaDragonBedCameraParts().map(p=>({...p,minY:p.minY+7.6,maxY:p.maxY+7.6})),worldLabel:'龙榻安寝',name:'静宜寝殿 · 雕龙龙榻',position:[-18.4,7.815,-8.5],anchor:[-21.55,7.815,-9],center:[-21,7.8,-9],size:[4,3.1,4.2],yaw:0,supportY:8.655,lieOffset:.30,lieSupport:{hip:8.655,back:8.655,head:8.665,heel:8.655}},
  {kind:'bath',name:'后宫二层石浴池',position:[-21.1,4.015,-6],anchor:[-23.6,4.015,-6],center:[-23.6,4,-6],size:[3.3,1.15,4.3],yaw:Math.PI/2,supportY:4.11,waterY:4.9625,bathHipHeight:.48},
- {kind:'bed',name:'后宫一层客榻',position:[-21.6,.215,-7.5],anchor:[-23.5,.215,-7.5],center:[-23.5,.2,-7.5],size:[2.9,1.25,3.4],yaw:0,supportY:1.055,lieOffset:.3,lieSupport:{hip:1.055,back:1.055,head:1.14,heel:1.055}}],
- france:[{kind:'bed',name:'皇家寝床',position:[5.16,.302,-2.1],anchor:[6.72,.302,-2.65],center:[7.55,.23,-2.65],size:[3.5,4.2,4.3],yaw:0,supportY:1.25,lieOffset:.72,lieSupport:{hip:1.25,back:1.25,head:1.31,heel:1.25}},
+ {kind:'bed',name:'后宫一层客榻',position:[-21.6,.215,-7.5],anchor:[-23.5,.215,-7.5],center:[-23.5,.2,-7.5],size:[2.9,1.25,3.4],yaw:0,supportY:1.055,lieOffset:.3,lieSupport:{hip:1.055,back:1.055,head:1.065,heel:1.055}}],
+ france:[{kind:'bed',name:'皇家寝床',position:[5.16,.302,-2.1],anchor:[6.72,.302,-2.65],center:[7.55,.23,-2.65],size:[3.5,4.2,4.3],yaw:0,supportY:1.25,lieOffset:.72,lieSupport:{hip:1.25,back:1.25,head:1.26,heel:1.25}},
  {kind:'bath',name:'白金浴缸',position:[-20.34,.23,-10.2],anchor:[-22.55,.23,-10.2],center:[-22.55,.23,-10.2],size:[3.1,1.15,3.65],yaw:Math.PI/2,supportY:.425,waterY:1.205,bathHipHeight:.48}],
  japan:[{kind:'bed',name:'客室日式寝具',position:[2.48,7.6,-10.7],anchor:[4.4,7.6,-11.6],center:[4.4,7.6,-11.6],size:[2.36,.5,3.24],yaw:0,supportY:7.95,lieOffset:.54,lieSupport:{hip:7.95,back:7.992,head:8.026,heel:7.96}},
  {kind:'bath',cameraTargetMinY:4.85,cameraParts:japanBathCameraParts(-6.55,-9.3,7.5,6.6),name:'二层男汤温泉',position:[-2.1,3.8,-9.3],anchor:[-3.22,3.8,-9.3],center:[-6.55,3.8,-9.3],size:[7.5,.82,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}},
  {kind:'bath',cameraTargetMinY:4.85,cameraParts:japanBathCameraParts(2.1,-9.7,4,6.6),name:'二层女汤温泉',position:[4.9,3.8,-9.7],anchor:[3.68,3.8,-9.7],center:[2.1,3.8,-9.7],size:[4,.82,6.6],yaw:-Math.PI/2,supportY:3.8805,waterY:4.47,bathHipHeight:.32,bathWardrobePreset:'onsen-swimwear',bathPose:{style:'onsen-seat',seatY:4.10,waterY:4.47,backZ:-.20,backTopY:4.50}},
  // The eastern lower bunk already exists in the staff room. Preserve bath IDs
  // by appending it; its approach enters from the clear foot of the same bunk.
- {kind:'bed',name:'员工室下铺',position:[-4.3,11.4,-9.18],exitPositions:[[-5.2,11.4,-9.18],[-3.4,11.4,-9.18]],anchor:[-4.3,11.4,-11.5],center:[-4.3,11.4,-11.5],size:[2.75,3,3.2],yaw:0,supportY:12.15,lieOffset:.48,lieSupport:{hip:12.15,back:12.15,head:12.274,heel:12.00}}],
- egypt:[{kind:'bed',name:'王室亚麻寝床',position:[18.48,0,-1.25],anchor:[19.8,0,-1.25],center:[20.4,0,-1.25],size:[2.65,3.4,4.1],yaw:0,supportY:.9,lieOffset:.48,lieSupport:{hip:.9,back:.9,head:1.056,heel:.9}},
+ {kind:'bed',name:'员工室下铺',position:[-4.3,11.4,-9.18],exitPositions:[[-5.2,11.4,-9.18],[-3.4,11.4,-9.18]],anchor:[-4.3,11.4,-11.5],center:[-4.3,11.4,-11.5],size:[2.75,3,3.2],yaw:0,supportY:12.15,lieOffset:.48,lieSupport:{hip:12.15,back:12.15,head:12.2064,heel:12.00}}],
+ egypt:[{kind:'bed',name:'王室亚麻寝床',position:[18.48,0,-1.25],anchor:[19.8,0,-1.25],center:[20.4,0,-1.25],size:[2.65,3.4,4.1],yaw:0,supportY:.9,lieOffset:.48,lieSupport:{hip:.9,back:.9,head:.91,heel:.9}},
  {kind:'bath',name:'王室石质浴池',position:[15.9,0,-1.05],anchor:[14.05,0,-1.05],center:[14.05,0,-1.05],size:[2.7,1.06,3.8],yaw:Math.PI/2,supportY:.305,waterY:.585,bathHipHeight:.32}]
 };
 // Existing-object inventory only. Beds, tables, thrones, floor cushions and the
@@ -139,6 +139,25 @@ export function createFurnitureInteractions(lot,region,{curtains={},onCurtainCha
    item.capacity=capacity;for(const seat of item.seats)bathSeats.set(seat.id,seat);facilities.define(item.id,item.seats.map(s=>s.id));
   }
  }
+ // Explicit pillow positions from the authored bedding, not collider width:
+ // narrow dorm/consort beds and the single-pillow futons remain single berths.
+ const bedBerths=new Map();
+ const bedding={
+  'china-furniture-bed-0':{xs:[-.55,.55],z:-1.53},
+  'china-furniture-bed-2':{xs:[-.55,.55],z:-1.18},
+  'france-furniture-bed-0':{xs:[-.83,.77],z:-1.17},
+  'egypt-furniture-bed-0':{xs:[-.6,.6],z:-1.30},
+  'japan-furniture-bed-0':{xs:[0],z:-1.04},
+  'japan-furniture-bed-3':{xs:[0],z:-1.088},
+  'cn-official-bed-gu':{xs:[-.55,.55],z:-.73},
+  'cn-official-bed-xu':{xs:[-.55,.55],z:-.73}
+ };
+ for(const item of items.filter(i=>i.kind==='bed')){
+  const layout=bedding[item.id]||{xs:[0],z:item.id.startsWith('cn-official-bed-')?-.87:item.id.startsWith('china-tavern-bed-')?-1.30:-.93};
+  item.liePillowZ=layout.z;item.capacity=layout.xs.length;
+  item.berths=layout.xs.map((x,index)=>{const berth={...item,bedId:item.id,berthId:item.id+'-berth-'+(index+1),berthIndex:index,anchor:[item.center[0]+Math.cos(item.yaw)*x,item.anchor[1],item.center[2]-Math.sin(item.yaw)*x]};delete berth.berths;bedBerths.set(berth.berthId,berth);return berth;});
+  facilities.define(item.id,item.berths.map(b=>b.berthId));
+ }
  const seat=items.find(i=>i.kind==='seat'),canopy=items.find(i=>i.kind==='canopy'),wardrobe=items.find(i=>i.kind==='wardrobe'),cloth=canopy?canopyGeometry(root,canopy,region):null;changingDetails(root,wardrobe,region);
  lot.group.updateMatrixWorld(true);const beddingMeshes=[];lot.group.traverse(o=>{if(o.isMesh&&!o.material.transparent)beddingMeshes.push(o);});const bedMeshes=new Map(),bedRay=new THREE.Raycaster();
  const options=(lot.heightAware||['japan','egypt'].includes(region))?{bounds:lot.bounds,surfaces:lot.walkableSurfaces,legacyGround:false,bodyHeight:1.95,maxStep:.4}:{bounds:lot.bounds,multilevel:false};
@@ -163,6 +182,11 @@ export function createFurnitureInteractions(lot,region,{curtains={},onCurtainCha
  function transferClear(a,b,options,extra=[],item=seat,radius=.34){const own=seatBoxes.get(item.poolId||item.id)||[],colliders=lot.colliders.filter(c=>!own.includes(c)).concat(extra);return canTraverse(a,b,colliders,{...options,radius});}
  const seatColliders=seatBoxes.get(seat.id);
  return {items,root,cloth,seatColliders,facilities,
+  resolveBed(item,actor,eligible=()=>true){
+   const bed=items.find(i=>i.id===(item.bedId||item.id));if(!bed?.berths)return item;
+   const reservation=facilities.reserve(bed.id,actor,{purpose:'sleep',eligible:id=>eligible(bedBerths.get(id))});const berth=reservation?bedBerths.get(reservation.seatId):null;return berth&&eligible(berth)?berth:null;
+  },
+  occupyBed(item,actor){const id=item.bedId||item.id,reservation=facilities.reservation(id,actor);return !!reservation&&reservation.seatId===item.berthId&&facilities.occupy(id,actor);},
   resolveBath(item,actor,eligible=()=>true,purpose='bathe'){
    const pool=items.find(i=>i.id===(item.poolId||item.id));if(!pool?.seats)return item;
    const reservation=facilities.reserve(pool.id,actor,{purpose,eligible:id=>eligible(bathSeats.get(id))});return reservation?bathSeats.get(reservation.seatId):null;
@@ -187,7 +211,7 @@ export function createFurnitureInteractions(lot,region,{curtains={},onCurtainCha
   // A shared-pool waiter may stand at the center entry. Wider aisle landings
   // keep the actual swept transfer clear of that person, with all walls retained.
   standPoint(navigation=options,extra=[],item=seat,actorRadius=navigation.radius){const anchor=point(item.anchor),radius=Number.isFinite(actorRadius)&&actorRadius>0?actorRadius:.34;for(const a of[item.position,...(item.exitPositions||[]),...(item.poolId?[-.3,.3,-1.35,1.35]:[-.3,.3]).map(offset=>[item.position[0]+Math.cos(item.yaw)*offset,item.position[1],item.position[2]-Math.sin(item.yaw)*offset])]){const p=point(a);if(!blocked(p.x,p.z,lot.colliders.concat(extra),radius,{...navigation,y:p.y})&&transferClear(anchor,p,navigation,extra,item,radius))return p;}return null;},
-  state:()=>({region,facilities:facilities.state(),rejectedSeats:rejected,hasCanopy:!!cloth,curtainsOpen:cloth?!!target:null,curtainProgress:cloth?amount:null,items:items.map(({id,kind,name,position,anchor,seatY,center,yaw,supportY,waterY,capacity,seats})=>({id,kind,name,position,anchor,seatY,center,yaw,supportY,waterY,capacity,seats:seats?.map(({id,poolId,anchor,position})=>({id,poolId,anchor,position}))})),seatColliderCount:seatColliders.length}),
+  state:()=>({region,facilities:facilities.state(),rejectedSeats:rejected,hasCanopy:!!cloth,curtainsOpen:cloth?!!target:null,curtainProgress:cloth?amount:null,items:items.map(({id,kind,name,position,anchor,seatY,center,yaw,supportY,waterY,capacity,seats,berths})=>({id,kind,name,position,anchor,seatY,center,yaw,supportY,waterY,capacity,berths:berths?.map(({berthId,anchor,liePillowZ})=>({berthId,anchor,liePillowZ})),seats:seats?.map(({id,poolId,anchor,position})=>({id,poolId,anchor,position}))})),seatColliderCount:seatColliders.length}),
   dispose(){if(disposed)return;disposed=true;facilities.dispose();root.traverse(o=>{o.geometry?.dispose();if(o.isInstancedMesh)o.dispose();});cloth?.material.dispose();root.removeFromParent();}
  };
 }

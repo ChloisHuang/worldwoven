@@ -31,13 +31,13 @@ function dragon(g,x,y,z,s,side=1){
 function brocadeQuilt(g){
  // The top is still exactly local .855, including under back/hips/heels. Color
  // is woven into vertices, not a raised/coplanar decal that changes contact.
- const geo=new THREE.PlaneGeometry(3.72,3.1,48,40);geo.rotateX(-Math.PI/2);geo.translate(0,.075,0);const body=new THREE.BoxGeometry(3.72,.15,3.1),bp=body.attributes.position,bn=body.attributes.normal,bu=body.attributes.uv,base=body.index.array,top=geo.toNonIndexed(),positions=[...top.attributes.position.array],normals=[...top.attributes.normal.array],uvs=[...top.attributes.uv.array];top.dispose();for(let k=0;k<base.length;k+=3){if(bn.getY(base[k])>.9)continue;for(const i of base.slice(k,k+3)){positions.push(bp.getX(i),bp.getY(i),bp.getZ(i));normals.push(bn.getX(i),bn.getY(i),bn.getZ(i));uvs.push(bu.getX(i),bu.getY(i));}}body.dispose();geo.setIndex(null);geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));const a=geo.attributes.position,n=geo.attributes.normal,colors=[];
+ const geo=new THREE.PlaneGeometry(3.72,3.6,48,40);geo.rotateX(-Math.PI/2);geo.translate(0,.075,0);const body=new THREE.BoxGeometry(3.72,.15,3.6),bp=body.attributes.position,bn=body.attributes.normal,bu=body.attributes.uv,base=body.index.array,top=geo.toNonIndexed(),positions=[...top.attributes.position.array],normals=[...top.attributes.normal.array],uvs=[...top.attributes.uv.array];top.dispose();for(let k=0;k<base.length;k+=3){if(bn.getY(base[k])>.9)continue;for(const i of base.slice(k,k+3)){positions.push(bp.getX(i),bp.getY(i),bp.getZ(i));normals.push(bn.getX(i),bn.getY(i),bn.getZ(i));uvs.push(bu.getX(i),bu.getY(i));}}body.dispose();geo.setIndex(null);geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));const a=geo.attributes.position,n=geo.attributes.normal,colors=[];
  const red=new THREE.Color(C.red),gold=new THREE.Color(C.gold),ink=new THREE.Color(C.ink);
- for(let i=0;i<a.count;i++){const x=a.getX(i),z=a.getZ(i),edge=Math.min(1.86-Math.abs(x),1.55-Math.abs(z));let c=red;
+ for(let i=0;i<a.count;i++){const x=a.getX(i),z=a.getZ(i),edge=Math.min(1.86-Math.abs(x),1.8-Math.abs(z));let c=red;
   if(n.getY(i)>.9){const u=(x+.31)/.62,v=(z+.31)/.62,dx=(u-Math.floor(u))-.5,dz=(v-Math.floor(v))-.5,r=Math.hypot(dx,dz),angle=Math.atan2(dz,dx);if(edge<.095)c=gold;else if(edge<.17)c=ink;else if(Math.abs(r-(.22+.035*Math.cos(angle*6)))<.06||r<.055)c=gold;}
   else if(Math.abs(a.getY(i))>.049)c=gold;colors.push(c.r,c.g,c.b);
  }
- geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));const quilt=G.mesh(g,geo,0xffffff,0,.78,.5,{vertexColors:true});quilt.name='Level gold-cloud brocade quilt';quilt.userData.beddingSupport=true;return quilt;
+ geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));const quilt=G.mesh(g,geo,0xffffff,0,.78,.25,{vertexColors:true});quilt.name='Level gold-cloud brocade quilt';quilt.userData.beddingSupport=true;return quilt;
 }
 export function buildChinaDragonBed(parent){
  const bed=new THREE.Group();bed.name='静宜寝殿 · 雕龙龙榻';bed.position.set(-21,.2,-9);parent.add(bed);
@@ -45,7 +45,7 @@ export function buildChinaDragonBed(parent){
  for(const z of[-2.03,2.03]){G.box(bed,0,.40,z,3.78,.06,.065,C.gold);G.box(bed,0,.12,z,3.72,.06,.065,C.gold);for(const x of[-1.25,0,1.25])cloud(bed,x,.24,z+(z>0?.045:-.045),.53);}
  for(const x of[-1.88,1.88])G.box(bed,x,.40,0,.055,.055,3.95,C.gold);
  G.box(bed,0,.59,0,3.7,.3,4,0xf3e5ce).name='Preserved R12 mattress';brocadeQuilt(bed);
- for(const x of[-.55,.55]){const p=G.box(bed,x,.84,-1.53,.85,.2,.55,C.ivory);p.name='Preserved R12 silk pillow';p.userData.beddingSupport=true;for(const sign of[-1,1])G.box(bed,x+sign*.401,.841,-1.53,.025,.19,.54,C.gold);}
+ for(const x of[-.55,.55]){const p=G.box(bed,x,.83,-1.53,.85,.07,.55,C.ivory);p.name='Preserved R12 silk pillow';p.userData.beddingSupport=true;for(const sign of[-1,1])G.box(bed,x+sign*.401,.831,-1.53,.025,.06,.54,C.gold);}
  // Three-panel carved surround; all relief sits behind the original pillows.
  G.box(bed,0,1.20,-2.045,3.90,1.99,.16,C.wood).name='Dragon bed headboard';
  for(const x of[-1.29,0,1.29]){const q=new THREE.Group();q.position.set(x,1.46,-1.94);bed.add(q);const panel=relief(q,[[-.57,-.49],[-.57,.31],[-.45,.42],[-.30,.42],[-.23,.52],[.23,.52],[.30,.42],[.45,.42],[.57,.31],[.57,-.49]],.025,C.red);panel.name='Cloud-crowned headboard field';stroke(q,[[-.52,-.42,.055],[-.52,.27,.055],[-.39,.36,.055],[-.22,.36,.055],[-.17,.46,.055],[.17,.46,.055],[.22,.36,.055],[.39,.36,.055],[.52,.27,.055],[.52,-.42,.055]],.023);}
@@ -57,7 +57,7 @@ export function buildChinaDragonBed(parent){
  for(const x of[-1.88,1.88]){G.box(bed,x,2.99,0,.18,.20,4.0,C.wood);G.box(bed,x,3.07,0,.20,.045,4.08,C.gold);for(const z of[-1.25,0,1.25]){const q=cloud(bed,x,2.84,z,.42);q.rotation.y=Math.PI/2;}}
  dragon(bed,-.74,2.79,2.105,.38,1);dragon(bed,.74,2.79,2.105,.38,-1);G.sphere(bed,0,2.91,2.13,.080,C.gold,1,1,.45);
  for(const side of[-1,1]){const q=new THREE.Group();q.position.set(side*1.71,2.67,2.035);q.scale.x=side;bed.add(q);relief(q,[[-.12,.22],[-.58,.22],[-.53,.14],[-.38,.09],[-.29,-.06],[-.21,-.29],[-.12,-.29]],.08,C.wood);stroke(q,[[-.15,.17,.10],[-.48,.17,.10],[-.33,.03,.10],[-.18,-.23,.10]],.027);}
- bed.userData.dragonBed={version:1,original:true,reference:'https://www.sglynp.com/t134924',bedding:{quiltY:1.055,pillowY:1.14},footprint:[4,4.2]};return bed;
+ bed.userData.dragonBed={version:1,original:true,reference:'https://www.sglynp.com/t134924',bedding:{quiltY:1.055,pillowY:1.065},footprint:[4,4.2]};return bed;
 }
 function sheetGeometry(width,height){
  const p=[],uv=[],idx=[],nx=32,ny=12;

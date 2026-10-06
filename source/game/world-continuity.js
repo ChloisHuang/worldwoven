@@ -6,10 +6,10 @@ export const continuityCopy=value=>value==null?null:JSON.parse(JSON.stringify(va
 const finite=value=>Number.isFinite(value);
 export function continuityPoint(value){const a=Array.isArray(value)?value:value&&[value.x,value.y,value.z];return a?.length===3&&a.every(finite)?a.slice():null;}
 export function readWorldRegion(saved,region){const world=saved?.worldContinuity;if(world?.version!==WORLD_CONTINUITY_VERSION||!AREAS.has(region))return null;const state=world.regions?.[region];return state?.region===region&&state.version===1?continuityCopy(state):null;}
-export function captureWorldActor(actor,{id=actor.station?.id,region,elapsed=0,floor=null,mountId=null}={}){
+export function captureWorldActor(actor,{id=actor.station?.id,region,elapsed=0,floor=null,mountId=null,mountBerthId=null}={}){
  const position=continuityPoint(actor.root?.position);if(typeof id!=='string'||!AREAS.has(region)||!position)return null;
  const target=actor.route?.length?continuityPoint(actor.route.at(-1)):null;
- return {id,region,position,yaw:finite(actor.root.rotation.y)?actor.root.rotation.y:0,floor:floor||null,mountId:mountId||actor.serviceMount?.id||actor.bathTransition?.item.id||null,transition:actor.bathTransition?.snapshot?.()||null,target,returning:!!actor.returning,breakRemaining:finite(actor.breakAt)?actor.breakAt-elapsed:null,phase:finite(actor.phase)?actor.phase:0};
+ return {id,region,position,yaw:finite(actor.root.rotation.y)?actor.root.rotation.y:0,floor:floor||null,mountId:mountId||actor.serviceMount?.id||actor.bathTransition?.item.id||null,mountBerthId:mountBerthId||actor.serviceMount?.berthId||null,transition:actor.bathTransition?.snapshot?.()||null,target,returning:!!actor.returning,breakRemaining:finite(actor.breakAt)?actor.breakAt-elapsed:null,phase:finite(actor.phase)?actor.phase:0};
 }
 export function storeWorldRegion(saved,region,{player,actors,controllers={},activity=null,camera=null,animationTime=0}){
  if(!AREAS.has(region)||!player)return false;
@@ -41,7 +41,7 @@ export function captureWorldRuntime(value){
  if(value===Infinity)return {$worldRef:'infinity'};
  if(value==null||typeof value!=='object')return typeof value==='function'?null:value;
  if(value.station?.id&&value.root)return {$worldRef:'actor',id:value.station.id};
- if(value.id&&Array.isArray(value.anchor)&&Array.isArray(value.position))return {$worldRef:'furniture',id:value.id};
+ if(value.id&&Array.isArray(value.anchor)&&Array.isArray(value.position))return {$worldRef:'furniture',id:value.id,...(value.berthId?{berthId:value.berthId}:{})};
  if(value.isObject3D||value.isMaterial||value.isBufferGeometry)return null;
  if(Array.isArray(value))return value.map(captureWorldRuntime);
  return Object.fromEntries(Object.entries(value).filter(([,v])=>typeof v!=='function').map(([k,v])=>[k,captureWorldRuntime(v)]));
@@ -50,7 +50,7 @@ export function restoreWorldRuntime(value,{npcs=[],furniture}={}){
  if(value==null||typeof value!=='object')return value;
  if(value.$worldRef==='infinity')return Infinity;
  if(value.$worldRef==='actor')return npcs.find(n=>n.station.id===value.id)||null;
- if(value.$worldRef==='furniture')return furniture?.items.flatMap(i=>[i,...(i.seats||[])]).find(i=>i.id===value.id)||null;
+ if(value.$worldRef==='furniture')return furniture?.items.flatMap(i=>[i,...(i.seats||[]),...(i.berths||[])]).find(i=>i.id===value.id&&(!value.berthId||i.berthId===value.berthId))||null;
  if(Array.isArray(value))return value.map(v=>restoreWorldRuntime(v,{npcs,furniture}));
  return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,restoreWorldRuntime(v,{npcs,furniture})]));
 }

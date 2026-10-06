@@ -1199,10 +1199,10 @@ export function buildFrance({pack=true}={}){
   // White-and-emerald state bedroom with a true tall canopy, gilded finials,
   // draped backcloth and embroidered geometric coverlet.
   G.rug(group,7.0,-1.8,5.8,6.8,C.sage,C.gold);
-  block(7.55,.55,-2.65,3.35,.64,4.05,C.gold);box(7.55,.99,-2.65,3.23,.28,3.93,C.white);box(7.55,1.17,-1.98,3.24,.16,2.61,C.green);box(7.55,1.34,-4.57,3.42,1.70,.18,C.white);
+  block(7.55,.55,-2.65,3.35,.64,4.05,C.gold);box(7.55,.99,-2.65,3.23,.28,3.93,C.white);box(7.55,1.17,-2.14,3.24,.16,2.93,C.green);box(7.55,1.34,-4.57,3.42,1.70,.18,C.white);
   for(const x of [6.42,7.55,8.68])box(x,1.262,-1.98,.039,.019,2.40,C.gold);
   for(const z of [-2.9,-2.1,-1.3])box(7.55,1.263,z,3.10,.019,.035,C.gold);
-  for(const x of [6.72,8.32])pillow(group,x,1.20,-3.82,C.white,.95,.64);
+  for(const x of [6.72,8.32])pillow(group,x,1.135,-3.82,C.white,.95,.64);
   for(const x of [5.82,9.28])for(const z of [-4.70,-.58]){G.cyl(group,x,2.30,z,.055,.075,4.1,C.gold,10);G.sphere(group,x,4.48,z,.13,C.gold,.80,1.8,.8);cameraBox(x,2.3,z,.15,4.4,.15);}
   box(7.55,4.20,-2.64,3.75,.18,4.5,C.gold);box(7.55,4.31,-2.64,3.66,.075,4.4,C.sage);
   for(const x of [5.96,9.15])for(let k=0;k<4;k++)G.cyl(group,x+(k-1.5)*.09,2.54+k*.006,-4.66,.11,.13,3.06,k%2?C.green:C.emerald,8);

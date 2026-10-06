@@ -1,3 +1,4 @@
+import {reserveNpcBed,occupyNpcBed} from './npc-bed-occupancy.js';
 import {createJapanTableServiceDuty} from './japan-table-service-duty.js';
 import {createJapanKitchenDuty} from './japan-kitchen-duty.js';
 import {createJapanBathMixingDuty} from './japan-bath-mixing-duty.js';
@@ -107,8 +108,10 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    if(near(n.root.position,task.to,task.arrivalRadius??.08)) {
     n.route=[];task.arrived=true;task.stalled=0;
     if(task.mount) {
+     if(task.mount.kind==='bed'){const bed=reserveNpcBed(furniture,task.mount,n.station.id);if(!bed){task.arrived=false;return;}task.mount=bed;}
      const allowed=task.mount.kind!=='seat'?furniture.canUse(navigation,safety(n),task.mount):furniture.canSit(navigation,safety(n),task.mount);
      if(!allowed){task.arrived=false;return;}
+     if(task.mount.kind==='bed'&&!occupyNpcBed(furniture,task.mount,n.station.id)){abortTask(task,'bed reservation lost');return;}
      if(task.mount.kind==='bath'&&!furniture.occupyBath(task.mount,n.station.id)){abortTask(task,'seat reservation lost');return;}
      if(task.mount.bathEntry){n.bathTransition=createOnsenTransition({item:task.mount,position:n.root.position,yaw:n.root.rotation.y});task.arrived=false;return;}
      n.root.position.set(...task.mount.anchor);n.root.rotation.y=task.mount.yaw;n.serviceMount=task.mount;
@@ -232,7 +235,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   const helping=isJapanEmployeeInteraction(n,playerState),chatting=helping&&playerState.conversationActorId===n.station.id,sharedActivity=helping&&!chatting;
   const context=poseContext(n,sharedActivity?n.station:chatting?null:task?.workTarget?{workTarget:task.workTarget}:null);
   context.bathTransition=n.bathTransition?.sample()||null;
-  if(mount){context.visualFloorOffset=['bath','bed'].includes(mount.kind)?0:context.visualFloorOffset;context.seatHeight=mount.seatY===undefined?undefined:mount.seatY-n.root.position.y-context.visualFloorOffset;context.supportY=mount.supportY;context.bathPose=mount.bathPose;context.bathHipHeight=mount.bathHipHeight;context.lieSupport=mount.lieSupport;context.lieOffset=mount.lieOffset;context.lieSurfaceHeightAt=mount.kind==='bed'?(n.staffBedProbe??=(x,z)=>furniture.bedSupportAt(mount,x,z)):undefined;}
+  if(mount){context.visualFloorOffset=['bath','bed'].includes(mount.kind)?0:context.visualFloorOffset;context.seatHeight=mount.seatY===undefined?undefined:mount.seatY-n.root.position.y-context.visualFloorOffset;context.supportY=mount.supportY;context.bathPose=mount.bathPose;context.bathHipHeight=mount.bathHipHeight;context.lieSupport=mount.lieSupport;context.lieOffset=mount.lieOffset;context.liePillowZ=mount.liePillowZ;context.lieSurfaceHeightAt=mount.kind==='bed'?(x,z)=>furniture.bedSupportAt(mount,x,z):undefined;}
   context.receptionWriting=!helping&&!!task?.arrived&&!!task?.receptionWriting;
   context.heldProp=sharedActivity?null:task?.held||null;context.handoff=!sharedActivity&&(!!task?.handoff||v?.stage==='eating');
   context.seatedMeal=!chatting&&(v?.stage==='eating'||task?.seatedMeal)&&mount?.kind==='seat';
@@ -270,25 +273,25 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   // per-seat ownership. The host uses the same playerRequest call as before.
   playerRequest(id) {
    staffLife?.playerRequest(id);
-   for(const n of guests.values())if(n.serviceMount?.id===id&&n.serviceMount.kind!=='bath') {
+   for(const n of guests.values())if(n.serviceMount?.id===id&&!['bath','bed'].includes(n.serviceMount.kind)) {
     if(unmount(n)){clear(n);cooldowns.set(n.station.id,time+2);}
    }
   },
-  isYieldingFor:id=>[...actors.values()].some(n=>n.serviceMount?.id===id&&n.serviceMount.kind!=='bath'),
+  isYieldingFor:id=>[...actors.values()].some(n=>n.serviceMount?.id===id&&!['bath','bed'].includes(n.serviceMount.kind)),
   cancelVisit(id,reason='visit-cancelled') {
    const n=guests.get(id);if(!n)return false;n.cancelVisitReason=reason;
    if(!unmount(n))return false;
    return finishVisitCancellation(n,reason);
   },
   socialProfile:id=>staffLife?.socialProfile(id),
-  snapshot:()=>({version:1,board:board.state(),time,nextArrival,checkpointAt,staffLife:staffLife?.snapshot(),staffRuntime:staffLife?.continuity(),playerService:playerCustomerService?.snapshot(),receptionDuty:receptionDuty?.snapshot(),deliveryDuty:deliveryDuty?.snapshot(),womenDeliveryDuty:womenDeliveryDuty?.snapshot(),mixingDuty:mixingDuty?.snapshot(),kitchenDuty:kitchenDuty?.snapshot(),tableServiceDuty:tableServiceDuty?.snapshot(),cooldowns:[...cooldowns],tasks:[...tasks].map(([id,t])=>({id,to:t.to.slice(),orderJobId:t.orderJobId||null,staffLife:!!t.staffLife,idle:!!t.idle,elapsed:t.elapsed,arrived:t.arrived,mountId:t.mount?.id||null})),transitions:[...actors].filter(([,n])=>n.bathTransition).map(([id,n])=>[id,n.bathTransition.snapshot()]),history:history.slice()}),
+  snapshot:()=>({version:1,board:board.state(),time,nextArrival,checkpointAt,staffLife:staffLife?.snapshot(),staffRuntime:staffLife?.continuity(),playerService:playerCustomerService?.snapshot(),receptionDuty:receptionDuty?.snapshot(),deliveryDuty:deliveryDuty?.snapshot(),womenDeliveryDuty:womenDeliveryDuty?.snapshot(),mixingDuty:mixingDuty?.snapshot(),kitchenDuty:kitchenDuty?.snapshot(),tableServiceDuty:tableServiceDuty?.snapshot(),cooldowns:[...cooldowns],tasks:[...tasks].map(([id,t])=>({id,to:t.to.slice(),orderJobId:t.orderJobId||null,staffLife:!!t.staffLife,idle:!!t.idle,elapsed:t.elapsed,arrived:t.arrived,mountId:t.mount?.id||null,mountBerthId:t.mount?.berthId||null})),transitions:[...actors].filter(([,n])=>n.bathTransition).map(([id,n])=>[id,n.bathTransition.snapshot()]),history:history.slice()}),
   restore(s){
    if(s?.version!==1)return false;time=Math.max(0,s.time||0);nextArrival=Math.max(time,s.nextArrival||0);checkpointAt=Math.max(time,s.checkpointAt||0);cooldowns.clear();for(const [id,t]of s.cooldowns||[])if(actors.has(id)&&Number.isFinite(t))cooldowns.set(id,t);history.splice(0,history.length,...(s.history||[]));
    playerCustomerService?.restore(s.playerService);board.restoreClaims(s.board?.claims);staffLife?.restore(s.staffRuntime);receptionDuty?.restore(s.receptionDuty);deliveryDuty?.restore(s.deliveryDuty);womenDeliveryDuty?.restore(s.womenDeliveryDuty);mixingDuty?.restore(s.mixingDuty);kitchenDuty?.restore(s.kitchenDuty);tableServiceDuty?.restore(s.tableServiceDuty);
    for(const job of board.state().claims){const n=actors.get(job.workerId);if(n)workerTask(n,job);}
    for(const [id,n]of guests){const v=board.getVisit(id);if(v)scheduleGuest(n,v);}
    staffLife?.update(0,{night:!!s.staffRuntime?.night});scheduleWorkers();
-   for(const previous of s.tasks||[]){const t=tasks.get(previous.id);if(!t||t.orderJobId!==(previous.orderJobId||undefined)||t.to.some((v,i)=>Math.abs(v-previous.to[i])>.05))continue;t.elapsed=Math.max(0,previous.elapsed||0);t.arrived=!!previous.arrived;t.routeSet=false;t.stalled=0;t.actor.route=[];}
+   for(const previous of s.tasks||[]){const t=tasks.get(previous.id);if(!t||t.orderJobId!==(previous.orderJobId||undefined)||t.to.some((v,i)=>Math.abs(v-previous.to[i])>.05))continue;t.elapsed=Math.max(0,previous.elapsed||0);t.arrived=!!previous.arrived&&(t.mount?.kind!=='bed'||t.actor.serviceMount?.id===t.mount.id&&t.actor.serviceMount?.berthId===t.mount.berthId&&(!previous.mountBerthId||previous.mountBerthId===t.mount.berthId)&&occupyNpcBed(furniture,t.mount,t.actor.station.id));t.routeSet=false;t.stalled=0;t.actor.route=[];}
    for(const [id,state]of s.transitions||[]){const n=actors.get(id),item=furniture.items.flatMap(i=>[i,...(i.seats||[])]).find(i=>i.id===state.seatId);if(n&&item?.bathEntry){furniture.facilities.reserve(item.poolId||item.id,id,{eligible:seat=>seat===item.id});furniture.occupyBath(item,id);n.bathTransition=createOnsenTransition({item,saved:state});}}
    return true;
   },

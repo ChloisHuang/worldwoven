@@ -1,3 +1,4 @@
+import {bedAvailable,reserveNpcBed,occupyNpcBed} from './npc-bed-occupancy.js';
 import {captureWorldRuntime,restoreWorldRuntime} from './world-continuity.js';
 import {CHINA_CONSORTS,CONSORT_ROUTES,palaceResidentSave,palaceResident} from './china-palace-residents.js';
 import {consortActivities,createPalaceLeisureClaims} from './china-consort-activities.js';
@@ -38,7 +39,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
  const homeExit=n=>n===emperor?STAIRS:[...CONSORT_ROUTES[n.station.id],...HALL];
  const homeReturn=n=>n===emperor?[...reverse(STAIRS),[-18.2,7.815,-5],n.home.toArray()]:[...reverse(HALL),...reverse(CONSORT_ROUTES[n.station.id]),n.home.toArray()];
  const scripts=new Map(),mealSeats=new Map([[emperor,seat('china-palace-dining-seat-19.8')]]),sharedMeals=['china-palace-dining-seat-19.8','china-palace-dining-seat-22.2'].map(seat).filter(Boolean);
- const available=(n,id)=>playerState.facilityId!==id&&claims.available(id,n.station.id)&&(id!=='palace-tea-host'||!interrupted(host)&&playerState.performing!==host.station.id);
+ const available=(n,id)=>(seat(id)?.kind==='bed'?bedAvailable(furniture,seat(id),n.station.id,playerState.facilityId):playerState.facilityId!==id)&&claims.available(id,n.station.id)&&(id!=='palace-tea-host'||!interrupted(host)&&playerState.performing!==host.station.id);
  const kitchen=()=>getKitchen?.()||null,mealAvailable=n=>!getKitchen||!!kitchen()?.canRequestMeal(n.station.id);
  const DINING=[[-14.4,.115,.4],[-8,.13,11],[14,.13,11],[14.9,.115,0],[21,.115,0],[21,.215,-3.8]];
  const candidates=n=>n!==emperor?[...consortActivities(n,{stage,homeExit,homeReturn,bed:ownRest.get(n),mealSeats:sharedMeals,host,available:id=>available(n,id),mealAvailable:mealAvailable(n)}),{id:'veranda',label:'去公共廊下透透气',base:.12,traits:{outdoors:.45,sociability:.65},needs:{fatigue:-.25},relief:{fatigue:-.05},duration:[12,23],cooldown:42,steps:[stage('veranda-pause','在公共廊下歇歇 · 看看庭中动静',publicPosition(n)?[CONSORT_IDLE[consorts.indexOf(n)]]:[...CONSORT_ROUTES[n.station.id],CONSORT_IDLE[consorts.indexOf(n)]],0,{chosen:true,look:[-14,.2,-14]})]},conversationChoice(n)]:[
@@ -135,7 +136,9 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   if(choice&&!claims.reserve(choice.facilityId,n.station.id,n===emperor?360:120)){brain.complete(n.station.id,choice,{fulfilled:false});choice=null;}
   if(choice?.id==='toilet'&&!toilet()?.requestPalaceActor(n)){brain.complete(n.station.id,choice,{fulfilled:false});choice=null;}
   if(choice?.id==='meal'&&getKitchen&&!bindMeal(n,choice)){claims.release(n.station.id);brain.complete(n.station.id,choice,{fulfilled:false});choice=null;}
-  const steps=choice?choice.steps.map(s=>({...s,...(n!==emperor&&s.id==='leave-suite'&&publicPosition(n)?{path:[HALL.at(-1)]}:{}),duration:s.chosen?choice.duration:s.duration})): [stage('quiet-pause','在自己的私室稍作停留',[n.home.toArray()],6)];
+  const bed=choice?.steps.find(s=>s.mount?.kind==='bed')?.mount,berth=bed?reserveNpcBed(furniture,bed,n.station.id):null;
+  if(bed&&!berth){claims.release(n.station.id);furniture.releaseActor(n.station.id);brain.complete(n.station.id,choice,{fulfilled:false});choice=null;}
+  const steps=choice?choice.steps.map(s=>({...s,...(s.mount?.kind==='bed'?{mount:berth}:{}),...(n!==emperor&&s.id==='leave-suite'&&publicPosition(n)?{path:[HALL.at(-1)]}:{}),duration:s.chosen?choice.duration:s.duration})): [stage('quiet-pause','在自己的私室稍作停留',[n.home.toArray()],6)];
   scripts.set(n,steps);const previous=stages.get(n);stages.set(n,{choice,cycles:previous?.cycles||0});enter(n,0);
  }
  // The kitchen owns the one finite meal and its durable receipt. Life keeps
@@ -166,7 +169,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
  const safety=n=>[...(doors?.cameraColliders||[]),...npcs.filter(a=>a!==n).map(a=>a.root.position),...(playerState.position?[playerState.position]:[])].map(p=>p.minX===undefined?{minX:p.x-.27,maxX:p.x+.27,minZ:p.z-.27,maxZ:p.z+.27,minY:p.y,maxY:p.y+1.95}:p);
  function releaseHost(){if(!hostHeld)return;host.root.rotation.y=hostPreviousYaw;host.breakAt+=time-hostHeldAt;hostHeld=null;tell(host,host.station.npcLabel);}
  function enter(n,index){const previous=stages.get(n)||{};stages.set(n,{choice:previous.choice,cycles:previous.cycles||0,index,waypoint:0,elapsed:0,arrived:false,planned:false,stalled:0,retries:0,mount:null});n.route=[];record(n,scripts.get(n)[index].id);}
- function unmount(n,s){if(!s.mount)return true;const landing=findActorStandPoint(n,s.mount,({ignoreDynamicBodies})=>furniture.standPoint(navigation,ignoreDynamicBodies?[...(doors?.cameraColliders||[])]:safety(n),s.mount,n.collisionRadius??.25));if(!landing)return false;n.root.position.copy(landing);s.mount=null;furniture.releaseActor(n.station.id);return true;}
+ function unmount(n,s){if(!s.mount){furniture.releaseActor(n.station.id);return true;}const landing=findActorStandPoint(n,s.mount,({ignoreDynamicBodies})=>furniture.standPoint(navigation,ignoreDynamicBodies?[...(doors?.cameraColliders||[])]:safety(n),s.mount,n.collisionRadius??.25));if(!landing)return false;n.root.position.copy(landing);s.mount=null;furniture.releaseActor(n.station.id);return true;}
  function advance(n,s){if(scripts.get(n)[s.index].meal&&!s.choice?.mealCompleted&&!cancelMeal(n,s,'meal-interrupted'))return false;if(!unmount(n,s))return false;
   // Only Lin participated in this completed exchange. Passing NPCs gain no knowledge.
   if(scripts.get(n)[s.index].pair&&hostHeld===n&&s.elapsed>=scripts.get(n)[s.index].duration){brain.observe(n.station.id,s.choice,{observers:[{id:host.station.id,knowledge:'participant'}]});record(n,'tea-conversation:completed');}
@@ -204,7 +207,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
  function animate(n,s,t){
   const privatePose=toilet()?.actorPose(n);if(privatePose){meals.get(n).show(false);n.animate(t+n.phase,false,privatePose.action,{...poseContext(n,null),...privatePose.context});return;}
   const stop=scripts.get(n)[s.index],context=poseContext(n,null);context.handoff=false;context.heldProp=null;context.seatedMeal=false;meals.get(n).show(false);
-  if(s.mount){const m=s.mount;context.seatHeight=m.seatY===undefined?undefined:m.seatY-n.root.position.y-context.visualFloorOffset;if(m.kind==='bed'){context.visualFloorOffset=0;context.supportY=m.supportY;context.lieSupport=m.lieSupport;context.lieOffset=m.lieOffset;context.lieSurfaceHeightAt=(x,z)=>furniture.bedSupportAt(m,x,z);}}
+  if(s.mount){const m=s.mount;context.seatHeight=m.seatY===undefined?undefined:m.seatY-n.root.position.y-context.visualFloorOffset;if(m.kind==='bed'){context.visualFloorOffset=0;context.supportY=m.supportY;context.lieSupport=m.lieSupport;context.lieOffset=m.lieOffset;context.liePillowZ=m.liePillowZ;context.lieSurfaceHeightAt=(x,z)=>furniture.bedSupportAt(m,x,z);}}
   if(stop.pair&&hostHeld===n&&!interrupted(n)&&!interrupted(host)||stop.consortPair&&conversation?.phase==='talking'&&!interrupted(n))context.handoff=true;
   if(stop.meal&&readyMeal(n,s)&&s.mealStarted&&!interrupted(n)){context.seatedMeal=true;if(!getKitchen)meals.get(n).show(true);}
   n.animate(t+n.phase,n.walking,s.mount?(s.mount.kind==='bed'?'lie-rest':'chair-sit'):s.arrived&&!interrupted(n)?stop.action||null:null,context);meals.get(n).sync();
@@ -222,7 +225,9 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
    }
   }
   time=Math.max(0,state.time||0);duty=state.duty;conversation=state.conversation||null;hostHeld=actors.find(n=>n.station.id===state.hostHeldId)||null;hostPreviousYaw=state.hostPreviousYaw||0;hostHeldAt=state.hostHeldAt||0;history.splice(0,history.length,...(state.history||[]));
-  for(const n of actors){const steps=state.scripts[n.station.id],stageState=state.stages[n.station.id];if(!steps?.length||!stageState||!steps[stageState.index]){choose(n);continue;}scripts.set(n,steps);stages.set(n,{...stageState,planned:false,stalled:0});n.route=[];n.serviceMount=null;if(stageState.mount){furniture.facilities.reserve(stageState.mount.poolId||stageState.mount.id,n.station.id,{eligible:id=>id===stageState.mount.id});furniture.facilities.occupy(stageState.mount.poolId||stageState.mount.id,n.station.id);}}
+  for(const n of actors){const steps=state.scripts[n.station.id],stageState=state.stages[n.station.id];if(!steps?.length||!stageState||!steps[stageState.index]){choose(n);continue;}const bed=stageState.mount?.kind==='bed'?stageState.mount:steps[stageState.index].mount?.kind==='bed'?steps[stageState.index].mount:null;
+   if(bed){const resolved=reserveNpcBed(furniture,bed,n.station.id);if(resolved)steps[stageState.index].mount=resolved;if(stageState.mount){stageState.mount=resolved&&occupyNpcBed(furniture,resolved,n.station.id)?resolved:null;if(stageState.mount){n.root.position.set(...stageState.mount.anchor);n.root.rotation.y=stageState.mount.yaw;}else{stageState.arrived=false;stageState.waypoint=0;}}}
+   scripts.set(n,steps);stages.set(n,{...stageState,planned:false,stalled:0});n.route=[];n.serviceMount=null;if(stageState.mount&&stageState.mount.kind!=='bed'){furniture.facilities.reserve(stageState.mount.poolId||stageState.mount.id,n.station.id,{eligible:id=>id===stageState.mount.id});furniture.facilities.occupy(stageState.mount.poolId||stageState.mount.id,n.station.id);}}
   for(const n of actors)claims.release(n.station.id);for(const lease of state.claims||[])if(actors.some(n=>n.station.id===lease.actor))claims.reserve(lease.id,lease.actor,Math.max(0,lease.remaining));
   if(conversation&&!(brain.conversation(conversation.id)?.status==='accepted'&&conversation.participants.every(id=>stages.get(consorts.find(n=>n.station.id===id))?.choice?.id==='conversation'&&claims.state().some(c=>c.actor===id))))endConversation(false);
   for(const n of consorts){const current=brain.state(n.station.id)?.current;if(current?.conversationId&&!conversation){brain.cancelConversation(current.conversationId);claims.release(n.station.id);idle(n);}}return true;
@@ -278,7 +283,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   releaseDuty(owner){if(duty?.owner===owner)duty.release=true;},
   setDutyLine(owner,line){if(duty?.owner===owner)duty.line=line;},
   dutyState(owner){if(!duty||duty.owner!==owner)return null;const s=stages.get(emperor);return {owner,active:duty.active,stage:scripts.get(emperor)[s.index].id,ready:duty.active&&(duty.kind==='edict-review'?scripts.get(emperor)[s.index].id==='duty-public-review'&&s.arrived:s.mount===throne)&&!duty.release&&!duty.yieldSeat,mounted:s.mount?.id||null,releasing:duty.release};},
-  playerRequest(id){if(conversation&&RECEPTION_SEATS.includes(id))endConversation(false,'为来客让出会客前厅');for(const n of actors){const s=stages.get(n);if(s.mount?.id===id){if(n===emperor&&duty?.active){duty.yieldSeat=true;}else{if(s.choice)s.choice.fulfilled=false;if(s.choice?.id==='meal'){s.abortRequested='为来客让出餐席';cancelMeal(n,s,'player-seat');}else advance(n,s);}}}},
+  playerRequest(id){if(seat(id)?.kind==='bed')return;if(conversation&&RECEPTION_SEATS.includes(id))endConversation(false,'为来客让出会客前厅');for(const n of actors){const s=stages.get(n);if(s.mount?.id===id){if(n===emperor&&duty?.active){duty.yieldSeat=true;}else{if(s.choice)s.choice.fulfilled=false;if(s.choice?.id==='meal'){s.abortRequested='为来客让出餐席';cancelMeal(n,s,'player-seat');}else advance(n,s);}}}},
   update(dt,t,state={}){
    if(disposed)return;playerState=state;time+=dt;brain.tick(dt);
    for(const n of actors){
@@ -331,7 +336,8 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
     if(!s.arrived){if(travel(n,s,stop.path[s.waypoint],dt)){s.waypoint++;if(s.waypoint===stop.path.length){s.arrived=true;record(n,stop.id+':arrived');}}}
     if(s.arrived){
      if(stop.mount&&!s.mount&&!(n===emperor&&duty&&!duty.active)){
-      if(state.facilityId!==stop.mount.id&&(stop.mount.kind==='bed'?furniture.canUse(navigation,safety(n),stop.mount):furniture.canSit(navigation,safety(n),stop.mount))){n.root.position.set(...stop.mount.anchor);n.root.rotation.y=stop.mount.yaw;n.walking=false;s.mount=stop.mount;record(n,stop.id+':seated');}
+      const mount=stop.mount.kind==='bed'?reserveNpcBed(furniture,stop.mount,n.station.id):stop.mount;
+      if(mount&&(mount.kind==='bed'?furniture.canUse(navigation,safety(n),mount)&&occupyNpcBed(furniture,mount,n.station.id):state.facilityId!==mount.id&&furniture.canSit(navigation,safety(n),mount))){n.root.position.set(...mount.anchor);n.root.rotation.y=mount.yaw;n.walking=false;s.mount=mount;record(n,stop.id+':seated');}
       else{if(n!==emperor&&(s.waited=(s.waited||0)+dt)>12)s.abortRequested='设施有人使用 · 稍后再来';animate(n,s,t);continue;}
      }
      if(stop.look)n.root.rotation.y=Math.atan2(stop.look[0]-n.root.position.x,stop.look[2]-n.root.position.z);
