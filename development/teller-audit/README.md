@@ -26,7 +26,12 @@
 
 `TELLER_EXPORT=1 node --experimental-vm-modules tests/china-teller-physical.cjs` 导出当前真正蒙皮后的Three三角面到忽略目录 `qa/china-teller/{check,calculate,record}`；只保留钱庄局部场景，隐藏屋顶，无重画或替换人物。
 
-`blender -b -t 2 --python development/teller-audit/render.py -- "$PWD/qa/china-teller/check"`（其余两阶段同理）生成每阶段两个4.6米/50度透视机位。离线代表性光照，非浏览器或iOS画面。三角面/场景中间文件不提交；正常距离图按本批审图结果保留。
+`blender -b -t 2 --python development/teller-audit/render.py -- "$PWD/qa/china-teller/check"`（其余两阶段同理）生成每阶段两个4.6米/50度透视机位。离线代表性光照，非浏览器或iOS画面。三角面/场景中间文件不提交；正常距离图按本批审图结果保留。右后候选机位最初落入钱库导致墙面挡住画面，改为真实柜台后通道内机位重拍，没有删除钱库墙避遮挡。
+
+已审并只保留三张正常距离图：
+- [核查原账本](images/check-normal.png)
+- [原算盘核算](images/calculate-normal.png)
+- [握原笔落记](images/record-normal.png)
 
 ## 下一步
 
