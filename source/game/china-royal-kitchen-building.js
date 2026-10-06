@@ -14,7 +14,7 @@ export function buildChinaRoyalKitchen(G,A){
  for(let i=0;i<2;i++){
   const y=floors[i],top=tops[i],g=new THREE.Group();g.name='御膳楼 '+(i?'二层备膳':'一层餐厅');root.add(g);parts.push(g);
   if(!i)slab(g,'cn-royal-dining-floor',16,26,-12,-3,y,.2,0xbba684);
-  else{slab(g,'cn-royal-prep-floor',16,26,-9.4,-3,y,.23,C.wood);slab(g,'cn-royal-stair-top',24.3,26,-12,-9.4,y,.23,C.wood);}
+  else{slab(g,'cn-royal-prep-floor',16,26,-9.4,-3,y,.23,0xbba684);slab(g,'cn-royal-stair-top',24.3,26,-12,-9.4,y,.23,C.wood);}
   const front=[win(g,'x',-3,16.8,18.8,y),win(g,'x',-3,23.2,25.2,y)];if(!i)front.push(entry('cn-kitchen-front','御膳一层餐厅正门','x',-3,19.4,22.6,y,['dining','court']));
   wall(g,'x',-3,16,26,y,top,front);
   const back=!i?[entry('cn-kitchen-rear','御膳楼勤务后门','x',-12,24.0,25.5,y,['dining','rear-court'])]:[win(g,'x',-12,24.1,25.3,y)];wall(g,'x',-12,16,26,y,top,back);
