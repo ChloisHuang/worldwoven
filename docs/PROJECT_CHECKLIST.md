@@ -1479,3 +1479,10 @@ FND01 R16.161发布范围（2026-10-07 UTC+8，已上线）：相对R160稳定�
 R16.161正式构建通过：316当前资源/8,720,484字节、R160实际316旧图全哈希保留，普通入口/版本及309模块链接通过，七个历史tracked资产原样保留。产品/测试与固定a4b1433e候选相同，仅发布标签及范围文档另改。
 
 FND01 R16.161/v189 于2026-10-06T21:45:56Z原公开站点发布成功；source `0a00809317f86a21be83a5af03e7afb68a5be91b`，private main `2b61fa978c2ff5a200ba6489a813cfdef0abc3e5` 已先推送读回。部署 `appgdep_6ac56c0c1ef88191b0eff3efaa2f763f` succeeded，https://alien.doudouai.net active/public，受众revision6保持。艺者本人餐款接线已上线，316资源/8,720,484字节、R160的316旧图与309模块通过，cache-baseline跟进实际316图。原paid-service economy/分账/身体控制及31/31范围不变；云来财产与完整角色迁移仍未完成，不称实机或全世界长时验收。
+
+FND01 产权源保存反向重入锁候选（R161稳定1415b1d底座，未发布）：只读审查后以真实player wage入账保存回调中厨师原6文餐重入复现旧错：二者均成功，live产权events仅npc-meal-payment，durable仅wage。先红后补prepareCurrencyCommit原共享saving锁，使用R160既有可选lock/release协议，持有到付款源整存及采纳，再finally释放；首次采纳需自己的锁，已接受重放只读。原current/till与pending对象一致性绑定，允许同一次已同意买卖/投入/支取pending，拒绝逸出的旧候选；不把pending一概拒绝，不改产权同意/价格/工资/初款/经营分账。未改sharedcurrency、main或餐聚合，owned-personal port留下一小批。基本真实race转绿，原产权买卖/有限个人480/240/260及精确餐退、R160雅集接待四腿锁、原掌柜厨师帮厨餐厕依赖检查；独立caller审查无合法未持锁直接采纳使用，失败/prepared/产权变更矩阵继续验证。
+产权保存锁最终证据：新定向回归在原1415b1d红、721a201绿，严格unhandled-rejections运行六组通过，覆盖双向重入/提前prepared候选、自锁采纳与释放、current/till失效、原全价订单支付退款、false/object/throw/resolve或reject Promise失败重试与重载。原已同意买卖全链保持：day10真实厨师出价236成交，合法240初款剩4、经营资本不变，不伪造市场offer或工资。独立review确认源九行变化无阻塞，既有caller全通过原共享lock协议，pending consent对象精确保留；原产权/个人餐款、R160四腿锁、掌柜及厨师帮厨餐厕定向通过。fresh build316资源/8,720,734字节，七历史tracked资产原样；无main、sharedcurrency协议、个人聚合端口或产权/经营规则改动，可独立发布，下一dormant仍分批。
+
+FND01 R16.162发布准备（2026-10-07 UTC+8）：相对R161文档 `1415b1d` 无冲突快进 `721a201` / `c9be6f5` 产权原保存重入锁热修，产品和定向测试逐字同已独立复核候选。原property currency候选绑定current/till/pending，首次采纳须持自身锁，沿R160既有可选协议锁住整存至采纳，finally释放；原产权同意、有限个人款、价格/经营资本与无锁来源行为不改。复用六组strict-rejections、双向/提前prepared/失败释放重试、原全价餐款退款、真实厨师236成交剩4与产权/四腿/掌柜厨师帮厨依赖回归；不因无冲突合版重复已过路线。语法/增量检查通过，main、sharedcurrency、休眠个人provider及31/31未改；财产跨族餐款与完整角色迁移仍开放。保留R161实际316缓存图并先经private main核验，再原Site发布。
+
+R16.162正式构建通过：316当前资源/8,720,734字节、R161实际316旧图全哈希保留，普通入口/版本及309模块链接通过，七个历史tracked资产原样恢复。产品/测试与固定c9be6f5候选相同，只另改版本及发布记录。

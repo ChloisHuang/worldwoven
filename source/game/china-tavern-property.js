@@ -193,7 +193,7 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
   function prepareCurrencyCommit(tx) {
     if(tx.action!=='business'&&!wages(tx))return null;
     if(loadError||saving)return fail(loadError||'property-busy');
-    const base=current,baseTill=getTill();
+    const base=current,baseTill=getTill(),basePending=pending;
     const verified=verifyReceptionAccount();if(!verified.ok)return verified;
     let next;
     if(tx.action==='business') {
@@ -205,7 +205,12 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
       next={...copy(current),revision:current.revision+1,events:[...current.events,{id:tx.requestId,kind:'wage',amount:tx.amount,day:tx.day,till:getTill(),funding:shortfall,funder:owner.ownerId}]};
     }
     try{validate(next,getTill());}catch{return fail('invalid-property-state');}
-    let accepted=false;return {ok:true,patch:{chinaTavernProperty:copy(next)},valid:()=>!loadError&&!saving&&(accepted||current===base&&getTill()===baseTill),committed:()=>{if(accepted)return true;if(loadError||saving||current!==base||getTill()!==baseTill)return false;current=next;accepted=true;lastError=null;return true;}};
+    let accepted=false,locked=false;
+    const valid=()=>!loadError&&!saving&&(accepted||current===base&&getTill()===baseTill&&pending===basePending);
+    return {ok:true,patch:{chinaTavernProperty:copy(next)},valid,
+      lock(){if(accepted||!valid())return false;saving=true;locked=true;return true;},
+      release(){if(locked){locked=false;saving=false;}},
+      committed(){if(accepted)return true;if(loadError||!locked||current!==base||getTill()!==baseTill||pending!==basePending)return false;current=next;accepted=true;lastError=null;return true;}};
   }
   // Only original, already-funded personal balances. This does not create a
   // bank account, salary, reserve injection or right to spend business capital.
