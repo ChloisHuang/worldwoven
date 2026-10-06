@@ -41,11 +41,11 @@ function fixture({actorId=ids[1],checkpoint=null,empty=false,withKitchen=true}={
  return {life,target,npcs,needs,service,state,tick,until,get orders(){return orders;},get requests(){return requests;},get consumes(){return consumes;},get cancels(){return cancels;},serve(){orders.findLast(o=>o.actorId===actorId).stage='served';},block:v=>blockedExit=v,reject:v=>failComplete=v,rejectCancel:v=>failCancel=v,rejectStart:v=>failStart=v,checkpoint:()=>({continuity:copy(life.snapshot()),needs:needs.snapshot(),orders:copy(orders),serial,positions:Object.fromEntries(npcs.map(n=>[n.station.id,n.root.position.toArray()]))})};
 }
 
-test('only the four existing adults enroll for food, keeping legacy hunger and receipt provenance',()=>{
+test('the four existing adults preserve food provenance while real palace toilets enable full needs',()=>{
  const clock={seconds:0},legacy=Object.fromEntries(ids.map((id,i)=>[id,{needs:{hunger:.21+i*.19}}]));let saved,fail=false;
  const needs=createDailyNeeds({getClock:()=>clock,legacyPeople:legacy,saveState:s=>{if(fail)return false;saved=s;return true;}});needs.enter('china',ids);
  for(const id of ids){assert(needs.has(id));assert(Math.abs(needs.hunger(id)-legacy[id].needs.hunger)<1e-12);}assert.equal(needs.has('cn-royal-child'),false);
- clock.seconds+=40*H;needs.update();for(const id of ids){assert.equal(needs.read(id).toilet,0);assert.equal(needs.read(id).toiletStrain,0);assert.equal(needs.status(id).seekToilet,false);assert.equal(needs.snapshot().people[id].toiletAge,0);}
+ clock.seconds+=40*H;needs.update();for(const id of ids){assert.equal(needs.read(id).toilet,1);assert(needs.read(id).toiletStrain>0);assert.equal(needs.status(id).seekToilet,true);assert.equal(needs.snapshot().people[id].toiletAge,40*H);}
  const r=receipt({id:'cn-royal-meal-1',number:1,actorId:ids[0],mealId:'cn-royal-meal-1-meal'});
  for(const change of[{completed:false},{actorId:'player'},{actorId:'cn-minister-works'},{number:2},{id:'fake'},{mealId:'other'},{dishId:'staff-ramen'},{supplyReceipt:'missing'}])assert.equal(needs.mealReceipts([{...r,...change}]),false);
  fail=true;assert.equal(needs.mealReceipts([r]),false);assert.equal(needs.hunger(ids[0]),1);fail=false;assert(needs.mealReceipts([r]));assert.equal(needs.hunger(ids[0]),0);assert.equal(needs.mealReceipts([r]),false);assert.equal(createDailyNeeds({saved}).mealReceipts([r]),false);

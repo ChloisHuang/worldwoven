@@ -2,7 +2,7 @@ import {captureWorldRuntime,restoreWorldRuntime} from './world-continuity.js';
 import {CHINA_CONSORTS,CONSORT_ROUTES,palaceResidentSave,palaceResident} from './china-palace-residents.js';
 import {consortActivities,createPalaceLeisureClaims} from './china-consort-activities.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
-import {canTraverse} from './navigation.js';
+import {blocked,canTraverse} from './navigation.js';
 import {followActorRoute,findActorStandPoint} from './actor-navigation.js';
 import {attachPalaceCostume,createPalaceMealKit} from './china-palace-costume.js';
 import {courtRouteBudget,cachedCourtPlanner} from './china-court-schedule.js';
@@ -21,7 +21,7 @@ const reverse=a=>a.slice().reverse().map(p=>p.slice());
 
 // The emperor keeps sole duty ownership; each consort leaves her own private
 // room through public circulation. Lin keeps his original tea-host job.
-export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveActor,poseContext,worldSeed=1,saved={},saveState=()=>{},beginInteraction=()=>null,onInteraction=()=>{},sharedNeeds=null,getKitchen=null}){
+export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveActor,poseContext,worldSeed=1,saved={},saveState=()=>{},beginInteraction=()=>null,onInteraction=()=>{},sharedNeeds=null,getKitchen=null,getToilet=null}){
  const actors=CHINA_PALACE_ROLES.map(r=>npcs.find(n=>n.station.id===r.id)),host=npcs.find(n=>n.station.id==='cn-tea');
  if(actors.some(n=>!n)||!host)return null;
  const [emperor,...consorts]=actors,owned=new Set(actors),costumes=actors.map(attachPalaceCostume),seat=id=>furniture.items.find(i=>i.id===id);
@@ -48,7 +48,28 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   {id:'meal',facilityId:mealSeats.get(n)?.id,label:'去御膳餐厅用些点心',base:.02,traits:{appetite:.2},needs:{hunger:3.5},relief:{fatigue:-.05},duration:[12,18],cooldown:100,available:mealAvailable(n)&&!!mealSeats.get(n)&&available(n,mealSeats.get(n).id),steps:[stage('leave-suite','离开私室 · 前往餐厅',homeExit(n)),stage('dining-arrival','沿外庭走到御膳餐厅',[...DINING,mealSeats.get(n)?.position||DINING.at(-1)]),stage('meal','在餐厅坐凳上用点心',[mealSeats.get(n)?.position||DINING.at(-1)],0,{mount:mealSeats.get(n),meal:true,chosen:true}),stage('return-suite','用餐后沿公共通廊回居',[...reverse(DINING),...homeReturn(n)])]},
   {id:'hall',label:'去正殿静坐',base:.12,traits:{curiosity:.5,quiet:.35},needs:{fatigue:-.2},relief:{fatigue:-.20},duration:[9,15],cooldown:90,available:playerState.facilityId!==throne.id,steps:[stage('public-stairs','离开寝殿 · 沿公共梯厅下楼',homeExit(n)),stage('hall-arrival','穿过仪庭 · 上正殿前阶',COURT),stage('hall-rest','在正殿御座稍坐',[throne.position],0,{mount:throne,chosen:true}),stage('return-residence','离殿回居 · 走公共梯厅',[...reverse(COURT),...homeReturn(n)])]}
  ];
- function urgent(n){const p=brain.state(n.station.id);return p.needs.hunger>.82||p.needs.fatigue>.88;}
+ function urgent(n){const p=brain.state(n.station.id);return !!sharedNeeds?.status(n.station.id)?.seekToilet||p.needs.hunger>.82||p.needs.fatigue>.88;}
+ // Only the existing life owner selects/executes these paths. The facility
+ // owns its private mount and complete-only receipt, never a second actor.
+ const toilet=()=>getToilet?.()||null;
+ function toiletChoice(n){
+  const target=toilet()?.palaceIntent?.()?.position;
+  if(!target)return null;
+  const upper=n===emperor&&n.root.position.y>6;
+  const path=upper?STAIRS.slice(0,7):[...(n!==emperor&&!publicPosition(n)?CONSORT_ROUTES[n.station.id]:[]),...reverse(STAIRS.slice(6))];
+  const back=n===emperor?[...reverse(STAIRS.slice(0,7)),[-18.2,7.815,-5],n.home.toArray()]:[...STAIRS.slice(6),...homeReturn(n)];
+  return {id:'toilet',label:'沿公共梯厅去后宫净室',base:1,relief:{},duration:[0,0],cooldown:18,available:!!sharedNeeds?.status(n.station.id)?.seekToilet&&!!toilet()?.palaceAvailable?.(),steps:[stage('toilet-arrival','沿公共梯厅前往二层净室',[...path,target]),stage('toilet-use','在私密净室如厕',[target],0,{toilet:true,chosen:true}),stage('return-suite','如厕后沿公共梯厅回居',back)]};
+ }
+ function cancelToilet(n,s,reason){
+  if(s?.choice?.id!=='toilet'||s.choice.toiletFinished)return true;
+  const service=toilet();if(service?.ownsActor(n)&&!service.cancel(reason,n.station.id))return false;
+  s.choice.toiletFinished=true;s.choice.fulfilled=false;return true;
+ }
+ function toiletDutyExit(n,s){
+  const stop=scripts.get(n)[s.index],remaining=stop.toilet||s.arrived?[]:stop.path.slice(s.waypoint);
+  scripts.set(n,[stage('toilet-duty-exit','应召离开净室 · 沿公共梯厅下楼',[...remaining,...STAIRS.slice(6)]),stage('toilet-duty-handoff','已到公共前厅 · 应召赴殿',[HALL.at(-1)])]);enter(n,0);
+ }
+
  function publicPosition(n){return n.root.position.y<.6&&n.root.position.z<-12.25||lot.interiorRooms?.some(r=>r.id==='residence-living'&&n.root.position.x>r.minX&&n.root.position.x<r.maxX&&n.root.position.z>r.minZ&&n.root.position.z<r.maxZ&&Math.abs(n.root.position.y-r.floorY)<.4);}
  function idleEligible(n){const s=stages.get(n);return !!s?.idle&&s.arrived&&!s.mount&&!n.walking&&!interrupted(n)&&playerState.performing!==n.station.id&&!urgent(n)&&brain.canReply(n.station.id);}
  function meetingAvailable(n){return !RECEPTION_SEATS.includes(playerState.facilityId)&&CONSORT_MEETING_IDS.every(id=>available(n,id));}
@@ -106,12 +127,13 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
    stages.set(n,{choice:null,cycles:stages.get(n)?.cycles||0});enter(n,0);return;
   }
   const reachable=steps=>{const end=steps?.find(s=>s.chosen)?.path.at(-1);return !!end&&(near(n.root.position,end,.1)||planPath(n.root.position,point(end),.25).length>0);};
-  const options=candidates(n).map(c=>c.targets?{...c,targets:c.targets.map(t=>({...t,available:t.available!==false&&reachable(t.choice?.steps||c.steps)}))}:{...c,available:c.available!==false&&reachable(c.steps)});
-  const need=n!==emperor?brain.state(n.station.id).needs:null,priority=need?.fatigue>.88?options.filter(c=>c.id==='rest'&&c.available):null;
+  const options=[...candidates(n),toiletChoice(n)].filter(Boolean).map(c=>c.targets?{...c,targets:c.targets.map(t=>({...t,available:t.available!==false&&reachable(t.choice?.steps||c.steps)}))}:{...c,available:c.available!==false&&reachable(c.steps)});
+  const need=n!==emperor?brain.state(n.station.id).needs:null,priority=options.some(c=>c.id==='toilet'&&c.available)?options.filter(c=>c.id==='toilet'&&c.available):need?.fatigue>.88?options.filter(c=>c.id==='rest'&&c.available):null;
   let choice=brain.choose(n.station.id,priority?.length?priority:options,playerState.hour??10);
   if(!choice&&n!==emperor){idle(n,'暂时自己歇歇 · 稍后再作打算');return;}
   if(choice?.id==='conversation'){if(!invitation(n,choice)){brain.complete(n.station.id,choice,{fulfilled:false});idle(n,'对方正在忙 · 改日再访');}return;}
   if(choice&&!claims.reserve(choice.facilityId,n.station.id,n===emperor?360:120)){brain.complete(n.station.id,choice,{fulfilled:false});choice=null;}
+  if(choice?.id==='toilet'&&!toilet()?.requestPalaceActor(n)){brain.complete(n.station.id,choice,{fulfilled:false});choice=null;}
   if(choice?.id==='meal'&&getKitchen&&!bindMeal(n,choice)){claims.release(n.station.id);brain.complete(n.station.id,choice,{fulfilled:false});choice=null;}
   const steps=choice?choice.steps.map(s=>({...s,...(n!==emperor&&s.id==='leave-suite'&&publicPosition(n)?{path:[HALL.at(-1)]}:{}),duration:s.chosen?choice.duration:s.duration})): [stage('quiet-pause','在自己的私室稍作停留',[n.home.toArray()],6)];
   scripts.set(n,steps);const previous=stages.get(n);stages.set(n,{choice,cycles:previous?.cycles||0});enter(n,0);
@@ -149,7 +171,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   // Only Lin participated in this completed exchange. Passing NPCs gain no knowledge.
   if(scripts.get(n)[s.index].pair&&hostHeld===n&&s.elapsed>=scripts.get(n)[s.index].duration){brain.observe(n.station.id,s.choice,{observers:[{id:host.station.id,knowledge:'participant'}]});record(n,'tea-conversation:completed');}
   if(hostHeld===n)releaseHost();if(scripts.get(n)[s.index].chosen)claims.release(n.station.id);if(s.index+1===scripts.get(n).length){if(n===emperor&&duty?.active){record(n,'duty-released:'+duty.owner);duty=null;}if(s.choice){brain.complete(n.station.id,s.choice,{fulfilled:s.choice.fulfilled!==false});s.cycles++;}if(n!==emperor&&!urgent(n))idle(n);else choose(n);}else enter(n,s.index+1);return true;}
- function cancelCommitment(n,s,reason){if(!cancelMeal(n,s,reason)||!unmount(n,s))return false;if(hostHeld===n)releaseHost();claims.release(n.station.id);if(s.choice){s.choice.fulfilled=false;brain.complete(n.station.id,s.choice,{fulfilled:false});}record(n,'leisure-deferred:'+reason);const room=lot.interiorRooms?.find(r=>r.id===n.station.privateRoomId),p=n.root.position,inOwnRoom=room&&p.x>room.minX&&p.x<room.maxX&&p.z>room.minZ&&p.z<room.maxZ&&Math.abs(p.y-(room.floorY??n.home.y))<.4;scripts.set(n,[stage('return-suite','改日再访 · 回自己的私室',inOwnRoom?[n.home.toArray()]:homeReturn(n))]);enter(n,0);return true;}
+ function cancelCommitment(n,s,reason){if(!cancelToilet(n,s,reason)||!cancelMeal(n,s,reason)||!unmount(n,s))return false;if(hostHeld===n)releaseHost();claims.release(n.station.id);if(s.choice){s.choice.fulfilled=false;brain.complete(n.station.id,s.choice,{fulfilled:false});}record(n,'leisure-deferred:'+reason);const room=lot.interiorRooms?.find(r=>r.id===n.station.privateRoomId),p=n.root.position,inOwnRoom=room&&p.x>room.minX&&p.x<room.maxX&&p.z>room.minZ&&p.z<room.maxZ&&Math.abs(p.y-(room.floorY??n.home.y))<.4;scripts.set(n,[stage('return-suite','改日再访 · 回自己的私室',inOwnRoom?[n.home.toArray()]:homeReturn(n))]);enter(n,0);return true;}
  function travel(n,s,to,dt){
   if(near(n.root.position,to)){n.route=[];s.planned=false;s.retries=0;return true;}
   if(!s.planned){n.route=planPath(n.root.position,point(to),.25);s.planned=true;}
@@ -163,7 +185,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   return false;
  }
  function interrupted(n){return playerState.conversationActorId===n.station.id;}
- function socialStatus(n){if(!owned.has(n)&&!(hostHeld&&n===host))return null;const busy=n===emperor&&!!duty&&!duty.release||!!conversation?.participants.includes(n.station.id)||!!hostHeld&&(n===host||n===hostHeld)||owned.has(n)&&urgent(n);return {busy,canPause:!busy&&!stages.get(n)?.mount,attention:!busy,job:n===host?'与'+(palaceResident(hostHeld?.station.id)?.shortName||'来客')+'在茶席叙话':scripts.get(n)[stages.get(n).index].label};}
+ function socialStatus(n){if(!owned.has(n)&&!(hostHeld&&n===host))return null;const busy=stages.get(n)?.choice?.id==='toilet'&&!stages.get(n).choice.toiletFinished||n===emperor&&!!duty&&!duty.release||!!conversation?.participants.includes(n.station.id)||!!hostHeld&&(n===host||n===hostHeld)||owned.has(n)&&urgent(n);return {busy,canPause:!busy&&!stages.get(n)?.mount,attention:!busy,job:n===host?'与'+(palaceResident(hostHeld?.station.id)?.shortName||'来客')+'在茶席叙话':scripts.get(n)[stages.get(n).index].label};}
  function petitionAvailability(){
   const info=socialStatus(emperor),s=stages.get(emperor),stop=scripts.get(emperor)?.[s?.index];
   if(disposed||!info||info.busy||interrupted(emperor)||stop?.meal||s?.mount?.kind==='bed')return {ok:false,reason:'emperor-busy'};
@@ -180,6 +202,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   return {id:`palace-action:${emperor.station.id}:${p.choices}:${p.current?.startedAt}:${stop.id}`,actorId:emperor.station.id,actionId:s.choice.id};
  }
  function animate(n,s,t){
+  const privatePose=toilet()?.actorPose(n);if(privatePose){meals.get(n).show(false);n.animate(t+n.phase,false,privatePose.action,{...poseContext(n,null),...privatePose.context});return;}
   const stop=scripts.get(n)[s.index],context=poseContext(n,null);context.handoff=false;context.heldProp=null;context.seatedMeal=false;meals.get(n).show(false);
   if(s.mount){const m=s.mount;context.seatHeight=m.seatY===undefined?undefined:m.seatY-n.root.position.y-context.visualFloorOffset;if(m.kind==='bed'){context.visualFloorOffset=0;context.supportY=m.supportY;context.lieSupport=m.lieSupport;context.lieOffset=m.lieOffset;context.lieSurfaceHeightAt=(x,z)=>furniture.bedSupportAt(m,x,z);}}
   if(stop.pair&&hostHeld===n&&!interrupted(n)&&!interrupted(host)||stop.consortPair&&conversation?.phase==='talking'&&!interrupted(n))context.handoff=true;
@@ -221,8 +244,10 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
    const s=stages.get(emperor),steps=scripts.get(emperor),fail=reason=>({reachable:false,seconds:Infinity,reason,stage:steps[s.index].id});
    if(disposed||duty&&duty.owner!==owner)return fail('duty-owned-by-another-service');
    if(interrupted(emperor))return fail('emperor-in-conversation');
-   const landing=s.mount?furniture.standPoint(navigation,safety(emperor),s.mount):emperor.root.position;
+   const privatePose=toilet()?.actorPose(emperor),approach=toilet()?.palaceIntent?.()?.position;
+   const landing=privatePose?approach&&!blocked(approach[0],approach[2],lot.colliders.concat(safety(emperor)),emperor.collisionRadius??.25,{...navigation,y:approach[1]})?point(approach):null:s.mount?furniture.standPoint(navigation,safety(emperor),s.mount):emperor.root.position;
    if(!landing)return fail('safe-stand-exit-blocked');
+   if(s.choice?.id==='toilet'&&!s.choice.toiletFinished){const stop=steps[s.index],remaining=stop.toilet||s.arrived?[]:stop.path.slice(s.waypoint),path=[...remaining,...STAIRS.slice(6),...COURT,throne.position];return {...courtRouteBudget({position:landing,path,walkSpeed:emperor.locomotion.walkSpeed,planPath:planDutyPath,doorways:lot.doorways,safeExitSeconds:privatePose?2:0,doorSeconds:2}),stage:stop.id,handoff:'public',path:path.map(p=>p.slice())};}
    if(duty?.active&&s.mount===throne&&!duty.release&&!duty.yieldSeat)return {reachable:true,seconds:0,distance:0,path:[],stage:steps[s.index].id};
    const path=[];let knownSegments=0,handoff=near(landing,emperor.home.toArray(),.4)?'home':near(landing,HALL.at(-1),.3)?'public':null;
    if(!duty?.active&&!handoff||duty?.active){
@@ -248,6 +273,12 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
    if(disposed)return;playerState=state;time+=dt;brain.tick(dt);
    for(const n of actors){
     n.walking=false;let s=stages.get(n),stop=scripts.get(n)[s.index];tell(n,stop.label);s.greetingActive=false;
+    if(s.choice?.id==='toilet'&&!s.choice.toiletFinished){
+     if(n===emperor&&duty&&!duty.active){
+      if(!cancelToilet(n,s,'royal-duty')){animate(n,s,t);continue;}
+      toiletDutyExit(n,s);s=stages.get(n);stop=scripts.get(n)[s.index];
+     }else if(!toilet()?.ownsActor(n)){s.choice.toiletFinished=true;s.choice.fulfilled=sharedNeeds?.status(n.station.id)?.seekToilet===false;enter(n,scripts.get(n).length-1);s=stages.get(n);stop=scripts.get(n)[s.index];}
+    }
     if(getKitchen&&kitchen()&&s.choice?.id==='meal'&&!s.choice.mealCompleted&&!s.choice.mealCancelled){
      const legacyMeal=!s.choice.orderId;
      if(s.choice.mealCancelReason)cancelMeal(n,s,s.choice.mealCancelReason);
@@ -302,6 +333,11 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
       n.root.rotation.y=Math.atan2(host.root.position.x-n.root.position.x,host.root.position.z-n.root.position.z);host.root.rotation.y=Math.atan2(n.root.position.x-host.root.position.x,n.root.position.z-host.root.position.z);tell(n,'与 Lin 聊今日荷色和茶香');tell(host,'接待'+palaceResident(n.station.id).shortName+' · 茶案前叙话');
      }
      if(stop.consortPair){tell(n,'在前厅等已应邀的姐妹');animate(n,s,t);continue;}
+     if(stop.toilet){
+      const service=toilet();service?.updateActor(n,dt);
+      if(service?.ownsActor(n)){tell(n,service.label(n.station.id)||stop.label);animate(n,s,t);continue;}
+      s.choice.toiletFinished=true;s.choice.fulfilled=sharedNeeds?.status(n.station.id)?.seekToilet===false;advance(n,s);animate(n,stages.get(n),t);continue;
+     }
      if(stop.meal){
       if(s.choice?.mealCompleted||n===emperor&&duty&&!duty.active){advance(n,s);animate(n,stages.get(n),t);continue;}
       if(!readyMeal(n,s)){tell(n,'在餐席等候御膳送达');animate(n,s,t);continue;}
