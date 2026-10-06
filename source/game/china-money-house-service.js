@@ -53,12 +53,13 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
    row.append(input);label.append(row);return {label,input};
   };
   const currencyChoice=selector('办理币种',currency,value=>{currency=value;if(exchangeTo===currency)exchangeTo=Object.keys(GAME_CURRENCIES).find(id=>id!==currency);});
-  const total=b.cash+b.bank,toolbar=make('div',undefined,'cn-money-toolbar'),totalText=make('span','共 ','cn-money-total');totalText.append(make('strong',String(total)),make('small',` ${unit}`));toolbar.append(currencyChoice,totalText);
-  const current=make('div',undefined,'cn-money-current'),currentCash=make('strong',undefined,'is-cash'),currentBank=make('strong',undefined,'is-bank');current.append(make('span','当前'),currentCash,make('span','·'),currentBank);main.append(toolbar,current);
+  const total=b.cash+b.bank,toolbar=make('div',undefined,'cn-money-toolbar'),totalText=make('span','合计 ','cn-money-total');totalText.append(make('strong',String(total)),make('small',` ${unit}`));toolbar.append(currencyChoice,totalText);main.append(toolbar);
+  const targets=make('div',undefined,'cn-money-targets'),cashTarget=make('div',undefined,'cn-money-target is-cash'),bankTarget=make('div',undefined,'cn-money-target is-bank'),currentCash=make('strong'),currentBank=make('strong');
+  cashTarget.append(make('span','随身现金'),currentCash);bankTarget.append(make('span','银行存款'),currentBank);targets.append(cashTarget,bankTarget);
   const strip=make('div',undefined,'cn-money-strip'),bankFill=make('div',undefined,'cn-money-bank-fill');strip.append(bankFill);
   const slider=make('input',undefined,'cn-money-allocation-range');slider.type='range';slider.min='0';slider.max=String(total);slider.step='1';slider.value=String(b.cash);slider.disabled=!b.accountOpened||total===0;slider.setAttribute('aria-label','随身现金分配');
   const split=make('div',undefined,'cn-money-split'),grip=make('span','‹›');split.setAttribute('aria-hidden','true');split.append(grip);strip.append(slider,split);
-  if(b.held)main.append(make('p',`服务预留 ${b.held} ${unit}`,'cn-money-note cn-money-hold'));
+  if(b.held)totalText.append(make('small',`服务预留 ${b.held} ${unit}`,'cn-money-hold'));
   const bank=make('section',undefined,'cn-money-allocation');
   const preview=make('p',undefined,'cn-money-allocation-preview'),fine=make('div',undefined,'cn-money-fine');fine.append(strip);
   const confirm=make('button',undefined,'cn-money-confirm ww-airy-action');confirm.type='button';confirm.dataset.moneyAction='allocation';preview.setAttribute('role','status');
@@ -67,12 +68,12 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
    const candidate=Number(slider.value),valid=Number.isSafeInteger(candidate)&&candidate>=0&&candidate<=total;
    targetCash=valid?candidate:b.cash;const targetBank=total-targetCash,delta=targetCash-b.cash,ratio=total?targetCash/total:.5;
    const divider=`calc(12px + (100% - 24px) * ${ratio})`;bankFill.style.left=divider;split.style.left=divider;
-   currentCash.textContent=`现金 ${targetCash} ${unit}`;currentBank.textContent=`存款 ${targetBank} ${unit}`;currentCash.setAttribute('aria-label',`随身现金：${currencyText(currency,targetCash)}`);currentBank.setAttribute('aria-label',`银行存款：${currencyText(currency,targetBank)}`);
+   currentCash.replaceChildren(make('span',String(targetCash)),make('small',` ${unit}`));currentBank.replaceChildren(make('span',String(targetBank)),make('small',` ${unit}`));currentCash.setAttribute('aria-label',`随身现金：${currencyText(currency,targetCash)}`);currentBank.setAttribute('aria-label',`银行存款：${currencyText(currency,targetBank)}`);
    slider.setAttribute('aria-valuetext',`随身现金 ${targetCash} ${unit}，银行存款 ${targetBank} ${unit}`);
-   preview.textContent=!b.accountOpened?'请先免费立账':!total?'暂无可分配余额':!valid?'分配数目无效':delta===0?'当前分配未改变':delta>0?`从银行取出 ${delta} ${unit}`:`向银行存入 ${-delta} ${unit}`;
+   preview.textContent=!valid?'分配数目无效':message||(!b.accountOpened?'请先免费立账':!total?'暂无可分配余额':!valid?'分配数目无效':delta===0?'当前分配未改变':delta>0?`从银行取出 ${delta} ${unit}`:`向银行存入 ${-delta} ${unit}`);
    confirm.textContent=delta>0?`取出 ${delta} ${unit}`:delta<0?`存入 ${-delta} ${unit}`:'确认分配';confirm.disabled=!valid||!b.accountOpened||total===0||delta===0;
   };
-  slider.oninput=()=>{if(available(version))updateAllocation();};slider.addEventListener('keydown',e=>e.stopPropagation());
+  slider.oninput=()=>{if(available(version)){message='';updateAllocation();}};slider.addEventListener('keydown',e=>e.stopPropagation());
   confirm.onclick=()=>{
    if(submitted||confirm.disabled||!available(version)||currency!==allocationCurrency)return;
    const current=ledger.balances?.()?.[currency];
@@ -81,8 +82,9 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
    submitted=true;confirm.disabled=true;const kind=delta>0?'withdraw':'deposit',result=ledger[kind](Math.abs(delta),requestId,currency);
    message=result.ok?`${kind==='deposit'?'存入银行':'取到钱袋'} ${currencyText(currency,Math.abs(delta))}，账房已经记清`:(ERRORS[result.code]||'这笔尚未记入，请核对后再试');render();
   };
-  updateAllocation();const bankActions=make('div',undefined,'cn-money-actions');bankActions.append(confirm);bank.append(fine,preview,bankActions);
+  updateAllocation();const bankActions=make('div',undefined,'cn-money-actions');bankActions.append(preview,confirm);bank.append(targets,fine,bankActions);
   if(!b.accountOpened){
+   confirm.hidden=true;
    const open=make('button','免费立账','cn-money-confirm ww-airy-action');open.type='button';open.dataset.moneyAction='open';const openId=`${C.id}-${state.nextTransaction}-open-${++requestSerial}`;let opened=false;
    open.onclick=()=>{if(opened||!available(version))return;opened=true;open.disabled=true;const result=ledger.openAccount(openId,currency);message=result.ok?'账簿已经立好，不收费用':ERRORS[result.code]||'账簿尚未保存，请稍后再试';render();};bankActions.append(open);
   }
@@ -109,7 +111,6 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
     message=result.ok?`兑换已记清：交出 ${currencyText(currency,lockedQuote.amount)}，收到 ${currencyText(exchangeTo,lockedQuote.received)}`:(ERRORS[result.code]||'兑换尚未保存，请稍后再试');render();
    };fxPreview.append(quoteText);area.append(label,button);sheet.append(area);
   }
-  const status=make('p',message,'cn-money-status');status.setAttribute('role','status');main.append(status);
   const more=make('details',undefined,'cn-money-more');const moreTitle=make('summary','往来账');moreTitle.setAttribute('aria-label','往来账与办理说明');more.append(moreTitle);
   more.append(make('p','正式工资存入银行，亲自取款后可花用。首次正式岗位工钱入账时，会免费建立工资账簿。','cn-money-note'));
   const history=ledger.history();if(!history.length)more.append(make('p','尚无往来账'));
@@ -119,7 +120,7 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
    else if(kind==='exchange')text=`兑换：${currencyText(row.quote.from,row.quote.amount)} → ${currencyText(row.quote.to,row.quote.received)}`;
    else text=`${({deposit:'存入银行',withdraw:'取到钱袋',earn:'旧制计件工钱',wage:'正式工资入银行',reserve:'服务预留',settle:'服务结清（不再扣钱）',refund:'退回原币种'})[kind]||'往来'} ${currencyText(id,row.amount)}`;
    list.append(make('li',text));}more.append(list);}
-  more.append(make('p','仅游戏票券；存取及兑换只在银行柜台办理。合上账簿保留已记好的账；未按按钮的数目不会入账。','cn-money-note'));main.append(more);
+  more.append(make('p','仅游戏票券；存取及兑换只在银行柜台办理。合上账簿保留已记好的账；未按按钮的数目不会入账。','cn-money-note'));toolbar.append(more);
  }
  dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
  const unsubscribe=ledger.subscribeCommitted?.(()=>{if(dialog.open&&!disposed)render();});
