@@ -42,6 +42,7 @@ const POLICY={
   'cn-official-room-xu-door':['door','Xu Zhiyuan private duty lodging needs an opaque inset door'],
   'cn-money-house-front':['door','Inset timber public money-house entrance'],
   'cn-money-house-store':['door','Enclosed coin store with a real inset timber door'],
+  'cn-tavern-washroom-curtain':['full-curtain','Public inn WC has an opaque full curtain; its arrival and seat are clear of the safety hold zone'],
   'cn-tavern-public-entry':['open','Public house stair hall keeps direct access from the court'],
   'cn-tavern-dining-entry':['open','Open commercial restaurant arrival'],
   'cn-tavern-dining-hall':['open','Dining hall joins the public stair corridor'],
