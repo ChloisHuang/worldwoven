@@ -195,7 +195,7 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
   const candidate=SPECS[order?.stage],spec=(playerServing()&&!candidate?.role||playerPreparing()&&candidate?.role==='cook')?candidate:null;
   if(!spec)return {waiting:true,label:!order?`${duty.role==='cook'?'糕点房':'茶廊'}候班 · 等加布里埃尔自行来点茶`:duty.role==='cook'?'等玛农实到报单、原茶盘送席或原杯碟收洗':['preparing','brewing'].includes(order.stage)?'等卡米耶备好同号茶点':'等来客用茶、离座与下一份真实订单'};
   const waiting=order.stage==='ticket'&&!near(cook,P.prep)||order.stage==='pickup'&&!near(cook,P.cookAside)||['receiving'].includes(order.stage)&&!near(host,P.report);
-  return {...copy(spec),orderId:order.id,trayId:order.trayId,waiting,label:waiting?'等卡米耶实到交接位置':spec.label};
+  return {...copy(spec),...(spec.key==='receive-order'?{visualAnchor:{actorId:P.host}}:spec.key==='take-order'?{visualAnchor:{actorId:P.guest}}:{}),orderId:order.id,trayId:order.trayId,waiting,label:waiting?'等卡米耶实到交接位置':spec.label};
  }
  function claimDuty(id,role='host'){
   if(disposed||!new RegExp('^'+(role==='cook'?'fr-pastry':'fr-tea')+'-labor-[1-9][0-9]*$').test(id)||intent||order?.customer==='player')return false;

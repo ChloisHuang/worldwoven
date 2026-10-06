@@ -85,7 +85,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
  }
  function workIntent(receiptId){if(!npcOrder()||order.worker!=='player'||order.workReceiptId!==receiptId||workAction)return null;
   const kind=order.stage==='handoff'?'take':order.stage==='stock'?'prepare':order.stage==='counter'?'deliver':null;if(!kind)return null;
-  return {kind,key:[order.id,order.stage,receiptId].join(':'),orderId:order.id,recipientId:order.recipientId,number:order.number,cardId:order.cardId,packetId:order.packetId,position:(kind==='take'?P.assistantHandoff:kind==='prepare'?P.stock:P.assistant).slice(),executionRadius:.28,
+  return {kind,key:[order.id,order.stage,receiptId].join(':'),orderId:order.id,recipientId:order.recipientId,number:order.number,cardId:order.cardId,packetId:order.packetId,visualAnchor:kind==='take'?{actorId:'cn-clinic-physician'}:{id:kind==='prepare'?'cn-pharmacy-stock':'cn-pharmacy-counter',point:(kind==='prepare'?P.stockWork:P.counterTop).slice()},position:(kind==='take'?P.assistantHandoff:kind==='prepare'?P.stock:P.assistant).slice(),executionRadius:.28,
    action:kind==='take'?`接第 ${order.number} 号原单 · ${order.recipientName}`:kind==='prepare'?`按第 ${order.number} 号原单折云纹包`:`核对第 ${order.number} 号 · 交给${order.recipientName}`};
  }
  function executeWork(choice,receiptId,p){const current=workIntent(receiptId),job=getEmployment();if(!current||job?.receiptId!==receiptId||job.stage!=='working'||!isAssistantHired()||getMounted()||!p||!near(p,current.position,.28)||['kind','key','orderId','recipientId','number','cardId','packetId'].some(k=>choice?.[k]!==current[k]))return false;

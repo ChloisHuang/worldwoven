@@ -44,6 +44,7 @@ export function createHudLayout(root=document){
  mutationObserver?.observe(root.body,{childList:true});
  return {
   invalidate,
+  frame(viewport={left:0,top:0,width:globalThis.innerWidth||1,height:globalThis.innerHeight||1}){const r=uiFrames.get(root)||viewport;return {...r,right:r.right??r.left+r.width,bottom:r.bottom??r.top+r.height};},
   rects(){
    if(dirty){
     const elements=[...root.querySelectorAll(HUD)];
@@ -53,12 +54,15 @@ export function createHudLayout(root=document){
    }
    return rects;
   },
-  obscures(label,viewport,padding=6){
+  labelRect(label,viewport){
    const key=label.textContent+'|'+viewport.width+'|'+viewport.height;
    let size=dimensions.get(label);
    if(!size||size.key!==key){size={key,width:label.offsetWidth,height:label.offsetHeight};dimensions.set(label,size);}
    const x=parseFloat(label.style.left),y=parseFloat(label.style.top);
-   return labelOverlapsHud({left:x-size.width/2,right:x+size.width/2,top:y-size.height,bottom:y},this.rects(),uiFrames.get(root)||viewport,padding);
+   return {left:x-size.width/2,right:x+size.width/2,top:y-size.height,bottom:y};
+  },
+  obscures(label,viewport,padding=6){
+   return labelOverlapsHud(this.labelRect(label,viewport),this.rects(),uiFrames.get(root)||viewport,padding);
   }
  };
 }

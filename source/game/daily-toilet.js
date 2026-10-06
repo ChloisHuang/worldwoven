@@ -139,7 +139,7 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
  }
  function intent(){
   if(disposed||!available)return null;
-  return {id:P.intentId,provider:P.provider,kind:'toilet',facilityId:P.id,position:[...P.approach],roomId:P.roomId,name:P.name,npcName:'日常起居',action:current?'净室使用中':'如厕',intentKey:'toilet:'+durable.serial+':'+(current?.actorId||'free'),interactionRadius:2.6,executionRadius:P.executionRadius,priority:45};
+  return {id:P.intentId,provider:P.provider,kind:'toilet',facilityId:P.id,visualAnchor:{id:P.id,point:[P.anchor[0],P.seatY+.55,P.anchor[2]]},position:[...P.approach],roomId:P.roomId,name:P.name,npcName:'日常起居',action:current?'净室使用中':'如厕',intentKey:'toilet:'+durable.serial+':'+(current?.actorId||'free'),interactionRadius:2.6,executionRadius:P.executionRadius,priority:45};
  }
  const resolveIntent=selected=>{const next=intent();return next&&selected?.provider===next.provider&&selected.id===next.id&&selected.intentKey===next.intentKey?next:null;};
  function pose(actor){return current?.actor===actor&&current.mounted&&at(actor,P.anchor,.025)?{action:'chair-sit',context:{seatHeight:P.seatY-P.anchor[1],visualFloorOffset:0,heldProp:null,handoff:false,seatedMeal:false},seatY:P.seatY,anchor:[...P.anchor],yaw:P.yaw}:null;}
