@@ -5,6 +5,10 @@
 // This is not natural-demand, pathfinding, pose-contact or browser evidence.
 import assert from 'node:assert/strict';
 import {createChinaOfficialEconomy,CHINA_OFFICIAL_IDS} from '../source/game/china-official-economy.js';
+import {createNPCDutyAccount} from '../source/game/npc-duty-account.js';
+import {createNPCGuestAccounts} from '../source/game/npc-guest-accounts.js';
+import {PALACE_GUARD_ROLE as GUARD} from '../source/game/formal-careers.js';
+import {GAME_MINUTES_PER_SECOND as RATE} from '../source/game/simulation-clock.js';
 import {createChinaSalonEconomy} from '../source/game/china-salon-economy.js';
 import {createChinaSalonReceptionAccount} from '../source/game/china-salon-reception-account.js';
 import {createChinaTavernProperty} from '../source/game/china-tavern-property.js';
@@ -29,14 +33,14 @@ function fixture(input={},dormant=true,observed=true,realContact=false){
  // remain available for strict replay before the live income ledger exists.
  property=createChinaTavernProperty({saved:saved.chinaTavernProperty,copperLedger:bank,getClock:()=>({day:20}),getTill:()=>artistEconomy?.summary().businessProceeds??saved.chinaSalonEconomy?.businessProceeds??0,getReceptionAccount:()=>account||saved.chinaSalonReceptionAccount,saveState:()=>false});
  account=createChinaSalonReceptionAccount({saved:saved.chinaSalonReceptionAccount,getSalonIncome:()=>artistEconomy?.snapshot()||saved.chinaSalonEconomy,getProperty:()=>property});
- artistEconomy=createChinaSalonEconomy({saved:saved.chinaSalonEconomy,copperLedger:bank,officialEconomy:official,getReceptionAccount:()=>account});
+ artistEconomy=createChinaSalonEconomy({saved:saved.chinaSalonEconomy,copperLedger:bank,officialEconomy:official,getReceptionAccount:()=>account,saveState:(next,r,patch={})=>checkpoint({...patch,chinaSalonEconomy:next})});
  assert.equal(artistEconomy.loadError,null);assert.equal(account.loadError,null);assert.equal(property.loadError??property.state().loadError,null);
  const port=createChinaOfficialSalonPayments({officialEconomy:official,artistEconomy});
  service=createChinaTavernSalon({...(realContact?{}:{receptionProps:{sync(){},clear(){},dispose(){},state:()=>null,apply(o,n,t,c){n.animate(t,false,'calligraphy',{...c,receptionWriting:true});return {observed,sessionId:o.id,cardId:o.receptionWork.cardId,phase:o.receptionWork.phase};}}}),npcs,copperLedger:bank,economy:artistEconomy,npcPayments:port,...(dormant?{receptionDuty:{resolve:()=>({holderId:hostId,actor:host,revision,available:host.alive,alive:host.alive})}}:{}),sharedNeeds:{status:id=>need[id]||null,hunger:()=>.1},getPlayer:()=>player,poseContext:()=>({}),doors:{routeStep:r=>({waypoint:r[0]})},planPath:(_,p)=>[p],moveActor(n,x,z){n.root.position.x+=x;n.root.position.z+=z;},saved:saved.checkpoint?{continuity:saved.checkpoint}:{},saveState:()=>{if(fail==='all'||fail==='source')return false;return checkpoint({chinaSalonEconomy:artistEconomy.snapshot()});}});
  if(saved.checkpoint)assert(service.restore(saved.checkpoint));
  const pay=()=>{for(let day=0;day<2;day++)assert(official.completeDuty({actorId:customerId,day,receiptId:`cn-official-duty:${customerId}:${day}`,evidence:{kind:'office-work',completed:true,actorId:customerId,day,audienceDay:day,audienceCompleted:true,elapsed:8,duration:8}}).ok);};
  const tick=(count=1,context={})=>{for(let i=0;i<count;i++){elapsed+=.1;service.update(.1,elapsed,context);}};
- return {service,official,artistEconomy,account,property,artist,guest,host,player,pay,tick,poses,need,get saved(){return copy(saved);},set fail(v){fail=v;},changeHolder(){revision++;}};
+ return {service,official,artistEconomy,account,property,artist,guest,host,player,pay,tick,poses,need,checkpoint,get saved(){return copy(saved);},set fail(v){fail=v;},changeHolder(){revision++;}};
 }
 function invited(f){f.pay();assert(f.service.requestNPC(customerId,artistId,'poetry',20));assert.equal(f.service.snapshot().session.receptionWork.steps.registerSeconds,0);}
 function accepted(f){invited(f);f.artist.root.position.set(22.85,7.815,7.65);f.tick(33);assert.equal(f.service.snapshot().session.stage,'accepted');}
@@ -57,3 +61,27 @@ const noContact=fixture({},true,false);invited(noContact);noContact.tick(40);ass
 const physical=fixture({},true,true,true);fade(physical);physical.tick(45);assert.equal(physical.account.account(hostId).bank,8);assert(physical.service.receptionWorkState().observed);assert.equal(physical.service.receptionWorkState().cardId,physical.service.snapshot().session.receptionWork.cardId);assert(physical.service.receptionWorkState().gap<.008);physical.service.dispose();physical.host.dispose();console.log('PASS same original paid controller completes with real complete-adult Wenwan rig, pen/page/card contacts, and one8 wage; no contact double in this scenario');
 
 const held=fixture({},true,true,true);accepted(held);held.tick(7);const heldWork=held.service.snapshot().session.receptionWork,heldCard=held.service.receptionWorkState().cardPosition;held.tick(20,{conversationActorId:hostId});assert.deepEqual(held.service.snapshot().session.receptionWork,heldWork);assert.deepEqual(held.service.receptionWorkState().cardPosition,heldCard);assert(held.service.receptionWorkState().observed,'paused original plaque remains physically gripped');held.service.cancelNPC(customerId);assert.equal(held.service.receptionWorkState(),null);held.service.dispose();held.host.dispose();console.log('PASS real held-card conversation freezes grip and work clock; cancellation clears only that original paper/plaque without income');
+
+// Money-only dormant port uses a receipt issued by the original controller above.
+// A second authentic employer ledger does not authorize a body/controller move.
+function crossFamily(input){
+ let mode=null,onSave=null,writes=0;
+ const live=fixture(input),guard=createNPCDutyAccount({role:GUARD,namespace:'chinaGuardAccounts',saved:input.chinaGuardAccounts,saveState:(next,r,patch={})=>live.checkpoint({...patch,chinaGuardAccounts:next})});
+ const aggregate=createNPCGuestAccounts([{id:'china-salon-economy',economy:live.artistEconomy.mealFundsProvider()},{id:'china-guard-accounts',economy:guard}],{saved:input.chinaGuestMealAccounts,saveState:(next,patch)=>{writes++;onSave?.();if(mode==='false')return false;if(mode==='throw')throw Error('quota');if(mode==='promise')return Promise.resolve(true);if(mode==='reject')return Promise.reject(Error('unsupported'));return live.checkpoint({...patch,chinaGuestMealAccounts:next});}});
+ return {...live,guard,aggregate,fail:v=>mode=v,onSave:v=>onSave=v,get writes(){return writes;},get saved(){return live.saved;}};
+}
+function earnedGuard(guard,day){const coverage=[{actorId:artistId,roleId:GUARD.id,slotId:GUARD.slotId,holderRevision:day}];let t=(day*1440+360-600)/RATE,end=t+90/RATE;guard.observe({seconds:t,dt:.25,coverage});while(t<end){const dt=Math.min(.25,end-t);t+=dt;guard.observe({seconds:t,dt,coverage});}assert(guard.checkpoint({day,hour:18}));}
+const multi=crossFamily(f.saved),prior={actorId:artistId,orderId:'cn-tavern-order-701',amount:6},combined={...prior,orderId:'cn-tavern-order-702'};
+assert(multi.artistEconomy.prepareMealPayment(prior).commit().ok);earnedGuard(multi.guard,21);
+assert.deepEqual(multi.aggregate.account(artistId),{cash:0,bank:7});assert.equal(multi.aggregate.prepareMealPayment({...combined,amount:8}).ok,false);
+const unchanged={reception:multi.account.snapshot(),property:multi.property.snapshot(),official:multi.official.snapshot()},payment=multi.aggregate.prepareMealPayment(combined);assert(payment.ok);
+const initial=()=>({artist:multi.artistEconomy.snapshot(),guard:multi.guard.snapshot(),aggregate:multi.aggregate.snapshot(),saved:multi.saved}),beforeMeal=initial();
+for(const mode of ['false','throw','promise','reject']){multi.fail(mode);assert.equal(payment.commit().ok,false);assert.deepEqual(initial(),beforeMeal);}multi.fail(null);
+const prepared=multi.artistEconomy.prepareMealRefund(prior);multi.onSave(()=>{assert.equal(prepared.commit().ok,false);assert.equal(multi.artistEconomy.prepareMealPayment({...prior,orderId:'cn-tavern-order-703'}).ok,false);});const count=multi.writes;assert(payment.commit().ok);assert.equal(multi.writes,count+1);multi.onSave(null);
+assert.deepEqual(multi.aggregate.snapshot().transfers[0].portions.map(p=>p.sourceSplit),[{cash:0,bank:4},{cash:0,bank:2}]);assert.equal(multi.artistEconomy.account(artistId).bank,0);assert.equal(multi.guard.account(artistId).bank,1);assert(payment.commit().replayed);
+assert.deepEqual({reception:multi.account.snapshot(),property:multi.property.snapshot(),official:multi.official.snapshot()},unchanged);
+const again=crossFamily(multi.saved);assert.equal(again.aggregate.loadError,null);earnedGuard(again.guard,22);assert(again.aggregate.prepareMealRefund(combined).commit().ok);assert.equal(again.artistEconomy.account(artistId).bank,4);assert.equal(again.guard.account(artistId).bank,6);assert(again.aggregate.prepareMealRefund(combined).commit().replayed);assert.equal(again.aggregate.prepareMealPayment(combined).ok,false);
+assert(again.artistEconomy.prepareMealRefund(prior).commit().ok);assert.equal(again.artistEconomy.account(artistId).bank,10);assert.equal(again.guard.account(artistId).bank,6);assert.equal(crossFamily(again.saved).aggregate.loadError,null);
+console.log('PASS dormant original-controller earned artist10 → original meal6 leaves4 + actual observed guard3 pays6; reload and later wages refund original4/2 once, zero-balance source and old single-provider refund retained; receptionist/property/customer untouched');
+const corrupt=multi.saved;corrupt.chinaSalonEconomy.accounts[artistId].bank++;const rejected=createChinaSalonEconomy({saved:corrupt.chinaSalonEconomy,officialEconomy:multi.official,getReceptionAccount:()=>multi.account});assert(rejected.loadError);assert.deepEqual(rejected.mealFundsProvider().snapshot(),corrupt.chinaSalonEconomy);assert.equal(rejected.mealFundsProvider().hasIncome(artistId),false);
+const alias=createNPCGuestAccounts([{id:'first',economy:multi.artistEconomy.mealFundsProvider()},{id:'second',economy:multi.artistEconomy.mealFundsProvider()}]);assert(alias.loadError);assert.equal(alias.account(artistId),null);
