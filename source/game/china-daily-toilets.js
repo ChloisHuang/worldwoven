@@ -15,6 +15,8 @@ export function createChinaDailyToilets(options){
  const selected=()=>{const active=services.find(s=>s.active());if(active)return active;const p=getPlayer()?.root?.position;return services.filter(s=>s.intent()).sort((a,b)=>{const distance=s=>{const q=s.intent().position;return p?Math.hypot(q[0]-p.x,q[1]-p.y,q[2]-p.z):0;};return distance(a)-distance(b);})[0]||palace;};
  const forIntent=intent=>services.find(s=>s.intent()?.id===intent?.id);
  return {
+  publicIntent:()=>publicToilet.intent(),publicAvailable:()=>!!publicToilet.intent()&&!publicToilet.active(null),requestPublicActor:actor=>publicToilet.requestActor(actor),
+  restorePosition:(id,position)=>services.map(s=>s.restorePosition(id,position)).find(Boolean)||null,
   intent:()=>selected().intent(),intents:()=>services.map(s=>s.intent()).filter(Boolean),
   resolveIntent:intent=>forIntent(intent)?.resolveIntent(intent)||null,
   executeIntent:intent=>forIntent(intent)?.executeIntent(intent)||false,
