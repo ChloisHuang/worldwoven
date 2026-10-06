@@ -13,7 +13,7 @@ export function createChinaRoyalPlayerMeal({kitchen,furniture,getPlayer,getMount
  let disposed=false,lastError=null;
  const order=()=>kitchen.mealFor('player'),activeOrder=()=>{const o=order();return open(o)?o:null;};
  const seated=()=>seats.find(s=>s.id===getMounted()?.id)||null;
- const seatFree=s=>!!s&&(seated()?.id===s.id||canChooseSeat(s))&&kitchen.playerMealAvailability(s.id).ok;
+ const seatFree=s=>!!s&&kitchen.playerMealAvailability(s.id).ok&&(seated()?.id===s.id||canChooseSeat(s));
  const currentPosition=()=>{const p=getPlayer()?.root.position;return p?[p.x,p.y,p.z]:null;};
  function availability(seatId=null){
   const v=kitchen.playerMealAvailability(seatId);if(!v.ok)return v;
@@ -23,8 +23,11 @@ export function createChinaRoyalPlayerMeal({kitchen,furniture,getPlayer,getMount
   return v;
  }
  function intent(kind=null,seatId=null){
-  if(disposed)return null;const o=activeOrder(),s=seats.find(s=>s.id===(seatId||o?.seatId||seated()?.id))||seats.find(seatFree);
+  if(disposed)return null;const o=activeOrder();
   kind||=o?.stage==='served'?'eat':o?'view':'request';
+  // Qualifications are cheap; a non-diner must never scan meal-seat geometry.
+  if(kind==='request'&&(o||!kitchen.playerMealAvailability(seatId).ok))return null;
+  const s=seats.find(s=>s.id===(seatId||o?.seatId||seated()?.id))||seats.find(seatFree);
   if(!s)return null;
   if(kind==='request'&&(o||!availability(s.id).ok))return null;
   if(kind==='eat'&&(!o||o.stage!=='served'||seated()?.id!==o.seatId||!availability(o.seatId).ok))return null;
@@ -37,6 +40,14 @@ export function createChinaRoyalPlayerMeal({kitchen,furniture,getPlayer,getMount
    action:kind==='request'?`在${name(s)}请一份御膳`:kind==='eat'?'享用送来的御膳':kind==='cancel'?'取消这份御膳':LABELS[o.stage],
    position:position.slice(),executionRadius:kind==='request'&&!mounted? .016 : .35,interactionRadius:2.1,keepSeat:mounted,priority:48,
    intentKey:[kind,o?.id||'-',o?.stage||'-',s.id,mounted,eligibility?.appointmentId||'-',eligibility?.appointmentReceiptId||'-'].join('|')};
+ }
+ // Nearby HUD discovery needs only original points until the player is close.
+ // Explicit menu/route requests still run the full current eligibility and seat check.
+ function nearbyIntent(){
+  if(disposed)return null;const p=getPlayer()?.root.position;
+  if(!p)return null;
+  if(!activeOrder()&&!seats.some(s=>Math.abs(p.y-s.position[1])<.45&&Math.hypot(p.x-s.position[0],p.z-s.position[2])<=2.4))return null;
+  return intent();
  }
  const resolveIntent=old=>currentInteractionIntent(old,intent(old?.kind,old?.seatId));
  function executeIntent(old){
@@ -77,7 +88,7 @@ export function createChinaRoyalPlayerMeal({kitchen,furniture,getPlayer,getMount
    items:o?[]:v.seats.map(s=>({...s,intent:intent('request',s.id),disabled:!s.available})),
    primary:o?.stage==='served'?intent('eat'):null,secondary:o?intent('cancel'):null,progress:v.progress};
  }
- return {seats,availability,intent,resolveIntent,executeIntent,view,menuDefinition,update,cancel,
+ return {seats,availability,intent,nearbyIntent,resolveIntent,executeIntent,view,menuDefinition,update,cancel,
   active:()=>!!activeOrder(),leaveSeat:id=>activeOrder()?.seatId===id?cancel('本人起身，取消未用完的御膳'):true,
   playerPose:()=>kitchen.isEatingMeal(activeOrder()?.id,'player')?{seatedMeal:true,heldProp:null}:null,
   statusLabel:id=>activeOrder()?.seatId===id?LABELS[activeOrder().stage]:null,
