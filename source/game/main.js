@@ -178,9 +178,9 @@ const copperLedger=createGameCurrencyLedger({saved,storage:gameStorage,getClock:
 copperLedger.observeDay();
 const chinaSalonEconomy=createChinaSalonEconomy({saved:saved.chinaSalonEconomy,copperLedger,saveState:(state,transaction,patch={})=>{worldSnapshotWriter?.();const next={...saved,...patch,chinaSalonEconomy:state};const result=gameStorage.setItem('worlds-days-v1',JSON.stringify(next));if(result===false||result?.then)return false;Object.assign(saved,patch,{chinaSalonEconomy:state});return true;}});
 tavernProperty=createChinaTavernProperty({saved:saved.chinaTavernProperty,copperLedger,getClock:()=>simulationClock.state(),getTill:()=>{const net=chinaSalonEconomy.summary().businessProceeds;return net===null?NaN:(saved.chinaServiceWorld?.till??0)+net;},getSalonIncome:()=>chinaSalonEconomy.summary(),worldSeed:saved.appearance.seed,saveState:(state,patch={})=>{worldSnapshotWriter?.();const next={...saved,...patch,chinaTavernProperty:state};const result=gameStorage.setItem('worlds-days-v1',JSON.stringify(next));if(result===false||result?.then)return result;Object.assign(saved,patch,{chinaTavernProperty:state});}});
-// A finite, explicitly recorded scenario reserve funds only completed official
-// duties. No tax system or daily replenishment is implied here.
-const officialPayPolicy=Object.freeze({version:1,dailyWage:24,initialTreasury:{amount:4320,sourceId:'world-fiscal-initialization-v1'}});
+// Government guarantees only completed official duties. There is no separate
+// treasury, automatic daily allowance or offline wage catch-up.
+const officialPayPolicy=Object.freeze({dailyWage:24});
 const chinaOfficialEconomy=createChinaOfficialEconomy({saved:saved.chinaOfficialEconomy,...officialPayPolicy,isAppointed:id=>CHINA_OFFICIAL_IDS.includes(id),getDay:()=>simulationClock.state().day,saveState:(state,transaction,patch={})=>{worldSnapshotWriter?.();const next={...saved,...patch,chinaOfficialEconomy:state};const result=gameStorage.setItem('worlds-days-v1',JSON.stringify(next));if(result===false||result?.then)return false;Object.assign(saved,patch,{chinaOfficialEconomy:state});return true;}});
 if(!saved.chinaOfficialEconomy&&!chinaOfficialEconomy.loadError){saved.chinaOfficialEconomy=chinaOfficialEconomy.snapshot();save();}
 // Supplied by the shared bank integration. Never fall back to wallet earnings.

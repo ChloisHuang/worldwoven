@@ -1,6 +1,7 @@
 // Reproduce the actual money risks: fabricated daily wages, lost/duplicated
 // money across order saves, replayed receipts, and corrupted restored balances.
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {createChinaOfficialEconomy, CHINA_OFFICIAL_IDS, CHINA_OFFICIAL_TAVERN_ID} from '../source/game/china-official-economy.js';
 import {CHINA_COURT_OFFICIAL_DAILY_WAGES, getChinaRecordsCareerRank} from '../source/game/china-official-ranks.js';
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -9,10 +10,30 @@ const initialTreasury = {amount: 150, sourceId: 'test-one-time-world-budget'};
 const code = (result, expected) => { assert.equal(result.ok, false); assert.equal(result.code, expected); };
 const duty = (id = actorId, day = 3, changes = {}) => ({actorId: id, day, receiptId: `duty:${id}:${day}`,
   evidence: {kind: 'office-work', completed: true, actorId: id, day, elapsed: 8, duration: 8, audienceDay: day, audienceCompleted: true}, ...changes});
+// Independent old-format fixtures ensure migration cannot validate v1 by
+// first applying the new unlimited funding rules or rewriting old receipts.
+const legacyState = (origin = initialTreasury) => ({version: 1, initialTreasury: clone(origin), dailyWage: 24, treasury: origin.amount,
+  accounts: Object.fromEntries(CHINA_OFFICIAL_IDS.map(id => [id, {bank: 0, cash: 0}])),
+  destinations: {[CHINA_OFFICIAL_TAVERN_ID]: 0}, nextTransaction: 1, transactions: []});
+const appendLegacy = (state, request, from, to, change) => {
+  const balances = () => ({treasury: state.treasury, accounts: clone(state.accounts), destinations: clone(state.destinations)});
+  const before = balances(); change();
+  state.transactions.push({id: `official-${state.nextTransaction}`, ...request, from, to, before, after: balances()});
+  state.nextTransaction++;
+};
+const appendLegacyDuty = (state, id = actorId, day = 3) => appendLegacy(state,
+  {action: 'duty', ...duty(id, day), amount: state.dailyWages?.[id] ?? state.dailyWage}, 'official-treasury', `${id}:bank`, () => {
+    const amount = state.dailyWages?.[id] ?? state.dailyWage;
+    state.treasury -= amount; state.accounts[id].bank += amount;
+  });
 const conserve = snapshot => {
-  const total = BigInt(snapshot.treasury) + BigInt(snapshot.destinations[CHINA_OFFICIAL_TAVERN_ID]) +
+  const total = BigInt(snapshot.destinations[CHINA_OFFICIAL_TAVERN_ID]) +
     Object.values(snapshot.accounts).reduce((sum, account) => sum + BigInt(account.cash) + BigInt(account.bank), 0n);
-  assert.equal(total, BigInt(snapshot.initialTreasury.amount));
+  const oldEarned = snapshot.legacyFunding ? snapshot.legacyFunding.initialTreasury.amount - snapshot.legacyFunding.treasury : 0;
+  assert.equal(total, BigInt(oldEarned) + BigInt(snapshot.governmentPaid));
+  assert.equal(snapshot.version, 2);
+  assert.equal(snapshot.funding, 'government-guaranteed');
+  assert(!Object.hasOwn(snapshot, 'treasury'));
 };
 let day = 3, writes = 0, durable, failSave = false;
 const saveState = (next, transaction, worldPatch) => {
@@ -21,7 +42,7 @@ const saveState = (next, transaction, worldPatch) => {
   assert.equal(transaction.amount > 0, true);
   conserve(next); writes++;
 };
-const options = {initialTreasury, getDay: () => day, isAppointed: id => CHINA_OFFICIAL_IDS.includes(id), saveState};
+const options = {getDay: () => day, isAppointed: id => CHINA_OFFICIAL_IDS.includes(id), saveState};
 let economy = createChinaOfficialEconomy(options);
 assert.equal(CHINA_OFFICIAL_IDS.length, 6);
 assert.equal(economy.loadError, null);
@@ -38,21 +59,28 @@ for (const change of [{audienceCompleted: false}, {audienceDay: 2}, {completed: 
   code(economy.completeDuty(duty(actorId, 3, {evidence: {...duty().evidence, ...change}})), 'incomplete-duty');
 }
 assert.equal(writes, 0);
-const zero = createChinaOfficialEconomy({...options, initialTreasury: undefined});
-assert.equal(zero.state().treasury, 0);
-code(zero.completeDuty(duty()), 'insufficient-treasury');
+const zero = createChinaOfficialEconomy({...options, saveState: () => true});
+assert.equal(zero.state().governmentPaid, 0);
+assert(zero.completeDuty(duty()).ok, 'A completed duty needs no fictional finite reserve');
 
 assert(economy.completeDuty(duty()).ok);
 assert.deepEqual(economy.account(actorId), {bank: 24, cash: 0});
-assert.equal(economy.state().treasury, 126);
+assert.equal(economy.state().governmentPaid, 24);
+assert.equal(economy.history()[0].from, 'government-guaranteed');
 assert(economy.completeDuty(duty()).replayed);
 code(economy.completeDuty(duty(actorId, 3, {receiptId: 'second-certificate-same-day'})), 'duty-already-paid');
 code(economy.completeDuty(duty(otherId, 3, {receiptId: duty().receiptId})), 'request-conflict');
 assert.equal(writes, 1);
 for (const id of CHINA_OFFICIAL_IDS.slice(1)) assert(economy.completeDuty(duty(id)).ok);
-assert.equal(economy.state().treasury, 6);
+assert.equal(economy.state().governmentPaid, 144);
 day = 4;
-code(economy.completeDuty(duty(actorId, 4)), 'insufficient-treasury');
+const tomorrow = createChinaOfficialEconomy({...options, saved: economy.snapshot(), saveState: () => true});
+for (const id of CHINA_OFFICIAL_IDS) {
+  assert(tomorrow.completeDuty(duty(id, 4)).ok);
+  assert(tomorrow.completeDuty(duty(id, 4)).replayed);
+  code(tomorrow.completeDuty(duty(id, 4, {receiptId: `duplicate-day-four:${id}`})), 'duty-already-paid');
+}
+assert.equal(tomorrow.state().governmentPaid, 288);
 const paidSnapshot = economy.snapshot();
 day = 999;
 economy = createChinaOfficialEconomy({...options, saved: durable.chinaOfficialEconomy});
@@ -78,8 +106,8 @@ assert(pending.ok && pending.valid());
 assert.deepEqual(economy.snapshot(), beforeMeal, 'Preparing an order cannot move money');
 assert.equal(pending.snapshot.destinations[CHINA_OFFICIAL_TAVERN_ID], 7);
 pending.snapshot.accounts[actorId].cash = 9999;
-pending.candidate.treasury = 9999;
-pending.patch.chinaOfficialEconomy.treasury = 9999;
+pending.candidate.governmentPaid = 9999;
+pending.patch.chinaOfficialEconomy.governmentPaid = 9999;
 pending.transaction.amount = 9999;
 const world = {revision: 1, till: 7, orders: [{id: meal.orderId, paid: true, amount: 7}]};
 failSave = true;
@@ -247,17 +275,9 @@ assert.deepEqual(staleLedger.account(actorId), {cash: 0, bank: 17});
 
 // Independently reproduce the R96 cash-only journal format. Old payments,
 // refunds and legitimate withdrawals must restore without rewriting history.
-const legacy = {version: 1, initialTreasury: clone(initialTreasury), dailyWage: 24, treasury: 150,
-  accounts: Object.fromEntries(CHINA_OFFICIAL_IDS.map(id => [id, {bank: 0, cash: 0}])),
-  destinations: {[CHINA_OFFICIAL_TAVERN_ID]: 0}, nextTransaction: 1, transactions: []};
-const legacyBalances = () => ({treasury: legacy.treasury, accounts: clone(legacy.accounts), destinations: clone(legacy.destinations)});
-const legacyTransfer = (request, from, to, change) => {
-  const before = legacyBalances(); change();
-  legacy.transactions.push({id: `official-${legacy.nextTransaction}`, ...request, from, to, before, after: legacyBalances()});
-  legacy.nextTransaction++;
-};
-legacyTransfer({action: 'duty', actorId, amount: 24, receiptId: duty().receiptId, day: 3, evidence: duty().evidence},
-  'official-treasury', `${actorId}:bank`, () => {legacy.treasury -= 24; legacy.accounts[actorId].bank += 24;});
+const legacy = legacyState();
+const legacyTransfer = (...args) => appendLegacy(legacy, ...args);
+appendLegacyDuty(legacy);
 legacyTransfer({action: 'withdraw', actorId, amount: 12, receiptId: 'old-bank-visit'},
   `${actorId}:bank`, `${actorId}:cash`, () => {legacy.accounts[actorId].bank -= 12; legacy.accounts[actorId].cash += 12;});
 for (const [action, orderId, amount] of [['meal-payment', 'legacy-refunded', 7], ['meal-refund', 'legacy-refunded', 7], ['meal-payment', 'legacy-outstanding', 5]]) {
@@ -271,7 +291,11 @@ for (const [action, orderId, amount] of [['meal-payment', 'legacy-refunded', 7],
 const legacyJournal = clone(legacy.transactions), originalLegacy = clone(legacy);
 const oldLedger = createChinaOfficialEconomy({...options, saved: legacy, saveState: () => true});
 assert.equal(oldLedger.loadError, null);
-assert.deepEqual(oldLedger.snapshot(), originalLegacy);
+assert.equal(oldLedger.snapshot().version, 2);
+assert.deepEqual(oldLedger.snapshot().legacyFunding, {initialTreasury, treasury: originalLegacy.treasury, transactionCount: legacyJournal.length});
+assert.deepEqual(oldLedger.snapshot().accounts, originalLegacy.accounts);
+assert.deepEqual(oldLedger.snapshot().destinations, originalLegacy.destinations);
+assert.deepEqual(oldLedger.history(), legacyJournal);
 assert.deepEqual(legacy, originalLegacy);
 assert(oldLedger.withdraw({actorId, amount: 12, receiptId: 'old-bank-visit'}).replayed);
 assert(oldLedger.prepareMealRefund({actorId, orderId: 'legacy-refunded', amount: 7}).commit().replayed);
@@ -289,6 +313,99 @@ assert.equal(reloadedUpgrade.loadError, null);
 assert.deepEqual(reloadedUpgrade.snapshot(), upgraded);
 assert.deepEqual(reloadedUpgrade.history().slice(0, legacyJournal.length), legacyJournal);
 
+// Zero/insufficient v1 reserves migrate without distributing their unspent
+// remainder, resetting accounts, or inventing missed offline duties.
+for (const amount of [0, 6, 24, 30]) {
+  const old = legacyState({amount, sourceId: 'old-bounded-budget'});
+  if (amount >= 24) appendLegacyDuty(old);
+  const original = clone(old), oldCount = old.transactions.length;
+  let currentDay = 5, writeCount = 0, durableState;
+  const local = {...options, getDay: () => currentDay, saveState: next => {writeCount++; durableState = clone(next);}};
+  let migrated = createChinaOfficialEconomy({...local, saved: old});
+  assert.equal(migrated.loadError, null);
+  assert.equal(writeCount, 0, 'Migration itself neither writes nor pays');
+  assert.deepEqual(migrated.snapshot().accounts, old.accounts);
+  assert.deepEqual(migrated.snapshot().destinations, old.destinations);
+  assert.deepEqual(migrated.history(), old.transactions);
+  assert.equal(migrated.snapshot().legacyFunding.treasury, amount % 24);
+  assert.equal(migrated.snapshot().governmentPaid, 0);
+  conserve(migrated.snapshot());
+  if (oldCount) {
+    assert(migrated.completeDuty(duty()).replayed);
+    code(migrated.completeDuty(duty(actorId, 3, {receiptId: 'alternate-old-receipt'})), 'duty-already-paid');
+    assert.equal(writeCount, 0);
+  }
+  for (const targetDay of [5, 6]) {
+    currentDay = targetDay;
+    for (const id of CHINA_OFFICIAL_IDS) {
+      const proof = duty(id, targetDay);
+      assert(migrated.completeDuty(proof).ok);
+      assert(migrated.completeDuty(proof).replayed);
+      code(migrated.completeDuty({...proof, receiptId: `alternate:${id}:${targetDay}`}), 'duty-already-paid');
+      migrated = createChinaOfficialEconomy({...local, saved: durableState});
+      assert(migrated.completeDuty(proof).replayed, 'Refresh/country restore retains the paid simulation-day key');
+    }
+  }
+  assert.equal(writeCount, 12);
+  assert.equal(migrated.history().length, oldCount + 12);
+  assert.equal(migrated.snapshot().governmentPaid, 288);
+  assert.deepEqual(migrated.history().slice(0, oldCount), old.transactions);
+  const beforeOffline = migrated.snapshot();
+  currentDay = 1000;
+  migrated = createChinaOfficialEconomy({...local, saved: beforeOffline});
+  assert.deepEqual(migrated.snapshot(), beforeOffline);
+  assert.equal(writeCount, 12);
+  code(migrated.completeDuty(duty(actorId, 1001)), 'day-mismatch');
+  assert(migrated.completeDuty(duty(actorId, 1000)).ok);
+  assert.equal(migrated.history().length, oldCount + 13);
+  assert(migrated.history().every(tx => tx.day === 3 || tx.day === 5 || tx.day === 6 || tx.day === 1000));
+  assert.deepEqual(old, original, 'Migration never edits the supplied v1 save');
+  conserve(migrated.snapshot());
+}
+
+// Execute only the real main ledger wiring, without constructing a 3D scene.
+// Country reconstruction uses this same saved economy; other world ledgers
+// must survive the official's atomic wage/meal writes byte-for-byte.
+const mainSource = fs.readFileSync(new URL('../source/game/main.js', import.meta.url), 'utf8');
+const mainStart = mainSource.indexOf('const officialPayPolicy='), mainEnd = mainSource.indexOf('// Supplied by the shared bank integration.', mainStart);
+assert(mainStart >= 0 && mainEnd > mainStart);
+const mountMain = new Function('saved', 'createChinaOfficialEconomy', 'CHINA_OFFICIAL_IDS', 'simulationClock', 'worldSnapshotWriter', 'gameStorage', 'save',
+  mainSource.slice(mainStart, mainEnd) + '\nreturn chinaOfficialEconomy;');
+const worldState = {chinaOfficialEconomy: legacyState({amount: 0, sourceId: 'world-fiscal-initialization-v1'}),
+  copperLedger: {version: 3, cash: 8, bank: 101, interest: {day: 5, minimum: {copper: 91}}},
+  chinaServiceWorld: {till: 17}, japanOperations: {till: 9}, formalCareers: {tenure: 'existing-player-role'}};
+const untouched = clone(worldState); delete untouched.chinaOfficialEconomy;
+let mainWrites = 0, rejectMainWrite = true, mainDurable;
+const storage = {setItem: (key, json) => {
+  assert.equal(key, 'worlds-days-v1');
+  if (rejectMainWrite) return false;
+  mainWrites++; mainDurable = JSON.parse(json); return true;
+}};
+const mount = () => mountMain(worldState, createChinaOfficialEconomy, CHINA_OFFICIAL_IDS, {state: () => ({day: 5})}, null, storage, () => {
+  throw Error('An existing old save must not be replaced during mount');
+});
+let wired = mount();
+assert.equal(wired.loadError, null);
+assert.equal(mainWrites, 0);
+code(wired.completeDuty(duty(actorId, 5)), 'save-failed');
+assert.equal(worldState.chinaOfficialEconomy.version, 1, 'Failed migration+pay leaves the durable old save intact');
+rejectMainWrite = false;
+assert(wired.completeDuty(duty(actorId, 5)).ok);
+assert.equal(mainWrites, 1);
+assert.equal(mainDurable.chinaOfficialEconomy.version, 2);
+const nextWorld = clone(mainDurable); delete nextWorld.chinaOfficialEconomy;
+assert.deepEqual(nextWorld, untouched, 'The production save callback preserves all unrelated funds and interest state');
+wired = mount();
+assert(wired.completeDuty(duty(actorId, 5)).replayed);
+assert.equal(mainWrites, 1, 'Reload/country remount does not pay again');
+const wiredMeal = {actorId, orderId: 'main-existing-meal', amount: 6};
+assert(wired.prepareMealPayment(wiredMeal).commit({chinaServiceWorld: {till: 23}}).ok);
+assert.deepEqual(worldState.copperLedger, untouched.copperLedger);
+assert.equal(worldState.japanOperations.till, 9);
+assert(wired.prepareMealRefund(wiredMeal).commit({chinaServiceWorld: {till: 17}}).ok);
+assert.deepEqual(wired.account(actorId), {bank: 24, cash: 0});
+assert.deepEqual(worldState.copperLedger, untouched.copperLedger);
+
 // Reject forged funding metadata and legacy-shaped bank-funded transactions.
 const splitPaymentIndex = upgraded.transactions.findIndex(transaction => transaction.orderId === 'combined-after-upgrade');
 for (const corrupt of [
@@ -305,7 +422,7 @@ for (const corrupt of [
   assert.equal(createChinaOfficialEconomy({...options, saved: damaged}).loadError, 'invalid-saved-state');
 }
 
-// Failed, asynchronous or reentrant saves must leave bank, treasury, receipts
+// Failed, asynchronous or reentrant saves must leave bank, funding, receipts
 // and sequence untouched so the exact same operation can safely retry.
 for (const mode of ['throw', 'false', 'result-false', 'promise']) {
   let reject = true, ledger;
@@ -329,7 +446,7 @@ code(createChinaOfficialEconomy({...options, getDay: () => 3, saveState: undefin
 let appointments = 0;
 const removed = createChinaOfficialEconomy({...options, getDay: () => 3, isAppointed: () => ++appointments === 1});
 code(removed.completeDuty(duty()), 'actor-not-appointed');
-assert.equal(removed.state().treasury, 150);
+assert.equal(removed.state().governmentPaid, 0);
 
 // A real completed certificate survives an unavailable save into a later day.
 // Loading and advancing the clock alone create no historical duty entries.
@@ -352,27 +469,31 @@ assert.equal(arrears.history().length, 1);
 assert.equal(arrears.history()[0].day, 3);
 assert.deepEqual(arrears.account(actorId), {bank: 24, cash: 0});
 assert(arrears.completeDuty(earnedCertificate).replayed);
-assert.equal(arrearsSaved.treasury, 126);
+assert.equal(arrearsSaved.governmentPaid, 24);
 code(arrears.completeDuty(duty(actorId, 6)), 'day-mismatch');
 code(createChinaOfficialEconomy({...arrearsOptions, getDay: () => NaN}).completeDuty(earnedCertificate), 'day-mismatch');
 const unfundedArrears = createChinaOfficialEconomy({...arrearsOptions, initialTreasury: {amount: 6, sourceId: 'test-insufficient-source'}});
-const unpaid = unfundedArrears.snapshot();
-code(unfundedArrears.completeDuty(earnedCertificate), 'insufficient-treasury');
+assert(unfundedArrears.completeDuty(earnedCertificate).ok);
+const paidArrears = unfundedArrears.snapshot();
 arrearsDay = 6;
-code(unfundedArrears.completeDuty(earnedCertificate), 'insufficient-treasury');
-assert.deepEqual(unfundedArrears.snapshot(), unpaid, 'Insufficient funding must not mark an earned certificate as paid');
+assert(unfundedArrears.completeDuty(earnedCertificate).replayed);
+assert.deepEqual(unfundedArrears.snapshot(), paidArrears, 'Only the existing earned certificate is paid, once');
 
 // Rank labels cannot reprice R96 receipts or mint a second starting treasury.
 // A saved policy remains authoritative even if today's caller has new rates.
 const worldBudget = {amount: 4320, sourceId: 'world-fiscal-initialization-v1'};
 const policyOptions = {...options, initialTreasury: worldBudget, getDay: () => 9, saveState: () => true};
-const r96 = createChinaOfficialEconomy(policyOptions);
+const r96Save = legacyState(worldBudget);
+for (const id of CHINA_OFFICIAL_IDS) appendLegacyDuty(r96Save, id);
+const r96 = createChinaOfficialEconomy({...policyOptions, saved: r96Save});
 for (const id of CHINA_OFFICIAL_IDS) {
   assert.equal(r96.dailyWageFor(id), CHINA_COURT_OFFICIAL_DAILY_WAGES[id]);
   assert.equal(r96.completeDuty(duty(id)).amount, 24);
 }
 const oldReceipts = r96.snapshot();
-assert.equal(oldReceipts.treasury, 4320 - 6 * 24);
+assert.equal(oldReceipts.governmentPaid, 0);
+assert.deepEqual(oldReceipts.legacyFunding, {initialTreasury: worldBudget, treasury: 4320 - 6 * 24, transactionCount: 6});
+assert.deepEqual(oldReceipts.transactions, r96Save.transactions);
 assert(!Object.hasOwn(oldReceipts, 'dailyWages'), 'Legacy scalar policy remains in its original format');
 const newRates = Object.fromEntries(CHINA_OFFICIAL_IDS.map(id => [id, 99]));
 const kept = createChinaOfficialEconomy({...policyOptions, saved: oldReceipts, dailyWage: 99, dailyWages: newRates});
@@ -381,7 +502,7 @@ assert.equal(kept.completeDuty(duty()).amount, 24);
 assert(kept.completeDuty(duty()).replayed);
 assert.equal(kept.history().length, 6);
 assert.equal(kept.completeDuty(duty(actorId, 4)).amount, 24);
-assert.equal(kept.state().treasury, 4320 - 7 * 24);
+assert.equal(kept.state().governmentPaid, 24);
 conserve(kept.snapshot());
 
 // Per-actor amounts are explicit configuration, frozen once for a new ledger.
@@ -413,8 +534,8 @@ assert.equal(getChinaRecordsCareerRank('cn-records-regular').basePay, 22);
 const corruptions = [
   saved => { saved.accounts[actorId].bank++; },
   saved => { saved.destinations[CHINA_OFFICIAL_TAVERN_ID] = 0; },
-  saved => { saved.treasury++; },
-  saved => { saved.initialTreasury.amount++; },
+  saved => { saved.governmentPaid++; },
+  saved => { saved.funding = 'limited-treasury'; },
   saved => { saved.nextTransaction++; },
   saved => { saved.transactions.shift(); },
   saved => { saved.transactions.reverse(); },
@@ -437,6 +558,31 @@ for (const corrupt of corruptions) {
   assert.equal(overwritten, false);
   assert.deepEqual(saved, original);
 }
-const changedSource = createChinaOfficialEconomy({...options, saved: roundtrip, initialTreasury: {...initialTreasury, amount: 9999}});
+const changedSource = createChinaOfficialEconomy({...options, saved: originalLegacy, initialTreasury: {...initialTreasury, amount: 9999}});
 assert.equal(changedSource.loadError, 'invalid-saved-state');
-console.log('PASS official economy: bounded source, six isolated accounts, cash + bank meals, exact-source refunds, atomic retries, legacy journals and corrupt-save rejection');
+for (const [base, corrupt] of [
+  [originalLegacy, saved => { saved.accounts[actorId].bank++; }],
+  [originalLegacy, saved => { saved.treasury++; }],
+  [originalLegacy, saved => { saved.initialTreasury.amount = 0; }],
+  [originalLegacy, saved => { saved.transactions[0].evidence.audienceCompleted = false; }],
+  [originalLegacy, saved => { saved.transactions[0].from = 'government-guaranteed'; }],
+  [originalLegacy, saved => { saved.transactions[0].after.accounts[actorId].bank++; }],
+  [originalLegacy, saved => { saved.transactions.reverse(); }],
+  [upgraded, saved => { saved.legacyFunding.treasury++; }],
+  [upgraded, saved => { saved.legacyFunding.transactionCount--; }],
+  [upgraded, saved => { saved.legacyFunding.transactionCount++; }],
+  [upgraded, saved => { saved.legacyFunding.initialTreasury.amount++; }],
+  [upgraded, saved => { delete saved.legacyFunding; }],
+  [upgraded, saved => { saved.legacyFunding.extra = true; }],
+  [upgraded, saved => { saved.legacyFunding = null; }],
+]) {
+  const damaged = clone(base); corrupt(damaged);
+  const original = clone(damaged); let writes = 0;
+  const broken = createChinaOfficialEconomy({...options, saved: damaged, saveState: () => {writes++;}});
+  assert.equal(broken.loadError, 'invalid-saved-state');
+  assert.equal(broken.snapshot(), null);
+  code(broken.completeDuty(duty()), 'invalid-saved-state');
+  assert.equal(writes, 0, 'Corrupt history must not be replaced with a fresh government ledger');
+  assert.deepEqual(damaged, original);
+}
+console.log('PASS official economy: government-backed earned pay, six isolated accounts, cash + bank meals, exact-source refunds, atomic retries, legacy journals and corrupt-save rejection');
