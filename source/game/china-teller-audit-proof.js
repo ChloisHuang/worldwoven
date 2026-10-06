@@ -36,7 +36,7 @@ export function freezeTellerSource(ledger){
 export const tellerOrderId=day=>`cn-teller-audit:${day}`;
 export function tellerContract(day,actorId,holderRevision,source){return {kind:'npc-teller-daily-audit',version:1,actorId,roleId:ROLE.id,slotId:ROLE.slotId,holderRevision,orderId:tellerOrderId(day),day,amount:ROLE.amount,contractVersion:ROLE.contractVersion,duty:'daily-balances-holds-journal-consistency-including-zero-activity',source:copy(source)};}
 export function validateTellerContract(c){
- try{return !!c&&/^cn-[a-z0-9-]{1,60}$/.test(c.actorId||'')&&integer(c.day)&&integer(c.holderRevision)&&!!verifyTellerSource(c.source)&&tellerSame(c,tellerContract(c.day,c.actorId,c.holderRevision,c.source));}catch{return false;}
+ try{return !!c&&/^cn-[a-z0-9-]{1,60}$/.test(c.actorId||'')&&integer(c.day)&&integer(c.holderRevision)&&(c.source?.interest===undefined||c.source.interest.day<=c.day)&&!!verifyTellerSource(c.source)&&tellerSame(c,tellerContract(c.day,c.actorId,c.holderRevision,c.source));}catch{return false;}
 }
 export function tellerAuditProof(contract){
  const report=verifyTellerSource(contract.source);if(!report)throw Error('invalid-teller-source');

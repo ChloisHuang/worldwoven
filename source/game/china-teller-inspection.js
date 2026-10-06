@@ -22,11 +22,11 @@ function valid(s){
 export function createTellerInspection({resolveAssignment,getDay,getActor,getLedger,canControl=()=>false,isCounterOpen=()=>true,travel,pose,contact=()=>false,economy,saved,saveState=()=>false}={}){
  let state=empty(),loadError=null,disposed=false;
  if(saved!=null){if(valid(saved))state=copy(saved);else{state=copy(saved);loadError='invalid-teller-inspection';}}
- function write(next){if(!valid(next))return false;try{const r=saveState(copy(next));if(r===false||r?.ok===false||r?.then)return false;state=next;return true;}catch{return false;}}
+ function write(next){if(!valid(next))return false;try{const r=saveState(copy(next));if(r?.then)Promise.resolve(r).catch(()=>{});if(r===false||r?.ok===false||r?.then)return false;state=next;return true;}catch{return false;}}
  const ownedId=()=>loadError?null:state.order?.contract.actorId||null;
  const ready=n=>{const a=resolveAssignment();return !!n&&n.alive!==false&&a?.status==='npc'&&a.actor===n&&a.holderId===n.station?.id&&a.alive&&a.available&&canControl(n);};
  const blocked=(n,context)=>isCounterOpen()||context.conversationActorId===n.station.id||context.performing===n.station.id;
- const liveLedger=()=>{try{const ledger=getLedger();return ledger&&!ledger.loadError&&!ledger.state().loadError?ledger:null;}catch{return null;}};
+ const liveLedger=()=>{try{const ledger=getLedger();return ledger&&ledger.loadError===null&&typeof ledger.state==='function'?ledger:null;}catch{return null;}};
  return {
   snapshot:()=>copy(state),state:()=>copy(state),get loadError(){return loadError;},ownedActorId:ownedId,
   owns:n=>!!ownedId()&&n?.station?.id===ownedId(),reserves:n=>!!ownedId()&&n?.station?.id===ownedId(),
@@ -35,8 +35,9 @@ export function createTellerInspection({resolveAssignment,getDay,getActor,getLed
   update(dt,t,context={}){
    if(disposed||loadError||!Number.isFinite(dt)||dt<=0)return;dt=Math.min(dt,.25);
    if(!state.order){
-    const day=getDay(),a=resolveAssignment(),ledger=liveLedger();
-    if(!integer(day)||day<=state.lastIssuedDay||!ready(a?.actor)||a.holderId==='player'||blocked(a.actor,context)||!near(a.actor,TELLER_HOME)||!ledger)return;
+    const day=getDay(),a=resolveAssignment();
+    if(!integer(day)||day<=state.lastIssuedDay||!ready(a?.actor)||a.holderId==='player'||blocked(a.actor,context)||!near(a.actor,TELLER_HOME))return;
+    const ledger=liveLedger();if(!ledger)return;
     const source=freezeTellerSource(ledger);if(!source)return;
     const contract=tellerContract(day,a.holderId,a.revision,source);if(!validateTellerContract(contract))return;
     write({...copy(state),lastIssuedDay:day,order:{contract,index:0,stage:'check',seconds:0,checked:[],calculation:null,recorded:false}});return;

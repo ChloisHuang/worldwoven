@@ -83,6 +83,7 @@ export function createTellerAccount({saved, saveState = () => false} = {}) {
   busy = true;
   try {
    const result = saveState(copy(next), copy(record), copy(patch));
+   if (result?.then) Promise.resolve(result).catch(() => {});
    if (result === false || result?.ok === false || result?.then) { lastError = 'save-failed'; return false; }
    current = next; revision++; lastError = null; return true;
   } catch { lastError = 'save-failed'; return false; }

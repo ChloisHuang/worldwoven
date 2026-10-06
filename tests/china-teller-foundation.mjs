@@ -48,6 +48,7 @@ test('interest-bearing original ledger and no-activity daily report are real rea
  const l=createCurrencyLedger({saveState:()=>true,getClock:()=>({day:1})});
  assert(l.creditWageToBank({amount:200,receiptId:'pay',roleId:'role',slotId:'slot',day:1}).ok);
  assert(l.observeDay(3).ok);const s=freezeTellerSource(l);assert.equal(verifyTellerSource(s).rows[0].bank,202); // Day 1 minimum was zero before the wage.
+ assert.equal(validateTellerAuditProof(tellerAuditProof(tellerContract(2,id,0,s))),false,'future bank day cannot fund a backdated audit');
  const bad=copy(s);bad.interest.minimum.copper++;assert.equal(verifyTellerSource(bad),null);
  const p=proof();assert(validateTellerAuditProof(p));assert.equal(p.report.transactionCount,0);assert.equal(p.steps.length,4);
  assert(p.duty.includes('including-zero-activity'));for(const mutate of [p=>p.report.rows[0].bank++,p=>p.steps.pop(),p=>p.calculatedSeconds=0,p=>p.returnedHome=false,p=>p.amount=16,p=>p.actorId='player']){const bad=copy(p);mutate(bad);assert.equal(validateTellerAuditProof(bad),false);}
@@ -101,4 +102,13 @@ test('role disallows player, dormant module does not touch player ledger, source
  const slot=createTellerSlot();assert.equal(slot.assign('player').ok,false);assert.equal(TELLER_ROLE.amount,8);
  const f=fundedLedger(),h=harness({source:f.l});h.step();const source=copy(h.controller.snapshot().order.contract.source);assert(f.l.withdraw(1,'new-player-transaction').ok);const before=f.l.state(),writes=f.writes();h.finish();
  assert.deepEqual(h.account.snapshot().receipts[0].evidence.source,source);assert.deepEqual(f.l.state(),before);assert.equal(f.writes(),writes);
+});
+
+
+test('idle frames never clone the journal and rejected async saves do not escape or commit',async()=>{
+ const f=ledger();let reads=0;const source={loadError:null,state:()=>{reads++;return f.l.state();}},h=harness({source});
+ h.open=true;h.step(100);assert.equal(reads,0);h.open=false;h.finish();assert.equal(reads,1);h.step(100);assert.equal(reads,1);
+ const a=createTellerAccount({saveState:()=>Promise.reject(Error('storage-offline'))});assert.equal(a.settle(proof()).ok,false);assert.equal(a.account(id).bank,0);
+ const c=createTellerInspection({getDay:()=>1,getActor:()=>h.n,resolveAssignment:()=>({status:'npc',holderId:id,actor:h.n,revision:0,alive:true,available:true}),getLedger:()=>f.l,canControl:()=>true,isCounterOpen:()=>false,economy:a,saveState:()=>Promise.reject(Error('storage-offline'))});
+ c.update(.25,0);assert.equal(c.snapshot().order,null);await new Promise(resolve=>setImmediate(resolve));
 });
