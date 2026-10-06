@@ -1,5 +1,5 @@
 {
-  "publishedSourceCommit": "ff233e083f719208d584f946ef9847fbb2db6995",
+  "publishedSourceCommit": "312d104ec199794d9251fc40ad6d5ba20914e52b",
   "assets": [
     "/assets/egypt-table-service-role.f054f617798c6f5b.js",
     "/assets/formal-labor-contract.5b22766840ee0c42.js",
@@ -159,6 +159,7 @@
     "/assets/china-palace-edict-props.3cb8f337c9604f67.js",
     "/assets/china-palace-edict.1676f40adca807ea.js",
     "/assets/movement-runtime.a07dd501e74cfebf.js",
+    "/assets/runtime-performance.4c90275bee58fe9f.js",
     "/assets/onsen-transitions.c9d9f59128f61a72.js",
     "/assets/china-dragon-bed.9636534e01a6a594.js",
     "/assets/camera.8bb8906e1fd50988.js",
@@ -228,7 +229,7 @@
     "/assets/approved-surfaces.d0f31ec9c7f21c1a.js",
     "/assets/character-props.deb24f9b65d5e60a.js",
     "/assets/characters.6174e3c47142bd59.js",
-    "/assets/main.5f9165bbe94c4008.js",
+    "/assets/main.cead3bf8a509401d.js",
     "/assets/adult-forms-data.f5c3eae422bf2d5b.js",
     "/assets/attach-head.cd715d43de06238a.js",
     "/assets/layered-hair-data.909c7058087b476c.js",
@@ -248,7 +249,7 @@
     "/assets/register.457d37fb5252fdc6.js",
     "/assets/selection.da7382d63b4983be.js",
     "/assets/character-preview-entry.bed7ff9f51addd24.js",
-    "/assets/entry.f442a7965955aa02.js",
+    "/assets/entry.a394400fab40eb47.js",
     "/assets/game.e9558f47bbf1588e.css",
     "/assets/three.core.9edde002b066a9a0.js",
     "/assets/three.module.d8c0a97fa13a785e.js"
