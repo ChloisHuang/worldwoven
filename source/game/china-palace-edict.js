@@ -3,7 +3,9 @@ import {followActorRoute} from './actor-navigation.js';
 import {PALACE_EDICT as E} from './china-palace-edict-place.js';
 import {createPalaceEdictProps} from './china-palace-edict-props.js';
 import {PALACE_GARDEN_ROLE as GARDEN_ROLE} from './china-palace-garden-role.js';
+import {PALACE_SCRIBE_ROLE as SCRIBE_ROLE} from './china-palace-scribe-role.js';
 import {personId} from './china-tavern-role.js';
+import {createChinaScribePersonalLife} from './china-scribe-personal-life.js';
 import {createChinaGardenPersonalLife} from './china-garden-personal-life.js';
 
 const point=a=>({x:a[0],y:a[1],z:a[2]}),copy=x=>JSON.parse(JSON.stringify(x));
@@ -27,6 +29,15 @@ function validWorkCheckpoint(l,s,o){
  const received=['to-work','file-receipt','to-sweep','sweeping','returning'].includes(o.stage),filed=['to-sweep','sweeping','returning'].includes(o.stage),sweep=o.stage==='returning'?7:o.stage==='sweeping'?Math.min(7,s.phaseTime):0;
  return steps.received===received&&steps.filed===filed&&Number.isFinite(sweep)&&sweep>=0&&steps.sweepSeconds===sweep;
 }
+function scribeContract(identity,actorId,revision){return {kind:'npc-edict-draft-piecework',version:1,actorId,roleId:SCRIBE_ROLE.id,slotId:SCRIBE_ROLE.slotId,holderRevision:revision,documentId:identity.id,audienceId:identity.audienceId,day:identity.day,amount:SCRIBE_ROLE.amount,contractVersion:SCRIBE_ROLE.contractVersion,steps:{draftSeconds:0,handoffSeconds:0}};}
+function validScribeCheckpoint(l,s,o){
+ if(o.scribePiecework==null)return l.scribeContract==null;
+ const who=s.scribeId||'cn-calligraphy',revision=s.scribeRevision??0,p=o.scribePiecework;
+ if(o.scribeId!==who||o.scribeRevision!==revision||!same(l.scribeContract,scribeContract(o,who,revision)))return false;
+ if(!same({...p,steps:{draftSeconds:0,handoffSeconds:0}},l.scribeContract)||!p.steps||Object.keys(p.steps).length!==2)return false;
+ const drafted=!['preparing','drafting'].includes(o.stage),handed=!['preparing','drafting','await-pickup','scribe-handoff'].includes(o.stage);
+ return p.steps.draftSeconds===(drafted?5:o.stage==='drafting'?Math.min(5,s.phaseTime):0)&&p.steps.handoffSeconds===(handed?2:o.stage==='scribe-handoff'?Math.min(2,s.phaseTime):0);
+}
 const validAudience=s=>Number.isInteger(s?.lastCompletedDay)&&s.lastCompletedDay>=0&&s.completionId==='cn-morning-audience:'+s.lastCompletedDay;
 // A ledger alone cannot restore a handoff. Reject incomplete checkpoints rather
 // than leave an active order with no actors/tasks or invent completed work.
@@ -34,11 +45,11 @@ function resumable(snapshot){
  const l=snapshot?.ledger,s=snapshot?.runtime,o=s?.order;
  if(snapshot?.version!==1||!l||!s)return false;
  if(!o)return ['waiting','interrupted','completed'].includes(l.outcome);
- if(!validWorkCheckpoint(l,s,o)||!STAGES.has(o.stage)||o.id!=='cn-edict-east-shore:'+l.lastDay||o.audienceId!==l.lastReceipt||l.lastReceipt!=='cn-morning-audience:'+l.lastDay)return false;
+ if(!validWorkCheckpoint(l,s,o)||!validScribeCheckpoint(l,s,o)||!STAGES.has(o.stage)||o.id!=='cn-edict-east-shore:'+l.lastDay||o.audienceId!==l.lastReceipt||l.lastReceipt!=='cn-morning-audience:'+l.lastDay)return false;
  if(l.outcome!=='active'&&!(l.outcome==='completed'&&o.stage==='returning'&&l.completedReceipt===l.lastReceipt))return false;
  if(!Array.isArray(s.tasks)||!s.tasks.every(t=>Array.isArray(t)&&t.length===2)||!Array.isArray(s.owned))return false;
  const tasks=new Map(s.tasks),owned=new Set(s.owned),required=['cn-palace-herald'];
- if(['preparing','drafting','await-pickup','scribe-handoff'].includes(o.stage))required.push('cn-calligraphy');
+ if(['preparing','drafting','await-pickup','scribe-handoff'].includes(o.stage))required.push(s.scribeId||'cn-calligraphy');
  if(['await-recipient','reading','response','recipient-handoff','to-work','file-receipt','to-sweep','sweeping'].includes(o.stage))required.push(s.recipientId||'cn-garden');
  return required.every(id=>owned.has(id)&&Array.isArray(tasks.get(id)?.path)&&tasks.get(id).path.length>0);
 }
@@ -57,17 +68,20 @@ export function createEdictLedger(saved={}){
  };
 }
 
-export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,moveActor,poseContext,resolveGardenAssignment=null,canControlGarden=n=>n?.alive!==false,pieceworkAccounts=null,getPlayer=()=>null,sharedNeeds=null,getTavern=()=>null,getToilet=()=>null,enablePersonalNeeds=false,savedPersonalNeeds=null,savePersonalNeeds=()=>false,saved={},saveState=()=>{},notify=()=>{}}){
+export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,moveActor,poseContext,resolveGardenAssignment=null,canControlGarden=n=>n?.alive!==false,pieceworkAccounts=null,resolveScribeAssignment=null,canControlScribe=n=>n?.alive!==false,scribeAccounts=null,getPlayer=()=>null,sharedNeeds=null,getTavern=()=>null,getToilet=()=>null,enablePersonalNeeds=false,savedPersonalNeeds=null,savePersonalNeeds=()=>false,enableScribeNeeds=false,savedScribeNeeds=null,saveScribeNeeds=()=>false,saved={},saveState=()=>{},notify=()=>{}}){
  if(saved.continuity?.version===1)saved={...saved,...saved.continuity.ledger,preservePhysical:resumable(saved.continuity)};
- const herald=npcs.find(n=>n.station.id===E.herald.id),scribe=npcs.find(n=>n.station.id==='cn-calligraphy'),originalRecipient=npcs.find(n=>n.station.id==='cn-garden'),emperor=npcs.find(n=>n.station.id==='cn-emperor');
- if(!herald||!scribe||!originalRecipient||!emperor||!palace||!audience)return null;
+ const herald=npcs.find(n=>n.station.id===E.herald.id),originalScribe=npcs.find(n=>n.station.id==='cn-calligraphy'),originalRecipient=npcs.find(n=>n.station.id==='cn-garden'),emperor=npcs.find(n=>n.station.id==='cn-emperor');
+ if(!herald||!originalScribe||!originalRecipient||!emperor||!palace||!audience)return null;
+ let scribe=npcs.find(n=>personId(n)===(saved.continuity?.runtime?.scribeId||saved.scribeContract?.actorId))||originalScribe,scribeRevision=saved.continuity?.runtime?.scribeRevision??saved.scribeContract?.holderRevision??0;
  let recipient=npcs.find(n=>personId(n)===saved.continuity?.runtime?.recipientId)||originalRecipient,boundRevision=saved.continuity?.runtime?.holderRevision??0;
- const gardenHome=originalRecipient.home.toArray(),actors={herald,scribe,recipient},owned=new Set([herald]),tasks=new Map(),leases=new Map(),props=createPalaceEdictProps(lot.group),history=[],failures=[];
- let ledger=createEdictLedger(saved),contract=saved.pieceworkContract||null,time=0,phaseTime=0,order=null,state={},disposed=false,speaker=null,utterance='',borrower=null,borrowUntil=0,personalLife=null;
- const persist=()=>{try{const r=saveState({...ledger.snapshot(),pieceworkContract:contract});return r!==false&&r?.ok!==false&&!r?.then;}catch{return false;}};
+ const scribeHome=originalScribe.home.toArray(),gardenHome=originalRecipient.home.toArray(),actors={herald,scribe,recipient},owned=new Set([herald]),tasks=new Map(),leases=new Map(),props=createPalaceEdictProps(lot.group),history=[],failures=[];
+ let ledger=createEdictLedger(saved),contract=saved.pieceworkContract||null,draftContract=saved.scribeContract||null,time=0,phaseTime=0,order=null,state={},disposed=false,speaker=null,utterance='',borrower=null,borrowUntil=0,personalLife=null,scribeLife=null;
+ const persist=()=>{try{const r=saveState({...ledger.snapshot(),pieceworkContract:contract,scribeContract:draftContract});return r!==false&&r?.ok!==false&&!r?.then;}catch{return false;}};
  const assignment=()=>resolveGardenAssignment?.()||{status:'npc',actor:recipient,holderId:personId(recipient),revision:boundRevision,alive:recipient.alive!==false,available:true};
  const available=()=>{const a=assignment();return a.status==='npc'&&a.actor===recipient&&a.holderId===personId(recipient)&&a.revision===boundRevision&&a.alive&&a.available&&canControlGarden(recipient)&&recipient.alive!==false;};
- const originalActorsReady=()=>[herald,scribe,emperor].every(n=>n.alive!==false);
+ const scribeAssignment=()=>resolveScribeAssignment?.()||{status:'npc',actor:scribe,holderId:personId(scribe),revision:scribeRevision,alive:scribe.alive!==false,available:true};
+ const scribeAvailable=()=>{const a=scribeAssignment();return a.status==='npc'&&a.actor===scribe&&a.holderId===personId(scribe)&&a.revision===scribeRevision&&a.alive&&a.available&&scribe!==getPlayer()&&canControlScribe(scribe)&&scribe.alive!==false;};
+ const originalActorsReady=()=>[herald,emperor].every(n=>n.alive!==false)&&scribeAvailable();
  const named=()=>recipient.station.npcName||personId(recipient);
  const freshContract=data=>pieceworkAccounts&&available()?{kind:'npc-edict-piecework',version:1,actorId:personId(recipient),roleId:GARDEN_ROLE.id,slotId:GARDEN_ROLE.slotId,holderRevision:boundRevision,documentId:data.id,audienceId:data.audienceId,day:data.day,amount:GARDEN_ROLE.amount,contractVersion:GARDEN_ROLE.contractVersion,steps:{received:false,filed:false,sweepSeconds:0}}:null;
  const record=(event,n)=>{history.push({event,documentId:order?.id||null,audienceId:order?.audienceId||null,actor:n?.station.id||null,time:+time.toFixed(2),position:n?.root.position.toArray()});if(history.length>72)history.shift();};
@@ -102,16 +116,21 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
   c.receptionWriting=action==='calligraphy';c.workHeight=target?(target[1]-n.root.position.y)/(n.characterScale||1):undefined;c.workDistance=target?Math.hypot(target[0]-n.root.position.x,target[2]-n.root.position.z)/(n.characterScale||1):undefined;
   if(target)face(n,target);n.animate(t+n.phase,n.walking,action,c);if(action==='tidy'&&n.root.userData.tools?.cloth)n.root.userData.tools.cloth.visible=false;
  }
- function prepare(data,reissued=false){if(!data)return false;if(!reissued)contract=freshContract(data);order={...data,title:E.title,stage:'preparing',holder:'scribe-desk',sealed:false,reissued,contractPersisted:true,piecework:contract?copy(contract):null,recipientId:personId(recipient),holderRevision:boundRevision,claims:{scribe:scribe.station.id,herald:herald.station.id,recipient:null},rooms:[]};phaseTime=0;speaker=null;utterance='';claim(scribe);task(scribe,'return-writing-desk',[scribe.home.toArray()],reissued?'奉查问补拟荷庭东岸清扫令':'回书案拟定荷庭清扫令');task(herald,'collect-draft',[...HALL_EXIT,...STUDY_PATH],'沿公共楼梯前往书画室取稿');record(reissued?'reissued-after-inquiry':'begin');if(!persist())order.contractPersisted=false;return true;}
+ function prepare(data,reissued=false){if(!data)return false;if(!reissued){contract=freshContract(data);draftContract=scribeAccounts&&scribeAvailable()?scribeContract(data,personId(scribe),scribeRevision):null;}order={...data,title:E.title,stage:'preparing',holder:'scribe-desk',sealed:false,reissued,contractPersisted:true,piecework:contract?copy(contract):null,scribePiecework:draftContract?copy(draftContract):null,scribeId:personId(scribe),scribeRevision,recipientId:personId(recipient),holderRevision:boundRevision,claims:{scribe:scribe.station.id,herald:herald.station.id,recipient:null},rooms:[]};phaseTime=0;speaker=null;utterance='';claim(scribe);task(scribe,'return-writing-desk',[scribeHome],reissued?'奉查问补拟荷庭东岸清扫令':'回书案拟定荷庭清扫令');task(herald,'collect-draft',[...HALL_EXIT,...STUDY_PATH],'沿公共楼梯前往书画室取稿');record(reissued?'reissued-after-inquiry':'begin');if(!persist())order.contractPersisted=false;return true;}
  if(enablePersonalNeeds&&pieceworkAccounts&&sharedNeeds)personalLife=createChinaGardenPersonalLife({npcs,getHolder:()=>recipient,getHome:()=>gardenHome,canStart:n=>!order&&!owned.has(n)&&!paused(n)&&(n!==recipient||available()),canControl:n=>canControlGarden(n)&&!paused(n),economy:pieceworkAccounts,sharedNeeds,getTavern,getToilet,getPlayer,doors,planPath,moveActor,poseContext,saved:saved.continuity?.personalLife||savedPersonalNeeds,saveState:savePersonalNeeds});
+ if(enableScribeNeeds&&scribeAccounts&&sharedNeeds)scribeLife=createChinaScribePersonalLife({npcs,getHolder:()=>scribe,getHome:()=>scribeHome,canStart:n=>!order&&!owned.has(n)&&!paused(n)&&(n!==scribe||scribeAvailable()),canControl:n=>canControlScribe(n)&&!paused(n),economy:scribeAccounts,sharedNeeds,getTavern,getToilet,getPlayer,doors,planPath,moveActor,poseContext,saved:saved.continuity?.scribeLife||savedScribeNeeds,saveState:saveScribeNeeds});
  persist();
  return {
   reservesGardenPerson:n=>n===recipient&&!!order,
-  canBorrowMeal:id=>personalLife?.canBorrowMeal(id)||false,personalNeedsState:()=>personalLife?.state()||null,
+  reservesScribePerson:n=>n===scribe&&!!order,
+  scribeBinding:()=>({actorId:personId(scribe),holderRevision:scribeRevision,available:scribeAvailable()}),
+  scribeHandoffBoundary:()=>({ok:!order&&!borrower&&ledger.snapshot().outcome!=='interrupted'&&!owned.has(scribe)&&!scribeLife?.blocks()&&near(scribe,scribeHome,.2),blockers:order?[{kind:'original-edict-unfinished'}]:[]}),
+  bindScribeAssignment(){const a=scribeAssignment();if(order||ledger.snapshot().outcome==='interrupted'||borrower||scribeLife?.blocks())return {ok:false,code:'original-edict-unfinished'};if(a.status!=='npc'||!a.alive||!a.available||!a.actor||!canControlScribe(a.actor)||a.holderId==='player'||[herald,recipient,emperor].includes(a.actor))return {ok:false,code:'scribe-holder-unavailable'};if(a.actor===scribe&&a.revision===scribeRevision)return {ok:true,replayed:true};if(owned.has(scribe))return {ok:false,code:'scribe-return-pending'};scribe=a.actor;actors.scribe=scribe;scribeRevision=a.revision;claim(scribe);task(scribe,'arrive-scribe-assignment',[scribeHome],'沿原公共通道到原拟稿书案');persist();return {ok:true};},
+  canBorrowMeal:id=>personalLife?.canBorrowMeal(id)||scribeLife?.canBorrowMeal(id)||false,personalNeedsState:()=>personalLife?.state()||null,scribeNeedsState:()=>scribeLife?.state()||null,
   gardenBinding:()=>({actorId:personId(recipient),holderRevision:boundRevision,available:available()}),
   gardenHandoffBoundary:()=>({ok:!order&&!borrower&&ledger.snapshot().outcome!=='interrupted'&&!owned.has(recipient)&&!personalLife?.blocks()&&near(recipient,gardenHome,.2),blockers:order?[{kind:'original-edict-unfinished'}]:[]}),
   bindGardenAssignment(){const a=assignment();if(order||ledger.snapshot().outcome==='interrupted'||borrower||personalLife?.blocks())return {ok:false,code:'original-edict-unfinished'};if(a.status!=='npc'||!a.alive||!a.available||!a.actor||!canControlGarden(a.actor)||a.holderId==='player'||[herald,scribe,emperor].includes(a.actor))return {ok:false,code:'garden-holder-unavailable'};if(a.actor===recipient&&a.revision===boundRevision)return {ok:true,replayed:true};if(owned.has(recipient))return {ok:false,code:'garden-return-pending'};recipient=a.actor;actors.recipient=recipient;boundRevision=a.revision;claim(recipient);task(recipient,'arrive-garden-assignment',[gardenHome],'沿原公共通道到荷庭清扫岗位');persist();return {ok:true};},
-  owns:n=>owned.has(n)||!!personalLife?.owns(n),socialStatus:n=>personalLife?.owns(n)?{busy:true,canPause:false,attention:false,job:personalLife.label()}:owned.has(n)?{busy:!!order,canPause:!order,attention:!order,job:n===speaker?utterance:tasks.get(n)?.label||'在传令案前候命'}:null,
+  owns:n=>owned.has(n)||!!personalLife?.owns(n)||!!scribeLife?.owns(n),socialStatus:n=>scribeLife?.owns(n)?{busy:true,canPause:false,attention:false,job:scribeLife.label()}:personalLife?.owns(n)?{busy:true,canPause:false,attention:false,job:personalLife.label()}:owned.has(n)?{busy:!!order,canPause:!order,attention:!order,job:n===speaker?utterance:tasks.get(n)?.label||'在传令案前候命'}:null,
   // Only the original idle herald may be lent. Wen, Bo and an unfinished
   // decree remain under this controller, including after a cancelled loan.
   heraldAvailability(owner){const a=(audience.courtStatus?.()||audience.state()),l=ledger.snapshot();return disposed||herald.alive===false?{ok:false,reason:'service-unavailable'}:borrower&&borrower!==owner?{ok:false,reason:'herald-borrowed'}:order||l.outcome==='interrupted'||ledger.canBegin(a.schedule)?{ok:false,reason:'edict-unfinished'}:a.phase!=='waiting'?{ok:false,reason:'court-busy'}:tasks.has(herald)?{ok:false,reason:'herald-returning'}:paused(herald)?{ok:false,reason:'herald-in-conversation'}:{ok:true,reason:null};},
@@ -119,23 +138,30 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
   releaseHerald(owner){if(borrower!==owner)return false;borrower=null;owned.add(herald);herald.route=[];herald.walking=false;if(herald.poseContext){herald.poseContext.handoff=false;herald.poseContext.receptionWriting=false;}task(herald,'return-after-loan',near(herald,P.sealStand,.2)?[P.sealStand]:[[-16.8,.215,-14.4],[-14.4,.145,-14.4],[-14.4,.115,-10],[-14.4,.115,.4],[-3,.13,11],[2,.13,11],[2,1.415,6],[2,1.415,3],P.sealStand],'文书接待告一段落 · 沿公共通道回传令案');record('herald-returned:'+owner,herald);return true;},
   borrowedHerald:owner=>borrower===owner,
   animateBorrowedSeal(owner,phase,elapsed){if(borrower!==owner)return false;props.animateBorrowedSeal(herald,phase,elapsed);return true;},
-  reissueInterrupted(documentId){if(disposed||order||borrower||!available()||!originalActorsReady())return false;const l=ledger.snapshot();if(contract&&!matchesContract(contract,{id:documentId,audienceId:l.lastReceipt,day:l.lastDay},personId(recipient),boundRevision))return false;return prepare(ledger.reissue(documentId,(audience.courtStatus?.()||audience.state()).schedule),true);},
+  reissueInterrupted(documentId){if(disposed||order||borrower||!available()||!originalActorsReady())return false;const l=ledger.snapshot();if(contract&&!matchesContract(contract,{id:documentId,audienceId:l.lastReceipt,day:l.lastDay},personId(recipient),boundRevision))return false;if(draftContract&&!same(draftContract,scribeContract({id:documentId,audienceId:l.lastReceipt,day:l.lastDay},personId(scribe),scribeRevision)))return false;return prepare(ledger.reissue(documentId,(audience.courtStatus?.()||audience.state()).schedule),true);},
   update(dt,t,playerState={}){
    if(disposed)return;state=playerState;time+=dt;
    if(order?.contractPersisted===false){order.contractPersisted=true;if(!persist()){order.contractPersisted=false;return;}}
-   personalLife?.update(dt,t);
+   personalLife?.update(dt,t);scribeLife?.update(dt,t);
+   if(!order&&owned.has(scribe)&&arrived(scribe))release(scribe);
    if(!order&&owned.has(recipient)&&arrived(recipient))release(recipient);
    if(borrower&&time>borrowUntil)this.releaseHerald(borrower);
    if(!borrower&&!order&&arrived(herald)){const returning=tasks.get(herald);returning.settleElapsed=(returning.settleElapsed||0)+dt;if(returning.settleElapsed>=1.3)tasks.delete(herald);}
-   const a=(audience.courtStatus?.()||audience.state());if(!borrower&&!order&&!tasks.has(herald)&&a.phase==='waiting'&&a.schedule.outcome==='completed'&&ledger.canBegin(a.schedule)&&!owned.has(recipient)&&!personalLife?.blocks()&&available()&&originalActorsReady()&&!paused(scribe)&&!paused(recipient))prepare(ledger.begin(a.schedule));
+   const a=(audience.courtStatus?.()||audience.state());if(!borrower&&!order&&!tasks.has(herald)&&a.phase==='waiting'&&a.schedule.outcome==='completed'&&ledger.canBegin(a.schedule)&&!owned.has(recipient)&&!personalLife?.blocks()&&!scribeLife?.blocks()&&available()&&originalActorsReady()&&!paused(scribe)&&!paused(recipient))prepare(ledger.begin(a.schedule));
    for(const n of owned){n.walking=false;const s=tasks.get(n);tell(n,n===speaker?utterance:s?.label||'在传令案前候命');if(!paused(n)&&n.alive!==false&&(!order||available()&&originalActorsReady())&&s)travel(n,s,dt);}
    const stage=order?.stage,halt=!!order&&(!available()||!originalActorsReady()||[...owned].some(paused))||state.conversationActorId===emperor.station.id;
    if(order&&!halt){
     const advanceAfter=(seconds,next)=>{phaseTime+=dt;if(phaseTime>=seconds){enter(next);return true;}return false;};
     if(stage==='preparing'&&arrived(scribe)){enter('drafting');say(scribe,order.reissued?'奉旨补办旧清扫令，重新拟稿呈陛下核准，待实作完成再留回执。':'据今日朝议，拟一纸荷庭清扫令，交陛下核准。');}
-    else if(stage==='drafting'&&advanceAfter(5,'await-pickup'))tell(scribe,'清扫令初稿已写好 · 等沈序来取');
+    else if(stage==='drafting'&&near(scribe,scribeHome,.2)&&arrived(scribe)){phaseTime=Math.min(5,phaseTime+dt);if(order.scribePiecework)order.scribePiecework.steps.draftSeconds=phaseTime;if(phaseTime>=5){enter('await-pickup');tell(scribe,'清扫令初稿已写好 · 等沈序来取');}}
     else if(stage==='await-pickup'&&arrived(herald)&&arrived(scribe)){enter('scribe-handoff');order.holder='transfer';face(scribe,P.collect);face(herald,P.scribe);say(scribe,'沈序，请将这份原稿呈陛下核准。');}
-    else if(stage==='scribe-handoff'&&advanceAfter(2,'to-approval')){order.holder='herald';order.claims.scribe=null;record('draft-received',herald);release(scribe);task(herald,'carry-draft-to-emperor',[...reverse(STUDY_PATH).slice(1,-1),[-13.7,.145,-20.85],[-13.7,.145,-14.5],P.approve],'携同一份原稿下楼 · 到公共听候处请准');palace.requestDuty(E.owner,{kind:'edict-review'});}
+    else if(stage==='scribe-handoff'&&near(scribe,scribeHome,.2)&&near(herald,P.collect,.2)&&arrived(scribe)&&arrived(herald)){
+     phaseTime=Math.min(2,phaseTime+dt);if(order.scribePiecework)order.scribePiecework.steps.handoffSeconds=phaseTime;
+     if(phaseTime>=2){const before=this.snapshot();enter('to-approval');order.holder='herald';order.claims.scribe=null;record('draft-received',herald);release(scribe);task(herald,'carry-draft-to-emperor',[...reverse(STUDY_PATH).slice(1,-1),[-13.7,.145,-20.85],[-13.7,.145,-14.5],P.approve],'携同一份原稿下楼 · 到公共听候处请准');
+      const proof=order.scribePiecework,validProof=!proof||same({...proof,steps:{draftSeconds:0,handoffSeconds:0}},scribeContract(order,personId(scribe),scribeRevision)),paid=proof&&validProof?scribeAccounts?.settle(proof,{chinaEdict:{...ledger.snapshot(),pieceworkContract:contract,scribeContract:draftContract}}):{ok:!proof&&persist()};
+      if(!paid?.ok||paid.replayed&&!persist()){this.restore(before);tell(scribe,'原稿已写就并交付 · 等待原回执入账');}else palace.requestDuty(E.owner,{kind:'edict-review'});
+     }
+    }
     else if(stage==='to-approval'){
      if(!palace.dutyState(E.owner))palace.requestDuty(E.owner,{kind:'edict-review'});
      if(arrived(herald)&&palace.dutyState(E.owner)?.ready){enter('approval');face(herald,emperor.root.position.toArray());say(emperor,'准。照此清扫东岸，收好落叶，留宽路给往来的人。');}
@@ -157,7 +183,7 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
      // point. Pauses, re-entry and idle time cannot substitute for sweeping.
      if(near(recipient,P.work,.2)&&arrived(recipient)){phaseTime=Math.min(7,phaseTime+dt);if(order.piecework)order.piecework.steps.sweepSeconds=phaseTime;}
      if(phaseTime>=7){const before=this.snapshot();enter('returning');ledger.finish(true);order.claims={scribe:null,herald:null,recipient:null};record('east-shore-cleaned',recipient);say(recipient,'东岸落叶已入筐，这段路清好了。');task(recipient,'return-garden-post',[[10,.145,-14],[0,.295,-14.3],gardenHome],'清扫完成 · 沿荷桥返岗');task(herald,'return-seal-stand',[[13.4,.145,-14],...reverse(HALL_EXIT).slice(1),P.sealStand],'传达已办结 · 回传令案');
-      const proof=order.piecework,validProof=!proof||matchesContract({...proof,steps:{received:false,filed:false,sweepSeconds:0}},order,personId(recipient),boundRevision),paid=proof&&validProof?pieceworkAccounts?.settle(proof,{chinaEdict:{...ledger.snapshot(),pieceworkContract:contract}}):{ok:!proof&&persist()};
+      const proof=order.piecework,validProof=!proof||matchesContract({...proof,steps:{received:false,filed:false,sweepSeconds:0}},order,personId(recipient),boundRevision),paid=proof&&validProof?pieceworkAccounts?.settle(proof,{chinaEdict:{...ledger.snapshot(),pieceworkContract:contract,scribeContract:draftContract}}):{ok:!proof&&persist()};
       if(!paid?.ok||paid.replayed&&!persist()){this.restore(before);tell(recipient,'清扫实作已完成 · 等待原回执入账');}
      }
     }
@@ -165,9 +191,9 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
    }
    for(const n of owned)animate(n,t);props.update(order,actors,phaseTime,!order&&ledger.snapshot().outcome==='completed',halt);
   },
-  snapshot:()=>({version:1,ledger:{...ledger.snapshot(),pieceworkContract:contract},personalLife:personalLife?.snapshot()||null,runtime:captureWorldRuntime({recipientId:personId(recipient),holderRevision:boundRevision,time,phaseTime,order,speakerId:speaker?.station.id||null,utterance,history,owned:[...owned].map(n=>n.station.id),leases:[...leases].map(([n,t])=>[n.station.id,t]),tasks:[...tasks].map(([n,s])=>[n.station.id,s])})}),
-  restore(snapshot){if(!resumable(snapshot))return false;const s=restoreWorldRuntime(snapshot.runtime,{npcs});const restoredRecipient=npcs.find(n=>personId(n)===(s.recipientId||'cn-garden'));if(!restoredRecipient)return false;recipient=restoredRecipient;actors.recipient=recipient;boundRevision=s.holderRevision??0;ledger=createEdictLedger({...snapshot.ledger,preservePhysical:true});contract=snapshot.ledger.pieceworkContract||null;time=Math.max(0,s.time||0);phaseTime=Math.max(0,s.phaseTime||0);borrower=null;borrowUntil=0;order=s.order;speaker=npcs.find(n=>n.station.id===s.speakerId)||null;utterance=s.utterance||'';if(snapshot.personalLife)personalLife?.restore(snapshot.personalLife);history.splice(0,history.length,...(s.history||[]));owned.clear();owned.add(herald);for(const id of s.owned||[]){const n=npcs.find(n=>n.station.id===id);if(n&&[herald,scribe,recipient].includes(n))owned.add(n);}leases.clear();for(const[id,t]of s.leases||[]){const n=npcs.find(n=>n.station.id===id);if(owned.has(n))leases.set(n,t);}tasks.clear();for(const[id,t]of s.tasks||[]){const n=npcs.find(n=>n.station.id===id);if(owned.has(n)){tasks.set(n,{...t,planned:false,stalled:0});n.route=[];}}if(speaker===emperor)palace.setDutyLine(E.owner,utterance);props.update(order,actors,phaseTime,!order&&ledger.snapshot().outcome==='completed',false);return true;},
+  snapshot:()=>({version:1,ledger:{...ledger.snapshot(),pieceworkContract:contract,scribeContract:draftContract},personalLife:personalLife?.snapshot()||null,scribeLife:scribeLife?.snapshot()||null,runtime:captureWorldRuntime({scribeId:personId(scribe),scribeRevision,recipientId:personId(recipient),holderRevision:boundRevision,time,phaseTime,order,speakerId:speaker?.station.id||null,utterance,history,owned:[...owned].map(n=>n.station.id),leases:[...leases].map(([n,t])=>[n.station.id,t]),tasks:[...tasks].map(([n,s])=>[n.station.id,s])})}),
+  restore(snapshot){if(!resumable(snapshot))return false;const s=restoreWorldRuntime(snapshot.runtime,{npcs});const restoredRecipient=npcs.find(n=>personId(n)===(s.recipientId||'cn-garden'));const restoredScribe=npcs.find(n=>personId(n)===(s.scribeId||'cn-calligraphy'));if(!restoredRecipient||!restoredScribe)return false;scribe=restoredScribe;actors.scribe=scribe;scribeRevision=s.scribeRevision??0;recipient=restoredRecipient;actors.recipient=recipient;boundRevision=s.holderRevision??0;ledger=createEdictLedger({...snapshot.ledger,preservePhysical:true});contract=snapshot.ledger.pieceworkContract||null;draftContract=snapshot.ledger.scribeContract||null;time=Math.max(0,s.time||0);phaseTime=Math.max(0,s.phaseTime||0);borrower=null;borrowUntil=0;order=s.order;speaker=npcs.find(n=>n.station.id===s.speakerId)||null;utterance=s.utterance||'';if(snapshot.personalLife)personalLife?.restore(snapshot.personalLife);if(snapshot.scribeLife)scribeLife?.restore(snapshot.scribeLife);history.splice(0,history.length,...(s.history||[]));owned.clear();owned.add(herald);for(const id of s.owned||[]){const n=npcs.find(n=>n.station.id===id);if(n&&[herald,scribe,recipient].includes(n))owned.add(n);}leases.clear();for(const[id,t]of s.leases||[]){const n=npcs.find(n=>n.station.id===id);if(owned.has(n))leases.set(n,t);}tasks.clear();for(const[id,t]of s.tasks||[]){const n=npcs.find(n=>n.station.id===id);if(owned.has(n)){tasks.set(n,{...t,planned:false,stalled:0});n.route=[];}}if(speaker===emperor)palace.setDutyLine(E.owner,utterance);props.update(order,actors,phaseTime,!order&&ledger.snapshot().outcome==='completed',false);return true;},
   state:()=>({time,phaseTime,heraldBorrower:borrower,order:order?copy(order):null,ledger:ledger.snapshot(),speaker:speaker?.station.id||null,utterance,history:copy(history),failures:copy(failures),props:props.state(),actors:[...owned].map(n=>({id:n.station.id,position:n.root.position.toArray(),stage:tasks.get(n)?.id||'waiting',waypoint:tasks.get(n)?.index||0,arrived:arrived(n),walking:n.walking,paused:paused(n)})),rewards:false,piecework:pieceworkAccounts?{role:GARDEN_ROLE.id,amount:GARDEN_ROLE.amount,actorId:personId(recipient),holderRevision:boundRevision,available:available()}:null}),
-  dispose({suspend=false}={}){if(disposed)return;disposed=true;personalLife?.dispose({suspend});if(order&&!suspend){ledger.finish(false);persist();}if(!suspend)palace.releaseDuty(E.owner);palace.setDutyLine(E.owner,null);for(const n of[...owned]){n.route=[];n.walking=false;release(n);}owned.clear();tasks.clear();props.dispose();}
+  dispose({suspend=false}={}){if(disposed)return;disposed=true;personalLife?.dispose({suspend});scribeLife?.dispose({suspend});if(order&&!suspend){ledger.finish(false);persist();}if(!suspend)palace.releaseDuty(E.owner);palace.setDutyLine(E.owner,null);for(const n of[...owned]){n.route=[];n.walking=false;release(n);}owned.clear();tasks.clear();props.dispose();}
  };
 }
