@@ -1461,3 +1461,7 @@ FND01 艺者dormant事务锁前置（2026-10-07 UTC+8，R159/ccd4ea45底座，�
 玩家/官员四腿正反重入、fresh/提前prepared餐款/收入/接待工资/费用与业务候选拒绝、false/object/throw/Promise/reject失败原子性/finally释放及重试重载一致均过；原20→艺者10/经营10→温晚8/经营净2、旧未标记服务无补薪、真实产权买卖/提款、原50%及100%玩家台班规则不改。shared currency协议专测与原currency、中国钱庄、日/法/埃柜台、正式工资/日最低余额利息通过；temporary-work-bank旧8项有5项失败（中国临工旧fixture及法国旧提示断言），在原ccd4ea45同样复现，不称通过，不借此改临工规则。独立review确认当前实际source caller都遵守新链，main/艺术拒绝/需求/租约/controller未动；正向艺者4+同人另一来源3聚合与最终build继续验证，未宣称上线或自由转职。
 
 FND01 艺者保存锁独立批次补验：`china-salon-reception-service` 原真实20文服务及完整成人温晚笔/纸/牌接触、`china-salon-reception-meal-account` 原未付/预付租约及失效死亡退款、`china-salon-needs` 原优先级/身份/原家返回均通过；fresh build为316资源/8,719,287字节，七个历史tracked资产原样恢复。独立资金保存风险修复已具备发布证据，正向艺者4+另一真实3的dormant聚合验证作为下一小检查点，不阻塞此原子锁修复；仍不接main艺者聚合、不改租约provider或controller。
+
+FND01 R16.160发布准备（2026-10-07 UTC+8）：相对R159文档源 `ccd4ea45`，只合并已独立复核的 `a8652f4` / `0059aaad` 保存重入修复；为可选lock-aware原currency participant和原官员payer持有艺者→接待工资→对应经营费用锁，整存与内存采纳后finally释放。复用原四腿分账、真实接待接触、活动餐租约/失效退款、艺者需求及四国原金融窄验；发布合版再过两个保存锁专测和5个产品模块语法，产品/测试与已验证pin逐字一致。原无lock participant行为、原50%/100%/8文合同、main/controller与31/31范围不变。艺者餐provider只是休眠接口，本批未接艺者或财产跨族聚合；temporary-work-bank原基线5项旧fixture失败保留记录，未称通过。正式构建需保留R159实际316资源图，私有main核验后才原Site发布；无新跑全世界/浏览器/iOS声明。
+
+R16.160发布构建已完成：316当前资源/8,719,287字节、R159实际316旧图全部哈希匹配，普通入口/版本/309模块链接通过；七个历史tracked资产原样保留。首次临时模块链接检查误用vendor键，改为从实际manifest解析three路径后通过，非产品失败。两个专测覆盖原收入→餐款和餐款→收入双向重入、提前prepared候选、false/object/throw/Promise/reject失败与释放重试，合版通过；未重复长路线。
