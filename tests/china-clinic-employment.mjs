@@ -15,7 +15,7 @@ const {createGameHealthWorld}=await import('../source/game/game-health-world.js'
 const {CHINA_CLINIC:C}=await import('../source/game/china-clinic.js');
 const copy=x=>JSON.parse(JSON.stringify(x));
 const clean=c=>{const {loadError,lastError,...s}=c.state();return s;};
-function fixture(saved={},options={}){
+export function fixture(saved={},options={}){
  const store=copy(saved),clock={day:1,hour:8,seconds:0,...store.clock},flags={clinic:false,employment:false,career:false,bank:false},writes=[],notices=[];let clinic,employment,mounted=null;
  const save=key=>value=>{if(flags[key]||key==='career'&&flags.careerPaid&&value.lastDuty?.stage==='paid')return false;store[key]=copy(value);store.clock=copy(clock);writes.push(key);return true;};
  const bank=createCurrencyLedger({saved:store.bank,saveState:save('bank')});
@@ -27,7 +27,7 @@ function fixture(saved={},options={}){
  const seat={id:C.seatId,kind:'seat',position:[23.55,4.015,-27.1],anchor:C.points.consult,seatY:4.675,yaw:Math.PI},furniture={items:[seat],facilities:createFacilityQueue(),releaseActor(id){this.facilities.releaseActor(id);},canSit:()=>true,standPoint:(_nav,_s,seat)=>new T.Vector3(...seat.position)};
  const claim=(id,claimId)=>{if(lease)return lease.actorId===id&&lease.claimId===claimId;if(!guestIdle)return false;lease={actorId:id,claimId};store.lease=copy(lease);calls.claim++;return true;},release=(id,claimId)=>{if(lease?.actorId!==id||lease.claimId!==claimId)return false;lease=null;store.lease=null;calls.release++;return true;};
  const doors={routeStep(route,p){while(route[0]&&Math.hypot(route[0].x-p.x,route[0].z-p.z)<.03){p.y=route[0].y;route.shift();}return {waypoint:route[0],phase:'walking'};}};
- clinic=createChinaClinicService({canControlActor:options.canControlActor,getNPCHolder:options.getNPCHolder,getClock:()=>clock,npcs,lot:{group:root,clinic:true},furniture,getMounted:()=>mounted,getPlayer:()=>player,doors,planPath:(_a,b)=>[new T.Vector3(b.x,b.y,b.z)],moveActor:(n,x,z)=>{n.root.position.x+=x;n.root.position.z+=z;if(n.route[0])n.root.position.y=n.route[0].y;},poseContext:()=>({}),saved:store.clinic||{},saveState:save('clinic'),isAssistantHired:()=>careers.isHired(R.id),getEmployment:()=>employment?.state().job,claimPatient:claim,releasePatient:release,patientClaims:()=>lease?[lease]:[],onInteraction:e=>calls.contacts.push(copy(e)),notify:n=>notices.push(n)});
+ clinic=createChinaClinicService({...options.personalOptions,canControlActor:options.canControlActor,getNPCHolder:options.getNPCHolder,getClock:()=>clock,npcs,lot:{group:root,clinic:true},furniture,getMounted:()=>mounted,getPlayer:()=>player,doors,planPath:(_a,b)=>[new T.Vector3(b.x,b.y,b.z)],moveActor:(n,x,z)=>{n.root.position.x+=x;n.root.position.z+=z;if(n.route[0])n.root.position.y=n.route[0].y;},poseContext:()=>({}),saved:store.clinic||{},saveState:save('clinic'),isAssistantHired:()=>careers.isHired(R.id),getEmployment:()=>employment?.state().job,claimPatient:claim,releasePatient:release,patientClaims:()=>lease?[lease]:[],onInteraction:e=>calls.contacts.push(copy(e)),notify:n=>notices.push(n)});
  employment=createChinaClinicEmployment({clinic,careers,getPlayer:()=>player,getMounted:()=>mounted,getClock:()=>clock,saved:store.employment,saveState:save('employment'),notify:n=>notices.push(n)});
  const tick=(count=1)=>{for(let i=0;i<count;i++){clock.seconds+=.1;clock.hour+=.1*.7/60;employment.update(.1);clinic.update(.1,clock.seconds,{player,facilityId:mounted?.id});}};
  const until=(fn,label,limit=3000)=>{for(let i=0;i<limit&&!fn();i++)tick();assert(fn(),label+' '+JSON.stringify({c:clinic.state(),e:employment.state(),career:careers.state()}));};
@@ -39,6 +39,7 @@ function fixture(saved={},options={}){
  return {store,clock,flags,bank,careers,clinic,employment,player,doctor,assistant,guest,other,calls,notices,root,seat,tick,until,act,meet,hire,admit,step,setIdle:v=>guestIdle=v,setMounted:v=>mounted=v};
 }
 
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
 test('local pending review, skill/no-slot gates and tenure survive reload without work or salary',()=>{
  for(const options of [{writing:0},{ageYears:17},{noSlot:true}]){const f=fixture({},options);f.meet();f.act('formal-apply',false);assert.equal(f.careers.state().tenure,null);assert.equal(f.careers.applicationResult(R.id).status,'rejected');assert.equal(f.employment.intent('accept'),null);assert.equal(f.bank.state().bank,0);}
  const f=fixture(),remote=f.employment.intent('formal-apply');f.player.root.position.set(0,0,0);assert.equal(f.employment.executeIntent(remote),false);f.meet();f.act('formal-apply');const pending=f.careers.applicationResult(R.id);assert.equal(f.careers.slotHolder(R.id),'cn-pharmacy-assistant');assert.equal(f.bank.state().bank,0);
@@ -129,3 +130,6 @@ test('assistant safe rebind preserves person and dependent physician work; compl
  const prior=f.assistant.root.position.clone();roles.assistant.holderId=f.other.station.id;roles.assistant.revision=1;assert(f.clinic.rebindStaff('assistant'));f.until(()=>f.other.root.position.distanceTo(new T.Vector3(...C.points.assistant))<.1,'successor reaches original pharmacy counter');assert(f.assistant.root.position.equals(prior));
  f.admit();f.until(()=>f.clinic.npcDutyReceipts().length===2,'new actual assistant completes same original guest packet');const receipt=f.clinic.npcDutyReceipts().find(r=>r.roleId===R.id);assert.equal(receipt.actorId,f.other.station.id);assert.equal(receipt.holderRevision,1);const snap=f.clinic.snapshot();assert.equal(snap.staffBindings.assistant,f.other.station.id);assert.equal(snap.order.staffPeople.assistant,f.other.station.id);assert(f.clinic.restore(snap,{player:f.player}));f.tick();assert.equal(f.clinic.staffActors().assistant,f.other);assert(f.assistant.root.position.equals(prior));
 });
+
+
+}
