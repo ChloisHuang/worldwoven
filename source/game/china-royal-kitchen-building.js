@@ -29,6 +29,10 @@ export function buildChinaRoyalKitchen(G,A){
   levels.push({id:i?'royal-kitchen-upper':'royal-dining-floor',name:i?'御膳楼 · 二层备餐':'御膳楼 · 一层餐厅',y,bounds:CHINA_ROYAL_KITCHEN.bounds});
   lightingZones.push({id:'royal-kitchen-'+i,...CHINA_ROYAL_KITCHEN.bounds,minY:y-.1,maxY:top+.1,floorY:y});
  }
+ // Keep the original split-cloth dining/preparation threshold at the real
+ // upstairs landing; its identity now separates the stairs from the workroom.
+ entry('cn-kitchen-dining','御膳梯厅与二层备餐间','x',-9.4,24.1,25.9,4.015,['dining','kitchen']);
+ G.box(root,25,6.99,-9.4,2,.18,.25,C.red);
  stairs(root,'cn-royal-kitchen-stair','x',17.6,24.3,-11.65,-9.65,.215,4.015,20);
  // Lower stair mouth is approached from its actual west landing. No slab or
  // ceiling crosses the ascent; the upstairs east landing joins the workroom.
@@ -40,10 +44,10 @@ export function buildChinaRoyalKitchen(G,A){
  table(dining,21,.215,-6.8,3.8,2.1);for(const x of[19.9,21,22.1])for(const z of[-6.25,-7.35])H.bowl(dining,x,1.09,z,0xc3d1bd,.2);
  for(const x of[19.8,22.2])for(const z of[-8.3,-4.8]){G.box(dining,x,.45,z,.75,.5,.75,C.wood);G.box(dining,x,.76,z,.86,.12,.86,0xb19068);colliders.push({minX:x-.43,maxX:x+.43,minY:.2,maxY:.87,minZ:z-.43,maxZ:z+.43});cameraColliders.push({...colliders.at(-1)});}
  // Original stove and three-tier steamer, moved together without scaling.
- addBox(kitchen,18.1,4.79,-4.5,3.8,1.18,1.35,0xa29372);G.box(kitchen,18.1,5.43,-4.5,3.94,.13,1.49,0xc9c0a1);G.cyl(kitchen,17.2,5.54,-4.5,.48,.48,.08,0x343e37);G.sphere(kitchen,17.2,5.64,-4.5,.42,0x46534b,1,.4,1);for(let j=0;j<3;j++)G.cyl(kitchen,19.1,5.57+j*.18,-4.5,.3,.31,.16,0xbba26e,12);G.cone(kitchen,19.1,6.13,-4.5,.34,.15,0xd2b780,12);
+ addBox(kitchen,18.1,4.59,-4.5,3.8,1.18,1.35,0xa29372);G.box(kitchen,18.1,5.23,-4.5,3.94,.13,1.49,0xc9c0a1);G.cyl(kitchen,17.2,5.34,-4.5,.48,.48,.08,0x343e37);G.sphere(kitchen,17.2,5.44,-4.5,.42,0x46534b,1,.4,1);for(let j=0;j<3;j++)G.cyl(kitchen,19.1,5.37+j*.18,-4.5,.3,.31,.16,0xbba26e,12);G.cone(kitchen,19.1,5.93,-4.5,.34,.15,0xd2b780,12);
  // Same 4.7 m preparation table, original two boards/dough and bowl.
- table(kitchen,21.4,4.015,-7.3,4.7,1.8,1,1.55);for(const x of[20,22.3]){G.box(kitchen,x,5.099,-6.7,.85,.04,.60,0xd5b680);for(let i=0;i<3;i++)G.sphere(kitchen,x-.2+i*.2,5.19,-6.49,.1,0xeee0bc,1,.6,.72);}H.bowl(kitchen,23,5.12,-7.45,0x99b7a8,.3,0x76905a);
- const shelf=H.openShelf(kitchen,[],25.1,-4.5,2,2.6,.7,C.wood,-Math.PI/2);shelf.position.y=4.2;for(const xx of[-.6,0,.6]){for(let j=0;j<3;j++)H.boundBook(shelf,xx,.35+j*.11,0,.4,.46,[0x738d7b,0xb69d6a,0x9a6350][j]);G.vessel(shelf,xx,1.51,0,0xa9c2b5,.55);}colliders.push({minX:24.7,maxX:25.5,minY:4.2,maxY:6.8,minZ:-5.5,maxZ:-3.5});cameraColliders.push({...colliders.at(-1)});
+ table(kitchen,21.4,4.015,-7.3,4.7,1.8,1,1.55);for(const x of[20,22.3]){G.box(kitchen,x,4.899,-6.7,.85,.04,.60,0xd5b680);for(let i=0;i<3;i++)G.sphere(kitchen,x-.2+i*.2,4.99,-6.49,.1,0xeee0bc,1,.6,.72);}H.bowl(kitchen,23,4.92,-7.45,0x99b7a8,.3,0x76905a);
+ const shelf=H.openShelf(kitchen,[],25.1,-4.5,2,2.6,.7,C.wood,-Math.PI/2);shelf.position.y=4.0;for(const xx of[-.6,0,.6]){for(let j=0;j<3;j++)H.boundBook(shelf,xx,.35+j*.11,0,.4,.46,[0x738d7b,0xb69d6a,0x9a6350][j]);G.vessel(shelf,xx,1.51,0,0xa9c2b5,.55);}colliders.push({minX:24.7,maxX:25.5,minY:4.0,maxY:6.6,minZ:-5.5,maxZ:-3.5});cameraColliders.push({...colliders.at(-1)});
  interiorRooms.push({id:'dining',name:'御膳楼一层餐厅',...CHINA_ROYAL_KITCHEN.bounds,floorY:.215,ceiling:3.77},{id:'kitchen',name:'御膳楼二层备膳间',...CHINA_ROYAL_KITCHEN.bounds,floorY:4.015,ceiling:7.57});
  for(const[id,name,p,roomId]of[['cn-kitchen-prep','二层原备膳案前',[21.4,4.015,-6.1],'kitchen'],['cn-kitchen-stove','二层原蒸笼灶前',[17.8,4.015,-5.65],'kitchen'],['cn-kitchen-rear','御膳后门内',[24.7,.215,-11.05],'dining'],['cn-dining-west','餐厅西侧',[17.8,.215,-6],'dining'],['cn-dining-east','餐厅东侧',[23.9,.215,-6],'dining'],['cn-dining-door','餐厅门内',[21,.215,-3.8],'dining']])explorationTargets.push({id,name,position:p,roomId});
  H.palaceRoof(roof,21,7.83,-7.5,11.3,10.3,1.4,C.roof);

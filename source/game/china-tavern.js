@@ -112,6 +112,7 @@ export function buildChinaTavern(G,A){
  room('tavern-kitchen','云来酒楼 · 后厨备餐间',21.95,26,3,5.65,.215,3.77);
  sign(g0,'云来酒楼',21,3.23,21.24,3.45,.61);
  sign(g0,'云来酒楼',15.76,3.13,8.4,3.20,.59,-Math.PI/2);
+ sign(g0,'二层公共净室',15.76,2.5,8.4,2.35,.40,-Math.PI/2);
  target('cn-tavern-dining','酒楼中央过道',[21,.215,16.3],'tavern-dining');
 
  // Two independently enclosed rooms. Opaque inset leaves open into empty
