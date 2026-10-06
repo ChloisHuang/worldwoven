@@ -53,7 +53,9 @@ export function createNPCGuestAccounts(providers, {saved, saveState = null} = {}
   for (const orderId of orders) if (transfers(orderId, 'meal-payment').length > 1 && !entry(orderId, 'meal-payment')) throw Error('ambiguous-guest-meal');
  } catch (error) { loadError = error.message; if (saved != null) invalidSnapshot = copy(saved); }
  const unhealthy = () => loadError || catalogue.some(p => p.economy.loadError);
- const owners = id => unhealthy() ? [] : catalogue.filter(p => p.economy.hasIncome(id));
+ // Fixed, replay-proven personal opening funds are ownership, not earned income.
+ const ownsAccount = (p, id) => typeof p.economy.ownsPersonalMealAccount === 'function' ? p.economy.ownsPersonalMealAccount(id) : p.economy.hasIncome?.(id) === true;
+ const owners = id => unhealthy() ? [] : catalogue.filter(p => ownsAccount(p, id));
  const providerFor = id => { const found = owners(id); return found.length > 1 ? NPC_GUEST_MEAL_PROVIDER : found[0]?.id || null; };
  const account = id => {
   const found = owners(id); if (!found.length) return null;
@@ -101,7 +103,7 @@ export function createNPCGuestAccounts(providers, {saved, saveState = null} = {}
   const payments = transfers(input.orderId, 'meal-payment'), refunds = transfers(input.orderId, 'meal-refund');
   if (pinnedProvider && pinnedProvider !== NPC_GUEST_MEAL_PROVIDER) {
    const provider = catalogue.find(p => p.id === pinnedProvider);
-   if (paid || !provider || !provider.economy.hasIncome(input.actorId) || payments.some(p => p.provider !== provider) || refunds.some(p => p.provider !== provider)) return failure('guest-provider-conflict');
+   if (paid || !provider || !ownsAccount(provider, input.actorId) || payments.some(p => p.provider !== provider) || refunds.some(p => p.provider !== provider)) return failure('guest-provider-conflict');
    return provider.economy[kind === 'meal-payment' ? 'prepareMealPayment' : 'prepareMealRefund'](input);
   }
   if (!paid && (payments.length || refunds.length)) {
@@ -148,6 +150,9 @@ export function createNPCGuestAccounts(providers, {saved, saveState = null} = {}
    if (!object(patch) || Object.hasOwn(patch, namespace) || catalogue.some(p => p.identity && Object.hasOwn(patch, p.identity.namespace))) return failure('invalid-guest-meal-patch');
    const locked = []; busy = true;
    try {
+    // Some native purses require a full original order even for a partial debit.
+    // Only this private coordinating record may establish the full-price split.
+    if (candidates.some(({candidate}) => candidate.validateMealWorld && candidate.validateMealWorld(copy(patch), copy(record)) !== true)) return failure('invalid-guest-meal-world');
     for (const candidate of participants) { if (!candidate.lock()) return failure('stale-guest-meal'); locked.push(candidate); }
     const providerPatch = Object.assign({}, ...candidates.map(({candidate}) => candidate.patch));
     const result = saveState(copy(next), {...copy(patch), ...copy(providerPatch)});
@@ -162,19 +167,19 @@ export function createNPCGuestAccounts(providers, {saved, saveState = null} = {}
  function validMealLease(lease, order) {
   if (unhealthy() || !order || order.customerId !== lease?.actorId || order.id !== lease.orderId) return false;
   const payments = transfers(order.id, 'meal-payment'), refunds = transfers(order.id, 'meal-refund');
-  if (!order.collected) return !payments.length && !refunds.length && !entry(order.id, 'meal-payment') && (lease.accountProvider === NPC_GUEST_MEAL_PROVIDER ? providerFor(lease.actorId) === NPC_GUEST_MEAL_PROVIDER : catalogue.some(p => p.id === lease.accountProvider && p.economy.hasIncome(lease.actorId)));
+  if (!order.collected) return !payments.length && !refunds.length && !entry(order.id, 'meal-payment') && (lease.accountProvider === NPC_GUEST_MEAL_PROVIDER ? providerFor(lease.actorId) === NPC_GUEST_MEAL_PROVIDER : catalogue.some(p => p.id === lease.accountProvider && ownsAccount(p, lease.actorId)));
   if (lease.accountProvider === NPC_GUEST_MEAL_PROVIDER) {
    const paid = entry(order.id, 'meal-payment');
    return !!paid && paid.actorId === lease.actorId && paid.amount === order.price && !entry(order.id, 'meal-refund') && !refunds.length && verifyPortions(paid, payments);
   }
   return !entry(order.id, 'meal-payment') && payments.length === 1 && payments[0].provider.id === lease.accountProvider && payments[0].row.actorId === lease.actorId && payments[0].row.amount === order.price && !refunds.length;
  }
- const api = {get loadError() { return loadError; }, snapshot: () => copy(loadError && invalidSnapshot ? invalidSnapshot : current), providerFor, account, hasIncome: id => owners(id).length > 0, validMealLease,
+ const api = {get loadError() { return loadError; }, snapshot: () => copy(loadError && invalidSnapshot ? invalidSnapshot : current), providerFor, account, hasIncome: id => !unhealthy() && catalogue.some(p => p.economy.hasIncome?.(id) === true), ownsPersonalMealAccount: id => owners(id).length > 0, validMealLease,
   prepareMealPayment: input => prepare(input, 'meal-payment'), prepareMealRefund: input => prepare(input, 'meal-refund'),
   forProvider(id) {
    if (id === NPC_GUEST_MEAL_PROVIDER) return {account, prepareMealPayment: input => prepare(input, 'meal-payment', id), prepareMealRefund: input => prepare(input, 'meal-refund', id)};
    const provider = catalogue.find(p => p.id === id); if (!provider) return null;
-   return {account: actorId => !unhealthy() && provider.economy.hasIncome(actorId) ? provider.economy.account(actorId) : null, prepareMealPayment: input => prepare(input, 'meal-payment', id), prepareMealRefund: input => prepare(input, 'meal-refund', id)};
+   return {account: actorId => !unhealthy() && ownsAccount(provider, actorId) ? provider.economy.account(actorId) : null, prepareMealPayment: input => prepare(input, 'meal-payment', id), prepareMealRefund: input => prepare(input, 'meal-refund', id)};
   },
  };
  return api;
