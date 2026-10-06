@@ -1,23 +1,15 @@
-// Dormant integration probe: use production main/Three/navigation unchanged
-// except injecting the explicit optional tea service callback and day input.
+// Production main/Three/navigation tea integration probe.
 // Normal existing guests choose their original unforced visits. No paid proof,
 // actor coordinates, activity choice or earned money is seeded.
 const fs=require('node:fs'),vm=require('node:vm');
 let harness=fs.readFileSync('tests/fixtures/hotfix-input-harness.cjs','utf8');
 const extras=`
-import {createPalaceTeaService} from './china-palace-tea-service.js';
-import {createPalaceTeaSlot,PALACE_TEA_ROLE} from './china-palace-tea-role.js';
-let testTea=null,testTeaAccount=null,testTeaSlot=null;
-export function teaInit(){
- testTeaSlot=createPalaceTeaSlot({saved:saved.chinaTeaSlot,resolveActor:id=>npcs.find(n=>n.station.id===id),canAssign:(id,n)=>n.alive!==false,canRelease:()=>testTea?.handoffBoundary()||{ok:true},saveState:s=>{saved.chinaTeaSlot=s;return save();}});
- testTeaAccount=createNPCPieceworkAccount({role:PALACE_TEA_ROLE,namespace:'chinaTeaAccounts',proofKind:'npc-palace-tea-piecework',saved:saved.chinaTeaAccounts,saveState:(account,record,patch)=>{const before={...saved};Object.assign(saved,patch,{chinaTeaAccounts:account});if(save()===false){Object.assign(saved,before);return false;}return true;}});
- testTea=createPalaceTeaService({npcs,lot,doors:automaticDoors,planPath,moveActor,poseContext:characterPoseContext,resolveAssignment:()=>testTeaSlot.resolve(),account:testTeaAccount,saved:saved.chinaTeaService,saveState:s=>{const before=saved.chinaTeaService;saved.chinaTeaService=s;if(save()===false){saved.chinaTeaService=before;return false;}return true;}});
-}
-export function teaReview(){return {npcs,lot,scene,camera,sun,lighting,chinaPalace,testTea,testTeaAccount,testTeaSlot,dailyNeeds,saved};}
+export function teaInit(){}
+export function teaReview(){return {npcs,lot,scene,camera,sun,lighting,chinaPalace,testTea:chinaTeaService,testTeaAccount:teaAccounts,testTeaSlot:teaSlot,dailyNeeds,saved};}
 export function teaStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);activeDailyToilet()?.update(dt);updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);}
 export {save};
 `;
-const patch=String.raw`function teaSource(file){let s=fs.readFileSync(file,'utf8');if(file.endsWith('/game/main.js')){s=s.replace('createChinaPalaceLife({getKitchen:', 'createChinaPalaceLife({getTeaService:()=>testTea,getKitchen:');s=s.replace('chinaPalace?.update(dt,t,{position:', 'chinaPalace?.update(dt,t,{day:simulationClock.state().day,position:');s+=${JSON.stringify(extras)};}return s;}`;
+const patch=String.raw`function teaSource(file){let s=fs.readFileSync(file,'utf8');if(file.endsWith('/game/main.js')){s+=${JSON.stringify(extras)};}return s;}`;
 harness=harness.replace("function mod(file)",patch+"\nfunction mod(file)");
 // Fixture has a const loader in some versions; install helper before VM context.
 if(!harness.includes('function teaSource'))harness=patch+'\n'+harness;
