@@ -10,7 +10,7 @@ const copy=x=>JSON.parse(JSON.stringify(x));
 class P{constructor(x=0,y=0,z=0){this.set(x,y,z);}set(x,y,z){Object.assign(this,{x,y,z});return this;}toArray(){return [this.x,this.y,this.z];}distanceTo(p){return Math.hypot(this.x-p.x,this.y-p.y,this.z-p.z);}clone(){return new P(this.x,this.y,this.z);}}
 function fixture(input={},rate=5000){
  const saved=copy({chinaServiceWorld:{till:0},copperLedger:{version:1,cash:1000,bank:900,accountOpened:true,nextTransaction:1,transactions:[]},...input});let durable=copy(saved),fail=null,day=0,service=null,economy=null,property=null,writes=0;
- const p={ageYears:24,root:{position:new P(...(saved.positions?.player||[24.15,7.815,12.65])),rotation:{y:0}},locomotion:{walkSpeed:2}},actor=(id,pos)=>({station:{id,npcName:id,ageYears:27,salon:{activities:['poetry'],willing:true}},root:{position:new P(...(saved.positions?.[id]||pos)),rotation:{y:0}},home:new P(...pos),preferenceScore:65,locomotion:{walkSpeed:2},route:[],animate(){}}),artist=actor(SALON_PERFORMER,[18.8,7.815,18.66]),host=actor('cn-tavern-reception',[24.15,7.815,10.45]);delete host.station.salon;
+ const p={ageYears:24,root:{position:new P(...(saved.positions?.player||[24.15,7.815,7.65])),rotation:{y:0}},locomotion:{walkSpeed:2}},actor=(id,pos)=>({station:{id,npcName:id,ageYears:27,salon:{activities:['poetry'],willing:true}},root:{position:new P(...(saved.positions?.[id]||pos)),rotation:{y:0}},home:new P(...pos),preferenceScore:65,locomotion:{walkSpeed:2},route:[],animate(){}}),artist=actor(SALON_PERFORMER,[18.8,7.815,18.66]),host=actor('cn-tavern-reception',[24.15,7.815,5.45]);delete host.station.salon;
  const storage={setItem(k,text){const next=JSON.parse(text);if(fail==='all'||fail==='settle'&&next.copperLedger?.transactions.at(-1)?.action==='settle')return false;durable=next;writes++;return true;}};
  const ledger=createGameCurrencyLedger({saved,storage,transactionParticipant:tx=>{const part=service?.prepareCurrencyCommit(tx)||property?.prepareCurrencyCommit(tx);if(part?.patch?.chinaSalonEconomy){saved.salonCheckpoint=service.snapshot();saved.positions={player:p.root.position.toArray(),[SALON_PERFORMER]:artist.root.position.toArray()};}return part;}});
  economy=createChinaSalonEconomy({saved:saved.chinaSalonEconomy,copperLedger:ledger,performerShareBps:rate});
@@ -20,8 +20,8 @@ function fixture(input={},rate=5000){
  const total=()=>{const b=ledger.balances().copper,propertyState=property.state(),funds=economy.snapshot().accounts;return b.cash+b.bank+b.held+propertyState.balance+Object.values(propertyState.npcFunds).reduce((a,n)=>a+n,0)+Object.values(funds).reduce((a,n)=>a+n.bank+n.cash,0);};
  return {service,ledger,economy,property,p,artist,get durable(){return copy(durable);},get saved(){return saved;},get writes(){return writes;},get day(){return day;},set day(v){day=v;},set fail(v){fail=v;},total,checkpoint:()=>({...copy(saved),salonCheckpoint:service.snapshot(),positions:{player:p.root.position.toArray(),[SALON_PERFORMER]:artist.root.position.toArray()}})};
 }
-function arrive(f){assert(f.service.request(SALON_PERFORMER,'poetry'));assert.equal(f.economy.account(SALON_PERFORMER).bank,0);f.artist.root.position.set(22.85,7.815,12.65);f.service.update(.1,1);f.service.update(1.3,2);assert.equal(f.service.view().session.stage,'accepted');}
-function toRoom(f){assert(f.service.startEscort());for(const[a,p]of[[[19.95,7.815,14.22],[21.2,7.815,14.22]],[[18.65,4.015,14.25],[17.55,4.015,14.25]],[SALON_ROOMS[0].actor,SALON_ROOMS[0].player]]){f.artist.root.position.set(...a);f.p.root.position.set(...p);f.service.update(.1,3);}f.service.update(.1,4);assert.equal(f.service.view().session.stage,'fade');}
+function arrive(f){const bank=f.economy.account(SALON_PERFORMER).bank;assert(f.service.request(SALON_PERFORMER,'poetry'));assert.equal(f.economy.account(SALON_PERFORMER).bank,bank);f.artist.root.position.set(22.85,7.815,7.65);f.service.update(.1,1);f.service.update(1.3,2);assert.equal(f.service.view().session.stage,'accepted');}
+function toRoom(f){assert(f.service.startEscort());for(const[a,p]of[[[19.95,7.815,9.22],[21.2,7.815,9.22]],[[18.65,4.015,9.25],[17.55,4.015,9.25]],[SALON_ROOMS[0].actor,SALON_ROOMS[0].player]]){f.artist.root.position.set(...a);f.p.root.position.set(...p);f.service.update(.1,3);}f.service.update(.1,4);assert.equal(f.service.view().session.stage,'fade');}
 const f=fixture(),initial=f.total();arrive(f);toRoom(f);const id=f.service.view().session.id,fee=f.service.view().session.fee;assert.equal(fee,115);assert.equal(f.total(),initial);assert.equal(f.economy.summary().grossRevenue,0);f.service.update(2.3,6);assert.equal(f.service.view().session.stage,'visiting');assert.equal(f.economy.account(SALON_PERFORMER).bank,57);assert.equal(f.economy.summary().businessProceeds,58);assert.equal(f.property.state().balance,178);assert.equal(f.property.state().revenue,115);assert.equal(f.property.state().performerPaid,57);assert.equal(f.total(),initial);const receipt=f.economy.snapshot().receipts[0];assert.equal(receipt.businessCredit-receipt.businessDebit,receipt.businessProceeds);assert.equal(receipt.businessDebit,receipt.performerPaid);assert(f.ledger.settle(id).replayed);assert.equal(f.total(),initial);assert.equal(f.economy.snapshot().receipts.length,1);f.service.cancel();assert.equal(f.ledger.refund(id).ok,false);assert.equal(f.total(),initial);
 const loaded=fixture(f.durable);assert.equal(loaded.economy.loadError,null);assert.equal(loaded.economy.account(SALON_PERFORMER).bank,57);assert.equal(loaded.service.view().session.stage,'visiting');loaded.service.update(.1,7);assert.equal(loaded.economy.snapshot().receipts.length,1);assert.equal(loaded.total(),initial);
 console.log('PASS actual fee once: player hold -> business gross115 -> artist expense57/bank57 + retained58; reload/duplicate/cancel-after-delivery conserve');
@@ -40,3 +40,25 @@ console.log('PASS existing ownership transfer/draw/replay preserve conservation;
 // Financial input for the single production-actor route. It contains only the
 // actual settled wallet receipt and earned account, never scene/needs progress.
 export function completedArtistIncomeFixture(){const earned=fixture();arrive(earned);toRoom(earned);earned.service.update(2.3,6);return {copperLedger:copy(earned.saved.copperLedger),chinaSalonEconomy:earned.economy.snapshot()};}
+
+// A genuine unfunded hint must disappear on the same committed settlement,
+// before the next life decision; repeated services still pay their own receipt.
+const cachedNeeds={version:1,time:0,tasks:[],retryAt:[[SALON_PERFORMER,999]],reasons:[[SALON_PERFORMER,'餐钱不足，歇场后再作打算']]};
+const repeated=fixture({chinaSalon:{artistNeeds:cachedNeeds}}),label={textContent:''};repeated.artist.label={querySelector:()=>label};
+assert.equal(repeated.service.snapshot().artistNeeds.reasons.length,1);
+for(let i=0;i<3;i++){
+ arrive(repeated);assert(!label.textContent.includes('餐钱不足'),'a stale hint cannot mask the active accepted service');toRoom(repeated);
+ assert.equal(repeated.economy.account(SALON_PERFORMER).bank,i*57,'prepayment has not paid the artist');
+ if(i===0)assert.equal(repeated.service.snapshot().artistNeeds.reasons.length,1);
+ repeated.service.update(2.3,6+i*30);assert.equal(repeated.economy.account(SALON_PERFORMER).bank,(i+1)*57);
+ assert.equal(repeated.service.snapshot().artistNeeds.reasons.length,0);assert.equal(repeated.service.snapshot().artistNeeds.retryAt.length,0);
+ repeated.service.cancel();repeated.artist.root.position.set(...repeated.artist.home.toArray());repeated.service.update(.1,7+i*30);
+ // Simulated waiting at reception does not invent another service or income.
+ repeated.p.root.position.set(24.15,7.815,7.65);repeated.service.update(21,28+i*30);
+}
+assert.equal(repeated.economy.snapshot().receipts.length,3);
+const staleSaved=repeated.durable;staleSaved.salonCheckpoint.artistNeeds=cachedNeeds;const staleReload=fixture(staleSaved);
+assert.equal(staleReload.economy.account(SALON_PERFORMER).bank,171);assert.equal(staleReload.service.snapshot().artistNeeds.reasons.length,0,'reload reconciles the old cached hint against verified income');
+const failedHint=fixture({chinaSalon:{artistNeeds:cachedNeeds}});arrive(failedHint);toRoom(failedHint);failedHint.fail='settle';failedHint.service.update(2.3,6);
+assert.equal(failedHint.economy.account(SALON_PERFORMER).bank,0);assert.equal(failedHint.service.snapshot().artistNeeds.reasons.length,1,'failed settlement does not erase a true funding shortage');
+console.log('PASS repeated genuine settlements clear stale poverty/retry immediately; unpaid/failed settlement retains true shortage; reload rechecks the verified personal account');
