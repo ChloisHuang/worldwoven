@@ -98,6 +98,7 @@ test('NPC payroll proof follows original actual consultation and packet completi
   'cn-clinic-physician':{roleId:'cn-clinic-physician',slotId:'cn-clinic-physician-1',holderId:'cn-clinic-physician',status:'npc',available:true,alive:true,revision:0},
   'cn-pharmacy-apprentice':{roleId:'cn-pharmacy-apprentice',slotId:'cn-pharmacy-apprentice-1',holderId:'cn-pharmacy-assistant',status:'npc',available:true,alive:true,revision:0}};
  const f=fixture({}, {getNPCHolder:id=>holders[id]});f.player.root.position.set(0,0,0);f.admit();
+ assert.deepEqual(f.clinic.state().order.staffPeople,{physician:f.doctor.station.id,assistant:f.assistant.station.id});assert.equal(f.clinic.roleHandoffBoundary('physician').ok,false);assert.equal(f.clinic.roleHandoffBoundary('assistant').ok,false);
  assert.equal(f.clinic.npcDutyReceipts().length,0);f.until(()=>f.clinic.state().order.stage==='ready','original NPC pair prepares numbered packet');assert.equal(f.clinic.npcDutyReceipts().length,0);
  f.flags.clinic=true;f.tick(30);assert.equal(f.clinic.npcDutyReceipts().length,0,'failed delivery save has no wage proof');f.flags.clinic=false;f.until(()=>f.clinic.npcDutyReceipts().length===2,'same original packet delivered');
  const receipts=f.clinic.npcDutyReceipts();assert.equal(new Set(receipts.map(r=>r.orderId)).size,1);for(const r of receipts){assert(r.completed);assert(r.responsibleSeconds>0);assert.equal(r.holderRevision,0);assert.equal(r.patientId,f.guest.station.id);assert.equal(r.rating,5);}
