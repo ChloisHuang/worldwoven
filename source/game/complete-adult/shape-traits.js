@@ -5,9 +5,11 @@
  */
 import * as THREE from 'three';
 import {normalizeShapeTraits,shapeHeight} from '../character-traits.js';
+import {neutralNoseProfileOffset,noseHeightProfileOffset} from './nose-profile.js';
+import {frontSurface} from './attachment-fit.js';
 const clamp=x=>Math.max(0,Math.min(1,x));
 const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a));return t*t*(3-2*t);};
-const contexts=new WeakMap();
+const contexts=new WeakMap(),semanticSources=new WeakMap();
 const isEye=p=>['sclera','iris','pupil'].includes(p.material);
 function nearestSkin(skin,point,raw=false){
  const coords=raw?skin.featureCoord:skin.position;let best=Infinity,at=0;
@@ -27,13 +29,14 @@ function context(asset){
  const chinRoot=landmark([0,6.4583,1.5032]),chin=landmark([0,6.2006,1.4344]);
  // Local cartilage controls must not rescale the root-to-tip distance. Keep
  // the tip's height and use its lower bulb depth, never the upper nasal root.
- const tipPivot=[0,tip[1],(tip[2]+columella[2])/2];
+ const tipPivot=[0,tip[1],tip[2]-Math.max(.003,(tip[2]-columella[2])/2)];
  const wings={};for(const side of [-1,1])wings[side]=landmark([side*.1014,6.8563,1.5318]);
- // Brow featureCoord contains ribbon UVs, not anatomy. Associate its existing
- // fitted vertices with the current skin, without scalp rays or new geometry.
- const semantics=new Map();
- for(const part of asset.parts){if(part.material==='skin'||isEye(part))continue;const raw=[];for(let i=0;i<part.position.length;i+=3){const j=nearestSkin(skin,part.position.slice(i,i+3));raw.push(...skin.featureCoord.slice(j,j+3));}semantics.set(part,raw);}
- const c={eyes,nose,bridge,tip,tipPivot,wings,chinRoot,chin,semantics};contexts.set(asset,c);return c;
+ // Brow featureCoord contains ribbon UVs, not anatomy. Interpolate its
+ // anatomical coordinates on the actual fitted triangles, so eye-size morphs
+ // do not step between unrelated nearest-vertex weights.
+ const semantics=semanticSources.get(asset)||new Map();
+ if(!semanticSources.has(asset))for(const part of asset.parts){if(part.material==='skin'||isEye(part))continue;const raw=[];for(let i=0;i<part.position.length;i+=3){const p=part.position.slice(i,i+3),feature=part.material==='brow'?frontSurface(skin,p[0],p[1],true):null;if(feature)raw.push(...feature);else{const j=nearestSkin(skin,p);raw.push(...skin.featureCoord.slice(j,j+3));}}semantics.set(part,raw);}
+ const c={form:asset.form,eyes,nose,bridge,tip,tipPivot,wings,chinRoot,chin,semantics};contexts.set(asset,c);return c;
 }
 function eyeWeight(x,y,z){
  return smooth(.075,.145,Math.abs(x))*(1-smooth(.48,.66,Math.abs(x)))
@@ -45,7 +48,19 @@ function displaced(p,raw,traits,c,eye=false){
  if(eye)return out;
  const [rx,ry,rz]=raw;
  const jaw=smooth(1.38,1.435,y)*smooth(5.98,6.18,ry)*(1-smooth(6.50,6.94,ry))*smooth(.18,.85,rz);
- out[0]+=x*(traits.jawWidth-1)*jaw;
+ const jawDelta=traits.jawWidth-1;
+ out[0]+=x*jawDelta*jaw;
+ if(c.form==='male'){
+  // Keep the saved preference/genotype scale. The male narrow endpoint now
+  // approaches the existing middle jaw; the wide endpoint opens the actual
+  // mandible and chin, rather than leaving both endpoints pointed.
+  const maleDelta=jawDelta<0?jawDelta*.25:jawDelta*.25+18.75*jawDelta*jawDelta;
+  // The extra contour response stays outside the original oral surface, so
+  // remapping the jaw does not silently change the saved mouth or expression.
+  const mouth=smooth(6.39,6.44,ry)*(1-smooth(6.73,6.79,ry))*smooth(1.25,1.38,rz)
+   *(1-smooth(.27,.36,Math.abs(rx)));
+  out[0]+=x*(maleDelta-jawDelta)*jaw*(1-mouth);
+ }
  const bridge=smooth(6.95,7.20,ry);
  const nasal=smooth(6.70,6.83,ry)*(1-smooth(7.28,7.46,ry))
   *(1-smooth(.22-.145*bridge,.36-.12*bridge,Math.abs(rx)))*smooth(1.22,1.46,rz)*(1-w);
@@ -61,12 +76,8 @@ function displaced(p,raw,traits,c,eye=false){
   *smooth(.65,1.18,rz)*(1-smooth(.26,.54,Math.abs(rx)));
  out[1]+=(y-c.chinRoot[1])*(traits.chinLength-1)*chin;
  out[2]+=Math.abs(c.chinRoot[1]-c.chin[1])*(traits.chinProjection-1)*chin;
- // The narrow bony ridge keeps its own projection, with less displacement as
- // it meets the bulb so a high bridge cannot overshoot the tip into a hump.
- const ridge=smooth(6.94,7.02,ry)*(1-smooth(7.20,7.43,ry))
-  *(1-smooth(.05,.16,Math.abs(rx)))*smooth(1.36,1.54,rz)*(1-w);
- const ridgeDepth=Math.min(Math.max(.010,c.bridge[2]-c.nose[2]+.008),Math.max(0,c.tip[2]-z)*1.5);
- out[2]+=ridgeDepth*(traits.noseBridgeHeight-1)*ridge;
+ // Bridge height is whole-profile support, not additional tip length.
+ out[2]+=noseHeightProfileOffset(raw,traits.noseBridgeHeight,c.form);
  const bulb=smooth(6.76,6.84,ry)*(1-smooth(6.99,7.11,ry))
   *(1-smooth(.11,.21,Math.abs(rx)))*smooth(1.47,1.59,rz)*(1-w);
  // Bulb volume changes locally; its center height and the upper ridge stay put.
@@ -84,6 +95,35 @@ function changedNormals(part,position){
  for(let i=0;i<normal.length;i+=3){a.fromArray(oldArea,i);b.fromArray(newArea,i);if(a.distanceToSquared(b)<1e-18)continue;q.setFromUnitVectors(a,b);n.fromArray(part.normal,i).applyQuaternion(q).normalize().toArray(normal,i);}
  return normal;
 }
+// The eyebrow ribbon must stay on the actual deformed triangles. Nearest raw
+// landmarks alone create stepped offsets and let a raised ridge swallow it.
+// The 1.2 mm envelope also clears the intervening coarse skin triangles; a
+// vertex-only 0.35 mm fit can still cross skin between ribbon vertices.
+function refitBrows(asset,parts){
+ const oldSkin=asset.parts.find(p=>p.material==='skin'),skin=parts.find(p=>p.material==='skin');
+ return parts.map((part,index)=>{
+  if(part.material!=='brow')return part;
+  const before=asset.parts[index],position=part.position.slice();
+  for(let i=0;i<position.length;i+=3){
+   const oldZ=frontSurface(oldSkin,before.position[i],before.position[i+1]),z=frontSurface(skin,position[i],position[i+1]);
+   if(Number.isFinite(z)&&Number.isFinite(oldZ))position[i+2]=z+Math.max(.0012,before.position[i+2]-oldZ);
+  }
+  return{...part,position,normal:changedNormals(before,position)};
+ });
+}
+const profileAssets=new WeakMap();
+/** Cache the local neutral sculpt separately from the preserved authored asset.
+ * Brows follow their fitted skin; eyes and all non-profile positions stay exact. */
+export function sculptCompleteAdultProfile(asset){
+ if(profileAssets.has(asset))return profileAssets.get(asset);
+ const c=context(asset),parts=asset.parts.map(part=>{
+  if(isEye(part))return part;
+  const raw=part.material==='skin'?part.featureCoord:c.semantics.get(part),position=part.position.slice();let changed=false;
+  for(let i=0;i<position.length;i+=3){const dz=neutralNoseProfileOffset(raw.slice(i,i+3),asset.form);if(dz){position[i+2]+=dz;changed ||= position[i+2]!==part.position[i+2];}}
+  return changed?{...part,position,normal:changedNormals(part,position)}:part;
+ });
+ const result={...asset,parts:refitBrows(asset,parts)};profileAssets.set(asset,result);semanticSources.set(result,new Map(result.parts.map((part,i)=>[part,c.semantics.get(asset.parts[i])])));return result;
+}
 export function morphCompleteAdultAsset(asset,input){
  const traits=normalizeShapeTraits(input);
  if(Object.entries(traits).every(([key,value])=>key==='legLength'||value===1))return asset;
@@ -95,7 +135,7 @@ export function morphCompleteAdultAsset(asset,input){
   // and translation, so their original Jacobian normals remain continuous.
   return{...part,position,normal:eye?part.normal:changedNormals(part,position)};
  });
- return{...asset,parts};
+ return{...asset,parts:refitBrows(asset,parts)};
 }
 /** Map only newly inserted head/hair through the existing leg-height contract.
  * Retained body, garment, hair and accessory geometry is already shaped. */

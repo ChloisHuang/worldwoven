@@ -12,12 +12,12 @@ import {fitCompleteAdultClothing} from './fit-clothing.js';
 import {applyAnatomicalFinish} from './face-finish.js';
 import {applySurfaceFinish} from './surface-finish.js';
 import {applyNaturalMakeup} from './natural-makeup.js';
-import {morphCompleteAdultAsset,fitCompleteAdultAttachments} from './shape-traits.js';
+import {morphCompleteAdultAsset,sculptCompleteAdultProfile,fitCompleteAdultAttachments} from './shape-traits.js';
 import {RETAINED_HAIR,createHeadAttachmentFit,fitCandidateHairAttachments,fitRetainedHeadMesh,fitRetainedFacialHair} from './attachment-fit.js';
 import {FREE_BRAID,planRetainedBraid,applyRetainedBraid} from './retained-hair-fit.js';
 export const COMPLETE_ADULT_PREVIEW='complete-adult-head-v1';
 export const COMPLETE_ADULT_PAIR_PREVIEW='complete-adult-pair-v1';
-export const COMPLETE_ADULT_VERSION='candidate-midface-support-r113-v1';
+export const COMPLETE_ADULT_VERSION='candidate-supported-nose-brow-male-jaw-v1';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const forms={'masculine-lean':'male','masculine-broad':'male','feminine-balanced':'female','feminine-slender':'female'};
 export function completeAdultSupport(options,selection){
@@ -42,7 +42,9 @@ export function completeAdultSupport(options,selection){
 export function applyCompleteAdultPreview(root,options,selection){
  const support=completeAdultSupport(options,selection);if(!support.supported)return{applied:false,...support};
  const head=root.getObjectByName('sculpted-head');if(!head)return{applied:false,reason:'missing-head-root'};
- const asset=morphCompleteAdultAsset(ADULT_FORMS[support.form],support.shapeTraits),attachmentFit=createHeadAttachmentFit(head,asset);
+ const asset=morphCompleteAdultAsset(sculptCompleteAdultProfile(ADULT_FORMS[support.form]),support.shapeTraits);
+ // Local nose/brow support must not resize a retained hairstyle or role hat.
+ const attachmentFit=createHeadAttachmentFit(head,asset,ADULT_FORMS[support.form]);
  const retained=options.previewHair==='retained'||(!options.previewHair&&options.hairStyle==='low-bun');
  const braid=options.hairStyle==='braided-tail'&&retained?planRetainedBraid(root,attachmentFit):null;if(braid&&!braid.supported)return{applied:false,reason:braid.reason};
  const C={skin:options.skin,hair:options.hair,iris:options.eyeColor,pupil:0x25252a,brow:new THREE.Color(options.hair).multiplyScalar(.9).getHex()};
