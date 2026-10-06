@@ -19,7 +19,7 @@ export function tavernContinuityStep(dt){beginActorNavigationStep(dt);elapsed+=d
 export {save,requestFurniture,blocked,furnitureSafetyBoxes};
 `;
 replaceOnce("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),","new vm.SourceTextModule(fs.readFileSync(file,'utf8')+(file.endsWith('/game/main.js')?"+JSON.stringify(extras)+":''),");
-replaceOnce('vm.createContext({console,','vm.createContext({URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,console,');
+replaceOnce('vm.createContext({console,','vm.createContext({structuredClone,URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,console,');
 replaceOnce('{identifier:file,context}','{identifier:file,context,initializeImportMeta:meta=>{meta.url=require("node:url").pathToFileURL(file).href;}}');
 replaceOnce('add(...e){this.append(...e)}','prepend(...els){for(const e of els.reverse()){e.remove?.();e.parent=this;this.children.unshift(e);}}add(...e){this.append(...e)}');
 replaceOnce('const document={body:',"const document={head:new E('head'),body:");
@@ -43,7 +43,7 @@ const frame=()=>{const staff=r.npcs.filter(n=>['cn-tavern-host','cn-tavern-cook'
  assert.equal(r.chinaTavern.state().failures.length,0,'real main route failure '+JSON.stringify(summary()));};
 const until=(predicate,label,max=1400)=>{let steps=0;while(!predicate()&&steps<max){frame();steps++;if(steps%200===0)console.log('WAIT',label,JSON.stringify(summary()));}assert(predicate(),label+' '+JSON.stringify(summary()));record(label,{steps});return steps;};
 const seatId='china-tavern-dining-18.1-1';
-same(r.chinaTavern.dish.points.prep,[23.3,.215,4.36],'kitchen prep moved north five metres');same(r.chinaTavern.dish.points.passTop,[24.35,1.31,5.34],'same pass moved north five metres');assert(Math.abs(r.chinaTavern.seats.find(s=>s.id===seatId).center[2]-17.52)<1e-8,'same south dining seat moved1.9m north');
+same(r.chinaTavern.dish.points.prep,[23.3,.215,4.36],'kitchen prep moved north five metres');same(r.chinaTavern.dish.points.passTop,[24.35,1.31,5.34],'same pass moved north five metres');assert(Math.abs(r.chinaTavern.seats.find(s=>s.id===seatId).center[2]-14.97)<1e-8,'same south dining seat occupies the revised north dining island');
 assert(r.copperLedger.earn(6,'tavern-continuity-fixture').ok,'fixture funds use production ledger');
 const customerSeat=r.chinaTavern.seats.find(s=>s.id===seatId);api.requestFurniture(customerSeat);let sitAttempts=1;
 until(()=>{if(state().seated===seatId)return true;if(!state().pathLength&&!state().pendingInteraction&&r.furniture.canSit(r.navOptions,api.furnitureSafetyBoxes(),customerSeat)){api.requestFurniture(customerSeat);sitAttempts++;}return state().seated===seatId;},'normal arrival and clear-space sit request mount the same real dining chair',600);record('explicit seat request count',{sitAttempts});
@@ -105,4 +105,4 @@ r=null;ids['return-world'].onclick();assert.equal(state().characterResources.act
 `;
 harness=harness.slice(0,start)+body.replace('SOURCE_HEAD',JSON.stringify(sourceHead)).replace('MAIN_SHA',JSON.stringify(mainSha256))+harness.slice(end);
 harness=harness.replace(/console.log\(JSON.stringify\(\{status:'PASS',scope:'Production controller[\s\S]*?\},null,2\)\);/,'');
-new vm.Script(harness,{filename:'tests/china-tavern-continuity-main-inherited.cjs'}).runInNewContext({URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,require,console,process,Buffer,__dirname,__filename});
+new vm.Script(harness,{filename:'tests/china-tavern-continuity-main-inherited.cjs'}).runInNewContext({structuredClone,URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,require,console,process,Buffer,__dirname,__filename});
