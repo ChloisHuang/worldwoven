@@ -14,7 +14,7 @@ const {createCurrencyLedger}=await import('../source/game/currency-ledger.js');
 const {createDailyNeeds}=await import('../source/game/daily-needs.js');
 const {careerInterviewRoll}=await import('../source/game/career-applications.js');
 const copy=x=>JSON.parse(JSON.stringify(x)),RID='cn-royal-kitchen-cook',SEAT='china-palace-dining-seat-19.8';
-function fixture(stored={}){
+export function fixture(stored={},options={}){
  const store=copy(stored),clock={day:4,hour:8,seconds:7200,...store.clock},fail={};let service,employment,mounted=null;const writes=[];
  const save=key=>value=>{if(fail[key])return false;store[key]=copy(value);store.clock=copy(clock);writes.push(key);return true;};
  const bank=createCurrencyLedger({saved:store.bank,saveState:save('bank')});let seed=1;while(careerInterviewRoll(seed,RID,4)>.1)seed++;
@@ -27,7 +27,7 @@ function fixture(stored={}){
  const needs=createDailyNeeds({saved:store.needs,getClock:()=>clock,saveState:save('needs')});needs.enter('china',npcs.map(n=>n.station.id));
  const doors={routeStep(route,p){while(route[0]&&Math.hypot(route[0].x-p.x,route[0].z-p.z)<.03)route.shift();return {waypoint:route[0],phase:'walking'};}};
  const tokens=[],contacts=[];
- service=createChinaRoyalKitchenService({npcs,lot:{group},doors,planPath:(_a,b)=>[new T.Vector3(b.x,b.y,b.z)],moveActor:(a,x,z)=>{a.root.position.x+=x;a.root.position.z+=z;a.root.position.y=a.route[0]?.y??a.root.position.y;},poseContext:()=>({}),getPlayer:()=>player,getMounted:()=>mounted,getMountedActor:n=>n?.mount,getClock:()=>clock,getEmployment:()=>employment?.state().job,isHired:()=>careers.isHired(RID),sharedNeeds:needs,saved:store.service,saveState:save('service'),beginInteraction:p=>{const e={source:'china-royal-kitchen-handoff',id:'contact-'+(tokens.length+1),participants:p,duration:0};tokens.push(e);return e;},onInteraction:e=>contacts.push(copy(e))});
+ service=createChinaRoyalKitchenService({...options,npcs,lot:{group},doors,planPath:(_a,b)=>[new T.Vector3(b.x,b.y,b.z)],moveActor:(a,x,z)=>{a.root.position.x+=x;a.root.position.z+=z;a.root.position.y=a.route[0]?.y??a.root.position.y;},poseContext:()=>({}),getPlayer:()=>player,getMounted:()=>mounted,getMountedActor:n=>n?.mount,getClock:()=>clock,getEmployment:()=>employment?.state().job,isHired:()=>careers.isHired(RID),sharedNeeds:needs,saved:store.service,saveState:save('service'),beginInteraction:p=>{const e={source:'china-royal-kitchen-handoff',id:'contact-'+(tokens.length+1),participants:p,duration:0};tokens.push(e);return e;},onInteraction:e=>contacts.push(copy(e))});
  employment=createChinaRoyalKitchenEmployment({kitchen:service,careers,getPlayer:()=>player,getMounted:()=>mounted,getClock:()=>clock,saved:store.employment,saveState:save('employment')});
  const tick=(n=1,s={})=>{for(let i=0;i<n;i++){clock.seconds+=.1;clock.hour+=.1*.7/60;employment.update(.1);service.update(.1,clock.seconds,s);}};
  const until=(fn,label,max=2000)=>{for(let i=0;i<max&&!fn();i++)tick();assert(fn(),label+' '+JSON.stringify(service.state()));};
