@@ -1,5 +1,5 @@
 import {tellerSame} from './china-teller-audit-proof.js';
-// Dormant replacement for precisely the original open ledger, brush and abacus.
+// Single replacement for precisely the original open ledger, brush and abacus.
 // The scene integrator must omit those old decorative nodes, never overlay them.
 export function createTellerTools(G,{group}){
  const T=G.THREE,root=new T.Group();root.name='Original money-house ledger and abacus';group.add(root);

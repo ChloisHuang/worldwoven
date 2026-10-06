@@ -17,8 +17,8 @@ function valid(s){
  const seen=new Set();for(const row of s.interruptions){if(!keys(row,['order','reason'])||!validOrder(row.order)||!['actor-dead','actor-missing','assignment-changed'].includes(row.reason)||row.order.contract.day>s.lastIssuedDay||seen.has(row.order.contract.orderId))return false;seen.add(row.order.contract.orderId);}
  return !s.order||!seen.has(s.order.contract.orderId);
 }
-// Dormant: no import from main and no daily-needs registration. A future scene
-// adapter must provide real movement, contact and exclusive body ownership.
+// Duty logic has no daily-needs registration. The Chinese scene adapter
+// provides real movement, contact and exclusive body ownership.
 // Only this top-level state is authoritative; there is no continuity restore API.
 export function createTellerInspection({resolveAssignment,getDay,getActor,getLedger,canControl=()=>false,isCounterOpen=()=>true,travel,pose,contact=()=>false,economy,saved,saveState=()=>false}={}){
  let state=empty(),loadError=null,disposed=false,cachedReport=null,cachedOrderId=null;

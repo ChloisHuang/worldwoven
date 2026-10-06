@@ -1,3 +1,10 @@
+import {createArchiveAccount} from '../source/game/china-archive-account.js';
+import {ARCHIVE_ROLE} from '../source/game/china-archive-role.js';
+import {archiveContract,archiveProof} from '../source/game/china-archive-catalogue.js';
+import {createTellerAccount} from '../source/game/china-teller-account.js';
+import {TELLER_ROLE} from '../source/game/china-teller-role.js';
+import {freezeTellerSource,tellerContract,tellerAuditProof} from '../source/game/china-teller-audit-proof.js';
+import {createCurrencyLedger} from '../source/game/currency-ledger.js';
 import assert from 'node:assert/strict';
 import {fixture} from './china-host-needs.mjs';
 import {createNPCDutyAccount} from '../source/game/npc-duty-account.js';
@@ -11,14 +18,16 @@ import {PALACE_SCRIBE_ROLE} from '../source/game/china-palace-scribe-role.js';
 import {PALACE_TEA_ROLE} from '../source/game/china-palace-tea-role.js';
 import {createPalaceTeaOrders,PALACE_TEA_STEPS} from '../source/game/china-palace-tea-orders.js';
 const copy=structuredClone;
-const cases=[{id:'china-tea-accounts',namespace:'chinaTeaAccounts',role:PALACE_TEA_ROLE,kind:'npc-palace-tea-piecework',mealKind:'guest'},{id:'china-tea-accounts',namespace:'chinaTeaAccounts',role:PALACE_TEA_ROLE,kind:'npc-palace-tea-piecework',mealKind:'clinic'},{id:'china-herald-accounts',namespace:'chinaHeraldAccounts',role:PALACE_HERALD_ROLE,kind:'npc-edict-delivery-piecework'},{id:'china-range-warden-accounts',namespace:'chinaRangeWardenAccounts',role:RANGE_WARDEN_ROLE},{id:'china-garden-accounts',namespace:'chinaGardenAccounts',role:PALACE_GARDEN_ROLE,kind:'npc-edict-piecework'},{id:'china-scribe-accounts',namespace:'chinaScribeAccounts',role:PALACE_SCRIBE_ROLE,kind:'npc-edict-draft-piecework'}];
+const cases=[...['guest','clinic'].flatMap(mealKind=>[{id:'china-teller-accounts',namespace:'chinaTellerAccounts',role:TELLER_ROLE,kind:'teller',mealKind},{id:'china-archive-accounts',namespace:'chinaArchiveAccounts',role:ARCHIVE_ROLE,kind:'archive',mealKind}]),{id:'china-tea-accounts',namespace:'chinaTeaAccounts',role:PALACE_TEA_ROLE,kind:'npc-palace-tea-piecework',mealKind:'guest'},{id:'china-tea-accounts',namespace:'chinaTeaAccounts',role:PALACE_TEA_ROLE,kind:'npc-palace-tea-piecework',mealKind:'clinic'},{id:'china-herald-accounts',namespace:'chinaHeraldAccounts',role:PALACE_HERALD_ROLE,kind:'npc-edict-delivery-piecework'},{id:'china-range-warden-accounts',namespace:'chinaRangeWardenAccounts',role:RANGE_WARDEN_ROLE},{id:'china-garden-accounts',namespace:'chinaGardenAccounts',role:PALACE_GARDEN_ROLE,kind:'npc-edict-piecework'},{id:'china-scribe-accounts',namespace:'chinaScribeAccounts',role:PALACE_SCRIBE_ROLE,kind:'npc-edict-draft-piecework'}];
 function setup(config,saved,rejectWorld=false){
  const {id,namespace,role,kind}=config,actorId=role.incumbentId;let f,fail=false;
  const saveState=(state,_receipt,patch={})=>{if(fail)return false;if(f)Object.assign(f.game,copy(patch),{[namespace]:copy(state)});return true;};
- const options={role,namespace,saved:saved?.[namespace],saveState},account=kind?createNPCPieceworkAccount({...options,proofKind:kind}):createNPCDutyAccount(options);
+ const options={role,namespace,saved:saved?.[namespace],saveState},account=kind==='teller'?createTellerAccount(options):kind==='archive'?createArchiveAccount(options):kind?createNPCPieceworkAccount({...options,proofKind:kind}):createNPCDutyAccount(options);
  assert.equal(account.loadError,null);
  if(!saved){
-  if(kind==='npc-palace-tea-piecework'){
+  if(kind==='teller')assert(account.settle(tellerAuditProof(tellerContract(0,actorId,0,freezeTellerSource(createCurrencyLedger({saveState:()=>true}))))).ok);
+  else if(kind==='archive')assert(account.settle(archiveProof(archiveContract(0,actorId,0))).ok);
+  else if(kind==='npc-palace-tea-piecework'){
    const orders=createPalaceTeaOrders({saveState:()=>true});
    const order=orders.request({day:0,actorId,guestId:'cn-consort-yue',holderRevision:0,visitId:'provider-restore-tea',arrived:true,guestAsked:true,hostAccepted:true}).order;
    const evidence={requestId:order.id,actorId,guestId:order.guestId,holderRevision:0,visitId:order.visitId,cupId:order.cupId,trayId:order.trayId,observed:true};

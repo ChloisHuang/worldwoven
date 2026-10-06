@@ -13,5 +13,5 @@ export function createChinaTellerPersonalLife({npcs,getHolder,getHome,canStart,c
   canDepart:n=>canStart(n),getReturnTarget:home,getExitRoute:()=>corridor,getReturnRoute:n=>[...corridor.slice().reverse().map(p=>p.slice()),home(n)],economy:mealFunds,sharedNeeds,getTavern,getToilet,resetRoute:reset,
   travel(n,to,dt){n.walking=false;if(near(n,to)){reset(n);return true;}let route=routes.get(n);if(!route||route.key!==to.join(',')){route={key:to.join(','),retryAt:0};routes.set(n,route);n.route=[];}if(!n.route.length&&time>=route.retryAt){route.retryAt=time+3;n.route=planPath(n.root.position,point(to),.25);}followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,speedScale:.8});return near(n,to);},
   pose:(n,t,mounted)=>{const context=poseContext(n,null);n.animate(t+n.phase,!!n.walking,mounted?.action||null,mounted?{...context,...mounted.context}:context);},saveState});
- return {...life,update(dt,t){time+=Math.max(0,dt);life.update(dt,t);}};
+ return {...life,update(dt,t){time+=Math.max(0,dt);life.update(dt,t);for(const n of npcs)if(life.owns(n)){const label=n.label?.querySelector?.('small');if(label)label.textContent=life.label();}}};
 }
