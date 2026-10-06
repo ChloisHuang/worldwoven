@@ -210,10 +210,10 @@ function canAssignClinicPerson(key,id,n){
  if([chinaSalon,chinaMoneyHouse,chinaAudience,chinaConsortCourt,chinaEdict,chinaPalace,chinaRoyalKitchen,chinaArchery,chinaTavern?.staffScene].some(controller=>controller?.owns?.(n)))return false;
  return !chinaClinic?.owns(n)||chinaClinic.acceptsStaffActor(n);
 }
-function saveClinicNPCPart(key,state){worldSnapshotWriter?.();const next={...saved,[key]:state,simulationClock:simulationClock.snapshot()};const result=gameStorage.setItem('worlds-days-v1',JSON.stringify(next));if(result===false||result?.then)return false;saved[key]=state;return true;}
+function saveClinicNPCPart(key,state,patch={}){worldSnapshotWriter?.();const next={...saved,...patch,[key]:state,simulationClock:simulationClock.snapshot()};const result=gameStorage.setItem('worlds-days-v1',JSON.stringify(next));if(result===false||result?.then)return false;Object.assign(saved,patch,{[key]:state});return true;}
 const clinicRoles=createClinicRoles({saved:saved.chinaClinicRoles,resolveActor:id=>npcs.find(n=>n.station.id===id),getPlayer:()=>player,getTenureRoleId:()=>formalCareers.currentRole()?.id||null,isActorAlive:n=>n?.alive!==false,canAssign:canAssignClinicPerson,canRelease:key=>chinaClinic?.roleHandoffBoundary(key)||false,saveState:state=>saveClinicNPCPart('chinaClinicRoles',state)});
 if(saved.chinaClinicRoles==null)saved.chinaClinicRoles=clinicRoles.state();
-const clinicNPCEconomy=createClinicNPCEconomy({saved:saved.chinaClinicNPCEconomy,saveState:state=>saveClinicNPCPart('chinaClinicNPCEconomy',state)});
+const clinicNPCEconomy=createClinicNPCEconomy({saved:saved.chinaClinicNPCEconomy,saveState:(state,_transaction,patch={})=>saveClinicNPCPart('chinaClinicNPCEconomy',state,patch)});
 const clinicNPCDuty=createClinicNPCDutyObserver({saved:saved.chinaClinicNPCDuty,saveState:state=>saveClinicNPCPart('chinaClinicNPCDuty',state)});
 function syncClinicRoleBindings(){if(!chinaClinic)return;const actors=chinaClinic.staffActors();for(const key of ['physician','assistant']){const r=clinicRoles.resolve(key);if(r.status==='npc'&&r.holderId!==actors[key]?.station.id)chinaClinic.rebindStaff(key);}}
 let currencyWallet=null;
