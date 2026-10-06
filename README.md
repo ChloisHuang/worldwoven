@@ -11,8 +11,8 @@ R16.131 ordinary visits use the current supported character model with the origi
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.133-public, 2026-10-06
-Verified published Sites source commit: a1d8d60923727e61f81fd7325053d086811ba3b4
+Published release: R16.134-public, 2026-10-06
+Verified published Sites source commit: 183f59a3e8d96f1a67b08c7ae2ce7355478e4def
 
 Opt-in same-save performance panel: https://alien.doudouai.net/?perf=1#china
 It reads runtime timing/render counts and the initial save length; it does not reset storage or send telemetry. CPU submission timing is not GPU timing. R16.128 removes repeated full-history copies from closed salon panels and China job/HUD reads. R16.129 extends current-career reads to the existing Japan/Egypt employment adapters and French tea/pastry/gardening controllers. Those controllers only run in their respective countries. The user reported R16.130 runs without lag; broader device performance remains unverified.
@@ -22,6 +22,8 @@ R16.130 fixes the original Chinese officials’ urgent-hunger idle gate repeated
 R16.132 expands the original tavern dining area, moves royal-kitchen preparation upstairs in a smaller footprint, and connects the public second-floor toilet. Complete food/toilet needs now cover 16 of the 31 original China NPCs, using real services and receipts. Existing orders, identities and R16.131 models are retained; other NPC coverage and browser/phone acceptance remain open.
 
 R16.133 adjusts full nose/under-nose support, reduces tip projection, coordinates the brow and its fitted ribbon, and balances male jaw-width endpoints. Saved traits, identities, clothing and the R16.132 layout remain unchanged. Scoped geometry/identity checks and reviewed offline comparisons passed; overall art acceptance and real browser/phone verification remain open.
+
+R16.134 connects the original tavern host’s paid meal and private toilet break, with new admissions paused until he physically returns to the counter. Existing accepted service and paid room reservations are preserved. Complete China NPC-needs coverage is now 17/31; the remaining 14 are still open.
 
 ## Working rules
 
