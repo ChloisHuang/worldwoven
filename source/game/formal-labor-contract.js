@@ -21,7 +21,7 @@ const MESSAGES={'application-pending':'申请已保存，请继续当面审核',
   'invalid-career-state':'职业存档暂时无法核对，请保留存档',
 };
 export function createFormalLaborContract({careers,role,getJob,getPlayer,meetHost,notify=()=>{},openRegistration=()=>{}}){
-  const unit=role.currency==='japan'?'日本券':role.currency==='france'?'法国券':'铜文';
+  const unit=role.currency==='japan'?'日本券':role.currency==='france'?'法国券':role.currency==='egypt'?'埃及券':'铜文';
   const hired=()=>!!careers?.isHired(role.id),state=()=>careers?.state();
   const pinned=job=>job?.formalRoleId===role.id;
   const duty=job=>{const d=state()?.lastDuty;return pinned(job)&&d?.roleId===role.id&&d.workReceiptId===job.receiptId?d:null;};
