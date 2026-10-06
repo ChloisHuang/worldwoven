@@ -11,11 +11,13 @@ The candidate uses a separate tab session save; ordinary visits keep the existin
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.129-public, 2026-10-06
-Verified published Sites source commit: 2b06fe62270bdcfee6ab98800d9932c0f6c22daf
+Published release: R16.130-public, 2026-10-06
+Verified published Sites source commit: 34f77771833bf28f51ff1d4ecd4bcf868a9f1827
 
 Opt-in same-save performance panel: https://alien.doudouai.net/?perf=1#china
 It reads runtime timing/render counts and the initial save length; it does not reset storage or send telemetry. CPU submission timing is not GPU timing. R16.128 removes repeated full-history copies from closed salon panels and China job/HUD reads. R16.129 extends current-career reads to the existing Japan/Egypt employment adapters and French tea/pastry/gardening controllers. Those controllers only run in their respective countries; the reported China mobile stutter still needs device verification.
+
+R16.130 fixes the original Chinese officials’ urgent-hunger idle gate repeatedly postponing its own decision deadline. The existing dining request can resume when its saved cooldown expires. This does not add toilets or establish complete NPC-needs coverage or phone-performance acceptance.
 
 ## Working rules
 
