@@ -34,8 +34,8 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
  const customerAtReception=()=>session?.customerId?near(customer(),RECEPTION,.3)&&!customer()?.serviceMount:atReception();
  const name=()=>performer.station.npcName;
  const say=text=>{if(!session?.customerId)notify(text);};
- const labels=()=>({invited:`温晚已引见，等${name()}过来答复`,reply:`${name()}正在当面答复`,accepted:`${name()}愿意茶叙，请确认价目`,escort:`随${name()}沿公共楼梯去客房`,entering:'等两人进到雅间',fade:'茶香渐起，你们聊起了各自的见闻',visiting:'茶叙已完成，可以告辞'});
- const record=(event,data={})=>{history.push({event,id:session?.id||null,actorId:session?.actorId||null,roomId:session?.roomId||null,time:+time.toFixed(2),...data});if(history.length>70)history.shift();};
+ const labels=()=>session?.customerId?{invited:`等${name()}答复来客的单独茶叙邀约`,reply:`${name()}正在当面答复来客`,accepted:'本人已答应 · 待预留原客款',escort:'与原来客沿公共楼梯前往雅间',entering:'等双方进入原预约雅间',fade:'按原预约进行单独茶叙',visiting:'单独茶叙已完成 · 原客款已结清'}:({invited:`温晚已引见，等${name()}过来答复`,reply:`${name()}正在当面答复`,accepted:`${name()}愿意茶叙，请确认价目`,escort:`随${name()}沿公共楼梯去客房`,entering:'等两人进到雅间',fade:'茶香渐起，你们聊起了各自的见闻',visiting:'茶叙已完成，可以告辞'});
+ const record=(event,data={})=>{history.push({event,id:session?.id||null,actorId:session?.actorId||null,...(session?.customerId?{customerId:session.customerId}:{}),roomId:session?.roomId||null,time:+time.toFixed(2),...data});if(history.length>70)history.shift();};
  const persist=()=>{try{return saveState({layoutVersion:LAYOUT_VERSION,serial,time,responses:clone(responses),relationships:clone(relationships),lastReply:clone(lastReply),history:clone(history.slice(-35)),artistNeeds:needsLife?.snapshot()||saved.artistNeeds||{},life:life?.snapshot()||saved.life||{}})!==false;}catch{return false;}};
  const resetRoute=a=>{travelState.delete(a);a.route=[];a.walking=false;};
  const enter=stage=>{session.stage=stage;phaseTime=0;resetRoute(performer);if(customer())resetRoute(customer());record(stage);};

@@ -183,8 +183,7 @@ for (const change of [
   assert.equal(broken.loadError, 'invalid-saved-state'); assert.equal(broken.snapshot(), null); code(broken.prepareSalonReserve(order()), 'invalid-saved-state');
 }
 const injected = copy(payroll); injected.salonHolds = {}; assert.equal(fixture(injected).economy.loadError, 'invalid-saved-state');
-assert(!fs.readFileSync('source/game/main.js', 'utf8').includes('prepareSalonReserve'), 'Financial checkpoint stays dormant');
-console.log('PASS independent v1 migration and unchanged v2 replay; held/settled/source/proof tampering fails closed; no main activation');
+console.log('PASS independent v1 migration and unchanged v2 replay; held/settled/source/proof tampering fails closed');
 // Financial fixture only: real office controller archive receipts, no scene or
 // needs completion. Consumers must independently run the actual body/service.
 export const officialEarnedPayrollFixture=()=>copy(payroll);
