@@ -2,10 +2,10 @@ import * as THREE from 'three';
 import {followActorRoute} from './actor-navigation.js';
 import {createRoyalKitchenOrders,ROYAL_DINERS,ROYAL_MEAL_SEATS,royalPlayerEligibilityEvidence,sameRoyalPlayerEligibility} from './china-royal-kitchen-orders.js';
 import {createRoyalKitchenLife} from './china-royal-kitchen-life.js';
-export const ROYAL_KITCHEN_POINTS=Object.freeze({registry:[23.6,.215,-6.2],host:[22.7,.215,-6.2],prep:[21.3,.215,-7.46],prepTop:[21.3,1.2,-8.05],stove:[17.8,.215,-9.35],stoveTop:[19.1,1.93,-10.8]});
+export const ROYAL_KITCHEN_POINTS=Object.freeze({registry:[23.6,4.015,-5.9],host:[22.7,4.015,-5.9],prep:[20,4.015,-6.11],prepTop:[20,5.2,-6.7],stove:[17.8,4.015,-5.95],stoveTop:[19.1,5.93,-4.5]});
 const P=ROYAL_KITCHEN_POINTS,copy=x=>JSON.parse(JSON.stringify(x)),point=p=>({x:p[0],y:p[1],z:p[2]}),near=(n,p,r=.10)=>!!n&&Math.hypot(n.root.position.x-p[0],n.root.position.z-p[2])<r&&Math.abs(n.root.position.y-p[1])<.35;
 const open=o=>!['consumed','cancelled'].includes(o.stage),production=o=>['ordered','prepared','cooked','carrying'].includes(o.stage);
-const servePoint=o=>[o.seatId.endsWith('19.8')?18.25:23.75,.215,-1.15],tablePoint=o=>[o.seatId.endsWith('19.8')?19.9:22.1,1.18,-1.15];
+const servePoint=o=>[o.seatId.endsWith('19.8')?18.25:23.75,.215,-6.25],tablePoint=o=>[o.seatId.endsWith('19.8')?19.9:22.1,1.18,-6.25];
 const label=o=>o?`第${o.number}号 · ${o.actorName} · ${({ordered:'待备料',prepared:'待蒸制',cooked:'待取原膳',carrying:'送原膳到席',served:'等本人到席',eating:'正在用膳',consumed:'同份膳已用完',cancelled:'已取消'})[o.stage]}`:'现场候单 · 等皇家本人择时用膳';
 
 // Jia is the only kitchen actor. Palace life retains every diner, duty, route
@@ -16,13 +16,16 @@ export function createChinaRoyalKitchenService({npcs,lot,doors,planPath,moveActo
  getClock=()=>({day:0,hour:10}),getEmployment=()=>null,isHired=()=>false,sharedNeeds=null,worldSeed=1,saved=null,saveState=()=>true,notify=()=>{},beginInteraction=()=>null,onInteraction=()=>{}}){
  const jia=npcs.find(n=>n.station.id==='cn-cooking');if(!jia)return null;
  const actors=new Map(npcs.map(n=>[n.station.id,n])),props=new Map(),travelState=new Map(),history=[],failures=[];
- let state={},time=0,disposed=false,meeting=false,workAction=null,phase=null,duty=null,nextSave=0,life=null,orders=null,playerState={};
+ let state={},layoutReseat=false,time=0,disposed=false,meeting=false,workAction=null,phase=null,duty=null,nextSave=0,life=null,orders=null,playerState={};
  const prior=saved?.continuity?.version===1&&saved.continuity.orders?.revision>=(saved.orders?.revision??-1)?saved.continuity:saved;
  if(prior?.version===1){time=prior.time||0;duty=copy(prior.duty||null);phase=copy(prior.phase||null);workAction=copy(prior.workAction||null);history.push(...(prior.history||[]).slice(-36));}
- const durable=(model=orders?.snapshot())=>({version:1,orders:model,time,duty:copy(duty),phase:copy(phase),workAction:copy(workAction),life:life?.snapshot()||prior?.life||{},eating:copy(state.eating||{}),history:copy(history)});
+ const durable=(model=orders?.snapshot())=>({version:1,layoutRevision:1,layoutReseat,orders:model,time,duty:copy(duty),phase:copy(phase),workAction:copy(workAction),life:life?.snapshot()||prior?.life||{},eating:copy(state.eating||{}),history:copy(history)});
  const persist=()=>{if(!orders)return true;try{const ok=saveState(durable());return ok!==false&&!ok?.then;}catch{return false;}};
  const record=(event,o=null)=>{history.push({event,orderId:o?.id||null,mealId:o?.mealId||null,time:+time.toFixed(2)});if(history.length>36)history.shift();};
  orders=createRoyalKitchenOrders({saved:prior?.orders||null,getClock,getPlayerMealEligibility:playerEligibility,saveState:model=>{try{const ok=saveState(durable(model));return ok!==false&&!ok?.then;}catch{return false;}}});
+ layoutReseat=!!prior?.layoutReseat||!!prior&&prior.layoutRevision!==1&&orders.active().some(o=>o.actorId==='player');
+ // Old physical actions are not resumed at their former ground-level board.
+ if(prior&&prior.layoutRevision!==1){phase=null;workAction=null;}
  const activeJob=()=>{const j=getEmployment();return j?.stage==='working'&&isHired()?j:null;};
  const playerOwns=()=>!!duty&&duty.status==='active'&&activeJob()?.receiptId===duty.receiptId;
  function playerEligibility(){const p=getPlayer();if(!p||!Number.isFinite(p.ageYears)||p.ageYears<18)return null;try{return royalPlayerEligibilityEvidence(getPlayerMealEligibility());}catch{return null;}}
@@ -112,7 +115,8 @@ export function createChinaRoyalKitchenService({npcs,lot,doors,planPath,moveActo
   if(duty&&job?.receiptId!==duty.receiptId)releaseDuty(duty.receiptId,{cancel:true});
   // A failed cancellation save keeps the original numbered order, but cannot
   // continue production or eating while identity/seat ownership is invalid.
-  for(const o of orders.active())if(o.actorId==='player'&&(!playerCanDine()||!seated(o)||!availableSeat(o.seatId,'player')))cancelMeal('player','离席或御膳资格已改变');
+  for(const o of orders.active())if(o.actorId==='player'&&(!playerCanDine()||!layoutReseat&&!seated(o)||!availableSeat(o.seatId,'player')))cancelMeal('player','离席或御膳资格已改变');
+  if(layoutReseat&&orders.active().some(o=>o.actorId==='player'&&seated(o)))layoutReseat=false;
   deliverMealReceipts();state.eating??={};
   for(const o of orders.active())if(o.stage==='eating'&&seated(o)&&(o.actorId!=='player'||playerCanDine()&&availableSeat(o.seatId,'player'))&&!talkingDiner(o.actorId))state.eating[o.id]=(state.eating[o.id]??o.eatingSeconds)+dt;
   if(workAction){const step=workAction,o=orders.lookup(step.orderId);if(!playerOwns()||o?.workReceiptId!==step.receiptId||step.key!==stepFor(o)?.key||getMounted()||!near(getPlayer(),step.position,.30)){workAction=null;persist();}
@@ -132,10 +136,10 @@ export function createChinaRoyalKitchenService({npcs,lot,doors,planPath,moveActo
   propsSync();if(time>=nextSave){nextSave=time+2;persist();}
  }
  function snapshot(){const s=durable();s.eating=copy(state.eating||{});return s;}
- function restore(s){if(s?.version!==1||s.orders?.revision!==orders.snapshot().revision)return false;time=s.time||time;phase=copy(s.phase||null);workAction=copy(s.workAction||null);duty=copy(s.duty||null);state.eating=copy(s.eating||{});life.restore(s.life);for(const o of orders.active())if(o.actorId==='player'&&!playerCanDine())cancelMeal('player','恢复时御膳资格不可用');jia.route=[];travelState.clear();propsSync();return true;}
+ function restore(s){if(s?.version!==1||s.orders?.revision!==orders.snapshot().revision)return false;time=s.time||time;phase=s.layoutRevision===1?copy(s.phase||null):null;workAction=s.layoutRevision===1?copy(s.workAction||null):null;layoutReseat=!!s.layoutReseat||s.layoutRevision!==1&&orders.active().some(o=>o.actorId==='player');duty=copy(s.duty||null);state.eating=copy(s.eating||{});life.restore(s.life);for(const o of orders.active())if(o.actorId==='player'&&!playerCanDine())cancelMeal('player','恢复时御膳资格不可用');jia.route=[];travelState.clear();propsSync();return true;}
  if(prior?.eating)state.eating=copy(prior.eating);
  const workReceipts=receiptId=>orders.snapshot().orders.filter(o=>o.stage==='consumed'&&o.workerId==='player'&&(!receiptId||o.workReceiptId===receiptId)).map(o=>({source:'china-royal-kitchen',number:o.number,orderId:o.id,mealId:o.mealId,actorId:o.actorId,actorName:o.actorName,day:o.workDay,workReceiptId:o.workReceiptId,completed:true}));
- return {requestMeal,playerMealAvailability,canRequestMeal:id=>id==='player'?playerMealAvailability().ok:!!actors.get(id)&&(!meeting||!playerOwns())&&orders.available(id),mealFor,lookupMeal,mealReady,startMeal,completeMeal,cancelMeal,isEatingMeal:(id,actorId)=>{const o=lookupMeal(id,actorId);return o?.stage==='eating'&&seated(o)&&!talkingDiner(actorId)&&(actorId!=='player'||playerCanDine());},mealProgress:id=>state.eating?.[id]??orders.lookup(id)?.eatingSeconds??0,mealReceipts:()=>orders.receipts(),update,snapshot,restore,
+ return {requestMeal,playerMealAvailability,waitingForSeat:()=>layoutReseat,canRequestMeal:id=>id==='player'?playerMealAvailability().ok:!!actors.get(id)&&(!meeting||!playerOwns())&&orders.available(id),mealFor,lookupMeal,mealReady,startMeal,completeMeal,cancelMeal,isEatingMeal:(id,actorId)=>{const o=lookupMeal(id,actorId);return o?.stage==='eating'&&seated(o)&&!talkingDiner(actorId)&&(actorId!=='player'||playerCanDine());},mealProgress:id=>state.eating?.[id]??orders.lookup(id)?.eatingSeconds??0,mealReceipts:()=>orders.receipts(),update,snapshot,restore,
   supplyState:()=>orders.snapshot().supply,held:()=>orders.active().some(o=>o.workerId==='player'&&o.stage==='carrying'),registry:P.registry,meetingReady,requestMeeting:value=>{meeting=!!value;},claimDuty,canEndDuty,releaseDuty,workIntent,executeWork,workReceipts,
   owns:n=>n===jia,ownsStation:id=>id==='cn-cooking',socialStatus:n=>n===jia?{busy:!!pending().find(o=>o.workerId==='cn-cooking'),canPause:!pending().some(o=>o.workerId==='cn-cooking'),attention:!pending().some(o=>o.workerId==='cn-cooking'),job:playerOwns()?life.label():'御膳厨役 · 原单供膳'}:null,
   workLabel:()=>label(orders.active().find(o=>o.workerId==='player')),

@@ -40,7 +40,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
  const scripts=new Map(),mealSeats=new Map([[emperor,seat('china-palace-dining-seat-19.8')]]),sharedMeals=['china-palace-dining-seat-19.8','china-palace-dining-seat-22.2'].map(seat).filter(Boolean);
  const available=(n,id)=>playerState.facilityId!==id&&claims.available(id,n.station.id)&&(id!=='palace-tea-host'||!interrupted(host)&&playerState.performing!==host.station.id);
  const kitchen=()=>getKitchen?.()||null,mealAvailable=n=>!getKitchen||!!kitchen()?.canRequestMeal(n.station.id);
- const DINING=[[-14.4,.115,.4],[-8,.13,11],[14,.13,11],[14,.13,4],[21,.215,4],[21,.215,1.3]];
+ const DINING=[[-14.4,.115,.4],[-8,.13,11],[14,.13,11],[14.9,.115,0],[21,.115,0],[21,.215,-3.8]];
  const candidates=n=>n!==emperor?[...consortActivities(n,{stage,homeExit,homeReturn,bed:ownRest.get(n),mealSeats:sharedMeals,host,available:id=>available(n,id),mealAvailable:mealAvailable(n)}),{id:'veranda',label:'去公共廊下透透气',base:.12,traits:{outdoors:.45,sociability:.65},needs:{fatigue:-.25},relief:{fatigue:-.05},duration:[12,23],cooldown:42,steps:[stage('veranda-pause','在公共廊下歇歇 · 看看庭中动静',publicPosition(n)?[CONSORT_IDLE[consorts.indexOf(n)]]:[...CONSORT_ROUTES[n.station.id],CONSORT_IDLE[consorts.indexOf(n)]],0,{chosen:true,look:[-14,.2,-14]})]},conversationChoice(n)]:[
   {id:'read',label:n===emperor?'寝殿晨读 · 翻阅书卷':'在自己的客居静读',base:.25,traits:{curiosity:.9,quiet:.5},needs:{fatigue:-.2},relief:{social:.05,fatigue:-.10},duration:[10,18],cooldown:40,steps:[stage('private-reading','静读书卷',[n.home.toArray()],0,{action:'read',chosen:true})]},
   {id:'rest',label:'回自己的私室休息',base:.08,traits:{quiet:.3},needs:{fatigue:2.8,social:-.15},relief:{fatigue:-.65},duration:[12,22],cooldown:65,available:!!ownRest.get(n)&&playerState.facilityId!==ownRest.get(n).id,steps:[stage('private-rest','在自己的私室休息',[ownRest.get(n).position],0,{mount:ownRest.get(n),chosen:true}),stage('stand-after-rest','起身整理衣袖',[n.home.toArray()])]},
@@ -211,6 +211,16 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
  }
  function restore(snapshot){
   if(snapshot?.version!==1)return false;const state=restoreWorldRuntime(snapshot.runtime,{npcs,furniture});if(!state||!state.scripts||!state.stages)return false;
+  if(snapshot.layoutRevision!==1){
+   // Keep the same meal commitment and elapsed consumption, but regenerate its
+   // route and remount only after the original person reaches the moved stool.
+   for(const n of actors){const steps=state.scripts[n.station.id],ss=state.stages[n.station.id];if(!steps||!ss)continue;
+    for(const stop of steps){if(stop.id==='dining-arrival')stop.path=[...DINING,mealSeats.get(n)?.position||DINING.at(-1)];
+     if(stop.meal&&stop.mount)stop.path=n===emperor?[stop.mount.position]:[...DINING,stop.mount.position];
+     if(stop.id==='return-suite'&&ss.choice?.id==='meal')stop.path=[...reverse(DINING),...homeReturn(n)];}
+    if(ss.choice?.id==='meal'&&['dining-arrival','meal'].includes(steps[ss.index]?.id)){ss.mount=null;ss.arrived=false;ss.waypoint=0;ss.planned=false;ss.stalled=0;}
+   }
+  }
   time=Math.max(0,state.time||0);duty=state.duty;conversation=state.conversation||null;hostHeld=actors.find(n=>n.station.id===state.hostHeldId)||null;hostPreviousYaw=state.hostPreviousYaw||0;hostHeldAt=state.hostHeldAt||0;history.splice(0,history.length,...(state.history||[]));
   for(const n of actors){const steps=state.scripts[n.station.id],stageState=state.stages[n.station.id];if(!steps?.length||!stageState||!steps[stageState.index]){choose(n);continue;}scripts.set(n,steps);stages.set(n,{...stageState,planned:false,stalled:0});n.route=[];n.serviceMount=null;if(stageState.mount){furniture.facilities.reserve(stageState.mount.poolId||stageState.mount.id,n.station.id,{eligible:id=>id===stageState.mount.id});furniture.facilities.occupy(stageState.mount.poolId||stageState.mount.id,n.station.id);}}
   for(const n of actors)claims.release(n.station.id);for(const lease of state.claims||[])if(actors.some(n=>n.station.id===lease.actor))claims.reserve(lease.id,lease.actor,Math.max(0,lease.remaining));
@@ -353,7 +363,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
    updateConversation(dt,t);
    if(hostHeld){host.walking=false;const c=poseContext(host,null);c.handoff=!interrupted(host)&&!interrupted(hostHeld);host.animate(t+host.phase,false,null,c);}
   },
-  snapshot:()=>({version:1,decisions:brain.snapshot(),runtime:captureWorldRuntime({time,duty,conversation,hostHeldId:hostHeld?.station.id||null,hostPreviousYaw,hostHeldAt,history,scripts:Object.fromEntries([...scripts].map(([n,s])=>[n.station.id,s])),stages:Object.fromEntries([...stages].map(([n,s])=>[n.station.id,s])),claims:claims.state()})}),
+  snapshot:()=>({version:1,layoutRevision:1,decisions:brain.snapshot(),runtime:captureWorldRuntime({time,duty,conversation,hostHeldId:hostHeld?.station.id||null,hostPreviousYaw,hostHeldAt,history,scripts:Object.fromEntries([...scripts].map(([n,s])=>[n.station.id,s])),stages:Object.fromEntries([...stages].map(([n,s])=>[n.station.id,s])),claims:claims.state()})}),
   restore,
   state(){return {time,conversation:conversation?JSON.parse(JSON.stringify(conversation)):null,hostHeld:!!hostHeld,hostActorId:hostHeld?.station.id||null,claims:claims.state(),duty:duty?{...duty}:null,decisions:brain.snapshot(),history:history.map(e=>({...e})),failures:failures.map(e=>({...e})),actors:actors.map(n=>{const s=stages.get(n);return {id:n.station.id,role:n.station.royalRole,ageYears:n.station.ageYears,privateRoomId:n.station.privateRoomId,activity:s.choice?.id||null,stage:scripts.get(n)[s.index].id,waypoint:s.waypoint,elapsed:s.elapsed,arrived:s.arrived,mounted:s.mount?.id||null,orderId:s.choice?.orderId||null,mealId:s.choice?.mealId||null,mealCompleted:!!s.choice?.mealCompleted,cycles:s.cycles,position:n.root.position.toArray(),walking:n.walking,idle:!!s.idle,paused:interrupted(n)};})};},
   dispose(){if(disposed)return;disposed=true;releaseHost();claims.dispose();brain.dispose();for(const n of actors){n.route=[];furniture.releaseActor(n.station.id);if(n.poseContext){n.poseContext.handoff=false;n.poseContext.seatHeight=undefined;}}for(const c of costumes)c?.dispose();for(const kit of meals.values())kit.dispose();}
