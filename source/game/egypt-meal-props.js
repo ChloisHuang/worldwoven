@@ -25,12 +25,12 @@ export function createEgyptMealProps(parent){
   spoon=new THREE.Group();root.add(spoon);box(spoon,.018,.018,.20,0x835934,[0,0,.055]);const scoop=mesh(spoon,new THREE.SphereGeometry(.039,10,5),0x835934,[0,0,-.065]);scoop.scale.set(.65,.15,1.05);
  }
  return {clear,update(o,actors,phase){
-  prep.visible=o?.stage==='preparing';coals.visible=o?.stage==='heating';if(!o?.mealId){if(id)clear();return;}if(id!==o.mealId){clear();create(o);}let p;const ratio=d=>Math.min(1,phase/d),table=new THREE.Vector3(...P.table),pass=new THREE.Vector3(...P.passTop);
-  if(o.stage==='pickup')p=pass.lerp(hand(actors.host),ratio(1));
-  else if(o.stage==='serving')p=hand(actors.host).lerp(table,ratio(1));
-  else if(o.stage==='lifting')p=table.lerp(hand(actors.host),ratio(1));
-  else p=o.holder==='host'?hand(actors.host):o.holder==='table'?table:pass;
-  tray.position.copy(p);tray.rotation.y=o.holder==='host'?actors.host.root.rotation.y:0;
+  prep.visible=o?.stage==='preparing';coals.visible=o?.stage==='heating';if(!o?.mealId){if(id)clear();return;}if(id!==o.mealId){clear();create(o);}let p;const server=actors.server||actors.host;const ratio=d=>Math.min(1,phase/d),table=new THREE.Vector3(...P.table),pass=new THREE.Vector3(...P.passTop);
+  if(o.stage==='pickup')p=pass.lerp(hand(server),ratio(1));
+  else if(o.stage==='serving')p=hand(server).lerp(table,ratio(1));
+  else if(o.stage==='lifting')p=table.lerp(hand(server),ratio(1));
+  else p=['host','player'].includes(o.holder)?hand(server):o.holder==='table'?table:pass;
+  tray.position.copy(p);tray.rotation.y=['host','player'].includes(o.holder)?server.root.rotation.y:0;
   bowl.position.copy(p).add(new THREE.Vector3(.085,.025,0));bowl.rotation.set(0,0,0);
   spoon.position.copy(p).add(new THREE.Vector3(.29,.035,.035));spoon.rotation.set(0,0,0);
   if(o.stage==='eating'||o.stage==='lowering'){
