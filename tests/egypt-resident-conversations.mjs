@@ -41,13 +41,13 @@ function fixture({hungry=true,saved={},needsSaved,seconds=0,playerSeated=false,r
 }
 function actualPair(f){f.until(s=>!!s.talks.pair,'source meal then autonomous accepted invitation',4000);return f.service.state().talks.pair;}
 function claim(f){f.movePlayer(f.table.registry);f.table.requestMeeting(true);f.until(()=>f.table.meetingReady(),'original Dana meeting');assert(f.table.claimDuty(DUTY));f.until(()=>f.table.dutyActive(DUTY),'safe table takeover');f.table.requestMeeting(false);}
-function doStage(f,expected,next){const w=f.table.workIntent(DUTY);assert.equal(w?.stage,expected);assert.equal(f.table.executeWork(w,'eg-table-service-labor-999'),false);f.movePlayer(w.position);assert(f.table.executeWork(w,DUTY));f.until(s=>s.order?.stage===next,`${expected} becomes ${next}`);return w;}
+function doStage(f,expected,next){const w=f.table.workIntent(DUTY);assert.equal(w?.stage,expected);assert.equal(f.table.executeWork(w,'eg-table-service-labor-999'),false);f.movePlayer(w.position);assert(f.table.executeWork(w,DUTY));f.until(s=>next==='leaving'?!s.order||s.order.stage===next:s.order?.stage===next,`${expected} becomes ${next}`);return w;}
 function toTray(f){claim(f);f.until(s=>s.order?.stage==='requested');doStage(f,'requested','ticket');doStage(f,'ticket','preparing');f.until(s=>s.order?.stage==='collecting');doStage(f,'collecting','carrying');}
 
 
 test('real resident meal produces individual facts and a physical two-person conversation without employment',()=>{
  const f=fixture();f.until(s=>s.order?.stage==='eating');assert.equal(f.service.state().life.people[GUEST].experiences.length,0);const pair=actualPair(f),before=f.service.state().life.people;
- assert.equal(f.service.state().order,null);assert.equal(f.service.state().duty,null);assert.equal(f.service.state().tableDuty,null);assert.equal(f.service.state().supply.remaining,23);assert(Object.values(before).every(p=>p.experiences.length===1));assert.equal(f.contacts.length,0);
+ assert.equal(f.service.state().order,null);assert.equal(f.service.state().duty,null);assert.equal(f.service.state().tableDuty,null);assert.equal(f.service.state().supply.remaining,23);assert([P.cook,P.host].every(id=>before[id].experiences.length===1));assert.equal(before[GUEST].experiences.length,0,'the still returning guest has not yet completed her own source experience');assert.equal(f.contacts.length,0);
  f.until(s=>s.life.conversations.some(e=>e.status==='completed'),'actual participants talk after walking');const s=f.service.state(),event=s.life.conversations.find(e=>e.status==='completed');assert.equal(event.results.length,2);for(const id of Object.keys(before))if(!pair.participants.includes(id)){assert.deepEqual(s.life.people[id].relations,before[id].relations);assert.deepEqual(s.life.people[id].opinions,before[id].opinions);}assert.equal(f.contactSerial(),1);assert.equal(f.contacts.at(-1).duration,event.duration);assert.equal(f.furniture.facilities.state().filter(x=>x.id.startsWith('egypt-meal-talk-')&&x.reservations.length).length,0);
  console.log('EGYPT STORY',JSON.stringify(event));f.dispose();
 });
@@ -62,7 +62,7 @@ test('new work and true player conversation release both places without rewards'
  for(const mode of ['kitchen-meeting','table-meeting','social']){const f=fixture(),pair=actualPair(f);if(mode==='kitchen-meeting')f.kitchen.requestMeeting(true);else if(mode==='table-meeting')f.table.requestMeeting(true);else f.tick(1,{playerSocialActorId:pair.participants[0]});assert.equal(f.service.state().talks.pair,null);assert.equal(f.service.state().life.conversations.at(-1).status,'cancelled');assert.equal(f.contactSerial(),0);assert(Object.values(f.service.state().life.people).every(p=>Object.keys(p.relations).length===0));assert.equal(f.furniture.facilities.state().filter(x=>x.id.startsWith('egypt-meal-talk-')&&x.reservations.length).length,0);f.dispose();}
 });
 test('player table work cannot become Dana service experience',()=>{
- const f=fixture();toTray(f);doStage(f,'carrying','eating');f.until(s=>s.order?.stage==='clearing');doStage(f,'clearing','returning');doStage(f,'returning','leaving');f.until(s=>!s.order);const p=f.service.state().life.people;assert.equal(p[P.host].experiences.length,0);assert.equal(p[P.cook].experiences.length,1);assert.equal(p[GUEST].experiences.length,1);f.dispose();
+ const f=fixture();toTray(f);doStage(f,'carrying','eating');f.until(s=>s.order?.stage==='clearing');doStage(f,'clearing','returning');doStage(f,'returning','leaving');f.until(s=>!s.order&&s.resident.departure?.stage==='returned');const p=f.service.state().life.people;assert.equal(p[P.host].experiences.length,0);assert.equal(p[P.cook].experiences.length,1);assert.equal(p[GUEST].experiences.length,1);f.dispose();
 });
 
 test('production main protects choosing/talking while a busy greeting leaves original NPC talk running',()=>{
@@ -72,7 +72,7 @@ test('production main protects choosing/talking while a busy greeting leaves ori
  const g=fixture({hungry:false}),host=g.host;g.person.root.position.copy(host.root.position).add(new T.Vector3(0,0,.8));const otherLedger=createPlayerConversationLedger({worldSeed:5,getProfile:id=>g.service.socialProfile(id),getClock:()=>({day:1,seconds:200}),saveState:()=>true}),other=createNpcSocial({actors:()=>g.npcs,player:()=>g.person,ledger:otherLedger,status:n=>g.service.socialStatus(n),getCountry:()=> 'egypt',beginInteraction:participants=>({id:'player-contact',participants})});assert.equal(other.begin(host).stage,'choosing');g.tick(5,{social:other});assert.equal(other.state().stage,'choosing');assert.equal(g.service.socialProfile(P.host).current,null);assert.equal(other.choose('art').event.status,'accepted');g.tick(5,{social:other});assert.equal(other.state().stage,'talking');assert.equal(g.service.socialProfile(P.host).current,null);other.dispose();g.dispose();
 });
 test('Samira finished meal return is ordinary walking and preserves the remaining real route on pause',()=>{
- const f=fixture();f.until(s=>s.order?.stage==='leaving');f.tick();assert.equal(f.service.socialStatus(f.guest).canPause,true);assert.equal(f.guest.walking,true);const pos=f.guest.root.position.toArray(),route=f.guest.route.map(p=>p.toArray());f.tick(10,{playerSocialActorId:GUEST});assert.deepEqual(f.guest.root.position.toArray(),pos);assert.deepEqual(f.guest.route.map(p=>p.toArray()),route);assert.equal(f.service.state().order.stage,'leaving');f.tick();assert.notDeepEqual(f.guest.root.position.toArray(),pos);f.dispose();
+ const f=fixture();f.until(s=>s.order?.stage==='clearing');f.tick();assert.equal(f.service.state().resident.departure.stage,'returning');assert.equal(f.service.socialStatus(f.guest).canPause,true);assert.equal(f.guest.walking,true);const pos=f.guest.root.position.toArray(),route=f.guest.route.map(p=>p.toArray());f.tick(10,{playerSocialActorId:GUEST});assert.deepEqual(f.guest.root.position.toArray(),pos);assert.deepEqual(f.guest.route.map(p=>p.toArray()),route);assert.equal(f.service.state().resident.departure.stage,'returning');f.tick();assert.notDeepEqual(f.guest.root.position.toArray(),pos);f.dispose();
 });
 
 test('failed invitation storage retries the same personal intention and reply random state',()=>{
@@ -80,4 +80,11 @@ test('failed invitation storage retries the same personal intention and reply ra
 });
 test('unfinished source writes keep the original cleaned order for retry without phantom experience',()=>{
  const f=fixture();f.reject(s=>Object.values(s.life.people).some(p=>p.experiences.length));f.until(s=>s.order?.stage==='leaving');f.tick(500);let s=f.service.state();assert.equal(s.order.stage,'leaving');assert.equal(s.supply.remaining,23);assert.equal(s.supply.consumed.length,1);assert(Object.values(s.life.people).every(p=>p.experiences.length===0));assert.equal(s.talks.pair,null);f.reject(()=>false);actualPair(f);s=f.service.state();assert.equal(s.supply.remaining,23);assert(Object.values(s.life.people).every(p=>p.experiences.length===1));f.dispose();
+});
+
+
+test('returned Samira accepts a real player topic while the original dirty tray is still held',()=>{
+ const f=fixture();toTray(f);doStage(f,'carrying','eating');f.until(s=>s.order?.stage==='clearing');doStage(f,'clearing','returning');f.until(s=>s.resident.departure?.stage==='returned');const original=f.service.state().order.id;
+ f.person.root.position.copy(f.guest.root.position).add(new T.Vector3(0,0,.8));const ledger=createPlayerConversationLedger({worldSeed:5,getProfile:id=>f.service.socialProfile(id),getClock:()=>({day:1,seconds:200}),saveState:()=>true}),social=createNpcSocial({actors:()=>f.npcs,player:()=>f.person,ledger,status:n=>f.service.socialStatus(n),getCountry:()=> 'egypt',beginInteraction:participants=>({id:'returned-player-contact',participants})});
+ assert.equal(social.begin(f.guest).stage,'choosing');assert.equal(social.choose('art').event.status,'accepted');f.tick(5,{social});assert.equal(social.state().stage,'talking');assert.equal(f.service.state().order.id,original);assert(f.table.held());assert.equal(f.table.workReceipts(DUTY).length,0);assert.equal(f.service.state().supply.consumed.length,1);social.dispose();f.dispose();
 });
