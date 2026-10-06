@@ -9,6 +9,7 @@ harness=harness.replace("const document={body:new E('body'),", "const document={
 harness=harness.replace('add(...e){this.append(...e)}', 'prepend(...els){for(const e of els.reverse()){e.remove?.();e.parent=this;this.children.unshift(e);}}add(...e){this.append(...e)}');
 harness=harness.replace('setItem:(k,v)=>storage[k]=v','setItem:(k,v)=>{bench.write(v);storage[k]=v}');
 harness=harness.replace('set innerHTML(v){','set innerHTML(v){bench.dom();');
+harness=harness.replace('now+=16.666;raf();','now+=Number(process.env.PROFILE_FRAME_MS||16.666);raf();');
 harness=harness.replace('getBoundingClientRect(){','getClientRects(){return this.hidden?[]:[this.getBoundingClientRect()]}getBoundingClientRect(){');
 const extra=`
 export function profileCurrent(){for(const [name,s]of Object.entries({chinaAudience,chinaPalace,chinaClinic,chinaSalon,chinaMoneyHouse,chinaTavern,chinaLabor,chinaEdict,chinaArchery,chinaConsortCourt,chinaConsortUI,chinaCareer,chinaService,chinaLodging,chinaLodgingUI,chinaRoyalKitchen,chinaRoyalPlayerMeal,chinaGuardEmployment,chinaClinicEmployment,chinaClinicPhysicianEmployment,chinaRoyalKitchenEmployment,gameHealth,npcSocial,playerConversationUI,careerHandbook,studyMenu}))if(s?.update&&Object.getOwnPropertyDescriptor(s,'update')?.writable!==false)s.update=__bench.measure(name,s.update);for(const n of npcs)n.animate=__bench.measure('actorAnimate',n.animate);return {npcs:npcs.length,clock:simulationClock.state(),player:player.root.position.toArray()};}
