@@ -148,6 +148,10 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
   return current.stage==='approaching'?P.approachLabel:current.stage==='waiting-privacy'?P.privacyLabel:current.stage==='leaving'?'等出口让开':lastError==='save-failed'?'正在保存如厕记录':`如厕中 · ${Math.floor(current.elapsed)}/${P.seconds}秒`;
  }
  return {
+  // Restore only the persisted occupant at this exact authored mount. Ordinary
+  // world collision recovery must not relocate them out of the bowl first;
+  // recover() then performs the original safe interruption/dismount, no relief.
+  restorePosition(actorId,position){const pending=durable.pending;return available&&pending?.actorId===actorId&&['using','leaving'].includes(pending.stage)&&Array.isArray(position)&&[P.anchor,...(P.legacyAnchors||[])].some(a=>a.every((v,i)=>Math.abs(v-position[i])<.025))?position.slice():null;},
   intent,resolveIntent,executeIntent(selected){if(!resolveIntent(selected)||!atApproach(getPlayer()))return false;const ok=reserve(getPlayer());if(!ok)notify(current?'净室有人使用，请稍后再来':'暂时无法使用净室，请稍后再试');return ok;},
   requestActor:reserve,updateActor:(actor,dt,{travel}={})=>tick(actor,dt,travel),ownsActor:actor=>!!current&&current.actor===actor,
   active:(actorId='player')=>!!current&&(!actorId||current.actorId===actorId),cancel,
