@@ -37,7 +37,7 @@ export function createJapanServiceEmployment({duty:reception,role:ROLE,provider,
  }
  function claim(){const j=current.job;if(j?.stage!=='ready'||!meet())return false;const result=formal.inspect(j);if(!result.ok)return false;
   if(careers.state().lastDuty?.stage!=='paid'){notify('工资已入银行，封账待重试，不会重复发放');return true;}
-  if(!save({...current,job:null}))return fail('工资已入账，交班记录待重试');notify(`${ROLE.employer}：${careers.state().lastDuty.wage}日本券日薪已存入银行`);return true;
+  if(!save({...current,job:null}))return fail('工资已入账，交班记录待重试');notify(`${ROLE.employer}：${careers.state().lastDuty.wage}${formal.unit}日薪已存入银行`);return true;
  }
  function intent(kind=null){if(disposed||lastError)return null;const j=current.job,work=j?.stage==='working'?reception.workIntent(j.receiptId,kind?.startsWith('task:')?kind.slice(5):null):null,paused=reception.dutyState().status==='paused';
   kind||=j?j.stage==='ready'?'claim':getClock().hour>=18&&!reception.held()?'end-shift':paused?'resume':work?'task':'wait':careers.applicationResult(ROLE.id)?.status==='pending'?'formal-review':'formal-view';

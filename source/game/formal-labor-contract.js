@@ -15,13 +15,14 @@ const MESSAGES={'application-pending':'申请已保存，请继续当面审核',
   'already-paid-today':'今天已领过正式日薪，下一模拟日再开班',
   'duty-missed':'本日当班已中断，下一模拟日再来','duty-active':'已有本日班次，请继续手上工作',
   'wage-ready':'先完成验收并结清已做好的工资','duty-expired':'当日未完成，先取消这份过期班次再重新开班',
+  'resident-meal-required':'尚无本人用毕的居民原单可验收，请先完成实际餐单',
   'invalid-shift-work':'当班工时尚未核对，请在岗位当面交班',
   'invalid-customer-review':'顾客评价未能核对，请重试',
   'save-failed':'记录未能保存，请稍后重试','bank-unavailable':'银行入账暂不可用，已完成工资会保留',
   'invalid-career-state':'职业存档暂时无法核对，请保留存档',
 };
 export function createFormalLaborContract({careers,role,getJob,getPlayer,meetHost,notify=()=>{},openRegistration=()=>{}}){
-  const unit=role.currency==='japan'?'日本券':role.currency==='france'?'法国券':'铜文';
+  const unit=role.currency==='japan'?'日本券':role.currency==='france'?'法国券':role.currency==='egypt'?'埃及券':'铜文';
   const hired=()=>!!careers?.isHired(role.id),state=()=>careers?.state();
   const pinned=job=>job?.formalRoleId===role.id;
   const duty=job=>{const d=state()?.lastDuty;return pinned(job)&&d?.roleId===role.id&&d.workReceiptId===job.receiptId?d:null;};
