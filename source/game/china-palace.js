@@ -1,3 +1,4 @@
+import {createArchiveBooks} from './china-archive-books.js';
 import {buildChinaOfficialBureau,CHINA_OFFICIAL_BUREAU} from './china-official-bureau.js';
 import {buildPalaceEdictPlace,palaceHeraldStation} from './china-palace-edict-place.js';
 import {buildChinaMoneyHouse,chinaMoneyHouseStation,CHINA_MONEY_HOUSE} from './china-money-house.js';
@@ -259,7 +260,7 @@ export function buildChinaPalace(G,H){
  // Shift only the east reading table and its carried objects away from the door turn.
  const archiveEastTableX=5.8;
  markCulture('library');
- {const g=libraryFurniture;for(const x of [-8,-4,4,8])shelf(g,x,-32.8,3,3.2,.72);for(const [x,zz] of [[-1.6,-30.2],[archiveEastTableX,-28]]){table(g,x,zz,4.2,1.7,1);for(const dx of [-1.1,0,1.1])boundBook(g,x+dx,1.13,zz,.8,.6,0x7d9583);}G.rug(g,0,-27.5,4.5,5,0xa28f69,0xd2bf90);target('cn-archive-center','藏书殿中央',0,-28,'archive');target('cn-archive-west','西书案前',-1.6,-28.5,'archive');target('cn-archive-east','东书案前',archiveEastTableX,-26.3,'archive');target('cn-archive-rear','北门书廊',0,-32,'archive');}
+ {const g=libraryFurniture;for(const x of [-8,-4,4,8])shelf(g,x,-32.8,3,3.2,.72);for(const [x,zz] of [[-1.6,-30.2],[archiveEastTableX,-28]]){table(g,x,zz,4.2,1.7,1);/* Original six volumes use the explicit reachable archive layout below. */}G.rug(g,0,-27.5,4.5,5,0xa28f69,0xd2bf90);target('cn-archive-center','藏书殿中央',0,-28,'archive');target('cn-archive-west','西书案前',-1.6,-28.5,'archive');target('cn-archive-east','东书案前',archiveEastTableX,-26.3,'archive');target('cn-archive-rear','北门书廊',0,-32,'archive');}
  finishCulture('library');
  {const g=rooms.guest.g;const b=new THREE.Group();b.position.y=.2;g.add(b);G.bed(b,-23.5,-7.5,0x728f89,2.8,3.3);G.collider(colliders,-23.5,-7.5,2.9,3.4);cameraColliders.push({minX:-24.95,maxX:-22.05,minY:.2,maxY:1.3,minZ:-9.2,maxZ:-5.8});table(g,-23.5,-3.7,2.7,1.4,.95);teaSet(g,-23.5,1.04,-3.7,0x9cbfb5);shelf(g,-25.5,-10.55,2.1,2.5,.7,Math.PI/2);target('cn-guest-front','后宫客卧门内',-23.5,-10.6,'guest');target('cn-guest-bed','客榻东侧',-21.6,-7.5,'guest');target('cn-guest-tea','客居茶席',-23.5,-2.2,'guest');}
  // Rear lotus court. Broad cross lanes continue to both side gates, and a
@@ -575,5 +576,6 @@ export function buildChinaPalace(G,H){
  officialBureau.pack();tavern.pack();for(const {g,r}of Object.values(rooms)){packStatic(g);packStatic(r);}packStatic(gate);packStatic(gateRoof);for(const w of [...exterior.children].filter(o=>o.name.startsWith('China perimeter ')))packStatic(w);
  // Outer ground stays in its own group; omit perimeter groups while batching it.
  const walls=exterior.children.filter(o=>o.name.startsWith('China perimeter '));for(const w of walls)exterior.remove(w);packStatic(exterior);for(const w of walls)exterior.add(w);
- return {requiredInsetDoorIds:Object.keys(insetKinds),group,roofGroup,colliders,cameraColliders,bounds,spawn:ground([0,0,39]),heightAware:true,levels,lightingZones,additionalFurnitureSeats,additionalFurniture:[...tavern.additionalFurniture,...officialBureau.additionalFurniture,...residence.additionalFurniture],characterFootSurfaces,walkableSurfaces,interiorRooms,doorways,explorationTargets,facilities,stations,architectureProgram,automaticDoorways,archery,clinic,moneyHouse};
+ const archiveBooks=createArchiveBooks(G,{group});
+ return {archiveBooks,requiredInsetDoorIds:Object.keys(insetKinds),group,roofGroup,colliders,cameraColliders,bounds,spawn:ground([0,0,39]),heightAware:true,levels,lightingZones,additionalFurnitureSeats,additionalFurniture:[...tavern.additionalFurniture,...officialBureau.additionalFurniture,...residence.additionalFurniture],characterFootSurfaces,walkableSurfaces,interiorRooms,doorways,explorationTargets,facilities,stations,architectureProgram,automaticDoorways,archery,clinic,moneyHouse};
 }
