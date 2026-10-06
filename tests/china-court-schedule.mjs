@@ -34,3 +34,11 @@ let plans=0;const cached=cachedCourtPlanner((_,p)=>{plans++;return [p];}),legs={
 courtRouteBudget(legs);courtRouteBudget(legs);assert.equal(plans,2,'repeated authored legs reuse their planned route');
 courtRouteBudget({...legs,position:{x:1,y:0,z:1},knownSegments:1});assert.equal(plans,2,'the actual current planned remainder is measured without A*');
 console.log('PASS: fixed 11:30, common real-route summon budget, early hold, late/missed exception, durable receipt and reachable route length');
+
+const {courtLaneBudgets}=await import('../source/game/china-court-schedule.js');
+const segment=seconds=>({reachable:true,seconds,distance:seconds,doors:[]});
+const lanes=courtLaneBudgets([{actor:'front',lane:0,approach:segment(30),entry:segment(17)},{actor:'other',lane:1,approach:segment(20),entry:segment(18)},{actor:'middle',lane:0,approach:segment(68),entry:segment(17)},{actor:'back',lane:0,approach:segment(35),entry:segment(16)}]);
+assert.equal(lanes[0].seconds,47);assert.equal(lanes[1].seconds,38);assert.equal(lanes[2].seconds,85);assert.equal(lanes[3].seconds,101);assert.equal(lanes[3].queueWaitSeconds,50);assert.equal(Math.max(...lanes.map(a=>a.seconds)),101,'middle late approach includes real queued back-rank entry');
+const blocked=courtLaneBudgets([{actor:'blocked',lane:0,approach:{reachable:false,seconds:Infinity,reason:'safe-exit-blocked'},entry:segment(10)},{actor:'back',lane:0,approach:segment(3),entry:segment(10)}]);assert.equal(blocked[1].reachable,false);
+const inPlace=courtLaneBudgets([{actor:'front',lane:0,inPlace:true,approach:segment(0),entry:segment(0)},{actor:'back',lane:0,approach:segment(3),entry:segment(10)}]);assert.equal(inPlace[1].seconds,13);
+console.log('PASS serialized two-lane admission ETA, long middle approach, independent opposite lane, already-seated rank and blocked predecessor');
