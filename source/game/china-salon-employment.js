@@ -45,7 +45,7 @@ export function createChinaSalonEmployment({salon,scene,careers,copperLedger,npc
  }
  function lifeChoices(n){
   const v=scene.snapshot()?.visitors.find(v=>v.id===n.station.id);
-  if(!reconciled||loadError||!current.shift||current.order||!hired()||!adultArtist(getPlayer())||!knownAdult(n)||!knownAdult(salon.receptionist)||!inVenue()||getMounted()||getClock().hour>=22||getClock().day!==current.shift.day||!scene.salonCustomerAvailable(n)||!v||v.copper<quote()+6||!SALON_ROOMS.some(r=>salon.ledger.available(r)))return [];
+  if(salon.receptionAdmissionOpen?.()===false||!reconciled||loadError||!current.shift||current.order||!hired()||!adultArtist(getPlayer())||!knownAdult(n)||!knownAdult(salon.receptionist)||!inVenue()||getMounted()||getClock().hour>=22||getClock().day!==current.shift.day||!scene.salonCustomerAvailable(n)||!v||v.copper<quote()+6||!SALON_ROOMS.some(r=>salon.ledger.available(r)))return [];
   return [{id:'salon-poetry',external:true,label:'到云来雅集邀约诗词茶叙',base:.38,traits:{curiosity:.9,quiet:.6},needs:{social:.7},cooldown:120,duration:[0,0],targets:[{id:'player-poet',choice:{topic:n.station.id==='cn-tavern-diner-west'?'river':'home'}}]}];
  }
  function invite(n,choice){
