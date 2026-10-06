@@ -57,6 +57,8 @@ export function createTavernStaffLife({actors,furniture,getPlayer,getMounted,get
   }
  }
  return {
+  register(n){if(actors.includes(n))return true;const saved=brain.snapshot();actors.push(n);snacks.set(n.station.id,0);brain=makeBrain(saved);dirty=true;return true;},
+  abandon(n){rows.delete(n);kits.get(n)?.show(false);furniture.releaseActor(n.station.id);nextAt.delete(n);},
   tick(dt){time+=Math.max(0,dt);brain.tick(dt);},update,interrupt,
   flush(){if(dirty){dirty=false;onChanged(snapshot());}},sync(){for(const kit of kits.values())kit.sync();},
   isActive:n=>rows.has(n),claimsSeat:(id,seatId)=>[...rows].some(([n,s])=>n.station.id===id&&s.seatId===seatId),

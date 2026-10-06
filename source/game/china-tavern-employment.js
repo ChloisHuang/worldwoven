@@ -18,7 +18,7 @@ export function createChinaTavernEmployment({saved, saveState, getJob = () => nu
     if (current.roleId === roleId) return fail('unchanged', roleId ? '你已登记为酒楼帮工，可以接活了' : '你目前没有在酒楼任职');
     const job = getJob();
     if (job) return fail(job.stage === 'ready' ? 'wage-ready' : 'job-active', job.stage === 'ready' ?
-      '先找许安领完已做好的工钱，再办理职业登记' : '先完成或取消手上的擦桌活，再办理职业登记');
+      '先找掌柜领完已做好的工钱，再办理职业登记' : '先完成或取消手上的擦桌活，再办理职业登记');
     if (!meetHost()) return fail('host-unavailable');
     if (!Number.isSafeInteger(current.revision + 1)) return fail('registration-limit');
     const next = {version: 1, roleId, revision: current.revision + 1};
@@ -31,8 +31,8 @@ export function createChinaTavernEmployment({saved, saveState, getJob = () => nu
         return fail('async-save-unsupported', '登记没能保存，请稍后再试');
       }
       current = next; lastError = null;
-      notify(roleId ? '许安：已记入帮工名册。无需资历，擦净两桌领 12 铜文；想换活时，结清后来说一声。' :
-        '许安：离职已记下，工钱都结清了。日后想回来，仍可重新登记。');
+      notify(roleId ? '掌柜：已记入帮工名册。无需资历，擦净两桌领 12 铜文；想换活时，结清后来说一声。' :
+        '掌柜：离职已记下，工钱都结清了。日后想回来，仍可重新登记。');
       return true;
     } catch { return fail('save-failed', '登记没能保存，请稍后再试'); }
     finally { saving = false; }

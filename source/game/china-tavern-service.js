@@ -1,6 +1,7 @@
 import {createChinaTavernPropertyUI} from './china-tavern-property-ui.js';
 import {TAVERN_STEWARD_ROLE,TAVERN_HOST_ROLE,TAVERN_CHEF_ROLE} from './formal-careers.js';
-const ROLES=[TAVERN_STEWARD_ROLE,TAVERN_HOST_ROLE,TAVERN_CHEF_ROLE],REG=[22.35,.215,6.7];
+import {personId,TAVERN_HOST_SLOT_ID,ORIGINAL_TAVERN_HOST_ID} from './china-tavern-host-role.js';
+const ROLES=[TAVERN_STEWARD_ROLE,TAVERN_HOST_ROLE,TAVERN_CHEF_ROLE],REG=[22.35,.215,6.7],HOST_POST=[24.1,.215,6.4];
 const copy=x=>JSON.parse(JSON.stringify(x));
 const near=(p,point,r=.9)=>p&&Math.hypot(p.x-point[0],p.z-point[2])<=r&&Math.abs(p.y-point[1])<.4;
 
@@ -13,13 +14,19 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
  const roleFor=id=>ROLES.find(r=>r.id===id)||heldRole()||TAVERN_STEWARD_ROLE;
  const save=next=>{try{const result=saveState(copy(next));if(result===false||result?.then)return false;current=next;return true;}catch{return false;}};
  const atRegister=()=>!getMounted()&&near(getPlayer()?.root.position,REG)&&canSee({position:REG});
- const hostAdmissionOpen=()=>scene.hostAdmissionOpen?.()??true;
- const hostCompletionAvailable=()=>scene.hostCompletionAvailable?.()??hostAdmissionOpen();
- const hostUnavailableReason=()=>scene.hostUnavailableReason?.()||'许安正在休息，请等他回到登记案再办理';
- const hostAtPost=()=>!!host&&!host.walking&&near(host.root.position,host.station.npcPosition,.18);
+ // Resolve the role on every read. A resolver returning vacancy must never
+ // fall back to the former holder still standing at the counter.
+ const hostRole=()=>{if(typeof scene.hostRole==='function')return scene.hostRole();const actor=typeof scene.hostActor==='function'?scene.hostActor():host,alive=!!actor&&actor.alive!==false,isPlayer=!!actor&&(actor===getPlayer()||personId(actor)==='player');return {roleId:TAVERN_HOST_ROLE.id,slotId:TAVERN_HOST_SLOT_ID,holderId:actor?personId(actor)||ORIGINAL_TAVERN_HOST_ID:null,actor,alive,isPlayer,available:alive&&!isPlayer,revision:0};};
+ const hostActor=()=>{const row=hostRole();if(!row?.available||!row.alive||row.isPlayer||!row.holderId||row.holderId==='player')return null;const actor=typeof scene.hostActor==='function'?scene.hostActor():row.actor;return actor&&actor.alive!==false&&actor!==getPlayer()&&personId(actor)!=='player'&&(!personId(actor)||personId(actor)===row.holderId)?actor:null;};
+ const hostName=()=>{const actor=hostActor();return actor?.station?.npcName||actor?.name||'掌柜';};
+ const hostVisualAnchor=()=>{const actor=hostActor(),actorId=actor&&(personId(actor)||hostRole()?.holderId);return actorId?{visualAnchor:{actorId}}:{};};
+ const hostAdmissionOpen=()=>!!hostActor()&&(scene.hostAdmissionOpen?.()??true);
+ const hostCompletionAvailable=()=>!!hostActor()&&(scene.hostCompletionAvailable?.()??hostAdmissionOpen());
+ const hostUnavailableReason=()=>!hostActor()?(hostRole()?.isPlayer?'掌柜岗位目前由你独任，不能向自己办理':'掌柜岗位当前无人可以办理，请稍后再来'):scene.hostUnavailableReason?.()||`${hostName()}正在休息，请等回到登记案再办理`;
+ const hostAtPost=()=>{const actor=hostActor();if(!actor)return false;if(typeof scene.hostAtPost==='function')return !!scene.hostAtPost();const dynamic=typeof scene.hostRole==='function'||typeof scene.hostActor==='function';return !actor.walking&&near(actor.root?.position,dynamic?HOST_POST:actor.station?.npcPosition||HOST_POST,.18);};
  const hostReady=()=>hostAtPost()&&hostAdmissionOpen();
  const cancelRegistration=()=>{waitingRegistration=null;waitingRegistrationAccepted=false;};
- const hasPresentHostMeeting=()=>!disposed&&!!waitingRegistration&&waitingRegistrationAccepted&&atRegister();
+ const hasPresentHostMeeting=()=>!disposed&&!!waitingRegistration&&waitingRegistrationAccepted&&!!hostActor()&&atRegister();
  const failure=(message,code='unavailable')=>{lastError=code;notify(message);return false;};
  if(current.job){const role=roleFor(current.job.formalRoleId),d=careers.workState().lastDuty;
   if(d?.workReceiptId===current.job.receiptId&&d.stage==='working')scene.start({roleId:role.id,receiptId:current.job.receiptId,day:d.day,snapshot:world});
@@ -31,7 +38,7 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
  function accept(role=heldRole()){
   if(!syncChefExperience())return failure('原客单履历尚未保存，请稍后重试');
   if(!role||!careers.isHired(role.id)||current.job||getLegacyJob())return failure('先结清手上的工作，再开始新班次');
-  if(!atRegister()||!hostReady()||meal.view().order)return failure(hostAdmissionOpen()?'请到登记案前等许安回案，再当面报到':hostUnavailableReason());
+  if(!atRegister()||!hostReady()||meal.view().order)return failure(hostAdmissionOpen()?'请到登记案前等掌柜回案，再当面报到':hostUnavailableReason());
   const serial=current.serial+1,receiptId=`${role.workSource}-${serial}`;
   const result=careers.beginDuty({receiptId,shiftKind:'continuous'});if(!result.ok)return failure(result.code==='outside-arrival-window'?'新班次在06:00–18:00之间报到':'今天暂时不能开始这个班次',result.code);
   const job={id:receiptId,receiptId,formalRoleId:role.id,stage:'working',coveredSeconds:0,completedTasks:0};
@@ -39,14 +46,14 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
   if(!scene.start({roleId:role.id,receiptId,day:careers.workState().lastDuty.day}))return failure('现场仍在交接，请等上一位同事交还岗位');
   selected=null;notify('已登记当日班次。先当面接班，再从真实待办中选择工作；登记和录用不会自动开工');return true;
  }
- function claim(){if(!syncChefExperience())return failure('原客单履历尚未保存，请稍后重试');const job=current.job;if(!job||!atRegister()||!hostReady())return failure(hostAdmissionOpen()?'请在登记案前等许安当面验收':hostUnavailableReason());
+ function claim(){if(!syncChefExperience())return failure('原客单履历尚未保存，请稍后重试');const job=current.job;if(!job||!atRegister()||!hostReady())return failure(hostAdmissionOpen()?'请在登记案前等掌柜当面验收':hostUnavailableReason());
   const duty=careers.workState().lastDuty;if(duty?.workReceiptId!==job.receiptId)return false;
   if(duty.stage==='inspection'&&!careers.laborEvent('inspected',{roleId:job.formalRoleId,receiptId:job.receiptId}).ok)return false;
   const paid=careers.workState().lastDuty.stage==='paid'?{ok:true}:careers.settle();if(!paid.ok)return failure('工资尚未入账，完成记录会保留，请稍后再试');
-  const wage=careers.workState().lastDuty.wage;if(!save({...current,job:null}))return false;selected=null;notify(`许安：已按实际在岗工时及服务评价结算${wage}铜文，工资存入银行`);return true;
+  const wage=careers.workState().lastDuty.wage;if(!save({...current,job:null}))return false;selected=null;notify(`${hostName()}：已按实际在岗工时及服务评价结算${wage}铜文，工资存入银行`);return true;
  }
  function intent(kind=null,roleId=null,choice=null){if(roleId===TAVERN_HOST_ROLE.id)return null;const role=roleFor(roleId),job=current.job,registered=careers.isHired(role.id);
-  if(kind==='property'){if(!property)return null;return {id:'cn-tavern-property',provider:'china-tavern-service',kind:'property',name:'云来酒楼 · 产权柜台',npcName:'许安',action:'查看酒楼产权与经营账',position:REG.slice(),executionRadius:.9,interactionRadius:2.8,priority:45,intentKey:'yunlai-property-counter'};}
+  if(kind==='property'){if(!property)return null;return {id:'cn-tavern-property',provider:'china-tavern-service',kind:'property',name:'云来酒楼 · 产权柜台',npcName:hostName(),action:'查看酒楼产权与经营账',position:REG.slice(),executionRadius:.9,interactionRadius:2.8,priority:45,intentKey:'yunlai-property-counter'};}
   kind||=job?job.stage==='inspection'?'claim':selected?'task':'work-view':careers.applicationResult?.(role.id)?.status==='pending'?'formal-review':'formal-view';
   if(kind==='view')kind='formal-view';
   if(kind==='accept'&&(!registered||job||getLegacyJob()||!beginAvailability(role).ok))return null;
@@ -55,12 +62,12 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
   if(['work-view','task','end-shift','claim'].includes(kind)&&!job)return null;
   if(kind==='claim'&&job.stage!=='inspection')return null;
   let action=({'formal-view':'查看酒楼职位与申请条件','formal-review':'当面确认职责并接受审核','formal-apply':`申请${role.name}`,'formal-resign':'办理本岗位离职',accept:'报到并开始今日班次','work-view':'选择当前待办',claim:'当面验收 · 按工时结算','end-shift':'交还岗位 · 结算已做工时'})[kind],position=REG,executionRadius=.9;
-  const chosen=kind==='task'?choice||selected:null;
-  if(chosen){const live=scene.choices().find(c=>key(c)===key(chosen));if(!live)return null;action=live.action;position=live.position;executionRadius=live.executionRadius;}
+  let chosen=kind==='task'?choice||selected:null;
+  if(chosen){const live=scene.choices().find(c=>key(c)===key(chosen));if(!live)return null;chosen=live;action=live.action;position=live.position;executionRadius=live.executionRadius;}
   if(kind==='work-view'||kind==='end-shift'){position=getPlayer()?.root.position.toArray()||REG;executionRadius=.4;}
   if(!action)return null;
-  return {id:`cn-tavern-service-${role.id}-${kind}`,provider:'china-tavern-service',kind,roleId:role.id,name:'云来酒楼 · 工作登记',npcName:'许安',action,position:position.slice(),executionRadius,interactionRadius:2.8,priority:46,
-   ...(chosen?{choice:copy(chosen)}:{}),...(kind==='formal-view'?{registration:{scope:'catalogue',roleId:role.id}}:{}),
+  return {id:`cn-tavern-service-${role.id}-${kind}`,provider:'china-tavern-service',kind,roleId:role.id,name:'云来酒楼 · 工作登记',npcName:hostName(),action,position:position.slice(),executionRadius,interactionRadius:2.8,priority:46,
+   ...(chosen?{choice:copy(chosen)}:{}),...(chosen?.visualAnchor?{visualAnchor:copy(chosen.visualAnchor)}:['formal-apply','formal-review','formal-resign','accept','claim'].includes(kind)?hostVisualAnchor():{}),...(kind==='formal-view'?{registration:{scope:'catalogue',roleId:role.id}}:{}),
    intentKey:[['task','work-view','end-shift'].includes(kind)?'-':careers.workState().revision,job?.receiptId||'-',job?.stage||'-',kind,chosen?key(chosen):'-'].join(':')};
  }
  const key=c=>[c.kind,c.orderId,c.guestId,c.roomId,c.tableId,c.ticketId].join(':');
@@ -72,7 +79,7 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
   if(next.kind==='formal-view'){openRegistration({country:'china',roleId:role.id,scope:next.registration.scope});return true;}
   if(['formal-apply','formal-review','formal-resign'].includes(next.kind)){
    if(!atRegister())return false;
-   if(!hostReady()){waitingRegistration=copy(next);waitingRegistrationAccepted=hostAdmissionOpen();notify(waitingRegistrationAccepted?'已在登记案等候许安；他回案后会核对这次申请，离开登记处则取消等候':hostUnavailableReason()+'；这次申请先等候，离开登记处则取消');return true;}
+   if(!hostReady()){waitingRegistration=copy(next);waitingRegistrationAccepted=hostAdmissionOpen();notify(waitingRegistrationAccepted?'已在登记案等候掌柜；他回案后会核对这次申请，离开登记处则取消等候':hostUnavailableReason()+'；这次申请先等候，离开登记处则取消');return true;}
    cancelRegistration();return finishRegistration(next);
   }
   if(next.kind==='accept'){if(!accept(role))return false;const first=scene.choices()[0];if(first){selected=first;onIntent(intent('task',role.id,first));}return true;}
@@ -109,7 +116,7 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
  }
  const state=()=>{const live=scene.snapshot(),job=current.job?{...copy(current.job),completedOrders:live?.completedTasks||0,completedTasks:live?.completedTasks||0,completedTables:live?.tables.filter(t=>!t.dirty).length||0,continuous:true}:null;return {...copy(current),job,world:scene.state(),selected:selected?copy(selected):null,lastError};};
  const forRole=roleId=>({intent:kind=>intent(kind,roleId),atRegistration:atRegister,resolveIntent,executeIntent,state,active:()=>!!current.job,formal:{beginAvailability:()=>beginAvailability(roleFor(roleId)),hired:()=>careers.isHired(roleId)},accept:()=>accept(roleFor(roleId))});
- const service={intent,resolveIntent,executeIntent,forRole,state,view:state,accept,claim,update,hostAdmissionOpen,hostCompletionAvailable,hostUnavailableReason,hasPresentHostMeeting,active:()=>!!current.job,formal:{beginAvailability:()=>beginAvailability(heldRole()||TAVERN_STEWARD_ROLE)},
+ const service={intent,resolveIntent,executeIntent,forRole,state,view:state,accept,claim,update,hostRole,hostActor,hostAtPost,hostAdmissionOpen,hostCompletionAvailable,hostUnavailableReason,hasPresentHostMeeting,active:()=>!!current.job,formal:{beginAvailability:()=>beginAvailability(heldRole()||TAVERN_STEWARD_ROLE)},
   label:()=>current.job?selected?.action||scene.label():null,playerPose:()=>scene.playerPose(),playerAction:()=>scene.playerAction(),playerStation:()=>scene.playerStation(),stopActivity:()=>{cancelRegistration();scene.stopActivity();},open:()=>ui?.open(),close:()=>{ui?.close();propertyUI?.close();},isOpen:()=>!!(ui?.isOpen()||propertyUI?.isOpen()),
   snapshot:()=>({version:1,receiptId:current.job?.receiptId||null,selected:selected?copy(selected):null,waitingRegistration:waitingRegistration?copy(waitingRegistration):null,waitingRegistrationAccepted,attendance}),
   restore(s){if(!s||s.version!==1||(s.waitingRegistrationAccepted!==undefined&&typeof s.waitingRegistrationAccepted!=='boolean')||s.receiptId!==(current.job?.receiptId||null)||!Number.isFinite(s.attendance)||s.attendance<0||s.attendance>=1.1)return false;selected=s.selected&&scene.choices().some(c=>key(c)===key(s.selected))?copy(s.selected):null;waitingRegistration=s.waitingRegistration&&resolveIntent(s.waitingRegistration)&&atRegister()?copy(s.waitingRegistration):null;waitingRegistrationAccepted=!!waitingRegistration&&s.waitingRegistrationAccepted!==false;attendance=s.attendance;return true;},
