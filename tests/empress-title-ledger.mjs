@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import {createEmpressTitleLedger,empressPetitionId} from '../source/game/empress-title-ledger.js';
 import {consortCharterId,consortPetitionRoll} from '../source/game/consort-petition-ledger.js';
 const copy=x=>JSON.parse(JSON.stringify(x));
-function fixture({seed=1,saved}={}){
+function fixture({seed=1,saved,heraldId='cn-palace-herald',heraldRevision}={}){
  const clock={day:4,hour:14},player={id:'player',ageYears:24},emperor={id:'cn-emperor',ageYears:36},appointment={id:'old-valid-consort-appointment',actorId:'player',emperorId:'cn-emperor',titleId:'consort',since:{day:0,hour:14},residence:{roomId:'consort-reserve-1',bedId:'china-consort-bed-reserve-1'}},profile={player:{traits:{curiosity:.8,quiet:.5}},emperor:{traits:{curiosity:.8,quiet:.5},relations:{player:.3},opinions:{player:.2}}};
  let valid=true,count=2,fail=false,persisted=saved;const receipts=new Map();
  const options={saved,worldSeed:seed,getClock:()=>clock,getConsort:()=>({titleStatus:()=>({active:valid}),appointment:()=>appointment}),getPlayer:()=>player,getEmperor:()=>emperor,getContext:()=>profile,getConversationCount:()=>count,saveState:s=>{if(fail)return false;persisted=copy(s);return true;},verifyReceipt:r=>JSON.stringify(r)===JSON.stringify(receipts.get(r.id))};
  const core=createEmpressTitleLedger(options);
- function receipt(kind,operation){clock.hour+=.001;const id=kind==='submission'?core.availability(operation).applicationId:core.petition().id;const r={id:`${id}:${kind}`,kind,applicationId:id,playerId:'player',emperorId:'cn-emperor',heraldId:'cn-palace-herald',targetId:kind==='submission'?'cn-emperor':'cn-consort-public-audience',completed:true,at:{...clock},participants:kind==='submission'?['player','cn-emperor']:kind==='charter-handoff'?['player','cn-palace-herald']:['player','cn-emperor','cn-palace-herald'],...(kind.startsWith('charter-')?{documentId:consortCharterId(id)}:{})};receipts.set(r.id,r);return r;}
+ function receipt(kind,operation){clock.hour+=.001;const id=kind==='submission'?core.availability(operation).applicationId:core.petition().id;const r={id:`${id}:${kind}`,kind,applicationId:id,playerId:'player',emperorId:'cn-emperor',heraldId,...(heraldRevision===undefined?{}:{heraldRevision}),targetId:kind==='submission'?'cn-emperor':'cn-consort-public-audience',completed:true,at:{...clock},participants:kind==='submission'?['player','cn-emperor']:kind==='charter-handoff'?['player',heraldId]:['player','cn-emperor',heraldId],...(kind.startsWith('charter-')?{documentId:consortCharterId(id)}:{})};receipts.set(r.id,r);return r;}
  const submit=operation=>core.submit(receipt('submission',operation),operation);
  const audience=()=>core.reviewAudience(core.petition().id,receipt('audience'));
  const paper=()=>{assert(core.respond(core.petition().id,'accept').ok);assert(core.receiveCharter(core.petition().id,receipt('charter-handoff')).ok);return core.completeInvestiture(core.petition().id,receipt('charter-reading'));};
@@ -30,4 +30,12 @@ test('fixed refusal, withdrawal, daily limit, declined choice and duplicate subm
 test('paper receipt guards, interrupted restore, invalid histories and atomic failures retain old authority',()=>{
  const f=fixture({seed:GOOD});assert(f.submit().ok);assert(f.audience().ok);assert(f.core.respond(f.core.petition().id,'accept').ok);const r=f.receipt('charter-handoff');f.fail=true;assert.equal(f.core.receiveCharter(f.core.petition().id,r).code,'save-failed');assert.equal(f.core.petition().stage,'accepted');f.fail=false;assert(f.core.receiveCharter(f.core.petition().id,r).ok);assert.equal(createEmpressTitleLedger({...f.options,saved:f.persisted}).petition().stage,'charter-held');assert.equal(f.core.completeInvestiture(f.core.petition().id,{...f.receipt('charter-reading'),documentId:'wrong-paper'}).code,'physical-reading-required');assert.equal(f.core.appointment(),null);assert(f.core.completeInvestiture(f.core.petition().id,f.receipt('charter-reading')).ok);
  const bad=copy(f.persisted);bad.appointment=null;assert.equal(createEmpressTitleLedger({...f.options,saved:bad}).state().loadError,'invalid-empress-state');const malformed=copy(f.persisted);malformed.petitions[0].ages.player=17;assert.equal(createEmpressTitleLedger({...f.options,saved:malformed}).state().loadError,'invalid-empress-state');
+});
+
+test('empress charter uses the actual frozen courier tenure, never a current-holder rewrite',()=>{
+ const f=fixture({seed:GOOD,heraldId:'cn-successor',heraldRevision:5});assert(f.submit('appoint').ok);assert(f.audience().ok);assert(f.core.respond(f.core.petition().id,'accept').ok);
+ const wrong=f.receipt('charter-handoff');wrong.heraldRevision=6;assert.equal(f.core.receiveCharter(f.core.petition().id,wrong).ok,false);
+ assert(f.core.receiveCharter(f.core.petition().id,f.receipt('charter-handoff')).ok);assert(f.core.completeInvestiture(f.core.petition().id,f.receipt('charter-reading')).ok);
+ assert.equal(f.core.petition().reading.heraldId,'cn-successor');assert.equal(createEmpressTitleLedger({...f.options,saved:f.persisted}).state().loadError,null);
+ const bad=copy(f.persisted);bad.petitions[0].reading.heraldRevision=6;assert.equal(createEmpressTitleLedger({...f.options,saved:bad}).state().loadError,'invalid-empress-state');
 });

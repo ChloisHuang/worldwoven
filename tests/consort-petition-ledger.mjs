@@ -10,7 +10,7 @@ function fixture(options={}){
   const deps={saved:saved.value,worldSeed:options.seed??1,saveState:next=>{calls.save++;if(flags.fail)return false;if(flags.throw)throw Error('storage full');if(flags.async)return Promise.resolve(false);saved.value=copy(next);return true;},getClock:()=>clock,getPlayer:()=>player,getEmperor:()=>emperor,getCourt:()=>court,getVacancy:()=>vacancy,getCareers:()=>career,verifyReceipt:r=>{calls.verify++;return flags.verify&&evidence.has(r.id)&&JSON.stringify(evidence.get(r.id))===JSON.stringify(r);}};
   const core=createConsortPetitionLedger({...deps,...options.deps});
   function receipt(kind,id=kind==='submission'?consortPetitionId('player',clock.day):core.petition()?.id||consortPetitionId('player',clock.day)){
-    const r={id:`physical:${kind}:${id}`,kind,applicationId:id,playerId:player.id,emperorId:emperor.id,heraldId:'cn-palace-herald',targetId:'cn-consort-petition-desk',completed:true,participants:kind==='submission'||kind==='charter-handoff'?['player','cn-palace-herald']:['player','cn-emperor','cn-palace-herald'],at:copy(clock)};
+    const r={id:`physical:${kind}:${id}`,kind,applicationId:id,playerId:player.id,emperorId:emperor.id,heraldId:options.heraldId||'cn-palace-herald',...(options.heraldRevision===undefined?{}:{heraldRevision:options.heraldRevision}),targetId:'cn-consort-petition-desk',completed:true,participants:kind==='submission'||kind==='charter-handoff'?['player',options.heraldId||'cn-palace-herald']:['player','cn-emperor',options.heraldId||'cn-palace-herald'],at:copy(clock)};
     if(kind.startsWith('charter-'))r.documentId=consortCharterId(id);
     evidence.set(r.id,copy(r));return r;
   }
@@ -214,4 +214,14 @@ test('failed invitation/response saves do not publish a decision, lose a refusal
 test('malformed invitation origin/stage and receipt substitutions fail closed',()=>{
  const f=invitationFixture();assert(f.invite().offered);const malformed=copy(f.saved.value);malformed.petitions[0].stage='submitted';assert.equal(invitationFixture({saved:malformed}).core.state().loadError,'invalid-consort-state');
  const other=f.receipt('invitation');other.targetId='elsewhere';f.evidence.set(other.id,copy(other));assert.equal(f.core.considerInvitation(other,'palace-action:cn-emperor:1:garden').code,'receipt-conflict');
+});
+
+test('successor courier receipts keep one immutable tenure across the petition and reload',()=>{
+ const f=fixture({seed:GOOD,heraldId:'cn-successor',heraldRevision:3});advance(f,'awaiting-choice');assert(f.accept().ok);
+ const wrong=f.receipt('charter-handoff');wrong.heraldRevision=4;f.evidence.set(wrong.id,copy(wrong));assert.equal(f.core.receiveCharter(f.core.petition().id,wrong).ok,false);
+ assert(f.handoff().ok);assert(f.read().ok);assert.equal(f.core.petition().reading.heraldId,'cn-successor');assert.equal(f.core.petition().reading.heraldRevision,3);
+ assert.equal(createConsortPetitionLedger({...f.deps,saved:f.saved.value}).state().loadError,null);
+ const corrupt=copy(f.saved.value);corrupt.petitions[0].reading.heraldRevision=4;assert.equal(createConsortPetitionLedger({...f.deps,saved:corrupt}).state().loadError,'invalid-consort-state');
+ const missing=fixture({seed:GOOD,heraldId:'cn-successor'});assert.equal(missing.submit().ok,false,'only the historical original may omit tenure');
+ const player=fixture({seed:GOOD,heraldId:'player',heraldRevision:0});assert.equal(player.submit().ok,false);
 });

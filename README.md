@@ -11,8 +11,8 @@ R16.131 ordinary visits use the current supported character model with the origi
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.150-public, 2026-10-06
-Verified published Sites source commit: 7aaea8d86d584c6cec29ae10f0acb05c6f4f4f59
+Published release: R16.152-public, 2026-10-06
+Verified published Sites source commit: c05fe863b7a9f86fe06c86b515a092cfe7674bcb
 
 Opt-in same-save performance panel: https://alien.doudouai.net/?perf=1#china
 It reads runtime timing/render counts and the initial save length; it does not reset storage or send telemetry. CPU submission timing is not GPU timing. R16.128 removes repeated full-history copies from closed salon panels and China job/HUD reads. R16.129 extends current-career reads to the existing Japan/Egypt employment adapters and French tea/pastry/gardening controllers. Those controllers only run in their respective countries. The user reported R16.130 runs without lag; broader device performance remains unverified.
@@ -56,6 +56,10 @@ R16.148 expands male facial variation through the existing saved traits, includi
 R16.149 lets officials choose and pay for an original artist service from their own earned money, with the existing artist share funding real meals. Free listening stays free, and visits depend on budget, interest and availability. Bo now earns eight copper for completing and returning from an original garden order, then pays for a meal and public toilet trip. Court summons account for the existing sequential entrance queues while keeping the 11:30 start. Default China needs coverage is 25/31, with six still open.
 
 R16.150 pays Wen eight copper after physically drafting and handing over the original order, then enables self-paid meals and public toilet trips after safe return. Active unpaid and prepaid guest meals now restore for the range warden, garden worker and scribe with their original payment proof. Default China needs coverage is 26/31; combining one person’s earnings from multiple employers remains open.
+
+R16.151 lets one person combine earned meal funds across the royal cook, guard, range warden, garden worker and scribe accounts. One saved transaction records each original source, and refunds return the exact split once. Safe departure checks use the same available total while unfinished work still takes priority. Clinic, artist, official and tavern-property accounts remain outside this aggregation; needs coverage stays 26/31.
+
+R16.152 pays the current herald twelve copper only after the original document is physically collected, approved, sealed, read and handed over. Earned funds support an original meal, public toilet visit and return to the desk. Petition and charter handling retain the actual courier and tenure; a missing holder cannot fall back to the original person. Default China needs coverage is 27/31, with four still open; automatic appointments and cross-family wallets remain outside this release.
 
 ## Working rules
 

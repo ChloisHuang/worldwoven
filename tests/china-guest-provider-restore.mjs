@@ -5,16 +5,19 @@ import {createNPCPieceworkAccount} from '../source/game/npc-piecework-account.js
 import {createNPCGuestAccounts} from '../source/game/npc-guest-accounts.js';
 import {RANGE_WARDEN_ROLE} from '../source/game/china-range-warden-slot.js';
 import {PALACE_GARDEN_ROLE} from '../source/game/china-palace-garden-role.js';
+import {PALACE_HERALD_ROLE} from '../source/game/china-palace-herald-role.js';
+import {heraldContract} from '../source/game/china-palace-herald-proof.js';
 import {PALACE_SCRIBE_ROLE} from '../source/game/china-palace-scribe-role.js';
 const copy=structuredClone;
-const cases=[{id:'china-range-warden-accounts',namespace:'chinaRangeWardenAccounts',role:RANGE_WARDEN_ROLE},{id:'china-garden-accounts',namespace:'chinaGardenAccounts',role:PALACE_GARDEN_ROLE,kind:'npc-edict-piecework'},{id:'china-scribe-accounts',namespace:'chinaScribeAccounts',role:PALACE_SCRIBE_ROLE,kind:'npc-edict-draft-piecework'}];
+const cases=[{id:'china-herald-accounts',namespace:'chinaHeraldAccounts',role:PALACE_HERALD_ROLE,kind:'npc-edict-delivery-piecework'},{id:'china-range-warden-accounts',namespace:'chinaRangeWardenAccounts',role:RANGE_WARDEN_ROLE},{id:'china-garden-accounts',namespace:'chinaGardenAccounts',role:PALACE_GARDEN_ROLE,kind:'npc-edict-piecework'},{id:'china-scribe-accounts',namespace:'chinaScribeAccounts',role:PALACE_SCRIBE_ROLE,kind:'npc-edict-draft-piecework'}];
 function setup(config,saved,rejectWorld=false){
  const {id,namespace,role,kind}=config,actorId=role.incumbentId;let f,fail=false;
  const saveState=(state,_receipt,patch={})=>{if(fail)return false;if(f)Object.assign(f.game,copy(patch),{[namespace]:copy(state)});return true;};
  const options={role,namespace,saved:saved?.[namespace],saveState},account=kind?createNPCPieceworkAccount({...options,proofKind:kind}):createNPCDutyAccount(options);
  assert.equal(account.loadError,null);
  if(!saved){
-  if(kind)assert(account.settle({kind,version:1,actorId,roleId:role.id,slotId:role.slotId,holderRevision:0,day:0,documentId:'cn-edict-east-shore:0',audienceId:'cn-morning-audience:0',amount:8,contractVersion:1,steps:kind==='npc-edict-piecework'?{received:true,filed:true,sweepSeconds:7}:{draftSeconds:5,handoffSeconds:2}}).ok);
+  if(kind==='npc-edict-delivery-piecework')assert(account.settle({...heraldContract({id:'cn-edict-east-shore:0',audienceId:'cn-morning-audience:0',day:0},actorId,0,'cn-calligraphy',0,'cn-garden',0,'cn-emperor'),steps:{collectedSeconds:2,approvalSeconds:4,sealedSeconds:2.2,readingSeconds:6,responseSeconds:3,handoffSeconds:1.3,received:true},approvedBy:'cn-emperor',sealedBy:actorId,holder:'recipient'}).ok);
+  else if(kind)assert(account.settle({kind,version:1,actorId,roleId:role.id,slotId:role.slotId,holderRevision:0,day:0,documentId:'cn-edict-east-shore:0',audienceId:'cn-morning-audience:0',amount:8,contractVersion:1,steps:kind==='npc-edict-piecework'?{received:true,filed:true,sweepSeconds:7}:{draftSeconds:5,handoffSeconds:2}}).ok);
   else{const coverage=[{actorId,roleId:role.id,slotId:role.slotId,holderRevision:0}];for(let i=0;i<=2600;i++)account.observe({seconds:i*.1,dt:.1,coverage});assert(account.checkpoint({day:0,hour:18}));}
  }
  const economy=createNPCGuestAccounts([{id,economy:account}]);
