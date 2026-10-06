@@ -50,7 +50,7 @@ export function createJapanServiceEmployment({duty:reception,role:ROLE,provider,
   if(kind==='claim'&&j?.stage!=='ready'||taskKind(kind)&&!work||['wait','cancel','end-shift','resume'].includes(kind)&&j?.stage!=='working'||kind==='resume'&&!paused)return null;
   const action=taskKind(kind)?work.action:kind==='wait'?reception.workLabel():text.actions[kind];
   return action?{id:provider+'-'+kind,provider,roleId:ROLE.id,kind,name:ROLE.workplace,npcName:ROLE.employer,action,position:(taskKind(kind)?work.position:kind==='cancel'&&reception.held()?reception.returnPosition():REG).slice(),executionRadius:taskKind(kind)?work.executionRadius:.3,interactionRadius:1.8,priority:47,
-   ...(kind==='formal-view'?{registration:{scope:'role',roleId:ROLE.id}}:{}),...(taskKind(kind)?{work:copy(work),playerWorkTarget:work.target}:{}),intentKey:[taskKind(kind)||['wait','resume','end-shift','cancel'].includes(kind)?'-':careers.state().revision,j?.receiptId||'-',j?.stage||'-',kind,taskKind(kind)?work.key:'-'].join(':')}:null;
+   ...(kind==='formal-view'?{registration:{scope:'role',roleId:ROLE.id}}:{}),...(taskKind(kind)?{work:copy(work),playerWorkTarget:work.target}:{}),intentKey:[taskKind(kind)||['wait','resume','end-shift','cancel'].includes(kind)?'-':formal.workState().revision,j?.receiptId||'-',j?.stage||'-',kind,taskKind(kind)?work.key:'-'].join(':')}:null;
  }
  const resolveIntent=old=>{const next=intent(old?.kind);return next&&old&&next.provider===old.provider&&next.id===old.id&&next.intentKey===old.intentKey?next:null;};
  function executeIntent(old){const next=resolveIntent(old);if(!next||getMounted()||!near(getPlayer()?.root.position,next.position,next.executionRadius)||!canSee(next))return false;
@@ -65,7 +65,7 @@ export function createJapanServiceEmployment({duty:reception,role:ROLE,provider,
  }
  function update(dt=0){if(disposed||lastError)return;reception.requestMeeting(!!waiting||!!text.keepMeetingWhileLocal&&atRegistration()&&current.job?.stage!=='working'&&(formal.hired()||careers.applicationResult(ROLE.id)?.status==='pending'));
   if(waiting){if(!atRegistration()||!resolveIntent(waiting))waiting=null;else if(meet()){const next=waiting;waiting=null;executeIntent(next);}}
-  const j=current.job;if(j?.stage!=='working')return;if(j.handoff){finishHandoff();return;}const d=careers.state().lastDuty;
+  const j=current.job;if(j?.stage!=='working')return;if(j.handoff){finishHandoff();return;}const d=formal.workState().lastDuty;
   if(d?.workReceiptId===j.receiptId&&['inspection','ready','paid'].includes(d.stage)){reception.releaseDuty(j.receiptId);save({...current,job:{...j,stage:'ready'}});return;}
   if(formal.canWork(j)&&reception.dutyState().receiptId!==j.receiptId)reception.holdDuty(j.receiptId);
   if(!formal.canWork(j)){if(!flush())return;if(reception.releaseDuty(j.receiptId,{evaluate:true})&&flush()&&save({...current,job:null}))attendance=0;return;}

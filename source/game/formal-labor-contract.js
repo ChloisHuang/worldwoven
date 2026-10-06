@@ -20,8 +20,9 @@ const MESSAGES={'application-pending':'申请已保存，请继续当面审核',
   'save-failed':'记录未能保存，请稍后重试','bank-unavailable':'银行入账暂不可用，已完成工资会保留',
   'invalid-career-state':'职业存档暂时无法核对，请保留存档',
 };
-export function createFormalLaborContract({careers,role,getJob,getPlayer,meetHost,notify=()=>{},openRegistration=()=>{},workState=()=>careers?.state()}){
+export function createFormalLaborContract({careers,role,getJob,getPlayer,meetHost,notify=()=>{},openRegistration=()=>{},workState=()=>careers?.workState?.()??careers?.state()}){
   const unit=role.currency==='japan'?'日本券':role.currency==='france'?'法国券':role.currency==='egypt'?'埃及券':'铜文';
+  // Work polling needs only the current duty. Explicit state() remains complete.
   const hired=()=>!!careers?.isHired(role.id),state=()=>careers?.state();
   const pinned=job=>job?.formalRoleId===role.id;
   const duty=job=>{const d=workState()?.lastDuty;return pinned(job)&&d?.roleId===role.id&&d.workReceiptId===job.receiptId?d:null;};

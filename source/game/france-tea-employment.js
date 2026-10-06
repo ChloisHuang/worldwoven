@@ -49,7 +49,7 @@ export function createFranceTeaEmployment({tea:service,role:ROLE=TEA_SERVER_ROLE
   return {id:`${pastry?'fr-pastry':'fr-tea'}-job-${kind}`,provider,roleId:ROLE.id,kind,name:ROLE.workplace,npcName:ROLE.employer,action,
    position:(kind==='task'?work.position:tea.registry).slice(),executionRadius:kind==='task'?.2:.3,interactionRadius:1.8,priority:47,
    ...(kind==='formal-view'?{registration:{scope:'role',roleId:ROLE.id}}:{}),...(kind==='task'?{work:copy(work),playerWorkTarget:work.target}:{}),
-   intentKey:[careers.state().revision,job?.receiptId||'-',job?.stage||'-',kind,kind==='task'?work.orderId+'-'+work.key:'-'].join(':')};
+   intentKey:[formal.workState().revision,job?.receiptId||'-',job?.stage||'-',kind,kind==='task'?work.orderId+'-'+work.key:'-'].join(':')};
  }
  function resolveIntent(old){const next=intent(old?.kind);return next&&old.provider===next.provider&&old.id===next.id&&old.intentKey===next.intentKey?next:null;}
  function executeIntent(old){
@@ -81,7 +81,7 @@ export function createFranceTeaEmployment({tea:service,role:ROLE=TEA_SERVER_ROLE
   if(waiting){if(!atRegistration()||!resolveIntent(waiting))waiting=null;else if(meet()){const next=waiting;waiting=null;executeIntent(next);}}
   const job=current.job;if(!job)return;
   if(job.stage==='working'){
-   const duty=careers.state().lastDuty;
+   const duty=formal.workState().lastDuty;
    if(duty?.workReceiptId===job.receiptId&&['inspection','ready','paid'].includes(duty.stage)){tea.releaseDuty(job.receiptId);save({...current,job:{...job,stage:'ready'}});return;}
    if(!formal.canWork(job)){tea.releaseDuty(job.receiptId);pending=null;save({...current,job:null});return;}
    tea.claimDuty(job.receiptId);
