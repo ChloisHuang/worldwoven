@@ -1,5 +1,5 @@
-/** Explicit development entry. Import once before requesting a candidate from
- * the synchronous createCharacter API. Production main never imports this. */
+/** Register the current complete character adapter before creating actors.
+ * Registration and selection never persist a new appearance identity. */
 import {registerCharacterModelPreview} from '../character-model-preview.js';
 import {COMPLETE_ADULT_PREVIEW,COMPLETE_ADULT_PAIR_PREVIEW,completeAdultSupport,completeAdultCacheTag,applyCompleteAdultPreview,completeAdultWeights,createCompleteAdultChannels,appendCompleteAdultVertex,finishCompleteAdultChannels,readCompleteAdultColor,prepareCompleteAdultSkinMaterial,prepareCompleteAdultClothMaterial,completeAdultMaterialKey} from './runtime-adapter.js';
 const adapter=Object.freeze({

@@ -1,5 +1,5 @@
-/** Tiny synchronous selection bridge. Candidate code/assets are imported only
- * by an explicit development entry, never by this production module. */
+/** Tiny synchronous selection bridge. Assets are loaded by the selected boot
+ * entry before main; this bridge never owns appearance or storage state. */
 const adapters=new Map();
 export function registerCharacterModelPreview(selection,adapter){
  const existing=adapters.get(selection);
@@ -12,8 +12,8 @@ export function resolveCharacterModelPreview(options,selection){
  return{...adapter.support(options,selection),adapter};
 }
 
-// Explicit development bootstrap only. With no selector/pose request these
-// remain null and normal production actor selection/attention is unchanged.
+// The selected entry installs a renderer before main. A null selector keeps
+// legacy support for standalone tools; attention stays unchanged unless set.
 let selector=null,headLook=null;
 export function setCharacterModelPreviewSelector(value){if(value!==null&&typeof value!=='function')throw new TypeError('Preview selector must be a function');selector=value;}
 export function defaultCharacterModelPreview(options){return selector?.(options)??{modelPreview:null,previewHair:null,previewHairFlow:false};}
