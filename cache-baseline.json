@@ -1,5 +1,5 @@
 {
-  "publishedSourceCommit": "183f59a3e8d96f1a67b08c7ae2ce7355478e4def",
+  "publishedSourceCommit": "2b85d7372204191458ee9651d050632781606b78",
   "assets": [
     "/assets/china-layout-continuity.6e639fc505b2d7bf.js",
     "/assets/china-tavern-salon-artists.a654a0614259ca1b.js",
@@ -116,7 +116,7 @@
     "/assets/china-salon-needs.bf1580e535b22ce6.js",
     "/assets/china-tavern-salon-life.eed0816cb441788a.js",
     "/assets/china-tavern-salon.11e9500c2f8d9a8a.js",
-    "/assets/china-tavern-salon-ui.3686648b986b2edd.js",
+    "/assets/china-tavern-salon-ui.9bbb1d8143682920.js",
     "/assets/game-health.43899c250bd6a737.js",
     "/assets/game-health-world.79e0b555b34fef2d.js",
     "/assets/china-money-house-lettering.51a1416282a3f0eb.js",
@@ -236,7 +236,7 @@
     "/assets/approved-surfaces.57e8c88c0c44e9d2.js",
     "/assets/character-props.deb24f9b65d5e60a.js",
     "/assets/characters.dbc492d402c1bf7b.js",
-    "/assets/main.21d150d638229415.js",
+    "/assets/main.56eb3a6656423d49.js",
     "/assets/adult-forms-data.f2d413fd71230493.js",
     "/assets/attach-head.cd715d43de06238a.js",
     "/assets/layered-hair-data.909c7058087b476c.js",
@@ -259,7 +259,7 @@
     "/assets/selection.7c7d334eed664963.js",
     "/assets/character-preview-entry.f3522bd833229baf.js",
     "/assets/character-live-entry.da19183617a60299.js",
-    "/assets/entry.da10cb2166225c55.js",
+    "/assets/entry.4ed0188d1106a6c3.js",
     "/assets/game.e9558f47bbf1588e.css",
     "/assets/three.core.9edde002b066a9a0.js",
     "/assets/three.module.d8c0a97fa13a785e.js"
