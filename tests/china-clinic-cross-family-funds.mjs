@@ -6,6 +6,8 @@ import {createClinicNPCEconomy} from '../source/game/china-clinic-npc-economy.js
 import {createClinicNPCDutyObserver} from '../source/game/china-clinic-npc-duty.js';
 import {ROYAL_KITCHEN_ROLE as ROYAL} from '../source/game/china-royal-kitchen-role.js';
 import {CLINIC_PHYSICIAN_ROLE as DOCTOR} from '../source/game/formal-careers.js';
+import {createClinicNeeds} from '../source/game/china-clinic-needs.js';
+import {CHINA_CLINIC as CLINIC} from '../source/game/china-clinic.js';
 import {GAME_MINUTES_PER_SECOND as RATE} from '../source/game/simulation-clock.js';
 const copy=structuredClone,ID='cn-cooking',OTHER='cn-distinct-person';
 function earnedRoyal(account,actorId=ID,day=1,hours=1.5){const coverage=[{actorId,roleId:ROYAL.id,slotId:ROYAL.slotId,holderRevision:day}];let t=(day*1440+360-600)/RATE,end=t+hours*60/RATE;account.observe({seconds:t,dt:.25,coverage});while(t<end){const dt=Math.min(.25,end-t);t+=dt;account.observe({seconds:t,dt,coverage});}assert(account.checkpoint({day,hour:18}));}
@@ -48,3 +50,15 @@ const locked=setup(),prepared=locked.aggregate.prepareMealPayment(meal);locked.o
 const zero=setup(null,{fund:false});earnedRoyal(zero.royal,ID,1,3);earnedClinic(zero.clinic,ID);const zeroCandidate=zero.aggregate.prepareMealPayment(meal);zero.onSave(()=>assert.equal(zero.clinic.prepareMealPayment({...meal,amount:1}).ok,false));assert(zeroCandidate.commit().ok);zero.onSave(null);assert.equal(setup(zero.game).aggregate.loadError,null);
 const bad=copy(locked.game);bad.chinaClinicNPCEconomy.accounts[ID].bank++;const rejected=setup(bad);assert(rejected.clinic.loadError);assert.equal(rejected.aggregate.account(ID),null);assert.deepEqual(rejected.clinic.snapshot(),bad.chinaClinicNPCEconomy);assert.equal(rejected.aggregate.prepareMealRefund(meal).ok,false);
 console.log('PASS insufficient total produces no order, stale clinic income rejects, participating/zero-portion clinic locks prevent reentry, rejected strict evidence retained without mutation');
+
+// Actual clinic needs consumer at a safe role boundary. Direct-route fixture,
+// not proof that a retained former controller releases this body in production.
+for(const sufficient of [false,true]){
+ const funds=setup(null,{fund:sufficient});if(!sufficient)earnedRoyal(funds.royal);
+ const point=CLINIC.points.doctor,n={station:{id:ID},alive:true,root:{position:{x:point[0],y:point[1],z:point[2]}}};let mayDepart=false;
+ const life=createClinicNeeds({getHolder:role=>role==='physician'?{status:'npc',available:true,alive:true,holderId:ID}:null,getActor:id=>id===ID?n:null,canDepart:()=>mayDepart,sharedNeeds:{has:()=>true,status:()=>({seekMeal:true,seekToilet:false})},economy:funds.aggregate,getTavern:()=>({publicToiletRoute:()=>[[16.9,.215,9.1]],clinicMeal:()=>null}),getToilet:()=>({publicIntent:()=>({position:[16.9,4.015,10]})}),travel:()=>false,pose:()=>{},resetRoute:()=>{},saveState:()=>true});
+ const before=snapshot(funds);life.update(1,1);
+ if(sufficient){assert.equal(life.snapshot().task.phase,'draining','original patient/work gate is preserved');mayDepart=true;life.update(.1,1.1);assert.equal(life.snapshot().task.phase,'go-meal');assert.equal(life.snapshot().task.actorId,ID);}else assert.equal(life.snapshot().task,null);
+ assert.deepEqual(snapshot(funds),before,'eligibility and safe departure do not mutate wage or meal accounts');life.dispose({suspend:true});
+}
+console.log('PASS actual clinic-needs consumer waits for original work boundary then departs on clinic3+guest4, while guest4 alone stays put; no account/body reassignment');
