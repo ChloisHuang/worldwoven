@@ -11,8 +11,8 @@ R16.131 ordinary visits use the current supported character model with the origi
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.140-public, 2026-10-06
-Verified published Sites source commit: 4752bed48ca12d204ce118dfc9da82003110e1a7
+Published release: R16.141-public, 2026-10-06
+Verified published Sites source commit: 831d99be79a8c20fd2bcecfc3fe888fc39ecef10
 
 Opt-in same-save performance panel: https://alien.doudouai.net/?perf=1#china
 It reads runtime timing/render counts and the initial save length; it does not reset storage or send telemetry. CPU submission timing is not GPU timing. R16.128 removes repeated full-history copies from closed salon panels and China job/HUD reads. R16.129 extends current-career reads to the existing Japan/Egypt employment adapters and French tea/pastry/gardening controllers. Those controllers only run in their respective countries. The user reported R16.130 runs without lag; broader device performance remains unverified.
@@ -36,6 +36,8 @@ R16.138 fixes pillow/head contact while preserving neutral neck length and adds 
 R16.139 connects the current NPC chef and assistant to their own paid meals, real kitchen service, public toilet visits and duty return. Role changes preserve each person’s funds, needs and held dish; players retain manual control. Default China needs coverage is 19/31, with 12 still open. No new wages, automatic aging or hiring UI is introduced.
 
 R16.140 applies patient-rated pay to new marked player clinic shifts: physician/pharmacy bases remain 30/12 copper, scaled 80–120% by actual patient feedback and worked time; unrated shifts are neutral. Free patient care and government funding remain, wages enter only the player bank, and historical sealed pay is unchanged. NPC wages and needs coverage are not expanded.
+
+R16.141 pays current clinic NPC holders from actually observed on-duty time into their own banks, using unique government wage receipts and existing patient feedback. Staff replacement preserves personal identity, funds and numbered items; review/handoff markers follow the current people. No offline wages, patient charges or treasury-arrears gate is added. NPC meal/toilet activation remains separate, so needs coverage stays 19/31.
 
 ## Working rules
 
