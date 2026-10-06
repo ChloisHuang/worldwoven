@@ -43,7 +43,7 @@ if(vFeatureKind>0.5&&vFeatureKind<1.5){
  float ring=featureBell(r,.40,.075);
  float rim=smoothstep(.86,1.0,r);
  float lowerIris=(1.0-smoothstep(-.74,.32,f.y));
- float value=(1.12+.54*lowerIris+.32*fibre)*(1.0-.48*rim)*(1.0-.15*ring);
+ float value=(1.00+.28*lowerIris+.12*fibre)*(1.0-.38*rim)*(1.0-.12*ring);
  diffuseColor.rgb*=vec3(value*1.10,value*1.015,value*.90);
 }else if(vFeatureKind>3.5&&vFeatureKind<4.5){
  // Warm ivory sclera, gently reddened at its limbus and canthi. Existing
@@ -61,6 +61,12 @@ if(vFeatureKind>0.5&&vFeatureKind<1.5){
   diffuseColor.rgb*=.93+.14*strand;
  }else{diffuseColor.rgb*=1.03;}
 }${hairFlow?'else if(vFeatureKind>5.5&&vFeatureKind<6.5){'+HAIR_FLOW_COLOR_GLSL+'}':''}
+// Lid contact falls across the globe only, not a painted ring on the face.
+// These eye-local coordinates rotate and skin with the actual eye surface.
+if(vFeatureKind>1.5&&vFeatureKind<4.5){
+ float upperLid=smoothstep(-.32,.62,f.y);
+ diffuseColor.rgb*=1.0-.40*upperLid;
+}
 `);
   // Readable small corneal reflection, still driven by the existing sun and
   // the differentiated, convex eye normal. Only eyes and tiny wet margins.
@@ -71,7 +77,7 @@ ${hairFlow?HAIR_FLOW_LIGHT_GLSL:''}
   vec3 h=normalize(directionalLights[0].direction+normalize(vViewPosition));
   float glint=pow(max(dot(normal,h),0.0),240.0);
   float gain=clamp(max(directionalLights[0].color.r,max(directionalLights[0].color.g,directionalLights[0].color.b)),0.0,1.0);
-  outgoingLight+=gain*vec3(.60,.59,.56)*smoothstep(.18,.75,glint);
+  outgoingLight+=gain*vec3(.30,.30,.28)*smoothstep(.25,.78,glint)*(1.0-.45*smoothstep(.10,.70,f.y));
   outgoingLight+=gain*vec3(.016,.018,.020)*pow(max(dot(normal,h),0.0),24.0);
  }
  if(vFeatureKind>.5&&vFeatureKind<1.5){
@@ -87,6 +93,6 @@ ${hairFlow?HAIR_FLOW_LIGHT_GLSL:''}
 #include <opaque_fragment>`);
  };
  const oldKey=material.customProgramCacheKey.bind(material);
- material.customProgramCacheKey=()=>oldKey()+'-original-feature-surface-v2-'+(hairFlow?HAIR_FLOW_VERSION:'plain-hair');
+ material.customProgramCacheKey=()=>oldKey()+'-original-feature-surface-depth-v1-'+(hairFlow?HAIR_FLOW_VERSION:'plain-hair');
  material.needsUpdate=true;
 }

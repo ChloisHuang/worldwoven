@@ -11,12 +11,13 @@ import {applyFemaleSilhouette} from './female-silhouette.js';
 import {fitCompleteAdultClothing} from './fit-clothing.js';
 import {applyAnatomicalFinish} from './face-finish.js';
 import {applySurfaceFinish} from './surface-finish.js';
+import {applyNaturalMakeup} from './natural-makeup.js';
 import {morphCompleteAdultAsset,fitCompleteAdultAttachments} from './shape-traits.js';
 import {RETAINED_HAIR,createHeadAttachmentFit,fitCandidateHairAttachments,fitRetainedHeadMesh,fitRetainedFacialHair} from './attachment-fit.js';
 import {FREE_BRAID,planRetainedBraid,applyRetainedBraid} from './retained-hair-fit.js';
 export const COMPLETE_ADULT_PREVIEW='complete-adult-head-v1';
 export const COMPLETE_ADULT_PAIR_PREVIEW='complete-adult-pair-v1';
-export const COMPLETE_ADULT_VERSION='candidate-profile-neck-traits10-v9';
+export const COMPLETE_ADULT_VERSION='candidate-midface-support-r113-v1';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const forms={'masculine-lean':'male','masculine-broad':'male','feminine-balanced':'female','feminine-slender':'female'};
 export function completeAdultSupport(options,selection){
@@ -58,12 +59,12 @@ export function applyCompleteAdultPreview(root,options,selection){
   if(!retained){for(const mesh of[...head.children])if(mesh.isMesh&&RETAINED_HAIR.test(mesh.name)){mesh.removeFromParent();mesh.geometry.dispose();}const flowFinish=!!options.previewHairFlow,hair=support.form==='male'?addLayeredHair(head,C.hair,{flowFinish}):addFemaleHairOption(head,C.hair,options.previewHair,{flowFinish});hair.userData.softSkin=support.form==='female';hair.userData.completeAdultPart=options.previewHair==='long-layered'?'long-hair':'hair';if(options.previewHair)fitCandidateHairAttachments(attachmentFit,hair);}
  });
  if(selection===COMPLETE_ADULT_PAIR_PREVIEW)fitCompleteAdultClothing(root,options,neutral=>{applyNaturalClothing(root,neutral);applyFemaleSilhouette(root,neutral);});
- const result={applied:true,hairFlow:!!options.previewHairFlow,previewHair:options.previewHair??null,garmentRefinement:selection===COMPLETE_ADULT_PAIR_PREVIEW,version:COMPLETE_ADULT_VERSION,form:support.form,attachmentFit};
+ const result={applied:true,hairFlow:!!options.previewHairFlow,previewHair:options.previewHair??null,...(options.previewMakeup==='natural'?{makeup:'natural'}:{}),garmentRefinement:selection===COMPLETE_ADULT_PAIR_PREVIEW,version:COMPLETE_ADULT_VERSION,form:support.form,attachmentFit};
  root.userData.completeAdultRepresentation=result;return result;
 }
 /** Cache selection is never persisted as an appearance version. */
-export function completeAdultCacheTag(options,selection){return completeAdultSupport(options,selection).supported?COMPLETE_ADULT_VERSION+'|'+selection+'|'+(options.previewHair??'saved-hair')+'|flow:'+!!options.previewHairFlow:'legacy';}
-export function completeAdultWeights(mesh,sourceY){
+export function completeAdultCacheTag(options,selection){return completeAdultSupport(options,selection).supported?COMPLETE_ADULT_VERSION+'|'+selection+'|'+(options.previewHair??'saved-hair')+'|flow:'+!!options.previewHairFlow+(options.previewMakeup==='natural'?'|makeup:natural-v1':''):'legacy';}
+export function completeAdultWeights(mesh,sourceY,index){
  if(!mesh.userData.completeAdultPart)return null;
  if(mesh.userData.completeAdultPart==='long-hair'){
   // The baked lower lengths lie on the gown, so they follow torso joints; only
@@ -71,7 +72,13 @@ export function completeAdultWeights(mesh,sourceY){
   if(sourceY<1.335){const u=clamp((sourceY-1.18)/.155);return[[1,1-u],[2,u]];}
   const u=clamp((sourceY-1.395)/.08);return[[2,1-u],[3,u]];
  }
- if(mesh.userData.completeAdultPart==='skin'&&sourceY<1.435){const u=clamp((sourceY-1.365)/.070);return[[2,1-u],[3,u]];}
+ if(mesh.userData.completeAdultPart==='skin'&&sourceY<1.435){
+  // Only the native cervical surface blends into the torso. Long-chin facial
+  // vertices can cross this height without becoming part of the neck.
+  const feature=mesh.geometry.attributes.featureCoord;
+  const cervical=!feature||index===undefined||feature.getY(index)<6.20&&feature.getZ(index)<1.12;
+  if(cervical){const u=clamp((sourceY-1.365)/.070);return[[2,1-u],[3,u]];}
+ }
  return[[3,1]];
 }
 /** Extra channels accompany the existing two material buckets. Legacy meshes
@@ -82,16 +89,16 @@ export function appendCompleteAdultVertex(channels,mesh,index,position){
  channels.featureCoord.push(g.attributes.featureCoord?.getX(index)??0,g.attributes.featureCoord?.getY(index)??0,g.attributes.featureCoord?.getZ(index)??0);
  channels.featureKind.push(g.attributes.featureKind?.getX(index)??0);
  channels.eyeReflectance.push(['iris','pupil','sclera'].includes(kind)?1:0);channels.featureSheen.push(0);
- const sourceY=g.attributes.sourceY?.getX(index)??position.y,t=clamp((sourceY-1.395)/.050);channels.anatomicalTone.push(kind==='hair'||kind==='long-hair'?-1:kind==='skin'?t*t*(3-2*t):0);
+ const sourceY=g.attributes.sourceY?.getX(index)??position.y,t=clamp((sourceY-1.395)/.050);channels.anatomicalTone.push(kind==='hair'||kind==='long-hair'?-1:['skin','iris','pupil','sclera'].includes(kind)?t*t*(3-2*t):0);
 }
 export function finishCompleteAdultChannels(geometry,channels){
  for(const [name,array]of Object.entries(channels))geometry.setAttribute(name,new THREE.Float32BufferAttribute(array,name==='featureCoord'?3:1));
 }
 export function readCompleteAdultColor(mesh,index,target){const a=mesh.geometry.attributes.color;return a?target.setRGB(a.getX(index),a.getY(index),a.getZ(index)):target.copy(mesh.material.color);}
-export function completeAdultMaterialKey(preview){return COMPLETE_ADULT_VERSION+'|flow:'+!!preview.hairFlow;}
+export function completeAdultMaterialKey(preview,section){return COMPLETE_ADULT_VERSION+'|flow:'+!!preview.hairFlow+(preview.makeup==='natural'&&section!=='cloth'?'|makeup:natural-v1':'');}
 export function prepareCompleteAdultSkinMaterial(material,preview={}){
  if(material.userData.completeAdultFinish)return material;
- applyAnatomicalFinish(material,{narrow:true,reflect:true});applySurfaceFinish(material,{hairFlow:!!preview.hairFlow});material.userData.completeAdultFinish=COMPLETE_ADULT_VERSION;return material;
+ applyAnatomicalFinish(material,{narrow:true,reflect:false});applySurfaceFinish(material,{hairFlow:!!preview.hairFlow});if(preview.makeup==='natural')applyNaturalMakeup(material);material.userData.completeAdultFinish=COMPLETE_ADULT_VERSION;return material;
 }
 
 export function prepareCompleteAdultClothMaterial(material,preview={}){

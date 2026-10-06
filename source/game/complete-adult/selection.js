@@ -1,4 +1,4 @@
-/** Cloud-local development choice; never imported by production main. */
+/** Shared transient model selection for live gameplay and isolated preview. */
 import './register.js';
 import {setCharacterModelPreviewSelector,setCharacterPreviewHeadLook} from '../character-model-preview.js';
 export function installActorPreview({femaleHair='gathered-updo',hairFlow=true,playerOnly=false}={}){
