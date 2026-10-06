@@ -7,7 +7,7 @@ import {createOnsenTransition} from './onsen-transitions.js';
 import {createJapanServiceOrders,JAPAN_SERVICE_POINTS as P,JAPAN_SERVICE_WORKERS,JAPAN_LOCAL_WORKERS,japanReceptionReady} from './japan-service-orders.js';
 import {createJapanVisitorIdentity,isJapanEmployeeInteraction} from './japan-visitors.js';
 import {createJapanServiceProps} from './japan-service-props.js';
-import {followActorRoute} from './actor-navigation.js';
+import {followActorRoute,findActorStandPoint} from './actor-navigation.js';
 import {createJapanStaffLife} from './japan-staff-life.js';
 import {createJapanPlayerService} from './japan-player-service.js';
 
@@ -41,7 +41,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
  function unmount(n) {
   if(n.bathTransition){n.bathTransition.requestExit();return false;}
   if(!n.serviceMount)return true;
-  const landing=furniture.standPoint(undefined,safety(n),n.serviceMount);if(!landing)return false;
+  const landing=findActorStandPoint(n,n.serviceMount,({ignoreDynamicBodies})=>furniture.standPoint(undefined,ignoreDynamicBodies?[...(doors?.cameraColliders||[])]:safety(n),n.serviceMount,n.collisionRadius??.25));if(!landing)return false;
   if(n.serviceMount.bathEntry){n.bathTransition=createOnsenTransition({item:n.serviceMount,position:n.root.position,yaw:n.root.rotation.y,direction:'exit',landing});return false;}
   n.root.position.copy(landing);n.serviceMount=null;furniture.releaseActor(n.station.id);return true;
  }

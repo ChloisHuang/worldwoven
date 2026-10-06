@@ -1,3 +1,4 @@
+import {findActorStandPoint} from './actor-navigation.js';
 import {captureWorldRuntime,restoreWorldRuntime} from './world-continuity.js';
 import {formatCourtEdictText} from './china-court-reports.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
@@ -121,7 +122,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   }else s.label=s.arrived?'在荷庭等已应邀的同僚':'已相约荷庭 · 正沿公共通道前往';
   tell(n,s.label);animate(n,s,t,both?other:null);
  }
- function release(n,s){if(s?.mount){const landing=furniture.standPoint(navigation,safety(n),s.mount);if(!landing)return false;n.root.position.copy(landing);s.mount=null;}claims.releaseActor(n.station.id);return true;}
+ function release(n,s){if(s?.mount){const landing=findActorStandPoint(n,s.mount,({ignoreDynamicBodies})=>furniture.standPoint(navigation,ignoreDynamicBodies?[...(doors?.cameraColliders||[])]:safety(n),s.mount,n.collisionRadius??.25));if(!landing)return false;n.root.position.copy(landing);s.mount=null;}claims.releaseActor(n.station.id);return true;}
  function finish(n,s,fulfilled=true){if(s?.borrowed&&getTavern()?.officialMeal(n.station.id))return false;if(fulfilled&&s?.choice?.id==='archive-duty'){const duty=duties[n.station.id];if(duty?.day===getClock().day&&duty.day===s.choice.dutyDay&&near(n.root.position,B.offices[index(n)],.2)&&s.elapsed>=8){duty.stage='archived';settleDuty(n);}}if(fulfilled&&s?.choice?.inspection)fulfilled=reports.inspected(s.choice.inspection.id,{actorId:n.station.id,position:n.root.position.toArray(),place:s.choice.inspection.place});if(!release(n,s))return false;if(s?.choice)brain.complete(n.station.id,s.choice,{fulfilled});record('life-'+(s?.choice?.id||'pause')+(fulfilled?':completed':':interrupted'),n);stages.delete(n);save();return true;}
  function choose(n){
   if(!brain.decisionDue(n.station.id)){if(!stages.has(n))idle(n);return;}

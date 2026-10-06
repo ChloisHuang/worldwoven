@@ -1,3 +1,4 @@
+import {findActorStandPoint} from '../source/game/actor-navigation.js';
 // The royal controller and shared physiology must agree on one consumed meal.
 // Stubs isolate receipt/choice/continuity failures; production navigation has a
 // separate scene check and is not claimed by these direct-route fixtures.
@@ -14,7 +15,7 @@ const copy=x=>JSON.parse(JSON.stringify(x));
 const vector=(x=0,y=.215,z=0)=>({x,y,z,set(x,y,z){Object.assign(this,{x,y,z});return this;},copy(p){return this.set(p.x,p.y,p.z);},toArray(){return [this.x,this.y,this.z];},distanceTo(p){return Math.hypot(this.x-p.x,this.y-p.y,this.z-p.z);}});
 const context=vm.createContext({console}),cache=new Map();
 const props=new vm.SyntheticModule(['attachPalaceCostume','createPalaceMealKit'],function(){this.setExport('attachPalaceCostume',()=>({dispose(){}}));this.setExport('createPalaceMealKit',actor=>({show:v=>actor.kitVisible=v,sync(){},dispose(){}}));},{context});
-const nav=new vm.SyntheticModule(['followActorRoute'],function(){this.setExport('followActorRoute',(n,dt)=>{const target=n.route[0];if(!target)return {};const d=n.root.position.distanceTo(target),step=Math.min(d,dt*4);if(d<=step+.001){n.root.position.copy(target);n.route.shift();}else for(const key of['x','y','z'])n.root.position[key]+=(target[key]-n.root.position[key])*step/d;n.walking=true;return {};});},{context});
+const nav=new vm.SyntheticModule(['followActorRoute','findActorStandPoint'],function(){this.setExport('findActorStandPoint',findActorStandPoint);this.setExport('followActorRoute',(n,dt)=>{const target=n.route[0];if(!target)return {};const d=n.root.position.distanceTo(target),step=Math.min(d,dt*4);if(d<=step+.001){n.root.position.copy(target);n.route.shift();}else for(const key of['x','y','z'])n.root.position[key]+=(target[key]-n.root.position[key])*step/d;n.walking=true;return {};});},{context});
 function module(file){if(cache.has(file))return cache.get(file);const m=new vm.SourceTextModule(fs.readFileSync(file,'utf8'),{context,identifier:file});cache.set(file,m);return m;}
 const mod=module('source/game/china-palace-life.js');await mod.link(s=>s.includes('actor-navigation')?nav:s.includes('china-palace-costume')?props:module('source/game/'+s.replace('./','')));await mod.evaluate();
 const receipt=o=>({source:'china-royal-kitchen',number:o.number,id:o.id+'-consumed',actorId:o.actorId,orderId:o.id,mealId:o.mealId,dishId:'royal-steamed-meal',supplyReceipt:o.id+'-prepared',completed:true});

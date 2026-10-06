@@ -1,3 +1,4 @@
+import {findActorStandPoint} from '../source/game/actor-navigation.js';
 // Reproduces the hired-but-off-duty double incumbent: career tenure must own
 // the slot, while the same NPC keeps an ordinary life and pending work survives.
 // Props are inert and routes are deterministic; production-main owns collision QA.
@@ -20,7 +21,7 @@ const position=(x=0,y=.215,z=0)=>({x,y,z,
   clone(){return position(this.x,this.y,this.z);},
   distanceTo(p){return Math.hypot(this.x-p.x,this.y-p.y,this.z-p.z);}
 });
-const navigation=new vm.SyntheticModule(['followActorRoute'],function(){
+const navigation=new vm.SyntheticModule(['followActorRoute','findActorStandPoint'],function(){this.setExport('findActorStandPoint',findActorStandPoint);
   this.setExport('followActorRoute',(n,dt)=>{
     const p=n.route[0];if(!p)return {};
     const d=n.root.position.distanceTo(p),step=Math.min(d,dt*3);
