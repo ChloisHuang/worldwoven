@@ -11,8 +11,8 @@ R16.131 ordinary visits use the current supported character model with the origi
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.153-public, 2026-10-06
-Verified published Sites source commit: 2459d8c26773d2baba69db671c771a7d82b16f71
+Published release: R16.154-public, 2026-10-06
+Verified published Sites source commit: 7a7fb20aad06933a323bf3b54f27383fd3b908bf
 
 Opt-in same-save performance panel: https://alien.doudouai.net/?perf=1#china
 It reads runtime timing/render counts and the initial save length; it does not reset storage or send telemetry. CPU submission timing is not GPU timing. R16.128 removes repeated full-history copies from closed salon panels and China job/HUD reads. R16.129 extends current-career reads to the existing Japan/Egypt employment adapters and French tea/pastry/gardening controllers. Those controllers only run in their respective countries. The user reported R16.130 runs without lag; broader device performance remains unverified.
@@ -62,6 +62,8 @@ R16.151 lets one person combine earned meal funds across the royal cook, guard, 
 R16.152 pays the current herald twelve copper only after the original document is physically collected, approved, sealed, read and handed over. Earned funds support an original meal, public toilet visit and return to the desk. Petition and charter handling retain the actual courier and tenure; a missing holder cannot fall back to the original person. Default China needs coverage is 27/31, with four still open; automatic appointments and cross-family wallets remain outside this release.
 
 R16.153 includes earned clinic funds in the same person’s existing guest meal total. Original-source payments and refunds remain atomic, and the current controller must exclusively authorize a new meal request. Clinic wage calculation stays unchanged. Artist, official and tavern-property funds remain separate; this does not enable unrestricted job transfers. Needs coverage stays 27/31.
+
+R16.154 gives Lin an eight-copper contract for completing an accepted physical tea service with the original cup and tray. Existing free conversations remain free. After real earnings and safe return, Lin can pay for an original meal, use the public toilet and return to the tea desk. The pale cup is clearer against green sleeves. Default China needs coverage is 28/31; the simplified demand model does not guarantee daily business in every world, and device feedback remains open.
 
 ## Working rules
 
