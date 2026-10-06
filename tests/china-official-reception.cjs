@@ -1,0 +1,24 @@
+// Reproduces fatigue-only busy replies and position-key invalidation. The main
+// promotion harness separately exercises the actual multi-NPC geometry.
+const assert=require('node:assert/strict'),load=require('./fixtures/browser-module-loader.cjs').createBrowserModuleLoader('source');
+(async()=>{
+ const {createChinaOfficialLife}=await load('game/china-official-life.js'),{createLifeDecisions}=await load('game/npc-life-decisions.js'),{createFacilityQueue}=await load('game/npc-facilities.js'),{createChinaCourtCareer}=await load('game/china-court-career.js'),{createFormalCareers}=await load('game/formal-careers.js'),T=await load('vendor/three/build/three.module.js');
+ const id='cn-official-rites',actor={station:{id,npcName:'沈叙 · 礼仪官'},root:new T.Group(),route:[new T.Vector3(8,0,0)],phase:0,walking:true,animate(){}};actor.root.position.set(4,0,0);
+ const decisions=createLifeDecisions({worldSeed:42,actorIds:[id]}).snapshot();decisions.people[id].needs.fatigue=.99;
+ const stage={id:'life-rest',path:[[8,0,0]],index:0,arrived:false,elapsed:2,duration:24,choice:{id:'rest'},label:'回自己的值宿室歇息'};
+ const flow=createChinaOfficialLife({officials:[actor],npcs:[actor],lot:{colliders:[],walkableSurfaces:[],bounds:{}},furniture:{items:[],facilities:createFacilityQueue()},doors:{},planPath:(_,to)=>[to],poseContext:()=>({}),safety:()=>[],travel(n){n.root.position.x+=.1;n.walking=true;},saved:{version:1,decisions,runtime:{time:0,stages:[[id,stage]]}}});
+ assert(flow.meetingAvailable(actor));assert(!flow.socialBusy(id),'fatigue cannot reject every ordinary homeward greeting');assert(flow.socialCanPause(actor));
+ const before=flow.snapshot(),position=actor.root.position.clone();flow.tick(.1,{hour:15,conversationActorId:id,meetingActorId:id});flow.update(actor,.1,1);assert(actor.root.position.equals(position));assert.equal(flow.snapshot().runtime.stages[0][1].elapsed,2);assert.deepEqual(flow.snapshot().runtime.stages[0][1].path,before.runtime.stages[0][1].path);
+ flow.tick(.1,{hour:15});flow.update(actor,.1,2);assert(actor.root.position.x>position.x);
+ for(const patch of [{mount:{id:'bed'}},{borrowed:true},{choice:{id:'toilet',toilet:true}},{choice:{id:'archive-duty'}},{called:true}]){const saved=flow.snapshot();Object.assign(saved.runtime.stages[0][1],patch);flow.restore(saved);assert(!flow.meetingAvailable(actor),JSON.stringify(patch));flow.restore(before);}
+ flow.dispose({suspend:true});
+ const clock={day:1,hour:9,seconds:0};let initial=createFormalCareers({getClock:()=>clock,saveState:()=>true}).state();initial.skills.ritual=2;initial.skills.writing=2;
+ const careers=createFormalCareers({saved:initial,worldSeed:3,getClock:()=>clock,saveState:()=>true});assert(careers.apply('cn-court-clerk',{ageYears:22}).ok);
+ let recruiter=actor,available=true,held=null,opened=0;const player={root:new T.Group(),ageYears:22,walking:false};
+ const service=createChinaCourtCareer({careers,audience:{state:()=>({phase:'waiting',schedule:{day:0}})},getClock:()=>clock,getPlayer:()=>player,getRecruiter:()=>recruiter,requestMeeting:n=>{if(!available)return false;held=n;n.walking=false;return true;},releaseMeeting:()=>{held=null;},openRegistration:()=>opened++});
+ const selected=service.intent('review');actor.root.position.x+=.4;const fresh=service.resolveIntent(selected);assert(fresh);assert.notDeepEqual(fresh.position,selected.position);assert.equal(fresh.intentKey,selected.intentKey);
+ available=false;assert(!service.prepareIntent(selected));assert.equal(careers.applicationResult().stage,'submitted');available=true;assert(service.prepareIntent(selected));assert.equal(held,actor);service.cancelApproach();assert.equal(held,null);
+ const replacement={...actor,station:{id:'replacement-rites',npcName:'新礼仪官'}};assert(service.prepareIntent(selected));recruiter=replacement;service.update(.1);assert.equal(held,null);assert.equal(service.resolveIntent(selected),null,'prior holder intent cannot reach replacement');
+ recruiter=actor;const current=service.intent('review');assert(service.prepareIntent(current));player.root.position.set(...current.position);assert(service.executeIntent(current));assert.equal(held,null);assert.equal(opened,1);assert.equal(careers.applicationResult().stage,'document-ready');assert(!careers.isHired(),'meeting cannot skip document and declaration');service.dispose();assert.equal(service.resolveIntent(current),null);
+ console.log('PASS fatigued homeward official pauses/resumes original commitment; privacy/held duties stay blocked; live target refreshes; holder replacement and disposal invalidate; review retains original document requirements');
+})().catch(e=>{console.error(e);process.exitCode=1;});

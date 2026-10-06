@@ -26,9 +26,9 @@ export function createNpcSocial({actors,player,visible=()=>true,status=()=>({}),
  function canInteract(n,radius=1.8){const p=player()?.root?.position,q=n?.root?.position;return !!(p&&q&&present(n)&&Math.abs(p.y-q.y)<.65&&gap(p,q)<=radius&&visible(n,p));}
  function releaseMeeting(owner,reason='released'){if(!meeting||owner&&meeting.owner!==owner)return false;const held=meeting;meeting=null;if(Number.isFinite(held.actor.breakAt))held.actor.breakAt+=time-held.started;onMeetingEnded({id:held.id,owner:held.owner},reason);return true;}
  function reserveMeeting(n,{owner,duration=75}={}){
-  if(typeof owner!=='string'||!owner||!n||!actors().includes(n)||n.walking||n.serviceMount||status(n)?.busy||conversation)return false;
+  if(typeof owner!=='string'||!owner||!n||!actors().includes(n)||!idle(n)||conversation)return false;
   if(meeting&&meeting.owner!==owner)return false;releaseMeeting(owner);
-  meeting={actor:n,id:npcActorId(n),owner,started:time,until:time+Math.max(5,Math.min(90,Number.isFinite(duration)?duration:75))};return true;
+  meeting={actor:n,id:npcActorId(n),owner,started:time,until:time+Math.max(5,Math.min(90,Number.isFinite(duration)?duration:75))};n.walking=false;return true;
  }
  function releasePause(c){if(!c?.paused)return;if(Number.isFinite(c.actor.breakAt))c.actor.breakAt+=time-(c.pauseStarted??c.started);c.paused=false;}
  function end(reason='cancelled'){const released=releaseMeeting();if(!conversation)return released;const c=conversation;releasePause(c);conversation=null;if(c.eventId&&c.stage==='talking')ledger?.cancel(c.eventId,reason);return true;}
@@ -53,7 +53,7 @@ export function createNpcSocial({actors,player,visible=()=>true,status=()=>({}),
  function update(dt){time+=dt;const people=actors(),p=player()?.root?.position;
   // An explicit approach borrows the existing social pause for a bounded time.
   // Summons/new service duties revoke it. A walking greeting has its own limit.
-  if(meeting){const reason=!people.includes(meeting.actor)?'removed':status(meeting.actor)?.busy?'duty':time>=meeting.until?'expired':null;if(reason)releaseMeeting(undefined,reason);}
+  if(meeting){const reason=!people.includes(meeting.actor)?'removed':!idle(meeting.actor)?'duty':time>=meeting.until?'expired':null;if(reason)releaseMeeting(undefined,reason);}
   // A pause is borrowed from the actor's current routine, not a permanent
   // entitlement. A summons or new service duty can make that routine busy
   // while a nearby player still has yesterday's idle reply open.

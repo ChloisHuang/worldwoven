@@ -9,6 +9,14 @@ export function createSalonNeeds({artists,sharedNeeds,economy,getTavern=()=>null
  const tasks=new Map(),retryAt=new Map(),reasons=new Map();let time=0,disposed=false;
  const snapshot=()=>({version:1,layoutVersion:LAYOUT_VERSION,time,tasks:[...tasks].map(([n,s])=>[n.station.id,copy(s)]),retryAt:[...retryAt],reasons:[...reasons]});
  const persist=()=>saveState(snapshot());
+ // Reconcile cached poverty hints only after income changes or restore, never
+ // scan the financial journal in the animation loop. Pending fees are not income.
+ function refreshFunds(id){
+  if(reasons.get(id)!=='餐钱不足，歇场后再作打算')return false;
+  const account=economy?.account(id);
+  if(!account||account.cash+account.bank<TAVERN_DISHES[0].price)return false;
+  reasons.delete(id);retryAt.delete(id);return true;
+ }
  function restore(s){
   if(s?.version!==1)return false;time=Math.max(0,s.time||0);tasks.clear();
   for(const[id,row]of s.tasks||[]){
@@ -27,7 +35,7 @@ export function createSalonNeeds({artists,sharedNeeds,economy,getTavern=()=>null
    tasks.set(n,task);if(task.kind!=='meal')resetRoute(n);
   }
   retryAt.clear();for(const[id,t]of s.retryAt||[])if(artists.some(n=>n.station.id===id)&&Number.isFinite(t))retryAt.set(id,t);
-  reasons.clear();for(const[id,r]of s.reasons||[])if(artists.some(n=>n.station.id===id)&&['餐钱不足，歇场后再作打算','餐位暂忙，稍后再去'].includes(r))reasons.set(id,r);return true;
+  reasons.clear();for(const[id,r]of s.reasons||[])if(artists.some(n=>n.station.id===id)&&['餐钱不足，歇场后再作打算','餐位暂忙，稍后再去'].includes(r))reasons.set(id,r);for(const n of artists)refreshFunds(n.station.id);return true;
  }
  restore(saved);
  function start(n,kind,path){tasks.set(n,{kind,path:path.map(p=>p.slice()),index:0,wait:0});reasons.delete(n.station.id);resetRoute(n);persist();}
@@ -42,7 +50,7 @@ export function createSalonNeeds({artists,sharedNeeds,economy,getTavern=()=>null
   }else reasons.delete(n.station.id);
   return false;
  }
- return {tryStart,mealPending:n=>tasks.get(n)?.kind==='go-meal',owns:n=>tasks.has(n)||getTavern()?.artistMealActorId?.()===n.station.id,
+ return {tryStart,refreshFunds,mealPending:n=>tasks.get(n)?.kind==='go-meal',owns:n=>tasks.has(n)||getTavern()?.artistMealActorId?.()===n.station.id,
   label:n=>{const s=tasks.get(n);return !s?reasons.get(n.station.id)||null:s.kind==='toilet'?getToilet()?.label(n.station.id)||'前往公共净室':s.kind==='go-meal'?'沿公共楼梯下楼自费吃饭':s.kind==='meal'?'用本人餐钱在酒楼就餐':'日常事务结束 · 返回原雅集厅';},
   update(dt,t){if(disposed)return;time+=Math.max(0,dt);const tavern=getTavern(),leasedId=tavern?.artistMealActorId?.(),borrowed=artists.find(n=>n.station.id===leasedId);
    // Adopt an already-durable tavern lease if a tab closed before the salon's
