@@ -44,6 +44,7 @@ export function createHudLayout(root=document){
  mutationObserver?.observe(root.body,{childList:true});
  return {
   invalidate,
+  frame(viewport={left:0,top:0,width:globalThis.innerWidth||1,height:globalThis.innerHeight||1}){const r=uiFrames.get(root)||viewport;return {...r,right:r.right??r.left+r.width,bottom:r.bottom??r.top+r.height};},
   rects(){
    if(dirty){
     const elements=[...root.querySelectorAll(HUD)];
