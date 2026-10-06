@@ -28,7 +28,7 @@ export function createFranceGardenerShift({gardener,careers,getPlayer,getMounted
  function flush(){
   const j=current.job;if(!j)return true;
   const receipts=gardener.workReceipts(j.id).filter(r=>!j.completedIds.includes(r.id));
-  for(const receipt of receipts){const r=careers.gardenMaintenanceReceipt(receipt);if(!r.ok)return false;if(!r.unchanged&&!r.replayed)notify(`埃米尔：${receipt.kind==='prune'?'黄杨新梢修齐了，原剪已归位':'两畦浇护完成，原壶已归位'}，这项工作合格。`+skillXPReceipt(r,'园艺'));}
+  for(const receipt of receipts){if(formal.duty(j)?.stage==='missed')continue;const r=careers.gardenMaintenanceReceipt(receipt);if(!r.ok)return false;if(!r.unchanged&&!r.replayed)notify(`埃米尔：${receipt.kind==='prune'?'黄杨新梢修齐了，原剪已归位':'两畦浇护完成，原壶已归位'}，这项工作合格。`+skillXPReceipt(r,'园艺'));}
   if(!attendance&&!receipts.length)return true;
   if(!save({...current,job:{...j,coveredSeconds:j.coveredSeconds+attendance,completedTasks:j.completedTasks+receipts.length,completedIds:[...j.completedIds,...receipts.map(r=>r.id)]}}))return false;
   attendance=0;return true;
@@ -39,7 +39,7 @@ export function createFranceGardenerShift({gardener,careers,getPlayer,getMounted
   const id=resume||`fr-garden-labor-${serial}`;
   if(!formal.begin(id,{shiftKind:'continuous'}).ok)return false;
   if(!save({version:3,serial,job:{id,receiptId:id,formalRoleId:ROLE.id,shiftKind:'continuous',day:getClock().day,stage:'working',coveredSeconds:0,completedTasks:0,completedIds:[],closing:null}}))return false;
-  notify('已开班。查看原花畦和黄杨篱，选择待做工作；还工具后继续当班，另行交班按实际工时结薪。');return true;
+  gardener.setDutyOwner?.(id);notify('已开班。查看原花畦和黄杨篱，选择待做工作；还工具后继续当班，另行交班按实际工时结薪。');return true;
  }
  function stopActivity(){waiting=null;pending=null;activity=null;phase=0;origin=null;gardener.releaseMeeting();}
  function cancel(){
@@ -52,7 +52,7 @@ export function createFranceGardenerShift({gardener,careers,getPlayer,getMounted
   if(held()||!flush())return false;const j=current.job;if(!j)return false;
   if(lease()&&!gardener.releaseTask(j.id))return false;
   if(!formal.cancel(j))return false;
-  if(!save({...current,job:null}))return false;notify('本日园艺班次已中断；已做好的维护和评价保留');return true;
+  if(!save({...current,job:null}))return false;gardener.setDutyOwner?.(null);notify('本日园艺班次已中断；已做好的维护和评价保留');return true;
  }
  function endShift(){
   if(!allowed()||current.job?.stage!=='working'||!meetHost())return false;
@@ -60,7 +60,7 @@ export function createFranceGardenerShift({gardener,careers,getPlayer,getMounted
   if(!flush()||!save({...current,job:{...current.job,closing:'end'}}))return false;
   if(lease()&&!gardener.releaseTask(current.job.id))return false;
   if(!formal.complete(current.job))return false;
-  if(!save({...current,job:{...current.job,stage:'ready'}}))return false;
+  if(!save({...current,job:{...current.job,stage:'ready'}}))return false;gardener.setDutyOwner?.(null);
   notify('本班工时与维护评价已封存，请埃米尔当面验收');return true;
  }
  function claim(){
@@ -71,7 +71,7 @@ export function createFranceGardenerShift({gardener,careers,getPlayer,getMounted
  function target(){
   if(!lease())return REGISTRY;if(!held()||done()||current.job?.closing||!canWork())return RACK;
   if(lease().kind==='prune')return {name:'原西苑黄杨篱',position:P.hedge.approach,playerWorkTarget:P.hedge.target};
-  const index=task().completedBeds,b=P.beds[index];return {name:`第${index+1}畦玫瑰`,position:b.approach,playerWorkTarget:b.target};
+  const index=task().wateredMask&1?1:0,b=P.beds[index];return {name:`第${index+1}畦玫瑰`,position:b.approach,playerWorkTarget:b.target};
  }
  function label(){
   if(waiting)return '等埃米尔归好原工具';
@@ -109,6 +109,7 @@ export function createFranceGardenerShift({gardener,careers,getPlayer,getMounted
  }
  function update(dt=0){
   if(disposed||loadError)return;
+  gardener.setDutyOwner?.(canWork()&&atWork()?current.job.id:null);
   if(waiting){const q=waiting;if(!resolveIntent(q)||!at(P.registration)||!canSee(REGISTRY)){waiting=null;gardener.releaseMeeting();}else if(!player().walking&&gardener.requestMeeting()&&meetHost()){waiting=null;({accept,claim,'end-shift':endShift,'formal-apply':formal.apply,'formal-review':formal.review,'formal-resign':formal.resign})[q.kind]?.();gardener.releaseMeeting();}}
   let j=current.job;if(!j)return;
   const d=formal.duty(j);
@@ -139,6 +140,6 @@ export function createFranceGardenerShift({gardener,careers,getPlayer,getMounted
  const view=()=>({...copy(current),job:current.job?{...copy(current.job),coveredSeconds:current.job.coveredSeconds+attendance}:null,hired:formal.hired(),formalHired:formal.hired(),formalRole:ROLE,formalState:formal.state(),formalJob:!!current.job,formalExpired:!!current.job&&!formal.canWork(current.job),formalSalary:formal.salary,beginAvailability:formal.beginAvailability(),held:held(),activity:activity?.kind||null,waitingForHost:!!waiting,progress:activity?phase/DURATION[activity.kind]:0,seconds:activity?.kind==='prune'?6:5,target:copy(target()),loan:gardener.loanState(),maintenance:maintenance(),loadError:loadError||maintenance()?.loadError,taskChoices:taskChoices()});
  return {formal,view,state:view,accept,claim,cancel,endShift,intent,resolveIntent,executeIntent,update,stopActivity,meetHost,atRegistration:()=>at(P.registration),taskChoices,held,active:()=>!!current.job,isActing:()=>!!activity||!!pending||!!waiting,playerPose,toolPose,label,
   snapshot:()=>({version:2,jobId:current.job?.id||null,coveredSeconds:current.job?.coveredSeconds||0,attendance,activity:copy(activity),pending:copy(pending),waiting:copy(waiting),phase,origin:copy(origin)}),
-  restore(s){if(s?.version!==2||s.jobId!==(current.job?.id||null))return false;attendance=s.coveredSeconds===(current.job?.coveredSeconds||0)&&Number.isFinite(s.attendance)&&s.attendance>=0&&s.attendance<=1.1?s.attendance:0;activity=s.activity&&resolveIntent(s.activity);pending=s.pending&&resolveIntent(s.pending);waiting=s.waiting&&resolveIntent(s.waiting);phase=activity&&Number.isFinite(s.phase)?Math.max(0,Math.min(DURATION[activity.kind],s.phase)):0;origin=activity?copy(s.origin):null;return true;},
-  dispose(){disposed=true;waiting=pending=activity=null;}};
+  restore(s){if(s?.version!==2||s.jobId!==(current.job?.id||null))return false;attendance=s.coveredSeconds===(current.job?.coveredSeconds||0)&&Number.isFinite(s.attendance)&&s.attendance>=0&&s.attendance<=12*60/.7?s.attendance:0;activity=s.activity&&resolveIntent(s.activity);pending=s.pending&&resolveIntent(s.pending);waiting=s.waiting&&resolveIntent(s.waiting);phase=activity&&Number.isFinite(s.phase)?Math.max(0,Math.min(DURATION[activity.kind],s.phase)):0;origin=activity?copy(s.origin):null;return true;},
+  invalid:()=>!!loadError,dispose(){disposed=true;waiting=pending=activity=null;gardener.setDutyOwner?.(null);}};
 }

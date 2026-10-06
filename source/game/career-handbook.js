@@ -214,7 +214,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       if(!service)panel.body.append(make('p',`工作地点：${COUNTRIES[place(held).country]||place(held).country} · ${place(held).workplace}`,'career-status-note'));
       if(['cn-pharmacy-apprentice','cn-clinic-physician',GARDEN,TEA,PASTRY,GUARD,ROYAL,RECEPTION,BATH_DELIVERY,WOMEN_BATH_DELIVERY,BATH_MIXING,KITCHEN,TABLE_SERVICE].includes(held.id)&&job?.stage==='working'){const end=action(held,'end-shift');if(end){end.classList.add('ww-airy-action');panel.actions.append(end);}}
       if(registrationRoleId===held.id&&registrationScope==='role'){
-        const resign=action(held,isClerk(held)?'resign':'formal-resign');if(resign)panel.body.append(resign);const cancel=['cn-pharmacy-apprentice','cn-clinic-physician',TEA,PASTRY,GUARD,ROYAL,RECEPTION,BATH_DELIVERY,WOMEN_BATH_DELIVERY,BATH_MIXING,KITCHEN,TABLE_SERVICE].includes(held.id)?action(held,'cancel'):null;if(cancel)panel.body.append(cancel);
+        const resign=action(held,isClerk(held)?'resign':'formal-resign');if(resign)panel.body.append(resign);const cancel=['cn-pharmacy-apprentice','cn-clinic-physician',GARDEN,TEA,PASTRY,GUARD,ROYAL,RECEPTION,BATH_DELIVERY,WOMEN_BATH_DELIVERY,BATH_MIXING,KITCHEN,TABLE_SERVICE].includes(held.id)?action(held,'cancel'):null;if(cancel)panel.body.append(cancel);
       }
     }
     appendOfficialCareerHistory({careers,panel,make});

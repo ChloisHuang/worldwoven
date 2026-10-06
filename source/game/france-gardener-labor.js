@@ -30,7 +30,7 @@ export function createFranceGardenerLabor(options={}){
  const continuous=options.saved?.version===3;
  const legacy=createLegacyFranceGardenerLabor({...options,document:null,saved:continuous?null:options.saved,saveState});
  const shift=options.careers&&options.gardener?.maintenanceState?createFranceGardenerShift({...options,saved:continuous?options.saved:null,saveState,getSerial:()=>latest?.serial||0}):null;
- const current=()=>legacy.active()?legacy:shift&&(shift.active()||options.careers.isHired(GARDEN_ASSISTANT_ROLE.id))?shift:legacy;
+ const current=()=>legacy.active()||legacy.invalid()?legacy:shift&&(shift.invalid()||shift.active()||options.careers.isHired(GARDEN_ASSISTANT_ROLE.id))?shift:legacy;
  const service=new Proxy({}, {get(_target,key){
   if(key==='update')return dt=>{current().update(dt);ui?.refresh();};
   if(key==='dispose')return options=>{legacy.dispose(options);shift?.dispose(options);ui?.dispose();};
@@ -200,7 +200,7 @@ function createLegacyFranceGardenerLabor({gardener,employment,careers,openRegist
  const view=()=>({...copy(current),hired:hired(),formalHired:formal.hired(),formalRole:formal.role,formalState:formal.state(),formalJob:formal.pinned(current.job),formalExpired:formal.pinned(current.job)&&current.job.stage==='working'&&!formal.canWork(current.job),formalSalary:formal.salary,beginAvailability:formal.beginAvailability(),employment:employment?.state(),held:held(),activity,
   waitingForHost:!!meetingIntent,progress:elapsed/(activity==='water'?SECONDS:TRANSFER),wage:WAGE,seconds:SECONDS,
   target:copy(target()),loan:gardener.loanState(),loadError:loadError||copperLedger.loadError,lastError});
- const service={active,held,isActing:()=>!!activity||!!pending||!!meetingIntent,accept,claim,cancel,meetHost,stopActivity,update,intent,resolveIntent,executeIntent,view,state:view,
+ const service={active,held,invalid:()=>!!loadError||!!copperLedger.loadError,isActing:()=>!!activity||!!pending||!!meetingIntent,accept,claim,cancel,meetHost,stopActivity,update,intent,resolveIntent,executeIntent,view,state:view,
   snapshot:()=>({version:1,jobId:current.job?.id||null,completedBeds:current.job?.completedBeds||0,activity,pending:copy(pending),meetingIntent:copy(meetingIntent),elapsed,origin:copy(origin),activityPoint:copy(activityPoint),nextPayAt}),
   restore(s){if(s?.version!==1||s.jobId!==(current.job?.id||null)||s.completedBeds!==(current.job?.completedBeds||0))return false;activity=['take','water','return'].includes(s.activity)?s.activity:null;pending=copy(s.pending);meetingIntent=copy(s.meetingIntent);elapsed=Math.max(0,s.elapsed||0);origin=copy(s.origin);activityPoint=copy(s.activityPoint);nextPayAt=Math.max(0,s.nextPayAt||0);return true;},
   employment,formal,playerPose,toolPose,label:()=>meetingIntent?'等埃米尔收好工具':activity==='water'?`正在浇花 · ${Math.ceil(SECONDS-elapsed)} 秒`:activity==='take'?'拿起浇水壶':activity==='return'?'放回浇水壶':held()?'提着浇水壶':null,
