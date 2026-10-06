@@ -11,8 +11,8 @@ R16.131 ordinary visits use the current supported character model with the origi
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.152-public, 2026-10-06
-Verified published Sites source commit: c05fe863b7a9f86fe06c86b515a092cfe7674bcb
+Published release: R16.153-public, 2026-10-06
+Verified published Sites source commit: 2459d8c26773d2baba69db671c771a7d82b16f71
 
 Opt-in same-save performance panel: https://alien.doudouai.net/?perf=1#china
 It reads runtime timing/render counts and the initial save length; it does not reset storage or send telemetry. CPU submission timing is not GPU timing. R16.128 removes repeated full-history copies from closed salon panels and China job/HUD reads. R16.129 extends current-career reads to the existing Japan/Egypt employment adapters and French tea/pastry/gardening controllers. Those controllers only run in their respective countries. The user reported R16.130 runs without lag; broader device performance remains unverified.
@@ -60,6 +60,8 @@ R16.150 pays Wen eight copper after physically drafting and handing over the ori
 R16.151 lets one person combine earned meal funds across the royal cook, guard, range warden, garden worker and scribe accounts. One saved transaction records each original source, and refunds return the exact split once. Safe departure checks use the same available total while unfinished work still takes priority. Clinic, artist, official and tavern-property accounts remain outside this aggregation; needs coverage stays 26/31.
 
 R16.152 pays the current herald twelve copper only after the original document is physically collected, approved, sealed, read and handed over. Earned funds support an original meal, public toilet visit and return to the desk. Petition and charter handling retain the actual courier and tenure; a missing holder cannot fall back to the original person. Default China needs coverage is 27/31, with four still open; automatic appointments and cross-family wallets remain outside this release.
+
+R16.153 includes earned clinic funds in the same person’s existing guest meal total. Original-source payments and refunds remain atomic, and the current controller must exclusively authorize a new meal request. Clinic wage calculation stays unchanged. Artist, official and tavern-property funds remain separate; this does not enable unrestricted job transfers. Needs coverage stays 27/31.
 
 ## Working rules
 
