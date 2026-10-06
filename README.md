@@ -11,8 +11,8 @@ R16.131 ordinary visits use the current supported character model with the origi
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.158-public, 2026-10-06
-Verified published Sites source commit: cdfa9846bf805135bf612483ff3087f7ba893873
+Published release: R16.159-public, 2026-10-06
+Verified published Sites source commit: a0cd7a0599170283cd1081f7203b33d801b0a1b0
 
 Opt-in same-save performance panel: https://alien.doudouai.net/?perf=1#china
 It reads runtime timing/render counts and the initial save length; it does not reset storage or send telemetry. CPU submission timing is not GPU timing. R16.128 removes repeated full-history copies from closed salon panels and China job/HUD reads. R16.129 extends current-career reads to the existing Japan/Egypt employment adapters and French tea/pastry/gardening controllers. Those controllers only run in their respective countries. The user reported R16.130 runs without lag; broader device performance remains unverified.
@@ -72,6 +72,8 @@ R16.156 pays Lan eight copper for physically checking, handling and returning th
 R16.157 pays 温晚 eight copper from the original business share after completing the same paid session’s registration, room-card handling and closure. Artist and player-poet contracts stay unchanged. Real earnings and safe return enable an original meal, public toilet trip and return upstairs; active prepaid meals recover even if the old personal task is absent. Default China needs coverage is 30/31, leaving 陆昭. Demand-model and device-verification limits remain open.
 
 R16.158 gives 陆昭 an eight-copper contract for physically reading the frozen original ledger, checking all four currencies on the abacus and recording the result. His own meal, public toilet trip and counter return preserve the player’s financial balances and banking rules. Food and private-toilet flows now cover all 31 original China NPCs. Broader lifecycle, long-run supply and browser/device acceptance remain open.
+
+R16.159 includes officials’ earned personal cash and bank funds in meal aggregation. Unfinished salon reservations, government totals and business money remain excluded. Legacy prepaid meals keep their original payer and exact refunds; wages, salon spending and body ownership stay on their original rules. Artist and tavern-property funds remain separate. Original China food/toilet coverage stays 31/31.
 
 ## Working rules
 
