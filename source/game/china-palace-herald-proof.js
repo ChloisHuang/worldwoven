@@ -6,6 +6,7 @@ export function deliveryBase(p){return {...p,steps:deliverySteps(),approvedBy:nu
 export function validDeliveryCheckpoint(ledger,runtime,order){
  const p=order.heraldPiecework,c=ledger.heraldContract;if(p==null)return c==null;
  const expected=heraldContract(order,runtime.heraldId||'cn-palace-herald',runtime.heraldRevision??0,runtime.scribeId||'cn-calligraphy',runtime.scribeRevision??0,runtime.recipientId||'cn-garden',runtime.holderRevision??0,runtime.emperorId||'cn-emperor');
+ if(order.heraldId!==expected.actorId||order.heraldRevision!==expected.holderRevision)return false;
  if(!same(c,expected)||!same(deliveryBase(p),c))return false;
  const stages=['preparing','drafting','await-pickup','scribe-handoff','to-approval','approval','to-seal','seal-place','sealing','seal-pickup','to-recipient','await-recipient','reading','response','recipient-handoff','to-work','file-receipt','to-sweep','sweeping','returning'];
  const i=stages.indexOf(order.stage),elapsed=runtime.phaseTime;if(i<0||!Number.isFinite(elapsed)||elapsed<0)return false;
