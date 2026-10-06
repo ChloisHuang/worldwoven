@@ -14,8 +14,8 @@ function privateBed(G,parent,{x,z,color,C}){
  const soft=(name,x,y,z,w,h,d,c)=>{const b=Math.min(.03,h*.28),m=panel(rect(w-2*b,d-2*b,.065),h-2*b,c,x,y-h/2+b,z,b);m.rotation.x=-Math.PI/2;m.name=name;return m;};
  const stroke=(points,r=.008,c=C.gold)=>G.mesh(bed,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p))),18,r,5,false),c);
  for(const dx of[-.65,.65])for(const dz of[-1.05,1.05]){const foot=panel(rect(.14,.55,.018),.14,C.dark,dx,.295,dz-.07,.009);foot.name='Shaped timber bed foot';}
- soft('Bevelled timber bed frame',0,.585,0,1.55,.14,2.4,C.wood);soft('Soft rectangular mattress',0,.73,0,1.47,.16,2.32,0xefdfc0);soft('Woven rectangular quilt',0,.8325,.08,1.43,.045,2.04,color);soft('Rounded silk pillow',0,.87,-.93,.92,.10,.32,0xf1dfbd);
- for(const dx of[-.43,.43])soft('Pillow woven end band',dx,.876,-.93,.035,.102,.315,C.gold);
+ soft('Bevelled timber bed frame',0,.585,0,1.55,.14,2.4,C.wood);soft('Soft rectangular mattress',0,.73,0,1.47,.16,2.32,0xefdfc0);soft('Woven rectangular quilt',0,.8325,.08,1.43,.045,2.04,color);soft('Rounded silk pillow',0,.83,-.93,.92,.07,.32,0xf1dfbd);
+ for(const dx of[-.43,.43])soft('Pillow woven end band',dx,.836,-.93,.035,.072,.315,C.gold);
  const apron=new THREE.Shape();apron.moveTo(-.67,.03);apron.lineTo(.67,.03);apron.lineTo(.62,-.17);apron.quadraticCurveTo(.48,-.07,.31,-.17);apron.quadraticCurveTo(0,-.28,-.31,-.17);apron.quadraticCurveTo(-.48,-.07,-.62,-.17);apron.closePath();panel(apron,.055,C.dark,0,.51,1.17,.01);stroke([[-.61,.47,1.232],[-.43,.38,1.232],[0,.34,1.232],[.43,.38,1.232],[.61,.47,1.232]],.009);
  const head=new THREE.Shape();head.moveTo(-.755,-.57);head.lineTo(.755,-.57);head.lineTo(.755,.35);head.quadraticCurveTo(.66,.53,.39,.48);head.quadraticCurveTo(0,.69,-.39,.48);head.quadraticCurveTo(-.66,.53,-.755,.35);head.closePath();panel(head,.13,C.dark,0,1.08,-1.255,.014);panel(rect(1.26,.68,.09),.018,color,0,1.12,-1.106,.01);
  stroke([[-.65,.83,-1.075],[-.65,1.37,-1.075],[-.39,1.50,-1.075],[0,1.58,-1.075],[.39,1.50,-1.075],[.65,1.37,-1.075],[.65,.83,-1.075]],.012);
@@ -59,7 +59,7 @@ export function buildReservedConsortQuarter(G,{g,C,wall,part,colliders,cameraCol
  G.box(g,-23.45,3.39,minZ+.209,4.58,.035,.035,C.gold);
  const plaque=residencePlaque(G,g,'客居',-20.60,3.34,.3,1.05,.32);plaque.rotation.y=Math.PI/2;
  explorationTargets.push({id:'cn-consort-reserve-1-wait',name:'后宫南间门外等候',roomId:'residence-suite-corridor',position:[...q.waitingPoint]},{id:'cn-consort-reserve-1-entry',name:'后宫南间门内',roomId,position:[...q.entryPoint]},{id:'cn-consort-reserve-1-bed',name:'后宫南间卧榻旁',roomId,position:[...q.bedsidePoint]});
- return {id:q.bedId,privateOwnerId:null,privateRoomId:roomId,assignmentRequired:true,assignmentSource:q.assignmentSource,kind:'bed',name:'后宫南间卧榻 · 尚未分配',worldLabel:'南间卧榻 · 尚未分配',position:[...q.bedsidePoint],exitPositions:q.exitPoints.map(p=>[...p]),anchor:[x,y,z],center:[...q.bedCenter],size:[...q.bedSize],yaw:0,supportY:1.055,lieOffset:.70,lieSupport:{hip:1.055,back:1.055,head:1.12,heel:1.055},action:'躺下休息'};
+ return {id:q.bedId,privateOwnerId:null,privateRoomId:roomId,assignmentRequired:true,assignmentSource:q.assignmentSource,kind:'bed',name:'后宫南间卧榻 · 尚未分配',worldLabel:'南间卧榻 · 尚未分配',position:[...q.bedsidePoint],exitPositions:q.exitPoints.map(p=>[...p]),anchor:[x,y,z],center:[...q.bedCenter],size:[...q.bedSize],yaw:0,supportY:1.055,lieOffset:.70,lieSupport:{hip:1.055,back:1.055,head:1.065,heel:1.055},action:'躺下休息'};
 }
 
 // The existing east reception is deep enough for two proper bedchambers behind
@@ -79,7 +79,7 @@ export function buildChinaConsortRooms(G,{g,C,wall,privacy,part,table,teaSet,col
   part(roomId,r.name+' · 后宫私室',-19.2,-16,r.minZ,r.maxZ,y,3.77);
   privateBed(G,g,{x,z,color:r.color,C});
   colliders.push({minX:x-w/2,maxX:x+w/2,minY:.2,maxY:1.92,minZ:z-d/2-.065,maxZ:z+d/2});cameraColliders.push({...colliders.at(-1)});
-  additionalFurniture.push({id:bedId,privateOwnerId:'cn-consort-'+r.key,privateRoomId:roomId,kind:'bed',name:r.name+'的私室卧榻',worldLabel:r.name+' · 卧榻',position:[-18.5,y,z],exitPositions:[[-18.5,y,z],[-18.5,y,r.doorZ]],anchor:[x,y,z],center:[x,.2,z],size:[w,1.8,d+.13],yaw:0,supportY:1.055,lieOffset:.70,lieSupport:{hip:1.055,back:1.055,head:1.12,heel:1.055},action:'躺下休息'});
+  additionalFurniture.push({id:bedId,privateOwnerId:'cn-consort-'+r.key,privateRoomId:roomId,kind:'bed',name:r.name+'的私室卧榻',worldLabel:r.name+' · 卧榻',position:[-18.5,y,z],exitPositions:[[-18.5,y,z],[-18.5,y,r.doorZ]],anchor:[x,y,z],center:[x,.2,z],size:[w,1.8,d+.13],yaw:0,supportY:1.055,lieOffset:.70,lieSupport:{hip:1.055,back:1.055,head:1.065,heel:1.055},action:'躺下休息'});
   const consoleZ=r.doorZ+.38;G.box(g,-16.62,.70,consoleZ,.56,1.0,.66,C.wood);G.vessel(g,-16.62,1.24,consoleZ,r.color,.35);colliders.push({minX:-16.9,maxX:-16.34,minY:.2,maxY:1.4,minZ:consoleZ-.33,maxZ:consoleZ+.33});cameraColliders.push({...colliders.at(-1)});
   const plaque=residencePlaque(G,g,'客居',-19.49,3.28,r.doorZ,1.2,.38);plaque.rotation.y=-Math.PI/2;
   explorationTargets.push({id:'cn-consort-'+r.key+'-entry',name:r.name+'私室门内',roomId,position:[-18.2,y,r.doorZ]},{id:'cn-consort-'+r.key+'-bed',name:r.name+'卧榻旁',roomId,position:[-18.5,y,z]});
