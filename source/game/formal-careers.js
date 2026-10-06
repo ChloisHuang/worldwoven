@@ -15,6 +15,7 @@ import {JAPAN_KITCHEN_ROLE,validJapanKitchenReceipt,sameJapanKitchenReceipt,japa
 export {JAPAN_KITCHEN_ROLE} from './japan-kitchen-role.js';
 import {JAPAN_TABLE_SERVICE_ROLE,validJapanTableServiceReceipt,sameJapanTableServiceReceipt,japanTableServiceReviewScore} from './japan-table-service-role.js';
 export {JAPAN_TABLE_SERVICE_ROLE} from './japan-table-service-role.js';
+import {validGardenMaintenanceReceipt,sameGardenMaintenanceReceipt} from './france-gardener-role.js';
 import {GAME_MINUTES_PER_SECOND} from './simulation-clock.js';
 import {emptyApplications, restoreApplications, careerInterview, careerInterviewRoll, applicationId} from './career-applications.js';
 import {STUDY_SOURCES, studyLesson, savedStudyLesson, defaultStudyLesson} from './study-lessons.js';
@@ -46,7 +47,8 @@ export const TAVERN_CHEF_ROLE = Object.freeze({id:'cn-tavern-chef',name:'酒楼�
 export const GARDEN_ASSISTANT_ROLE = Object.freeze({id:'fr-garden-assistant',name:'西苑常任园艺助理',
   slotId:'fr-garden-assistant-1',country:'france',currency:'france',employer:'埃米尔',workplace:'西苑工具架登记簿',
   supervisorId:'france-gardener',workSource:'fr-garden-labor',wage:8,minimumAgeYears:18,
-  skillRequirements:Object.freeze({gardening:2}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1});
+  skillRequirements:Object.freeze({gardening:2}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1,
+  duties:'06:00–18:00在西苑持续当班；借用原工具，给原玫瑰花畦浇水或修剪原黄杨篱，归还工具后由埃米尔记工作评价与园艺经验。基础8法国券按实际在岗工时折算，完整12小时9券；交班后存入银行，养护凭记不另发钱'});
 export const PHARMACY_ASSISTANT_ROLE = Object.freeze({id:'cn-pharmacy-apprentice',name:'安和药铺助手',
   slotId:'cn-pharmacy-apprentice-1',country:'china',currency:'copper',employer:'许宁',workplace:'安和医馆 · 二层交单平台',
   supervisorId:'cn-clinic-physician',incumbentId:'cn-pharmacy-assistant',incumbentName:'苏禾',vacancyKind:'exclusive',workSource:'cn-pharmacy-labor',wage:12,minimumAgeYears:18,
@@ -97,12 +99,12 @@ const tavernRole = role => role?.workSource?.startsWith('cn-tavern-');
 const BATH_DELIVERY_ROLE_IDS=Object.freeze(Object.values(JAPAN_BATH_DELIVERY_ROLES).map(role=>role.id));
 const bathDeliveryRole=role=>BATH_DELIVERY_ROLE_IDS.includes(role?.id);
 const teaRole=role=>[TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id].includes(role?.id);
-const reviewRole=role=>tavernRole(role)||teaRole(role)||[ROYAL_KITCHEN_ROLE.id,JAPAN_RECEPTION_ROLE.id,...BATH_DELIVERY_ROLE_IDS,JAPAN_BATH_MIXING_ROLE.id,JAPAN_KITCHEN_ROLE.id,JAPAN_TABLE_SERVICE_ROLE.id].includes(role?.id);
-const continuousRole=role=>tavernRole(role)||[PHARMACY_ASSISTANT_ROLE.id,CLINIC_PHYSICIAN_ROLE.id,ROYAL_KITCHEN_ROLE.id,PALACE_GUARD_ROLE.id,JAPAN_RECEPTION_ROLE.id,...BATH_DELIVERY_ROLE_IDS,JAPAN_BATH_MIXING_ROLE.id,JAPAN_KITCHEN_ROLE.id,JAPAN_TABLE_SERVICE_ROLE.id].includes(role?.id)||teaRole(role);
+const reviewRole=role=>tavernRole(role)||teaRole(role)||[GARDEN_ASSISTANT_ROLE.id,ROYAL_KITCHEN_ROLE.id,JAPAN_RECEPTION_ROLE.id,...BATH_DELIVERY_ROLE_IDS,JAPAN_BATH_MIXING_ROLE.id,JAPAN_KITCHEN_ROLE.id,JAPAN_TABLE_SERVICE_ROLE.id].includes(role?.id);
+const continuousRole=role=>tavernRole(role)||[GARDEN_ASSISTANT_ROLE.id,PHARMACY_ASSISTANT_ROLE.id,CLINIC_PHYSICIAN_ROLE.id,ROYAL_KITCHEN_ROLE.id,PALACE_GUARD_ROLE.id,JAPAN_RECEPTION_ROLE.id,...BATH_DELIVERY_ROLE_IDS,JAPAN_BATH_MIXING_ROLE.id,JAPAN_KITCHEN_ROLE.id,JAPAN_TABLE_SERVICE_ROLE.id].includes(role?.id)||teaRole(role);
 const availableSlot = (slot,role) => slot.holderId === null || slot.replacement === true && role.vacancyKind === 'exclusive' && slot.holderId === role.incumbentId || slot.rotation === true && role.vacancyKind === 'rotation' && slot.holderId === role.incumbentId;
 // Tea, royal kitchen and bathhouse outcomes change the service record only. Tavern error/correction pairs
 // retain their existing net deduction; genuine good service never mints wages.
-const customerPenalty = duty => (duty?.customerReviews||[]).reduce((total,review)=>total-(['tea-completed','royal-kitchen-completed','japan-reception-completed','japan-bath-delivery-completed','japan-bath-mixing-completed','japan-kitchen-completed','japan-table-service-completed'].includes(review.reasonCode)?0:review.score),0);
+const customerPenalty = duty => (duty?.customerReviews||[]).reduce((total,review)=>total-(['garden-maintenance-completed','tea-completed','royal-kitchen-completed','japan-reception-completed','japan-bath-delivery-completed','japan-bath-mixing-completed','japan-kitchen-completed','japan-table-service-completed'].includes(review.reasonCode)?0:review.score),0);
 const coveredHours = duty => (duty.coveredSeconds||0)*GAME_MINUTES_PER_SECOND/60;
 const attendanceWage = (role,hours) => Math.floor(role.wage*Math.min(1,hours/(role.dutyWindow.endHour-role.dutyWindow.startHour))+1e-9)+(hours>=role.dutyWindow.endHour-role.dutyWindow.startHour-1e-9?(role.preparationBonus||0):0);
 // Versioned pay belongs to the admitted shift, never to today's rank.
@@ -132,12 +134,24 @@ function validCustomerReviewId(review,receiptId){
 }
 function validCustomerReviews(duty,role){
   if(!reviewRole(role))return duty.customerReviews===undefined;
-  if(!Array.isArray(duty.customerReviews)||duty.customerReviews.length>(role.id===ROYAL_KITCHEN_ROLE.id?120:[JAPAN_RECEPTION_ROLE.id,...BATH_DELIVERY_ROLE_IDS,JAPAN_BATH_MIXING_ROLE.id,JAPAN_KITCHEN_ROLE.id,JAPAN_TABLE_SERVICE_ROLE.id].includes(role.id)?128:64))return false;
+  // Published garden slips predate maintenance reviews. Preserve the absent
+  // field and their fixed wage; only continuous shifts require the new ledger.
+  if(role.id===GARDEN_ASSISTANT_ROLE.id&&duty.shiftKind===undefined&&duty.customerReviews===undefined)return true;
+  if(!Array.isArray(duty.customerReviews)||duty.customerReviews.length>(role.id===ROYAL_KITCHEN_ROLE.id?120:[GARDEN_ASSISTANT_ROLE.id,JAPAN_RECEPTION_ROLE.id,...BATH_DELIVERY_ROLE_IDS,JAPAN_BATH_MIXING_ROLE.id,JAPAN_KITCHEN_ROLE.id,JAPAN_TABLE_SERVICE_ROLE.id].includes(role.id)?128:64))return false;
   const seen=new Map();
   for(const review of duty.customerReviews){
     if(!object(review)||!textField(review.id,200)||seen.has(review.id)||!identifier(review.customerId)||
       !textField(review.customerName)||!textField(review.tableId,64)||!textField(review.dishId,64)||
       !textField(review.tableName)||!textField(review.dishName)||!textField(review.reason,320))return false;
+    if(role.id===GARDEN_ASSISTANT_ROLE.id){
+      const receipt=review.gardenMaintenanceReceipt;
+      if(!validGardenMaintenanceReceipt(receipt)||receipt.workReceiptId!==duty.workReceiptId||receipt.day!==duty.day||review.id!==receipt.id||
+        review.customerId!==GARDEN_ASSISTANT_ROLE.supervisorId||review.customerName!==GARDEN_ASSISTANT_ROLE.employer||
+        review.tableId!=='fr-garden-maintenance'||review.tableName!=='工作评价'||review.dishId!==receipt.kind||
+        review.dishName!==(receipt.kind==='water'?'原玫瑰花畦浇水':'原黄杨篱修剪')||review.reasonCode!=='garden-maintenance-completed'||
+        review.correctedReviewId!==null||review.score!==1||review.positive!==true)return false;
+      seen.set(review.id,review);continue;
+    }
     if(role.id===JAPAN_RECEPTION_ROLE.id){
       const receipt=review.receptionReceipt;
       if(!validJapanReceptionReceipt(receipt)||receipt.workReceiptId!==duty.workReceiptId||review.id!==receipt.id||
@@ -360,7 +374,7 @@ function restore(saved, roleMap, slotMap) {
     tenure: saved.tenure === null ? null : {roleId: saved.tenure.roleId, slotId: saved.tenure.slotId,
       sinceDay: saved.tenure.sinceDay, sinceHour: saved.tenure.sinceHour,...(saved.tenure.applicationId!==undefined?{applicationId:saved.tenure.applicationId}:{})},
     lastDuty: duty === null ? null : {roleId: duty.roleId, slotId: duty.slotId, day: duty.day, stage: duty.stage,
-      started: duty.started, reason: duty.reason, arrivalHour: duty.arrivalHour, wage: duty.wage,...officialFields(duty),...(roleMap.get(duty.roleId).workSource?{workReceiptId:duty.workReceiptId}: {}),...(reviewRole(roleMap.get(duty.roleId))?{customerReviews:copy(duty.customerReviews)}:{}),...(duty.shiftKind?{shiftKind:duty.shiftKind,startedSeconds:duty.startedSeconds,coveredSeconds:duty.coveredSeconds,completedTasks:duty.completedTasks,endedHour:duty.endedHour,endedSeconds:duty.endedSeconds}:{})},
+      started: duty.started, reason: duty.reason, arrivalHour: duty.arrivalHour, wage: duty.wage,...officialFields(duty),...(roleMap.get(duty.roleId).workSource?{workReceiptId:duty.workReceiptId}: {}),...(reviewRole(roleMap.get(duty.roleId))&&duty.customerReviews!==undefined?{customerReviews:copy(duty.customerReviews)}:{}),...(duty.shiftKind?{shiftKind:duty.shiftKind,startedSeconds:duty.startedSeconds,coveredSeconds:duty.coveredSeconds,completedTasks:duty.completedTasks,endedHour:duty.endedHour,endedSeconds:duty.endedSeconds}:{})},
     lastPaidDay: saved.lastPaidDay, daily: {...saved.daily},
     learning: Object.fromEntries(STUDY_SOURCES.map(source => [source, {...saved.learning[source]}])),
     lowerWork: {...saved.lowerWork}, performance: saved.performance,
@@ -850,6 +864,28 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const result=receipt.completed?grantSkill(next,'ritual',clock):persist(next);
     return result.ok?{...result,review:copy(review),servicePenalty:0,...(!receipt.completed?{xpGained:0}:{})}:result;
   }
+  // The original garden workflow submits this only after returning the tool.
+  // Review, proof and shared daily growth commit together; no bank call occurs.
+  function gardenMaintenanceReceipt(receipt){
+    const blocked=allowed();if(blocked)return blocked;
+    if(!validGardenMaintenanceReceipt(receipt))return failure('invalid-work-receipt');
+    const duty=current.lastDuty;
+    if(duty?.roleId!==GARDEN_ASSISTANT_ROLE.id||duty.workReceiptId!==receipt.workReceiptId||duty.day!==receipt.day||
+      !['working','inspection','ready','paid'].includes(duty.stage))return failure('wrong-duty-source');
+    const reviews=duty.customerReviews||[],prior=reviews.find(review=>review.id===receipt.id);
+    if(prior)return sameGardenMaintenanceReceipt(prior.gardenMaintenanceReceipt,receipt)?
+      {ok:true,unchanged:true,replayed:true,xpGained:0,review:copy(prior),servicePenalty:0}:failure('review-conflict');
+    const clock=now();if(!clock)return failure('invalid-clock');
+    const task=receipt.kind==='water'?'原玫瑰花畦浇水':'原黄杨篱修剪';
+    const review={id:receipt.id,customerId:GARDEN_ASSISTANT_ROLE.supervisorId,customerName:GARDEN_ASSISTANT_ROLE.employer,
+      tableId:'fr-garden-maintenance',tableName:'工作评价',dishId:receipt.kind,dishName:task,
+      reasonCode:'garden-maintenance-completed',correctedReviewId:null,positive:true,score:1,
+      reason:`埃米尔工作评价：${task}已完成，原工具已归还`,gardenMaintenanceReceipt:copy(receipt)};
+    const nextDuty={...duty,customerReviews:[...reviews,review]};
+    if(!validCustomerReviews(nextDuty,GARDEN_ASSISTANT_ROLE))return failure('invalid-customer-review');
+    const result=grantSkill({...current,lastDuty:nextDuty,performance:Math.min(100,current.performance+1)},'gardening',clock);
+    return result.ok?{...result,review:copy(review),servicePenalty:0}:result;
+  }
   // The handbook, world intents and final mutation share one start decision.
   // Reads do not observe a day, save state, advance lastClock or change errors.
   function beginDutyAvailability(roleId=current.tenure?.roleId,{receiptId}={}){
@@ -970,6 +1006,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const blocked=allowed();if(blocked)return blocked;
     const duty=current.lastDuty,role=roleMap.get(roleId);
     if(!reviewRole(role)||!duty||duty.roleId!==roleId||duty.workReceiptId!==receiptId)return failure('wrong-duty-source');
+    if(role.id===GARDEN_ASSISTANT_ROLE.id)return failure('invalid-customer-review');
     const prior=duty.customerReviews.find(r=>r.id===reviewId);
     if(prior)return ['customerId','customerName','tableId','dishId','tableName','dishName','reasonCode','correctedReviewId'].every(key=>prior[key]===({customerId,customerName,tableId,dishId,tableName,dishName,reasonCode,correctedReviewId})[key])?{ok:true,unchanged:true,review:copy(prior)}:failure('review-conflict');
     const clock=now();if(!clock)return failure('invalid-clock');
@@ -1016,5 +1053,5 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&availableSlot(slot,role)&&slot.id!==current.tenure?.slotId).length})),
     eligibility, applicationAvailability, beginDutyAvailability, applicationResult, applicationHistory,
     promotionSummary, promotionAvailability, applyPromotion, reviewPromotion, cancelPromotion,
-    laborEvent, customerReview, apply, reviewApplication, cancelApplication, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, recordClinicAssistantService, recordTavernChefService, royalKitchenQualification, recordRoyalKitchenService, recordJapanReceptionReview, recordJapanBathDeliveryReview, recordJapanBathMixingReview, recordJapanKitchenReview, recordJapanTableServiceReview, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
+    laborEvent, customerReview, apply, reviewApplication, cancelApplication, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, recordClinicAssistantService, recordTavernChefService, royalKitchenQualification, recordRoyalKitchenService, recordJapanReceptionReview, recordJapanBathDeliveryReview, recordJapanBathMixingReview, recordJapanKitchenReview, recordJapanTableServiceReview, gardenMaintenanceReceipt, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
 }
