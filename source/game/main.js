@@ -434,7 +434,7 @@ function configureChinaSalon(){
  chinaSalonUI=chinaSalon?createChinaTavernSalonUI({service:chinaSalon,getPlayer:()=>player,onOpen:()=>{npcSocial?.end();path=[];targetStation=null;pendingInteraction=null;performing=null;keys.clear();joyActionAnchor=joyPointer!==null&&joyLastPoint?{...joyLastPoint}:null;joy={x:0,y:0};$('joystick-knob').style.transform='';$('activity-progress').hidden=true;}}):null;
 }
 function configureChinaClinic(){
- chinaClinic=active.id==='china'?createChinaClinicService({npcs,lot,furniture,navigation:navOptions,doors:automaticDoors,planPath,moveActor,poseContext:characterPoseContext,getPlayer:()=>player,getMounted:()=>seated,
+ chinaClinic=active.id==='china'?createChinaClinicService({getClock:()=>simulationClock.state(),npcs,lot,furniture,navigation:navOptions,doors:automaticDoors,planPath,moveActor,poseContext:characterPoseContext,getPlayer:()=>player,getMounted:()=>seated,
   isAssistantHired:()=>formalCareers.isHired('cn-pharmacy-apprentice'),getEmployment:()=>chinaClinicEmployment?.state().job,isPhysicianHired:()=>formalCareers.isHired('cn-clinic-physician'),getPhysicianEmployment:()=>chinaClinicPhysicianEmployment?.state().job,
   claimPatient:(id,claim)=>chinaTavern?.staffScene.claimClinicPatient(id,claim)||false,releasePatient:(id,claim)=>chinaTavern?.staffScene.releaseClinicPatient(id,claim)||false,patientClaims:()=>chinaTavern?.staffScene.clinicClaims()||[],
   patientAvailable:n=>npcSocial?.conversationActorId()!==n.station.id&&![performing?.id,pendingInteraction?.id,targetStation?.id].includes(n.station.id)&&![seated?.id,pendingInteraction?.id,targetStation?.id].includes('china-clinic-consult-seat'),

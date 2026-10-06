@@ -4,6 +4,7 @@ import {SALON_POET_ROLE} from './china-salon-career-role.js';
 import {ROYAL_KITCHEN_ROLE,ROYAL_KITCHEN_CHEF_DAYS,ROYAL_KITCHEN_CUSTOMERS,validTavernChefServiceReceipt,validRoyalKitchenServiceReceipt,sameKitchenReceipt} from './china-royal-kitchen-role.js';
 export {ROYAL_KITCHEN_ROLE} from './china-royal-kitchen-role.js';
 import {CLINIC_PHYSICIAN_ROLE} from './china-clinic-career-role.js';
+import {clinicReviewRole,validClinicPatientReceipt,sameClinicPatientReceipt,clinicPaySummary,clinicRatedWage} from './china-clinic-reviews.js';
 export {CLINIC_PHYSICIAN_ROLE} from './china-clinic-career-role.js';
 import {JAPAN_RECEPTION_ROLE,validJapanReceptionReceipt,sameJapanReceptionReceipt,japanReceptionReviewScore} from './japan-reception-role.js';
 export {JAPAN_RECEPTION_ROLE} from './japan-reception-role.js';
@@ -57,7 +58,7 @@ export const PHARMACY_ASSISTANT_ROLE = Object.freeze({id:'cn-pharmacy-apprentice
   slotId:'cn-pharmacy-apprentice-1',country:'china',currency:'copper',employer:'许宁',workplace:'安和医馆 · 二层交单平台',
   supervisorId:'cn-clinic-physician',incumbentId:'cn-pharmacy-assistant',incumbentName:'苏禾',vacancyKind:'exclusive',workSource:'cn-pharmacy-labor',wage:12,minimumAgeYears:18,
   skillRequirements:Object.freeze({writing:1,ritual:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:1,
-  duties:'06:00–18:00在医馆候班；持续接原单、按号折包并交给本人，交班后按实际在岗工时结算，来客单独记评价'});
+  duties:'06:00–18:00在医馆候班；持续接原单、按号折包并交给本人，政府拨付基础日薪12文（满班勤勉+1），患者评分按80%–120%浮动后按实际工时结算，无评分按中性；同号交付后只评本人责任阶段的及时性'});
 export const TEA_SERVER_ROLE = Object.freeze({id:'fr-tea-server',name:'宫苑茶廊侍茶员',
   slotId:'fr-tea-server-1',country:'france',currency:'france',employer:'玛农',workplace:'宫苑茶廊 · 侍茶登记',
   supervisorId:'france-salon',incumbentId:'france-salon',incumbentName:'玛农',vacancyKind:'exclusive',workSource:'fr-tea-labor',wage:10,minimumAgeYears:18,
@@ -103,12 +104,13 @@ const tavernRole = role => role?.workSource?.startsWith('cn-tavern-');
 const BATH_DELIVERY_ROLE_IDS=Object.freeze(Object.values(JAPAN_BATH_DELIVERY_ROLES).map(role=>role.id));
 const bathDeliveryRole=role=>BATH_DELIVERY_ROLE_IDS.includes(role?.id);
 const teaRole=role=>[TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id].includes(role?.id);
-const reviewRole=role=>tavernRole(role)||teaRole(role)||[GARDEN_ASSISTANT_ROLE.id,ROYAL_KITCHEN_ROLE.id,JAPAN_RECEPTION_ROLE.id,...BATH_DELIVERY_ROLE_IDS,JAPAN_BATH_MIXING_ROLE.id,JAPAN_KITCHEN_ROLE.id,JAPAN_TABLE_SERVICE_ROLE.id,EGYPT_KITCHEN_ROLE.id,EGYPT_TABLE_SERVICE_ROLE.id].includes(role?.id);
+const clinicRole=role=>!!clinicReviewRole(role?.id);
+const reviewRole=role=>clinicRole(role)||tavernRole(role)||teaRole(role)||[GARDEN_ASSISTANT_ROLE.id,ROYAL_KITCHEN_ROLE.id,JAPAN_RECEPTION_ROLE.id,...BATH_DELIVERY_ROLE_IDS,JAPAN_BATH_MIXING_ROLE.id,JAPAN_KITCHEN_ROLE.id,JAPAN_TABLE_SERVICE_ROLE.id,EGYPT_KITCHEN_ROLE.id,EGYPT_TABLE_SERVICE_ROLE.id].includes(role?.id);
 const continuousRole=role=>tavernRole(role)||[GARDEN_ASSISTANT_ROLE.id,PHARMACY_ASSISTANT_ROLE.id,CLINIC_PHYSICIAN_ROLE.id,ROYAL_KITCHEN_ROLE.id,PALACE_GUARD_ROLE.id,JAPAN_RECEPTION_ROLE.id,...BATH_DELIVERY_ROLE_IDS,JAPAN_BATH_MIXING_ROLE.id,JAPAN_KITCHEN_ROLE.id,JAPAN_TABLE_SERVICE_ROLE.id,EGYPT_KITCHEN_ROLE.id,EGYPT_TABLE_SERVICE_ROLE.id].includes(role?.id)||teaRole(role);
 const availableSlot = (slot,role) => slot.holderId === null || slot.replacement === true && role.vacancyKind === 'exclusive' && slot.holderId === role.incumbentId || slot.rotation === true && role.vacancyKind === 'rotation' && slot.holderId === role.incumbentId;
 // Tea, royal kitchen and bathhouse outcomes change the service record only. Tavern error/correction pairs
 // retain their existing net deduction; genuine good service never mints wages.
-const customerPenalty = duty => (duty?.customerReviews||[]).reduce((total,review)=>total-(['garden-maintenance-completed','tea-completed','royal-kitchen-completed','japan-reception-completed','japan-bath-delivery-completed','japan-bath-mixing-completed','japan-kitchen-completed','japan-table-service-completed','egypt-kitchen-completed','egypt-table-service-completed'].includes(review.reasonCode)?0:review.score),0);
+const customerPenalty = duty => (duty?.customerReviews||[]).reduce((total,review)=>total-(['clinic-delivered','garden-maintenance-completed','tea-completed','royal-kitchen-completed','japan-reception-completed','japan-bath-delivery-completed','japan-bath-mixing-completed','japan-kitchen-completed','japan-table-service-completed','egypt-kitchen-completed','egypt-table-service-completed'].includes(review.reasonCode)?0:review.score),0);
 const coveredHours = duty => (duty.coveredSeconds||0)*GAME_MINUTES_PER_SECOND/60;
 const attendanceWage = (role,hours) => Math.floor(role.wage*Math.min(1,hours/(role.dutyWindow.endHour-role.dutyWindow.startHour))+1e-9)+(hours>=role.dutyWindow.endHour-role.dutyWindow.startHour-1e-9?(role.preparationBonus||0):0);
 // Versioned pay belongs to the admitted shift, never to today's rank.
@@ -116,8 +118,9 @@ const CLERK_PAY_V1=Object.freeze({[CLERK_ENTRY_RANK]:18,[CLERK_NEXT_RANK]:22});
 const salaryRole=(role,row)=>role.id===COURT_CLERK_ROLE.id&&row?.officialPayVersion===1?{...role,wage:CLERK_PAY_V1[row.officialRankId]}:role;
 const officialFields=row=>row?.officialPayVersion===1?{officialPayVersion:1,officialRankId:row.officialRankId,officialTenureId:row.officialTenureId}:{};
 const validOfficialFields=(row,role)=>row.officialPayVersion===undefined?row.officialRankId===undefined&&row.officialTenureId===undefined:role.id===COURT_CLERK_ROLE.id&&row.officialPayVersion===1&&Object.hasOwn(CLERK_PAY_V1,row.officialRankId)&&typeof row.officialTenureId==='string';
-const dutyWage = (rawRole,duty) => {const role=salaryRole(rawRole,duty);return duty.shiftKind==='continuous'?Math.max(0,attendanceWage(role,coveredHours(duty))-customerPenalty(duty)):Math.max(1,completedWage(role,duty.arrivalHour)-customerPenalty(duty));};
+const dutyWage = (rawRole,duty) => {const role=salaryRole(rawRole,duty);if(duty.clinicPayVersion===1)return clinicRatedWage(role,coveredHours(duty),clinicPaySummary(duty));return duty.shiftKind==='continuous'?Math.max(0,attendanceWage(role,coveredHours(duty))-customerPenalty(duty)):Math.max(1,completedWage(role,duty.arrivalHour)-customerPenalty(duty));};
 function validShift(duty,role){
+ if(duty.clinicPayVersion!==undefined&&(duty.clinicPayVersion!==1||!clinicRole(role)||duty.shiftKind!=='continuous'))return false;
  if(duty.shiftKind===undefined)return (!['cn-tavern-host','cn-tavern-chef','cn-pharmacy-apprentice',CLINIC_PHYSICIAN_ROLE.id,ROYAL_KITCHEN_ROLE.id,TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id,PALACE_GUARD_ROLE.id,JAPAN_RECEPTION_ROLE.id,...BATH_DELIVERY_ROLE_IDS,JAPAN_BATH_MIXING_ROLE.id,JAPAN_KITCHEN_ROLE.id,JAPAN_TABLE_SERVICE_ROLE.id,EGYPT_KITCHEN_ROLE.id,EGYPT_TABLE_SERVICE_ROLE.id].includes(role.id)||duty.stage==='missed')&&!['startedSeconds','coveredSeconds','completedTasks','endedHour','endedSeconds'].some(key=>own(duty,key));
  if(duty.shiftKind!=='continuous'||!continuousRole(role)||!Number.isFinite(duty.startedSeconds)||duty.startedSeconds<0)return false;
  const done=['inspection','ready','paid'].includes(duty.stage),keys=['coveredSeconds','completedTasks','endedHour','endedSeconds'];
@@ -138,6 +141,8 @@ function validCustomerReviewId(review,receiptId){
 }
 function validCustomerReviews(duty,role){
   if(!reviewRole(role))return duty.customerReviews===undefined;
+  // Unmarked published clinic shifts keep their absent ledger and original pay.
+  if(clinicRole(role)&&duty.clinicPayVersion===undefined)return duty.customerReviews===undefined;
   // Published garden slips predate maintenance reviews. Preserve the absent
   // field and their fixed wage; only continuous shifts require the new ledger.
   if(role.id===GARDEN_ASSISTANT_ROLE.id&&duty.shiftKind===undefined&&duty.customerReviews===undefined)return true;
@@ -147,6 +152,15 @@ function validCustomerReviews(duty,role){
     if(!object(review)||!textField(review.id,200)||seen.has(review.id)||!identifier(review.customerId)||
       !textField(review.customerName)||!textField(review.tableId,64)||!textField(review.dishId,64)||
       !textField(review.tableName)||!textField(review.dishName)||!textField(review.reason,320))return false;
+    if(clinicRole(role)){
+      const receipt=review.clinicReceipt;
+      if(!validClinicPatientReceipt(receipt,clinicReviewRole(role.id))||receipt.receiptId!==duty.workReceiptId||
+        review.id!==receipt.receiptId+'-'+receipt.orderId||review.customerId!==receipt.recipientId||review.customerName!==receipt.recipientName||
+        review.tableId!=='cn-clinic'||review.tableName!=='安和医馆与药铺'||review.dishId!=='cloud-packet'||review.dishName!=='同号云纹包'||
+        review.reasonCode!=='clinic-delivered'||review.correctedReviewId!==null||review.score!==receipt.review.rating-3||
+        review.positive!==receipt.review.positive||review.reason!==receipt.review.reason)return false;
+      seen.set(review.id,review);continue;
+    }
     if(role.id===GARDEN_ASSISTANT_ROLE.id){
       const receipt=review.gardenMaintenanceReceipt;
       if(!validGardenMaintenanceReceipt(receipt)||receipt.workReceiptId!==duty.workReceiptId||receipt.day!==duty.day||review.id!==receipt.id||
@@ -250,6 +264,13 @@ function catalogue(roles, slots) {
   return {roleMap, slotMap};
 }
 
+function validClinicEvaluation(row,role){
+ if(row.clinicPayVersion===undefined)return row.clinicRatingTotal===undefined&&row.clinicReviewCount===undefined;
+ return row.clinicPayVersion===1&&clinicRole(role)&&row.positive&&Number.isFinite(row.coverageHours)&&
+  integer(row.clinicReviewCount)&&row.clinicReviewCount<=64&&integer(row.clinicRatingTotal)&&
+  row.clinicRatingTotal>=row.clinicReviewCount&&row.clinicRatingTotal<=row.clinicReviewCount*5;
+}
+const clinicEvaluationFields=row=>row.clinicPayVersion===1?{clinicPayVersion:1,clinicRatingTotal:row.clinicRatingTotal,clinicReviewCount:row.clinicReviewCount}:{};
 function restore(saved, roleMap, slotMap) {
   if (saved == null) return empty();
   // Version 1 is the published clerk save. Add only the new practice skill and
@@ -359,16 +380,17 @@ function restore(saved, roleMap, slotMap) {
   if (review === null ? saved.lastEvaluatedDay !== null ||
       saved.performance !== (duty?.customerReviews||[]).reduce((total,r)=>Math.max(-100,Math.min(100,total+r.score)),0) ||
       saved.promotionProgress !== (duty?.customerReviews||[]).reduce((total,r)=>Math.max(0,Math.min(100,total+Math.min(0,r.score))),0) :
-    !object(review) || !validSlot(review.roleId, review.slotId) || !validOfficialFields(review,roleMap.get(review.roleId)) || !integer(review.day) ||
+    !object(review) || !validSlot(review.roleId, review.slotId) || !validOfficialFields(review,roleMap.get(review.roleId)) || !validClinicEvaluation(review,roleMap.get(review.roleId)) || !integer(review.day) ||
     review.day !== saved.lastEvaluatedDay || review.id !== `career-review:${review.slotId}:${review.day}` ||
     review.evaluatorId !== supervisor(roleMap.get(review.roleId)) || typeof review.positive !== 'boolean' ||
     review.score !== (review.positive ? review.coverageHours===undefined||review.coverageHours>=12-1e-9?1:0 : -1) || typeof review.reason !== 'string' || review.reason.length > 80 ||
     typeof review.reasonCode !== 'string' || review.reasonCode.length > 80 ||
     (!integer(review.servicePenalty??0)|| (review.servicePenalty??0)>128 || (!tavernRole(roleMap.get(review.roleId))&&(review.servicePenalty??0)!==0)) ||
     (review.coverageHours!==undefined&&(!continuousRole(roleMap.get(review.roleId))||!Number.isFinite(review.coverageHours)||review.coverageHours<0||review.coverageHours>12+1e-9)) ||
-    (review.positive ? review.coverageHours!==undefined?review.wage!==Math.max(0,attendanceWage(roleMap.get(review.roleId),review.coverageHours)-(review.servicePenalty??0)) : ![salaryRole(roleMap.get(review.roleId),review).wage,salaryRole(roleMap.get(review.roleId),review).wage+(roleMap.get(review.roleId).preparationBonus??2)].map(wage=>Math.max(1,wage-(review.servicePenalty??0))).includes(review.wage) : review.wage !== 0) ||
+    (review.positive ? review.coverageHours!==undefined?review.wage!==(review.clinicPayVersion===1?clinicRatedWage(roleMap.get(review.roleId),review.coverageHours,review):Math.max(0,attendanceWage(roleMap.get(review.roleId),review.coverageHours)-(review.servicePenalty??0))) : ![salaryRole(roleMap.get(review.roleId),review).wage,salaryRole(roleMap.get(review.roleId),review).wage+(roleMap.get(review.roleId).preparationBonus??2)].map(wage=>Math.max(1,wage-(review.servicePenalty??0))).includes(review.wage) : review.wage !== 0) ||
     !duty || review.day > duty.day || review.day === duty.day && (review.slotId !== duty.slotId ||
       (JSON.stringify(officialFields(review))!==JSON.stringify(officialFields(duty))) ||
+      (review.positive&&JSON.stringify(clinicEvaluationFields(review))!==JSON.stringify(duty.clinicPayVersion===1?clinicPaySummary(duty):{})) ||
       (review.positive ? !['ready', 'paid'].includes(duty.stage) || duty.wage !== review.wage || (duty.shiftKind==='continuous'?review.coverageHours!==coveredHours(duty):review.coverageHours!==undefined) || (review.servicePenalty??0)!==customerPenalty(duty) : duty.stage !== 'missed'))) throw Error('invalid-career-state');
   if (duty && ['ready', 'paid'].includes(duty.stage) && (!review || review.day !== duty.day || !review.positive)) throw Error('invalid-career-state');
   // Versioned saves retain earned rank history; v7 also protects care proof.
@@ -392,14 +414,14 @@ function restore(saved, roleMap, slotMap) {
     tenure: saved.tenure === null ? null : {roleId: saved.tenure.roleId, slotId: saved.tenure.slotId,
       sinceDay: saved.tenure.sinceDay, sinceHour: saved.tenure.sinceHour,...(saved.tenure.applicationId!==undefined?{applicationId:saved.tenure.applicationId}:{})},
     lastDuty: duty === null ? null : {roleId: duty.roleId, slotId: duty.slotId, day: duty.day, stage: duty.stage,
-      started: duty.started, reason: duty.reason, arrivalHour: duty.arrivalHour, wage: duty.wage,...officialFields(duty),...(roleMap.get(duty.roleId).workSource?{workReceiptId:duty.workReceiptId}: {}),...(reviewRole(roleMap.get(duty.roleId))&&duty.customerReviews!==undefined?{customerReviews:copy(duty.customerReviews)}:{}),...(duty.shiftKind?{shiftKind:duty.shiftKind,startedSeconds:duty.startedSeconds,coveredSeconds:duty.coveredSeconds,completedTasks:duty.completedTasks,endedHour:duty.endedHour,endedSeconds:duty.endedSeconds}:{})},
+      started: duty.started, reason: duty.reason, arrivalHour: duty.arrivalHour, wage: duty.wage,...officialFields(duty),...(duty.clinicPayVersion===1?{clinicPayVersion:1}:{}),...(roleMap.get(duty.roleId).workSource?{workReceiptId:duty.workReceiptId}: {}),...(reviewRole(roleMap.get(duty.roleId))&&duty.customerReviews!==undefined?{customerReviews:copy(duty.customerReviews)}:{}),...(duty.shiftKind?{shiftKind:duty.shiftKind,startedSeconds:duty.startedSeconds,coveredSeconds:duty.coveredSeconds,completedTasks:duty.completedTasks,endedHour:duty.endedHour,endedSeconds:duty.endedSeconds}:{})},
     lastPaidDay: saved.lastPaidDay, daily: {...saved.daily},
     learning: Object.fromEntries(STUDY_SOURCES.map(source => [source, {...saved.learning[source]}])),
     lowerWork: {...saved.lowerWork}, performance: saved.performance,
     promotionProgress: saved.promotionProgress, lastEvaluatedDay: saved.lastEvaluatedDay,
     lastEvaluation: review === null ? null : {id: review.id, evaluatorId: review.evaluatorId, day: review.day,
       roleId: review.roleId, slotId: review.slotId, positive: review.positive, score: review.score,
-      reason: review.reason, reasonCode: review.reasonCode, wage: review.wage,...officialFields(review),...(review.servicePenalty?{servicePenalty:review.servicePenalty}:{}),...(review.coverageHours!==undefined?{coverageHours:review.coverageHours}:{})}};
+      reason: review.reason, reasonCode: review.reasonCode, wage: review.wage,...officialFields(review),...clinicEvaluationFields(review),...(review.servicePenalty?{servicePenalty:review.servicePenalty}:{}),...(review.coverageHours!==undefined?{coverageHours:review.coverageHours}:{})}};
 }
 
 /**
@@ -434,10 +456,10 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const duty=current.lastDuty,customer=duty?.customerReviews?.at(-1);
     return {...copy({revision:current.revision,skills:current.skills,tenure:current.tenure,
       lastDuty:duty===null?null:Object.fromEntries(['roleId','slotId','day','stage','started','reason','arrivalHour','wage',
-        'officialPayVersion','officialRankId','officialTenureId','workReceiptId','shiftKind','startedSeconds','coveredSeconds',
+        'officialPayVersion','officialRankId','officialTenureId','clinicPayVersion','workReceiptId','shiftKind','startedSeconds','coveredSeconds',
         'completedTasks','endedHour','endedSeconds'].filter(key=>own(duty,key)).map(key=>[key,duty[key]])),
       lastEvaluatedDay:current.lastEvaluatedDay,lastEvaluation:current.lastEvaluation,
-      lastCustomerReview:customer?{id:customer.id,customerName:customer.customerName,score:customer.score,positive:customer.positive,reason:customer.reason}:null}),loadError,lastError};
+      lastCustomerReview:customer?{id:customer.id,customerName:customer.customerName,score:customer.score,positive:customer.positive,reason:customer.reason,...(customer.clinicReceipt?{rating:customer.clinicReceipt.review.rating}:{})}:null}),loadError,lastError};
   };
   const failure = (code, reasons = [code]) => { lastError = code; return {ok: false, code, reasons: [...reasons]}; };
   function readClock() {
@@ -477,14 +499,14 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     // gives a small preparation bonus for arrival at least five minutes early.
     const servicePenalty=customerPenalty(duty),wage = positive ? dutyWage(role,duty) : 0;
     const currencyUnit=role.currency==='japan'?'日本券':role.currency==='france'?'法国券':role.currency==='egypt'?'埃及券':'铜文';
-    const reasonText = hours!==null&&positive?`当面交班已验收；实际当班${hours.toFixed(2)}小时，按工时计薪${wage}${currencyUnit}`:role.workSource ? positive ? `${role.employer}已验收完整当班职责${wage>role.wage?'；午前开班，勤勉奖励+1':''}` : '当班职责未完成，没有日薪' : positive ? wage > role.wage ? '提前到岗，朝会记录与归档均已完成' : '按时到岗，朝会记录与归档均已完成' :
+    const reasonText = positive&&duty.clinicPayVersion===1?`政府拨付；在岗${hours.toFixed(2)}小时，患者${duty.customerReviews.length?'均分'+(clinicPaySummary(duty).clinicRatingTotal/duty.customerReviews.length).toFixed(1):'无评分按中性'}，工资${wage}铜文`:hours!==null&&positive?`当面交班已验收；实际当班${hours.toFixed(2)}小时，按工时计薪${wage}${currencyUnit}`:role.workSource ? positive ? `${role.employer}已验收完整当班职责${wage>role.wage?'；午前开班，勤勉奖励+1':''}` : '当班职责未完成，没有日薪' : positive ? wage > role.wage ? '提前到岗，朝会记录与归档均已完成' : '按时到岗，朝会记录与归档均已完成' :
       ({absent: '未按时到岗，缺席当日朝会', reloaded: '朝会中途离开，出勤记录未完成',
         resigned: '当日职责未完成即离任', 'day-ended': '当日朝会或归档未完成'})[reason] || '出勤中断，当日职责未完成';
     const reviewed={...next, performance: Math.max(-100, Math.min(100, next.performance + score)),
       promotionProgress: Math.max(0, Math.min(100, next.promotionProgress + score)), lastEvaluatedDay: duty.day,
       lastDuty: {...duty, wage: positive ? wage : null}, lastEvaluation: {
         id: `career-review:${duty.slotId}:${duty.day}`, evaluatorId: supervisor(role),
-        day: duty.day, roleId: duty.roleId, slotId: duty.slotId, positive, score, reason: reasonText+(servicePenalty?`；顾客评价扣薪${Math.min(hours===null?completedWage(role,duty.arrivalHour)-1:attendanceWage(role,hours),servicePenalty)}${currencyUnit}`:''), reasonCode: reason, wage,...officialFields(duty),...(servicePenalty?{servicePenalty}:{}),...(positive&&hours!==null?{coverageHours:hours}:{})}};
+        day: duty.day, roleId: duty.roleId, slotId: duty.slotId, positive, score, reason: reasonText+(servicePenalty?`；顾客评价扣薪${Math.min(hours===null?completedWage(role,duty.arrivalHour)-1:attendanceWage(role,hours),servicePenalty)}${currencyUnit}`:''), reasonCode: reason, wage,...officialFields(duty),...(positive&&duty.clinicPayVersion===1?clinicPaySummary(duty):{}),...(servicePenalty?{servicePenalty}:{}),...(positive&&hours!==null?{coverageHours:hours}:{})}};
     return {...reviewed,officialCareer:recordOfficialService(reviewed.officialCareer,reviewed.tenure,reviewed.lastEvaluation,duty.officialRankId||CLERK_ENTRY_RANK)};
   }
   function missed(next, reason) {
@@ -740,6 +762,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
   // card/packet. Wage slips alone and aggregate old task counts are not evidence.
   // The global order watermark is durable even when short clinic history rotates.
   function recordClinicAssistantService(receipt) {
+    if(receipt?.review?.version===1)return recordClinicPatientReview(receipt);
     const blocked=allowed();if(blocked)return blocked;
     if(!object(receipt)||!integer(receipt.number)||receipt.number<1||
       !validWorkReceipt(PHARMACY_ASSISTANT_ROLE.workSource,receipt.receiptId)||
@@ -750,6 +773,30 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if(receipt.number<=current.lowerWork[PHARMACY_ASSISTANT_ROLE.workSource])return {ok:true,unchanged:true,replayed:true,xpGained:0};
     const clock=now();if(!clock)return failure('invalid-clock');
     return grantSkill({...current,lowerWork:{...current.lowerWork,[PHARMACY_ASSISTANT_ROLE.workSource]:receipt.number}},'care',clock);
+  }
+  // Original patient delivery, its rating and assistant care XP commit together.
+  // Seal before inspection/payment: delayed callbacks can replay, never reprice.
+  function recordClinicPatientReview(receipt){
+    const blocked=allowed();if(blocked)return blocked;
+    const role=Object.values({assistant:PHARMACY_ASSISTANT_ROLE,physician:CLINIC_PHYSICIAN_ROLE}).find(role=>validWorkReceipt(role.workSource,receipt?.receiptId));
+    if(!validClinicPatientReceipt(receipt,clinicReviewRole(role?.id)))return failure('invalid-work-receipt');
+    const duty=current.lastDuty;
+    if(duty?.roleId!==role.id||duty.shiftKind!=='continuous'||duty.workReceiptId!==receipt.receiptId)return failure('wrong-duty-source');
+    const reviews=duty.customerReviews||[],id=receipt.receiptId+'-'+receipt.orderId,prior=reviews.find(row=>row.id===id);
+    if(prior)return sameClinicPatientReceipt(prior.clinicReceipt,receipt)?{ok:true,unchanged:true,replayed:true,xpGained:0}:failure('review-conflict');
+    const clock=now();if(!clock)return failure('invalid-clock');
+    if(duty.stage!=='working'||duty.day!==clock.day)return failure('review-sealed');
+    const review={id,customerId:receipt.recipientId,customerName:receipt.recipientName,tableId:'cn-clinic',tableName:'安和医馆与药铺',
+      dishId:'cloud-packet',dishName:'同号云纹包',reasonCode:'clinic-delivered',correctedReviewId:null,
+      score:receipt.review.rating-3,positive:receipt.review.positive,reason:receipt.review.reason,clinicReceipt:copy(receipt)};
+    const nextDuty={...duty,clinicPayVersion:1,customerReviews:[...reviews,review]};
+    if(!validCustomerReviews(nextDuty,role))return failure('invalid-customer-review');
+    const assistant=role.id===PHARMACY_ASSISTANT_ROLE.id,earned=assistant&&receipt.number>current.lowerWork[role.workSource];
+    const next={...current,lastDuty:nextDuty,performance:Math.max(-100,Math.min(100,current.performance+review.score)),
+      promotionProgress:Math.max(0,Math.min(100,current.promotionProgress+Math.min(0,review.score))),
+      ...(earned?{lowerWork:{...current.lowerWork,[role.workSource]:receipt.number}}:{})};
+    const result=earned?grantSkill(next,'care',clock):persist(next);
+    return result.ok?{...result,review:copy(review),...(!earned?{xpGained:0}:{})}:result;
   }
   const royalKitchenQualification=()=>({qualifiedDays:current.workExperience.tavernChef.length,requiredDays:ROYAL_KITCHEN_CHEF_DAYS,eligible:current.workExperience.tavernChef.length>=ROYAL_KITCHEN_CHEF_DAYS,receipts:copy(current.workExperience.tavernChef)});
   function recordTavernChefService(receipt){
@@ -999,7 +1046,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if(availability.unchanged)return {ok:true,unchanged:true};
     const next = duty && duty.day < clock.day && ['arrived', 'attending', 'archive','working'].includes(duty.stage) ? missed(current, 'day-ended') : current;
     return persist({...next, lastDuty: {roleId: current.tenure.roleId, slotId: current.tenure.slotId,
-      ...currentOfficialFields(),day: clock.day, stage: role.workSource?'working':'arrived', started:!!role.workSource, reason: null, arrivalHour: clock.hour, wage: null,...(role.workSource?{workReceiptId:receiptId}:{}),...(reviewRole(role)?{customerReviews:[]}:{}),...(shiftKind?{shiftKind,startedSeconds:clock.seconds,coveredSeconds:null,completedTasks:null,endedHour:null,endedSeconds:null}:{})}});
+      ...currentOfficialFields(),day: clock.day, stage: role.workSource?'working':'arrived', started:!!role.workSource, reason: null, arrivalHour: clock.hour, wage: null,...(role.workSource?{workReceiptId:receiptId}:{}),...(reviewRole(role)?{customerReviews:[]}:{}),...(clinicRole(role)?{clinicPayVersion:1}:{}),...(shiftKind?{shiftKind,startedSeconds:clock.seconds,coveredSeconds:null,completedTasks:null,endedHour:null,endedSeconds:null}:{})}});
   }
   function dutyEvent(event) {
     const blocked = allowed(); if (blocked) return blocked;
@@ -1048,7 +1095,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
       observedDay = clock.day; return {ok: true, unchanged: true};
     }
     const incomplete = duty?.day === day ? {...duty, started: true} : {roleId: tenure.roleId, slotId: tenure.slotId,
-      ...currentOfficialFields(),day, stage: 'missed', started: true, reason: null, arrivalHour: null, wage: null,...(roleMap.get(tenure.roleId).workSource?{workReceiptId:null}:{}),...(reviewRole(roleMap.get(tenure.roleId))?{customerReviews:[]}:{})};
+      ...currentOfficialFields(),day, stage: 'missed', started: true, reason: null, arrivalHour: null, wage: null,...(roleMap.get(tenure.roleId).workSource?{workReceiptId:null}:{}),...(reviewRole(roleMap.get(tenure.roleId))&&!clinicRole(roleMap.get(tenure.roleId))?{customerReviews:[]}:{})};
     const result = persist(missed({...current, lastDuty: incomplete}, 'day-ended'));
     if (result.ok) { observedDay = clock.day; interruptedUnsaved = false; }
     return result;
@@ -1081,7 +1128,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const blocked=allowed();if(blocked)return blocked;
     const duty=current.lastDuty,role=roleMap.get(roleId);
     if(!reviewRole(role)||!duty||duty.roleId!==roleId||duty.workReceiptId!==receiptId)return failure('wrong-duty-source');
-    if(role.id===GARDEN_ASSISTANT_ROLE.id)return failure('invalid-customer-review');
+    if(role.id===GARDEN_ASSISTANT_ROLE.id||clinicRole(role))return failure('invalid-customer-review');
     const prior=duty.customerReviews.find(r=>r.id===reviewId);
     if(prior)return ['customerId','customerName','tableId','dishId','tableName','dishName','reasonCode','correctedReviewId'].every(key=>prior[key]===({customerId,customerName,tableId,dishId,tableName,dishName,reasonCode,correctedReviewId})[key])?{ok:true,unchanged:true,review:copy(prior)}:failure('review-conflict');
     const clock=now();if(!clock)return failure('invalid-clock');
@@ -1128,5 +1175,5 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&availableSlot(slot,role)&&slot.id!==current.tenure?.slotId).length})),
     eligibility, applicationAvailability, beginDutyAvailability, applicationResult, applicationHistory,
     promotionSummary, promotionAvailability, applyPromotion, reviewPromotion, cancelPromotion,
-    laborEvent, customerReview, apply, reviewApplication, cancelApplication, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, recordClinicAssistantService, recordTavernChefService, royalKitchenQualification, recordRoyalKitchenService, recordJapanReceptionReview, recordJapanBathDeliveryReview, recordJapanBathMixingReview, recordJapanKitchenReview, recordEgyptKitchenReview, recordEgyptTableServiceReview, recordJapanTableServiceReview, gardenMaintenanceReceipt, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
+    laborEvent, customerReview, apply, reviewApplication, cancelApplication, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, recordClinicAssistantService, recordClinicPatientReview, recordTavernChefService, royalKitchenQualification, recordRoyalKitchenService, recordJapanReceptionReview, recordJapanBathDeliveryReview, recordJapanBathMixingReview, recordJapanKitchenReview, recordEgyptKitchenReview, recordEgyptTableServiceReview, recordJapanTableServiceReview, gardenMaintenanceReceipt, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
 }
