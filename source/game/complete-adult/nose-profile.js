@@ -12,12 +12,20 @@ const STATIONS=[
  [7.200,.0048],[7.290,.0048],[7.350,.0042],[7.425,.0030],
  [7.500,.0015],[7.570,0]
 ];
-function profile(y){
- if(y<=STATIONS[0][0]||y>=STATIONS.at(-1)[0])return 0;
- for(let i=0;i<STATIONS.length-1;i++){
-  const a=STATIONS[i],b=STATIONS[i+1];if(y>b[0])continue;
-  const previous=STATIONS[Math.max(0,i-1)],next=STATIONS[Math.min(STATIONS.length-1,i+2)],d=b[0]-a[0],t=(y-a[0])/d;
-  const m0=i===0?0:(b[1]-previous[1])/(b[0]-previous[0]),m1=i===STATIONS.length-2?0:(next[1]-a[1])/(next[0]-a[0]);
+// Female correction after the actual ordinary high-score profile exposed a
+// compressed nose. Carry the lower bridge, dorsum, base and tip forward as one
+// supported surface; do not change tip height or remap the saved six controls.
+const FEMALE_FORWARD=[
+ [6.735,0],[6.775,.0002],[6.800,.0012],[6.827,.0020],
+ [6.855,.0030],[6.885,.0042],[6.920,.0045],[6.950,.0045],
+ [6.990,.0040],[7.035,.0030],[7.105,.0010],[7.200,0]
+];
+function profile(y,stations=STATIONS){
+ if(y<=stations[0][0]||y>=stations.at(-1)[0])return 0;
+ for(let i=0;i<stations.length-1;i++){
+  const a=stations[i],b=stations[i+1];if(y>b[0])continue;
+  const previous=stations[Math.max(0,i-1)],next=stations[Math.min(stations.length-1,i+2)],d=b[0]-a[0],t=(y-a[0])/d;
+  const m0=i===0?0:(b[1]-previous[1])/(b[0]-previous[0]),m1=i===stations.length-2?0:(next[1]-a[1])/(next[0]-a[0]);
   return (2*t**3-3*t*t+1)*a[1]+(t**3-2*t*t+t)*d*m0+(-2*t**3+3*t*t)*b[1]+(t**3-t*t)*d*m1;
  }
  return 0;
@@ -34,7 +42,7 @@ export function neutralNoseProfileOffset(raw,form){
  // The saved female sculpt already has an open nasal-base transition. Retain
  // that distinction instead of forcing the male correction onto both forms.
  if(form==='female'&&raw[1]<6.90&&nasal>0)nasal*=.35;
- return Math.max(nasal,.0024*brow)+Math.min(nasal,0);
+ return Math.max(nasal,.0024*brow)+Math.min(nasal,0)+(form==='female'?profile(raw[1],FEMALE_FORWARD)*center:0);
 }
 export function noseHeightProfileOffset(raw,height,form){
  const {center,brow}=masks(raw),y=raw[1];
