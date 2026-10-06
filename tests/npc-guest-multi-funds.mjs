@@ -16,7 +16,7 @@ function earn(economy,role,day,hours=1.5,actorId=ID){
 }
 function setup(saved,{fund=true}={}){
  let game=copy(saved||{}),f=null,mode=null,writes=0,onSave=null;
- function store(patch){writes++;if(onSave)onSave();if(mode==='throw')throw Error('save failed');if(mode==='false')return false;if(mode==='promise')return Promise.resolve(true);Object.assign(game,copy(patch));if(f)Object.assign(f.game,copy(patch));return true;}
+ function store(patch){writes++;if(onSave)onSave();if(mode==='throw')throw Error('save failed');if(mode==='false')return false;if(mode==='promise')return Promise.resolve(true);if(mode==='rejected-promise')return Promise.reject(Error('unsupported async save'));Object.assign(game,copy(patch));if(f)Object.assign(f.game,copy(patch));return true;}
  const royal=createNPCDutyAccount({role:ROYAL,namespace:'chinaRoyalKitchenAccounts',saved:game.chinaRoyalKitchenAccounts,saveState:(s,r,p={})=>store({...p,chinaRoyalKitchenAccounts:s})});
  const guard=createNPCDutyAccount({role:GUARD,namespace:'chinaGuardAccounts',saved:game.chinaGuardAccounts,saveState:(s,r,p={})=>store({...p,chinaGuardAccounts:s})});
  const garden=createNPCPieceworkAccount({role:GARDEN,namespace:'chinaGardenAccounts',saved:game.chinaGardenAccounts,saveState:(s,r,p={})=>store({...p,chinaGardenAccounts:s})});
@@ -32,7 +32,7 @@ function setup(saved,{fund=true}={}){
 const state=f=>({royal:f.royal.snapshot(),guard:f.guard.snapshot(),garden:f.garden.snapshot(),journal:f.economy.snapshot(),game:f.game});
 const f=setup();assert.deepEqual(f.royal.account(ID),{bank:4,cash:0});assert.deepEqual(f.guard.account(ID),{bank:3,cash:0});assert.deepEqual(f.economy.account(ID),{bank:7,cash:0});assert.equal(f.economy.providerFor(ID),PROVIDER);
 const originalOther=f.royal.account(OTHER),before=state(f),candidate=f.economy.prepareMealPayment(meal);assert(candidate.ok);assert.equal(candidate.balanceAfter,1);assert.deepEqual(state(f),before,'preparation is read-only');
-for(const mode of ['false','throw','promise']){f.fail(mode);assert.equal(candidate.commit({chinaServiceWorld:{marker:'paid'}}).ok,false);assert.deepEqual(state(f),before,'failed whole save has no world/journal/provider mutation');}
+for(const mode of ['false','throw','promise','rejected-promise']){f.fail(mode);assert.equal(candidate.commit({chinaServiceWorld:{marker:'paid'}}).ok,false);assert.deepEqual(state(f),before,'failed whole save has no world/journal/provider mutation');}
 f.fail(null);const writes=f.writes;assert(candidate.commit({chinaServiceWorld:{marker:'paid'}}).ok);assert.equal(f.writes,writes+1);assert.equal(f.royal.account(ID).bank,0);assert.equal(f.guard.account(ID).bank,1);assert.deepEqual(f.royal.account(OTHER),originalOther);assert(candidate.commit().replayed);assert.equal(f.writes,writes+1);
 const split=f.economy.snapshot().transfers[0];assert.deepEqual(split.portions.map(p=>[p.providerId,p.amount,p.sourceSplit]),[['china-royal-kitchen-accounts',4,{cash:0,bank:4}],['china-guard-accounts',2,{cash:0,bank:2}]]);
 const persisted=f.game;delete persisted.chinaServiceWorld;const g=setup(persisted);assert.equal(g.economy.loadError,null);assert.equal(g.economy.account(ID).bank,1);assert(g.economy.prepareMealPayment(meal).commit().replayed);assert.equal(g.economy.snapshot().transfers.length,1);

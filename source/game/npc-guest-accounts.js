@@ -151,7 +151,8 @@ export function createNPCGuestAccounts(providers, {saved, saveState = null} = {}
     for (const candidate of participants) { if (!candidate.lock()) return failure('stale-guest-meal'); locked.push(candidate); }
     const providerPatch = Object.assign({}, ...candidates.map(({candidate}) => candidate.patch));
     const result = saveState(copy(next), {...copy(patch), ...copy(providerPatch)});
-    if (result === false || result?.ok === false || result?.then) return failure('save-failed');
+    if (result?.then) { Promise.resolve(result).catch(() => {}); return failure('async-save-unsupported'); }
+    if (result === false || result?.ok === false) return failure('save-failed');
     for (const {candidate} of candidates) if (!candidate.committed()?.ok) throw Error('guest-adoption-conflict');
     current = next; accepted = true; return {ok: true, replayed: !!old};
    } catch { return failure('save-failed'); }
