@@ -1,3 +1,4 @@
+import {buildChinaPublicToilet} from './china-public-toilet.js';
 import {salonArtistStations} from './china-tavern-salon-artists.js';
 import {buildTavernKitchen} from './china-tavern-kitchen.js';
 import {tavernPlaque} from './china-tavern-lettering.js';
@@ -8,7 +9,7 @@ import {buildChinaRoyalChair} from './china-royal-seating.js';
 export const CHINA_TAVERN=Object.freeze({
  id:'yunlai-house',name:'云来酒楼 · 客栈 · 青楼',storeys:3,
  bounds:{minX:16,maxX:26,minZ:8,maxZ:21},
- floors:[{y:.215,ceiling:3.77,name:'一层酒楼',rooms:['tavern-dining','tavern-kitchen','tavern-hall-1']},{y:4.015,ceiling:7.57,name:'二层客栈',rooms:['tavern-guest-lan','tavern-guest-zhu','tavern-hall-2']},{y:7.815,ceiling:11.57,name:'三层青楼',rooms:['tavern-performance','tavern-banquet','tavern-hall-3']}],
+ floors:[{y:.215,ceiling:3.77,name:'一层酒楼',rooms:['tavern-dining','tavern-kitchen','tavern-hall-1']},{y:4.015,ceiling:7.57,name:'二层客栈',rooms:['tavern-guest-lan','tavern-guest-zhu','tavern-hall-2','tavern-public-washroom']},{y:7.815,ceiling:11.57,name:'三层青楼',rooms:['tavern-performance','tavern-banquet','tavern-hall-3']}],
  stairHall:{minX:16,maxX:26,minZ:8,maxZ:15.2,crossPassage:{minZ:13.4,maxZ:15.2,width:1.8}},
  guestRooms:['tavern-guest-lan','tavern-guest-zhu'],adultVenue:true,
  implemented:['public stairs','dining seats','two private furnished guest rooms','guest beds','guest wardrobes','listening seats','adult poetry recital','host meal orders and clearing','physical kitchen and table delivery','adult introductions and private-room tea visits'],
@@ -134,7 +135,9 @@ export function buildChinaTavern(G,A){
   sign(g1,name,x0+3.25,6.99,14.99,1.45,.52,Math.PI);
   target('cn-tavern-'+key+'-entry',name+'空闲前室',[x0+3.2,y,16.35],'tavern-guest-'+key);
  }
- sign(g1,'二层客栈',21,7.03,21.23,3.45,.58);consoleTable(g1,24.0,4.015,9.15,2.7);chair(g1,'china-tavern-lobby-seat','客栈公共候坐椅',24.7,4.015,12.3,Math.PI,'reading');
+ sign(g1,'二层客栈',21,7.03,21.23,3.45,.58);consoleTable(g1,24.0,4.015,9.15,2.7);chair(g1,'china-tavern-lobby-seat','客栈公共候坐椅',24.7,4.015,12.3,0,'reading');
+ buildChinaPublicToilet(G,{group:g1,H,C,palaceWall,door,doorways,colliders,cameraColliders,walkableSurfaces,interiorRooms,explorationTargets,sign});
+ sign(g0,'二层公共净室',21.3,2.65,14.99,2.35,.40,Math.PI);
 
  // Top floor: a deep textile-backed performance room and a separate banquet
  // salon, both reached from the same public hall. No beds or erotic animations.
