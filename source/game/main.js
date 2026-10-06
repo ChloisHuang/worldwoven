@@ -1,3 +1,4 @@
+import {migrateChinaLayoutContinuity} from './china-layout-continuity.js';
 import {createChinaSalonEconomy} from './china-salon-economy.js';
 import {createEgyptTableServiceEmployment} from './egypt-table-service-employment.js';
 import {createJapanTableServiceEmployment} from './japan-table-service-employment.js';
@@ -148,6 +149,7 @@ const references=[
 ];
 for(const [name,url] of references){const a=document.createElement('a');a.textContent=name;a.href=url;a.target='_blank';a.rel='noopener';$('references').append(a);}
 let saved={visited:[],stamps:{},outfit:0};try{const s=JSON.parse(gameStorage.getItem('worlds-days-v1')||'null');if(s&&Array.isArray(s.visited)&&s.stamps)saved={...saved,...s};}catch{}
+migrateChinaLayoutContinuity(saved);
 const simulationClock=createSimulationClock(saved.simulationClock,saved.chinaAudience?.day);
 saved.simulationClock=simulationClock.snapshot();
 let clockSaveAt=simulationClock.state().seconds;

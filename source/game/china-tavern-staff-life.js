@@ -1,9 +1,10 @@
+import {TAVERN_LAYOUT_VERSION} from './china-tavern-layout.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
 import {createPalaceMealKit} from './china-palace-costume.js';
 
 const copy=x=>JSON.parse(JSON.stringify(x));
 const near=(n,p,r=.12)=>Math.hypot(n.root.position.x-p[0],n.root.position.z-p[2])<r&&Math.abs(n.root.position.y-p[1])<.35;
-const WALKS=[[20,.115,22.4],[22,.115,22.4],[21.4,.215,19.9],[22.1,.215,14.15]];
+const WALKS=[[20,.115,22.4],[22,.115,22.4],[21.4,.215,19.9],[22.1,.215,9.15]];
 // This is the existing personality/need sampler applied at activity boundaries.
 // It never claims an order, changes a post, scans routes, or creates wages.
 export function createTavernStaffLife({actors,furniture,getPlayer,getMounted,getClock,worldSeed=1,travel,unmount,effect,onChanged=()=>{},sharedNeeds=null,getAdditionalChoices=()=>[],onExternalChoice=()=>false}){
@@ -12,7 +13,7 @@ export function createTavernStaffLife({actors,furniture,getPlayer,getMounted,get
  const makeBrain=saved=>createLifeDecisions({worldSeed,actorIds:actors.map(n=>n.station.id),saved,sharedNeeds,onChange:()=>{dirty=true;}});
  brain=makeBrain({});
  const note=(n,event)=>{events.push({actorId:n.station.id,event,time});if(events.length>30)events.shift();dirty=true;};
- const snapshot=()=>({version:1,time,brain:brain.snapshot(),rows:[...rows].map(([n,s])=>[n.station.id,copy(s)]),nextAt:[...nextAt].map(([n,t])=>[n.station.id,t]),snacks:[...snacks],events:copy(events)});
+ const snapshot=()=>({version:1,layoutVersion:TAVERN_LAYOUT_VERSION,time,brain:brain.snapshot(),rows:[...rows].map(([n,s])=>[n.station.id,copy(s)]),nextAt:[...nextAt].map(([n,t])=>[n.station.id,t]),snacks:[...snacks],events:copy(events)});
  const occupied=(seat,n)=>getMounted()?.id===seat.id||actors.some(a=>a!==n&&a.serviceMount?.id===seat.id)||!!furniture.facilities.reservation?.(seat.id,n.station.id)?.other;
  const freeSeat=(seat,n)=>{const all=furniture.facilities.state?.()||[],f=all.find(f=>f.id===seat.id);return !occupied(seat,n)&&!f?.reservations.some(r=>r.actor!==n.station.id);};
  function finish(n,s,fulfilled){if(n.serviceMount&&!unmount(n))return false;furniture.releaseActor(n.station.id);if(s?.choice)brain.complete(n.station.id,s.choice,{fulfilled});if(fulfilled&&s?.choice.id==='meal')snacks.set(n.station.id,Math.max(0,(snacks.get(n.station.id)||0)-1));rows.delete(n);n.route=[];kits.get(n)?.show(false);nextAt.set(n,time+3);note(n,fulfilled?'completed':'interrupted');return true;}
@@ -61,7 +62,7 @@ export function createTavernStaffLife({actors,furniture,getPlayer,getMounted,get
   isActive:n=>rows.has(n),claimsSeat:(id,seatId)=>[...rows].some(([n,s])=>n.station.id===id&&s.seatId===seatId),
   label:n=>rows.get(n)?.phase==='approaching'?'前往'+rows.get(n).choice.label:rows.get(n)?.choice.label||'歇息片刻',
   socialProfile:id=>brain.state(id),
-  snapshot,restore(s){if(s?.version!==1)return false;time=Math.max(0,s.time||0);brain=makeBrain(s.brain||{});rows.clear();for(const[id,row]of s.rows||[]){const n=actors.find(n=>n.station.id===id);if(n&&row.choice&&Array.isArray(row.target)&&!(sharedNeeds?.has(id)&&row.choice.id==='meal'))rows.set(n,copy(row));}nextAt.clear();for(const[id,t]of s.nextAt||[]){const n=actors.find(n=>n.station.id===id);if(n&&Number.isFinite(t))nextAt.set(n,t);}for(const[id,count]of s.snacks||[])if(snacks.has(id)&&Number.isInteger(count)&&count>=0)snacks.set(id,count);events=copy((s.events||[]).slice(-30));dirty=false;return true;},
+  snapshot,restore(s){if(s?.version!==1)return false;time=Math.max(0,s.time||0);brain=makeBrain(s.brain||{});rows.clear();for(const[id,row]of s.rows||[]){const n=actors.find(n=>n.station.id===id);if(n&&row.choice&&Array.isArray(row.target)&&!(sharedNeeds?.has(id)&&row.choice.id==='meal')){const next=copy(row),seat=next.seatId&&furniture.items.find(i=>i.id===next.seatId);if(s.layoutVersion!==TAVERN_LAYOUT_VERSION){if(seat)next.target=seat.position.slice();else if(next.choice.id==='garden'&&Math.hypot(next.target[0]-22.1,next.target[2]-14.15)<.01)next.target=[22.1,.215,9.15];next.choice.target=next.target.slice();if(seat||!near(n,next.target)){next.phase='approaching';next.wait=0;}}rows.set(n,next);}}nextAt.clear();for(const[id,t]of s.nextAt||[]){const n=actors.find(n=>n.station.id===id);if(n&&Number.isFinite(t))nextAt.set(n,t);}for(const[id,count]of s.snacks||[])if(snacks.has(id)&&Number.isInteger(count)&&count>=0)snacks.set(id,count);events=copy((s.events||[]).slice(-30));dirty=false;return true;},
   state:()=>({time,actors:actors.map(n=>({id:n.station.id,choice:rows.get(n)?.choice.id||null,phase:rows.get(n)?.phase||'idle',target:rows.get(n)?.target||null,elapsed:rows.get(n)?.elapsed||0,label:rows.get(n)?.choice.label||null})),events:copy(events),decisions:brain.snapshot()}),
   dispose(){disposed=true;for(const kit of kits.values())kit.dispose();kits.clear();rows.clear();}
  };

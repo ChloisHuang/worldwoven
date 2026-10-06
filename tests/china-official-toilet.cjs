@@ -7,7 +7,7 @@ const assert=require('node:assert/strict'),load=require('./fixtures/browser-modu
  const officials=ids.map(id=>{const root=new T.Group();root.position.set(14,.115,13.8);return {station:{id},root,phase:0,route:[],walking:false,collisionRadius:.25,animate(){}};});
  let writes=0,reject=false,saved={},blockedExit=false,attempts=0,needWrites=0;
  const needs=createDailyNeeds({saved:{version:2,people:Object.fromEntries(ids.map(id=>[id,{foodAge:0,toiletAge:25*H,receipts:{}}]))},getClock:()=>clock,saveState:()=>{needWrites++;return true;}});needs.enter('china',ids);
- const lot={colliders:[],bounds:{minX:-40,maxX:40,minZ:-40,maxZ:40},walkableSurfaces:[{minX:0,maxX:30,minZ:0,maxZ:40,y:4.015}],explorationTargets:[{id:P.id,position:P.approach}],interiorRooms:[{id:P.roomId,minX:21.65,maxX:25.85,minZ:9.65,maxZ:11.65}]};
+ const lot={colliders:[],bounds:{minX:-40,maxX:40,minZ:-40,maxZ:40},walkableSurfaces:[{minX:0,maxX:30,minZ:0,maxZ:40,y:4.015}],explorationTargets:[{id:P.id,position:P.approach}],interiorRooms:[{id:P.roomId,minX:21.65,maxX:25.85,minZ:4.65,maxZ:6.65}]};
  const doors={getState:()=>[{id:P.closures[0],kind:'full-curtain',fraction:0}]};
  const args={lot,doors,getActors:()=>officials,getClock:()=>({day:0,hour:14}),saveState:s=>{writes++;if(reject)return false;saved=JSON.parse(JSON.stringify(s));return true;},onCompleted:r=>needs.toiletReceipt(r)||(needs.snapshot().people[r.actorId].receipts[r.source]||0)>=r.number};
  let toilet=createChinaDailyToilets(args);const request=toilet.requestPublicActor;toilet.requestPublicActor=n=>{attempts++;return request(n);};
@@ -19,7 +19,7 @@ const assert=require('node:assert/strict'),load=require('./fixtures/browser-modu
  const lifeCheckpoint=JSON.parse(JSON.stringify(flow.snapshot())),toiletCheckpoint=JSON.parse(JSON.stringify(saved)),position=first.root.position.toArray();
  assert.deepEqual(toilet.restorePosition(ids[0],position),position);assert.equal(toilet.restorePosition(ids[1],position),null);assert.equal(toilet.restorePosition(ids[0],P.approach),null);
  // One hard court summon leaves the real cubicle before handing back control.
- lot.colliders.push({minX:23.5,maxX:24.1,minZ:10.2,maxZ:10.8,minY:4,maxY:6});flow.request(first);tick();assert(!flow.ready(first));assert(toilet.ownsActor(first));assert.equal(needWrites,0);assert.deepEqual(first.root.position.toArray(),P.anchor);
+ lot.colliders.push({minX:23.5,maxX:24.1,minZ:P.approach[2]-.3,maxZ:P.approach[2]+.3,minY:4,maxY:6});flow.request(first);tick();assert(!flow.ready(first));assert(toilet.ownsActor(first));assert.equal(needWrites,0);assert.deepEqual(first.root.position.toArray(),P.anchor);
  lot.colliders.length=0;tick();assert(flow.ready(first));assert(!toilet.ownsActor(first));assert.deepEqual(first.root.position.toArray(),P.approach);assert.equal(needWrites,0);
  // Abrupt save recovery preserves the authored mount, then safely interrupts;
  // old time is never promoted into a completed use or artificial relief.

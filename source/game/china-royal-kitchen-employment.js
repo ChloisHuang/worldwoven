@@ -53,7 +53,7 @@ export function createChinaRoyalKitchenEmployment({kitchen,careers,getPlayer,get
   if(!meet()||next.kind==='end-shift'&&!kitchen.canEndDuty(current.job.receiptId)){waiting=next;kitchen.requestMeeting(true);notify('等原膳用毕、Jia回来当面交班；如尚有备制，请先完成手上原单');return true;}
   waiting=null;return next.kind==='formal-apply'?formal.apply():next.kind==='formal-review'?formal.review():next.kind==='formal-resign'?formal.resign():next.kind==='accept'?accept():next.kind==='claim'?claim():next.kind==='end-shift'?endShift():false;
  }
- const inWorkplace=()=>{const p=getPlayer()?.root.position;return p&&p.x>=16&&p.x<=26&&p.z>=-12&&p.z<=2&&p.y>=-.05&&p.y<=.55;};
+ const inWorkplace=()=>{const p=getPlayer()?.root.position;return p&&p.x>=16&&p.x<=26&&p.z>=-12&&p.z<=-3&&p.y>=-.05&&p.y<=4.55;};
  function update(dt=0){if(disposed||lastError)return;kitchen.requestMeeting(!!waiting||atRegistration()&&(current.job?.stage!=='working'||!kitchen.dutyActive(current.job.receiptId)));
   if(waiting){if(!atRegistration()||!resolveIntent(waiting))waiting=null;else if(meet()&&(waiting.kind!=='end-shift'||kitchen.canEndDuty(current.job.receiptId))){const next=waiting;waiting=null;executeIntent(next);}}
   const j=current.job;if(j?.stage!=='working')return;const d=careers.workState().lastDuty;

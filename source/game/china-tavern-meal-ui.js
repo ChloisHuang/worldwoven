@@ -1,3 +1,4 @@
+import {tavernSeatSide} from './china-tavern-layout.js';
 import {currentInteractionIntent,nearbyInteraction} from './player-interaction-intents.js';
 import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
 import {AIRY_UI_THEME} from './china-money-house-theme.js';
@@ -14,16 +15,17 @@ export function createChinaTavernMealUI({service,getPlayer,getMounted,getRecepti
  badge.type='button';badge.setAttribute('aria-label','云来酒楼选座与点菜');dialog.setAttribute('aria-label','云来酒楼菜牌');(doc.head||doc.body).append(style);doc.body.append(badge,dialog);
  let menuState={order:false,seated:null},signature='',disposed=false,choiceRevision=0,chosenSeat=null,chosenDish=service.menu?.[0]?.id||service.dish.id;
  const nearEntry=()=>[getReception(),...service.seats].some(item=>nearbyInteraction(item,getPlayer()?.root.position,{radius:1.8,clear:canSee}));
- const seatName=s=>s?`${s.center[0]<21?'西窗':'东窗'}桌 · ${s.center[2]<18.1?'里侧':'门侧'}`:'原餐位';
+ const seatName=s=>s?`${s.center[0]<21?'西窗':'东窗'}桌 · ${tavernSeatSide(s)<0?'里侧':'门侧'}`:'原餐位';
  function invalidateIntent(){choiceRevision++;}
  function close(){if(dialog.open){invalidateIntent();dialog.close();}}
  function button(text,fn,primary=false){const revision=choiceRevision,b=make('button',text,primary?'cn-meal-primary ww-airy-action':'');b.type='button';b.onclick=()=>{if(!disposed&&dialog.open&&revision===choiceRevision&&!b.disabled)fn();};return b;}
  // A choice describes the outcome. The shared controller owns its route and
  // cancellation; this UI never polls a remembered seat or submits on update.
  function intent(seatId,dishId=chosenDish){
+  const order=service.view().order,resume=!!order?.layoutAwaitingSeat&&!order.cancelled&&order.seatId===seatId;
   const dish=service.menu?.find(d=>d.id===dishId)||service.dish,seat=service.seats.find(s=>s.id===seatId),mounted=getMounted()?.id===seatId;
-  if(disposed||!seat||!getPlayer()||service.view().order||!canOrder()||!mounted&&!canChooseSeat(seat))return null;
-  return {id:'cn-meal-'+seat.id,provider:'china-tavern-meal',seatId:seat.id,dishId:dish.id,name:'云来酒楼',action:`在${seatName(seat)}点${dish.name} · ${dish.price||6}文`,position:(mounted?seat.anchor:seat.position).slice(),executionRadius:mounted ? .35 : .016,keepSeat:mounted,intentKey:JSON.stringify([choiceRevision,seat.id,dish.id,mounted])};
+  if(disposed||!seat||!getPlayer()||order&&!resume||!resume&&!canOrder()||!mounted&&!canChooseSeat(seat))return null;
+  return {id:'cn-meal-'+seat.id,provider:'china-tavern-meal',seatId:seat.id,dishId:dish.id,name:'云来酒楼',action:resume?'回到原餐位 · 继续本次餐单':`在${seatName(seat)}点${dish.name} · ${dish.price||6}文`,position:(mounted?seat.anchor:seat.position).slice(),executionRadius:mounted ? .35 : .016,keepSeat:mounted,resume,intentKey:JSON.stringify([choiceRevision,seat.id,dish.id,mounted,resume?order.id:null])};
  }
  function resolveIntent(selected){return currentInteractionIntent(selected,intent(selected?.seatId,selected?.dishId));}
  function executeIntent(selected){
@@ -31,7 +33,7 @@ export function createChinaTavernMealUI({service,getPlayer,getMounted,getRecepti
   invalidateIntent(); // Consume before mount or service effects, including failure.
   const seat=service.seats.find(s=>s.id===current.seatId);
   if(getMounted()?.id!==seat.id)onMountSeat(seat);
-  return getMounted()?.id===seat.id&&service.requestMeal(current.dishId);
+  return getMounted()?.id===seat.id&&(current.resume||service.requestMeal(current.dishId));
  }
  function request(selected){if(!resolveIntent(selected)){refresh(true);return;}dialog.close();onIntent(selected);}
  function refresh(force=false){
@@ -58,10 +60,11 @@ export function createChinaTavernMealUI({service,getPlayer,getMounted,getRecepti
   const amount=make('div',null,'cn-meal-price');amount.append(make('strong',String(price)),make('span',`铜文 · ${o?payment==='refunded'?'已退回':settled?'已结账':payment==='unpaid'?'待核对':'已预留':'确认时预留'}`));detail.append(amount);
   if(!o)detail.append(make('p',`${seatName(seat)}${seated?' · 已入座':''}`,'cn-meal-status'));
   detail.append(make('p',payment==='refunded'?'餐费已退回，餐具仍会继续收拾。':settled?'餐点已送达，收餐或起身不退费。':'送达前取消全额退款，送达时结账。','cn-meal-note'));
-  if(o)detail.append(make('p','收起保留餐单；起身取消未吃完的饭。','cn-meal-note'));
+  if(o)detail.append(make('p',o.layoutAwaitingSeat?'餐单和已付款项已保留，请到原餐位落座后继续。':'收起保留餐单；起身取消未吃完的饭。','cn-meal-note'));
   else if(!available)detail.append(make('p','手上的岗位或短工还未收工，请先完成或取消。','cn-meal-error'));
   else if(cash!=null&&cash<price)detail.append(make('p',`余额不足 · 还差 ${price-cash} 铜文，可到钱庄取款。`,'cn-meal-error'));
   if(!o){const selected=intent(chosenSeat),confirm=button(`确认点餐 · ${price}文`,()=>request(selected),true);confirm.disabled=!selected||cash!=null&&cash<price;confirm.setAttribute('data-cn-meal-focus','confirm');actions.append(confirm);}
+  else if(o.layoutAwaitingSeat&&!o.cancelled){const resume=intent(o.seatId),b=button('回到原餐位 · 继续餐单',()=>request(resume),true);b.disabled=!resume;actions.append(b);}
   else if(o.stage==='ready'&&!o.cancelled)actions.append(button('享用送来的餐点',()=>{if(service.view().order?.id===o.id&&service.eat())close();else refresh(true);},true));
   else actions.append(button(o.cancelled?'收起 · 等候收餐':o.stage==='eating'?'收起 · 继续用餐':'收起 · 继续等候',close,true));
   if(o&&!o.cancelled&&!['clear-table','lifting','return','washing','wash','dirty','finish-bite'].includes(o.stage))actions.append(button(settled?'请收走餐点 · 不退费':'取消点餐 · 送达前退款',()=>{if(service.view().order?.id===o.id&&service.cancel())close();else refresh(true);}));

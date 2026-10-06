@@ -1,6 +1,6 @@
 import {createFacilityQueue} from './npc-facilities.js';
 import {palaceResident} from './china-palace-residents.js';
-const SHORE=[[-13.7,.145,-14.5],[-13.7,.145,-20.85]],TEA=[[-13.7,.145,-20.85],[-2.7,.145,-20.85],[0,.295,-20.85],[0,.815,-22.3],[0,.815,-24.3],[2.9,.815,-28.25]],DINING=[[-14.4,.115,.4],[-8,.13,11],[14,.13,11],[14,.13,4],[21,.215,4],[21,.215,1.3]];
+const SHORE=[[-13.7,.145,-14.5],[-13.7,.145,-20.85]],TEA=[[-13.7,.145,-20.85],[-2.7,.145,-20.85],[0,.295,-20.85],[0,.815,-22.3],[0,.815,-24.3],[2.9,.815,-28.25]],DINING=[[-14.4,.115,.4],[-8,.13,11],[14,.13,11],[14.9,.115,0],[21,.115,0],[21,.215,-3.8]];
 const reverse=a=>a.slice().reverse().map(p=>p.slice());
 export const CONSORT_GARDEN_SLOTS=Object.freeze([[-9.1,.145,-14.65],[-7.35,.145,-14.65],[-5.6,.145,-14.65]]);
 export function consortActivities(n,{stage,homeExit,homeReturn,bed,mealSeats,host,available,mealAvailable=true}){

@@ -1,14 +1,34 @@
+import {TAVERN_LAYOUT_VERSION as LAYOUT_VERSION} from './china-tavern-layout.js';
 import {TAVERN_DISHES} from './china-tavern-kitchen.js';
 // Personal trips for the four existing artists. The original salon scheduler
 // offers the opportunity; tavern/fixture ownership and receipts stay authoritative.
 const copy=x=>JSON.parse(JSON.stringify(x));
-const UP=[[14,.115,13.8],[16.9,.215,14.1],[17.55,.215,13.8],[17.55,2.115,9.2],[19.95,2.115,9.2],[19.95,4.015,14.1],[17.55,4.015,14.1],[17.55,5.915,9.2],[19.95,5.915,9.2],[19.95,7.815,14.1],[22.5,7.815,14.2]];
+const UP=[[14,.115,8.8],[16.9,.215,9.1],[17.55,.215,8.8],[17.55,2.115,4.2],[19.95,2.115,4.2],[19.95,4.015,9.1],[17.55,4.015,9.1],[17.55,5.915,4.2],[19.95,5.915,4.2],[19.95,7.815,9.1],[22.5,7.815,9.2]];
 const reverse=a=>a.slice().reverse().map(p=>p.slice());
 export function createSalonNeeds({artists,sharedNeeds,economy,getTavern=()=>null,getToilet=()=>null,travel,pose,poseContext=()=>({}),resetRoute=()=>{},saveState=()=>true,saved={}}){
  const tasks=new Map(),retryAt=new Map(),reasons=new Map();let time=0,disposed=false;
- const snapshot=()=>({version:1,time,tasks:[...tasks].map(([n,s])=>[n.station.id,copy(s)]),retryAt:[...retryAt],reasons:[...reasons]});
+ const snapshot=()=>({version:1,layoutVersion:LAYOUT_VERSION,time,tasks:[...tasks].map(([n,s])=>[n.station.id,copy(s)]),retryAt:[...retryAt],reasons:[...reasons]});
  const persist=()=>saveState(snapshot());
- function restore(s){if(s?.version!==1)return false;time=Math.max(0,s.time||0);tasks.clear();for(const[id,row]of s.tasks||[]){const n=artists.find(a=>a.station.id===id);if(n&&['toilet','go-meal','meal','return'].includes(row.kind)&&Array.isArray(row.path)&&row.path.every(p=>Array.isArray(p)&&p.length===3&&p.every(Number.isFinite)))tasks.set(n,{...copy(row),index:Math.max(0,Math.min(row.index||0,row.path.length)),wait:0});}retryAt.clear();for(const[id,t]of s.retryAt||[])if(artists.some(n=>n.station.id===id)&&Number.isFinite(t))retryAt.set(id,t);reasons.clear();for(const[id,r]of s.reasons||[])if(artists.some(n=>n.station.id===id)&&['餐钱不足，歇场后再作打算','餐位暂忙，稍后再去'].includes(r))reasons.set(id,r);return true;}
+ function restore(s){
+  if(s?.version!==1)return false;time=Math.max(0,s.time||0);tasks.clear();
+  for(const[id,row]of s.tasks||[]){
+   const n=artists.find(a=>a.station.id===id);if(!n||!['toilet','go-meal','meal','return'].includes(row.kind)||!Array.isArray(row.path)||!row.path.every(p=>Array.isArray(p)&&p.length===3&&p.every(Number.isFinite)))continue;
+   const task={...copy(row),index:Math.max(0,Math.min(row.index||0,row.path.length)),wait:0};
+   if(s.layoutVersion!==LAYOUT_VERSION){
+    const approach=getToilet()?.publicIntent?.()?.position;
+    // Only authored public route anchors moved. In particular, the final
+    // artist home stays where it was; the body also stays at its real position.
+    task.path=task.path.map((p,i)=>{
+     const current=UP.find(q=>Math.abs(q[0]-p[0])<1e-6&&Math.abs(q[1]-p[1])<1e-6&&Math.abs(q[2]+5-p[2])<1e-6);
+     return current?current.slice():row.kind==='toilet'&&i===row.path.length-1&&approach?approach.slice():p;
+    });
+    if(task.index===task.path.length&&task.path.length&&task.path.at(-1).some((v,i)=>v!==row.path.at(-1)[i]))task.index--;
+   }
+   tasks.set(n,task);if(task.kind!=='meal')resetRoute(n);
+  }
+  retryAt.clear();for(const[id,t]of s.retryAt||[])if(artists.some(n=>n.station.id===id)&&Number.isFinite(t))retryAt.set(id,t);
+  reasons.clear();for(const[id,r]of s.reasons||[])if(artists.some(n=>n.station.id===id)&&['餐钱不足，歇场后再作打算','餐位暂忙，稍后再去'].includes(r))reasons.set(id,r);return true;
+ }
  restore(saved);
  function start(n,kind,path){tasks.set(n,{kind,path:path.map(p=>p.slice()),index:0,wait:0});reasons.delete(n.station.id);resetRoute(n);persist();}
  function returnHome(n,from){start(n,'return',[...(from==='toilet'?UP.slice(6):UP),n.home.toArray()]);}

@@ -1,6 +1,6 @@
 export const SALON_ROOMS=Object.freeze([
- {id:'tavern-guest-lan',name:'兰房',minX:16,maxX:21,minZ:15.2,maxZ:21,y:4.015,actor:[19.35,4.015,18.25],player:[20.3,4.015,18.25]},
- {id:'tavern-guest-zhu',name:'竹房',minX:21,maxX:26,minZ:15.2,maxZ:21,y:4.015,actor:[24.35,4.015,18.25],player:[25.3,4.015,18.25]}
+ {id:'tavern-guest-lan',name:'兰房',minX:16,maxX:21,minZ:10.2,maxZ:21,y:4.015,actor:[19.35,4.015,18.25],player:[20.3,4.015,18.25]},
+ {id:'tavern-guest-zhu',name:'竹房',minX:21,maxX:26,minZ:10.2,maxZ:21,y:4.015,actor:[24.35,4.015,18.25],player:[25.3,4.015,18.25]}
 ]);
 export const inSalonRoom=(room,p)=>!!p&&Math.abs(p.y-room.y)<.45&&p.x>room.minX+.15&&p.x<room.maxX-.15&&p.z>room.minZ+.15&&p.z<room.maxZ-.15;
 // Claims are scene-local. Physical visitors still keep a released room busy

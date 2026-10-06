@@ -2,6 +2,7 @@
 // and the typed meal provider are doubles; actual paid kitchen is tested separately.
 import assert from 'node:assert/strict';
 import {createChinaTavernSalon,SALON_PERFORMER} from '../source/game/china-tavern-salon.js';
+import {createSalonNeeds} from '../source/game/china-salon-needs.js';
 import {createDailyNeeds,DAILY_NEEDS_HOUR as H} from '../source/game/daily-needs.js';
 import {createChinaPublicToilet,CHINA_PUBLIC_TOILET as P} from '../source/game/china-public-toilet.js';
 import {createCurrencyLedger} from '../source/game/currency-ledger.js';
@@ -9,9 +10,9 @@ const copy=x=>JSON.parse(JSON.stringify(x));
 class V{constructor(x=0,y=0,z=0){this.set(x,y,z);}set(x,y,z){Object.assign(this,{x,y,z});return this;}toArray(){return [this.x,this.y,this.z];}distanceTo(p){return Math.hypot(this.x-p.x,this.y-p.y,this.z-p.z);}copy(p){return this.set(p.x,p.y,p.z);}}
 function fixture({food=0,toiletAge=0,money=57,snapshot=null,lease=null}={}){
  let time=0,service,bankReads=0,mealRequests=0,stored=snapshot?.toilet||{},receipts=0,returnedHome=false;const clock={seconds:0};
- const actor=(id,p)=>({station:{id,npcName:id,ageYears:27,salon:{activities:['poetry'],willing:true}},root:{position:new V(...(snapshot?.positions?.[id]||p)),rotation:{y:0}},home:new V(...p),locomotion:{walkSpeed:2},route:[],phase:0,animate(t,w,action){this.action=action;}}),a=actor(SALON_PERFORMER,[18.8,7.815,18.66]),h=actor('cn-tavern-reception',[24.15,7.815,10.45]);delete h.station.salon;const player={ageYears:24,root:{position:new V(24.15,7.815,12.65),rotation:{y:0}},locomotion:{walkSpeed:2}};
+ const actor=(id,p)=>({station:{id,npcName:id,ageYears:27,salon:{activities:['poetry'],willing:true}},root:{position:new V(...(snapshot?.positions?.[id]||p)),rotation:{y:0}},home:new V(...p),locomotion:{walkSpeed:2},route:[],phase:0,animate(t,w,action){this.action=action;}}),a=actor(SALON_PERFORMER,[18.8,7.815,18.66]),h=actor('cn-tavern-reception',[24.15,7.815,5.45]);delete h.station.salon;const player={ageYears:24,root:{position:new V(24.15,7.815,7.65),rotation:{y:0}},locomotion:{walkSpeed:2}};
  const needs=createDailyNeeds({getClock:()=>clock,saved:snapshot?.needs||{version:2,people:{[SALON_PERFORMER]:{foodAge:food,toiletAge,receipts:{}}}}});needs.enter('china',[SALON_PERFORMER]);
- const provider=createChinaPublicToilet({lot:{colliders:[],bounds:{minX:-40,maxX:40,minZ:-40,maxZ:40},walkableSurfaces:[{minX:15,maxX:30,minZ:8,maxZ:24,y:4.015}],explorationTargets:[{id:P.id,position:P.approach}],interiorRooms:[{id:P.roomId,minX:21.65,maxX:25.85,minZ:9.65,maxZ:11.65}]},doors:{getState:()=>[{id:P.closures[0],kind:'full-curtain',fraction:0}]},getActors:()=>[a,h],getPlayer:()=>player,getBusy:id=>!!service?.isProvidingService(id),saved:stored,saveState:s=>{stored=copy(s);return true;},onCompleted:r=>{receipts++;return needs.toiletReceipt(r);}});
+ const provider=createChinaPublicToilet({lot:{colliders:[],bounds:{minX:-40,maxX:40,minZ:-40,maxZ:40},walkableSurfaces:[{minX:15,maxX:30,minZ:3,maxZ:24,y:4.015}],explorationTargets:[{id:P.id,position:P.approach}],interiorRooms:[{id:P.roomId,minX:21.65,maxX:25.85,minZ:4.65,maxZ:6.65}]},doors:{getState:()=>[{id:P.closures[0],kind:'full-curtain',fraction:0}]},getActors:()=>[a,h],getPlayer:()=>player,getBusy:id=>!!service?.isProvidingService(id),saved:stored,saveState:s=>{stored=copy(s);return true;},onCompleted:r=>{receipts++;return needs.toiletReceipt(r);}});
  const facility={...provider,publicIntent:provider.intent,publicAvailable:()=>!!provider.intent()&&!provider.active(null),requestPublicActor:provider.requestActor};
  const tavern={artistMealActorId:()=>lease?.actorId||null,artistMealAvailable:id=>id===SALON_PERFORMER&&!lease&&money>=6&&!!service?.canBorrowArtist(id),requestArtistMeal(id){if(!this.artistMealAvailable(id))return false;mealRequests++;lease={actorId:id,orderId:'cn-tavern-order-1',kind:'salon-artist',accountProvider:'china-salon-economy'};a.route=[{x:17.8,y:.215,z:16.7,borrowed:true}];return true;},cancelArtistMeal:()=>{lease=null;return true;}};
  const wallet=createCurrencyLedger({saveState:()=>true});assert(wallet.earn(1000,'fixture-earlier-paid-work').ok);
@@ -28,3 +29,16 @@ const toilet=fixture({toiletAge:25*H});toilet.until(()=>!!toilet.provider.actorP
 console.log('PASS actual public fixture/privacy/completion once, interrupted mount restores without relief, original home/identity retained');
 const performing=fixture({food:25*H,toiletAge:25*H});assert(performing.service.request(SALON_PERFORMER));performing.tick(80);assert(performing.service.isProvidingService(SALON_PERFORMER));assert.equal(performing.service.canBorrowArtist(SALON_PERFORMER),false);assert(!performing.tavern.requestArtistMeal(SALON_PERFORMER));assert(!performing.facility.requestPublicActor(performing.a));assert.equal(performing.mealRequests,0);assert(!performing.service.personalNeedStatus(performing.a));performing.service.cancel();performing.until(()=>!!performing.service.personalNeedStatus(performing.a),'need begins only after the existing performance cancellation/return finishes');
 console.log('PASS existing invitation/service/return retains priority; both external meal and toilet reject simultaneous ownership');
+
+// Legacy route snapshots otherwise keep walking to the removed stair hall.
+// Only public anchors migrate; the original actor and its home are untouched.
+for(const kind of ['go-meal','return','toilet']){
+ const home=[18.8,7.815,18.66],a={station:{id:SALON_PERFORMER},root:{position:new V(19.95,7.815,14.1)},home:new V(...home),route:[{x:19.95,y:7.815,z:14.1}]},calls=[];
+ const path=kind==='return'?[[19.95,7.815,14.1],home]:kind==='toilet'?[[17.55,4.015,14.1],[23.8,4.015,10.5]]:[[19.95,7.815,14.1],[14,.115,13.8]];
+ const legacy={version:1,time:17,tasks:[[SALON_PERFORMER,{kind,path,index:0,wait:4}]],retryAt:[],reasons:[]},original=copy(legacy),position=a.root.position.toArray();
+ const c=createSalonNeeds({artists:[a],saved:legacy,getToilet:()=>({publicIntent:()=>({position:P.approach}),ownsActor:()=>true,updateActor:(_n,dt,{travel})=>travel(null,dt),actorPose:()=>null}),travel:(n,to)=>{calls.push({from:n.root.position.toArray(),to});return false;},pose(){},resetRoute:n=>{n.route=[];}});
+ assert.deepEqual(legacy,original);assert.deepEqual(a.root.position.toArray(),position);assert.deepEqual(a.home.toArray(),home);assert.equal(a.route.length,0);
+ const migrated=c.snapshot();assert.equal(migrated.tasks[0][1].path[0][2],path[0][2]-5);assert.deepEqual(migrated.tasks[0][1].path.at(-1),kind==='return'?home:kind==='toilet'?P.approach:[14,.115,8.8]);assert(c.restore(migrated));assert.deepEqual(c.snapshot(),migrated,'a current checkpoint cannot shift public targets a second time');
+ c.update(.1,18);assert.deepEqual(calls[0].from,position);assert.deepEqual(calls[0].to,migrated.tasks[0][1].path[0]);assert.equal(c.snapshot().tasks[0][1].kind,kind);assert.deepEqual(a.root.position.toArray(),position);
+}
+console.log('PASS layout restore replans only public stair/meal/toilet targets once, preserving actor position, task kind and original artist home');
