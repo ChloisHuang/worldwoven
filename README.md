@@ -11,8 +11,8 @@ R16.131 ordinary visits use the current supported character model with the origi
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.147-public, 2026-10-06
-Verified published Sites source commit: 585dfdd84a2ce37d65963768e39eb44a6f88fa16
+Published release: R16.148-public, 2026-10-06
+Verified published Sites source commit: f5c1948bc0457118d252a378ae3587b06fa4e1e1
 
 Opt-in same-save performance panel: https://alien.doudouai.net/?perf=1#china
 It reads runtime timing/render counts and the initial save length; it does not reset storage or send telemetry. CPU submission timing is not GPU timing. R16.128 removes repeated full-history copies from closed salon panels and China job/HUD reads. R16.129 extends current-career reads to the existing Japan/Egypt employment adapters and French tea/pastry/gardening controllers. Those controllers only run in their respective countries. The user reported R16.130 runs without lag; broader device performance remains unverified.
@@ -50,6 +50,8 @@ R16.145 removes the six officials’ finite treasury funding gate. Their existin
 R16.146 fixes a floating-point retreat limit that could deadlock opposing traffic on the officials’ stairs. Six-person return, opposing traffic with save restoration and a player blocking the stair all passed actual-scene checks; live phone feedback remains open.
 
 R16.147 refreshes promotion navigation to the moving official and lets ordinary homeward travel pause for reception. Yunlai furniture now fills the enlarged dining rooms and suites, with two separate waiting seats and floor-correct signs. Artist meal-funding hints clear after real settlement; autonomous NPC customer payments remain unfinished. Existing paid orders and identities survive layout restoration; live phone feedback remains open.
+
+R16.148 expands male facial variation through the existing saved traits, including cheek and forehead response while retaining the reviewed chin and female geometry. Source-matched representative comparisons were reviewed; actual player feedback remains open. The range warden now earns from observed patrol work and pays for an original meal and public toilet trip after safe handover. Default China needs coverage is 24/31, with seven still open.
 
 ## Working rules
 
