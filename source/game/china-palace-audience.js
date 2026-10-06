@@ -47,18 +47,19 @@ export function chinaCourtStatusSummary(schedule,phase='waiting'){
   if(e.conversations?.length)details.push('当时交谈未结束：'+e.conversations.map(name).join('、'));
   return day+'11:30朝会延期。'+(details.length?details.join('；')+'。':'旧记录未保存具体未到人员。')+'诸官今日各归其职，明日11:30再赴班。';
  }
- if(schedule.calledDay===schedule.day&&schedule.outcome==='interrupted')return day+'朝会已中断；若尚未到11:30会重新召集，否则明日11:30再赴班。';
+ if(schedule.calledDay===schedule.day&&schedule.outcome==='interrupted')return day+(schedule.lastStartedDay===schedule.day?'朝会开场后已中断，本日不重开；明日再赴班。':'朝会已中断；若尚未到11:30会重新召集，否则明日再赴班。');
  if(schedule.calledDay===schedule.day&&schedule.outcome==='completed')return day+'朝会已完成，诸官各归其职。下次朝会在明日11:30。';
  if(schedule.calledDay===schedule.day&&schedule.outcome==='missed')return day+'11:30朝会已错过。下次朝会在明日11:30。';
- if(FORMAL.has(phase))return day+'11:30朝会正在举行，诸官依班跪奏。';
- return day+'朝会定于11:30。'+(phase==='holding'?'官员已到班位，持笏静候到点行礼。':phase==='assembling'?'官员正从各自所在处赴班；到点统一行礼。':'官员按各自实际路程提前赴班。');
+ if(FORMAL.has(phase))return day+(schedule.startedAt<schedule.courtStart?'朝班齐集，朝会已提前开始。':'朝会正在举行。')+'诸官依班跪奏。';
+ return day+'朝会最迟11:30按原到场规则办理，齐班可提前开朝。'+(phase==='holding'?'官员已到班位，持笏候齐。':phase==='assembling'?'官员正从各自所在处赴班。':'官员按各自实际路程提前赴班。');
 }
 
-export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveActor,poseContext,furniture,economy=null,sharedNeeds=null,getTavern=()=>null,getClock=()=>({day:0}),worldSeed=1,readEdict=()=>null,reissueEdict=()=>false,saved={},saveState=()=>{},beginInteraction=()=>null,onInteraction=()=>{},notify=()=>{}}){
+export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveActor,poseContext,furniture,economy=null,sharedNeeds=null,getTavern=()=>null,getClock=()=>({day:0}),worldSeed=1,readEdict=()=>null,reissueEdict=()=>false,saved={},saveState=()=>{},beginInteraction=()=>null,onInteraction=()=>{},notify=()=>{},canStartEarly=()=>true}){
  if(saved.continuity?.version===1)saved={...saved,...saved.continuity.schedule,life:saved.continuity.life,reports:saved.continuity.reports,preservePhysical:true};
  const officials=CHINA_COURT_OFFICIALS.map(r=>npcs.find(n=>n.station.id===r.id)),emperor=npcs.find(n=>n.station.id==='cn-emperor');
  if(!palace||!emperor||officials.some(n=>!n))return null;
- const owned=new Set(officials),schedule=createAudienceSchedule(saved),caps=officials.map(attachCourtOfficialCostume),tasks=new Map(),postures=officials.map(n=>n.root.userData.body?createCourtPosture(n):null),history=[],failures=[];
+ let schedule=createAudienceSchedule(saved);
+ const owned=new Set(officials),caps=officials.map(attachCourtOfficialCostume),tasks=new Map(),postures=officials.map(n=>n.root.userData.body?createCourtPosture(n):null),history=[],failures=[];
  const planBudgetPath=cachedCourtPlanner(planPath);
  let phase='waiting',time=0,phaseTime=0,disposed=false,state={},speaker=null,utterance='',reported=0,life=null,reports=null,currentReport=null,budget=null,nextBudgetAt=0,exception=saved.exception||null,disruption=0,departureReason=null,interruptedToday=false,interruptionNotified=false,postponementNotified=false;
  const interruptedLabel='今日朝会已中断 · 明日11:30再赴班';
@@ -82,7 +83,9 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
   s.stalled=n.walking||step.waiting?0:s.stalled+dt;if(s.stalled>4){s.stalled=0;s.planned=false;if(++s.retries===3){failures.push({actor:n.station.id,stage:s.id,target,position:n.root.position.toArray()});if(failures.length>8)failures.shift();}}
   return false;
  }
- const allInLine=()=>officials.every(n=>tasks.get(n)?.id==='enter-hall'&&tasks.get(n).arrived),paused=n=>!!n&&state.conversationActorId===n.station.id;
+ // The palace owner verifies its actual mounted anchor, not just a duty flag.
+ const emperorInPlace=duty=>!!duty?.ready&&duty.owner===OWNER&&duty.mounted==='china-furniture-throne';
+ const allInLine=()=>officials.every((n,i)=>tasks.get(n)?.id==='enter-hall'&&tasks.get(n).arrived&&!n.walking&&near(n.root.position,hall(i))),paused=n=>!!n&&state.conversationActorId===n.station.id;
  function routeBudgets(){
   const actors=officials.map((n,i)=>{const exit=life?.courtPlan(n)||{reachable:true,position:n.root.position,path:[],safeExitSeconds:0,doorSeconds:4};return {actor:n.station.id,...(exit.reachable?courtRouteBudget({...exit,path:near(exit.position,hall(i))?[]:[...exit.path,court(i),...enterHall(i)],walkSpeed:n.locomotion.walkSpeed,planPath:planBudgetPath,doorways:lot.doorways}):{reachable:false,seconds:Infinity,reason:'safe-exit-blocked'})};});
   const royal=palace.dutyPlan?.(OWNER)||{reachable:false,seconds:Infinity,reason:'royal-route-unavailable'};
@@ -101,12 +104,12 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
   const detail=[absent.length?'未到班位：'+absent.map(n=>n.station.npcName).join('、'):null,!duty?.ready?'御驾尚未就位':null,conversations.length?'交谈未结束：'+conversations.map(n=>n.station.npcName).join('、'):null].filter(Boolean).join('；');
   record('court-postponed:'+reason);postponementNotified=true;notify('11:30 朝会延期：'+(detail||'现场通路或职责受到阻断')+'。诸官今日各归其职。');depart('postponed');
  }
- function admit(){for(let lane=0;lane<2;lane++){const row=officials.map((n,i)=>({n,i})).filter(a=>a.i%2===lane);const next=row.find(({n})=>tasks.get(n)?.id!=='enter-hall'||!tasks.get(n).arrived);if(next&&tasks.get(next.n)?.id==='to-court'&&tasks.get(next.n).arrived)task(next.n,'enter-hall',enterHall(next.i),'朝前入班 · 到既定班位静候11:30');}}
+ function admit(){for(let lane=0;lane<2;lane++){const row=officials.map((n,i)=>({n,i})).filter(a=>a.i%2===lane);const next=row.find(({n})=>tasks.get(n)?.id!=='enter-hall'||!tasks.get(n).arrived);if(next&&tasks.get(next.n)?.id==='to-court'&&tasks.get(next.n).arrived)task(next.n,'enter-hall',enterHall(next.i),'朝前入班 · 到既定班位候齐');}}
  function beginReport(){const n=officials[reported];currentReport=reports.report(n.station.courtRole,schedule.snapshot().day);say(n,currentReport.text);setPhase('report');}
  function repairRestoredPhase(){
   // Older boundary saves wrote the new schedule before the matching runtime
   // phase. Resume that same transition without moving anyone or replaying a
-  // completed ceremony. The normal clock still owns the single 11:30 start.
+  // completed ceremony. A stored opening still belongs to this one day's court.
   const outcome=schedule.snapshot().outcome;
   if(outcome==='called'&&phase==='waiting'){setPhase('assembling');for(const n of officials)if(!tasks.has(n))life?.request(n);palace.requestDuty(OWNER);}
   else if(outcome==='in-session'&&phase==='holding'&&allInLine())setPhase('kneeling');
@@ -127,7 +130,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
   playerRequest(id){life?.playerRequest(id);},
   update(dt,t,playerState={}){
    if(disposed)return;state=playerState;time+=dt;life?.tick(dt,state);const hour=state.hour??10;schedule.observe(hour,state.day);
-   interruptedToday=phase==='waiting'&&schedule.snapshot().outcome==='interrupted'&&hour>=schedule.snapshot().courtStart;
+   interruptedToday=phase==='waiting'&&schedule.snapshot().outcome==='interrupted'&&(hour>=schedule.snapshot().courtStart||schedule.snapshot().lastStartedDay===schedule.snapshot().day);
    if(interruptedToday&&!interruptionNotified){interruptionNotified=true;record('court-interrupted-on-reentry');notify('今日11:30朝会已中断，诸官继续各自事务；下次朝会在明日11:30。');}
    if(phase==='waiting'&&schedule.snapshot().outcome==='postponed'&&!postponementNotified){postponementNotified=true;notify(chinaCourtStatusSummary(schedule.snapshot(),phase));}
    if(phase==='waiting'&&schedule.snapshot().outcome==='completed'&&reports.hasPending())setPhase('followup');
@@ -136,13 +139,13 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
     else{
      if(time>=nextBudgetAt){budget=routeBudgets();nextBudgetAt=time+8;}
      if(budget&&schedule.due(hour,state.night,budget.seconds)){
-      reported=0;exception=null;schedule.call(hour,budget.seconds);setPhase('assembling');officials.forEach((n,i)=>{if(life)life.request(n);else task(n,'to-court',[court(i)],'共同召集 · 11:30前到班');});palace.requestDuty(OWNER);save();notify('承务官署朝前召集：11:30举行缩略朝会，各官从所在处赴班。');
+      reported=0;exception=null;schedule.call(hour,budget.seconds);setPhase('assembling');officials.forEach((n,i)=>{if(life)life.request(n);else task(n,'to-court',[court(i)],'共同召集 · 11:30前到班');});palace.requestDuty(OWNER);save();notify('承务官署朝前召集：最迟11:30办理缩略朝会，御驾与诸官齐至可提前开朝。');
      }
     }
    }
    const duty=palace.dutyState(OWNER),speakingPaused=paused(speaker)||state.conversationActorId===emperor.station.id;
    for(const [i,n]of officials.entries()){
-    if(life&&!tasks.has(n)){life.update(n,dt,t);if(phase==='assembling'&&life.ready(n)){const exit=life.courtPlan(n);if(near(n.root.position,hall(i))){task(n,'enter-hall',[hall(i)],'已在班位 · 静候11:30');tasks.get(n).arrived=true;}else task(n,'to-court',[...exit.path,court(i)],'共同召集 · 从当前位置提前赴班');}else{postures[i]?.stop();if(interruptedToday)tell(n,life.label(n)+' · '+interruptedLabel);continue;}}
+    if(life&&!tasks.has(n)){life.update(n,dt,t);if(phase==='assembling'&&life.ready(n)){const exit=life.courtPlan(n);if(near(n.root.position,hall(i))){task(n,'enter-hall',[hall(i)],'已在班位 · 持笏候齐');tasks.get(n).arrived=true;}else task(n,'to-court',[...exit.path,court(i)],'共同召集 · 从当前位置提前赴班');}else{postures[i]?.stop();if(interruptedToday)tell(n,life.label(n)+' · '+interruptedLabel);continue;}}
     n.walking=false;const s=tasks.get(n),label=s?.label||(interruptedToday?interruptedLabel:'承务官署 · 日常起居');tell(n,n===speaker?utterance:label);
     if(paused(n)&&!FORMAL.has(phase))tell(n,label+' · 交谈尚未结束');
     else if(s&&!FORMAL.has(phase))travel(n,s,dt);
@@ -154,9 +157,20 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
    phaseTime+=dt;
    if(['assembling','holding'].includes(phase)){
     admit();if(allInLine()&&phase!=='holding')setPhase('holding');
-    if(schedule.atStart(hour)){
-     if(!allInLine()||!duty?.ready||officials.some(paused)||speakingPaused){postpone('assembly-incomplete');return;}
-     schedule.start(hour);setPhase('kneeling');say(emperor,'时辰已到，诸官行礼，依班奏事。');save();
+    const assembled=allInLine()&&emperorInPlace(duty)&&!officials.some(paused)&&!speakingPaused;
+    if(schedule.atStart(hour)||assembled&&canStartEarly()){
+     if(!assembled){postpone('assembly-incomplete');return;}
+     const prior=schedule.snapshot(),priorPhase=phase,priorTime=phaseTime,priorHistory=history.slice();
+     if(!schedule.start(hour,{assembled}))return;
+     setPhase('kneeling');
+     // Commit the same day's opening and matching physical phase before its
+     // first announcement/report. A failed write may retry, never give credit.
+     let stored;try{stored=save();}catch{stored=false;}
+     if(stored===false||stored?.ok===false||stored&&typeof stored.then==='function'){
+      if(stored&&typeof stored.then==='function')Promise.resolve(stored).catch(()=>{});
+      schedule=createAudienceSchedule({...prior,preservePhysical:true});phase=priorPhase;phaseTime=priorTime;history.splice(0,history.length,...priorHistory);return;
+     }
+     say(emperor,hour<prior.courtStart?'御驾与诸官已齐，提前行礼，依班奏事。':'时辰已到，诸官行礼，依班奏事。');
     }
    }else if(FORMAL.has(phase)){
     disruption=(!duty?.ready||speakingPaused||officials.some(paused))?disruption+dt:0;

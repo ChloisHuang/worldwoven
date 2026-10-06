@@ -170,7 +170,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       const live=service?.state?.(),job=live?.job?.formalRoleId===held.id&&d?.workReceiptId===live.job.receiptId?live.job:null,availability=service?.formal?.beginAvailability?.()||careers.beginDutyAvailability(held.id);
       const current=d&&(d.day===c.day||pendingDuty)?d:null;
       const window=held.dutyWindow,stamp=hour=>`${String(Math.floor(hour)).padStart(2,'0')}:${String(Math.round(hour%1*60)).padStart(2,'0')}`;
-      const status=current?({arrived:'已报到 · 候班',attending:'当班中',archive:'待归档',working:'当班中',inspection:'待验收',ready:'工资待入账',paid:'今日已结薪',missed:d.reason==='court-postponed'?'本班延期':'本班未完成'}[d.stage]||'已任职'):availability.ok?'已任职 · 未报到':availability.code==='outside-arrival-window'?'休班 · 未报到':availability.code==='already-paid-today'?'本岗位未开班':'已任职 · 暂不可开班';
+      const status=current?({arrived:'已报到 · 候班',attending:'当班中',archive:'待归档',working:'当班中',inspection:'待验收',ready:'工资待入账',paid:'今日已结薪',missed:d.reason==='court-postponed'?'本班延期':d.reason==='appointed-after-court-start'?'明日到班':'本班未完成'}[d.stage]||'已任职'):availability.ok?'已任职 · 未报到':availability.code==='outside-arrival-window'?'休班 · 未报到':availability.code==='already-paid-today'?'本岗位未开班':'已任职 · 暂不可开班';
       const banner=make('div',null,'career-shift-status');banner.append(make('strong',status),make('span',`第${c.day+1}日 ${stamp(c.hour)} · 开班 ${stamp(window.startHour)}–${stamp(window.endHour)}`));panel.body.append(banner);
       // An unstarted shift offers only explicit admission. Once admitted the
       // one current physical step replaces it; no future task list is created.

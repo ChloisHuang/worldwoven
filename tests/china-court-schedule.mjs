@@ -6,7 +6,7 @@ assert(Math.abs(schedule.secondsUntil(10)-128.5714285714)<1e-6);
 assert(schedule.due(10,false,120),'long real route summons everyone at the initial clock');
 assert(!schedule.due(10,false,40),'short route needs no arbitrary individual waiting schedule');
 schedule.call(10,120);
-assert(!schedule.start(11.49),'early arrivals must hold until the one fixed courtStart');
+assert(!schedule.start(11.49),'clock alone cannot grant an early opening without all-present proof');
 assert(schedule.atStart(11.5));assert(schedule.start(11.5));
 assert.equal(schedule.snapshot().courtStart,11.5);
 schedule.finish('completed');assert.equal(schedule.snapshot().completionId,'cn-morning-audience:0');
@@ -33,4 +33,7 @@ assert(!courtRouteBudget({position:{x:0,y:0,z:0},path:[[3,0,4]],walkSpeed:2,plan
 let plans=0;const cached=cachedCourtPlanner((_,p)=>{plans++;return [p];}),legs={position:{x:0,y:0,z:0},path:[[3,0,4],[6,0,8]],walkSpeed:2,planPath:cached};
 courtRouteBudget(legs);courtRouteBudget(legs);assert.equal(plans,2,'repeated authored legs reuse their planned route');
 courtRouteBudget({...legs,position:{x:1,y:0,z:1},knownSegments:1});assert.equal(plans,2,'the actual current planned remainder is measured without A*');
-console.log('PASS: fixed 11:30, common real-route summon budget, early hold, late/missed exception, durable receipt and reachable route length');
+const early=createAudienceSchedule();early.observe(10,0);early.call(10,120);assert(!early.start(10.2));assert(early.start(10.2,{assembled:true}));assert.equal(early.snapshot().startedAt,10.2);assert.equal(early.snapshot().lastStartedDay,0);assert(!early.start(10.3,{assembled:true}));
+const unfinished=createAudienceSchedule(early.snapshot());unfinished.observe(10.25,0);assert.equal(unfinished.snapshot().outcome,'interrupted');assert(!unfinished.due(10.25,false,999));assert.equal(unfinished.call(10.25,120),false);assert(!unfinished.start(10.25,{assembled:true}));
+early.finish('completed');const earlierDone=createAudienceSchedule(early.snapshot());earlierDone.observe(10.5,0);assert(!earlierDone.due(10.5,false,999));assert.equal(earlierDone.snapshot().completionId,'cn-morning-audience:0');earlierDone.observe(10,1);assert(earlierDone.due(10,false,999));
+console.log('PASS: 11:30 deadline, common real-route summon budget, guarded early opening, late/missed exception, durable receipt and reachable route length');

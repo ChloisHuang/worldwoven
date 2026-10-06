@@ -6,7 +6,7 @@ import {nearbyInteraction} from './player-interaction-intents.js';
 
 const FORMAL = new Set(['kneeling','report','response','dismissal','rising']);
 const copy = value => JSON.parse(JSON.stringify(value));
-const REASONS={'promotion-pending':'已有升阶申请，请继续当面审核','promotion-applied-today':'今日升阶申请已记录，下一模拟日再试','promotion-duty-unsettled':'请先完成当前朝班、归档并结清工资，再办理升阶','service-days-required':'需完成至少三个不同模拟日的朝班与归档','tenure-days-required':'本次录事实任需满三个模拟日','service-performance-required':'本任职正面考语减去差评需达到三次','promotion-route-complete':'正九品以后的实职路线尚未开放','promotion-review-rejected':'沈叙：本次升阶考核未通过，结果已入档。继续履职后，下一模拟日可再申请','interview-rejected':'本次面谈未录用，结果已保存，下一模拟日可再申请','already-applied-today':'本岗位今天已提交过申请，请查看已保存结果，下一模拟日再来','bank-unavailable':'钱庄入账暂不可用，已完成工资会保留并自动重试','adult-required':'需年满18岁','ritual-required':'礼仪经验需达到2点','writing-required':'文书经验需达到2点','no-vacancy':'当前没有可申请的空缺','already-employed':'你已有长期职位','save-failed':'登记没能保存，请稍后重试','async-save-unsupported':'登记没能保存，请稍后重试','outside-arrival-window':'请在06:00至11:30之间提前到班','court-postponed':'本日朝会已延期，不计薪也不记缺勤差评','duty-missed':'本日朝班已经错过，下一模拟日再来','duty-evaluated':'本日履职已结算或评价','wage-ready':'先等已完成的工资存入钱庄，再办理离职','work-incomplete':'本轮工作尚未完整完成','not-employed':'请先在铨录登记案申请任职','invalid-career-state':'职业存档暂时无法核对，请保留存档后再试'};
+const REASONS={'promotion-pending':'已有升阶申请，请继续当面审核','promotion-applied-today':'今日升阶申请已记录，下一模拟日再试','promotion-duty-unsettled':'请先完成当前朝班、归档并结清工资，再办理升阶','service-days-required':'需完成至少三个不同模拟日的朝班与归档','tenure-days-required':'本次录事实任需满三个模拟日','service-performance-required':'本任职正面考语减去差评需达到三次','promotion-route-complete':'正九品以后的实职路线尚未开放','promotion-review-rejected':'沈叙：本次升阶考核未通过，结果已入档。继续履职后，下一模拟日可再申请','interview-rejected':'本次面谈未录用，结果已保存，下一模拟日可再申请','already-applied-today':'本岗位今天已提交过申请，请查看已保存结果，下一模拟日再来','bank-unavailable':'钱庄入账暂不可用，已完成工资会保留并自动重试','adult-required':'需年满18岁','ritual-required':'礼仪经验需达到2点','writing-required':'文书经验需达到2点','no-vacancy':'当前没有可申请的空缺','already-employed':'你已有长期职位','save-failed':'登记没能保存，请稍后重试','async-save-unsupported':'登记没能保存，请稍后重试','outside-arrival-window':'请在06:00至11:30之间提前到班','court-postponed':'本日朝会已延期，不计薪也不记缺勤差评','appointed-after-court-start':'任命在本日开朝之后，明日再到班','duty-missed':'本日朝班已经错过，下一模拟日再来','duty-evaluated':'本日履职已结算或评价','wage-ready':'先等已完成的工资存入钱庄，再办理离职','work-incomplete':'本轮工作尚未完整完成','not-employed':'请先在铨录登记案申请任职','invalid-career-state':'职业存档暂时无法核对，请保留存档后再试'};
 
 // A world adapter only: every journey uses the controller's shared intent
 // planner. This module neither moves actors nor changes the six NPC holders.
@@ -97,7 +97,7 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
     if(next.kind==='resign'){const ok=result(careers.resign(),'离职已登记，录事空缺重新开放；已得技能和评价保留。');if(ok)stopActivity();return ok;}
     if(next.kind==='settle')return result(careers.settle(),'本日工资已核对存入钱庄，同一日不会重复发放。');
     if(next.kind==='attend'){
-      if(!result(careers.beginDuty(),'已在录事班位候朝，11:30随班行礼并听记；移动或按E可离开。'))return false;
+      if(!result(careers.beginDuty(),'已在录事班位候朝，齐班后可提前行礼听记；移动或按E可离开。'))return false;
       activity='court';progress=0;pending=true;return true;
     }
     activity='archive';progress=0;pending=true;notify('正在抄录本日朝会并归档；移动会中止这一段。');return true;
@@ -125,6 +125,7 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
     }
     if(!activity){
       const a=audience.state(),s=careers.state(),c=getClock();
+      if(careers.isHired()&&a.schedule.lastStartedDay===c.day&&Number.isFinite(a.schedule.startedAt)&&s.tenure.sinceDay===c.day&&s.tenure.sinceHour>=a.schedule.startedAt){const r=careers.deferAfterCourtStart({day:c.day,startedAt:a.schedule.startedAt});if(r.ok&&!r.unchanged)notify('本日开朝后受任，明日再到班。');return;}
       if(careers.isHired()&&s.lastEvaluatedDay!==c.day&&a.schedule.day===c.day&&a.schedule.outcome==='in-session'&&FORMAL.has(a.phase)&&
         !(s.tenure.sinceDay===c.day&&s.tenure.sinceHour>=11.5))careers.dutyEvent('court-start');
       reviewNotice();settleReady();return;
@@ -169,11 +170,11 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
     const kneeling=a.phase==='kneeling'?Math.min(1,a.phaseTime/1.8):a.phase==='rising'?Math.max(0,1-a.phaseTime/1.8):['report','response','dismissal'].includes(a.phase)?1:0;
     posture?.apply({kneeling,holding:true,raised:.15,time:t});
   }
-  return {intent,resolveIntent,prepareIntent,cancelApproach:releaseMeeting,executeIntent,update,syncPlayer,stopActivity,
+  return {readyForEarlyCourt:()=>!careers.isHired(COURT_CLERK_ROLE.id)||activity==='court'&&!pending&&relevantDuty()?.stage==='arrived'&&!getPlayer()?.walking&&at(P.court),intent,resolveIntent,prepareIntent,cancelApproach:releaseMeeting,executeIntent,update,syncPlayer,stopActivity,
     isActing:()=>!!activity,
     playerAction:()=>['appointment','promotion-appointment'].includes(activity)&&!pending?'read':activity==='archive'&&!pending?'calligraphy':null,
     playerStation:()=>activity==='archive'?{playerWorkTarget:P.archiveTarget}:null,
-    label:()=>activity==='review-arrival'?'停步呈交履历 · 等候当面核验':['appointment','promotion-appointment'].includes(activity)?`持文宣读任命 · ${Math.ceil(3-progress)}秒`:documentApplication()?.stage==='document-held'?'持任命文书 · 待宣读受职':activity==='court'?(duty()?.stage==='attending'?'随班行礼 · 听记朝议':'第七班位持笏候朝 · 11:30'):activity==='archive'?`抄录归档 · ${Math.ceil(8-progress)}秒`:null,
+    label:()=>activity==='review-arrival'?'停步呈交履历 · 等候当面核验':['appointment','promotion-appointment'].includes(activity)?`持文宣读任命 · ${Math.ceil(3-progress)}秒`:documentApplication()?.stage==='document-held'?'持任命文书 · 待宣读受职':activity==='court'?(duty()?.stage==='attending'?'随班行礼 · 听记朝议':'第七班位持笏候朝 · 待齐班'):activity==='archive'?`抄录归档 · ${Math.ceil(8-progress)}秒`:null,
     snapshot:()=>({version:1,duty:copy(duty()),activity,progress,pending,lastNotice,nextSettlementAt}),
     restore(s){if(s?.version!==1||s.duty&&['roleId','slotId','day'].some(k=>s.duty[k]!==duty()?.[k]))return false;activity=['court','archive'].includes(s.activity)?s.activity:['appointment','promotion-appointment'].includes(s.activity)&&documentApplication()?.stage==='document-held'?s.activity:null;progress=Math.max(0,Math.min(8,s.progress||0));pending=!!s.pending;lastNotice=s.lastNotice||null;nextSettlementAt=Math.max(0,s.nextSettlementAt||0);return true;},
     state:()=>({...careers.state(),activity,progress:progress/(['appointment','promotion-appointment'].includes(activity)?3:8),place:copy(P)}),

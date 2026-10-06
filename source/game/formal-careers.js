@@ -88,7 +88,7 @@ const dayOrNull = value => value === null || integer(value);
 const validTenureApplication=tenure=>{if(tenure.applicationId===undefined)return true;const day=Number(String(tenure.applicationId).split(':').at(-1));return integer(day)&&day<=tenure.sinceDay&&tenure.applicationId===applicationId(tenure.roleId,day);};
 const identifier = value => typeof value === 'string' && /^[a-z][a-z0-9-]{0,63}$/.test(value);
 const own = (value, key) => Object.hasOwn(value, key);
-const excused = duty => duty?.stage === 'missed' && duty.reason === 'court-postponed';
+const excused = duty => duty?.stage === 'missed' && ['court-postponed','appointed-after-court-start'].includes(duty.reason);
 const supervisor = role => role.supervisorId || COURT_SUPERVISOR.id;
 const completedWage = (role, arrivalHour) => role.workSource ? role.wage + (arrivalHour < role.earlyBeforeHour ? role.preparationBonus : 0) : role.wage + (COURT_SUPERVISOR.conscientiousness >= .8 &&
   arrivalHour <= role.dutyWindow.endHour - COURT_SUPERVISOR.earlyArrivalMinutes / 60 ? COURT_SUPERVISOR.preparationBonus : 0);
@@ -966,7 +966,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if(role.workSource&&duty?.day===clock.day&&duty.workReceiptId===receiptId&&duty.stage==='working')return {...context,ok:true,unchanged:true};
     if(['ready','inspection'].includes(duty?.stage))return no('wage-ready');
     if(current.lastPaidDay===clock.day)return no('already-paid-today');
-    if(duty?.day===clock.day&&excused(duty))return no('court-postponed');
+    if(duty?.day===clock.day&&excused(duty))return no(duty.reason);
     if(duty?.day===clock.day&&(duty.started||duty.stage==='arrived'))return no(duty.stage==='missed'?'duty-missed':'duty-active');
     if(clock.hour<role.dutyWindow.startHour||clock.hour>=role.dutyWindow.endHour)return no('outside-arrival-window');
     return {...context,ok:true};
@@ -988,6 +988,15 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const next = duty && duty.day < clock.day && ['arrived', 'attending', 'archive','working'].includes(duty.stage) ? missed(current, 'day-ended') : current;
     return persist({...next, lastDuty: {roleId: current.tenure.roleId, slotId: current.tenure.slotId,
       ...currentOfficialFields(),day: clock.day, stage: role.workSource?'working':'arrived', started:!!role.workSource, reason: null, arrivalHour: clock.hour, wage: null,...(role.workSource?{workReceiptId:receiptId}:{}),...(reviewRole(role)?{customerReviews:[]}:{}),...(shiftKind?{shiftKind,startedSeconds:clock.seconds,coveredSeconds:null,completedTasks:null,endedHour:null,endedSeconds:null}:{})}});
+  }
+  function deferAfterCourtStart({day,startedAt}={}) {
+    const blocked=allowed();if(blocked)return blocked;
+    const clock=now(),tenure=current.tenure,duty=current.lastDuty;
+    if(!clock||day!==clock.day||!Number.isFinite(startedAt)||startedAt<6||startedAt>clock.hour)return failure('invalid-court-start');
+    if(tenure?.roleId!==COURT_CLERK_ROLE.id||tenure.sinceDay!==day||tenure.sinceHour<startedAt)return {ok:true,unchanged:true};
+    if(duty?.day===day||current.lastPaidDay===day||current.lastEvaluatedDay===day)return {ok:true,unchanged:true};
+    return persist({...current,lastDuty:{roleId:tenure.roleId,slotId:tenure.slotId,...currentOfficialFields(),
+      day,stage:'missed',started:false,reason:'appointed-after-court-start',arrivalHour:null,wage:null}});
   }
   function dutyEvent(event) {
     const blocked = allowed(); if (blocked) return blocked;
@@ -1116,5 +1125,5 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&availableSlot(slot,role)&&slot.id!==current.tenure?.slotId).length})),
     eligibility, applicationAvailability, beginDutyAvailability, applicationResult, applicationHistory,
     promotionSummary, promotionAvailability, applyPromotion, reviewPromotion, cancelPromotion,
-    laborEvent, customerReview, apply, reviewApplication, cancelApplication, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, recordClinicAssistantService, recordTavernChefService, royalKitchenQualification, recordRoyalKitchenService, recordJapanReceptionReview, recordJapanBathDeliveryReview, recordJapanBathMixingReview, recordJapanKitchenReview, recordEgyptKitchenReview, recordEgyptTableServiceReview, recordJapanTableServiceReview, gardenMaintenanceReceipt, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
+    laborEvent, customerReview, apply, reviewApplication, cancelApplication, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, recordClinicAssistantService, recordTavernChefService, royalKitchenQualification, recordRoyalKitchenService, recordJapanReceptionReview, recordJapanBathDeliveryReview, recordJapanBathMixingReview, recordJapanKitchenReview, recordEgyptKitchenReview, recordEgyptTableServiceReview, recordJapanTableServiceReview, gardenMaintenanceReceipt, beginDuty, deferAfterCourtStart, dutyEvent, interruptDuty, observeDay, settle});
 }

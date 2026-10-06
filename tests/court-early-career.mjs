@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {createFormalCareers,COURT_CLERK_ROLE} from '../source/game/formal-careers.js';
+import {approvePending} from './fixtures/career-application.mjs';
+const clock={day:1,hour:10.4,seconds:100},store={};let reject=false;
+const make=saved=>createFormalCareers({worldSeed:785,saved,getClock:()=>clock,creditWageToBank:()=>{throw Error('no wage earned by an appointment after court');},saveState:s=>{if(reject)return false;store.value=s;}});
+let career=make();const qualified=career.state();qualified.skills.ritual=2;qualified.skills.writing=2;career=make(qualified);
+assert(career.apply(COURT_CLERK_ROLE.id,{ageYears:18}).ok);approvePending(career);
+assert.equal(career.state().tenure.sinceHour,10.4);
+assert(career.deferAfterCourtStart({day:1,startedAt:10.45}).ok===false,'cannot cite a future court');
+reject=true;assert.equal(career.deferAfterCourtStart({day:1,startedAt:10.3}).ok,false);assert.equal(career.state().lastDuty,null);
+reject=false;assert(career.deferAfterCourtStart({day:1,startedAt:10.3}).ok);assert.equal(career.state().lastDuty.reason,'appointed-after-court-start');assert.equal(career.state().lastEvaluation,null);assert.equal(career.state().performance,0);
+assert.equal(career.deferAfterCourtStart({day:1,startedAt:10.3}).unchanged,true);assert.equal(career.beginDutyAvailability().code,'appointed-after-court-start');
+career=make(store.value);assert.equal(career.loadError,undefined);assert.equal(career.state().lastDuty.reason,'appointed-after-court-start');assert.equal(career.dutyEvent('court-start').excused,true);
+clock.day=2;clock.hour=8;assert(career.observeDay().ok);assert.equal(career.state().lastEvaluation,null);assert.equal(career.state().performance,0);assert(career.beginDutyAvailability().ok);assert(career.beginDuty().ok);
+assert.equal(career.deferAfterCourtStart({day:2,startedAt:7}).unchanged,true,'an existing incumbent cannot claim the new-appointment exception');assert.equal(career.state().lastDuty.stage,'arrived');
+console.log('PASS early court: post-opening appointment has no absent review or wage, persists, and next real day admits normally');

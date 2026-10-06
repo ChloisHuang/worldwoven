@@ -1,5 +1,5 @@
 // A deliberately compressed game timetable. The shared world clock starts at
-// 10:00 and runs at .7 game minutes per real second; the court opens at 11:30.
+// 10:00 and runs at .7 game minutes per real second; 11:30 is the deadline, with a physical all-present early opening.
 export const COURT_START_HOUR=11.5;
 export const COURT_CLOCK_MINUTES_PER_SECOND=.7;
 export const COURT_CONGESTION_SECONDS=20;
@@ -29,6 +29,7 @@ export function createAudienceSchedule(saved={}){
  let day=Math.max(0,Math.floor(saved.day||0)),calledDay=Number.isInteger(saved.calledDay)?saved.calledDay:-1,lastHour=null;
  let lastCompletedDay=Number.isInteger(saved.lastCompletedDay)?saved.lastCompletedDay:saved.outcome==='completed'?calledDay:-1;
  let outcome=calledDay===day?(['completed','postponed','missed',...(saved.preservePhysical?['called','in-session']:[])].includes(saved.outcome)?saved.outcome:'interrupted'):'waiting';
+ let lastStartedDay=Number.isInteger(saved.lastStartedDay)?saved.lastStartedDay:-1,startedAt=Number.isFinite(saved.startedAt)?saved.startedAt:null;
  let calledAt=saved.preservePhysical&&Number.isFinite(saved.calledAt)?saved.calledAt:null,leadSeconds=saved.preservePhysical&&Number.isFinite(saved.leadSeconds)?saved.leadSeconds:null,exception=saved.exception||null;
  const secondsUntil=hour=>(COURT_START_HOUR-hour)*60/COURT_CLOCK_MINUTES_PER_SECOND;
  return {
@@ -40,16 +41,16 @@ export function createAudienceSchedule(saved={}){
    // fixed start must let the live controller gather everyone from their real
    // positions again; keeping today's calledDay would lock it out all day.
    // Completed/explicitly postponed days and their receipts remain terminal.
-   if(outcome==='interrupted'&&calledDay===day&&lastCompletedDay!==day&&hour>=6&&hour<COURT_START_HOUR){calledDay=-1;outcome='waiting';exception=null;}
+   if(outcome==='interrupted'&&calledDay===day&&lastCompletedDay!==day&&lastStartedDay!==day&&hour>=6&&hour<COURT_START_HOUR){calledDay=-1;outcome='waiting';exception=null;}
    lastHour=hour;
   },
   secondsUntil,
-  due(hour,night=false,budgetSeconds=90){return !night&&hour>=6&&hour<COURT_START_HOUR&&calledDay!==day&&secondsUntil(hour)<=Math.max(0,budgetSeconds)+COURT_CONGESTION_SECONDS;},
+  due(hour,night=false,budgetSeconds=90){return !night&&hour>=6&&hour<COURT_START_HOUR&&calledDay!==day&&lastStartedDay!==day&&secondsUntil(hour)<=Math.max(0,budgetSeconds)+COURT_CONGESTION_SECONDS;},
   missed(hour){return hour>=COURT_START_HOUR&&calledDay!==day;},
-  call(hour=10,budgetSeconds=90){calledDay=day;outcome='called';calledAt=hour;leadSeconds=budgetSeconds+COURT_CONGESTION_SECONDS;exception=null;},
+  call(hour=10,budgetSeconds=90){if(lastStartedDay===day)return false;calledDay=day;outcome='called';startedAt=null;calledAt=hour;leadSeconds=budgetSeconds+COURT_CONGESTION_SECONDS;exception=null;},
   atStart(hour){return calledDay===day&&outcome==='called'&&hour>=COURT_START_HOUR;},
-  start(hour){if(calledDay!==day||outcome!=='called'||hour<COURT_START_HOUR)return false;outcome='in-session';return true;},
+  start(hour,{assembled=false}={}){if(!Number.isFinite(hour)||hour<6||calledDay!==day||lastStartedDay===day||outcome!=='called'||hour<COURT_START_HOUR&&!assembled)return false;outcome='in-session';lastStartedDay=day;startedAt=hour;return true;},
   finish(value,reason=null){if(calledDay!==day&&value==='missed')calledDay=day;outcome=value;exception=reason;if(value==='completed')lastCompletedDay=calledDay;},
-  snapshot:()=>({version:2,day,calledDay,outcome,lastCompletedDay,courtStart:COURT_START_HOUR,calledAt,leadSeconds,exception,completionId:lastCompletedDay>=0?'cn-morning-audience:'+lastCompletedDay:null})
+  snapshot:()=>({version:2,day,calledDay,outcome,lastCompletedDay,lastStartedDay,startedAt,courtStart:COURT_START_HOUR,calledAt,leadSeconds,exception,completionId:lastCompletedDay>=0?'cn-morning-audience:'+lastCompletedDay:null})
  };
 }
