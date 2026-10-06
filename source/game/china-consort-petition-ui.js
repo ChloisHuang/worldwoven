@@ -86,9 +86,9 @@ export function createChinaConsortPetitionUI({service,titleBridge=null,getLedger
  const buttons=new Map(),buttonContainers=new Map();
  const set=(node,text)=>{if(node.textContent!==text)node.textContent=text;};
  function view(){
-  const card=read(()=>service.statusCard(),{}),ledger=read(()=>service.currentLedger?.(),read(getLedger)),petition=read(()=>ledger?.petition?.()),title=read(()=>titleBridge?.titleStatus?.()),gate=title?.active?read(()=>titleBridge?.releaseTitleAvailability?.(),{ok:false,reasons:['service-unavailable']}):null;
+  const card=read(()=>service.statusCard(),{}),ledger=read(()=>service.currentLedger?.())??read(getLedger),petition=read(()=>ledger?.petition?.()),title=read(()=>titleBridge?.titleStatus?.()),gate=title?.active?read(()=>titleBridge?.releaseTitleAvailability?.(),{ok:false,reasons:['service-unavailable']}):null;
   const empressLocked=card.titleKind==='empress'&&(card.titleId==='empress'||['submitted','awaiting-choice','accepted','charter-held'].includes(card.stage));
-  return {...consortPetitionView({card:{...card,applicationId:card.applicationId??petition?.id??null,source:card.source??petition?.source??null,expiresAt:card.expiresAt??petition?.expiresAt},target:read(()=>service.interactionTarget?.(),card.physical?.target),player:read(getPlayer),details:read(getDetails,{}),history:read(()=>service.history?.(),read(()=>ledger?.history?.(),[]))}),release:title?.active&&typeof title.appointmentId==='string'?{id:title.appointmentId,ok:gate?.ok===true&&!empressLocked,reasons:empressLocked?['先当面辞后并办结文书']:(gate?.reasons||[]).map(reasonText),confirm:releaseId===title.appointmentId}:null};
+  return {...consortPetitionView({card:{...card,applicationId:card.applicationId??petition?.id??null,source:card.source??petition?.source??null,expiresAt:card.expiresAt??petition?.expiresAt},target:read(()=>service.interactionTarget?.(),card.physical?.target),player:read(getPlayer),details:read(getDetails,{}),history:read(()=>service.history?.())??read(()=>ledger?.history?.(),[])}),release:title?.active&&typeof title.appointmentId==='string'?{id:title.appointmentId,ok:gate?.ok===true&&!empressLocked,reasons:empressLocked?['先当面辞后并办结文书']:(gate?.reasons||[]).map(reasonText),confirm:releaseId===title.appointmentId}:null};
  }
  function close(){epoch++;releaseId=null;if(dialog.open)dialog.close();}
  function showError(out){errorText=safeText(out?.message)||ERRORS[out?.code]||(out?.reasons?.length?out.reasons.map(reasonText).join('；'):'暂不能办理，请稍后重试');}
@@ -117,8 +117,9 @@ export function createChinaConsortPetitionUI({service,titleBridge=null,getLedger
   if(!next.release.confirm||next.release.id!==releaseId)return;
   sending=true;try{const out=titleBridge.resignTitle(releaseId,{confirmed:true});if(!out?.ok)showError(out);else{releaseId=null;errorText='';}render();}catch{showError({code:'service-unavailable'});render();}finally{sending=false;}
  }
- function render(next=view()){
+ function render(next){
   if(disposed||!dialog.open)return;
+  next??=view();
   if(current&&current.stage!==next.stage)errorText='';
   const nextSignature=JSON.stringify(next);if(nextSignature===signature&&error.textContent===errorText)return;
   epoch++;signature=nextSignature;current=next;set(title,next.identity);set(stageLabel,next.stageLabel);set(factNodes.seat,next.seatText);set(factNodes.residence,next.residenceText);set(factNodes.meal,next.mealText);

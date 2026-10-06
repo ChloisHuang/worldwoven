@@ -19,7 +19,7 @@ function fixture(saved={}){
  const eligible=()=>flags.eligible?{...copy(EL),appointmentReceiptId:flags.proof}:{eligible:false,actorId:'player',titleId:null,appointmentId:null};
  const needs=createDailyNeeds({saved:store.needs,getClock:()=>clock,getRoyalMealEligibility:()=>player.ageYears>=18?eligible():null,saveState:s=>{if(flags.needsFail)return false;store.needs=copy(s);return true;}});needs.enter('china',['cn-cooking']);
  const kitchen=createChinaRoyalKitchenService({npcs:[jia],lot:{group},doors:{routeStep(route,p){while(route[0]&&Math.hypot(route[0].x-p.x,route[0].z-p.z)<.03)route.shift();return {waypoint:route[0],phase:'walking'};}},planPath:(_a,b)=>[new T.Vector3(b.x,b.y,b.z)],moveActor:(a,x,z)=>{a.root.position.x+=x;a.root.position.z+=z;},poseContext:()=>({}),getPlayer:()=>player,getMounted:()=>mounted,getPlayerSeat:()=>mounted,getPlayerMealEligibility:eligible,getSeatOccupant:()=>flags.occupied,getEmployment:()=>flags.job,isHired:()=>!!flags.job,getClock:()=>clock,sharedNeeds:needs,saved:store.kitchen,saveState:s=>{if(flags.saveFail)return false;store.kitchen=copy(s);return true;}});
- const meal=createChinaRoyalPlayerMeal({kitchen,furniture:{items:seats},getPlayer:()=>player,getMounted:()=>mounted,onMountSeat:s=>{mounted=s;player.root.position.set(...s.anchor);},canChooseSeat:()=>!flags.occupied});
+ const meal=createChinaRoyalPlayerMeal({kitchen,furniture:{items:seats},getPlayer:()=>player,getMounted:()=>mounted,onMountSeat:s=>{mounted=s;player.root.position.set(...s.anchor);},canChooseSeat:()=>{flags.geometryChecks=(flags.geometryChecks||0)+1;return !flags.occupied;}});
  const tick=(n=1,state={})=>{for(let i=0;i<n;i++){clock.seconds+=.1;kitchen.update(.1,clock.seconds,state);meal.update();}};
  const until=(fn,label,max=1500)=>{for(let i=0;i<max&&!fn();i++)tick();assert(fn(),label);};
  const request=()=>{const i=meal.intent('request',SEAT);assert(i);assert(meal.executeIntent(i));return kitchen.mealFor('player');};
@@ -78,4 +78,10 @@ test('a saved consumed portion repairs failed needs write after resignation and 
  assert.equal(g.kitchen.requestMeal({actorId:'player',seatId:SEAT}),null,'historical repair never authorizes a new meal');
  g.tick(30);const hunger=g.needs.hunger('player');assert(g.kitchen.completeMeal(o.id,'player'));assert.equal(g.needs.hunger('player'),hunger);assert.equal(g.needs.royalMealReceipts([receipt],source),false);
  const h=fixture(g.checkpoint());h.flags.eligible=false;h.flags.proof=null;const before=h.needs.hunger('player');h.tick();assert(h.needs.hunger('player')>=before,'second reload does not feed again');assert.equal(h.kitchen.snapshot().orders.serial,1);
+});
+
+test('HUD discovery rejects distant and ineligible diners before seat geometry; explicit menus retain real validation',()=>{
+ const f=fixture();f.unmount();f.flags.eligible=false;f.flags.geometryChecks=0;for(let i=0;i<120;i++){assert.equal(f.meal.intent(),null);assert.equal(f.meal.nearbyIntent(),null);f.meal.view();}assert.equal(f.flags.geometryChecks,0);
+ f.flags.eligible=true;f.player.root.position.set(0,0,39);for(let i=0;i<120;i++)assert.equal(f.meal.nearbyIntent(),null);assert.equal(f.flags.geometryChecks,0,'remote HUD is not an implicit seat-transfer query');
+ assert(f.meal.intent('request',SEAT),'explicit remote menu still offers a properly validated auto-route');assert(f.flags.geometryChecks>0);f.flags.geometryChecks=0;f.player.root.position.set(...f.seats[0].position);assert(f.meal.nearbyIntent());assert(f.flags.geometryChecks>0);f.flags.geometryChecks=0;f.player.root.position.y+=3;assert.equal(f.meal.nearbyIntent(),null);assert.equal(f.flags.geometryChecks,0);
 });
