@@ -53,7 +53,8 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
   style.textContent+=CLINIC_PHYSICIAN_PANEL_STYLE;
   (doc.head||doc.body).append(style);doc.body.append(slot,dialog,feedback);
   let registrationRoleId=null,registrationScope='role',signature='',generation=0;
-  let reviewId=careers.state().lastEvaluation?.id||null,customerReviewId=careers.state().lastDuty?.customerReviews?.at(-1)?.id||null,feedbackUntil=-1;
+  const initialWork=careers.workState();
+  let reviewId=initialWork.lastEvaluation?.id||null,customerReviewId=initialWork.lastCustomerReview?.id||null,feedbackUntil=-1;
   const roles=()=>careers.catalogue?.()||FORMAL_CAREER_ROLES;
   const currentRole=(s,list)=>careers.currentRole?.()||list.find(r=>r.id===s.tenure?.roleId)||null;
   const localService=role=>{
@@ -228,10 +229,10 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     registrationScope=options===true||options?.scope==='catalogue'?'catalogue':'role';
     onOpen();render(true);if(!dialog.open)dialog.showModal();
   }
-  button.onclick=()=>{if(!careers.state().tenure&&getPoliticalTitle()?.active&&onPoliticalTitleOpen){close();onPoliticalTitleOpen();}else open(false);};dialog.addEventListener('cancel',()=>close());dialog.addEventListener('click',e=>{if(e.target===dialog)close();});
+  button.onclick=()=>{if(!careers.workState().tenure&&getPoliticalTitle()?.active&&onPoliticalTitleOpen){close();onPoliticalTitleOpen();}else open(false);};dialog.addEventListener('cancel',()=>close());dialog.addEventListener('click',e=>{if(e.target===dialog)close();});
   return {open,close,isOpen:()=>!!dialog.open,
-    update(mode){const s=careers.state(),r=s.lastEvaluation,c=getClock();slot.hidden=mode!=='lot';if(!wallet){money.textContent=`${copperLedger.state().cash} 铜文`;money.setAttribute('aria-label',`手头${copperLedger.state().cash}铜文`);}const employed=!!s.tenure&&!s.loadError,titled=!employed&&!!getPoliticalTitle()?.active&&!!onPoliticalTitleOpen;button.hidden=!employed&&!titled&&!nearbyRegistries().length;button.setAttribute('aria-label',titled?'查看宫廷名位':employed?'打开当前职业手册':'选择本国求职场所');
-      const customer=s.lastDuty?.customerReviews?.at(-1);
+    update(mode){const s=careers.workState(),r=s.lastEvaluation,c=getClock();slot.hidden=mode!=='lot';if(!wallet){money.textContent=`${copperLedger.state().cash} 铜文`;money.setAttribute('aria-label',`手头${copperLedger.state().cash}铜文`);}const employed=!!s.tenure&&!s.loadError,titled=!employed&&!!getPoliticalTitle()?.active&&!!onPoliticalTitleOpen;button.hidden=!employed&&!titled&&!nearbyRegistries().length;button.setAttribute('aria-label',titled?'查看宫廷名位':employed?'打开当前职业手册':'选择本国求职场所');
+      const customer=s.lastCustomerReview;
       if(customer&&customer.id!==customerReviewId){customerReviewId=customer.id;feedback.textContent=`${customer.score===0?'○':customer.positive?'👍':'👎'} ${customer.customerName}：${customer.reason}`;feedback.className='career-review-pop '+(customer.score===0?'':customer.positive?'career-positive':'career-negative');feedbackUntil=c.seconds+6;feedback.hidden=false;}
       else if(r&&r.id!==reviewId){reviewId=r.id;const role=roles().find(item=>item.id===r.roleId);feedback.textContent=`${r.positive?'👍':'👎'} ${employer(role)}：${r.reason}`;feedback.className='career-review-pop '+(r.positive?'career-positive':'career-negative');feedbackUntil=c.seconds+6;feedback.hidden=false;}
       if(c.seconds>=feedbackUntil||mode!=='lot')feedback.hidden=true;if(dialog.open)render();},

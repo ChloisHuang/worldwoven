@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {createRuntimePerformance,createFrameSampleWindow,runtimePerformanceEnabled} from '../source/game/runtime-performance.js';
 import {simulationFrame} from '../source/game/movement-runtime.js';
+import {createEgyptMealUI} from '../source/game/egypt-meal-ui.js';
 
 function fixture({renderer=null}={}){
  let time=0,clockReads=0,saveReads=0,closed=0,writes=0;
@@ -77,12 +78,61 @@ test('production animate taps the actual 1/3/8 simulation iterations, preserving
   let iterations=0,submitted=0,reported=null;const events=[];
   const no=()=>{};
   const context={requestAnimationFrame:no,simulationFrame,clock:{getDelta:()=>raw},paused,beginActorNavigationStep:no,mode:'lot',flushShapePreview:no,elapsed:0,lotAnimationTime:0,frame:0,
-   advanceWorldClock:no,updateAutomaticDoors:no,activeDailyToilet:()=>null,updatePlayer:()=>iterations++,japanWeatherCharms:null,updateNPCs:no,updateGameHealth:no,japanServiceUI:null,japanPerformanceUI:null,chinaTavernUI:null,chinaSalonUI:null,lot:{},furniture:null,
+   advanceWorldClock:no,updateAutomaticDoors:no,activeDailyToilet:()=>null,updatePlayer:()=>iterations++,japanWeatherCharms:null,updateNPCs:no,updateGameHealth:no,refreshScenePanels:()=>events.push('panels'),japanServiceUI:null,japanPerformanceUI:null,chinaTavernUI:null,chinaSalonUI:null,lot:{},furniture:null,
    simulationClock:{state:()=>({hour:10,day:0})},$:()=>({}),careerHandbook:{update:no},studyMenu:{update:no},player:null,updateCamera:no,renderer:{render:()=>{submitted++;events.push('render');}},scene:{},camera:{},updateLabels:()=>events.push('labels'),updateFurnitureLabels:()=>events.push('furniture-labels'),
    runtimePerformance:enabled?{beginFrame:s=>reported=s,beginSimulation:()=>events.push('simulation-start'),endSimulation:()=>events.push('simulation-end'),beginRender:()=>events.push('render-start'),endRender:()=>events.push('render-end'),endFrame:()=>events.push('frame-end')}:null};
   vm.runInNewContext(animate+'\nanimate();',context);
   assert.equal(iterations,expected);assert.equal(submitted,paused?0:1);
-  if(enabled&&!paused){assert.equal(reported,expected);assert.deepEqual(events,['simulation-start','simulation-end','render-start','render','render-end','labels','furniture-labels','frame-end']);}
+  if(enabled&&!paused){assert.equal(reported,expected);assert.deepEqual(events,['simulation-start','simulation-end','panels','render-start','render','render-end','labels','furniture-labels','frame-end']);}
   if(!enabled||paused)assert.equal(reported,null);
+ }
+});
+
+// Catch the long-frame regression without allocating a country scene: run the
+// actual animate, updateNPCs and panel helper, with counted service boundaries.
+// The real Egypt panel additionally proves closed/open final-state projection.
+test('pure panels run once after 1/3/8 real simulation steps; business and interaction UI keep every step',()=>{
+ const source=fs.readFileSync(new URL('../source/game/main.js',import.meta.url),'utf8');
+ const npcStart=source.indexOf('function updateNPCs('),npcCode=source.slice(npcStart,source.indexOf('// Shared physiological hunger',npcStart));
+ const panelStart=source.indexOf('function refreshScenePanels('),panelCode=source.slice(panelStart,source.indexOf('let runtimePerformance=',panelStart));
+ const frameStart=source.indexOf('let frame=0;function animate()'),frameCode=source.slice(frameStart,source.indexOf("addEventListener('pagehide'",frameStart));
+ const panels=['egyptMealUI','chinaConsortUI','japanPerformanceUI','chinaSalonUI'];
+ const perStep=['egyptTableServiceEmployment','egyptKitchenEmployment','egyptMeal','japanTableServiceEmployment','japanKitchenEmployment','japanBathMixingEmployment','japanBathDeliveryEmployment','japanWomenBathDeliveryEmployment','japanReceptionEmployment','npcSocial','playerConversationUI','franceLabor','franceGardener','japanPerformance','franceTeaEmployment','francePastryEmployment','franceMealUI','franceTea','chinaLabor','chinaService','chinaSalon','chinaMoneyHouse','chinaTavern','chinaLodging','chinaLodgingUI','chinaRoyalKitchenEmployment','chinaRoyalKitchen','chinaRoyalPlayerMeal','chinaClinicEmployment','chinaClinicPhysicianEmployment','chinaClinic','chinaAudience','chinaCareer','chinaEdict','chinaConsortCourt','chinaPalace','chinaGuardEmployment','chinaArchery','japanService','japanServiceUI','chinaTavernUI'];
+ for(const [raw,steps]of [[.016,1],[.1,3],[1,8]])for(const opened of [false,true]){
+  const calls=new Map(),events=[],seen=[],no=()=>{};let iteration=0,viewReads=0,effects=0,phase='idle',socialOpen=true;
+  const count=name=>{calls.set(name,(calls.get(name)||0)+1);events.push(name);};
+  const context={requestAnimationFrame:no,simulationFrame,clock:{getDelta:()=>raw},paused:false,mode:'lot',elapsed:0,lotAnimationTime:0,
+   beginActorNavigationStep:dt=>{count('navigation');assert.equal(dt,simulationFrame(raw).stepDt);},flushShapePreview:no,advanceWorldClock:()=>count('worldClock'),updateAutomaticDoors:()=>count('doors'),activeDailyToilet:()=>({update:()=>count('toilet')}),
+   updatePlayer:()=>{iteration++;count('player');},japanWeatherCharms:{update:()=>count('weather')},updateGameHealth:()=>count('health'),egyptDailyToilet:{updateStaff:()=>count('egyptStaff')},
+   simulationClock:{state:()=>({hour:10,day:0})},player:{root:{position:{}}},npcs:[],performing:null,seated:null,pendingInteraction:null,targetStation:null,bathTransition:null,dusk:false,
+   lot:{},furniture:null,$:()=>({}),careerHandbook:{update:no},studyMenu:{update:no},lighting:{update:no},updateCamera:no,renderer:{render:()=>{count('render');assert.equal(phase,'render');}},scene:{},camera:{},updateLabels:no,updateFurnitureLabels:no,
+   runtimePerformance:{beginFrame:n=>{assert.equal(n,steps);phase='frame';},beginSimulation:()=>{phase='simulation';},endSimulation:()=>{phase='panels';},beginRender:()=>{phase='render';},endRender:no,endFrame:()=>{phase='ended';}}};
+  for(const name of perStep)context[name]={update:()=>count(name)};
+  Object.assign(context.npcSocial,{state:()=>null,conversationActorId:()=>null,meetingState:()=>null});
+  context.chinaCareer.syncPlayer=()=>count('careerSync');
+  // Stand-in for the deliberately retained close/end responsibility. Downstream
+  // controllers must observe it in the same step, not after the frame's UI pass.
+  context.playerConversationUI.update=()=>{count('playerConversationUI');socialOpen=false;};
+  context.franceLabor.update=()=>{assert.equal(socialOpen,false);count('franceLabor');};
+  for(const name of panels)context[name]={update:()=>{count(name);assert.equal(phase,'panels');seen.push(iteration);}};
+  class Element{
+   constructor(tag){this.tag=tag;this.children=[];this.attrs={};this.open=false;this._text='';}
+   set textContent(value){this._text=String(value);this.children=[];}get textContent(){return this._text+this.children.map(e=>e.textContent).join('');}
+   append(...children){this.children.push(...children);}replaceChildren(...children){this._text='';this.children=children;}
+   setAttribute(k,v){this.attrs[k]=v;}getAttribute(k){return this.attrs[k];}addEventListener(){}showModal(){this.open=true;}close(){this.open=false;}querySelectorAll(){return [];}remove(){}
+  }
+  const doc={head:new Element('head'),body:new Element('body'),createElement:tag=>new Element(tag)};
+  const service={view:()=>{viewReads++;return {order:{id:'order',stage:'ready',payment:'reserved'},label:'step '+iteration,cash:20+iteration,seated:true,price:5,name:'餐点',canOrder:false};},request:()=>effects++,cancel:()=>effects++,eat:()=>effects++};
+  const ui=createEgyptMealUI({service,document:doc});if(opened)ui.open();viewReads=0;
+  context.egyptMealUI.update=()=>{count('egyptMealUI');assert.equal(phase,'panels');seen.push(iteration);ui.update();};
+  vm.runInNewContext(npcCode+'\n'+panelCode+'\n'+frameCode+'\nanimate();',context);
+  for(const name of [...perStep,'navigation','worldClock','doors','toilet','player','weather','health','egyptStaff','careerSync'])assert.equal(calls.get(name),steps,name+' retains every simulation step');
+  for(const name of panels)assert.equal(calls.get(name),1,name+' projects only the final state');
+  assert.deepEqual(seen,[steps,steps,steps,steps]);assert.equal(viewReads,1);assert.equal(effects,0);assert.equal(ui.isOpen(),opened);
+  if(opened){assert(doc.body.children[0].textContent.includes('step '+steps));assert(doc.body.children[0].textContent.includes('随身 '+(20+steps)));}
+  else assert.equal(doc.body.children[0].children.length,0,'closed panel stays closed without creating controls');
+  assert(events.indexOf('egyptMealUI')>events.lastIndexOf('chinaTavernUI'));assert(events.indexOf('render')>events.indexOf('chinaSalonUI'));assert.equal(phase,'ended');
+  ui.close();ui.update();assert.equal(effects,0,'close and later refresh cannot cancel, reserve or consume');
+  ui.open();assert(doc.body.children[0].textContent.includes('step '+steps),'reopen reads final service state');ui.dispose();
  }
 });

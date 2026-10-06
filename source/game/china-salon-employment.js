@@ -27,7 +27,7 @@ export function createChinaSalonEmployment({salon,scene,careers,copperLedger,npc
  const atRegistration=()=>!getMounted()&&near(getPlayer(),REG,.45)&&canSee({position:REG});
  const meet=()=>atRegistration()&&knownAdult(salon.receptionist)&&!salon.active();
  const hired=()=>careers.isHired(ROLE.id);
- const formal=createFormalLaborContract({careers,role:ROLE,getJob:()=>current.shift,getPlayer,meetHost:meet,notify,openRegistration});
+ const formal=createFormalLaborContract({careers,workState:()=>careers?.workState?.()??careers?.state(),role:ROLE,getJob:()=>current.shift,getPlayer,meetHost:meet,notify,openRegistration});
  const fail=(text,code='unavailable')=>{lastError=code;notify(text);return false;};
  const persist=(next,world=null)=>{
   if(loadError||disposed)return false;
@@ -35,7 +35,7 @@ export function createChinaSalonEmployment({salon,scene,careers,copperLedger,npc
   if(participant?.ok===false)return fail('客单记录已变化，请重试','stale-world');
   try{const result=saveState(candidate,participant);if(result===false||result?.then)return fail('记录未保存，请重试','save-failed');current=candidate;lastError=null;return true;}catch{return fail('记录未保存，请重试','save-failed');}
  };
- const quote=()=>quoteSalonService({appearanceScore:getAppearanceScore(),artLevel:careers.state().skills.art,positiveReviews:current.reviews.filter(r=>r.positive).length});
+ const quote=()=>quoteSalonService({appearanceScore:getAppearanceScore(),artLevel:careers.workState().skills.art,positiveReviews:current.reviews.filter(r=>r.positive).length});
  const inVenue=()=>{const p=getPlayer()?.root.position;return p&&p.x>16&&p.x<26&&p.z>8&&p.z<21&&Math.abs(p.y-7.815)<.45;};
  const startAvailable=()=>!loadError&&!current.shift&&!current.order&&hired()&&adultArtist(getPlayer())&&!salon.active()&&getClock().hour>=6&&getClock().hour<22;
  function start(){if(!meet()||!startAvailable())return false;const serial=current.shiftSerial+1;
@@ -147,7 +147,7 @@ export function createChinaSalonEmployment({salon,scene,careers,copperLedger,npc
   if(!action)return null;
   const remote=kind==='work-view'||kind==='decline',inRoom=kind==='go-room'||kind.startsWith('poem-')||kind.startsWith('answer-');
   const position=remote?getPlayer()?.root.position.toArray():inRoom?room()?.player:REG;if(!position)return null;
-  return {id:'cn-salon-job-'+kind,provider:'china-salon-employment',kind,roleId:ROLE.id,name:'云来诗词台班',npcName:'温晚',targetKey:'cn-tavern-reception',targetName:'温晚 · 雅集接待',action,position:position.slice(),executionRadius:remote ? .5 : inRoom ? .25 : .45,interactionRadius:remote ? .6 : 1.8,priority:47,visibilityChecked:remote,...(kind==='formal-view'?{registration:{scope:'role',roleId:ROLE.id}}:{}),intentKey:[current.revision,careers.state().revision,kind,o?.id||'-',o?.stage||'-'].join(':')};
+  return {id:'cn-salon-job-'+kind,provider:'china-salon-employment',kind,roleId:ROLE.id,name:'云来诗词台班',npcName:'温晚',targetKey:'cn-tavern-reception',targetName:'温晚 · 雅集接待',action,position:position.slice(),executionRadius:remote ? .5 : inRoom ? .25 : .45,interactionRadius:remote ? .6 : 1.8,priority:47,visibilityChecked:remote,...(kind==='formal-view'?{registration:{scope:'role',roleId:ROLE.id}}:{}),intentKey:[current.revision,careers.workState().revision,kind,o?.id||'-',o?.stage||'-'].join(':')};
  }
  function resolveIntent(old){const next=intent(old?.kind);return next&&next.provider===old?.provider&&next.intentKey===old.intentKey?next:null;}
  function executeIntent(old){const q=resolveIntent(old);if(!q||!near(getPlayer(),q.position,q.executionRadius)||getMounted()||!q.visibilityChecked&&!canSee(q))return false;

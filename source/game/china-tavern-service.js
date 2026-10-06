@@ -15,7 +15,7 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
  const atRegister=()=>!getMounted()&&near(getPlayer()?.root.position,REG)&&canSee({position:REG});
  const hostReady=()=>host&&!host.walking&&near(host.root.position,host.station.npcPosition,.18);
  const failure=(message,code='unavailable')=>{lastError=code;notify(message);return false;};
- if(current.job){const role=roleFor(current.job.formalRoleId),d=careers.state().lastDuty;
+ if(current.job){const role=roleFor(current.job.formalRoleId),d=careers.workState().lastDuty;
   if(d?.workReceiptId===current.job.receiptId&&d.stage==='working')scene.start({roleId:role.id,receiptId:current.job.receiptId,day:d.day,snapshot:world});
   else {scene.restoreWorld(world);if(d?.workReceiptId!==current.job.receiptId||!['inspection','ready','paid'].includes(d.stage))save({...current,job:null});}
  }else if(world&&!scene.snapshot())scene.restoreWorld(world);
@@ -30,14 +30,14 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
   const result=careers.beginDuty({receiptId,shiftKind:'continuous'});if(!result.ok)return failure(result.code==='outside-arrival-window'?'新班次在06:00–18:00之间报到':'今天暂时不能开始这个班次',result.code);
   const job={id:receiptId,receiptId,formalRoleId:role.id,stage:'working',coveredSeconds:0,completedTasks:0};
   if(!save({version:1,serial,job}))return failure('报到记录保存失败，请重试');
-  if(!scene.start({roleId:role.id,receiptId,day:careers.state().lastDuty.day}))return failure('现场仍在交接，请等上一位同事交还岗位');
+  if(!scene.start({roleId:role.id,receiptId,day:careers.workState().lastDuty.day}))return failure('现场仍在交接，请等上一位同事交还岗位');
   selected=null;notify('已登记当日班次。先当面接班，再从真实待办中选择工作；登记和录用不会自动开工');return true;
  }
  function claim(){if(!syncChefExperience())return failure('原客单履历尚未保存，请稍后重试');const job=current.job;if(!job||!atRegister()||!hostReady())return failure('请在登记案前等许安当面验收');
-  const duty=careers.state().lastDuty;if(duty?.workReceiptId!==job.receiptId)return false;
+  const duty=careers.workState().lastDuty;if(duty?.workReceiptId!==job.receiptId)return false;
   if(duty.stage==='inspection'&&!careers.laborEvent('inspected',{roleId:job.formalRoleId,receiptId:job.receiptId}).ok)return false;
-  const paid=careers.state().lastDuty.stage==='paid'?{ok:true}:careers.settle();if(!paid.ok)return failure('工资尚未入账，完成记录会保留，请稍后再试');
-  const wage=careers.state().lastDuty.wage;if(!save({...current,job:null}))return false;selected=null;notify(`许安：已按实际在岗工时及服务评价结算${wage}铜文，工资存入银行`);return true;
+  const paid=careers.workState().lastDuty.stage==='paid'?{ok:true}:careers.settle();if(!paid.ok)return failure('工资尚未入账，完成记录会保留，请稍后再试');
+  const wage=careers.workState().lastDuty.wage;if(!save({...current,job:null}))return false;selected=null;notify(`许安：已按实际在岗工时及服务评价结算${wage}铜文，工资存入银行`);return true;
  }
  function intent(kind=null,roleId=null,choice=null){if(roleId===TAVERN_HOST_ROLE.id)return null;const role=roleFor(roleId),job=current.job,registered=careers.isHired(role.id);
   if(kind==='property'){if(!property)return null;return {id:'cn-tavern-property',provider:'china-tavern-service',kind:'property',name:'云来酒楼 · 产权柜台',npcName:'许安',action:'查看酒楼产权与经营账',position:REG.slice(),executionRadius:.9,interactionRadius:2.8,priority:45,intentKey:'yunlai-property-counter'};}
@@ -55,7 +55,7 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
   if(!action)return null;
   return {id:`cn-tavern-service-${role.id}-${kind}`,provider:'china-tavern-service',kind,roleId:role.id,name:'云来酒楼 · 工作登记',npcName:'许安',action,position:position.slice(),executionRadius,interactionRadius:2.8,priority:46,
    ...(chosen?{choice:copy(chosen)}:{}),...(kind==='formal-view'?{registration:{scope:'catalogue',roleId:role.id}}:{}),
-   intentKey:[['task','work-view','end-shift'].includes(kind)?'-':careers.state().revision,job?.receiptId||'-',job?.stage||'-',kind,chosen?key(chosen):'-'].join(':')};
+   intentKey:[['task','work-view','end-shift'].includes(kind)?'-':careers.workState().revision,job?.receiptId||'-',job?.stage||'-',kind,chosen?key(chosen):'-'].join(':')};
  }
  const key=c=>[c.kind,c.orderId,c.guestId,c.roomId,c.tableId,c.ticketId].join(':');
  function resolveIntent(old){const next=intent(old?.kind,old?.roleId,old?.choice);if(!next||old?.provider!==next.provider||old.id!==next.id||old.intentKey!==next.intentKey)return null;
@@ -80,7 +80,7 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
  }
  const insideWorkplace=()=>{const p=getPlayer()?.root.position;return p&&p.x>16&&p.x<26&&p.z>8&&p.z<21&&p.y>=0&&p.y<9;};
  function update(dt){if(disposed)return;const experienceSaved=syncChefExperience();if(waitingRegistration){if(!atRegister()||!resolveIntent(waitingRegistration))waitingRegistration=null;else if(hostReady()){const pending=waitingRegistration;waitingRegistration=null;executeIntent(pending);}}const job=current.job;
-  if(job){let live=scene.snapshot();retryScene+=Math.max(0,dt);if(job.stage==='working'&&live?.receiptId!==job.receiptId&&retryScene>=2){retryScene=0;scene.start({roleId:job.formalRoleId,receiptId:job.receiptId,day:careers.state().lastDuty?.day});live=scene.snapshot();}
+  if(job){let live=scene.snapshot();retryScene+=Math.max(0,dt);if(job.stage==='working'&&live?.receiptId!==job.receiptId&&retryScene>=2){retryScene=0;scene.start({roleId:job.formalRoleId,receiptId:job.receiptId,day:careers.workState().lastDuty?.day});live=scene.snapshot();}
    if(live?.receiptId===job.receiptId&&live?.stage==='working'&&getClock().hour<18&&insideWorkplace())attendance+=Math.min(.1,Math.max(0,dt));
    if(attendance>=1||scene.finished()){
     const next={...current,job:{...job,coveredSeconds:job.coveredSeconds+attendance,completedTasks:live?.completedTasks||job.completedTasks}};

@@ -45,7 +45,18 @@ export function createChinaTavernSalonUI({service,getPlayer,onOpen=()=>{},docume
   p.retry=button('重试核对铜钱',()=>{service.recoverPayments();refresh(true);});p.retry.className='cn-salon-recover';p.retry.setAttribute('data-cn-salon-focus','recover');
   p.detail.append(p.kicker,p.title);if(mode==='pick')p.detail.append(p.choices,p.preference);p.detail.append(p.balance,amount,p.terms,p.consent,p.error,p.retry);
  }
+ function refreshOverlay(s){
+  badge.hidden=!nearFloor()&&!s.active;text(badge,s.active?`云来雅集 · ${s.label}`:'云来青楼 · 雅集接待');fade.hidden=!s.fade;
+ }
  function refresh(force=false){
+  if(disposed)return;
+  if(!dialog.open&&!force){
+   // The scene overlay remains live during an actual visit, without asking
+   // for the closed catalogue, room occupancy or full transaction journal.
+   if(service.displayState)refreshOverlay(service.displayState());
+   else {const s=service.view();refreshOverlay({active:!!s.session,label:s.label,fade:s.fade});}
+   return;
+  }
   const s=service.view(),o=s.session,candidates=s.candidates||[],atReception=service.atReception();
   if(!candidates.some(c=>c.id===selectedArtist)){selectedArtist=(candidates.find(c=>c.available)||candidates[0])?.id||null;selectedActivity=null;}
   const selected=candidates.find(c=>c.id===selectedArtist),activities=selected?[...selected.activities,...(selected.activities.some(a=>a.id==='banquet')?[]:[{id:'banquet',...SALON_ACTIVITIES.banquet,fee:selected.quoteFee??selected.activities[0]?.fee??SALON_MIN_FEE}])]:[];
@@ -53,8 +64,8 @@ export function createChinaTavernSalonUI({service,getPlayer,onOpen=()=>{},docume
   const activity=activities.find(a=>a.id===selectedActivity),artist=o?candidates.find(c=>c.id===o.actorId):selected,fee=o?.fee??activity?.fee??0;
   // Observe displayed/decision fields, never route progress or background clocks.
   const key=JSON.stringify([o&&[o.id,o.actorId,o.activity,o.fee,o.stage,o.payment,o.roomId],s.label,s.returning,s.lastReply&&[s.lastReply.actorId,s.lastReply.name,s.lastReply.reply,s.lastReply.roomUnavailable,s.lastReply.willing],(s.rooms||[]).map(r=>[r.id,r.name,r.claim?.status,!!r.physicallyOccupied]),candidates.map(c=>[c.id,c.name,c.ageYears,c.gender,c.specialty,c.preference,c.available,c.status,c.activities.map(a=>[a.id,a.name,a.fee])]),s.cash,s.paymentError,atReception,selectedArtist,selectedActivity]);
-  badge.hidden=!nearFloor()&&!o;text(badge,o?`云来雅集 · ${s.label}`:'云来青楼 · 雅集接待');fade.hidden=!s.fade;
-  if(!dialog.open&&!force)return;if(!force&&signature===key)return;signature=key;
+  refreshOverlay({active:!!o,label:s.label,fade:s.fade});
+  if(!force&&signature===key)return;signature=key;
   if(!panel)panel=makePanel();const p=panel,focused=doc.activeElement?.getAttribute?.('data-cn-salon-focus');
   const scrolls=[dialog,p.body,p.cast,p.detail].map(node=>[node,node.scrollTop,node.scrollLeft]);let structural=false;
   const mode=o?'session':'pick';if(p.mode!==mode){buildContents(mode);structural=true;}
