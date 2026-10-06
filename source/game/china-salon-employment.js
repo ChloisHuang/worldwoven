@@ -26,7 +26,7 @@ export function createChinaSalonEmployment({salon,scene,careers,copperLedger,npc
  if(saved!=null){if(valid(saved))current={...copy(saved),layoutVersion:LAYOUT_VERSION};else loadError='invalid-salon-employment';}
  const customer=()=>npcs.find(n=>n.station.id===current.order?.customerId),room=()=>SALON_ROOMS.find(r=>r.id===current.order?.roomId);
  const atRegistration=()=>!getMounted()&&near(getPlayer(),REG,.45)&&canSee({position:REG});
- const meet=()=>atRegistration()&&knownAdult(salon.receptionist)&&!salon.active();
+ const meet=()=>atRegistration()&&knownAdult(salon.receptionist)&&!(salon.admissionBusy?.()??salon.active());
  const hired=()=>careers.isHired(ROLE.id);
  const formal=createFormalLaborContract({careers,workState:()=>careers?.workState?.()??careers?.state(),role:ROLE,getJob:()=>current.shift,getPlayer,meetHost:meet,notify,openRegistration});
  const fail=(text,code='unavailable')=>{lastError=code;notify(text);return false;};
@@ -38,7 +38,7 @@ export function createChinaSalonEmployment({salon,scene,careers,copperLedger,npc
  };
  const quote=()=>quoteSalonService({appearanceScore:getAppearanceScore(),artLevel:careers.workState().skills.art,positiveReviews:current.reviews.filter(r=>r.positive).length});
  const inVenue=()=>{const p=getPlayer()?.root.position;return p&&p.x>16&&p.x<26&&p.z>3&&p.z<21&&Math.abs(p.y-7.815)<.45;};
- const startAvailable=()=>!loadError&&!current.shift&&!current.order&&hired()&&adultArtist(getPlayer())&&!salon.active()&&getClock().hour>=6&&getClock().hour<22;
+ const startAvailable=()=>!loadError&&!current.shift&&!current.order&&hired()&&adultArtist(getPlayer())&&!(salon.admissionBusy?.()??salon.active())&&getClock().hour>=6&&getClock().hour<22;
  function start(){if(!meet()||!startAvailable())return false;const serial=current.shiftSerial+1;
   if(!persist({...current,shiftSerial:serial,shift:{serial,day:getClock().day},lastEvent:'你已开班，柳清弦歇场；来客是否邀约依本人意愿与余钱。'}))return false;
   notify('诗词台班已开。来客可自行邀约，你可接受或谢绝；无客时可练习、休息或随时交班');return true;
