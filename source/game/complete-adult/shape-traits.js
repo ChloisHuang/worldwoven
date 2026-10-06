@@ -65,6 +65,19 @@ function displaced(p,raw,traits,c,eye=false,lip=false){
   const mouth=smooth(6.39,6.44,ry)*(1-smooth(6.73,6.79,ry))*smooth(1.25,1.38,rz)
    *(1-smooth(.27,.36,Math.abs(rx)));
   out[0]+=x*(maleDelta-jawDelta)*jaw*(1-mouth);
+  // Carry jaw breadth into the cheek plane instead of leaving every male
+  // identity on the same upper-face outline. Keep the reviewed narrow end
+  // exact; narrowing the coarse outer orbital rim further would fold it.
+  // Fade clear of the mouth, orbital
+  // rim, scalp and neck; the reviewed chin/mandibular endpoint stays exact.
+  const cheek=smooth(6.43,6.68,ry)*(1-smooth(6.98,7.50,ry))
+   *smooth(.20,.43,Math.abs(rx))*smooth(.50,1.0,rz);
+  if(!lip)out[0]+=x*Math.max(0,jawDelta)*1.8*cheek*(1-mouth)*(1-w);
+  // Existing socket depth also describes the upper orbital/forehead plane.
+  // Its slope changes locally without moving the head top, nose or neck.
+  const forehead=smooth(7.34,7.44,ry)*(1-smooth(7.44,7.94,ry))
+   *smooth(.55,1.12,rz)*(1-smooth(.50,.78,Math.abs(rx)));
+  out[2]+=.012*(traits.socketDepth-1)*forehead;
  }
  const bridge=smooth(6.95,7.20,ry);
  const nasal=smooth(6.70,6.83,ry)*(1-smooth(7.28,7.46,ry))
@@ -143,7 +156,7 @@ export function morphCompleteAdultAsset(asset,input){
  });
  // A submillimetre allowance follows only the deeper male socket. It clears
  // coarse triangle interiors without changing neutral/female brow fitting.
- return{...asset,parts:refitBrows(asset,parts,asset.form==='male'?.0012+Math.max(0,traits.socketDepth-1)*.0006+Math.max(0,traits.eyeSize-1)*.0001:.0012)};
+ return{...asset,parts:refitBrows(asset,parts,asset.form==='male'?.0012+Math.max(0,traits.socketDepth-1)*.001+Math.max(0,traits.eyeSize-1)*.0001:.0012)};
 }
 /** Map only newly inserted head/hair through the existing leg-height contract.
  * Retained body, garment, hair and accessory geometry is already shaped. */

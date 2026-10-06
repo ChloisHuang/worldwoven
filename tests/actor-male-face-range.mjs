@@ -15,8 +15,15 @@ for(const traits of cases){
  }
  assert(span>oldSpan*1.4,'male control must expose a meaningfully wider geometric response');rows.push({traits,responseMm:span*1000,previousResponseMm:oldSpan*1000});
 }
-const endpoints=[{eyeSize:.82,noseWidth:1.18,noseSize:1.18,socketDepth:.65},{eyeSize:1.2,noseWidth:.8,noseSize:.8,socketDepth:1.65}];
+// Ordinary face forms must vary beyond the small nose/eye surfaces.
+function nearest(part,point){let best=Infinity,at=0;for(let i=0;i<part.featureCoord.length;i+=3){let d=0;for(let k=0;k<3;k++)d+=(part.featureCoord[i+k]-point[k])**2;if(d<best){best=d;at=i;}}return at;}
+for(const [traits,point,axis,minMm] of [[{jawWidth:1.12},[.56,6.85,1.13],0,4],[{socketDepth:1.65},[.3,7.55,1.4],2,2]]){
+ const actual=morphCompleteAdultAsset(base,traits).parts.find(p=>p.material==='skin'),reference=morphCompleteAdultAsset({...base,form:'linear-range-reference'},traits).parts.find(p=>p.material==='skin'),at=nearest(actual,point);
+ assert((actual.position[at+axis]-reference.position[at+axis])*1000>minMm,'male cheek/forehead plane must have a readable geometric response');
+}
+const endpoints=[{jawWidth:1.12,eyeSize:.82,noseWidth:1.18,noseSize:1.18,socketDepth:.65},{jawWidth:.84,eyeSize:1.2,noseWidth:.8,noseSize:.8,socketDepth:1.65}];
 for(const eyeSize of [.82,1,1.2])for(const socketDepth of [.65,1,1.65])endpoints.push({eyeSize,socketDepth});
+endpoints.push(...['cn-official-rites','cn-official-records','cn-official-justice'].map(id=>npcShapeTraits('china',id,1,1)));
 for(const traits of endpoints){
  const asset=morphCompleteAdultAsset(base,traits),s=asset.parts.find(p=>p.material==='skin');
  for(const part of asset.parts.filter(p=>p.material==='brow'))for(let i=0;i<part.index.length;i+=3){const vs=Array.from(part.index.slice(i,i+3),j=>Array.from(part.position.slice(j*3,j*3+3)));for(const weights of [[1/3,1/3,1/3],[.5,.5,0],[0,.5,.5],[.5,0,.5]]){const p=[0,0,0];for(let j=0;j<3;j++)for(let k=0;k<3;k++)p[k]+=vs[j][k]*weights[j];assert(p[2]-frontSurface(s,p[0],p[1])>-.000001,'expanded eye/socket endpoints retain brow contact');}}
