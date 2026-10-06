@@ -11,8 +11,8 @@ R16.131 ordinary visits use the current supported character model with the origi
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.144-public, 2026-10-06
-Verified published Sites source commit: 9d58c4ce04322ce9e516d054dcc2f252d880bb4c
+Published release: R16.145-public, 2026-10-06
+Verified published Sites source commit: 4fcd14614e4b5df176f79b2253872991c5825533
 
 Opt-in same-save performance panel: https://alien.doudouai.net/?perf=1#china
 It reads runtime timing/render counts and the initial save length; it does not reset storage or send telemetry. CPU submission timing is not GPU timing. R16.128 removes repeated full-history copies from closed salon panels and China job/HUD reads. R16.129 extends current-career reads to the existing Japan/Egypt employment adapters and French tea/pastry/gardening controllers. Those controllers only run in their respective countries. The user reported R16.130 runs without lag; broader device performance remains unverified.
@@ -44,6 +44,8 @@ R16.142 connects current clinic NPCs to meals paid from their own earned cash-pl
 R16.143 connects the royal cook’s existing 32-copper/12-hour employer contract to observed personal bank wages, a self-paid original tavern meal, public toilet and physical return. Needs begin only after real first income; no grants or bank trip are added. Recruitment and handoff UI follows the current live reviewer. Default China coverage is 22/31, with nine still open.
 
 R16.144 connects Shen Yan’s existing 24-copper/12-hour patrol contract to actual patrol duty wages and safe personal breaks. After real first earnings, he pays for the original tavern meal, uses the public toilet and physically returns; practice and waiting earn no patrol pay. Current-holder handoff and the separate range reviewer keep their own identities. Default China needs coverage is 23/31, with eight still open.
+
+R16.145 removes the six officials’ finite treasury funding gate. Their existing 24-copper pay still requires real court duty and personal filing, with one government payment per day; old personal balances, wage and meal receipts survive migration. Default needs coverage remains 23/31.
 
 ## Working rules
 
