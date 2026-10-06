@@ -8,12 +8,18 @@ const near=(p,point,r=.9)=>p&&Math.hypot(p.x-point[0],p.z-point[2])<=r&&Math.abs
 // Scene owns the people and dirty objects; the contract owns salary/reviews.
 export function createChinaTavernService({meal,property=null,careers,getPlayer,getMounted=()=>null,getClock,host,getLegacyJob=()=>null,
   saved=null,world=null,saveState=()=>true,openRegistration=()=>{},onIntent=()=>{},notify=()=>{},canSee=()=>true,onOpen=()=>{},document:doc=globalThis.document}){
- const scene=meal.staffScene;let current=saved&&saved.version===1?copy(saved):{version:1,serial:0,job:null},selected=null,disposed=false,ui=null,propertyUI=null,attendance=0,lastError=null,waitingRegistration=null,retryScene=0;
+ const scene=meal.staffScene;let current=saved&&saved.version===1?copy(saved):{version:1,serial:0,job:null},selected=null,disposed=false,ui=null,propertyUI=null,attendance=0,lastError=null,waitingRegistration=null,waitingRegistrationAccepted=false,retryScene=0;
  const heldRole=()=>ROLES.find(r=>careers.isHired(r.id));
  const roleFor=id=>ROLES.find(r=>r.id===id)||heldRole()||TAVERN_STEWARD_ROLE;
  const save=next=>{try{const result=saveState(copy(next));if(result===false||result?.then)return false;current=next;return true;}catch{return false;}};
  const atRegister=()=>!getMounted()&&near(getPlayer()?.root.position,REG)&&canSee({position:REG});
- const hostReady=()=>host&&!host.walking&&near(host.root.position,host.station.npcPosition,.18);
+ const hostAdmissionOpen=()=>scene.hostAdmissionOpen?.()??true;
+ const hostCompletionAvailable=()=>scene.hostCompletionAvailable?.()??hostAdmissionOpen();
+ const hostUnavailableReason=()=>scene.hostUnavailableReason?.()||'许安正在休息，请等他回到登记案再办理';
+ const hostAtPost=()=>!!host&&!host.walking&&near(host.root.position,host.station.npcPosition,.18);
+ const hostReady=()=>hostAtPost()&&hostAdmissionOpen();
+ const cancelRegistration=()=>{waitingRegistration=null;waitingRegistrationAccepted=false;};
+ const hasPresentHostMeeting=()=>!disposed&&!!waitingRegistration&&waitingRegistrationAccepted&&atRegister();
  const failure=(message,code='unavailable')=>{lastError=code;notify(message);return false;};
  if(current.job){const role=roleFor(current.job.formalRoleId),d=careers.workState().lastDuty;
   if(d?.workReceiptId===current.job.receiptId&&d.stage==='working')scene.start({roleId:role.id,receiptId:current.job.receiptId,day:d.day,snapshot:world});
@@ -25,7 +31,7 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
  function accept(role=heldRole()){
   if(!syncChefExperience())return failure('原客单履历尚未保存，请稍后重试');
   if(!role||!careers.isHired(role.id)||current.job||getLegacyJob())return failure('先结清手上的工作，再开始新班次');
-  if(!atRegister()||!hostReady()||meal.view().order)return failure('请到登记案前等许安回案，再当面报到');
+  if(!atRegister()||!hostReady()||meal.view().order)return failure(hostAdmissionOpen()?'请到登记案前等许安回案，再当面报到':hostUnavailableReason());
   const serial=current.serial+1,receiptId=`${role.workSource}-${serial}`;
   const result=careers.beginDuty({receiptId,shiftKind:'continuous'});if(!result.ok)return failure(result.code==='outside-arrival-window'?'新班次在06:00–18:00之间报到':'今天暂时不能开始这个班次',result.code);
   const job={id:receiptId,receiptId,formalRoleId:role.id,stage:'working',coveredSeconds:0,completedTasks:0};
@@ -33,7 +39,7 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
   if(!scene.start({roleId:role.id,receiptId,day:careers.workState().lastDuty.day}))return failure('现场仍在交接，请等上一位同事交还岗位');
   selected=null;notify('已登记当日班次。先当面接班，再从真实待办中选择工作；登记和录用不会自动开工');return true;
  }
- function claim(){if(!syncChefExperience())return failure('原客单履历尚未保存，请稍后重试');const job=current.job;if(!job||!atRegister()||!hostReady())return failure('请在登记案前等许安当面验收');
+ function claim(){if(!syncChefExperience())return failure('原客单履历尚未保存，请稍后重试');const job=current.job;if(!job||!atRegister()||!hostReady())return failure(hostAdmissionOpen()?'请在登记案前等许安当面验收':hostUnavailableReason());
   const duty=careers.workState().lastDuty;if(duty?.workReceiptId!==job.receiptId)return false;
   if(duty.stage==='inspection'&&!careers.laborEvent('inspected',{roleId:job.formalRoleId,receiptId:job.receiptId}).ok)return false;
   const paid=careers.workState().lastDuty.stage==='paid'?{ok:true}:careers.settle();if(!paid.ok)return failure('工资尚未入账，完成记录会保留，请稍后再试');
@@ -65,8 +71,9 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
   const role=roleFor(next.roleId);
   if(next.kind==='formal-view'){openRegistration({country:'china',roleId:role.id,scope:next.registration.scope});return true;}
   if(['formal-apply','formal-review','formal-resign'].includes(next.kind)){
-   if(!atRegister())return false;if(!hostReady()){waitingRegistration=copy(next);notify('已在登记案等候许安；他回案后会核对这次申请，离开登记处则取消等候');return true;}waitingRegistration=null;const result=next.kind==='formal-apply'?careers.apply(role.id,{ageYears:getPlayer()?.ageYears}):next.kind==='formal-review'?careers.reviewApplication(role.id,{ageYears:getPlayer()?.ageYears,applicationId:careers.applicationResult(role.id)?.id}):careers.resign();
-   openRegistration({country:'china',roleId:role.id,scope:'role'});return !!result.ok;
+   if(!atRegister())return false;
+   if(!hostReady()){waitingRegistration=copy(next);waitingRegistrationAccepted=hostAdmissionOpen();notify(waitingRegistrationAccepted?'已在登记案等候许安；他回案后会核对这次申请，离开登记处则取消等候':hostUnavailableReason()+'；这次申请先等候，离开登记处则取消');return true;}
+   cancelRegistration();return finishRegistration(next);
   }
   if(next.kind==='accept'){if(!accept(role))return false;const first=scene.choices()[0];if(first){selected=first;onIntent(intent('task',role.id,first));}return true;}
   if(next.kind==='work-view'){ui?.open();return true;}
@@ -78,8 +85,13 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
   if(next.kind==='task'){selected=next.choice;const result=scene.execute(next.choice);if(result){selected=null;if(next.choice.kind==='choose-order'||['pickup','retrieve','return-tray'].includes(next.choice.kind))ui?.open();}return result;}
   return false;
  }
+ // Only update() may finish a previously accepted wait while admissions drain.
+ function finishRegistration(next){
+  const role=roleFor(next.roleId),result=next.kind==='formal-apply'?careers.apply(role.id,{ageYears:getPlayer()?.ageYears}):next.kind==='formal-review'?careers.reviewApplication(role.id,{ageYears:getPlayer()?.ageYears,applicationId:careers.applicationResult(role.id)?.id}):careers.resign();
+  openRegistration({country:'china',roleId:role.id,scope:'role'});return !!result.ok;
+ }
  const insideWorkplace=()=>{const p=getPlayer()?.root.position;return p&&p.x>16&&p.x<26&&p.z>3&&p.z<21&&p.y>=0&&p.y<9;};
- function update(dt){if(disposed)return;const experienceSaved=syncChefExperience();if(waitingRegistration){if(!atRegister()||!resolveIntent(waitingRegistration))waitingRegistration=null;else if(hostReady()){const pending=waitingRegistration;waitingRegistration=null;executeIntent(pending);}}const job=current.job;
+ function update(dt){if(disposed)return;const experienceSaved=syncChefExperience();if(waitingRegistration){const pending=resolveIntent(waitingRegistration);if(!atRegister()||!pending)cancelRegistration();else if(hostAtPost()&&(waitingRegistrationAccepted?hostCompletionAvailable():hostAdmissionOpen())){cancelRegistration();finishRegistration(pending);}}const job=current.job;
   if(job){let live=scene.snapshot();retryScene+=Math.max(0,dt);if(job.stage==='working'&&live?.receiptId!==job.receiptId&&retryScene>=2){retryScene=0;scene.start({roleId:job.formalRoleId,receiptId:job.receiptId,day:careers.workState().lastDuty?.day});live=scene.snapshot();}
    if(live?.receiptId===job.receiptId&&live?.stage==='working'&&getClock().hour<18&&insideWorkplace())attendance+=Math.min(.1,Math.max(0,dt));
    if(attendance>=1||scene.finished()){
@@ -97,10 +109,10 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
  }
  const state=()=>{const live=scene.snapshot(),job=current.job?{...copy(current.job),completedOrders:live?.completedTasks||0,completedTasks:live?.completedTasks||0,completedTables:live?.tables.filter(t=>!t.dirty).length||0,continuous:true}:null;return {...copy(current),job,world:scene.state(),selected:selected?copy(selected):null,lastError};};
  const forRole=roleId=>({intent:kind=>intent(kind,roleId),atRegistration:atRegister,resolveIntent,executeIntent,state,active:()=>!!current.job,formal:{beginAvailability:()=>beginAvailability(roleFor(roleId)),hired:()=>careers.isHired(roleId)},accept:()=>accept(roleFor(roleId))});
- const service={intent,resolveIntent,executeIntent,forRole,state,view:state,accept,claim,update,active:()=>!!current.job,formal:{beginAvailability:()=>beginAvailability(heldRole()||TAVERN_STEWARD_ROLE)},
-  label:()=>current.job?selected?.action||scene.label():null,playerPose:()=>scene.playerPose(),playerAction:()=>scene.playerAction(),playerStation:()=>scene.playerStation(),stopActivity:()=>{waitingRegistration=null;scene.stopActivity();},open:()=>ui?.open(),close:()=>{ui?.close();propertyUI?.close();},isOpen:()=>!!(ui?.isOpen()||propertyUI?.isOpen()),
-  snapshot:()=>({version:1,receiptId:current.job?.receiptId||null,selected:selected?copy(selected):null,waitingRegistration:waitingRegistration?copy(waitingRegistration):null,attendance}),
-  restore(s){if(!s||s.version!==1||s.receiptId!==(current.job?.receiptId||null)||!Number.isFinite(s.attendance)||s.attendance<0||s.attendance>=1.1)return false;selected=s.selected&&scene.choices().some(c=>key(c)===key(s.selected))?copy(s.selected):null;waitingRegistration=s.waitingRegistration&&resolveIntent(s.waitingRegistration)?copy(s.waitingRegistration):null;attendance=s.attendance;return true;},
+ const service={intent,resolveIntent,executeIntent,forRole,state,view:state,accept,claim,update,hostAdmissionOpen,hostCompletionAvailable,hostUnavailableReason,hasPresentHostMeeting,active:()=>!!current.job,formal:{beginAvailability:()=>beginAvailability(heldRole()||TAVERN_STEWARD_ROLE)},
+  label:()=>current.job?selected?.action||scene.label():null,playerPose:()=>scene.playerPose(),playerAction:()=>scene.playerAction(),playerStation:()=>scene.playerStation(),stopActivity:()=>{cancelRegistration();scene.stopActivity();},open:()=>ui?.open(),close:()=>{ui?.close();propertyUI?.close();},isOpen:()=>!!(ui?.isOpen()||propertyUI?.isOpen()),
+  snapshot:()=>({version:1,receiptId:current.job?.receiptId||null,selected:selected?copy(selected):null,waitingRegistration:waitingRegistration?copy(waitingRegistration):null,waitingRegistrationAccepted,attendance}),
+  restore(s){if(!s||s.version!==1||(s.waitingRegistrationAccepted!==undefined&&typeof s.waitingRegistrationAccepted!=='boolean')||s.receiptId!==(current.job?.receiptId||null)||!Number.isFinite(s.attendance)||s.attendance<0||s.attendance>=1.1)return false;selected=s.selected&&scene.choices().some(c=>key(c)===key(s.selected))?copy(s.selected):null;waitingRegistration=s.waitingRegistration&&resolveIntent(s.waitingRegistration)&&atRegister()?copy(s.waitingRegistration):null;waitingRegistrationAccepted=!!waitingRegistration&&s.waitingRegistrationAccepted!==false;attendance=s.attendance;return true;},
   dispose(){attendance=0;disposed=true;ui?.dispose();propertyUI?.dispose();}};
  if(property&&doc?.createElement&&doc.body)propertyUI=createChinaTavernPropertyUI({property,document:doc,canOperate:()=>atRegister()&&hostReady(),isNearby:()=>atRegister(),notify,onOpen:()=>{ui?.close();onOpen();}});
  if(doc?.createElement&&doc.body)ui=createUI({doc,service,scene,onIntent,notify,onOpen,choose:c=>{selected=c;return intent('task',null,c);}});return service;

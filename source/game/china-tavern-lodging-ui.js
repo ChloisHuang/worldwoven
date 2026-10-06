@@ -35,7 +35,7 @@ export function createChinaTavernLodgingUI({service,getPlayer,onIntent,onRoom,on
   else if(b)detail.append(make('p','房费已预留 · 在案前等许安登记'));
   else detail.append(make('p','入住起24游戏小时 · 仅游玩时推进'),make('p','入住前取消全退；登记入住后，提前退房不退费。','cn-inn-note'));
   if(b)detail.append(make('p',b.stage==='active'?'房费已结清 · 提前退房不退费':'入住前取消全退；入住后提前退房不退费','cn-inn-note'));
-  const warning=error||(!s.hostAvailable&&!b?'掌柜岗位目前由你独任，许安不代办入住':!b&&s.cash<room?.price?'随身铜文不足，可先到钱庄取款':!b&&!s.atCounter?'请到一层柜台前确认入住':'');if(warning)detail.append(make('p',warning,'cn-inn-error'));
+  const warning=error||(!s.hostAvailable?s.hostUnavailableReason||'掌柜岗位目前由你独任，许安不代办入住':!b&&s.cash<room?.price?'随身铜文不足，可先到钱庄取款':!b&&!s.atCounter?'请到一层柜台前确认入住':'');if(warning)detail.append(make('p',warning,'cn-inn-error'));
   if(!b){const confirm=button(`确认留房 · ${room?.price??12}文`,()=>result(service.confirm(room.id,s.revision)),true);confirm.disabled=!room?.available||!s.atCounter||!s.hostAvailable||s.cash==null||s.cash<room.price||!!s.loadError;actions.append(confirm,button('暂不入住',close));}
   else if(b.stage==='waiting')actions.append(button('收起 · 等待登记',close,true),button('取消留房 · 全额退回',()=>result(service.cancel(s.revision))));
   else actions.append(button('前往自己的客房',()=>{close();onRoom(b.roomId);},true),button('退房 · 不退费',()=>result(service.checkout(s.revision))));

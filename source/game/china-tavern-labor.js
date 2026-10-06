@@ -61,15 +61,18 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
   let current, loadError = null;
   try { current = restore(saved); } catch { current = empty(); loadError = 'invalid-saved-state'; }
   let cleaning = false, pendingClean = false, elapsed = 0, origin = null, saving = false, paying = false, disposed = false, lastError = null;
-  let ui = null, nextPayAt=0, waitingRegistration=null;
+  let ui = null, nextPayAt=0, waitingRegistration=null,waitingRegistrationAccepted=false,completingRegistration=false;
   const formal=createFormalLaborContract({careers,workState:()=>careers?.workState?.()??careers?.state(),role:TAVERN_STEWARD_ROLE,getJob:()=>current.job,getPlayer,meetHost:meetRegistrationHost,notify,openRegistration});
   const hired=()=>formal.hired()||!!employment?.isHired();
   const player = () => getPlayer()?.root?.position;
   const active = () => !!current.job;
   const target = () => current.job?.stage === 'working' ? TABLES[current.job.completedTables] : HOST;
   const at = point => !getMounted() && near(player(), point);
-  const hostReady = () => !!host && !host.walking &&
-    near(host.root?.position, host.station?.npcPosition || [24.1, FLOOR, 11.4], .12) && isHostAvailable();
+  const hostAdmissionOpen = () => serviceAdapter()?.hostAdmissionOpen?.() ?? true;
+  const hostCompletionAvailable = () => serviceAdapter()?.hostCompletionAvailable?.() ?? hostAdmissionOpen();
+  const hostUnavailableReason = () => serviceAdapter()?.hostUnavailableReason?.() || '许安正在休息，请等他回到迎客茶案再办理';
+  const hostReady = (accepted = false) => !!host && !host.walking &&
+    near(host.root?.position, host.station?.npcPosition || [24.1, FLOOR, 11.4], .12) && isHostAvailable() && (accepted ? hostCompletionAvailable() : hostAdmissionOpen());
   const failure = (code, message) => { lastError = code; if (message) notify(message); return false; };
   const permitted = () => !disposed && !saving && !paying && !loadError && !copperLedger.loadError;
   const stopCleaning = () => { cleaning = false; pendingClean = false; elapsed = 0; origin = null; };
@@ -87,26 +90,33 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     } catch { return failure('save-failed', '进度没能保存，请稍后再试'); }
     finally { saving = false; }
   }
-  function meetHost(radius = .2) {
+  function meetHostAt(radius, accepted = false) {
     if (getMounted() || !near(player(), HOST.position, radius) || !canSee(HOST)) return failure('not-at-host', '请走到一层许安的迎客茶案前，站稳后再招呼他');
-    if (!hostReady()) return failure('host-unavailable', '许安还在忙，请等他回到迎客茶案再来');
+    if (!hostReady(accepted)) return failure('host-unavailable', hostAdmissionOpen() ? '许安还在忙，请等他回到迎客茶案再来' : hostUnavailableReason());
     return true;
   }
-  function meetRegistrationHost() { return meetHost(REGISTRATION_RADIUS); }
+  function meetHost(radius = .2) { return meetHostAt(radius); }
+  function meetRegistrationHost() { return meetHostAt(REGISTRATION_RADIUS, completingRegistration); }
   const atRegistration = () => !getMounted() && near(player(), HOST.position, REGISTRATION_RADIUS) && canSee(HOST);
-  const cancelRegistration = () => { waitingRegistration = null; };
-  function finishRegistration(selected) {
+  const cancelRegistration = () => { waitingRegistration = null; waitingRegistrationAccepted = false; };
+  const hasPresentHostMeeting = () => !disposed && !!waitingRegistration && waitingRegistrationAccepted && atRegistration();
+  function finishRegistration(selected, accepted = false) {
     const next = resolveIntent(selected);
     if (!next || !atRegistration()) return false;
-    if (!hostReady()) {
-      waitingRegistration = copy(next);
-      notify('许安正在忙，已在登记处等候；等他回案后办理这次登记，关闭面板可取消');
+    if (!hostReady(accepted)) {
+      waitingRegistration = copy(next); waitingRegistrationAccepted = accepted || hostAdmissionOpen();
+      notify(waitingRegistrationAccepted ? '许安正在忙，已在登记处等候；等他回案后办理这次登记，关闭面板可取消' : hostUnavailableReason() + '；这次登记先等候，关闭面板可取消');
       ui?.open(); return true;
     }
-    if (next.kind === 'formal-apply' || next.kind === 'formal-resign') return next.kind === 'formal-apply' ? formal.apply() : formal.resign();
-    const changed = employment[next.kind]();
-    if (changed) ui?.open();
-    return changed;
+    cancelRegistration();
+    // Nested employment/formal checks may use completion only for this accepted wait.
+    completingRegistration = accepted;
+    try {
+      if (next.kind === 'formal-apply' || next.kind === 'formal-resign') return next.kind === 'formal-apply' ? formal.apply() : formal.resign();
+      const changed = employment[next.kind]();
+      if (changed) ui?.open();
+      return changed;
+    } finally { completingRegistration = false; }
   }
   function accept() {
     if(serviceAdapter()?.active())return failure('service-active','先交还当班岗位，再接另一份工作');
@@ -177,8 +187,8 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
       const selected = waitingRegistration;
       if (!atRegistration() || !resolveIntent(selected)) {
         cancelRegistration(); notify('登记等候已取消；需要办理时请重新选择');
-      } else if (hostReady()) {
-        cancelRegistration(); ui?.close(); finishRegistration(selected);
+      } else if (hostReady(waitingRegistrationAccepted)) {
+        const accepted = waitingRegistrationAccepted; cancelRegistration(); ui?.close(); finishRegistration(selected, accepted);
       }
     }
     // Route arrival can still carry this frame's walking flag. Begin on the
@@ -259,13 +269,13 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     return claim();
   }
   const service = {
-    active, accept, startCleaning, claim, cancel, update, view, state:()=>({...view(),formalState:formal.state()}), meetHost, meetRegistrationHost, intent, resolveIntent, executeIntent, cancelRegistration,
+    active, accept, startCleaning, claim, cancel, update, view, hasPresentHostMeeting, state:()=>({...view(),formalState:formal.state()}), meetHost, meetRegistrationHost, intent, resolveIntent, executeIntent, cancelRegistration,
     stopCleaning, isCleaning: () => cleaning, employment, formal,
     playerAction: () => cleaning && stationary() ? 'tidy' : null,
     playerStation: () => cleaning && stationary() ? copy(target()) : null,
     open: () => ui?.open(), close: () => ui?.close(), isOpen: () => !!ui?.isOpen(),
-    snapshot:()=>({version:1,receiptId:current.job?.receiptId||null,stage:current.job?.stage||null,completedTables:current.job?.completedTables||0,cleaning,pendingClean,elapsed,origin:origin?copy(origin):null,waitingRegistration:waitingRegistration?copy(waitingRegistration):null}),
-    restore(s){if(!s||s.version!==1||s.receiptId!==(current.job?.receiptId||null)||s.stage!==(current.job?.stage||null)||s.completedTables!==(current.job?.completedTables||0)||!Number.isFinite(s.elapsed)||s.elapsed<0||s.elapsed>SECONDS)return false;waitingRegistration=s.waitingRegistration&&resolveIntent(s.waitingRegistration)&&atRegistration()?copy(s.waitingRegistration):null;const p=player(),same=!!s.origin&&p&&Math.hypot(p.x-s.origin.x,p.z-s.origin.z)<.03&&Math.abs(p.y-s.origin.y)<.03;cleaning=!!s.cleaning&&same&&at(target().position)&&current.job?.stage==='working'&&formal.canWork(current.job);pendingClean=!!s.pendingClean&&at(target().position);elapsed=cleaning?s.elapsed:0;origin=cleaning?copy(s.origin):null;return true;},
+    snapshot:()=>({version:1,receiptId:current.job?.receiptId||null,stage:current.job?.stage||null,completedTables:current.job?.completedTables||0,cleaning,pendingClean,elapsed,origin:origin?copy(origin):null,waitingRegistration:waitingRegistration?copy(waitingRegistration):null,waitingRegistrationAccepted}),
+    restore(s){if(!s||s.version!==1||(s.waitingRegistrationAccepted!==undefined&&typeof s.waitingRegistrationAccepted!=='boolean')||s.receiptId!==(current.job?.receiptId||null)||s.stage!==(current.job?.stage||null)||s.completedTables!==(current.job?.completedTables||0)||!Number.isFinite(s.elapsed)||s.elapsed<0||s.elapsed>SECONDS)return false;waitingRegistration=s.waitingRegistration&&resolveIntent(s.waitingRegistration)&&atRegistration()?copy(s.waitingRegistration):null;waitingRegistrationAccepted=!!waitingRegistration&&s.waitingRegistrationAccepted!==false;const p=player(),same=!!s.origin&&p&&Math.hypot(p.x-s.origin.x,p.z-s.origin.z)<.03&&Math.abs(p.y-s.origin.y)<.03;cleaning=!!s.cleaning&&same&&at(target().position)&&current.job?.stage==='working'&&formal.canWork(current.job);pendingClean=!!s.pendingClean&&at(target().position);elapsed=cleaning?s.elapsed:0;origin=cleaning?copy(s.origin):null;return true;},
     dispose() { if (disposed) return; cancelRegistration(); stopCleaning(); disposed = true; ui?.dispose(); },
   };
   if (doc?.createElement && doc.body) ui = createUI({doc, service, getPlayer, onIntent, canSee, onOpen});

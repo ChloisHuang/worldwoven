@@ -6,6 +6,9 @@ const NPCS = Object.freeze({
   'cn-tavern-cook': {name:'沈禾',funds:240},
   'cn-tavern-assistant': {name:'陆青',funds:260},
 });
+export const TAVERN_PROPERTY_NPC_IDS=Object.freeze(Object.keys(NPCS));
+const personalMealKind=kind=>kind==='npc-meal-payment'||kind==='npc-meal-refund';
+const mealOrder=id=>typeof id==='string'&&/^cn-tavern-order-[1-9][0-9]*$/.test(id);
 const OWNER = 'cn-tavern-host', CAPITAL = 120;
 const copy = x => JSON.parse(JSON.stringify(x));
 const integer = x => Number.isSafeInteger(x) && x >= 0;
@@ -23,7 +26,7 @@ function accounts(state,till) {
   const funds=Object.fromEntries(Object.entries(NPCS).map(([id,n])=>[id,n.funds]));
   funds[OWNER]-=CAPITAL;
   let ownerId=OWNER,invested=CAPITAL,paidWages=0,drawn=0,ownership=0;
-  const ids=new Set();let previousTill=0;
+  const ids=new Set(),meals=new Map();let previousTill=0;
   for(const e of state.events) {
     if(!e || !integer(e.day) || !integer(e.till) || e.till<previousTill || e.till>till || !priceValid(e.amount) || typeof e.id!=='string' || ids.has(e.id)) throw Error('invalid-property-event');
     ids.add(e.id);previousTill=e.till;
@@ -32,6 +35,11 @@ function accounts(state,till) {
       if(e.from!=='player')funds[e.from]+=e.amount;
       if(e.to!=='player')funds[e.to]-=e.amount;
       ownerId=e.to;ownership++;
+    } else if(personalMealKind(e.kind)) {
+      if(!Object.hasOwn(NPCS,e.actorId)||!mealOrder(e.orderId)||e.id!==`yunlai-${e.kind}:${e.actorId}:${e.orderId}`)throw Error('invalid-npc-meal');
+      const old=meals.get(e.orderId);
+      if(e.kind==='npc-meal-payment'){if(old)throw Error('duplicate-npc-meal');funds[e.actorId]-=e.amount;meals.set(e.orderId,{actorId:e.actorId,amount:e.amount,refunded:false});}
+      else{if(!old||old.refunded||old.actorId!==e.actorId||old.amount!==e.amount)throw Error('invalid-npc-meal-refund');funds[e.actorId]+=e.amount;old.refunded=true;}
     } else if(e.kind==='wage') {
       if(!integer(e.funding)||e.funding!==Math.max(0,e.amount-(invested+e.till-paidWages-drawn))||e.funder!==ownerId)throw Error('invalid-property-wage');
       if(e.funding) {if(e.funder==='player')throw Error('invalid-property-funding');funds[e.funder]-=e.funding;invested+=e.funding;}
@@ -62,6 +70,7 @@ function validate(state,till,ledger) {
   if(ledger) {
     const receipts=new Map(ledger.history().map(t=>[t.requestId,t]));
     for(const e of state.events) {
+      if(personalMealKind(e.kind))continue; // Same-property personal funds, never a player bank transaction.
       const tx=receipts.get(e.id),op=e.kind==='transfer'?(e.to==='player'?'purchase':'sale'):e.kind;
       if(!tx||tx.amount!==e.amount||(e.kind==='wage'?!wages(tx):tx.action!=='business'||tx.operation!==op||tx.businessId!==TAVERN_BUSINESS_ID))throw Error('property-receipt-mismatch');
     }
@@ -72,7 +81,7 @@ function validate(state,till,ledger) {
 }
 
 export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=()=>0,getSalonIncome=()=>null,saveState,worldSeed=1}={}) {
-  let current=empty(),loadError=null,lastError=null,pending=null,saving=false;
+  let current=empty(),loadError=null,lastError=null,pending=null,saving=false,npcProjection=null;
   try {if(saved!=null)current=copy(saved);validate(current,getTill(),copperLedger);if(copperLedger.loadError)throw Error(copperLedger.loadError);}
   catch(error){loadError=error.message;}
   const fail=code=>{lastError=code;return {ok:false,code};};
@@ -175,9 +184,37 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
     try{validate(next,getTill());}catch{return fail('invalid-property-state');}
     return {ok:true,patch:{chinaTavernProperty:copy(next)},committed:()=>{current=next;lastError=null;}};
   }
+  // Only original, already-funded personal balances. This does not create a
+  // bank account, salary, reserve injection or right to spend business capital.
+  function npcAccount(actorId){
+    if(loadError||!Object.hasOwn(NPCS,actorId))return null;
+    if(npcProjection?.source!==current)npcProjection={source:current,funds:a().npcFunds};
+    return {total:npcProjection.funds[actorId],currency:'copper'};
+  }
+  function prepareNpcMeal(input,kind){
+    if(loadError||saving||pending)return fail(loadError||'property-busy');
+    const {actorId,orderId,amount}=input||{};
+    if(!Object.hasOwn(NPCS,actorId)||!mealOrder(orderId)||!priceValid(amount)||day()===null)return fail('invalid-npc-meal');
+    const base=current,id=`yunlai-${kind}:${actorId}:${orderId}`,existing=current.events.find(e=>e.id===id);
+    if(kind==='npc-meal-payment'&&current.events.some(e=>e.kind==='npc-meal-refund'&&e.orderId===orderId))return fail('npc-meal-already-refunded');
+    if(existing&&(existing.actorId!==actorId||existing.amount!==amount))return fail('npc-meal-conflict');
+    const event={id,kind,actorId,orderId,amount,day:day(),till:getTill()},next=existing?current:{...copy(current),revision:current.revision+1,events:[...current.events,event]};
+    let balance;try{balance=validate(next,getTill()).npcFunds[actorId];}catch{return fail(kind==='npc-meal-payment'?'insufficient-or-invalid-npc-funds':'invalid-npc-meal-refund');}
+    let accepted=false;return {ok:true,replayed:!!existing,receiptId:id,balanceAfter:balance,commit(worldPatch={}){
+      if(accepted)return {ok:true,replayed:true,receiptId:id};
+      if(loadError||saving||pending||current!==base)return fail(loadError||'stale-npc-meal');
+      if(!worldPatch||typeof worldPatch!=='object'||Array.isArray(worldPatch)||Object.hasOwn(worldPatch,'chinaTavernProperty'))return fail('invalid-npc-meal-world');
+      const order=worldPatch.chinaServiceWorld?.orders?.find(o=>o.id===orderId);
+      if(!order||order.customerId!==actorId||order.price!==amount||(kind==='npc-meal-payment'?order.payment!=='reserved'||order.collected!==true:order.payment!=='refunded'||order.cancelled!==true))return fail('invalid-npc-meal-world');
+      // A prepared candidate cannot overwrite a different receipt or newer
+      // business income that appeared before its synchronous commit.
+      if(!existing&&event.till!==getTill())return fail('stale-npc-meal-income');
+      saving=true;try{const stored=saveState(copy(next),copy(worldPatch));if(stored===false||stored?.ok===false||stored?.then)return fail('save-failed');current=next;accepted=true;lastError=null;return {ok:true,replayed:!!existing,receiptId:id};}catch{return fail('save-failed');}finally{saving=false;}
+    }};
+  }
   function state() {
     try{const accounts=a(),salon=getSalonIncome();return {...copy(current),...accounts,...(salon?{revenue:accounts.revenue+salon.performerPaid,salonRevenue:salon.grossRevenue,performerPaid:salon.performerPaid}:{}),npcNames:Object.fromEntries(Object.keys(NPCS).map(id=>[id,name(id)])),bank:copperLedger.balances()?.copper.bank??null,loadError,lastError};}
     catch{return {...copy(current),loadError:loadError||'invalid-property-state',lastError};}
   }
-  return {state,refreshDay,applyPurchase,confirmPurchase,setPrice,replyOffer,invest:(amount,revision)=>capital('invest',amount,revision),draw:(amount,revision)=>capital('draw',amount,revision),prepareCurrencyCommit};
+  return {npcAccount,prepareNpcMealPayment:input=>prepareNpcMeal(input,'npc-meal-payment'),prepareNpcMealRefund:input=>prepareNpcMeal(input,'npc-meal-refund'),state,refreshDay,applyPurchase,confirmPurchase,setPrice,replyOffer,invest:(amount,revision)=>capital('invest',amount,revision),draw:(amount,revision)=>capital('draw',amount,revision),prepareCurrencyCommit};
 }
