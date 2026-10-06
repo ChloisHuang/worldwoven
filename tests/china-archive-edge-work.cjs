@@ -2,13 +2,13 @@
 // replace them with the six v2 originals. Production palace/main are untouched.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const base=path.resolve('source'),cache=new Map(),charRoot=path.resolve(process.argv[2]||'source/game');
-function mod(f){f=f.split('?')[0];if(cache.has(f))return cache.get(f);let s=fs.readFileSync(f,'utf8');if(f===base+'/game/china-palace.js'){const old='for(const dx of [-1.1,0,1.1])boundBook(g,x+dx,1.13,zz,.8,.6,0x7d9583);';assert(s.includes(old));s=s.replace(old,'/* six original volumes supplied by dormant v2 fixture */');}const m=new vm.SourceTextModule(s,{identifier:f});cache.set(f,m);return m;}
+function mod(f){f=f.split('?')[0];if(cache.has(f))return cache.get(f);let s=fs.readFileSync(f,'utf8');if(f===base+'/game/china-palace.js'){const old='for(const dx of [-1.1,0,1.1])boundBook(g,x+dx,1.13,zz,.8,.6,0x7d9583);';assert(s.includes(old)||s.includes('const archiveBooks=createArchiveBooks'));s=s.replace(old,'/* six original volumes supplied by dormant v2 fixture */');}const m=new vm.SourceTextModule(s,{identifier:f});cache.set(f,m);return m;}
 const link=(s,r)=>mod(s==='three'?base+'/vendor/three/build/three.module.js':path.resolve(path.dirname(r.identifier),s));
 async function load(f){const m=mod(f.startsWith('/')?f:base+'/'+f);if(m.status==='unlinked')await m.link(link);if(m.status==='linked')await m.evaluate();return m.namespace;}
 (async()=>{const G=await load('game/geometry.js'),T=G.THREE,{createArchiveBooks}=await load('game/china-archive-books.js'),{ARCHIVE_BOOKS,archiveContract}=await load('game/china-archive-catalogue.js'),{createCharacter}=await load(charRoot+'/characters.js'),{buildChina}=await load('game/regions-east.js');
 assert(fs.readFileSync(charRoot+'/characters.js','utf8').includes('handoffDip'));
 const lot=buildChina(),scene=new T.Scene();scene.background=new T.Color(0xc5d4ce);scene.add(lot.group);lot.roofGroup.visible=false;
-const books=createArchiveBooks(G,{group:lot.group});scene.add(new T.HemisphereLight(0xfff4d8,0x68766a,2));const light=new T.DirectionalLight(0xffefce,2.5);light.position.set(5,20,-20);scene.add(light);
+const books=lot.archiveBooks||createArchiveBooks(G,{group:lot.group});scene.add(new T.HemisphereLight(0xfff4d8,0x68766a,2));const light=new T.DirectionalLight(0xffefce,2.5);light.position.set(5,20,-20);scene.add(light);
 let renderer=null,canvas=null;if(process.env.ARCHIVE_MESA==='1'){const W=await import('/workspace/shared/cultural-life-r12-webgl/node_modules/@onirenaud/node-webgl/dist/index.js');W.installDOM({fetch:false});W.init({api:'gles'});canvas=W.createCanvas(1100,750);renderer=new T.WebGLRenderer({canvas,antialias:true});renderer.setSize(1100,750,false);renderer.outputColorSpace=T.SRGBColorSpace;fs.mkdirSync('qa/china-archive',{recursive:true});}
 const camera=new T.PerspectiveCamera(42,1100/750,.1,100),report=[];
 for(const variant of[0,1]){const actor=createCharacter({culture:'china',variant,scale:.96});scene.add(actor.root);let maxGap=0,minEdge=Infinity;
