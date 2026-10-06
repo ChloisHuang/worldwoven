@@ -41,9 +41,9 @@ function validMeal(receipt,getRoyalMealEligibility,verifiedRoyalConsumption=fals
  }
  return r.source==='france-tea-food'&&r.orderId===`france-tea-${n}`&&r.id===r.orderId+'-consumed'&&r.mealId===r.orderId+'-tray'&&r.dishId==='tea-cake'&&r.supplyReceipt===r.orderId;
 }
-export function createDailyNeeds({saved={},getClock=()=>({seconds:0}),saveState=()=>true,legacyPeople={},getRoyalMealEligibility=()=>null}={}){
- const people={};let sceneId=null,activeIds=new Set(),lastClock=positive(getClock()?.seconds),lastSample=lastClock;
- for(const id of DAILY_NEEDS_ACTORS){
+export function createDailyNeeds({saved={},getClock=()=>({seconds:0}),saveState=()=>true,legacyPeople={},getRoyalMealEligibility=()=>null,isPersonAlive=()=>true}={}){
+ const people={},registeredPeople=new Set((Array.isArray(saved.registeredPeople)?saved.registeredPeople:[]).filter(id=>typeof id==='string'&&/^cn-[a-z0-9-]{1,60}$/.test(id)&&!DAILY_NEEDS_ACTORS.includes(id)));let sceneId=null,activeIds=new Set(),loadedIds=new Set(),lastClock=positive(getClock()?.seconds),lastSample=lastClock;
+ for(const id of [...DAILY_NEEDS_ACTORS,...registeredPeople]){
   const old=[1,2].includes(saved.version)?saved.people?.[id]:null,legacy=legacyPeople[id]?.needs?.hunger;
   // v1 used a twelve-hour hunger scale. Keep its recorded age and receipts;
   // a one-time balance offset preserves hunger/strain until real food relieves it.
@@ -53,9 +53,17 @@ export function createDailyNeeds({saved={},getClock=()=>({seconds:0}),saveState=
   for(const[source,number]of Object.entries(old?.receipts||{}))if((mealSources.has(source)||toiletFacilities[source])&&Number.isSafeInteger(number)&&number>0)people[id].receipts[source]=number;
  }
  function sync(){const now=positive(getClock()?.seconds,lastClock),dt=Math.max(0,now-lastClock);lastClock=now;lastSample=now;
-  if(!sceneId||!dt)return;for(const id of activeIds){const p=people[id];if(p){p.foodAge+=dt;if(!mealOnlyActors.has(id))p.toiletAge+=dt;}}
+  if(!sceneId||!dt)return;for(const id of activeIds){const p=people[id];if(p&&isPersonAlive(id)!==false){p.foodAge+=dt;if(!mealOnlyActors.has(id))p.toiletAge+=dt;}}
  }
- const snapshot=()=>{sync();return {version:2,people:copy(people)};};
+ const additional=()=>registeredPeople.size?{registeredPeople:[...registeredPeople]}:{};
+ const snapshot=()=>{sync();return {version:2,...additional(),people:copy(people)};};
+ function register(id){
+  if(people[id])return true;if(typeof id!=='string'||!/^cn-[a-z0-9-]{1,60}$/.test(id))return false;sync();
+  const legacy=legacyPeople[id]?.needs?.hunger,foodAge=Number.isFinite(legacy)?clamp(legacy)*12*DAILY_NEEDS_HOUR:7*DAILY_NEEDS_HOUR,row={foodAge,foodBalanceOffset:Number.isFinite(legacy)?foodAge:0,toiletAge:0,receipts:{}};
+  const next={version:2,registeredPeople:[...registeredPeople,id],people:{...copy(people),[id]:row}};
+  try{const result=saveState(next);if(result===false||result?.then)return false;}catch{return false;}
+  people[id]=row;registeredPeople.add(id);if(sceneId&&loadedIds.has(id))activeIds.add(id);return true;
+ }
  const foodBalanceAge=p=>p.foodAge+p.foodBalanceOffset;
  function read(id){const p=people[id];if(!p)return null;return {hunger:clamp(foodBalanceAge(p)/FOOD_DAY),toilet:mealOnlyActors.has(id)?0:clamp(p.toiletAge/(24*DAILY_NEEDS_HOUR)),foodStrain:clamp((foodBalanceAge(p)-2*FOOD_DAY)/(2*FOOD_DAY)),toiletStrain:mealOnlyActors.has(id)?0:clamp((p.toiletAge/DAILY_NEEDS_HOUR-36)/24)};}
  function status(id){const p=people[id],need=read(id);if(!p)return null;
@@ -68,7 +76,7 @@ export function createDailyNeeds({saved={},getClock=()=>({seconds:0}),saveState=
   if(!p||receipt.source!==source||kind==='meal'&&!mealSources.has(source)||!Number.isSafeInteger(n)||n<=0||n<=(p.receipts[source]||0)||receipt.completed!==true)return false;
   if(kind==='meal'){try{if(!validMeal(receipt,getRoyalMealEligibility,verifiedRoyalConsumption,verifiedEgyptResidentConsumption))return false;}catch{return false;}}
   if(kind==='toilet'&&(!toiletFacilities[source]||receipt.id!==`${source}-${n}`||receipt.facilityId!==toiletFacilities[source]))return false;
-  const next={version:2,people:copy(people)},row=next.people[receipt.actorId];
+  const next={version:2,...additional(),people:copy(people)},row=next.people[receipt.actorId];
   if(kind==='toilet')row.toiletAge=0;
   else if(source==='france-tea-food'){
    const relief=3*DAILY_NEEDS_HOUR;
@@ -79,7 +87,7 @@ export function createDailyNeeds({saved={},getClock=()=>({seconds:0}),saveState=
   Object.assign(p,row);return true;
  }
  return {
-  enter(id,loadedIds=[]){sync();sceneId=id;activeIds=new Set(['player',...loadedIds.filter(id=>people[id])]);lastClock=positive(getClock()?.seconds,lastClock);},
+  register,enter(id,ids=[]){sync();sceneId=id;loadedIds=new Set(ids);activeIds=new Set(['player',...ids.filter(id=>people[id])]);lastClock=positive(getClock()?.seconds,lastClock);},
   leave(){sync();sceneId=null;activeIds.clear();},
   update(){if(positive(getClock()?.seconds,lastClock)-lastSample>=1)sync();},
   has:id=>!!people[id],read,hunger:id=>read(id)?.hunger??null,status,
