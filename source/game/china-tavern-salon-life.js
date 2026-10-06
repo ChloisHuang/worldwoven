@@ -26,11 +26,11 @@ const PROFILES={
  * The caller checks isBusy before a request, then interrupt on acceptance and
  * excludes the session/return actor until the salon hands it back at home.
  */
-export function createSalonArtistLife({performers=[],worldSeed=1,saved={},saveState=()=>{},travel,pose,planPath,getPlayer=()=>null,isActorBusy=()=>false}){
+export function createSalonArtistLife({performers=[],worldSeed=1,saved={},saveState=()=>{},travel,pose,planPath,getPlayer=()=>null,isActorBusy=()=>false,sharedNeeds=null,tryNeeds=()=>false}){
  const artists=performers.filter(n=>PROFILES[n.station?.id]&&SALON_ARTISTS.some(a=>a.id===n.station.id));
  const owned=new Set(artists),stages=new Map(),readyAt=new Map(),events=[];
  let clock=Number.isFinite(saved?.time)?saved.time:0,roaming=null,disposed=false,saveError=null;
- const brain=createLifeDecisions({worldSeed,actorIds:artists.map(n=>n.station.id),saved:saved||{},onChange:value=>{
+ const brain=createLifeDecisions({worldSeed,actorIds:artists.map(n=>n.station.id),sharedNeeds,saved:saved||{},onChange:value=>{
   try{saveError=saveState(value)===false?'save-failed':null;}catch{saveError='save-failed';}
  }});
  const home=n=>n.home?.toArray?.()||SALON_ARTISTS.find(a=>a.id===n.station.id).position.slice();
@@ -99,6 +99,7 @@ export function createSalonArtistLife({performers=[],worldSeed=1,saved={},saveSt
  function updateActor(n,dt,t){
   let s=stages.get(n);
   if(!s&&clock>=readyAt.get(n)){
+   if(tryNeeds(n)){readyAt.set(n,clock+4);return;}
    if(!near(n.root.position,home(n))){
     if(!roaming||roaming===n){roaming=n;s={phase:'returning',choice:null,target:home(n),elapsed:0,wait:0};stages.set(n,s);}
    }else{

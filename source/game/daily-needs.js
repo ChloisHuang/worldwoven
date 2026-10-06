@@ -1,3 +1,4 @@
+import {SALON_ARTIST_IDS} from './china-salon-economy.js';
 import {sameRoyalPlayerEligibility,validRoyalKitchenState} from './china-royal-kitchen-orders.js';
 import {EGYPT_MEAL,validEgyptMealReceipt} from './egypt-meal-definition.js';
 import {validEgyptResidentSupply,validEgyptResidentMealReceipt,sameEgyptResidentMealReceipt} from './egypt-resident-supply.js';
@@ -10,17 +11,17 @@ import {CHINA_CONSORTS} from './china-palace-residents.js';
 // own actions and supplies; an intention, animation or scene entry grants nothing.
 export const DAILY_NEEDS_HOUR=60/GAME_MINUTES_PER_SECOND;
 const FOOD_DAY=24*DAILY_NEEDS_HOUR;
-// Officials, the original royal adults and Samira join the verified food loop only. Their toilet service is not yet
-// connected, so this release must not create an impossible toilet obligation.
+// Samira remains food-only until her actual toilet controller is connected.
+// China officials and royal adults use their existing public/private facilities.
 const royalActors=new Set(['cn-emperor',...CHINA_CONSORTS.map(p=>p.id)]);
-const mealOnlyActors=new Set([...CHINA_OFFICIAL_IDS,...royalActors,'egypt-papyrus']);
-export const DAILY_NEEDS_ACTORS=Object.freeze(['player','cn-tavern-diner-west','cn-tavern-diner-east',...CHINA_OFFICIAL_IDS,...JAPAN_STAFF_CREW,...royalActors,'egypt-papyrus']);
+const mealOnlyActors=new Set(['egypt-papyrus']);
+export const DAILY_NEEDS_ACTORS=Object.freeze(['player','cn-tavern-diner-west','cn-tavern-diner-east',...CHINA_OFFICIAL_IDS,...JAPAN_STAFF_CREW,...royalActors,...SALON_ARTIST_IDS,'egypt-papyrus']);
 const copy=x=>JSON.parse(JSON.stringify(x));
 const positive=(x,fallback=0)=>Number.isFinite(x)&&x>=0?x:fallback;
 const clamp=x=>Math.max(0,Math.min(1,x));
 const mealSource='china-tavern-meal';
 const mealSources=new Set([mealSource,'japan-player-meal','france-tea-food','france-full-meal','egypt-visitor-meal','egypt-resident-meal','japan-staff-meal','china-royal-kitchen']);
-const toiletFacilities={'china-toilet':'cn-bath-toilet','japan-toilet':'jp-washroom-private-1','france-toilet':'fr-royal-bath-toilet','egypt-toilet':'eg-private-bath-toilet'};
+const toiletFacilities={'china-public-toilet':'cn-tavern-public-toilet','china-toilet':'cn-bath-toilet','japan-toilet':'jp-washroom-private-1','france-toilet':'fr-royal-bath-toilet','egypt-toilet':'eg-private-bath-toilet'};
 function validMeal(receipt,getRoyalMealEligibility,verifiedRoyalConsumption=false,verifiedEgyptResidentConsumption=false){
  const r=receipt,n=r.number;
  if(r.actorId==='egypt-papyrus'&&r.source!=='egypt-resident-meal')return false;
