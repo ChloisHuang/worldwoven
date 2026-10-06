@@ -71,7 +71,7 @@ function validate(state,till,ledger) {
   return a;
 }
 
-export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=()=>0,saveState,worldSeed=1}={}) {
+export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=()=>0,getSalonIncome=()=>null,saveState,worldSeed=1}={}) {
   let current=empty(),loadError=null,lastError=null,pending=null,saving=false;
   try {if(saved!=null)current=copy(saved);validate(current,getTill(),copperLedger);if(copperLedger.loadError)throw Error(copperLedger.loadError);}
   catch(error){loadError=error.message;}
@@ -176,7 +176,7 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
     return {ok:true,patch:{chinaTavernProperty:copy(next)},committed:()=>{current=next;lastError=null;}};
   }
   function state() {
-    try{return {...copy(current),...a(),npcNames:Object.fromEntries(Object.keys(NPCS).map(id=>[id,name(id)])),bank:copperLedger.balances()?.copper.bank??null,loadError,lastError};}
+    try{const accounts=a(),salon=getSalonIncome();return {...copy(current),...accounts,...(salon?{revenue:accounts.revenue+salon.performerPaid,salonRevenue:salon.grossRevenue,performerPaid:salon.performerPaid}:{}),npcNames:Object.fromEntries(Object.keys(NPCS).map(id=>[id,name(id)])),bank:copperLedger.balances()?.copper.bank??null,loadError,lastError};}
     catch{return {...copy(current),loadError:loadError||'invalid-property-state',lastError};}
   }
   return {state,refreshDay,applyPurchase,confirmPurchase,setPrice,replyOffer,invest:(amount,revision)=>capital('invest',amount,revision),draw:(amount,revision)=>capital('draw',amount,revision),prepareCurrencyCommit};
