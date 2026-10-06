@@ -18,7 +18,7 @@ const careers=createFormalCareers({worldSeed:785,saved:seed,creditWageToBank:()=
 let country='france',ready=false,ui;
 const bank={state:()=>({cash:0})},gardener={loanState:()=>({owner:null,borrowed:false}),hostReady:()=>ready,requestMeeting:()=>true,releaseMeeting(){}};
 const labor=createFranceGardenerLabor({gardener,careers,getPlayer:()=>player,getClock:()=>clock,copperLedger:bank,saveState:s=>{store.labor=s;},openRegistration:o=>ui.open(o),document:null});
-const npc={root:new THREE.Group(),walking:false};npc.root.position.set(20,.215,33);const office=new THREE.Group(),paper=new THREE.Group();office.add(paper);paper.position.set(21.44,1.235,31.55);
+const npc={station:{id:'cn-official-rites'},root:new THREE.Group(),walking:false};npc.root.position.set(20,.215,33);const office=new THREE.Group(),paper=new THREE.Group();office.add(paper);paper.position.set(21.44,1.235,31.55);
 const court=createChinaCourtCareer({careers,getPlayer:()=>player,getClock:()=>clock,audience:{state:()=>({phase:'idle',schedule:{}})},getRecruiter:()=>npc,documentObject:paper,openRegistration:o=>ui.open(o)});
 const stub={state:()=>({supply:{remaining:117,wasted:1}}),intent:kind=>({id:kind,kind,provider:'stub',intentKey:kind,action:kind,position:[22.35,.215,11.7],executionRadius:.9})};
 ui=createCareerHandbook({careers,getPlayer:()=>player,getClock:()=>clock,getCountry:()=>country,getService:id=>id===GARDEN.id?labor:id===CLERK.id?court:stub,copperLedger:bank,document:doc,onIntent:r=>requests.push(r)});
