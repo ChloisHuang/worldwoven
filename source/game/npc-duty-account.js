@@ -86,9 +86,10 @@ export function createNPCDutyAccount({role, roles = role ? [role] : [], namespac
   return record;
  }
 
- let current = empty(), loadError = null, lastError = null, anchor = null, dirty = false, busy = false, revision = 0;
+ let current = empty(), invalidSnapshot = null, loadError = null, lastError = null, anchor = null, dirty = false, busy = false, revision = 0;
  try {
   if (saved != null) {
+   invalidSnapshot = copy(saved);
    if (saved.version !== 1 || saved.namespace !== namespace || !object(saved.accounts) || !Array.isArray(saved.rows) || !Array.isArray(saved.receipts) || !Array.isArray(saved.mealTransfers)) throw Error('invalid-npc-account');
    let transferIndex = 0;
    for (let wageIndex = 0; wageIndex <= saved.receipts.length; wageIndex++) {
@@ -110,6 +111,7 @@ export function createNPCDutyAccount({role, roles = role ? [role] : [], namespac
     seen.add(key(row)); current.rows.push(row);
    }
    if (transferIndex !== saved.mealTransfers.length || !same(current, saved)) throw Error('invalid-npc-balance');
+   invalidSnapshot = null;
   }
  } catch (error) { loadError = error.message; current = empty(); }
  let rowIndex, issued;
@@ -146,8 +148,19 @@ export function createNPCDutyAccount({role, roles = role ? [role] : [], namespac
   const baseRevision = revision, next = copy(current); let record;
   try { record = old || transfer(next, input, kind); }
   catch (error) { return failure(error.message); }
-  let committed = false;
-  return {ok: true, snapshot: copy(next), balanceAfter: next.accounts[input.actorId].cash + next.accounts[input.actorId].bank, commit(patch = {}) {
+  let committed = false, locked = false;
+  // A meal-only coordinator locks every participant before its one whole-world
+  // save. Exposed snapshots are detached; adoption always uses this candidate.
+  const valid = () => !loadError && !committed && !busy && revision === baseRevision;
+  return {ok: true, snapshot: copy(next), patch: {[namespace]: copy(next)}, transfer: copy(record), balanceAfter: next.accounts[input.actorId].cash + next.accounts[input.actorId].bank,
+   valid, lock() { if (!valid()) return false; busy = true; locked = true; return true; },
+   release() { if (locked) { locked = false; busy = false; } },
+   committed() {
+    if (committed) return {ok: true, replayed: true};
+    if (!locked || revision !== baseRevision) return failure('stale-npc-meal');
+    current = next; revision++; dirty = false; reindex(); lastError = null; committed = true;
+    return {ok: true, replayed: !!old};
+   }, commit(patch = {}) {
    if (committed) return {ok: true, replayed: true};
    if (busy || revision !== baseRevision) return failure('stale-npc-meal');
    if (!object(patch) || Object.hasOwn(patch, namespace)) return failure('invalid-npc-meal-patch');
@@ -157,9 +170,18 @@ export function createNPCDutyAccount({role, roles = role ? [role] : [], namespac
  }
  return {
   get loadError() { return loadError; }, get lastError() { return lastError; },
-  snapshot: () => copy(current),
+  snapshot: () => copy(loadError ? invalidSnapshot : current),
   account: id => loadError ? null : copy(Object.hasOwn(current.accounts, id) ? current.accounts[id] : {bank: 0, cash: 0}),
   hasIncome: id => !loadError && current.receipts.some(receipt => receipt.evidence.actorId === id && receipt.amount > 0),
+  // A zero-portion provider still guards the shared order-ID namespace while
+  // another employer's payment is persisted. No balance is adopted by a guard.
+  prepareMealGuard() {
+   const baseRevision = revision; let locked = false;
+   const valid = () => !loadError && !busy && revision === baseRevision;
+   return {valid, lock() { if (!valid()) return false; busy = true; locked = true; return true; }, release() { if (locked) { locked = false; busy = false; } }};
+  },
+  mealAccountIdentity: () => ({version: 1, namespace, currency: 'copper', roleIds: [...definitions.keys()].sort()}),
+  mealTransfer: (orderId, kind) => loadError ? null : copy(current.mealTransfers.find(row => row.orderId === orderId && row.kind === kind) || null),
   prepareMealPayment: input => prepareMeal(input, 'meal-payment'),
   prepareMealRefund: input => prepareMeal(input, 'meal-refund'),
   suspend() { anchor = null; },

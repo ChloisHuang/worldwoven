@@ -242,6 +242,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   holdInvitation(owner,opportunityId,position){const opportunity=invitationOpportunity();if(!opportunity||opportunity.id!==opportunityId||!owner||!position)return false;invitationHold={owner,opportunityId,position:[position.x,position.y,position.z],until:time+3};return true;},
   releaseInvitation(owner){if(invitationHold?.owner===owner)invitationHold=null;},
   mountForActor:n=>stages.get(n)?.mount||null,
+  releaseTeaHost:(actorId,{detached=false,recovery=false}={})=>{if(host.station.id!==actorId)return false;if(detached||recovery)hostHeld=null;else releaseHost();return true;},
   owns:n=>owned.has(n)||hostHeld&&n===host,
   socialProfile:id=>brain.state(id),
   socialStatus,
@@ -293,7 +294,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
    const assignedTeaHost=teaService?.hostActor();
    if(!hostHeld&&assignedTeaHost&&assignedTeaHost!==host)host=assignedTeaHost;
    const teaGuest=hostHeld,teaGuestStage=teaGuest?stages.get(teaGuest):null;
-   teaService?.update(dt,t,{...state,urgentGuest:!!teaGuest&&urgent(teaGuest),urgentHost:!!sharedNeeds?.status(host.station.id)?.seekToilet,guestDeparted:!!teaService?.owns(host)&&(!teaGuest||!scripts.get(teaGuest)?.[teaGuestStage?.index]?.pair),serviceConflict:state.performing===host.station.id});
+   teaService?.update(dt,t,{...state,urgentGuest:!!teaGuest&&urgent(teaGuest),urgentHost:!!sharedNeeds?.status(host.station.id)?.seekToilet,guestDeparted:!!teaService?.owns(host)&&(!teaGuest||!scripts.get(teaGuest)?.[teaGuestStage?.index]?.pair),serviceConflict:state.performing==='cn-tea'||state.performing===host.station.id});
    for(const n of actors){
     n.walking=false;let s=stages.get(n),stop=scripts.get(n)[s.index];tell(n,stop.label);s.greetingActive=false;
     if(s.choice?.id==='toilet'&&!s.choice.toiletFinished){
@@ -350,9 +351,9 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
      }
      if(stop.look)n.root.rotation.y=Math.atan2(stop.look[0]-n.root.position.x,stop.look[2]-n.root.position.z);
      if(stop.pair){
-      const ready=near(host.root.position,host.home.toArray(),.18)&&!host.walking&&!host.route.length;
+      const ready=host.alive!==false&&(getTeaService?.()?getTeaService().hostReady():near(host.root.position,host.home.toArray(),.18))&&!host.walking&&!host.route.length;
       if(!hostHeld&&ready&&!interrupted(host)&&state.performing!==host.station.id){hostHeld=n;hostPreviousYaw=host.root.rotation.y;hostHeldAt=time;record(n,'tea-host-present');}
-      if(state.performing===host.station.id)releaseHost();
+      if(state.performing===host.station.id||host.alive===false||getTeaService?.()&&!getTeaService().hostActor())releaseHost();
       if(hostHeld!==n||interrupted(host)||state.performing===host.station.id){if(!interrupted(host)&&(s.waited=(s.waited||0)+dt)>20)s.abortRequested='茶主人正忙 · 改日再访';animate(n,s,t);continue;}
       const tea=getTeaService?.();
       if(tea&&!s.teaDecision){

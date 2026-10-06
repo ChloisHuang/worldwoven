@@ -1,23 +1,15 @@
-// Dormant integration probe: use production main/Three/navigation unchanged
-// except injecting the explicit optional tea service callback and day input.
+// Production main/Three/navigation tea integration probe.
 // Normal existing guests choose their original unforced visits. No paid proof,
 // actor coordinates, activity choice or earned money is seeded.
 const fs=require('node:fs'),vm=require('node:vm');
 let harness=fs.readFileSync('tests/fixtures/hotfix-input-harness.cjs','utf8');
 const extras=`
-import {createPalaceTeaService} from './china-palace-tea-service.js';
-import {createPalaceTeaSlot,PALACE_TEA_ROLE} from './china-palace-tea-role.js';
-let testTea=null,testTeaAccount=null,testTeaSlot=null;
-export function teaInit(){
- testTeaSlot=createPalaceTeaSlot({saved:saved.chinaTeaSlot,resolveActor:id=>npcs.find(n=>n.station.id===id),canAssign:(id,n)=>n.alive!==false,canRelease:()=>testTea?.handoffBoundary()||{ok:true},saveState:s=>{saved.chinaTeaSlot=s;return save();}});
- testTeaAccount=createNPCPieceworkAccount({role:PALACE_TEA_ROLE,namespace:'chinaTeaAccounts',proofKind:'npc-palace-tea-piecework',saved:saved.chinaTeaAccounts,saveState:(account,record,patch)=>{const before={...saved};Object.assign(saved,patch,{chinaTeaAccounts:account});if(save()===false){Object.assign(saved,before);return false;}return true;}});
- testTea=createPalaceTeaService({npcs,lot,doors:automaticDoors,planPath,moveActor,poseContext:characterPoseContext,resolveAssignment:()=>testTeaSlot.resolve(),account:testTeaAccount,saved:saved.chinaTeaService,saveState:s=>{const before=saved.chinaTeaService;saved.chinaTeaService=s;if(save()===false){saved.chinaTeaService=before;return false;}return true;}});
-}
-export function teaReview(){return {npcs,lot,scene,camera,sun,lighting,chinaPalace,testTea,testTeaAccount,testTeaSlot,dailyNeeds,saved};}
+export function teaInit(){}
+export function teaReview(){return {npcs,lot,scene,camera,sun,lighting,chinaPalace,testTea:chinaTeaService,testTeaAccount:teaAccounts,testTeaSlot:teaSlot,dailyNeeds,saved};}
 export function teaStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);activeDailyToilet()?.update(dt);updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);}
 export {save};
 `;
-const patch=String.raw`function teaSource(file){let s=fs.readFileSync(file,'utf8');if(file.endsWith('/game/main.js')){s=s.replace('createChinaPalaceLife({getKitchen:', 'createChinaPalaceLife({getTeaService:()=>testTea,getKitchen:');s=s.replace('chinaPalace?.update(dt,t,{position:', 'chinaPalace?.update(dt,t,{day:simulationClock.state().day,position:');s+=${JSON.stringify(extras)};}return s;}`;
+const patch=String.raw`function teaSource(file){let s=fs.readFileSync(file,'utf8');if(file.endsWith('/game/main.js')){s+=${JSON.stringify(extras)};}return s;}`;
 harness=harness.replace("function mod(file)",patch+"\nfunction mod(file)");
 // Fixture has a const loader in some versions; install helper before VM context.
 if(!harness.includes('function teaSource'))harness=patch+'\n'+harness;
@@ -28,17 +20,17 @@ const begin=harness.indexOf('const report=[];for(let round=0;');
 harness=harness.slice(0,begin)+String.raw`
 if(!process.env.TEA_RESUME){all.find(e=>e.dataset.region==='china').onclick();ids.travel.onclick();}
 main.namespace.teaInit();const r=main.namespace.teaReview(),identities=r.npcs.map(n=>n.station.id),host=r.npcs.find(n=>n.station.id==='cn-tea');let last='',done=false,frames=0;
-assert(!r.dailyNeeds.has('cn-tea'));
+if(!r.testTeaAccount.hasIncome('cn-tea'))assert(!r.dailyNeeds.has('cn-tea'));
 for(;frames<Number(process.env.TEA_STEPS||5000);frames++){
  now+=250;main.namespace.teaStep(.25);const service=r.testTea.state(),key=(service.runtime?.phase||'-')+':'+service.orders.orders.length;
  if(key!==last||frames%500===0){last=key;console.log(JSON.stringify({frame:frames,clock:r.saved.simulationClock,host:host.root.position.toArray(),service,visitors:r.chinaPalace.state().actors.filter(n=>n.activity==='visit')}));}
- assert(!r.dailyNeeds.has('cn-tea'));
- if(r.testTeaAccount.hasIncome('cn-tea')&&r.testTea.handoffBoundary().ok){done=true;break;}
+ if(!r.testTeaAccount.hasIncome('cn-tea'))assert(!r.dailyNeeds.has('cn-tea'));
+ if(r.testTeaAccount.hasIncome('cn-tea')&&r.testTea.handoffBoundary().ok&&(process.env.TEA_EXPECT_NEEDS==='0'||r.dailyNeeds.has('cn-tea'))){done=true;break;}
 }
 main.namespace.save();fs.writeFileSync(process.env.TEA_CHECKPOINT||'/tmp/china-tea-duty-checkpoint.json',storage['worlds-days-v1']);
 console.log('TEA RESULT',JSON.stringify({done,frames,clock:r.saved.simulationClock,account:r.testTeaAccount.snapshot(),service:r.testTea.state(),failures:r.chinaPalace.state().failures}));
-assert.deepEqual(r.npcs.map(n=>n.station.id),identities);if(process.env.TEA_OBSERVE!=='1'){assert(done,'normal optional visitor to physical completed original tea service');assert.equal(r.testTeaAccount.account('cn-tea').bank,8);}
-console.log('PASS bounded actual main tea observation; no needs activation or browser claim');
+assert.deepEqual(r.npcs.map(n=>n.station.id),identities);if(process.env.TEA_OBSERVE!=='1'){assert(done,'normal optional visitor to physical completed original tea service');assert.equal(r.testTeaAccount.account('cn-tea').bank,8);if(process.env.TEA_EXPECT_NEEDS!=='0'){assert(r.dailyNeeds.has('cn-tea'));assert.equal(r.dailyNeeds.read('cn-tea').foodStrain,0);assert.equal(r.dailyNeeds.status('cn-tea').seekMeal,false);}}
+console.log('PASS bounded actual main tea observation and gated earned-person enrollment; no browser claim');
 })().catch(e=>{console.error(e);process.exit(1)});
 `;
 vm.runInThisContext('(function(require){'+harness+'\n})',{filename:__filename})(require);

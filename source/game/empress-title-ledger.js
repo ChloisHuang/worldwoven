@@ -1,3 +1,4 @@
+import {validHeraldReceiptIdentity,sameHeraldReceiptIdentity} from './palace-herald-identity.js';
 import {consortCharterId,consortPetitionRoll,consortReviewFactors} from './consort-petition-ledger.js';
 
 // The empress is one designation of an existing consort, never a fifth room,
@@ -22,8 +23,8 @@ const TEXT={
 };
 export const empressReasonText=code=>TEXT[code]||'当前条件暂不满足';
 function validReceipt(r,kind,p){
- const people=kind==='submission'?['player','cn-emperor']:kind==='charter-handoff'?['player','cn-palace-herald']:['player','cn-emperor','cn-palace-herald'];
- return obj(r)&&r.id===`${p.id}:${kind}`&&r.kind===kind&&r.applicationId===p.id&&r.playerId==='player'&&r.emperorId==='cn-emperor'&&r.heraldId==='cn-palace-herald'&&str(r.targetId)&&r.completed===true&&time(r.at)&&Array.isArray(r.participants)&&new Set(r.participants).size===r.participants.length&&people.every(x=>r.participants.includes(x))&&(kind.startsWith('charter-')?r.documentId===consortCharterId(p.id):r.documentId===undefined);
+ const people=kind==='submission'?['player','cn-emperor']:kind==='charter-handoff'?['player',r?.heraldId]:['player','cn-emperor',r?.heraldId];
+ return obj(r)&&r.id===`${p.id}:${kind}`&&r.kind===kind&&r.applicationId===p.id&&r.playerId==='player'&&r.emperorId==='cn-emperor'&&validHeraldReceiptIdentity(r)&&(!p.submission||sameHeraldReceiptIdentity(r,p.submission))&&str(r.targetId)&&r.completed===true&&time(r.at)&&Array.isArray(r.participants)&&new Set(r.participants).size===r.participants.length&&people.every(x=>r.participants.includes(x))&&(kind.startsWith('charter-')?r.documentId===consortCharterId(p.id):r.documentId===undefined);
 }
 function review(context={},eligibility={},roll){
  const factors=consortReviewFactors({player:{...context.player,id:'player',appearanceScore:50},emperor:{...context.emperor,id:'cn-emperor'},skills:{}});

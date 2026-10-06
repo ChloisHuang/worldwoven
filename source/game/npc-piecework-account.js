@@ -18,9 +18,10 @@ const validMeal = input => object(input) && person(input.actorId) && typeof inpu
 export function createNPCPieceworkAccount({role, namespace, saved, saveState = () => false, proofKind = 'npc-edict-piecework'} = {}) {
  if (typeof namespace !== 'string' || !/^[A-Za-z][A-Za-z0-9-]{0,79}$/.test(namespace) || ['constructor', 'prototype'].includes(namespace) || typeof saveState !== 'function') throw Error('invalid-npc-piecework-config');
  if (!person(role?.id) || !person(role.slotId) || role.currency !== 'copper' || !integer(role.amount) || role.amount < 1 || !integer(role.contractVersion) || role.contractVersion < 1 || typeof role.employer !== 'string' || !role.employer.trim()) throw Error('invalid-npc-piecework-role');
- if (!['npc-edict-piecework', 'npc-edict-draft-piecework', 'npc-palace-tea-piecework'].includes(proofKind)) throw Error('invalid-npc-piecework-kind');
+ if (!['npc-edict-piecework', 'npc-edict-draft-piecework', 'npc-edict-delivery-piecework', 'npc-palace-tea-piecework'].includes(proofKind)) throw Error('invalid-npc-piecework-kind');
  const definition = copy(role);
- const completedSteps = proofKind === 'npc-edict-draft-piecework' ? {draftSeconds: 5, handoffSeconds: 2} : {received: true, filed: true, sweepSeconds: 7};
+ const delivery = proofKind === 'npc-edict-delivery-piecework';
+ const completedSteps = delivery ? {collectedSeconds: 2, approvalSeconds: 4, sealedSeconds: 2.2, readingSeconds: 6, responseSeconds: 3, handoffSeconds: 1.3, received: true} : proofKind === 'npc-edict-draft-piecework' ? {draftSeconds: 5, handoffSeconds: 2} : {received: true, filed: true, sweepSeconds: 7};
  const empty = () => ({version: 1, namespace, accounts: {}, receipts: [], mealTransfers: []});
  function completedWork(input) {
   if (proofKind === 'npc-palace-tea-piecework') {
@@ -29,6 +30,10 @@ export function createNPCPieceworkAccount({role, namespace, saved, saveState = (
   }
   if (!object(input) || input.kind !== proofKind || input.version !== 1 || !person(input.actorId) || input.roleId !== definition.id || input.slotId !== definition.slotId || !integer(input.holderRevision) || !integer(input.day) || input.documentId !== `cn-edict-east-shore:${input.day}` || input.audienceId !== `cn-morning-audience:${input.day}` || input.amount !== definition.amount || input.contractVersion !== definition.contractVersion || !object(input.steps) || !same(input.steps, completedSteps)) throw Error('invalid-npc-piecework-proof');
   const evidence = {kind: proofKind, version: 1, actorId: input.actorId, roleId: definition.id, slotId: definition.slotId, holderRevision: input.holderRevision, documentId: input.documentId, audienceId: input.audienceId, day: input.day, amount: definition.amount, contractVersion: definition.contractVersion, steps: copy(completedSteps)};
+  if (delivery) {
+   if (!person(input.authorId) || !integer(input.authorRevision) || !person(input.recipientId) || !integer(input.recipientRevision) || !person(input.emperorId) || new Set([input.actorId,input.authorId,input.recipientId,input.emperorId]).size !== 4 || input.approvedBy !== input.emperorId || input.sealedBy !== input.actorId || input.holder !== 'recipient') throw Error('invalid-npc-piecework-proof');
+   Object.assign(evidence, {authorId:input.authorId,authorRevision:input.authorRevision,recipientId:input.recipientId,recipientRevision:input.recipientRevision,emperorId:input.emperorId,approvedBy:input.approvedBy,sealedBy:input.sealedBy,holder:input.holder});
+  }
   if (!same(input, evidence)) throw Error('invalid-npc-piecework-proof');
   // The work belongs to the original document, even after a holder change or
   // inquiry/reissue. Actor and holder revision must never create another fee.
@@ -104,8 +109,19 @@ export function createNPCPieceworkAccount({role, namespace, saved, saveState = (
   const baseRevision = revision, next = copy(current); let record;
   try { record = old || transfer(next, input, kind); }
   catch (error) { return fail(error.message); }
-  let committed = false;
-  return {ok: true, snapshot: copy(next), balanceAfter: next.accounts[input.actorId].cash + next.accounts[input.actorId].bank, commit(patch = {}) {
+  let committed = false, locked = false;
+  // A meal-only coordinator locks every participant before its one whole-world
+  // save. Exposed snapshots are detached; adoption always uses this candidate.
+  const valid = () => !loadError && !committed && !busy && revision === baseRevision;
+  return {ok: true, snapshot: copy(next), patch: {[namespace]: copy(next)}, transfer: copy(record), balanceAfter: next.accounts[input.actorId].cash + next.accounts[input.actorId].bank,
+   valid, lock() { if (!valid()) return false; busy = true; locked = true; return true; },
+   release() { if (locked) { locked = false; busy = false; } },
+   committed() {
+    if (committed) return {ok: true, replayed: true};
+    if (!locked || revision !== baseRevision) return fail('stale-npc-meal');
+    current = next; revision++; lastError = null; committed = true;
+    return {ok: true, replayed: !!old};
+   }, commit(patch = {}) {
    if (committed) return {ok: true, replayed: true};
    if (busy || revision !== baseRevision) return fail('stale-npc-meal');
    if (!object(patch) || Object.hasOwn(patch, namespace)) return fail('invalid-npc-meal-patch');
@@ -120,6 +136,15 @@ export function createNPCPieceworkAccount({role, namespace, saved, saveState = (
   snapshot, state: snapshot,
   account: id => loadError ? null : copy(Object.hasOwn(current.accounts, id) ? current.accounts[id] : {bank: 0, cash: 0}),
   hasIncome: id => !loadError && current.receipts.some(receipt => receipt.evidence.actorId === id && receipt.amount > 0),
+  // A zero-portion provider still guards the shared order-ID namespace while
+  // another employer's payment is persisted. No balance is adopted by a guard.
+  prepareMealGuard() {
+   const baseRevision = revision; let locked = false;
+   const valid = () => !loadError && !busy && revision === baseRevision;
+   return {valid, lock() { if (!valid()) return false; busy = true; locked = true; return true; }, release() { if (locked) { locked = false; busy = false; } }};
+  },
+  mealAccountIdentity: () => ({version: 1, namespace, currency: 'copper', roleIds: [definition.id]}),
+  mealTransfer: (orderId, kind) => loadError ? null : copy(current.mealTransfers.find(row => row.orderId === orderId && row.kind === kind) || null),
   prepareMealPayment: input => prepareMeal(input, 'meal-payment'),
   prepareMealRefund: input => prepareMeal(input, 'meal-refund'),
   settle(proof, patch = {}) {
