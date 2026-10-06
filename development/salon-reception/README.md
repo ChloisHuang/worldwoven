@@ -1,6 +1,6 @@
-# Original-session receptionist work: dormant physical verification
+# Original-session receptionist work and personal life
 
-This follows the dormant receipt/contract checkpoint `b4937a3` (same tree saved privately as `b8188e6`). It does not enable the role or needs in production `main.js` and adds no visitors, initial funds, demand weight or wage changes. Preserve the later R155 tea-lease fix when integrating.
+The first two checkpoints follow dormant receipt/contract `b4937a3` (same tree saved privately as `b8188e6`); those checkpoints did not enable production main or needs. The R156-based integration is recorded separately below. No checkpoint adds visitors, initial funds, demand weight or wage changes. Preserve the R155 tea-lease fix and R156 archive paths when integrating.
 
 ## Physical defect found and bounded repair
 
@@ -36,3 +36,28 @@ Three seeds × five game days yield:
 Keep receptionist needs disabled until a real earned wage and safe return, then preserve the ability of a hungry penniless receptionist to accept genuine work. Do not close her sole income source because hunger is high. A later main/meal/absence integration must still check this feedback loop and exact personal meal spending, which this model intentionally does not enable.
 
 Reports are in ignored `qa/reception-demand/bounded-summary.json` and `bounded-seed-{seed}-5d.json`. `tests/china-salon-reception-demand-main.cjs` preserves the expensive real-main harness, but only a 0.102-day performance/zero-origin trace was observed (210 game seconds / 106.8 wall seconds), not a successful multi-day supply run. A default slot-availability setup error was corrected for the bounded final runs; its earlier zero-order trial was discarded. Neither the short main trace nor the setup-error run is income evidence.
+
+## R156 main integration, earned meal and save continuation
+
+The follow-on main candidate is based on stable `97e7790`, retaining R155 tea and R156 archive/meal provider support. Source `chinaSalon` now owns its dedicated personal-trip wrapper; there is no competing receptionist body controller. Admission, NPC offer/recheck, displayed candidates and player-poet new invitations close throughout a personal trip. First registration requires verified receptionist income, its own spendable6, actual home, and a clear original-service/return boundary. Hunger without enough meal money does not close genuine work. Role vacancy remains vacancy; a dead body receives no home movement or animation, while its exact reserved meal/fixture is cleaned up. Malformed saved trips naming another person fail closed and never cancel that person's meal.
+
+### Actual-main evidence
+
+`tests/china-salon-reception-income-main.cjs` begins with the existing verified `officialEarnedPayrollFixture` from `china-official-salon-economy.mjs`: four days of actual office-controller eight-second work receipts, with travel doubled in that financial fixture. It is not a new-game zero-official-balance demand run. Receptionist balance remains zero and her physiology is off; no visitor, activity choice, service, receptionist money or body coordinate is injected. Day4 13:00 and prior completed court are explicit saved-state setup. The independent bounded supply model above owns multi-day demand evidence.
+
+The actual main then naturally selects `cn-minister-works` → original storyteller for40 copper. All original approach, response, room travel and service stages run; artist retains20 and the original reception wage is8. After the performer physically returns, Wenwan at her unchanged desk first enrolls healthy (hunger0.2917, toilet0, both strains0). This took3615 fixed0.1-second controller steps,81.8 wall seconds,739 MiB peak in the simulated DOM/renderer harness.
+
+The first attempt correctly paid nothing: production poseContext supplied the old desk-center workHeight/workDistance, which the shared rig applied after explicit hand targets. Clearing only these inherited surface parameters in the dedicated props owner fixes the override. The189-point contact check now deliberately supplies those original main parameters; same source/body controller rerun succeeds. It is a real failed attempt and narrow repair, not a discarded successful-payment trace.
+
+`tests/china-salon-reception-needs-main.cjs` starts from that real earned/healthy save and arranges only due-food/toilet ages. Wenwan follows public stairs to the original tavern, where the original host collects6 on `cn-tavern-order-3`, balance8→2. The388-step prepayment checkpoint includes201 stair-motion samples. Reopening that exact save with both stale personal task copies removed tests recovery from the authoritative same-person, same-provider, same-order prepaid lease. Bank2 does not prevent adoption. Original kitchen service completes once, then she uses the public cubicle once and returns to `[24.1442606,7.815,5.4519131]` near the original `[24.15,7.815,5.45]` counter. The resumed1296 steps include486 further stair-motion samples; account stays2, with one salary, one meal payment, one meal completion and one toilet receipt. All31 identities remain. A terminal re-open and one additional update preserve the same money, receipt identities and body position.
+
+This proves the scoped main/controller/Three/navigation path, not browser/iOS or real frame-rate performance. The harness uses fixed0.1 steps and simulated DOM/renderer. The ordinary trip reuses the public ground-floor meal hub when routing to/from the public cubicle; it does not use private rooms or teleport shortcuts.
+
+Reproduce:
+1. Generate `qa/reception-main/official-earned-payroll.json` by calling exported `officialEarnedPayrollFixture()` from `tests/china-official-salon-economy.mjs` under `--experimental-vm-modules`.
+2. Run `node --experimental-vm-modules tests/china-salon-reception-income-main.cjs`.
+3. Run the needs script with `RECEPTION_STOP_PREPAID=1`.
+4. Run it with `RECEPTION_NEEDS_RESUME=qa/reception-main/paid-meal.json RECEPTION_DROP_SOURCE_TASK=1`.
+5. Run it with `RECEPTION_NEEDS_RESUME=qa/reception-main/needs-completed.json RECEPTION_NEEDS_FRAMES=2`.
+
+The historical expensive `demand-main` harness now recognizes current main wiring instead of duplicate account/slot injection, while retaining its original needs-dormant supply-only scope. The transformed current source compiles and contains one real account/slot. Its35-second startup probe was intentionally time-bounded and is not a fresh multi-day result.

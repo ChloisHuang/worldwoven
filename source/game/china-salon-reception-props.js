@@ -33,7 +33,7 @@ export function createSalonReceptionProps(parent){
   if(!host?.root?.userData?.hands?.[0]||!host.root.userData.hands[1]||!host.root.userData.tools?.brush)return {observed:false,code:'reception-hands-unavailable'};
   const brush=host.root.userData.tools.brush;
   const right=writing?new THREE.Vector3(24.26+Math.sin(w.seconds*5)*.025,9.0224,5.99+Math.cos(w.seconds*5)*.018):card.position.clone().add(new THREE.Vector3(0,.032,0));
-  const hands=palmTargets(host,right),c={...context,receptionWriting:writing,handoff:true,handoffLean:writing?.25:.54,handoffDip:writing?0:.050,heldProp:null,archery:{hands}};
+  const hands=palmTargets(host,right),c={...context,workHeight:undefined,workDistance:undefined,receptionWriting:writing,handoff:true,handoffLean:writing?.25:.54,handoffDip:writing?0:.050,heldProp:null,archery:{hands}};
   // The real rig solves both wrists. Only the authored IK height is refined;
   // neither actor, paper, limb scale nor completed evidence is moved to match.
   let tip=null;
