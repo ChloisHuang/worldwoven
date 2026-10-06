@@ -20,7 +20,7 @@ export function salonWillingness(actor,activity,relationship=0){
  if(!p.activities?.includes(activity))return {willing:false,reply:`${p.preference||'我今日更想静谈'}，这次邀约就先谢过了。`};
  return {willing:true,reply:p.yes||'好呀，若有空房，我们一起去坐坐。'};
 }
-export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContext,getPlayer,getMounted=()=>null,copperLedger,economy=null,npcPayments=null,sharedNeeds=null,getTavern=()=>null,getToilet=()=>null,worldSeed=1,saved={},saveState=()=>{},notify=()=>{},isActorBusy=()=>false,roomAvailable=()=>true,receptionDuty=null,receptionProps=null,receptionEconomy=null,receptionMealFunds=receptionEconomy,canControlReception=()=>true}){
+export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContext,getPlayer,getMounted=()=>null,copperLedger,economy=null,artistMealFunds=economy,npcPayments=null,sharedNeeds=null,getTavern=()=>null,getToilet=()=>null,worldSeed=1,saved={},saveState=()=>{},notify=()=>{},isActorBusy=()=>false,roomAvailable=()=>true,receptionDuty=null,receptionProps=null,receptionEconomy=null,receptionMealFunds=receptionEconomy,canControlReception=()=>true}){
  const receptionist=npcs.find(n=>n.station.id===SALON_RECEPTION),performers=npcs.filter(n=>n.station.salon).slice(0,4);if(!receptionist||!performers.length)return null;
  const receptionObjects=receptionDuty?(receptionProps||createSalonReceptionProps(receptionist.root.parent)):null;
  let performer=performers[0];
@@ -97,10 +97,10 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
  function npcChoices(customerId){
   const n=npcs.find(n=>n.station.id===customerId),need=sharedNeeds?.status(customerId);
   if(!receptionAvailable()||!npcPayments||disposed||session||returning||employment?.onShift()||paymentError||!knownAdult(n)||n.alive===false||n.serviceMount||isActorBusy(n)||need?.seekMeal||need?.seekToilet||!SALON_ROOMS.some(r=>ledger.available(r)))return [];
-  return performers.filter(a=>eligible(a,n)&&a.alive!==false&&!isActorBusy(a)&&!needsLife.owns(a)&&!life.isBusy(a)&&!(sharedNeeds?.status(a.station.id)?.seekMeal&&((economy?.account(a.station.id)?.cash||0)+(economy?.account(a.station.id)?.bank||0)>=6))&&!sharedNeeds?.status(a.station.id)?.seekToilet).map(a=>({artistId:a.station.id,activity:a.station.salon.activities[0],fee:quote(a),revision:serial})).filter(c=>npcPayments.available(customerId,c.fee));
+  return performers.filter(a=>eligible(a,n)&&a.alive!==false&&!isActorBusy(a)&&!needsLife.owns(a)&&!life.isBusy(a)&&!(sharedNeeds?.status(a.station.id)?.seekMeal&&((artistMealFunds?.account(a.station.id)?.cash||0)+(artistMealFunds?.account(a.station.id)?.bank||0)>=6))&&!sharedNeeds?.status(a.station.id)?.seekToilet).map(a=>({artistId:a.station.id,activity:a.station.salon.activities[0],fee:quote(a),revision:serial})).filter(c=>npcPayments.available(customerId,c.fee));
  }
  function npcOfferStatus(customerId,actorId,activity,fee){
-  const n=npcs.find(a=>a.station.id===customerId),a=performers.find(a=>a.station.id===actorId),need=sharedNeeds?.status(customerId),artistNeed=sharedNeeds?.status(actorId),funds=economy?.account(actorId),revision=serial;
+  const n=npcs.find(a=>a.station.id===customerId),a=performers.find(a=>a.station.id===actorId),need=sharedNeeds?.status(customerId),artistNeed=sharedNeeds?.status(actorId),funds=artistMealFunds?.account(actorId),revision=serial;
   if(!receptionAvailable()||!npcPayments||disposed||session||returning||employment?.onShift()||paymentError||!a||!eligible(a,n)||n.alive===false||a.alive===false||n.serviceMount||isActorBusy(n)||isActorBusy(a)||needsLife.owns(a)||need?.seekMeal||need?.seekToilet||artistNeed?.seekToilet||artistNeed?.seekMeal&&(funds?.cash||0)+(funds?.bank||0)>=6||!SALON_ROOMS.some(r=>ledger.available(r))||quote(a)!==fee||!a.station.salon.activities.includes(activity)||!npcPayments.available(customerId,fee))return {ok:false,waitable:false,revision,code:'offer-changed'};
   if(!salonWillingness(a,activity,relationships[customerId+':'+actorId]||0).willing)return {ok:false,waitable:false,revision,code:'artist-declined'};
   return {ok:!life.isBusy(a),waitable:life.isBusy(a),revision,code:life.isBusy(a)?'artist-finishing-practice':'available'};
@@ -155,7 +155,7 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
  }
  function pose(a,t,action,target){if(target&&!a.walking)a.root.rotation.y=Math.atan2(target[0]-a.root.position.x,target[2]-a.root.position.z);if(a.root.visible!==false){const context=poseContext(a,a===receptionist?a.station:null);if(a===receptionist)context.receptionWriting=false;a.animate(t+(a.phase||0),a.walking,a.walking?null:action,context);}}
  life=createSalonArtistLife({performers,worldSeed,sharedNeeds,tryNeeds:n=>needsLife?.tryStart(n),saved:saved.continuity?.life||saved.life||{},saveState:()=>persist(),travel,pose,planPath,getPlayer,isActorBusy});
- needsLife=createSalonNeeds({artists:performers,sharedNeeds,economy,getTavern,getToilet,travel,pose,poseContext,resetRoute,saveState:()=>persist(),saved:saved.continuity?.artistNeeds||saved.artistNeeds||{}});
+ needsLife=createSalonNeeds({artists:performers,sharedNeeds,economy:artistMealFunds,getTavern,getToilet,travel,pose,poseContext,resetRoute,saveState:()=>persist(),saved:saved.continuity?.artistNeeds||saved.artistNeeds||{}});
  if(receptionDuty&&receptionEconomy&&receptionMealFunds&&sharedNeeds)receptionLife=createChinaReceptionPersonalLife({npcs,getHolder:()=>receptionAssignment()?.actor,getHome:()=>receptionist.home.toArray(),canStart:n=>receptionWorkBoundary()&&!isActorBusy(n)&&conversation!==n.station.id&&!n.walking&&!n.route.length,canControl:canControlReception,economy:receptionEconomy,mealFunds:receptionMealFunds,sharedNeeds,getTavern,getToilet,getPlayer,doors,planPath,moveActor,poseContext,saved:saved.continuity?.receptionNeeds||saved.receptionNeeds,saveState:()=>persist()});
  return {
   receptionWorkBoundary,receptionAdmissionOpen:receptionAvailable,canBorrowReceptionMeal:id=>receptionLife?.canBorrowMeal(id)===true,receptionPersonalState:()=>receptionLife?.snapshot()||null,
