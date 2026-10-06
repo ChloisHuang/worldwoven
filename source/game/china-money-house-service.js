@@ -146,7 +146,7 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
   owns:n=>!!n&&n===binding()?.actor,ownsStation:id=>id===C.stationId,
   isOpen:()=>!!dialog.open,
   open(){
-   const b=binding();if(disposed||!near()||bound&&!atCounter(b,true)){if(bound)close();notify(C.approachMessage||'请走到钱庄柜台前，再请账房办理');return false;}
+   const b=binding();if(disposed||!near()||bound&&!atCounter(b,true)){if(bound)close();notify(bound&&near()&&!atCounter(b,true)?'账房正在核验原单或暂时离柜，请等本人返回柜台':C.approachMessage||'请走到钱庄柜台前，再请账房办理');return false;}
    onOpen();if(bound){const current=binding();if(!atCounter(current,true)||current.actor!==b.actor||current.holderId!==b.holderId||current.revision!==b.revision||!near()){close();return false;}counterTicket={actor:b.actor,actorId:b.holderId,revision:b.revision};}
    message='';render();if(!dialog.open)dialog.showModal();return true;
   },close,
