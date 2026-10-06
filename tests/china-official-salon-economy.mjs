@@ -187,3 +187,19 @@ console.log('PASS independent v1 migration and unchanged v2 replay; held/settled
 // Financial fixture only: real office controller archive receipts, no scene or
 // needs completion. Consumers must independently run the actual body/service.
 export const officialEarnedPayrollFixture=()=>copy(payroll);
+
+// Reuse the actual four-day office controller payroll above for a dormant
+// cross-family meal proof. Only that existing fixture's travel is doubled.
+const {createNPCDutyAccount}=await import('../source/game/npc-duty-account.js');
+const {PALACE_GUARD_ROLE}=await import('../source/game/formal-careers.js');
+const {createNPCGuestAccounts}=await import('../source/game/npc-guest-accounts.js');
+const realSource=fixture(payroll),officialSource=realSource.economy;
+assert(officialSource.prepareSalonReserve(order('cn-salon-npc-1',80)).commit().ok);
+for(let n=1;n<=2;n++)assert(officialSource.prepareMealPayment({actorId,orderId:'cn-tavern-order-'+n,amount:6}).commit().ok);
+const guardSource=createNPCDutyAccount({role:PALACE_GUARD_ROLE,namespace:'chinaGuardAccounts',saveState:()=>true}),coverage=[{actorId,roleId:PALACE_GUARD_ROLE.id,slotId:PALACE_GUARD_ROLE.slotId,holderRevision:1}];
+let observed=(5*1440+360-600)/.7;const observedEnd=observed+90/.7;guardSource.observe({seconds:observed,dt:.25,coverage});while(observed<observedEnd){const dt=Math.min(.25,observedEnd-observed);observed+=dt;guardSource.observe({seconds:observed,dt,coverage});}assert(guardSource.checkpoint({day:5,hour:18}));
+let completeWorld=null,combinedWrites=0;
+const personalFunds=createNPCGuestAccounts([{id:'china-official-economy',economy:officialSource.mealFundsProvider()},{id:'china-guard-accounts',economy:guardSource}],{saveState:(journal,patch)=>{combinedWrites++;completeWorld={...copy(patch),chinaGuestMealAccounts:copy(journal)};return true;}});
+assert.equal(officialSource.account(actorId).bank,4);assert.equal(guardSource.account(actorId).bank,3);const pay=personalFunds.prepareMealPayment({actorId,orderId:'cn-tavern-order-3',amount:6});assert(pay.ok&&pay.commit({chinaServiceWorld:{marker:'original-test-meal'}}).ok);assert.equal(combinedWrites,1);assert.equal(personalFunds.account(actorId).bank,1);assert.equal(officialSource.account(otherId).bank,96);assert.equal(officialSource.salonHold('cn-salon-npc-1').amount,80);assert.equal(officialSource.salonHold('cn-salon-npc-1').status,'reserved');
+const reloadedOfficial=fixture(completeWorld.chinaOfficialEconomy).economy,reloadedGuard=createNPCDutyAccount({role:PALACE_GUARD_ROLE,namespace:'chinaGuardAccounts',saved:completeWorld.chinaGuardAccounts,saveState:()=>true});const reloadedFunds=createNPCGuestAccounts([{id:'china-official-economy',economy:reloadedOfficial.mealFundsProvider()},{id:'china-guard-accounts',economy:reloadedGuard}],{saved:completeWorld.chinaGuestMealAccounts,saveState:()=>true});assert.equal(reloadedFunds.loadError,null);assert.equal(reloadedFunds.account(actorId).bank,1);
+console.log('PASS actual office-controller four-day96 payroll → held80 excluded → two6 meals leave4 + observed guard3 → dormant aggregate6 in one world save; other official96 and escrow80 retained, replay exact');
