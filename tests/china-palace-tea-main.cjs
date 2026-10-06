@@ -20,17 +20,17 @@ const begin=harness.indexOf('const report=[];for(let round=0;');
 harness=harness.slice(0,begin)+String.raw`
 if(!process.env.TEA_RESUME){all.find(e=>e.dataset.region==='china').onclick();ids.travel.onclick();}
 main.namespace.teaInit();const r=main.namespace.teaReview(),identities=r.npcs.map(n=>n.station.id),host=r.npcs.find(n=>n.station.id==='cn-tea');let last='',done=false,frames=0;
-assert(!r.dailyNeeds.has('cn-tea'));
+if(!r.testTeaAccount.hasIncome('cn-tea'))assert(!r.dailyNeeds.has('cn-tea'));
 for(;frames<Number(process.env.TEA_STEPS||5000);frames++){
  now+=250;main.namespace.teaStep(.25);const service=r.testTea.state(),key=(service.runtime?.phase||'-')+':'+service.orders.orders.length;
  if(key!==last||frames%500===0){last=key;console.log(JSON.stringify({frame:frames,clock:r.saved.simulationClock,host:host.root.position.toArray(),service,visitors:r.chinaPalace.state().actors.filter(n=>n.activity==='visit')}));}
- assert(!r.dailyNeeds.has('cn-tea'));
- if(r.testTeaAccount.hasIncome('cn-tea')&&r.testTea.handoffBoundary().ok){done=true;break;}
+ if(!r.testTeaAccount.hasIncome('cn-tea'))assert(!r.dailyNeeds.has('cn-tea'));
+ if(r.testTeaAccount.hasIncome('cn-tea')&&r.testTea.handoffBoundary().ok&&(process.env.TEA_EXPECT_NEEDS==='0'||r.dailyNeeds.has('cn-tea'))){done=true;break;}
 }
 main.namespace.save();fs.writeFileSync(process.env.TEA_CHECKPOINT||'/tmp/china-tea-duty-checkpoint.json',storage['worlds-days-v1']);
 console.log('TEA RESULT',JSON.stringify({done,frames,clock:r.saved.simulationClock,account:r.testTeaAccount.snapshot(),service:r.testTea.state(),failures:r.chinaPalace.state().failures}));
-assert.deepEqual(r.npcs.map(n=>n.station.id),identities);if(process.env.TEA_OBSERVE!=='1'){assert(done,'normal optional visitor to physical completed original tea service');assert.equal(r.testTeaAccount.account('cn-tea').bank,8);}
-console.log('PASS bounded actual main tea observation; no needs activation or browser claim');
+assert.deepEqual(r.npcs.map(n=>n.station.id),identities);if(process.env.TEA_OBSERVE!=='1'){assert(done,'normal optional visitor to physical completed original tea service');assert.equal(r.testTeaAccount.account('cn-tea').bank,8);if(process.env.TEA_EXPECT_NEEDS!=='0'){assert(r.dailyNeeds.has('cn-tea'));assert.equal(r.dailyNeeds.read('cn-tea').foodStrain,0);assert.equal(r.dailyNeeds.status('cn-tea').seekMeal,false);}}
+console.log('PASS bounded actual main tea observation and gated earned-person enrollment; no browser claim');
 })().catch(e=>{console.error(e);process.exit(1)});
 `;
 vm.runInThisContext('(function(require){'+harness+'\n})',{filename:__filename})(require);

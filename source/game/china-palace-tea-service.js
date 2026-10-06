@@ -55,7 +55,7 @@ export function createPalaceTeaService({npcs,lot,doors,planPath,moveActor,poseCo
   },
   snapshot,state:()=>({loadError,orders:ledger.snapshot(),runtime:copy(runtime),recovery:copy(recovery),props:props.state()}),get loadError(){return loadError;},
   hostActor:getHost,hostReady:()=>{const a=resolveAssignment?.(),n=getHost();return !recovery&&a?.status==='npc'&&a.available!==false&&!!n&&near(n,P.hostHome,.18)&&!n.walking&&!n.route.length;},owns:n=>!!runtime&&n?.station.id===runtime.actorId,
-  handoffBoundary:()=>({ok:!runtime&&!recovery,blockers:runtime||recovery?['original-tea-service']:[]}),
+  handoffBoundary:()=>({ok:!loadError&&!runtime&&!recovery,blockers:loadError||runtime||recovery?['original-tea-service']:[]}),
   guestTarget:id=>runtime?.guestId===id&&runtime.phase==='approach'?P.guest.slice():null,
   guestLookTarget:id=>runtime?.guestId===id&&!['approach','home'].includes(runtime.phase)?P.serve.slice():null,
   guestPose(id,t){
