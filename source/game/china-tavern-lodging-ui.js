@@ -21,7 +21,7 @@ export function createChinaTavernLodgingUI({service,getPlayer,onIntent,onRoom,on
  const resolveIntent=old=>old?.provider==='china-tavern-lodging'&&old.id===intent()?.id&&old.intentKey===intent()?.intentKey?intent():null;
  function open(){if(disposed||!service.atCounter()&&!service.view().booking)return false;onOpen();error='';refresh(true);if(!dialog.open)dialog.showModal();refresh(true);return true;}
  function refresh(force=false){
-  const s=service.view(),b=s.booking,p=getPlayer()?.root.position,near=p&&Math.abs(p.y-.215)<.4&&Math.hypot(p.x-INN_COUNTER[0],p.z-INN_COUNTER[2])<2.3,inRoom=p&&b&&Math.abs(p.y-4.015)<.45&&p.x>16&&p.x<26&&p.z>15.2&&p.z<21;
+  const s=service.view(),b=s.booking,p=getPlayer()?.root.position,near=p&&Math.abs(p.y-.215)<.4&&Math.hypot(p.x-INN_COUNTER[0],p.z-INN_COUNTER[2])<2.3,inRoom=p&&b&&Math.abs(p.y-4.015)<.45&&p.x>16&&p.x<26&&p.z>10.2&&p.z<21;
   menuState={bookingId:b?.id||null,roomId:b?.roomId||null,stage:b?.stage||null,inRoom:!!inRoom};
   badge.hidden=!canShow()||!near&&!inRoom;badge.textContent=b?`云来客栈 · ${s.rooms.find(r=>r.id===b.roomId)?.name}住宿`:'云来客栈 · 客房登记';
   if(!dialog.open&&!force)return;const key=JSON.stringify([s,b,selection,error]);if(!force&&key===signature)return;signature=key;generation++;dialog.replaceChildren();

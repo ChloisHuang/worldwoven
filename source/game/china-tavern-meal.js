@@ -11,13 +11,14 @@ export function createChinaTavernMeal({getTenureRoleId=null,getClock=()=>({hour:
  if(world)staffScene.restoreWorld(world);else staffScene.initializeWorld();
  const seats=furniture.items.filter(i=>i.id.startsWith('china-tavern-dining-'));let disposed=false;
  const current=()=>staffScene.playerOrder();
+ const mealLabel=o=>o?(o.layoutAwaitingSeat?'请回原餐位落座，继续这份已保存餐单':LABELS[o.stage]||o.stage).replaceAll('菌菇饭',o.dishName):null;
  function requestMeal(dishId=M.id){if(!canRequest()){notify('请先交还手上的岗位或结清临工，再坐下点菜');return false;}const seat=getMounted();if(!seat||!seats.includes(seat)){notify('请先挑一个空餐位坐好');return false;}if(current()){notify('已经有一份待处理的点餐，稍等即可');return false;}return staffScene.requestPlayerMeal(seat,dishId);}
  return {socialProfile:id=>staffScene.socialProfile(id),seats,dish:M,menu:TAVERN_DISHES,walletCash:()=>copperLedger?.balances()?.copper?.cash??null,staffScene,requestMeal,owns:n=>staffScene.owns(n),socialStatus:n=>staffScene.socialStatus(n),
   cancel:()=>staffScene.cancelPlayerMeal(),leaveSeat(id){if(current()?.seatId===id)staffScene.cancelPlayerMeal();},
-  eat:()=>staffScene.eatPlayerMeal(),playerPose:()=>staffScene.playerPose(),statusLabel:seatId=>current()?.seatId===seatId?(LABELS[current().stage]||current().stage).replaceAll('菌菇饭',current().dishName):null,
+  eat:()=>staffScene.eatPlayerMeal(),playerPose:()=>staffScene.playerPose(),statusLabel:seatId=>current()?.seatId===seatId?mealLabel(current()):null,
   update(dt,t,options={}){if(!disposed)staffScene.update(dt,t,options);},
-  view(){const o=current();return {order:o?{id:o.id,seatId:o.seatId,stage:o.stage,cancelled:!!o.cancelled}:null,label:o?(LABELS[o.stage]||o.stage).replaceAll('菌菇饭',o.dishName):null};},
-  state(){const world=staffScene.state(),o=current(),shown=world.orders.find(q=>q.id===o?.id);return {serial:world.serial||0,order:o?copy(o):null,label:o?(LABELS[o.stage]||o.stage).replaceAll('菌菇饭',o.dishName):null,history:world.history,failures:world.failures,props:shown?.props||{trayCount:0,bowlCount:0,mealId:null},actors:world.actors,staffScene:world,persistentClaims:false};},
+  view(){const o=current();return {order:o?{id:o.id,seatId:o.seatId,stage:o.stage,cancelled:!!o.cancelled,layoutAwaitingSeat:!!o.layoutAwaitingSeat}:null,label:mealLabel(o)};},
+  state(){const world=staffScene.state(),o=current(),shown=world.orders.find(q=>q.id===o?.id);return {serial:world.serial||0,order:o?copy(o):null,label:mealLabel(o),history:world.history,failures:world.failures,props:shown?.props||{trayCount:0,bowlCount:0,mealId:null},actors:world.actors,staffScene:world,persistentClaims:false};},
   snapshot:()=>staffScene.continuitySnapshot(),restore:snapshot=>staffScene.restoreContinuity(snapshot),
   dispose({suspend=false}={}){if(disposed)return;disposed=true;if(!suspend&&current())staffScene.cancelPlayerMeal();staffScene.dispose();}}
 }

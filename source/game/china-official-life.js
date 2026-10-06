@@ -1,3 +1,4 @@
+import {TAVERN_LAYOUT_VERSION as LAYOUT_VERSION} from './china-tavern-layout.js';
 import {CHINA_PUBLIC_TOILET as PUBLIC_TOILET} from './china-public-toilet.js';
 import {findActorStandPoint} from './actor-navigation.js';
 import {captureWorldRuntime,restoreWorldRuntime} from './world-continuity.js';
@@ -7,7 +8,7 @@ import {blocked,canTraverse} from './navigation.js';
 import {CHINA_OFFICIAL_BUREAU as B,isChinaOfficialUpperFloor} from './china-official-bureau.js';
 
 const point=a=>({x:a[0],y:a[1],z:a[2]}),near=(p,a,r=.14)=>Math.hypot(p.x-a[0],p.z-a[2])<r&&Math.abs(p.y-a[1])<.32;
-const TAVERN_UP=[[14,.115,13.8],[16.9,.215,14.1],[17.55,.215,13.8],[17.55,2.115,9.2],[19.95,2.115,9.2],[19.95,4.015,14.1],[17.55,4.015,14.1],[17.55,5.915,9.2],[19.95,5.915,9.2],[19.95,7.815,14.1],[22.5,7.815,14.2]];
+const TAVERN_UP=[[14,.115,8.8],[16.9,.215,9.1],[17.55,.215,8.8],[17.55,2.115,4.2],[19.95,2.115,4.2],[19.95,4.015,9.1],[17.55,4.015,9.1],[17.55,5.915,4.2],[19.95,5.915,4.2],[19.95,7.815,9.1],[22.5,7.815,9.2]];
 const reverse=a=>a.slice().reverse().map(p=>p.slice());
 // Real clear east-bank standing places, outside the numbered-edict leaf basket.
 export const CHINA_OFFICIAL_GARDEN_PLACES=Object.freeze([[11.7,.145,-14.4],[9.2,.145,-14.4],[10.45,.145,-14.4],[8.5,.115,-13.1],[10,.115,-13.1],[11.7,.115,-13.1]]);
@@ -21,7 +22,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  const stages=new Map(),duties=JSON.parse(JSON.stringify(saved.duties||{})),unpaidDuties=JSON.parse(JSON.stringify(saved.unpaidDuties||[])),brain=createLifeDecisions({worldSeed,actorIds:officials.map(n=>n.station.id),sharedNeeds,saved:saved.decisions,onChange:()=>save()}),claims=furniture.facilities;
  let state={},time=0,ready=false,nextPayrollAt=0,conversation=null;
  const seat=id=>furniture.items.find(m=>m.id===id),index=n=>officials.indexOf(n),tell=(n,label)=>{const el=n.label?.querySelector?.('small');if(el)el.textContent=formatCourtEdictText(label);};
- const snapshot=()=>({version:1,duties:JSON.parse(JSON.stringify(duties)),unpaidDuties:JSON.parse(JSON.stringify(unpaidDuties)),decisions:brain.snapshot(),positions:Object.fromEntries(officials.map(n=>[n.station.id,n.root.position.toArray()])),runtime:captureWorldRuntime({time,conversation,stages:[...stages].map(([n,s])=>[n.station.id,s])})});
+ const snapshot=()=>({version:1,layoutVersion:LAYOUT_VERSION,duties:JSON.parse(JSON.stringify(duties)),unpaidDuties:JSON.parse(JSON.stringify(unpaidDuties)),decisions:brain.snapshot(),positions:Object.fromEntries(officials.map(n=>[n.station.id,n.root.position.toArray()])),runtime:captureWorldRuntime({time,conversation,stages:[...stages].map(([n,s])=>[n.station.id,s])})});
  function save(){if(ready)return saveState(snapshot());}
  const occupied=(id,n)=>state.facilityId===id||claims.state().some(f=>f.id===id&&(f.player||f.reservations.some(r=>r.actor!==n.station.id)));
  const stage=(path,label,options={})=>({path:path.map(a=>a.slice()),label,index:0,arrived:false,planned:false,stalled:0,retries:0,elapsed:0,...options});
@@ -58,7 +59,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
    {id:'read',label:'官署静读 · 看一会儿书卷',experience:{kind:'read',label:'方才在官署读过书卷'},base:.18,traits:{curiosity:.7,quiet:.8},needs:{fatigue:.2},duration:[10,18],cooldown:50,relief:{fatigue:-.10},point:B.offices[i],action:'read'},
    {id:'rest',label:'回自己的值宿室歇息',base:.05,traits:{quiet:.25},needs:{fatigue:3.5},duration:[18,32],cooldown:90,relief:{fatigue:-.7},point:bed?.position,mount:bed,facilityId:bed?.id,roomId:B.privateRoomIds?.[i]??(i<2?B.roomIds[i]:null)},
    {id:'toilet',label:'沿公共楼梯去云来楼净室',base:1,duration:[0,0],cooldown:12,relief:{},point:PUBLIC_TOILET.approach,toilet:true,available:!!sharedNeeds?.status(n.station.id)?.seekToilet&&!!getToilet()?.publicAvailable?.()},
-   {id:'meal',label:'去云来酒楼自费吃饭',base:.04,traits:{appetite:.3},needs:{hunger:3.7},duration:[0,0],cooldown:12,relief:{},point:[14,.115,13.8],meal:true,available:!!sharedNeeds?.status(n.station.id)?.seekMeal&&!!getTavern()?.officialMealAvailable(n.station.id)},
+   {id:'meal',label:'去云来酒楼自费吃饭',base:.04,traits:{appetite:.3},needs:{hunger:3.7},duration:[0,0],cooldown:12,relief:{},point:[14,.115,8.8],meal:true,available:!!sharedNeeds?.status(n.station.id)?.seekMeal&&!!getTavern()?.officialMealAvailable(n.station.id)},
    {id:'garden',label:'沿东侧庭院散步赏荷',experience:{kind:'garden',label:'方才在东岸看过荷塘'},base:.13,traits:{outdoors:1.1},needs:{fatigue:-.5,social:.25},duration:[9,18],cooldown:65,relief:{fatigue:-.10,social:-.12},point:CHINA_OFFICIAL_GARDEN_PLACES[i],facilityId:'cn-official-garden-place-'+i,look:[0,.2,-18]},
    {id:'listen',label:'自愿去云来楼听诗乐',base:.09,traits:{curiosity:.65,sociability:.9},needs:{social:1.25,fatigue:-.4},duration:[14,24],cooldown:120,relief:{social:-.5},point:listen?.position,mount:listen,facilityId:listen?.id,upstairs:true},
    {id:'conversation',label:'邀请闲下来的同僚到荷庭聊聊',base:.09,traits:{sociability:1.1},needs:{social:1.8},duration:[9,13],cooldown:90,relief:{},point:CHINA_OFFICIAL_GARDEN_PLACES[1],experienceId:experience?.id,targets:partners.map(other=>({id:other.station.id,relationship:{target:other.station.id,weight:.9,opinionWeight:.9}}))}
@@ -153,10 +154,23 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   if(!legacy)return;
   claims.release?.('cn-money-house-public-counter',n.station.id);
   for(const key of ['bankCounter','bankDone','bankElapsed','withdrawReceipt'])delete s[key];
-  if(s.choice){delete s.choice.withdraw;if(s.choice.facilityId==='cn-money-house-public-counter')delete s.choice.facilityId;s.choice.point=[14,.115,13.8];s.choice.label='去云来酒楼自费吃饭';}
-  if(!s.borrowed){s.path=publicRoute(n,[14,.115,13.8]);s.index=0;s.arrived=false;s.planned=false;s.stalled=0;s.label='去云来酒楼自费吃饭';n.route=[];}
+  if(s.choice){delete s.choice.withdraw;if(s.choice.facilityId==='cn-money-house-public-counter')delete s.choice.facilityId;s.choice.point=[14,.115,8.8];s.choice.label='去云来酒楼自费吃饭';}
+  if(!s.borrowed){s.path=publicRoute(n,[14,.115,8.8]);s.index=0;s.arrived=false;s.planned=false;s.stalled=0;s.label='去云来酒楼自费吃饭';n.route=[];}
  }
- function restore(snapshot){const data=restoreWorldRuntime(snapshot?.runtime,{npcs,furniture});if(!data?.stages)return false;time=Math.max(0,data.time||0);if(snapshot.duties){for(const id of Object.keys(duties))delete duties[id];Object.assign(duties,JSON.parse(JSON.stringify(snapshot.duties)));}if(snapshot.unpaidDuties)unpaidDuties.splice(0,unpaidDuties.length,...JSON.parse(JSON.stringify(snapshot.unpaidDuties)));stages.clear();conversation=data.conversation||null;for(const[id,s]of data.stages){const n=officials.find(n=>n.station.id===id);if(!n)continue;if(getTavern()?.officialMeal(n.station.id))s.borrowed=true;retireBankJourney(n,s);if(s.choice?.meal&&!s.borrowed&&s.choice.facilityId?.startsWith('china-palace-dining-')){if(s.mount){s.mountTarget=null;s.evicted=true;}else continue;}stages.set(n,{...s,planned:false,stalled:0});n.route=[];if(!s.borrowed)n.serviceMount=null;for(const id of [s.facilityId,s.choice?.facilityId,s.roomId].filter(Boolean))claims.reserve(id,n.station.id,{purpose:s.choice?.id||'resumed'});if(s.mount)claims.occupy(s.mount.id,n.station.id);}if(conversation){const event=brain.conversation(conversation.id);if(event?.status!=='accepted'||!conversation.participants.every(id=>stages.get(officials.find(n=>n.station.id===id))?.pairId===conversation.id&&claims.reservation(stages.get(officials.find(n=>n.station.id===id)).facilityId,id)))endConversation(false);else conversation.lastAt=time;}for(const n of officials){const current=brain.state(n.station.id)?.current;if(current?.conversationId&&!conversation){brain.cancelConversation(current.conversationId);claims.releaseActor(n.station.id);idle(n);}}return true;}
+ function migrateTavernRoute(n,s,snapshot){
+  if(snapshot.layoutVersion===LAYOUT_VERSION||s.idle||s.courtReady)return;
+  const moved=p=>Array.isArray(p)?TAVERN_UP.find(q=>Math.abs(q[0]-p[0])<1e-6&&Math.abs(q[1]-p[1])<1e-6&&Math.abs(q[2]+5-p[2])<1e-6)||
+   (Math.abs(p[0]-PUBLIC_TOILET.approach[0])<1e-6&&Math.abs(p[1]-PUBLIC_TOILET.approach[1])<1e-6&&Math.abs(p[2]-PUBLIC_TOILET.approach[2]-5)<1e-6?PUBLIC_TOILET.approach:null):null;
+  const last=s.path?.at(-1),destination=moved(last);
+  if(Array.isArray(s.path))s.path=s.path.map(p=>moved(p)?.slice()||p);
+  if(s.choice&&moved(s.choice.point))s.choice.point=moved(s.choice.point).slice();
+  // Reset only an arrival invalidated by the moved public destination. The
+  // actor, activity clock, furniture mount and paid meal lease remain intact.
+  if(destination&&s.arrived&&!s.mount&&!s.borrowed&&!near(n.root.position,destination)){
+   s.arrived=false;s.index=Math.max(0,s.path.length-1);
+  }
+ }
+ function restore(snapshot){const data=restoreWorldRuntime(snapshot?.runtime,{npcs,furniture});if(!data?.stages)return false;time=Math.max(0,data.time||0);if(snapshot.duties){for(const id of Object.keys(duties))delete duties[id];Object.assign(duties,JSON.parse(JSON.stringify(snapshot.duties)));}if(snapshot.unpaidDuties)unpaidDuties.splice(0,unpaidDuties.length,...JSON.parse(JSON.stringify(snapshot.unpaidDuties)));stages.clear();conversation=data.conversation||null;for(const[id,s]of data.stages){const n=officials.find(n=>n.station.id===id);if(!n)continue;if(getTavern()?.officialMeal(n.station.id))s.borrowed=true;retireBankJourney(n,s);migrateTavernRoute(n,s,snapshot);if(s.choice?.meal&&!s.borrowed&&s.choice.facilityId?.startsWith('china-palace-dining-')){if(s.mount){s.mountTarget=null;s.evicted=true;}else continue;}stages.set(n,{...s,planned:false,stalled:0});n.route=[];if(!s.borrowed)n.serviceMount=null;for(const id of [s.facilityId,s.choice?.facilityId,s.roomId].filter(Boolean))claims.reserve(id,n.station.id,{purpose:s.choice?.id||'resumed'});if(s.mount)claims.occupy(s.mount.id,n.station.id);}if(conversation){const event=brain.conversation(conversation.id);if(event?.status!=='accepted'||!conversation.participants.every(id=>stages.get(officials.find(n=>n.station.id===id))?.pairId===conversation.id&&claims.reservation(stages.get(officials.find(n=>n.station.id===id)).facilityId,id)))endConversation(false);else conversation.lastAt=time;}for(const n of officials){const current=brain.state(n.station.id)?.current;if(current?.conversationId&&!conversation){brain.cancelConversation(current.conversationId);claims.releaseActor(n.station.id);idle(n);}}return true;}
  ready=true;if(!restore(saved))for(const n of officials)choose(n);
  return {
   courtCompleted(day){for(const n of officials){const previous=duties[n.station.id];if(previous?.day===day)continue;if(previous?.stage==='archived'&&!unpaidDuties.some(d=>d.actorId===n.station.id&&d.day===previous.day))unpaidDuties.push({actorId:n.station.id,...previous});duties[n.station.id]={day,stage:'awaiting-archive'};}save();},

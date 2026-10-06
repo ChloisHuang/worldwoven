@@ -2,7 +2,7 @@
 // boundary joins the currency ledger's single durable game-snapshot write.
 const copy=x=>JSON.parse(JSON.stringify(x));
 const integer=n=>Number.isSafeInteger(n)&&n>=0;
-export const INN_COUNTER=[22.35,.215,11.7];
+export const INN_COUNTER=[22.35,.215,6.7];
 export const innMinutes=clock=>clock&&integer(clock.day)&&Number.isFinite(clock.hour)?clock.day*1440+clock.hour*60:null;
 export const innTimeLabel=minutes=>`第${Math.floor(minutes/1440)+1}日 ${String(Math.floor(minutes%1440/60)).padStart(2,'0')}:${String(Math.floor(minutes%60)).padStart(2,'0')}`;
 export function validPlayerStay(world){

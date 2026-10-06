@@ -1,6 +1,6 @@
 import {createChinaTavernPropertyUI} from './china-tavern-property-ui.js';
 import {TAVERN_STEWARD_ROLE,TAVERN_HOST_ROLE,TAVERN_CHEF_ROLE} from './formal-careers.js';
-const ROLES=[TAVERN_STEWARD_ROLE,TAVERN_HOST_ROLE,TAVERN_CHEF_ROLE],REG=[22.35,.215,11.7];
+const ROLES=[TAVERN_STEWARD_ROLE,TAVERN_HOST_ROLE,TAVERN_CHEF_ROLE],REG=[22.35,.215,6.7];
 const copy=x=>JSON.parse(JSON.stringify(x));
 const near=(p,point,r=.9)=>p&&Math.hypot(p.x-point[0],p.z-point[2])<=r&&Math.abs(p.y-point[1])<.4;
 
@@ -78,7 +78,7 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
   if(next.kind==='task'){selected=next.choice;const result=scene.execute(next.choice);if(result){selected=null;if(next.choice.kind==='choose-order'||['pickup','retrieve','return-tray'].includes(next.choice.kind))ui?.open();}return result;}
   return false;
  }
- const insideWorkplace=()=>{const p=getPlayer()?.root.position;return p&&p.x>16&&p.x<26&&p.z>8&&p.z<21&&p.y>=0&&p.y<9;};
+ const insideWorkplace=()=>{const p=getPlayer()?.root.position;return p&&p.x>16&&p.x<26&&p.z>3&&p.z<21&&p.y>=0&&p.y<9;};
  function update(dt){if(disposed)return;const experienceSaved=syncChefExperience();if(waitingRegistration){if(!atRegister()||!resolveIntent(waitingRegistration))waitingRegistration=null;else if(hostReady()){const pending=waitingRegistration;waitingRegistration=null;executeIntent(pending);}}const job=current.job;
   if(job){let live=scene.snapshot();retryScene+=Math.max(0,dt);if(job.stage==='working'&&live?.receiptId!==job.receiptId&&retryScene>=2){retryScene=0;scene.start({roleId:job.formalRoleId,receiptId:job.receiptId,day:careers.workState().lastDuty?.day});live=scene.snapshot();}
    if(live?.receiptId===job.receiptId&&live?.stage==='working'&&getClock().hour<18&&insideWorkplace())attendance+=Math.min(.1,Math.max(0,dt));
