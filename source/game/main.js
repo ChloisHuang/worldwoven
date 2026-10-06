@@ -802,7 +802,7 @@ function updatePlayer(dt,t){player.walking=false;let x=0,z=0;if(keys.has('KeyW')
  const weatherCharmTarget=japanWeatherCharms?.target();if(weatherCharmTarget)candidates.push({...weatherCharmTarget,priority:30});
  const franceTeaTarget=!performing&&!npcSocial?.active()?franceTea?.target():null;
  if(franceTeaTarget)candidates.push({...franceTeaTarget,position:lot.stations.find(s=>s.id==='france-cafe').position,priority:50});
- const royalMealIntent=chinaRoyalPlayerMeal?.intent();if(royalMealIntent&&!performing&&!npcSocial?.active())candidates.push(royalMealIntent);
+ const royalMealIntent=!performing&&!npcSocial?.active()?chinaRoyalPlayerMeal?.nearbyIntent():null;if(royalMealIntent&&!performing&&!npcSocial?.active())candidates.push(royalMealIntent);
  const nearby=uniqueInteractionActions(nearbyInteractions(candidates,player.root.position,nearbyInteractionClear).map(contextualTarget));
  nearest=nearby[0]||null;
  if(seated)nearest=playerServiceTarget||franceTeaTarget||seated;

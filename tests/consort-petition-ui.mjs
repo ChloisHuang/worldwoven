@@ -25,6 +25,30 @@ function fixture(options={}){
  const dialog=doc.body.children[0],find=id=>walk(dialog).find(e=>e.attrs['data-consort-action']===id),visible=()=>walk(dialog).filter(e=>e.tag==='button'&&!e.hidden);
  return {doc,dialog,ui,find,visible,intents,choices,withdrawals,player,service,setCard:v=>{card=v;},getCard:()=>card,setDetails:v=>{details=v;},setRows:v=>{rows=v;}};
 }
+test('closed and disposed frame updates do not read live court or meal state; reopening reads fresh data',()=>{
+ const calls={status:0,details:0,history:0,ledger:0},rows=[];
+ const f=fixture({getDetails:()=>{calls.details++;return {};},getLedger:()=>{calls.ledger++;return {history:()=>{calls.history++;return rows;}};}});
+ const status=f.service.statusCard;f.service.statusCard=()=>{calls.status++;return status();};
+ for(let i=0;i<100;i++)f.ui.update();
+ assert.deepEqual(calls,{status:0,details:0,history:0,ledger:0},'the normal closed-panel frame path performs no view work');
+ f.ui.open();assert.deepEqual(calls,{status:1,details:1,history:1,ledger:1});assert(f.dialog.textContent.includes('尚未自荐'));
+ f.setCard({stage:'submitted',historyCount:1,blockers:[]});rows.push({stage:'submitted',submittedAt:{day:1}});f.ui.update();
+ assert(f.dialog.textContent.includes('待皇帝召见'));assert(f.dialog.textContent.includes('第2日'));assert.equal(f.find('primary').textContent,'听候召见');
+ f.ui.close();const closed={...calls};f.setCard({stage:'rejected',blockers:[]});for(let i=0;i<100;i++)f.ui.update();assert.deepEqual(calls,closed);
+ f.ui.open();assert(f.dialog.textContent.includes('本次未获准'));assert.equal(f.find('primary').textContent,'呈交自荐');
+ f.ui.dispose();const disposed={...calls};for(let i=0;i<100;i++)f.ui.update();assert.deepEqual(calls,disposed);
+});
+
+test('live ledger and history fallbacks are evaluated only when the primary source is absent or fails',()=>{
+ const calls={fallbackLedger:0,serviceHistory:0,ledgerHistory:0},ledger={history:()=>{calls.ledgerHistory++;return [{stage:'submitted',submittedAt:{day:1}}];}};
+ const f=fixture({getLedger:()=>{calls.fallbackLedger++;return ledger;}});
+ f.service.currentLedger=()=>ledger;f.service.history=()=>{calls.serviceHistory++;return [];};f.ui.open();
+ assert.deepEqual(calls,{fallbackLedger:0,serviceHistory:1,ledgerHistory:0},'an empty live history is valid and does not read fallback history');
+ f.service.history=()=>{calls.serviceHistory++;return undefined;};f.ui.update();assert.equal(calls.ledgerHistory,1);assert(f.dialog.textContent.includes('第2日'));
+ f.service.currentLedger=()=>{throw Error('unavailable');};f.service.history=()=>{calls.serviceHistory++;throw Error('unavailable');};f.ui.update();
+ assert.deepEqual(calls,{fallbackLedger:1,serviceHistory:3,ledgerHistory:2});assert(f.dialog.textContent.includes('第2日'));f.ui.dispose();
+});
+
 test('read-only view keeps approval and acceptance separate from appointed identity',()=>{
  for(const stage of ['none','submitted','awaiting-choice','accepted','charter-held']){
   const v=consortPetitionView({card:{stage,titleId:'consort',result:{passed:true},blockers:[]},target});
