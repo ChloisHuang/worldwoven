@@ -1,0 +1,63 @@
+// Exercise the original three actors, finite resident supply and local duty
+// boundaries. Routes are lightweight; eating, props, needs and receipts are real.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {registerHooks} from 'node:module';
+import {pathToFileURL} from 'node:url';
+registerHooks({resolve(id,ctx,next){return id==='three'?{url:pathToFileURL(process.cwd()+'/source/vendor/three/build/three.module.js').href,shortCircuit:true}:next(id,ctx);}});
+const T=await import('three');
+const {createEgyptMealService}=await import('../source/game/egypt-meal-service.js');
+const {createFacilityQueue}=await import('../source/game/npc-facilities.js');
+const {createDailyNeeds,DAILY_NEEDS_HOUR:H}=await import('../source/game/daily-needs.js');
+const {EGYPT_MEAL:P}=await import('../source/game/egypt-meal-definition.js');
+const {validEgyptResidentSupply}=await import('../source/game/egypt-resident-supply.js');
+
+const GUEST='egypt-papyrus',DUTY='eg-table-service-labor-1',copy=structuredClone;
+
+function fixture({hungry=true,saved={},needsSaved,seconds=0,playerSeated=false}={}){
+ const group=new T.Group(),seat={id:'egypt-seat',kind:'seat',center:P.seatCenter.slice(),anchor:[15.25,0,-9.3],position:[13.95,0,-9.3],seatY:.66,yaw:Math.PI/2};
+ const actor=(id,p)=>{const root=new T.Group();root.position.set(...p);const hands=[new T.Object3D(),new T.Object3D()];hands[0].position.set(-.19,1.12,.43);hands[1].position.set(.19,1.12,.43);root.add(...hands);root.userData.hands=hands;group.add(root);return {root,home:new T.Vector3(...p),station:{id,npcPosition:p.slice(),npcLabel:id,npcAction:'read'},characterScale:.96,phase:0,route:[],locomotion:{walkSpeed:2},animate(){}};};
+ const cook=actor(P.cook,P.prep),host=actor(P.host,P.hostHome),guest=actor(GUEST,[-7.75,0,-1.7]),npcs=[cook,host,guest],person=actor('player',[30,0,30]);
+ let mounted=null,blocked=false,doorWaiting=false,rejectState=()=>false,failNeeds=false,durable,needsDisk,elapsed=0;
+ const clock=()=>{const minutes=600+seconds*.7;return {seconds,day:Math.floor(minutes/1440),hour:minutes%1440/60};};
+ const needs=createDailyNeeds({saved:needsSaved||{version:2,people:{[GUEST]:{foodAge:(hungry?25:7)*H,foodBalanceOffset:0,toiletAge:0,receipts:{}}}},getClock:clock,saveState:s=>{if(failNeeds)return false;needsDisk=copy(s);return true;}});needs.enter('egypt',npcs.map(n=>n.station.id));
+ const furniture={items:[seat],facilities:createFacilityQueue(),canSit:()=>!blocked&&!mounted,standPoint:()=>blocked?null:new T.Vector3(...seat.position),releaseActor(id){this.facilities.releaseActor(id);}};
+ function playerSeat(value){furniture.releaseActor('player');mounted=value?seat:null;person.root.position.set(...(value?seat.anchor:[30,0,30]));if(value){assert(furniture.facilities.reserve(seat.id,'player'));assert(furniture.facilities.occupy(seat.id,'player'));}}
+ if(playerSeated)playerSeat(true);
+ const lot={group,colliders:[],walkableSurfaces:[],bounds:{minX:-35,maxX:35,minZ:-35,maxZ:35}},doors={cameraColliders:[],routeStep(route,p){if(doorWaiting)return {waiting:true};while(route[0]&&Math.hypot(route[0].x-p.x,route[0].z-p.z)<.05)route.shift();return {waypoint:route[0]};}};
+ const service=createEgyptMealService({npcs,lot,furniture,doors,planPath:(a,b)=>[new T.Vector3(b.x,b.y,b.z)],moveActor:(n,dx,dz)=>{n.root.position.x+=dx;n.root.position.z+=dz;},poseContext:n=>n.poseContext??={},getPlayer:()=>person,getMounted:()=>mounted,getClock:clock,sharedNeeds:needs,worldSeed:1,saved,saveState:s=>{if(rejectState(s))return false;durable=copy(s);return true;},onResidentMealReceipts:(receipts,supply)=>needs.egyptResidentMealReceipts(receipts,supply)});
+ const tick=(count=1)=>{for(let i=0;i<count;i++){seconds+=.1;elapsed+=.1;needs.update();service.update(.1,elapsed);}};
+ const until=(predicate,label='expected state',limit=5000)=>{for(let i=0;i<limit&&!predicate(service.state());i++)tick();assert(predicate(service.state()),`${label}: ${JSON.stringify({order:service.state().order,duty:service.kitchen.dutyState(),phase:service.state().phase})}`);};
+ function checkpoint(){return {saved:service.snapshot(),needsSaved:needs.snapshot(),seconds,actors:npcs.map(n=>({id:n.station.id,position:n.root.position.toArray(),yaw:n.root.rotation.y,mountId:n.serviceMount?.id||null})),player:person.root.position.toArray(),playerYaw:person.root.rotation.y};}
+ function restoreActors(c,{skipGuestMount=false}={}){for(const a of c.actors){const n=npcs.find(n=>n.station.id===a.id);n.root.position.set(...a.position);n.root.rotation.y=a.yaw;if(a.mountId&&!(skipGuestMount&&a.id===GUEST)&&furniture.facilities.reserve(a.mountId,n.station.id)&&furniture.facilities.occupy(a.mountId,n.station.id))n.serviceMount=seat;}if(!mounted){person.root.position.set(...c.player);person.root.rotation.y=c.playerYaw||0;}assert(service.restore(c.saved));}
+ return {service,table:service.tableService,kitchen:service.kitchen,needs,npcs,cook,host,guest,person,seat,furniture,clock,tick,until,playerSeat,checkpoint,restoreActors,movePlayer:p=>person.root.position.set(...p),advanceHours:hours=>{seconds+=hours*H;needs.update();},reject:fn=>rejectState=fn,rejectNeeds:value=>failNeeds=value,blockSeat:value=>blocked=value,blockDoor:value=>doorWaiting=value,get durable(){return durable;},get needsDisk(){return needsDisk;},dispose:()=>service.dispose({suspend:true})};
+}
+function claim(f){f.movePlayer(f.table.registry);f.table.requestMeeting(true);f.until(()=>f.table.meetingReady(),'original Dana meeting');assert(f.table.claimDuty(DUTY));f.until(()=>f.table.dutyActive(DUTY),'safe table takeover');f.table.requestMeeting(false);}
+function doStage(f,expected,next){const w=f.table.workIntent(DUTY);assert.equal(w?.stage,expected);assert.equal(f.table.executeWork(w,'eg-table-service-labor-999'),false);f.movePlayer(w.position);assert(f.table.executeWork(w,DUTY));f.until(s=>s.order?.stage===next,`${expected} becomes ${next}`);return w;}
+function toTray(f){claim(f);f.until(s=>s.order?.stage==='requested');doStage(f,'requested','ticket');doStage(f,'ticket','preparing');f.until(s=>s.order?.stage==='collecting');doStage(f,'collecting','carrying');}
+
+test('Dana safe takeover drains an old original meal without stealing its work',()=>{
+ const f=fixture();f.until(s=>s.order?.stage==='carrying');const id=f.service.state().order.id;f.movePlayer(f.table.registry);assert(f.table.claimDuty(DUTY));assert.equal(f.table.dutyState().status,'draining');assert.equal(f.table.workIntent(DUTY),null);f.until(()=>f.table.dutyActive(DUTY));assert.deepEqual(f.table.workReceipts(DUTY),[]);assert.equal(f.service.state().supply.consumed[0].orderId,id);assert.equal(f.service.state().supply.remaining,23);f.dispose();
+});
+
+test('one real resident, original cook and same tray receive evidence only after player wash',()=>{
+ const f=fixture();toTray(f);const o=f.service.state().order;assert.equal(o.holder,'player');assert.equal(o.mealId,o.id+'-dish');assert.equal(f.service.state().supply.remaining,23);assert.equal(o.workReceiptId,undefined);assert.equal(f.kitchen.canClaimDuty(),false);assert.equal(f.service.request(),false);assert.equal(f.table.canEndDuty(DUTY),false);
+ doStage(f,'carrying','eating');f.until(s=>s.order?.finished);assert.equal(f.needs.hunger(GUEST),0);assert.deepEqual(f.table.workReceipts(DUTY),[]);f.until(s=>s.order?.stage==='clearing');doStage(f,'clearing','returning');assert.equal(f.table.held(),true);doStage(f,'returning','leaving');const r=f.table.workReceipts(DUTY);assert.equal(r.length,1);assert.equal(r[0].completed,true);assert.equal(r[0].orderId,o.id);assert.equal(r[0].itemId,o.mealId);assert.equal(f.table.dutyState().status,'active');assert.equal(f.table.canEndDuty(DUTY),true);f.tick(30);assert.equal(f.table.workReceipts(DUTY).length,1);assert.equal(f.service.state().supply.prepared.length,1);f.dispose();
+});
+
+test('stopping and failed tray saves preserve original holder, item and unearned reward',()=>{
+ const f=fixture();toTray(f);const c=f.checkpoint(),tray=f.service.state().props.trayPosition;f.dispose();const g=fixture(c);g.restoreActors(c);assert.equal(g.table.held(),true);assert.deepEqual(g.service.state().props.trayPosition,tray);assert.equal(g.service.state().order.mealId,c.saved.order.mealId);
+ let w=g.table.workIntent(DUTY);g.movePlayer(w.position);assert(g.table.executeWork(w,DUTY));g.tick(3);g.table.stopWorkAction();g.tick(20);assert.equal(g.service.state().order.stage,'carrying');g.reject(s=>s.order?.stage==='ready');w=g.table.workIntent(DUTY);assert(g.table.executeWork(w,DUTY));g.tick(20);assert.equal(g.service.state().order.holder,'player');assert.equal(g.service.state().order.stage,'carrying');g.reject(()=>false);g.until(s=>s.order?.stage==='eating');assert.equal(g.service.state().props.bowlCount,1);assert.equal(g.table.workReceipts(DUTY).length,0);g.dispose();
+});
+
+test('held offsite duty pauses with same tray and cancellation requires physical kitchen return',()=>{
+ const f=fixture();toTray(f);const id=f.service.state().order.id;f.movePlayer([30,0,30]);f.tick(20);assert.equal(f.table.dutyState().status,'paused');assert.equal(f.table.held(),true);assert.equal(f.table.releaseDuty(DUTY,{evaluate:true}),false);assert.equal(f.service.state().order.id,id);assert.equal(f.table.workReceipts(DUTY).length,0);const back=f.table.returnPosition();f.movePlayer([back[0]-.29,back[1],back[2]]);f.reject(s=>s.tableDuty===null);assert.equal(f.table.releaseDuty(DUTY,{evaluate:true}),false);assert.equal(f.table.held(),true);f.reject(()=>false);assert(f.table.releaseDuty(DUTY,{evaluate:true}));assert.equal(f.table.held(),false);assert(f.table.releaseDuty(DUTY,{evaluate:true}));assert.equal(f.table.workReceipts(DUTY).length,1);assert.equal(f.table.workReceipts(DUTY)[0].outcome,'handoff');f.movePlayer(f.table.registry);f.until(s=>s.order?.finished);assert.equal(f.service.state().order.id,id);assert.equal(f.service.state().supply.prepared.length,1);assert.equal(f.table.workReceipts(DUTY).filter(r=>r.completed).length,0);f.dispose();
+});
+
+test('local no-customer coverage persists, leaving empty pauses and cannot earn NPC completion',()=>{
+ const f=fixture({hungry:false});claim(f);f.tick(600);assert.equal(f.table.dutyActive(DUTY),true);f.movePlayer([14,0,-9.5]);f.tick(10);assert.equal(f.table.dutyActive(DUTY),true,'west stool bypass remains covered');assert.equal(f.table.workIntent(DUTY),null);assert.equal(f.service.state().supply.remaining,24);f.movePlayer([30,0,30]);f.tick();assert.equal(f.table.dutyActive(DUTY),false);f.movePlayer(f.table.registry);f.tick(20);assert.equal(f.table.dutyState().status,'paused');claim(f);f.advanceHours(18);f.until(s=>s.order?.stage==='requested');doStage(f,'requested','ticket');f.movePlayer([30,0,30]);f.tick();assert.equal(f.table.workReceipts(DUTY).length,1);f.until(s=>s.order?.finished);assert.equal(f.table.workReceipts(DUTY)[0].completed,false);f.dispose();
+});
+
+test('failed wash commits retain the same dirty tray and replay a completed wash only once',()=>{
+ const f=fixture();toTray(f);doStage(f,'carrying','eating');f.until(s=>s.order?.stage==='clearing');doStage(f,'clearing','returning');const id=f.service.state().order.id,w=f.table.workIntent(DUTY);f.movePlayer(w.position);f.reject(s=>s.tableReceipts.some(r=>r.completed));assert(f.table.executeWork(w,DUTY));f.tick(50);assert.equal(f.service.state().order.stage,'returning');assert.equal(f.service.state().order.holder,'player');assert.equal(f.table.workReceipts(DUTY).length,0);const c=f.checkpoint();f.dispose();const g=fixture(c);g.restoreActors(c);g.until(s=>s.order?.stage==='leaving');assert.equal(g.table.workReceipts(DUTY).length,1);assert.equal(g.table.workReceipts(DUTY)[0].orderId,id);const done=g.checkpoint();g.dispose();const h=fixture(done);h.restoreActors(done);h.tick(20);assert.equal(h.table.workReceipts(DUTY).length,1);assert.equal(h.table.held(),false);assert.equal(h.service.state().supply.prepared.length,1);h.dispose();
+});
