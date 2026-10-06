@@ -151,21 +151,28 @@ export function createChinaSalonReceptionAccount({saved,getSalonIncome=()=>null,
    if(!old&&income?.receipts?.some(r=>r.sessionId===receipt.sessionId))return failure('reception-historical-income');
    const expense=property.prepareReceptionWage({proof,settlementReceipt});if(!expense.ok)return expense;
    if(!!old!==!!expense.replayed)return failure('reception-property-mismatch');
-   const base=current,incomeRevision=income.revision;let accepted=false;
-   if(old)return {ok:true,replayed:true,receipt:copy(old),patch:{},valid:()=>!loadError&&!busy&&(accepted||current===base&&expense.valid()),committed(){
+   const base=current,incomeRevision=income.revision;let accepted=false,locked=false;
+   function lock(){
+    if(loadError||busy||accepted||current!==base||!expense.valid()||!old&&(journal(getSalonIncome())?.revision??0)!==incomeRevision)return false;
+    busy=true;
+    try{if(!expense.lock?.()){expense.release?.();busy=false;return false;}locked=true;return true;}
+    catch{expense.release?.();busy=false;return false;}
+   }
+   function release(){if(locked){expense.release();locked=false;busy=false;}}
+   if(old)return {ok:true,replayed:true,receipt:copy(old),patch:{},lock,release,valid:()=>!loadError&&!busy&&(accepted||current===base&&expense.valid()),committed(){
     if(accepted)return true;
-    if(loadError||busy||current!==base||expense.committed()===false)return false;
+    if(loadError||busy&&!locked||current!==base||expense.committed()===false)return false;
     accepted=true;return true;
    }};
    let next;try{next=append(current,receipt);}catch(error){return failure(error.message);}
-   return {ok:true,replayed:false,receipt:copy(receipt),patch:{...expense.patch,[namespace]:copy(next)},
+   return {ok:true,replayed:false,receipt:copy(receipt),patch:{...expense.patch,[namespace]:copy(next)},lock,release,
     valid:()=>!loadError&&!busy&&(accepted||current===base&&(journal(getSalonIncome())?.revision??0)===incomeRevision&&expense.valid()),
     committed(){
      if(accepted)return true;
      // Salary and meal candidates share a revision boundary. A stale salary
      // cannot restore money already spent or mutate its business counterpart.
      // The caller may already have adopted its income candidate after storage.
-     if(loadError||busy||current!==base||expense.committed()===false)return false;
+     if(loadError||!locked||current!==base||expense.committed()===false)return false;
      current=next;indexed.set(receipt.id,receipt);accepted=true;lastError=null;return true;
     }};
   }

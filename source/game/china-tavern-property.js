@@ -192,7 +192,8 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
   // wage replay bypasses this hook, so it cannot debit the business twice.
   function prepareCurrencyCommit(tx) {
     if(tx.action!=='business'&&!wages(tx))return null;
-    if(loadError)return fail(loadError);
+    if(loadError||saving)return fail(loadError||'property-busy');
+    const base=current,baseTill=getTill();
     const verified=verifyReceptionAccount();if(!verified.ok)return verified;
     let next;
     if(tx.action==='business') {
@@ -204,7 +205,7 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
       next={...copy(current),revision:current.revision+1,events:[...current.events,{id:tx.requestId,kind:'wage',amount:tx.amount,day:tx.day,till:getTill(),funding:shortfall,funder:owner.ownerId}]};
     }
     try{validate(next,getTill());}catch{return fail('invalid-property-state');}
-    return {ok:true,patch:{chinaTavernProperty:copy(next)},committed:()=>{current=next;lastError=null;}};
+    let accepted=false;return {ok:true,patch:{chinaTavernProperty:copy(next)},valid:()=>!loadError&&!saving&&(accepted||current===base&&getTill()===baseTill),committed:()=>{if(accepted)return true;if(loadError||saving||current!==base||getTill()!==baseTill)return false;current=next;accepted=true;lastError=null;return true;}};
   }
   // Only original, already-funded personal balances. This does not create a
   // bank account, salary, reserve injection or right to spend business capital.
@@ -242,7 +243,8 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
     const base=current,old=current.events.find(e=>e.id===receipt.id),oldTill=getTill();
     if(old){
       if(JSON.stringify(receptionWageFromEvent(old))!==JSON.stringify(receipt))return fail('reception-wage-conflict');
-      return {ok:true,replayed:true,patch:{},valid:()=>!loadError&&!saving&&!pending&&current===base,committed:()=>!loadError&&!saving&&!pending&&current===base};
+      let locked=false;const valid=()=>!loadError&&!saving&&!pending&&current===base;
+      return {ok:true,replayed:true,patch:{},valid,lock(){if(!valid())return false;saving=true;locked=true;return true;},release(){if(locked){locked=false;saving=false;}},committed:()=>!loadError&&(!saving||locked)&&!pending&&current===base};
     }
     const d=day(),futureTill=oldTill+settlementReceipt.businessProceeds;
     if(d===null||!integer(oldTill)||!integer(futureTill))return fail('invalid-reception-expense');
@@ -251,14 +253,15 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
     const event={...copy(receipt),kind:'reception-wage',day:d,till:futureTill,funding:0,funder:owner.ownerId};
     const next={...copy(current),revision:current.revision+1,events:[...current.events,event]};
     try{validate(next,futureTill);}catch{return fail('invalid-reception-expense');}
-    let accepted=false;
-    return {ok:true,replayed:false,patch:{chinaTavernProperty:copy(next)},
-      valid:()=>!loadError&&!saving&&!pending&&(accepted||current===base&&getTill()===oldTill),
+    let accepted=false,locked=false;const valid=()=>!loadError&&!saving&&!pending&&(accepted||current===base&&getTill()===oldTill);
+    return {ok:true,replayed:false,patch:{chinaTavernProperty:copy(next)},valid,
+      lock(){if(accepted||!valid())return false;saving=true;locked=true;return true;},
+      release(){if(locked){locked=false;saving=false;}},
       committed(){
         if(accepted)return true;
         // Income and expense are already durably stored together. Either
         // synchronous adoption order is safe, without double-counting revenue.
-        const till=getTill();if(loadError||saving||pending||current!==base||till!==oldTill&&till!==futureTill)return false;
+        const till=getTill();if(loadError||!locked||pending||current!==base||till!==oldTill&&till!==futureTill)return false;
         current=next;accepted=true;lastError=null;return true;
       }};
   }

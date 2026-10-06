@@ -345,12 +345,23 @@ export function createGameCurrencyLedger({saved, storage, key = 'worlds-days-v1'
   return createCurrencyLedger({saved: saved.copperLedger, onTransaction, getClock, saveState: (nextLedger, transaction) => {
     const participant = transaction ? transactionParticipant(transaction) : null;
     if (participant?.ok === false) return participant;
-    // A property transfer or business-funded wage and its money receipt reach
-    // the same game snapshot. Neither participant advances before this write.
-    const next = {...saved, ...participant?.patch, copperLedger: nextLedger};
-    const result = storage.setItem(key, JSON.stringify(next));
-    if (result === false || result && typeof result.then === 'function') return result;
-    Object.assign(saved, participant?.patch, {copperLedger: nextLedger});
-    participant?.committed?.();
+    // Lock-aware participants keep every dependent ledger stable through the
+    // payer save and adoption. Legacy participants retain their existing path.
+    const lockAware = typeof participant?.lock === 'function'; let attempted = false;
+    if (lockAware && typeof participant.release !== 'function') return {ok: false, code: 'invalid-transaction-participant'};
+    try {
+      if (lockAware) {
+        if (participant.valid?.() === false) return {ok: false, code: 'stale-transaction-participant'};
+        attempted = true;
+        if (!participant.lock()) return {ok: false, code: 'stale-transaction-participant'};
+      }
+      const patch = lockAware ? copy(participant.patch || {}) : participant?.patch;
+      const next = {...saved, ...patch, copperLedger: nextLedger};
+      const result = storage.setItem(key, JSON.stringify(next));
+      if (result === false || lockAware && result?.ok === false || result && typeof result.then === 'function') return result;
+      Object.assign(saved, patch, {copperLedger: nextLedger});
+      const accepted = participant?.committed?.();
+      if (lockAware && accepted === false) throw Error('transaction-participant-adoption-conflict');
+    } finally { if (attempted) participant.release(); }
   }});
 }
