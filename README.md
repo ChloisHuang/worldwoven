@@ -11,8 +11,8 @@ R16.131 ordinary visits use the current supported character model with the origi
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.136-public, 2026-10-06
-Verified published Sites source commit: c5a9ea26b122586ff277162e4b4f4690ab8754f7
+Published release: R16.137-public, 2026-10-06
+Verified published Sites source commit: 3446b5023db980d8893aebc0bbf0f174c2f0d460
 
 Opt-in same-save performance panel: https://alien.doudouai.net/?perf=1#china
 It reads runtime timing/render counts and the initial save length; it does not reset storage or send telemetry. CPU submission timing is not GPU timing. R16.128 removes repeated full-history copies from closed salon panels and China job/HUD reads. R16.129 extends current-career reads to the existing Japan/Egypt employment adapters and French tea/pastry/gardening controllers. Those controllers only run in their respective countries. The user reported R16.130 runs without lag; broader device performance remains unverified.
@@ -28,6 +28,8 @@ R16.134 connects the original tavern host’s paid meal and private toilet break
 R16.135 restores the salon panel at the moved third-floor reception by using the authoritative shifted hall boundary. Service consent, prices, payments and saves are unchanged.
 
 R16.136 places hand icons on objects and conversation bubbles on NPCs, with grouped choices beside their actual target. Movement still stands up and chair highlights remain; standing is no longer a menu item. Scoped geometry, input and simulated-DOM checks passed; real browser/CSS/phone appearance remains unverified.
+
+R16.137 corrects the landscape meal footer, table-local dining entry and cramped-HUD menu placement. Host work now resolves the current role holder while preserving each person’s funds and needs, with no invented aging or hiring UI. Reviewed female nose projection is restored without changing saved traits. Browser/CSS/phone acceptance remains open; sleep and double-bed changes are separate.
 
 ## Working rules
 
