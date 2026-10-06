@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {createClinicRoles,CLINIC_ROLES,clinicHandoffBoundary} from '../source/game/china-clinic-roles.js';
+const npcs=new Map(['cn-clinic-physician','cn-pharmacy-assistant','cn-next-doctor','cn-other-controlled'].map(id=>[id,{station:{id},alive:true}]));
+let tenure=null,fail=false,order=null,stored,writes=0;const player={station:{id:'player'},alive:true};
+const make=saved=>createClinicRoles({saved,resolveActor:id=>npcs.get(id),getPlayer:()=>player,getTenureRoleId:()=>tenure,canAssign:(_key,id)=>id!=='cn-other-controlled',canRelease:key=>clinicHandoffBoundary(key,{order}),saveState:s=>{writes++;if(fail)return false;stored=s;return true;}});
+const roles=make();assert.equal(roles.resolve('physician').holderId,'cn-clinic-physician');assert.equal(roles.resolve('assistant').holderId,'cn-pharmacy-assistant');
+assert.equal(roles.assign('physician','cn-pharmacy-assistant').ok,false);assert.equal(roles.assign('physician','cn-other-controlled').ok,false);assert.equal(roles.assign('physician','player').code,'use-formal-career');
+order={id:'cn-clinic-order-1',stage:'writing',cardId:'cn-clinic-card-1',packetId:null,staffPeople:{physician:'cn-clinic-physician',assistant:'cn-pharmacy-assistant'}};
+assert.equal(roles.assign('physician','cn-next-doctor').code,'handoff-pending');npcs.get('cn-clinic-physician').alive=false;assert.equal(roles.resolve('physician').status,'inactive');assert.equal(roles.assign('physician',null).code,'handoff-pending','death does not transfer an unfinished original paper');
+assert.deepEqual(order.staffPeople,{physician:'cn-clinic-physician',assistant:'cn-pharmacy-assistant'});order=null;
+fail=true;assert.equal(roles.assign('physician','cn-next-doctor').code,'save-failed');assert.equal(roles.state().physician.holderId,'cn-clinic-physician');fail=false;assert(roles.assign('physician','cn-next-doctor').ok);assert.equal(roles.resolve('physician').actor,npcs.get('cn-next-doctor'));assert.equal(make(stored).resolve('physician').holderId,'cn-next-doctor');
+assert(roles.assign('physician',null).ok);assert.equal(make(stored).resolve('physician').status,'vacant');assert.equal(make({version:1,assistant:stored.assistant}).resolve('physician').status,'invalid');
+tenure=CLINIC_ROLES.assistant.roleId;assert.equal(roles.resolve('assistant').actor,player);assert.equal(roles.assign('assistant',null).code,'player-tenure-owns-role');assert.equal(roles.state().assistant.holderId,'cn-pharmacy-assistant');
+assert.equal(clinicHandoffBoundary('assistant',{workAction:{kind:'deliver'}}).ok,false);assert.equal(clinicHandoffBoundary('physician',{meeting:true}).ok,false);
+console.log('PASS explicit clinic slots, current physical identity, cross-controller/other-slot rejection, player tenure, absent/dead/vacancy/corrupt save safety, unchanged original paper owner and failed-save/reload handoff; no automatic successor or movement');

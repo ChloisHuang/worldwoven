@@ -13,7 +13,7 @@ export function clinicCarePlan(symptoms){
 }
 export function validPhysicianOrder(order){
  if(order.physician===undefined)return true;
- return ['player','cn-clinic-physician'].includes(order.physician)&&Array.isArray(order.symptoms)&&order.symptoms.length>0&&order.symptoms.every(s=>typeof s==='string'&&s.length>0&&s.length<240)&&
+ return (order.physician==='player'||typeof order.physician==='string'&&/^cn-[a-z0-9-]{1,60}$/.test(order.physician))&&Array.isArray(order.symptoms)&&order.symptoms.length>0&&order.symptoms.every(s=>typeof s==='string'&&s.length>0&&s.length<240)&&
   typeof order.questioned==='boolean'&&typeof order.careCorrect==='boolean'&&
   (order.carePlanId===null||CLINIC_CARE_PLANS.some(p=>p.id===order.carePlanId))&&
   (order.physician==='player'?/^cn-clinic-physician-labor-[1-9][0-9]*$/.test(order.physicianReceiptId):order.physicianReceiptId===null)&&
@@ -28,15 +28,15 @@ export function createClinicPhysicianWork({getOrder,getJob,getPlayer,getMounted,
   const o=getOrder();if(!owns(receipt)||action)return null;
   const kind=o.stage==='consult'?'question':o.stage==='writing'?(planId?'write':'choose'):o.stage==='handoff'?'handoff':null;
   if(!kind||kind==='write'&&!CLINIC_CARE_PLANS.some(p=>p.id===planId))return null;
-  return {kind,planId,key:[o.id,o.stage,receipt,planId||'-'].join(':'),orderId:o.id,recipientId:o.recipientId,number:o.number,cardId:o.cardId,visualAnchor:kind==='question'?{actorId:o.recipientId}:kind==='handoff'?{actorId:'cn-pharmacy-assistant'}:{id:'cn-clinic-paper',point:C.points.paper.slice()},
+  return {kind,planId,key:[o.id,o.stage,receipt,planId||'-'].join(':'),orderId:o.id,recipientId:o.recipientId,number:o.number,cardId:o.cardId,visualAnchor:kind==='question'?{actorId:o.recipientId}:kind==='handoff'?(assistant?.alive!==false?{actorId:assistant.station.id}:{}):{id:'cn-clinic-paper',point:C.points.paper.slice()},
    position:(kind==='handoff'?C.points.doctorHandoff:C.points.doctor).slice(),executionRadius:.3,
-   action:kind==='question'?`当面问询第 ${o.number} 号 · ${o.recipientName}`:kind==='choose'?`查看第 ${o.number} 号症状记录 · 选择照护单`:kind==='write'?`写第 ${o.number} 号 · ${CLINIC_CARE_PLANS.find(p=>p.id===planId).name}`:`交第 ${o.number} 号原单给苏禾`};
+   action:kind==='question'?`当面问询第 ${o.number} 号 · ${o.recipientName}`:kind==='choose'?`查看第 ${o.number} 号症状记录 · 选择照护单`:kind==='write'?`写第 ${o.number} 号 · ${CLINIC_CARE_PLANS.find(p=>p.id===planId).name}`:`交第 ${o.number} 号原单给${assistant.station.npcName||'药铺助手'}`};
  }
  function execute(choice,receipt,player){
-  const next=intent(receipt,choice?.planId);if(!next||getMounted()||!near(player,next.position,.3)||['key','kind','planId','orderId','recipientId','number','cardId'].some(k=>choice?.[k]!==next[k]))return false;
+  const next=intent(receipt,choice?.planId);if(!next||next.kind==='handoff'&&assistant?.alive===false||getMounted()||!near(player,next.position,.3)||['key','kind','planId','orderId','recipientId','number','cardId'].some(k=>choice?.[k]!==next[k]))return false;
   if(next.kind==='choose')return false;
   if(next.kind!=='handoff'&&!seated()){notify('请等原来客落座后再当面问询');return false;}
-  if(next.kind==='handoff'&&!near(assistant,C.points.assistantHandoff,.1))notify('在平台等苏禾到位，再核对同号原单');
+  if(next.kind==='handoff'&&!near(assistant,C.points.assistantHandoff,.1))notify(`在平台等${assistant.station.npcName||'药铺助手'}到位，再核对同号原单`);
   if(next.kind==='write'&&choice.planId!==clinicCarePlan(getOrder().symptoms)){
    if(getOrder().lastMismatchPlan!==choice.planId&&!changeOrder(o=>{o.lastMismatchPlan=choice.planId;},'physician-plan-mismatch',{planId:choice.planId}))return false;
    notify('照护单与原症状记录不符，还未发单。请重新核对记录，选择相符照护单');return true;
