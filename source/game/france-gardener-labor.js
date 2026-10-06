@@ -1,3 +1,4 @@
+import {createFranceGardenerShift} from './france-gardener-shift.js';
 import {skillXPReceipt} from './skill-progress.js';
 import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
 import {AIRY_UI_THEME} from './china-money-house-theme.js';
@@ -23,7 +24,26 @@ function restore(saved){
  // the work slip; the player must take/return the real can again before pay.
  return {version:2,serial:saved.serial,job:j&&!j.cancelled?copy(j):null};
 }
-export function createFranceGardenerLabor({gardener,employment,careers,openRegistration,onCompleted=()=>{},getPlayer,getMounted=()=>null,
+export function createFranceGardenerLabor(options={}){
+ let latest=options.saved,ui=null;
+ const saveState=next=>{const result=options.saveState(next);if(result!==false&&!result?.then)latest=copy(next);return result;};
+ const continuous=options.saved?.version===3;
+ const legacy=createLegacyFranceGardenerLabor({...options,document:null,saved:continuous?null:options.saved,saveState});
+ const shift=options.careers&&options.gardener?.maintenanceState?createFranceGardenerShift({...options,saved:continuous?options.saved:null,saveState,getSerial:()=>latest?.serial||0}):null;
+ const current=()=>legacy.active()?legacy:shift&&(shift.active()||options.careers.isHired(GARDEN_ASSISTANT_ROLE.id))?shift:legacy;
+ const service=new Proxy({}, {get(_target,key){
+  if(key==='update')return dt=>{current().update(dt);ui?.refresh();};
+  if(key==='dispose')return options=>{legacy.dispose(options);shift?.dispose(options);ui?.dispose();};
+  if(key==='menuContext')return ()=>ui?.menuContext();
+  if(key==='open')return ()=>ui?.open();if(key==='close')return ()=>ui?.close();if(key==='isOpen')return ()=>!!ui?.isOpen();
+  if(key==='restore')return s=>(s?.version===2?shift:legacy)?.restore(s);
+  const value=current()[key];return typeof value==='function'?value.bind(current()):value;
+ }});
+ const doc=options.document===undefined?globalThis.document:options.document;
+ if(doc?.createElement&&doc.body)ui=createUI({doc,service,getPlayer:options.getPlayer,canSee:options.canSee||(()=>true),onIntent:options.onIntent||(()=>{}),onOpen:options.onOpen||(()=>{})});
+ return service;
+}
+function createLegacyFranceGardenerLabor({gardener,employment,careers,openRegistration,onCompleted=()=>{},getPlayer,getMounted=()=>null,
  copperLedger,getClock,saved,saveState,notify=()=>{},onIntent=()=>{},canSee=()=>true,onOpen=()=>{},
  document:doc=globalThis.document}={}){
  if(!gardener||!copperLedger||typeof getPlayer!=='function'||typeof saveState!=='function')throw TypeError('garden labor dependencies required');
@@ -149,7 +169,7 @@ export function createFranceGardenerLabor({gardener,employment,careers,openRegis
      if(action==='take'){if(gardener.takeCan(id))notify(current.job.completedBeds===2?'已取壶，请放回架上确认收工':'已领取原浇水壶，走到下一畦玫瑰根部浇水');}
      else if(action==='water'){
       const done=current.job.completedBeds+1;
-      if(persist({...current,job:{...current.job,completedBeds:done}}))notify(done===2?'两畦玫瑰浇好了，请归还水壶后当面验收，工资存银行':'第一畦浇好了，请到第二畦继续');
+      if(persist({...current,job:{...current.job,completedBeds:done}})){gardener.markWateredBed?.(id,done-1);notify(done===2?'两畦玫瑰浇好了，请归还水壶后当面验收，工资存银行':'第一畦浇好了，请到第二畦继续');}
      }else{
       const j=current.job,next=j.cancelled?{...current,job:null}:{...current,job:{...j,stage:j.completedBeds===2?'ready':'working'}};
       // Save a completed return before releasing the only can. On failure the
@@ -209,7 +229,7 @@ function createUI({doc,service,getPlayer,canSee,onIntent,onOpen}){
  const secondsLeft=s=>s.activity==='water'?Math.ceil((1-s.progress)*s.seconds):null;
  const stateKey=s=>JSON.stringify([selected,s.job,s.hired,s.activity,secondsLeft(s),s.held,s.waitingForHost,s.loadError,s.lastError,s.employment?.revision,s.employment?.loadError,s.formalState?.revision,s.formalState?.loadError,s.formalHired,getPlayer()?.ageYears,s.beginAvailability?.code,s.beginAvailability?.ok]);
  function refresh(force=false){
-  const s=service.view(),near=nearby(s);menuState={available:near};badge.hidden=!near;badge.textContent=s.formalHired?(s.job?.stage==='ready'?'园艺正式班次 · 待验收':s.job?`常任园艺 · ${s.job.completedBeds}/2畦`:'常任园艺助理 · 每日班次'):s.activity==='water'?`浇花中 · ${secondsLeft(s)} 秒`:s.waitingForHost?'等埃米尔到登记簿旁':s.job?.stage==='ready'?`园艺工钱 · ${s.wage} 铜文`:s.job?`园艺活 · ${s.job.completedBeds}/2 畦${s.held?' · 持壶':''}`:s.hired?'园艺帮工 · 接活':'招工登记 · 园艺帮工';
+  const s=service.view(),near=nearby(s);menuState={available:near};badge.hidden=!near;badge.textContent=s.formalHired?(s.job?.stage==='ready'?'园艺正式班次 · 待验收':s.job?s.job.shiftKind==='continuous'?service.label()||'常任园艺 · 当班中':`常任园艺 · ${s.job.completedBeds}/2畦`:'常任园艺助理 · 每日班次'):s.activity==='water'?`浇花中 · ${secondsLeft(s)} 秒`:s.waitingForHost?'等埃米尔到登记簿旁':s.job?.stage==='ready'?`园艺工钱 · ${s.wage} 铜文`:s.job?`园艺活 · ${s.job.completedBeds}/2 畦${s.held?' · 持壶':''}`:s.hired?'园艺帮工 · 接活':'招工登记 · 园艺帮工';
   if(dialog.open&&!near){close();return;}if(!dialog.open&&!force)return;
   const key=stateKey(s);if(!force&&key===signature)return;signature=key;const rendered=++revision;dialog.replaceChildren();
   // A closed, replaced or superseded control cannot issue another navigation
@@ -232,7 +252,7 @@ function createUI({doc,service,getPlayer,canSee,onIntent,onOpen}){
    const value=make('div',null,'fr-labor-value');value.append(make('strong',s.formalSalary),make('span','/ 日 · 存法国券账户'));detail.append(value);
    detail.append(make('p',`年龄 ${Number.isFinite(age)?Math.floor(age)+'岁':'未读取'} / ${role.minimumAgeYears}岁 · 园艺 ${Number.isFinite(skill)?skill+'点':'未读取'} / ${role.skillRequirements.gardening}点`,'fr-labor-status'));
    detail.append(make('p',s.formalState?.loadError?'职业记录暂时无法读取':s.formalHired?'已任职 · 查看实际岗位与班次':s.job?'先结清手上的活，再办理长期任职':'申请、审核与开班，在岗位手册中分别办理',s.formalState?.loadError?'fr-labor-error':'fr-labor-note'));
-   more.append(make('summary','职责与日薪说明'),make('p',`${String(role.dutyWindow.startHour).padStart(2,'0')}:00–${String(role.dutyWindow.endHour).padStart(2,'0')}:00 开班，每天一班。用原壶浇完两畦并归还，由埃米尔验收。`),make('p',`午前开班并完成另奖 ${role.preparationBonus} 券，已计入日薪上限；正式班次不另发临工铜文。法国券到账后，可在本地音乐接待厅柜台取款。`));
+   more.append(make('summary','职责与日薪说明'),make('p',`${String(role.dutyWindow.startHour).padStart(2,'0')}:00–${String(role.dutyWindow.endHour).padStart(2,'0')}:00 开班，每天一班。查看原花畦与黄杨篱的维护状态，领取原壶或原剪工作并归还；另行交班，由埃米尔验收。`),make('p',`实际工时按 ${role.wage} 券折算，完整12小时另奖 ${role.preparationBonus} 券；正式班次不另发临工铜文。法国券到账后，可在本地音乐接待厅柜台取款。`));
    choice=service.intent('formal-view');label=s.formalHired?'查看岗位与班次':'查看职位与申请条件';
   }else{
    const j=s.job,ready=j?.stage==='ready';
