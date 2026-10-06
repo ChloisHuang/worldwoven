@@ -27,19 +27,38 @@ const currencyText=(id,amount)=>`${amount} ${GAME_CURRENCIES[id].unit}（${GAME_
 export function createChinaMoneyHouseService(options){return createBankCounterService(options);}
 
 export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,saveState,copperLedger,
- counter:C=CHINA_MONEY_HOUSE,facilityKey='moneyHouse',canSee=()=>false,notify=()=>{},onOpen=()=>{},onClose=()=>{},document:doc=globalThis.document}){
- const teller=npcs.find(n=>n.station.id===C.stationId);if(!teller||!lot[facilityKey])return null;
+ counter:C=CHINA_MONEY_HOUSE,facilityKey='moneyHouse',counterBinding=null,bodyManaged=false,canSee=()=>false,notify=()=>{},onOpen=()=>{},onClose=()=>{},document:doc=globalThis.document}){
+ const originalTeller=npcs.find(n=>n.station.id===C.stationId),bound=counterBinding!==null;if((!originalTeller&&!bound)||!lot[facilityKey])return null;
+ // The service stays at the original counter when a different person takes the
+ // role. An explicit empty/invalid binding must never resurrect the old teller.
+ const counterStation=lot.stations?.find(s=>s.id===C.stationId)||originalTeller?.station||{id:C.stationId,position:C.points.counter,npcPosition:C.points.teller};
+ const binding=()=>{
+  if(!bound)return {actor:originalTeller,holderId:originalTeller.station.id,revision:0,available:true};
+  try{const b=counterBinding();return b?.actor&&typeof b.holderId==='string'&&b.holderId&&b.holderId===b.actor.station?.id&&Number.isSafeInteger(b.revision)&&b.revision>=0?b:null;}catch{return null;}
+ };
+ const atCounter=(b,opening=false)=>{
+  const p=b?.actor?.root?.position,home=C.points.teller;if(!b||b.available!==true||b.actor.alive===false||!p||![p.x,p.y,p.z].every(Number.isFinite))return false;
+  if(opening)return Math.hypot(p.x-home[0],p.y-home[1],p.z-home[2])<=.15;
+  const xs=[home[0],C.points.ledger[0],(C.points.counting||C.points.abacus)[0]];
+  return Math.abs(p.y-home[1])<=.15&&Math.abs(p.z-home[2])<=.15&&p.x>=Math.min(...xs)-.15&&p.x<=Math.max(...xs)+.15;
+ };
  const ledger=copperLedger||createCurrencyLedger({saved,saveState});
  const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
  const style=make('style',MONEY_HOUSE_STYLE);
  const dialog=make('dialog',undefined,'cn-money-dialog');dialog.className+=' ww-airy-theme';dialog.setAttribute('aria-label',`${C.name}账簿`);(doc.head||doc.body).append(style);doc.body.append(dialog);
- let disposed=false,message='',currency=C.defaultCurrency||'copper',exchangeTo=C.exchangeTo||'japan',exchangeAmount='2',requestSerial=0,time=0,activity='核对账簿',renderVersion=0;
- const near=()=>{const p=getPlayer()?.root.position;return !!p&&Math.abs(p.y-C.floorY)<.45&&Math.hypot(p.x-C.points.counter[0],p.z-C.points.counter[2])<.60&&canSee(teller.station)===true;};
- function close(){renderVersion++;if(dialog.open){dialog.close();onClose();}}
- const available=version=>!disposed&&version===renderVersion&&dialog.open&&near();
+ let disposed=false,message='',currency=C.defaultCurrency||'copper',exchangeTo=C.exchangeTo||'japan',exchangeAmount='2',requestSerial=0,time=0,activity='核对账簿',renderVersion=0,counterTicket=null;
+ const near=()=>{const p=getPlayer()?.root.position;return !!p&&Math.abs(p.y-C.floorY)<.45&&Math.hypot(p.x-C.points.counter[0],p.z-C.points.counter[2])<.60&&canSee(bound?counterStation:originalTeller.station)===true;};
+ const ticketValid=()=>{const b=binding();return atCounter(b)&&counterTicket?.actor===b.actor&&counterTicket.actorId===b.holderId&&counterTicket.revision===b.revision;};
+ function close(){renderVersion++;counterTicket=null;if(dialog.open){dialog.close();onClose();}}
+ const available=version=>{
+  if(disposed||!dialog.open)return false;
+  if(bound&&(!ticketValid()||!near())){close();return false;}
+  return version===renderVersion&&near();
+ };
+ const actorActivity=n=>bodyManaged?n?.label?.querySelector?.('small')?.textContent||activity:activity;
  function render(){
   const version=++renderVersion,state=ledger.state(),all=ledger.balances?.();
-  dialog.replaceChildren();const sheet=make('div',undefined,'cn-money-sheet'),main=make('section',undefined,'cn-money-main');const x=make('button','×','cn-money-close');x.type='button';x.setAttribute('aria-label','合上账簿');x.onclick=close;
+  dialog.replaceChildren();const sheet=make('div',undefined,'cn-money-sheet'),main=make('section',undefined,'cn-money-main');const x=make('button','×','cn-money-close');x.type='button';x.setAttribute('aria-label','合上账簿');x.onclick=()=>{if(!bound||available(version))close();};
   const header=make('header',undefined,'cn-money-header');header.append(make('h2',C.name));dialog.append(x,sheet);sheet.append(main);main.append(header);
   if(ledger.loadError||!all){main.append(make('p',ERRORS['invalid-saved-state']));return;}
   const b=all[currency],unit=GAME_CURRENCIES[currency].unit;
@@ -49,7 +68,7 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
    select.onchange=()=>{if(available(version)){change(select.value);message='';render();}};const wrap=make('div',undefined,'cn-money-select'),arrow=make('span','⌄');arrow.setAttribute('aria-hidden','true');wrap.append(select,arrow);label.append(wrap);return label;
   };
   const amountField=(labelText,ariaLabel,value)=>{
-   const label=make('label',undefined,'cn-money-amount-label'),row=make('div',undefined,'cn-money-amount'),input=make('input');label.append(make('span',labelText,'cn-money-label'));input.type='number';input.min='1';input.step='1';input.inputMode='numeric';input.value=value;input.setAttribute('aria-label',ariaLabel);input.addEventListener('keydown',e=>e.stopPropagation());
+   const label=make('label',undefined,'cn-money-amount-label'),row=make('div',undefined,'cn-money-amount'),input=make('input');label.append(make('span',labelText,'cn-money-label'));input.type='number';input.min='1';input.step='1';input.inputMode='numeric';input.value=value;input.setAttribute('aria-label',ariaLabel);input.addEventListener('keydown',e=>{if(!bound||available(version))e.stopPropagation();});
    row.append(input);label.append(row);return {label,input};
   };
   const currencyChoice=selector('办理币种',currency,value=>{currency=value;if(exchangeTo===currency)exchangeTo=Object.keys(GAME_CURRENCIES).find(id=>id!==currency);});
@@ -72,9 +91,9 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
    preview.textContent=!b.accountOpened?'请先免费立账':!total?'暂无可分配余额':!valid?'分配数目无效':delta===0?'当前分配未改变':delta>0?`从银行取出 ${delta} ${unit}`:`向银行存入 ${-delta} ${unit}`;
    confirm.textContent=delta>0?`取出 ${delta} ${unit}`:delta<0?`存入 ${-delta} ${unit}`:'确认分配';confirm.disabled=!valid||!b.accountOpened||total===0||delta===0;
   };
-  slider.oninput=()=>{if(available(version))updateAllocation();};slider.addEventListener('keydown',e=>e.stopPropagation());
+  slider.oninput=()=>{if(available(version))updateAllocation();};slider.addEventListener('keydown',e=>{if(!bound||available(version))e.stopPropagation();});
   confirm.onclick=()=>{
-   if(submitted||confirm.disabled||!available(version)||currency!==allocationCurrency)return;
+   if(!available(version)||submitted||confirm.disabled||currency!==allocationCurrency)return;
    const current=ledger.balances?.()?.[currency];
    if(!current||current.cash!==b.cash||current.bank!==b.bank||current.accountOpened!==b.accountOpened){message='余额已变化，请重新调整分配';render();return;}
    const amount=Number(slider.value),delta=amount-b.cash;if(!Number.isSafeInteger(amount)||amount<0||amount>total||amount!==targetCash||delta===0)return;
@@ -84,7 +103,7 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
   updateAllocation();const bankActions=make('div',undefined,'cn-money-actions');bankActions.append(confirm);bank.append(fine,preview,bankActions);
   if(!b.accountOpened){
    const open=make('button','免费立账','cn-money-confirm ww-airy-action');open.type='button';open.dataset.moneyAction='open';const openId=`${C.id}-${state.nextTransaction}-open-${++requestSerial}`;let opened=false;
-   open.onclick=()=>{if(opened||!available(version))return;opened=true;open.disabled=true;const result=ledger.openAccount(openId,currency);message=result.ok?'账簿已经立好，不收费用':ERRORS[result.code]||'账簿尚未保存，请稍后再试';render();};bankActions.append(open);
+   open.onclick=()=>{if(!available(version)||opened)return;opened=true;open.disabled=true;const result=ledger.openAccount(openId,currency);message=result.ok?'账簿已经立好，不收费用':ERRORS[result.code]||'账簿尚未保存，请稍后再试';render();};bankActions.append(open);
   }
   main.append(bank);
   if(typeof ledger.quoteExchange==='function'){
@@ -104,7 +123,7 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
     button.disabled=!result.ok||lockedQuote.amount>b.cash;
    };
    input.oninput=()=>{if(available(version))quote();};quote();
-   button.onclick=()=>{if(submitted||button.disabled||!available(version)||!lockedQuote||Number(input.value)!==lockedQuote.amount)return;submitted=true;button.disabled=true;
+   button.onclick=()=>{if(!available(version)||submitted||button.disabled||!lockedQuote||Number(input.value)!==lockedQuote.amount)return;submitted=true;button.disabled=true;
     const result=ledger.exchange({quote:lockedQuote,requestId});
     message=result.ok?`兑换已记清：交出 ${currencyText(currency,lockedQuote.amount)}，收到 ${currencyText(exchangeTo,lockedQuote.received)}`:(ERRORS[result.code]||'兑换尚未保存，请稍后再试');render();
    };fxPreview.append(quoteText);area.append(label,button);sheet.append(area);
@@ -122,14 +141,19 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
   more.append(make('p','仅游戏票券；存取及兑换只在银行柜台办理。合上账簿保留已记好的账；未按按钮的数目不会入账。','cn-money-note'));main.append(more);
  }
  dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
- const unsubscribe=ledger.subscribeCommitted?.(()=>{if(dialog.open&&!disposed)render();});
+ const unsubscribe=ledger.subscribeCommitted?.(()=>{if(dialog.open&&!disposed&&(!bound||available(renderVersion)))render();});
  return {
-  owns:n=>n===teller,ownsStation:id=>id===C.stationId,
+  owns:n=>!!n&&n===binding()?.actor,ownsStation:id=>id===C.stationId,
   isOpen:()=>!!dialog.open,
-  open(){if(disposed||!near()){notify(C.approachMessage||'请走到钱庄柜台前，再请账房办理');return false;}onOpen();message='';render();if(!dialog.open)dialog.showModal();return true;},close,
-  socialStatus:n=>n===teller?{busy:!!dialog.open,attention:true,job:activity}:null,
+  open(){
+   const b=binding();if(disposed||!near()||bound&&!atCounter(b,true)){if(bound)close();notify(bound&&near()&&!atCounter(b,true)?'账房正在核验原单或暂时离柜，请等本人返回柜台':C.approachMessage||'请走到钱庄柜台前，再请账房办理');return false;}
+   onOpen();if(bound){const current=binding();if(!atCounter(current,true)||current.actor!==b.actor||current.holderId!==b.holderId||current.revision!==b.revision||!near()){close();return false;}counterTicket={actor:b.actor,actorId:b.holderId,revision:b.revision};}
+   message='';render();if(!dialog.open)dialog.showModal();return true;
+  },close,
+  socialStatus:n=>n&&n===binding()?.actor?{busy:!!dialog.open,attention:true,job:actorActivity(n)}:null,
   update(dt,t,{conversationActorId=null}={}){
-   if(disposed)return;time+=dt;if(dialog.open&&!near())close();
+   if(disposed)return;if(dialog.open&&(!near()||bound&&!ticketValid()))close();
+   if(bodyManaged)return;const b=binding(),teller=b?.actor;if(!teller||bound&&!atCounter(b))return;time+=dt;
    // One persistent adult works along the same counter. Slow side steps place
    // each object inside the existing hand reach instead of reaching through it.
    const writing=time%14<8,target=writing?C.points.ledger:(C.points.counting||C.points.abacus),desiredX=target[0],dx=desiredX-teller.root.position.x;
@@ -141,7 +165,7 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
    // Existing tidy reach supplies the hands only; an abacus is not a wash rag.
    if(teller.root.userData.tools?.cloth)teller.root.userData.tools.cloth.visible=false;
   },
-  state:()=>({open:!!dialog.open,ledger:ledger.state(),loadError:ledger.loadError||null,actor:{id:teller.station.id,ageYears:C.role.ageYears,activity,position:teller.root.position.toArray()}}),
-  dispose(){if(disposed)return;close();disposed=true;unsubscribe?.();dialog.remove();style.remove();if(teller.poseContext)teller.poseContext.receptionWriting=false;}
+  state:()=>{const teller=binding()?.actor;return {open:!!dialog.open,ledger:ledger.state(),loadError:ledger.loadError||null,actor:teller?{id:teller.station.id,ageYears:bound?teller.station.ageYears??C.role.ageYears:C.role.ageYears,activity:actorActivity(teller),position:teller.root.position.toArray()}:null};},
+  dispose(){if(disposed)return;close();disposed=true;unsubscribe?.();dialog.remove();style.remove();const teller=binding()?.actor;if(!bodyManaged&&teller?.poseContext)teller.poseContext.receptionWriting=false;}
  };
 }
