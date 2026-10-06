@@ -79,3 +79,15 @@ test('continuous shift receives later real patients and save retries cannot doub
 test('cancelling during arrival preserves unfinished consultation before NPC cover can dispense',()=>{
  const f=fixture();f.hire();f.act('accept');f.admit();assert.equal(f.clinic.state().order.stage,'arriving');f.act('cancel');assert.equal(f.clinic.state().order.stage,'arriving');assert.equal(f.clinic.state().order.packetId,null);assert(!f.clinic.state().history.some(e=>e.event==='writing'));assert.equal(f.bank.state().bank,0);
 });
+
+test('assistant slow original service survives reload and cannot seal before patient feedback saves',()=>{
+ const f=fixture();f.hire();f.act('accept');f.admit();f.until(()=>f.clinic.state().order.stage==='handoff'&&f.clinic.doctorReady(),'original paper ready');f.tick(1000);
+ const saved=copy(f.store);saved.clinic=f.clinic.snapshot();saved.clock=copy(f.clock);const reload=fixture(saved);reload.tick(900);reload.step();reload.step();reload.until(()=>Math.abs(reload.guest.root.position.y-C.floorY)<.3&&Math.hypot(reload.guest.root.position.x-C.points.counter[0],reload.guest.root.position.z-C.points.counter[2])<.1,'patient at original counter');
+ reload.flags.career=true;reload.step();reload.tick(5);const receipt=reload.clinic.workReceipt(reload.employment.state().job.receiptId);assert.equal(receipt.review.rating,2);assert(receipt.review.responsibleSeconds>190);assert.equal(reload.careers.state().lastDuty.customerReviews.length,0);assert.equal(reload.employment.state().job.completedTasks,0);
+ reload.meet();assert.equal(reload.employment.endShift(),false);assert.equal(reload.careers.state().lastDuty.stage,'working');reload.flags.career=false;reload.tick(2);assert.equal(reload.careers.state().lastDuty.customerReviews.length,1);assert.equal(reload.careers.state().skillXP.care,10);reload.act('end-shift');reload.act('claim');assert.equal(reload.bank.state().cash,0);
+ const after=reload.careers.state();reload.tick(20);assert.equal(reload.careers.state().lastDuty.wage,after.lastDuty.wage);assert.equal(reload.careers.state().skillXP.care,after.skillXP.care);
+});
+test('already-open old clinic order completes with neutral patient feedback, without inventing elapsed evidence',()=>{
+ const f=fixture();f.hire();f.act('accept');f.admit();f.until(()=>f.clinic.state().order.stage==='handoff'&&f.clinic.doctorReady(),'original paper ready');const snapshot=f.clinic.snapshot();delete snapshot.order.serviceTiming;assert(f.clinic.restore(snapshot,{player:f.player}));f.step();f.step();f.until(()=>Math.abs(f.guest.root.position.y-C.floorY)<.3&&Math.hypot(f.guest.root.position.x-C.points.counter[0],f.guest.root.position.z-C.points.counter[2])<.1,'patient at counter');f.step();f.tick(2);
+ const receipt=f.clinic.workReceipt(f.employment.state().job.receiptId);assert.equal(receipt.review.rating,3);assert.equal(receipt.review.responsibleSeconds,null);assert.equal(f.careers.state().lastDuty.customerReviews.length,1);
+});
