@@ -1,3 +1,4 @@
+import {TAVERN_TABLE_LAYOUT} from './china-tavern-layout.js';
 import {buildChinaPublicToilet} from './china-public-toilet.js';
 import {salonArtistStations} from './china-tavern-salon-artists.js';
 import {buildTavernKitchen} from './china-tavern-kitchen.js';
@@ -33,7 +34,7 @@ export function buildChinaTavern(G,A){
   // Camera solids follow the existing chair's actual seat, back and arms. A
   // full tall box puts the mounted head inside an invisible camera obstacle.
   model.updateWorldMatrix(true,true);for(const m of model.userData.royalSeating.members.filter(m=>m.camera)){const b=m.bounds,q=new THREE.Box3(new THREE.Vector3(b.minX,b.minY,b.minZ),new THREE.Vector3(b.maxX,b.maxY,b.maxZ)).applyMatrix4(model.matrixWorld);cameraColliders.push({minX:q.min.x,maxX:q.max.x,minY:q.min.y,maxY:q.max.y,minZ:q.min.z,maxZ:q.max.z,owner:id});}
-  additionalFurnitureSeats.push({id,name,x,y,z,yaw,width:.9,depth:.9,seatY:y+.66,front:.275,...(id.startsWith('china-tavern-dining-')?{approachYaw:x<21?Math.PI/2:-Math.PI/2}:{})});};
+  additionalFurnitureSeats.push({id,name,x,y,z,yaw,width:.9,depth:.9,seatY:y+.66,front:.275,...(id.startsWith('china-tavern-dining-')?{approachYaw:x<21?Math.PI/2:-Math.PI/2}:id.startsWith('china-tavern-window-')?{approachYaw:Math.PI}:{})});};
  const softLayer=(parent,x,y,z,w,h,d,color)=>{const b=Math.min(.035,h*.30),hw=w/2-b,hd=d/2-b,r=.08,q=new THREE.Shape();q.moveTo(-hw+r,-hd);q.lineTo(hw-r,-hd);q.quadraticCurveTo(hw,-hd,hw,-hd+r);q.lineTo(hw,hd-r);q.quadraticCurveTo(hw,hd,hw-r,hd);q.lineTo(-hw+r,hd);q.quadraticCurveTo(-hw,hd,-hw,hd-r);q.lineTo(-hw,-hd+r);q.quadraticCurveTo(-hw,-hd,-hw+r,-hd);q.closePath();const m=G.mesh(parent,new THREE.ExtrudeGeometry(q,{depth:h-2*b,bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:2,curveSegments:5}),color,x,y-h/2+b,z);m.rotation.x=-Math.PI/2;return m;};
  const consoleTable=(g,x,y,z,w=2.7)=>{const top=table(g,x,y,z,w,.62,.95);H.flowerBranches(g,x-w*.27,top,z);G.vessel(g,x+w*.25,top,z,0x86a8a0,.5);};
 
@@ -85,7 +86,13 @@ export function buildChinaTavern(G,A){
  // Wide public dining threshold and a side reception/waiting bay.
  wall(g0,'x',10.2,16,26,.215,3.77,[opening('cn-tavern-dining-hall','酒楼与公共梯厅','x',10.2,20.0,23.0,.215,['tavern-dining','tavern-hall-1'])]);
  room('tavern-dining','云来一层酒楼',16,26,10.2,21,.215,3.77);
- for(const[x,z]of[[18.1,16.2],[23.9,16.2]]){const top=table(g0,x,.215,z,1.45,1.12,.90);H.teaSet(g0,x,top,z,0xb9c7ac);H.bowl(g0,x-.35,top,z+.24,0xf1dfbb,.18);for(const[side,yaw]of[[-1,0],[1,Math.PI]])chair(g0,'china-tavern-dining-'+x+'-'+side,'酒楼雕花餐椅',x,.215,z+side*1.32,yaw);}
+ // Staggered dining islands use both halves of the expanded room. The central
+ // 2.6m service spine and the straight south/front door route remain open.
+ for(const{x,z,seatKey}of TAVERN_TABLE_LAYOUT){rug(g0,x,.215,z,3.45,4.55,0x8f7160);const top=table(g0,x,.215,z,1.45,1.12,.90);H.teaSet(g0,x,top,z,0xb9c7ac);H.bowl(g0,x-.35,top,z+.24,0xf1dfbb,.18);for(const[side,yaw]of[[-1,0],[1,Math.PI]])chair(g0,'china-tavern-dining-'+seatKey+'-'+side,'酒楼雕花餐椅',x,.215,z+side*1.32,yaw);}
+ // Low sideboards balance the two dining islands without adding unsold seats.
+ consoleTable(g0,18.25,.215,20.28,2.65);
+ for(const [id,x]of [['west',17.45],['east',19.1]])chair(g0,'china-tavern-window-'+id,'酒楼窗边候坐椅',x,.215,18.7,0);
+ consoleTable(g0,24.0,.215,11.0,2.65);
  // The north table belongs to the kitchen: cook hands dishes over it, and
  // returned bowls go to its east wash basin. Reception has its own west-facing
  // counter, with the shopkeeper inside the L and visitors in the public aisle.
@@ -112,7 +119,7 @@ export function buildChinaTavern(G,A){
  room('tavern-kitchen','云来酒楼 · 后厨备餐间',21.95,26,3,5.65,.215,3.77);
  sign(g0,'云来酒楼',21,3.23,21.24,3.45,.61);
  sign(g0,'云来酒楼',15.76,3.13,8.4,3.20,.59,-Math.PI/2);
- sign(g0,'二层公共净室',15.76,2.5,8.4,2.35,.40,-Math.PI/2);
+
  target('cn-tavern-dining','酒楼中央过道',[21,.215,16.3],'tavern-dining');
 
  // Two independently enclosed rooms. Opaque inset leaves open into empty
@@ -120,7 +127,7 @@ export function buildChinaTavern(G,A){
  wall(g1,'x',10.2,16,26,4.015,7.57,[opening('cn-tavern-lan-door','兰房私门','x',10.2,18.15,20.35,4.015,['tavern-guest-lan','tavern-hall-2']),opening('cn-tavern-zhu-door','竹房私门','x',10.2,23.15,25.35,4.015,['tavern-guest-zhu','tavern-hall-2'])]);
  wall(g1,'z',21,10.2,21,4.015,7.57);
  for(const [j,name,key,color]of[[0,'兰房','lan',0x8a728e],[1,'竹房','zhu',0x587b68]]){
-  const x0=16+j*5,x=x0+1.65,z=18.50,y=4.015,bedId='china-tavern-bed-'+key,w=2.20,d=3.10;
+  const x0=16+j*5,x=x0+1.65,z=15.50,y=4.015,bedId='china-tavern-bed-'+key,w=2.20,d=3.10;
   room('tavern-guest-'+key,'云来客栈 · '+name,x0,x0+5,10.2,21,y,7.57);
   const bed=new THREE.Group();bed.name=name+' carved timber bed';bed.position.set(x,y-.015,z);g1.add(bed);
   for(const dx of[-.90,.90])for(const dz of[-1.30,1.30])G.box(bed,dx,.29,dz,.17,.58,.17,C.dark);
@@ -130,7 +137,11 @@ export function buildChinaTavern(G,A){
   for(const dx of[-.82,0,.82]){G.box(bed,dx,1.20,-d/2+.125,.065,.79,.03,C.gold);if(dx)G.box(bed,dx,.868,.5,.018,.004,1.85,C.gold);}
   // One hull per bed for safe mount exclusion, supported quilt contacts remain real.
   colliders.push({minX:x-w/2,maxX:x+w/2,minY:y-.015,maxY:y+1.78,minZ:z-d/2,maxZ:z+d/2});cameraColliders.push({...colliders.at(-1)});
-  additionalFurniture.push({id:bedId,guestRoomId:'tavern-guest-'+key,kind:'bed',name:'云来客栈 · '+name+'安寝',worldLabel:name+'客榻',position:[x0+3.7,y,z],exitPositions:[[x0+3.7,y,z],[x0+3.7,y,20.0]],anchor:[x,y,z],center:[x,y-.015,z],size:[w,1.8,d],yaw:0,supportY:y+.815,lieOffset:.30,lieSupport:{hip:y+.8525,back:y+.8525,head:y+.8625,heel:y+.8525},action:'躺下休息'});
+  additionalFurniture.push({id:bedId,guestRoomId:'tavern-guest-'+key,kind:'bed',name:'云来客栈 · '+name+'安寝',worldLabel:name+'客榻',position:[x0+3.7,y,z],exitPositions:[[x0+3.7,y,z],[x0+3.7,y,17.25]],anchor:[x,y,z],center:[x,y-.015,z],size:[w,1.8,d],yaw:0,supportY:y+.815,lieOffset:.30,lieSupport:{hip:y+.8525,back:y+.8525,head:y+.8625,heel:y+.8525},action:'躺下休息'});
+  // Bed in the middle bay, tea console by the rear window, wardrobe opposite:
+  // the room reads as a suite instead of a pile of furniture at the back wall.
+  rug(g1,x0+2.35,y,15.5,4.05,4.55,color);
+  consoleTable(g1,x0+1.65,y,19.8,2.30);
   const wx=x0+3.87,wz=20.45;block(g1,wx,y+1.03,wz,1.15,2.06,.62,C.dark);for(const s of[-1,1]){G.box(g1,wx+s*.27,y+1.11,wz-.325,.50,1.71,.04,color);G.box(g1,wx+s*.12,y+1.14,wz-.36,.045,.18,.055,C.gold);}G.box(g1,wx,y+2.11,wz,1.25,.13,.76,C.wood);
   additionalFurniture.push({id:'china-tavern-wardrobe-'+key,guestRoomId:'tavern-guest-'+key,kind:'wardrobe',name:name+'衣柜',position:[wx,y,19.25],center:[wx,y,wz],size:[1.15,2.18,.72],style:'authored',action:'挑选服装'});
   sign(g1,name,x0+3.25,6.99,9.99,1.45,.52,Math.PI);
@@ -138,7 +149,7 @@ export function buildChinaTavern(G,A){
  }
  sign(g1,'二层客栈',21,7.03,21.23,3.45,.58);consoleTable(g1,24.0,4.015,4.15,2.7);chair(g1,'china-tavern-lobby-seat','客栈公共候坐椅',24.7,4.015,7.3,0,'reading');
  buildChinaPublicToilet(G,{group:g1,H,C,palaceWall,door,doorways,colliders,cameraColliders,walkableSurfaces,interiorRooms,explorationTargets,sign});
- sign(g0,'二层公共净室',21.3,2.65,9.99,2.35,.40,Math.PI);
+ // Ground floor keeps only the existing public-stair marker; the WC plaque belongs to its second-floor doorway.
 
  // Top floor: a deep textile-backed performance room and a separate banquet
  // salon, both reached from the same public hall. No beds or erotic animations.

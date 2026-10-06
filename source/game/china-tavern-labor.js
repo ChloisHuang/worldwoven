@@ -16,8 +16,8 @@ const HOST = {id: 'cn-tavern-labor-host', name: '向掌柜接活或领工钱', p
 const REGISTRATION_RADIUS = .9;
 const registrationKinds = new Set(['view', 'formal-view', 'apply', 'resign', 'formal-apply', 'formal-resign']);
 const TABLES = [
-  {id: 'cn-tavern-labor-west', name: '西窗餐桌 · 靠过道一侧', position: [19.3, FLOOR, 16.2], playerWorkTarget: [18.825, 1.19, 16.2]},
-  {id: 'cn-tavern-labor-east', name: '东窗餐桌 · 靠过道一侧', position: [22.7, FLOOR, 16.2], playerWorkTarget: [23.175, 1.19, 16.2]},
+  {id: 'cn-tavern-labor-west', name: '西窗餐桌 · 靠过道一侧', position: [19.75, FLOOR, 13.65], playerWorkTarget: [19.275, 1.19, 13.65]},
+  {id: 'cn-tavern-labor-east', name: '东窗餐桌 · 靠过道一侧', position: [22.25, FLOOR, 17.65], playerWorkTarget: [22.725, 1.19, 17.65]},
 ];
 const near = (position, point, radius = .2) => !!position &&
   Math.hypot(position.x - point[0], position.z - point[2]) <= radius && Math.abs(position.y - point[1]) <= .2;
