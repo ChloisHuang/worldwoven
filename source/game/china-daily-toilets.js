@@ -27,6 +27,7 @@ export function createChinaDailyToilets(options){
   updateActor:(actor,dt,context)=>owned(actor)?.updateActor(actor,dt,context)||false,
   ownsActor:actor=>!!owned(actor),active:(id='player')=>services.some(s=>s.active(id)),
   cancel:(reason='cancelled',id='player')=>services.map(s=>s.cancel(reason,id)).every(Boolean),
+  abandonActor:(id,reason='actor-unavailable')=>services.map(s=>s.abandonActor(id,reason)).every(Boolean),
   actorPose:actor=>owned(actor)?.actorPose(actor)||null,
   playerPose:()=>owned(getPlayer())?.playerPose()||null,playerAction:()=>owned(getPlayer())?.playerAction()||null,
   label:(id='player')=>services.find(s=>s.active(id))?.label(id)||null,

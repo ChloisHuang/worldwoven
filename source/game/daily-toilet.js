@@ -15,7 +15,7 @@ const retainReceipts=receipts=>receipts.filter((r,i)=>!r.delivered||i>=receipts.
  * update advances only the player; visitors use updateActor with their existing
  * travel(targetArray, dt) controller. Both share one reservation and one fixture.
  */
-export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPlayer=()=>null,getActors=()=>[],getBusy=()=>false,getClock=()=>({day:0,hour:12}),saved={},saveState=()=>true,onCompleted=()=>true,notify=()=>{}}){
+export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPlayer=()=>null,getActors=()=>[],isActorAlive=()=>true,getBusy=()=>false,getClock=()=>({day:0,hour:12}),saved={},saveState=()=>true,onCompleted=()=>true,notify=()=>{}}){
  const receiptId=number=>P.receiptSource+'-'+number;
  const validReceipt=r=>r&&Number.isSafeInteger(r.number)&&r.number>0&&r.id===receiptId(r.number)&&typeof r.actorId==='string'&&r.source===P.receiptSource&&r.facilityId===P.id&&r.completed===true;
  const target=lot?.explorationTargets?.find(t=>t.id===P.id),room=P.privacyBounds||lot?.interiorRooms?.find(r=>r.id===P.roomId);
@@ -26,14 +26,30 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
  const receipts=Array.isArray(saved.receipts)?saved.receipts.filter(validReceipt).map(copy):[];
  const serial=Math.max(Number.isSafeInteger(saved.serial)&&saved.serial>=0?saved.serial:0,...receipts.map(r=>r.number));
  let durable={version:1,serial,receipts:retainReceipts(receipts),pending:saved.pending&&saved.pending.id===receiptId(serial)&&saved.pending.facilityId===P.id?copy(saved.pending):null,lastOutcome:saved.lastOutcome||null};
- let current=null,disposed=false,lastError=null,retryIn=0,recovery=durable.pending,time=0;
+ let current=null,disposed=false,lastError=null,retryIn=0,recovery=durable.pending,abandonment=null,time=0;
  const cooldowns=new Map();let privacyCache=null;
  const idOf=actor=>actor===getPlayer()?'player':actor?.station?.id||actor?.id||null;
  const people=()=>[...new Set([getPlayer(),...(getActors()||[])].filter(Boolean))];
  const actorById=id=>people().find(a=>idOf(a)===id);
+ const alive=actor=>isActorAlive(actor)!==false;
  const clock=()=>{const c=getClock()||{};return {day:Number.isFinite(c.day)?c.day:0,hour:Number.isFinite(c.hour)?c.hour:12};};
  function persist(next){
   try{const result=saveState(copy(next));if(result===false||result?.then){lastError='save-failed';return false;}durable=next;lastError=null;return true;}catch{lastError='save-failed';return false;}
+ }
+ // Lifecycle cleanup has no physical exit: the owning population/controller
+ // decides what happens to an unavailable actor. Retain the reservation and a
+ // motion gate until its cancellation is durable, including before recovery.
+ function abandonActor(actorId,reason='actor-unavailable'){
+  if(typeof actorId!=='string'||!actorId)return false;
+  const old=[current,recovery,durable.pending].find(row=>row?.actorId===actorId);
+  if(!old)return true;
+  abandonment??={actorId,id:old.id,reason};
+  if(abandonment.actorId!==actorId)return false;
+  const status=durable.receipts.some(r=>r.id===old.id)?'completed':'cancelled';
+  if(!persist({...durable,pending:null,lastOutcome:{id:old.id,actorId,status,reason:abandonment.reason,...clock()}}))return false;
+  if(current?.actorId===actorId)current=null;
+  if(recovery?.actorId===actorId)recovery=null;
+  cooldowns.delete(actorId);privacyCache=null;abandonment=null;return true;
  }
  function inspectPrivacy(actor){
   if(!available)return {ok:false,reason:'facility-unavailable'};
@@ -54,6 +70,7 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
  function release(){
   if(!current)return true;
   const {actor,mounted,id}=current;
+  if(abandonment||!alive(actor))return abandonActor(current.actorId);
   // A concurrent controller that already moved this actor must never be snapped
   // back. The mounted comparison also makes stale saves safe on lot re-entry.
   if(mounted&&mountedAt(actor)){
@@ -65,8 +82,10 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
   return true;
  }
  function recover(){
+  if(abandonment)return abandonActor(abandonment.actorId,abandonment.reason);
   if(!recovery)return true;
   const old=recovery,actor=actorById(old.actorId);
+  if(actor&&!alive(actor))return abandonActor(old.actorId);
   if(actor&&['using','leaving'].includes(old.stage)&&mountedAt(actor)){
    current={actor,actorId:old.actorId,id:old.id,number:old.number,stage:'leaving',mounted:true,elapsed:0,wait:0,cancelled:true};
    if(!release())return false;
@@ -85,7 +104,7 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
   return true;
  }
  function reserve(actor){
-  if(disposed||!available||!actor?.root||!recover()||current||getBusy(idOf(actor),actor))return false;
+  if(disposed||!available||!actor?.root||!alive(actor)||!recover()||current||getBusy(idOf(actor),actor))return false;
   const actorId=idOf(actor);if(!actorId||(cooldowns.get(actorId)||0)>time)return false;
   const number=durable.serial+1,id=receiptId(number),stage=atApproach(actor)?'waiting-privacy':'approaching';
   const pending={id,number,actorId,facilityId:P.id,stage,...clock()};
@@ -95,6 +114,7 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
  }
  function cancel(reason='cancelled',actorId='player'){
   if(!current||actorId&&current.actorId!==actorId)return true;
+  if(abandonment||!alive(current.actor))return abandonActor(current.actorId,reason);
   const c=current;if(c.cancelled||c.completed)return release();c.cancelled=true;c.elapsed=0;
   if(c.actorId!=='player')cooldowns.set(c.actorId,time+10);
   // A failed cancel write leaves only an interrupted reservation on disk. It
@@ -104,12 +124,12 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
   return release();
  }
  function mount(){
-  const c=current;if(!c||!atApproach(c.actor)||!privacy(c.actor,true).ok)return false;
+  const c=current;if(!c)return false;if(abandonment||!alive(c.actor)){abandonActor(c.actorId);return false;}if(!atApproach(c.actor)||!privacy(c.actor,true).ok)return false;
   if(!persist({...durable,pending:{...durable.pending,stage:'using'}}))return false;
   c.stage='using';c.mounted=true;c.elapsed=0;c.actor.root.position.set(...P.anchor);c.actor.root.rotation.y=P.yaw;c.actor.walking=false;c.actor.route=[];return true;
  }
  function complete(){
-  const c=current;if(!c||c.cancelled||!at(c.actor,P.anchor,.025)||!privacy(c.actor,true).ok)return false;
+  const c=current;if(!c)return false;if(abandonment||!alive(c.actor)){abandonActor(c.actorId);return false;}if(c.cancelled||!at(c.actor,P.anchor,.025)||!privacy(c.actor,true).ok)return false;
   const receipt={id:c.id,number:c.number,actorId:c.actorId,source:P.receiptSource,facilityId:P.id,completed:true,...clock(),delivered:false};
   const pending={id:c.id,number:c.number,actorId:c.actorId,facilityId:P.id,stage:'leaving',completed:true};
   const next={...durable,pending,receipts:retainReceipts([...durable.receipts,receipt]),lastOutcome:{id:c.id,actorId:c.actorId,status:'completed',...clock()}};
@@ -118,6 +138,7 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
  }
  function tick(actor,dt,travel){
   if(disposed||!current||current.actor!==actor)return false;
+  if(abandonment||!alive(actor))return abandonActor(current.actorId);
   const c=current;c.lastDriven=time;dt=finiteSeconds(dt);
   if(c.stage==='leaving'){release();return true;}
   if(c.stage==='approaching'){
@@ -142,7 +163,7 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
   return {id:P.intentId,provider:P.provider,kind:'toilet',facilityId:P.id,position:[...P.approach],roomId:P.roomId,name:P.name,npcName:'日常起居',action:current?'净室使用中':'如厕',intentKey:'toilet:'+durable.serial+':'+(current?.actorId||'free'),interactionRadius:2.6,executionRadius:P.executionRadius,priority:45};
  }
  const resolveIntent=selected=>{const next=intent();return next&&selected?.provider===next.provider&&selected.id===next.id&&selected.intentKey===next.intentKey?next:null;};
- function pose(actor){return current?.actor===actor&&current.mounted&&at(actor,P.anchor,.025)?{action:'chair-sit',context:{seatHeight:P.seatY-P.anchor[1],visualFloorOffset:0,heldProp:null,handoff:false,seatedMeal:false},seatY:P.seatY,anchor:[...P.anchor],yaw:P.yaw}:null;}
+ function pose(actor){return current?.actor===actor&&!abandonment&&alive(actor)&&current.mounted&&at(actor,P.anchor,.025)?{action:'chair-sit',context:{seatHeight:P.seatY-P.anchor[1],visualFloorOffset:0,heldProp:null,handoff:false,seatedMeal:false},seatY:P.seatY,anchor:[...P.anchor],yaw:P.yaw}:null;}
  function label(actorId='player'){
   if(!current||current.actorId!==actorId)return null;
   return current.stage==='approaching'?P.approachLabel:current.stage==='waiting-privacy'?P.privacyLabel:current.stage==='leaving'?'等出口让开':lastError==='save-failed'?'正在保存如厕记录':`如厕中 · ${Math.floor(current.elapsed)}/${P.seconds}秒`;
@@ -151,13 +172,15 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
   // Restore only the persisted occupant at this exact authored mount. Ordinary
   // world collision recovery must not relocate them out of the bowl first;
   // recover() then performs the original safe interruption/dismount, no relief.
-  restorePosition(actorId,position){const pending=durable.pending;return available&&pending?.actorId===actorId&&['using','leaving'].includes(pending.stage)&&Array.isArray(position)&&[P.anchor,...(P.legacyAnchors||[])].some(a=>a.every((v,i)=>Math.abs(v-position[i])<.025))?position.slice():null;},
+  restorePosition(actorId,position){const pending=durable.pending,actor=actorById(actorId);return available&&!abandonment&&(!actor||alive(actor))&&pending?.actorId===actorId&&['using','leaving'].includes(pending.stage)&&Array.isArray(position)&&[P.anchor,...(P.legacyAnchors||[])].some(a=>a.every((v,i)=>Math.abs(v-position[i])<.025))?position.slice():null;},
   intent,resolveIntent,executeIntent(selected){if(!resolveIntent(selected)||!atApproach(getPlayer()))return false;const ok=reserve(getPlayer());if(!ok)notify(current?'净室有人使用，请稍后再来':'暂时无法使用净室，请稍后再试');return ok;},
-  requestActor:reserve,updateActor:(actor,dt,{travel}={})=>tick(actor,dt,travel),ownsActor:actor=>!!current&&current.actor===actor,
-  active:(actorId='player')=>!!current&&(!actorId||current.actorId===actorId),cancel,
+  requestActor:reserve,updateActor:(actor,dt,{travel}={})=>tick(actor,dt,travel),ownsActor:actor=>!!current&&current.actor===actor||!!abandonment&&abandonment.actorId===idOf(actor),
+  active:(actorId='player')=>!!(current||abandonment)&&(!actorId||(current||abandonment).actorId===actorId),cancel,abandonActor,
   actorPose:pose,playerPose:()=>pose(getPlayer()),playerAction:()=>pose(getPlayer())?.action||null,label,
   update(dt){
-   if(disposed)return;dt=finiteSeconds(dt);time+=dt;recover();retryIn-=dt;if(retryIn<=0){retryIn=1;deliver();}
+   if(disposed)return;dt=finiteSeconds(dt);time+=dt;recover();if(abandonment)return;
+   if(current&&!alive(current.actor)&&!abandonActor(current.actorId))return;
+   retryIn-=dt;if(retryIn<=0){retryIn=1;deliver();}
    if(current?.stage==='approaching'){
     const c=current,p=c.actor.root.position;
     if(Math.hypot(p.x-c.progressPoint[0],p.y-c.progressPoint[1],p.z-c.progressPoint[2])>=.18){c.progressPoint=[p.x,p.y,p.z];c.stalled=0;}
