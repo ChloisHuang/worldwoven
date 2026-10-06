@@ -11,7 +11,8 @@ import {createTavernMealProps,createTavernDirtProps} from './china-tavern-meal-p
 
 const copy=x=>JSON.parse(JSON.stringify(x)),P=M.points;
 const ROLE={host:'cn-tavern-host',chef:'cn-tavern-chef',assistant:'cn-tavern-steward'};
-const ACCOUNT_CUSTOMERS=[...CHINA_OFFICIAL_IDS,...SALON_ARTIST_IDS];
+const ACCOUNT_CUSTOMERS=[...CHINA_OFFICIAL_IDS,...SALON_ARTIST_IDS,M.host];
+const HOST_BREAK_PHASES=['draining','self-order','meal','toilet','returning'];
 const GUESTS=['cn-tavern-diner-west','cn-tavern-diner-east'];
 const PASS_SLOTS=[[23.63,1.31,5.34],[24.40,1.31,5.34]];
 const HANDOVER={host:{player:[22.35,.215,6.7],npc:P.host,rest:[25.1,.215,8.7]},chef:{player:[22.1,.215,9],npc:[22.9,.215,9],rest:[25.1,.215,8.7]},assistant:{player:[21.5,.215,9],npc:[22.3,.215,9],rest:[25.1,.215,8.7]}};
@@ -28,8 +29,10 @@ function validWorld(w){
  for(const o of w.orders){const dish=TAVERN_DISHES.find(d=>d.id===o.dishId);if(!integer(o.number)||!o.number||o.number>w.serial||o.id!=='cn-tavern-order-'+o.number||ids.has(o.id)||!dish||!stages.has(o.stage)||!['west','east'].includes(o.tableId)||!Array.isArray(o.reviews)||typeof o.collected!=='boolean'||o.price!==dish.price||!['player',...GUESTS,...ACCOUNT_CUSTOMERS].includes(o.customerId))return false;ids.add(o.id);}
  if(w.chefServiceReceipts!==undefined&&(!Array.isArray(w.chefServiceReceipts)||w.chefServiceReceipts.length>ROYAL_KITCHEN_CHEF_DAYS||w.chefServiceReceipts.some(r=>!validTavernChefServiceReceipt(r)||r.number>w.serial)||['day','number','workReceiptId'].some(key=>new Set(w.chefServiceReceipts.map(r=>r[key])).size!==w.chefServiceReceipts.length)))return false;
  if(!validPlayerStay(w))return false;
- if(w.officialDiner&&w.artistDiner)return false;
- const lease=w.officialDiner||w.artistDiner;if(lease&&(!(w.officialDiner?CHINA_OFFICIAL_IDS.includes(lease.actorId):SALON_ARTIST_IDS.includes(lease.actorId)&&lease.kind==='salon-artist'&&lease.accountProvider==='china-salon-economy')||!['dining','leaving'].includes(lease.mode)||!w.orders.some(o=>o.id===lease.orderId&&o.customerId===lease.actorId)))return false;
+ if([w.officialDiner,w.artistDiner,w.hostDiner].filter(Boolean).length>1)return false;
+ if(w.hostBreak&&(!HOST_BREAK_PHASES.includes(w.hostBreak.phase)||typeof w.hostBreak.meal!=='boolean'||!Number.isSafeInteger(w.hostBreak.waypoint)||w.hostBreak.waypoint<0))return false;
+ const lease=w.officialDiner||w.artistDiner||w.hostDiner;if(lease&&(!(w.hostDiner?lease.actorId===M.host&&lease.kind==='tavern-host'&&lease.accountProvider==='tavern-personal-funds'&&w.hostBreak?.phase==='meal':w.officialDiner?CHINA_OFFICIAL_IDS.includes(lease.actorId):SALON_ARTIST_IDS.includes(lease.actorId)&&lease.kind==='salon-artist'&&lease.accountProvider==='china-salon-economy')||!['dining','leaving'].includes(lease.mode)||!w.orders.some(o=>o.id===lease.orderId&&o.customerId===lease.actorId)))return false;
+ if(w.hostDiner&&!w.orders.some(o=>o.id===w.hostDiner.orderId&&o.collected&&['reserved','settled'].includes(o.payment)&&!['arriving','requested','ordered'].includes(o.stage)))return false;
  if(w.orders.some(o=>ACCOUNT_CUSTOMERS.includes(o.customerId)&&!o.cancelled&&!['dirty','return','wash','done'].includes(o.stage)&&lease?.orderId!==o.id))return false;
  return GUESTS.every(id=>w.visitors.filter(v=>v.id===id&&integer(v.copper)&&['dining','lodging-wait','lodging','leaving','idle','clinic','salon'].includes(v.mode)&&validSalonVisitor(v)&&(v.mode!=='dining'||ids.has(v.orderId))&&(v.mode!=='clinic'||/^cn-clinic-order-[1-9][0-9]*$/.test(v.careClaimId))).length===1);
 }
@@ -37,7 +40,7 @@ function validWorld(w){
 // Two stable adult visitors produce bounded meal and lodging events. Durable boundaries
 // are saved before effects; the physical action timer itself is never restored.
 export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({hour:10}),worldSeed=1,npcs,lot,furniture,doors,planPath,moveActor,poseContext,getPlayer,getMounted,
-  saveState=()=>true,onReview=()=>({ok:true}),chargePlayer=()=>({ok:false,code:'wallet-unavailable'}),notify=()=>{},navigation=lot.navigation||{},propsFactory=createTavernMealProps,sharedNeeds=null,officialEconomy=null,artistEconomy=null,canBorrowArtist=()=>true,getToilet=()=>null,onMealReceipts=()=>{},roomAvailable=()=>true}){
+  saveState=()=>true,onReview=()=>({ok:true}),chargePlayer=()=>({ok:false,code:'wallet-unavailable'}),notify=()=>{},navigation=lot.navigation||{},propsFactory=createTavernMealProps,sharedNeeds=null,officialEconomy=null,artistEconomy=null,staffEconomy=null,hasPresentHostMeeting=()=>false,canBorrowArtist=()=>true,getToilet=()=>null,onMealReceipts=()=>{},roomAvailable=()=>true}){
  const host=npcs.find(n=>n.station.id===M.host),chef=npcs.find(n=>n.station.id===M.cook),assistant=npcs.find(n=>n.station.id===M.assistant);
  const guests=GUESTS.map(id=>npcs.find(n=>n.station.id===id)),staff={host,chef,assistant},actors=[host,chef,assistant,...guests].filter(Boolean);
  const dirt=createTavernDirtProps(lot.group,furniture);
@@ -48,11 +51,11 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  const actor=r=>playerOwns(r)?getPlayer():staff[r],order=id=>state?.orders.find(o=>o.id===id);
  const idleSince=new Map();
  const accountActor=id=>ACCOUNT_CUSTOMERS.includes(id)?npcs.find(n=>n.station.id===id):null;
- const accountEconomy=id=>CHINA_OFFICIAL_IDS.includes(id)?officialEconomy:SALON_ARTIST_IDS.includes(id)?artistEconomy:null;
- const borrowedLease=()=>state?.officialDiner||state?.artistDiner;
- const leaseKey=id=>CHINA_OFFICIAL_IDS.includes(id)?'officialDiner':'artistDiner';
+ const accountEconomy=id=>CHINA_OFFICIAL_IDS.includes(id)?officialEconomy:SALON_ARTIST_IDS.includes(id)?artistEconomy:id===M.host?staffEconomy:null;
+ const borrowedLease=()=>state?.officialDiner||state?.artistDiner||state?.hostDiner;
+ const leaseKey=id=>CHINA_OFFICIAL_IDS.includes(id)?'officialDiner':id===M.host?'hostDiner':'artistDiner';
  const borrowedActor=()=>accountActor(borrowedLease()?.actorId);
- const controlledActors=()=>{const n=borrowedActor();return n?[...actors,n]:actors;};
+ const controlledActors=()=>{const n=borrowedActor();return n&&!actors.includes(n)?[...actors,n]:actors;};
  const externalOwns=n=>state?.visitors.some(v=>v.id===n?.station.id&&['clinic','salon'].includes(v.mode));
  function claimClinicPatient(id,claimId){
   const n=guests.find(n=>n?.station.id===id),v=state?.visitors.find(v=>v.id===id);
@@ -74,7 +77,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  function persist(next,bump=true,participant=null){try{next={...next,layoutVersion:TAVERN_LAYOUT_VERSION,revision:bump?Math.max(state?.revision||0,next.revision||0)+1:next.revision||0};const result=participant?participant.commit({chinaServiceWorld:copy(next)}):saveState(copy(next));if(result===false||result?.then||participant&&!result?.ok)return false;state=next;onMealReceipts(state.mealReceipts||[]);return true;}catch{return false;}}
  function changeWorld(mutator){const next=copy(state);mutator(next);return persist(next);}
  function change(id,fields){const next=copy(state),o=next.orders.find(o=>o.id===id);Object.assign(o,fields);if(!persist(next))return false;record(fields.stage||'changed',{orderId:id});return true;}
- const accountFunds=id=>{const account=accountEconomy(id)?.account(id);return account?account.cash+account.bank:0;};
+ const accountFunds=id=>{const account=accountEconomy(id)?.account(id);return account?(account.total??account.cash+account.bank):0;};
  const affordable=(visitor,price)=>!!visitor&&Number.isSafeInteger(visitor.copper)&&visitor.copper>=price;
  const mealCandidate=visitor=>{const dish=TAVERN_DISHES[GUESTS.indexOf(visitor?.id)];return dish&&affordable(visitor,dish.price)?dish:null;};
  const unpaidGuestOrder=o=>!!o&&o.customerId!=='player'&&!o.collected&&!o.mealId&&['arriving','requested','ordered'].includes(o.stage);
@@ -106,7 +109,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   if(!o||o.cancelled||!o.mealId||o.mealId!==o.id+'-dish'||(o.customerId==='player'?o.payment!=='settled':!o.collected))return false;
   const next=copy(state),row=next.orders.find(q=>q.id===o.id),receipt={source:'china-tavern-meal',id:o.id+'-consumed',number:o.number,actorId:o.customerId,orderId:o.id,mealId:o.mealId,dishId:o.dishId,paymentReceipt:o.id,completed:true};
   Object.assign(row,{stage:nextStage,portionsRemaining:0,consumed:true,...fields});next.mealReceipts=[...(next.mealReceipts||[]).filter(r=>r.actorId!==o.customerId),receipt];
-  if(nextStage==='dirty'){markDirty(next,o.tableId);const visitor=next.visitors.find(v=>v.id===o.customerId);if(visitor)visitor.mode=visitor.visits%2&&(visitor.copper??0)>=12?'lodging-wait':'leaving';const lease=next.officialDiner||next.artistDiner;if(lease?.orderId===o.id)lease.mode='leaving';}
+  if(nextStage==='dirty'){markDirty(next,o.tableId);const visitor=next.visitors.find(v=>v.id===o.customerId);if(visitor)visitor.mode=visitor.visits%2&&(visitor.copper??0)>=12?'lodging-wait':'leaving';const lease=next.officialDiner||next.artistDiner||next.hostDiner;if(lease?.orderId===o.id)lease.mode='leaving';}
   if(!persist(next))return false;record('consumed',{orderId:o.id,receiptId:receipt.id});return true;
  }
  function tick(o,dt,seconds,done){const elapsed=(phases.get(o.id)||0)+Math.min(.1,Math.max(0,dt));phases.set(o.id,elapsed);if(elapsed>=seconds&&done())phases.delete(o.id);}
@@ -185,7 +188,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  function handoverOut(){const r=role(),h=HANDOVER[r];if(state?.stage!=='handover-out'||!nearPlayer(h.player)||!at(staff[r],h.npc,.15)||state.heldTrayId)return false;
   if(!persist({...copy(state),stage:'finished'}))return false;record('handover-out',{role:r,from:'player',to:'storage',holderId:tenureOwns(r)?'player':staff[r].station.id});return true;}
  function beginReturn(){if(state?.stage!=='working'||state.heldTrayId||state.orders.some(o=>o.holder===(role()==='chef'?'cook':'assistant')&&['cooked','return'].includes(o.stage)))return false;activity=null;pendingChoice=null;return persist({...copy(state),stage:'handover-out'});}
- function collect(o){if(o.stage!=='ordered'||o.collected)return false;if(ACCOUNT_CUSTOMERS.includes(o.customerId)){const payment=accountEconomy(o.customerId)?.prepareMealPayment({actorId:o.customerId,orderId:o.id,amount:o.price});if(!payment?.ok)return false;const next=copy(state),row=next.orders.find(q=>q.id===o.id);Object.assign(row,{collected:true,customerCopper:(payment.snapshot.accounts?.[o.customerId]?.cash??0)+(payment.snapshot.accounts?.[o.customerId]?.bank??0),stage:'paid',payment:'reserved'});if(!persist(next,true,payment))return false;record('customer-prepayment',{orderId:o.id,amount:o.price,to:'order-reserve',from:o.customerId});return true;}const next=copy(state),row=next.orders.find(q=>q.id===o.id),visitor=next.visitors.find(v=>v.id===o.customerId);if(visitor&&!affordable(visitor,o.price)){deferGuestMeal(visitor,guests.find(n=>n.station.id===visitor.id));return false;}if(visitor)visitor.copper-=o.price;Object.assign(row,{collected:true,customerCopper:visitor?.copper??0,stage:'paid'});if(visitor)next.till+=row.price;if(!persist(next))return false;record(visitor?'customer-payment':'player-payment-held',{orderId:o.id,amount:o.price,to:visitor?'tavern-till':'wallet-reservation',from:o.customerId});record('cook-received-order',{orderId:o.id});return true;}
+ function collect(o){if(o.stage!=='ordered'||o.collected)return false;if(ACCOUNT_CUSTOMERS.includes(o.customerId)){const payment=accountEconomy(o.customerId)?.prepareMealPayment({actorId:o.customerId,orderId:o.id,amount:o.price});if(!payment?.ok)return false;const next=copy(state),row=next.orders.find(q=>q.id===o.id);Object.assign(row,{collected:true,customerCopper:payment.balanceAfter??((payment.snapshot?.accounts?.[o.customerId]?.cash??0)+(payment.snapshot?.accounts?.[o.customerId]?.bank??0)),stage:'paid',payment:'reserved'});if(!persist(next,true,payment))return false;record('customer-prepayment',{orderId:o.id,amount:o.price,to:'order-reserve',from:o.customerId});return true;}const next=copy(state),row=next.orders.find(q=>q.id===o.id),visitor=next.visitors.find(v=>v.id===o.customerId);if(visitor&&!affordable(visitor,o.price)){deferGuestMeal(visitor,guests.find(n=>n.station.id===visitor.id));return false;}if(visitor)visitor.copper-=o.price;Object.assign(row,{collected:true,customerCopper:visitor?.copper??0,stage:'paid'});if(visitor)next.till+=row.price;if(!persist(next))return false;record(visitor?'customer-payment':'player-payment-held',{orderId:o.id,amount:o.price,to:visitor?'tavern-till':'wallet-reservation',from:o.customerId});record('cook-received-order',{orderId:o.id});return true;}
  function markDirty(next,tableId){const table=next.tables.find(t=>t.id===tableId);table.dirty=true;table.dirtyVersion=(table.dirtyVersion||0)+1;table.responsibility=tenureOwns('assistant')?{actorId:'player',roleId:ROLE.assistant,receiptId:playerOwns('assistant')?state.receiptId:null}:{actorId:M.assistant,roleId:ROLE.assistant,receiptId:null};}
  function dirtyUse(o,table){
   if(o.dirtyUse)return true;
@@ -293,7 +296,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
     if(need?.seekToilet&&time>=(idleSince.get(v.id+'-toilet')||0)&&!life.isActive(n)){
      idleSince.set(v.id+'-toilet',time+12);if(life.interrupt(n)&&toilet?.requestActor(n)){toilet.updateActor(n,dt,{travel:(point,step)=>travel(n,point,step)});continue;}
     }
-    if(!mealCandidate(v)||need&&(!need.seekMeal||life.isActive(n))){phases.delete('arrival-'+v.id);life.update(n,dt,time,{conversationActorId:conversation});continue;}
+    if(!hostAdmissionOpen()||!mealCandidate(v)||need&&(!need.seekMeal||life.isActive(n))){phases.delete('arrival-'+v.id);life.update(n,dt,time,{conversationActorId:conversation});continue;}
     const unfinished=state.orders.filter(o=>o.stage!=='done');if(unfinished.filter(o=>o.customerId!=='player').length>=4){phases.delete('arrival-'+v.id);life.update(n,dt,time,{conversationActorId:conversation});continue;}
     tick({id:'arrival-'+v.id},dt,7,()=>{const current=state.visitors.find(q=>q.id===v.id);if(current.mode!=='idle'||!mealCandidate(current)||!life.interrupt(n))return false;const next=copy(state),fresh=makeOrders(state.receiptId,next.serial)[guests.indexOf(n)];fresh.number=++next.serial;fresh.id='cn-tavern-order-'+fresh.number;fresh.customerCopper=current.copper;next.orders=next.orders.filter(o=>o.stage!=='done'||o.customerId==='player');next.orders.push(fresh);const visitor=next.visitors.find(q=>q.id===v.id);Object.assign(visitor,{mode:'dining',orderId:fresh.id,visits:visitor.visits+1,roomId:null});delete visitor.mealDeferred;return persist(next);});
    }
@@ -315,23 +318,24 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  function accountMeal(id){const lease=borrowedLease();return lease?.actorId===id?copy(lease):null;}
  const officialMeal=id=>CHINA_OFFICIAL_IDS.includes(id)?accountMeal(id):null,artistMeal=id=>SALON_ARTIST_IDS.includes(id)?accountMeal(id):null;
  function availableOfficialSeats(){const claims=furniture.facilities.state?.()||[];return furniture.items.filter(s=>s.id.startsWith('china-tavern-dining-')&&getMounted()?.id!==s.id&&!claims.some(f=>f.id===s.id&&(f.player||f.reservations.length)));}
- function accountMealAvailable(id){const money=accountEconomy(id)?.account(id),dish=TAVERN_DISHES[0];return !!state&&!loadError&&!!accountActor(id)&&(!SALON_ARTIST_IDS.includes(id)||canBorrowArtist(id))&&!borrowedLease()&&!!sharedNeeds?.status(id)?.seekMeal&&!!money&&money.cash+money.bank>=dish.price&&state.orders.filter(o=>o.stage!=='done').length<6&&availableOfficialSeats().length>0;}
- function requestAccountMeal(id){
-  if(!accountMealAvailable(id))return false;const n=accountActor(id),seat=availableOfficialSeats()[0],dish=TAVERN_DISHES[0],number=state.serial+1,orderId='cn-tavern-order-'+number;
+ function accountMealAvailable(id){const dish=TAVERN_DISHES[0];return hostAdmissionOpen()&&!!state&&!loadError&&!!accountActor(id)&&(!SALON_ARTIST_IDS.includes(id)||canBorrowArtist(id))&&!borrowedLease()&&!!sharedNeeds?.status(id)?.seekMeal&&accountFunds(id)>=dish.price&&state.orders.filter(o=>o.stage!=='done').length<6&&availableOfficialSeats().length>0;}
+ function requestAccountMeal(id,{selfOrder=false}={}){
+  if(selfOrder?!(id===M.host&&state?.hostBreak?.phase==='self-order'&&at(host,P.host,.15)&&!borrowedLease()&&accountFunds(id)>=TAVERN_DISHES[0].price&&state.orders.filter(o=>o.stage!=='done').length<6&&availableOfficialSeats().length):!accountMealAvailable(id))return false;const n=accountActor(id),seat=availableOfficialSeats()[0],dish=TAVERN_DISHES[0],number=state.serial+1,orderId='cn-tavern-order-'+number;
   if(!furniture.facilities.reserve(seat.id,id,{purpose:'tavern-meal'})){furniture.facilities.release?.(seat.id,id);return false;}
   const next=copy(state),side=tavernSeatSide(seat);
   next.serial=number;next.orders=next.orders.filter(o=>o.stage!=='done');next.orders.push({id:orderId,number,customerId:id,customerName:n.station.npcName,guestIndex:-2,tableId:seat.center[0]<21?'west':'east',seatId:seat.id,seatAnchor:seat.anchor.slice(),...tablePlace(seat.center[0]<21?'west':'east',side),dishId:dish.id,dishName:dish.name,price:dish.price,customerCopper:accountFunds(id),collected:false,stage:'arriving',mealId:null,holder:null,cancelled:false,reviews:[],cleaned:false});
-  next[leaseKey(id)]={actorId:id,orderId,mode:'dining',...(SALON_ARTIST_IDS.includes(id)?{kind:'salon-artist',accountProvider:'china-salon-economy'}:{})};
-  if(!persist(next)){furniture.facilities.release?.(seat.id,id);return false;}paths.delete(n);n.route=[];n.walking=false;record((SALON_ARTIST_IDS.includes(id)?'artist':'official')+'-meal-borrowed',{customerId:id,orderId});return true;
+  next[leaseKey(id)]={actorId:id,orderId,mode:'dining',...(id===M.host?{kind:'tavern-host',accountProvider:'tavern-personal-funds'}:SALON_ARTIST_IDS.includes(id)?{kind:'salon-artist',accountProvider:'china-salon-economy'}:{})};
+  let payment=null;if(selfOrder){payment=staffEconomy?.prepareMealPayment({actorId:id,orderId,amount:dish.price});if(!payment?.ok){furniture.facilities.release?.(seat.id,id);return false;}Object.assign(next.orders.at(-1),{collected:true,stage:'paid',payment:'reserved',customerCopper:payment.balanceAfter});next.hostBreak={...next.hostBreak,phase:'meal'};}
+  if(!persist(next,true,payment)){furniture.facilities.release?.(seat.id,id);return false;}if(selfOrder)record('host-self-ordered',{customerId:id,orderId,amount:dish.price});paths.delete(n);n.route=[];n.walking=false;record((id===M.host?'host':SALON_ARTIST_IDS.includes(id)?'artist':'official')+'-meal-borrowed',{customerId:id,orderId});return true;
  }
- function releaseAccountMeal(id){const n=accountActor(id);if(!accountMeal(id)||!n||!unmount(n))return false;if(!changeWorld(next=>{next[leaseKey(id)]=null;}))return false;furniture.releaseActor(id);paths.delete(n);n.route=[];n.walking=false;record((SALON_ARTIST_IDS.includes(id)?'artist':'official')+'-meal-returned',{customerId:id});return true;}
+ function releaseAccountMeal(id){const n=accountActor(id);if(!accountMeal(id)||!n||!unmount(n))return false;if(!changeWorld(next=>{next[leaseKey(id)]=null;}))return false;furniture.releaseActor(id);paths.delete(n);n.route=[];n.walking=false;record((id===M.host?'host':SALON_ARTIST_IDS.includes(id)?'artist':'official')+'-meal-returned',{customerId:id});return true;}
  function cancelAccountMeal(id){
   const lease=accountMeal(id),n=accountActor(id),o=lease&&order(lease.orderId);if(!lease||!n||!o)return false;if(lease.mode==='leaving'||o.consumed)return releaseAccountMeal(id);if(!unmount(n))return false;
   const refundable=o.collected&&o.payment==='reserved',refund=refundable?accountEconomy(id)?.prepareMealRefund({actorId:id,orderId:o.id,amount:o.price}):null;if(refundable&&!refund?.ok)return false;
   const next=copy(state),row=next.orders.find(q=>q.id===o.id);
   Object.assign(row,{cancelled:true,collected:o.payment==='settled',payment:refund?'refunded':o.payment==='settled'?'settled':'unpaid'});
   if(!row.mealId){row.stage='done';row.holder=null;}else if(row.holder==='table'){row.stage='dirty';markDirty(next,row.tableId);}else if(row.holder==='assistant')row.stage='return';
-  next[leaseKey(id)]=null;if(!persist(next,true,refund))return false;phases.delete(o.id);if(activity?.orderId===o.id)activity=null;if(pendingChoice?.orderId===o.id)pendingChoice=null;furniture.releaseActor(id);paths.delete(n);n.route=[];n.walking=false;record((SALON_ARTIST_IDS.includes(id)?'artist':'official')+'-meal-cancelled',{customerId:id,orderId:o.id});return true;
+  next[leaseKey(id)]=null;if(!persist(next,true,refund))return false;phases.delete(o.id);if(activity?.orderId===o.id)activity=null;if(pendingChoice?.orderId===o.id)pendingChoice=null;furniture.releaseActor(id);paths.delete(n);n.route=[];n.walking=false;record((id===M.host?'host':SALON_ARTIST_IDS.includes(id)?'artist':'official')+'-meal-cancelled',{customerId:id,orderId:o.id});return true;
  }
  function updateAccountMeal(dt){const lease=borrowedLease(),n=borrowedActor();if(!lease||!n)return;if(lease.mode==='leaving'){releaseAccountMeal(lease.actorId);return;}const o=order(lease.orderId);if(!o||!mount(o,dt))return;if(o.stage==='arriving')stage(o,'requested');if(o.stage==='eating'&&conversation!==n.station.id){effect(n,'meal');tick(o,dt,5.5,()=>consume(o,'dirty'));}}
 
@@ -339,6 +343,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  const artistMealAvailable=id=>SALON_ARTIST_IDS.includes(id)&&accountMealAvailable(id),requestArtistMeal=id=>SALON_ARTIST_IDS.includes(id)&&requestAccountMeal(id),cancelArtistMeal=id=>SALON_ARTIST_IDS.includes(id)&&cancelAccountMeal(id);
 
  function requestPlayerMeal(seat,dishId=M.id){
+  if(!hostAdmissionOpen()){notify(hostUnavailableReason());return false;}
   if(!state||state.orders.some(o=>o.customerId==='player'&&o.stage!=='done')||!seat||getMounted()?.id!==seat.id)return false;
   const dish=TAVERN_DISHES.find(d=>d.id===dishId);if(!dish)return false;const next=copy(state),number=++next.serial,side=tavernSeatSide(seat);
   const o={id:'cn-tavern-order-'+number,number,customerId:'player',customerName:'你',guestIndex:-1,tableId:seat.center[0]<21?'west':'east',seatId:seat.id,seatAnchor:seat.anchor.slice(),...tablePlace(seat.center[0]<21?'west':'east',side),dishId:dish.id,dishName:dish.name,price:dish.price,customerCopper:0,payment:'unpaid',collected:false,stage:'awaiting-payment',mealId:null,holder:null,cancelled:false,reviews:[],cleaned:false};
@@ -371,7 +376,68 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  function playerEffect(){if(!state)return null;const meal=state.orders.find(o=>o.customerId==='player'&&['eating','finish-bite'].includes(o.stage));if(meal)return {seatedMeal:customerSeated(meal),handoff:!customerSeated(meal)&&meal.holder==='player'};if(!playerOwns(role()))return null;const r=role(),held=state.orders.find(o=>o.holder===(r==='chef'?'cook':'assistant')&&['cooked','carrying','return'].includes(o.stage));const a=activity;
   return {handoff:!!held,archery:held?{hands:[[-.16,1.18,.43],[.16,1.18,.43]]}:null,heldProp:null,action:a?a.kind==='take-order'||a.kind==='rent-room'?'calligraphy':a.kind==='collect'?'tidy':['prep','heat'].includes(a.kind)?a.kind==='prep'?'cook':'herb-mix':['clean-table','clean-room','wash'].includes(a.kind)?'tidy':null:null,station:a?{position:a.position,playerWorkTarget:a.kind==='prep'?P.prepTop:a.kind==='heat'?P.stoveTop:a.kind==='wash'?P.washTop:a.kind==='rent-room'?[23.4,1.32,6.4]:a.tableId?tablePlace(a.tableId).mealPoint:a.roomId?roomWorkTarget(a.roomId):order(a.orderId)?.mealPoint||a.position.map((v,i)=>i===1?v+.7:v)}:null};
  }
- function workPending(r){return r==='host'?playerLodging?.hostPending()||state.orders.some(o=>['requested','ordered'].includes(o.stage))||state.visitors.some(v=>v.mode==='lodging-wait'):
+ // A single saved owner for Xu An's personal break. Paid absent room guests
+ // retain their reservation; only participants actually at the desk drain it.
+ const hostAdmissionOpen=()=>!state?.hostBreak;
+ const hostCompletionAvailable=()=>!state?.hostBreak||state.hostBreak.phase==='draining';
+ const hostUnavailableReason=()=>state?.hostBreak?'许安正在短暂歇班，回来后继续接待；已付预订原样保留':'许安暂未回案，请稍候';
+ let nextHostDecision=0,nextHostWrite=0;
+ function hostChange(mutator){if(time<nextHostWrite)return false;const ok=changeWorld(mutator);if(!ok)nextHostWrite=time+1;return ok;}
+ const hostRoute=()=>{
+  const west=lot.walkableSurfaces?.find(s=>s.id==='cn-tavern-stair-1-west'),east=lot.walkableSurfaces?.find(s=>s.id==='cn-tavern-stair-1-east'),hall=id=>lot.explorationTargets?.find(t=>t.id===id)?.position;
+  if(!west||!east||!hall('cn-tavern-hall-1')||!hall('cn-tavern-hall-2'))return null;
+  const x=s=>(s.minX+s.maxX)/2;
+  return [hall('cn-tavern-hall-1'),[x(west),west.endY,west.maxZ+.7],[x(west),west.y,west.minZ-.8],[x(east),east.y,east.minZ-.8],[x(east),east.endY,east.maxZ+.7],hall('cn-tavern-hall-2')];
+ };
+ const publicHostRoute=hostRoute();
+ function hostPhase(phase,fields={}){return hostChange(next=>{next.hostBreak={...next.hostBreak,phase,waypoint:0,...fields};});}
+ function hostAfterMeal(){return hostPhase('toilet',{meal:false});}
+ function updateHostBreak(dt){
+  if(!host||!sharedNeeds||!staffEconomy)return;
+  let b=state.hostBreak;
+  if(!b){
+   if(time<nextHostDecision)return;nextHostDecision=time+1;
+   if(tenureOwns('host')||conversation===M.host||role()==='host'&&state.stage!=='finished')return;
+   const need=sharedNeeds.status(M.host),meal=!!need?.seekMeal&&accountFunds(M.host)>=TAVERN_DISHES[0].price&&['chef','assistant'].every(r=>!tenureOwns(r)||playerOwns(r));
+   if(!meal&&!(need?.seekToilet&&publicHostRoute&&getToilet()?.publicAvailable?.()))return;
+   if(!life.interrupt(host)||!hostChange(next=>{next.hostBreak={phase:'draining',meal,waypoint:0};}))return;
+   record('host-break-requested');return;
+  }
+  if(b.phase==='draining'){
+   // Earlier dining leases need the host to finish reception, then leave their
+   // one shared seat-owner slot normally before his own paid order can start.
+   if(conversation===M.host||hasPresentHostMeeting()||playerLodging?.hostPending()||borrowedLease()||state.orders.some(o=>!o.cancelled&&['arriving','requested','ordered'].includes(o.stage))||!at(host,P.host,.15)||host.walking)return;
+   if(life.interrupt(host))hostPhase(b.meal?'self-order':'toilet');return;
+  }
+  if(b.phase==='self-order'){
+   if(!travel(host,P.host,dt))return;
+   if(!sharedNeeds.status(M.host)?.seekMeal||accountFunds(M.host)<TAVERN_DISHES[0].price||!['chef','assistant'].every(r=>!tenureOwns(r)||playerOwns(r))){hostAfterMeal();return;}
+   if(!availableOfficialSeats().length||state.orders.filter(o=>o.stage!=='done').length>=6){hostAfterMeal();return;}
+   effect(host,'calligraphy',[P.host[0]-.7,P.host[1]+1.1,P.host[2]]);tick({id:'host-self-order'},dt,1.3,()=>{if(time<nextHostWrite)return false;const ok=requestAccountMeal(M.host,{selfOrder:true});if(!ok)nextHostWrite=time+1;return ok;});return;
+  }
+  if(b.phase==='meal'){if(!state.hostDiner)hostAfterMeal();return;}
+  if(b.phase==='toilet'){
+   const toilet=getToilet();
+   if(toilet?.ownsActor(host)){
+    toilet.updateActor(host,dt,{travel:(point,step)=>{const route=[...publicHostRoute,point],i=state.hostBreak.waypoint;if(i>=route.length)return true;if(!travel(host,route[i],step))return false;return hostChange(next=>{next.hostBreak.waypoint++;})&&i+1>=route.length;}});return;
+   }
+   if(!b.toiletAttempted&&sharedNeeds.status(M.host)?.seekToilet&&publicHostRoute&&toilet?.publicAvailable?.()){
+    if(!hostChange(next=>{next.hostBreak.toiletAttempted=true;}))return;
+    if(toilet.requestPublicActor(host))return;
+   }
+   // A reloaded or cancelled partial use has no relief. Return from the real
+   // position and let a later decision request a new fixture receipt.
+   hostPhase('returning',{waypoint:host.root.position.y>1?0:publicHostRoute?.length||0});return;
+  }
+  if(b.phase==='returning'){
+   const route=[...(publicHostRoute||[]).slice().reverse(),P.host];
+   if(host.serviceMount&&!unmount(host))return;
+   if(b.waypoint<route.length){if(travel(host,route[b.waypoint],dt))hostChange(next=>{next.hostBreak.waypoint++;});return;}
+   if(!at(host,P.host,.15))return;
+   if(hostChange(next=>{next.hostBreak=null;})){nextHostDecision=time+12;paths.delete(host);host.route=[];record('host-break-returned');}
+  }
+ }
+ function workPending(r){return r==='host'?hasPresentHostMeeting()||playerLodging?.hostPending()||state.orders.some(o=>['requested','ordered'].includes(o.stage))||hostAdmissionOpen()&&state.visitors.some(v=>v.mode==='lodging-wait'):
   r==='chef'?state.orders.some(o=>['paid','preparing','prepared','heating','cooked'].includes(o.stage)):
   state.orders.some(o=>['pass','carrying','return','wrong','dirty'].includes(o.stage))||state.tables.some(t=>t.dirty)||state.rooms.some(r=>r.dirty);}
  function relinquishHeld(r,dt){
@@ -381,17 +447,18 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   if(travel(n,point,dt))tick(o,dt,dirty?2.8:1.1,()=>stage(o,dirty?'done':'pass',{holder:dirty?null:'pass'}));return true;
  }
  function npcControllers(dt,t){const enabled=new Set();for(const [r,n]of Object.entries(staff)){
+   if(r==='host'&&state.hostBreak){if(state.hostBreak.phase==='draining'&&life.interrupt(n))enabled.add(r);continue;}
    const owned=tenureOwns(r),meeting=role()===r&&['handover-in','handover-out'].includes(state.stage);
    if(owned){idleSince.delete(n);if(relinquishHeld(r,dt))continue;if(meeting){if(life.interrupt(n))travel(n,HANDOVER[r].npc,dt);}else life.update(n,dt,t,{onDuty:false,conversationActorId:conversation});continue;}
    const visitor=getPlayer()?.root.position,atCounter=r==='host'&&visitor&&Math.hypot(visitor.x-22.35,visitor.z-6.7)<2&&Math.abs(visitor.y-.215)<.4;
    if(workPending(r)||meeting||atCounter){idleSince.delete(n);if(life.interrupt(n))enabled.add(r);}
    else{if(!idleSince.has(n))idleSince.set(n,time);if(life.isActive(n)||time-idleSince.get(n)>=4)life.update(n,dt,t,{onDuty:true,conversationActorId:conversation});else enabled.add(r);}
   }return enabled;}
- function actorLabel(n){const r=Object.keys(staff).find(r=>staff[r]===n);if(r){const names={host:'掌柜',chef:'厨师',assistant:'服务助理'};
+ function actorLabel(n){if(n===host&&state?.hostBreak)return '掌柜 · '+({draining:'办完已接事项后歇班','self-order':'在原柜台自费点餐',meal:'歇班用餐 · 接待稍候',toilet:'歇班前往公共净室',returning:'返回迎客茶案'}[state.hostBreak.phase]);const r=Object.keys(staff).find(r=>staff[r]===n);if(r){const names={host:'掌柜',chef:'厨师',assistant:'服务助理'};
    if(tenureOwns(r)){if(!safeHandover(r)&&!playerOwns(r))return '已卸任 · 归还手中物品';if(role()===r&&['handover-in','handover-out'].includes(state.stage))return '已卸任 · 协助交接物品';return '已卸任 · '+life.label(n);}
    return names[r]+' · '+(life.isActive(n)?life.label(n):n.walking?'前往工作处':workPending(r)?'办理当前工作':'候客');
   }if(borrowedLease()?.actorId===n.station.id){const o=order(borrowedLease().orderId);return (SALON_ARTIST_IDS.includes(n.station.id)?'艺者':'官员')+' · 自费就餐 · '+(steps[o?.stage]||'归还餐位');}const v=state?.visitors.find(v=>v.id===n.station.id),o=v&&order(v.orderId);if(!v)return n.station.npcLabel;
-  if(v.mode==='idle'){if(getToilet()?.ownsActor(n))return getToilet().label(n.station.id)||'食客 · 前往净室';return '食客 · '+life.label(n);}if(v.mode==='leaving')return '食客 · 正在离店';if(v.mode==='lodging')return n.serviceMount?'住客 · 客房歇息':'住客 · 前往客房';if(v.mode==='lodging-wait')return '住客 · 等候登记';
+  if(v.mode==='idle'){if(getToilet()?.ownsActor(n))return getToilet().label(n.station.id)||'食客 · 前往净室';return '食客 · '+life.label(n);}if(v.mode==='leaving')return '食客 · 正在离店';if(v.mode==='lodging')return n.serviceMount?'住客 · 客房歇息':'住客 · 前往客房';if(v.mode==='lodging-wait')return hostAdmissionOpen()?'住客 · 等候登记':'住客 · 许安短暂歇班，等候回案';
   return n.serviceMount?'食客 · '+(steps[o?.stage]||'等候点菜'):n.walking?'食客 · 正在入店就座':'食客 · 等候空餐位';
  }
  function update(dt,t,{conversationActorId=null}={}){
@@ -399,12 +466,12 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   if(!state){for(const n of guests)if(n){travel(n,n.station.npcPosition,dt);pose(n,t);}return;}
   for(const n of controlledActors())if(!externalOwns(n))n.walking=false;
   for(const v of [...state.visitors])deferGuestMeal(v,guests.find(n=>n.station.id===v.id));
-  reconcileDiningSeats();const r=role(),activeNPC=npcControllers(dt,t);
+  reconcileDiningSeats();updateHostBreak(dt);const r=role(),activeNPC=npcControllers(dt,t);
   {
    updateVisitors(dt);updateAccountMeal(dt);
    if(activeNPC.has('host')){const o=state.orders.find(o=>['requested','ordered'].includes(o.stage)&&customerSeated(o));
     if(o){effect(host,null,o.seatAnchor);if(travel(host,o.servePoint,dt))tick(o,dt,1.3,()=>o.stage==='requested'?stage(o,'ordered'):collect(o));}
-    else{travel(host,P.host,dt);if(playerLodging?.hostPending()){effect(host,'calligraphy',[23.4,1.32,6.4]);if(at(host,P.host,.15)&&conversation!==host.station.id)tick({id:'player-lodging'},dt,1.3,()=>playerLodging.hostRespond());}else{phases.delete('player-lodging');const v=state.visitors.find(v=>v.mode==='lodging-wait'),room=state.rooms.find(r=>!r.dirty&&!r.guestId&&roomAvailable(r.id));if(v&&room&&at(host,P.host,.15))rentRoom(v,room);}}}
+    else{travel(host,P.host,dt);if(playerLodging?.hostPending()){effect(host,'calligraphy',[23.4,1.32,6.4]);if(at(host,P.host,.15)&&conversation!==host.station.id)tick({id:'player-lodging'},dt,1.3,()=>playerLodging.hostRespond());}else{phases.delete('player-lodging');const v=hostAdmissionOpen()&&state.visitors.find(v=>v.mode==='lodging-wait'),room=state.rooms.find(r=>!r.dirty&&!r.guestId&&roomAvailable(r.id));if(v&&room&&at(host,P.host,.15))rentRoom(v,room);}}}
    if(activeNPC.has('chef')){const o=state.orders.find(o=>['preparing','prepared','heating','cooked'].includes(o.stage))||state.orders.find(o=>o.stage==='paid'&&freePassSlot()!==null);if(!o)travel(chef,P.prep,dt);
     else if(['paid','preparing'].includes(o.stage)){effect(chef,'cook',P.prepTop);if(travel(chef,P.prep,dt))tick(o,dt,3.2,()=>stage(o,'prepared'));}
     else if(['prepared','heating'].includes(o.stage)){effect(chef,'herb-mix',P.stoveTop);if(travel(chef,P.stove,dt))tick(o,dt,4.2,()=>prepareDish(o));}
@@ -443,11 +510,11 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  function prepareLodgingWorld(next){if(!state||!validWorld(next)||(next.revision||0)!==(state.revision||0))return {ok:false,code:'stale-inn-world'};const committed={...copy(next),revision:(state.revision||0)+1};return {ok:true,patch:{chinaServiceWorld:committed},committed:()=>{state=committed;}};}
  function saveLodgingWorld(next){if(!next||!validWorld(next)||(next.revision||0)!==(state?.revision||0)+1)return false;return persist(next,false);}
  function release(){activity=null;pendingChoice=null;for(const n of guests){if(externalOwns(n))continue;if(n?.serviceMount){const seat=n.serviceMount;n.root.position.set(...seat.position);n.serviceMount=null;}if(n)furniture.releaseActor(n.station.id);}for(const p of props.values())p.dispose();props.clear();state=null;paths.clear();}
- return {officialMeal,officialMealAvailable,requestOfficialMeal,cancelOfficialMeal,artistMeal,artistMealAvailable,requestArtistMeal,cancelArtistMeal,artistMealActorId:()=>state?.artistDiner?.actorId||null,lodgingState:()=>({rooms:state?.rooms.map(r=>({...r}))||[],playerStay:state?.playerStay?copy(state.playerStay):null,loadError}),prepareLodgingWorld,saveLodgingWorld,setSalonService:service=>{salonService=service;},salonCustomerAvailable,resetSalonRoute:n=>{paths.delete(n);n.route=[];n.walking=false;},setPlayerLodging:service=>{playerLodging=service;},canHostLodging:()=>!!host&&!tenureOwns('host'),lodgingHostReady:()=>!!host&&!tenureOwns('host')&&!host.walking&&at(host,P.host,.15)&&conversation!==host.station.id&&!state.orders.some(o=>['requested','ordered'].includes(o.stage)&&customerSeated(o)),start,continuitySnapshot,restoreContinuity,initializeWorld,restoreWorld,claimClinicPatient,releaseClinicPatient,clinicClaims:()=>state?.visitors.filter(v=>v.mode==='clinic').map(v=>({actorId:v.id,claimId:v.careClaimId}))||[],requestPlayerMeal,cancelPlayerMeal,eatPlayerMeal,playerOrder:()=>state?.orders.find(o=>o.customerId==='player'&&o.stage!=='done')||null,choices,execute,update,release,beginReturn,stopActivity(){activity=null;pendingChoice=null;},active:()=>!!state,finished:()=>state?.stage==='finished',owns:n=>controlledActors().includes(n)&&!externalOwns(n),
+ return {officialMeal,officialMealAvailable,requestOfficialMeal,cancelOfficialMeal,artistMeal,artistMealAvailable,requestArtistMeal,cancelArtistMeal,artistMealActorId:()=>state?.artistDiner?.actorId||null,lodgingState:()=>({rooms:state?.rooms.map(r=>({...r}))||[],playerStay:state?.playerStay?copy(state.playerStay):null,loadError}),prepareLodgingWorld,saveLodgingWorld,setSalonService:service=>{salonService=service;},salonCustomerAvailable,resetSalonRoute:n=>{paths.delete(n);n.route=[];n.walking=false;},setPlayerLodging:service=>{playerLodging=service;},hostAdmissionOpen,hostCompletionAvailable,hostUnavailableReason,hostBreak:()=>state?.hostBreak?copy(state.hostBreak):null,cancelHostMeal:()=>cancelAccountMeal(M.host),canHostLodging:()=>!!host&&!tenureOwns('host')&&hostAdmissionOpen(),lodgingHostReady:()=>hostCompletionAvailable()&&!!host&&!tenureOwns('host')&&!host.walking&&at(host,P.host,.15)&&conversation!==host.station.id&&!state.orders.some(o=>['requested','ordered'].includes(o.stage)&&customerSeated(o)),start,continuitySnapshot,restoreContinuity,initializeWorld,restoreWorld,claimClinicPatient,releaseClinicPatient,clinicClaims:()=>state?.visitors.filter(v=>v.mode==='clinic').map(v=>({actorId:v.id,claimId:v.careClaimId}))||[],requestPlayerMeal,cancelPlayerMeal,eatPlayerMeal,playerOrder:()=>state?.orders.find(o=>o.customerId==='player'&&o.stage!=='done')||null,choices,execute,update,release,beginReturn,stopActivity(){activity=null;pendingChoice=null;},active:()=>!!state,finished:()=>state?.stage==='finished',owns:n=>controlledActors().includes(n)&&!externalOwns(n),
   playerPose:playerEffect,playerAction:()=>playerEffect()?.action||null,playerStation:()=>playerEffect()?.station||null,
   snapshot:()=>state?copy(state):null,state:()=>({...(state?copy(state):{}),loadError,activity:activity?copy(activity):null,staffLife:life.state(),staffOwnership:Object.fromEntries(Object.entries(staff).map(([r,n])=>[r,{holderId:tenureOwns(r)?'player':n.station.id,npcId:n.station.id,status:tenureOwns(r)?'released':life.isActive(n)?'short-break':'on-duty'}])),history:copy(history),failures:copy(failures),seatClaims:furniture.facilities.state?.()||[],orders:state?.orders.map(o=>({...copy(o),label:steps[o.stage],props:props.get(o.id)?.state()||null}))||[],actors:controlledActors().map(n=>({id:n.station.id,position:n.root.position.toArray(),mounted:n.serviceMount?.id||null,walking:n.walking,routeLength:n.route.length,routeTarget:paths.get(n)?.key||null,label:actorLabel(n)}))}),
   socialProfile:id=>life.socialProfile(id),
-  socialStatus:n=>{if(!controlledActors().includes(n)||externalOwns(n))return null;const r=Object.keys(staff).find(r=>staff[r]===n),v=state?.visitors.find(v=>v.id===n.station.id);const busy=r?!tenureOwns(r)&&workPending(r):v?.mode!=='idle'||getToilet()?.ownsActor(n);return {busy:!!busy,attention:!busy,job:actorLabel(n)};},
+  socialStatus:n=>{if(!controlledActors().includes(n)||externalOwns(n))return null;const r=Object.keys(staff).find(r=>staff[r]===n),v=state?.visitors.find(v=>v.id===n.station.id);const busy=r?r==='host'&&state?.hostBreak||!tenureOwns(r)&&workPending(r):v?.mode!=='idle'||getToilet()?.ownsActor(n);return {busy:!!busy,attention:!busy,job:actorLabel(n)};},
   label:()=>activity?.action||(pendingChoice?pendingChoice.action+' · 等候顾客就位':null)||({ 'handover-in':'等待当面接班','handover-out':'等待当面交班',finished:'本轮已交班'}[state?.stage])||(state?'当班 · 查看当前客单':null),
   dispose(){if(disposed)return;release();life.dispose();dirt.dispose();disposed=true;}};
 }
