@@ -1,3 +1,4 @@
+import {rangeWardenPatrolCoverage} from './china-range-warden-slot.js';
 import {createNPCPersonalTrip} from './npc-personal-trip.js';
 import {followActorRoute} from './actor-navigation.js';
 import {continuityCopy} from './world-continuity.js';
@@ -27,16 +28,18 @@ function makeKit(parent){
 
 // All routines use the existing path planner and movement/collision function.
 // Only one bow may fire; a visible cease-fire precedes every retrieval.
-export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseContext,doors=null,getPlayer=()=>null,npcEconomy=null,sharedNeeds=null,getTavern=()=>null,getToilet=()=>null,enablePersonalNeeds=false,savedPersonalNeeds=null,savePersonalNeeds=()=>false,resolveGuardAssignment=null,canControlGuard=()=>false,isActorAlive=n=>n?.alive!==false}){
+export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseContext,doors=null,getPlayer=()=>null,npcEconomy=null,sharedNeeds=null,getTavern=()=>null,getToilet=()=>null,enablePersonalNeeds=false,savedPersonalNeeds=null,savePersonalNeeds=()=>false,resolveGuardAssignment=null,resolveWardenAssignment=null,canControlGuard=()=>false,isActorAlive=n=>n?.alive!==false}){
  const guards=A.roles.map(id=>npcs.find(n=>n.station.id===id));if(guards.some(n=>!n)||!lot.archery)return null;
  const owned=new Set(guards),kits=new Map(guards.map(n=>[n,makeKit(lot.group)]));const costumes=guards.map(attachJinyiCostume);const retired=new Set();
  const flying=buildPracticeArrow(G);flying.visible=false;lot.group.add(flying);
  const impacts=A.targets.map(()=>{const q=buildPracticeArrow(G);q.visible=false;lot.group.add(q);return q;});
  const shots=[],history=[],failures=[],forward=new THREE.Vector3(0,0,1),start=new THREE.Vector3(),end=new THREE.Vector3();
  let active=0,phase='handover',phaseTime=0,rounds=0,retrieveLane=0,player=null,playerKit=null,request=false,complete=false,playerShot=false,flightTime=0,flightLane=0,blocked=false,disposed=false,shiftPending=false,handoffs=0,conversationActorId=null;
- let guardTenure=false,registrationRequested=false,guardWork=null,leisure={index:0,time:0},pausePatrol=false,boundRevision=0,updated=false,lastUpdateDt=0,needsLife=null,personalTime=0,wasAway=false,deferredPractice=false;
+ let guardTenure=false,registrationRequested=false,guardWork=null,leisure={index:0,time:0},pausePatrol=false,boundRevision=0,wardenRevision=0,updated=false,lastUpdateDt=0,needsLife=null,personalTime=0,wasAway=false,deferredPractice=false;
  const currentAssignment=()=>typeof resolveGuardAssignment==='function'?resolveGuardAssignment():null;
- const boundAvailable=()=>{const a=currentAssignment();return isActorAlive(guards[0])&&isActorAlive(guards[1])&&(!resolveGuardAssignment||a?.status==='npc'&&a.alive&&a.available&&a.actor===guards[0]&&a.holderId===guards[0].station.id&&a.revision===boundRevision);};
+ const currentWarden=()=>typeof resolveWardenAssignment==='function'?resolveWardenAssignment():null;
+ const wardenAvailable=()=>{const a=currentWarden();return isActorAlive(guards[1])&&(!resolveWardenAssignment||a?.status==='npc'&&a.alive&&a.available&&a.actor===guards[1]&&a.holderId===guards[1].station.id&&a.revision===wardenRevision);};
+ const boundAvailable=()=>{const a=currentAssignment();return isActorAlive(guards[0])&&wardenAvailable()&&(!resolveGuardAssignment||a?.status==='npc'&&a.alive&&a.available&&a.actor===guards[0]&&a.holderId===guards[0].station.id&&a.revision===boundRevision);};
  const patrolWork=new Map();
  const patrol=new Map(guards.map((n,i)=>[n,{routeId:i?'west':'east',stage:'ready',index:0,time:0,paused:false,yielding:false,visited:[]}]));
  const shooter=()=>guards[active],tell=(n,text)=>{const el=n.label?.querySelector?.('small');if(el)el.textContent=text;};
@@ -52,10 +55,10 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
   if(!n.walking){n.archeryStall+=dt;if(n.archeryStall>2){n.archeryDestination=null;n.archeryStall=0;}}else n.archeryStall=0;
   return gap(n.root.position,to)<.055;
  }
- function installBinding(a){
-  const old=guards[0],next=a.actor;
-  if(old!==next){retired.add(old);resetTravel(old);guards[0]=next;retired.delete(next);owned.add(next);if(!kits.has(next)){kits.set(next,makeKit(lot.group));costumes.push(attachJinyiCostume(next));}patrol.set(next,{routeId:'east',stage:'ready',index:0,time:0,paused:false,yielding:false,visited:[]});resetTravel(next);}
-  retired.delete(next);boundRevision=a.revision;patrolWork.clear();
+ function installBinding(a,index=0){
+  const old=guards[index],next=a.actor;
+  if(old!==next){retired.add(old);resetTravel(old);guards[index]=next;retired.delete(next);owned.add(next);if(!kits.has(next)){kits.set(next,makeKit(lot.group));costumes.push(attachJinyiCostume(next));}patrol.set(next,{routeId:index?'west':'east',stage:'ready',index:0,time:0,paused:false,yielding:false,visited:[]});resetTravel(next);}
+  retired.delete(next);if(index)wardenRevision=a.revision;else boundRevision=a.revision;patrolWork.clear();
  }
  function beginPatrol(n){const p=patrol.get(n);Object.assign(p,{stage:'travel',index:0,time:0,paused:false,yielding:false,visited:[]});resetTravel(n);}
  function patrolLabel(n){const p=patrol.get(n);return (guardTenure&&n===guards[0]&&!guardWork?'代巡 · 玩家未在班 · ':'')+(p.stage==='ready'?'巡查完毕 · 在射圃候交班':CHINA_GUARD_ROUTES[p.routeId][p.index].label);}
@@ -116,21 +119,25 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
   if(!n.walking&&pose&&['aim','flight','cease'].includes(phase))n.root.rotation.y=-Math.PI/2;
   const c=poseContext(n,null);c.archery=pose;n.animate(t+n.phase,n.walking,n===guards[0]&&guardWork?.stage==='active'&&!n.walking?'read':null,c);kits.get(n).update(n,pose,A.targets[retrieveLane]);
  }
- function physicalHandoffBoundary({meeting=false,personalTrip=needsLife?.blocks()||false}={}){return guardHandoffBoundary({heldBow:[...kits.values()].some(k=>k.bow.visible)||!!playerKit?.bow.visible,flyingArrow:flying.visible,targetArrows:impacts.some(q=>q.visible),playerLesson:request||phase.startsWith('player-'),playerDuty:!!guardWork,meeting:meeting||registrationRequested||!!conversationActorId,personalTrip,atHandoff:['handover','relief'].includes(phase)&&guards.every((n,i)=>i===0&&retired.has(n)||gap(n.root.position,HANDOFF[i])<.08&&Math.abs(n.root.position.y-HANDOFF[i][1])<.4)&&guards.every(n=>patrol.get(n).stage==='ready')});}
+ function physicalHandoffBoundary({meeting=false,personalTrip=needsLife?.blocks()||false}={}){return guardHandoffBoundary({heldBow:[...kits.values()].some(k=>k.bow.visible)||!!playerKit?.bow.visible,flyingArrow:flying.visible,targetArrows:impacts.some(q=>q.visible),playerLesson:request||phase.startsWith('player-'),playerDuty:!!guardWork,meeting:meeting||registrationRequested||!!conversationActorId,personalTrip,atHandoff:['handover','relief'].includes(phase)&&guards.every((n,i)=>retired.has(n)||gap(n.root.position,HANDOFF[i])<.08&&Math.abs(n.root.position.y-HANDOFF[i][1])<.4)&&guards.every(n=>patrol.get(n).stage==='ready')});}
  const personalPaths=new Map(),corridor=[[-17.15,.13,19.1],[-15.25,.13,19],[-11.8,.13,21],[0,.13,22],[14.9,.13,21],[14.9,.13,11],[16.9,.215,9.1]];
- const personalHome=n=>n===guards[0]&&!retired.has(n)?HANDOFF[0]:LEISURE[0];
+ const personalHome=n=>guards.includes(n)&&!retired.has(n)?HANDOFF[guards.indexOf(n)]:LEISURE[0];
  const personalReset=n=>{resetTravel(n);n.walking=false;personalPaths.delete(n);};
  function personalTravel(n,to,dt){n.walking=false;if(gap(n.root.position,to)<.065&&Math.abs(n.root.position.y-to[1])<.3){personalReset(n);return true;}if(conversationActorId===n.station.id)return false;let p=personalPaths.get(n);if(!p||p.key!==to.join(',')){p={key:to.join(','),retryAt:0};personalPaths.set(n,p);n.route=[];}if(!n.route.length&&personalTime>=p.retryAt){p.retryAt=personalTime+3;n.route=planPath(n.root.position,point(to),.25);}followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,speedScale:.8});return gap(n.root.position,to)<.065&&Math.abs(n.root.position.y-to[1])<.3;}
- if(enablePersonalNeeds&&npcEconomy&&sharedNeeds)needsLife=createNPCPersonalTrip({saved:savedPersonalNeeds,getCandidates:()=>[...new Set([guards[0],...retired])],getActor:id=>[guards[0],...retired].find(n=>n.station.id===id),canControl:n=>canControlGuard(n),
-  canStart:n=>isActorAlive(n)&&canControlGuard(n)&&(n!==guards[0]||retired.has(n)||boundAvailable())&&!request&&!guardWork&&!registrationRequested&&conversationActorId!==n.station.id&&gap(n.root.position,personalHome(n))<.15&&Math.abs(n.root.position.y-personalHome(n)[1])<.3&&(sharedNeeds.has(n.station.id)||(npcEconomy.account(n.station.id)?.cash||0)+(npcEconomy.account(n.station.id)?.bank||0)>=6),
-  canDepart:n=>n!==guards[0]||retired.has(n)||physicalHandoffBoundary({personalTrip:false}).ok,getReturnTarget:personalHome,getExitRoute:()=>corridor,getReturnRoute:n=>[...corridor.slice().reverse().map(p=>p.slice()),personalHome(n)],economy:npcEconomy,sharedNeeds,getTavern,getToilet,travel:personalTravel,resetRoute:personalReset,pose:(n,t,mounted)=>{const c=poseContext(n,null);n.animate(t+n.phase,!!n.walking,mounted?.action||null,mounted?{...c,...mounted.context}:c);},saveState:savePersonalNeeds});
+ if(enablePersonalNeeds&&npcEconomy&&sharedNeeds)needsLife=createNPCPersonalTrip({saved:savedPersonalNeeds,getCandidates:()=>[...new Set([...guards,...retired])],getActor:id=>[...guards,...retired].find(n=>n.station.id===id),canControl:n=>canControlGuard(n),
+  canStart:n=>isActorAlive(n)&&canControlGuard(n)&&(!guards.includes(n)||retired.has(n)||boundAvailable())&&!request&&!guardWork&&!registrationRequested&&conversationActorId!==n.station.id&&gap(n.root.position,personalHome(n))<.15&&Math.abs(n.root.position.y-personalHome(n)[1])<.3&&(sharedNeeds.has(n.station.id)||(npcEconomy.account(n.station.id)?.cash||0)+(npcEconomy.account(n.station.id)?.bank||0)>=6),
+  canDepart:n=>!guards.includes(n)||retired.has(n)||phase==='handover'&&phaseTime>=2.4&&physicalHandoffBoundary({personalTrip:false}).ok,getReturnTarget:personalHome,getExitRoute:()=>corridor,getReturnRoute:n=>[...corridor.slice().reverse().map(p=>p.slice()),personalHome(n)],economy:npcEconomy,sharedNeeds,getTavern,getToilet,travel:personalTravel,resetRoute:personalReset,pose:(n,t,mounted)=>{const c=poseContext(n,null);n.animate(t+n.phase,!!n.walking,mounted?.action||null,mounted?{...c,...mounted.context}:c);},saveState:savePersonalNeeds});
  enter('handover');
  return {
   setGuardTenure(hired){guardTenure=!!hired;},
   requestPatrolPause(value=true){pausePatrol=!!value;},
   guardBinding:()=>({actorId:guards[0].station.id,holderRevision:boundRevision,available:boundAvailable(),paused:pausePatrol}),
   patrolHolderContext(){const actor=guards[0];return boundAvailable()?{actor,actorId:actor.station.id,name:actor.station.npcName||actor.station.id,revision:boundRevision}:null;},
-  reviewerContext(){const actor=guards[1];return isActorAlive(actor)?{actor,actorId:actor.station.id,name:actor.station.npcName||actor.station.id}:null;},
+  reviewerContext(){const actor=guards[1];return wardenAvailable()?{actor,actorId:actor.station.id,name:actor.station.npcName||actor.station.id,revision:wardenRevision}:null;},
+  wardenBinding:()=>({actorId:guards[1].station.id,holderRevision:wardenRevision,available:wardenAvailable()}),
+  wardenPatrolCoverage(){const actor=guards[1];return rangeWardenPatrolCoverage({assignment:currentWarden(),actor,sample:patrolWork.get(actor),dt:lastUpdateDt,unavailable:!boundAvailable()||!!needsLife?.away(actor.station.id)||!!guardWork});},
+  releaseWardenAssignment(){const a=currentWarden();if(a?.status!=='vacant'||a.holderId!==null)return {ok:false,code:'warden-not-vacant'};if(retired.has(guards[1]))return {ok:true,replayed:true};const boundary=this.handoffBoundary();if(!boundary.ok)return {ok:false,code:'handoff-pending',blockers:boundary.blockers};retired.add(guards[1]);resetTravel(guards[1]);patrolWork.clear();return {ok:true};},
+  bindWardenAssignment(){const a=currentWarden();if(!a||a.status!=='npc'||!a.alive||!a.available||!a.actor||!isActorAlive(a.actor)||a.actor.station.id!==a.holderId||a.actor===guards[0]||!canControlGuard(a.actor))return {ok:false,code:'warden-holder-unavailable'};if(a.actor===guards[1]&&a.revision===wardenRevision)return {ok:true,replayed:true};const boundary=this.handoffBoundary();if(!boundary.ok)return {ok:false,code:'handoff-pending',blockers:boundary.blockers};installBinding(a,1);active=0;shiftPending=false;phase='handover';phaseTime=0;return {ok:true,actorId:a.holderId,holderRevision:wardenRevision};},
   releaseGuardAssignment(){const a=currentAssignment();if(a?.status!=='vacant'||a.holderId!==null)return {ok:false,code:'guard-not-vacant'};if(retired.has(guards[0]))return {ok:true,replayed:true};const boundary=this.handoffBoundary();if(!boundary.ok)return {ok:false,code:'handoff-pending',blockers:boundary.blockers};retired.add(guards[0]);resetTravel(guards[0]);patrolWork.clear();return {ok:true};},
   bindGuardAssignment(){
    const a=currentAssignment();if(!a||a.status!=='npc'||!a.alive||!a.available||!a.actor||!isActorAlive(a.actor)||a.actor.station.id!==a.holderId||a.actor===guards[1]||!canControlGuard(a.actor))return {ok:false,code:'guard-holder-unavailable'};
@@ -155,14 +162,14 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
   syncPlayer(){if(player)playerKit?.update(player,this.playerPose(),A.targets[1]);},
   playerStatus(){if(deferredPractice)return {complete:false,label:'等巡值同伴日常事务结束后再开练',progress:0};return request?{complete,label:blocked?'前方有人 · 收弓停射':phase.startsWith('player-')?labels[phase]:'等待本轮停射取箭，再接过练习弓',progress:phase==='player-take'?.1:phase==='player-aim'?.2+Math.min(1,phaseTime/2.8)*.45:phase==='player-flight'?.78:phase==='player-cease'?1:0}:null;},
   update(dt,t,{position,conversationActorId:talking=null}={}){
-   patrolWork.clear();lastUpdateDt=dt;if(disposed)return;updated=true;personalTime+=Math.max(0,dt);conversationActorId=talking;needsLife?.update(dt,t);if(deferredPractice&&!needsLife?.blocks()){request=true;deferredPractice=false;}const away=!!needsLife?.away(guards[0].station.id);if(away){wasAway=true;guards[1].walking=false;animateGuard(guards[1],t);return;}if(wasAway){wasAway=false;active=1;phase='handover';phaseTime=0;resetTravel(guards[0]);resetTravel(guards[1]);}for(const old of retired){if(needsLife?.owns(old))continue;old.walking=false;if(isActorAlive(old)){if(talking!==old.station.id)travel(old,LEISURE[0],dt);old.animate(t+old.phase,old.walking,old.walking?null:'read',poseContext(old,null));kits.get(old)?.hide();}}
+   patrolWork.clear();lastUpdateDt=dt;if(disposed)return;updated=true;personalTime+=Math.max(0,dt);conversationActorId=talking;needsLife?.update(dt,t);if(deferredPractice&&!needsLife?.blocks()){request=true;deferredPractice=false;}const away=guards.find(n=>needsLife?.away(n.station.id));if(away){wasAway=true;for(const n of guards)if(n!==away){n.walking=false;animateGuard(n,t);}return;}if(wasAway){wasAway=false;active=1;phase='handover';phaseTime=0;resetTravel(guards[0]);resetTravel(guards[1]);}for(const old of retired){if(needsLife?.owns(old))continue;old.walking=false;if(isActorAlive(old)){if(talking!==old.station.id)travel(old,LEISURE[0],dt);old.animate(t+old.phase,old.walking,old.walking?null:'read',poseContext(old,null));kits.get(old)?.hide();}}
    if(!boundAvailable())return;updateFlight(dt);blocked=!clearRange(position);for(const n of guards)n.walking=false;
    const n=shooter(),other=guards[1-active];
    // Range phases never reset the partner's route or observation timer.
    // A talk can delay relief, but may not hand the absent guard a new shift.
    if(other===guards[0]&&guardWork&&['active','returning','returned'].includes(guardWork.stage))updateRelieved(other,dt);
    else updatePatrol(other,dt,position);
-   if(guardWork?.stage==='returning'&&supervisorReady()&&gap(guards[0].root.position,HANDOFF[0])<.08){guardWork.handoverSeconds=(guardWork.handoverSeconds||0)+dt;tell(guards[0],'当面收回巡值 · 等陆衡核对凭记');if(guardWork.handoverSeconds>=2.4)guardWork.stage='returned';}
+   if(guardWork?.stage==='returning'&&supervisorReady()&&gap(guards[0].root.position,HANDOFF[0])<.08){guardWork.handoverSeconds=(guardWork.handoverSeconds||0)+dt;tell(guards[0],`当面收回巡值 · 等${guards[1].station.npcName||guards[1].station.id}核对凭记`);if(guardWork.handoverSeconds>=2.4)guardWork.stage='returned';}
 
    const timed=()=>{phaseTime+=dt;};
    if(phase==='handover'){
@@ -219,14 +226,25 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
    }
    for(const actor of guards)animateGuard(actor,t);
   },
-  snapshot:()=>({version:1,guardHolderId:guards[0].station.id,guardHolderRevision:boundRevision,retiredIds:[...retired].map(n=>n.station.id),guardWork:continuityCopy(guardWork),leisure:{...leisure},activeId:shooter().station.id,phase,phaseTime,rounds,retrieveLane,request,deferredPractice,complete,playerShot,flightTime,flightLane,shiftPending,handoffs,start:start.toArray(),end:end.toArray(),flying:flying.visible,impacts:impacts.map(q=>({visible:q.visible,position:q.position.toArray(),quaternion:q.quaternion.toArray()})),patrol:[...patrol].map(([n,p])=>[n.station.id,continuityCopy(p)]),shots:continuityCopy(shots),history:[...history]}),
+  snapshot:()=>({version:1,guardHolderId:guards[0].station.id,guardHolderRevision:boundRevision,wardenHolderId:guards[1].station.id,wardenHolderRevision:wardenRevision,retiredIds:[...retired].map(n=>n.station.id),guardWork:continuityCopy(guardWork),leisure:{...leisure},activeId:shooter().station.id,phase,phaseTime,rounds,retrieveLane,request,deferredPractice,complete,playerShot,flightTime,flightLane,shiftPending,handoffs,start:start.toArray(),end:end.toArray(),flying:flying.visible,impacts:impacts.map(q=>({visible:q.visible,position:q.position.toArray(),quaternion:q.quaternion.toArray()})),patrol:[...patrol].map(([n,p])=>[n.station.id,continuityCopy(p)]),shots:continuityCopy(shots),history:[...history]}),
   restore(s,{player:restoredPlayer}={}){patrolWork.clear();
-   if(s?.guardHolderId&&(s.guardHolderId!==guards[0].station.id||s.guardHolderRevision!==boundRevision)){
-    const a=currentAssignment();if(updated||s.version!==1||!labels[s.phase]||!a||a.status!=='npc'||!a.alive||!a.available||a.holderId!==s.guardHolderId||a.revision!==s.guardHolderRevision||a.actor?.station.id!==a.holderId||a.actor===guards[1]||!isActorAlive(a.actor)||!canControlGuard(a.actor)||![a.holderId,guards[1].station.id].includes(s.activeId))return false;
-    if(!Array.isArray(s.retiredIds)||s.retiredIds.some(id=>{const n=npcs.find(n=>n.station.id===id);return !n||n===a.actor||n===guards[1]||!canControlGuard(n);}))return false;
-    installBinding(a);for(const id of s.retiredIds){const n=npcs.find(n=>n.station.id===id);retired.add(n);owned.add(n);}
+   // Validate both appointments and the final snapshot before installing either
+   // body. A stale patrol record must not partially replace its reviewer.
+   const ids=[s?.guardHolderId||guards[0].station.id,s?.wardenHolderId||guards[1].station.id];
+   if(s?.version!==1||!labels[s.phase]||ids[0]===ids[1]||!ids.includes(s.activeId))return false;
+   const assignments=[currentAssignment(),currentWarden()],resolvers=[resolveGuardAssignment,resolveWardenAssignment],savedIds=[s.guardHolderId,s.wardenHolderId],revisions=[s.guardHolderRevision,s.wardenHolderRevision],bound=[boundRevision,wardenRevision],changes=[false,false];
+   for(let i=0;i<2;i++){
+    const a=assignments[i];
+    if(savedIds[i]&&resolvers[i]&&(a?.holderId!==savedIds[i]&&a?.status!=='vacant'||a?.holderId===savedIds[i]&&a?.revision!==revisions[i]))return false;
+    if(!savedIds[i]&&revisions[i]!==undefined&&revisions[i]!==bound[i])return false;
+    changes[i]=!!savedIds[i]&&(savedIds[i]!==guards[i].station.id||revisions[i]!==bound[i]);
+    if(changes[i]&&(updated||!a||a.status!=='npc'||!a.alive||!a.available||a.holderId!==savedIds[i]||a.revision!==revisions[i]||a.actor?.station.id!==a.holderId||a.actor.station.id===ids[1-i]||!isActorAlive(a.actor)||!canControlGuard(a.actor)))return false;
    }
-   if(Array.isArray(s?.retiredIds)){const rows=s.retiredIds.map(id=>npcs.find(n=>n.station.id===id));if(rows.some(n=>!n||n===guards[1]||n===guards[0]&&currentAssignment()?.status!=='vacant'||!owned.has(n)&&!canControlGuard(n)))return false;for(const n of rows){retired.add(n);owned.add(n);}}
+   if(changes[0]&&!Array.isArray(s.retiredIds))return false;
+   const retiredRows=Array.isArray(s.retiredIds)?s.retiredIds.map(id=>npcs.find(n=>n.station.id===id)):[];
+   if(retiredRows.some(n=>!n||n.station.id===ids[1]&&assignments[1]?.status!=='vacant'||n.station.id===ids[0]&&assignments[0]?.status!=='vacant'||!owned.has(n)&&!canControlGuard(n)))return false;
+   if(changes[1])installBinding(assignments[1],1);if(changes[0])installBinding(assignments[0]);
+   for(const n of retiredRows){retired.add(n);owned.add(n);}
    const index=guards.findIndex(n=>n.station.id===s?.activeId);if(s?.version!==1||index<0||!labels[s.phase]||s.guardHolderId&&s.guardHolderId!==guards[0].station.id||s.guardHolderRevision!==undefined&&s.guardHolderRevision!==boundRevision)return false;active=index;guardWork=s.guardWork&&/^cn-guard-labor-[1-9][0-9]*$/.test(s.guardWork.receiptId)&&['requested','active','returning','returned'].includes(s.guardWork.stage)?continuityCopy(s.guardWork):null;leisure=s.leisure&&Number.isInteger(s.leisure.index)&&LEISURE[s.leisure.index]&&Number.isFinite(s.leisure.time)?{...s.leisure}:{index:0,time:0};phase=s.phase;phaseTime=Math.max(0,s.phaseTime||0);rounds=Math.max(0,s.rounds||0);retrieveLane=s.retrieveLane||0;request=!!s.request;deferredPractice=!!s.deferredPractice;complete=!!s.complete;playerShot=!!s.playerShot;flightTime=Math.max(0,s.flightTime||0);flightLane=s.flightLane||0;shiftPending=!!s.shiftPending;handoffs=Math.max(0,s.handoffs||0);if((request||deferredPractice)&&restoredPlayer){player=restoredPlayer;playerKit??=makeKit(lot.group);}start.fromArray(s.start);end.fromArray(s.end);flying.visible=!!s.flying;flying.quaternion.setFromUnitVectors(forward,end.clone().sub(start).normalize());updateFlight(0);for(const [i,p]of(s.impacts||[]).entries()){if(!impacts[i])continue;impacts[i].visible=!!p.visible;impacts[i].position.fromArray(p.position);impacts[i].quaternion.fromArray(p.quaternion);}for(const[id,p]of s.patrol||[]){const n=guards.find(n=>n.station.id===id);if(n&&CHINA_GUARD_ROUTES[p.routeId]?.[p.index])patrol.set(n,continuityCopy(p));}shots.splice(0,shots.length,...continuityCopy(s.shots||[]));history.splice(0,history.length,...(s.history||[]));for(const n of guards)resetTravel(n);return true;},
   state(){return {phase,phaseTime,rounds,handoffs,guardTenure,guardWork:continuityCopy(guardWork),supervisorReady:supervisorReady(),active:shooter().station.id,blocked,playerRequested:request,playerComplete:complete,shots:shots.map(s=>({...s})),history:[...history],failures:[...failures],guards:guards.map(n=>({id:n.station.id,position:n.root.position.toArray(),walking:n.walking,route:n.route.length,patrol:{...patrol.get(n),visited:[...patrol.get(n).visited],checkpoint:patrol.get(n).stage==='ready'?'handoff':CHINA_GUARD_ROUTES[patrol.get(n).routeId][patrol.get(n).index].id},social:socialStatus(n)})),arrows:impacts.map(q=>q.visible),flying:flying.visible};},
   dispose(){disposed=true;needsLife?.dispose({suspend:true});for(const costume of costumes)costume.dispose();for(const kit of kits.values())kit.dispose();playerKit?.dispose();for(const q of [flying,...impacts]){q.removeFromParent();q.traverse(o=>o.geometry?.dispose());}for(const n of owned){n.route=[];if(n.poseContext)n.poseContext.archery=null;}}
