@@ -5,7 +5,7 @@ export const PALACE_TEA_POINTS=Object.freeze({prep:[2.9,1.698,-30.46],serve:[4.8
 // remain scenery; generic character tea cups are suppressed by handoff poses.
 export function createPalaceTeaProps(parent){
  const root=new THREE.Group();root.name='Original palace tea service';root.userData.dynamic=true;parent.add(root);
- const materials=[new THREE.MeshToonMaterial({color:0x89aaa0}),new THREE.MeshToonMaterial({color:0x735244}),new THREE.MeshToonMaterial({color:0xb88a42})];
+ const materials=[new THREE.MeshToonMaterial({color:0xf4e8cb}),new THREE.MeshToonMaterial({color:0x735244}),new THREE.MeshToonMaterial({color:0xb88a42})];
  let tray=null,cup=null,order=null;const geometries=[];
  const mesh=(group,geometry,material,p=[0,0,0])=>{geometries.push(geometry);const item=new THREE.Mesh(geometry,materials[material]);item.position.set(...p);item.castShadow=item.receiveShadow=true;group.add(item);return item;};
  function clear(){tray?.removeFromParent();cup?.removeFromParent();for(const geo of geometries)geo.dispose();geometries.length=0;tray=cup=order=null;}
