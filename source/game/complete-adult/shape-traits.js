@@ -31,10 +31,11 @@ function context(asset){
  // the tip's height and use its lower bulb depth, never the upper nasal root.
  const tipPivot=[0,tip[1],tip[2]-Math.max(.003,(tip[2]-columella[2])/2)];
  const wings={};for(const side of [-1,1])wings[side]=landmark([side*.1014,6.8563,1.5318]);
- // Brow featureCoord contains ribbon UVs, not anatomy. Associate its existing
- // fitted vertices with the current skin, without scalp rays or new geometry.
+ // Brow featureCoord contains ribbon UVs, not anatomy. Interpolate its
+ // anatomical coordinates on the actual fitted triangles, so eye-size morphs
+ // do not step between unrelated nearest-vertex weights.
  const semantics=semanticSources.get(asset)||new Map();
- if(!semanticSources.has(asset))for(const part of asset.parts){if(part.material==='skin'||isEye(part))continue;const raw=[];for(let i=0;i<part.position.length;i+=3){const j=nearestSkin(skin,part.position.slice(i,i+3));raw.push(...skin.featureCoord.slice(j,j+3));}semantics.set(part,raw);}
+ if(!semanticSources.has(asset))for(const part of asset.parts){if(part.material==='skin'||isEye(part))continue;const raw=[];for(let i=0;i<part.position.length;i+=3){const p=part.position.slice(i,i+3),feature=part.material==='brow'?frontSurface(skin,p[0],p[1],true):null;if(feature)raw.push(...feature);else{const j=nearestSkin(skin,p);raw.push(...skin.featureCoord.slice(j,j+3));}}semantics.set(part,raw);}
  const c={form:asset.form,eyes,nose,bridge,tip,tipPivot,wings,chinRoot,chin,semantics};contexts.set(asset,c);return c;
 }
 function eyeWeight(x,y,z){
@@ -84,6 +85,8 @@ function changedNormals(part,position){
 }
 // The eyebrow ribbon must stay on the actual deformed triangles. Nearest raw
 // landmarks alone create stepped offsets and let a raised ridge swallow it.
+// The 1.2 mm envelope also clears the intervening coarse skin triangles; a
+// vertex-only 0.35 mm fit can still cross skin between ribbon vertices.
 function refitBrows(asset,parts){
  const oldSkin=asset.parts.find(p=>p.material==='skin'),skin=parts.find(p=>p.material==='skin');
  return parts.map((part,index)=>{
@@ -91,7 +94,7 @@ function refitBrows(asset,parts){
   const before=asset.parts[index],position=part.position.slice();
   for(let i=0;i<position.length;i+=3){
    const oldZ=frontSurface(oldSkin,before.position[i],before.position[i+1]),z=frontSurface(skin,position[i],position[i+1]);
-   if(Number.isFinite(z)&&Number.isFinite(oldZ))position[i+2]=z+Math.max(.00035,before.position[i+2]-oldZ);
+   if(Number.isFinite(z)&&Number.isFinite(oldZ))position[i+2]=z+Math.max(.0012,before.position[i+2]-oldZ);
   }
   return{...part,position,normal:changedNormals(before,position)};
  });

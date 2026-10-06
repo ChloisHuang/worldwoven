@@ -46,13 +46,14 @@ export function fitActorHeadAttachment(actor,group){
 }
 // Project a retained lower-face surface onto the new front triangle surface.
 // X/Y barycentrics evaluate the cached mesh directly, without rays or a scene.
-export function frontSurface(part,x,y){let front=-Infinity;const p=part.position;
+export function frontSurface(part,x,y,feature=false){let front=-Infinity,semantic=null;const p=part.position;
  for(let i=0;i<part.index.length;i+=3){const a=part.index[i]*3,b=part.index[i+1]*3,c=part.index[i+2]*3;
   if(y<Math.min(p[a+1],p[b+1],p[c+1])||y>Math.max(p[a+1],p[b+1],p[c+1])||x<Math.min(p[a],p[b],p[c])||x>Math.max(p[a],p[b],p[c]))continue;
   const d=(p[b+1]-p[c+1])*(p[a]-p[c])+(p[c]-p[b])*(p[a+1]-p[c+1]);if(Math.abs(d)<1e-12)continue;
   const u=((p[b+1]-p[c+1])*(x-p[c])+(p[c]-p[b])*(y-p[c+1]))/d,v=((p[c+1]-p[a+1])*(x-p[c])+(p[a]-p[c])*(y-p[c+1]))/d;
-  if(u<-.00001||v<-.00001||u+v>1.00001)continue;front=Math.max(front,u*p[a+2]+v*p[b+2]+(1-u-v)*p[c+2]);
- }return front;
+  if(u<-.00001||v<-.00001||u+v>1.00001)continue;const z=u*p[a+2]+v*p[b+2]+(1-u-v)*p[c+2];
+  if(z>front){front=z;if(feature){const f=part.featureCoord;semantic=[0,1,2].map(k=>u*f[a+k]+v*f[b+k]+(1-u-v)*f[c+k]);}}
+ }return feature?semantic:front;
 }
 export function fitRetainedFacialHair(mesh,fit,asset){
  const skin=asset.parts.find(p=>p.material==='skin'),g=mesh.geometry,p=g.attributes.position;
