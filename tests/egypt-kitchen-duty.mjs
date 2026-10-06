@@ -77,7 +77,7 @@ test('carried tray and partial resident eating reload with original actor positi
 });
 
 test('a restored leaving resident releases the empty seat after reaching the original desk',()=>{
- const f=fixture();f.until(s=>s.order?.stage==='leaving');f.tick();assert.equal(f.guest.serviceMount,null);const c=f.checkpoint();f.dispose();const g=fixture(c);g.restoreActors(c);g.until(s=>!s.order,'resident returns to original desk');assert.equal(g.furniture.facilities.reservation(g.seat.id,GUEST),null);assert.equal(g.service.state().supply.remaining,23);g.dispose();
+ const f=fixture();f.until(s=>s.order?.stage==='leaving');f.tick();assert.equal(f.guest.serviceMount,null);const c=f.checkpoint();f.dispose();const g=fixture(c);g.restoreActors(c);g.until(s=>!s.order&&s.resident.departure?.stage==='returned','resident returns to original desk after independent cleanup');assert.equal(g.furniture.facilities.reservation(g.seat.id,GUEST),null);assert.equal(g.service.state().supply.remaining,23);g.dispose();
 });
 
 test('failed seat ownership on restore cannot mount or feed a resident in another actor’s occupied place',()=>{
