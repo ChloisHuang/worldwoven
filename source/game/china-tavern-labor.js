@@ -71,7 +71,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
   const at = point => !getMounted() && near(player(), point);
   const hostActor = () => {const adapter=serviceAdapter(),hasRole=typeof adapter?.hostRole==='function',row=hasRole?adapter.hostRole():null;if(hasRole&&(!row?.available||!row.alive||row.isPlayer||!row.holderId||row.holderId==='player'))return null;const actor=typeof adapter?.hostActor==='function'?adapter.hostActor():hasRole?row.actor:host;return actor&&actor.alive!==false&&actor!==getPlayer()&&personId(actor)!=='player'&&(!hasRole||!personId(actor)||personId(actor)===row.holderId)?actor:null;};
   const hostName = () => {const actor=hostActor();return actor?.station?.npcName||actor?.name||'掌柜';};
-  const hostVisualAnchor = () => {const actor=hostActor(),actorId=actor&&(personId(actor)||serviceAdapter()?.hostRole?.()?.holderId);return actorId?{visualAnchor:{actorId}}:{};};
+  const hostVisualAnchor = () => {const actor=hostActor(),actorId=actor&&(personId(actor)||serviceAdapter()?.hostRole?.()?.holderId);return {visualAnchor:actorId?{actorId}:{}};};
   const hostAdmissionOpen = () => !!hostActor()&&(serviceAdapter()?.hostAdmissionOpen?.() ?? true);
   const hostCompletionAvailable = () => !!hostActor()&&(serviceAdapter()?.hostCompletionAvailable?.() ?? hostAdmissionOpen());
   const hostUnavailableReason = () => !hostActor()?'掌柜岗位当前无人可以办理，请稍后再来':serviceAdapter()?.hostUnavailableReason?.() || `${hostName()}正在休息，请等回到迎客茶案再办理`;

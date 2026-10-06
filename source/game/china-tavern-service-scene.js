@@ -240,8 +240,10 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  function clear(o){if(o.stage!=='dirty')return false;return stage(o,'return',{holder:'assistant'});}
  function describe(kind,o,position,label,extra={}){
   const actorId=kind.startsWith('handover-')?staff[role()]?.station.id:['take-order','collect'].includes(kind)?o?.customerId:null;
-  const point=kind==='prep'?P.prepTop:kind==='heat'?P.stoveTop:kind==='wash'?P.washTop:kind==='rent-room'?host?.station.workTarget:['pass','pickup','choose-order','return-tray'].includes(kind)?P.passTop:kind==='retrieve'?o?.placedMealPoint||o?.mealPoint:o?.mealPoint||extra.tableId&&tablePlace(extra.tableId).mealPoint;
-  const visualAnchor=actorId?{actorId}:extra.roomId&&kind==='clean-room'?{furnitureId:'china-tavern-bed-'+extra.roomId}:point?{id:'cn-tavern-surface:'+point.join(':'),point:point.slice()}:null;
+  const counterAction=kind==='rent-room'||kind.startsWith('handover-')&&!actorId;
+  const counterPoint=lot.stations?.find(station=>station.id===ORIGINAL_TAVERN_HOST_ID)?.workTarget||[23.4,1.32,6.4];
+  const point=counterAction?counterPoint:kind==='prep'?P.prepTop:kind==='heat'?P.stoveTop:kind==='wash'?P.washTop:['pass','pickup','choose-order','return-tray'].includes(kind)?P.passTop:kind==='retrieve'?o?.placedMealPoint||o?.mealPoint:o?.mealPoint||extra.tableId&&tablePlace(extra.tableId).mealPoint;
+  const visualAnchor=actorId?{actorId}:counterAction?{id:'counter:'+ORIGINAL_TAVERN_HOST_ID,point:point.slice()}:extra.roomId&&kind==='clean-room'?{furnitureId:'china-tavern-bed-'+extra.roomId}:point?{id:'cn-tavern-surface:'+point.join(':'),point:point.slice()}:null;
   return {kind,orderId:o?.id||null,position:position.slice(),name:'云来酒楼 · 当班',action:label,executionRadius:.23,...extra,visualAnchor};
  }
  function choices(){
@@ -369,7 +371,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   if(!state||state.orders.some(o=>o.customerId==='player'&&o.stage!=='done')||!seat||getMounted()?.id!==seat.id)return false;
   const dish=TAVERN_DISHES.find(d=>d.id===dishId);if(!dish)return false;const next=copy(state),number=++next.serial,side=tavernSeatSide(seat);
   const o={id:'cn-tavern-order-'+number,number,customerId:'player',customerName:'你',guestIndex:-1,tableId:seat.center[0]<21?'west':'east',seatId:seat.id,seatAnchor:seat.anchor.slice(),...tablePlace(seat.center[0]<21?'west':'east',side),dishId:dish.id,dishName:dish.name,price:dish.price,customerCopper:0,payment:'unpaid',collected:false,stage:'awaiting-payment',mealId:null,holder:null,cancelled:false,reviews:[],cleaned:false};
-  next.orders=next.orders.filter(o=>o.customerId!=='player'||o.stage!=='done');next.orders.push(o);if(!persist(next))return false;record('requested',{orderId:o.id});const paid=reservePlayerMeal(order(o.id));if(paid)notify(`已暂扣${dish.price}铜文，许安将按客单过来；送达前取消可退回`);return paid;
+  next.orders=next.orders.filter(o=>o.customerId!=='player'||o.stage!=='done');next.orders.push(o);if(!persist(next))return false;record('requested',{orderId:o.id});const paid=reservePlayerMeal(order(o.id));if(paid)notify(`已暂扣${dish.price}铜文，已记入当前接待的客单；送达前取消可退回`);return paid;
  }
  function reservePlayerMeal(o){const result=chargePlayer('reserve',o);if(!result.ok){stage(o,'done',{cancelled:true,payment:'unpaid'});notify(result.code==='insufficient-cash'?'钱包铜文不足，请先到钱庄取款':'点餐款暂未记妥，请稍后重试');return false;}return stage(o,'requested',{payment:'reserved'});}
  function completeDelivery(o){if(isAccountCustomer(o.customerId)){if(!o.collected||!['reserved','settled'].includes(o.payment))return false;const next=copy(state),row=next.orders.find(q=>q.id===o.id);if(row.payment!=='settled')next.till+=row.price;Object.assign(row,{stage:'eating',holder:'table',payment:'settled'});if(!persist(next))return false;phases.delete(o.id);record('delivered',{orderId:o.id});record('customer-payment',{orderId:o.id,amount:o.price,to:'tavern-till',from:o.customerId});return true;}if(o.customerId!=='player')return stage(o,'eating',{holder:'table'});
@@ -504,7 +506,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
    if(tenureOwns(r)){if(!safeHandover(r)&&!playerOwns(r))return '已卸任 · 归还手中物品';if(role()===r&&['handover-in','handover-out'].includes(state.stage))return '已卸任 · 协助交接物品';return '已卸任 · '+life.label(n);}
    return names[r]+' · '+(life.isActive(n)?life.label(n):n.walking?'前往工作处':workPending(r)?'办理当前工作':'候客');
   }if(hostPersonIds(state).includes(n.station.id)&&n!==host&&!state?.hostBreak)return '居民 · '+life.label(n);if(borrowedLease()?.actorId===n.station.id){const o=order(borrowedLease().orderId);return (SALON_ARTIST_IDS.includes(n.station.id)?'艺者':'官员')+' · 自费就餐 · '+(steps[o?.stage]||'归还餐位');}const v=state?.visitors.find(v=>v.id===n.station.id),o=v&&order(v.orderId);if(!v)return n.station.npcLabel;
-  if(v.mode==='idle'){if(getToilet()?.ownsActor(n))return getToilet().label(n.station.id)||'食客 · 前往净室';return '食客 · '+life.label(n);}if(v.mode==='leaving')return '食客 · 正在离店';if(v.mode==='lodging')return n.serviceMount?'住客 · 客房歇息':'住客 · 前往客房';if(v.mode==='lodging-wait')return hostAdmissionOpen()?'住客 · 等候登记':'住客 · 许安短暂歇班，等候回案';
+  if(v.mode==='idle'){if(getToilet()?.ownsActor(n))return getToilet().label(n.station.id)||'食客 · 前往净室';return '食客 · '+life.label(n);}if(v.mode==='leaving')return '食客 · 正在离店';if(v.mode==='lodging')return n.serviceMount?'住客 · 客房歇息':'住客 · 前往客房';if(v.mode==='lodging-wait')return hostAdmissionOpen()?'住客 · 等候登记':'住客 · 等候掌柜岗位恢复接待';
   return n.serviceMount?'食客 · '+(steps[o?.stage]||'等候点菜'):n.walking?'食客 · 正在入店就座':'食客 · 等候空餐位';
  }
  function update(dt,t,{conversationActorId=null}={}){

@@ -19,7 +19,7 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
  const hostRole=()=>{if(typeof scene.hostRole==='function')return scene.hostRole();const actor=typeof scene.hostActor==='function'?scene.hostActor():host,alive=!!actor&&actor.alive!==false,isPlayer=!!actor&&(actor===getPlayer()||personId(actor)==='player');return {roleId:TAVERN_HOST_ROLE.id,slotId:TAVERN_HOST_SLOT_ID,holderId:actor?personId(actor)||ORIGINAL_TAVERN_HOST_ID:null,actor,alive,isPlayer,available:alive&&!isPlayer,revision:0};};
  const hostActor=()=>{const row=hostRole();if(!row?.available||!row.alive||row.isPlayer||!row.holderId||row.holderId==='player')return null;const actor=typeof scene.hostActor==='function'?scene.hostActor():row.actor;return actor&&actor.alive!==false&&actor!==getPlayer()&&personId(actor)!=='player'&&(!personId(actor)||personId(actor)===row.holderId)?actor:null;};
  const hostName=()=>{const actor=hostActor();return actor?.station?.npcName||actor?.name||'掌柜';};
- const hostVisualAnchor=()=>{const actor=hostActor(),actorId=actor&&(personId(actor)||hostRole()?.holderId);return actorId?{visualAnchor:{actorId}}:{};};
+ const hostVisualAnchor=()=>{const actor=hostActor(),actorId=actor&&(personId(actor)||hostRole()?.holderId);return {visualAnchor:actorId?{actorId}:{}};};
  const hostAdmissionOpen=()=>!!hostActor()&&(scene.hostAdmissionOpen?.()??true);
  const hostCompletionAvailable=()=>!!hostActor()&&(scene.hostCompletionAvailable?.()??hostAdmissionOpen());
  const hostUnavailableReason=()=>!hostActor()?(hostRole()?.isPlayer?'掌柜岗位目前由你独任，不能向自己办理':'掌柜岗位当前无人可以办理，请稍后再来'):scene.hostUnavailableReason?.()||`${hostName()}正在休息，请等回到登记案再办理`;

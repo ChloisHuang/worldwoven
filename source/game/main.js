@@ -231,7 +231,7 @@ function configureContextualServices(){
  const counter=(id,action,extra={})=>{const station=stations.get(id);return station?{...station,action,targetKey:id,targetName:station.npcName||station.name,...extra}:null;};
  const current=(id,action,extra={})=>({id,name:extra.name||'当前安排',action,position:player.root.position.toArray(),interactionRadius:.4,executionRadius:.4,priority:48,continuation:true,visibilityChecked:true,...extra});
  if(egyptMealUI)serviceMenus.register('egypt-meal',{target:()=>{const v=egyptMeal.view();return v.order||v.seated?current('egypt-royal-dining','查看访客餐单',{targetKey:'egypt-royal-dining',targetName:'达娜 · 访客餐桌',intentKey:v.order?.id+':'+v.order?.stage}):counter('egypt-royal-dining','查看访客餐单 · 5 埃及券',{executionRadius:1.2});},open:()=>egyptMealUI.open()});
- if(chinaTavernUI)serviceMenus.register('china-meal',{target:()=>{const meal=chinaTavernUI.menuContext();return meal.order?current('cn-tavern-host','查看当前餐单',{targetKey:'cn-tavern-host',targetName:'许安 · 云来酒楼'}):meal.seated?{...meal.seated,action:'查看食单 · 点菜',furniture:false,targetKey:meal.seated.id,targetName:meal.seated.name,position:meal.seated.anchor,executionRadius:1.8}:counter('cn-tavern-host','查看食单 · 选座点菜',{executionRadius:1.8});},open:()=>chinaTavernUI.open()});
+ if(chinaTavernUI)serviceMenus.register('china-meal',{target:()=>{const meal=chinaTavernUI.menuContext();return meal.order?current('cn-tavern-host','查看当前餐单',{targetKey:'cn-tavern-host',targetName:'云来酒楼 · 当前餐单'}):meal.seated?{...meal.seated,action:'查看食单 · 点菜',furniture:false,targetKey:meal.seated.id,targetName:meal.seated.name,position:meal.seated.anchor,executionRadius:1.8}:counter('cn-tavern-host','查看食单 · 选座点菜',{executionRadius:1.8});},open:()=>chinaTavernUI.open()});
  if(chinaLodgingUI)serviceMenus.register('china-stay',{target:()=>{const stay=chinaLodgingUI.menuContext();return stay?.bookingId&&stay.inRoom?current('cn-tavern-lodging','查看住宿 · 客房与退房',{name:'云来客栈',targetKey:'cn-tavern-lodging',intentKey:stay.bookingId+':'+stay.stage}):null;},open:()=>chinaLodgingUI.open()});
  if(chinaSalonUI)serviceMenus.register('china-salon',{target:()=>chinaSalon.active()?current('cn-tavern-reception','查看当前引见与茶叙',{targetKey:'cn-tavern-reception',targetName:'温晚 · 雅集接待'}):counter('cn-tavern-reception','查看雅集 · 请温晚引见',{executionRadius:1.2}),open:()=>chinaSalonUI.open()});
  if(franceMealUI)serviceMenus.register('france-meal',{target:()=>{const meal=franceMealUI.menuContext();return meal.order||meal.seated||meal.intent?current('france-cafe','查看食单 · 正餐与下午茶',{targetKey:'france-cafe',targetName:'玛农 · 宫苑茶廊'}):counter('france-cafe','查看食单 · 正餐与下午茶',{executionRadius:1.8});},open:()=>franceMealUI.open()});
@@ -240,7 +240,7 @@ function configureContextualServices(){
  if(japanPerformanceUI)serviceMenus.register('japan-performance',{target:()=>japanPerformance.active()?current('jp-performance-reception','查看当前演出与茶席',{targetKey:'jp-performance-reception',targetName:'戏馆接待'}):counter('jp-performance-reception','查看演出与茶席',{executionRadius:1.2}),open:()=>japanPerformanceUI.open()});
 }
 function contextualTarget(item){
- if(!item)return item;
+ if(!item||item.social)return item;
  const visit=japanServiceUI?.hasVisit();
  if(item.menuId==='japan-visit')return {...item,actionKey:'jp-service-panel'};
  if(['jp-welcome','jp-sushi','jp-ramen'].includes(item.id)&&!item.social)return {...item,targetKey:item.id,actionKey:visit?'jp-service-panel':item.id};
@@ -251,7 +251,9 @@ function contextualTarget(item){
  if(item.provider==='japan-reception-employment')return {...item,targetKey:'jp-welcome',targetName:'Koharu · 汤馆接待'};
  if(item.provider==='china-salon-employment')return {...item,targetKey:'cn-tavern-reception',targetName:'温晚 · 雅集接待'};
  const host=item.id==='cn-tavern-host'||['china-tavern-lodging','china-tavern-service','china-tavern-labor'].includes(item.provider)&&!['task','clean','work-view','end-shift'].includes(item.kind);
- return host?{...item,targetKey:'cn-tavern-host',targetName:'许安 · 云来酒楼',action:item.provider==='china-tavern-labor'&&item.kind==='view'?'临时帮工 · 查看招工登记':item.provider==='china-tavern-service'&&item.kind==='formal-view'?'长期职位 · 查看申请条件':item.action}:item;
+ if(!host)return item;
+ const actorId=item.visualAnchor?.actorId,actor=actorId&&npcs.find(n=>n.station.id===actorId);
+ return {...item,targetKey:actorId||'cn-tavern-host',targetName:actorId?(actor?.station.npcName||item.npcName||'掌柜')+' · 云来酒楼':'云来酒楼 · 迎客茶案',action:item.provider==='china-tavern-labor'&&item.kind==='view'?'临时帮工 · 查看招工登记':item.provider==='china-tavern-service'&&item.kind==='formal-view'?'长期职位 · 查看申请条件':item.action};
 }
 function currentControl(){
  const base={id:'current-action',contextControl:true,icon:'hand',name:'当前动作',position:player?.root.position.toArray()};
