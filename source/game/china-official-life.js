@@ -72,7 +72,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  }
  function candidates(n){
   const i=index(n),bed=seat(B.beds[i]),listen=seat('china-tavern-listening-'+(i%2?20.65:17.5)),experience=brain.experience(n.station.id),partners=!conversation&&experience&&[1,2].every(slot=>!occupied('cn-official-garden-place-'+slot,n))?officials.filter(other=>other!==n&&idleEligible(other)&&Math.abs(other.root.position.y-n.root.position.y)<.4&&other.root.position.distanceTo(n.root.position)<6.5&&canTraverse(n.root.position,other.root.position,lot.colliders.concat(doors?.planningColliders||[]),navigation)):[];
-  const inspection=i===0?reports?.inspection():null,duty=duties[n.station.id],salonTargets=salonChoices(n).map(q=>({id:q.artistId+':'+q.activity,choice:{salon:{artistId:q.artistId,activity:q.activity,fee:q.fee},label:'自费'+SALON_ACTIVITIES[q.activity].name+' · '+q.fee+'铜文'}}));
+  const inspection=i===0?reports?.inspection():null,duty=duties[n.station.id],salonTargets=salonChoices(n).map(q=>({id:q.artistId+':'+q.activity,choice:{salon:{artistId:q.artistId,activity:q.activity,fee:q.fee,...(Number.isSafeInteger(q.revision)?{revision:q.revision}:{})},label:'自费'+SALON_ACTIVITIES[q.activity].name+' · '+q.fee+'铜文'}}));
   return [
    ...(duty?.stage==='awaiting-archive'&&duty.day===getClock().day?[{id:'archive-duty',label:'回本署核对今日朝班凭记 · 归档后领俸',base:10,point:B.offices[i],workTarget:B.workTargets[i],action:'calligraphy',duration:[8,8],cooldown:0,relief:{},dutyDay:duty.day}]:[]),
    ...(inspection?[{id:'inspect',label:inspection.label,base:8,point:inspection.point,look:inspection.look,action:'read',duration:[5,9],cooldown:15,inspection,relief:{}}]:[]),
@@ -262,9 +262,15 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
     if(!s.arrived)travel(n,s,dt);
     if(s.arrived){
      if(s.choice?.salon){
-      const q=s.choice.salon,quoted=salonChoices(n).some(a=>a.artistId===q.artistId&&a.activity===q.activity&&a.fee===q.fee);
+      if(time<(s.salonRetryAt||0)){animate(n,s,t);return;}
+      s.salonRetryAt=time+1;const q=s.choice.salon,offer=salon?.npcOfferStatus?.(n.station.id,q.artistId,q.activity,q.fee),revisionChanged=Number.isSafeInteger(q.revision)&&offer?.revision!==q.revision;
+      const quoted=offer?!revisionChanged&&offer.ok:salonChoices(n).some(a=>a.artistId===q.artistId&&a.activity===q.activity&&a.fee===q.fee);
       if(near(n.root.position,SALON_RECEPTION_POINT)&&quoted&&salon?.requestNPC?.(n.station.id,q.artistId,q.activity,q.fee)){
        s.borrowedSalon=true;n.route=[];record('life-paid-salon:borrowed',n);save();return;
+      }
+      if(!revisionChanged&&offer?.waitable){
+       if(s.salonWaitAt===undefined){s.salonWaitAt=time;record('life-paid-salon:waiting',n);save();}
+       if(time-s.salonWaitAt<12){s.label='在接待案前等原艺者歇场 · 尚未扣款';animate(n,s,t);return;}
       }
       if(finish(n,s,false))idle(n,'这次茶叙暂未成行 · 继续日常');return;
      }

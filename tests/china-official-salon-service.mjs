@@ -39,3 +39,6 @@ const settleInterrupted=fixture();fade(settleInterrupted);settleInterrupted.fail
 const sourceConflict=copy(settleInterrupted.saved);sourceConflict.checkpoint.session.customerId=CHINA_OFFICIAL_IDS[4];const conflict=fixture(sourceConflict,true);assert.equal(conflict.service.snapshot().session,null);assert.equal(conflict.artistEconomy.account(artistId).bank,57);
 const hungryArtist=fixture();hungryArtist.pay();hungryArtist.need[artistId]={seekMeal:true};assert(hungryArtist.service.npcChoices(customerId).length,'unfunded hungry artist may accept paid work; affordable meal trips still take priority');
 console.log('PASS financial commit/source-save interruptions recover same reserved or settled original order; mismatched customer cannot adopt another official hold');
+
+const occupiedReload=fixture();reserved(occupiedReload);const occupiedSave=occupiedReload.saved;occupiedSave.positions[CHINA_OFFICIAL_IDS[4]]=SALON_ROOMS[0].player.slice();const recovered=fixture(occupiedSave,true);assert.equal(recovered.service.snapshot().session,null);assert.equal(recovered.official.account(customerId).bank,144);assert.equal(recovered.artistEconomy.account(artistId).bank,0);
+console.log('PASS room-conflict restore returns only the original reserved personal funds instead of abandoning escrow');
