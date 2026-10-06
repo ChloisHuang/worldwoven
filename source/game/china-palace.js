@@ -305,7 +305,7 @@ export function buildChinaPalace(G,H){
  // R12.1 dragon bed includes its own joined crown and headboard relief.
  ornament(rooms.kitchen.g,'dining-brocade-setting','dining-vignette','existing dining tabletop',q=>{q.position.z=-5.1;G.box(q,21,1.084,-1.7,.70,.014,2.01,C.red);for(const x of [20.68,21.32])G.box(q,x,1.096,-1.7,.025,.014,1.95,C.gold);for(const x of [19.9,21,22.1])for(const z of [-1.15,-2.25]){G.cyl(q,x,1.085,z,.29,.29,.026,C.jade,16);for(const dx of [.34,.40])G.box(q,x+dx,1.111,z,.02,.023,.45,C.dark);}});
  ornament(rooms.bath.g,'bath-lotus-border','lotus-bath-frieze','existing tub rim',q=>{for(const x of [-24.5,-23.6,-22.7]){lotus(q,x,.58,-27.905,.40);G.box(q,x,.98,-27.900,.7,.025,.020,C.gold);}});
- for(const [x,zz] of [[-1.6,-30.2],[archiveEastTableX,-28]])ornament(libraryFurniture,'library-brush-tray-'+(x===archiveEastTableX?7:x),'scholar-vignette','existing library table',q=>{G.box(q,x,1.10,zz+.51,2.6,.05,.35,C.red);for(const dx of [-.65,.65])G.vessel(q,x+dx,1.14,zz+.50,teal,.35);});
+ for(const [x,zz] of [[-1.6,-30.2],[archiveEastTableX,-28]])ornament(libraryFurniture,'library-brush-tray-'+(x===archiveEastTableX?7:x),'scholar-vignette','existing library table',q=>{G.box(q,x,1.10,zz-.20,2.6,.05,.35,C.red);for(const dx of [-.65,.65])G.vessel(q,x+dx,1.14,zz-.20,teal,.35);});
  // R14: independent ceremonial plinths and a real two-storey rear library.
  // Translation is per building, never global mesh scaling. Existing living
  // halls, work objects and courts retain their authored dimensions and places.
