@@ -43,7 +43,7 @@ export function consortPetitionView({card={},target=null,player=null,details={},
   benefits();if(appointed&&!targetValid(meal.target))note=safeText(meal.reason,'膳点状态待核');
   if(meal.available===false&&safeText(meal.reason))note=safeText(meal.reason);
  }else{
-  const [action,label]=stage==='submitted'?['audience',near?'现场候召':'前往听候处']:stage==='accepted'?['investiture',near?(releasing?'请沈序授文书':'请沈序授册'):(releasing?'前往授文书处':'前往授册处')]:stage==='charter-held'?['read-charter',near?(releasing?'当面宣读辞后文书':'当面宣读册书'):'前往宣读处']:empress?(isEmpress?['empress-release','当面请辞后位']:['empress-submit',near?'当面请册皇后':'前往皇帝处']):['submit',near?'当面提交自荐':'前往后宫接待处'];
+  const [action,label]=stage==='submitted'?['audience','听候召见']:stage==='accepted'?['investiture',releasing?'领取辞后文书':'领取册书']:stage==='charter-held'?['read-charter',releasing?'宣读辞后文书':'宣读册书']:empress?(isEmpress?['empress-release','请辞后位']:['empress-submit','请册皇后']):['submit','呈交自荐'];
   // Reaching the point is not proof the herald is ready. The host still checks
   // the live controller when executing an intent, including manual arrivals.
   const localWait=near&&action==='submit'&&physical.heraldPresent===false;

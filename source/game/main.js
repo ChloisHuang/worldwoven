@@ -187,7 +187,7 @@ function consortSceneIntent(kind='panel'){
  if(!chinaConsortCourt||active?.id!=='china')return null;
  const ledger=chinaConsortCourt.currentLedger(),p=ledger.petition(),stage=p?.stage||'none',invitation=p?.source==='emperor-invitation'&&stage==='awaiting-choice';let target=chinaConsortCourt.interactionTarget();
  if(kind==='submit'&&!ledger.availability().ok||kind==='audience'&&stage!=='submitted'||kind==='investiture'&&stage!=='accepted'||kind==='read-charter'&&stage!=='charter-held')return null;
- if(['empress-submit','empress-release'].includes(kind)&&(!consortBridge.titleStatus().active||!consortBridge.empressLedger.availability(kind==='empress-release'?'release':'appoint').ok))return null;
+ if(['empress-submit','empress-release'].includes(kind)&&(!consortBridge.titleStatus().active||!chinaConsortCourt.empressAvailability(kind==='empress-release'?'release':'appoint').ok))return null;
  if(kind==='residence'){
   if(!consortBridge.ledger.residenceFor())return null;
   target={id:RESERVED_CONSORT_QUARTERS.roomId,name:RESERVED_CONSORT_QUARTERS.name,position:[...RESERVED_CONSORT_QUARTERS.waitingPoint],radius:.3};

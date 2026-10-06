@@ -2,7 +2,7 @@ import {moveWithCollision} from './navigation.js';
 
 // Routes describe static passages. Other people only constrain this movement
 // step, never the whole route or its distant destination.
-const EPS=1e-6,PERSON_HEIGHT=1.95,TURNOUT=new WeakMap(),BODY_RECOVERY=new WeakMap();
+const EPS=1e-6,PERSON_HEIGHT=1.95,TURNOUT=new WeakMap(),BODY_RECOVERY=new WeakMap(),STAND_RECOVERY=new WeakMap();
 const BODY_WAIT=5,BODY_ESCAPE_SECONDS=1.25,BODY_ESCAPE_DISTANCE=1.4,ROUTE_PROGRESS=.12,BODY_CLEAR_GRACE=.25;
 let movementStep=0,movementTime=0,movementDt=0;
 
@@ -10,6 +10,24 @@ let movementStep=0,movementTime=0,movementDt=0;
 // wall time nor repeated movement/yield trials can advance a person's timer.
 export function beginActorNavigationStep(dt){
  movementStep++;movementDt=Number.isFinite(dt)?Math.max(0,dt):0;movementTime+=movementDt;
+}
+
+// Only an actual, continuous get-up intent may call this helper. Read-only
+// budget/availability probes keep using furniture.standPoint directly.
+// resolvePoint must retain every wall, support and live door when omitting
+// dynamic bodies; the helper cannot relax or invent a landing itself.
+export function findActorStandPoint(actor,mount,resolvePoint){
+ if(!actor?.root?.position||!mount||typeof resolvePoint!=='function')return null;
+ const normal=resolvePoint({ignoreDynamicBodies:false});
+ if(normal){STAND_RECOVERY.delete(actor);return normal;}
+ const staticPoint=resolvePoint({ignoreDynamicBodies:true});
+ if(!staticPoint||movementDt<=0){STAND_RECOVERY.delete(actor);return null;}
+ const p=actor.root.position;let state=STAND_RECOVERY.get(actor);
+ if(!state||state.mount!==mount||state.step!==movementStep&&state.step!==movementStep-1||Math.hypot(p.x-state.x,p.z-state.z)>.08||Math.abs(p.y-state.y)>.08){
+  state={mount,step:-1,wait:0,x:p.x,y:p.y,z:p.z};STAND_RECOVERY.set(actor,state);
+ }
+ if(state.step!==movementStep){state.wait+=movementDt;state.step=movementStep;}
+ return state.wait+EPS>=BODY_WAIT?staticPoint:null;
 }
 
 function bodyRecovery(actor,from,dx,dz,radius,{doors,colliders,navigation,npcs,playerPosition},local){
