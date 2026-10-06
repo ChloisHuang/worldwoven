@@ -20,7 +20,7 @@ export function createTavernKitchenRoles({saved=null,resolveActor=()=>null,getPl
    saveState:next=>saveState({...snapshot(),[key]:next})});
  }
  function resolve(key){const definition=TAVERN_KITCHEN_ROLES[key],role=roles[key];if(!role)return null;
-  if(getTenureRoleId()===definition.roleId){const actor=getPlayer(),alive=!!actor&&isActorAlive(actor)!==false;return {...role.state(),holderId:'player',actor,alive,isPlayer:true,available:alive,status:alive?'player':'unloaded',source:'formal-career'};}
+  if(getTenureRoleId()===definition.roleId){const actor=getPlayer(),alive=!!actor&&isActorAlive(actor)!==false;return {...role.state(),holderId:'player',actor,alive,isPlayer:true,available:alive,status:alive?'player':'unloaded',source:'formal-career',reliefActor:resolveActor(role.state().holderId)};}
   return {...role.resolve(),source:'kitchen-assignment'};
  }
  function assign(key,id,options){if(!roles[key])return {ok:false,code:'unknown-role'};if(getTenureRoleId()===TAVERN_KITCHEN_ROLES[key].roleId)return {ok:false,code:'player-tenure-owns-role'};if(id==='player')return {ok:false,code:'use-formal-career'};return roles[key].assign(id,options);}
