@@ -17,13 +17,18 @@ const validMeal = input => object(input) && person(input.actorId) && typeof inpu
 export function createNPCPieceworkAccount({role, namespace, saved, saveState = () => false, proofKind = 'npc-edict-piecework'} = {}) {
  if (typeof namespace !== 'string' || !/^[A-Za-z][A-Za-z0-9-]{0,79}$/.test(namespace) || ['constructor', 'prototype'].includes(namespace) || typeof saveState !== 'function') throw Error('invalid-npc-piecework-config');
  if (!person(role?.id) || !person(role.slotId) || role.currency !== 'copper' || !integer(role.amount) || role.amount < 1 || !integer(role.contractVersion) || role.contractVersion < 1 || typeof role.employer !== 'string' || !role.employer.trim()) throw Error('invalid-npc-piecework-role');
- if (!['npc-edict-piecework', 'npc-edict-draft-piecework'].includes(proofKind)) throw Error('invalid-npc-piecework-kind');
+ if (!['npc-edict-piecework', 'npc-edict-draft-piecework', 'npc-edict-delivery-piecework'].includes(proofKind)) throw Error('invalid-npc-piecework-kind');
  const definition = copy(role);
- const completedSteps = proofKind === 'npc-edict-draft-piecework' ? {draftSeconds: 5, handoffSeconds: 2} : {received: true, filed: true, sweepSeconds: 7};
+ const delivery = proofKind === 'npc-edict-delivery-piecework';
+ const completedSteps = delivery ? {collectedSeconds: 2, approvalSeconds: 4, sealedSeconds: 2.2, readingSeconds: 6, responseSeconds: 3, handoffSeconds: 1.3, received: true} : proofKind === 'npc-edict-draft-piecework' ? {draftSeconds: 5, handoffSeconds: 2} : {received: true, filed: true, sweepSeconds: 7};
  const empty = () => ({version: 1, namespace, accounts: {}, receipts: [], mealTransfers: []});
  function completedWork(input) {
   if (!object(input) || input.kind !== proofKind || input.version !== 1 || !person(input.actorId) || input.roleId !== definition.id || input.slotId !== definition.slotId || !integer(input.holderRevision) || !integer(input.day) || input.documentId !== `cn-edict-east-shore:${input.day}` || input.audienceId !== `cn-morning-audience:${input.day}` || input.amount !== definition.amount || input.contractVersion !== definition.contractVersion || !object(input.steps) || !same(input.steps, completedSteps)) throw Error('invalid-npc-piecework-proof');
   const evidence = {kind: proofKind, version: 1, actorId: input.actorId, roleId: definition.id, slotId: definition.slotId, holderRevision: input.holderRevision, documentId: input.documentId, audienceId: input.audienceId, day: input.day, amount: definition.amount, contractVersion: definition.contractVersion, steps: copy(completedSteps)};
+  if (delivery) {
+   if (!person(input.authorId) || !integer(input.authorRevision) || !person(input.recipientId) || !integer(input.recipientRevision) || !person(input.emperorId) || new Set([input.actorId,input.authorId,input.recipientId,input.emperorId]).size !== 4 || input.approvedBy !== input.emperorId || input.sealedBy !== input.actorId || input.holder !== 'recipient') throw Error('invalid-npc-piecework-proof');
+   Object.assign(evidence, {authorId:input.authorId,authorRevision:input.authorRevision,recipientId:input.recipientId,recipientRevision:input.recipientRevision,emperorId:input.emperorId,approvedBy:input.approvedBy,sealedBy:input.sealedBy,holder:input.holder});
+  }
   if (!same(input, evidence)) throw Error('invalid-npc-piecework-proof');
   // The work belongs to the original document, even after a holder change or
   // inquiry/reissue. Actor and holder revision must never create another fee.
