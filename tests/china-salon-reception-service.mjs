@@ -1,6 +1,8 @@
 // Original production salon + official wallet + artist ledger + business debit
 // + receptionist account. Direct arrivals isolate transaction/controller risk;
-// this is not natural-demand, pathfinding, pose-contact or browser evidence.
+// Work-contact observer is doubled here for transaction isolation; real rig/
+// brush/page/card contacts are checked by development/salon-reception/contact.mjs.
+// This is not natural-demand, pathfinding, pose-contact or browser evidence.
 import assert from 'node:assert/strict';
 import {createChinaOfficialEconomy,CHINA_OFFICIAL_IDS} from '../source/game/china-official-economy.js';
 import {createChinaSalonEconomy} from '../source/game/china-salon-economy.js';
@@ -10,11 +12,15 @@ import {createChinaOfficialSalonPayments} from '../source/game/china-official-sa
 import {createChinaTavernSalon} from '../source/game/china-tavern-salon.js';
 import {SALON_ROOMS} from '../source/game/china-tavern-salon-rooms.js';
 import {createGameCurrencyLedger} from '../source/game/currency-ledger.js';
+import {registerHooks} from 'node:module';
+const THREE=await import('../source/vendor/three/build/three.module.js');
+registerHooks({resolve(specifier,context,next){return specifier==='three'?{url:new URL('../source/vendor/three/build/three.module.js',import.meta.url).href,shortCircuit:true}:next(specifier,context);}});
+const {createCharacter}=await import('../source/game/characters.js'),{npcRoleAppearance}=await import('../source/game/appearance.js');await import('../source/game/character-live-entry.js');
 const copy=structuredClone,customerId=CHINA_OFFICIAL_IDS[5],artistId='cn-tavern-reciter',hostId='cn-tavern-reception';
 class V{constructor(...p){this.set(...p);}set(x=0,y=0,z=0){Object.assign(this,{x,y,z});return this;}toArray(){return [this.x,this.y,this.z];}distanceTo(p){return Math.hypot(this.x-p.x,this.y-p.y,this.z-p.z);}clone(){return new V(...this.toArray());}}
-function fixture(input={},dormant=true){
+function fixture(input={},dormant=true,observed=true,realContact=false){
  let saved=copy(input),service,fail=null,need={},account,property,artistEconomy,elapsed=0,revision=0;const npcs=[],poses=[];
- const actor=(id,pos,extra={})=>{const n={station:{id,npcName:id,ageYears:35,...extra},ageYears:35,alive:true,root:{position:new V(...(saved.positions?.[id]||pos)),rotation:{y:0}},home:new V(...pos),preferenceScore:0,locomotion:{walkSpeed:2},route:[],animate(t,walking,action,c){if(id===hostId)poses.push({walking,action,writing:!!c?.receptionWriting});}};npcs.push(n);return n;};
+ const actor=(id,pos,extra={})=>{const n={station:{id,npcName:id,ageYears:35,...extra},ageYears:35,alive:true,root:{position:new V(...(saved.positions?.[id]||pos)),rotation:{y:0}},home:new V(...pos),preferenceScore:0,locomotion:{walkSpeed:2},route:[],animate(t,walking,action,c){if(id===hostId)poses.push({walking,action,writing:!!c?.receptionWriting});}};if(realContact&&id===hostId){const real=createCharacter({...npcRoleAppearance('china',hostId,1),culture:'china',scale:.96});n.root=real.root;n.root.position.set(...(saved.positions?.[id]||pos));new THREE.Group().add(n.root);const observe=n.animate;n.animate=(...args)=>{real.animate(...args);observe(...args);};n.dispose=real.dispose;}npcs.push(n);return n;};
  const artist=actor(artistId,[18.8,7.815,18.66],{salon:{activities:['poetry'],willing:true}}),host=actor(hostId,[24.15,7.815,5.45],{workTarget:[24.15,8.95,6.15]}),guest=actor(customerId,[24.15,7.815,7.65]),player={ageYears:25,root:{position:new V(30,.215,20),rotation:{y:0}},locomotion:{walkSpeed:2}};
  function checkpoint(next){saved={...saved,...copy(next),...(service?{checkpoint:service.snapshot(),positions:Object.fromEntries(npcs.map(n=>[n.station.id,n.root.position.toArray()]))}:{})};return true;}
  const official=createChinaOfficialEconomy({saved:saved.chinaOfficialEconomy,getDay:()=>20,isAppointed:id=>CHINA_OFFICIAL_IDS.includes(id),saveState:(next,tx,patch={})=>{if(fail==='all'||fail===tx.action)return false;return checkpoint({...patch,chinaOfficialEconomy:next});}});
@@ -26,7 +32,7 @@ function fixture(input={},dormant=true){
  artistEconomy=createChinaSalonEconomy({saved:saved.chinaSalonEconomy,copperLedger:bank,officialEconomy:official,getReceptionAccount:()=>account});
  assert.equal(artistEconomy.loadError,null);assert.equal(account.loadError,null);assert.equal(property.loadError??property.state().loadError,null);
  const port=createChinaOfficialSalonPayments({officialEconomy:official,artistEconomy});
- service=createChinaTavernSalon({npcs,copperLedger:bank,economy:artistEconomy,npcPayments:port,...(dormant?{receptionDuty:{resolve:()=>({holderId:hostId,actor:host,revision,available:host.alive,alive:host.alive})}}:{}),sharedNeeds:{status:id=>need[id]||null,hunger:()=>.1},getPlayer:()=>player,poseContext:()=>({}),doors:{routeStep:r=>({waypoint:r[0]})},planPath:(_,p)=>[p],moveActor(n,x,z){n.root.position.x+=x;n.root.position.z+=z;},saved:saved.checkpoint?{continuity:saved.checkpoint}:{},saveState:()=>{if(fail==='all'||fail==='source')return false;return checkpoint({chinaSalonEconomy:artistEconomy.snapshot()});}});
+ service=createChinaTavernSalon({...(realContact?{}:{receptionProps:{sync(){},clear(){},dispose(){},state:()=>null,apply(o,n,t,c){n.animate(t,false,'calligraphy',{...c,receptionWriting:true});return {observed,sessionId:o.id,cardId:o.receptionWork.cardId,phase:o.receptionWork.phase};}}}),npcs,copperLedger:bank,economy:artistEconomy,npcPayments:port,...(dormant?{receptionDuty:{resolve:()=>({holderId:hostId,actor:host,revision,available:host.alive,alive:host.alive})}}:{}),sharedNeeds:{status:id=>need[id]||null,hunger:()=>.1},getPlayer:()=>player,poseContext:()=>({}),doors:{routeStep:r=>({waypoint:r[0]})},planPath:(_,p)=>[p],moveActor(n,x,z){n.root.position.x+=x;n.root.position.z+=z;},saved:saved.checkpoint?{continuity:saved.checkpoint}:{},saveState:()=>{if(fail==='all'||fail==='source')return false;return checkpoint({chinaSalonEconomy:artistEconomy.snapshot()});}});
  if(saved.checkpoint)assert(service.restore(saved.checkpoint));
  const pay=()=>{for(let day=0;day<2;day++)assert(official.completeDuty({actorId:customerId,day,receiptId:`cn-official-duty:${customerId}:${day}`,evidence:{kind:'office-work',completed:true,actorId:customerId,day,audienceDay:day,audienceCompleted:true,elapsed:8,duration:8}}).ok);};
  const tick=(count=1,context={})=>{for(let i=0;i<count;i++){elapsed+=.1;service.update(.1,elapsed,context);}};
@@ -45,3 +51,9 @@ const failed=fixture();fade(failed);failed.fail='salon-settle';failed.tick(45);a
 const saveSource=fixture();fade(saveSource);saveSource.fail='source';saveSource.tick(45);const reload=fixture(saveSource.saved);assert.equal(reload.account.account(hostId).bank,8);assert.equal(reload.service.snapshot().session.stage,'visiting');reload.tick(70);assert.equal(reload.account.snapshot().receipts.length,1);
 const old=fixture({},false);old.pay();assert(old.service.requestNPC(customerId,artistId,'poetry',20));assert(!old.service.snapshot().session.receptionWork);const legacy=fixture(old.saved,true);assert(!legacy.service.snapshot().session.receptionWork,'old in-flight session is not enrolled retroactively');
 console.log('PASS original session three finite desk operations → official real20 → artist10 + business10 → receptionist8/business expense8 atomically; pause, changed holder, refund, failed save, post-save interruption, reload and old-session no-backpay');
+
+const noContact=fixture({},true,false);invited(noContact);noContact.tick(40);assert.equal(noContact.service.snapshot().session.receptionWork.seconds,0);assert.equal(noContact.account.snapshot().receipts.length,0);console.log('PASS failed actual-contact observer cannot advance any work seconds or issue income');
+
+const physical=fixture({},true,true,true);fade(physical);physical.tick(45);assert.equal(physical.account.account(hostId).bank,8);assert(physical.service.receptionWorkState().observed);assert.equal(physical.service.receptionWorkState().cardId,physical.service.snapshot().session.receptionWork.cardId);assert(physical.service.receptionWorkState().gap<.008);physical.service.dispose();physical.host.dispose();console.log('PASS same original paid controller completes with real complete-adult Wenwan rig, pen/page/card contacts, and one8 wage; no contact double in this scenario');
+
+const held=fixture({},true,true,true);accepted(held);held.tick(7);const heldWork=held.service.snapshot().session.receptionWork,heldCard=held.service.receptionWorkState().cardPosition;held.tick(20,{conversationActorId:hostId});assert.deepEqual(held.service.snapshot().session.receptionWork,heldWork);assert.deepEqual(held.service.receptionWorkState().cardPosition,heldCard);assert(held.service.receptionWorkState().observed,'paused original plaque remains physically gripped');held.service.cancelNPC(customerId);assert.equal(held.service.receptionWorkState(),null);held.service.dispose();held.host.dispose();console.log('PASS real held-card conversation freezes grip and work clock; cancellation clears only that original paper/plaque without income');
