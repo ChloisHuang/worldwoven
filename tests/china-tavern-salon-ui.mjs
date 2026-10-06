@@ -31,7 +31,7 @@ const originalView=service.view,originalReception=service.atReception;
 service.view=()=>{fullViewReads++;return originalView();};
 service.atReception=()=>{receptionReads++;return originalReception();};
 service.displayState=()=>{overlayReads++;return {active:!!session,label:session?'阶段 '+session.stage:null,fade:session?.stage==='fade'};};
-const ui=createChinaTavernSalonUI({service,getPlayer:()=>({root:{position:{x:24.15,y:7.815,z:12.65}}}),document:doc});
+const ui=createChinaTavernSalonUI({service,getPlayer:()=>({root:{position:{x:24.15,y:7.815,z:7.65}}}),document:doc});
 const dialog=()=>walk(doc.body).find(e=>e.tag==='dialog'),primary=()=>walk(dialog()).find(e=>e.className?.split(' ').includes('cn-salon-primary')),byText=t=>walk(dialog()).find(e=>e.tag==='button'&&e.textContent===t),focus=k=>walk(dialog()).find(e=>e.attrs['data-cn-salon-focus']===k),click=e=>{assert(e&&!e.disabled);e.onclick();};
 for(let i=0;i<100;i++)ui.update();
 assert.equal(fullViewReads,0,'closed panel never reads candidate/room/wallet detail');assert.equal(receptionReads,0);
