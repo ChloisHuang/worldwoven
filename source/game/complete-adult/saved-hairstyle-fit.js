@@ -15,11 +15,21 @@ const HEAD_CENTER_Z=-.025,SCALP_CLEARANCE=.002,CLOTH_CLEARANCE=.004;
 /** Horizontal triangle rays, indexed by Y. Unlike a bounding ellipsoid this
  * evaluates the actual head/garment surface, including collar and shoulder. */
 export function createHairSurfaceEnvelope(parts,{centerZ=HEAD_CENTER_Z,minimumY=1.15,maximumY=1.72}={}){
- const cells=new Map(),step=.006,a=new THREE.Vector3(),b=new THREE.Vector3(),c=new THREE.Vector3(),hit=new THREE.Vector3();
- for(const part of parts){const p=part.position,ix=part.index;for(let j=0;j<(ix?.length??p.length/3);j+=3){const t=[0,1,2].map(k=>{const i=(ix?ix[j+k]:j+k)*3;return[p[i],p[i+1],p[i+2]];}),lo=Math.max(minimumY,Math.min(...t.map(v=>v[1]))),hi=Math.min(maximumY,Math.max(...t.map(v=>v[1])));if(lo>hi)continue;for(let k=Math.floor(lo/step);k<=Math.floor(hi/step);k++){if(!cells.has(k))cells.set(k,[]);cells.get(k).push(t);}}}
+ const cells=new Map(),step=.006,sectors=48,tau=Math.PI*2,a=new THREE.Vector3(),b=new THREE.Vector3(),c=new THREE.Vector3(),hit=new THREE.Vector3();
+ for(const part of parts){const p=part.position,ix=part.index;for(let j=0;j<(ix?.length??p.length/3);j+=3){const t=[0,1,2].map(k=>{const i=(ix?ix[j+k]:j+k)*3;return[p[i],p[i+1],p[i+2]];}),lo=Math.max(minimumY,Math.min(...t.map(v=>v[1]))),hi=Math.min(maximumY,Math.max(...t.map(v=>v[1])));if(lo>hi)continue;
+   // A ray can hit only triangles in its Y slice and angular sector. Index
+   // the exact projected angular interval, retaining all sectors for triangles
+   // surrounding the ray origin; this is acceleration, not an approximation.
+   const angles=t.map(v=>(Math.atan2(v[0],v[2]-centerZ)+tau)%tau).sort((a,b)=>a-b);let gap=-Infinity,gapAt=0;
+   for(let k=0;k<3;k++){const d=(k===2?angles[0]+tau:angles[k+1])-angles[k];if(d>gap){gap=d;gapAt=k;}}
+   const first=angles[(gapAt+1)%3],span=tau-gap,angular=[];
+   if(span>=Math.PI)for(let k=0;k<sectors;k++)angular.push(k);
+   else for(let k=Math.floor(first/tau*sectors);k<=Math.floor((first+span)/tau*sectors);k++)angular.push(k%sectors);
+   for(let k=Math.floor(lo/step);k<=Math.floor(hi/step);k++)for(const sector of angular){const key=k*sectors+sector;if(!cells.has(key))cells.set(key,[]);cells.get(key).push(t);}
+  }}
  const ray=new THREE.Ray();
  return(x,y,z)=>{const dx=x,dz=z-centerZ,r=Math.hypot(dx,dz);if(r<1e-8)return null;ray.origin.set(0,y,centerZ);ray.direction.set(dx/r,0,dz/r);let radius=-Infinity;
-  for(const t of cells.get(Math.floor(y/step))??[]){a.fromArray(t[0]);b.fromArray(t[1]);c.fromArray(t[2]);if(ray.intersectTriangle(a,b,c,false,hit))radius=Math.max(radius,hit.distanceTo(ray.origin));}
+  for(const t of cells.get(Math.floor(y/step)*sectors+Math.floor(((Math.atan2(dx,dz)+tau)%tau)/tau*sectors))??[]){a.fromArray(t[0]);b.fromArray(t[1]);c.fromArray(t[2]);if(ray.intersectTriangle(a,b,c,false,hit))radius=Math.max(radius,hit.distanceTo(ray.origin));}
   return Number.isFinite(radius)?{radius,distance:r-radius,direction:[dx/r,0,dz/r]}:null;
  };
 }
@@ -56,7 +66,7 @@ function cutLength(g,style){
    const ratio=style==='chin-bob'?.25:.51,pivot=1.57,d=Math.max(0,pivot-y);
    // A C1-continuous root transition keeps the crown and temples untouched.
    const transition=.055,reduction=(1-ratio)*(d<=transition?d*d/(2*transition):d-transition/2);y+=reduction;
-   if(style==='chin-bob'){const hem=1-smooth(1.46,1.53,y);x*=1-.28*hem;z=HEAD_CENTER_Z+(z-HEAD_CENTER_Z)*(1-.14*hem);}
+   if(style==='chin-bob'){const hem=1-smooth(1.445,1.585,y);x*=1-.30*hem;z=HEAD_CENTER_Z+(z-HEAD_CENTER_Z)*(1-.14*hem);}
   }
   p.setXYZ(i,x,y,z);
  }
@@ -81,6 +91,22 @@ function resolveClearance(g,envelope,clearance,{minimumY=-Infinity,maximumY=Infi
  }
  return{moved,maximumPush,interiorCorrections};
 }
+function seatBraidWeave(meshes){
+ const shaft=meshes.find(m=>m.name==='hair-braided-tail');if(!shaft)return;
+ const g=shaft.geometry,p=g.attributes.position,ix=g.index.array,triangles=[];
+ for(let i=0;i<ix.length;i+=3){const q=[0,1,2].map(k=>new THREE.Vector3().fromBufferAttribute(p,ix[i+k]));triangles.push({q,minY:Math.min(...q.map(v=>v.y)),maxY:Math.max(...q.map(v=>v.y))});}
+ const ray=new THREE.Ray(new THREE.Vector3(),new THREE.Vector3(0,0,1)),hit=new THREE.Vector3();
+ const rear=(x,y)=>{ray.origin.set(x,y,-1);let z=Infinity;for(const t of triangles){if(y<t.minY||y>t.maxY)continue;if(ray.intersectTriangle(...t.q,false,hit))z=Math.min(z,hit.z);}return z;};
+ for(const mesh of meshes)if(/^hair-braid-weave-/.test(mesh.name)){
+  const side=mesh.name.endsWith('--1')?-1:1,points=[];
+  for(let i=0;i<=48;i++){const u=i/48,y=1.283+u*.224,x=side*(.009+.007*u)*Math.cos(u*Math.PI*13),z=rear(x,y);if(Number.isFinite(z))points.push(new THREE.Vector3(x,y,z-.001));}
+  const replacement=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),72,.0016,5,false),q=replacement.attributes.position;
+  // The woven ridges sit on the actual shaft surface; the inherited marks
+  // were authored on a separate constant-depth plane and floated at the nape.
+  for(let i=0;i<q.count;i++){const z=rear(q.getX(i),q.getY(i));if(Number.isFinite(z))q.setZ(i,Math.min(q.getZ(i),z-.0004));}
+  mesh.geometry.dispose();mesh.geometry=replacement;finish(replacement);
+ }
+}
 function finish(g){g.computeVertexNormals();g.computeBoundingBox();g.computeBoundingSphere();}
 function hairMesh(g,name,color,long=false){const m=new THREE.Mesh(g,{color:new THREE.Color(color),isMaterial:false});m.name=name;m.userData={softSkin:true,completeAdultPart:long?'long-hair':'hair',savedHairstyle:true};return m;}
 
@@ -103,6 +129,7 @@ export function planSavedHairstyle(root,options,attachmentFit,asset=null){
   // is newly authored to join the fitted crown after garment clearance.
   const detached=new THREE.Group(),h=new THREE.Group();h.name='sculpted-head';detached.add(h);
   for(const old of head.children)if(old.isMesh&&FREE_BRAID.test(old.name)){const copy=old.clone();copy.geometry=old.geometry.clone();const p=copy.geometry.attributes.position,sy=copy.geometry.attributes.sourceY;if(sy)for(let i=0;i<p.count;i++)p.setY(i,sy.getX(i));copy.geometry.deleteAttribute('sourceY');h.add(copy);}
+  seatBraidWeave(h.children);
   // The planner reads the real garment triangles from the original root, and
   // the actual newly fitted crown as its attachment surface.
   braid=planRetainedBraid(root,attachmentFit,{meshes:h.children,shellGeometry:g,anatomical:true,minimumRootY:1.49});
