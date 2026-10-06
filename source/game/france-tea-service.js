@@ -76,8 +76,8 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
  }
  function sourceExperiences(){
   if(!order?.finished||order.cancelled)return true;
-  const sources=[[P.host,order.npcServed&&order.npcCleaned,fullMeal(order)?'刚送过浓汤与面包，也收妥了原餐具':'把刚才那席热茶送好，也收妥了原杯碟'],[P.cook,order.npcPrepared,fullMeal(order)?'刚按原单备好浓汤与面包':'刚按原单备好热茶与小蛋糕']];
-  for(const[id,done,label]of sources)if(done&&!life.recordExperience(id,{id:order.id+':'+id,kind:'staff-work',label,completed:true}).ok)return false;
+  const sources=[[P.guest,order.customer==='guest','刚喝完那杯热茶，也尝过小蛋糕'],[P.host,order.npcServed&&order.npcCleaned,fullMeal(order)?'刚送过浓汤与面包，也收妥了原餐具':'把刚才那席热茶送好，也收妥了原杯碟'],[P.cook,order.npcPrepared,fullMeal(order)?'刚按原单备好浓汤与面包':'刚按原单备好热茶与小蛋糕']];
+  for(const[id,done,label]of sources)if(done&&!life.recordExperience(id,{id:order.id+(id===P.guest?':drank':':'+id),kind:id===P.guest?'staff-rest':'staff-work',label,completed:true}).ok)return false;
   return true;
  }
  const staffChoice=c=>Object.fromEntries(['id','targetId','duration','startedAt','point','target','label','action','cooldown','relief'].filter(k=>c[k]!==undefined).map(k=>[k,c[k]]));
@@ -162,7 +162,9 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
    const receipt={source:fullMeal(order)?'france-full-meal':'france-tea-food',id:order.id+'-consumed',number:orderNumber(order.id),actorId:'player',orderId:order.id,mealId:order.trayId,dishId:fullMeal(order)?FRANCE_MEAL.id:'tea-cake',supplyReceipt:fullMeal(order)?order.supplyReceipt:order.id,...(fullMeal(order)?{paymentReceipt:paymentId(order.id)}:{}),completed:true};
    const next=latestReceipts(mealReceipts,[receipt]);if(!persist({mealReceipts:next,...(fullMeal(order)?{paidOrder:{...order,revision:(order.revision||0)+1,finished:true,stage:'lowering',phase:0,stageAge:0}}:{})}))return false;mealReceipts=next;
   }
-  if(order.customer==='guest'&&!life.recordExperience(P.guest,{id:order.id+':drank',kind:'staff-rest',label:'刚喝完那杯热茶，也尝过小蛋糕',completed:true}).ok)return false;
+  // A failed optional story save must not hold the original cup in mid-air.
+  // Cleanup retries this durable source before releasing the completed order.
+  if(order.customer==='guest')life.recordExperience(P.guest,{id:order.id+':drank',kind:'staff-rest',label:'刚喝完那杯热茶，也尝过小蛋糕',completed:true});
   order.finished=true;record('tea-finished');enter('lowering');if(order.customer==='player')deliverReceipts();return true;
  }
  function drink(){if(order?.customer!=='player'||order.cancelled||order.stage!=='ready'||!atSeat())return false;if(!payment(order,'settle')){notify('餐费暂时未能结账，请稍后重试');return false;}enter('drinking');return true;}
