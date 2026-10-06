@@ -30,8 +30,9 @@ function crownClearance(head,shell,seat){
   assert(Number.isFinite(outside),JSON.stringify({message:'hat must enclose crown above its opening',name:shell.name,seat,point:q,lowest:p.getY(0)}));minimum=Math.min(minimum,outside-radius);count++;
  }return{minimum,count};
 }
+const selectedCuts=process.env.HEADGEAR_HAIR_STYLES?.split(',')??HAIR_STYLES;assert(selectedCuts.length&&selectedCuts.every(c=>HAIR_STYLES.includes(c)),'Known saved hairstyles required');
 let cases=0,noHat=0,samples=0,minClearance=Infinity;const forms=new Set(),cuts=new Set(),cultures=new Set();
-for(const culture of ['japan','china','egypt','france'])for(const bodyPreset of BODY_PRESETS)for(const hairStyle of HAIR_STYLES)for(const style of ['chef','artist','gardener']){
+for(const culture of ['japan','china','egypt','france'])for(const bodyPreset of BODY_PRESETS)for(const hairStyle of selectedCuts)for(const style of ['chef','artist','gardener']){
  const masc=bodyPreset.startsWith('masculine'),form=masc?'male':'female',options={culture,masc,bodyPreset,hairStyle,style,wardrobePreset:WARDROBE_PRESETS[culture][masc?'masculine':'feminine'][0],skin:0xc99b77,hair:0x44342f,clothes:0x65847b,accent:0xcdb887,eyeColor:0x594b3f};
  const identity=JSON.stringify(options),root=createApprovedSurfaces(options),head=root.getObjectByName('sculpted-head'),asset=morphCompleteAdultAsset(sculptCompleteAdultProfile(ADULT_FORMS[form]),options.shapeTraits),fit=createHeadAttachmentFit(head,asset,ADULT_FORMS[form]);
  const hair=planSavedHairstyle(root,options,fit,asset);assert(hair.supported,JSON.stringify({...options,reason:hair.reason}));
