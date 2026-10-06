@@ -1,6 +1,7 @@
 import {SALON_MIN_FEE} from './china-salon-pricing.js';
 import {SALON_RECEPTION} from './china-tavern-salon.js';
 import {SALON_ACTIVITIES} from './china-tavern-salon-artists.js';
+import {TAVERN_HALL_DZ} from './china-tavern-layout.js';
 import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
 import {AIRY_UI_THEME} from './china-money-house-theme.js';
 export function createChinaTavernSalonUI({service,getPlayer,onOpen=()=>{},document:doc=globalThis.document}){
@@ -13,7 +14,7 @@ export function createChinaTavernSalonUI({service,getPlayer,onOpen=()=>{},docume
 `;
  badge.type='button';badge.setAttribute('aria-label','三层青楼雅集接待');dialog.setAttribute('aria-label','温晚的接待案');fade.hidden=true;fade.setAttribute('aria-live','polite');(doc.head||doc.body).append(style);doc.body.append(badge,dialog,fade);
  let signature='',disposed=false,generation=0,selectedArtist=null,selectedActivity=null,panel=null;
- const nearFloor=()=>{const p=getPlayer()?.root.position;return p&&p.x>16&&p.x<26&&p.z>8&&p.z<21&&Math.abs(p.y-7.815)<.5;};
+ const nearFloor=()=>{const p=getPlayer()?.root.position;return p&&p.x>16&&p.x<26&&p.z>8+TAVERN_HALL_DZ&&p.z<21&&Math.abs(p.y-7.815)<.5;};
  const close=()=>{generation++;if(dialog.open)dialog.close();};
  const text=(node,value)=>{value=String(value??'');if(node.textContent!==value)node.textContent=value;};
  const optional=(node,value)=>{text(node,value);node.hidden=!value;};
