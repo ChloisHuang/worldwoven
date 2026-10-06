@@ -40,11 +40,41 @@ function append(state,receipt){
  const next=copy(state),account=next.accounts[p.actorId]??={bank:0,cash:0};account.bank+=receipt.amount;
  if(!integer(account.bank))throw Error('clinic-balance-overflow');next.receipts.push(copy(receipt));return next;
 }
+function mealChange(state,input,kind){
+ if(!person(input?.actorId)||!/^cn-tavern-order-[1-9][0-9]*$/.test(input?.orderId||'')||!integer(input.amount)||input.amount<1)throw Error('invalid-clinic-meal');
+ const transfers=state.mealTransfers||[],paid=transfers.find(r=>r.orderId===input.orderId&&r.kind==='meal-payment'),refunded=transfers.find(r=>r.orderId===input.orderId&&r.kind==='meal-refund');
+ if(kind==='meal-payment'&&paid||kind==='meal-refund'&&(!paid||refunded||paid.actorId!==input.actorId||paid.amount!==input.amount))throw Error('clinic-meal-conflict');
+ const next=copy(state),account=next.accounts[input.actorId];if(!account)throw Error('insufficient-clinic-funds');let sourceSplit;
+ if(kind==='meal-payment'){if(account.cash+account.bank<input.amount)throw Error('insufficient-clinic-funds');sourceSplit={cash:Math.min(account.cash,input.amount),bank:Math.max(0,input.amount-account.cash)};account.cash-=sourceSplit.cash;account.bank-=sourceSplit.bank;}
+ else{sourceSplit=copy(paid.sourceSplit);account.cash+=sourceSplit.cash;account.bank+=sourceSplit.bank;}
+ if(!integer(account.cash)||!integer(account.bank)||!integer(account.cash+account.bank))throw Error('clinic-balance-overflow');
+ const record={kind,id:`clinic-${kind}:${input.orderId}`,actorId:input.actorId,orderId:input.orderId,amount:input.amount,sourceSplit,wagesThrough:state.receipts.length};
+ next.mealTransfers=[...copy(transfers),record];return {next,record};
+}
 export function createClinicNPCEconomy({saved,saveState=()=>false}={}){
  let current=empty(),loadError=null,busy=false;
- try{if(saved!==undefined&&saved!==null){if(saved.version!==1||!Array.isArray(saved.receipts))throw Error('invalid-clinic-economy');const seen=new Set();for(const row of saved.receipts){const verified=clinicNPCWageReceipt(row.evidence);if(!same(row,verified)||seen.has(row.id))throw Error('invalid-clinic-receipt');seen.add(row.id);current=append(current,verified);}if(!same(saved,current))throw Error('invalid-clinic-balance');}}catch(e){loadError=e.message;current=empty();}
+ try{if(saved!==undefined&&saved!==null){
+  if(saved.version!==1||!Array.isArray(saved.receipts)||saved.mealTransfers!==undefined&&!Array.isArray(saved.mealTransfers))throw Error('invalid-clinic-economy');
+  const seen=new Set(),transfers=saved.mealTransfers||[];let transferIndex=0;
+  for(let wageIndex=0;wageIndex<=saved.receipts.length;wageIndex++){
+   while(transferIndex<transfers.length&&transfers[transferIndex].wagesThrough===wageIndex){const old=transfers[transferIndex++];if(!['meal-payment','meal-refund'].includes(old.kind))throw Error('invalid-clinic-transfer');const result=mealChange(current,old,old.kind);if(!same(old,result.record))throw Error('invalid-clinic-transfer');current=result.next;}
+   if(wageIndex===saved.receipts.length)break;const row=saved.receipts[wageIndex],verified=clinicNPCWageReceipt(row.evidence);if(!same(row,verified)||seen.has(row.id))throw Error('invalid-clinic-receipt');seen.add(row.id);current=append(current,verified);
+  }
+  if(transferIndex!==transfers.length||!same(saved,current))throw Error('invalid-clinic-balance');
+ }}catch(e){loadError=e.message;current=empty();}
+ function prepareMeal(input,kind){
+  if(loadError||busy)return {ok:false,code:loadError||'clinic-ledger-busy'};const base=current,old=current.mealTransfers?.find(r=>r.kind===kind&&r.orderId===input?.orderId);let result;
+  if(old){if(old.actorId!==input.actorId||old.amount!==input.amount)return {ok:false,code:'clinic-meal-conflict'};result={next:current,record:old};}
+  else try{result=mealChange(current,input,kind);}catch(e){return {ok:false,code:e.message};}
+  let committed=false;return {ok:true,snapshot:copy(result.next),balanceAfter:result.next.accounts[input.actorId].cash+result.next.accounts[input.actorId].bank,commit(patch={}){
+   if(committed)return {ok:true,replayed:true};if(current!==base||busy)return {ok:false,code:'stale-clinic-meal'};
+   if(!patch||typeof patch!=='object'||Array.isArray(patch)||Object.hasOwn(patch,'chinaClinicNPCEconomy'))return {ok:false,code:'invalid-clinic-meal-patch'};
+   busy=true;try{const stored=saveState(copy(result.next),copy(result.record),copy(patch));if(stored===false||stored?.ok===false||stored?.then)return {ok:false,code:'save-failed'};current=result.next;committed=true;return {ok:true,replayed:!!old};}catch{return {ok:false,code:'save-failed'};}finally{busy=false;}
+  }};
+ }
+
  const issued=new Map(current.receipts.map(r=>[r.id,r]));
- return {hasReceipt:id=>issued.has(id),get loadError(){return loadError;},snapshot:()=>copy(current),account:id=>loadError?null:copy(current.accounts[id]||{bank:0,cash:0}),
+ return {prepareMealPayment:input=>prepareMeal(input,'meal-payment'),prepareMealRefund:input=>prepareMeal(input,'meal-refund'),hasReceipt:id=>issued.has(id),get loadError(){return loadError;},snapshot:()=>copy(current),account:id=>loadError?null:copy(current.accounts[id]||{bank:0,cash:0}),
   settle(proof){
    if(loadError||busy)return {ok:false,code:loadError||'clinic-ledger-busy'};
    let receipt,next;try{receipt=clinicNPCWageReceipt(proof);const old=issued.get(receipt.id);if(old)return same(old,receipt)?{ok:true,replayed:true,receipt:copy(old)}:{ok:false,code:'clinic-wage-conflict'};next=append(current,receipt);}catch(e){return {ok:false,code:e.message};}
