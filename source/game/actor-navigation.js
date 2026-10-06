@@ -187,7 +187,9 @@ export function followActorRoute(actor,dt,{route=actor.route,doors,moveActor,npc
    // while a desk closes the other side. A bounded collision-checked retreat
    // creates turning room independently of frame rate, without backing down
    // the route indefinitely or reversing the already chosen passing side.
-   if(!actor.walking&&bodyClosesSide&&(turn.backedOff||0)<.15){const back=Math.min(amount,.15-(turn.backedOff||0)),x=from.x,z=from.z;move(-turn.ux*back,-turn.uz*back,.25);turn.backedOff=(turn.backedOff||0)+Math.hypot(from.x-x,from.z-z);}
+   // Treat the 15cm cap with the movement epsilon: a floating-point crumb
+   // must not issue a zero-intent trial that erases this encounter's wait.
+   if(!actor.walking&&bodyClosesSide&&(turn.backedOff||0)<.15-EPS){const back=Math.min(amount,.15-(turn.backedOff||0)),x=from.x,z=from.z;move(-turn.ux*back,-turn.uz*back,.25);turn.backedOff=(turn.backedOff||0)+Math.hypot(from.x-x,from.z-z);}
   }
   return {...step,waiting:true,blocked:false,body:other?.station?.id||'player',yielding:actor.walking,travel:amount};
  }
