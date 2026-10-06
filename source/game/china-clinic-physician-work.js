@@ -13,7 +13,7 @@ export function clinicCarePlan(symptoms){
 }
 export function validPhysicianOrder(order){
  if(order.physician===undefined)return true;
- return ['player','cn-clinic-physician'].includes(order.physician)&&Array.isArray(order.symptoms)&&order.symptoms.length>0&&order.symptoms.every(s=>typeof s==='string'&&s.length>0&&s.length<240)&&
+ return (order.physician==='player'||typeof order.physician==='string'&&/^cn-[a-z0-9-]{1,60}$/.test(order.physician))&&Array.isArray(order.symptoms)&&order.symptoms.length>0&&order.symptoms.every(s=>typeof s==='string'&&s.length>0&&s.length<240)&&
   typeof order.questioned==='boolean'&&typeof order.careCorrect==='boolean'&&
   (order.carePlanId===null||CLINIC_CARE_PLANS.some(p=>p.id===order.carePlanId))&&
   (order.physician==='player'?/^cn-clinic-physician-labor-[1-9][0-9]*$/.test(order.physicianReceiptId):order.physicianReceiptId===null)&&
