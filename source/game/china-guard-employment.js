@@ -33,7 +33,7 @@ export function createChinaGuardEmployment({archery,careers,getPlayer,getMounted
  const reviewer=()=>archery.reviewerContext?.()||null;
  const reviewerName=()=>reviewer()?.name||'射圃审核人暂缺';
  const holderName=()=>archery.patrolHolderContext?.()?.name||'巡值交班人暂缺';
- const meetingIdentity=()=>{const p=reviewer(),h=archery.patrolHolderContext?.();return [p?.actorId||'-',h?.actorId||'-',h?.revision??'-'].join(':');};
+ const meetingIdentity=()=>{const p=reviewer(),h=archery.patrolHolderContext?.();return [p?.actorId||'-',p?.revision??'-',h?.actorId||'-',h?.revision??'-'].join(':');};
  const meet=()=>!!reviewer()&&atRegistration()&&archery.supervisorReady();
  const roleView={...ROLE,get employer(){return reviewerName();}};
  const formal=createFormalLaborContract({careers,workState:()=>careers?.workState?.()??careers?.state(),role:roleView,getJob:()=>current.job,getPlayer,meetHost:meet,notify,openRegistration});
@@ -115,7 +115,7 @@ export function createChinaGuardEmployment({archery,careers,getPlayer,getMounted
   return {id:`cn-guard-job-${kind}`,provider:'china-guard-employment',roleId:ROLE.id,kind,name:'锦衣卫 · 巡值工作',npcName:person?.name||'射圃巡值登记',visualAnchor:personDirected?{actorId:person.actorId}:{},action,
    position:(stop?.at||REG).slice(),executionRadius:stop?.hold!==undefined ? .19 : .26,interactionRadius:1.8,priority:47,
    ...(kind==='formal-view'?{registration:{scope:'role',roleId:ROLE.id}}:{}),
-   intentKey:[...(personDirected?[person.actorId,holder?.actorId||'-',holder?.revision??'-']:[]),careers.workState().revision,job?.receiptId||'-',job?.stage||'-',job?.assignment||'-',kind,stop?`${job.routeId}:${job.circuits}:${job.index}`:'-'].join(':')};
+   intentKey:[...(personDirected?[person.actorId,person.revision??'-',holder?.actorId||'-',holder?.revision??'-']:[]),careers.workState().revision,job?.receiptId||'-',job?.stage||'-',job?.assignment||'-',kind,stop?`${job.routeId}:${job.circuits}:${job.index}`:'-'].join(':')};
  }
  function resolveIntent(old){const next=intent(old?.kind);return next&&old.provider===next.provider&&old.id===next.id&&old.intentKey===next.intentKey?next:null;}
  function executeIntent(old){
@@ -169,7 +169,7 @@ export function createChinaGuardEmployment({archery,careers,getPlayer,getMounted
   else if(attendance>=1)flushAttendance();
   }finally{syncWardrobe();}
  }
- return {holderName,reviewerName,intent,resolveIntent,executeIntent,update,accept,endShift,claim,formal,atRegistration,wardrobePreset,
+ return {holderName,reviewerName,identityKey:meetingIdentity,intent,resolveIntent,executeIntent,update,accept,endShift,claim,formal,atRegistration,wardrobePreset,
   state:()=>({...copy(current),lastError,waiting,observation:copy(observation),autoPatrol,job:current.job?{...copy(current.job),coveredSeconds:current.job.coveredSeconds+attendance}:null}),
   active:()=>!!current.job,isActing:()=>!!observation,playerAction:()=>observation?'observe':null,playerStation:()=>null,
   label:()=>current.job?current.job.stage==='ready'?`已还值勤装 · 待${reviewerName()}验收`:current.job.assignment==='requested'?'已换值勤装 · 候交班不计薪':current.job.assignment==='returning'?'等原守卫当面接回巡线':observation?routeFor(current.job)[current.job.index].label:`锦衣卫巡值 · ${current.job.routeId==='east'?'东':'西'}线 ${current.job.index+1}/${routeFor(current.job).length}`:null,

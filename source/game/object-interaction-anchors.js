@@ -9,7 +9,7 @@ const EMPLOYERS={
  'japan-kitchen-employment':'jp-sushi','japan-table-service-employment':'jp-ramen',
  'egypt-kitchen-employment':'egypt-royal-kitchen','egypt-table-service-employment':'egypt-royal-dining',
  'china-clinic-employment':'cn-clinic-physician','china-clinic-physician-employment':'cn-clinic-physician',
- 'china-royal-kitchen-employment':'cn-cooking','china-guard-employment':'cn-range-warden',
+ 'china-royal-kitchen-employment':'cn-cooking',
  'china-tavern-labor':'cn-tavern-host','china-tavern-service':'cn-tavern-host','china-tavern-lodging':'cn-tavern-host',
  'china-salon-employment':'cn-tavern-reception','france-gardener-labor':'france-gardener',
  'france-tea-employment':'france-salon','france-pastry-employment':'france-bakery',
