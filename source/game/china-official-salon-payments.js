@@ -8,7 +8,8 @@ export function createChinaOfficialSalonPayments({officialEconomy,artistEconomy}
  const available=(id,fee)=>{const a=officialEconomy?.account(id);return CHINA_OFFICIAL_IDS.includes(id)&&!officialEconomy.loadError&&!artistEconomy?.loadError&&a&&Number.isSafeInteger(fee)&&fee>=20&&a.cash+a.bank>=fee+6;};
  return {
   available,nextId:()=>officialEconomy?.nextSalonOrderId(),
-  status:o=>officialEconomy?.salonHold(o.id),
+  status:o=>{const h=officialEconomy?.salonHold(o.id);return !h?null:h.actorId===o.customerId&&h.artistId===o.actorId&&h.activity===o.activity&&h.amount===o.fee&&JSON.stringify(h.incomePolicy)===JSON.stringify(o.incomePolicy)?h:{status:'conflict'};},
+  recognizesCustomer:id=>CHINA_OFFICIAL_IDS.includes(id),
   held:()=>officialEconomy?.salonHolds().filter(h=>h.status==='reserved')||[],
   reserve(o){if(!available(o.customerId,o.fee)&&!officialEconomy?.salonHold(o.id))return no('insufficient-personal-funds');const p=officialEconomy.prepareSalonReserve(terms(o));return p.ok?p.commit():p;},
   refund(o){const p=officialEconomy.prepareSalonRefund(terms(o));return p.ok?p.commit():p;},
