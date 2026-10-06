@@ -8,12 +8,12 @@ const proof=(day=0,id='cn-rest',rev=0)=>archiveProof(archiveContract(day,id,rev)
 let funds=null,world=null,saveOK=true;
 const account=createArchiveAccount({saveState:(s,r,patch)=>{if(!saveOK)return false;funds=s;if(patch.chinaArchiveInspection)world=patch.chinaArchiveInspection;return true;}});
 assert.equal(account.account('cn-rest').bank,0);
-for(const mutate of[p=>p.steps.pop(),p=>p.steps[0].checkedSeconds=1.99,p=>p.steps[0].tidiedSeconds=.99,p=>p.steps[2].returned=false,p=>p.steps[0].bookId='cn-archive-volume-99',p=>p.bookIds.reverse(),p=>p.returnedHome=false,p=>p.actorId='player',p=>p.orderId='cn-edict-east-shore:0']){const p=proof();mutate(p);assert(!account.settle(p).ok);}
+for(const mutate of[p=>p.steps.pop(),p=>p.steps[0].checkedSeconds=1.99,p=>p.steps[0].tidiedSeconds=.99,p=>p.steps[2].returned=false,p=>p.steps[0].bookId='cn-archive-volume-99',p=>p.bookIds.reverse(),p=>p.layoutVersion=1,p=>p.contractVersion=1,p=>p.bookHomes[0].position[2]-=.5,p=>p.returnedHome=false,p=>p.actorId='player',p=>p.orderId='cn-edict-east-shore:0']){const p=proof();mutate(p);assert(!account.settle(p).ok);}
 const n={station:{id:'cn-rest'},alive:true,root:{position:{x:ARCHIVE_HOME[0],y:ARCHIVE_HOME[1],z:ARCHIVE_HOME[2]}}};
 let day=0,assignment={status:'npc',actor:n,alive:true,available:true,holderId:'cn-rest',revision:0},control=true,contact=false,catalogue=true,missing=false;
 let observedWork=0,travelCalls=0;
 // Deliberately bounded adapter doubles: this test is NOT world collision or rig QA.
-const books={restore(){},completeCatalogue:()=>catalogue,exists:()=>!missing,atHome:()=>true,allReturned:()=>true,contact:()=>contact,replace:()=>true};
+const books={restore(){},completeCatalogue:()=>catalogue,exists:()=>!missing,atHome:()=>true,allReturned:()=>true,contact:()=>contact,matches:()=>true};
 const args={resolveAssignment:()=>assignment,getDay:()=>day,getActor:id=>id==='cn-rest'?n:null,canControl:()=>control,books,economy:account,
  travel(n,p,dt){travelCalls++;const d=Math.hypot(p[0]-n.root.position.x,p[2]-n.root.position.z),r=Math.min(1,dt*3/(d||1));n.root.position.x+=(p[0]-n.root.position.x)*r;n.root.position.z+=(p[2]-n.root.position.z)*r;},
  pose(n,t,work){if(work)observedWork++;},saveState:s=>{if(!saveOK)return false;world=s;return true;}};
