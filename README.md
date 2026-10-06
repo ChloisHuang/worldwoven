@@ -11,8 +11,8 @@ R16.131 ordinary visits use the current supported character model with the origi
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.139-public, 2026-10-06
-Verified published Sites source commit: 4f8e70833ad373184daeefbe6288ee5bb2ed54e1
+Published release: R16.140-public, 2026-10-06
+Verified published Sites source commit: 4752bed48ca12d204ce118dfc9da82003110e1a7
 
 Opt-in same-save performance panel: https://alien.doudouai.net/?perf=1#china
 It reads runtime timing/render counts and the initial save length; it does not reset storage or send telemetry. CPU submission timing is not GPU timing. R16.128 removes repeated full-history copies from closed salon panels and China job/HUD reads. R16.129 extends current-career reads to the existing Japan/Egypt employment adapters and French tea/pastry/gardening controllers. Those controllers only run in their respective countries. The user reported R16.130 runs without lag; broader device performance remains unverified.
@@ -34,6 +34,8 @@ R16.137 corrects the landscape meal footer, table-local dining entry and cramped
 R16.138 fixes pillow/head contact while preserving neutral neck length and adds independent berths to authored double beds: 17 beds provide 23 places, including six doubles. Player/NPC occupancy, getting up and restoration remain independent without evicting the other sleeper; existing room and lodging access rules remain. Current-model contact checks passed; browser/iOS appearance is still unverified.
 
 R16.139 connects the current NPC chef and assistant to their own paid meals, real kitchen service, public toilet visits and duty return. Role changes preserve each person’s funds, needs and held dish; players retain manual control. Default China needs coverage is 19/31, with 12 still open. No new wages, automatic aging or hiring UI is introduced.
+
+R16.140 applies patient-rated pay to new marked player clinic shifts: physician/pharmacy bases remain 30/12 copper, scaled 80–120% by actual patient feedback and worked time; unrated shifts are neutral. Free patient care and government funding remain, wages enter only the player bank, and historical sealed pay is unchanged. NPC wages and needs coverage are not expanded.
 
 ## Working rules
 
