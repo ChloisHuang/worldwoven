@@ -11,8 +11,8 @@ R16.131 ordinary visits use the current supported character model with the origi
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.138-public, 2026-10-06
-Verified published Sites source commit: d0e8dc8e4c7efd74b13d88f34b97b79045354cea
+Published release: R16.139-public, 2026-10-06
+Verified published Sites source commit: 4f8e70833ad373184daeefbe6288ee5bb2ed54e1
 
 Opt-in same-save performance panel: https://alien.doudouai.net/?perf=1#china
 It reads runtime timing/render counts and the initial save length; it does not reset storage or send telemetry. CPU submission timing is not GPU timing. R16.128 removes repeated full-history copies from closed salon panels and China job/HUD reads. R16.129 extends current-career reads to the existing Japan/Egypt employment adapters and French tea/pastry/gardening controllers. Those controllers only run in their respective countries. The user reported R16.130 runs without lag; broader device performance remains unverified.
@@ -32,6 +32,8 @@ R16.136 places hand icons on objects and conversation bubbles on NPCs, with grou
 R16.137 corrects the landscape meal footer, table-local dining entry and cramped-HUD menu placement. Host work now resolves the current role holder while preserving each person’s funds and needs, with no invented aging or hiring UI. Reviewed female nose projection is restored without changing saved traits. Browser/CSS/phone acceptance remains open; sleep and double-bed changes are separate.
 
 R16.138 fixes pillow/head contact while preserving neutral neck length and adds independent berths to authored double beds: 17 beds provide 23 places, including six doubles. Player/NPC occupancy, getting up and restoration remain independent without evicting the other sleeper; existing room and lodging access rules remain. Current-model contact checks passed; browser/iOS appearance is still unverified.
+
+R16.139 connects the current NPC chef and assistant to their own paid meals, real kitchen service, public toilet visits and duty return. Role changes preserve each person’s funds, needs and held dish; players retain manual control. Default China needs coverage is 19/31, with 12 still open. No new wages, automatic aging or hiring UI is introduced.
 
 ## Working rules
 
