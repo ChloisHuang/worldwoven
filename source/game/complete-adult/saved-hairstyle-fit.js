@@ -59,9 +59,15 @@ function cutLength(g,style){
  for(let i=0;i<p.count;i++){
   let x=p.getX(i),y=p.getY(i),z=p.getZ(i);
   if(style==='swept-short'){
-   // Opposite sweep, with a close graduated nape instead of the loose long
-   // side-part locks. Mirror triangle winding below to preserve the surface.
-   x=-x;const low=1-smooth(1.54,1.61,y);y+=.020*low;z=HEAD_CENTER_Z+(z-HEAD_CENTER_Z)*(1-.075*low);x*=1-.055*low;
+   // A genuinely short, brushed-back cut: lift the whole frontal hairline,
+   // sweep the forehead locks backward and graduate sides/nape. Merely
+   // mirroring the side-part left the two saved styles visually identical.
+   x=-x;const low=1-smooth(1.54,1.62,y),front=smooth(.008,.065,z),brush=(1-smooth(1.595,1.692,y))*front;
+   y+=.030*low*(1-.7*front)+.043*brush;z-=.015*brush;z=HEAD_CENTER_Z+(z-HEAD_CENTER_Z)*(1-.08*low);x*=1-.085*low;
+  }else if(style==='side-part'){
+   // Keep the loose left fringe. The smaller right section is combed away
+   // from the part, exposing a clear asymmetric forehead edge.
+   const partSide=smooth(.012,.063,x)*smooth(.013,.065,z)*(1-smooth(1.59,1.692,y));y+=.023*partSide;z-=.007*partSide;
   }else if(style==='chin-bob'||style==='shoulder-wave'){
    const ratio=style==='chin-bob'?.25:.51,pivot=1.57,d=Math.max(0,pivot-y);
    // A C1-continuous root transition keeps the crown and temples untouched.
@@ -90,6 +96,19 @@ function resolveClearance(g,envelope,clearance,{minimumY=-Infinity,maximumY=Infi
   for(let i=0;i<p.count;i++)if(pushes[i]){const x=p.getX(i),z=p.getZ(i),r=Math.hypot(x,z-HEAD_CENTER_Z);if(r<1e-8)continue;p.setXYZ(i,x+x/r*pushes[i],p.getY(i),z+(z-HEAD_CENTER_Z)/r*pushes[i]);interiorCorrections++;maximumPush=Math.max(maximumPush,pushes[i]);}
  }
  return{moved,maximumPush,interiorCorrections};
+}
+function sidePartSeam(geometry,color){
+ // A slim dark root groove follows the actual outer hair triangles. It is
+ // not a face decal and cannot float over a different fitted scalp shape.
+ const origin=new THREE.Vector3(0,1.56,HEAD_CENTER_Z),p=geometry.attributes.position,ix=geometry.index.array,ray=new THREE.Ray(origin.clone()),a=new THREE.Vector3(),b=new THREE.Vector3(),c=new THREE.Vector3(),hit=new THREE.Vector3(),positions=[],indices=[];
+ const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(.017,1.697,-.034),new THREE.Vector3(.022,1.706,-.002),new THREE.Vector3(.027,1.692,.037),new THREE.Vector3(.030,1.660,.073)]);
+ for(let i=0;i<=28;i++){const u=i/28,point=curve.getPoint(u),width=.0017*Math.sin(Math.PI*(.08+.84*u));for(const side of [-1,1]){
+  const target=point.clone();target.x+=side*width/2;ray.direction.copy(target).sub(origin).normalize();let distance=-Infinity;
+  for(let j=0;j<ix.length;j+=3){a.fromBufferAttribute(p,ix[j]);b.fromBufferAttribute(p,ix[j+1]);c.fromBufferAttribute(p,ix[j+2]);if(ray.intersectTriangle(a,b,c,false,hit))distance=Math.max(distance,hit.distanceTo(origin));}
+  const q=Number.isFinite(distance)?origin.clone().addScaledVector(ray.direction,distance+.00045):target;positions.push(...q.toArray());
+ }}
+ for(let i=0;i<28;i++){const a=i*2;indices.push(a,a+2,a+1,a+1,a+2,a+3);}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setIndex(indices);finish(g);return hairMesh(g,'hair-saved-side-part-seam',new THREE.Color(color).multiplyScalar(.48).getHex());
 }
 function seatBraidWeave(meshes){
  const shaft=meshes.find(m=>m.name==='hair-braided-tail');if(!shaft)return;
@@ -122,7 +141,7 @@ export function planSavedHairstyle(root,options,attachmentFit,asset=null){
  convertScalp(g,short?'male':'female',form);cutLength(g,style);
  const scalp=createHairSurfaceEnvelope([asset?.parts.find(p=>p.material==='skin')??scalpPart(form)],{minimumY:1.435}),cloth=createHairSurfaceEnvelope(hairGarmentParts(root));
  const scalpFit=resolveClearance(g,scalp,SCALP_CLEARANCE,{minimumY:1.44}),clothFit=resolveClearance(g,cloth,CLOTH_CLEARANCE,{maximumY:1.46});finish(g);
- const mesh=hairMesh(g,'hair-saved-'+style,options.hair,style==='shoulder-wave'),meshes=[mesh];let braid=null;
+ const mesh=hairMesh(g,'hair-saved-'+style,options.hair,style==='shoulder-wave'),meshes=[mesh];if(style==='side-part')meshes.push(sidePartSeam(g,options.hair));let braid=null;
  if(style==='braided-tail'&&!bound){
   // The inherited free tail is copied in anatomical rest space. Its full
   // shaft, woven marks and tie share one rigid transform; only the root bridge
