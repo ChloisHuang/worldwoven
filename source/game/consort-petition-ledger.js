@@ -163,9 +163,9 @@ export function createConsortPetitionLedger({saved,worldSeed=1,actorId='player',
     if(!object(c)||c.emperorId!==EMPEROR_ID||!(c.empressId===null||text(c.empressId))||!Array.isArray(c.consorts))return ['court-state-unavailable'];
     const holders=c.consorts.map(x=>x?.actorId),rooms=c.consorts.map(x=>x?.roomId),beds=c.consorts.map(x=>x?.bedId);
     if(holders.some(x=>!text(x))||rooms.some(x=>!text(x))||beds.some(x=>!text(x))||new Set(holders).size!==holders.length||new Set(rooms).size!==rooms.length||new Set(beds).size!==beds.length||
-      holders.includes(c.emperorId)||c.empressId!==null&&(c.empressId===c.emperorId||holders.includes(c.empressId))||
+      holders.includes(c.emperorId)||c.empressId!==null&&(c.empressId===c.emperorId||!holders.includes(c.empressId))||
       CONSORT_INCUMBENTS.some(i=>!c.consorts.some(h=>same(h.actorId,i.actorId)&&h.roomId===i.roomId&&h.bedId===i.bedId)))return ['court-registry-conflict'];
-    if(c.empressId===actorId)return ['already-holds-political-title'];
+    if(c.empressId===actorId&&!current.appointment)return ['already-holds-political-title'];
     const others=c.consorts.filter(c=>c.actorId!==actorId);
     if(others.length>=CONSORT_CAPACITY||!current.appointment&&holders.includes(actorId))return ['no-consort-vacancy'];
     if(current.appointment){const own=c.consorts.find(c=>c.actorId===actorId);if(own&&(own.roomId!==current.appointment.residence.roomId||own.bedId!==current.appointment.residence.bedId))return ['court-registry-conflict'];}

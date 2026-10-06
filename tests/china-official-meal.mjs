@@ -1,3 +1,4 @@
+import {findActorStandPoint} from '../source/game/actor-navigation.js';
 // Reproduces hungry visitors retaining unaffordable dining intentions and
 // stale seat/service claims. Real persistence, needs and queues; direct routes
 // isolate the failure. Production geometry has a separate bounded scenario.
@@ -12,7 +13,7 @@ import {createGameCurrencyLedger} from '../source/game/currency-ledger.js';
 import {createCurrencyLedger} from '../source/game/currency-ledger.js';
 const copy=x=>JSON.parse(JSON.stringify(x)),context=vm.createContext({console}),cache=new Map();
 const position=(x=0,y=.215,z=0)=>({x,y,z,set(x,y,z){Object.assign(this,{x,y,z});},toArray(){return [this.x,this.y,this.z];},copy(p){Object.assign(this,{x:p.x,y:p.y,z:p.z});}});
-const nav=new vm.SyntheticModule(['followActorRoute'],function(){this.setExport('followActorRoute',(n,dt)=>{const p=n.route[0];if(!p)return {};const d=Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z),step=Math.min(d,dt*3);if(d<.07){n.root.position.set(p.x,p.y,p.z);n.route.shift();return {};}n.root.position.x+=(p.x-n.root.position.x)/d*step;n.root.position.z+=(p.z-n.root.position.z)/d*step;n.root.position.y=p.y;n.walking=true;return {};});},{context});
+const nav=new vm.SyntheticModule(['followActorRoute','findActorStandPoint'],function(){this.setExport('findActorStandPoint',findActorStandPoint);this.setExport('followActorRoute',(n,dt)=>{const p=n.route[0];if(!p)return {};const d=Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z),step=Math.min(d,dt*3);if(d<.07){n.root.position.set(p.x,p.y,p.z);n.route.shift();return {};}n.root.position.x+=(p.x-n.root.position.x)/d*step;n.root.position.z+=(p.z-n.root.position.z)/d*step;n.root.position.y=p.y;n.walking=true;return {};});},{context});
 const props=new vm.SyntheticModule(['createTavernMealProps','createTavernDirtProps'],function(){this.setExport('createTavernMealProps',()=>({update(){},clear(){},state:()=>({}),dispose(){}}));this.setExport('createTavernDirtProps',()=>({update(){},dispose(){}}));},{context});
 const mealKit=new vm.SyntheticModule(['createPalaceMealKit'],function(){this.setExport('createPalaceMealKit',()=>({show(){},sync(){},dispose(){}}));},{context});
 function module(file){if(cache.has(file))return cache.get(file);const m=new vm.SourceTextModule(fs.readFileSync(file,'utf8'),{context,identifier:file});cache.set(file,m);return m;}

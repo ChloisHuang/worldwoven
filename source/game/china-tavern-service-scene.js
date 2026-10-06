@@ -3,7 +3,7 @@ import {CHINA_OFFICIAL_IDS} from './china-official-economy.js';
 import {validSalonVisitor} from './china-salon-payments.js';
 import {validPlayerStay} from './china-tavern-lodging.js';
 import {createTavernStaffLife} from './china-tavern-staff-life.js';
-import {followActorRoute} from './actor-navigation.js';
+import {followActorRoute,findActorStandPoint} from './actor-navigation.js';
 import {TAVERN_MEAL as M,TAVERN_DISHES} from './china-tavern-kitchen.js';
 import {createTavernMealProps,createTavernDirtProps} from './china-tavern-meal-props.js';
 
@@ -289,7 +289,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
    }
   }
  }
- function unmount(n){if(!n.serviceMount)return true;const safety=npcs.filter(other=>other!==n).map(other=>({minX:other.root.position.x-.25,maxX:other.root.position.x+.25,minZ:other.root.position.z-.25,maxZ:other.root.position.z+.25,minY:other.root.position.y,maxY:other.root.position.y+1.95}));const player=getPlayer()?.root.position;if(player)safety.push({minX:player.x-.34,maxX:player.x+.34,minZ:player.z-.34,maxZ:player.z+.34,minY:player.y,maxY:player.y+1.95});const landing=furniture.standPoint(navigation,safety,n.serviceMount);if(!landing)return false;n.root.position.copy(landing);n.serviceMount=null;furniture.releaseActor(n.station.id);return true;}
+ function unmount(n){if(!n.serviceMount)return true;const safety=npcs.filter(other=>other!==n).map(other=>({minX:other.root.position.x-.25,maxX:other.root.position.x+.25,minZ:other.root.position.z-.25,maxZ:other.root.position.z+.25,minY:other.root.position.y,maxY:other.root.position.y+1.95}));const player=getPlayer()?.root.position;if(player)safety.push({minX:player.x-.34,maxX:player.x+.34,minZ:player.z-.34,maxZ:player.z+.34,minY:player.y,maxY:player.y+1.95});const landing=findActorStandPoint(n,n.serviceMount,({ignoreDynamicBodies})=>furniture.standPoint(navigation,[...(doors?.cameraColliders||[]),...(ignoreDynamicBodies?[]:safety)],n.serviceMount,n.collisionRadius??.25));if(!landing)return false;n.root.position.copy(landing);n.serviceMount=null;furniture.releaseActor(n.station.id);return true;}
 
 
  const customer=o=>o.customerId==='player'?getPlayer():CHINA_OFFICIAL_IDS.includes(o.customerId)?officialActor(o.customerId):guests[o.guestIndex];
