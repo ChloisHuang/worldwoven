@@ -16,8 +16,8 @@ export function createChinaGuardSlot({saved,resolveActor,getPlayer,isActorAlive,
 }
 // Read-only adapter. A loaded controller supplies an actual work sample, never
 // a role label or elapsed wall-clock time. Zero/invalid samples earn nothing.
-export function guardPatrolCoverage({assignment,actor,sample,playerDuty=false}={}) {
+export function guardPatrolCoverage({assignment,actor,sample,dt=sample?.seconds,playerDuty=false}={}) {
  if(playerDuty||!assignment||assignment.roleId!==ROLE.id||assignment.slotId!==ROLE.slotId||assignment.status!=='npc'||!assignment.alive||!assignment.available||assignment.actor!==actor||!actor||actor.alive===false||assignment.holderId!==personId(actor)||assignment.holderId===ROLE.supervisorId||!Number.isSafeInteger(assignment.revision)||assignment.revision<0)return [];
- if(!sample||sample.actorId!==assignment.holderId||!['patrol-travel','patrol-observe'].includes(sample.kind)||!Number.isFinite(sample.seconds)||sample.seconds<=0||sample.seconds>.25)return [];
+ if(!sample||sample.actorId!==assignment.holderId||!['patrol-travel','patrol-observe'].includes(sample.kind)||!Number.isFinite(sample.seconds)||sample.seconds<=0||sample.seconds>.25||!Number.isFinite(dt)||Math.abs(sample.seconds-dt)>1e-7)return [];
  return [{roleId:ROLE.id,slotId:ROLE.slotId,actorId:assignment.holderId,holderRevision:assignment.revision,status:'npc',alive:true,available:true}];
 }

@@ -32,7 +32,7 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
  const impacts=A.targets.map(()=>{const q=buildPracticeArrow(G);q.visible=false;lot.group.add(q);return q;});
  const shots=[],history=[],failures=[],forward=new THREE.Vector3(0,0,1),start=new THREE.Vector3(),end=new THREE.Vector3();
  let active=0,phase='handover',phaseTime=0,rounds=0,retrieveLane=0,player=null,playerKit=null,request=false,complete=false,playerShot=false,flightTime=0,flightLane=0,blocked=false,disposed=false,shiftPending=false,handoffs=0,conversationActorId=null;
- let guardTenure=false,registrationRequested=false,guardWork=null,leisure={index:0,time:0},pausePatrol=false,boundRevision=0,updated=false;
+ let guardTenure=false,registrationRequested=false,guardWork=null,leisure={index:0,time:0},pausePatrol=false,boundRevision=0,updated=false,lastUpdateDt=0;
  const currentAssignment=()=>typeof resolveGuardAssignment==='function'?resolveGuardAssignment():null;
  const boundAvailable=()=>{const a=currentAssignment();return isActorAlive(guards[0])&&isActorAlive(guards[1])&&(!resolveGuardAssignment||a?.status==='npc'&&a.alive&&a.available&&a.actor===guards[0]&&a.holderId===guards[0].station.id&&a.revision===boundRevision);};
  const patrolWork=new Map();
@@ -118,6 +118,7 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
   setGuardTenure(hired){guardTenure=!!hired;},
   requestPatrolPause(value=true){pausePatrol=!!value;},
   guardBinding:()=>({actorId:guards[0].station.id,holderRevision:boundRevision,available:boundAvailable(),paused:pausePatrol}),
+  patrolHolderContext(){const actor=guards[0];return boundAvailable()?{actor,actorId:actor.station.id,name:actor.station.npcName||actor.station.id,revision:boundRevision}:null;},
   reviewerContext(){const actor=guards[1];return isActorAlive(actor)?{actor,actorId:actor.station.id,name:actor.station.npcName||actor.station.id}:null;},
   bindGuardAssignment(){
    const a=currentAssignment();if(!a||a.status!=='npc'||!a.alive||!a.available||!a.actor||!isActorAlive(a.actor)||a.actor.station.id!==a.holderId||a.actor===guards[1]||!canControlGuard(a.actor))return {ok:false,code:'guard-holder-unavailable'};
@@ -126,7 +127,7 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
    installBinding(a);active=1;shiftPending=false;phase='handover';phaseTime=0;return {ok:true,actorId:a.holderId,holderRevision:boundRevision};
   },
   // Dormant explicit contracts; main does not enroll, fund or replace guards.
-  patrolCoverage(resolveAssignment){const actor=guards[0],assignment=typeof resolveAssignment==='function'?resolveAssignment():null;return guardPatrolCoverage({assignment,actor,sample:patrolWork.get(actor),playerDuty:!!guardWork||!boundAvailable()});},
+  patrolCoverage(resolveAssignment){const actor=guards[0],assignment=typeof resolveAssignment==='function'?resolveAssignment():null;return guardPatrolCoverage({assignment,actor,sample:patrolWork.get(actor),dt:lastUpdateDt,playerDuty:!!guardWork||!boundAvailable()});},
   handoffBoundary({meeting=false,personalTrip=false}={}){return guardHandoffBoundary({heldBow:[...kits.values()].some(k=>k.bow.visible)||!!playerKit?.bow.visible,flyingArrow:flying.visible,targetArrows:impacts.some(q=>q.visible),playerLesson:request||phase.startsWith('player-'),playerDuty:!!guardWork,meeting:meeting||registrationRequested||!!conversationActorId,personalTrip,atHandoff:['handover','relief'].includes(phase)&&guards.every((n,i)=>gap(n.root.position,HANDOFF[i])<.08&&Math.abs(n.root.position.y-HANDOFF[i][1])<.4)&&guards.every(n=>patrol.get(n).stage==='ready')});},
   requestSupervisor(value=true){registrationRequested=!!value;},supervisorReady,
   requestGuardWork(receiptId){if(guardWork&&guardWork.receiptId!==receiptId)return false;if(!guardWork)guardWork={receiptId,stage:'requested'};return true;},
@@ -141,7 +142,7 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
   syncPlayer(){if(player)playerKit?.update(player,this.playerPose(),A.targets[1]);},
   playerStatus(){return request?{complete,label:blocked?'前方有人 · 收弓停射':phase.startsWith('player-')?labels[phase]:'等待本轮停射取箭，再接过练习弓',progress:phase==='player-take'?.1:phase==='player-aim'?.2+Math.min(1,phaseTime/2.8)*.45:phase==='player-flight'?.78:phase==='player-cease'?1:0}:null;},
   update(dt,t,{position,conversationActorId:talking=null}={}){
-   patrolWork.clear();if(disposed)return;updated=true;conversationActorId=talking;if(!boundAvailable())return;updateFlight(dt);blocked=!clearRange(position);for(const n of guards)n.walking=false;
+   patrolWork.clear();lastUpdateDt=dt;if(disposed)return;updated=true;conversationActorId=talking;if(!boundAvailable())return;updateFlight(dt);blocked=!clearRange(position);for(const n of guards)n.walking=false;
    for(const old of retired){old.walking=false;if(isActorAlive(old)){if(talking!==old.station.id)travel(old,LEISURE[0],dt);old.animate(t+old.phase,old.walking,old.walking?null:'read',poseContext(old,null));kits.get(old)?.hide();}}
    const n=shooter(),other=guards[1-active];
    // Range phases never reset the partner's route or observation timer.
@@ -173,7 +174,7 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
      n.root.rotation.y=-Math.PI/2;
      if(request)enter('player-take');
      else if(guardWork&&['active','returning','returned'].includes(guardWork.stage)){if(guardWork.stage==='active'&&!registrationRequested)enter('fetch');}
-     else if(registrationRequested&&n===guards[1]&&guardWork?.stage!=='requested')tell(n,guardTenure?'陆衡 · 射圃值守，办理巡值登记；沈砚暂代巡查':'陆衡 · 射圃登记，等你当面办理');
+     else if(registrationRequested&&n===guards[1]&&guardWork?.stage!=='requested')tell(n,guardTenure?`${guards[1].station.npcName||guards[1].station.id} · 射圃值守，办理巡值登记；${guards[0].station.npcName||guards[0].station.id}暂代巡查`:`${guards[1].station.npcName||guards[1].station.id} · 射圃登记，等你当面办理`);
      else if(!patrol.get(other).paused&&patrol.get(other).stage==='ready'&&gap(other.root.position,HANDOFF[1-active])<.065)enter('handover');
     }
    }else if(phase==='fetch'){
