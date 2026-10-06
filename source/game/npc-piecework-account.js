@@ -99,8 +99,19 @@ export function createNPCPieceworkAccount({role, namespace, saved, saveState = (
   const baseRevision = revision, next = copy(current); let record;
   try { record = old || transfer(next, input, kind); }
   catch (error) { return fail(error.message); }
-  let committed = false;
-  return {ok: true, snapshot: copy(next), balanceAfter: next.accounts[input.actorId].cash + next.accounts[input.actorId].bank, commit(patch = {}) {
+  let committed = false, locked = false;
+  // A meal-only coordinator locks every participant before its one whole-world
+  // save. Exposed snapshots are detached; adoption always uses this candidate.
+  const valid = () => !loadError && !committed && !busy && revision === baseRevision;
+  return {ok: true, snapshot: copy(next), patch: {[namespace]: copy(next)}, transfer: copy(record), balanceAfter: next.accounts[input.actorId].cash + next.accounts[input.actorId].bank,
+   valid, lock() { if (!valid()) return false; busy = true; locked = true; return true; },
+   release() { if (locked) { locked = false; busy = false; } },
+   committed() {
+    if (committed) return {ok: true, replayed: true};
+    if (!locked || revision !== baseRevision) return fail('stale-npc-meal');
+    current = next; revision++; lastError = null; committed = true;
+    return {ok: true, replayed: !!old};
+   }, commit(patch = {}) {
    if (committed) return {ok: true, replayed: true};
    if (busy || revision !== baseRevision) return fail('stale-npc-meal');
    if (!object(patch) || Object.hasOwn(patch, namespace)) return fail('invalid-npc-meal-patch');
@@ -115,6 +126,15 @@ export function createNPCPieceworkAccount({role, namespace, saved, saveState = (
   snapshot, state: snapshot,
   account: id => loadError ? null : copy(Object.hasOwn(current.accounts, id) ? current.accounts[id] : {bank: 0, cash: 0}),
   hasIncome: id => !loadError && current.receipts.some(receipt => receipt.evidence.actorId === id && receipt.amount > 0),
+  // A zero-portion provider still guards the shared order-ID namespace while
+  // another employer's payment is persisted. No balance is adopted by a guard.
+  prepareMealGuard() {
+   const baseRevision = revision; let locked = false;
+   const valid = () => !loadError && !busy && revision === baseRevision;
+   return {valid, lock() { if (!valid()) return false; busy = true; locked = true; return true; }, release() { if (locked) { locked = false; busy = false; } }};
+  },
+  mealAccountIdentity: () => ({version: 1, namespace, currency: 'copper', roleIds: [definition.id]}),
+  mealTransfer: (orderId, kind) => loadError ? null : copy(current.mealTransfers.find(row => row.orderId === orderId && row.kind === kind) || null),
   prepareMealPayment: input => prepareMeal(input, 'meal-payment'),
   prepareMealRefund: input => prepareMeal(input, 'meal-refund'),
   settle(proof, patch = {}) {
