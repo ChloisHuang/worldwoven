@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {followActorRoute} from './actor-navigation.js';
 import {createRoyalKitchenOrders,ROYAL_DINERS,ROYAL_MEAL_SEATS,royalPlayerEligibilityEvidence,sameRoyalPlayerEligibility} from './china-royal-kitchen-orders.js';
 import {createRoyalKitchenLife} from './china-royal-kitchen-life.js';
-export const ROYAL_KITCHEN_POINTS=Object.freeze({registry:[23.6,4.015,-5.9],host:[22.7,4.015,-5.9],prep:[20,4.015,-6.11],prepTop:[20,5.2,-6.7],stove:[17.8,4.015,-5.95],stoveTop:[19.1,5.93,-4.5]});
+export const ROYAL_KITCHEN_POINTS=Object.freeze({registry:[23.6,4.015,-5.9],host:[22.7,4.015,-5.9],prep:[20,4.015,-6.11],prepTop:[20,5,-6.7],stove:[17.8,4.015,-5.95],stoveTop:[19.1,5.73,-4.5]});
 const P=ROYAL_KITCHEN_POINTS,copy=x=>JSON.parse(JSON.stringify(x)),point=p=>({x:p[0],y:p[1],z:p[2]}),near=(n,p,r=.10)=>!!n&&Math.hypot(n.root.position.x-p[0],n.root.position.z-p[2])<r&&Math.abs(n.root.position.y-p[1])<.35;
 const open=o=>!['consumed','cancelled'].includes(o.stage),production=o=>['ordered','prepared','cooked','carrying'].includes(o.stage);
 const servePoint=o=>[o.seatId.endsWith('19.8')?18.25:23.75,.215,-6.25],tablePoint=o=>[o.seatId.endsWith('19.8')?19.9:22.1,1.18,-6.25];
