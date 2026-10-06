@@ -28,7 +28,7 @@ export function createClinicPhysicianWork({getOrder,getJob,getPlayer,getMounted,
   const o=getOrder();if(!owns(receipt)||action)return null;
   const kind=o.stage==='consult'?'question':o.stage==='writing'?(planId?'write':'choose'):o.stage==='handoff'?'handoff':null;
   if(!kind||kind==='write'&&!CLINIC_CARE_PLANS.some(p=>p.id===planId))return null;
-  return {kind,planId,key:[o.id,o.stage,receipt,planId||'-'].join(':'),orderId:o.id,recipientId:o.recipientId,number:o.number,cardId:o.cardId,
+  return {kind,planId,key:[o.id,o.stage,receipt,planId||'-'].join(':'),orderId:o.id,recipientId:o.recipientId,number:o.number,cardId:o.cardId,visualAnchor:kind==='question'?{actorId:o.recipientId}:kind==='handoff'?{actorId:'cn-pharmacy-assistant'}:{id:'cn-clinic-paper',point:C.points.paper.slice()},
    position:(kind==='handoff'?C.points.doctorHandoff:C.points.doctor).slice(),executionRadius:.3,
    action:kind==='question'?`当面问询第 ${o.number} 号 · ${o.recipientName}`:kind==='choose'?`查看第 ${o.number} 号症状记录 · 选择照护单`:kind==='write'?`写第 ${o.number} 号 · ${CLINIC_CARE_PLANS.find(p=>p.id===planId).name}`:`交第 ${o.number} 号原单给苏禾`};
  }

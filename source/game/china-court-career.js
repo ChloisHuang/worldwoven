@@ -51,7 +51,7 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
     const inDeskAisle=q&&Math.abs(q.y-B.upperFloorY)<.3&&q.z>31.7&&q.z<32.5&&q.x>=16.6&&q.x<25.4;
     const reviewPoint=q?[q.x+(inDeskAisle?(q.x>24.5?-.72:.72):0),q.y,q.z+(inDeskAisle?0:.72)]:P.registration;
     const position=['review','promotion-review'].includes(kind)?reviewPoint:kind==='attend'?P.court:['archive','settle','receive-document','promotion-receive-document'].includes(kind)?P.archive:P.registration;
-    return {id:'cn-court-career-'+kind,provider:'china-court-career',kind,position:[...position],...(kind==='view'?{registration:{scope:'role',roleId:COURT_CLERK_ROLE.id}}:{}),
+    return {id:'cn-court-career-'+kind,provider:'china-court-career',kind,position:[...position],...(['review','promotion-review'].includes(kind)&&npc?{visualAnchor:{actorId:npc.station.id}}:{}),...(kind==='view'?{registration:{scope:'role',roleId:COURT_CLERK_ROLE.id}}:{}),
       name:kind==='attend'?'承光正殿 · 第七录事班位':kind==='archive'||kind==='settle'?'承务官署 · 礼务归档案':'承务官署 · 铨录登记',
       npcName:['review','promotion-review'].includes(kind)?'沈叙 · 礼仪官':kind==='attend'?'礼务录事':['receive-document','appointment','promotion-receive-document','promotion-appointment'].includes(kind)?'官署任命文书':'铨录簿',
       action:{'promotion-apply':'提交正九品升阶申请','promotion-review':'向沈叙呈实任考语并接受升阶考核','promotion-receive-document':'领取升阶文书','promotion-appointment':'宣读升阶文书并受任',view:'查看正式职位',apply:'提交从九品礼务录事申请',review:'向沈叙呈履历并接受审核','receive-document':'领取已核验任命文书',appointment:'宣读任命文书并受职',resign:'办理录事离职',attend:'11:30前赴班 · 持笏候朝',archive:'抄录朝会归档 · 8秒',settle:'核对本日工资银行入账'}[kind],
