@@ -311,7 +311,10 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   // opts in, while every other calligrapher keeps the original long brush.
   props.tools.brush.scale.y=receptionWriting?.70:1;
   props.tools.brush.position.y=receptionWriting?.10:-.015;
-  setTorso(action==='bathe'?(context?.bathHipHeight??.32):action==='chair-sit'?chairHeight+.14:action==='kotatsu'?.417-seatedDrop:walking?rest[0].y+bob:rest[0].y,action==='calligraphy'?(receptionWriting?.18:.40):/^(knead|bread|cook|sushi|bake|tidy)$/.test(action||'')?.13:0,walking?Math.sin(t)*.012:0);
+  // Explicit object service may bend over a low surface; normal poses and
+  // anatomical arm lengths stay unchanged. Feet keep their support solve.
+  const handoffDip=!walking&&context?.handoff&&Number.isFinite(context.handoffDip)?clamp(context.handoffDip,0,.12):0;
+  setTorso((action==='bathe'?(context?.bathHipHeight??.32):action==='chair-sit'?chairHeight+.14:action==='kotatsu'?.417-seatedDrop:walking?rest[0].y+bob:rest[0].y)-handoffDip,context?.handoff&&Number.isFinite(context.handoffLean)?clamp(context.handoffLean,0,.8):action==='calligraphy'?(receptionWriting?.18:.40):/^(knead|bread|cook|sushi|bake|tidy)$/.test(action||'')?.13:0,walking?Math.sin(t)*.012:0);
   // A shorter thigh sits slightly forward on the same cushion so its knee
   // clears the seat edge; the feet retain their exact floor targets.
   if(action==='chair-sit'&&shapeTraits.legLength<1)for(const i of [0,1,2,3,4,7,10,13])posedP[i].z+=(1-shapeTraits.legLength)*1.2;
