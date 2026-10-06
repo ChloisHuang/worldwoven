@@ -66,6 +66,7 @@ for(const mode of ['false','throw','promise']){
  bad.reject(null);assert(bad.payroll.flush().ok);assert.equal(bad.payroll.account('jp-sushi').bank,18);assert.equal(bad.payroll.account('jp-ramen').bank,14);
  bad.reload();assert(bad.payroll.flush().ok);assert.equal(bad.payroll.account('jp-sushi').bank,18);
 }
+const retry=fixture();retry.reject('false');retry.receipt('jp-dining-7-80');retry.tick(.1,[]);const attempts=retry.writes;for(let i=0;i<50;i++)retry.tick(.01,[]);assert.equal(retry.writes,attempts,'A failed full-world save is not retried every frame');retry.reject(null);assert(retry.payroll.flush().ok);
 await Promise.resolve();
 const debt=fixture();
 for(let day=1;day<=8;day++){debt.until(day,6,[]);debt.until(day,18);}
@@ -76,6 +77,7 @@ debt.receipt('jp-dining-7-60',14);debt.tick(.25,[]);assert.equal(debt.payroll.st
 debt.receipt('jp-performance-7-2-61:act',17);debt.tick(.25,[]);assert.equal(debt.payroll.state().till,17);assert.equal(debt.payroll.state().arrears.length,1);
 debt.reject('false');debt.receipt('jp-performance-7-2-61:drink',1);debt.tick(.25,[]);assert.equal(debt.payroll.state().till,17);assert.equal(debt.payroll.state().arrears.length,1,'Failed source import cannot pay debt');
 debt.reject(null);debt.reload();assert(debt.payroll.flush().ok);assert.equal(debt.payroll.state().till,0);assert.equal(debt.payroll.state().arrears.length,0);assert.deepEqual(debt.payroll.state().capital,initialCapital);
+const future=clone(sources.durable);const futureOwner=createCurrencyLedger({saved:future.accounts['jp-sushi'],getClock:()=>({day:sources.clock().day+3}),saveState:state=>{future.accounts['jp-sushi']=state;}});assert(futureOwner.observeDay().ok);assert.equal(sources.restore(future).loadError,'invalid-japan-payroll','Owner interest cannot run ahead of the shared world day');
 const restored=debt.durable;assert.equal(debt.restore(restored).loadError,null);
-for(const corrupt of [s=>{s.till++;},s=>{s.income[0].amount++;},s=>{s.invoices[0].seconds.kitchen+=1000;},s=>{s.invoices[0].paid=false;}]){const changed=clone(restored);corrupt(changed);assert.equal(debt.restore(changed).loadError,'invalid-japan-payroll');}
+for(const corrupt of [s=>{s.till++;},s=>{s.income[0].amount++;},s=>{s.invoices[0].seconds.kitchen+=1000;},s=>{s.invoices[0].paid=false;},s=>{s.accounts.bogus=s.accounts['jp-sushi'];delete s.accounts['jp-sushi'];}]){const changed=clone(restored);corrupt(changed);assert.equal(debt.restore(changed).loadError,'invalid-japan-payroll');}
 console.log('PASS actual seat/rate allocation, paid takeover, real handoff/route, continuous hours, weighted day salary, reload/no backfill, historical high water, settled-only source, bank/save atomicity and FIFO arrears funded by future receipts');
