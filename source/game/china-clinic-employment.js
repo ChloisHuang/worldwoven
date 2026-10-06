@@ -29,7 +29,7 @@ export function createChinaClinicEmployment({clinic,role:ROLE=PHARMACY_ASSISTANT
   const result=formal.inspect(job);if(!result.ok)return false;
   if(careers.workState().lastDuty?.stage!=='paid'){notify('工资已入银行，封账记录待保存；请在原处重试，不会重复入账');return true;}
   if(!save({...current,job:null}))return fail('工资已入账，交班记录待重试');
-  clinic.finishWork(job.receiptId);notify(`许宁：原单、纸包和来客已核对，${careers.workState().lastDuty.wage}铜文日薪已存入银行`);return true;
+  clinic.finishWork(job.receiptId);notify(`许宁：原单、纸包和来客已核对，政府拨付${careers.workState().lastDuty.wage}铜文工资已存入银行`);return true;
  }
  function intent(kind=null){if(disposed||lastError==='invalid-employment-state')return null;
   const job=current.job,plan=kind?.startsWith('plan:')?kind.slice(5):null,work=job?.stage==='working'?clinic.workIntent(job.receiptId,plan):null;
@@ -55,7 +55,10 @@ export function createChinaClinicEmployment({clinic,role:ROLE=PHARMACY_ASSISTANT
   if(!meet()){waiting=next;clinic.requestDoctor(true);notify('请在二层平台稍候，许宁忙完会来当面办理');return true;}
   waiting=null;if(next.kind==='end-shift')return endShift();return next.kind==='formal-apply'?formal.apply():next.kind==='formal-review'?formal.review():next.kind==='formal-resign'?formal.resign():next.kind==='accept'?accept():next.kind==='claim'?claim():false;
  }
- function flushAttendance(){const job=current.job;if(!job)return false;const receipts=clinic.workReceipts(job.receiptId).filter(r=>r.number>job.completedThrough),next={...job,coveredSeconds:job.coveredSeconds+attendance,completedTasks:job.completedTasks+receipts.length,completedThrough:Math.max(job.completedThrough,...receipts.map(r=>r.number))};if(!save({...current,job:next}))return false;attendance=0;return true;}
+ function flushAttendance(){const job=current.job;if(!job)return false;const receipts=clinic.workReceipts(job.receiptId).filter(r=>r.number>job.completedThrough);
+  // The original order feedback must save before the shift can seal its wage.
+  for(const receipt of receipts)if(receipt.review?.version===1&&!careers.recordClinicPatientReview(receipt).ok)return false;
+  const next={...job,coveredSeconds:job.coveredSeconds+attendance,completedTasks:job.completedTasks+receipts.length,completedThrough:Math.max(job.completedThrough,...receipts.map(r=>r.number))};if(!save({...current,job:next}))return false;attendance=0;return true;}
  function endShift(){const job=current.job;if(!job||job.stage!=='working'||!meet())return false;
   if(!clinic.canEndWork(job.receiptId))return fail(physician?'请先完成问询与照护单，让苏禾把同号包交给本人；也可中断本班，释放未交付原单':'请先按原编号把手上的纸包交给本人，再来交班');
   if(!flushAttendance()||!formal.complete(current.job))return false;
@@ -63,7 +66,7 @@ export function createChinaClinicEmployment({clinic,role:ROLE=PHARMACY_ASSISTANT
  }
  const inWorkplace=()=>{const p=getPlayer()?.root.position;return p&&p.x>=16&&p.x<=26&&p.z>=-33&&p.z<=-23&&p.y>=C.floorY-.3&&p.y<=C.clinicFloorY+.4;};
  function update(dt=0){if(disposed)return;
-  if(!physician)for(const receipt of clinic.allWorkReceipts?.()||[])if(receipt.receiptId?.startsWith(ROLE.workSource+'-'))careers.recordClinicAssistantService?.(receipt);clinic.requestDoctor(atRegistration());
+  if(!physician)for(const receipt of clinic.allWorkReceipts?.()||[])if(receipt.review?.version!==1&&receipt.receiptId?.startsWith(ROLE.workSource+'-'))careers.recordClinicAssistantService?.(receipt);clinic.requestDoctor(atRegistration());
   if(waiting){if(!atRegistration()||!resolveIntent(waiting))waiting=null;else if(meet()){const next=waiting;waiting=null;executeIntent(next);}}
   const job=current.job;if(!job)return;
   if(job.stage==='working'){
