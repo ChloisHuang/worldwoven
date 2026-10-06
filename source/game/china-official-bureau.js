@@ -43,7 +43,7 @@ export function buildChinaOfficialBureau(G,A){
   const bx=i?24.15:17.85,id=CHINA_OFFICIAL_BUREAU.beds[i],roomId=CHINA_OFFICIAL_BUREAU.roomIds[i],ownerId=i?'cn-minister-granary':'cn-minister-works';
   const bed=new THREE.Group();bed.name='Official private timber bed '+id;bed.position.y=.2;root.add(bed);G.bed(bed,bx,35,i?0x827565:0x667e80,1.95,2.50);
   colliders.push({minX:bx-1.025,maxX:bx+1.025,minZ:33.67,maxZ:36.33,minY:.2,maxY:1.82});cameraColliders.push({...colliders.at(-1)});
-  const p=[i?22.65:19.35,y,35];furniture.push({id,kind:'bed',name:(i?'许知远':'顾衡')+'的官舍卧榻',action:'躺下休息',privateRoomId:roomId,ownerId,position:p,anchor:[bx,y,35],center:[bx,.2,35],size:[2.05,1.62,2.66],yaw:0,supportY:1.055,lieOffset:.30,lieSupport:{hip:1.055,back:1.055,head:1.14,heel:1.055}});
+  const p=[i?22.65:19.35,y,35];furniture.push({id,kind:'bed',name:(i?'许知远':'顾衡')+'的官舍卧榻',action:'躺下休息',privateRoomId:roomId,ownerId,position:p,anchor:[bx,y,35],center:[bx,.2,35],size:[2.05,1.62,2.66],yaw:0,supportY:1.055,lieOffset:.30,lieSupport:{hip:1.055,back:1.055,head:1.065,heel:1.055}});
   // Each room has its own chest, bedding, lamp and door. No shared bedroom claim.
   solid3(root,i?25.45:16.55,.66,34.8,.40,.92,1.2,C.wood);H.foldedCloth(root,i?25.45:16.55,1.15,34.8,.30,.6,0xd1c2a5);
   culturePlaque(G,root,i?'许知远':'顾衡',i?23.65:18.35,2.40,33.3,1.5,.42);
@@ -103,10 +103,10 @@ export function buildChinaOfficialBureau(G,A){
    culturePlaque(G,g,name,x,y+2.3,30.67,1.48,.36);
    const id=B.beds[i+2],room=B.dorms[i<2?0:1],bed=new THREE.Group();bed.name='Official shared-room individual timber bed '+id;bed.position.set(bx,y-.015,35);g.add(bed);const w=1.45,d=2.45;
    for(const xx of[-.58,.58])for(const zz of[-1.04,1.04])G.box(bed,xx,.27,zz,.11,.54,.11,C.dark);
-   G.box(bed,0,.52,0,w,.14,d,C.wood);G.box(bed,0,.705,0,w-.08,.23,d-.08,0xf3e5ce);G.box(bed,0,.835,.04,w-.10,.04,d-.16,color);G.box(bed,0,.90,-.87,.86,.08,.43,0xfff6e3);G.box(bed,0,.98,-d/2,w+.06,1.6,.13,C.wood);
+   G.box(bed,0,.52,0,w,.14,d,C.wood);G.box(bed,0,.705,0,w-.08,.23,d-.08,0xf3e5ce);G.box(bed,0,.835,.04,w-.10,.04,d-.16,color);G.box(bed,0,.83,-.87,.86,.05,.43,0xfff6e3);G.box(bed,0,.98,-d/2,w+.06,1.6,.13,C.wood);
    hull(bx-(w+.06)/2,bx+(w+.06)/2,35-d/2-.065,35+d/2,y-.015,y+1.8,id);
    const p=[room.aisleX,y,i%2?35.5:34.25],supportY=y+.84;
-   furniture.push({id,kind:'bed',name:name+'的值宿卧榻',action:'躺下休息',sharedRoomId:room.id,ownerId:'cn-official-'+key,position:p,exitPositions:[p,[room.aisleX,y,33.65]],anchor:[bx,y,35],center:[bx,y-.015,35],size:[w+.06,1.8,d+.13],yaw:0,supportY,lieOffset:.30,lieSupport:{hip:supportY,back:supportY,head:y+.925,heel:supportY}});
+   furniture.push({id,kind:'bed',name:name+'的值宿卧榻',action:'躺下休息',sharedRoomId:room.id,ownerId:'cn-official-'+key,position:p,exitPositions:[p,[room.aisleX,y,33.65]],anchor:[bx,y,35],center:[bx,y-.015,35],size:[w+.06,1.8,d+.13],yaw:0,supportY,lieOffset:.30,lieSupport:{hip:supportY,back:supportY,head:y+.84,heel:supportY}});
    solid3(g,bx,y+.3,33.33,.66,.60,.40,C.wood);H.foldedCloth(g,bx,y+.63,33.33,.50,.31,color);
   }
   for(const d of B.dorms){interiorRooms.push({...d,minZ:32.9,maxZ:36.5,floorY:y,ceiling,shared:true,capacity:2});explorationTargets.push({id:d.id,name:d.name,roomId:d.id,position:[d.aisleX,y,33.6]});upperFixture(g,d.id,d.aisleX,ceiling-.55,34.9,y);}

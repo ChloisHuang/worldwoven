@@ -1,3 +1,4 @@
+import {reserveNpcBed,occupyNpcBed} from './npc-bed-occupancy.js';
 import {TAVERN_LAYOUT_VERSION,tavernSeatSide,tavernTablePlace,normalizeTavernWorld} from './china-tavern-layout.js';
 import {SALON_ARTIST_IDS} from './china-salon-economy.js';
 import {ROYAL_KITCHEN_CHEF_DAYS,validTavernChefServiceReceipt} from './china-royal-kitchen-role.js';
@@ -116,7 +117,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  function effect(n,action,target,carry=false){effects.set(n,{action,target,carry});}
  function pose(n,t){const e=effects.get(n)||{},c=poseContext(n,e.target?{workTarget:e.target}:null);c.heldProp=null;c.handoff=!!e.carry;c.archery=e.carry?{hands:[[-.16,1.18,.43],[.16,1.18,.43]]}:null;c.seatedMeal=false;
   if(e.target&&!n.walking)n.root.rotation.y=Math.atan2(e.target[0]-n.root.position.x,e.target[2]-n.root.position.z);
-  if(n.serviceMount){c.seatHeight=Number.isFinite(n.serviceMount.seatY)?n.serviceMount.seatY-n.root.position.y-(c.visualFloorOffset||0):undefined;c.seatedMeal=e.action==='meal';c.handoff=c.seatedMeal;c.archery=null;c.supportY=n.serviceMount.supportY;c.lieOffset=n.serviceMount.lieOffset;c.lieSupport=n.serviceMount.lieSupport;}
+  if(n.serviceMount){c.seatHeight=Number.isFinite(n.serviceMount.seatY)?n.serviceMount.seatY-n.root.position.y-(c.visualFloorOffset||0):undefined;c.seatedMeal=e.action==='meal';c.handoff=c.seatedMeal;c.archery=null;c.supportY=n.serviceMount.supportY;c.lieOffset=n.serviceMount.lieOffset;c.liePillowZ=n.serviceMount.liePillowZ;c.lieSupport=n.serviceMount.lieSupport;if(n.serviceMount.kind==='bed'){c.visualFloorOffset=0;c.lieSurfaceHeightAt=(x,z)=>furniture.bedSupportAt(n.serviceMount,x,z);}}
   n.animate(t+n.phase,n.walking,n.serviceMount?n.serviceMount.kind==='bed'?'lie-rest':'chair-sit':e.action||null,c);
  }
  function mount(o,dt){const n=customer(o);if(!n)return false;if(!payableOrder(o)){if(ACCOUNT_CUSTOMERS.includes(o.customerId))cancelAccountMeal(o.customerId);else deferGuestMeal(state.visitors.find(v=>v.id===o.customerId),n);return false;}let seat=furniture.items.find(i=>i.id===o.seatId);if(!seat)return false;
@@ -291,7 +292,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
     if(n.serviceMount&&!unmount(n))continue;const first=state.visitors.find(q=>q.mode==='lodging-wait'),publicCounterBusy=at(getPlayer(),[22.35,.215,6.7],.85);travel(n,first.id===v.id?(publicCounterBusy?[22.1,.215,8.35]:[22.35,.215,6.7]):(publicCounterBusy?[21.3,.215,9.1]:[22.1,.215,8.35]),dt);
    }else if(v.mode==='lodging'){
     const room=state.rooms.find(r=>r.id===v.roomId),bed=furniture.items.find(i=>i.id===room.bedId);
-    if(!n.serviceMount){if(!furniture.facilities.reserve(bed.id,v.id,{purpose:'lodging'})||!travel(n,bed.position,dt))continue;if(!furniture.facilities.occupy(bed.id,v.id))continue;n.root.position.set(...bed.anchor);n.root.rotation.y=bed.yaw;n.serviceMount=bed;record('guest-entered-room',{customerId:v.id,roomId:room.id});}
+    if(!n.serviceMount){const berth=reserveNpcBed(furniture,bed,v.id);if(!berth||!travel(n,berth.position,dt))continue;if(!occupyNpcBed(furniture,berth,v.id))continue;n.root.position.set(...berth.anchor);n.root.rotation.y=berth.yaw;n.serviceMount=berth;record('guest-entered-room',{customerId:v.id,roomId:room.id});}
     tick({id:'room-'+v.id},dt,18,()=>{if(!unmount(n))return false;return changeWorld(next=>{const r=next.rooms.find(r=>r.id===room.id);r.dirty=true;r.guestId=null;next.visitors.find(q=>q.id===v.id).mode='leaving';});});
    }else if(v.mode==='leaving'){if(n.serviceMount&&!unmount(n))continue;if(travel(n,n.station.npcPosition,dt))changeWorld(next=>{next.visitors.find(q=>q.id===v.id).mode='idle';});}
    else if(v.mode==='idle'){

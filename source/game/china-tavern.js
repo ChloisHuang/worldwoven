@@ -125,12 +125,12 @@ export function buildChinaTavern(G,A){
   const bed=new THREE.Group();bed.name=name+' carved timber bed';bed.position.set(x,y-.015,z);g1.add(bed);
   for(const dx of[-.90,.90])for(const dz of[-1.30,1.30])G.box(bed,dx,.29,dz,.17,.58,.17,C.dark);
   G.box(bed,0,.60,0,w,.14,d,C.wood);softLayer(bed,0,.75,0,w-.10,.16,d-.10,0xefdfc0);
-  softLayer(bed,0,.845,.15,w-.16,.045,d-.50,color);softLayer(bed,0,.885,-1.30,1.10,.10,.34,0xf1dfbd);
+  softLayer(bed,0,.845,.15,w-.16,.045,d-.50,color);softLayer(bed,0,.8425,-1.30,1.10,.07,.34,0xf1dfbd);
   G.box(bed,0,1.13,-d/2,w+.10,1.36,.16,C.dark);G.box(bed,0,1.20,-d/2+.10,w-.18,.80,.03,color);
   for(const dx of[-.82,0,.82]){G.box(bed,dx,1.20,-d/2+.125,.065,.79,.03,C.gold);if(dx)G.box(bed,dx,.868,.5,.018,.004,1.85,C.gold);}
   // One hull per bed for safe mount exclusion, supported quilt contacts remain real.
   colliders.push({minX:x-w/2,maxX:x+w/2,minY:y-.015,maxY:y+1.78,minZ:z-d/2,maxZ:z+d/2});cameraColliders.push({...colliders.at(-1)});
-  additionalFurniture.push({id:bedId,guestRoomId:'tavern-guest-'+key,kind:'bed',name:'云来客栈 · '+name+'安寝',worldLabel:name+'客榻',position:[x0+3.7,y,z],exitPositions:[[x0+3.7,y,z],[x0+3.7,y,20.0]],anchor:[x,y,z],center:[x,y-.015,z],size:[w,1.8,d],yaw:0,supportY:y+.815,lieOffset:.30,lieSupport:{hip:y+.8525,back:y+.8525,head:y+.920,heel:y+.8525},action:'躺下休息'});
+  additionalFurniture.push({id:bedId,guestRoomId:'tavern-guest-'+key,kind:'bed',name:'云来客栈 · '+name+'安寝',worldLabel:name+'客榻',position:[x0+3.7,y,z],exitPositions:[[x0+3.7,y,z],[x0+3.7,y,20.0]],anchor:[x,y,z],center:[x,y-.015,z],size:[w,1.8,d],yaw:0,supportY:y+.815,lieOffset:.30,lieSupport:{hip:y+.8525,back:y+.8525,head:y+.8625,heel:y+.8525},action:'躺下休息'});
   const wx=x0+3.87,wz=20.45;block(g1,wx,y+1.03,wz,1.15,2.06,.62,C.dark);for(const s of[-1,1]){G.box(g1,wx+s*.27,y+1.11,wz-.325,.50,1.71,.04,color);G.box(g1,wx+s*.12,y+1.14,wz-.36,.045,.18,.055,C.gold);}G.box(g1,wx,y+2.11,wz,1.25,.13,.76,C.wood);
   additionalFurniture.push({id:'china-tavern-wardrobe-'+key,guestRoomId:'tavern-guest-'+key,kind:'wardrobe',name:name+'衣柜',position:[wx,y,19.25],center:[wx,y,wz],size:[1.15,2.18,.72],style:'authored',action:'挑选服装'});
   sign(g1,name,x0+3.25,6.99,9.99,1.45,.52,Math.PI);

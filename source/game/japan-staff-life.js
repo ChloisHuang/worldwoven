@@ -1,3 +1,4 @@
+import {bedAvailable,reserveNpcBed} from './npc-bed-occupancy.js';
 import {createJapanStaffConversations} from './japan-staff-conversations.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
 import {JAPAN_SERVICE_POINTS as P,JAPAN_BATH_CREWS,JAPAN_LOCAL_WORKERS,JAPAN_STAFF_CREW} from './japan-service-orders.js';
@@ -80,6 +81,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
  // the real handoff, then reserve only the chosen facility for this break.
  const nearPoint=(n,p,r=1)=>n?.root.position&&Math.hypot(n.root.position.x-p[0],n.root.position.z-p[2])<r&&Math.abs(n.root.position.y-p[1])<1;
  function vacant(id,state) {
+  const bed=furniture.items.find(i=>i.id===id&&i.kind==='bed');if(bed)return bedAvailable(furniture,bed,active.id,state.facilityId);
   const f=furniture.facilities.state().find(f=>f.id===id);
   return state.facilityId!==id&&!f?.player&&(!f||!f.reservations.some(r=>r.actor!==active.id)&&(!f.queue.length||f.queue[0]===active.id));
  }
@@ -109,7 +111,9 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
   const choices=candidates(n,state),committed=decisions.state(active.id).current,choice=decisions.choose(active.id,need?.seekMeal&&!committed?choices.filter(c=>c.id==='meal'):choices,Number.isFinite(state.hour)?state.hour:night?22:12);
   if(!choice){active.phase='returning';note('no-leisure-available');return;}
   active.choice=choice;
-  if(!furniture.facilities.request(choice.facilityId,active.id)||(choice.id==='meal'&&!board.holdWorkplace('kitchen',active.id))){interrupt(n);return;}
+  const bed=choice.id==='rest'?furniture.items.find(i=>i.id===choice.facilityId):null,berth=bed?reserveNpcBed(furniture,bed,active.id):null;
+  if(bed&&berth)choice.berthId=berth.berthId||null;
+  if((bed?!berth:!furniture.facilities.request(choice.facilityId,active.id))||(choice.id==='meal'&&!board.holdWorkplace('kitchen',active.id))){interrupt(n);return;}
   active.phase=choice.id==='meal'?'preparing':choice.id==='rest'?'sleep':'tea';
   note('leisure-chosen',{choice:choice.id,resumed:!!choice.resumed});
  }
@@ -229,11 +233,13 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
     if(!vacant(active.choice.facilityId,state)||!board.holdWorkplace('kitchen',active.id)){interrupt(n);return;}
     go(n,P.kitchen,{label:shift.mealLabel,action:shift.mealAction,workTarget:[2.1,1.47,-13.4],duration:shift.mealDuration,onDone:()=>{if(!prepareMeal())return false;board.releaseWorkplace(active.id);active.meal=true;active.phase='meal';note(shift.mealEvent);return true;}});
    }else if(active.phase==='meal'||active.phase==='sleep') {
-    const eating=active.phase==='meal',fixture=furniture.items.find(item=>item.id===active.choice.facilityId);
-    if(!fixture){interrupt(n);return;}
-    if(state.facilityId===fixture.id||!furniture.facilities.request(fixture.id,active.id)){
+    const eating=active.phase==='meal',item=furniture.items.find(item=>item.id===active.choice.facilityId);
+    if(!item){interrupt(n);return;}
+    const fixture=eating?item:reserveNpcBed(furniture,item,active.id,active.choice.berthId);
+    if(!fixture||eating&&(state.facilityId===fixture.id||!furniture.facilities.request(fixture.id,active.id))){
      active.wait+=dt;if(active.wait>=20)interrupt(n);return;
     }
+    if(!eating)active.choice.berthId=fixture.berthId||null;
     go(n,fixture.position,{label:eating?'端员工餐到员工室坐下吃':'轮休，在员工室下铺睡一会儿',mount:fixture,action:eating?'chair-sit':'lie-rest',handoff:eating,seatedMeal:eating,duration:active.choice.duration,onArrive:()=>{note(eating?'eating':'sleeping');return true;},onDone:()=>{
      if(eating&&!consumeMeal())return false;
      if(!leaveMount(n,'returning'))return false;
@@ -257,13 +263,13 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
    interrupt(n);
   },
   recall(id){const n=actors.get(id);if(n)conversations.abort(n);if(active?.id!==id&&active?.reliefId!==id)return true;if(active.id===id&&!['returning','reclaiming'].includes(active.phase))interrupt(actors.get(id));return false;},
-  playerRequest(id){conversations.playerRequest(id);if(active){const n=actors.get(active.id);if(active.choice?.facilityId===id||n.serviceMount?.id===id||taskOf(n)?.mount?.id===id)interrupt(n);}},
+  playerRequest(id){if(furniture.items.some(i=>i.id===id&&i.kind==='bed'))return;conversations.playerRequest(id);if(active){const n=actors.get(active.id);if(active.choice?.facilityId===id||n.serviceMount?.id===id||taskOf(n)?.mount?.id===id)interrupt(n);}},
   meals:()=>active?.meal?[{workerId:active.id,eating:taskOf(actors.get(active.id))?.arrived&&active.phase==='meal'}]:[],
   socialProfile:id=>decisions.state(id),
   snapshot:()=>snapshot(),
 
   continuity:()=>({version:1,conversations:conversations.snapshot(),active:active?JSON.parse(JSON.stringify(active)):null,time,night,due:{...due},completed,interrupted,resumeReturn,reliefLook,events:events.slice()}),
-  restore(s){if(s?.version!==1||s.active&&(!actors.has(s.active.id)||!actors.has(s.active.reliefId)))return false;time=Math.max(0,s.time||0);night=!!s.night;completed=Math.max(0,s.completed||0);interrupted=Math.max(0,s.interrupted||0);Object.assign(due,s.due||{});active=s.active?JSON.parse(JSON.stringify(s.active)):null;if(active&&(['toilet','toilet-use'].includes(active.phase)||active.phase==='meal'&&!active.mealSupply)){active.phase='returning';active.choice=null;active.meal=false;active.interrupted=true;}resumeReturn=!!s.resumeReturn;events.splice(0,events.length,...(s.events||[]));if(active?.choice?.facilityId)furniture.facilities.request(active.choice.facilityId,active.id);if(active?.phase==='preparing')board.holdWorkplace('kitchen',active.id);if(active?.covering&&active.id==='jp-omamori')dressRelief();conversations.restore(s.conversations);if(active?.phase==='handoff')rebuildHandoff(actors.get(active.id),actors.get(active.reliefId),shiftFor(active.id));return true;},
+  restore(s){if(s?.version!==1||s.active&&(!actors.has(s.active.id)||!actors.has(s.active.reliefId)))return false;time=Math.max(0,s.time||0);night=!!s.night;completed=Math.max(0,s.completed||0);interrupted=Math.max(0,s.interrupted||0);Object.assign(due,s.due||{});active=s.active?JSON.parse(JSON.stringify(s.active)):null;if(active&&(['toilet','toilet-use'].includes(active.phase)||active.phase==='meal'&&!active.mealSupply)){active.phase='returning';active.choice=null;active.meal=false;active.interrupted=true;}resumeReturn=!!s.resumeReturn;events.splice(0,events.length,...(s.events||[]));if(active?.choice?.facilityId){const item=furniture.items.find(i=>i.id===active.choice.facilityId);if(item?.kind==='bed'){const berth=reserveNpcBed(furniture,item,active.id,active.choice.berthId);if(berth)active.choice.berthId=berth.berthId||null;}else furniture.facilities.request(active.choice.facilityId,active.id);}if(active?.phase==='preparing')board.holdWorkplace('kitchen',active.id);if(active?.covering&&active.id==='jp-omamori')dressRelief();conversations.restore(s.conversations);if(active?.phase==='handoff')rebuildHandoff(actors.get(active.id),actors.get(active.reliefId),shiftFor(active.id));return true;},
   workCompleted(id,job,visit){return decisions.recordExperience(id,{id:'japan-staff-work:'+job.id+':'+id,kind:'staff-work',completed:true,label:`刚办完${visit.number}号${({register:'浴牌登记',checkout:'归还浴牌',prepare:'配料',deliverMix:'送浴包',cook:'做餐',serve:'送餐',wash:'餐盘收洗'})[job.kind]||'服务'}，想聊聊怎样忙中有序`});},
   state:()=>({conversations:conversations.state(),mealSerial,mealReceipts:copy(mealReceipts),crew:crew.map(n=>n.station.id),nextWorkerId:nextWorker().station.id,dueIn:Math.max(0,due[nextWorker().station.id]-time),completed,interrupted,active:active?JSON.parse(JSON.stringify(active)):null,decisions:decisions.snapshot(),events:events.slice()}),
   dispose(){if(active&&getToilet()?.ownsActor(actors.get(active.id)))getToilet().cancel('staff-left-lot',active.id);decisions.dispose();conversations.dispose();if(active)restoreRelief();for(const n of crew)release(n);active=null;},
