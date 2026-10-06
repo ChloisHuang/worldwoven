@@ -39,10 +39,10 @@ const walk=node=>[node,...node.children.flatMap(walk)];
 const all=(doc,cls)=>walk(doc.body).filter(n=>n.className.split(' ').includes(cls));
 const one=(doc,cls)=>{const nodes=all(doc,cls);assert.equal(nodes.length,1,cls);return nodes[0];};
 const receiptArt=doc=>all(doc,'ww-wallet-transfer-note').map(n=>({currency:n.dataset.currency,file:n.children[0].src.split('/').at(-1),text:n.textContent}));
-function fixture({reduced=false,saved,manualImages=false}={}){
+function fixture({reduced=false,saved,manualImages=false,getBankTarget,onGoToBank,onClose=()=>{}}={}){
   const doc=documentFixture(reduced,manualImages),mount=doc.createElement('div');doc.body.append(mount);let writes=0,opens=0,closes=0,currentCurrency='copper';
   const ledger=createCurrencyLedger({saved,saveState:()=>{writes++;}});
-  const wallet=createCurrencyWallet({mount,ledger,document:doc,getCurrency:()=>currentCurrency,onOpen:()=>opens++,onClose:()=>closes++});
+  const wallet=createCurrencyWallet({mount,ledger,document:doc,getCurrency:()=>currentCurrency,getBankTarget,onGoToBank,onOpen:()=>opens++,onClose:()=>{closes++;onClose();}});
   return {doc,mount,ledger,wallet,writes:()=>writes,opens:()=>opens,closes:()=>closes,setCurrency:id=>{currentCurrency=id;wallet.refresh();}};
 }
 
@@ -234,6 +234,26 @@ function fixture({reduced=false,saved,manualImages=false}={}){
     assert(frame.left+frame.width*frame.scale<=Math.min(viewport.left+viewport.width-(safe.right||0),game.left+game.width));
     assert(frame.top+frame.height*frame.scale<=Math.min(viewport.top+viewport.height-(safe.bottom||0),game.top+game.height));
   }
+}
+// Navigation is deliberately presentation-only: live scene identity, close
+// ordering and one accepted press protect against stale regional callbacks.
+{
+  let target={country:'china',stationId:'cn-money-house-teller',scene:{},label:'去钱庄'},calls=0;
+  const events=[],f=fixture({getBankTarget:()=>target,onClose:()=>events.push('closed'),onGoToBank:live=>{
+    assert(!f.wallet.isOpen(),'wallet closes before the original navigation callback');assert.equal(live,target);calls++;events.push('navigate');
+  }}),before=JSON.stringify(f.ledger.state()),writes=f.writes();
+  f.wallet.open();const button=one(f.doc,'ww-wallet-bank-shortcut');assert.equal(button.textContent,'去钱庄');assert(!button.disabled);
+  const oldPress=button.onclick;button.click();oldPress();button.click();
+  assert.deepEqual(events,['closed','navigate']);assert.equal(calls,1,'double press cannot request another route');
+  f.wallet.open();oldPress();assert.equal(calls,1,'a previous opening cannot reuse its callback');
+  target={country:'japan',stationId:'jp-exchange-teller',scene:{},label:'去银行'};
+  button.click();assert(f.wallet.isOpen(),'an unrefreshed regional change needs a new explicit press');assert.equal(calls,1);assert.equal(button.textContent,'去银行');
+  button.click();assert.equal(calls,2);assert(!f.wallet.isOpen());
+  f.wallet.open();const sameCountryOld=button.onclick;target={...target,scene:{}};sameCountryOld();assert(f.wallet.isOpen());assert.equal(calls,2,'same-country replacement also invalidates old scene');
+  target=null;button.click();assert(button.disabled);assert.equal(button.textContent,'暂无可达银行');assert(f.wallet.isOpen());
+  button.click();assert.equal(calls,2,'unavailable shortcut never closes or navigates');
+  const disposedPress=button.onclick;f.wallet.dispose();disposedPress();assert.equal(calls,2);
+  assert.equal(f.writes(),writes);assert.equal(JSON.stringify(f.ledger.state()),before,'navigation never opens accounts, withdraws or charges');
 }
 assert.equal(walletTransactionView({id:'legacy',action:'earn',amount:5}).currency,'copper','legacy journal rows retain copper');
 assert.equal(walletTransactionView({id:'settled',action:'settle',currency:'japan',amount:5}).route,null);

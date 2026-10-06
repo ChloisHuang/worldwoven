@@ -69,6 +69,10 @@
 .ww-wallet-dialog .ww-wallet-cash-list{flex:0 0 auto;min-height:24px;max-height:42px;overflow:auto;text-align:center;font-size:10px;margin:2px 0 0;line-height:1.5;color:#695b45}
 .ww-wallet-cash-summary{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex:0 0 auto;margin:0 0 12px;padding:7px 9px;border:1px solid #a88e5d66;border-radius:6px;background:#ece4c9;color:#4f6048;font-size:10px;line-height:1.4}
 .ww-wallet-cash-summary>span{white-space:nowrap}.ww-wallet-cash-summary>strong{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.ww-wallet-dialog .ww-wallet-bank-heading{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.ww-wallet-bank-title{min-width:0}.ww-wallet-bank-title>span{display:block;font-size:9px;line-height:1.35;color:#8a7557}
+.ww-wallet-bank-actions{flex:0 0 auto;max-width:52%}
+.ww-wallet-dialog .ww-wallet-bank-actions .ww-wallet-bank-shortcut{min-height:44px;min-width:44px;width:auto;max-width:100%;padding:6px 12px;font-size:12px;line-height:1.25;letter-spacing:0;white-space:normal}
 .ww-wallet-bank-list{flex:0 0 auto;font-size:11px;margin:3px 0 12px;padding:0 1px}
 .ww-wallet-bank-row{display:flex;justify-content:space-between;gap:8px;align-items:baseline;border-bottom:1px solid #b99d6238;padding:4px 0}
 .ww-wallet-bank-row dt{color:#76684e}.ww-wallet-bank-row dd{margin:0;color:#49635b;font-weight:600;font-variant-numeric:tabular-nums}

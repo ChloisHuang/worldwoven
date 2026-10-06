@@ -1,5 +1,6 @@
 import {GAME_CURRENCIES} from './currency-ledger.js';
 import {safeUiRect} from './viewport-layout.js';
+import {AIRY_UI_THEME} from './china-money-house-theme.js';
 
 // Merely resolving these URLs does not fetch the pictures. Create images only
 // for already-owned cash, or the currency in a committed receipt.
@@ -97,18 +98,19 @@ export function walletTransactionView(tx) {
     received: tx.action === 'exchange' && tx.quote ? {currency:tx.quote.to, amount:tx.quote.received} : null};
 }
 
-export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', onOpen=()=>{}, onClose=()=>{}, document:doc=globalThis.document}={}) {
+export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', getBankTarget=()=>null, onGoToBank=()=>false, onOpen=()=>{}, onClose=()=>{}, document:doc=globalThis.document}={}) {
   if (!mount || !ledger?.balances || !ledger?.history || !ledger?.subscribeCommitted) throw TypeError('wallet requires mount and committed ledger');
   const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text != null)e.textContent=text;if(cls)e.className=cls;return e;};
   const button=(text,cls,label)=>{const b=make('button',text,cls);b.type='button';if(label)b.setAttribute('aria-label',label);return b;};
-  const style=make('link');style.rel='stylesheet';style.href=STYLE;(doc.head||doc.body).append(style);
+  const style=make('link');style.rel='stylesheet';style.href=STYLE;
+  const actionStyle=make('style',AIRY_UI_THEME);(doc.head||doc.body).append(actionStyle,style);
   const trigger=button(null,'ww-wallet-trigger','打开钱包与账本');
   const icon=make('span',null,'ww-wallet-icon');icon.setAttribute('aria-hidden','true');
   const strap=make('span',null,'ww-wallet-strap'),cashBadge=make('span',null,'ww-wallet-trigger-number');icon.append(strap);trigger.append(icon,make('span','钱包','ww-wallet-trigger-label'),cashBadge);
   trigger.setAttribute('aria-haspopup','dialog');trigger.setAttribute('aria-expanded','false');mount.prepend(trigger);
   const status=make('span',null,'ww-wallet-status');status.setAttribute('role','status');status.setAttribute('aria-live','polite');mount.append(status);
   let ui=null, disposed=false, folded=true, priorFocus=null, pulseTimer=null, transferTimer=null, transfer=null;
-  let progress=0, frame=null, lastTime=null, resizeObserver=null, receiptEpoch=0, selectedId=null;
+  let progress=0, frame=null, lastTime=null, resizeObserver=null, receiptEpoch=0, selectedId=null, bankActionEpoch=0;
   const inspections=new Map();
   const view=doc.defaultView, requestFrame=fn=>view?.requestAnimationFrame?view.requestAnimationFrame(fn):setTimeout(()=>fn(Date.now()),16);
   const cancelFrame=id=>view?.cancelAnimationFrame?view.cancelAnimationFrame(id):clearTimeout(id);
@@ -214,7 +216,10 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     left.append(cashHeading,fan,hint,cashList);
     const cashSummary=make('div',null,'ww-wallet-cash-summary'),cashSummaryAmount=make('strong');
     cashSummary.append(make('span','钱包现金'),cashSummaryAmount);cashSummary.setAttribute('aria-label','随身现金汇总');
-    const bankHeading=make('div',null,'ww-wallet-section-heading');bankHeading.append(make('h3','银行存款'),make('span','每游戏日 1% · 最低存款向下取整'));
+    const bankHeading=make('div',null,'ww-wallet-section-heading ww-wallet-bank-heading'),bankTitle=make('div',null,'ww-wallet-bank-title');
+    bankTitle.append(make('h3','银行存款'),make('span','每游戏日 1% · 最低存款向下取整'));
+    const bankActions=make('div',null,'ww-wallet-bank-actions ww-airy-theme'),bankButton=button('去银行','ww-airy-action ww-wallet-bank-shortcut');
+    bankActions.append(bankButton);bankHeading.append(bankTitle,bankActions);
     const bankList=make('dl',null,'ww-wallet-bank-list');bankList.setAttribute('aria-label','各币种银行存款');
     const ledgerHeading=make('h3','收支手记','ww-wallet-ledger-title'),scroll=make('div',null,'ww-wallet-ledger-scroll');scroll.tabIndex=0;scroll.setAttribute('aria-label','滚动查看收支记录');
     const journal=make('ol',null,'ww-wallet-journal');scroll.append(journal);
@@ -222,7 +227,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     const notice=make('p',null,'ww-wallet-notice');notice.setAttribute('role','status');
     const effects=make('div',null,'ww-wallet-effects');effects.setAttribute('aria-hidden','true');
     body.append(left,right);dialog.append(header,body,notice,effects);doc.body.append(dialog);
-    ui={dialog,closeButton,fan,toggle,canvas,back,pocket,stack,empty,hint,cashList,cashSummaryAmount,bankList,journal,scroll,notice,effects};
+    ui={dialog,closeButton,fan,toggle,canvas,back,pocket,stack,empty,hint,cashList,cashSummaryAmount,bankButton,bankList,journal,scroll,notice,effects};
     closeButton.onclick=close;
     fan.onclick=()=>{if(ui.toggle.disabled)return;folded=!folded;if(folded)selectedId=null;setFold(true);};
     if(view?.ResizeObserver){resizeObserver=new view.ResizeObserver(drawWallet);resizeObserver.observe(fan);}
@@ -366,15 +371,27 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     cashBadge.textContent=money(b?.cash,id);trigger.setAttribute('aria-label',`打开钱包与账本，${currency(id).label}随身现金 ${money(b?.cash,id)}`);
     cashBadge.title=`${currency(id).label} · 随身现金`;cashBadge.dataset.currency=id;
   }
-  function refresh(){if(disposed)return;refreshBadge();if(!ui?.dialog.open)return;renderBalances();renderHistory();}
+  function renderBankAction(){
+    const target=getBankTarget(),epoch=++bankActionEpoch;
+    ui.bankButton.textContent=target?.label||'暂无可达银行';ui.bankButton.disabled=!target;
+    ui.bankButton.setAttribute('aria-label',target?.label||'当前暂无可前往的银行');
+    ui.bankButton.onclick=()=>{
+      if(disposed||!ui.dialog.open||epoch!==bankActionEpoch)return;
+      const current=getBankTarget();
+      // A region change or a replaced scene invalidates the displayed shortcut.
+      if(!target||!current||target.country!==current.country||target.stationId!==current.stationId||target.scene!==current.scene){renderBankAction();return;}
+      close();if(!disposed)onGoToBank(current);
+    };
+  }
+  function refresh(){if(disposed)return;refreshBadge();if(!ui?.dialog.open)return;renderBalances();renderHistory();renderBankAction();}
   function open(){
     if(disposed||ui?.dialog.open)return;clearTransfer();onOpen();ensureUI();priorFocus=doc.activeElement;folded=true;historyLimit=60;setFold();
-    renderBalances(true);renderHistory();ui.scroll.scrollTop=0;ui.dialog.showModal();drawWallet();trigger.setAttribute('aria-expanded','true');ui.closeButton.focus({preventScroll:true});
+    renderBalances(true);renderHistory();renderBankAction();ui.scroll.scrollTop=0;ui.dialog.showModal();drawWallet();trigger.setAttribute('aria-expanded','true');ui.closeButton.focus({preventScroll:true});
   }
   function clearTransfer(){receiptEpoch++;clearTimeout(transferTimer);transferTimer=null;transfer?.remove();transfer=null;if(popoverShown){try{mini.hidePopover();}catch{}popoverShown=false;}mini.hidden=true;mini.replaceChildren();receiptModal=null;if(!disposed)doc.body.append(mini);}
   function finishClose(){
     if(trigger.getAttribute('aria-expanded')!=='true')return;
-    trigger.setAttribute('aria-expanded','false');clearTransfer();folded=true;setFold();onClose();
+    trigger.setAttribute('aria-expanded','false');bankActionEpoch++;clearTransfer();folded=true;setFold();onClose();
     if(priorFocus?.isConnected)priorFocus.focus({preventScroll:true});else if(trigger.isConnected)trigger.focus({preventScroll:true});
   }
   function close(){if(ui?.dialog.open){ui.dialog.close();finishClose();}}
@@ -416,5 +433,5 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
   refreshBadge();
   const unsubscribe=ledger.subscribeCommitted(animateCommitted);
   return {open,close,refresh,isOpen:()=>!!ui?.dialog.open,
-    dispose(){if(disposed)return;close();disposed=true;unsubscribe();clearTransfer();clearTimeout(pulseTimer);if(frame!==null)cancelFrame(frame);resizeObserver?.disconnect();view?.removeEventListener?.('resize',positionReceipt);view?.visualViewport?.removeEventListener?.('resize',positionReceipt);view?.visualViewport?.removeEventListener?.('scroll',positionReceipt);doc.removeEventListener?.('scroll',positionReceipt,true);trigger.remove();status.remove();mini.remove();ui?.dialog.remove();style.remove();notes.clear();artwork.clear();seen.clear();}};
+    dispose(){if(disposed)return;close();disposed=true;unsubscribe();clearTransfer();clearTimeout(pulseTimer);if(frame!==null)cancelFrame(frame);resizeObserver?.disconnect();view?.removeEventListener?.('resize',positionReceipt);view?.visualViewport?.removeEventListener?.('resize',positionReceipt);view?.visualViewport?.removeEventListener?.('scroll',positionReceipt);doc.removeEventListener?.('scroll',positionReceipt,true);trigger.remove();status.remove();mini.remove();ui?.dialog.remove();style.remove();actionStyle.remove();notes.clear();artwork.clear();seen.clear();}};
 }
