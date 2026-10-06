@@ -11,7 +11,7 @@ export function createTavernHostRole({saved=null,resolveActor=()=>null,getPlayer
  if(!current||current.version!==1||current.roleId!==TAVERN_HOST_ROLE_ID||current.slotId!==TAVERN_HOST_SLOT_ID||!(current.holderId===null||id(current.holderId))||!Number.isSafeInteger(current.revision)||current.revision<0)loadError='invalid-host-assignment';
  function state(){return loadError?{...initial,holderId:null,loadError}:{...current,loadError:null};}
  function resolve(){const row=state(),isPlayer=row.holderId==='player',actor=row.holderId?(isPlayer?getPlayer():resolveActor(row.holderId)):null,alive=!!actor&&isActorAlive(actor)!==false;
-  return {...row,actor,alive,isPlayer,available:!loadError&&alive,status:loadError?'invalid':row.holderId===null?'vacant':!actor?'unloaded':!alive?'inactive':isPlayer?'player':'npc'};
+  return {...row,actor,alive,isPlayer,available:!loadError&&alive&&canAssign(row.holderId,actor),status:loadError?'invalid':row.holderId===null?'vacant':!actor?'unloaded':!alive?'inactive':!canAssign(row.holderId,actor)?'busy':isPlayer?'player':'npc'};
  }
  function assign(holderId,{expectedRevision=current.revision}={}){
   if(loadError)return {ok:false,code:loadError};if(expectedRevision!==current.revision)return {ok:false,code:'stale-host-assignment'};

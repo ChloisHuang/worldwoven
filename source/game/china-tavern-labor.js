@@ -2,14 +2,15 @@ import {AIRY_UI_THEME} from './china-money-house-theme.js';
 import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
 import {skillXPReceipt} from './skill-progress.js';
 import {TAVERN_STEWARD_ROLE} from './formal-careers.js';
+import {personId} from './china-tavern-host-role.js';
 import {createFormalLaborContract} from './formal-labor-contract.js';
 import {TAVERN_HELPER_ROLE} from './china-tavern-employment.js';
 import {settleTemporaryWage} from './temporary-work-payroll.js';
 // One real, repeatable house job: wipe both existing dining tables and return to
-// Xu An for 12 fictional copper. This module never moves the player or NPCs.
+// the current host for 12 fictional copper. This module never moves the player or NPCs.
 const VERSION = 2, WAGE = 12, SECONDS = 5, FLOOR = .215;
 const copy = value => JSON.parse(JSON.stringify(value));
-const HOST = {id: 'cn-tavern-labor-host', name: '向许安接活或领工钱', position: [22.35, FLOOR, 6.7]};
+const HOST = {id: 'cn-tavern-labor-host', name: '向掌柜接活或领工钱', position: [22.35, FLOOR, 6.7]};
 // Registration is a conversation in the public reception bay, not precision
 // table work. A visitor must not occupy the same floor dot as a passing actor.
 const REGISTRATION_RADIUS = .9;
@@ -68,11 +69,14 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
   const active = () => !!current.job;
   const target = () => current.job?.stage === 'working' ? TABLES[current.job.completedTables] : HOST;
   const at = point => !getMounted() && near(player(), point);
-  const hostAdmissionOpen = () => serviceAdapter()?.hostAdmissionOpen?.() ?? true;
-  const hostCompletionAvailable = () => serviceAdapter()?.hostCompletionAvailable?.() ?? hostAdmissionOpen();
-  const hostUnavailableReason = () => serviceAdapter()?.hostUnavailableReason?.() || '许安正在休息，请等他回到迎客茶案再办理';
-  const hostReady = (accepted = false) => !!host && !host.walking &&
-    near(host.root?.position, host.station?.npcPosition || [24.1, FLOOR, 11.4], .12) && isHostAvailable() && (accepted ? hostCompletionAvailable() : hostAdmissionOpen());
+  const hostActor = () => {const adapter=serviceAdapter(),hasRole=typeof adapter?.hostRole==='function',row=hasRole?adapter.hostRole():null;if(hasRole&&(!row?.available||!row.alive||row.isPlayer||!row.holderId||row.holderId==='player'))return null;const actor=typeof adapter?.hostActor==='function'?adapter.hostActor():hasRole?row.actor:host;return actor&&actor.alive!==false&&actor!==getPlayer()&&personId(actor)!=='player'&&(!hasRole||!personId(actor)||personId(actor)===row.holderId)?actor:null;};
+  const hostName = () => {const actor=hostActor();return actor?.station?.npcName||actor?.name||'掌柜';};
+  const hostVisualAnchor = () => {const actor=hostActor(),actorId=actor&&(personId(actor)||serviceAdapter()?.hostRole?.()?.holderId);return actorId?{visualAnchor:{actorId}}:{};};
+  const hostAdmissionOpen = () => !!hostActor()&&(serviceAdapter()?.hostAdmissionOpen?.() ?? true);
+  const hostCompletionAvailable = () => !!hostActor()&&(serviceAdapter()?.hostCompletionAvailable?.() ?? hostAdmissionOpen());
+  const hostUnavailableReason = () => !hostActor()?'掌柜岗位当前无人可以办理，请稍后再来':serviceAdapter()?.hostUnavailableReason?.() || `${hostName()}正在休息，请等回到迎客茶案再办理`;
+  const hostAtPost = () => {const actor=hostActor(),adapter=serviceAdapter();if(!actor)return false;if(typeof adapter?.hostAtPost==='function')return !!adapter.hostAtPost();const dynamic=typeof adapter?.hostRole==='function'||typeof adapter?.hostActor==='function';return !actor.walking&&near(actor.root?.position,dynamic?[24.1,FLOOR,6.4]:actor.station?.npcPosition||[24.1,FLOOR,6.4],.12);};
+  const hostReady = (accepted = false) => hostAtPost() && isHostAvailable() && (accepted ? hostCompletionAvailable() : hostAdmissionOpen());
   const failure = (code, message) => { lastError = code; if (message) notify(message); return false; };
   const permitted = () => !disposed && !saving && !paying && !loadError && !copperLedger.loadError;
   const stopCleaning = () => { cleaning = false; pendingClean = false; elapsed = 0; origin = null; };
@@ -91,21 +95,21 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     finally { saving = false; }
   }
   function meetHostAt(radius, accepted = false) {
-    if (getMounted() || !near(player(), HOST.position, radius) || !canSee(HOST)) return failure('not-at-host', '请走到一层许安的迎客茶案前，站稳后再招呼他');
-    if (!hostReady(accepted)) return failure('host-unavailable', hostAdmissionOpen() ? '许安还在忙，请等他回到迎客茶案再来' : hostUnavailableReason());
+    if (getMounted() || !near(player(), HOST.position, radius) || !canSee(HOST)) return failure('not-at-host', '请走到一层掌柜的迎客茶案前，站稳后再招呼他');
+    if (!hostReady(accepted)) return failure('host-unavailable', hostAdmissionOpen() ? '掌柜还在忙，请等他回到迎客茶案再来' : hostUnavailableReason());
     return true;
   }
   function meetHost(radius = .2) { return meetHostAt(radius); }
   function meetRegistrationHost() { return meetHostAt(REGISTRATION_RADIUS, completingRegistration); }
   const atRegistration = () => !getMounted() && near(player(), HOST.position, REGISTRATION_RADIUS) && canSee(HOST);
   const cancelRegistration = () => { waitingRegistration = null; waitingRegistrationAccepted = false; };
-  const hasPresentHostMeeting = () => !disposed && !!waitingRegistration && waitingRegistrationAccepted && atRegistration();
+  const hasPresentHostMeeting = () => !disposed && !!waitingRegistration && waitingRegistrationAccepted && !!hostActor() && atRegistration();
   function finishRegistration(selected, accepted = false) {
     const next = resolveIntent(selected);
     if (!next || !atRegistration()) return false;
     if (!hostReady(accepted)) {
       waitingRegistration = copy(next); waitingRegistrationAccepted = accepted || hostAdmissionOpen();
-      notify(waitingRegistrationAccepted ? '许安正在忙，已在登记处等候；等他回案后办理这次登记，关闭面板可取消' : hostUnavailableReason() + '；这次登记先等候，关闭面板可取消');
+      notify(waitingRegistrationAccepted ? '掌柜正在忙，已在登记处等候；等他回案后办理这次登记，关闭面板可取消' : hostUnavailableReason() + '；这次登记先等候，关闭面板可取消');
       ui?.open(); return true;
     }
     cancelRegistration();
@@ -123,7 +127,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     if(formal.hired()&&!current.job&&serviceAdapter())return serviceAdapter().accept();
     if (!permitted()) return failure(loadError || copperLedger.loadError || 'labor-busy');
     if (active()) return failure('job-active', '先完成或取消手上这份活');
-    if (!hired()) return failure('not-employed', '先在迎客茶案的招工登记处应聘酒楼帮工，再向许安接活');
+    if (!hired()) return failure('not-employed', '先在迎客茶案的招工登记处应聘酒楼帮工，再向掌柜接活');
     if (!meetHost()) return false;
     const nextTransaction = copperLedger.state().nextTransaction;
     const resume=formal.pendingReceipt(),serial=resume?Number(resume.split('-').at(-1)):Math.max(current.serial + 1, nextTransaction);
@@ -131,7 +135,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     const id = `cn-tavern-labor-${serial}`;
     const contract=formal.begin(id);if(!contract.ok)return false;
     if (!persist({version: VERSION, serial, job: {id, receiptId: id, stage: 'working', completedTables: 0,...(contract.formalRoleId?{formalRoleId:contract.formalRoleId}:{})}})) return false;
-    stopCleaning(); notify(formal.pinned(current.job)?`许安：已登记今日班次。擦净两桌后回来验收，${formal.salary}日薪自动存银行，不另发临工工资。`:'许安：请擦净两张餐桌，回来验收后，12 铜文工资自动存银行'); ui?.refresh(true); return true;
+    stopCleaning(); notify(formal.pinned(current.job)?`${hostName()}：已登记今日班次。擦净两桌后回来验收，${formal.salary}日薪自动存银行，不另发临工工资。`:`${hostName()}：请擦净两张餐桌，回来验收后，12 铜文工资自动存银行`); ui?.refresh(true); return true;
   }
   function startCleaning() {
     if (!permitted() || current.job?.stage !== 'working' || cleaning || !formal.canWork(current.job)) return false;
@@ -158,16 +162,16 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     let result;
     try { result = settleTemporaryWage({ledger: copperLedger, job: current.job, amount: WAGE, roleId: TAVERN_HELPER_ROLE,
       getClock, saveJob: job => persist({...current, job})}); }
-    catch { return failure('payment-failed', '工钱暂未入账，请稍后找许安重试'); }
+    catch { return failure('payment-failed', '工钱暂未入账，请稍后找掌柜重试'); }
     finally { paying = false; }
-    if (!result?.ok) return failure(result?.code || 'payment-failed', '工钱暂未入账，请稍后找许安重试');
+    if (!result?.ok) return failure(result?.code || 'payment-failed', '工钱暂未入账，请稍后找掌柜重试');
     // Cleanup can fail after a successful ledger write. Keep the ready receipt:
     // claim after reload safely replays the canonical cash/bank receipt.
     if (!persist({...current, job: null})) {
-      notify(result.legacyCash ? '旧工钱已在钱包中，收工记录暂未保存；再找许安确认，不会重复发薪' : '12 铜文工资已存银行；收工记录暂未保存，再找许安确认即可，不会重复发薪');
+      notify(result.legacyCash ? '旧工钱已在钱包中，收工记录暂未保存；再找掌柜确认，不会重复发薪' : '12 铜文工资已存银行；收工记录暂未保存，再找掌柜确认即可，不会重复发薪');
       ui?.refresh(true); return true;
     }
-    stopCleaning(); notify(result.legacyCash ? '已在钱包的旧工钱保留，收工记录已确认' : '许安：验收完成，12 铜文工资已存银行；到中国钱庄取款后才进入钱包。'); ui?.refresh(true); return true;
+    stopCleaning(); notify(result.legacyCash ? '已在钱包的旧工钱保留，收工记录已确认' : `${hostName()}：验收完成，12 铜文工资已存银行；到中国钱庄取款后才进入钱包。`); ui?.refresh(true); return true;
   }
   function finishFormalPay(r){
     if(!r.ok||r.cleanupPending)return false;
@@ -176,7 +180,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
   }
   function cancel() {
     if (!permitted() || !active()) return false;
-    if (current.job.stage === 'ready') return failure('wage-ready', '这份活已经做完，工钱会保留，回许安处验收后存银行');
+    if (current.job.stage === 'ready') return failure('wage-ready', '这份活已经做完，工钱会保留，回掌柜处验收后存银行');
     if (!formal.cancel(current.job))return false;
     if (!persist({...current, job: null})) return false;
     stopCleaning(); notify('已取消这份擦桌活，未领取工钱'); ui?.refresh(true); return true;
@@ -209,7 +213,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
           const next = {...current, job: {...current.job, completedTables: done, stage: done === 2 ? 'ready' : 'working'}};
           stopCleaning();
           if (done===2&&!formal.complete(next.job))return;
-          if (persist(next)) {const learned=done===2&&!formal.pinned(next.job)?onCompleted(copy(next.job)):null;notify((done === 2 ? formal.pinned(next.job)?'两桌已完成，回许安处验收今日班次':'两张桌面都擦净了，请回许安处验收，12 铜文工资自动存银行' : '西窗桌擦净了，请走到东窗桌靠过道的一侧')+skillXPReceipt(learned,'礼仪'));}
+          if (persist(next)) {const learned=done===2&&!formal.pinned(next.job)?onCompleted(copy(next.job)):null;notify((done === 2 ? formal.pinned(next.job)?'两桌已完成，回掌柜处验收今日班次':'两张桌面都擦净了，请回掌柜处验收，12 铜文工资自动存银行' : '西窗桌擦净了，请走到东窗桌靠过道的一侧')+skillXPReceipt(learned,'礼仪'));}
         }
       }
     }
@@ -220,7 +224,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
   }
   const view = () => ({...copy(current), active: active(), cleaning, progress: elapsed / SECONDS,
     wage: WAGE, seconds: SECONDS, target: copy(target()), atTarget: at(target().position),
-    atHost: at(HOST.position), hostAvailable: hostReady(), employment: employment?.state() || null,
+    atHost: at(HOST.position), hostName:hostName(), hostAvailable: hostReady(), employment: employment?.state() || null,
     hired: hired(), waitingRegistration: waitingRegistration?.kind || null, formalHired:formal.hired(),formalRole:formal.role,formalState:formal.workState(),formalJob:formal.pinned(current.job),formalSalary:formal.salary,formalBeginAvailability:formal.beginAvailability(), loadError: loadError || copperLedger.loadError || null, lastError});
   function intent(kind) {
     if(formal.hired()&&!current.job&&serviceAdapter())return serviceAdapter().intent(kind==='view'?'formal-view':kind);
@@ -236,7 +240,8 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     if(kind==='clean'&&!formal.canWork(job))return null;
     const point = kind === 'clean' ? target() : HOST;
     return {...copy(point), id: `cn-tavern-labor-${kind}`, provider: 'china-tavern-labor', kind,
-      name: kind === 'clean' ? point.name : '云来酒楼 · 招工登记案', npcName: '许安',
+      name: kind === 'clean' ? point.name : '云来酒楼 · 招工登记案', npcName: hostName(),
+      ...(!['view','formal-view','clean'].includes(kind)?hostVisualAnchor():{}),
       action: {'formal-view':formal.hired()?'查看今日安排与任职登记':'查看正式职位与申请条件','formal-apply':'申请常任服务助理','formal-resign':'办理常任助理离职',view:'查看酒楼职位与办理登记',apply:'申请酒楼帮工',accept:formal.hired()?'开始今日酒楼班次':'接下擦桌活',claim:formal.pinned(job)?'提交当班验收 · 工资存银行':'验收后工资存银行 · 12 铜文',clean:'擦拭餐桌 · 5 秒',resign:'办理离职'}[kind],
       ...(kind==='formal-view'?{registration:{scope:'role',roleId:formal.role.id}}:{}),
       intentKey: [registration?.revision ?? 0, formal.workState()?.revision??0, job?.id || '-', job?.stage || '-', job?.completedTables || 0, kind].join(':'),
@@ -299,7 +304,7 @@ function createUI({doc, service, getPlayer, onIntent, canSee, onOpen}) {
   const button=(text,fn,cls)=>{const e=make('button',text,cls);e.type='button';e.onclick=fn;return e;};
   const request=choice=>{if(!service.resolveIntent(choice)){refresh(true);return;}close();onIntent(choice);};
   const secondsLeft=s=>s.cleaning?Math.ceil((1-s.progress)*s.seconds):null;
-  const stateKey=s=>JSON.stringify([selected,s.job,s.cleaning,secondsLeft(s),s.waitingRegistration,s.atTarget,s.atHost,s.hostAvailable,s.loadError,s.lastError,s.employment,s.formalState?.revision,s.formalState?.loadError,s.formalState?.skills?.ritual,s.formalHired,s.formalBeginAvailability,getPlayer()?.ageYears,service.intent('clean')?.intentKey]);
+  const stateKey=s=>JSON.stringify([selected,s.job,s.cleaning,secondsLeft(s),s.waitingRegistration,s.atTarget,s.atHost,s.hostName,s.hostAvailable,s.loadError,s.lastError,s.employment,s.formalState?.revision,s.formalState?.loadError,s.formalState?.skills?.ritual,s.formalHired,s.formalBeginAvailability,getPlayer()?.ageYears,service.intent('clean')?.intentKey]);
   function refresh(force=false){
     if(!dialog.open&&!force)return;
     const s=service.view();if(dialog.open&&!nearHouse()){close();return;}
@@ -309,7 +314,7 @@ function createUI({doc, service, getPlayer, onIntent, canSee, onOpen}) {
     const guard=fn=>()=>{if(disposed||!dialog.open||rendered!==revision)return;if(!nearHouse()){close();return;}if(stateKey(service.view())!==key){refresh(true);return;}fn();};
     const x=button('×',guard(close),'cn-labor-close');x.setAttribute('aria-label','关闭工作面板，保留进度并取消登记等候');
     const {header,body,actions}=createAiryPanelParts(doc);header.className+=' cn-labor-heading';body.className+=' cn-labor-content';actions.className+=' cn-labor-actions';
-    header.append(make('h2','云来酒楼 · 工作登记'),make('span','许安 · 迎客茶案'));
+    header.append(make('h2','云来酒楼 · 工作登记'),make('span',`${s.hostName} · 迎客茶案`));
     const menu=make('section',null,'cn-labor-menu'),choices=make('div',null,'cn-labor-choices'),detail=make('section',null,'cn-labor-detail');
     choices.setAttribute('aria-label','选择云来酒楼工作');
     const localChoices=[['temporary',s.formalJob?'已有班次':'临时帮工',s.job?`手上这份 · ${s.job.completedTables}/2 桌`:s.employment?.roleId===TAVERN_HELPER_ROLE?'已登记 · 按次接活':`${s.wage} 铜文 / 份 · 免费登记`],['formal','长期职位',s.formalHired?'常任服务助理 · 已任职':'常任服务助理 · 查看条件']];
@@ -320,8 +325,8 @@ function createUI({doc, service, getPlayer, onIntent, canSee, onOpen}) {
     const more=make('details',null,'cn-labor-more');more.open=detailsOpen;more.addEventListener('toggle',()=>{if(rendered===revision)detailsOpen=more.open;});
     let choice,label,blocked=false,primaryAction;
     if(s.waitingRegistration){
-      detail.append(make('p','登记等候 · 尚未办理','cn-labor-kicker'),make('h3','等许安回案'),make('p','已在迎客茶案旁等候','cn-labor-status'),make('p','没有开始工作，也没有扣取费用。','cn-labor-note'));
-      more.append(make('summary','等候与退出'),make('p','许安空闲后会重新核对这次申请或离职。关闭面板、离开登记处或取消等候，都会撤销本次等候。'));
+      detail.append(make('p','登记等候 · 尚未办理','cn-labor-kicker'),make('h3','等掌柜回案'),make('p','已在迎客茶案旁等候','cn-labor-status'),make('p','没有开始工作，也没有扣取费用。','cn-labor-note'));
+      more.append(make('summary','等候与退出'),make('p','掌柜空闲后会重新核对这次申请或离职。关闭面板、离开登记处或取消等候，都会撤销本次等候。'));
       label='取消这次登记等候';primaryAction=()=>{service.cancelRegistration();refresh(true);};
     }else if(selected==='formal'){
       const role=s.formalRole,age=getPlayer()?.ageYears,skill=s.formalState?.skills?.ritual,availability=s.formalBeginAvailability;
@@ -336,7 +341,7 @@ function createUI({doc, service, getPlayer, onIntent, canSee, onOpen}) {
       const j=s.job,ready=j?.stage==='ready',formalJob=s.formalJob,unavailable=j?.stage==='working'&&!s.cleaning&&!service.intent('clean');
       detail.append(make('p',formalJob?'已保存班次 · 两桌任务':j?'手上的擦桌活':'临时工作 · 按份结算','cn-labor-kicker'),make('h3',j?'西窗与东窗餐桌':s.hired?'酒楼帮工 · 已登记':'酒楼帮工'));
       const value=make('div',null,'cn-labor-value');value.append(make('strong',j?`${j.completedTables} / 2`:String(s.wage)),make('span',j?formalJob?'桌已完成 · 正式工资单独验收':`桌已完成 · 验收 ${s.wage} 铜文`:'铜文 / 份 · 验收后存银行'));detail.append(value);
-      const status=s.loadError||s.employment?.loadError?'记录暂时无法读取，请保留存档':s.cleaning?`正在擦拭 · 还需 ${secondsLeft(s)} 秒`:ready?'两桌已完成 · 工钱待当面验收':unavailable?'当前任务暂不可继续 · 请查看班次安排':j?`下一处：${s.target.name}`:s.hired?s.hostAvailable?'登记已保存 · 可以接下一份活':'许安正在忙 · 回案后可接活':'无需资历或技能 · 报名费 0 铜文';
+      const status=s.loadError||s.employment?.loadError?'记录暂时无法读取，请保留存档':s.cleaning?`正在擦拭 · 还需 ${secondsLeft(s)} 秒`:ready?'两桌已完成 · 工钱待当面验收':unavailable?'当前任务暂不可继续 · 请查看班次安排':j?`下一处：${s.target.name}`:s.hired?s.hostAvailable?'登记已保存 · 可以接下一份活':'掌柜正在忙 · 回案后可接活':'无需资历或技能 · 报名费 0 铜文';
       detail.append(make('p',status,s.loadError||s.employment?.loadError?'cn-labor-error':'cn-labor-status'));
       detail.append(make('p',j?'关闭保留已完成餐桌；移动停止当前擦拭。':`每桌站稳擦拭 ${s.seconds} 秒，完成两桌后回案验收。`,'cn-labor-note'));
       more.append(make('summary',formalJob?'验收与退出':'工钱、成长与退出'),make('p',formalJob?'这是存档中尚未结清的两桌班次，按原正式班次验收；不另发 12 铜文临工工资。':`${s.wage} 铜文验收后存银行，到中国钱庄取款后进入钱包。完整临工获得待客礼仪成长，每天最多 4 份有效成长。`),make('p',formalJob?'当日未完成的过期班次须取消，记一次差评，无日薪。已完成的工资保留，不能取消。':'取消未完成的活没有工钱；两桌完成后工资保留，不能取消。已完成餐桌会保存，重回桌边只需继续剩余工作。'));
@@ -345,7 +350,7 @@ function createUI({doc, service, getPlayer, onIntent, canSee, onOpen}) {
       choice=service.intent(j?ready?'claim':'clean':s.hired?'accept':'apply');
       label=s.cleaning?`正在擦拭 · ${secondsLeft(s)} 秒`:unavailable?'当前任务暂不可继续':choice?.kind==='apply'?'当面登记临时帮工':choice?.kind==='claim'?formalJob?'当面验收 · 正式工资存银行':`当面验收 · ${s.wage} 铜文存银行`:choice?.action||'当前暂不可办理';
       blocked=!!(s.loadError||!j&&s.employment?.loadError||s.cleaning);
-      if(!j&&s.hired&&!s.hostAvailable||ready&&!s.hostAvailable){label='等许安回迎客茶案';blocked=true;}
+      if(!j&&s.hired&&!s.hostAvailable||ready&&!s.hostAvailable){label='等掌柜回迎客茶案';blocked=true;}
     }
     detail.append(more);const primary=button(label,guard(primaryAction||(()=>request(choice))),'cn-labor-primary ww-airy-action');primary.disabled=blocked||!primaryAction&&!choice;actions.append(primary);body.append(menu,detail);dialog.append(x,header,body,actions);
   }
