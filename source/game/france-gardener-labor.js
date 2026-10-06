@@ -126,7 +126,7 @@ function createLegacyFranceGardenerLabor({gardener,employment,careers,openRegist
   const point=kind==='water'?target():['take','return'].includes(kind)?RACK:REGISTRY;
   return {...copy(point),id:`fr-garden-labor-${kind}`,provider:'france-gardener-labor',kind,npcName:'埃米尔',...(kind==='formal-view'?{registration:{scope:'role',roleId:GARDEN_ASSISTANT_ROLE.id}}:{}),
    action:{'formal-view':formal.hired()?'查看岗位状态':'查看正式职位与申请条件','formal-apply':'提交园艺助理申请','formal-review':'当面确认职责并接受审核','formal-resign':'办理常任园艺离职',view:'查看临工与长期职位',apply:'申请园艺帮工',resign:'办理园艺离职',accept:formal.hired()?'开始今日园艺班次':'接下浇花活',claim:formal.pinned(j)?'提交当班验收 · 工资存法国券账户':'验收后工资存银行 · 6 铜文',take:'领取浇水壶',water:'亲手浇花 · 5 秒',return:'归还浇水壶'}[kind],
-   intentKey:[registration?.revision||0,formal.state()?.revision||0,j?.id||'-',j?.stage||'-',j?.completedBeds||0,j?.cancelled||false,held(),kind].join(':'),
+   intentKey:[registration?.revision||0,formal.workState()?.revision||0,j?.id||'-',j?.stage||'-',j?.completedBeds||0,j?.cancelled||false,held(),kind].join(':'),
    interactionRadius:2.4,executionRadius:.16,priority:kind==='view'?1:45};
  }
  function resolveIntent(selected){const next=intent(selected?.kind);if(!next||selected?.provider!==next.provider||selected.id!==next.id||selected.intentKey!==next.intentKey)return null;if(next.kind==='formal-view'){const context=selected.registration||next.registration;if(context.roleId!==GARDEN_ASSISTANT_ROLE.id||!['role','catalogue'].includes(context.scope))return null;return {...next,registration:{...context}};}return next;}
@@ -197,10 +197,12 @@ function createLegacyFranceGardenerLabor({gardener,employment,careers,openRegist
    target:activity==='water'?target().playerWorkTarget:null,phase:elapsed,
    transfer:activity==='take'||activity==='return'?{tool:'can',pickup:activity==='take',ratio:Math.min(1,elapsed/TRANSFER)}:null};
  }
- const view=()=>({...copy(current),hired:hired(),formalHired:formal.hired(),formalRole:formal.role,formalState:formal.state(),formalJob:formal.pinned(current.job),formalExpired:formal.pinned(current.job)&&current.job.stage==='working'&&!formal.canWork(current.job),formalSalary:formal.salary,beginAvailability:formal.beginAvailability(),employment:employment?.state(),held:held(),activity,
+ const readView=formalState=>({...copy(current),hired:hired(),formalHired:formal.hired(),formalRole:formal.role,formalState,formalJob:formal.pinned(current.job),formalExpired:formal.pinned(current.job)&&current.job.stage==='working'&&!formal.canWork(current.job),formalSalary:formal.salary,beginAvailability:formal.beginAvailability(),employment:employment?.state(),held:held(),activity,
   waitingForHost:!!meetingIntent,progress:elapsed/(activity==='water'?SECONDS:TRANSFER),wage:WAGE,seconds:SECONDS,
   target:copy(target()),loan:gardener.loanState(),loadError:loadError||copperLedger.loadError,lastError});
- const service={active,held,invalid:()=>!!loadError||!!copperLedger.loadError,isActing:()=>!!activity||!!pending||!!meetingIntent,accept,claim,cancel,meetHost,stopActivity,update,intent,resolveIntent,executeIntent,view,state:view,
+ // The live badge uses the work projection; explicit view/state keep complete career diagnostics.
+ const view=()=>readView(formal.state()),displayState=()=>readView(formal.workState());
+ const service={active,held,invalid:()=>!!loadError||!!copperLedger.loadError,isActing:()=>!!activity||!!pending||!!meetingIntent,accept,claim,cancel,meetHost,stopActivity,update,intent,resolveIntent,executeIntent,view,state:view,displayState,
   snapshot:()=>({version:1,jobId:current.job?.id||null,completedBeds:current.job?.completedBeds||0,activity,pending:copy(pending),meetingIntent:copy(meetingIntent),elapsed,origin:copy(origin),activityPoint:copy(activityPoint),nextPayAt}),
   restore(s){if(s?.version!==1||s.jobId!==(current.job?.id||null)||s.completedBeds!==(current.job?.completedBeds||0))return false;activity=['take','water','return'].includes(s.activity)?s.activity:null;pending=copy(s.pending);meetingIntent=copy(s.meetingIntent);elapsed=Math.max(0,s.elapsed||0);origin=copy(s.origin);activityPoint=copy(s.activityPoint);nextPayAt=Math.max(0,s.nextPayAt||0);return true;},
   employment,formal,playerPose,toolPose,label:()=>meetingIntent?'等埃米尔收好工具':activity==='water'?`正在浇花 · ${Math.ceil(SECONDS-elapsed)} 秒`:activity==='take'?'拿起浇水壶':activity==='return'?'放回浇水壶':held()?'提着浇水壶':null,
@@ -222,19 +224,19 @@ function createUI({doc,service,getPlayer,canSee,onIntent,onOpen}){
 @media(max-width:600px){.fr-labor-dialog.ww-airy-panel{height:min(540px,var(--ww-ui-height,calc(100dvh - 24px)));padding:16px}.fr-labor-heading{display:block}.fr-labor-heading>span{display:block;margin-top:3px}.fr-labor-content{display:block;overflow:auto}.fr-labor-menu,.fr-labor-detail{overflow:visible}.fr-labor-menu{margin-bottom:12px}.fr-labor-choices{grid-template-columns:1fr 1fr}.fr-labor-choices button{padding:8px}.fr-labor-choices strong{font-size:14px}.fr-labor-choices span{font-size:11px}}
 `;
  (doc.head||doc.body).append(style);doc.body.append(badge,dialog);let menuState={available:false},signature='',selected='temporary',revision=0,detailsOpen=false,disposed=false;
- const nearby=(state=service.view())=>[REGISTRY,state.target].some(t=>near(getPlayer()?.root.position,t.position,2.4)&&canSee(t));
+ const nearby=(state=service.displayState())=>[REGISTRY,state.target].some(t=>near(getPlayer()?.root.position,t.position,2.4)&&canSee(t));
  const close=()=>{revision++;if(dialog.open)dialog.close();};
  const button=(text,fn,cls)=>{const e=make('button',text,cls);e.type='button';e.onclick=fn;return e;};
  const request=choice=>{if(!service.resolveIntent(choice)){refresh(true);return;}close();onIntent(choice);};
  const secondsLeft=s=>s.activity==='water'?Math.ceil((1-s.progress)*s.seconds):null;
  const stateKey=s=>JSON.stringify([selected,s.job,s.hired,s.activity,secondsLeft(s),s.held,s.waitingForHost,s.loadError,s.lastError,s.employment?.revision,s.employment?.loadError,s.formalState?.revision,s.formalState?.loadError,s.formalHired,getPlayer()?.ageYears,s.beginAvailability?.code,s.beginAvailability?.ok]);
  function refresh(force=false){
-  const s=service.view(),near=nearby(s);menuState={available:near};badge.hidden=!near;badge.textContent=s.formalHired?(s.job?.stage==='ready'?'园艺正式班次 · 待验收':s.job?s.job.shiftKind==='continuous'?service.label()||'常任园艺 · 当班中':`常任园艺 · ${s.job.completedBeds}/2畦`:'常任园艺助理 · 每日班次'):s.activity==='water'?`浇花中 · ${secondsLeft(s)} 秒`:s.waitingForHost?'等埃米尔到登记簿旁':s.job?.stage==='ready'?`园艺工钱 · ${s.wage} 铜文`:s.job?`园艺活 · ${s.job.completedBeds}/2 畦${s.held?' · 持壶':''}`:s.hired?'园艺帮工 · 接活':'招工登记 · 园艺帮工';
+  const s=service.displayState(),near=nearby(s);menuState={available:near};badge.hidden=!near;badge.textContent=s.formalHired?(s.job?.stage==='ready'?'园艺正式班次 · 待验收':s.job?s.job.shiftKind==='continuous'?service.label()||'常任园艺 · 当班中':`常任园艺 · ${s.job.completedBeds}/2畦`:'常任园艺助理 · 每日班次'):s.activity==='water'?`浇花中 · ${secondsLeft(s)} 秒`:s.waitingForHost?'等埃米尔到登记簿旁':s.job?.stage==='ready'?`园艺工钱 · ${s.wage} 铜文`:s.job?`园艺活 · ${s.job.completedBeds}/2 畦${s.held?' · 持壶':''}`:s.hired?'园艺帮工 · 接活':'招工登记 · 园艺帮工';
   if(dialog.open&&!near){close();return;}if(!dialog.open&&!force)return;
   const key=stateKey(s);if(!force&&key===signature)return;signature=key;const rendered=++revision;dialog.replaceChildren();
   // A closed, replaced or superseded control cannot issue another navigation
   // request or cancel a newer work slip. Physical execution stays in service.
-  const guard=fn=>()=>{if(disposed||!dialog.open||rendered!==revision)return;if(stateKey(service.view())!==key){refresh(true);return;}fn();};
+  const guard=fn=>()=>{if(disposed||!dialog.open||rendered!==revision)return;if(stateKey(service.displayState())!==key){refresh(true);return;}fn();};
   const x=button('×',guard(close),'fr-labor-close');x.setAttribute('aria-label','关闭园艺面板，保留进度');
   const {header,body,actions}=createAiryPanelParts(doc);header.className+=' fr-labor-heading';body.className+=' fr-labor-content';actions.className+=' fr-labor-actions';
   header.append(make('h2','西苑 · 工作登记'),make('span','埃米尔 · 工具架'));
