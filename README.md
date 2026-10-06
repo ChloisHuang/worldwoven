@@ -11,8 +11,8 @@ R16.131 ordinary visits use the current supported character model with the origi
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.155-public, 2026-10-06
-Verified published Sites source commit: 053500aac03510ebed135a8959b4a38c54e5982f
+Published release: R16.156-public, 2026-10-06
+Verified published Sites source commit: af98ab4e142126e062485c1e3935ca7de08f055b
 
 Opt-in same-save performance panel: https://alien.doudouai.net/?perf=1#china
 It reads runtime timing/render counts and the initial save length; it does not reset storage or send telemetry. CPU submission timing is not GPU timing. R16.128 removes repeated full-history copies from closed salon panels and China job/HUD reads. R16.129 extends current-career reads to the existing Japan/Egypt employment adapters and French tea/pastry/gardening controllers. Those controllers only run in their respective countries. The user reported R16.130 runs without lag; broader device performance remains unverified.
@@ -66,6 +66,8 @@ R16.153 includes earned clinic funds in the same person’s existing guest meal 
 R16.154 gives Lin an eight-copper contract for completing an accepted physical tea service with the original cup and tray. Existing free conversations remain free. After real earnings and safe return, Lin can pay for an original meal, use the public toilet and return to the tea desk. The pale cup is clearer against green sleeves. Default China needs coverage is 28/31; the simplified demand model does not guarantee daily business in every world, and device feedback remains open.
 
 R16.155 fixes restoration of Lin’s active unpaid or prepaid meal when its recorded source is the original tea account. Original payment and refund evidence remains mandatory. Coverage stays 28/31; this narrow correction adds no new work or income role.
+
+R16.156 pays Lan eight copper for physically checking, handling and returning the original six books, then returning to the post. Earned funds support an original meal, public toilet visit and return upstairs. Interrupted work preserves the original book and gives no unpaid completion credit; ordinary reading resumes when the work clears. Default China needs coverage is 29/31, with 温晚 and 陆昭 still open.
 
 ## Working rules
 
