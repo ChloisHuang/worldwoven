@@ -199,3 +199,5 @@ body dialog.context-action-menu{inset:auto var(--ww-ui-right,12px) calc(var(--ww
 .object-action-popover{position:absolute;pointer-events:auto;box-sizing:border-box;padding:4px 9px 8px;border:1px solid #d4e5dc;border-radius:10px 3px;background:#f6f8f0f2;color:#456872;box-shadow:0 4px 16px #274b6420;font-family:Georgia,"Songti SC","Noto Serif CJK SC",serif;display:flex;flex-direction:column;overflow:hidden}
 .object-action-popover .context-action-heading h2{font-size:14px}
 .object-action-popover .context-action-list{padding:0}
+
+.object-action-icon:active{transform:translate(-50%,-50%)}

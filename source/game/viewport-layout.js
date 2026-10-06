@@ -54,12 +54,15 @@ export function createHudLayout(root=document){
    }
    return rects;
   },
-  obscures(label,viewport,padding=6){
+  labelRect(label,viewport){
    const key=label.textContent+'|'+viewport.width+'|'+viewport.height;
    let size=dimensions.get(label);
    if(!size||size.key!==key){size={key,width:label.offsetWidth,height:label.offsetHeight};dimensions.set(label,size);}
    const x=parseFloat(label.style.left),y=parseFloat(label.style.top);
-   return labelOverlapsHud({left:x-size.width/2,right:x+size.width/2,top:y-size.height,bottom:y},this.rects(),uiFrames.get(root)||viewport,padding);
+   return {left:x-size.width/2,right:x+size.width/2,top:y-size.height,bottom:y};
+  },
+  obscures(label,viewport,padding=6){
+   return labelOverlapsHud(this.labelRect(label,viewport),this.rects(),uiFrames.get(root)||viewport,padding);
   }
  };
 }

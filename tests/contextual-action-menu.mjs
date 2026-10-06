@@ -46,7 +46,7 @@ console.log('PASS contextual menu: shared near/floor/occlusion pass, all grouped
 
 // Exercise the production registry/mapping without constructing unrelated lots.
 const fs=await import('node:fs'),vm=await import('node:vm'),source=fs.readFileSync(new URL('../source/game/main.js',import.meta.url),'utf8');
-let currentAction=null,keyboardMenu=0;const keyboardSelected=[],keyboard={roofShown:false,interactionMenuOpen:()=>false,player:{},nearest:chair,currentControl:()=>currentAction,executeNearbyAction:item=>keyboardSelected.push(item.id),contextMenu:{activate:()=>keyboardMenu++}};
+let currentAction=null,keyboardMenu=0;const keyboardSelected=[],keyboard={refreshNearbyChoices:()=>{},roofShown:false,interactionMenuOpen:()=>false,player:{},nearest:chair,currentControl:()=>currentAction,executeNearbyAction:item=>keyboardSelected.push(item.id),contextMenu:{project:()=>{},activate:()=>keyboardMenu++}};
 vm.createContext(keyboard);vm.runInContext(source.slice(source.indexOf('function doInteraction('),source.indexOf('function executeNearbyAction(')),keyboard);
 keyboard.doInteraction();assert.deepEqual(keyboardSelected,['seat'],'E still sits from the same valid nearest candidate while touch is hidden');
 menu.update([chair,actions[2]]);keyboard.doInteraction();assert.equal(keyboardSelected.length,2,'nearest-chair E also works beside a separate visible chat action');assert.equal(keyboardMenu,0);

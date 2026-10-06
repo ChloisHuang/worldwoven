@@ -28,7 +28,7 @@ export function createJapanWeatherCharmService({lot,getPlayer,getBusy=()=>false,
     for(const item of items){if(carried&&item!==carried||!reachable(item))continue;
       const p=getPlayer().root.position,d=Math.hypot(p.x-item.position[0],p.z-item.position[2]);
       if(d<distance){distance=d;best={id:item.id,name:item.name,action:carried?'挂回窗边':item.kind==='fair'?'拿起晴天娃娃':'拿起雨天挂偶',
-        weatherCharm:true,position:item.approach.slice(),distance};}}
+        weatherCharm:true,visualAnchor:{id:item.id,point:[item.position[0],item.position[1]+item.height,item.position[2]]},position:item.approach.slice(),distance};}}
     return best;
   }
   function interact(id) {

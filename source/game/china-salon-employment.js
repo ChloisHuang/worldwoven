@@ -147,7 +147,7 @@ export function createChinaSalonEmployment({salon,scene,careers,copperLedger,npc
   if(!action)return null;
   const remote=kind==='work-view'||kind==='decline',inRoom=kind==='go-room'||kind.startsWith('poem-')||kind.startsWith('answer-');
   const position=remote?getPlayer()?.root.position.toArray():inRoom?room()?.player:REG;if(!position)return null;
-  return {id:'cn-salon-job-'+kind,provider:'china-salon-employment',kind,roleId:ROLE.id,name:'云来诗词台班',npcName:'温晚',targetKey:'cn-tavern-reception',targetName:'温晚 · 雅集接待',action,position:position.slice(),executionRadius:remote ? .5 : inRoom ? .25 : .45,interactionRadius:remote ? .6 : 1.8,priority:47,visibilityChecked:remote,...(kind==='formal-view'?{registration:{scope:'role',roleId:ROLE.id}}:{}),intentKey:[current.revision,careers.workState().revision,kind,o?.id||'-',o?.stage||'-'].join(':')};
+  return {id:'cn-salon-job-'+kind,provider:'china-salon-employment',kind,roleId:ROLE.id,...(inRoom&&o?{visualAnchor:{actorId:o.customerId}}:{}),name:'云来诗词台班',npcName:'温晚',targetKey:'cn-tavern-reception',targetName:'温晚 · 雅集接待',action,position:position.slice(),executionRadius:remote ? .5 : inRoom ? .25 : .45,interactionRadius:remote ? .6 : 1.8,priority:47,visibilityChecked:remote,...(kind==='formal-view'?{registration:{scope:'role',roleId:ROLE.id}}:{}),intentKey:[current.revision,careers.workState().revision,kind,o?.id||'-',o?.stage||'-'].join(':')};
  }
  function resolveIntent(old){const next=intent(old?.kind);return next&&next.provider===old?.provider&&next.intentKey===old.intentKey?next:null;}
  function executeIntent(old){const q=resolveIntent(old);if(!q||!near(getPlayer(),q.position,q.executionRadius)||getMounted()||!q.visibilityChecked&&!canSee(q))return false;
