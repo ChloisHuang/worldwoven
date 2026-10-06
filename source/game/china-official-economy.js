@@ -1,10 +1,15 @@
 // Fictional copper only. The six officials never borrow the player's wallet.
 // Completed duty is government-funded; only earned NPC balances can be spent.
 import {CHINA_COURT_OFFICIAL_RANKS, CHINA_OFFICIAL_DAILY_WAGE} from './china-official-ranks.js';
+import {SALON_ARTISTS} from './china-tavern-salon-artists.js';
+import {SALON_QUOTE_VERSION, validSalonFee} from './china-salon-pricing.js';
 export const CHINA_OFFICIAL_IDS = Object.freeze(CHINA_COURT_OFFICIAL_RANKS.map(rank => rank.actorId));
 export const CHINA_OFFICIAL_TAVERN_ID = 'cn-yunlai-tavern';
+export const CHINA_OFFICIAL_SALON_MEAL_MINIMUM = 6;
 const OFFICIALS = new Set(CHINA_OFFICIAL_IDS);
-const ACTIONS = new Set(['duty', 'withdraw', 'meal-payment', 'meal-refund']);
+const ACTIONS = new Set(['duty', 'withdraw', 'meal-payment', 'meal-refund', 'salon-reserve', 'salon-settle', 'salon-refund']);
+const SALON_POLICY = Object.freeze({version: 1, performerShareBps: 5000, rounding: 'floor'});
+const ARTISTS = new Map(SALON_ARTISTS.map(artist => [artist.id, artist.activity]));
 const JOURNAL_LIMIT = 20000;
 const copy = value => JSON.parse(JSON.stringify(value));
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -18,8 +23,14 @@ const failure = code => ({ok: false, code});
 const dayKey = (actorId, day) => JSON.stringify([actorId, day]);
 const mealReceipt = (action, orderId) => `official-${action}:${orderId}`;
 const balances = state => ({...(state.version === 1 ? {treasury: state.treasury} : {governmentPaid: state.governmentPaid}),
-  accounts: copy(state.accounts), destinations: copy(state.destinations)});
+  accounts: copy(state.accounts), destinations: copy(state.destinations),
+  ...(Object.hasOwn(state, 'salonHolds') ? {salonHolds: copy(state.salonHolds)} : {})});
 const fundingAccount = (actorId, split) => `${actorId}:${split.cash === 0 ? 'bank' : split.bank === 0 ? 'cash' : 'cash+bank'}`;
+const salonAction = action => action.startsWith('salon-');
+const salonId = id => identifier(id) && /^cn-salon-npc-[1-9][0-9]*$/.test(id) && positive(Number(id.slice(13)));
+const salonEscrow = orderId => `official-salon-escrow:${orderId}`;
+const salonTerms = value => ({actorId: value.actorId, amount: value.amount, artistId: value.artistId,
+  activity: value.activity, incomePolicy: copy(value.incomePolicy)});
 
 function source(value) {
   if (value === undefined) return {amount: 0, sourceId: null};
@@ -54,6 +65,14 @@ function conserved(state) {
     if (!object(account) || Object.keys(account).length !== 2 || !integer(account.bank) || !integer(account.cash)) return false;
     total += BigInt(account.bank) + BigInt(account.cash);
   }
+  if (Object.hasOwn(state, 'salonHolds')) {
+    if (state.version !== 2 || !object(state.salonHolds)) return false;
+    for (const [id, hold] of Object.entries(state.salonHolds)) {
+      if (!salonId(id) || !object(hold) || hold.id !== id || !positive(hold.amount) ||
+          !['reserved', 'settled', 'refunded'].includes(hold.status)) return false;
+      if (hold.status === 'reserved') total += BigInt(hold.amount);
+    }
+  }
   if (state.version === 1) return integer(state.treasury) && total + BigInt(state.treasury) === BigInt(state.initialTreasury.amount);
   if (state.version !== 2 || state.funding !== 'government-guaranteed' || !integer(state.governmentPaid)) return false;
   // The old unspent reserve is historical information, never NPC wealth.
@@ -67,10 +86,18 @@ function evidenceFor(evidence, actorId, day) {
   return {kind: 'office-work', completed: true, actorId, day, elapsed: evidence.elapsed,
     duration: evidence.duration, audienceDay: day, audienceCompleted: true};
 }
+function salonEvidenceFor(evidence, request) {
+  if (!object(evidence) || evidence.kind !== 'salon-service' || evidence.completed !== true ||
+      evidence.orderId !== request.orderId || evidence.customerId !== request.actorId ||
+      evidence.artistId !== request.artistId || evidence.activity !== request.activity ||
+      !Number.isFinite(evidence.elapsed) || !Number.isFinite(evidence.duration) || evidence.duration < 2.2 || evidence.elapsed < evidence.duration) return null;
+  return {kind: 'salon-service', completed: true, orderId: request.orderId, customerId: request.actorId,
+    artistId: request.artistId, activity: request.activity, elapsed: evidence.elapsed, duration: evidence.duration};
+}
 function requestFor(action, input, state) {
   if (!object(input) || !OFFICIALS.has(input.actorId)) return failure('invalid-actor');
   const request = {action, actorId: input.actorId, amount: action === 'duty' ? wageFor(state, input.actorId) : input.amount,
-    receiptId: action.startsWith('meal-') ? mealReceipt(action, input.orderId) : input.receiptId};
+    receiptId: action.startsWith('meal-') || salonAction(action) ? mealReceipt(action, input.orderId) : input.receiptId};
   if (!positive(request.amount)) return failure('invalid-amount');
   if (!identifier(request.receiptId, 256)) return failure('invalid-receipt-id');
   if (action === 'duty') {
@@ -81,13 +108,28 @@ function requestFor(action, input, state) {
   } else if (action.startsWith('meal-')) {
     if (!identifier(input.orderId)) return failure('invalid-order-id');
     request.orderId = input.orderId;
+  } else if (salonAction(action)) {
+    if (state.version !== 2) return failure('invalid-action');
+    if (!salonId(input.orderId)) return failure('invalid-order-id');
+    if (!validSalonFee(input.amount, SALON_QUOTE_VERSION)) return failure('invalid-salon-fee');
+    if (!ARTISTS.has(input.artistId) || ARTISTS.get(input.artistId) !== input.activity) return failure('invalid-salon-artist');
+    if (!same(input.incomePolicy, SALON_POLICY)) return failure('invalid-salon-income-policy');
+    Object.assign(request, {orderId: input.orderId, artistId: input.artistId, activity: input.activity, incomePolicy: copy(SALON_POLICY)});
+    if (action === 'salon-settle') {
+      const evidence = salonEvidenceFor(input.evidence, request);
+      if (!evidence) return failure('incomplete-salon-service');
+      request.evidence = evidence;
+    }
   }
   return {ok: true, request};
 }
 function requestOf(transaction) {
   return {action: transaction.action, actorId: transaction.actorId, amount: transaction.amount, receiptId: transaction.receiptId,
     ...(transaction.action === 'duty' ? {day: transaction.day, evidence: transaction.evidence} : {}),
-    ...(transaction.action.startsWith('meal-') ? {orderId: transaction.orderId} : {})};
+    ...(transaction.action.startsWith('meal-') ? {orderId: transaction.orderId} : {}),
+    ...(salonAction(transaction.action) ? {orderId: transaction.orderId, artistId: transaction.artistId,
+      activity: transaction.activity, incomePolicy: transaction.incomePolicy} : {}),
+    ...(transaction.action === 'salon-settle' ? {evidence: transaction.evidence} : {})};
 }
 function indexes() { return {receipts: new Map(), duties: new Map(), meals: new Map()}; }
 function indexTransaction(index, transaction) {
@@ -140,6 +182,31 @@ function transfer(state, index, request, legacyMeal = false) {
     next.destinations[CHINA_OFFICIAL_TAVERN_ID] -= amount; account.cash += split.cash; account.bank += split.bank;
     if (!legacyMeal) sourceSplit = copy(split);
     from = CHINA_OFFICIAL_TAVERN_ID; to = fundingAccount(request.actorId, split);
+  } else if (salonAction(request.action)) {
+    const old = state.salonHolds?.[request.orderId];
+    next.salonHolds = copy(state.salonHolds || {});
+    if (request.action === 'salon-reserve') {
+      if (old) return failure(`salon-already-${old.status}`);
+      const available = BigInt(account.cash) + BigInt(account.bank);
+      if (BigInt(amount) > available) return failure('insufficient-funds');
+      if (available - BigInt(amount) < BigInt(CHINA_OFFICIAL_SALON_MEAL_MINIMUM)) return failure('insufficient-meal-reserve');
+      sourceSplit = {cash: Math.min(amount, account.cash), bank: Math.max(0, amount - account.cash)};
+      account.cash -= sourceSplit.cash; account.bank -= sourceSplit.bank;
+      next.salonHolds[request.orderId] = {id: request.orderId, ...salonTerms(request), sourceSplit: copy(sourceSplit), status: 'reserved'};
+      from = fundingAccount(request.actorId, sourceSplit); to = salonEscrow(request.orderId);
+    } else {
+      if (!old) return failure('salon-reserve-not-found');
+      if (!same(salonTerms(old), salonTerms(request))) return failure('request-conflict');
+      if (old.status !== 'reserved') return failure(`salon-already-${old.status}`);
+      sourceSplit = copy(old.sourceSplit); from = salonEscrow(request.orderId);
+      if (request.action === 'salon-settle') {
+        next.destinations[CHINA_OFFICIAL_TAVERN_ID] += amount; to = CHINA_OFFICIAL_TAVERN_ID;
+        next.salonHolds[request.orderId].status = 'settled';
+      } else {
+        account.cash += sourceSplit.cash; account.bank += sourceSplit.bank; to = fundingAccount(request.actorId, sourceSplit);
+        next.salonHolds[request.orderId].status = 'refunded';
+      }
+    }
   } else return failure('invalid-action');
   if (!conserved(next)) return failure('balance-overflow');
   const transaction = {id: `official-${state.nextTransaction}`, ...copy(request), from, to,
@@ -214,6 +281,15 @@ function restore(saved, initialTreasury) {
  * Loading performs no write, payment, interest or historical wage catch-up.
  * Changing a rank label cannot reprice old receipts or synthesize back pay.
  * NPC automatic promotion and in-world salary-policy changes are not wired.
+ *
+ * Dormant official salon preparations use only these earned balances. Reserve
+ * retains six copper for a meal and holds the exact cash/bank split outside
+ * business revenue. Settle requires the frozen artist/activity/fee/50:50
+ * policy and actual completion certificate; refund restores that split only
+ * before settlement. The coordinator supplies the scene and artist/business
+ * patches in the same full-world write. No scene calls these methods yet.
+ * salonHolds appears only on the first salon transaction, so old v1/v2
+ * journals and their balance snapshots replay byte-for-byte unchanged.
  */
 export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = CHINA_OFFICIAL_DAILY_WAGE, dailyWages, isAppointed = () => false,
   getDay = () => null, saveState} = {}) {
@@ -227,6 +303,9 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
     else ({current, index} = restore(saved, initialTreasury));
   } catch { loadError = saved === undefined || saved === null ? 'invalid-config' : 'invalid-saved-state'; }
   function liveCheck(request) {
+    // A validated original hold still belongs to its fixed NPC account after
+    // appointment loss. Availability cannot confiscate refundable escrow.
+    if (request.action === 'salon-refund') return null;
     try {
       if (isAppointed(request.actorId) !== true) return 'actor-not-appointed';
       if (request.action === 'duty') {
@@ -246,6 +325,8 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
       const request = normalized.request, previous = index.receipts.get(request.receiptId);
       if (previous && !same(requestOf(previous), request)) return failure('request-conflict');
       if (action === 'meal-payment' && index.meals.get(request.orderId)?.refund) return failure('order-already-refunded');
+      if (action === 'salon-reserve' && current.salonHolds?.[request.orderId]?.status !== undefined &&
+          current.salonHolds[request.orderId].status !== 'reserved') return failure(`salon-already-${current.salonHolds[request.orderId].status}`);
       const replayed = !!previous;
       if (!replayed) {
         const error = liveCheck(request);
@@ -258,11 +339,18 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
       const receipt = wasReplay => ({ok: true, replayed: wasReplay, receiptId: transaction.receiptId,
         amount: transaction.amount, actorId: transaction.actorId, ...(transaction.orderId ? {orderId: transaction.orderId} : {}),
         ...(transaction.sourceSplit ? {sourceSplit: copy(transaction.sourceSplit)} : {}), transaction: copy(transaction)});
-      const valid = () => !loadError && !busy && (accepted || current === base);
+      // Unlike the historical meal hook, a salon candidate cannot be handed
+      // back to an external full-world coordinator after it was accepted.
+      const valid = () => !loadError && !busy && (salonAction(action) ?
+        !accepted && current === base && (replayed || !liveCheck(request)) : accepted || current === base);
       function accept() {
         if (accepted) return receipt(true);
         if (busy) return failure('ledger-busy');
         if (current !== base) return failure('stale-candidate');
+        if (salonAction(action) && !replayed) {
+          const error = liveCheck(request);
+          if (error) return failure(error);
+        }
         if (!replayed) { current = next; indexTransaction(index, transaction); }
         accepted = true;
         return receipt(replayed);
@@ -306,5 +394,15 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
     completeDuty(input) { const payment = prepare('duty', input); return payment.ok ? payment.commit() : payment; },
     withdraw(input) { const payment = prepare('withdraw', input); return payment.ok ? payment.commit() : payment; },
     prepareMealPayment: input => prepare('meal-payment', input),
-    prepareMealRefund: input => prepare('meal-refund', input)};
+    prepareMealRefund: input => prepare('meal-refund', input),
+    prepareSalonReserve: input => prepare('salon-reserve', input),
+    prepareSalonSettle: input => prepare('salon-settle', input),
+    prepareSalonRefund: input => prepare('salon-refund', input),
+    salonHold: orderId => current?.salonHolds?.[orderId] ? copy(current.salonHolds[orderId]) : null,
+    salonHolds: () => current ? copy(Object.values(current.salonHolds || {})) : [],
+    nextSalonOrderId() {
+      if (!current) return null;
+      const serial = Math.max(0, ...Object.keys(current.salonHolds || {}).map(id => Number(id.slice(13)))) + 1;
+      return positive(serial) ? `cn-salon-npc-${serial}` : null;
+    }};
 }
