@@ -1,6 +1,7 @@
 // Exercise the actual China controllers and closed HUD with full reads counted.
 // No 3D scene, renderer or device-performance claim is involved.
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {registerHooks} from 'node:module';
 registerHooks({resolve(id,context,next){return id==='three'?{url:new URL('../source/vendor/three/build/three.module.js',import.meta.url).href,shortCircuit:true}:next(id,context);}});
 const load=name=>import('../source/game/'+name+'.js');
@@ -53,4 +54,11 @@ for(const mode of ['unemployed','pending','employed','resigned','invalid']){
   hud.close();fullReads=0;hud.update('lot');assert.equal(fullReads,0,'closing restores bounded reads');
   hud.dispose();labor.dispose();court.dispose();
 }
-console.log('PASS real China work readers and closed handbook/labor panels: 60 repeated steps per no-job/pending/employed/resigned/invalid state, zero full reads, unchanged state/writes and full open-panel/diagnostic compatibility');
+// The production court busy hook is also called during active duty. Reading
+// diagnostics here would reintroduce a full-history copy despite lean adapters.
+const main=readFileSync(new URL('../source/game/main.js',import.meta.url),'utf8');
+const hook=main.match(/function configureChinaCareer\(\)[^\n]+/)[0].match(/getBusy:(.*?),canSee:/)[1];
+let cleaning=false;
+const busy=new Function('seated','bathTransition','performing','npcSocial','chinaSalon','chinaLabor','return '+hook)(null,null,null,null,null,{isCleaning:()=>cleaning,state:()=>{throw Error('busy checks must not copy career diagnostics');}});
+assert.equal(busy(),false);cleaning=true;assert.equal(busy(),true);cleaning=false;assert.equal(busy(),false);
+console.log('PASS real China work readers and closed handbook/labor panels: 60 repeated steps per no-job/pending/employed/resigned/invalid state, zero full reads, unchanged state/writes, full open-panel/diagnostic compatibility and production court busy hook');
