@@ -9,7 +9,7 @@ const copy=structuredClone,integer=n=>Number.isSafeInteger(n)&&n>=0;
 const person=id=>typeof id==='string'&&/^cn-[a-z0-9-]{1,60}$/.test(id);
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const empty=()=>({version:1,accounts:{},receipts:[]});
-function normalize(proof){
+export function clinicNPCWageReceipt(proof){
  const role=roles.get(proof?.roleId);
  if(!role||proof.kind!=='clinic-npc-duty'||proof.closed!==true||!person(proof.actorId)||proof.slotId!==role.slotId||!integer(proof.day)||!Array.isArray(proof.segments)||!proof.segments.length||!Array.isArray(proof.reviews))throw Error('invalid-clinic-duty');
  let hours=0,end=role.dutyWindow.startHour;
@@ -42,11 +42,11 @@ function append(state,receipt){
 }
 export function createClinicNPCEconomy({saved,saveState=()=>false}={}){
  let current=empty(),loadError=null,busy=false;
- try{if(saved!==undefined&&saved!==null){if(saved.version!==1||!Array.isArray(saved.receipts))throw Error('invalid-clinic-economy');const seen=new Set();for(const row of saved.receipts){const verified=normalize(row.evidence);if(!same(row,verified)||seen.has(row.id))throw Error('invalid-clinic-receipt');seen.add(row.id);current=append(current,verified);}if(!same(saved,current))throw Error('invalid-clinic-balance');}}catch(e){loadError=e.message;current=empty();}
+ try{if(saved!==undefined&&saved!==null){if(saved.version!==1||!Array.isArray(saved.receipts))throw Error('invalid-clinic-economy');const seen=new Set();for(const row of saved.receipts){const verified=clinicNPCWageReceipt(row.evidence);if(!same(row,verified)||seen.has(row.id))throw Error('invalid-clinic-receipt');seen.add(row.id);current=append(current,verified);}if(!same(saved,current))throw Error('invalid-clinic-balance');}}catch(e){loadError=e.message;current=empty();}
  return {get loadError(){return loadError;},snapshot:()=>copy(current),account:id=>loadError?null:copy(current.accounts[id]||{bank:0,cash:0}),
   settle(proof){
    if(loadError||busy)return {ok:false,code:loadError||'clinic-ledger-busy'};
-   let receipt,next;try{receipt=normalize(proof);const old=current.receipts.find(r=>r.id===receipt.id);if(old)return same(old,receipt)?{ok:true,replayed:true,receipt:copy(old)}:{ok:false,code:'clinic-wage-conflict'};next=append(current,receipt);}catch(e){return {ok:false,code:e.message};}
+   let receipt,next;try{receipt=clinicNPCWageReceipt(proof);const old=current.receipts.find(r=>r.id===receipt.id);if(old)return same(old,receipt)?{ok:true,replayed:true,receipt:copy(old)}:{ok:false,code:'clinic-wage-conflict'};next=append(current,receipt);}catch(e){return {ok:false,code:e.message};}
    busy=true;try{const result=saveState(copy(next));if(result===false||result?.ok===false||result?.then)return {ok:false,code:'save-failed'};current=next;return {ok:true,receipt:copy(receipt)};}catch{return {ok:false,code:'save-failed'};}finally{busy=false;}
   }
  };
