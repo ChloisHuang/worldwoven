@@ -48,7 +48,7 @@ console.log('PASS reload preserves one lease/paid order; summon cancellation ato
 const poor=fixture();poor.until(()=>poor.scene.state().visitors.every(v=>v.mode==='idle'),'original meals');const serial=poor.scene.snapshot().serial;assert(!poor.scene.requestOfficialMeal(id));poor.tick(100);assert.equal(poor.scene.snapshot().serial,serial);assert(!poor.scene.owns(poor.npcs[5]));assert(!poor.facilities.state().some(s=>s.reservations.some(r=>r.actor===id)));assert(poor.sharedNeeds.status(id).seekMeal);
 console.log('PASS unpaid officials never occupy the meal queue or seats and no money is minted');
 
-const foodClock={seconds:0},foodOnly=createDailyNeeds({getClock:()=>foodClock});foodOnly.enter('china',[id]);foodClock.seconds=72*60/.7;foodOnly.update();assert(foodOnly.status(id).seekMeal);assert(!foodOnly.status(id).seekToilet);assert.equal(foodOnly.read(id).toiletStrain,0,'food-only enrollment must not create a toilet illness without an attached toilet controller');
+const foodClock={seconds:0},foodOnly=createDailyNeeds({getClock:()=>foodClock});foodOnly.enter('china',[id]);foodClock.seconds=72*60/.7;foodOnly.update();assert(foodOnly.status(id).seekMeal);assert(foodOnly.status(id).seekToilet,'officials now have a real public-toilet controller');assert(foodOnly.read(id).toiletStrain>0);assert.equal(foodOnly.read('egypt-papyrus').toiletStrain,0,'Egypt resident toilet service is still not connected');
 
 // Real property/account APIs: the owner empties every spendable business coin
 // between the official's prepayment and a summons. The order still refunds.

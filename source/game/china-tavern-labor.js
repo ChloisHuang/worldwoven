@@ -9,14 +9,14 @@ import {settleTemporaryWage} from './temporary-work-payroll.js';
 // Xu An for 12 fictional copper. This module never moves the player or NPCs.
 const VERSION = 2, WAGE = 12, SECONDS = 5, FLOOR = .215;
 const copy = value => JSON.parse(JSON.stringify(value));
-const HOST = {id: 'cn-tavern-labor-host', name: '向许安接活或领工钱', position: [22.35, FLOOR, 11.7]};
+const HOST = {id: 'cn-tavern-labor-host', name: '向许安接活或领工钱', position: [22.35, FLOOR, 6.7]};
 // Registration is a conversation in the public reception bay, not precision
 // table work. A visitor must not occupy the same floor dot as a passing actor.
 const REGISTRATION_RADIUS = .9;
 const registrationKinds = new Set(['view', 'formal-view', 'apply', 'resign', 'formal-apply', 'formal-resign']);
 const TABLES = [
-  {id: 'cn-tavern-labor-west', name: '西窗餐桌 · 靠过道一侧', position: [19.3, FLOOR, 18.1], playerWorkTarget: [18.825, 1.19, 18.1]},
-  {id: 'cn-tavern-labor-east', name: '东窗餐桌 · 靠过道一侧', position: [22.7, FLOOR, 18.1], playerWorkTarget: [23.175, 1.19, 18.1]},
+  {id: 'cn-tavern-labor-west', name: '西窗餐桌 · 靠过道一侧', position: [19.3, FLOOR, 16.2], playerWorkTarget: [18.825, 1.19, 16.2]},
+  {id: 'cn-tavern-labor-east', name: '东窗餐桌 · 靠过道一侧', position: [22.7, FLOOR, 16.2], playerWorkTarget: [23.175, 1.19, 16.2]},
 ];
 const near = (position, point, radius = .2) => !!position &&
   Math.hypot(position.x - point[0], position.z - point[2]) <= radius && Math.abs(position.y - point[1]) <= .2;
@@ -265,7 +265,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     playerStation: () => cleaning && stationary() ? copy(target()) : null,
     open: () => ui?.open(), close: () => ui?.close(), isOpen: () => !!ui?.isOpen(),
     snapshot:()=>({version:1,receiptId:current.job?.receiptId||null,stage:current.job?.stage||null,completedTables:current.job?.completedTables||0,cleaning,pendingClean,elapsed,origin:origin?copy(origin):null,waitingRegistration:waitingRegistration?copy(waitingRegistration):null}),
-    restore(s){if(!s||s.version!==1||s.receiptId!==(current.job?.receiptId||null)||s.stage!==(current.job?.stage||null)||s.completedTables!==(current.job?.completedTables||0)||!Number.isFinite(s.elapsed)||s.elapsed<0||s.elapsed>SECONDS)return false;waitingRegistration=s.waitingRegistration&&resolveIntent(s.waitingRegistration)&&atRegistration()?copy(s.waitingRegistration):null;const p=player(),same=!!s.origin&&p&&Math.hypot(p.x-s.origin.x,p.z-s.origin.z)<.03&&Math.abs(p.y-s.origin.y)<.03;cleaning=!!s.cleaning&&same&&current.job?.stage==='working'&&formal.canWork(current.job);pendingClean=!!s.pendingClean&&at(target().position);elapsed=cleaning?s.elapsed:0;origin=cleaning?copy(s.origin):null;return true;},
+    restore(s){if(!s||s.version!==1||s.receiptId!==(current.job?.receiptId||null)||s.stage!==(current.job?.stage||null)||s.completedTables!==(current.job?.completedTables||0)||!Number.isFinite(s.elapsed)||s.elapsed<0||s.elapsed>SECONDS)return false;waitingRegistration=s.waitingRegistration&&resolveIntent(s.waitingRegistration)&&atRegistration()?copy(s.waitingRegistration):null;const p=player(),same=!!s.origin&&p&&Math.hypot(p.x-s.origin.x,p.z-s.origin.z)<.03&&Math.abs(p.y-s.origin.y)<.03;cleaning=!!s.cleaning&&same&&at(target().position)&&current.job?.stage==='working'&&formal.canWork(current.job);pendingClean=!!s.pendingClean&&at(target().position);elapsed=cleaning?s.elapsed:0;origin=cleaning?copy(s.origin):null;return true;},
     dispose() { if (disposed) return; cancelRegistration(); stopCleaning(); disposed = true; ui?.dispose(); },
   };
   if (doc?.createElement && doc.body) ui = createUI({doc, service, getPlayer, onIntent, canSee, onOpen});

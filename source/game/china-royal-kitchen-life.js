@@ -1,7 +1,7 @@
 import {createLifeDecisions} from './npc-life-decisions.js';
 const SPOTS=[
- {id:'read',label:'Jia · 餐厅侧边读书歇脚',point:[24.25,.215,-.05],action:'read',base:.3,traits:{quiet:.8,curiosity:.7},needs:{fatigue:.3},relief:{fatigue:-.09},duration:[14,24],cooldown:20},
- {id:'garden',label:'Jia · 廊边看看庭景',point:[24.2,.215,1.3],target:[24.2,.215,5],base:.25,traits:{outdoors:1,quiet:.3},needs:{fatigue:.3},relief:{fatigue:-.1},duration:[12,20],cooldown:17},
+ {id:'read',label:'Jia · 餐厅侧边读书歇脚',point:[24.25,.215,-4.9],action:'read',base:.3,traits:{quiet:.8,curiosity:.7},needs:{fatigue:.3},relief:{fatigue:-.09},duration:[14,24],cooldown:20},
+ {id:'garden',label:'Jia · 廊边看看庭景',point:[24.2,.215,-3.8],target:[24.2,.215,0],base:.25,traits:{outdoors:1,quiet:.3},needs:{fatigue:.3},relief:{fatigue:-.1},duration:[12,20],cooldown:17},
 ];
 export function createRoyalKitchenLife({actor,worldSeed,planPath,travel,near,saved={}}){
  const id=actor.station.id;let current=null,time=0,next=0,brain;

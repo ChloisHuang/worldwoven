@@ -5,8 +5,8 @@ import {createChinaTavernLabor} from '../source/game/china-tavern-labor.js';
 import {createCurrencyLedger} from '../source/game/currency-ledger.js';
 const clone = x => JSON.parse(JSON.stringify(x));
 function setup(saved = {}) {
-  const store = clone(saved), player = {walking: false, root: {position: {x: 22.35, y: .215, z: 11.7}, rotation: {y: 0}}};
-  const host = {walking: false, root: {position: {x: 24.1, y: .215, z: 11.4}}, station: {npcPosition: [24.1, .215, 11.4]}};
+  const store = clone(saved), player = {walking: false, root: {position: {x: 22.35, y: .215, z: 6.7}, rotation: {y: 0}}};
+  const host = {walking: false, root: {position: {x: 24.1, y: .215, z: 6.4}}, station: {npcPosition: [24.1, .215, 6.4]}};
   const flags = {busy: false, mounted: null, rejectLabor: false, rejectLedger: false, cleanup: false};
   const ledger = createCurrencyLedger({saved: store.ledger, saveState: next => { if (flags.rejectLedger) return false; store.ledger = next; }});
   const labor = createChinaTavernLabor({getPlayer: () => player, getMounted: () => flags.mounted, host, employment: {isHired: () => true, state: () => ({revision: 1})},
@@ -16,7 +16,7 @@ function setup(saved = {}) {
   const tick = (n = 51) => { for (let i = 0; i < n; i++) labor.update(.1); };
   const clean = () => { move(labor.view().target.position); assert(labor.startCleaning()); tick(); };
   const finish = () => { assert(labor.accept()); clean(); clean(); assert.equal(labor.state().job.stage, 'ready'); };
-  const home = () => move([22.35, .215, 11.7]);
+  const home = () => move([22.35, .215, 6.7]);
   return {store, player, host, flags, ledger, labor, move, tick, clean, finish, home};
 }
 
@@ -25,7 +25,7 @@ const a = setup();
 assert.equal(a.ledger.state().cash, 0);
 a.flags.busy = true; assert.equal(a.labor.accept(), false); a.flags.busy = false;
 a.host.root.position.x = 23; assert.equal(a.labor.accept(), false); a.host.root.position.x = 24.1;
-a.move([22.35, 4.015, 11.7]); assert.equal(a.labor.accept(), false); a.home();
+a.move([22.35, 4.015, 6.7]); assert.equal(a.labor.accept(), false); a.home();
 a.flags.mounted = {id: 'seat'}; assert.equal(a.labor.accept(), false); a.flags.mounted = null;
 assert(a.labor.accept()); assert.equal(a.labor.claim(), false);
 a.tick(200); assert.equal(a.labor.state().job.completedTables, 0, 'A distant elapsed timer cannot complete work');
@@ -33,7 +33,7 @@ assert.equal(a.labor.startCleaning(), false);
 a.move(a.labor.view().target.position); a.tick(200); assert.equal(a.labor.state().job.completedTables, 0, 'Arrival requires explicit cleaning');
 a.flags.mounted = {id: 'seat'}; assert.equal(a.labor.startCleaning(), false); a.flags.mounted = null;
 const point = a.labor.view().target.position; a.move([point[0], 4.015, point[2]]); assert.equal(a.labor.startCleaning(), false); a.move(point);
-assert(a.labor.startCleaning()); assert.equal(a.labor.playerAction(), 'tidy'); assert.deepEqual(a.labor.playerStation().playerWorkTarget, [18.825, 1.19, 18.1]);
+assert(a.labor.startCleaning()); assert.equal(a.labor.playerAction(), 'tidy'); assert.deepEqual(a.labor.playerStation().playerWorkTarget, [18.825, 1.19, 16.2]);
 a.tick(20); a.player.root.position.x += .03; a.labor.update(.1);
 assert.equal(a.labor.state().cleaning, false); assert.equal(a.labor.state().progress, 0); assert.equal(a.labor.playerAction(), null);
 a.tick(100); assert.equal(a.labor.state().job.completedTables, 0);
@@ -85,3 +85,5 @@ console.log('PASS: actual tavern labor, physical/table/host gates, durable compl
 
 // A matching physical checkpoint resumes only this table and this receipt.
 const partial=setup();assert(partial.labor.accept());partial.move(partial.labor.state().target.position);assert(partial.labor.startCleaning());partial.tick(20);const checkpoint=partial.labor.snapshot(),continued=setup(partial.store);continued.move([checkpoint.origin.x,checkpoint.origin.y,checkpoint.origin.z]);assert(continued.labor.restore(checkpoint));assert(continued.labor.state().cleaning);continued.tick(31);assert.equal(continued.labor.state().job.completedTables,1);assert.equal(continued.ledger.state().bank,0);assert.equal(continued.labor.restore(checkpoint),false);
+
+const moved=setup();assert(moved.labor.accept());moved.move(moved.labor.view().target.position);assert(moved.labor.startCleaning());moved.tick(20);const old=moved.labor.snapshot();old.origin.z+=1.9;const reapproach=setup(moved.store);reapproach.move([old.origin.x,old.origin.y,old.origin.z]);assert(reapproach.labor.restore(old));assert(!reapproach.labor.isCleaning(),'legacy table timer cannot finish at the old physical point');reapproach.tick(100);assert.equal(reapproach.labor.state().job.completedTables,0);console.log('PASS moved table requires a new physical approach without losing completed tables');
