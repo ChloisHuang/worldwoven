@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const base=path.resolve('source'),cache=new Map();
 function mod(f){f=f.split('?')[0];if(cache.has(f))return cache.get(f);let s=fs.readFileSync(f,'utf8');
- if(f===base+'/game/china-money-house.js'){const start=s.indexOf(' // Open ledger has a crease'),end=s.indexOf(' // Enclosed store:',start);assert(start>=0&&end>start);s=s.slice(0,start)+' /* Original tools supplied once by dormant physical fixture. */\n'+s.slice(end);}
+ if(f===base+'/game/china-money-house.js'){const start=s.indexOf(' // Open ledger has a crease'),end=s.indexOf(' // Enclosed store:',start);if(start>=0){assert(end>start);s=s.slice(0,start)+' /* Original tools supplied once by dormant physical fixture. */\n'+s.slice(end);}else assert(s.includes('created once outside static packing'));}
  const m=new vm.SourceTextModule(s,{identifier:f});cache.set(f,m);return m;}
 const link=(s,r)=>mod(s==='three'?base+'/vendor/three/build/three.module.js':path.resolve(path.dirname(r.identifier),s));
 async function load(f){const m=mod(base+'/'+f);if(m.status==='unlinked')await m.link(link);if(m.status==='linked')await m.evaluate();return m.namespace;}
@@ -11,7 +11,7 @@ async function load(f){const m=mod(base+'/'+f);if(m.status==='unlinked')await m.
  const scene=new T.Scene();let lot=null;
  if(process.env.TELLER_EXPORT==='1'){const {buildChina}=await load('game/regions-east.js');lot=buildChina();scene.add(lot.group);lot.roofGroup.visible=false;}
  else{G.box(scene,-22,1.235,-27.45,6.02,.12,1.04,0x9e7747);G.box(scene,-22,.715,-27.45,5.8,1,.92,0x63452d);}
- const tools=createTellerTools(G,{group:scene});assert.equal(tools.root.children.filter(n=>n===tools.ledger).length,1);assert.equal(tools.rods.length,11);assert(tools.rods.every(r=>r.length===7));
+ const tools=lot?.tellerTools||createTellerTools(G,{group:scene});assert.equal(tools.root.children.filter(n=>n===tools.ledger).length,1);assert.equal(tools.rods.length,11);assert(tools.rods.every(r=>r.length===7));
  const variants=[],baseRow={currency:'copper',accountOpened:true,cash:39,bank:145,held:6,total:190,reservationIds:['paid-original']};
  for(const variant of[0,1]){
   const actor=createCharacter({culture:'china',variant,scale:.96,...(variant===0?{bodyPreset:'masculine-lean',hairStyle:'low-bun',wardrobePreset:'scholar-long-robe',clothes:0x605e4b,accent:0xb89a61}:{bodyPreset:'feminine-balanced',hairStyle:'low-bun',wardrobePreset:'scholar-long-robe'})});scene.add(actor.root);actor.animate(0,false,null);actor.root.updateWorldMatrix(true,true);const lengths=()=>[0,1].flatMap(i=>{const body=actor.root.userData.body,u=body.worldToLocal(actor.root.userData.arms[i].getWorldPosition(new T.Vector3())),f=body.worldToLocal(actor.root.userData.forearms[i].getWorldPosition(new T.Vector3())),h=body.worldToLocal(actor.root.userData.hands[i].getWorldPosition(new T.Vector3()));return [u.distanceTo(f),f.distanceTo(h)];}),originalLengths=lengths();let maxGap=0;

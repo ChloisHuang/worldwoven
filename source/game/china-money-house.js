@@ -40,15 +40,7 @@ export function buildChinaMoneyHouse(G,A){
  // Bound ledgers on the rear work shelf, with cream page blocks and ties.
  solid3(g,-23.3,.77,-32.35,4.8,1.11,.66,wood);G.box(g,-23.3,1.36,-32.35,4.96,.10,.76,0x9e7747);
  for(let j=0;j<3;j++)for(let i=0;i<3;i++)H.boundBook(g,-24.9+i*1.1,1.46+j*.115,-32.35,.70,.47,[green,0x866344,0x9c6953][i]);
- // Open ledger has a crease, ruled columns and handwritten-size marks.
- G.box(g,-21.30,1.311,-27.70,.72,.036,.46,0x684b35);for(const x of[-21.48,-21.13])G.box(g,x,1.335,-27.70,.34,.013,.43,0xecdfb6);
- for(let j=0;j<5;j++)for(const x of[-21.52,-21.15]){G.box(g,x,1.344,-27.85+j*.066,.23,.004,.009,0xa88d63);G.box(g,x+.07,1.348,-27.84+j*.066,.032,.004,.017,0x5a5441);}
- H.beam(g,[-21.73,1.36,-27.83],[-21.70,1.36,-27.53],.014,wood);G.box(g,-21.78,1.33,-27.66,.12,.025,.11,0x404334);
- // Eleven working rods: two upper and five lower biconvex beads per rod.
- const abacus=new THREE.Group();abacus.name='钱庄 eleven-rod abacus';abacus.position.set(-20.43,1.31,-27.71);g.add(abacus);
- for(const x of[-.45,.45])G.box(abacus,x,.045,0,.055,.09,.50,wood);for(const z of[-.25,-.075,.25])G.box(abacus,0,.045,z,.94,.09,.04,wood);
- const beadGeo=new THREE.LatheGeometry([new THREE.Vector2(0,-.021),new THREE.Vector2(.025,-.017),new THREE.Vector2(.035,0),new THREE.Vector2(.025,.017),new THREE.Vector2(0,.021)],8);beadGeo.rotateX(Math.PI/2);
- for(let i=0;i<11;i++){const x=-.38+i*.076;H.beam(abacus,[x,.053,-.235],[x,.053,.23],.009,bronze);for(const z of[-.198,-.147,.005,.05,.095,.14,.185])G.mesh(abacus,beadGeo,0x342e25,x,.059,z);}
+ // Open ledger and abacus are created once outside static packing by china-palace.
  // Enclosed store: banded chests, coin trays and no invented player money.
  for(const [x,z]of[[-18.05,-32.15],[-16.65,-32.15]]){solid3(g,x,.70,z,1.03,.95,.85,wood);G.box(g,x,1.20,z,1.09,.12,.91,0x82613d);for(const dx of[-.30,.30])G.box(g,x+dx,.73,z+.436,.06,.95,.035,bronze);G.box(g,x,.99,z+.47,.16,.19,.045,bronze);}
  for(const x of[-18.3,-17.94,-17.58])for(let i=0;i<4;i++){const c=coin(g,x,1.29+i*.029,-32.12);c.rotation.x=-Math.PI/2;}

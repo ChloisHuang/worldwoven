@@ -1,3 +1,4 @@
+import {createTellerTools} from './china-teller-tools.js';
 import {createArchiveBooks} from './china-archive-books.js';
 import {buildChinaOfficialBureau,CHINA_OFFICIAL_BUREAU} from './china-official-bureau.js';
 import {buildPalaceEdictPlace,palaceHeraldStation} from './china-palace-edict-place.js';
@@ -576,6 +577,6 @@ export function buildChinaPalace(G,H){
  officialBureau.pack();tavern.pack();for(const {g,r}of Object.values(rooms)){packStatic(g);packStatic(r);}packStatic(gate);packStatic(gateRoof);for(const w of [...exterior.children].filter(o=>o.name.startsWith('China perimeter ')))packStatic(w);
  // Outer ground stays in its own group; omit perimeter groups while batching it.
  const walls=exterior.children.filter(o=>o.name.startsWith('China perimeter '));for(const w of walls)exterior.remove(w);packStatic(exterior);for(const w of walls)exterior.add(w);
- const archiveBooks=createArchiveBooks(G,{group});
- return {archiveBooks,requiredInsetDoorIds:Object.keys(insetKinds),group,roofGroup,colliders,cameraColliders,bounds,spawn:ground([0,0,39]),heightAware:true,levels,lightingZones,additionalFurnitureSeats,additionalFurniture:[...tavern.additionalFurniture,...officialBureau.additionalFurniture,...residence.additionalFurniture],characterFootSurfaces,walkableSurfaces,interiorRooms,doorways,explorationTargets,facilities,stations,architectureProgram,automaticDoorways,archery,clinic,moneyHouse};
+ const archiveBooks=createArchiveBooks(G,{group});const tellerTools=createTellerTools(G,{group});
+ return {archiveBooks,tellerTools,requiredInsetDoorIds:Object.keys(insetKinds),group,roofGroup,colliders,cameraColliders,bounds,spawn:ground([0,0,39]),heightAware:true,levels,lightingZones,additionalFurnitureSeats,additionalFurniture:[...tavern.additionalFurniture,...officialBureau.additionalFurniture,...residence.additionalFurniture],characterFootSurfaces,walkableSurfaces,interiorRooms,doorways,explorationTargets,facilities,stations,architectureProgram,automaticDoorways,archery,clinic,moneyHouse};
 }
