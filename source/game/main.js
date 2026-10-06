@@ -335,8 +335,8 @@ function captureWorldContinuity(){
  if(dailyNeeds)saved.dailyNeeds=dailyNeeds.snapshot();
  saved.chinaClinicNPCDuty=clinicNPCDuty.snapshot();
  saved.chinaRoyalKitchenAccounts=royalKitchenAccounts.snapshot();
- saved.chinaGuestMealAccounts=guestAccounts.snapshot();
  saved.chinaHeraldSlot=heraldSlot.state();saved.chinaHeraldAccounts=heraldAccounts.snapshot();
+ saved.chinaGuestMealAccounts=guestAccounts.snapshot();
  saved.chinaScribeSlot=scribeSlot.state();saved.chinaScribeAccounts=scribeAccounts.snapshot();
  saved.chinaGardenSlot=gardenSlot.state();saved.chinaGardenAccounts=gardenAccounts.snapshot();
  saved.chinaRangeWardenSlot=rangeWardenSlot.state();saved.chinaRangeWardenAccounts=rangeWardenAccounts.snapshot();saved.chinaGuardSlot=guardSlot.state();saved.chinaGuardAccounts=guardAccounts.snapshot();
