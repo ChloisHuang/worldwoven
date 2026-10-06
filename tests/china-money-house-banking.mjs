@@ -43,6 +43,7 @@ assert.equal(service.open(), false, 'The same map position on another floor is n
 move(C.points.counter);
 assert(service.open());
 assert(text().includes('首次正式岗位工钱入账'));assert(input('随身现金分配').disabled && button('allocation').disabled,'No money/unopened account cannot submit');
+assert(button('allocation').hidden && !button('open').hidden,'The unopened account offers its usable open action in the same row');
 const oldOpen = button('open');
 assert(ledger.creditWageToBank(wage).ok);
 assert.equal(ledger.state().cash, 0);
@@ -66,7 +67,8 @@ const originalWithdraw=button('allocation');rejects=true;originalWithdraw.onclic
 assert.equal(ledger.state().cash,0);assert.equal(ledger.state().bank,20);assert(text().includes('这笔尚未记入'));
 rejects=false;allocate(6);const successfulWithdraw=button('allocation');successfulWithdraw.onclick();successfulWithdraw.onclick();
 assert.deepEqual([ledger.state().cash,ledger.state().bank],[6,14]);assert.equal(events.filter(tx=>tx.action==='withdraw').length,1);assert.equal(writes,2);
-allocate(3);assert.equal(button('allocation').textContent,'存入 3 文');
+assert(find(e=>e.className==='cn-money-allocation-preview').textContent.includes('取到钱袋'),'Committed receipt remains visible beside the allocation action');
+allocate(3);assert.equal(button('allocation').textContent,'存入 3 文');assert.equal(find(e=>e.className==='cn-money-allocation-preview').textContent,'向银行存入 3 文','A new preview replaces the previous receipt without committing');
 const cancelledPreview=button('allocation');dialog.listeners.cancel({preventDefault(){}});cancelledPreview.onclick();
 assert.deepEqual([ledger.state().cash,ledger.state().bank],[6,14],'Cancel discards only the unconfirmed allocation');assert(service.open());assert.equal(input('随身现金分配').value,'6');assert(button('allocation').disabled);
 allocate(1.5);assert(button('allocation').disabled);allocate(21);assert(button('allocation').disabled);allocate(6);assert.equal(writes,2);
