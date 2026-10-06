@@ -35,6 +35,7 @@ function validScribeCheckpoint(l,s,o){
  const who=s.scribeId||'cn-calligraphy',revision=s.scribeRevision??0,p=o.scribePiecework;
  if(o.scribeId!==who||o.scribeRevision!==revision||!same(l.scribeContract,scribeContract(o,who,revision)))return false;
  if(!same({...p,steps:{draftSeconds:0,handoffSeconds:0}},l.scribeContract)||!p.steps||Object.keys(p.steps).length!==2)return false;
+ if(['preparing','drafting','await-pickup'].includes(o.stage)&&o.holder!=='scribe-desk'||o.stage==='scribe-handoff'&&o.holder!=='transfer')return false;
  const drafted=!['preparing','drafting'].includes(o.stage),handed=!['preparing','drafting','await-pickup','scribe-handoff'].includes(o.stage);
  return p.steps.draftSeconds===(drafted?5:o.stage==='drafting'?Math.min(5,s.phaseTime):0)&&p.steps.handoffSeconds===(handed?2:o.stage==='scribe-handoff'?Math.min(2,s.phaseTime):0);
 }
@@ -153,9 +154,9 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
    if(order&&!halt){
     const advanceAfter=(seconds,next)=>{phaseTime+=dt;if(phaseTime>=seconds){enter(next);return true;}return false;};
     if(stage==='preparing'&&arrived(scribe)){enter('drafting');say(scribe,order.reissued?'奉旨补办旧清扫令，重新拟稿呈陛下核准，待实作完成再留回执。':'据今日朝议，拟一纸荷庭清扫令，交陛下核准。');}
-    else if(stage==='drafting'&&near(scribe,scribeHome,.2)&&arrived(scribe)){phaseTime=Math.min(5,phaseTime+dt);if(order.scribePiecework)order.scribePiecework.steps.draftSeconds=phaseTime;if(phaseTime>=5){enter('await-pickup');tell(scribe,'清扫令初稿已写好 · 等沈序来取');}}
-    else if(stage==='await-pickup'&&arrived(herald)&&arrived(scribe)){enter('scribe-handoff');order.holder='transfer';face(scribe,P.collect);face(herald,P.scribe);say(scribe,'沈序，请将这份原稿呈陛下核准。');}
-    else if(stage==='scribe-handoff'&&near(scribe,scribeHome,.2)&&near(herald,P.collect,.2)&&arrived(scribe)&&arrived(herald)){
+    else if(stage==='drafting'&&order.holder==='scribe-desk'&&near(scribe,scribeHome,.2)&&arrived(scribe)){phaseTime=Math.min(5,phaseTime+dt);if(order.scribePiecework)order.scribePiecework.steps.draftSeconds=phaseTime;if(phaseTime>=5){enter('await-pickup');tell(scribe,'清扫令初稿已写好 · 等沈序来取');}}
+    else if(stage==='await-pickup'&&order.holder==='scribe-desk'&&arrived(herald)&&arrived(scribe)){enter('scribe-handoff');order.holder='transfer';face(scribe,P.collect);face(herald,P.scribe);say(scribe,'沈序，请将这份原稿呈陛下核准。');}
+    else if(stage==='scribe-handoff'&&order.holder==='transfer'&&near(scribe,scribeHome,.2)&&near(herald,P.collect,.2)&&arrived(scribe)&&arrived(herald)){
      phaseTime=Math.min(2,phaseTime+dt);if(order.scribePiecework)order.scribePiecework.steps.handoffSeconds=phaseTime;
      if(phaseTime>=2){const before=this.snapshot();enter('to-approval');order.holder='herald';order.claims.scribe=null;record('draft-received',herald);release(scribe);task(herald,'carry-draft-to-emperor',[...reverse(STUDY_PATH).slice(1,-1),[-13.7,.145,-20.85],[-13.7,.145,-14.5],P.approve],'携同一份原稿下楼 · 到公共听候处请准');
       const proof=order.scribePiecework,validProof=!proof||same({...proof,steps:{draftSeconds:0,handoffSeconds:0}},scribeContract(order,personId(scribe),scribeRevision)),paid=proof&&validProof?scribeAccounts?.settle(proof,{chinaEdict:{...ledger.snapshot(),pieceworkContract:contract,scribeContract:draftContract}}):{ok:!proof&&persist()};
