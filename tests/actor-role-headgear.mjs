@@ -31,8 +31,9 @@ function crownClearance(head,shell,seat){
  }return{minimum,count};
 }
 const selectedCuts=process.env.HEADGEAR_HAIR_STYLES?.split(',')??HAIR_STYLES;assert(selectedCuts.length&&selectedCuts.every(c=>HAIR_STYLES.includes(c)),'Known saved hairstyles required');
+const selectedRoles=process.env.HEADGEAR_ROLES?.split(',')??['chef','artist','gardener'];assert(selectedRoles.length&&selectedRoles.every(r=>['chef','artist','gardener'].includes(r)),'Known work roles required');
 let cases=0,noHat=0,samples=0,minClearance=Infinity;const forms=new Set(),cuts=new Set(),cultures=new Set();
-for(const culture of ['japan','china','egypt','france'])for(const bodyPreset of BODY_PRESETS)for(const hairStyle of selectedCuts)for(const style of ['chef','artist','gardener']){
+for(const culture of ['japan','china','egypt','france'])for(const bodyPreset of BODY_PRESETS)for(const hairStyle of selectedCuts)for(const style of selectedRoles){
  const masc=bodyPreset.startsWith('masculine'),form=masc?'male':'female',options={culture,masc,bodyPreset,hairStyle,style,wardrobePreset:WARDROBE_PRESETS[culture][masc?'masculine':'feminine'][0],skin:0xc99b77,hair:0x44342f,clothes:0x65847b,accent:0xcdb887,eyeColor:0x594b3f};
  const identity=JSON.stringify(options),root=createApprovedSurfaces(options),head=root.getObjectByName('sculpted-head'),asset=morphCompleteAdultAsset(sculptCompleteAdultProfile(ADULT_FORMS[form]),options.shapeTraits),fit=createHeadAttachmentFit(head,asset,ADULT_FORMS[form]);
  const hair=planSavedHairstyle(root,options,fit,asset);assert(hair.supported,JSON.stringify({...options,reason:hair.reason}));
@@ -51,4 +52,4 @@ for(const culture of ['japan','china','egypt','france'])for(const bodyPreset of 
  }
  cases++;forms.add(bodyPreset);cuts.add(hairStyle);cultures.add(culture);root.traverse(m=>{if(m.isMesh)m.geometry.dispose();});
 }
-console.log(JSON.stringify({status:'PASS',cases,noHat,bodyPresets:[...forms],hairStyles:[...cuts],cultures:[...cultures],crownSamples:samples,minClearance,scope:'Real complete-head and saved-hair geometry; all authored work hats, absent non-French berets, unchanged identity/body/hair/colors, closed hat tops and idempotence. Offline art review is separate.'},null,2));
+console.log(JSON.stringify({status:'PASS',cases,noHat,roles:selectedRoles,bodyPresets:[...forms],hairStyles:[...cuts],cultures:[...cultures],crownSamples:samples,minClearance,scope:'Real complete-head and saved-hair geometry; all authored work hats, absent non-French berets, unchanged identity/body/hair/colors, closed hat tops and idempotence. Offline art review is separate.'},null,2));

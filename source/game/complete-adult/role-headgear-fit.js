@@ -86,8 +86,16 @@ export function fitCompleteAdultRoleHeadgear(head,options,attachmentFit){
  const topY=Math.max(seatY+last.center[1]-base.center[1],hairTop+spec.headroom),vertical=(topY-seatY)/(last.center[1]-base.center[1]);
  const lowest=Math.min(...[...authored.values()].map(rows=>rows[0].center[1])),triangles=crownTriangles(crown,seatY+(lowest-base.center[1])*vertical-.001);
  const opening=sectionRadii(triangles,seatY,center.x,center.z);
+ // A stiff brim or sewn cap band has one continuous opening. A cropped
+ // forelock can be wider a few millimetres above its end; sampling only the
+ // bottom slice would pinch the ring, then wrinkle it around that forelock.
+ const collar=hats.find(m=>m.name==='cook-cap-band'||m.name==='garden-straw-brim');
+ if(collar)for(const row of authored.get(collar)){
+  const y=seatY+(row.center[1]-base.center[1])*vertical,required=sectionRadii(triangles,y,center.x,center.z);
+  for(let j=0;j<SEGMENTS;j++)opening[j]=Math.max(opening[j],required[j]);
+ }
  if(opening.some(r=>!r))throw new Error('Work hat opening has no continuous scalp support');
- let enclosedRows=0;
+ let enclosedRows=0;const fitted=new Map();
  for(const [mesh,sourceRows]of authored){
   const rows=sourceRows.map(row=>{
    const cx=center.x+row.center[0]-base.center[0],cz=center.z+row.center[2]-base.center[2],y=seatY+(row.center[1]-base.center[1])*vertical,required=sectionRadii(triangles,y,cx,cz);
@@ -96,8 +104,18 @@ export function fitCompleteAdultRoleHeadgear(head,options,attachmentFit){
   });
   // Round local row shoulders outward, never through the protected crown.
   for(let pass=0;pass<2;pass++){const radii=rows.map(r=>r.radii.slice());for(let i=1;i<rows.length-1;i++)for(let j=0;j<SEGMENTS;j++)rows[i].radii[j]=Math.max(radii[i][j],(radii[i-1][j]+2*radii[i][j]+radii[i+1][j])/4);}
-  writeHat(mesh,rows,mesh===shell);
+  fitted.set(mesh,rows);
  }
+ // Keep the chef's separate band outside its cap all around. Its six rings
+ // share one clean cylindrical contour rather than crossing the cap between
+ // differently sampled rows and producing false folds/z-fighting.
+ const band=hats.find(m=>m.name==='cook-cap-band');
+ if(band){const rows=fitted.get(band),cap=fitted.get(shell),lo=rows[0].center[1],hi=rows.at(-1).center[1],radii=Array(SEGMENTS).fill(0);
+  for(const row of rows)for(let j=0;j<SEGMENTS;j++)radii[j]=Math.max(radii[j],row.radii[j]);
+  for(const row of cap)if(row.center[1]>=lo-.005&&row.center[1]<=hi+.005)for(let j=0;j<SEGMENTS;j++)radii[j]=Math.max(radii[j],row.radii[j]+.0015);
+  for(const row of rows)row.radii=radii.slice();
+ }
+ for(const [mesh,rows]of fitted)writeHat(mesh,rows,mesh===shell);
  const result={applied:true,style:options.style,meshes:hats.map(m=>m.name),seatY,skullTop,hairTop,topY,clearance:CLEARANCE,enclosedRows};
  head.userData.completeAdultRoleHeadgear=result;attachmentFit.roleHeadgear=result;return result;
 }
