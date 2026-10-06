@@ -62,6 +62,13 @@ export function createObjectInteractionAnchors({actors=()=>[],stations=()=>[],fu
   if(action.social)return person(action.actor||action.id,action,'chat');
   const explicit=action.visualAnchor||action.work?.visualAnchor||action.choice?.visualAnchor||action.serviceStep?.visualAnchor;
   if(explicit)return authored(explicit,action);
+  // Browsing a fixed counter does not require its employee to stand there.
+  // R132's upstairs kitchen and R134's host breaks move the same people across
+  // floors; their read-only desks must remain at the actual authored surface.
+  const employer=EMPLOYERS[action.provider],counterId=
+   employer==='cn-tavern-host'&&['view','formal-view','property'].includes(action.kind)||action.menuId==='china-meal'&&action.targetKey==='cn-tavern-host'?'cn-tavern-host':
+   employer==='cn-cooking'&&action.kind==='formal-view'?'cn-cooking':null;
+  if(counterId){const station=stationById.get(counterId);return fixture('counter:'+counterId,station?.playerWorkTarget||station?.workTarget,action);}
   if(action.furniture)return furnishing(furnitureById.get(action.id)||action,action);
   if(action.serviceStep?.item)return furnishing(action.serviceStep.item,action);
   if(action.seatId)return furnishing(action.seatId,action);

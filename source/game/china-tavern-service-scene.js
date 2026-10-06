@@ -224,7 +224,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  function clear(o){if(o.stage!=='dirty')return false;return stage(o,'return',{holder:'assistant'});}
  function describe(kind,o,position,label,extra={}){
   const actorId=kind.startsWith('handover-')?staff[role()]?.station.id:['take-order','collect'].includes(kind)?o?.customerId:null;
-  const point=kind==='prep'?P.prepTop:kind==='heat'?P.stoveTop:kind==='wash'?P.washTop:kind==='rent-room'?[23.4,1.32,11.4]:['pass','pickup','choose-order','return-tray'].includes(kind)?P.passTop:kind==='retrieve'?tablePlace(o?.placedTableId).mealPoint:o?.mealPoint||extra.tableId&&tablePlace(extra.tableId).mealPoint;
+  const point=kind==='prep'?P.prepTop:kind==='heat'?P.stoveTop:kind==='wash'?P.washTop:kind==='rent-room'?host?.station.workTarget:['pass','pickup','choose-order','return-tray'].includes(kind)?P.passTop:kind==='retrieve'?o?.placedMealPoint||o?.mealPoint:o?.mealPoint||extra.tableId&&tablePlace(extra.tableId).mealPoint;
   const visualAnchor=actorId?{actorId}:extra.roomId&&kind==='clean-room'?{furnitureId:'china-tavern-bed-'+extra.roomId}:point?{id:'cn-tavern-surface:'+point.join(':'),point:point.slice()}:null;
   return {kind,orderId:o?.id||null,position:position.slice(),name:'云来酒楼 · 当班',action:label,executionRadius:.23,...extra,visualAnchor};
  }
