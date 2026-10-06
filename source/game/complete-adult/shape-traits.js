@@ -42,9 +42,14 @@ function eyeWeight(x,y,z){
  return smooth(.075,.145,Math.abs(x))*(1-smooth(.48,.66,Math.abs(x)))
   *smooth(7.06,7.20,y)*(1-smooth(7.36,7.51,y))*smooth(1.12,1.28,z);
 }
-function displaced(p,raw,traits,c,eye=false){
- const [x,y,z]=p,side=x<0?-1:1,pivot=c.eyes[side],w=eye?1:eyeWeight(...raw),size=(traits.eyeSize-1)*w;
- const out=[x+(x-pivot[0])*size,y+(y-pivot[1])*size,z+(z-pivot[2])*size-.0075*(traits.socketDepth-1)*w];
+function displaced(p,raw,traits,c,eye=false,lip=false){
+ // Male faces need a readable range at gameplay scale. Expand the existing
+ // independent controls only at rendering; saved traits and scoring stay exact.
+ // Keep the reviewed large-eye endpoint: enlarging it further folds the
+ // coarse upper orbital surface. The smaller endpoint can open the range safely.
+ const male=c.form==='male',eyeGain=male&&traits.eyeSize<1?1.5:1,socketGain=male?.012:.0075;
+ const [x,y,z]=p,side=x<0?-1:1,pivot=c.eyes[side],w=eye?1:eyeWeight(...raw),size=(traits.eyeSize-1)*eyeGain*w;
+ const out=[x+(x-pivot[0])*size,y+(y-pivot[1])*size,z+(z-pivot[2])*size-socketGain*(traits.socketDepth-1)*w];
  if(eye)return out;
  const [rx,ry,rz]=raw;
  const jaw=smooth(1.38,1.435,y)*smooth(5.98,6.18,ry)*(1-smooth(6.50,6.94,ry))*smooth(.18,.85,rz);
@@ -60,16 +65,30 @@ function displaced(p,raw,traits,c,eye=false){
   const mouth=smooth(6.39,6.44,ry)*(1-smooth(6.73,6.79,ry))*smooth(1.25,1.38,rz)
    *(1-smooth(.27,.36,Math.abs(rx)));
   out[0]+=x*(maleDelta-jawDelta)*jaw*(1-mouth);
+  // Carry jaw breadth into the cheek plane instead of leaving every male
+  // identity on the same upper-face outline. Keep the reviewed narrow end
+  // exact; narrowing the coarse outer orbital rim further would fold it.
+  // Fade clear of the mouth, orbital
+  // rim, scalp and neck; the reviewed chin/mandibular endpoint stays exact.
+  const cheek=smooth(6.43,6.68,ry)*(1-smooth(6.98,7.50,ry))
+   *smooth(.20,.43,Math.abs(rx))*smooth(.50,1.0,rz);
+  if(!lip)out[0]+=x*Math.max(0,jawDelta)*1.8*cheek*(1-mouth)*(1-w);
+  // Existing socket depth also describes the upper orbital/forehead plane.
+  // Its slope changes locally without moving the head top, nose or neck.
+  const forehead=smooth(7.34,7.44,ry)*(1-smooth(7.44,7.94,ry))
+   *smooth(.55,1.12,rz)*(1-smooth(.50,.78,Math.abs(rx)));
+  out[2]+=.012*(traits.socketDepth-1)*forehead;
  }
  const bridge=smooth(6.95,7.20,ry);
  const nasal=smooth(6.70,6.83,ry)*(1-smooth(7.28,7.46,ry))
   *(1-smooth(.22-.145*bridge,.36-.12*bridge,Math.abs(rx)))*smooth(1.22,1.46,rz)*(1-w);
  // Width changes the cross-span. Saved noseSize values size each alar wing
  // around its own inner attachment, leaving the central tip and length fixed.
- out[0]+=x*(traits.noseWidth-1)*nasal;
+ // The extra male response stops at the authored lip region.
+ out[0]+=x*(traits.noseWidth-1)*(male&&!lip?1.8:1)*nasal;
  const wing=smooth(.06,.11,Math.abs(rx))*(1-smooth(1.56,1.64,rz))
   *smooth(6.79,6.85,ry)*(1-smooth(6.92,7.08,ry))*nasal;
- for(let k=0;k<3;k++)out[k]+=(p[k]-c.wings[side][k])*(traits.noseSize-1)*wing;
+ for(let k=0;k<3;k++)out[k]+=(p[k]-c.wings[side][k])*(traits.noseSize-1)*(male&&!lip?1.75:1)*wing;
  // Independent chin length/projection share a broad sublabial transition and
  // stop above the anchored neck. Neither moves the lips or full head anchor.
  const chin=smooth(1.38,1.435,y)*smooth(5.98,6.17,ry)*(1-smooth(6.38,6.55,ry))
@@ -99,14 +118,14 @@ function changedNormals(part,position){
 // landmarks alone create stepped offsets and let a raised ridge swallow it.
 // The 1.2 mm envelope also clears the intervening coarse skin triangles; a
 // vertex-only 0.35 mm fit can still cross skin between ribbon vertices.
-function refitBrows(asset,parts){
+function refitBrows(asset,parts,clearance=.0012){
  const oldSkin=asset.parts.find(p=>p.material==='skin'),skin=parts.find(p=>p.material==='skin');
  return parts.map((part,index)=>{
   if(part.material!=='brow')return part;
   const before=asset.parts[index],position=part.position.slice();
   for(let i=0;i<position.length;i+=3){
    const oldZ=frontSurface(oldSkin,before.position[i],before.position[i+1]),z=frontSurface(skin,position[i],position[i+1]);
-   if(Number.isFinite(z)&&Number.isFinite(oldZ))position[i+2]=z+Math.max(.0012,before.position[i+2]-oldZ);
+   if(Number.isFinite(z)&&Number.isFinite(oldZ))position[i+2]=z+Math.max(clearance,before.position[i+2]-oldZ);
   }
   return{...part,position,normal:changedNormals(before,position)};
  });
@@ -129,13 +148,15 @@ export function morphCompleteAdultAsset(asset,input){
  if(Object.entries(traits).every(([key,value])=>key==='legLength'||value===1))return asset;
  const c=context(asset),parts=asset.parts.map(part=>{
   const eye=isEye(part),position=part.position.slice(),raw=part.material==='skin'?part.featureCoord:c.semantics.get(part);let changed=false;
-  for(let i=0;i<position.length;i+=3){const out=displaced(part.position.slice(i,i+3),eye?null:raw.slice(i,i+3),traits,c,eye);for(let k=0;k<3;k++)if(out[k]!==part.position[i+k]){position[i+k]=out[k];changed ||= position[i+k]!==part.position[i+k];}}
+  for(let i=0;i<position.length;i+=3){const out=displaced(part.position.slice(i,i+3),eye?null:raw.slice(i,i+3),traits,c,eye,part.material==='skin'&&part.lipWeight[i/3]>.5);for(let k=0;k<3;k++)if(out[k]!==part.position[i+k]){position[i+k]=out[k];changed ||= position[i+k]!==part.position[i+k];}}
   if(!changed)return part;
   // Each globe's three material regions share exactly the same uniform scale
   // and translation, so their original Jacobian normals remain continuous.
   return{...part,position,normal:eye?part.normal:changedNormals(part,position)};
  });
- return{...asset,parts:refitBrows(asset,parts)};
+ // A submillimetre allowance follows only the deeper male socket. It clears
+ // coarse triangle interiors without changing neutral/female brow fitting.
+ return{...asset,parts:refitBrows(asset,parts,asset.form==='male'?.0012+Math.max(0,traits.socketDepth-1)*.001+Math.max(0,traits.eyeSize-1)*.0001:.0012)};
 }
 /** Map only newly inserted head/hair through the existing leg-height contract.
  * Retained body, garment, hair and accessory geometry is already shaped. */

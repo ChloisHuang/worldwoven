@@ -41,6 +41,14 @@ function fixture(){
  console.log('PASS live reviewer separate from replacement patrol holder and stale same-person tenure clicks');
 }
 {
+ const f=fixture();let revision=0;f.archery.reviewerContext=()=>({actorId:'cn-range-warden',name:'陆衡',revision});
+ const old=f.service.intent('formal-apply'),identity=f.service.identityKey();revision++;
+ assert.equal(f.service.resolveIntent(old),null);assert.equal(f.service.executeIntent(old),false);assert.notEqual(f.service.identityKey(),identity);
+ f.qualify();f.archery.supervisorReady=()=>false;assert(f.act('formal-apply'));assert.equal(f.service.state().waiting,'formal-apply');
+ revision++;f.archery.supervisorReady=()=>true;f.tick(.1);assert.equal(f.service.state().waiting,null);assert.equal(f.careers.applicationResult(ROLE.id),null);
+ console.log('PASS same-person reviewer appointment revision invalidates selected and queued applications');
+}
+{
  const f=fixture();f.qualify();f.hire();assert(f.act('accept'));f.archery.reviewerContext=()=>null;assert.equal(f.service.intent('claim'),null);assert(f.act('cancel'));assert.equal(f.service.state().job,null);assert.equal(f.store.bank,0);
  console.log('PASS missing reviewer does not trap manual player cancellation or create a wage');
 }
