@@ -11,8 +11,8 @@ R16.131 ordinary visits use the current supported character model with the origi
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.162-public, 2026-10-06
-Verified published Sites source commit: 4e3a5ed7a8e37fd37079c8cf99e55e6061dba33c
+Published release: R16.163-public, 2026-10-06
+Verified published Sites source commit: 3784fcda358665c4cfc9fc410a45225538be7876
 
 Opt-in same-save performance panel: https://alien.doudouai.net/?perf=1#china
 It reads runtime timing/render counts and the initial save length; it does not reset storage or send telemetry. CPU submission timing is not GPU timing. R16.128 removes repeated full-history copies from closed salon panels and China job/HUD reads. R16.129 extends current-career reads to the existing Japan/Egypt employment adapters and French tea/pastry/gardening controllers. Those controllers only run in their respective countries. The user reported R16.130 runs without lag; broader device performance remains unverified.
@@ -80,6 +80,8 @@ R16.160 keeps salon service income, receptionist wages and the corresponding bus
 R16.161 lets artists combine their earned personal share with other verified earnings belonging to the same person for an original meal. Active and older prepaid meals retain their original payment and exact refund sources. Salon pricing, income shares and actor control remain unchanged. Tavern-property funds and broader role migration remain open; China needs coverage stays 31/31.
 
 R16.162 locks the original tavern-property participant while wages or an agreed property transaction are saved and adopted. Reentrant meal payments can no longer leave live property records different from the saved record. Existing consent, prices, finite personal funds and business capital remain unchanged; property meal aggregation is still pending.
+
+R16.163 connects the tavern staff’s original personal funds to same-person meal aggregation. The host’s original 480, cook’s 240 and assistant’s 260 copper remain usable personal money without being labelled earned wages; business capital, takings and gross revenue stay excluded. Old and new meals preserve their exact payer, price and refund sources. All currently supported personal source families can now contribute to meals; career control migration, inheritance and transfers between people remain separate work. China needs coverage stays 31/31.
 
 ## Working rules
 
