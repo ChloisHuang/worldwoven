@@ -48,7 +48,19 @@ function displaced(p,raw,traits,c,eye=false){
  if(eye)return out;
  const [rx,ry,rz]=raw;
  const jaw=smooth(1.38,1.435,y)*smooth(5.98,6.18,ry)*(1-smooth(6.50,6.94,ry))*smooth(.18,.85,rz);
- out[0]+=x*(traits.jawWidth-1)*jaw;
+ const jawDelta=traits.jawWidth-1;
+ out[0]+=x*jawDelta*jaw;
+ if(c.form==='male'){
+  // Keep the saved preference/genotype scale. The male narrow endpoint now
+  // approaches the existing middle jaw; the wide endpoint opens the actual
+  // mandible and chin, rather than leaving both endpoints pointed.
+  const maleDelta=jawDelta<0?jawDelta*.25:jawDelta*.25+18.75*jawDelta*jawDelta;
+  // The extra contour response stays outside the original oral surface, so
+  // remapping the jaw does not silently change the saved mouth or expression.
+  const mouth=smooth(6.39,6.44,ry)*(1-smooth(6.73,6.79,ry))*smooth(1.25,1.38,rz)
+   *(1-smooth(.27,.36,Math.abs(rx)));
+  out[0]+=x*(maleDelta-jawDelta)*jaw*(1-mouth);
+ }
  const bridge=smooth(6.95,7.20,ry);
  const nasal=smooth(6.70,6.83,ry)*(1-smooth(7.28,7.46,ry))
   *(1-smooth(.22-.145*bridge,.36-.12*bridge,Math.abs(rx)))*smooth(1.22,1.46,rz)*(1-w);
