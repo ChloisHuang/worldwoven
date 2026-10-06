@@ -18,12 +18,12 @@ function fixture(options={}){
  }
  doc={head:new Element('head'),body:new Element('body'),createElement:t=>new Element(t)};
  let card={stage:'none',blockers:[],physical:{heraldPresent:true}},details={seat:{occupied:3,capacity:4}},rows=[];
- const player={root:{position:{x:0,y:.2,z:0}}},intents=[],choices=[];
+ const player={root:{position:{x:0,y:.2,z:0}}},intents=[],choices=[],withdrawals=[];
  const service={statusCard:()=>structuredClone(card),interactionTarget:()=>['submitted','accepted','charter-held'].includes(card.stage)?meeting:target,
-  respond(choice){choices.push(choice);card.stage=choice==='accept'?'accepted':'declined';return {ok:true};},submit(){throw Error('UI must not call physical service methods');},requestAudience(){throw Error('UI must not call physical service methods');},requestInvestiture(){throw Error('UI must not call physical service methods');}};
+  respond(choice){choices.push(choice);card.stage=choice==='accept'?'accepted':'declined';return {ok:true};},withdraw(){withdrawals.push(card.applicationId);card.stage='withdrawn';return {ok:true};},submit(){throw Error('UI must not call physical service methods');},requestAudience(){throw Error('UI must not call physical service methods');},requestInvestiture(){throw Error('UI must not call physical service methods');}};
  const ui=createChinaConsortPetitionUI({service,getPlayer:()=>player,getDetails:()=>details,getLedger:()=>({history:()=>rows}),onIntent:intent=>{assert.equal(ui.isOpen(),false);intents.push(intent);return true;},document:doc,...options});
  const dialog=doc.body.children[0],find=id=>walk(dialog).find(e=>e.attrs['data-consort-action']===id),visible=()=>walk(dialog).filter(e=>e.tag==='button'&&!e.hidden);
- return {doc,dialog,ui,find,visible,intents,choices,player,service,setCard:v=>{card=v;},getCard:()=>card,setDetails:v=>{details=v;},setRows:v=>{rows=v;}};
+ return {doc,dialog,ui,find,visible,intents,choices,withdrawals,player,service,setCard:v=>{card=v;},getCard:()=>card,setDetails:v=>{details=v;},setRows:v=>{rows=v;}};
 }
 test('read-only view keeps approval and acceptance separate from appointed identity',()=>{
  for(const stage of ['none','submitted','awaiting-choice','accepted','charter-held']){
@@ -86,4 +86,41 @@ test('title release needs a fresh explicit confirmation and live bridge permissi
  const titleBridge={titleStatus:()=>({active,appointmentId:id}),releaseTitleAvailability:()=>({ok,reasons:ok?[]:['title-rights-busy']}),resignTitle(value,options){calls.push({id:value,options});active=false;f.setCard({stage:'resigned',blockers:[]});return {ok:true};}};
  f=fixture({titleBridge});f.setCard({stage:'appointed',titleId:'consort',residence:{},blockers:[]});f.ui.open();f.find('resign-title').onclick();assert.equal(calls.length,0);assert(f.dialog.textContent.includes('辞去后交还寝房与御膳资格'));f.find('cancel-resignation').onclick();assert.equal(calls.length,0);
  f.find('resign-title').onclick();const stale=f.find('confirm-resignation').onclick;ok=false;stale();assert.equal(calls.length,0);assert.equal(f.find('confirm-resignation').disabled,true);assert(f.dialog.textContent.includes('先结束寝居、用膳或册书中的活动'));ok=true;id='appointment-two';f.ui.update();stale();assert.equal(calls.length,0);assert.equal(f.find('confirm-resignation').hidden,true);f.find('resign-title').onclick();f.find('confirm-resignation').onclick();assert.deepEqual(calls,[{id:'appointment-two',options:{confirmed:true}}]);assert.equal(f.getCard().stage,'resigned');assert(!f.dialog.textContent.includes('appointment-two'));f.ui.dispose();
+});
+
+// An empress petition lives beside the already-earned consort title. These
+// cases catch accidental promotion on approval, lost benefits, stale choices,
+// and bypassing the physical release with the original resignation control.
+test('empress requests preserve actual identity and benefits through pending and terminal outcomes',()=>{
+ const details={residenceLabel:'南苑寝房',residenceTarget:target,meal:{remaining:86,capacity:120,target:meeting}};
+ for(const stage of ['none','submitted','awaiting-choice','accepted','charter-held','rejected','declined','withdrawn','released']){
+  const v=consortPetitionView({card:{titleKind:'empress',titleId:'consort',empressId:null,operation:stage==='released'?'release':'appoint',stage,residence:{},blockers:[],result:{passed:true}},target,details});
+  assert.equal(v.identity,'妃嫔');assert.equal(v.hasTitle,true);assert.notEqual(v.result,'后位生效');assert.equal(v.residenceText,'南苑寝房');assert.equal(v.mealText,'库存御膳 · 余 86 / 120 份');assert.deepEqual(v.benefitActions.map(a=>a.action),['meal','residence']);
+  if(['none','rejected','declined','withdrawn','released'].includes(stage)){assert.deepEqual(v.actions.map(a=>a.action),['empress-submit']);assert.equal(v.eligibilityText,'游戏资格：任妃3日、与皇帝完成2次交谈');}
+ }
+ for(const stage of ['appointed','submitted','awaiting-choice','accepted','charter-held','rejected','declined','withdrawn']){
+  const v=consortPetitionView({card:{titleKind:'empress',titleId:'empress',empressId:'player',operation:'release',stage,residence:{},blockers:[]},target,details});
+  assert.equal(v.identity,'皇后');assert.equal(v.seatText,'后位已由你担任');assert.equal(v.residenceText,'南苑寝房');
+  if(['appointed','rejected','declined','withdrawn'].includes(stage)){assert.equal(v.actions[0].action,'empress-release');assert.equal(v.actions[0].label,'当面请辞后位');}
+ }
+});
+
+test('empress petition and release buttons navigate without changing title; release choice is explicit',()=>{
+ const f=fixture();f.setCard({titleKind:'empress',titleId:'consort',stage:'none',operation:'appoint',blockers:[],physical:{heraldPresent:false}});f.player.root.position={x:1,y:.2,z:1};f.ui.open();assert.equal(f.find('primary').textContent,'当面请册皇后');assert.equal(f.find('primary').disabled,false);f.find('primary').onclick();assert.equal(f.intents.at(-1).action,'empress-submit');assert.equal(f.getCard().titleId,'consort');
+ f.setCard({titleKind:'empress',titleId:'empress',stage:'appointed',operation:'appoint',blockers:[]});f.ui.open();f.find('primary').onclick();assert.equal(f.intents.at(-1).action,'empress-release');assert.equal(f.getCard().titleId,'empress');
+ f.setCard({titleKind:'empress',titleId:'empress',stage:'awaiting-choice',operation:'release',applicationId:'release-one',blockers:[]});f.ui.open();assert.equal(f.find('accept').textContent,'确认请辞后位');assert.equal(f.find('decline').textContent,'保留后位');assert(f.dialog.textContent.includes('保留原妃位与寝居'));f.dialog.listeners.cancel({preventDefault(){}});assert.equal(f.choices.length,0);assert.equal(f.getCard().titleId,'empress');
+ f.ui.open();f.find('accept').onclick();assert.deepEqual(f.choices,['accept']);assert.equal(f.getCard().stage,'accepted');assert.equal(f.getCard().titleId,'empress');assert.equal(f.ui.menuContext().hasTitle,true);f.ui.dispose();
+});
+
+test('withdrawal uses the active service only after a fresh nonphysical state check',()=>{
+ const f=fixture();f.setCard({titleKind:'empress',titleId:'consort',stage:'accepted',operation:'appoint',applicationId:'empress-one',blockers:[]});f.ui.open();const stale=f.find('withdraw').onclick;f.getCard().physical={phase:'drafting'};stale();assert.equal(f.withdrawals.length,0);assert.equal(f.find('withdraw').hidden,true);assert(f.dialog.textContent.includes('沈序正在拟册'));
+ f.getCard().physical={};f.ui.update();const replaced=f.find('withdraw').onclick;f.getCard().applicationId='empress-two';replaced();assert.equal(f.withdrawals.length,0);f.find('withdraw').onclick();assert.deepEqual(f.withdrawals,['empress-two']);assert.equal(f.getCard().stage,'withdrawn');assert.equal(f.getCard().titleId,'consort');assert.equal(f.find('withdraw').hidden,true);
+ f.setCard({stage:'submitted',applicationId:'consort-one',blockers:[]});f.ui.update();f.find('withdraw').onclick();assert.deepEqual(f.withdrawals,['empress-two','consort-one']);f.ui.dispose();
+});
+
+test('empress route reads its own history and prevents original title resignation during a pending release',()=>{
+ const calls=[],titleBridge={titleStatus:()=>({active:true,appointmentId:'original-consort'}),releaseTitleAvailability:()=>({ok:true,reasons:[]}),resignTitle:()=>{calls.push('resign');return {ok:true};}},f=fixture({titleBridge});
+ f.setRows([{id:'old-consort',stage:'appointed',submittedAt:{day:0}}]);f.service.currentLedger=()=>({petition:()=>({id:'release-one',operation:'release'})});f.service.history=()=>[{titleKind:'empress',operation:'appoint',stage:'appointed',submittedAt:{day:3}},{titleKind:'empress',operation:'release',stage:'submitted',submittedAt:{day:4}}];
+ f.setCard({titleKind:'empress',titleId:'empress',stage:'submitted',operation:'release',blockers:[]});f.ui.open();assert(f.dialog.textContent.includes('册后 · 皇后册封已生效'));assert(f.dialog.textContent.includes('辞后 · 请辞已呈'));assert(!f.dialog.textContent.includes('自荐'));assert(f.dialog.textContent.includes('先当面辞后并办结文书'));assert.equal(f.find('resign-title').textContent,'辞去妃位');assert.equal(f.find('resign-title').disabled,true);f.find('resign-title').onclick();assert.equal(calls.length,0);
+ f.setCard({titleKind:'empress',titleId:'consort',stage:'released',operation:'release',blockers:[]});f.ui.update();assert.equal(f.find('resign-title').disabled,false);assert.equal(f.ui.menuContext().hasTitle,true);f.ui.dispose();
 });

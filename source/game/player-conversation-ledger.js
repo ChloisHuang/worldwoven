@@ -38,12 +38,13 @@ function profile(source, relation = 0, opinion = 0) {
   };
 }
 
-const archivedActors = archive => new Map(archive.actors.map(actor => [actor.actorId, {...actor}]));
+const archivedActors = archive => new Map(archive.actors.map(actor => [actor.actorId, {...actor, completedCount: actor.completedCount ?? (actor.lastCompleted ? 1 : 0)}]));
 function fold(actors, event) {
-  const actor = actors.get(event.actorId) || {actorId: event.actorId, attempts: 0, relation: 0, opinion: 0, lastCompleted: null, cooldownUntil: 0};
+  const actor = actors.get(event.actorId) || {actorId: event.actorId, attempts: 0, relation: 0, opinion: 0, lastCompleted: null, completedCount: 0, cooldownUntil: 0};
   actor.attempts = event.attempt;
   actor.cooldownUntil = event.cooldownUntil;
   if (completed(event)) {
+    actor.completedCount++;
     actor.relation = signed(actor.relation + event.result.relation);
     actor.opinion = signed(actor.opinion + event.result.opinion);
     actor.lastCompleted = event;
@@ -125,6 +126,7 @@ function restore(saved) {
         !finite(actor.relation) || Math.abs(actor.relation) > 1 || !finite(actor.opinion) || Math.abs(actor.opinion) > 1 ||
         !finite(actor.cooldownUntil) || actor.cooldownUntil < PLAYER_CONVERSATION_COOLDOWN ||
         actor.cooldownUntil > archive.endedAt + PLAYER_CONVERSATION_COOLDOWN) throw Error('invalid-saved-archive');
+    if (actor.completedCount !== undefined && (!Number.isSafeInteger(actor.completedCount) || actor.completedCount < (actor.lastCompleted ? 1 : 0) || actor.completedCount > actor.attempts || !actor.lastCompleted && actor.completedCount !== 0)) throw Error('invalid-saved-archive');
     if (actor.lastCompleted !== null) {
       const e = actor.lastCompleted;
       if (!object(e) || !completed(e) || e.actorId !== actor.actorId || e.serial > archive.throughSerial || e.attempt > actor.attempts ||
@@ -295,6 +297,7 @@ export function createPlayerConversationLedger({saved, saveState, getClock = () 
   return Object.freeze({loadError, start, progress, complete, cancel, retryPending, snapshot,
     topics: PLAYER_CONVERSATION_TOPICS,
     event: id => copy(view.events.get(id) || null), active: () => copy(view.active), pending: () => copy(view.awaitingSave),
+    completedCount: actorId => view.actors.get(actorId)?.completedCount || 0,
     lastCompleted: actorId => copy(view.actors.get(actorId)?.lastCompleted || null),
     relationFor: (actorId, targetId = 'player') => targetId === 'player' ? view.actors.get(actorId)?.relation || 0 : 0,
     knownOpinion: (actorId, targetId = 'player') => targetId === 'player' ? view.actors.get(actorId)?.opinion || 0 : 0,

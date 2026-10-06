@@ -1,7 +1,9 @@
 import {createConsortPetitionLedger,CONSORT_SEAT_ID} from './consort-petition-ledger.js';
+import {createEmpressTitleLedger} from './empress-title-ledger.js';
 import {CHINA_CONSORTS} from './china-palace-residents.js';
 
 export const CONSORT_LEDGER_KEY='consortPetitions';
+export const EMPRESS_LEDGER_KEY='empressTitles';
 export const CONSORT_SERVICE_KEY='chinaConsortCourt';
 const copy=x=>x==null?x:JSON.parse(JSON.stringify(x));
 const object=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
@@ -18,10 +20,10 @@ const durable=state=>{const {loadError,lastError,...data}=state;return data;};
  * writeWorld(next) must synchronously persist one whole world JSON atomically.
  * The original saved root retains its identity and changes only after success.
  */
-export function createConsortRuntimeBridge({saved,quarters,getScene,getPlayerProfile,getAppearanceScore,getAppearancePreference,getPlayerTraits,getNPCProfile,getCareers,getClock,getService,
+export function createConsortRuntimeBridge({saved,quarters,getScene,getPlayerProfile,getAppearanceScore,getAppearancePreference,getPlayerTraits,getNPCProfile,getConversationCount,getCareers,getClock,getService,
   captureWorld,writeWorld,canReleaseTitle,worldSeed=saved?.appearance?.seed??1}={}){
   if(!object(saved)||!object(quarters)||!quarters.roomId||!quarters.bedId||!quarters.doorId||typeof writeWorld!=='function'||typeof getClock!=='function')throw new TypeError('consort bridge needs saved root, authored quarters, clock and atomic world writer');
-  let ledger=null,committing=false,lastEmperorAge=null;
+  let ledger=null,empressLedger=null,committing=false,lastEmperorAge=null;
   const scene=()=>read(getScene)||{};
   const state=()=>ledger?.state()||null;
   const profile=()=>read(getPlayerProfile)||saved.playerProfile||{};
@@ -37,7 +39,7 @@ export function createConsortRuntimeBridge({saved,quarters,getScene,getPlayerPro
   function reviewContext(){return {appearancePreference:read(()=>getAppearancePreference?.('cn-emperor','player')),player:{appearanceScore:read(getAppearanceScore),traits:read(getPlayerTraits)||profile().traits||saved.japanPerformance?.life?.people?.player?.traits},emperor:read(()=>getNPCProfile?.('cn-emperor'))||read(()=>scene().palace?.state())?.decisions?.people?.['cn-emperor']||{}};}
   function court(){
     const a=ledger?.appointment();
-    return {emperorId:'cn-emperor',empressId:null,consorts:[...CHINA_CONSORTS.map(c=>({actorId:c.id,roomId:c.privateRoomId,bedId:c.privateBedId})),...(a?[{actorId:a.actorId,roomId:a.residence.roomId,bedId:a.residence.bedId}]:[])]};
+    return {emperorId:'cn-emperor',empressId:empressLedger?.appointment()?.actorId||null,consorts:[...CHINA_CONSORTS.map(c=>({actorId:c.id,roomId:c.privateRoomId,bedId:c.privateBedId})),...(a?[{actorId:a.actorId,roomId:a.residence.roomId,bedId:a.residence.bedId}]:[])]};
   }
   function physical(){
     const s=scene();if(s.country!=='china')return {scene:s,room:null,bed:null,door:null,accessible:false};
@@ -57,7 +59,7 @@ export function createConsortRuntimeBridge({saved,quarters,getScene,getPlayerPro
     if(bed&&(bed.privateOwnerId===null||bed.privateOwnerId==='player')){bed.name=bed.privateOwnerId==='player'?'后宫南间卧榻 · 你的寝居':'后宫南间卧榻 · 尚未分配';bed.worldLabel=bed.privateOwnerId==='player'?'南间卧榻 · 你的寝居':'南间卧榻 · 尚未分配';}
     return {projected:!!(valid&&room?.privateOwnerId==='player'&&bed?.privateOwnerId==='player'),roomId:quarters.roomId,bedId:quarters.bedId,ownerId:valid&&room?.privateOwnerId==='player'&&bed?.privateOwnerId==='player'?'player':null};
   }
-  function commit({nextLedger,nextService}={}){
+  function commit({nextLedger,nextEmpress,nextService}={}){
     if(committing)return false;committing=true;
     const before={...saved},next={...saved};
     try{
@@ -70,6 +72,8 @@ export function createConsortRuntimeBridge({saved,quarters,getScene,getPlayerPro
       const service=read(getService),checkpoint=nextService??read(()=>service?.snapshot?.()??service?.checkpoint?.())??saved[CONSORT_SERVICE_KEY];
       const live=state(),titleData=nextLedger??(live&&!live.loadError?durable(live):saved[CONSORT_LEDGER_KEY]);
       if(titleData!==undefined)next[CONSORT_LEDGER_KEY]=copy(titleData);
+      const empress=empressLedger?.state(),empressData=nextEmpress??(empress&&!empress.loadError?durable(empress):saved[EMPRESS_LEDGER_KEY]);
+      if(empressData!==undefined)next[EMPRESS_LEDGER_KEY]=copy(empressData);
       if(checkpoint!==undefined){
         if(!object(checkpoint)||checkpoint.version!==1)return false;
         next[CONSORT_SERVICE_KEY]=copy(checkpoint);
@@ -90,7 +94,10 @@ export function createConsortRuntimeBridge({saved,quarters,getScene,getPlayerPro
   // No constructor callback assumes that a service or even a scene exists yet.
   ledger=createConsortPetitionLedger({saved:saved[CONSORT_LEDGER_KEY],worldSeed,saveState:next=>commit({nextLedger:next}),getClock,getPlayer:player,getEmperor:emperor,getCourt:court,getVacancy:vacancy,getCareers,getReviewContext:reviewContext,
     verifyReceipt:(receipt,expected)=>{const s=scene(),service=read(getService);return s.country==='china'&&service?.verifyReceipt?.(receipt,expected)===true;}});
+  empressLedger=createEmpressTitleLedger({saved:saved[EMPRESS_LEDGER_KEY],worldSeed,getClock,getConsort:()=>ledger,getPlayer:player,getEmperor:emperor,getContext:reviewContext,getConversationCount:()=>getConversationCount?.('cn-emperor')??0,saveState:next=>commit({nextEmpress:next}),verifyReceipt:(receipt,expected)=>scene().country==='china'&&read(getService)?.verifyReceipt?.(receipt,expected)===true});
+  function titleStatus(){const base=ledger.titleStatus(),empress=empressLedger.titleStatus();return {...base,loadError:base.loadError||empress.loadError,titleId:empress.active?'empress':base.titleId,empressAppointmentId:empress.appointmentId};}
   function releaseTitleAvailability(){
+    if(empressLedger.state().loadError||empressLedger.appointment()||empressLedger.hasOpen())return {ok:false,reasons:['finish-empress-affairs']};
     const a=ledger?.appointment();if(!a)return {ok:false,reasons:['not-appointed']};
     let permission;try{permission=canReleaseTitle?.({appointment:copy(a),scene:scene()});}catch{}
     return permission===true||permission?.ok===true?{ok:true,reasons:[]}:{ok:false,reasons:Array.isArray(permission?.reasons)&&permission.reasons.length?[...permission.reasons]:['title-rights-busy']};
@@ -100,7 +107,7 @@ export function createConsortRuntimeBridge({saved,quarters,getScene,getPlayerPro
     if(ledger.appointment()){const ready=releaseTitleAvailability();if(!ready.ok)return {ok:false,code:ready.reasons[0],reasons:ready.reasons};}
     return ledger.resignTitle(id,options);
   }
-  function statusCard(){const card=ledger.statusCard();if(card.primaryAction?.id==='resign-title'){const release=releaseTitleAvailability();card.primaryAction={...card.primaryAction,enabled:release.ok};if(!release.ok)card.blockers=release.reasons.map(code=>({code,text:'先结束寝居、用膳或册书中的活动'}));}return card;}
-  return {ledger,commitLedger:next=>commit({nextLedger:next}),commitService:next=>commit({nextService:next}),projectOwnership,vacancy,
-    titleStatus:()=>ledger.titleStatus(),royalMealEligibility:()=>ledger.royalMealEligibility(),statusCard,releaseTitleAvailability,resignTitle};
+  function statusCard(){if(ledger.appointment())return empressLedger.statusCard();const card=ledger.statusCard();if(card.primaryAction?.id==='resign-title'){const release=releaseTitleAvailability();card.primaryAction={...card.primaryAction,enabled:release.ok};if(!release.ok)card.blockers=release.reasons.map(code=>({code,text:'先结束寝居、用膳或册书中的活动'}));}return card;}
+  return {ledger,empressLedger,commitLedger:next=>commit({nextLedger:next}),commitService:next=>commit({nextService:next}),projectOwnership,vacancy,
+    titleStatus,royalMealEligibility:()=>ledger.royalMealEligibility(),statusCard,releaseTitleAvailability,resignTitle};
 }
