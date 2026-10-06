@@ -4,7 +4,7 @@ import {attachCourtOfficialCostume} from './china-court-official-costume.js';
 import {createChinaOfficialLife} from './china-official-life.js';
 import {CHINA_OFFICIAL_BUREAU as B} from './china-official-bureau.js';
 import {followActorRoute} from './actor-navigation.js';
-import {createAudienceSchedule,courtRouteBudget,cachedCourtPlanner} from './china-court-schedule.js';
+import {createAudienceSchedule,courtRouteBudget,cachedCourtPlanner,courtLaneBudgets} from './china-court-schedule.js';
 import {createCourtPosture} from './china-court-posture.js';
 import {getChinaCourtOfficialRank,CHINA_OFFICIAL_RANK_CONTEXT} from './china-official-ranks.js';
 export {createAudienceSchedule} from './china-court-schedule.js';
@@ -84,7 +84,13 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
  }
  const allInLine=()=>officials.every(n=>tasks.get(n)?.id==='enter-hall'&&tasks.get(n).arrived),paused=n=>!!n&&state.conversationActorId===n.station.id;
  function routeBudgets(){
-  const actors=officials.map((n,i)=>{const exit=life?.courtPlan(n)||{reachable:true,position:n.root.position,path:[],safeExitSeconds:0,doorSeconds:4};return {actor:n.station.id,...(exit.reachable?courtRouteBudget({...exit,path:near(exit.position,hall(i))?[]:[...exit.path,court(i),...enterHall(i)],walkSpeed:n.locomotion.walkSpeed,planPath:planBudgetPath,doorways:lot.doorways}):{reachable:false,seconds:Infinity,reason:'safe-exit-blocked'})};});
+  const actors=courtLaneBudgets(officials.map((n,i)=>{
+   const exit=life?.courtPlan(n)||{reachable:true,position:n.root.position,path:[],safeExitSeconds:0,doorSeconds:4},inPlace=near(exit.position,hall(i));
+   const empty={reachable:true,seconds:0,distance:0,doors:[]},options={walkSpeed:n.locomotion.walkSpeed,planPath:planBudgetPath,doorways:lot.doorways};
+   const approach=!exit.reachable?{reachable:false,seconds:Infinity,reason:'safe-exit-blocked'}:inPlace?empty:courtRouteBudget({...exit,...options,path:[...exit.path,court(i)]});
+   const entry=inPlace?empty:courtRouteBudget({...options,position:point(court(i)),path:enterHall(i)});
+   return {actor:n.station.id,lane:i%2,inPlace,approach,entry};
+  }));
   const royal=palace.dutyPlan?.(OWNER)||{reachable:false,seconds:Infinity,reason:'royal-route-unavailable'};
   actors.push({actor:emperor.station.id,...royal});return {actors,seconds:Math.max(...actors.map(a=>a.seconds)),measuredAt:time};
  }

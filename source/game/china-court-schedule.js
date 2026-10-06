@@ -25,6 +25,21 @@ export function courtRouteBudget({position,path,walkSpeed,planPath,safeExitSecon
  return {reachable:true,seconds:distance/speed+safeExitSeconds+doorSeconds+crossed.size*2,distance,doors:[...crossed]};
 }
 
+// Admission really waits for the previous official in the same lane to
+// reach their indoor rank. Summoning by max(independent full route) misses
+// this serialized tail when a middle official has a long safe approach.
+export function courtLaneBudgets(rows){
+ const completion=new Map();
+ return rows.map(row=>{
+  const {approach,entry,lane,inPlace=false}=row,previous=completion.get(lane)||0;
+  const reachable=approach.reachable&&entry.reachable&&Number.isFinite(previous);
+  const approachSeconds=approach.seconds,entrySeconds=entry.seconds;
+  const start=inPlace?0:Math.max(approachSeconds,previous),seconds=reachable?start+entrySeconds:Infinity;
+  if(!inPlace)completion.set(lane,seconds);
+  return {actor:row.actor,reachable,seconds,distance:(approach.distance||0)+(entry.distance||0),doors:[...new Set([...(approach.doors||[]),...(entry.doors||[])])],approachSeconds,entrySeconds,queueWaitSeconds:inPlace?0:Math.max(0,previous-approachSeconds),...(!reachable?{reason:approach.reason||entry.reason||'earlier-lane-arrival-unavailable'}:{})};
+ });
+}
+
 export function createAudienceSchedule(saved={}){
  let day=Math.max(0,Math.floor(saved.day||0)),calledDay=Number.isInteger(saved.calledDay)?saved.calledDay:-1,lastHour=null;
  let lastCompletedDay=Number.isInteger(saved.lastCompletedDay)?saved.lastCompletedDay:saved.outcome==='completed'?calledDay:-1;
