@@ -49,7 +49,7 @@ export function createNPCGuestAccounts(providers, {saved, saveState = null} = {}
   }
   // Never reinterpret duplicate historical reserves as a fresh split order if
   // its coordinating evidence is absent. A legacy single source is unchanged.
-  const orders = new Set(catalogue.flatMap(p => p.economy.snapshot?.()?.mealTransfers?.map(row => row.orderId) || []));
+  const orders = new Set(catalogue.flatMap(p => p.economy.mealTransferOrderIds?.() || p.economy.snapshot?.()?.mealTransfers?.map(row => row.orderId) || []));
   for (const orderId of orders) if (transfers(orderId, 'meal-payment').length > 1 && !entry(orderId, 'meal-payment')) throw Error('ambiguous-guest-meal');
  } catch (error) { loadError = error.message; if (saved != null) invalidSnapshot = copy(saved); }
  const unhealthy = () => loadError || catalogue.some(p => p.economy.loadError);

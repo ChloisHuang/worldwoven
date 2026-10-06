@@ -367,7 +367,7 @@ for (const amount of [0, 6, 24, 30]) {
 // Country reconstruction uses this same saved economy; other world ledgers
 // must survive the official's atomic wage/meal writes byte-for-byte.
 const mainSource = fs.readFileSync(new URL('../source/game/main.js', import.meta.url), 'utf8');
-const mainStart = mainSource.indexOf('const officialPayPolicy='), mainEnd = mainSource.indexOf('// Supplied by the shared bank integration.', mainStart);
+const mainStart = mainSource.indexOf('const officialPayPolicy='), mainEnd = mainSource.indexOf('const chinaSalonEconomy=', mainStart);
 assert(mainStart >= 0 && mainEnd > mainStart);
 const mountMain = new Function('saved', 'createChinaOfficialEconomy', 'CHINA_OFFICIAL_IDS', 'simulationClock', 'worldSnapshotWriter', 'gameStorage', 'save',
   mainSource.slice(mainStart, mainEnd) + '\nreturn chinaOfficialEconomy;');

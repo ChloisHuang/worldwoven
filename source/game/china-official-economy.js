@@ -7,6 +7,9 @@ export const CHINA_OFFICIAL_IDS = Object.freeze(CHINA_COURT_OFFICIAL_RANKS.map(r
 export const CHINA_OFFICIAL_TAVERN_ID = 'cn-yunlai-tavern';
 export const CHINA_OFFICIAL_SALON_MEAL_MINIMUM = 6;
 const OFFICIALS = new Set(CHINA_OFFICIAL_IDS);
+// Stable personal-source identity, independent of rank labels or wage policy.
+// It is provider metadata only and never appoints somebody to an office.
+const OFFICIAL_MEAL_SOURCE = 'cn-official-earned-duty';
 const ACTIONS = new Set(['duty', 'withdraw', 'meal-payment', 'meal-refund', 'salon-reserve', 'salon-settle', 'salon-refund']);
 const SALON_POLICY = Object.freeze({version: 1, performerShareBps: 5000, rounding: 'floor'});
 const ARTISTS = new Map(SALON_ARTISTS.map(artist => [artist.id, artist.activity]));
@@ -131,10 +134,10 @@ function requestOf(transaction) {
       activity: transaction.activity, incomePolicy: transaction.incomePolicy} : {}),
     ...(transaction.action === 'salon-settle' ? {evidence: transaction.evidence} : {})};
 }
-function indexes() { return {receipts: new Map(), duties: new Map(), meals: new Map()}; }
+function indexes() { return {receipts: new Map(), duties: new Map(), meals: new Map(), ownedActors: new Set()}; }
 function indexTransaction(index, transaction) {
   index.receipts.set(transaction.receiptId, transaction);
-  if (transaction.action === 'duty') index.duties.set(dayKey(transaction.actorId, transaction.day), transaction);
+  if (transaction.action === 'duty') { index.duties.set(dayKey(transaction.actorId, transaction.day), transaction); index.ownedActors.add(transaction.actorId); }
   if (transaction.action.startsWith('meal-')) {
     const meal = index.meals.get(transaction.orderId) || {};
     meal[transaction.action === 'meal-payment' ? 'payment' : 'refund'] = transaction;
@@ -315,9 +318,10 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
     } catch { return 'duty-context-unavailable'; }
     return null;
   }
-  function prepare(action, input) {
+  function prepare(action, input, ownedMeal = false) {
     if (loadError) return failure(loadError);
     if (busy) return failure('ledger-busy');
+    if (ownedMeal && (!action.startsWith('meal-') || !index.ownedActors.has(input?.actorId))) return failure('official-income-unavailable');
     busy = true;
     try {
       const normalized = requestFor(action, input, current);
@@ -328,14 +332,14 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
       if (action === 'salon-reserve' && current.salonHolds?.[request.orderId]?.status !== undefined &&
           current.salonHolds[request.orderId].status !== 'reserved') return failure(`salon-already-${current.salonHolds[request.orderId].status}`);
       const replayed = !!previous;
-      if (!replayed) {
+      if (!replayed && !ownedMeal) {
         const error = liveCheck(request);
         if (error) return failure(error);
       }
       const base = current, result = replayed ? {ok: true, next: current, transaction: previous} : transfer(current, index, request);
       if (!result.ok) return result;
       const next = result.next, transaction = result.transaction;
-      let accepted = false;
+      let accepted = false, locked = false;
       const receipt = wasReplay => ({ok: true, replayed: wasReplay, receiptId: transaction.receiptId,
         amount: transaction.amount, actorId: transaction.actorId, ...(transaction.orderId ? {orderId: transaction.orderId} : {}),
         ...(transaction.sourceSplit ? {sourceSplit: copy(transaction.sourceSplit)} : {}), transaction: copy(transaction)});
@@ -345,7 +349,7 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
         !accepted && current === base && (replayed || !liveCheck(request)) : accepted || current === base);
       function accept() {
         if (accepted) return receipt(true);
-        if (busy) return failure('ledger-busy');
+        if (busy && !locked) return failure('ledger-busy');
         if (current !== base) return failure('stale-candidate');
         if (salonAction(action) && !replayed) {
           const error = liveCheck(request);
@@ -366,7 +370,7 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
         if (!saveState) return failure('persistence-unavailable');
         busy = true;
         try {
-          if (!replayed) {
+          if (!replayed && !ownedMeal) {
             const error = liveCheck(request);
             if (error) return failure(error);
           }
@@ -384,11 +388,41 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
         finally { busy = false; }
       }
       return {...receipt(replayed), snapshot: copy(next), candidate: copy(next), patch: {chinaOfficialEconomy: copy(next)},
-        valid, committed: accept, commit};
+        valid, committed: ownedMeal ? () => accepted || locked ? accept() : failure('meal-lock-required') : accept, commit,
+        ...(ownedMeal ? {balanceAfter: next.accounts[request.actorId].cash + next.accounts[request.actorId].bank,
+          transfer: mealTransferView(transaction),
+          lock() { if (accepted || !valid()) return false; busy = true; locked = true; return true; },
+          release() { if (locked) { locked = false; busy = false; } },
+        } : {})};
     } finally { busy = false; }
   }
   const account = actorId => current && OFFICIALS.has(actorId) ? copy(current.accounts[actorId]) : null;
-  return {loadError, state: () => current ? copy(current) : null, snapshot: () => current ? copy(current) : null,
+  // Dormant meal-only view. It grants no appointment, salary, withdrawal or
+  // salon spending authority. Earned money and original refundable payments
+  // remain this person's after appointment loss; business/escrow are excluded.
+  function mealTransferView(transaction) {
+    return transaction ? {kind: transaction.action, actorId: transaction.actorId,
+      orderId: transaction.orderId, amount: transaction.amount,
+      sourceSplit: copy(transaction.sourceSplit || {cash: transaction.amount, bank: 0})} : null;
+  }
+  const mealProvider = {
+    get loadError() { return loadError; }, account,
+    hasIncome: actorId => !loadError && index.ownedActors.has(actorId),
+    mealAccountIdentity: () => ({version: 1, namespace: 'chinaOfficialEconomy', currency: 'copper', roleIds: [OFFICIAL_MEAL_SOURCE]}),
+    // This is a read-only enumeration, not another copy of journaled money.
+    mealTransferOrderIds: () => !loadError ? [...index.meals.keys()] : [],
+    mealTransfer: (orderId, kind) => !loadError ? mealTransferView(index.meals.get(orderId)?.[kind === 'meal-payment' ? 'payment' : kind === 'meal-refund' ? 'refund' : '']) : null,
+    snapshot: () => current ? copy(current) : saved == null ? null : copy(saved),
+    prepareMealPayment: input => prepare('meal-payment', input, true),
+    prepareMealRefund: input => prepare('meal-refund', input, true),
+    prepareMealGuard() {
+      const base = current; let locked = false;
+      const valid = () => !loadError && !busy && current === base;
+      return {valid, lock() { if (!valid()) return false; busy = true; locked = true; return true; },
+        release() { if (locked) { locked = false; busy = false; } }};
+    },
+  };
+  return {loadError, mealFundsProvider: () => mealProvider, state: () => current ? copy(current) : null, snapshot: () => current ? copy(current) : null,
     account, balance: account, history: () => current ? copy(current.transactions) : [],
     dailyWageFor: actorId => current && OFFICIALS.has(actorId) ? wageFor(current, actorId) : null,
     completeDuty(input) { const payment = prepare('duty', input); return payment.ok ? payment.commit() : payment; },
