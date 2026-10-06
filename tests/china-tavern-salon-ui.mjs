@@ -26,8 +26,19 @@ const service={view:()=>({session:session?{...session,phaseTime:backgroundTick}:
  request(id,activity,fee){requests.push([id,activity]);session={id:'visit-'+requests.length,actorId:id,activity,fee,stage:'invited',payment:'unpaid'};return true;},
  startEscort(){assert.equal(session?.stage,'accepted');reservations.push(session.id);cash-=session.fee;session={...session,stage:'escort',payment:'reserved'};return true;},
  cancel(){cancellations.push(session.id);if(session.payment==='reserved')cash+=session.fee;session=null;return true;}};
+let fullViewReads=0,overlayReads=0,receptionReads=0;
+const originalView=service.view,originalReception=service.atReception;
+service.view=()=>{fullViewReads++;return originalView();};
+service.atReception=()=>{receptionReads++;return originalReception();};
+service.displayState=()=>{overlayReads++;return {active:!!session,label:session?'阶段 '+session.stage:null,fade:session?.stage==='fade'};};
 const ui=createChinaTavernSalonUI({service,getPlayer:()=>({root:{position:{x:24.15,y:7.815,z:12.65}}}),document:doc});
 const dialog=()=>walk(doc.body).find(e=>e.tag==='dialog'),primary=()=>walk(dialog()).find(e=>e.className?.split(' ').includes('cn-salon-primary')),byText=t=>walk(dialog()).find(e=>e.tag==='button'&&e.textContent===t),focus=k=>walk(dialog()).find(e=>e.attrs['data-cn-salon-focus']===k),click=e=>{assert(e&&!e.disabled);e.onclick();};
+for(let i=0;i<100;i++)ui.update();
+assert.equal(fullViewReads,0,'closed panel never reads candidate/room/wallet detail');assert.equal(receptionReads,0);
+const fadeNode=walk(doc.body).find(e=>e.className==='cn-salon-fade');
+session={id:'overlay-only',stage:'fade'};ui.update();assert.equal(fadeNode.hidden,false,'closed panel keeps the real visit fade');
+session.stage='visiting';ui.update();assert.equal(fadeNode.hidden,true);session=null;ui.update();
+assert.equal(fullViewReads,0);assert.equal(overlayReads,103);assert.equal(requests.length,0);assert.equal(reservations.length,0);assert.equal(cancellations.length,0);
 assert(ui.open());assert.equal(walk(dialog()).filter(e=>e.className?.includes('cn-salon-primary')).length,1);assert(dialog().textContent.includes('付费不替代本人意愿'));
 // The phone scroll owner is content; landscape also has cast/detail scrollers.
 const scrollers=()=>[dialog(),...dialog().querySelectorAll('.cn-salon-content,.cn-salon-cast,.cn-salon-detail')];
@@ -55,4 +66,5 @@ ui.open();const staleCancel=byText('取消并全额退款');ui.close();ui.open()
 ui.open();click(primary());ui.open();session={...session,stage:'accepted'};ui.update();click(primary());ui.open();session={...session,stage:'entering'};ui.update();assert.equal(primary().textContent,'收起 · 等候入房');session={...session,stage:'fade'};ui.update();assert(primary().disabled);assert(byText('取消并全额退款'));session={...session,stage:'visiting',payment:'settled'};ui.update();assert(dialog().textContent.includes('告辞不退款'));assert.equal(primary().textContent,'告辞离席');assert(!byText('取消并全额退款'));click(primary());assert.equal(cash,13,'settled service does not refund');
 ui.open();available=false;ui.update();assert(primary().disabled);assert(dialog().textContent.includes('正在吃饭'));available=true;returning=true;ui.update();assert(primary().disabled);returning=false;reception=false;ui.update();assert(primary().disabled);reception=true;eligible=false;ui.update();assert(primary().disabled);assert(dialog().textContent.includes('年满18岁'));eligible=true;age=17;ui.update();assert(primary().disabled,'age check remains required even if malformed candidates slip through');age=27;ui.update();
 paymentError='save-failed';recoveryWorks=false;ui.update();assert(primary().disabled);click(byText('重试核对铜钱'));assert(primary().disabled);recoveryWorks=true;click(byText('重试核对铜钱'));assert(!primary().disabled);const disposed=primary();ui.dispose();disposed.onclick();assert.equal(requests.length,3);
+const beforeDisposeReads=[fullViewReads,overlayReads,receptionReads];ui.update();assert.deepEqual([fullViewReads,overlayReads,receptionReads],beforeDisposeReads,'disposed panel has no reads');
 console.log('PASS China salon UI: stable phone/landscape scrollers, focus and held-gesture identity across timers/status/room/price changes, selection, one invite, free consent/decline, busy/full/18+ guards, accepted-only reservation, insufficient cash, repeat/stale clicks, close/reopen, refund/settlement, all session stages and payment retry');
