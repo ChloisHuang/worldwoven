@@ -15,7 +15,7 @@ const FOOD_DAY=24*DAILY_NEEDS_HOUR;
 // China officials and royal adults use their existing public/private facilities.
 const royalActors=new Set(['cn-emperor',...CHINA_CONSORTS.map(p=>p.id)]);
 const mealOnlyActors=new Set(['egypt-papyrus']);
-export const DAILY_NEEDS_ACTORS=Object.freeze(['player','cn-tavern-diner-west','cn-tavern-diner-east',...CHINA_OFFICIAL_IDS,...JAPAN_STAFF_CREW,...royalActors,...SALON_ARTIST_IDS,'egypt-papyrus']);
+export const DAILY_NEEDS_ACTORS=Object.freeze(['player','cn-tavern-host','cn-tavern-diner-west','cn-tavern-diner-east',...CHINA_OFFICIAL_IDS,...JAPAN_STAFF_CREW,...royalActors,...SALON_ARTIST_IDS,'egypt-papyrus']);
 const copy=x=>JSON.parse(JSON.stringify(x));
 const positive=(x,fallback=0)=>Number.isFinite(x)&&x>=0?x:fallback;
 const clamp=x=>Math.max(0,Math.min(1,x));
