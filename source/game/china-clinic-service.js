@@ -21,7 +21,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
  let doctor=npcs.find(n=>n.station.id===(getNPCHolder&&saved.staffBindings?.physician||C.roles[0].id)),assistant=npcs.find(n=>n.station.id===(getNPCHolder&&saved.staffBindings?.assistant||C.roles[1].id));if(!doctor||!assistant||!lot.clinic)return null;
  const staffRelease=getNPCHolder?copy(saved.staffRelease||{}):{},retiredIds=new Set(getNPCHolder?saved.retiredIds||[]:[]),physicianLives=getNPCHolder?copy(saved.physicianLives||{}):{};
  const nextPatientAttempt=new Map(),meetingRequests=new Set(),owned=new Set([doctor,assistant]),P=C.points,history=Array.isArray(saved.history)?saved.history.slice(-40):[],failures=[],travelState=new Map();
- let serial=Math.max(0,Number.isSafeInteger(saved.serial)?saved.serial:0),revision=saved.revision||0,time=Number.isFinite(saved.time)?Math.max(0,saved.time):0,order=null,player=null,playerState={},disposed=false,request=false,phaseTime=0,meeting=false,workAction=null,timingSavePending=false,needsLife=null;
+ let serial=Math.max(0,Number.isSafeInteger(saved.serial)?saved.serial:0),revision=saved.revision||0,time=Number.isFinite(saved.time)?Math.max(0,saved.time):0,order=null,player=null,playerState={},disposed=false,request=false,phaseTime=0,meeting=false,workAction=null,timingSavePending=false,needsLife=null,drivingPersonalNeed=false;
  for(const id of retiredIds){const n=npcs.find(a=>a.station.id===id);if(n)owned.add(n);}
  const npcWorkReceipts=Array.isArray(saved.npcWorkReceipts)?copy(saved.npcWorkReceipts):[];
  const workReceipts=Array.isArray(saved.workReceipts)?saved.workReceipts.slice(-8):[],props=makeProps(lot.group);
@@ -41,21 +41,21 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
  const atCounter=()=>near(npcOrder()?patient():player,P.counter,.6);
  const present=()=>player&&player.root.position.x>=15.5&&player.root.position.x<=26.5&&player.root.position.z>=-33.5&&player.root.position.z<=-21.5&&player.root.position.y>=C.floorY-.4&&player.root.position.y<=C.clinicFloorY+.4;
  const propActors=()=>({doctor:order?.physician==='player'?player:order?.staffPeople?.physician?npcs.find(n=>n.station.id===order.staffPeople.physician):doctor,assistant:order?.worker==='player'?player:order?.staffPeople?.assistant?npcs.find(n=>n.station.id===order.staffPeople.assistant):assistant});
- function enter(stage){order.stage=stage;phaseTime=0;workAction=null;for(const n of owned){travelState.delete(n);n.route=[];}record(stage);persist();}
+ function enter(stage){order.stage=stage;phaseTime=0;workAction=null;for(const n of owned)if(!needsLife?.away(n.station.id)){travelState.delete(n);n.route=[];}record(stage);persist();}
  function changeOrder(change,event=null,details={}){
   if(!order)return false;const before=copy(order),oldHistory=copy(history),oldStage=order.stage;
   change(order);if(event)record(event,details);
   if(!persist()){order=before;history.splice(0,history.length,...oldHistory);return false;}
-  if(order.stage!==oldStage){phaseTime=0;workAction=null;for(const n of owned){travelState.delete(n);n.route=[];}}return true;
+  if(order.stage!==oldStage){phaseTime=0;workAction=null;for(const n of owned)if(!needsLife?.away(n.station.id)){travelState.delete(n);n.route=[];}}return true;
  }
  function cancelPhysicianOrder(reason){return changeOrder(o=>{o.stage='cancelled';o.patientPhase='returning';o.claims={doctor:null,assistant:null};o.cardHolder='cancelled';o.packetId=null;o.careCorrect=false;},'physician-cancelled',{reason});}
  function cancel(reason='你离开了医馆，本次未交付的单已取消'){
   if(!order)return false;record(order.stage==='complete'?'close':'cancel',{reason});request=false;workAction=null;
   if(npcOrder()){order.claims={doctor:null,assistant:null};order.patientPhase='returning';enter('cancelled');return true;}
-  order=null;phaseTime=0;player=null;for(const n of owned){n.route=[];travelState.delete(n);n.walking=false;}props.clear();persist();return true;
+  order=null;phaseTime=0;player=null;for(const n of owned)if(!needsLife?.away(n.station.id)){n.route=[];travelState.delete(n);n.walking=false;}props.clear();persist();return true;
  }
  function travel(n,to,dt){
-  if(!n||n.alive===false||!npcs.includes(n))return false;
+  if(!n||n.alive===false||!npcs.includes(n)||needsLife?.away(n.station.id)&&!drivingPersonalNeed)return false;
   n.walking=false;if(near(n,to)){n.route=[];return true;}if(playerState.conversationActorId===n.station.id)return false;
   let s=travelState.get(n);if(!s||s.key!==to.join(',')){s={key:to.join(','),retryAt:0,reported:false};travelState.set(n,s);n.route=[];}
   if(!n.route.length&&time>=s.retryAt){s.retryAt=time+2;n.route=planPath(n.root.position,point(to),.25);if(!n.route.length&&!s.reported){failures.push({actor:n.station.id,stage:order?.stage||'return',to:to.slice(),position:n.root.position.toArray()});s.reported=true;}}
@@ -63,7 +63,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
  }
  function face(n,p){n.root.rotation.y=Math.atan2(p[0]-n.root.position.x,p[2]-n.root.position.z);}
  function animate(n,t,action=null,target=null,holding=false){
-  if(!n||n.alive===false||!npcs.includes(n))return;
+  if(!n||n.alive===false||!npcs.includes(n)||needsLife?.away(n.station.id)&&!drivingPersonalNeed)return;
   const context=poseContext(n,null);context.handoff=holding;context.heldProp=null;context.receptionWriting=action==='calligraphy';
   context.workHeight=target?(target[1]-n.root.position.y)/(n.characterScale||1):undefined;context.workDistance=target?distance(n.root.position,target)/(n.characterScale||1):undefined;
   if(n.serviceMount){context.seatHeight=n.serviceMount.seatY-n.root.position.y-(context.visualFloorOffset||0);action='chair-sit';}
@@ -171,7 +171,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
  function contact(dt){order.deliveryContactTime=(order.deliveryContactTime||0)+dt;onInteraction({source:'china-clinic-delivery',id:order.id,number:order.number,sceneId:'china',participants:[order.worker==='player'?'player':assistant.station.id,order.recipientId||'player'],duration:order.deliveryContactTime});}
  function cancelWork(receiptId){workAction=null;if(order?.workReceiptId!==receiptId||['complete','cancelled'].includes(order.stage))return;order.workReceiptId=null;order.worker='assistant';order.cardHolder='doctor';order.packetId=null;order.claims={doctor:doctor.station.id,assistant:null};order.temporaryCover=true;if(['arriving','consult','writing'].includes(order.stage))persist();else enter('handoff');}
  function restoreOrder(candidate){if(!candidate)return null;const n=npcs.find(n=>n.station.id===candidate.recipientId);if(candidate.staffPeople&&(!['physician','assistant'].every(k=>typeof candidate.staffPeople[k]==='string'&&/^cn-[a-z0-9-]{1,60}$/.test(candidate.staffPeople[k]))))return null;if(candidate.physician&&candidate.physician!=='player'&&candidate.staffPeople&&candidate.physician!==candidate.staffPeople.physician)return null;if(!validPhysicianOrder(candidate)||!validClinicTiming(candidate.serviceTiming)||!PATIENTS.has(candidate.recipientId)||!n||!(n.station.ageYears>=18)||!LABELS[candidate.stage]||candidate.id!=='cn-clinic-order-'+candidate.number||candidate.cardId!=='cn-clinic-card-'+candidate.number||candidate.packetId&&candidate.packetId!=='cn-clinic-packet-'+candidate.number)return null;const restored=copy(candidate);restored.staffPeople??={physician:C.roles[0].id,assistant:C.roles[1].id};return restored;}
- if(enablePersonalNeeds&&getNPCHolder&&sharedNeeds&&npcEconomy)needsLife=createClinicNeeds({getHolder:key=>getNPCHolder(roleId(key)),getActor:id=>npcs.find(n=>n.station.id===id),canDepart:()=>(!order||order.stage==='complete'&&order.recipientId==='player')&&!workAction&&!physicianWork.isActing()&&!meeting&&!Object.keys(staffRelease).length,sharedNeeds,economy:npcEconomy,getTavern,getToilet,travel,resetRoute:n=>{travelState.delete(n);n.route=[];n.walking=false;},pose:(n,t,mounted)=>{if(mounted)n.animate(t+n.phase,false,mounted.action,{...poseContext(n,null),...mounted.context});else animate(n,t);},saveState:()=>persist(),saved:saved.personalNeeds||{},enableEnrollment:enableNeedsEnrollment});
+ if(enablePersonalNeeds&&getNPCHolder&&sharedNeeds&&npcEconomy)needsLife=createClinicNeeds({getHolder:key=>getNPCHolder(roleId(key)),getActor:id=>npcs.find(n=>n.station.id===id),canDepart:()=>(!order||order.stage==='complete'&&order.recipientId==='player')&&!workAction&&!physicianWork.isActing()&&!meeting&&!Object.keys(staffRelease).length,sharedNeeds,economy:npcEconomy,getTavern,getToilet,travel:(n,p,dt)=>{drivingPersonalNeed=true;try{return travel(n,p,dt);}finally{drivingPersonalNeed=false;}},resetRoute:n=>{travelState.delete(n);n.route=[];n.walking=false;},pose:(n,t,mounted)=>{if(mounted)n.animate(t+n.phase,false,mounted.action,{...poseContext(n,null),...mounted.context});else{drivingPersonalNeed=true;try{animate(n,t);}finally{drivingPersonalNeed=false;}}},saveState:()=>persist(),saved:saved.personalNeeds||{},enableEnrollment:enableNeedsEnrollment});
  if(saved.version===2&&saved.order){order=restoreOrder(saved.order);if(order)owned.add(patient());}
  return {
   reviewer:()=>!needsLife?.away(doctor.station.id)&&staffAvailable('physician')&&doctor.alive!==false&&npcs.includes(doctor)?{actorId:doctor.station.id,name:doctor.station.npcName||'医师',revision:getNPCHolder?.('cn-clinic-physician')?.revision??0}:null,
@@ -222,7 +222,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
    const paused=state.conversationActorId===doctor.station.id||state.conversationActorId===assistant.station.id;
    updateNPCReviewTiming(dt,paused);
    const doctorReleased=isPhysicianHired()&&!meeting&&(!order||order.physician==='player'||['complete','cancelled'].includes(order.stage));
-   const leisure=physicianLife.update(dt,{released:doctorReleased,paused:state.conversationActorId===doctor.station.id,hour:state.hour??10});
+   const leisure=needsLife?.away(doctor.station.id)?null:physicianLife.update(dt,{released:doctorReleased,paused:state.conversationActorId===doctor.station.id,hour:state.hour??10});
    const positionDoctor=()=>{if(doctorReleased){da=leisure?.action||null;dtar=leisure?.target||null;}else travel(doctor,meeting?P.doctorHandoff:P.doctor,dt);};
    if(!order){positionDoctor();travel(assistant,isAssistantHired()?OFF:P.assistant,dt);aa=isAssistantHired()&&!assistant.walking?'read':null;tell(doctor,meeting?'二层平台 · 当面办理医馆登记':isPhysicianHired()?'已交出医师岗位 · '+physicianLife.label():'问诊室候诊 · 请坐问诊椅');tell(assistant,isAssistantHired()?'已交出独任岗位 · 读书候援':'药铺柜台候单');}
    else{
