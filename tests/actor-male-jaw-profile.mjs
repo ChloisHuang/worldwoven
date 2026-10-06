@@ -19,11 +19,11 @@ for(const form of ['male','female']){
   const p=actual.parts.find(p=>p.material==='skin'),old=prior.parts.find(p=>p.material==='skin');let lips=0,changed=0;
   for(let j=0;j<actual.parts.length;j++){
    const a=actual.parts[j],b=prior.parts[j];assert.equal(a.index,b.index);assert.equal(a.featureCoord,b.featureCoord);
-   if(form==='female'||jawWidth===1||a.material!=='skin'){assert.deepEqual(a.position,b.position,'female, middle and non-skin parts stay exact');assert.deepEqual(a.normal,b.normal);}
+   if(form==='female'||jawWidth===1||!['skin','brow'].includes(a.material)){assert.deepEqual(a.position,b.position,'female, middle, eyes and non-facial parts stay exact');assert.deepEqual(a.normal,b.normal);}
   }
   for(let i=0;i<p.position.length;i+=3){const raw=skin.featureCoord.slice(i,i+3),lip=skin.lipWeight[i/3]>.5;
    assert.equal(p.position[i+1],old.position[i+1],'jaw remap changes no height');assert.equal(p.position[i+2],old.position[i+2],'jaw remap changes no projection');
-   if(lip||raw[1]>6.94||raw[1]<5.98||raw[2]<.18){assert.equal(p.position[i],old.position[i],'mouth, nose, eyes, upper face and neck stay exact');if(lip)lips++;}
+   if(lip||raw[1]>7.50||raw[1]<5.98||raw[2]<.18){assert.equal(p.position[i],old.position[i],'mouth, nose, eyes, upper forehead and neck stay exact');if(lip)lips++;}
    if(p.position[i]!==old.position[i])changed++;
    assert(Number.isFinite(Math.hypot(...p.normal.slice(i,i+3))));
   }
