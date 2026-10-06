@@ -9,7 +9,7 @@ const PHASES={invitation:'皇帝正在与你说话',summoning:'等候皇帝与�
 const ERRORS={'save-failed':'此次答复未能保存，请重试','invalid-consort-state':'自荐记录暂不可核验','invalid-clock':'当前时间暂不可核验','service-unavailable':'接待暂不可用','finish-current-duty':'先完成原职位班次','settle-current-wages':'先结清原职位待领工资','leave-formal-career':'先办妥原正式职位离任','adults-required':'双方须年满18岁','already-petitioned-today':'今日已自荐，次日可再试','relationship-reservations':'既有相处留下顾虑','different-dispositions':'性情取向尚不契合','emperor-unsettled':'此次召见时皇帝疲惫或饥饿','emperor-cautious':'皇帝性情审慎','personal-preference':'个人偏好未合','review-not-selected':'皇帝未予批准','title-rights-busy':'先结束寝居、用膳或册书中的活动','explicit-resignation-required':'请明确确认辞去妃位','stale-appointment':'名位已变化，请重新查看','finish-empress-affairs':'先当面辞后并办结文书'};
 const safeText=(value,fallback='')=>typeof value==='string'&&!/^[a-z][a-z0-9-]*$/.test(value)?value:fallback;
 const reasonText=reason=>safeText(reason?.text)||ERRORS[reason?.code||reason]||'当前条件暂不满足';
-const targetValid=target=>!!target&&typeof target.id==='string'&&Array.isArray(target.position)&&target.position.length===3&&target.position.every(Number.isFinite);
+const targetValid=target=>!!target&&target.available!==false&&typeof target.id==='string'&&Array.isArray(target.position)&&target.position.length===3&&target.position.every(Number.isFinite);
 const atTarget=(player,target)=>{const p=player?.root?.position;return targetValid(target)&&!!p&&Math.hypot(p.x-target.position[0],p.z-target.position[2])<=(target.radius||1.1)&&Math.abs(p.y-target.position[1])<.35;};
 const read=(fn,fallback=null)=>{try{return typeof fn==='function'?fn()??fallback:fallback;}catch{return fallback;}};
 const invitationDeadline=value=>{if(!Number.isFinite(value)||value<0)return '';const minutes=Math.floor(value),day=Math.floor(minutes/1440)+1,hour=String(Math.floor(minutes%1440/60)).padStart(2,'0'),minute=String(minutes%60).padStart(2,'0');return `请在第${day}日 ${hour}:${minute} 前答复，逾期邀约自行结束`;};
@@ -19,7 +19,8 @@ const invitationDeadline=value=>{if(!Number.isFinite(value)||value<0)return '';c
 export function consortPetitionView({card={},target=null,player=null,details={},history=[]}={}){
  const empress=card.titleKind==='empress',releasing=empress&&card.operation==='release',stages=empress?{...EMPRESS_STAGES,...(releasing?EMPRESS_RELEASE_STAGES:{})}:STAGES;
  const stage=Object.hasOwn(stages,card.stage)?card.stage:'none',invitation=!empress&&card.source==='emperor-invitation',physical=card.physical||{},near=physical.atTarget===true||atTarget(player,target),phase=physical.phase;
- const blockers=Object.hasOwn(stages,card.stage)?(card.blockers||[]).map(reasonText):['接待状态暂不可核验'],phaseText=releasing?(PHASES[phase]||'').replaceAll('册书','辞后文书').replaceAll('拟册','拟辞后文书').replaceAll('授册','授文书').replaceAll('册封','辞后'):PHASES[phase]||'',waitingText=safeText(physical.waitingText);
+ const courier=safeText(physical.heraldName,'传令员'),phaseLabel=(PHASES[phase]||'').replaceAll('沈序',courier);
+ const blockers=Object.hasOwn(stages,card.stage)?(card.blockers||[]).map(reasonText):['接待状态暂不可核验'],phaseText=releasing?phaseLabel.replaceAll('册书','辞后文书').replaceAll('拟册','拟辞后文书').replaceAll('授册','授文书').replaceAll('册封','辞后'):phaseLabel,waitingText=safeText(physical.waitingText);
  // The empress ledger reports the actual title independently of an open or
  // rejected application. Approval alone never projects a higher title.
  const appointed=empress?['consort','empress'].includes(card.titleId):stage==='appointed'&&card.titleId==='consort',isEmpress=empress&&card.titleId==='empress',seat=details.seat;
@@ -47,8 +48,8 @@ export function consortPetitionView({card={},target=null,player=null,details={},
   // Reaching the point is not proof the herald is ready. The host still checks
   // the live controller when executing an intent, including manual arrivals.
   const localWait=near&&action==='submit'&&physical.heraldPresent===false;
-  add('primary',localWait?'等候沈序接待':label,action,target,blockers.length>0||!targetValid(target)||localWait);
-  if(localWait&&!note)note='沈序尚未到场';
+  add('primary',localWait?'等候'+courier+'接待':label,action,target,blockers.length>0||!targetValid(target)||localWait);
+  if(localWait&&!note)note=courier+'尚未到场';
  }
  if(!phase&&['submitted','accepted','charter-held'].includes(stage))add('withdraw',releasing?'撤回请辞':empress?'撤回请册':invitation?'撤回邀约答复':'撤回自荐','withdraw',null);
  if(empress){const start=actions.length;benefits();benefitActions.push(...actions.splice(start));}

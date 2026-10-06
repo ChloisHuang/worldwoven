@@ -1,3 +1,4 @@
+import {validHeraldReceiptIdentity,sameHeraldReceiptIdentity} from './palace-herald-identity.js';
 // Political standing is separate from formal-careers.tenure. This ledger owns
 // only the fourth consort seat and its room/bed claim. Physical work is supplied
 // by the palace controller through verified, durable event receipts.
@@ -16,7 +17,7 @@ const text=x=>typeof x==='string'&&x.length>0&&x.length<=200;
 const time=x=>object(x)&&integer(x.day)&&Number.isFinite(x.hour)&&x.hour>=0&&x.hour<24;
 const after=(a,b)=>a.day>b.day||a.day===b.day&&a.hour>=b.hour;
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
-const sameReceipt=(a,b)=>object(a)&&object(b)&&['id','kind','applicationId','playerId','emperorId','heraldId','targetId','completed','documentId'].every(k=>a[k]===b[k])&&
+const sameReceipt=(a,b)=>object(a)&&object(b)&&['id','kind','applicationId','playerId','emperorId','heraldId','heraldRevision','targetId','completed','documentId'].every(k=>a[k]===b[k])&&
   a.at?.day===b.at?.day&&a.at?.hour===b.at?.hour&&Array.isArray(b.participants)&&same([...a.participants].sort(),[...b.participants].sort());
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const finite=(n,fallback)=>Number.isFinite(n)?n:fallback;
@@ -72,9 +73,9 @@ export function consortCareerBlockers(career){
   return reasons;
 }
 function validReceipt(r,kind,p){
-  if(!object(r)||r.kind!==kind||!text(r.id)||r.applicationId!==p.id||r.playerId!==p.playerId||r.emperorId!==p.emperorId||r.heraldId!==HERALD_ID||
+  if(!object(r)||r.kind!==kind||!text(r.id)||r.applicationId!==p.id||r.playerId!==p.playerId||r.emperorId!==p.emperorId||!validHeraldReceiptIdentity(r)||p.submission&&!sameHeraldReceiptIdentity(r,p.submission)||
     r.completed!==true||!text(r.targetId)||!time(r.at)||!Array.isArray(r.participants)||new Set(r.participants).size!==r.participants.length||r.participants.some(id=>!text(id)))return false;
-  const required=kind==='invitation'?[p.playerId,p.emperorId]:['submission','charter-handoff'].includes(kind)?[p.playerId,HERALD_ID]:[p.playerId,p.emperorId,HERALD_ID];
+  const required=kind==='invitation'?[p.playerId,p.emperorId]:['submission','charter-handoff'].includes(kind)?[p.playerId,r.heraldId]:[p.playerId,p.emperorId,r.heraldId];
   if(!required.every(id=>r.participants.includes(id)))return false;
   return kind.startsWith('charter-')?r.documentId===consortCharterId(p.id):r.documentId===undefined;
 }
