@@ -16,7 +16,7 @@ function fixture(saved,{day=1,hour=8,seed=785}={}){
  return {get careers(){return careers;},clock,flags,bank,load,get saved(){return copy(stored);}};
 }
 const receipt=(number=1,overrides={})=>({receiptId:'cn-pharmacy-labor-1',orderId:`cn-clinic-order-${number}`,number,cardId:`cn-clinic-card-${number}`,packetId:`cn-clinic-packet-${number}`,recipientId:'cn-tavern-diner-west',recipientName:'顾谨',review:{evaluatorId:'cn-tavern-diner-west',positive:true,reason:'原单与云纹包同号，已当面交付本人'},...overrides});
-const sixSkillSave=value=>{const s=copy(value);s.version=6;delete s.skills.care;delete s.daily.care;delete s.skillXP.care;delete s.lowerWork[ASSISTANT.workSource];return s;};
+const sixSkillSave=value=>{const s=copy(value);s.version=6;delete s.learning['jp-library'];delete s.learning['egypt-papyrus'];delete s.workExperience;delete s.skills.care;delete s.daily.care;delete s.skillXP.care;delete s.lowerWork[ASSISTANT.workSource];return s;};
 const fresh=()=>fixture().careers.state();
 function hirePhysician(){
  let seed=1;while(careerInterviewRoll(seed,ROLE.id,1)>=.60)seed++;
@@ -34,7 +34,7 @@ test('six-skill save gains only empty care; official promotion and frozen wages 
  assert(f.careers.applyPromotion().ok);const id=f.careers.promotionSummary().application.id;
  for(const step of ['interview','receive-document','appointment'])assert(f.careers.reviewPromotion({applicationId:id,step}).ok);
  const old=sixSkillSave(f.careers.state()),m=fixture(old,{day:3,hour:12}).careers.state();
- assert.equal(m.loadError,null);assert.equal(m.version,8);assert.equal(m.skills.care,0);assert.equal(m.skillXP.care,0);assert.equal(m.daily.care,0);assert.equal(m.lowerWork[ASSISTANT.workSource],0);
+ assert.equal(m.loadError,null);assert.equal(m.version,10);assert.equal(m.skills.care,0);assert.equal(m.skillXP.care,0);assert.equal(m.daily.care,0);assert.equal(m.lowerWork[ASSISTANT.workSource],0);
  for(const key of ['tenure','lastDuty','lastEvaluation','lastPaidDay','officialCareer','applications'])assert.deepEqual(m[key],old[key],key);
  for(const key of Object.keys(old.skills)){assert.equal(m.skills[key],old.skills[key]);assert.equal(m.skillXP[key],old.skillXP[key]);}
  assert.equal(fixture(old,{day:3,hour:12}).careers.currentRole().gradeLabel,'正九品');assert.equal(m.lastDuty.wage,20);
