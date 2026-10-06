@@ -66,7 +66,7 @@ test('all physical buttons dispatch route intents and never mutate the ledger re
  assert.equal(f.choices.length,0);f.ui.dispose();
 });
 test('at-site labels do not bypass herald presence or explicit acceptance blockers',()=>{
- const f=fixture();f.player.root.position={x:1,y:.2,z:1};f.setCard({stage:'none',blockers:[],physical:{heraldPresent:false}});f.ui.open();assert.equal(f.find('primary').disabled,true);assert.equal(f.find('primary').textContent,'等候沈序接待');
+ const f=fixture();f.player.root.position={x:1,y:.2,z:1};f.setCard({stage:'none',blockers:[],physical:{heraldPresent:false}});f.ui.open();assert.equal(f.find('primary').disabled,true);assert.equal(f.find('primary').textContent,'等候传令员接待');
  f.setCard({stage:'awaiting-choice',result:{passed:true},blockers:[{code:'finish-current-duty',text:'先完成原职位班次'},{code:'leave-formal-career',text:'先办妥原正式职位离任'}]});f.ui.update();assert.equal(f.find('accept').disabled,true);assert.equal(f.find('decline').disabled,false);assert(f.dialog.textContent.includes('先完成原职位班次'));f.find('accept').onclick();assert.equal(f.choices.length,0);f.find('decline').onclick();assert.deepEqual(f.choices,['decline']);assert.equal(f.getCard().stage,'declined');f.ui.dispose();
 });
 test('emperor invitation is an explicit choice with its own source and expiry wording',()=>{
@@ -98,7 +98,7 @@ test('rejected same-day state shows result and reason, then enables next-day tra
  const f=fixture();f.setCard({stage:'rejected',historyCount:1,result:{passed:false,reasons:[{code:'review-not-selected',text:'皇帝未予批准'}]},blockers:[{code:'already-petitioned-today',text:'今日已自荐，次日可再试'}]});f.ui.open();assert(f.dialog.textContent.includes('次日可再试'));assert(f.dialog.textContent.includes('皇帝未予批准'));assert.equal(f.find('primary').disabled,true);f.getCard().blockers=[];f.ui.update();assert.equal(f.find('primary').disabled,false);f.ui.dispose();
 });
 test('active physical sequence is read-only at site, with return route when away',()=>{
- const f=fixture();f.setCard({stage:'accepted',blockers:[],physical:{phase:'drafting',documentId:'private-receipt-id'}});f.player.root.position={x:5,y:.2,z:5};f.ui.open();assert.equal(f.find('primary').disabled,true);assert(f.dialog.textContent.includes('沈序正在拟册'));assert(!f.dialog.textContent.includes('private-receipt-id'));f.player.root.position.x=0;f.ui.update();f.find('primary').onclick();assert.equal(f.intents.at(-1).action,'return');f.ui.dispose();
+ const f=fixture();f.setCard({stage:'accepted',blockers:[],physical:{phase:'drafting',documentId:'private-receipt-id'}});f.player.root.position={x:5,y:.2,z:5};f.ui.open();assert.equal(f.find('primary').disabled,true);assert(f.dialog.textContent.includes('传令员正在拟册'));assert(!f.dialog.textContent.includes('private-receipt-id'));f.player.root.position.x=0;f.ui.update();f.find('primary').onclick();assert.equal(f.intents.at(-1).action,'return');f.ui.dispose();
 });
 test('close/Escape retains application and dispose removes owned DOM/styles',()=>{
  const f=fixture();f.setCard({stage:'submitted',blockers:[]});f.ui.open();f.dialog.listeners.cancel({preventDefault(){}});assert.equal(f.ui.isOpen(),false);assert.equal(f.getCard().stage,'submitted');assert.equal(f.choices.length,0);assert.equal(f.intents.length,0);f.ui.dispose();assert.equal(f.doc.head.children.length,0);assert.equal(f.doc.body.children.length,0);assert.equal(f.ui.open(),false);
@@ -138,7 +138,7 @@ test('empress petition and release buttons navigate without changing title; rele
 });
 
 test('withdrawal uses the active service only after a fresh nonphysical state check',()=>{
- const f=fixture();f.setCard({titleKind:'empress',titleId:'consort',stage:'accepted',operation:'appoint',applicationId:'empress-one',blockers:[]});f.ui.open();const stale=f.find('withdraw').onclick;f.getCard().physical={phase:'drafting'};stale();assert.equal(f.withdrawals.length,0);assert.equal(f.find('withdraw').hidden,true);assert(f.dialog.textContent.includes('沈序正在拟册'));
+ const f=fixture();f.setCard({titleKind:'empress',titleId:'consort',stage:'accepted',operation:'appoint',applicationId:'empress-one',blockers:[]});f.ui.open();const stale=f.find('withdraw').onclick;f.getCard().physical={phase:'drafting'};stale();assert.equal(f.withdrawals.length,0);assert.equal(f.find('withdraw').hidden,true);assert(f.dialog.textContent.includes('传令员正在拟册'));
  f.getCard().physical={};f.ui.update();const replaced=f.find('withdraw').onclick;f.getCard().applicationId='empress-two';replaced();assert.equal(f.withdrawals.length,0);f.find('withdraw').onclick();assert.deepEqual(f.withdrawals,['empress-two']);assert.equal(f.getCard().stage,'withdrawn');assert.equal(f.getCard().titleId,'consort');assert.equal(f.find('withdraw').hidden,true);
  f.setCard({stage:'submitted',applicationId:'consort-one',blockers:[]});f.ui.update();f.find('withdraw').onclick();assert.deepEqual(f.withdrawals,['empress-two','consort-one']);f.ui.dispose();
 });
@@ -148,4 +148,10 @@ test('empress route reads its own history and prevents original title resignatio
  f.setRows([{id:'old-consort',stage:'appointed',submittedAt:{day:0}}]);f.service.currentLedger=()=>({petition:()=>({id:'release-one',operation:'release'})});f.service.history=()=>[{titleKind:'empress',operation:'appoint',stage:'appointed',submittedAt:{day:3}},{titleKind:'empress',operation:'release',stage:'submitted',submittedAt:{day:4}}];
  f.setCard({titleKind:'empress',titleId:'empress',stage:'submitted',operation:'release',blockers:[]});f.ui.open();assert(f.dialog.textContent.includes('册后 · 皇后册封已生效'));assert(f.dialog.textContent.includes('辞后 · 请辞已呈'));assert(!f.dialog.textContent.includes('自荐'));assert(f.dialog.textContent.includes('先当面辞后并办结文书'));assert.equal(f.find('resign-title').textContent,'辞去妃位');assert.equal(f.find('resign-title').disabled,true);f.find('resign-title').onclick();assert.equal(calls.length,0);
  f.setCard({titleKind:'empress',titleId:'consort',stage:'released',operation:'release',blockers:[]});f.ui.update();assert.equal(f.find('resign-title').disabled,false);assert.equal(f.ui.menuContext().hasTitle,true);f.ui.dispose();
+});
+
+test('current courier labels replace the former name and unavailable holder disables travel',()=>{
+ const target={id:'cn-consort-public-audience',targetKey:'cn-successor',holderRevision:4,position:[0,0,0],radius:1.1};
+ const view=consortPetitionView({card:{stage:'accepted',physical:{phase:'drafting',heraldName:'新传令员'}},target});assert(view.note.includes('新传令员正在拟册'));assert(!view.note.includes('沈序'));
+ const unavailable=consortPetitionView({card:{stage:'none',physical:{heraldName:'传令员'}},target:{...target,available:false}});assert(unavailable.actions.find(a=>a.id==='primary').disabled);
 });

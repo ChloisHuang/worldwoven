@@ -15,14 +15,14 @@ export function createConsortCharterProps(parent){
  let documentId=null,holder=null,sealed=false;
  const hands=n=>{n.root.updateWorldMatrix(true,true);const h=n.root.userData.hands;if(h?.length===2){h[0].getWorldPosition(v);h[1].getWorldPosition(w);return v.clone().add(w).multiplyScalar(.5).add(new THREE.Vector3(0,-.035,0));}return new THREE.Vector3(0,1,.4).applyMatrix4(n.root.matrixWorld);};
  function update(document,{herald,player},phase,elapsed=0){
-  documentId=document?.id||null;holder=document?.holder||null;sealed=!!document?.sealed;scroll.visible=!!document&&!document.filed;
+  documentId=document?.id||null;holder=document?.holder||null;sealed=!!document?.sealed;scroll.visible=!!document&&!document.filed&&(document.holder==='desk'||document.holder==='player'&&!!player||!!herald);
   if(!scroll.visible)return;scroll.name=documentId;scroll.userData={documentId,holder};
   const desk=new THREE.Vector3(...PALACE_EDICT.points.seal),ratio=n=>Math.min(1,elapsed/n);
   let p=holder==='desk'?desk:holder==='player'&&player?hands(player):hands(herald);
-  if(phase==='place-charter')p=hands(herald).lerp(desk,ratio(1.2));
-  if(phase==='pickup-charter')p=desk.lerp(hands(herald),ratio(1.2));
-  if(phase==='handoff'&&player)p=hands(herald).lerp(hands(player),ratio(1.5));
-  scroll.position.copy(p);scroll.rotation.set(0,holder==='player'&&player?player.root.rotation.y:holder==='desk'?0:herald.root.rotation.y,0);
+  if(phase==='place-charter'&&herald)p=hands(herald).lerp(desk,ratio(1.2));
+  if(phase==='pickup-charter'&&herald)p=desk.lerp(hands(herald),ratio(1.2));
+  if(phase==='handoff'&&player&&herald)p=hands(herald).lerp(hands(player),ratio(1.5));
+  scroll.position.copy(p);scroll.rotation.set(0,holder==='player'&&player?player.root.rotation.y:holder==='desk'?0:herald?.root.rotation.y||0,0);
   marks.forEach((m,i)=>m.visible=document.drafted||phase==='drafting'&&i<Math.ceil(ratio(5)*marks.length));print.visible=sealed;
  }
  return {update,state:()=>({documentId,holder,sealed,scrollCount:scroll.visible?1:0,scrollPosition:scroll.visible?scroll.position.toArray():null}),dispose(){root.removeFromParent();for(const g of geometries)g.dispose();for(const m of materials.values())m.dispose();}};
