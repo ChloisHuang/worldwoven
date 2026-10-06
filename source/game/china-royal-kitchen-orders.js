@@ -15,9 +15,9 @@ export function validRoyalKitchenState(s){
  if(!s||s.version!==1||!int(s.revision)||!int(s.serial)||s.supply?.id!=='cn-royal-kitchen-opening-v1'||s.supply.quantity!==ROYAL_OPENING_SUPPLY||!int(s.supply.remaining)||!int(s.supply.wasted)||!Array.isArray(s.orders)||s.orders.length>s.serial)return false;
  const ids=new Set(),actors=new Set(),seats=new Set();let used=0,wasted=0;
  for(const o of s.orders){
-  if(!int(o.number)||!o.number||o.number>s.serial||o.id!==`cn-royal-meal-${o.number}`||ids.has(o.id)||!(ROYAL_DINERS.includes(o.actorId)||o.actorId==='player'&&validRoyalPlayerEligibility(o.eligibility))||!ROYAL_MEAL_SEATS.includes(o.seatId)||!stages.includes(o.stage)||!int(o.day)||!int(o.workDay)||!['cn-cooking','player'].includes(o.workerId)||o.workReceiptId!==null&&!/^cn-royal-kitchen-labor-[1-9][0-9]*$/.test(o.workReceiptId)||!Number.isFinite(o.eatingSeconds)||o.eatingSeconds<0)return false;
+  if(!int(o.number)||!o.number||o.number>s.serial||o.id!==`cn-royal-meal-${o.number}`||ids.has(o.id)||!(ROYAL_DINERS.includes(o.actorId)||o.actorId==='player'&&validRoyalPlayerEligibility(o.eligibility))||!ROYAL_MEAL_SEATS.includes(o.seatId)||!stages.includes(o.stage)||!int(o.day)||!int(o.workDay)||!(o.workerId==='player'||/^cn-[a-z0-9-]{1,60}$/.test(o.workerId))||o.workReceiptId!==null&&!/^cn-royal-kitchen-labor-[1-9][0-9]*$/.test(o.workReceiptId)||!Number.isFinite(o.eatingSeconds)||o.eatingSeconds<0)return false;
   if(o.actorId==='player'&&o.workerId==='player')return false;
-  if(o.workerId==='player'&&!o.workReceiptId||o.workerId==='cn-cooking'&&o.workReceiptId)return false;
+  if(o.workerId==='player'&&!o.workReceiptId||o.workerId!=='player'&&o.workReceiptId)return false;
   ids.add(o.id);if(active(o)){if(actors.has(o.actorId)||seats.has(o.seatId))return false;actors.add(o.actorId);seats.add(o.seatId);}
   if(o.supplyReceipt!==null){if(o.supplyReceipt!==o.id+'-prepared'||o.mealId!==o.id+'-meal')return false;used++;if(o.stage==='cancelled')wasted++;}
   else if(!['ordered','cancelled'].includes(o.stage)||o.mealId!==null)return false;
@@ -52,6 +52,6 @@ export function createRoyalKitchenOrders({saved=null,getClock=()=>({day:0}),save
   return change(id,'eating','consumed',{eatingSeconds:elapsed,receipt:{source:'china-royal-kitchen',id:id+'-consumed',number:row.number,actorId,orderId:id,mealId:row.mealId,dishId:'royal-steamed-meal',supplyReceipt:row.supplyReceipt,completed:true,...(actorId==='player'?{eligibility:copy(row.eligibility),eatingSeconds:elapsed}:{})}});
  }
  function reassign(receiptId,workerId,nextReceipt=null,workDay=getClock().day){return transaction(s=>{for(const o of s.orders){if(!active(o)||o.workReceiptId!==receiptId)continue;if(o.stage==='carrying')return false;Object.assign(o,{workerId,workReceiptId:nextReceipt,workDay});}});}
- function claim(receiptId,day){return transaction(s=>{if(s.orders.some(o=>o.actorId==='player'&&active(o)))return false;for(const o of s.orders)if(o.stage==='ordered'&&o.workerId==='cn-cooking')Object.assign(o,{workerId:'player',workReceiptId:receiptId,workDay:day});});}
+ function claim(receiptId,day,workerId='cn-cooking'){return transaction(s=>{if(s.orders.some(o=>o.actorId==='player'&&active(o)))return false;for(const o of s.orders)if(o.stage==='ordered'&&o.workerId===workerId)Object.assign(o,{workerId:'player',workReceiptId:receiptId,workDay:day});});}
  return {snapshot,claim,loadError:()=>loadError,available,request,prepare,cancel,consume,reassign,change,lookup:id=>{const o=lookup(id);return o?copy(o):null;},forActor:id=>{const o=forActor(id);return o?copy(o):null;},active:()=>state.orders.filter(active).map(copy),receipts:()=>state.orders.filter(o=>o.stage==='consumed').map(o=>copy(o.receipt))};
 }

@@ -53,7 +53,7 @@ export function createNPCDutyAccount({role, roles = role ? [role] : [], namespac
   const hours = evidence.segments.reduce((total, segment) => total + segment.endHour - segment.startHour, 0);
   const amount = Math.floor(definition.wage * Math.min(1, hours / (definition.dutyWindow.endHour - definition.dutyWindow.startHour)) + 1e-9);
   if (!integer(amount)) throw Error('invalid-npc-wage');
-  return {id: `${namespace}:wage:${evidence.roleId}:${evidence.actorId}:${evidence.day}`, source: 'government-npc-payroll', currency: definition.currency, amount, evidence};
+  return {id: `${namespace}:wage:${evidence.roleId}:${evidence.actorId}:${evidence.day}`, source: 'npc-employer-payroll', currency: definition.currency, amount, evidence};
  }
  function rejectOverlap(proof, others) {
   for (const old of others) {
