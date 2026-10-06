@@ -25,9 +25,9 @@ export function createWorkplaceConversations({places,placePrefix,labels,actors,b
  function update(dt){
   if(!checked){checked=true;for(const n of actors){const c=brain.state(n.station.id)?.current;if(c?.conversationId&&c.conversationId!==pair?.id)brain.cancelConversation(c.conversationId);}}
   if(!pair)return;
-  if(pair.persisted===false){if(save()===false)return;pair.persisted=true;}
   if(pair.participants.some((id,i)=>!available(actor(id))||!claims.reservation(placeIds[i],id))){cancel();return;}
-  pair.age+=dt;if(pair.age>75){cancel('路上耽搁了，改日再聊');return;}
+  if(pair.persisted===false){if(save()===false)return;pair.persisted=true;}
+  pair.age+=dt;if(pair.age>75&&pair.elapsed<pair.duration){cancel('路上耽搁了，改日再聊');return;}
   const wasTogether=pair.participants.every((id,i)=>near(actor(id),pair.places[i]));
   for(const[i,id]of pair.participants.entries())travel(actor(id),pair.places[i],dt);
   if(!pair.participants.every((id,i)=>near(actor(id),pair.places[i])))return;
