@@ -24,7 +24,7 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
     else if(documentHome){if(documentObject.parent!==documentHome.parent)documentHome.parent.add(documentObject);documentObject.position.copy(documentHome.position);documentObject.rotation.copy(documentHome.rotation);}
   }
   const recruiterReady=()=>{const npc=getRecruiter();return !!npc&&!npc.walking&&!FORMAL.has(audience.state()?.phase)&&canSee({position:npc.root.position.toArray()});};
-  const duty = () => {const d=careers.state().lastDuty;return d?.roleId===COURT_CLERK_ROLE.id?d:null;};
+  const duty = () => {const d=careers.workState().lastDuty;return d?.roleId===COURT_CLERK_ROLE.id?d:null;};
   const relevantDuty = () => duty()?.day===getClock().day ? duty() : null;
   const result = (r, text) => {if(!r?.ok)notify(r?.reasons?.map(reason=>REASONS[reason]||'本次办理未完成，请稍后再试').join('；')||'登记暂未保存，请稍后再试');else if(text)notify(text);return !!r?.ok;};
   function nextKind() {
@@ -37,7 +37,7 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
   }
   function intent(kind=nextKind()) {
     if(disposed||!['view','apply','review','receive-document','appointment','resign','attend','archive','settle','promotion-apply','promotion-review','promotion-receive-document','promotion-appointment'].includes(kind))return null;
-    const s=careers.state(),d=relevantDuty(),hired=careers.isHired();
+    const s=careers.workState(),d=relevantDuty(),hired=careers.isHired();
     const reviewKinds=['review','receive-document','appointment'],promotionKinds=['promotion-review','promotion-receive-document','promotion-appointment'];
     if(kind==='promotion-apply'&&(!hired||activity||!careers.promotionAvailability?.().ok))return null;
     if(promotionKinds.includes(kind)&&(!hired||activity||promotion()?.status!=='pending'||kind!==promotionKind()||!careers.promotionSummary?.().eligible))return null;
@@ -108,7 +108,7 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
     activity=null;progress=0;pending=false;posture?.stop();
   }
   function reviewNotice() {
-    const review=careers.state().lastEvaluation;if(review?.roleId===COURT_CLERK_ROLE.id&&review.id!==lastNotice){lastNotice=review.id;notify(`${review.positive?'👍':'👎'} 沈叙：${review.reason}`);}
+    const review=careers.workState().lastEvaluation;if(review?.roleId===COURT_CLERK_ROLE.id&&review.id!==lastNotice){lastNotice=review.id;notify(`${review.positive?'👍':'👎'} 沈叙：${review.reason}`);}
   }
   function settleReady() {
     if(duty()?.stage!=='ready'||getClock().seconds<nextSettlementAt)return;
@@ -124,7 +124,7 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
       if(!executeIntent(selected))releaseMeeting();return;
     }
     if(!activity){
-      const a=audience.state(),s=careers.state(),c=getClock();
+      const a=audience.state(),s=careers.workState(),c=getClock();
       if(careers.isHired()&&s.lastEvaluatedDay!==c.day&&a.schedule.day===c.day&&a.schedule.outcome==='in-session'&&FORMAL.has(a.phase)&&
         !(s.tenure.sinceDay===c.day&&s.tenure.sinceHour>=11.5))careers.dutyEvent('court-start');
       reviewNotice();settleReady();return;

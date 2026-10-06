@@ -62,7 +62,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
   try { current = restore(saved); } catch { current = empty(); loadError = 'invalid-saved-state'; }
   let cleaning = false, pendingClean = false, elapsed = 0, origin = null, saving = false, paying = false, disposed = false, lastError = null;
   let ui = null, nextPayAt=0, waitingRegistration=null;
-  const formal=createFormalLaborContract({careers,role:TAVERN_STEWARD_ROLE,getJob:()=>current.job,getPlayer,meetHost:meetRegistrationHost,notify,openRegistration});
+  const formal=createFormalLaborContract({careers,workState:()=>careers?.workState?.()??careers?.state(),role:TAVERN_STEWARD_ROLE,getJob:()=>current.job,getPlayer,meetHost:meetRegistrationHost,notify,openRegistration});
   const hired=()=>formal.hired()||!!employment?.isHired();
   const player = () => getPlayer()?.root?.position;
   const active = () => !!current.job;
@@ -211,7 +211,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
   const view = () => ({...copy(current), active: active(), cleaning, progress: elapsed / SECONDS,
     wage: WAGE, seconds: SECONDS, target: copy(target()), atTarget: at(target().position),
     atHost: at(HOST.position), hostAvailable: hostReady(), employment: employment?.state() || null,
-    hired: hired(), waitingRegistration: waitingRegistration?.kind || null, formalHired:formal.hired(),formalRole:formal.role,formalState:formal.state(),formalJob:formal.pinned(current.job),formalSalary:formal.salary,formalBeginAvailability:formal.beginAvailability(), loadError: loadError || copperLedger.loadError || null, lastError});
+    hired: hired(), waitingRegistration: waitingRegistration?.kind || null, formalHired:formal.hired(),formalRole:formal.role,formalState:formal.workState(),formalJob:formal.pinned(current.job),formalSalary:formal.salary,formalBeginAvailability:formal.beginAvailability(), loadError: loadError || copperLedger.loadError || null, lastError});
   function intent(kind) {
     if(formal.hired()&&!current.job&&serviceAdapter())return serviceAdapter().intent(kind==='view'?'formal-view':kind);
     const job = current.job, employed = hired(), registration = employment?.state();
@@ -229,7 +229,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
       name: kind === 'clean' ? point.name : '云来酒楼 · 招工登记案', npcName: '许安',
       action: {'formal-view':formal.hired()?'查看今日安排与任职登记':'查看正式职位与申请条件','formal-apply':'申请常任服务助理','formal-resign':'办理常任助理离职',view:'查看酒楼职位与办理登记',apply:'申请酒楼帮工',accept:formal.hired()?'开始今日酒楼班次':'接下擦桌活',claim:formal.pinned(job)?'提交当班验收 · 工资存银行':'验收后工资存银行 · 12 铜文',clean:'擦拭餐桌 · 5 秒',resign:'办理离职'}[kind],
       ...(kind==='formal-view'?{registration:{scope:'role',roleId:formal.role.id}}:{}),
-      intentKey: [registration?.revision ?? 0, formal.state()?.revision??0, job?.id || '-', job?.stage || '-', job?.completedTables || 0, kind].join(':'),
+      intentKey: [registration?.revision ?? 0, formal.workState()?.revision??0, job?.id || '-', job?.stage || '-', job?.completedTables || 0, kind].join(':'),
       interactionRadius: 2.8, executionRadius: registrationKinds.has(kind) ? REGISTRATION_RADIUS : .18, priority: 45};
   }
   function resolveIntent(selected) {
@@ -259,7 +259,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     return claim();
   }
   const service = {
-    active, accept, startCleaning, claim, cancel, update, view, state: view, meetHost, meetRegistrationHost, intent, resolveIntent, executeIntent, cancelRegistration,
+    active, accept, startCleaning, claim, cancel, update, view, state:()=>({...view(),formalState:formal.state()}), meetHost, meetRegistrationHost, intent, resolveIntent, executeIntent, cancelRegistration,
     stopCleaning, isCleaning: () => cleaning, employment, formal,
     playerAction: () => cleaning && stationary() ? 'tidy' : null,
     playerStation: () => cleaning && stationary() ? copy(target()) : null,
@@ -291,7 +291,8 @@ function createUI({doc, service, getPlayer, onIntent, canSee, onOpen}) {
   const secondsLeft=s=>s.cleaning?Math.ceil((1-s.progress)*s.seconds):null;
   const stateKey=s=>JSON.stringify([selected,s.job,s.cleaning,secondsLeft(s),s.waitingRegistration,s.atTarget,s.atHost,s.hostAvailable,s.loadError,s.lastError,s.employment,s.formalState?.revision,s.formalState?.loadError,s.formalState?.skills?.ritual,s.formalHired,s.formalBeginAvailability,getPlayer()?.ageYears,service.intent('clean')?.intentKey]);
   function refresh(force=false){
-    const s=service.view();if(dialog.open&&!nearHouse()){close();return;}if(!dialog.open&&!force)return;
+    if(!dialog.open&&!force)return;
+    const s=service.view();if(dialog.open&&!nearHouse()){close();return;}
     const key=stateKey(s);if(!force&&key===signature)return;signature=key;const rendered=++revision;dialog.replaceChildren();
     // Replaced controls must never navigate after closing, apply twice or cancel
     // a newer work slip. The service still rechecks reach and live intent.

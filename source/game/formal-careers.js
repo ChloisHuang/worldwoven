@@ -427,6 +427,18 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
   catch (error) { loadError = error.message === 'invalid-career-catalogue' ? error.message : 'invalid-career-state'; }
   try { const clock = getClock(); if (integer(clock?.day)) observedDay = clock.day; } catch { /* checked at mutation */ }
   const state = () => ({...copy(current), loadError, lastError});
+  // Live work and closed HUD readers never need the accumulating application or
+  // official journals. Keep this detached, fresh projection explicit and bounded;
+  // state() remains the complete mutable snapshot for panels and diagnostics.
+  const workState = () => {
+    const duty=current.lastDuty,customer=duty?.customerReviews?.at(-1);
+    return {...copy({revision:current.revision,skills:current.skills,tenure:current.tenure,
+      lastDuty:duty===null?null:Object.fromEntries(['roleId','slotId','day','stage','started','reason','arrivalHour','wage',
+        'officialPayVersion','officialRankId','officialTenureId','workReceiptId','shiftKind','startedSeconds','coveredSeconds',
+        'completedTasks','endedHour','endedSeconds'].filter(key=>own(duty,key)).map(key=>[key,duty[key]])),
+      lastEvaluatedDay:current.lastEvaluatedDay,lastEvaluation:current.lastEvaluation,
+      lastCustomerReview:customer?{id:customer.id,customerName:customer.customerName,score:customer.score,positive:customer.positive,reason:customer.reason}:null}),loadError,lastError};
+  };
   const failure = (code, reasons = [code]) => { lastError = code; return {ok: false, code, reasons: [...reasons]}; };
   function readClock() {
     let clock;
@@ -1109,7 +1121,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     return {ok: true, paid: true, wage: duty.wage, receiptId, replayed: !!payment.replayed, deposit,
       cleanupPending: !result.ok, ...(result.ok ? {} : {code: result.code})};
   }
-  return Object.freeze({state, isHired: (roleId = COURT_CLERK_ROLE.id) => !loadError && current.tenure?.roleId === roleId,
+  return Object.freeze({state, workState, isHired: (roleId = COURT_CLERK_ROLE.id) => !loadError && current.tenure?.roleId === roleId,
     canContinueLabor:receiptId=>{const d=current.lastDuty;let c;try{c=getClock();}catch{return false;}return !loadError&&d?.workReceiptId===receiptId&&(d.stage==='inspection'||d.stage==='working'&&d.day===c?.day);},
     currentRole:()=>{const role=roleMap.get(current.tenure?.roleId);if(!role)return null;const rank=role.id===COURT_CLERK_ROLE.id?getChinaRecordsCareerRank(officialRankId(current.officialCareer,current.tenure)):null;return copy(rank?{...role,rankId:rank.rankId,gradeLabel:rank.gradeLabel,wage:rank.basePay}:role);},
     slotHolder:roleId=>{if(loadError)return null;const slot=[...slotMap.values()].find(s=>s.roleId===roleId);return slot?current.tenure?.slotId===slot.id?'player':slot.holderId:null;},

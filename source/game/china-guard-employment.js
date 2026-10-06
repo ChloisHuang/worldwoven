@@ -31,7 +31,7 @@ export function createChinaGuardEmployment({archery,careers,getPlayer,getMounted
  const save=next=>{try{const result=saveState(copy(next));if(result===false||result?.then){lastError='save-failed';return false;}current=next;lastError=null;}catch{lastError='save-failed';return false;}syncWardrobe();return true;};
  const atRegistration=()=>!getMounted()&&near(getPlayer()?.root.position,REG,.32)&&canSee({position:REG});
  const meet=()=>atRegistration()&&archery.supervisorReady();
- const formal=createFormalLaborContract({careers,role:ROLE,getJob:()=>current.job,getPlayer,meetHost:meet,notify,openRegistration});
+ const formal=createFormalLaborContract({careers,workState:()=>careers?.workState?.()??careers?.state(),role:ROLE,getJob:()=>current.job,getPlayer,meetHost:meet,notify,openRegistration});
  const wardrobePreset=()=>!disposed&&current.job?.stage==='working'&&formal.hired()&&formal.canWork(current.job)?'jinyi-training':null;
  let lastWardrobe=wardrobePreset();
  const syncWardrobe=()=>{const preset=wardrobePreset();if(preset!==lastWardrobe){lastWardrobe=preset;onWardrobeChange(preset);}};
@@ -39,7 +39,7 @@ export function createChinaGuardEmployment({archery,careers,getPlayer,getMounted
  const fail=text=>{notify(text);return false;};
  function recover(){
   if(lastError==='invalid-employment-state'||current.job||!formal.hired())return;
-  const duty=careers.state().lastDuty;
+  const duty=careers.workState().lastDuty;
   if(duty?.roleId!==ROLE.id||!duty.workReceiptId||!['working','inspection','ready'].includes(duty.stage))return;
   const job=freshJob(duty.workReceiptId,duty.day);
   if(duty.stage!=='working')Object.assign(job,{stage:'ready',assignment:'returning',coveredSeconds:duty.coveredSeconds,completedTasks:duty.completedTasks});
@@ -85,10 +85,10 @@ export function createChinaGuardEmployment({archery,careers,getPlayer,getMounted
  function claim(){
   const job=current.job;if(!job||job.stage!=='ready'||!meet())return false;
   if(!formal.inspect(job).ok)return false;
-  if(careers.state().lastDuty?.stage!=='paid')return fail('银行已入账，封账记录待保存；原处重试不会重复发薪');
+  if(careers.workState().lastDuty?.stage!=='paid')return fail('银行已入账，封账记录待保存；原处重试不会重复发薪');
   if(!save({...current,job:null}))return fail('工资已入账，交班记录待保存，请在原处重试');
   if(archery.guardWorkState()?.receiptId===job.receiptId)archery.finishGuardWork(job.receiptId);
-  notify(`陆衡：巡查与交班凭记已核验，${careers.state().lastDuty.wage}铜文已存入银行；下次开班前沈砚明确代巡`);return true;
+  notify(`陆衡：巡查与交班凭记已核验，${careers.workState().lastDuty.wage}铜文已存入银行；下次开班前沈砚明确代巡`);return true;
  }
  function intent(kind=null){
   if(disposed||lastError==='invalid-employment-state')return null;
@@ -108,7 +108,7 @@ export function createChinaGuardEmployment({archery,careers,getPlayer,getMounted
   return {id:`cn-guard-job-${kind}`,provider:'china-guard-employment',roleId:ROLE.id,kind,name:'锦衣卫 · 巡值工作',npcName:'陆衡',action,
    position:(stop?.at||REG).slice(),executionRadius:stop?.hold!==undefined ? .19 : .26,interactionRadius:1.8,priority:47,
    ...(kind==='formal-view'?{registration:{scope:'role',roleId:ROLE.id}}:{}),
-   intentKey:[careers.state().revision,job?.receiptId||'-',job?.stage||'-',job?.assignment||'-',kind,stop?`${job.routeId}:${job.circuits}:${job.index}`:'-'].join(':')};
+   intentKey:[careers.workState().revision,job?.receiptId||'-',job?.stage||'-',job?.assignment||'-',kind,stop?`${job.routeId}:${job.circuits}:${job.index}`:'-'].join(':')};
  }
  function resolveIntent(old){const next=intent(old?.kind);return next&&old.provider===next.provider&&old.id===next.id&&old.intentKey===next.intentKey?next:null;}
  function executeIntent(old){
@@ -140,7 +140,7 @@ export function createChinaGuardEmployment({archery,careers,getPlayer,getMounted
   }
   const job=current.job;if(!job){previous=null;return;}
   if(job.stage==='ready')return;
-  const duty=careers.state().lastDuty;
+  const duty=careers.workState().lastDuty;
   if(duty?.workReceiptId===job.receiptId&&['inspection','ready','paid'].includes(duty.stage)){save({...current,job:{...job,stage:'ready'}});observation=null;autoPatrol=false;return;}
   if(!formal.canWork(job)){archery.cancelGuardWork(job.receiptId);if(save({...current,job:null})){attendance=0;observation=null;autoPatrol=false;}return;}
   archery.requestGuardWork(job.receiptId);

@@ -16,7 +16,7 @@ export function createChinaClinicEmployment({clinic,role:ROLE=PHARMACY_ASSISTANT
  const save=next=>{try{const result=saveState(copy(next));if(result===false||result?.then)return false;current=next;return true;}catch{return false;}};
  const atRegistration=()=>!getMounted()&&near(getPlayer()?.root.position,REG,.35)&&canSee({position:REG});
  const meet=()=>atRegistration()&&clinic.doctorReady();
- const formal=createFormalLaborContract({careers,role:ROLE,getJob:()=>current.job,getPlayer,meetHost:meet,notify,openRegistration});
+ const formal=createFormalLaborContract({careers,workState:()=>careers?.workState?.()??careers?.state(),role:ROLE,getJob:()=>current.job,getPlayer,meetHost:meet,notify,openRegistration});
  const fail=(text,code='unavailable')=>{lastError=code;notify(text);return false;};
  function accept(){
   if(lastError==='invalid-employment-state'||current.job||!formal.hired()||!meet())return false;
@@ -27,9 +27,9 @@ export function createChinaClinicEmployment({clinic,role:ROLE=PHARMACY_ASSISTANT
  }
  function claim(){const job=current.job;if(!job||job.stage!=='ready'||!meet())return false;
   const result=formal.inspect(job);if(!result.ok)return false;
-  if(careers.state().lastDuty?.stage!=='paid'){notify('工资已入银行，封账记录待保存；请在原处重试，不会重复入账');return true;}
+  if(careers.workState().lastDuty?.stage!=='paid'){notify('工资已入银行，封账记录待保存；请在原处重试，不会重复入账');return true;}
   if(!save({...current,job:null}))return fail('工资已入账，交班记录待重试');
-  clinic.finishWork(job.receiptId);notify(`许宁：原单、纸包和来客已核对，${careers.state().lastDuty.wage}铜文日薪已存入银行`);return true;
+  clinic.finishWork(job.receiptId);notify(`许宁：原单、纸包和来客已核对，${careers.workState().lastDuty.wage}铜文日薪已存入银行`);return true;
  }
  function intent(kind=null){if(disposed||lastError==='invalid-employment-state')return null;
   const job=current.job,plan=kind?.startsWith('plan:')?kind.slice(5):null,work=job?.stage==='working'?clinic.workIntent(job.receiptId,plan):null;
@@ -44,7 +44,7 @@ export function createChinaClinicEmployment({clinic,role:ROLE=PHARMACY_ASSISTANT
   const task=kind==='task'||!!plan;
   const action=task?work.action:({'formal-view':`查看安和${title}岗位`,'formal-apply':`提交${title}申请`,'formal-review':'当面确认职责 · 请许宁审核','formal-resign':`办理${title}离职`,accept:`报到 · 开始今日${title}工作`,claim:'当面验收 · 工资入银行',wait:'在医馆候班 · 等来客开单','end-shift':'当面交班 · 按实际工时结薪',cancel:'中断本日班次 · 不结薪'})[kind];
   if(!action)return null;return {id:`${physician?'cn-clinic-physician':'cn-pharmacy'}-job-${kind}`,provider,roleId:ROLE.id,kind,name:`安和医馆 · ${title}工作`,npcName:'许宁',action,position:(work&&task?work.position:REG).slice(),executionRadius:work&&task?work.executionRadius:.35,interactionRadius:1.8,priority:47,
-   ...(kind==='formal-view'?{registration:{scope:'role',roleId:ROLE.id}}:{}),...(task?{work:copy(work)}:{}),intentKey:[careers.state().revision,job?.receiptId||'-',job?.stage||'-',kind,task?work.key:'-'].join(':')};
+   ...(kind==='formal-view'?{registration:{scope:'role',roleId:ROLE.id}}:{}),...(task?{work:copy(work)}:{}),intentKey:[careers.workState().revision,job?.receiptId||'-',job?.stage||'-',kind,task?work.key:'-'].join(':')};
  }
  function resolveIntent(old){const next=intent(old?.kind);if(!next||old.provider!==next.provider||old.id!==next.id||old.intentKey!==next.intentKey)return null;return next;}
  function executeIntent(old){const next=resolveIntent(old);if(!next||getMounted()||!near(getPlayer()?.root.position,next.position,next.executionRadius)||!canSee(next))return false;
@@ -67,7 +67,7 @@ export function createChinaClinicEmployment({clinic,role:ROLE=PHARMACY_ASSISTANT
   if(waiting){if(!atRegistration()||!resolveIntent(waiting))waiting=null;else if(meet()){const next=waiting;waiting=null;executeIntent(next);}}
   const job=current.job;if(!job)return;
   if(job.stage==='working'){
-   const duty=careers.state().lastDuty;if(duty?.workReceiptId===job.receiptId&&['inspection','ready','paid'].includes(duty.stage)){save({...current,job:{...job,stage:'ready'}});return;}
+   const duty=careers.workState().lastDuty;if(duty?.workReceiptId===job.receiptId&&['inspection','ready','paid'].includes(duty.stage)){save({...current,job:{...job,stage:'ready'}});return;}
    if(!formal.canWork(job)){if(clinic.cancelWork(job.receiptId)!==false&&save({...current,job:null}))attendance=0;return;}
    clinic.beginWork(job.receiptId);
    if(getClock().hour<18&&inWorkplace()&&!getMounted())attendance+=Math.min(.1,Math.max(0,dt));
@@ -77,7 +77,7 @@ export function createChinaClinicEmployment({clinic,role:ROLE=PHARMACY_ASSISTANT
 
  return {intent,resolveIntent,executeIntent,update,accept,claim,endShift,formal,atRegistration,
   isActing:()=>clinic.isActing?.()||false,
-  state:()=>({...copy(current),...(physician?{patient:clinic.patientDetails?.()}:{}),lastError,waiting:!!waiting,latestReview:clinic.workReceipts(current.job?.receiptId||careers.state().lastDuty?.workReceiptId).at(-1)||null,job:current.job?{...copy(current.job),coveredSeconds:current.job.coveredSeconds+attendance,completedOrders:current.job.completedTasks}:null}),
+  state:()=>({...copy(current),...(physician?{patient:clinic.patientDetails?.()}:{}),lastError,waiting:!!waiting,latestReview:clinic.workReceipts(current.job?.receiptId||careers.workState().lastDuty?.workReceiptId).at(-1)||null,job:current.job?{...copy(current.job),coveredSeconds:current.job.coveredSeconds+attendance,completedOrders:current.job.completedTasks}:null}),
   active:()=>!!current.job,label:()=>current.job?current.job.stage==='ready'?'同号交付已完成 · 请许宁验收':clinic.workLabel()||`${title}当班 · 等候真实来客`:null,
   stopActivity(){waiting=null;clinic.stopWorkAction();},playerAction:()=>clinic.workPose()?.action||null,playerStation:()=>clinic.workPose()?.station||null,
   snapshot:()=>({version:1,receiptId:current.job?.receiptId||null,coveredSeconds:current.job?.coveredSeconds||0,attendance}),restore:s=>{if(s?.version!==1||s.receiptId!==(current.job?.receiptId||null)||!Number.isFinite(s.attendance)||s.attendance<0||s.attendance>1.1)return false;attendance=s.coveredSeconds===(current.job?.coveredSeconds||0)?s.attendance:0;return true;},

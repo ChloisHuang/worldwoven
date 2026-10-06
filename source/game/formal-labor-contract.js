@@ -20,11 +20,11 @@ const MESSAGES={'application-pending':'申请已保存，请继续当面审核',
   'save-failed':'记录未能保存，请稍后重试','bank-unavailable':'银行入账暂不可用，已完成工资会保留',
   'invalid-career-state':'职业存档暂时无法核对，请保留存档',
 };
-export function createFormalLaborContract({careers,role,getJob,getPlayer,meetHost,notify=()=>{},openRegistration=()=>{}}){
+export function createFormalLaborContract({careers,role,getJob,getPlayer,meetHost,notify=()=>{},openRegistration=()=>{},workState=()=>careers?.state()}){
   const unit=role.currency==='japan'?'日本券':role.currency==='france'?'法国券':role.currency==='egypt'?'埃及券':'铜文';
   const hired=()=>!!careers?.isHired(role.id),state=()=>careers?.state();
   const pinned=job=>job?.formalRoleId===role.id;
-  const duty=job=>{const d=state()?.lastDuty;return pinned(job)&&d?.roleId===role.id&&d.workReceiptId===job.receiptId?d:null;};
+  const duty=job=>{const d=workState()?.lastDuty;return pinned(job)&&d?.roleId===role.id&&d.workReceiptId===job.receiptId?d:null;};
   function result(r,text){if(!r?.ok)notify((r?.reasons||[r?.code]).map(c=>c==='care-required'?`照护需要${role.skillRequirements.care}级，可完成当地原客照护交付积累经验`:MESSAGES[c]||'这次办理未完成，请稍后重试').join('；'));else if(text)notify(text);return r;}
   function apply(){if(getJob())return result({ok:false,code:'wage-ready'}).ok;if(!meetHost())return false;
     const applied=result(careers.apply(role.id,{ageYears:getPlayer()?.ageYears}),`${role.employer}：申请已收下。请当面确认职责，再核验你的技能与空缺。`);
@@ -45,9 +45,9 @@ export function createFormalLaborContract({careers,role,getJob,getPlayer,meetHos
     if(['inspection','ready','paid'].includes(d.stage)){result({ok:false,code:'wage-ready'});return false;}
     return !!result(careers.interruptDuty('cancelled')).ok;}
   function canWork(job){const d=duty(job);return !pinned(job)||!!d&&careers.canContinueLabor(job.receiptId);}
-  const pendingReceipt=()=>{const d=state()?.lastDuty;return hired()&&!getJob()&&d?.roleId===role.id&&d.stage==='working'?d.workReceiptId:null;};
+  const pendingReceipt=()=>{const d=workState()?.lastDuty;return hired()&&!getJob()&&d?.roleId===role.id&&d.stage==='working'?d.workReceiptId:null;};
   const beginAvailability=()=>hired()?careers.beginDutyAvailability(role.id,{receiptId:pendingReceipt()||undefined}):{ok:true};
-  return {role,hired,state,pinned,duty,pendingReceipt,apply,review,resign,begin,beginAvailability,complete,inspect,pay,cancel,canWork,
+  return {role,hired,state,workState,pinned,duty,pendingReceipt,apply,review,resign,begin,beginAvailability,complete,inspect,pay,cancel,canWork,
     open:(context={})=>openRegistration({country:role.country,roleId:role.id,scope:context.scope==='catalogue'?'catalogue':'role'}),
     unit,
     salary:`${role.wage}${role.preparationBonus?'–'+(role.wage+role.preparationBonus):''}${unit}`};
