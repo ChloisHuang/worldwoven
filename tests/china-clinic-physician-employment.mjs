@@ -81,5 +81,5 @@ test('physician owns only actionable patient time; arrival, suspension and faile
 test('physician patient actually waiting on this duty rates slow work, while rejected wrong plan never becomes delivered harm',()=>{
  const f=fixture();f.hire();f.act('accept');f.admit();f.until(()=>f.clinic.state().order.stage==='consult','patient seated');f.tick(1000);
  f.act('task');f.tick(24);f.act('plan:mistbell');assert.equal(f.clinic.workReceipts(f.employment.state().job.receiptId).length,0);f.act('plan:stillwater-ache');f.until(()=>f.clinic.state().order.stage==='handoff','corrected original card');f.act('task');f.until(()=>f.clinic.workReceipts(f.employment.state().job.receiptId).length===1,'correct delivery');f.tick(2);
- const receipt=f.clinic.workReceipts(f.employment.state().job.receiptId)[0];assert.equal(receipt.review.rating,2);assert.match(receipt.review.reason,/等候较久/);assert.match(receipt.review.reason,/正确交付/);assert(!/错误治疗|伤害/.test(receipt.review.reason));assert.equal(f.careers.state().lastDuty.customerReviews.length,1);
+ const receipt=f.clinic.workReceipts(f.employment.state().job.receiptId)[0];assert.equal(receipt.review.rating,2);assert.equal(receipt.review.reason,'问诊等得有些久');assert(!/错误治疗|伤害/.test(receipt.review.reason));assert.equal(f.careers.state().lastDuty.customerReviews.length,1);
 });

@@ -20,10 +20,10 @@ export function clinicPatientRating(seconds,role){return seconds===null?3:second
 export function clinicPatientReview(order,kind,receiptId,now){
  const timing=order.serviceTiming?.[kind],role=CLINIC_REVIEW_ROLES[kind];
  const seconds=timing?.receiptId===receiptId?Math.round(clinicResponsibleSeconds(timing,now)*100)/100:null;
- const rating=clinicPatientRating(seconds,role),part=kind==='physician'?'问询与原单交接':'接单、备包与当面交付';
+ const rating=clinicPatientRating(seconds,role),part=kind==='physician'?'问诊':'取药';
  return {version:1,evaluatorId:order.recipientId,rating,positive:rating>=3,responsibleSeconds:seconds,
-  reason:seconds===null?'同号原单已交付本人；旧单未记录责任工时，按中性评价':
-   rating===5?`${part}及时，同号云纹包已交付本人`:`${part}等候${rating===1?'过久':'较久'}，同号云纹包仍已正确交付本人`};
+  reason:seconds===null?'同号云纹包已收到':
+   rating===5?(kind==='physician'?'问询细致，也没久等':'取药很顺利'):`${part}等得${rating===1?'太久':'有些久'}`};
 }
 export function validClinicPatientReceipt(receipt,role){
  const review=receipt?.review,n=receipt?.number;
