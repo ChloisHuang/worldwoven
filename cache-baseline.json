@@ -1,5 +1,5 @@
 {
-  "publishedSourceCommit": "7a7fb20aad06933a323bf3b54f27383fd3b908bf",
+  "publishedSourceCommit": "053500aac03510ebed135a8959b4a38c54e5982f",
   "assets": [
     "/assets/china-tavern-role.4d7a56cb1258164a.js",
     "/assets/china-range-warden-slot.64e92d47d582e8fb.js",
@@ -149,8 +149,8 @@
     "/assets/china-palace-costume.47224b86ad28c81e.js",
     "/assets/china-tavern-staff-life.2cb04667b1d99d88.js",
     "/assets/china-tavern-meal-props.148c8aec0153416e.js",
-    "/assets/china-tavern-service-scene.704753c1e1a68542.js",
-    "/assets/china-tavern-meal.7f1478b6c9b93eeb.js",
+    "/assets/china-tavern-service-scene.8bf12bf5e406990e.js",
+    "/assets/china-tavern-meal.42edc7386cad14f8.js",
     "/assets/china-tavern-lodging-ui.fb6f174712c46266.js",
     "/assets/china-tavern-meal-ui.79eb0c27580a723d.js",
     "/assets/china-clinic-physician-life.61c02ef57f213c22.js",
@@ -270,7 +270,7 @@
     "/assets/approved-surfaces.57e8c88c0c44e9d2.js",
     "/assets/character-props.deb24f9b65d5e60a.js",
     "/assets/characters.7a31cf095ccdb645.js",
-    "/assets/main.f0526e2fe919851d.js",
+    "/assets/main.69544f40dc3a59b7.js",
     "/assets/adult-forms-data.f2d413fd71230493.js",
     "/assets/attach-head.cd715d43de06238a.js",
     "/assets/layered-hair-data.909c7058087b476c.js",
@@ -293,7 +293,7 @@
     "/assets/selection.2cd34b0ccbf73429.js",
     "/assets/character-preview-entry.41278f3d4ad29517.js",
     "/assets/character-live-entry.9e9b0f424c6ca883.js",
-    "/assets/entry.f2935092c0203ba0.js",
+    "/assets/entry.602a8c4f5d5202b7.js",
     "/assets/game.a655a566de8c2f0f.css",
     "/assets/three.core.9edde002b066a9a0.js",
     "/assets/three.module.d8c0a97fa13a785e.js"
