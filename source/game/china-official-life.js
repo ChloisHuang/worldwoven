@@ -184,7 +184,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   ready(n){return stages.get(n)?.courtReady===true;},
   resume(n){if(stages.get(n)?.pairId)endConversation(false);stages.delete(n);n.route=[];choose(n);},
   playerRequest(id){if(seat(id)?.kind==='bed')return;for(const n of officials){const s=stages.get(n);if(s?.choice?.facilityId===id||s?.facilityId===id){s.evicted=true;if(s.pairId)endConversation(false,'让出位置，改日再聊');}}},
-  meetingAvailable:n=>{const s=stages.get(n);return !!s&&s.arrived&&!s.pairId&&!s.called&&!s.courtReady&&!s.mount&&!s.borrowed&&!s.choice?.meal&&!s.choice?.toilet&&!s.choice?.inspection&&s.choice?.id!=='archive-duty';},
+  meetingAvailable:n=>{const s=stages.get(n);return !!s&&!s.pairId&&!s.called&&!s.courtReady&&!s.mount&&!s.borrowed&&!s.choice?.meal&&!s.choice?.toilet&&!s.choice?.inspection&&s.choice?.id!=='archive-duty';},
   label:n=>formatCourtEdictText(stages.get(n)?.label)||'承务官署 · 日常起居',
   tick(dt,playerState){state=playerState;time+=dt;brain.tick(dt);if(time>=nextPayrollAt){nextPayrollAt=time+5;for(const n of officials)settleDuty(n);for(const duty of unpaidDuties){const n=officials.find(n=>n.station.id===duty.actorId);if(n)settleDuty(n,duty);}for(let i=unpaidDuties.length-1;i>=0;i--)if(unpaidDuties[i].stage==='paid')unpaidDuties.splice(i,1);}},
   update(n,dt,t){
@@ -227,7 +227,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   },
   restore,mountForActor:n=>stages.get(n)?.mount||null,
   socialProfile:id=>brain.state(id),
-  socialBusy:id=>{const n=officials.find(n=>n.station.id===id),s=stages.get(n);return !!conversation?.participants.includes(id)||!!s&&(s.called||s.courtReady||s.borrowed||!!s.choice?.meal||!!s.choice?.toilet||!!s.choice?.inspection||s.choice?.id==='archive-duty')||!!n&&urgent(n);},
+  socialBusy:id=>{const n=officials.find(n=>n.station.id===id),s=stages.get(n);return !!conversation?.participants.includes(id)||!!s&&(s.called||s.courtReady||s.borrowed||!!s.choice?.meal||!!s.choice?.toilet||!!s.choice?.inspection||s.choice?.id==='archive-duty')||!!n&&(!!sharedNeeds?.status(id)?.seekMeal||!!sharedNeeds?.status(id)?.seekToilet||duties[id]?.stage==='awaiting-archive'||index(n)===0&&!!reports?.inspection());},
   socialCanPause:n=>!!stages.get(n)&&!stages.get(n).mount&&!stages.get(n).choice?.toilet,
   state:()=>({decisions:brain.snapshot(),conversation:conversation?JSON.parse(JSON.stringify(conversation)):null,actors:officials.map(n=>{const s=stages.get(n);return {id:n.station.id,activity:s?.choice?.id||null,stage:s?.courtReady?'court-ready':s?.arrived?'activity':'travel',arrived:s?.arrived||false,elapsed:s?.elapsed||0,mounted:s?.mount?.id||null,borrowed:!!s?.borrowed,duty:duties[n.station.id]||null,roomId:s?.roomId||null,called:!!s?.called,position:n.root.position.toArray()};})}),snapshot,
   dispose({suspend=false}={}){brain.dispose();if(!suspend)save();for(const n of officials){claims.releaseActor(n.station.id);}}

@@ -11,8 +11,9 @@ const REASONS={'promotion-pending':'已有升阶申请，请继续当面审核',
 // A world adapter only: every journey uses the controller's shared intent
 // planner. This module neither moves actors nor changes the six NPC holders.
 export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
-  getBusy=()=>false, canSee=()=>true, notify=()=>{}, openRegistration=()=>{},getRecruiter=()=>null,requestMeeting=()=>true,releaseMeeting=()=>{},documentObject=null}) {
-  let activity=null, reviewOnArrival=null, progress=0, pending=false, disposed=false, posture=null, postureActor=null, lastNotice=null, nextSettlementAt=0;
+  getBusy=()=>false, canSee=()=>true, notify=()=>{}, openRegistration=()=>{},getRecruiter=()=>null,getMeetingPoint=(_npc,fallback)=>fallback,requestMeeting=()=>true,releaseMeeting:releaseExternalMeeting=()=>{},documentObject=null}) {
+  let heldRecruiter=null, reviewAnchor=null, activity=null, reviewOnArrival=null, progress=0, pending=false, disposed=false, posture=null, postureActor=null, lastNotice=null, nextSettlementAt=0;
+  const releaseMeeting=()=>{heldRecruiter=null;releaseExternalMeeting();};
   const at = point => nearbyInteraction({position:point},getPlayer()?.root.position,{radius:.18,clear:canSee});
   const application=()=>careers.applicationResult(COURT_CLERK_ROLE.id);
   const promotion=()=>careers.promotionSummary?.().application;
@@ -49,20 +50,28 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
     // The upstairs desk aisle is bounded by the dormitory wall to the south.
     // Meet alongside the official there, not inside that wall.
     const inDeskAisle=q&&Math.abs(q.y-B.upperFloorY)<.3&&q.z>31.7&&q.z<32.5&&q.x>=16.6&&q.x<25.4;
-    const reviewPoint=q?[q.x+(inDeskAisle?(q.x>24.5?-.72:.72):0),q.y,q.z+(inDeskAisle?0:.72)]:P.registration;
+    const fallbackReviewPoint=q?[q.x+(inDeskAisle?(q.x>24.5?-.72:.72):0),q.y,q.z+(inDeskAisle?0:.72)]:P.registration;
+    let reviewPoint=fallbackReviewPoint;
+    if(q&&['review','promotion-review'].includes(kind)){
+      const key=q.toArray().join(':');
+      if(reviewAnchor?.actor!==npc||reviewAnchor.key!==key||!reviewAnchor.point)reviewAnchor={actor:npc,key,point:getMeetingPoint(npc,fallbackReviewPoint)};
+      reviewPoint=reviewAnchor.point;
+    }
+    if(['review','promotion-review'].includes(kind)&&(!npc||!reviewPoint))return null;
     const position=['review','promotion-review'].includes(kind)?reviewPoint:kind==='attend'?P.court:['archive','settle','receive-document','promotion-receive-document'].includes(kind)?P.archive:P.registration;
     return {id:'cn-court-career-'+kind,provider:'china-court-career',kind,position:[...position],...(['review','promotion-review'].includes(kind)&&npc?{visualAnchor:{actorId:npc.station.id}}:{}),...(kind==='view'?{registration:{scope:'role',roleId:COURT_CLERK_ROLE.id}}:{}),
       name:kind==='attend'?'承光正殿 · 第七录事班位':kind==='archive'||kind==='settle'?'承务官署 · 礼务归档案':'承务官署 · 铨录登记',
-      npcName:['review','promotion-review'].includes(kind)?'沈叙 · 礼仪官':kind==='attend'?'礼务录事':['receive-document','appointment','promotion-receive-document','promotion-appointment'].includes(kind)?'官署任命文书':'铨录簿',
-      action:{'promotion-apply':'提交正九品升阶申请','promotion-review':'向沈叙呈实任考语并接受升阶考核','promotion-receive-document':'领取升阶文书','promotion-appointment':'宣读升阶文书并受任',view:'查看正式职位',apply:'提交从九品礼务录事申请',review:'向沈叙呈履历并接受审核','receive-document':'领取已核验任命文书',appointment:'宣读任命文书并受职',resign:'办理录事离职',attend:'11:30前赴班 · 持笏候朝',archive:'抄录朝会归档 · 8秒',settle:'核对本日工资银行入账'}[kind],
-      intentKey:[s.revision,getClock().day,kind,...(['review','promotion-review'].includes(kind)?position.map(v=>v.toFixed(1)):[])].join(':'),interactionRadius:2.8,executionRadius:.18,priority:55};
+      npcName:['review','promotion-review'].includes(kind)?(npc?.station.npcName||'当值礼仪官'):kind==='attend'?'礼务录事':['receive-document','appointment','promotion-receive-document','promotion-appointment'].includes(kind)?'官署任命文书':'铨录簿',
+      action:{'promotion-apply':'提交正九品升阶申请','promotion-review':`向${npc?.station.npcName||'当值礼仪官'}呈实任考语并接受升阶考核`,'promotion-receive-document':'领取升阶文书','promotion-appointment':'宣读升阶文书并受任',view:'查看正式职位',apply:'提交从九品礼务录事申请',review:`向${npc?.station.npcName||'当值礼仪官'}呈履历并接受审核`,'receive-document':'领取已核验任命文书',appointment:'宣读任命文书并受职',resign:'办理录事离职',attend:'11:30前赴班 · 持笏候朝',archive:'抄录朝会归档 · 8秒',settle:'核对本日工资银行入账'}[kind],
+      intentKey:[s.revision,getClock().day,kind,...(['review','promotion-review'].includes(kind)?[npc?.actorId||npc?.station.id]:[])].join(':'),interactionRadius:2.8,executionRadius:.18,priority:55};
   }
   const resolveIntent = selected => {const next=intent(selected?.kind);if(!next||selected?.provider!==next.provider||selected.id!==next.id||selected.intentKey!==next.intentKey)return null;if(next.kind==='view'){const context=selected.registration||next.registration;if(context.roleId!==COURT_CLERK_ROLE.id||!['role','catalogue'].includes(context.scope))return null;return {...next,registration:{...context}};}return next;};
   function prepareIntent(selected){
     if(!['review','promotion-review'].includes(selected?.kind))return true;
     const next=resolveIntent(selected),npc=getRecruiter();if(!next||!npc)return false;
-    if(!requestMeeting(npc)){notify('沈叙正忙或尚未回到案前。申请已保留，请待他回官署停步后再约当面审核。');return false;}
-    notify('沈叙已在官署案旁留步等候。请沿公共楼梯前往；取消行程或朝会召集会解除等候。');return true;
+    if(!requestMeeting(npc)){notify(`${npc.station.npcName||'礼仪官'}正在办理不可中断的事务或私下休息。申请已保留；待朝仪、原单或净室事务结束后再当面办理。`);return false;}
+    heldRecruiter=npc;
+    notify(`${npc.station.npcName||'礼仪官'}已暂停日常行程，在当前位置等候当面审核；取消行程或朝会召集会解除等候。`);return true;
   }
   function executeIntent(selected) {
     const next=resolveIntent(selected);if(!next||getBusy()||!at(next.position))return false;
@@ -117,7 +126,9 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
     if(paid?.ok&&!paid.replayed)notify(`${paid.wage}铜文工资已存入当地钱庄；取款后才会进随身钱包。`);
   }
   function update(dt) {
-    if(disposed)return;syncDocument();
+    if(disposed)return;
+    if(heldRecruiter&&getRecruiter()!==heldRecruiter)releaseMeeting();
+    syncDocument();
     if(reviewOnArrival){
       const selected=reviewOnArrival,p=getPlayer();if(!p||!at(selected.position)||getBusy()){stopActivity();return;}
       if(p.walking)return;reviewOnArrival=null;activity=null;pending=false;

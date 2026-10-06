@@ -40,3 +40,12 @@ assert.match(npcSocialReply({...n,station:{id:'cn-calligraphy',npcAction:'callig
 // The same physical radius must reach the original Japan route owner. A click
 // caught between frames cannot open a paused greeting while its owner walks on.
 {const a=actor('jp-welcome'),p={x:2.3,y:0,z:0};assert(isJapanEmployeeInteraction(a,{position:p,conversationActorId:a.station.id}));assert(!isJapanEmployeeInteraction(a,{position:p,performing:a.station.id}));assert(!isJapanEmployeeInteraction(a,{position:{...p,x:2.5},conversationActorId:a.station.id}));assert(!isJapanEmployeeInteraction(a,{position:{...p,y:3.8},conversationActorId:a.station.id}));console.log('PASS Japan owner uses the same physical conversation radius while station activities remain local');}
+
+// A moving actor may be borrowed only when its own routine explicitly permits it.
+{
+ const n={station:{id:'rites',npcName:'礼仪官'},root:{position:{x:5,y:0,z:0},rotation:{y:0}},walking:true,route:[{x:8,y:0,z:0}],breakAt:10};
+ let allowed=false,busy=false;const route=n.route,events=[];const social=createNpcSocial({actors:()=>[n],player:()=>({root:{position:{x:0,y:0,z:0}}}),status:()=>({busy,canPause:allowed}),onMeetingEnded:(_,reason)=>events.push(reason)});
+ assert.equal(social.reserveMeeting(n,{owner:'review'}),false);allowed=true;assert(social.reserveMeeting(n,{owner:'review'}));assert.equal(n.walking,false);assert.equal(n.route,route);assert(social.isPaused(n));social.update(3);social.releaseMeeting('review');assert.equal(n.breakAt,13);assert.equal(n.route,route);
+ n.walking=true;busy=true;assert.equal(social.reserveMeeting(n,{owner:'review'}),false);busy=false;assert(social.reserveMeeting(n,{owner:'review'}));social.restore({version:1,time:3,attention:[]});assert.equal(social.meetingState(),null);
+ console.log('PASS routine-approved walking meeting preserves original route, rejects busy duties and clears transient hold on restore');
+}
