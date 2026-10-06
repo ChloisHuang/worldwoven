@@ -34,4 +34,18 @@ const social={id:ORIGINAL_TAVERN_HOST_ID,social:true,actor:original,targetName:'
 const source=fs.readFileSync(new URL('../source/game/china-tavern-service-scene.js',import.meta.url),'utf8'),context={ORIGINAL_TAVERN_HOST_ID,lot:{stations:[counter]},host:null,staff:{host:null},role:()=> 'host',P:TAVERN_MEAL.points,tablePlace:tavernTablePlace};vm.createContext(context);vm.runInContext(source.slice(source.indexOf(' function describe('),source.indexOf(' function choices(){')),context);
 for(const kind of['handover-in','handover-out']){const choice=context.describe(kind,null,[22.35,.215,6.7],kind),anchor=anchors.resolve({provider:'china-tavern-service',kind:'task',choice,position:choice.position});assert.deepEqual(anchor.point,counter.workTarget);assert.equal(anchor.id,'object:counter:'+ORIGINAL_TAVERN_HOST_ID);}
 context.host=replacement;const rent=context.describe('rent-room',null,[24.1,.215,6.4],'登记客房');assert.deepEqual(Array.from(rent.visualAnchor.point),counter.workTarget,'rent-room belongs to tavern surface, never replacement former workplace');context.staff.host=replacement;assert.equal(context.describe('handover-in',null,[22.35,.215,6.7],'交班').visualAnchor.actorId,replacement.station.id);
+// A holder change can occur while a chooser still displays its cached row.
+// Fresh role metadata must match the displayed actor before dispatch.
+{
+ const stale={provider:'china-tavern-service',kind:'formal-apply',id:'cached-apply',visualAnchor:{actorId:original.station.id},position:[22.35,.215,6.7]},shown=anchors.resolve(stale);
+ let live=stale;
+ const validation={objectAnchors:anchors,resolvePlayerIntent:()=>live,projectObjectAnchor:()=>({visible:true}),objectPoint:()=>({}),furniture:{},player:{root:{position:{}}},camera:{position:{distanceTo:()=>0}},cameraSolids:[],cameraDistanceToObstacle:()=>1,nearbyInteraction:()=>true,nearbyInteractionClear:()=>true,npcs:[original,replacement],toast(){}};
+ vm.createContext(validation);vm.runInContext(main.slice(main.indexOf('function sameObjectAnchor('),main.indexOf('const projectPoint=')),validation);
+ assert(validation.validateObjectAction(stale,shown),'same current incumbent remains selectable');
+ live={...stale,visualAnchor:{actorId:replacement.station.id}};
+ assert.equal(validation.validateObjectAction(stale,shown),false,'cached predecessor click cannot dispatch to a different incumbent');
+ live={...stale,visualAnchor:{}};
+ assert.equal(validation.validateObjectAction(stale,shown),false,'vacancy/dead/player suppression also invalidates an old person chooser');
+}
+
 console.log('PASS merged host/object UI: successor identity/name; vacancy/dead/player suppress predecessor; static counters; former-person social identity; player handover and rent-room actual counter surfaces');

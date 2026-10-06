@@ -779,8 +779,8 @@ function projectObjectAnchor(anchor,item){
 function sameObjectAnchor(item,anchor){const next=objectAnchors.resolve(item);return next?.id===anchor.id&&next.actor===anchor.actor;}
 function validateObjectAction(item,anchor){
  const current=item.social?item:item.furniture?furniture.items.find(f=>f.id===item.id):item.playerService?japanServiceUI?.target():item.franceTea?franceTea?.target():item.weatherCharm?japanWeatherCharms?.target():resolvePlayerIntent(item);
- if(!current||item.social&&(!npcs.includes(anchor.actor)||anchor.actor!==item.actor)||!sameObjectAnchor(item,anchor)||!projectObjectAnchor(anchor,item)?.visible){toast('这个对象已不在可互动的位置，请靠近后再试');return false;}
- const point=objectPoint(anchor),clear=!!point&&(anchor.furniture?furniture.isVisible(anchor.furniture,camera.position,point,cameraSolids):cameraDistanceToObstacle(camera.position,point,cameraSolids,0)>=camera.position.distanceTo(point)-.3);if(!clear||!nearbyInteraction(item.social?{...item,position:anchor.actor.root.position.toArray()}:item,player.root.position,{clear:nearbyInteractionClear})){toast('请靠近这个对象再试');return false;}
+ if(!current||item.social&&(!npcs.includes(anchor.actor)||anchor.actor!==item.actor)||!sameObjectAnchor(current,anchor)||!projectObjectAnchor(anchor,current)?.visible){toast('这个对象已不在可互动的位置，请靠近后再试');return false;}
+ const point=objectPoint(anchor),clear=!!point&&(anchor.furniture?furniture.isVisible(anchor.furniture,camera.position,point,cameraSolids):cameraDistanceToObstacle(camera.position,point,cameraSolids,0)>=camera.position.distanceTo(point)-.3);if(!clear||!nearbyInteraction(current.social?{...current,position:anchor.actor.root.position.toArray()}:current,player.root.position,{clear:nearbyInteractionClear})){toast('请靠近这个对象再试');return false;}
  return true;
 }
 const projectPoint=(p,el)=>{const v=p.clone().project(camera);el.style.left=(v.x*.5+.5)*viewport.width+viewport.left+'px';el.style.top=(-v.y*.5+.5)*viewport.height+viewport.top+'px';return v.z<1&&Math.abs(v.x)<1.1&&Math.abs(v.y)<1.1;};
