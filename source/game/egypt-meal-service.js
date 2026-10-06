@@ -87,7 +87,7 @@ export function createEgyptMealService({npcs,lot,furniture,doors,navigation:scen
  // Dana lends her one existing service lane. Old meals drain before takeover;
  // only a player who hears, reports, serves and washes the original order earns evidence.
  const tableHeld=()=>state.order?.holder==='player';
- const tableLocal=()=>{const p=getPlayer()?.root.position;return p&&Math.abs(p.y)<.35&&p.x>=14.8&&p.x<=23&&p.z>=-18.1&&p.z<=-7;};
+ const tableLocal=()=>{const p=getPlayer()?.root.position;return p&&Math.abs(p.y)<.35&&p.x<=23&&p.z<=-7&&(p.z>=-12.3&&p.x>=13.3||p.z>=-18.1&&p.x>=17);};
  const tableActive=id=>state.tableDuty?.receiptId===id&&state.tableDuty.status==='active';
  const playerServing=()=>resident(state.order)&&(tableHeld()||state.tableDuty?.status==='active'&&!state.order.tableAbandoned&&(!state.order.tableReceiptId||state.order.tableReceiptId===state.tableDuty.receiptId));
  const hostBusy=()=>!!state.order&&!playerServing();
@@ -101,7 +101,7 @@ export function createEgyptMealService({npcs,lot,furniture,doors,navigation:scen
   canClaimDuty:()=>!!guest&&!state.duty&&(!state.order||resident(state.order)),
   holdDuty(id){if(!state.tableDuty)return commit(s=>{s.tableDuty={receiptId:id,status:'paused'};});return state.tableDuty.receiptId===id;},
   claimDuty(id){if(!this.canClaimDuty()||state.tableDuty&&state.tableDuty.receiptId!==id)return false;tableStep=null;return commit(s=>{s.tableDuty={receiptId:id,status:'draining'};});},
-  releaseDuty(id,{evaluate=false}={}){if(state.tableDuty&&state.tableDuty.receiptId!==id||tableHeld()&&!at(getPlayer(),P.pass,.24))return false;const ok=commit(s=>{if(evaluate)abandonTable(s,id);if(s.order?.holder==='player'){s.order.holder='kitchen';s.order.stage=s.order.finished||s.order.cancelled?'washing':'collecting';s.phase=0;}s.tableDuty=null;});if(ok)tableStep=null;return ok;},
+  releaseDuty(id,{evaluate=false}={}){if(state.tableDuty&&state.tableDuty.receiptId!==id||tableHeld()&&!at(getPlayer(),P.pass,.31))return false;const ok=commit(s=>{if(evaluate)abandonTable(s,id);if(s.order?.holder==='player'){s.order.holder='kitchen';s.order.stage=s.order.finished||s.order.cancelled?'washing':'collecting';s.phase=0;}s.tableDuty=null;});if(ok)tableStep=null;return ok;},
   canEndDuty:id=>state.tableDuty?.receiptId===id&&!tableStep&&!tableHeld()&&(!state.order?.tableReceiptId||state.order.tableReceiptId!==id||state.order.tableAbandoned||state.tableReceipts.some(r=>r.workReceiptId===id&&r.orderId===state.order.id&&r.completed)),
   requestMeeting:v=>{tableMeeting=!!v;},dutyState:()=>copy(state.tableDuty||{receiptId:null,status:'inactive'}),workReceipts:id=>copy(state.tableReceipts.filter(r=>r.workReceiptId===id)),
   executeWork(w,id){const expected=tableIntent(id);if(!expected||expected.key!==w.key||getMounted()||!at(getPlayer(),expected.position,.22))return false;tableStep={...expected,receiptId:id,elapsed:0};return true;},
