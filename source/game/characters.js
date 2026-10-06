@@ -15,6 +15,17 @@ const clothMaterial=toon(BAND_VALUES),skinMaterial=toon(SKIN_VALUES);
 const previewMaterials=new Map();
 function previewMaterial(adapter,preview,section){let variants=previewMaterials.get(adapter);if(!variants){variants=new Map();previewMaterials.set(adapter,variants);}const key=section+'|'+adapter.materialKey(preview);let material=variants.get(key);if(!material){material=section==='skin'?adapter.prepareSkinMaterial(toon(SKIN_VALUES),preview):adapter.prepareClothMaterial(toon(BAND_VALUES),preview);variants.set(key,material);}return material;}
 const cache=new Map(),CACHE_LIMIT=24;
+// Simulation still solves every pose. Only the ordinary write-only matrix
+// commit may wait until the presentation frame ends; contact/prop readers
+// retain their explicit world-matrix refreshes before reading a pose.
+let poseBatchDepth=0;
+const pendingPoseCommits=new Set();
+export function beginCharacterPoseBatch(){poseBatchDepth++;}
+export function endCharacterPoseBatch(){
+ if(!poseBatchDepth||--poseBatchDepth)return;
+ try{for(const commit of pendingPoseCommits)commit();}
+ finally{pendingPoseCommits.clear();}
+}
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 // Parent-before-child anatomical joints, with absolute rest positions.
 const JOINTS=[
@@ -213,11 +224,12 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    }
   }return result;
  }
+ function commitPoseMatrices(){rig.updateMatrixWorld(true);skeleton.update();}
  function applyPose(){
   for(let i=0;i<bones.length;i++){const parent=JOINTS[i][1];if(parent<0){bones[i].position.copy(posedP[i]);bones[i].quaternion.copy(posedQ[i]);}else{invQ.copy(posedQ[parent]).invert();bones[i].position.copy(posedP[i]).sub(posedP[parent]).applyQuaternion(invQ);bones[i].quaternion.copy(invQ).multiply(posedQ[i]);}}
   // World-upright cups, bowls and buckets; hands retain real elbow/wrist rotation.
   props.left.quaternion.copy(posedQ[6]).invert();props.right.quaternion.copy(posedQ[9]).invert();
-  rig.updateMatrixWorld(true);skeleton.update();
+  if(poseBatchDepth)pendingPoseCommits.add(commitPoseMatrices);else commitPoseMatrices();
  }
  function measureLieSkin(){
   const result={min:Infinity,max:-Infinity,hip:Infinity,back:Infinity,head:Infinity,heel:Infinity,points:{}};root.updateMatrixWorld(true);skeleton.update();inverseRoot.copy(root.matrixWorld).invert();
@@ -568,7 +580,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   metrics.grounded=mountedPose||action==='chair-sit'||action==='kotatsu'||posedP[12].y>=footTargets[0].y-.003&&posedP[15].y>=footTargets[1].y-.003;metrics.rigBones=18;metrics.continuousCloth=true;metrics.unevenSupport=unevenSupport;
   previousRoot.copy(rootWorld);lastTime=time;wasWalking=walking;previousYaw=root.rotation.y;
  }
- function dispose(){if(disposed)return;disposed=true;skeleton.dispose();disposeHandProps(props);releaseTemplate(template);const geometry=new Set(),materials=new Set();root.traverse(o=>{if(o.geometry&&!o.geometry.userData.characterShared)geometry.add(o.geometry);for(const m of (Array.isArray(o.material)?o.material:[o.material]))if(m&&!m.userData?.characterShared)materials.add(m);});geometry.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());root.userData.disposed=true;}
+ function dispose(){if(disposed)return;disposed=true;pendingPoseCommits.delete(commitPoseMatrices);skeleton.dispose();disposeHandProps(props);releaseTemplate(template);const geometry=new Set(),materials=new Set();root.traverse(o=>{if(o.geometry&&!o.geometry.userData.characterShared)geometry.add(o.geometry);for(const m of (Array.isArray(o.material)?o.material:[o.material]))if(m&&!m.userData?.characterShared)materials.add(m);});geometry.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());root.userData.disposed=true;}
  function getPoseMetrics(){return {...metrics,feet:metrics.feet.map(x=>x.slice()),hands:metrics.hands.map(x=>x.slice())};}
  animate(0,false,null);
  return {root,animate,dispose,locomotion,get height(){return height+visualFloorOffset;},getPoseMetrics};
