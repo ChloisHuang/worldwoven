@@ -17,7 +17,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
  getClock=null,worldSeed=1,saved={},saveState=()=>{},notify=()=>{},onInteraction=()=>{}}){
  const doctor=npcs.find(n=>n.station.id===C.roles[0].id),assistant=npcs.find(n=>n.station.id===C.roles[1].id);if(!doctor||!assistant||!lot.clinic)return null;
  const nextPatientAttempt=new Map(),meetingRequests=new Set(),owned=new Set([doctor,assistant]),P=C.points,history=Array.isArray(saved.history)?saved.history.slice(-40):[],failures=[],travelState=new Map();
- let serial=Math.max(0,Number.isSafeInteger(saved.serial)?saved.serial:0),revision=saved.revision||0,time=Number.isFinite(saved.time)?Math.max(0,saved.time):0,order=null,player=null,playerState={},disposed=false,request=false,phaseTime=0,meeting=false,workAction=null;
+ let serial=Math.max(0,Number.isSafeInteger(saved.serial)?saved.serial:0),revision=saved.revision||0,time=Number.isFinite(saved.time)?Math.max(0,saved.time):0,order=null,player=null,playerState={},disposed=false,request=false,phaseTime=0,meeting=false,workAction=null,timingSavePending=false;
  const workReceipts=Array.isArray(saved.workReceipts)?saved.workReceipts.slice(-8):[],props=makeProps(lot.group);
  const patient=()=>order&&PATIENTS.has(order.recipientId)?npcs.find(n=>n.station.id===order.recipientId):null;
  const npcOrder=()=>!!patient(),worker=()=>order?.worker==='player'?player:assistant;
@@ -101,12 +101,17 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
  // Persist only readiness boundaries, not every frame. A running interval uses
  // the simulation clock; existing snapshots retain its elapsed responsibility.
  function updateReviewTiming(paused){
-  if(!npcOrder()||!order.serviceTiming||['complete','cancelled'].includes(order.stage))return;
+  if(!npcOrder()||!order.serviceTiming||['complete','cancelled'].includes(order.stage))return true;
   const eligible={physician:!paused&&physicianWork.owns(order.physicianReceiptId)&&(['consult','writing'].includes(order.stage)&&seated()||order.stage==='handoff'&&near(assistant,P.assistantHandoff,.1)),
    assistant:!paused&&order.worker==='player'&&getEmployment()?.stage==='working'&&getEmployment()?.receiptId===order.workReceiptId&&
     (order.stage==='handoff'&&near(doctor,P.doctorHandoff)||order.stage==='stock'||order.stage==='counter'&&atCounter())};
-  const now=reviewClock(),changed=Object.keys(eligible).filter(key=>order.serviceTiming[key]&&eligible[key]!==(order.serviceTiming[key].startedAt!==null));
-  if(changed.length)changeOrder(o=>{for(const key of changed){const row=o.serviceTiming[key];if(eligible[key])row.startedAt=now;else{row.seconds=clinicResponsibleSeconds(row,now);row.startedAt=null;}}});
+  const now=reviewClock();
+  // A failed timer checkpoint pauses dependent work. Keep elapsed evidence in
+  // memory and exclude time spent waiting for storage to recover.
+  if(timingSavePending){for(const row of [order.serviceTiming.physician,order.serviceTiming.assistant])if(row?.startedAt!==null&&row)row.startedAt=now;if(!persist())return false;timingSavePending=false;}
+  const changed=Object.keys(eligible).filter(key=>order.serviceTiming[key]&&eligible[key]!==(order.serviceTiming[key].startedAt!==null));
+  if(changed.length){for(const key of changed){const row=order.serviceTiming[key];if(eligible[key])row.startedAt=now;else{row.seconds=clinicResponsibleSeconds(row,now);row.startedAt=null;}}timingSavePending=!persist();}
+  return !timingSavePending;
  }
  function delivered(){if(!order||['complete','cancelled'].includes(order.stage))return false;if(order?.physician==='player'&&(!order.careCorrect||!order.questioned))return false;const recipient=npcOrder()?patient():player;if(!recipient||!atCounter()||!order.packetId)return false;
   const before=copy(order),size=history.length,receipts=copy(workReceipts);order.cardHolder='delivered';order.claims={doctor:null,assistant:null};order.deliveredAt=time;order.stage='complete';order.patientPhase=npcOrder()?'returning':null;
@@ -180,7 +185,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
       else if(order.stage==='deliver'){ah=true;face(assistant,P.counter);if((!npcOrder()&&!request)||!atCounter()){enter('ready');request=false;}else if(!paused){phaseTime+=dt;contact(dt);if(phaseTime>=1.3)delivered();}}
      }
     }
-    updateReviewTiming(paused);
+    if(!updateReviewTiming(paused))return;
     physicianWork.update(dt,paused);
     if(workAction){const a=workAction;if(!getEmployment()||getEmployment().receiptId!==order.workReceiptId||getMounted()||!near(player,a.origin,.035)){workAction=null;notify('已停下当前动作，原单仍在，可回原处继续');}
      else if(!paused&&(a.kind!=='take'||near(doctor,P.doctorHandoff))&&(a.kind!=='deliver'||atCounter())){a.elapsed+=Math.min(.1,Math.max(0,dt));if(a.kind==='deliver')contact(dt);if(a.elapsed>=a.duration){
@@ -197,7 +202,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
   snapshot:()=>({version:2,revision,serial,time,physicianLife:physicianLife.snapshot(),order:orderSnapshot(),request,phaseTime,history:copy(history),workReceipts:copy(workReceipts)}),
   restore(snapshot,{player:restoredPlayer}={}){if(![1,2].includes(snapshot?.version)||snapshot.order&&(!LABELS[snapshot.order.stage]||snapshot.order.id!=='cn-clinic-order-'+snapshot.order.number)||snapshot.revision!==undefined&&snapshot.revision<revision)return false;
    const next=snapshot.order?.recipientId&&snapshot.order.recipientId!=='player'?restoreOrder(snapshot.order):snapshot.order?{...copy(snapshot.order),recipientId:'player',recipientName:'你',worker:'assistant'}:null;if(snapshot.order&&!next)return false;
-   for(const n of [...owned])if(n!==doctor&&n!==assistant)owned.delete(n);serial=Math.max(serial,snapshot.serial||0);revision=Math.max(revision,snapshot.revision||0);time=Math.max(0,snapshot.time||0);order=next;if(patient())owned.add(patient());phaseTime=Math.max(0,snapshot.phaseTime||0);request=!!snapshot.request;player=restoredPlayer||null;workAction=null;physicianWork.stop();physicianLife.restore(snapshot.physicianLife||{});history.splice(0,history.length,...copy(snapshot.history||[]));if(snapshot.workReceipts)workReceipts.splice(0,workReceipts.length,...copy(snapshot.workReceipts));travelState.clear();for(const n of owned)n.route=[];props.update(order,{doctor:order?.physician==='player'?player||doctor:doctor,assistant:worker()||assistant},phaseTime);return true;},
+   for(const n of [...owned])if(n!==doctor&&n!==assistant)owned.delete(n);serial=Math.max(serial,snapshot.serial||0);revision=Math.max(revision,snapshot.revision||0);time=Math.max(0,snapshot.time||0);order=next;if(patient())owned.add(patient());phaseTime=Math.max(0,snapshot.phaseTime||0);request=!!snapshot.request;player=restoredPlayer||null;workAction=null;timingSavePending=false;physicianWork.stop();physicianLife.restore(snapshot.physicianLife||{});history.splice(0,history.length,...copy(snapshot.history||[]));if(snapshot.workReceipts)workReceipts.splice(0,workReceipts.length,...copy(snapshot.workReceipts));travelState.clear();for(const n of owned)n.route=[];props.update(order,{doctor:order?.physician==='player'?player||doctor:doctor,assistant:worker()||assistant},phaseTime);return true;},
   state(){return {serial,revision,order:order?copy(order):null,request,workAction:workAction?copy(workAction):null,workReceipts:copy(workReceipts),history:copy(history),failures:copy(failures),physicianLife:physicianLife.snapshot(),physicianOwnership:{holderId:isPhysicianHired()?'player':doctor.station.id,npcId:doctor.station.id,status:isPhysicianHired()?order?.physician!=='player'&&order&&!['complete','cancelled'].includes(order.stage)?'temporary-cover':'off-duty':'on-duty'},staffOwnership:{holderId:isAssistantHired()?'player':assistant.station.id,npcId:assistant.station.id,status:isAssistantHired()?order&&!npcOrder()||order?.temporaryCover?'temporary-cover':'off-duty':'on-duty'},actors:[...owned].map(n=>({id:n.station.id,ageYears:n.station.ageYears,position:n.root.position.toArray(),walking:n.walking})),healthEffects:false};},
   dispose({suspend=false}={}){if(disposed)return;if(!suspend)cancel('离开地区');disposed=true;for(const n of owned){n.route=[];if(n.poseContext){n.poseContext.handoff=false;n.poseContext.receptionWriting=false;}}props.dispose();}
  };
