@@ -62,3 +62,6 @@ for(const sufficient of [false,true]){
  assert.deepEqual(snapshot(funds),before,'eligibility and safe departure do not mutate wage or meal accounts');life.dispose({suspend:true});
 }
 console.log('PASS actual clinic-needs consumer waits for original work boundary then departs on clinic3+guest4, while guest4 alone stays put; no account/body reassignment');
+
+const exhausted=setup(null,{fund:false});earnedRoyal(exhausted.royal,ID,1,1.25);earnedClinic(exhausted.clinic,ID);assert.equal(exhausted.aggregate.account(ID).bank,6);assert(exhausted.aggregate.prepareMealPayment(meal).commit().ok);assert.equal(exhausted.aggregate.account(ID).bank,0);assert(exhausted.clinic.hasIncome(ID));assert(exhausted.aggregate.providerFor(ID));const exhaustedReload=setup(exhausted.game);assert(exhaustedReload.aggregate.prepareMealRefund(meal).commit().ok);assert.equal(exhaustedReload.clinic.account(ID).bank,3);assert.equal(exhaustedReload.royal.account(ID).bank,3);
+console.log('PASS clinic+guest zero-total original payer survives reload and restores exact original3+3 sources once');

@@ -1336,3 +1336,7 @@ FND01 医馆↔guest个人餐款适配前置（2026-10-07 UTC+8，R151/2d34d38�
 
 FND01医馆适配审查补边界（开发未激活）：已登记为clinic或guest的人请求新餐，也必须保持当前借用许可互斥，不能绕过登记步骤借双控制状态开单；此新单门槛不阻止旧预付原单在失去岗位或人不活后的清理/退款。新例及原clinic共享餐通过，独立只读审查未见阻塞。main仍未改；待R152稳定底座合入后，还须由china-tavern-meal转发明确opt-in、clinic个人需要读取总额，工资协调器继续原账。
 FND01医馆actual needs consumer补验（仍未接main）：真实createClinicNeeds在本人clinic3+guest4可负担时先停draining保原患者/工作门槛，只有canDepart真实安全边界为true才进go-meal；仅guest4不离岗，检查与离岗不改原工资/餐款账。直接路线夹具，不声称已退休人物在生产控制器间可自由转职；等待R152稳定底座。
+
+FND01 医馆↔guest接线已验候选（2026-10-07 UTC+8，R152稳定458a4ae底座，未发布）：增量移入原8661ad8/2a325d9/8c7cd1f，正式候选f0f5f0c/61ccc76/d618966；只解checklist追加及provider显式白名单，保传令第六来源和原delivery proof。main现把clinic作为第七账户来源加入原meal resolver，china-tavern-meal明确转发personalMealEconomy，医馆个人需求读总额；工资协调器仍原clinicNPCEconomy，实际覆盖/患者评价/费率/原岗位控制对象均未改变。clinic/guest空闲换餐类登记仅凭当前互斥真实借用许可，绝不转任岗位或释放另一控制器。
+实际生产main1步通过（640.96MiB）：当前原医师持本人旧御厨4文和clinic observer已观测封薪3文，实际进入go-meal，主wrapper下当前controller授权的餐类登记及原6文可负担查询成立；两原账仍4/3、餐款日志为空、herald账0及31身份保持。仅验证去餐入口/资格与保存接线，不提前创建餐、不缩短实际步行，不称生产完整食厕路线；原患者未完时保持draining到安全门槛的actual clinicNeeds直接路线测试亦已通过。原共享餐实际6文扣款/同盘吃完、未供餐原来源退款和重载证据来自上述真实账+原酒楼定向链；新增耗尽至0再重载仍可退回原clinic3/guest3。严格clinic工资、observer、payroll、餐账、需求/入列/原返程及guest多账/旧租约、herald严格账与四个provider活动预付恢复均通过。一次需求测试启动漏VM开关，按原要求补开关后通过，未改产品。
+最终fresh构建290资源/8,547,831字节通过，7个历史tracked不可变资产保持原样；旧公开缓存合图交发布流程。只扩clinic与现guest家族；官员/艺者/原酒楼个人财产仍按各自来源单独使用，雅间支出始终官员原账。clinic退休人物仍由旧控制器保留、艺者固定身份等完整职业流动限制不在本批，不以账面兼容声称生产可随意换岗。未跑四国全套、未重走已验长阶梯/净室，无浏览器/GPU/iOS或终身总钱包完成声明。
