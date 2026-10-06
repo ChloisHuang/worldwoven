@@ -308,6 +308,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   receptionReceipts:receiptId=>clone(state.receptionReceipts.filter(r=>r.workReceiptId===receiptId)),
   nextIdentity:()=>({id:`jp-visitor-${state.worldSeed}-${state.nextVisit}`,number:state.nextVisit}),
   // Read-only social eligibility; avoid copying the full order ledger for a look.
+  workerClaim:workerId=>{const job=claims.get(workers.get(workerId));return job?{id:job.id,workerId:job.workerId,kind:job.kind}:null;},
   workerBusy:workerId=>workers.has(workerId)||state.items.some(i=>i.location?.type==='worker'&&i.location.id===workerId),
   jobs:()=>jobs().map(j=>({...clone(j),workerId:claims.get(j.id)?.workerId||null})),claim,
   pickup(jobId,workerId,evidence={}) {

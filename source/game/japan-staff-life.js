@@ -143,7 +143,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
     const reliefPost=shift.local?post(active.id):null;
     if(reliefPost?.mount&&!furniture.facilities.request(reliefPost.mount.id,active.reliefId)){active.phase='draining';return;}
     if(!active.retireReady)go(n,shift.retire,{face:shift===APOTHECARY||shift.side||shift.local?shift.relief:null,label:`把${shift.duty}交给 ${relief.station.npcName}`,duration:1,onDone:()=>{active.retireReady=true;return met();}});
-    if(!active.reliefReady)go(relief,shift.relief,{...(reliefPost?.mount?{mount:reliefPost.mount,action:reliefPost.action,workTarget:reliefPost.workTarget}:{}),face:reliefPost?.mount?reliefPost.workTarget:shift===APOTHECARY||shift.side||shift.local?shift.retire:null,label:`接替 ${n.station.npcName} 的${shift.duty}`,duration:1,onDone:()=>{active.reliefReady=true;return met();}});
+    if(!active.reliefReady)go(relief,shift.relief,{...(reliefPost?.mount?{mount:reliefPost.mount,action:reliefPost.action,workTarget:reliefPost.workTarget}:{}),face:reliefPost?.mount?reliefPost.workTarget:shift===APOTHECARY||shift.side||shift.local?shift.retire:null,label:`接替 ${n.station.npcName} 的${shift.duty}`,duration:1,onDone:()=>{active.reliefReady=true;active.npcReliefReady=true;return met();}});
  }
  function snapshot(){return ({version:8,mealSerial,mealReceipts:copy(mealReceipts),needRetryAt:{...needRetryAt},next:crew.indexOf(nextWorker()),nextId:nextWorker().station.id,clock:time,night,breakDue:{...due},dueIn:active?0:Math.max(0,due[nextWorker().station.id]-time),completed,interrupted,returning:active?['returning','reclaiming'].includes(active.phase):resumeReturn,returnInterrupted:active?active.interrupted:resumeReturn&&!!saved.returnInterrupted,decisions:decisions.snapshot()});}
  function persistMeals(nextSerial,nextReceipts){
@@ -175,6 +175,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
  }
  conversations=createJapanStaffConversations({crew,brain:decisions,furniture,assign,clear,unmount,taskOf,available:sociallyAvailable,canReach,save:()=>saveState(snapshot()),beginInteraction,onInteraction,note,onRelease:id=>{if(active?.id===id)active.socialPauseDone=true;}});ready=true;
  return {
+  payrollRotation:()=>active?{id:active.id,reliefId:active.reliefId,phase:active.phase,externalCoverage:!!active.externalCoverage,retireReady:!!active.retireReady,reliefReady:!!active.reliefReady,npcReliefReady:!!active.npcReliefReady}:null,
   idlePoint(id){return active?.reliefId===id&&!active.externalCoverage&&(!profile(id).local||active.covering)?shiftFor(active.id).relief:id==='jp-tea'?KOTATSU.position:id==='jp-welcome'?FRONT_DESK.retire:id==='jp-incense'?APOTHECARY.retire:null;},
   // Nao stays the supply clerk between relief shifts; training is not a
   // permanent reassignment away from the rear-yard crates.
@@ -213,7 +214,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
     // Already claimed orders and trays finish normally. Neither actor can
     // claim another job until the relief physically reaches this handoff.
     if(busy(n)||!active.externalCoverage&&busy(relief)||!unmount(n)||!active.externalCoverage&&!unmount(relief))return;
-    clear(n);if(!active.externalCoverage){clear(relief);furniture.releaseActor(relief.station.id);}furniture.releaseActor(n.station.id);active.phase='handoff';active.retireReady=false;active.reliefReady=false;
+    clear(n);if(!active.externalCoverage){clear(relief);furniture.releaseActor(relief.station.id);}furniture.releaseActor(n.station.id);active.phase='handoff';active.retireReady=false;active.reliefReady=false;active.npcReliefReady=false;
     rebuildHandoff(n,relief,shift);return;
    }
    if(['toilet','toilet-use'].includes(active.phase)){

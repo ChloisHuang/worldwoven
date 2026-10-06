@@ -1,3 +1,4 @@
+import {japanStaffCoverage,JAPAN_PAYROLL_ACTORS} from './japan-staff-payroll.js';
 import {createJapanTableServiceDuty} from './japan-table-service-duty.js';
 import {createJapanKitchenDuty} from './japan-kitchen-duty.js';
 import {createJapanBathMixingDuty} from './japan-bath-mixing-duty.js';
@@ -119,6 +120,9 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
     // Jobs own destinations/timing; ordinary walking shares the same full-body
     // route follower and local grid rejoin as every other actor.
     const step=followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:playerState.position,radius:.25,speedScale:.82,arrivalTolerance:.025});
+    // A live order counts its actual service journey, including ordinary door
+    // waits. A stale claim after displacement cannot prove physical coverage.
+    if(task.orderJobId&&(n.route.length||near(n.root.position,task.to,.35)))task.payrollPosition=n.root.position.toArray();
     if(step.waiting&&!step.blocked){task.stalled=0;return;}
     task.stalled=n.walking?0:task.stalled+dt;
     if(task.stalled>5){task.stalled=0;task.routeSet=false;if(++task.retries>3)abortTask(task,'route temporarily obstructed');}
@@ -241,6 +245,20 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
  }
  staffLife=createJapanStaffLife({beginInteraction,onInteraction,getMeetingHeld:id=>id==='jp-ramen'&&tableServiceDuty?.holdsHost()||id==='jp-sushi'&&kitchenDuty?.holdsHost()||id==='jp-welcome'&&receptionDuty?.holdsHost()||id==='jp-onsen'&&deliveryDuty?.holdsHost()||id==='jp-women-onsen'&&womenDeliveryDuty?.holdsHost()||id==='jp-incense'&&mixingDuty?.holdsHost(),getReceptionCoverage:()=>receptionDuty?.isCovering()||false,getExternalCoverage:(id,kind)=>tableServiceDuty?.coversWorker(id,kind)||kitchenDuty?.coversWorker(id,kind)||deliveryDuty?.coversWorker(id,kind)||womenDeliveryDuty?.coversWorker(id,kind)||['jp-incense','jp-herb-workshop'].includes(id)&&mixingDuty?.isCovering()||false,sharedNeeds,getToilet,saveState:state=>saveState({...board.state(),staffLife:state}),onMealReceipt:receipt=>!sharedNeeds||sharedNeeds.mealReceipts([receipt])||(sharedNeeds.snapshot().people[receipt.actorId]?.receipts['japan-staff-meal']||0)>=receipt.number,actors,board,furniture,assign,clear,unmount,taskOf:n=>tasks.get(n.station.id),changeWardrobe,worldSeed,canReach:(n,to)=>near(n.root.position,to)||planPath(n.root.position,point(to),.25).length>0,saved:saved.staffLife});
  return {
+  staffCoverage(){
+   if(disposed)return [];
+   const duties={kitchen:board.staffDuty('kitchen')?.status,tableService:board.staffDuty('tableService')?.status};
+   const coverage=JAPAN_PAYROLL_ACTORS.map(id=>{
+    const n=actors.get(id),task=tasks.get(id);if(!n)return {id};
+    const idleTarget=tableServiceDuty?.idlePoint(id)||kitchenDuty?.idlePoint(id)||staffLife?.idlePoint(id)||n.home.toArray();
+    return {id,position:n.root.position.toArray(),idleTarget,task,claim:board.workerClaim(id),
+     canWork:!staffLife||staffLife.canWork(id),cooldown:(cooldowns.get(id)||0)>time,
+     mounted:!!(n.serviceMount||n.bathTransition),paused:isJapanEmployeeInteraction(n,playerState)||playerState.meetingActorId===id,
+     heldMeeting:id==='jp-sushi'?kitchenDuty?.holdsHost():tableServiceDuty?.holdsHost(),
+     onTaskRoute:!!task&&(task.arrived?near(n.root.position,task.to,.35):!!task.payrollPosition&&near(n.root.position,task.payrollPosition,.35))};
+   });
+   return japanStaffCoverage({workers:coverage,duties,rotation:staffLife?.payrollRotation()});
+  },
   owns:n=>actors.has(n.station.id),
   socialStatus(n){const task=tasks.get(n.station.id),need=sharedNeeds?.status(n.station.id),busy=!!(n.serviceMount||n.bathTransition||task&&!task.idle||task?.held||task?.handoff||need?.seekMeal||need?.seekToilet||board.workerBusy(n.station.id));return {busy,canPause:!busy,attention:!busy,job:task?.label||n.station.npcLabel};},
   connectPlayerService(options) {return playerCustomerService??=createJapanPlayerService({...options,board,furniture,continuity:checkpoint?.playerService});},

@@ -42,6 +42,7 @@ function makeQuote({from, to, amount, version = EXCHANGE_RATE_VERSION} = {}) {
 
 function signature(tx) {
   return {action: tx.action, currency: tx.currency, amount: tx.amount,
+    ...(tx.action === 'reserve' && tx.funding ? {funding: tx.funding} : {}),
     ...(tx.action === 'wage' ? {roleId: tx.roleId, slotId: tx.slotId, day: tx.day} : {}),
     ...(tx.action === 'business' ? {businessId: tx.businessId, operation: tx.operation} : {}),
     ...(tx.action === 'interest' ? {day: tx.day, principal: tx.principal, ratePercent: tx.ratePercent} : {}),
@@ -54,6 +55,7 @@ function validateRequest(tx) {
   if (!currencyValid(tx.currency)) return 'invalid-currency';
   if (terminal(tx.action) ? !idValid(tx.reservationId) || tx.requestId !== terminalId(tx.action, tx.reservationId) : !idValid(tx.requestId)) return 'invalid-request-id';
   if (tx.action === 'open' ? tx.amount !== 0 : !positive(tx.amount)) return 'invalid-amount';
+  if (tx.funding !== undefined && (tx.action !== 'reserve' || tx.funding !== 'cash+bank')) return 'invalid-funding';
   if (tx.action === 'wage' && (!idValid(tx.roleId) || !idValid(tx.slotId) || !integer(tx.day))) return 'invalid-wage-receipt';
   if (tx.action === 'interest' && (!integer(tx.day) || !Number.isSafeInteger(tx.day + 1) || !positive(tx.principal) ||
       tx.ratePercent !== 1 || tx.amount !== Number(BigInt(tx.principal) / 100n) ||
@@ -97,15 +99,20 @@ function calculate(balances, reservations, tx) {
       b.bank -= amount; b.cash += amount;
     }
   } else if (tx.action === 'reserve') {
-    if (amount > b.cash) return {error: 'insufficient-cash'};
-    b.cash -= amount;
-    hold = {id: tx.requestId, amount, currency: tx.currency, status: 'reserved'};
+    const total = tx.funding === 'cash+bank';
+    if (amount > b.cash + (total ? b.bank : 0)) return {error: total ? 'insufficient-funds' : 'insufficient-cash'};
+    const split = {cash: Math.min(amount, b.cash), bank: Math.max(0, amount - b.cash)};
+    b.cash -= split.cash; b.bank -= split.bank;
+    hold = {id: tx.requestId, amount, currency: tx.currency, status: 'reserved', ...(total ? {sourceSplit: split} : {})};
   } else if (terminal(tx.action)) {
     const original = reservations.get(tx.reservationId);
     if (!original) return {error: 'reservation-not-found'};
     if (original.status !== 'reserved') return {error: `reservation-${original.status}`};
     if (original.currency !== tx.currency || original.amount !== amount) return {error: 'request-conflict'};
-    if (tx.action === 'refund') b.cash += amount;
+    if (tx.action === 'refund') {
+      const split = original.sourceSplit || {cash: amount, bank: 0};
+      b.cash += split.cash; b.bank += split.bank;
+    }
     hold = {...original, status: tx.action === 'refund' ? 'refunded' : 'settled'};
   } else if (tx.action === 'exchange') {
     if (amount > b.cash) return {error: 'insufficient-cash'};
@@ -325,6 +332,9 @@ export function createCurrencyLedger({saved, saveState, onTransaction, getClock}
     withdraw: (amount, id, currency) => simple('withdraw', amount, id, currency),
     earn: (amount, id) => simple('earn', amount, id, 'copper'),
     reserve: (amount, id, currency) => simple('reserve', amount, id, currency),
+    // NPC owners can spend their same-currency total without a physical bank
+    // trip. Player services keep using reserve(), which remains cash-only.
+    reserveFromTotal: (amount, requestId, currency) => transact({action: 'reserve', amount, requestId, currency, funding: 'cash+bank'}),
     settle: id => finish('settle', id), refund: id => finish('refund', id),
     creditWageToBank: ({amount, receiptId, currency = 'copper', roleId, slotId, day} = {}) =>
       transact({action: 'wage', amount, requestId: receiptId, currency, roleId, slotId, day}),
