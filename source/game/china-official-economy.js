@@ -1,5 +1,5 @@
 // Fictional copper only. The six officials never borrow the player's wallet.
-// A configured, one-time source is conserved through every recorded transfer.
+// Completed duty is government-funded; only earned NPC balances can be spent.
 import {CHINA_COURT_OFFICIAL_RANKS, CHINA_OFFICIAL_DAILY_WAGE} from './china-official-ranks.js';
 export const CHINA_OFFICIAL_IDS = Object.freeze(CHINA_COURT_OFFICIAL_RANKS.map(rank => rank.actorId));
 export const CHINA_OFFICIAL_TAVERN_ID = 'cn-yunlai-tavern';
@@ -17,7 +17,8 @@ const same = (a, b) => JSON.stringify(canonical(a)) === JSON.stringify(canonical
 const failure = code => ({ok: false, code});
 const dayKey = (actorId, day) => JSON.stringify([actorId, day]);
 const mealReceipt = (action, orderId) => `official-${action}:${orderId}`;
-const balances = state => ({treasury: state.treasury, accounts: copy(state.accounts), destinations: copy(state.destinations)});
+const balances = state => ({...(state.version === 1 ? {treasury: state.treasury} : {governmentPaid: state.governmentPaid}),
+  accounts: copy(state.accounts), destinations: copy(state.destinations)});
 const fundingAccount = (actorId, split) => `${actorId}:${split.cash === 0 ? 'bank' : split.bank === 0 ? 'cash' : 'cash+bank'}`;
 
 function source(value) {
@@ -25,7 +26,7 @@ function source(value) {
   if (!object(value) || !integer(value.amount) || !(identifier(value.sourceId) || value.amount === 0 && value.sourceId === null)) throw Error('invalid-treasury-source');
   return {amount: value.amount, sourceId: value.sourceId};
 }
-function fresh(initialTreasury, dailyWage, dailyWages) {
+function legacyFresh(initialTreasury, dailyWage, dailyWages) {
   if (!positive(dailyWage)) throw Error('invalid-wage');
   if (dailyWages !== undefined && (!object(dailyWages) || Object.entries(dailyWages).some(([id, wage]) =>
       !OFFICIALS.has(id) || !positive(wage)))) throw Error('invalid-wages');
@@ -34,17 +35,30 @@ function fresh(initialTreasury, dailyWage, dailyWages) {
     accounts: Object.fromEntries(CHINA_OFFICIAL_IDS.map(id => [id, {bank: 0, cash: 0}])),
     destinations: {[CHINA_OFFICIAL_TAVERN_ID]: 0}, nextTransaction: 1, transactions: []};
 }
+function migrate(legacy) {
+  const {initialTreasury, treasury, version, ...ledger} = legacy;
+  return {...ledger, version: 2, funding: 'government-guaranteed', governmentPaid: 0,
+    legacyFunding: {initialTreasury, treasury, transactionCount: ledger.transactions.length}};
+}
+function fresh(dailyWage, dailyWages) {
+  const {initialTreasury, treasury, version, ...ledger} = legacyFresh(undefined, dailyWage, dailyWages);
+  return {...ledger, version: 2, funding: 'government-guaranteed', governmentPaid: 0};
+}
 const wageFor = (state, actorId) => state.dailyWages?.[actorId] ?? state.dailyWage;
 function conserved(state) {
-  if (!integer(state.treasury) || !object(state.accounts) || Object.keys(state.accounts).length !== CHINA_OFFICIAL_IDS.length ||
+  if (!object(state.accounts) || Object.keys(state.accounts).length !== CHINA_OFFICIAL_IDS.length ||
       !object(state.destinations) || Object.keys(state.destinations).length !== 1 || !integer(state.destinations[CHINA_OFFICIAL_TAVERN_ID])) return false;
-  let total = BigInt(state.treasury) + BigInt(state.destinations[CHINA_OFFICIAL_TAVERN_ID]);
+  let total = BigInt(state.destinations[CHINA_OFFICIAL_TAVERN_ID]);
   for (const id of CHINA_OFFICIAL_IDS) {
     const account = state.accounts[id];
     if (!object(account) || Object.keys(account).length !== 2 || !integer(account.bank) || !integer(account.cash)) return false;
     total += BigInt(account.bank) + BigInt(account.cash);
   }
-  return total === BigInt(state.initialTreasury.amount);
+  if (state.version === 1) return integer(state.treasury) && total + BigInt(state.treasury) === BigInt(state.initialTreasury.amount);
+  if (state.version !== 2 || state.funding !== 'government-guaranteed' || !integer(state.governmentPaid)) return false;
+  // The old unspent reserve is historical information, never NPC wealth.
+  const legacyEarned = state.legacyFunding ? BigInt(state.legacyFunding.initialTreasury.amount) - BigInt(state.legacyFunding.treasury) : 0n;
+  return total === legacyEarned + BigInt(state.governmentPaid);
 }
 function evidenceFor(evidence, actorId, day) {
   if (!object(evidence) || evidence.kind !== 'office-work' || evidence.completed !== true || evidence.actorId !== actorId ||
@@ -93,9 +107,14 @@ function transfer(state, index, request, legacyMeal = false) {
   let from, to, sourceSplit;
   if (request.action === 'duty') {
     if (index.duties.has(dayKey(request.actorId, request.day))) return failure('duty-already-paid');
-    if (amount > next.treasury) return failure('insufficient-treasury');
-    next.treasury -= amount; account.bank += amount;
-    from = 'official-treasury'; to = `${request.actorId}:bank`;
+    if (next.version === 1) {
+      // Used only to validate the unchanged historical v1 journal on restore.
+      if (amount > next.treasury) return failure('insufficient-treasury');
+      next.treasury -= amount; from = 'official-treasury';
+    } else {
+      next.governmentPaid += amount; from = 'government-guaranteed';
+    }
+    account.bank += amount; to = `${request.actorId}:bank`;
   } else if (request.action === 'withdraw') {
     if (amount > account.bank) return failure('insufficient-bank');
     account.bank -= amount; account.cash += amount;
@@ -129,12 +148,8 @@ function transfer(state, index, request, legacyMeal = false) {
   next.transactions.push(transaction); next.nextTransaction++;
   return {ok: true, next, transaction};
 }
-function restore(saved, initialTreasury) {
-  if (!object(saved) || saved.version !== 1 || !Array.isArray(saved.transactions) || saved.transactions.length > JOURNAL_LIMIT) throw Error('invalid-saved-state');
-  let current = fresh(saved.initialTreasury, saved.dailyWage, saved.dailyWages);
-  if (initialTreasury !== undefined && !same(current.initialTreasury, source(initialTreasury))) throw Error('invalid-saved-state');
-  const index = indexes();
-  for (const transaction of saved.transactions) {
+function replay(current, index, transactions) {
+  for (const transaction of transactions) {
     if (!object(transaction) || !ACTIONS.has(transaction.action)) throw Error('invalid-saved-state');
     const normalized = requestFor(transaction.action, transaction, current);
     if (!normalized.ok || !same(normalized.request, requestOf(transaction))) throw Error('invalid-saved-state');
@@ -142,6 +157,29 @@ function restore(saved, initialTreasury) {
     if (!result.ok || !same(transaction, result.transaction)) throw Error('invalid-saved-state');
     current = result.next; indexTransaction(index, result.transaction);
   }
+  return current;
+}
+function restore(saved, initialTreasury) {
+  if (!object(saved) || ![1, 2].includes(saved.version) || !Array.isArray(saved.transactions) || saved.transactions.length > JOURNAL_LIMIT) throw Error('invalid-saved-state');
+  const index = indexes();
+  let current, legacyCount = 0;
+  if (saved.version === 1 || Object.hasOwn(saved, 'legacyFunding')) {
+    const history = saved.version === 1 ? saved : saved.legacyFunding;
+    if (!object(history)) throw Error('invalid-saved-state');
+    legacyCount = saved.version === 1 ? saved.transactions.length : history.transactionCount;
+    if (!integer(legacyCount) || legacyCount > saved.transactions.length) throw Error('invalid-saved-state');
+    current = legacyFresh(history.initialTreasury, saved.dailyWage, saved.dailyWages);
+    if (initialTreasury !== undefined && !same(current.initialTreasury, source(initialTreasury))) throw Error('invalid-saved-state');
+    current = replay(current, index, saved.transactions.slice(0, legacyCount));
+    if (saved.version === 1) {
+      // Validate the complete old state before removing any live-budget fields.
+      if (!conserved(current) || !same(saved, current)) throw Error('invalid-saved-state');
+      return {current: migrate(current), index};
+    }
+    current = migrate(current);
+    if (!same(current.legacyFunding, history)) throw Error('invalid-saved-state');
+  } else current = fresh(saved.dailyWage, saved.dailyWages);
+  current = replay(current, index, saved.transactions.slice(legacyCount));
   if (!conserved(current) || !same(saved, current)) throw Error('invalid-saved-state');
   return {current, index};
 }
@@ -169,8 +207,12 @@ function restore(saved, initialTreasury) {
  * without sourceSplit replay unchanged. This ledger has no bank interest.
  * dailyWage and optional per-actor dailyWages are frozen at ledger creation.
  * Restore reads that saved policy, never today's rank catalogue or new caller
- * defaults. Existing version-1 scalar policies/receipts round-trip unchanged.
- * Changing a rank label cannot replenish the source or synthesize back pay.
+ * defaults. Version-1 states are fully replay-validated before v2 migration;
+ * their accounts and receipts stay unchanged. The old source and remainder
+ * survive only as legacyFunding metadata, not a spendable reserve. New duty
+ * records governmentPaid as cumulative earned pay, never a finite treasury.
+ * Loading performs no write, payment, interest or historical wage catch-up.
+ * Changing a rank label cannot reprice old receipts or synthesize back pay.
  * NPC automatic promotion and in-world salary-policy changes are not wired.
  */
 export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = CHINA_OFFICIAL_DAILY_WAGE, dailyWages, isAppointed = () => false,
@@ -178,7 +220,10 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
   let current = null, index = indexes(), busy = false, loadError = null;
   if (typeof isAppointed !== 'function' || typeof getDay !== 'function' || saveState !== undefined && typeof saveState !== 'function') throw TypeError('official economy requires synchronous callbacks');
   try {
-    if (saved === undefined || saved === null) current = fresh(initialTreasury, dailyWage, dailyWages);
+    if (saved === undefined || saved === null) {
+      source(initialTreasury); // Validate a deprecated caller option, never fund accounts from it.
+      current = fresh(dailyWage, dailyWages);
+    }
     else ({current, index} = restore(saved, initialTreasury));
   } catch { loadError = saved === undefined || saved === null ? 'invalid-config' : 'invalid-saved-state'; }
   function liveCheck(request) {

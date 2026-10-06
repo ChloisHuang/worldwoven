@@ -161,9 +161,9 @@ let tavernProperty=null,chinaLodging=null,chinaSalonEmployment=null;
 const copperLedger=createGameCurrencyLedger({saved,storage:gameStorage,getClock:()=>simulationClock.state(),transactionParticipant:tx=>chinaSalonEmployment?.prepareCurrencyCommit(tx)||chinaLodging?.prepareCurrencyCommit(tx)||tavernProperty?.prepareCurrencyCommit(tx)});
 copperLedger.observeDay();
 tavernProperty=createChinaTavernProperty({saved:saved.chinaTavernProperty,copperLedger,getClock:()=>simulationClock.state(),getTill:()=>saved.chinaServiceWorld?.till??0,worldSeed:saved.appearance.seed,saveState:state=>{worldSnapshotWriter?.();const next={...saved,chinaTavernProperty:state};const result=gameStorage.setItem('worlds-days-v1',JSON.stringify(next));if(result===false||result?.then)return result;saved.chinaTavernProperty=state;}});
-// A finite, explicitly recorded scenario reserve funds only completed official
-// duties. No tax system or daily replenishment is implied here.
-const officialPayPolicy=Object.freeze({version:1,dailyWage:24,initialTreasury:{amount:4320,sourceId:'world-fiscal-initialization-v1'}});
+// Government guarantees only completed official duties. There is no separate
+// treasury, automatic daily allowance or offline wage catch-up.
+const officialPayPolicy=Object.freeze({dailyWage:24});
 const chinaOfficialEconomy=createChinaOfficialEconomy({saved:saved.chinaOfficialEconomy,...officialPayPolicy,isAppointed:id=>CHINA_OFFICIAL_IDS.includes(id),getDay:()=>simulationClock.state().day,saveState:(state,transaction,patch={})=>{worldSnapshotWriter?.();const next={...saved,...patch,chinaOfficialEconomy:state};const result=gameStorage.setItem('worlds-days-v1',JSON.stringify(next));if(result===false||result?.then)return false;Object.assign(saved,patch,{chinaOfficialEconomy:state});return true;}});
 if(!saved.chinaOfficialEconomy&&!chinaOfficialEconomy.loadError){saved.chinaOfficialEconomy=chinaOfficialEconomy.snapshot();save();}
 // Supplied by the shared bank integration. Never fall back to wallet earnings.
