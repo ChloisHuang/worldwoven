@@ -1,7 +1,7 @@
 // Reproduces duplicate receipt consumption and replay after an interrupted
 // handoff. Lightweight actor/route doubles; actual route/TPS has a separate run.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-const root=path.resolve('source'),context=vm.createContext({console}),cache=new Map();
+const root=path.resolve('source'),context=vm.createContext({console,structuredClone}),cache=new Map();
 function mod(file){if(cache.has(file))return cache.get(file);const m=new vm.SourceTextModule(fs.readFileSync(file,'utf8'),{identifier:file,context});cache.set(file,m);return m;}
 const linker=(s,f)=>mod(s==='three'?path.join(root,'vendor/three/build/three.module.js'):path.resolve(path.dirname(f.identifier),s));
 (async()=>{

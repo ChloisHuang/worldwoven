@@ -70,13 +70,13 @@ export function createChinaTavernSalonUI({service,getPlayer,onOpen=()=>{},docume
   if(!panel)panel=makePanel();const p=panel,focused=doc.activeElement?.getAttribute?.('data-cn-salon-focus');
   const scrolls=[dialog,p.body,p.cast,p.detail].map(node=>[node,node.scrollTop,node.scrollLeft]);let structural=false;
   const mode=o?'session':'pick';if(p.mode!==mode){buildContents(mode);structural=true;}
-  text(p.cash,`18+ · 随身 ${s.cash} 铜文`);text(p.note,o?'收起保留安排':'引见免费 · 付费不替代本人意愿');
+  text(p.cash,`18+ · 随身 ${s.cash} 铜文`);text(p.note,o?'收起保留安排':'公开听席免费 · 单独茶叙按报价 · 付费不替代本人意愿');
   if(!o){
    structural=syncList(p.cards,p.artists,candidates,c=>{const node=button(null,()=>{selectedArtist=c.id;selectedActivity=null;refresh(true);});node.className='cn-salon-card';node.setAttribute('data-cn-salon-focus','artist-'+c.id);const name=el('strong'),age=el('small'),status=el('span');node.append(name,age,status);return {node,name,age,status};},(row,c)=>{pressed(row.node,c.id===selectedArtist);row.node.setAttribute('aria-label',`${c.name} · ${c.ageYears}岁 · ${c.specialty||'诗词'} · ${c.available?'可引见':c.status||'歇场中'}`);text(row.name,c.name);text(row.age,`${c.gender||'成年艺者'} · ${c.ageYears}岁`);text(row.status,`${c.specialty||'诗词'} · ${c.available?'可引见':c.status||'歇场中'}`);row.node.disabled=!(c.ageYears>=18);})||structural;
-   p.empty.hidden=p.adults.hidden=!!candidates.length;text(p.kicker,'当前选择');text(p.title,selected?.name||'暂无可引见的艺者');
+   p.empty.hidden=p.adults.hidden=!!candidates.length;text(p.kicker,'单独茶叙报价');text(p.title,selected?.name||'暂无可引见的艺者');
    structural=syncList(p.choices,p.activities,activities,a=>{const node=button(null,()=>{selectedActivity=a.id;refresh(true);});node.setAttribute('data-cn-salon-focus','activity-'+a.id);const name=el('span'),price=el('span');node.append(name,price);return {node,name,price};},(row,a)=>{text(row.name,a.name);text(row.price,`${a.fee} 铜文`);pressed(row.node,selectedActivity===a.id);})||structural;
    optional(p.preference,selected?.preference);optional(p.reply,s.lastReply?`${s.lastReply.name}：${s.lastReply.reply}${s.lastReply.roomUnavailable?' 温晚：眼下没有空房。':''}${s.lastReply.willing===false?'（未收费）':''}`:'');optional(p.returning,s.returning?s.label||'艺者正回雅集厅，稍后可再引见。':'');
-   if(!atReception)text(p.note,'请到三层公共梯厅东侧接待案前');else if(selected&&!selected.available)text(p.note,selected.status||'艺者正在歇场或已有安排');
+   if(!atReception)text(p.note,'请到三层公共梯厅东侧接待案前');else if(s.npcSession)text(p.note,`${s.npcSession.customerName}已预约${s.npcSession.artistName} · ${s.npcSession.payment==='settled'?'已结清':s.npcSession.payment==='reserved'?'本人款已预留':'尚未收费'}`);else if(selected&&!selected.available)text(p.note,selected.status||'艺者正在歇场或已有安排');
   }else{
    text(p.currentKicker,o.payment==='unpaid'?'引见与答复':'本次安排');text(p.currentTitle,`${artist?.name||s.lastReply?.name||'艺者'} · ${SALON_ACTIVITIES[o.activity]?.name||'茶叙'}`);text(p.progress,s.label);
    optional(p.sessionReply,s.lastReply?.actorId===o.actorId?s.lastReply.reply:'');optional(p.roomNote,o.roomId?`${s.rooms.find(r=>r.id===o.roomId)?.name||'雅间'} · ${['fade','visiting'].includes(o.stage)?'已到房':'已留房，等客人到房'}`:'');text(p.kicker,'本次价目');text(p.title,SALON_ACTIVITIES[o.activity]?.name||'茶叙');

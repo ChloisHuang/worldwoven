@@ -4,7 +4,7 @@ import {attachCourtOfficialCostume} from './china-court-official-costume.js';
 import {createChinaOfficialLife} from './china-official-life.js';
 import {CHINA_OFFICIAL_BUREAU as B} from './china-official-bureau.js';
 import {followActorRoute} from './actor-navigation.js';
-import {createAudienceSchedule,courtRouteBudget,cachedCourtPlanner} from './china-court-schedule.js';
+import {createAudienceSchedule,courtRouteBudget,cachedCourtPlanner,courtLaneBudgets} from './china-court-schedule.js';
 import {createCourtPosture} from './china-court-posture.js';
 import {getChinaCourtOfficialRank,CHINA_OFFICIAL_RANK_CONTEXT} from './china-official-ranks.js';
 export {createAudienceSchedule} from './china-court-schedule.js';
@@ -54,7 +54,7 @@ export function chinaCourtStatusSummary(schedule,phase='waiting'){
  return day+'朝会定于11:30。'+(phase==='holding'?'官员已到班位，持笏静候到点行礼。':phase==='assembling'?'官员正从各自所在处赴班；到点统一行礼。':'官员按各自实际路程提前赴班。');
 }
 
-export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveActor,poseContext,furniture,economy=null,sharedNeeds=null,getTavern=()=>null,getToilet=()=>null,getClock=()=>({day:0}),worldSeed=1,readEdict=()=>null,reissueEdict=()=>false,saved={},saveState=()=>{},beginInteraction=()=>null,onInteraction=()=>{},notify=()=>{}}){
+export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveActor,poseContext,furniture,economy=null,sharedNeeds=null,getTavern=()=>null,getToilet=()=>null,getSalon=()=>null,getClock=()=>({day:0}),worldSeed=1,readEdict=()=>null,reissueEdict=()=>false,saved={},saveState=()=>{},beginInteraction=()=>null,onInteraction=()=>{},notify=()=>{}}){
  if(saved.continuity?.version===1)saved={...saved,...saved.continuity.schedule,life:saved.continuity.life,reports:saved.continuity.reports,preservePhysical:true};
  const officials=CHINA_COURT_OFFICIALS.map(r=>npcs.find(n=>n.station.id===r.id)),emperor=npcs.find(n=>n.station.id==='cn-emperor');
  if(!palace||!emperor||officials.some(n=>!n))return null;
@@ -84,7 +84,13 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
  }
  const allInLine=()=>officials.every(n=>tasks.get(n)?.id==='enter-hall'&&tasks.get(n).arrived),paused=n=>!!n&&state.conversationActorId===n.station.id;
  function routeBudgets(){
-  const actors=officials.map((n,i)=>{const exit=life?.courtPlan(n)||{reachable:true,position:n.root.position,path:[],safeExitSeconds:0,doorSeconds:4};return {actor:n.station.id,...(exit.reachable?courtRouteBudget({...exit,path:near(exit.position,hall(i))?[]:[...exit.path,court(i),...enterHall(i)],walkSpeed:n.locomotion.walkSpeed,planPath:planBudgetPath,doorways:lot.doorways}):{reachable:false,seconds:Infinity,reason:'safe-exit-blocked'})};});
+  const actors=courtLaneBudgets(officials.map((n,i)=>{
+   const exit=life?.courtPlan(n)||{reachable:true,position:n.root.position,path:[],safeExitSeconds:0,doorSeconds:4},inPlace=near(exit.position,hall(i));
+   const empty={reachable:true,seconds:0,distance:0,doors:[]},options={walkSpeed:n.locomotion.walkSpeed,planPath:planBudgetPath,doorways:lot.doorways};
+   const approach=!exit.reachable?{reachable:false,seconds:Infinity,reason:'safe-exit-blocked'}:inPlace?empty:courtRouteBudget({...exit,...options,path:[...exit.path,court(i)]});
+   const entry=inPlace?empty:courtRouteBudget({...options,position:point(court(i)),path:enterHall(i)});
+   return {actor:n.station.id,lane:i%2,inPlace,approach,entry};
+  }));
   const royal=palace.dutyPlan?.(OWNER)||{reachable:false,seconds:Infinity,reason:'royal-route-unavailable'};
   actors.push({actor:emperor.station.id,...royal});return {actors,seconds:Math.max(...actors.map(a=>a.seconds)),measuredAt:time};
  }
@@ -113,7 +119,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
   else if(['completed','postponed','missed'].includes(outcome)&&(['assembling','holding'].includes(phase)||FORMAL.has(phase)))depart(outcome);
  }
  reports=createCourtReports({readEdict,reissueEdict,saved:saved.reports,saveState:()=>save()});
- life=createChinaOfficialLife({officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,reports,economy,sharedNeeds,getTavern,getToilet,getClock,worldSeed,saved:saved.life,saveState:()=>save(),beginInteraction,onInteraction,record});
+ life=createChinaOfficialLife({officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,reports,economy,sharedNeeds,getTavern,getToilet,getSalon,getClock,worldSeed,saved:saved.life,saveState:()=>save(),beginInteraction,onInteraction,record});
  save();
  return {
   courtStatus:()=>({phase,schedule:schedule.snapshot()}),
