@@ -60,7 +60,7 @@ import {createChinaPalaceLife} from './china-palace-life.js';
 import {canUseConsortQuarterFurniture} from './china-consort-quarters.js';
 import {createChinaRoyalPlayerMeal} from './china-royal-player-meal.js';
 import {createConsortRuntimeBridge} from './consort-runtime-bridge.js';
-import {createChinaConsortPetitionService} from './china-consort-petition-service.js';
+import {createChinaConsortPetitionService,consortIntentExecutionRadius} from './china-consort-petition-service.js';
 import {createChinaConsortPetitionUI} from './china-consort-petition-ui.js';
 import {RESERVED_CONSORT_QUARTERS} from './china-consort-quarters.js';
 import {createChinaRoyalKitchenService} from './china-royal-kitchen-service.js';
@@ -194,7 +194,7 @@ function consortSceneIntent(kind='panel'){
  }
  const labels={'empress-submit':'当面请册皇后','empress-release':'当面请辞后位',panel:invitation?'答复皇帝邀约':'查看宫廷自荐与名位',submit:'呈交自荐',audience:'请候皇帝召见',investiture:'请领册书','read-charter':'听宣册书',return:'返回听候处',residence:'前往自己的寝居'};
  if(!labels[kind]||!target?.position)return null;
- return {...target,id:'cn-consort-'+kind,provider:'china-consort-petition',kind,targetKey:target.targetKey||'cn-palace-herald',targetName:target.targetName||'沈序 · 宫廷接待',action:labels[kind],position:target.position.slice(),executionRadius:kind==='residence'?.3:invitation||kind.startsWith('empress-')?target.radius||1.1:.8,interactionRadius:2,priority:48,
+ return {...target,id:'cn-consort-'+kind,provider:'china-consort-petition',kind,targetKey:target.targetKey||'cn-palace-herald',targetName:target.targetName||'沈序 · 宫廷接待',action:labels[kind],position:target.position.slice(),executionRadius:consortIntentExecutionRadius(target,kind),interactionRadius:2,priority:48,
   intentKey:[kind,p?.id||'-',stage,p?.source||'',consortBridge.titleStatus().active?'appointed':''].join('|')};
 }
 function requestConsortSceneIntent(packet){

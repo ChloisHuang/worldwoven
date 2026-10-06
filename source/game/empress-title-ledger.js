@@ -16,7 +16,7 @@ const adult=x=>Number.isFinite(x)&&x>=18;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const round=x=>Math.round(x*1e6)/1e6;
 const latestTime=p=>p.endedAt||p.reading?.at||p.handoff?.at||p.choice?.at||p.audience?.at||p.submittedAt;
-export const empressPetitionId=(actor,day)=>`empress-petition:${actor}:${day}`;
+export const empressPetitionId=(actor,day,operation='appoint',serial=1)=>`empress-petition:${actor}:${day}:${operation}:${serial}`;
 const TEXT={
  'valid-consort-required':'须先实际受册为妃','empress-vacancy-required':'皇后名位已有归属','empress-required':'当前没有你的皇后名位','tenure-required':'任妃满3个游戏日后可请册','emperor-conversations-required':'须与皇帝完成至少2次交谈','relationship-reservations':'皇帝仍对既有相处有所顾虑','already-petitioned-today':'今日已议过后位，次日可再请','petition-pending':'后位事务正在办理','adults-required':'双方须年满18岁','invalid-empress-state':'后位记录暂不可核验','stale-consort':'原妃位已经变化','stale-empress':'后位归属已变化','invalid-clock':'当前时间暂不可核验','review-not-selected':'皇帝此次未准请册','explicit-choice-required':'请明确接受或婉拒','wrong-petition-stage':'当前事务已经变化','save-failed':'此次进度未保存，请重试','finish-empress-affairs':'先当面辞后并办结文书','service-unavailable':'当面接待暂不可用',
 };
@@ -36,10 +36,10 @@ function validate(s,seed){
  const fail=()=>{throw Error('invalid-empress-state');};
  if(!obj(s)||s.version!==1||s.worldSeed!==(seed>>>0)||!int(s.revision)||!Array.isArray(s.petitions))fail();
  let holder=null,prior=null,open=0;const days=new Set();
- for(const p of s.petitions){
-  if(!obj(p)||!time(p.submittedAt)||p.id!==empressPetitionId('player',p.submittedAt.day)||days.has(p.submittedAt.day)||p.playerId!=='player'||p.emperorId!=='cn-emperor'||!['appoint','release'].includes(p.operation)||!str(p.consortAppointmentId)||!STAGES.has(p.stage)||p.roll!==consortPetitionRoll(seed,p.id)||!validReceipt(p.submission,'submission',p)||!same(p.submittedAt,p.submission.at)||!obj(p.ages)||!adult(p.ages.player)||!adult(p.ages.emperor)||!obj(p.eligibility)||!int(p.eligibility.days)||!int(p.eligibility.conversations)||prior&&!after(p.submittedAt,prior))fail();
+ for(const [index,p] of s.petitions.entries()){
+  if(!obj(p)||!time(p.submittedAt)||p.id!==empressPetitionId('player',p.submittedAt.day,p.operation,index+1)||p.operation==='appoint'&&days.has(p.submittedAt.day)||p.playerId!=='player'||p.emperorId!=='cn-emperor'||!['appoint','release'].includes(p.operation)||!str(p.consortAppointmentId)||!STAGES.has(p.stage)||p.roll!==consortPetitionRoll(seed,p.id)||!validReceipt(p.submission,'submission',p)||!same(p.submittedAt,p.submission.at)||!obj(p.ages)||!adult(p.ages.player)||!adult(p.ages.emperor)||!obj(p.eligibility)||!int(p.eligibility.days)||!int(p.eligibility.conversations)||prior&&!after(p.submittedAt,prior))fail();
   if(p.operation==='appoint'?(holder!==null||p.reason!=='consort-petition'||p.empressAppointmentId!==null||p.eligibility.days<EMPRESS_MIN_TENURE_DAYS||p.eligibility.conversations<EMPRESS_MIN_CONVERSATIONS):(holder===null||p.reason!=='voluntary-request'||p.empressAppointmentId!==holder.id))fail();
-  days.add(p.submittedAt.day);if(OPEN.has(p.stage))open++;
+  if(p.operation==='appoint')days.add(p.submittedAt.day);if(OPEN.has(p.stage))open++;
   let boundary=p.submittedAt;
   for(const [key,kind] of [['audience','audience'],['handoff','charter-handoff'],['reading','charter-reading']]){const r=p[key];if(r!==null){if(!validReceipt(r,kind,p)||!after(r.at,boundary))fail();boundary=r.at;}}
   if(p.audience===null?p.review!==null:!obj(p.review))fail();
@@ -67,9 +67,9 @@ export function createEmpressTitleLedger({saved,worldSeed=1,getClock,getConsort,
  function eligibility(){const b=base(),at=clock(),n=read(getConversationCount);return {days:b.a&&at?Math.max(0,at.day-b.a.since.day):0,conversations:int(n)?n:0};}
  function gates(operation,p=null){const b=base(),reasons=[];if(loadError)reasons.push(loadError);if(!b.valid)reasons.push('valid-consort-required');if(!b.adults)reasons.push('adults-required');if(p&&b.a?.id!==p.consortAppointmentId)reasons.push('stale-consort');if(operation==='appoint'&&current.appointment)reasons.push('empress-vacancy-required');if(operation==='release'&&(!current.appointment||p&&current.appointment.id!==p.empressAppointmentId))reasons.push('stale-empress');return {b,reasons};}
  function availability(operation=current.appointment?'release':'appoint'){
-  const g=gates(operation),at=clock(),p=latest(),e=eligibility(),reasons=[...g.reasons];if(!at)reasons.push('invalid-clock');if(p&&OPEN.has(p.stage))reasons.push('petition-pending');else if(at&&p?.submittedAt.day===at.day)reasons.push('already-petitioned-today');
+  const g=gates(operation),at=clock(),p=latest(),e=eligibility(),reasons=[...g.reasons];if(!at)reasons.push('invalid-clock');if(p&&OPEN.has(p.stage))reasons.push('petition-pending');else if(operation==='appoint'&&at&&current.petitions.some(p=>p.operation==='appoint'&&p.submittedAt.day===at.day))reasons.push('already-petitioned-today');
   if(operation==='appoint'){if(e.days<EMPRESS_MIN_TENURE_DAYS)reasons.push('tenure-required');if(e.conversations<EMPRESS_MIN_CONVERSATIONS)reasons.push('emperor-conversations-required');const emperor=read(getContext)?.emperor;if((emperor?.relations?.player??0)<-.1||(emperor?.opinions?.player??0)<-.1)reasons.push('relationship-reservations');}
-  return {ok:reasons.length===0,reasons,eligibility:e,applicationId:at?empressPetitionId('player',at.day):null};
+  return {ok:reasons.length===0,reasons,eligibility:e,applicationId:at?empressPetitionId('player',at.day,operation,current.petitions.length+1):null};
  }
  function persist(next){if(loadError||busy)return fail(loadError||'service-unavailable');try{next=validate({...next,revision:current.revision+1},worldSeed);}catch{return fail('invalid-empress-transition');}busy=true;try{const r=saveState(copy(next));if(r?.then){Promise.resolve(r).catch(()=>{});return fail('save-failed');}if(r===false)return fail('save-failed');current=next;return {ok:true};}catch{return fail('save-failed');}finally{busy=false;}}
  function update(p,appointment=current.appointment){const out=persist({...current,petitions:current.petitions.map(q=>q.id===p.id?p:q),appointment});return out.ok?result(p):out;}
