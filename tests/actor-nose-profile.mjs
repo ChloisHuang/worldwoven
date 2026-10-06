@@ -22,7 +22,9 @@ for(const form of ['male','female']){
  let fixed=0,lips=0;
  for(let i=0;i<skin.position.length;i+=3){const raw=skin.featureCoord.slice(i,i+3),protectedRegion=raw[1]<=6.735||raw[1]>=7.61||Math.abs(raw[0])>=.57||raw[2]<=1.20,lip=skin.lipWeight[i/3]>.5;if(protectedRegion||lip){assert.equal(neutral.position[i+2],skin.position[i+2],'mouth, chin, cheek, upper forehead, neck and posterior positions stay exact');fixed++;if(lip)lips++;}}
  const delta=Object.fromEntries(Object.entries(refs).map(([k,p])=>[k,(nearest(neutral,p)[2]-nearest(skin,p)[2])*1000]));
- assert(delta.root>4&&delta.bridge>3&&delta.tip< -2.5&&delta.tip> -3.2&&delta.brow>2,'continuous supported profile replaces isolated bulb');assert(delta.base>0&&delta.columella>0);assert.equal(delta.lip,0);
+ assert(delta.root>4&&delta.bridge>3&&delta.brow>2,'continuous supported profile');
+ if(form==='male')assert(delta.tip< -2.5&&delta.tip> -3.2,'male tip correction is retained');
+ else assert(delta.tip>1&&delta.tip<2,'female tip carries forward with the supported dorsum instead of being retracted');assert(delta.base>0&&delta.columella>0);assert.equal(delta.lip,0);
  if(form==='male')assert(angle(neutral)>angle(skin)+15,'nasal base is visibly less pinched');else assert(angle(neutral)<angle(skin)+15,'female base correction respects the existing open transition');
  for(const part of base.parts.filter(p=>p.material==='brow'))for(let i=0;i<part.position.length;i+=3)assert(part.position[i+2]-frontSurface(neutral,part.position[i],part.position[i+1])>.0003,'neutral brow stays on the sculpted skin');
  const endpoints=[];
@@ -35,6 +37,15 @@ for(const form of ['male','female']){
   let changedFaces=0;
   for(let i=0;i<skin.index.length;i+=3){const ids=skin.index.slice(i,i+3),a=faceNormal(skin.position,ids),b=faceNormal(p.position,ids),length=Math.hypot(...a)*Math.hypot(...b);if(length<1e-16)continue;assert(a.reduce((s,x,k)=>s+x*b[k],0)>0,'local sculpt cannot overturn a source triangle');changedFaces++;}
   endpoints.push({height,deltaFromNeutralMm:d,checkedFaces:changedFaces});
+ }
+ if(form==='female'){
+  const ordinaryHigh={jawWidth:.84,legLength:1.06,eyeSize:1.2,noseSize:.8,noseWidth:.8,socketDepth:1.65};
+  for(const traits of [ordinaryHigh,{...ordinaryHigh,noseBridgeHeight:1.2,noseTipSize:.8}]){
+   const p=morphCompleteAdultAsset(base,traits).parts.find(p=>p.material==='skin');
+   assert(nearest(p,refs.tip)[2]-nearest(p,refs.bridge)[2]>.003,'even high bridge/small tip must retain visible central projection');
+   assert(nearest(p,refs.tip)[2]-nearest(p,refs.columella)[2]>.007,'supported lower nose must not collapse into a vertical tip/base silhouette');
+   assert.equal(nearest(p,refs.tip)[1],nearest(skin,refs.tip)[1],'female correction does not lower or lift the central tip');
+  }
  }
  // Interpolated brow anatomy must also follow the skin between ribbon
  // vertices when the existing eye-size control reaches either endpoint.

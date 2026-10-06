@@ -6,9 +6,10 @@ registerHooks({resolve(s,c,next){return s==='three'?{url:pathToFileURL(root+'/so
 const T=await import('three'),C=await import(pathToFileURL(root+'/source/game/characters.js'));await import(pathToFileURL(root+'/source/game/character-live-entry.js'));
 const form=process.env.FORM||'male',traits=JSON.parse(process.env.TRAITS||'{}');
 const options={culture:'china',bodyPreset:form==='male'?'masculine-lean':'feminine-balanced',hairStyle:form==='male'?'side-part':'chin-bob',wardrobePreset:form==='male'?'scholar-robe':'cross-collar-ruqun',skin:0xbe9a74,hair:0x201c19,clothes:0x766078,accent:0xc6ab67,eyeColor:0x493525,shapeTraits:traits};
+Object.assign(options,JSON.parse(process.env.LOOK||'{}'));
 const actor=C.createCharacter(options);actor.animate(0,false,null);actor.root.updateMatrixWorld(true);actor.root.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.update();});
 const report={source:root,created:new Date().toISOString(),scope:'Actual live-entry createCharacter geometry with evaluated skeleton; fixed source colors and offline lighting. Representative identity, not recovered user save. No browser or production shader claim.',options,model:actor.root.userData.characterModel,meshes:[],lights:[],files:{}};
-for(const f of ['complete-adult/shape-traits.js','complete-adult/runtime-adapter.js','complete-adult/assets/adult-forms-data.js'])report.files[f]=crypto.createHash('sha256').update(fs.readFileSync(root+'/source/game/'+f)).digest('hex');
+for(const f of ['complete-adult/shape-traits.js','complete-adult/runtime-adapter.js','complete-adult/nose-profile.js','complete-adult/attachment-fit.js','complete-adult/assets/adult-forms-data.js'])report.files[f]=crypto.createHash('sha256').update(fs.readFileSync(root+'/source/game/'+f)).digest('hex');
 actor.root.traverse(o=>{
  if(!o.isMesh||!o.visible)return;let parent=o.parent;while(parent){if(!parent.visible)return;parent=parent.parent;}
  const geo=o.geometry,p=geo.attributes.position,n=geo.attributes.normal,c=geo.attributes.color,mat=o.material,indices=geo.index?.array||Array.from({length:p.count},(_,i)=>i);

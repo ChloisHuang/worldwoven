@@ -28,7 +28,7 @@ assert.equal(anchors.resolve({social:true,actor:host}).actor,host,'host conversa
 host.root.position.y=.215;host.root.position.z=16.2;assert.deepEqual(anchors.resolve({provider:'china-tavern-lodging',kind:'view',position:[22.35,.215,6.7]}).point,host.station.workTarget,'the read-only counter does not follow the break');
 
 const source=fs.readFileSync(new URL('../source/game/china-tavern-service-scene.js',import.meta.url),'utf8');
-const context={host,P:TAVERN_MEAL.points,tablePlace:tavernTablePlace,staff:{chef:{station:{id:'cn-tavern-cook'}},assistant:{station:{id:'cn-tavern-assistant'}}},role:()=> 'chef'};
+const context={host,lot:{stations:[host.station]},ORIGINAL_TAVERN_HOST_ID:'cn-tavern-host',P:TAVERN_MEAL.points,tablePlace:tavernTablePlace,staff:{chef:{station:{id:'cn-tavern-cook'}},assistant:{station:{id:'cn-tavern-assistant'}}},role:()=> 'chef'};
 vm.createContext(context);vm.runInContext(source.slice(source.indexOf(' function describe('),source.indexOf(' function choices(){')),context);
 const rent=context.describe('rent-room',null,[22.35,.215,6.7],'登记客房');assert.deepEqual(Array.from(rent.visualAnchor.point),host.station.workTarget);
 const south=tavernTablePlace('east',1).mealPoint,north=tavernTablePlace('east',-1).mealPoint;

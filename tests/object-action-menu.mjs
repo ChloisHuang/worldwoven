@@ -149,3 +149,12 @@ test('suppression closes object choices and cannot be bypassed by old buttons',(
  const h=harness(),target=anchor('counter'),items=[action('one',target),action('two',target)];h.update(items);const record=h.menu.targets()[0];h.menu.activateTarget(target.id);const row=h.list.children[0];h.update(items,{hidden:true});
  assert(!h.menu.isOpen());assert(record.button.hidden);assert(h.button.hidden);row.onclick();record.button.onclick();assert.equal(h.selected.length,0);h.update(items);assert(!record.button.hidden);assert(h.menu.activateTarget(target.id));h.popover.children[0].children[1].onclick();assert(!h.menu.isOpen());h.menu.dispose();assert(!h.layer.isConnected);assert(!h.controls.isConnected);
 });
+
+for(const [width,height] of [[852,393],[844,390]])test(`short landscape ${width}×${height}: host chooser finds the clear HUD gap after adjacent placements fail`,()=>{
+ const hud=[{left:24,top:70,right:340,bottom:220},{left:600,top:70,right:width-24,bottom:220},{left:24,top:250,right:160,bottom:height-28},{left:610,top:300,right:width-24,bottom:height-12}];
+ const h=harness({frame:{left:12,top:12,right:width-12,bottom:height-12},hud}),target=anchor('counter');h.update(['work','labor','property','stay','meal'].map(id=>action(id,target)));
+ const record=h.menu.targets()[0];assert(record.visible);record.button.onclick();assert(h.menu.isOpen(),'tapping a visible host hand must not silently open then close');
+ const rect={left:parseFloat(h.popover.style.left),top:parseFloat(h.popover.style.top)};rect.right=rect.left+parseFloat(h.popover.style.width);rect.bottom=rect.top+parseFloat(h.popover.style.maxHeight);
+ assert(inFrame(rect,h.frame));assert(hud.every(block=>!intersects(rect,block,4)),'compact scrollable chooser preserves every HUD hit area');
+ h.list.children[0].onclick();assert.equal(h.selected[0].id,'work');assert(!h.menu.isOpen());h.menu.dispose();
+});

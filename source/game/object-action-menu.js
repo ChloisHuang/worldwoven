@@ -43,6 +43,17 @@ export function createObjectActionMenu({button,root,document:doc=globalThis.docu
      const found=attempts.find(p=>p.x>=frame.left&&p.x+width<=frame.right&&p.y>=frame.top&&p.y+height<=frame.bottom&&!hud.some(h=>overlaps({left:p.x,right:p.x+width,top:p.y,bottom:p.y+height},h)));
      if(found){place={...found,width,height};break;}
     }if(place)break;}
+    // In a short landscape viewport the four object-adjacent spots can
+    // all touch HUD chrome even though a clear gap remains a little farther
+    // away. Search the HUD edges before abandoning a visible, tapped object.
+    if(!place){
+     for(const width of [...new Set([Math.min(220,frame.right-frame.left),Math.min(180,frame.right-frame.left)])]){
+      const height=Math.min(98,frame.bottom-frame.top),xs=[frame.left,frame.right-width,...hud.flatMap(h=>[h.left-width-5,h.right+5])],ys=[frame.top,frame.bottom-height,...hud.flatMap(h=>[h.top-height-5,h.bottom+5])];
+      const attempts=xs.flatMap(x=>ys.map(y=>({x,y}))).filter(p=>p.x>=frame.left&&p.x+width<=frame.right&&p.y>=frame.top&&p.y+height<=frame.bottom&&!hud.some(h=>overlaps({left:p.x,right:p.x+width,top:p.y,bottom:p.y+height},h)));
+      attempts.sort((a,b)=>Math.hypot(a.x+width/2-chosen.x,a.y+height/2-chosen.y)-Math.hypot(b.x+width/2-chosen.x,b.y+height/2-chosen.y));
+      if(attempts[0]){place={...attempts[0],width,height};break;}
+     }
+    }
     if(!place){close();continue;}
     write(popover,'left',Math.round(place.x)+'px');write(popover,'top',Math.round(place.y)+'px');write(popover,'width',place.width+'px');write(popover,'maxHeight',place.height+'px');
    }
