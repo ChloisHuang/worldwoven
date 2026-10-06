@@ -88,7 +88,7 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
  return {
   decisionDue:id=>!!people[id]&&time>=people[id].nextDecisionAt,
   defer(id,seconds=12){const p=people[id];if(p&&!p.current){p.nextDecisionAt=Math.max(p.nextDecisionAt,time+seconds);save();}},
-  recordExperience(id,evidence){const p=people[id];if(!p||!evidence?.id||evidence.completed!==true||!['staff-work'].includes(evidence.kind))return {ok:false,reason:'unfinished'};if(p.experiences.some(e=>e.id===evidence.id))return {ok:true,replayed:true};return transaction(()=>{p.experiences.push({id:evidence.id,kind:evidence.kind,label:evidence.label,completedAt:time});p.experiences=p.experiences.slice(-4);return {ok:true};});},
+  recordExperience(id,evidence){const p=people[id];if(!p||!evidence?.id||evidence.completed!==true||!['staff-work','staff-rest'].includes(evidence.kind))return {ok:false,reason:'unfinished'};if(p.experiences.some(e=>e.id===evidence.id))return {ok:true,replayed:true};return transaction(()=>{p.experiences.push({id:evidence.id,kind:evidence.kind,label:evidence.label,completedAt:time});p.experiences=p.experiences.slice(-4);return {ok:true};});},
   experience(id){const p=people[id];return p?.experiences.length?copy(p.experiences.at(-1)):null;},
   fatigued:id=>(people[id]?.needs.fatigue||0)>.88,
   canReply(id){const p=people[id];return !!p&&!p.current&&time>=p.replyAfter;},
