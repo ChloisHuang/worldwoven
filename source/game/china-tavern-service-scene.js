@@ -222,7 +222,12 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   const next=copy(state),row=next.orders.find(q=>q.id===o.id);next.heldTrayId=o.id;next.selectedOrderId=o.deliveryTicketId||next.selectedOrderId;row.stage='carrying';row.holder='assistant';delete row.placedTableId;delete row.placedMealPoint;return persist(next);}
  function returnTray(){if(!nearPlayer(P.hostPass))return false;const tray=order(state.heldTrayId);if(!tray||tray.stage!=='carrying')return false;const next=copy(state),row=next.orders.find(q=>q.id===tray.id);row.stage='pass';row.holder='pass';next.heldTrayId=null;return persist(next);}
  function clear(o){if(o.stage!=='dirty')return false;return stage(o,'return',{holder:'assistant'});}
- function describe(kind,o,position,label,extra={}){return {kind,orderId:o?.id||null,position:position.slice(),name:'云来酒楼 · 当班',action:label,executionRadius:.23,...extra};}
+ function describe(kind,o,position,label,extra={}){
+  const actorId=kind.startsWith('handover-')?staff[role()]?.station.id:['take-order','collect'].includes(kind)?o?.customerId:null;
+  const point=kind==='prep'?P.prepTop:kind==='heat'?P.stoveTop:kind==='wash'?P.washTop:kind==='rent-room'?[23.4,1.32,11.4]:['pass','pickup','choose-order','return-tray'].includes(kind)?P.passTop:kind==='retrieve'?tablePlace(o?.placedTableId).mealPoint:o?.mealPoint||extra.tableId&&tablePlace(extra.tableId).mealPoint;
+  const visualAnchor=actorId?{actorId}:extra.roomId&&kind==='clean-room'?{furnitureId:'china-tavern-bed-'+extra.roomId}:point?{id:'cn-tavern-surface:'+point.join(':'),point:point.slice()}:null;
+  return {kind,orderId:o?.id||null,position:position.slice(),name:'云来酒楼 · 当班',action:label,executionRadius:.23,...extra,visualAnchor};
+ }
  function choices(){
   if(!state||state.stage==='finished')return [];
   const r=role(),h=HANDOVER[r];if(state.stage==='handover-in')return [describe('handover-in',null,h.player,`与${staff[r].station.npcName}交接物品并报到`)];

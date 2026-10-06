@@ -78,12 +78,12 @@ test('production animate taps the actual 1/3/8 simulation iterations, preserving
   let iterations=0,submitted=0,reported=null;const events=[];
   const no=()=>{};
   const context={requestAnimationFrame:no,simulationFrame,clock:{getDelta:()=>raw},paused,beginActorNavigationStep:no,mode:'lot',flushShapePreview:no,elapsed:0,lotAnimationTime:0,frame:0,
-   advanceWorldClock:no,updateAutomaticDoors:no,activeDailyToilet:()=>null,updatePlayer:()=>iterations++,japanWeatherCharms:null,updateNPCs:no,updateGameHealth:no,refreshScenePanels:()=>events.push('panels'),japanServiceUI:null,japanPerformanceUI:null,chinaTavernUI:null,chinaSalonUI:null,lot:{},furniture:null,
+   advanceWorldClock:no,updateAutomaticDoors:no,activeDailyToilet:()=>null,updatePlayer:()=>iterations++,japanWeatherCharms:null,updateNPCs:no,updateGameHealth:no,refreshScenePanels:()=>events.push('panels'),refreshNearbyChoices:()=>events.push('nearby'),contextMenu:{project:()=>events.push('objects')},japanServiceUI:null,japanPerformanceUI:null,chinaTavernUI:null,chinaSalonUI:null,lot:{},furniture:null,
    simulationClock:{state:()=>({hour:10,day:0})},$:()=>({}),careerHandbook:{update:no},studyMenu:{update:no},player:null,updateCamera:no,renderer:{render:()=>{submitted++;events.push('render');}},scene:{},camera:{},updateLabels:()=>events.push('labels'),updateFurnitureLabels:()=>events.push('furniture-labels'),
    runtimePerformance:enabled?{beginFrame:s=>reported=s,beginSimulation:()=>events.push('simulation-start'),endSimulation:()=>events.push('simulation-end'),beginRender:()=>events.push('render-start'),endRender:()=>events.push('render-end'),endFrame:()=>events.push('frame-end')}:null};
   vm.runInNewContext(animate+'\nanimate();',context);
   assert.equal(iterations,expected);assert.equal(submitted,paused?0:1);
-  if(enabled&&!paused){assert.equal(reported,expected);assert.deepEqual(events,['simulation-start','simulation-end','panels','render-start','render','render-end','labels','furniture-labels','frame-end']);}
+  if(enabled&&!paused){assert.equal(reported,expected);assert.deepEqual(events,['simulation-start','simulation-end','panels','nearby','render-start','render','render-end','labels','furniture-labels','objects','frame-end']);}
   if(!enabled||paused)assert.equal(reported,null);
  }
 });
@@ -103,7 +103,7 @@ test('pure panels run once after 1/3/8 real simulation steps; business and inter
   const count=name=>{calls.set(name,(calls.get(name)||0)+1);events.push(name);};
   const context={requestAnimationFrame:no,simulationFrame,clock:{getDelta:()=>raw},paused:false,mode:'lot',elapsed:0,lotAnimationTime:0,
    beginActorNavigationStep:dt=>{count('navigation');assert.equal(dt,simulationFrame(raw).stepDt);},flushShapePreview:no,advanceWorldClock:()=>count('worldClock'),updateAutomaticDoors:()=>count('doors'),activeDailyToilet:()=>({update:()=>count('toilet')}),
-   updatePlayer:()=>{iteration++;count('player');},japanWeatherCharms:{update:()=>count('weather')},updateGameHealth:()=>count('health'),egyptDailyToilet:{updateStaff:()=>count('egyptStaff')},
+   refreshNearbyChoices:()=>count('nearby'),contextMenu:{project:()=>count('objects')},updatePlayer:()=>{iteration++;count('player');},japanWeatherCharms:{update:()=>count('weather')},updateGameHealth:()=>count('health'),egyptDailyToilet:{updateStaff:()=>count('egyptStaff')},
    simulationClock:{state:()=>({hour:10,day:0})},player:{root:{position:{}}},npcs:[],performing:null,seated:null,pendingInteraction:null,targetStation:null,bathTransition:null,dusk:false,
    lot:{},furniture:null,$:()=>({}),careerHandbook:{update:no},studyMenu:{update:no},lighting:{update:no},updateCamera:no,renderer:{render:()=>{count('render');assert.equal(phase,'render');}},scene:{},camera:{},updateLabels:no,updateFurnitureLabels:no,
    runtimePerformance:{beginFrame:n=>{assert.equal(n,steps);phase='frame';},beginSimulation:()=>{phase='simulation';},endSimulation:()=>{phase='panels';},beginRender:()=>{phase='render';},endRender:no,endFrame:()=>{phase='ended';}}};
@@ -127,7 +127,7 @@ test('pure panels run once after 1/3/8 real simulation steps; business and inter
   context.egyptMealUI.update=()=>{count('egyptMealUI');assert.equal(phase,'panels');seen.push(iteration);ui.update();};
   vm.runInNewContext(npcCode+'\n'+panelCode+'\n'+frameCode+'\nanimate();',context);
   for(const name of [...perStep,'navigation','worldClock','doors','toilet','player','weather','health','egyptStaff','careerSync'])assert.equal(calls.get(name),steps,name+' retains every simulation step');
-  for(const name of panels)assert.equal(calls.get(name),1,name+' projects only the final state');
+  for(const name of [...panels,'nearby','objects'])assert.equal(calls.get(name),1,name+' projects only the final state');
   assert.deepEqual(seen,[steps,steps,steps,steps]);assert.equal(viewReads,1);assert.equal(effects,0);assert.equal(ui.isOpen(),opened);
   if(opened){assert(doc.body.children[0].textContent.includes('step '+steps));assert(doc.body.children[0].textContent.includes('随身 '+(20+steps)));}
   else assert.equal(doc.body.children[0].children.length,0,'closed panel stays closed without creating controls');

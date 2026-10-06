@@ -25,8 +25,8 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
  const counterSeats=()=>furniture.items.filter(i=>i.kind==='seat'&&i.diningKind);
  const nearbyDining=()=>service.menu.find(d=>distance(P[d.counter])<1.3)||service.menu.find(d=>counterSeats().some(s=>s.diningKind===d.id&&(distance(s.position)<1.2||getMounted()?.id===s.id)));
  const seats=()=>furniture.items.filter(i=>i.kind==='seat'&&i.center[1]===3.8&&i.center[2]===7.55);
- function next() {
-  const s=service.state(),v=s.visit,mounted=getMounted();
+ function nextStep(s) {
+  const v=s.visit,mounted=getMounted();
   if(s.activity)return {kind:'stop',label:'停止当前动作',position:s.activity.point};
   if(!v&&mode==='dining'){const dish=service.menu.find(d=>d.id===selectedDish),local=nearbyDining();return {kind:'order',label:`确认预留 ${dish.price} 券 · ${dish.name}`,position:counterSeats().find(s=>mounted?.id===s.id)?.anchor||counterSeats().find(s=>distance(s.position)<=.4)?.position||(local?P[local.counter]:P[dish.counter])};}
   if(v?.orderKind==='dining'){
@@ -54,6 +54,14 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
   if(v.stage==='checkout')return {kind:'return',label:'归还浴牌',position:P.playerReception};
   return {kind:'panel',label:'查看浴牌',position:P.playerReception};
  }
+ function next(){
+  const s=service.state(),step=nextStep(s),v=s.visit;
+  // Retain actual furniture/meal identity when the standing point is the
+  // avatar's seat anchor. No HUD marker may use that floor point as its object.
+  const frontDesk=!v||['arriving','check-in','checkout','checkout-ready'].includes(v.stage);
+  const visualAnchor=step.item?{furnitureId:step.item.id}:!frontDesk&&['eat','meal','wait'].includes(step.kind)?v.mealPoint?{id:'jp-meal:'+v.id,point:v.mealPoint.slice()}:{furnitureId:v.restSeatId}:frontDesk&&step.kind==='wait'?{actorId:'jp-welcome'}:null;
+  return {...step,dishId:v?.dishId||selectedDish,...(visualAnchor?{visualAnchor}:{})};
+ }
  function close(){if(dialog.open)dialog.close();}
  // Only ordinary service actions join the scene's one selected intent. Seat
  // and pool transfers retain the existing physical furniture controller.
@@ -61,7 +69,7 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
   const s=service.state(),v=s.visit,step=next();
   if(disposed||s.suspended||!getPlayer()||!['register','change','wash','collect','return','order','meal','eat'].includes(step.kind))return null;
   const dish=service.menu.find(d=>d.id===selectedDish);
-  return {id:'jp-player-service-'+step.kind,provider:'japan-player-service',name:'你的汤馆服务',action:step.label,kind:step.kind,position:step.position.slice(),executionRadius:step.kind==='order'?1.25:['register','return'].includes(step.kind)?JAPAN_RECEPTION_RADIUS:.34,keepSeat:!!getMounted()&&['order','meal','eat'].includes(step.kind),
+  return {id:'jp-player-service-'+step.kind,provider:'japan-player-service',name:'你的汤馆服务',action:step.label,kind:step.kind,serviceStep:step,visualAnchor:step.visualAnchor,position:step.position.slice(),executionRadius:step.kind==='order'?1.25:['register','return'].includes(step.kind)?JAPAN_RECEPTION_RADIUS:.34,keepSeat:!!getMounted()&&['order','meal','eat'].includes(step.kind),
    intentKey:JSON.stringify([choiceRevision,v?.id,v?.stage,v?.tokenId,v?.side,v?.poolId,v?.restSeatId,v?.blendReceived,v?.paymentId,step.kind,v?.blendId||selected,selectedDish,dish?.price])};
  }
  function resolveIntent(candidate){return currentInteractionIntent(candidate,currentIntent());}

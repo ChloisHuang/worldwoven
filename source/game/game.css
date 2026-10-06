@@ -189,3 +189,15 @@ body.in-lot :is(.cn-meal-ticket,.cn-inn-ticket,.cn-salon-ticket,.jp-service-tick
 body dialog.context-action-menu{inset:auto var(--ww-ui-right,12px) calc(var(--ww-ui-bottom,12px) + 54px) auto!important;margin:0!important;max-height:min(440px,calc(var(--ww-ui-height,calc(100dvh - 24px)) - 54px))!important}
 @media(max-height:420px){body dialog.context-action-menu{bottom:var(--ww-ui-bottom,12px)!important;max-height:var(--ww-ui-height,calc(100dvh - 24px))!important}}
 @media(max-height:420px) and (min-width:640px){.context-action-menu{width:min(540px,var(--ww-ui-width,calc(100vw - 24px)))}.context-action-group{display:grid;grid-template-columns:1fr 1fr;column-gap:8px}.context-action-group h3{grid-column:1 / span 2}}
+
+/* Shared world anchors: 44px touch area, with the existing light hand/chat art. */
+.object-action-layer{position:fixed;inset:0;pointer-events:none;z-index:11}
+.object-action-icon{position:absolute;transform:translate(-50%,-50%);display:grid;place-items:center;width:44px;height:44px;padding:9px;border:0;border-radius:50%;background:transparent;color:#527f85;filter:drop-shadow(0 0 3px #fffff2) drop-shadow(0 1px 1px #fffff2);pointer-events:auto;touch-action:manipulation}
+.object-action-icon svg{width:26px;height:26px}
+.object-action-icon:hover,.object-action-icon:focus-visible{background:#f6fff075;outline:1px solid #94b9b0}
+.object-action-icon[hidden],.object-action-popover[hidden]{display:none}
+.object-action-popover{position:absolute;pointer-events:auto;box-sizing:border-box;padding:4px 9px 8px;border:1px solid #d4e5dc;border-radius:10px 3px;background:#f6f8f0f2;color:#456872;box-shadow:0 4px 16px #274b6420;font-family:Georgia,"Songti SC","Noto Serif CJK SC",serif;display:flex;flex-direction:column;overflow:hidden}
+.object-action-popover .context-action-heading h2{font-size:14px}
+.object-action-popover .context-action-list{padding:0}
+
+.object-action-icon:active{transform:translate(-50%,-50%)}
