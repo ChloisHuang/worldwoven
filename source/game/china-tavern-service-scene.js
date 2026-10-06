@@ -54,7 +54,7 @@ function validWorld(w){
 // Two stable adult visitors produce bounded meal and lodging events. Durable boundaries
 // are saved before effects; the physical action timer itself is never restored.
 export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({hour:10}),worldSeed=1,npcs,lot,furniture,doors,planPath,moveActor,poseContext,getPlayer,getMounted,
-  saveState=()=>true,onReview=()=>({ok:true}),chargePlayer=()=>({ok:false,code:'wallet-unavailable'}),notify=()=>{},navigation=lot.navigation||{},propsFactory=createTavernMealProps,sharedNeeds=null,officialEconomy=null,artistEconomy=null,staffEconomy=null,getHostRole=null,getKitchenRole=null,isActorAlive=n=>n?.alive!==false,hasPresentHostMeeting=()=>false,canBorrowArtist=()=>true,getToilet=()=>null,onMealReceipts=()=>{},roomAvailable=()=>true}){
+  saveState=()=>true,onReview=()=>({ok:true}),chargePlayer=()=>({ok:false,code:'wallet-unavailable'}),notify=()=>{},navigation=lot.navigation||{},propsFactory=createTavernMealProps,sharedNeeds=null,officialEconomy=null,artistEconomy=null,staffEconomy=null,getHostRole=null,getKitchenRole=null,enableKitchenNeeds=false,isActorAlive=n=>n?.alive!==false,hasPresentHostMeeting=()=>false,canBorrowArtist=()=>true,getToilet=()=>null,onMealReceipts=()=>{},roomAvailable=()=>true}){
  const originalHost=npcs.find(n=>n.station.id===ORIGINAL_TAVERN_HOST_ID);let host=originalHost,roleReady=true;let chef=npcs.find(n=>n.station.id===M.cook),assistant=npcs.find(n=>n.station.id===M.assistant);
  const guests=GUESTS.map(id=>npcs.find(n=>n.station.id===id)),staff={host,chef,assistant},actors=[host,chef,assistant,...guests].filter(Boolean);
  const dirt=createTavernDirtProps(lot.group,furniture);
@@ -457,7 +457,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   for(const r of ['chef','assistant']){
    const binding=kitchenRole(r),desired=binding.isPlayer?(alive(binding.reliefActor)?binding.reliefActor:null):binding.available&&binding.alive?binding.actor:null,previous=staff[r];
    for(const id of state.kitchenPeople||[]){kitchenPeople.add(id);const n=npcs.find(n=>n.station.id===id);if(n&&!actors.includes(n))life.register(n);}
-   if(desired){const id=desired.station.id;kitchenPeople.add(id);if(!(state.kitchenPeople||[]).includes(id)&&!changeWorld(next=>{next.kitchenPeople=[...kitchenPeople];}))return false;if(!actors.includes(desired))life.register(desired);}
+   if(desired){const id=desired.station.id;if(enableKitchenNeeds&&!binding.isPlayer&&sharedNeeds?.register?.(id)===false)return false;kitchenPeople.add(id);if(!(state.kitchenPeople||[]).includes(id)&&!changeWorld(next=>{next.kitchenPeople=[...kitchenPeople];}))return false;if(!actors.includes(desired))life.register(desired);}
    const bindingKey=[binding.holderId,binding.revision||0,binding.available,binding.alive].join(':');
    if(previous!==desired||kitchenBindings.get(r)!==bindingKey){
     kitchenBindings.set(r,bindingKey);
