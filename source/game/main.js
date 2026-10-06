@@ -576,7 +576,7 @@ function configureChinaMoneyHouse(){
 }
 function configureChinaTeller(){
  chinaTellerService=active.id==='china'?createChinaTellerService({npcs,lot,resolveAssignment:()=>tellerSlot.resolve(),getAssignment:()=>tellerSlot.state(),getDay:()=>simulationClock.state().day,getLedger:()=>copperLedger,canControl:canControlTellerPerson,isCounterOpen:()=>chinaMoneyHouse?.isOpen()===true,isPersonalBusy:n=>chinaTellerPersonal?.owns(n)===true,doors:automaticDoors,planPath,moveActor,poseContext:characterPoseContext,getPlayer:()=>player,economy:tellerAccounts,saved:saved.chinaTellerInspection,saveState:state=>saveClinicNPCPart('chinaTellerInspection',state)}):null;
- const enableTellerNeeds=false; // Keep gated until real original meal/cubicle/return and prepaid restore pass.
+ const enableTellerNeeds=true; // Verified real audit wages, healthy enrollment, paid meal/cubicle/return and active prepaid restore.
  chinaTellerPersonal=active.id==='china'&&enableTellerNeeds?createChinaTellerPersonalLife({npcs,getHolder:()=>tellerSlot.resolve().actor,getHome:()=>[...TELLER_HOME],canControl:canControlTellerPerson,canStart:n=>chinaTellerService?.handoffBoundary().ok&&!chinaTellerService.loadError&&!chinaMoneyHouse?.isOpen()&&!n.walking&&!n.route.length,economy:tellerAccounts,mealFunds:guestAccounts,sharedNeeds:dailyNeeds,getTavern:()=>chinaTavern?.staffScene,getToilet:()=>chinaDailyToilet,getPlayer:()=>player,doors:automaticDoors,planPath,moveActor,poseContext:characterPoseContext,saved:saved.chinaTellerPersonalNeeds,saveState:state=>saveClinicNPCPart('chinaTellerPersonalNeeds',state)}):null;
 }
 function configureChinaRoyalKitchen(){
