@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {createSocialMeetingPlaces,createSocialMeetingJourney,SOCIAL_MEETING_MATRIX} from '../source/game/social-meeting-places.js';
+import {createSocialMeetingPlaces,createSocialMeetingJourney,createGreetingApproach,SOCIAL_MEETING_MATRIX} from '../source/game/social-meeting-places.js';
 import {createFacilityQueue} from '../source/game/npc-facilities.js';
 const actor=(id,x=0,z=0)=>({actorId:id,root:{visible:true,position:{x,y:0,z},rotation:{y:0}},locomotion:{walkSpeed:2},route:[{x:90,y:0,z:90}]});
 const path=(from,to)=>[{...to}];
@@ -42,3 +42,10 @@ for(const country of Object.keys(SOCIAL_MEETING_MATRIX)){
  const result=places.resolve(['ruler','companion'],{private:true,roomId:'chamber'});assert(result.ok);assert.equal(result.place.points[1][0],3);assert(Math.abs(Math.abs(result.place.points[1][2]-3)-.9)<1e-9);assert(!places.resolve(['ruler','companion'],{private:true,roomId:'other'}).ok);
 }
 console.log('PASS finite four-country public places; private joint entitlement/occupancy; claims; real paired navigation; live withdrawal/adult/work gates and cleanup');
+
+{
+ const people=[actor('a',0),actor('b',7)],original=JSON.stringify(people[0].route);const journey=createGreetingApproach({pair:people,planPath:path,doors:{routeStep(route,pos,tolerance){while(route.length&&Math.hypot(route[0].x-pos.x,route[0].z-pos.z)<tolerance)route.shift();return {waypoint:route[0]};}},moveActor:(n,dx,dz)=>{n.root.position.x+=dx;n.root.position.z+=dz;},getActors:()=>people});assert(journey);let result;for(let i=0;i<100;i++){result=journey.update(.1);if(result.phase==='arrived')break;}assert.equal(result.phase,'arrived');assert(Math.abs(people[0].root.position.x-people[1].root.position.x)<1.5);assert.equal(JSON.stringify(people[0].route),original,'original owner route is retained');assert.equal(people[1].root.position.x,7,'listener remains at original post');journey.finish();
+ assert.equal(createGreetingApproach({pair:people,planPath:()=>[],canApproach:()=>false}),null,'post cannot be borrowed for approach');
+ const blocked=createGreetingApproach({pair:[actor('a',0),actor('b',7)],planPath:()=>[]});assert.equal(blocked,null,'unreachable greeting has no teleport');
+ console.log('PASS physical greeting approach, original route retained, stationary listener, owner and navigation gates');
+}
