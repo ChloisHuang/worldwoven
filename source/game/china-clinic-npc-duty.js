@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {PHARMACY_ASSISTANT_ROLE,CLINIC_PHYSICIAN_ROLE} from './formal-careers.js';
 import {clinicNPCWageReceipt} from './china-clinic-npc-economy.js';
 import {CHINA_CLINIC as C} from './china-clinic.js';
@@ -10,7 +11,7 @@ const validHolder=(r,role,n)=>r?.roleId===role.id&&r.slotId===role.slotId&&r.sta
 export function clinicNPCCoverage({doctor,assistant,getHolder,isPlayerHired,conversationActorId=null,order=null,meeting=false,hasActor=()=>true}){
  return roles.flatMap((role,i)=>{
   const n=i?assistant:doctor,r=getHolder?.(role.id),p=n?.root?.position;
-  if(!n||!hasActor(n)||!validHolder(r,role,n)||isPlayerHired?.(role.id)||conversationActorId===n.station.id||!p)return [];
+  if(!n||!hasActor(n)||!validHolder(r,role,n)||isPlayerHired?.(role.id)||isSociallyHeld(n.station.id,conversationActorId)||!p)return [];
   const inside=p.x>=C.bounds.minX&&p.x<=C.bounds.maxX&&p.z>=C.bounds.minZ&&p.z<=C.bounds.maxZ&&p.y>=C.floorY-.3&&p.y<=C.clinicFloorY+.4;
   const home=i?C.points.assistant:meeting?C.points.doctorHandoff:C.points.doctor;
   const atPost=Math.hypot(p.x-home[0],p.z-home[2])<.15&&Math.abs(p.y-home[1])<.3;

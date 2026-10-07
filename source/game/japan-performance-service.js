@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {knownAdult} from './player-age.js';
 import {followActorRoute,findActorStandPoint} from './actor-navigation.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
@@ -61,7 +62,7 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
  }
  const reset=n=>{routes.delete(n);n.route=[];n.walking=false;};
  function move(n,to,dt){
-  n.walking=false;if(near(n,to))return true;if(conversation===n.station.id)return false;
+  n.walking=false;if(near(n,to))return true;if(isSociallyHeld(n.station.id,conversation))return false;
   const key=to.join(',');let r=routes.get(n);
   if(!r||r.key!==key){r={key,path:planPath(n.root.position,{x:to[0],y:to[1],z:to[2]},.25),stalled:0};routes.set(n,r);}
   followActorRoute(n,dt,{route:r.path,doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,radius:.25,speedScale:.8,arrivalTolerance:.04});
@@ -81,7 +82,7 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
  function request(artistId,activity,drink=null){
   if(disposed||order||returns.size||!atReception())return false;const a=artists.find(n=>n.station.id===artistId),d=DRINKS.find(d=>d.id===drink);
   if(!a||!eligible(a)||!ACT[activity]||drink&&!d)return false;
-  if(isActorBusy(a)||conversation===a.station.id){notify(`${a.station.npcName}还在和别人说话，稍后再来吧`);return false;}
+  if(isActorBusy(a)||isSociallyHeld(a.station.id,conversation)){notify(`${a.station.npcName}还在和别人说话，稍后再来吧`);return false;}
   if(!recoverPayments()||occupied()){notify(paymentError?'钱款账目尚未核对':'演艺茶席或舞台有人使用，稍后再来');return false;}
   const currency=JAPAN_SERVICE_CURRENCY,actFee=ACT[activity].fee,drinkFee=d?.fee||0;
   if(japanServiceCash(copperLedger,currency)<actFee+drinkFee){notify(`本次需 ${actFee+drinkFee} 券（日本票券），可到本地银行兑换或提款`);return false;}

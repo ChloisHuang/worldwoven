@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {createServiceRelationshipOutbox,serviceRelationshipEvent} from './service-relationship-outbox.js';
 import {createChinaReceptionPersonalLife} from './china-reception-personal-life.js';
 import {createSalonReceptionProps} from './china-salon-reception-props.js';
@@ -37,7 +38,7 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
  const gap=(a,p)=>Math.hypot(a.root.position.x-p[0],a.root.position.z-p[2]),near=(a,p,r=.07)=>!!a&&gap(a,p)<r&&Math.abs(a.root.position.y-p[1])<.3;
  const customer=()=>session?.customerId?npcs.find(n=>n.station.id===session.customerId):getPlayer();
  const receptionAssignment=()=>receptionDuty?.resolve?.();
- const receptionPresent=()=>{const a=receptionAssignment(),home=receptionist.home?.toArray?.()||receptionist.station.npcPosition;return !!home&&a?.holderId===receptionist.station.id&&a.actor===receptionist&&a.available===true&&a.alive===true&&receptionist.alive!==false&&!receptionist.serviceMount&&!isActorBusy(receptionist)&&conversation!==receptionist.station.id&&near(receptionist,home,.18);};
+ const receptionPresent=()=>{const a=receptionAssignment(),home=receptionist.home?.toArray?.()||receptionist.station.npcPosition;return !!home&&a?.holderId===receptionist.station.id&&a.actor===receptionist&&a.available===true&&a.alive===true&&receptionist.alive!==false&&!receptionist.serviceMount&&!isActorBusy(receptionist)&&!isSociallyHeld(receptionist.station.id,conversation)&&near(receptionist,home,.18);};
  const receptionAvailable=()=>!receptionDuty||!receptionLife?.blocks()&&receptionPresent();
  const receptionWorkBoundary=()=>!session&&!returning&&!paymentError&&!employment?.active();
  const receptionOwner=()=>!receptionDuty||receptionAssignment()?.holderId===receptionist.station.id&&receptionAssignment()?.actor===receptionist&&receptionAssignment()?.available===true;
@@ -74,7 +75,7 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
  }
  function cancel(reason='你向艺者告辞'){const npc=!!session?.customerId;if(!release(reason))return false;if(!npc)say(reason+'，温晚已撤下留房牌');return true;}
  function travel(a,to,dt,{player=false,hold=false}={}){
-  a.walking=false;if(near(a,to))return true;if(hold||conversation===a.station?.id)return false;
+  a.walking=false;if(near(a,to))return true;if(hold||isSociallyHeld(a.station?.id,conversation))return false;
   const radius=player ? .34 : .25;let s=travelState.get(a),key=to.join(',');
   if(!s||s.key!==key){s={key,route:planPath(a.root.position,{x:to[0],y:to[1],z:to[2]},radius),stalled:0};travelState.set(a,s);}
   const step=followActorRoute(a,dt,{route:s.route,doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,radius,speedScale:.76,arrivalTolerance:.04});if(step.waiting){s.stalled=0;return false;}const p=step.waypoint;
@@ -149,7 +150,7 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
    const home=receptionist.home?.toArray?.()||receptionist.station.npcPosition;
    // A conversation freezes the same physical grip without counting work.
    // An absent/mounted body cannot leave a plaque floating over the counter.
-   if(conversation===receptionist.station.id&&home&&near(receptionist,home,.18)&&!receptionist.serviceMount){receptionObjects?.apply(session,receptionist,t,poseContext(receptionist,receptionist.station));return !!receptionObjects;}
+   if(isSociallyHeld(receptionist.station.id,conversation)&&home&&near(receptionist,home,.18)&&!receptionist.serviceMount){receptionObjects?.apply(session,receptionist,t,poseContext(receptionist,receptionist.station));return !!receptionObjects;}
    receptionObjects?.rest?.(session);return false;
   }
   receptionist.root.rotation.y=0;receptionist.walking=false;
@@ -162,7 +163,7 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
  function pose(a,t,action,target){if(target&&!a.walking)a.root.rotation.y=Math.atan2(target[0]-a.root.position.x,target[2]-a.root.position.z);if(a.root.visible!==false){const context=poseContext(a,a===receptionist?a.station:null);if(a===receptionist)context.receptionWriting=false;a.animate(t+(a.phase||0),a.walking,a.walking?null:action,context);}}
  life=createSalonArtistLife({performers,worldSeed,sharedNeeds,tryNeeds:n=>needsLife?.tryStart(n),saved:saved.continuity?.life||saved.life||{},saveState:()=>persist(),travel,pose,planPath,getPlayer,isActorBusy});
  needsLife=createSalonNeeds({artists:performers,sharedNeeds,economy:artistMealFunds,getTavern,getToilet,travel,pose,poseContext,resetRoute,saveState:()=>persist(),saved:saved.continuity?.artistNeeds||saved.artistNeeds||{}});
- if(receptionDuty&&receptionEconomy&&receptionMealFunds&&sharedNeeds)receptionLife=createChinaReceptionPersonalLife({npcs,getHolder:()=>receptionAssignment()?.actor,getHome:()=>receptionist.home.toArray(),canStart:n=>receptionWorkBoundary()&&!isActorBusy(n)&&conversation!==n.station.id&&!n.walking&&!n.route.length,canControl:canControlReception,economy:receptionEconomy,mealFunds:receptionMealFunds,sharedNeeds,getTavern,getToilet,getPlayer,doors,planPath,moveActor,poseContext,saved:saved.continuity?.receptionNeeds||saved.receptionNeeds,saveState:()=>persist()});
+ if(receptionDuty&&receptionEconomy&&receptionMealFunds&&sharedNeeds)receptionLife=createChinaReceptionPersonalLife({npcs,getHolder:()=>receptionAssignment()?.actor,getHome:()=>receptionist.home.toArray(),canStart:n=>receptionWorkBoundary()&&!isActorBusy(n)&&!isSociallyHeld(n.station.id,conversation)&&!n.walking&&!n.route.length,canControl:canControlReception,economy:receptionEconomy,mealFunds:receptionMealFunds,sharedNeeds,getTavern,getToilet,getPlayer,doors,planPath,moveActor,poseContext,saved:saved.continuity?.receptionNeeds||saved.receptionNeeds,saveState:()=>persist()});
  return {
   receptionWorkBoundary,receptionAdmissionOpen:receptionAvailable,canBorrowReceptionMeal:id=>receptionLife?.canBorrowMeal(id)===true,receptionPersonalState:()=>receptionLife?.snapshot()||null,
   receptionWorkState:()=>receptionObjects?.state()||null,
@@ -173,6 +174,8 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
   admissionBusy:()=>!!session||returning||!receptionAvailable(),
   owns:n=>n===receptionist&&(receptionOwner()||receptionLife?.owns(n))||performers.includes(n)||!!session?.customerId&&n===customer()||employment?.owns(n),
   isProvidingService:id=>session?.customerId===id||performer?.station.id===id&&!!(session||returning),
+  canTalkAtPost:n=>(n===receptionist||performers.includes(n))&&!session&&!returning&&!n.walking&&!n.route?.length&&!n.serviceMount&&!isActorBusy(n),
+  canBorrowForSocial(n){return performers.includes(n)&&!(n===performer&&(session||returning))&&!isActorBusy(n)&&!life.isBusy(n)&&!needsLife.owns(n)&&!employment?.owns(n);},
   canBorrowArtist(id){const n=performers.find(a=>a.station.id===id);return !!n&&!(n===performer&&(session||returning))&&!isActorBusy(n)&&!life.isBusy(n)&&(!needsLife.owns(n)||needsLife.mealPending(n));},
   personalNeedStatus:n=>receptionLife?.owns(n)?{busy:true,canPause:false,attention:false,job:receptionLife.label()}:needsLife.owns(n)?{busy:true,canPause:false,attention:false,job:needsLife.label(n)}:null,
   // Fixed-size overlay state: no candidate quotes, room scan or wallet journal.

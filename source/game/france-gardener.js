@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {followActorRoute} from './actor-navigation.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
 import {visualSupportHeight} from './floor-support.js';
@@ -65,7 +66,7 @@ export function createFranceGardener({npcs,lot,doors,planPath,moveActor,poseCont
   socialProfile:id=>id===P.id?brain.state(id):null,
   socialStatus:()=>{const busy=!!tool||!['idle','rest','garden','meeting'].includes(stage)||stage==='meeting'&&gap(n,P.host)>.08;return {busy,canPause:!busy,attention:true,job:labels[stage]};},
   update(dt,t,{conversationActorId=null,hour=10}={}){
-   if(disposed)return;time+=dt;maintenance.refresh();brain.tick(dt);n.walking=false;paused=conversationActorId===P.id;
+   if(disposed)return;time+=dt;maintenance.refresh();brain.tick(dt);n.walking=false;paused=isSociallyHeld(P.id,conversationActorId);
    let target=null,action=null,transfer=null;
    if(!paused){
     if(dutyOwner&&!cancelled&&!transferBusy()&&!['idle','rest','garden','meeting'].includes(stage))cancel();

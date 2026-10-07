@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {rangeWardenPatrolCoverage} from './china-range-warden-slot.js';
 import {createNPCPersonalTrip} from './npc-personal-trip.js';
 import {followActorRoute} from './actor-navigation.js';
@@ -63,7 +64,7 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
  function beginPatrol(n){const p=patrol.get(n);Object.assign(p,{stage:'travel',index:0,time:0,paused:false,yielding:false,visited:[]});resetTravel(n);}
  function patrolLabel(n){const p=patrol.get(n);return (guardTenure&&n===guards[0]&&!guardWork?'代巡 · 玩家未在班 · ':'')+(p.stage==='ready'?'巡查完毕 · 在射圃候交班':CHINA_GUARD_ROUTES[p.routeId][p.index].label);}
  function updatePatrol(n,dt,position){
-  const p=patrol.get(n);p.paused=conversationActorId===n.station.id&&phase!=='handover';p.yielding=false;
+  const p=patrol.get(n);p.paused=isSociallyHeld(n.station.id,conversationActorId)&&phase!=='handover';p.yielding=false;
   if(p.paused){tell(n,patrolLabel(n)+' · 稍停交谈');if(position)n.root.rotation.y=Math.atan2(position.x-n.root.position.x,position.z-n.root.position.z);return;}
   if(p.stage==='ready'){tell(n,patrolLabel(n));travel(n,HANDOFF[guards.indexOf(n)],dt);return;}
   const route=CHINA_GUARD_ROUTES[p.routeId],stop=route[p.index];tell(n,patrolLabel(n));
@@ -81,6 +82,7 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
   }
  }
  function updateRelieved(n,dt){
+  if(isSociallyHeld(n.station.id,conversationActorId)){n.walking=false;return;}
   tell(n,guardWork?.stage==='returning'?'回射圃 · 等玩家当面交班':`${n.station.npcName||n.station.id} · 已让出巡值，庭边歇脚读札`);
   const to=guardWork?.stage==='returning'?HANDOFF[0]:LEISURE[leisure.index];
   if(travel(n,to,dt)&&guardWork?.stage!=='returning'){leisure.time+=dt;if(leisure.time>18){leisure.index=(leisure.index+1)%LEISURE.length;leisure.time=0;resetTravel(n);}}
@@ -123,9 +125,9 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
  const personalPaths=new Map(),corridor=[[-17.15,.13,19.1],[-15.25,.13,19],[-11.8,.13,21],[0,.13,22],[14.9,.13,21],[14.9,.13,11],[16.9,.215,9.1]];
  const personalHome=n=>guards.includes(n)&&!retired.has(n)?HANDOFF[guards.indexOf(n)]:LEISURE[0];
  const personalReset=n=>{resetTravel(n);n.walking=false;personalPaths.delete(n);};
- function personalTravel(n,to,dt){n.walking=false;if(gap(n.root.position,to)<.065&&Math.abs(n.root.position.y-to[1])<.3){personalReset(n);return true;}if(conversationActorId===n.station.id)return false;let p=personalPaths.get(n);if(!p||p.key!==to.join(',')){p={key:to.join(','),retryAt:0};personalPaths.set(n,p);n.route=[];}if(!n.route.length&&personalTime>=p.retryAt){p.retryAt=personalTime+3;n.route=planPath(n.root.position,point(to),.25);}followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,speedScale:.8});return gap(n.root.position,to)<.065&&Math.abs(n.root.position.y-to[1])<.3;}
+ function personalTravel(n,to,dt){n.walking=false;if(gap(n.root.position,to)<.065&&Math.abs(n.root.position.y-to[1])<.3){personalReset(n);return true;}if(isSociallyHeld(n.station.id,conversationActorId))return false;let p=personalPaths.get(n);if(!p||p.key!==to.join(',')){p={key:to.join(','),retryAt:0};personalPaths.set(n,p);n.route=[];}if(!n.route.length&&personalTime>=p.retryAt){p.retryAt=personalTime+3;n.route=planPath(n.root.position,point(to),.25);}followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,speedScale:.8});return gap(n.root.position,to)<.065&&Math.abs(n.root.position.y-to[1])<.3;}
  if(enablePersonalNeeds&&npcEconomy&&sharedNeeds)needsLife=createNPCPersonalTrip({saved:savedPersonalNeeds,getCandidates:()=>[...new Set([...guards,...retired])],getActor:id=>[...guards,...retired].find(n=>n.station.id===id),canControl:n=>canControlGuard(n),
-  canStart:n=>isActorAlive(n)&&canControlGuard(n)&&(!guards.includes(n)||retired.has(n)||boundAvailable())&&!request&&!guardWork&&!registrationRequested&&conversationActorId!==n.station.id&&gap(n.root.position,personalHome(n))<.15&&Math.abs(n.root.position.y-personalHome(n)[1])<.3&&(sharedNeeds.has(n.station.id)||(npcEconomy.account(n.station.id)?.cash||0)+(npcEconomy.account(n.station.id)?.bank||0)>=6),
+  canStart:n=>isActorAlive(n)&&canControlGuard(n)&&(!guards.includes(n)||retired.has(n)||boundAvailable())&&!request&&!guardWork&&!registrationRequested&&!isSociallyHeld(n.station.id,conversationActorId)&&gap(n.root.position,personalHome(n))<.15&&Math.abs(n.root.position.y-personalHome(n)[1])<.3&&(sharedNeeds.has(n.station.id)||(npcEconomy.account(n.station.id)?.cash||0)+(npcEconomy.account(n.station.id)?.bank||0)>=6),
   canDepart:n=>!guards.includes(n)||retired.has(n)||phase==='handover'&&phaseTime>=2.4&&physicalHandoffBoundary({personalTrip:false}).ok,getReturnTarget:personalHome,getExitRoute:()=>corridor,getReturnRoute:n=>[...corridor.slice().reverse().map(p=>p.slice()),personalHome(n)],economy:npcEconomy,sharedNeeds,getTavern,getToilet,travel:personalTravel,resetRoute:personalReset,pose:(n,t,mounted)=>{const c=poseContext(n,null);n.animate(t+n.phase,!!n.walking,mounted?.action||null,mounted?{...c,...mounted.context}:c);},saveState:savePersonalNeeds});
  enter('handover');
  return {
@@ -155,6 +157,8 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
   requestGuardReturn(receiptId){if(guardWork?.receiptId!==receiptId)return false;if(guardWork.stage==='active'){guardWork.stage='returning';resetTravel(guards[0]);}return ['returning','returned'].includes(guardWork.stage);},
   finishGuardWork(receiptId){if(guardWork?.receiptId!==receiptId)return false;if(guardWork.stage!=='returned')return false;guardWork=null;beginPatrol(guards[0]);return true;},
   cancelGuardWork(receiptId){if(guardWork?.receiptId!==receiptId)return false;guardWork=null;beginPatrol(guards[0]);return true;},
+  canTalkAtPost:n=>owned.has(n)&&!n.walking&&!n.route?.length&&!n.serviceMount&&!kits.get(n)?.bow.visible&&!registrationRequested&&!request&&!socialStatus(n)?.busy,
+  canBorrowForSocial:n=>owned.has(n)&&!needsLife?.owns(n)&&(retired.has(n)||n===guards[0]&&guardWork?.stage==='active'),
   owns:n=>owned.has(n),ownsStation:id=>A.roles.includes(id),socialStatus,
   startPlayer(actor){if(player!==actor){playerKit?.dispose();playerKit=makeKit(lot.group);player=actor;}deferredPractice=!!needsLife?.blocks();request=!deferredPractice;complete=false;playerShot=false;},
   stopPlayer(){deferredPractice=false;request=false;complete=false;playerKit?.hide();if(phase.startsWith('player-')){retrieveLane=playerShot?1:0;enter(playerShot?'cease':'relief');}player=null;},
@@ -162,7 +166,7 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
   syncPlayer(){if(player)playerKit?.update(player,this.playerPose(),A.targets[1]);},
   playerStatus(){if(deferredPractice)return {complete:false,label:'等巡值同伴日常事务结束后再开练',progress:0};return request?{complete,label:blocked?'前方有人 · 收弓停射':phase.startsWith('player-')?labels[phase]:'等待本轮停射取箭，再接过练习弓',progress:phase==='player-take'?.1:phase==='player-aim'?.2+Math.min(1,phaseTime/2.8)*.45:phase==='player-flight'?.78:phase==='player-cease'?1:0}:null;},
   update(dt,t,{position,conversationActorId:talking=null}={}){
-   patrolWork.clear();lastUpdateDt=dt;if(disposed)return;updated=true;personalTime+=Math.max(0,dt);conversationActorId=talking;needsLife?.update(dt,t);if(deferredPractice&&!needsLife?.blocks()){request=true;deferredPractice=false;}const away=guards.find(n=>needsLife?.away(n.station.id));if(away){wasAway=true;for(const n of guards)if(n!==away){n.walking=false;animateGuard(n,t);}return;}if(wasAway){wasAway=false;active=1;phase='handover';phaseTime=0;resetTravel(guards[0]);resetTravel(guards[1]);}for(const old of retired){if(needsLife?.owns(old))continue;old.walking=false;if(isActorAlive(old)){if(talking!==old.station.id)travel(old,LEISURE[0],dt);old.animate(t+old.phase,old.walking,old.walking?null:'read',poseContext(old,null));kits.get(old)?.hide();}}
+   patrolWork.clear();lastUpdateDt=dt;if(disposed)return;updated=true;personalTime+=Math.max(0,dt);conversationActorId=talking;needsLife?.update(dt,t);if(deferredPractice&&!needsLife?.blocks()){request=true;deferredPractice=false;}const away=guards.find(n=>needsLife?.away(n.station.id));if(away){wasAway=true;for(const n of guards)if(n!==away){n.walking=false;animateGuard(n,t);}return;}if(wasAway){wasAway=false;active=1;phase='handover';phaseTime=0;resetTravel(guards[0]);resetTravel(guards[1]);}for(const old of retired){if(needsLife?.owns(old))continue;old.walking=false;if(isActorAlive(old)){if(!isSociallyHeld(old.station.id,talking))travel(old,LEISURE[0],dt);old.animate(t+old.phase,old.walking,old.walking?null:'read',poseContext(old,null));kits.get(old)?.hide();}}
    if(!boundAvailable())return;updateFlight(dt);blocked=!clearRange(position);for(const n of guards)n.walking=false;
    const n=shooter(),other=guards[1-active];
    // Range phases never reset the partner's route or observation timer.

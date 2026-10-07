@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {bedAvailable,reserveNpcBed} from './npc-bed-occupancy.js';
 import {createJapanStaffConversations} from './japan-staff-conversations.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
@@ -69,7 +70,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
  function sociallyAvailable(n,state){
   if(active?.phase!=='returning'||active.interrupted||active.socialPauseDone||active.id==='jp-incense'||!actors.has('jp-incense')||!['jp-incense',active.id].includes(n.station.id))return false;
   const id=n.station.id,need=sharedNeeds?.status(id),task=taskOf(n),work=socialReads?(socialReads.board??=board.state()):board.state();
-  if(external(id)||getMeetingHeld(id)||need?.seekMeal||need?.seekToilet||decisions.fatigued(id)||state.conversationActorId===id||state.meetingActorId===id||state.performing===id||n.serviceMount||n.bathTransition||task&&!task.idle&&!task.staffConversation||work.claims.some(j=>j.workerId===id)||work.items.some(i=>i.location?.type==='worker'&&i.location.id===id))return false;
+  if(external(id)||getMeetingHeld(id)||need?.seekMeal||need?.seekToilet||decisions.fatigued(id)||isSociallyHeld(id,state.conversationActorId)||state.meetingActorId===id||state.performing===id||n.serviceMount||n.bathTransition||task&&!task.idle&&!task.staffConversation||work.claims.some(j=>j.workerId===id)||work.items.some(i=>i.location?.type==='worker'&&i.location.id===id))return false;
   // The retiring worker has actually finished a break and still has coverage.
   // An idle apothecary stays within the original dispatch area, relinquishing
   // the conversation immediately when any original preparation order arrives.
@@ -194,6 +195,7 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
    if(active?.reliefId===id&&!active.externalCoverage){const shift=profile(id);return {duration:4,face:shift===KITCHEN?P.mealTray:shift===FRONT_DESK?P.tokenTray:shift.side?P[shift.side+'Service']:P.blendWork,label:'留在代班岗位，等候下一张单'};}
    return id==='jp-herb-workshop'?{duration:4,action:n.station.npcAction,workTarget:n.station.workTarget,label:n.station.npcLabel}:null;
   },
+  canBorrowForSocial(id){return active?.id===id&&!active.interrupted&&(active.externalCoverage||active.covering||!profile(id)?.local)&&!['draining','handoff','reclaiming'].includes(active.phase)&&!busy(actors.get(id));},
   canWork(id){if(conversations.owns(id))return false;return !active||(id!==active.id&&!(id===active.reliefId&&!active.externalCoverage&&['draining','handoff'].includes(active.phase)));},
   update(dt,state={}) {
    // Social eligibility shares one lazy read in this synchronous simulation

@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {createServiceRelationshipOutbox,serviceRelationshipEvent} from './service-relationship-outbox.js';
 import {createCurrencyLedger, GAME_CURRENCIES} from './currency-ledger.js';
 import {CHINA_MONEY_HOUSE} from './china-money-house.js';
@@ -173,6 +174,10 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
    onOpen();if(bound){const current=binding();if(!atCounter(current,true)||current.actor!==b.actor||current.holderId!==b.holderId||current.revision!==b.revision||!near()){close();return false;}counterTicket={actor:b.actor,actorId:b.holderId,revision:b.revision};}
    message='';render();if(!dialog.open)dialog.showModal();return true;
   },close,
+  // This counter has no public-conversation relief shift. A released actor is
+  // eligible through its new owner, never by borrowing the active binding.
+  canBorrowForSocial:()=>false,
+  canTalkAtPost:n=>n===binding()?.actor&&!dialog.open&&!n.walking&&!n.route?.length&&!n.serviceMount,
   socialStatus:n=>n&&n===binding()?.actor?{busy:!!dialog.open,attention:true,job:actorActivity(n)}:null,
   update(dt,t,{conversationActorId=null}={}){
    if(disposed)return;replayRelationships();if(Number.isFinite(dt)&&dt>0)time+=dt;if(dialog.open&&(!near()||bound&&!ticketValid()))close();
@@ -180,7 +185,7 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
    // One persistent adult works along the same counter. Slow side steps place
    // each object inside the existing hand reach instead of reaching through it.
    const writing=time%14<8,target=writing?C.points.ledger:(C.points.counting||C.points.abacus),desiredX=target[0],dx=desiredX-teller.root.position.x;
-   const paused=conversationActorId===teller.station.id;teller.walking=!paused&&Math.abs(dx)>.02;
+   const paused=isSociallyHeld(teller.station.id,conversationActorId);teller.walking=!paused&&Math.abs(dx)>.02;
    if(teller.walking){teller.root.position.x+=Math.sign(dx)*Math.min(Math.abs(dx),dt*.38);teller.root.rotation.y=Math.sign(dx)*Math.PI/2;}else teller.root.rotation.y=C.tellerYaw||0;
    activity=paused?'和来客交谈':writing?'核对账簿 · 落笔记账':C.countingLabel||'拨动算珠 · 核对铜钱';const small=teller.label?.querySelector?.('small');if(small)small.textContent=activity;
    const context=poseContext(teller,null);context.receptionWriting=writing;context.handoff=false;context.heldProp=null;context.workHeight=(target[1]-teller.root.position.y)/(teller.characterScale||1);context.workDistance=((target[0]-teller.root.position.x)*Math.sin(C.tellerYaw||0)+(target[2]-teller.root.position.z)*Math.cos(C.tellerYaw||0))/(teller.characterScale||1);

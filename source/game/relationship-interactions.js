@@ -36,6 +36,7 @@ export function relationshipInteractionEligible(id, context = {}) {
   if (id === 'shared-memory' && !evidenceId(context.lastCompletedId)) return false;
   if (a.romantic && !relationshipRomanticContextAllowed(context)) return false;
   if (id === 'respond-interest' && !(context.initiator === 'npc' ? context.interestGiven : context.interestReceived)) return false;
+  if (['public-invitation','quiet-company'].includes(id)&&context.publicPlaceAvailable===false)return false;
   if (a.private && context.privatePlaceAvailable !== true) return false;
   return true;
 }

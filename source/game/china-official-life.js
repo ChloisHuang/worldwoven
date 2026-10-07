@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {bedAvailable,reserveNpcBed,occupyNpcBed} from './npc-bed-occupancy.js';
 import {TAVERN_LAYOUT_VERSION as LAYOUT_VERSION} from './china-tavern-layout.js';
 import {CHINA_PUBLIC_TOILET as PUBLIC_TOILET} from './china-public-toilet.js';
@@ -59,7 +60,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  function salonInterruption(n,s=stages.get(n)){
   if(s?.called||s?.courtReady)return 'court-summons';
   if(state.meetingActorId===n.station.id)return 'official-meeting';
-  if(s?.pairId||state.conversationActorId===n.station.id||state.performing===n.station.id)return 'conversation';
+  if(s?.pairId||isSociallyHeld(n.station.id,state.conversationActorId)||state.performing===n.station.id)return 'conversation';
   if(urgent(n))return 'personal-need-or-duty';
   return null;
  }
@@ -88,7 +89,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   ].map(c=>({...c,available:c.available!==false&&!!c.point&&(!c.facilityId||!occupied(c.facilityId,n))&&(!c.roomId||!occupied(c.roomId,n))}));
  }
  function urgent(n){const need=sharedNeeds?.status(n.station.id);return !!need?.seekMeal||!!need?.seekToilet||brain.fatigued(n.station.id)||duties[n.station.id]?.stage==='awaiting-archive'||index(n)===0&&!!reports?.inspection();}
- function idleEligible(n){const s=stages.get(n);return !!s?.idle&&!s.called&&!s.courtReady&&!s.borrowed&&!s.borrowedSalon&&!s.mount&&state.conversationActorId!==n.station.id&&state.meetingActorId!==n.station.id&&state.performing!==n.station.id&&!urgent(n)&&brain.canReply(n.station.id);}
+ function idleEligible(n){const s=stages.get(n);return !!s?.idle&&!s.called&&!s.courtReady&&!s.borrowed&&!s.borrowedSalon&&!s.mount&&!isSociallyHeld(n.station.id,state.conversationActorId)&&state.meetingActorId!==n.station.id&&state.performing!==n.station.id&&!urgent(n)&&brain.canReply(n.station.id);}
  function idle(n,label='手边事情告一段落 · 在原处歇一会儿'){
   brain.defer(n.station.id,12);stages.set(n,stage([n.root.position.toArray()],label,{idle:true,arrived:true,duration:12}));n.route=[];
  }
@@ -122,7 +123,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  function updateConversation(n,s,dt,t){
   const pair=conversation;if(!pair||pair.id!==s.pairId){brain.complete(n.station.id,s.choice,{fulfilled:false});claims.releaseActor(n.station.id);idle(n);return;}
   const actors=pair.participants.map(id=>officials.find(a=>a.station.id===id));
-  if(!brain.conversationAllowed(pair.id)||actors.some(a=>!a||stages.get(a)?.called||urgent(a)||state.conversationActorId===a.station.id||state.meetingActorId===a.station.id||state.performing===a.station.id)){endConversation(false);return;}
+  if(!brain.conversationAllowed(pair.id)||actors.some(a=>!a||stages.get(a)?.called||urgent(a)||isSociallyHeld(a.station.id,state.conversationActorId)||state.meetingActorId===a.station.id||state.performing===a.station.id)){endConversation(false);return;}
   const step=Math.max(0,time-pair.lastAt);pair.lastAt=time;pair.age+=step;
   if(pair.age>150){endConversation(false,'路上耽搁了，改日再聊');return;}
   n.walking=false;if(!s.arrived)travel(n,s,dt);
@@ -168,7 +169,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   const toiletPose=getToilet()?.actorPose(n);if(toiletPose){n.animate(t+n.phase,false,toiletPose.action,{...poseContext(n),...toiletPose.context});return;}
   const c=poseContext(n,s.choice?.workTarget?{workTarget:s.choice.workTarget}:null);c.handoff=false;c.heldProp=null;c.seatedMeal=false;if(partner)c.headLook={yaw:Math.sin(t*.7)*.06,pitch:-.025,weight:.9};
   if(s.mount){const m=s.mount;c.seatHeight=m.seatY===undefined?undefined:m.seatY-n.root.position.y-c.visualFloorOffset;if(m.kind==='bed'){c.visualFloorOffset=0;c.supportY=m.supportY;c.lieSupport=m.lieSupport;c.lieOffset=m.lieOffset;c.liePillowZ=m.liePillowZ;c.lieSurfaceHeightAt=(x,z)=>furniture.bedSupportAt(m,x,z);}}
-  const paused=state.conversationActorId===n.station.id;
+  const paused=isSociallyHeld(n.station.id,state.conversationActorId);
   n.animate(t+n.phase,n.walking,s.mount?(s.mount.kind==='bed'?'lie-rest':'chair-sit'):s.arrived&&!paused?s.choice?.action||null:null,c);
  }
  for(const n of officials){const p=saved.version===1&&!getSalon()?.ownsNPCCustomer?.(n.station.id)?saved.positions?.[n.station.id]:null;if(Array.isArray(p)&&p.length===3&&p.every(Number.isFinite)&&!blocked(p[0],p[2],lot.colliders,.25,{...navigation,y:p[1]}))n.root.position.set(...p);}
@@ -257,9 +258,9 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
     return;
    }
    if(getTavern()?.officialMeal(n.station.id))s.borrowed=true;
-   if(s.borrowed){const tavern=getTavern(),lease=tavern?.officialMeal(n.station.id);if(lease){if(s.called&&state.conversationActorId!==n.station.id)tavern.cancelOfficialMeal(n.station.id);if(tavern.officialMeal(n.station.id))return;}if(finish(n,s,!s.called)){if(s.called)stages.set(n,{courtReady:true,label:'已归还酒楼餐位 · 应召赴朝'});else idle(n);}return;}
+   if(s.borrowed){const tavern=getTavern(),lease=tavern?.officialMeal(n.station.id);if(lease){if(s.called&&!isSociallyHeld(n.station.id,state.conversationActorId))tavern.cancelOfficialMeal(n.station.id);if(tavern.officialMeal(n.station.id))return;}if(finish(n,s,!s.called)){if(s.called)stages.set(n,{courtReady:true,label:'已归还酒楼餐位 · 应召赴朝'});else idle(n);}return;}
    n.walking=false;if(s.courtReady)return;
-   const paused=state.conversationActorId===n.station.id;tell(n,s.label+(paused?state.meetingActorId===n.station.id?' · 等候当面审核':' · 停步与你交谈':''));
+   const paused=isSociallyHeld(n.station.id,state.conversationActorId);tell(n,s.label+(paused?state.meetingActorId===n.station.id?' · 等候当面审核':' · 停步与你交谈':''));
    if(s.evicted&&!paused){if(finish(n,s,false)){if(s.called)stages.set(n,{courtReady:true,label:'让出卧榻后应召赴朝'});else choose(n);}return;}
    // Everyone receives the same advance summons. Only real conversation or a
    // blocked safe furniture exit can delay departure from the current place.

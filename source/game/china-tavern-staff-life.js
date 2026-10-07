@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {TAVERN_LAYOUT_VERSION} from './china-tavern-layout.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
 import {createPalaceMealKit} from './china-palace-costume.js';
@@ -33,6 +34,7 @@ export function createTavernStaffLife({actors,furniture,getPlayer,getMounted,get
  }
  function update(n,dt,t,{onDuty=false,conversationActorId=null}={}){
   if(disposed)return;let s=rows.get(n);
+  if(isSociallyHeld(n.station.id)){n.walking=false;effect(n,'relax');return;}
   if(conversationActorId===n.station.id){if(s&&!interrupt(n))return;n.walking=false;const p=getPlayer()?.root.position;effect(n,'relax',p?[p.x,p.y+1,p.z]:null);nextAt.set(n,time+3);return;}
   if(!s&&time>=(nextAt.get(n)||0)){
    const choice=brain.choose(n.station.id,candidates(n,{onDuty}),getClock()?.hour??10);

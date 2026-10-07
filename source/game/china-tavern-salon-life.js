@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
 import {TAVERN_LAYOUT_VERSION} from './china-tavern-layout.js';
 import {SALON_ARTISTS} from './china-tavern-salon-artists.js';
@@ -139,7 +140,7 @@ export function createSalonArtistLife({performers=[],worldSeed=1,saved={},saveSt
    clock+=dt;brain.tick(dt);
    for(const n of artists){
     if(excluded.has(n)||excluded.has(n.station.id)||isActorBusy(n)||n.serviceMount){yieldActor(n);continue;}
-    if(conversationActorId===n.station.id){
+    if(isSociallyHeld(n.station.id,conversationActorId)){
      n.walking=false;pose(n,t,null,getPlayer()?.root?.position?position(getPlayer()):null);continue;
     }
     updateActor(n,dt,t);

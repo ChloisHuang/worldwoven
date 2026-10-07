@@ -5,7 +5,7 @@ const clamp=x=>Math.max(0,Math.min(1,x)),opinion=x=>Math.max(-1,Math.min(1,x));
 function hash(text){let h=2166136261;for(const c of text){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0||1;}
 const copy=x=>JSON.parse(JSON.stringify(x));
 // Conversation topics are evidence of completed actions, never invented news.
-export const conversationTopicFit=(p,kind)=>kind==='staff-work'?p.traits.curiosity*.45+p.traits.quiet*.35+p.traits.sociability*.20:kind==='staff-rest'?p.traits.quiet*.70+p.traits.sociability*.30:kind==='read'?p.traits.curiosity*.65+p.traits.quiet*.35:p.traits.outdoors*.8+p.traits.quiet*.2;
+export const conversationTopicFit=(p,kind)=>kind==='greeting'?p.traits.sociability*.7+p.traits.curiosity*.3:kind==='staff-work'?p.traits.curiosity*.45+p.traits.quiet*.35+p.traits.sociability*.20:kind==='staff-rest'?p.traits.quiet*.70+p.traits.sociability*.30:kind==='read'?p.traits.curiosity*.65+p.traits.quiet*.35:p.traits.outdoors*.8+p.traits.quiet*.2;
 const topicFit=conversationTopicFit;
 export function conversationDisposition(person,other,kind,targetId){
  const familiarity=person.experiences?.some(e=>e.kind===kind)?.06:0;
@@ -20,7 +20,8 @@ const unique=items=>[...new Map(items.filter(available).map(c=>[c.id,c])).values
 // Installed by the single world owner; readers never write legacy relation state.
 let worldSocialProjection=(id,p)=>p,worldSocialFactors=()=>({}),worldInteractionContext=()=>null,worldMeetingHooks=null;
 export function setLifeSocialProjection(reader,factors,interactionContext,meetingHooks){worldMeetingHooks=meetingHooks||null;worldInteractionContext=typeof interactionContext==='function'?interactionContext:()=>null;worldSocialProjection=typeof reader==='function'?reader:(id,p)=>p;worldSocialFactors=typeof factors==='function'?factors:()=>({});}
-export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>{},sharedNeeds=null,socialProjection=worldSocialProjection,socialFactors=worldSocialFactors,interactionContext=worldInteractionContext,meetingHooks=worldMeetingHooks}){
+export function mergeSocialMemories(a={},b={}){const result={};for(const key of new Set([...Object.keys(a),...Object.keys(b)])){const x=a[key]||{},y=b[key]||{};result[key]={...x,...y,completedCount:(x.completedCount||0)+(y.completedCount||0),trust:opinion((x.trust||0)+(y.trust||0)),interestGiven:x.interestGiven===true||y.interestGiven===true,boundary:x.boundary===true||y.boundary===true};}return result;}
+export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>{},sharedNeeds=null,advanceNeeds=true,socialProjection=worldSocialProjection,socialFactors=worldSocialFactors,interactionContext=worldInteractionContext,meetingHooks=worldMeetingHooks}){
  let time=Number.isFinite(saved.time)?saved.time:0,lastSave=time;
  const people={},conversations=copy(saved.conversations||[]);
  const trimConversations=()=>{while(conversations.length>32){const index=conversations.findIndex(e=>e.status!=='accepted');if(index<0)break;conversations.splice(index,1);}};
@@ -92,7 +93,7 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
  function interactionView(id,target){
   const external=interactionContext(id,target);if(!external)return null;
   const p=people[id],other=people[target];if(!p||!other)return null;
-  const memory=p.interactions[target]||{},reverse=other.interactions[id]||{},history=conversations.filter(e=>e.status==='completed'&&e.participants.includes(id)&&e.participants.includes(target));
+  const memory=socialProjection(id,p).interactions?.[target]||p.interactions[target]||{},reverse=socialProjection(target,other).interactions?.[id]||other.interactions[id]||{},history=conversations.filter(e=>e.status==='completed'&&e.participants.includes(id)&&e.participants.includes(target));
   const mismatch=history.findLast(e=>e.results?.some(r=>r.feeling==='mismatched'));
   return {...external,completedCount:memory.completedCount??history.length,relation:socialProjection(id,p).relations[target]||0,trust:(memory.trust||0)+(external.trust||0),lastCompletedId:memory.lastCompletedId||history.at(-1)?.id,mismatchEventId:memory.mismatchEventId||mismatch?.id,acknowledgedEventId:memory.acknowledgedEventId,repairedEventId:memory.repairedEventId,interestGiven:memory.interestGiven===true,interestReceived:reverse.interestGiven===true,boundary:memory.boundary===true||reverse.boundary===true||external.boundary===true,privatePlaceAvailable:validPrivateMeeting(external.meeting,id,target)};
  }
@@ -127,7 +128,7 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
   interactionLabel:eventId=>{const e=conversations.find(e=>e.id===eventId);return relationshipInteraction(e?.interactionKind)?.label||null;},
   decisionDue:id=>!!people[id]&&time>=people[id].nextDecisionAt,
   defer(id,seconds=12){const p=people[id];if(p&&!p.current){p.nextDecisionAt=Math.max(p.nextDecisionAt,time+seconds);save();}},
-  recordExperience(id,evidence){const p=people[id];if(!p||!evidence?.id||evidence.completed!==true||!['staff-work','staff-rest'].includes(evidence.kind))return {ok:false,reason:'unfinished'};if(p.experiences.some(e=>e.id===evidence.id))return {ok:true,replayed:true};return transaction(()=>{p.experiences.push({id:evidence.id,kind:evidence.kind,label:evidence.label,completedAt:time});p.experiences=p.experiences.slice(-4);return {ok:true};});},
+  recordExperience(id,evidence){const p=people[id];if(!p||!evidence?.id||evidence.completed!==true||!['staff-work','staff-rest','greeting'].includes(evidence.kind))return {ok:false,reason:'unfinished'};if(p.experiences.some(e=>e.id===evidence.id))return {ok:true,replayed:true};return transaction(()=>{p.experiences.push({id:evidence.id,kind:evidence.kind,label:evidence.label,completedAt:time});p.experiences=p.experiences.slice(-4);return {ok:true};});},
   experience(id){const p=people[id];return p?.experiences.length?copy(p.experiences.at(-1)):null;},
   fatigued:id=>(people[id]?.needs.fatigue||0)>.88,
   canReply(id){const p=people[id];return !!p&&!p.current&&time>=p.replyAfter;},
@@ -158,7 +159,7 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
   },
   cancelConversation(eventId){const event=conversations.find(e=>e.id===eventId);if(!event||event.status!=='accepted')return false;endConversation(event,'cancelled');save();return true;},
   conversation:eventId=>copy(conversations.find(e=>e.id===eventId)||null),
-  tick(dt){if(!Number.isFinite(dt)||dt<=0)return;time+=dt;for(const[id,p]of Object.entries(people)){const h=sharedHunger(id);p.needs.hunger=Number.isFinite(h)?h:clamp(p.needs.hunger+dt/850);p.needs.fatigue=clamp(p.needs.fatigue+dt/1100);p.needs.social=clamp(p.needs.social+dt/1000);}if(time-lastSave>=30)save();},
+  tick(dt){if(!Number.isFinite(dt)||dt<=0)return;time+=dt;if(advanceNeeds)for(const[id,p]of Object.entries(people)){const h=sharedHunger(id);p.needs.hunger=Number.isFinite(h)?h:clamp(p.needs.hunger+dt/850);p.needs.fatigue=clamp(p.needs.fatigue+dt/1100);p.needs.social=clamp(p.needs.social+dt/1000);}if(time-lastSave>=30)save();},
   choose(id,candidates,hour=10){const p=people[id];if(!p)return null;
    const entries=actions(id,p,candidates,hour);
    if(p.current){
@@ -184,6 +185,6 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
   },
   observe,
   distribution(id,candidates,hour=10){const p=people[id];if(!p)return [];const entries=actions(id,p,candidates,hour),total=entries.reduce((sum,e)=>sum+e.weight,0);return entries.map(e=>{const targetTotal=e.targets?.reduce((sum,t)=>sum+t.weight,0);return {id:e.choice.id,probability:e.weight/total,targets:e.targets?.map(t=>({id:t.choice.id,probability:t.weight/targetTotal}))||[]};});},
-  state(id){if(id){const p=people[id];if(!p)return null;const h=sharedHunger(id);if(Number.isFinite(h))p.needs.hunger=h;return copy(p);}return snapshot();},snapshot,dispose:save
+  state(id){if(id){const p=people[id];if(!p)return null;const h=sharedHunger(id);if(Number.isFinite(h))p.needs.hunger=h;const result=copy(p);for(const e of conversations){if(e.status!=='completed'||!e.participants.includes(id))continue;const target=e.participants.find(x=>x!==id);if(p.interactions[target])continue;const m=result.interactions[target]??={completedCount:0,trust:0};m.completedCount++;m.lastCompletedId=e.id;if(e.results?.find(r=>r.actorId===id)?.feeling==='mismatched')m.mismatchEventId=e.id;}return result;}return snapshot();},snapshot,dispose:save
  };
 }
