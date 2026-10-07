@@ -1,0 +1,41 @@
+{
+  "scope": "QA-only candidate UI, production entry unchanged",
+  "files": {
+    "object-action-menu.js": {
+      "sourceSha256": "bb0241e5780b9d9bd7bfe1889d27decf584dbfb67c589b61c42e6118bfdc9909",
+      "candidateSha256": "b0879c8f467ee9fac10a60f9c2b26318d2a9034a141689d38b5cfa7f4a2d2b5b"
+    },
+    "contextual-action-menu.js": {
+      "sourceSha256": "5824159b1943e33cadef26c8663376a4199be52006ea05017b615bd4a1aa80a0",
+      "candidateSha256": "5824159b1943e33cadef26c8663376a4199be52006ea05017b615bd4a1aa80a0"
+    },
+    "player-interaction-intents.js": {
+      "sourceSha256": "af47c1d6c63f8057d0bba9423d0b4cbd27c43ddadbfdb3910299a385eac38ffb",
+      "candidateSha256": "f3018706b8768fc3513718a0674d60563d8a55166593e7e1d143c552750f515e"
+    },
+    "player-conversation-ui.js": {
+      "sourceSha256": "95d19d699972d7a379cb6c2e5fdf209f8dca955860dff874e960de97b78196fe",
+      "candidateSha256": "5a77f2fcf8eb5c6da637ca345c9828cae718a1997229c071b0413cfa1d147c9d"
+    },
+    "npc-social.js": {
+      "sourceSha256": "efc75191820dc333abc64bb2479727e651aa7ebfc43bae0d38dab38dc3c23594",
+      "candidateSha256": "90724592f6148fba7fc69efce09e04688119f68c06368495e9006932c5c7c77e"
+    },
+    "airy-panel.js": {
+      "sourceSha256": "f429989d8f7a592a0d9b7e29316f59fc85db9a365f368c39d77534b53dd6325b",
+      "candidateSha256": "f429989d8f7a592a0d9b7e29316f59fc85db9a365f368c39d77534b53dd6325b"
+    },
+    "wallet.js": {
+      "sourceSha256": "b8f6180d660ec849e44393dd8524145baa7a77dfd96dab46f00a9334dfcb8836",
+      "candidateSha256": "9a480acee3255e3a58e394a012882b57f9d4f8fe6cbf2146f88fac1b4b82d08d"
+    },
+    "wallet.css": {
+      "sourceSha256": "f5c73acaafafe11c309d20e2a1426fee30c1d3e570169078e1c76bedf2215362",
+      "candidateSha256": "f5c73acaafafe11c309d20e2a1426fee30c1d3e570169078e1c76bedf2215362"
+    },
+    "game.css": {
+      "sourceSha256": "de5cdbf34fcd492827a502b7c86c8776fe6f9ac995fbf6f536abba819d6e657b",
+      "candidateSha256": "de5cdbf34fcd492827a502b7c86c8776fe6f9ac995fbf6f536abba819d6e657b"
+    }
+  }
+}
