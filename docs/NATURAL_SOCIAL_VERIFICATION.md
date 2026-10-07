@@ -61,3 +61,11 @@
 原日志：qa/natural-segment-20261007T133116Z-2、qa/natural-segment-20261007T133245Z-2、qa/natural-segment-20261007T133407Z-2的log/status/RSS文件；最终qa/natural-china.json及qa/natural-china-checkpoint.json。当前观察达到预定接受终态，已停止，不继续凑满600秒或全世界长测。此证据为生产逻辑/Three/导航+模拟DOM renderer，不是浏览器/iOS视觉。
 
 共享新路径的自然走近、当次答复、一次完整谈话、差异持久结果与原岗释放小范围终态已证实；先前拒绝/owner变化取消也保持释放。四国差异接点、主动中断恢复、有偿艺者终态和正式合版/build仍开放，ST01/ST03母项不关闭，本分支未发布。
+
+## 2026-10-07 13:43 UTC：新走近阶段定向暂停/续行
+
+一次独立新局、原seed42，不修改人物位置/邀请/关系/资金/随机状态；等待首个自然approaching后通过现有共享player-conversation hold API施加9秒暂停。属于生产controller接点，不冒称实际玩家走近/点击菜单或UI距离已验，也不覆盖前述184.5秒终态文件。
+
+162个.15秒步通过：刑部官→记录官 `greeting:cn-official-justice:1`，暂停前socialTime12；暂停60步期间同event/stage/social-clock/brain、双方位置与原owner路线逐项不变，无虚假交谈/奖励或走近超时；释放后同event实际继续走近、达到greeting，原owner路线保持。原位置[25.90030848,3.915,29.5]→[24.549940324,3.915,32.16269337]，对方原[23.2,3.915,32.15]不动。结束world24.3/social15.3，72.021秒/684.238 MiB/guard PASS/exit0。
+
+脚本development/heavy-probes/check-approach.cjs复用原有界natural harness；run-bounded.sh新增明确approach入口。初两次均在导入前因测试包装require相对根及structuredClone全局缺失失败（各约.1秒），已修包装，未改产品或放宽断言。结果qa/natural-approach-hold.json及natural-approach-20261007T134153Z-2对应日志。当前共享修复可进入增量合版/build；ST03付费终态另项继续、四国独有变化与实机边界不据本检查关闭。
