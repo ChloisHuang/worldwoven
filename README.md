@@ -11,8 +11,8 @@ R16.164 ordinary visits use the complete adult model with all six saved hairstyl
 
 [问题与需求验收清单](docs/PROJECT_CHECKLIST.md)
 
-Published release: R16.164-public, 2026-10-07
-Verified published Sites source commit: b588f31437a8e4466d444db34af3a6229f327408
+Published release: R16.165-public, 2026-10-07
+Verified published Sites source commit: 51c8e6fdf86d6087271c4769a4dafbeb4d3727a2
 
 Opt-in same-save performance panel: https://alien.doudouai.net/?perf=1#china
 It reads runtime timing/render counts and the initial save length; it does not reset storage or send telemetry. CPU submission timing is not GPU timing. R16.128 removes repeated full-history copies from closed salon panels and China job/HUD reads. R16.129 extends current-career reads to the existing Japan/Egypt employment adapters and French tea/pastry/gardening controllers. Those controllers only run in their respective countries. The user reported R16.130 runs without lag; broader device performance remains unverified.
@@ -84,6 +84,8 @@ R16.162 locks the original tavern-property participant while wages or an agreed 
 R16.163 connects the tavern staff’s original personal funds to same-person meal aggregation. The host’s original 480, cook’s 240 and assistant’s 260 copper remain usable personal money without being labelled earned wages; business capital, takings and gross revenue stay excluded. Old and new meals preserve their exact payer, price and refund sources. All currently supported personal source families can now contribute to meals; career control migration, inheritance and transfers between people remain separate work. China needs coverage stays 31/31.
 
 R16.164 completes current four-country character assembly: saved hairstyles have distinct geometry, and gardener, chef, artist and court headgear fit the actual adult hair without falling back to the old head. Current legal assembly combinations, actual country entry, wardrobe/save/movement and bounded cap-clearance checks passed. Reviewed offline images use actual geometry with approximate diffuse lighting; they do not establish production-shader or device acceptance. The broader C01 art request remains open.
+
+R16.165 fixes shared panel styles overriding each panel’s footer and scrolling layout, places the remaining French/Egyptian meal and Japanese meal/bath-ticket menus on their actual objects, and clears stale input ownership after interruptions. Redundant ordinary-chair exits are removed while bath and performance exits remain. All 91 finite panel states rendered in the cloud browser, with additional safe-area and interaction checks. Real iPhone/WebGL gameplay acceptance remains open; the isolated QA page uses only mock in-memory records.
 
 ## Working rules
 
