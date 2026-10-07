@@ -16,6 +16,16 @@ def own_tree(root):
         selected |= more
     return {pid: rows[pid][1] for pid in selected if pid in rows}
 
+def cpu_ticks(pids):
+    result = {}
+    for pid in pids:
+        try:
+            # comm may contain spaces/parentheses; stat fields after its final ')' start at state (3).
+            fields = Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()
+            result[pid] = {'user': int(fields[11]), 'system': int(fields[12]), 'start': int(fields[19])}
+        except (OSError, ValueError, IndexError): continue
+    return result
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--seconds', type=float, default=300)
 parser.add_argument('--mib', type=float, default=1228.8)
@@ -30,6 +40,8 @@ peak = 0
 peak_members = {}
 stopped = None
 last_sample = -1
+previous_cpu = {}
+clock_ticks = os.sysconf('SC_CLK_TCK')
 samples = open(args.samples, "a", buffering=1) if args.samples else None
 try:
     while child.poll() is None:
@@ -37,7 +49,14 @@ try:
         rss = sum(members.values())
         second = int(time.monotonic()-start)
         if samples and second != last_sample:
-            samples.write(json.dumps({"seconds": second, "treeRSSMiB": round(rss/1024/1024, 3), "members": members})+"\n")
+            cpu = cpu_ticks(members)
+            deltas = {pid: max(0, row['user']+row['system']-(previous_cpu.get(pid, {}).get('user', 0)+previous_cpu.get(pid, {}).get('system', 0))) if previous_cpu.get(pid, {}).get('start', row['start']) == row['start'] else row['user']+row['system'] for pid, row in cpu.items()}
+            samples.write(json.dumps({"seconds": second, "treeRSSMiB": round(rss/1024/1024, 3), "members": members,
+                "cpuClockTicksPerSecond": clock_ticks, "membersCPU": cpu,
+                "liveTreeCPUSeconds": round(sum(row['user']+row['system'] for row in cpu.values())/clock_ticks, 3),
+                "observedTreeCPUDeltaSeconds": round(sum(deltas.values())/clock_ticks, 3),
+                "supervisorCPUDeltaSeconds": round(deltas.get(os.getpid(), 0)/clock_ticks, 3)})+"\n")
+            previous_cpu = cpu
             last_sample = second
         if rss > peak: peak, peak_members = rss, members
         if rss > args.mib*1024*1024: stopped = 'tree-rss-cap'

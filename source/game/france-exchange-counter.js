@@ -3,7 +3,8 @@
 export const FRANCE_EXCHANGE_COUNTER=Object.freeze({
  id:'france-exchange-counter',name:'宫苑银行与兑换柜台',floorY:.23,
  stationId:'france-exchange-teller',defaultCurrency:'france',exchangeTo:'copper',tellerYaw:Math.PI,
- points:{counter:[23.35,.23,.12],teller:[23.35,.23,2.23],ledger:[23.12,1.36,1.58],counting:[23.91,1.38,1.58]},
+ // Keep shift standby inside the east wall, clear of the original piano bench.
+ points:{counter:[23.35,.23,.12],teller:[23.35,.23,2.23],standby:[24.5,.23,-.58],ledger:[23.12,1.36,1.58],counting:[23.91,1.38,1.58]},
  role:{id:'france-exchange-teller',npcName:'克莱尔 · 柜台出纳',ageYears:38},
  countingLabel:'清点票券 · 核对收支',approachMessage:'请走到音乐接待厅的银行柜台前，再办理存取与兑换',
 });

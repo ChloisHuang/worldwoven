@@ -3,7 +3,8 @@
 export const JAPAN_EXCHANGE_COUNTER=Object.freeze({
  id:'japan-exchange-counter',name:'霞汤屋 · 両替柜台',floorY:0,
  stationId:'jp-exchange-teller',defaultCurrency:'japan',exchangeTo:'copper',tellerYaw:Math.PI,
- points:{counter:[9,0,6.2],teller:[9,0,8.35],ledger:[8.68,1.18,7.69],counting:[9.43,1.18,7.69]},
+ // Explicit shift waiting point clears the original southeast floor lantern.
+ points:{counter:[9,0,6.2],teller:[9,0,8.35],standby:[10.2,0,5.5],ledger:[8.68,1.18,7.69],counting:[9.43,1.18,7.69]},
  role:{id:'jp-exchange-teller',npcName:'澄江 · 両替出纳',ageYears:42},
  countingLabel:'清点票券 · 核对收支',approachMessage:'请走到汤屋一层接待厅的両替柜台前，再办理存取与兑换',
 });
