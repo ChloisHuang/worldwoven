@@ -1,5 +1,5 @@
 {
-  "publishedSourceCommit": "5c2f4aebf6863d49cf8dda45757083be4fc754a3",
+  "publishedSourceCommit": "4f0b5e96827bb2999783c91988e97ed3fb432146",
   "assets": [
     "/assets/crime-consequences.632ef2ff3384c42e.js",
     "/assets/npc-social-ownership.6af2ae616cc87aec.js",
@@ -343,13 +343,13 @@
     "/assets/t05-entry.b894d449b5fc9895.js",
     "/assets/player-interaction-intents.26513958a791452c.js",
     "/assets/contextual-action-menu.dc9daf98a8e95900.js",
-    "/assets/object-action-menu.192c82ee6d4c58c3.js",
+    "/assets/object-action-menu.a7defdec1f1eb269.js",
     "/assets/airy-panel.f429989d8f7a592a.js",
-    "/assets/npc-social.7e30a9e8f9573aae.js",
-    "/assets/player-conversation-ui.501609a7fdb05bb5.js",
+    "/assets/npc-social.8994aa14abc194cc.js",
+    "/assets/player-conversation-ui.3a3bc161ec6328a5.js",
     "/assets/wallet.f5c73acaafafe11c.css",
-    "/assets/wallet.6f575ef1563528bc.js",
-    "/assets/nearby-entry.d57b7afb5803a8d6.js",
-    "/assets/game.de5cdbf34fcd4928.css"
+    "/assets/wallet.11ede14ccf7c3e0a.js",
+    "/assets/nearby-entry.addb7a32e2319857.js",
+    "/assets/game.92f80645251e7872.css"
   ]
 }
