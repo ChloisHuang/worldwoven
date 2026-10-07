@@ -193,7 +193,7 @@ function restore(saved) {
  * caller readers add their existing relationship/opinion and clamp as needed.
  */
 export function createPlayerConversationLedger({saved, saveState, getClock = () => ({seconds: 0, day: 0}),
-  getProfile = () => null, getPlayerProfile = () => null, getAppearanceAffinity = () => 0, getAcceptanceContext = () => 0, getContext = () => ({}), worldSeed = 1} = {}) {
+  getProfile = () => null, getPlayerProfile = () => null, getAppearanceAffinity = () => 0, getAcceptanceContext = () => 0, getContext = () => ({}), onCompleted=()=>{}, worldSeed = 1} = {}) {
   for (const [key, fn] of Object.entries({getClock, getProfile, getPlayerProfile, getAppearanceAffinity, getAcceptanceContext, getContext})) if (typeof fn !== 'function') throw TypeError(`${key} must be a function`);
   if (saveState !== undefined && typeof saveState !== 'function') throw TypeError('saveState must be a function');
   let current, invalidSaved, loadError = null, saving = false;
@@ -226,6 +226,7 @@ export function createPlayerConversationLedger({saved, saveState, getClock = () 
       }
       if (result === false || result?.ok === false) return failure('save-failed');
       adopt(next);
+      if(event.status==='completed'&&event.topicId==='private-company'){try{onCompleted(copy(event));}catch{}}
       return success(event);
     } catch { return failure('save-failed'); }
     finally { saving = false; }

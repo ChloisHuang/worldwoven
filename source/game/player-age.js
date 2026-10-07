@@ -8,4 +8,4 @@ export function ensurePlayerAge(saved){
  saved.playerProfile={...(saved.playerProfile||{}),ageYears:found?found[0][found[1]]:24,ageOrigin:found?'preserved':'adult-start-v1'};return true;
 }
 // A stale role descriptor cannot override an explicit younger runtime age.
-export function knownAdult(person){const ages=[person,person?.station].filter(Boolean).flatMap(source=>own(source,'ageYears')?[source.ageYears]:own(source,'age')?[source.age]:[]);return ages.length>0&&ages.every(age=>typeof age==='number'&&Number.isFinite(age)&&age>=18);}
+export function knownAdult(person){if(person?.isChild===true||person?.station?.isChild===true)return false;const ages=[person,person?.station].filter(Boolean).flatMap(source=>own(source,'ageYears')?[source.ageYears]:own(source,'age')?[source.age]:[]);return ages.length>0&&ages.every(age=>typeof age==='number'&&Number.isFinite(age)&&age>=18);}

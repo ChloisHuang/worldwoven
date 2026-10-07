@@ -48,7 +48,8 @@
       "random-appearance-layout.cjs",
       "random-appearance-reload.cjs",
       "random-appearance.cjs",
-      "shared-hand-poses.mjs"
+      "shared-hand-poses.mjs",
+      "family-character.mjs"
     ]
   },
   "navigation": {
@@ -365,7 +366,8 @@
       "china-salon-companionship.mjs",
       "bath-privacy.mjs",
       "hidden-social-state.mjs",
-      "hidden-social-actions.mjs"
+      "hidden-social-actions.mjs",
+      "family-life.mjs"
     ],
     "integration": [
       "airy-panel-default-cascade.mjs",
@@ -588,7 +590,14 @@
       "game-health-injury.mjs",
       "crime-consequences-main.cjs",
       "china-guard-enforcement.cjs",
-      "hidden-social-main.cjs"
+      "hidden-social-main.cjs",
+      "family-runtime.mjs",
+      "family-care.mjs",
+      "family-main.cjs",
+      "family-companionship-main.cjs",
+      "family-world-travel-main.cjs",
+      "family-outbox.mjs",
+      "family-placement.mjs"
     ]
   },
   "release": {
