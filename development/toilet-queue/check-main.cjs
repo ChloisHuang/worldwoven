@@ -24,6 +24,9 @@ function step(){now+=100;main.namespace.needsStep(.1);frames++;const crowd=r.npc
 const allCompleted=()=>people.every(id=>publicState().receipts.some(row=>row.actorId===id));
 const settled=()=>allCompleted()&&!r.chinaClinic?.personalNeedsState()?.task&&!r.chinaTellerPersonal?.state()&&!r.npcs.some(n=>people.includes(n.station.id)&&service.publicContainsActor(n));
 for(;frames<(Number(process.env.QUEUE_STEPS)||2100)&&!(process.env.QUEUE_BASELINE?maxUnreserved>=2&&maxCrowd>=2:settled());)step();
+// Keep a short privacy/use interval in one process; read-back still interrupts
+// a genuinely unfinished use, so never manufacture completion across a cut.
+if(!process.env.QUEUE_BASELINE){let finishSteps=0;while(['waiting-privacy','using'].includes(publicState().activity?.stage)&&finishSteps++<250)step();}
 snap(process.env.QUEUE_BASELINE?'baseline':'fixed');
 assert.deepEqual(r.npcs.map(n=>n.station.id),identities);
 if(process.env.QUEUE_BASELINE)assert(maxUnreserved>=2&&maxCrowd>=2,'normal concurrent demand reproduces unreserved crowd '+JSON.stringify({maxCrowd,maxUnreserved}));
