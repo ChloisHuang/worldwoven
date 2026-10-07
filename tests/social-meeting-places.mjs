@@ -34,4 +34,11 @@ for(const country of Object.keys(SOCIAL_MEETING_MATRIX)){
  willing=true;assert(journey.start(['a','b']).ok);available=false;assert.equal(journey.update(.1).reason,'interrupted');available=true;assert(journey.start(['a','b']).ok);adult=false;assert.equal(journey.update(.1).reason,'adulthood-required');adult=true;
  assert(journey.start(['a','b']).ok);journey.update(.1);people[0].root.position.x+=1;assert.equal(journey.update(.1).reason,'left-place');assert.equal(facilities.state()[0].reservations.length,0);
 }
+{
+ // Palace invitations run off-camera too; render culling cannot vacate a room.
+ const people=[actor('ruler'),actor('companion',0,1),actor('occupant',4,4)];people[2].root.visible=false;
+ const options={country:'china',lot:{interiorRooms:[{id:'chamber',minX:2,maxX:5,minZ:2,maxZ:5,floorY:0}]},furniture:{items:[{id:'bed',kind:'bed',privateRoomId:'chamber',position:[3,0,3],socialMeetingOffset:[0,0,.9]}],facilities:createFacilityQueue()},getActors:()=>people,planPath:path,canEnterPrivateRoom:()=>true,roomAvailable:()=>true,isActorPresent:a=>people.includes(a)};
+ const places=createSocialMeetingPlaces(options);assert.equal(places.resolve(['ruler','companion'],{private:true,roomId:'chamber'}).reason,'room-occupied');people.pop();
+ const result=places.resolve(['ruler','companion'],{private:true,roomId:'chamber'});assert(result.ok);assert.equal(result.place.points[1][0],3);assert(Math.abs(Math.abs(result.place.points[1][2]-3)-.9)<1e-9);assert(!places.resolve(['ruler','companion'],{private:true,roomId:'other'}).ok);
+}
 console.log('PASS finite four-country public places; private joint entitlement/occupancy; claims; real paired navigation; live withdrawal/adult/work gates and cleanup');

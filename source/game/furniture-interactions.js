@@ -29,7 +29,7 @@ function japanBathCameraParts(x,z,w,d){
  return parts;
 }
 export const REST_BATH_DESCRIPTORS={
- china:[{kind:'bed',cameraParts:chinaDragonBedCameraParts().map(p=>({...p,minY:p.minY+7.6,maxY:p.maxY+7.6})),worldLabel:'龙榻安寝',name:'静宜寝殿 · 雕龙龙榻',position:[-18.4,7.815,-8.5],anchor:[-21.55,7.815,-9],center:[-21,7.8,-9],size:[4,3.1,4.2],yaw:0,supportY:8.655,lieOffset:.30,lieSupport:{hip:8.655,back:8.655,head:8.665,heel:8.655}},
+ china:[{kind:'bed',privateRoomId:'bedroom',socialMeetingOffset:[0,0,.9],cameraParts:chinaDragonBedCameraParts().map(p=>({...p,minY:p.minY+7.6,maxY:p.maxY+7.6})),worldLabel:'龙榻安寝',name:'静宜寝殿 · 雕龙龙榻',position:[-18.4,7.815,-8.5],anchor:[-21.55,7.815,-9],center:[-21,7.8,-9],size:[4,3.1,4.2],yaw:0,supportY:8.655,lieOffset:.30,lieSupport:{hip:8.655,back:8.655,head:8.665,heel:8.655}},
  {kind:'bath',name:'后宫二层石浴池',position:[-21.1,4.015,-6],anchor:[-23.6,4.015,-6],center:[-23.6,4,-6],size:[3.3,1.15,4.3],yaw:Math.PI/2,supportY:4.11,waterY:4.9625,bathHipHeight:.48},
  {kind:'bed',name:'后宫一层客榻',position:[-21.6,.215,-7.5],anchor:[-23.5,.215,-7.5],center:[-23.5,.2,-7.5],size:[2.9,1.25,3.4],yaw:0,supportY:1.055,lieOffset:.3,lieSupport:{hip:1.055,back:1.055,head:1.065,heel:1.055}}],
  france:[{kind:'bed',name:'皇家寝床',position:[5.16,.302,-2.1],anchor:[6.72,.302,-2.65],center:[7.55,.23,-2.65],size:[3.5,4.2,4.3],yaw:0,supportY:1.25,lieOffset:.72,lieSupport:{hip:1.25,back:1.25,head:1.26,heel:1.25}},

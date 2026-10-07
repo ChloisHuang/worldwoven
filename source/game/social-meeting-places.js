@@ -22,7 +22,7 @@ function contains(room,p){
  const bounds=room.bounds||room,b=Array.isArray(bounds)?bounds:[bounds.minX,bounds.maxX,bounds.minZ,bounds.maxZ],y=room.floorY??(Number.isFinite(room.floor)?(room.floor-1)*3.8:0);
  return b.every(Number.isFinite)&&p.x>=b[0]&&p.x<=b[1]&&p.z>=b[2]&&p.z<=b[3]&&Math.abs(p.y-y)<.65;
 }
-export function createSocialMeetingPlaces({country,lot,furniture,getActors=()=>[],getActor=id=>getActors().find(a=>idOf(a)===id),planPath,canEnterPrivateRoom=()=>false,roomAvailable=()=>false,radiusFor=id=>id==='player'?.34:.25}){
+export function createSocialMeetingPlaces({country,lot,furniture,getActors=()=>[],getActor=id=>getActors().find(a=>idOf(a)===id),planPath,canEnterPrivateRoom=()=>false,roomAvailable=()=>false,isActorPresent=a=>a?.root?.visible!==false||a?.socialPrivateFade===true,radiusFor=id=>id==='player'?.34:.25}){
  const held=new Map();
  function inventory(){
   const list=[];
@@ -33,7 +33,7 @@ export function createSocialMeetingPlaces({country,lot,furniture,getActors=()=>[
    const room=roomId?(lot.interiorRooms||[]).find(r=>r.id===roomId):null;
    if(!isPublic&&!room)continue;
    // Stand on the existing approach aisle, never a mattress or an invented bed.
-   const p=item.position,yaw=item.yaw||0,dx=Math.cos(yaw)*.9,dz=-Math.sin(yaw)*.9;
+   const p=item.position,yaw=item.yaw||0,dx=item.socialMeetingOffset?.[0]??Math.cos(yaw)*.9,dz=item.socialMeetingOffset?.[2]??-Math.sin(yaw)*.9;
    for(const side of [1,-1]){
     const points=[p.slice(),[p[0]+dx*side,p[1],p[2]+dz*side]];
     if(room&&!points.every(q=>contains(room,point(q))))continue;
@@ -57,12 +57,12 @@ export function createSocialMeetingPlaces({country,lot,furniture,getActors=()=>[
    if(furniture.facilities.state().some(f=>roomFixtures.has(f.id)&&(f.player||f.reservations.some(r=>f.id!==place.fixtureId||!owner||!ids.includes(r.actor)))))return {ok:false,reason:'room-occupied'};
    if(!ids.every(id=>canEnterPrivateRoom(id,place.roomId,place,ids)===true))return {ok:false,reason:'private-entitlement-required'};
    if(roomAvailable(place.roomId,ids,place)!==true)return {ok:false,reason:'room-unavailable'};
-   if(getActors().some(a=>!ids.includes(idOf(a))&&(a.root?.visible!==false||a.socialPrivateFade===true)&&a.root?.position&&contains(room,a.root.position)))return {ok:false,reason:'room-occupied'};
+   if(getActors().some(a=>!ids.includes(idOf(a))&&isActorPresent(a)&&a.root?.position&&contains(room,a.root.position)))return {ok:false,reason:'room-occupied'};
   }
   for(let i=0;i<2;i++){
    const actor=getActor(ids[i]),to=point(place.points[i]);
-   if(!actor?.root?.position||actor.root.visible===false&&actor.socialPrivateFade!==true)return {ok:false,reason:'actor-unavailable'};
-   if(getActors().some(a=>!ids.includes(idOf(a))&&(a.root?.visible!==false||a.socialPrivateFade===true)&&a.root?.position&&Math.abs(a.root.position.y-to.y)<.65&&distance(a.root.position,to)<.62))return {ok:false,reason:'approach-occupied'};
+   if(!actor?.root?.position||!isActorPresent(actor))return {ok:false,reason:'actor-unavailable'};
+   if(getActors().some(a=>!ids.includes(idOf(a))&&isActorPresent(a)&&a.root?.position&&Math.abs(a.root.position.y-to.y)<.65&&distance(a.root.position,to)<.62))return {ok:false,reason:'approach-occupied'};
    if(routes&&!near(actor.root.position,to)){
     const route=planPath?.(actor.root.position,to,radiusFor(ids[i]));
     if(!route?.length||!near({...route.at(-1),y:route.at(-1).y??actor.root.position.y},to))return {ok:false,reason:'unreachable'};
@@ -70,8 +70,8 @@ export function createSocialMeetingPlaces({country,lot,furniture,getActors=()=>[
   }
   return {ok:true,place};
  }
- function resolve(ids,{private:wantPrivate=false}={}){
-  const candidates=inventory().filter(p=>p.private===wantPrivate);
+ function resolve(ids,{private:wantPrivate=false,roomId=null}={}){
+  const candidates=inventory().filter(p=>p.private===wantPrivate&&(!roomId||p.roomId===roomId));
   candidates.sort((a,b)=>a.points.reduce((sum,p,i)=>sum+distance(getActor(ids[i])?.root?.position||point(p),point(p)),0)-b.points.reduce((sum,p,i)=>sum+distance(getActor(ids[i])?.root?.position||point(p),point(p)),0));
   let reason=wantPrivate?'no-entitled-private-place':'no-public-meeting-place';
   for(const place of candidates){const result=validate(place,ids,{routes:true});if(result.ok)return result;reason=result.reason;}
