@@ -2,6 +2,9 @@
 // career and currency participants. Minimal actors supply contact fixtures;
 // this is not navigation, real-rig, browser or visual acceptance evidence.
 import test from 'node:test';
+import fs from 'node:fs';
+import {blocked,canTraverse} from '../source/game/navigation.js';
+import {constrainActorMove} from '../source/game/actor-navigation.js';
 import assert from 'node:assert/strict';
 import {Object3D,Vector3} from '../source/vendor/three/build/three.module.js';
 import {createFormalCareers} from '../source/game/formal-careers.js';
@@ -22,7 +25,7 @@ function actor(id,position){
 }
 function fixture(country='japan',{saved=null,hired=true,legacy=true,clock=null}={}){
  const role=REGIONAL_TELLER_ROLES[country],counter=counters[country],home=counter.points.teller,registration=counter.points.counter;
- const rest=country==='china'?[home[0]-1.8,home[1],home[2]-.3]:[registration[0]+1.7,registration[1],registration[2]-.7];
+ const rest=counter.points.standby||(country==='china'?[home[0]-1.8,home[1],home[2]-.3]:[registration[0]+1.7,registration[1],registration[2]-.7]);
  const f={country,role,counter,rest,clock:{day:7,hour:8,seconds:700,...clock},saved:copy(saved||{}),durable:copy(saved||{}),fail:false,mode:null,busy:false,mounted:null,legacy:-1,writes:0,notices:[],hook:null};
  f.player=actor('player',registration);f.npc=actor(role.incumbentId,home);
  const storage={setItem(key,text){const hook=f.hook;f.hook=null;hook?.();if(f.fail||f.reject?.(JSON.parse(text)))return false;if(f.mode==='object')return {ok:false,code:'storage-failed'};if(f.mode==='throw')throw Error('quota');if(f.mode==='promise')return Promise.resolve();f.durable=JSON.parse(text);f.writes++;return true;}};
@@ -179,4 +182,16 @@ test('full actual loaded 06–18 China standby shift earns fixed24 once despite 
  while(remaining>1e-8){const dt=Math.min(.25,remaining);f.tick(dt);remaining-=dt;}
  f.move(f.counter.points.counter);assert(f.employment.endShift());f.npc.root.position.fromArray(f.counter.points.teller);f.step();
  assert.equal(f.employment.state().shift,null);assert.equal(f.ledger.balances().copper.bank,24);assert.equal(f.ledger.history().filter(tx=>tx.action==='wage').length,1);
+});
+
+test('Japan standby avoids the authored floor lantern and preserves west-aisle handback clearance',()=>{
+ const source=fs.readFileSync(new URL('../source/game/japan-bathhouse.js',import.meta.url),'utf8');
+ assert(source.includes('for(const [x,z] of [[-11.2,-1.8],[11.25,5.6]])'));assert(source.includes('obstacle(x,base+.62,z,.62,1.3,.64)'));
+ // Exact authored ground-floor lamp collider; this is a local geometry subset,
+ // not a replacement for the subsequent full-room actual-main walk.
+ const lamp={minX:11.25-.62/2,maxX:11.25+.62/2,minZ:5.6-.64/2,maxZ:5.6+.64/2,minY:-.03,maxY:1.27};
+ assert(blocked(10.7,5.5,[lamp],.25));const p=JAPAN_EXCHANGE_COUNTER.points.standby;assert.deepEqual(p,[10.2,0,5.5]);assert(!blocked(p[0],p[2],[lamp],.25));
+ assert(p[2]+.25<7.42-.66/2,'standby remains in front of the unchanged original counter');
+ const a=new Vector3(7,0,6.2),b=new Vector3(...p),playerPosition=new Vector3(8.5,0,6.5),n=actor('jp-exchange-teller',a.toArray());
+ for(const [from,to]of[[a,b],[b,a]]){assert(canTraverse(from,to,[lamp],{radius:.25}));assert.equal(constrainActorMove(n,from,to.x-from.x,to.z-from.z,.25,[],playerPosition).blocker,null);}
 });

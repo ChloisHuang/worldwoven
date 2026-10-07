@@ -32,7 +32,7 @@ export function createRegionalTellerEmployment({country,npcs,lot,careers,ledger,
  // Player collision radius .34 is larger than the NPC's .25. Keep feet behind
  // the original counter while the unchanged anatomical hands reach its edge.
  const positions=c=>{const q=COUNTERS[c],h=q.points.teller;return {home:c==='china'?[h[0],h[1],h[2]-.03]:[...h],ledger:c==='china'?[TELLER_STANDS.ledger[0],h[1],h[2]-.03]:[q.points.ledger[0],h[1],h[2]-.14],abacus:c==='china'?[TELLER_STANDS.abacus[0],h[1],h[2]-.03]:[(q.points.counting||q.points.abacus)[0],h[1],h[2]-.14]};};
- const rest=country==='china'?[home[0]-1.8,home[1],home[2]-.3]:[registration[0]+1.7,registration[1],registration[2]-.7];
+ const rest=counter.points.standby||(country==='china'?[home[0]-1.8,home[1],home[2]-.3]:[registration[0]+1.7,registration[1],registration[2]-.7]);
  const atRegistration=()=>!getMounted()&&near(getPlayer(),registration,.65);
  const meet=()=>atRegistration()&&reviewer()?.alive!==false&&!!reviewer()&&!isSociallyHeld(reviewer().station.id)&&near(reviewer(),home,1.6);
  const fail=(message,code='unavailable')=>{lastError=code;notify(message);return false;};
