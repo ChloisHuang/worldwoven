@@ -202,3 +202,19 @@ test('pending teller intent survives attendance checkpoint but completed work in
  f.move(intent.position);assert(f.employment.executeIntent(intent));f.step();assert.equal(f.employment.inspection.state().order,null);assert.equal(f.ledger.history().length,0);assert.equal(f.careers.state().skillXP.writing,10);
  assert.equal(f.employment.executeIntent(intent),false);assert.equal(f.employment.executeIntent(abandon),false,'closed original work cannot be cancelled by an old callback');
 });
+
+
+test('France standby clears the original east wall and piano bench without moving furniture',()=>{
+ const source=fs.readFileSync(new URL('../source/game/regions-west.js',import.meta.url),'utf8');
+ assert(source.includes("wall({axis:'z',at:s*25,from:-13.5,to:3.5"));assert(source.includes('depth:.30,color:C.ivory'));
+ assert(source.includes('reserveBlock(22.7,.58,-.85,1.53,.60,.75)'));
+ // Authored local footprints only; full west-aisle navigation is checked in main.
+ const wall={minX:24.85,maxX:25.15,minZ:-2.9,maxZ:-.1,minY:.23,maxY:.9};
+ const bench={minX:21.935,maxX:23.465,minZ:-1.225,maxZ:-.475};
+ const counter={minX:22.15,maxX:24.61,minZ:1,maxZ:1.64};
+ const colliders=[wall,bench,counter],p=FRANCE_EXCHANGE_COUNTER.points.standby,options={bounds:{minX:-30,maxX:30,minZ:-40,maxZ:40},radius:.25};
+ assert(blocked(25.05,-.58,colliders,.25,options));assert.deepEqual(p,[24.5,.23,-.58]);assert(!blocked(p[0],p[2],colliders,.25,options));
+ assert(p[0]+.25<wall.minX);assert(p[0]-.25>bench.maxX);
+ const a=new Vector3(24.5,.23,.12),b=new Vector3(...p);
+ for(const [from,to]of[[a,b],[b,a]])assert(canTraverse(from,to,colliders,options));
+});
