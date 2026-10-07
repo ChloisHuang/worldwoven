@@ -15,6 +15,7 @@ export function relationshipEventEffect(event,observer,prior={}){
  // A decline, withdrawal, insufficient funds or interrupted workflow is not
  // misconduct. Only source-confirmed responsibility can incur distrust.
  if(event.outcome!=='completed'&&!(event.outcome==='failed'&&event.fault===true))return {relation:0,trust:0,aversion:0,feeling:'neutral'};
+ if(event.source==='bath-privacy'&&event.kind==='privacy-retreat')return {relation:.003,trust:.008,aversion:0,feeling:'respected'};
  const reliability=clamp(observer.values?.reliability??observer.traits?.quiet??.5,0,1),interest=clamp(event.kind==='performance'?observer.traits?.curiosity:event.kind==='meal'||/meal|tea|kitchen/.test(event.source)?observer.traits?.appetite:observer.values?.company,0,1);
  const priorTrust=clamp(prior.trust),relationship=clamp((observer.relations?.[event.actorId]||0)+(prior.relation||0));
  if(event.outcome==='failed')return {relation:-.015-.02*reliability,trust:-.04-.04*reliability,aversion:.01+.025*reliability,feeling:'disappointed'};

@@ -30,7 +30,10 @@ export function relationshipRomanticContextAllowed(context={}){return context.av
 export function relationshipInteractionEligible(id, context = {}) {
   const a = byId.get(id);
   if (context.available === false) return false;
-  if (!a || RELATIONSHIP_STAGES.indexOf(relationshipStage(context)) < RELATIONSHIP_STAGES.indexOf(a.stage)) return false;
+  // A real privacy boundary can be acknowledged even between strangers.
+  // This only exposes the existing voluntary apology, never closeness or consent.
+  const privacyApology=id==='apology'&&typeof context.faultEventId==='string'&&context.faultEventId.startsWith('bath:');
+  if (!a || !privacyApology&&RELATIONSHIP_STAGES.indexOf(relationshipStage(context)) < RELATIONSHIP_STAGES.indexOf(a.stage)) return false;
   if (a.requiresFault && (!evidenceId(context.mismatchEventId || context.faultEventId) || context.repairedEventId === (context.mismatchEventId || context.faultEventId))) return false;
   if (id === 'apology' && context.acknowledgedEventId === (context.mismatchEventId || context.faultEventId)) return false;
   if (id === 'shared-memory' && !evidenceId(context.lastCompletedId)) return false;
