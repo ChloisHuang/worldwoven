@@ -1530,3 +1530,5 @@ C01/C02 R16.164/v192 于2026-10-07T00:09:45Z原公开站点发布成功；source
 T05静态QA-only部署（2026-10-07 UTC+8）：基于R164最终docs `2ad93564`，固定 `61d9351983aec624ab8df30a03d7911e11bb1791` 仅build静态打包与source/qa五文件，共6文件。private main `30fd844993ad775bb626aa9266bcfc8ccfa4486f`先核验读回，原Site部署 `appgdep_6ac5931c85d48191a884cb1461117695` 于2026-10-07T00:32:36Z succeeded，public/revision6不变。322资源/8,802,741字节、实际R164的319旧图与315模块通过，原319asset地址/哈希和默认两页/headers逐字不变；cache-baseline跟进工具所需实际322图。QA图不依赖main/entry/game-storage，91唯一fixture导入在local/sessionStorage及indexedDB禁止时通过，保存回调静态核实为内存。首次临时Node导入因未提供浏览器import.meta.url报URL错误，补准确URL语义后通过，未修改产品迎合检查。默认游戏仍R16.164，T05母项保持未勾选；此部署不包含在制交互/全局CSS产品改动。
 
 QA入口可达复核：T05负责人在现有dot云浏览器正常打开公开 `/qa/t05.html`（站点规范重定向为 `/qa/t05?...`），91状态列表及852×393原中国食单iframe实际渲染，模块/CSS可用，无产品JS/网络错误。此处只关闭QA部署入口验证，完整矩阵仍在进行，已定位单个对象菜单fixture漏project的工具修复，不计为正式游戏缺陷或T05完成。
+
+T05对象QA夹具单行补修准备：仅合固定 `1217a300` 在 `ui.update` 后调用原 `ui.project` 再打开目标，补齐原UI真实使用顺序。既有90项浏览器结果复用，本次只待该对象状态补验；source/game与R16.164默认页面/原319asset字节保持。构建322资源/8,802,754字节，保v193实际322图，全哈希与语法检查通过；依赖导入无变，315模块链接证据复用。本准备合并v193必要cache/checklist记录，未引入正式T05候选修复。
