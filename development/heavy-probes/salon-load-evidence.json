@@ -343,5 +343,125 @@
       }
     ]
   },
-  "initialFailure": "First wrapper attempt had unescaped generated JavaScript and failed before main import; fixed only harness quoting. No product assertion was relaxed."
+  "initialFailure": "First wrapper attempt had unescaped generated JavaScript and failed before main import; fixed only harness quoting. No product assertion was relaxed.",
+  "restoreGate": {
+    "status": "PASS",
+    "scope": "Exact isolated staged ST03 checkpoint reload; zero simulation; original financial-fixture limitations unchanged; not paid-service completion",
+    "steps": 0,
+    "input": "qa/st03-paid-load/load-checkpoint.json",
+    "checks": {
+      "identities": true,
+      "positions": true,
+      "playerPosition": true,
+      "clock": true,
+      "payroll": true,
+      "salon": true,
+      "officialDecisions": true,
+      "officialDuty": true,
+      "artistDecisions": true,
+      "rooms": true,
+      "lodging": true,
+      "reception": true,
+      "artistLedgerEmpty": true,
+      "restoredActors": true,
+      "controllers": true
+    },
+    "continuity": {
+      "restored": [
+        "player",
+        "cn-tea",
+        "cn-calligraphy",
+        "cn-cooking",
+        "cn-rest",
+        "cn-garden",
+        "cn-archery",
+        "cn-range-warden",
+        "cn-tavern-host",
+        "cn-tavern-assistant",
+        "cn-tavern-diner-west",
+        "cn-tavern-diner-east",
+        "cn-tavern-cook",
+        "cn-tavern-reception",
+        "cn-tavern-reciter",
+        "cn-tavern-storyteller",
+        "cn-tavern-songwriter",
+        "cn-tavern-chess-poet",
+        "cn-emperor",
+        "cn-consort-yue",
+        "cn-consort-heng",
+        "cn-consort-ling",
+        "cn-minister-works",
+        "cn-minister-granary",
+        "cn-official-rites",
+        "cn-official-personnel",
+        "cn-official-justice",
+        "cn-official-records",
+        "cn-clinic-physician",
+        "cn-pharmacy-assistant",
+        "cn-money-house-teller",
+        "cn-palace-herald"
+      ],
+      "relocated": [],
+      "skipped": [],
+      "controllers": [
+        "npcPublicInteractions",
+        "chinaTavern",
+        "chinaService",
+        "chinaClinic",
+        "chinaClinicEmployment",
+        "chinaClinicPhysicianEmployment",
+        "chinaSalon",
+        "chinaSalonEmployment",
+        "chinaRoyalKitchen",
+        "chinaRoyalKitchenEmployment",
+        "chinaPalace",
+        "chinaAudience",
+        "chinaEdict",
+        "chinaConsortCourt",
+        "chinaRoyalPlayerMeal",
+        "chinaArchery",
+        "chinaGuardEmployment",
+        "chinaLabor",
+        "chinaCareer",
+        "npcSocial"
+      ]
+    },
+    "differences": [],
+    "clock": {
+      "seconds": 8485.714285714286,
+      "day": 4,
+      "hour": 13
+    },
+    "rooms": [
+      {
+        "id": "tavern-guest-lan",
+        "name": "兰房",
+        "claim": null,
+        "physicallyOccupied": false
+      },
+      {
+        "id": "tavern-guest-zhu",
+        "name": "竹房",
+        "claim": null,
+        "physicallyOccupied": false
+      }
+    ],
+    "session": null,
+    "outputSha256": "c8e31bfe0bc8c56125cf06c8bdebb7ba99104d9b51aa2b47388b4dd249496a21",
+    "guard": {
+      "log": "qa/natural-salon-restore-20261007T144951Z-2.log",
+      "guard": "PASS",
+      "reason": null,
+      "exit": 0,
+      "seconds": 74.177,
+      "treePeakMiB": 667.816,
+      "peakMembersBytes": {
+        "20": 10772480,
+        "22": 689483776
+      },
+      "includesSupervisor": true,
+      "hostname": "24d70332fa95",
+      "bootId": "f3aabe27-ab35-4beb-aca8-24cd4bc772b7"
+    }
+  }
 }

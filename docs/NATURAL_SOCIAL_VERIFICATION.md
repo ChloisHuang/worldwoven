@@ -78,3 +78,6 @@ R189开发分支新增独立诊断，未改业务源码/工资/报价/概率。�
 同一锁/768MiB old-space/1152MiB整树/180秒守卫：fixture 0.505秒/80.703MiB，零步load 66.266秒/683.531MiB，均PASS/exit0。最初包装脚本引号错误在main导入前0.203秒失败；修包装后继续，不是产品失败。六官原96保持，接待及双房可用；四报价110/40/80/45，实际候选仅后三人，110仍不可负担；session=null、服务回执空。源hash及精简结果见`development/heavy-probes/salon-load-evidence.json`，隔离存档`qa/st03-paid-load/load-checkpoint.json`。
 
 本批只完成前提与零步装配。原演员/生活控制器/钱款/会话的跨进程恢复须在后续续跑前核验；活动会话恢复、自然选择、实际有偿引路/结清、四人覆盖及浏览器/iPhone仍开放，ST03不关闭。没有运行旧5000帧脚本或新增模拟段。
+
+
+14:51 UTC零步恢复门：精确读回原隔离checkpoint，不重置资金/时间/需求、不修状态。74.177秒/667.816MiB，guard PASS/exit0；玩家及31原人物全部恢复，0跳过/迁移。人物位置、世界时钟、工资历史、雅集状态、六官/四艺者决策RNG、职责、接待和双房逐项相同，差异空。原文件保留，新输出为`qa/st03-paid-load/restored-checkpoint.json`；证据追加在同一`salon-load-evidence.json`。仅空会话恢复已证实；未运行有偿模拟段、活动会话恢复或服务结清，ST03仍开放。
