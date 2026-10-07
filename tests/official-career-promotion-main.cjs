@@ -4,7 +4,7 @@ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 let harness=fs.readFileSync(path.join(__dirname,'fixtures/hotfix-input-harness.cjs'),'utf8');
 function replaceOnce(before,after){if(!harness.includes(before)||harness.indexOf(before)!==harness.lastIndexOf(before))throw Error('Fixture seam changed: '+before);harness=harness.replace(before,after);}
 const extra=`
-export function applicationReview(){return {player,npcs,formalCareers,chinaService,chinaCareer,chinaAudience,chinaTavern,careerHandbook,copperLedger,npcSocial};}
+export function applicationReview(){return {player,npcs,formalCareers,chinaService,chinaCareer,chinaAudience,chinaTavern,careerHandbook,copperLedger,npcSocial,dailyNeeds,furniture};}
 export function applicationStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);careerHandbook.update(mode);}
 export {requestStationIntent,navigateTo,cancelAction};`;
 replaceOnce("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),","new vm.SourceTextModule(fs.readFileSync(file,'utf8')+(file.endsWith('/game/main.js')?"+JSON.stringify(extra)+":''),");
@@ -19,6 +19,7 @@ const seed=String.raw`
  const career=core.namespace.createFormalCareers({saved:initial,worldSeed:3,getClock:()=>c,saveState:s=>{prior.formalCareers=s;},creditWageToBank:d=>bank.creditWageToBank(d)});
  assert(career.apply('cn-court-clerk',{ageYears:22}).ok);const id=career.applicationResult().id;for(const step of ['interview','receive-document','appointment'])assert(career.reviewApplication('cn-court-clerk',{ageYears:22,applicationId:id,step}).ok);
  for(let day=1;day<=3;day++){c.day=day;c.hour=10;career.observeDay();assert(career.beginDuty().ok);c.hour=11.5;assert(career.dutyEvent('court-start').ok);c.hour=12;assert(career.dutyEvent('court-completed').ok);assert(career.dutyEvent('archive-completed').ok);assert(career.settle().ok);}
+ if(process.env.PROMOTION_NEEDS==='1')prior.dailyNeeds={version:2,people:{'cn-official-rites':{foodAge:6000,toiletAge:0,receipts:{}}}};
  prior.simulationClock={version:1,seconds:(3*1440+12*60-600)/.7};prior.chinaAudience={day:3,calledDay:3,outcome:'completed'};storage['worlds-days-v1']=JSON.stringify(prior);
 }
 `
@@ -48,6 +49,14 @@ if(process.env.PROMOTION_WALKING==='1'){
  main.namespace.cancelAction();step(2);assert.equal(r.npcSocial.meetingState(),null);assert(npc.root.position.distanceTo(held)>.01,'cancel resumes same original path');
  record('rendered promotion button survives moving reviewer; real multi-NPC route starts, reviewer pauses, cancel resumes original return-home walk');
 }
+if(process.env.PROMOTION_WAIT==='1'){
+ const npc=r.npcs.find(n=>n.station.courtRole==='rites'),checkpoint=r.chinaAudience.snapshot(),row=checkpoint.life.runtime.stages.find(([actorId])=>actorId===npc.station.id)[1],bed=r.furniture.items.find(i=>i.id==='cn-official-bed-rites');assert(bed);
+ Object.assign(row,{id:'life-rest',idle:false,arrived:true,called:false,courtReady:false,borrowed:false,borrowedSalon:false,mount:{$worldRef:'furniture',id:bed.id},mountTarget:{$worldRef:'furniture',id:bed.id},pairId:null,choice:{id:'rest',point:bed.position,duration:3,relief:{fatigue:-.7}},path:[bed.position],index:0,elapsed:0,duration:3,label:'在自己的值宿卧榻歇息'});
+ assert(r.chinaAudience.restore(checkpoint));assert(r.chinaAudience.mountForActor(npc));
+ request('promotion-review');assert(r.chinaCareer.isWaiting());assert.equal(r.npcSocial.meetingState(),null);assert.equal(r.formalCareers.promotionSummary().application.stage,'submitted');
+ until(()=>!!r.npcSocial.meetingState(),'actual rest ends and queued review automatically reserves current official',100);assert(!r.chinaAudience.mountForActor(npc));assert(state().pathLength>0);main.namespace.cancelAction();record('private rest is not interrupted and original queue automatically dispatches real navigation after safe exit');
+}
+if(process.env.PROMOTION_NEEDS==='1')assert(r.dailyNeeds.status('cn-official-rites').seekMeal,'hungry without a completed meal stays hungry throughout reception');
 assert.equal(r.npcSocial.meetingState(),null);request('promotion-review');assert.equal(r.npcSocial.meetingState()?.owner,'court-career-review');main.namespace.cancelAction();assert.equal(r.npcSocial.meetingState(),null);assert.equal(r.formalCareers.promotionSummary().application.stage,'submitted');record('an explicit review approach reserves a bounded meeting; cancelling immediately releases it and preserves the application');
 request('promotion-review');until(()=>r.formalCareers.promotionSummary().application?.stage==='document-ready','shared route reaches Shen Xu for the actual promotion review');assert.equal(r.formalCareers.currentRole().gradeLabel,'从九品');assert.equal(r.npcSocial.meetingState(),null);
 if(process.env.PROMOTION_MEETING_ONLY==='1'){ids['return-world'].onclick();assert.equal(state().characterResources.activeReferences,0);console.log(JSON.stringify({status:'PASS',checks,scope:'One effective reserved review intent; actual public navigation, explicit cancel releases meeting, completed review releases meeting. Prior paper/reentry/declaration evidence reused; simulated DOM/renderer, not iOS',seconds:(Date.now()-started)/1000}));return;}
