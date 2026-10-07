@@ -69,3 +69,12 @@
 162个.15秒步通过：刑部官→记录官 `greeting:cn-official-justice:1`，暂停前socialTime12；暂停60步期间同event/stage/social-clock/brain、双方位置与原owner路线逐项不变，无虚假交谈/奖励或走近超时；释放后同event实际继续走近、达到greeting，原owner路线保持。原位置[25.90030848,3.915,29.5]→[24.549940324,3.915,32.16269337]，对方原[23.2,3.915,32.15]不动。结束world24.3/social15.3，72.021秒/684.238 MiB/guard PASS/exit0。
 
 脚本development/heavy-probes/check-approach.cjs复用原有界natural harness；run-bounded.sh新增明确approach入口。初两次均在导入前因测试包装require相对根及structuredClone全局缺失失败（各约.1秒），已修包装，未改产品或放宽断言。结果qa/natural-approach-hold.json及natural-approach-20261007T134153Z-2对应日志。当前共享修复可进入增量合版/build；ST03付费终态另项继续、四国独有变化与实机边界不据本检查关闭。
+
+
+## 2026-10-07 14:45 UTC：ST03 有界财务前提与零步装配
+
+R189开发分支新增独立诊断，未改业务源码/工资/报价/概率。原归档控制器财务fixture生成六官各96文、24回执、总576；明确直接调用四次朝会完成、移动/寻路替身，不能当四天自然游玩。以seed42、day4 13:00及完成朝会标记装配生产中国场景；未注入main人物位置、邀请、关系或饥饿需求，未推进任何模拟步，未覆盖既有自然检查点。
+
+同一锁/768MiB old-space/1152MiB整树/180秒守卫：fixture 0.505秒/80.703MiB，零步load 66.266秒/683.531MiB，均PASS/exit0。最初包装脚本引号错误在main导入前0.203秒失败；修包装后继续，不是产品失败。六官原96保持，接待及双房可用；四报价110/40/80/45，实际候选仅后三人，110仍不可负担；session=null、服务回执空。源hash及精简结果见`development/heavy-probes/salon-load-evidence.json`，隔离存档`qa/st03-paid-load/load-checkpoint.json`。
+
+本批只完成前提与零步装配。原演员/生活控制器/钱款/会话的跨进程恢复须在后续续跑前核验；活动会话恢复、自然选择、实际有偿引路/结清、四人覆盖及浏览器/iPhone仍开放，ST03不关闭。没有运行旧5000帧脚本或新增模拟段。

@@ -1,0 +1,31 @@
+// Zero-step staged China load only. No autonomous selection or settlement proof.
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),crypto=require('node:crypto');
+if(process.env.WORLDWOVEN_GUARDED!=='1'||process.env.PROBE_STAGE!=='salon-load')throw Error('Use run-bounded.sh salon-load');
+if(process.env.SOCIAL_RESUME||process.env.SALON_RESUME)throw Error('This isolated staged load must not reuse a natural checkpoint');
+const out='qa/st03-paid-load',provenance=JSON.parse(fs.readFileSync(out+'/provenance.json','utf8'));
+const hash=data=>crypto.createHash('sha256').update(data).digest('hex');
+for(const [file,expected]of Object.entries(provenance.sources))if(hash(fs.readFileSync(file))!==expected)throw Error('Fixture source changed: '+file);
+const payrollText=fs.readFileSync(out+'/official-earned-payroll.json','utf8');
+if(hash(payrollText)!==provenance.payrollSha256)throw Error('Payroll provenance mismatch');
+let source=fs.readFileSync('tests/natural-social-observe.cjs','utf8');
+const replace=(before,after)=>{if(!source.includes(before))throw Error('Harness seam changed: '+before);source=source.replace(before,after);};
+replace('chinaSalon,chinaOfficialEconomy,chinaAudience','chinaSalon,chinaSalonEconomy,chinaOfficialEconomy,chinaAudience');
+replace("if(process.env.SOCIAL_RESUME)storage['worlds-days-v1']=fs.readFileSync(process.env.SOCIAL_RESUME,'utf8');",`const initial=JSON.parse(storage['worlds-days-v1']);initial.chinaOfficialEconomy=JSON.parse(fs.readFileSync('${out}/official-earned-payroll.json','utf8'));initial.simulationClock={version:1,seconds:${provenance.loadSetup.clock.seconds}};initial.chinaAudience={day:4,calledDay:4,outcome:'completed'};storage['worlds-days-v1']=JSON.stringify(initial);`);
+const start=source.indexOf('const body=String.raw`'),end=source.indexOf('\n`;\nharness=harness.slice',start);
+if(start<0||end<0)throw Error('Natural observation body seam changed');
+const body=String.raw`
+all.find(e=>e.dataset.region==='china').onclick();ids.travel.onclick();
+const r=main.namespace.socialReview(),economy=r.chinaOfficialEconomy.snapshot();
+assert.equal(economy.governmentPaid,576);assert.equal(economy.transactions.length,24);
+assert(Object.values(economy.accounts).every(a=>a.bank===96&&a.cash===0));
+assert.equal(r.chinaSalon.snapshot().session,null,'no injected salon session');
+assert.equal(r.chinaSalonEconomy.snapshot().receipts.length,0,'no synthetic service receipts');
+assert.equal(r.npcs.length,31,'original population');
+const clock=r.simulationClock.state();assert.equal(r.simulationClock.snapshot().seconds,(4*1440+13*60-600)/.7,'zero simulation steps');
+const checkpoint=main.namespace.socialCheckpoint();
+fs.writeFileSync('qa/st03-paid-load/load-checkpoint.json',JSON.stringify(checkpoint,null,2));
+const report={status:'PASS',scope:'Zero-step production China scene load with explicitly staged controller-earned financial fixture; simulated DOM/renderer, not natural four-day play or browser/iOS',steps:0,clock,accounts:economy.accounts,governmentPaid:economy.governmentPaid,transactions:economy.transactions.length,quotes:r.chinaSalon.view().candidates.map(n=>({id:n.id,fee:n.quoteFee,available:n.available,status:n.status})),offers:r.npcs.filter(n=>r.chinaOfficialEconomy.account(n.station.id)).map(n=>({id:n.station.id,choices:r.chinaSalon.npcChoices(n.station.id)})),salonView:r.chinaSalon.view(),officialLife:r.chinaAudience.state().life,originalActorIds:r.npcs.map(n=>n.station.id),session:r.chinaSalon.snapshot().session,serviceReceipts:r.chinaSalonEconomy.snapshot().receipts,checkpoint:'qa/st03-paid-load/load-checkpoint.json',continuation:'not tested; validate restoration of exact original actor, session, financial and continuity state before any resumed simulation'};
+fs.writeFileSync('qa/st03-paid-load/load-result.json',JSON.stringify(report,null,2));console.log('PASS staged salon load',JSON.stringify(report));return;
+`;
+source=source.slice(0,start)+'const body='+JSON.stringify(body)+source.slice(end+3);
+new vm.Script(source,{filename:'tests/staged-salon-load-inherited.cjs'}).runInNewContext({structuredClone,URL,require:require('node:module').createRequire(path.resolve('tests/natural-social-observe.cjs')),console,process,Buffer,__dirname:path.resolve('tests'),__filename:path.resolve('tests/natural-social-observe.cjs')});
