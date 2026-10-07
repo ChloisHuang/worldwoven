@@ -628,6 +628,7 @@
     "targeted": [
       "benchmark-character-animate.cjs",
       "current-frame-profile.cjs",
+      "natural-social-observe.cjs",
       "runner-observability.cjs",
       "runtime-performance.mjs"
     ],

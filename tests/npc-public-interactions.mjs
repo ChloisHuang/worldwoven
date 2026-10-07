@@ -42,3 +42,16 @@ console.log('PASS original identity frozen through death, replacement and change
  const gone=setup();while(!gone.api.status())gone.api.update(1);const target=gone.api.status().participants[0];setPlayerConversationHold(target);gone.roster.find(n=>n.actorId===target).alive=false;gone.api.update(1);assert.equal(gone.api.status(),null);setPlayerConversationHold(null);gone.api.dispose();
  console.log('PASS current NPC pair holds exact phase while locally interrupted, resumes once, and still handles death');
 }
+
+{
+ const t=setup();t.roster.forEach(n=>n.root.visible=false);run(t.api);assert(t.events.length>0,'render distance culling does not stop actual NPC encounters');t.api.dispose();
+ const distant=setup({createGreetingJourney:pair=>({state:()=>({ok:true}),update(){pair[0].root.position.x=pair[1].root.position.x+1.35;return {ok:true,phase:'arrived'};},cancel(){},finish(){}})});distant.roster.splice(2);distant.roster[1].root.position.x=7;
+ let approach=false;for(let i=0;i<1800;i++){distant.api.update(1);if(distant.api.status()?.stage==='approaching')approach=true;}
+ assert(approach,'non-adjacent normal candidate approaches before greeting');assert(distant.events.length>0);distant.api.dispose();
+ console.log('PASS render-independent public encounters and physical approach before invitation');
+}
+{
+ const baseline=setup();run(baseline.api,400);const events=baseline.events;baseline.api.dispose();
+ const remote=setup();for(let i=0;i<20;i++)remote.roster.push(actor('isolated-'+i,100+i*20));run(remote.api,400);assert.deepEqual(remote.events,events,'isolated population does not consume an encountered pair opportunity or reroll its consent');remote.api.dispose();
+ console.log('PASS one unchanged action/consent draw among real encounters, unaffected by isolated population');
+}

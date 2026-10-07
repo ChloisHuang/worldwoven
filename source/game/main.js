@@ -14,7 +14,7 @@ import {createPalaceCompanionship} from './palace-companionship.js';
 import {createPalaceCompanionshipUI} from './palace-companionship-ui.js';
 import {createNpcPublicInteractions} from './npc-public-interactions.js';
 import {isSociallyHeld,resetSocialHolds} from './npc-social-ownership.js';
-import {createSocialMeetingPlaces,createSocialMeetingJourney} from './social-meeting-places.js';
+import {createSocialMeetingPlaces,createSocialMeetingJourney,createGreetingApproach} from './social-meeting-places.js';
 import {relationshipInteraction} from './relationship-interactions.js';
 import {createBathPrivacy,bathServicePassage} from './bath-privacy.js';
 import {createRelationshipEvents,relationshipProfile} from './relationship-events.js';
@@ -642,7 +642,7 @@ const npcActorIdForSocial=n=>n.actorId||n.station.id;
 function npcInteractionFloor(n){return n.serviceMount?.position?.[1]??chinaPalace?.mountForActor(n)?.position?.[1]??n.root.position.y;}
 function npcInteractionPosition(n){const p=n.root.position;return [p.x,npcInteractionFloor(n),p.z];}
 function configureNpcSocial(){
- npcPublicInteractions?.dispose();npcPublicInteractions=null;resetSocialHolds();socialMeetingCache.clear();socialMeetingPlaces=createSocialMeetingPlaces({country:active.id,lot,furniture,getActors:()=>[player,...npcs],getActor:socialActor,planPath,canEnterPrivateRoom:socialPrivateEntitlement,roomAvailable:()=>true});
+ npcPublicInteractions?.dispose();npcPublicInteractions=null;resetSocialHolds();socialMeetingCache.clear();socialMeetingPlaces=createSocialMeetingPlaces({country:active.id,lot,furniture,getActors:()=>[player,...npcs],getActor:socialActor,isActorPresent:a=>a?.alive!==false&&[player,...npcs].includes(a),planPath,canEnterPrivateRoom:socialPrivateEntitlement,roomAvailable:()=>true});
  npcSocial=createNpcSocial({isExternallyHeld:n=>isSociallyHeld(n.actorId||n.station.id),getStandingLevel:n=>npcInteractionFloor(n),isSleeping:n=>n.serviceMount?.kind==='bed'||chinaPalace?.mountForActor(n)?.kind==='bed'||n.serviceTask?.arrived&&n.serviceTask.action==='lie-rest',createJourney:beginSocialJourney,onPrivateFade:value=>{if(!salonCompanionship?.owns('player')&&!palaceCompanionship?.owns('player'))showSocialPrivateFade(value);},canInvite:()=>!salonCompanionship?.owns('player')&&!palaceCompanionship?.owns('player')&&!interactionMenuOpen()&&!roofShown&&!seated&&!bathTransition&&!performing&&!path.length,onInvitation:(actor,topic)=>playerConversationUI.openInvitation(actor,topic),worldSeed:saved.appearance.seed,getSocialFactors:(n,context)=>socialFactorsFor(n.actorId||n.station.id,'player',{busy:context.busy===true||!!n.serviceTask&&!n.serviceTask.idle,private:!!seated?.poolId||!!bathTransition}),getRelationshipMemory:relationshipMemory,actors:()=>npcs.filter(n=>!n.familyBorn||n.ageYears>=2),player:()=>player,ledger:playerConversations,requireInteraction:true,onStarted:()=>save(),getCountry:()=>active?.id,canAdvance:()=>!interactionMenuOpen()&&!roofShown,onReply:reply=>toast(`${reply.name}：${reply.reply}`),onMeetingEnded:(meeting,reason)=>{if(meeting.owner==='court-career-review'&&['duty','expired'].includes(reason))toast(reason==='duty'?'当值礼仪官须先履行原职责，待审预约将等候其结束。':'本次接待暂停已到时，正在重新核对当值礼仪官的接待状态。');},beginInteraction:participants=>gameHealth.beginInteraction('npc-social',participants),onInteraction:event=>gameHealth.interaction(event),visible:(n,p)=>{const from=n.root.position.clone().add(new THREE.Vector3(0,1.5,0)),to=new THREE.Vector3(p.x,p.y+1.5,p.z);return cameraDistanceToObstacle(from,to,cameraSolids,0)>=from.distanceTo(to)-.12;},status:n=>{
   if(chinaTellerPersonal?.owns(n))return {busy:true,canPause:false,attention:false,job:chinaTellerPersonal.label()};
   if(chinaTellerService?.owns(n))return {busy:true,canPause:false,attention:false,job:chinaTellerService.label()};
@@ -671,7 +671,7 @@ function configureNpcSocial(){
   return {busy,canPause:!busy,job:task?.label||n.station?.npcLabel||n.station?.action};
  }});
 }
-function npcPublicMode(n,{ignoreVisibility=false}={}){
+function npcPublicMode(n,{ignoreVisibility=true}={}){
  if(!n||n.alive===false||!npcSocial?.routineAvailable(n,{ownMovement:isSociallyHeld(npcActorIdForSocial(n)),ignoreVisibility})||npcSocial.isPaused(n))return null;
  const owners=[chinaMoneyHouse,chinaSalon,chinaClinic,chinaRoyalKitchen,chinaArchery,japanService,franceTea,egyptMeal,chinaTavern?.staffScene];
  for(const owner of owners){if(!owner?.owns?.(n))continue;if(owner.canBorrowForSocial?.(n)===true)return 'leave';return owner.canTalkAtPost?.(n)===true?'post':null;}
@@ -679,9 +679,23 @@ function npcPublicMode(n,{ignoreVisibility=false}={}){
  if(bound.includes(id)||id==='jp-performance-reception')return !n.walking&&!n.route?.length&&!n.serviceMount?'post':null;
  return 'leave';
 }
-function resolveNpcPublicMeeting(a,b){
+function resolveNpcPublicMeeting(a,b,choice){
  const ids=[npcActorIdForSocial(a),npcActorIdForSocial(b)],modes=[npcPublicMode(a),npcPublicMode(b)];if(modes.some(x=>!x))return null;
- if(modes.includes('post')){const p=a.root.position,q=b.root.position;if(Math.abs(p.y-q.y)>.65||p.distanceTo(q)>3)return null;return {id:'post:'+ids.join(':'),private:false,post:true,places:[p.toArray(),q.toArray()]};}
+ const p=a.root.position,q=b.root.position;
+ const inside=(r,p)=>p.x>=r.minX&&p.x<=r.maxX&&p.z>=r.minZ&&p.z<=r.maxZ&&Math.abs(p.y-(r.floorY??0))<.65;
+ const privateRooms=(lot.interiorRooms||[]).filter(r=>(furniture.items||[]).some(f=>f.kind==='bed'&&(f.privateRoomId===r.id||f.guestRoomId===r.id||Array.isArray(f.position)&&inside(r,{x:f.position[0],y:f.position[1],z:f.position[2]}))));
+ const publicPosition=p=>!bathPrivacy?.isPrivatePosition(p)&&!privateRooms.some(r=>inside(r,p));
+ // A short encounter need not send two neighbours across the whole country.
+ // Explicit outings still claim the original legal public meeting fixture.
+ const outing=['public-invitation','quiet-company'].includes(choice?.interactionKind);
+ if(!outing&&publicPosition(p)&&publicPosition(q)){
+  if(Math.abs(p.y-q.y)>.65)return null;
+  if(p.distanceTo(q)<=3)return {id:'encounter:'+ids.join(':'),private:false,post:true,places:[p.toArray(),q.toArray()]};
+  if(modes[0]!=='leave')return null;
+  const approach=createGreetingApproach({pair:[a,b],planPath,moveActor,doors:automaticDoors,getActors:()=>[player,...npcs],canApproach:n=>npcPublicMode(n)==='leave'});
+  return approach?{id:'encounter:'+ids.join(':'),private:false,post:true,places:[approach.point,q.toArray()]}:null;
+ }
+ if(!publicPosition(p)||!publicPosition(q)||modes.includes('post'))return null;
  const result=socialMeetingPlaces.resolve(ids);return result.ok?{id:result.place.id,private:false,places:result.place.points,place:result.place}:null;
 }
 function createPostConversationJourney(event,pair,meeting){
@@ -695,6 +709,7 @@ function configureNpcPublicInteractions(){
   canAdvance:()=>mode==='lot'&&!roofShown&&!interactionMenuOpen(),socialFactors:socialFactorsFor,interactionContext:(a,b)=>({...socialInteractionContext(a,b),meeting:null,privatePlaceAvailable:false,publicPlaceAvailable:npcPublicMode(socialActor(a))==='leave'&&npcPublicMode(socialActor(b))==='leave'}),
   visible:(n,p)=>{const from=n.root.position.clone().add(new THREE.Vector3(0,1.5,0)),to=new THREE.Vector3(p.x,p.y+1.5,p.z);return cameraDistanceToObstacle(from,to,cameraSolids,0)>=from.distanceTo(to)-.12;},
   resolveMeeting:resolveNpcPublicMeeting,
+  createGreetingJourney:(pair,meeting)=>createGreetingApproach({pair,planPath,moveActor,doors:automaticDoors,getActors:()=>[player,...npcs],canApproach:n=>npcPublicMode(n)==='leave',targetPoint:meeting.post?meeting.places[0]:null}),
   createJourney:(event,pair,meeting)=>{if(meeting.post)return createPostConversationJourney(event,pair,meeting);const spec=relationshipInteraction(event.interactionKind),journey=createSocialMeetingJourney({places:socialMeetingPlaces,getActor:socialActor,planPath,moveActor,doors:automaticDoors,getActors:()=>[player,...npcs],
    isAdult:id=>!spec?.romantic||socialAdult(id),isWilling:()=>event.status==='accepted',isAvailable:id=>{const n=socialActor(id);return !!n&&npcPublicMode(n)==='leave';}});return journey.start(event.participants,{place:meeting.place}).ok?journey:null;},
   beginInteraction:participants=>gameHealth.beginInteraction('npc-public-social',participants),onInteraction:event=>gameHealth.interaction(event)});
