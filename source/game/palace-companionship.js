@@ -9,8 +9,8 @@ const unit=value=>Math.max(0,Math.min(1,finite(value)?value:0));
 const signed=value=>Math.max(-1,Math.min(1,finite(value)?value:0));
 const idOf=actor=>typeof actor==='string'?actor:actor?.actorId||actor?.station?.id||actor?.id;
 const validId=id=>typeof id==='string'&&id.length>0&&id.length<=128&&id.trim()===id;
-const activeStages=new Set(['requested','selected','summoned','awaiting-response','travelling','together']);
-const labels={requested:'请求皇帝考虑今夜相伴',selected:'已翻牌，准备传召',summoned:'已传召，等候本人答复','awaiting-response':'等候当次明确答复',travelling:'一同前往获准使用的寝殿',together:'自愿相伴片刻',completed:'这次相伴已结束',declined:'本次邀约已婉拒',cancelled:'本次邀约已取消'};
+const activeStages=new Set(['requested','selected','summoned','awaiting-response','waiting-departure','travelling','together']);
+const labels={requested:'请求皇帝考虑今夜相伴',selected:'已翻牌，准备传召',summoned:'已传召，等候本人答复','awaiting-response':'等候当次明确答复','waiting-departure':'双方已答复 · 等原事务可安全离开',travelling:'一同前往获准使用的寝殿',together:'自愿相伴片刻',completed:'这次相伴已结束',declined:'本次邀约已婉拒',cancelled:'本次邀约已取消'};
 const add=(a={},b={})=>Object.fromEntries([...new Set([...Object.keys(a),...Object.keys(b)])].map(key=>[key,signed((a[key]||0)+(b[key]||0))]));
 
 // ST02 uses the existing adult private-company gate, directional outcome and
@@ -57,19 +57,22 @@ export function createPalaceCompanionship({
   notify(ended);return {ok:!saveBlocked,event:copy(ended),...(saveBlocked?{reason:'save-failed'}:{})};
  }
  function cancel(reason='cancelled'){return settle('cancelled',reason);}
- function available(id,event){
+ function availability(id,event,phase,participants){
   const actor=roster().find(a=>idOf(a)===id),held=socialHoldOwner(id);
-  return !!actor&&(typeof actor==='string'||actor.alive!==false)&&(!held||held===owner)&&isAvailable(id,{held:held===owner,event:event?copy(event):null})===true;
+  if(!actor||typeof actor!=='string'&&actor.alive===false)return {ok:false,reason:'actor-unavailable',actorId:id,field:'alive'};
+  if(held&&held!==owner&&!(phase==='inquiry'&&participants.includes('player')))return {ok:false,reason:'departure-owner',actorId:id,field:'other-owner',message:'已有原来的安排，等到能安全离开后再一起出发。'};
+  const result=isAvailable(id,{held:held===owner,event:event?copy(event):null,phase,participants});
+  return result===true?{ok:true}:result&&typeof result==='object'?{...result,actorId:id}:{ok:false,reason:'actor-unavailable',actorId:id,field:'availability'};
  }
- function relationContext(observer,target){
+ function relationContext(observer,target,phase){
   const self=identity(observer),other=identity(target);if(!self||!other)return null;
-  const context=getContext(observer,target)||{};
+  const context=getContext(observer,target,{phase})||{};
   // Identity ages are live authority; a high score or stale callback cannot
   // substitute a missing/adolescent actor's age.
   return {...context,selfAge:self.ageYears,age:other.ageYears};
  }
- function willingContext(observer,target){const context=relationContext(observer,target);return !!context&&relationshipInteractionEligible('private-company',context);}
- function pairGate(emperor,target,event=null,{place=true,checkAvailability=true}={}){
+ function willingContext(observer,target,phase){const context=relationContext(observer,target,phase);return !!context&&relationshipInteractionEligible('private-company',context);}
+ function pairGate(emperor,target,event=null,{place=true,checkAvailability=true,phase='departure'}={}){
   if(!validId(emperor)||!validId(target)||emperor===target)return {ok:false,reason:'invalid-pair'};
   if(!permitted(emperor,target))return {ok:false,reason:venuePolicy?'venue-pair-required':'current-emperor-required'};
   const left=identity(emperor),right=identity(target);if(!left||!right)return {ok:false,reason:'adult-current-identity-required'};
@@ -79,8 +82,8 @@ export function createPalaceCompanionship({
     if(refs.has(id)&&people.find(a=>idOf(a)===id)!==refs.get(id))return {ok:false,reason:'actor-replaced'};
    }
   }
-  if(checkAvailability&&![emperor,target].every(id=>available(id,event)))return {ok:false,reason:'actor-unavailable'};
-  if(!willingContext(emperor,target)||!willingContext(target,emperor))return {ok:false,reason:'relationship-unavailable'};
+  if(checkAvailability)for(const id of [emperor,target]){const checked=availability(id,event,phase,[emperor,target]);if(!checked.ok)return checked;}
+  if(!willingContext(emperor,target,phase)||!willingContext(target,emperor,phase))return {ok:false,reason:'relationship-unavailable'};
   if(!place)return {ok:true,identities:{[emperor]:left,[target]:right}};
   const resolved=getPlace([emperor,target],event?copy(event):null),p=resolved?.ok===true?resolved.place:null;
   if(!p||p.private!==true||!validId(p.roomId)||typeof p.id!=='string')return {ok:false,reason:resolved?.reason||'emperor-bedroom-unavailable'};
@@ -111,7 +114,7 @@ export function createPalaceCompanionship({
   if(nightKey()===null)return {ok:false,reason:'night-required'};
   if(attemptedTonight(emperor,target))return {ok:false,reason:'already-invited-tonight'};
   if(data.time<(data.cooldowns[target]||0))return {ok:false,reason:'invitation-cooldown'};
-  const checked=pairGate(emperor,target);if(!checked.ok)return checked;
+  const checked=pairGate(emperor,target,null,{phase:'inquiry'});if(!checked.ok)return checked;
   const result=transaction(()=>{
    const event=makeEvent(emperor,target,stage,source,checked);data.active=event;
    if(stage==='selected'&&emperor!=='player'){
@@ -133,12 +136,13 @@ export function createPalaceCompanionship({
  function transition(change){const result=transaction(()=>{change(data.active);return copy(data.active);});if(!result.ok)return failTransition(result);notify();return {ok:true,event:status()};}
  function startJourney(){
   const event=data.active;if(!event||!event.participants.every(id=>event.consent[id]===true))return {ok:false,reason:'mutual-consent-required'};
-  const checked=pairGate(event.emperorId,event.targetId,event);if(!checked.ok){cancel(checked.reason);return checked;}
+  if(nightKey()!==event.night){cancel('night-ended');return {ok:false,reason:'night-ended'};}
+  const checked=pairGate(event.emperorId,event.targetId,event);if(!checked.ok){if(checked.reason?.startsWith('departure-')){if(event.stage!=='waiting-departure'||event.waitReason!==checked.reason||event.waitField!==checked.field||event.waitActorId!==checked.actorId)return transition(e=>{e.stage='waiting-departure';e.stageAt=data.time;e.waitReason=checked.reason;e.waitField=checked.field;e.waitActorId=checked.actorId;e.waitMessage=checked.message;});return {ok:true,event:status(),waiting:true};}cancel(checked.reason);return checked;}
   const npcIds=event.participants.filter(id=>id!=='player');
   if(!holdSocialActors(npcIds,owner)){cancel('actor-held');return {ok:false,reason:'actor-held'};}
   // The consent and travelling state must be durable before the adapter may
   // claim furniture or move any actor. A thrown/failed adapter returns leases.
-  const result=transition(e=>{e.stage='travelling';e.stageAt=data.time;});if(!result.ok)return result;
+  const result=transition(e=>{e.stage='travelling';e.stageAt=data.time;delete e.waitReason;delete e.waitField;delete e.waitActorId;delete e.waitMessage;});if(!result.ok)return result;
   try{journey=createJourney(copy(data.active),copy(data.active.place));}catch{journey=null;}
   if(!journey||typeof journey.update!=='function'||journey.state?.()?.ok===false){cancel('journey-unavailable');return {ok:false,reason:'journey-unavailable'};}
   return {ok:true,event:status()};
@@ -149,7 +153,7 @@ export function createPalaceCompanionship({
   if(actorId!=='player'||!event.participants.includes(actorId))return {ok:false,reason:'explicit-player-response-required'};
   if(!['summoned','awaiting-response'].includes(event.stage))return {ok:false,reason:'response-not-due'};
   if(accepted!==true&&accepted!==false)return {ok:false,reason:'explicit-response-required'};
-  const checked=pairGate(event.emperorId,event.targetId,event);if(!checked.ok){cancel(checked.reason);return checked;}
+  const checked=pairGate(event.emperorId,event.targetId,event,{phase:'inquiry'});if(!checked.ok){cancel(checked.reason);return checked;}
   if(!accepted)return settle('declined','player-declined');
   if(event.consent[actorId])return {ok:true,replayed:true,event:status()};
   const result=transition(e=>{e.consent[actorId]=true;e.decisions[actorId]={accepted:true,explicit:true,at:data.time};});if(!result.ok)return result;
@@ -200,12 +204,13 @@ export function createPalaceCompanionship({
  }
  function update(dt){
   if(disposed||loadError||!finite(dt)||dt<=0)return;
-  const heldEvent=data.active;if(heldEvent&&(heldEvent.id===readingEventId||heldEvent.participants.some(isPlayerConversationHeld))){const check=pairGate(heldEvent.emperorId,heldEvent.targetId,heldEvent,{checkAvailability:false});if(!check.ok){cancel(check.reason);return;}for(const actor of roster())if(heldEvent.participants.includes(idOf(actor))&&typeof actor==='object')actor.walking=false;return;}
+  const heldEvent=data.active;if(heldEvent&&(heldEvent.id===readingEventId||heldEvent.participants.some(isPlayerConversationHeld))){const check=pairGate(heldEvent.emperorId,heldEvent.targetId,heldEvent,{checkAvailability:false,phase:'inquiry'});if(!check.ok){cancel(check.reason);return;}for(const actor of roster())if(heldEvent.participants.includes(idOf(actor))&&typeof actor==='object')actor.walking=false;return;}
   data.time+=dt;
   if(saveBlocked){if(data.time>=retryAt){saveBlocked=!persist();retryAt=data.time+5;}return;}
   const event=data.active;
   if(!event){if(data.time>=data.nextOpportunity)opportunity();return;}
-  const checked=pairGate(event.emperorId,event.targetId,event);if(!checked.ok){cancel(checked.reason);return;}
+  const checked=pairGate(event.emperorId,event.targetId,event,{phase:['requested','selected','summoned','awaiting-response','waiting-departure'].includes(event.stage)?'inquiry':'departure'});if(!checked.ok){cancel(checked.reason);return;}
+  if(event.stage==='waiting-departure'){startJourney();return;}
   if(event.stage==='requested'){
    if(data.time-event.stageAt<responseSeconds)return;
    const result=transition(e=>{e.decisions[e.emperorId]=decision(e.emperorId,e.targetId);e.consent[e.emperorId]=e.decisions[e.emperorId].accepted;e.stage='selected';e.stageAt=data.time;});

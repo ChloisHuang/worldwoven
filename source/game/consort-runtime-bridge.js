@@ -29,7 +29,7 @@ export function createConsortRuntimeBridge({saved,quarters,getScene,getPlayerPro
   const profile=()=>read(getPlayerProfile)||saved.playerProfile||{};
   function emperor(){
     const s=scene(),actor=s.country==='china'?s.npcs?.find(n=>n.station?.id==='cn-emperor'):null;
-    if(actor){lastEmperorAge=actor.station.ageYears;return {id:'cn-emperor',ageYears:actor.station.ageYears};}
+    if(actor){const valid=actor.alive!==false&&(!Object.hasOwn(actor.station,'royalRole')||actor.station.royalRole==='emperor')&&(!actor.actorId||actor.actorId==='cn-emperor');if(!valid)return {id:actor.actorId||'cn-emperor',ageYears:undefined};lastEmperorAge=actor.station.ageYears;return {id:'cn-emperor',ageYears:actor.station.ageYears};}
     // Away from China, the last witnessed adult identity keeps its title. It
     // supplies no scene, audience, room access or food entitlement remotely.
     const recorded=ledger?.witnessedEmperorAge();

@@ -313,7 +313,7 @@ function consortSceneIntent(kind='panel'){
   if(!consortBridge.ledger.residenceFor())return null;
   target={id:RESERVED_CONSORT_QUARTERS.roomId,name:RESERVED_CONSORT_QUARTERS.name,position:[...RESERVED_CONSORT_QUARTERS.waitingPoint],radius:.3};
  }
- const labels={'empress-submit':'当面请册皇后','empress-release':'当面请辞后位',panel:invitation?'答复皇帝邀约':'查看宫廷自荐与名位',submit:'呈交自荐',audience:'请候皇帝召见',investiture:'请领册书','read-charter':'听宣册书',return:'返回听候处',residence:'前往自己的寝居'};
+ const labels={'empress-submit':'当面请册皇后','empress-release':'当面请辞后位',panel:invitation?'答复皇帝邀约':p?.source==='emperor-invitation'&&stage==='expired'?'查看已到期皇帝邀约':'查看宫廷自荐与名位',submit:'呈交自荐',audience:'请候皇帝召见',investiture:'请领册书','read-charter':'听宣册书',return:'返回听候处',residence:'前往自己的寝居'};
  if(!labels[kind]||!target?.position)return null;
  return {...target,id:'cn-consort-'+kind,provider:'china-consort-petition',kind,targetKey:target.targetKey||target.id,targetName:target.targetName||'宫廷接待',action:labels[kind],position:target.position.slice(),executionRadius:consortIntentExecutionRadius(target,kind),interactionRadius:2,priority:48,
   intentKey:[kind,p?.id||'-',stage,p?.source||'',consortBridge.titleStatus().active?'appointed':'',target.heraldId||'-',target.holderRevision??'-'].join('|')};
@@ -704,21 +704,32 @@ function palaceIdentity(id){
   royalRole:id==='player'?(title?.active?'consort':null):n.station.royalRole||null,roomId:n.station?.privateRoomId||null,
   revision:JSON.stringify({station:n.station?.id||'player',role:n.station?.royalRole||null,room:n.station?.privateRoomId||null,bindings,title:id==='player'?title:null,tenure:id==='player'?formalCareers.state().tenure:null})};
 }
-function palaceRelationshipContext(observerId,targetId){
+function palaceRelationshipContext(observerId,targetId,{phase}={}){
  const external=socialInteractionContext(observerId,targetId),profile=getNPCProfile(observerId),reverse=getNPCProfile(targetId),memory=profile.interactions?.[targetId]||{},other=reverse.interactions?.[observerId]||{};
  let result={...external,relation:profile.relations?.[targetId]||0,opinion:profile.opinions?.[targetId]||0,trust:(memory.trust||0)+(relationshipEvents?.pair(observerId,targetId)?.trust||0),completedCount:memory.completedCount||0,interestGiven:memory.interestGiven===true,interestReceived:other.interestGiven===true,boundary:memory.boundary||other.boundary||external.boundary};
  if(observerId==='player'||targetId==='player'){
   const relationship=playerConversations.relationshipFor(observerId==='player'?targetId:observerId)||{};
   result={...result,...relationship,trust:(relationship.trust||0)+(memory.trust||0),age:palaceIdentity(targetId)?.ageYears,selfAge:palaceIdentity(observerId)?.ageYears,interestGiven:observerId==='player'?relationship.interestGiven:relationship.interestReceived,interestReceived:observerId==='player'?relationship.interestReceived:relationship.interestGiven};
  }
- return {...result,boundary:result.boundary||familyRuntime?.ledger.related(observerId,targetId),observerProfile:profile,selfProfile:profile,privatePlaceAvailable:true};
+ const inquiry=phase==='inquiry'&&[observerId,targetId].includes('player'),left=socialActor(observerId),right=socialActor(targetId);
+ return {...result,...(inquiry?{available:!!left&&!!right&&left.alive!==false&&right.alive!==false&&!bathPrivacy?.isPrivatePosition(left.root.position)&&!bathPrivacy?.isPrivatePosition(right.root.position)}:{}),boundary:result.boundary||familyRuntime?.ledger.related(observerId,targetId),observerProfile:profile,selfProfile:profile,privatePlaceAvailable:true};
 }
-function palaceAvailable(id,{held=false}={}){
- const n=socialActor(id);if(!n||n.alive===false||!socialAdult(id))return false;
- const needs=getNPCProfile(id).needs;if(needs?.hunger>=.85||needs?.fatigue>=.88||dailyNeeds?.status(id)?.seekToilet)return false;
- if(id==='player')return !seated&&!bathTransition&&!performing&&!pendingInteraction&&!path.length&&!npcSocial?.active()&&!chinaConsortCourt?.active()&&!activeDailyToilet()?.active()&&!chinaRoyalPlayerMeal?.active()&&!chinaSalon?.guidesPlayer()&&(!interactionMenuOpen()||palaceCompanionshipUI?.isOpen());
- return (held||!isSociallyHeld(id))&&npcPublicMode(n,{ignoreVisibility:true})==='leave';
+function palaceAvailability(id,{held=false,phase='departure',participants=[]}={}){
+ const n=socialActor(id),name=id==='player'?'你':n?.station?.npcName||'对方';if(!n||n.alive===false||!socialAdult(id))return {ok:false,reason:'adult-current-identity-required',field:'identity'};
+ const mount=id==='player'?seated:n.serviceMount||chinaPalace?.mountForActor(n),sleeping=mount?.kind==='bed'||n.serviceTask?.arrived&&n.serviceTask.action==='lie-rest';
+ if(sleeping)return {ok:false,reason:'sleeping',field:mount?.kind==='bed'?'mounted-bed':'arrived-lie-rest',message:`${name}正在睡觉，醒来后再商议今夜相伴。`};
+ // Discussing beside someone does not borrow them away from their work.
+ if(phase==='inquiry'&&participants.includes('player'))return {ok:true};
+ const needs=getNPCProfile(id).needs,field=needs?.hunger>=.85?'needs.hunger':needs?.fatigue>=.88?'needs.fatigue':dailyNeeds?.status(id)?.seekToilet?'needs.seekToilet':null;
+ if(field)return {ok:false,reason:'departure-needs',field,message:`已经可以商议；${name}需先处理${field==='needs.hunger'?'用饭':field==='needs.fatigue'?'歇息':'如厕'}，再一起出发。`};
+ if(id==='player'){
+  const blocked=seated?'seated':bathTransition?'bathTransition':performing?'performing':pendingInteraction?'pendingInteraction':path.length?'path':npcSocial?.active()?'conversation':chinaConsortCourt?.active()?'court-service':activeDailyToilet()?.active()?'toilet':chinaRoyalPlayerMeal?.active()?'meal':chinaSalon?.guidesPlayer()?'guided-route':interactionMenuOpen()&&!palaceCompanionshipUI?.isOpen()?'other-menu':null;
+  return blocked?{ok:false,reason:'departure-player-task',field:blocked,message:'已答复相伴；请先结束当前动作或路线，再一起出发。'}:{ok:true};
+ }
+ if(!held&&isSociallyHeld(id))return {ok:false,reason:'departure-duty',field:'body-owner',message:`${name}须先结束当前原安排，再一起出发。`};
+ return npcPublicMode(n,{ignoreVisibility:true})==='leave'?{ok:true}:{ok:false,reason:'departure-duty',field:'routine-leave-permission',message:`${name}已听见询问；原事务到可离开的位置后，再一起出发。`};
 }
+function palaceAvailable(id,options){return palaceAvailability(id,options).ok;}
 function palacePlace(ids,event){const emperor=currentPalaceEmperor();if(!emperor||!ids.includes(emperor.actorId)||!emperor.roomId||event?.place&&event.place.roomId!==emperor.roomId)return {ok:false,reason:'no-current-emperor-chamber'};return event?.place?palaceMeetingPlaces.validate(event.place,ids):palaceMeetingPlaces.resolve(ids,{private:true,roomId:emperor.roomId});}
 function configureSalonCompanionship(){
  salonCompanionship?.dispose();salonCompanionship=null;if(active.id!=='china'||!chinaSalon)return;
@@ -739,12 +750,12 @@ function configureSalonCompanionship(){
 function configurePalaceCompanionship(){
  palaceCompanionship?.dispose();palaceCompanionship=null;palaceCompanionshipUI?.dispose();palaceCompanionshipUI=null;if(active.id!=='china')return;
  const faded=new Set();let playerFaded=false;palaceMeetingPlaces=createSocialMeetingPlaces({country:'china',lot,furniture,getActors:()=>[player,...npcs],getActor:socialActor,planPath,canEnterPrivateRoom:socialPrivateEntitlement,roomAvailable:()=>true,isActorPresent:n=>n===player||npcs.includes(n)&&n.alive!==false});
- palaceCompanionship=createPalaceCompanionship({getRoster:()=>[player,...npcs],getIdentity:palaceIdentity,getContext:palaceRelationshipContext,getFactors:socialFactorsFor,isAvailable:palaceAvailable,getPlace:palacePlace,getClock:()=>simulationClock.state(),worldSeed:saved.appearance.seed,saved:saved.palaceCompanionship,
+ palaceCompanionship=createPalaceCompanionship({getRoster:()=>[player,...npcs],getIdentity:palaceIdentity,getContext:palaceRelationshipContext,getFactors:socialFactorsFor,isAvailable:palaceAvailability,getPlace:palacePlace,getClock:()=>simulationClock.state(),worldSeed:saved.appearance.seed,saved:saved.palaceCompanionship,
   saveState:state=>saveFamilySource('palaceCompanionship',state,'palace'),
   createJourney:(event,place)=>{if(event.participants.includes('player')){path=[];targetStation=null;pendingInteraction=null;resetTransientInput();}
    const journey=createSocialMeetingJourney({places:palaceMeetingPlaces,getActor:socialActor,planPath,moveActor,doors:automaticDoors,getActors:()=>[player,...npcs],isAdult:socialAdult,isWilling:id=>palaceCompanionship?.status()?.id===event.id&&palaceCompanionship.status().consent?.[id]===true,isAvailable:id=>palaceAvailable(id,{held:true})});return journey.start(event.participants,{place}).ok?journey:null;},
   onPrivateFade:(value,event)=>{for(const id of faded){const n=socialActor(id);if(n){n.socialPrivateFade=false;n.root.visible=true;}}faded.clear();if(value)for(const id of event.participants)if(id!=='player'){const n=socialActor(id);if(n){n.socialPrivateFade=true;faded.add(id);}}if(playerFaded||event?.participants.includes('player'))showSocialPrivateFade(value);playerFaded=value&&!!event?.participants.includes('player');},
-  onChange:event=>{if(!event?.participants?.includes('player'))return;if(event.stage==='awaiting-response')toast('寝殿邀约已送达。可从身旁的「答复寝殿邀约」接受或拒绝；未答复不会前往。');else if(event.stage==='declined')toast('这次邀约已婉拒；拒绝不影响彼此的名位与关系。');else if(event.stage==='cancelled')toast('这次邀约已取消，双方继续原来的安排。');},
+  onChange:event=>{if(!event?.participants?.includes('player'))return;if(event.stage==='awaiting-response')toast('寝殿邀约已送达。可从身旁的「答复寝殿邀约」接受或拒绝；未答复不会前往。');else if(event.stage==='waiting-departure')toast(event.waitMessage||'双方已答复，等原事务可安全离开后一起出发。');else if(event.stage==='declined')toast('这次邀约已婉拒；拒绝不影响彼此的名位与关系。');else if(event.stage==='cancelled')toast('这次邀约已取消，双方继续原来的安排。');},
   onComplete:event=>{familyRuntime?.complete(event,'palace');if(event.participants.includes('player'))toast('这次自愿相伴已记下。彼此各自继续原来的安排。');}});
  palaceCompanionshipUI=createPalaceCompanionshipUI({getService:()=>palaceCompanionship,getEmperor:currentPalaceEmperor,getName:id=>id==='player'?(saved.playerProfile.nickname||'你'):socialActor(id)?.station.npcName||'对方',onOpen:()=>resetTransientInput(),onClose:()=>npcSocial?.releaseMenu(),notify:toast});
 }
