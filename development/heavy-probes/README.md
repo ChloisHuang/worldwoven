@@ -12,4 +12,4 @@ Run one stage only after the preceding stage has been reviewed:
 
 Natural segments default to 30 steps and are capped at 300; SOCIAL_RESUME may name the existing checkpoint. A checkpoint is not proof of terminal completion or of seamless continuation through every controller state.
 
-These changes have not been executed or syntax-tested yet. Heavy tests remain paused pending parent clearance. A guard stop is neither a product failure nor a passing check. Simulated DOM/renderer checks are not browser or phone acceptance.
+Current-environment results: DOM unit and main-import init passed; fresh China load and fresh 30-frame then resumed 300-frame segments passed under the guard. See docs/NATURAL_SOCIAL_VERIFICATION.md for exact scope and outstanding terminal checks. Further stages require parent clearance and serial review. A guard stop is neither a product failure nor a passing check. Simulated DOM/renderer checks are not browser or phone acceptance.
