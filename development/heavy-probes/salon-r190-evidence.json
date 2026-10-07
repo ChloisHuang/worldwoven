@@ -775,6 +775,246 @@
         "bootId": "f3aabe27-ab35-4beb-aca8-24cd4bc772b7"
       },
       "phaseLog": "qa/st03-r190/segment-20261007T184243Z-2.log"
+    },
+    {
+      "input": "qa/st03-r190/segment-20261007T184243Z-2.checkpoint.json",
+      "checkpoint": "qa/st03-r190/segment-20261007T184803Z-2.checkpoint.json",
+      "checkpointSha256": "11bd1d66f19263af6f278b1eaff3d9fe7c03894f84c87ec3a8bf102fc4747899",
+      "frames": 7,
+      "initialSeconds": 8665.71428571385,
+      "clock": {
+        "seconds": 8666.764285713847,
+        "day": 4,
+        "hour": 15.112249999994871
+      },
+      "stop": "original-choice-ended",
+      "tracked": {
+        "actorId": "cn-official-rites",
+        "id": "paid-salon",
+        "targetId": "cn-tavern-storyteller:story",
+        "duration": 0,
+        "startedAt": 82.50000000000027
+      },
+      "events": [
+        {
+          "frame": 1,
+          "clock": {
+            "seconds": 8665.86428571385,
+            "day": 4,
+            "hour": 15.1017499999949
+          },
+          "paid": [
+            {
+              "id": "cn-official-rites",
+              "activity": "paid-salon",
+              "stage": "travel",
+              "arrived": false,
+              "elapsed": 0,
+              "mounted": null,
+              "borrowed": false,
+              "borrowedSalon": false,
+              "duty": null,
+              "roomId": null,
+              "called": false,
+              "position": [
+                23.47176806795747,
+                7.815,
+                8.02823193204253
+              ]
+            }
+          ],
+          "session": null
+        },
+        {
+          "frame": 7,
+          "clock": {
+            "seconds": 8666.764285713847,
+            "day": 4,
+            "hour": 15.112249999994871
+          },
+          "paid": [],
+          "session": null
+        }
+      ],
+      "customerPosition": [
+        24.15,
+        7.815,
+        7.65
+      ],
+      "session": null,
+      "rooms": [
+        {
+          "id": "tavern-guest-lan",
+          "name": "兰房",
+          "claim": null,
+          "physicallyOccupied": true
+        },
+        {
+          "id": "tavern-guest-zhu",
+          "name": "竹房",
+          "claim": null,
+          "physicallyOccupied": false
+        }
+      ],
+      "lodgingRooms": [
+        {
+          "id": "lan",
+          "name": "兰房",
+          "price": 12,
+          "dirty": true,
+          "guestId": null,
+          "bedId": "china-tavern-bed-lan"
+        },
+        {
+          "id": "zhu",
+          "name": "竹房",
+          "price": 12,
+          "dirty": true,
+          "guestId": null,
+          "bedId": "china-tavern-bed-zhu"
+        }
+      ],
+      "accounts": {
+        "cn-minister-works": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-minister-granary": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-rites": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-personnel": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-justice": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-records": {
+          "bank": 96,
+          "cash": 0
+        }
+      },
+      "officialTransactionCount": 24,
+      "governmentPaid": 576,
+      "salonHolds": {},
+      "artistEconomy": {
+        "version": 2,
+        "revision": 0,
+        "grossRevenue": 0,
+        "performerPaid": 0,
+        "businessProceeds": 0,
+        "accounts": {
+          "cn-tavern-reciter": {
+            "cash": 0,
+            "bank": 0
+          },
+          "cn-tavern-storyteller": {
+            "cash": 0,
+            "bank": 0
+          },
+          "cn-tavern-songwriter": {
+            "cash": 0,
+            "bank": 0
+          },
+          "cn-tavern-chess-poet": {
+            "cash": 0,
+            "bank": 0
+          }
+        },
+        "receipts": [],
+        "mealTransfers": []
+      },
+      "salonSerial": 0,
+      "salonHistory": [],
+      "officialTerminalEvents": [
+        {
+          "event": "life-paid-salon:arrived",
+          "actor": "cn-official-rites",
+          "time": 181.05,
+          "position": [
+            24.15,
+            7.815,
+            7.65
+          ]
+        },
+        {
+          "event": "life-paid-salon:interrupted",
+          "actor": "cn-official-rites",
+          "time": 181.05,
+          "position": [
+            24.15,
+            7.815,
+            7.65
+          ]
+        }
+      ],
+      "storytellerCurrentLife": {
+        "phase": "acting",
+        "choice": {
+          "id": "practice",
+          "label": "整理江行说书稿",
+          "action": "read",
+          "to": [
+            19.7,
+            7.815,
+            18.1
+          ],
+          "busy": true,
+          "base": 1.1,
+          "traits": {
+            "curiosity": 0.45,
+            "quiet": 0.3
+          },
+          "duration": 9.698704880662262,
+          "cooldown": 24,
+          "startedAt": 174.60000000000375
+        },
+        "target": [
+          19.7,
+          7.815,
+          18.1
+        ],
+        "elapsed": 6.450000000000005,
+        "wait": 0
+      },
+      "receptionNeeds": {
+        "version": 1,
+        "task": null
+      },
+      "failures": [],
+      "officialFailures": [],
+      "guard": {
+        "guard": "PASS",
+        "reason": null,
+        "exit": 0,
+        "seconds": 69.729,
+        "treePeakMiB": 686.867,
+        "peakMembersBytes": {
+          "9": 10891264,
+          "11": 709341184
+        },
+        "includesSupervisor": true,
+        "hostname": "24d70332fa95",
+        "bootId": "f3aabe27-ab35-4beb-aca8-24cd4bc772b7"
+      },
+      "phaseLog": "qa/st03-r190/segment-20261007T184803Z-2.log"
     }
-  ]
+  ],
+  "terminalAnalysis": {
+    "outcome": "Original naturally chosen40-coin storyteller journey arrived and was interrupted without any session or payment; stopped and did not select another attempt.",
+    "sufficientObservedBlocker": "Both existing lodging rooms have dirty=true and guestId=null in exact terminal checkpoint. main roomAvailable requires !guestId&&!dirty; npcOfferStatus returns offer-changed/non-waitable when no room is available.",
+    "notClaimed": "No logged unique reason code was captured at the decision call; dirty rooms are a directly observed sufficient blocker, not a claim they were the only condition. Storyteller practice is also busy but would otherwise be waitable for up to12seconds. No explicit artist refusal or payment fault was observed.",
+    "scopeStillOpen": "No paid session/escrow/settlement, active-session restore, all-four coverage or browser/iOS acceptance.",
+    "sourceReferences": [
+      "source/game/main.js configureChinaSalon roomAvailable",
+      "source/game/china-tavern-salon.js npcOfferStatus",
+      "source/game/china-official-life.js arrived paid-salon offer branch"
+    ]
+  }
 }

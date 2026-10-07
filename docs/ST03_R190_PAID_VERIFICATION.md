@@ -17,3 +17,11 @@
 18:44 UTC第四段至180秒：同一礼部官/82.5秒原选择/沈砚舟40文沿原路线index9→20，经云来双公共楼梯到[23.3145120453,7.815,8.1854879547]，距离原前台不足1米。无阻塞/重试，六官各96、艺者回执0、官方及salon失败0，尚未session。86.604秒/712.918MiB、guard PASS/exit0。
 
 停止边界说明：240秒仅限制尚未观察到选择的窗口。已选择原链按同一actor/target/startedAt跟进到会话或取消终态，不重选也不机械截断健康路程。135秒时剩余路标分段3D约45.04米，实际绕障更长，原速度本人walkSpeed×.78；原无全程硬超时，但非让行停滞每4秒重规划、第三次记失败，到前台对可等待艺者仅等12秒。runner已按此更新，原controller失败或原选择结束即保档停。
+
+## 18:49 UTC 原链未成行终态，停止本轮
+
+第五段只推进7帧/1.05秒，原礼部官181.05秒到达原前台[24.15,7.815,7.65]；原事件依次为life-paid-salon:arrived及life-paid-salon:interrupted，同步结束原82.5秒沈砚舟40文选择。立即保档停止，没有选第二条链、延长观察或直接request/settle。guard PASS/exit0，69.729秒/686.867MiB。
+
+可证实的足够阻止条件：精确终态chinaServiceWorld中兰房/竹房均dirty=true、guestId=null。main的roomAvailable要求!guestId&&!dirty；npcOfferStatus在没有可用房时直接返回offer-changed/non-waitable，原life据此可当步结束。沈砚舟同刻在练稿（已6.45/9.699秒），该忙碌本可等待最多12秒，但没有可用房会先阻断。未捕获当次调用的独立reason-code日志，故不声称脏房是唯一条件；不把“interrupted”写成艺者明确拒绝、概率拒绝或支付故障。
+
+无扣款完整证据：六官均保持96，官方仍24笔原duty交易/总576，无salon hold；雅集serial0、session=null、history空；艺者revision0、全部余额0、grossRevenue/performerPaid/businessProceeds0，receipts及mealTransfers空。原actor位置/选择、双房状态、原事件和账本摘要收录salon-r190-evidence.json；完整checkpoint路径在同文件。本轮确立自然选择、原身体完整到前台、房况变化下原系统未成行且零收费；没有完成付费服务，活动会话恢复和结清仍未验证。ST03四艺者、浏览器/iOS范围继续开放。
