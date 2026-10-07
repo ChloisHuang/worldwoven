@@ -65,7 +65,9 @@ for(const extended of [false,true]){
 // Exercise the actual production button handler, including its extra outfit
 // draw. Rendering is stubbed because no geometry or browser behavior is audited.
 const main=fs.readFileSync(new URL('../source/game/main.js',import.meta.url),'utf8');
-assert.equal((main.match(/shapePreferenceScore\([^\n]*?\{version:CHARACTER_PREVIEW_ENABLED\?2:1\}/g)||[]).length,3,'player, residents and visitors explicitly choose the same entry-specific score version');
+const scoreCalls=[...main.matchAll(/shapePreferenceScore\(([^)]*)\)/g)];
+assert(scoreCalls.length>=3,'player, residents and visitors retain score entry points');
+assert(scoreCalls.every(call=>call[1].includes('{version:CHARACTER_PREVIEW_ENABLED?2:1}')),'every score entry explicitly chooses the same preview-specific version, including later career/readout consumers');
 const readout=main.match(/function refreshAppearanceScore\(\)\{([\s\S]*?)\n\}/)?.[1];assert(readout);
 for(const preview of [false,true]){
  const elements=new Map(),element=id=>{if(!elements.has(id))elements.set(id,{});return elements.get(id);};
