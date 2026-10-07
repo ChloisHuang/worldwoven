@@ -10,8 +10,8 @@ if [[ "$PROBE_STAGE" == init ]]; then unset SOCIAL_RESUME TELLER_RESUME; fi
 if [[ "$PROBE_STAGE" == run ]]; then
   case "${TELLER_STOP_AFTER:-}" in
     registration) [[ -z "${TELLER_RESUME:-}" ]] || { echo 'Registration requires fresh input' >&2; exit 64; } ;;
-    interview|handoff|issuance|checks|calculations|record|settlement) [[ -f "${TELLER_RESUME:-}" ]] || { echo 'This stage requires its real prior checkpoint' >&2; exit 64; } ;;
-    *) echo 'Choose registration, interview, handoff, issuance, checks, calculations, record or settlement recovery stop explicitly' >&2; exit 64 ;;
+    interview|handoff|issuance|checks|calculations|record|settlement|salary-attendance|salary-return) [[ -f "${TELLER_RESUME:-}" ]] || { echo 'This stage requires its real prior checkpoint' >&2; exit 64; } ;;
+    *) echo 'Choose registration, interview, handoff, issuance, checks, calculations, record, settlement, salary-attendance or salary-return recovery stop explicitly' >&2; exit 64 ;;
   esac
 fi
 case "$PROBE_STAGE" in

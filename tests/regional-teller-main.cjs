@@ -35,6 +35,30 @@ const svc=r().regionalTellerEmployment;assert(svc.forRole(roleId));
 const stopAfter=process.env.TELLER_STOP_AFTER;
 const checkpoint=stage=>{main.namespace.save();const file=path.resolve('qa','regional-teller-'+country+'-'+stage+'.json');fs.writeFileSync(file,storage['worlds-days-v1']);console.log('PASS '+stage+' checkpoint saved',country,file,(Date.now()-started)/1000);};
 const savedApplication=process.env.TELLER_RESUME?JSON.parse(fs.readFileSync(process.env.TELLER_RESUME,'utf8')).formalCareers.applications.byRole[roleId]:null;
+if(stopAfter==='salary-attendance'){
+ assert.equal(savedApplication?.status,'approved');assert(r().formalCareers.isHired(roleId));assert(!svc.state().shift);assert(!svc.inspection.state().order);assert.equal(svc.state().receipts.length,0);
+ const bank=JSON.stringify(r().copperLedger.state());assert(main.namespace.requestStationIntent(svc.intent('accept')));
+ until(()=>svc.state().shift?.stage==='working','fixed-salary original safe handoff',80);
+ const incumbent=r().npcs.find(n=>n.station.id===svc.state().shift.standInId),home=incumbent.station.npcPosition,front=incumbent.station.position,rest=country==='china'?[home[0]-1.8,home[1],home[2]-.3]:[front[0]+1.7,front[1],front[2]-.7];
+ until(()=>incumbent.root.position.distanceTo(new incumbent.root.position.constructor(...rest))<.06&&!incumbent.walking,'original incumbent physically clear for salaried duty',80);
+ const duty=svc.intent('duty');assert(duty);assert(main.namespace.requestStationIntent(duty));
+ until(()=>r().player.root.position.distanceTo(new (r().player.root.position.constructor)(...duty.position))<.1,'actual original work-side attendance position',80);
+ const before=svc.state().shift.coveredSeconds,clockBefore=state().simulationClock.seconds;step(480);
+ const covered=svc.state().shift.coveredSeconds-before;assert(covered>=119&&covered<=120.001,JSON.stringify({before,shift:svc.state().shift}));assert(Math.abs(state().simulationClock.seconds-clockBefore-120)<1e-6);
+ assert.equal(JSON.stringify(r().copperLedger.state()),bank);assert.equal(svc.state().receipts.length,0);assert(!svc.inspection.state().order);assert.equal(r().formalCareers.workState().lastDuty.tellerPayVersion,1);
+ console.log('PASS actual loaded attendance seconds',covered,'simulation game hours',covered*.7/60,'no wages before handback');checkpoint('salary-attendance');return;
+}
+if(stopAfter==='salary-return'){
+ assert.equal(svc.state().shift?.salaryVersion,1);assert.equal(svc.state().shift.stage,'working');assert(svc.state().shift.coveredSeconds>=119);assert(!svc.inspection.state().order);
+ const before=r().copperLedger.balances(),incumbentId=svc.state().shift.standInId,role=r().formalCareers.currentRole();assert(main.namespace.requestStationIntent(svc.intent('end-shift')));
+ until(()=>!svc.state().shift,'actual original incumbent handback and fixed salary settlement',160);
+ const duty=r().formalCareers.workState().lastDuty;assert.equal(duty.stage,'paid');assert.equal(duty.tellerPayVersion,1);const expected=Math.floor(role.wage*(duty.coveredSeconds*.7/60)/12+1e-9);assert(expected>0);assert.equal(duty.wage,expected);
+ const after=r().copperLedger.balances();for(const c of Object.keys(after)){assert.equal(after[c].cash,before[c].cash);assert.equal(after[c].bank-before[c].bank,c===currency?expected:0);}
+ const receiptId='career:'+role.slotId+':'+duty.day;assert.equal(r().copperLedger.state().transactions.filter(tx=>tx.requestId===receiptId&&tx.action==='wage').length,1);
+ const incumbent=r().npcs.find(n=>n.station.id===incumbentId);assert(incumbent);assert(incumbent.root.position.distanceTo(new incumbent.root.position.constructor(...incumbent.station.npcPosition))<.06);
+ const paid=JSON.stringify(r().copperLedger.state());assert.equal(r().formalCareers.settle().ok,false);assert.equal(JSON.stringify(r().copperLedger.state()),paid);
+ console.log('PASS fixed short-shift wage',receiptId,currency,expected,'confirmed loaded seconds',duty.coveredSeconds,'original incumbent',incumbentId);checkpoint('salary-return');return;
+}
 if(stopAfter==='settlement'){
  const order=svc.inspection.state().order;assert.equal(order?.stage,'return');assert.equal(order.recorded,true);assert.equal(svc.state().receipts.length,0);
  const source=JSON.stringify(order.contract.source),before=r().copperLedger.balances(),work=svc.inspection.actionDescriptor();assert.equal(work.total,0);
