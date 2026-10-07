@@ -19,7 +19,7 @@ export function createTavernStaffLife({actors,furniture,getPlayer,getMounted,get
  function finish(n,s,fulfilled){if(n.serviceMount&&!unmount(n))return false;furniture.releaseActor(n.station.id);if(s?.choice)brain.complete(n.station.id,s.choice,{fulfilled});if(fulfilled&&s?.choice.id==='meal')snacks.set(n.station.id,Math.max(0,(snacks.get(n.station.id)||0)-1));rows.delete(n);n.route=[];kits.get(n)?.show(false);nextAt.set(n,time+3);note(n,fulfilled?'completed':'interrupted');return true;}
  function interrupt(n){const s=rows.get(n);if(s||n.serviceMount)return finish(n,s,false);kits.get(n)?.show(false);return true;}
  function candidates(n,{onDuty}){
-  const seats=furniture.items.filter(s=>s.id.startsWith('china-tavern-dining-')&&s.id.endsWith('-1')&&!s.id.endsWith('--1')&&freeSeat(s,n));
+  const seats=furniture.items.filter(s=>s.id.startsWith('china-tavern-window-')&&freeSeat(s,n));
   const seatTargets=seats.map(s=>({id:s.id,choice:{seatId:s.id,target:s.position.slice()}}));
   const people=actors.filter(a=>a!==n&&!a.walking&&Math.abs(a.root.position.y-n.root.position.y)<.3&&Math.hypot(a.root.position.x-n.root.position.x,a.root.position.z-n.root.position.z)<3.5);
   return [
