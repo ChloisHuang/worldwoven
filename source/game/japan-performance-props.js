@@ -3,7 +3,7 @@ import * as THREE from 'three';
 // existing actual hand bones; clearing a service restores ordinary hand props.
 export function createJapanPerformanceProps(parent){
  const root=new THREE.Group();root.name='Kasumi live fan and drinks';root.userData.dynamic=true;parent.add(root);
- const materials=new Map(),geometries=new Set(),v=new THREE.Vector3(),w=new THREE.Vector3();
+ const materials=new Map(),geometries=new Set(),v=new THREE.Vector3(),w=new THREE.Vector3(),grip=new THREE.Vector3(),handQ=new THREE.Quaternion();
  const material=c=>{if(!materials.has(c))materials.set(c,new THREE.MeshToonMaterial({color:c,side:THREE.DoubleSide}));return materials.get(c);};
  const mesh=(g,geo,c,p=[0,0,0])=>{geometries.add(geo);const m=new THREE.Mesh(geo,material(c));m.position.set(...p);m.castShadow=true;g.add(m);return m;};
  const fan=new THREE.Group();fan.name='Original vermilion folding dance fan';root.add(fan);
@@ -17,18 +17,27 @@ export function createJapanPerformanceProps(parent){
  const profile=[[.038,0],[.055,.02],[.071,.115],[.068,.125],[.057,.125],[.047,.025],[.035,.017]].map(a=>new THREE.Vector2(...a));
  mesh(cup,new THREE.LatheGeometry(profile,20),0xe5d4b0);mesh(cup,new THREE.CylinderGeometry(.055,.055,.004,20),0x8e6b3f,[0,.097,0]);
  fan.visible=tray.visible=cup.visible=false;let orderId=null;
- function hand(n,index,offset=[0,-.035,.015]){const h=n?.root.userData.hands?.[index];if(!h)return null;n.root.updateWorldMatrix(true,true);v.set(...offset);h.localToWorld(v);root.worldToLocal(v);return v;}
+ // External props retain the authored animation frame, independently of the
+ // small anatomical wrist corrections needed to put real skin on their surface.
+ function hand(n,index,offset=[0,-.035,.015]){const h=n?.root.userData.hands?.[index];if(!h)return null;n.root.updateWorldMatrix(true,true);v.set(...offset);const pose=n.getAuthoredHandPose?.(index);
+  if(pose){v.applyQuaternion(handQ.fromArray(pose.quaternion)).add(grip.fromArray(pose.position));n.root.userData.body.localToWorld(v);}else h.localToWorld(v);root.worldToLocal(v);return v;}
+ function fit(n,side,point,support=false){if(!n?.fitExternalHandGrip)return;grip.copy(point);root.localToWorld(grip);n.root.userData.body.worldToLocal(grip);n.fitExternalHandGrip({side,target:grip.toArray(),support});}
+ function propContact(prop,offset){grip.set(...offset).applyQuaternion(prop.quaternion).add(prop.position);return grip;}
+ function supportTray(n){if(!n?.fitExternalHandGrip)return;
+  for(const side of[0,1]){const p=hand(n,side);if(!p)continue;w.copy(p).sub(tray.position);w.y=0;const radius=Math.hypot(w.x,w.z);if(radius>.18)w.multiplyScalar(.18/radius);w.add(tray.position);fit(n,side,w,true);}
+ }
+
  function clearOrder(){tray.visible=cup.visible=fan.visible=false;orderId=null;}
  return {clearOrder,update(o,{server,artist,player},t){
   fan.visible=!!(o?.activity==='dance'&&o.status==='performing'&&artist&&!artist.walking);
-  if(fan.visible){const p=hand(artist,1,[0,-.015,.025]);if(p){fan.position.copy(p);fan.quaternion.copy(artist.root.quaternion);fan.rotateY(Math.sin(t*1.4)*.28);fan.rotateZ(-.18+Math.sin(t*.8)*.16);}}
+  if(fan.visible){const p=hand(artist,1,[0,-.015,.025]);if(p){fan.position.copy(p);fan.quaternion.copy(artist.root.quaternion);fan.rotateY(Math.sin(t*1.4)*.28);fan.rotateZ(-.18+Math.sin(t*.8)*.16);fit(artist,1,propContact(fan,[0,.008,.0129]));}}
   const visible=!!(o?.drink&&o.paid&&['carrying','serving','drinking','finished'].includes(o.drinkStatus));tray.visible=cup.visible=visible;orderId=visible?o.id:null;if(!visible)return;
   tray.userData.orderId=cup.userData.orderId=o.id;
   if(['carrying','serving'].includes(o.drinkStatus)){
-   const p=hand(server,0);if(p){w.copy(p);const other=hand(server,1);if(other)w.add(other).multiplyScalar(.5);tray.position.copy(w);}
+   const p=hand(server,0);if(p){w.copy(p);const other=hand(server,1);if(other)w.add(other).multiplyScalar(.5);tray.position.copy(w);supportTray(server);}
   }else tray.position.set(3.55,8.565,3.18);
   cup.position.copy(tray.position).add(new THREE.Vector3(0,.026,0));
-  if(o.drinkStatus==='drinking'){const p=hand(player,1);if(p)cup.position.copy(p);}
+  if(o.drinkStatus==='drinking'){const p=hand(player,1);if(p){cup.position.copy(p);w.set(.0634,.07,0).applyQuaternion(player.root.quaternion).add(cup.position);fit(player,1,w);}}
   for(const n of[server,player])if(n&&o.drinkStatus==='carrying'&&n===server||n&&o.drinkStatus==='drinking'&&n===player){const tools=n.root.userData.tools||{};for(const p of Object.values(tools))p.visible=false;}
  },state:()=>({orderId,fanVisible:fan.visible,drinkVisible:cup.visible,cupPosition:cup.visible?cup.position.toArray():null,trayPosition:tray.visible?tray.position.toArray():null}),dispose(){root.removeFromParent();for(const g of geometries)g.dispose();for(const m of materials.values())m.dispose();}};
 }

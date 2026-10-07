@@ -15,7 +15,7 @@ export function createJapanWeatherCharmService({lot,getPlayer,getBusy=()=>false,
   const snapshot=()=>({version:1,carriedId:carried?.id||null,uses:JSON.parse(JSON.stringify(uses))});
   function checkpoint(){saveState(snapshot());}
   if(carried){const feet=new THREE.Vector3(...carried.approach);carried.hook.take(carryAnchor,feet);}
-  const handPoint=new THREE.Vector3(),handOffset=new THREE.Vector3(-.010,-.066,.014),forward=new THREE.Vector3(),delta=new THREE.Vector3();
+  const handPoint=new THREE.Vector3(),handOffset=new THREE.Vector3(-.010,-.066,.014),authoredPoint=new THREE.Vector3(),handRotation=new THREE.Quaternion(),forward=new THREE.Vector3(),delta=new THREE.Vector3();
   function reachable(item) {
     const actor=getPlayer();if(!actor||disposed||getBusy())return false;
     const p=actor.root.position;if(Math.abs(p.y-item.approach[1])>.35||!item.hook.canReach(p))return false;
@@ -48,8 +48,12 @@ export function createJapanWeatherCharmService({lot,getPlayer,getBusy=()=>false,
     // visually. The anchor stays outside the avatar so wardrobe rebuilds cannot
     // dispose or strand the carried doll; no character rig code is modified.
     if(actor.root.userData.tools?.cloth)actor.root.userData.tools.cloth.visible=false;
-    actor.root.updateMatrixWorld(true);handPoint.copy(handOffset);hand.localToWorld(handPoint);root.worldToLocal(handPoint);
-    carryAnchor.position.copy(handPoint);carryAnchor.quaternion.copy(actor.root.quaternion);
+    actor.root.updateMatrixWorld(true);handPoint.copy(handOffset);const pose=actor.getAuthoredHandPose?.(0);
+    if(pose){handPoint.applyQuaternion(handRotation.fromArray(pose.quaternion)).add(authoredPoint.fromArray(pose.position));actor.root.userData.body.localToWorld(handPoint);}else hand.localToWorld(handPoint);
+    root.worldToLocal(handPoint);carryAnchor.position.copy(handPoint);carryAnchor.quaternion.copy(actor.root.quaternion);
+    // The cord begins at the carried anchor. Fit the real thumb to that same
+    // point after positioning it, rather than dragging the doll with the wrist.
+    if(actor.fitExternalHandGrip){root.localToWorld(handPoint);actor.root.userData.body.worldToLocal(handPoint);actor.fitExternalHandGrip({side:0,target:handPoint.toArray()});}
   }
   return {target,interact,update,
     pose:()=>!disposed&&carried&&!getBusy()?{heldProp:'cloth'}:null,

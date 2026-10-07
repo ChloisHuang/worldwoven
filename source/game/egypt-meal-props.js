@@ -22,7 +22,7 @@ export function createEgyptMealProps(parent){
   food=new THREE.Group();food.position.y=.133;bowl.add(food);mesh(food,new THREE.CylinderGeometry(.169,.14,.025,20),0xc79955);
   for(let i=0;i<9;i++){const a=i*2.4,r=.045+(i%3)*.035;box(food,.044,.025,.035,i%2?0xb76539:0xd9b46b,[Math.cos(a)*r,.027,Math.sin(a)*r]);const leaf=mesh(food,new THREE.SphereGeometry(.035,7,4),0x6c8243,[Math.cos(a+.4)*r,.04,Math.sin(a+.4)*r]);leaf.scale.set(1,.16,.6);}
   bread=new THREE.Group();tray.add(bread);bread.position.set(-.235,.055,0);const loaf=mesh(bread,new THREE.SphereGeometry(.135,14,8),0xd4a65f);loaf.scale.set(.85,.38,1.38);for(let i=0;i<3;i++){const slash=box(bread,.11,.006,.012,0x91663c,[0,.048,-.08+i*.075]);slash.rotation.y=-.35;}
-  spoon=new THREE.Group();root.add(spoon);box(spoon,.018,.018,.20,0x835934,[0,0,.055]);const scoop=mesh(spoon,new THREE.SphereGeometry(.039,10,5),0x835934,[0,0,-.065]);scoop.scale.set(.65,.15,1.05);
+  spoon=new THREE.Group();spoon.name=id+'-spoon';root.add(spoon);box(spoon,.018,.018,.20,0x835934,[0,0,.055]);const scoop=mesh(spoon,new THREE.SphereGeometry(.039,10,5),0x835934,[0,0,-.065]);scoop.scale.set(.65,.15,1.05);
  }
  return {clear,update(o,actors,phase){
   prep.visible=o?.stage==='preparing';coals.visible=o?.stage==='heating';if(!o?.mealId){if(id)clear();return;}if(id!==o.mealId){clear();create(o);}let p;const server=actors.server||actors.host;const ratio=d=>Math.min(1,phase/d),table=new THREE.Vector3(...P.table),pass=new THREE.Vector3(...P.passTop);
@@ -36,7 +36,20 @@ export function createEgyptMealProps(parent){
   if(o.stage==='eating'||o.stage==='lowering'){
    const from=o.returnBowlFrom?new THREE.Vector3(...o.returnBowlFrom):hand(actors.player,true);
    bowl.position.copy(o.stage==='eating'?hand(actors.player,true):from.lerp(table.add(new THREE.Vector3(.085,.025,0)),ratio(.8)));
-   if(o.stage==='eating'){actors.player.root.updateWorldMatrix(true,true);const h=actors.player.root.userData.hands[1];h.getWorldPosition(spoon.position);h.getWorldQuaternion(spoon.quaternion);spoon.rotateX(Math.PI/2);if(actors.player.root.userData.tools?.chopsticks)actors.player.root.userData.tools.chopsticks.visible=false;}
+   if(o.stage==='eating'){
+    const actor=actors.player,body=actor.root.userData.body,authored=actor.getAuthoredHandPose?.(1);actor.root.updateWorldMatrix(true,true);
+    if(body&&authored&&actor.fitExternalHandGrip){
+     // The spoon keeps its pre-grip wrist trajectory and original upright
+     // scoop. Fit the real thumb to the shaft, rather than rotating the spoon
+     // with the newly anatomical wrist or leaving it behind the hand.
+     spoon.position.copy(body.localToWorld(new THREE.Vector3(...authored.position)));
+     spoon.quaternion.copy(body.getWorldQuaternion(new THREE.Quaternion())).multiply(new THREE.Quaternion(...authored.quaternion));spoon.rotateX(Math.PI/2);
+     spoon.updateWorldMatrix(true,false);
+     const target=body.worldToLocal(spoon.localToWorld(new THREE.Vector3(.009,.009,.055)));
+     actor.fitExternalHandGrip({side:1,target:target.toArray(),support:false});
+    }else{const h=actor.root.userData.hands[1];h.getWorldPosition(spoon.position);h.getWorldQuaternion(spoon.quaternion);spoon.rotateX(Math.PI/2);}
+    if(actor.root.userData.tools?.chopsticks)actor.root.userData.tools.chopsticks.visible=false;
+   }
   }
   const portion=o.finished?0:o.stage==='eating'?Math.max(.1,1-phase/P.duration):1;food.scale.setScalar(portion);food.visible=portion>0;bread.visible=portion>0;
  },state:()=>({mealId:id,trayCount:tray?1:0,bowlCount:bowl?1:0,trayPosition:tray?.position.toArray()||null,bowlPosition:bowl?.position.toArray()||null,foodVisible:food?.visible||false}),dispose(){clear();root.removeFromParent();for(const g of geos)g.dispose();for(const m of mats.values())m.dispose();}};
