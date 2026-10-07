@@ -183,6 +183,13 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  }
  function migrateTavernRoute(n,s,snapshot){
   if(snapshot.layoutVersion===LAYOUT_VERSION||s.idle||s.courtReady)return;
+  // A listening chair keeps its business identity, but its new approach is not
+  // the saved body position. Resume the same visit by ordinary public travel.
+  const seatId=s.mount?.id||s.mountTarget?.id||s.choice?.facilityId;
+  if(seatId?.startsWith('china-tavern-listening-')&&!s.borrowed&&!s.borrowedSalon){
+   const seat=furniture.items.find(i=>i.id===seatId);
+   if(seat){if(s.choice)s.choice.point=seat.position.slice();s.mount=null;s.mountTarget=seat;s.path=publicRoute(n,seat.position);s.index=0;s.arrived=false;s.planned=false;s.waiting=0;n.serviceMount=null;n.route=[];}
+  }
   const moved=p=>Array.isArray(p)?TAVERN_UP.find(q=>Math.abs(q[0]-p[0])<1e-6&&Math.abs(q[1]-p[1])<1e-6&&Math.abs(q[2]+5-p[2])<1e-6)||
    (Math.abs(p[0]-PUBLIC_TOILET.approach[0])<1e-6&&Math.abs(p[1]-PUBLIC_TOILET.approach[1])<1e-6&&Math.abs(p[2]-PUBLIC_TOILET.approach[2]-5)<1e-6?PUBLIC_TOILET.approach:null):null;
   const last=s.path?.at(-1),destination=moved(last);
