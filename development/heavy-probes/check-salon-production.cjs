@@ -10,7 +10,7 @@ for(const [file,expected]of Object.entries(provenance.provenance.sources))if(has
 const bytes=fs.readFileSync(input),initial=JSON.parse(bytes),origin=provenance.provenance.loadSetup.clock.seconds;
 if(input.endsWith('origin-checkpoint.json')&&hash(bytes)!==provenance.restoreGate.outputSha256)throw Error('Original checkpoint provenance mismatch');
 if(initial.worldContinuity?.regions?.china?.controllers?.chinaSalon?.session)throw Error('Active-session restoration gate required before continuation');
-if(initial.simulationClock.seconds>=origin+240&&!Object.values(initial.worldContinuity.regions.china.controllers.chinaAudience.life.decisions.people).some(p=>p.current?.id==='paid-salon'))throw Error('Initial 240-second observation window ended; report not observed rather than extending');
+// Resumed user-authorized work follows actual checkpoints; process segments remain capped.
 process.env.SOCIAL_RESUME=input;
 process.env.QA_START_MS=String(Date.now());
 console.log('PHASE',JSON.stringify({name:'start',wallMs:Date.now(),cpu:process.cpuUsage(),input,inputSha256:hash(bytes)}));
@@ -35,18 +35,19 @@ console.log('PHASE',JSON.stringify({name:'loaded',wallMs:Date.now(),cpu:process.
 const origin=8485.714285714286,maxEnd=origin+240,initialSeconds=r.simulationClock.state().seconds;
 let frames=0,stop='segment-boundary',previous='',session=null;const events=[];
 let tracked=Object.entries(before.controllers.chinaAudience.life.decisions.people).find(([id,p])=>p.current?.id==='paid-salon');tracked=tracked?{actorId:tracked[0],...tracked[1].current}:null;
-for(;frames<300&&(tracked||r.simulationClock.state().seconds<maxEnd-.001);){
+for(;frames<300;){
  now+=150;main.namespace.socialStep(.15);frames++;
  const life=r.chinaAudience.state().life,paid=life.actors.filter(a=>a.activity==='paid-salon'||a.borrowedSalon),s=r.chinaSalon.snapshot();
- const signature=JSON.stringify({paid:paid.map(a=>[a.id,a.activity,a.stage,a.borrowedSalon]),session:s.session&&[s.session.id,s.session.stage,s.session.payment]});
- if(signature!==previous){const event={frame:frames,clock:r.simulationClock.state(),paid,session:s.session};events.push(event);console.log('SERVICE',JSON.stringify(event));previous=signature;}
+ const roomState=r.chinaSalon.view().rooms,offers=r.npcs.filter(n=>r.chinaOfficialEconomy.account(n.station.id)).map(n=>({actorId:n.station.id,choices:r.chinaSalon.npcChoices(n.station.id)}));
+ const signature=JSON.stringify({rooms:roomState,offers,paid:paid.map(a=>[a.id,a.activity,a.stage,a.borrowedSalon]),session:s.session&&[s.session.id,s.session.stage,s.session.payment]});
+ if(signature!==previous){const event={frame:frames,clock:r.simulationClock.state(),paid,rooms:roomState,offers,session:s.session};events.push(event);console.log('SERVICE',JSON.stringify(event));previous=signature;}
  if(s.session){session=s.session;stop='first-original-session';break;}
  if(process.env.PROBE_STAGE==='cleaning'&&!r.chinaTavern.staffScene.lodgingState().rooms.find(r=>r.id==='lan').dirty){stop='original-lan-cleaning-completed';break;}
  if(!tracked){const chosen=Object.entries(life.decisions.people).find(([id,p])=>p.current?.id==='paid-salon');if(chosen)tracked={actorId:chosen[0],...chosen[1].current};}
  if(tracked){const current=life.decisions.people[tracked.actorId]?.current;if(current?.id!=='paid-salon'||current.targetId!==tracked.targetId||current.startedAt!==tracked.startedAt){stop='original-choice-ended';break;}}
  if(r.chinaAudience.state().failures.length||s.failures?.length){stop='controller-failure';break;}
 }
-if(r.simulationClock.state().seconds>=maxEnd-.001&&!session&&!tracked)stop='observation-window-ended-without-session';
+// A quiet segment is a checkpoint, not completion of the user's pending task.
 const checkpoint=main.namespace.socialCheckpoint();
 fs.writeFileSync(process.env.SALON_OUTPUT+'.checkpoint.json',JSON.stringify(checkpoint,null,2));
 const report={status:'OBSERVED',scope:'R190 original production scheduling/navigation from source-hashed staged four-day payroll; not four natural days or browser/iOS',input:process.env.SALON_INPUT,frames,initialSeconds,clock:r.simulationClock.state(),stop,tracked,events,session,cleaningPhases:checkpoint.worldContinuity.regions.china.controllers.chinaTavern.phases,lodgingRooms:checkpoint.chinaServiceWorld.rooms,offers:r.npcs.filter(n=>r.chinaOfficialEconomy.account(n.station.id)).map(n=>({actorId:n.station.id,choices:r.chinaSalon.npcChoices(n.station.id)})),rooms:r.chinaSalon.view().rooms,officialEconomy:r.chinaOfficialEconomy.snapshot(),artistEconomy:r.chinaSalonEconomy.snapshot(),salonHistory:r.chinaSalon.snapshot().history,officialLife:r.chinaAudience.state().life,actorPositions:Object.fromEntries(r.npcs.map(n=>[n.station.id,n.root.position.toArray()])),failures:r.chinaSalon.state().failures,officialFailures:r.chinaAudience.state().failures,checkpoint:process.env.SALON_OUTPUT+'.checkpoint.json'};

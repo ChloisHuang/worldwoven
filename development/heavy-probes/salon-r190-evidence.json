@@ -1184,5 +1184,660 @@
     },
     "phaseLog": "qa/st03-r190/cleaning-20261007T224234Z-2.log",
     "limit": "Original LAN cleaning finished, but assistant remains physically inside. All current offers empty. Neither room availability nor paid service is proved."
-  }
+  },
+  "resumedSegments": [
+    {
+      "checkpoint": "qa/st03-r190/segment-20261007T230049Z-2.checkpoint.json",
+      "checkpointSha256": "a2a035a91b67f5c7dfdc7c2b5f07037a67601a04a2f27519fa61527702074492",
+      "input": "qa/st03-r190/cleaning-20261007T224234Z-2.checkpoint.json",
+      "frames": 300,
+      "clock": {
+        "seconds": 8719.41428571372,
+        "day": 4,
+        "hour": 15.726499999993393
+      },
+      "stop": "segment-boundary",
+      "roomOfferTransitions": [
+        {
+          "frame": 1,
+          "seconds": 8674.564285713828,
+          "rooms": [
+            {
+              "id": "tavern-guest-lan",
+              "name": "兰房",
+              "claim": null,
+              "physicallyOccupied": true
+            },
+            {
+              "id": "tavern-guest-zhu",
+              "name": "竹房",
+              "claim": null,
+              "physicallyOccupied": false
+            }
+          ],
+          "paid": [],
+          "offerGroups": [
+            {
+              "actorIds": [
+                "cn-minister-works",
+                "cn-minister-granary",
+                "cn-official-rites",
+                "cn-official-personnel",
+                "cn-official-justice",
+                "cn-official-records"
+              ],
+              "choices": []
+            }
+          ]
+        },
+        {
+          "frame": 32,
+          "seconds": 8679.214285713817,
+          "rooms": [
+            {
+              "id": "tavern-guest-lan",
+              "name": "兰房",
+              "claim": null,
+              "physicallyOccupied": false
+            },
+            {
+              "id": "tavern-guest-zhu",
+              "name": "竹房",
+              "claim": null,
+              "physicallyOccupied": false
+            }
+          ],
+          "paid": [],
+          "offerGroups": [
+            {
+              "actorIds": [
+                "cn-minister-works",
+                "cn-minister-granary",
+                "cn-official-rites",
+                "cn-official-personnel",
+                "cn-official-justice",
+                "cn-official-records"
+              ],
+              "choices": [
+                {
+                  "artistId": "cn-tavern-storyteller",
+                  "activity": "story",
+                  "fee": 40,
+                  "revision": 0
+                },
+                {
+                  "artistId": "cn-tavern-chess-poet",
+                  "activity": "chess",
+                  "fee": 45,
+                  "revision": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "frame": 47,
+          "seconds": 8681.464285713811,
+          "rooms": [
+            {
+              "id": "tavern-guest-lan",
+              "name": "兰房",
+              "claim": null,
+              "physicallyOccupied": false
+            },
+            {
+              "id": "tavern-guest-zhu",
+              "name": "竹房",
+              "claim": null,
+              "physicallyOccupied": false
+            }
+          ],
+          "paid": [],
+          "offerGroups": [
+            {
+              "actorIds": [
+                "cn-minister-works",
+                "cn-minister-granary",
+                "cn-official-rites",
+                "cn-official-personnel",
+                "cn-official-justice",
+                "cn-official-records"
+              ],
+              "choices": [
+                {
+                  "artistId": "cn-tavern-storyteller",
+                  "activity": "story",
+                  "fee": 40,
+                  "revision": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "frame": 54,
+          "seconds": 8682.514285713809,
+          "rooms": [
+            {
+              "id": "tavern-guest-lan",
+              "name": "兰房",
+              "claim": null,
+              "physicallyOccupied": false
+            },
+            {
+              "id": "tavern-guest-zhu",
+              "name": "竹房",
+              "claim": null,
+              "physicallyOccupied": false
+            }
+          ],
+          "paid": [],
+          "offerGroups": [
+            {
+              "actorIds": [
+                "cn-minister-works",
+                "cn-minister-granary",
+                "cn-official-rites",
+                "cn-official-personnel",
+                "cn-official-justice",
+                "cn-official-records"
+              ],
+              "choices": []
+            }
+          ]
+        },
+        {
+          "frame": 68,
+          "seconds": 8684.614285713804,
+          "rooms": [
+            {
+              "id": "tavern-guest-lan",
+              "name": "兰房",
+              "claim": null,
+              "physicallyOccupied": false
+            },
+            {
+              "id": "tavern-guest-zhu",
+              "name": "竹房",
+              "claim": null,
+              "physicallyOccupied": false
+            }
+          ],
+          "paid": [],
+          "offerGroups": [
+            {
+              "actorIds": [
+                "cn-minister-works",
+                "cn-minister-granary",
+                "cn-official-rites",
+                "cn-official-personnel",
+                "cn-official-justice",
+                "cn-official-records"
+              ],
+              "choices": [
+                {
+                  "artistId": "cn-tavern-songwriter",
+                  "activity": "music",
+                  "fee": 80,
+                  "revision": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "frame": 71,
+          "seconds": 8685.064285713803,
+          "rooms": [
+            {
+              "id": "tavern-guest-lan",
+              "name": "兰房",
+              "claim": null,
+              "physicallyOccupied": false
+            },
+            {
+              "id": "tavern-guest-zhu",
+              "name": "竹房",
+              "claim": null,
+              "physicallyOccupied": true
+            }
+          ],
+          "paid": [],
+          "offerGroups": [
+            {
+              "actorIds": [
+                "cn-minister-works",
+                "cn-minister-granary",
+                "cn-official-rites",
+                "cn-official-personnel",
+                "cn-official-justice",
+                "cn-official-records"
+              ],
+              "choices": [
+                {
+                  "artistId": "cn-tavern-songwriter",
+                  "activity": "music",
+                  "fee": 80,
+                  "revision": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "frame": 95,
+          "seconds": 8688.664285713794,
+          "rooms": [
+            {
+              "id": "tavern-guest-lan",
+              "name": "兰房",
+              "claim": null,
+              "physicallyOccupied": false
+            },
+            {
+              "id": "tavern-guest-zhu",
+              "name": "竹房",
+              "claim": null,
+              "physicallyOccupied": true
+            }
+          ],
+          "paid": [],
+          "offerGroups": [
+            {
+              "actorIds": [
+                "cn-minister-works",
+                "cn-minister-granary",
+                "cn-official-rites",
+                "cn-official-personnel",
+                "cn-official-justice",
+                "cn-official-records"
+              ],
+              "choices": [
+                {
+                  "artistId": "cn-tavern-storyteller",
+                  "activity": "story",
+                  "fee": 40,
+                  "revision": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "frame": 105,
+          "seconds": 8690.16428571379,
+          "rooms": [
+            {
+              "id": "tavern-guest-lan",
+              "name": "兰房",
+              "claim": null,
+              "physicallyOccupied": false
+            },
+            {
+              "id": "tavern-guest-zhu",
+              "name": "竹房",
+              "claim": null,
+              "physicallyOccupied": true
+            }
+          ],
+          "paid": [],
+          "offerGroups": [
+            {
+              "actorIds": [
+                "cn-minister-works",
+                "cn-minister-granary",
+                "cn-official-rites",
+                "cn-official-personnel",
+                "cn-official-justice",
+                "cn-official-records"
+              ],
+              "choices": [
+                {
+                  "artistId": "cn-tavern-storyteller",
+                  "activity": "story",
+                  "fee": 40,
+                  "revision": 0
+                },
+                {
+                  "artistId": "cn-tavern-chess-poet",
+                  "activity": "chess",
+                  "fee": 45,
+                  "revision": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "frame": 149,
+          "seconds": 8696.764285713774,
+          "rooms": [
+            {
+              "id": "tavern-guest-lan",
+              "name": "兰房",
+              "claim": null,
+              "physicallyOccupied": false
+            },
+            {
+              "id": "tavern-guest-zhu",
+              "name": "竹房",
+              "claim": null,
+              "physicallyOccupied": true
+            }
+          ],
+          "paid": [],
+          "offerGroups": [
+            {
+              "actorIds": [
+                "cn-minister-works",
+                "cn-minister-granary",
+                "cn-official-rites",
+                "cn-official-personnel",
+                "cn-official-justice",
+                "cn-official-records"
+              ],
+              "choices": [
+                {
+                  "artistId": "cn-tavern-storyteller",
+                  "activity": "story",
+                  "fee": 40,
+                  "revision": 0
+                },
+                {
+                  "artistId": "cn-tavern-songwriter",
+                  "activity": "music",
+                  "fee": 80,
+                  "revision": 0
+                },
+                {
+                  "artistId": "cn-tavern-chess-poet",
+                  "activity": "chess",
+                  "fee": 45,
+                  "revision": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "frame": 156,
+          "seconds": 8697.814285713772,
+          "rooms": [
+            {
+              "id": "tavern-guest-lan",
+              "name": "兰房",
+              "claim": null,
+              "physicallyOccupied": false
+            },
+            {
+              "id": "tavern-guest-zhu",
+              "name": "竹房",
+              "claim": null,
+              "physicallyOccupied": true
+            }
+          ],
+          "paid": [],
+          "offerGroups": [
+            {
+              "actorIds": [
+                "cn-minister-works",
+                "cn-minister-granary",
+                "cn-official-rites",
+                "cn-official-personnel",
+                "cn-official-justice",
+                "cn-official-records"
+              ],
+              "choices": [
+                {
+                  "artistId": "cn-tavern-storyteller",
+                  "activity": "story",
+                  "fee": 40,
+                  "revision": 0
+                },
+                {
+                  "artistId": "cn-tavern-chess-poet",
+                  "activity": "chess",
+                  "fee": 45,
+                  "revision": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "frame": 195,
+          "seconds": 8703.664285713758,
+          "rooms": [
+            {
+              "id": "tavern-guest-lan",
+              "name": "兰房",
+              "claim": null,
+              "physicallyOccupied": false
+            },
+            {
+              "id": "tavern-guest-zhu",
+              "name": "竹房",
+              "claim": null,
+              "physicallyOccupied": true
+            }
+          ],
+          "paid": [],
+          "offerGroups": [
+            {
+              "actorIds": [
+                "cn-minister-works",
+                "cn-minister-granary",
+                "cn-official-rites",
+                "cn-official-personnel",
+                "cn-official-justice",
+                "cn-official-records"
+              ],
+              "choices": [
+                {
+                  "artistId": "cn-tavern-chess-poet",
+                  "activity": "chess",
+                  "fee": 45,
+                  "revision": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "frame": 244,
+          "seconds": 8711.01428571374,
+          "rooms": [
+            {
+              "id": "tavern-guest-lan",
+              "name": "兰房",
+              "claim": null,
+              "physicallyOccupied": false
+            },
+            {
+              "id": "tavern-guest-zhu",
+              "name": "竹房",
+              "claim": null,
+              "physicallyOccupied": true
+            }
+          ],
+          "paid": [],
+          "offerGroups": [
+            {
+              "actorIds": [
+                "cn-minister-works",
+                "cn-minister-granary",
+                "cn-official-rites",
+                "cn-official-personnel",
+                "cn-official-justice",
+                "cn-official-records"
+              ],
+              "choices": [
+                {
+                  "artistId": "cn-tavern-songwriter",
+                  "activity": "music",
+                  "fee": 80,
+                  "revision": 0
+                },
+                {
+                  "artistId": "cn-tavern-chess-poet",
+                  "activity": "chess",
+                  "fee": 45,
+                  "revision": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "frame": 253,
+          "seconds": 8712.364285713737,
+          "rooms": [
+            {
+              "id": "tavern-guest-lan",
+              "name": "兰房",
+              "claim": null,
+              "physicallyOccupied": false
+            },
+            {
+              "id": "tavern-guest-zhu",
+              "name": "竹房",
+              "claim": null,
+              "physicallyOccupied": false
+            }
+          ],
+          "paid": [],
+          "offerGroups": [
+            {
+              "actorIds": [
+                "cn-minister-works",
+                "cn-minister-granary",
+                "cn-official-rites",
+                "cn-official-personnel",
+                "cn-official-justice",
+                "cn-official-records"
+              ],
+              "choices": [
+                {
+                  "artistId": "cn-tavern-songwriter",
+                  "activity": "music",
+                  "fee": 80,
+                  "revision": 0
+                },
+                {
+                  "artistId": "cn-tavern-chess-poet",
+                  "activity": "chess",
+                  "fee": 45,
+                  "revision": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "frame": 256,
+          "seconds": 8712.814285713735,
+          "rooms": [
+            {
+              "id": "tavern-guest-lan",
+              "name": "兰房",
+              "claim": null,
+              "physicallyOccupied": false
+            },
+            {
+              "id": "tavern-guest-zhu",
+              "name": "竹房",
+              "claim": null,
+              "physicallyOccupied": false
+            }
+          ],
+          "paid": [],
+          "offerGroups": [
+            {
+              "actorIds": [
+                "cn-minister-works",
+                "cn-minister-granary",
+                "cn-official-rites",
+                "cn-official-personnel",
+                "cn-official-justice",
+                "cn-official-records"
+              ],
+              "choices": [
+                {
+                  "artistId": "cn-tavern-storyteller",
+                  "activity": "story",
+                  "fee": 40,
+                  "revision": 0
+                },
+                {
+                  "artistId": "cn-tavern-songwriter",
+                  "activity": "music",
+                  "fee": 80,
+                  "revision": 0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "finalLodgingRooms": [
+        {
+          "id": "lan",
+          "name": "兰房",
+          "price": 12,
+          "dirty": false,
+          "guestId": null,
+          "bedId": "china-tavern-bed-lan"
+        },
+        {
+          "id": "zhu",
+          "name": "竹房",
+          "price": 12,
+          "dirty": false,
+          "guestId": null,
+          "bedId": "china-tavern-bed-zhu"
+        }
+      ],
+      "session": null,
+      "balances": {
+        "cn-minister-works": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-minister-granary": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-rites": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-personnel": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-justice": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-records": {
+          "bank": 96,
+          "cash": 0
+        }
+      },
+      "guard": {
+        "guard": "PASS",
+        "reason": null,
+        "exit": 0,
+        "seconds": 57.598,
+        "treePeakMiB": 691.285,
+        "peakMembersBytes": {
+          "27": 10903552,
+          "29": 713961472
+        },
+        "includesSupervisor": true,
+        "hostname": "a55d3d933517",
+        "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
+      }
+    }
+  ]
 }
