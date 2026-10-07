@@ -1760,3 +1760,5 @@ R16.182 发布合流：以d032647为底合入b90ff45相对4c6e71b的19文件，c
 R182正式构建通过：580登记、359源映射/9,492,062计数字节、v213旧349独立图及346独立JS/cache通过。原候选一处行尾空格原样保留，不改产品；18非checklist文件与候选逐字一致。无全量/main重复。
 
 R16.182/v214 于2026-10-07T08:52:42Z原公开站点发布成功：source `048d0a38b3aa2b236d71a498264f508a87816fdb`，private main `db8d7fce65a3d25aa192ba190abea51797226a1a` 先推送读回；部署 `appgdep_6ac60851829c8191a718e10c0f6679bb` succeeded，https://alien.doudouai.net active/public，受众revision6保持。日本原演艺三岗六实际工序/原收入资金消费/银行XP与安全交班暂停恢复交付，职业全覆盖母项及实机接受仍开放。359源映射/9,492,062计数字节、v213旧349独立图及346独立JS通过，580登记；cache-baseline跟进实际去重资源图。
+
+移动端隔离QA v215 于2026-10-07T09:21:31Z同站发布成功：source `61e4bacc8dc6d0ffe42cc05cee9e73c7e2facbfd`，private main `72ad86a4b50d4a5cd1d3d2baea5afd084c7cfd75` 先回读；deployment `appgdep_6ac60f1322988191a61959be4d4366a8` succeeded。18最小源码覆盖快照/128QA图可追溯cf7d711，sidecar哈希断言401既存文件不变，正式R182 index/game/index/build.json/旧QA与资产未改。入口https://alien.doudouai.net/qa/mobile.html；active/public受众revision6保持，仅待此有限DOM浏览器审图，不称产品候选已正式启用。cache-baseline保正式+本次独立QA图的去重联合。
