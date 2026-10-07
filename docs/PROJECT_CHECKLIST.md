@@ -1815,3 +1815,5 @@ R16.186/v220 于2026-10-07T09:54:25Z原公开站点发布成功：source `93b018
 恢复探针内存风险修正候选（2026-10-07）：仅定向探针改为attached DOM枚举，移除全量分配节点强引用；共用 `/workspace/shared/worldwoven-heavy-scene.lock` 非阻塞锁，768 MiB old-space、1152 MiB进程树RSS、180秒外部守卫与逐秒留痕。拆分unit/init/load后再运行单项，所有新增修改尚未执行任何检查；测试暂停至父任务明确放行，不作为OOM归因或产品验收。见 `development/heavy-probes/README.md`。
 
 ST01自主发生恢复小检查点（2026-10-07 13:28 UTC，未发布）：当前真实/proc有界China load及新局30帧→同档300帧均exit0，分别70.052/67.489/79.247秒、687.309/672.746/701.703 MiB整树峰值。共享刑部→礼部自然走近、问候、当次拒绝取消与active释放已观察；新49.5秒存档，不混旧0.15秒。接受完成/原职责恢复完整验收、有偿艺者终态及其他国家仍待验；旧load无终态不称OOM。产品未改，详见NATURAL_SOCIAL_VERIFICATION.md。
+
+ST01自然接受终态小检查点（2026-10-07 13:36 UTC，未发布）：同新49.5秒档再3×300帧至184.5秒，全部guard PASS/exit0，最高704.160 MiB。共享皇帝→传诏官原概率走近/当次接受/10.05秒实谈/完成，持久同号双方neutral与mismatched不同结果，传诏官原岗post、皇帝离开、active=null；保存snapshot一致。完整事件在同一段内，不冒称活动跨进程恢复；已达终态停止，不跑满600秒。产品未改。四国差异/主动中断恢复/有偿艺者及正式合版仍开放，详见NATURAL_SOCIAL_VERIFICATION.md。
