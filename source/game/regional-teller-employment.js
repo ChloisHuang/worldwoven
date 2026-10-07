@@ -104,7 +104,7 @@ export function createRegionalTellerEmployment({country,npcs,lot,careers,ledger,
     if(current!==base||!growth.committed())return {ok:false,code:'stale-duty-proof'};current=next;attendance=0;return {ok:true};
    }catch{return {ok:false,code:'save-failed'};}finally{if(locked)growth.release();saving=false;}
   }
-  pending={receipt,inspection:copy(nextInspection)};let result;try{result=ledger.creditWageToBank({amount:8,receiptId:receipt.id,currency:role.currency,roleId:role.id,slotId:role.slotId,day:proof.day});}finally{pending=null;}if(!result?.ok)lastError=result?.code||'bank-unavailable';else notify('原账已核验交存，本日唯一8份本地游戏币报酬已入银行。');return result;
+  pending={receipt,inspection:copy(nextInspection)};let result;try{result=ledger.creditWageToBank({amount:8,receiptId:receipt.id,currency:role.currency,roleId:role.id,slotId:role.slotId,day:proof.day});}finally{pending=null;}if(!result?.ok)lastError=result?.code||'bank-unavailable';else notify('旧版已领原单按原约结清，8份本地游戏币已入银行；当天不与新固定薪班叠加。');return result;
  }
  function prepareCurrencyCommit(tx){if(!regionalTellerRole(tx.roleId))return null;if(saving)return {ok:false,code:'teller-busy'};
   const d=careers.workState().lastDuty,s=ownShift();
