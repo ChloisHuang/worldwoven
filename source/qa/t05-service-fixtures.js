@@ -99,6 +99,6 @@ cases.push({id:'object-menu-counter',group:'共享物件菜单',label:'柜台多
  const button=doc.createElement('button'),root=doc.createElement('div');button.className='touch-action';root.id='labels';doc.body.append(button,root);
  const frame=()=>syncUiViewport(doc),actions=['查看食单','查看住宿','查看岗位','查看产权','交谈'].map((action,i)=>({id:'qa-action-'+i,provider:'qa-counter',targetName:'原柜台',action,position:[0,0,0]}));
  const ui=createObjectActionMenu({button,root,document:doc,onSelect:a=>log(a.action),resolveAnchor:()=>({id:'qa-counter',kind:'hand'}),projectAnchor:()=>({visible:true,x:300,y:160}),validate:()=>true,layout:{frame,rects:()=>[]}});
- return wrap(ui,()=>{ui.update(actions);ui.activateTarget('qa-counter');});
+ return wrap(ui,()=>{ui.update(actions);ui.project();ui.activateTarget('qa-counter');});
 }});
 export const serviceCases=cases;

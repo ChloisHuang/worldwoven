@@ -1,5 +1,5 @@
 {
-  "publishedSourceCommit": "b588f31437a8e4466d444db34af3a6229f327408",
+  "publishedSourceCommit": "b1bf65d9b00735178e61d9837133916012758199",
   "assets": [
     "/assets/china-tavern-role.4d7a56cb1258164a.js",
     "/assets/china-teller-role.b888e5f6e6d4e57a.js",
@@ -319,6 +319,9 @@
     "/assets/character-preview-entry.0b7f094a81555a29.js",
     "/assets/character-live-entry.a0ea247cf98b4852.js",
     "/assets/entry.b55dc6e835eb8efd.js",
-    "/assets/game.a655a566de8c2f0f.css"
+    "/assets/game.a655a566de8c2f0f.css",
+    "/assets/t05-service-fixtures.2774f5620ae459bb.js",
+    "/assets/t05-global-fixtures.26b8c98fa722aa5f.js",
+    "/assets/t05-entry.4a05d08e9d4d5df6.js"
   ]
 }
