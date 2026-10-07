@@ -34,6 +34,17 @@ const svc=r().regionalTellerEmployment;assert(svc.forRole(roleId));
 const stopAfter=process.env.TELLER_STOP_AFTER;
 const checkpoint=stage=>{main.namespace.save();const file=path.resolve('qa','regional-teller-'+country+'-'+stage+'.json');fs.writeFileSync(file,storage['worlds-days-v1']);console.log('PASS '+stage+' checkpoint saved',country,file,(Date.now()-started)/1000);};
 const savedApplication=process.env.TELLER_RESUME?JSON.parse(fs.readFileSync(process.env.TELLER_RESUME,'utf8')).formalCareers.applications.byRole[roleId]:null;
+if(stopAfter==='checks'){
+ const order=svc.inspection.state().order;assert.equal(order?.stage,'check');assert.equal(order.index,0);assert.equal(svc.state().shift?.stage,'working');
+ const source=JSON.stringify(order.contract),bank=JSON.stringify(r().copperLedger.state());
+ for(let count=0;count<4;count++){
+  const work=svc.inspection.actionDescriptor();assert.equal(work.stage,'check');assert.equal(work.index,count);assert.equal(work.total,2);
+  const q=svc.intent('original-step');assert(q);assert(main.namespace.requestStationIntent(q));
+  until(()=>svc.inspection.actionDescriptor()?.key!==work.key,'original 2-second ledger check '+work.currency,120);
+  const next=svc.inspection.state().order;assert.equal(next.index,count+1);assert.equal(JSON.stringify(next.contract),source);assert.equal(JSON.stringify(r().copperLedger.state()),bank);assert.equal(svc.state().receipts.length,0);
+ }
+ assert.equal(svc.inspection.state().order.stage,'calculate');assert.equal(svc.inspection.state().order.calculationIndex,0);checkpoint('checks');return;
+}
 if(stopAfter==='issuance'){
  assert(r().formalCareers.isHired(roleId));assert.equal(svc.state().shift?.stage,'working');assert(!svc.inspection.state().order);assert.equal(svc.state().receipts.length,0);
  main.namespace.tellerNextDay();r().copperLedger.observeDay();console.log('FIXTURE advance clock one day and apply existing bank day observation; no teller work or wage simulated');
