@@ -195,3 +195,10 @@ test('Japan standby avoids the authored floor lantern and preserves west-aisle h
  const a=new Vector3(7,0,6.2),b=new Vector3(...p),playerPosition=new Vector3(8.5,0,6.5),n=actor('jp-exchange-teller',a.toArray());
  for(const [from,to]of[[a,b],[b,a]]){assert(canTraverse(from,to,[lamp],{radius:.25}));assert.equal(constrainActorMove(n,from,to.x-from.x,to.z-from.z,.25,[],playerPosition).blocker,null);}
 });
+
+test('pending teller intent survives attendance checkpoint but completed work invalidates it',()=>{
+ const f=fixture('japan',{legacy:false});f.begin();f.returnReady();const intent=f.employment.intent('original-step'),abandon=f.employment.intent('abandon-original'),revision=f.employment.snapshot().revision;
+ f.step(24);assert(f.employment.snapshot().revision>revision,'a real five-second attendance checkpoint must occur');assert.equal(f.employment.intent('original-step').intentKey,intent.intentKey);
+ f.move(intent.position);assert(f.employment.executeIntent(intent));f.step();assert.equal(f.employment.inspection.state().order,null);assert.equal(f.ledger.history().length,0);assert.equal(f.careers.state().skillXP.writing,10);
+ assert.equal(f.employment.executeIntent(intent),false);assert.equal(f.employment.executeIntent(abandon),false,'closed original work cannot be cancelled by an old callback');
+});

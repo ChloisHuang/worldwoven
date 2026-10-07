@@ -37,27 +37,30 @@ const svc=r().regionalTellerEmployment;assert(svc.forRole(roleId));
 const stopAfter=process.env.TELLER_STOP_AFTER;
 const checkpoint=stage=>{main.namespace.save();const file=path.resolve('qa','regional-teller-'+country+'-'+stage+'.json');fs.writeFileSync(file,storage['worlds-days-v1']);console.log('PASS '+stage+' checkpoint saved',country,file,(Date.now()-started)/1000);};
 const savedApplication=process.env.TELLER_RESUME?JSON.parse(fs.readFileSync(process.env.TELLER_RESUME,'utf8')).formalCareers.applications.byRole[roleId]:null;
-if(['salary-attendance','salary-review-attendance'].includes(stopAfter)){
+if(['salary-attendance','salary-review-attendance','salary-duty-resume-attendance'].includes(stopAfter)){
+ const resumeDuty=stopAfter==='salary-duty-resume-attendance';
  if(stopAfter==='salary-review-attendance'){
   assert.equal(savedApplication?.status,'pending');assert.equal(r().formalCareers.applicationResult(roleId)?.id,savedApplication.id);
   assert(main.namespace.requestStationIntent(svc.intent('formal-view')));until(()=>r().careerHandbook.isOpen(),'resume original pending application at local counter',80);
   const review=walk(dialog()).find(e=>e.tagName==='button'&&e.textContent==='当面核验资格与职责');assert(review);review.onclick();until(()=>r().formalCareers.isHired(roleId),'same local original teller qualification review',240);
   assert.equal(r().formalCareers.applicationResult(roleId)?.id,savedApplication.id);r().careerHandbook.close();checkpoint('interview');
- }else assert.equal(savedApplication?.status,'approved');assert(r().formalCareers.isHired(roleId));assert(!svc.state().shift);assert(!svc.inspection.state().order);assert.equal(svc.state().receipts.length,0);
- const bank=JSON.stringify(r().copperLedger.state());assert(main.namespace.requestStationIntent(svc.intent('accept')));
+ }else assert.equal(savedApplication?.status,'approved');assert(r().formalCareers.isHired(roleId));assert.equal(svc.state().receipts.length,0);
+ const bank=JSON.stringify(r().copperLedger.state());
+ if(resumeDuty){assert.equal(process.env.TELLER_VERIFY_DUTY,'1');assert.equal(svc.state().shift?.salaryVersion,1);assert.equal(svc.state().shift.stage,'working');assert.equal(svc.inspection.state().order?.contract.contractVersion,2);}
+ else{assert(!svc.state().shift);assert(!svc.inspection.state().order);assert(main.namespace.requestStationIntent(svc.intent('accept')));
  until(()=>svc.state().shift?.stage==='working','fixed-salary original safe handoff',80);
  const incumbent=r().npcs.find(n=>n.station.id===svc.state().shift.standInId),home=incumbent.station.npcPosition,front=incumbent.station.position,rest=r().lot.exchangeCounter?.points?.standby||(country==='china'?[home[0]-1.8,home[1],home[2]-.3]:[front[0]+1.7,front[1],front[2]-.7]);
  until(()=>incumbent.root.position.distanceTo(new incumbent.root.position.constructor(...rest))<.06&&!incumbent.walking,'original incumbent physically clear for salaried duty',80);checkpoint('salary-handoff');
  const duty=svc.intent('duty');assert(duty);assert(main.namespace.requestStationIntent(duty));
  until(()=>r().player.root.position.distanceTo(new (r().player.root.position.constructor)(...duty.position))<.1,'actual original work-side attendance position',80);
- checkpoint('salary-workside');
+ checkpoint('salary-workside');}
  if(process.env.TELLER_VERIFY_DUTY==='1'){
-  assert(main.namespace.requestStationIntent(svc.intent('begin-original')));until(()=>!!svc.inspection.state().order,'receive available original v2 duty without changing the day',40);
-  const contract=svc.inspection.state().order.contract,source=JSON.stringify(contract.source);assert.equal(contract.contractVersion,2);assert.equal(contract.amount,0);checkpoint('salary-duty-issued');
-  for(let count=0;count<10;count++){
+  if(!resumeDuty){assert(main.namespace.requestStationIntent(svc.intent('begin-original')));until(()=>!!svc.inspection.state().order,'receive available original v2 duty without changing the day',40);}
+  const contract=svc.inspection.state().order.contract,source=JSON.stringify(contract.source);assert.equal(contract.contractVersion,2);assert.equal(contract.amount,0);checkpoint(resumeDuty?'salary-duty-resumed':'salary-duty-issued');
+  for(let count=0;count<10&&svc.inspection.state().order;count++){
    const work=svc.inspection.actionDescriptor();assert(work);assert(main.namespace.requestStationIntent(svc.intent('original-step')));
    until(()=>svc.inspection.actionDescriptor()?.key!==work.key,'real v2 duty '+work.stage+' '+work.currency,40);
-   assert.equal(JSON.stringify(r().copperLedger.state()),bank,'physical duty never writes per-task wages');checkpoint('salary-duty-'+count);
+   assert.equal(JSON.stringify(r().copperLedger.state()),bank,'physical duty never writes per-task wages');checkpoint('salary-duty-'+work.stage+'-'+work.index);
   }
   assert(!svc.inspection.state().order);assert.equal(svc.state().receipts.length,1);const receipt=svc.state().receipts[0];assert.equal(receipt.version,2);assert.equal(receipt.amount,0);assert.equal(JSON.stringify(receipt.proof.source),source);
   assert.equal(r().formalCareers.state().tellerAuditServices.length,1);assert.equal(r().formalCareers.state().skillXP.writing,10);console.log('PASS actual main zero-pay duty atomically records source and writing growth',contract.orderId);checkpoint('salary-duty-complete');
