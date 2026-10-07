@@ -417,6 +417,238 @@
         "bootId": "f3aabe27-ab35-4beb-aca8-24cd4bc772b7"
       },
       "phaseLog": "qa/st03-r190/segment-20261007T183102Z-2.log"
+    },
+    {
+      "input": "qa/st03-r190/segment-20261007T183102Z-2.checkpoint.json",
+      "checkpoint": "qa/st03-r190/segment-20261007T183529Z-2.checkpoint.json",
+      "checkpointSha256": "c094c78fe2f98edf0a4248338f1542310afbb31d4484d57a1aec27d24b413421",
+      "frames": 300,
+      "initialSeconds": 8575.714285714068,
+      "clock": {
+        "seconds": 8620.714285713959,
+        "day": 4,
+        "hour": 14.57499999999618
+      },
+      "stop": "segment-boundary",
+      "events": [
+        {
+          "frame": 1,
+          "clock": {
+            "seconds": 8575.864285714068,
+            "day": 4,
+            "hour": 14.051749999997446
+          },
+          "paid": [
+            {
+              "id": "cn-official-rites",
+              "activity": "paid-salon",
+              "stage": "travel",
+              "arrived": false,
+              "elapsed": 0,
+              "mounted": null,
+              "borrowed": false,
+              "borrowedSalon": false,
+              "duty": null,
+              "roomId": null,
+              "called": false,
+              "position": [
+                22.35218611462537,
+                3.915,
+                32.278624723455465
+              ]
+            }
+          ],
+          "session": null
+        }
+      ],
+      "chosenOriginalLifeStage": {
+        "index": 9,
+        "arrived": false,
+        "path": [
+          [
+            24.95,
+            3.915,
+            32.1
+          ],
+          [
+            24.95,
+            3.915,
+            31.25
+          ],
+          [
+            24.95,
+            3.915,
+            29.7
+          ],
+          [
+            26.92,
+            3.915,
+            29.7
+          ],
+          [
+            26.92,
+            3.915,
+            30.5
+          ],
+          [
+            26.92,
+            0.115,
+            36.3
+          ],
+          [
+            26.92,
+            0.115,
+            36.9
+          ],
+          [
+            28.17,
+            0.115,
+            36.9
+          ],
+          [
+            28.17,
+            0.115,
+            28.2
+          ],
+          [
+            14,
+            0.115,
+            8.8
+          ],
+          [
+            16.9,
+            0.215,
+            9.1
+          ],
+          [
+            17.55,
+            0.215,
+            8.8
+          ],
+          [
+            17.55,
+            2.115,
+            4.2
+          ],
+          [
+            19.95,
+            2.115,
+            4.2
+          ],
+          [
+            19.95,
+            4.015,
+            9.1
+          ],
+          [
+            17.55,
+            4.015,
+            9.1
+          ],
+          [
+            17.55,
+            5.915,
+            4.2
+          ],
+          [
+            19.95,
+            5.915,
+            4.2
+          ],
+          [
+            19.95,
+            7.815,
+            9.1
+          ],
+          [
+            22.5,
+            7.815,
+            9.2
+          ],
+          [
+            24.15,
+            7.815,
+            7.65
+          ]
+        ],
+        "travel": {
+          "waiting": false,
+          "blocked": false,
+          "body": null
+        },
+        "stalled": 0,
+        "retries": 0
+      },
+      "originalChoice": {
+        "artistId": "cn-tavern-storyteller",
+        "activity": "story",
+        "fee": 40,
+        "revision": 0
+      },
+      "originalChoiceStartedAt": 82.50000000000027,
+      "customerPosition": [
+        20.5,
+        0.215,
+        14.5
+      ],
+      "session": null,
+      "rooms": [
+        {
+          "id": "tavern-guest-lan",
+          "name": "兰房",
+          "claim": null,
+          "physicallyOccupied": false
+        },
+        {
+          "id": "tavern-guest-zhu",
+          "name": "竹房",
+          "claim": null,
+          "physicallyOccupied": true
+        }
+      ],
+      "accounts": {
+        "cn-minister-works": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-minister-granary": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-rites": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-personnel": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-justice": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-records": {
+          "bank": 96,
+          "cash": 0
+        }
+      },
+      "artistReceiptCount": 0,
+      "failures": [],
+      "guard": {
+        "guard": "PASS",
+        "reason": null,
+        "exit": 0,
+        "seconds": 78.973,
+        "treePeakMiB": 712.105,
+        "peakMembersBytes": {
+          "9": 10895360,
+          "11": 735801344
+        },
+        "includesSupervisor": true,
+        "hostname": "24d70332fa95",
+        "bootId": "f3aabe27-ab35-4beb-aca8-24cd4bc772b7"
+      },
+      "phaseLog": "qa/st03-r190/segment-20261007T183529Z-2.log"
     }
   ]
 }
