@@ -25,10 +25,10 @@ export function createSalonNeeds({artists,sharedNeeds,economy,getTavern=()=>null
    if(s.layoutVersion!==LAYOUT_VERSION){
     const approach=getToilet()?.publicIntent?.()?.position;
     // Only authored public route anchors moved. In particular, the final
-    // artist home stays where it was; the body also stays at its real position.
+    // final return intent follows the current authored home; the body stays put.
     task.path=task.path.map((p,i)=>{
      const current=UP.find(q=>Math.abs(q[0]-p[0])<1e-6&&Math.abs(q[1]-p[1])<1e-6&&Math.abs(q[2]+5-p[2])<1e-6);
-     return current?current.slice():row.kind==='toilet'&&i===row.path.length-1&&approach?approach.slice():p;
+     return row.kind==='return'&&i===row.path.length-1?n.home.toArray():current?current.slice():row.kind==='toilet'&&i===row.path.length-1&&approach?approach.slice():p;
     });
     if(task.index===task.path.length&&task.path.length&&task.path.at(-1).some((v,i)=>v!==row.path.at(-1)[i]))task.index--;
    }

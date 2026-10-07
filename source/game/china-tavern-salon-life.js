@@ -1,4 +1,5 @@
 import {createLifeDecisions} from './npc-life-decisions.js';
+import {TAVERN_LAYOUT_VERSION} from './china-tavern-layout.js';
 import {SALON_ARTISTS} from './china-tavern-salon-artists.js';
 
 const copy=value=>JSON.parse(JSON.stringify(value));
@@ -82,12 +83,12 @@ export function createSalonArtistLife({performers=[],worldSeed=1,saved={},saveSt
  function returnHome(n,s){
   s.phase='returning';s.target=home(n);s.wait=0;s.elapsed=0;stop(n);
  }
- function restoreStage(n,state){
+ function restoreStage(n,state,layoutVersion){
   const s=copy(state);
   // Old checkpoints can still hold an intention at the chair's narrow aisle.
   // Change only that intention: the restored body stays at its real position
   // and uses ordinary travel before resuming its saved activity.
-  if(n.station.id==='cn-tavern-songwriter'&&OLD_SONGWRITER_POINTS.some(p=>near(point(s.target),p,.01))){
+  if(layoutVersion!==TAVERN_LAYOUT_VERSION||n.station.id==='cn-tavern-songwriter'&&OLD_SONGWRITER_POINTS.some(p=>near(point(s.target),p,.01))){
    const to=s.choice?.id==='pause'?aside(n):home(n);
    if(s.choice)s.choice.to=to.slice();
    s.target=s.phase==='returning'?home(n):to;
@@ -147,8 +148,8 @@ export function createSalonArtistLife({performers=[],worldSeed=1,saved={},saveSt
   interrupt,
   isBusy:busy,
   label(n){const s=stages.get(n);return !owned.has(n)?null:s?.phase==='returning'?'歇场后回到原处':s?.phase==='approaching'?'缓步去旁边歇息':s?.choice?.label||'歇场待客';},
-  continuity:()=>({version:1,clock,stages:[...stages].map(([n,s])=>[n.station.id,copy(s)]),readyAt:[...readyAt].map(([n,t])=>[n.station.id,t]),roamingId:roaming?.station.id||null,events:copy(events)}),
-  restore(s){if(s?.version!==1)return false;clock=Math.max(0,s.clock||0);stages.clear();for(const [id,state]of s.stages||[]){const n=artists.find(n=>n.station.id===id);if(n&&['approaching','acting','returning'].includes(state.phase)&&Array.isArray(state.target))stages.set(n,restoreStage(n,state));}for(const[id,t]of s.readyAt||[]){const n=artists.find(n=>n.station.id===id);if(n&&Number.isFinite(t))readyAt.set(n,t);}roaming=artists.find(n=>n.station.id===s.roamingId)||null;events.splice(0,events.length,...copy(s.events||[]));return true;},
+  continuity:()=>({version:1,layoutVersion:TAVERN_LAYOUT_VERSION,clock,stages:[...stages].map(([n,s])=>[n.station.id,copy(s)]),readyAt:[...readyAt].map(([n,t])=>[n.station.id,t]),roamingId:roaming?.station.id||null,events:copy(events)}),
+  restore(s){if(s?.version!==1)return false;clock=Math.max(0,s.clock||0);stages.clear();for(const [id,state]of s.stages||[]){const n=artists.find(n=>n.station.id===id);if(n&&['approaching','acting','returning'].includes(state.phase)&&Array.isArray(state.target))stages.set(n,restoreStage(n,state,s.layoutVersion));}for(const[id,t]of s.readyAt||[]){const n=artists.find(n=>n.station.id===id);if(n&&Number.isFinite(t))readyAt.set(n,t);}roaming=artists.find(n=>n.station.id===s.roamingId)||null;events.splice(0,events.length,...copy(s.events||[]));return true;},
   socialProfile:id=>brain.state(id),
   snapshot:()=>brain.snapshot(),
   state:()=>({roamingId:roaming?.station.id||null,saveError,actors:artists.map(n=>{const s=stages.get(n);return {id:n.station.id,phase:s?.phase||'idle',choice:s?.choice?.id||null,busy:busy(n),elapsed:s?.elapsed||0,duration:s?.choice?.duration||0,position:position(n),target:s?.target.slice()||home(n)};}),events:copy(events),decisions:brain.snapshot()}),
