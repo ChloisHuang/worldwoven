@@ -1,4 +1,4 @@
-import {isSociallyHeld} from './npc-social-ownership.js';
+import {isSociallyHeld,socialHoldOwner} from './npc-social-ownership.js';
 import {rangeWardenPatrolCoverage} from './china-range-warden-slot.js';
 import {createNPCPersonalTrip} from './npc-personal-trip.js';
 import {followActorRoute} from './actor-navigation.js';
@@ -87,7 +87,8 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
   const to=guardWork?.stage==='returning'?HANDOFF[0]:LEISURE[leisure.index];
   if(travel(n,to,dt)&&guardWork?.stage!=='returning'){leisure.time+=dt;if(leisure.time>18){leisure.index=(leisure.index+1)%LEISURE.length;leisure.time=0;resetTravel(n);}}
  }
- function supervisorReady(){return !needsLife?.blocks()&&isActorAlive(guards[1])&&boundAvailable()&&shooter()===guards[1]&&phase==='relief'&&!request&&!flying.visible&&!impacts.some(q=>q.visible)&&gap(guards[1].root.position,HANDOFF[1])<.08;}
+ const enforcing=()=>guards.some(n=>socialHoldOwner(n.station.id)?.startsWith('crime:'));
+ function supervisorReady(){return !enforcing()&&!needsLife?.blocks()&&isActorAlive(guards[1])&&boundAvailable()&&shooter()===guards[1]&&phase==='relief'&&!request&&!flying.visible&&!impacts.some(q=>q.visible)&&gap(guards[1].root.position,HANDOFF[1])<.08;}
  function socialStatus(n){
   if(!owned.has(n))return null;
   if(needsLife?.owns(n))return {busy:true,attention:false,job:needsLife.label()};
@@ -121,7 +122,7 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
   if(!n.walking&&pose&&['aim','flight','cease'].includes(phase))n.root.rotation.y=-Math.PI/2;
   const c=poseContext(n,null);c.archery=pose;n.animate(t+n.phase,n.walking,n===guards[0]&&guardWork?.stage==='active'&&!n.walking?'read':null,c);kits.get(n).update(n,pose,A.targets[retrieveLane]);
  }
- function physicalHandoffBoundary({meeting=false,personalTrip=needsLife?.blocks()||false}={}){return guardHandoffBoundary({heldBow:[...kits.values()].some(k=>k.bow.visible)||!!playerKit?.bow.visible,flyingArrow:flying.visible,targetArrows:impacts.some(q=>q.visible),playerLesson:request||phase.startsWith('player-'),playerDuty:!!guardWork,meeting:meeting||registrationRequested||!!conversationActorId,personalTrip,atHandoff:['handover','relief'].includes(phase)&&guards.every((n,i)=>retired.has(n)||gap(n.root.position,HANDOFF[i])<.08&&Math.abs(n.root.position.y-HANDOFF[i][1])<.4)&&guards.every(n=>patrol.get(n).stage==='ready')});}
+ function physicalHandoffBoundary({meeting=false,personalTrip=needsLife?.blocks()||false}={}){return guardHandoffBoundary({heldBow:[...kits.values()].some(k=>k.bow.visible)||!!playerKit?.bow.visible,flyingArrow:flying.visible,targetArrows:impacts.some(q=>q.visible),playerLesson:request||phase.startsWith('player-'),playerDuty:!!guardWork,meeting:meeting||enforcing()||registrationRequested||!!conversationActorId,personalTrip,atHandoff:['handover','relief'].includes(phase)&&guards.every((n,i)=>retired.has(n)||gap(n.root.position,HANDOFF[i])<.08&&Math.abs(n.root.position.y-HANDOFF[i][1])<.4)&&guards.every(n=>patrol.get(n).stage==='ready')});}
  const personalPaths=new Map(),corridor=[[-17.15,.13,19.1],[-15.25,.13,19],[-11.8,.13,21],[0,.13,22],[14.9,.13,21],[14.9,.13,11],[16.9,.215,9.1]];
  const personalHome=n=>guards.includes(n)&&!retired.has(n)?HANDOFF[guards.indexOf(n)]:LEISURE[0];
  const personalReset=n=>{resetTravel(n);n.walking=false;personalPaths.delete(n);};
@@ -131,6 +132,12 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
   canDepart:n=>!guards.includes(n)||retired.has(n)||phase==='handover'&&phaseTime>=2.4&&physicalHandoffBoundary({personalTrip:false}).ok,getReturnTarget:personalHome,getExitRoute:()=>corridor,getReturnRoute:n=>[...corridor.slice().reverse().map(p=>p.slice()),personalHome(n)],economy:npcEconomy,sharedNeeds,getTavern,getToilet,travel:personalTravel,resetRoute:personalReset,pose:(n,t,mounted)=>{const c=poseContext(n,null);n.animate(t+n.phase,!!n.walking,mounted?.action||null,mounted?{...c,...mounted.context}:c);},saveState:savePersonalNeeds});
  enter('handover');
  return {
+  enforcementActive:enforcing,
+  enforcementCandidates(){
+   if(!boundAvailable()||needsLife?.blocks()||request||guardWork||registrationRequested||flying.visible||!['handover','relief','release'].includes(phase))return [];
+   return guards.filter(n=>!retired.has(n)&&!n.serviceMount&&!kits.get(n)?.bow.visible&&(!isSociallyHeld(n.station.id)||socialHoldOwner(n.station.id)?.startsWith('crime:')));
+  },
+  resumeAfterEnforcement(){for(const n of guards)resetTravel(n);active=1;phase='handover';phaseTime=0;patrolWork.clear();},
   setGuardTenure(hired){guardTenure=!!hired;},
   requestPatrolPause(value=true){pausePatrol=!!value;},
   guardBinding:()=>({actorId:guards[0].station.id,holderRevision:boundRevision,available:boundAvailable(),paused:pausePatrol}),
@@ -151,8 +158,8 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
   patrolCoverage(resolveAssignment){const actor=guards[0],assignment=typeof resolveAssignment==='function'?resolveAssignment():null;return guardPatrolCoverage({assignment,actor,sample:patrolWork.get(actor),dt:lastUpdateDt,playerDuty:!!guardWork||!boundAvailable()||!!needsLife?.away(actor.station.id)});},
   handoffBoundary:physicalHandoffBoundary,
   canBorrowMeal:id=>needsLife?.canBorrowMeal(id)||false,personalNeedsState:()=>needsLife?.state()||null,
-  requestSupervisor(value=true){registrationRequested=!!value&&!needsLife?.blocks();},supervisorReady,
-  requestGuardWork(receiptId){if(guardWork&&guardWork.receiptId!==receiptId)return false;if(!guardWork)guardWork={receiptId,stage:'requested'};return true;},
+  requestSupervisor(value=true){registrationRequested=!!value&&!enforcing()&&!needsLife?.blocks();},supervisorReady,
+  requestGuardWork(receiptId){if(enforcing())return false;if(guardWork&&guardWork.receiptId!==receiptId)return false;if(!guardWork)guardWork={receiptId,stage:'requested'};return true;},
   guardWorkState:()=>guardWork?{...guardWork}:null,
   requestGuardReturn(receiptId){if(guardWork?.receiptId!==receiptId)return false;if(guardWork.stage==='active'){guardWork.stage='returning';resetTravel(guards[0]);}return ['returning','returned'].includes(guardWork.stage);},
   finishGuardWork(receiptId){if(guardWork?.receiptId!==receiptId)return false;if(guardWork.stage!=='returned')return false;guardWork=null;beginPatrol(guards[0]);return true;},
@@ -160,13 +167,13 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
   canTalkAtPost:n=>owned.has(n)&&!n.walking&&!n.route?.length&&!n.serviceMount&&!kits.get(n)?.bow.visible&&!registrationRequested&&!request&&!socialStatus(n)?.busy,
   canBorrowForSocial:n=>owned.has(n)&&!needsLife?.owns(n)&&(retired.has(n)||n===guards[0]&&guardWork?.stage==='active'),
   owns:n=>owned.has(n),ownsStation:id=>A.roles.includes(id),socialStatus,
-  startPlayer(actor){if(player!==actor){playerKit?.dispose();playerKit=makeKit(lot.group);player=actor;}deferredPractice=!!needsLife?.blocks();request=!deferredPractice;complete=false;playerShot=false;},
+  startPlayer(actor){if(enforcing())return false;if(player!==actor){playerKit?.dispose();playerKit=makeKit(lot.group);player=actor;}deferredPractice=!!needsLife?.blocks();request=!deferredPractice;complete=false;playerShot=false;},
   stopPlayer(){deferredPractice=false;request=false;complete=false;playerKit?.hide();if(phase.startsWith('player-')){retrieveLane=playerShot?1:0;enter(playerShot?'cease':'relief');}player=null;},
   playerPose(){return request&&phase.startsWith('player-')?poseFor(phase,phaseTime):null;},
   syncPlayer(){if(player)playerKit?.update(player,this.playerPose(),A.targets[1]);},
   playerStatus(){if(deferredPractice)return {complete:false,label:'等巡值同伴日常事务结束后再开练',progress:0};return request?{complete,label:blocked?'前方有人 · 收弓停射':phase.startsWith('player-')?labels[phase]:'等待本轮停射取箭，再接过练习弓',progress:phase==='player-take'?.1:phase==='player-aim'?.2+Math.min(1,phaseTime/2.8)*.45:phase==='player-flight'?.78:phase==='player-cease'?1:0}:null;},
   update(dt,t,{position,conversationActorId:talking=null}={}){
-   patrolWork.clear();lastUpdateDt=dt;if(disposed)return;updated=true;personalTime+=Math.max(0,dt);conversationActorId=talking;needsLife?.update(dt,t);if(deferredPractice&&!needsLife?.blocks()){request=true;deferredPractice=false;}const away=guards.find(n=>needsLife?.away(n.station.id));if(away){wasAway=true;for(const n of guards)if(n!==away){n.walking=false;animateGuard(n,t);}return;}if(wasAway){wasAway=false;active=1;phase='handover';phaseTime=0;resetTravel(guards[0]);resetTravel(guards[1]);}for(const old of retired){if(needsLife?.owns(old))continue;old.walking=false;if(isActorAlive(old)){if(!isSociallyHeld(old.station.id,talking))travel(old,LEISURE[0],dt);old.animate(t+old.phase,old.walking,old.walking?null:'read',poseContext(old,null));kits.get(old)?.hide();}}
+   patrolWork.clear();lastUpdateDt=dt;if(disposed)return;if(enforcing()){for(const n of guards)kits.get(n)?.hide();return;}updated=true;personalTime+=Math.max(0,dt);conversationActorId=talking;needsLife?.update(dt,t);if(deferredPractice&&!needsLife?.blocks()){request=true;deferredPractice=false;}const away=guards.find(n=>needsLife?.away(n.station.id));if(away){wasAway=true;for(const n of guards)if(n!==away){n.walking=false;animateGuard(n,t);}return;}if(wasAway){wasAway=false;active=1;phase='handover';phaseTime=0;resetTravel(guards[0]);resetTravel(guards[1]);}for(const old of retired){if(needsLife?.owns(old))continue;old.walking=false;if(isActorAlive(old)){if(!isSociallyHeld(old.station.id,talking))travel(old,LEISURE[0],dt);old.animate(t+old.phase,old.walking,old.walking?null:'read',poseContext(old,null));kits.get(old)?.hide();}}
    if(!boundAvailable())return;updateFlight(dt);blocked=!clearRange(position);for(const n of guards)n.walking=false;
    const n=shooter(),other=guards[1-active];
    // Range phases never reset the partner's route or observation timer.

@@ -136,7 +136,8 @@
       "rooms-and-doors.cjs",
       "scene-geometry.cjs",
       "shoji-side-privacy.cjs",
-      "sliding-track-fit.cjs"
+      "sliding-track-fit.cjs",
+      "china-holding-cell-navigation.cjs"
     ]
   },
   "ui": {
@@ -576,7 +577,12 @@
       "npc-public-pair-main.cjs",
       "palace-companionship-main.cjs",
       "china-salon-st03-main.cjs",
-      "bath-privacy-main.cjs"
+      "bath-privacy-main.cjs",
+      "crime-consequences.mjs",
+      "crime-runtime.mjs",
+      "game-health-injury.mjs",
+      "crime-consequences-main.cjs",
+      "china-guard-enforcement.cjs"
     ]
   },
   "release": {

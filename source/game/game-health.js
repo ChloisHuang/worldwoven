@@ -6,6 +6,8 @@
 const clamp=(n,fallback=0)=>Number.isFinite(n)?Math.max(0,Math.min(1,n)):fallback;
 const positive=(n,fallback=0)=>Number.isFinite(n)&&n>=0?n:fallback;
 const copy=value=>JSON.parse(JSON.stringify(value));
+const validId=value=>typeof value==='string'&&value.length>0&&value.length<=240&&!['__proto__','constructor','prototype'].includes(value);
+const validInjury=event=>event&&validId(event.id)&&validId(event.actorId)&&validId(event.victimId)&&event.actorId!==event.victimId&&Number.isFinite(event.at)&&event.at>=0;
 function hash(text){let h=2166136261;for(const c of text){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0||1;}
 function threshold(c){let x=c.random;x^=x<<13;x^=x>>>17;x^=x<<5;c.random=x>>>0||1;return .35-Math.log(1-c.random/4294967296);}
 
@@ -13,7 +15,8 @@ export const GAME_HEALTH_CONDITIONS=Object.freeze({
  'ember-weariness':Object.freeze({name:'余烬倦怠（虚构）',infectious:false,incubation:0,ill:150,recovery:120,immunity:0,symptom:'脚步发沉，想歇一会儿'}),
  mistbell:Object.freeze({name:'雾铃困倦（虚构）',infectious:true,incubation:90,ill:240,recovery:180,immunity:900,symptom:'声音发闷，有些乏力'}),
  'hollow-grain':Object.freeze({name:'空谷乏意（虚构）',infectious:false,need:'foodStrain',incubation:0,ill:300,recovery:180,immunity:0,symptom:'空谷乏意：久饿后精神不济'}),
- 'stillwater-ache':Object.freeze({name:'滞露不适（虚构）',infectious:false,need:'toiletStrain',incubation:0,ill:240,recovery:180,immunity:0,symptom:'滞露不适：如厕拖延后有些难受'})
+ 'stillwater-ache':Object.freeze({name:'滞露不适（虚构）',infectious:false,need:'toiletStrain',incubation:0,ill:240,recovery:180,immunity:0,symptom:'滞露不适：如厕拖延后有些难受'}),
+ 'impact-bruise':Object.freeze({name:'短暂挫伤（虚构）',infectious:false,eventOnly:true,incubation:0,ill:90,recovery:90,immunity:0,symptom:'挫伤有些酸痛，想歇一会儿'})
 });
 const conditions=Object.entries(GAME_HEALTH_CONDITIONS);
 const stages=new Set(['well','incubating','ill','recovering']);
@@ -23,7 +26,10 @@ const stages=new Set(['well','incubating','ill','recovering']);
 // a seeded threshold analytically, with rest/exposure clearance between contacts.
 export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
  let time=saved.version===1?positive(saved.time):0;
- const people=new Map(),interactionProgress=new Map();
+ const people=new Map(),interactionProgress=new Map(),injuryReceipts=new Map();
+ // Exact receipts survive unrelated countries and out-of-order durable outboxes.
+ // A timestamp is not a serial: different confirmed events may share a clock tick.
+ for(const [id,receipt]of Object.entries(saved.version===1?saved.injuryReceipts||{}:{}))if(validInjury({...receipt,id}))injuryReceipts.set(id,{actorId:receipt.actorId,victimId:receipt.victimId,at:receipt.at});
  for(const [source,event]of Object.entries(saved.version===1?saved.interactionProgress||{}:{}))if(typeof event?.id==='string'&&Number.isSafeInteger(event.number)&&event.number>0&&Array.isArray(event.participants)&&event.participants.length===2)interactionProgress.set(source,{id:event.id,number:event.number,participants:[...event.participants].sort(),duration:positive(event.duration)});
  for(const id of [...new Set(actorIds)].sort()){
   const key=`game-health-v1|${worldSeed>>>0}|${id}`,old=saved.version===1?saved.people?.[id]:null;
@@ -38,12 +44,16 @@ export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
     c.stage=stages.has(previous.stage)?previous.stage:'well';
     c.remaining=c.stage==='well'?0:positive(previous.remaining,definition[c.stage==='incubating'?'incubation':c.stage==='recovering'?'recovery':'ill']);
     c.immuneFor=definition.immunity&&c.stage==='well'?positive(previous.immuneFor):0;
+    if(definition.eventOnly){
+     if(c.stage==='incubating')c.stage='well';
+     c.dose=0;c.immuneFor=0;c.remaining=c.stage==='well'?0:Math.min(c.remaining,definition[c.stage==='recovering'?'recovery':'ill']);
+    }
    }
    p.conditions[name]=c;
   }
   people.set(id,p);
  }
- const snapshot=()=>({version:1,time,people:copy(Object.fromEntries(people)),interactionProgress:copy(Object.fromEntries(interactionProgress))});
+ const snapshot=()=>({version:1,time,people:copy(Object.fromEntries(people)),interactionProgress:copy(Object.fromEntries(interactionProgress)),injuryReceipts:copy(Object.fromEntries(injuryReceipts))});
  function normaliseActors(actors){
   const supplied=new Map(actors.map(a=>[a.id,a]));
   return new Map([...people].map(([id,p])=>{
@@ -86,13 +96,14 @@ export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
    for(const [name,definition]of conditions){
     const c=p.conditions[name],infectious=definition.infectious;
     result.push({c,definition,speed:c.stage==='incubating'?1:speed,
-     rate:(infectious?exposure.get(id):definition.need?clamp(a.dailyNeeds?.[definition.need])*.016:(a.resting?0:Math.max(0,a.exertion-.55)*(.4+a.fatigue)*.012))*a.vulnerability,
+     rate:(definition.eventOnly?0:infectious?exposure.get(id):definition.need?clamp(a.dailyNeeds?.[definition.need])*.016:(a.resting?0:Math.max(0,a.exertion-.55)*(.4+a.fatigue)*.012))*a.vulnerability,
      decay:infectious?.002:definition.need?.003:.006+.02*Number(a.resting)+.003*a.nutrition+.001*a.hygiene});
    }
   }
   return result;
  }
- function timeToOnset({c,rate,decay}){
+ function timeToOnset({c,definition,rate,decay}){
+  if(definition.eventOnly)return Infinity;
   if(c.dose>=c.threshold)return 0;
   const limit=rate/decay;
   return limit>c.threshold?-Math.log((limit-c.threshold)/(limit-c.dose))/decay:Infinity;
@@ -132,6 +143,19 @@ export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
     time+=step;left=Math.max(0,left-step);
     for(const event of events)if(event.in<=step)event.finish();
    }
+  },
+  // Only the source controller's confirmed physical event may call this hook.
+  // The world adapter stages this on a copy and persists before publishing it.
+  // This bounded, nonfatal condition never changes life identity or mortality.
+  applyInjury(event){
+   if(!validInjury(event))return {ok:false,applied:false,reason:'invalid-event'};
+   const receipt=injuryReceipts.get(event.id);
+   if(receipt)return receipt.actorId===event.actorId&&receipt.victimId===event.victimId&&receipt.at===event.at?{ok:true,applied:false}:{ok:false,applied:false,reason:'event-conflict'};
+   if(!people.has(event.actorId)||!people.has(event.victimId))return {ok:false,applied:false,reason:'unknown-participant'};
+   const condition=people.get(event.victimId).conditions['impact-bruise'];
+   condition.stage='ill';condition.remaining=GAME_HEALTH_CONDITIONS['impact-bruise'].ill;condition.dose=0;condition.immuneFor=0;
+   injuryReceipts.set(event.id,{actorId:event.actorId,victimId:event.victimId,at:event.at});
+   return {ok:true,applied:true,condition:'impact-bruise',victimId:event.victimId};
   },
   // World clinic hook: call only after a confirmed physical handoff, using its
   // persisted provider/serial. A receipt cannot be replayed after save/reload.

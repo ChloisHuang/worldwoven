@@ -53,6 +53,15 @@ export function createGameHealthWorld({worldSeed=1,saved={},visitorFloor=0,clini
   }
   if(applied)persist();return applied;
  }
+ function applyInjury(event){
+  // The crime source has already durably queued this actual event. Saving the
+  // receipt and changed course together makes a lost acknowledgement harmless.
+  // Never publish the candidate when storage throws, rejects or is asynchronous.
+  const candidate=createGameHealth({worldSeed,actorIds:[...ids],saved:health.snapshot()}),result=candidate.applyInjury(event);
+  if(!result.ok||!result.applied)return result;
+  try{const stored=saveState({...snapshot(),health:candidate.snapshot()});if(stored===false||stored?.then)return {ok:false,applied:false,reason:'save-failed'};}catch{return {ok:false,applied:false,reason:'save-failed'};}
+  health=candidate;lastSave=time;return result;
+ }
  prune();
  return {
   enter(id,actors=[]){pendingInteractions.clear();sceneId=id;for(const actor of actors)register(idOf(actor));persist();},
@@ -68,7 +77,7 @@ export function createGameHealthWorld({worldSeed=1,saved={},visitorFloor=0,clini
   },
   arrive,
   depart(id){if(sceneId!=='japan')return;activeVisitors.delete(id);prune();persist();},
-  clinicReceipts,
+  clinicReceipts,applyInjury,
   update(dt,{player,actors=[],playerResting=false,playerExertion=0,lifePeople={},restingIds=[],dailyNeeds=null}={}){
    if(!sceneId||!player||!Number.isFinite(dt)||dt<=0)return;
    const exertion=clamp(playerExertion);
