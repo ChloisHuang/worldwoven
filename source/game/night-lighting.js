@@ -44,21 +44,26 @@ function supportFloor(lot,p) {
 export const NIGHT_FIELD_POLICY=Object.freeze({maxVoxels:200000,horizontalStep:1,verticalStep:.6,radianceLimit:32,maxSourcesPerCell:6});
 function makeFieldOcclusion(lot) {
  const cell=4,buckets=new Map();
- const boxes=(lot.cameraColliders||[]).filter(b=>[b.minX,b.maxX,b.minZ,b.maxZ].every(Number.isFinite)).map(b=>({...b,minY:Number.isFinite(b.minY)?b.minY:0,maxY:Number.isFinite(b.maxY)?b.maxY:3.5}));
+ const boxes=(lot.cameraColliders||[]).filter(b=>[b.minX,b.maxX,b.minZ,b.maxZ].every(Number.isFinite)).map((b,index)=>({...b,minY:Number.isFinite(b.minY)?b.minY:0,maxY:Number.isFinite(b.maxY)?b.maxY:3.5,fieldOcclusionIndex:index}));
  for(const b of boxes)for(let z=Math.floor(b.minZ/cell);z<=Math.floor(b.maxZ/cell);z++)for(let x=Math.floor(b.minX/cell);x<=Math.floor(b.maxX/cell);x++){const key=x+','+z;if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(b);}
+ // Reuse visit stamps across synchronous rays; the private collider copies and
+ // exact slab math are unchanged. Avoid per-ray Sets and per-box axis arrays.
+ const visited=new Uint32Array(boxes.length);let stamp=0;
  return (p,f)=>{
   const dx=f.position.x-p.x,dy=f.position.y-p.y,dz=f.position.z-p.z,length=Math.hypot(dx,dy,dz);
   if(length<.5)return false;
-  const first=.12/length,last=1-.3/length,seen=new Set();
+  const first=.12/length,last=1-.3/length;
+  stamp=(stamp+1)>>>0;if(stamp===0){visited.fill(0);stamp=1;}
   for(let z=Math.floor(Math.min(p.z,f.position.z)/cell);z<=Math.floor(Math.max(p.z,f.position.z)/cell);z++)for(let x=Math.floor(Math.min(p.x,f.position.x)/cell);x<=Math.floor(Math.max(p.x,f.position.x)/cell);x++)for(const box of buckets.get(x+','+z)||[]){
-   if(seen.has(box))continue;seen.add(box);
+   const index=box.fieldOcclusionIndex;if(visited[index]===stamp)continue;visited[index]=stamp;
    // Compact collision proxies around translucent lanterns/posts must not
    // enclose their own emitter. Never exempt a room wall or storey slab.
    if(box.maxX-box.minX<=1.6&&box.maxZ-box.minZ<=1.6&&f.position.x>=box.minX&&f.position.x<=box.maxX&&f.position.z>=box.minZ&&f.position.z<=box.maxZ&&f.position.y>=box.minY&&f.position.y<=box.maxY)continue;
    let lo=first,hi=last;
-   for(const [origin,delta,min,max]of[[p.x,dx,box.minX,box.maxX],[p.y,dy,box.minY,box.maxY],[p.z,dz,box.minZ,box.maxZ]]){
+   for(let axis=0;axis<3;axis++){
+    const origin=axis===0?p.x:axis===1?p.y:p.z,delta=axis===0?dx:axis===1?dy:dz,min=axis===0?box.minX:axis===1?box.minY:box.minZ,max=axis===0?box.maxX:axis===1?box.maxY:box.maxZ;
     if(Math.abs(delta)<1e-9){if(origin<min||origin>max){hi=-1;break;}}
-    else{let a=(min-origin)/delta,b=(max-origin)/delta;if(a>b)[a,b]=[b,a];lo=Math.max(lo,a);hi=Math.min(hi,b);if(lo>hi)break;}
+    else{let a=(min-origin)/delta,b=(max-origin)/delta;if(a>b){const swap=a;a=b;b=swap;}lo=Math.max(lo,a);hi=Math.min(hi,b);if(lo>hi)break;}
    }
    if(lo<=hi)return true;
   }
