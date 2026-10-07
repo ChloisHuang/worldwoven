@@ -52,7 +52,7 @@ function check(f, service, name) {
   assert.equal(f.counts().writes, writes, name + ': read-only polling cannot save');
   assert.deepEqual(service.formal.state(), before, name + ': explicit formal diagnostics remain complete');
 }
-const roles = FORMAL_CAREER_ROLES.filter(r => ['japan', 'egypt'].includes(r.country) || ['fr-tea-server', 'fr-tea-pastry'].includes(r.id));
+const roles = FORMAL_CAREER_ROLES.filter(r => r.paymentKind !== 'commission' && (['japan', 'egypt'].includes(r.country) || ['fr-tea-server', 'fr-tea-pastry'].includes(r.id)));
 for (const role of roles) for (const working of [false, true]) {
   const f = setup(role, working);
   const duty = {registry: [0, 0, 0], holdDuty() {}, held: () => false, requestMeeting() {}, meetingReady: () => true,

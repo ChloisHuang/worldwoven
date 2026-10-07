@@ -21,7 +21,9 @@ export function performanceWillingness(actor,activity,opinion=0){
 export function createJapanPerformanceService({npcs,furniture,doors,navigation,planPath,moveActor,poseContext,getPlayer,getMounted=()=>null,copperLedger,props=null,worldSeed=1,saved={},saveState=()=>{},notify=()=>{},isActorBusy=()=>false,sharedNeeds=null,onRelationshipEvent=()=>false}){
  const cast=npcs.filter(n=>n.station.performance),server=cast.find(n=>n.station.id==='jp-performance-reception'),artists=cast.filter(n=>n!==server);
  const guestSeat=furniture.items.find(i=>i.id===GUEST),artistSeat=furniture.items.find(i=>i.id===ARTIST);if(!server||artists.length!==2||!guestSeat||!artistSeat)return null;
- let order=null,lastReply=clone(saved.lastReply),lastResult=null,time=Number(saved.time)||0,serial=Number(saved.serial)||0,disposed=false,paymentError=null,phase=0,elapsed=0,drinkPhase=0,conversation=null;
+ let order=null,lastReply=clone(saved.lastReply),lastResult=null,time=Number(saved.time)||0,serial=Number(saved.serial)||0,disposed=false,paymentError=null,phase=0,elapsed=0,drinkPhase=0,conversation=null,employment=null,workPropsActive=false;
+ const employmentOwns=n=>!!employment?.owns?.(n),employmentBlocks=()=>!!employment?.blocksService?.();
+ const workplace=Object.freeze({server,cast:Object.freeze([...cast]),artists:Object.freeze([...artists]),guestSeat,artistSeat,tableId:TABLE});
  const history=clone(saved.history)||[],responses=clone(saved.responses)||{},returns=new Set(),routes=new Map(),failures=[];
  let relationshipCheckpoint=time+5;
  let life;
@@ -80,7 +82,7 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
  function cancel(reason='你取消了这次安排'){const ok=finish(reason);if(ok)notify(reason+'；未提供部分已退回');return ok;}
  function enter(status){if(order){order.status=status;phase=0;record(status);}}
  function request(artistId,activity,drink=null){
-  if(disposed||order||returns.size||!atReception())return false;const a=artists.find(n=>n.station.id===artistId),d=DRINKS.find(d=>d.id===drink);
+  if(disposed||order||returns.size||employmentBlocks()||!atReception())return false;const a=artists.find(n=>n.station.id===artistId),d=DRINKS.find(d=>d.id===drink);
   if(!a||!eligible(a)||!ACT[activity]||drink&&!d)return false;
   if(isActorBusy(a)||isSociallyHeld(a.station.id,conversation)){notify(`${a.station.npcName}还在和别人说话，稍后再来吧`);return false;}
   if(!recoverPayments()||occupied()){notify(paymentError?'钱款账目尚未核对':'演艺茶席或舞台有人使用，稍后再来');return false;}
@@ -111,16 +113,23 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
   const c={...poseContext(n,null),archery:hands?{hands}:null,heldProp:null,handoff:false};if(n.serviceMount)c.seatHeight=n.serviceMount.seatY-n.root.position.y-(c.visualFloorOffset||0);
   n.animate(t+(n.phase||0),n.walking,n.walking?null:action,c);
  }
+ // The employment controller borrows the original cast, routes and hand props
+ // only at the service's idle boundary. It never creates a second scene owner.
+ const workAvailable=()=>!disposed&&!order&&!returns.size&&cast.every(n=>n.alive!==false&&knownAdult(n)&&!n.serviceMount&&!n.walking&&!n.route?.length&&!routes.get(n)?.path?.length&&!isActorBusy(n)&&!isSociallyHeld(n.station.id,conversation));
  const labels={invited:'艺者前来亲自答复',reply:'听取艺者的回应',accepted:'本人已接受 · 等你确认价目',seating:'请到专属客席入座',performing:'正在表演或陪席茶谈',drinking:'节目已完成 · 饮品服务中','refund-pending':'退款待保存，请重开接待簿'};
  const api={request,confirm,cancel,atReception,recoverPayments,active:()=>!!order,seat:()=>guestSeat,
   socialProfile:id=>life.state(id),
-  owns:n=>cast.includes(n),socialStatus:n=>({busy:!!order||returns.has(n),attention:!order&&!returns.has(n),job:n.station.npcLabel}),
-  furnitureAccess(item){if(item.id===ARTIST&&(order||returns.size)){notify('这是本次艺者陪席位置');return false;}return true;},
+  setEmployment(controller){employment=controller||null;},workplace:()=>workplace,workAvailable,
+  workTravel:move,workUnseat:n=>!isSociallyHeld(n?.station.id,conversation)&&unseat(n),workReset:reset,workPose:pose,
+  workProps(o,actors,t){workPropsActive=!!o;props?.update(o,actors,t);},workClearProps(){workPropsActive=false;props?.clearOrder();},
+  workChoose:(id,choices)=>life.choose(id,choices),workObserve:(id,choice,options)=>choice?life.observe(id,choice,options):[],workComplete:(id,choice,options)=>choice&&life.complete(id,choice,options),
+  owns:n=>cast.includes(n),socialStatus:n=>{const working=employmentOwns(n)||!!employment?.onShift?.(n.station.id);return {busy:working||!!order||returns.has(n),attention:working?!n.walking&&!n.route?.length&&!routes.get(n)?.path?.length:!order&&!returns.has(n),job:working?employment?.label?.()||n.station.npcLabel:n.station.npcLabel};},
+  furnitureAccess(item){const access=employment?.furnitureAccess?.(item);if(access===true&&!order&&!returns.size)return true;if(access===false){notify('这是当前演艺工单使用的原席位');return false;}if(item.id===ARTIST&&(order||returns.size||employmentBlocks())){notify('这是本次艺者陪席位置');return false;}return true;},
   leaveSeat(id){if(id===GUEST&&order?.paid&&order.status!=='seating')cancel('你提前离开了茶席');},
   playerPose(t=0){if(!order||getMounted()?.id!==GUEST||order.drinkStatus!=='drinking')return null;const sip=(Math.sin(t*1.15)+1)*.5;return {handoff:true,archery:{hands:[[-.18,.72,.25],[.10,.94+sip*.20,.30-sip*.13]]}};},
   update(dt,t,{conversationActorId=null}={}){
    if(disposed)return;dt=Math.max(0,Math.min(.1,dt));time+=dt;life.tick(dt);if(time>=relationshipCheckpoint){relationshipCheckpoint=time+5;if(relationshipEvents.length)persist();}conversation=conversationActorId;
-   for(const n of cast)n.walking=false;
+   for(const n of cast)if(!employmentOwns(n))n.walking=false;
    const orderPaused=!!order&&[artist(),server].some(n=>isSociallyHeld(n.station.id,conversation));
    if(order){if(!orderPaused){elapsed+=dt;phase+=dt;}if(!eligible(artist()))cancel('本次服务资格已改变');}
    if(order&&(!getPlayer()||Math.abs(getPlayer().root.position.y-7.6)>.5||elapsed>120))cancel('你已离开或本次等待过久');
@@ -148,8 +157,8 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
     }
     if(order===o&&o.actComplete&&o.drinkComplete){const unit=japanServiceMoney(o.currency).displayUnit;finish('节目与饮品已完成',true);notify(`这次演艺茶席已完成，绫乃按实际完成的服务结清${unit}`);}
    }
-   for(const n of [...returns]){if(isSociallyHeld(n.station.id,conversation)||!unseat(n))continue;if(move(n,n.home.toArray(),dt)){returns.delete(n);reset(n);}}
-   for(const n of cast){const a=order&&n===artist(),held=isSociallyHeld(n.station.id,conversation),performing=a&&!orderPaused&&order.status==='performing',tea=a&&n.serviceMount;
+   for(const n of [...returns]){if(employmentOwns(n)||isSociallyHeld(n.station.id,conversation)||!unseat(n))continue;if(move(n,n.home.toArray(),dt)){returns.delete(n);reset(n);}}
+   for(const n of cast){if(employmentOwns(n))continue;const a=order&&n===artist(),held=isSociallyHeld(n.station.id,conversation),performing=a&&!orderPaused&&order.status==='performing',tea=a&&n.serviceMount;
     if(performing&&!tea)n.root.rotation.y=Math.PI+Math.sin(t*.45)*.10;
     let hands=null,action=tea?'chair-sit':n===server?'tea':'relax';
     if(performing&&order.activity==='dance'){const wave=Math.sin(t*1.4);hands=[[-.24,1.08,.22],[.38+wave*.08,1.40+wave*.20,.18]];action=null;}
@@ -158,9 +167,9 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
     if(n===server&&['carrying','serving'].includes(order?.drinkStatus))hands=[[-.18,1.02,.32],[.18,1.02,.32]];
     pose(n,t,held?null:action,hands);const label=n.label?.querySelector?.('small');if(label)label.textContent=returns.has(n)?'返回歇场位置':a?labels[order.status]||n.station.npcLabel:n.station.npcLabel;
    }
-   props?.update(order,{server,artist:artist(),player:getPlayer()},t);
+   if(order||!workPropsActive&&!employmentBlocks())props?.update(order,{server,artist:artist(),player:getPlayer()},t);
   },
-  view(){return {order:clone(order),label:order?labels[order.status]:returns.size?'艺者与侍者正在返位':null,lastReply:clone(lastReply),lastResult:clone(lastResult),candidates:artists.filter(eligible).map(n=>({id:n.station.id,name:n.station.npcName,ageYears:n.station.ageYears,specialty:n.station.performance.specialty,preference:n.station.performance.preference,available:!order&&!returns.size&&!isActorBusy(n),activities:n.station.performance.activities.map(id=>({...ACT[id],currency:JAPAN_SERVICE_CURRENCY}))})),drinks:DRINKS.map(d=>({...d,currency:JAPAN_SERVICE_CURRENCY})),currency:order?.currency||JAPAN_SERVICE_CURRENCY,money:japanServiceMoney(order?.currency||JAPAN_SERVICE_CURRENCY),cash:japanServiceCash(copperLedger,order?.currency||JAPAN_SERVICE_CURRENCY),paymentError,returning:returns.size>0};},
+  view(){return {order:clone(order),label:order?labels[order.status]:returns.size?'艺者与侍者正在返位':null,lastReply:clone(lastReply),lastResult:clone(lastResult),candidates:artists.filter(eligible).map(n=>({id:n.station.id,name:n.station.npcName,ageYears:n.station.ageYears,specialty:n.station.performance.specialty,preference:n.station.performance.preference,available:!order&&!returns.size&&!employmentBlocks()&&!isActorBusy(n),activities:n.station.performance.activities.map(id=>({...ACT[id],currency:JAPAN_SERVICE_CURRENCY}))})),drinks:DRINKS.map(d=>({...d,currency:JAPAN_SERVICE_CURRENCY})),currency:order?.currency||JAPAN_SERVICE_CURRENCY,money:japanServiceMoney(order?.currency||JAPAN_SERVICE_CURRENCY),cash:japanServiceCash(copperLedger,order?.currency||JAPAN_SERVICE_CURRENCY),paymentError,returning:returns.size>0};},
   snapshot:()=>({version:1,time,serial,order:clone(order),lastReply:clone(lastReply),lastResult:clone(lastResult),phase,elapsed,drinkPhase,returns:[...returns].map(n=>n.station.id),history:clone(history),relationshipEvents:clone(relationshipEvents),life:life.snapshot()}),
   restore(s){if(s?.version!==1||s.order&&(!artists.some(n=>n.station.id===s.order.artistId)||!labels[s.order.status]||!ACT[s.order.activity]))return false;relationshipEvents=[...new Map([...relationshipEvents,...clone(s.relationshipEvents||[])].map(e=>[e.id,e])).values()];replayRelationships();time=Math.max(0,s.time||0);serial=Math.max(serial,s.serial||0);order=clone(s.order);bindQuote(order);lastReply=clone(s.lastReply);lastResult=clone(s.lastResult);phase=Math.max(0,s.phase||0);elapsed=Math.max(0,s.elapsed||0);drinkPhase=Math.max(0,s.drinkPhase||0);returns.clear();for(const id of s.returns||[]){const n=cast.find(n=>n.station.id===id);if(n)returns.add(n);}history.splice(0,history.length,...clone(s.history||[]));routes.clear();if(order&&order.status!=='invited'&&order.status!=='reply'){if(!furniture.facilities.request(TABLE,order.id)){order=null;return false;}if(['performing','drinking'].includes(order.status))furniture.facilities.occupy(TABLE,order.id);}if(order?.paid)for(const part of ['act','drink']){const hold=copperLedger.reservations().find(h=>h.id===order.id+':'+part);if(hold?.status==='settled')order[part+'Complete']=true;}props?.update(order,{server,artist:artist(),player:getPlayer()},time);return true;},
   state(){return {...api.view(),history:clone(history),failures:clone(failures),life:life.snapshot(),actors:cast.map(n=>({id:n.station.id,position:n.root.position.toArray(),mounted:n.serviceMount?.id||null})),props:props?.state()||null};},
