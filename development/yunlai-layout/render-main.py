@@ -24,8 +24,8 @@ for idx,entry in enumerate(data['meshes']):
   mix=nodes.new('ShaderNodeMixRGB');mix.blend_type='ADD';mix.inputs[0].default_value=1;links.new(col.outputs['Color'],mix.inputs[1]);mix.inputs[2].default_value=(*(np.array(m['emissive'])*m['emissiveIntensity']),1);links.new(mix.outputs[0],bs.inputs['Emission Color'])
  bs.inputs['Alpha'].default_value=m['opacity'];links.new(bs.outputs[0],out.inputs[0]);mesh.materials.append(mat)
  if idx%25==0: print('Imported',idx,flush=True)
-scene=bpy.context.scene;scene.render.engine='CYCLES';scene.cycles.device='CPU';scene.cycles.samples=12;scene.cycles.use_denoising=True;scene.cycles.max_bounces=3;scene.cycles.diffuse_bounces=2;scene.cycles.transparent_max_bounces=4
-scene.render.resolution_x=1120;scene.render.resolution_y=700;scene.render.resolution_percentage=100
+scene=bpy.context.scene;scene.render.engine='CYCLES';scene.cycles.device='CPU';scene.cycles.samples=12;scene.cycles.use_denoising=False;scene.cycles.max_bounces=3;scene.cycles.diffuse_bounces=2;scene.cycles.transparent_max_bounces=4
+scene.render.resolution_x=960;scene.render.resolution_y=600;scene.render.resolution_percentage=100
 scene.render.image_settings.file_format='PNG';scene.view_settings.view_transform='Standard';scene.view_settings.look='Medium High Contrast' if False else 'None';scene.view_settings.exposure=0;scene.view_settings.gamma=1
 world=bpy.data.worlds.new('Daylight representative');world.use_nodes=True;world.node_tree.nodes['Background'].inputs['Color'].default_value=(.39,.55,.52,1);world.node_tree.nodes['Background'].inputs['Strength'].default_value=.6;scene.world=world
 sun=bpy.data.lights.new('Production-direction sun','SUN');sun.energy=1.6;sun.color=(1,.85,.65);sun.angle=math.radians(12);so=bpy.data.objects.new('Production-direction sun',sun);bpy.context.collection.objects.link(so);so.rotation_euler=Vector(cv([14,-26,-15])).to_track_quat('-Z','Y').to_euler()

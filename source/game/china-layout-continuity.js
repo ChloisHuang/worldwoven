@@ -1,3 +1,4 @@
+import {salonArtistStations} from './china-tavern-salon-artists.js';
 // Only stale spatial intent is invalidated. Saved bodies stay where the shared
 // continuity resolver can safely restore them; no lift/teleport moves a worker
 // to the relocated kitchen, and no order, balance or receipt is rewritten here.
@@ -16,7 +17,7 @@ export function migrateChinaLayoutContinuity(saved){
    if(moved(state.mountId))state.mountId=null;
   }
   const a=cp.activity;if(a){if(moved(a.seated))a.seated=null;if(changed(a.destination))a.destination=null;
-   const ref=a.performing;if(!legacy&&ref&&!ref.provider&&['cn-tavern-reciter','cn-tavern-storyteller','cn-tavern-songwriter','cn-tavern-chess-poet'].includes(ref.id)){a.target={...ref};a.pending={...ref};a.performing=null;a.actionTime=0;}if(legacy&&ref&&(ref.id==='cn-cooking'||ref.id?.startsWith('cn-tavern-')||ref.provider?.includes('royal-kitchen')||ref.provider?.includes('tavern'))){a.performing=null;a.actionTime=0;}
+   const ref=a.performing;if(!legacy&&ref&&!ref.provider&&['cn-tavern-reciter','cn-tavern-storyteller','cn-tavern-songwriter','cn-tavern-chess-poet'].includes(ref.id)){a.target={...ref};a.pending=null;a.destination=salonArtistStations().find(s=>s.id===ref.id).position.slice();a.performing=null;a.actionTime=0;}if(legacy&&ref&&(ref.id==='cn-cooking'||ref.id?.startsWith('cn-tavern-')||ref.provider?.includes('royal-kitchen')||ref.provider?.includes('tavern'))){a.performing=null;a.actionTime=0;}
   }
  }
  saved.chinaLayoutRevision=CHINA_LAYOUT_REVISION;return true;
