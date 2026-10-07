@@ -218,3 +218,18 @@ test('France standby clears the original east wall and piano bench without movin
  const a=new Vector3(24.5,.23,.12),b=new Vector3(...p);
  for(const [from,to]of[[a,b],[b,a]])assert(canTraverse(from,to,colliders,options));
 });
+
+
+test('France player uses wider original chair aisle while NPC-sized waypoint remains unchanged',()=>{
+ const chair={minX:20.41,maxX:21.59,minZ:.75,maxZ:1.95};
+ const westChair={minX:18.04,maxX:19.22,minZ:.28,maxZ:1.48};
+ const counter={minX:22.15,maxX:24.61,minZ:1,maxZ:1.64};
+ const cabinet={minX:22.285,maxX:24.595,minZ:2.85,maxZ:3.23};
+ const colliders=[chair,westChair,counter,cabinet],options={bounds:{minX:-30,maxX:30,minZ:-40,maxZ:40},radius:.39};
+ assert(!blocked(21.35,2.23,colliders,.25,options));assert(blocked(21.35,2.23,colliders,.34,options));
+ const f=fixture('france'),home=FRANCE_EXCHANGE_COUNTER.points.teller,front=FRANCE_EXCHANGE_COUNTER.points.counter;
+ for(const [from,to]of[[front,home],[home,front]]){
+  f.move(from);const points=f.employment.approachPoints({position:to});assert.deepEqual(points[0],[19.9,.23,from===home?2.6:.12]);
+  let start=new Vector3(...from);for(const point of points){const end=new Vector3(...point);assert(canTraverse(start,end,colliders,options),JSON.stringify({from:start.toArray(),to:point}));start=end;}
+ }
+});
