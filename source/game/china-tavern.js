@@ -34,7 +34,7 @@ export function buildChinaTavern(G,A){
   // Camera solids follow the existing chair's actual seat, back and arms. A
   // full tall box puts the mounted head inside an invisible camera obstacle.
   model.updateWorldMatrix(true,true);for(const m of model.userData.royalSeating.members.filter(m=>m.camera)){const b=m.bounds,q=new THREE.Box3(new THREE.Vector3(b.minX,b.minY,b.minZ),new THREE.Vector3(b.maxX,b.maxY,b.maxZ)).applyMatrix4(model.matrixWorld);cameraColliders.push({minX:q.min.x,maxX:q.max.x,minY:q.min.y,maxY:q.max.y,minZ:q.min.z,maxZ:q.max.z,owner:id});}
-  additionalFurnitureSeats.push({id,name,x,y,z,yaw,width:.9,depth:.9,seatY:y+.66,front:.275,...(id.startsWith('china-tavern-dining-')?{approachYaw:x<21?Math.PI/2:-Math.PI/2}:id.startsWith('china-tavern-window-')?{approachYaw:Math.PI}:{})});};
+  additionalFurnitureSeats.push({id,name,x,y,z,yaw,width:.9,depth:.9,seatY:y+.66,front:.275,...(id.startsWith('china-tavern-dining-')?{approachYaw:x<21?Math.PI/2:-Math.PI/2}:id.startsWith('china-tavern-window-')?{approachYaw:Math.PI}:id.startsWith('china-tavern-banquet-')?{approachYaw:Math.PI/2}:{})});};
  const softLayer=(parent,x,y,z,w,h,d,color)=>{const b=Math.min(.035,h*.30),hw=w/2-b,hd=d/2-b,r=.08,q=new THREE.Shape();q.moveTo(-hw+r,-hd);q.lineTo(hw-r,-hd);q.quadraticCurveTo(hw,-hd,hw,-hd+r);q.lineTo(hw,hd-r);q.quadraticCurveTo(hw,hd,hw-r,hd);q.lineTo(-hw+r,hd);q.quadraticCurveTo(-hw,hd,-hw,hd-r);q.lineTo(-hw,-hd+r);q.quadraticCurveTo(-hw,-hd,-hw+r,-hd);q.closePath();const m=G.mesh(parent,new THREE.ExtrudeGeometry(q,{depth:h-2*b,bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:2,curveSegments:5}),color,x,y-h/2+b,z);m.rotation.x=-Math.PI/2;return m;};
  const consoleTable=(g,x,y,z,w=2.7)=>{const top=table(g,x,y,z,w,.62,.95);H.flowerBranches(g,x-w*.27,top,z);G.vessel(g,x+w*.25,top,z,0x86a8a0,.5);};
 
@@ -87,7 +87,7 @@ export function buildChinaTavern(G,A){
  wall(g0,'x',10.2,16,26,.215,3.77,[opening('cn-tavern-dining-hall','酒楼与公共梯厅','x',10.2,20.0,23.0,.215,['tavern-dining','tavern-hall-1'])]);
  room('tavern-dining','云来一层酒楼',16,26,10.2,21,.215,3.77);
  // Staggered dining islands use both halves of the expanded room. The central
- // 2.6m service spine and the straight south/front door route remain open.
+ // staggered service spine and the straight south/front door route remain open.
  for(const{x,z,seatKey}of TAVERN_TABLE_LAYOUT){rug(g0,x,.215,z,3.45,4.55,0x8f7160);const top=table(g0,x,.215,z,1.45,1.12,.90);H.teaSet(g0,x,top,z,0xb9c7ac);H.bowl(g0,x-.35,top,z+.24,0xf1dfbb,.18);for(const[side,yaw]of[[-1,0],[1,Math.PI]])chair(g0,'china-tavern-dining-'+seatKey+'-'+side,'酒楼雕花餐椅',x,.215,z+side*1.32,yaw);}
  // Low sideboards balance the two dining islands without adding unsold seats.
  consoleTable(g0,18.25,.215,20.28,2.65);
@@ -153,23 +153,23 @@ export function buildChinaTavern(G,A){
 
  // Top floor: a deep textile-backed performance room and a separate banquet
  // salon, both reached from the same public hall. No beds or erotic animations.
- wall(g2,'x',10.2,16,26,7.815,11.57,[opening('cn-tavern-performance-entry','青楼琴歌雅集敞厅','x',10.2,19.0,21.6,7.815,['tavern-performance','tavern-hall-3']),opening('cn-tavern-banquet-entry','青楼宴饮厅','x',10.2,23.3,25.4,7.815,['tavern-banquet','tavern-hall-3'])]);
- wall(g2,'z',22.3,10.2,21,7.815,11.57,[opening('cn-tavern-salon-arch','琴歌厅与宴饮雅间','z',22.3,17.1,19.4,7.815,['tavern-performance','tavern-banquet'])]);
- room('tavern-performance','顶层青楼 · 琴歌雅集厅',16,22.3,10.2,21,7.815,11.57);room('tavern-banquet','顶层青楼 · 宴饮雅间',22.3,26,10.2,21,7.815,11.57);
- rug(g2,19.15,7.815,18.2,5.40,4.65,0x8c4255);
+ wall(g2,'x',10.2,16,26,7.815,11.57,[opening('cn-tavern-performance-entry','青楼琴歌雅集敞厅','x',10.2,17.4,20.4,7.815,['tavern-performance','tavern-hall-3']),opening('cn-tavern-banquet-entry','青楼宴饮厅','x',10.2,22.0,25.2,7.815,['tavern-banquet','tavern-hall-3'])]);
+ wall(g2,'z',21,10.2,21,7.815,11.57,[opening('cn-tavern-salon-arch','琴歌厅与宴饮雅间','z',21,15.65,20.3,7.815,['tavern-performance','tavern-banquet'])]);
+ room('tavern-performance','顶层青楼 · 琴歌雅集厅',16,21,10.2,21,7.815,11.57);room('tavern-banquet','顶层青楼 · 宴饮雅间',21,26,10.2,21,7.815,11.57);
+ rug(g2,18.5,7.815,17.9,4.3,5.15,0x8c4255);
  // Soft deep pleats belong to the backdrop wall; their depth does not block the aisle.
- for(let i=0;i<19;i++)G.box(g2,16.55+i*.28,9.45,20.69,.19,2.85,.16,i%2?0x9c4350:0x7c3348);
- G.box(g2,19.10,10.90,20.67,5.55,.22,.23,C.gold);
- const qinTop=table(g2,18.8,7.815,19.50,2.42,.61,.90);
+ for(let i=0;i<15;i++)G.box(g2,16.55+i*.28,9.45,20.69,.19,2.85,.16,i%2?0x9c4350:0x7c3348);
+ G.box(g2,18.5,10.90,20.67,4.4,.22,.23,C.gold);
+ const qinTop=table(g2,18.4,7.815,19.50,2.42,.61,.90);
  // Original seven-string qin with tapered body, bridges and golden studs.
- const qin=new THREE.Group();qin.name='云来楼 seven-string qin';qin.position.set(18.8,qinTop+.07,19.50);g2.add(qin);const outline=new THREE.Shape();outline.moveTo(-1.06,-.13);for(const[x,z]of[[-.88,-.18],[-.65,-.18],[-.43,-.145],[.48,-.14],[.72,-.17],[1.06,-.12],[1.06,.12],[.72,.17],[.48,.14],[-.43,.145],[-.65,.18],[-.88,.18],[-1.06,.13]])outline.lineTo(x,z);outline.closePath();const body=G.mesh(qin,new THREE.ExtrudeGeometry(outline,{depth:.12,bevelEnabled:false}),0x382c2b,0,-.06,0);body.rotation.x=-Math.PI/2;for(const x of[-.88,.81])G.box(qin,x,.09,0,.035,.075,.36,C.gold);for(let i=0;i<7;i++)G.box(qin,0,.083,(i-3)*.041,1.98,.009,.007,0xd7c8a0);
- for(const x of[17.5,20.65])chair(g2,'china-tavern-listening-'+x,'青楼听曲椅',x,7.815,16.85,0,'hall');
- const banquetTop=table(g2,24.2,7.815,18.2,1.36,1.10,.92);H.teaSet(g2,24.2,banquetTop,18.2,0xc29c74);H.bowl(g2,23.85,banquetTop,18.4,0xf0debd,.19);for(const[side,yaw]of[[-1,0],[1,Math.PI]])chair(g2,'china-tavern-banquet-'+side,'青楼宴饮椅',24.2,7.815,18.2+side*1.34,yaw,'hall');
- consoleTable(g2,24.25,7.815,4.0,2.9);sign(g2,'琴歌雅集',19.1,10.65,20.46,3.3,.54,Math.PI);sign(g2,'宴饮',24.2,10.87,10.42,1.8,.50);
+ const qin=new THREE.Group();qin.name='云来楼 seven-string qin';qin.position.set(18.4,qinTop+.07,19.50);g2.add(qin);const outline=new THREE.Shape();outline.moveTo(-1.06,-.13);for(const[x,z]of[[-.88,-.18],[-.65,-.18],[-.43,-.145],[.48,-.14],[.72,-.17],[1.06,-.12],[1.06,.12],[.72,.17],[.48,.14],[-.43,.145],[-.65,.18],[-.88,.18],[-1.06,.13]])outline.lineTo(x,z);outline.closePath();const body=G.mesh(qin,new THREE.ExtrudeGeometry(outline,{depth:.12,bevelEnabled:false}),0x382c2b,0,-.06,0);body.rotation.x=-Math.PI/2;for(const x of[-.88,.81])G.box(qin,x,.09,0,.035,.075,.36,C.gold);for(let i=0;i<7;i++)G.box(qin,0,.083,(i-3)*.041,1.98,.009,.007,0xd7c8a0);
+ for(const [key,x,z] of[[17.5,17.35,13.45],[20.65,19.65,14.35]])chair(g2,'china-tavern-listening-'+key,'青楼听曲椅',x,7.815,z,0,'hall');
+ const banquetTop=table(g2,23.5,7.815,13.7,1.36,1.10,.92);H.teaSet(g2,23.5,banquetTop,13.7,0xc29c74);H.bowl(g2,23.15,banquetTop,13.9,0xf0debd,.19);for(const[side,yaw]of[[-1,0],[1,Math.PI]])chair(g2,'china-tavern-banquet-'+side,'青楼宴饮椅',23.5,7.815,13.7+side*1.34,yaw,'hall');
+ consoleTable(g2,24.25,7.815,4.0,2.9);sign(g2,'琴歌雅集',18.5,10.65,20.46,3.3,.54,Math.PI);sign(g2,'宴饮',24.2,10.87,10.42,1.8,.50);
  sign(g2,'三层青楼',21,10.90,21.23,3.5,.58);
  const salonDesk=table(g2,24.15,7.815,6.3,2.6,.78,1.0);H.teaSet(g2,24.85,salonDesk,6.3,0xb7afa0);G.box(g2,23.5,salonDesk+.035,6.3,.46,.07,.35,0x744741);sign(g2,'雅集接待',24.15,10.15,6.72,2.12,.46);
  target('cn-tavern-salon-desk','三层青楼接待案',[24.15,7.815,7.65],'tavern-hall-3');
- target('cn-tavern-recital','青楼雅集听曲区',[20.6,7.815,18.4],'tavern-performance');
+ target('cn-tavern-recital','青楼雅集听曲区',[19.9,7.815,16.1],'tavern-performance');
 
  // Continuous perimeter eaves mark genuine floors. A narrower raised top roof
  // and extended front eave give this commercial house its own silhouette.

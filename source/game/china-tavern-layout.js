@@ -1,13 +1,13 @@
 // Spatial revision only: business identities, ledgers and completed work are
 // unchanged when the public hall moves north and the dining room grows.
-export const TAVERN_LAYOUT_VERSION=2;
+export const TAVERN_LAYOUT_VERSION=3;
 export const TAVERN_HALL_DZ=-5;
 export const TAVERN_DINING_DZ=-1.9;
 export const TAVERN_DINING_Z=16.2; // legacy row, retained only for old saves
 // Stable table and seat identities do not encode their current physical position.
 export const TAVERN_TABLE_LAYOUT=Object.freeze([
- Object.freeze({id:'west',seatKey:18.1,x:18.55,z:13.65}),
- Object.freeze({id:'east',seatKey:23.9,x:23.45,z:17.65})
+ Object.freeze({id:'west',seatKey:18.1,x:19,z:13.65}),
+ Object.freeze({id:'east',seatKey:23.9,x:23,z:17.65})
 ]);
 export const tavernSeatSide=seat=>seat?.id?.endsWith('--1')?-1:seat?.id?.endsWith('-1')?1:(seat?.center?.[2]??TAVERN_DINING_Z)<TAVERN_DINING_Z?-1:1;
 export function tavernTablePlace(id,side=-1){const {x,z}=TAVERN_TABLE_LAYOUT.find(t=>t.id===id)||TAVERN_TABLE_LAYOUT[0],inward=id==='west'?1:-1;return {tableId:id,servePoint:[x+inward*1.2,.215,+(z+side*.24).toFixed(8)],mealPoint:[x+inward*.36,1.21,+(z+side*.27).toFixed(8)]};}
