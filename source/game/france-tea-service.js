@@ -269,6 +269,10 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
   playerPose(t){if(playerServing()&&(order.holder==='host'||['take-tray','clear-tray'].includes(step)))return {handoff:true,heldProp:null,archery:{hands:[[-.19,1.12,.43],[.19,1.12,.43]]}};return order?.customer==='player'&&['drinking','lowering'].includes(order.stage)&&atSeat()?{archery:cupPose(getPlayer(),t).archery,handoff:true}:null;},
   playerRequest(id){if(duty){notify('请先当面交班，再坐下休息或点茶');return false;}if(id!==seat.id){cancel('换了座位');return;}if(order?.customer==='guest'||guest.serviceMount){notify('加布里埃尔还在茶位，请稍候');return false;}return true;},
   leaveSeat(id){if(id===seat.id)cancel('起身离开茶位');},
+  // The original tea/meal seat is the scene object even while walking there.
+  // Its marker clears the authored table camera box (top 1.36); food stays at
+  // the original 1.23 surface. Guest orders never become a carried menu.
+  menuTarget(){const o=order&&(!order.customer||order.customer==='player')?order:null;if(disposed||!o&&!intent&&!atSeat())return null;return {id:seat.id,name:'宫苑茶廊',targetKey:seat.id,targetName:'玛农的茶桌',action:'查看食单 · 正餐与下午茶',position:(atSeat()?seat.anchor:seat.position).slice(),executionRadius:1.8,interactionRadius:2.8,priority:52,intentKey:[seat.id,o?.id||'menu',o?.stage||'',!!o?.cancelled,!!o?.finished,!!intent].join(':'),visualAnchor:{id:'france-tea-table',point:[P.table[0],P.table[1]+.2,P.table[2]]}};},
   target(){const p=getPlayer();if(!p||duty)return null;const nearby=gap(p,[6.6,.16,8.35])<2.3||atSeat();if(!nearby&&!intent)return null;return {franceTea:true,id:'france-tea-service',name:'宫苑茶廊 · 玛农',action:order?.customer==='player'?'查看当前餐单':'查看食单 · 正餐与下午茶',status:intent?'正在走向茶位':order?orderLabel():'免费下午茶 · 4法国券正餐'};},
   interact(){if(intent){intent=false;return 'cancel-walk';}if(order?.customer==='player'&&!order.cancelled)return order.stage==='ready'?drink():cancel();return request();},
   statusLabel:id=>id===seat.id&&order?orderLabel():null,

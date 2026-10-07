@@ -70,7 +70,6 @@ export function createFranceMealUI({service,onOpen=()=>{},onStand=()=>{},onCance
   }else actions.append(button(o?.stage==='drinking'&&!o.cancelled?'收起 · 继续享用':o?.cancelled||o?.finished?'收起':'收起 · 等候',close,true,'close-primary'));
   if(view.intent&&!o)actions.append(button('取消前往茶位',fresh=>{if(fresh.intent&&!fresh.order){service.cancel();onCancelWalk();const after=context(service.view());if(!after.intent)close();else refresh(after);}},false,'cancel'));
   if(own&&!o.cancelled&&!o.finished&&!CLEANUP.has(o.stage))actions.append(button(paid?(settled(o)?'提前收餐 · 不退费':'取消点餐 · 退款'):'取消下午茶',fresh=>{if(owned(fresh.order)&&fresh.order.id===o.id&&!fresh.order.cancelled&&!fresh.order.finished&&!CLEANUP.has(fresh.order.stage)&&service.cancel())close();else refresh();},false,'cancel'));
-  if(view.seated)actions.append(button('起身',fresh=>{if(fresh.seated){close();onStand();}},false,'stand'));
   body.append(choices,detail);dialog.append(x,header,body,actions);
   for(const e of Array.from(dialog.querySelectorAll?.('[data-fr-meal-scroll]')||[]))e.scrollTop=scroll.get(e.getAttribute('data-fr-meal-scroll'))||0;
   if(focused)Array.from(dialog.querySelectorAll?.('[data-fr-meal-focus]')||[]).find(e=>e.getAttribute('data-fr-meal-focus')===focused&&!e.disabled)?.focus({preventScroll:true});
