@@ -31,16 +31,17 @@ const r=()=>main.namespace.tellerReview();const until=(pred,label,max=800)=>{let
 const country=process.env.TELLER_COUNTRY||'china',prefix={china:'cn',japan:'jp',france:'fr',egypt:'eg'}[country],currency=country==='china'?'copper':country,roleId=prefix+'-teller-auditor';
 if(!process.env.TELLER_RESUME){all.find(e=>e.dataset.region===country).onclick();ids.travel.onclick();}if(process.env.PROBE_STAGE==='load'){console.log('PASS world load only',country,process.resourceUsage().maxRSS/1024);return;}step(1);
 const svc=r().regionalTellerEmployment;assert(svc.forRole(roleId));
-assert(main.namespace.requestStationIntent(svc.intent('formal-view')),JSON.stringify({q:svc.intent('formal-view'),p:state().player,toast:ids.toast.textContent}));until(()=>r().careerHandbook.isOpen(),'walk to actual '+country+' original counter registration',1500);
-const button=label=>walk(dialog()).find(e=>e.tagName==='button'&&e.textContent===label);assert(button('提交职位申请'));button('提交职位申请').onclick();until(()=>r().formalCareers.applicationResult(roleId)?.status==='pending','saved local pending application',1);
-if(process.env.TELLER_STOP_AFTER==='registration'){
- main.namespace.save();
- const checkpoint=path.resolve('qa','regional-teller-'+country+'-registration.json');
- fs.writeFileSync(checkpoint,storage['worlds-days-v1']);
- console.log('PASS registration checkpoint saved',country,checkpoint,(Date.now()-started)/1000);
- return;
-}
-button('当面核验资格与职责').onclick();until(()=>r().formalCareers.isHired(roleId),'same original teller interview',1200);assert(!svc.state().shift);r().careerHandbook.close();assert(main.namespace.requestStationIntent(svc.intent('accept')));until(()=>svc.state().shift?.stage==='working','original safe handoff',1200);step(120);
+const stopAfter=process.env.TELLER_STOP_AFTER;
+const checkpoint=stage=>{main.namespace.save();const file=path.resolve('qa','regional-teller-'+country+'-'+stage+'.json');fs.writeFileSync(file,storage['worlds-days-v1']);console.log('PASS '+stage+' checkpoint saved',country,file,(Date.now()-started)/1000);};
+const savedApplication=process.env.TELLER_RESUME?JSON.parse(fs.readFileSync(process.env.TELLER_RESUME,'utf8')).formalCareers.applications.byRole[roleId]:null;
+if(stopAfter==='interview'){assert.equal(savedApplication?.status,'pending');assert.equal(r().formalCareers.applicationResult(roleId)?.id,savedApplication.id);assert(!r().formalCareers.isHired(roleId));assert(!svc.state().shift);}
+assert(main.namespace.requestStationIntent(svc.intent('formal-view')),JSON.stringify({q:svc.intent('formal-view'),p:state().player,toast:ids.toast.textContent}));until(()=>r().careerHandbook.isOpen(),'walk to actual '+country+' original counter registration',stopAfter==='interview'?80:1500);
+const button=label=>walk(dialog()).find(e=>e.tagName==='button'&&e.textContent===label);
+if(stopAfter==='registration'){assert(button('提交职位申请'));button('提交职位申请').onclick();until(()=>r().formalCareers.applicationResult(roleId)?.status==='pending','saved local pending application',1);checkpoint('registration');return;}
+assert.equal(r().formalCareers.applicationResult(roleId)?.id,savedApplication.id,'resume must keep the same pending application');
+assert(button('当面核验资格与职责'));button('当面核验资格与职责').onclick();until(()=>r().formalCareers.isHired(roleId),'same original teller interview',240);assert(!svc.state().shift);
+if(stopAfter==='interview'){assert.equal(r().formalCareers.applicationResult(roleId)?.id,savedApplication.id);checkpoint('interview');return;}
+r().careerHandbook.close();assert(main.namespace.requestStationIntent(svc.intent('accept')));until(()=>svc.state().shift?.stage==='working','original safe handoff',1200);step(120);
 // Explicit clock fixture; the original China NPC audit may have used today.
 main.namespace.tellerNextDay();
 const beforeBalance=r().copperLedger.balances();

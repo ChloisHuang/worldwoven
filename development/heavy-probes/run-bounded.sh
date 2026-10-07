@@ -7,9 +7,12 @@ flock -n 9 || { echo 'Another Worldwoven heavy-scene probe is running' >&2; exit
 export WORLDWOVEN_GUARDED=1
 export PROBE_STAGE="${1:-unit}"
 if [[ "$PROBE_STAGE" == init ]]; then unset SOCIAL_RESUME TELLER_RESUME; fi
-if [[ "$PROBE_STAGE" == run && "${TELLER_STOP_AFTER:-}" != registration ]]; then
-  echo 'Recovery simulation currently requires TELLER_STOP_AFTER=registration' >&2
-  exit 64
+if [[ "$PROBE_STAGE" == run ]]; then
+  case "${TELLER_STOP_AFTER:-}" in
+    registration) [[ -z "${TELLER_RESUME:-}" ]] || { echo 'Registration requires fresh input' >&2; exit 64; } ;;
+    interview) [[ -f "${TELLER_RESUME:-}" ]] || { echo 'Interview requires the real registration checkpoint' >&2; exit 64; } ;;
+    *) echo 'Choose registration or interview recovery stop explicitly' >&2; exit 64 ;;
+  esac
 fi
 case "$PROBE_STAGE" in
   unit) target=development/heavy-probes/check-dom.cjs ;;
