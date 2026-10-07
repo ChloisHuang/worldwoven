@@ -358,7 +358,13 @@
       "china-salon-stories.mjs",
       "china-piecework-career-core.mjs",
       "china-piecework-employment.mjs",
-      "china-piecework-main.cjs"
+      "china-piecework-main.cjs",
+      "regional-teller-audit-core.mjs",
+      "regional-teller-career-core.mjs",
+      "regional-teller-career-panel.mjs",
+      "regional-teller-employment.mjs",
+      "regional-teller-main.cjs",
+      "regional-teller-physical.cjs"
     ]
   },
   "world-life": {
