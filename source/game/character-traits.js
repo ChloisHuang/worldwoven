@@ -8,8 +8,8 @@ export const SHAPE_RANGES=Object.freeze(Object.fromEntries(Object.entries({
  chinLength:[.88,1.12],chinProjection:[.85,1.15],
  noseBridgeHeight:[.80,1.20],noseTipSize:[.80,1.20]
 }).map(([key,[min,max]])=>[key,Object.freeze({min,max,default:1})])));
-// Version 1 remains the normal-entry compatibility contract. The explicitly
-// selected candidate uses version 2 after the player's clarified nose preference:
+// Version 1 remains the saved six-trait identity compatibility contract. New
+// random identities use version 2 after the player's clarified nose preference:
 // narrow/small wings and tip, but a high, defined bridge. Chin length/projection
 // have no requested score direction and remain geometric controls only.
 export const LEGACY_SHAPE_KEYS=Object.freeze(['jawWidth','legLength','eyeSize','noseSize','noseWidth','socketDepth']);

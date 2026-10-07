@@ -1,4 +1,25 @@
-# C01 opt-in actor integration
+# C01/C02 current ordinary-play character entry
+
+## C02 ten-control main-game rollout (development candidate, 2026-10-07)
+
+The ordinary entry now uses the existing ten bounded appearance controls and shared generator. `character-preview=1` is only an isolated-storage/art-preview option; it no longer enables a separate parameter or scoring policy. The normal wardrobe offers jaw width, chin length/projection, eye size/socket depth, nose bridge height/tip size/wing size/width, and leg length. Random, manual edits, confirmation/cancel, and the existing 100 ms drag/release behavior use the same handlers in all four countries. No new slider, geometry, hairstyle, material, hand pose or clothing fit was added in this rollout.
+
+Scoring compatibility is explicit in the appearance save (schema 3 gains `playerScoreVersion` and `npcScoreVersion`):
+
+- Old ordinary six-trait saves keep seed, identity, colors, original six values, NPC generation version 1, and score version 1. Missing four controls are neutral (1). Adding neutral fields is the only automatic visual migration.
+- Existing unversioned schema-3 ten-trait preview saves are identifiable by their complete ten fields and keep their historical version-2 score, including preview worlds whose NPC generation remains version 1. Explicit saved score versions are authoritative thereafter; invalid versions fall back to 1.
+- New worlds use ten fields, NPC generation version 2, and score version 2. NPC v2 retains v1 six-value/color/identity salts and only adds four independent bounded draws. All four resident creation paths and the Japanese visitor path continue passing the saved world generation version.
+- Manually editing an old character retains its score version; the four controls always deform the current complete head. Confirming a new random player appearance adopts v2 for that player only. Cancel discards both draft traits and draft score-version change. Player rerolls never upgrade or reroll existing NPCs.
+- Internal NPC and player gameplay score consumers read those persisted versions, including consort and salon consumers. NPC scores remain hidden everywhere. Only the player's current random preview displays a score; manual edits, confirm/cancel and reopen hide it. No formula is shown in the UI.
+
+This completes the main-entry wiring previously held behind the preview gate, not acceptance of overall character art. Existing R16.164 full assembly/hairstyle/headgear and R16.167 hand evidence is reused because those implementations are unchanged. Focused migration, randomization, visibility and storage-boundary checks pass, including ten actual-main startup cases and all six preview-storage cases. The full four-country geometry/main test exceeded its prior 300-second budget and was stopped (exit 130, about 395 seconds, no per-country result); the queued whole-scene wardrobe controller did not run. Neither is counted as passing. The bounded integration check passes with real four-country builders/station rosters and role-appearance functions, extracted real main configureNPCs/buildPlayer and an actor spy: China 31, Japan 18, Egypt 16, France 7, both old shape1/score1 and new shape2/score2 worlds. The distinct Japanese visitor creation/wardrobe callback also preserves parameters and scores, including historical shape1/score2. The original process-tree guard recorded 8.361 s / 843.547 MiB against 30 s / 1228.8 MiB. This verifies call-site wiring, not new rendered-world evidence; existing geometry and wardrobe evidence is reused. Browser/mobile layout and user aesthetic acceptance remain unclaimed.
+
+Final candidate checks: existing `appearance`, `npc-random-appearance`, `random-appearance` (2,048 generated players), score-independence (including all five main consumers), score-visibility, preview-storage (6 cases), actual-main reload (10 cases), and static wardrobe layout checks pass. The ordinary-mode DOM handler check uses `preview=false` and validates all ten inputs/bounds/accessibility, ordinary save hint, edits/cancel, manual v1 retention, random player-v2/NPC-v1, confirm/reopen and score hiding. Scroll layout assertions pass; CSS and visual layout are unchanged, so browser/phone layout evidence is historical only. Full live-main and full wardrobe-controller fixtures were updated to the new contract and syntax-checked, but are not claimed passed this batch. Final fresh build passes: 322 assets / 8,830,066 bytes (no prior deployment graph in this isolated worktree). No release version or audience was changed here; root owns publication.
+
+## Historical candidate integration records
+
+The sections below record the earlier opt-in implementation and its evidence. Statements about an ordinary six-trait entry, excluded candidate loading, unsupported saved hairstyles or role fallbacks are historical, superseded by R16.131/R16.164 and the current rollout above.
+
 
 ## Same-Site optional preview entry
 

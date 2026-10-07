@@ -67,23 +67,25 @@ for(const extended of [false,true]){
 const main=fs.readFileSync(new URL('../source/game/main.js',import.meta.url),'utf8');
 const scoreCalls=[...main.matchAll(/shapePreferenceScore\(([^)]*)\)/g)];
 assert(scoreCalls.length>=3,'player, residents and visitors retain score entry points');
-assert(scoreCalls.every(call=>call[1].includes('{version:CHARACTER_PREVIEW_ENABLED?2:1}')),'every score entry explicitly chooses the same preview-specific version, including later career/readout consumers');
+assert(scoreCalls.every(call=>/\{version:(?:saved\.appearance\.(?:player|npc)ScoreVersion|outfitDraft\.playerScoreVersion)\?\?1\}/.test(call[1])),'every player/resident/visitor score entry uses its durable score version with legacy fallback');
+for(const [_,call]of scoreCalls){const version=call.startsWith('outfitDraft.player.shapeTraits')?'outfitDraft.playerScoreVersion':call.startsWith('saved.appearance.player.shapeTraits')?'saved.appearance.playerScoreVersion':'saved.appearance.npcScoreVersion';assert(call.includes('{version:'+version+'??1}'),'each consumer selects its own identity score version');}
 const readout=main.match(/function refreshAppearanceScore\(\)\{([\s\S]*?)\n\}/)?.[1];assert(readout);
-for(const preview of [false,true]){
+for(const version of [undefined,1,2]){
  const elements=new Map(),element=id=>{if(!elements.has(id))elements.set(id,{});return elements.get(id);};
- new Function('$','outfitRandomScoreVisible','outfitDraft','shapePreferenceScore','CHARACTER_PREVIEW_ENABLED',readout)(element,true,{player:{shapeTraits:oldTraits}},shapePreferenceScore,preview);
- assert.equal(element('appearance-score').textContent,(preview?88:100)+' / 100','actual readout uses the selected formula');
+ new Function('$','outfitRandomScoreVisible','outfitDraft','shapePreferenceScore',readout)(element,true,{playerScoreVersion:version,player:{shapeTraits:oldTraits}},shapePreferenceScore);
+ assert.equal(element('appearance-score').textContent,(version===2?88:100)+' / 100','actual readout uses the persisted formula or historical fallback');
 }
 const handler=main.match(/^function previewRandomCharacter\(\).*$/m)?.[0];assert(handler);
-function playerRoller(extended){
+function playerRoller(preview=false){
  return new Function('randomizePlayerAppearance','Math','CHARACTER_PREVIEW_ENABLED','appearance',`
   let outfitDraft=null,outfitShapeDirty=false,outfitShapeLastAt=0,outfitRandomScoreVisible=false;
   const saved={appearance},performance={now:()=>0},outfitPreview={state:()=>({open:true}),select:i=>i};
   const buildPlayer=()=>{},refreshOutfitChoices=()=>{};
   ${handler}
-  return ()=>{previewRandomCharacter();return outfitDraft.player;};
- `)(randomizePlayerAppearance,Math,extended,base);
+  return ()=>{previewRandomCharacter();if(outfitDraft.playerScoreVersion!==2||Object.keys(outfitDraft.player.shapeTraits).length!==10)throw Error('normal and preview buttons must create versioned ten-trait identity');return outfitDraft.player;};
+ `)(randomizePlayerAppearance,Math,preview,base);
 }
+for(const preview of [false,true])playerRoller(preview)();
 const makeRow=()=>({count:0,sum:0,sumSquares:0,high80:0,high90:0,traitSums:Array(LEGACY_SHAPE_KEYS.length).fill(0)});
 const add=(row,value,traits)=>{
  row.count++;row.sum+=value;row.sumSquares+=value*value;row.high80+=value>=80;row.high90+=value>=90;
@@ -107,9 +109,9 @@ function audit(label,n,roll,scoreVersion=1){
  console.error(JSON.stringify({label,n,meanScore:result.meanScore,high90:result.high90,scoreLuminanceCorrelation:result.scoreLuminanceCorrelation,byTone:result.byTone}));
  return result;
 }
-const report={status:'PASS',scope:'Actual production random button and appearance generator; CPU logic only, no renderer or real-device claim',runtime:process.version,runtimeFlags:process.execArgv,skinCount:skins.length,invariantComparisons,scoredTraits:{v1:LEGACY_SHAPE_KEYS,v2:[...LEGACY_SHAPE_KEYS,'noseBridgeHeight','noseTipSize']},unscoredExtraTraits:{v1:extraKeys,v2:['chinLength','chinProjection']},drawCounts:{formal:13,candidate:17,outfitAdditional:1},samples:[]};
+const report={status:'PASS',scope:'Actual production random button and appearance generator; CPU logic only, no renderer or real-device claim',runtime:process.version,runtimeFlags:process.execArgv,skinCount:skins.length,invariantComparisons,scoredTraits:{v1:LEGACY_SHAPE_KEYS,v2:[...LEGACY_SHAPE_KEYS,'noseBridgeHeight','noseTipSize']},unscoredExtraTraits:{v1:extraKeys,v2:['chinLength','chinProjection']},drawCounts:{normal:17,preview:17,explicitLegacyAPI:13,outfitAdditional:1},samples:[]};
 if(samples){
- report.samples.push(audit('candidate-ten-controls-runtime-Math.random',samples,playerRoller(true),candidateScoreVersion));
- report.samples.push(audit('formal-six-controls-runtime-Math.random',samples,playerRoller(false)));
+ report.samples.push(audit('normal-ten-controls-runtime-Math.random',samples,playerRoller(false),candidateScoreVersion));
+ report.samples.push(audit('explicit-legacy-six-controls-runtime-Math.random',samples,()=>randomizePlayerAppearance(base,Math.random,{extended:false}).player));
 }
 console.log(JSON.stringify(report,null,2));

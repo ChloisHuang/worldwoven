@@ -4,16 +4,18 @@ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 let harness=fs.readFileSync(path.join(__dirname,'fixtures/hotfix-input-harness.cjs'),'utf8');
 harness=harness.replace("const root=path.resolve('source')","const root=path.resolve(process.env.SOURCE_ROOT||'source')");
 harness=harness.replace("const document={body:new E('body'),","const document={body:new E('body'),head:new E('head'),");
-harness=harness.replace("search:''","search:'?character-preview=1'");
-harness=harness.replace('vm.createContext({console,','vm.createContext({atob,btoa,console,');
-harness=harness.replace("const main=mod(path.join(root,'game/main.js'));","const previewEntry=mod(path.join(root,'game/complete-adult/selection.js'));await previewEntry.link(linker);await previewEntry.evaluate();previewEntry.namespace.installActorPreview({playerOnly:true,hairFlow:true});const main=mod(path.join(root,'game/main.js'));");
+harness=harness.replace('{identifier:file,context}','{identifier:file,context,initializeImportMeta:meta=>{meta.url=require("node:url").pathToFileURL(file).href;}}');
+harness=harness.replace('add(...e){this.append(...e)}','prepend(...els){for(const e of els.reverse()){e.remove?.();e.parent=this;this.children.unshift(e);}}add(...e){this.append(...e)}');
+harness=harness.replace('getBoundingClientRect(){return','getClientRects(){return this.hidden?[]:[this.getBoundingClientRect()];}getBoundingClientRect(){return');
+harness=harness.replace('vm.createContext({console,','vm.createContext({structuredClone,Float32Array,Float64Array,Uint8Array,Uint8ClampedArray,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,DataView,atob,btoa,TextEncoder,TextDecoder,URL,URLSearchParams,console,');
+harness=harness.replace("const main=mod(path.join(root,'game/main.js'));","const liveEntry=mod(path.join(root,'game/character-live-entry.js'));await liveEntry.link(linker);await liveEntry.evaluate();const main=mod(path.join(root,'game/main.js'));");
 harness=harness.replace('addEventListener:(k,f)=>events[k]=f','addEventListener:(k,f)=>{const prior=events[k];events[k]=prior?(...args)=>{prior(...args);f(...args);}:f}');
 harness=harness.replace("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),", "new vm.SourceTextModule(fs.readFileSync(file,'utf8')+(file.endsWith('/game/main.js')?`\\nexport function appearanceReview(){return {saved,outfitDraft,player,furniture,lot,camera,cameraSolids,npcs,navOptions,seated,joy,keys};}`:''),");
 harness=harness.replace("assert.equal(state().appearanceVersion,3,'legacy save migrated before gameplay');", "assert.equal(state().appearanceVersion,3,'legacy save migrated before gameplay');");
 harness=harness.replace('context.window=context;','context.window=context;vm.runInContext("let randomSeed=13013;Math.random=()=>{randomSeed=(Math.imul(randomSeed,1664525)+1013904223)>>>0;return randomSeed/4294967296;};",context);');
 const begin=harness.indexOf('const report=[];for(let round=0;'),end=harness.indexOf('\nconsole.log(JSON.stringify(',begin);
 const body=String.raw`
-const gameStore=mod(path.join(root,'game/character-preview-gate.js')).namespace.gameStorage,formalBefore=storage['worlds-days-v1'];
+const gate=mod(path.join(root,'game/character-preview-gate.js')).namespace,gameStore=gate.gameStorage;assert.equal(gate.CHARACTER_PREVIEW_ENABLED,false);assert.equal(gameStore,context.localStorage);
 const report=[],review=()=>main.namespace.appearanceReview(),serial=x=>JSON.stringify(x),savedText=()=>serial(review().saved.appearance),draftText=()=>serial(review().outfitDraft),lookText=()=>serial(state().playerLook);
 const ranges=mod(path.join(root,'game/character-traits.js')).namespace.SHAPE_RANGES,scoreOf=traits=>mod(path.join(root,'game/character-traits.js')).namespace.shapePreferenceScore(traits,{version:2});
 const sliders=()=>all.filter(e=>e.dataset.shapeTrait),slider=key=>sliders().find(e=>e.dataset.shapeTrait===key),scoreHidden=()=>{assert(ids['appearance-score-readout'].hidden);assert.equal(ids['appearance-score'].textContent,'');assert(ids['appearance-score-note'].hidden);},controlsMatch=()=>{assert.equal(sliders().length,Object.keys(ranges).length);for(const [key,{min,max}]of Object.entries(ranges)){const input=slider(key);assert.equal(input.type,'range');assert.equal(Number(input.min),min);assert.equal(Number(input.max),max);assert.equal(Number(input.value),review().outfitDraft.player.shapeTraits[key]);assert(input.getAttribute('aria-label'));}};
@@ -29,7 +31,7 @@ for(const id of ['china','france','japan','egypt'].filter(id=>!process.argv[2]||
   ids['appearance-button'].onclick();assert(state().wardrobePreview.open);assert.equal(draftText(),original);scoreHidden();controlsMatch();
   // Native dialog keys never leak gameplay movement or interactions.
   key('KeyW');key('KeyE');key('KeyE',true);assert.equal(review().keys.size,0);
-  ids['random-character'].onclick();const randomDraft=draftText();assert.notEqual(randomDraft,original);assert.equal(savedText(),original,'preview must not mutate saved appearance');
+  ids['random-character'].onclick();const randomDraft=draftText();assert.equal(review().outfitDraft.playerScoreVersion,2);assert.equal(review().outfitDraft.npcScoreVersion,review().saved.appearance.npcScoreVersion);assert.notEqual(randomDraft,original);assert.equal(savedText(),original,'preview must not mutate saved appearance');
   assert.equal(serial(review().outfitDraft.player.shapeTraits),serial(state().playerLook.shapeTraits),'actual renderer receives draft shape traits');
   assert.equal(review().saved.appearance.seed,worldSeed);assert.equal(serial(residentLooks()),npcs);
   assert.match(ids['appearance-presentation'].textContent,/^[男女]性外形$/);assert.match(ids['appearance-score'].textContent,/^\d+ \/ 100$/);assert(!ids['appearance-score-readout'].hidden);assert.equal(ids['appearance-score'].textContent,scoreOf(review().outfitDraft.player.shapeTraits)+' / 100');controlsMatch();
@@ -40,9 +42,9 @@ for(const id of ['china','france','japan','egypt'].filter(id=>!process.argv[2]||
  }
  // Bounded manual edits update only the draft, then coalesce into one live
  // character rebuild. Interrupted drags must never leak into saved appearance.
- ids['appearance-button'].onclick();scoreHidden();const originalRoot=review().player.root;ids['outfit-dialog'].listeners.pointerdown({target:slider('jawWidth')});ids['outfit-dialog'].listeners.click({target:ids['outfit-dialog']});assert(state().wardrobePreview.open,'range drag released over backdrop cannot dismiss dialog');
+ ids['appearance-button'].onclick();scoreHidden();const manualScoreVersions=[review().outfitDraft.playerScoreVersion,review().outfitDraft.npcScoreVersion];const originalRoot=review().player.root;ids['outfit-dialog'].listeners.pointerdown({target:slider('jawWidth')});ids['outfit-dialog'].listeners.click({target:ids['outfit-dialog']});assert(state().wardrobePreview.open,'range drag released over backdrop cannot dismiss dialog');
  for(const [name,{min,max}]of Object.entries(ranges)){const input=slider(name);input.value=String(min-10);input.oninput();assert.equal(review().outfitDraft.player.shapeTraits[name],min);input.value=String(max+10);input.oninput();assert.equal(review().outfitDraft.player.shapeTraits[name],max);}
- controlsMatch();scoreHidden();assert.equal(review().player.root,originalRoot,'drag burst waits for render loop');assert.equal(savedText(),original);tick(1);assert.notEqual(review().player.root,originalRoot);assert.equal(serial(state().playerLook.shapeTraits),serial(review().outfitDraft.player.shapeTraits));
+ controlsMatch();scoreHidden();assert.equal(serial([review().outfitDraft.playerScoreVersion,review().outfitDraft.npcScoreVersion]),serial(manualScoreVersions),'manual edits retain both score versions');assert.equal(review().player.root,originalRoot,'drag burst waits for render loop');assert.equal(savedText(),original);tick(1);assert.notEqual(review().player.root,originalRoot);assert.equal(serial(state().playerLook.shapeTraits),serial(review().outfitDraft.player.shapeTraits));
  const renderedRoot=review().player.root;tick(2);assert.equal(review().player.root,renderedRoot,'unchanged draft does not rebuild each frame');const continued=slider('eyeSize');continued.value=String(ranges.eyeSize.min);continued.oninput();tick(1);assert.equal(review().player.root,renderedRoot,'continued drag is throttled within 100ms');continued.onpointerup();assert.notEqual(review().player.root,renderedRoot,'native pointer release flushes final drag immediately');
  const invalid=slider('jawWidth');invalid.value='not-a-number';invalid.oninput();assert.equal(review().outfitDraft.player.shapeTraits.jawWidth,1,'invalid native input fallback is neutral');invalid.onchange();assert.equal(state().playerLook.shapeTraits.jawWidth,1);const releasedRoot=review().player.root;tick(1);assert.equal(review().player.root,releasedRoot,'release flush does not rebuild twice');
  ids['outfit-cancel'].onclick();tick(1);assert.equal(savedText(),original);assert.equal(lookText(),look);scoreHidden();
@@ -68,5 +70,5 @@ for(const id of ['china','france','japan','egypt'].filter(id=>!process.argv[2]||
 `;
 harness=harness.slice(0,begin)+body+harness.slice(end);
 harness=harness.replace("totalActivityPaths:report.reduce((n,r)=>n+r.stations,0),",'');
-harness=harness.replace("storage:JSON.parse(storage['worlds-days-v1'])","isolatedPreviewStorage:JSON.parse(gameStore.getItem('worlds-days-v1')),formalStorageUnchanged:storage['worlds-days-v1']===formalBefore");
-new vm.Script(harness,{filename:path.join(__dirname,'random-appearance-controller-harness.cjs')}).runInNewContext({atob,btoa,require,console,process,Buffer,__dirname,__filename});
+harness=harness.replace("storage:JSON.parse(storage['worlds-days-v1'])","normalStorage:JSON.parse(gameStore.getItem('worlds-days-v1')),normalEntry:true");
+new vm.Script(harness,{filename:path.join(__dirname,'random-appearance-controller-harness.cjs')}).runInNewContext({structuredClone,Float32Array,Float64Array,Uint8Array,Uint8ClampedArray,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,DataView,atob,btoa,TextEncoder,TextDecoder,URL,URLSearchParams,require,console,process,Buffer,__dirname,__filename});

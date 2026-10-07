@@ -14,7 +14,7 @@ import {createGameCurrencyLedger} from '../source/game/currency-ledger.js';
 import {createSimulationClock} from '../source/game/simulation-clock.js';
 import {createFormalCareers} from '../source/game/formal-careers.js';
 import {createGameHealthWorld} from '../source/game/game-health-world.js';
-import {createChinaTavernLabor} from '../source/game/china-tavern-labor.js';
+import {migrateChinaLayoutContinuity} from '../source/game/china-layout-continuity.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const read=rel=>fs.readFileSync(path.join(root,rel),'utf8');
@@ -57,7 +57,7 @@ function balancedBlock(text,start){
  assert.fail('Unclosed source block');
 }
 function saveCallback(property){
- const marker=`saved:saved.${property}`,start=main.indexOf(marker);assert(start>=0,`actual main ${property} wiring exists`);
+ const marker=property==='chinaSalon'?`saved:continuitySaved(saved.${property},'${property}')`:`saved:saved.${property},`,start=main.indexOf(marker);assert(start>=0,`actual main ${property} wiring exists`);
  const arrow=main.indexOf('saveState:state=>',start);assert(arrow>=0);
  return 'state=>'+balancedBlock(main,arrow+'saveState:state=>'.length);
 }
@@ -66,13 +66,17 @@ function initialize(gameStorage,preview){
  assert(begin>=0&&end>begin,'actual main initialization has a bounded pre-scene seam');
  const confirmStart=main.indexOf('if(confirm){',main.indexOf('function closeOutfitPreview('));assert(confirmStart>=0);
  const confirm=balancedBlock(main,confirmStart+'if(confirm)'.length);
- const pagehide=main.match(/addEventListener\('pagehide',[^\n]+/);assert(pagehide,'actual pagehide flush exists');
+ const pagehide=main.match(/^addEventListener\('pagehide',\(\)=>[^\n]+/m);assert(pagehide,'actual pagehide flush exists');
  const visibilityStart=main.indexOf("document.addEventListener('visibilitychange',()=>");assert(visibilityStart>=0);
  const visibility=balancedBlock(main,visibilityStart+"document.addEventListener('visibilitychange',()=>".length);
- const dependencies={gameStorage,CHARACTER_PREVIEW_ENABLED:preview,ensurePlayerAge,
+ const dependencies={gameStorage,CHARACTER_PREVIEW_ENABLED:preview,ensurePlayerAge,migrateChinaLayoutContinuity,
   validAppearanceState:appearance.validAppearanceState,migrateAppearanceState:appearance.migrateAppearanceState,
   createAppearanceState:appearance.createAppearanceState,createCopperLedger,createGameCurrencyLedger,createSimulationClock,createFormalCareers,createGameHealthWorld,crypto:webcrypto};
- const code=main.slice(begin,end)+`
+ // Keep this existing storage check bounded to storage owners. Unrelated official/payroll
+ // startup is covered by its own module and is not needed to verify isolation.
+ const storageEnd=main.indexOf('// Government guarantees',begin),health=main.match(/^const gameHealth=.*$/m);assert(storageEnd>begin&&storageEnd<end&&health);
+ const code=main.slice(begin,storageEnd)+'\n'+health[0]+`
+ const cancelPlayerStandIntent=()=>{},resetTransientInput=()=>{},beginActorNavigationStep=()=>{};
  const events={},addEventListener=(name,fn)=>events[name]=fn;
  ${pagehide[0]}
  const document={hidden:true},showDoorwayHint=()=>{},clock={getDelta(){}},keys=new Set(),$=()=>({style:{}});let paused=false,joy={};
@@ -95,7 +99,7 @@ function stores(fixture=formalFixture()){
 const actor=(id,position={x:0,y:0,z:0})=>({station:{id},root:{position,rotation:{y:0}},walking:false});
 function rng(seed){let n=seed>>>0,calls=0;const draw=()=>{calls++;n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296;};draw.calls=()=>calls;return draw;}
 
-test('preview initialization, appearance, health, relationships, ledger and labor write only the isolated session save',()=>{
+test('preview initialization, appearance and existing save callbacks write only the isolated session save',()=>{
  const {normal,session}=stores(),before=normal.snapshot(),initialBytes=normal.getItem(key),locked=gate('?character-preview=1',normal,session);
  assert.equal(locked.CHARACTER_PREVIEW_ENABLED,true);assert.equal(locked.PREVIEW_NPCS_ENABLED,false);
  assert.equal(locked.gameStorage.getItem(key),initialBytes,'first preview read is the exact formal copy');
@@ -104,21 +108,15 @@ test('preview initialization, appearance, health, relationships, ledger and labo
  const draft=clone(game.saved.appearance);draft.player.shapeTraits.chinLength=1.12;game.confirmAppearance(draft,5);
  assert.equal(JSON.parse(session.getItem(PREVIEW_STORAGE_PREFIX+key)).appearance.player.shapeTraits.chinLength,1.12);
  assert(game.copperLedger.openAccount('preview-open').ok);assert(game.copperLedger.deposit(4,'preview-deposit').ok);
- const player=actor('player',{x:22.35,y:.215,z:11.7}),host=actor('cn-tavern-host',{x:24.1,y:.215,z:11.4});
- const labor=createChinaTavernLabor({employment:{isHired:()=>true,state:()=>({version:1,roleId:'cn-tavern-helper',revision:1})},getPlayer:()=>player,host,copperLedger:game.copperLedger,saved:game.saved.chinaLabor,saveState:game.persistLabor,document:null});
- assert(labor.accept());assert.equal(game.saved.chinaLabor.job.stage,'working');
- for(let table=0;table<2;table++){
-  const [x,y,z]=labor.view().target.position;Object.assign(player.root.position,{x,y,z});assert(labor.startCleaning());
-  for(let i=0;i<50;i++)labor.update(.1);
- }
- assert.equal(labor.view().job.stage,'ready');Object.assign(player.root.position,{x:22.35,y:.215,z:11.7});assert(labor.claim());
- assert.equal(game.copperLedger.state().total,32);assert.equal(game.saved.chinaLabor.job,null);
+ const player=actor('player'),host=actor('cn-tavern-host');
+ // Exercise the real persistence callback without replaying unrelated labor gameplay.
+ const laborState={...game.saved.chinaLabor,serial:1,job:{stage:'working',receiptId:'preview-storage-only'}};game.persistLabor(laborState);assert.deepEqual(game.saved.chinaLabor,laborState);
  const relations={...game.saved.chinaSalon,relationships:{'cn-salon-artist':3},life:{people:{friend:{relations:{player:.75}}}}};game.persistSalon(relations);
  game.gameHealth.enter('china',[host]);const event=game.gameHealth.beginInteraction('npc-social',['player','cn-tavern-host']);assert(event);
  game.gameHealth.interaction({...event,duration:6});game.gameHealth.update(6,{player,actors:[host],playerExertion:.4});
- const beforeHide=session.writes.length;game.events.visibilitychange();game.events.pagehide();assert.equal(session.writes.length,beforeHide+2);
+ const beforeHide=session.writes.length;game.events.visibilitychange();assert(session.writes.length>beforeHide,'visibility change flushes the isolated save');const beforePageHide=session.writes.length;game.events.pagehide();assert(session.writes.length>beforePageHide,'pagehide flushes the isolated save');
  const persisted=JSON.parse(session.getItem(PREVIEW_STORAGE_PREFIX+key));
- assert.equal(persisted.outfit,5);assert.equal(persisted.copperLedger.cash,28);assert.equal(persisted.copperLedger.bank,4);
+ assert.equal(persisted.outfit,5);assert.deepEqual(persisted.copperLedger,game.saved.copperLedger);assert.equal(game.copperLedger.state().cash,16);assert.equal(game.copperLedger.state().bank,4);
  assert.deepEqual(persisted.chinaLabor,game.saved.chinaLabor);assert.deepEqual(persisted.chinaSalon,relations);assert.deepEqual(persisted.gameHealth,game.gameHealth.snapshot());
  assert.deepEqual(normal.snapshot(),before);assert.equal(normal.writes.length,0,'no formal key was written');
  assert(session.writes.every(([k])=>k.startsWith(PREVIEW_STORAGE_PREFIX)),'all preview writes are namespaced');
@@ -126,14 +124,12 @@ test('preview initialization, appearance, health, relationships, ledger and labo
  assert.equal(createGameStorage({normal}).getItem(key),initialBytes,'fresh normal facade returns original state');
 });
 
-test('session write failures reject ledger/labor transactions and never fall back to formal storage',()=>{
+test('session write failures reject existing writes and never fall back to formal storage',()=>{
  const {normal,session}=stores(),before=normal.snapshot(),game=initialize(createGameStorage({preview:true,normal,session}),true);
  const durable=session.snapshot(),ledgerBefore=game.copperLedger.state(),laborBefore=clone(game.saved.chinaLabor);session.failWrites=true;
  assert.throws(()=>createGameStorage({preview:true,normal,session}).setItem('arbitrary','write'),/session quota failure/);
  assert.equal(game.copperLedger.openAccount('failing-open').code,'save-failed');assert.deepEqual(game.copperLedger.state(),ledgerBefore);
- const player=actor('player',{x:22.35,y:.215,z:11.7}),host=actor('cn-tavern-host',{x:24.1,y:.215,z:11.4});
- const labor=createChinaTavernLabor({employment:{isHired:()=>true,state:()=>({version:1,roleId:'cn-tavern-helper',revision:1})},getPlayer:()=>player,host,copperLedger:game.copperLedger,saved:game.saved.chinaLabor,saveState:game.persistLabor,document:null});
- assert.equal(labor.accept(),false);assert.equal(labor.view().lastError,'save-failed');assert.deepEqual(game.saved.chinaLabor,laborBefore);
+ assert.throws(()=>game.persistLabor({...laborBefore,serial:1}),/session quota failure/);assert.deepEqual(game.saved.chinaLabor,laborBefore);
  game.events.pagehide();assert.deepEqual(session.snapshot(),durable);assert.deepEqual(normal.snapshot(),before);assert.equal(normal.writes.length,0);
 });
 
@@ -148,15 +144,15 @@ test('query changes cannot reroute an existing document; absent session storage 
  for(const query of['','?character-preview=0','?character-preview=true','?preview-npcs=1'])assert.equal(gate(query,normal,session).CHARACTER_PREVIEW_ENABLED,false);
 });
 
-test('normal initialization keeps a valid six-trait formal save byte-for-byte and performs no migration write',()=>{
- const {normal,session}=stores(),before=normal.snapshot(),ordinary=gate('',normal,session),game=initialize(ordinary.gameStorage,false);
- assert.deepEqual(game.saved.appearance,formalFixture().appearance);assert.equal(game.saved.appearance.npcShapeVersion,1);
- assert.deepEqual(Object.keys(game.saved.appearance.player.shapeTraits),legacyKeys);
- assert.deepEqual(normal.snapshot(),before);assert.equal(normal.writes.length,0);assert.equal(session.writes.length,0);
+test('normal initialization migrates six-trait saves once with neutral controls and historical score versions',()=>{
+ const fixture=formalFixture(),{normal,session}=stores(fixture),before=normal.snapshot(),ordinary=gate('',normal,session),game=initialize(ordinary.gameStorage,false);
+ assert.deepEqual(game.saved.appearance,appearance.migrateAppearanceState(fixture.appearance));assert.equal(game.saved.appearance.npcShapeVersion,1);assert.equal(game.saved.appearance.playerScoreVersion,1);assert.equal(game.saved.appearance.npcScoreVersion,1);
+ for(const key of legacyKeys)assert.equal(game.saved.appearance.player.shapeTraits[key],fixture.appearance.player.shapeTraits[key]);for(const key of extraTraits)assert.equal(game.saved.appearance.player.shapeTraits[key],1);assert.equal(game.saved.appearance.seed,fixture.appearance.seed);
+ assert(normal.writes.length>0);const writeCount=normal.writes.length;assert.equal(session.writes.length,0);assert.deepEqual(normal.snapshot().filter(([k])=>k!==key),before.filter(([k])=>k!==key));const bytes=normal.getItem(key);initialize(ordinary.gameStorage,false);assert.equal(normal.writes.length,writeCount,'second boot makes no duplicate migration write');assert.equal(normal.getItem(key),bytes);
  assert(!/\b(?:localStorage|sessionStorage)\s*\./.test(main),'main has no direct browser-storage bypass');
 });
 
-test('formal appearance creation, migration and random draw order match deployed 3cde448',()=>{
+test('explicit legacy API creation, migration and random draw order match deployed 3cde448',()=>{
  for(const seed of[0,1,41,4294967295]){
   const expected=legacy.createAppearanceState(seed),actual=appearance.createAppearanceState(seed,{extended:false});assert.deepEqual(actual,expected);
   assert.equal(actual.npcShapeVersion,1);assert(extraTraits.every(k=>!(k in actual.player.shapeTraits)));
@@ -169,7 +165,7 @@ test('formal appearance creation, migration and random draw order match deployed
  }
 });
 
-test('formal validation and malformed-version migration retain the deployed contract',()=>{
+test('explicit legacy API validation and malformed-version migration retain the deployed contract',()=>{
  const base=legacy.createAppearanceState(41),cases=[base,null,{}, {...base,version:2}, {...base,npcShapeVersion:0}, {...base,npcShapeVersion:2}, {...base,npcShapeVersion:undefined}, {...base,player:{...base.player,shapeTraits:{...base.player.shapeTraits,jawWidth:9}}}];
  for(const input of cases){
   assert.equal(!!appearance.validAppearanceState(input,{extended:false}),!!legacy.validAppearanceState(input),`validator matches baseline for ${JSON.stringify(input)}`);
