@@ -1792,3 +1792,5 @@ R16.184/v217 于2026-10-07T09:36:10Z原公开站点发布成功：source `908238
 
 移动钱包浅金文字QA v218于2026-10-07T09:39:12Z同站发布：source `b575228f52baaba90cc97c5f64fd728d89db95f2`，private main `19ee739b02d1ae047e620f86a4e0ba34d3251639` 先回读；deployment `appgdep_6ac613389a3c8191b88ed4d2363892fb` succeeded。仅2快照文件源于45c5d443/候选7eba016，sidecar保护423既存文件sha256不变；正常R184/受众revision6不变。https://alien.doudouai.net/qa/mobile.html等待该字色有限实图复核；正式产品不切移动候选。
 R185发布合流：以b64bf8a为底合a3d2980相对c601ba6的20文件。唯一文本冲突为index旧版本头及横放提示，采用新嵌入布局并更新R185；main自动增量合流，相对产品候选只多R183原handoff清理，R184厕所各模块原样保留。只入口启动一次/移动坐标/HUD接点验证，入口第一次命令漏VM flag属调用错误，带flag后通过；不重跑已验QA或98秒main。585登记、362正式源映射/9,520,384计数字节、v218旧385独立图与350独立JS/cache通过；移动QA完整保留。真实iOS、多指与动态WebGL接受仍待用户反馈。
+
+R16.185/v219 于2026-10-07T09:46:27Z原公开站点发布成功：source `0e4dd3ef4793450d6399fd07fb11efd839f1a223`，private main `fff480ed1c52ad39d9dc5d047df9ab99a9fb8d67` 先回读；deployment `appgdep_6ac614eaf1008191b8f2d5db17d6fb5e` succeeded，https://alien.doudouai.net active/public，受众revision6保持。手机竖拿内层横向、游戏自绘选择器、精简HUD/环进度/钱包右上银行及浅金字正式启用，保R183摆臂与R184厕所修复。585登记、362源映射/9,520,384字节与350独立JS/cache通过，旧385图和移动QA保留。有限真实浏览器审图复用，真实iOS/多指/动态WebGL仍待用户反馈。
