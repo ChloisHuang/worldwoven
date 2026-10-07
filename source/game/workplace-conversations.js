@@ -1,3 +1,4 @@
+import {isPlayerConversationHeld} from './npc-social-ownership.js';
 // A thin pairing layer: the original workplace controller still owns each
 // resident, movement, work priority, evidence and the one personal life brain.
 const copy=x=>JSON.parse(JSON.stringify(x));
@@ -26,11 +27,14 @@ export function createWorkplaceConversations({places,placePrefix,labels,actors,b
  function update(dt){
   if(!checked){checked=true;for(const n of actors){const c=brain.state(n.station.id)?.current;if(c?.conversationId&&c.conversationId!==pair?.id)brain.cancelConversation(c.conversationId);}}
   if(!pair)return;
-  if(!brain.conversationAllowed(pair.id)||pair.participants.some((id,i)=>!available(actor(id))||!pair.managed&&!claims.reservation((pair.placeIds||placeIds)[i],id))){cancel();return;}
-  if(pair.persisted===false){if(save()===false)return;pair.persisted=true;}
-  pair.age+=dt;if(pair.age>75&&pair.elapsed<pair.duration){cancel('路上耽搁了，改日再聊');return;}
+  if(!brain.conversationAllowed(pair.id)||pair.participants.some((id,i)=>!actor(id)||actor(id).alive===false||brain.state(id)?.current?.conversationId!==pair.id||!available(actor(id),{ignorePlayerConversation:true})||!pair.managed&&!claims.reservation((pair.placeIds||placeIds)[i],id))){cancel();return;}
   const wasTogether=pair.participants.every((id,i)=>near(actor(id),pair.places[i]));
   if(pair.fadeToBlack&&pair.phase==='talking'&&!wasTogether){cancel('已离开约定房间');return;}
+  // A nearby player menu suspends this accepted pair without losing consent,
+  // its place claims, route or counted contact. Real invalidation wins above.
+  if(pair.participants.some(isPlayerConversationHeld))return;
+  if(pair.persisted===false){if(save()===false)return;pair.persisted=true;}
+  pair.age+=dt;if(pair.age>75&&pair.elapsed<pair.duration){cancel('路上耽搁了，改日再聊');return;}
   for(const[i,id]of pair.participants.entries())travel(actor(id),pair.places[i],dt);
   if(!pair.participants.every((id,i)=>near(actor(id),pair.places[i])))return;
   const starting=pair.phase!=='talking';if(starting){pair.phase='talking';note('conversation-talking',{conversationId:pair.id});}

@@ -163,7 +163,7 @@ for(const [width,height] of [[852,393],[844,390]])test(`short landscape ${width}
 
 test('target text and semantic rows stay stable while distance order and HUD names jitter',()=>{
  const h=harness(),host=actor('许安'),target=anchor('actor:host',null,{actor:host,nameRect:{left:360,top:276,right:420,bottom:312}}),items=[action('meal',target,{action:'查看菜单并点餐',menuId:'china-meal'}),action('work',target,{action:'查看酒楼职位',provider:'china-tavern-labor'}),action('chat',target,{social:true,actor:host,action:'聊聊天'})];
- h.update(items);const record=h.menu.targets()[0],slot=record.slot;assert.equal(record.button.children[1].children[0].textContent,'许安');assert.match(record.button.children[1].children[1].textContent,/点餐.*3项/);
+ h.update(items);const record=h.menu.targets()[0],slot=record.slot;assert.equal(record.button.children[1].children[0].textContent,'许安');assert.equal(record.button.children[1].children[1].textContent,'查看菜单并点餐');assert.equal(record.button.dataset.choiceCount,'3项');
  h.menu.activateTarget(target.id);const left=h.popover.style.left,top=h.popover.style.top,first=actionRows(h.list)[0];assert.deepEqual(h.list.children.map(s=>s.children[0].textContent),['餐饮与招待','工作与办理','与对方交谈']);
  for(let i=0;i<12;i++){host.root.position.x+=.01;target.nameRect.right+=.2;h.update([...items].reverse());assert.equal(h.popover.style.left,left);assert.equal(h.popover.style.top,top);assert.equal(actionRows(h.list)[0],first);assert.equal(record.slot,slot);}
  h.menu.close();h.menu.project();h.menu.dispose();

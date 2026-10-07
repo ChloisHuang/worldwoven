@@ -147,7 +147,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
      }
     }
    }
-   const duty=palace.dutyState(OWNER),speakingPaused=paused(speaker)||isSociallyHeld(emperor.station.id,state.conversationActorId);
+   const duty=palace.dutyState(OWNER),speakingPaused=paused(speaker)||isSociallyHeld(emperor.station.id,state.conversationActorId),ceremonyPaused=FORMAL.has(phase)&&(speakingPaused||officials.some(paused));
    for(const [i,n]of officials.entries()){
     if(life&&!tasks.has(n)){life.update(n,dt,t);if(phase==='assembling'&&life.ready(n)){const exit=life.courtPlan(n);if(near(n.root.position,hall(i))){task(n,'enter-hall',[hall(i)],'已在班位 · 静候11:30');tasks.get(n).arrived=true;}else task(n,'to-court',[...exit.path,court(i)],'共同召集 · 从当前位置提前赴班');}else{postures[i]?.stop();if(interruptedToday)tell(n,life.label(n)+' · '+interruptedLabel);continue;}}
     n.walking=false;const s=tasks.get(n),label=s?.label||(interruptedToday?interruptedLabel:'承务官署 · 日常起居');tell(n,n===speaker?utterance:label);
@@ -155,9 +155,12 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
     else if(s&&!FORMAL.has(phase))travel(n,s,dt);
     if(s?.arrived&&!n.walking)n.root.rotation.y=Math.PI;
     const c=poseContext(n,null);c.handoff=false;c.heldProp=null;c.seatedMeal=false;n.animate(t+n.phase,n.walking,null,c);
-    const kneeling=phase==='kneeling'?Math.min(1,(phaseTime+dt)/1.8):phase==='rising'?Math.max(0,1-(phaseTime+dt)/1.8):['report','response','dismissal'].includes(phase)?1:0;
+    const kneeling=phase==='kneeling'?Math.min(1,(phaseTime+(ceremonyPaused?0:dt))/1.8):phase==='rising'?Math.max(0,1-(phaseTime+(ceremonyPaused?0:dt))/1.8):['report','response','dismissal'].includes(phase)?1:0;
     postures[i]?.apply({kneeling,holding:phase==='holding'||tasks.get(n)?.id==='enter-hall'&&tasks.get(n).arrived,raised:n===speaker&&phase==='report'?1:.20+(i%3)*.07,time:t,phase:n.phase});
    }
+   // In-place talk retains the same report, posture and work result. It is
+   // not an absent-official incident and cannot accrue ceremony time.
+   if(ceremonyPaused)return;
    phaseTime+=dt;
    if(['assembling','holding'].includes(phase)){
     admit();if(allInLine()&&phase!=='holding')setPhase('holding');

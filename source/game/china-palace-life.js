@@ -1,4 +1,4 @@
-import {isSociallyHeld} from './npc-social-ownership.js';
+import {isSociallyHeld,isPlayerConversationHeld} from './npc-social-ownership.js';
 import {bedAvailable,reserveNpcBed,occupyNpcBed} from './npc-bed-occupancy.js';
 import {captureWorldRuntime,restoreWorldRuntime} from './world-continuity.js';
 import {CHINA_CONSORTS,CONSORT_ROUTES,palaceResidentSave,palaceResident} from './china-palace-residents.js';
@@ -105,10 +105,13 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
  }
  function updateConversation(dt,t){
   const pair=conversation;if(!pair)return;const residents=pair.participants.map(id=>consorts.find(n=>n.station.id===id));
-  if(!brain.conversationAllowed(pair.id)||residents.some(n=>!n||urgent(n)||interrupted(n)||playerState.performing===n.station.id||stages.get(n)?.abortRequested)||RECEPTION_SEATS.includes(playerState.facilityId)){endConversation(false);return;}
-  pair.age+=dt;if(pair.age>100){endConversation(false,'途中耽搁 · 改日再访');return;}
+  if(!brain.conversationAllowed(pair.id)||residents.some(n=>!n||n.alive===false)||RECEPTION_SEATS.includes(playerState.facilityId)){endConversation(false);return;}
   const both=residents.every(n=>stages.get(n)?.arrived&&near(n.root.position,(pair.places||CONSORT_MEETING)[residents.indexOf(n)],.2));
   if(pair.fadeToBlack&&pair.phase==='talking'&&!both){endConversation(false,'已离开约定房间');return;}
+  if(residents.some(n=>isPlayerConversationHeld(n.station.id))){for(const n of residents)n.walking=false;return;}
+  if(residents.some(n=>urgent(n)||interrupted(n)||playerState.performing===n.station.id||stages.get(n)?.abortRequested)){endConversation(false);return;}
+  pair.age+=dt;if(pair.age>100){endConversation(false,'途中耽搁 · 改日再访');return;}
+
   if(both){
    const starting=pair.phase!=='talking';if(starting){pair.phase='talking';record(residents[0],'consort-conversation:talking:'+pair.id);}
    if(!Object.hasOwn(pair,'interaction')){const token=beginInteraction(pair.participants.slice());pair.interaction=token?{...token,participants:[...token.participants],duration:0}:null;}

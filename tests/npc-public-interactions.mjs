@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {createNpcPublicInteractions} from '../source/game/npc-public-interactions.js';
-import {isSociallyHeld,resetSocialHolds} from '../source/game/npc-social-ownership.js';
+import {isSociallyHeld,resetSocialHolds,setPlayerConversationHold} from '../source/game/npc-social-ownership.js';
 const actor=(id,x)=>({actorId:id,root:{visible:true,position:{x,y:0,z:0},rotation:{y:0}},walking:false});
 const profile=()=>({traits:{sociability:1,quiet:.5,curiosity:.5,outdoors:.5},values:{company:1,quiet:.5,curiosity:.5},needs:{hunger:0,fatigue:0,social:1},relations:{},opinions:{},experiences:[]});
 function setup(extra={}){resetSocialHolds();const roster=[actor('staff',0),actor('artist',1),actor('visitor',2),actor('official',2.5)],events=[],saved=[];let busy=false;
@@ -36,3 +36,9 @@ for(const change of ['dead','replace','identity']){
  t.api.update(1);assert.equal(t.api.status(),null,change);assert.equal(t.events.length,0,change);assert.ok(ids.every(id=>!isSociallyHeld(id)));t.api.dispose();
 }
 console.log('PASS original identity frozen through death, replacement and changed actor identity; no transfer or penalty');
+
+{
+ const t=setup();while(!t.api.status())t.api.update(1);const original=t.api.status(),id=original.participants[0],before=t.api.snapshot();setPlayerConversationHold(id);t.busy(true);run(t.api,50);assert.deepEqual(t.api.status(),original);assert.equal(t.events.length,0);assert.equal(t.api.snapshot().time,before.time);assert.equal(t.api.pose(t.roster.find(n=>n.actorId===id)).walking,false);setPlayerConversationHold(null);t.busy(false);run(t.api,30);assert(t.events.length>0);t.api.dispose();
+ const gone=setup();while(!gone.api.status())gone.api.update(1);const target=gone.api.status().participants[0];setPlayerConversationHold(target);gone.roster.find(n=>n.actorId===target).alive=false;gone.api.update(1);assert.equal(gone.api.status(),null);setPlayerConversationHold(null);gone.api.dispose();
+ console.log('PASS current NPC pair holds exact phase while locally interrupted, resumes once, and still handles death');
+}

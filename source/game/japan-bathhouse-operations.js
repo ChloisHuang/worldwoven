@@ -92,6 +92,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
  }
  function tickTask(task,dt) {
   const n=task.actor;n.walking=false;
+  if(isJapanEmployeeInteraction(n,playerState)){tell(n,'先陪你聊一会儿');return;}
   if(n.bathTransition){
    const crossing=n.bathTransition,pose=crossing.update(dt);n.root.position.fromArray(pose.position);n.root.rotation.y=pose.yaw;
    if(crossing.done){
@@ -102,7 +103,6 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    return;
   }
   if(task.orderJobId&&!board.state().claims.some(j=>j.id===task.orderJobId&&j.workerId===n.station.id)){clear(n);return;}
-  if(isJapanEmployeeInteraction(n,playerState)){tell(n,'先陪你聊一会儿');return;}
   tell(n,task.label||'稍作等候');
   if(task.after&&!task.after())return;
   if(!task.arrived) {
@@ -154,6 +154,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
  }
  function scheduleWorkers() {
   for(const n of workers) {
+   if(isJapanEmployeeInteraction(n,playerState))continue;
    if((cooldowns.get(n.station.id)||0)>time||(staffLife&&!staffLife.canWork(n.station.id)))continue;
    let current=tasks.get(n.station.id);
    if(current&&!current.idle)continue;
@@ -186,7 +187,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   assign(n,P.reception,{label:LABELS[v.stage],onDone:event?()=>guestEvent(n,event):()=>true});
  }
  function scheduleGuest(n,v) {
-  if(tasks.has(v.id)||(cooldowns.get(v.id)||0)>time)return;
+  if(isJapanEmployeeInteraction(n,playerState)||tasks.has(v.id)||(cooldowns.get(v.id)||0)>time)return;
   const dish=v.dishId==='sushi'?'寿司拼盘':'热汤拉面',label=({dining:`点好${dish}，等候上菜`,'waiting-meal':`等厨房做好自己的${dish}`,eating:`吃刚送来的${dish}`})[v.stage]||LABELS[v.stage];
   tell(n,`${v.name} · ${v.number}号 · ${label||''}`);
   const side=v.side,seat=restSeat(v),step=(event,to,options={})=>assign(n,to,{label,onDone:()=>guestEvent(n,event),...options});
@@ -260,7 +261,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    if(disposed)return;time+=dt;playerState=state;playerCustomerService?.update(dt);spawn();
    for(const n of actors.values())n.walking=false;
    for(const [id,n]of guests){const v=board.getVisit(id);if(v)scheduleGuest(n,v);}
-   receptionDuty?.update(dt);deliveryDuty?.update(dt);womenDeliveryDuty?.update(dt);mixingDuty?.update(dt);kitchenDuty?.update(dt);tableServiceDuty?.update(dt);staffLife?.update(dt,playerState);scheduleWorkers();for(const task of [...tasks.values()])if(tasks.get(task.actor.station.id)===task)tickTask(task,dt);
+   for(const [id,duty]of [['jp-welcome',receptionDuty],['jp-onsen',deliveryDuty],['jp-women-onsen',womenDeliveryDuty],['jp-incense',mixingDuty],['jp-sushi',kitchenDuty],['jp-ramen',tableServiceDuty]])if(!isJapanEmployeeInteraction(actors.get(id),playerState))duty?.update(dt);staffLife?.update(dt,playerState);scheduleWorkers();for(const task of [...tasks.values()])if(tasks.get(task.actor.station.id)===task)tickTask(task,dt);
    for(const [id,n]of [...guests])if(board.getVisit(id)?.stage==='departed')removeGuest(n);
    for(const n of actors.values())animate(n,t);
    const propActors=new Map(actors),playerVisit=playerCustomerService?.state().visit;

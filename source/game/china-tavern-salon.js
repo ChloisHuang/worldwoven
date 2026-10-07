@@ -78,7 +78,7 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
  }
  function cancel(reason='你向艺者告辞'){const npc=!!session?.customerId;if(!release(reason))return false;if(!npc)say(reason+'，温晚已撤下留房牌');return true;}
  function travel(a,to,dt,{player=false,hold=false}={}){
-  a.walking=false;if(near(a,to))return true;if(hold||isSociallyHeld(a.station?.id,conversation))return false;
+  a.walking=false;if(hold||isSociallyHeld(a.station?.id,conversation))return false;if(near(a,to))return true;
   const radius=player ? .34 : .25;let s=travelState.get(a),key=to.join(',');
   if(!s||s.key!==key){s={key,route:planPath(a.root.position,{x:to[0],y:to[1],z:to[2]},radius),stalled:0};travelState.set(a,s);}
   const step=followActorRoute(a,dt,{route:s.route,doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,radius,speedScale:.76,arrivalTolerance:.04});if(step.waiting){s.stalled=0;return false;}const p=step.waypoint;
@@ -174,7 +174,8 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
   chooseStory(id,choiceId,offerId){if(!canDiscuss(id)||performers.find(n=>n.station.id===id)?.station.salon.willing===false)return false;return stories?.choose(id,choiceId,{customerId:'player',offerId})?.ok===true;},
   contractAction(id,action,revision){if(action!=='cancel'&&!canDiscuss(id))return false;const result=action==='request'?contracts?.requestRelease(id,revision):action==='reply'?contracts?.respondRelease(id,revision):action==='confirm'?contracts?.confirmRelease(id,revision):action==='cancel'?contracts?.cancelRelease(id,revision):action==='pause'?contracts?.setIndependentAvailability(id,false,revision):action==='resume'?contracts?.setIndependentAvailability(id,true,revision):null;return result?.ok===true;},
   invitePrivate(id){if(!canDiscuss(id))return false;const result=privateCompanionship?.select('player',id);if(!result?.ok)notify(result?.reason==='night-required'?'私人相伴只在晚间询问。':result?.reason==='relationship-unavailable'?'需先建立双方明确好感，并尊重本人界限。':'需要双方当前合法可用的客房、空闲状态和通路；付费茶叙不提供私人房权。');return result?.ok===true;},
-  respondPrivate(eventId,accepted){return privateCompanionship?.respond(eventId,'player',accepted)?.ok===true;},cancelPrivate(eventId){return privateCompanionship?.status()?.id===eventId&&privateCompanionship?.withdraw('player')?.ok===true;},
+  setPrivateMenuReading(open){const event=privateCompanionship?.status();if(open&&event?.participants.includes('player'))privateCompanionship.pauseForMenu?.(event.id);else privateCompanionship?.releaseMenuPause?.();},
+  respondPrivate(eventId,accepted){privateCompanionship?.releaseMenuPause?.(eventId);return privateCompanionship?.respond(eventId,'player',accepted)?.ok===true;},cancelPrivate(eventId){privateCompanionship?.releaseMenuPause?.(eventId);return privateCompanionship?.status()?.id===eventId&&privateCompanionship?.withdraw('player')?.ok===true;},
   receptionist,performers,setEmployment:value=>{employment=value;},workTravel:travel,workPose:pose,resetWorkRoute:resetRoute,workRoomAvailable:roomAvailable,workReachable:(n,p)=>{const route=planPath(n.root.position,{x:p[0],y:p[1],z:p[2]},.25);return near(n,p)||!!route?.length&&Math.hypot(route.at(-1).x-p[0],route.at(-1).z-p[2])<.15&&Math.abs(route.at(-1).y-p[1])<.3;},get performer(){return performer;},ledger,request,startEscort:()=>!session?.customerId&&startEscort(),cancel:(reason)=>!session?.customerId&&cancel(reason),atReception,recoverPayments,
   npcChoices,npcOfferStatus,requestNPC,ownsNPCCustomer:id=>!!session?.customerId&&session.customerId===id,
   cancelNPC:(id,reason='本人另有事务，撤下茶叙')=>session?.customerId===id?cancel(reason):true,
@@ -203,12 +204,14 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
    if(receptionist.alive!==false&&!receptionLife?.owns(receptionist)&&!getTavern()?.guestMeal?.(receptionist.station.id)&&!getToilet()?.ownsActor?.(receptionist)&&receptionOwner()){
     receptionist.walking=false;const receptionHome=receptionist.home?.toArray?.()||receptionist.station.npcPosition;if(receptionHome)travel(receptionist,receptionHome,dt);if(!receptionStep(dt,t))pose(receptionist,t,'tea',receptionist.station.workTarget);
    }
-   if(session&&!recoveringReception){sessionTime+=dt;if(sessionTime>150)cancel('这次引见等待过久，先撤下安排');}
+   const sessionPaused=!!session&&[performer,customer(),receptionist].some(n=>n&&isSociallyHeld(n.station?.id,conversation));
+   if(session&&!recoveringReception&&!sessionPaused){sessionTime+=dt;if(sessionTime>150)cancel('这次引见等待过久，先撤下安排');}
    if(session&&!adult())cancel('温晚撤下了这次引见');
    if(session&&!recoveringReception&&['invited','reply','accepted'].includes(session.stage)&&!customerAtReception())cancel('你离开了接待案');
    if(session&&!['invited','reply'].includes(session.stage)&&!willing().willing)cancel(`${name()}想先回去歇息`);
    if(session?.cancelReason)cancel(session.cancelReason);
-   if(session&&!session.cancelReason){
+   if(sessionPaused&&session&&['entering','fade','visiting'].includes(session.stage)&&!entryValid())cancel('你们结束了这次茶叙');
+   if(session&&!session.cancelReason&&!sessionPaused){
     const o=session;performer.walking=false;if(o.customerId){const guest=customer();guest.walking=false;if(recoveringReception)travel(guest,RECEPTION,dt);else if(o.stage==='escort')travel(guest,escortLeg().player,dt);else if(o.stage==='accepted')startEscort();}
     if(recoveringReception){
      // Layout recovery keeps the same session phase and fee. Both original
@@ -229,6 +232,7 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
      }else if(o.stage==='visiting'&&phaseTime>=6){const who=name(),npc=!!o.customerId;release('茶叙结束',true);if(!npc)say(`${who}：今日谈得愉快，我先回楼上了`);}}
     }
     if(session)pose(performer,t,['fade','visiting'].includes(session.stage)?'relax':null,customer().root.position.toArray());if(session?.customerId)pose(customer(),t,['fade','visiting'].includes(session.stage)?'relax':null,performer.root.position.toArray());
+   }else if(sessionPaused){for(const n of [performer,customer()])if(n)n.walking=false;
    }else if(returning){if(travel(performer,performer.home.toArray(),dt)){returning=false;resetRoute(performer);record('returned');persist();}pose(performer,t,null);}
    needsLife.update(dt,t);
    life.update(dt,t,{excluded:new Set(performers.filter(n=>n===performer&&(session||returning)||needsLife.owns(n)||privateCompanionship?.owns(n))),conversationActorId});

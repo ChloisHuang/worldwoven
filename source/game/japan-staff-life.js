@@ -1,4 +1,4 @@
-import {isSociallyHeld} from './npc-social-ownership.js';
+import {isSociallyHeld,isPlayerConversationHeld} from './npc-social-ownership.js';
 import {bedAvailable,reserveNpcBed} from './npc-bed-occupancy.js';
 import {createJapanStaffConversations} from './japan-staff-conversations.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
@@ -67,10 +67,10 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
  const busy=n=>{const t=taskOf(n);return !!t&&!t.idle;};
  const go=(n,to,options)=>assign(n,to,{staffLife:true,...options});
  const release=n=>{board.releaseWorkplace(n.station.id);furniture.releaseActor(n.station.id);};
- function sociallyAvailable(n,state){
+ function sociallyAvailable(n,state,{ignorePlayerConversation=false}={}){
   if(active?.phase!=='returning'||active.interrupted||active.socialPauseDone||active.id==='jp-incense'||!actors.has('jp-incense')||!['jp-incense',active.id].includes(n.station.id))return false;
   const id=n.station.id,need=sharedNeeds?.status(id),task=taskOf(n),work=socialReads?(socialReads.board??=board.state()):board.state();
-  if(external(id)||getMeetingHeld(id)||need?.seekMeal||need?.seekToilet||decisions.fatigued(id)||isSociallyHeld(id,state.conversationActorId)||state.meetingActorId===id||state.performing===id||n.serviceMount||n.bathTransition||task&&!task.idle&&!task.staffConversation||work.claims.some(j=>j.workerId===id)||work.items.some(i=>i.location?.type==='worker'&&i.location.id===id))return false;
+  if(external(id)||getMeetingHeld(id)||need?.seekMeal||need?.seekToilet||decisions.fatigued(id)||isSociallyHeld(id,ignorePlayerConversation&&isPlayerConversationHeld(id)?null:state.conversationActorId)||state.meetingActorId===id||state.performing===id||n.serviceMount||n.bathTransition||task&&!task.idle&&!task.staffConversation||work.claims.some(j=>j.workerId===id)||work.items.some(i=>i.location?.type==='worker'&&i.location.id===id))return false;
   // The retiring worker has actually finished a break and still has coverage.
   // An idle apothecary stays within the original dispatch area, relinquishing
   // the conversation immediately when any original preparation order arrives.
@@ -211,10 +211,11 @@ export function createJapanStaffLife({actors,board,furniture,assign,clear,unmoun
    if(!active){
     // Reserve only the relief slot now. Existing jobs drain before the real
     // handoff establishes eligibility for an action; no per-frame lottery.
-    const candidate=resumeReturn?crew[next]:crew.filter(n=>!conversations.owns(n.station.id)&&!getMeetingHeld(n.station.id)&&(external(n.station.id)||!getMeetingHeld(profile(n.station.id).ids.find(id=>id!==n.station.id)))&&due[n.station.id]<=time).sort(dueOrder)[0];
+    const candidate=resumeReturn?crew[next]:crew.filter(n=>!isSociallyHeld(n.station.id,state.conversationActorId)&&!conversations.owns(n.station.id)&&!getMeetingHeld(n.station.id)&&(external(n.station.id)||!getMeetingHeld(profile(n.station.id).ids.find(id=>id!==n.station.id)))&&due[n.station.id]<=time).sort(dueOrder)[0];
     if(!candidate)return;const id=candidate.station.id;next=crew.indexOf(candidate);active={id,reliefId:profile(id).ids.find(other=>other!==id),externalCoverage:external(id),covering:false,phase:'draining',choice:null,meal:false,wait:0,interrupted:resumeReturn&&!!saved.returnInterrupted,returnOnly:resumeReturn};resumeReturn=false;note('break-due');
    }
    const n=actors.get(active.id),relief=actors.get(active.reliefId),shift=shiftFor(active.id);
+   if(isSociallyHeld(active.id,state.conversationActorId)||!active.externalCoverage&&isSociallyHeld(active.reliefId,state.conversationActorId))return;
    if(active.phase==='draining') {
     // Already claimed orders and trays finish normally. Neither actor can
     // claim another job until the relief physically reaches this handoff.

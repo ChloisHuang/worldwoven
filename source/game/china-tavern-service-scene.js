@@ -164,7 +164,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   record('meal-deferred',{customerId:v.id,orderId:cancel?o.id:null,reason:'insufficient-copper'});return true;
  }
  function travel(n,p,dt){
-  n.walking=false;if(at(n,p,.07)){n.route=[];return true;}if(isSociallyHeld(n.station.id,conversation))return false;
+  n.walking=false;if(isSociallyHeld(n.station.id,conversation))return false;if(at(n,p,.07)){n.route=[];return true;}
   const key=p.join(',');let route=paths.get(n);if(!route||route.key!==key){route={key,retryAt:0,retries:0};paths.set(n,route);n.route=[];}if(!n.route.length&&time>=route.retryAt){route.retryAt=time+2;n.route=planPath(n.root.position,{x:p[0],y:p[1],z:p[2]},.25);if(!n.route.length&&++route.retries===3){failures.push({actorId:n.station.id,target:p.slice(),position:n.root.position.toArray(),reason:'empty-route'});if(failures.length>10)failures.shift();}}
   followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,speedScale:.78,arrivalTolerance:.035});return at(n,p,.07);
  }
@@ -352,7 +352,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   if(result)record('lodging-payment',{customerId:v.id,roomId:room.id,amount:room.price,to:'tavern-till'});return result;
  }
  function updateVisitors(dt){
-  for(const v0 of [...state.visitors]){const v=state.visitors.find(q=>q.id===v0.id),n=guests.find(n=>n.station.id===v.id),o=order(v.orderId);if(['clinic','salon'].includes(v.mode))continue;
+  for(const v0 of [...state.visitors]){const v=state.visitors.find(q=>q.id===v0.id),n=guests.find(n=>n.station.id===v.id),o=order(v.orderId);if(['clinic','salon'].includes(v.mode))continue;if(isSociallyHeld(v.id,conversation)){n.walking=false;continue;}
    if(v.mode!=='idle'&&life.isActive(n)&&!life.interrupt(n))continue;
    if(v.mode==='dining'){
     if(!mount(o,dt))continue;if(o.stage==='arriving')stage(o,'requested');
@@ -549,6 +549,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
    if(state.kitchenDiner&&!cancelAccountMeal(id,{abandon:true}))return;
    if(person)life.abandon(person);hostChange(next=>{next.kitchenBreak=null;});return;
   }
+  if(isSociallyHeld(id,conversation)){person.walking=false;return;}
   if(b.phase==='draining'){
    const onDuty=b.role&&kitchenRole(b.role).holderId===id;
    if(state.orders.some(o=>o.holderActorId===id)||((onDuty||b.meal)&&(borrowedLease()||hasPresentHostMeeting()||playerLodging?.hostPending()||state.orders.some(o=>!o.cancelled&&!['done','dirty','return','wash'].includes(o.stage))||workPending('assistant'))))return;
@@ -594,6 +595,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
    record('host-break-requested');return;
   }
   const person=hostBreakActor(),id=breakPersonId(state);if(!alive(person))return;
+  if(isSociallyHeld(id,conversation)){person.walking=false;return;}
   if(b.phase==='draining'){
    // Earlier dining leases need the person to finish reception, then leave their
    // one shared seat-owner slot normally before his own paid order can start.
@@ -640,6 +642,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  }
  function npcControllers(dt,t){const enabled=new Set();for(const [r,n]of Object.entries(staff)){
    if(!alive(n))continue;
+   if(isSociallyHeld(n.station.id,conversation)){n.walking=false;const held=state.orders.find(o=>o.holderActorId===n.station.id&&['cook','assistant'].includes(o.holder));if(held)effect(n,null,held.mealPoint,true);continue;}
    if(n.station.id===state?.kitchenBreak?.actorId&&!['draining','supply'].includes(state.kitchenBreak.phase))continue;
    if(r==='host'&&ownsRoleBreak()){if(state.hostBreak.phase==='draining'&&life.interrupt(n))enabled.add(r);continue;}
    const owned=tenureOwns(r),meeting=role()===r&&['handover-in','handover-out'].includes(state.stage);

@@ -35,7 +35,7 @@ export function createTavernStaffLife({actors,furniture,getPlayer,getMounted,get
  function update(n,dt,t,{onDuty=false,conversationActorId=null}={}){
   if(disposed)return;let s=rows.get(n);
   if(isSociallyHeld(n.station.id)){n.walking=false;effect(n,'relax');return;}
-  if(conversationActorId===n.station.id){if(s&&!interrupt(n))return;n.walking=false;const p=getPlayer()?.root.position;effect(n,'relax',p?[p.x,p.y+1,p.z]:null);nextAt.set(n,time+3);return;}
+  if(conversationActorId===n.station.id){n.walking=false;const p=getPlayer()?.root.position;effect(n,'relax',p?[p.x,p.y+1,p.z]:null);return;}
   if(!s&&time>=(nextAt.get(n)||0)){
    const choice=brain.choose(n.station.id,candidates(n,{onDuty}),getClock()?.hour??10);
    if(choice?.external){const fulfilled=onExternalChoice(n,choice);brain.complete(n.station.id,choice,{fulfilled});nextAt.set(n,time+6);note(n,'external:'+choice.id);return;}

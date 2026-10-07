@@ -12,7 +12,7 @@ function fixture({player=false,blockedSeat=false,doorWaiting=false,saved={},save
  const furniture={items:[seat],facilities:createFacilityQueue(),canSit:()=>!seatBlocked,standPoint:()=>seatBlocked?null:new T.Vector3(...seat.position),releaseActor(id){this.facilities.releaseActor(id);}};
  const lot={group,colliders:[],walkableSurfaces:[],bounds:{minX:-35,maxX:35,minZ:-35,maxZ:35}},doors={cameraColliders:[],routeStep(route,p){if(wait)return {waiting:true};while(route[0]&&Math.hypot(route[0].x-p.x,route[0].z-p.z)<.05)route.shift();return {waypoint:route[0]};}};
  const service=createFranceTeaService({npcs,lot,furniture,doors,planPath:(a,b)=>[...(b.z < -8.3&&a.x > -5.4?[new T.Vector3(-5.0,b.y,-8.5)]:[]),new T.Vector3(b.x,b.y,b.z)],moveActor:(n,dx,dz)=>{n.root.position.x+=dx;n.root.position.z+=dz;},poseContext:n=>n.poseContext??={},getPlayer:()=>person,getMounted:()=>mounted,onSeat:item=>{mounted=item;person.root.position.set(...item.anchor);},worldSeed:1,saved,saveState,onMealReceipts});
- const tick=(count=1)=>{for(let i=0;i<count;i++){clock+=.1;service.update(.1,clock);}};
+ const tick=(count=1,context={})=>{for(let i=0;i<count;i++){clock+=.1;service.update(.1,clock,context);}};
  const until=(predicate,limit=5000)=>{for(let i=0;i<limit&&!predicate(service.state());i++)tick();assert(predicate(service.state()),'Did not reach expected state: '+JSON.stringify(service.state().order));};
  return {service,npcs,person,seat,tick,until,furniture,setDoor:v=>wait=v,setSeat:v=>seatBlocked=v,leave(){mounted=null;person.root.position.set(15,0,15);service.leaveSeat(seat.id);}};
 }
@@ -70,3 +70,15 @@ for(const failure of['return-false','throw']){
  const g=fixture({player:true,saved:durable});assert.equal(g.service.state().mealReceipts[0].id,durable.mealReceipts[0].id);g.service.dispose();
 }
 console.log('PASS France food source save failures retry without false consumption; callback exceptions cannot undo persisted consumption');
+
+// R179: original service resumes after chat, including seated transitions.
+{
+ const {holdSocialActors,releaseSocialActors}=await import('../source/game/npc-social-ownership.js');
+ for(const [stage,id]of [['seating',P.guest],['preparing',P.cook],['carrying',P.host],['serving',P.host],['leaving',P.guest]]){
+  const f=fixture();f.until(s=>s.order?.stage===stage);const before=f.service.snapshot(),actor=f.npcs.find(n=>n.station.id===id),position=actor.root.position.toArray(),route=actor.route,mount=actor.serviceMount;
+  assert(holdSocialActors([id],'france-service-pause'));f.tick(160);
+  const after=f.service.snapshot();assert.deepEqual(after.order,before.order,stage);assert.equal(after.phase,before.phase,stage);assert.equal(after.stageAge,before.stageAge,stage);assert.deepEqual(actor.root.position.toArray(),position,stage);assert.equal(actor.route,route,stage);assert.equal(actor.serviceMount,mount,stage);assert.equal(after.workReceipts.length,before.workReceipts.length,stage);
+  releaseSocialActors('france-service-pause');f.until(s=>!s.order);assert.equal(f.service.state().history.filter(e=>e.event==='complete').length,1);f.service.dispose();
+ }
+ console.log('PASS France order chat pause preserves preparation, original tray, phase, route, seating/departure and work receipts; exact resume');
+}

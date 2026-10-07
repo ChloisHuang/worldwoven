@@ -1,3 +1,4 @@
+import {isPlayerConversationHeld} from './npc-social-ownership.js';
 // A small adapter for staff whose original post is already covered. The shift
 // controller remains the sole authority for coverage and urgent daily needs.
 // Two clear places beside the original apothecary; an incoming order wins.
@@ -60,12 +61,13 @@ export function createJapanStaffConversations({crew,brain,furniture,assign,clear
    // A saved intention without a matching scene checkpoint cannot establish
    // contact or award a result. Cancel it once, without another random draw.
    if(!checked){checked=true;for(const n of crew){const c=brain.state(n.station.id)?.current;if(c?.conversationId&&c.conversationId!==pair?.id)brain.cancelConversation(c.conversationId);}}
-   for(const [id,s]of [...stages]){const n=actor(id);s.age=(s.age||0)+dt;if(!available(n,state)||s.age>70){if(s.phase==='conversation')cancel();else if(s.choice)brain.complete(id,s.choice,{fulfilled:false});release(n);}}
+   for(const [id,s]of [...stages]){const n=actor(id),held=isPlayerConversationHeld(id)||s.phase==='conversation'&&pair?.participants.some(isPlayerConversationHeld);if(!held)s.age=(s.age||0)+dt;if(!n||n.alive===false||!available(n,state,{ignorePlayerConversation:true})||s.age>70){if(s.phase==='conversation')cancel();else if(s.choice)brain.complete(id,s.choice,{fulfilled:false});if(n)release(n);else stages.delete(id);}}
    if(pair){
-    if(!brain.conversationAllowed(pair.id)||pair.participants.some((id,i)=>!pair.managed&&!claims.reservation((pair.placeIds||ids)[i],id))){cancel('让出茶休位置，改日再聊');return;}
-    pair.age+=dt;if(pair.age>45){cancel('路上耽搁了，改日再聊');return;}
+    if(!brain.conversationAllowed(pair.id)||pair.participants.some((id,i)=>!actor(id)||actor(id).alive===false||brain.state(id)?.current?.conversationId!==pair.id||!pair.managed&&!claims.reservation((pair.placeIds||ids)[i],id))){cancel('让出茶休位置，改日再聊');return;}
     const together=pair.participants.every((id,i)=>taskOf(actor(id))?.arrived&&near(actor(id),pair.places[i]));
     if(pair.fadeToBlack&&pair.phase==='talking'&&!together){cancel('已离开约定房间');return;}
+    if(pair.participants.some(isPlayerConversationHeld))return;
+    pair.age+=dt;if(pair.age>45){cancel('路上耽搁了，改日再聊');return;}
     if(together){
      const starting=pair.phase!=='talking';if(starting){pair.phase='talking';note('conversation-talking',{conversationId:pair.id});}
      if(!Object.hasOwn(pair,'interaction')){const event=beginInteraction(pair.participants.slice());pair.interaction=event?{...event,participants:event.participants.slice(),duration:0}:null;}
@@ -77,7 +79,7 @@ export function createJapanStaffConversations({crew,brain,furniture,assign,clear
      if(pair.elapsed>=pair.duration)finish();
     }
    }
-   for(const n of crew){const id=n.station.id;if(!owned(id)&&available(n,state)&&(!taskOf(n)||taskOf(n).idle)&&unmount(n)){clear(n);claims.releaseActor(id);idle(n);brain.defer(id,12+brain.state(id).traits.quiet*8);}
+   for(const n of crew){const id=n.station.id;if(isPlayerConversationHeld(id))continue;if(!owned(id)&&available(n,state)&&(!taskOf(n)||taskOf(n).idle)&&unmount(n)){clear(n);claims.releaseActor(id);idle(n);brain.defer(id,12+brain.state(id).traits.quiet*8);}
     if(stages.get(id)?.phase==='idle'&&brain.decisionDue(id))choose(n);
    }
   },

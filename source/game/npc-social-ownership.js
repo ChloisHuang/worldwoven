@@ -1,6 +1,10 @@
 // Transient, actor-local leases: controllers retain their routes and elapsed
 // work while a public NPC conversation owns movement. Never persisted.
 const owners=new Map(),actors=new Map();
+let playerConversationActor=null;
+// A local conversation suspends an existing owner; it never replaces that owner.
+export function setPlayerConversationHold(id){playerConversationActor=typeof id==='string'&&id&&id!=='player'?id:null;}
+export function isPlayerConversationHeld(id){return !!id&&id===playerConversationActor;}
 export function holdSocialActors(ids,owner){
  if(!owner||!Array.isArray(ids)||!ids.length)return false;
  const unique=[...new Set(ids)];
@@ -16,5 +20,5 @@ export function releaseSocialActors(owner){
  owners.delete(owner);return true;
 }
 export function isSociallyHeld(id,legacyPlayerId=null){return !!id&&(id===legacyPlayerId||actors.has(id));}
-export function resetSocialHolds(){owners.clear();actors.clear();}
+export function resetSocialHolds(){owners.clear();actors.clear();playerConversationActor=null;}
 export function socialHoldOwner(id){return actors.get(id)||null;}

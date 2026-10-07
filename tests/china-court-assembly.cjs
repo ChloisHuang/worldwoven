@@ -28,6 +28,10 @@ const linker=(s,f)=>mod(s==='three'?path.join(root,'vendor/three/build/three.mod
  f.step(11.5);assert.equal(f.service.state().phase,'kneeling');assert.equal(f.service.state().schedule.courtStart,11.5);
  assert.equal(f.checkpoints.at(-1).runtime.phase,'kneeling','in-session receipt must not persist the previous holding phase');
  const startCheckpoint=f.checkpoints.at(-1);
+ // An in-place work conversation does not obstruct/cancel the ongoing court.
+ // Both a non-speaking attendee and the emperor freeze the same exact phase.
+ for(const held of [f.actors[2],f.actors[6]]){const before=f.service.snapshot();for(let i=0;i<50;i++)f.service.update(.1,0,{hour:11.5,conversationActorId:held.station.id});const after=f.service.snapshot();assert.equal(after.runtime.phase,before.runtime.phase);assert.equal(after.runtime.phaseTime,before.runtime.phaseTime);assert.equal(after.runtime.disruption,before.runtime.disruption);assert.equal(after.schedule.outcome,'in-session');assert.equal(after.schedule.completionId,null);}
+ f.step(11.5,false,.1);assert(f.service.state().phaseTime>0,'same ceremony resumes from held phase');
  for(let i=0;i<450&&f.service.state().schedule.outcome!=='completed';i++)f.step(11.6);
  assert.equal(f.service.state().schedule.completionId,'cn-morning-audience:0');assert.equal(f.service.state().currentReport.sourceEventId,null,'no fixture order means no invented real receipt');assert.equal(f.checkpoints.at(-1).runtime.phase,'departing','completion stores the final dismissal tasks');f.service.dispose();
  const blocked=fixture();blocked.step(10,false);blocked.step(11.5,false);assert.equal(blocked.service.state().schedule.outcome,'postponed');assert.equal(blocked.service.state().exception.reason,'assembly-incomplete');assert.equal(blocked.service.state().schedule.courtStart,11.5);assert.equal(blocked.service.state().schedule.completionId,null);blocked.step(11.8,false);assert.equal(blocked.requests(),1,'late arrival does not create another sliding court');blocked.service.dispose();

@@ -62,7 +62,7 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
  }
  const reset=n=>{routes.delete(n);n.route=[];n.walking=false;};
  function move(n,to,dt){
-  n.walking=false;if(near(n,to))return true;if(isSociallyHeld(n.station.id,conversation))return false;
+  n.walking=false;if(isSociallyHeld(n.station.id,conversation))return false;if(near(n,to))return true;
   const key=to.join(',');let r=routes.get(n);
   if(!r||r.key!==key){r={key,path:planPath(n.root.position,{x:to[0],y:to[1],z:to[2]},.25),stalled:0};routes.set(n,r);}
   followActorRoute(n,dt,{route:r.path,doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,radius:.25,speedScale:.8,arrivalTolerance:.04});
@@ -121,12 +121,13 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
   update(dt,t,{conversationActorId=null}={}){
    if(disposed)return;dt=Math.max(0,Math.min(.1,dt));time+=dt;life.tick(dt);if(time>=relationshipCheckpoint){relationshipCheckpoint=time+5;if(relationshipEvents.length)persist();}conversation=conversationActorId;
    for(const n of cast)n.walking=false;
-   if(order){elapsed+=dt;phase+=dt;if(!eligible(artist()))cancel('本次服务资格已改变');}
+   const orderPaused=!!order&&[artist(),server].some(n=>isSociallyHeld(n.station.id,conversation));
+   if(order){if(!orderPaused){elapsed+=dt;phase+=dt;}if(!eligible(artist()))cancel('本次服务资格已改变');}
    if(order&&(!getPlayer()||Math.abs(getPlayer().root.position.y-7.6)>.5||elapsed>120))cancel('你已离开或本次等待过久');
    if(order&&['invited','reply','accepted'].includes(order.status)&&!atReception())cancel('你离开了接待案');
    if(order&&!['invited','reply','refund-pending'].includes(order.status)&&!willingness().willing)cancel('艺者想先歇息');
    if(order&&order.paid&&occupied())cancel('茶席或舞台被占用');
-   if(order){const o=order,a=artist();
+   if(order&&!orderPaused){const o=order,a=artist();
     if(o.status==='invited'){if(move(a,P.reply,dt)&&order===o)enter('reply');}
     else if(o.status==='reply'&&phase>=1.1)respond();
     else if(o.status==='seating'){
@@ -147,15 +148,15 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
     }
     if(order===o&&o.actComplete&&o.drinkComplete){const unit=japanServiceMoney(o.currency).displayUnit;finish('节目与饮品已完成',true);notify(`这次演艺茶席已完成，绫乃按实际完成的服务结清${unit}`);}
    }
-   for(const n of [...returns]){if(!unseat(n))continue;if(move(n,n.home.toArray(),dt)){returns.delete(n);reset(n);}}
-   for(const n of cast){const a=order&&n===artist(),performing=a&&order.status==='performing',tea=a&&n.serviceMount;
+   for(const n of [...returns]){if(isSociallyHeld(n.station.id,conversation)||!unseat(n))continue;if(move(n,n.home.toArray(),dt)){returns.delete(n);reset(n);}}
+   for(const n of cast){const a=order&&n===artist(),held=isSociallyHeld(n.station.id,conversation),performing=a&&!orderPaused&&order.status==='performing',tea=a&&n.serviceMount;
     if(performing&&!tea)n.root.rotation.y=Math.PI+Math.sin(t*.45)*.10;
     let hands=null,action=tea?'chair-sit':n===server?'tea':'relax';
     if(performing&&order.activity==='dance'){const wave=Math.sin(t*1.4);hands=[[-.24,1.08,.22],[.38+wave*.08,1.40+wave*.20,.18]];action=null;}
     else if(performing&&order.activity==='story')action='read';
     if(tea){hands=[[-.18,.89,.26],[.18,.94+Math.sin(t*.7)*.06,.27]];n.root.rotation.y=-Math.PI/2;}
-    if(n===server&&order?.drinkStatus==='carrying')hands=[[-.18,1.02,.32],[.18,1.02,.32]];
-    pose(n,t,action,hands);const label=n.label?.querySelector?.('small');if(label)label.textContent=returns.has(n)?'返回歇场位置':a?labels[order.status]||n.station.npcLabel:n.station.npcLabel;
+    if(n===server&&['carrying','serving'].includes(order?.drinkStatus))hands=[[-.18,1.02,.32],[.18,1.02,.32]];
+    pose(n,t,held?null:action,hands);const label=n.label?.querySelector?.('small');if(label)label.textContent=returns.has(n)?'返回歇场位置':a?labels[order.status]||n.station.npcLabel:n.station.npcLabel;
    }
    props?.update(order,{server,artist:artist(),player:getPlayer()},t);
   },

@@ -139,10 +139,11 @@ export function createSalonArtistLife({performers=[],worldSeed=1,saved={},saveSt
    if(disposed||!Number.isFinite(dt)||dt<=0)return;
    clock+=dt;brain.tick(dt);
    for(const n of artists){
-    if(excluded.has(n)||excluded.has(n.station.id)||isActorBusy(n)||n.serviceMount){yieldActor(n);continue;}
+    if(excluded.has(n)||excluded.has(n.station.id)){yieldActor(n);continue;}
     if(isSociallyHeld(n.station.id,conversationActorId)){
      n.walking=false;pose(n,t,null,getPlayer()?.root?.position?position(getPlayer()):null);continue;
     }
+    if(isActorBusy(n)||n.serviceMount){yieldActor(n);continue;}
     updateActor(n,dt,t);
    }
   },

@@ -68,4 +68,18 @@ const served=fixture(saved);served.until(()=>served.scene.snapshot().orders.find
 const partial=fixture(null,{toiletNeed:true});partial.until(()=>!!partial.toilet.actorPose(partial.host),'original host mounts public fixture');assert(!partial.scene.hostCompletionAvailable());assert.equal(partial.toilet.state().receipts.length,0);const interrupted=copy(partial.game);assert(partial.toilet.cancel('test-interruption',M.host));partial.until(()=>!partial.scene.hostBreak(),'cancelled use returns to same post');assert.equal(partial.toilet.state().receipts.length,0);
 const recovering=fixture(interrupted,{toiletNeed:true});recovering.host.root.position.set(...WC.anchor);recovering.tick();recovering.until(()=>!recovering.scene.hostBreak(),'restored partial use safely exits and returns');assert.equal(recovering.toilet.state().receipts.length,0);assert.equal(recovering.property.npcAccount(M.host).total,474);assert.equal(recovering.scene.snapshot().mealReceipts.filter(r=>r.actorId===M.host).length,1);console.log('PASS original toilet controller owns host exclusively; cancellation and mounted save recovery return without false relief or second meal charge');
 
+// R179 exposed at-target workers to nearby talk: their original step and
+// held dish must wait, rather than advancing from travel()'s arrived branch.
+for(const role of ['chef','assistant']){
+ const chat=fixture();chat.hungry(false);const person=chat.npcs.find(n=>n.station.id===(role==='chef'?M.cook:M.assistant));
+ const stages=role==='chef'?['paid','preparing']:['carrying'];let original;
+ chat.until(()=>{original=chat.scene.snapshot().orders.find(o=>stages.includes(o.stage));return !!original&&(role==='assistant'||chat.scene.continuitySnapshot().phases.some(([id,seconds])=>id===original.id&&seconds>.1));},role+' original active step');
+ if(role==='assistant')person.root.position.set(...original.servePoint);
+ const before=chat.scene.continuitySnapshot(),row=copy(before.world.orders.find(o=>o.id===original.id)),step=before.phases.find(([id])=>id===original.id),route=person.route;
+ for(let j=0;j<200;j++)chat.scene.update(.1,100+j*.1,{conversationActorId:person.station.id});
+ assert.deepEqual(copy(chat.scene.snapshot().orders.find(o=>o.id===row.id)),row,role+' chat retains exact numbered order and dish');assert.equal(person.route,route);assert.deepEqual(chat.scene.continuitySnapshot().phases.find(([id])=>id===row.id),step);
+ chat.until(()=>chat.scene.snapshot().orders.find(o=>o.id===row.id)?.stage!==row.stage,role+' resumes original step');
+}
+console.log('PASS at-target chef and tray carrier retain original order/elapsed/route during talk, then resume without duplicate delivery');
+
 }

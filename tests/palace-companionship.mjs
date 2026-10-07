@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPalaceCompanionship} from '../source/game/palace-companionship.js';
-import {isSociallyHeld,holdSocialActors,releaseSocialActors,resetSocialHolds} from '../source/game/npc-social-ownership.js';
+import {isSociallyHeld,holdSocialActors,releaseSocialActors,resetSocialHolds,setPlayerConversationHold} from '../source/game/npc-social-ownership.js';
 
 const clone=x=>JSON.parse(JSON.stringify(x));
 const actor=id=>({actorId:id,alive:true,root:{position:{x:0,y:0,z:0},rotation:{y:0}},walking:false});
@@ -89,4 +89,12 @@ test('night guard survives decline, cancellation and reload, permits the next ni
  const h=fixture({worldSeed:42});h.api.request();h.tick(2);assert.equal(h.api.history().at(-1).reason,'emperor-declined');const roll=h.api.history().at(-1).decisions.ruler.roll;h.busy.add('companion');h.tick(301);assert.equal(h.api.request().reason,'already-invited-tonight');assert.equal(h.api.history().at(-1).decisions.ruler.roll,roll);assert.equal(h.api.project('ruler',{}).relations,undefined);
  const restored=fixture({worldSeed:42,saved:h.api.snapshot()});assert.equal(restored.api.request().reason,'already-invited-tonight');restored.clock.day=3;restored.clock.hour=2;assert.equal(restored.api.request().reason,'already-invited-tonight','past midnight is still the same night');restored.clock.hour=12;assert.equal(restored.api.request().reason,'night-required');restored.clock.hour=20;assert.equal(restored.api.request().ok,true);
  const c=fixture();c.api.request();c.api.cancel();const state=c.api.snapshot(),loaded=fixture({saved:state});assert.equal(loaded.api.request().reason,'already-invited-tonight');delete state.nightAttempts;const legacy=fixture({saved:state});assert.equal(legacy.api.request().reason,'already-invited-tonight','legacy saved attempts migrate conservatively');
+});
+
+
+test('existing invitation reader reuses its owner without timeout, progress, consent or place bypass',()=>{
+ const h=fixture(),e=h.summon(),before=h.api.snapshot();h.api.pauseForMenu(e.id);h.busy.add('ruler');h.tick(120);assert.equal(h.api.status().stage,'awaiting-response');assert.equal(h.api.snapshot().time,before.time);assert.equal(h.starts(),0);assert.equal(h.api.status().consent.player,false);
+ h.api.releaseMenuPause(e.id);h.busy.clear();assert(h.api.respond(e.id,'player',true).ok);h.arrive();h.tick(1);const elapsed=h.api.status().elapsed;setPlayerConversationHold('ruler');h.tick(50);assert.equal(h.api.status().elapsed,elapsed);assert.equal(h.results.length,0);setPlayerConversationHold(null);h.tick(10);assert.equal(h.results.length,1);
+ const blocked=fixture(),old=blocked.summon();blocked.api.pauseForMenu(old.id);blocked.room(false);blocked.tick(1);assert.equal(blocked.api.status(),null,'reading never preserves a revoked room right');assert(['room-occupied','relationship-unavailable'].includes(blocked.api.history().at(-1).reason));
+ const dead=fixture(),invite=dead.summon();dead.api.pauseForMenu(invite.id);dead.identities.ruler.alive=false;dead.roster.find(a=>a.actorId==='ruler').alive=false;dead.tick(1);assert.equal(dead.api.status(),null,'death still revokes current identity during reading');
 });

@@ -1,4 +1,4 @@
-import {isSociallyHeld} from './npc-social-ownership.js';
+import {isSociallyHeld,isPlayerConversationHeld} from './npc-social-ownership.js';
 import {bedAvailable,reserveNpcBed,occupyNpcBed} from './npc-bed-occupancy.js';
 import {TAVERN_LAYOUT_VERSION as LAYOUT_VERSION} from './china-tavern-layout.js';
 import {CHINA_PUBLIC_TOILET as PUBLIC_TOILET} from './china-public-toilet.js';
@@ -123,7 +123,10 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  function updateConversation(n,s,dt,t){
   const pair=conversation;if(!pair||pair.id!==s.pairId){brain.complete(n.station.id,s.choice,{fulfilled:false});claims.releaseActor(n.station.id);idle(n);return;}
   const actors=pair.participants.map(id=>officials.find(a=>a.station.id===id));
-  if(!brain.conversationAllowed(pair.id)||actors.some(a=>!a||stages.get(a)?.called||urgent(a)||isSociallyHeld(a.station.id,state.conversationActorId)||state.meetingActorId===a.station.id||state.performing===a.station.id)){endConversation(false);return;}
+  if(!brain.conversationAllowed(pair.id)||actors.some(a=>!a||a.alive===false)){endConversation(false);return;}
+  if(pair.fadeToBlack&&pair.phase==='talking'&&!actors.every((a,i)=>stages.get(a)?.arrived&&(!pair.places||near(a.root.position,pair.places[i],.2)))){endConversation(false,'已离开约定房间');return;}
+  if(actors.some(a=>isPlayerConversationHeld(a.station.id))){pair.lastAt=time;for(const a of actors)a.walking=false;return;}
+  if(actors.some(a=>stages.get(a)?.called||urgent(a)||isSociallyHeld(a.station.id,state.conversationActorId)||state.meetingActorId===a.station.id||state.performing===a.station.id)){endConversation(false);return;}
   const step=Math.max(0,time-pair.lastAt);pair.lastAt=time;pair.age+=step;
   if(pair.age>150){endConversation(false,'路上耽搁了，改日再聊');return;}
   n.walking=false;if(!s.arrived)travel(n,s,dt);

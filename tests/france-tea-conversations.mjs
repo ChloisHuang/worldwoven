@@ -67,13 +67,13 @@ test('failed story save leaves no experience while original guest drinking and c
  const f=fixture();f.until(()=>f.tea.state().order?.stage==='drinking','original drinking stage');f.setFail(true);for(let i=0;i<100;i++)f.step();assert.equal(f.tea.state().order.finished,true,'actual drinking completes even while optional story storage fails');assert.notEqual(f.tea.state().order.stage,'drinking');assert.equal(f.tea.state().life.people[P.guest].experiences.length,0);assert.equal(f.tea.state().talks.pair,null);f.setFail(false);actualPair(f);assert.equal(f.tea.state().life.people[P.guest].experiences.length,1);
 });
 
-test('real busy greeting preserves existing NPC conversation through production main stage mapping',()=>{
+test('local player conversation pauses and resumes an existing NPC pair through production main',()=>{
  const f=fixture();actualPair(f);f.until(()=>f.tea.state().talks.pair?.elapsed>.3,'real pair talking');const before=f.tea.state().talks.pair,n=f.npcs.find(n=>n.station.id===before.participants[0]);f.player.root.position.copy(n.root.position).add(new T.Vector3(1,0,0));
  const ledger=createPlayerConversationLedger({worldSeed:42,getProfile:id=>f.tea.socialProfile(id),getClock:()=>({day:1,seconds:200}),saveState:()=>true});
  const social=createNpcSocial({actors:()=>f.npcs,player:()=>f.player,ledger,status:n=>f.tea.socialStatus(n),getCountry:()=> 'france'});
- assert.equal(social.begin(n).stage,'greeting');assert.match(social.state().reply,/忙完/);assert.equal(social.conversationActorId(),null);assert.equal(social.isPaused(n),false);
- for(let i=0;i<10;i++)f.step({social});assert.equal(social.state().stage,'greeting');assert.equal(f.tea.state().talks.pair.id,before.id);assert(f.tea.state().talks.pair.elapsed>before.elapsed+.9);assert.equal(f.tea.state().life.conversations.at(-1).status,'accepted');assert.equal(ledger.snapshot().events.length,0,'brief busy reply does not open or reward a player conversation');
- for(let i=0;i<3;i++)f.step({social});assert.equal(social.state(),null);assert.equal(f.tea.state().talks.pair.id,before.id,'NPC commitment continues after busy reply ends');
+ assert.equal(social.begin(n).stage,'choosing');assert.equal(social.conversationActorId(),n.station.id);const position=n.root.position.toArray(),route=n.route,contacts=f.contacts.length;
+ for(let i=0;i<200;i++)f.step({social});assert.equal(social.state().stage,'choosing');assert.deepEqual(f.tea.state().talks.pair,before);assert.deepEqual(n.root.position.toArray(),position);assert.equal(n.route,route);assert.equal(f.contacts.length,contacts);assert.equal(f.tea.state().life.conversations.at(-1).status,'accepted');
+ social.end();f.step();const resumed=f.tea.state().talks.pair;assert.equal(resumed.id,before.id);assert(Math.abs(resumed.elapsed-before.elapsed-.1)<1e-8,'paused wall time is never replayed as contact');social.dispose();f.tea.dispose();
 });
 test('production main protects real choosing and talking player stages from autonomous invitations',()=>{
  const f=fixture();actualPair(f);f.tea.requestMeeting(true);f.tea.requestMeeting(false);const saved=f.snapshot();
@@ -83,6 +83,18 @@ test('production main protects real choosing and talking player stages from auto
  const g=fixture(saved),host=g.npcs.find(n=>n.station.id===P.host);g.player.root.position.copy(host.root.position).add(new T.Vector3(1,0,0));
  const ledger=createPlayerConversationLedger({worldSeed:4,getProfile:id=>g.tea.socialProfile(id),getClock:()=>({day:1,seconds:200}),saveState:()=>true});
  const social=createNpcSocial({actors:()=>g.npcs,player:()=>g.player,ledger,status:n=>g.tea.socialStatus(n),getCountry:()=> 'france',beginInteraction:participants=>({id:'player-contact',participants})});
- assert.equal(social.begin(host).stage,'choosing');assert.equal(social.isPaused(host),false,'stationary topic menu has no old pause flag');for(let i=0;i<5;i++)g.step({social});assert.equal(social.state().stage,'choosing');assert(!g.tea.state().talks.pair?.participants.includes(P.host));assert.equal(g.tea.socialProfile(P.host).current,null);
+ assert.equal(social.begin(host).stage,'choosing');assert.equal(social.isPaused(host),true,'local topic menu holds only its current actor');for(let i=0;i<5;i++)g.step({social});assert.equal(social.state().stage,'choosing');assert(!g.tea.state().talks.pair?.participants.includes(P.host));assert.equal(g.tea.socialProfile(P.host).current,null);
  const result=social.choose('art');assert.equal(result.event.status,'accepted');assert.equal(social.state().stage,'talking');const id=social.state().eventId;for(let i=0;i<5;i++)g.step({social});assert.equal(social.state().eventId,id);assert.equal(social.state().stage,'talking');assert(!g.tea.state().talks.pair?.participants.includes(P.host));assert.equal(g.tea.socialProfile(P.host).current,null);assert.equal(ledger.event(id).status,'accepted');
+});
+
+test('local conversation hold never preserves dead actors, lost places, urgent duties or a new real order',async()=>{
+ const {setPlayerConversationHold}=await import('../source/game/npc-social-ownership.js');
+ for(const invalid of ['dead','place','urgent','order']){
+  const f=fixture();const pair=actualPair(f),id=pair.participants[0],n=f.npcs.find(n=>n.station.id===id);setPlayerConversationHold(id);
+  try{
+   f.step({conversationActorId:id,playerSocialActorId:id});assert.equal(f.tea.state().talks.pair.id,pair.id,'local factors alone do not revoke the old pair');
+   if(invalid==='dead')n.alive=false;else if(invalid==='place')f.facilities.releaseActor(id);else if(invalid==='urgent')f.setUrgent(id);else{f.mount();assert(f.tea.request());}
+   f.step({conversationActorId:id,playerSocialActorId:id});assert.equal(f.tea.state().talks.pair,null,invalid);assert.equal(f.tea.state().life.conversations.at(-1).status,'cancelled');assert.equal(f.contacts.length,0);for(const participant of pair.participants)assert.deepEqual(f.tea.state().life.people[participant].relations,{});
+  }finally{setPlayerConversationHold(null);f.tea.dispose();}
+ }
 });
