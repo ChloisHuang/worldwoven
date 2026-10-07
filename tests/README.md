@@ -2,7 +2,7 @@
 
 先选本次改动涉及的模块，再选实际受影响的用例。`npm test` / `npm run test:list` **只列清单，不执行、不表示通过**。`npm run test:check` 检查清单有没有遗漏、重复和丢失文件，不构建世界。
 
-唯一活动目录是 [suites.json](suites.json)：532 个入口逐一归类（531 个 tests 根目录脚本和 worker），每个脚本只列一次。按用途分块，不移动脚本，避免破坏相对 import、fixture 和源码提取。`tests/fixtures/` 是被测试引用的支持文件，不是独立入口。嵌套 `door-geometry/` 保留自己的 manifest 和下面的定向入口。
+唯一活动目录是 [suites.json](suites.json)：535 个入口逐一归类（534 个 tests 根目录脚本和 worker），每个脚本只列一次。按用途分块，不移动脚本，避免破坏相对 import、fixture 和源码提取。`tests/fixtures/` 是被测试引用的支持文件，不是独立入口。嵌套 `door-geometry/` 保留自己的 manifest 和下面的定向入口。
 
 ## 常用命令
 
@@ -54,7 +54,7 @@ npm run test:door-geometry -- --tiny
 
 - 删除 `france-inset-subset-ready.json` 和 `france-inset-subset-results.json`：R16.1 候选的旧执行结果/环境记录，不是输入 fixture，仓库无其他文件引用。完整历史可从本改动父提交 `17363a7e628d09b678d4a11842f83c7dae61c9c3` 恢复；未删除唯一历史证据。
 - 旧 France source guard 仍被 `france-inset-routes-seven`、`render-france-inset-five`、嵌套 world-six 使用，成套原位归档；renderer 还依赖外部绝对安装路径，不能当便携回归。`runtime-stutter-profile` 对比硬编码旧提交，同样只作历史调查。
-- 保留 `r11/r12/r14/hotfix` 名称的断言：名称旧不代表覆盖重复，没有充分依据不批量删。此批不声称所有 532 项已验证或无重叠。
+- 保留 `r11/r12/r14/hotfix` 名称的断言：名称旧不代表覆盖重复，没有充分依据不批量删。此批不声称所有 535 项已验证或无重叠。
 - 清理两处已确认过时的测试假设：外观评分从固定“恰好3个调用”改为检查所有实际调用都显式选择相同版本；菜单 Escape 的生产键盘 handler 提取跟随现有 paused guard，并保留两次 Escape 行为断言。产品代码未改。
 - 缓存旧入口检查同步为 HTML → hashed entry → main；分别遍历游戏动态/live/preview 与两个 QA 页的实际引用闭包，逐 URL 比对所有 JS，并补全临时构建输入 package/baseline。定向缓存检查通过322资产、315模块、CSS单独更新和旧资源缺失拒绝，未放宽成数量相同即通过。
 - `development/` 是实验/预览工具，`scripts/build.mjs`、`serve.mjs`、`guard-process-tree.py` 是构建、服务和资源管理，不纳入日常自动回归。

@@ -35,7 +35,9 @@
       "character-transitions.cjs",
       "character-variety.cjs",
       "characters.cjs",
+      "external-hand-props.mjs",
       "garment-probe-regressions.cjs",
+      "japan-external-hand-grips.mjs",
       "npc-appearance-controller.cjs",
       "npc-random-appearance.cjs",
       "npc-shape-geometry.cjs",
@@ -45,7 +47,8 @@
       "random-appearance-controller.cjs",
       "random-appearance-layout.cjs",
       "random-appearance-reload.cjs",
-      "random-appearance.cjs"
+      "random-appearance.cjs",
+      "shared-hand-poses.mjs"
     ]
   },
   "navigation": {
