@@ -2,8 +2,8 @@
   "scope": "QA-only candidate UI, production entry unchanged",
   "files": {
     "object-action-menu.js": {
-      "sourceSha256": "bb0241e5780b9d9bd7bfe1889d27decf584dbfb67c589b61c42e6118bfdc9909",
-      "candidateSha256": "b0879c8f467ee9fac10a60f9c2b26318d2a9034a141689d38b5cfa7f4a2d2b5b"
+      "sourceSha256": "112839decb1d4ef1d9a85c562e3deae38f6a10e89c0adee72724b58e8bde5231",
+      "candidateSha256": "9a6a238d460756c3ed7665fc05eda64b940a5b23e15d0040e8a9ded8f91f589f"
     },
     "contextual-action-menu.js": {
       "sourceSha256": "5824159b1943e33cadef26c8663376a4199be52006ea05017b615bd4a1aa80a0",
@@ -18,24 +18,24 @@
       "candidateSha256": "5a77f2fcf8eb5c6da637ca345c9828cae718a1997229c071b0413cfa1d147c9d"
     },
     "npc-social.js": {
-      "sourceSha256": "efc75191820dc333abc64bb2479727e651aa7ebfc43bae0d38dab38dc3c23594",
-      "candidateSha256": "90724592f6148fba7fc69efce09e04688119f68c06368495e9006932c5c7c77e"
+      "sourceSha256": "866c07f3e583bd573b230e407d1dd82b723d031783afc261aaa7dc4da79e248e",
+      "candidateSha256": "2e2b4a8478772bc854510bb38b8c5efa6cbcd4c71da98a89afcbcdedafa364de"
     },
     "airy-panel.js": {
       "sourceSha256": "f429989d8f7a592a0d9b7e29316f59fc85db9a365f368c39d77534b53dd6325b",
       "candidateSha256": "f429989d8f7a592a0d9b7e29316f59fc85db9a365f368c39d77534b53dd6325b"
     },
     "wallet.js": {
-      "sourceSha256": "b8f6180d660ec849e44393dd8524145baa7a77dfd96dab46f00a9334dfcb8836",
-      "candidateSha256": "9a480acee3255e3a58e394a012882b57f9d4f8fe6cbf2146f88fac1b4b82d08d"
+      "sourceSha256": "d4f22ac89c278362672f0eb88144604c6433e694126eb7833b5803bc05970a0e",
+      "candidateSha256": "dabf42c161c25419fa78d613ad9e4e4e60e106b601ae8ac9156e96738d872571"
     },
     "wallet.css": {
       "sourceSha256": "f5c73acaafafe11c309d20e2a1426fee30c1d3e570169078e1c76bedf2215362",
       "candidateSha256": "f5c73acaafafe11c309d20e2a1426fee30c1d3e570169078e1c76bedf2215362"
     },
     "game.css": {
-      "sourceSha256": "de5cdbf34fcd492827a502b7c86c8776fe6f9ac995fbf6f536abba819d6e657b",
-      "candidateSha256": "de5cdbf34fcd492827a502b7c86c8776fe6f9ac995fbf6f536abba819d6e657b"
+      "sourceSha256": "92f80645251e78726021047092e7b09b9d600a138f20bb14bed35b31dcb4785f",
+      "candidateSha256": "92f80645251e78726021047092e7b09b9d600a138f20bb14bed35b31dcb4785f"
     }
   }
 }

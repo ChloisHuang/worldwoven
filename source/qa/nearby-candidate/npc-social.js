@@ -30,13 +30,13 @@ export function createNpcSocial({actors,player,visible=()=>true,status=()=>({}),
  const roll=a=>{a.random=(Math.imul(a.random,1664525)+1013904223)>>>0;return a.random/4294967296;};
  const present=n=>!!n&&actors().includes(n)&&n.root.visible!==false;
  function canInteract(n,radius=1.8){const p=player()?.root?.position,q=n?.root?.position;return !!(p&&q&&present(n)&&Math.abs(p.y-q.y)<.65&&gap(p,q)<=radius&&visible(n,p));}
- function releaseMenu(){if(!menuHold)return false;const held=menuHold;menuHold=null;if(Number.isFinite(held.actor.breakAt))held.actor.breakAt+=time-held.started;return true;}
+ function releaseMenu(){if(!menuHold)return false;const held=menuHold;menuHold=null;if(meeting?.actor!==held.actor&&Number.isFinite(held.actor.breakAt))held.actor.breakAt+=time-held.started;return true;}
  function holdMenu(n){if(menuHold?.actor===n)return true;if(!canInteract(n,2.8)||!idle(n)||meeting&&meeting.actor!==n||conversation)return false;releaseMenu();menuHold={actor:n,id:npcActorId(n),started:time};n.walking=false;return true;}
  function menuState(){return menuHold?{id:menuHold.id,actor:menuHold.actor}:null;}
- function releaseMeeting(owner,reason='released'){if(!meeting||owner&&meeting.owner!==owner)return false;const held=meeting;meeting=null;if(Number.isFinite(held.actor.breakAt))held.actor.breakAt+=time-held.started;onMeetingEnded({id:held.id,owner:held.owner},reason);return true;}
+ function releaseMeeting(owner,reason='released'){if(!meeting||owner&&meeting.owner!==owner)return false;const held=meeting;meeting=null;if(Number.isFinite(held.actor.breakAt))held.actor.breakAt+=time-held.started;if(menuHold?.actor===held.actor)menuHold.started=time;onMeetingEnded({id:held.id,owner:held.owner},reason);return true;}
  function reserveMeeting(n,{owner,duration=75}={}){
-  if(typeof owner!=='string'||!owner||!n||!actors().includes(n)||!idle(n)||conversation)return false;
-  if(meeting&&meeting.owner!==owner)return false;releaseMeeting(owner);
+  if(typeof owner!=='string'||!owner||!n||!actors().includes(n)||!idle(n)||conversation||menuHold&&menuHold.actor!==n)return false;
+  if(meeting&&meeting.owner!==owner)return false;if(!meeting&&menuHold?.actor===n){if(Number.isFinite(n.breakAt))n.breakAt+=time-menuHold.started;menuHold.started=time;}releaseMeeting(owner);
   meeting={actor:n,id:npcActorId(n),owner,started:time,until:time+Math.max(5,Math.min(90,Number.isFinite(duration)?duration:75))};n.walking=false;return true;
  }
  function releasePause(c){if(!c?.paused)return;if(Number.isFinite(c.actor.breakAt))c.actor.breakAt+=time-(c.pauseStarted??c.started);c.paused=false;}

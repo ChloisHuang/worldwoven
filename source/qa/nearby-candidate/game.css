@@ -222,3 +222,9 @@ body dialog.context-action-menu{inset:auto var(--ww-ui-right,12px) calc(var(--ww
 .object-action-icon[data-choice-count]:not([data-choice-count=""]):before{content:attr(data-choice-count);position:absolute;right:7px;bottom:7px;color:#52796e;font:10px/15px sans-serif}
 
 .object-action-icon[data-selected="true"][data-input-mode="gamepad"]:after{content:'A'}
+
+/* While choosing, keep the world and target visible and give the action list
+   the short landscape height. Only unrelated HUD chrome is hidden. */
+body[data-object-menu="open"] .topbar,body[data-object-menu="open"] .lot-top,body[data-object-menu="open"] .character-card,body[data-object-menu="open"] .camera-tools,body[data-object-menu="open"] .movement-hint,body[data-object-menu="open"] .joystick,body[data-object-menu="open"] .career-wallet-slot{display:none!important}
+.object-action-popover .context-action-group h3{line-height:14px;margin:6px 6px 2px}
+.object-action-popover .context-action-row{min-height:44px;padding:8px 7px}
