@@ -37,7 +37,7 @@
   "mainDifferences": "R190 teller integration only; original salon/controller list and actor restoration unchanged. New player teller intent resolution and teller update remain active in the production step.",
   "financialOrigin": "Four-day original controller fixture: direct courtCompleted calls and doubled travel. Six96,24 duty receipts,576 total. Not four natural days.",
   "observationWindowSeconds": 240,
-  "windowReason": "Two original paid-salon cooldowns of120s plus original10–27s work/read decision cycles; no event is an observation limit, not proof of a broken service.",
+  "windowReason": "240 seconds bounds no-selection observation only. Once original paid-salon is chosen, follow that same actor/target/startedAt to session or cancellation; do not replace it or truncate healthy travel. Original travel replans after4 stalled seconds and records failure on third retry; reception waits at most12 seconds for a waitable offer.",
   "segments": [
     {
       "input": "qa/st03-r190/origin-checkpoint.json",
@@ -649,6 +649,132 @@
         "bootId": "f3aabe27-ab35-4beb-aca8-24cd4bc772b7"
       },
       "phaseLog": "qa/st03-r190/segment-20261007T183529Z-2.log"
+    },
+    {
+      "input": "qa/st03-r190/segment-20261007T183529Z-2.checkpoint.json",
+      "checkpoint": "qa/st03-r190/segment-20261007T184243Z-2.checkpoint.json",
+      "checkpointSha256": "5218871bc996644d8fb0dfce7cf9bf384357653db76c8521a84a37cb9aa4232b",
+      "frames": 300,
+      "initialSeconds": 8620.714285713959,
+      "clock": {
+        "seconds": 8665.71428571385,
+        "day": 4,
+        "hour": 15.099999999994907
+      },
+      "stop": "segment-boundary",
+      "tracked": {
+        "actorId": "cn-official-rites",
+        "id": "paid-salon",
+        "targetId": "cn-tavern-storyteller:story",
+        "duration": 0,
+        "startedAt": 82.50000000000027
+      },
+      "events": [
+        {
+          "frame": 1,
+          "clock": {
+            "seconds": 8620.864285713958,
+            "day": 4,
+            "hour": 14.576749999996172
+          },
+          "paid": [
+            {
+              "id": "cn-official-rites",
+              "activity": "paid-salon",
+              "stage": "travel",
+              "arrived": false,
+              "elapsed": 0,
+              "mounted": null,
+              "borrowed": false,
+              "borrowedSalon": false,
+              "duty": null,
+              "roomId": null,
+              "called": false,
+              "position": [
+                20.5,
+                0.215,
+                14.2776064
+              ]
+            }
+          ],
+          "session": null
+        }
+      ],
+      "route": {
+        "index": 20,
+        "arrived": false,
+        "travel": {
+          "waiting": false,
+          "blocked": false,
+          "body": null
+        },
+        "stalled": 0,
+        "retries": 0
+      },
+      "customerPosition": [
+        23.31451204530498,
+        7.815,
+        8.18548795469502
+      ],
+      "session": null,
+      "rooms": [
+        {
+          "id": "tavern-guest-lan",
+          "name": "兰房",
+          "claim": null,
+          "physicallyOccupied": true
+        },
+        {
+          "id": "tavern-guest-zhu",
+          "name": "竹房",
+          "claim": null,
+          "physicallyOccupied": false
+        }
+      ],
+      "accounts": {
+        "cn-minister-works": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-minister-granary": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-rites": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-personnel": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-justice": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-records": {
+          "bank": 96,
+          "cash": 0
+        }
+      },
+      "artistReceiptCount": 0,
+      "failures": [],
+      "officialFailures": [],
+      "guard": {
+        "guard": "PASS",
+        "reason": null,
+        "exit": 0,
+        "seconds": 86.604,
+        "treePeakMiB": 712.918,
+        "peakMembersBytes": {
+          "18": 10862592,
+          "20": 736686080
+        },
+        "includesSupervisor": true,
+        "hostname": "24d70332fa95",
+        "bootId": "f3aabe27-ab35-4beb-aca8-24cd4bc772b7"
+      },
+      "phaseLog": "qa/st03-r190/segment-20261007T184243Z-2.log"
     }
   ]
 }
