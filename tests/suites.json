@@ -355,7 +355,10 @@
       "wallet-assets.mjs",
       "wallet-geometry.mjs",
       "china-salon-contracts.mjs",
-      "china-salon-stories.mjs"
+      "china-salon-stories.mjs",
+      "china-piecework-career-core.mjs",
+      "china-piecework-employment.mjs",
+      "china-piecework-main.cjs"
     ]
   },
   "world-life": {
@@ -608,7 +611,9 @@
       "family-companionship-main.cjs",
       "family-world-travel-main.cjs",
       "family-outbox.mjs",
-      "family-placement.mjs"
+      "family-placement.mjs",
+      "china-archive-player-work.cjs",
+      "china-palace-tea-player-service.cjs"
     ]
   },
   "release": {

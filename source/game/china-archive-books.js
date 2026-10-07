@@ -26,6 +26,15 @@ export function createArchiveBooks(G,{group,poseContext=()=>({})}){
  const matches=(b,o,r=null)=>{const q=live(b.id);if(!q)return false;root.updateWorldMatrix(true,true);const e=expected(b,o,r);return q.getWorldPosition(new T.Vector3()).distanceTo(new T.Vector3(...e.p))<.002&&Math.abs(q.rotation.y-e.yaw)<.001;};
  const atHome=id=>{const b=ARCHIVE_BOOKS.find(b=>b.id===id);return !!b&&matches(b,null);};
  function restore(o,r=null){current=o?structuredClone(o):null;recovery=r?structuredClone(r):null;for(const b of ARCHIVE_BOOKS){const q=live(b.id);if(!q)continue;const e=expected(b,current,recovery);q.position.fromArray(e.p);q.rotation.y=e.yaw;}}
+ // The main player animator consumes this exact context before observed-hand
+ // validation. Computing it never advances a volume or creates a held copy.
+ function workPose(n,work,context={}){
+  const q=live(work?.book?.id);if(!q||!n?.root)return null;
+  n.root.rotation.y=Math.PI;n.root.updateWorldMatrix(true,true);q.updateWorldMatrix(true,true);
+  const body=n.root.userData.body||n.root;body.updateWorldMatrix(true,false);
+  const hands=[-.18,.18].map(x=>body.worldToLocal(q.localToWorld(new T.Vector3(x,.0525,.16))).toArray()).sort((a,b)=>a[0]-b[0]);
+  return {...context,action:'tidy',workHeight:undefined,workDistance:undefined,handoff:true,handoffLean:n.actorId==='player'?.8:.5,handoffDip:n.actorId==='player'?.12:.08,heldProp:null,archery:{hands}};
+ }
  return {root,nodes,exists:id=>!!live(id),completeCatalogue:()=>nodes.size===6&&root.children.length===6&&ARCHIVE_BOOKS.every(b=>atHome(b.id)),atHome,allReturned:()=>ARCHIVE_BOOKS.every(b=>atHome(b.id)),matches:(o,r=null)=>ARCHIVE_BOOKS.every(b=>matches(b,o,r)),
   contact(n,id){const q=live(id),hands=n?.root?.userData?.hands;if(!q||!Array.isArray(hands)||hands.length!==2||hands.some(h=>!h?.getWorldPosition))return false;
    n.root.updateWorldMatrix(true,true);root.updateWorldMatrix(true,true);
@@ -33,13 +42,8 @@ export function createArchiveBooks(G,{group,poseContext=()=>({})}){
   },
   pose(n,t,work,context=poseContext(n)){
    if(!work){n.animate(t,n.walking,null,context);return;}
-   const q=live(work.book.id);if(!q)return;
-   n.root.rotation.y=Math.PI;n.root.updateWorldMatrix(true,true);q.updateWorldMatrix(true,true);
-   const body=n.root.userData.body||n.root;body.updateWorldMatrix(true,false);
-   const hands=[-.18,.18].map(x=>body.worldToLocal(q.localToWorld(new T.Vector3(x,.0525,.16))).toArray()).sort((a,b)=>a[0]-b[0]);
-   // Existing tea opt-in interface only. No arm length or shared solver changes.
-   n.animate(t,false,'tidy',{...context,workHeight:undefined,workDistance:undefined,handoff:true,handoffLean:.5,handoffDip:.08,heldProp:null,archery:{hands}});
-  },restore,
+   const c=workPose(n,work,context);if(c)n.animate(t,false,'tidy',c);
+  },workPose,restore,
   state:()=>ARCHIVE_BOOKS.map(b=>({id:b.id,present:!!live(b.id),position:nodes.get(b.id).getWorldPosition(new T.Vector3()).toArray(),atHome:atHome(b.id)})),
   dispose(){root.removeFromParent();root.traverse(n=>{if(n.geometry)n.geometry.dispose();});}
  };

@@ -1,12 +1,12 @@
 import {isSociallyHeld} from './npc-social-ownership.js';
-import {ARCHIVE_BOOKS,ARCHIVE_HOME,archiveContract,archiveProof,validateArchiveContract,archiveSame} from './china-archive-catalogue.js';
+import {ARCHIVE_BOOKS,ARCHIVE_HOME,archiveContract,archivePlayerContract,archiveProof,validateArchiveContract,validateArchivePlayerContract,archiveSame} from './china-archive-catalogue.js';
 const copy=structuredClone,integer=n=>Number.isSafeInteger(n)&&n>=0;
 const stages=['approach','check','tidy','replace','return','settle'];
 const empty=()=>({version:3,lastIssuedDay:-1,order:null,interruptions:[],recovery:null});
 const near=(n,p)=>!!n?.root?.position&&Math.hypot(n.root.position.x-p[0],n.root.position.z-p[2])<.04&&Math.abs(n.root.position.y-p[1])<.2;
 const keys=(o,k)=>!!o&&archiveSame(Object.keys(o),k);
 function validOrder(o){
- if(!keys(o,['contract','index','stage','seconds','completed'])||!validateArchiveContract(o.contract)||!integer(o.index)||o.index>6||!stages.includes(o.stage)||!Number.isFinite(o.seconds)||o.seconds<0||!Array.isArray(o.completed))return false;
+ if(!keys(o,['contract','index','stage','seconds','completed'])||!(validateArchiveContract(o.contract)||validateArchivePlayerContract(o.contract))||!integer(o.index)||o.index>6||!stages.includes(o.stage)||!Number.isFinite(o.seconds)||o.seconds<0||!Array.isArray(o.completed))return false;
  if(!archiveSame(o.completed,ARCHIVE_BOOKS.slice(0,o.index).map(b=>b.id))||(o.index===6)!==['return','settle'].includes(o.stage))return false;
  return o.seconds<=(o.stage==='check'?2:o.stage==='tidy'?1:o.stage==='replace'?.8:0);
 }
@@ -26,8 +26,8 @@ function valid(s){
 }
 // Top-level persisted state is authoritative. World continuity restores bodies
 // only; it must not overwrite a newer atomic work/payment transition.
-export function createArchiveInspection({resolveAssignment,getDay,getActor,canControl=()=>false,travel,pose,books,economy,saved,saveState=()=>false}={}){
- let state=empty(),loadError=null,disposed=false;
+export function createArchiveInspection({resolveAssignment,getDay,getActor,canControl=()=>false,getPlayer=()=>null,getBusy=()=>false,getMounted=()=>false,canControlPlayer=()=>true,travel,pose,books,economy,saved,saveState=()=>false}={}){
+ let state=empty(),loadError=null,disposed=false,selected=null,playerContext={};
  if(saved!=null){const s=normalize(saved);if(valid(s))state=s;else{state=copy(saved);loadError='invalid-archive-inspection';}}
  const project=()=>{if(!loadError)books?.restore?.(state.order,state.recovery);};
  function write(next){if(!valid(next))return false;try{const r=saveState(copy(next));if(r===false||r?.ok===false||r?.then)return false;state=next;project();return true;}catch{return false;}}
@@ -35,19 +35,60 @@ export function createArchiveInspection({resolveAssignment,getDay,getActor,canCo
  const ownedId=()=>loadError?null:state.order?.contract.actorId||state.recovery?.worker?.actorId||null;
  const unavailable=(n,binding)=>{const a=resolveAssignment();return !n?'actor-missing':n.alive===false?'actor-dead':a?.status==='invalid'?null:a?.holderId!==binding.actorId||a?.revision!==binding.holderRevision||a?.actor!==n?'assignment-changed':null;};
  const ready=n=>{const a=resolveAssignment();return n&&n.alive!==false&&a?.status==='npc'&&a.actor===n&&a.holderId===n.station?.id&&a.alive&&a.available&&canControl(n);};
+ const playerOrder=()=>state.order?.contract.actorId==='player'?state.order:null;
+ const playerReady=()=>{const a=resolveAssignment(),n=getPlayer();return !!n&&n.alive!==false&&a?.status==='player'&&a.actor===n&&a.holderId==='player'&&a.alive!==false&&a.available!==false&&(!playerOrder()||a.revision===playerOrder().contract.holderRevision)&&canControlPlayer(n);};
+ const playerPaused=()=>!!getBusy()||!!getMounted()||!!playerContext.conversationActorId||!!playerContext.performing;
+ const optionFor=o=>{const stage=o.stage==='approach'?'check':o.stage==='return'?'settle':o.stage,b=ARCHIVE_BOOKS[o.index],target=stage==='settle'?ARCHIVE_HOME:[b.stand[0],b.stand[1],b.stand[2]+.15];return {id:`${o.contract.orderId}:${o.contract.holderRevision}:${o.index}:${stage}`,stage,bookId:b?.id||null,label:stage==='settle'?'回原岗核对六册并结算8文':`第${o.index+1}册 · ${{check:'核检原册',tidy:'抬整原册',replace:'放回原位'}[stage]}`,target:[...target],position:[...target],reach:.035};};
+ const selectionMatches=()=>!!selected&&!!playerOrder()&&selected.id===optionFor(playerOrder()).id;
+ const fail=code=>({ok:false,code});
+ function playerStart(){
+  if(disposed||loadError)return fail(loadError||'archive-disposed');
+  if(!playerReady())return fail('archive-player-not-holder');
+  if(state.recovery||state.order&&!playerOrder())return fail('archive-original-work-unfinished');
+  if(playerOrder())return {ok:true,resumed:true,order:copy(playerOrder())};
+  if(playerPaused())return fail('archive-player-busy');
+  if(!near(getPlayer(),ARCHIVE_HOME))return fail('archive-player-not-at-home');
+  const day=getDay();if(!integer(day)||day<=state.lastIssuedDay)return fail('archive-day-already-issued');
+  if(!books?.completeCatalogue?.())return fail('archive-original-books-not-returned');
+  const contract=archivePlayerContract(day,resolveAssignment().revision);
+  if(!validateArchivePlayerContract(contract))return fail('invalid-archive-player-contract');
+  const next={...copy(state),lastIssuedDay:day,order:{contract,index:0,stage:'approach',seconds:0,completed:[]}};
+  if(!write(next))return fail('save-failed');return {ok:true,order:copy(state.order)};
+ }
+ function playerAction(id){
+  if(disposed||loadError)return fail(loadError||'archive-disposed');
+  const o=playerOrder();if(!o||!playerReady())return fail('archive-player-not-holder');
+  const option=optionFor(o);if(id!==option.id)return fail('archive-stale-player-action');
+  if(playerPaused()||getPlayer().walking)return fail('archive-player-busy');
+  if(!near(getPlayer(),option.target))return fail(option.stage==='settle'?'archive-player-not-at-home':'archive-player-not-at-book');
+  if(option.stage==='settle'&&!books.allReturned())return fail('archive-original-books-not-returned');
+  if(option.stage!=='settle'&&(!books.exists(option.bookId)||!books.matches(o)))return fail('archive-original-book-unavailable');
+  if(o.stage==='approach'&&!advance('check')||o.stage==='return'&&!advance('settle'))return fail('save-failed');
+  selected=option;return {ok:true,action:copy(option)};
+ }
+ function playerWork(){
+  const o=playerOrder(),n=getPlayer();if(!selectionMatches()||!playerReady()||playerPaused()||n.walking||!near(n,selected.target)||selected.stage==='settle')return null;
+  return {book:ARCHIVE_BOOKS[o.index],stage:o.stage,seconds:o.seconds};
+ }
+
  function interrupt(reason){
   const order=copy(state.order),next={...copy(state),order:null,interruptions:[...state.interruptions,{order,reason}],recovery:books.allReturned()||order.index>=6?null:{order,fallSeconds:0,seconds:0,worker:null}};
-  return write(next);
+  const saved=write(next);if(saved)selected=null;return saved;
  }
  project();
  return {
   snapshot:()=>copy(state),state:()=>copy(state),get loadError(){return loadError;},ownedActorId:ownedId,
-  owns:n=>!!ownedId()&&n?.station?.id===ownedId(),reserves:n=>!!ownedId()&&n?.station?.id===ownedId(),
+  owns:n=>!!ownedId()&&(n?.actorId||n?.station?.id)===ownedId(),reserves:n=>!!ownedId()&&(n?.actorId||n?.station?.id)===ownedId(),
+  playerStart,playerAction,playerOptions:()=>!loadError&&playerOrder()?[optionFor(playerOrder())]:[],
+  playerBusy:()=>selectionMatches(),playerWork,playerWorkPose:()=>{const work=playerWork();return work?books.workPose?.(getPlayer(),work)||null:null;},
+  pausePlayerWork(){selected=null;return true;},
   handoffBoundary:()=>({ok:!loadError&&!state.order&&!state.recovery?.worker,blockers:loadError?[loadError]:state.order||state.recovery?.worker?['archive-original-work-unfinished']:[]}),
+  playerHandoffBoundary:()=>({ok:!loadError&&!state.order&&!state.recovery&&!!books.allReturned(),blockers:loadError?[loadError]:state.order||state.recovery||!books.allReturned()?['archive-original-work-unfinished']:[]}),
   studyAvailable:()=>!loadError&&!state.order&&!state.recovery,
   canBorrowMeal:()=>false,
-  restore(s){const next=normalize(s);if(!valid(next)||loadError)return false;state=next;project();return true;},
+  restore(s){const next=normalize(s);if(!valid(next)||loadError)return false;state=next;selected=null;project();return true;},
   update(dt,t,{conversationActorId=null,performing=null}={}){
+   playerContext={conversationActorId,performing};
    if(disposed||loadError||!Number.isFinite(dt)||dt<=0)return;dt=Math.min(dt,.25);
    if(state.recovery){
     const r=state.recovery;
@@ -69,23 +110,29 @@ export function createArchiveInspection({resolveAssignment,getDay,getActor,canCo
     const contract=archiveContract(day,a.holderId,a.revision);if(!validateArchiveContract(contract))return;
     write({...copy(state),lastIssuedDay:day,order:{contract,index:0,stage:'approach',seconds:0,completed:[]}});return;
    }
-   const o=state.order,n=getActor(o.contract.actorId),reason=unavailable(n,o.contract);if(reason){interrupt(reason);return;}
-   if(!ready(n)||isSociallyHeld(n.station.id,conversationActorId)||performing===n.station.id)return;
+   const o=state.order,isPlayer=o.contract.actorId==='player',n=isPlayer?getPlayer():getActor(o.contract.actorId),reason=unavailable(n,o.contract);if(reason){interrupt(reason);return;}
+   if(isPlayer){
+    if(!selectionMatches())return;
+    // Moving away or taking a seat cancels only the selected gesture. The
+    // physical originals, elapsed work and bound day's wage remain saved.
+    if(n.walking||getMounted()||!near(n,selected.target)){selected=null;return;}
+    if(!playerReady()||playerPaused())return;
+   }else if(!ready(n)||isSociallyHeld(n.station.id,conversationActorId)||performing===n.station.id)return;
    const b=ARCHIVE_BOOKS[o.index];
    if(['return','settle'].includes(o.stage)){
     if(!books.allReturned())return;
-    if(!near(n,ARCHIVE_HOME)){if(o.stage==='settle')advance('return');travel(n,ARCHIVE_HOME,dt);pose(n,t,null);return;}
+    if(!near(n,ARCHIVE_HOME)){if(isPlayer){selected=null;return;}if(o.stage==='settle')advance('return');travel(n,ARCHIVE_HOME,dt);pose(n,t,null);return;}
     if(o.stage==='return'){advance('settle');return;}
     const next={...copy(state),order:null};const result=economy.settle(archiveProof(o.contract),{chinaArchiveInspection:next});
-    if(result.ok&&(!result.replayed||write(next))){state=next;project();}return;
+    if(result.ok&&(!result.replayed||write(next))){state=next;selected=null;project();}return;
    }
    if(!books.exists(b.id))return;
-   if(o.stage==='approach'){if(!near(n,b.stand)){travel(n,b.stand,dt);pose(n,t,null);return;}if(books.atHome(b.id))advance('check');return;}
-   if(!near(n,b.stand)){if(o.stage==='check'&&o.seconds===0)advance('approach');return;}
-   pose(n,t,{book:b,stage:o.stage,seconds:o.seconds});if(!books.contact(n,b.id)||!books.matches(o))return;
+   if(o.stage==='approach'){if(isPlayer)return;if(!near(n,b.stand)){travel(n,b.stand,dt);pose(n,t,null);return;}if(books.atHome(b.id))advance('check');return;}
+   if(!near(n,isPlayer?selected.target:b.stand)){if(o.stage==='check'&&o.seconds===0)advance('approach');return;}
+   if(!isPlayer)pose(n,t,{book:b,stage:o.stage,seconds:o.seconds});if(!books.contact(n,b.id)||!books.matches(o))return;
    const limit=o.stage==='check'?2:o.stage==='tidy'?1:.8,seconds=Math.min(limit,o.seconds+dt);
    if(!write({...copy(state),order:{...copy(o),seconds}}))return;
-   if(seconds===limit){if(o.stage==='replace'){if(!books.atHome(b.id))return;const index=o.index+1;advance(index===6?'return':'approach',{index,completed:[...o.completed,b.id]});}else advance(o.stage==='check'?'tidy':'replace');}
-  },dispose(){disposed=true;}
+   if(seconds===limit){let advanced=false;if(o.stage==='replace'){if(!books.atHome(b.id))return;const index=o.index+1;advanced=advance(index===6?'return':'approach',{index,completed:[...o.completed,b.id]});}else advanced=advance(o.stage==='check'?'tidy':'replace');if(isPlayer&&advanced)selected=null;}
+  },dispose(){selected=null;disposed=true;}
  };
 }

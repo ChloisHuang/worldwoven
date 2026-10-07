@@ -23,7 +23,7 @@ const reverse=a=>a.slice().reverse().map(p=>p.slice());
 
 // The emperor keeps sole duty ownership; each consort leaves her own private
 // room through public circulation. Lin keeps his original tea-host job.
-export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveActor,poseContext,worldSeed=1,saved={},saveState=()=>{},beginInteraction=()=>null,onInteraction=()=>{},sharedNeeds=null,getKitchen=null,getToilet=null,getTeaService=null}){
+export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveActor,poseContext,worldSeed=1,saved={},saveState=()=>{},beginInteraction=()=>null,onInteraction=()=>{},sharedNeeds=null,getKitchen=null,getToilet=null,getTeaService=null,getPlayer=()=>null}){
  const actors=CHINA_PALACE_ROLES.map(r=>npcs.find(n=>n.station.id===r.id));let host=npcs.find(n=>n.station.id==='cn-tea');
  if(actors.some(n=>!n)||!host)return null;
  const [emperor,...consorts]=actors,owned=new Set(actors),costumes=actors.map(attachPalaceCostume),seat=id=>furniture.items.find(i=>i.id===id);
@@ -173,7 +173,8 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   return !!s.mount&&s.mount.id===choice?.facilityId&&near(n.root.position,s.mount.anchor,.2)&&!choice?.mealCancelReason&&!choice?.mealCompleted&&(!getKitchen||!!kitchen()?.mealReady(choice?.orderId,n.station.id));
  }
  const safety=n=>[...(doors?.cameraColliders||[]),...npcs.filter(a=>a!==n).map(a=>a.root.position),...(playerState.position?[playerState.position]:[])].map(p=>p.minX===undefined?{minX:p.x-.27,maxX:p.x+.27,minZ:p.z-.27,maxZ:p.z+.27,minY:p.y,maxY:p.y+1.95}:p);
- function releaseHost(){if(!hostHeld)return;getTeaService?.()?.cancel('guest-visit-ended');host.root.rotation.y=hostPreviousYaw;host.breakAt+=time-hostHeldAt;hostHeld=null;tell(host,host.station.npcLabel);}
+ const playerHost=()=>host.station.id==='player';
+ function releaseHost({leaving=false}={}){if(!hostHeld)return;if(!(leaving&&playerHost()))getTeaService?.()?.cancel('guest-visit-ended');if(!playerHost()){host.root.rotation.y=hostPreviousYaw;host.breakAt+=time-hostHeldAt;}hostHeld=null;tell(host,host.station.npcLabel);}
  function enter(n,index){const previous=stages.get(n)||{};stages.set(n,{choice:previous.choice,cycles:previous.cycles||0,index,waypoint:0,elapsed:0,arrived:false,planned:false,stalled:0,retries:0,mount:null});n.route=[];record(n,scripts.get(n)[index].id);}
  function unmount(n,s){if(!s.mount){furniture.releaseActor(n.station.id);return true;}const landing=findActorStandPoint(n,s.mount,({ignoreDynamicBodies})=>furniture.standPoint(navigation,ignoreDynamicBodies?[...(doors?.cameraColliders||[])]:safety(n),s.mount,n.collisionRadius??.25));if(!landing)return false;n.root.position.copy(landing);s.mount=null;furniture.releaseActor(n.station.id);return true;}
  function advance(n,s){if(scripts.get(n)[s.index].meal&&!s.choice?.mealCompleted&&!cancelMeal(n,s,'meal-interrupted'))return false;if(!unmount(n,s))return false;
@@ -193,7 +194,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   if(near(n.root.position,to,arrival)){n.route=[];s.planned=false;s.retries=0;s.stalled=0;return true;}
   return false;
  }
- function interrupted(n){return isSociallyHeld(n.actorId||n.station.id,playerState.conversationActorId);}
+ function interrupted(n){return n===host&&playerHost()&&(!!playerState.conversationActorId||!!playerState.playerSocialActorId||!!playerState.playerPaused||!!playerState.mounted)||isSociallyHeld(n.actorId||n.station.id,playerState.conversationActorId);}
  function socialStatus(n){if(!owned.has(n)&&!(hostHeld&&n===host))return null;const busy=stages.get(n)?.choice?.id==='toilet'&&!stages.get(n).choice.toiletFinished||n===emperor&&!!duty&&!duty.release||!!conversation?.participants.includes(n.station.id)||!!hostHeld&&(n===host||n===hostHeld)||owned.has(n)&&urgent(n);return {busy,canPause:!busy&&!stages.get(n)?.mount,attention:!busy,job:n===host?'与'+(palaceResident(hostHeld?.station.id)?.shortName||'来客')+'在茶席叙话':scripts.get(n)[stages.get(n).index].label};}
  function petitionAvailability(){
   const info=socialStatus(emperor),s=stages.get(emperor),stop=scripts.get(emperor)?.[s?.index];
@@ -221,7 +222,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   n.animate(t+n.phase,n.walking,s.mount?(s.mount.kind==='bed'?'lie-rest':'chair-sit'):s.arrived&&!interrupted(n)?stop.action||null:null,context);getTeaService?.()?.observeGuestPose(n,t);meals.get(n).sync();
  }
  function restore(snapshot){
-  if(snapshot?.version!==1)return false;const state=restoreWorldRuntime(snapshot.runtime,{npcs,furniture});if(!state||!state.scripts||!state.stages)return false;
+  if(snapshot?.version!==1)return false;const player=getPlayer(),state=restoreWorldRuntime(snapshot.runtime,{npcs:player?[...npcs,player]:npcs,furniture});if(!state||!state.scripts||!state.stages)return false;
   if(snapshot.layoutRevision!==1){
    // Keep the same meal commitment and elapsed consumption, but regenerate its
    // route and remount only after the original person reaches the moved stool.
@@ -232,7 +233,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
     if(ss.choice?.id==='meal'&&['dining-arrival','meal'].includes(steps[ss.index]?.id)){ss.mount=null;ss.arrived=false;ss.waypoint=0;ss.planned=false;ss.stalled=0;}
    }
   }
-  if(state.hostId){const previous=npcs.find(n=>n.station.id===state.hostId);if(!previous)return false;host=previous;}
+  if(state.hostId){const previous=state.hostId==='player'?player||getTeaService?.()?.hostActor():npcs.find(n=>n.station.id===state.hostId);if(!previous||previous.station.id!==state.hostId)return false;host=previous;}
   for(const n of consorts)n.socialPrivateFade=false;time=Math.max(0,state.time||0);duty=state.duty;conversation=state.conversation||null;hostHeld=actors.find(n=>n.station.id===state.hostHeldId)||null;hostPreviousYaw=state.hostPreviousYaw||0;hostHeldAt=state.hostHeldAt||0;history.splice(0,history.length,...(state.history||[]));
   for(const n of actors){const steps=state.scripts[n.station.id],stageState=state.stages[n.station.id];if(!steps?.length||!stageState||!steps[stageState.index]){choose(n);continue;}const bed=stageState.mount?.kind==='bed'?stageState.mount:steps[stageState.index].mount?.kind==='bed'?steps[stageState.index].mount:null;
    if(bed){const resolved=reserveNpcBed(furniture,bed,n.station.id);if(resolved)steps[stageState.index].mount=resolved;if(stageState.mount){stageState.mount=resolved&&occupyNpcBed(furniture,resolved,n.station.id)?resolved:null;if(stageState.mount){n.root.position.set(...stageState.mount.anchor);n.root.rotation.y=stageState.mount.yaw;}else{stageState.arrived=false;stageState.waypoint=0;}}}
@@ -300,7 +301,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
    const assignedTeaHost=teaService?.hostActor();
    if(!hostHeld&&assignedTeaHost&&assignedTeaHost!==host)host=assignedTeaHost;
    const teaGuest=hostHeld,teaGuestStage=teaGuest?stages.get(teaGuest):null;
-   teaService?.update(dt,t,{...state,urgentGuest:!!teaGuest&&urgent(teaGuest),urgentHost:!!sharedNeeds?.status(host.station.id)?.seekToilet,guestDeparted:!!teaService?.owns(host)&&(!teaGuest||!scripts.get(teaGuest)?.[teaGuestStage?.index]?.pair),serviceConflict:state.performing==='cn-tea'||state.performing===host.station.id});
+   teaService?.update(dt,t,{...state,urgentGuest:!!teaGuest&&urgent(teaGuest),urgentHost:!playerHost()&&!!sharedNeeds?.status(host.station.id)?.seekToilet,guestDeparted:!!teaService?.owns(host)&&(!teaGuest||!scripts.get(teaGuest)?.[teaGuestStage?.index]?.pair),serviceConflict:!playerHost()&&(state.performing==='cn-tea'||state.performing===host.station.id)});
    for(const n of actors){
     n.walking=false;let s=stages.get(n),stop=scripts.get(n)[s.index];tell(n,stop.label);s.greetingActive=false;
     if(s.choice?.id==='toilet'&&!s.choice.toiletFinished){
@@ -315,7 +316,9 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
      else if(!bindMeal(n,s.choice))s.abortRequested='膳食暂不可用 · 稍后再来';
      else if(legacyMeal&&stop.meal)s.elapsed=0;
     }
-    if(claims.tick(n.station.id,dt,interrupted(n)||hostHeld===n&&interrupted(host)))s.abortRequested='等待稍久 · 改日再来';
+    // An accepted player original is waiting for manual work, not another
+    // visit. Preserve its existing guest lease across pauses and navigation.
+    if(claims.tick(n.station.id,dt,interrupted(n)||hostHeld===n&&(interrupted(host)||playerHost()&&teaService?.owns(host))))s.abortRequested='等待稍久 · 改日再来';
     if(s.abortRequested&&stop.consortPair){endConversation(false,'途中耽搁 · 改日再访');s=stages.get(n);stop=scripts.get(n)[s.index];}
     if(s.abortRequested&&!(n===emperor&&duty)){if(cancelCommitment(n,s,s.abortRequested)){s=stages.get(n);stop=scripts.get(n)[s.index];}else{animate(n,s,t);continue;}}
     if(n===emperor&&duty){
@@ -357,9 +360,9 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
      }
      if(stop.look)n.root.rotation.y=Math.atan2(stop.look[0]-n.root.position.x,stop.look[2]-n.root.position.z);
      if(stop.pair){
-      const ready=host.alive!==false&&(getTeaService?.()?getTeaService().hostReady():near(host.root.position,host.home.toArray(),.18))&&!host.walking&&!host.route.length;
+      const ready=host.alive!==false&&(getTeaService?.()?getTeaService().hostReady():near(host.root.position,host.home.toArray(),.18))&&!host.walking&&!host.route?.length;
       if(!hostHeld&&ready&&!interrupted(host)&&state.performing!==host.station.id){hostHeld=n;hostPreviousYaw=host.root.rotation.y;hostHeldAt=time;record(n,'tea-host-present');}
-      if(state.performing===host.station.id||host.alive===false||getTeaService?.()&&!getTeaService().hostActor())releaseHost();
+      if(!playerHost()&&state.performing===host.station.id||host.alive===false||getTeaService?.()&&!getTeaService().hostActor())releaseHost();
       if(hostHeld!==n||interrupted(host)||state.performing===host.station.id){if(!interrupted(host)&&(s.waited=(s.waited||0)+dt)>20)s.abortRequested='茶主人正忙 · 改日再访';animate(n,s,t);continue;}
       const tea=getTeaService?.();
       if(tea&&!s.teaDecision){
@@ -369,13 +372,13 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
        let roll=(person.random^0x71ea5e1)>>>0;roll^=roll<<13;roll^=roll>>>17;roll^=roll<<5;
        const asked=(roll>>>0)/4294967296<.4+.35*person.traits.sociability;
        s.teaDecision={visitId,asked};
-       if(asked&&Number.isSafeInteger(state.day))tea.request({guest:n,visitId,day:state.day,guestAsked:true,hostAccepted:!sharedNeeds?.status(host.station.id)?.seekMeal&&!sharedNeeds?.status(host.station.id)?.seekToilet});
+       if(asked&&Number.isSafeInteger(state.day))tea.request({guest:n,visitId,day:state.day,guestAsked:true,hostAccepted:playerHost()||!sharedNeeds?.status(host.station.id)?.seekMeal&&!sharedNeeds?.status(host.station.id)?.seekToilet});
       }
       if(tea?.owns(host)){
        const target=tea.guestTarget(n.station.id);if(target){s.teaTravel??={planned:false,retries:0,stalled:0,choice:s.choice,index:s.index};travel(n,s.teaTravel,target,dt,.025);}
        tell(n,tea.label()||'在茶案边等候原单');tell(host,tea.label()||'办理原单茶务');animate(n,s,t);continue;
       }
-      n.root.rotation.y=Math.atan2(host.root.position.x-n.root.position.x,host.root.position.z-n.root.position.z);host.root.rotation.y=Math.atan2(n.root.position.x-host.root.position.x,n.root.position.z-host.root.position.z);tell(n,'与 '+host.station.npcName+' 聊今日荷色和茶香');tell(host,'接待'+palaceResident(n.station.id).shortName+' · 茶案前叙话');
+      n.root.rotation.y=Math.atan2(host.root.position.x-n.root.position.x,host.root.position.z-n.root.position.z);if(!playerHost())host.root.rotation.y=Math.atan2(n.root.position.x-host.root.position.x,n.root.position.z-host.root.position.z);tell(n,'与 '+host.station.npcName+' 聊今日荷色和茶香');tell(host,'接待'+palaceResident(n.station.id).shortName+' · 茶案前叙话');
      }
      if(stop.consortPair){tell(n,'在前厅等已应邀的姐妹');animate(n,s,t);continue;}
      if(stop.toilet){
@@ -396,11 +399,11 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
     animate(n,stages.get(n),t);
    }
    updateConversation(dt,t);
-   if(hostHeld&&!getTeaService?.()?.owns(host)){host.walking=false;const c=poseContext(host,null);c.handoff=!interrupted(host)&&!interrupted(hostHeld);host.animate(t+host.phase,false,null,c);}
+   if(hostHeld&&!playerHost()&&!getTeaService?.()?.owns(host)){host.walking=false;const c=poseContext(host,null);c.handoff=!interrupted(host)&&!interrupted(hostHeld);host.animate(t+host.phase,false,null,c);}
   },
   snapshot:()=>({version:1,layoutRevision:1,decisions:brain.snapshot(),runtime:captureWorldRuntime({time,duty,conversation,hostId:host.station.id,hostHeldId:hostHeld?.station.id||null,hostPreviousYaw,hostHeldAt,history,scripts:Object.fromEntries([...scripts].map(([n,s])=>[n.station.id,s])),stages:Object.fromEntries([...stages].map(([n,s])=>[n.station.id,s])),claims:claims.state()})}),
   restore,
   state(){return {time,conversation:conversation?JSON.parse(JSON.stringify(conversation)):null,hostHeld:!!hostHeld,hostActorId:hostHeld?.station.id||null,claims:claims.state(),duty:duty?{...duty}:null,decisions:brain.snapshot(),history:history.map(e=>({...e})),failures:failures.map(e=>({...e})),actors:actors.map(n=>{const s=stages.get(n);return {id:n.station.id,role:n.station.royalRole,ageYears:n.station.ageYears,privateRoomId:n.station.privateRoomId,activity:s.choice?.id||null,stage:scripts.get(n)[s.index].id,waypoint:s.waypoint,elapsed:s.elapsed,arrived:s.arrived,mounted:s.mount?.id||null,orderId:s.choice?.orderId||null,mealId:s.choice?.mealId||null,mealCompleted:!!s.choice?.mealCompleted,cycles:s.cycles,position:n.root.position.toArray(),walking:n.walking,idle:!!s.idle,paused:interrupted(n),teaDecision:s.teaDecision?{...s.teaDecision}:null};})};},
-  dispose(){if(conversation)brain.releaseMeeting(conversation.id);for(const n of consorts)n.socialPrivateFade=false;if(disposed)return;disposed=true;releaseHost();claims.dispose();brain.dispose();for(const n of actors){n.route=[];furniture.releaseActor(n.station.id);if(n.poseContext){n.poseContext.handoff=false;n.poseContext.seatHeight=undefined;}}for(const c of costumes)c?.dispose();for(const kit of meals.values())kit.dispose();}
+  dispose(){if(conversation)brain.releaseMeeting(conversation.id);for(const n of consorts)n.socialPrivateFade=false;if(disposed)return;disposed=true;releaseHost({leaving:true});claims.dispose();brain.dispose();for(const n of actors){n.route=[];furniture.releaseActor(n.station.id);if(n.poseContext){n.poseContext.handoff=false;n.poseContext.seatHeight=undefined;}}for(const c of costumes)c?.dispose();for(const kit of meals.values())kit.dispose();}
  };
 }

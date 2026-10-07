@@ -34,7 +34,7 @@ const ring=ids['touch-action'];ring.style.setProperty=(key,value)=>{ring.style[k
 const icon=ring.innerHTML;
 for(const [value,expected]of [[0,'0'],[.55,'0.55'],[1.2,'1'],[-1,'0'],[NaN,''],[null,'']]){setActionProgress(ring,value);assert.equal(ring.dataset.actionProgress,expected);assert.equal(ring.innerHTML,icon,'progress never replaces semantic action icon');}
 assert.equal(timedActionProgress(2,8),.25);assert.equal(timedActionProgress(2,0),null);
-Object.assign(context,{setActionProgress,timedActionProgress,roofShown:false,chinaClinic:null,chinaArchery:null,chinaCareer:null,chinaLabor:null,franceLabor:null,japanPerformanceEmployment:null,activeDailyToilet:()=>null,actionTime:4,performing:{id:'read'},npcSocial:null});
+Object.assign(context,{setActionProgress,timedActionProgress,roofShown:false,chinaClinic:null,chinaArchery:null,chinaCareer:null,chinaPieceworkEmployment:null,chinaLabor:null,franceLabor:null,japanPerformanceEmployment:null,activeDailyToilet:()=>null,actionTime:4,performing:{id:'read'},npcSocial:null});
 vm.runInContext(take('function updateActionProgress(','function updatePlayer('),context);
 const update=control=>context.updateActionProgress(control),control=intentKey=>({intentKey});
 update(control('performing:read'));assert.equal(ring.dataset.actionProgress,'0.5');
@@ -47,6 +47,7 @@ context.chinaCareer={isActing:()=>true,state:()=>({activity:'appointment',progre
 context.chinaCareer={isActing:()=>true,state:()=>({activity:'review-wait',progress:.2})};update(control('work'));assert.equal(ring.dataset.actionProgress,'');
 context.chinaCareer=null;context.franceLabor={isActing:()=>true,displayState:()=>({activity:'water',progress:.8})};update(control('work'));assert.equal(ring.dataset.actionProgress,'0.8');
 context.franceLabor=null;context.japanPerformanceEmployment={isActing:()=>true,state:()=>({progressSeconds:2,progressTotal:8})};update(control('work'));assert.equal(ring.dataset.actionProgress,'0.25');
+context.chinaPieceworkEmployment={isActing:()=>true,state:()=>({progressSeconds:3,progressTotal:6})};update(control('work'));assert.equal(ring.dataset.actionProgress,'0.5');context.chinaPieceworkEmployment=null;
 for(const state of [null,control('pending:go'),control('family-cancel'),control('crime-cancel')]){update(state);assert.equal(ring.dataset.actionProgress,'','cancel, completion, route and untimed controls reset');}
 context.menuOpen=true;update(control('performing:read'));assert.equal(ring.dataset.actionProgress,'','read-only modal hides ring');context.menuOpen=false;
 context.roofShown=true;update(control('performing:read'));assert.equal(ring.dataset.actionProgress,'','overview hides ring');
