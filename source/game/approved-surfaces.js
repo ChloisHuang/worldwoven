@@ -131,8 +131,8 @@ function hand(g,s){
  loft(g,'relaxed-palm-'+s,[[.844,.014,.010,s*.315,.013],[.855,.024,.015,s*.314,.012],[.88,.026,.018,s*.31,.009],[.918,.019,.019,s*.304,.003],[.939,.021,.022,s*.3,0]],C.skin,{segs:28,steps:26});
  // Individually rounded, gently curled fingers share an overlapping knuckle
  // join, with a shallow web rather than four exposed tube ends.
- for(let i=0;i<4;i++){const x=s*(.294+i*.012),bot=[.811,.806,.810,.822][i];loft(g,'relaxed-finger-'+s+'-'+i,[[bot,.001,.002,x,.027],[bot+.004,.0045,.005,x,.030],[bot+.017,.0055,.006,x,.026],[.845,.006,.007,x,.017],[.862,.0065,.009,x,.011]],C.skin,{segs:12,steps:14});}
- loft(g,'thumb-'+s,[[.851,.001,.002,s*.289,.033],[.855,.006,.006,s*.287,.033],[.870,.008,.008,s*.282,.024],[.886,.009,.010,s*.288,.010],[.897,.005,.006,s*.293,.007]],C.skin,{segs:16,steps:16});
+ for(let i=0;i<4;i++){const x=s*(.294+i*.012),bot=[.811,.806,.810,.822][i];loft(g,'relaxed-finger-'+s+'-'+i,[[bot,0,0,x,.027],[bot+.004,.0045,.005,x,.030],[bot+.017,.0055,.006,x,.026],[.845,.006,.007,x,.017],[.862,.0065,.009,x,.011]],C.skin,{segs:12,steps:14});}
+ loft(g,'thumb-'+s,[[.851,0,0,s*.289,.033],[.855,.006,.006,s*.287,.033],[.870,.008,.008,s*.282,.024],[.886,.009,.010,s*.288,.010],[.897,.005,.006,s*.293,.007]],C.skin,{segs:16,steps:16});
 }
 function shoe(g,s,casual){
  const x=s*.089;
@@ -150,7 +150,7 @@ function buildCasual(g){
  for(let i=0;i<4;i++)patch(g,'shirt-button-'+i,(u,v)=>{const a=u*Math.PI*2,r=v*.0024;return[r*Math.cos(a),1.24-i*.075+r*Math.sin(a),i<2?.099:.084];},0x665f50,16,4);
  for(const s of [-1,1]){
   loft(g,'short-sleeve-'+s,[[1.17,.055,.060,s*.256,-.006],[1.22,.065,.068,s*.235,-.008],[1.28,.071,.074,s*.207,-.011],[1.326,.064,.07,s*.178,-.013],[1.35,.042,.052,s*.15,-.012]],C.shirt,{steps:32,segs:40});
-  loft(g,'arm-'+s,[[.916,.021,.023,s*.303,0],[1.01,.03,.03,s*.297,-.002],[1.092,.039,.036,s*.28,-.006],[1.154,.039,.037,s*.266,-.005],[1.23,.045,.042,s*.247,-.006]],C.skin,{steps:38,segs:36});
+  loft(g,'arm-'+s,[[.916,.015,.012,s*.303,0],[1.01,.03,.03,s*.297,-.002],[1.092,.039,.036,s*.28,-.006],[1.154,.039,.037,s*.266,-.005],[1.23,.045,.042,s*.247,-.006]],C.skin,{steps:38,segs:36});
   loft(g,'tailored-trouser-'+s,[[.107,.046,.046,s*.09,-.02],[.24,.054,.055,s*.09,-.018],[.47,.062,.057,s*.09,-.012],[.62,.076,.071,s*.089,-.01],[.79,.085,.079,s*.083,-.009],[.96,.081,.079,s*.075,-.013],[1.01,.075,.067,s*.07,-.015]],C.pants,{steps:54,segs:40});
   ribbon(g,'trouser-crease-'+s,[[s*.09,.15,.029],[s*.09,.48,.046],[s*.088,.71,.065],[s*.078,.9,.067]],.0025,0x425866);
   hand(g,s);shoe(g,s,true);
@@ -164,7 +164,7 @@ function buildYukata(g){
  for(const s of [-1,1]){
   // Dropped shoulder and soft, hanging sleeve are continuous elliptical sections.
   loft(g,'draped-yukata-sleeve-'+s,[[.955,.052,.061,s*.302,-.004],[1.015,.073,.071,s*.291,-.008],[1.09,.086,.080,s*.267,-.011],[1.18,.079,.082,s*.228,-.012],[1.274,.067,.075,s*.202,-.013],[1.321,.058,.068,s*.17,-.012],[1.344,.034,.045,s*.145,-.01]],C.yukata,{steps:44,segs:48});
-  loft(g,'wrist-'+s,[[.901,.02,.022,s*.305,0],[.959,.025,.028,s*.296,-.001],[1.017,.028,.032,s*.289,-.002]],C.skin,{steps:20,segs:28});
+  loft(g,'wrist-'+s,[[.901,.014,.010,s*.305,0],[.959,.025,.028,s*.296,-.001],[1.017,.028,.032,s*.289,-.002]],C.skin,{steps:20,segs:28});
   ribbon(g,'sleeve-fold-'+s,[[s*.185,1.301,.072],[s*.235,1.176,.078],[s*.266,1.071,.065]],.003,0x628c89);
   hand(g,s);shoe(g,s,false);
  }
@@ -192,7 +192,7 @@ function buildOnsenSwimwear(g){
  for(const s of[-1,1]){
   loft(g,'onsen-trouser-'+s,[[.558,.069,.063,s*.089,-.010],[.62,.075,.070,s*.089,-.010],[.79,.084,.078,s*.083,-.009],[.96,.083,.079,s*.075,-.013],[1.014,.075,.068,s*.07,-.012]],cloth,{segs:30,steps:28});
   loft(g,'bare-leg-onsen-'+s,[[.106,.031,.036,s*.089,-.021],[.26,.043,.045,s*.089,-.017],[.44,.052,.048,s*.089,-.013],[.57,.062,.060,s*.088,-.01]],C.skin,{segs:24,steps:28});
-  loft(g,'bare-arm-onsen-'+s,[[.916,.021,.023,s*.303,0],[1.01,.030,.030,s*.297,-.002],[1.092,.039,.036,s*.28,-.006],[1.19,.045,.041,s*.254,-.006],[1.28,.052,.048,s*.204,-.01],[1.326,.048,.046,s*.173,-.011],[1.343,.031,.035,s*.151,-.01]],C.skin,{segs:24,steps:30});
+  loft(g,'bare-arm-onsen-'+s,[[.916,.015,.012,s*.303,0],[1.01,.030,.030,s*.297,-.002],[1.092,.039,.036,s*.28,-.006],[1.19,.045,.041,s*.254,-.006],[1.28,.052,.048,s*.204,-.01],[1.326,.048,.046,s*.173,-.011],[1.343,.031,.035,s*.151,-.01]],C.skin,{segs:24,steps:30});
   hand(g,s);
   loft(g,'footwear-bath-bare-'+s,[[.025,.001,.002,s*.089,.04],[.035,.045,.105,s*.089,.04],[.06,.050,.114,s*.089,.04],[.10,.033,.053,s*.089,-.01],[.15,.026,.034,s*.089,-.021]],C.skin,{segs:24,steps:16});
  }
@@ -217,7 +217,7 @@ function buildMiko(g){
  const lower=skirt(g,'miko-vermillion-hakama-skirt',{hem:.251,depth:.147,waist:.148,bottom:.118,color:vermillion,pleats:.0055});
  for(const side of[-1,1]){
   loft(g,'miko-wide-sleeve-'+side,[[.946,.053,.070,side*.304,-.009],[.979,.087,.090,side*.297,-.014],[1.055,.106,.098,side*.270,-.014],[1.16,.088,.092,side*.235,-.014],[1.275,.069,.075,side*.202,-.013],[1.322,.058,.068,side*.17,-.012],[1.344,.034,.045,side*.145,-.01]],white,{steps:28,segs:28});
-  loft(g,'wrist-'+side,[[.901,.020,.022,side*.305,0],[.959,.025,.028,side*.296,-.001],[1.017,.028,.032,side*.289,-.002]],C.skin,{steps:20,segs:28});
+  loft(g,'wrist-'+side,[[.901,.014,.010,side*.305,0],[.959,.025,.028,side*.296,-.001],[1.017,.028,.032,side*.289,-.002]],C.skin,{steps:20,segs:28});
   const lapel=ribbon(g,'miko-white-cross-collar-'+side,[[side*.040,1.405,.03],[side*.080,1.35,.069],[-side*.010,1.236,.101],[-side*.074,1.103,.095]],.029,collar);
   conformFront(lapel,upper,side===-1?.007:.0045);
   const edge=ribbon(g,'miko-collar-seam-'+side,[[side*.048,1.397,.03],[side*.091,1.35,.069],[-side*.002,1.235,.10],[-side*.064,1.11,.096]],.0025,0xd3cdc2);
@@ -274,7 +274,7 @@ function buildChina(g,masc,preset){
 }
 function buildEgypt(g,masc,preset){
  buildCasual(g);removeSurfaces(g,n=>/tailored-shirt-body|short-sleeve|shirt-|collar-opening|tailored-trouser|trouser-crease|^arm-/.test(n));
- for(const side of[-1,1])loft(g,'bare-arm-'+side,[[.916,.021,.023,side*.303,0],[1.01,.030,.03,side*.297,-.002],[1.092,.039,.036,side*.28,-.006],[1.19,.045,.042,side*.254,-.006],[1.28,.052,.05,side*.204,-.01],[1.326,.048,.048,side*.173,-.011],[1.343,.031,.04,side*.151,-.010]],C.skin,{segs:24,steps:26});
+ for(const side of[-1,1])loft(g,'bare-arm-'+side,[[.916,.015,.012,side*.303,0],[1.01,.030,.03,side*.297,-.002],[1.092,.039,.036,side*.28,-.006],[1.19,.045,.042,side*.254,-.006],[1.28,.052,.05,side*.204,-.01],[1.326,.048,.048,side*.173,-.011],[1.343,.031,.04,side*.151,-.010]],C.skin,{segs:24,steps:26});
  if(masc){
   const long=preset==='linen-tunic-kilt';
   loft(g,'linen-fitted-tunic',[[1.04,.147,.100,0,-.003],[1.10,.145,.090,0,-.003],[1.24,.17,.09,0,-.007],[1.34,.186,.074,0,-.012],[1.395,.055,.039,0,0]],C.yukata,{steps:28});
@@ -291,7 +291,7 @@ function buildEgypt(g,masc,preset){
 function buildFrance(g,masc,preset){
  if(masc){buildCasual(g);franceCoat(g);if(preset==='court-waistcoat')removeSurfaces(g,n=>/royal-coat-tail/.test(n));
   // A continuous long coat sleeve versus a visibly cropped waistcoat/shirt cut.
-  if(preset==='court-frock-coat'){removeSurfaces(g,n=>/^short-sleeve|^arm-/.test(n));for(const side of[-1,1])loft(g,'wrist-court-'+side,[[.916,.022,.023,side*.303,0],[.95,.025,.027,side*.3,-.001],[.982,.028,.03,side*.298,-.002]],C.skin,{segs:16,steps:8});}
+  if(preset==='court-frock-coat'){removeSurfaces(g,n=>/^short-sleeve|^arm-/.test(n));for(const side of[-1,1])loft(g,'wrist-court-'+side,[[.916,.015,.012,side*.303,0],[.95,.025,.027,side*.3,-.001],[.982,.028,.03,side*.298,-.002]],C.skin,{segs:16,steps:8});}
   if(preset==='court-frock-coat')for(const side of[-1,1]){loft(g,'court-long-sleeve-'+side,[[.956,.034,.037,side*.302,-.001],[1.08,.05,.047,side*.278,-.005],[1.23,.062,.060,side*.231,-.01],[1.34,.056,.057,side*.17,-.011]],C.yukata,{steps:24});}
   else for(const side of[-1,1])ribbon(g,'waistcoat-front-panel-'+side,[[side*.041,1.385,.055],[side*.067,1.25,.101],[side*.064,1.10,.096],[side*.058,.96,.113]],.052,tone(C.yukata,.77));
   return;

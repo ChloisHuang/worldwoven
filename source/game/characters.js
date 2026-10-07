@@ -9,6 +9,7 @@ import {BODY_PRESETS,HAIR_STYLES,WARDROBE_PRESETS,ROLE_WARDROBE_PRESETS} from '.
 import {createHandProps,disposeHandProps} from './character-props.js';
 import {resolveCharacterModelPreview,defaultCharacterModelPreview} from './character-model-preview.js';
 const TAU=Math.PI*2,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),mix=(a,b,t)=>a+(b-a)*t;
+const HAND_PROP_GRIPS={cup:[.15,-.02,.04],brush:[0,-.06,0],knife:[0,-.04,0],feather:[0,0,0],can:[0,.16,0],bathBucket:[0,.03,0],chopsticks:[0,0,0],ladle:[0,0,0],book:[.04,-.05,.04],palette:[0,-.022,.06],cloth:[.03,-.058,.03],ramenBowl:[0,-.11,.045],sushiPlate:[0,-.04,.05],bathCloth:[0,-.057,.055]};
 const BAND_VALUES=[90,150,213,255],SKIN_VALUES=[140,186,229,255];
 function toon(values){const tex=new THREE.DataTexture(new Uint8Array(values),4,1,THREE.RedFormat);tex.minFilter=tex.magFilter=THREE.NearestFilter;tex.generateMipmaps=false;tex.needsUpdate=true;const m=new THREE.MeshToonMaterial({vertexColors:true,gradientMap:tex,side:THREE.DoubleSide,shadowSide:THREE.BackSide});m.userData.characterShared=true;tex.userData={characterShared:true};return m;}
 const clothMaterial=toon(BAND_VALUES),skinMaterial=toon(SKIN_VALUES);
@@ -54,7 +55,14 @@ function mergeSurfaces(source,preview=null){const buckets=[{p:[],n:[],c:[],i:[],
  source.traverse(m=>{if(!m.isMesh)return;const b=buckets[m.userData.softSkin?1:0],offset=b.p.length/3,g=m.geometry,pos=g.attributes.position,nor=g.attributes.normal,s=sideOf(m.name,g);nm.getNormalMatrix(m.matrixWorld);b.ranges.push({name:m.name,start:offset,count:pos.count,indexStart:b.i.length,indexCount:g.index?.count??pos.count});
  for(let i=0;i<pos.count;i++){p.fromBufferAttribute(pos,i).applyMatrix4(m.matrixWorld);n.fromBufferAttribute(nor,i).applyMatrix3(nm).normalize();b.p.push(p.x,p.y,p.z);b.n.push(n.x,n.y,n.z);if(preview){preview.readColor(m,i,color);b.c.push(color.r,color.g,color.b);preview.appendVertex(b.extra,m,i,p);}else b.c.push(m.material.color.r,m.material.color.g,m.material.color.b);const sourceY=g.attributes.sourceY?.getX(i)??p.y;b.sy.push(sourceY);const w=(preview?preview.weights(m,sourceY,i):null)??weights(m.name,p.x,sourceY,s);for(let j=0;j<4;j++){b.si.push(w[j]?.[0]||0);b.sw.push(w[j]?.[1]||0);}}
  const idx=g.index;for(let i=0;i<(idx?.count??pos.count);i++)b.i.push(offset+(idx?idx.getX(i):i));g.dispose();});
- return buckets.map((b,k)=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(b.p,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(b.n,3));g.setAttribute('color',new THREE.Float32BufferAttribute(b.c,3));g.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(b.si,4));g.setAttribute('skinWeight',new THREE.Float32BufferAttribute(b.sw,4));if(preview||source.userData.shapeLegs||source.userData.relaxedArms)g.setAttribute('sourceY',new THREE.Float32BufferAttribute(b.sy,1));if(preview)preview.finishChannels(g,b.extra);g.setIndex(b.i);g.computeBoundingBox();g.computeBoundingSphere();g.userData={characterShared:true,section:k?'skin':'cloth',sourceRanges:b.ranges};return g;});
+ return buckets.map((b,k)=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(b.p,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(b.n,3));g.setAttribute('color',new THREE.Float32BufferAttribute(b.c,3));g.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(b.si,4));g.setAttribute('skinWeight',new THREE.Float32BufferAttribute(b.sw,4));if(preview||source.userData.shapeLegs||source.userData.relaxedArms)g.setAttribute('sourceY',new THREE.Float32BufferAttribute(b.sy,1));if(preview)preview.finishChannels(g,b.extra);g.setIndex(b.i);
+  if(k){
+   const curls=[new Float32Array(b.p.length),new Float32Array(b.p.length)],fingerRanges=b.ranges.filter(r=>r.name.startsWith('relaxed-finger-'));
+   for(const range of fingerRanges){const side=range.name.startsWith('relaxed-finger--1-')?0:1;for(let i=range.start;i<range.start+range.count;i++){const u=clamp((.853-b.sy[i])/.042,0,1);curls[side][i*3+1]=.038*u*u;curls[side][i*3+2]=.029*u;}}
+   g.morphAttributes.position=curls.map(a=>new THREE.Float32BufferAttribute(a,3));g.morphTargetsRelative=true;
+   g.morphAttributes.normal=curls.map((delta,side)=>{const posed=new THREE.BufferGeometry(),position=new Float32Array(b.p.map((v,i)=>v+delta[i])),normals=new Float32Array(b.n.length);posed.setAttribute('position',new THREE.Float32BufferAttribute(position,3));posed.setIndex(b.i);posed.computeVertexNormals();for(const range of fingerRanges)if((range.name.startsWith('relaxed-finger--1-')?0:1)===side)for(let i=range.start*3;i<(range.start+range.count)*3;i++)normals[i]=posed.attributes.normal.array[i]-b.n[i];posed.dispose();return new THREE.Float32BufferAttribute(normals,3);});
+  }
+  g.computeBoundingBox();g.computeBoundingSphere();g.userData={characterShared:true,section:k?'skin':'cloth',sourceRanges:b.ranges};return g;});
 }
 function getTemplate(opts,modelPreview,model,previewOptions=opts){const adapter=model.supported?model.adapter:null,key=JSON.stringify(opts)+'|'+(adapter?adapter.cacheTag(previewOptions,modelPreview):'legacy');let t=cache.get(key);if(t){t.refs++;t.last=performance.now();return t;}
  if(cache.size>=CACHE_LIMIT){const free=[...cache.values()].filter(x=>x.refs===0).sort((a,b)=>a.last-b.last);if(free.length){cache.delete(free[0].key);free[0].geometry.forEach(g=>g.dispose());}}
@@ -98,6 +106,15 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
  const onsenLapPoint=V(.09,.40,.23),onsenLapNormal=V(0,1,0),onsenRimPalmQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(0,0,-1),V(1,0,0),V(0,-1,0))),onsenLapPalmQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(-1,0,0),V(0,0,-1),V(0,-1,0)));
  const onsenPalmContact={offset:V(),index:-1};
  const transferP=rest.map(()=>V()),transferQ=rest.map(()=>new THREE.Quaternion());
+ const propAnchors=[V(),V()],propFitted=[false,false],pinchOffsets=[V(),V()],palmOffsets=[V(),V()];
+ for(let side=0;side<2;side++){const sign=side?1:-1,hand=side?9:6;let best=Infinity;
+  for(const geometry of template.geometry)for(const range of geometry.userData.sourceRanges||[])if(range.name==='thumb-'+sign){
+   for(let i=range.start;i<range.start+range.count;i++){const sy=geometry.attributes.sourceY?.getX(i)??geometry.attributes.position.getY(i),score=Math.abs(sy-.863);if(score<best){best=score;pinchOffsets[side].fromBufferAttribute(geometry.attributes.position,i).sub(rest[hand]);}}
+  }
+  best=Infinity;for(const geometry of template.geometry)for(const range of geometry.userData.sourceRanges||[])if(range.name==='relaxed-palm-'+sign){
+   for(let i=range.start;i<range.start+range.count;i++){const sy=geometry.attributes.sourceY?.getX(i)??geometry.attributes.position.getY(i),z=geometry.attributes.position.getZ(i),score=Math.abs(sy-.875)-z*.04;if(score<best){best=score;palmOffsets[side].fromBufferAttribute(geometry.attributes.position,i).sub(rest[hand]);}}
+  }
+ }
  const chairHands=[0,1].map(()=>({wrist:V(),rotation:new THREE.Quaternion()}));let fittedChairHeight=null;
  function fitOnsenPalmContact(){for(const geometry of template.geometry)for(const range of geometry.userData.sourceRanges||[])if(range.name==='relaxed-palm-1'){
   let low=Infinity;for(let i=range.start;i<range.start+range.count;i++){tmp.fromBufferAttribute(geometry.attributes.position,i).sub(rest[9]).applyQuaternion(onsenLapPalmQ);const depth=tmp.dot(onsenLapNormal);if(depth<low){low=depth;onsenPalmContact.offset.copy(tmp);onsenPalmContact.index=i;}}
@@ -119,7 +136,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   posedP[c].copy(posedP[a]).addScaledVector(dir,distance);posedP[b].copy(posedP[a]).addScaledVector(dir,along).addScaledVector(pole,high);
   orient(a,b,posedP[b]);orient(b,c,posedP[c]);posedQ[c].copy(posedQ[b]);
  }
- const armPole=[V(-.28,-1,-.2),V(.28,-1,-.2)],legPole=V(0,0,1),armPitchAxis=V(1,0,0),armRollAxis=V(0,1,0),armRotation=new THREE.Quaternion();
+ const armPole=[V(-.28,-1,-.2),V(.28,-1,-.2)],legPole=V(0,0,1),armPitchAxis=V(1,0,0),armRollAxis=V(0,1,0),armTiltAxis=V(0,0,1),armRotation=new THREE.Quaternion();
  const walkingArmSwing=Math.min(locomotion.armSwing,/yukata|kimono|hakama|ruqun|bath-robe/.test(wardrobePreset)?.09:.15);
  function reach(side,x,y,z){const ids=side?[7,8,9]:[4,5,6];tmp.set(x,y,z);solveLimb(...ids,tmp,armPole[side]);// Neutral wrist keeps hand silhouette attached; vessels are counter-rotated separately.
  }
@@ -217,6 +234,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   for(let i=0;i<bones.length;i++){const parent=JOINTS[i][1];if(parent<0){bones[i].position.copy(posedP[i]);bones[i].quaternion.copy(posedQ[i]);}else{invQ.copy(posedQ[parent]).invert();bones[i].position.copy(posedP[i]).sub(posedP[parent]).applyQuaternion(invQ);bones[i].quaternion.copy(invQ).multiply(posedQ[i]);}}
   // World-upright cups, bowls and buckets; hands retain real elbow/wrist rotation.
   props.left.quaternion.copy(posedQ[6]).invert();props.right.quaternion.copy(posedQ[9]).invert();
+  for(let side=0;side<2;side++){const group=side?props.right:props.left,hand=side?9:6;group.position.set(0,0,0);if(propFitted[side])group.position.copy(propAnchors[side]).sub(posedP[hand]).applyQuaternion(invQ.copy(posedQ[hand]).invert());}
   rig.updateMatrixWorld(true);skeleton.update();
  }
  function measureLieSkin(){
@@ -278,7 +296,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
 
   for(const i of[12,15])posedP[i].z+=lieOffsets.heel;for(const i of[11,14,16,17])posedP[i].z+=lieOffsets.heel*.4;
  }
- function resetTools(){props.tools.knife.rotation.set(0,0,0);for(const prop of Object.values(props.tools))prop.visible=false;props.left.rotation.set(0,0,0);props.right.rotation.set(0,0,0);}
+ function resetTools(){propFitted.fill(false);for(const mesh of meshes)if(mesh.morphTargetInfluences)mesh.morphTargetInfluences.fill(0);props.tools.knife.rotation.set(0,0,0);for(const prop of Object.values(props.tools))prop.visible=false;props.left.rotation.set(0,0,0);props.right.rotation.set(0,0,0);}
  function show(...names){for(const name of names)if(props.tools[name])props.tools[name].visible=true;}
  function animate(time,walking=false,action=null,context=null){
   if(disposed)return;visualFloorOffset=Number.isFinite(context?.visualFloorOffset)?clamp(context.visualFloorOffset,0,.5):0;rig.rotation.set(0,0,0);rig.position.set(0,visualFloorOffset/root.scale.y,0);time=Number.isFinite(time)?time:0;walking=!!walking;if(walking)action=null;resetTools();
@@ -468,9 +486,29 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   for(let side=0;side<2;side++){
    const forearm=side?8:5,hand=side?9:6;
    const palmDown=/knead|bread|tidy/.test(action||'');
-   const support=!side&&/kotatsu|sushi|ramen|tea|read|rest|paint|craft|art/.test(action||'');
+   const support=/read|rest/.test(action||'')||!side&&/kotatsu|sushi|ramen|tea|paint|craft|art/.test(action||'');
    const roll=palmDown?Math.PI:support?0:(side?-1:1)*(action?.72:1.1);
    posedQ[hand].copy(posedQ[forearm]).multiply(armRotation.setFromAxisAngle(armRollAxis,roll));
+  }
+  // The prop trajectory stays authored in rig space. Fit actual palm/ thumb
+  // vertices to its underside or handle, moving the anatomical wrist instead
+  // of folding the hand back or translating the object off its work surface.
+
+  const grips=[];
+  for(let side=0;side<2;side++){
+   const group=side?props.right:props.left,hand=side?9:6,prop=group.children.find(p=>p.visible&&HAND_PROP_GRIPS[p.name]);if(!prop)continue;
+   propAnchors[side].copy(posedP[hand]);propFitted[side]=true;
+   const target=V(...HAND_PROP_GRIPS[prop.name]).multiplyScalar(.8).multiply(prop.scale).applyQuaternion(prop.quaternion).add(prop.position);
+   if(side&&/garden/.test(action||''))target.applyAxisAngle(armTiltAxis,-.35);
+   if(side&&(action==='sushi-eat'||context?.seatedMeal))target.applyAxisAngle(armPitchAxis,-Math.pow((Math.sin(time*(action==='sushi-eat'?.95:1.6))+1)*.5,2)*.55);
+   target.add(propAnchors[side]);grips.push({side,target,support:!side});
+   if(prop.name==='book')grips.push({side:1,target:V(.265,-.05,.04).multiplyScalar(.8).applyQuaternion(prop.quaternion).add(prop.position).add(propAnchors[side]),support:true});
+  }
+  for(const {side,target,support}of grips){for(const mesh of meshes)if(mesh.morphTargetInfluences)mesh.morphTargetInfluences[side]=support?0:1;const hand=side?9:6,forearm=side?8:5,offset=support?palmOffsets[side]:pinchOffsets[side];
+   for(let n=0;n<4;n++){
+    const wrist=target.clone().sub(offset.clone().applyQuaternion(posedQ[hand]));
+    reach(side,wrist.x,wrist.y,wrist.z);posedQ[hand].copy(posedQ[forearm]).multiply(armRotation.setFromAxisAngle(armRollAxis,support?0:side?-.72:.72));
+   }
   }
   // Head-only attention preserves the authored torso, hands and work target.
   // Smooth the return as well as the glance; never let social input twist a
@@ -502,7 +540,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    }
    lieLongitudinalOffset=rig.position.z;applyPose();
   }
-  if(action==='chair-sit'&&!context?.heldProp&&!context?.handoff&&!context?.seatedMeal){
+  if(action==='chair-sit'&&!context?.heldProp&&!context?.handoff&&!context?.seatedMeal&&!context?.archery){
    if(poseChanged||fittedChairHeight!==chairHeight)fitChairHands(chairHeight);
    poseChairHands();applyPose();
   }
@@ -585,9 +623,9 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    metrics.bathTransition={progress:transfer.progress,phase:transfer.phase};
   }else metrics.bathTransition=null;
 
-  if(action==='sushi-eat')props.right.rotation.x-=Math.pow((Math.sin(time*.95)+1)*.5,2)*.55;
-  if(action==='chair-sit'&&context?.seatedMeal)props.right.rotation.x-=Math.pow((Math.sin(time*1.6)+1)*.5,2)*.55;
-  if(/garden/.test(action||''))props.right.rotation.z=-.35;
+  if(action==='sushi-eat')props.right.quaternion.copy(posedQ[9]).invert().multiply(armRotation.setFromAxisAngle(armPitchAxis,-Math.pow((Math.sin(time*.95)+1)*.5,2)*.55));
+  if(action==='chair-sit'&&context?.seatedMeal)props.right.quaternion.copy(posedQ[9]).invert().multiply(armRotation.setFromAxisAngle(armPitchAxis,-Math.pow((Math.sin(time*1.6)+1)*.5,2)*.55));
+  if(/garden/.test(action||''))props.right.quaternion.copy(posedQ[9]).invert().multiply(armRotation.setFromAxisAngle(armTiltAxis,-.35));
   // Fixed-size pose data: no per-frame Box3 or scene traversal.
   metrics.height=height+visualFloorOffset;metrics.visualFloorOffset=visualFloorOffset;metrics.headHeight=mountedPose?bones[3].getWorldPosition(tmp).y-rootWorld.y+.16*root.scale.y:(posedP[3].y+.16)*root.scale.y+visualFloorOffset;metrics.labelHeight=mountedPose?metrics.headHeight+.2:(posedP[3].y+template.height-1.455+.16)*root.scale.y+visualFloorOffset;root.userData.labelHeight=metrics.labelHeight;
   for(let s=0;s<2;s++){lastFootWorld[s].copy(posedP[s?15:12]).applyMatrix4(root.matrixWorld);lastFootWorld[s].y+=visualFloorOffset;metrics.feet[s]=clonePoint(posedP[s?15:12]);metrics.hands[s]=clonePoint(posedP[s?9:6]);}
