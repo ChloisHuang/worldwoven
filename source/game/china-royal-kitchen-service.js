@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {createServiceRelationshipOutbox,serviceRelationshipEvent} from './service-relationship-outbox.js';
 import {createNPCPersonalTrip} from './npc-personal-trip.js';
 import {ROYAL_KITCHEN_ROLE as ROLE} from './china-royal-kitchen-role.js';
@@ -57,7 +58,7 @@ export function createChinaRoyalKitchenService({npcs,lot,doors,planPath,moveActo
   if(seatId?!free(seatId):!ROYAL_MEAL_SEATS.some(free))return blocked('seat-busy','餐席正在使用，请稍候');
   return {ok:true,code:null,reason:null,eligibility:playerEligibility(),order:own||null};
  }
- const talkingDiner=id=>id==='player'?!!playerState.conversationActorId:playerState.conversationActorId===id;
+ const talkingDiner=id=>id==='player'?!!playerState.conversationActorId:isSociallyHeld(id,playerState.conversationActorId);
  function deliverMealReceipts(){const receipts=orders.receipts();if(!receipts.length)return false;
   if(sharedNeeds?.royalMealReceipts)return sharedNeeds.royalMealReceipts(receipts,orders.snapshot());
   return sharedNeeds?.mealReceipts(receipts.filter(r=>r.actorId!=='player'||sameRoyalPlayerEligibility(playerEligibility(),r.eligibility)));
@@ -66,7 +67,7 @@ export function createChinaRoyalKitchenService({npcs,lot,doors,planPath,moveActo
  const mealFor=id=>orders.forActor(id),lookupMeal=(id,actorId)=>{const o=orders.lookup(id);return o?.actorId===actorId?o:null;};
  const mealReady=(id,actorId)=>{const o=lookupMeal(id,actorId);return !!o&&['served','eating'].includes(o.stage);};
  function travel(n,to,dt){
-  n.walking=false;if(near(n,to,.065)){n.route=[];travelState.delete(n);return true;}if(playerState.conversationActorId===n.station.id)return false;
+  n.walking=false;if(near(n,to,.065)){n.route=[];travelState.delete(n);return true;}if(isSociallyHeld(n.station.id,playerState.conversationActorId))return false;
   let s=travelState.get(n);if(!s||s.key!==to.join(',')){s={key:to.join(','),retryAt:0};travelState.set(n,s);n.route=[];}
   if(!n.route.length&&time>=s.retryAt){s.retryAt=time+3;n.route=planPath(n.root.position,point(to),.25);if(!n.route.length&&!s.reported){failures.push({actor:n.station.id,to:to.slice(),position:n.root.position.toArray()});if(failures.length>8)failures.shift();s.reported=true;}}
   followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,speedScale:.8});return near(n,to,.065);
@@ -84,7 +85,7 @@ export function createChinaRoyalKitchenService({npcs,lot,doors,planPath,moveActo
  const atWork=n=>n===jia&&npcAvailable()&&!playerOwns();
  const returnTarget=n=>atWork(n)?P.host:[24.25,.215,-4.9];
  const returnRoute=n=>[...reverse(corridor),...(returnTarget(n)[1]>3?reverse(upper):[]),returnTarget(n)];
- if(enablePersonalNeeds&&npcEconomy&&sharedNeeds)needsLife=createNPCPersonalTrip({saved:prior?.personalNeeds,getCandidates:()=>[...people.values()],getActor:id=>people.get(id),canControl:canControlActor,canStart:n=>n.alive!==false&&canControlActor(n)&&!meeting&&playerState.conversationActorId!==n.station.id&&(n!==jia||!phase)&&near(n,returnTarget(n),.4),canDepart:n=>!meeting&&!workAction&&!orders.active().some(o=>o.workerId===n.station.id&&production(o))&&!phase,
+ if(enablePersonalNeeds&&npcEconomy&&sharedNeeds)needsLife=createNPCPersonalTrip({saved:prior?.personalNeeds,getCandidates:()=>[...people.values()],getActor:id=>people.get(id),canControl:canControlActor,canStart:n=>n.alive!==false&&canControlActor(n)&&!meeting&&!isSociallyHeld(n.station.id,playerState.conversationActorId)&&(n!==jia||!phase)&&near(n,returnTarget(n),.4),canDepart:n=>!meeting&&!workAction&&!orders.active().some(o=>o.workerId===n.station.id&&production(o))&&!phase,
   getReturnTarget:returnTarget,getExitRoute:n=>[...(n.root.position.y>3?upper:[]),...corridor],getReturnRoute:returnRoute,economy:npcEconomy,sharedNeeds,getTavern,getToilet,travel,resetRoute,pose:(n,t,mounted)=>{if(mounted)n.animate(t+n.phase,false,mounted.action,{...poseContext(n,null),...mounted.context});else animate(n,t,null,null,false);},saveState:()=>persist()});
  function requestMeal({actorId,seatId}){
   const n=actualActor(actorId);if(!playerOwns()&&(!npcAvailable()||needsLife?.blocks()))return null;
@@ -150,9 +151,9 @@ export function createChinaRoyalKitchenService({npcs,lot,doors,planPath,moveActo
    else if(!getPlayer().walking){step.elapsed+=dt;contact(step,dt);if(step.elapsed>=step.duration&&finishStep(step)){workAction=null;persist();}}
   }
   needsLife?.update(dt,t);
-  for(const [id,n] of people){if(n===jia||n.alive===false||needsLife?.owns(n))continue;const l=personLife(n),choice=l.update(dt,{released:true,paused:s.conversationActorId===id,hour:getClock().hour});animate(n,t,choice?.action||null,choice?.target||null,false);}
-  if(needsLife?.away(jia.station.id)||!npcAvailable()){if(!needsLife?.owns(jia)&&jia.alive!==false&&canControlActor(jia)){const choice=life.update(dt,{released:true,paused:s.conversationActorId===jia.station.id,hour:getClock().hour});animate(jia,t,choice?.action||null,choice?.target||null,false);}propsSync();if(time>=nextSave){nextSave=time+2;persist();}return;}
-  jia.walking=false;let action=null,target=null;const pause=s.conversationActorId===jia.station.id;
+  for(const [id,n] of people){if(n===jia||n.alive===false||needsLife?.owns(n))continue;const l=personLife(n),choice=l.update(dt,{released:true,paused:isSociallyHeld(id,s.conversationActorId),hour:getClock().hour});animate(n,t,choice?.action||null,choice?.target||null,false);}
+  if(needsLife?.away(jia.station.id)||!npcAvailable()){if(!needsLife?.owns(jia)&&jia.alive!==false&&canControlActor(jia)){const choice=life.update(dt,{released:true,paused:isSociallyHeld(jia.station.id,s.conversationActorId),hour:getClock().hour});animate(jia,t,choice?.action||null,choice?.target||null,false);}propsSync();if(time>=nextSave){nextSave=time+2;persist();}return;}
+  jia.walking=false;let action=null,target=null;const pause=isSociallyHeld(jia.station.id,s.conversationActorId);
   const npc=pending().find(o=>o.workerId===jia.station.id&&(!meeting||o.stage!=='ordered'));
   const released=playerOwns()&&!meeting&&!npc;
   const leisure=life.update(dt,{released,paused:pause,hour:getClock().hour});
@@ -169,8 +170,10 @@ export function createChinaRoyalKitchenService({npcs,lot,doors,planPath,moveActo
  function restore(s){if(s?.version!==1||s.orders?.revision!==orders.snapshot().revision)return false;time=s.time||time;phase=s.layoutRevision===1?copy(s.phase||null):null;workAction=s.layoutRevision===1?copy(s.workAction||null):null;layoutReseat=!!s.layoutReseat||s.layoutRevision!==1&&orders.active().some(o=>o.actorId==='player');duty=copy(s.duty||null);state.eating=copy(s.eating||{});life.restore(s.personalLives?.[jia.station.id]||s.life);if(s.personalNeeds)needsLife?.restore(s.personalNeeds);for(const o of orders.active())if(o.actorId==='player'&&!playerCanDine())cancelMeal('player','恢复时御膳资格不可用');jia.route=[];travelState.clear();propsSync();return true;}
  if(prior?.eating)state.eating=copy(prior.eating);
  const workReceipts=receiptId=>orders.snapshot().orders.filter(o=>o.stage==='consumed'&&o.workerId==='player'&&(!receiptId||o.workReceiptId===receiptId)).map(o=>({source:'china-royal-kitchen',number:o.number,orderId:o.id,mealId:o.mealId,actorId:o.actorId,actorName:o.actorName,day:o.workDay,workReceiptId:o.workReceiptId,completed:true}));
- return {reviewer:()=>{const r=holder();return npcAvailable()?{actorId:jia.station.id,name:jia.station.npcName||jia.station.id,revision:r.revision}:null;},roleHandoffBoundary:handoffBoundary,rebind,acceptsActor:n=>people.has(n?.station.id),personalNeedsState:()=>needsLife?.state()||null,canBorrowMeal:id=>!!needsLife?.canBorrowMeal(id),npcDutyCoverage:()=>{const r=holder(),p=jia.root.position;return npcAvailable()&&!playerOwns()&&!needsLife?.away(jia.station.id)&&playerState.conversationActorId!==jia.station.id&&(near(jia,P.host,.15)||phase&&p.x>=16&&p.x<=26&&p.z>=-12&&p.z<=-3)?[{actorId:jia.station.id,roleId:ROLE.id,slotId:ROLE.slotId,holderRevision:r.revision}]:[];},requestMeal,playerMealAvailability,waitingForSeat:()=>layoutReseat,canRequestMeal:id=>id==='player'?playerMealAvailability().ok:!!actors.get(id)&&(playerOwns()||npcAvailable()&&!needsLife?.blocks())&&(!meeting||!playerOwns())&&orders.available(id),mealFor,lookupMeal,mealReady,startMeal,completeMeal,cancelMeal,isEatingMeal:(id,actorId)=>{const o=lookupMeal(id,actorId);return o?.stage==='eating'&&seated(o)&&!talkingDiner(actorId)&&(actorId!=='player'||playerCanDine());},mealProgress:id=>state.eating?.[id]??orders.lookup(id)?.eatingSeconds??0,mealReceipts:()=>orders.receipts(),update,snapshot,restore,
+ return {reviewer:()=>{const r=holder();return npcAvailable()?{actorId:jia.station.id,name:jia.station.npcName||jia.station.id,revision:r.revision}:null;},roleHandoffBoundary:handoffBoundary,rebind,acceptsActor:n=>people.has(n?.station.id),personalNeedsState:()=>needsLife?.state()||null,canBorrowMeal:id=>!!needsLife?.canBorrowMeal(id),npcDutyCoverage:()=>{const r=holder(),p=jia.root.position;return npcAvailable()&&!playerOwns()&&!needsLife?.away(jia.station.id)&&!isSociallyHeld(jia.station.id,playerState.conversationActorId)&&(near(jia,P.host,.15)||phase&&p.x>=16&&p.x<=26&&p.z>=-12&&p.z<=-3)?[{actorId:jia.station.id,roleId:ROLE.id,slotId:ROLE.slotId,holderRevision:r.revision}]:[];},requestMeal,playerMealAvailability,waitingForSeat:()=>layoutReseat,canRequestMeal:id=>id==='player'?playerMealAvailability().ok:!!actors.get(id)&&(playerOwns()||npcAvailable()&&!needsLife?.blocks())&&(!meeting||!playerOwns())&&orders.available(id),mealFor,lookupMeal,mealReady,startMeal,completeMeal,cancelMeal,isEatingMeal:(id,actorId)=>{const o=lookupMeal(id,actorId);return o?.stage==='eating'&&seated(o)&&!talkingDiner(actorId)&&(actorId!=='player'||playerCanDine());},mealProgress:id=>state.eating?.[id]??orders.lookup(id)?.eatingSeconds??0,mealReceipts:()=>orders.receipts(),update,snapshot,restore,
   supplyState:()=>orders.snapshot().supply,held:()=>orders.active().some(o=>o.workerId==='player'&&o.stage==='carrying'),registry:P.registry,meetingReady,requestMeeting:value=>{meeting=!!value;},claimDuty,canEndDuty,releaseDuty,workIntent,executeWork,workReceipts,
+  canTalkAtPost:n=>people.has(n?.station.id)&&!meeting&&!workAction&&!pending().some(o=>o.workerId===n.station.id)&&!n.walking&&!n.route?.length&&!n.serviceMount,
+  canBorrowForSocial:n=>people.has(n?.station.id)&&!needsLife?.owns(n)&&!meeting&&!pending().some(o=>o.workerId===n.station.id)&&(n!==jia||playerOwns()),
   owns:n=>people.has(n?.station.id),ownsStation:id=>people.has(id),socialStatus:n=>needsLife?.owns(n)?{busy:true,canPause:false,attention:false,job:needsLife.label()}:n!==jia&&people.has(n?.station.id)?{busy:false,canPause:true,attention:true,job:personLife(n).label()}:n===jia?{busy:!!pending().find(o=>o.workerId===jia.station.id),canPause:!pending().some(o=>o.workerId===jia.station.id),attention:!pending().some(o=>o.workerId===jia.station.id),job:playerOwns()?life.label():'御膳厨役 · 原单供膳'}:null,
   workLabel:()=>label(orders.active().find(o=>o.workerId==='player')),
   dutyActive:receiptId=>playerOwns()&&duty.receiptId===receiptId,

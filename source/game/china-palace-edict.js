@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {captureWorldRuntime,restoreWorldRuntime} from './world-continuity.js';
 import {followActorRoute} from './actor-navigation.js';
 import {PALACE_EDICT as E} from './china-palace-edict-place.js';
@@ -98,7 +99,7 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
  const freshContract=data=>pieceworkAccounts&&available()?{kind:'npc-edict-piecework',version:1,actorId:personId(recipient),roleId:GARDEN_ROLE.id,slotId:GARDEN_ROLE.slotId,holderRevision:boundRevision,documentId:data.id,audienceId:data.audienceId,day:data.day,amount:GARDEN_ROLE.amount,contractVersion:GARDEN_ROLE.contractVersion,steps:{received:false,filed:false,sweepSeconds:0}}:null;
  const record=(event,n)=>{history.push({event,documentId:order?.id||null,audienceId:order?.audienceId||null,actor:n?.station.id||null,time:+time.toFixed(2),position:n?.root.position.toArray()});if(history.length>72)history.shift();};
  const tell=(n,text)=>{const el=n.label?.querySelector?.('small');if(el)el.textContent=text;};
- const paused=n=>state.conversationActorId===n.station.id||state.performing===n.station.id;
+ const paused=n=>isSociallyHeld(n.station.id,state.conversationActorId)||state.performing===n.station.id;
  const face=(n,p)=>{n.root.rotation.y=Math.atan2(p[0]-n.root.position.x,p[2]-n.root.position.z);};
  function claim(n){if(owned.has(n))return;owned.add(n);leases.set(n,time);n.route=[];}
  function release(n){if(n===herald)return;owned.delete(n);tasks.delete(n);n.route=[];n.walking=false;n.breakAt+=(time-(leases.get(n)||time));leases.delete(n);if(n.poseContext){n.poseContext.handoff=false;n.poseContext.receptionWriting=false;}tell(n,n.station.npcLabel);}
@@ -168,7 +169,7 @@ export function createChinaPalaceEdict({npcs,lot,audience,palace,doors,planPath,
    if(!borrower&&!order&&arrived(herald)){const returning=tasks.get(herald);returning.settleElapsed=(returning.settleElapsed||0)+dt;if(returning.settleElapsed>=1.3)tasks.delete(herald);}
    const a=(audience.courtStatus?.()||audience.state());if(!borrower&&!order&&!tasks.has(herald)&&a.phase==='waiting'&&a.schedule.outcome==='completed'&&ledger.canBegin(a.schedule)&&!owned.has(recipient)&&!heraldLife?.blocks()&&!personalLife?.blocks()&&!scribeLife?.blocks()&&available()&&originalActorsReady()&&!paused(scribe)&&!paused(recipient))prepare(ledger.begin(a.schedule));
    for(const n of owned){n.walking=false;const s=tasks.get(n);tell(n,n===speaker?utterance:s?.label||'在传令案前候命');if(!paused(n)&&n.alive!==false&&(!order||available()&&originalActorsReady())&&s)travel(n,s,dt);}
-   const stage=order?.stage,halt=!!order&&(!available()||!originalActorsReady()||[...owned].some(paused))||state.conversationActorId===emperor.station.id;
+   const stage=order?.stage,halt=!!order&&(!available()||!originalActorsReady()||[...owned].some(paused))||isSociallyHeld(emperor.station.id,state.conversationActorId);
    if(order&&!halt){
     const advanceAfter=(seconds,next)=>{phaseTime+=dt;if(phaseTime>=seconds){enter(next);return true;}return false;};
     if(stage==='preparing'&&arrived(scribe)){enter('drafting');say(scribe,order.reissued?'奉旨补办旧清扫令，重新拟稿呈陛下核准，待实作完成再留回执。':'据今日朝议，拟一纸荷庭清扫令，交陛下核准。');}

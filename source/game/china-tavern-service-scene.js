@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {createServiceRelationshipOutbox,serviceRelationshipEvent} from './service-relationship-outbox.js';
 import {kitchenHandoffBoundary} from './china-tavern-kitchen-roles.js';
 import {TAVERN_HOST_SLOT_ID,ORIGINAL_TAVERN_HOST_ID} from './china-tavern-host-role.js';
@@ -113,7 +114,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   const n=guests.find(n=>n?.station.id===id),v=state?.visitors.find(v=>v.id===id);
   if(!n||!v||!/^cn-clinic-order-[1-9][0-9]*$/.test(claimId))return false;
   if(v.mode==='clinic')return v.careClaimId===claimId;
-  if(v.mode!=='idle'||conversation===id||getToilet()?.ownsActor(n)||!life.interrupt(n))return false;
+  if(v.mode!=='idle'||isSociallyHeld(id,conversation)||getToilet()?.ownsActor(n)||!life.interrupt(n))return false;
   if(!changeWorld(next=>Object.assign(next.visitors.find(v=>v.id===id),{mode:'clinic',careClaimId:claimId})))return false;
   paths.delete(n);n.route=[];n.walking=false;record('clinic-ownership-handoff',{customerId:id,claimId});return true;
  }
@@ -123,7 +124,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  }
 
  const life=createTavernStaffLife({actors,furniture,getPlayer,getMounted,getClock,worldSeed,travel,unmount,effect,sharedNeeds,getAdditionalChoices:(n,{onDuty})=>!onDuty&&salonCustomerAvailable(n)?salonService?.lifeChoices(n)||[]:[],onExternalChoice:(n,c)=>salonService?.invite(n,c)||false,onChanged:s=>{if(state)changeWorld(next=>{next.staffLife=s;});}});
- function salonCustomerAvailable(n){const v=state?.visitors.find(v=>v.id===n?.station.id),need=sharedNeeds?.status(n?.station.id);return !!v&&v.mode==='idle'&&!n.serviceMount&&conversation!==v.id&&!getToilet()?.ownsActor(n)&&!need?.seekMeal&&!need?.seekToilet&&!state.orders.some(o=>o.customerId===v.id&&!['done','dirty','return','wash','clean'].includes(o.stage));}
+ function salonCustomerAvailable(n){const v=state?.visitors.find(v=>v.id===n?.station.id),need=sharedNeeds?.status(n?.station.id);return !!v&&v.mode==='idle'&&!n.serviceMount&&!isSociallyHeld(v.id,conversation)&&!getToilet()?.ownsActor(n)&&!need?.seekMeal&&!need?.seekToilet&&!state.orders.some(o=>o.customerId===v.id&&!['done','dirty','return','wash','clean'].includes(o.stage));}
  const nearPlayer=p=>!getMounted()&&at(getPlayer(),p,.23);
  const record=(event,data={})=>{const o=state?.orders.find(o=>o.id===data.orderId);history.push({event,time:+time.toFixed(2),mealId:o?.mealId||null,seatId:o?.seatId||null,...data});if(history.length>70)history.shift();};
  function persist(next,bump=true,participant=null){try{
@@ -163,7 +164,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   record('meal-deferred',{customerId:v.id,orderId:cancel?o.id:null,reason:'insufficient-copper'});return true;
  }
  function travel(n,p,dt){
-  n.walking=false;if(at(n,p,.07)){n.route=[];return true;}if(conversation===n.station.id)return false;
+  n.walking=false;if(at(n,p,.07)){n.route=[];return true;}if(isSociallyHeld(n.station.id,conversation))return false;
   const key=p.join(',');let route=paths.get(n);if(!route||route.key!==key){route={key,retryAt:0,retries:0};paths.set(n,route);n.route=[];}if(!n.route.length&&time>=route.retryAt){route.retryAt=time+2;n.route=planPath(n.root.position,{x:p[0],y:p[1],z:p[2]},.25);if(!n.route.length&&++route.retries===3){failures.push({actorId:n.station.id,target:p.slice(),position:n.root.position.toArray(),reason:'empty-route'});if(failures.length>10)failures.shift();}}
   followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,speedScale:.78,arrivalTolerance:.035});return at(n,p,.07);
  }
@@ -366,7 +367,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
    else if(v.mode==='idle'){
     const toilet=getToilet(),need=sharedNeeds?.status(v.id);
     if(toilet?.ownsActor(n)){toilet.updateActor(n,dt,{travel:(point,step)=>travel(n,point,step)});continue;}
-    if(conversation===v.id){life.update(n,dt,time,{conversationActorId:conversation});continue;}
+    if(isSociallyHeld(v.id,conversation)){life.update(n,dt,time,{conversationActorId:conversation});continue;}
     if(need?.seekToilet&&time>=(idleSince.get(v.id+'-toilet')||0)&&!life.isActive(n)){
      idleSince.set(v.id+'-toilet',time+12);if(life.interrupt(n)&&toilet?.requestActor(n)){toilet.updateActor(n,dt,{travel:(point,step)=>travel(n,point,step)});continue;}
     }
@@ -412,7 +413,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   if(!row.mealId){row.stage='done';row.holder=null;}else if(row.holder==='table'){row.stage='dirty';markDirty(next,row.tableId);}else if(row.holder==='assistant')row.stage='return';
   next[leaseKey(id)]=null;if(!persist(next,true,refund))return false;phases.delete(o.id);if(activity?.orderId===o.id)activity=null;if(pendingChoice?.orderId===o.id)pendingChoice=null;furniture.releaseActor(id);paths.delete(n);if(n){n.route=[];n.walking=false;if(abandon)n.serviceMount=null;}record(accountGuestKind(id)+'-meal-cancelled',{customerId:id,orderId:o.id});return true;
  }
- function updateAccountMeal(dt){const lease=borrowedLease(),n=borrowedActor();if(!lease||!alive(n))return;if(lease.mode==='leaving'){releaseAccountMeal(lease.actorId);return;}const o=order(lease.orderId);if(state.kitchenDiner&&state.kitchenBreak?.phase==='supply')return;if(!o||!mount(o,dt))return;if(o.stage==='arriving')stage(o,'requested');if(o.stage==='eating'&&conversation!==n.station.id){effect(n,'meal');tick(o,dt,5.5,()=>consume(o,'dirty'));}}
+ function updateAccountMeal(dt){const lease=borrowedLease(),n=borrowedActor();if(!lease||!alive(n))return;if(lease.mode==='leaving'){releaseAccountMeal(lease.actorId);return;}const o=order(lease.orderId);if(state.kitchenDiner&&state.kitchenBreak?.phase==='supply')return;if(!o||!mount(o,dt))return;if(o.stage==='arriving')stage(o,'requested');if(o.stage==='eating'&&!isSociallyHeld(n.station.id,conversation)){effect(n,'meal');tick(o,dt,5.5,()=>consume(o,'dirty'));}}
 
  const officialMealAvailable=id=>CHINA_OFFICIAL_IDS.includes(id)&&accountMealAvailable(id),requestOfficialMeal=id=>CHINA_OFFICIAL_IDS.includes(id)&&requestAccountMeal(id),cancelOfficialMeal=id=>CHINA_OFFICIAL_IDS.includes(id)&&cancelAccountMeal(id);
  // This changes only an idle meal-request registry, never a body, job or purse.
@@ -535,7 +536,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
    if(time<nextKitchenDecision)return;nextKitchenDecision=time+1;
    for(const id of kitchenPersonIds(state)){
     const n=npcs.find(n=>n.station.id===id),need=sharedNeeds.has(id)&&sharedNeeds.status(id),r=['chef','assistant'].find(r=>kitchenRole(r).holderId===id)||null;
-    if(!alive(n)||!need||conversation===id||getToilet()?.ownsActor(n))continue;
+    if(!alive(n)||!need||isSociallyHeld(id,conversation)||getToilet()?.ownsActor(n))continue;
     const meal=!!need.seekMeal&&accountFunds(id)>=TAVERN_DISHES[0].price&&kitchenServiceAvailable()&&hostCompletionAvailable();
     if(!meal&&!(need.seekToilet&&publicHostRoute&&getToilet()?.publicAvailable?.()))continue;
     if(!life.interrupt(n)||!hostChange(next=>{next.kitchenBreak={actorId:id,role:r,phase:'draining',meal,waypoint:0};}))return;
@@ -556,7 +557,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   if(b.phase==='ordering'){
    if(!sharedNeeds.status(id)?.seekMeal||accountFunds(id)<TAVERN_DISHES[0].price||!kitchenServiceAvailable()){kitchenPhase('toilet',{meal:false});return;}
    const counter=HANDOVER.host.player,queue=npcs.some(n=>n!==person&&at(n,counter,.55)),target=queue?[counter[0],counter[1],counter[2]+.9]:counter;
-   if(!travel(person,target,dt)||!hostAtPost()||conversation===host?.station.id)return;
+   if(!travel(person,target,dt)||!hostAtPost()||isSociallyHeld(host?.station.id,conversation))return;
    effect(person,'relax',P.host);tick({id:'kitchen-self-order'},dt,1.3,()=>{if(time<nextHostWrite)return false;const ok=requestAccountMeal(id,{kitchenOrder:true});if(!ok)nextHostWrite=time+1;return ok;});return;
   }
   if(b.phase==='supply'){
@@ -587,7 +588,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   if(!b){
    if(time<nextHostDecision)return;nextHostDecision=time+1;
    const candidates=[host,...hostPersonIds(state).map(id=>npcs.find(n=>n.station.id===id)).filter(n=>n!==host)];let selected=null;
-   for(const n of candidates){if(!alive(n)||conversation===n.station.id)continue;const need=sharedNeeds.status(n.station.id),meal=!!need?.seekMeal&&(n===host||hostAdmissionOpen())&&accountFunds(n.station.id)>=TAVERN_DISHES[0].price&&kitchenServiceAvailable();if(meal||need?.seekToilet&&publicHostRoute&&getToilet()?.publicAvailable?.()){selected={person:n,meal};break;}}
+   for(const n of candidates){if(!alive(n)||isSociallyHeld(n.station.id,conversation))continue;const need=sharedNeeds.status(n.station.id),meal=!!need?.seekMeal&&(n===host||hostAdmissionOpen())&&accountFunds(n.station.id)>=TAVERN_DISHES[0].price&&kitchenServiceAvailable();if(meal||need?.seekToilet&&publicHostRoute&&getToilet()?.publicAvailable?.()){selected={person:n,meal};break;}}
    if(!selected)return;const {person,meal}=selected,id=person.station.id,isHolder=person===host;
    if(!life.interrupt(person)||!hostChange(next=>{next.hostBreak={actorId:id,slotId:TAVERN_HOST_SLOT_ID,assignmentRevision:hostRole().revision,phase:isHolder?'draining':meal?'personal-request':'toilet',meal,waypoint:0};}))return;
    record('host-break-requested');return;
@@ -596,7 +597,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   if(b.phase==='draining'){
    // Earlier dining leases need the person to finish reception, then leave their
    // one shared seat-owner slot normally before his own paid order can start.
-   if(conversation===id||hasPresentHostMeeting()||playerLodging?.hostPending()||borrowedLease()||state.orders.some(o=>!o.cancelled&&['arriving','requested','ordered'].includes(o.stage))||!at(person,P.host,.15)||person.walking)return;
+   if(isSociallyHeld(id,conversation)||hasPresentHostMeeting()||playerLodging?.hostPending()||borrowedLease()||state.orders.some(o=>!o.cancelled&&['arriving','requested','ordered'].includes(o.stage))||!at(person,P.host,.15)||person.walking)return;
    if(life.interrupt(person))hostPhase(b.meal?'self-order':'toilet');return;
   }
   if(b.phase==='personal-request'){if(!sharedNeeds.status(id)?.seekMeal||accountFunds(id)<TAVERN_DISHES[0].price){hostAfterMeal();return;}if(hostAdmissionOpen()&&!borrowedLease()&&requestAccountMeal(id)){hostPhase('meal');}return;}
@@ -667,7 +668,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
    updateVisitors(dt);updateAccountMeal(dt);
    if(activeNPC.has('host')){const o=state.orders.find(o=>['requested','ordered'].includes(o.stage)&&customerSeated(o));
     if(o){effect(host,null,o.seatAnchor);if(travel(host,o.servePoint,dt))tick(o,dt,1.3,()=>o.stage==='requested'?stage(o,'ordered'):collect(o));}
-    else{travel(host,P.host,dt);if(playerLodging?.hostPending()){effect(host,'calligraphy',[23.4,1.32,6.4]);if(at(host,P.host,.15)&&conversation!==host.station.id)tick({id:'player-lodging'},dt,1.3,()=>playerLodging.hostRespond());}else{phases.delete('player-lodging');const v=hostLodgingAdmission()&&state.visitors.find(v=>v.mode==='lodging-wait'),room=state.rooms.find(r=>!r.dirty&&!r.guestId&&roomAvailable(r.id));if(v&&room&&at(host,P.host,.15))rentRoom(v,room);}}}
+    else{travel(host,P.host,dt);if(playerLodging?.hostPending()){effect(host,'calligraphy',[23.4,1.32,6.4]);if(at(host,P.host,.15)&&!isSociallyHeld(host.station.id,conversation))tick({id:'player-lodging'},dt,1.3,()=>playerLodging.hostRespond());}else{phases.delete('player-lodging');const v=hostLodgingAdmission()&&state.visitors.find(v=>v.mode==='lodging-wait'),room=state.rooms.find(r=>!r.dirty&&!r.guestId&&roomAvailable(r.id));if(v&&room&&at(host,P.host,.15))rentRoom(v,room);}}}
    if(activeNPC.has('chef')){const o=state.orders.find(o=>['preparing','prepared','heating','cooked'].includes(o.stage)&&ownsDish(chef,o))||state.orders.find(o=>o.stage==='paid'&&freePassSlot()!==null);if(!o)travel(chef,P.prep,dt);
     else if(['paid','preparing'].includes(o.stage)){effect(chef,'cook',P.prepTop);if(travel(chef,P.prep,dt))tick(o,dt,3.2,()=>stage(o,'prepared'));}
     else if(['prepared','heating'].includes(o.stage)){effect(chef,'herb-mix',P.stoveTop);if(travel(chef,P.stove,dt))tick(o,dt,4.2,()=>prepareDish(o));}
@@ -707,11 +708,13 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  function prepareLodgingWorld(next){if(!state||!validWorld(next,guestEconomy,personalMealEconomy,enableOfficialPersonalFunds,enableArtistPersonalFunds,enableStaffPersonalFunds)||(next.revision||0)!==(state.revision||0))return {ok:false,code:'stale-inn-world'};const committed={...copy(next),revision:(state.revision||0)+1},booking=next.playerStay?.booking;const event=booking?.stage==='active'&&state.playerStay?.booking?.stage==='waiting'?serviceRelationshipEvent('china-tavern-lodging',booking.id,'completed',host?.station.id,'player',time):null;committed.relationshipEvents=relationshipOutbox.merge(committed.relationshipEvents,[event]);return {ok:true,patch:{chinaServiceWorld:committed},committed:()=>{state=committed;relationshipOutbox.deliver(state.relationshipEvents);}};}
  function saveLodgingWorld(next){if(!next||!validWorld(next,guestEconomy,personalMealEconomy,enableOfficialPersonalFunds,enableArtistPersonalFunds,enableStaffPersonalFunds)||(next.revision||0)!==(state?.revision||0)+1)return false;return persist(next,false);}
  function release(){activity=null;pendingChoice=null;for(const n of guests){if(externalOwns(n))continue;if(n?.serviceMount){const seat=n.serviceMount;n.root.position.set(...seat.position);n.serviceMount=null;}if(n)furniture.releaseActor(n.station.id);}for(const p of props.values())p.dispose();props.clear();state=null;paths.clear();}
- return {registerGuestPerson,guestMeal,guestMealAvailable,requestGuestMeal,cancelGuestMeal,guestMealActorId:()=>state?.guestDiner?.actorId||null,publicToiletRoute:()=>publicHostRoute?.map(p=>p.slice())||null,registerClinicPerson,clinicMeal,clinicMealAvailable,requestClinicMeal,cancelClinicMeal,clinicMealActorId:()=>state?.clinicDiner?.actorId||null,kitchenBreak:()=>state?.kitchenBreak?copy(state.kitchenBreak):null,cancelKitchenMeal:()=>cancelAccountMeal(state?.kitchenDiner?.actorId),kitchenHandoff,kitchenRole,kitchenPersonIds:()=>[...kitchenPeople],officialMeal,officialMealAvailable,requestOfficialMeal,cancelOfficialMeal,artistMeal,artistMealAvailable,requestArtistMeal,cancelArtistMeal,artistMealActorId:()=>state?.artistDiner?.actorId||null,lodgingState:()=>({rooms:state?.rooms.map(r=>({...r}))||[],playerStay:state?.playerStay?copy(state.playerStay):null,loadError}),prepareLodgingWorld,saveLodgingWorld,setSalonService:service=>{salonService=service;},salonCustomerAvailable,resetSalonRoute:n=>{paths.delete(n);n.route=[];n.walking=false;},setPlayerLodging:service=>{playerLodging=service;},hostRole,hostActor,hostAtPost,hostAdmissionOpen,hostCompletionAvailable,hostUnavailableReason,hostBreak:()=>state?.hostBreak?copy(state.hostBreak):null,cancelHostMeal:()=>cancelAccountMeal(state?.hostDiner?.actorId),canHostLodging:()=>!!host&&!tenureOwns('host')&&hostAdmissionOpen(),lodgingHostReady:()=>hostCompletionAvailable()&&!!host&&!tenureOwns('host')&&!host.walking&&at(host,P.host,.15)&&conversation!==host.station.id&&!state.orders.some(o=>['requested','ordered'].includes(o.stage)&&customerSeated(o)),start,continuitySnapshot,restoreContinuity,initializeWorld,restoreWorld,claimClinicPatient,releaseClinicPatient,clinicClaims:()=>state?.visitors.filter(v=>v.mode==='clinic').map(v=>({actorId:v.id,claimId:v.careClaimId}))||[],requestPlayerMeal,cancelPlayerMeal,eatPlayerMeal,playerOrder:()=>state?.orders.find(o=>o.customerId==='player'&&o.stage!=='done')||null,choices,execute,update,release,beginReturn,stopActivity(){activity=null;pendingChoice=null;},active:()=>!!state,finished:()=>state?.stage==='finished',owns:n=>controlledActors().includes(n)&&!externalOwns(n),
+ return {registerGuestPerson,guestMeal,guestMealAvailable,requestGuestMeal,cancelGuestMeal,guestMealActorId:()=>state?.guestDiner?.actorId||null,publicToiletRoute:()=>publicHostRoute?.map(p=>p.slice())||null,registerClinicPerson,clinicMeal,clinicMealAvailable,requestClinicMeal,cancelClinicMeal,clinicMealActorId:()=>state?.clinicDiner?.actorId||null,kitchenBreak:()=>state?.kitchenBreak?copy(state.kitchenBreak):null,cancelKitchenMeal:()=>cancelAccountMeal(state?.kitchenDiner?.actorId),kitchenHandoff,kitchenRole,kitchenPersonIds:()=>[...kitchenPeople],officialMeal,officialMealAvailable,requestOfficialMeal,cancelOfficialMeal,artistMeal,artistMealAvailable,requestArtistMeal,cancelArtistMeal,artistMealActorId:()=>state?.artistDiner?.actorId||null,lodgingState:()=>({rooms:state?.rooms.map(r=>({...r}))||[],playerStay:state?.playerStay?copy(state.playerStay):null,loadError}),prepareLodgingWorld,saveLodgingWorld,setSalonService:service=>{salonService=service;},salonCustomerAvailable,resetSalonRoute:n=>{paths.delete(n);n.route=[];n.walking=false;},setPlayerLodging:service=>{playerLodging=service;},hostRole,hostActor,hostAtPost,hostAdmissionOpen,hostCompletionAvailable,hostUnavailableReason,hostBreak:()=>state?.hostBreak?copy(state.hostBreak):null,cancelHostMeal:()=>cancelAccountMeal(state?.hostDiner?.actorId),canHostLodging:()=>!!host&&!tenureOwns('host')&&hostAdmissionOpen(),lodgingHostReady:()=>hostCompletionAvailable()&&!!host&&!tenureOwns('host')&&!host.walking&&at(host,P.host,.15)&&!isSociallyHeld(host.station.id,conversation)&&!state.orders.some(o=>['requested','ordered'].includes(o.stage)&&customerSeated(o)),start,continuitySnapshot,restoreContinuity,initializeWorld,restoreWorld,claimClinicPatient,releaseClinicPatient,clinicClaims:()=>state?.visitors.filter(v=>v.mode==='clinic').map(v=>({actorId:v.id,claimId:v.careClaimId}))||[],requestPlayerMeal,cancelPlayerMeal,eatPlayerMeal,playerOrder:()=>state?.orders.find(o=>o.customerId==='player'&&o.stage!=='done')||null,choices,execute,update,release,beginReturn,stopActivity(){activity=null;pendingChoice=null;},active:()=>!!state,finished:()=>state?.stage==='finished',owns:n=>controlledActors().includes(n)&&!externalOwns(n),
   playerPose:playerEffect,playerAction:()=>playerEffect()?.action||null,playerStation:()=>playerEffect()?.station||null,
   snapshot:()=>state?copy(state):null,state:()=>({...(state?copy(state):{}),loadError,activity:activity?copy(activity):null,staffLife:life.state(),staffOwnership:Object.fromEntries(Object.entries(staff).map(([r,n])=>[r,{holderId:r==='host'?hostRole().holderId:kitchenRole(r).holderId,npcId:n?.station.id||null,status:tenureOwns(r)?'released':!n?'unavailable':life.isActive(n)?'short-break':'on-duty'}])),history:copy(history),failures:copy(failures),seatClaims:furniture.facilities.state?.()||[],orders:state?.orders.map(o=>({...copy(o),label:steps[o.stage],props:props.get(o.id)?.state()||null}))||[],actors:controlledActors().map(n=>({id:n.station.id,position:n.root.position.toArray(),mounted:n.serviceMount?.id||null,walking:n.walking,routeLength:n.route.length,routeTarget:paths.get(n)?.key||null,label:actorLabel(n)}))}),
   socialProfile:id=>life.socialProfile(id),
-  socialStatus:n=>{if(!controlledActors().includes(n)||externalOwns(n))return null;const r=Object.keys(staff).find(r=>staff[r]===n),v=state?.visitors.find(v=>v.id===n.station.id);const busy=n.station.id===state?.kitchenBreak?.actorId||!alive(n)||n===hostBreakActor()&&!!state?.hostBreak||(r?r==='host'&&ownsRoleBreak()||!tenureOwns(r)&&workPending(r):v?.mode!=='idle'||getToilet()?.ownsActor(n));return {busy:!!busy,attention:!busy,job:actorLabel(n)};},
+  canTalkAtPost(n){if(!state||!controlledActors().includes(n)||externalOwns(n)||n.walking||n.route?.length||n.serviceMount)return false;const role=Object.keys(staff).find(r=>staff[r]===n);return !role||!workPending(role)&&!state.orders.some(o=>o.holderActorId===n.station.id&&!['done'].includes(o.stage));},
+  canBorrowForSocial(n){if(!state||!controlledActors().includes(n)||externalOwns(n)||state.orders.some(o=>o.holderActorId===n.station.id&&!['done'].includes(o.stage)))return false;const role=Object.keys(staff).find(r=>staff[r]===n),visitor=state.visitors.find(v=>v.id===n.station.id);return role?tenureOwns(role):visitor?visitor.mode==='idle':hostPersonIds(state).includes(n.station.id)||kitchenPeople.has(n.station.id);},
+  socialStatus:n=>{if(!controlledActors().includes(n)||externalOwns(n))return null;const r=Object.keys(staff).find(r=>staff[r]===n),v=state?.visitors.find(v=>v.id===n.station.id);const busy=n.station.id===state?.kitchenBreak?.actorId||!alive(n)||n===hostBreakActor()&&!!state?.hostBreak||(r?r==='host'&&ownsRoleBreak()||!tenureOwns(r)&&workPending(r):v?v.mode!=='idle'||getToilet()?.ownsActor(n):!hostPersonIds(state).includes(n.station.id)&&!kitchenPeople.has(n.station.id)||getToilet()?.ownsActor(n));return {busy:!!busy,attention:!busy,job:actorLabel(n)};},
   label:()=>activity?.action||(pendingChoice?pendingChoice.action+' · 等候顾客就位':null)||({ 'handover-in':'等待当面接班','handover-out':'等待当面交班',finished:'本轮已交班'}[state?.stage])||(state?'当班 · 查看当前客单':null),
   dispose(){if(disposed)return;release();life.dispose();dirt.dispose();disposed=true;}};
 }

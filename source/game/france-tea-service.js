@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {createServiceRelationshipOutbox,serviceRelationshipEvent} from './service-relationship-outbox.js';
 import {followActorRoute,findActorStandPoint} from './actor-navigation.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
@@ -54,7 +55,7 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
  const server=()=>playerServing()?getPlayer():host;
  const customer=()=>order?.customer==='player'?getPlayer():guest;
  const seatedCustomer=()=>order?.customer==='player'?atSeat():guest.serviceMount?.id===seat.id;
- const busy=n=>conversation===n.station.id||stationBusy===n.station.id;
+ const busy=n=>isSociallyHeld(n.station.id,conversation)||stationBusy===n.station.id;
  function enter(stage){if(fullMeal(order))order.revision=(order.revision||0)+1;order.stage=stage;phase=0;stageAge=0;record(stage);if(fullMeal(order))persist();}
  function travel(n,to,dt){
   n.walking=false;if(near(n,to)){n.route=[];routes.delete(n);return true;}if(busy(n)||n.serviceMount)return false;
@@ -280,6 +281,8 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
   target(){const p=getPlayer();if(!p||duty)return null;const nearby=gap(p,[6.6,.16,8.35])<2.3||atSeat();if(!nearby&&!intent)return null;return {franceTea:true,id:'france-tea-service',name:'宫苑茶廊 · 玛农',action:order?.customer==='player'?'查看当前餐单':'查看食单 · 正餐与下午茶',status:intent?'正在走向茶位':order?orderLabel():'免费下午茶 · 4法国券正餐'};},
   interact(){if(intent){intent=false;return 'cancel-walk';}if(order?.customer==='player'&&!order.cancelled)return order.stage==='ready'?drink():cancel();return request();},
   statusLabel:id=>id===seat.id&&order?orderLabel():null,
+  canTalkAtPost:n=>actors.includes(n)&&!order&&!intent&&!Object.values(meeting).some(Boolean)&&!n.walking&&!n.route?.length&&!n.serviceMount,
+  canBorrowForSocial:n=>n===guest||n===host&&released('host')&&!meeting.host||n===cook&&released('cook')&&!meeting.cook,
   socialStatus:n=>{const role=n===host?'host':n===cook?'cook':null,working=!!order&&!released(role)||talks.owns(n)||!!meeting[role]||urgent(n);return {busy:working,canPause:!working,attention:!working,job:talks.label(n)||(role?staffLabel(role):order?orderLabel():n.station.npcLabel)};},
   update(dt,t,{conversationActorId=null,performing=null,playerSocialActorId=null,hour=15}={}){
    if(disposed)return;relationshipOutbox.deliver(committedRelationshipEvents);time+=dt;life.tick(dt);orphanRetry+=dt;if(orphanRetry>=3){orphanRetry=0;reconcileHolds();if(fullMeal(order)&&order.cancelled)payment(order,'refund');}conversation=conversationActorId;stationBusy=performing;playerSocial=playerSocialActorId;for(const n of actors)n.walking=false;

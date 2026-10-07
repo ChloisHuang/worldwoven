@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {createDailyToilet} from './daily-toilet.js';
 import {followActorRoute} from './actor-navigation.js';
 
@@ -33,10 +34,10 @@ export function createEgyptDailyToilet(options){
   // home again. Nobody is hidden, cloned, snapped, or counted through the wall.
   updateStaff(dt,t,{conversationActorId=null}={}){
    if(disposed||!staff||!options.planPath||!options.moveActor)return;
-   if(core.active()&&!attending&&conversationActorId!==P.attendantId){attending='yielding';routeKey=null;staff.route=[];}
+   if(core.active()&&!attending&&!isSociallyHeld(P.attendantId,conversationActorId)){attending='yielding';routeKey=null;staff.route=[];}
    if(!attending)return;
    if(!core.active()&&attending!=='returning'){attending='returning';routeKey=null;staff.route=[];}
-   if(conversationActorId===P.attendantId)return;
+   if(isSociallyHeld(P.attendantId,conversationActorId))return;
    const destination=attending==='returning'?staff.home.toArray():P.standby;
    if(travel(destination,dt)){
     if(attending==='returning'){attending=null;staff.breakAt=t+10;staff.returning=false;const label=staff.label?.querySelector('small');if(label)label.textContent=staff.station.npcLabel;return;}

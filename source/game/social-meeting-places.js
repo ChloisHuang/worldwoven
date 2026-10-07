@@ -22,7 +22,7 @@ function contains(room,p){
  const bounds=room.bounds||room,b=Array.isArray(bounds)?bounds:[bounds.minX,bounds.maxX,bounds.minZ,bounds.maxZ],y=room.floorY??(Number.isFinite(room.floor)?(room.floor-1)*3.8:0);
  return b.every(Number.isFinite)&&p.x>=b[0]&&p.x<=b[1]&&p.z>=b[2]&&p.z<=b[3]&&Math.abs(p.y-y)<.65;
 }
-export function createSocialMeetingPlaces({country,lot,furniture,getActors=()=>[],getActor=id=>getActors().find(a=>idOf(a)===id),planPath,canEnterPrivateRoom=()=>false,roomAvailable=()=>false}){
+export function createSocialMeetingPlaces({country,lot,furniture,getActors=()=>[],getActor=id=>getActors().find(a=>idOf(a)===id),planPath,canEnterPrivateRoom=()=>false,roomAvailable=()=>false,radiusFor=id=>id==='player'?.34:.25}){
  const held=new Map();
  function inventory(){
   const list=[];
@@ -64,7 +64,7 @@ export function createSocialMeetingPlaces({country,lot,furniture,getActors=()=>[
    if(!actor?.root?.position||actor.root.visible===false&&actor.socialPrivateFade!==true)return {ok:false,reason:'actor-unavailable'};
    if(getActors().some(a=>!ids.includes(idOf(a))&&(a.root?.visible!==false||a.socialPrivateFade===true)&&a.root?.position&&Math.abs(a.root.position.y-to.y)<.65&&distance(a.root.position,to)<.62))return {ok:false,reason:'approach-occupied'};
    if(routes&&!near(actor.root.position,to)){
-    const route=planPath?.(actor.root.position,to,.34);
+    const route=planPath?.(actor.root.position,to,radiusFor(ids[i]));
     if(!route?.length||!near({...route.at(-1),y:route.at(-1).y??actor.root.position.y},to))return {ok:false,reason:'unreachable'};
    }
   }
@@ -97,7 +97,7 @@ export function createSocialMeetingPlaces({country,lot,furniture,getActors=()=>[
 // Parent retains ledger timing, poses/fade and routine pause ownership. This
 // runner only moves the real pair, holds the place, and checks every live frame.
 // No route/claim is restored from a save; an interrupted event must be cancelled.
-export function createSocialMeetingJourney({places,getActor,planPath,moveActor,doors,getActors=()=>[],isAdult=()=>false,isWilling=()=>false,isAvailable=()=>false}){
+export function createSocialMeetingJourney({places,getActor,planPath,moveActor,doors,getActors=()=>[],isAdult=()=>false,isWilling=()=>false,isAvailable=()=>false,radiusFor=id=>id==='player'?.34:.25}){
  let current=null;
  const state=()=>current?{ok:current.phase!=='cancelled',phase:current.phase,reason:current.reason||null,place:current.place,ids:current.ids.slice()}:null;
  function cancel(reason='cancelled'){
@@ -117,7 +117,7 @@ export function createSocialMeetingJourney({places,getActor,planPath,moveActor,d
   const reason=gates(ids,resolved.place);if(reason)return {ok:false,reason};
   const claimed=places.claim(resolved.place,ids);if(!claimed.ok)return claimed;
   current={ids:ids.slice(),place:resolved.place,phase:'approaching',routes:[],elapsed:0};
-  current.routes=ids.map((id,i)=>{const actor=getActor(id),to=point(current.place.points[i]);return near(actor.root.position,to)?[]:planPath(actor.root.position,to,.34);});
+  current.routes=ids.map((id,i)=>{const actor=getActor(id),to=point(current.place.points[i]);return near(actor.root.position,to)?[]:planPath(actor.root.position,to,radiusFor(id));});
   return state();
  }
  function update(dt){
@@ -135,7 +135,7 @@ export function createSocialMeetingJourney({places,getActor,planPath,moveActor,d
    const actor=getActor(current.ids[i]),to=point(current.place.points[i]);
    if(near(actor.root.position,to)){actor.walking=false;continue;}
    if(!current.routes[i]?.length)return cancel('route-blocked');
-   followActorRoute(actor,delta,{route:current.routes[i],doors,moveActor,npcs:getActors(),radius:.34,arrivalTolerance:.045,speedScale:.82});
+   followActorRoute(actor,delta,{route:current.routes[i],doors,moveActor,npcs:getActors(),radius:radiusFor(current.ids[i]),arrivalTolerance:.045,speedScale:.82});
   }
   if(current.ids.every((id,i)=>near(getActor(id).root.position,point(current.place.points[i])))){
    current.phase='arrived';

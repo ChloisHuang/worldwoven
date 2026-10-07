@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {bedAvailable,reserveNpcBed,occupyNpcBed} from './npc-bed-occupancy.js';
 import {captureWorldRuntime,restoreWorldRuntime} from './world-continuity.js';
 import {CHINA_CONSORTS,CONSORT_ROUTES,palaceResidentSave,palaceResident} from './china-palace-residents.js';
@@ -189,7 +190,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   if(near(n.root.position,to,arrival)){n.route=[];s.planned=false;s.retries=0;s.stalled=0;return true;}
   return false;
  }
- function interrupted(n){return playerState.conversationActorId===n.station.id;}
+ function interrupted(n){return isSociallyHeld(n.station.id,playerState.conversationActorId);}
  function socialStatus(n){if(!owned.has(n)&&!(hostHeld&&n===host))return null;const busy=stages.get(n)?.choice?.id==='toilet'&&!stages.get(n).choice.toiletFinished||n===emperor&&!!duty&&!duty.release||!!conversation?.participants.includes(n.station.id)||!!hostHeld&&(n===host||n===hostHeld)||owned.has(n)&&urgent(n);return {busy,canPause:!busy&&!stages.get(n)?.mount,attention:!busy,job:n===host?'与'+(palaceResident(hostHeld?.station.id)?.shortName||'来客')+'在茶席叙话':scripts.get(n)[stages.get(n).index].label};}
  function petitionAvailability(){
   const info=socialStatus(emperor),s=stages.get(emperor),stop=scripts.get(emperor)?.[s?.index];

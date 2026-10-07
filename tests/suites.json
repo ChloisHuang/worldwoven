@@ -353,7 +353,9 @@
       "social-attention.mjs",
       "relationship-interactions.mjs",
       "player-relationship-menu.mjs",
-      "social-meeting-places.mjs"
+      "social-meeting-places.mjs",
+      "npc-social-ownership.mjs",
+      "npc-public-interactions.mjs"
     ],
     "integration": [
       "airy-panel-default-cascade.mjs",
@@ -565,7 +567,8 @@
       "world-continuity-seat-conflict.mjs",
       "world-continuity.mjs",
       "social-meeting-geometry.cjs",
-      "player-relationship-main.cjs"
+      "player-relationship-main.cjs",
+      "npc-public-pair-main.cjs"
     ]
   },
   "release": {

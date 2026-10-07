@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {captureWorldRuntime,restoreWorldRuntime} from './world-continuity.js';
 import {createCourtReports,formatCourtEdictText} from './china-court-reports.js';
 import {attachCourtOfficialCostume} from './china-court-official-costume.js';
@@ -82,7 +83,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
   s.stalled=n.walking||step.waiting?0:s.stalled+dt;if(s.stalled>4){s.stalled=0;s.planned=false;if(++s.retries===3){failures.push({actor:n.station.id,stage:s.id,target,position:n.root.position.toArray()});if(failures.length>8)failures.shift();}}
   return false;
  }
- const allInLine=()=>officials.every(n=>tasks.get(n)?.id==='enter-hall'&&tasks.get(n).arrived),paused=n=>!!n&&state.conversationActorId===n.station.id;
+ const allInLine=()=>officials.every(n=>tasks.get(n)?.id==='enter-hall'&&tasks.get(n).arrived),paused=n=>!!n&&isSociallyHeld(n.station.id,state.conversationActorId);
  function routeBudgets(){
   const actors=courtLaneBudgets(officials.map((n,i)=>{
    const exit=life?.courtPlan(n)||{reachable:true,position:n.root.position,path:[],safeExitSeconds:0,doorSeconds:4},inPlace=near(exit.position,hall(i));
@@ -146,7 +147,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
      }
     }
    }
-   const duty=palace.dutyState(OWNER),speakingPaused=paused(speaker)||state.conversationActorId===emperor.station.id;
+   const duty=palace.dutyState(OWNER),speakingPaused=paused(speaker)||isSociallyHeld(emperor.station.id,state.conversationActorId);
    for(const [i,n]of officials.entries()){
     if(life&&!tasks.has(n)){life.update(n,dt,t);if(phase==='assembling'&&life.ready(n)){const exit=life.courtPlan(n);if(near(n.root.position,hall(i))){task(n,'enter-hall',[hall(i)],'已在班位 · 静候11:30');tasks.get(n).arrived=true;}else task(n,'to-court',[...exit.path,court(i)],'共同召集 · 从当前位置提前赴班');}else{postures[i]?.stop();if(interruptedToday)tell(n,life.label(n)+' · '+interruptedLabel);continue;}}
     n.walking=false;const s=tasks.get(n),label=s?.label||(interruptedToday?interruptedLabel:'承务官署 · 日常起居');tell(n,n===speaker?utterance:label);

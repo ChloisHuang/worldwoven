@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {createTellerInspection} from './china-teller-inspection.js';
 import {TELLER_HOME} from './china-teller-audit-proof.js';
 import {followActorRoute} from './actor-navigation.js';
@@ -15,6 +16,7 @@ export function createChinaTellerService({npcs,lot,resolveAssignment,getAssignme
    if(before!==after){const n=npcs.find(n=>n.station.id===(after||before));if(n&&(canControl(n)||n.alive===false)){reset(n);n.returning=false;n.breakAt=t+12;}}
    if(after){const n=npcs.find(n=>n.station.id===after),label=n?.label?.querySelector?.('small');if(label)label.textContent='核对原账 · 原单尚未办结';return;}
    const a=resolveAssignment(),n=a?.actor;if(inspection.loadError||a?.status!=='npc'||!n||n.alive===false||!canControl(n)||isPersonalBusy(n))return;
+   if(isSociallyHeld(n.station.id,context.conversationActorId)){n.walking=false;return;}
    if(!near(n,TELLER_HOME)){if(isCounterOpen())return;travel(n,TELLER_HOME,dt);tools.pose(n,t,null,poseContext(n,null));return;}
    reset(n);n.root.rotation.y=0;tools.pose(n,t,null,poseContext(n,null));const label=n.label?.querySelector?.('small');if(label)label.textContent=isCounterOpen()?'当面办理存取与兑换':'钱庄账房 · 等候办理';
   }

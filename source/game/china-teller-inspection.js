@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {TELLER_HOME,TELLER_STANDS,TELLER_CURRENCIES,freezeTellerSource,verifyTellerSource,tellerContract,tellerAuditProof,validateTellerContract,tellerSame} from './china-teller-audit-proof.js';
 const copy=structuredClone,integer=n=>Number.isSafeInteger(n)&&n>=0;
 const empty=()=>({version:2,lastIssuedDay:-1,order:null,interruptions:[]});
@@ -27,7 +28,7 @@ export function createTellerInspection({resolveAssignment,getDay,getActor,getLed
  function write(next){if(!valid(next))return false;try{const r=saveState(copy(next));if(r?.then)Promise.resolve(r).catch(()=>{});if(r===false||r?.ok===false||r?.then)return false;state=next;return true;}catch{return false;}}
  const ownedId=()=>loadError?null:state.order?.contract.actorId||null;
  const ready=n=>{const a=resolveAssignment();return !!n&&n.alive!==false&&a?.status==='npc'&&a.actor===n&&a.holderId===n.station?.id&&a.alive&&a.available&&canControl(n);};
- const blocked=(n,context)=>isCounterOpen()||context.conversationActorId===n.station.id||context.performing===n.station.id;
+ const blocked=(n,context)=>isCounterOpen()||isSociallyHeld(n.station.id,context.conversationActorId)||context.performing===n.station.id;
  const liveLedger=()=>{try{const ledger=getLedger();return ledger&&ledger.loadError===null&&typeof ledger.state==='function'?ledger:null;}catch{return null;}};
  return {
   snapshot:()=>copy(state),state:()=>copy(state),get loadError(){return loadError;},ownedActorId:ownedId,

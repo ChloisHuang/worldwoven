@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {createServiceRelationshipOutbox,serviceRelationshipEvent} from './service-relationship-outbox.js';
 import {createPalaceTeaOrders} from './china-palace-tea-orders.js';
 import {createPalaceTeaProps,PALACE_TEA_POINTS as P} from './china-palace-tea-props.js';
@@ -27,7 +28,7 @@ export function createPalaceTeaService({npcs,lot,doors,planPath,moveActor,poseCo
  if(!loadError&&saved?.runtime?.phase==='home'&&saved.runtime.actorId&&Number.isSafeInteger(saved.runtime.holderRevision))runtime={...copy(saved.runtime),elapsed:0,planned:false,stalled:0};
  const active=()=>ledger.active(),guest=()=>npcs.find(n=>n.station.id===runtime?.guestId)||null;
  function validHost(){const a=resolveAssignment?.();return !!runtime&&a?.status==='npc'&&a.alive!==false&&a.available!==false&&a.holderId===runtime.actorId&&a.revision===runtime.holderRevision&&a.actor?.alive!==false;}
- function blocked(n){return !n||n.alive===false||playerState.performing===n.station.id||playerState.conversationActorId===n.station.id;}
+ function blocked(n){return !n||n.alive===false||playerState.performing===n.station.id||isSociallyHeld(n.station.id,playerState.conversationActorId);}
  function persist(){try{const r=saveState(snapshot());return r!==false&&r?.ok!==false&&!r?.then;}catch{return false;}}
  function transition(phase,step){const previous=copy(runtime);runtime={...runtime,phase,elapsed:0,planned:false,stalled:0};const o=active();const result=step?ledger.advance({...o,requestId:o.id,stage:step,observed:true}):{ok:persist()};if(!result.ok)runtime=previous;return result.ok;}
  function travel(n,to,dt){

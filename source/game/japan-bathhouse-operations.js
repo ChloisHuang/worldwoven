@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {reserveNpcBed,occupyNpcBed} from './npc-bed-occupancy.js';
 import {createJapanTableServiceDuty} from './japan-table-service-duty.js';
 import {createJapanKitchenDuty} from './japan-kitchen-duty.js';
@@ -232,7 +233,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   const toiletPose=getToilet()?.actorPose(n);
   if(toiletPose){tell(n,getToilet().label(n.station.id));n.animate(t+n.phase,false,toiletPose.action,{...poseContext(n,null),...toiletPose.context});return;}
   const task=tasks.get(n.station.id),v=guests.has(n.station.id)?board.getVisit(n.station.id):null,mount=n.serviceMount||n.bathTransition?.item;
-  const helping=isJapanEmployeeInteraction(n,playerState),chatting=helping&&playerState.conversationActorId===n.station.id,sharedActivity=helping&&!chatting;
+  const helping=isJapanEmployeeInteraction(n,playerState),chatting=helping&&isSociallyHeld(n.station.id,playerState.conversationActorId),sharedActivity=helping&&!chatting;
   const context=poseContext(n,sharedActivity?n.station:chatting?null:task?.workTarget?{workTarget:task.workTarget}:null);
   context.bathTransition=n.bathTransition?.sample()||null;
   if(mount){context.visualFloorOffset=['bath','bed'].includes(mount.kind)?0:context.visualFloorOffset;context.seatHeight=mount.seatY===undefined?undefined:mount.seatY-n.root.position.y-context.visualFloorOffset;context.supportY=mount.supportY;context.bathPose=mount.bathPose;context.bathHipHeight=mount.bathHipHeight;context.lieSupport=mount.lieSupport;context.lieOffset=mount.lieOffset;context.liePillowZ=mount.liePillowZ;context.lieSurfaceHeightAt=mount.kind==='bed'?(x,z)=>furniture.bedSupportAt(mount,x,z):undefined;}
@@ -246,6 +247,8 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
  return {
   itemAnchor:id=>disposed?null:props.itemAnchor(id),
   owns:n=>actors.has(n.station.id),
+  canTalkAtPost(n){const task=tasks.get(n.station.id);return actors.has(n.station.id)&&!n.walking&&!n.route?.length&&!n.serviceMount&&!n.bathTransition&&(!task||task.idle&&task.arrived)&&!board.workerBusy(n.station.id);},
+  canBorrowForSocial:n=>guests.has(n.station.id)||staffLife?.canBorrowForSocial(n.station.id)===true,
   socialStatus(n){const task=tasks.get(n.station.id),need=sharedNeeds?.status(n.station.id),busy=!!(n.serviceMount||n.bathTransition||task&&!task.idle||task?.held||task?.handoff||need?.seekMeal||need?.seekToilet||board.workerBusy(n.station.id));return {busy,canPause:!busy,attention:!busy,job:task?.label||n.station.npcLabel};},
   connectPlayerService(options) {return playerCustomerService??=createJapanPlayerService({...options,board,furniture,continuity:checkpoint?.playerService});},
   connectTableServiceDuty(options){return tableServiceDuty??=createJapanTableServiceDuty({...options,board,actors,assign,clear,unmount,planPath,taskOf:n=>tasks.get(n.station.id),getStaffLife:()=>staffLife,customerActor,onComplete:record});},

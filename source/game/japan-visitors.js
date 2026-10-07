@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {npcAppearance} from './appearance.js';
 
 // Resident IDs (including Ren and the shrine attendant) are never reused for
@@ -15,6 +16,7 @@ export function japanVisitorStation(visit) {
 // Facility experiences still use station IDs. A mobile employee participates
 // only when actually beside the player, never remotely from another floor.
 export function isJapanEmployeeInteraction(actor,state) {
+ if(isSociallyHeld(actor.station.id))return true;
  const p=state.position,n=actor.root.position;
  return (state.conversationActorId||state.performing)===actor.station.id&&!!p&&Math.abs(p.y-n.y)<.65&&Math.hypot(p.x-n.x,p.z-n.z)<=(state.conversationActorId===actor.station.id?2.4:1.8);
 }

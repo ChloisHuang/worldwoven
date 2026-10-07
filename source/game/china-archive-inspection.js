@@ -1,3 +1,4 @@
+import {isSociallyHeld} from './npc-social-ownership.js';
 import {ARCHIVE_BOOKS,ARCHIVE_HOME,archiveContract,archiveProof,validateArchiveContract,archiveSame} from './china-archive-catalogue.js';
 const copy=structuredClone,integer=n=>Number.isSafeInteger(n)&&n>=0;
 const stages=['approach','check','tidy','replace','return','settle'];
@@ -53,9 +54,9 @@ export function createArchiveInspection({resolveAssignment,getDay,getActor,canCo
     // A released original falls vertically onto its own supporting table. No
     // dead body is animated, no book is cloned, and no work/wage is credited.
     if(r.fallSeconds<.2){write({...copy(state),recovery:{...copy(r),fallSeconds:Math.min(.2,r.fallSeconds+dt)}});return;}
-    if(!r.worker){const a=resolveAssignment();if(a?.holderId==='player'||!ready(a?.actor)||conversationActorId===a.holderId||performing===a.holderId)return;write({...copy(state),recovery:{...copy(r),worker:{actorId:a.holderId,holderRevision:a.revision}}});return;}
+    if(!r.worker){const a=resolveAssignment();if(a?.holderId==='player'||!ready(a?.actor)||isSociallyHeld(a.holderId,conversationActorId)||performing===a.holderId)return;write({...copy(state),recovery:{...copy(r),worker:{actorId:a.holderId,holderRevision:a.revision}}});return;}
     const n=getActor(r.worker.actorId);if(unavailable(n,r.worker)){write({...copy(state),recovery:books.allReturned()?null:{...copy(r),worker:null}});return;}
-    if(!ready(n)||conversationActorId===n.station.id||performing===n.station.id)return;
+    if(!ready(n)||isSociallyHeld(n.station.id,conversationActorId)||performing===n.station.id)return;
     if(r.seconds===.8){if(!near(n,ARCHIVE_HOME)){travel(n,ARCHIVE_HOME,dt);pose(n,t,null);return;}if(books.allReturned())write({...copy(state),recovery:null});return;}
     const b=ARCHIVE_BOOKS[r.order.index];if(!near(n,b.stand)){travel(n,b.stand,dt);pose(n,t,null);return;}
     pose(n,t,{book:b,stage:'recover',seconds:r.seconds});if(!books.contact(n,b.id)||!books.matches(null,r))return;
@@ -64,12 +65,12 @@ export function createArchiveInspection({resolveAssignment,getDay,getActor,canCo
    }
    if(!state.order){
     const day=getDay(),a=resolveAssignment();
-    if(!integer(day)||day<=state.lastIssuedDay||!ready(a?.actor)||a.holderId==='player'||conversationActorId===a.holderId||performing===a.holderId||!near(a.actor,ARCHIVE_HOME)||!books?.completeCatalogue?.())return;
+    if(!integer(day)||day<=state.lastIssuedDay||!ready(a?.actor)||a.holderId==='player'||isSociallyHeld(a.holderId,conversationActorId)||performing===a.holderId||!near(a.actor,ARCHIVE_HOME)||!books?.completeCatalogue?.())return;
     const contract=archiveContract(day,a.holderId,a.revision);if(!validateArchiveContract(contract))return;
     write({...copy(state),lastIssuedDay:day,order:{contract,index:0,stage:'approach',seconds:0,completed:[]}});return;
    }
    const o=state.order,n=getActor(o.contract.actorId),reason=unavailable(n,o.contract);if(reason){interrupt(reason);return;}
-   if(!ready(n)||conversationActorId===n.station.id||performing===n.station.id)return;
+   if(!ready(n)||isSociallyHeld(n.station.id,conversationActorId)||performing===n.station.id)return;
    const b=ARCHIVE_BOOKS[o.index];
    if(['return','settle'].includes(o.stage)){
     if(!books.allReturned())return;
