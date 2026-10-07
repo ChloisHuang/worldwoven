@@ -12,4 +12,8 @@ Run one stage only after the preceding stage has been reviewed:
 
 Teller run is one explicitly selected country and its existing directed sequence. Other countries must be separate serial invocations after reviewing the previous result. TELLER_RESUME remains optional, not manufactured state.
 
-These changes have not been executed or syntax-tested yet. Heavy tests remain paused pending parent clearance. A guard stop is neither a product failure nor a passing check. Simulated DOM/renderer checks are not browser or phone acceptance.
+## Reviewed recovery stages (2026-10-07)
+
+After parent clearance, unit passed (attached DOM/selector/text nodes and 10,000 removals), followed by main-import init (2.217 seconds, 189.863 MiB process-tree RSS) and China load-only (65.182 seconds, 682.684 MiB). Each ran serially under the shared lock and guard above and exited 0. Logs/status/RSS samples are retained under `qa/teller-{unit,init,load}-20261007T1350*`.
+
+No simulation steps ran in these stages. China navigation/interview/handoff/payment/return and all three other country flows remain unverified in this recovery environment. The next eligible stage is one guarded China run, reviewed before selecting another country. A guard stop is neither a product failure nor a passing check. Simulated DOM/renderer checks are not browser or phone acceptance.
