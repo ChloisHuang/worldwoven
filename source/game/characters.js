@@ -9,7 +9,7 @@ import {BODY_PRESETS,HAIR_STYLES,WARDROBE_PRESETS,ROLE_WARDROBE_PRESETS} from '.
 import {createHandProps,disposeHandProps} from './character-props.js';
 import {resolveCharacterModelPreview,defaultCharacterModelPreview} from './character-model-preview.js';
 const TAU=Math.PI*2,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),mix=(a,b,t)=>a+(b-a)*t;
-const HAND_PROP_GRIPS={cup:[.15,-.02,.04],brush:[0,-.06,0],knife:[0,-.04,0],feather:[0,0,0],can:[0,.16,0],bathBucket:[0,.03,0],chopsticks:[0,0,0],ladle:[0,0,0],book:[.04,-.05,.04],palette:[0,-.022,.06],cloth:[.03,-.058,.03],ramenBowl:[0,-.11,.045],sushiPlate:[0,-.04,.05],bathCloth:[0,-.057,.055]};
+const HAND_PROP_GRIPS={cup:[.15,-.02,.04],brush:[.022,-.06,0],knife:[.027,-.04,0],feather:[.009,0,0],can:[0,.16,0],bathBucket:[0,.03,0],chopsticks:[.018,0,0],ladle:[.013,0,0],book:[.04,-.05,.04],palette:[0,-.022,.06],cloth:[.03,-.058,.03],ramenBowl:[0,-.11,.045],sushiPlate:[0,-.04,.05],bathCloth:[0,-.057,.055]};
 const BAND_VALUES=[90,150,213,255],SKIN_VALUES=[140,186,229,255];
 function toon(values){const tex=new THREE.DataTexture(new Uint8Array(values),4,1,THREE.RedFormat);tex.minFilter=tex.magFilter=THREE.NearestFilter;tex.generateMipmaps=false;tex.needsUpdate=true;const m=new THREE.MeshToonMaterial({vertexColors:true,gradientMap:tex,side:THREE.DoubleSide,shadowSide:THREE.BackSide});m.userData.characterShared=true;tex.userData={characterShared:true};return m;}
 const clothMaterial=toon(BAND_VALUES),skinMaterial=toon(SKIN_VALUES);
