@@ -37,7 +37,7 @@ for(const role of CHINA_PIECEWORK_ROLES){
  for(const change of [{amount:9},{currency:'japan'},{extra:true},{id:r.id+'-duplicate'},{proof:{...r.proof,actorId:role.incumbentId}},{proof:{...r.proof,steps:[]}}])assert(!validChinaPieceworkReceipt({...r,...change}));
  const altered={...r,completedAt:r.completedAt-1};assert.equal(f.core.prepareChinaPieceworkService(altered).code,'work-receipt-conflict');
  const bad=copy(f.store.formalCareers);bad.chinaPieceworkServices.push(copy(r));assert.equal(createFormalCareers({saved:bad,saveState:()=>true,getClock:()=>f.clock}).state().loadError,'invalid-career-state');
- const old=copy(before);old.version=11;delete old.chinaPieceworkServices;const migrated=createFormalCareers({saved:old,saveState:()=>true,getClock:()=>f.clock}).state();assert.equal(migrated.loadError,null);assert.equal(migrated.version,12);assert.deepEqual(migrated.chinaPieceworkServices,[]);assert.deepEqual(migrated.skills,before.skills);
+ const old=copy(before);old.version=11;delete old.chinaPieceworkServices;const migrated=createFormalCareers({saved:old,saveState:()=>true,getClock:()=>f.clock}).state();assert.equal(migrated.loadError,null);assert.equal(migrated.version,13);assert.deepEqual(migrated.chinaPieceworkServices,[]);assert.deepEqual(migrated.skills,before.skills);
  assert(f.core.resign().ok);assert(f.core.prepareChinaPieceworkService(r).replayed);assert.equal(f.core.slotHolder(role.id),role.incumbentId);
 }
 // Reading consumes the same skill allowance as paid work, but never caps pay.

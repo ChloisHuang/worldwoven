@@ -3,6 +3,9 @@ import {ARCHIVE_ROLE} from './china-archive-role.js';
 export {PALACE_TEA_ROLE} from './china-palace-tea-role.js';
 export {ARCHIVE_ROLE} from './china-archive-role.js';
 import {chinaPieceworkRole,chinaPieceworkSkill,validChinaPieceworkReceipt,sameChinaPieceworkReceipt,chinaPieceworkReview} from './china-piecework-career-proof.js';
+import {REGIONAL_TELLER_ROLES,regionalTellerRole} from './regional-teller-audit-proof.js';
+export {REGIONAL_TELLER_ROLES,regionalTellerRole} from './regional-teller-audit-proof.js';
+import {validTellerAuditReceipt,sameTellerAuditReceipt,tellerAuditReview} from './regional-teller-career-proof.js';
 import {getChinaRecordsCareerRank} from './china-official-ranks.js';
 import {CLERK_ENTRY_RANK, CLERK_NEXT_RANK, emptyOfficialCareer, officialTenureId, officialRankId, recordOfficialAppointment, recordOfficialService, closeOfficialAppointment, officialPromotionSummary, restoreOfficialCareer} from './official-career-progress.js';
 import {SALON_ARTIST_ROLES} from './china-salon-career-role.js';
@@ -81,7 +84,7 @@ export const PALACE_GUARD_ROLE = Object.freeze({id:'cn-palace-guard',name:'锦�
   supervisorId:'cn-range-warden',incumbentId:'cn-archery',incumbentName:'沈砚',vacancyKind:'exclusive',workSource:'cn-guard-labor',wage:24,minimumAgeYears:18,
   skillRequirements:Object.freeze({martial:1,ritual:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:0,
   duties:'06:00–18:00主动接班；沿门廊、殿阶及东西巷逐点巡查驻察，回圃当面交班；持续轮巡按实际巡行与驻察工时计薪。武艺须在射圃完成受控习射，陆衡继续照看射场'});
-export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE,PHARMACY_ASSISTANT_ROLE,TEA_SERVER_ROLE,TEA_PASTRY_ROLE,PALACE_GUARD_ROLE,...SALON_ARTIST_ROLES,CLINIC_PHYSICIAN_ROLE,ROYAL_KITCHEN_ROLE,JAPAN_RECEPTION_ROLE,...Object.values(JAPAN_BATH_DELIVERY_ROLES),JAPAN_BATH_MIXING_ROLE,JAPAN_KITCHEN_ROLE,JAPAN_TABLE_SERVICE_ROLE,...JAPAN_PERFORMANCE_ROLES,EGYPT_KITCHEN_ROLE,EGYPT_TABLE_SERVICE_ROLE,PALACE_TEA_ROLE,ARCHIVE_ROLE]);
+export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE,PHARMACY_ASSISTANT_ROLE,TEA_SERVER_ROLE,TEA_PASTRY_ROLE,PALACE_GUARD_ROLE,...SALON_ARTIST_ROLES,CLINIC_PHYSICIAN_ROLE,ROYAL_KITCHEN_ROLE,JAPAN_RECEPTION_ROLE,...Object.values(JAPAN_BATH_DELIVERY_ROLES),JAPAN_BATH_MIXING_ROLE,JAPAN_KITCHEN_ROLE,JAPAN_TABLE_SERVICE_ROLE,...JAPAN_PERFORMANCE_ROLES,EGYPT_KITCHEN_ROLE,EGYPT_TABLE_SERVICE_ROLE,PALACE_TEA_ROLE,ARCHIVE_ROLE,...Object.values(REGIONAL_TELLER_ROLES)]);
 export const FORMAL_CAREER_SLOTS = Object.freeze([
   ...FORMAL_CAREER_ROLES.map(role => Object.freeze({id:role.slotId,roleId:role.id,holderId:role.incumbentId||null,...(role.vacancyKind==='rotation'?{rotation:true}:role.vacancyKind==='exclusive'?{replacement:true}:{})})),
 ]);
@@ -101,7 +104,7 @@ const supervisor = role => role.supervisorId || COURT_SUPERVISOR.id;
 const completedWage = (role, arrivalHour) => role.workSource ? role.wage + (arrivalHour < role.earlyBeforeHour ? role.preparationBonus : 0) : role.wage + (COURT_SUPERVISOR.conscientiousness >= .8 &&
   arrivalHour <= role.dutyWindow.endHour - COURT_SUPERVISOR.earlyArrivalMinutes / 60 ? COURT_SUPERVISOR.preparationBonus : 0);
 const emptyWorkExperience=()=>({tavernChef:[],royalKitchen:{receipts:[]}});
-const empty = () => ({version: 12, chinaPieceworkServices:[], japanPerformanceServices:[], workExperience:emptyWorkExperience(), revision: 0, skillXP: Object.fromEntries(SKILLS.map(skill=>[skill,0])), skills: {ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0, martial: 0, care: 0}, tenure: null,
+const empty = () => ({version: 13, tellerAuditServices:[], chinaPieceworkServices:[], japanPerformanceServices:[], workExperience:emptyWorkExperience(), revision: 0, skillXP: Object.fromEntries(SKILLS.map(skill=>[skill,0])), skills: {ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0, martial: 0, care: 0}, tenure: null,
   lastDuty: null, lastPaidDay: null, daily: {day: null, ritual: 0, writing: 0, gardening: 0, art: 0, cooking: 0, martial: 0, care: 0},
   learning: Object.fromEntries(STUDY_SOURCES.map(source => [source, emptyStudy()])),
   lowerWork: {'cn-tavern-labor': 0, 'fr-garden-labor': 0, 'cn-pharmacy-labor': 0}, performance: 0, promotionProgress: 0,
@@ -344,7 +347,7 @@ function restore(saved, roleMap, slotMap) {
     saved={...copy(saved),learning:{...saved.learning,'egypt-papyrus':emptyStudy()}};
   }
   const validSlot = (roleId, slotId) => roleMap.has(roleId) && slotMap.get(slotId)?.roleId === roleId && availableSlot(slotMap.get(slotId),roleMap.get(roleId));
-  if (!object(saved) || ![4,5,6,7,8,9,10,11,12].includes(saved.version) || !integer(saved.revision) || !object(saved.skills) ||
+  if (!object(saved) || ![4,5,6,7,8,9,10,11,12,13].includes(saved.version) || !integer(saved.revision) || !object(saved.skills) ||
     Object.keys(saved.skills).length !== SKILLS.length || SKILLS.some(key => !integer(saved.skills[key])) ||
     SKILLS.some(key=>saved.skills[key]>100) || saved.skills.ritual + saved.skills.writing > 100 || !dayOrNull(saved.lastPaidDay) ||
     !object(saved.daily) || !dayOrNull(saved.daily.day) || SKILLS.some(key => !integer(saved.daily[key]) ||
@@ -389,9 +392,17 @@ function restore(saved, roleMap, slotMap) {
   if(!Array.isArray(chinaPieceworkServices)||chinaPieceworkServices.some(row=>!validChinaPieceworkReceipt(row))||
     new Set(chinaPieceworkServices.map(row=>row.id)).size!==chinaPieceworkServices.length||
     chinaPieceworkServices.some((row,i)=>i>0&&(row.day<chinaPieceworkServices[i-1].day||row.completedAt<chinaPieceworkServices[i-1].completedAt)))throw Error('invalid-career-state');
+  // Four physical local employers share one original global ledger. A v12
+  // save starts with no player audit evidence; never infer it from NPC income.
+  const tellerAuditServices=saved.version>=13?saved.tellerAuditServices:[];
+  if(saved.version<13&&own(saved,'tellerAuditServices')&&(!Array.isArray(saved.tellerAuditServices)||saved.tellerAuditServices.length)||!Array.isArray(tellerAuditServices)||
+    tellerAuditServices.some(row=>!validTellerAuditReceipt(row))||
+    new Set(tellerAuditServices.map(row=>row.id)).size!==tellerAuditServices.length||
+    new Set(tellerAuditServices.map(row=>row.day)).size!==tellerAuditServices.length||
+    tellerAuditServices.some((row,i)=>i>0&&(row.day<=tellerAuditServices[i-1].day||row.completedAt<tellerAuditServices[i-1].completedAt)))throw Error('invalid-career-state');
   const review = saved.lastEvaluation;
   if (review === null ? saved.lastEvaluatedDay !== null ||
-      saved.performance !== Math.max(-100,Math.min(100,(duty?.customerReviews||[]).reduce((total,r)=>Math.max(-100,Math.min(100,total+r.score)),0)+chinaPieceworkServices.length)) ||
+      saved.performance !== Math.max(-100,Math.min(100,(duty?.customerReviews||[]).reduce((total,r)=>Math.max(-100,Math.min(100,total+r.score)),0)+chinaPieceworkServices.length+tellerAuditServices.length)) ||
       saved.promotionProgress !== (duty?.customerReviews||[]).reduce((total,r)=>Math.max(0,Math.min(100,total+Math.min(0,r.score))),0) :
     !object(review) || !validSlot(review.roleId, review.slotId) || !validOfficialFields(review,roleMap.get(review.roleId)) || !validClinicEvaluation(review,roleMap.get(review.roleId)) || !integer(review.day) ||
     review.day !== saved.lastEvaluatedDay || review.id !== `career-review:${review.slotId}:${review.day}` ||
@@ -428,7 +439,7 @@ function restore(saved, roleMap, slotMap) {
   if(!Array.isArray(japanPerformanceServices)||japanPerformanceServices.some(row=>!validJapanPerformanceReceipt(row))||
     new Set(japanPerformanceServices.map(row=>row.id)).size!==japanPerformanceServices.length||
     japanPerformanceServices.some((row,i)=>i>0&&(row.day<japanPerformanceServices[i-1].day||row.completedAt<japanPerformanceServices[i-1].completedAt||Number(row.id.split('-').at(-1))<=Number(japanPerformanceServices[i-1].id.split('-').at(-1)))))throw Error('invalid-career-state');
-  return {version: 12, chinaPieceworkServices:copy(chinaPieceworkServices), japanPerformanceServices:copy(japanPerformanceServices), workExperience:copy(workExperience), officialCareer, skillXP: saved.version>=5?{...saved.skillXP}:Object.fromEntries(SKILLS.map(skill=>[skill,0])), revision: saved.revision, applications: restoreApplications(saved.applications, roleMap, slotMap), skills: {...saved.skills},
+  return {version: 13, tellerAuditServices:copy(tellerAuditServices), chinaPieceworkServices:copy(chinaPieceworkServices), japanPerformanceServices:copy(japanPerformanceServices), workExperience:copy(workExperience), officialCareer, skillXP: saved.version>=5?{...saved.skillXP}:Object.fromEntries(SKILLS.map(skill=>[skill,0])), revision: saved.revision, applications: restoreApplications(saved.applications, roleMap, slotMap), skills: {...saved.skills},
     tenure: saved.tenure === null ? null : {roleId: saved.tenure.roleId, slotId: saved.tenure.slotId,
       sinceDay: saved.tenure.sinceDay, sinceHour: saved.tenure.sinceHour,...(saved.tenure.applicationId!==undefined?{applicationId:saved.tenure.applicationId}:{})},
     lastDuty: duty === null ? null : {roleId: duty.roleId, slotId: duty.slotId, day: duty.day, stage: duty.stage,
@@ -477,6 +488,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
         'officialPayVersion','officialRankId','officialTenureId','clinicPayVersion','workReceiptId','shiftKind','startedSeconds','coveredSeconds',
         'completedTasks','endedHour','endedSeconds'].filter(key=>own(duty,key)).map(key=>[key,duty[key]])),
       lastEvaluatedDay:current.lastEvaluatedDay,lastEvaluation:current.lastEvaluation,
+      ...(current.tellerAuditServices.length?{latestTellerAuditReview:tellerAuditReview(current.tellerAuditServices.at(-1))}:{}),
       ...(current.chinaPieceworkServices.length?{latestChinaPieceworkReview:chinaPieceworkReview(current.chinaPieceworkServices.at(-1))}:{}),
       lastCustomerReview:customer?{id:customer.id,customerName:customer.customerName,score:customer.score,positive:customer.positive,reason:customer.reason,...(customer.clinicReceipt?{rating:customer.clinicReceipt.review.rating}:{})}:null}),loadError,lastError};
   };
@@ -488,7 +500,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
       !Number.isFinite(clock.seconds) || clock.seconds < 0) return null;
     const days = [current.lastDuty?.day, current.tenure?.sinceDay, current.lastPaidDay, current.daily.day, current.lastEvaluatedDay,
       ...current.officialCareer.appointments.flatMap(a=>[a.tenure.sinceDay,a.endedAt?.day]), ...current.officialCareer.service.map(r=>r.day), ...current.officialCareer.applications.flatMap(a=>[a.day,a.reviewedAt?.day,a.decidedAt?.day]),
-      current.chinaPieceworkServices.at(-1)?.day, current.japanPerformanceServices.at(-1)?.day, ...Object.values(current.learning).map(study => study.issuedDay), ...Object.values(current.applications.byRole).flatMap(result=>[result.day,result.reviewedAt?.day,result.decidedAt?.day])].filter(day => day != null);
+      current.tellerAuditServices.at(-1)?.day, current.chinaPieceworkServices.at(-1)?.day, current.japanPerformanceServices.at(-1)?.day, ...Object.values(current.learning).map(study => study.issuedDay), ...Object.values(current.applications.byRole).flatMap(result=>[result.day,result.reviewedAt?.day,result.decidedAt?.day])].filter(day => day != null);
     if (days.some(day => day > clock.day) || lastClock &&
       (clock.day < lastClock.day || clock.day === lastClock.day && clock.hour < lastClock.hour)) return null;
     return clock;
@@ -1059,6 +1071,34 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
       release(){if(locked){locked=false;paying=false;}},
       committed(){if(committed)return true;if(!valid())return false;current=next;lastError=null;committed=true;return true;}};
   }
+  // Only the live original-ledger controller may supply this participant.
+  // It joins a completed physical audit, the one global daily source, bank
+  // wage and career growth in one save. Preparing cannot itself earn anything.
+  function prepareTellerAuditService(receipt){
+    const blocked=allowed();if(blocked)return blocked;
+    if(!validTellerAuditReceipt(receipt))return failure('invalid-work-receipt');
+    const prior=current.tellerAuditServices.find(row=>row.id===receipt.id),review=tellerAuditReview(receipt);
+    if(prior)return sameTellerAuditReceipt(prior,receipt)?
+      {ok:true,unchanged:true,replayed:true,xpGained:0,review,patch:{},valid:()=>true,lock:()=>true,release:()=>{},committed:()=>true}:failure('work-receipt-conflict');
+    const role=regionalTellerRole(receipt.roleId),tenure=current.tenure,clock=readClock();
+    if(!clock)return failure('invalid-clock');
+    if(!tenure||tenure.roleId!==role.id||tenure.slotId!==receipt.slotId||receipt.day<tenure.sinceDay||receipt.day>clock.day||receipt.completedAt>clock.seconds+1e-9)return failure('wrong-duty-source');
+    const latest=current.tellerAuditServices.at(-1);
+    if(latest&&(receipt.day<=latest.day||receipt.completedAt<latest.completedAt))return failure('work-receipt-conflict');
+    if(!Number.isSafeInteger(current.revision+1))return failure('revision-limit');
+    const skill='writing',daily=current.daily.day===clock.day?{...current.daily}:{day:clock.day,...Object.fromEntries(SKILLS.map(key=>[key,0]))};
+    const limited=daily[skill]>=4?'daily-skill-limit':current.skills.ritual+current.skills.writing>=100?'skill-limit':null;
+    const xpGained=limited?0:STUDY_XP,progress=addSkillXP(current.skills[skill],current.skillXP[skill],xpGained),revision=current.revision;
+    const next={...current,revision:revision+1,tellerAuditServices:[...current.tellerAuditServices,copy(receipt)],
+      performance:Math.min(100,current.performance+1),daily:{...daily,[skill]:daily[skill]+(limited?0:1)},
+      skillXP:{...current.skillXP,[skill]:progress.xp},skills:{...current.skills,[skill]:progress.level}};
+    let committed=false,locked=false;
+    const valid=()=>!loadError&&!saving&&(!paying||locked)&&current.revision===revision;
+    return {ok:true,skill,xpGained,limited,level:progress.level,xp:progress.xp,levelsGained:progress.levelsGained,review,patch:{formalCareers:copy(next)},valid,
+      lock(){if(locked||committed||!valid())return false;paying=locked=true;return true;},
+      release(){if(locked){locked=false;paying=false;}},
+      committed(){if(committed)return true;if(!valid())return false;current=next;lastError=null;committed=true;return true;}};
+  }
   // The original garden workflow submits this only after returning the tool.
   // Review, proof and shared daily growth commit together; no bank call occurs.
   function gardenMaintenanceReceipt(receipt){
@@ -1248,5 +1288,5 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&availableSlot(slot,role)&&slot.id!==current.tenure?.slotId).length})),
     eligibility, applicationAvailability, beginDutyAvailability, applicationResult, applicationHistory,
     promotionSummary, promotionAvailability, applyPromotion, reviewPromotion, cancelPromotion,
-    laborEvent, customerReview, apply, reviewApplication, cancelApplication, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, recordClinicAssistantService, recordClinicPatientReview, recordTavernChefService, royalKitchenQualification, recordRoyalKitchenService, recordJapanReceptionReview, recordJapanBathDeliveryReview, recordJapanBathMixingReview, recordJapanKitchenReview, recordEgyptKitchenReview, recordEgyptTableServiceReview, recordJapanTableServiceReview, prepareJapanPerformanceService, prepareChinaPieceworkService, gardenMaintenanceReceipt, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
+    laborEvent, customerReview, apply, reviewApplication, cancelApplication, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, recordClinicAssistantService, recordClinicPatientReview, recordTavernChefService, royalKitchenQualification, recordRoyalKitchenService, recordJapanReceptionReview, recordJapanBathDeliveryReview, recordJapanBathMixingReview, recordJapanKitchenReview, recordEgyptKitchenReview, recordEgyptTableServiceReview, recordJapanTableServiceReview, prepareJapanPerformanceService, prepareChinaPieceworkService, prepareTellerAuditService, gardenMaintenanceReceipt, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
 }
