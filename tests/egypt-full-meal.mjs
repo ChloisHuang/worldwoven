@@ -6,13 +6,13 @@ import {pathToFileURL} from 'node:url';
 registerHooks({resolve(id,ctx,next){return id==='three'?{url:pathToFileURL(process.cwd()+'/source/vendor/three/build/three.module.js').href,shortCircuit:true}:next(id,ctx);}});
 const T=await import('three'),{createEgyptMealService}=await import('../source/game/egypt-meal-service.js'),{createFacilityQueue}=await import('../source/game/npc-facilities.js');
 const {EGYPT_MEAL:P}=await import('../source/game/egypt-meal-definition.js');
-function fixture({player=false,blockedSeat=false,doorWaiting=false,saved={},saveState=()=>true,onMealReceipts=()=>{},ledger=null}={}){
+function fixture({player=false,blockedSeat=false,doorWaiting=false,saved={},saveState=()=>true,onMealReceipts=()=>{},onRelationshipEvent=()=>({ok:false}),ledger=null}={}){
  const group=new T.Group(),seat={id:'egypt-seat',kind:'seat',center:P.seatCenter.slice(),anchor:[15.25,0,-9.3],position:[13.95,0,-9.3],seatY:.66,yaw:Math.PI/2};
  const actor=(id,position)=>{const root=new T.Group();root.position.set(...position);const hands=[new T.Object3D(),new T.Object3D()];hands[0].position.set(-.19,1.12,.43);hands[1].position.set(.19,1.12,.43);root.add(...hands);root.userData.hands=hands;group.add(root);return {root,station:{id,npcLabel:id,npcAction:'read'},characterScale:.96,phase:0,route:[],locomotion:{walkSpeed:2},animate(){}};};
  const npcs=[actor(P.cook,P.prep),actor(P.host,P.hostHome)],person=actor('player',player?seat.anchor:[30,0,30]);let mounted=player?seat:null,wait=doorWaiting,clock=0,seatBlocked=blockedSeat;
  const furniture={items:[seat],facilities:createFacilityQueue(),canSit:()=>!seatBlocked,standPoint:()=>seatBlocked?null:new T.Vector3(...seat.position),releaseActor(id){this.facilities.releaseActor(id);}};
  const lot={group,colliders:[],walkableSurfaces:[],bounds:{minX:-35,maxX:35,minZ:-35,maxZ:35}},doors={cameraColliders:[],routeStep(route,p){if(wait)return {waiting:true};while(route[0]&&Math.hypot(route[0].x-p.x,route[0].z-p.z)<.05)route.shift();return {waypoint:route[0]};}};
- const service=createEgyptMealService({npcs,lot,furniture,doors,planPath:(a,b)=>[new T.Vector3(b.x,b.y,b.z)],moveActor:(n,dx,dz)=>{n.root.position.x+=dx;n.root.position.z+=dz;},poseContext:n=>n.poseContext??={},getPlayer:()=>person,getMounted:()=>mounted,onSeat:item=>{mounted=item;person.root.position.set(...item.anchor);},worldSeed:1,saved,saveState,onMealReceipts,copperLedger:ledger});
+ const service=createEgyptMealService({npcs,lot,furniture,doors,planPath:(a,b)=>[new T.Vector3(b.x,b.y,b.z)],moveActor:(n,dx,dz)=>{n.root.position.x+=dx;n.root.position.z+=dz;},poseContext:n=>n.poseContext??={},getPlayer:()=>person,getMounted:()=>mounted,onSeat:item=>{mounted=item;person.root.position.set(...item.anchor);},worldSeed:1,saved,saveState,onMealReceipts,onRelationshipEvent,copperLedger:ledger});
  const tick=(count=1)=>{for(let i=0;i<count;i++){clock+=.1;service.update(.1,clock);}};
  const until=(predicate,limit=5000)=>{for(let i=0;i<limit&&!predicate(service.state());i++)tick();assert(predicate(service.state()),'Did not reach expected state: '+JSON.stringify(service.state().order));};
  return {service,npcs,person,seat,tick,until,furniture,setDoor:v=>wait=v,setSeat:v=>seatBlocked=v,leave(){mounted=null;person.root.position.set(15,0,15);service.leaveSeat(seat.id);}};
@@ -68,4 +68,13 @@ console.log('PASS interrupted reserve/settle/refund reconcile original ledger on
  const {createNpcSocial}=await import('../source/game/npc-social.js'),a=account(),f=fixture({player:true,ledger:a.ledger});const host=f.npcs[1];host.root.position.copy(f.person.root.position);host.root.position.x+=.8;const social=createNpcSocial({actors:()=>f.npcs,player:()=>f.person,status:n=>f.service.socialStatus(n)});
  assert.equal(f.service.socialStatus(host).busy,false);assert(social.canPause(host));assert(f.service.request());assert.equal(f.service.socialStatus(host).busy,true);assert.equal(f.service.socialStatus(host).attention,false);assert.equal(social.canPause(host),false);assert.equal(social.reserveMeeting(host,{owner:'test'}),false);assert.equal(social.begin(host).paused,false);assert.equal(social.conversationActorId(),null);assert.match(social.state().reply,/等忙完/);f.service.cancel();host.walking=true;assert.equal(f.service.socialStatus(host).busy,false);assert.equal(social.canPause(host),true);social.dispose();f.service.dispose();
  console.log('PASS original Egypt staff use shared busy/attention/job contract: duty cannot pause, ordinary idle walking can pause, short greeting does not capture the order');
+}
+
+{
+ const a=account(),attempts=[];let durable,accept=false;
+ const f=fixture({player:true,ledger:a.ledger,saveState:s=>{durable=structuredClone(s);return true;},onRelationshipEvent:e=>{attempts.push(e);return {ok:accept};}});
+ assert(f.service.request());f.until(s=>s.order?.stage==='ready');assert.equal(attempts.length,0);assert(f.service.eat());f.until(s=>s.order?.finished);
+ assert.equal(attempts.length,2);const event=attempts.find(e=>e.source==='egypt-meal');assert.deepEqual(attempts.find(e=>e.source==='egypt-kitchen').participants,[P.cook,P.host]);assert.equal(event.actorId,P.host);assert.deepEqual(event.participants,[P.host,'player']);assert.equal(event.outcome,'completed');assert(durable.relationshipEvents.some(e=>e.id===event.id));
+ f.service.dispose({suspend:true});accept=true;const g=fixture({player:true,ledger:a.ledger,saved:durable,onRelationshipEvent:e=>{assert(durable.relationshipEvents.some(row=>row.id===e.id));attempts.push(e);return {ok:true};}});g.tick(100);assert.equal(attempts.length,4,'failed relationship write replays once with stable source ID');g.service.dispose({suspend:true});
+ console.log('PASS Egypt relationship boundary: actual host and diner, durable pending event, failed callback reload replay and acknowledgement');
 }

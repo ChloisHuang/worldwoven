@@ -168,8 +168,8 @@ function restore(saved) {
  * caller readers add their existing relationship/opinion and clamp as needed.
  */
 export function createPlayerConversationLedger({saved, saveState, getClock = () => ({seconds: 0, day: 0}),
-  getProfile = () => null, getPlayerProfile = () => null, getAppearanceAffinity = () => 0, worldSeed = 1} = {}) {
-  for (const [key, fn] of Object.entries({getClock, getProfile, getPlayerProfile, getAppearanceAffinity})) if (typeof fn !== 'function') throw TypeError(`${key} must be a function`);
+  getProfile = () => null, getPlayerProfile = () => null, getAppearanceAffinity = () => 0, getAcceptanceContext = () => 0, worldSeed = 1} = {}) {
+  for (const [key, fn] of Object.entries({getClock, getProfile, getPlayerProfile, getAppearanceAffinity, getAcceptanceContext})) if (typeof fn !== 'function') throw TypeError(`${key} must be a function`);
   if (saveState !== undefined && typeof saveState !== 'function') throw TypeError('saveState must be a function');
   let current, invalidSaved, loadError = null, saving = false;
   try { current = restore(saved); } catch { current = empty(); loadError = 'invalid-saved-state'; }
@@ -250,15 +250,17 @@ export function createPlayerConversationLedger({saved, saveState, getClock = () 
     if (actor && now.seconds < actor.cooldownUntil) return failure('cooldown', null, {cooldownUntil: actor.cooldownUntil, remaining: actor.cooldownUntil - now.seconds});
     if (!Number.isSafeInteger(current.nextSerial + 1)) return failure('event-limit');
     const attempt = (actor?.attempts || 0) + 1, id = eventId(actorId, attempt);
-    let person, affinity;
+    let person, affinity, acceptanceContext;
     try {
       person = profile(getProfile(actorId), actor?.relation, actor?.opinion);
       const raw = getAppearanceAffinity(actorId);
+      const context = getAcceptanceContext(actorId);
+      acceptanceContext = finite(context) ? Math.max(-.12, Math.min(.10, context)) : 0;
       affinity = finite(raw) ? Math.max(-.04, Math.min(.04, raw)) : 0;
     } catch { return failure('profile-unavailable'); }
     const chance = unit(.20 + person.traits.sociability * .24 + person.needs.social * .18 + conversationTopicFit(person, topic.kind) * .30 +
       (person.experiences.some(e => e.kind === topic.kind) ? .08 : 0) + person.relations.player * .12 + person.opinions.player * .10 -
-      person.needs.fatigue * .24 - person.needs.hunger * .30 + affinity);
+      person.needs.fatigue * .24 - person.needs.hunger * .30 + affinity + acceptanceContext);
     const roll = hash(`player-conversation-v1|${String(worldSeed)}|${id}`) / 4294967296;
     const event = {id, serial: current.nextSerial, attempt, actorId, topicId, kind: topic.kind, status: roll < chance ? 'accepted' : 'declined',
       duration: topic.duration, elapsed: 0, startedAt: now.seconds, startedDay: now.day, cooldownUntil: now.seconds + PLAYER_CONVERSATION_COOLDOWN,

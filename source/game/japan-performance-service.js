@@ -17,18 +17,31 @@ export function performanceWillingness(actor,activity,opinion=0){
 
 // One finite table and one public stage. The same currency journal owns holds;
 // no free coins, persistent occupancy, intimacy, pregnancy or parallel score.
-export function createJapanPerformanceService({npcs,furniture,doors,navigation,planPath,moveActor,poseContext,getPlayer,getMounted=()=>null,copperLedger,props=null,worldSeed=1,saved={},saveState=()=>{},notify=()=>{},isActorBusy=()=>false,sharedNeeds=null}){
+export function createJapanPerformanceService({npcs,furniture,doors,navigation,planPath,moveActor,poseContext,getPlayer,getMounted=()=>null,copperLedger,props=null,worldSeed=1,saved={},saveState=()=>{},notify=()=>{},isActorBusy=()=>false,sharedNeeds=null,onRelationshipEvent=()=>false}){
  const cast=npcs.filter(n=>n.station.performance),server=cast.find(n=>n.station.id==='jp-performance-reception'),artists=cast.filter(n=>n!==server);
  const guestSeat=furniture.items.find(i=>i.id===GUEST),artistSeat=furniture.items.find(i=>i.id===ARTIST);if(!server||artists.length!==2||!guestSeat||!artistSeat)return null;
  let order=null,lastReply=clone(saved.lastReply),lastResult=null,time=Number(saved.time)||0,serial=Number(saved.serial)||0,disposed=false,paymentError=null,phase=0,elapsed=0,drinkPhase=0,conversation=null;
  const history=clone(saved.history)||[],responses=clone(saved.responses)||{},returns=new Set(),routes=new Map(),failures=[];
+ let relationshipCheckpoint=time+5;
  let life;
- const persist=()=>{try{return saveState({serial,time,lastReply:clone(lastReply),history:clone(history.slice(-60)),responses:clone(responses),life:life?.snapshot()||saved.life||{}})!==false;}catch{return false;}};
+ let relationshipEvents=clone(saved.relationshipEvents)||[];
+ const acknowledged=new Set();
+ const replayRelationships=()=>{for(const event of relationshipEvents)if(!acknowledged.has(event.id)){try{const result=onRelationshipEvent(clone(event));if(result?.ok===true&&!result?.then)acknowledged.add(event.id);}catch{}}};
+ const persist=()=>{relationshipEvents=relationshipEvents.filter(e=>!acknowledged.has(e.id));try{const result=saveState({serial,time,lastReply:clone(lastReply),history:clone(history.slice(-60)),relationshipEvents:clone(relationshipEvents),responses:clone(responses),life:life?.snapshot()||saved.life||{}});if(result===false||result?.then)return false;replayRelationships();return true;}catch{return false;}};
+ replayRelationships();
  life=createLifeDecisions({worldSeed,sharedNeeds,actorIds:['player',...cast.map(n=>n.station.id)],saved:saved.continuity?.life||saved.life||{},onChange:()=>persist()});
  const artist=()=>artists.find(n=>n.station.id===order?.artistId);
  const eligible=n=>knownAdult(getPlayer())&&knownAdult(server)&&knownAdult(n);
  const atReception=()=>!!getPlayer()&&!getMounted()&&near(getPlayer(),P.reception,1.15);
- const record=(outcome,extra={})=>{const id=order?.id;if(!id)return;const eventId=id+':'+outcome;if(history.some(e=>e.eventId===eventId))return;history.push({eventId,orderId:id,outcome,activity:order.activity,artistId:order.artistId,participants:['player',order.artistId,server.station.id],time:+time.toFixed(2),...extra});if(history.length>90)history.shift();persist();};
+ const record=(outcome,extra={})=>{const id=order?.id;if(!id)return;const eventId=id+':'+outcome;if(history.some(e=>e.eventId===eventId))return;history.push({eventId,orderId:id,outcome,activity:order.activity,artistId:order.artistId,participants:['player',order.artistId,server.station.id],time:+time.toFixed(2),...extra});if(history.length>90)history.shift();
+  // Only the actual guest receives these private service outcomes. The server
+  // is not an audience for the artist's entire performance, nor vice versa.
+  if(['act-completed','drink-completed','refused','cancelled'].includes(outcome)){
+   const actorId=['drink-completed','cancelled'].includes(outcome)?server.station.id:order.artistId;
+   const participants=outcome==='cancelled'?['player',...(history.some(e=>e.orderId===id&&['accepted-response','refused'].includes(e.outcome))?[order.artistId]:[])]:['player'];
+   relationshipEvents.push({id:'japan-performance:'+eventId,source:'japan-performance',outcome:outcome.endsWith('-completed')?'completed':outcome,actorId,participants:[...new Set([actorId,...participants])],kind:outcome==='drink-completed'?'service':'performance',at:time});
+  }
+  persist();};
  const opinion=n=>life.state(n.station.id)?.opinions?.player||0;
  const willingness=()=>performanceWillingness(artist(),order.activity,opinion(artist()));
  const hold=part=>order&&copperLedger?.reservations().find(h=>h.id===order.id+':'+part);
@@ -105,7 +118,7 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
   leaveSeat(id){if(id===GUEST&&order?.paid&&order.status!=='seating')cancel('你提前离开了茶席');},
   playerPose(t=0){if(!order||getMounted()?.id!==GUEST||order.drinkStatus!=='drinking')return null;const sip=(Math.sin(t*1.15)+1)*.5;return {handoff:true,archery:{hands:[[-.18,.72,.25],[.10,.94+sip*.20,.30-sip*.13]]}};},
   update(dt,t,{conversationActorId=null}={}){
-   if(disposed)return;dt=Math.max(0,Math.min(.1,dt));time+=dt;life.tick(dt);conversation=conversationActorId;
+   if(disposed)return;dt=Math.max(0,Math.min(.1,dt));time+=dt;life.tick(dt);if(time>=relationshipCheckpoint){relationshipCheckpoint=time+5;if(relationshipEvents.length)persist();}conversation=conversationActorId;
    for(const n of cast)n.walking=false;
    if(order){elapsed+=dt;phase+=dt;if(!eligible(artist()))cancel('本次服务资格已改变');}
    if(order&&(!getPlayer()||Math.abs(getPlayer().root.position.y-7.6)>.5||elapsed>120))cancel('你已离开或本次等待过久');
@@ -146,8 +159,8 @@ export function createJapanPerformanceService({npcs,furniture,doors,navigation,p
    props?.update(order,{server,artist:artist(),player:getPlayer()},t);
   },
   view(){return {order:clone(order),label:order?labels[order.status]:returns.size?'艺者与侍者正在返位':null,lastReply:clone(lastReply),lastResult:clone(lastResult),candidates:artists.filter(eligible).map(n=>({id:n.station.id,name:n.station.npcName,ageYears:n.station.ageYears,specialty:n.station.performance.specialty,preference:n.station.performance.preference,available:!order&&!returns.size&&!isActorBusy(n),activities:n.station.performance.activities.map(id=>({...ACT[id],currency:JAPAN_SERVICE_CURRENCY}))})),drinks:DRINKS.map(d=>({...d,currency:JAPAN_SERVICE_CURRENCY})),currency:order?.currency||JAPAN_SERVICE_CURRENCY,money:japanServiceMoney(order?.currency||JAPAN_SERVICE_CURRENCY),cash:japanServiceCash(copperLedger,order?.currency||JAPAN_SERVICE_CURRENCY),paymentError,returning:returns.size>0};},
-  snapshot:()=>({version:1,time,serial,order:clone(order),lastReply:clone(lastReply),lastResult:clone(lastResult),phase,elapsed,drinkPhase,returns:[...returns].map(n=>n.station.id),history:clone(history),life:life.snapshot()}),
-  restore(s){if(s?.version!==1||s.order&&(!artists.some(n=>n.station.id===s.order.artistId)||!labels[s.order.status]||!ACT[s.order.activity]))return false;time=Math.max(0,s.time||0);serial=Math.max(serial,s.serial||0);order=clone(s.order);bindQuote(order);lastReply=clone(s.lastReply);lastResult=clone(s.lastResult);phase=Math.max(0,s.phase||0);elapsed=Math.max(0,s.elapsed||0);drinkPhase=Math.max(0,s.drinkPhase||0);returns.clear();for(const id of s.returns||[]){const n=cast.find(n=>n.station.id===id);if(n)returns.add(n);}history.splice(0,history.length,...clone(s.history||[]));routes.clear();if(order&&order.status!=='invited'&&order.status!=='reply'){if(!furniture.facilities.request(TABLE,order.id)){order=null;return false;}if(['performing','drinking'].includes(order.status))furniture.facilities.occupy(TABLE,order.id);}if(order?.paid)for(const part of ['act','drink']){const hold=copperLedger.reservations().find(h=>h.id===order.id+':'+part);if(hold?.status==='settled')order[part+'Complete']=true;}props?.update(order,{server,artist:artist(),player:getPlayer()},time);return true;},
+  snapshot:()=>({version:1,time,serial,order:clone(order),lastReply:clone(lastReply),lastResult:clone(lastResult),phase,elapsed,drinkPhase,returns:[...returns].map(n=>n.station.id),history:clone(history),relationshipEvents:clone(relationshipEvents),life:life.snapshot()}),
+  restore(s){if(s?.version!==1||s.order&&(!artists.some(n=>n.station.id===s.order.artistId)||!labels[s.order.status]||!ACT[s.order.activity]))return false;relationshipEvents=[...new Map([...relationshipEvents,...clone(s.relationshipEvents||[])].map(e=>[e.id,e])).values()];replayRelationships();time=Math.max(0,s.time||0);serial=Math.max(serial,s.serial||0);order=clone(s.order);bindQuote(order);lastReply=clone(s.lastReply);lastResult=clone(s.lastResult);phase=Math.max(0,s.phase||0);elapsed=Math.max(0,s.elapsed||0);drinkPhase=Math.max(0,s.drinkPhase||0);returns.clear();for(const id of s.returns||[]){const n=cast.find(n=>n.station.id===id);if(n)returns.add(n);}history.splice(0,history.length,...clone(s.history||[]));routes.clear();if(order&&order.status!=='invited'&&order.status!=='reply'){if(!furniture.facilities.request(TABLE,order.id)){order=null;return false;}if(['performing','drinking'].includes(order.status))furniture.facilities.occupy(TABLE,order.id);}if(order?.paid)for(const part of ['act','drink']){const hold=copperLedger.reservations().find(h=>h.id===order.id+':'+part);if(hold?.status==='settled')order[part+'Complete']=true;}props?.update(order,{server,artist:artist(),player:getPlayer()},time);return true;},
   state(){return {...api.view(),history:clone(history),failures:clone(failures),life:life.snapshot(),actors:cast.map(n=>({id:n.station.id,position:n.root.position.toArray(),mounted:n.serviceMount?.id||null})),props:props?.state()||null};},
   dispose({suspend=false}={}){if(disposed)return;if(!suspend)finish('离开地区');disposed=true;for(const n of cast){n.serviceMount=null;reset(n);}returns.clear();props?.dispose();life.dispose();if(!suspend)persist();}
  };return api;

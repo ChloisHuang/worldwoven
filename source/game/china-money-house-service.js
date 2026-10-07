@@ -1,3 +1,4 @@
+import {createServiceRelationshipOutbox,serviceRelationshipEvent} from './service-relationship-outbox.js';
 import {createCurrencyLedger, GAME_CURRENCIES} from './currency-ledger.js';
 import {CHINA_MONEY_HOUSE} from './china-money-house.js';
 import {MONEY_HOUSE_STYLE} from './china-money-house-theme.js';
@@ -27,7 +28,7 @@ const currencyText=(id,amount)=>`${amount} ${GAME_CURRENCIES[id].unit}（${GAME_
 export function createChinaMoneyHouseService(options){return createBankCounterService(options);}
 
 export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,saveState,copperLedger,
- counter:C=CHINA_MONEY_HOUSE,facilityKey='moneyHouse',counterBinding=null,bodyManaged=false,canSee=()=>false,notify=()=>{},onOpen=()=>{},onClose=()=>{},document:doc=globalThis.document}){
+ counter:C=CHINA_MONEY_HOUSE,facilityKey='moneyHouse',counterBinding=null,bodyManaged=false,canSee=()=>false,notify=()=>{},onOpen=()=>{},onClose=()=>{},onRelationshipEvent=()=>({ok:false}),getClock=()=>null,document:doc=globalThis.document}){
  const originalTeller=npcs.find(n=>n.station.id===C.stationId),bound=counterBinding!==null;if((!originalTeller&&!bound)||!lot[facilityKey])return null;
  // The service stays at the original counter when a different person takes the
  // role. An explicit empty/invalid binding must never resurrect the old teller.
@@ -47,6 +48,28 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
  const style=make('style',MONEY_HOUSE_STYLE);
  const dialog=make('dialog',undefined,'cn-money-dialog');dialog.className+=' ww-airy-theme';dialog.setAttribute('aria-label',`${C.name}账簿`);(doc.head||doc.body).append(style);doc.body.append(dialog);
  let disposed=false,message='',currency=C.defaultCurrency||'copper',exchangeTo=C.exchangeTo||'japan',exchangeAmount='2',requestSerial=0,time=0,activity='核对账簿',renderVersion=0,counterTicket=null;
+ // Teller identity and the simulation timestamp travel inside the existing
+ // atomic ledger request ID. The committed receipt is the durable outbox: no
+ // callback failure or reload may lose it or move money a second time.
+ // Both ledger versions retain a complete, restore-validated journal; history()
+ // does not use the UI's twelve-row display limit. Old untagged receipts stay neutral.
+ const relationshipOutbox=createServiceRelationshipOutbox(onRelationshipEvent),relationshipPrefix=`${C.id}:rel1:`;
+ let relationshipEvents=[];
+ const relationshipRequest=fallback=>{
+  const b=binding(),seconds=getClock?.()?.seconds??time,milliseconds=Math.round(seconds*1000);
+  if(!atCounter(b)||!Number.isSafeInteger(milliseconds)||milliseconds<0||!/^[a-z][a-z0-9-]{0,63}$/.test(b.holderId))return fallback;
+  const id=`${relationshipPrefix}${b.holderId}:${milliseconds.toString(36)}:${ledger.state().nextTransaction.toString(36)}:${(++requestSerial).toString(36)}`;
+  return id.length<=128?id:fallback;
+ };
+ function relationshipReceipt(tx){
+  if(!['open','deposit','withdraw','exchange'].includes(tx?.action)||typeof tx.requestId!=='string'||!tx.requestId.startsWith(relationshipPrefix))return;
+  const parts=tx.requestId.slice(relationshipPrefix.length).split(':');if(parts.length!==4||!/^[a-z][a-z0-9-]{0,63}$/.test(parts[0])||parts.slice(1).some(p=>!/^[0-9a-z]+$/.test(p)))return;
+  const milliseconds=parseInt(parts[1],36);if(!Number.isSafeInteger(milliseconds)||milliseconds<0)return;
+  relationshipEvents=relationshipOutbox.merge(relationshipEvents,[serviceRelationshipEvent(`bank-counter:${C.id}`,tx.id,'completed',parts[0],'player',milliseconds/1000,{serviceKind:tx.action})]);
+ }
+ const replayRelationships=()=>{relationshipOutbox.deliver(relationshipEvents);relationshipEvents=relationshipOutbox.merge(relationshipEvents);};
+ for(const tx of ledger.history())relationshipReceipt(tx);
+ replayRelationships();
  const near=()=>{const p=getPlayer()?.root.position;return !!p&&Math.abs(p.y-C.floorY)<.45&&Math.hypot(p.x-C.points.counter[0],p.z-C.points.counter[2])<.60&&canSee(bound?counterStation:originalTeller.station)===true;};
  const ticketValid=()=>{const b=binding();return atCounter(b)&&counterTicket?.actor===b.actor&&counterTicket.actorId===b.holderId&&counterTicket.revision===b.revision;};
  function close(){renderVersion++;counterTicket=null;if(dialog.open){dialog.close();onClose();}}
@@ -97,13 +120,13 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
    const current=ledger.balances?.()?.[currency];
    if(!current||current.cash!==b.cash||current.bank!==b.bank||current.accountOpened!==b.accountOpened){message='余额已变化，请重新调整分配';render();return;}
    const amount=Number(slider.value),delta=amount-b.cash;if(!Number.isSafeInteger(amount)||amount<0||amount>total||amount!==targetCash||delta===0)return;
-   submitted=true;confirm.disabled=true;const kind=delta>0?'withdraw':'deposit',result=ledger[kind](Math.abs(delta),requestId,currency);
+   submitted=true;confirm.disabled=true;const kind=delta>0?'withdraw':'deposit',result=ledger[kind](Math.abs(delta),relationshipRequest(requestId),currency);
    message=result.ok?`${kind==='deposit'?'存入银行':'取到钱袋'} ${currencyText(currency,Math.abs(delta))}，账房已经记清`:(ERRORS[result.code]||'这笔尚未记入，请核对后再试');render();
   };
   updateAllocation();const bankActions=make('div',undefined,'cn-money-actions');bankActions.append(confirm);bank.append(fine,preview,bankActions);
   if(!b.accountOpened){
    const open=make('button','免费立账','cn-money-confirm ww-airy-action');open.type='button';open.dataset.moneyAction='open';const openId=`${C.id}-${state.nextTransaction}-open-${++requestSerial}`;let opened=false;
-   open.onclick=()=>{if(!available(version)||opened)return;opened=true;open.disabled=true;const result=ledger.openAccount(openId,currency);message=result.ok?'账簿已经立好，不收费用':ERRORS[result.code]||'账簿尚未保存，请稍后再试';render();};bankActions.append(open);
+   open.onclick=()=>{if(!available(version)||opened)return;opened=true;open.disabled=true;const result=ledger.openAccount(relationshipRequest(openId),currency);message=result.ok?'账簿已经立好，不收费用':ERRORS[result.code]||'账簿尚未保存，请稍后再试';render();};bankActions.append(open);
   }
   main.append(bank);
   if(typeof ledger.quoteExchange==='function'){
@@ -124,7 +147,7 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
    };
    input.oninput=()=>{if(available(version))quote();};quote();
    button.onclick=()=>{if(!available(version)||submitted||button.disabled||!lockedQuote||Number(input.value)!==lockedQuote.amount)return;submitted=true;button.disabled=true;
-    const result=ledger.exchange({quote:lockedQuote,requestId});
+    const result=ledger.exchange({quote:lockedQuote,requestId:relationshipRequest(requestId)});
     message=result.ok?`兑换已记清：交出 ${currencyText(currency,lockedQuote.amount)}，收到 ${currencyText(exchangeTo,lockedQuote.received)}`:(ERRORS[result.code]||'兑换尚未保存，请稍后再试');render();
    };fxPreview.append(quoteText);area.append(label,button);sheet.append(area);
   }
@@ -141,7 +164,7 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
   more.append(make('p','仅游戏票券；存取及兑换只在银行柜台办理。合上账簿保留已记好的账；未按按钮的数目不会入账。','cn-money-note'));main.append(more);
  }
  dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
- const unsubscribe=ledger.subscribeCommitted?.(()=>{if(dialog.open&&!disposed&&(!bound||available(renderVersion)))render();});
+ const unsubscribe=ledger.subscribeCommitted?.(tx=>{relationshipReceipt(tx);replayRelationships();if(dialog.open&&!disposed&&(!bound||available(renderVersion)))render();});
  return {
   owns:n=>!!n&&n===binding()?.actor,ownsStation:id=>id===C.stationId,
   isOpen:()=>!!dialog.open,
@@ -152,8 +175,8 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
   },close,
   socialStatus:n=>n&&n===binding()?.actor?{busy:!!dialog.open,attention:true,job:actorActivity(n)}:null,
   update(dt,t,{conversationActorId=null}={}){
-   if(disposed)return;if(dialog.open&&(!near()||bound&&!ticketValid()))close();
-   if(bodyManaged)return;const b=binding(),teller=b?.actor;if(!teller||bound&&!atCounter(b))return;time+=dt;
+   if(disposed)return;replayRelationships();if(Number.isFinite(dt)&&dt>0)time+=dt;if(dialog.open&&(!near()||bound&&!ticketValid()))close();
+   if(bodyManaged)return;const b=binding(),teller=b?.actor;if(!teller||bound&&!atCounter(b))return;
    // One persistent adult works along the same counter. Slow side steps place
    // each object inside the existing hand reach instead of reaching through it.
    const writing=time%14<8,target=writing?C.points.ledger:(C.points.counting||C.points.abacus),desiredX=target[0],dx=desiredX-teller.root.position.x;

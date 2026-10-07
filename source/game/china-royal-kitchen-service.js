@@ -1,3 +1,4 @@
+import {createServiceRelationshipOutbox,serviceRelationshipEvent} from './service-relationship-outbox.js';
 import {createNPCPersonalTrip} from './npc-personal-trip.js';
 import {ROYAL_KITCHEN_ROLE as ROLE} from './china-royal-kitchen-role.js';
 import {royalKitchenHandoffBoundary} from './china-royal-kitchen-slot.js';
@@ -17,17 +18,19 @@ const label=o=>o?`第${o.number}号 · ${o.actorName} · ${({ordered:'待备料'
 export function createChinaRoyalKitchenService({npcs,lot,doors,planPath,moveActor,poseContext,getPlayer=()=>null,getMounted=()=>null,getMountedActor=()=>null,
  getPlayerMealEligibility=()=>null,getPlayerSeat=()=>getMounted(),getSeatOccupant=()=>null,
  getHolder=null,canControlActor=()=>true,npcEconomy=null,getTavern=()=>null,getToilet=()=>null,enablePersonalNeeds=false,
- getClock=()=>({day:0,hour:10}),getEmployment=()=>null,isHired=()=>false,sharedNeeds=null,worldSeed=1,saved=null,saveState=()=>true,notify=()=>{},beginInteraction=()=>null,onInteraction=()=>{}}){
+ getClock=()=>({day:0,hour:10}),getEmployment=()=>null,isHired=()=>false,sharedNeeds=null,worldSeed=1,saved=null,saveState=()=>true,notify=()=>{},beginInteraction=()=>null,onInteraction=()=>{},onRelationshipEvent=()=>({ok:false})}){
  let jia=npcs.find(n=>n.station.id==='cn-cooking');if(!jia)return null;
+ const relationshipOutbox=createServiceRelationshipOutbox(onRelationshipEvent);
  const people=new Map([[jia.station.id,jia]]),lives=new Map();let needsLife=null;
  const holder=()=>getHolder?.()||{holderId:jia.station.id,roleId:ROLE.id,slotId:ROLE.slotId,status:'npc',available:true,alive:jia.alive!==false,revision:0};
  const npcAvailable=()=>{const r=holder();return r.status==='npc'&&r.available&&r.alive&&r.holderId===jia.station.id&&jia.alive!==false&&canControlActor(jia);};
  const actors=new Map(npcs.map(n=>[n.station.id,n])),props=new Map(),travelState=new Map(),history=[],failures=[];
  let state={},layoutReseat=false,time=0,disposed=false,meeting=false,workAction=null,phase=null,duty=null,nextSave=0,life=null,orders=null,playerState={};
  const prior=saved?.continuity?.version===1&&saved.continuity.orders?.revision>=(saved.orders?.revision??-1)?saved.continuity:saved;
+ const relationshipTimes={...(prior?.relationshipTimes||{})};
  const restoredHolder=actors.get(prior?.boundPersonId);if(restoredHolder&&holder().holderId===restoredHolder.station.id&&canControlActor(restoredHolder)){jia=restoredHolder;people.set(jia.station.id,jia);}
  if(prior?.version===1){time=prior.time||0;duty=copy(prior.duty||null);phase=copy(prior.phase||null);workAction=copy(prior.workAction||null);history.push(...(prior.history||[]).slice(-36));}
- const durable=(model=orders?.snapshot())=>({version:1,layoutRevision:1,layoutReseat,orders:model,time,duty:copy(duty),phase:copy(phase),workAction:copy(workAction),life:life?.snapshot()||prior?.life||{},boundPersonId:jia.station.id,people:[...people.keys()],personalLives:Object.fromEntries([...lives].map(([id,l])=>[id,l.snapshot()])),personalNeeds:needsLife?.snapshot()||prior?.personalNeeds||{},eating:copy(state.eating||{}),history:copy(history)});
+ const durable=(model=orders?.snapshot())=>{for(const o of model?.orders||[])if(['consumed','cancelled'].includes(o.stage)&&relationshipTimes[o.id]===undefined)relationshipTimes[o.id]=time;return {version:1,relationshipTimes:copy(relationshipTimes),layoutRevision:1,layoutReseat,orders:model,time,duty:copy(duty),phase:copy(phase),workAction:copy(workAction),life:life?.snapshot()||prior?.life||{},boundPersonId:jia.station.id,people:[...people.keys()],personalLives:Object.fromEntries([...lives].map(([id,l])=>[id,l.snapshot()])),personalNeeds:needsLife?.snapshot()||prior?.personalNeeds||{},eating:copy(state.eating||{}),history:copy(history)};};
  const persist=()=>{if(!orders)return true;try{const ok=saveState(durable());return ok!==false&&!ok?.then;}catch{return false;}};
  const record=(event,o=null)=>{history.push({event,orderId:o?.id||null,mealId:o?.mealId||null,time:+time.toFixed(2)});if(history.length>36)history.shift();};
  orders=createRoyalKitchenOrders({saved:prior?.orders||null,getClock,getPlayerMealEligibility:playerEligibility,saveState:model=>{try{const ok=saveState(durable(model));return ok!==false&&!ok?.then;}catch{return false;}}});
@@ -133,7 +136,8 @@ export function createChinaRoyalKitchenService({npcs,lot,doors,planPath,moveActo
    else{g.position.set(...(o.stage==='prepared'?P.prepTop:o.stage==='cooked'?P.stoveTop:tablePoint(o)));g.userData.holderId=o.stage==='prepared'?'prep':o.stage==='cooked'?'stove':o.seatId;}
   }
  }
- function update(dt,t,s={}){
+ function replayRelationships(){relationshipOutbox.deliver(orders.snapshot().orders.filter(o=>['consumed','cancelled'].includes(o.stage)).map(o=>serviceRelationshipEvent('china-royal-kitchen',o.id,o.stage==='consumed'?'completed':'cancelled',o.workerId,o.actorId,relationshipTimes[o.id]??0)));}
+ function update(dt,t,s={}){replayRelationships();
   if(disposed)return;playerState=s;time+=dt;rebind();const job=activeJob();
   if(duty&&job?.receiptId!==duty.receiptId)releaseDuty(duty.receiptId,{cancel:true});
   // A failed cancellation save keeps the original numbered order, but cannot

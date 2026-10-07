@@ -16,7 +16,10 @@ export function conversationDisposition(person,other,kind,targetId){
 }
 const available=c=>c.available!==false&&c.reachable!==false;
 const unique=items=>[...new Map(items.filter(available).map(c=>[c.id,c])).values()].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
-export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>{},sharedNeeds=null}){
+// Installed by the single world owner; readers never write legacy relation state.
+let worldSocialProjection=(id,p)=>p,worldSocialFactors=()=>({});
+export function setLifeSocialProjection(reader,factors){worldSocialProjection=typeof reader==='function'?reader:(id,p)=>p;worldSocialFactors=typeof factors==='function'?factors:()=>({});}
+export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>{},sharedNeeds=null,socialProjection=worldSocialProjection,socialFactors=worldSocialFactors}){
  let time=Number.isFinite(saved.time)?saved.time:0,lastSave=time;
  const people={},conversations=copy(saved.conversations||[]);
  const trimConversations=()=>{while(conversations.length>32){const index=conversations.findIndex(e=>e.status!=='accepted');if(index<0)break;conversations.splice(index,1);}};
@@ -50,14 +53,15 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
   // Legacy single-person choices migrate without changing their identity.
   return c.targets===undefined?(c.relationship?[{id:c.relationship.target,relationship:c.relationship}]:null):unique(c.targets);
  }
- function actions(p,candidates,hour){
+ function actions(id,base,candidates,hour){
+  const p=socialProjection(id,base);
   return unique(candidates).flatMap(c=>{
    if(time<(p.cooldowns[c.id]||0))return [];
    const pool=targets(c);
    if(pool&&!pool.length)return []; // Explicit finite targets, including any authored solo fallback.
    return [{choice:c,weight:weight(p,c,hour),targets:pool?.map(target=>{
     const r=target.relationship;let value=preference(p,target,1);
-    if(r)value+=(p.relations[r.target]||0)*(r.weight??.5)+(p.opinions[r.target]||0)*(r.opinionWeight??.5);
+    if(r){value+=(p.relations[r.target]||0)*(r.weight??.5)+(p.opinions[r.target]||0)*(r.opinionWeight??.5);if(c.id==='conversation'){const factors=socialFactors(id,r.target);value+=(factors.acceptanceAppearance||0)+(factors.acceptanceContext||0);}}
     return {choice:target,weight:Math.max(.005,value)};
    })||null}];
   });
@@ -98,8 +102,9 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
    const experience=p?.experiences.find(e=>e.id===choice.experienceId);
    if(!current||current.id!=='conversation'||current.targetId!==choice.targetId||!experience||!other||other.current||time<other.replyAfter)return {ok:false,reason:'unavailable'};
    return transaction(()=>{
-    const chance=clamp(.20+other.traits.sociability*.24+other.needs.social*.18+topicFit(other,experience.kind)*.30+(other.experiences.some(e=>e.kind===experience.kind)?.08:0)+(other.relations[id]||0)*.12+(other.opinions[id]||0)*.10-other.needs.fatigue*.24-other.needs.hunger*.30);
-    const accepted=random(other)<chance,event={id:eventId,ok:true,status:accepted?'accepted':'declined',responses:{[id]:conversationDisposition(p,other,experience.kind,choice.targetId).feeling,[choice.targetId]:conversationDisposition(other,p,experience.kind,id).feeling},participants:[id,choice.targetId],experience:copy(experience),startedAt:time,duration:current.duration};
+    const ownView=socialProjection(id,p),otherView=socialProjection(choice.targetId,other),social=socialFactors(choice.targetId,id);
+    const chance=clamp(.20+otherView.traits.sociability*.24+otherView.needs.social*.18+topicFit(otherView,experience.kind)*.30+(otherView.experiences.some(e=>e.kind===experience.kind)?.08:0)+(otherView.relations[id]||0)*.12+(otherView.opinions[id]||0)*.10-otherView.needs.fatigue*.24-otherView.needs.hunger*.30+(social.acceptanceAppearance||0)+(social.acceptanceContext||0));
+    const accepted=random(other)<chance,event={id:eventId,ok:true,status:accepted?'accepted':'declined',responses:{[id]:conversationDisposition(ownView,otherView,experience.kind,choice.targetId).feeling,[choice.targetId]:conversationDisposition(otherView,ownView,experience.kind,id).feeling},participants:[id,choice.targetId],experience:copy(experience),startedAt:time,duration:current.duration};
     conversations.push(event);p.current.conversationId=event.id;other.replyAfter=time+24;
     if(accepted)other.current={id:'conversation',targetId:id,conversationId:event.id,duration:current.duration,startedAt:time,invited:true};
     else endConversation(event,'declined');
@@ -111,7 +116,7 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
    if(!event)return {ok:false,reason:'unknown-event'};if(event.status==='completed')return {ok:true,replayed:true,event:copy(event)};
    if(event.status!=='accepted'||elapsed<event.duration||!event.participants.every(id=>arrived.includes(id)&&people[id]?.current?.conversationId===eventId))return {ok:false,reason:'unfinished'};
    return transaction(()=>{
-    event.results=event.participants.map((id,i)=>{const target=event.participants[1-i],p=people[id],result=conversationDisposition(p,people[target],event.experience.kind,target);const relation=p.relations[target]||0,previous=p.opinions[target]||0;p.relations[target]=opinion(relation+result.relation);p.opinions[target]=opinion(previous+result.opinion);p.needs.social=clamp(p.needs.social-.32);return {actorId:id,targetId:target,feeling:result.feeling,relation:p.relations[target]-relation,opinion:p.opinions[target]-previous};});
+    event.results=event.participants.map((id,i)=>{const target=event.participants[1-i],p=people[id],result=conversationDisposition(socialProjection(id,p),socialProjection(target,people[target]),event.experience.kind,target);const relation=p.relations[target]||0,previous=p.opinions[target]||0;p.relations[target]=opinion(relation+result.relation);p.opinions[target]=opinion(previous+result.opinion);p.needs.social=clamp(p.needs.social-.32);return {actorId:id,targetId:target,feeling:result.feeling,relation:p.relations[target]-relation,opinion:p.opinions[target]-previous};});
     endConversation(event,'completed');return {ok:true,event:copy(event)};
    });
   },
@@ -119,7 +124,7 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
   conversation:eventId=>copy(conversations.find(e=>e.id===eventId)||null),
   tick(dt){if(!Number.isFinite(dt)||dt<=0)return;time+=dt;for(const[id,p]of Object.entries(people)){const h=sharedHunger(id);p.needs.hunger=Number.isFinite(h)?h:clamp(p.needs.hunger+dt/850);p.needs.fatigue=clamp(p.needs.fatigue+dt/1100);p.needs.social=clamp(p.needs.social+dt/1000);}if(time-lastSave>=30)save();},
   choose(id,candidates,hour=10){const p=people[id];if(!p)return null;
-   const entries=actions(p,candidates,hour);
+   const entries=actions(id,p,candidates,hour);
    if(p.current){
     const entry=entries.find(e=>e.choice.id===p.current.id);
     // Version-one saves did not record a target; only an unambiguous one can resume.
@@ -141,7 +146,7 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
    p.last=c.id;p.cooldowns[c.id]=time+(c.cooldown??45);p.current=null;p.nextDecisionAt=time;save();
   },
   observe,
-  distribution(id,candidates,hour=10){const p=people[id];if(!p)return [];const entries=actions(p,candidates,hour),total=entries.reduce((sum,e)=>sum+e.weight,0);return entries.map(e=>{const targetTotal=e.targets?.reduce((sum,t)=>sum+t.weight,0);return {id:e.choice.id,probability:e.weight/total,targets:e.targets?.map(t=>({id:t.choice.id,probability:t.weight/targetTotal}))||[]};});},
+  distribution(id,candidates,hour=10){const p=people[id];if(!p)return [];const entries=actions(id,p,candidates,hour),total=entries.reduce((sum,e)=>sum+e.weight,0);return entries.map(e=>{const targetTotal=e.targets?.reduce((sum,t)=>sum+t.weight,0);return {id:e.choice.id,probability:e.weight/total,targets:e.targets?.map(t=>({id:t.choice.id,probability:t.weight/targetTotal}))||[]};});},
   state(id){if(id){const p=people[id];if(!p)return null;const h=sharedHunger(id);if(Number.isFinite(h))p.needs.hunger=h;return copy(p);}return snapshot();},snapshot,dispose:save
  };
 }

@@ -23,9 +23,9 @@ const actor=(id=C.stationId,point=C.points.teller,stationPoint=C.points.counter)
 const descendants=e=>[e,...e.children.flatMap(descendants)];
 function harness({counter=C,legacy=false,noOriginal=false}={}){
  const doc={head:new Element('head'),body:new Element('body'),createElement:tag=>new Element(tag)},original=actor(counter.stationId,counter.points.teller,counter.points.counter),player={root:{position:position(...counter.points.counter)}};
- const h={doc,original,player,binding:{actor:original,holderId:original.station.id,revision:0,available:true},writes:0,opens:0,closes:0,poseCalls:0,seen:[],visible:true};
+ const h={doc,original,player,binding:{actor:original,holderId:original.station.id,revision:0,available:true},writes:0,opens:0,closes:0,poseCalls:0,seen:[],relationships:[],visible:true};
  h.ledger=createCurrencyLedger({saveState:()=>{h.writes++;return true;}});
- const options={npcs:noOriginal?[]:[original],lot:{moneyHouse:{},exchangeCounter:{}},getPlayer:()=>player,poseContext:()=>{h.poseCalls++;return {};},copperLedger:h.ledger,canSee:station=>{h.seen.push(station);return h.visible;},document:doc,onOpen:()=>h.opens++,onClose:()=>h.closes++,counter,facilityKey:legacy?'exchangeCounter':'moneyHouse',...(!legacy?{counterBinding:()=>h.binding,bodyManaged:true}:{})};
+ const options={npcs:noOriginal?[]:[original],lot:{moneyHouse:{},exchangeCounter:{}},getPlayer:()=>player,poseContext:()=>{h.poseCalls++;return {};},copperLedger:h.ledger,canSee:station=>{h.seen.push(station);return h.visible;},document:doc,getClock:()=>({seconds:50}),onRelationshipEvent:e=>{h.relationships.push(e);return {ok:true};},onOpen:()=>h.opens++,onClose:()=>h.closes++,counter,facilityKey:legacy?'exchangeCounter':'moneyHouse',...(!legacy?{counterBinding:()=>h.binding,bodyManaged:true}:{})};
  h.service=(legacy?createBankCounterService:createChinaMoneyHouseService)(options);h.dialog=doc.body.children[0];
  h.find=predicate=>descendants(h.dialog).find(predicate);h.button=action=>h.find(e=>e.dataset.moneyAction===action);h.input=label=>h.find(e=>e.attrs['aria-label']===label);
  h.text=()=>descendants(h.dialog).map(e=>[e.textContent||'',e.attrs['aria-label']||''].join(' ')).join('\n');
@@ -69,7 +69,7 @@ for(const [change,mutate]of Object.entries(changes))for(const [control,capture]o
  const h=harness();if(control!=='open'){assert(h.wage().ok);assert(h.ledger.withdraw(6,'seed-withdraw','copper').ok);}
  assert(h.service.open());const callback=capture(h),before=h.ledger.state(),writes=h.writes;mutate(h);callback();
  assert.deepEqual(h.ledger.state(),before,`${change}/${control}: no queued callback can alter money before update`);assert.equal(h.writes,writes);
- assert.equal(h.service.isOpen(),false,`${change}/${control}: invalid session closes immediately`);
+ assert.equal(h.service.isOpen(),false,`${change}/${control}: invalid session closes immediately`);assert.equal(h.relationships.length,0,'Stale/refused counter actions have no relationship effect');
  h.original.alive=true;h.original.root.position=position(...C.points.teller);h.binding={actor:h.original,holderId:h.original.station.id,revision:2,available:true};
  assert(h.service.open());const children=h.dialog.children;callback();assert(h.service.isOpen(),`${change}/${control}: stale callback cannot close the new session`);assert.equal(h.dialog.children,children,'Stale selectors and inputs cannot rerender the new session');assert.equal(h.writes,writes);
  h.service.dispose();
@@ -79,6 +79,7 @@ for(const [change,mutate]of Object.entries(changes))for(const [control,capture]o
  const h=harness();assert(h.service.open());const replacement=h.replace();h.service.update(0,0);assert(!h.service.isOpen(),'Update closes a changed appointment without any DOM event');
  assert(!h.service.owns(h.original));assert(h.service.owns(replacement));assert.equal(h.service.socialStatus(h.original),null);assert.equal(h.service.state().actor.id,replacement.station.id);assert.equal(h.service.state().actor.ageYears,46);
  assert(h.service.open());assert(h.seen.every(station=>station.id===C.stationId&&station.position===C.points.counter),'Visibility remains attached to the original counter, never the new worker’s previous station');
+ h.button('open').onclick();assert.equal(h.relationships.length,1);assert.equal(h.relationships[0].actorId,replacement.station.id);assert.deepEqual(h.relationships[0].participants,[replacement.station.id,'player'],'The real replacement teller receives credit, never the old role holder');
  h.binding.available=false;assert(h.service.owns(replacement));assert(h.service.socialStatus(replacement));h.service.update(0,0);assert(!h.service.isOpen());
  replacement.alive=false;assert(h.service.owns(replacement),'The external controller can still identify the dead current holder');assert(!h.service.open());
  h.binding={actor:null,holderId:null,revision:2,available:false};assert(!h.service.owns(h.original));assert(!h.service.owns(replacement));assert.equal(h.service.socialStatus(h.original),null);assert.equal(h.service.state().actor,null);assert(!h.service.open(),'An explicit vacancy never falls back to the original teller');
@@ -107,6 +108,7 @@ for(const counter of [JAPAN_EXCHANGE_COUNTER,EGYPT_EXCHANGE_COUNTER,FRANCE_EXCHA
  const h=harness({counter,legacy:true}),currency=counter.defaultCurrency;assert(h.service.open());h.button('open').onclick();assert(h.ledger.balances()[currency].accountOpened);assert(h.wage().ok);
  h.allocate(5);h.button('allocation').onclick();assert.deepEqual([h.ledger.balances()[currency].cash,h.ledger.balances()[currency].bank],[5,15]);
  h.allocate(2);h.button('allocation').onclick();assert.deepEqual([h.ledger.balances()[currency].cash,h.ledger.balances()[currency].bank],[2,18]);
+ assert.equal(h.relationships.length,3);assert(h.relationships.every(e=>e.source===`bank-counter:${counter.id}`&&e.actorId===counter.stationId&&e.at===50));assert.deepEqual(h.relationships.map(e=>e.serviceKind),['open','withdraw','deposit']);
  const x=h.original.root.position.x;h.service.update(1,1);assert.notEqual(h.original.root.position.x,x);assert.equal(h.original.poses,1);assert.equal(h.poseCalls,1,'Default counters retain their original body and work loop');assert(h.service.owns(h.original));assert(h.service.isOpen());
  h.service.close();h.original.root.position.x+=2;assert(h.service.open(),'Legacy counters do not acquire the Chinese appointment gate');h.service.dispose();
 }

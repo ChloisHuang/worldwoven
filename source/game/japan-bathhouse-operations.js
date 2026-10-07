@@ -22,8 +22,8 @@ const JOBS={register:{label:'记入客簿并递出浴牌',duration:2.5,action:'c
 // Replaces (never runs beside) the earlier four-resident demonstration routine.
 // The host supplies the existing movement/door/wardrobe code and lifecycle
 // callbacks so spawned visitors join the ordinary labels, culling and disposal.
-export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,doors,moveActor,poseContext,changeWardrobe,createVisitor,removeVisitor,worldSeed=1,npcShapeVersion=1,saved={},saveState=()=>{},sharedNeeds=null,getToilet=()=>null,beginInteraction=()=>null,onInteraction=()=>{}}) {
- const checkpoint=saved.continuity?.version===1?saved.continuity:null;if(checkpoint?.board)saved={...saved,...checkpoint.board,staffLife:{...(checkpoint.staffLife||saved.staffLife),...(saved.staffLife?.mealSerial!==undefined?{mealSerial:saved.staffLife.mealSerial,mealReceipts:saved.staffLife.mealReceipts}: {})}};
+export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,doors,moveActor,poseContext,changeWardrobe,createVisitor,removeVisitor,worldSeed=1,npcShapeVersion=1,saved={},saveState=()=>{},sharedNeeds=null,getToilet=()=>null,beginInteraction=()=>null,onInteraction=()=>{},onRelationshipEvent=()=>false}) {
+ const checkpoint=saved.continuity?.version===1?saved.continuity:null;if(checkpoint?.board)saved={...saved,...checkpoint.board,relationshipEvents:[...new Map([...(checkpoint.board.relationshipEvents||[]),...(saved.relationshipEvents||[])].map(e=>[e.id,e])).values()],staffLife:{...(checkpoint.staffLife||saved.staffLife),...(saved.staffLife?.mealSerial!==undefined?{mealSerial:saved.staffLife.mealSerial,mealReceipts:saved.staffLife.mealReceipts}: {})}};
  const residents=new Map(npcs.map(n=>[n.station.id,n]));
  if(WORKERS.some(id=>!residents.has(id)))return null;
  if(!furniture.resolveBath||!furniture.facilities)throw new Error('Bathhouse operations require shared pool seats');
@@ -31,7 +31,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
  if(restSeats.length<2)return null;
  const workers=[...WORKERS,...JAPAN_LOCAL_WORKERS].map(id=>residents.get(id)).filter(Boolean),guests=new Map(),actors=new Map(workers.map(n=>[n.station.id,n])),tasks=new Map(),cooldowns=new Map();
  let staffLife=null,receptionDuty=null,deliveryDuty=null,womenDeliveryDuty=null,mixingDuty=null,kitchenDuty=null,tableServiceDuty=null;
- const board=createJapanServiceOrders({saved,worldSeed,preservePhysical:!!checkpoint,saveState:state=>saveState({...state,staffLife:staffLife?.snapshot()||saved.staffLife}),capacity:2}),props=createJapanServiceProps(lot.group);
+ const board=createJapanServiceOrders({saved,worldSeed,onRelationshipEvent,getRelationshipTime:()=>time,preservePhysical:!!checkpoint,saveState:state=>saveState({...state,staffLife:staffLife?.snapshot()||saved.staffLife}),capacity:2}),props=createJapanServiceProps(lot.group);
  const navigation={surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4,radius:.25};
  let playerState={},playerCustomerService=null,disposed=false,time=0,nextArrival=0,checkpointAt=5;
  const history=[],failures=[];

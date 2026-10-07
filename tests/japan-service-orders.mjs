@@ -68,3 +68,18 @@ console.log('PASS: distinct cargo, causal preparation/meal/checkout, carrier abo
 {
  const b=createJapanServiceOrders({worldSeed:31}),v=b.spawn({...createJapanVisitorIdentity(b.nextIdentity(),31),restPoint:[-7.7,3.8,6.61],diningPoint:[-7.7,3.8,6.61]});b.guestStep(v.id,'arrived',{position:P.reception});let j=b.jobs().find(j=>j.kind==='register');b.claim(j.id,'jp-welcome');b.complete(j.id,'jp-welcome',{position:P.registrar,guestPosition:P.reception});j=b.jobs().find(j=>j.kind==='prepare');b.claim(j.id,'jp-incense');b.complete(j.id,'jp-incense',{position:P.apothecary});j=b.jobs().find(j=>j.kind==='deliverMix');const carrier=v.side==='men'?'jp-onsen':'jp-women-onsen';b.claim(j.id,carrier);b.pickup(j.id,carrier,{position:P.apothecaryPickup});const checkpoint=JSON.parse(JSON.stringify(b.state())),reloaded=createJapanServiceOrders({saved:checkpoint,worldSeed:31,preservePhysical:true});reloaded.restoreClaims(checkpoint.claims);assert.deepEqual(reloaded.state().items,checkpoint.items);assert.deepEqual(reloaded.state().claims,checkpoint.claims);assert.equal(reloaded.state().items.find(i=>i.id===j.itemId).location.id,carrier);assert(reloaded.complete(j.id,carrier,{position:P[v.side+'Service'],itemId:j.itemId,tokenId:b.getVisit(v.id).tokenId}));assert(!reloaded.complete(j.id,carrier,{position:P[v.side+'Service'],itemId:j.itemId,tokenId:b.getVisit(v.id).tokenId}));console.log('PASS carried Japan item/worker claim retains same identity and delivers once');
 }
+
+// ST01: persist the actual witnessed boundary first, then replay until the
+// relationship ledger acknowledges its own durable save.
+{
+ let durable,saveOK=true,receiverOK=false;const events=[];
+ const options={worldSeed:51,getRelationshipTime:()=>42,onRelationshipEvent:e=>{events.push(e);return {ok:receiverOK};},saveState:s=>{if(!saveOK)return false;durable=s;}};
+ const b=createJapanServiceOrders(options),v=b.spawn({...createJapanVisitorIdentity(b.nextIdentity(),51),restPoint:[0,3.8,7],diningPoint:[0,3.8,7]});
+ assert(b.guestStep(v.id,'arrived',{position:P.reception}));const j=b.jobs().find(j=>j.kind==='register');assert(b.claim(j.id,'jp-welcome'));
+ saveOK=false;assert.equal(b.complete(j.id,'jp-welcome',{position:P.registrar,guestPosition:P.reception}),false);assert.equal(events.length,0);assert.equal(b.getVisit(v.id).stage,'check-in');
+ saveOK=true;assert(b.complete(j.id,'jp-welcome',{position:P.registrar,guestPosition:P.reception}));assert.equal(events.length,1);assert.equal(durable.relationshipEvents.length,1);
+ assert.deepEqual(events[0].participants,['jp-welcome',v.id]);assert.equal(events[0].at,42);assert.equal(events[0].outcome,'completed');
+ receiverOK=true;const reloaded=createJapanServiceOrders({...options,saved:durable});assert.equal(events.length,2);assert.equal(events[0].id,events[1].id);reloaded.checkpoint();assert.equal(durable.relationshipEvents.length,0,'Acknowledged outbox compacts on next durable save');
+ const prep=b.jobs().find(j=>j.kind==='prepare');assert(b.claim(prep.id,'jp-incense'));assert(b.complete(prep.id,'jp-incense',{position:P.apothecary}));assert(events.every(e=>e.serviceKind==='register'),'Unwitnessed preparation invents no guest observation');
+}
+console.log('PASS Japan service relationship source rollback, replay, aware recipients and outbox compaction');

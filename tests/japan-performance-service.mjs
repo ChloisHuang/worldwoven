@@ -6,14 +6,14 @@ import {createFacilityQueue} from '../source/game/npc-facilities.js';
 import {createCurrencyLedger} from '../source/game/currency-ledger.js';
 import {createCopperLedger} from '../source/game/copper-ledger.js';
 class V{constructor(x=0,y=0,z=0){this.set(x,y,z);}set(x,y,z){Object.assign(this,{x,y,z});return this;}clone(){return new V(this.x,this.y,this.z);}copy(p){return this.set(p.x,p.y,p.z);}toArray(){return [this.x,this.y,this.z];}distanceToSquared(p){return (this.x-p.x)**2+(this.y-p.y)**2+(this.z-p.z)**2;}}
-function fixture({wallet,saved,saveWallet=()=>{}}={}){
+function fixture({wallet,saved,saveWallet=()=>{},onRelationshipEvent=()=>false,saveService=()=>true}={}){
  const make=(p,station)=>({station,ageYears:station.ageYears,root:{position:new V(...p),rotation:{y:0},userData:{}},home:new V(...p),locomotion:{walkSpeed:5},animate(){}});
  const npcs=PERFORMANCE_CAST.map(a=>make(a.position,{id:a.id,npcName:a.name,ageYears:a.ageYears,performance:{...a}}));
  const player=make(P.reception,{id:'player',ageYears:24});let mounted=null,snapshot;
  const copperLedger=createCurrencyLedger({saved:wallet,saveState:saveWallet});if(!wallet){assert(copperLedger.creditWageToBank({amount:80,receiptId:'test-completed-shift',currency:'japan',roleId:'jp-frontdesk-assistant',slotId:'jp-frontdesk',day:1}).ok);assert(copperLedger.withdraw(80,'withdraw-local-wage','japan').ok);copperLedger.earn(37,'untouched-copper');}
  const navigation={legacyGround:false,surfaces:[{minX:-12,maxX:12,minZ:-15,maxZ:9,y:7.6}]};
  const furniture={items:PERFORMANCE_SEATS,facilities:createFacilityQueue(),canSit:nav=>{assert.equal(nav,navigation,'Mount retains the provided multi-floor navigation');return true;},standPoint:(nav,extra,seat)=>{assert.equal(nav,navigation,'Unmount retains the same multi-floor navigation');return new V(...seat.position);}};
- const service=createJapanPerformanceService({npcs,furniture,navigation,doors:{routeStep(path,p){while(path.length&&p.distanceToSquared(path[0])<.008)path.shift();return {waypoint:path[0]};}},planPath:(a,b)=>[new V(b.x,b.y,b.z)],moveActor:(a,x,z)=>{a.root.position.x+=x;a.root.position.z+=z;},poseContext:()=>({}),getPlayer:()=>player,getMounted:()=>mounted,copperLedger,saved,saveState:s=>snapshot=s});
+ const service=createJapanPerformanceService({npcs,furniture,navigation,doors:{routeStep(path,p){while(path.length&&p.distanceToSquared(path[0])<.008)path.shift();return {waypoint:path[0]};}},planPath:(a,b)=>[new V(b.x,b.y,b.z)],moveActor:(a,x,z)=>{a.root.position.x+=x;a.root.position.z+=z;},poseContext:()=>({}),getPlayer:()=>player,getMounted:()=>mounted,copperLedger,saved,onRelationshipEvent,saveState:s=>{if(saveService(s)===false)return false;snapshot=s;}});
  let time=0;
  const step=(seconds=.1)=>{for(let i=0;i<Math.ceil(seconds/.1);i++){time+=.1;service.update(.1,time);}};
  const until=(fn,max=500)=>{for(let i=0;i<max&&!fn();i++)step();assert(fn(),JSON.stringify(service.state()));};
@@ -80,3 +80,17 @@ for(const old of [true,false]){
  let failDrink=true;const g=fixture({saveWallet:(next)=>!(failDrink&&next.transactions.at(-1)?.action==='reserve'&&next.transactions.at(-1)?.requestId.endsWith(':drink'))});g.request('dance','sake');assert.equal(g.service.confirm(),false);assert.equal(g.copperLedger.balances().japan.cash,80,'Second-part save failure refunds first hold in its original currency');assert.equal(g.copperLedger.state().cash,37);assert.equal(g.service.active(),false);assert(g.furniture.facilities.state().every(f=>!f.owner));failDrink=false;g.done();
 }
 console.log('PASS Japanese/copper quote freeze, v1 partial receipt migration, local insufficient funds without holds, and second-part failure refund');
+
+{
+ const events=[];let receiverOK=false;
+ const f=fixture({onRelationshipEvent:e=>{events.push(e);return {ok:receiverOK};}});f.request('tea','tea');f.confirm();f.sit();f.until(()=>!f.service.active());
+ const completions=events.filter(e=>e.outcome==='completed');assert(completions.some(e=>e.actorId==='jp-salon-mai'));assert(completions.some(e=>e.actorId==='jp-performance-reception'));assert(completions.every(e=>e.participants.length===2&&e.participants.includes('player')));
+ const durable=f.snapshot(),unique=new Set(events.map(e=>e.id));receiverOK=true;const g=fixture({wallet:f.copperLedger.state(),saved:durable,onRelationshipEvent:e=>{assert(unique.has(e.id));return {ok:true};}});g.step(6);assert.equal(g.snapshot().relationshipEvents.length,0);g.done();f.done();
+}
+{
+ const events=[];const f=fixture({onRelationshipEvent:e=>{events.push(e);return {ok:true};}});f.request('story');const refusal=events.find(e=>e.outcome==='refused');assert(refusal);assert.equal(refusal.actorId,'jp-salon-mai');assert.deepEqual(refusal.participants,['jp-salon-mai','player']);assert.equal(refusal.fault,undefined);assert(!events.some(e=>e.outcome==='failed'));f.done();
+}
+{
+ let saving=true;const events=[];const f=fixture({saveService:()=>saving,onRelationshipEvent:e=>{events.push(e);return {ok:true};}});saving=false;f.request('story');assert.equal(events.length,0,'Failed source save cannot publish social outcomes');saving=true;f.step(6);assert(events.some(e=>e.outcome==='refused'),'Pending boundary retries after source persistence recovers');f.done();
+}
+console.log('PASS Japan performance witnessed parties, neutral refusal, durable source/receiver retries and compaction');
