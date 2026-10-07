@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "candidateCommit": "cf7d7112f3450bdf2a12a9cac0bf8c0cc2be39f3",
+  "candidateCommit": "7eba0169adf15eba1a55b611c28f2fdf3522f303",
   "baseCommit": "c601ba62c73bf3e3ceeca2acc9d23f60c3a208e7",
   "scope": "Finite mobile/HUD UI QA only; original production modules remain untouched. Overrides only, unchanged dependencies read from production source.",
   "overrides": {
@@ -12,7 +12,7 @@
     "game/hud-controls.js": "0061e5316405df94c4232a9a60d0c197f61eac420f8b11c7a8e029e961b306c4",
     "game/index.html": "769517faecf9a40f2613a1b408dd3899cdf4457db943ff79d706a4afb29d3df2",
     "game/mobile-viewport.js": "88f9ca885ce83f92b9b45c8c567dbb8af6e3f739fc479b9416e9222fd759f167",
-    "game/wallet.css": "f44ea3adf796201f1d09883fa74c60057ef25c1d88e317d9ed3646d48b4dfe24",
+    "game/wallet.css": "6e089bdf119edae706e2ea68a8eaf32a0772500588157309c2d3798ea3360ecd",
     "game/wallet.js": "341289de195dfb5b74613b44c94317c3c51f0bc6972ab210603aa674e509b7de",
     "qa/hud-fixtures.js": "b1a0b08b186e51fa84a33c37fef2c96590abba2a52183754b4c3b28c1cc140c0",
     "qa/mobile-family-fixture.js": "21b478808c1f6e8100f6658308200ba1a03fcb1591e211fce7d1e4ad9c41b540",
