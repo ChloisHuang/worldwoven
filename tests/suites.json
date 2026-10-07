@@ -341,7 +341,9 @@
       "tavern-exclusive-tenure.mjs",
       "temporary-work-bank.mjs",
       "wallet-assets.mjs",
-      "wallet-geometry.mjs"
+      "wallet-geometry.mjs",
+      "china-salon-contracts.mjs",
+      "china-salon-stories.mjs"
     ]
   },
   "world-life": {
@@ -356,7 +358,8 @@
       "social-meeting-places.mjs",
       "npc-social-ownership.mjs",
       "npc-public-interactions.mjs",
-      "palace-companionship.mjs"
+      "palace-companionship.mjs",
+      "china-salon-companionship.mjs"
     ],
     "integration": [
       "airy-panel-default-cascade.mjs",
@@ -570,7 +573,8 @@
       "social-meeting-geometry.cjs",
       "player-relationship-main.cjs",
       "npc-public-pair-main.cjs",
-      "palace-companionship-main.cjs"
+      "palace-companionship-main.cjs",
+      "china-salon-st03-main.cjs"
     ]
   },
   "release": {

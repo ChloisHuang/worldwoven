@@ -21,11 +21,14 @@ export function createPalaceCompanionship({
  isAvailable=()=>false,getPlace=()=>null,createJourney=()=>null,getClock=()=>({}),
  saved=null,worldSeed=1,saveState=()=>true,onChange=()=>{},onPrivateFade=()=>{},onComplete=()=>{},
  opportunitySeconds=120,dispatchSeconds=3,responseSeconds=2,responseTimeout=60,pairCooldownSeconds=300,
+ venuePolicy=null,
 }={}){
  const owner={palaceCompanionship:true};
- let data=fresh(),journey=null,refs=new Map(),disposed=false,saveBlocked=false,retryAt=0,loadError=null;
- function fresh(){return {version:1,time:0,nextOpportunity:30,random:socialAttentionHash(`palace-company:${worldSeed}`)||1,nextSerial:1,lastNight:null,active:null,history:[],people:{},cooldowns:{},nightAttempts:{}};}
- const snapshot=()=>copy(data);
+ const prefix=venuePolicy?.prefix||'palace-company',eventLabels={...labels,...venuePolicy?.labels};
+ const permitted=(a,b)=>venuePolicy?venuePolicy.allowedPair(a,b)===true:emperorId()===a;
+ let data=fresh(),journey=null,refs=new Map(),disposed=false,saveBlocked=false,retryAt=0,loadError=null,restoreSource=null;
+ function fresh(){return {version:1,time:0,nextOpportunity:30,random:socialAttentionHash(`${prefix}:${worldSeed}`)||1,nextSerial:1,lastNight:null,active:null,history:[],people:{},cooldowns:{},nightAttempts:{}};}
+ const snapshot=()=>copy(loadError?restoreSource:data);
  const roster=()=>[...new Map((getRoster()||[]).filter(a=>validId(idOf(a))).map(a=>[idOf(a),a])).values()];
  function identity(id){
   const raw=getIdentity(id);
@@ -33,9 +36,9 @@ export function createPalaceCompanionship({
   return {actorId:id,revision:raw.revision,royalRole:raw.royalRole||null,isCurrentEmperor:raw.isCurrentEmperor===true||raw.royalRole==='emperor',ageYears:raw.ageYears,country:raw.country};
  }
  function emperorId(){const ids=roster().map(a=>idOf(a)).filter(id=>identity(id)?.isCurrentEmperor);return ids.length===1?ids[0]:null;}
- function status(){const event=data.active;return event?{...copy(event),label:labels[event.stage]||'',responsePending:event.participants.filter(id=>event.consent[id]!==true)}:null;}
+ function status(){const event=data.active;return event?{...copy(event),label:eventLabels[event.stage]||'',responsePending:event.participants.filter(id=>event.consent[id]!==true)}:null;}
  const safeCall=(fn,...args)=>{try{return fn(...args);}catch{return undefined;}};
- function notify(event=data.active){safeCall(onChange,event?{...copy(event),label:labels[event.stage]||''}:null);}
+ function notify(event=data.active){safeCall(onChange,event?{...copy(event),label:eventLabels[event.stage]||''}:null);}
  function persist(){try{const result=saveState(snapshot());return result!==false&&!result?.then;}catch{return false;}}
  function transaction(change){const before=copy(data);let result;try{result=change();}catch{data=before;return {ok:false,reason:'callback-failed'};}if(persist())return {ok:true,value:result};data=before;return {ok:false,reason:'save-failed'};}
  function random(){data.random=(Math.imul(data.random,1664525)+1013904223)>>>0;return data.random/4294967296;}
@@ -68,7 +71,7 @@ export function createPalaceCompanionship({
  function willingContext(observer,target){const context=relationContext(observer,target);return !!context&&relationshipInteractionEligible('private-company',context);}
  function pairGate(emperor,target,event=null,{place=true}={}){
   if(!validId(emperor)||!validId(target)||emperor===target)return {ok:false,reason:'invalid-pair'};
-  if(emperorId()!==emperor)return {ok:false,reason:'current-emperor-required'};
+  if(!permitted(emperor,target))return {ok:false,reason:venuePolicy?'venue-pair-required':'current-emperor-required'};
   const left=identity(emperor),right=identity(target);if(!left||!right)return {ok:false,reason:'adult-current-identity-required'};
   const people=roster();
   if(event){
@@ -90,19 +93,19 @@ export function createPalaceCompanionship({
   const probability=Math.max(.05,Math.min(.95,.38+signed(context.relation)*.18+signed(context.opinion)*.08+signed(context.trust)*.12+unit(traits.sociability??.5)*.10+unit(needs.social??.5)*.08-unit(needs.fatigue)*.25-unit(needs.hunger)*.22+Math.max(-.04,Math.min(.04,factors.acceptanceAppearance||0))+Math.max(-.12,Math.min(.10,factors.acceptanceContext||0))));
   const roll=random();return {roll,chance:probability,accepted:roll<probability,receptivity:unit(probability),at:data.time};
  }
- const pairKey=(emperor,target)=>`${encodeURIComponent(emperor)}|${encodeURIComponent(target)}`;
+ const pairKey=(emperor,target)=>{const ids=venuePolicy?[emperor,target].sort():[emperor,target];return ids.map(encodeURIComponent).join('|');};
  const attemptedTonight=(emperor,target)=>data.nightAttempts[pairKey(emperor,target)]===nightKey();
  function candidates(id=emperorId()){
-  if(id!==emperorId())return [];
+  if(!venuePolicy&&id!==emperorId())return [];
   return roster().map(actor=>idOf(actor)).filter(target=>target!==id&&identity(target)&&!attemptedTonight(id,target)&&data.time>=(data.cooldowns[target]||0)&&pairGate(id,target,null,{place:false}).ok);
  }
- function freezeActors(event){const people=roster();refs=new Map(event.participants.map(id=>[id,people.find(a=>idOf(a)===id)]));}
+ function freezeActors(event){const people=roster();refs=new Map(event.participants.map(id=>[id,people.find(a=>idOf(a)===id)]));if(venuePolicy&&!holdSocialActors(event.participants.filter(id=>id!=='player'),owner))cancel('actor-held');}
  function makeEvent(emperor,target,stage,source,checked){
   const serial=data.nextSerial++;data.nightAttempts[pairKey(emperor,target)]=nightKey();
-  return {id:`palace-company:${encodeURIComponent(emperor)}:${encodeURIComponent(target)}:${serial}`,serial,emperorId:emperor,targetId:target,participants:[emperor,target],stage,source,night:nightKey(),identities:checked.identities,place:checked.place,consent:{[emperor]:false,[target]:false},decisions:{},createdAt:data.time,stageAt:data.time,elapsed:0,duration:10};
+  return {id:`${prefix}:${encodeURIComponent(emperor)}:${encodeURIComponent(target)}:${serial}`,serial,emperorId:emperor,targetId:target,participants:[emperor,target],stage,source,...(venuePolicy?{initiatorId:emperor,venue:prefix}:{}),night:nightKey(),identities:checked.identities,place:checked.place,consent:{[emperor]:false,[target]:false},decisions:{},createdAt:data.time,stageAt:data.time,elapsed:0,duration:10};
  }
  function prepare(emperor,target,stage,source){
-  if(disposed)return {ok:false,reason:'disposed'};
+  if(disposed||loadError)return {ok:false,reason:loadError||'disposed'};
   if(saveBlocked)return {ok:false,reason:'save-failed'};
   if(data.active)return {ok:false,reason:'invitation-active'};
   if(nightKey()===null)return {ok:false,reason:'night-required'};
@@ -113,14 +116,14 @@ export function createPalaceCompanionship({
    const event=makeEvent(emperor,target,stage,source,checked);data.active=event;
    if(stage==='selected'&&emperor!=='player'){
     event.decisions[emperor]=decision(emperor,target);event.consent[emperor]=event.decisions[emperor].accepted;
-    if(!event.consent[emperor]){event.stage='declined';event.reason='emperor-declined';event.endedAt=data.time;data.history.push(copy(event));data.history=data.history.slice(-32);data.active=null;data.cooldowns[target]=data.time+pairCooldownSeconds;}
+    if(!event.consent[emperor]){event.stage='declined';event.reason=venuePolicy?'initiator-declined':'emperor-declined';event.endedAt=data.time;data.history.push(copy(event));data.history=data.history.slice(-32);data.active=null;data.cooldowns[target]=data.time+pairCooldownSeconds;}
    }
    return copy(event);
   });
   if(!result.ok)return result;
   if(data.active)freezeActors(data.active);notify(result.value);return {ok:true,event:copy(result.value)};
  }
- function select(emperor,target){return prepare(emperor,target,'selected','emperor-selection');}
+ function select(emperor,target){return prepare(emperor,target,'selected',venuePolicy?'personal-selection':'emperor-selection');}
  function request(requester='player'){
   if(requester!=='player')return {ok:false,reason:'player-request-required'};
   const emperor=emperorId();if(!emperor||emperor===requester)return {ok:false,reason:'non-emperor-request-required'};
@@ -177,7 +180,8 @@ export function createPalaceCompanionship({
  function opportunity(){
   const result=transaction(()=>{
    data.nextOpportunity=data.time+Math.max(30,opportunitySeconds);
-   const night=nightKey(),emperor=emperorId();if(night===null||night===data.lastNight||!emperor||emperor==='player')return null;
+   const night=nightKey();if(night===null||night===data.lastNight)return null;
+   const initiators=venuePolicy?roster().map(idOf).filter(id=>id!=='player'&&candidates(id).length).sort():[],emperor=venuePolicy?(initiators.length?initiators[Math.floor(random()*initiators.length)]:null):emperorId();if(!emperor||emperor==='player')return null;
    const pool=candidates(emperor).sort();if(!pool.length)return null;
    data.lastNight=night;
    // One action roll, then one weighted target draw. A large roster creates
@@ -188,14 +192,14 @@ export function createPalaceCompanionship({
    const target=pool[index],factor=getFactors(emperor,target)||{};if(actionRoll>=.25+unit(factor.attraction)*.3)return null;
    const checked=pairGate(emperor,target);if(!checked.ok)return null;
    const event=makeEvent(emperor,target,'selected','autonomous-night',checked);event.decisions[emperor]=decision(emperor,target);event.consent[emperor]=event.decisions[emperor].accepted;
-   if(event.consent[emperor])data.active=event;else{event.stage='declined';event.reason='emperor-declined';event.endedAt=data.time;data.history.push(copy(event));data.history=data.history.slice(-32);data.cooldowns[target]=data.time+pairCooldownSeconds;}
+   if(event.consent[emperor])data.active=event;else{event.stage='declined';event.reason=venuePolicy?'initiator-declined':'emperor-declined';event.endedAt=data.time;data.history.push(copy(event));data.history=data.history.slice(-32);data.cooldowns[target]=data.time+pairCooldownSeconds;}
    return copy(event);
   });
   if(!result.ok){saveBlocked=true;retryAt=data.time+5;return;}
   if(data.active)freezeActors(data.active);if(result.value)notify(result.value);
  }
  function update(dt){
-  if(disposed||!finite(dt)||dt<=0)return;data.time+=dt;
+  if(disposed||loadError||!finite(dt)||dt<=0)return;data.time+=dt;
   if(saveBlocked){if(data.time>=retryAt){saveBlocked=!persist();retryAt=data.time+5;}return;}
   const event=data.active;
   if(!event){if(data.time>=data.nextOpportunity)opportunity();return;}
@@ -233,12 +237,12 @@ export function createPalaceCompanionship({
  }
  function project(id,base){const own=data.people[id];return !own?base:{...base,relations:add(base?.relations,own.relations),opinions:add(base?.opinions,own.opinions),trust:add(base?.trust,own.trust),interactions:mergeSocialMemories(base?.interactions,own.interactions)};}
  function restore(state){
-  release('restore');data=fresh();saveBlocked=false;loadError=null;
+  release('restore');data=fresh();saveBlocked=false;loadError=null;restoreSource=copy(state);
   if(state==null)return true;
   const valid=state.version===1&&finite(state.time)&&state.time>=0&&finite(state.nextOpportunity)&&Number.isInteger(state.random)&&Number.isSafeInteger(state.nextSerial)&&state.nextSerial>=1&&Array.isArray(state.history)&&state.history.length<=32&&state.people&&typeof state.people==='object'&&state.cooldowns&&typeof state.cooldowns==='object';
   if(!valid){loadError='invalid-saved-state';return false;}
   const events=[...state.history,...(state.active?[state.active]:[])];
-  if(events.some(e=>!validId(e.emperorId)||!validId(e.targetId)||e.emperorId===e.targetId||!Number.isSafeInteger(e.serial)||e.serial<1||e.serial>=state.nextSerial||e.id!==`palace-company:${encodeURIComponent(e.emperorId)}:${encodeURIComponent(e.targetId)}:${e.serial}`||!Array.isArray(e.participants)||e.participants.join('|')!==[e.emperorId,e.targetId].join('|')||!e.identities||!e.consent||!(activeStages.has(e.stage)||['cancelled','declined','completed'].includes(e.stage)))){loadError='invalid-saved-state';return false;}
+  if(events.some(e=>!validId(e.emperorId)||!validId(e.targetId)||e.emperorId===e.targetId||!Number.isSafeInteger(e.serial)||e.serial<1||e.serial>=state.nextSerial||e.id!==`${prefix}:${encodeURIComponent(e.emperorId)}:${encodeURIComponent(e.targetId)}:${e.serial}`||!Array.isArray(e.participants)||e.participants.join('|')!==[e.emperorId,e.targetId].join('|')||!e.identities||!e.consent||!(activeStages.has(e.stage)||['cancelled','declined','completed'].includes(e.stage)))){loadError='invalid-saved-state';return false;}
   for(const [id,p] of Object.entries(state.people)){
    if(!validId(id)||!p||['relations','opinions','trust'].some(key=>!p[key]||Object.entries(p[key]).some(([target,value])=>!validId(target)||!finite(value)||value< -1||value>1))||!p.interactions||Object.entries(p.interactions).some(([target,m])=>!validId(target)||!Number.isSafeInteger(m?.completedCount)||m.completedCount<0||!finite(m.trust)||m.trust< -1||m.trust>1)){loadError='invalid-saved-state';return false;}
   }
@@ -251,11 +255,11 @@ export function createPalaceCompanionship({
   if(data.active){if(!activeStages.has(data.active.stage)){loadError='invalid-saved-state';data=fresh();return false;}settle('cancelled','restore-interrupted');}
   return true;
  }
- function pose(actor){const id=idOf(actor),event=data.active;if(!event||!['travelling','together'].includes(event.stage)||!event.participants.includes(id))return null;const other=roster().find(a=>idOf(a)===event.participants.find(x=>x!==id));return {walking:event.stage==='travelling'&&actor?.walking===true,target:other?.root?.position||null,label:labels[event.stage]};}
+ function pose(actor){const id=idOf(actor),event=data.active;if(!event||!['travelling','together'].includes(event.stage)||!event.participants.includes(id))return null;const other=roster().find(a=>idOf(a)===event.participants.find(x=>x!==id));return {walking:event.stage==='travelling'&&actor?.walking===true,target:other?.root?.position||null,label:eventLabels[event.stage]};}
  restore(saved);
  return {update,snapshot,restore,status,history:()=>copy(data.history),select,request,respond,cancel,withdraw,candidates,project,pose,
   owns:actor=>!!data.active&&['travelling','together'].includes(data.active.stage)&&data.active.participants.includes(idOf(actor)),
   get loadError(){return loadError;},get saveBlocked(){return saveBlocked;},
-  dispose(){if(data.active)cancel('region-unloaded');else{release('region-unloaded');persist();}disposed=true;},
+  dispose(){if(loadError){release('region-unloaded');disposed=true;return;}if(data.active)cancel('region-unloaded');else{release('region-unloaded');persist();}disposed=true;},
  };
 }

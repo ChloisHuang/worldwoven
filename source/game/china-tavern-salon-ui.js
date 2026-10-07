@@ -44,10 +44,10 @@ export function createChinaTavernSalonUI({service,getPlayer,onOpen=()=>{},docume
   p.kicker=el('p',null,'cn-salon-kicker');p.title=el('h3');p.choices=el('div',null,'cn-salon-activities');p.preference=el('p',null,'cn-salon-note');p.balance=el('p',null,'cn-salon-error');
   const amount=el('div',null,'cn-salon-price');p.fee=el('strong');p.payment=el('span');amount.append(p.fee,p.payment);p.terms=el('p',null,'cn-salon-note');p.consent=el('p',null,'cn-salon-note');p.error=el('p',null,'cn-salon-error');p.error.setAttribute('role','alert');
   p.retry=button('重试核对铜钱',()=>{service.recoverPayments();refresh(true);});p.retry.className='cn-salon-recover';p.retry.setAttribute('data-cn-salon-focus','recover');
-  p.detail.append(p.kicker,p.title);if(mode==='pick')p.detail.append(p.choices,p.preference);p.detail.append(p.balance,amount,p.terms,p.consent,p.error,p.retry);
+  p.detail.append(p.kicker,p.title);if(mode==='pick')p.detail.append(p.choices,p.preference);p.detail.append(p.balance,amount,p.terms,p.consent,p.error,p.retry);p.personal=el('section',null,'cn-salon-personal');p.personalKey=null;p.detail.append(p.personal);
  }
  function refreshOverlay(s){
-  badge.hidden=!nearFloor()&&!s.active;text(badge,s.active?`云来雅集 · ${s.label}`:'云来青楼 · 雅集接待');fade.hidden=!s.fade;
+  const invited=s.privateInvitation?.participants?.includes('player');badge.hidden=!nearFloor()&&!s.active&&!invited;text(badge,invited?'云来雅集 · 答复私人邀约':s.active?`云来雅集 · ${s.label}`:'云来青楼 · 雅集接待');fade.hidden=!s.fade;text(fade,s.serviceContent||'茶香渐起，你们聊起了各自的见闻');
  }
  function refresh(force=false){
   if(disposed)return;
@@ -64,8 +64,8 @@ export function createChinaTavernSalonUI({service,getPlayer,onOpen=()=>{},docume
   if(!activities.some(a=>a.id===selectedActivity))selectedActivity=activities[0]?.id||null;
   const activity=activities.find(a=>a.id===selectedActivity),artist=o?candidates.find(c=>c.id===o.actorId):selected,fee=o?.fee??activity?.fee??0;
   // Observe displayed/decision fields, never route progress or background clocks.
-  const key=JSON.stringify([o&&[o.id,o.actorId,o.activity,o.fee,o.stage,o.payment,o.roomId],s.label,s.returning,s.receptionAvailable,s.receptionLabel,s.lastReply&&[s.lastReply.actorId,s.lastReply.name,s.lastReply.reply,s.lastReply.roomUnavailable,s.lastReply.willing],(s.rooms||[]).map(r=>[r.id,r.name,r.claim?.status,!!r.physicallyOccupied]),candidates.map(c=>[c.id,c.name,c.ageYears,c.gender,c.specialty,c.preference,c.available,c.status,c.activities.map(a=>[a.id,a.name,a.fee])]),s.cash,s.paymentError,atReception,selectedArtist,selectedActivity]);
-  refreshOverlay({active:!!o,label:s.label,fade:s.fade});
+  const key=JSON.stringify([o&&[o.id,o.actorId,o.activity,o.fee,o.stage,o.payment,o.roomId],s.label,s.returning,s.receptionAvailable,s.receptionLabel,s.lastReply&&[s.lastReply.actorId,s.lastReply.name,s.lastReply.reply,s.lastReply.roomUnavailable,s.lastReply.willing],(s.rooms||[]).map(r=>[r.id,r.name,r.claim?.status,!!r.physicallyOccupied]),candidates.map(c=>[c.id,c.name,c.ageYears,c.gender,c.specialty,c.preference,c.available,c.status,c.activities.map(a=>[a.id,a.name,a.fee])]),s.cash,s.paymentError,s.privateInvitation,s.privateCandidates,candidates.map(c=>[c.id,c.story,c.contract,c.canDiscuss]),atReception,selectedArtist,selectedActivity]);
+  refreshOverlay({active:!!o,label:s.label,fade:s.fade,serviceContent:o?.serviceContent,privateInvitation:s.privateInvitation});
   if(!force&&signature===key)return;signature=key;
   if(!panel)panel=makePanel();const p=panel,focused=doc.activeElement?.getAttribute?.('data-cn-salon-focus');
   const scrolls=[dialog,p.body,p.cast,p.detail].map(node=>[node,node.scrollTop,node.scrollLeft]);let structural=false;
@@ -79,10 +79,11 @@ export function createChinaTavernSalonUI({service,getPlayer,onOpen=()=>{},docume
    if(!atReception)text(p.note,'请到三层公共梯厅东侧接待案前');else if(s.receptionAvailable===false)text(p.note,s.receptionLabel||'接待本人暂未在案');else if(s.npcSession)text(p.note,`${s.npcSession.customerName}已预约${s.npcSession.artistName} · ${s.npcSession.payment==='settled'?'已结清':s.npcSession.payment==='reserved'?'本人款已预留':'尚未收费'}`);else if(selected&&!selected.available)text(p.note,selected.status||'艺者正在歇场或已有安排');
   }else{
    text(p.currentKicker,o.payment==='unpaid'?'引见与答复':'本次安排');text(p.currentTitle,`${artist?.name||s.lastReply?.name||'艺者'} · ${SALON_ACTIVITIES[o.activity]?.name||'茶叙'}`);text(p.progress,s.label);
-   optional(p.sessionReply,s.lastReply?.actorId===o.actorId?s.lastReply.reply:'');optional(p.roomNote,o.roomId?`${s.rooms.find(r=>r.id===o.roomId)?.name||'雅间'} · ${['fade','visiting'].includes(o.stage)?'已到房':'已留房，等客人到房'}`:'');text(p.kicker,'本次价目');text(p.title,SALON_ACTIVITIES[o.activity]?.name||'茶叙');
+   optional(p.sessionReply,[s.lastReply?.actorId===o.actorId?s.lastReply.reply:'',o.serviceContent].filter(Boolean).join('\n')); optional(p.roomNote,o.roomId?`${s.rooms.find(r=>r.id===o.roomId)?.name||'雅间'} · ${['fade','visiting'].includes(o.stage)?'已到房':'已留房，等客人到房'}`:'');text(p.kicker,'本次价目');text(p.title,SALON_ACTIVITIES[o.activity]?.name||'茶叙');
   }
   optional(p.balance,o?.stage==='accepted'&&s.cash<fee?`余额不足 · 还差 ${fee-s.cash} 文，尚未扣款`:'');text(p.fee,fee);text(p.payment,`铜文 · ${o?.payment==='settled'?'已结清':o?.payment==='reserved'?'已预留':'答应后确认预留'}`);text(p.terms,o?.payment==='settled'?'茶叙已完成，告辞不退款。':'到房茶叙完成才结账，此前取消全退。');optional(p.consent,o?'付费不替代本人意愿。':'');
   structural=syncList(p.roomList,p.rooms,s.rooms||[],()=>({node:el('span')}),(row,r)=>text(row.node,`${r.name} · ${r.claim?(r.claim.status==='occupied'?'茶叙中':'已留房'):r.physicallyOccupied?'有人暂歇':'空闲'}`))||structural;
+  refreshPersonal(p,selected,s,o);
   optional(p.error,s.paymentError?'铜钱退款或账目待核对，暂缓新引见。':'');p.retry.hidden=!s.paymentError;
   // A changed action gets a new control; detached/stale controls cannot submit.
   const actionKey=JSON.stringify(o?[o.id,o.stage,o.payment,fee]:[selectedArtist,selectedActivity,fee]);
@@ -104,7 +105,32 @@ export function createChinaTavernSalonUI({service,getPlayer,onOpen=()=>{},docume
   // availability updates leave focused cards and active scroll gestures alone.
   if(structural){if(focused&&!dialog.contains(doc.activeElement)){const controls=Array.from(dialog.querySelectorAll('[data-cn-salon-focus]')),target=controls.find(node=>node.getAttribute('data-cn-salon-focus')===focused)||controls.find(node=>node.getAttribute('data-cn-salon-focus')==='artist-'+selectedArtist)||controls.find(node=>node.getAttribute('data-cn-salon-focus')==='close');target?.focus({preventScroll:true});}for(const [node,top,left]of scrolls){if(node.scrollTop!==top)node.scrollTop=top;if(node.scrollLeft!==left)node.scrollLeft=left;}}
  }
- function open(){if(disposed||(!nearFloor()&&!service.active()))return false;if(dialog.open){refresh();return true;}if(!service.active())service.recoverPayments();onOpen();panel=null;signature='';refresh(true);dialog.showModal();return true;}
+ function refreshPersonal(p,selected,s,session){
+  const invitation=s.privateInvitation?.participants?.includes('player')?s.privateInvitation:null;
+  const key=JSON.stringify([selected?.id,selected?.story,selected?.contract,selected?.canDiscuss,invitation,s.privateCandidates,!!session]);if(p.personalKey===key)return;p.personalKey=key;p.personal.replaceChildren();
+  if(invitation){p.personal.append(el('h3','私人相伴 · 单独确认'),el('p',invitation.label));
+   if(['summoned','awaiting-response'].includes(invitation.stage)&&invitation.consent.player!==true){p.personal.append(button('我愿意这次相伴',()=>{if(service.respondPrivate(invitation.id,true))close();else refresh(true);}),button('谢绝这次相伴',()=>{service.respondPrivate(invitation.id,false);refresh(true);}));}
+   p.personal.append(button('撤回私人邀约',()=>{service.cancelPrivate(invitation.id);refresh(true);}));
+  }
+  if(session||!selected)return;
+  const story=selected.story,contract=selected.contract,discuss=selected.canDiscuss===true;
+  const action=(label,callback,remote=false)=>{const b=button(label,()=>{callback();refresh(true);});b.disabled=!remote&&!discuss;p.personal.append(b);return b;};
+  if(story){p.personal.append(el('h3',story.title||'本人的故事'),el('p',story.error?'故事记录待核对，暂不能继续。':story.offer?.text||story.need||story.lastOutcome||'与本人相处，后续故事随实际经历展开。'));
+   if(story.profile)p.personal.append(el('p',`已完成 ${story.profile.completedServices||0} 场 · 实际好评 ${story.profile.positiveReviews||0} 次；报价随练习、口碑与现行内容变化。`,'cn-salon-note'));
+   if(story.profile?.serviceContent)p.personal.append(el('p','现行内容：'+story.profile.serviceContent,'cn-salon-note'));
+   for(const choice of story.offer?.choices||[])action(choice.label,()=>service.chooseStory(selected.id,choice.id,story.offer.id));
+  }
+  if(contract){p.personal.append(el('h3','自愿合作与独立接单'),el('p','解除合作 0 文：没有已记录的身契或旧债，无需赎买本人。原收入归本人；结束合作不会成为任何人的伴侣。','cn-salon-note'));
+   if(contract.lastReply)p.personal.append(el('p',typeof contract.lastReply==='string'?contract.lastReply:contract.lastReply.reply||''));
+   if(contract.status==='pending'){action('听本人当面答复',()=>service.contractAction(selected.id,'reply',contract.revision));action('撤回解约协助',()=>service.contractAction(selected.id,'cancel',contract.revision),true);}
+   else if(contract.status==='accepted'){action('确认免费解除合作',()=>service.contractAction(selected.id,'confirm',contract.revision));action('暂不办理',()=>service.contractAction(selected.id,'cancel',contract.revision),true);}
+   else if(contract.mode==='independent'){p.personal.append(el('p',contract.canInvite?'本人愿意承接自由委托':'本人正在自主休整，暂停新委托'));action(contract.canInvite?'询问是否暂停接单':'询问是否恢复自由接单',()=>service.contractAction(selected.id,contract.canInvite?'pause':'resume',contract.revision));}
+   else action('询问本人是否想结束合作',()=>service.contractAction(selected.id,'request',contract.revision));
+  }
+  if(!invitation){const b=action('询问今夜是否愿意私下相伴',()=>{if(service.invitePrivate(selected.id))close();});b.disabled=!discuss;p.personal.append(el('p','先有双方明确好感与合法客房使用权，再分别答复。服务付款、解约都不代替这次同意。','cn-salon-note'));}
+  if(!discuss)p.personal.append(el('p','故事与合作请走到本人身旁，等其空闲后当面谈。','cn-salon-note'));
+ }
+ function open(){if(disposed||(!nearFloor()&&!service.active()&&!service.displayState?.().privateInvitation?.participants?.includes('player')))return false;if(dialog.open){refresh();return true;}if(!service.active())service.recoverPayments();onOpen();panel=null;signature='';refresh(true);dialog.showModal();return true;}
  badge.onclick=open;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
  return {open,close,isOpen:()=>!!dialog.open,openStation:id=>id===SALON_RECEPTION?open():false,update:()=>{if(!disposed)refresh();},dispose(){disposed=true;close();badge.remove();dialog.remove();fade.remove();style.remove();}};
 }

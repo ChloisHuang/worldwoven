@@ -129,7 +129,7 @@ export function createChinaSalonEconomy({saved,copperLedger,officialEconomy=null
  return {
   mealFundsProvider:()=>mealProvider,
   prepareMealPayment:input=>prepareMeal(input,'meal-payment'),prepareMealRefund:input=>prepareMeal(input,'meal-refund'),
-  get loadError(){return loadError;},policy:()=>copy(policy),
+  get revision(){return current.revision;},get loadError(){return loadError;},policy:()=>copy(policy),
   account:id=>!loadError&&SALON_ARTIST_IDS.includes(id)?{...current.accounts[id]}:null,
   summary:()=>({grossRevenue:current.grossRevenue,performerPaid:current.performerPaid,businessProceeds:loadError?null:current.businessProceeds,loadError}),
   snapshot:()=>copy(current),

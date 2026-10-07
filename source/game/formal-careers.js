@@ -1,6 +1,6 @@
 import {getChinaRecordsCareerRank} from './china-official-ranks.js';
 import {CLERK_ENTRY_RANK, CLERK_NEXT_RANK, emptyOfficialCareer, officialTenureId, officialRankId, recordOfficialAppointment, recordOfficialService, closeOfficialAppointment, officialPromotionSummary, restoreOfficialCareer} from './official-career-progress.js';
-import {SALON_POET_ROLE} from './china-salon-career-role.js';
+import {SALON_ARTIST_ROLES} from './china-salon-career-role.js';
 import {ROYAL_KITCHEN_ROLE,ROYAL_KITCHEN_CHEF_DAYS,ROYAL_KITCHEN_CUSTOMERS,validTavernChefServiceReceipt,validRoyalKitchenServiceReceipt,sameKitchenReceipt} from './china-royal-kitchen-role.js';
 export {ROYAL_KITCHEN_ROLE} from './china-royal-kitchen-role.js';
 import {CLINIC_PHYSICIAN_ROLE} from './china-clinic-career-role.js';
@@ -74,7 +74,7 @@ export const PALACE_GUARD_ROLE = Object.freeze({id:'cn-palace-guard',name:'锦�
   supervisorId:'cn-range-warden',incumbentId:'cn-archery',incumbentName:'沈砚',vacancyKind:'exclusive',workSource:'cn-guard-labor',wage:24,minimumAgeYears:18,
   skillRequirements:Object.freeze({martial:1,ritual:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:0,
   duties:'06:00–18:00主动接班；沿门廊、殿阶及东西巷逐点巡查驻察，回圃当面交班；持续轮巡按实际巡行与驻察工时计薪。武艺须在射圃完成受控习射，陆衡继续照看射场'});
-export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE,PHARMACY_ASSISTANT_ROLE,TEA_SERVER_ROLE,TEA_PASTRY_ROLE,PALACE_GUARD_ROLE,SALON_POET_ROLE,CLINIC_PHYSICIAN_ROLE,ROYAL_KITCHEN_ROLE,JAPAN_RECEPTION_ROLE,...Object.values(JAPAN_BATH_DELIVERY_ROLES),JAPAN_BATH_MIXING_ROLE,JAPAN_KITCHEN_ROLE,JAPAN_TABLE_SERVICE_ROLE,EGYPT_KITCHEN_ROLE,EGYPT_TABLE_SERVICE_ROLE]);
+export const FORMAL_CAREER_ROLES = Object.freeze([COURT_CLERK_ROLE,TAVERN_STEWARD_ROLE,GARDEN_ASSISTANT_ROLE,TAVERN_CHEF_ROLE,PHARMACY_ASSISTANT_ROLE,TEA_SERVER_ROLE,TEA_PASTRY_ROLE,PALACE_GUARD_ROLE,...SALON_ARTIST_ROLES,CLINIC_PHYSICIAN_ROLE,ROYAL_KITCHEN_ROLE,JAPAN_RECEPTION_ROLE,...Object.values(JAPAN_BATH_DELIVERY_ROLES),JAPAN_BATH_MIXING_ROLE,JAPAN_KITCHEN_ROLE,JAPAN_TABLE_SERVICE_ROLE,EGYPT_KITCHEN_ROLE,EGYPT_TABLE_SERVICE_ROLE]);
 export const FORMAL_CAREER_SLOTS = Object.freeze([
   ...FORMAL_CAREER_ROLES.map(role => Object.freeze({id:role.slotId,roleId:role.id,holderId:role.incumbentId||null,...(role.vacancyKind==='rotation'?{rotation:true}:role.vacancyKind==='exclusive'?{replacement:true}:{})})),
 ]);
