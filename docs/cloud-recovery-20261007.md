@@ -9,3 +9,7 @@ The replacement cloud workspace does not contain the previous worktrees. Publish
 - Four-region teller careers: local candidate commits were not pushed. Regional main-scene completion tests were still pending.
 
 No unverified candidate is approved for release. Preserve the existing public site and private repository audience.
+
+## Authentication recovery
+
+2026-10-07: owner completed GitHub CLI device authorization on the replacement dot cloud computer. Original HTTPS helper recovery script passed. New desktop-terminal access verified before this commit. No credentials are included in this repository.
