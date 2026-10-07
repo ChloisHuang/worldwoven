@@ -5,6 +5,7 @@ mkdir -p qa
 exec 9>/workspace/shared/worldwoven-heavy-scene.lock
 flock -n 9 || { echo 'Another Worldwoven heavy-scene probe is running' >&2; exit 75; }
 export WORLDWOVEN_GUARDED=1
+export TELLER_PROFILE="${TELLER_PROFILE:-1}"
 export PROBE_STAGE="${1:-unit}"
 if [[ "$PROBE_STAGE" == init ]]; then unset SOCIAL_RESUME TELLER_RESUME; fi
 if [[ "$PROBE_STAGE" == run ]]; then

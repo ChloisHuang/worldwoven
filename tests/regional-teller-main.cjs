@@ -4,6 +4,7 @@
 // Simulated DOM, not browser/WebGL or iOS evidence. Run countries serially.
 const fs = require('node:fs'), path = require('node:path'), vm = require('node:vm');
 if(process.env.WORLDWOVEN_GUARDED!=='1')throw new Error('Use development/heavy-probes/run-bounded.sh for the shared lock and resource limits');
+const loadProfiler=require('../development/heavy-probes/profile-load.cjs');
 let harness = require('../development/heavy-probes/bounded-dom.cjs')(fs.readFileSync(path.join(__dirname, 'fixtures/hotfix-input-harness.cjs'), 'utf8'));
 function once(a, b) {
   if (!harness.includes(a) || harness.indexOf(a) !== harness.lastIndexOf(a)) throw Error('Harness seam changed: ' + a);
@@ -15,7 +16,8 @@ export function tellerStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceW
 export function tellerNextDay(){const target=simulationClock.state().seconds+1440/.7;while(simulationClock.state().seconds<target)simulationClock.advance(.25);formalCareers.observeDay();}
 export {requestStationIntent,resolvePlayerIntent,executeNearbyAction,navigateTo,cancelAction,currentControl,requestFurniture,save,planPath,blocked};`;
 once("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),", "new vm.SourceTextModule(fs.readFileSync(file,'utf8')+(file.endsWith('/game/main.js')?" + JSON.stringify(extra) + ":''),");
-once('vm.createContext({console,', 'vm.createContext({structuredClone,URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,console,');
+once('vm.createContext({console,', 'vm.createContext({__tellerMeasure,structuredClone,URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,console,');
+once('await main.link(linker);await main.evaluate();',"await __tellerAsyncMeasure('main-link',()=>main.link(linker));await __tellerAsyncMeasure('main-evaluate',()=>main.evaluate());");
 once('{identifier:file,context}', '{identifier:file,context,initializeImportMeta:meta=>{meta.url=require("node:url").pathToFileURL(file).href;}}');
 once("const document={body:new E('body'),", "const document={head:new E('head'),body:new E('body'),");
 once('add(...e){this.append(...e)}', "prepend(...els){for(const e of els.reverse()){e.remove?.();e.parent=this;this.children.unshift(e);}}querySelectorAll(selector){return this.children.flatMap(e=>[e,...(e.querySelectorAll?.('*')||[])]).filter(e=>selector==='*'||selector.startsWith('.')&&e.className?.split(' ').includes(selector.slice(1)));}get textContent(){return (this._text||'')+this.children.map(e=>e.textContent||'').join('');}set textContent(v){this._text=String(v);this.replaceChildren();}add(...e){this.append(...e)}");
@@ -132,4 +134,4 @@ assert(main.namespace.requestStationIntent(svc.intent('end-shift')));until(()=>!
 main.namespace.save();fs.writeFileSync('/tmp/regional-teller-'+country+'-complete.json',storage['worlds-days-v1']);
 console.log('PASS',country,roleId,'four currency actual audit, one '+currency+' bank8, source unchanged, local explicit handoff',(Date.now()-started)/1000);
 })().catch(e=>{console.error(e);process.exit(1)});`;
-new vm.Script(harness,{filename:'tests/regional-teller-main-inherited.cjs'}).runInNewContext({structuredClone,URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,require,console,process,Buffer,__dirname:path.resolve('tests'),__filename});
+new vm.Script(harness,{filename:'tests/regional-teller-main-inherited.cjs'}).runInNewContext({__tellerProfileSource:loadProfiler.source,__tellerMeasure:loadProfiler.measure,__tellerAsyncMeasure:loadProfiler.asyncMeasure,structuredClone,URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,require,console,process,Buffer,__dirname:path.resolve('tests'),__filename});
