@@ -27,10 +27,14 @@ export function chooseNearbyInteraction(candidates,position,clear){
 
 // The HUD and chooser share this one spatial pass. Service actions at the same
 // counter share its visibility result; furniture retains its own marker test.
-export function nearbyInteractions(candidates,position,clear=()=>true){
+export function nearbyInteractions(candidates,position,clear=()=>true,{previous=null,hysteresis=.22}={}){
  const visibility=new Map(),seen=new Set(),near=[];
  for(const candidate of candidates){
-  if(!candidate||!position||!nearbyInteraction(candidate,position))continue;
+  if(!candidate||!position)continue;
+  const radius=candidate.interactionRadius??2.8,known=previous?.has(interactionIdentity(candidate));
+  // Acquire slightly inside the legal boundary; retain only while still legal.
+  // Never cache an absent provider, obsolete intent, wall, or different floor.
+  if(!nearbyInteraction(candidate,position,{radius:previous&&!known?Math.max(.1,radius-hysteresis):radius}))continue;
   const identity=interactionIdentity(candidate);if(seen.has(identity))continue;
   const key=candidate.furniture?'furniture:'+candidate.id:candidate.position.join(':');
   if(!candidate.visibilityChecked){if(!visibility.has(key))visibility.set(key,clear(candidate));if(!visibility.get(key))continue;}
@@ -46,11 +50,23 @@ export function uniqueInteractionActions(candidates){const seen=new Set();return
 
 export function interactionIdentity(item){return [item?.provider||'',item?.social?'social':'',item?.id||'',item?.intentKey??''].join('|');}
 
+export function interactionCategory(item){
+ if(item?.social)return '与对方交谈';
+ if(item?.contextControl||item?.continuation)return '当前事项';
+ const text=[item?.provider,item?.menuId,item?.kind,item?.action].join(' ');
+ if(/property|产权|购房|置业/.test(text))return '房屋与产权';
+ if(/employment|career|labor|职位|工作|登记|晋升|工钱|班次/.test(text))return '工作与办理';
+ if(/meal|dining|sushi|ramen|tea|点餐|食单|饭|餐|下午茶/.test(text))return '餐饮与招待';
+ if(/lodging|住宿|入住|客房/.test(text))return '住宿与休息';
+ if(/study|书目|习字|练习|阅读/.test(text))return '学习与体验';
+ return '就地事项';
+}
 export function interactionIcon(item){
  if(item?.icon)return item.icon;
  if(item?.social)return 'chat';
  if(item?.furniture&&item.kind==='seat')return 'chair';
- return 'hand';
+ const group=interactionCategory(item);
+ return ({'房屋与产权':'home','工作与办理':'document','餐饮与招待':'meal','住宿与休息':'bed','学习与体验':'book','当前事项':'clock'})[group]||'hand';
 }
 
 export function groupInteractions(candidates){

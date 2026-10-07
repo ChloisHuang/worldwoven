@@ -201,3 +201,30 @@ body dialog.context-action-menu{inset:auto var(--ww-ui-right,12px) calc(var(--ww
 .object-action-popover .context-action-list{padding:0}
 
 .object-action-icon:active{transform:translate(-50%,-50%)}
+
+/* Readable, object-owned interaction prompts. Stable selection is explicit. */
+.object-action-icon{width:184px;height:48px;display:flex;gap:8px;justify-content:flex-start;padding:6px 10px;border:1px solid #d3e2d6;border-radius:7px;background:#f6f8efed;color:#365c65;filter:none;box-shadow:0 2px 8px #233e4220;text-align:left;font-family:inherit}
+.object-target-symbol{display:grid;place-items:center;flex:none;width:24px}
+.object-target-symbol svg{width:24px;height:24px}
+.object-target-copy{display:flex;flex-direction:column;min-width:0;gap:2px;line-height:1.25}
+.object-target-copy strong{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.object-target-copy>span{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.object-action-icon[data-selected="true"]{border-color:#68988d;box-shadow:inset 3px 0 #68988d,0 2px 8px #233e4220}
+.object-action-icon[data-selected="true"]:after{content:'E';position:absolute;right:-7px;top:-7px;min-width:17px;height:17px;border-radius:3px;background:#52796e;color:#fff;text-align:center;font:11px/17px sans-serif}
+.object-action-copy{display:flex;flex-direction:column;min-width:0;gap:3px}
+.object-action-copy small{font-size:11px;color:#71878a;line-height:1.4}
+.object-action-popover .context-action-group h3{font-size:11px;margin:9px 6px 3px;color:#71878a}
+.object-action-popover .context-action-row{padding:9px 7px;min-height:46px}
+.object-action-popover .context-action-group{display:block}
+@media(pointer:coarse){.object-action-icon[data-selected="true"]:after{content:'›'}}
+
+.object-action-icon[data-choice-count]:not([data-choice-count=""]) .object-target-copy{padding-right:23px}
+.object-action-icon[data-choice-count]:not([data-choice-count=""]):before{content:attr(data-choice-count);position:absolute;right:7px;bottom:7px;color:#52796e;font:10px/15px sans-serif}
+
+.object-action-icon[data-selected="true"][data-input-mode="gamepad"]:after{content:'A'}
+
+/* While choosing, keep the world and target visible and give the action list
+   the short landscape height. Only unrelated HUD chrome is hidden. */
+body[data-object-menu="open"] .topbar,body[data-object-menu="open"] .lot-top,body[data-object-menu="open"] .character-card,body[data-object-menu="open"] .camera-tools,body[data-object-menu="open"] .movement-hint,body[data-object-menu="open"] .joystick,body[data-object-menu="open"] .career-wallet-slot{display:none!important}
+.object-action-popover .context-action-group h3{line-height:14px;margin:6px 6px 2px}
+.object-action-popover .context-action-row{min-height:44px;padding:8px 7px}

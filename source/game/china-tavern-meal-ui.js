@@ -1,6 +1,6 @@
 import {tavernSeatSide,tavernTablePlace} from './china-tavern-layout.js';
 import {currentInteractionIntent,nearbyInteraction} from './player-interaction-intents.js';
-import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
+import {AIRY_PANEL_STYLE,createAiryPanelParts,preserveAiryPanelView} from './airy-panel.js';
 import {AIRY_UI_THEME} from './china-money-house-theme.js';
 
 export function createChinaTavernMealUI({service,getPlayer,getMounted,getReception=()=>null,onIntent,onMountSeat,onStand,onOpen,canChooseSeat=()=>true,canOrder=()=>true,canSee=()=>true,canShow=()=>true,document:doc=globalThis.document}){
@@ -51,7 +51,7 @@ export function createChinaTavernMealUI({service,getPlayer,getMounted,getRecepti
   badge.hidden=!near||!canShow();badge.textContent=o?`云来酒楼 · ${o.cancelled?'正在收拾餐具':s.label}`:seated?'云来酒楼 · 招呼许安点菜':'云来酒楼 · 选座点菜';
   if(dialog.open&&!near&&!o){close();return;}if(!dialog.open&&!force)return;
   const key=[o?.id,o?.stage,o?.cancelled,mounted?.id,available,chosenDish,chosenSeat,cash,...service.seats.map(seat=>canChooseSeat(seat))].join('|');if(!force&&key===signature)return;signature=key;invalidateIntent();
-  const focused=doc.activeElement?.getAttribute?.('data-cn-meal-focus');dialog.replaceChildren();
+  const focused=doc.activeElement?.getAttribute?.('data-cn-meal-focus');const restoreView=preserveAiryPanelView(dialog,doc);dialog.replaceChildren();
   const x=button('×',close);x.className='cn-meal-close';x.setAttribute('aria-label','关闭酒楼菜牌');
   const {header,body,actions}=createAiryPanelParts(doc);header.className+=' cn-meal-heading';body.className+=' cn-meal-content';actions.className+=' cn-meal-actions';
   header.append(make('h2','云来酒楼 · 食单'),make('span',cash==null?'钱包记录待核对':`随身 ${cash} 铜文`));
@@ -77,7 +77,7 @@ export function createChinaTavernMealUI({service,getPlayer,getMounted,getRecepti
   else actions.append(button(o.cancelled?'收起 · 等候收餐':o.stage==='eating'?'收起 · 继续用餐':'收起 · 继续等候',close,true));
   if(o&&!o.cancelled&&!['clear-table','lifting','return','washing','wash','dirty','finish-bite'].includes(o.stage))actions.append(button(settled?'请收走餐点 · 不退费':'取消点餐 · 送达前退款',()=>{if(service.view().order?.id===o.id&&service.cancel())close();else refresh(true);}));
   body.append(menu,detail);dialog.append(x,header,body,actions);
-  if(focused)Array.from(dialog.querySelectorAll?.('[data-cn-meal-focus]')||[]).find(e=>e.getAttribute('data-cn-meal-focus')===focused)?.focus({preventScroll:true});
+  if(focused)Array.from(dialog.querySelectorAll?.('[data-cn-meal-focus]')||[]).find(e=>e.getAttribute('data-cn-meal-focus')===focused)?.focus({preventScroll:true});restoreView();
  }
  function open(){if(disposed||!nearEntry()&&!service.view().order)return;invalidateIntent();onOpen();refresh(true);if(!dialog.open)dialog.showModal();refresh(true);}
  badge.onclick=()=>{if(!disposed&&nearEntry()&&canShow())open();};dialog.addEventListener('cancel',e=>{e.preventDefault();close();});refresh();

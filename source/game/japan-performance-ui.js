@@ -1,5 +1,5 @@
 import {JAPAN_SERVICE_CURRENCY,japanServiceMoney} from './japan-service-payment.js';
-import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
+import {AIRY_PANEL_STYLE,createAiryPanelParts,preserveAiryPanelView} from './airy-panel.js';
 import {AIRY_UI_THEME} from './china-money-house-theme.js';
 const RECEPTION_ID='jp-performance-reception';
 const STAGES={invited:'艺者正在考虑邀请',reply:'听取艺者本人的答复',accepted:'艺者已答应，请核对价目',seating:'席位已留好，请及时入座',performing:'表演或清谈进行中',drinking:'茶酒已上席，正在共饮',returning:'本次会面结束，艺者正在回席','refund-pending':'未提供部分退款待核对'};
@@ -43,7 +43,7 @@ export function createJapanPerformanceUI({service,getPlayer,onOpen=()=>{},onFurn
   const key=JSON.stringify([o&&[o.id,o.artistId,o.activity,o.drink,o.status,o.currency,o.actFee,o.drinkFee,o.fee,o.paid,o.actComplete,o.drinkComplete],s.label,s.lastReply,candidates,s.drinks,s.currency,s.cash,s.paymentError,atReception,selectedDrink,selectedArtist,selectedActivity]);
   if(!force&&key===signature)return;signature=key;generation++;
   const focused=doc.activeElement?.dataset?.jpPerformanceFocus,scrolls=[...dialog.querySelectorAll('.jp-performance-cast,.jp-performance-detail')].map(e=>e.scrollTop);
-  dialog.replaceChildren();
+  const restoreView=preserveAiryPanelView(dialog,doc);dialog.replaceChildren();
   const x=button('×',close);x.className='jp-performance-close';x.setAttribute('aria-label','收起接待簿');x.dataset.jpPerformanceFocus='close';
   const {header,body,actions}=createAiryPanelParts(doc);header.className+=' jp-performance-heading';body.className+=' jp-performance-content';actions.className+=' jp-performance-actions';
   header.append(make('h2','三层戏馆 · 演艺茶席'),make('span',`${money.label} · 随身 ${amount(s.cash)} ${unit}`));
@@ -92,7 +92,7 @@ export function createJapanPerformanceUI({service,getPlayer,onOpen=()=>{},onFurn
   }
   if(s.paymentError){const error=make('p','钱款账目待核对，暂不能预留新费用。','jp-performance-error');error.setAttribute('role','alert');detail.append(error);const retry=button('重试核对钱款',()=>{service.recoverPayments();refresh(true);});retry.className='jp-performance-recover';detail.append(retry);}
   body.append(cast,detail);dialog.append(x,header,body,actions);
-  if(focused){const target=[...dialog.querySelectorAll('[data-jp-performance-focus]')].find(e=>e.dataset.jpPerformanceFocus===focused);target?.focus({preventScroll:true});}[cast,detail].forEach((e,i)=>{e.scrollTop=scrolls[i]||0;});
+  if(focused){const target=[...dialog.querySelectorAll('[data-jp-performance-focus]')].find(e=>e.dataset.jpPerformanceFocus===focused);target?.focus({preventScroll:true});}[cast,detail].forEach((e,i)=>{e.scrollTop=scrolls[i]||0;});restoreView();
  }
 
  function open(){if(disposed||(!nearFloor()&&!service.active()))return false;if(!service.active())service.recoverPayments();onOpen();refresh(true);if(!dialog.open)dialog.showModal();refresh(true);return true;}

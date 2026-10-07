@@ -29,7 +29,7 @@ class Element {
 const anchor=(id,point=[0,0,0],extra={})=>({id,kind:'hand',point,...extra});
 const action=(id,target,extra={})=>({id,name:id,action:id,position:target.point||target.actor.root.position.toArray(),anchor:target,...extra});
 const actor=id=>({station:{id,npcName:id},root:new THREE.Object3D()});
-function harness({frame={left:24,top:32,right:776,bottom:568},hud=[],maxTargets=8}={}){
+function harness({frame={left:24,top:32,right:776,bottom:568},hud=[],maxTargets=8,getGamepads=()=>[]}={}){
  const doc={createElement:tag=>new Element(tag,doc),listeners:new Map()};
  doc.addEventListener=Element.prototype.addEventListener;doc.removeEventListener=Element.prototype.removeEventListener;doc.dispatch=Element.prototype.dispatch;
  doc.body=new Element('body',doc);doc.activeElement=doc.body;
@@ -42,13 +42,14 @@ function harness({frame={left:24,top:32,right:776,bottom:568},hud=[],maxTargets=
   point.project(camera);if(Math.abs(point.x)>=1||Math.abs(point.y)>=1||point.z<=-1||point.z>=1)return null;
   return {x:(point.x*.5+.5)*800,y:(-.5*point.y+.5)*600,visible:true,nameRect:target.nameRect};
  };
- const menu=createObjectActionMenu({button,root,document:doc,maxTargets,resolveAnchor:item=>item.anchor,projectAnchor,validate:(item,target)=>{validated.push({item,target});return allow&&!!projectAnchor(target,item)?.visible;},layout:{frame:()=>frame,rects:()=>hud},onSelect:item=>{selected.push(item);return true;},onOpen:()=>opens++,onClose:()=>closes++});
+ const menu=createObjectActionMenu({button,root,document:doc,maxTargets,getGamepads,resolveAnchor:item=>item.anchor,projectAnchor,validate:(item,target)=>{validated.push({item,target});return allow&&!!projectAnchor(target,item)?.visible;},layout:{frame:()=>frame,rects:()=>hud},onSelect:item=>{selected.push(item);return true;},onOpen:()=>opens++,onClose:()=>closes++});
  const layer=root.children[0],popover=layer.children[0],list=popover.children[1],controls=doc.body.children.find(el=>el.tagName==='dialog');
  const update=(items,options)=>{menu.update(items,options);menu.project();};
  return {menu,doc,button,layer,popover,list,controls,camera,player,selected,validated,frame,hud,update,setAllowed:value=>{allow=value;},counts:()=>({opens,closes})};
 }
-const rowIds=list=>list.children.map(row=>row.getAttribute('data-context-action'));
-const iconRect=record=>({left:parseFloat(record.button.style.left)-22,right:parseFloat(record.button.style.left)+22,top:parseFloat(record.button.style.top)-22,bottom:parseFloat(record.button.style.top)+22});
+const actionRows=list=>list.children.flatMap(child=>child.tagName==='section'?child.children.filter(row=>row.tagName==='button'):[child]);
+const rowIds=list=>actionRows(list).map(row=>row.getAttribute('data-context-action'));
+const iconRect=record=>record.projected.rect;
 const intersects=(a,b,gap=0)=>a.left<b.right+gap&&a.right>b.left-gap&&a.top<b.bottom+gap&&a.bottom>b.top-gap;
 const inFrame=(rect,frame)=>rect.left>=frame.left&&rect.right<=frame.right&&rect.top>=frame.top&&rect.bottom<=frame.bottom;
 
@@ -56,10 +57,10 @@ test('each object owns its actions and an actor combines only its service and so
  const h=harness(),host=actor('host'),hostTarget=anchor('actor:host',null,{kind:'chat',actor:host}),desk=anchor('desk',[-1.5,0,0]);
  const meal=action('meal',hostTarget,{provider:'service-menu',action:'点餐'}),chat=action('chat',hostTarget,{social:true,actor:host,action:'交谈'}),read=action('read',desk,{action:'阅读'});
  h.update([meal,read,chat]);assert.equal(h.menu.targets().length,2);assert(h.menu.targets().every(record=>!record.button.hidden));assert(h.button.hidden,'object actions never duplicate the bottom control button');
- assert(h.menu.activateTarget(hostTarget.id));assert(h.menu.isOpen());assert.equal(h.selected.length,0,'opening a chooser has no service side effects');
+ assert(h.menu.activateTarget(hostTarget.id));assert(h.menu.isOpen());assert.equal(h.doc.body.dataset.objectMenu,'open');assert.equal(h.selected.length,0,'opening a chooser has no service side effects');
  assert.deepEqual(rowIds(h.list),[interactionIdentity(meal),interactionIdentity(chat)]);assert.equal(h.popover.children[0].children[0].textContent,'host');assert(!rowIds(h.list).includes(interactionIdentity(read)));
  assert(h.menu.targets().every(record=>record.button.hidden),'an open chooser hides competing object icons');
- h.list.children[1].onclick();assert.deepEqual(h.selected,[chat]);assert.equal(h.selected[0].actor,host);assert(!h.menu.isOpen());h.menu.dispose();
+ actionRows(h.list)[1].onclick();assert.deepEqual(h.selected,[chat]);assert.equal(h.selected[0].actor,host);assert(!h.menu.isOpen());assert.equal(h.doc.body.dataset.objectMenu,'');h.menu.dispose();
 });
 
 test('one action selects directly, revalidates, and consumes repeated clicks',()=>{
@@ -71,18 +72,18 @@ test('one action selects directly, revalidates, and consumes repeated clicks',()
 
 test('movement and unchanged updates preserve chooser DOM, scroll, focus, and actor identity',()=>{
  const h=harness(),host=actor('walker'),target=anchor('actor:walker',null,{actor:host,kind:'chat'}),meal=action('meal',target),chat=action('chat',target,{social:true,actor:host});
- h.update([meal,chat]);h.menu.activateTarget(target.id);const record=h.menu.targets()[0],button=record.button,rows=[...h.list.children],rebuilds=h.list.rebuilds,startLeft=button.style.left;
+ h.update([meal,chat]);h.menu.activateTarget(target.id);const record=h.menu.targets()[0],button=record.button,rows=[...actionRows(h.list)],rebuilds=h.list.rebuilds,startLeft=button.style.left;
  rows[1].focus();h.list.scrollTop=63;
  for(let i=0;i<20;i++){host.root.position.x=(i+1)*.02;h.update([{...meal},{...chat}]);}
  assert.equal(h.menu.targets()[0],record);assert.equal(record.button,button);assert.equal(record.anchor.actor,host);assert.notEqual(button.style.left,startLeft,'real Three.js projection follows the live actor');
- assert.equal(h.list.rebuilds,rebuilds);assert.deepEqual(h.list.children,rows);assert.equal(h.list.scrollTop,63);assert.equal(h.doc.activeElement,rows[1]);
- h.update([chat,meal]);assert.equal(h.list.rebuilds,rebuilds,'distance/provider order changes keep existing open rows stable');assert.deepEqual(h.list.children,rows);
+ assert.equal(h.list.rebuilds,rebuilds);assert.deepEqual(actionRows(h.list),rows);assert.equal(h.list.scrollTop,63);assert.equal(h.doc.activeElement,rows[1]);
+ h.update([chat,meal]);assert.equal(h.list.rebuilds,rebuilds,'distance/provider order changes keep existing open rows stable');assert.deepEqual(actionRows(h.list),rows);
  rows[1].onclick();assert.equal(h.selected[0].actor,host);assert.equal(h.validated.at(-1).target.actor,host);h.menu.dispose();
 });
 
 for(const reason of ['offscreen','floor','distance','occlusion'])test(`${reason} projection removes all clickable actions and closes the affected chooser`,()=>{
  const h=harness(),host=actor('walker'),target=anchor('actor:walker',null,{actor:host}),first=action('service',target),second=action('chat',target,{social:true,actor:host});h.update([first,second]);
- const oldButton=h.menu.targets()[0].button;h.menu.activateTarget(target.id);const oldRow=h.list.children[0];
+ const oldButton=h.menu.targets()[0].button;h.menu.activateTarget(target.id);const oldRow=actionRows(h.list)[0];
  if(reason==='offscreen'){h.camera.position.x=12;h.camera.lookAt(12,0,0);h.camera.updateMatrixWorld();}
  if(reason==='floor')host.root.position.y=1;
  if(reason==='distance')host.root.position.z=4;
@@ -97,12 +98,12 @@ test('an actor moving after projection is validated against that same actor befo
 });
 
 test('stale intent rows, disabled rows, cancel/reopen, and removed objects cannot dispatch old callbacks',()=>{
- const h=harness(),target=anchor('counter'),old=action('meal',target,{provider:'service',intentKey:'old'}),chat=action('chat',target);h.update([old,chat]);h.menu.activateTarget(target.id);const stale=h.list.children[0];
- const live={...old,intentKey:'new'};h.update([live,chat]);stale.onclick();assert.equal(h.selected.length,0);const disabled=h.list.children.find(row=>row.getAttribute('data-context-action')===interactionIdentity(live));disabled.disabled=true;disabled.onclick();assert.equal(h.selected.length,0);disabled.disabled=false;
+ const h=harness(),target=anchor('counter'),old=action('meal',target,{provider:'service',intentKey:'old'}),chat=action('chat',target);h.update([old,chat]);h.menu.activateTarget(target.id);const stale=actionRows(h.list)[0];
+ const live={...old,intentKey:'new'};h.update([live,chat]);stale.onclick();assert.equal(h.selected.length,0);const disabled=actionRows(h.list).find(row=>row.getAttribute('data-context-action')===interactionIdentity(live));disabled.disabled=true;disabled.onclick();assert.equal(h.selected.length,0);disabled.disabled=false;
  let prevented=false;h.doc.dispatch('keydown',{code:'Escape',preventDefault(){prevented=true;},stopPropagation(){}});assert(prevented);assert(!h.menu.isOpen());disabled.onclick();assert.equal(h.selected.length,0);
  h.menu.project();h.menu.activateTarget(target.id);assert(!h.popover.hidden);assert.equal(h.selected.length,0);disabled.onclick();assert.equal(h.selected.length,0,'a cancelled row stays stale after reopen');
- const reopened=h.list.children.find(row=>row.getAttribute('data-context-action')===interactionIdentity(live));reopened.onclick();reopened.onclick();assert.deepEqual(h.selected,[live]);
- h.update([live,chat]);h.menu.activateTarget(target.id);const removedRow=h.list.children[0],removedButton=h.menu.targets()[0].button;h.update([]);assert(!h.menu.isOpen());assert(!removedButton.isConnected);removedRow.onclick();removedButton.onclick();assert.deepEqual(h.selected,[live]);h.menu.dispose();
+ const reopened=actionRows(h.list).find(row=>row.getAttribute('data-context-action')===interactionIdentity(live));reopened.onclick();reopened.onclick();assert.deepEqual(h.selected,[live]);
+ h.update([live,chat]);h.menu.activateTarget(target.id);const removedRow=actionRows(h.list)[0],removedButton=h.menu.targets()[0].button;h.update([]);assert(!h.menu.isOpen());assert(!removedButton.isConnected);removedRow.onclick();removedButton.onclick();assert.deepEqual(h.selected,[live]);h.menu.dispose();
 });
 
 test('Escape dismisses only the object chooser before the production window handler',()=>{
@@ -146,7 +147,7 @@ test('an open chooser uses the clear side of its object instead of covering HUD 
 });
 
 test('suppression closes object choices and cannot be bypassed by old buttons',()=>{
- const h=harness(),target=anchor('counter'),items=[action('one',target),action('two',target)];h.update(items);const record=h.menu.targets()[0];h.menu.activateTarget(target.id);const row=h.list.children[0];h.update(items,{hidden:true});
+ const h=harness(),target=anchor('counter'),items=[action('one',target),action('two',target)];h.update(items);const record=h.menu.targets()[0];h.menu.activateTarget(target.id);const row=actionRows(h.list)[0];h.update(items,{hidden:true});
  assert(!h.menu.isOpen());assert(record.button.hidden);assert(h.button.hidden);row.onclick();record.button.onclick();assert.equal(h.selected.length,0);h.update(items);assert(!record.button.hidden);assert(h.menu.activateTarget(target.id));h.popover.children[0].children[1].onclick();assert(!h.menu.isOpen());h.menu.dispose();assert(!h.layer.isConnected);assert(!h.controls.isConnected);
 });
 
@@ -156,5 +157,23 @@ for(const [width,height] of [[852,393],[844,390]])test(`short landscape ${width}
  const record=h.menu.targets()[0];assert(record.visible);record.button.onclick();assert(h.menu.isOpen(),'tapping a visible host hand must not silently open then close');
  const rect={left:parseFloat(h.popover.style.left),top:parseFloat(h.popover.style.top)};rect.right=rect.left+parseFloat(h.popover.style.width);rect.bottom=rect.top+parseFloat(h.popover.style.maxHeight);
  assert(inFrame(rect,h.frame));assert(hud.every(block=>!intersects(rect,block,4)),'compact scrollable chooser preserves every HUD hit area');
- h.list.children[0].onclick();assert.equal(h.selected[0].id,'work');assert(!h.menu.isOpen());h.menu.dispose();
+ actionRows(h.list)[0].onclick();assert.equal(h.selected[0].id,'work');assert(!h.menu.isOpen());h.menu.dispose();
+});
+
+
+test('target text and semantic rows stay stable while distance order and HUD names jitter',()=>{
+ const h=harness(),host=actor('许安'),target=anchor('actor:host',null,{actor:host,nameRect:{left:360,top:276,right:420,bottom:312}}),items=[action('meal',target,{action:'查看菜单并点餐',menuId:'china-meal'}),action('work',target,{action:'查看酒楼职位',provider:'china-tavern-labor'}),action('chat',target,{social:true,actor:host,action:'聊聊天'})];
+ h.update(items);const record=h.menu.targets()[0],slot=record.slot;assert.equal(record.button.children[1].children[0].textContent,'许安');assert.match(record.button.children[1].children[1].textContent,/点餐.*3项/);
+ h.menu.activateTarget(target.id);const left=h.popover.style.left,top=h.popover.style.top,first=actionRows(h.list)[0];assert.deepEqual(h.list.children.map(s=>s.children[0].textContent),['餐饮与招待','工作与办理','与对方交谈']);
+ for(let i=0;i<12;i++){host.root.position.x+=.01;target.nameRect.right+=.2;h.update([...items].reverse());assert.equal(h.popover.style.left,left);assert.equal(h.popover.style.top,top);assert.equal(actionRows(h.list)[0],first);assert.equal(record.slot,slot);}
+ h.menu.close();h.menu.project();h.menu.dispose();
+});
+test('keyboard cycles explicit targets and standard gamepad chooses without repeated held-button dispatch',()=>{
+ const pad={mapping:'standard',connected:true,buttons:Array.from({length:16},()=>({pressed:false}))},h=harness({getGamepads:()=>[pad]}),one=anchor('one',[-1.5,0,0]),two=anchor('two',[1.5,0,0]);h.update([action('one',one),action('two',two)]);
+ const key={code:'Tab',preventDefault(){},stopPropagation(){}};h.doc.dispatch('keydown',key);assert.equal(h.menu.targets()[1].button.getAttribute('data-selected'),'true');
+ pad.buttons[0].pressed=true;h.menu.project();assert.equal(h.selected[0].id,'two');for(let i=0;i<10;i++)h.menu.project();assert.equal(h.selected.length,1);pad.buttons[0].pressed=false;h.menu.project();h.menu.dispose();
+});
+
+test('readable menu searches a tall HUD gap before shrinking to one visible row',()=>{
+ const hud=[{left:26,top:83,right:150,bottom:175},{left:658,top:82,right:827,bottom:122},{left:694,top:322,right:827,bottom:370},{left:340,top:28,right:488,bottom:53}],h=harness({frame:{left:12,top:12,right:840,bottom:381},hud}),target=anchor('counter',[0,0,0]);h.update(['长期职位 · 查看申请条件','临工 · 查看登记','查看产权','查看客房','查看食单'].map((label,i)=>action('item'+i,target,{action:label})));h.menu.activateTarget(target.id);assert(h.menu.isOpen());assert(parseFloat(h.popover.style.maxHeight)>=240,'five actions must not be reduced to an 81px scrolling body when a taller safe gap exists');h.menu.dispose();
 });

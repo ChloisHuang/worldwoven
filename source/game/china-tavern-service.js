@@ -1,3 +1,4 @@
+import {preserveAiryPanelView} from './airy-panel.js';
 import {createChinaTavernPropertyUI} from './china-tavern-property-ui.js';
 import {TAVERN_STEWARD_ROLE,TAVERN_HOST_ROLE,TAVERN_CHEF_ROLE} from './formal-careers.js';
 import {personId,TAVERN_HOST_SLOT_ID,ORIGINAL_TAVERN_HOST_ID} from './china-tavern-host-role.js';
@@ -130,14 +131,15 @@ function createUI({doc,service,scene,onIntent,onOpen,choose}){
  (doc.head||doc.body).append(style);doc.body.append(dialog);let signature='',generation=0;
  const close=()=>{generation++;if(dialog.open)dialog.close();};
  const button=(text,fn)=>{const b=make('button',text);b.type='button';const g=generation;b.onclick=()=>{if(dialog.open&&g===generation)fn();};return b;};
- function refresh(force=false){if(!dialog.open&&!force)return;const live=scene.state(),s=service.state(),choices=scene.choices(),key=JSON.stringify([s.job?.stage,live.stage,live.orders.map(o=>[o.id,o.stage,o.collected,o.reviews]),live.tables,live.rooms,choices,live.activity?.kind]);if(!force&&key===signature)return;signature=key;generation++;dialog.replaceChildren();
+ function refresh(force=false){if(!dialog.open&&!force)return;const live=scene.state(),s=service.state(),choices=scene.choices(),key=JSON.stringify([s.job?.stage,live.stage,live.orders.map(o=>[o.id,o.stage,o.collected,o.reviews]),live.tables,live.rooms,choices,live.activity?.kind]);if(!force&&key===signature)return;signature=key;generation++;const restoreView=preserveAiryPanelView(dialog,doc);dialog.replaceChildren();
   const x=button('×',close);x.className='cn-service-close';x.setAttribute('aria-label','关闭待办并保留现场');dialog.append(x,make('h2','云来酒楼 · 当前待办'));
-  if(!s.job){dialog.append(make('p','尚未报到。申请录用后，仍需单独选择开始今日班次。'));return;}
+  if(!s.job){dialog.append(make('p','尚未报到。申请录用后，仍需单独选择开始今日班次。'));restoreView();return;}
   if(live.stage==='working')dialog.append(make('p',`在岗 ${Math.floor(s.job.coveredSeconds*.7)} 分钟 · 酒楼账 ${live.till} 文`));
   if(live.selectedOrderId){const order=live.orders.find(o=>o.id===live.selectedOrderId);dialog.append(make('div',`${order.tableId==='west'?'西窗桌':'东窗桌'} · ${order.customerName}\n${order.dishId==='yunlai-green-noodles'?'🥬':'🍚'} ${order.dishName} ×1 · 待交付`,'cn-service-order'));}
   else if(!choices.length)dialog.append(make('p',live.activity?.action||'当前没有待办，可继续候班。'));
   const list=make('div',null,'cn-service-tasks');for(const c of choices)list.append(button(c.action,()=>{const intent=choose(c);close();if(intent)onIntent(intent);}));dialog.append(list);
   if(live.stage==='working'){const footer=make('div',null,'cn-service-footer');footer.append(button('交班 · 按实际工时结算',()=>{const intent=service.intent('end-shift');close();if(intent)onIntent(intent);}));dialog.append(footer);}
+  restoreView();
  }
  function open(){onOpen();refresh(true);if(!dialog.open)dialog.showModal();refresh(true);}
  dialog.addEventListener('cancel',e=>{e.preventDefault();close();});return {open,close,refresh,isOpen:()=>!!dialog.open,dispose(){close();dialog.remove();style.remove();}};

@@ -86,3 +86,19 @@ assert.deepEqual(Object.fromEntries(Object.entries(parts).map(([key,node])=>[key
  header:['header','ww-airy-panel-heading'],body:['div','ww-airy-panel-body'],actions:['footer','ww-airy-panel-actions'],
 });
 console.log('PASS Airy shared defaults: 10 footer overrides, 9 landscape/portrait scroll policies, repeated/reversed style insertion, full-width fallback and non-shrinking footer anatomy');
+
+// Reproduces nested-scroll/focus loss when a changed service receipt rebuilds
+// its body. No-op frames must also leave touch momentum alone.
+const {preserveAiryPanelView}=await import('../source/game/airy-panel.js');
+const fakeDoc={activeElement:null};let scrollWrites=0;
+function el(tag,cls='',text=''){
+ const node={tagName:tag.toUpperCase(),className:cls,textContent:text,children:[],attrs:{},scrollLeft:0,_top:0,
+  append(...items){this.children.push(...items);},setAttribute(k,v){this.attrs[k]=v;},getAttribute(k){return this.attrs[k]||null;},focus(){fakeDoc.activeElement=this;},setSelectionRange(start,end,direction){this.selectionStart=start;this.selectionEnd=end;this.selectionDirection=direction;}};
+ Object.defineProperty(node,'scrollTop',{get(){return this._top;},set(value){scrollWrites++;this._top=value;}});return node;
+}
+function content(){const body=el('div','ww-airy-panel-body'),column=el('section','service-detail'),details=el('details'),input=el('input');input.setAttribute('aria-label','待确认金额');input.value='123';details.append(el('summary','','账目说明'));column.append(details,input);body.append(column);return {body,column,details,input};}
+const root=el('dialog');root.open=true;let old=content();root.append(old.body);root.scrollTop=7;old.body.scrollTop=124;old.column.scrollTop=236;old.details.open=true;old.input.focus();old.input.setSelectionRange(1,3,'backward');
+const restore=preserveAiryPanelView(root,fakeDoc),next=content();root.children=[next.body];fakeDoc.activeElement=null;restore();
+assert.equal(root.scrollTop,7);assert.equal(next.body.scrollTop,124);assert.equal(next.column.scrollTop,236);assert.equal(next.details.open,true);assert.equal(fakeDoc.activeElement,next.input);assert.deepEqual([next.input.selectionStart,next.input.selectionEnd,next.input.selectionDirection],[1,3,'backward']);assert.equal(next.input.value,'123');
+const stable=preserveAiryPanelView(root,fakeDoc);scrollWrites=0;stable();assert.equal(scrollWrites,0,'retained scrollers are not written again');
+console.log('PASS panel view: nested reading position, expanded details, same semantic focus and input caret; no redundant scroll writes');

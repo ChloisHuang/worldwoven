@@ -1,3 +1,4 @@
+import {preserveAiryPanelView} from './airy-panel.js';
 import {studyOptions,studyCountry,studySkillProgress,studyJobLinks,STUDY_SKILL_NAMES} from './study-lessons.js';
 import {STUDY_STYLE,studyIcon} from './study-theme.js';
 
@@ -19,7 +20,7 @@ export function createStudyMenu({careers,getClock,getCountry=()=>null,onOpen=()=
   if(!lesson){close();return;}
   const token=++generation;signature=`${state.revision}:${day}:${country}`;
   const fresh=()=>dialog.open&&token===generation&&(!getCountry()||getCountry()===country);
-  dialog.replaceChildren();
+  const restoreView=preserveAiryPanelView(dialog,doc);dialog.replaceChildren();
   const x=button('×',close);x.className='study-close';x.setAttribute('aria-label','关闭学习菜单');
   const heading=make('header',null,'study-heading ww-airy-panel-heading');heading.append(make('h2',lesson.action==='read'?'藏书':'研习'),make('span',station.name,'study-place'));dialog.append(x,heading);
   const content=make('div',null,'study-content ww-airy-panel-body'),list=make('div',null,'study-options');list.setAttribute('aria-label','当地书目，可滚动查看');
@@ -43,7 +44,7 @@ export function createStudyMenu({careers,getClock,getCountry=()=>null,onOpen=()=
    if(!fresh())return;const target=station,id=selected;close();onChoose(target,id);
   }),cancel=button('暂时不学',close);
   start.className='study-start ww-airy-action';start.disabled=!!state.loadError;cancel.className='study-cancel';
-  actions.append(make('small','中断不计 XP · E 或移动取消'),cancel,start);dialog.append(actions);
+  actions.append(make('small','中断不计 XP · E 或移动取消'),cancel,start);dialog.append(actions);restoreView();
  }
  function open(target){const options=studyOptions(target?.id,getCountry());if(!options.length)return false;onOpen();station=target;selected=options[0].id;render();if(!dialog.open)dialog.showModal();return true;}
  dialog.addEventListener('cancel',event=>{event.preventDefault();close();});

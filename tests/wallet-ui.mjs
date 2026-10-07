@@ -254,3 +254,37 @@ assert.equal(walletTransactionView({id:'settled',action:'settle',currency:'japan
   wallet.dispose();
 }
 console.log('PASS wallet DOM: lazy cash-only art, aggregated notes, separate banks/holds, committed receipts, failure/replay, FX, spend/settle, repeated and interrupted modal, reduced motion, invalid ledger and journal paging');
+
+// Repeated read-only refreshes used to rebuild the journal and snap the cash
+// scroller back to its fold position even while the user was reading it.
+{
+ const f=fixture({reduced:true});f.ledger.earn(12,'stable-refresh');f.wallet.open();one(f.doc,'ww-wallet-fan').onclick();
+ const journal=one(f.doc,'ww-wallet-journal'),row=journal.children[0],bank=one(f.doc,'ww-wallet-bank-list'),bankRow=bank.children[0],fan=one(f.doc,'ww-wallet-fan'),scroll=one(f.doc,'ww-wallet-ledger-scroll');fan.scrollTop=73;scroll.scrollTop=129;
+ for(let i=0;i<30;i++)f.wallet.refresh();
+ assert.equal(journal.children[0],row);assert.equal(bank.children[0],bankRow);assert.equal(fan.scrollTop,73);assert.equal(scroll.scrollTop,129);
+ f.ledger.earn(1,'changed-refresh');assert.equal(fan.scrollTop,73);assert.equal(scroll.scrollTop,129);f.wallet.dispose();
+}
+{
+ for(const [currency,id,name]of [['copper','cn-money-house-teller','中国钱庄'],['japan','jp-exchange-teller','霞汤屋 · 両替柜台'],['france','france-exchange-teller','宫苑银行与兑换柜台'],['egypt','egypt-exchange-teller','沙海票券存取与兑换']]){
+  const doc=documentFixture(),mount=doc.createElement('div');doc.body.append(mount);let writes=0,target={id,name},wallet;const routes=[];
+  const ledger=createCurrencyLedger({saveState:()=>{writes++;}});
+  wallet=createCurrencyWallet({mount,ledger,document:doc,getCurrency:()=>currency,getBankTarget:()=>target,onBankNavigate:t=>{assert.equal(wallet.isOpen(),false,'close wallet before entering existing navigation');routes.push(t);}});
+  wallet.open();const go=one(doc,'ww-wallet-bank-visit');assert(!go.hidden);assert.equal(go.textContent,'前往'+name);go.click();assert.equal(routes[0],target);assert.equal(writes,0,'navigation never transacts');go.click();assert.equal(routes.length,1,'closed stale callback does not navigate twice');
+  wallet.open();target=null;wallet.refresh();assert(go.hidden);go.click();assert.equal(routes.length,1);wallet.dispose();
+ }
+}
+console.log('PASS wallet stable repeated refresh and current-country physical bank navigation: four counters, close-before-route, no transaction, unavailable/stale guards');
+
+// The four route targets are the actual built-in bank stations, and remain
+// public station intents even when the player starts outside nearby range.
+{
+ const {playerStationIntent,nearbyInteraction}=await import('../source/game/player-interaction-intents.js');
+ const {chinaMoneyHouseStation,CHINA_MONEY_HOUSE}=await import('../source/game/china-money-house.js');
+ const {japanExchangeStation,JAPAN_EXCHANGE_COUNTER}=await import('../source/game/japan-exchange-counter.js');
+ const {franceExchangeStation,FRANCE_EXCHANGE_COUNTER}=await import('../source/game/france-exchange-counter.js');
+ const {egyptExchangeStation,EGYPT_EXCHANGE_COUNTER}=await import('../source/game/egypt-exchange-counter.js');
+ for(const [build,counter]of [[chinaMoneyHouseStation,CHINA_MONEY_HOUSE],[japanExchangeStation,JAPAN_EXCHANGE_COUNTER],[franceExchangeStation,FRANCE_EXCHANGE_COUNTER],[egyptExchangeStation,EGYPT_EXCHANGE_COUNTER]]){
+  const station=build(),intent=playerStationIntent(station);assert(intent);assert.equal(intent.id,counter.stationId);assert.deepEqual(intent.position,counter.points.counter);assert.equal(nearbyInteraction(intent,{x:counter.points.counter[0]+10,y:counter.floorY,z:counter.points.counter[2]}),false);assert(intent.action.includes('存取'));
+ }
+}
+console.log('PASS wallet target differences: four production station IDs, physical counter coordinates, public intents independent of nearby eligibility');

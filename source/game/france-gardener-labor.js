@@ -1,6 +1,6 @@
 import {createFranceGardenerShift} from './france-gardener-shift.js';
 import {skillXPReceipt} from './skill-progress.js';
-import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
+import {AIRY_PANEL_STYLE,createAiryPanelParts,preserveAiryPanelView} from './airy-panel.js';
 import {AIRY_UI_THEME} from './china-money-house-theme.js';
 import {GARDEN_ASSISTANT_ROLE} from './formal-careers.js';
 import {createFormalLaborContract} from './formal-labor-contract.js';
@@ -233,7 +233,7 @@ function createUI({doc,service,getPlayer,canSee,onIntent,onOpen}){
  function refresh(force=false){
   const s=service.displayState(),near=nearby(s);menuState={available:near};badge.hidden=!near;badge.textContent=s.formalHired?(s.job?.stage==='ready'?'园艺正式班次 · 待验收':s.job?s.job.shiftKind==='continuous'?service.label()||'常任园艺 · 当班中':`常任园艺 · ${s.job.completedBeds}/2畦`:'常任园艺助理 · 每日班次'):s.activity==='water'?`浇花中 · ${secondsLeft(s)} 秒`:s.waitingForHost?'等埃米尔到登记簿旁':s.job?.stage==='ready'?`园艺工钱 · ${s.wage} 铜文`:s.job?`园艺活 · ${s.job.completedBeds}/2 畦${s.held?' · 持壶':''}`:s.hired?'园艺帮工 · 接活':'招工登记 · 园艺帮工';
   if(dialog.open&&!near){close();return;}if(!dialog.open&&!force)return;
-  const key=stateKey(s);if(!force&&key===signature)return;signature=key;const rendered=++revision;dialog.replaceChildren();
+  const key=stateKey(s);if(!force&&key===signature)return;signature=key;const rendered=++revision;const restoreView=preserveAiryPanelView(dialog,doc);dialog.replaceChildren();
   // A closed, replaced or superseded control cannot issue another navigation
   // request or cancel a newer work slip. Physical execution stays in service.
   const guard=fn=>()=>{if(disposed||!dialog.open||rendered!==revision)return;if(stateKey(service.displayState())!==key){refresh(true);return;}fn();};
@@ -270,7 +270,7 @@ function createUI({doc,service,getPlayer,canSee,onIntent,onOpen}){
    choice=service.intent(j?undefined:s.hired?'accept':'apply');label=s.waitingForHost?'等埃米尔到登记簿旁':s.activity?status:choice?.kind==='apply'?'当面登记临时帮工':choice?.kind==='claim'?`当面验收 · ${s.wage} 铜文存银行`:choice?.action||'记录暂不可用';
    blocked=!!(s.loadError||s.employment?.loadError||s.waitingForHost||s.activity);
   }
-  detail.append(more);const primary=button(label,guard(()=>request(choice)),'fr-labor-primary ww-airy-action');primary.disabled=blocked||!choice;actions.append(primary);body.append(menu,detail);dialog.append(x,header,body,actions);
+  detail.append(more);const primary=button(label,guard(()=>request(choice)),'fr-labor-primary ww-airy-action');primary.disabled=blocked||!choice;actions.append(primary);body.append(menu,detail);dialog.append(x,header,body,actions);restoreView();
  }
  const open=()=>{if(disposed||!nearby())return;revision++;if(service.view().formalHired){close();service.formal.open();return;}onOpen();if(service.view().job)selected='temporary';refresh(true);if(!dialog.open)dialog.showModal();refresh(true);};badge.onclick=open;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});refresh();
  return {menuContext:()=>disposed?null:menuState,open,close,refresh,isOpen:()=>dialog.open,dispose(){disposed=true;close();badge.remove();dialog.remove();style.remove();}};

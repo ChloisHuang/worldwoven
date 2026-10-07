@@ -1,3 +1,4 @@
+import {preserveAiryPanelView} from './airy-panel.js';
 import {GAME_CURRENCIES} from './currency-ledger.js';
 import {safeUiRect} from './viewport-layout.js';
 
@@ -97,7 +98,7 @@ export function walletTransactionView(tx) {
     received: tx.action === 'exchange' && tx.quote ? {currency:tx.quote.to, amount:tx.quote.received} : null};
 }
 
-export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', onOpen=()=>{}, onClose=()=>{}, document:doc=globalThis.document}={}) {
+export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', getBankTarget=()=>null, onBankNavigate=null, onOpen=()=>{}, onClose=()=>{}, document:doc=globalThis.document}={}) {
   if (!mount || !ledger?.balances || !ledger?.history || !ledger?.subscribeCommitted) throw TypeError('wallet requires mount and committed ledger');
   const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text != null)e.textContent=text;if(cls)e.className=cls;return e;};
   const button=(text,cls,label)=>{const b=make('button',text,cls);b.type='button';if(label)b.setAttribute('aria-label',label);return b;};
@@ -109,6 +110,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
   const status=make('span',null,'ww-wallet-status');status.setAttribute('role','status');status.setAttribute('aria-live','polite');mount.append(status);
   let ui=null, disposed=false, folded=true, priorFocus=null, pulseTimer=null, transferTimer=null, transfer=null;
   let progress=0, frame=null, lastTime=null, resizeObserver=null, receiptEpoch=0, selectedId=null;
+  let balanceSignature=null,historySignature=null,bankTargetKey='';
   const inspections=new Map();
   const view=doc.defaultView, requestFrame=fn=>view?.requestAnimationFrame?view.requestAnimationFrame(fn):setTimeout(()=>fn(Date.now()),16);
   const cancelFrame=id=>view?.cancelAnimationFrame?view.cancelAnimationFrame(id):clearTimeout(id);
@@ -221,8 +223,9 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     right.append(cashSummary,bankHeading,bankList,ledgerHeading,scroll);
     const notice=make('p',null,'ww-wallet-notice');notice.setAttribute('role','status');
     const effects=make('div',null,'ww-wallet-effects');effects.setAttribute('aria-hidden','true');
-    body.append(left,right);dialog.append(header,body,notice,effects);doc.body.append(dialog);
-    ui={dialog,closeButton,fan,toggle,canvas,back,pocket,stack,empty,hint,cashList,cashSummaryAmount,bankList,journal,scroll,notice,effects};
+    const bankVisit=button(null,'ww-wallet-bank-visit');bankVisit.hidden=true;bankVisit.onclick=()=>{if(disposed||!ui.dialog.open)return;const target=getBankTarget();if(!target||`${getCurrency()}:${target.id}`!==bankTargetKey){refreshBankLink();return;}close();onBankNavigate?.(target);};
+    body.append(left,right);dialog.append(header,body,bankVisit,notice,effects);doc.body.append(dialog);
+    ui={dialog,closeButton,fan,toggle,canvas,back,pocket,stack,empty,hint,cashList,cashSummaryAmount,bankList,journal,scroll,notice,effects,bankVisit};
     closeButton.onclick=close;
     fan.onclick=()=>{if(ui.toggle.disabled)return;folded=!folded;if(folded)selectedId=null;setFold(true);};
     if(view?.ResizeObserver){resizeObserver=new view.ResizeObserver(drawWallet);resizeObserver.observe(fan);}
@@ -236,13 +239,13 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     dialog.addEventListener('pointercancel',()=>{backdropPointer=false;});
     dialog.addEventListener('click',e=>{const dismiss=backdropPointer&&e.target===dialog;backdropPointer=false;if(dismiss)close();});
   }
-  function drawWallet() {
+  function drawWallet(followPaper=false) {
     if(!ui)return;
     const geometry=walletGeometry(ui.fan.clientWidth||320,ui.fan.clientHeight||280,notes.size,view?.innerHeight?view.innerHeight<=500:undefined);
     ui.canvas.style.height=`${geometry.height}px`;
     // Follow the paper as it leaves the pocket on small screens. The cash
     // panel remains touch-scrollable after motion stops, with no rescaling.
-    ui.fan.scrollTop=(geometry.height-geometry.viewportHeight)*(1-ease(progress));
+    if(followPaper===true)ui.fan.scrollTop=(geometry.height-geometry.viewportHeight)*(1-ease(progress));
     const leather=walletPocketFrame(geometry,progress);
     for(const [element,box] of [[ui.back,leather.back],[ui.pocket,leather.front]]){
       for(const key of ['width','height'])element.style[key]=`${box[key]}px`;
@@ -270,7 +273,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
   }
   function advanceWallet(time) {
     frame=null;
-    const target=folded?0:2,elapsed=lastTime===null?0:Math.max(0,time-lastTime);
+    const beforeProgress=progress,target=folded?0:2,elapsed=lastTime===null?0:Math.max(0,time-lastTime);
     const inspecting=[...inspections.values()].some(value=>value>0);
     let inspectingMotion=false;
     for(const id of notes.keys()){
@@ -281,7 +284,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     if(reducedMotion())progress=target;
     // Lower the inspected ticket into the fan before gathering the stack.
     if(!folded||!inspecting)progress=clamp(progress+Math.sign(target-progress)*elapsed/340,Math.min(progress,target),Math.max(progress,target));
-    lastTime=time;drawWallet();
+    lastTime=time;drawWallet(progress!==beforeProgress);
     if(progress!==target||inspectingMotion)frame=requestFrame(advanceWallet);else lastTime=null;
   }
   function inspectNote(id) {
@@ -299,12 +302,13 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     ui.toggle.setAttribute('aria-label',folded?'抽出并展开随身纸币':'收拢纸币放回钱包');
     ui.hint.textContent=folded?'轻点钱包，抽出并展开纸币':'点票券抬起查看 · 点钱包收回';
     if(!animate||reducedMotion()){
-      if(frame!==null)cancelFrame(frame);frame=null;lastTime=null;progress=folded?0:2;selectedId=null;inspections.clear();drawWallet();
+      if(frame!==null)cancelFrame(frame);frame=null;lastTime=null;progress=folded?0:2;selectedId=null;inspections.clear();drawWallet(true);
     }else if(frame===null){lastTime=null;frame=requestFrame(advanceWallet);}
     drawWallet();
   }
   function renderBalances(retryArtwork=false) {
-    const balances=ledger.balances();
+    const balances=ledger.balances(),signature=JSON.stringify(balances);
+    if(signature===balanceSignature&&!retryArtwork)return;balanceSignature=signature;const restoreView=preserveAiryPanelView(ui.dialog,doc);
     ui.notice.hidden=!!balances;ui.notice.textContent=balances?'':'账目暂时无法核对，请保留当前存档。余额不会显示为零。';
     const owned=balances?Object.keys(GAME_CURRENCIES).filter(id=>validAmount(balances[id]?.cash)&&balances[id].cash>0):[];
     ui.toggle.disabled=ui.fan.disabled=!balances||!owned.length;ui.empty.hidden=!!owned.length;
@@ -343,21 +347,22 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     }
     const held=balances?Object.keys(GAME_CURRENCIES).filter(id=>balances[id]?.held>0):[];
     if(held.length){const row=make('div',null,'ww-wallet-held');row.append(make('dt','已预付 · 待结清'),make('dd',held.map(id=>`${currency(id).label} ${money(balances[id].held,id)}`).join(' / ')));ui.bankList.append(row);}
+    restoreView();
   }
   function renderHistory() {
-    const history=ledger.history(), scroll=ui.scroll.scrollTop;
+    const history=ledger.history(),rows=history.slice(-historyLimit).reverse(),signature=JSON.stringify([history.length,historyLimit,rows]);
+    if(signature===historySignature)return;historySignature=signature;const restoreView=preserveAiryPanelView(ui.dialog,doc);
     ui.journal.replaceChildren();
     if(!history.length){const empty=make('li','还没有收支记录。每次成功入账，都会留下一笔。','ww-wallet-journal-empty');ui.journal.append(empty);}
     // A long journal is paged deliberately; opening the wallet does not create
     // thousands of nodes for old receipts or one node per unit of money.
-    const rows=history.slice(-historyLimit).reverse();
     for(const tx of rows){
       const v=walletTransactionView(tx),row=make('li',null,'ww-wallet-entry');row.dataset.transaction=String(tx.id);
       const top=make('div',null,'ww-wallet-entry-line');top.append(make('strong',v.title),make('span',v.badge,'ww-wallet-entry-amount'));
       row.append(top,make('span',v.detail,'ww-wallet-entry-detail'));ui.journal.append(row);
     }
     if(history.length>historyLimit){const more=make('li',null,'ww-wallet-more'),b=button('翻看更早的记录','ww-wallet-more-button');b.onclick=()=>{historyLimit+=60;renderHistory();};more.append(b);ui.journal.append(more);}
-    ui.scroll.scrollTop=scroll;
+    restoreView();
   }
   let historyLimit=60;
   function refreshBadge(){
@@ -366,10 +371,11 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     cashBadge.textContent=money(b?.cash,id);trigger.setAttribute('aria-label',`打开钱包与账本，${currency(id).label}随身现金 ${money(b?.cash,id)}`);
     cashBadge.title=`${currency(id).label} · 随身现金`;cashBadge.dataset.currency=id;
   }
-  function refresh(){if(disposed)return;refreshBadge();if(!ui?.dialog.open)return;renderBalances();renderHistory();}
+  function refreshBankLink(){if(!ui)return;const target=typeof onBankNavigate==='function'?getBankTarget():null;bankTargetKey=target?`${getCurrency()}:${target.id}`:'';ui.bankVisit.hidden=!target;if(target){const label=`前往${target.name||'本地银行柜台'}`;if(ui.bankVisit.textContent!==label)ui.bankVisit.textContent=label;}}
+  function refresh(){if(disposed)return;refreshBadge();if(!ui?.dialog.open)return;renderBalances();renderHistory();refreshBankLink();}
   function open(){
     if(disposed||ui?.dialog.open)return;clearTransfer();onOpen();ensureUI();priorFocus=doc.activeElement;folded=true;historyLimit=60;setFold();
-    renderBalances(true);renderHistory();ui.scroll.scrollTop=0;ui.dialog.showModal();drawWallet();trigger.setAttribute('aria-expanded','true');ui.closeButton.focus({preventScroll:true});
+    renderBalances(true);renderHistory();refreshBankLink();ui.scroll.scrollTop=0;ui.dialog.showModal();drawWallet(true);trigger.setAttribute('aria-expanded','true');ui.closeButton.focus({preventScroll:true});
   }
   function clearTransfer(){receiptEpoch++;clearTimeout(transferTimer);transferTimer=null;transfer?.remove();transfer=null;if(popoverShown){try{mini.hidePopover();}catch{}popoverShown=false;}mini.hidden=true;mini.replaceChildren();receiptModal=null;if(!disposed)doc.body.append(mini);}
   function finishClose(){

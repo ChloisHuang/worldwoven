@@ -49,3 +49,20 @@ assert.match(npcSocialReply({...n,station:{id:'cn-calligraphy',npcAction:'callig
  n.walking=true;busy=true;assert.equal(social.reserveMeeting(n,{owner:'review'}),false);busy=false;assert(social.reserveMeeting(n,{owner:'review'}));social.restore({version:1,time:3,attention:[]});assert.equal(social.meetingState(),null);
  console.log('PASS routine-approved walking meeting preserves original route, rejects busy duties and clears transient hold on restore');
 }
+
+// Menus borrow one actor locally, without conversation, work or a timeout.
+{
+ const a=actor('reader'),other=actor('other',1),p={root:{position:{x:0,y:0,z:1},rotation:{y:0}}};a.walking=true;let busy=false,people=[a,other],events=0;
+ const s=createNpcSocial({actors:()=>people,player:()=>p,status:()=>({busy,canPause:!busy}),beginInteraction:()=>{events++;return {};}}),route=a.route,start=a.breakAt;
+ assert(s.holdMenu(a));assert(s.isPaused(a));assert(!s.isPaused(other));assert.equal(s.conversationActorId(),a.station.id);s.update(240);assert(s.menuState());assert.equal(events,0);assert.equal(a.route,route);s.releaseMenu();assert.equal(a.breakAt,start+240);assert(!s.isPaused(a));
+ busy=true;assert(!s.holdMenu(a));busy=false;assert(s.holdMenu(a));busy=true;s.update(1);assert.equal(s.menuState(),null);assert.equal(a.route,route);
+ busy=false;assert(s.holdMenu(a));people=[];s.update(1);assert.equal(s.menuState(),null);assert.equal(events,0);
+ console.log('PASS local reading hold, 240-second choice, exact route/timer restoration, busy/removal invalidation and no fabricated interactions');
+}
+
+{
+ const a=actor('reviewer'),b=actor('other-reviewer',.4),p={root:{position:{x:0,y:0,z:1},rotation:{y:0}}},s=createNpcSocial({actors:()=>[a,b],player:()=>p,status:()=>({canPause:true})});
+ assert(s.reserveMeeting(a,{owner:'review',duration:10}));assert(s.holdMenu(a));assert(!s.reserveMeeting(b,{owner:'other'}));assert(!s.holdMenu(b));s.update(5);s.releaseMeeting('review');s.update(3);s.releaseMenu();assert.equal(a.breakAt,33,'overlapping appointment and reading pause compensate eight seconds exactly once');assert.equal(s.conversationActorId(),null);
+ assert(s.holdMenu(a));s.update(3);assert(s.reserveMeeting(a,{owner:'second',duration:10}));s.update(2);s.releaseMenu();s.update(3);s.releaseMeeting('second');assert.equal(a.breakAt,41,'menu-first overlap also restores eight seconds exactly once');
+ console.log('PASS menu/review leases share only one actor and overlapping paused time is restored exactly once');
+}

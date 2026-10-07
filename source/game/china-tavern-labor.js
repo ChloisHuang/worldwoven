@@ -1,5 +1,5 @@
 import {AIRY_UI_THEME} from './china-money-house-theme.js';
-import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
+import {AIRY_PANEL_STYLE,createAiryPanelParts,preserveAiryPanelView} from './airy-panel.js';
 import {skillXPReceipt} from './skill-progress.js';
 import {TAVERN_STEWARD_ROLE} from './formal-careers.js';
 import {personId} from './china-tavern-host-role.js';
@@ -304,11 +304,11 @@ function createUI({doc, service, getPlayer, onIntent, canSee, onOpen}) {
   const button=(text,fn,cls)=>{const e=make('button',text,cls);e.type='button';e.onclick=fn;return e;};
   const request=choice=>{if(!service.resolveIntent(choice)){refresh(true);return;}close();onIntent(choice);};
   const secondsLeft=s=>s.cleaning?Math.ceil((1-s.progress)*s.seconds):null;
-  const stateKey=s=>JSON.stringify([selected,s.job,s.cleaning,secondsLeft(s),s.waitingRegistration,s.atTarget,s.atHost,s.hostName,s.hostAvailable,s.loadError,s.lastError,s.employment,s.formalState?.revision,s.formalState?.loadError,s.formalState?.skills?.ritual,s.formalHired,s.formalBeginAvailability,getPlayer()?.ageYears,service.intent('clean')?.intentKey]);
+  const stateKey=s=>JSON.stringify([selected,s.job,s.cleaning,secondsLeft(s),s.waitingRegistration,s.atTarget,s.atHost,s.hostName,s.hostAvailable,s.loadError,s.lastError,s.employment,s.formalState?.revision,s.formalState?.loadError,s.formalState?.skills?.ritual,s.formalHired,s.formalBeginAvailability?.ok,s.formalBeginAvailability?.code,s.formalBeginAvailability?.unchanged,s.formalBeginAvailability?.window,getPlayer()?.ageYears,service.intent('clean')?.intentKey]);
   function refresh(force=false){
     if(!dialog.open&&!force)return;
     const s=service.view();if(dialog.open&&!nearHouse()){close();return;}
-    const key=stateKey(s);if(!force&&key===signature)return;signature=key;const rendered=++revision;dialog.replaceChildren();
+    const key=stateKey(s);if(!force&&key===signature)return;signature=key;const rendered=++revision;const restoreView=preserveAiryPanelView(dialog,doc);dialog.replaceChildren();
     // Replaced controls must never navigate after closing, apply twice or cancel
     // a newer work slip. The service still rechecks reach and live intent.
     const guard=fn=>()=>{if(disposed||!dialog.open||rendered!==revision)return;if(!nearHouse()){close();return;}if(stateKey(service.view())!==key){refresh(true);return;}fn();};
@@ -352,7 +352,7 @@ function createUI({doc, service, getPlayer, onIntent, canSee, onOpen}) {
       blocked=!!(s.loadError||!j&&s.employment?.loadError||s.cleaning);
       if(!j&&s.hired&&!s.hostAvailable||ready&&!s.hostAvailable){label='等掌柜回迎客茶案';blocked=true;}
     }
-    detail.append(more);const primary=button(label,guard(primaryAction||(()=>request(choice))),'cn-labor-primary ww-airy-action');primary.disabled=blocked||!primaryAction&&!choice;actions.append(primary);body.append(menu,detail);dialog.append(x,header,body,actions);
+    detail.append(more);const primary=button(label,guard(primaryAction||(()=>request(choice))),'cn-labor-primary ww-airy-action');primary.disabled=blocked||!primaryAction&&!choice;actions.append(primary);body.append(menu,detail);dialog.append(x,header,body,actions);restoreView();
   }
   const open=()=>{if(disposed||!nearHouse())return;revision++;onOpen();if(service.view().job)selected='temporary';else if(service.view().formalHired)selected='formal';refresh(true);if(!dialog.open)dialog.showModal();refresh(true);};
   dialog.addEventListener('cancel',e=>{e.preventDefault();close();});refresh();

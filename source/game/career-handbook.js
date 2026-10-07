@@ -2,7 +2,7 @@ import {appendOfficialPromotionPanel,appendOfficialCareerHistory} from './offici
 import {appendClinicPhysicianPanel,CLINIC_PHYSICIAN_PANEL_STYLE} from './china-clinic-physician-panel.js';
 import {appendSalonCareerPanel} from './china-salon-career-panel.js';
 import {FORMAL_CAREER_ROLES} from './formal-careers.js';
-import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
+import {AIRY_PANEL_STYLE,createAiryPanelParts,preserveAiryPanelView} from './airy-panel.js';
 import {AIRY_UI_THEME} from './china-money-house-theme.js';
 import {CAREER_CARD_STYLE,careerRoleMark,careerWorkplaceMark} from './career-registration-cards.js';
 import {GAME_CURRENCIES} from './currency-ledger.js';
@@ -54,7 +54,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
   style.textContent+=AIRY_UI_THEME+CAREER_CARD_STYLE+AIRY_PANEL_STYLE;
   style.textContent+=CLINIC_PHYSICIAN_PANEL_STYLE;
   (doc.head||doc.body).append(style);doc.body.append(slot,dialog,feedback);
-  let registrationRoleId=null,registrationScope='role',signature='',generation=0;
+  let registrationRoleId=null,registrationScope='role',signature='',generation=0,clockStatus=null;
   const initialWork=careers.workState();
   let reviewId=initialWork.lastEvaluation?.id||null,customerReviewId=initialWork.lastCustomerReview?.id||null,feedbackUntil=-1;
   const roles=()=>careers.catalogue?.()||FORMAL_CAREER_ROLES;
@@ -85,6 +85,8 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       close();onIntent(registration?{...next,registration:{...registration}}:next);
     });
   };
+  const clockStamp=hour=>`${String(Math.floor(hour)).padStart(2,'0')}:${String(Math.round(hour%1*60)).padStart(2,'0')}`;
+  const shiftClockText=(clock,window)=>`第${clock.day+1}日 ${clockStamp(clock.hour)} · 开班 ${clockStamp(window.startHour)}–${clockStamp(window.endHour)}`;
   function render(force=false) {
     const s=careers.state(),c=getClock(),list=roles(),held=currentRole(s,list),ageYears=getPlayer()?.ageYears;
     const registrationMode=!!registrationRoleId&&!(registrationScope==='role'&&held?.id===registrationRoleId);
@@ -94,11 +96,13 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     const belongsToTenure=row=>row&&held&&row.roleId===held.id&&(row.day>s.tenure.sinceDay||row.day===s.tenure.sinceDay&&(row.arrivalHour??24)>=s.tenure.sinceHour);
     const hired=!!held,d=belongsToTenure(s.lastDuty)?s.lastDuty:null;
     const pendingDuty=d&&d.day<c.day&&['inspection','ready'].includes(d.stage);
+    if(clockStatus){const text=shiftClockText(c,clockStatus.window);if(clockStatus.node.textContent!==text)clockStatus.node.textContent=text;}
+    const begin=held?careers.beginDutyAvailability(held.id):null;
     const guardService=country==='china'?getService(GUARD):null;
-    const service=localService(role),tableChoices=[TABLE_SERVICE,GARDEN].includes(held?.id)&&d?.stage==='working'?service?.taskChoices?.()||[]:[],key=[s.revision,registrationRoleId,registrationScope,held?.id,country,c.day,Math.floor(c.hour*60),!!service,service?.intent()?.intentKey,guardService?.identityKey?.(),guardService?.reviewerName?.(),guardService?.holderName?.(),held?.paymentKind==='commission'?Math.floor(service?.state?.().progressSeconds||0):null,ageYears,JSON.stringify(careers.applicationResult?.()),
+    const service=localService(role),tableChoices=[TABLE_SERVICE,GARDEN].includes(held?.id)&&d?.stage==='working'?service?.taskChoices?.()||[]:[],key=[s.revision,registrationRoleId,registrationScope,held?.id,country,c.day,['working','attending'].includes(d?.stage)?Math.floor(c.hour*60):'',begin?.ok,begin?.code,!!service,service?.intent()?.intentKey,guardService?.identityKey?.(),guardService?.reviewerName?.(),guardService?.holderName?.(),held?.paymentKind==='commission'?Math.floor(service?.state?.().progressSeconds||0):null,ageYears,JSON.stringify(careers.applicationResult?.()),
       JSON.stringify(tableChoices.map(choice=>[choice.kind,choice.action,choice.detail])),...localRoles.map(r=>`${r.id}:${r.vacancy}:${atRegistration(r)}`)].join(':');
-    if(!force&&key===signature)return;signature=key;generation++;
-    dialog.replaceChildren();const x=buttonFor('×',close);x.className='career-close';x.setAttribute('aria-label','关闭职业手册');
+    if(!force&&key===signature)return;signature=key;generation++;clockStatus=null;
+    const restoreView=preserveAiryPanelView(dialog,doc);dialog.replaceChildren();const x=buttonFor('×',close);x.className='career-close';x.setAttribute('aria-label','关闭职业手册');
     const heading=registrationMode?!showWorkplace?displayRoles[0]?.name||'岗位登记':`${WORKPLACE_NAMES[workplaceKey(registeredPlace)]||place(registeredPlace).workplace||'附近'} · 招工`:held?held.name:`${COUNTRIES[country]||'当地'} · 求职场所`;
     dialog.setAttribute('aria-label',heading);
     const panel=createAiryPanelParts(doc);dialog.append(x,panel.header,panel.body,panel.actions);
@@ -125,7 +129,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     };
     const cardFor=item=>{
       const own=s.tenure?.roleId===item.id,check=applicationCheck(item),receipt=careers.applicationResult?.(item.id),past=careers.applicationHistory?.(item.id)||[],pending=receipt?.status==='pending',isLocal=!showWorkplace,p=place(item);
-      const card=make('section',null,'career-role-card');if(pending&&isLocal)card.setAttribute('data-pending','true');const head=make('div',null,'career-card-heading'),mark=make('span',null,'career-role-mark');mark.innerHTML=careerRoleMark(item.id);mark.setAttribute('aria-hidden','true');
+      const card=make('section',null,'career-role-card');card.setAttribute('data-panel-key',item.id);if(pending&&isLocal)card.setAttribute('data-pending','true');const head=make('div',null,'career-card-heading'),mark=make('span',null,'career-role-mark');mark.innerHTML=careerRoleMark(item.id);mark.setAttribute('aria-hidden','true');
       const title=make('div');title.append(make('h3',item.name),make('p',`${p.workplace} · ${liveEmployer(item)}`,'career-role-place'));head.append(mark,title);card.append(head);
       const facts=make('div',null,'career-card-facts');facts.append(make('strong',`${item.paymentKind==='commission'?localService(item)?.state?.().quote??item.wage:item.wage}${unit(item)}`, 'career-card-wage'),make('span',item.paymentKind==='commission'?'/ 场':'/ 日'),make('span',own?'任职中':`空缺 ${item.vacancy??1}`,own?'career-vacancy held':'career-vacancy'));card.append(facts);
       if(item.id===ROYAL){const supply=localService(item)?.state?.().supply;if(supply)card.append(make('p',`开局库存余${supply.remaining}/120 · 损耗${supply.wasted}（不会每日补充）`,'career-card-status'));}
@@ -173,20 +177,18 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     }else if(held){
       const live=service?.state?.(),job=live?.job?.formalRoleId===held.id&&d?.workReceiptId===live.job.receiptId?live.job:null,availability=service?.formal?.beginAvailability?.()||careers.beginDutyAvailability(held.id);
       const current=d&&(d.day===c.day||pendingDuty)?d:null;
-      const window=held.dutyWindow,stamp=hour=>`${String(Math.floor(hour)).padStart(2,'0')}:${String(Math.round(hour%1*60)).padStart(2,'0')}`;
+      const window=held.dutyWindow;
       const status=current?({arrived:'已报到 · 候班',attending:'当班中',archive:'待归档',working:'当班中',inspection:'待验收',ready:'工资待入账',paid:'今日已结薪',missed:d.reason==='court-postponed'?'本班延期':'本班未完成'}[d.stage]||'已任职'):availability.ok?'已任职 · 未报到':availability.code==='outside-arrival-window'?'休班 · 未报到':availability.code==='already-paid-today'?'本岗位未开班':'已任职 · 暂不可开班';
-      const banner=make('div',null,'career-shift-status');banner.append(make('strong',status),make('span',`第${c.day+1}日 ${stamp(c.hour)} · 开班 ${stamp(window.startHour)}–${stamp(window.endHour)}`));panel.body.append(banner);
-      // An unstarted shift offers only explicit admission. Once admitted the
-      // one current physical step replaces it; no future task list is created.
+      const banner=make('div',null,'career-shift-status'),clockNode=make('span',shiftClockText(c,window));clockStatus={node:clockNode,window};banner.append(make('strong',status),clockNode);panel.body.append(banner);
+      // Select work independently: pending promotion never replaces shift admission.
       let next=null;
       if(service){
         if(job)next=service.intent();
         else if(isClerk(held)&&current&&['archive','ready'].includes(current.stage))next=service.intent(current.stage==='archive'?'archive':'settle');
-        else if(isClerk(held)&&careers.promotionSummary?.().application?.status==='pending'&&careers.promotionSummary?.().eligible)next=service.intent();
         else if(availability.ok)next=service.intent(isClerk(held)?'attend':'accept');
       }
       if(next&&!['view','formal-view'].includes(next.kind)&&!(held.id==='cn-clinic-physician'&&next.work?.kind==='choose')){
-        const primary=action(held,next.kind,availability.unchanged&&!job?'继续当前班次':next.action);if(primary){primary.className='career-current-action ww-airy-action';panel.actions.append(primary);}
+        const primary=action(held,next.kind,availability.unchanged&&!job?'继续当前班次':next.action);if(primary){primary.className='career-current-action ww-airy-action';primary.setAttribute('data-career-action','work');panel.actions.append(primary);}
       }
       if([TABLE_SERVICE,GARDEN].includes(held.id)&&job?.stage==='working'&&tableChoices.length){
         const choices=make('section',null,'career-table-orders');choices.append(make('h3',held.id===GARDEN?'当前待做维护':'原客餐桌服务'));
@@ -224,7 +226,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       }
     }
     appendOfficialCareerHistory({careers,panel,make});
-    if(s.loadError)panel.body.append(make('p','职业存档暂时无法核对，请保留当前存档后再试。','career-negative'));
+    if(s.loadError)panel.body.append(make('p','职业存档暂时无法核对，请保留当前存档后再试。','career-negative'));restoreView();
   }
   function open(options=false){
     wallet?.close();

@@ -1,5 +1,5 @@
 import {AIRY_UI_THEME} from './china-money-house-theme.js';
-import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
+import {AIRY_PANEL_STYLE,createAiryPanelParts,preserveAiryPanelView} from './airy-panel.js';
 const messages={
  'already-applied-today':'今日申请已有答复，明日再议','seller-consent-required':'卖方尚未同意出售','insufficient-bank':'银行铜文不足，可先到钱庄存款','insufficient-npc-funds':'买方资金不足，报价无法成交',
  'insufficient-business-funds':'经营余额不足，先注入周转金','stale-property-intent':'账目已变化，请按当前报价重新操作','save-failed':'保存失败，本次操作未完成，可重试','async-save-unsupported':'保存暂不可用，本次操作未完成',
@@ -37,12 +37,12 @@ export function createChinaTavernPropertyUI({property,canOperate=()=>true,isNear
    if(disposed||!dialog.open&&!force)return;if(!isNearby()){close();return;}
    const daily=property.refreshDay(),s=property.state(),available=canOperate(),key=JSON.stringify([s.revision,s.balance,s.bank,s.loadError,daily.code,available]);
    if(!force&&key===signature)return;signature=key;generation++;
-   const focused=doc.activeElement?.getAttribute?.('data-cn-property-focus');dialog.replaceChildren();
+   const focused=doc.activeElement?.getAttribute?.('data-cn-property-focus');const restoreView=preserveAiryPanelView(dialog,doc);dialog.replaceChildren();
    const x=button('×',close,false,'cn-property-close');x.setAttribute('aria-label','关闭产权与经营账');
    const {header,body,actions}=createAiryPanelParts(doc);header.className+=' cn-property-heading';body.className+=' cn-property-content';actions.className+=' cn-property-actions';
    const heading=make('div');heading.append(make('h2','云来酒楼 · 产权'),make('p',`业主 ${s.ownerName||'待核对'} · 许安代管柜台`));const bank=make('div','你的银行','cn-property-bank');bank.append(make('strong',s.bank==null?'待核对':`${s.bank} 文`));header.append(heading,bank);
    const status=make('p',null,'cn-property-status'),controls=make('div',null,'cn-property-action-row');status.setAttribute('role','status');status.setAttribute('aria-live','polite');actions.append(status,controls);dialog.append(x,header,body,actions);
-   if(s.loadError||!daily.ok||!s.market){body.className+=' cn-property-ledger';body.append(make('h3','账簿待核对'),make('p','产权账簿暂时无法核对，请保留存档。','cn-property-error'));status.textContent='未执行交易';controls.append(button('重试核对',()=>refresh(true),false,'cn-property-primary ww-airy-action'));return;}
+   if(s.loadError||!daily.ok||!s.market){body.className+=' cn-property-ledger';body.append(make('h3','账簿待核对'),make('p','产权账簿暂时无法核对，请保留存档。','cn-property-error'));status.textContent='未执行交易';controls.append(button('重试核对',()=>refresh(true),false,'cn-property-primary ww-airy-action'));restoreView();return;}
    const m=s.market,revision=s.revision,owned=s.ownerId==='player',context=`${m.ownership}:${m.day}`;
    if(context!==marketContext){if(marketContext&&feedbackRevision!==s.revision){feedback='';feedbackError=false;}marketContext=context;offerDraft=null;askDraft=null;ownerTab=null;selectedOffer=null;}
    if(lastPrice!==m.price){askDraft=null;lastPrice=m.price;}
@@ -51,7 +51,7 @@ export function createChinaTavernPropertyUI({property,canOperate=()=>true,isNear
    if(showLedger){
      body.className+=' cn-property-ledger';body.append(make('h3','账簿与经营范围'),make('p',`经营余额 ${s.balance} 文 · 营业实收 ${s.revenue} 文 · 已付玩家工资 ${s.paidWages} 文`),make('p','转让含店内经营余额；个人款项从银行收付。许安继续柜台服务，产权不会自动接班。'),make('p',s.performerPaid?`另有雅集实收 ${s.salonRevenue} 文，已付艺者分成 ${s.performerPaid} 文；经营余额已扣除。全员NPC日薪、食材成本和招聘管理尚未开放。`:'当前成本记实际玩家工资；全员NPC日薪、食材成本和招聘管理尚未开放。'),make('h3','最近往来'));
      const history=make('ol');for(const e of s.events.slice(-6).reverse()){const text=e.kind==='transfer'?`${s.npcNames[e.from]||'你'} → ${s.npcNames[e.to]||'你'} · 转让 ${e.amount} 文`:e.kind==='npc-meal-payment'?`${s.npcNames[e.actorId]}本人餐款支出 ${e.amount} 文`:e.kind==='npc-meal-refund'?`${s.npcNames[e.actorId]}本人餐款退回 ${e.amount} 文`:e.kind==='wage'?`支付玩家工资 ${e.amount} 文`:e.kind==='invest'?`注入经营账 ${e.amount} 文`:`提取到银行 ${e.amount} 文`;history.append(make('li',`第${e.day+1}日 · ${text}`));}if(!s.events.length)body.append(make('p','暂无产权与资金往来','cn-property-note'));else body.append(history);
-     controls.append(button('返回产权',()=>{showLedger=false;refresh(true);},false,'cn-property-primary ww-airy-action'));return;
+     controls.append(button('返回产权',()=>{showLedger=false;refresh(true);},false,'cn-property-primary ww-airy-action'));restoreView();return;
    }
    const summary=make('section',null,'cn-property-summary'),detail=make('section',null,'cn-property-detail');body.append(summary,detail);
    controls.append(button('账簿',()=>{showLedger=true;refresh(true);}));
@@ -90,7 +90,7 @@ export function createChinaTavernPropertyUI({property,canOperate=()=>true,isNear
        if(m.price!==null){editor.append(button('降价一成',()=>{askDraft=Math.max(1,Math.floor(m.price*.9));perform(()=>property.setPrice(askDraft,revision),'新的折价已挂牌');},!available,'cn-property-discount'));controls.append(button('撤下挂牌',()=>perform(()=>property.setPrice(null,revision),'已撤下挂牌'),!available));}controls.append(primary);update();
      }
    }
-   if(focused)Array.from(dialog.querySelectorAll?.('[data-cn-property-focus]')||[]).find(e=>e.getAttribute('data-cn-property-focus')===focused)?.focus({preventScroll:true});
+   if(focused)Array.from(dialog.querySelectorAll?.('[data-cn-property-focus]')||[]).find(e=>e.getAttribute('data-cn-property-focus')===focused)?.focus({preventScroll:true});restoreView();
  }
  function open(){if(disposed||!isNearby())return false;feedback='';feedbackError=false;offerDraft=null;askDraft=null;ownerTab=null;selectedOffer=null;showLedger=false;onOpen();if(!dialog.open)dialog.showModal();refresh(true);return true;}
  dialog.addEventListener('cancel',event=>{event.preventDefault();close();});return {open,close,refresh,isOpen:()=>!!dialog.open,dispose(){disposed=true;close();dialog.remove();style.remove();}};

@@ -49,3 +49,46 @@ const patientUI=createCareerHandbook({careers:clinicCore,getPlayer:()=>player,ge
 patientUI.open({scope:'role',roleId:PHARMACY.id});const patientText=text(patientDoc.body);
 assert(patientText.includes('患者评分 5 / 5'));assert(patientText.includes('政府拨付'));assert(patientText.includes('80%–120%'));assert(!patientText.includes('已纠正 +1'));assert(!patientText.includes('顾客评价扣薪'));
 patientUI.dispose();console.log('PASS clinic handbook shows patient score, bounded government salary and no tavern penalty labels');
+// Regression: an optional promotion must not consume the only work button.
+// Use real saved qualification/application states and the production court adapter.
+const promotionClock={day:1,hour:8,seconds:0};
+const newCore=(saved,clock=promotionClock)=>createFormalCareers({worldSeed:3,saved,getClock:()=>clock,saveState:()=>true,creditWageToBank:()=>({ok:true})});
+const promotionSeed=newCore().state();promotionSeed.skills.ritual=2;promotionSeed.skills.writing=2;
+const earned=newCore(promotionSeed);assert(earned.apply(CLERK.id,{ageYears:22}).ok);
+const applicationId=earned.applicationResult().id;for(const step of ['interview','receive-document','appointment'])assert(earned.reviewApplication(CLERK.id,{ageYears:22,applicationId,step}).ok);
+for(let day=1;day<=3;day++){promotionClock.day=day;promotionClock.hour=10;assert(earned.beginDuty().ok);promotionClock.hour=11.5;assert(earned.dutyEvent('court-start').ok);promotionClock.hour=12;assert(earned.dutyEvent('court-completed').ok);assert(earned.dutyEvent('archive-completed').ok);assert(earned.settle().ok);}
+const states=[['qualified',earned.state(),'promotion-apply']];assert(earned.applyPromotion().ok);const promotionId=earned.promotionSummary().application.id;states.push(['submitted',earned.state(),'promotion-review']);
+for(const [step,stage,kind]of [['interview','document-ready','promotion-receive-document'],['receive-document','document-held','promotion-appointment'],['appointment','approved',null]]){assert(earned.reviewPromotion({applicationId:promotionId,step}).ok);states.push([stage,earned.state(),kind]);}
+function promotionPanel(saved,{day=4,hour=8,canMeet=true}={}){
+ const clock={day,hour,seconds:9000},core=newCore(saved,clock),doc={head:element('head'),body:element('body'),createElement:element},actor={ageYears:22,walking:false,root:new THREE.Group()},paper=new THREE.Group(),home=new THREE.Group();actor.root.userData.hands=[new THREE.Group(),new THREE.Group()];actor.root.add(...actor.root.userData.hands);home.add(paper);
+ const sent=[],service=createChinaCourtCareer({careers:core,getPlayer:()=>actor,getClock:()=>clock,audience:{state:()=>({phase:'idle',schedule:{}})},getRecruiter:()=>npc,requestMeeting:()=>canMeet,documentObject:paper});service.update(.1);
+ const ui=createCareerHandbook({careers:core,getPlayer:()=>actor,getClock:()=>clock,getCountry:()=> 'china',getService:()=>service,document:doc,onIntent:n=>sent.push(n)});
+ const show=()=>{ui.open(false);return all(doc.body).filter(e=>e.tag==='button');};
+ return {core,ui,service,actor,sent,clock,doc,show,dispose(){ui.dispose();service.dispose();}};
+}
+for(const [stage,saved,promotionKind]of states){
+ const f=promotionPanel(saved),before=JSON.stringify(f.core.state()),bs=f.show(),work=bs.find(b=>b.attributes['data-career-action']==='work'),promotion=bs.find(b=>b.attributes['data-career-action']==='promotion');
+ assert(work,stage+' must retain next-day attendance');assert.equal(!!promotion,!!promotionKind,stage);assert.equal(JSON.stringify(f.core.state()),before,'render has no effects');
+ if(promotion){promotion.onclick();assert.equal(f.sent.at(-1).kind,promotionKind,stage+' has its independent promotion entry');f.show();}
+ const workAgain=all(f.doc.body).find(b=>b.attributes['data-career-action']==='work');workAgain.onclick();assert.equal(f.sent.at(-1).kind,'attend');
+ const pendingBefore=JSON.stringify(f.core.promotionSummary().application);f.actor.root.position.fromArray(f.sent.at(-1).position);assert(f.service.executeIntent(f.sent.at(-1)));assert.equal(f.core.workState().lastDuty.stage,'arrived');assert.equal(JSON.stringify(f.core.promotionSummary().application),pendingBefore,'starting work preserves promotion/paper receipt');assert.equal(f.core.currentRole().wage,stage==='approved'?22:18,'rank pay is unchanged by button choice');
+ assert(!f.show().some(b=>b.attributes['data-career-action']==='promotion'),'unsettled duty retains original promotion gate');f.dispose();
+}
+for(const opts of [{day:3,hour:12},{day:4,hour:19}]){const f=promotionPanel(states[1][1],opts),bs=f.show();assert(!bs.some(b=>b.attributes['data-career-action']==='work'));assert(bs.some(b=>b.attributes['data-career-action']==='promotion'));assert(text(f.doc.body).includes(opts.day===3?'今日已结薪':'休班'));f.dispose();}
+for(const stage of ['archive','ready']){
+ const f=promotionPanel(states[1][1]);assert(f.core.beginDuty().ok);f.clock.hour=11.5;assert(f.core.dutyEvent('court-start').ok);f.clock.hour=12;assert(f.core.dutyEvent('court-completed').ok);if(stage==='ready')assert(f.core.dutyEvent('archive-completed').ok);
+ const work=f.show().find(b=>b.attributes['data-career-action']==='work');assert(work,stage);assert(!all(f.doc.body).some(b=>b.attributes['data-career-action']==='promotion'));work.onclick();assert.equal(f.sent.at(-1).kind,stage==='ready'?'settle':'archive');f.dispose();
+}
+console.log('PASS real qualified/submitted/document-ready/document-held/promoted states retain independent attendance and promotion actions; actual attend preserves application/rank pay; archive/settle, paid-day and off-hours gates remain intact');
+const {FORMAL_CAREER_ROLES}=await import('../source/game/formal-careers.js');
+let sharedRoles=0;
+for(const role of FORMAL_CAREER_ROLES.filter(r=>r.id!==CLERK.id&&r.paymentKind!=='commission')){
+ const localClock={day:5,hour:8,seconds:10000},localSeed={...seed,...(role.id==='cn-royal-kitchen-cook'?{workExperience:{tavernChef:[1,2,3].map(day=>({source:'china-tavern-chef',number:day,orderId:`cn-tavern-order-${day}`,mealId:`cn-tavern-order-${day}-dish`,actorId:'player',day,workReceiptId:`cn-tavern-chef-labor-${day}`,completed:true})),royalKitchen:{receipts:[]}}}:{}),tenure:{roleId:role.id,slotId:role.slotId,sinceDay:5,sinceHour:8}},core=newCore(localSeed,localClock);assert.equal(core.state().loadError,null,role.id);
+ const doc={head:element('head'),body:element('body'),createElement:element},sent=[],service={state:()=>({}),intent:kind=>kind==='accept'?{id:role.id+'-accept',provider:role.id,kind,intentKey:role.id,action:'当班报到',position:[0,0,0]}:null};
+ const ui=createCareerHandbook({careers:core,getPlayer:()=>player,getClock:()=>localClock,getCountry:()=>role.country,getService:()=>service,document:doc,onIntent:n=>sent.push(n)});ui.open(false);
+ const work=all(doc.body).find(b=>b.attributes['data-career-action']==='work');assert(work,role.id);work.onclick();assert.equal(sent.at(-1).kind,'accept',role.id);assert(!all(doc.body).some(b=>b.attributes['data-career-action']==='promotion'));ui.dispose();sharedRoles++;
+}
+console.log(`PASS shared work-action dispatch remains available for all ${sharedRoles} other shift-based formal roles (real career state, adapter intent surface); commission roles retain their separate per-order panel`);
+
+{const f=promotionPanel(states[1][1],{canMeet:false});assert(f.service.prepareIntent(f.service.intent('promotion-review')));assert(f.service.isWaiting());const work=f.show().find(b=>b.attributes['data-career-action']==='work');assert(work,'an optional queued review can be abandoned for an available shift');work.onclick();assert.equal(f.sent.at(-1).kind,'attend');f.service.stopActivity();f.actor.root.position.fromArray(f.sent.at(-1).position);assert(f.service.executeIntent(f.sent.at(-1)));assert(!f.service.isWaiting());assert.equal(f.core.promotionSummary().application.stage,'submitted');f.dispose();}
+console.log('PASS an active optional review queue leaves attendance selectable; standard action cancellation releases the queue without withdrawing the application');
