@@ -2338,5 +2338,117 @@
         "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
       }
     }
+  ],
+  "serviceContinuations": [
+    {
+      "status": "PASS",
+      "scope": "Product session valid; diagnostic stopped early on unrelated granary actor choice cancellation. Not a paid checkpoint or completed service.",
+      "input": "qa/st03-r190/active-restore-20261007T232044Z-2.checkpoint.json",
+      "checkpoint": "qa/st03-r190/service-20261007T232413Z-2.checkpoint.json",
+      "checkpointSha256": "8d1e106f58623628f832988b2aca33c6d7078c275bca28efc7f9f90c571fbbab",
+      "frames": 37,
+      "clock": {
+        "seconds": 9103.414285712788,
+        "day": 4,
+        "hour": 20.20649999998253
+      },
+      "session": {
+        "id": "cn-salon-npc-1",
+        "customerId": "cn-official-records",
+        "customerName": "宋承简 · 文书官（正九品）",
+        "actorId": "cn-tavern-songwriter",
+        "activity": "music",
+        "serviceContent": "顾流萤轻轻念出新填曲词的节拍，请你听韵脚怎样落下。",
+        "stage": "invited",
+        "roomId": null,
+        "leg": 0,
+        "fee": 80,
+        "quoteVersion": 1,
+        "payment": "unpaid",
+        "incomePolicy": {
+          "version": 1,
+          "performerShareBps": 5000,
+          "rounding": "floor"
+        },
+        "receptionWork": {
+          "version": 1,
+          "sessionId": "cn-salon-npc-1",
+          "actorId": "cn-tavern-reception",
+          "holderRevision": 0,
+          "roleId": "cn-salon-reception",
+          "slotId": "cn-salon-reception-1",
+          "contractVersion": 1,
+          "amount": 8,
+          "customerId": "cn-official-records",
+          "artistId": "cn-tavern-songwriter",
+          "activity": "music",
+          "fee": 80,
+          "cardId": "salon-reception-card:cn-salon-npc-1",
+          "roomId": null,
+          "phase": "reserve",
+          "seconds": 0,
+          "steps": {
+            "registerSeconds": 2,
+            "reserveSeconds": 0,
+            "closeSeconds": 0
+          }
+        }
+      },
+      "rooms": [
+        {
+          "id": "tavern-guest-lan",
+          "name": "兰房",
+          "claim": null,
+          "physicallyOccupied": false
+        },
+        {
+          "id": "tavern-guest-zhu",
+          "name": "竹房",
+          "claim": null,
+          "physicallyOccupied": false
+        }
+      ],
+      "balances": {
+        "cn-minister-works": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-minister-granary": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-rites": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-personnel": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-justice": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-records": {
+          "bank": 96,
+          "cash": 0
+        }
+      },
+      "guard": {
+        "guard": "PASS",
+        "reason": null,
+        "exit": 0,
+        "seconds": 49.061,
+        "treePeakMiB": 675.41,
+        "peakMembersBytes": {
+          "18": 10895360,
+          "20": 697323520
+        },
+        "includesSupervisor": true,
+        "hostname": "a55d3d933517",
+        "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
+      },
+      "harnessCorrection": "Service tracking now selects exact original session.customerId rather than first paid intention among all officials. No product edit or assertions relaxed."
+    }
   ]
 }

@@ -1,6 +1,6 @@
 // Current-main original NPC choice and bodies. Financial origin is explicitly staged.
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),crypto=require('node:crypto');
-if(process.env.WORLDWOVEN_GUARDED!=='1'||!['segment','cleaning','active-restore'].includes(process.env.PROBE_STAGE))throw Error('Use run-salon-bounded.sh segment');
+if(process.env.WORLDWOVEN_GUARDED!=='1'||!['segment','cleaning','active-restore','service'].includes(process.env.PROBE_STAGE))throw Error('Use run-salon-bounded.sh segment');
 if(process.env.SOCIAL_RESUME||process.env.SALON_RESUME)throw Error('Use SALON_INPUT only');
 const input=process.env.SALON_INPUT,out=process.env.SALON_OUTPUT;
 if(!input||!out)throw Error('Exact checkpoint and isolated output required');
@@ -10,8 +10,13 @@ const currentOverrides=JSON.parse(fs.readFileSync('development/heavy-probes/salo
 for(const [file,expected]of Object.entries(provenance.provenance.sources))if(hash(fs.readFileSync(file))!==(currentOverrides[file]||expected))throw Error('Financial source changed: '+file);
 const bytes=fs.readFileSync(input),initial=JSON.parse(bytes),origin=provenance.provenance.loadSetup.clock.seconds;
 if(input.endsWith('origin-checkpoint.json')&&hash(bytes)!==provenance.restoreGate.outputSha256)throw Error('Original checkpoint provenance mismatch');
-if(initial.worldContinuity?.regions?.china?.controllers?.chinaSalon?.session&&process.env.PROBE_STAGE!=='active-restore')throw Error('Active-session restoration gate required before continuation');
+if(initial.worldContinuity?.regions?.china?.controllers?.chinaSalon?.session&&!['active-restore','service'].includes(process.env.PROBE_STAGE))throw Error('Active-session restoration gate required before continuation');
 // Resumed user-authorized work follows actual checkpoints; process segments remain capped.
+if(process.env.PROBE_STAGE==='service'){
+ const certified=JSON.parse(fs.readFileSync('development/heavy-probes/salon-r190-evidence.json','utf8')),gates=[...(certified.activeRestores||[]),...(certified.serviceContinuations||[])];
+ if(!gates.some(g=>g.status==='PASS'&&g.checkpointSha256===hash(bytes)))throw Error('Service requires exact verified active-restoration checkpoint');
+ if(!['reserved','settled','released'].includes(process.env.SALON_STOP_AFTER||''))throw Error('Choose reserved, settled or released service boundary explicitly');
+}
 process.env.SOCIAL_RESUME=input;
 process.env.QA_START_MS=String(Date.now());
 console.log('PHASE',JSON.stringify({name:'start',wallMs:Date.now(),cpu:process.cpuUsage(),input,inputSha256:hash(bytes)}));
@@ -43,14 +48,20 @@ if(process.env.PROBE_STAGE==='active-restore'){
 const origin=8485.714285714286,maxEnd=origin+240,initialSeconds=r.simulationClock.state().seconds;
 const frameCap=Math.min(900,Math.max(1,Number(process.env.SALON_FRAMES)||300));
 let frames=0,stop='segment-boundary',previous='',session=null;const events=[];
-let tracked=Object.entries(before.controllers.chinaAudience.life.decisions.people).find(([id,p])=>p.current?.id==='paid-salon');tracked=tracked?{actorId:tracked[0],...tracked[1].current}:null;
+let tracked=Object.entries(before.controllers.chinaAudience.life.decisions.people).find(([id,p])=>p.current?.id==='paid-salon'&&(process.env.PROBE_STAGE!=='service'||id===before.controllers.chinaSalon.session.customerId));tracked=tracked?{actorId:tracked[0],...tracked[1].current}:null;
 for(;frames<frameCap;){
  now+=150;main.namespace.socialStep(.15);frames++;
  const life=r.chinaAudience.state().life,paid=life.actors.filter(a=>a.activity==='paid-salon'||a.borrowedSalon),s=r.chinaSalon.snapshot();
  const roomState=r.chinaSalon.view().rooms,offers=r.npcs.filter(n=>r.chinaOfficialEconomy.account(n.station.id)).map(n=>({actorId:n.station.id,choices:r.chinaSalon.npcChoices(n.station.id)}));
  const signature=JSON.stringify({rooms:roomState,offers,paid:paid.map(a=>[a.id,a.activity,a.stage,a.borrowedSalon]),session:s.session&&[s.session.id,s.session.stage,s.session.payment]});
  if(signature!==previous){const event={frame:frames,clock:r.simulationClock.state(),paid,rooms:roomState,offers,session:s.session};events.push(event);console.log('SERVICE',JSON.stringify(event));previous=signature;}
- if(s.session){session=s.session;stop='first-original-session';break;}
+ if(process.env.PROBE_STAGE==='service'){
+  const original=before.controllers.chinaSalon.session;
+  if(s.session&&s.session.id!==original.id)throw Error('Original service replaced');
+  const hold=r.chinaOfficialEconomy.salonHold(original.id);
+  if(!s.session){stop=hold?.status==='settled'?'original-service-released':'original-service-cancelled';break;}
+  if(s.session.payment===process.env.SALON_STOP_AFTER){session=s.session;stop='original-service-'+s.session.payment;break;}
+ }else if(s.session){session=s.session;stop='first-original-session';break;}
  if(process.env.PROBE_STAGE==='cleaning'&&!r.chinaTavern.staffScene.lodgingState().rooms.find(r=>r.id==='lan').dirty){stop='original-lan-cleaning-completed';break;}
  if(!tracked){const chosen=Object.entries(life.decisions.people).find(([id,p])=>p.current?.id==='paid-salon');if(chosen)tracked={actorId:chosen[0],...chosen[1].current};}
  if(tracked){const current=life.decisions.people[tracked.actorId]?.current;if(current?.id!=='paid-salon'||current.targetId!==tracked.targetId||current.startedAt!==tracked.startedAt){stop='original-choice-ended';break;}}
@@ -59,7 +70,7 @@ for(;frames<frameCap;){
  if(Date.now()-Number(process.env.QA_START_MS)>150000){stop='safe-runtime-checkpoint';break;}
 }
 // A quiet segment is a checkpoint, not completion of the user's pending task.
-const checkpoint=main.namespace.socialCheckpoint();
+session=r.chinaSalon.snapshot().session;const checkpoint=main.namespace.socialCheckpoint();
 fs.writeFileSync(process.env.SALON_OUTPUT+'.checkpoint.json',JSON.stringify(checkpoint,null,2));
 const report={status:'OBSERVED',scope:'R190 original production scheduling/navigation from source-hashed staged four-day payroll; not four natural days or browser/iOS',input:process.env.SALON_INPUT,frames,initialSeconds,clock:r.simulationClock.state(),stop,tracked,events,session,cleaningPhases:checkpoint.worldContinuity.regions.china.controllers.chinaTavern.phases,lodgingRooms:checkpoint.chinaServiceWorld.rooms,offers:r.npcs.filter(n=>r.chinaOfficialEconomy.account(n.station.id)).map(n=>({actorId:n.station.id,choices:r.chinaSalon.npcChoices(n.station.id)})),rooms:r.chinaSalon.view().rooms,officialEconomy:r.chinaOfficialEconomy.snapshot(),artistEconomy:r.chinaSalonEconomy.snapshot(),salonHistory:r.chinaSalon.snapshot().history,officialLife:r.chinaAudience.state().life,actorPositions:Object.fromEntries(r.npcs.map(n=>[n.station.id,n.root.position.toArray()])),failures:r.chinaSalon.state().failures,officialFailures:r.chinaAudience.state().failures,checkpoint:process.env.SALON_OUTPUT+'.checkpoint.json'};
 fs.writeFileSync(process.env.SALON_OUTPUT+'.result.json',JSON.stringify(report,null,2));
