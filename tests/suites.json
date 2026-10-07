@@ -359,7 +359,8 @@
       "npc-social-ownership.mjs",
       "npc-public-interactions.mjs",
       "palace-companionship.mjs",
-      "china-salon-companionship.mjs"
+      "china-salon-companionship.mjs",
+      "bath-privacy.mjs"
     ],
     "integration": [
       "airy-panel-default-cascade.mjs",
@@ -574,7 +575,8 @@
       "player-relationship-main.cjs",
       "npc-public-pair-main.cjs",
       "palace-companionship-main.cjs",
-      "china-salon-st03-main.cjs"
+      "china-salon-st03-main.cjs",
+      "bath-privacy-main.cjs"
     ]
   },
   "release": {
