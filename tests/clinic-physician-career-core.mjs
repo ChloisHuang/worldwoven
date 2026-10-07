@@ -34,7 +34,7 @@ test('six-skill save gains only empty care; official promotion and frozen wages 
  assert(f.careers.applyPromotion().ok);const id=f.careers.promotionSummary().application.id;
  for(const step of ['interview','receive-document','appointment'])assert(f.careers.reviewPromotion({applicationId:id,step}).ok);
  const old=sixSkillSave(f.careers.state()),m=fixture(old,{day:3,hour:12}).careers.state();
- assert.equal(m.loadError,null);assert.equal(m.version,10);assert.equal(m.skills.care,0);assert.equal(m.skillXP.care,0);assert.equal(m.daily.care,0);assert.equal(m.lowerWork[ASSISTANT.workSource],0);
+ assert.equal(m.loadError,null);assert.equal(m.version,11);assert.equal(m.skills.care,0);assert.equal(m.skillXP.care,0);assert.equal(m.daily.care,0);assert.equal(m.lowerWork[ASSISTANT.workSource],0);
  for(const key of ['tenure','lastDuty','lastEvaluation','lastPaidDay','officialCareer','applications'])assert.deepEqual(m[key],old[key],key);
  for(const key of Object.keys(old.skills)){assert.equal(m.skills[key],old.skills[key]);assert.equal(m.skillXP[key],old.skillXP[key]);}
  assert.equal(fixture(old,{day:3,hour:12}).careers.currentRole().gradeLabel,'正九品');assert.equal(m.lastDuty.wage,20);

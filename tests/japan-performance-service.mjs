@@ -6,14 +6,14 @@ import {createFacilityQueue} from '../source/game/npc-facilities.js';
 import {createCurrencyLedger} from '../source/game/currency-ledger.js';
 import {createCopperLedger} from '../source/game/copper-ledger.js';
 class V{constructor(x=0,y=0,z=0){this.set(x,y,z);}set(x,y,z){Object.assign(this,{x,y,z});return this;}clone(){return new V(this.x,this.y,this.z);}copy(p){return this.set(p.x,p.y,p.z);}toArray(){return [this.x,this.y,this.z];}distanceToSquared(p){return (this.x-p.x)**2+(this.y-p.y)**2+(this.z-p.z)**2;}}
-function fixture({wallet,saved,saveWallet=()=>{},onRelationshipEvent=()=>false,saveService=()=>true}={}){
+function fixture({wallet,saved,saveWallet=()=>{},onRelationshipEvent=()=>false,saveService=()=>true,props=null}={}){
  const make=(p,station)=>({station,ageYears:station.ageYears,root:{position:new V(...p),rotation:{y:0},userData:{}},home:new V(...p),locomotion:{walkSpeed:5},animate(){}});
  const npcs=PERFORMANCE_CAST.map(a=>make(a.position,{id:a.id,npcName:a.name,ageYears:a.ageYears,performance:{...a}}));
  const player=make(P.reception,{id:'player',ageYears:24});let mounted=null,snapshot;
  const copperLedger=createCurrencyLedger({saved:wallet,saveState:saveWallet});if(!wallet){assert(copperLedger.creditWageToBank({amount:80,receiptId:'test-completed-shift',currency:'japan',roleId:'jp-frontdesk-assistant',slotId:'jp-frontdesk',day:1}).ok);assert(copperLedger.withdraw(80,'withdraw-local-wage','japan').ok);copperLedger.earn(37,'untouched-copper');}
  const navigation={legacyGround:false,surfaces:[{minX:-12,maxX:12,minZ:-15,maxZ:9,y:7.6}]};
  const furniture={items:PERFORMANCE_SEATS,facilities:createFacilityQueue(),canSit:nav=>{assert.equal(nav,navigation,'Mount retains the provided multi-floor navigation');return true;},standPoint:(nav,extra,seat)=>{assert.equal(nav,navigation,'Unmount retains the same multi-floor navigation');return new V(...seat.position);}};
- const service=createJapanPerformanceService({npcs,furniture,navigation,doors:{routeStep(path,p){while(path.length&&p.distanceToSquared(path[0])<.008)path.shift();return {waypoint:path[0]};}},planPath:(a,b)=>[new V(b.x,b.y,b.z)],moveActor:(a,x,z)=>{a.root.position.x+=x;a.root.position.z+=z;},poseContext:()=>({}),getPlayer:()=>player,getMounted:()=>mounted,copperLedger,saved,onRelationshipEvent,saveState:s=>{if(saveService(s)===false)return false;snapshot=s;}});
+ const service=createJapanPerformanceService({npcs,furniture,navigation,doors:{routeStep(path,p){while(path.length&&p.distanceToSquared(path[0])<.008)path.shift();return {waypoint:path[0]};}},planPath:(a,b)=>[new V(b.x,b.y,b.z)],moveActor:(a,x,z)=>{a.root.position.x+=x;a.root.position.z+=z;},poseContext:()=>({}),getPlayer:()=>player,getMounted:()=>mounted,copperLedger,props,saved,onRelationshipEvent,saveState:s=>{if(saveService(s)===false)return false;snapshot=s;}});
  let time=0;
  const step=(seconds=.1,context={})=>{for(let i=0;i<Math.ceil(seconds/.1);i++){time+=.1;service.update(.1,time,context);}};
  const until=(fn,max=500)=>{for(let i=0;i<max&&!fn();i++)step();assert(fn(),JSON.stringify(service.state()));};
@@ -110,3 +110,36 @@ console.log('PASS Japan performance witnessed parties, neutral refusal, durable 
  const f=fixture();f.request('tea');f.confirm();f.until(()=>!!f.npcs[1].serviceMount);assert(f.service.cancel());const actor=f.npcs[1],mount=actor.serviceMount,position=actor.root.position.toArray();f.step(.5,{conversationActorId:actor.station.id});assert.equal(actor.serviceMount,mount,'legacy player chat does not unseat a returning artist');assert.deepEqual(actor.root.position.toArray(),position);f.until(()=>!f.service.view().returning);f.done();
  console.log('PASS Japan paid performance/serving pause keeps original order, route, timers, mount and money; resumes each part once');
 }
+
+// Employment borrows this same cast and these same props. An idle service
+// update must not silently overwrite an external route, hand pose or live cup.
+{
+ const updates=[];let cleared=0;const props={update:(...args)=>updates.push(args),clearOrder:()=>cleared++,state:()=>({}),dispose(){}};
+ const f=fixture({props}),actor=f.npcs[1];let active=true,poses=0;
+ actor.animate=()=>poses++;
+ const controller={owns:n=>active&&n===actor,onShift:id=>active&&id===actor.station.id,blocksService:()=>active,label:()=>'演艺当班'};
+ f.service.setEmployment(controller);
+ const workplace=f.service.workplace();assert(Object.isFrozen(workplace));assert(Object.isFrozen(workplace.cast));assert.equal(workplace.server,f.npcs[0]);assert.equal(workplace.cast[1],actor);assert.equal(workplace.guestSeat,f.furniture.items[0]);
+ assert(f.service.workAvailable(),'Opening a shift still leaves its idle boundary available');
+ actor.walking=true;actor.route=[new V(1,7.6,1)];actor.serviceMount=f.furniture.items[1];
+ const route=actor.route,mount=actor.serviceMount,position=actor.root.position.toArray();
+ const workOrder={id:'same-scene-order',activity:'dance',status:'performing'};
+ f.service.workProps(workOrder,{server:f.npcs[0],artist:actor,player:f.player},1);
+ f.step();assert.equal(actor.walking,true);assert.equal(actor.route,route);assert.equal(actor.serviceMount,mount);assert.deepEqual(actor.root.position.toArray(),position);assert.equal(poses,0,'Original idle pose cannot replace employment hand animation');assert.equal(updates.length,1,'Original idle update cannot clear the employment prop order');
+ assert.equal(f.service.request(actor.station.id,'dance'),false);assert(f.service.view().candidates.every(n=>!n.available));assert.equal(f.service.furnitureAccess(f.furniture.items[1]),false);assert.equal(f.service.workAvailable(),false);assert.equal(f.service.socialStatus(actor).busy,true);assert.equal(f.service.socialStatus(actor).attention,false);
+ f.service.workReset(actor);assert(f.service.workUnseat(actor));assert(f.service.workAvailable());assert.equal(f.service.socialStatus(actor).attention,true);
+ f.service.workPose(actor,3,'read');assert.equal(poses,1);
+ f.service.workClearProps();assert.equal(cleared,1);active=false;f.step();assert.equal(poses,2);assert.equal(updates.at(-1)[0],null);assert(f.service.furnitureAccess(f.furniture.items[1]));f.request();assert.equal(f.service.workAvailable(),false);f.service.cancel();assert.equal(f.service.workAvailable(),false);f.until(()=>!f.service.view().returning);assert(f.service.workAvailable());f.done();
+}
+{
+ const {holdSocialActors,releaseSocialActors}=await import('../source/game/npc-social-ownership.js');
+ const f=fixture(),actor=f.npcs[2];assert(f.service.workAvailable(),'Existing 43-year-old storyteller is eligible without an invented upper age limit');
+ actor.alive=false;assert.equal(f.service.workAvailable(),false);actor.alive=true;actor.ageYears=17;assert.equal(f.service.workAvailable(),false);actor.ageYears=43;
+ actor.route=[new V(2,7.6,2)];assert.equal(f.service.workAvailable(),false);f.service.workReset(actor);
+ assert(f.service.workTravel(actor,[1.8,7.6,-6.45],.1)===false);assert.equal(f.service.workAvailable(),false,'Employment routing still occupies the original route map');f.service.workReset(actor);
+ actor.serviceMount=f.furniture.items[1];const position=actor.root.position.toArray(),mount=actor.serviceMount;
+ assert(holdSocialActors([actor.station.id],'employment-bridge-pause'));assert.equal(f.service.workAvailable(),false);assert.equal(f.service.workTravel(actor,P.reply,.1),false);assert.equal(f.service.workUnseat(actor),false);assert.deepEqual(actor.root.position.toArray(),position);assert.equal(actor.serviceMount,mount);releaseSocialActors('employment-bridge-pause');assert(f.service.workUnseat(actor));f.service.workReset(actor);assert(f.service.workAvailable());
+ const choice=f.service.workChoose(actor.station.id,[{id:'paid-work-interest',traits:{curiosity:.5,quiet:.4},needs:{social:.7},cooldown:120,targets:[{id:'player'}],socialEvent:{values:{company:1},strength:.06}}]);assert(choice);assert.equal(f.service.socialProfile(actor.station.id).current.id,choice.id);
+ assert.equal(f.service.workObserve(actor.station.id,choice,{observers:[{id:'player',knowledge:'participant'}]}).length,1);f.service.workComplete(actor.station.id,choice,{fulfilled:true});assert.equal(f.service.socialProfile(actor.station.id).current,null);assert(f.service.socialProfile(actor.station.id).cooldowns[choice.id]>100);assert.equal(f.snapshot().life.people[actor.station.id].current,null,'Employment choices persist in the original social life state');f.done();
+}
+console.log('PASS Japan employment bridge: original cast ownership, shared props and seating, idle handoff, social pause, adult eligibility and one life decision ledger');
