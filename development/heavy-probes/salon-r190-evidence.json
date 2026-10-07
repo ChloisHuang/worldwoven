@@ -1062,5 +1062,127 @@
       "source/game/china-tavern-service-scene.js assistant original work priority and clean-room5s phase",
       "source/game/china-tavern-kitchen-roles.js original assistant role assignment"
     ]
+  },
+  "cleaningContinuation": {
+    "userResumedWork": true,
+    "input": "qa/st03-r190/segment-20261007T184803Z-2.checkpoint.json",
+    "checkpoint": "qa/st03-r190/cleaning-20261007T224234Z-2.checkpoint.json",
+    "checkpointSha256": "8ba5dcdc5bdc9f06dc9f0ebbac7e0a221cbaf8d48206cd6e358b4ab0b2e23290",
+    "frames": 51,
+    "initialSeconds": 8666.764285713847,
+    "clock": {
+      "seconds": 8674.414285713829,
+      "day": 4,
+      "hour": 15.201499999994667
+    },
+    "stop": "original-lan-cleaning-completed",
+    "timerRestoredExactly": true,
+    "rooms": [
+      {
+        "id": "tavern-guest-lan",
+        "name": "兰房",
+        "claim": null,
+        "physicallyOccupied": true
+      },
+      {
+        "id": "tavern-guest-zhu",
+        "name": "竹房",
+        "claim": null,
+        "physicallyOccupied": false
+      }
+    ],
+    "lodgingRooms": [
+      {
+        "id": "lan",
+        "name": "兰房",
+        "price": 12,
+        "dirty": false,
+        "guestId": null,
+        "bedId": "china-tavern-bed-lan"
+      },
+      {
+        "id": "zhu",
+        "name": "竹房",
+        "price": 12,
+        "dirty": true,
+        "guestId": null,
+        "bedId": "china-tavern-bed-zhu"
+      }
+    ],
+    "offers": [
+      {
+        "actorId": "cn-minister-works",
+        "choices": []
+      },
+      {
+        "actorId": "cn-minister-granary",
+        "choices": []
+      },
+      {
+        "actorId": "cn-official-rites",
+        "choices": []
+      },
+      {
+        "actorId": "cn-official-personnel",
+        "choices": []
+      },
+      {
+        "actorId": "cn-official-justice",
+        "choices": []
+      },
+      {
+        "actorId": "cn-official-records",
+        "choices": []
+      }
+    ],
+    "cleaningPhases": [],
+    "assistantPosition": [
+      19.7,
+      4.015,
+      15.5
+    ],
+    "accounts": {
+      "cn-minister-works": {
+        "bank": 96,
+        "cash": 0
+      },
+      "cn-minister-granary": {
+        "bank": 96,
+        "cash": 0
+      },
+      "cn-official-rites": {
+        "bank": 96,
+        "cash": 0
+      },
+      "cn-official-personnel": {
+        "bank": 96,
+        "cash": 0
+      },
+      "cn-official-justice": {
+        "bank": 96,
+        "cash": 0
+      },
+      "cn-official-records": {
+        "bank": 96,
+        "cash": 0
+      }
+    },
+    "session": null,
+    "guard": {
+      "guard": "PASS",
+      "reason": null,
+      "exit": 0,
+      "seconds": 48.821,
+      "treePeakMiB": 688.164,
+      "peakMembersBytes": {
+        "19": 10891264,
+        "21": 710701056
+      },
+      "includesSupervisor": true,
+      "hostname": "a55d3d933517",
+      "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
+    },
+    "phaseLog": "qa/st03-r190/cleaning-20261007T224234Z-2.log",
+    "limit": "Original LAN cleaning finished, but assistant remains physically inside. All current offers empty. Neither room availability nor paid service is proved."
   }
 }
