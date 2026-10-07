@@ -83,7 +83,7 @@ export function createRegionalTellerInspection({resolveAssignment,getDay,getPlay
   state:()=>copy(state),snapshot:()=>copy(state),get loadError(){return loadError;},get lastError(){return lastError;},
   isActing:()=>!!active,actionDescriptor:descriptor,workIntent:descriptor,
   handoffBoundary:()=>({ok:!loadError&&!state.order,blockers:loadError?[loadError]:state.order?['regional-teller-work-unfinished']:[]}),
-  start({country,workReceiptId}={}){
+  start({country,workReceiptId,contractVersion=1}={}){
    if(disposed||busy||loadError||suspended)return fail(loadError||'teller-unavailable');
    if(state.order)return fail('teller-order-unfinished');
    const role=regionalTellerRole(country),actor=player(),a=role&&assignment(role.country),today=getDay(),legacy=legacyDay();
@@ -94,7 +94,7 @@ export function createRegionalTellerInspection({resolveAssignment,getDay,getPlay
    if(!available(actor,role.country)||!near(actor,positions(role.country)?.home))return fail('teller-home-required');
    let source;try{source=freezeTellerSource(getLedger());}catch{return fail('invalid-teller-source');}
    if(!source)return fail('invalid-teller-source');
-   const contract=regionalTellerContract({country:role.country,day:today,holderRevision:a.revision,workReceiptId,source});
+   const contract=regionalTellerContract({country:role.country,day:today,holderRevision:a.revision,workReceiptId,source,contractVersion});
    if(!validateRegionalTellerContract(contract))return fail('invalid-teller-contract');
    if(!write({...copy(state),lastIssuedDay:today,order:newOrder(contract)}))return fail('save-failed');
    return {ok:true,orderId:contract.orderId,contract:copy(contract)};

@@ -66,6 +66,15 @@ for(const role of roles){
   fail=true;assert.equal(career.beginDuty({receiptId}).ok,false);assert.equal(career.state().lastDuty,null);fail=false;
   assert(career.beginDuty({receiptId}).ok);assert.equal(career.state().lastDuty.shiftKind,'continuous');assert.equal(career.state().lastDuty.tellerPayVersion,1);
   career=createFormalCareers({...options,saved});assert.equal(career.state().loadError,null);assert.equal(career.workState().lastDuty.tellerPayVersion,1);
+  if(hours===12){
+   const bank=createGameCurrencyLedger({saved:{},storage:{setItem:()=>true}}),proof=regionalTellerAuditProof(regionalTellerContract({country:role.country,day:9,holderRevision:1,source:freezeTellerSource(bank),workReceiptId:receiptId,contractVersion:2}));
+   const r={version:2,id:proof.orderId,roleId:role.id,slotId:role.slotId,day:9,amount:0,currency:role.currency,proof,completedAt:clock.seconds};assert(validTellerAuditReceipt(r));
+   assert.equal(career.prepareTellerAuditService({...r,proof:{...proof,workReceiptId:'wrong-1'}}).code,'wrong-duty-source');
+   const prepared=career.prepareTellerAuditService(r);assert(prepared.ok);assert.equal(paid.length,0);assert(prepared.lock());saved=copy(prepared.patch.formalCareers);assert(prepared.committed());prepared.release();
+   assert.equal(career.state().tellerAuditServices[0].amount,0);assert.equal(career.state().skillXP.writing,10);assert.equal(paid.length,0);
+   assert(career.prepareTellerAuditService(r).replayed);
+  }
+
   clock.hour=6+hours;clock.seconds+=hours*60/.7;
   assert(career.laborEvent('completed',{roleId:role.id,receiptId,coveredSeconds:hours*60/.7,completedTasks:0}).ok);
   assert(career.laborEvent('inspected',{roleId:role.id,receiptId}).ok);const expected=Math.floor(role.wage*hours/12+1e-9);

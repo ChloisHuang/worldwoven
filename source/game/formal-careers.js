@@ -1085,6 +1085,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const role=regionalTellerRole(receipt.roleId),tenure=current.tenure,clock=readClock();
     if(!clock)return failure('invalid-clock');
     if(!tenure||tenure.roleId!==role.id||tenure.slotId!==receipt.slotId||receipt.day<tenure.sinceDay||receipt.day>clock.day||receipt.completedAt>clock.seconds+1e-9)return failure('wrong-duty-source');
+    if(receipt.version===2&&(!current.lastDuty||current.lastDuty.tellerPayVersion!==1||current.lastDuty.day!==receipt.day||current.lastDuty.roleId!==receipt.roleId||current.lastDuty.workReceiptId!==receipt.proof.workReceiptId||current.lastDuty.stage!=='working'))return failure('wrong-duty-source');
     if(receipt.amount>0&&current.lastDuty?.day===receipt.day&&regionalTellerRole(current.lastDuty.roleId)&&current.lastDuty.started)return failure('teller-payroll-day-conflict');
     const latest=current.tellerAuditServices.at(-1);
     if(latest&&(receipt.day<=latest.day||receipt.completedAt<latest.completedAt))return failure('work-receipt-conflict');

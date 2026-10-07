@@ -50,8 +50,10 @@ test('all local employers freeze 8 original units and one global daily order; fu
  for(const [country,role]of Object.entries(REGIONAL_TELLER_ROLES)){
   const contract=regionalTellerContract({country,day:7,holderRevision:3,source}),proof=regionalTellerAuditProof(contract);
   assert(validateRegionalTellerAuditProof(proof));assert.equal(proof.orderId,'regional-teller-audit:7');assert.equal(proof.amount,8);
+  const duty=regionalTellerAuditProof(regionalTellerContract({country,day:7,holderRevision:3,source,contractVersion:2,workReceiptId:role.workSource+'-9'}));
+  assert(validateRegionalTellerAuditProof(duty));assert.equal(duty.amount,0);assert.equal(duty.contractVersion,2);assert.equal(duty.orderId,proof.orderId);assert.deepEqual(duty.source,proof.source);assert.equal(validateRegionalTellerAuditProof({...duty,amount:8}),false);
   assert.equal(proof.currency,role.currency);assert.equal(proof.roleId,role.id);assert.equal(proof.slotId,role.slotId);
-  assert.equal(role.paymentKind,'commission');assert.equal(role.minimumAgeYears,18);assert.deepEqual(role.skillRequirements,{writing:1,ritual:1});
+  assert.equal(role.paymentKind,'salary');assert.equal(role.minimumAgeYears,18);assert.deepEqual(role.skillRequirements,{writing:1,ritual:1});
   assert(proof.duty.includes('including-zero-activity'));assert.deepEqual(proof.report.rows.map(r=>r.currency),REGIONAL_TELLER_CURRENCIES);
   assert.deepEqual(proof.journal,f.ledger.history());assert.equal(proof.steps.length,4);assert.equal(proof.calculatedSeconds,8);
  }

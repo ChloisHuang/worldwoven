@@ -41,10 +41,10 @@ export function regionalTellerJournal(source,currency=null){
  const journal=[...source.legacyCopper.transactions,...source.transactions];
  return copy(currency===null?journal:journal.filter(tx=>(tx.currency||'copper')===currency||tx.action==='exchange'&&tx.quote.to===currency));
 }
-export function regionalTellerContract({country,day,holderRevision,workReceiptId=regionalTellerOrderId(day),source}={}){
- const role=regionalTellerRole(country);if(!role)throw Error('invalid-teller-country');
- return {kind:'player-regional-teller-daily-audit',version:1,actorId:'player',country:role.country,roleId:role.id,slotId:role.slotId,
-  holderRevision,orderId:regionalTellerOrderId(day),workReceiptId,day,amount:role.amount,currency:role.currency,contractVersion:role.contractVersion,
+export function regionalTellerContract({country,day,holderRevision,workReceiptId=regionalTellerOrderId(day),source,contractVersion=1}={}){
+ const role=regionalTellerRole(country);if(!role)throw Error('invalid-teller-country');if(![1,2].includes(contractVersion))throw Error('invalid-teller-contract-version');
+ return {kind:contractVersion===1?'player-regional-teller-daily-audit':'player-regional-teller-duty-audit',version:contractVersion,actorId:'player',country:role.country,roleId:role.id,slotId:role.slotId,
+  holderRevision,orderId:regionalTellerOrderId(day),workReceiptId,day,amount:contractVersion===1?8:0,currency:role.currency,contractVersion,
   duty:'daily-four-currency-balances-holds-journal-consistency-including-zero-activity',sourceHash:regionalTellerSourceHash(source),source:copy(source)};
 }
 export function validateRegionalTellerContract(contract){

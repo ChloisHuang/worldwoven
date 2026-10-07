@@ -9,11 +9,11 @@ export const sameTellerAuditReceipt=(a,b)=>JSON.stringify(canonical(a))===JSON.s
 export function validTellerAuditReceipt(receipt){
  if(!receipt||typeof receipt!=='object'||Array.isArray(receipt)||Object.keys(receipt).length!==fields.length||!fields.every(key=>Object.hasOwn(receipt,key)))return false;
  const role=regionalTellerRole(receipt.roleId),proof=receipt.proof;
- if(!role||receipt.roleId!==role.id||receipt.version!==1||receipt.slotId!==role.slotId||receipt.amount!==8||receipt.amount!==role.amount||receipt.currency!==role.currency||
+ if(!role||receipt.roleId!==role.id||![1,2].includes(receipt.version)||receipt.slotId!==role.slotId||receipt.amount!==(receipt.version===1?8:0)||receipt.currency!==role.currency||
    !Number.isSafeInteger(receipt.day)||receipt.day<0||!Number.isFinite(receipt.completedAt)||receipt.completedAt<0||
    receipt.id!==`regional-teller-audit:${receipt.day}`||!proof||proof.actorId!=='player'||proof.orderId!==receipt.id||
    proof.country!==role.country||proof.roleId!==role.id||proof.slotId!==role.slotId||proof.day!==receipt.day||
-   proof.amount!==receipt.amount||proof.currency!==receipt.currency)return false;
+   proof.contractVersion!==receipt.version||proof.amount!==receipt.amount||proof.currency!==receipt.currency)return false;
  try{return !!validateRegionalTellerAuditProof(proof);}catch{return false;}
 }
 export function tellerAuditReview(receipt){
