@@ -1,3 +1,4 @@
+import {enhanceGameSelect,closeGameSelects} from './game-select.js';
 import {preserveAiryPanelView} from './airy-panel.js';
 import {isSociallyHeld} from './npc-social-ownership.js';
 import {createServiceRelationshipOutbox,serviceRelationshipEvent} from './service-relationship-outbox.js';
@@ -74,23 +75,23 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
  replayRelationships();
  const near=()=>{const p=getPlayer()?.root.position;return !!p&&Math.abs(p.y-C.floorY)<.45&&Math.hypot(p.x-C.points.counter[0],p.z-C.points.counter[2])<.60&&canSee(bound?counterStation:originalTeller.station)===true;};
  const ticketValid=()=>{const b=binding();return atCounter(b)&&counterTicket?.actor===b.actor&&counterTicket.actorId===b.holderId&&counterTicket.revision===b.revision;};
- function close(){renderVersion++;counterTicket=null;if(dialog.open){dialog.close();onClose();}}
+ function close(){closeGameSelects(dialog,doc);renderVersion++;counterTicket=null;if(dialog.open){dialog.close();onClose();}}
  const available=version=>{
   if(disposed||!dialog.open)return false;
   if(bound&&(!ticketValid()||!near())){close();return false;}
   return version===renderVersion&&near();
  };
  const actorActivity=n=>bodyManaged?n?.label?.querySelector?.('small')?.textContent||activity:activity;
- function render(){
-  const version=++renderVersion,state=ledger.state(),all=ledger.balances?.();
-  const restoreView=preserveAiryPanelView(dialog,doc);dialog.replaceChildren();const sheet=make('div',undefined,'cn-money-sheet'),main=make('section',undefined,'cn-money-main');const x=make('button','×','cn-money-close');x.type='button';x.setAttribute('aria-label','合上账簿');x.onclick=()=>{if(!bound||available(version))close();};
+ function render(focusLabel){
+  let focusControl;const version=++renderVersion,state=ledger.state(),all=ledger.balances?.();
+  const restoreView=preserveAiryPanelView(dialog,doc);closeGameSelects(dialog,doc);dialog.replaceChildren();const sheet=make('div',undefined,'cn-money-sheet'),main=make('section',undefined,'cn-money-main');const x=make('button','×','cn-money-close');x.type='button';x.setAttribute('aria-label','合上账簿');x.onclick=()=>{if(!bound||available(version))close();};
   const header=make('header',undefined,'cn-money-header');header.append(make('h2',C.name));dialog.append(x,sheet);sheet.append(main);main.append(header);
   if(ledger.loadError||!all){main.append(make('p',ERRORS['invalid-saved-state']));restoreView();return;}
   const b=all[currency],unit=GAME_CURRENCIES[currency].unit;
   const selector=(labelText,value,change,excluded)=>{
    const label=make('label'),select=make('select');label.append(make('span',labelText,'cn-money-label'));select.setAttribute('aria-label',labelText);
    for(const c of Object.values(GAME_CURRENCIES)){if(c.id===excluded)continue;const option=make('option',c.label);option.value=c.id;select.append(option);}select.value=value;
-   select.onchange=()=>{if(available(version)){change(select.value);message='';render();}};const wrap=make('div',undefined,'cn-money-select'),arrow=make('span','⌄');arrow.setAttribute('aria-hidden','true');wrap.append(select,arrow);label.append(wrap);return label;
+   select.onchange=()=>{if(available(version)){change(select.value);message='';render(doc.activeElement===control.trigger?labelText:undefined);}};const control=enhanceGameSelect(select,{document:doc,id:`ww-bank-${C.id}-${excluded?'exchange':'currency'}`});if(focusLabel===labelText)focusControl=control.trigger;control.element.className+=' cn-money-select';label.htmlFor=control.trigger.id;label.append(control.element);return label;
   };
   const amountField=(labelText,ariaLabel,value)=>{
    const label=make('label',undefined,'cn-money-amount-label'),row=make('div',undefined,'cn-money-amount'),input=make('input');label.append(make('span',labelText,'cn-money-label'));input.type='number';input.min='1';input.step='1';input.inputMode='numeric';input.value=value;input.setAttribute('aria-label',ariaLabel);input.addEventListener('keydown',e=>{if(!bound||available(version))e.stopPropagation();});
@@ -163,7 +164,7 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
    else if(kind==='exchange')text=`兑换：${currencyText(row.quote.from,row.quote.amount)} → ${currencyText(row.quote.to,row.quote.received)}`;
    else text=`${({deposit:'存入银行',withdraw:'取到钱袋',earn:'旧制计件工钱',wage:'正式工资入银行',reserve:'服务预留',settle:'服务结清（不再扣钱）',refund:'退回原币种'})[kind]||'往来'} ${currencyText(id,row.amount)}`;
    list.append(make('li',text));}more.append(list);}
-  more.append(make('p','仅游戏票券；存取及兑换只在银行柜台办理。合上账簿保留已记好的账；未按按钮的数目不会入账。','cn-money-note'));main.append(more);restoreView();
+  more.append(make('p','仅游戏票券；存取及兑换只在银行柜台办理。合上账簿保留已记好的账；未按按钮的数目不会入账。','cn-money-note'));main.append(more);restoreView();focusControl?.focus?.({preventScroll:true});
  }
  dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
  const unsubscribe=ledger.subscribeCommitted?.(tx=>{relationshipReceipt(tx);replayRelationships();if(dialog.open&&!disposed&&(!bound||available(renderVersion)))render();});

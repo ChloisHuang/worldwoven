@@ -1,7 +1,8 @@
 /** Storage mode is locked before either main initialization or ledger restore.
  * A failed candidate import never falls through into an ordinary game boot. */
 import {CHARACTER_PREVIEW_ENABLED} from './character-preview-gate.js';
-try{
+import {mountMobileViewport} from './mobile-viewport.js';
+if(!mountMobileViewport())try{
  if(CHARACTER_PREVIEW_ENABLED)await import('./character-preview-entry.js');
  else await import('./character-live-entry.js');
  await import('./main.js');
