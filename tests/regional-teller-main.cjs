@@ -25,6 +25,7 @@ harness=harness.replace("assert.equal(state().mode,'globe');","assert.equal(stat
 const begin = harness.indexOf('const report=[];for(let round=0;');
 harness = harness.slice(0, begin) + String.raw`
 if(process.env.PROBE_STAGE==='init'){console.log('PASS main import only',process.resourceUsage().maxRSS/1024);return;}
+console.log('RESOURCE post-import',JSON.stringify({cpu:process.cpuUsage(),rssMiB:process.memoryUsage().rss/1024/1024,load:require('os').loadavg()}));
 const started=Date.now(),walk=e=>[e,...(e.children||[]).flatMap(walk)],dialog=()=>all.find(e=>e.className?.split(' ').includes('career-dialog'));
 const step=(n=1)=>{for(let i=0;i<n;i++){now+=250;main.namespace.tellerStep(.25);assert(Date.now()-started<180000,'bounded directed teller integration');}};
 const r=()=>main.namespace.tellerReview();const until=(pred,label,max=800)=>{let f=0;for(;f<max&&!pred();f++)step();assert(pred(),label+' '+JSON.stringify({p:state().player,path:state().pathLength,toast:ids.toast.textContent,employment:r().regionalTellerEmployment.state(),inspection:r().regionalTellerEmployment.inspection.state(),tellers:r().npcs.filter(n=>n.station.id.includes('teller')).map(n=>({id:n.station.id,p:n.root.position.toArray(),route:n.route}))}));console.log('PASS',label,f);};
@@ -34,6 +35,14 @@ const svc=r().regionalTellerEmployment;assert(svc.forRole(roleId));
 const stopAfter=process.env.TELLER_STOP_AFTER;
 const checkpoint=stage=>{main.namespace.save();const file=path.resolve('qa','regional-teller-'+country+'-'+stage+'.json');fs.writeFileSync(file,storage['worlds-days-v1']);console.log('PASS '+stage+' checkpoint saved',country,file,(Date.now()-started)/1000);};
 const savedApplication=process.env.TELLER_RESUME?JSON.parse(fs.readFileSync(process.env.TELLER_RESUME,'utf8')).formalCareers.applications.byRole[roleId]:null;
+if(stopAfter==='record'){
+ const order=svc.inspection.state().order;assert.equal(order?.stage,'record');assert.equal(order.recorded,false);assert.equal(order.index,4);assert.equal(order.calculationIndex,4);
+ const source=JSON.stringify(order.contract),bank=JSON.stringify(r().copperLedger.state()),work=svc.inspection.actionDescriptor();assert.equal(work.total,2);
+ assert(main.namespace.requestStationIntent(svc.intent('original-step')));
+ until(()=>svc.inspection.actionDescriptor()?.key!==work.key,'original pen contact records four-currency audit',120);
+ const next=svc.inspection.state().order;assert.equal(next.stage,'return');assert.equal(next.recorded,true);assert.equal(JSON.stringify(next.contract),source);assert.equal(JSON.stringify(r().copperLedger.state()),bank);assert.equal(svc.state().receipts.length,0);
+ checkpoint('record');return;
+}
 if(['checks','calculations'].includes(stopAfter)){
  const action=stopAfter==='checks'?'check':'calculate',indexField=action==='check'?'index':'calculationIndex';
  const order=svc.inspection.state().order;assert.equal(order?.stage,action);assert.equal(order[indexField],0);assert.equal(svc.state().shift?.stage,'working');
