@@ -73,11 +73,12 @@ export function buildChinaResidence(G,A){
    stairs(g,prefix+'-west','z',-25.6,-23.4,-17.8,-14.1,mid,y,10);
    slab(g,prefix+'-landing',-25.8,-20.45,-19.8,-17.8,mid,.23,C.wood);
    stairs(g,prefix+'-east','z',-23.1,-20.9,-17.8,-14.1,mid,next,10);
-   rail(g,prefix+'-landing-north',[-25.8,-19.8],[-20.45,-19.8],mid);
-   for(const[id,a,b]of[['west',[-25.8,-19.8],[-25.8,-17.8]],['east',[-20.45,-19.8],[-20.45,-17.8]],['center',[-23.4,-17.8],[-23.1,-17.8]]])landingRail(g,prefix+'-landing-'+id,a,b,mid);
-   for(const[id,a,b]of[['west',[-25.8,-19.8],[-25.8,-14.1]],['east',[-20.45,-19.8],[-20.45,-14.1]],['north',[-25.8,-19.8],[-20.45,-19.8]]])rail(g,prefix+'-void-'+id,a,b,next);
-   if(i===1)rail(g,prefix+'-top-unused-mouth',[-25.8,-14.1],[-23.25,-14.1],next);
+   // The north/west masonry already closes these platform and well edges.
+   for(const[id,a,b]of[['east',[-20.45,-19.8],[-20.45,-17.8]],['center',[-23.4,-17.8],[-23.1,-17.8]],['mouth-west',[-25.8,-17.8],[-25.6,-17.8]],['mouth-east',[-20.9,-17.8],[-20.45,-17.8]]])landingRail(g,prefix+'-landing-'+id,a,b,mid);
+   for(const[id,a,b]of[['east',[-20.45,-19.8],[-20.45,-14.1]]])rail(g,prefix+'-void-'+id,a,b,next);
+   if(i===1)rail(g,prefix+'-top-unused-mouth',[-25.8,-14.1],[-23.1,-14.1],next);
    else landingRail(g,prefix+'-next-stair-center',[-23.4,-14.1],[-23.1,-14.1],next);
+   for(const[id,a,b]of[['west',[-25.8,-14.1],[-25.6,-14.1]],['east',[-20.9,-14.1],[-20.45,-14.1]]])if(i===0||id!=='west')landingRail(g,prefix+'-upper-mouth-'+id,a,b,next);
   }
  }
  palaceCeiling(r,colliders,cameraColliders,-21,-16,10,8,12.215,false);

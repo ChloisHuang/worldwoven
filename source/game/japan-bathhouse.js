@@ -135,8 +135,30 @@ export function buildJapan(){
  function groundSolid(g,base,x,y,z,w,h,d,c,camera=true){G.box(g,x,y,z,w,h,d,c);obstacle(x,base+y,z,w,h,d,{camera});}
  function surface(minX,maxX,minZ,maxZ,y){walkableSurfaces.push({minX,maxX,minZ,maxZ,y});}
  function slab(g,base,minX,maxX,minZ,maxZ,top,color,addSurface=false){const w=maxX-minX,d=maxZ-minZ,x=(minX+maxX)/2,z=(minZ+maxZ)/2;G.box(g,x,top-.11,z,w,.22,d,color);cameraColliders.push(limits(x,base+top-.11,z,w,.22,d));if(addSurface)surface(minX,maxX,minZ,maxZ,base+top);}
- function rail(g,base,x,z,w,axis='x'){
-   const q=new THREE.Group();q.position.set(x,0,z);if(axis==='z')q.rotation.y=Math.PI/2;g.add(q);for(const yy of [.17,.92])G.box(q,0,yy,0,w,.11,.15,P.red);for(let xx=-w/2;xx<=w/2+.01;xx+=w/Math.ceil(w/.68)){G.box(q,xx,.51,0,.07,.87,.075,P.red);G.sphere(q,xx,1.01,0,.08,P.gold);}obstacle(x,base+.5,z,axis==='x'?w:.16,1,axis==='x'?.16:w);
+ // Body guards stay continuous; the close camera collides with real timber
+ // only, including short conservative bounds around each inclined beam.
+ function railBeam(g,base,a,b,r,color){
+   beam(g,a,b,r,color);
+   const count=a[1]===b[1]?1:Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1],b[2]-a[2])/.25);
+   for(let i=0;i<count;i++){
+     const p=a.map((v,k)=>v+(b[k]-v)*i/count),q=a.map((v,k)=>v+(b[k]-v)*(i+1)/count);
+     cameraColliders.push({minX:Math.min(p[0],q[0])-r,maxX:Math.max(p[0],q[0])+r,minY:base+Math.min(p[1],q[1])-r,maxY:base+Math.max(p[1],q[1])+r,minZ:Math.min(p[2],q[2])-r,maxZ:Math.max(p[2],q[2])+r});
+   }
+ }
+ function rail(g,base,x,z,w,axis='x',omitStart=false,omitEnd=false){
+   const part=(xx,y,ww,h,d)=>{
+     const px=x+(axis==='x'?xx:0),pz=z+(axis==='z'?xx:0);
+     G.box(g,px,y,pz,axis==='x'?ww:d,h,axis==='x'?d:ww,P.red);
+     cameraColliders.push(limits(px,base+y,pz,axis==='x'?ww:d,h,axis==='x'?d:ww));
+   };
+   for(const yy of [.17,.92])part(0,yy,w,.11,.15);
+   for(let xx=-w/2;xx<=w/2+.01;xx+=w/Math.ceil(w/.68)){
+     if((omitStart&&xx< -w/2+.001)||(omitEnd&&xx>w/2-.001))continue;
+     part(xx,.46,.07,.97,.075); // Foot enters the deck instead of floating 7.5cm above it.
+     const px=x+(axis==='x'?xx:0),pz=z+(axis==='z'?xx:0);
+     G.sphere(g,px,1.01,pz,.08,P.gold);cameraColliders.push(limits(px,base+1.01,pz,.16,.16,.16));
+   }
+   obstacle(x,base+.5,z,axis==='x'?w:.16,1,axis==='x'?.16:w,{camera:false});
  }
  function stairLandingGuard(g,base,a,b,top=.99,lower=.22){
    const dx=Math.abs(b[0]-a[0]),dz=Math.abs(b[1]-a[1]),length=dx+dz,alongX=dx>0,
@@ -255,7 +277,7 @@ export function buildJapan(){
    for(const x of [-9.65,-6.5,-3.45,3.45,6.5,9.65]){glowWindow(fg,x,1.86,9.16,2.7,1.67);G.box(fg,x,2.87,9.25,2.8,.18,.32,P.cedar);}
    rail(fg,base,-7.0,11.65,9.7);rail(fg,base,7.0,11.65,9.7);
    // The ground entrance has a real gap; upper balconies get a safe central rail.
-   if(f>0)rail(fg,base,0,11.65,4.25);
+   if(f>0)rail(fg,base,0,11.65,4.30,'x',true,true);
    rail(fg,base,-11.85,10.3,2.7,'z');rail(fg,base,11.85,10.3,2.7,'z');
    for(const x of [-11.75,-7.5,-3,3,7.5,11.75]){groundSolid(fg,base,x,1.75,11.35,.18,3.5,.18,P.red);lantern(fg,x,2.72,10.9,true,.32);}
    // R7: structure is shared, but each level has its own room plan below.
@@ -265,12 +287,21 @@ export function buildJapan(){
      const rampY=H/8;
      walkableSurfaces.push({...STAIR,y:base+H,axis:'z',endY:base});
      for(let i=0;i<24;i++){const z=-10+(i+.5)*8/24,y=H*(1-(i+.5)/24),depth=8/24;G.box(fg,9.1,y-.075,z,3.4,.15,depth,P.honey);G.box(fg,9.1,y+.008,z+depth/2-.039,3.36,.025,.04,P.gold);cameraColliders.push(limits(9.1,base+y-.075,z,3.4,.15,depth));characterFootSurfaces.push({minX:7.4,maxX:10.8,minZ:z-depth/2,maxZ:z+depth/2,y:base+y},{minX:7.42,maxX:10.78,minZ:z+depth/2-.059,maxZ:z+depth/2-.019,y:base+y+.0205});}
-     for(const x of [7.4,10.8]){beam(fg,[x,H+.99,-10],[x,.99,-2],.055,P.red);beam(fg,[x,H+.22,-10],[x,.22,-2],.05,P.red);for(let i=0;i<=16;i++){const z=-10+i*.5,y=H-rampY*(z+10);G.box(fg,x,y+.5,z,.065,.96,.065,P.red);G.sphere(fg,x,y+1.04,z,.075,P.gold);if(i<16){const zc=z+.25,yc=H-rampY*(zc+10);obstacle(x,base+yc+.49,zc,.12,.99,.5);}}}
+     for(const x of [7.4,10.8]){
+       railBeam(fg,base,[x,H+.99,-10],[x,.99,-2],.055,P.red);railBeam(fg,base,[x,H+.22,-10],[x,.22,-2],.05,P.red);
+       for(let i=0;i<=16;i++){
+         const z=-10+i*.5,y=H-rampY*(z+10),tread=Math.min(23,Math.floor((z+10+.0325)/(8/24))),
+           foot=(i===16?0:H*(1-(tread+.5)/24))-.025,top=y+.98;
+         G.box(fg,x,(foot+top)/2,z,.065,top-foot,.065,P.red);cameraColliders.push(limits(x,base+(foot+top)/2,z,.065,top-foot,.065));
+         G.sphere(fg,x,y+1.04,z,.075,P.gold);cameraColliders.push(limits(x,base+y+1.04,z,.15,.15,.15));
+         if(i<16){const zc=z+.25,yc=H-rampY*(zc+10);obstacle(x,base+yc+.49,zc,.12,.99,.5,{camera:false});}
+       }
+     }
    }
    // Level guards join the incoming and outgoing flight posts without closing
    // either travel mouth. Keep the west public gallery's full 1.42 m clearance.
    if(f===1||f===2)for(const x of [7.4,10.8])stairLandingGuard(fg,base,[x,-10],[x,-2]);
-   if(f===3){rail(fg,base,7.4,-6,8,'z');rail(fg,base,10.8,-6,8,'z');}
+   if(f===3){rail(fg,base,7.4,-6,8,'z',true);rail(fg,base,10.8,-6,8,'z',true);}
    // The top floor has no outgoing flight at the south end: close that blind
    // edge only at 4F height; the north arrival and the 3F flight below stay open.
    if(f===3)stairLandingGuard(fg,base,[7.4,-2],[10.8,-2],.92,.17);
@@ -568,8 +599,18 @@ export function buildJapan(){
  G.box(group,0,-.1,15.75,5.05,.19,7.7,P.vermilion);
  for(let z=12;z<19.4;z+=.34)G.box(group,0,.006,z,5.0,.019,.025,0x6d372d);
  for(const x of [-2.56,2.56]){
-  for(let z=12;z<=19.5;z+=.75){if(z>16.6&&z<19.1)continue;const rise=.15*Math.sin((z-12)/7.5*Math.PI);G.cyl(group,x,.57+rise,z,.067,.087,1.1,P.red,8);G.sphere(group,x,1.16+rise,z,.115,P.gold);obstacle(x,.62,z,.16,1.24,.17);}
-  for(let i=0;i<30;i++){const z=12+i*.25,z2=z+.25;if(z>=16.6&&z2<=19.2)continue;for(const yy of [.3,.94])beam(group,[x,yy+.15*Math.sin((z-12)/7.5*Math.PI),z],[x,yy+.15*Math.sin((z2-12)/7.5*Math.PI),z2],.065,P.vermilion);}
+  for(let z=12;z<=19.5;z+=.75){
+    if(z>16.6&&z<19.1)continue;
+    const rise=.15*Math.sin((z-12)/7.5*Math.PI),top=1.12+rise,foot=-.025;
+    G.cyl(group,x,(foot+top)/2,z,.067,.087,top-foot,P.red,8);cameraColliders.push(limits(x,(foot+top)/2,z,.174,top-foot,.174));
+    G.sphere(group,x,1.16+rise,z,.115,P.gold);cameraColliders.push(limits(x,1.16+rise,z,.23,.23,.23));
+    obstacle(x,.62,z,.16,1.24,.17,{camera:false});
+  }
+  for(let i=0;i<30;i++){
+    const z=12+i*.25,z2=z+.25;if(z>=16.6&&z2<=19.2)continue;
+    for(const yy of [.3,.94])railBeam(group,0,[x,yy+.15*Math.sin((z-12)/7.5*Math.PI),z],[x,yy+.15*Math.sin((z2-12)/7.5*Math.PI),z2],.065,P.vermilion);
+    obstacle(x,.62,(z+z2)/2,.16,1.24,z2-z,{camera:false});
+  }
  }
  // Giant symbolic lanterns flank the approach rather than hang in the camera lane.
  for(const x of [-5.1,5.1]){G.box(group,x,.22,13.8,1.15,.44,1.15,P.stone);G.cyl(group,x,1.33,13.8,.16,.23,2.3,P.red);lantern(group,x,2.83,13.8,true,.69);obstacle(x,1.8,13.8,1.45,3.6,1.45);}
@@ -589,8 +630,9 @@ export function buildJapan(){
   for(const xx of [x-7,x+7])steam(district,xx,.3,25,1.3);
  }
  for(const x of [-2.56,2.56]){
-  for(let z=19.65;z<30.3;z+=.8){G.cyl(district,x,.58,z,.065,.085,1.16,P.red,8);G.sphere(district,x,1.2,z,.11,P.gold);obstacle(x,.62,z,.16,1.24,.16);}
-  beam(district,[x,.32,19.55],[x,.32,30.25],.065,P.red);beam(district,[x,.99,19.55],[x,.99,30.25],.075,P.vermilion);
+  for(let z=19.65;z<30.3;z+=.8){G.cyl(district,x,.5675,z,.065,.085,1.185,P.red,8);G.sphere(district,x,1.2,z,.11,P.gold);cameraColliders.push(limits(x,.5675,z,.17,1.185,.17),limits(x,1.2,z,.22,.22,.22));}
+  railBeam(district,0,[x,.32,19.5],[x,.32,30.25],.065,P.red);railBeam(district,0,[x,.99,19.5],[x,.99,30.25],.075,P.vermilion);
+  obstacle(x,.62,(19.5+30.25)/2,.17,1.24,30.25-19.5,{camera:false});
  }
  // Warm gateway and a lantern avenue announce the spirit-town district.
  for(const x of [-4.25,4.25])groundSolid(district,0,x,2.12,35,.42,4.24,.42,P.red);

@@ -3,7 +3,7 @@
 // can stop fractionally below 0.15 m; tiny retries must not reset body recovery.
 // Uses only the local bureau, actual geometry, route planner and route follower.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-const base=path.resolve('source'),context=vm.createContext({console,Float32Array,Uint32Array,Uint16Array,Uint8Array}),cache=new Map();
+const base=path.resolve('source'),context=vm.createContext({console,structuredClone,Float32Array,Uint32Array,Uint16Array,Uint8Array}),cache=new Map();
 function mod(file){file=file.split('?')[0];if(cache.has(file))return cache.get(file);let s=fs.readFileSync(file,'utf8');if(file.endsWith('/regions-east.js'))s+='\nexport {palaceWall,palaceCeiling,palaceRoof,beam,boundBook,foldedCloth,packStatic};';const m=new vm.SourceTextModule(s,{identifier:file,context});cache.set(file,m);return m;}
 const linker=(s,f)=>mod(s==='three'?path.join(base,'vendor/three/build/three.module.js'):path.resolve(path.dirname(f.identifier),s));
 (async()=>{

@@ -56,10 +56,10 @@ export function buildChinaClinic(G,A){
  stairs(g,'cn-clinic-stair-west','z',16.55,18.6,-31,-26.4,2.115,.215,11);
  slab(g,'cn-clinic-stair-landing',16.3,21.35,-32.7,-31,2.115,.23,C.wood);
  stairs(g,'cn-clinic-stair-east','z',18.95,21,-31,-26.4,2.115,4.015,11);
- rail(g,'cn-clinic-landing-back',[16.3,-32.7],[21.35,-32.7],2.115);
- for(const[id,a,b]of[['west',[16.3,-32.7],[16.3,-31]],['east',[21.35,-32.7],[21.35,-31]],['center',[18.6,-31],[18.95,-31]]])landingRail(g,'cn-clinic-landing-'+id,a,b,2.115);
- for(const[id,a,b]of[['west',[16.3,-32.7],[16.3,-26.4]],['back',[16.3,-32.7],[21.35,-32.7]]])rail(g,'cn-clinic-upper-void-'+id,a,b,4.015);
- rail(g,'cn-clinic-upper-closed-mouth',[16.3,-26.4],[18.77,-26.4],4.015);
+ // North/west exterior masonry and east stock wall already enclose the turn.
+ for(const[id,a,b]of[['center',[18.6,-31],[18.95,-31]],['mouth-west',[16.3,-31],[16.55,-31]],['mouth-east',[21,-31],[21.35,-31]]])landingRail(g,'cn-clinic-landing-'+id,a,b,2.115);
+ // Upper north/west walls and the eastern consultation wall protect the well.
+ rail(g,'cn-clinic-upper-closed-mouth',[16.3,-26.4],[18.95,-26.4],4.015);
  landingRail(g,'cn-clinic-upper-mouth-east',[21,-26.4],[21.35,-26.4],4.015);
  part('clinic-stair-hall','一层药铺 · 公共梯厅',16,21.35,-33,-23,.215,3.77);
  part('clinic-pharmacy','一层药铺 · 交单与领取',21.35,26,-30.4,-23,.215,3.77);

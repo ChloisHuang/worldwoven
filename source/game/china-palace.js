@@ -267,7 +267,7 @@ export function buildChinaPalace(G,H){
  // Rear lotus court. Broad cross lanes continue to both side gates, and a
  // four-metre level bridge crosses the water without hidden sine-wave footing.
  floor(exterior,0,-18,30,7.5,.13,0xc9c3ad);for(const side of [-1,1]){box(exterior,side*5.1,.18,-18,6.1,.16,4.5,0x7d9685,true);G.box(exterior,side*5.1,.273,-18,5.8,.025,4.2,0x75a69d);for(const z of [-19.2,-16.9])for(const x of [side*3.6,side*6.5]){G.cyl(exterior,x,.3,z,.37,.37,.025,0x78916b,12);G.sphere(exterior,x,.39,z,.19,0xdea6a4,1,.5,1);}}
- floor(exterior,0,-18,4.2,8,.28,0xad8a5c);for(let z=-21.5;z<-14.3;z+=.65)G.box(exterior,0,.294,z,4.12,.022,.035,0xd3b276);for(const x of [-2.05,2.05]){G.box(exterior,x,1,-18,.08,.12,4.5,C.red);for(const z of [-20.2,-18,-15.8])column(exterior,x,z,1.2,.065);G.collider(colliders,x,-18,.13,4.5);cameraColliders.push({minX:x-.065,maxX:x+.065,minY:.28,maxY:1.3,minZ:-20.25,maxZ:-15.75});}
+ floor(exterior,0,-18,4.2,8,.28,0xad8a5c);for(let z=-21.5;z<-14.3;z+=.65)G.box(exterior,0,.294,z,4.12,.022,.035,0xd3b276);for(const x of [-2.05,2.05]){G.box(exterior,x,1,-18,.08,.12,4.5,C.red);for(const z of [-20.2,-18,-15.8])column(exterior,x,z,1.2,.065);G.collider(colliders,x,-18,.13,4.5);cameraColliders.push({minX:x-.04,maxX:x+.04,minY:.94,maxY:1.06,minZ:-20.25,maxZ:-15.75,owner:'lotus-bridge-visible-top'});}
  door('cn-lotus-bridge-south','荷桥南口','x',-14.3,-1.8,1.8,5,['rear-court','bridge']);door('cn-lotus-bridge-north','荷桥北口','x',-21.7,-1.8,1.8,5,['bridge','archive-court']);
  for(const[x,z]of [[-10,-18],[10,-18],[-22,27],[22,27],[-11,27],[11,27]]){cherry(exterior,colliders,x,z,.95);G.cyl(exterior,x,.16,z,1.8,1.8,.16,0x929f80,12);}
  for(const[x,z]of [[-27.3,-35],[27.3,-35],[-27.3,-14],[27.3,-14],[-27.3,5],[27.3,5],[-27.3,24],[27.3,24]])bamboo(exterior,colliders,x,z,1.2);
@@ -348,13 +348,26 @@ export function buildChinaPalace(G,H){
   box(g,(minX+maxX)/2,y-thickness/2-.015,(minZ+maxZ)/2,maxX-minX,thickness,maxZ-minZ,color);
   walkableSurfaces.push({id,minX,maxX,minZ,maxZ,y});
  };
- const rail=(g,id,a,b,y0,y1=y0,stone=false)=>{
+ // Avatar guards stay continuous; camera proxies follow only visible timber.
+ const railCameraMesh=(m,id)=>{m.updateWorldMatrix(true,false);const q=new THREE.Box3().setFromObject(m);cameraColliders.push({minX:q.min.x,maxX:q.max.x,minY:q.min.y,maxY:q.max.y,minZ:q.min.z,maxZ:q.max.z,owner:id});};
+ const railCameraBar=(id,a,b,y0,y1,r)=>{
+  const n=Math.max(1,Math.ceil(Math.abs(y1-y0)/.12));
+  for(let i=0;i<n;i++){const t=i/n,u=(i+1)/n,x=a[0]+(b[0]-a[0])*t,xx=a[0]+(b[0]-a[0])*u,z=a[1]+(b[1]-a[1])*t,zz=a[1]+(b[1]-a[1])*u,y=y0+(y1-y0)*t,yy=y0+(y1-y0)*u;cameraColliders.push({minX:Math.min(x,xx)-r,maxX:Math.max(x,xx)+r,minZ:Math.min(z,zz)-r,maxZ:Math.max(z,zz)+r,minY:Math.min(y,yy)-r,maxY:Math.max(y,yy)+r,owner:id});}
+ };
+ const rail=(g,id,a,b,y0,y1=y0,stone=false,treadCount=0)=>{
   const color=stone?0xc8c3af:C.red,trim=stone?0xe0d8be:C.gold;
   beam(g,[a[0],y0+.98,a[1]],[b[0],y1+.98,b[1]],.067,trim);
   beam(g,[a[0],y0+.28,a[1]],[b[0],y1+.28,b[1]],.045,color);
+  railCameraBar(id,a,b,y0+.98,y1+.98,.067);railCameraBar(id,a,b,y0+.28,y1+.28,.045);
   const len=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(len/.68));
-  for(let i=0;i<=n;i++){const t=i/n,x=a[0]+(b[0]-a[0])*t,z=a[1]+(b[1]-a[1])*t,y=y0+(y1-y0)*t;G.box(g,x,y+.51,z,.095,1.02,.095,color);G.mesh(g,new THREE.OctahedronGeometry(.10,0),trim,x,y+1.055,z);}
-  for(let i=0;i<n;i++){const t=(i+.5)/n,x=a[0]+(b[0]-a[0])*t,z=a[1]+(b[1]-a[1])*t,y=y0+(y1-y0)*t;const c={minX:x-(Math.abs(b[0]-a[0])/n+.14)/2,maxX:x+(Math.abs(b[0]-a[0])/n+.14)/2,minZ:z-(Math.abs(b[1]-a[1])/n+.14)/2,maxZ:z+(Math.abs(b[1]-a[1])/n+.14)/2,minY:y-.03,maxY:y+1.13,owner:id};colliders.push(c);cameraColliders.push({...c});}
+  for(let i=0;i<=n;i++){
+   const t=i/n,x=a[0]+(b[0]-a[0])*t,z=a[1]+(b[1]-a[1])*t,y=y0+(y1-y0)*t;
+   // Each post reaches the actual adjacent tread, not the ideal ramp plane.
+   const support=treadCount?y0+(y1-y0)*(Math.min(treadCount-1,Math.floor(t*treadCount))+.5)/treadCount-.025:y-.025;
+   railCameraMesh(G.box(g,x,(support+y+1.02)/2,z,.095,y+1.02-support,.095,color),id);
+   railCameraMesh(G.mesh(g,new THREE.OctahedronGeometry(.10,0),trim,x,y+1.055,z),id);
+  }
+  for(let i=0;i<n;i++){const t=(i+.5)/n,x=a[0]+(b[0]-a[0])*t,z=a[1]+(b[1]-a[1])*t,y=y0+(y1-y0)*t;const c={minX:x-(Math.abs(b[0]-a[0])/n+.14)/2,maxX:x+(Math.abs(b[0]-a[0])/n+.14)/2,minZ:z-(Math.abs(b[1]-a[1])/n+.14)/2,maxZ:z+(Math.abs(b[1]-a[1])/n+.14)/2,minY:y-.03,maxY:y+1.13,owner:id};colliders.push(c);}
  };
  // Level landing returns join existing end posts. Keep an avatar guard along
  // the edge, but give the camera only the visible bars, balusters and finials.
@@ -364,10 +377,10 @@ export function buildChinaPalace(G,H){
   cameraSolid(beam(g,[a[0],y+.98,a[1]],[b[0],y+.98,b[1]],.067,trim));
   cameraSolid(beam(g,[a[0],y+.28,a[1]],[b[0],y+.28,b[1]],.045,color));
   const n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/.68));
-  for(let i=1;i<n;i++){const t=i/n,x=a[0]+(b[0]-a[0])*t,z=a[1]+(b[1]-a[1])*t;cameraSolid(G.box(g,x,y+.51,z,.095,1.02,.095,color));cameraSolid(G.mesh(g,new THREE.OctahedronGeometry(.10,0),trim,x,y+1.055,z));}
+  for(let i=1;i<n;i++){const t=i/n,x=a[0]+(b[0]-a[0])*t,z=a[1]+(b[1]-a[1])*t;cameraSolid(G.box(g,x,y+.4975,z,.095,1.045,.095,color));cameraSolid(G.mesh(g,new THREE.OctahedronGeometry(.10,0),trim,x,y+1.055,z));}
   colliders.push({minX:Math.min(a[0],b[0])-.07,maxX:Math.max(a[0],b[0])+.07,minY:y-.03,maxY:y+1.13,minZ:Math.min(a[1],b[1])-.07,maxZ:Math.max(a[1],b[1])+.07,owner:id});
  };
- const stairs=(g,id,axis,minX,maxX,minZ,maxZ,y,endY,count,stone=false)=>{
+ const stairs=(g,id,axis,minX,maxX,minZ,maxZ,y,endY,count,stone=false,wallSides=[])=>{
   const s={id,axis,minX,maxX,minZ,maxZ,y,endY};walkableSurfaces.push(s);
   const low=axis==='x'?minX:minZ,high=axis==='x'?maxX:maxZ,step=(high-low)/count;
   for(let i=0;i<count;i++){
@@ -379,7 +392,7 @@ export function buildChinaPalace(G,H){
    characterFootSurfaces.push({...footprint,y:top-.015});
   }
   const sides=axis==='z'?[[[minX,minZ],[minX,maxZ]],[[maxX,minZ],[maxX,maxZ]]]:[[[minX,minZ],[maxX,minZ]],[[minX,maxZ],[maxX,maxZ]]];
-  for(const [i,[a,b]] of sides.entries())rail(g,id+'-rail-'+i,a,b,y,endY,stone);
+  for(const [i,[a,b]] of sides.entries())if(!wallSides.includes(i))rail(g,id+'-rail-'+i,a,b,y,endY,stone,count);
   stairways.push({...s,count,width:axis==='z'?maxX-minX:maxZ-minZ,rise:Math.abs(endY-y)/count,tread:step});return s;
  };
  // Main plinth: 24 m front and rear terraces, with a ten-metre axial stair.
@@ -392,7 +405,7 @@ export function buildChinaPalace(G,H){
   const lo=side<0?-13.85:11,hi=side<0?-11:13.85;
   const back=side<0?-9.2:-4.7,front=side<0?-5.8:-1.3;slab(r14,'cn-main-side-landing-'+side,lo,hi,back,front,1.415,.30);
   const sx0=side<0?-13.85:12.05,sx1=side<0?-12.05:13.85;
-  stairs(r14,'cn-main-side-stair-'+side,'z',sx0,sx1,front,front+3.2,1.415,.115,8,true);
+  stairs(r14,'cn-main-side-stair-'+side,'z',sx0,sx1,front,front+3.2,1.415,.115,8,true,[side<0?1:0]);
   rail(r14,'main-side-outer-'+side,[side*13.85,back],[side*13.85,front],1.415,1.415,true);
   rail(r14,'main-side-back-'+side,[side*12,back],[side*13.85,back],1.415,1.415,true);
   landingRail(r14,'main-side-plinth-'+side,[side*12,front],[side*12,front+3.2],1.415,true);
@@ -408,6 +421,11 @@ export function buildChinaPalace(G,H){
  // The stair joins the raised 4.2 m bridge; outer wings land on stone at .145.
  // Only the middle bridge-width section continues as an elevated path.
  slab(r14,'cn-archive-bridge-landing',-2.1,2.1,-20.5,-20.25,.295,.16,0xad8a5c);
+ for(const x of[-2.05,2.05]){
+  beam(r14,[x,1.275,-20.5],[x,1,-20.2],.067,C.gold);
+  railCameraBar('lotus-bridge-north-join',[x,-20.5],[x,-20.2],1.275,1,.067);
+  colliders.push({minX:x-.07,maxX:x+.07,minZ:-20.57,maxZ:-20.13,minY:.265,maxY:1.342,owner:'lotus-bridge-north-join'});
+ }
  stairs(r14,'cn-archive-rear-stair','z',-1.9,1.9,-36.6,-35,.115,.815,4,true);
  for(const side of [-1,1])stairs(r14,'cn-archive-side-stair-'+side,'x',side<0?-13.85:12,side<0?-12:13.85,-30.3,-26.7,side<0?.115:.815,side<0?.815:.115,4,true);
  for(const [id,a,b] of [
@@ -429,6 +447,7 @@ export function buildChinaPalace(G,H){
   ['main-gallery-front-void',[-6,2],[7.8,2]],['main-gallery-east-void',[7.8,-11],[7.8,2]],['main-gallery-west-void',[-6,-11],[-6,2]],
   ['main-stair-hole-east',[-7.8,-8],[-7.8,1.2]],['main-stair-hole-west',[-10.5,-8],[-10.5,1.2]],['main-stair-hole-south',[-10.5,1.2],[-7.8,1.2]]
  ])rail(gallery,id,a,b,6.015);
+ for(const[id,a,b]of[['west',[-10.5,-8],[-10.25,-8]],['east',[-8.05,-8],[-7.8,-8]]])landingRail(gallery,'main-stair-mouth-'+id,a,b,6.015);
  // Existing lower walls reach 6.9 m and become the gallery's deep parapets;
  // the new upper bays above them are genuinely open at standing eye height.
  // Door/window headers already have camera masonry. Clip avatar-only guards
@@ -483,9 +502,10 @@ export function buildChinaPalace(G,H){
   ])landingRail(loft,prefix+'-'+id,a,b,mid);
   for(const[id,a,b]of[
    ['void-west',[-9.2,-32],[-9.2,-25.4]],['void-east',[-4.05,-32],[-4.05,-25.4]],
-   ['void-north',[-9.2,-32],[-4.05,-32]],['void-south-west',[-9.2,-25.4],[-6.55,-25.4]]
+   ['void-north',[-9.2,-32],[-4.05,-32]],['void-south-west',[-9.2,-25.4],[-6.4,-25.4]]
   ]){if(storey===2&&id==='void-south-west')continue;rail(loft,prefix+'-'+id,a,b,y);}
-  if(storey===2){landingRail(loft,'culture-upper-stair-mouth-west',[-9.2,-25.4],[-8.95,-25.4],y);landingRail(loft,'culture-upper-stair-mouth-center',[-6.75,-25.4],[-6.55,-25.4],y);}
+  if(storey===2){landingRail(loft,'culture-upper-stair-mouth-west',[-9.2,-25.4],[-8.95,-25.4],y);landingRail(loft,'culture-upper-stair-mouth-center',[-6.75,-25.4],[-6.4,-25.4],y);}
+  landingRail(loft,prefix+'-mouth-east',[-4.2,-25.4],[-4.05,-25.4],y);
   // Each visible tier has a real slab, open viewing bays, low vermilion
   // parapets and turquoise/gold bracket beams, not an inaccessible roof shell.
   for(const z of [-34,-23]){

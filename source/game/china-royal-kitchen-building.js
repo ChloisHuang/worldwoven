@@ -33,11 +33,14 @@ export function buildChinaRoyalKitchen(G,A){
  // upstairs landing; its identity now separates the stairs from the workroom.
  entry('cn-kitchen-dining','御膳梯厅与二层备餐间','x',-9.4,24.1,25.9,4.015,['dining','kitchen']);
  G.box(root,25,6.99,-9.4,2,.18,.25,C.red);
- stairs(root,'cn-royal-kitchen-stair','x',17.6,24.3,-11.65,-9.65,.215,4.015,20);
+ stairs(root,'cn-royal-kitchen-stair','x',17.6,24.3,-11.65,-9.65,.215,4.015,20,false,[0]);
  // Lower stair mouth is approached from its actual west landing. No slab or
  // ceiling crosses the ascent; the upstairs east landing joins the workroom.
  landingRail(root,'royal-upper-stair-edge',[16.2,-9.4],[24.3,-9.4],4.015);
- landingRail(root,'royal-upper-north-edge',[16.2,-11.8],[24.3,-11.8],4.015);
+ landingRail(root,'royal-upper-south-return',[24.3,-9.65],[24.3,-9.4],4.015);
+
+ // The full-height rear masonry already protects the north side of this
+ // void; there is no upper deck there to support a second level railing.
  const addBox=(g,x,y,z,w,h,d,c)=>{G.box(g,x,y,z,w,h,d,c);const b={minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2};colliders.push(b);cameraColliders.push({...b});};
  const table=(g,x,y,z,w,d,h=1,footD=d)=>{const q=new THREE.Group();q.position.y=y-.215;g.add(q);G.table(q,x,z,w,d,C.wood,h);const b={minX:x-w/2,maxX:x+w/2,minY:y-.015,maxY:y-.215+h+.08,minZ:z-footD/2,maxZ:z+footD/2};colliders.push(b);cameraColliders.push({...b});return y+h-.215;};
  const [dining,kitchen]=parts;
