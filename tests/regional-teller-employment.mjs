@@ -39,7 +39,7 @@ function fixture(country='japan',{saved=null,hired=true,legacy=true,clock=null}=
   getBusy:()=>f.busy,getMounted:()=>f.mounted,getLegacyLastIssuedDay:()=>f.legacy,
   getChinaAssignment:()=>({holderId:role.incumbentId}),getChinaService:()=>({handoffBoundary:()=>({ok:true})}),getChinaPersonal:()=>({blocks:()=>false}),
   saved:f.saved.regionalTellerEmployment,savedInspection:f.saved.regionalTellerInspection,saveState:s=>savePart('regionalTellerEmployment',s),saveTaskState:(s,patch)=>savePart('regionalTellerEmployment',s,patch),saveInspection:s=>savePart('regionalTellerInspection',s),notify:text=>f.notices.push(text),
-  planPath:()=>[],doors:{routeStep:()=>({waiting:false,waypoint:null})},moveActor:()=>({})});
+  planPath:(from,to,radius)=>{f.plans?.push({from:from.toArray(),to:[to.x,to.y,to.z],radius});return [];},doors:{routeStep:()=>({waiting:false,waypoint:null})},moveActor:()=>({})});
  f.employment=buildEmployment();f.tick=dt=>{f.clock.seconds+=dt;f.clock.hour+=dt*.7/60;f.employment.update(dt,f.clock.seconds);};f.step=(count=1)=>{for(let i=0;i<count;i++)f.tick(.25);};
  f.move=position=>f.player.root.position.fromArray(position);
  f.execute=kind=>{const intent=f.employment.intent(kind);assert(intent,kind+' must have an actual work intent');f.move(intent.position);return f.employment.executeIntent(intent);};
@@ -220,7 +220,7 @@ test('France standby clears the original east wall and piano bench without movin
 });
 
 
-test('France player uses wider original chair aisle while NPC-sized waypoint remains unchanged',()=>{
+test('France player uses wider original chair aisle while outbound NPC waypoint remains unchanged',()=>{
  const chair={minX:20.41,maxX:21.59,minZ:.75,maxZ:1.95};
  const westChair={minX:18.04,maxX:19.22,minZ:.28,maxZ:1.48};
  const counter={minX:22.15,maxX:24.61,minZ:1,maxZ:1.64};
@@ -232,4 +232,14 @@ test('France player uses wider original chair aisle while NPC-sized waypoint rem
   f.move(from);const points=f.employment.approachPoints({position:to});assert.deepEqual(points[0],[19.9,.23,from===home?2.6:.12]);
   let start=new Vector3(...from);for(const point of points){const end=new Vector3(...point);assert(canTraverse(start,end,colliders,options),JSON.stringify({from:start.toArray(),to:point}));start=end;}
  }
+});
+
+
+test('France NPC return avoids the narrow path-link waypoint and preserves outbound routing',()=>{
+ const f=fixture('france',{legacy:false});f.shift();f.plans=[];f.npc.root.position.fromArray(f.counter.points.teller);f.step();
+ assert.deepEqual(f.plans.at(-1).to,[21.35,.23,2.23]);assert.equal(f.plans.at(-1).radius,.25);
+ f.npc.root.position.fromArray(f.rest);f.move(f.counter.points.counter);assert(f.employment.endShift());f.step();
+ assert.deepEqual(f.plans.at(-1).to,[19.9,.23,.12]);assert.equal(f.plans.at(-1).radius,.25);
+ f.npc.root.position.fromArray([19.9,.23,.12]);f.step();assert.deepEqual(f.plans.at(-1).to,[19.9,.23,2.6]);
+ f.npc.root.position.fromArray([19.9,.23,2.6]);f.step();assert.deepEqual(f.plans.at(-1).to,f.counter.points.teller);
 });
