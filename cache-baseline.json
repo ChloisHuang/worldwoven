@@ -1,5 +1,5 @@
 {
-  "publishedSourceCommit": "ce763d4d4310525138c42650b163e2003af519fc",
+  "publishedSourceCommit": "604a14c2c70f87398509a1282ba3ab34807187ba",
   "assets": [
     "/assets/hud-controls.0061e5316405df94.js",
     "/assets/formal-labor-contract.4eea97f4b3257d6a.js",
@@ -368,6 +368,22 @@
     "/assets/hud-fixtures.dd45517119a1d27a.js",
     "/assets/t05-entry.30eaae4b3b3585e8.js",
     "/assets/mobile-qa-entry.cbd36781d85d1144.js",
-    "/assets/mobile-qa.c20f2c62d103146a.css"
+    "/assets/mobile-qa.c20f2c62d103146a.css",
+    "/assets/china-dragon-bed.9636534e01a6a594.js",
+    "/assets/china-holding-cell.51d95b98b555cbe5.js",
+    "/assets/china-palace.6f57abe62e32cd12.js",
+    "/assets/egypt-temple.365b043907818a05.js",
+    "/assets/entry.bf3970f612611d74.js",
+    "/assets/geometry.accd26d9fe1820ba.js",
+    "/assets/globe.24e1c856bb2ded7c.js",
+    "/assets/japan-bathhouse.32667d1a6a856924.js",
+    "/assets/japan-furnishings.1ebebff154862976.js",
+    "/assets/japan-futon.d1ff9cbfc4dbfa98.js",
+    "/assets/japan-omamori.e068cff974b48932.js",
+    "/assets/japan-sakura.b674c1ca3f576075.js",
+    "/assets/main.6ab8dda268abdcb6.js",
+    "/assets/night-lighting.051d34f70b4b7dbc.js",
+    "/assets/regions-east.953e88b1fe6480eb.js",
+    "/assets/regions-west.9be1d8e5c527cde7.js"
   ]
 }

@@ -145,3 +145,16 @@ export function createSocialMeetingJourney({places,getActor,planPath,moveActor,d
  }
  return {start,update,state,cancel,finish(){const result=cancel('completed');current=null;return result;},dispose(){cancel('region-unloaded');current=null;}};
 }
+
+// A public hello has a physical approach before an invitation. A stationary
+// listener keeps their owner and original post; only the free initiator moves.
+export function createGreetingApproach({pair,planPath,moveActor,doors,getActors=()=>[],canApproach=()=>true,targetPoint=null}){
+ const [actor,target]=pair||[];if(!actor?.root?.position||!target?.root?.position||!canApproach(actor))return null;
+ const start=actor.root.position,listener=target.root.position.clone?.()||{...target.root.position};
+ const direction=Math.atan2(start.z-listener.z,start.x-listener.x),candidates=targetPoint?[point(targetPoint)]:Array.from({length:8},(_,i)=>{const angle=direction+(i%2?-1:1)*Math.ceil(i/2)*Math.PI/4;return {x:listener.x+Math.cos(angle)*1.35,y:listener.y,z:listener.z+Math.sin(angle)*1.35};});
+ let route=null,to=null;
+ for(const candidate of candidates){const path=planPath(start,candidate,.25);if(!path?.length||!near({...path.at(-1),y:path.at(-1).y??start.y},candidate)||path.some(p=>Math.abs((p.y??start.y)-listener.y)>.65))continue;let length=0,previous=start;for(const p of path){length+=distance(previous,p);previous=p;}if(length>18)continue;if(getActors().some(n=>n!==actor&&n!==target&&n.alive!==false&&n.root?.position&&Math.abs(n.root.position.y-candidate.y)<.65&&distance(n.root.position,candidate)<.62))continue;route=path;to=candidate;break;}
+ if(!route)return null;let active=true,arrived=false;
+ const state=()=>({ok:active,phase:arrived?'arrived':'approaching'});
+ return {point:[to.x,to.y,to.z],state,update(dt){if(!active||distance(target.root.position,listener)>.15||Math.abs(target.root.position.y-listener.y)>.3)return {ok:false,reason:'listener-left'};target.walking=false;if(!near(actor.root.position,to)){if(!route.length)return {ok:false,reason:'greeting-route-blocked'};followActorRoute(actor,dt,{route,doors,moveActor,npcs:getActors(),radius:.25,arrivalTolerance:.045,speedScale:.82});}arrived=near(actor.root.position,to);return state();},cancel(){active=false;actor.walking=false;},finish(){active=false;actor.walking=false;}};
+}
