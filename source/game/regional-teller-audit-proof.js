@@ -9,11 +9,14 @@ const definitions={
  france:{prefix:'fr',currency:'france',name:'宫苑柜务核验',employer:'宫苑结算处',incumbentId:'france-exchange-teller',incumbentName:'克莱尔',workplace:'宫苑音乐接待厅 · 银行柜台'},
  egypt:{prefix:'eg',currency:'egypt',name:'沙海柜务核验',employer:'沙海结算处',incumbentId:'egypt-exchange-teller',incumbentName:'奈赫特',workplace:'沙海入口前庭 · 票券柜台'},
 };
+// Fixed full 06–18 attendance salaries. Version 1 is immutable for admitted shifts.
+// Legacy per-audit contracts below retain amount 8 independently of this grid.
+export const REGIONAL_TELLER_SALARY_V1=Object.freeze({china:24,japan:16,france:12,egypt:16});
 export const REGIONAL_TELLER_ROLES=Object.freeze(Object.fromEntries(Object.entries(definitions).map(([country,{prefix,...local}])=>[country,Object.freeze({
- ...local,country,id:`${prefix}-teller-auditor`,slotId:`${prefix}-teller-auditor-1`,amount:8,wage:8,contractVersion:1,
- supervisorId:local.incumbentId,vacancyKind:'exclusive',paymentKind:'commission',careerKind:'technical-service',workSource:'regional-teller-audit',
- minimumAgeYears:18,skillRequirements:Object.freeze({writing:1,ritual:1}),dutyWindow:Object.freeze({startHour:0,endHour:24}),earlyBeforeHour:0,preparationBonus:0,
- duties:`满18岁并具备文书1级、礼仪1级，当面登记审核，录用与接单分开。四地共用同一本原账，每日全世界最多一份核验合同；逐币亲自查账、核算、落记，再回原柜台交验。完整合同由${local.employer}按签约柜台币种付${country==='china'?'8文铜钱':`8${({japan:'日本',france:'法国',egypt:'埃及'})[country]}券`}入银行，跨国不能再领同日合同，零交易日仍须完成全部核验。此为明确新增的游戏委托合同，不从存款抽款，不编造顾客或兑换。`,
+ ...local,country,id:`${prefix}-teller-auditor`,slotId:`${prefix}-teller-auditor-1`,amount:8,wage:REGIONAL_TELLER_SALARY_V1[country],contractVersion:1,
+ supervisorId:local.incumbentId,vacancyKind:'exclusive',paymentKind:'salary',careerKind:'technical-service',workSource:'regional-teller-audit',
+ minimumAgeYears:18,skillRequirements:Object.freeze({writing:1,ritual:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:0,preparationBonus:0,
+ duties:`满18岁并具备文书1级、礼仪1级，当面登记审核，录用与实际接班分开。06:00–18:00固定日班${REGIONAL_TELLER_SALARY_V1[country]}份当地游戏币，按真实在岗工时折算并存银行；正常现场候柜计时，离岗、离线、聊天暂停和未安全交班不计时。原账核验是职责与成长凭据，不逐单发薪；同一本原账每日不重复核验，原柜员已完成当日核验不取消正式在岗工资。旧版已领取的8份原单按原约结清，不与同日新薪班叠加，不追补差额。`,
 })])));
 export const regionalTellerRole=countryOrId=>Object.values(REGIONAL_TELLER_ROLES).find(role=>role.country===countryOrId||role.id===countryOrId)||null;
 export const REGIONAL_TELLER_CURRENCIES=TELLER_CURRENCIES;

@@ -21,7 +21,7 @@ function fixture(role,{saved=null,seedChange=()=>{}}={}){
 }
 for(const role of roles){
  assert.equal(FORMAL_CAREER_ROLES.filter(r=>r.id===role.id).length,1);assert.equal(FORMAL_CAREER_SLOTS.filter(r=>r.roleId===role.id).length,1);
- assert.equal(FORMAL_CAREER_SLOTS.find(r=>r.roleId===role.id).replacement,true);assert.equal(role.paymentKind,'commission');assert.deepEqual(role.skillRequirements,{writing:1,ritual:1});
+ assert.equal(FORMAL_CAREER_SLOTS.find(r=>r.roleId===role.id).replacement,true);assert.equal(role.paymentKind,'salary');assert.deepEqual(role.skillRequirements,{writing:1,ritual:1});
  const seed=createFormalCareers({saveState:()=>true,getClock:()=>({day:3,hour:8,seconds:300})}).state();
  const bare=createFormalCareers({saveState:()=>true,getClock:()=>({day:3,hour:8,seconds:300})});
  assert(bare.eligibility(role.id,{ageYears:17}).reasons.includes('adult-required'));assert.deepEqual(bare.eligibility(role.id,{ageYears:18}).reasons,['writing-required','ritual-required']);
@@ -29,11 +29,11 @@ for(const role of roles){
  const hiring=createFormalCareers({saved:seed,worldSeed,saveState:()=>true,getClock:()=>({day:3,hour:8,seconds:300})});
  assert(hiring.apply(role.id,{ageYears:18}).ok);assert.equal(hiring.state().tenure,null);assert(hiring.reviewApplication(role.id,{ageYears:18,applicationId:hiring.applicationResult(role.id).id}).ok);assert.equal(hiring.slotHolder(role.id),'player');assert.equal(hiring.catalogue().find(r=>r.id===role.id).vacancy,0);
  const f=fixture(role),r=f.receipt(),before=f.core.state();assert.equal(before.loadError,null);assert(validTellerAuditReceipt(r));assert.equal(r.proof.report.rows.length,4);assert(r.proof.report.rows.every(row=>row.total===0),'all zero-activity original currencies still require audit');
- assert.equal(f.core.beginDuty({receiptId:role.workSource+'-1'}).code,'commission-service-required');assert.equal(f.core.settle().code,'work-incomplete');
+ assert.equal(f.core.beginDutyAvailability(role.id,{receiptId:role.workSource+'-1'}).ok,true);assert.equal(f.core.settle().code,'work-incomplete');
  const preparationBefore=f.core.state(),prepared=f.core.prepareTellerAuditService(r);assert(prepared.ok);assert.equal(prepared.skill,'writing');assert.equal(prepared.xpGained,10);assert.equal(prepared.review.score,1);assert.deepEqual(f.core.state(),preparationBefore,'preparation is read-only');
  assert.equal(f.bank.creditWageToBank({amount:8,receiptId:r.id,roleId:r.roleId,slotId:r.slotId,day:r.day,currency:r.currency}).ok,false,'direct wages require live original work participant');
  f.flags.fail=true;assert.equal(f.pay(r).ok,false);assert.equal(f.core.state().tellerAuditServices.length,0);assert.equal(f.bank.balances()[role.currency].bank,0);assert.equal(f.core.state().skillXP.writing,0);
- f.flags.fail=false;assert(f.pay(r).ok);assert.equal(f.bank.balances()[role.currency].bank,8);assert.equal(f.core.state().performance,1);assert.equal(f.core.state().skillXP.writing,10);assert.equal(f.core.state().lastDuty,null);assert.equal(f.core.state().promotionProgress,0);
+ f.flags.fail=false;assert(f.pay(r).ok);assert.equal(f.bank.balances()[role.currency].bank,8);assert.equal(f.core.state().performance,1);assert.equal(f.core.state().skillXP.writing,10);assert.equal(f.core.state().lastDuty,null);assert.equal(f.core.state().promotionProgress,0);assert.equal(f.core.beginDuty({receiptId:role.workSource+'-1'}).code,'legacy-teller-paid-today');
  for(const other of roles.filter(v=>v.id!==role.id))assert.equal(f.bank.balances()[other.currency].bank,0,'pay stays in frozen signing currency');
  assert(f.pay(r).replayed);assert(f.core.prepareTellerAuditService(r).replayed);assert.equal(f.core.state().performance,1);
  const reload=fixture(role,{saved:f.store});assert.equal(reload.core.state().loadError,null);assert(reload.pay(r).replayed);assert.equal(reload.core.workState().latestTellerAuditReview.score,1);assert(!('tellerAuditServices' in reload.core.workState()));
@@ -55,3 +55,26 @@ for(const role of roles){
  const locked=fixture(role),participant=locked.core.prepareTellerAuditService(locked.receipt());assert(participant.lock());assert.equal(locked.core.resign().code,'career-busy');participant.release();assert.equal(locked.core.state().tellerAuditServices.length,0);
 }
 console.log('PASS shared writing daily cap and skill ceiling preserve rightful pay; stale or reentrant atomic participants cannot mutate career state');
+
+// Fixed wages use the existing continuous attendance pipeline, not audit pay.
+for(const role of roles){
+ for(const hours of [12,6,18*.7/60,0]){
+  const clock={day:9,hour:6,seconds:9000},paid=[],seed=createFormalCareers({saveState:()=>true,getClock:()=>clock}).state();
+  Object.assign(seed.skills,role.skillRequirements);seed.tenure={roleId:role.id,slotId:role.slotId,sinceDay:9,sinceHour:6};let saved,fail=false;
+  const options={getClock:()=>clock,saveState:s=>{if(fail)return false;saved=copy(s);return true;},creditWageToBank:tx=>{paid.push(copy(tx));return {ok:true,receiptId:tx.receiptId};}};
+  let career=createFormalCareers({...options,saved:seed});const receiptId=role.workSource+'-99';
+  fail=true;assert.equal(career.beginDuty({receiptId}).ok,false);assert.equal(career.state().lastDuty,null);fail=false;
+  assert(career.beginDuty({receiptId}).ok);assert.equal(career.state().lastDuty.shiftKind,'continuous');assert.equal(career.state().lastDuty.tellerPayVersion,1);
+  career=createFormalCareers({...options,saved});assert.equal(career.state().loadError,null);assert.equal(career.workState().lastDuty.tellerPayVersion,1);
+  clock.hour=6+hours;clock.seconds+=hours*60/.7;
+  assert(career.laborEvent('completed',{roleId:role.id,receiptId,coveredSeconds:hours*60/.7,completedTasks:0}).ok);
+  assert(career.laborEvent('inspected',{roleId:role.id,receiptId}).ok);const expected=Math.floor(role.wage*hours/12+1e-9);
+  assert.equal(career.state().lastDuty.wage,expected);assert.equal(career.state().lastEvaluation.tellerPayVersion,1);
+  career=createFormalCareers({...options,saved});assert.equal(career.state().loadError,null);
+  assert(career.settle().ok);assert.equal(paid.length,expected>0?1:0);if(expected>0){assert.equal(paid[0].amount,expected);assert.equal(paid[0].currency,role.currency);assert.equal(paid[0].receiptId,'career:'+role.slotId+':9');}
+  assert.equal(career.settle().ok,false);assert.equal(career.beginDuty({receiptId:role.workSource+'-100'}).code,'already-paid-today');
+  const restored=createFormalCareers({...options,saved});assert.equal(restored.state().loadError,null);assert.equal(restored.state().lastDuty.wage,expected);
+  const corrupt=copy(saved);corrupt.lastDuty.tellerPayVersion=2;assert.equal(createFormalCareers({...options,saved:corrupt}).state().loadError,'invalid-career-state');
+ }
+}
+console.log('PASS fixed four-country full/half/18-second/zero attendance salaries, frozen pay version, save failure, restore and no duplicate/legacy-day payroll');
