@@ -1938,6 +1938,118 @@
         "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
       }
     },
-    "financialFixtureCompatibility": "Existing fixture generated before this correction retains original24 wage receipts/576 total; official economy and pay validation unchanged. This override acknowledges a life timing correction, not regenerated four-day natural evidence."
+    "financialFixtureCompatibility": "Existing fixture generated before this correction retains original24 wage receipts/576 total; official economy and pay validation unchanged. This override acknowledges a life timing correction, not regenerated four-day natural evidence.",
+    "productionVerification": {
+      "sourceCommit": "47fa10b85e6dcd48527f8f6ec97337d12af3ffa1",
+      "input": "qa/st03-r190/segment-20261007T230449Z-2.checkpoint.json",
+      "checkpoint": "qa/st03-r190/segment-20261007T231126Z-2.checkpoint.json",
+      "checkpointSha256": "3a88b925e6001b075c85da14535d3eda45c42df4e13114c31e932362fc47ee84",
+      "frames": 900,
+      "clock": {
+        "seconds": 8989.414285713065,
+        "day": 4,
+        "hour": 18.876499999985754
+      },
+      "decisionProgress": {
+        "cn-minister-works": {
+          "beforeChoices": 4,
+          "afterChoices": 6,
+          "current": {
+            "id": "listen",
+            "duration": 15.17478318279609,
+            "startedAt": 463.64999999997536
+          }
+        },
+        "cn-minister-granary": {
+          "beforeChoices": 4,
+          "afterChoices": 6,
+          "current": {
+            "id": "rest",
+            "duration": 26.894717087503523,
+            "startedAt": 484.0499999999723
+          }
+        },
+        "cn-official-rites": {
+          "beforeChoices": 4,
+          "afterChoices": 6,
+          "current": {
+            "id": "work",
+            "duration": 25.208232558332384,
+            "startedAt": 478.94999999997304
+          }
+        },
+        "cn-official-personnel": {
+          "beforeChoices": 3,
+          "afterChoices": 5,
+          "current": {
+            "id": "rest",
+            "duration": 22.688260182272643,
+            "startedAt": 469.04999999997455
+          }
+        },
+        "cn-official-justice": {
+          "beforeChoices": 3,
+          "afterChoices": 5,
+          "current": {
+            "id": "work",
+            "duration": 20.51118336059153,
+            "startedAt": 502.04999999996954
+          }
+        },
+        "cn-official-records": {
+          "beforeChoices": 5,
+          "afterChoices": 7,
+          "current": {
+            "id": "garden",
+            "duration": 9.217859474709257,
+            "startedAt": 467.09999999997484
+          }
+        }
+      },
+      "funds": {
+        "cn-minister-works": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-minister-granary": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-rites": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-personnel": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-justice": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-records": {
+          "bank": 96,
+          "cash": 0
+        }
+      },
+      "session": null,
+      "failures": [],
+      "officialFailures": [],
+      "guard": {
+        "guard": "PASS",
+        "reason": null,
+        "exit": 0,
+        "seconds": 81.164,
+        "treePeakMiB": 719.879,
+        "peakMembersBytes": {
+          "9": 10899456,
+          "11": 743948288
+        },
+        "includesSupervisor": true,
+        "hostname": "a55d3d933517",
+        "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
+      },
+      "scope": "All six original actors leave the observed repeated idle and each make2 new original natural choices. No paid choice or session yet; no RNG/time/funds reset."
+    }
   }
 }
