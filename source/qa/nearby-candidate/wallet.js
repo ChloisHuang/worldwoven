@@ -371,7 +371,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     cashBadge.textContent=money(b?.cash,id);trigger.setAttribute('aria-label',`打开钱包与账本，${currency(id).label}随身现金 ${money(b?.cash,id)}`);
     cashBadge.title=`${currency(id).label} · 随身现金`;cashBadge.dataset.currency=id;
   }
-  function refreshBankLink(){if(!ui)return;const target=typeof onBankNavigate==='function'?getBankTarget():null;bankTargetKey=target?`${getCurrency()}:${target.id}`:'';ui.bankVisit.hidden=!target;if(target){const label=`前往${target.name||'本地银行柜台'} · 存取与兑换`;if(ui.bankVisit.textContent!==label)ui.bankVisit.textContent=label;}}
+  function refreshBankLink(){if(!ui)return;const target=typeof onBankNavigate==='function'?getBankTarget():null;bankTargetKey=target?`${getCurrency()}:${target.id}`:'';ui.bankVisit.hidden=!target;if(target){const label=`前往${target.name||'本地银行柜台'}`;if(ui.bankVisit.textContent!==label)ui.bankVisit.textContent=label;}}
   function refresh(){if(disposed)return;refreshBadge();if(!ui?.dialog.open)return;renderBalances();renderHistory();refreshBankLink();}
   function open(){
     if(disposed||ui?.dialog.open)return;clearTransfer();onOpen();ensureUI();priorFocus=doc.activeElement;folded=true;historyLimit=60;setFold();
