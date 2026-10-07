@@ -1838,6 +1838,106 @@
         "hostname": "a55d3d933517",
         "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
       }
+    },
+    {
+      "input": "qa/st03-r190/segment-20261007T230049Z-2.checkpoint.json",
+      "checkpoint": "qa/st03-r190/segment-20261007T230449Z-2.checkpoint.json",
+      "checkpointSha256": "b335b39d74d790cc77bf1c7a6246cdea6e292fa5f2275c8465c37cd8b949b570",
+      "frames": 900,
+      "clock": {
+        "seconds": 8854.414285713392,
+        "day": 4,
+        "hour": 17.301499999989574
+      },
+      "stop": "segment-boundary",
+      "session": null,
+      "periodicCheckpointFrames": [
+        300,
+        600,
+        900
+      ],
+      "guard": {
+        "guard": "PASS",
+        "reason": null,
+        "exit": 0,
+        "seconds": 75.318,
+        "treePeakMiB": 744.855,
+        "peakMembersBytes": {
+          "18": 10903552,
+          "20": 770134016
+        },
+        "includesSupervisor": true,
+        "hostname": "a55d3d933517",
+        "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
+      },
+      "scope": "135 simulated seconds in one process, same .15 steps/RNG/all production updates; no skipped time.",
+      "finding": "All six original officials idle at terminal; nextDecisionAt repeatedly renewed rather than a new choice after local idle timeout."
     }
-  ]
+  ],
+  "currentSourceOverrides": {
+    "source/game/china-official-life.js": "d55d69da4d357f749ffa65c6cb86d8c429908b83a57a8582ff4e4207ea8d5cbf"
+  },
+  "idleDeadlineFix": {
+    "source": "source/game/china-official-life.js",
+    "scope": "China original officials share one life controller. Do not apply this change to unrelated countries or artist controllers.",
+    "cause": "Local elapsed12 reaches completion about1e-12s before absolute brain deadline; choose() sees not due and calls idle() to defer another12 indefinitely.",
+    "fix": "Wait for existing brain.decisionDue as well as local elapsed/urgent condition before deleting idle and choosing. Same deadline, probability, RNG and wages.",
+    "reproduction": {
+      "time": 368.69999999998976,
+      "nextDecisionAt": 372.449999999991,
+      "idleElapsed": 8.250000000000009,
+      "idleDuration": 12,
+      "steps": 27,
+      "dt": 0.15,
+      "choicesBefore": 4,
+      "expected": "choices increases; no repeated12second renewal",
+      "before": "FAIL assertion",
+      "after": "PASS"
+    },
+    "tests": {
+      "idle-before": {
+        "guard": "FAILED",
+        "reason": null,
+        "exit": 1,
+        "seconds": 0.202,
+        "treePeakMiB": 57.105,
+        "peakMembersBytes": {
+          "8": 10653696,
+          "9": 49225728
+        },
+        "includesSupervisor": true,
+        "hostname": "a55d3d933517",
+        "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
+      },
+      "idle-after": {
+        "guard": "PASS",
+        "reason": null,
+        "exit": 0,
+        "seconds": 0.202,
+        "treePeakMiB": 59.922,
+        "peakMembersBytes": {
+          "8": 52183040,
+          "7": 10649600
+        },
+        "includesSupervisor": true,
+        "hostname": "a55d3d933517",
+        "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
+      },
+      "idle-official-life": {
+        "guard": "PASS",
+        "reason": null,
+        "exit": 0,
+        "seconds": 0.202,
+        "treePeakMiB": 56.543,
+        "peakMembersBytes": {
+          "6": 10653696,
+          "7": 48635904
+        },
+        "includesSupervisor": true,
+        "hostname": "a55d3d933517",
+        "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
+      }
+    },
+    "financialFixtureCompatibility": "Existing fixture generated before this correction retains original24 wage receipts/576 total; official economy and pay validation unchanged. This override acknowledges a life timing correction, not regenerated four-day natural evidence."
+  }
 }
