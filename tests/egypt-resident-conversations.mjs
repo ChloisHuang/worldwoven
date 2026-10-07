@@ -16,7 +16,7 @@ const {createDailyNeeds,DAILY_NEEDS_HOUR:H}=await import('../source/game/daily-n
 const {EGYPT_MEAL:P}=await import('../source/game/egypt-meal-definition.js');
 const {validEgyptResidentSupply,initialEgyptResidentSupply}=await import('../source/game/egypt-resident-supply.js');
 
-const mainSource=readFileSync(new URL('../source/game/main.js',import.meta.url),'utf8'),mainCall=mainSource.match(/const egyptPlayerSocial=npcSocial\?\.state\(\);egyptMeal\?\.update\(dt,t,.*?\);(?=egyptMealUI)/)?.[0];assert(mainCall);
+const mainSource=readFileSync(new URL('../source/game/main.js',import.meta.url),'utf8'),mainCall=mainSource.match(/const egyptPlayerSocial=npcSocial\?\.state\(\);egyptMeal\?\.update\(dt,t,.*?\);(?=japanTableServiceEmployment)/)?.[0];assert(mainCall);
 const mainUpdate=new Function('npcSocial','egyptMeal','dt','t','performing','npcs',mainCall);
 const GUEST='egypt-papyrus',DUTY='eg-table-service-labor-1',copy=structuredClone;
 

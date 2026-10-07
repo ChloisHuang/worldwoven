@@ -350,7 +350,10 @@
       "npc-life-decisions.mjs",
       "simulation-clock.mjs",
       "relationship-events.mjs",
-      "social-attention.mjs"
+      "social-attention.mjs",
+      "relationship-interactions.mjs",
+      "player-relationship-menu.mjs",
+      "social-meeting-places.mjs"
     ],
     "integration": [
       "airy-panel-default-cascade.mjs",
@@ -560,7 +563,9 @@
       "world-continuity-main.cjs",
       "world-continuity-radius.cjs",
       "world-continuity-seat-conflict.mjs",
-      "world-continuity.mjs"
+      "world-continuity.mjs",
+      "social-meeting-geometry.cjs",
+      "player-relationship-main.cjs"
     ]
   },
   "release": {

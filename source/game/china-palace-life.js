@@ -83,38 +83,40 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   brain.defer(n.station.id,duration);scripts.set(n,[stage('consort-free-time',label,path,duration)]);const cycles=stages.get(n)?.cycles||0;stages.set(n,{choice:null,cycles});enter(n,0);stages.get(n).idle=true;
  }
  function invitation(n,choice){
-  const other=consorts.find(a=>a.station.id===choice.targetId);if(conversation||!other||!idleEligible(other)||urgent(n)||!meetingAvailable(n))return false;
-  const pair=[n,other],paths=pair.map((actor,i)=>[[-18.9,.215,-13.35],[-18.9,.215,-11.5],CONSORT_MEETING[i]]);
+  const other=consorts.find(a=>a.station.id===choice.targetId),meeting=brain.meeting(n.station.id,choice,{id:'palace-consort-reception',places:CONSORT_MEETING,placeIds:CONSORT_MEETING_IDS,private:false});if(!meeting||conversation||!other||!idleEligible(other)||urgent(n)||!meetingAvailable(n))return false;
+  const pair=[n,other],paths=meeting.routes||pair.map((actor,i)=>[[-18.9,.215,-13.35],[-18.9,.215,-11.5],meeting.places[i]]);
   for(const [i,actor]of pair.entries()){let from=actor.root.position;for(const to of paths[i]){if(!near(from,to)&&!planPath(from,point(to),.25)?.length)return false;from=point(to);}}
   const result=brain.invite(n.station.id,choice);if(!result.ok)return false;
   if(result.status==='declined'){idle(n,'对方此刻想独处 · 改日再访');scripts.get(other)[0].label='这会儿想自己歇歇，改日再聊';record(n,'consort-invitation:declined:'+other.station.id);return true;}
-  conversation={id:result.id,participants:result.participants,topic:result.experience.kind,responses:result.responses,elapsed:0,age:0,duration:choice.duration,phase:'invited'};
+  conversation={id:result.id,participants:result.participants,places:meeting.places,placeIds:meeting.placeIds,managed:meeting.managed===true,interactionKind:result.interactionKind,fadeToBlack:result.fadeToBlack===true,topic:result.experience.kind,responses:result.responses,elapsed:0,age:0,duration:choice.duration,phase:'invited'};
   for(const [i,actor]of pair.entries()){
-   if(!claims.reserve(CONSORT_MEETING_IDS[i],actor.station.id,100)){endConversation(false,'前厅有人，改日再访');return true;}
-   scripts.set(actor,[stage('consort-conversation','已相约前厅 · 沿公共走廊前往',paths[i],choice.duration,{consortPair:true})]);const cycles=stages.get(actor)?.cycles||0;stages.set(actor,{choice:{id:'conversation',targetId:pair[1-i].station.id,facilityId:CONSORT_MEETING_IDS[i]},cycles});enter(actor,0);
+   if(!meeting.managed&&!claims.reserve(meeting.placeIds[i],actor.station.id,100)){endConversation(false,'前厅有人，改日再访');return true;}
+   scripts.set(actor,[stage('consort-conversation','已相约前厅 · 沿公共走廊前往',paths[i],choice.duration,{consortPair:true})]);const cycles=stages.get(actor)?.cycles||0;stages.set(actor,{choice:{id:'conversation',targetId:pair[1-i].station.id,facilityId:meeting.placeIds?.[i]},cycles});enter(actor,0);
   }
-  record(n,'consort-invitation:accepted:'+other.station.id);if(saveState(brain.snapshot())===false)endConversation(false,'稍后再聊');return true;
+  if(!brain.reserveMeeting(result.id)){endConversation(false,'房间暂时不可用');return true;}record(n,'consort-invitation:accepted:'+other.station.id);if(saveState(brain.snapshot())===false)endConversation(false,'稍后再聊');return true;
  }
  function endConversation(fulfilled,label='各自先忙 · 改日再访'){
   const pair=conversation;if(!pair)return;const residents=pair.participants.map(id=>consorts.find(n=>n.station.id===id)).filter(Boolean);
   const result=fulfilled?brain.finishConversation(pair.id,{elapsed:pair.elapsed,arrived:residents.filter(n=>stages.get(n)?.arrived).map(n=>n.station.id)}):null;
-  if(!result?.ok)brain.cancelConversation(pair.id);conversation=null;
-  for(const n of residents){claims.release(n.station.id);n.route=[];n.walking=false;const feeling=result?.event?.results?.find(r=>r.actorId===n.station.id)?.feeling;if(result?.ok)stages.get(n).cycles++;idle(n,feeling==='appreciated'?'这一席话很投缘 · 下回再叙':feeling==='mismatched'?'彼此各有所好 · 今日先聊到这里':result?.ok?'聊过今日见闻 · 各自继续日常':label);}
+  if(!result?.ok)brain.cancelConversation(pair.id);brain.releaseMeeting(pair.id);conversation=null;
+  for(const n of residents){n.socialPrivateFade=false;claims.release(n.station.id);n.route=[];n.walking=false;const feeling=result?.event?.results?.find(r=>r.actorId===n.station.id)?.feeling;if(result?.ok)stages.get(n).cycles++;idle(n,feeling==='appreciated'?'这一席话很投缘 · 下回再叙':feeling==='mismatched'?'彼此各有所好 · 今日先聊到这里':result?.ok?'聊过今日见闻 · 各自继续日常':label);}
   record(residents[0],'consort-conversation:'+(result?.ok?'completed':'cancelled')+':'+pair.id);saveState(brain.snapshot());
  }
  function updateConversation(dt,t){
   const pair=conversation;if(!pair)return;const residents=pair.participants.map(id=>consorts.find(n=>n.station.id===id));
-  if(residents.some(n=>!n||urgent(n)||interrupted(n)||playerState.performing===n.station.id||stages.get(n)?.abortRequested)||RECEPTION_SEATS.includes(playerState.facilityId)){endConversation(false);return;}
+  if(!brain.conversationAllowed(pair.id)||residents.some(n=>!n||urgent(n)||interrupted(n)||playerState.performing===n.station.id||stages.get(n)?.abortRequested)||RECEPTION_SEATS.includes(playerState.facilityId)){endConversation(false);return;}
   pair.age+=dt;if(pair.age>100){endConversation(false,'途中耽搁 · 改日再访');return;}
-  const both=residents.every(n=>stages.get(n)?.arrived&&near(n.root.position,CONSORT_MEETING[residents.indexOf(n)],.2));
+  const both=residents.every(n=>stages.get(n)?.arrived&&near(n.root.position,(pair.places||CONSORT_MEETING)[residents.indexOf(n)],.2));
+  if(pair.fadeToBlack&&pair.phase==='talking'&&!both){endConversation(false,'已离开约定房间');return;}
   if(both){
    const starting=pair.phase!=='talking';if(starting){pair.phase='talking';record(residents[0],'consort-conversation:talking:'+pair.id);}
    if(!Object.hasOwn(pair,'interaction')){const token=beginInteraction(pair.participants.slice());pair.interaction=token?{...token,participants:[...token.participants],duration:0}:null;}
+   for(const n of residents)n.socialPrivateFade=pair.fadeToBlack===true;
    const spoken=starting?0:Math.min(dt,Math.max(0,pair.duration-pair.elapsed));pair.elapsed+=spoken;
    if(pair.interaction&&spoken>0){pair.interaction.duration+=spoken;onInteraction({...pair.interaction,participants:[...pair.interaction.participants]});}
    for(const [i,n]of residents.entries()){
     const other=residents[1-i];n.root.rotation.y=Math.atan2(other.root.position.x-n.root.position.x,other.root.position.z-n.root.position.z);const response=pair.responses[n.station.id];
-    const topic=pair.topic==='read'?'方才读过的书卷':'方才看过的荷塘',label=pair.elapsed<3?(i?'愿闻其详':'聊聊'+topic):pair.elapsed<6?(i?(response==='appreciated'?'我也喜欢这样的闲暇':response==='mismatched'?'我更喜欢别的消遣':'各有趣味，听你说说'):'你平日更喜欢什么？'):(i?'改日有空再叙':'原来你是这样想的');tell(n,label);animate(n,stages.get(n),t);
+    const topic=pair.topic==='read'?'方才读过的书卷':'方才看过的荷塘',label=brain.interactionLabel(pair.id)?(pair.fadeToBlack?'双方愿意 · 私下安静相伴 · 稍后各自回到日常':brain.interactionLabel(pair.id)):pair.elapsed<3?(i?'愿闻其详':'聊聊'+topic):pair.elapsed<6?(i?(response==='appreciated'?'我也喜欢这样的闲暇':response==='mismatched'?'我更喜欢别的消遣':'各有趣味，听你说说'):'你平日更喜欢什么？'):(i?'改日有空再叙':'原来你是这样想的');tell(n,label);animate(n,stages.get(n),t);
    }
    if(pair.elapsed>=pair.duration)endConversation(true);
   }
@@ -227,12 +229,12 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
    }
   }
   if(state.hostId){const previous=npcs.find(n=>n.station.id===state.hostId);if(!previous)return false;host=previous;}
-  time=Math.max(0,state.time||0);duty=state.duty;conversation=state.conversation||null;hostHeld=actors.find(n=>n.station.id===state.hostHeldId)||null;hostPreviousYaw=state.hostPreviousYaw||0;hostHeldAt=state.hostHeldAt||0;history.splice(0,history.length,...(state.history||[]));
+  for(const n of consorts)n.socialPrivateFade=false;time=Math.max(0,state.time||0);duty=state.duty;conversation=state.conversation||null;hostHeld=actors.find(n=>n.station.id===state.hostHeldId)||null;hostPreviousYaw=state.hostPreviousYaw||0;hostHeldAt=state.hostHeldAt||0;history.splice(0,history.length,...(state.history||[]));
   for(const n of actors){const steps=state.scripts[n.station.id],stageState=state.stages[n.station.id];if(!steps?.length||!stageState||!steps[stageState.index]){choose(n);continue;}const bed=stageState.mount?.kind==='bed'?stageState.mount:steps[stageState.index].mount?.kind==='bed'?steps[stageState.index].mount:null;
    if(bed){const resolved=reserveNpcBed(furniture,bed,n.station.id);if(resolved)steps[stageState.index].mount=resolved;if(stageState.mount){stageState.mount=resolved&&occupyNpcBed(furniture,resolved,n.station.id)?resolved:null;if(stageState.mount){n.root.position.set(...stageState.mount.anchor);n.root.rotation.y=stageState.mount.yaw;}else{stageState.arrived=false;stageState.waypoint=0;}}}
    scripts.set(n,steps);stages.set(n,{...stageState,planned:false,stalled:0});n.route=[];n.serviceMount=null;if(stageState.mount&&stageState.mount.kind!=='bed'){furniture.facilities.reserve(stageState.mount.poolId||stageState.mount.id,n.station.id,{eligible:id=>id===stageState.mount.id});furniture.facilities.occupy(stageState.mount.poolId||stageState.mount.id,n.station.id);}}
   for(const n of actors)claims.release(n.station.id);for(const lease of state.claims||[])if(actors.some(n=>n.station.id===lease.actor))claims.reserve(lease.id,lease.actor,Math.max(0,lease.remaining));
-  if(conversation&&!(brain.conversation(conversation.id)?.status==='accepted'&&conversation.participants.every(id=>stages.get(consorts.find(n=>n.station.id===id))?.choice?.id==='conversation'&&claims.state().some(c=>c.actor===id))))endConversation(false);
+  if(conversation&&!(brain.conversation(conversation.id)?.status==='accepted'&&conversation.participants.every(id=>stages.get(consorts.find(n=>n.station.id===id))?.choice?.id==='conversation'&&(conversation.managed||claims.state().some(c=>c.actor===id)))))endConversation(false);if(conversation&&!brain.reserveMeeting(conversation.id))endConversation(false);
   for(const n of consorts){const current=brain.state(n.station.id)?.current;if(current?.conversationId&&!conversation){brain.cancelConversation(current.conversationId);claims.release(n.station.id);idle(n);}}return true;
  }
  if(!restore(saved.continuity)){for(const n of consorts){const current=brain.state(n.station.id)?.current;if(current?.conversationId)brain.cancelConversation(current.conversationId);}for(const n of actors)choose(n);}
@@ -395,6 +397,6 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   snapshot:()=>({version:1,layoutRevision:1,decisions:brain.snapshot(),runtime:captureWorldRuntime({time,duty,conversation,hostId:host.station.id,hostHeldId:hostHeld?.station.id||null,hostPreviousYaw,hostHeldAt,history,scripts:Object.fromEntries([...scripts].map(([n,s])=>[n.station.id,s])),stages:Object.fromEntries([...stages].map(([n,s])=>[n.station.id,s])),claims:claims.state()})}),
   restore,
   state(){return {time,conversation:conversation?JSON.parse(JSON.stringify(conversation)):null,hostHeld:!!hostHeld,hostActorId:hostHeld?.station.id||null,claims:claims.state(),duty:duty?{...duty}:null,decisions:brain.snapshot(),history:history.map(e=>({...e})),failures:failures.map(e=>({...e})),actors:actors.map(n=>{const s=stages.get(n);return {id:n.station.id,role:n.station.royalRole,ageYears:n.station.ageYears,privateRoomId:n.station.privateRoomId,activity:s.choice?.id||null,stage:scripts.get(n)[s.index].id,waypoint:s.waypoint,elapsed:s.elapsed,arrived:s.arrived,mounted:s.mount?.id||null,orderId:s.choice?.orderId||null,mealId:s.choice?.mealId||null,mealCompleted:!!s.choice?.mealCompleted,cycles:s.cycles,position:n.root.position.toArray(),walking:n.walking,idle:!!s.idle,paused:interrupted(n),teaDecision:s.teaDecision?{...s.teaDecision}:null};})};},
-  dispose(){if(disposed)return;disposed=true;releaseHost();claims.dispose();brain.dispose();for(const n of actors){n.route=[];furniture.releaseActor(n.station.id);if(n.poseContext){n.poseContext.handoff=false;n.poseContext.seatHeight=undefined;}}for(const c of costumes)c?.dispose();for(const kit of meals.values())kit.dispose();}
+  dispose(){if(conversation)brain.releaseMeeting(conversation.id);for(const n of consorts)n.socialPrivateFade=false;if(disposed)return;disposed=true;releaseHost();claims.dispose();brain.dispose();for(const n of actors){n.route=[];furniture.releaseActor(n.station.id);if(n.poseContext){n.poseContext.handoff=false;n.poseContext.seatHeight=undefined;}}for(const c of costumes)c?.dispose();for(const kit of meals.values())kit.dispose();}
  };
 }

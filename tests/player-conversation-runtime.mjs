@@ -47,3 +47,21 @@ test('unapproved movement stays a brief busy greeting; a static menu catches an 
 });
 
 test('a refusal releases the original walking route without creating a physical token',()=>{const f=setup(),route=[{x:4,y:0,z:0}];f.actor.walking=true;f.actor.route=route;const replies=[],s=createNpcSocial({actors:()=>[f.actor],player:()=>f.player,ledger:{lastCompleted:()=>null,start:()=>({ok:true,event:{status:'declined'}})},status:()=>({canPause:true}),onReply:r=>replies.push(r),beginInteraction:()=>assert.fail('refusal must not create a token')});s.begin(f.actor);s.update(2);s.choose('rest');assert.equal(s.active(),false);assert.match(replies.at(-1).reply,/独处/);assert.equal(f.actor.route,route);assert.equal(f.actor.breakAt,22);});
+
+test('private offer waits for current confirmation, real arrival and duration; withdrawal never grants a result',()=>{
+ for(const withdraw of [false,true]){
+  const actor={station:{id:'cn-minister-works',npcName:'顾衡',ageYears:31},root:{position:{x:0,y:0,z:0},rotation:{y:0}},breakAt:20},player={root:{position:{x:0,y:0,z:1},rotation:{y:0}}};
+  const clock={seconds:100,day:0},context={completedCount:7,relation:.6,trust:.4,age:31,selfAge:25,lastCompletedId:'past-actual-discussion',privatePlaceAvailable:true};
+  const ledger=createPlayerConversationLedger({worldSeed:2,getContext:()=>context,getClock:()=>clock,getProfile:()=>({traits:{sociability:1,curiosity:1,quiet:1},needs:{social:1,hunger:0,fatigue:0}}),saveState:()=>true});
+  for(const [topic,initiator]of [['express-interest','player'],['respond-interest','npc']]){for(let tries=0;tries<20;tries++){clock.seconds+=100;const e=ledger.start(actor.station.id,topic,{initiator}).event;if(e.status==='declined')continue;clock.seconds+=e.duration;assert(ledger.complete(e.id,{elapsed:e.duration}).ok);break;}}
+  let phase='approaching',releases=0,contacts=0,fade=false;
+  const journey={state:()=>({ok:true,phase}),update:()=>({ok:true,phase}),cancel:()=>{releases++;},finish:()=>{releases++;}};
+  const social=createNpcSocial({actors:()=>[actor],player:()=>player,ledger,status:()=>({canPause:true}),createJourney:()=>journey,onPrivateFade:v=>{fade=v;},beginInteraction:()=>{contacts++;return {id:'actual-pair',participants:['player',actor.station.id]};}});
+  let offered;for(let tries=0;tries<20;tries++){clock.seconds+=100;social.begin(actor);offered=social.choose('private-company');if(offered.event?.status==='offered')break;}
+  assert.equal(social.state().stage,'awaiting-consent');assert.equal(ledger.event(offered.event.id).interactionContext.explicitConsent,false);clock.seconds+=5;social.update(5);assert.equal(contacts,0);assert.equal(ledger.event(offered.event.id).elapsed,0);
+  const accepted=social.choose('private-company',{explicitConsent:true});assert.equal(accepted.event.id,offered.event.id);assert.equal(social.state().stage,'travelling');player.root.position.z=7;clock.seconds+=2;social.update(2);assert.equal(contacts,0);assert.equal(fade,false);
+  phase='arrived';player.root.position.z=1;clock.seconds+=.1;social.update(.1);assert.equal(contacts,1);assert.equal(social.state().duration,0);assert.equal(fade,true);
+  if(withdraw){clock.seconds+=2;social.update(2);social.end('withdrawn');assert.equal(ledger.event(accepted.event.id).status,'cancelled');assert.equal(ledger.event(accepted.event.id).result,undefined);}else{clock.seconds+=10;social.update(10);assert.equal(ledger.event(accepted.event.id).status,'completed');assert.equal(ledger.event(accepted.event.id).result.explicitConsent,true);}
+  assert.equal(fade,false);assert.equal(releases,1);assert.equal(social.active(),false);
+ }
+});
