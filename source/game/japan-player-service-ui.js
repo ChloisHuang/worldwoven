@@ -145,7 +145,9 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
   }
   if(v?.stage==='waiting-meal')detail.append(make('p','离席暂停上菜，回座后继续。','jp-service-note'));
   const intent=currentIntent(),button=make('button',step.label,'jp-service-primary ww-airy-action');button.type='button';button.disabled=step.kind==='wait'||step.kind==='panel'||step.kind==='order'&&(s.cash<dish.price||!!s.paymentError);button.onclick=()=>act(step,intent);actions.append(button);
-  if(mounted&&step.kind!=='stand'){const stand=make('button','起身');stand.type='button';stand.onclick=()=>{close();service.stopActivity();onStand();};actions.append(stand);}
+  // Ordinary chair exits stay with furniture/movement. Pool completion and
+  // non-seat activity exits still use their existing service controls.
+  if(mounted&&mounted.kind!=='seat'&&step.kind!=='stand'){const stand=make('button','起身');stand.type='button';stand.onclick=()=>{close();service.stopActivity();onStand();};actions.append(stand);}
   if(v){const cancel=make('button',standalone?'取消本餐':'取消本次服务');cancel.type='button';cancel.onclick=()=>{choiceRevision++;service.cancel();close();};actions.append(cancel);}
   body.append(menu,detail);dialog.append(x,header,body,actions);
 
