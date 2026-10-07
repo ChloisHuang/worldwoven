@@ -35,6 +35,17 @@ const svc=r().regionalTellerEmployment;assert(svc.forRole(roleId));
 const stopAfter=process.env.TELLER_STOP_AFTER;
 const checkpoint=stage=>{main.namespace.save();const file=path.resolve('qa','regional-teller-'+country+'-'+stage+'.json');fs.writeFileSync(file,storage['worlds-days-v1']);console.log('PASS '+stage+' checkpoint saved',country,file,(Date.now()-started)/1000);};
 const savedApplication=process.env.TELLER_RESUME?JSON.parse(fs.readFileSync(process.env.TELLER_RESUME,'utf8')).formalCareers.applications.byRole[roleId]:null;
+if(stopAfter==='settlement'){
+ const order=svc.inspection.state().order;assert.equal(order?.stage,'return');assert.equal(order.recorded,true);assert.equal(svc.state().receipts.length,0);
+ const source=JSON.stringify(order.contract.source),before=r().copperLedger.balances(),work=svc.inspection.actionDescriptor();assert.equal(work.total,0);
+ assert(main.namespace.requestStationIntent(svc.intent('original-step')));
+ until(()=>!svc.inspection.state().order,'return to original counter and settle completed contract',120);
+ const after=r().copperLedger.balances(),receipt=svc.state().receipts[0];assert.equal(svc.state().receipts.length,1);assert.equal(svc.state().income,8);assert.equal(receipt.id,order.contract.orderId);assert.equal(receipt.amount,8);assert.equal(receipt.currency,currency);assert.equal(JSON.stringify(receipt.proof.source),source);
+ for(const c of Object.keys(after)){assert.equal(after[c].cash,before[c].cash);assert.equal(after[c].bank-before[c].bank,c===currency?8:0);}
+ const paidBank=JSON.stringify(r().copperLedger.state());assert.equal(r().copperLedger.state().transactions.filter(tx=>tx.requestId===receipt.id&&tx.action==='wage').length,1);
+ assert.equal(svc.inspection.start({country}).code,'teller-day-consumed');assert.equal(svc.state().receipts.length,1);assert.equal(JSON.stringify(r().copperLedger.state()),paidBank);assert.equal(svc.state().shift.stage,'working');
+ console.log('PASS one original wage',receipt.id,currency,8);checkpoint('settlement');return;
+}
 if(stopAfter==='record'){
  const order=svc.inspection.state().order;assert.equal(order?.stage,'record');assert.equal(order.recorded,false);assert.equal(order.index,4);assert.equal(order.calculationIndex,4);
  const source=JSON.stringify(order.contract),bank=JSON.stringify(r().copperLedger.state()),work=svc.inspection.actionDescriptor();assert.equal(work.total,2);
