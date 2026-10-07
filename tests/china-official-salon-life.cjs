@@ -75,6 +75,18 @@ const copy=value=>JSON.parse(JSON.stringify(value));
  for(let i=0;i<9;i++)waiting.tick();assert(checks-firstChecks<=1,'busy recheck at most once each simulated second');busy=false;for(let i=0;i<15&&!waiting.owned;i++)waiting.tick();assert(waiting.owned);assert.equal(waiting.stats().requests,1);waiting.flow.dispose({suspend:true});
  const deadline=fixture();deadline.salon.npcOfferStatus=()=>({ok:false,waitable:true,revision:0});for(let i=0;i<150;i++)deadline.tick();assert.equal(deadline.stats().requests,0);assert(!deadline.flow.state().actors[0].borrowedSalon);assert(deadline.flow.socialProfile(id).cooldowns['paid-salon']>120);deadline.flow.dispose({suspend:true});
  const revoked=fixture();let offer={ok:false,waitable:true,revision:0};revoked.salon.npcOfferStatus=()=>offer;for(let i=0;i<25;i++)revoked.tick();offer={ok:false,waitable:false,revision:1,code:'artist-declined'};for(let i=0;i<15;i++)revoked.tick();assert.equal(revoked.stats().requests,0);assert.notEqual(revoked.flow.state().actors[0].activity,'paid-salon');revoked.flow.dispose({suspend:true});
+ // Actual R190 observation exposed a split local/absolute idle clock boundary.
+ // A12s local elapsed can finish about1e-12s before the absolute deadline;
+ // repeating idle() must not renew that original deadline indefinitely.
+ const idleSeed=fixture({current:null}),idleSaved=copy(idleSeed.flow.snapshot());idleSeed.flow.dispose({suspend:true});
+ idleSaved.decisions.time=368.69999999998976;idleSaved.runtime.time=368.69999999998976;
+ Object.assign(idleSaved.decisions.people[id],{current:null,choices:4,nextDecisionAt:372.449999999991});
+ idleSaved.runtime.stages=[[id,{path:[[14,.115,8.8]],label:'original idle',index:0,arrived:true,planned:false,stalled:0,retries:0,elapsed:8.250000000000009,idle:true,duration:12}]];
+ const drift=fixture({saved:idleSaved,current:null});
+ for(let i=0;i<27;i++)drift.tick({},.15);
+ assert(drift.flow.snapshot().decisions.people[id].choices>4,'original idle deadline must lead to a decision, not another12-second defer');
+ drift.flow.dispose({suspend:true});
+ console.log('PASS original .15-step idle floating boundary resumes decisions without changing RNG or cooldown policy');
  console.log('PASS exact-artist transient practice wait, once-per-second recheck, 12-second expiry and non-waitable refusal/reservation cancellation without payment');
  console.log('PASS needs/duty/meeting/summon priority, exact quote revalidation, blocked refund retries without body theft, current-position stair exit, cooldown and no invented relief/relationships');
 })().catch(e=>{console.error(e);process.exitCode=1;});

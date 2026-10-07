@@ -297,7 +297,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
     if(finish(n,s,false)){stages.set(n,{courtReady:true,label:'接到朝议召集 · 从当前位置赴殿'});n.route=[];}return;
    }
    if(!paused){
-    if(s.idle){s.elapsed+=dt;if(urgent(n)?brain.decisionDue(n.station.id):s.elapsed>=s.duration){stages.delete(n);choose(n);}else animate(n,s,t);return;}
+    if(s.idle){s.elapsed+=dt;if(brain.decisionDue(n.station.id)&&(urgent(n)||s.elapsed>=s.duration)){stages.delete(n);choose(n);}else animate(n,s,t);return;}
     if(!s.arrived)travel(n,s,dt);
     if(s.arrived){
      if(s.choice?.salon){
