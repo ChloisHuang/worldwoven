@@ -58,4 +58,6 @@ const manifest={release:'R'+releaseVersion+'-public',date:'2026-10-07',baseGameC
 // No overlapping Cache-Control rules: Cloudflare concatenates matching values.
 fs.writeFileSync(path.join(out,'_headers'),`/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n/\n  Cache-Control: public, max-age=0, must-revalidate\n/index.html\n  Cache-Control: public, max-age=0, must-revalidate\n/game/\n  Cache-Control: public, max-age=0, must-revalidate\n/game/index.html\n  Cache-Control: public, max-age=0, must-revalidate\n/build.json\n  Cache-Control: public, max-age=0, must-revalidate\n`);
 fs.mkdirSync('dist/server',{recursive:true});fs.copyFileSync('worker/index.mjs','dist/server/index.js');fs.mkdirSync('dist/.openai',{recursive:true});fs.copyFileSync('.openai/hosting.json','dist/.openai/hosting.json');
+// Optional finite mobile QA graph; its snapshot and manifest stay separate.
+if(fs.existsSync(path.join(root,'qa/mobile-candidate/manifest.json'))){const {buildMobileQa}=await import('./build-mobile-qa.mjs');buildMobileQa({root,out});}
 console.log(JSON.stringify({assets:Object.keys(assets).length,bytes:Object.values(assets).reduce((n,u)=>n+fs.statSync(path.join(out,u)).size,0),previousAssetsRetained:prior.length,main,entry,css,three}));
