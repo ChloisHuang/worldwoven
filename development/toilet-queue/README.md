@@ -24,3 +24,12 @@ Before executor replacement, the unmodified R186 main with five original identit
 The patched natural run was last readable at frame 1500: physician had a real receipt and was returning; teller owned reservation 2 and was travelling; no group was waiting at the door. That process later exited 0, but its redirected final log and all saved checkpoints were lost when the executor was replaced. A CHECKPOINT exit is also 0, so five-person completion is **not yet verified**. A single bounded actual-main chain must be completed on restored code before publication.
 
 The diagnostic `check-main.cjs` seeds only due needs at original positions. `QUEUE_LOAD` resumes its exact saved state without changing time/needs/positions. It writes every 300 steps and stops at the configured segment budget or when all five have completed. It is simulated DOM/renderer with production Three/controllers/navigation/doors, not browser/iPhone acceptance. No user save has been read.
+
+
+## Resource-bounded continuation (2026-10-07)
+
+The surviving final checkpoint contains all five receipts and cleared physician/teller personal tasks, but rites still has an unfinished `toiletExit` route. Completion now also requires all original officials to finish that route. No product code or physics is bypassed.
+
+The probe-local DOM adapter enumerates attached dynamic nodes from the fixture's static HTML ID roots/body instead of retaining every allocated element. Detach/reattach, nested selectors, replaceChildren, innerHTML and 10,000 removals passed a lightweight isolated DOM check; JavaScript and shell syntax checks passed. This is a possible harness memory-growth correction, not evidence that previous executor deaths were OOM.
+
+Use `QUEUE_LOAD=qa/toilet-queue-fixed.json bash development/toilet-queue/run-bounded.sh` only when the heavy-test slot is cleared. The wrapper enforces one toilet process, 300 simulation steps (plus at most 250 privacy/use finishing steps), 768 MiB Node old-space, 1,152 MiB whole-process-tree RSS and 180 seconds. It persists output in ignored `qa/toilet-queue-run-*.log`; guard termination is not a product failure or a passing test. Do not run other heavy scenes concurrently. Runtime verification of this revised probe is still pending.
