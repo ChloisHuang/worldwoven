@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import {COURT_CLERK_ROLE} from './formal-careers.js';
 import {CHINA_OFFICIAL_BUREAU as B} from './china-official-bureau.js';
 import {COURT_CAREER_PLACE as P} from './china-court-career-place.js';
@@ -19,10 +20,24 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
   const promotion=()=>careers.promotionSummary?.().application;
   const documentApplication=()=>careers.isHired()?promotion():application();
   const promotionKind=()=>({submitted:'promotion-review','document-ready':'promotion-receive-document','document-held':'promotion-appointment'})[promotion()?.stage];
-  const documentHome=documentObject?{parent:documentObject.parent,position:documentObject.position.clone(),rotation:documentObject.rotation.clone()}:null;
+  const documentHome=documentObject?{parent:documentObject.parent,position:documentObject.position.clone(),rotation:documentObject.rotation.clone(),scale:documentObject.scale.clone()}:null;
   function syncDocument(){if(!documentObject)return;const r=documentApplication(),hand=getPlayer()?.root?.userData?.hands?.[1],held=r?.status==='pending'&&r.stage==='document-held';documentObject.userData.applicationId=r?.appointment?.id||null;
-    if(held&&hand){if(['appointment','promotion-appointment'].includes(activity)&&getPlayer()?.root.userData.tools?.book)getPlayer().root.userData.tools.book.visible=false;if(documentObject.parent!==hand)hand.add(documentObject);documentObject.position.set(0,-.055,.035);documentObject.rotation.set(.2,0,Math.PI/2);}
-    else if(documentHome){if(documentObject.parent!==documentHome.parent)documentHome.parent.add(documentObject);documentObject.position.copy(documentHome.position);documentObject.rotation.copy(documentHome.rotation);}
+    if(held&&hand){
+      const actor=getPlayer(),body=actor.root.userData.body,authored=actor.getAuthoredHandPose?.(1);
+      if(['appointment','promotion-appointment'].includes(activity)&&actor.root.userData.tools?.book)actor.root.userData.tools.book.visible=false;
+      if(documentObject.parent!==hand)hand.add(documentObject);
+      if(body&&authored&&actor.fitExternalHandGrip){
+        // Keep the same hand parent/application contract and the original
+        // paper trajectory. Only the anatomical wrist changes to grip it.
+        const anchor=new THREE.Vector3(...authored.position),rotation=new THREE.Quaternion(...authored.quaternion),offset=new THREE.Vector3(0,-.055,.035),paperRotation=new THREE.Quaternion().setFromEuler(new THREE.Euler(.2,0,Math.PI/2));
+        const target=new THREE.Vector3(.09,.0125,.06).applyQuaternion(paperRotation).add(offset).applyQuaternion(rotation).add(anchor);
+        actor.fitExternalHandGrip({side:1,target:target.toArray(),support:false});
+        actor.root.updateWorldMatrix(true,true);
+        const desired=new THREE.Matrix4().compose(anchor,rotation,new THREE.Vector3(1,1,1)).multiply(new THREE.Matrix4().compose(offset,paperRotation,documentHome.scale));
+        desired.premultiply(body.matrixWorld).premultiply(hand.matrixWorld.clone().invert()).decompose(documentObject.position,documentObject.quaternion,documentObject.scale);
+      }else{documentObject.position.set(0,-.055,.035);documentObject.rotation.set(.2,0,Math.PI/2);}
+    }
+    else if(documentHome){if(documentObject.parent!==documentHome.parent)documentHome.parent.add(documentObject);documentObject.position.copy(documentHome.position);documentObject.rotation.copy(documentHome.rotation);documentObject.scale.copy(documentHome.scale);}
   }
   const recruiterReady=()=>{const npc=getRecruiter();return !!npc&&!npc.walking&&!FORMAL.has(audience.state()?.phase)&&canSee({position:npc.root.position.toArray()});};
   const duty = () => {const d=careers.workState().lastDuty;return d?.roleId===COURT_CLERK_ROLE.id?d:null;};
@@ -188,6 +203,6 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
     snapshot:()=>({version:1,duty:copy(duty()),activity,progress,pending,lastNotice,nextSettlementAt}),
     restore(s){if(s?.version!==1||s.duty&&['roleId','slotId','day'].some(k=>s.duty[k]!==duty()?.[k]))return false;activity=['court','archive'].includes(s.activity)?s.activity:['appointment','promotion-appointment'].includes(s.activity)&&documentApplication()?.stage==='document-held'?s.activity:null;progress=Math.max(0,Math.min(8,s.progress||0));pending=!!s.pending;lastNotice=s.lastNotice||null;nextSettlementAt=Math.max(0,s.nextSettlementAt||0);return true;},
     state:()=>({...careers.state(),activity,progress:progress/(['appointment','promotion-appointment'].includes(activity)?3:8),place:copy(P)}),
-    dispose({suspend=false}={}){if(disposed)return;releaseMeeting();if(!suspend)stopActivity('离开地区');posture?.dispose();if(documentHome&&documentObject){documentHome.parent.add(documentObject);documentObject.position.copy(documentHome.position);documentObject.rotation.copy(documentHome.rotation);}disposed=true;},
+    dispose({suspend=false}={}){if(disposed)return;releaseMeeting();if(!suspend)stopActivity('离开地区');posture?.dispose();if(documentHome&&documentObject){documentHome.parent.add(documentObject);documentObject.position.copy(documentHome.position);documentObject.rotation.copy(documentHome.rotation);documentObject.scale.copy(documentHome.scale);}disposed=true;},
   };
 }

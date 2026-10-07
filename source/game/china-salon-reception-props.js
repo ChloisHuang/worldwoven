@@ -44,6 +44,9 @@ export function createSalonReceptionProps(parent){
    if(Math.abs(dy)<=.0025)break;
    const body=host.root.userData.body||host.root,scale=body.getWorldScale(new THREE.Vector3()).y;c.archery.hands[1][1]+=dy/scale;
   }
+  // This short pen is positioned after animate, so fit its actual shaft only
+  // after the original paper-tip refinement has finished. Keep that trajectory.
+  if(writing&&host.fitExternalHandGrip){const body=host.root.userData.body||host.root,contact=brush.localToWorld(new THREE.Vector3(.0176,-.048,0));host.fitExternalHandGrip({side:1,target:body.worldToLocal(contact).toArray()});}
   const rightHand=host.root.userData.hands[1].getWorldPosition(new THREE.Vector3()),leftHand=host.root.userData.hands[0].getWorldPosition(new THREE.Vector3());
   const inPage=tip&&Math.abs(tip.x-P.paper[0])<=.25&&Math.abs(tip.z-P.paper[2])<=.125;
   const gap=writing?Math.abs(tip.y-(P.paper[1]+.002)):rightHand.distanceTo(card.position.clone().add(new THREE.Vector3(0,.032,0)));
