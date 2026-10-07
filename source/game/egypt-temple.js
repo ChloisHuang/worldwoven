@@ -524,14 +524,28 @@ export function buildEgypt(){
     // Bottom is supported by the ground rather than a paper-thin floating rail.
     stoneCourse(ascending,x,(y+1.05)/2,z,.36,y+1.05,16.5/32,C.shadow);
     stoneCourse(ascending,x,y+1.075,z,.40,.10,16.5/32,C.edge);
-    volume(colliders,x,y+.52,z,.36,1.05,16.5/32);volume(cameraColliders,x,y/2+.525,z,.40,y+1.05,16.5/32);
+    // The visible cheek is solid stone all the way down to the desert.
+    // Use its full body and cap for actors as well as the close camera, so
+    // ground-level walkers cannot enter beneath an upper stair segment.
+    for(const arr of[colliders,cameraColliders]){
+      volume(arr,x,(y+1.05)/2,z,.36,y+1.05,16.5/32);
+      volume(arr,x,y+1.075,z,.40,.10,16.5/32);
+    }
   }
   floor(ascending,-6.4,4,-12.2,16.8,3.4,C.stone);surface(-14.8,2,-13.9,-10.5,4);
-  for(const [x,z,w]of[[-4.6,-10.47,13.2],[-8.3,-13.93,13]]){roomWall(ascending,x,4.54,z,w,1.08,.16,C.shadow);stoneCourse(ascending,x,5.13,z,w,.10,.22,C.edge);}
+  // Only the west 3.45 m of the rear edge is exposed. Join that parapet
+  // into the throne hall's west wall instead of duplicating a rail behind
+  // its full-height south wall. The central hall doorway stays fully open.
+  for(const [x,z,w]of[[-4.6,-10.47,13.2],[-13.075,-13.93,3.45]]){
+    roomWall(ascending,x,4.54,z,w,1.08,.16,C.shadow);stoneCourse(ascending,x,5.13,z,w,.10,.22,C.edge);
+    for(const arr of[colliders,cameraColliders])volume(arr,x,5.13,z,w,.10,.22);
+  }
   // Complete the formerly open 3.4 m west platform edge, and cap the blind
-  // east end. The 3.6 m stair mouth and 3.6 m throne doorway remain unobstructed.
+  // east end. The stair keeps 3.56 m between the visible cap edges; the
+  // 3.6 m throne doorway remains unobstructed.
   for(const [x,z,d]of[[-14.98,-12.2,3.4],[2.18,-11.875,2.75]]){
     roomWall(ascending,x,4.54,z,.36,1.08,d,C.shadow);stoneCourse(ascending,x,5.13,z,.40,.10,d,C.edge);
+    for(const arr of[colliders,cameraColliders])volume(arr,x,5.13,z,.40,.10,d);
   }
   // End-bonded upper platform fascia stops at floor height; no decorative
   // extrusion projects into the walkable turn or the lower stair opening.

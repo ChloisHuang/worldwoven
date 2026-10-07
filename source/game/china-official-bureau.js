@@ -67,16 +67,19 @@ export function buildChinaOfficialBureau(G,A){
   const slab=(id,minX,maxX,minZ,maxZ,yy,depth=.20)=>{G.box(g,(minX+maxX)/2,yy-depth/2-.015,(minZ+maxZ)/2,maxX-minX,depth,maxZ-minZ,C.wood);walkableSurfaces.push({id,minX,maxX,minZ,maxZ,y:yy,owner:root.name});cameraColliders.push({minX,maxX,minZ,maxZ,minY:yy-depth-.015,maxY:yy-.015,owner:id});};
   const wall=(axis,at,from,to,openings=[])=>palaceWall(g,colliders,cameraColliders,{axis,at,from,to,bottom:y-.015,top:ceiling,depth:.28,color:C.cream,openings});
   const portal=(id,name,axis,at,from,to,rooms)=>{const op=door(id,name,axis,at,from,to,y+2.75,rooms,y-.015);doorways.at(-1).floorFit={bottom:y,top:y+2.75};return op;};
-  const rail=(id,a,b,y0,y1=y0)=>{
+  const rail=(id,a,b,y0,y1=y0,treadCount=0)=>{
+   const cameraMesh=m=>{m.updateWorldMatrix(true,false);const q=new THREE.Box3().setFromObject(m);cameraColliders.push({minX:q.min.x,maxX:q.max.x,minY:q.min.y,maxY:q.max.y,minZ:q.min.z,maxZ:q.max.z,owner:id});};
+   for(const [h,r]of[[.99,.045],[.27,.032]]){const pieces=Math.max(1,Math.ceil(Math.abs(y1-y0)/.12));for(let j=0;j<pieces;j++){const t=j/pieces,u=(j+1)/pieces,x=a[0]+(b[0]-a[0])*t,xx=a[0]+(b[0]-a[0])*u,z=a[1]+(b[1]-a[1])*t,zz=a[1]+(b[1]-a[1])*u,y=y0+(y1-y0)*t+h,yy=y0+(y1-y0)*u+h;cameraColliders.push({minX:Math.min(x,xx)-r,maxX:Math.max(x,xx)+r,minZ:Math.min(z,zz)-r,maxZ:Math.max(z,zz)+r,minY:Math.min(y,yy)-r,maxY:Math.max(y,yy)+r,owner:id});}}
    H.beam(g,[a[0],y0+.99,a[1]],[b[0],y1+.99,b[1]],.045,C.gold);H.beam(g,[a[0],y0+.27,a[1]],[b[0],y1+.27,b[1]],.032,C.red);
    const n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/.55));
-   for(let j=0;j<=n;j++){const t=j/n;G.box(g,a[0]+(b[0]-a[0])*t,y0+(y1-y0)*t+.51,a[1]+(b[1]-a[1])*t,.075,1.02,.075,C.red);}
-   for(let j=0;j<n;j++){const t0=j/n,t1=(j+1)/n,x0=a[0]+(b[0]-a[0])*t0,x1=a[0]+(b[0]-a[0])*t1,z0=a[1]+(b[1]-a[1])*t0,z1=a[1]+(b[1]-a[1])*t1,yy0=y0+(y1-y0)*t0,yy1=y0+(y1-y0)*t1;hull(Math.min(x0,x1)-.07,Math.max(x0,x1)+.07,Math.min(z0,z1)-.07,Math.max(z0,z1)+.07,Math.min(yy0,yy1)-.03,Math.max(yy0,yy1)+1.08,id);}
+   for(let j=0;j<=n;j++){const t=j/n,y=y0+(y1-y0)*t,support=treadCount?y0+(y1-y0)*(Math.min(treadCount-1,Math.floor(t*treadCount))+.5)/treadCount-.025:y-.025;cameraMesh(G.box(g,a[0]+(b[0]-a[0])*t,(support+y+1.02)/2,a[1]+(b[1]-a[1])*t,.075,y+1.02-support,.075,C.red));}
+   for(let j=0;j<n;j++){const t0=j/n,t1=(j+1)/n,x0=a[0]+(b[0]-a[0])*t0,x1=a[0]+(b[0]-a[0])*t1,z0=a[1]+(b[1]-a[1])*t0,z1=a[1]+(b[1]-a[1])*t1,yy0=y0+(y1-y0)*t0,yy1=y0+(y1-y0)*t1;colliders.push({minX:Math.min(x0,x1)-.07,maxX:Math.max(x0,x1)+.07,minZ:Math.min(z0,z1)-.07,maxZ:Math.max(z0,z1)+.07,minY:Math.min(yy0,yy1)-.03,maxY:Math.max(yy0,yy1)+1.08,owner:id});}
   };
   slab('cn-official-upper-floor',16,26,30.5,36.5,y);
   slab('cn-official-upper-balcony',23.8,27.72,28.9,30.5,y);
   rail('cn-official-balcony-north',[23.8,28.9],[27.72,28.9],y);rail('cn-official-balcony-west',[23.8,28.9],[23.8,30.5],y);rail('cn-official-balcony-east',[27.72,28.9],[27.72,30.5],y);
   rail('cn-official-balcony-return',[26,30.5],[26.32,30.5],y);
+  rail('cn-official-balcony-outer-return',[27.52,30.5],[27.72,30.5],y);
   const stair={...B.stair};walkableSurfaces.push({...stair,owner:root.name});stairways.push({...stair,width:stair.maxX-stair.minX,rise:(stair.y-stair.endY)/stair.count,tread:(stair.maxZ-stair.minZ)/stair.count});
   for(let j=0;j<stair.count;j++){
    const z0=stair.minZ+(stair.maxZ-stair.minZ)*j/stair.count,z1=stair.minZ+(stair.maxZ-stair.minZ)*(j+1)/stair.count,yy=stair.y+(stair.endY-stair.y)*(j+.5)/stair.count,h=.27;
@@ -86,7 +89,7 @@ export function buildChinaOfficialBureau(G,A){
    // see the actual closed treads without a box edge blocking stair ascent.
    cameraColliders.push({minX:stair.minX,maxX:stair.maxX,minZ:z0,maxZ:z1,minY:yy-h-.015,maxY:yy-.015,owner:stair.id+'-tread-'+j});
   }
-  for(const x of[stair.minX,stair.maxX])rail(stair.id+'-rail-'+x,[x,stair.minZ],[x,stair.maxZ],stair.y,stair.endY);
+  for(const x of[stair.minX,stair.maxX])rail(stair.id+'-rail-'+x,[x,stair.minZ],[x,stair.maxZ],stair.y,stair.endY,stair.count);
   // The stair remains inside the east wall and leaves a1.025m
   // ground passage, including the planner's x28 grid column. No dormitory
   // is a public through route.

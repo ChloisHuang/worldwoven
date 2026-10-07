@@ -75,11 +75,18 @@ export function buildChinaTavern(G,A){
    stairs(g,p+'-west','z',16.55,18.60,5.0,8.4,mid,y,10);
    slab(g,p+'-landing',16.3,21.35,3.30,5.0,mid,.23,C.wood);
    stairs(g,p+'-east','z',18.95,21.00,5.0,8.4,mid,next,10);
-   rail(g,p+'-landing-back',[16.3,3.30],[21.35,3.30],mid);
-   for(const[id,a,b]of[['west',[16.3,3.3],[16.3,5]],['east',[21.35,3.3],[21.35,5]],['center',[18.60,5],[18.95,5]]])landingRail(g,p+'-landing-'+id,a,b,mid);
-   for(const[id,a,b]of[['west',[16.3,3.3],[16.3,8.4]],['east',[21.35,3.3],[21.35,8.4]],['back',[16.3,3.3],[21.35,3.3]]])rail(g,p+'-void-'+id,a,b,next);
-   if(i===1)rail(g,p+'-top-closed-mouth',[16.3,8.4],[18.77,8.4],next);
+   // North masonry protects the turn; west mid-height window still needs its rail.
+   for(const[id,a,b]of[['west',[16.3,3.3],[16.3,5]],['east',[21.35,3.3],[21.35,5]],['center',[18.60,5],[18.95,5]],['mouth-west',[16.3,5],[16.55,5]],['mouth-east',[21,5],[21.35,5]]])landingRail(g,p+'-landing-'+id,a,b,mid);
+   // The second-floor WC wall protects its short east-well span; the
+   // third-floor well has no wall here and retains its continuous guard.
+   if(i===0){
+    rail(g,p+'-void-east-north',[21.35,3.3],[21.35,4.65],next);
+    rail(g,p+'-void-east-south',[21.35,6.65],[21.35,8.4],next);
+    for(const z of[4.65,6.65])landingRail(g,p+'-wc-wall-return-'+z,[21.35,z],[21.65,z],next);
+   }else rail(g,p+'-void-east',[21.35,3.3],[21.35,8.4],next);
+   if(i===1)rail(g,p+'-top-closed-mouth',[16.3,8.4],[18.95,8.4],next);
    else landingRail(g,p+'-mouth-center',[18.60,8.4],[18.95,8.4],next);
+   for(const[id,a,b]of[['west',[16.3,8.4],[16.55,8.4]],['east',[21,8.4],[21.35,8.4]]])if(i===0||id!=='west')landingRail(g,p+'-upper-mouth-'+id,a,b,next);
   }
  }
  const[g0,g1,g2]=floorGroups;
