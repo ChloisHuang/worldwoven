@@ -355,7 +355,8 @@
       "player-relationship-menu.mjs",
       "social-meeting-places.mjs",
       "npc-social-ownership.mjs",
-      "npc-public-interactions.mjs"
+      "npc-public-interactions.mjs",
+      "palace-companionship.mjs"
     ],
     "integration": [
       "airy-panel-default-cascade.mjs",
@@ -568,7 +569,8 @@
       "world-continuity.mjs",
       "social-meeting-geometry.cjs",
       "player-relationship-main.cjs",
-      "npc-public-pair-main.cjs"
+      "npc-public-pair-main.cjs",
+      "palace-companionship-main.cjs"
     ]
   },
   "release": {
