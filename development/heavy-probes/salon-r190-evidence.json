@@ -2450,5 +2450,246 @@
       },
       "harnessCorrection": "Service tracking now selects exact original session.customerId rather than first paid intention among all officials. No product edit or assertions relaxed."
     }
-  ]
+  ],
+  "reservedOriginalSession": {
+    "input": "qa/st03-r190/service-20261007T232413Z-2.checkpoint.json",
+    "checkpoint": "qa/st03-r190/service-20261007T232747Z-2.checkpoint.json",
+    "checkpointSha256": "920954fa8ea666ef30d634b07a5464c56cd8d3247ea0faf2d671e993a0d56a56",
+    "frames": 63,
+    "clock": {
+      "seconds": 9112.864285712765,
+      "day": 4,
+      "hour": 20.316749999982253
+    },
+    "stop": "original-service-reserved",
+    "session": {
+      "id": "cn-salon-npc-1",
+      "customerId": "cn-official-records",
+      "customerName": "宋承简 · 文书官（正九品）",
+      "actorId": "cn-tavern-songwriter",
+      "activity": "music",
+      "serviceContent": "顾流萤轻轻念出新填曲词的节拍，请你听韵脚怎样落下。",
+      "stage": "escort",
+      "roomId": "tavern-guest-lan",
+      "leg": 0,
+      "fee": 80,
+      "quoteVersion": 1,
+      "payment": "reserved",
+      "incomePolicy": {
+        "version": 1,
+        "performerShareBps": 5000,
+        "rounding": "floor"
+      },
+      "receptionWork": {
+        "version": 1,
+        "sessionId": "cn-salon-npc-1",
+        "actorId": "cn-tavern-reception",
+        "holderRevision": 0,
+        "roleId": "cn-salon-reception",
+        "slotId": "cn-salon-reception-1",
+        "contractVersion": 1,
+        "amount": 8,
+        "customerId": "cn-official-records",
+        "artistId": "cn-tavern-songwriter",
+        "activity": "music",
+        "fee": 80,
+        "cardId": "salon-reception-card:cn-salon-npc-1",
+        "roomId": "tavern-guest-lan",
+        "phase": "close",
+        "seconds": 0,
+        "steps": {
+          "registerSeconds": 2,
+          "reserveSeconds": 2,
+          "closeSeconds": 0
+        }
+      }
+    },
+    "rooms": [
+      {
+        "id": "tavern-guest-lan",
+        "name": "兰房",
+        "claim": {
+          "owner": "cn-salon-npc-1",
+          "status": "reserved"
+        },
+        "physicallyOccupied": false
+      },
+      {
+        "id": "tavern-guest-zhu",
+        "name": "竹房",
+        "claim": null,
+        "physicallyOccupied": false
+      }
+    ],
+    "balances": {
+      "cn-minister-works": {
+        "bank": 96,
+        "cash": 0
+      },
+      "cn-minister-granary": {
+        "bank": 96,
+        "cash": 0
+      },
+      "cn-official-rites": {
+        "bank": 96,
+        "cash": 0
+      },
+      "cn-official-personnel": {
+        "bank": 96,
+        "cash": 0
+      },
+      "cn-official-justice": {
+        "bank": 96,
+        "cash": 0
+      },
+      "cn-official-records": {
+        "bank": 16,
+        "cash": 0
+      }
+    },
+    "salonHolds": {
+      "cn-salon-npc-1": {
+        "id": "cn-salon-npc-1",
+        "actorId": "cn-official-records",
+        "amount": 80,
+        "artistId": "cn-tavern-songwriter",
+        "activity": "music",
+        "incomePolicy": {
+          "version": 1,
+          "performerShareBps": 5000,
+          "rounding": "floor"
+        },
+        "sourceSplit": {
+          "cash": 0,
+          "bank": 80
+        },
+        "status": "reserved"
+      }
+    },
+    "reserveTransactions": 1,
+    "artistEconomy": {
+      "version": 2,
+      "revision": 0,
+      "grossRevenue": 0,
+      "performerPaid": 0,
+      "businessProceeds": 0,
+      "accounts": {
+        "cn-tavern-reciter": {
+          "cash": 0,
+          "bank": 0
+        },
+        "cn-tavern-storyteller": {
+          "cash": 0,
+          "bank": 0
+        },
+        "cn-tavern-songwriter": {
+          "cash": 0,
+          "bank": 0
+        },
+        "cn-tavern-chess-poet": {
+          "cash": 0,
+          "bank": 0
+        }
+      },
+      "receipts": [],
+      "mealTransfers": []
+    },
+    "salonHistory": [
+      {
+        "event": "npc-invited",
+        "id": "cn-salon-npc-1",
+        "actorId": "cn-tavern-songwriter",
+        "customerId": "cn-official-records",
+        "roomId": null,
+        "time": 612.15
+      },
+      {
+        "event": "reception-register",
+        "id": "cn-salon-npc-1",
+        "actorId": "cn-tavern-songwriter",
+        "customerId": "cn-official-records",
+        "roomId": null,
+        "time": 615.15,
+        "receptionistId": "cn-tavern-reception",
+        "cardId": "salon-reception-card:cn-salon-npc-1"
+      },
+      {
+        "event": "reply",
+        "id": "cn-salon-npc-1",
+        "actorId": "cn-tavern-songwriter",
+        "customerId": "cn-official-records",
+        "roomId": null,
+        "time": 622.95
+      },
+      {
+        "event": "response",
+        "id": "cn-salon-npc-1",
+        "actorId": "cn-tavern-songwriter",
+        "customerId": "cn-official-records",
+        "roomId": null,
+        "time": 624.15,
+        "willing": true,
+        "reply": "新填的曲词还想推敲几处。我们带一壶茶，下楼慢慢聊。",
+        "position": [
+          22.820563903672685,
+          7.815,
+          7.690900989137033
+        ],
+        "player": [
+          24.15,
+          7.815,
+          7.65
+        ]
+      },
+      {
+        "event": "accepted",
+        "id": "cn-salon-npc-1",
+        "actorId": "cn-tavern-songwriter",
+        "customerId": "cn-official-records",
+        "roomId": "tavern-guest-lan",
+        "time": 624.15
+      },
+      {
+        "event": "reception-reserve",
+        "id": "cn-salon-npc-1",
+        "actorId": "cn-tavern-songwriter",
+        "customerId": "cn-official-records",
+        "roomId": "tavern-guest-lan",
+        "time": 627.15,
+        "receptionistId": "cn-tavern-reception",
+        "cardId": "salon-reception-card:cn-salon-npc-1"
+      },
+      {
+        "event": "reserved",
+        "id": "cn-salon-npc-1",
+        "actorId": "cn-tavern-songwriter",
+        "customerId": "cn-official-records",
+        "roomId": "tavern-guest-lan",
+        "time": 627.15,
+        "amount": 80
+      },
+      {
+        "event": "escort",
+        "id": "cn-salon-npc-1",
+        "actorId": "cn-tavern-songwriter",
+        "customerId": "cn-official-records",
+        "roomId": "tavern-guest-lan",
+        "time": 627.15
+      }
+    ],
+    "guard": {
+      "guard": "PASS",
+      "reason": null,
+      "exit": 0,
+      "seconds": 51.157,
+      "treePeakMiB": 676.406,
+      "peakMembersBytes": {
+        "9": 10899456,
+        "11": 698363904
+      },
+      "includesSupervisor": true,
+      "hostname": "a55d3d933517",
+      "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
+    }
+  }
 }
