@@ -3748,5 +3748,192 @@
     },
     "scope": "Same settled session restored and completed original6-second visiting tail. Claim/customer ownership released; no duplicate money or receipt. Bodies still physically in room at release instant; artist home return not observed."
   },
-  "currentConclusion": "One original record-official→songwriter80coin paid chain verified through natural selection, acceptance, real stairs, reservation, exact invited/reserved restoration, original one-time settlement, settled replay and release. Four-day payroll remains staged; all-four artist coverage and browser/iOS remain open."
+  "currentConclusion": "One original record-official→songwriter80coin paid chain verified through natural selection, acceptance, real stairs, reservation, exact invited/reserved restoration, one-time settlement, settled replay, release, actual artist home return and both participants leaving room. Four-day payroll remains staged; other3 artist service coverage and browser/iOS remain open.",
+  "originalReturnAndRoomClear": {
+    "status": "PASS",
+    "input": "qa/st03-r190/service-20261007T233942Z-2.checkpoint.json",
+    "checkpoint": "qa/st03-r190/returning-20261007T234446Z-2.checkpoint.json",
+    "checkpointSha256": "cc761a0edbd3843b626a416eae04f89d5dd6453a627c42790d3b3f2f5a5aab7f",
+    "frames": 160,
+    "elapsedSimulationSeconds": 24,
+    "clock": {
+      "seconds": 9177.06428571261,
+      "day": 4,
+      "hour": 21.06574999998044
+    },
+    "returnedEvidence": {
+      "frame": 160,
+      "clock": {
+        "seconds": 9177.06428571261,
+        "day": 4,
+        "hour": 21.06574999998044
+      },
+      "position": [
+        22.550000000000004,
+        7.815,
+        18.15
+      ],
+      "home": [
+        22.55,
+        7.815,
+        18.15
+      ],
+      "distance": 3.552713678800501e-15,
+      "event": {
+        "event": "returned",
+        "id": null,
+        "actorId": null,
+        "roomId": null,
+        "time": 691.35
+      }
+    },
+    "customerPosition": [
+      19.722393599999997,
+      4.015,
+      9
+    ],
+    "rooms": [
+      {
+        "id": "tavern-guest-lan",
+        "name": "兰房",
+        "claim": null,
+        "physicallyOccupied": false
+      },
+      {
+        "id": "tavern-guest-zhu",
+        "name": "竹房",
+        "claim": null,
+        "physicallyOccupied": false
+      }
+    ],
+    "lodgingRooms": [
+      {
+        "id": "lan",
+        "name": "兰房",
+        "price": 12,
+        "dirty": false,
+        "guestId": null,
+        "bedId": "china-tavern-bed-lan"
+      },
+      {
+        "id": "zhu",
+        "name": "竹房",
+        "price": 12,
+        "dirty": false,
+        "guestId": null,
+        "bedId": "china-tavern-bed-zhu"
+      }
+    ],
+    "offers": [
+      {
+        "actorId": "cn-minister-works",
+        "choices": [
+          {
+            "artistId": "cn-tavern-storyteller",
+            "activity": "story",
+            "fee": 40,
+            "revision": 1
+          },
+          {
+            "artistId": "cn-tavern-songwriter",
+            "activity": "music",
+            "fee": 85,
+            "revision": 1
+          }
+        ]
+      },
+      {
+        "actorId": "cn-minister-granary",
+        "choices": [
+          {
+            "artistId": "cn-tavern-storyteller",
+            "activity": "story",
+            "fee": 40,
+            "revision": 1
+          },
+          {
+            "artistId": "cn-tavern-songwriter",
+            "activity": "music",
+            "fee": 85,
+            "revision": 1
+          }
+        ]
+      },
+      {
+        "actorId": "cn-official-rites",
+        "choices": [
+          {
+            "artistId": "cn-tavern-storyteller",
+            "activity": "story",
+            "fee": 40,
+            "revision": 1
+          },
+          {
+            "artistId": "cn-tavern-songwriter",
+            "activity": "music",
+            "fee": 85,
+            "revision": 1
+          }
+        ]
+      },
+      {
+        "actorId": "cn-official-personnel",
+        "choices": [
+          {
+            "artistId": "cn-tavern-storyteller",
+            "activity": "story",
+            "fee": 40,
+            "revision": 1
+          },
+          {
+            "artistId": "cn-tavern-songwriter",
+            "activity": "music",
+            "fee": 85,
+            "revision": 1
+          }
+        ]
+      },
+      {
+        "actorId": "cn-official-justice",
+        "choices": [
+          {
+            "artistId": "cn-tavern-storyteller",
+            "activity": "story",
+            "fee": 40,
+            "revision": 1
+          },
+          {
+            "artistId": "cn-tavern-songwriter",
+            "activity": "music",
+            "fee": 85,
+            "revision": 1
+          }
+        ]
+      },
+      {
+        "actorId": "cn-official-records",
+        "choices": []
+      }
+    ],
+    "ledgerEquality": {
+      "chinaOfficialEconomy": true,
+      "chinaSalonEconomy": true,
+      "chinaSalonReceptionAccount": true
+    },
+    "guard": {
+      "guard": "PASS",
+      "reason": null,
+      "exit": 0,
+      "seconds": 55.028,
+      "treePeakMiB": 682.715,
+      "peakMembersBytes": {
+        "18": 10895360,
+        "20": 704983040
+      },
+      "includesSupervisor": true,
+      "hostname": "a55d3d933517",
+      "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
+    },
+    "scope": "Original songwriter back at exact home, original customer out in public stair hall, released room clean/unoccupied/claim-free; all three money ledgers unchanged. New quote85 does not reprice original80 session."
+  }
 }
