@@ -16,8 +16,8 @@ const bench={id:'bath-bench',kind:'seat',center:[-7.7,3.8,7.55],position:[-7.7,3
 function fixture(){
  const clock={seconds:0},needs=createDailyNeeds({saved:mealSeed,getClock:()=>clock}),ledger=createCurrencyLedger({saveState:()=>true});needs.enter('japan');
  // A finite pre-existing earned balance; the tested two meals must spend all
- // 14 coins. Production code adds no coins, supply shortcuts or replacement food.
- assert(ledger.earn(14,'test-preexisting-work-receipt').ok);
+ // 14 Japan tickets. Production code adds no coins, supply shortcuts or replacement food.
+ assert(ledger.creditWageToBank({amount:14,receiptId:'test-preexisting-work-receipt',currency:'japan',roleId:'jp-service',slotId:'jp-service-test',day:0}).ok);assert(ledger.withdraw(14,'test-withdraw-existing-wages','japan').ok);
  const facilities=createFacilityQueue(),furniture={items:[...seats,bench],facilities,releaseActor:id=>facilities.releaseActor(id)};
  let mounted=null,stored,fail=false;
  const saveState=s=>{if(fail)return false;stored=structuredClone(s);needs.japanMealReceipts(s.playerMealReceipts,ledger.reservations());return true;};
@@ -31,18 +31,19 @@ function fixture(){
 test('paid sushi and ramen need actual complete eating, survive retire/reload, and never replay',()=>{
  const f=fixture();for(const dish of['sushi','ramen']){
   f.clock.seconds+=24*H;f.needs.update();f.unmount();move(P[dish+'Counter']);assert(f.service.orderDining(dish).ok);const v=f.deliver(),before=f.needs.hunger('player');
-  assert.equal(before,1,'delivery alone does not feed');assert(f.service.eat().ok);f.tick(20);assert.equal(f.needs.hunger('player'),before,'partial eating does not feed');
+  assert.equal(before,1,'delivery alone does not feed');assert.equal(f.needs.snapshot().people.player.foodLoad,0,'delivery adds no intake');assert(f.service.eat().ok);f.tick(20);assert.equal(f.needs.hunger('player'),before,'partial eating does not feed');
   move([0,0,30]);f.tick(1);assert.equal(f.service.state().activity,null);assert.equal(f.needs.hunger('player'),before,'walking away interrupts');f.mount(seats.find(s=>s.diningKind===dish));assert(f.service.eat().ok);f.tick(61);
-  assert(f.needs.hunger('player')<.001);const receipt=f.stored.playerMealReceipts[0];assert.equal(receipt.mealId,v.id+':meal');assert.equal(receipt.paymentReceipt,v.paymentId);assert.equal(f.needs.japanMealReceipts([receipt],f.ledger.reservations()),false);
+  assert(f.needs.hunger('player')<.001);assert(f.needs.snapshot().people.player.foodLoad>23.9*H);assert.equal(f.needs.read('player').excessFoodStrain,0);const receipt=f.stored.playerMealReceipts[0];assert.equal(receipt.mealId,v.id+':meal');assert.equal(receipt.paymentReceipt,v.paymentId);assert.equal(f.needs.japanMealReceipts([receipt],f.ledger.reservations()),false);
   const restored=createJapanServiceOrders({saved:f.stored,worldSeed:29});assert.deepEqual(restored.state().playerMealReceipts,[receipt]);
   const freshNeeds=createDailyNeeds({saved:f.needs.snapshot()});assert.equal(freshNeeds.japanMealReceipts([receipt],f.ledger.reservations()),false);
  }
- assert.equal(f.ledger.balances().copper.cash,0);assert.equal(f.ledger.reservations().filter(h=>h.status==='settled').length,2);
+ assert.equal(f.ledger.balances().japan.cash,0);assert.equal(f.ledger.reservations().filter(h=>h.status==='settled').length,2);
 });
 
 test('rejected source save grants no relief; retry retains the same consumed item',()=>{
  const f=fixture();move(P.sushiCounter);assert(f.service.orderDining('sushi').ok);f.deliver();assert(f.service.eat().ok);f.fail(true);f.tick(61);assert.equal(f.needs.hunger('player'),1);
- const pending=f.board.state().playerMealReceipts[0];assert(pending);f.fail(false);f.board.checkpoint();assert.equal(f.needs.hunger('player'),0);assert.equal(f.stored.playerMealReceipts[0].id,pending.id);
+ const unfinished=f.service.state().visit;assert.equal(f.board.state().playerMealReceipts.length,0,'transactional source rejects unpublished consumption');assert.equal(f.needs.snapshot().people.player.foodLoad,0);
+ f.fail(false);assert(f.service.restore({version:1,visitId:unfinished.id}),'continuity resumes the same original eating order');f.tick(61);assert.equal(f.needs.hunger('player'),0);const pending=f.stored.playerMealReceipts[0];assert.equal(pending.mealId,unfinished.mealId);assert.equal(pending.id,unfinished.id+'-consumed');assert(f.needs.snapshot().people.player.foodLoad>23.9*H);
  const untreated=createDailyNeeds({saved:mealSeed});assert.equal(untreated.japanMealReceipts([pending],[]),false,'a priced meal cannot relieve without its settled payment');
 });
 
@@ -53,7 +54,7 @@ test('existing bath-token meal is real food and uses the original kitchen item r
  for(const[event,position]of[['changed',P.menChanging],['washed',P.menWashing],['collect-blend',P.menReceive]])assert(b.guestStep(v.id,event,{position}));
  const seatId=v.poolId+'-seat-1';assert(b.guestStep(v.id,'bath-mounted',{poolId:v.poolId,seatId}));assert(b.guestStep(v.id,'bathed',{seatId}));assert(b.guestStep(v.id,'dried',{position:P.menChanging}));assert(b.guestStep(v.id,'rested',{position:bench.anchor}));assert(b.guestStep(v.id,'sat-to-eat',{position:bench.anchor}));b.setPlayerDiningPresent(v.id,true);
  f.job(v.id,'cook','jp-ramen',()=>({position:P.kitchen}));current=b.getVisit(v.id);f.job(v.id,'serve','jp-sushi',j=>({position:current.servePoint,guestPosition:bench.anchor,itemId:j.itemId,tokenId:current.tokenId}));
- f.mount(bench);assert(f.service.eat().ok);f.tick(61);assert(f.needs.hunger('player')<.001);const receipt=f.stored.playerMealReceipts[0];assert.equal(receipt.supplyKind,'bath-meal');assert.equal(receipt.paymentReceipt,current.tokenId);assert.equal(receipt.mealId,current.mealId);assert.equal(f.ledger.balances().copper.cash,14,'the existing included bath meal creates no extra payment or free coin');
+ f.mount(bench);assert(f.service.eat().ok);f.tick(61);assert(f.needs.hunger('player')<.001);assert(f.needs.snapshot().people.player.foodLoad>23.9*H);assert.equal(f.needs.read('player').excessFoodStrain,0);const receipt=f.stored.playerMealReceipts[0];assert.equal(receipt.supplyKind,'bath-meal');assert.equal(receipt.paymentReceipt,current.tokenId);assert.equal(receipt.mealId,current.mealId);assert.equal(f.ledger.balances().japan.cash,14,'the existing included bath meal creates no extra payment or free coin');
 });
 
 test('French cake gives bounded food relief, and foreign receipts cannot be forged from readiness',()=>{

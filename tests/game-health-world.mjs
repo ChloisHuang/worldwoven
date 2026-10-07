@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createNpcSocial} from '../source/game/npc-social.js';
 import {createGameHealthWorld} from '../source/game/game-health-world.js';
+import {createDailyNeeds} from '../source/game/daily-needs.js';
 
 const actor=(id,x=0,y=0,z=0)=>({station:{id},root:{position:{x,y,z},rotation:{y:0},visible:true},walking:false});
 const player=actor('player',.4),source=actor('cn-host');
@@ -76,4 +77,20 @@ test('only same-number physical delivery supports recovery and receipts cannot r
  w.update(20,context());const after=w.snapshot();assert.equal(w.clinicReceipts({history:[receipt(1)]}),false);assert.deepEqual(w.snapshot(),after);
  const r=createGameHealthWorld({worldSeed:42,saved:after});assert.equal(r.clinicReceipts({history:[receipt(1)]}),false);assert.equal(r.snapshot().health.people.player.supportRemaining,160);
  const old=createGameHealthWorld({worldSeed:42,clinicFloor:4});assert.equal(old.clinicReceipts({history:[receipt(4)]}),false);assert(old.clinicReceipts({history:[receipt(5)]}));
+});
+
+
+test('current actor identities receive receipt-backed excess symptoms through the existing world adapter',()=>{
+ const current={...actor('cn-original-role'),actorId:'cn-current-person'},untouched=actor('cn-bystander'),clock={seconds:0};let needsSaved,healthSaved;
+ const needs=createDailyNeeds({getClock:()=>clock,saveState:s=>{needsSaved=structuredClone(s);return true;}});assert(needs.register(current.actorId));needs.enter('china',[current.actorId,untouched.station.id]);
+ const health=createGameHealthWorld({worldSeed:42,saveState:s=>{healthSaved=structuredClone(s);return true;}});health.enter('china',[current,untouched]);
+ let serial=0;for(let portion=1;portion<=4;portion++)for(const actorId of['player',current.actorId]){
+  const number=++serial,orderId=`cn-tavern-order-${number}`;assert(needs.mealReceipts([{source:'china-tavern-meal',id:orderId+'-consumed',number,actorId,orderId,mealId:orderId+'-dish',dishId:'yunlai-mushroom-rice',paymentReceipt:orderId,completed:true}]));
+ }
+ assert.equal(health.text(current.actorId),'');
+ for(let step=0;step<200;step++){clock.seconds++;needs.update();health.update(1,{player,actors:[current,untouched],dailyNeeds:needs});}
+ for(const id of['player',current.actorId]){assert.match(health.text(id),/进食过密/);assert.doesNotMatch(health.text(id),/\d/);assert(health.status(id).restRecommended);const c=health.snapshot().health.people[id].conditions['laden-grain'];assert.equal(c.cause.actorId,id);assert.equal(c.cause.id,`cn-tavern-order-${id==='player'?7:8}-consumed`);}
+ assert.equal(health.snapshot().health.people['cn-original-role'],undefined,'current stable identity owns the consequence');assert.equal(health.text(untouched.station.id),'');
+ health.leave();needs.leave();const before=health.snapshot(),beforeNeeds=needs.snapshot();clock.seconds+=100000;needs.update();health.update(100000,{player,actors:[current,untouched],dailyNeeds:needs});assert.deepEqual(health.snapshot(),before);assert.deepEqual(needs.snapshot(),beforeNeeds);
+ const restored=createGameHealthWorld({worldSeed:42,saved:healthSaved});assert.deepEqual(restored.snapshot(),before);assert.equal(restored.text(current.actorId),health.text(current.actorId));assert.equal(needsSaved.people[current.actorId].lastMeal.actorId,current.actorId);
 });

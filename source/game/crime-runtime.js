@@ -7,15 +7,34 @@ const gap=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 const idOf=n=>n.actorId||n.station?.id||'player';
 // Scene adapter owns only short-lived movement leases. Identity, money, roles,
 // health and relationships remain in their original authoritative modules.
-export function createCrimeRuntime({country,lot,getActors,getPlayer,getClock,getAnimationTime=()=>getClock().seconds,getProfile,getRelation,getMode,getGuards,guardResumed,planPath,moveActor,doors,poseContext,canSee,isAdult,canPerceive=()=>true,playerAvailable,stopPlayer,saveState,saved={},applyInjury,recordRelationship,notify=()=>{}}){
- const owner='crime:'+country,held=new Map(),routes=new Map(),reported=new Set(),routeFailures=new Map();let action=null,scanIn=0,modelIn=0,modelElapsed=0,cachedOrder=null,leaseDirty=false,disposed=false,leases=clone(saved.leases||{}),lastNotice='';
+export function createCrimeRuntime({country,lot,getActors,getPlayer,getClock,getAnimationTime=()=>getClock().seconds,getProfile,getRelation,getMode,getGuards,guardResumed,planPath,moveActor,doors,poseContext,canSee,isAdult,canPerceive=()=>true,playerAvailable,stopPlayer,saveState,saved={},applyInjury,recordRelationship,recordPersonalConduct=null,observeCrimeEvidence=null,notify=()=>{}}){
+ const owner='crime:'+country,held=new Map(),routes=new Map(),reported=new Set(),routeFailures=new Map();let action=null,scanIn=0,modelIn=0,modelElapsed=0,cachedOrder=null,leaseDirty=false,disposed=false,leases=clone(saved.leases||{}),lastNotice='',socialPending=clone(saved.socialPending||[]);
  const actor=id=>getActors().find(n=>idOf(n)===id),key=n=>`${idOf(n)}@${n.lifeId??n.station?.lifeId??'original'}`;
  const available=n=>n&&n.alive!==false&&isAdult(idOf(n))&&!n.serviceMount&&!n.bathTransition&&(n===getPlayer()?playerAvailable():held.has(idOf(n))||getMode(n)==='leave');
  const rows=()=>getActors().map(n=>({key:key(n),id:idOf(n),countryId:country,sceneId:country,position:point(n.root.position),alive:n.alive!==false,awake:n.serviceMount?.kind!=='bed'&&n.socialPrivateFade!==true&&canPerceive(n),available:available(n),adult:isAdult(idOf(n))}));
  const guardRows=()=>getGuards().map(n=>({key:key(n),id:idOf(n),countryId:country,sceneId:country,position:point(n.root.position),alive:n.alive!==false,routeFailed:(routeFailures.get(idOf(n))||0)>getClock().seconds,available:!socialHoldOwner(idOf(n))||socialHoldOwner(idOf(n))===owner}));
  const jail=()=>lot.holdingCell?{countryId:country,sceneId:country,entry:point(lot.holdingCell.intake),cell:point(lot.holdingCell.detention),release:point(lot.holdingCell.release),guardCell:{x:-22.9,y:-4.1,z:35.45},guardEntry:{x:-18.1,y:-4.1,z:35}}:null;
  const items=()=>lot.holdingCell?.evidence?[{id:lot.holdingCell.evidence.itemId,ownerId:lot.holdingCell.evidence.owner,name:'封存巡查信物',countryId:country,sceneId:country,position:point(lot.holdingCell.evidence.position)}]:[];
- function persist(engine){return saveState({engine,leases:clone(leases)});}
+ function persist(engine,events=[]){
+  const pending=clone(socialPending),enqueue=(event,personal=false)=>{if((personal?recordPersonalConduct:observeCrimeEvidence)&&!pending.some(p=>p.event.id===event.id))pending.push({event,personal});};
+  for(const e of events){const c=engine.cases.find(c=>c.id===e.caseId);if(!c)continue;
+   const base={source:'crime-consequences',actorId:c.subjectId,kind:c.kind==='theft'?'property-theft':'physical-harm',outcome:'failed',fault:true,at:c.at};
+   if(e.kind==='offense'&&c.kind==='theft'){
+    enqueue({...base,id:c.id+':personal',participants:[c.subjectId]},true);
+    for(const witness of c.evidence)if(witness.witnessId&&witness.witnessId!==c.subjectId)enqueue({...base,conductEventId:c.id+':personal',id:c.id+':witness:'+witness.witnessKey,participants:[c.subjectId,witness.witnessId]});
+   }
+   if(e.kind==='report'&&!c.evidence.some(w=>w.witnessKey===e.guardKey)){
+    const guard=getActors().find(n=>key(n)===e.guardKey);if(guard)enqueue({...base,at:getClock().seconds,conductEventId:c.kind==='theft'?c.id+':personal':`crime:${country}:${c.lastIncidentNumber||c.number}:harm:relation`,id:c.id+':'+(c.lastIncidentNumber||c.number)+':heard:'+e.guardKey,participants:[c.subjectId,idOf(guard)]});
+   }
+  }
+  const result=saveState({engine,leases:clone(leases),socialPending:pending});if(result===true||result?.ok===true)socialPending=pending;return result;
+ }
+ function flushSocialEvidence(){
+  if(!socialPending.length)return;const done=[];
+  for(const entry of socialPending){try{const result=(entry.personal?recordPersonalConduct:observeCrimeEvidence)?.(entry.event);if(result?.ok)done.push(entry.event.id);}catch{}}
+  if(!done.length)return;const previous=socialPending;socialPending=socialPending.filter(p=>!done.includes(p.event.id));const stored=persist(model.snapshot());if(stored!==true&&stored?.ok!==true)socialPending=previous;
+ }
+
  const model=createCrimeConsequences({saved:saved.engine,persist,getClock:()=>getClock().seconds,actors:rows,guards:guardRows,items,jail,harmRadius:.9,hasLineOfSight:(a,b)=>canSee(a.position||a,b.position||b)});
  function release(id){const n=actor(id),old=held.get(id)||leases[id];if(n&&old&&n.alive!==false&&(!old.lifeKey||old.lifeKey===key(n))){n.route=old.target?planPath(n.root.position,point(old.target),n===getPlayer()?.34:.25):[];n.walking=false;if(Number.isFinite(old.breakRemaining))n.breakAt=getAnimationTime()+old.breakRemaining;}held.delete(id);delete leases[id];routes.delete(id);}
  function reconcile(ids){const needed=new Set(ids.filter(id=>id!=='player'));
@@ -34,7 +53,7 @@ export function createCrimeRuntime({country,lot,getActors,getPlayer,getClock,get
   if(gap(before,n.root.position)<.001)route.stalled+=dt;else route.stalled=0;
   if(route.stalled>18){if(cachedOrder?.guardKey){const g=getActors().find(n=>key(n)===cachedOrder.guardKey);if(g)routeFailures.set(idOf(g),getClock().seconds+30);}model.cancelEnforcement('route-blocked');cachedOrder=model.orders();notify('通路暂时受阻，查捕线索保留；先让出通道，警卫会重新核实。');route.stalled=0;}
  }
- function flushEffects(){for(const effect of model.pendingEffects?.()||[]){const a=getActors().find(n=>key(n)===effect.actorKey),v=getActors().find(n=>key(n)===effect.victimKey);if(!a||!v)continue;if(a.alive===false||v.alive===false){model.ackEffect(effect.id);continue;}
+ function flushEffects(){flushSocialEvidence();for(const effect of model.pendingEffects?.()||[]){const a=getActors().find(n=>key(n)===effect.actorKey),v=getActors().find(n=>key(n)===effect.victimKey);if(!a||!v)continue;if(a.alive===false||v.alive===false){model.ackEffect(effect.id);continue;}
    if(effect.kind==='harm'){const ok=applyInjury({id:effect.id,actorId:idOf(a),victimId:idOf(v),at:effect.at??getClock().seconds});if(!ok?.ok)continue;
     const rel=recordRelationship({id:effect.id+':relation',source:'crime-consequences',actorId:idOf(a),participants:[idOf(a),idOf(v),...(effect.witnessIds||[])],outcome:'failed',fault:true,kind:'physical-harm',at:effect.at??getClock().seconds});if(!rel?.ok)continue;
    }model.ackEffect(effect.id);
@@ -50,7 +69,7 @@ export function createCrimeRuntime({country,lot,getActors,getPlayer,getClock,get
   for(const a of getActors()){if(a===getPlayer()||!available(a)||socialHoldOwner(idOf(a)))continue;
    for(const v of getActors()){if(v===a||v.alive===false||!isAdult(idOf(v))||gap(a.root.position,v.root.position)>.9)continue;
     const relation=getRelation(idOf(a),idOf(v)),profile=getProfile(idOf(a));
-    if(relation?.aversion>.42&&relation.trust<-.35&&relation.last?.outcome==='failed'&&relation.last.fault===true&&getClock().seconds-relation.last.at<180&&(profile.values?.reliability??.5)<.55&&canSee(a.root.position,v.root.position)){if(beginHarm(idOf(a),idOf(v)))return;}
+    if(relation?.aversion>.42&&relation.trust<-.35&&relation.last?.outcome==='failed'&&relation.last.fault===true&&getClock().seconds-relation.last.at<180&&(profile.values?.reliability??.5)+Math.max(-.12,Math.min(.15,(profile.conduct?.score||0)*.2))<.55&&canSee(a.root.position,v.root.position)){if(beginHarm(idOf(a),idOf(v)))return;}
    }
   }
  }
@@ -73,7 +92,7 @@ export function createCrimeRuntime({country,lot,getActors,getPlayer,getClock,get
   scanIn-=dt;if(scanIn<=0){scanIn=2;if(!action&&!cachedOrder)autonomous();}
  }
  function choices(){const p=getPlayer();if(!p)return[];const result=model.status(key(p)).detained?[]:harmChoices();for(const x of model.actions(key(p))||[]){result.push({...x,id:'crime:'+x.kind+':'+(x.itemId||x.caseId||''),crime:true,name:'巡查与案情',action:x.label||x.action||({take:'拿走封存巡牌（未经许可，属于违法）',return:'归还原封存巡牌',report:'向近处警卫报告亲眼所见',surrender:'停下，向面前警卫说明并配合'}[x.kind]||x.kind),position:x.position?[x.position.x,x.position.y,x.position.z]:p.root.position.toArray(),interactionRadius:2,executionRadius:2,priority:20});}return result;}
- return {update,choices,beginHarm,cancelAction,model,status:()=>model.status(key(getPlayer())),snapshot:()=>({engine:model.snapshot(),leases:clone(leases)}),
+ return {update,choices,beginHarm,cancelAction,model,status:()=>model.status(key(getPlayer())),snapshot:()=>({engine:model.snapshot(),leases:clone(leases),socialPending:clone(socialPending)}),
   controlsPlayer:()=>!!cachedOrder?.holdSubject&&cachedOrder.subjectKey===key(getPlayer()),
   activeAction:()=>action&&clone(action),
   owns:n=>held.has(idOf(n)),

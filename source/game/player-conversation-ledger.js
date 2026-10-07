@@ -54,6 +54,7 @@ function fold(actors, event) {
       actor.trust = signed((actor.trust || 0) + event.result.trust);
       actor.playerRelation = signed((actor.playerRelation || 0) + (event.result.inverseRelation ?? event.result.relation));
       actor.playerOpinion = signed((actor.playerOpinion || 0) + (event.result.inverseOpinion ?? event.result.opinion));
+      if (event.result.supportStance && event.interactionContext.initiator === 'player') { actor.supportStance = event.result.supportStance; actor.supportEventId = event.id; actor.supportAt = event.endedAt; actor.supportEvidenceId = event.result.supportEvidenceId || null; actor.supportFaultId = event.result.supportFaultId || null; }
       if (event.result.acknowledgedEventId) actor.acknowledgedEventId = event.result.acknowledgedEventId;
       for (const key of ['interestGiven', 'interestReceived', 'boundary']) if (event.result[key] === true) actor[key] = true;
       if (event.result.repairedEventId) { actor.repairedEventId = event.result.repairedEventId; if (actor.mismatchEventId === event.result.repairedEventId) actor.mismatchEventId = null; }
@@ -146,6 +147,7 @@ function restore(saved) {
         !finite(actor.relation) || Math.abs(actor.relation) > 1 || !finite(actor.opinion) || Math.abs(actor.opinion) > 1 ||
         !finite(actor.cooldownUntil) || actor.cooldownUntil < PLAYER_CONVERSATION_COOLDOWN ||
         actor.cooldownUntil > archive.endedAt + PLAYER_CONVERSATION_COOLDOWN) throw Error('invalid-saved-archive');
+    if (actor.supportStance !== undefined && (!['support','withhold'].includes(actor.supportStance) || typeof actor.supportEventId !== 'string' || !finite(actor.supportAt))) throw Error('invalid-saved-archive');
     for (const key of ['trust', 'playerRelation', 'playerOpinion']) if (actor[key] !== undefined && (!finite(actor[key]) || Math.abs(actor[key]) > 1)) throw Error('invalid-saved-archive');
     for (const key of ['interestGiven', 'interestReceived', 'boundary']) if (actor[key] !== undefined && typeof actor[key] !== 'boolean') throw Error('invalid-saved-archive');
     for (const key of ['mismatchEventId', 'repairedEventId', 'acknowledgedEventId', 'lastConsentEventId']) if (actor[key] != null && (typeof actor[key] !== 'string' || !actor[key] || actor[key].length > 512)) throw Error('invalid-saved-archive');
@@ -266,6 +268,7 @@ export function createPlayerConversationLedger({saved, saveState, getClock = () 
       lastCompletedId: actor.lastCompleted?.id || external.lastCompletedId || null,
       mismatchEventId: mismatchEventId !== actor.repairedEventId ? mismatchEventId : null,
       faultEventId: external.faultEventId !== actor.repairedEventId ? external.faultEventId || null : null,
+      supportStance: actor.supportStance, supportEventId: actor.supportEventId, supportAt: actor.supportAt, supportEvidenceId: actor.supportEvidenceId, supportFaultId: actor.supportFaultId,
       acknowledgedEventId: actor.acknowledgedEventId || null,
       interestGiven: actor.interestGiven === true, interestReceived: actor.interestReceived === true,
       boundary: actor.boundary === true || external.boundary === true};
@@ -280,8 +283,9 @@ export function createPlayerConversationLedger({saved, saveState, getClock = () 
     if (relationshipInteraction(topicId)) {
       try {
         const context = contextFor(actorId);
-        interactionContext = Object.fromEntries(['available', 'completedCount', 'relation', 'trust', 'opinion', 'aversion', 'age', 'selfAge', 'lastCompletedId', 'mismatchEventId', 'faultEventId', 'acknowledgedEventId', 'interestGiven', 'interestReceived', 'boundary', 'privatePlaceAvailable'].filter(key => context[key] !== undefined).map(key => [key, context[key]]));
+        interactionContext = Object.fromEntries(['available', 'completedCount', 'relation', 'trust', 'opinion', 'aversion', 'age', 'selfAge', 'lastCompletedId', 'mismatchEventId', 'faultEventId', 'acknowledgedEventId', 'interestGiven', 'interestReceived', 'boundary', 'privatePlaceAvailable', 'socialAt', 'knownEvidenceId', 'knownFaultId', 'knownReputation', 'knownConduct', 'knownEvidence', 'practicalExperience', 'partnerExperience', 'healthConcern', 'supportStance', 'supportEventId'].filter(key => context[key] !== undefined).map(key => [key, context[key]]));
         interactionContext.initiator = options.initiator === 'npc' ? 'npc' : 'player';
+        interactionContext.supportRespondent = interactionContext.initiator === 'player';
         interactionContext.explicitConsent = options.explicitConsent === true;
       } catch { return failure('profile-unavailable'); }
       if (!relationshipInteractionEligible(topicId, interactionContext)) return failure('interaction-unavailable');
@@ -331,16 +335,18 @@ export function createPlayerConversationLedger({saved, saveState, getClock = () 
     if (event.status !== 'accepted') return failure('not-accepted', event);
     if (elapsed !== undefined && (!finite(elapsed) || elapsed < 0)) return failure('invalid-elapsed', event);
     if (Math.max(event.elapsed, elapsed ?? 0) < event.duration) return failure('unfinished', event);
-    let disposition;
+    let disposition, completedContext;
     try {
       const actor = view.actors.get(event.actorId);
       if (relationshipInteraction(event.topicId)) {
         const context = {...contextFor(event.actorId), initiator: event.interactionContext.initiator};
         if (event.topicId === 'private-company' && event.interactionContext.explicitConsent !== true || !relationshipInteractionEligible(event.topicId, context)) return cancel(id, 'interaction-no-longer-available');
-        disposition = relationshipInteractionOutcome(event.topicId, event.interactionContext);
+        completedContext = event.interactionContext;
+        if (relationshipInteraction(event.topicId).socialState) completedContext = {...completedContext,...Object.fromEntries(['relation','trust','aversion','boundary','knownReputation','knownConduct','socialAt','knownEvidenceId','knownFaultId'].map(key=>[key,context[key]??null]))};
+        disposition = relationshipInteractionOutcome(event.topicId, completedContext);
       } else disposition = conversationDisposition(profile(getProfile(event.actorId), actor.relation, actor.opinion), profile(getPlayerProfile()), event.kind, 'player');
     } catch { return failure('profile-unavailable', event); }
-    return terminal(event, 'completed', {elapsed: event.duration, feeling: disposition.feeling, result: {actorId: event.actorId, targetId: 'player', ...disposition}});
+    return terminal(event, 'completed', {...(completedContext ? {interactionContext:completedContext} : {}), elapsed: event.duration, feeling: disposition.feeling, result: {actorId: event.actorId, targetId: 'player', ...disposition}});
   }
   function cancel(id, reason = 'cancelled') {
     const error = guard();
@@ -369,6 +375,8 @@ export function createPlayerConversationLedger({saved, saveState, getClock = () 
   return Object.freeze({loadError, start, offer, confirm, progress, complete, cancel, retryPending, snapshot,
     topics: PLAYER_CONVERSATION_TOPICS,
     topicsFor: (actorId, options = {}) => { try { return [...PLAYER_CONVERSATION_TOPICS, ...relationshipInteractionOptions({...contextFor(actorId), initiator: options.initiator === 'npc' ? 'npc' : 'player'})]; } catch { return [...PLAYER_CONVERSATION_TOPICS]; } },
+    repairFor: actorId => view.actors.get(actorId)?.repairedEventId || null,
+    supportFor: actorId => { const a=view.actors.get(actorId); return a?.supportEventId ? {trust:a.trust||0,boundary:a.boundary===true,supportStance:a.supportStance,supportEventId:a.supportEventId,supportAt:a.supportAt,supportEvidenceId:a.supportEvidenceId,supportFaultId:a.supportFaultId} : null; },
     relationshipFor: actorId => { try { const context = contextFor(actorId); return {...context, stage: relationshipStage(context), playerRelation: view.actors.get(actorId)?.playerRelation || 0, inverseRelation: view.actors.get(actorId)?.playerRelation || 0, inverseOpinion: view.actors.get(actorId)?.playerOpinion || 0}; } catch { return null; } },
     event: id => copy(view.events.get(id) || null), active: () => copy(view.active), pending: () => copy(view.awaitingSave),
     completedCount: actorId => view.actors.get(actorId)?.completedCount || 0,

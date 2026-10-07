@@ -9,7 +9,7 @@ export function socialAttentionFactors({observer={},target={},appearanceAffinity
  const trust=clamp(observer.trust?.[id]??observer.trustForTarget??0),aversion=unit(observer.aversion?.[id]??observer.aversionForTarget??0);
  // Reputation is what THIS observer knows, never a global omniscient score.
  const reputation=clamp(observer.knownReputation?.[id]??observer.reputationForTarget??0);
- const distrust=trust<-.2||relation<-.3||opinion<-.3||aversion>.3||situation.boundary===true;
+ const distrust=trust<-.2||relation<-.3||opinion<-.3||aversion>.3||situation.boundary===true||situation.unresolvedFault===true;
  const adults=Number.isFinite(observer.ageYears)&&observer.ageYears>=18&&Number.isFinite(target.ageYears)&&target.ageYears>=18;
  const appearance=adults&&!distrust?clamp(appearanceAffinity):0;
  const sociability=unit(traits.sociability??.5),quiet=unit(traits.quiet??.5);

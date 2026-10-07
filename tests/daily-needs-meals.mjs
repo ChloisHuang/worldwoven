@@ -22,16 +22,20 @@ function fixture(saved,{cash=0,needs=false}={}){let mounted=null;const sharedClo
  return {scene,p,npcs,reviews,ledger,sharedNeeds,tick,until,choose,mountPlayer(){mounted=items.find(i=>i.id==='china-tavern-dining-18.1-1');p.root.position.set(...mounted.anchor);return mounted;},get saved(){return stored;},reject(value){reject=value;},rejectWhen(fn){rejectWhen=fn;}};
 }
 // This boundary is the only meal relief source for enrolled people.
-const nourished=fixture(null,{cash:14,needs:true}),diningSeat=nourished.mountPlayer();
+const nourished=fixture(null,{cash:26,needs:true}),diningSeat=nourished.mountPlayer();
 const beforeFood=nourished.sharedNeeds.hunger('player');assert(nourished.scene.requestPlayerMeal(diningSeat));
 nourished.until(()=>nourished.scene.playerOrder()?.stage==='ready','meal with actual paid ticket reaches player');
 assert(nourished.sharedNeeds.hunger('player')>=beforeFood,'delivering the food does not eat it');assert(nourished.scene.eatPlayerMeal());nourished.tick(20);assert(nourished.scene.cancelPlayerMeal());nourished.tick(20);assert(nourished.sharedNeeds.hunger('player')>=beforeFood,'cancelled partial meal grants no relief');
-assert(!nourished.scene.state().mealReceipts?.some(r=>r.actorId==='player'));
+assert(!nourished.scene.state().mealReceipts?.some(r=>r.actorId==='player'));assert.equal(nourished.sharedNeeds.snapshot().people.player.foodLoad,0,'partial cancelled eating creates no intake');
 nourished.until(()=>!nourished.scene.playerOrder(),'cancelled bowl cleaned');assert(nourished.scene.requestPlayerMeal(diningSeat));
 nourished.until(()=>nourished.scene.playerOrder()?.stage==='ready','second paid ticket delivered');assert(nourished.scene.eatPlayerMeal());
 nourished.until(()=>nourished.scene.state().mealReceipts?.some(r=>r.actorId==='player'),'full physical eating stores one consumed receipt');
-assert(nourished.sharedNeeds.hunger('player')<.01);assert.equal(nourished.ledger.balances().copper.cash,2,'two supplied meals charge their real prices');
+assert(nourished.sharedNeeds.hunger('player')<.01);assert.equal(nourished.ledger.balances().copper.cash,14,'two supplied meals charge their real prices');assert.equal(nourished.sharedNeeds.read('player').excessFoodStrain,0,'one completed portion is not excess');
 const receiptAfter=nourished.scene.state().mealReceipts.find(r=>r.actorId==='player');assert.equal(nourished.sharedNeeds.mealReceipts([receiptAfter]),false);
+for(let repeat=0;repeat<2;repeat++){
+ nourished.until(()=>!nourished.scene.playerOrder(),'original finished bowl cleaned');assert(nourished.scene.requestPlayerMeal(diningSeat));nourished.until(()=>nourished.scene.playerOrder()?.stage==='ready','next paid portion delivered');const number=nourished.scene.playerOrder().number;assert(nourished.scene.eatPlayerMeal());nourished.until(()=>nourished.scene.state().mealReceipts.some(r=>r.actorId==='player'&&r.number===number),'same original portion fully consumed');
+}
+assert.equal(nourished.ledger.balances().copper.cash,2,'three completed meals and the cancelled supplied bowl retain four real charges');assert(nourished.sharedNeeds.read('player').excessFoodStrain>0,'only repeated completed portions create intake strain');
 nourished.until(()=>nourished.scene.state().visitors.every(v=>v.mode==='idle'),'both real guests finish dining and lodging');const serialFed=nourished.scene.state().serial;nourished.tick(600);assert.equal(nourished.scene.state().serial,serialFed,'fed guests do not loop free/needless repeat meals');
 assert(nourished.scene.state().mealReceipts.filter(r=>r.actorId!=='player').every(r=>r.paymentReceipt===r.orderId&&r.mealId===r.orderId+'-dish'));
 console.log('PASS one shared hunger source, actual paid/full eating, cancellation without relief, unique receipts and fed NPC idle guard');

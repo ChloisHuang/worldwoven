@@ -2,6 +2,10 @@
 export const RELATIONSHIP_STAGES = Object.freeze(['stranger', 'acquainted', 'familiar', 'trusted', 'affection']);
 const action = (id, label, stage, duration, fitKind, extra = {}) => Object.freeze({id, label, stage, duration, kind: `relationship-${id}`, fitKind, ...extra});
 export const RELATIONSHIP_INTERACTIONS = Object.freeze([
+  action('support-request', '询问是否愿意支持我的做法', 'familiar', 9, 'staff-work', {socialState: true}),
+  action('reconsider-support', '重新谈谈彼此的立场', 'acquainted', 8, 'staff-work', {socialState: true}),
+  action('trade-advice', '交流实际做事的经验', 'familiar', 10, 'staff-work', {socialState: true}),
+  action('health-concern', '谈谈最近身体的不适', 'acquainted', 7, 'staff-rest', {socialState: true}),
   action('gratitude', '认真道谢', 'acquainted', 6, 'staff-work'),
   action('respectful-disagreement', '说说不同看法', 'acquainted', 8, 'read'),
   action('shared-memory', '回忆上次相处', 'familiar', 8, 'read'),
@@ -34,6 +38,15 @@ export function relationshipInteractionEligible(id, context = {}) {
   // This only exposes the existing voluntary apology, never closeness or consent.
   const privacyApology=id==='apology'&&typeof context.faultEventId==='string'&&context.faultEventId.startsWith('bath:');
   if (!a || !privacyApology&&RELATIONSHIP_STAGES.indexOf(relationshipStage(context)) < RELATIONSHIP_STAGES.indexOf(a.stage)) return false;
+  if (a.socialState) {
+    if (id === 'health-concern') { if (!context.healthConcern) return false; }
+    else if (id === 'reconsider-support') { if (!evidenceId(context.supportEventId)) return false; }
+    else {
+      if (context.boundary || (context.trust || 0) < -.1 || (context.aversion || 0) > .25 || (context.knownReputation || 0) < .025 || (context.knownConduct || 0) < -.15) return false;
+      if (id === 'support-request' && ((context.relation || 0) < .12 || context.supportStance === 'support' || !context.knownEvidence)) return false;
+      if (id === 'trade-advice' && (!(context.practicalExperience > 0) || !(context.partnerExperience > 0))) return false;
+    }
+  }
   if (a.requiresFault && (!evidenceId(context.mismatchEventId || context.faultEventId) || context.repairedEventId === (context.mismatchEventId || context.faultEventId))) return false;
   if (id === 'apology' && context.acknowledgedEventId === (context.mismatchEventId || context.faultEventId)) return false;
   if (id === 'shared-memory' && !evidenceId(context.lastCompletedId)) return false;
@@ -47,6 +60,7 @@ export const relationshipInteractionOptions = context => RELATIONSHIP_INTERACTIO
 export function relationshipInteractionOutcome(id, context = {}) {
   if (!byId.has(id) || id === 'private-company' && context.explicitConsent !== true) return null;
   const changes = {
+    'support-request': [.01, .005, .01], 'reconsider-support': [0, 0, .005], 'trade-advice': [.025, .015, .02], 'health-concern': [.015, .005, .015],
     gratitude: [.035, .025, .02], 'respectful-disagreement': [.005, -.015, .025],
     'shared-memory': [.04, .025, .025], apology: [.025, .015, .045], argument: [-.025, -.035, -.015],
     confide: [.045, .03, .055], boundary: [0, 0, .02], 'express-interest': [.02, .01, .01],
@@ -63,6 +77,15 @@ export function relationshipInteractionOutcome(id, context = {}) {
     const inverse = relationshipInteractionOutcome(id, {...context, receptivity: context.selfReceptivity, selfReceptivity: undefined});
     result.inverseRelation = inverse.relation;
     result.inverseOpinion = inverse.opinion;
+  }
+  if (['support-request', 'reconsider-support'].includes(id) && context.supportRespondent !== false) {
+    // A willing conversation is not a promise of allegiance. Their own values,
+    // known conduct and present trust still decide the explicit response.
+    const willing = !context.boundary && (context.trust || 0) >= .1 && (context.relation || 0) >= .15 && (context.knownReputation || 0) >= .04 && (context.knownConduct || 0) >= 0 && receptivity >= .55;
+    result.supportStance = willing ? 'support' : 'withhold';
+    if (Number.isFinite(context.socialAt)) result.supportAt = context.socialAt;
+    result.supportEvidenceId = context.knownEvidenceId || null; result.supportFaultId = context.knownFaultId || null;
+    if (!willing) result.feeling = 'neutral';
   }
   if (id === 'boundary') result.boundary = true;
   if (id === 'express-interest') result[context.initiator === 'npc' ? 'interestReceived' : 'interestGiven'] = true;

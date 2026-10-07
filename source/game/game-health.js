@@ -7,6 +7,8 @@ const clamp=(n,fallback=0)=>Number.isFinite(n)?Math.max(0,Math.min(1,n)):fallbac
 const positive=(n,fallback=0)=>Number.isFinite(n)&&n>=0?n:fallback;
 const copy=value=>JSON.parse(JSON.stringify(value));
 const validId=value=>typeof value==='string'&&value.length>0&&value.length<=240&&!['__proto__','constructor','prototype'].includes(value);
+const validFoodCause=(value,id)=>value&&value.actorId===id&&validId(value.source)&&validId(value.id)&&validId(value.dishId)&&Number.isSafeInteger(value.number)&&value.number>0;
+const foodCause=value=>({source:value.source,id:value.id,number:value.number,actorId:value.actorId,dishId:value.dishId});
 const validInjury=event=>event&&validId(event.id)&&validId(event.actorId)&&validId(event.victimId)&&event.actorId!==event.victimId&&Number.isFinite(event.at)&&event.at>=0;
 function hash(text){let h=2166136261;for(const c of text){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0||1;}
 function threshold(c){let x=c.random;x^=x<<13;x^=x>>>17;x^=x<<5;c.random=x>>>0||1;return .35-Math.log(1-c.random/4294967296);}
@@ -15,6 +17,7 @@ export const GAME_HEALTH_CONDITIONS=Object.freeze({
  'ember-weariness':Object.freeze({name:'余烬倦怠（虚构）',infectious:false,incubation:0,ill:150,recovery:120,immunity:0,symptom:'脚步发沉，想歇一会儿'}),
  mistbell:Object.freeze({name:'雾铃困倦（虚构）',infectious:true,incubation:90,ill:240,recovery:180,immunity:900,symptom:'声音发闷，有些乏力'}),
  'hollow-grain':Object.freeze({name:'空谷乏意（虚构）',infectious:false,need:'foodStrain',incubation:0,ill:300,recovery:180,immunity:0,symptom:'空谷乏意：久饿后精神不济'}),
+ 'laden-grain':Object.freeze({name:'盈谷滞意（虚构）',infectious:false,need:'excessFoodStrain',incubation:0,ill:240,recovery:180,immunity:0,symptom:'盈谷滞意：近日进食过密，腹中发沉，想歇一会儿',recoverySymptom:'盈谷滞意在缓解，先慢些活动'}),
  'stillwater-ache':Object.freeze({name:'滞露不适（虚构）',infectious:false,need:'toiletStrain',incubation:0,ill:240,recovery:180,immunity:0,symptom:'滞露不适：如厕拖延后有些难受'}),
  'impact-bruise':Object.freeze({name:'短暂挫伤（虚构）',infectious:false,eventOnly:true,incubation:0,ill:90,recovery:90,immunity:0,symptom:'挫伤有些酸痛，想歇一会儿'})
 });
@@ -49,6 +52,7 @@ export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
      c.dose=0;c.immuneFor=0;c.remaining=c.stage==='well'?0:Math.min(c.remaining,definition[c.stage==='recovering'?'recovery':'ill']);
     }
    }
+   if(name==='laden-grain')c.cause=validFoodCause(previous?.cause,id)?foodCause(previous.cause):null;
    p.conditions[name]=c;
   }
   people.set(id,p);
@@ -95,8 +99,11 @@ export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
    const a=actors.get(id),speed=Math.max(.2,.35+.35*a.nutrition+.2*a.hygiene+.75*Number(a.resting)+.65*Number(p.supportRemaining>0)-.25*a.fatigue-.3*a.exertion);
    for(const [name,definition]of conditions){
     const c=p.conditions[name],infectious=definition.infectious;
-    result.push({c,definition,speed:c.stage==='incubating'?1:speed,
-     rate:(definition.eventOnly?0:infectious?exposure.get(id):definition.need?clamp(a.dailyNeeds?.[definition.need])*.016:(a.resting?0:Math.max(0,a.exertion-.55)*(.4+a.fatigue)*.012))*a.vulnerability,
+    // Repeated eating requires the shared ledger's original receipt evidence.
+    // Continued load slows this course; easing intake and actual rest support it.
+    const excess=name==='laden-grain',strain=clamp(a.dailyNeeds?.[definition.need]),cause=excess&&validFoodCause(a.dailyNeeds?.foodEvidence,id)?foodCause(a.dailyNeeds.foodEvidence):null;
+    result.push({c,definition,cause,speed:c.stage==='incubating'?1:speed*(excess?1-.55*strain:1),
+     rate:(definition.eventOnly?0:infectious?exposure.get(id):definition.need?strain*.016*(excess&&!cause?0:1):(a.resting?0:Math.max(0,a.exertion-.55)*(.4+a.fatigue)*.012))*a.vulnerability,
      decay:infectious?.002:definition.need?.003:.006+.02*Number(a.resting)+.003*a.nutrition+.001*a.hygiene});
    }
   }
@@ -108,8 +115,8 @@ export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
   const limit=rate/decay;
   return limit>c.threshold?-Math.log((limit-c.threshold)/(limit-c.dose))/decay:Infinity;
  }
- function transition(c,d){
-  if(c.stage==='well'){c.dose=0;c.stage=d.incubation?'incubating':'ill';c.remaining=d.incubation||d.ill;}
+ function transition(c,d,cause=null){
+  if(c.stage==='well'){if(d.need==='excessFoodStrain')c.cause=cause?foodCause(cause):c.cause;c.dose=0;c.stage=d.incubation?'incubating':'ill';c.remaining=d.incubation||d.ill;}
   else if(c.stage==='incubating'){c.stage='ill';c.remaining=d.ill;}
   else if(c.stage==='ill'){c.stage='recovering';c.remaining=d.recovery;}
   else{c.stage='well';c.remaining=0;c.dose=0;c.immuneFor=d.immunity;c.threshold=threshold(c);}
@@ -130,7 +137,7 @@ export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
      const {c,definition,speed}=row;
      if(c.stage!=='well')events.push({in:c.remaining/speed,finish:()=>transition(c,definition)});
      else if(c.immuneFor>0)events.push({in:c.immuneFor,finish:()=>{c.immuneFor=0;}});
-     else events.push({in:timeToOnset(row),finish:()=>transition(c,definition)});
+     else events.push({in:timeToOnset(row),finish:()=>transition(c,definition,row.cause)});
     }
     const step=Math.min(left,...events.map(e=>e.in));
     for(const {c,rate,decay,speed}of rows){
@@ -172,7 +179,7 @@ export function createGameHealth({worldSeed=1,actorIds=[],saved={}}={}){
    const p=people.get(id);if(!p)return null;
    const visible=conditions.filter(([name])=>['ill','recovering'].includes(p.conditions[name].stage));
    const ill=visible.some(([name])=>p.conditions[name].stage==='ill');
-   return {symptoms:visible.map(([name,d])=>p.conditions[name].stage==='ill'?d.symptom:'精神在恢复，还想慢些活动'),
+   return {symptoms:visible.map(([name,d])=>p.conditions[name].stage==='ill'?d.symptom:d.recoverySymptom||'精神在恢复，还想慢些活动'),
     restRecommended:visible.length>0,absenceRecommended:ill,
     careStatus:p.supportRemaining>0?'support-active':ill?'care-advised':'none'};
   },
