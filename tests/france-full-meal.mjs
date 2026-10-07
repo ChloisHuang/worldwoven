@@ -72,3 +72,13 @@ console.log('PASS France full meal: actual source, 4 France cash, no reservation
  assert(f.service.request('country-soup-bread'));f.until(s=>s.order?.stage==='ready');assert(f.service.drink());f.until(s=>!s.order);assert.equal(callbackCount,2);assert.equal(writerCalls,0);assert.equal(disk.franceTea.paidOrder,null);assert(disk.franceTea.mealClosed>0);assert.equal(Object.keys(disk.relationshipEvents.receipts).length,2);f.service.dispose({suspend:true});
  console.log('PASS main source→relationship nested save preserves just-committed France state without stale snapshot-writer reentry');
 }
+
+// Reading a local conversation menu must not expire the original paid meal.
+{
+ const {holdSocialActors,releaseSocialActors}=await import('../source/game/npc-social-ownership.js');
+ const a=account(),f=fixture({player:true,ledger:a.ledger});assert(f.service.request('country-soup-bread'));f.until(s=>s.order?.stage==='preparing'&&s.phase>.4);
+ const before=f.service.snapshot(),wallet=a.ledger.state();assert(holdSocialActors([P.cook],'france-paid-pause'));f.tick(2410);
+ const after=f.service.snapshot();assert.deepEqual(after.order,before.order);assert.equal(after.stageAge,before.stageAge,'local conversation time is not a blocked service route');assert.equal(after.phase,before.phase);assert.deepEqual(a.ledger.state(),wallet,'no timeout refund while paused');
+ releaseSocialActors('france-paid-pause');f.until(s=>s.order?.stage==='ready');assert(f.service.drink());f.until(s=>!s.order);assert.equal(f.service.state().mealReceipts.length,1);f.service.dispose();
+ console.log('PASS France paid meal survives long local conversation without timing out or refunding, then completes original meal once');
+}

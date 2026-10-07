@@ -15,7 +15,7 @@ function fixture({wallet,saved,saveWallet=()=>{},onRelationshipEvent=()=>false,s
  const furniture={items:PERFORMANCE_SEATS,facilities:createFacilityQueue(),canSit:nav=>{assert.equal(nav,navigation,'Mount retains the provided multi-floor navigation');return true;},standPoint:(nav,extra,seat)=>{assert.equal(nav,navigation,'Unmount retains the same multi-floor navigation');return new V(...seat.position);}};
  const service=createJapanPerformanceService({npcs,furniture,navigation,doors:{routeStep(path,p){while(path.length&&p.distanceToSquared(path[0])<.008)path.shift();return {waypoint:path[0]};}},planPath:(a,b)=>[new V(b.x,b.y,b.z)],moveActor:(a,x,z)=>{a.root.position.x+=x;a.root.position.z+=z;},poseContext:()=>({}),getPlayer:()=>player,getMounted:()=>mounted,copperLedger,saved,onRelationshipEvent,saveState:s=>{if(saveService(s)===false)return false;snapshot=s;}});
  let time=0;
- const step=(seconds=.1)=>{for(let i=0;i<Math.ceil(seconds/.1);i++){time+=.1;service.update(.1,time);}};
+ const step=(seconds=.1,context={})=>{for(let i=0;i<Math.ceil(seconds/.1);i++){time+=.1;service.update(.1,time,context);}};
  const until=(fn,max=500)=>{for(let i=0;i<max&&!fn();i++)step();assert(fn(),JSON.stringify(service.state()));};
  return {service,npcs,player,copperLedger,furniture,step,until,snapshot:()=>snapshot,sit(){mounted=PERFORMANCE_SEATS[0];player.root.position.set(...mounted.anchor);},stand(){mounted=null;service.leaveSeat(PERFORMANCE_SEATS[0].id);},request(activity='dance',drink=null,id='jp-salon-mai'){assert(service.request(id,activity,drink));until(()=>service.view().order?.status==='accepted'||!service.active());},confirm(){assert(service.confirm());},done(){service.dispose();furniture.facilities.dispose();}};
 }
@@ -94,3 +94,19 @@ console.log('PASS Japanese/copper quote freeze, v1 partial receipt migration, lo
  let saving=true;const events=[];const f=fixture({saveService:()=>saving,onRelationshipEvent:e=>{events.push(e);return {ok:true};}});saving=false;f.request('story');assert.equal(events.length,0,'Failed source save cannot publish social outcomes');saving=true;f.step(6);assert(events.some(e=>e.outcome==='refused'),'Pending boundary retries after source persistence recovers');f.done();
 }
 console.log('PASS Japan performance witnessed parties, neutral refusal, durable source/receiver retries and compaction');
+
+// R179: talking during paid work must preserve its timers and original hold.
+{
+ const {holdSocialActors,releaseSocialActors}=await import('../source/game/npc-social-ownership.js');
+ for(const id of ['jp-salon-mai','jp-performance-reception']){
+  const f=fixture();f.request('dance','tea');f.confirm();f.sit();f.until(()=>f.service.view().order?.status==='performing');f.step(.5);
+  const before=f.service.snapshot(),wallet=f.copperLedger.state(),actor=f.npcs.find(n=>n.station.id===id),position=actor.root.position.toArray(),route=actor.route;
+  assert(holdSocialActors([id],'paid-performance-pause'));f.step(130);
+  assert.deepEqual(f.service.view().order,before.order,'paid service stays on its original stage while a participant chats');
+  assert.equal(f.service.snapshot().phase,before.phase);assert.equal(f.service.snapshot().elapsed,before.elapsed);assert.equal(f.service.snapshot().drinkPhase,before.drinkPhase);
+  assert.deepEqual(f.copperLedger.state(),wallet,'pause creates no settlement/refund');assert.deepEqual(actor.root.position.toArray(),position);assert.equal(actor.route,route);
+  releaseSocialActors('paid-performance-pause');f.until(()=>!f.service.active());assert.equal(f.service.state().history.filter(e=>e.outcome==='act-completed').length,1);assert.equal(f.service.state().history.filter(e=>e.outcome==='drink-completed').length,1);f.done();
+ }
+ const f=fixture();f.request('tea');f.confirm();f.until(()=>!!f.npcs[1].serviceMount);assert(f.service.cancel());const actor=f.npcs[1],mount=actor.serviceMount,position=actor.root.position.toArray();f.step(.5,{conversationActorId:actor.station.id});assert.equal(actor.serviceMount,mount,'legacy player chat does not unseat a returning artist');assert.deepEqual(actor.root.position.toArray(),position);f.until(()=>!f.service.view().returning);f.done();
+ console.log('PASS Japan paid performance/serving pause keeps original order, route, timers, mount and money; resumes each part once');
+}

@@ -1,3 +1,4 @@
+import {setPlayerConversationHold} from '../source/game/npc-social-ownership.js';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {createNPCPersonalTrip} from '../source/game/npc-personal-trip.js';
@@ -15,4 +16,9 @@ test('no enrollment before wages, drains original job, paid lease only once, rea
 test('failed drain save is retried, restored interrupted toilet gives no completion, control loss cancels own lease',()=>{
  const f=fixture();f.set({income:true,fail:true});f.tick();assert.equal(f.api.state(),null);f.set({fail:false,drained:true});f.tick();assert.equal(f.api.state().phase,'meal');f.set({controlled:false});f.tick();assert.equal(f.api.state(),null);assert.equal(f.counts.refunds,1);assert.equal(f.counts.finished,0);
  const g=fixture({version:1,task:{actorId:'cn-cooking',phase:'toilet',meal:false,path:[],index:0}});g.tick();assert.equal(g.api.state().phase,'return');assert.equal(g.counts.finished,0);
+});
+
+test('nearby talk freezes existing personal lease even while admission says busy; death still releases it',()=>{
+ const f=fixture();f.set({income:true,drained:true});f.tick();const before=f.api.snapshot(),counts=f.counts;setPlayerConversationHold(f.n.station.id);f.set({controlled:false});try{f.tick(120);assert.deepEqual(f.api.snapshot(),before);assert.deepEqual(f.counts,counts);}finally{setPlayerConversationHold(null);}f.set({controlled:true});f.eat();f.tick();assert.notEqual(f.api.state().phase,before.task.phase);
+ const g=fixture();g.set({income:true,drained:true});g.tick();setPlayerConversationHold(g.n.station.id);g.n.alive=false;try{g.tick();assert.equal(g.api.state(),null);assert.equal(g.counts.refunds,1);}finally{setPlayerConversationHold(null);}
 });

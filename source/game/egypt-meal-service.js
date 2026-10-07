@@ -1,4 +1,4 @@
-import {isSociallyHeld} from './npc-social-ownership.js';
+import {isSociallyHeld,isPlayerConversationHeld} from './npc-social-ownership.js';
 import {createServiceRelationshipOutbox,serviceRelationshipEvent} from './service-relationship-outbox.js';
 import {followActorRoute,findActorStandPoint} from './actor-navigation.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
@@ -41,10 +41,10 @@ export function createEgyptMealService({npcs,lot,furniture,doors,navigation:scen
  next.relationshipEvents=relationshipOutbox.merge(next.relationshipEvents,events);next.revision=before.revision+1;state=next;try{const result=saveState(copy(next));if(result===false||result?.then){state=before;return false;}}catch{state=before;return false;}initialized=true;deliver();return true;}
  life=createLifeDecisions({worldSeed,actorIds:[P.cook,P.host,...(guest?[GUEST]:[])],saved:state.life||{},sharedNeeds,onChange:l=>commit(s=>{s.life=l;})});
  function stage(name,patch={}){if(!commit(s=>{Object.assign(s.order,{stage:name,...patch});s.phase=0;}))return false;record(name);return true;}
- function travel(n,p,dt){n.walking=false;if(n.serviceMount)return false;if(at(n,p)){n.route=[];routes.delete(n);return true;}if(paused(n))return false;const key=p.join(',');let route=routes.get(n);if(route?.key!==key){route={key,retry:0};routes.set(n,route);n.route=planPath(n.root.position,{x:p[0],y:p[1],z:p[2]},.25);}const result=followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,speedScale:.85,arrivalTolerance:.035});if(result.waiting)route.retry=0;else if(!result.waypoint){route.retry+=dt;if(route.retry>=5){routes.delete(n);n.route=[];}}return at(n,p);}
- function face(n,p){n.root.rotation.y=Math.atan2(p[0]-n.root.position.x,p[2]-n.root.position.z);}
+ function travel(n,p,dt){n.walking=false;if(paused(n)||n.serviceMount)return false;if(at(n,p)){n.route=[];routes.delete(n);return true;}const key=p.join(',');let route=routes.get(n);if(route?.key!==key){route={key,retry:0};routes.set(n,route);n.route=planPath(n.root.position,{x:p[0],y:p[1],z:p[2]},.25);}const result=followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,speedScale:.85,arrivalTolerance:.035});if(result.waiting)route.retry=0;else if(!result.waypoint){route.retry+=dt;if(route.retry>=5){routes.delete(n);n.route=[];}}return at(n,p);}
+ function face(n,p){if(paused(n))return;n.root.rotation.y=Math.atan2(p[0]-n.root.position.x,p[2]-n.root.position.z);}
  const safety=n=>[...(doors.cameraColliders||[]),...npcs.filter(a=>a!==n).map(a=>a.root.position),...(getPlayer()?[getPlayer().root.position]:[])].map(p=>p.minX===undefined?{minX:p.x-.25,maxX:p.x+.25,minZ:p.z-.25,maxZ:p.z+.25,minY:p.y,maxY:p.y+1.95}:p);
- function mountGuest(dt){if(guest.serviceMount)return true;if(!furniture.facilities.reserve(seat.id,GUEST)||!travel(guest,seat.position,dt)||!furniture.canSit(navigation,safety(guest),seat))return false;if(!furniture.facilities.occupy(seat.id,GUEST))return false;guest.root.position.set(...seat.anchor);guest.root.rotation.y=seat.yaw;guest.serviceMount=seat;return true;}
+ function mountGuest(dt){if(paused(guest))return false;if(guest.serviceMount)return true;if(!furniture.facilities.reserve(seat.id,GUEST)||!travel(guest,seat.position,dt)||!furniture.canSit(navigation,safety(guest),seat))return false;if(!furniture.facilities.occupy(seat.id,GUEST))return false;guest.root.position.set(...seat.anchor);guest.root.rotation.y=seat.yaw;guest.serviceMount=seat;return true;}
  // The person leaves independently of the order-owned dirty tray. Capture the
  // legal stand and departure phase together; a failed write restores the seat.
  function unmountGuest(){
@@ -107,7 +107,7 @@ export function createEgyptMealService({npcs,lot,furniture,doors,navigation:scen
   workLabel:()=>step?.action||(state.duty?.status==='paused'?'厨房已暂停 · 赫特代管，请当面接回':state.duty?.status==='draining'?'等赫特做好原餐并当面交班':`原厨房候单 · 游戏开局居民供膳余${state.supply.remaining}/24份`),
   playerPose:()=>step?{action:step.pose,workTarget:step.target.slice(),station:{workTarget:step.target.slice()},...(step.pose==='herb-mix'?{archery:{hands:[[-.14,1.22,.40],[.12,1.24,.40]]}}:{})}:null,
  };
- function updateDuty(dt){if(state.duty?.status==='active'&&(!inWorkplace()||getMounted())){if(commit(s=>{s.duty.status='paused';const o=s.order;if(o?.workReceiptId===s.duty.receiptId&&!o.finished&&!o.workAbandoned){s.workReceipts.push(review(o,false));o.workAbandoned=true;}}))step=null;}
+ function updateDuty(dt){if(paused(cook))return;if(state.duty?.status==='active'&&(!inWorkplace()||getMounted())){if(commit(s=>{s.duty.status='paused';const o=s.order;if(o?.workReceiptId===s.duty.receiptId&&!o.finished&&!o.workAbandoned){s.workReceipts.push(review(o,false));o.workAbandoned=true;}}))step=null;}
   if(state.duty?.status==='draining'&&inWorkplace()&&!getMounted()&&recall(dt)&&!npcBusy())commit(s=>{s.duty.status='active';});
   if(meeting)recall(dt);if(!step)return;const w=step;if(!dutyActive(w.receiptId)||state.order?.id!==w.orderId||state.order.stage!==w.stage||!at(getPlayer(),w.position,.24)||getMounted()){step=null;return;}if(getPlayer().walking)return;face(getPlayer(),w.target);w.elapsed+=Math.min(.1,Math.max(0,dt));if(w.elapsed<w.duration)return;
   const ok=w.stage==='preparing'?prepare(w.next,w.receiptId):stage(w.next,w.stage==='plating'?{mealId:state.order.id+'-dish'}:w.stage==='dispatch'?{dispatchedAt:state.time}:{});if(ok){record('player-'+w.stage);step=null;}
@@ -140,6 +140,7 @@ export function createEgyptMealService({npcs,lot,furniture,doors,navigation:scen
   playerPose:()=>tableStep||tableHeld()?{action:tableStep?.pose||null,handoff:tableHeld()||['collecting','carrying','clearing'].includes(tableStep?.stage),workTarget:tableStep?.target?.slice(),station:tableStep?{workTarget:tableStep.target.slice()}:null,archery:tableHeld()?{hands:[[-.16,1.08,.43],[.16,1.08,.43]]}:null}:null,
  };
  function updateTableDuty(dt){
+  if(paused(host)||state.order&&paused(cook))return;
   if(state.tableDuty?.status==='active'&&(!tableLocal()||getMounted())){if(commit(s=>{s.tableDuty.status='paused';if(!tableHeld())abandonTable(s,s.tableDuty.receiptId);}))tableStep=null;}
   if(state.tableDuty?.status==='draining'&&tableLocal()&&!getMounted()&&recallHost(dt)&&!hostBusy())commit(s=>{s.tableDuty.status='active';});
   if(tableMeeting)recallHost(dt);if(!tableStep)return;const w=tableStep,o=state.order;
@@ -156,9 +157,9 @@ export function createEgyptMealService({npcs,lot,furniture,doors,navigation:scen
   for(const[n,done,kind,label]of sources)if(n&&done&&!life.recordExperience(n.station.id,{id:o.id+':'+n.station.id,kind,label,completed:true}).ok)return false;
   return true;
  }
- const paused=n=>isSociallyHeld(n.station.id,conversation)||playerSocial===n.station.id||stationBusy===n.station.id;
+ const paused=n=>!!n&&(isSociallyHeld(n.station?.id,conversation)||playerSocial===n.station?.id||stationBusy===n.station?.id);
  const urgent=n=>{const need=sharedNeeds?.status(n.station.id);return need?.seekMeal||need?.seekToilet||life.fatigued(n.station.id);};
- const socialAvailable=n=>!!n&&(!state.order||n===guest&&guestReturned())&&(n!==guest||!guestAway())&&!meeting&&!tableMeeting&&!step&&!tableStep&&!['draining'].includes(state.duty?.status)&&!['draining'].includes(state.tableDuty?.status)&&!paused(n)&&!n.serviceMount&&!urgent(n);
+ const socialAvailable=(n,{ignorePlayerConversation=false}={})=>{const held=ignorePlayerConversation&&isPlayerConversationHeld(n?.station.id);return !!n&&(!state.order||n===guest&&guestReturned())&&(n!==guest||!guestAway())&&!meeting&&!tableMeeting&&!step&&!tableStep&&!['draining'].includes(state.duty?.status)&&!['draining'].includes(state.tableDuty?.status)&&!isSociallyHeld(n.station.id,held?null:conversation)&&stationBusy!==n.station.id&&(held||playerSocial!==n.station.id)&&!n.serviceMount&&!urgent(n);};
  const clear=n=>{n.route=[];routes.delete(n);};
  function makeTalks(){return createWorkplaceConversations({places:EGYPT_TALK_PLACES,placePrefix:'egypt-meal-talk-',labels:{invited:'相约去餐厅外小廊说几句 · 来单先忙',appreciated:'聊起陶锅蔬食与忙完一餐 · 彼此谈得投缘',mismatched:'对用餐与歇息各有想法 · 保留自己的习惯',neutral:'听听对方备餐、送盘与用餐的日常'},actors:[cook,host,...(guest?[guest]:[])],brain:life,claims:furniture.facilities,available:socialAvailable,
   canReach:(n,p)=>at(n,p)||planPath(n.root.position,{x:p[0],y:p[1],z:p[2]},.25).length>0,travel,clear,save:()=>commit(()=>{}),beginInteraction,onInteraction,note:record,
@@ -192,7 +193,8 @@ export function createEgyptMealService({npcs,lot,furniture,doors,navigation:scen
  function update(dt,t,{conversationActorId=null,playerSocialActorId=null,performing=null}={}){if(disposed||lastError)return;if(!initialized&&!commit(()=>{}))return;state.time+=Math.max(0,dt);conversation=conversationActorId;playerSocial=playerSocialActorId;stationBusy=performing;for(const n of[cook,host,...(guest?[guest]:[])])n.walking=false;life.tick(dt);reconcile();updateDuty(dt);updateTableDuty(dt);if(state.pendingTalk){const p=state.pendingTalk,n=[cook,host,guest].find(n=>n?.station.id===p.actorId);if(n&&talks.owns(n))state.pendingTalk=null;else if(n)beginTalk(n,p.choice);else state.pendingTalk=null;}residentChoice(dt);talks.update(dt);let o=state.order,actionCook=null,actionHost=null,targetCook=null,carry=false;
   if(resident(o)&&!o.cancelled&&!o.finished&&o.stage!=='seating'&&!furniture.facilities.reservation(seat.id,GUEST)){commit(s=>cancelResidentState(s));o=state.order;}
   if(o&&!resident(o)&&['requested','accepted','ticket','preparing','heating','plating','collecting','pickup','carrying','serving','ready','eating'].includes(o.stage)&&!o.cancelled&&!seated()){cancel();o=state.order;}
-  if(o){const elapsed=duration=>{state.phase+=Math.max(0,dt);return state.phase>=duration;};switch(o.stage){
+  const orderPaused=!!o&&(!playerCooking()&&paused(cook)||!playerServing()&&paused(host)||resident(o)&&paused(guest));
+  if(o&&!orderPaused){const elapsed=duration=>{state.phase+=Math.max(0,dt);return state.phase>=duration;};switch(o.stage){
    case 'seating':if(resident(o)){if(mountGuest(dt))stage('requested');}else if(seated())stage('requested');else if(getPendingSeat()!==seat.id&&!initializing)cancel();break;
    case 'requested':if(playerServing())break;if(travel(host,P.serve,dt)){face(host,seat.anchor);stage('accepted');}break;
    case 'accepted':if(playerServing())break;if(elapsed(1.5))stage('ticket',{npcHeard:true});break;
@@ -213,7 +215,8 @@ export function createEgyptMealService({npcs,lot,furniture,doors,navigation:scen
    case 'returning':if(playerServing())break;carry=true;if(travel(host,P.pass,dt)){face(host,P.passTop);stage('washing',{holder:'kitchen'});}break;
    case 'washing':if(playerServing())break;if(!travel(host,P.pass,dt))break;actionHost='tidy';if(elapsed(4)){if(stage('leaving',{npcCleaned:true})&&!resident(o))finish();}break;
    case 'leaving':finish();break;
-  }}else{if(!talks.owns(cook)&&!meeting&&state.duty?.status!=='active')travel(cook,P.prep,dt);if(!talks.owns(host)&&!tableMeeting&&state.tableDuty?.status!=='active')travel(host,P.hostHome,dt);if(guest&&!guestAway()&&!talks.owns(guest))travel(guest,guest.station.npcPosition||guest.home.toArray(),dt);}
+  }}else if(!o){if(!talks.owns(cook)&&!meeting&&state.duty?.status!=='active')travel(cook,P.prep,dt);if(!talks.owns(host)&&!tableMeeting&&state.tableDuty?.status!=='active')travel(host,P.hostHome,dt);if(guest&&!guestAway()&&!talks.owns(guest))travel(guest,guest.station.npcPosition||guest.home.toArray(),dt);}
+  if(orderPaused)carry=o.holder==='host'||['pickup','serving','lifting'].includes(o.stage);
   returnGuest(dt);
   if(!actionCook)actionCook=staffLeisure(cook,dt);if(!actionHost)actionHost=staffLeisure(host,dt);
   for(const n of[cook,host,...(guest?[guest]:[])]){const target=talks.face(n);if(target)face(n,target);}

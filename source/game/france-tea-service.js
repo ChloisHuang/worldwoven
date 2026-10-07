@@ -1,4 +1,4 @@
-import {isSociallyHeld} from './npc-social-ownership.js';
+import {isSociallyHeld,isPlayerConversationHeld} from './npc-social-ownership.js';
 import {createServiceRelationshipOutbox,serviceRelationshipEvent} from './service-relationship-outbox.js';
 import {followActorRoute,findActorStandPoint} from './actor-navigation.js';
 import {createLifeDecisions} from './npc-life-decisions.js';
@@ -58,14 +58,14 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
  const busy=n=>isSociallyHeld(n.station.id,conversation)||stationBusy===n.station.id;
  function enter(stage){if(fullMeal(order))order.revision=(order.revision||0)+1;order.stage=stage;phase=0;stageAge=0;record(stage);if(fullMeal(order))persist();}
  function travel(n,to,dt){
-  n.walking=false;if(near(n,to)){n.route=[];routes.delete(n);return true;}if(busy(n)||n.serviceMount)return false;
+  n.walking=false;if(busy(n)||n.serviceMount)return false;if(near(n,to)){n.route=[];routes.delete(n);return true;}
   const key=to.join(',');let s=routes.get(n);if(!s||s.key!==key){s={key,stalled:0};routes.set(n,s);n.route=planPath(n.root.position,{x:to[0],y:to[1],z:to[2]},.25);}
   const step=followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,speedScale:.8,arrivalTolerance:.045});if(step.waiting){s.stalled=0;return false;}
   const p=step.waypoint;if(!p){s.stalled+=dt;if(s.stalled>2){routes.delete(n);n.route=[];}return false;}
   s.stalled=n.walking?0:s.stalled+dt;if(s.stalled>2){routes.delete(n);n.route=[];}return near(n,to);
  }
  const urgent=n=>{const need=sharedNeeds?.status(n.station.id);return need?.seekMeal||need?.seekToilet||life.fatigued(n.station.id);};
- const socialAvailable=n=>!!n&&!order&&!intent&&!Object.values(meeting).some(Boolean)&&!busy(n)&&playerSocial!==n.station.id&&!n.serviceMount&&!urgent(n);
+ const socialAvailable=(n,{ignorePlayerConversation=false}={})=>{const held=ignorePlayerConversation&&isPlayerConversationHeld(n?.station.id);return !!n&&!order&&!intent&&!Object.values(meeting).some(Boolean)&&!isSociallyHeld(n.station.id,held?null:conversation)&&stationBusy!==n.station.id&&(held||playerSocial!==n.station.id)&&!n.serviceMount&&!urgent(n);};
  const talks=createFranceTeaConversations({actors,brain:life,claims:furniture.facilities,available:socialAvailable,
   canReach:(n,p)=>near(n,p)||planPath(n.root.position,{x:p[0],y:p[1],z:p[2]},.25).length>0,travel,
   clear:n=>{n.route=[];routes.delete(n);},save:()=>persist(),beginInteraction,onInteraction,note:record,
@@ -253,6 +253,7 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
  const orderLabel=()=>fullMeal(order)?(MEAL_LABEL[order?.stage]||LABEL[order?.stage]):playerPreparing()?({preparing:'玩家按原单分切蛋糕',brewing:'玩家为原单备热茶'}[order?.stage]||LABEL[order?.stage]):LABEL[order?.stage];
  function cupPose(n,t){const c=n.poseContext||{},sip=Math.pow((Math.sin(t*1.4)+1)*.5,2);c.seatHeight=(seat.seatY-n.root.position.y-(c.visualFloorOffset||0));c.handoff=true;c.seatedMeal=false;c.heldProp=null;c.archery={hands:fullMeal(order)?[[-.18,c.seatHeight+.20,.30],[.11-sip*.04,c.seatHeight+.24+sip*.34,.36-sip*.24]]:[[-.18,c.seatHeight+.15,.25],[.13-sip*.055,c.seatHeight+.30+sip*.28,.37-sip*.23]]};return c;}
  function pose(n,t,action,target,carry=false){
+  if(isSociallyHeld(n.station.id,conversation)){action=null;target=null;}
   if(!n.serviceMount)n.root.position.y=visualSupportHeight(lot,n.root.position.x,n.root.position.z,0,false)??n.root.position.y;
   let c=poseContext(n,null);c.handoff=carry;c.heldProp=null;c.seatedMeal=false;c.archery=carry?{hands:[[-.19,1.12,.43],[.19,1.12,.43]]}:null;c.seatHeight=undefined;
   if(n.serviceMount){action='chair-sit';c.seatHeight=seat.seatY-n.root.position.y-(c.visualFloorOffset||0);if(['drinking','lowering'].includes(order?.stage))c=cupPose(n,t);}
@@ -303,9 +304,11 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
    }else{
     if(fullMeal(order)&&order.cancelled&&!order.trayId)finish();
     if(!order){renderProps();return;}
-    if(fullMeal(order)){stageAge+=dt;if(!order.cancelled&&!['ready','drinking','lowering','clearing','lifting','returning','washing'].includes(order.stage)&&stageAge>180)cancel('供餐通道长时间未能到达');else if(order.cancelled&&stageAge>180)finish();}
+    const orderPaused=(!playerServing()&&busy(host))||(!playerPreparing()&&busy(cook))||busy(guest)&&order.customer==='guest';
+    if(fullMeal(order)&&!orderPaused){stageAge+=dt;if(!order.cancelled&&!['ready','drinking','lowering','clearing','lifting','returning','washing'].includes(order.stage)&&stageAge>180)cancel('供餐通道长时间未能到达');else if(order.cancelled&&stageAge>180)finish();}
     if(!order){renderProps();return;}
     const o=order,paused=(!playerServing()&&busy(host))||(!playerPreparing()&&busy(cook))||busy(guest)&&o.customer==='guest';
+    if(!paused){
     if(o.stage==='seating'){if(mountGuest(dt))enter('requested');}
     else if(o.stage==='requested'){if(playerServing()){if(seatedCustomer()&&!paused)playerWork(dt,()=>enter('ticket'));}else if(travel(host,P.serve,dt)&&seatedCustomer()&&!paused)enter('accepted');}
     else if(o.stage==='accepted'){ht=seat.anchor;if(!paused)tick(dt,1.2,()=>enter('ticket'));}
@@ -327,6 +330,7 @@ export function createFranceTeaService({npcs,lot,furniture,doors,planPath,moveAc
     else if(o.stage==='recover-host'){const r=o.recovery;ht=r.trayPosition;if(travel(host,r.position,dt)&&!paused){carry=true;tick(dt,1.2,()=>{o.holder='host';const next=r.next;delete o.recovery;enter(next);});}}
     else if(o.stage==='washing'){ha='tidy';ht=P.prepTop;if(!paused)tick(dt,2.5,()=>{if(!completePreparation())return;o.npcCleaned=true;record('cups-cleaned');if(o.customer==='guest')enter('leaving');else finish();});}
     else if(o.stage==='leaving'){if(unmountGuest()&&travel(guest,P.guestHome,dt))finish();}
+    }else carry=o.holder==='host'||['pickup','serving','lifting','recalling'].includes(o.stage);
    }
    const cookLeisure=updateLeisure('cook',dt,hour),hostLeisure=updateLeisure('host',dt,hour);
    if(released('cook')){ca=cookLeisure?.action||null;ct=cookLeisure?.target||null;}

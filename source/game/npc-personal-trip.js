@@ -1,3 +1,4 @@
+import {isPlayerConversationHeld} from './npc-social-ownership.js';
 const copy=structuredClone,reverse=path=>path.slice().reverse().map(p=>p.slice());
 const phases=new Set(['draining','go-meal','meal','go-toilet','toilet','return']);
 const valid=t=>!t||typeof t.actorId==='string'&&phases.has(t.phase)&&typeof t.meal==='boolean'&&Array.isArray(t.path)&&t.path.every(p=>Array.isArray(p)&&p.length===3&&p.every(Number.isFinite))&&Number.isSafeInteger(t.index)&&t.index>=0&&t.index<=t.path.length;
@@ -16,13 +17,17 @@ export function createNPCPersonalTrip({saved,getCandidates,getActor,canDepart,ca
   label:()=>!task?null:task.phase==='draining'?'忙完原单后歇班':task.phase==='go-meal'?'去云来楼自费吃饭':task.phase==='meal'?'用本人餐款吃饭':['go-toilet','toilet'].includes(task.phase)?'前往公共净室':'日常事务结束 · 返回',
   update(dt,t){if(disposed)return;time+=Math.max(0,dt);
    if(!task&&time>=next){next=time+1;for(const n of getCandidates()){
-    const id=n.station.id;if(n.alive===false||!canStart(n))continue;
+    const id=n.station.id;if(n.alive===false||isPlayerConversationHeld(id)||!canStart(n))continue;
     // No physiological clock is started for an unfunded, not-yet-working person.
     if(!sharedNeeds.has(id)&&economy.hasIncome(id))sharedNeeds.register(id);
     const need=sharedNeeds.status(id),a=economy.account(id),meal=!!need?.seekMeal&&(a?.cash||0)+(a?.bank||0)>=6;
     if((meal||need?.seekToilet)&&getTavern()?.publicToiletRoute()?.length&&getToilet()?.publicIntent()&&write({actorId:id,phase:'draining',meal,path:[],index:0}))break;
    }}
-   if(!task)return;const n=actor();if(!n||n.alive===false||!canControl(n)){cancelUnavailable();return;}
+   if(!task)return;const n=actor();if(!n||n.alive===false){cancelUnavailable();return;}
+   // A temporary nearby talk is not a lost job/person binding. Keep the
+   // exact prepaid meal, cubicle, route and return phase until it ends.
+   if(isPlayerConversationHeld(task.actorId)){n.walking=false;return;}
+   if(!canControl(n)){cancelUnavailable();return;}
    const tavern=getTavern(),facility=getToilet(),lease=tavern?.guestMeal(task.actorId);
    if(lease&&task.phase!=='meal'&&!enter('meal'))return;
    if(task.phase==='draining'){if(!canDepart(n))return;if(task.meal)enter('go-meal',getExitRoute(n));else enter('go-toilet',[...getExitRoute(n),...tavern.publicToiletRoute(),facility.publicIntent().position]);}

@@ -13,7 +13,7 @@ function fixture({player=false,blockedSeat=false,doorWaiting=false,saved={},save
  const furniture={items:[seat],facilities:createFacilityQueue(),canSit:()=>!seatBlocked,standPoint:()=>seatBlocked?null:new T.Vector3(...seat.position),releaseActor(id){this.facilities.releaseActor(id);}};
  const lot={group,colliders:[],walkableSurfaces:[],bounds:{minX:-35,maxX:35,minZ:-35,maxZ:35}},doors={cameraColliders:[],routeStep(route,p){if(wait)return {waiting:true};while(route[0]&&Math.hypot(route[0].x-p.x,route[0].z-p.z)<.05)route.shift();return {waypoint:route[0]};}};
  const service=createEgyptMealService({npcs,lot,furniture,doors,planPath:(a,b)=>[new T.Vector3(b.x,b.y,b.z)],moveActor:(n,dx,dz)=>{n.root.position.x+=dx;n.root.position.z+=dz;},poseContext:n=>n.poseContext??={},getPlayer:()=>person,getMounted:()=>mounted,onSeat:item=>{mounted=item;person.root.position.set(...item.anchor);},worldSeed:1,saved,saveState,onMealReceipts,onRelationshipEvent,copperLedger:ledger});
- const tick=(count=1)=>{for(let i=0;i<count;i++){clock+=.1;service.update(.1,clock);}};
+ const tick=(count=1,context={})=>{for(let i=0;i<count;i++){clock+=.1;service.update(.1,clock,context);}};
  const until=(predicate,limit=5000)=>{for(let i=0;i<limit&&!predicate(service.state());i++)tick();assert(predicate(service.state()),'Did not reach expected state: '+JSON.stringify(service.state().order));};
  return {service,npcs,person,seat,tick,until,furniture,setDoor:v=>wait=v,setSeat:v=>seatBlocked=v,leave(){mounted=null;person.root.position.set(15,0,15);service.leaveSeat(seat.id);}};
 }
@@ -66,8 +66,8 @@ for(const boundary of ['reserve','settle','refund']){
 console.log('PASS interrupted reserve/settle/refund reconcile original ledger once; wrong denomination/amount/unsettled supply cannot feed');
 {
  const {createNpcSocial}=await import('../source/game/npc-social.js'),a=account(),f=fixture({player:true,ledger:a.ledger});const host=f.npcs[1];host.root.position.copy(f.person.root.position);host.root.position.x+=.8;const social=createNpcSocial({actors:()=>f.npcs,player:()=>f.person,status:n=>f.service.socialStatus(n)});
- assert.equal(f.service.socialStatus(host).busy,false);assert(social.canPause(host));assert(f.service.request());assert.equal(f.service.socialStatus(host).busy,true);assert.equal(f.service.socialStatus(host).attention,false);assert.equal(social.canPause(host),false);assert.equal(social.reserveMeeting(host,{owner:'test'}),false);assert.equal(social.begin(host).paused,false);assert.equal(social.conversationActorId(),null);assert.match(social.state().reply,/等忙完/);f.service.cancel();host.walking=true;assert.equal(f.service.socialStatus(host).busy,false);assert.equal(social.canPause(host),true);social.dispose();f.service.dispose();
- console.log('PASS original Egypt staff use shared busy/attention/job contract: duty cannot pause, ordinary idle walking can pause, short greeting does not capture the order');
+ assert.equal(f.service.socialStatus(host).busy,false);assert(social.canPause(host));assert(f.service.request());assert.equal(f.service.socialStatus(host).busy,true);assert.equal(f.service.socialStatus(host).attention,false);assert.equal(social.canPause(host),false);assert.equal(social.reserveMeeting(host,{owner:'test'}),false);assert.equal(social.begin(host).paused,true);assert.equal(social.conversationActorId(),P.host);const before=f.service.snapshot();f.tick(30,{conversationActorId:social.conversationActorId()});assert.deepEqual(f.service.state().order,before.order);assert.equal(f.service.state().phase,before.phase);social.end();f.service.cancel();host.walking=true;assert.equal(f.service.socialStatus(host).busy,false);assert.equal(social.canPause(host),true);social.dispose();f.service.dispose();
+ console.log('PASS Egypt duty keeps autonomous invitation/departure restrictions while explicit local chat pauses the original order');
 }
 
 {
@@ -77,4 +77,18 @@ console.log('PASS interrupted reserve/settle/refund reconcile original ledger on
  assert.equal(attempts.length,2);const event=attempts.find(e=>e.source==='egypt-meal');assert.deepEqual(attempts.find(e=>e.source==='egypt-kitchen').participants,[P.cook,P.host]);assert.equal(event.actorId,P.host);assert.deepEqual(event.participants,[P.host,'player']);assert.equal(event.outcome,'completed');assert(durable.relationshipEvents.some(e=>e.id===event.id));
  f.service.dispose({suspend:true});accept=true;const g=fixture({player:true,ledger:a.ledger,saved:durable,onRelationshipEvent:e=>{assert(durable.relationshipEvents.some(row=>row.id===e.id));attempts.push(e);return {ok:true};}});g.tick(100);assert.equal(attempts.length,4,'failed relationship write replays once with stable source ID');g.service.dispose({suspend:true});
  console.log('PASS Egypt relationship boundary: actual host and diner, durable pending event, failed callback reload replay and acknowledgement');
+}
+
+// R179: a stationary worker previously kept producing and handing over in chat.
+{
+ const {holdSocialActors,releaseSocialActors}=await import('../source/game/npc-social-ownership.js');
+ for(const [stage,id]of [['accepted',P.host],['heating',P.cook],['pickup',P.host],['carrying',P.host],['serving',P.host],['washing',P.host]]){
+  const a=account(),f=fixture({player:true,ledger:a.ledger});assert(f.service.request());f.until(s=>s.order?.stage===(stage==='washing'?'ready':stage));if(stage==='washing'){assert(f.service.eat());f.until(s=>s.order?.stage==='washing');}
+  const before=f.service.snapshot(),wallet=a.ledger.state(),actor=f.npcs.find(n=>n.station.id===id),position=actor.root.position.toArray(),route=actor.route;
+  assert(holdSocialActors([id],'egypt-work-pause'));f.tick(160);
+  const after=f.service.snapshot();assert.deepEqual(after.order,before.order,stage);assert.equal(after.phase,before.phase,stage);assert.deepEqual(actor.root.position.toArray(),position,stage);assert.equal(actor.route,route,stage);assert.deepEqual(a.ledger.state(),wallet,stage);assert.deepEqual(after.workReceipts,before.workReceipts,stage);assert.deepEqual(after.tableReceipts,before.tableReceipts,stage);
+  releaseSocialActors('egypt-work-pause');if(stage!=='washing'){f.until(s=>s.order?.stage==='ready');assert(f.service.eat());}f.until(s=>!s.order);assert.equal(f.service.state().mealReceipts.length,1);f.service.dispose();
+ }
+ const a=account(),f=fixture({player:true,ledger:a.ledger});assert(f.service.request());f.until(s=>s.order?.stage==='heating'&&s.phase>.3);const phase=f.service.state().phase;f.tick(80,{conversationActorId:P.cook});assert.equal(f.service.state().phase,phase);f.until(s=>s.order?.stage==='plating');f.service.dispose();
+ console.log('PASS Egypt working chat freezes hearing, cooking, original tray pickup/delivery/cleanup and receipts; legacy player chat resumes same progress');
 }

@@ -1,3 +1,4 @@
+import {isPlayerConversationHeld} from './npc-social-ownership.js';
 import {CHINA_CLINIC as C} from './china-clinic.js';
 import {TAVERN_DISHES} from './china-tavern-kitchen.js';
 const copy=structuredClone,reverse=path=>path.slice().reverse().map(p=>p.slice());
@@ -30,13 +31,14 @@ export function createClinicNeeds({getHolder,getActor,canDepart,sharedNeeds,econ
    if(enableEnrollment&&time>=nextEnrollment){nextEnrollment=time+1;for(const role of roles){const r=getHolder(role),n=r?.status==='npc'&&r.available&&r.alive&&getActor(r.holderId),p=role==='physician'?C.points.doctor:C.points.assistant;if(n&&n.alive!==false&&Math.hypot(n.root.position.x-p[0],n.root.position.z-p[2])<.35&&Math.abs(n.root.position.y-p[1])<.3&&!sharedNeeds?.has(r.holderId))sharedNeeds?.register(r.holderId);}}
 
    if(!task&&time>=nextDecision){nextDecision=time+1;
-    for(const role of roles){const r=getHolder(role),n=r?.status==='npc'&&r.available&&r.alive&&getActor(r.holderId);if(!n||n.alive===false)continue;const need=sharedNeeds?.status(r.holderId),account=economy?.account(r.holderId),meal=!!need?.seekMeal&&(account?.cash||0)+(account?.bank||0)>=TAVERN_DISHES[0].price;
+    for(const role of roles){const r=getHolder(role),n=r?.status==='npc'&&r.available&&r.alive&&getActor(r.holderId);if(!n||n.alive===false||isPlayerConversationHeld(n.station.id))continue;const need=sharedNeeds?.status(r.holderId),account=economy?.account(r.holderId),meal=!!need?.seekMeal&&(account?.cash||0)+(account?.bank||0)>=TAVERN_DISHES[0].price;
      if(!meal&&!need?.seekToilet){if(need?.seekMeal)lastReason='本人餐钱不足，先继续可行日常';continue;}
      if(!getTavern()?.publicToiletRoute?.()?.length||!getToilet()?.publicIntent())continue;
      if(write({actorId:r.holderId,role,holderRevision:r.revision,phase:'draining',meal,path:[],index:0}))break;
     }
    }
    if(!task)return;const n=actor();if(!n||n.alive===false){cleanupUnavailable();return;}
+   if(isPlayerConversationHeld(task.actorId)){n.walking=false;return;}
    const tavern=getTavern(),facility=getToilet(),lease=tavern?.clinicMeal(task.actorId);
    if(lease&&task.phase!=='meal'){if(!enter('meal'))return;}
    if(task.phase==='draining'){

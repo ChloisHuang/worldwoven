@@ -59,7 +59,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
  }
  function travel(n,to,dt){
   if(!n||n.alive===false||!npcs.includes(n)||needsLife?.away(n.station.id)&&!drivingPersonalNeed)return false;
-  n.walking=false;if(near(n,to)){n.route=[];return true;}if(isSociallyHeld(n.station.id,playerState.conversationActorId))return false;
+  n.walking=false;if(isSociallyHeld(n.station.id,playerState.conversationActorId))return false;if(near(n,to)){n.route=[];return true;}
   let s=travelState.get(n);if(!s||s.key!==to.join(',')){s={key:to.join(','),retryAt:0,reported:false};travelState.set(n,s);n.route=[];}
   if(!n.route.length&&time>=s.retryAt){s.retryAt=time+2;n.route=planPath(n.root.position,point(to),.25);if(!n.route.length&&!s.reported){failures.push({actor:n.station.id,stage:order?.stage||'return',to:to.slice(),position:n.root.position.toArray()});s.reported=true;}}
   followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:player?.root.position,speedScale:.75,arrivalTolerance:.035});return near(n,to);
@@ -74,8 +74,8 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
   if(action==='tidy'&&n.root.userData.tools?.cloth)n.root.userData.tools.cloth.visible=false;
  }
  const safety=n=>npcs.filter(other=>other!==n).map(other=>{const p=other.root.position;return {minX:p.x-.25,maxX:p.x+.25,minZ:p.z-.25,maxZ:p.z+.25,minY:p.y,maxY:p.y+1.95};}).concat(player?[{minX:player.root.position.x-.34,maxX:player.root.position.x+.34,minZ:player.root.position.z-.34,maxZ:player.root.position.z+.34,minY:player.root.position.y,maxY:player.root.position.y+1.95}]:[]);
- function unmount(n){if(!n?.serviceMount)return true;const landing=findActorStandPoint(n,n.serviceMount,({ignoreDynamicBodies})=>furniture?.standPoint(navigation,[...(doors?.cameraColliders||[]),...(ignoreDynamicBodies?[]:safety(n))],n.serviceMount,n.collisionRadius??.25));if(!landing)return false;n.root.position.copy(landing);n.serviceMount=null;furniture.releaseActor(n.station.id);travelState.delete(n);n.route=[];return true;}
- function mountPatient(dt){const n=patient(),seat=furniture?.items.find(s=>s.id===C.seatId);if(!n||!seat||getMounted()?.id===C.seatId)return false;
+ function unmount(n){if(isSociallyHeld(n?.station.id,playerState.conversationActorId))return false;if(!n?.serviceMount)return true;const landing=findActorStandPoint(n,n.serviceMount,({ignoreDynamicBodies})=>furniture?.standPoint(navigation,[...(doors?.cameraColliders||[]),...(ignoreDynamicBodies?[]:safety(n))],n.serviceMount,n.collisionRadius??.25));if(!landing)return false;n.root.position.copy(landing);n.serviceMount=null;furniture.releaseActor(n.station.id);travelState.delete(n);n.route=[];return true;}
+ function mountPatient(dt){const n=patient(),seat=furniture?.items.find(s=>s.id===C.seatId);if(!n||!seat||isSociallyHeld(n.station.id,playerState.conversationActorId)||getMounted()?.id===C.seatId)return false;
   if(n.serviceMount?.id===seat.id)return !!furniture.facilities.reserve(seat.id,n.station.id)&&furniture.facilities.occupy(seat.id,n.station.id);
   if(!furniture.facilities.reserve(seat.id,n.station.id,{purpose:'clinic-consult'})||!travel(n,seat.position,dt))return false;
   if(!furniture.canSit(navigation,safety(n),seat)||!furniture.facilities.occupy(seat.id,n.station.id))return false;
@@ -232,7 +232,7 @@ export function createChinaClinicService({npcs,lot,doors,planPath,moveActor,pose
    }
    if(order?.physician==='player'&&!['complete','cancelled'].includes(order.stage)&&!physicianWork.owns(order.physicianReceiptId)){if(!cancelPhysicianOrder('原医师班次已失效，释放未交付原单'))return;}
    let da=null,aa=null,dtar=null,atar=null,dh=false,ah=false;
-   const paused=isSociallyHeld(doctor.station.id,state.conversationActorId)||isSociallyHeld(assistant.station.id,state.conversationActorId);
+   const paused=isSociallyHeld(doctor.station.id,state.conversationActorId)||isSociallyHeld(assistant.station.id,state.conversationActorId)||!!n&&isSociallyHeld(n.station.id,state.conversationActorId);
    updateNPCReviewTiming(dt,paused);
    const doctorReleased=isPhysicianHired()&&!meeting&&(!order||order.physician==='player'||['complete','cancelled'].includes(order.stage));
    const leisure=needsLife?.away(doctor.station.id)?null:physicianLife.update(dt,{released:doctorReleased,paused:isSociallyHeld(doctor.station.id,state.conversationActorId),hour:state.hour??10});

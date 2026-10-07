@@ -145,4 +145,12 @@ test('assistant safe rebind preserves person and dependent physician work; compl
 });
 
 
+test('nearby work dialogue holds the original physician, dispenser and seated patient progress',()=>{
+ for(const [phase,who]of [['writing','doctor'],['prepare','assistant'],['consult','guest']]){
+  const f=fixture();f.player.root.position.set(24.7,4.015,-24);f.admit();f.until(()=>f.clinic.state().order?.stage===phase,phase+' starts');const person=f[who],before=copy(f.clinic.snapshot()),route=person.route,position=person.root.position.toArray(),mount=person.serviceMount;
+  for(let i=0;i<200;i++)f.clinic.update(.1,f.clock.seconds+i*.1,{player:f.player,conversationActorId:person.station.id});
+  const after=f.clinic.snapshot();assert.equal(after.order.id,before.order.id);assert.equal(after.order.stage,phase);assert.equal(after.phaseTime,before.phaseTime);assert.equal(person.route,route);assert.deepEqual(person.root.position.toArray(),position);assert.equal(person.serviceMount,mount);assert.equal(f.calls.relationships.length,0);f.until(()=>f.clinic.state().order?.stage!==phase,'original '+phase+' resumes');
+ }
+});
+
 }

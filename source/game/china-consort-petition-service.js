@@ -156,7 +156,7 @@ export function createChinaConsortPetitionService({npcs,lot,palace,audience,edic
    const w=window();if((flow||task||pendingSubmission)&&!loan&&w.ok&&!borrow()){lastReason='service-unavailable';return;}if(pendingSubmission&&(pendingSubmission.day!==clock().day||!w.ok||!adults()||!near(player()?.root.position,C.receptionPlayer,1.35))){cancel(!w.ok?w.reason:'left-meeting');return;}if(loan&&(!w.ok||!borrow())){cancel(w.reason||'herald-away');return;}
    if(loan&&!flow&&!near(player()?.root.position,C.receptionPlayer,9)&&!near(player()?.root.position,C.player,9)){cancel('left-meeting');return;}
    if(flow){
-    flow.age+=dt;if(flow.day!==clock().day||flow.age>300){cancel('audience-timeout');return;}
+    if(!paused())flow.age+=dt;if(flow.day!==clock().day||flow.age>300){cancel('audience-timeout');return;}
     if(!atMeeting()){cancel('left-meeting');return;}
     if(!adults()){cancel('adults-required');return;}
    }else if(!loan&&!isEmpress()&&near(player()?.root.position,C.receptionPlayer,7)&&w.ok&&adults())api.reception();

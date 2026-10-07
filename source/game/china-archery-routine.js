@@ -64,7 +64,7 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
  function beginPatrol(n){const p=patrol.get(n);Object.assign(p,{stage:'travel',index:0,time:0,paused:false,yielding:false,visited:[]});resetTravel(n);}
  function patrolLabel(n){const p=patrol.get(n);return (guardTenure&&n===guards[0]&&!guardWork?'代巡 · 玩家未在班 · ':'')+(p.stage==='ready'?'巡查完毕 · 在射圃候交班':CHINA_GUARD_ROUTES[p.routeId][p.index].label);}
  function updatePatrol(n,dt,position){
-  const p=patrol.get(n);p.paused=isSociallyHeld(n.station.id,conversationActorId)&&phase!=='handover';p.yielding=false;
+  const p=patrol.get(n);p.paused=isSociallyHeld(n.station.id,conversationActorId);p.yielding=false;
   if(p.paused){tell(n,patrolLabel(n)+' · 稍停交谈');if(position)n.root.rotation.y=Math.atan2(position.x-n.root.position.x,position.z-n.root.position.z);return;}
   if(p.stage==='ready'){tell(n,patrolLabel(n));travel(n,HANDOFF[guards.indexOf(n)],dt);return;}
   const route=CHINA_GUARD_ROUTES[p.routeId],stop=route[p.index];tell(n,patrolLabel(n));
@@ -180,8 +180,11 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
    // A talk can delay relief, but may not hand the absent guard a new shift.
    if(other===guards[0]&&guardWork&&['active','returning','returned'].includes(guardWork.stage))updateRelieved(other,dt);
    else updatePatrol(other,dt,position);
-   if(guardWork?.stage==='returning'&&supervisorReady()&&gap(guards[0].root.position,HANDOFF[0])<.08){guardWork.handoverSeconds=(guardWork.handoverSeconds||0)+dt;tell(guards[0],`当面收回巡值 · 等${guards[1].station.npcName||guards[1].station.id}核对凭记`);if(guardWork.handoverSeconds>=2.4)guardWork.stage='returned';}
+   if(guardWork?.stage==='returning'&&!guards.some(actor=>isSociallyHeld(actor.station.id,talking))&&supervisorReady()&&gap(guards[0].root.position,HANDOFF[0])<.08){guardWork.handoverSeconds=(guardWork.handoverSeconds||0)+dt;tell(guards[0],`当面收回巡值 · 等${guards[1].station.npcName||guards[1].station.id}核对凭记`);if(guardWork.handoverSeconds>=2.4)guardWork.stage='returned';}
 
+   // A nearby conversation borrows this exact phase, including a held bow.
+   // Already released arrows keep flying; no new shot, relief or work proof advances.
+   if(isSociallyHeld(n.station.id,talking)||phase==='handover'&&isSociallyHeld(other.station.id,talking)){for(const actor of guards)animateGuard(actor,t);return;}
    const timed=()=>{phaseTime+=dt;};
    if(phase==='handover'){
     const here=travel(n,HANDOFF[active],dt),there=patrol.get(other).stage==='ready'&&gap(other.root.position,HANDOFF[1-active])<.065;

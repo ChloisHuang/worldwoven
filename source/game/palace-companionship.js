@@ -1,5 +1,5 @@
 import {relationshipInteractionEligible,relationshipInteractionOutcome} from './relationship-interactions.js';
-import {holdSocialActors,releaseSocialActors,socialHoldOwner} from './npc-social-ownership.js';
+import {holdSocialActors,releaseSocialActors,socialHoldOwner,isPlayerConversationHeld} from './npc-social-ownership.js';
 import {mergeSocialMemories} from './npc-life-decisions.js';
 import {socialAttentionHash} from './social-attention.js';
 
@@ -23,7 +23,7 @@ export function createPalaceCompanionship({
  opportunitySeconds=120,dispatchSeconds=3,responseSeconds=2,responseTimeout=60,pairCooldownSeconds=300,
  venuePolicy=null,
 }={}){
- const owner={palaceCompanionship:true};
+ const owner={palaceCompanionship:true};let readingEventId=null;
  const prefix=venuePolicy?.prefix||'palace-company',eventLabels={...labels,...venuePolicy?.labels};
  const permitted=(a,b)=>venuePolicy?venuePolicy.allowedPair(a,b)===true:emperorId()===a;
  let data=fresh(),journey=null,refs=new Map(),disposed=false,saveBlocked=false,retryAt=0,loadError=null,restoreSource=null;
@@ -69,7 +69,7 @@ export function createPalaceCompanionship({
   return {...context,selfAge:self.ageYears,age:other.ageYears};
  }
  function willingContext(observer,target){const context=relationContext(observer,target);return !!context&&relationshipInteractionEligible('private-company',context);}
- function pairGate(emperor,target,event=null,{place=true}={}){
+ function pairGate(emperor,target,event=null,{place=true,checkAvailability=true}={}){
   if(!validId(emperor)||!validId(target)||emperor===target)return {ok:false,reason:'invalid-pair'};
   if(!permitted(emperor,target))return {ok:false,reason:venuePolicy?'venue-pair-required':'current-emperor-required'};
   const left=identity(emperor),right=identity(target);if(!left||!right)return {ok:false,reason:'adult-current-identity-required'};
@@ -79,7 +79,7 @@ export function createPalaceCompanionship({
     if(refs.has(id)&&people.find(a=>idOf(a)===id)!==refs.get(id))return {ok:false,reason:'actor-replaced'};
    }
   }
-  if(![emperor,target].every(id=>available(id,event)))return {ok:false,reason:'actor-unavailable'};
+  if(checkAvailability&&![emperor,target].every(id=>available(id,event)))return {ok:false,reason:'actor-unavailable'};
   if(!willingContext(emperor,target)||!willingContext(target,emperor))return {ok:false,reason:'relationship-unavailable'};
   if(!place)return {ok:true,identities:{[emperor]:left,[target]:right}};
   const resolved=getPlace([emperor,target],event?copy(event):null),p=resolved?.ok===true?resolved.place:null;
@@ -199,7 +199,9 @@ export function createPalaceCompanionship({
   if(data.active)freezeActors(data.active);if(result.value)notify(result.value);
  }
  function update(dt){
-  if(disposed||loadError||!finite(dt)||dt<=0)return;data.time+=dt;
+  if(disposed||loadError||!finite(dt)||dt<=0)return;
+  const heldEvent=data.active;if(heldEvent&&(heldEvent.id===readingEventId||heldEvent.participants.some(isPlayerConversationHeld))){const check=pairGate(heldEvent.emperorId,heldEvent.targetId,heldEvent,{checkAvailability:false});if(!check.ok){cancel(check.reason);return;}for(const actor of roster())if(heldEvent.participants.includes(idOf(actor))&&typeof actor==='object')actor.walking=false;return;}
+  data.time+=dt;
   if(saveBlocked){if(data.time>=retryAt){saveBlocked=!persist();retryAt=data.time+5;}return;}
   const event=data.active;
   if(!event){if(data.time>=data.nextOpportunity)opportunity();return;}
@@ -257,7 +259,7 @@ export function createPalaceCompanionship({
  }
  function pose(actor){const id=idOf(actor),event=data.active;if(!event||!['travelling','together'].includes(event.stage)||!event.participants.includes(id))return null;const other=roster().find(a=>idOf(a)===event.participants.find(x=>x!==id));return {walking:event.stage==='travelling'&&actor?.walking===true,target:other?.root?.position||null,label:eventLabels[event.stage]};}
  restore(saved);
- return {update,snapshot,restore,status,history:()=>copy(data.history),select,request,respond,cancel,withdraw,candidates,project,pose,
+ return {update,snapshot,restore,status,pauseForMenu(id){if(data.active?.id!==id)return false;readingEventId=id;return true;},releaseMenuPause(id){if(!id||readingEventId===id)readingEventId=null;},history:()=>copy(data.history),select,request,respond,cancel,withdraw,candidates,project,pose,
   owns:actor=>!!data.active&&['travelling','together'].includes(data.active.stage)&&data.active.participants.includes(idOf(actor)),
   get loadError(){return loadError;},get saveBlocked(){return saveBlocked;},
   dispose(){if(loadError){release('region-unloaded');disposed=true;return;}if(data.active)cancel('region-unloaded');else{release('region-unloaded');persist();}disposed=true;},

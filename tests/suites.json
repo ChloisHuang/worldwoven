@@ -165,6 +165,7 @@
       "meal-menu-exit-actions.mjs",
       "nearby-interaction-intents.mjs",
       "nearby-interaction-main.cjs",
+      "nearby-dialogue-reentry-main.cjs",
       "service-object-menu-targets.mjs",
       "wallet-bank-navigation-main.cjs",
       "wallet-ui.mjs"
@@ -548,6 +549,7 @@
       "japan-weather-charms-main.cjs",
       "japan-women-bath-delivery-main.cjs",
       "japan-women-bath-delivery-role-contracts.mjs",
+      "japan-work-chat-pause.mjs",
       "live-character-main.cjs",
       "miko-role.cjs",
       "night-field.cjs",

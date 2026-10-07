@@ -1,3 +1,4 @@
+import {isPlayerConversationHeld} from './npc-social-ownership.js';
 import {TAVERN_LAYOUT_VERSION as LAYOUT_VERSION} from './china-tavern-layout.js';
 import {TAVERN_DISHES} from './china-tavern-kitchen.js';
 // Personal trips for the four existing artists. The original salon scheduler
@@ -57,6 +58,7 @@ export function createSalonNeeds({artists,sharedNeeds,economy,getTavern=()=>null
    // next save. This is the same actor, order, payment and actual mounted seat.
    if(borrowed&&tasks.get(borrowed)?.kind!=='meal'){tasks.set(borrowed,{kind:'meal',path:[],index:0,wait:0});persist();}
    for(const[n,s]of tasks){
+    if(n.alive!==false&&isPlayerConversationHeld(n.station.id)){n.walking=false;continue;}
     if(s.kind==='meal'){if(leasedId===n.station.id)continue;returnHome(n,'meal');continue;}
     if(s.kind==='toilet'){
      const facility=getToilet();if(!facility?.ownsActor(n)){returnHome(n,'toilet');continue;}

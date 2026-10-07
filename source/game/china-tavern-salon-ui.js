@@ -15,7 +15,7 @@ export function createChinaTavernSalonUI({service,getPlayer,onOpen=()=>{},docume
  badge.type='button';badge.setAttribute('aria-label','三层青楼雅集接待');dialog.setAttribute('aria-label','温晚的接待案');fade.hidden=true;fade.setAttribute('aria-live','polite');(doc.head||doc.body).append(style);doc.body.append(badge,dialog,fade);
  let signature='',disposed=false,generation=0,selectedArtist=null,selectedActivity=null,panel=null;
  const nearFloor=()=>{const p=getPlayer()?.root.position;return p&&p.x>16&&p.x<26&&p.z>8+TAVERN_HALL_DZ&&p.z<21&&Math.abs(p.y-7.815)<.5;};
- const close=()=>{generation++;if(dialog.open)dialog.close();};
+ const close=()=>{generation++;service.setPrivateMenuReading?.(false);if(dialog.open)dialog.close();};
  const text=(node,value)=>{value=String(value??'');if(node.textContent!==value)node.textContent=value;};
  const optional=(node,value)=>{text(node,value);node.hidden=!value;};
  const pressed=(node,value)=>{const next=String(value);if(node.getAttribute('aria-pressed')!==next)node.setAttribute('aria-pressed',next);};
@@ -58,7 +58,7 @@ export function createChinaTavernSalonUI({service,getPlayer,onOpen=()=>{},docume
    else {const s=service.view();refreshOverlay({active:!!s.session,label:s.label,fade:s.fade});}
    return;
   }
-  const s=service.view(),o=s.session,candidates=s.candidates||[],atReception=service.atReception();
+  if(dialog.open)service.setPrivateMenuReading?.(true);const s=service.view(),o=s.session,candidates=s.candidates||[],atReception=service.atReception();
   if(!candidates.some(c=>c.id===selectedArtist)){selectedArtist=(candidates.find(c=>c.available)||candidates[0])?.id||null;selectedActivity=null;}
   const selected=candidates.find(c=>c.id===selectedArtist),activities=selected?[...selected.activities,...(selected.activities.some(a=>a.id==='banquet')?[]:[{id:'banquet',...SALON_ACTIVITIES.banquet,fee:selected.quoteFee??selected.activities[0]?.fee??SALON_MIN_FEE}])]:[];
   if(!activities.some(a=>a.id===selectedActivity))selectedActivity=activities[0]?.id||null;
@@ -130,7 +130,7 @@ export function createChinaTavernSalonUI({service,getPlayer,onOpen=()=>{},docume
   if(!invitation){const b=action('询问今夜是否愿意私下相伴',()=>{if(service.invitePrivate(selected.id))close();});b.disabled=!discuss;p.personal.append(el('p','先有双方明确好感与合法客房使用权，再分别答复。服务付款、解约都不代替这次同意。','cn-salon-note'));}
   if(!discuss)p.personal.append(el('p','故事与合作请走到本人身旁，等其空闲后当面谈。','cn-salon-note'));
  }
- function open(){if(disposed||(!nearFloor()&&!service.active()&&!service.displayState?.().privateInvitation?.participants?.includes('player')))return false;if(dialog.open){refresh();return true;}if(!service.active())service.recoverPayments();onOpen();panel=null;signature='';refresh(true);dialog.showModal();return true;}
+ function open(){if(disposed||(!nearFloor()&&!service.active()&&!service.displayState?.().privateInvitation?.participants?.includes('player')))return false;if(dialog.open){refresh();return true;}if(!service.active())service.recoverPayments();onOpen();panel=null;signature='';refresh(true);dialog.showModal();service.setPrivateMenuReading?.(true);return true;}
  badge.onclick=open;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
  return {open,close,isOpen:()=>!!dialog.open,openStation:id=>id===SALON_RECEPTION?open():false,update:()=>{if(!disposed)refresh();},dispose(){disposed=true;close();badge.remove();dialog.remove();fade.remove();style.remove();}};
 }

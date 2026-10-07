@@ -80,12 +80,15 @@ export function createPalaceTeaService({npcs,lot,doors,planPath,moveActor,poseCo
   update(dt,t,state={}){
    relationshipTime+=Math.max(0,dt);relationshipOutbox.deliver(ledger.snapshot().orders.filter(o=>['cleared','cancelled'].includes(o.stage)).map(o=>serviceRelationshipEvent('china-palace-tea',o.id,o.stage==='cleared'?'completed':'cancelled',o.actorId,o.guestId,relationshipTimes[o.id]??0)));
    playerState=state;if(disposed||!runtime||loadError)return;const host=getHost(),customer=guest(),o=active();
-   if(!validHost()||blocked(host)||runtime.phase!=='home'&&(blocked(customer)||state.urgentGuest||state.guestDeparted||state.urgentHost||state.serviceConflict)){cancel();return;}
+   if(!validHost()||!host||host.alive===false||playerState.performing===host.station.id||runtime.phase!=='home'&&(!customer||customer.alive===false||playerState.performing===customer.station.id||state.guestDeparted||state.serviceConflict)){cancel();return;}
    ownedBody=host;
    if(runtime.phase!=='approach'&&runtime.phase!=='home'&&!near(customer,P.guest)){cancel('guest-left-original-place');return;}
    const fixedHost=['prepare','pickup','clear'].includes(runtime.phase)?P.hostPrep:['place','guest-lift','drink','lower','retrieve'].includes(runtime.phase)?P.hostServe:null;
    if(fixedHost&&!near(host,fixedHost)){cancel('host-left-original-place');return;}
    if(!host.root.userData.hands?.[0]||!host.root.userData.hands?.[1]||!customer?.root.userData.hands?.[1]){cancel('service-hands-unavailable');return;}
+   // Talking pauses the original cup and paid work; it is not cancellation.
+   if(isSociallyHeld(host.station.id,state.conversationActorId)||runtime.phase!=='home'&&isSociallyHeld(customer.station.id,state.conversationActorId)){host.walking=false;pose(host,t);props.update(o,{host,guest:customer},runtime.phase,runtime.elapsed);return;}
+   if(runtime.phase!=='home'&&(state.urgentGuest||state.urgentHost)){cancel();return;}
    runtime.age+=dt;if(runtime.age>90){cancel('tea-service-timeout');return;}
    if(runtime.phase!=='drink'||lastGuestPose>=t-dt-.00001&&lastGuestPose<=t)runtime.elapsed+=dt;
    const phase=runtime.phase;
