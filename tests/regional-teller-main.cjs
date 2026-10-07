@@ -11,8 +11,9 @@ function once(a, b) {
   harness = harness.replace(a, b);
 }
 const extra = `
-export function tellerReview(){return {player,npcs,lot,furniture,navOptions,regionalTellerEmployment,chinaTellerService,chinaTellerPersonal,careerHandbook,formalCareers,copperLedger};}
-export function tellerStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);updatePlayer(dt,elapsed);regionalTellerEmployment?.update(dt,elapsed);chinaMoneyHouse?.update(dt,elapsed);chinaTellerService?.update(dt,elapsed,{});chinaTellerPersonal?.update(dt,elapsed);careerHandbook.update(mode);}
+let tellerHandbackWitness=null;
+export function tellerReview(){return {tellerHandbackWitness,player,npcs,lot,furniture,navOptions,regionalTellerEmployment,chinaMoneyHouse,chinaTellerService,chinaTellerPersonal,careerHandbook,formalCareers,copperLedger};}
+export function tellerStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);updatePlayer(dt,elapsed);const prior=${JSON.stringify(process.env.TELLER_STOP_AFTER==='salary-return')}?regionalTellerEmployment?.state().shift:null;regionalTellerEmployment?.update(dt,elapsed);if(prior&&['returning','ready'].includes(prior.stage)&&!regionalTellerEmployment?.state().shift){const n=npcs.find(n=>n.station.id===prior.standInId);tellerHandbackWitness=n?{id:n.station.id,position:n.root.position.toArray(),home:[...n.station.npcPosition]}:null;}chinaMoneyHouse?.update(dt,elapsed);chinaTellerService?.update(dt,elapsed,{});chinaTellerPersonal?.update(dt,elapsed);careerHandbook.update(mode);}
 export function tellerNextDay(){const target=simulationClock.state().seconds+1440/.7;while(simulationClock.state().seconds<target)simulationClock.advance(.25);formalCareers.observeDay();}
 export {requestStationIntent,resolvePlayerIntent,executeNearbyAction,navigateTo,cancelAction,currentControl,requestFurniture,save,planPath,blocked};`;
 once("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),", "new vm.SourceTextModule(__tellerProfileSource(file,fs.readFileSync(file,'utf8'))+(file.endsWith('/game/main.js')?" + JSON.stringify(extra) + ":''),");
@@ -77,7 +78,7 @@ if(stopAfter==='salary-return'){
  const duty=r().formalCareers.workState().lastDuty;assert.equal(duty.stage,'paid');assert.equal(duty.tellerPayVersion,1);const expected=Math.floor(role.wage*(duty.coveredSeconds*.7/60)/12+1e-9);assert(expected>0);assert.equal(duty.wage,expected);
  const after=r().copperLedger.balances();for(const c of Object.keys(after)){assert.equal(after[c].cash,before[c].cash);assert.equal(after[c].bank-before[c].bank,c===currency?expected:0);}
  const receiptId='career:'+role.slotId+':'+duty.day;assert.equal(r().copperLedger.state().transactions.filter(tx=>tx.requestId===receiptId&&tx.action==='wage').length,1);
- const incumbent=r().npcs.find(n=>n.station.id===incumbentId);assert(incumbent);assert(incumbent.root.position.distanceTo(new incumbent.root.position.constructor(...incumbent.station.npcPosition))<.06);
+ const incumbent=r().npcs.find(n=>n.station.id===incumbentId);assert(incumbent);const witness=r().tellerHandbackWitness;assert.equal(witness?.id,incumbentId);assert(new incumbent.root.position.constructor(...witness.position).distanceTo(new incumbent.root.position.constructor(...witness.home))<.06,JSON.stringify(witness));console.log('PASS physical handback boundary before original bank work resumes',JSON.stringify({witness,current:incumbent.root.position.toArray(),bankActor:r().chinaMoneyHouse?.state().actor}));
  assert.equal(JSON.stringify(svc.state().receipts),dutyReceipts,'salary keeps prior immutable duty proofs');const paid=JSON.stringify(r().copperLedger.state());assert.equal(r().formalCareers.settle().ok,false);assert.equal(JSON.stringify(r().copperLedger.state()),paid);
  console.log('PASS fixed short-shift wage',receiptId,currency,expected,'confirmed loaded seconds',duty.coveredSeconds,'original incumbent',incumbentId);checkpoint('salary-return');return;
 }
