@@ -2222,5 +2222,121 @@
       "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
     },
     "scope": "Original record official naturally selected music80 at life552s; arrived and waited on original offer, then session established at612.15s. Unpaid invited only; no room claim or settlement yet."
-  }
+  },
+  "activeRestores": [
+    {
+      "input": "qa/st03-r190/segment-20261007T231633Z-2.checkpoint.json",
+      "checkpoint": "qa/st03-r190/active-restore-20261007T232044Z-2.checkpoint.json",
+      "checkpointSha256": "997d54913c047342e66845e388488a8d7145978d7a8f8bbb401bc99b1525a61d",
+      "status": "PASS",
+      "steps": 0,
+      "checks": {
+        "sameSession": true,
+        "sameOriginalSalon": true,
+        "sameOfficialLedger": true,
+        "sameArtistLedger": true,
+        "originalCustomerOwned": true,
+        "originalRoom": true,
+        "sameClock": true,
+        "allActorsRestored": true
+      },
+      "session": {
+        "id": "cn-salon-npc-1",
+        "customerId": "cn-official-records",
+        "customerName": "宋承简 · 文书官（正九品）",
+        "actorId": "cn-tavern-songwriter",
+        "activity": "music",
+        "serviceContent": "顾流萤轻轻念出新填曲词的节拍，请你听韵脚怎样落下。",
+        "stage": "invited",
+        "roomId": null,
+        "leg": 0,
+        "fee": 80,
+        "quoteVersion": 1,
+        "payment": "unpaid",
+        "incomePolicy": {
+          "version": 1,
+          "performerShareBps": 5000,
+          "rounding": "floor"
+        },
+        "receptionWork": {
+          "version": 1,
+          "sessionId": "cn-salon-npc-1",
+          "actorId": "cn-tavern-reception",
+          "holderRevision": 0,
+          "roleId": "cn-salon-reception",
+          "slotId": "cn-salon-reception-1",
+          "contractVersion": 1,
+          "amount": 8,
+          "customerId": "cn-official-records",
+          "artistId": "cn-tavern-songwriter",
+          "activity": "music",
+          "fee": 80,
+          "cardId": "salon-reception-card:cn-salon-npc-1",
+          "roomId": null,
+          "phase": "register",
+          "seconds": 0,
+          "steps": {
+            "registerSeconds": 0,
+            "reserveSeconds": 0,
+            "closeSeconds": 0
+          }
+        }
+      },
+      "rooms": [
+        {
+          "id": "tavern-guest-lan",
+          "name": "兰房",
+          "claim": null,
+          "physicallyOccupied": false
+        },
+        {
+          "id": "tavern-guest-zhu",
+          "name": "竹房",
+          "claim": null,
+          "physicallyOccupied": false
+        }
+      ],
+      "balances": {
+        "cn-minister-works": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-minister-granary": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-rites": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-personnel": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-justice": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-records": {
+          "bank": 96,
+          "cash": 0
+        }
+      },
+      "artistLedgerRevision": 0,
+      "guard": {
+        "guard": "PASS",
+        "reason": null,
+        "exit": 0,
+        "seconds": 46.82,
+        "treePeakMiB": 677.43,
+        "peakMembersBytes": {
+          "18": 10907648,
+          "20": 699428864
+        },
+        "includesSupervisor": true,
+        "hostname": "a55d3d933517",
+        "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
+      }
+    }
+  ]
 }

@@ -53,3 +53,5 @@
 23:12 UTC生产续验idle修复通过：从原368.7秒真实checkpoint续900×.15步到503.7秒，六官choice计数逐一4→6、4→6、4→6、3→5、3→5、5→7，全部离开重复idle，按原RNG自然选听席/休息/工作/赏荷。并非强选付费；仍无paid-salon或session，各96资金不变，官方/雅集失败空。81.164秒/719.879MiB，guard PASS/exit0；每300帧落盘。原计时修复已有小复现和真实六官恢复证据；付费服务与活跃恢复继续未完。
 
 23:17 UTC首个真实有偿服务会话出现：原记录官宋承简在life552秒自然选择顾流萤80文曲词，按原路线到前台并等待实际艺者歇场，612.15秒建立cn-salon-npc-1。723帧即停，stage=invited/payment=unpaid/roomId=null，原接待8文合同凭据建立但尚未收款或获收入；六官各96、艺者账本空、双房无claim。74.613秒/735.207MiB，guard PASS/exit0。原司农另一次自然选择也未阻断或人为取消；本次只追踪已经建立的原记录官会话。checkpoint：qa/st03-r190/segment-20261007T231633Z-2.checkpoint.json。下一阶段先零步验证同session/演员/报价/接待凭据/钱款/房间恢复，尚不推进结算。
+
+23:21 UTC原invited会话零步恢复PASS：cn-salon-npc-1保持记录官/顾流萤/80文/原服务内容/接待合同凭据，完整salon snapshot及双方RNG、账务逐项相同；原customer仍被同session借用，房间仍无claim，31NPC及玩家原位置恢复、0迁移/跳过。无退款、换人、重选、扣款或模拟步。46.820秒/677.430MiB、guard PASS/exit0。恢复后checkpoint为qa/st03-r190/active-restore-20261007T232044Z-2.checkpoint.json；下一推进本人回应与原预留扣款，仍未结算。

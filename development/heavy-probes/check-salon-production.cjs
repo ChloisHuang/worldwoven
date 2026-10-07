@@ -1,6 +1,6 @@
 // Current-main original NPC choice and bodies. Financial origin is explicitly staged.
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),crypto=require('node:crypto');
-if(process.env.WORLDWOVEN_GUARDED!=='1'||!['segment','cleaning'].includes(process.env.PROBE_STAGE))throw Error('Use run-salon-bounded.sh segment');
+if(process.env.WORLDWOVEN_GUARDED!=='1'||!['segment','cleaning','active-restore'].includes(process.env.PROBE_STAGE))throw Error('Use run-salon-bounded.sh segment');
 if(process.env.SOCIAL_RESUME||process.env.SALON_RESUME)throw Error('Use SALON_INPUT only');
 const input=process.env.SALON_INPUT,out=process.env.SALON_OUTPUT;
 if(!input||!out)throw Error('Exact checkpoint and isolated output required');
@@ -10,7 +10,7 @@ const currentOverrides=JSON.parse(fs.readFileSync('development/heavy-probes/salo
 for(const [file,expected]of Object.entries(provenance.provenance.sources))if(hash(fs.readFileSync(file))!==(currentOverrides[file]||expected))throw Error('Financial source changed: '+file);
 const bytes=fs.readFileSync(input),initial=JSON.parse(bytes),origin=provenance.provenance.loadSetup.clock.seconds;
 if(input.endsWith('origin-checkpoint.json')&&hash(bytes)!==provenance.restoreGate.outputSha256)throw Error('Original checkpoint provenance mismatch');
-if(initial.worldContinuity?.regions?.china?.controllers?.chinaSalon?.session)throw Error('Active-session restoration gate required before continuation');
+if(initial.worldContinuity?.regions?.china?.controllers?.chinaSalon?.session&&process.env.PROBE_STAGE!=='active-restore')throw Error('Active-session restoration gate required before continuation');
 // Resumed user-authorized work follows actual checkpoints; process segments remain capped.
 process.env.SOCIAL_RESUME=input;
 process.env.QA_START_MS=String(Date.now());
@@ -33,6 +33,13 @@ assert(eq(world.controllers.chinaAudience.life.decisions,before.controllers.chin
 if(process.env.PROBE_STAGE==='cleaning'){assert(eq(world.controllers.chinaTavern.phases,before.controllers.chinaTavern.phases),'original cleaning timer restored exactly');assert(input.chinaServiceWorld.rooms.find(r=>r.id==='lan').dirty,'original room starts dirty');}
 assert.equal(state().continuity.skipped.length,0);assert.equal(state().continuity.relocated.length,0);
 console.log('PHASE',JSON.stringify({name:'loaded',wallMs:Date.now(),cpu:process.cpuUsage(),clock:r.simulationClock.state(),continuity:state().continuity}));
+if(process.env.PROBE_STAGE==='active-restore'){
+ const original=before.controllers.chinaSalon.session;assert(original,'real active session required');
+ const rooms=r.chinaSalon.view().rooms,session=r.chinaSalon.snapshot().session,artist=r.chinaSalonEconomy.snapshot();
+ const checks={sameSession:eq(session,original),sameOriginalSalon:eq(world.controllers.chinaSalon,before.controllers.chinaSalon),sameOfficialLedger:eq(r.chinaOfficialEconomy.snapshot(),input.chinaOfficialEconomy),sameArtistLedger:input.chinaSalonEconomy?eq(artist,input.chinaSalonEconomy):artist.receipts.length===0&&artist.mealTransfers.length===0&&artist.revision===0,originalCustomerOwned:r.chinaSalon.ownsNPCCustomer(original.customerId),originalRoom:original.roomId?rooms.find(q=>q.id===original.roomId)?.claim?.owner===original.id:rooms.every(q=>!q.claim),sameClock:eq(loaded.simulationClock,input.simulationClock),allActorsRestored:state().continuity.restored.length===32&&!state().continuity.relocated.length&&!state().continuity.skipped.length};
+ const report={status:Object.values(checks).every(Boolean)?'PASS':'FAIL',scope:'Exact real active salon session reload; zero simulation and no forced reservation/payment/settlement',input:process.env.SALON_INPUT,steps:0,checks,session,rooms,officialEconomy:r.chinaOfficialEconomy.snapshot(),artistEconomy:artist,continuity:state().continuity,checkpoint:process.env.SALON_OUTPUT+'.checkpoint.json'};
+ fs.writeFileSync(process.env.SALON_OUTPUT+'.result.json',JSON.stringify(report,null,2));console.log('ACTIVE_RESTORE',JSON.stringify(report));assert(Object.values(checks).every(Boolean),'Active session restoration changed original state');fs.writeFileSync(report.checkpoint,JSON.stringify(loaded,null,2));return;
+}
 const origin=8485.714285714286,maxEnd=origin+240,initialSeconds=r.simulationClock.state().seconds;
 const frameCap=Math.min(900,Math.max(1,Number(process.env.SALON_FRAMES)||300));
 let frames=0,stop='segment-boundary',previous='',session=null;const events=[];
