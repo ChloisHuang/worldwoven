@@ -3,6 +3,9 @@ import {globalCases} from './t05-global-fixtures.js';
 import {AIRY_PANEL_STYLE} from '../game/airy-panel.js';
 import {AIRY_UI_THEME} from '../game/china-money-house-theme.js';
 import {syncUiViewport} from '../game/viewport-layout.js';
+// These exact candidate default changes are confined to the QA document.
+// Production R164 styles and its normal module graph remain byte-identical.
+const candidateShared=AIRY_PANEL_STYLE.replace('.ww-airy-panel-actions button{width:100%}', '.ww-airy-panel-actions :where(button){width:100%}').replace('.ww-airy-panel-body{min-height:0;overflow:auto;overscroll-behavior:contain;flex:1 1 auto}', '.ww-airy-panel-body{min-height:0;overscroll-behavior:contain;flex:1 1 auto}:where(.ww-airy-panel-body){overflow:auto}');
 const cases=[...serviceCases,...globalCases];
 const query=new URLSearchParams(location.search);
 if(document.documentElement.dataset.qaFrame==='true'){
@@ -27,6 +30,7 @@ if(document.documentElement.dataset.qaFrame==='true'){
   const later=document.createElement('style');later.dataset.qaLaterShared='true';let shared=AIRY_PANEL_STYLE;
   if(query.get('cascade')==='baseline')shared+='\n.ww-airy-panel-actions button{width:100%}.ww-airy-panel-body{overflow:auto}';
   later.textContent=AIRY_UI_THEME+shared;document.head.append(later);
+  if(query.get('cascade')!=='baseline')for(const style of document.querySelectorAll('style'))style.textContent=style.textContent.split(AIRY_PANEL_STYLE).join(candidateShared);
   await (mounted.open||(()=>mounted.ui?.open()))();
   await Promise.all(Array.from(document.querySelectorAll('link[rel=stylesheet]')).filter(l=>!l.sheet).map(l=>new Promise(resolve=>{l.addEventListener('load',resolve,{once:true});l.addEventListener('error',resolve,{once:true});})));
   requestAnimationFrame(()=>requestAnimationFrame(send));
