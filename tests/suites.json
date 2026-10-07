@@ -361,7 +361,9 @@
       "npc-public-interactions.mjs",
       "palace-companionship.mjs",
       "china-salon-companionship.mjs",
-      "bath-privacy.mjs"
+      "bath-privacy.mjs",
+      "hidden-social-state.mjs",
+      "hidden-social-actions.mjs"
     ],
     "integration": [
       "airy-panel-default-cascade.mjs",
@@ -582,7 +584,8 @@
       "crime-runtime.mjs",
       "game-health-injury.mjs",
       "crime-consequences-main.cjs",
-      "china-guard-enforcement.cjs"
+      "china-guard-enforcement.cjs",
+      "hidden-social-main.cjs"
     ]
   },
   "release": {

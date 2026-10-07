@@ -11,6 +11,11 @@ import {CHINA_CONSORTS} from './china-palace-residents.js';
 // own actions and supplies; an intention, animation or scene entry grants nothing.
 export const DAILY_NEEDS_HOUR=60/GAME_MINUTES_PER_SECOND;
 const FOOD_DAY=24*DAILY_NEEDS_HOUR;
+// Fictional intake balance, independent of hunger. Only accepted completed
+// meals add it; a full game-day meal dissipates in a loaded game day. Two
+// close meals remain below the illness threshold; repeated excess must persist.
+const MAX_FOOD_LOAD=4*FOOD_DAY;
+const foodPortion=source=>source==='france-tea-food'?3*DAILY_NEEDS_HOUR:FOOD_DAY;
 // Samira remains food-only until her actual toilet controller is connected.
 // China officials and royal adults use their existing public/private facilities.
 const royalActors=new Set(['cn-emperor',...CHINA_CONSORTS.map(p=>p.id)]);
@@ -22,6 +27,10 @@ const clamp=x=>Math.max(0,Math.min(1,x));
 const mealSource='china-tavern-meal';
 const mealSources=new Set([mealSource,'japan-player-meal','france-tea-food','france-full-meal','egypt-visitor-meal','egypt-resident-meal','japan-staff-meal','china-royal-kitchen']);
 const toiletFacilities={'china-public-toilet':'cn-tavern-public-toilet','china-toilet':'cn-bath-toilet','japan-toilet':'jp-washroom-private-1','france-toilet':'fr-royal-bath-toilet','egypt-toilet':'eg-private-bath-toilet'};
+function foodEvidence(receipt){return {source:receipt.source,id:receipt.id,number:receipt.number,actorId:receipt.actorId,dishId:receipt.dishId};}
+function savedFoodEvidence(value,id,receipts){
+ return value&&value.actorId===id&&mealSources.has(value.source)&&typeof value.id==='string'&&value.id.length>0&&value.id.length<=160&&typeof value.dishId==='string'&&value.dishId.length>0&&value.dishId.length<=80&&Number.isSafeInteger(value.number)&&value.number>0&&receipts[value.source]===value.number?foodEvidence(value):null;
+}
 function validMeal(receipt,getRoyalMealEligibility,verifiedRoyalConsumption=false,verifiedEgyptResidentConsumption=false){
  const r=receipt,n=r.number;
  if(r.actorId==='egypt-papyrus'&&r.source!=='egypt-resident-meal')return false;
@@ -49,27 +58,32 @@ export function createDailyNeeds({saved={},getClock=()=>({seconds:0}),saveState=
   // a one-time balance offset preserves hunger/strain until real food relieves it.
   const foodAge=positive(old?.foodAge,Number.isFinite(legacy)?clamp(legacy)*12*DAILY_NEEDS_HOUR:(id==='player'?2:7)*DAILY_NEEDS_HOUR);
   const foodBalanceOffset=old?saved.version===1?foodAge:positive(old.foodBalanceOffset):Number.isFinite(legacy)?foodAge:0;
-  people[id]={foodAge,foodBalanceOffset,toiletAge:positive(old?.toiletAge),receipts:{}};
+  people[id]={foodAge,foodBalanceOffset,toiletAge:positive(old?.toiletAge),foodLoad:0,lastMeal:null,receipts:{}};
   for(const[source,number]of Object.entries(old?.receipts||{}))if((mealSources.has(source)||toiletFacilities[source])&&Number.isSafeInteger(number)&&number>0)people[id].receipts[source]=number;
+  // Old saves have no intake history. Never infer eaten food from their hunger
+  // age, role, balance offset or serial alone, and never replay their receipts.
+  people[id].lastMeal=savedFoodEvidence(old?.lastMeal,id,people[id].receipts);
+  if(people[id].lastMeal)people[id].foodLoad=Math.min(MAX_FOOD_LOAD,positive(old?.foodLoad));
  }
  function sync(){const now=positive(getClock()?.seconds,lastClock),dt=Math.max(0,now-lastClock);lastClock=now;lastSample=now;
-  if(!sceneId||!dt)return;for(const id of activeIds){const p=people[id];if(p&&isPersonAlive(id)!==false){p.foodAge+=dt;if(!mealOnlyActors.has(id))p.toiletAge+=dt;}}
+  if(!sceneId||!dt)return;for(const id of activeIds){const p=people[id];if(p&&isPersonAlive(id)!==false){p.foodAge+=dt;p.foodLoad=Math.max(0,p.foodLoad-dt);if(!mealOnlyActors.has(id))p.toiletAge+=dt;}}
  }
  const additional=()=>registeredPeople.size?{registeredPeople:[...registeredPeople]}:{};
  const snapshot=()=>{sync();return {version:2,...additional(),people:copy(people)};};
  function register(id){
   if(people[id])return true;if(typeof id!=='string'||!/^cn-[a-z0-9-]{1,60}$/.test(id))return false;sync();
-  const legacy=legacyPeople[id]?.needs?.hunger,foodAge=Number.isFinite(legacy)?clamp(legacy)*12*DAILY_NEEDS_HOUR:7*DAILY_NEEDS_HOUR,row={foodAge,foodBalanceOffset:Number.isFinite(legacy)?foodAge:0,toiletAge:0,receipts:{}};
+  const legacy=legacyPeople[id]?.needs?.hunger,foodAge=Number.isFinite(legacy)?clamp(legacy)*12*DAILY_NEEDS_HOUR:7*DAILY_NEEDS_HOUR,row={foodAge,foodBalanceOffset:Number.isFinite(legacy)?foodAge:0,toiletAge:0,foodLoad:0,lastMeal:null,receipts:{}};
   const next={version:2,registeredPeople:[...registeredPeople,id],people:{...copy(people),[id]:row}};
   try{const result=saveState(next);if(result===false||result?.then)return false;}catch{return false;}
   people[id]=row;registeredPeople.add(id);if(sceneId&&loadedIds.has(id))activeIds.add(id);return true;
  }
  const foodBalanceAge=p=>p.foodAge+p.foodBalanceOffset;
- function read(id){const p=people[id];if(!p)return null;return {hunger:clamp(foodBalanceAge(p)/FOOD_DAY),toilet:mealOnlyActors.has(id)?0:clamp(p.toiletAge/(24*DAILY_NEEDS_HOUR)),foodStrain:clamp((foodBalanceAge(p)-2*FOOD_DAY)/(2*FOOD_DAY)),toiletStrain:mealOnlyActors.has(id)?0:clamp((p.toiletAge/DAILY_NEEDS_HOUR-36)/24)};}
+ function read(id){const p=people[id];if(!p)return null;const excessFoodStrain=p.foodLoad<=2*FOOD_DAY+1e-7?0:clamp((p.foodLoad-2*FOOD_DAY)/FOOD_DAY);return {excessFoodStrain,foodEvidence:excessFoodStrain>0&&p.lastMeal?copy(p.lastMeal):null,hunger:clamp(foodBalanceAge(p)/FOOD_DAY),toilet:mealOnlyActors.has(id)?0:clamp(p.toiletAge/(24*DAILY_NEEDS_HOUR)),foodStrain:clamp((foodBalanceAge(p)-2*FOOD_DAY)/(2*FOOD_DAY)),toiletStrain:mealOnlyActors.has(id)?0:clamp((p.toiletAge/DAILY_NEEDS_HOUR-36)/24)};}
  function status(id){const p=people[id],need=read(id);if(!p)return null;
   const food=foodBalanceAge(p)>=2*FOOD_DAY?'久未进食':need.hunger>=1?'很饿了':need.hunger>=.75?'有些饿了':null;
   const toilet=!mealOnlyActors.has(id)&&p.toiletAge>=36*DAILY_NEEDS_HOUR?'如厕拖延较久':need.toilet>=1?'该如厕了':null;
-  return {food,toilet,seekMeal:need.hunger>=1,seekToilet:!!toilet,text:[food&&'🍚 '+food,toilet&&'🚻 '+toilet].filter(Boolean).join(' · ')};
+  const excessFood=need.excessFoodStrain>0?'近日进食偏密，想缓一缓':null;
+  return {food,toilet,excessFood,seekMeal:need.hunger>=1,seekToilet:!!toilet,text:[food&&'🍚 '+food,excessFood&&'🍚 '+excessFood,toilet&&'🚻 '+toilet].filter(Boolean).join(' · ')};
  }
  function apply(receipt,kind,verifiedRoyalConsumption=false,verifiedEgyptResidentConsumption=false){
   sync();const p=people[receipt?.actorId],source=receipt?.source,n=receipt?.number;
@@ -82,6 +96,7 @@ export function createDailyNeeds({saved={},getClock=()=>({seconds:0}),saveState=
    const relief=3*DAILY_NEEDS_HOUR;
    row.foodBalanceOffset=Math.max(0,row.foodBalanceOffset-Math.max(0,relief-row.foodAge));row.foodAge=Math.max(0,row.foodAge-relief);
   }else {row.foodAge=0;row.foodBalanceOffset=0;}
+  if(kind==='meal'){row.foodLoad=Math.min(MAX_FOOD_LOAD,row.foodLoad+foodPortion(source));row.lastMeal=foodEvidence(receipt);}
   row.receipts[source]=n;
   try{const result=saveState(next);if(result===false||result?.then)return false;}catch{return false;}
   Object.assign(p,row);return true;

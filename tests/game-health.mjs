@@ -113,3 +113,14 @@ test('same event progress, old events and changed participants cannot replay aft
  replay.tick(1,{actors:context.actors,interactions:[{...event,duration:500}]});again.tick(1,{actors:context.actors});assert.deepEqual(replay.snapshot(),again.snapshot());
  assert.equal(Object.keys(replay.snapshot().interactionProgress).length,1,'one bounded watermark per source');
 });
+
+
+test('excess is receipt-backed, seeded and elapsed-time based; continued strain delays gradual recovery',()=>{
+ const foodEvidence={source:'china-tavern-meal',id:'cn-tavern-order-3-consumed',number:3,actorId:'visitor',dishId:'yunlai-mushroom-rice'},dailyNeeds={excessFoodStrain:1,foodEvidence};
+ const context={actors:[person('visitor',{dailyNeeds})]},whole=make(),parts=make();advance(whole,180,context);for(let i=0;i<180;i++)advance(parts,1,context);nearEqual(whole.snapshot(),parts.snapshot());
+ const noReceipt=make();advance(noReceipt,1000,{actors:[person('visitor',{dailyNeeds:{excessFoodStrain:1}})]});assert.equal(condition(noReceipt,'visitor','laden-grain').dose,0);assert.equal(condition(noReceipt,'visitor','laden-grain').stage,'well');
+ const wrongPerson=make();advance(wrongPerson,1000,{actors:[person('visitor',{dailyNeeds:{...dailyNeeds,foodEvidence:{...foodEvidence,actorId:'source'}}})]});assert.equal(condition(wrongPerson,'visitor','laden-grain').dose,0);
+ const seed=whole.snapshot();Object.assign(seed.people.visitor.conditions['laden-grain'],{stage:'ill',remaining:200});const continuing=make(seed),easing=make(seed),rested=make(seed);advance(continuing,30,context);advance(easing,30,{actors:[person('visitor',{dailyNeeds:{excessFoodStrain:0}})]});advance(rested,30,{actors:[person('visitor',{resting:true,dailyNeeds})]});
+ assert(condition(easing,'visitor','laden-grain').remaining<condition(continuing,'visitor','laden-grain').remaining);assert(condition(rested,'visitor','laden-grain').remaining<condition(continuing,'visitor','laden-grain').remaining);assert.equal(condition(continuing,'visitor','laden-grain').stage,'ill');
+ const cautious=make();const high=cautious.snapshot();high.people.visitor.conditions['laden-grain'].threshold=100;const resilient=make(high);advance(resilient,180,context);assert.equal(condition(resilient,'visitor','laden-grain').stage,'well','excess is a persistent risk, not a guaranteed threshold verdict');
+});

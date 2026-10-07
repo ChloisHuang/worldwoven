@@ -10,7 +10,7 @@ import {createSocialMeetingPlaces,createSocialMeetingJourney} from './social-mee
 import {relationshipInteraction} from './relationship-interactions.js';
 import {createBathPrivacy,bathServicePassage} from './bath-privacy.js';
 import {createRelationshipEvents,relationshipProfile} from './relationship-events.js';
-import {setLifeSocialProjection} from './npc-life-decisions.js';
+import {setLifeSocialProjection,mergeSocialMemories} from './npc-life-decisions.js';
 import {individualAppearanceAffinity,socialAttentionFactors} from './social-attention.js';
 import {createTellerSlot} from './china-teller-role.js';
 import {createTellerAccount} from './china-teller-account.js';
@@ -397,6 +397,7 @@ function captureWorldContinuity(){
  saved.chinaGardenSlot=gardenSlot.state();saved.chinaGardenAccounts=gardenAccounts.snapshot();
  saved.chinaRangeWardenSlot=rangeWardenSlot.state();saved.chinaRangeWardenAccounts=rangeWardenAccounts.snapshot();saved.chinaGuardSlot=guardSlot.state();saved.chinaGuardAccounts=guardAccounts.snapshot();
  if(!continuityReady||mode!=='lot'||!player||!lot)return;
+ saved.socialIdentities??={};for(const n of npcs){const id=n.actorId||n.station.id;saved.socialIdentities[id]={actorId:id,stationId:n.station.id,country:active.id,alive:n.alive!==false};if(id!==n.station.id&&saved.socialIdentities[n.station.id])saved.socialIdentities[n.station.id].retired=true;}
  const region=active.id,capture=(n,id,mountId)=>captureWorldActor(n,{id,region,elapsed,floor:levelForPosition(n.root.position)?.id,mountId,mountBerthId:(id==='player'?seated:chinaPalace?.mountForActor?.(n)||chinaAudience?.mountForActor?.(n)||n.serviceMount)?.berthId});
  const controllers=Object.fromEntries(Object.entries(continuityControllers()).filter(([,c])=>c?.snapshot).map(([id,c])=>[id,c.snapshot()]));
  storeWorldRegion(saved,region,{player:{...capture(player,'player',seated?.id||bathTransition?.item.id),transition:bathTransition?.snapshot?.()||null},actors:npcs.map(n=>capture(n,n.station.id,chinaPalace?.mountForActor?.(n)?.id||chinaAudience?.mountForActor?.(n)?.id)),controllers,activity:{target:continuityIntent(targetStation),pending:continuityIntent(pendingInteraction),performing:continuityIntent(performing),actionTime,studyTicket:continuityCopy(studyTicket),destination:path.length?[path.at(-1).x,path.at(-1).y,path.at(-1).z]:null,seated:seated?.id||null,seatedBerthId:seated?.berthId||null,bathTransition:bathTransition?.snapshot?.()||null},camera:{yaw,pitch,distance,dusk},animationTime:lotAnimationTime});
@@ -404,7 +405,7 @@ function captureWorldContinuity(){
 worldSnapshotWriter=captureWorldContinuity;
 // Source callbacks have already committed saved business state. Do not capture
 // controllers during an outbox ACK: the source may still be returning from persist.
-relationshipEvents=createRelationshipEvents({saved:saved.relationshipEvents,worldSeed:saved.appearance.seed,getProfile:getRawNPCProfile,saveState:state=>{const next={...saved,relationshipEvents:state};const result=gameStorage.setItem('worlds-days-v1',JSON.stringify(next));if(result===false||result?.then)return false;saved.relationshipEvents=state;return true;}});
+relationshipEvents=createRelationshipEvents({saved:saved.relationshipEvents,worldSeed:saved.appearance.seed,getProfile:getRawNPCProfile,getSupportProfile:socialSupportProfile,getIdentity:socialIdentity,getObserverIds:socialKnownIds,saveState:state=>{const next={...saved,relationshipEvents:state};const result=gameStorage.setItem('worlds-days-v1',JSON.stringify(next));if(result===false||result?.then)return false;saved.relationshipEvents=state;return true;}});
 setLifeSocialProjection((id,profile)=>{const base=relationshipEvents.projection(id,profile);const publicProfile=npcPublicInteractions?.project(id,base)||base;const palaceProfile=palaceCompanionship?.project(id,publicProfile)||publicProfile;return salonCompanionship?.project(id,palaceProfile)||palaceProfile;},(observerId,targetId)=>socialFactorsFor(observerId,targetId),socialInteractionContext,{claim:(meeting,ids)=>socialMeetingPlaces?.claim(meeting.place,ids),release:(meeting,ids)=>socialMeetingPlaces?.release(meeting.place,ids),validate:(meeting,ids)=>socialMeetingPlaces?.validate(meeting.place,ids)});
 playerConversations=createPlayerConversationLedger({saved:saved.playerConversations,worldSeed:saved.appearance.seed,getClock:()=>simulationClock.state(),getProfile:getNPCProfile,getContext:id=>socialInteractionContext('player',id),getPlayerProfile:()=>getNPCProfile('player'),
  getAppearanceAffinity:id=>socialFactorsFor(id).acceptanceAppearance,getAcceptanceContext:id=>socialFactorsFor(id).acceptanceContext,
@@ -504,12 +505,14 @@ function getNPCProfile(id){const base=getBaseSocialProfile(id),publicProfile=npc
 function getBaseSocialProfile(id){return relationshipEvents?relationshipEvents.projection(id,getRawNPCProfile(id)||{}):relationshipProfile(id,getRawNPCProfile(id)||{},saved.appearance.seed);}
 function socialFactorsFor(observerId,targetId='player',situation={}){
  const observerActor=npcs.find(n=>(n.actorId||n.station.id)===observerId),targetActor=targetId==='player'?player:npcs.find(n=>(n.actorId||n.station.id)===targetId);
- const observer={...(playerSocialContext?.profileFor(observerId)||getNPCProfile(observerId)),ageYears:observerActor?.ageYears??observerActor?.station?.ageYears,reputationForTarget:relationshipEvents?.knownOpinion(observerId,targetId)||0};
+ const observer={...(playerSocialContext?.profileFor(observerId)||getNPCProfile(observerId)),ageYears:observerActor?.ageYears??observerActor?.station?.ageYears,reputationForTarget:relationshipEvents?.knownReputation(observerId,targetId)||0};
  const target={id:targetId,ageYears:targetId==='player'?saved.playerProfile.ageYears:targetActor?.ageYears??targetActor?.station?.ageYears};
  const shapeTraits=targetId==='player'?saved.appearance.player.shapeTraits:targetActor?.root.userData.appearance?.shapeTraits;
- return socialAttentionFactors({observer,target,situation,appearanceAffinity:individualAppearanceAffinity({observerId,worldSeed:saved.appearance.seed,shapeTraits})});
+ const fault=relationshipEvents?.knownConduct(observerId,targetId)?.lastFault,repair=targetId==='player'?playerConversations?.repairFor(observerId):observer.interactions?.[targetId]?.repairedEventId;
+ const factors=socialAttentionFactors({observer,target,situation:{...situation,unresolvedFault:!!fault&&repair!==fault.id},appearanceAffinity:individualAppearanceAffinity({observerId,worldSeed:saved.appearance.seed,shapeTraits})});
+ const support=relationshipEvents?.stanceFor(observerId,targetId);if(support?.active)factors.acceptanceContext=Math.min(.08,(factors.acceptanceContext||0)+.02);return factors;
 }
-function relationshipMemory(id){const privacy=bathPrivacy?.memory(id),fault=bathPrivacy?.faultFor(id),repair=fault&&playerConversations?.relationshipFor(id);if(fault&&repair?.acknowledgedEventId===fault)return repair.faultEventId?'我听见你的歉意了，之后还是想看看我们能否尊重彼此的界限。':'谢谢你愿意把上次的事说清楚，以后也请继续尊重彼此的界限。';if(privacy)return privacy;const last=relationshipEvents?.pair(id,'player')?.last;if(!last||['cancelled','refused'].includes(last.outcome))return null;return last.feeling==='disappointed'?'上次交接没有办妥，我还想先看看之后的实际表现。':last.feeling==='appreciated'?'上次你当面帮忙办妥的事，我还记得。':'上次当面交接的事，我还记得。';}
+function relationshipMemory(id){const privacy=bathPrivacy?.memory(id),fault=bathPrivacy?.faultFor(id),repair=fault&&playerConversations?.relationshipFor(id);if(fault&&repair?.acknowledgedEventId===fault)return repair.faultEventId?'我听见你的歉意了，之后还是想看看我们能否尊重彼此的界限。':'谢谢你愿意把上次的事说清楚，以后也请继续尊重彼此的界限。';if(privacy)return privacy;const last=relationshipEvents?.pair(id,'player')?.last;const support=relationshipEvents?.stanceFor(id,'player');if(support?.active)return '我仍愿意支持你目前的做法；彼此守信，比空口承诺更重要。';if(!last||['cancelled','refused'].includes(last.outcome))return support?'上次的立场我记得；是否支持，我仍会看实际发生的事。':null;return last.feeling==='disappointed'?'上次交接没有办妥，我还想先看看之后的实际表现。':last.feeling==='appreciated'?'上次你当面帮忙办妥的事，我还记得。':'上次当面交接的事，我还记得。';}
 function crimeParticipant(id){
  const n=socialActor(id);if(!n||n.station?.isChild===true||n.isChild===true)return false;
  const sources=id==='player'?[saved.playerProfile,n]:[n,n.station],ages=sources.filter(Boolean).flatMap(p=>Object.hasOwn(p,'ageYears')?[p.ageYears]:Object.hasOwn(p,'age')?[p.age]:[]);
@@ -519,12 +522,12 @@ function crimeParticipant(id){
 }
 function configureCrime(){
  const country=active.id;
- crimeRuntime=createCrimeRuntime({country,lot,getActors:()=>[player,...npcs].filter(Boolean),getPlayer:()=>player,getClock:()=>simulationClock.state(),getAnimationTime:()=>elapsed,getProfile:getNPCProfile,getRelation:(a,b)=>relationshipEvents.pair(a,b),getMode:n=>npcPublicMode(n,{ignoreVisibility:true}),getGuards:()=>chinaArchery?.enforcementCandidates()||[],guardResumed:()=>chinaArchery?.resumeAfterEnforcement(),planPath,moveActor,doors:automaticDoors,poseContext:characterPoseContext,isAdult:crimeParticipant,canPerceive:n=>n!==player||seated?.kind!=='bed',
+ crimeRuntime=createCrimeRuntime({country,lot,getActors:()=>[player,...npcs].filter(Boolean),getPlayer:()=>player,getClock:()=>simulationClock.state(),getAnimationTime:()=>elapsed,getProfile:id=>({...getNPCProfile(id),conduct:relationshipEvents.conductFor(id)}),getRelation:(a,b)=>relationshipEvents.pair(a,b),getMode:n=>npcPublicMode(n,{ignoreVisibility:true}),getGuards:()=>chinaArchery?.enforcementCandidates()||[],guardResumed:()=>chinaArchery?.resumeAfterEnforcement(),planPath,moveActor,doors:automaticDoors,poseContext:characterPoseContext,isAdult:crimeParticipant,canPerceive:n=>n!==player||seated?.kind!=='bed',
   playerAvailable:()=>!seated&&!bathTransition&&!performing&&!pendingInteraction&&!npcSocial?.active()&&!activeDailyToilet()?.active()&&!salonCompanionship?.owns('player')&&!palaceCompanionship?.owns('player'),
   stopPlayer:()=>{path=[];targetStation=null;pendingInteraction=null;resetTransientInput();},
   canSee:(a,b)=>{const from=new THREE.Vector3(a.x,a.y+1.35,a.z),to=new THREE.Vector3(b.x,b.y+1.35,b.z);return cameraDistanceToObstacle(from,to,cameraSolids,0)>=from.distanceTo(to)-.08;},
   saved:saved.crimeConsequences?.[country],saveState:state=>{worldSnapshotWriter?.();const states={...saved.crimeConsequences,[country]:state},next={...saved,crimeConsequences:states};try{const r=gameStorage.setItem('worlds-days-v1',JSON.stringify(next));if(r===false||r?.then)return false;}catch{return false;}saved.crimeConsequences=states;return true;},
-  applyInjury:event=>gameHealth.applyInjury(event),recordRelationship:event=>relationshipEvents.record(event),notify:toast});
+  applyInjury:event=>gameHealth.applyInjury(event),recordRelationship:event=>relationshipEvents.record(event),recordPersonalConduct:event=>relationshipEvents.recordPersonal(event),observeCrimeEvidence:event=>relationshipEvents.observeWitness(event),notify:toast});
 }
 function configureBathPrivacy(){
  bathPrivacyRetreat=null;
@@ -545,6 +548,27 @@ function configureBathPrivacy(){
 }
 function recordRelationshipEvent(event){return relationshipEvents.record(event);}
 function socialActor(id){return id==='player'?player:npcs.find(n=>(n.actorId||n.station.id)===id);}
+
+// Only identities actually encountered in the loaded world are retained. A job
+// successor has a different actorId and cannot inherit a predecessor's stance.
+function socialKnownIds(){return [...new Set([...Object.keys(saved.socialIdentities||{}),...npcs.map(n=>n.actorId||n.station.id)])];}
+function socialIdentity(id){const n=socialActor(id);if(n)return {actorId:id,alive:n.alive!==false,country:active?.id};return saved.socialIdentities?.[id]||null;}
+function socialSupportProfile(id){
+ let p=getNPCProfile(id);
+ if(!socialActor(id)){
+  const own=Object.values(saved.npcPublicInteractions||{}).map(s=>s.brain?.people?.[id]).find(Boolean);
+  if(own){const add=(a={},b={})=>Object.fromEntries([...new Set([...Object.keys(a),...Object.keys(b)])].map(k=>[k,Math.max(-1,Math.min(1,(a[k]||0)+(b[k]||0)))]));p={...p,relations:add(p.relations,own.relations),opinions:add(p.opinions,own.opinions),interactions:mergeSocialMemories(p.interactions,own.interactions)};}
+ }
+ const support=playerConversations?.supportFor(id),last=playerConversations?.lastCompleted(id);
+ if(last)p={...p,relations:{...p.relations,player:(p.relations?.player||0)+playerConversations.relationFor(id)},interactions:{...p.interactions,player:{...p.interactions?.player,...support,completedCount:playerConversations.completedCount(id),lastCompletedId:last.id}}};
+ return p;
+}
+function hiddenInteractionContext(observerId,subjectId){
+ const known=relationshipEvents?.knownConduct(observerId,subjectId),profile=getNPCProfile(observerId),other=getNPCProfile(subjectId);
+ const experience=(id,p)=>id==='player'?Math.max(0,...Object.values(formalCareers.workState().skills)):p.experiences?.filter(e=>e.kind==='staff-work'&&e.id).length||0;
+ return {socialAt:simulationClock.state().seconds,knownReputation:relationshipEvents?.knownReputation(observerId,subjectId)||0,knownConduct:known?.score||0,knownEvidence:!!known?.last?.id,knownEvidenceId:known?.last?.id||null,knownFaultId:known?.lastFault?.id||null,
+  practicalExperience:experience(subjectId,other),partnerExperience:experience(observerId,profile),healthConcern:!!gameHealth.status(subjectId)?.symptoms?.length};
+}
 function socialAdult(id){const n=socialActor(id);return (id==='player'?saved.playerProfile.ageYears:n?.ageYears??n?.station?.ageYears)>=18;}
 function socialPrivateEntitlement(id,roomId,place,ids){
  const item=furniture.items.find(i=>i.id===place.fixtureId),room=lot.interiorRooms?.find(r=>r.id===roomId);
@@ -562,9 +586,10 @@ function socialInteractionContext(initiatorId,targetId){
  const ids=[initiatorId,targetId],actor=socialActor(targetId),self=socialActor(initiatorId),profile=getNPCProfile(targetId),source=relationshipEvents?.pair(initiatorId==='player'?targetId:initiatorId,initiatorId==='player'?initiatorId:targetId),raw=getNPCProfile(initiatorId);
  const available=!!actor&&!!self&&!bathPrivacy?.isPrivatePosition(actor.root.position)&&!bathPrivacy?.isPrivatePosition(self.root.position)&&actor.alive!==false&&self.alive!==false&&!actor.serviceMount&&!self.serviceMount&&(profile.needs?.hunger||0)<.9&&(profile.needs?.fatigue||0)<.9;
  const privatePlace=available&&ids.every(socialAdult)?socialPrivatePlace(ids):null;
- return {age:actor?.ageYears??actor?.station?.ageYears,selfAge:initiatorId==='player'?saved.playerProfile.ageYears:self?.ageYears??self?.station?.ageYears,available,
+ const hidden=hiddenInteractionContext(targetId,initiatorId);
+ return {...hidden,socialByParticipant:{[initiatorId]:hiddenInteractionContext(initiatorId,targetId),[targetId]:hidden},age:actor?.ageYears??actor?.station?.ageYears,selfAge:initiatorId==='player'?saved.playerProfile.ageYears:self?.ageYears??self?.station?.ageYears,available,
   relation:profile.relations?.[initiatorId]||0,trust:source?.trust||0,opinion:profile.opinions?.[initiatorId]||0,aversion:source?.aversion||0,observerProfile:profile,selfProfile:raw,
-  faultEventId:bathPrivacy?.faultFor(initiatorId==='player'?targetId:initiatorId)||(source?.last?.feeling==='disappointed'?source.last.id:null),boundary:source?.aversion>.3,
+  faultEventId:bathPrivacy?.faultFor(initiatorId==='player'?targetId:initiatorId)||hidden.knownFaultId||(source?.last?.feeling==='disappointed'?source.last.id:null),boundary:source?.aversion>.3,
   privatePlaceAvailable:privatePlace?.ok===true,meeting:privatePlace?.ok?{id:privatePlace.place.id,private:true,available:true,authorized:ids,places:privatePlace.place.points,managed:true,place:privatePlace.place}:null};
 }
 let socialFadePanel=null;
