@@ -146,7 +146,9 @@
     "required": [
       "contextual-action-menu.mjs",
       "object-action-menu.mjs",
-      "ui-safe-area.mjs"
+      "mobile-viewport.mjs",
+      "ui-safe-area.mjs",
+      "mobile-entry-loading.mjs"
     ],
     "integration": [
       "career-resignation-ui.mjs",
@@ -160,6 +162,7 @@
       "consort-petition-ui.mjs",
       "contextual-action-main.cjs",
       "france-gardener-labor-ui.mjs",
+      "game-select.mjs",
       "hud-nearby-controls.mjs",
       "input-interrupt-main.cjs",
       "input-interrupt-recovery.cjs",

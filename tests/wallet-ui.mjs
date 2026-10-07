@@ -269,7 +269,7 @@ console.log('PASS wallet DOM: lazy cash-only art, aggregated notes, separate ban
   const doc=documentFixture(),mount=doc.createElement('div');doc.body.append(mount);let writes=0,target={id,name},wallet;const routes=[];
   const ledger=createCurrencyLedger({saveState:()=>{writes++;}});
   wallet=createCurrencyWallet({mount,ledger,document:doc,getCurrency:()=>currency,getBankTarget:()=>target,onBankNavigate:t=>{assert.equal(wallet.isOpen(),false,'close wallet before entering existing navigation');routes.push(t);}});
-  wallet.open();const go=one(doc,'ww-wallet-bank-visit');assert(!go.hidden);assert.equal(go.textContent,'前往'+name);go.click();assert.equal(routes[0],target);assert.equal(writes,0,'navigation never transacts');go.click();assert.equal(routes.length,1,'closed stale callback does not navigate twice');
+  wallet.open();const go=one(doc,'ww-wallet-bank-visit');assert(!go.hidden);assert.equal(go.textContent,'前往'+name);assert.equal(go.getAttribute('aria-label'),'前往'+name);assert.equal(go.parent,one(doc,'ww-wallet-header-actions'),'bank action shares title row, not a footer');assert.equal(go.parent.children.at(-1),one(doc,'ww-wallet-close'),'bank and close remain separate controls');go.click();assert.equal(routes[0],target);assert.equal(writes,0,'navigation never transacts');go.click();assert.equal(routes.length,1,'closed stale callback does not navigate twice');
   wallet.open();target=null;wallet.refresh();assert(go.hidden);go.click();assert.equal(routes.length,1);wallet.dispose();
  }
 }

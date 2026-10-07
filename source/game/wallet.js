@@ -106,7 +106,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
   const trigger=button(null,'ww-wallet-trigger','打开钱包与账本');
   const icon=make('span',null,'ww-wallet-icon');icon.setAttribute('aria-hidden','true');
   const strap=make('span',null,'ww-wallet-strap'),cashBadge=make('span',null,'ww-wallet-trigger-number');icon.append(strap);trigger.append(icon,make('span','钱包','ww-wallet-trigger-label'),cashBadge);
-  trigger.setAttribute('aria-haspopup','dialog');trigger.setAttribute('aria-expanded','false');mount.prepend(trigger);
+  trigger.title='打开钱包与账本';trigger.setAttribute('aria-haspopup','dialog');trigger.setAttribute('aria-expanded','false');mount.prepend(trigger);
   const status=make('span',null,'ww-wallet-status');status.setAttribute('role','status');status.setAttribute('aria-live','polite');mount.append(status);
   let ui=null, disposed=false, folded=true, priorFocus=null, pulseTimer=null, transferTimer=null, transfer=null;
   let progress=0, frame=null, lastTime=null, resizeObserver=null, receiptEpoch=0, selectedId=null;
@@ -203,7 +203,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     if (ui) return;
     const dialog=make('dialog',null,'ww-wallet-dialog');dialog.setAttribute('aria-label','钱包与账本');
     const header=make('header',null,'ww-wallet-header'),title=make('div'),closeButton=button('×','ww-wallet-close','关闭钱包');
-    title.append(make('span','旅途里的小积蓄','ww-wallet-eyebrow'),make('h2','钱包与账本'));header.append(title,closeButton);
+    title.className='ww-wallet-title';title.append(make('span','旅途里的小积蓄','ww-wallet-eyebrow'),make('h2','钱包与账本'));const headerActions=make('div',null,'ww-wallet-header-actions');header.append(title,headerActions);
     const body=make('div',null,'ww-wallet-body'),left=make('section',null,'ww-wallet-cash'),right=make('section',null,'ww-wallet-book');
     const cashHeading=make('div',null,'ww-wallet-section-heading');cashHeading.append(make('h3','随身现金'),make('span','装在口袋里的钱'));
     const fan=make('div',null,'ww-wallet-fan');fan.setAttribute('role','group');fan.setAttribute('aria-label','随身现金钱包');
@@ -223,9 +223,9 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     right.append(cashSummary,bankHeading,bankList,ledgerHeading,scroll);
     const notice=make('p',null,'ww-wallet-notice');notice.setAttribute('role','status');
     const effects=make('div',null,'ww-wallet-effects');effects.setAttribute('aria-hidden','true');
-    const bankVisit=button(null,'ww-wallet-bank-visit');bankVisit.hidden=true;bankVisit.onclick=()=>{if(disposed||!ui.dialog.open)return;const target=getBankTarget();if(!target||`${getCurrency()}:${target.id}`!==bankTargetKey){refreshBankLink();return;}close();onBankNavigate?.(target);};
-    body.append(left,right);dialog.append(header,body,bankVisit,notice,effects);doc.body.append(dialog);
-    ui={dialog,closeButton,fan,toggle,canvas,back,pocket,stack,empty,hint,cashList,cashSummaryAmount,bankList,journal,scroll,notice,effects,bankVisit};
+    const bankVisit=button(null,'ww-wallet-bank-visit');const bankIcon=make('span',null,'ww-wallet-bank-icon'),bankLabel=make('span',null,'ww-wallet-bank-label');bankIcon.setAttribute('aria-hidden','true');bankIcon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m3 8 9-5 9 5H3Zm2 12h14M3 22h18M6 11v6m6-6v6m6-6v6"/></svg>';bankVisit.append(bankIcon,bankLabel);bankVisit.hidden=true;bankVisit.onclick=()=>{if(disposed||!ui.dialog.open)return;const target=getBankTarget();if(!target||`${getCurrency()}:${target.id}`!==bankTargetKey){refreshBankLink();return;}close();onBankNavigate?.(target);};
+    headerActions.append(bankVisit,closeButton);body.append(left,right);dialog.append(header,body,notice,effects);doc.body.append(dialog);
+    ui={dialog,closeButton,fan,toggle,canvas,back,pocket,stack,empty,hint,cashList,cashSummaryAmount,bankList,journal,scroll,notice,effects,bankVisit,bankLabel};
     closeButton.onclick=close;
     fan.onclick=()=>{if(ui.toggle.disabled)return;folded=!folded;if(folded)selectedId=null;setFold(true);};
     if(view?.ResizeObserver){resizeObserver=new view.ResizeObserver(drawWallet);resizeObserver.observe(fan);}
@@ -371,7 +371,7 @@ export function createCurrencyWallet({mount, ledger, getCurrency=()=> 'copper', 
     cashBadge.textContent=money(b?.cash,id);trigger.setAttribute('aria-label',`打开钱包与账本，${currency(id).label}随身现金 ${money(b?.cash,id)}`);
     cashBadge.title=`${currency(id).label} · 随身现金`;cashBadge.dataset.currency=id;
   }
-  function refreshBankLink(){if(!ui)return;const target=typeof onBankNavigate==='function'?getBankTarget():null;bankTargetKey=target?`${getCurrency()}:${target.id}`:'';ui.bankVisit.hidden=!target;if(target){const label=`前往${target.name||'本地银行柜台'}`;if(ui.bankVisit.textContent!==label)ui.bankVisit.textContent=label;}}
+  function refreshBankLink(){if(!ui)return;const target=typeof onBankNavigate==='function'?getBankTarget():null;bankTargetKey=target?`${getCurrency()}:${target.id}`:'';ui.bankVisit.hidden=!target;if(target){const label=`前往${target.name||'本地银行柜台'}`;if(ui.bankLabel.textContent!==label)ui.bankLabel.textContent=label;ui.bankVisit.setAttribute('aria-label',label);ui.bankVisit.title=label;}}
   function refresh(){if(disposed)return;refreshBadge();if(!ui?.dialog.open)return;renderBalances();renderHistory();refreshBankLink();}
   function open(){
     if(disposed||ui?.dialog.open)return;clearTransfer();onOpen();ensureUI();priorFocus=doc.activeElement;folded=true;historyLimit=60;setFold();

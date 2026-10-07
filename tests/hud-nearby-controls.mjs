@@ -23,3 +23,34 @@ vm.runInContext(take('function updateBathTransition(','function walkToFurniture(
 // Evaluate the actual needs/health readout assignment with a live DOM target.
 context.dailyNeeds={status:()=>({text:'有些饿了'})};context.gameHealth={text:()=> '需要休息'};vm.runInContext(take("const needText=dailyNeeds.status('player')",'\n'),context);assert.equal(ids['player-health'].textContent,'有些饿了 · 需要休息');assert(!ids['player-health'].hidden);
 console.log('PASS HUD: retired inventory/bottom labels absent; nearby seat halos retain actions/range guards; live needs prompt retained. Context icon/chooser behavior covered by contextual-action-menu.mjs (DOM only).');
+
+// Compact scene HUD and the shared ring replace the old debug and bar chrome.
+const {setActionProgress,timedActionProgress,syncHudTools}=await import('../source/game/hud-controls.js');
+for(const id of ['grid-toggle','zoom-in','zoom-out','camera-reset','interaction','activity-progress'])assert(!ids[id],id+' removed from product markup');
+assert(!main.includes("$('grid-toggle')")&&!main.includes("$('zoom-in')")&&!main.includes("$('activity-progress')"));
+assert.match(html,/aria-label="返回世界地图，选择其他国家"/);assert.match(html,/>俯瞰<\/span>/);
+assert.match(main,/canvas\.addEventListener\('wheel'/);assert.match(main,/touches\.size===2/,'pinch input retained');
+const ring=ids['touch-action'];ring.style.setProperty=(key,value)=>{ring.style[key]=value;};
+const icon=ring.innerHTML;
+for(const [value,expected]of [[0,'0'],[.55,'0.55'],[1.2,'1'],[-1,'0'],[NaN,''],[null,'']]){setActionProgress(ring,value);assert.equal(ring.dataset.actionProgress,expected);assert.equal(ring.innerHTML,icon,'progress never replaces semantic action icon');}
+assert.equal(timedActionProgress(2,8),.25);assert.equal(timedActionProgress(2,0),null);
+Object.assign(context,{setActionProgress,timedActionProgress,roofShown:false,chinaClinic:null,chinaArchery:null,chinaCareer:null,chinaLabor:null,franceLabor:null,japanPerformanceEmployment:null,activeDailyToilet:()=>null,actionTime:4,performing:{id:'read'},npcSocial:null});
+vm.runInContext(take('function updateActionProgress(','function updatePlayer('),context);
+const update=control=>context.updateActionProgress(control),control=intentKey=>({intentKey});
+update(control('performing:read'));assert.equal(ring.dataset.actionProgress,'0.5');
+context.chinaArchery={playerStatus:()=>({progress:.7})};update(control('performing:read'));assert.equal(ring.dataset.actionProgress,'0.7');context.chinaArchery=null;
+context.npcSocial={state:()=>({stage:'talking',duration:2,total:5})};update(control('chat:neighbor'));assert.equal(ring.dataset.actionProgress,'0.4');
+context.chinaLabor={view:()=>({progress:.6})};update(control('clean'));assert.equal(ring.dataset.actionProgress,'0.6');
+context.activeDailyToilet=()=>({state:()=>({activity:{actorId:'player',stage:'using',progress:.3}})});update(control('toilet'));assert.equal(ring.dataset.actionProgress,'0.3');
+context.activeDailyToilet=()=>({state:()=>({activity:{actorId:'player',stage:'waiting-privacy',progress:.3}})});update(control('toilet'));assert.equal(ring.dataset.actionProgress,'','waiting has no invented progress');
+context.chinaCareer={isActing:()=>true,state:()=>({activity:'appointment',progress:.2})};update(control('work'));assert.equal(ring.dataset.actionProgress,'0.2');
+context.chinaCareer={isActing:()=>true,state:()=>({activity:'review-wait',progress:.2})};update(control('work'));assert.equal(ring.dataset.actionProgress,'');
+context.chinaCareer=null;context.franceLabor={isActing:()=>true,displayState:()=>({activity:'water',progress:.8})};update(control('work'));assert.equal(ring.dataset.actionProgress,'0.8');
+context.franceLabor=null;context.japanPerformanceEmployment={isActing:()=>true,state:()=>({progressSeconds:2,progressTotal:8})};update(control('work'));assert.equal(ring.dataset.actionProgress,'0.25');
+for(const state of [null,control('pending:go'),control('family-cancel'),control('crime-cancel')]){update(state);assert.equal(ring.dataset.actionProgress,'','cancel, completion, route and untimed controls reset');}
+context.menuOpen=true;update(control('performing:read'));assert.equal(ring.dataset.actionProgress,'','read-only modal hides ring');context.menuOpen=false;
+context.roofShown=true;update(control('performing:read'));assert.equal(ring.dataset.actionProgress,'','overview hides ring');
+const tools=Object.fromEntries(['roof-toggle','light-toggle'].map(id=>[id,{...element(),lastElementChild:{},querySelector:()=>({})}]));
+syncHudTools({getElementById:id=>tools[id]},{overview:true,night:true});assert.equal(tools['roof-toggle'].lastElementChild.textContent,'跟随');assert.equal(tools['light-toggle'].lastElementChild.textContent,'日景');assert.match(tools['light-toggle'].title,/不改变游戏时间/);
+syncHudTools({getElementById:id=>tools[id]});assert.equal(tools['roof-toggle'].attrs['aria-pressed'],'false');assert.equal(tools['roof-toggle'].lastElementChild.textContent,'俯瞰');
+console.log('PASS compact HUD: removed debug/camera/bar chrome; real shared ring wiring, bounded values, all original timers, cancellation/completion/modal/overview reset, touch labels and pinch/wheel retained. No browser layout claim.');
