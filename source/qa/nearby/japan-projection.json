@@ -1,0 +1,56 @@
+{
+  "scope": "Actual current production main scene, original actors, normal fov50/pitch.22/distance4.6 camera and collision, rendered with Mesa at 852x393. No DOM overlay. Target projection derives from the exact rendered camera; simulated DOM visibility is diagnostic only, not browser layout evidence.",
+  "country": "japan",
+  "viewport": [
+    852,
+    393
+  ],
+  "fov": 50,
+  "player": [
+    4.1,
+    0,
+    5.15
+  ],
+  "camera": [
+    4.1,
+    2.228572872775668,
+    8.631687178546855
+  ],
+  "targets": [
+    {
+      "id": "object:jp-ramen",
+      "name": "拉面吧台",
+      "point": [
+        4.1,
+        1.07,
+        4.15
+      ],
+      "projected": [
+        425.9999999999999,
+        210.4003024536042,
+        0.9160963867898854
+      ],
+      "productionProjection": {
+        "x": 425.9999999999999,
+        "y": 210.4003024536042,
+        "visible": true,
+        "nameRect": null
+      },
+      "actions": [
+        {
+          "id": "jp-dining-ramen",
+          "action": "查看菜单并点餐",
+          "name": "拉面吧台",
+          "position": [
+            4.1,
+            0,
+            5.7
+          ]
+        }
+      ],
+      "simulatedDOMVisible": true
+    }
+  ],
+  "drawCalls": 520,
+  "maxRssMiB": 842.5078125
+}

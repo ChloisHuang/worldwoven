@@ -1,0 +1,144 @@
+{
+  "scope": "Actual current production main scene, original actors, normal fov50/pitch.22/distance4.6 camera and collision, rendered with Mesa at 852x393. No DOM overlay. Target projection derives from the exact rendered camera; simulated DOM visibility is diagnostic only, not browser layout evidence.",
+  "country": "china",
+  "viewport": [
+    852,
+    393
+  ],
+  "fov": 50,
+  "player": [
+    22.35,
+    0.215,
+    6.7
+  ],
+  "camera": [
+    18.915312821453142,
+    2.4330627599642893,
+    6.700000000000003
+  ],
+  "targets": [
+    {
+      "id": "object:counter:cn-tavern-host",
+      "name": "云来酒楼 · 迎客茶案",
+      "point": [
+        23.4,
+        1.32,
+        6.4
+      ],
+      "projected": [
+        398.63367540626166,
+        206.3102358696692,
+        0.9159651257920449
+      ],
+      "productionProjection": {
+        "x": 398.63367540626166,
+        "y": 206.3102358696692,
+        "visible": true,
+        "nameRect": null
+      },
+      "actions": [
+        {
+          "id": "cn-tavern-service-cn-tavern-steward-formal-view",
+          "provider": "china-tavern-service",
+          "action": "长期职位 · 查看申请条件",
+          "name": "云来酒楼 · 工作登记",
+          "targetName": "云来酒楼 · 迎客茶案",
+          "position": [
+            22.35,
+            0.215,
+            6.7
+          ]
+        },
+        {
+          "id": "cn-tavern-labor-view",
+          "provider": "china-tavern-labor",
+          "action": "临时帮工 · 查看招工登记",
+          "name": "云来酒楼 · 招工登记案",
+          "targetName": "云来酒楼 · 迎客茶案",
+          "position": [
+            22.35,
+            0.215,
+            6.7
+          ]
+        },
+        {
+          "id": "cn-tavern-property",
+          "provider": "china-tavern-service",
+          "action": "查看酒楼产权与经营账",
+          "name": "云来酒楼 · 产权柜台",
+          "targetName": "云来酒楼 · 迎客茶案",
+          "position": [
+            22.35,
+            0.215,
+            6.7
+          ]
+        },
+        {
+          "id": "cn-tavern-lodging",
+          "provider": "china-tavern-lodging",
+          "action": "查看客房 · 入住与退房",
+          "name": "云来二层客栈",
+          "targetName": "云来酒楼 · 迎客茶案",
+          "position": [
+            22.35,
+            0.215,
+            6.7
+          ]
+        },
+        {
+          "id": "menu-china-meal",
+          "provider": "service-menu",
+          "action": "查看食单 · 选座点菜",
+          "name": "云来酒楼 · 迎客茶案",
+          "targetName": "许安",
+          "position": [
+            22.35,
+            0.215,
+            6.7
+          ]
+        }
+      ],
+      "simulatedDOMVisible": true
+    },
+    {
+      "id": "actor:cn-tavern-host",
+      "name": "许安",
+      "point": [
+        24.1,
+        2.1495611810826163,
+        6.4
+      ],
+      "projected": [
+        401.316523282236,
+        126.16987488978963,
+        0.9244652294772413
+      ],
+      "productionProjection": {
+        "x": 401.316523282236,
+        "y": 126.16987488978963,
+        "visible": true,
+        "nameRect": {
+          "left": 365.316523282236,
+          "right": 437.316523282236,
+          "top": 94.16987488978963,
+          "bottom": 126.16987488978963
+        }
+      },
+      "actions": [
+        {
+          "id": "cn-tavern-host",
+          "action": "打个招呼 · 聊聊天",
+          "name": "许安",
+          "position": [
+            24.1,
+            0.215,
+            6.4
+          ]
+        }
+      ],
+      "simulatedDOMVisible": true
+    }
+  ],
+  "drawCalls": 353,
+  "maxRssMiB": 1050.4921875
+}

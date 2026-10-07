@@ -17,6 +17,7 @@ const gameGraph=closure(htmlRoots(html));
 for(const rel of ['game/entry.js','game/main.js','game/character-live-entry.js','game/character-preview-entry.js'])assert(gameGraph.has(manifest.assets[rel]),'actual game boot closure reaches '+rel);
 const qaGraphs=['qa/t05.html','qa/t05-frame.html'].map(file=>closure(htmlRoots(fs.readFileSync(path.join(root,file),'utf8'))));
 for(const graph of qaGraphs){assert(graph.has(manifest.assets['qa/t05-entry.js']));assert(!graph.has(manifest.assets['game/main.js']),'finite UI QA must not boot the whole game');}
+if(fs.existsSync(path.join(root,'qa/nearby.html'))){const graph=closure(htmlRoots(fs.readFileSync(path.join(root,'qa/nearby.html'),'utf8')));assert(graph.has(manifest.assets['qa/nearby-entry.js']));assert(!graph.has(manifest.assets['game/main.js']),'isolated nearby QA must not boot the whole game');qaGraphs.push(graph);}
 const reachable=new Set([...gameGraph,...qaGraphs.flatMap(graph=>[...graph])]);
 assert.deepEqual([...reachable].sort(),Object.values(manifest.assets).filter(u=>u.endsWith('.js')).sort(),'every emitted JS belongs to an actual game or QA reference closure');
 for(const url of reachable){const module=mod(url);if(module.status==='unlinked')await module.link(linker);}

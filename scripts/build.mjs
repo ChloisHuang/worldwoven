@@ -26,9 +26,9 @@ function emit(rel){if(assets[rel])return assets[rel];if(busy.has(rel))throw Erro
  body=body.replace(/(\bimport\s*\(\s*['"])(\.\.?\/[^'"]+)(['"]\s*\))/g,(_,a,s,b)=>a+dependency(s)+b);
  // Wallet art stays as URL strings until the panel creates its images. Keep
  // this narrowly scoped: no generic CSS parser, glob loader or eager preload.
- body=body.replace(/(\bnew URL\(\s*['"])(\.\/[^'"]+)(['"]\s*,\s*import\.meta\.url\s*\))/g,(_,a,s,b)=>{
+ body=body.replace(/(\bnew URL\(\s*['"])(\.\.?\/[^'"]+)(['"]\s*,\s*import\.meta\.url\s*\))/g,(_,a,s,b)=>{
   const asset=path.posix.normalize(path.posix.join(path.posix.dirname(rel),s));
-  if(!['game/wallet.css','game/travel-passport.css'].includes(asset)&&!/^game\/assets\/currency\/(?:china|japan|egypt|france)\.webp$/.test(asset))throw Error('Unsupported URL asset '+asset);
+  if(!['game/wallet.css','game/travel-passport.css','qa/nearby-candidate/wallet.css'].includes(asset)&&!/^game\/assets\/currency\/(?:china|japan|egypt|france)\.webp$/.test(asset))throw Error('Unsupported URL asset '+asset);
   return a+emit(asset)+b;
  });
  }const ext=path.extname(rel),stem=path.basename(rel,ext),url='/assets/'+stem+'.'+hash(body)+ext;fs.writeFileSync(path.join(out,url),body);assets[rel]=url;busy.delete(rel);return url;}
@@ -42,6 +42,14 @@ fs.mkdirSync(path.join(out,'qa'),{recursive:true});
 for(const name of ['t05.html','t05-frame.html']){
  const qa=fs.readFileSync(path.join(root,'qa',name),'utf8').replace('./t05-entry.js',qaEntry).replace('../game/game.css',css).replace('../vendor/three/build/three.module.js',three);
  fs.writeFileSync(path.join(out,'qa',name),qa);
+}
+// Isolated candidate graph: the default main/entry/CSS above are untouched.
+if(fs.existsSync(path.join(root,'qa/nearby.html'))){
+ const nearbyEntry=emit('qa/nearby-entry.js'),nearbyCss=emit('qa/nearby-candidate/game.css');
+ const nearby=fs.readFileSync(path.join(root,'qa/nearby.html'),'utf8').replace('./nearby-entry.js',nearbyEntry).replace('./nearby-candidate/game.css',nearbyCss).replace('../vendor/three/build/three.module.js',three);
+ fs.writeFileSync(path.join(out,'qa/nearby.html'),nearby);
+ fs.cpSync(path.join(root,'qa/nearby'),path.join(out,'qa/nearby'),{recursive:true});
+ fs.copyFileSync(path.join(root,'qa/nearby-candidate/manifest.json'),path.join(out,'qa/nearby-candidate-manifest.json'));
 }
 fs.writeFileSync(path.join(out,'three-LICENSE.txt'),fs.readFileSync('source/vendor/three/LICENSE'));
 fs.cpSync('source/licenses',path.join(out,'licenses'),{recursive:true});
