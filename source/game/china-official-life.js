@@ -93,27 +93,27 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   brain.defer(n.station.id,12);stages.set(n,stage([n.root.position.toArray()],label,{idle:true,arrived:true,duration:12}));n.route=[];
  }
  function invitation(n,choice){
-  const other=officials.find(a=>a.station.id===choice.targetId),slots=[1,2],places=slots.map(i=>'cn-official-garden-place-'+i);
-  if(!other||!idleEligible(other)||urgent(n)||conversation||places.some(id=>occupied(id,n)))return false;
+  const other=officials.find(a=>a.station.id===choice.targetId),slots=[1,2],meeting=brain.meeting(n.station.id,choice,{id:'cn-official-garden',places:slots.map(i=>CHINA_OFFICIAL_GARDEN_PLACES[i]),placeIds:slots.map(i=>'cn-official-garden-place-'+i),private:false}),places=meeting?.placeIds||[];
+  if(!meeting||!other||!idleEligible(other)||urgent(n)||conversation||places.some(id=>occupied(id,n)))return false;
   // Route validation is bounded to the selected pair, at this opportunity.
-  const paths=[n,other].map((actor,i)=>publicRoute(actor,CHINA_OFFICIAL_GARDEN_PLACES[slots[i]]));
+  const paths=meeting.routes||[n,other].map((actor,i)=>publicRoute(actor,meeting.places[i]));
   for(const [i,actor]of[n,other].entries()){let from=actor.root.position;for(const to of paths[i]){if(!near(from,to)&&!planPath(from,point(to),.25)?.length)return false;from=point(to);}}
   const result=brain.invite(n.station.id,choice);
   if(!result.ok)return false;
   if(result.status==='declined'){idle(n,'同僚想独处 · 彼此留些余暇');const existing=stages.get(other);if(existing)existing.label='这会儿想独处，改日再聊';record('conversation-declined:'+result.id,other);save();return true;}
-  conversation={id:result.id,participants:result.participants,topic:result.experience.kind,responses:result.responses,elapsed:0,age:0,lastAt:time,duration:choice.duration,phase:'invited'};
+  conversation={id:result.id,participants:result.participants,places:meeting.places,managed:meeting.managed===true,interactionKind:result.interactionKind,fadeToBlack:result.fadeToBlack===true,topic:result.experience.kind,responses:result.responses,elapsed:0,age:0,lastAt:time,duration:choice.duration,phase:'invited'};
   for(const [i,actor]of[n,other].entries()){
-   if(!claims.reserve(places[i],actor.station.id,{purpose:'conversation'})){endConversation(false,'位置被占，改日再聊');return true;}
+   if(!meeting.managed&&!claims.reserve(places[i],actor.station.id,{purpose:'conversation'})){endConversation(false,'位置被占，改日再聊');return true;}
    stages.set(actor,stage(paths[i],i?'应邀去荷庭 · 聊聊刚才的见闻':'约好去荷庭 · 聊聊刚才的见闻',{id:'life-conversation',pairId:result.id,choice:{id:'conversation',action:'relax',targetId:result.participants[1-i],duration:choice.duration},duration:choice.duration,facilityId:places[i]}));actor.route=[];
   }
-  record('conversation-accepted:'+result.id,n);if(save()===false)endConversation(false,'稍后再聊');return true;
+  if(!brain.reserveMeeting(result.id)){endConversation(false,'房间暂时不可用');return true;}record('conversation-accepted:'+result.id,n);if(save()===false)endConversation(false,'稍后再聊');return true;
  }
  function endConversation(fulfilled,label='各自先忙，改日再聊'){
   const pair=conversation;if(!pair)return;const actors=pair.participants.map(id=>officials.find(n=>n.station.id===id)).filter(Boolean);
   const result=fulfilled?brain.finishConversation(pair.id,{elapsed:pair.elapsed,arrived:actors.filter(n=>stages.get(n)?.arrived).map(n=>n.station.id)}):null;
-  if(!result?.ok)brain.cancelConversation(pair.id);
+  if(!result?.ok)brain.cancelConversation(pair.id);brain.releaseMeeting(pair.id);
   conversation=null;
-  for(const n of actors){const s=stages.get(n);claims.releaseActor(n.station.id);n.route=[];n.walking=false;
+  for(const n of actors){n.socialPrivateFade=false;const s=stages.get(n);claims.releaseActor(n.station.id);n.route=[];n.walking=false;
    if(s?.called)stages.set(n,{courtReady:true,label:'应召赴朝 · 已结束闲谈'});
    else{const feeling=result?.event?.results?.find(r=>r.actorId===n.station.id)?.feeling;idle(n,feeling==='appreciated'?'这一席话很投缘，下回再聊':feeling==='mismatched'?'各有所好，今日先聊到这里':result?.ok?'聊过几句，各自继续日常':label);}
   }
@@ -122,11 +122,12 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  function updateConversation(n,s,dt,t){
   const pair=conversation;if(!pair||pair.id!==s.pairId){brain.complete(n.station.id,s.choice,{fulfilled:false});claims.releaseActor(n.station.id);idle(n);return;}
   const actors=pair.participants.map(id=>officials.find(a=>a.station.id===id));
-  if(actors.some(a=>!a||stages.get(a)?.called||urgent(a)||state.conversationActorId===a.station.id||state.meetingActorId===a.station.id||state.performing===a.station.id)){endConversation(false);return;}
+  if(!brain.conversationAllowed(pair.id)||actors.some(a=>!a||stages.get(a)?.called||urgent(a)||state.conversationActorId===a.station.id||state.meetingActorId===a.station.id||state.performing===a.station.id)){endConversation(false);return;}
   const step=Math.max(0,time-pair.lastAt);pair.lastAt=time;pair.age+=step;
   if(pair.age>150){endConversation(false,'路上耽搁了，改日再聊');return;}
   n.walking=false;if(!s.arrived)travel(n,s,dt);
-  const both=actors.every(a=>stages.get(a)?.arrived),other=actors.find(a=>a!==n);
+  const both=actors.every((a,i)=>stages.get(a)?.arrived&&(!pair.places||near(a.root.position,pair.places[i],.2))),other=actors.find(a=>a!==n);
+  if(pair.fadeToBlack&&pair.phase==='talking'&&!both){endConversation(false,'已离开约定房间');return;}
   if(both){
    const starting=pair.phase!=='talking',newInteraction=!Object.hasOwn(pair,'interaction');
    if(starting){pair.phase='talking';record('conversation-talking:'+pair.id,n);}
@@ -137,13 +138,14 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
    if(starting||newInteraction)save();
    // The frame that finishes the walk establishes contact, but contributes no
    // walking time. Only subsequent shared talking intervals can add exposure.
+   for(const a of actors)a.socialPrivateFade=pair.fadeToBlack===true;
    const spoken=starting?0:Math.max(0,Math.min(step,pair.duration-pair.elapsed));pair.elapsed+=spoken;
    if(pair.interaction&&spoken>0){pair.interaction.duration+=spoken;onInteraction({...pair.interaction,participants:[...pair.interaction.participants]});}
 
    const p=other.root.position;n.root.rotation.y=Math.atan2(p.x-n.root.position.x,p.z-n.root.position.z);
    const opening=pair.topic==='read'?'方才读过书卷，想听听你的喜好':'方才看过荷塘，想听听你的喜好';
    const response=pair.responses?.[n.station.id];
-   s.label=pair.elapsed<3?(n===actors[0]?opening:'愿闻其详'):pair.elapsed<6?(n===actors[1]?(response==='appreciated'?'我也喜欢这样的闲暇':response==='mismatched'?'我更喜欢别的消遣':'各有趣味，听你说说'):'你平日更喜欢什么？'):(n===actors[0]?'原来你是这样想的':'改日有空再聊');
+   s.label=brain.interactionLabel(pair.id)?(pair.fadeToBlack?'双方愿意 · 私下安静相伴 · 稍后各自回到日常':brain.interactionLabel(pair.id)):pair.elapsed<3?(n===actors[0]?opening:'愿闻其详'):pair.elapsed<6?(n===actors[1]?(response==='appreciated'?'我也喜欢这样的闲暇':response==='mismatched'?'我更喜欢别的消遣':'各有趣味，听你说说'):'你平日更喜欢什么？'):(n===actors[0]?'原来你是这样想的':'改日有空再聊');
    if(pair.elapsed>=pair.duration){endConversation(true);return;}
   }else s.label=s.arrived?'在荷庭等已应邀的同僚':'已相约荷庭 · 正沿公共通道前往';
   tell(n,s.label);animate(n,s,t,both?other:null);
@@ -201,9 +203,9 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
    s.arrived=false;s.index=Math.max(0,s.path.length-1);
   }
  }
- function restore(snapshot){const data=restoreWorldRuntime(snapshot?.runtime,{npcs,furniture});if(!data?.stages)return false;time=Math.max(0,data.time||0);if(snapshot.duties){for(const id of Object.keys(duties))delete duties[id];Object.assign(duties,JSON.parse(JSON.stringify(snapshot.duties)));}if(snapshot.unpaidDuties)unpaidDuties.splice(0,unpaidDuties.length,...JSON.parse(JSON.stringify(snapshot.unpaidDuties)));stages.clear();conversation=data.conversation||null;for(const[id,s]of data.stages){const n=officials.find(n=>n.station.id===id);if(!n)continue;if(getTavern()?.officialMeal(n.station.id))s.borrowed=true;if(getSalon()?.ownsNPCCustomer?.(n.station.id)){s.borrowedSalon=true;s.mount=null;s.mountTarget=null;}retireBankJourney(n,s);migrateTavernRoute(n,s,snapshot);if(s.choice?.meal&&!s.borrowed&&s.choice.facilityId?.startsWith('china-palace-dining-')){if(s.mount){s.mountTarget=null;s.evicted=true;}else continue;}const bed=s.mount?.kind==='bed'?s.mount:s.mountTarget?.kind==='bed'?s.mountTarget:null;
+ function restore(snapshot){for(const n of officials)n.socialPrivateFade=false;const data=restoreWorldRuntime(snapshot?.runtime,{npcs,furniture});if(!data?.stages)return false;time=Math.max(0,data.time||0);if(snapshot.duties){for(const id of Object.keys(duties))delete duties[id];Object.assign(duties,JSON.parse(JSON.stringify(snapshot.duties)));}if(snapshot.unpaidDuties)unpaidDuties.splice(0,unpaidDuties.length,...JSON.parse(JSON.stringify(snapshot.unpaidDuties)));stages.clear();conversation=data.conversation||null;for(const[id,s]of data.stages){const n=officials.find(n=>n.station.id===id);if(!n)continue;if(getTavern()?.officialMeal(n.station.id))s.borrowed=true;if(getSalon()?.ownsNPCCustomer?.(n.station.id)){s.borrowedSalon=true;s.mount=null;s.mountTarget=null;}retireBankJourney(n,s);migrateTavernRoute(n,s,snapshot);if(s.choice?.meal&&!s.borrowed&&s.choice.facilityId?.startsWith('china-palace-dining-')){if(s.mount){s.mountTarget=null;s.evicted=true;}else continue;}const bed=s.mount?.kind==='bed'?s.mount:s.mountTarget?.kind==='bed'?s.mountTarget:null;
    if(bed){const roomReady=!s.roomId||!!claims.reserve(s.roomId,n.station.id,{purpose:'private-rest'}),resolved=roomReady?reserveNpcBed(furniture,bed,n.station.id):null;s.mountTarget=resolved||bed;if(s.mount){s.mount=resolved&&occupyNpcBed(furniture,resolved,n.station.id)?resolved:null;if(s.mount){n.root.position.set(...s.mount.anchor);n.root.rotation.y=s.mount.yaw;}else{s.arrived=false;s.waiting=0;}}}
-   stages.set(n,{...s,planned:false,stalled:0});n.route=[];if(!s.borrowed&&!s.borrowedSalon)n.serviceMount=null;for(const id of [s.facilityId,s.choice?.facilityId,s.roomId].filter(id=>id&&id!==bed?.id))claims.reserve(id,n.station.id,{purpose:s.choice?.id||'resumed'});if(s.mount&&s.mount.kind!=='bed')claims.occupy(s.mount.id,n.station.id);}if(conversation){const event=brain.conversation(conversation.id);if(event?.status!=='accepted'||!conversation.participants.every(id=>stages.get(officials.find(n=>n.station.id===id))?.pairId===conversation.id&&claims.reservation(stages.get(officials.find(n=>n.station.id===id)).facilityId,id)))endConversation(false);else conversation.lastAt=time;}for(const n of officials){const current=brain.state(n.station.id)?.current;if(current?.conversationId&&!conversation){brain.cancelConversation(current.conversationId);claims.releaseActor(n.station.id);idle(n);}}return true;}
+   stages.set(n,{...s,planned:false,stalled:0});n.route=[];if(!s.borrowed&&!s.borrowedSalon)n.serviceMount=null;for(const id of [s.facilityId,s.choice?.facilityId,s.roomId].filter(id=>id&&id!==bed?.id))claims.reserve(id,n.station.id,{purpose:s.choice?.id||'resumed'});if(s.mount&&s.mount.kind!=='bed')claims.occupy(s.mount.id,n.station.id);}if(conversation){const event=brain.conversation(conversation.id);if(event?.status!=='accepted'||!conversation.participants.every(id=>stages.get(officials.find(n=>n.station.id===id))?.pairId===conversation.id&&(conversation.managed||claims.reservation(stages.get(officials.find(n=>n.station.id===id)).facilityId,id))))endConversation(false);else if(!brain.reserveMeeting(conversation.id))endConversation(false);else conversation.lastAt=time;}for(const n of officials){const current=brain.state(n.station.id)?.current;if(current?.conversationId&&!conversation){brain.cancelConversation(current.conversationId);claims.releaseActor(n.station.id);idle(n);}}return true;}
  ready=true;if(!restore(saved))for(const n of officials)choose(n);
  return {
   courtCompleted(day){for(const n of officials){const previous=duties[n.station.id];if(previous?.day===day)continue;if(previous?.stage==='archived'&&!unpaidDuties.some(d=>d.actorId===n.station.id&&d.day===previous.day))unpaidDuties.push({actorId:n.station.id,...previous});duties[n.station.id]={day,stage:'awaiting-archive'};}save();},
