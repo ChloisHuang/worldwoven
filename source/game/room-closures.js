@@ -2,6 +2,8 @@ export const SHOJI_SIDE_OVERLAP=.10;
 // Traversable aperture policy, audited against the constructed regional walls.
 // This is game design for the authored fantasy lots, not a historical claim.
 // Geometry is resolved from live thresholds: raised palace levels remain valid.
+// Complete current room/open-space inventory: docs/d05-entry-audit.md. Legacy
+// policy keys do not imply an extant aperture; classify only constructed doorways.
 const POLICY={
  japan:{
   'jp-food-prep-door':['half-curtain','Food preparation to public hall: split indigo service noren'],
@@ -41,7 +43,7 @@ const POLICY={
   'cn-official-room-gu-door':['door','Gu Heng private duty lodging needs an opaque inset door'],
   'cn-official-room-xu-door':['door','Xu Zhiyuan private duty lodging needs an opaque inset door'],
   'cn-money-house-front':['door','Inset timber public money-house entrance'],
-  'cn-money-house-store':['door','Enclosed coin store with a real inset timber door'],
+  'cn-money-house-store':['door','Enclosed coin store uses an inset timber door reached from the open counter-side aisle'],
   'cn-tavern-washroom-curtain':['full-curtain','Public inn WC has an opaque full curtain; its arrival and seat are clear of the safety hold zone'],
   'cn-tavern-public-entry':['open','Public house stair hall keeps direct access from the court'],
   'cn-tavern-dining-entry':['open','Open commercial restaurant arrival'],
@@ -76,25 +78,25 @@ const POLICY={
   'cn-study-west':['full-curtain','Quiet study lateral threshold uses opaque gathered silk'],
   'cn-study-east':['full-curtain','Quiet study lateral threshold uses opaque gathered silk'],
   'cn-bedroom-front':['door','Sleeping room front requires full lacquered privacy'],
-  'cn-bedroom-west':['door','Sleeping room west lateral opening must not bypass bedroom privacy'],
+  'cn-bedroom-west':['door','Third-floor dressing room off the private bedroom retains an opaque door'],
   'cn-bedroom-east':['door','Sleeping room east lateral opening must not bypass bedroom privacy'],
   'cn-kitchen-front':['full-curtain','Dining entrance uses full decorative silk panels'],
-  'cn-kitchen-rear':['door','Rear food-preparation entrance gets a timber service closure'],
+  'cn-kitchen-rear':['door','Ground-floor dining rear service entrance retains its timber closure below the preparation floor'],
   'cn-kitchen-west':['half-curtain','Dining side/service transition uses split cloth'],
   'cn-kitchen-east':['half-curtain','Dining side/service transition uses split cloth'],
   'cn-bath-front':['door','Bathing/changing room arrival requires opaque privacy'],
-  'cn-bath-west':['door','Bath side entry must not bypass privacy'],
-  'cn-bath-east':['door','Washroom exterior side entry requires opaque privacy'],
-  'cn-archive-front':['door','Enclosed archive entrance protects the reading/store function'],
-  'cn-archive-rear':['door','Archive rear building entrance uses matching timber closure'],
-  'cn-archive-west':['door','Archive lateral entrance uses matching timber closure'],
-  'cn-archive-east':['door','Archive lateral entrance uses matching timber closure'],
+  'cn-bath-west':['door','Linen/changing room off the washroom retains its opaque privacy door'],
+  'cn-bath-east':['door','Second-floor washroom arrival from the public stair hall requires opaque privacy'],
+  'cn-archive-front':['door','Culture tower ground-floor tea reception retains its existing inset main entrance'],
+  'cn-archive-rear':['door','Culture tower ground-floor rear entrance retains matching timber closure'],
+  'cn-archive-west':['door','Culture tower ground-floor lateral entrance retains its existing timber closure'],
+  'cn-archive-east':['door','Culture tower ground-floor lateral entrance retains its existing timber closure'],
   'cn-consort-heng-door':['door','Opaque inset leaves enclose Shen Heng’s individual private bedroom'],
   'cn-consort-ling-door':['door','Opaque inset leaves enclose Ling Yi’s individual private bedroom'],
   'cn-consort-reserve-1-door':['door','Opaque inset leaves enclose the unassigned southern chamber from the common corridor'],
-  'cn-guest-front':['door','Guest sleeping room needs full opaque privacy'],
-  'cn-guest-west':['door','Guest lateral access must not bypass sleeping privacy'],
-  'cn-guest-east':['door','Guest lateral access must not bypass sleeping privacy'],
+  'cn-guest-front':['door','Rear-palace ground-floor guest bedroom needs full opaque privacy'],
+  'cn-guest-west':['door','Retained guest-suite lateral privacy policy for legacy layouts'],
+  'cn-guest-east':['door','Ground-floor reception entrance retains its inset door; the inner corridor has separately enclosed private bedrooms'],
   'cn-kitchen-dining':['half-curtain','Food-service opening uses split cloth rather than a formal door'],
   'cn-bath-washroom':['full-curtain','Opaque gathered silk separates bath and WC without a rigid leaf obstructing the tub aisle'],
   'cn-lotus-bridge-south':['open','Outdoor bridge approach stays clear'],
@@ -277,7 +279,7 @@ export function fixedHalfCurtainSpecs(lot,region){
 }
 export const OPEN_CIRCULATION_AUDIT={
  japan:['3 internal stair flights and their 6 endpoints','2F stair-to-foyer gallery','3F stair/public side gallery','4F boiler-control gallery','front balcony promenades','west garden pavilion open sides','east market linking arcade open sides','arrival/shrine garden paths'],
- china:['gatehouse side arcade','front ceremonial court','bedroom-side courts (no unregistered enclosed side rooms in R12)','tea-side garden apertures','lotus bridge and stepped approaches','main hall upper stair/gallery (R14 contract)','rear archive upper stair/gallery (R14 contract)'],
- egypt:['internal forecourt around column hall','ascending ramp and both landing mouths','throne balcony connecting gallery','burial ramp','pyramid interior around separate living/service suites'],
- france:['front portico open sides','east state arcade open sides','west service arcade open sides','tea loggia open sides','rear terrace','garden axes and paths']
+ china:['gatehouse arcade and ceremonial/inner/north courts','main hall public stair and upper viewing gallery','culture tower tea reception, public stairs and second-floor gallery, third-floor reading/viewing hall','rear-palace ground-floor lateral public arrivals and all three stair halls','rear-palace reception to private-suite corridor; individual bedrooms retain their doors','third-floor private sitting alcove inside the already enclosed bedroom suite','royal-kitchen stair to preparation threshold (fixed service half-curtain)','Yunlai public stair halls, open restaurant and kitchen service passage, recital/banquet thresholds','money-house public counter-side aisle to staff workspace; coin store retains its door','clinic pharmacy/public stair hall and upper waiting landing; consultation and stock rooms retain doors','official-bureau upper public balcony/stair and office; sleeping rooms retain their closures','southwest archery rear entrance and waiting court','lotus bridge, garden paths, building porches and side service lanes'],
+ egypt:['entrance vestibule inner mouth and internal forecourt around column hall','ascending stair and both landing mouths','throne connecting platform and ceremonial hall','both descending stairs, turning landing and tomb antechamber','open offering-room and canopic-room portals off the burial sequence','public judgment hall and pyramid circulation around separate living/service suites'],
+ france:['front portico open sides','east rear and east front state connector arcades (separate open-sided slabs)','west rear and west front service connector arcades (separate open-sided slabs)','tea loggia open sides','rear terrace','public salon/art/orangery/music circulation; private bedroom and bath boundaries retain closures','garden axes, paths and north/south ornamental gateways']
 };
