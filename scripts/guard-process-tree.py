@@ -19,6 +19,7 @@ def own_tree(root):
 parser = argparse.ArgumentParser()
 parser.add_argument('--seconds', type=float, default=300)
 parser.add_argument('--mib', type=float, default=1228.8)
+parser.add_argument('--samples', help='Optional durable JSONL process-tree RSS sample file')
 parser.add_argument('command', nargs=argparse.REMAINDER)
 args = parser.parse_args()
 command = args.command[1:] if args.command[:1] == ['--'] else args.command
@@ -28,10 +29,16 @@ child = subprocess.Popen(command, start_new_session=True)
 peak = 0
 peak_members = {}
 stopped = None
+last_sample = -1
+samples = open(args.samples, "a", buffering=1) if args.samples else None
 try:
     while child.poll() is None:
         members = own_tree(os.getpid())
         rss = sum(members.values())
+        second = int(time.monotonic()-start)
+        if samples and second != last_sample:
+            samples.write(json.dumps({"seconds": second, "treeRSSMiB": round(rss/1024/1024, 3), "members": members})+"\n")
+            last_sample = second
         if rss > peak: peak, peak_members = rss, members
         if rss > args.mib*1024*1024: stopped = 'tree-rss-cap'
         elif time.monotonic()-start > args.seconds: stopped = 'time-cap'
@@ -41,6 +48,7 @@ try:
         time.sleep(.1)
     result = child.wait()
 finally:
+    if samples: samples.close()
     try: os.killpg(child.pid, signal.SIGKILL)
     except ProcessLookupError: pass
 print(json.dumps({'guard': 'STOP' if stopped else 'PASS' if result == 0 else 'FAILED',
