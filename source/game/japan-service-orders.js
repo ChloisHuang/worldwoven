@@ -62,9 +62,10 @@ export function japanReceptionReady(position,customerType='player') {
 const mealSource=v=>v.dishId==='sushi'?'sushiPickup':'kitchenPickup';
 const sourceOf=item=>item.dirty?'dining':item.kind==='mixture'?'apothecaryPickup':item.kind==='meal'?mealSource(item):'reception';
 
-export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},capacity=2,preservePhysical=false}={}) {
- const state={version:1,worldSeed:worldSeed>>>0,nextVisit:1,completed:0,cancelled:0,visits:[],items:[],diningReceipts:[],playerMealReceipts:[],receptionReceipts:[],receptionWaits:{},deliveryReceipts:[],deliveryWaits:{},mixingReceipts:[],mixingWaits:{},kitchenReceipts:[],kitchenWaits:{},tableReceipts:[],tableWaits:{}};
+export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},capacity=2,preservePhysical=false,onRelationshipEvent=()=>false,getRelationshipTime=()=>0}={}) {
+ const state={version:1,worldSeed:worldSeed>>>0,nextVisit:1,completed:0,cancelled:0,visits:[],items:[],diningReceipts:[],playerMealReceipts:[],receptionReceipts:[],receptionWaits:{},deliveryReceipts:[],deliveryWaits:{},mixingReceipts:[],mixingWaits:{},kitchenReceipts:[],kitchenWaits:{},tableReceipts:[],tableWaits:{},relationshipEvents:[]};
  if(saved?.version===1&&saved.worldSeed===(worldSeed>>>0)) {
+  state.relationshipEvents=clone(saved.relationshipEvents||[]);
   state.nextVisit=Math.max(1,Number.isSafeInteger(saved.nextVisit)?saved.nextVisit:1);
   state.completed=Math.max(0,saved.completed|0);state.cancelled=Math.max(0,saved.cancelled|0);
   state.diningReceipts=clone((saved.diningReceipts||[]).slice(-24));
@@ -94,7 +95,16 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
  const dutyKey=job=>Object.keys(JAPAN_PLAYER_DUTIES).find(key=>{const spec=JAPAN_PLAYER_DUTIES[key];return spec.kinds.includes(job.kind)&&(!spec.side||spec.side===job.side);});
  const matchesDuty=(job,key)=>dutyKey(job)===key;
  const snapshot=()=>({...clone(state),claims:[...claims.values()].map(clone),staffDuties:Object.fromEntries(staffDuties)});
- const persist=()=>{try{const result=saveState(snapshot());return result!==false&&!result?.then;}catch{return false;}};
+ // Pending events are saved with their source mutation before delivery. A failed
+ // receiver remains in the outbox; a successful receiver deduplicates replay by id.
+ const acknowledged=new Set();
+ const replayRelationships=()=>{for(const event of state.relationshipEvents)if(!acknowledged.has(event.id)){try{const result=onRelationshipEvent(clone(event));if(result?.ok===true&&!result?.then)acknowledged.add(event.id);}catch{}}};
+ const persist=()=>{state.relationshipEvents=state.relationshipEvents.filter(e=>!acknowledged.has(e.id));try{const result=saveState(snapshot());if(result===false||result?.then)return false;replayRelationships();return true;}catch{return false;}};
+ const relationship=(v,kind,actorId,participants,outcome='completed',suffix='')=>{
+  const id=`japan-service:${v.id}:${kind}:${outcome}${suffix}`;
+  if(!state.relationshipEvents.some(e=>e.id===id))state.relationshipEvents.push({id,source:'japan-service',outcome,actorId,participants:[...new Set([actorId,...participants])],kind:'service',serviceKind:kind,...(kind==='wrong-table'?{fault:true}:{}),at:Math.max(0,Number(getRelationshipTime())||0)});
+ };
+ replayRelationships();
  const receptionKind=kind=>['register','checkout'].includes(kind);
  const receptionReceipt=(job,v,outcome)=>{
   const workReceiptId=staffDuties.get('reception')?.receiptId;if(!workReceiptId||v.customerType==='player')return;
@@ -206,7 +216,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   if(workerId==='player'&&job.kind==='prepare'&&(v.preparation?.phase!=='sealed'||v.preparation.workReceiptId!==duty.receiptId||evidence.itemId!==`${v.id}:mixture`||evidence.blendId!==v.blendId))return false;
   if(workerId==='player'&&job.kind==='cook'&&(v.cooking?.phase!=='plated'||v.cooking.workReceiptId!==duty.receiptId||evidence.itemId!==`${v.id}:meal`||evidence.dishId!==(v.dishId||'ramen')))return false;
   if(['register','checkout'].includes(job.kind)&&!japanReceptionReady(evidence.guestPosition,v.customerType))return false;
-  const atomic=workerId==='player'||['prepare','cook','wash'].includes(job.kind),prior=atomic?clone(state):null;
+  const prior=clone(state);
   if(job.kind==='register') {
    v.tokenId=`${v.id}:token`;addItem(v,'token',{type:'guest',id:v.id});v.stage='changing';
   }else if(job.kind==='prepare') {
@@ -227,9 +237,9 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
    if(evidence.tokenId!==v.tokenId||item(v.tokenId)?.location.type!=='guest')return false;
    item(v.tokenId).location={type:'point',id:'reception'};v.stage=v.customerType==='player'?'departed':'leaving';if(v.customerType==='player')state.completed++;
   }
+  if(['register','checkout','serve'].includes(job.kind)||job.kind==='deliverMix'&&near(evidence.guestPosition,JAPAN_SERVICE_POINTS[v.side+'Receive']))relationship(v,job.kind,workerId,[v.customerType==='player'?'player':v.id]);
   if(v.orderKind==='dining'){v.participants??={};v.participants[job.kind]=workerId;}
-  if(atomic){if(workerId==='player')playerReceipt(job,v,'completed');const lease=clone(job);dropClaim(jobId);if(!persist()){restoreBoard(prior);claims.set(jobId,lease);workers.set(workerId,jobId);if(job.resource)resources.set(job.resource,jobId);return false;}return true;}
-  dropClaim(jobId);persist();return true;
+  if(workerId==='player')playerReceipt(job,v,'completed');const lease=clone(job);dropClaim(jobId);if(!persist()){restoreBoard(prior);claims.set(jobId,lease);workers.set(workerId,jobId);if(job.resource)resources.set(job.resource,jobId);return false;}return true;
  }
  function receipt(v,outcome){if(v.orderKind!=='dining'||state.diningReceipts.some(r=>r.id===v.id))return;state.diningReceipts.push({id:v.id,dishId:v.dishId,price:v.price,...(v.currency?{currency:v.currency}:{}),paymentId:v.paymentId,participants:clone(v.participants||{}),outcome});state.diningReceipts=state.diningReceipts.slice(-24);}
  function guestStep(id,event,evidence={}) {
@@ -319,7 +329,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   rejectTableDelivery(jobId,evidence={}) {
    const job=claims.get(jobId),v=job&&visit(job.visitId),target=visit(evidence.targetVisitId),cargo=item(job?.itemId),duty=staffDuties.get('tableService');
    if(disposed||job?.kind!=='serve'||job.workerId!=='player'||duty?.status!=='active'||evidence.receiptId!==duty.receiptId||!v||!target||target.id===v.id||target.customerType==='player'||!['waiting-meal','eating'].includes(target.stage)||cargo?.location.type!=='worker'||cargo.location.id!=='player'||evidence.itemId!==cargo.id||evidence.tokenId!==v.tokenId||evidence.visitId!==v.id||evidence.number!==v.number||!near(evidence.position,target.servePoint)||!near(evidence.guestPosition,target.diningPoint,.8))return false;
-   return transaction(()=>{tableReceipt(job,v,'rejected',target);cargo.location={type:'point',id:'wrong-table',targetVisitId:target.id};});
+   return transaction(()=>{tableReceipt(job,v,'rejected',target);relationship(v,'wrong-table', 'player',[target.id],'failed',':'+target.id);cargo.location={type:'point',id:'wrong-table',targetVisitId:target.id};});
   },
   prepareWork(jobId,workerId,phase,evidence={}) {
    const job=claims.get(jobId),v=job&&visit(job.visitId),duty=staffDuties.get('mixing');

@@ -1,3 +1,4 @@
+import {createServiceRelationshipOutbox,serviceRelationshipEvent} from './service-relationship-outbox.js';
 import {createPalaceTeaOrders} from './china-palace-tea-orders.js';
 import {createPalaceTeaProps,PALACE_TEA_POINTS as P} from './china-palace-tea-props.js';
 import {followActorRoute} from './actor-navigation.js';
@@ -6,10 +7,12 @@ import {followActorRoute} from './actor-navigation.js';
 // borrows only the host; guestTarget/guestPose form the explicit handshake.
 const copy=structuredClone,near=(n,p,r=.04)=>!!n&&Math.hypot(n.root.position.x-p[0],n.root.position.z-p[2])<r&&Math.abs(n.root.position.y-p[1])<.3;
 const LABEL={approach:'客人要一杯茶 · 请到茶案边',prepare:'按原单温杯备茶',pickup:'双手端起原杯与茶托',carry:'将原茶托送到客人面前',place:'把原杯与茶托安放在案上','guest-lift':'自愿端起原单茶杯',drink:'客人自愿品尝刚备好的茶',lower:'将原杯放回茶托',retrieve:'收起原杯与茶托',return:'把用过的原杯送回备茶处',clear:'清理原杯与茶托',home:'茶务办妥 · 回到原班位'};
-export function createPalaceTeaService({npcs,lot,doors,planPath,moveActor,poseContext=()=>({}),resolveAssignment,account,saved,saveState=()=>false}={}){
+export function createPalaceTeaService({npcs,lot,doors,planPath,moveActor,poseContext=()=>({}),resolveAssignment,account,saved,saveState=()=>false,onRelationshipEvent=()=>({ok:false})}={}){
+ const relationshipOutbox=createServiceRelationshipOutbox(onRelationshipEvent);
+ let relationshipTime=Number(saved?.relationshipTime)||0;const relationshipTimes={...(saved?.relationshipTimes||{})};
  let runtime=null,disposed=false,playerState={},loadError=null,lastGuestPose=-Infinity,recovery=null,ownedBody=null;
  const props=createPalaceTeaProps(lot.group),getHost=()=>{const a=resolveAssignment?.();return a?.alive!==false&&!['vacant','inactive','invalid'].includes(a?.status)?a?.actor||null:null;};
- const snapshot=(orders=ledger.snapshot())=>loadError?copy(saved):({version:1,orders,runtime:copy(runtime),recovery:copy(recovery)});
+ const snapshot=(orders=ledger.snapshot())=>{for(const o of orders.orders||[])if(['cleared','cancelled'].includes(o.stage)&&relationshipTimes[o.id]===undefined)relationshipTimes[o.id]=relationshipTime;return loadError?copy(saved):({version:1,orders,relationshipTime,relationshipTimes:copy(relationshipTimes),runtime:copy(runtime),recovery:copy(recovery)});};
  const ledger=createPalaceTeaOrders({saved:saved?.orders,saveState:orders=>saveState(snapshot(orders))});
  if(ledger.loadError)loadError=ledger.loadError;
  if(saved!=null&&(saved.version!==1||!saved.orders||!(saved.runtime===null||saved.runtime&&Object.keys(LABEL).includes(saved.runtime.phase)&&['actorId','guestId','visitId'].every(k=>typeof saved.runtime[k]==='string'&&saved.runtime[k])&&['holderRevision','elapsed','age','stalled'].every(k=>Number.isFinite(saved.runtime[k])&&saved.runtime[k]>=0)&&Number.isSafeInteger(saved.runtime.holderRevision)&&typeof saved.runtime.planned==='boolean')))loadError='invalid-tea-service-save';
@@ -74,6 +77,7 @@ export function createPalaceTeaService({npcs,lot,doors,planPath,moveActor,poseCo
    const result=ledger.request({guestId:customer.station.id,actorId:a.holderId,holderRevision:a.revision,visitId,day,arrived:true,guestAsked:true,hostAccepted:true});if(!result.ok){runtime=before;return result;}ownedBody=host;props.update(result.order,{host,guest:customer},'prepare');return result;
   },
   update(dt,t,state={}){
+   relationshipTime+=Math.max(0,dt);relationshipOutbox.deliver(ledger.snapshot().orders.filter(o=>['cleared','cancelled'].includes(o.stage)).map(o=>serviceRelationshipEvent('china-palace-tea',o.id,o.stage==='cleared'?'completed':'cancelled',o.actorId,o.guestId,relationshipTimes[o.id]??0)));
    playerState=state;if(disposed||!runtime||loadError)return;const host=getHost(),customer=guest(),o=active();
    if(!validHost()||blocked(host)||runtime.phase!=='home'&&(blocked(customer)||state.urgentGuest||state.guestDeparted||state.urgentHost||state.serviceConflict)){cancel();return;}
    ownedBody=host;

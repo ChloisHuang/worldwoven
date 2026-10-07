@@ -19,13 +19,13 @@ const position = (x, y, z) => ({x, y, z, toArray() {return [this.x, this.y, this
 const player = {root: {position: position(0, 0, 0)}};
 const teller = {station: {id: C.stationId, position: C.points.counter}, root: {position: position(...C.points.teller), rotation: {y: 0}, userData: {}}, animate() {}};
 let visible = true, rejects = false, writes = 0, saved, opens = 0, closes = 0;
-const events = [];
+const events = [],relationshipAttempts=[];let relationshipRejects=true;
 const ledger = createCurrencyLedger({saveState: next => {if (rejects) return false; saved = next; writes++;}, onTransaction: tx => events.push(tx)});
 let forceBalanceMismatch=false;
 const bankLedger={...ledger,balances:()=>{const all=ledger.balances();if(forceBalanceMismatch)all.japan.cash+=1;return all;}};
 const service = createChinaMoneyHouseService({npcs: [teller], lot: {moneyHouse: {}}, getPlayer: () => player,
   poseContext: () => ({}), copperLedger: bankLedger, canSee: () => visible, document: doc,
-  onOpen: () => opens++, onClose: () => closes++});
+  onOpen: () => opens++, onClose: () => closes++,getClock:()=>({seconds:73.25}),onRelationshipEvent:e=>{relationshipAttempts.push(structuredClone(e));return {ok:!relationshipRejects};}});
 const dialog = doc.body.children[0];
 const descendants = e => [e, ...e.children.flatMap(descendants)];
 const find = predicate => descendants(dialog).find(predicate);
@@ -50,7 +50,7 @@ assert.equal(ledger.state().bank, 20);
 assert(text().includes('银行存款：20 文'), 'Open bank UI refreshes after actual payroll commit');
 assert.equal(button('open'), undefined);
 oldOpen.onclick();
-assert.equal(writes, 1, 'A stale pre-payroll button cannot open another account');
+assert.equal(writes, 1, 'A stale pre-payroll button cannot open another account');assert.equal(relationshipAttempts.length,0,'Payroll and stale refusal never become a counter service');
 const allocate=value=>{const range=input('随身现金分配');range.value=String(value);range.oninput();};
 assert(button('allocation').disabled, 'Unchanged allocation cannot submit');
 let stopped=false;input('随身现金分配').listeners.keydown({stopPropagation(){stopped=true;}});assert(stopped,'Native range keyboard adjustment stays inside the bank panel');
@@ -64,8 +64,10 @@ assert.equal(input('交出兑换数目').type,'number');assert.equal(input('交�
 allocate(6);assert.equal(button('allocation').textContent,'取出 6 文');assert(text().includes('银行存款：14 文'));assert.equal(writes,beforeEditing,'Dragging previews balances without moving money');
 const originalWithdraw=button('allocation');rejects=true;originalWithdraw.onclick();
 assert.equal(ledger.state().cash,0);assert.equal(ledger.state().bank,20);assert(text().includes('这笔尚未记入'));
+assert.equal(relationshipAttempts.length,0,'Ledger save failure cannot generate a completed relationship event');
 rejects=false;allocate(6);const successfulWithdraw=button('allocation');successfulWithdraw.onclick();successfulWithdraw.onclick();
 assert.deepEqual([ledger.state().cash,ledger.state().bank],[6,14]);assert.equal(events.filter(tx=>tx.action==='withdraw').length,1);assert.equal(writes,2);
+assert.equal(relationshipAttempts.length,1);const firstRelationship=structuredClone(relationshipAttempts[0]);assert.equal(firstRelationship.actorId,C.stationId);assert.deepEqual(firstRelationship.participants,[C.stationId,'player']);assert.equal(firstRelationship.at,73.25);assert.equal(firstRelationship.serviceKind,'withdraw');relationshipRejects=false;service.update(0,0);assert.deepEqual(relationshipAttempts[1],firstRelationship,'relationship save retry keeps the receipt ID and time');service.update(0,0);assert.equal(relationshipAttempts.length,2,'accepted event is not repeated per frame');
 allocate(3);assert.equal(button('allocation').textContent,'存入 3 文');
 const cancelledPreview=button('allocation');dialog.listeners.cancel({preventDefault(){}});cancelledPreview.onclick();
 assert.deepEqual([ledger.state().cash,ledger.state().bank],[6,14],'Cancel discards only the unconfirmed allocation');assert(service.open());assert.equal(input('随身现金分配').value,'6');assert(button('allocation').disabled);
@@ -121,6 +123,11 @@ const reloaded = createCurrencyLedger({saved, saveState: () => {throw Error('no 
 assert(reloaded.creditWageToBank(wage).replayed);
 assert.deepEqual(reloaded.balances(), ledger.balances());
 assert.equal(reloaded.balances().copper.bank, 14);
+const uniqueRelationships=[...new Map(relationshipAttempts.map(e=>[e.id,e])).values()];assert.equal(uniqueRelationships.length,4,'Only committed open, withdraw, exchange and deposit are interpersonal counter services');
+const replayedRelationships=[],reloadDoc={head:new Element('head'),body:new Element('body'),createElement:tag=>new Element(tag)},replacement={...teller,station:{...teller.station,id:'cn-replacement-teller'}};
+const recovered=createChinaMoneyHouseService({npcs:[replacement],lot:{moneyHouse:{}},getPlayer:()=>player,poseContext:()=>({}),copperLedger:reloaded,document:reloadDoc,counterBinding:()=>({actor:replacement,holderId:replacement.station.id,revision:1,available:true}),bodyManaged:true,getClock:()=>({seconds:900}),onRelationshipEvent:e=>{replayedRelationships.push(e);return {ok:true};}});
+assert.deepEqual(replayedRelationships,uniqueRelationships,'Durable ledger receipts replay original teller identity and time despite the new holder');assert(replayedRelationships.every(e=>e.actorId===C.stationId));recovered.update(0,0);assert.equal(replayedRelationships.length,4);recovered.dispose();
+
 assert(opens >= 3 && closes >= 3);
 service.dispose();assert(dialog.removed);
 console.log('PASS physical bank UI: single-row live allocation preview and direct FX entry, confirmed delta, unchanged/zero/unopened/invalid guards, changed-balance recheck, FX, stale/repeated clicks, save failure and cancel/reload');

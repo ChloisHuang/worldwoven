@@ -348,7 +348,9 @@
     "required": [
       "daily-needs.mjs",
       "npc-life-decisions.mjs",
-      "simulation-clock.mjs"
+      "simulation-clock.mjs",
+      "relationship-events.mjs",
+      "social-attention.mjs"
     ],
     "integration": [
       "airy-panel-default-cascade.mjs",
