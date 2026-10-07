@@ -3,7 +3,10 @@
  * actor template, hair, identity, skeleton, material, or ownership/disposal path.
  * Consort pins and open flower ornaments are deliberately outside this scope. */
 import * as THREE from 'three';
-const PIVOT=1.455,CENTER_Z=-.025,TAU=Math.PI*2,SECTORS=48,CLEARANCE=.002;
+// Fixed 4 mm sampled allowance covers the coarse cap panels between tested
+// hair vertices/edge midpoints. Two millimetres left a 0.432 mm intersection at
+// a one-third hair edge; use conservative geometry, not growing runtime samples.
+const PIVOT=1.455,CENTER_Z=-.025,TAU=Math.PI*2,SECTORS=48,CLEARANCE=.004;
 const CAPS={
  'Original civil official black winged cap':{kind:'official',shell:'court-official-rounded-black-crown'},
  'Original Ming folded black duty cap':{kind:'jinyi',shell:'jinyi-folded-crown'},
