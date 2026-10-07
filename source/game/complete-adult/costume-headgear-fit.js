@@ -15,18 +15,18 @@ function restMatrix(group,mesh){
  const matrix=new THREE.Matrix4().makeTranslation(0,PIVOT,0);for(const n of chain.reverse()){n.updateMatrix();matrix.multiply(n.matrix);}return matrix;
 }
 function samples(actor,low,high){
- const points=[],bins=new Map();
- actor.root.traverse(mesh=>{if(!mesh.isSkinnedMesh)return;const g=mesh.geometry,p=g.attributes.position;
+ const points=[],seen=new Set();
+ const add=(x,y,z)=>{if(y<low||y>high)return;const key=[x,y,z].map(v=>Math.round(v*1e6)).join('|');if(seen.has(key))return;seen.add(key);const radius=Math.hypot(x,z-CENTER_Z);if(radius>1e-8)points.push({x,y,z,radius,angle:(Math.atan2(x,z-CENTER_Z)+TAU)%TAU});};
+ actor.root.traverse(mesh=>{if(!mesh.isSkinnedMesh)return;const g=mesh.geometry,p=g.attributes.position,ix=g.index;
   for(const r of g.userData.sourceRanges??[]){if(!HAIR.test(r.name)&&!r.name.startsWith('continuous-head-anatomical-'))continue;
-   for(let i=r.start;i<r.start+r.count;i++){
-    const x=p.getX(i),y=p.getY(i),z=p.getZ(i);if(y<low||y>high)continue;const radius=Math.hypot(x,z-CENTER_Z),angle=(Math.atan2(x,z-CENTER_Z)+TAU)%TAU;
-    // Keep the outside sample in a fine angular/height cell. Distinct crests
-    // remain represented without re-fitting thousands of duplicate seam points.
-    const key=Math.floor(angle/TAU*192)+'|'+Math.floor(y/.0015),before=bins.get(key);
-    if(!before||radius>before.radius)bins.set(key,{x,y,z,radius,angle});
+   for(let i=r.start;i<r.start+r.count;i++)add(p.getX(i),p.getY(i),p.getZ(i));
+   // A crest can cross a coarse cap triangle between its vertices. Retain
+   // actual indexed surface interiors, not only the furthest vertex in a bin.
+   for(let j=r.indexStart;j<r.indexStart+r.indexCount;j+=3){const ids=[ix.getX(j),ix.getX(j+1),ix.getX(j+2)];
+    for(const w of [[.5,.5,0],[0,.5,.5],[.5,0,.5],[1/3,1/3,1/3]]){const q=[0,1,2].map(k=>ids.reduce((sum,id,h)=>sum+p.array[id*3+k]*w[h],0));add(...q);}
    }
   }
- });for(const q of bins.values())points.push(q);return points;
+ });return points;
 }
 function shellSurface(shell,matrix){
  const p=shell.geometry.attributes.position,ix=shell.geometry.index,triangles=[],v=new THREE.Vector3();let low=Infinity,high=-Infinity;

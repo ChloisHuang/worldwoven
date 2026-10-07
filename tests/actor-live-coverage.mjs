@@ -7,6 +7,8 @@ const C=await import('../source/game/characters.js'),A=await import('../source/g
 const {resolvePlayerWardrobe}=await import('../source/game/player-wardrobe.js');
 const {createJapanVisitorIdentity}=await import('../source/game/japan-visitors.js');
 await import('../source/game/character-live-entry.js');
+const selectedHair=process.env.C01_HAIR_FILTER?.split(',');
+const hairstyles=A.HAIR_STYLES.filter(h=>!selectedHair||selectedHair.includes(h));assert(hairstyles.length);
 const counts={},failures=[],signatures=new Map();let checked=0;
 function check(options,label){
  const input=JSON.stringify(options),actor=C.createCharacter(options),model=actor.root.userData.characterModel;
@@ -34,14 +36,14 @@ for(const culture of ['china','japan','egypt','france']){
  for(const bodyPreset of A.BODY_PRESETS){
   const sex=bodyPreset.startsWith('masculine')?'masculine':'feminine';
   const wardrobes=[...A.WARDROBE_PRESETS[culture][sex],...(A.ROLE_WARDROBE_PRESETS[culture]??[]),'bath-robe',...(culture==='japan'?['onsen-swimwear']:[])];
-  for(const hairStyle of A.HAIR_STYLES)for(const wardrobePreset of wardrobes)for(const style of ['casual','chef','artist','gardener']){
+  for(const hairStyle of hairstyles)for(const wardrobePreset of wardrobes)for(const style of ['casual','chef','artist','gardener']){
    const options={culture,bodyPreset,hairStyle,wardrobePreset,style,skin:0xdfb18d,hair:0x382d27,eyeColor:0x52392b};
    check(options,[culture,bodyPreset,hairStyle,wardrobePreset,style].join('/'));
   }
  }
  console.error('C01 matrix',culture,counts[culture],failures.length);
 }
-for(const [key,styles]of signatures){assert.equal(styles.size,6,key);assert.equal(new Set(styles.values()).size,6,key+' must render six distinct hairstyle meshes');}
+for(const [key,styles]of signatures){assert.equal(styles.size,hairstyles.length,key);assert.equal(new Set(styles.values()).size,hairstyles.length,key+' must render distinct saved hairstyle meshes');}
 // Existing dynamic visitor identity and occupational wardrobe resolvers use
 // the same final renderer without rewriting the six-trait saved identity.
 for(let number=1;number<=8;number++){
@@ -50,7 +52,7 @@ for(let number=1;number<=8;number++){
 }
 for(const bodyPreset of A.BODY_PRESETS){
  const state=A.createAppearanceState(41,{extended:false});state.player.bodyPreset=bodyPreset;
- for(const hairStyle of A.HAIR_STYLES){state.player.hairStyle=hairStyle;const before=JSON.stringify(state),reload=JSON.parse(before);
+ for(const hairStyle of hairstyles){state.player.hairStyle=hairStyle;const before=JSON.stringify(state),reload=JSON.parse(before);
   for(const request of [{region:'china',dutyPreset:'jinyi-training'},{region:'japan',servicePreset:'bath-robe'},{region:'japan',bath:{kind:'bath',bathWardrobePreset:'onsen-swimwear'}},{region:'china',dutyPreset:'jinyi-training',preview:true}]){
    const resolved=resolvePlayerWardrobe({appearance:reload,...request});check({...resolved.look,culture:request.region,previewSubject:'player'},'player-'+resolved.source);
   }
@@ -58,4 +60,4 @@ for(const bodyPreset of A.BODY_PRESETS){
  }
 }
 assert.equal(C.characterResourceStats().activeReferences,0);assert.equal(failures.length,0,JSON.stringify(failures.slice(0,25),null,2));
-console.log(JSON.stringify({status:'PASS',checked,counts,distinctSavedStyles:true,failures,scope:'Real createCharacter merged geometry and finite neutral pose across every currently normalized body/hair/wardrobe/style combination; no browser or art acceptance claim'},null,2));
+console.log(JSON.stringify({status:'PASS',checked,counts,hairstyles,distinctSavedStyles:true,failures,scope:'Real createCharacter merged geometry and finite neutral pose across the selected currently normalized body/hair/wardrobe/style combinations; no browser or art acceptance claim'},null,2));
