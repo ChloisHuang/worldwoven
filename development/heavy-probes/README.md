@@ -1,0 +1,15 @@
+# Resource-bounded recovery probes
+
+Probe-local DOM adapter enumerates attached elements only, preserving static HTML IDs as roots. Detached elements are no longer retained by a global allocation registry. The teller textContent setter also detaches old children.
+
+All stages use the exact shared /workspace/shared/worldwoven-heavy-scene.lock with flock -n, a 768 MiB Node old-space limit, 1,152 MiB process-tree RSS cap and 180-second external deadline including initialization. Logs, explicit exit status and per-second RSS samples are retained in ignored qa/. The cap is sampled, not a hard kernel allocation limit. No automatic stage advancement or retry.
+
+Run one stage only after the preceding stage has been reviewed:
+- bash development/heavy-probes/run-bounded.sh unit (DOM only, no game imports)
+- bash development/heavy-probes/run-bounded.sh init (main imports, no region travel)
+- NATURAL_COUNTRY=china bash development/heavy-probes/run-bounded.sh load (world creation/restoration, no simulation steps)
+- NATURAL_COUNTRY=china NATURAL_FRAMES=30 bash development/heavy-probes/run-bounded.sh segment
+
+Natural segments default to 30 steps and are capped at 300; SOCIAL_RESUME may name the existing checkpoint. A checkpoint is not proof of terminal completion or of seamless continuation through every controller state.
+
+These changes have not been executed or syntax-tested yet. Heavy tests remain paused pending parent clearance. A guard stop is neither a product failure nor a passing check. Simulated DOM/renderer checks are not browser or phone acceptance.

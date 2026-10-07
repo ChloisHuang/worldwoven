@@ -1811,3 +1811,5 @@ R186合流：以15b0bb5为底合0c958d0相对048d0a3的27文件，main六处冲�
 R186构建通过：590登记、365正式源映射/9,566,877计数字节、v219旧365独立图和353独立JS/cache通过，移动QA完整保留。
 
 R16.186/v220 于2026-10-07T09:54:25Z原公开站点发布成功：source `93b0180410602b62444138b012fff99ac6ab3720`，private main `0e98aab544c8012468b9255d80cda5654f7299a3` 先回读；deployment `appgdep_6ac616c53d148191b38b6b8156111728` succeeded，https://alien.doudouai.net active/public，受众revision6保持。中国茶务/六册馆藏两岗原杯托/原册实作与8文结款交付，保空手摆臂/厕所/旋转HUD全部P0。590登记、365源映射/9,566,877字节及353独立JS/cache通过，职业全覆盖与实机接受仍开放。
+
+恢复探针内存风险修正候选（2026-10-07）：仅定向探针改为attached DOM枚举，移除全量分配节点强引用；共用 `/workspace/shared/worldwoven-heavy-scene.lock` 非阻塞锁，768 MiB old-space、1152 MiB进程树RSS、180秒外部守卫与逐秒留痕。拆分unit/init/load后再运行单项，所有新增修改尚未执行任何检查；测试暂停至父任务明确放行，不作为OOM归因或产品验收。见 `development/heavy-probes/README.md`。

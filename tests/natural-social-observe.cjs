@@ -1,12 +1,13 @@
 // Bounded observational production-main pass from a normal migrated new save
 // (fixed seed 42, never searched) or its own real checkpoint. No positions,
 // invitations, relationships, funds, clocks or response probabilities are set.
-// Run SERIAL with other main/3D probes: NATURAL_COUNTRY=china NATURAL_FRAMES=2400
-// node --max-old-space-size=950 --experimental-vm-modules tests/natural-social-observe.cjs
+// Run SERIAL with other main/3D probes: NATURAL_COUNTRY=china NATURAL_FRAMES=30
+// bash development/heavy-probes/run-bounded.sh segment (max 300 frames)
 // Continue with SOCIAL_RESUME=qa/natural-china-checkpoint.json. Only events that
 // actually finish are evidence of completion. Simulated DOM/renderer, not iOS.
 const fs=require('node:fs'),vm=require('node:vm');process.env.QA_START_MS||=String(Date.now());
-let harness=fs.readFileSync('tests/fixtures/hotfix-input-harness.cjs','utf8');
+if(process.env.WORLDWOVEN_GUARDED!=='1')throw new Error('Use development/heavy-probes/run-bounded.sh for the shared lock and resource limits');
+let harness=require('../development/heavy-probes/bounded-dom.cjs')(fs.readFileSync('tests/fixtures/hotfix-input-harness.cjs','utf8'));
 const extra=`
 export function socialReview(){return {player,lot,camera,scene,sun,lighting,npcs,franceGardener,franceLabor,formalCareers,npcSocial,playerConversations,playerSocialContext,automaticDoors,navOptions,playerConversationUI,careerHandbook,contextMenu,npcPublicInteractions,franceTea,socialMeetingPlaces,chinaSalon,chinaOfficialEconomy,chinaAudience,simulationClock,chinaTavern};}
 export function socialStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);updateGameHealth(dt);}
@@ -21,8 +22,10 @@ harness=harness.replace('add(...e){this.append(...e)}','prepend(...els){for(cons
 harness=harness.replace("const main=mod(path.join(root,'game/main.js'));","if(process.env.SOCIAL_RESUME)storage['worlds-days-v1']=fs.readFileSync(process.env.SOCIAL_RESUME,'utf8');const main=mod(path.join(root,'game/main.js'));");
 const begin=harness.indexOf('const report=[];for(let round=0;');
 const body=String.raw`
+if(process.env.PROBE_STAGE==='init'){console.log('PASS main import only',process.resourceUsage().maxRSS/1024);return;}
 const country=process.env.NATURAL_COUNTRY||'france';if(state().mode!=='lot'){all.find(e=>e.dataset.region===country).onclick();ids.travel.onclick();}const r=main.namespace.socialReview();const start=Date.now(),stages=[],availability={},pairs={};let prev=null;
-for(let i=0;i<Number(process.env.NATURAL_FRAMES||8000);i++){
+if(process.env.PROBE_STAGE==='load'){console.log('PASS world load only',country,r.simulationClock.state(),process.resourceUsage().maxRSS/1024);return;}
+for(let i=0;i<Math.min(300,Math.max(1,Number(process.env.NATURAL_FRAMES)||30));i++){
  now+=150;main.namespace.socialStep(.15);
  const st=r.npcPublicInteractions.status();if(country==='china'&&i%400===0)console.log('SALON',i,JSON.stringify({quotes:r.chinaSalon.view().candidates.map(n=>[n.id,n.quoteFee]),clock:r.simulationClock.state(),money:r.chinaOfficialEconomy.snapshot().accounts,session:r.chinaSalon.snapshot().session,choices:r.npcs.filter(n=>r.chinaOfficialEconomy.account(n.station.id)).map(n=>[n.station.id,r.chinaSalon.npcChoices(n.station.id)]),life:r.chinaAudience.state().life?.actors}));if(st?.eventId+':'+st?.stage!==prev){stages.push({i,status:st});console.log('STAGE',i,JSON.stringify(st));prev=st?.eventId+':'+st?.stage;}
  if(i%40===0){const pool=r.npcs.filter(n=>main.namespace.naturalMode(n));for(const n of pool)availability[n.station.id]=(availability[n.station.id]||0)+1;for(const a of pool)for(const b of pool)if(a!==b&&a.root.position.distanceTo(b.root.position)<12){const key=[a.station.id,b.station.id].sort().join(':');pairs[key]??={count:0,min:99};pairs[key].count++;pairs[key].min=Math.min(pairs[key].min,a.root.position.distanceTo(b.root.position));}}
