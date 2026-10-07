@@ -61,3 +61,5 @@
 23:28 UTC真实回应/房权/资金reserved：顾流萤原身体走到前台，于life624.15秒当次willing=true，原兰房为cn-salon-npc-1保留；接待原登记2秒+留房2秒完成后，627.15秒原支付接口一次预留80文，记录官银行96→16、cash0，sourceSplit明确bank80。原hold状态reserved，兰房claim owner同session/status reserved；艺者收入/回执仍0（预留不算完成收入）。stage=escort/leg0，立即保档未继续。63帧，51.157秒/676.406MiB，guard PASS/exit0。下一先核验此真实资金/房权的恢复，再沿同body/原公共楼梯实际escort及一次结清；未直接settle或增发钱。
 
 23:31 UTC原reserved/兰房恢复PASS：零步加载保同cn-salon-npc-1、记录官/顾流萤/80文/escort leg0；银行16和bank80 reserved hold完全相同，没有退款/重扣，兰房claim重新建立为同session owner/reserved，艺者账本仍0。完整salon snapshot、原clock、所有演员位置/RNG保持，0跳过/迁移。46.634秒/688.035MiB，guard PASS/exit0。恢复checkpoint qa/st03-r190/active-restore-20261007T233103Z-2.checkpoint.json；下一直接原escort到一次settled，不重复预留。
+
+23:36 UTC原物理引路→服务→一次结清PASS：原cn-salon-npc-1从reserved leg0经三段原楼梯/房门路线，双方分别635.7秒到三层梯厅、646.35秒到二层梯厅、655.95秒到兰房原站位，656.1秒both-entered→非露骨fade，661.35秒原settle80后visiting。银行仍16，无第二次扣款；顾流萤一次income回执银行40，接待原2+2+2秒工作完成后一次工资回执8；官方同ID只有一笔reserve和一笔settle，hold=settled。兰房仍occupied属于该会话，原6秒收尾/释放待验。228帧/34.2模拟秒，97.884秒/706.500MiB，guard PASS/exit0。未直接请求结算或造任何凭据。下一从该真实settled checkpoint恢复，等原释放并比对资金/收入不重复。

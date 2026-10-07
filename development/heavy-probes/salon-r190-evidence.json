@@ -2583,6 +2583,700 @@
         "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
       },
       "harnessCorrection": "Service tracking now selects exact original session.customerId rather than first paid intention among all officials. No product edit or assertions relaxed."
+    },
+    {
+      "status": "PASS",
+      "input": "qa/st03-r190/active-restore-20261007T233103Z-2.checkpoint.json",
+      "checkpoint": "qa/st03-r190/service-20261007T233439Z-2.checkpoint.json",
+      "checkpointSha256": "331f5e42010049abb5100e0f80c9e2c5f70543f9dae07d1e9f6ae3e817e885e6",
+      "frames": 228,
+      "clock": {
+        "seconds": 9147.064285712682,
+        "day": 4,
+        "hour": 20.71574999998129
+      },
+      "session": {
+        "id": "cn-salon-npc-1",
+        "customerId": "cn-official-records",
+        "customerName": "宋承简 · 文书官（正九品）",
+        "actorId": "cn-tavern-songwriter",
+        "activity": "music",
+        "serviceContent": "顾流萤轻轻念出新填曲词的节拍，请你听韵脚怎样落下。",
+        "stage": "visiting",
+        "roomId": "tavern-guest-lan",
+        "leg": 3,
+        "fee": 80,
+        "quoteVersion": 1,
+        "payment": "settled",
+        "incomePolicy": {
+          "version": 1,
+          "performerShareBps": 5000,
+          "rounding": "floor"
+        },
+        "receptionWork": {
+          "version": 1,
+          "sessionId": "cn-salon-npc-1",
+          "actorId": "cn-tavern-reception",
+          "holderRevision": 0,
+          "roleId": "cn-salon-reception",
+          "slotId": "cn-salon-reception-1",
+          "contractVersion": 1,
+          "amount": 8,
+          "customerId": "cn-official-records",
+          "artistId": "cn-tavern-songwriter",
+          "activity": "music",
+          "fee": 80,
+          "cardId": "salon-reception-card:cn-salon-npc-1",
+          "roomId": "tavern-guest-lan",
+          "phase": "completed",
+          "seconds": 0,
+          "steps": {
+            "registerSeconds": 2,
+            "reserveSeconds": 2,
+            "closeSeconds": 2
+          }
+        }
+      },
+      "rooms": [
+        {
+          "id": "tavern-guest-lan",
+          "name": "兰房",
+          "claim": {
+            "owner": "cn-salon-npc-1",
+            "status": "occupied"
+          },
+          "physicallyOccupied": true
+        },
+        {
+          "id": "tavern-guest-zhu",
+          "name": "竹房",
+          "claim": null,
+          "physicallyOccupied": false
+        }
+      ],
+      "balances": {
+        "cn-minister-works": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-minister-granary": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-rites": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-personnel": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-justice": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-records": {
+          "bank": 16,
+          "cash": 0
+        }
+      },
+      "hold": {
+        "id": "cn-salon-npc-1",
+        "actorId": "cn-official-records",
+        "amount": 80,
+        "artistId": "cn-tavern-songwriter",
+        "activity": "music",
+        "incomePolicy": {
+          "version": 1,
+          "performerShareBps": 5000,
+          "rounding": "floor"
+        },
+        "sourceSplit": {
+          "cash": 0,
+          "bank": 80
+        },
+        "status": "settled"
+      },
+      "originalSalonTransactions": [
+        {
+          "id": "official-25",
+          "action": "salon-reserve",
+          "actorId": "cn-official-records",
+          "amount": 80,
+          "receiptId": "official-salon-reserve:cn-salon-npc-1",
+          "orderId": "cn-salon-npc-1",
+          "artistId": "cn-tavern-songwriter",
+          "activity": "music",
+          "incomePolicy": {
+            "version": 1,
+            "performerShareBps": 5000,
+            "rounding": "floor"
+          },
+          "from": "cn-official-records:bank",
+          "to": "official-salon-escrow:cn-salon-npc-1",
+          "sourceSplit": {
+            "cash": 0,
+            "bank": 80
+          },
+          "before": {
+            "governmentPaid": 576,
+            "accounts": {
+              "cn-minister-works": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-minister-granary": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-official-rites": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-official-personnel": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-official-justice": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-official-records": {
+                "bank": 96,
+                "cash": 0
+              }
+            },
+            "destinations": {
+              "cn-yunlai-tavern": 0
+            }
+          },
+          "after": {
+            "governmentPaid": 576,
+            "accounts": {
+              "cn-minister-works": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-minister-granary": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-official-rites": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-official-personnel": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-official-justice": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-official-records": {
+                "bank": 16,
+                "cash": 0
+              }
+            },
+            "destinations": {
+              "cn-yunlai-tavern": 0
+            },
+            "salonHolds": {
+              "cn-salon-npc-1": {
+                "id": "cn-salon-npc-1",
+                "actorId": "cn-official-records",
+                "amount": 80,
+                "artistId": "cn-tavern-songwriter",
+                "activity": "music",
+                "incomePolicy": {
+                  "version": 1,
+                  "performerShareBps": 5000,
+                  "rounding": "floor"
+                },
+                "sourceSplit": {
+                  "cash": 0,
+                  "bank": 80
+                },
+                "status": "reserved"
+              }
+            }
+          }
+        },
+        {
+          "id": "official-26",
+          "action": "salon-settle",
+          "actorId": "cn-official-records",
+          "amount": 80,
+          "receiptId": "official-salon-settle:cn-salon-npc-1",
+          "orderId": "cn-salon-npc-1",
+          "artistId": "cn-tavern-songwriter",
+          "activity": "music",
+          "incomePolicy": {
+            "version": 1,
+            "performerShareBps": 5000,
+            "rounding": "floor"
+          },
+          "evidence": {
+            "kind": "salon-service",
+            "completed": true,
+            "orderId": "cn-salon-npc-1",
+            "customerId": "cn-official-records",
+            "artistId": "cn-tavern-songwriter",
+            "activity": "music",
+            "elapsed": 5.250000000000002,
+            "duration": 2.2
+          },
+          "from": "official-salon-escrow:cn-salon-npc-1",
+          "to": "cn-yunlai-tavern",
+          "sourceSplit": {
+            "cash": 0,
+            "bank": 80
+          },
+          "before": {
+            "governmentPaid": 576,
+            "accounts": {
+              "cn-minister-works": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-minister-granary": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-official-rites": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-official-personnel": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-official-justice": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-official-records": {
+                "bank": 16,
+                "cash": 0
+              }
+            },
+            "destinations": {
+              "cn-yunlai-tavern": 0
+            },
+            "salonHolds": {
+              "cn-salon-npc-1": {
+                "id": "cn-salon-npc-1",
+                "actorId": "cn-official-records",
+                "amount": 80,
+                "artistId": "cn-tavern-songwriter",
+                "activity": "music",
+                "incomePolicy": {
+                  "version": 1,
+                  "performerShareBps": 5000,
+                  "rounding": "floor"
+                },
+                "sourceSplit": {
+                  "cash": 0,
+                  "bank": 80
+                },
+                "status": "reserved"
+              }
+            }
+          },
+          "after": {
+            "governmentPaid": 576,
+            "accounts": {
+              "cn-minister-works": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-minister-granary": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-official-rites": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-official-personnel": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-official-justice": {
+                "bank": 96,
+                "cash": 0
+              },
+              "cn-official-records": {
+                "bank": 16,
+                "cash": 0
+              }
+            },
+            "destinations": {
+              "cn-yunlai-tavern": 80
+            },
+            "salonHolds": {
+              "cn-salon-npc-1": {
+                "id": "cn-salon-npc-1",
+                "actorId": "cn-official-records",
+                "amount": 80,
+                "artistId": "cn-tavern-songwriter",
+                "activity": "music",
+                "incomePolicy": {
+                  "version": 1,
+                  "performerShareBps": 5000,
+                  "rounding": "floor"
+                },
+                "sourceSplit": {
+                  "cash": 0,
+                  "bank": 80
+                },
+                "status": "settled"
+              }
+            }
+          }
+        }
+      ],
+      "artistEconomy": {
+        "version": 2,
+        "revision": 1,
+        "grossRevenue": 80,
+        "performerPaid": 40,
+        "businessProceeds": 40,
+        "accounts": {
+          "cn-tavern-reciter": {
+            "cash": 0,
+            "bank": 0
+          },
+          "cn-tavern-storyteller": {
+            "cash": 0,
+            "bank": 0
+          },
+          "cn-tavern-songwriter": {
+            "cash": 0,
+            "bank": 40
+          },
+          "cn-tavern-chess-poet": {
+            "cash": 0,
+            "bank": 0
+          }
+        },
+        "receipts": [
+          {
+            "receptionWork": {
+              "kind": "salon-reception-work",
+              "version": 1,
+              "sessionId": "cn-salon-npc-1",
+              "actorId": "cn-tavern-reception",
+              "roleId": "cn-salon-reception",
+              "slotId": "cn-salon-reception-1",
+              "holderRevision": 0,
+              "contractVersion": 1,
+              "amount": 8,
+              "customerId": "cn-official-records",
+              "artistId": "cn-tavern-songwriter",
+              "activity": "music",
+              "fee": 80,
+              "roomId": "tavern-guest-lan",
+              "steps": {
+                "registerSeconds": 2,
+                "reserveSeconds": 2,
+                "closeSeconds": 2
+              },
+              "completed": true
+            },
+            "id": "salon-income:cn-salon-npc-1",
+            "sessionId": "cn-salon-npc-1",
+            "settlementId": "official-26",
+            "sourceProvider": "china-official-economy",
+            "customerId": "cn-official-records",
+            "actorId": "cn-tavern-songwriter",
+            "activity": "music",
+            "businessId": "cn-yunlai-tavern",
+            "currency": "copper",
+            "gross": 80,
+            "incomePolicy": {
+              "version": 1,
+              "performerShareBps": 5000,
+              "rounding": "floor"
+            },
+            "businessCredit": 80,
+            "businessDebit": 40,
+            "performerPaid": 40,
+            "businessProceeds": 40,
+            "sequence": 1
+          }
+        ],
+        "mealTransfers": []
+      },
+      "receptionAccount": {
+        "version": 2,
+        "revision": 1,
+        "accounts": {
+          "cn-tavern-reception": {
+            "cash": 0,
+            "bank": 8
+          }
+        },
+        "receipts": [
+          {
+            "id": "salon-reception-wage:cn-salon-reception:cn-salon-npc-1",
+            "sessionId": "cn-salon-npc-1",
+            "actorId": "cn-tavern-reception",
+            "roleId": "cn-salon-reception",
+            "slotId": "cn-salon-reception-1",
+            "holderRevision": 0,
+            "contractVersion": 1,
+            "businessId": "cn-yunlai-tavern",
+            "currency": "copper",
+            "amount": 8,
+            "incomeReceiptId": "salon-income:cn-salon-npc-1",
+            "settlementId": "official-26",
+            "proof": {
+              "kind": "salon-reception-work",
+              "version": 1,
+              "sessionId": "cn-salon-npc-1",
+              "actorId": "cn-tavern-reception",
+              "roleId": "cn-salon-reception",
+              "slotId": "cn-salon-reception-1",
+              "holderRevision": 0,
+              "contractVersion": 1,
+              "amount": 8,
+              "customerId": "cn-official-records",
+              "artistId": "cn-tavern-songwriter",
+              "activity": "music",
+              "fee": 80,
+              "roomId": "tavern-guest-lan",
+              "steps": {
+                "registerSeconds": 2,
+                "reserveSeconds": 2,
+                "closeSeconds": 2
+              },
+              "completed": true
+            },
+            "sequence": 1
+          }
+        ],
+        "mealTransfers": []
+      },
+      "salonHistory": [
+        {
+          "event": "npc-invited",
+          "id": "cn-salon-npc-1",
+          "actorId": "cn-tavern-songwriter",
+          "customerId": "cn-official-records",
+          "roomId": null,
+          "time": 612.15
+        },
+        {
+          "event": "reception-register",
+          "id": "cn-salon-npc-1",
+          "actorId": "cn-tavern-songwriter",
+          "customerId": "cn-official-records",
+          "roomId": null,
+          "time": 615.15,
+          "receptionistId": "cn-tavern-reception",
+          "cardId": "salon-reception-card:cn-salon-npc-1"
+        },
+        {
+          "event": "reply",
+          "id": "cn-salon-npc-1",
+          "actorId": "cn-tavern-songwriter",
+          "customerId": "cn-official-records",
+          "roomId": null,
+          "time": 622.95
+        },
+        {
+          "event": "response",
+          "id": "cn-salon-npc-1",
+          "actorId": "cn-tavern-songwriter",
+          "customerId": "cn-official-records",
+          "roomId": null,
+          "time": 624.15,
+          "willing": true,
+          "reply": "新填的曲词还想推敲几处。我们带一壶茶，下楼慢慢聊。",
+          "position": [
+            22.820563903672685,
+            7.815,
+            7.690900989137033
+          ],
+          "player": [
+            24.15,
+            7.815,
+            7.65
+          ]
+        },
+        {
+          "event": "accepted",
+          "id": "cn-salon-npc-1",
+          "actorId": "cn-tavern-songwriter",
+          "customerId": "cn-official-records",
+          "roomId": "tavern-guest-lan",
+          "time": 624.15
+        },
+        {
+          "event": "reception-reserve",
+          "id": "cn-salon-npc-1",
+          "actorId": "cn-tavern-songwriter",
+          "customerId": "cn-official-records",
+          "roomId": "tavern-guest-lan",
+          "time": 627.15,
+          "receptionistId": "cn-tavern-reception",
+          "cardId": "salon-reception-card:cn-salon-npc-1"
+        },
+        {
+          "event": "reserved",
+          "id": "cn-salon-npc-1",
+          "actorId": "cn-tavern-songwriter",
+          "customerId": "cn-official-records",
+          "roomId": "tavern-guest-lan",
+          "time": 627.15,
+          "amount": 80
+        },
+        {
+          "event": "escort",
+          "id": "cn-salon-npc-1",
+          "actorId": "cn-tavern-songwriter",
+          "customerId": "cn-official-records",
+          "roomId": "tavern-guest-lan",
+          "time": 627.15
+        },
+        {
+          "event": "escort-leg",
+          "id": "cn-salon-npc-1",
+          "actorId": "cn-tavern-songwriter",
+          "customerId": "cn-official-records",
+          "roomId": "tavern-guest-lan",
+          "time": 635.7,
+          "leg": 0,
+          "actor": [
+            19.91580505404123,
+            7.815,
+            9.19236069296818
+          ],
+          "player": [
+            21.2,
+            7.815,
+            9.22
+          ]
+        },
+        {
+          "event": "escort-leg",
+          "id": "cn-salon-npc-1",
+          "actorId": "cn-tavern-songwriter",
+          "customerId": "cn-official-records",
+          "roomId": "tavern-guest-lan",
+          "time": 646.35,
+          "leg": 1,
+          "actor": [
+            18.619648327086935,
+            4.015,
+            9.291201547113058
+          ],
+          "player": [
+            17.5,
+            4.015,
+            9.2166912
+          ]
+        },
+        {
+          "event": "escort-leg",
+          "id": "cn-salon-npc-1",
+          "actorId": "cn-tavern-songwriter",
+          "customerId": "cn-official-records",
+          "roomId": "tavern-guest-lan",
+          "time": 655.95,
+          "leg": 2,
+          "actor": [
+            19.36736407009932,
+            4.015,
+            18.275241916256356
+          ],
+          "player": [
+            20.300000000000004,
+            4.015,
+            18.25
+          ]
+        },
+        {
+          "event": "entering",
+          "id": "cn-salon-npc-1",
+          "actorId": "cn-tavern-songwriter",
+          "customerId": "cn-official-records",
+          "roomId": "tavern-guest-lan",
+          "time": 655.95
+        },
+        {
+          "event": "both-entered",
+          "id": "cn-salon-npc-1",
+          "actorId": "cn-tavern-songwriter",
+          "customerId": "cn-official-records",
+          "roomId": "tavern-guest-lan",
+          "time": 656.1,
+          "actor": [
+            19.36736407009932,
+            4.015,
+            18.275241916256356
+          ],
+          "player": [
+            20.300000000000004,
+            4.015,
+            18.25
+          ]
+        },
+        {
+          "event": "fade",
+          "id": "cn-salon-npc-1",
+          "actorId": "cn-tavern-songwriter",
+          "customerId": "cn-official-records",
+          "roomId": "tavern-guest-lan",
+          "time": 656.1
+        },
+        {
+          "event": "reception-close",
+          "id": "cn-salon-npc-1",
+          "actorId": "cn-tavern-songwriter",
+          "customerId": "cn-official-records",
+          "roomId": "tavern-guest-lan",
+          "time": 661.35,
+          "receptionistId": "cn-tavern-reception",
+          "cardId": "salon-reception-card:cn-salon-npc-1"
+        },
+        {
+          "event": "tea-and-poetry",
+          "id": "cn-salon-npc-1",
+          "actorId": "cn-tavern-songwriter",
+          "customerId": "cn-official-records",
+          "roomId": "tavern-guest-lan",
+          "time": 661.35,
+          "explicit": false,
+          "activity": "music",
+          "amount": 80,
+          "serviceContent": "顾流萤轻轻念出新填曲词的节拍，请你听韵脚怎样落下。"
+        },
+        {
+          "event": "visiting",
+          "id": "cn-salon-npc-1",
+          "actorId": "cn-tavern-songwriter",
+          "customerId": "cn-official-records",
+          "roomId": "tavern-guest-lan",
+          "time": 661.35
+        }
+      ],
+      "guard": {
+        "guard": "PASS",
+        "reason": null,
+        "exit": 0,
+        "seconds": 97.884,
+        "treePeakMiB": 706.5,
+        "peakMembersBytes": {
+          "9": 10870784,
+          "11": 729948160
+        },
+        "includesSupervisor": true,
+        "hostname": "a55d3d933517",
+        "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
+      },
+      "scope": "Original physical escort and nonexplicit service completed; one reserve/one settle, artist40/reception8 once. Still visiting; original release and settled replay verification pending."
     }
   ],
   "reservedOriginalSession": {

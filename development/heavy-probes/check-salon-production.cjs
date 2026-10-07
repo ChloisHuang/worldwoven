@@ -33,6 +33,7 @@ assert(eq(Object.keys(world.actors),Object.keys(before.actors)),'original actors
 for(const id of Object.keys(before.actors))assert(eq(world.actors[id].position,before.actors[id].position),'no relocation '+id);
 assert(eq(loaded.simulationClock,input.simulationClock),'clock unchanged on load');
 assert(eq(loaded.chinaOfficialEconomy,input.chinaOfficialEconomy),'payroll unchanged on load');
+assert(eq(loaded.chinaSalonEconomy,input.chinaSalonEconomy),'artist ledger unchanged on load');assert(eq(loaded.chinaSalonReceptionAccount,input.chinaSalonReceptionAccount),'reception ledger unchanged on load');
 assert(eq(world.controllers.chinaSalon,before.controllers.chinaSalon),'salon state and artist RNG unchanged on load');
 assert(eq(world.controllers.chinaAudience.life.decisions,before.controllers.chinaAudience.life.decisions),'official decisions and RNG unchanged on load');
 if(process.env.PROBE_STAGE==='cleaning'){assert(eq(world.controllers.chinaTavern.phases,before.controllers.chinaTavern.phases),'original cleaning timer restored exactly');assert(input.chinaServiceWorld.rooms.find(r=>r.id==='lan').dirty,'original room starts dirty');}
