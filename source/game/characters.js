@@ -119,7 +119,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   posedP[c].copy(posedP[a]).addScaledVector(dir,distance);posedP[b].copy(posedP[a]).addScaledVector(dir,along).addScaledVector(pole,high);
   orient(a,b,posedP[b]);orient(b,c,posedP[c]);posedQ[c].copy(posedQ[b]);
  }
- const armPole=[V(-.28,-1,-.2),V(.28,-1,-.2)],legPole=V(0,0,1),armPitchAxis=V(1,0,0),armRotation=new THREE.Quaternion();
+ const armPole=[V(-.28,-1,-.2),V(.28,-1,-.2)],legPole=V(0,0,1),armPitchAxis=V(1,0,0),armRollAxis=V(0,1,0),armRotation=new THREE.Quaternion();
  const walkingArmSwing=Math.min(locomotion.armSwing,/yukata|kimono|hakama|ruqun|bath-robe/.test(wardrobePreset)?.09:.15);
  function reach(side,x,y,z){const ids=side?[7,8,9]:[4,5,6];tmp.set(x,y,z);solveLimb(...ids,tmp,armPole[side]);// Neutral wrist keeps hand silhouette attached; vessels are counter-rotated separately.
  }
@@ -461,9 +461,17 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    else if(/tidy/.test(action||'')){reach(0,-.18,surface+.08,forward-.025);reach(1,.18,surface+.095,forward-.025);}
    else if(action==='herb-mix'){reach(0,-.14,surface+.10,forward);reach(1,.07+Math.cos(time*2.2)*.025,surface+.14+Math.sin(time*2.2)*.012,forward+.015+Math.sin(time*2.2)*.018);}
   }
-  if(action){posedQ[6].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));posedQ[9].identity();if(/knead|bread|tidy/.test(action))posedQ[9].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));}
-  if(action==='chair-sit'){posedQ[6].setFromEuler(new THREE.Euler(-Math.PI/2,0,0));posedQ[9].copy(posedQ[6]);}
-  if(action==='chair-sit'&&context?.seatedMeal)posedQ[9].identity();
+  // Wrist orientation follows the solved forearm; palm roll is anatomical
+  // pronation around its long axis, never an absolute world-space wrist bend.
+  // Props counter-rotate in applyPose, so their authored upright orientation
+  // is independent of the hand. Supported chair/bath poses fit their palms below.
+  for(let side=0;side<2;side++){
+   const forearm=side?8:5,hand=side?9:6;
+   const palmDown=/knead|bread|tidy/.test(action||'');
+   const support=!side&&/kotatsu|sushi|ramen|tea|read|rest|paint|craft|art/.test(action||'');
+   const roll=palmDown?Math.PI:support?0:(side?-1:1)*(action?.72:1.1);
+   posedQ[hand].copy(posedQ[forearm]).multiply(armRotation.setFromAxisAngle(armRollAxis,roll));
+  }
   // Head-only attention preserves the authored torso, hands and work target.
   // Smooth the return as well as the glance; never let social input twist a
   // neck toward somebody behind the actor or override an aiming/rest pose.

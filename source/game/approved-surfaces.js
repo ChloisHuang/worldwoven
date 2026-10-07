@@ -126,10 +126,13 @@ function buildHair(h,masc,style='chin-bob',onsenBoundBraid=false){
  }
 }
 function hand(g,s){
- loft(g,'relaxed-palm-'+s,[[.818,.007,.009,s*.317,.016],[.837,.022,.014,s*.317,.015],[.88,.026,.018,s*.31,.009],[.918,.019,.019,s*.304,.003],[.939,.021,.022,s*.3,0]],C.skin,{segs:28,steps:26});
- // Four softly grouped finger contours are attached to the palm and curve inward.
- for(let i=0;i<4;i++){const x=s*(.296+i*.012),bot=.815-(i===1?.006:0)+(i===3?.009:0);loft(g,'relaxed-finger-'+s+'-'+i,[[bot,.0035,.004,x,.019],[bot+.01,.005,.006,x,.021],[.846,.0057,.007,x,.016],[.857,.0059,.007,x,.014]],C.skin,{segs:12,steps:14});}
- tube(g,'thumb-'+s,[[s*.288,.887,.009],[s*.285,.87,.024],[s*.291,.85,.031]],.009,C.skin,10);
+ // A palm ends at the knuckles. The former taper continued to the fingertips,
+ // burying almost all four fingers in one mitten-shaped surface.
+ loft(g,'relaxed-palm-'+s,[[.844,.014,.010,s*.315,.013],[.855,.024,.015,s*.314,.012],[.88,.026,.018,s*.31,.009],[.918,.019,.019,s*.304,.003],[.939,.021,.022,s*.3,0]],C.skin,{segs:28,steps:26});
+ // Individually rounded, gently curled fingers share an overlapping knuckle
+ // join, with a shallow web rather than four exposed tube ends.
+ for(let i=0;i<4;i++){const x=s*(.294+i*.012),bot=[.811,.806,.810,.822][i];loft(g,'relaxed-finger-'+s+'-'+i,[[bot,.001,.002,x,.027],[bot+.004,.0045,.005,x,.030],[bot+.017,.0055,.006,x,.026],[.845,.006,.007,x,.017],[.862,.0065,.009,x,.011]],C.skin,{segs:12,steps:14});}
+ loft(g,'thumb-'+s,[[.851,.001,.002,s*.289,.033],[.855,.006,.006,s*.287,.033],[.870,.008,.008,s*.282,.024],[.886,.009,.010,s*.288,.010],[.897,.005,.006,s*.293,.007]],C.skin,{segs:16,steps:16});
 }
 function shoe(g,s,casual){
  const x=s*.089;
