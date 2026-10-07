@@ -46,7 +46,7 @@ export function createRelationshipEvents({saved,worldSeed=1,getProfile=()=>null,
    const applied=cooled?{relation:0,trust:0,aversion:0,feeling:'remembered'}:effect;
    relationship.relation=clamp(relationship.relation+applied.relation);relationship.trust=clamp(relationship.trust+applied.trust);relationship.aversion=clamp(relationship.aversion+applied.aversion,0,1);
    if(meaningful&&!cooled)relationship.cooldowns[key]=event.at+60;
-   relationship.knownEvents++;relationship.last={id:event.id,source:event.source,kind:event.kind,outcome:event.outcome,feeling:applied.feeling,at:event.at};
+   relationship.knownEvents++;relationship.last={id:event.id,source:event.source,kind:event.kind,outcome:event.outcome,fault:event.fault,feeling:applied.feeling,at:event.at};
    person.relations[event.actorId]=relationship;results.push({observerId,subjectId:event.actorId,...applied});
   }
   // Keep exact IDs forever, not a full duplicate event body per receipt.
