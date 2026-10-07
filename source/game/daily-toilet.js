@@ -25,12 +25,17 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
  if(available)prepareLot(lot);
  const receipts=Array.isArray(saved.receipts)?saved.receipts.filter(validReceipt).map(copy):[];
  const serial=Math.max(Number.isSafeInteger(saved.serial)&&saved.serial>=0?saved.serial:0,...receipts.map(r=>r.number));
- let durable={version:1,serial,receipts:retainReceipts(receipts),pending:saved.pending&&saved.pending.id===receiptId(serial)&&saved.pending.facilityId===P.id?copy(saved.pending):null,lastOutcome:saved.lastOutcome||null};
+ let durable={version:1,serial,receipts:retainReceipts(receipts),pending:saved.pending&&saved.pending.id===receiptId(serial)&&saved.pending.facilityId===P.id?copy(saved.pending):null,lastOutcome:saved.lastOutcome||null,waiters:Array.isArray(saved.waiters)?[...new Set(saved.waiters.filter(id=>typeof id==='string'&&id!=='player'))]:[]};
  let current=null,disposed=false,lastError=null,retryIn=0,recovery=durable.pending,abandonment=null,time=0;
- const cooldowns=new Map();let privacyCache=null,exitCache=null;
+ const cooldowns=new Map(),waitSeen=new Map(durable.waiters.map(id=>[id,0]));let privacyCache=null,exitCache=null;
  const idOf=actor=>actor===getPlayer()?'player':actor?.station?.id||actor?.id||null;
  const people=()=>[...new Set([getPlayer(),...(getActors()||[])].filter(Boolean))];
  const actorById=id=>people().find(a=>idOf(a)===id);
+ const containsActor=actor=>{const p=actor?.root?.position;return !!room&&!!p&&Math.abs(p.y-P.approach[1])<1&&p.x>room.minX-.05&&p.x<room.maxX+.05&&p.z>room.minZ-.05&&p.z<room.maxZ+.05;};
+ const roomClear=actor=>!people().some(a=>a!==actor&&containsActor(a));
+ const availableFor=actor=>available&&!disposed&&!current&&!recovery&&!abandonment&&roomClear(actor)&&(!actor||!durable.waiters.length||durable.waiters[0]===idOf(actor));
+ function leaveQueue(id){if(!durable.waiters.includes(id))return true;if(!persist({...durable,waiters:durable.waiters.filter(q=>q!==id)}))return false;waitSeen.delete(id);return true;}
+ function waitTurn(actor){const id=idOf(actor);if(id==='player')return false;waitSeen.set(id,time);return durable.waiters.includes(id)||persist({...durable,waiters:[...durable.waiters,id]});}
  const alive=actor=>isActorAlive(actor)!==false;
  const clock=()=>{const c=getClock()||{};return {day:Number.isFinite(c.day)?c.day:0,hour:Number.isFinite(c.hour)?c.hour:12};};
  function persist(next){
@@ -41,6 +46,7 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
  // motion gate until its cancellation is durable, including before recovery.
  function abandonActor(actorId,reason='actor-unavailable'){
   if(typeof actorId!=='string'||!actorId)return false;
+  if(!leaveQueue(actorId))return false;
   const old=[current,recovery,durable.pending].find(row=>row?.actorId===actorId);
   if(!old)return true;
   abandonment??={actorId,id:old.id,reason};
@@ -136,15 +142,20 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
   return true;
  }
  function reserve(actor){
-  if(disposed||!available||!actor?.root||!alive(actor)||!recover()||current||getBusy(idOf(actor),actor))return false;
-  const actorId=idOf(actor);if(!actorId||(cooldowns.get(actorId)||0)>time)return false;
+  if(disposed||!available||!actor?.root||!alive(actor)||!recover())return false;
+  if(current?.actor===actor)return true;
+  const actorId=idOf(actor);if(!actorId)return false;
+  if(getBusy(idOf(actor),actor))return false;
+  if(!availableFor(actor)){waitTurn(actor);return false;}
+  if((cooldowns.get(actorId)||0)>time)return false;
   const number=durable.serial+1,id=receiptId(number),stage=atApproach(actor)?'waiting-privacy':'approaching';
   const pending={id,number,actorId,facilityId:P.id,stage,...clock()};
-  if(!persist({...durable,serial:number,pending}))return false;
+  if(!persist({...durable,serial:number,pending,waiters:durable.waiters.filter(id=>id!==actorId)}))return false;
   const p=actor.root.position;
   current={actor,actorId,id,number,stage,mounted:false,elapsed:0,wait:0,cancelled:false,progressPoint:[p.x,p.y,p.z],stalled:0,lastDriven:time};return true;
  }
  function cancel(reason='cancelled',actorId='player'){
+  if(actorId&&!leaveQueue(actorId))return false;
   if(!current||actorId&&current.actorId!==actorId)return true;
   if(abandonment||!alive(current.actor))return abandonActor(current.actorId,reason);
   const c=current;if(c.cancelled||c.completed)return release();c.cancelled=true;c.elapsed=0;
@@ -205,6 +216,7 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
   // world collision recovery must not relocate them out of the bowl first;
   // recover() then performs the original safe interruption/dismount, no relief.
   restorePosition(actorId,position){const pending=durable.pending,actor=actorById(actorId);return available&&!abandonment&&(!actor||alive(actor))&&pending?.actorId===actorId&&['using','leaving'].includes(pending.stage)&&Array.isArray(position)&&[P.anchor,...(P.legacyAnchors||[])].some(a=>a.every((v,i)=>Math.abs(v-position[i])<.025))?position.slice():null;},
+  containsActor,availableFor,queuePosition:actorId=>durable.waiters.indexOf(actorId)+1,prepareIntent(selected){if(!resolveIntent(selected)||!reserve(getPlayer()))return null;return intent();},
   exitPlan(actor){return current?.actor===actor&&current.mounted?(exitClear(actor)?[...P.approach]:exitLanding(actor)):null;},
   intent,resolveIntent,executeIntent(selected){if(!resolveIntent(selected)||!atApproach(getPlayer()))return false;const ok=reserve(getPlayer());if(!ok)notify(current?'净室有人使用，请稍后再来':'暂时无法使用净室，请稍后再试');return ok;},
   requestActor:reserve,updateActor:(actor,dt,{travel}={})=>tick(actor,dt,travel),ownsActor:actor=>!!current&&current.actor===actor||!!abandonment&&abandonment.actorId===idOf(actor),
@@ -212,6 +224,8 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
   actorPose:pose,playerPose:()=>pose(getPlayer()),playerAction:()=>pose(getPlayer())?.action||null,label,
   update(dt){
    if(disposed)return;dt=finiteSeconds(dt);time+=dt;recover();if(abandonment)return;
+   const expired=durable.waiters.filter(id=>time-(waitSeen.get(id)??0)>30||actorById(id)&&!alive(actorById(id)));
+   if(expired.length&&persist({...durable,waiters:durable.waiters.filter(id=>!expired.includes(id))}))for(const id of expired)waitSeen.delete(id);
    if(current&&!alive(current.actor)&&!abandonActor(current.actorId))return;
    retryIn-=dt;if(retryIn<=0){retryIn=1;deliver();}
    if(current?.stage==='approaching'){

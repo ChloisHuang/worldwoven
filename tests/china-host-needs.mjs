@@ -16,7 +16,7 @@ import {createChinaTavernLodging,INN_COUNTER} from '../source/game/china-tavern-
 import {createGameCurrencyLedger} from '../source/game/currency-ledger.js';
 import {TAVERN_MEAL as M} from '../source/game/china-tavern-kitchen.js';
 import {tavernTablePlace,TAVERN_DINING_Z} from '../source/game/china-tavern-layout.js';
-const copy=x=>JSON.parse(JSON.stringify(x)),context=vm.createContext({console}),cache=new Map();
+const copy=x=>JSON.parse(JSON.stringify(x)),context=vm.createContext({console,structuredClone}),cache=new Map();
 const pos=(x=0,y=.215,z=0)=>({x,y,z,set(x,y,z){Object.assign(this,{x,y,z});},toArray(){return [this.x,this.y,this.z];},copy(p){Object.assign(this,{x:p.x,y:p.y,z:p.z});}});
 const nav=new vm.SyntheticModule(['followActorRoute','findActorStandPoint'],function(){this.setExport('findActorStandPoint',findActorStandPoint);this.setExport('followActorRoute',(n,dt)=>{const p=n.route[0];if(!p)return {};const d=Math.hypot(p.x-n.root.position.x,p.z-n.root.position.z),step=Math.min(d,dt*3);if(d<.07){n.root.position.set(p.x,p.y,p.z);n.route.shift();return {};}n.root.position.x+=(p.x-n.root.position.x)/d*step;n.root.position.z+=(p.z-n.root.position.z)/d*step;n.root.position.y=p.y;n.walking=true;return {};});},{context});
 const props=new vm.SyntheticModule(['createTavernMealProps','createTavernDirtProps'],function(){this.setExport('createTavernMealProps',()=>({update(){},clear(){},state:()=>({}),dispose(){}}));this.setExport('createTavernDirtProps',()=>({update(){},dispose(){}}));},{context});
@@ -81,5 +81,18 @@ for(const role of ['chef','assistant']){
  chat.until(()=>chat.scene.snapshot().orders.find(o=>o.id===row.id)?.stage!==row.stage,role+' resumes original step');
 }
 console.log('PASS at-target chef and tray carrier retain original order/elapsed/route during talk, then resume without duplicate delivery');
+
+// Real guest use must return through the authored public stair before another
+// life choice or external clinic/salon owner can take the body.
+const guestExit=fixture();guestExit.hungry(false);guestExit.until(()=>guestExit.scene.snapshot().visitors.every(v=>v.mode==='idle'),'ordinary guests settle before WC regression');
+const guestId='cn-tavern-diner-west',guest=guestExit.npcs.find(n=>n.station.id===guestId);guestExit.needs.set(guestId,{seekMeal:false,seekToilet:true});
+guestExit.until(()=>guestExit.toilet.state().receipts.some(r=>r.actorId===guestId),'same guest really completes WC');guestExit.tick();
+assert(Number.isSafeInteger(guestExit.scene.snapshot().visitors.find(v=>v.id===guestId).toiletExit));assert(guestExit.scene.socialStatus(guest).busy);assert(!guestExit.scene.canBorrowForSocial(guest));assert(!guestExit.scene.salonCustomerAvailable(guest));assert(!guestExit.scene.claimClinicPatient(guestId,'cn-clinic-order-90'));
+const guestSave=copy(guestExit.game),guestPosition=guest.root.position.toArray(),guestRestored=fixture(guestSave);guestRestored.hungry(false);const restoredGuest=guestRestored.npcs.find(n=>n.station.id===guestId);restoredGuest.root.position.set(...guestPosition);guestRestored.needs.set(guestId,{seekMeal:false,seekToilet:false});
+guestRestored.until(()=>guestRestored.scene.snapshot().visitors.find(v=>v.id===guestId).toiletExit===undefined,'saved guest egress reaches normal waiting place');assert(Math.hypot(...restoredGuest.root.position.toArray().map((v,i)=>v-restoredGuest.station.npcPosition[i]))<.07);assert.equal(guestRestored.toilet.state().receipts.filter(r=>r.actorId===guestId).length,1);
+// An old save has no new marker and may already be pausing inside the room.
+const oldGuest=fixture(guestSave);oldGuest.hungry(false);const oldBody=oldGuest.npcs.find(n=>n.station.id===guestId),oldWorld=oldGuest.scene.snapshot();delete oldWorld.visitors.find(v=>v.id===guestId).toiletExit;oldWorld.staffLife.rows=oldWorld.staffLife.rows.filter(([id])=>id!==guestId).concat([[guestId,{choice:{id:'pause',target:[...WC.approach],action:'relax',duration:99,relief:{}},target:[...WC.approach],seatId:null,phase:'acting',elapsed:0,wait:0}]]);assert(oldGuest.scene.restoreWorld(oldWorld));oldBody.root.position.set(...WC.approach);const beforeOld=oldBody.root.position.toArray();oldGuest.reject(true);oldGuest.tick();assert.deepEqual(oldBody.root.position.toArray(),beforeOld,'failed egress checkpoint cannot move the old saved body');oldGuest.reject(false);oldGuest.tick();assert(Number.isSafeInteger(oldGuest.scene.snapshot().visitors.find(v=>v.id===guestId).toiletExit),'old unowned room body adopts normal physical egress');oldGuest.until(()=>oldGuest.scene.snapshot().visitors.find(v=>v.id===guestId).toiletExit===undefined,'old saved guest clears the room and public stairs');assert(Math.hypot(...oldBody.root.position.toArray().map((v,i)=>v-oldBody.station.npcPosition[i]))<.07);assert.equal(oldGuest.toilet.state().receipts.filter(r=>r.actorId===guestId).length,1,'old room-idle recovery adds no receipt');
+console.log('PASS original tavern guest WC egress and saved/legacy room-idle recovery, exclusive body ownership and failed-save movement gate');
+
 
 }

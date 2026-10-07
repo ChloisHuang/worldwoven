@@ -93,6 +93,16 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  function idle(n,label='手边事情告一段落 · 在原处歇一会儿'){
   brain.defer(n.station.id,12);stages.set(n,stage([n.root.position.toArray()],label,{idle:true,arrived:true,duration:12}));n.route=[];
  }
+ function inPublicToiletRoom(n){const service=getToilet();if(service?.publicContainsActor)return service.publicContainsActor(n);const p=n.root.position,r=lot.interiorRooms?.find(r=>r.id===PUBLIC_TOILET.roomId);return !!r&&Math.abs(p.y-PUBLIC_TOILET.approach[1])<1&&p.x>r.minX-.05&&p.x<r.maxX+.05&&p.z>r.minZ-.05&&p.z<r.maxZ+.05;}
+ function leaveToilet(n,s){
+  // Dismount releases the fixture inside its private room. Keep this original
+  // controller walking out along the public stairs instead of idling there and
+  // blocking the next person's privacy. A summons still takes the real body
+  // immediately, with courtPlan providing the same remaining public route.
+  const path=publicRoute(n,null);
+  if(!s.called&&!s.idle)brain.defer(n.station.id,12);
+  stages.set(n,s.called?{courtReady:true,label:'已离开净室 · 应召赴朝'}:stage(path,'离开公共净室 · 沿公共楼梯返回',{toiletExit:true,arrived:!path.length}));n.route=[];save();
+ }
  function invitation(n,choice){
   const other=officials.find(a=>a.station.id===choice.targetId),slots=[1,2],meeting=brain.meeting(n.station.id,choice,{id:'cn-official-garden',places:slots.map(i=>CHINA_OFFICIAL_GARDEN_PLACES[i]),placeIds:slots.map(i=>'cn-official-garden-place-'+i),private:false}),places=meeting?.placeIds||[];
   if(!meeting||!other||!idleEligible(other)||urgent(n)||conversation||places.some(id=>occupied(id,n)))return false;
@@ -248,6 +258,9 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
     return;
    }
    if(s.pairId){updateConversation(n,s,dt,t);return;}
+   // Older saves may contain the former post-use twelve-second idle in the
+   // enclosure. Change only its route; neither the body nor any receipt moves.
+   if(s.idle&&inPublicToiletRoom(n)&&!getToilet()?.ownsActor(n)){leaveToilet(n,s);s=stages.get(n);}
    if(s.choice?.toilet){
     const toilet=getToilet();
     if(toilet?.ownsActor(n)){
@@ -257,8 +270,21 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
     }
     // The facility alone emits relief. A stale or interrupted life intention
     // merely ends; it cannot recreate a reservation, timer or receipt on load.
-    if(finish(n,s,!s.called&&sharedNeeds?.status(n.station.id)?.seekToilet===false)){if(s.called)stages.set(n,{courtReady:true,label:'已离开净室 · 应召赴朝'});else idle(n);}
+    if(finish(n,s,!s.called&&sharedNeeds?.status(n.station.id)?.seekToilet===false))leaveToilet(n,s);
     return;
+   }
+   if(s.toiletExit){
+    n.walking=false;
+    if(isSociallyHeld(n.station.id,state.conversationActorId)){tell(n,s.label+' · 停步与你交谈');animate(n,s,t);return;}
+    if(s.called){stages.set(n,{courtReady:true,label:'离开净室途中应召 · 从当前位置赴殿'});n.route=[];save();return;}
+    if(!s.arrived)travel(n,s,dt);
+    tell(n,s.label);animate(n,s,t);
+    if(s.arrived){
+     stages.delete(n);
+     if(brain.decisionDue(n.station.id))choose(n);
+     else stages.set(n,stage([n.root.position.toArray()],'已离开净室 · 在公共厅外歇一会儿',{idle:true,arrived:true,duration:Math.max(0,(brain.state(n.station.id)?.nextDecisionAt||time)-time)}));
+     save();
+    }return;
    }
    if(getTavern()?.officialMeal(n.station.id))s.borrowed=true;
    if(s.borrowed){const tavern=getTavern(),lease=tavern?.officialMeal(n.station.id);if(lease){if(s.called&&!isSociallyHeld(n.station.id,state.conversationActorId))tavern.cancelOfficialMeal(n.station.id);if(tavern.officialMeal(n.station.id))return;}if(finish(n,s,!s.called)){if(s.called)stages.set(n,{courtReady:true,label:'已归还酒楼餐位 · 应召赴朝'});else idle(n);}return;}

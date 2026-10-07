@@ -32,5 +32,21 @@ const assert=require('node:assert/strict'),load=require('./fixtures/browser-modu
  for(const n of officials){flow.request(n);flow.update(n,.1,clock.seconds);}for(let i=0;i<110;i++)toilet.update(.1);reject=true;assert(!toilet.requestPublicActor(first));assert(!toilet.ownsActor(first));reject=false;assert(toilet.requestPublicActor(first));
  toilet.updateActor(first,.1);assert(toilet.actorPose(first));reject=true;for(let i=0;i<90;i++){toilet.update(.1);toilet.updateActor(first,.1);}assert.equal(needWrites,0);reject=false;toilet.update(.1);toilet.updateActor(first,.1);assert.equal(needWrites,1);assert(!needs.status(ids[0]).seekToilet);assert(needs.status(ids[1]).seekToilet);for(let i=0;i<30;i++)toilet.update(.1);assert.equal(needWrites,1);
  assert(ids.every(id=>needs.has(id)));const savedNeeds=needs.snapshot();needs.leave();clock.seconds+=48*H;needs.update();assert.equal(needs.snapshot().people[ids[1]].toiletAge,savedNeeds.people[ids[1]].toiletAge,'unloaded actors receive no offline age');
+ // After the fixture releases a body, life must keep its physical egress
+ // route instead of placing a twelve-second idle inside the privacy room.
+ const needsBefore=JSON.stringify(needs.snapshot()),egressActor=officials[0];
+ for(const legacyIdle of [false,true]){
+  egressActor.root.position.set(...P.approach);const start=egressActor.root.position.toArray(),visits=[];
+  const initial={version:1,decisions:createLifeDecisions({worldSeed:42,actorIds:[ids[0]]}).snapshot(),runtime:{time:0,conversation:null,stages:[[ids[0],{path:[P.approach.slice()],index:1,arrived:true,elapsed:0,duration:12,...(legacyIdle?{idle:true}:{choice:{id:'toilet',toilet:true,relief:{},cooldown:12}})}]]}};
+  const egress=createChinaOfficialLife({officials:[egressActor],npcs:officials,lot,doors,furniture,sharedNeeds:needs,getToilet:()=>({ownsActor:()=>false,publicAvailable:()=>false,actorPose:()=>null}),planPath:(_,to)=>[to],poseContext:()=>({}),safety:()=>[],saved:initial,travel(n,s){visits.push(s.path[s.index]);n.root.position.set(...s.path[s.index]);s.index++;s.arrived=s.index>=s.path.length;}});
+  egress.tick(.1,{hour:14});egress.update(egressActor,.1,1);
+  let row=egress.snapshot().runtime.stages[0][1];assert(row.toiletExit,'new completion and legacy room idle own an explicit egress');assert(!row.idle);assert.equal(row.path.at(-1)[1],.115,'exit uses the original public ground-floor landing');
+  if(!legacyIdle)assert.deepEqual(egressActor.root.position.toArray(),start,'starting egress never relocates the body');
+  const checkpoint=egress.snapshot(),position=egressActor.root.position.toArray();assert(egress.restore(checkpoint));assert.deepEqual(egressActor.root.position.toArray(),position);assert(egress.snapshot().runtime.stages[0][1].toiletExit,'saved return route retains its owner');
+  egress.request(egressActor);egress.update(egressActor,.1,2);assert(egress.ready(egressActor),'real official remains summonable while leaving');assert.deepEqual(egressActor.root.position.toArray(),position,'court takes the current body without snapping');assert(egress.courtPlan(egressActor).path.length,'court retains remaining physical stair route');
+  egress.dispose({suspend:true});
+ }
+ assert.equal(JSON.stringify(needs.snapshot()),needsBefore,'egress and old-idle recovery grant no physiological receipt or relief');
+ console.log('PASS official post-WC public egress, old room-idle recovery, route checkpoint and real court interruption without extra relief');
  flow.dispose({suspend:true});toilet.dispose();console.log('PASS six original officials, bounded decision retries, exclusive public fixture, hard summons/blocked exit, exact mount restore without phantom relief, reservation/completion save failures, one durable need receipt and no off-scene aging');
 })().catch(e=>{console.error(e);process.exitCode=1;});
