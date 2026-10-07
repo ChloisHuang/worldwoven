@@ -1807,3 +1807,5 @@ R16.185/v219 于2026-10-07T09:46:27Z原公开站点发布成功：source `0e4dd3
 
 R186合流：以15b0bb5为底合0c958d0相对048d0a3的27文件，main六处冲突保R185 HUD/环进度生命周期并加新岗位，茶service拆handoffPose返回保持R183空手清除。新岗位计时接原work环，手册场所断言6→8随真实新增岗位；现有HUD夹具补新岗位计时。姿态/原茶服务、双岗位核心/就业、手册工作与晋升、HUD/入口单boot定向通过。新面板无native select，复用preserveAiryPanelView保滚动焦点。R184厕所不变，原长main与物件证据复用，不重跑；职业全覆盖/实机仍开放。
 R186构建通过：590登记、365正式源映射/9,566,877计数字节、v219旧365独立图和353独立JS/cache通过，移动QA完整保留。
+
+R16.186/v220 于2026-10-07T09:54:25Z原公开站点发布成功：source `93b0180410602b62444138b012fff99ac6ab3720`，private main `0e98aab544c8012468b9255d80cda5654f7299a3` 先回读；deployment `appgdep_6ac616c53d148191b38b6b8156111728` succeeded，https://alien.doudouai.net active/public，受众revision6保持。中国茶务/六册馆藏两岗原杯托/原册实作与8文结款交付，保空手摆臂/厕所/旋转HUD全部P0。590登记、365源映射/9,566,877字节及353独立JS/cache通过，职业全覆盖与实机接受仍开放。
