@@ -1016,5 +1016,51 @@
       "source/game/china-tavern-salon.js npcOfferStatus",
       "source/game/china-official-life.js arrived paid-salon offer branch"
     ]
+  },
+  "readOnlyCleaningReview": {
+    "scope": "Read-only terminal checkpoint and production source review; no simulation, room mutation, payment or business-code change.",
+    "terminalCheckpoint": "qa/st03-r190/segment-20261007T184803Z-2.checkpoint.json",
+    "assistant": {
+      "actorId": "cn-tavern-assistant",
+      "roleId": "cn-tavern-steward",
+      "holderRevision": 0,
+      "position": [
+        19.7,
+        4.015,
+        15.5
+      ],
+      "activePhase": "clean-room-lan",
+      "elapsedControllerSeconds": 0.5,
+      "requiredControllerSeconds": 5,
+      "completed": false,
+      "staffLeisureTask": null,
+      "playerReplacedRole": false
+    },
+    "workPriority": [
+      "held delivery/return and pending dishes",
+      "dirty tables",
+      "dirty unoccupied rooms in existing room order"
+    ],
+    "observedTimeline": {
+      "lanDirtyTransition": "Between90s and135s checkpoints, after original west guest lodging",
+      "zhuDirtyTransition": "Between135s and180s checkpoints, after original east guest lodging",
+      "firstMealDone": 97.05,
+      "secondMealDone": 126.6,
+      "tablesAt135": "both dirty",
+      "tablesAt180": "both clean; assistant upstairs",
+      "at181_05": "clean-room-lan timer0.5 of5; both rooms still dirty"
+    },
+    "limits": [
+      "No exact dirty-transition event timestamp recorded; checkpoint brackets are the direct evidence.",
+      "Active cleaning is not completed cleaning, and no future completion time is promised.",
+      "Both dirty rooms are an observed sufficient offer blocker; no unique decision reason was captured, so this is not proof of the only cancellation cause.",
+      "Normal original workload explains pending rooms; no cleaning defect established and no fix warranted by this evidence.",
+      "Original paid journey ended without a session or charge. Paid terminal completion and active-session restoration remain open."
+    ],
+    "sourceReferences": [
+      "source/game/china-tavern-service-scene.js updateVisitors lodging exit sets dirty",
+      "source/game/china-tavern-service-scene.js assistant original work priority and clean-room5s phase",
+      "source/game/china-tavern-kitchen-roles.js original assistant role assignment"
+    ]
   }
 }

@@ -25,3 +25,11 @@
 可证实的足够阻止条件：精确终态chinaServiceWorld中兰房/竹房均dirty=true、guestId=null。main的roomAvailable要求!guestId&&!dirty；npcOfferStatus在没有可用房时直接返回offer-changed/non-waitable，原life据此可当步结束。沈砚舟同刻在练稿（已6.45/9.699秒），该忙碌本可等待最多12秒，但没有可用房会先阻断。未捕获当次调用的独立reason-code日志，故不声称脏房是唯一条件；不把“interrupted”写成艺者明确拒绝、概率拒绝或支付故障。
 
 无扣款完整证据：六官均保持96，官方仍24笔原duty交易/总576，无salon hold；雅集serial0、session=null、history空；艺者revision0、全部余额0、grossRevenue/performerPaid/businessProceeds0，receipts及mealTransfers空。原actor位置/选择、双房状态、原事件和账本摘要收录salon-r190-evidence.json；完整checkpoint路径在同文件。本轮确立自然选择、原身体完整到前台、房况变化下原系统未成行且零收费；没有完成付费服务，活动会话恢复和结清仍未验证。ST03四艺者、浏览器/iOS范围继续开放。
+
+## 18:56 UTC 只读核查原清扫排班
+
+终态原服务助理cn-tavern-assistant仍持有cn-tavern-steward（revision0），没有玩家接替；身体已在二层兰房[19.7,4.015,15.5]，原phases为clean-room-lan=0.5/5控制器秒。没有原助理休闲任务或个人餐厕占用。0.5/5明确表示正在清扫，绝非清扫完成或保证之后何时完成。
+
+原职责顺序为持有中的送餐/归还及待处理餐具→脏桌→脏且无住客的客房，客房按现有顺序处理。两原餐单分别97.05/126.6秒done；135秒两桌仍脏，180秒两桌已清洁、助理上楼，181.05秒已开始兰房。兰房在90–135秒检查点间变dirty，竹房在135–180秒之间变dirty，均来自原访客实际入住后离房；未记录逐次dirty事件，不推算成精确退房时刻。
+
+这些事实解释当时房间尚未可接待，未建立清洁系统故障证据，不据此改逻辑。双房dirty是足够阻止条件，但没有独立记录当次调用的唯一reason-code，不能推定是唯一取消原因。礼部官原链已正常未成行且未付款，本轮诊断至此结束。ST03付费完成和活动会话恢复单独保持开放；没有继续抽样、场景测试、清洁状态篡改或业务修改。
