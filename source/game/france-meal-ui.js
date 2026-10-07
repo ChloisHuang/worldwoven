@@ -1,4 +1,4 @@
-import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
+import {AIRY_PANEL_STYLE,createAiryPanelParts,preserveAiryPanelView} from './airy-panel.js';
 import {AIRY_UI_THEME} from './china-money-house-theme.js';
 
 const CLEANUP=new Set(['lowering','clearing','lifting','returning','washing','recalling','leaving']);
@@ -39,7 +39,7 @@ export function createFranceMealUI({service,onOpen=()=>{},onStand=()=>{},onCance
   if(!menu.some(d=>d.id===selected))selected=menu[0]?.id||'tea-cake';
   const next=key(view);if(next===signature)return;
   const focused=doc.activeElement?.getAttribute?.('data-fr-meal-focus'),scroll=new Map(Array.from(dialog.querySelectorAll?.('[data-fr-meal-scroll]')||[]).map(e=>[e.getAttribute('data-fr-meal-scroll'),e.scrollTop]));
-  signature=next;revision++;dialog.replaceChildren();
+  signature=next;revision++;const restoreView=preserveAiryPanelView(dialog,doc);dialog.replaceChildren();
   const o=view.order,own=owned(o),dish=menu.find(d=>d.id===(o?(o.dishId||'tea-cake'):selected))||menu[0],price=own&&Number.isFinite(o.price)?o.price:dish?.price??0,paid=price>0;
   const x=button('×',close,false,'close');x.className='fr-meal-close';x.setAttribute('aria-label','关闭食单');
   const {header,body,actions}=createAiryPanelParts(doc);header.className+=' fr-meal-heading';body.className+=' fr-meal-content';body.setAttribute('data-fr-meal-scroll','body');actions.className+=' fr-meal-actions';
@@ -72,7 +72,7 @@ export function createFranceMealUI({service,onOpen=()=>{},onStand=()=>{},onCance
   if(own&&!o.cancelled&&!o.finished&&!CLEANUP.has(o.stage))actions.append(button(paid?(settled(o)?'提前收餐 · 不退费':'取消点餐 · 退款'):'取消下午茶',fresh=>{if(owned(fresh.order)&&fresh.order.id===o.id&&!fresh.order.cancelled&&!fresh.order.finished&&!CLEANUP.has(fresh.order.stage)&&service.cancel())close();else refresh();},false,'cancel'));
   body.append(choices,detail);dialog.append(x,header,body,actions);
   for(const e of Array.from(dialog.querySelectorAll?.('[data-fr-meal-scroll]')||[]))e.scrollTop=scroll.get(e.getAttribute('data-fr-meal-scroll'))||0;
-  if(focused)Array.from(dialog.querySelectorAll?.('[data-fr-meal-focus]')||[]).find(e=>e.getAttribute('data-fr-meal-focus')===focused&&!e.disabled)?.focus({preventScroll:true});
+  if(focused)Array.from(dialog.querySelectorAll?.('[data-fr-meal-focus]')||[]).find(e=>e.getAttribute('data-fr-meal-focus')===focused&&!e.disabled)?.focus({preventScroll:true});restoreView();
  }
  function open(){if(disposed)return false;if(dialog.open){refresh();return true;}onOpen();signature='';dialog.showModal();refresh();return true;}
  dialog.addEventListener('cancel',event=>{event.preventDefault();close();});context(service.view());

@@ -59,7 +59,7 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
     if(promotionKinds.includes(kind)&&(!hired||activity&&activity!=='review-wait'||promotion()?.status!=='pending'||kind!==promotionKind()||!careers.promotionSummary?.().eligible))return null;
     if(kind==='apply'&&hired||kind==='resign'&&!hired||!['view','apply',...reviewKinds].includes(kind)&&!hired)return null;
     if(reviewKinds.includes(kind)&&(kind!==nextKind()||activity&&activity!=='review-wait'))return null;
-    if(kind==='attend'&&(activity||!careers.beginDutyAvailability(COURT_CLERK_ROLE.id).ok))return null;
+    if(kind==='attend'&&(activity&&activity!=='review-wait'||!careers.beginDutyAvailability(COURT_CLERK_ROLE.id).ok))return null;
     if(kind==='archive'&&(activity||d?.stage!=='archive')||kind==='settle'&&s.lastDuty?.stage!=='ready')return null;
     const npc=getRecruiter(),q=npc?.root.position;
     // The upstairs desk aisle is bounded by the dormitory wall to the south.

@@ -166,6 +166,7 @@
       "nearby-interaction-intents.mjs",
       "nearby-interaction-main.cjs",
       "service-object-menu-targets.mjs",
+      "wallet-bank-navigation-main.cjs",
       "wallet-ui.mjs"
     ]
   },

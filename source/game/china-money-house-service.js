@@ -1,3 +1,4 @@
+import {preserveAiryPanelView} from './airy-panel.js';
 import {isSociallyHeld} from './npc-social-ownership.js';
 import {createServiceRelationshipOutbox,serviceRelationshipEvent} from './service-relationship-outbox.js';
 import {createCurrencyLedger, GAME_CURRENCIES} from './currency-ledger.js';
@@ -82,9 +83,9 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
  const actorActivity=n=>bodyManaged?n?.label?.querySelector?.('small')?.textContent||activity:activity;
  function render(){
   const version=++renderVersion,state=ledger.state(),all=ledger.balances?.();
-  dialog.replaceChildren();const sheet=make('div',undefined,'cn-money-sheet'),main=make('section',undefined,'cn-money-main');const x=make('button','×','cn-money-close');x.type='button';x.setAttribute('aria-label','合上账簿');x.onclick=()=>{if(!bound||available(version))close();};
+  const restoreView=preserveAiryPanelView(dialog,doc);dialog.replaceChildren();const sheet=make('div',undefined,'cn-money-sheet'),main=make('section',undefined,'cn-money-main');const x=make('button','×','cn-money-close');x.type='button';x.setAttribute('aria-label','合上账簿');x.onclick=()=>{if(!bound||available(version))close();};
   const header=make('header',undefined,'cn-money-header');header.append(make('h2',C.name));dialog.append(x,sheet);sheet.append(main);main.append(header);
-  if(ledger.loadError||!all){main.append(make('p',ERRORS['invalid-saved-state']));return;}
+  if(ledger.loadError||!all){main.append(make('p',ERRORS['invalid-saved-state']));restoreView();return;}
   const b=all[currency],unit=GAME_CURRENCIES[currency].unit;
   const selector=(labelText,value,change,excluded)=>{
    const label=make('label'),select=make('select');label.append(make('span',labelText,'cn-money-label'));select.setAttribute('aria-label',labelText);
@@ -162,7 +163,7 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
    else if(kind==='exchange')text=`兑换：${currencyText(row.quote.from,row.quote.amount)} → ${currencyText(row.quote.to,row.quote.received)}`;
    else text=`${({deposit:'存入银行',withdraw:'取到钱袋',earn:'旧制计件工钱',wage:'正式工资入银行',reserve:'服务预留',settle:'服务结清（不再扣钱）',refund:'退回原币种'})[kind]||'往来'} ${currencyText(id,row.amount)}`;
    list.append(make('li',text));}more.append(list);}
-  more.append(make('p','仅游戏票券；存取及兑换只在银行柜台办理。合上账簿保留已记好的账；未按按钮的数目不会入账。','cn-money-note'));main.append(more);
+  more.append(make('p','仅游戏票券；存取及兑换只在银行柜台办理。合上账簿保留已记好的账；未按按钮的数目不会入账。','cn-money-note'));main.append(more);restoreView();
  }
  dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
  const unsubscribe=ledger.subscribeCommitted?.(tx=>{relationshipReceipt(tx);replayRelationships();if(dialog.open&&!disposed&&(!bound||available(renderVersion)))render();});

@@ -1,5 +1,5 @@
 import {INN_COUNTER,innTimeLabel} from './china-tavern-lodging.js';
-import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
+import {AIRY_PANEL_STYLE,createAiryPanelParts,preserveAiryPanelView} from './airy-panel.js';
 import {AIRY_UI_THEME} from './china-money-house-theme.js';
 export function createChinaTavernLodgingUI({service,getPlayer,onIntent,onRoom,onOpen=()=>{},canShow=()=>true,document:doc=globalThis.document}){
  const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;};
@@ -24,7 +24,7 @@ export function createChinaTavernLodgingUI({service,getPlayer,onIntent,onRoom,on
   const s=service.view(),b=s.booking,p=getPlayer()?.root.position,near=p&&Math.abs(p.y-.215)<.4&&Math.hypot(p.x-INN_COUNTER[0],p.z-INN_COUNTER[2])<2.3,inRoom=p&&b&&Math.abs(p.y-4.015)<.45&&p.x>16&&p.x<26&&p.z>10.2&&p.z<21;
   menuState={bookingId:b?.id||null,roomId:b?.roomId||null,stage:b?.stage||null,inRoom:!!inRoom};
   badge.hidden=!canShow()||!near&&!inRoom;badge.textContent=b?`云来客栈 · ${s.rooms.find(r=>r.id===b.roomId)?.name}住宿`:'云来客栈 · 客房登记';
-  if(!dialog.open&&!force)return;const key=JSON.stringify([s,b,selection,error]);if(!force&&key===signature)return;signature=key;generation++;dialog.replaceChildren();
+  if(!dialog.open&&!force)return;const key=JSON.stringify([s.revision,b,selection,error,s.cash,s.atCounter,s.hostAvailable,s.hostUnavailableReason,s.loadError,s.rooms.map(r=>[r.id,r.name,r.price,r.available,r.guestId,!!r.dirty])]);if(!force&&key===signature)return;signature=key;generation++;const restoreView=preserveAiryPanelView(dialog,doc);dialog.replaceChildren();
   if(!s.rooms.some(r=>r.id===selection&&r.available))selection=s.rooms.find(r=>r.available)?.id||s.rooms[0]?.id;
   const room=s.rooms.find(r=>r.id===(b?.roomId||selection)),x=button('×',close);x.className='cn-inn-close';x.setAttribute('aria-label','收起并保留住宿');
   const {header,body,actions}=createAiryPanelParts(doc);body.className+=' cn-inn-content';actions.className+=' cn-inn-actions';header.append(make('h2','云来客栈 · 宿簿'),make('p',`许安掌柜 · 随身 ${s.cash??'待核对'} 铜文`));
@@ -39,7 +39,7 @@ export function createChinaTavernLodgingUI({service,getPlayer,onIntent,onRoom,on
   if(!b){const confirm=button(`确认留房 · ${room?.price??12}文`,()=>result(service.confirm(room.id,s.revision)),true);confirm.disabled=!room?.available||!s.atCounter||!s.hostAvailable||s.cash==null||s.cash<room.price||!!s.loadError;actions.append(confirm,button('暂不入住',close));}
   else if(b.stage==='waiting')actions.append(button('收起 · 等待登记',close,true),button('取消留房 · 全额退回',()=>result(service.cancel(s.revision))));
   else actions.append(button('前往自己的客房',()=>{close();onRoom(b.roomId);},true),button('退房 · 不退费',()=>result(service.checkout(s.revision))));
-  body.append(rooms,detail);dialog.append(x,header,body,actions);
+  body.append(rooms,detail);dialog.append(x,header,body,actions);restoreView();
  }
  badge.onclick=()=>{if(badge.hidden)return;if(service.atCounter()||service.view().booking)open();else onIntent(intent());};dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
  return {menuContext:()=>disposed?null:menuState,intent,resolveIntent,executeIntent:old=>!!resolveIntent(old)&&service.atCounter()&&open(),open,close,isOpen:()=>!!dialog.open,update:refresh,dispose(){disposed=true;close();dialog.remove();badge.remove();style.remove();}};

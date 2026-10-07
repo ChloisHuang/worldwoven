@@ -119,3 +119,7 @@
 }
 @media(max-width:570px){.ww-wallet-body{grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)}.ww-wallet-cash{padding-left:6px;padding-right:6px}.ww-wallet-book{padding-left:11px;padding-right:8px}.ww-wallet-section-heading{display:block}.ww-wallet-section-heading>span{display:block;margin-bottom:3px}.ww-wallet-cash-summary{display:block}.ww-wallet-cash-summary>strong{display:block;text-align:left}.ww-wallet-trigger-label{display:none}.ww-wallet-entry-line{display:block}.ww-wallet-entry-amount{display:block;text-align:left;margin-top:3px}}
 @media(prefers-reduced-motion:reduce){.ww-wallet-note,.ww-wallet-pocket{transition:none}.ww-wallet-transfer,.ww-wallet-trigger.has-receipt:after,.ww-wallet-mini-slip,.ww-wallet-mini-slip>span{animation:none!important}.ww-wallet-mini-slip{left:85px;top:36px}.ww-wallet-mini-slip>.is-received{display:none}.ww-wallet-effects{display:none}}
+
+.ww-wallet-dialog .ww-wallet-bank-visit{flex:0 0 auto;min-height:44px;margin:0 12px 8px;padding:8px 12px;border:1px solid #bba077;border-radius:7px;background:#eee2c4;color:#5c563b;font-family:inherit;font-size:13px;line-height:1.5;text-align:center;cursor:pointer;touch-action:manipulation}
+.ww-wallet-dialog .ww-wallet-bank-visit[hidden]{display:none}
+.ww-wallet-dialog .ww-wallet-bank-visit:focus-visible{outline:2px solid #69816a;outline-offset:2px}

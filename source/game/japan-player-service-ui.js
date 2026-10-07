@@ -1,7 +1,7 @@
 import {JAPAN_SERVICE_CURRENCY,japanServiceMoney} from './japan-service-payment.js';
 import {JAPAN_SERVICE_POINTS as P,JAPAN_RECEPTION_RADIUS} from './japan-service-orders.js';
 import {currentInteractionIntent} from './player-interaction-intents.js';
-import {AIRY_PANEL_STYLE,createAiryPanelParts} from './airy-panel.js';
+import {AIRY_PANEL_STYLE,createAiryPanelParts,preserveAiryPanelView} from './airy-panel.js';
 import {AIRY_UI_THEME} from './china-money-house-theme.js';
 
 const LABELS={arriving:'回到前台完成登记','check-in':'前台正在登记浴牌',changing:'去更衣柜整理入浴衣着',washing:'到洗浴位洗净后入汤','waiting-bath':'去汤室木凳接收自己的浴包',bathing:'在浴牌对应的共享池座泡汤',drying:'回更衣柜擦干并收好手巾',resting:'坐到休息廊长椅，点一碗汤面',dining:'在餐位等候','waiting-meal':'后厨与服务员正在准备你的汤面','meal-ready':'汤面已送到，坐好后可以用餐',eating:'慢慢吃完这碗汤面',checkout:'回前台归还浴牌','checkout-ready':'前台正在收回浴牌'};
@@ -114,7 +114,7 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
   const standalone=v?.orderKind==='dining',dish=service.menu.find(d=>d.id===(v?.dishId||selectedDish));
   const current=standalone?(s.activity?.label||s.progress.meal.text):s.activity?s.activity.label:v?.stage==='waiting-bath'?s.progress.blend.text:v?.stage==='waiting-meal'?s.progress.meal.text:LABELS[v?.stage]||'汤馆服务';
   const text=v?`${standalone?'餐单':'浴牌'} ${v.number} · ${current}`:'一楼点餐 · 泡汤服务';if(text!==badgeText){badgeText=text;badge.textContent=text;}
-  if(!dialog.open&&!force)return;if(!force&&signature===key)return;signature=key;dialog.replaceChildren();
+  if(!dialog.open&&!force)return;if(!force&&signature===key)return;signature=key;const restoreView=preserveAiryPanelView(dialog,doc);dialog.replaceChildren();
   const x=make('button','×','jp-service-close');x.type='button';x.setAttribute('aria-label','关闭汤馆服务');x.onclick=close;
   const {header,body,actions}=createAiryPanelParts(doc);header.className+=' jp-service-heading';body.className+=' jp-service-content';actions.className+=' jp-service-actions';
   header.append(make('h2',v?`第 ${v.number} 号${standalone?'餐单':'浴牌'}`:'汤馆 · 食与汤'),make('span',`${money.label} · 随身 ${s.cash} ${unit}`));
@@ -149,7 +149,7 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
   // non-seat activity exits still use their existing service controls.
   if(mounted&&mounted.kind!=='seat'&&step.kind!=='stand'){const stand=make('button','起身');stand.type='button';stand.onclick=()=>{close();service.stopActivity();onStand();};actions.append(stand);}
   if(v){const cancel=make('button',standalone?'取消本餐':'取消本次服务');cancel.type='button';cancel.onclick=()=>{choiceRevision++;service.cancel();close();};actions.append(cancel);}
-  body.append(menu,detail);dialog.append(x,header,body,actions);
+  body.append(menu,detail);dialog.append(x,header,body,actions);restoreView();
 
  }
  function open(context){choiceRevision++;if(!service.state().visit){if(context==='bath')mode='bath';else{const local=nearbyDining();if(context==='dining'||local){mode='dining';if(local)selectedDish=local.id;}}}onOpen();refresh(true);if(!dialog.open)dialog.showModal();refresh(true);}

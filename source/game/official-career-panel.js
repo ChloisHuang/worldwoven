@@ -7,7 +7,9 @@ export function appendOfficialPromotionPanel({careers,role,panel,metric,make,act
  metric('◇ 官品',summary.rank.gradeLabel,summary.rank.title);
  metric('▣ 实任资历',`${summary.qualifiedDays} / 3 合格日`,`本次任职 ${summary.tenureDays}日 · 考语净值 ${summary.balance} / 3 · 历任合格 ${summary.lifetimeQualifiedDays}日`);
  metric('↗ 升阶',r?stageText[r.code]||stageText[r.stage]||r.code:next?`${summary.rank.gradeLabel} → ${next.gradeLabel}`:'正九品路线已完成',pending?summary.eligible?'达标仍须当面考核、领文并宣读':summary.reasons.map(c=>reasonText[c]||c).join('；'):next?available.ok?'已获审核资格 · 通过后新班22–24文':available.reasons.map(c=>reasonText[c]||c).join('；'):'更高官职需新的实职与资历路线');
- if(!pending&&available.ok){const b=action(role,'promotion-apply','向当值礼仪官申请升正九品');if(b){b.className='career-current-action ww-airy-action';panel.actions.append(b);}}
+ // Promotion is a separate transaction, not the current shift's next step.
+ const kind=pending?({submitted:'promotion-review','document-ready':'promotion-receive-document','document-held':'promotion-appointment'})[r.stage]:available.ok?'promotion-apply':null;
+ if(kind){const b=action(role,kind,kind==='promotion-apply'?'向当值礼仪官申请升正九品':undefined);if(b){b.className='career-current-action ww-airy-action';b.setAttribute('data-career-action','promotion');panel.actions.append(b);}}
  if(pending){const detail=make('details',null,'career-card-details');detail.append(make('summary','升阶条件与申请'));
   detail.append(make('p','本任从九品至少3个不同模拟日朝会与归档合格，实任满3日、考语净值≥3，礼仪/文书各2级。未结班或待薪时先结清。'));
   const cancel=buttonFor('撤回升阶申请',()=>{careers.cancelPromotion(r.id);});cancel.className='career-withdraw';detail.append(cancel);panel.body.append(detail);
