@@ -35,6 +35,7 @@
       "character-transitions.cjs",
       "character-variety.cjs",
       "characters.cjs",
+      "empty-hand-pose-context.cjs",
       "external-hand-props.mjs",
       "garment-probe-regressions.cjs",
       "japan-external-hand-grips.mjs",

@@ -40,7 +40,10 @@ export function createPalaceTeaService({npcs,lot,doors,planPath,moveActor,poseCo
  function pose(n,t){
   const target=['place','retrieve','drink','guest-lift','lower'].includes(runtime.phase)?P.serve:P.prep;if(!n.walking)n.root.rotation.y=Math.atan2(target[0]-n.root.position.x,target[2]-n.root.position.z);
   const touching=['prepare','pickup','carry','place','retrieve','return','clear'].includes(runtime.phase);
-  const hands=touching?props.handTargets(n,runtime.phase,runtime.elapsed):[[-.18,.95,.23],[.18,.95,.23]];
+  // Empty approach/return-home and waiting use ordinary arms. Only real work
+  // or the original carried tray owns hand targets, including while walking.
+  if(!touching){n.animate(t+(n.phase||0),n.walking,null,{...poseContext(n,null),handoff:false,handoffLean:undefined,handoffDip:undefined,heldProp:null,archery:null});return;}
+  const hands=props.handTargets(n,runtime.phase,runtime.elapsed);
   if(runtime.phase==='prepare'||runtime.phase==='clear'&&runtime.elapsed>=1){const wave=Math.sin(runtime.elapsed*3)*.025;hands[1][0]+=wave;hands[1][2]+=.02;}
   const ratio=Math.min(1,runtime.elapsed),lean=['prepare'].includes(runtime.phase)?.75:runtime.phase==='pickup'||runtime.phase==='retrieve'?.75*(1-ratio):runtime.phase==='place'||runtime.phase==='clear'?.75*ratio:0;
   n.animate(t+(n.phase||0),n.walking,null,{...poseContext(n,null),handoff:true,handoffLean:lean,handoffDip:lean/.75*.10,heldProp:null,archery:{hands}});

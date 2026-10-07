@@ -214,7 +214,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   const privatePose=toilet()?.actorPose(n);if(privatePose){meals.get(n).show(false);n.animate(t+n.phase,false,privatePose.action,{...poseContext(n,null),...privatePose.context});return;}
   const stop=scripts.get(n)[s.index],context=poseContext(n,null);context.handoff=false;context.heldProp=null;context.seatedMeal=false;meals.get(n).show(false);
   if(s.mount){const m=s.mount;context.seatHeight=m.seatY===undefined?undefined:m.seatY-n.root.position.y-context.visualFloorOffset;if(m.kind==='bed'){context.visualFloorOffset=0;context.supportY=m.supportY;context.lieSupport=m.lieSupport;context.lieOffset=m.lieOffset;context.liePillowZ=m.liePillowZ;context.lieSurfaceHeightAt=(x,z)=>furniture.bedSupportAt(m,x,z);}}
-  if(stop.pair&&hostHeld===n&&!interrupted(n)&&!interrupted(host)||stop.consortPair&&conversation?.phase==='talking'&&!interrupted(n))context.handoff=true;
+  if(!n.walking&&(stop.pair&&hostHeld===n&&!interrupted(n)&&!interrupted(host)||stop.consortPair&&conversation?.phase==='talking'&&!interrupted(n)))context.handoff=true;
   if(stop.meal&&readyMeal(n,s)&&s.mealStarted&&!interrupted(n)){context.seatedMeal=true;if(!getKitchen)meals.get(n).show(true);}
   const teaLook=getTeaService?.()?.guestLookTarget(n.station.id);if(teaLook)n.root.rotation.y=Math.atan2(teaLook[0]-n.root.position.x,teaLook[2]-n.root.position.z);
   Object.assign(context,getTeaService?.()?.guestPose(n.station.id,t)||{});
