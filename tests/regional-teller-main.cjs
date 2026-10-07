@@ -34,6 +34,16 @@ const svc=r().regionalTellerEmployment;assert(svc.forRole(roleId));
 const stopAfter=process.env.TELLER_STOP_AFTER;
 const checkpoint=stage=>{main.namespace.save();const file=path.resolve('qa','regional-teller-'+country+'-'+stage+'.json');fs.writeFileSync(file,storage['worlds-days-v1']);console.log('PASS '+stage+' checkpoint saved',country,file,(Date.now()-started)/1000);};
 const savedApplication=process.env.TELLER_RESUME?JSON.parse(fs.readFileSync(process.env.TELLER_RESUME,'utf8')).formalCareers.applications.byRole[roleId]:null;
+if(stopAfter==='issuance'){
+ assert(r().formalCareers.isHired(roleId));assert.equal(svc.state().shift?.stage,'working');assert(!svc.inspection.state().order);assert.equal(svc.state().receipts.length,0);
+ main.namespace.tellerNextDay();r().copperLedger.observeDay();console.log('FIXTURE advance clock one day and apply existing bank day observation; no teller work or wage simulated');
+ const sourceBefore=JSON.stringify(r().copperLedger.state());
+ assert(main.namespace.requestStationIntent(svc.intent('begin-original')));
+ until(()=>!!svc.inspection.state().order,'receive global daily original audit',240);
+ const order=svc.inspection.state().order;assert.equal(order.stage,'check');assert.equal(order.index,0);assert.equal(order.calculationIndex,0);assert.equal(order.recorded,false);
+ assert.equal(JSON.stringify(r().copperLedger.state()),sourceBefore,'issuance does not alter original bank journal');assert.equal(svc.state().receipts.length,0);
+ console.log('PASS original contract',order.contract.orderId,'day',order.contract.day,'currency',order.contract.currency);checkpoint('issuance');return;
+}
 if(stopAfter==='handoff'){
  assert.equal(savedApplication?.status,'approved');assert(r().formalCareers.isHired(roleId));assert(!svc.state().shift);assert(!svc.inspection.state().order);
  assert(main.namespace.requestStationIntent(svc.intent('accept')));
