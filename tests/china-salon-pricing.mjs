@@ -7,3 +7,8 @@ const profile={appearanceScore:65,artLevel:4,positiveReviews:3};assert.equal(quo
 assert.equal(quote({...profile,skin:0xffffff,race:'a',gender:'female'}),quote({...profile,skin:0x000000,race:'b',gender:'male'}));
 assert(validSalonFee(6));assert(validSalonFee(10));assert(validSalonFee(355,1));assert(!validSalonFee(355));assert(!validSalonFee(19,1));assert(!validSalonFee(505,1));
 console.log('PASS deterministic shared 20–60 / 80–180 / 200–500 fees, bounded real progress, no skin/race/gender inputs, and explicit legacy fee migration');
+const artistic={appearanceScore:90,artLevel:4,positiveReviews:1};
+assert(quote({...artistic,reputation:1,contentWeight:1})>quote({...artistic,reputation:-1,contentWeight:0}));
+assert(quote({...artistic,relationship:1})<quote({...artistic,relationship:-1}));
+assert.equal(quote({...artistic,reputation:Infinity,contentWeight:NaN}),quote({...artistic,reputation:-1,contentWeight:0}));
+console.log('PASS actual reputation, performed content and directional relationship affect the next bounded quote without changing appearance or repricing frozen orders');

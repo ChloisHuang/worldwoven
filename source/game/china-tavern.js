@@ -144,7 +144,9 @@ export function buildChinaTavern(G,A){
   for(const dx of[-.82,0,.82]){G.box(bed,dx,1.20,-d/2+.125,.065,.79,.03,C.gold);if(dx)G.box(bed,dx,.868,.5,.018,.004,1.85,C.gold);}
   // One hull per bed for safe mount exclusion, supported quilt contacts remain real.
   colliders.push({minX:x-w/2,maxX:x+w/2,minY:y-.015,maxY:y+1.78,minZ:z-d/2,maxZ:z+d/2});cameraColliders.push({...colliders.at(-1)});
-  additionalFurniture.push({id:bedId,guestRoomId:'tavern-guest-'+key,kind:'bed',name:'云来客栈 · '+name+'安寝',worldLabel:name+'客榻',position:[x0+3.7,y,z],exitPositions:[[x0+3.7,y,z],[x0+3.7,y,17.25]],anchor:[x,y,z],center:[x,y-.015,z],size:[w,1.8,d],yaw:0,supportY:y+.815,lieOffset:.30,lieSupport:{hip:y+.8525,back:y+.8525,head:y+.8625,heel:y+.8525},action:'躺下休息'});
+  // The two-person private meeting uses the existing bed-side aisle. A
+  // sideways offset lands on the bed or partition; no geometry is moved.
+  additionalFurniture.push({id:bedId,guestRoomId:'tavern-guest-'+key,socialMeetingOffset:[0,0,.9],kind:'bed',name:'云来客栈 · '+name+'安寝',worldLabel:name+'客榻',position:[x0+3.7,y,z],exitPositions:[[x0+3.7,y,z],[x0+3.7,y,17.25]],anchor:[x,y,z],center:[x,y-.015,z],size:[w,1.8,d],yaw:0,supportY:y+.815,lieOffset:.30,lieSupport:{hip:y+.8525,back:y+.8525,head:y+.8625,heel:y+.8525},action:'躺下休息'});
   // Bed in the middle bay, tea console by the rear window, wardrobe opposite:
   // the room reads as a suite instead of a pile of furniture at the back wall.
   rug(g1,x0+2.35,y,15.5,4.05,4.55,color);
