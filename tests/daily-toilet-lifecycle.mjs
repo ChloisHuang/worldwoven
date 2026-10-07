@@ -13,7 +13,7 @@ function fixture(saved={},withPredicate=true){
  f.reload=(snapshot=f.durable)=>f.service=createDailyToilet({...options,saved:copy(snapshot)});
  f.tick=(count=1)=>{for(let i=0;i<count;i++)f.service.update(.1);};
  f.mount=()=>{staff.root.position.set(...P.approach);assert(f.service.requestActor(staff));assert(f.service.updateActor(staff,.1));assert(f.service.actorPose(staff));};
- f.blockExit=()=>f.colliders.push({minX:-.3,maxX:.3,minY:0,maxY:2,minZ:.7,maxZ:1.3});
+ f.blockExit=()=>f.colliders.push({minX:-2,maxX:2,minY:0,maxY:2,minZ:-1,maxZ:3});
  f.reload();return f;
 }
 const unchanged=(f,before)=>assert.deepEqual({position:f.staff.root.position.toArray(),yaw:f.staff.root.rotation.y,walking:f.staff.walking,route:f.staff.route},before);
@@ -57,3 +57,9 @@ const alive=fixture();alive.mount();assert(alive.service.cancel()); // Default c
 assert(alive.service.active('staff'));assert(alive.service.cancel('ordinary','staff'));assert.deepEqual(alive.staff.root.position.toArray(),P.approach);assert.equal(alive.events.length,0);
 const defaultAlive=fixture({},false);defaultAlive.staff.alive=false;defaultAlive.mount();assert(defaultAlive.service.actorPose(defaultAlive.staff));assert(defaultAlive.service.cancel('legacy','staff'));assert.deepEqual(defaultAlive.staff.root.position.toArray(),P.approach);
 console.log('PASS living cancellation and omitted liveness predicate preserve the original physical dismount');
+
+const exitWrite=fixture();exitWrite.mount();exitWrite.reject=true;assert(!exitWrite.service.cancel('ordinary','staff'));assert(exitWrite.service.ownsActor(exitWrite.staff),'failed durable release keeps the fixture reserved after physical dismount');assert(!exitWrite.service.requestActor(exitWrite.other));assert.equal(exitWrite.events.length,0);exitWrite.reject=false;exitWrite.tick();assert(!exitWrite.service.active(null));assert.equal(exitWrite.durable.pending,null);
+console.log('PASS failed durable exit cannot expose a second reservation before retry');
+const lostOwner=fixture();lostOwner.mount();lostOwner.tick(205);assert(!lostOwner.service.ownsActor(lostOwner.staff));assert.equal(lostOwner.durable.lastOutcome.reason,'actor-controller-interrupted');assert.equal(lostOwner.events.length,0);
+const exitWithoutOwner=fixture();exitWithoutOwner.mount();exitWithoutOwner.blockExit();assert(!exitWithoutOwner.service.cancel('interrupted','staff'));exitWithoutOwner.colliders.length=0;exitWithoutOwner.tick();assert(!exitWithoutOwner.service.ownsActor(exitWithoutOwner.staff));assert.deepEqual(exitWithoutOwner.staff.root.position.toArray(),P.approach);assert.equal(exitWithoutOwner.events.length,0);
+console.log('PASS lost use-controller cancels without relief; leaving recovery is driven even without its caller');

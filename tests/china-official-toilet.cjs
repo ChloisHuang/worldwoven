@@ -19,7 +19,7 @@ const assert=require('node:assert/strict'),load=require('./fixtures/browser-modu
  const lifeCheckpoint=JSON.parse(JSON.stringify(flow.snapshot())),toiletCheckpoint=JSON.parse(JSON.stringify(saved)),position=first.root.position.toArray();
  assert.deepEqual(toilet.restorePosition(ids[0],position),position);assert.equal(toilet.restorePosition(ids[1],position),null);assert.equal(toilet.restorePosition(ids[0],P.approach),null);
  // One hard court summon leaves the real cubicle before handing back control.
- lot.colliders.push({minX:23.5,maxX:24.1,minZ:P.approach[2]-.3,maxZ:P.approach[2]+.3,minY:4,maxY:6});flow.request(first);tick();assert(!flow.ready(first));assert(toilet.ownsActor(first));assert.equal(needWrites,0);assert.deepEqual(first.root.position.toArray(),P.anchor);
+ lot.colliders.push({minX:21,maxX:26,minZ:4,maxZ:7,minY:4,maxY:6});flow.request(first);tick();assert(!flow.ready(first));assert(toilet.ownsActor(first));assert.equal(needWrites,0);assert.deepEqual(first.root.position.toArray(),P.anchor);
  lot.colliders.length=0;tick();assert(flow.ready(first));assert(!toilet.ownsActor(first));assert.deepEqual(first.root.position.toArray(),P.approach);assert.equal(needWrites,0);
  // Abrupt save recovery preserves the authored mount, then safely interrupts;
  // old time is never promoted into a completed use or artificial relief.
