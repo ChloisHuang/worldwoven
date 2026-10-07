@@ -14,14 +14,20 @@ function shellEnvelope(group,spec){let shell;group.traverse(m=>{if(m.name===spec
   for(const t of triangles)if(q.y>=t.low&&q.y<=t.high&&ray.intersectTriangle(...t.q,false,hit))surface=Math.max(surface,hit.distanceTo(ray.origin));assert(Number.isFinite(surface),'cap enclosure must exist at protected hair height');return surface-radius;
  }};
 }
-function verify(actor,group,spec){const envelope=shellEnvelope(group,spec),v=new T.Vector3();let worst=Infinity,samples=0;
+function verify(actor,group,spec){const envelope=shellEnvelope(group,spec),v=new T.Vector3(),look=actor.root.userData.appearance,dense=spec.kind==='emperor'&&look.bodyPreset.startsWith('feminine')&&look.hairStyle==='side-part';let worst=Infinity,samples=0;
  actor.root.traverse(m=>{if(!m.isSkinnedMesh)return;const g=m.geometry,p=g.attributes.position,ix=g.index;for(const r of g.userData.sourceRanges){if(!/^(hair-|continuous-head-anatomical-)/.test(r.name))continue;
   const sample=q=>{if(q.y<=envelope.low+.001||q.y>=envelope.high-.001)return;worst=Math.min(worst,envelope.clearance(q));samples++;};
   for(let i=r.start;i<r.start+r.count;i++)sample(v.fromBufferAttribute(p,i));
   // Coarse cap triangles can miss a lock's interior even when its vertices
   // fit. Check the actual indexed hair/skin triangle centroids as well.
-  for(let j=r.indexStart;j<r.indexStart+r.indexCount;j+=3){v.set(0,0,0);for(let k=0;k<3;k++){const i=ix.getX(j+k);v.x+=p.getX(i)/3;v.y+=p.getY(i)/3;v.z+=p.getZ(i)/3;}sample(v);}
- }});assert(samples>0);assert(worst>=-.0002,JSON.stringify({spec:spec.kind,appearance:actor.root.userData.appearance,worst,samples}));return{worst,samples};}
+  for(let j=r.indexStart;j<r.indexStart+r.indexCount;j+=3){v.set(0,0,0);for(let k=0;k<3;k++){const i=ix.getX(j+k);v.x+=p.getX(i)/3;v.y+=p.getY(i)/3;v.z+=p.getZ(i)/3;}sample(v);
+   // Fixed reviewer reproducer: both feminine side parts crossed the emperor
+   // cap at a one-third hair edge, between the original sampled midpoints.
+   // Keep this six-division grid unchanged; it is not runtime work or an
+   // indefinitely increasing art/geometry sampling framework.
+   if(dense){const ids=[ix.getX(j),ix.getX(j+1),ix.getX(j+2)];for(let a=0;a<=6;a++)for(let b=0;b<=6-a;b++){const w=[a/6,b/6,(6-a-b)/6];v.set(0,0,0);for(let k=0;k<3;k++){v.x+=p.getX(ids[k])*w[k];v.y+=p.getY(ids[k])*w[k];v.z+=p.getZ(ids[k])*w[k];}sample(v);}}
+  }
+ }});assert(samples>0);if(dense)assert(worst>=0,'Known one-third-edge family must have a real positive gap');assert(worst>=-.0002,JSON.stringify({spec:spec.kind,appearance:actor.root.userData.appearance,worst,samples}));return{worst,samples};}
 function snapshot(actor){const values=[];actor.root.traverse(m=>{if(m.isSkinnedMesh)values.push({mesh:m,geometry:m.geometry,position:m.geometry.attributes.position.array.slice(),normal:m.geometry.attributes.normal.array.slice()});});return values;}
 function unchanged(before){for(const b of before){assert.equal(b.mesh.geometry,b.geometry);assert.deepEqual(b.geometry.attributes.position.array,b.position);assert.deepEqual(b.geometry.attributes.normal.array,b.normal);}}
 const results=[];let samples=0,minimum=Infinity,maximumPush=0;
