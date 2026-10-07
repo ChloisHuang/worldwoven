@@ -36,6 +36,13 @@ const main=emit('game/main.js'),entry=emit('game/entry.js'),css=emit('game/game.
 let html=fs.readFileSync('source/game/index.html','utf8').replace('./game.css?rev=R7-20261002',css).replace('./entry.js',entry).replace('../vendor/three/build/three.module.js',three);
 if(html.includes('../tools/')||html.includes('?rev='))throw Error('Private links or blanket cache version remain');
 fs.mkdirSync(path.join(out,'game'),{recursive:true});fs.writeFileSync(path.join(out,'index.html'),html);fs.writeFileSync(path.join(out,'game/index.html'),html);
+// Separate finite T05 UI QA entry; never referenced by the normal game entry.
+const qaEntry=emit('qa/t05-entry.js');
+fs.mkdirSync(path.join(out,'qa'),{recursive:true});
+for(const name of ['t05.html','t05-frame.html']){
+ const qa=fs.readFileSync(path.join(root,'qa',name),'utf8').replace('./t05-entry.js',qaEntry).replace('../game/game.css',css).replace('../vendor/three/build/three.module.js',three);
+ fs.writeFileSync(path.join(out,'qa',name),qa);
+}
 fs.writeFileSync(path.join(out,'three-LICENSE.txt'),fs.readFileSync('source/vendor/three/LICENSE'));
 fs.cpSync('source/licenses',path.join(out,'licenses'),{recursive:true});
 const releaseVersion=JSON.parse(fs.readFileSync('package.json','utf8')).version.replace(/^0\./,'');
