@@ -490,6 +490,7 @@
       "daily-needs-world-food.mjs",
       "daily-toilet-lifecycle.mjs",
       "daily-toilet.cjs",
+      "daily-toilet-exit-geometry.cjs",
       "egypt-daily-toilet-main.cjs",
       "egypt-daily-toilet.cjs",
       "egypt-local-study-main.cjs",

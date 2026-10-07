@@ -27,7 +27,7 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
  const serial=Math.max(Number.isSafeInteger(saved.serial)&&saved.serial>=0?saved.serial:0,...receipts.map(r=>r.number));
  let durable={version:1,serial,receipts:retainReceipts(receipts),pending:saved.pending&&saved.pending.id===receiptId(serial)&&saved.pending.facilityId===P.id?copy(saved.pending):null,lastOutcome:saved.lastOutcome||null};
  let current=null,disposed=false,lastError=null,retryIn=0,recovery=durable.pending,abandonment=null,time=0;
- const cooldowns=new Map();let privacyCache=null;
+ const cooldowns=new Map();let privacyCache=null,exitCache=null;
  const idOf=actor=>actor===getPlayer()?'player':actor?.station?.id||actor?.id||null;
  const people=()=>[...new Set([getPlayer(),...(getActors()||[])].filter(Boolean))];
  const actorById=id=>people().find(a=>idOf(a)===id);
@@ -62,24 +62,56 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
  // Door/room occupancy is sampled only while this one facility is in use,
  // at 4 Hz. Mount and completion recheck live state at their durable boundary.
  function privacy(actor,force=false){if(!force&&privacyCache?.actor===actor&&time-privacyCache.time<.25)return privacyCache.result;const result=inspectPrivacy(actor);privacyCache={actor,time,result};return result;}
- function exitClear(actor){
-  const p=P.approach,r=actor?.collisionRadius??.34;
-  if(people().some(a=>a!==actor&&a.root?.position&&Math.abs(a.root.position.y-p[1])<1&&Math.hypot(a.root.position.x-p[0],a.root.position.z-p[2])<r+(a.collisionRadius??.34)+.08))return false;
-  return !blocked(p[0],p[2],[...(lot.colliders||[]),...(doors?.cameraColliders||[])],r,{bounds:lot.bounds,surfaces:lot.walkableSurfaces,legacyGround:false,y:p[1],bodyHeight:actor?.bodyHeight??1.95});
+ // The authored dismount is local to the bowl. If its usual landing is
+ // occupied, find a genuinely clear landing within this same room. Never drop
+ // the reservation while the body is still on the fixture.
+ const penetration=(p,b,r,h)=>p[1]>=(b.maxY??Infinity)-.01||p[1]+h<=(b.minY??-Infinity)+.01?0:Math.max(0,Math.min(p[0]-b.minX+r,b.maxX+r-p[0],p[2]-b.minZ+r,b.maxZ+r-p[2]));
+ const radius=actor=>actor?.collisionRadius??(actor===getPlayer() ? .34 : .25);
+ const position=actor=>{const p=actor.root.position;return [p.x,p.y,p.z];};
+ function exitClear(actor,p=P.approach,planning=false){
+  const r=radius(actor);
+  if(people().some(a=>a!==actor&&a.root?.position&&Math.abs(a.root.position.y-p[1])<1&&Math.hypot(a.root.position.x-p[0],a.root.position.z-p[2])<r+radius(a)+.08))return false;
+  return !blocked(p[0],p[2],[...(lot.colliders||[]),...(doors?.cameraColliders||[])],planning?Math.max(.39,r):r,{bounds:lot.bounds,surfaces:lot.walkableSurfaces,legacyGround:false,y:p[1],bodyHeight:actor?.bodyHeight??1.95});
+ }
+ function exitSegment(actor,from,to){
+  const r=radius(actor),h=actor.bodyHeight??1.95,solids=[...(lot.colliders||[]),...(doors?.cameraColliders||[])],others=people().filter(a=>a!==actor&&a.root?.position);
+  let previous=from;
+  const count=Math.max(1,Math.ceil(Math.hypot(to[0]-from[0],to[2]-from[2])/.04));
+  for(let i=1;i<=count;i++){
+   const p=from.map((v,j)=>v+(to[j]-v)*i/count);p[1]=Math.max(from[1],to[1]);
+   // A mounted root starts inside its own bowl/footrest. It may only reduce
+   // that existing overlap, never enter another solid or cross a closed leaf.
+   // Stay at the supported seat/footrest height until outside its footprint;
+   // only lower to the separately validated floor landing at the end.
+   if(solids.some(b=>penetration(p,b,r,h)>penetration(previous,b,r,h)+1e-7))return false;
+   if(others.some(a=>{const q=position(a),gap=r+radius(a)+.08;return Math.abs(q[1]-p[1])<1&&Math.hypot(q[0]-p[0],q[2]-p[2])<gap&&Math.hypot(q[0]-p[0],q[2]-p[2])<Math.hypot(q[0]-previous[0],q[2]-previous[2])+1e-7;}))return false;
+   previous=p;
+  }
+  return true;
+ }
+ function exitLanding(actor){
+  const from=position(actor),valid=p=>p&&p[0]>room.minX&&p[0]<room.maxX&&p[2]>room.minZ&&p[2]<room.maxZ&&exitClear(actor,p,true)&&exitSegment(actor,from,p);
+  if(exitCache?.actor===actor&&time-exitCache.time<.25)return valid(exitCache.point)?exitCache.point:null;
+  const candidates=[[...P.approach]];
+  for(const radius of [.4,.7,1])for(let i=0;i<40;i++)candidates.push([P.approach[0]+Math.cos(i*Math.PI/20)*radius,P.approach[1],P.approach[2]+Math.sin(i*Math.PI/20)*radius]);
+  // New landing points also preserve the existing .39m route-planning
+  // clearance, so a safe body cannot be stranded outside the door graph.
+  const point=candidates.find(valid)||null;exitCache={actor,time,point};return point;
  }
  function release(){
   if(!current)return true;
-  const {actor,mounted,id}=current;
-  if(abandonment||!alive(actor))return abandonActor(current.actorId);
-  // A concurrent controller that already moved this actor must never be snapped
-  // back. The mounted comparison also makes stale saves safe on lot re-entry.
+  const c=current,{actor,mounted,id}=c;
+  if(abandonment||!alive(actor))return abandonActor(c.actorId);
   if(mounted&&mountedAt(actor)){
-   if(!exitClear(actor)){current.stage='leaving';return false;}
-   actor.root.position.set(...P.approach);actor.root.rotation.y=P.exitYaw??-Math.PI/2;
+   const landing=exitClear(actor)?P.approach:exitLanding(actor);
+   if(!landing){c.stage='leaving';return false;}
+   // This is the existing short, authored seat dismount, confined to the same
+   // private room. Ordinary controllers still own every step to/through doors.
+   actor.root.position.set(...landing);actor.root.rotation.y=P.exitYaw??-Math.PI/2;c.mounted=false;
   }
-  actor.walking=false;current=null;
-  if(durable.pending?.id===id)persist({...durable,pending:null});
-  return true;
+  actor.walking=false;c.stage='leaving';
+  if(durable.pending?.id===id&&!persist({...durable,pending:null}))return false;
+  current=null;return true;
  }
  function recover(){
   if(abandonment)return abandonActor(abandonment.actorId,abandonment.reason);
@@ -87,7 +119,7 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
   const old=recovery,actor=actorById(old.actorId);
   if(actor&&!alive(actor))return abandonActor(old.actorId);
   if(actor&&['using','leaving'].includes(old.stage)&&mountedAt(actor)){
-   current={actor,actorId:old.actorId,id:old.id,number:old.number,stage:'leaving',mounted:true,elapsed:0,wait:0,cancelled:true};
+   if(!current)current={actor,actorId:old.actorId,id:old.id,number:old.number,stage:'leaving',mounted:true,elapsed:0,wait:0,cancelled:true,lastDriven:time};
    if(!release())return false;
   }
   const status=durable.receipts.some(r=>r.id===old.id)?'completed':'interrupted';
@@ -173,6 +205,7 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
   // world collision recovery must not relocate them out of the bowl first;
   // recover() then performs the original safe interruption/dismount, no relief.
   restorePosition(actorId,position){const pending=durable.pending,actor=actorById(actorId);return available&&!abandonment&&(!actor||alive(actor))&&pending?.actorId===actorId&&['using','leaving'].includes(pending.stage)&&Array.isArray(position)&&[P.anchor,...(P.legacyAnchors||[])].some(a=>a.every((v,i)=>Math.abs(v-position[i])<.025))?position.slice():null;},
+  exitPlan(actor){return current?.actor===actor&&current.mounted?(exitClear(actor)?[...P.approach]:exitLanding(actor)):null;},
   intent,resolveIntent,executeIntent(selected){if(!resolveIntent(selected)||!atApproach(getPlayer()))return false;const ok=reserve(getPlayer());if(!ok)notify(current?'净室有人使用，请稍后再来':'暂时无法使用净室，请稍后再试');return ok;},
   requestActor:reserve,updateActor:(actor,dt,{travel}={})=>tick(actor,dt,travel),ownsActor:actor=>!!current&&current.actor===actor||!!abandonment&&abandonment.actorId===idOf(actor),
   active:(actorId='player')=>!!(current||abandonment)&&(!actorId||(current||abandonment).actorId===actorId),cancel,abandonActor,
@@ -189,7 +222,8 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
     // caller that lost ownership releases the one shared fixture after 20s.
     if(c.stalled>=20)cancel('route-stalled',c.actorId);
    }else if(current?.actorId!=='player'&&time-current?.lastDriven>20)cancel('actor-controller-interrupted',current.actorId);
-   if(current?.actorId==='player')tick(current.actor,dt);
+   if(current?.stage==='leaving')release();
+   else if(current?.actorId==='player')tick(current.actor,dt);
    for(const[id,until]of cooldowns)if(until<=time)cooldowns.delete(id);
   },
   state(){return {...copy(durable),available,activity:current?{id:current.id,actorId:current.actorId,stage:current.stage,elapsed:current.elapsed,progress:current.elapsed/P.seconds,mounted:current.mounted,privacy:privacy(current.actor),label:label(current.actorId)}:null,cooldowns:[...cooldowns].map(([actorId,until])=>({actorId,seconds:Math.max(0,until-time)})),lastError,approach:[...P.approach],anchor:[...P.anchor]};},
