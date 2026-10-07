@@ -1,0 +1,115 @@
+{
+  "baseline": "ad5609adfff8f3491bb98aad62d02512b8e3739b",
+  "reusedEvidenceCommit": "2e262452d3fd5ef03dac6b82e421e973336b0562",
+  "unchangedSourceHashes": {
+    "source/game/china-official-bureau.js": "fc841a77c5e986272cc7c9e8316b9609fc3c081860fd7034f965824e46b62381",
+    "source/game/china-official-economy.js": "bcc89d09c6942ee74fe1b35fb958a64fdad289fe7612f045fc3b033f04ceccaa",
+    "source/game/china-official-lettering.js": "fd64f1b6696d62066894e1ea63957390cae21dcd79d53d7a10b17c99531e95c8",
+    "source/game/china-official-life.js": "d0c33d276f6c557ea1ab9a88f67ae39c3dee11e9a5c38a1d79426aab804cb1fa",
+    "source/game/china-official-ranks.js": "199cb867c95e8ca7320741614daf7e32e3adb631a70248f4ae1dd38e4ee8ac20",
+    "source/game/china-official-salon-payments.js": "3d25f049885869a029867c622b721d53a49aad6926814486266e76cc8aa308d3",
+    "source/game/china-salon-career-panel.js": "9cd00652caf01141c022644f78aca504c23f8d185257237ef271bfc394612148",
+    "source/game/china-salon-career-role.js": "31c2c959b2aa4bc4033d1b75a5ea4bda3c7e968df1381a1661896d40c59c8832",
+    "source/game/china-salon-career-services.js": "33a13cdf43cb1deccc5d95ca46738c12cc9131d88a803e367303f5937057c726",
+    "source/game/china-salon-companionship.js": "d00b0d44ccd0359b672421697810e02c45a87f0e30aef01920e8172c84324ae8",
+    "source/game/china-salon-contracts.js": "5680e7d57a4846bb0e14829057f9d189b767fcc4419bcc55464f48f816790cb6",
+    "source/game/china-salon-economy.js": "4947fc9bd9802d9d7f0270ff52c3fc1a92d2b28647e216a4e2d17f0facd63002",
+    "source/game/china-salon-employment.js": "6b59631d9a91e07ad4c43b72af852a501974b464ebce7406aafa71f7a805e21d",
+    "source/game/china-salon-needs.js": "29c503ebb233bd20acd611d12b682f1e7f0a63a8028fd70b7f2cfd9760955be8",
+    "source/game/china-salon-payments.js": "0008000df079e2f3a3e77c0be70c9adcbf608330da63f51cf078d5bfebfa4336",
+    "source/game/china-salon-pricing.js": "aad5cd40ac9e479ddcc7906924ac6de771c98479d1fd8c5006209616e0ba3141",
+    "source/game/china-salon-reception-account.js": "9b409fb1c265a44d1b1d8dd8733fa0910041832e50496778896f657deaba19f9",
+    "source/game/china-salon-reception-proof.js": "33af1edee979223f58005d5c2d904bc7b5dea20dd679df031a11ae80212e4c09",
+    "source/game/china-salon-reception-props.js": "115295178ac7b3074cb3b9cb2e0b57706e47cbcc115f978420783af593bda5ff",
+    "source/game/china-salon-reception-role.js": "8a297cd53bf92628f9c1f5d389b7177a110972a521fcef669a4283ee3cf4d486",
+    "source/game/china-salon-reception-work.js": "201a86b7e0e66a4d28d66a52e371845f957eba05c0699577a09775039c9dbb28",
+    "source/game/china-salon-stories.js": "6cdc0d1a30f562615682ee6c5929d5408c90e36bc2f469e9bd0d582e92ccd7b5",
+    "source/game/china-tavern-salon-artists.js": "a152a55bd37836efec6208c4fbcdb313f5b848cf72c15ea93da790982924df52",
+    "source/game/china-tavern-salon-life.js": "0ee4886472b8cd184db5a7aa8564471381e165a4caae635360cb533169515115",
+    "source/game/china-tavern-salon-rooms.js": "37f9c9e03043b56e2af9469c57a89a10c098364fce809cd7fc12f1f9aad8c358",
+    "source/game/china-tavern-salon-ui.js": "935d7816d40a2cc4a0a73d2a1e1f031d73e4c191b85123e0d705c5e1156b4bd0",
+    "source/game/china-tavern-salon.js": "84c6b84bc88f1346f614ac34a9bb0a07727ef623fdff22dc5991bed9a0ce63bb",
+    "source/game/daily-needs.js": "07ff77134e4a246b6acb08a3ce1d08949c51a7c98f89ecd0df9a21165a45cc93",
+    "source/game/world-continuity.js": "5d89b96c244b54bfb6c4eb0d22a62885250620d4f0e0b6f059b64404b8d96ff0",
+    "tests/natural-social-observe.cjs": "a346f996fda7b4b33bd655a742ea2fc4d006cc477fec7e4753ae371e162f52bd",
+    "development/heavy-probes/bounded-dom.cjs": "67bcf3008c22b04f5f4876d7b2ae3ff0886de7dbdff22c1768554ea349a6bab3"
+  },
+  "mainDifferences": "R190 teller integration only; original salon/controller list and actor restoration unchanged. New player teller intent resolution and teller update remain active in the production step.",
+  "financialOrigin": "Four-day original controller fixture: direct courtCompleted calls and doubled travel. Six96,24 duty receipts,576 total. Not four natural days.",
+  "observationWindowSeconds": 240,
+  "windowReason": "Two original paid-salon cooldowns of120s plus original10–27s work/read decision cycles; no event is an observation limit, not proof of a broken service.",
+  "segments": [
+    {
+      "input": "qa/st03-r190/origin-checkpoint.json",
+      "checkpoint": "qa/st03-r190/segment-20261007T182423Z-2.checkpoint.json",
+      "checkpointSha256": "5dcd8970b6e013de224b3f25de849118cf8852e142fb73f42c068903e1255bbc",
+      "frames": 300,
+      "initialSeconds": 8485.714285714286,
+      "clock": {
+        "seconds": 8530.714285714177,
+        "day": 4,
+        "hour": 13.524999999998727
+      },
+      "stop": "segment-boundary",
+      "session": null,
+      "rooms": [
+        {
+          "id": "tavern-guest-lan",
+          "name": "兰房",
+          "claim": null,
+          "physicallyOccupied": false
+        },
+        {
+          "id": "tavern-guest-zhu",
+          "name": "竹房",
+          "claim": null,
+          "physicallyOccupied": false
+        }
+      ],
+      "accounts": {
+        "cn-minister-works": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-minister-granary": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-rites": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-personnel": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-justice": {
+          "bank": 96,
+          "cash": 0
+        },
+        "cn-official-records": {
+          "bank": 96,
+          "cash": 0
+        }
+      },
+      "salonHistory": [],
+      "artistReceiptCount": 0,
+      "failures": [],
+      "guard": {
+        "guard": "PASS",
+        "reason": null,
+        "exit": 0,
+        "seconds": 80.107,
+        "treePeakMiB": 712.48,
+        "peakMembersBytes": {
+          "20": 10883072,
+          "22": 736206848
+        },
+        "includesSupervisor": true,
+        "hostname": "24d70332fa95",
+        "bootId": "f3aabe27-ab35-4beb-aca8-24cd4bc772b7"
+      },
+      "phaseLog": "qa/st03-r190/segment-20261007T182423Z-2.log"
+    }
+  ]
+}
