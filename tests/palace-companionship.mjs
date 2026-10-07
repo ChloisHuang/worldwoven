@@ -67,7 +67,7 @@ test('failed acceptance or completion cannot award or retain actors; failed writ
 
 test('fixed willingness is saved once, NPC recipient may refuse, unrelated social ownership never gets stolen',()=>{
  const h=fixture(),e=h.summon(),roll=e.decisions.ruler.roll;for(let i=0;i<5;i++)h.tick();assert.equal(h.api.status().decisions.ruler.roll,roll);
- const other={test:true};holdSocialActors(['ruler'],other);h.tick();assert.equal(h.api.status(),null);assert.equal(isSociallyHeld('ruler'),true);releaseSocialActors(other);
+ const other={test:true};holdSocialActors(['ruler'],other);h.tick();assert.equal(h.api.status().stage,'awaiting-response');assert(h.api.respond(e.id,'player',true).ok);assert.equal(h.api.status().stage,'waiting-departure');assert.equal(h.starts(),0);assert.equal(isSociallyHeld('ruler'),true);releaseSocialActors(other);h.tick();assert.equal(h.api.status().stage,'travelling');h.api.cancel();
  const npc=fixture({worldSeed:11});assert.equal(npc.api.select('ruler','companion').ok,true);npc.tick(3);npc.tick(2);assert.equal(npc.api.history().at(-1)?.reason,'recipient-declined');assert.equal(npc.starts(),0);
 });
 
@@ -97,4 +97,14 @@ test('existing invitation reader reuses its owner without timeout, progress, con
  h.api.releaseMenuPause(e.id);h.busy.clear();assert(h.api.respond(e.id,'player',true).ok);h.arrive();h.tick(1);const elapsed=h.api.status().elapsed;setPlayerConversationHold('ruler');h.tick(50);assert.equal(h.api.status().elapsed,elapsed);assert.equal(h.results.length,0);setPlayerConversationHold(null);h.tick(10);assert.equal(h.results.length,1);
  const blocked=fixture(),old=blocked.summon();blocked.api.pauseForMenu(old.id);blocked.room(false);blocked.tick(1);assert.equal(blocked.api.status(),null,'reading never preserves a revoked room right');assert(['room-occupied','relationship-unavailable'].includes(blocked.api.history().at(-1).reason));
  const dead=fixture(),invite=dead.summon();dead.api.pauseForMenu(invite.id);dead.identities.ruler.alive=false;dead.roster.find(a=>a.actorId==='ruler').alive=false;dead.tick(1);assert.equal(dead.api.status(),null,'death still revokes current identity during reading');
+});
+
+
+test('personal inquiry separates local discussion from safe departure without fabricating consent or rerolling',()=>{
+ let departure=false,sleeping=false;const h=fixture({isAvailable:(id,{phase})=>sleeping?{ok:false,reason:'sleeping',field:'mounted-bed'}:phase==='inquiry'||departure?{ok:true}:{ok:false,reason:'departure-duty',field:'routine-leave-permission',message:'等原工作可安全离开。'}});
+ const e=h.summon();assert.equal(e.consent.player,false);assert.equal(h.starts(),0);const roll=e.decisions.ruler.roll;assert(h.api.respond(e.id,'player',true).ok);assert.equal(h.api.status().stage,'waiting-departure');assert.equal(h.api.status().waitField,'routine-leave-permission');h.tick(120);assert.equal(h.api.status().stage,'waiting-departure');assert.equal(h.api.status().elapsed,0);assert.equal(h.api.status().decisions.ruler.roll,roll);assert.equal(h.starts(),0);assert.equal(h.results.length,0);
+ departure=true;h.tick();assert.equal(h.api.status().stage,'travelling');assert.equal(h.starts(),1);h.arrive();h.tick();h.tick(10);assert.equal(h.results.length,1);
+ const sleep=fixture({isAvailable:()=>({ok:false,reason:'sleeping',field:'arrived-lie-rest'})});assert.equal(sleep.api.request().reason,'sleeping');assert.equal(sleep.api.status(),null);assert.equal(sleep.api.snapshot().nextSerial,1);
+ const noRoom=fixture({isAvailable:()=>({ok:true})});noRoom.room(false);assert.equal(noRoom.api.request().ok,false);assert.equal(noRoom.starts(),0);
+ const ended=fixture({isAvailable:(_,{phase})=>phase==='inquiry'?true:{ok:false,reason:'departure-duty'}}),late=ended.summon();ended.api.respond(late.id,'player',true);ended.clock.hour=6;ended.tick();assert.equal(ended.api.status(),null);assert.equal(ended.api.history().at(-1).reason,'night-ended');assert.equal(ended.starts(),0);
 });

@@ -93,3 +93,8 @@ test('empress and same-day release persist original paper with unchanged consort
  start('release');assert(core.completeInvestiture(core.petition().id,record('charter-reading')).ok);assert.equal(f.bridge.titleStatus().titleId,'consort');assert(f.bridge.releaseTitleAvailability().ok);assert(f.bridge.royalMealEligibility().eligible);assert.deepEqual(f.bridge.ledger.appointment(),a);assert.deepEqual(f.saved.formalCareers,career);assert.equal(f.scene.furniture.items[0].privateOwnerId,'player');assert.equal(core.availability('appoint').reasons[0],'already-petitioned-today');
  const corrupt=copy(f.saved);corrupt.empressTitles.version=999;const locked=fixture({saved:corrupt});assert.equal(locked.bridge.titleStatus().loadError,'invalid-empress-state');assert(locked.bridge.commitService({version:1,flow:null,receipts:[]}));assert.equal(locked.saved.empressTitles.version,999,'bad historical data is retained for repair');
 });
+
+ test('dead, replaced or no-longer-emperor body cannot reuse original title rights',()=>{
+ const f=fixture();f.advance();const actor=f.scene.npcs.find(n=>n.station.id==='cn-emperor');
+ actor.alive=false;assert.equal(f.bridge.titleStatus().active,false);actor.alive=true;actor.actorId='replacement-emperor';assert.equal(f.bridge.titleStatus().active,false);delete actor.actorId;actor.station.royalRole='consort';assert.equal(f.bridge.titleStatus().active,false);actor.station.royalRole='emperor';assert.equal(f.bridge.titleStatus().active,true);
+ });

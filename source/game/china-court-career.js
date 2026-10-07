@@ -83,8 +83,12 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
       intentKey:[s.revision,getClock().day,kind,...(['review','promotion-review'].includes(kind)?[npc?.actorId||npc?.station.id]:[])].join(':'),interactionRadius:2.8,executionRadius:.18,priority:55};
   }
   const resolveIntent = selected => {const next=intent(selected?.kind);if(!next||selected?.provider!==next.provider||selected.id!==next.id||selected.intentKey!==next.intentKey)return null;if(next.kind==='view'){const context=selected.registration||next.registration;if(context.roleId!==COURT_CLERK_ROLE.id||!['role','catalogue'].includes(context.scope))return null;return {...next,registration:{...context}};}return next;};
+  const recruiterId=npc=>npc?.actorId||npc?.station?.id;
+  const reviewApplication=kind=>kind==='promotion-review'?promotion():application();
+  const waitingRecord=(selected,npc)=>({kind:selected.kind,actorId:recruiterId(npc),applicationId:reviewApplication(selected.kind)?.id,day:getClock().day,intentKey:selected.intentKey});
+  const validWaiting=record=>['review','promotion-review'].includes(record?.kind)&&record.actorId&&record.actorId===recruiterId(getRecruiter())&&record.day===getClock().day&&record.applicationId&&record.applicationId===reviewApplication(record.kind)?.id&&reviewApplication(record.kind)?.status==='pending'&&reviewApplication(record.kind)?.stage==='submitted';
   function queueReview(selected,npc){
-    releaseMeeting();lastReview=copy(selected);queuedReview={selected:copy(selected),actor:npc};activity='review-wait';retryAfter=0;
+    releaseMeeting();lastReview=copy(selected);queuedReview={selected:copy(selected),actor:npc,record:waitingRecord(selected,npc)};activity='review-wait';retryAfter=0;
     onWaiting();notify(`${npc.station.npcName||'当值礼仪官'}：${meetingStatus(npc)}。已预约本次审核，结束后自动带你前往；移动或取消可撤销等候，申请仍保留。`);return true;
   }
   function prepareIntent(selected){
@@ -156,7 +160,7 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
     if(queuedReview){
       if(getBusy()){stopActivity();return;}
       retryAfter-=dt;if(retryAfter>0)return;retryAfter=.5;
-      const next=resolveIntent(queuedReview.selected);if(!next){stopActivity();notify('审核条件已变化，预约已解除，请查看当前申请。');return;}
+      const next=validWaiting(queuedReview.record)&&resolveIntent(queuedReview.selected);if(!next){stopActivity();notify('审核条件已变化，预约已解除，请查看当前申请。');return;}
       const npc=queuedReview.actor;if(next.awaitingReception||!requestMeeting(npc))return;
       queuedReview=null;activity=null;heldRecruiter=npc;lastReview=copy(next);
       notify(`${npc.station.npcName||'当值礼仪官'}现在可以接待，正在前往当面审核。`);resumeApproach(next);return;
@@ -218,8 +222,15 @@ export function createChinaCourtCareer({careers, audience, getPlayer, getClock,
     playerAction:()=>['appointment','promotion-appointment'].includes(activity)&&!pending?'read':activity==='archive'&&!pending?'calligraphy':null,
     playerStation:()=>activity==='archive'?{playerWorkTarget:P.archiveTarget}:null,
     label:()=>activity==='review-wait'?'已预约当值礼仪官 · 等原事务结束后自动前往':activity==='review-arrival'?'停步呈交履历 · 等候当面核验':['appointment','promotion-appointment'].includes(activity)?`持文宣读任命 · ${Math.ceil(3-progress)}秒`:documentApplication()?.stage==='document-held'?'持任命文书 · 待宣读受职':activity==='court'?(duty()?.stage==='attending'?'随班行礼 · 听记朝议':'第七班位持笏候朝 · 11:30'):activity==='archive'?`抄录归档 · ${Math.ceil(8-progress)}秒`:null,
-    snapshot:()=>({version:1,duty:copy(duty()),activity,progress,pending,lastNotice,nextSettlementAt}),
-    restore(s){if(s?.version!==1||s.duty&&['roleId','slotId','day'].some(k=>s.duty[k]!==duty()?.[k]))return false;activity=['court','archive'].includes(s.activity)?s.activity:['appointment','promotion-appointment'].includes(s.activity)&&documentApplication()?.stage==='document-held'?s.activity:null;progress=Math.max(0,Math.min(8,s.progress||0));pending=!!s.pending;lastNotice=s.lastNotice||null;nextSettlementAt=Math.max(0,s.nextSettlementAt||0);return true;},
+    snapshot:()=>({version:1,duty:copy(duty()),activity,progress,pending,lastNotice,nextSettlementAt,waiting:queuedReview?copy(queuedReview.record):null}),
+    restore(s){if(s?.version!==1||s.duty&&['roleId','slotId','day'].some(k=>s.duty[k]!==duty()?.[k]))return false;releaseMeeting();queuedReview=null;lastReview=null;reviewOnArrival=null;reviewAnchor=null;activity=['court','archive'].includes(s.activity)?s.activity:['appointment','promotion-appointment'].includes(s.activity)&&documentApplication()?.stage==='document-held'?s.activity:null;progress=Math.max(0,Math.min(8,s.progress||0));pending=!!s.pending;lastNotice=s.lastNotice||null;nextSettlementAt=Math.max(0,s.nextSettlementAt||0);
+      if(s.activity==='review-wait'){
+        const record=s.waiting,next=validWaiting(record)?intent(record.kind):null;
+        if(next&&next.intentKey===record.intentKey){
+          queuedReview={selected:copy(next),actor:getRecruiter(),record:copy(record)};lastReview=copy(next);activity='review-wait';progress=0;pending=false;retryAfter=0;onWaiting();
+        }else notify(record?.actorId&&record.actorId!==recruiterId(getRecruiter())?'礼仪官任职者已变化，本次预约已取消。申请仍保留，请重新选择当值礼仪官。':'审核条件已变化或预约记录不完整，预约已解除，请查看当前申请。');
+      }
+      return true;},
     state:()=>({...careers.state(),waiting:queuedReview?{kind:queuedReview.selected.kind,actorId:queuedReview.actor.actorId||queuedReview.actor.station.id}:null,activity,progress:progress/(['appointment','promotion-appointment'].includes(activity)?3:8),place:copy(P)}),
     dispose({suspend=false}={}){if(disposed)return;releaseMeeting();if(!suspend)stopActivity('离开地区');posture?.dispose();if(documentHome&&documentObject){documentHome.parent.add(documentObject);documentObject.position.copy(documentHome.position);documentObject.rotation.copy(documentHome.rotation);documentObject.scale.copy(documentHome.scale);}disposed=true;},
   };
