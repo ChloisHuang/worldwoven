@@ -1,5 +1,7 @@
 # ST03 R190 原生产付费链观察
 
+当前结论（2026-10-07 23:40 UTC）：一条原记录官→顾流萤80文曲词链已完成真实自然选择/本人接受/原楼梯引路/资金预留/结清/释放，invited与reserved精确恢复、settled后恢复不重复收入均通过。仅一条生产逻辑证据，四日工资前提仍为staged fixture，四艺者全覆盖及浏览器/iOS不据此关闭。
+
 原ST03母项边界保持四艺者实际服务、本人回应、原身体/房间/真实资金与一次结清；本批只验证一条可负担原链，不能关闭四人覆盖或浏览器/iOS体验。
 
 基线ad5609a。R189到R190的雅集/艺者/六官生活、工资、房间、world-continuity、daily-needs模块和natural harness/bounded DOM逐文件相同（hash见development/heavy-probes/salon-r190-evidence.json）。main新增柜员集成；原雅集装配/controller列表/演员恢复不变，玩家意图恢复只新增柜员分支。本检查仍用当前main含柜员更新，不回退业务代码或重测工资。
@@ -63,3 +65,11 @@
 23:31 UTC原reserved/兰房恢复PASS：零步加载保同cn-salon-npc-1、记录官/顾流萤/80文/escort leg0；银行16和bank80 reserved hold完全相同，没有退款/重扣，兰房claim重新建立为同session owner/reserved，艺者账本仍0。完整salon snapshot、原clock、所有演员位置/RNG保持，0跳过/迁移。46.634秒/688.035MiB，guard PASS/exit0。恢复checkpoint qa/st03-r190/active-restore-20261007T233103Z-2.checkpoint.json；下一直接原escort到一次settled，不重复预留。
 
 23:36 UTC原物理引路→服务→一次结清PASS：原cn-salon-npc-1从reserved leg0经三段原楼梯/房门路线，双方分别635.7秒到三层梯厅、646.35秒到二层梯厅、655.95秒到兰房原站位，656.1秒both-entered→非露骨fade，661.35秒原settle80后visiting。银行仍16，无第二次扣款；顾流萤一次income回执银行40，接待原2+2+2秒工作完成后一次工资回执8；官方同ID只有一笔reserve和一笔settle，hold=settled。兰房仍occupied属于该会话，原6秒收尾/释放待验。228帧/34.2模拟秒，97.884秒/706.500MiB，guard PASS/exit0。未直接请求结算或造任何凭据。下一从该真实settled checkpoint恢复，等原释放并比对资金/收入不重复。
+
+## 23:40 UTC 单链终态：settled恢复→原收尾→释放，不重复收入
+
+精确恢复原settled checkpoint后，40帧/6模拟秒完成原visiting收尾。cn-salon-npc-1仅一条complete，session=null，兰房claim=null，记录官borrowedSalon=false；官方/艺者/接待三个完整账本和settled输入逐字段相同。记录官余额16、顾流萤40、接待8，一笔reserve、一笔settle、一笔艺术家收入与一笔接待收入保持，没有再扣或重发。51.975秒/676.992MiB，guard PASS/exit0。
+
+这验证了原身体选择→走到前台→本人答复→原房权/银行80预留→保存恢复→真实公共楼梯引路→双方到房→非露骨原服务→一次结清→结清后恢复→原6秒结束和所有权释放。银行24×4收入来源仍是明确staged控制器fixture，不变成四天自然日程证据；旧礼部官无房取消的失败尝试完整保留，未删掉、复活或重抽seed。
+
+释放瞬间身体仍在兰房、艺者returning=true，原physical occupancy正确仍为true；没有声称已返回三层原岗、房间可以再售或完成之后的吃饭链。其他三艺者包括当前不可负担110文、完整私人同意/人物故事范围、浏览器/iOS验收仍按ST03母项开放。本条按目标终态停止，不扩展无关场景。最终checkpoint qa/st03-r190/service-20261007T233942Z-2.checkpoint.json。

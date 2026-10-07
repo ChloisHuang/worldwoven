@@ -3519,5 +3519,234 @@
       "hostname": "a55d3d933517",
       "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
     }
-  }
+  },
+  "releasedOriginalSession": {
+    "status": "PASS",
+    "input": "qa/st03-r190/service-20261007T233439Z-2.checkpoint.json",
+    "checkpoint": "qa/st03-r190/service-20261007T233942Z-2.checkpoint.json",
+    "checkpointSha256": "57f6643b8582ea52185adb48cff5c1799a8a06fd7d83079047cd2e893a8a3ca9",
+    "frames": 40,
+    "elapsedSimulationSeconds": 6,
+    "clock": {
+      "seconds": 9153.064285712668,
+      "day": 4,
+      "hour": 20.78574999998112
+    },
+    "stop": "original-service-released",
+    "session": null,
+    "rooms": [
+      {
+        "id": "tavern-guest-lan",
+        "name": "兰房",
+        "claim": null,
+        "physicallyOccupied": true
+      },
+      {
+        "id": "tavern-guest-zhu",
+        "name": "竹房",
+        "claim": null,
+        "physicallyOccupied": false
+      }
+    ],
+    "customer": {
+      "id": "cn-official-records",
+      "activity": null,
+      "stage": "activity",
+      "arrived": true,
+      "elapsed": 0,
+      "mounted": null,
+      "borrowed": false,
+      "borrowedSalon": false,
+      "duty": null,
+      "roomId": null,
+      "called": false,
+      "position": [
+        20.300000000000004,
+        4.015,
+        18.25
+      ]
+    },
+    "artistReturning": true,
+    "completeEvents": [
+      {
+        "event": "complete",
+        "id": "cn-salon-npc-1",
+        "actorId": "cn-tavern-songwriter",
+        "customerId": "cn-official-records",
+        "roomId": "tavern-guest-lan",
+        "time": 667.35,
+        "reason": "茶叙结束",
+        "payment": "settled"
+      }
+    ],
+    "ledgerEqualityFromSettledCheckpoint": {
+      "chinaOfficialEconomy": true,
+      "chinaSalonEconomy": true,
+      "chinaSalonReceptionAccount": true
+    },
+    "balances": {
+      "cn-minister-works": {
+        "bank": 96,
+        "cash": 0
+      },
+      "cn-minister-granary": {
+        "bank": 96,
+        "cash": 0
+      },
+      "cn-official-rites": {
+        "bank": 96,
+        "cash": 0
+      },
+      "cn-official-personnel": {
+        "bank": 96,
+        "cash": 0
+      },
+      "cn-official-justice": {
+        "bank": 96,
+        "cash": 0
+      },
+      "cn-official-records": {
+        "bank": 16,
+        "cash": 0
+      }
+    },
+    "artistEconomy": {
+      "version": 2,
+      "revision": 1,
+      "grossRevenue": 80,
+      "performerPaid": 40,
+      "businessProceeds": 40,
+      "accounts": {
+        "cn-tavern-reciter": {
+          "cash": 0,
+          "bank": 0
+        },
+        "cn-tavern-storyteller": {
+          "cash": 0,
+          "bank": 0
+        },
+        "cn-tavern-songwriter": {
+          "cash": 0,
+          "bank": 40
+        },
+        "cn-tavern-chess-poet": {
+          "cash": 0,
+          "bank": 0
+        }
+      },
+      "receipts": [
+        {
+          "receptionWork": {
+            "kind": "salon-reception-work",
+            "version": 1,
+            "sessionId": "cn-salon-npc-1",
+            "actorId": "cn-tavern-reception",
+            "roleId": "cn-salon-reception",
+            "slotId": "cn-salon-reception-1",
+            "holderRevision": 0,
+            "contractVersion": 1,
+            "amount": 8,
+            "customerId": "cn-official-records",
+            "artistId": "cn-tavern-songwriter",
+            "activity": "music",
+            "fee": 80,
+            "roomId": "tavern-guest-lan",
+            "steps": {
+              "registerSeconds": 2,
+              "reserveSeconds": 2,
+              "closeSeconds": 2
+            },
+            "completed": true
+          },
+          "id": "salon-income:cn-salon-npc-1",
+          "sessionId": "cn-salon-npc-1",
+          "settlementId": "official-26",
+          "sourceProvider": "china-official-economy",
+          "customerId": "cn-official-records",
+          "actorId": "cn-tavern-songwriter",
+          "activity": "music",
+          "businessId": "cn-yunlai-tavern",
+          "currency": "copper",
+          "gross": 80,
+          "incomePolicy": {
+            "version": 1,
+            "performerShareBps": 5000,
+            "rounding": "floor"
+          },
+          "businessCredit": 80,
+          "businessDebit": 40,
+          "performerPaid": 40,
+          "businessProceeds": 40,
+          "sequence": 1
+        }
+      ],
+      "mealTransfers": []
+    },
+    "receptionAccount": {
+      "version": 2,
+      "revision": 1,
+      "accounts": {
+        "cn-tavern-reception": {
+          "cash": 0,
+          "bank": 8
+        }
+      },
+      "receipts": [
+        {
+          "id": "salon-reception-wage:cn-salon-reception:cn-salon-npc-1",
+          "sessionId": "cn-salon-npc-1",
+          "actorId": "cn-tavern-reception",
+          "roleId": "cn-salon-reception",
+          "slotId": "cn-salon-reception-1",
+          "holderRevision": 0,
+          "contractVersion": 1,
+          "businessId": "cn-yunlai-tavern",
+          "currency": "copper",
+          "amount": 8,
+          "incomeReceiptId": "salon-income:cn-salon-npc-1",
+          "settlementId": "official-26",
+          "proof": {
+            "kind": "salon-reception-work",
+            "version": 1,
+            "sessionId": "cn-salon-npc-1",
+            "actorId": "cn-tavern-reception",
+            "roleId": "cn-salon-reception",
+            "slotId": "cn-salon-reception-1",
+            "holderRevision": 0,
+            "contractVersion": 1,
+            "amount": 8,
+            "customerId": "cn-official-records",
+            "artistId": "cn-tavern-songwriter",
+            "activity": "music",
+            "fee": 80,
+            "roomId": "tavern-guest-lan",
+            "steps": {
+              "registerSeconds": 2,
+              "reserveSeconds": 2,
+              "closeSeconds": 2
+            },
+            "completed": true
+          },
+          "sequence": 1
+        }
+      ],
+      "mealTransfers": []
+    },
+    "guard": {
+      "guard": "PASS",
+      "reason": null,
+      "exit": 0,
+      "seconds": 51.975,
+      "treePeakMiB": 676.992,
+      "peakMembersBytes": {
+        "9": 10903552,
+        "11": 698974208
+      },
+      "includesSupervisor": true,
+      "hostname": "a55d3d933517",
+      "bootId": "7533c419-5d44-4ce1-acdc-f3d853b4fdb0"
+    },
+    "scope": "Same settled session restored and completed original6-second visiting tail. Claim/customer ownership released; no duplicate money or receipt. Bodies still physically in room at release instant; artist home return not observed."
+  },
+  "currentConclusion": "One original record-official→songwriter80coin paid chain verified through natural selection, acceptance, real stairs, reservation, exact invited/reserved restoration, original one-time settlement, settled replay and release. Four-day payroll remains staged; all-four artist coverage and browser/iOS remain open."
 }
