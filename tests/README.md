@@ -17,7 +17,7 @@ node tests/run.cjs --module ui --all        # 明确执行完整 UI 模块，可
 
 - `required`：该模块共享实现改动时的最小核心组，每组3项；**不是每次小修必跑，也不是模块已全覆盖**。局部改动可直接 `--only`。
 - `integration`：按对象/岗位/国家选择的组件、几何或真实 main 接线检查，不能由核心项代替。不是每个文件都慢；涉及 `-main`、实场景、寻路或 skinned mesh 的项通常较重。
-- `release/required`：缓存构建、Worker 接口，只有构建/资源/缓存或 Worker 改动时才选择。`npm run test:release` 明确运行两项；保留 `test:cache` / `test:worker` 单独入口。正常发布只做版本/公开访问/关键入口检查，不由此启动整个游戏回归。
+- `release/required`：缓存构建、Worker 接口，只有构建/资源/缓存或 Worker 改动时才选择。`npm run test:release` 明确运行两项；保留 `test:cache` / `test:worker` 单独入口。缓存测试读取当前 `dist/client`，先按发布流程完成 `npm run build`（保留既有完整缓存图，不删除它来绕过缺失资源检查）。正常发布只做版本/公开访问/关键入口检查，不由此启动整个游戏回归。
 - `diagnostics/targeted`：CPU profile、性能诊断、runner 自检，只有相关问题才手动选；不作所有发布门槛。
 - `diagnostics/archive`：旧源码锁定的一次性调查，默认和 `--all` 都排除，runner 禁止执行。保留文件作为参考，不宣称还能对当前版本运行。
 
@@ -56,6 +56,7 @@ npm run test:door-geometry -- --tiny
 - 旧 France source guard 仍被 `france-inset-routes-seven`、`render-france-inset-five`、嵌套 world-six 使用，成套原位归档；renderer 还依赖外部绝对安装路径，不能当便携回归。`runtime-stutter-profile` 对比硬编码旧提交，同样只作历史调查。
 - 保留 `r11/r12/r14/hotfix` 名称的断言：名称旧不代表覆盖重复，没有充分依据不批量删。此批不声称所有 532 项已验证或无重叠。
 - 清理两处已确认过时的测试假设：外观评分从固定“恰好3个调用”改为检查所有实际调用都显式选择相同版本；菜单 Escape 的生产键盘 handler 提取跟随现有 paused guard，并保留两次 Escape 行为断言。产品代码未改。
+- 缓存旧入口检查同步为 HTML → hashed entry → main；分别遍历游戏动态/live/preview 与两个 QA 页的实际引用闭包，逐 URL 比对所有 JS，并补全临时构建输入 package/baseline。定向缓存检查通过322资产、315模块、CSS单独更新和旧资源缺失拒绝，未放宽成数量相同即通过。
 - `development/` 是实验/预览工具，`scripts/build.mjs`、`serve.mjs`、`guard-process-tree.py` 是构建、服务和资源管理，不纳入日常自动回归。
 
 新增有实际回归价值的脚本，只在 manifest 对应模块登记。手部共享测试归 characters；若仅某一职业手持物交接，则加入该职业定向接线测试并用 `--only`，不因此扩大全量门槛。`npm run test:check` 会指出未登记的新根目录脚本。
