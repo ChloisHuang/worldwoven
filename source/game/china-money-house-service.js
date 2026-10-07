@@ -31,7 +31,7 @@ const currencyText=(id,amount)=>`${amount} ${GAME_CURRENCIES[id].unit}（${GAME_
 export function createChinaMoneyHouseService(options){return createBankCounterService(options);}
 
 export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,saveState,copperLedger,
- counter:C=CHINA_MONEY_HOUSE,facilityKey='moneyHouse',counterBinding=null,bodyManaged=false,canSee=()=>false,notify=()=>{},onOpen=()=>{},onClose=()=>{},onRelationshipEvent=()=>({ok:false}),getClock=()=>null,document:doc=globalThis.document}){
+ counter:C=CHINA_MONEY_HOUSE,facilityKey='moneyHouse',counterBinding=null,bodyManaged=false,isSuspended=()=>false,canSee=()=>false,notify=()=>{},onOpen=()=>{},onClose=()=>{},onRelationshipEvent=()=>({ok:false}),getClock=()=>null,document:doc=globalThis.document}){
  const originalTeller=npcs.find(n=>n.station.id===C.stationId),bound=counterBinding!==null;if((!originalTeller&&!bound)||!lot[facilityKey])return null;
  // The service stays at the original counter when a different person takes the
  // role. An explicit empty/invalid binding must never resurrect the old teller.
@@ -77,7 +77,7 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
  const ticketValid=()=>{const b=binding();return atCounter(b)&&counterTicket?.actor===b.actor&&counterTicket.actorId===b.holderId&&counterTicket.revision===b.revision;};
  function close(){closeGameSelects(dialog,doc);renderVersion++;counterTicket=null;if(dialog.open){dialog.close();onClose();}}
  const available=version=>{
-  if(disposed||!dialog.open)return false;
+  if(disposed||!dialog.open)return false;if(isSuspended()){close();return false;}
   if(bound&&(!ticketValid()||!near())){close();return false;}
   return version===renderVersion&&near();
  };
@@ -172,7 +172,7 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
   owns:n=>!!n&&n===binding()?.actor,ownsStation:id=>id===C.stationId,
   isOpen:()=>!!dialog.open,
   open(){
-   const b=binding();if(disposed||!near()||bound&&!atCounter(b,true)){if(bound)close();notify(bound&&near()&&!atCounter(b,true)?'账房正在核验原单或暂时离柜，请等本人返回柜台':C.approachMessage||'请走到钱庄柜台前，再请账房办理');return false;}
+   const b=binding();if(isSuspended()){notify('原柜正在履职核验，请先交回原柜员再办理自己的存取');return false;}if(disposed||!near()||bound&&!atCounter(b,true)){if(bound)close();notify(bound&&near()&&!atCounter(b,true)?'账房正在核验原单或暂时离柜，请等本人返回柜台':C.approachMessage||'请走到钱庄柜台前，再请账房办理');return false;}
    onOpen();if(bound){const current=binding();if(!atCounter(current,true)||current.actor!==b.actor||current.holderId!==b.holderId||current.revision!==b.revision||!near()){close();return false;}counterTicket={actor:b.actor,actorId:b.holderId,revision:b.revision};}
    message='';render();if(!dialog.open)dialog.showModal();return true;
   },close,
@@ -183,7 +183,7 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
   socialStatus:n=>n&&n===binding()?.actor?{busy:!!dialog.open,attention:true,job:actorActivity(n)}:null,
   update(dt,t,{conversationActorId=null}={}){
    if(disposed)return;replayRelationships();if(Number.isFinite(dt)&&dt>0)time+=dt;if(dialog.open&&(!near()||bound&&!ticketValid()))close();
-   if(bodyManaged)return;const b=binding(),teller=b?.actor;if(!teller||bound&&!atCounter(b))return;
+   if(bodyManaged||isSuspended())return;const b=binding(),teller=b?.actor;if(!teller||bound&&!atCounter(b))return;
    // One persistent adult works along the same counter. Slow side steps place
    // each object inside the existing hand reach instead of reaching through it.
    const writing=time%14<8,target=writing?C.points.ledger:(C.points.counting||C.points.abacus),desiredX=target[0],dx=desiredX-teller.root.position.x;

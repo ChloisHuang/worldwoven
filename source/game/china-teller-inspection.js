@@ -18,10 +18,11 @@ function valid(s){
  const seen=new Set();for(const row of s.interruptions){if(!keys(row,['order','reason'])||!validOrder(row.order)||!['actor-dead','actor-missing','assignment-changed'].includes(row.reason)||row.order.contract.day>s.lastIssuedDay||seen.has(row.order.contract.orderId))return false;seen.add(row.order.contract.orderId);}
  return !s.order||!seen.has(s.order.contract.orderId);
 }
+export const validTellerInspectionState=valid;
 // Duty logic has no daily-needs registration. The Chinese scene adapter
 // provides real movement, contact and exclusive body ownership.
 // Only this top-level state is authoritative; there is no continuity restore API.
-export function createTellerInspection({resolveAssignment,getDay,getActor,getLedger,canControl=()=>false,isCounterOpen=()=>true,travel,pose,contact=()=>false,economy,saved,saveState=()=>false}={}){
+export function createTellerInspection({resolveAssignment,getDay,getGlobalAuditDay=()=>-1,getActor,getLedger,canControl=()=>false,isCounterOpen=()=>true,travel,pose,contact=()=>false,economy,saved,saveState=()=>false}={}){
  let state=empty(),loadError=null,disposed=false,cachedReport=null,cachedOrderId=null;
  const reportOf=c=>{if(cachedOrderId!==c.orderId){cachedReport=verifyTellerSource(c.source);cachedOrderId=c.orderId;}return cachedReport;};
  if(saved!=null){if(valid(saved))state=copy(saved);else{state=copy(saved);loadError='invalid-teller-inspection';}}
@@ -39,7 +40,7 @@ export function createTellerInspection({resolveAssignment,getDay,getActor,getLed
    if(disposed||loadError||!Number.isFinite(dt)||dt<=0)return;dt=Math.min(dt,.25);
    if(!state.order){
     const day=getDay(),a=resolveAssignment();
-    if(!integer(day)||day<=state.lastIssuedDay||!ready(a?.actor)||a.holderId==='player'||blocked(a.actor,context)||!near(a.actor,TELLER_HOME))return;
+    if(!integer(day)||day<=Math.max(state.lastIssuedDay,getGlobalAuditDay())||!ready(a?.actor)||a.holderId==='player'||blocked(a.actor,context)||!near(a.actor,TELLER_HOME))return;
     const ledger=liveLedger();if(!ledger)return;
     const source=freezeTellerSource(ledger);if(!source)return;
     const contract=tellerContract(day,a.holderId,a.revision,source);if(!validateTellerContract(contract))return;
