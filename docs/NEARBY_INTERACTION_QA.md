@@ -54,3 +54,5 @@ QA 发布应使用隔离的候选模块和 CSS，保持生产入口、线上版�
 最终QA包含只读生产HUD模板，供目标条与原HUD重叠核对；不挂生产控制监听、不改变正式游戏。
 
 隔离QA已于2026-10-07T07:10:41Z发布Sites v209：source `5c2f4aebf6863d49cf8dda45757083be4fc754a3`，private main `12c58fab8a16df0808bd947cd8cd024c5b78a863` 先推送读回；deployment `appgdep_6ac5f069ad7c8191ba454956948c96b8` succeeded。https://alien.doudouai.net active/public，受众revision6保持。入口 `/qa/nearby.html?case=cn-nearby`，可选cn-menu/jp-nearby/conversation/wallet；正式R16.178/340原资源与普通HTML保持不变。真实浏览器验收待执行。cache-baseline跟进本次实际350资源图。
+
+QA真实浏览器反馈后的固定c95f16b快照修正（5文件，含wallet）已于2026-10-07T07:20:35Z部署Sites v210：source `4f0b5e96827bb2999783c91988e97ed3fb432146`，private main `46dfae60f6aefe7954dc6cf584bb6d462b038dcc` 先推送读回，deployment `appgdep_6ac5f2bbb06c81919cb7d7ec3f6bec82` succeeded。350资源/9,326,072字节、上一版350图与341模块cache通过，正式R178全部340原资源及HTML逐字不变，active/public受众revision6保持。浏览器重新验收待进行。
