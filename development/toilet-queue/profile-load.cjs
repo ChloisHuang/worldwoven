@@ -9,6 +9,7 @@ function source(file,s){
  let region=s.slice(a,b);
  const wrap=(code,name)=>{if(!region.includes(code))throw new Error('profile call missing: '+code);region=region.replace(code,`__queueMeasure(${JSON.stringify(name)},()=>${code})`);};
  wrap('active.build()','lot-geometry');
+ wrap('lighting.attach(lot,active.id)','lighting-field');
  wrap('createFurnitureInteractions(lot,id,{curtains:saved.curtains,onCurtainChange:()=>save()})','furniture');
  wrap('buildPlayer()','player-character');wrap('configureNPCs()','npc-characters');
  wrap('installAutomaticDoors()','doors');wrap('new THREE.Box3().setFromObject(lot.group)','scene-bounds');
