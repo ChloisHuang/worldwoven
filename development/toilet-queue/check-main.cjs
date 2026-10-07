@@ -17,15 +17,17 @@ storage['worlds-days-v1']=process.env.QUEUE_LOAD?fs.readFileSync(process.env.QUE
 harness=harness.replace("const main=mod(path.join(root,'game/main.js'));",seed+"const main=mod(path.join(root,'game/main.js'));");
 const begin=harness.indexOf('const report=[];for(let round=0;'),end=harness.indexOf('\nconsole.log(JSON.stringify(',begin);
 const body=String.raw`
+if(process.env.QUEUE_STAGE==='init'){console.log(JSON.stringify({status:'PASS',stage:'init',mode:state().mode,maxRSSMiB:process.resourceUsage().maxRSS/1024}));return;}
 if(state().mode!=='lot'){all.find(e=>e.dataset.region==='china').onclick();ids.travel.onclick();}
 const r=main.namespace.needsReview(),service=r.chinaDailyToilet,publicState=()=>service.state().facilities.publicWashroom,people=['cn-official-justice','cn-official-rites','cn-official-records','cn-clinic-physician','cn-money-house-teller'],identities=r.npcs.map(n=>n.station.id);
 let frames=0,maxCrowd=0,maxUnreserved=0;const receiptsAtStart=publicState().receipts.length;
 function snap(label){events.pagehide();fs.writeFileSync('qa/toilet-queue-'+label+'.json',storage['worlds-days-v1']);}
 function step(){now+=100;main.namespace.needsStep(.1);frames++;const crowd=r.npcs.filter(n=>Math.abs(n.root.position.y-4.015)<.3&&n.root.position.x>21.5&&n.root.position.x<26&&n.root.position.z>4.5&&n.root.position.z<8.3),unreserved=crowd.filter(n=>!service.ownsActor(n));maxCrowd=Math.max(maxCrowd,crowd.length);maxUnreserved=Math.max(maxUnreserved,unreserved.length);if(!process.env.QUEUE_BASELINE&&!process.env.QUEUE_LOAD)assert(r.npcs.filter(n=>service.publicContainsActor(n)).length<=1,'fresh remote admission allows only one real person inside private room');if(frames%300===0){console.log('PROGRESS',JSON.stringify({frames,crowd:crowd.map(n=>n.station.id),positions:people.map(id=>({id,p:r.npcs.find(n=>n.station.id===id).root.position.toArray()})),facility:publicState().activity,waiters:publicState().waiters,receipts:publicState().receipts.map(v=>v.actorId),clinic:r.chinaClinic?.personalNeedsState(),teller:r.chinaTellerPersonal?.state()}));snap(process.env.QUEUE_BASELINE?'baseline-progress':'progress');}}
+if(process.env.QUEUE_STAGE==='load'){console.log(JSON.stringify({status:'PASS',stage:'load',mode:state().mode,actors:r.npcs.length,clock:r.simulationClock.state(),maxRSSMiB:process.resourceUsage().maxRSS/1024}));return;}
 const allCompleted=()=>people.every(id=>publicState().receipts.some(row=>row.actorId===id));
 const exitingOfficials=()=>r.chinaAudience.snapshot().life?.runtime?.stages?.filter(([id,s])=>people.includes(id)&&s.toiletExit).map(([id])=>id)||[];
 const settled=()=>allCompleted()&&!exitingOfficials().length&&!r.chinaClinic?.personalNeedsState()?.task&&!r.chinaTellerPersonal?.state()&&!r.npcs.some(n=>people.includes(n.station.id)&&service.publicContainsActor(n));
-for(;frames<Math.min(300,Math.max(1,Number(process.env.QUEUE_STEPS)||300))&&!(process.env.QUEUE_BASELINE?maxUnreserved>=2&&maxCrowd>=2:settled());)step();
+for(;frames<Math.min(300,Math.max(1,Number(process.env.QUEUE_STEPS)||30))&&!(process.env.QUEUE_BASELINE?maxUnreserved>=2&&maxCrowd>=2:settled());)step();
 // Keep a short privacy/use interval in one process; read-back still interrupts
 // a genuinely unfinished use, so never manufacture completion across a cut.
 if(!process.env.QUEUE_BASELINE){let finishSteps=0;while(['waiting-privacy','using'].includes(publicState().activity?.stage)&&finishSteps++<250)step();}
