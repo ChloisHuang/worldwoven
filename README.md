@@ -104,7 +104,7 @@ The local servers bind only to 127.0.0.1 and are not the public deployment servi
 
 ## Validation
 
-- npm test: deterministic geometry, navigation, controller, furniture, character, lamp-field and shadow contracts. It can take several minutes because it physically traverses rooms and stairs and evaluates skinned vertices
+- `npm test`: list the module test catalog without running it. Use `npm run test:characters`, `test:navigation`, `test:ui`, `test:food-lodging`, `test:economy-careers`, or `test:world-life` for the selected module core; these are not full-module coverage. Targeted integration and explicit complete-module commands: [tests/README.md](tests/README.md).
 - npm run build, then npm run test:cache: complete module graph, immutable content hashes, selective invalidation and prior published graph retention
 - npm run test:worker: the preserved read-only legacy endpoint
 - npm run test:door-geometry -- --check and --tiny: portable door geometry harness checks; see tests/door-geometry/README.md for the separate serialized authored sweep command and limits

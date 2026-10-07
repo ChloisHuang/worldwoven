@@ -107,9 +107,9 @@ test('stale intent rows, disabled rows, cancel/reopen, and removed objects canno
 
 test('Escape dismisses only the object chooser before the production window handler',()=>{
  const h=harness(),target=anchor('counter');h.update([action('one',target),action('two',target)]);h.menu.activateTarget(target.id);
- const source=fs.readFileSync(new URL('../source/game/main.js',import.meta.url),'utf8'),start=source.indexOf("addEventListener('keydown',e=>{if(interactionMenuOpen())return;");
+ const source=fs.readFileSync(new URL('../source/game/main.js',import.meta.url),'utf8'),start=source.indexOf("addEventListener('keydown',e=>{if(paused||interactionMenuOpen())return;");
  assert(start>=0,'extract the actual game keyboard handler');const end=source.indexOf("addEventListener('keyup'",start);assert(end>start);
- let windowKeydown,left=0,cancelled=0;const context={addEventListener:(type,handler)=>{if(type==='keydown')windowKeydown=handler;},interactionMenuOpen:()=>h.menu.isOpen(),mode:'lot',keys:new Set(),leaveLot:()=>left++,cancelAction:()=>cancelled++,path:[],targetStation:null};
+ let windowKeydown,left=0,cancelled=0;const context={addEventListener:(type,handler)=>{if(type==='keydown')windowKeydown=handler;},interactionMenuOpen:()=>h.menu.isOpen(),paused:false,mode:'lot',keys:new Set(),leaveLot:()=>left++,cancelAction:()=>cancelled++,path:[],targetStation:null};
  for(const name of ['pendingStand','performing','pendingInteraction','seated','bathTransition','npcSocial','japanPlayerService','egyptTableServiceEmployment','egyptKitchenEmployment','japanTableServiceEmployment','japanKitchenEmployment','japanBathMixingEmployment','japanBathDeliveryEmployment','japanWomenBathDeliveryEmployment','japanReceptionEmployment','chinaSalon','chinaCareer'])context[name]=null;
  vm.runInNewContext(source.slice(start,end),context);
  const escape=()=>{const event={code:'Escape',defaultPrevented:false,cancelBubble:false,preventDefault(){this.defaultPrevented=true;},stopPropagation(){this.cancelBubble=true;}};h.doc.dispatch('keydown',event);if(!event.cancelBubble)windowKeydown(event);return event;};
