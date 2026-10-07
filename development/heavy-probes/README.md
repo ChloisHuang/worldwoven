@@ -8,12 +8,12 @@ Run one stage only after the preceding stage has been reviewed:
 - bash development/heavy-probes/run-bounded.sh unit (DOM only, no game imports)
 - bash development/heavy-probes/run-bounded.sh init (main imports, no region travel)
 - TELLER_COUNTRY=china bash development/heavy-probes/run-bounded.sh load (world creation/restoration, no simulation steps)
-- TELLER_COUNTRY=china bash development/heavy-probes/run-bounded.sh run
+- TELLER_COUNTRY=china TELLER_STOP_AFTER=registration bash development/heavy-probes/run-bounded.sh run
 
-Teller run is one explicitly selected country and its existing directed sequence. Other countries must be separate serial invocations after reviewing the previous result. TELLER_RESUME remains optional, not manufactured state.
+Recovery teller run currently stops after registration and saves real storage to `qa/regional-teller-<country>-registration.json`, before interview. It is limited to 1,500 navigation frames and at most one frame to observe the saved pending application (375.25 simulated seconds); external initialization-inclusive limits still apply. This new stop is not yet run. Longer flow stages require a reviewed explicit checkpoint rather than automatic advancement. Teller run is one explicitly selected country. Other countries must be separate serial invocations after reviewing the previous result. TELLER_RESUME remains optional, not manufactured state.
 
 ## Reviewed recovery stages (2026-10-07)
 
 After parent clearance, unit passed (attached DOM/selector/text nodes and 10,000 removals), followed by main-import init (2.217 seconds, 189.863 MiB process-tree RSS) and China load-only (65.182 seconds, 682.684 MiB). Each ran serially under the shared lock and guard above and exited 0. Logs/status/RSS samples are retained under `qa/teller-{unit,init,load}-20261007T1350*`.
 
-No simulation steps ran in these stages. China navigation/interview/handoff/payment/return and all three other country flows remain unverified in this recovery environment. The next eligible stage is one guarded China run, reviewed before selecting another country. A guard stop is neither a product failure nor a passing check. Simulated DOM/renderer checks are not browser or phone acceptance.
+No simulation steps ran in these stages. China navigation/interview/handoff/payment/return and all three other country flows remain unverified in this recovery environment. The next eligible stage is guarded China registration only, reviewed before interview or another country. A guard stop is neither a product failure nor a passing check. Simulated DOM/renderer checks are not browser or phone acceptance.

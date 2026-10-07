@@ -32,7 +32,14 @@ const country=process.env.TELLER_COUNTRY||'china',prefix={china:'cn',japan:'jp',
 if(!process.env.TELLER_RESUME){all.find(e=>e.dataset.region===country).onclick();ids.travel.onclick();}if(process.env.PROBE_STAGE==='load'){console.log('PASS world load only',country,process.resourceUsage().maxRSS/1024);return;}step(1);
 const svc=r().regionalTellerEmployment;assert(svc.forRole(roleId));
 assert(main.namespace.requestStationIntent(svc.intent('formal-view')),JSON.stringify({q:svc.intent('formal-view'),p:state().player,toast:ids.toast.textContent}));until(()=>r().careerHandbook.isOpen(),'walk to actual '+country+' original counter registration',1500);
-const button=label=>walk(dialog()).find(e=>e.tagName==='button'&&e.textContent===label);assert(button('提交职位申请'));button('提交职位申请').onclick();until(()=>r().formalCareers.applicationResult(roleId)?.status==='pending','saved local pending application');
+const button=label=>walk(dialog()).find(e=>e.tagName==='button'&&e.textContent===label);assert(button('提交职位申请'));button('提交职位申请').onclick();until(()=>r().formalCareers.applicationResult(roleId)?.status==='pending','saved local pending application',1);
+if(process.env.TELLER_STOP_AFTER==='registration'){
+ main.namespace.save();
+ const checkpoint=path.resolve('qa','regional-teller-'+country+'-registration.json');
+ fs.writeFileSync(checkpoint,storage['worlds-days-v1']);
+ console.log('PASS registration checkpoint saved',country,checkpoint,(Date.now()-started)/1000);
+ return;
+}
 button('当面核验资格与职责').onclick();until(()=>r().formalCareers.isHired(roleId),'same original teller interview',1200);assert(!svc.state().shift);r().careerHandbook.close();assert(main.namespace.requestStationIntent(svc.intent('accept')));until(()=>svc.state().shift?.stage==='working','original safe handoff',1200);step(120);
 // Explicit clock fixture; the original China NPC audit may have used today.
 main.namespace.tellerNextDay();
