@@ -1206,7 +1206,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const clock = now(); if (!clock) return failure('invalid-clock');
     if (observedDay === null || observedDay === clock.day) { observedDay = clock.day; return {ok: true, unchanged: true}; }
     const day = observedDay, tenure = current.tenure, duty = current.lastDuty;
-    if (!tenure || roleMap.get(tenure.roleId)?.paymentKind==='commission' || tenure.sinceDay > day || tenure.sinceDay === day &&
+    if (!tenure || roleMap.get(tenure.roleId)?.paymentKind==='commission' || regionalTellerRole(tenure.roleId)&&(duty?.tellerPayVersion!==1||current.tellerAuditServices.some(row=>row.day===day&&row.amount>0)) || tenure.sinceDay > day || tenure.sinceDay === day &&
       tenure.sinceHour >= roleMap.get(tenure.roleId).dutyWindow.endHour ||
       current.lastEvaluatedDay !== null && current.lastEvaluatedDay >= day || ['ready','inspection'].includes(duty?.stage) ||
       duty?.day === day && excused(duty)) {
