@@ -37,4 +37,12 @@ if(process.env.QUEUE_BASELINE)assert(maxUnreserved>=2&&maxCrowd>=2,'normal concu
 console.log(JSON.stringify({status:process.env.QUEUE_BASELINE?'REPRODUCED':settled()?'PASS':'CHECKPOINT',frames,maxCrowd,maxUnreserved,receipts:publicState().receipts,people,completed:allCompleted(),settled:settled(),exitingOfficials:exitingOfficials(),maxRSSMiB:process.resourceUsage().maxRSS/1024}));
 `;
 harness=harness.slice(0,begin)+body+harness.slice(end);harness=harness.replace(/console.log\(JSON.stringify\(\{status:'PASS',scope:'Production controller[\s\S]*?\},null,2\)\);/,'');
+// Real wall-clock instrumentation is opt-in; the game's fake simulation clock stays unchanged.
+harness="const queueProfile=require(process.cwd()+'/development/toilet-queue/profile-load.cjs');\n"+harness;
+harness=harness.replace("fs.readFileSync(file,'utf8')","queueProfile.source(file,fs.readFileSync(file,'utf8'))")
+ .replace('vm.createContext({structuredClone,','vm.createContext({__queueMeasure:queueProfile.measure,structuredClone,')
+ .replace('await main.link(linker)','await queueProfile.asyncMeasure(\'module-link\',()=>main.link(linker))')
+ .replace('await main.evaluate()','await queueProfile.asyncMeasure(\'main-evaluate-including-region\',()=>main.evaluate())')
+ .replace('function attached(){','function attached(){return queueProfile.measure(\'dom-attached\',()=>{')
+ .replace('return [...found];}','return [...found];});}');
 new vm.Script(harness,{filename:'tests/china-official-toilet-main-inherited.cjs'}).runInNewContext({structuredClone,URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,require,console,process,Buffer,global,__dirname:process.cwd()+'/tests',__filename});
