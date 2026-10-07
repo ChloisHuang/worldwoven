@@ -15,7 +15,7 @@ export function tellerReview(){return {player,npcs,lot,furniture,navOptions,regi
 export function tellerStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);updatePlayer(dt,elapsed);regionalTellerEmployment?.update(dt,elapsed);chinaMoneyHouse?.update(dt,elapsed);chinaTellerService?.update(dt,elapsed,{});chinaTellerPersonal?.update(dt,elapsed);careerHandbook.update(mode);}
 export function tellerNextDay(){const target=simulationClock.state().seconds+1440/.7;while(simulationClock.state().seconds<target)simulationClock.advance(.25);formalCareers.observeDay();}
 export {requestStationIntent,resolvePlayerIntent,executeNearbyAction,navigateTo,cancelAction,currentControl,requestFurniture,save,planPath,blocked};`;
-once("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),", "new vm.SourceTextModule(fs.readFileSync(file,'utf8')+(file.endsWith('/game/main.js')?" + JSON.stringify(extra) + ":''),");
+once("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),", "new vm.SourceTextModule(__tellerProfileSource(file,fs.readFileSync(file,'utf8'))+(file.endsWith('/game/main.js')?" + JSON.stringify(extra) + ":''),");
 once('vm.createContext({console,', 'vm.createContext({__tellerMeasure,structuredClone,URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,console,');
 once('await main.link(linker);await main.evaluate();',"await __tellerAsyncMeasure('main-link',()=>main.link(linker));await __tellerAsyncMeasure('main-evaluate',()=>main.evaluate());");
 once('{identifier:file,context}', '{identifier:file,context,initializeImportMeta:meta=>{meta.url=require("node:url").pathToFileURL(file).href;}}');

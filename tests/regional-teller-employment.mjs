@@ -128,7 +128,7 @@ test('the original China NPC controller honors the global player-issued day and 
 // Salary lifecycle uses only tiny actor/contact fixtures, never a whole scene.
 for(const country of Object.keys(REGIONAL_TELLER_ROLES)){
  test(country+': fixed attendance salary works when original NPC already used daily audit; absent/chat/offline do not count',()=>{
-  const f=fixture(country,{legacy:false,clock:{hour:6}});f.legacy=7;f.shift();assert(!f.employment.workChoices().includes('begin-original'));assert(f.execute('duty'));
+  const f=fixture(country,{legacy:false,clock:{hour:6}});f.legacy=7;f.shift();assert(!f.employment.workChoices().includes('begin-original'));const dutyIntent=f.employment.intent('duty');assert.equal(dutyIntent.executionRadius,.04);f.move([dutyIntent.position[0],dutyIntent.position[1],dutyIntent.position[2]+.55]);assert.equal(f.employment.executeIntent(dutyIntent),false,'registration-radius arrival is not work-side arrival');assert(f.execute('duty'));
   f.busy=true;f.step(4);assert.equal(f.employment.state().shift.coveredSeconds,0);f.busy=false;
   f.move([100,0,100]);f.step(4);assert.equal(f.employment.state().shift.coveredSeconds,0);
   f.execute('duty');f.clock.seconds+=100;f.clock.hour+=100*.7/60;f.employment.update(0,f.clock.seconds);assert.equal(f.employment.state().shift.coveredSeconds,0);
