@@ -8,7 +8,7 @@ const LABELS={arriving:'回到前台完成登记','check-in':'前台正在登记
 
 // A small panel plus ordinary E/touch targets. Navigation, physical mounting
 // and all employee work remain owned by the existing scene and order board.
-export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMounted,onIntent,onFurniture,onStand,onOpen=()=>{},document:doc=globalThis.document}) {
+export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMounted,getServiceAnchor=()=>null,onIntent,onFurniture,onStand,onOpen=()=>{},document:doc=globalThis.document}) {
  const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;};
  const style=make('style');style.textContent=AIRY_UI_THEME+AIRY_PANEL_STYLE+`
 .jp-service-ticket{position:fixed;left:max(18px,env(safe-area-inset-left));top:205px;z-index:18;max-width:calc(100vw - 212px);padding:9px 13px;min-height:44px;border-radius:3px;background:#e8f1e7;color:#416b6d;font-size:12px;box-shadow:0 3px 12px #173b3315}
@@ -59,8 +59,27 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
   // Retain actual furniture/meal identity when the standing point is the
   // avatar's seat anchor. No HUD marker may use that floor point as its object.
   const frontDesk=!v||['arriving','check-in','checkout','checkout-ready'].includes(v.stage);
-  const visualAnchor=step.item?{furnitureId:step.item.id}:!frontDesk&&['eat','meal','wait'].includes(step.kind)?v.mealPoint?{id:'jp-meal:'+v.id,point:v.mealPoint.slice()}:{furnitureId:v.restSeatId}:frontDesk&&step.kind==='wait'?{actorId:'jp-welcome'}:null;
+  const visualAnchor=step.item?{furnitureId:step.item.id}:step.kind==='meal'?{furnitureId:getMounted()?.id||v.restSeatId}:!frontDesk&&['eat','meal','wait'].includes(step.kind)?v.mealPoint?{id:'jp-meal:'+v.id,point:v.mealPoint.slice()}:{furnitureId:v.restSeatId}:frontDesk&&step.kind==='wait'?{actorId:'jp-welcome'}:null;
   return {...step,dishId:v?.dishId||selectedDish,...(visualAnchor?{visualAnchor}:{})};
+ }
+ // Keep browsing on the meal's actual table/bench or on the issued token.
+ // The pre-token registration phase belongs to the existing reception ledger.
+ function menuTarget(){
+  const s=service.state(),v=s.visit,player=getPlayer();liveVisit=!!v;if(disposed||s.suspended||!v||!player)return null;
+  const mounted=getMounted(),meal=v.orderKind==='dining'||['resting','dining','waiting-meal','meal-ready','eating'].includes(v.stage);
+  const base={id:'jp-visit-'+v.id,name:'汤馆服务',targetKey:'jp-welcome',targetName:'汤馆服务',action:'查看浴牌或餐单',executionRadius:1.8,interactionRadius:2.8,priority:52,intentKey:JSON.stringify([v.id,v.stage,v.tokenId,v.restSeatId,v.mealId,!!v.mealRequested])};
+  const carried=()=>({...base,position:player.root.position.toArray(),executionRadius:.4,interactionRadius:.4,visibilityChecked:true,continuation:true});
+  if(meal){
+   const item=v.stage==='resting'&&seats().find(i=>i.id===mounted?.id)||furniture.items.find(i=>i.id===v.restSeatId);
+   if(item){const point=v.mealPoint;return {...base,targetKey:item.id,intentKey:base.intentKey+':'+item.id,position:(mounted?.id===item.id?item.anchor:item.position).slice(),visualAnchor:point?{id:'jp-meal:'+v.id,point:point.slice()}:{furnitureId:item.id}};}
+   return carried(); // Missing/restored dining furniture still permits cancellation.
+  }
+  const token=v.tokenId&&getServiceAnchor(v.tokenId);
+  if(token)return {...base,position:player.root.position.toArray(),executionRadius:.4,interactionRadius:.4,visibilityChecked:true,visualAnchor:token};
+  if(!v.tokenId||['arriving','check-in','checkout-ready'].includes(v.stage))return {...base,position:P.playerReception.slice(),visualAnchor:{id:'jp-reception-ledger',point:P.receptionLedger.slice()}};
+  // During a missing/restoring object frame retain cancellation access. Never
+  // invent a badge or send an active bath visit back to a distant counter.
+  return carried();
  }
  function close(){if(dialog.open)dialog.close();}
  // Only ordinary service actions join the scene's one selected intent. Seat
@@ -134,7 +153,7 @@ export function createJapanPlayerServiceUI({service,furniture,getPlayer,getMount
  function open(context){choiceRevision++;if(!service.state().visit){if(context==='bath')mode='bath';else{const local=nearbyDining();if(context==='dining'||local){mode='dining';if(local)selectedDish=local.id;}}}onOpen();refresh(true);if(!dialog.open)dialog.showModal();refresh(true);}
  badge.onclick=()=>open();dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
  return {
-  hasVisit:()=>liveVisit,open,close,currentIntent,resolveIntent,executeIntent,isOpen:()=>dialog.open,
+  menuTarget,hasVisit:()=>liveVisit,open,close,currentIntent,resolveIntent,executeIntent,isOpen:()=>dialog.open,
   openStation(id){if(id==='jp-welcome'){open('bath');return true;}if(!['jp-sushi','jp-ramen'].includes(id))return false;selectedDish=id==='jp-sushi'?'sushi':'ramen';open('dining');return true;},
   buttonLabel:target=>({order:'点餐','dining-panel':'点餐',register:'登记',change:'更衣',wash:'清洗',collect:'领浴包',bath:'入汤',meal:'点餐',eat:'用餐',stop:'停止',stand:'离池',wait:'查看',return:'退牌',panel:'浴牌',seat:'入座'}[target.serviceStep?.kind]||'查看'),
   target() {

@@ -101,7 +101,7 @@ export function createObjectInteractionAnchors({actors=()=>[],stations=()=>[],fu
   if(EMPLOYERS[action.provider])return person(EMPLOYERS[action.provider],action);
   const id=action.targetKey||action.id;
   const item=furnitureById.get(id);if(item)return furnishing(item,action);
-  if(id==='france-cafe'||action.franceTea||action.menuId==='france-meal')return fixture('france-tea-table',[6.4,1.230,11.24],action);
+  if(id==='france-cafe'||action.franceTea||action.menuId==='france-meal')return fixture('france-tea-table',[6.4,1.43,11.24],action);
   if(JAPAN_FIXTURES[id])return fixture(id,JAPAN_FIXTURES[id],action);
   const station=stationById.get(id)||action;
   if(STUDY_FIXTURES.has(id))return fixture(id,station.markerPoint||station.playerWorkTarget||station.workTarget,action);

@@ -110,6 +110,8 @@ export function createJapanServiceProps(parent) {
    }
    for(const [id,g]of objects)if(!seen.has(id)){g.traverse(o=>{if(o.geometry){o.geometry.dispose();geometries.delete(o.geometry);}});g.removeFromParent();objects.delete(id);}
   },
+  // Read the existing indexed object, never synthesize a token or scan the lot.
+  itemAnchor(id){const object=objects.get(id);return object?.visible?{id:'jp-service-item:'+id,point:object.getWorldPosition(new THREE.Vector3()).toArray()}:null;},
   dispose() {root.removeFromParent();for(const geometry of geometries)geometry.dispose();for(const m of materials.values())m.dispose();objects.clear();},
  };
 }
