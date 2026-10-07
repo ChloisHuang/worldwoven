@@ -1778,3 +1778,5 @@ R184发布合流：以4e4b2b2为底合入d743ced相对c601ba6的14文件。仅�
 R184正式构建通过：582登记、359源映射/9,495,394计数字节、v216旧385独立图含移动QA保留，346独立JS/cache通过。原候选文档行尾空白原样保留，不改测试结果或产品行为。未新增/复跑功能测试。
 
 R16.184/v217 于2026-10-07T09:36:10Z原公开站点发布成功：source `9082384bb4408188904a9f231029c1265341631b`，private main `15e24504424a5e7a96823ef3066cba493685ac83` 先回读；deployment `appgdep_6ac6128150ac8191b93371b294cc8177` succeeded，https://alien.doudouai.net active/public，受众revision6保持。四国五厕共享安全出口与courtPlan同源续行修复交付，保原占用/门/净空与失败存档锁，不传送或伪造礼成；原R183摆臂及移动QA保留。582登记、359源映射/9,495,394字节、346独立JS/cache通过，实机接受待反馈。
+
+移动钱包浅金文字QA v218于2026-10-07T09:39:12Z同站发布：source `b575228f52baaba90cc97c5f64fd728d89db95f2`，private main `19ee739b02d1ae047e620f86a4e0ba34d3251639` 先回读；deployment `appgdep_6ac613389a3c8191b88ed4d2363892fb` succeeded。仅2快照文件源于45c5d443/候选7eba016，sidecar保护423既存文件sha256不变；正常R184/受众revision6不变。https://alien.doudouai.net/qa/mobile.html等待该字色有限实图复核；正式产品不切移动候选。
