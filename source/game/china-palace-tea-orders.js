@@ -9,21 +9,21 @@ export const PALACE_TEA_STEPS=Object.freeze(['accepted','prepared','carried','pl
 const person=id=>typeof id==='string'&&/^cn-[a-z0-9-]{1,60}$/.test(id);
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 export const palaceTeaRequestId=(guestId,day)=>`cn-palace-tea:${day}:${guestId}`;
-function validOrder(o){
- if(!o||!integer(o.day)||!PALACE_TEA_GUESTS.includes(o.guestId)||!person(o.actorId)||!integer(o.holderRevision)||o.id!==palaceTeaRequestId(o.guestId,o.day)||o.roleId!==ROLE.id||o.slotId!==ROLE.slotId||o.contractVersion!==ROLE.contractVersion||o.amount!==ROLE.amount||o.cupId!==o.id+':cup'||o.trayId!==o.id+':tray'||!PALACE_TEA_STEPS.includes(o.stage)&&o.stage!=='cancelled'||typeof o.visitId!=='string'||!o.visitId||o.visitId.length>160)return false;
+function validOrder(o,allowPlayer=false){
+ if(!o||!integer(o.day)||!PALACE_TEA_GUESTS.includes(o.guestId)||!(person(o.actorId)||allowPlayer&&o.actorId==='player')||!integer(o.holderRevision)||o.id!==palaceTeaRequestId(o.guestId,o.day)||o.roleId!==ROLE.id||o.slotId!==ROLE.slotId||o.contractVersion!==ROLE.contractVersion||o.amount!==ROLE.amount||o.cupId!==o.id+':cup'||o.trayId!==o.id+':tray'||!PALACE_TEA_STEPS.includes(o.stage)&&o.stage!=='cancelled'||typeof o.visitId!=='string'||!o.visitId||o.visitId.length>160)return false;
  const index=PALACE_TEA_STEPS.indexOf(o.stage);
  if(!Array.isArray(o.steps)||!same(o.steps,PALACE_TEA_STEPS.slice(0,o.stage==='cancelled'?o.steps.length:index+1))||o.steps.length<1||o.steps.length>7||o.stage==='cancelled'&&o.steps.length===7)return false;
  return Object.keys(o).sort().join(',')==='actorId,amount,contractVersion,cupId,day,guestId,holderRevision,id,roleId,slotId,stage,steps,trayId,visitId';
 }
 export function palaceTeaProof(order){
- if(!validOrder(order)||order.stage!=='cleared')return null;
- return {kind:'npc-palace-tea-piecework',version:1,actorId:order.actorId,roleId:order.roleId,slotId:order.slotId,holderRevision:order.holderRevision,requestId:order.id,guestId:order.guestId,visitId:order.visitId,day:order.day,cupId:order.cupId,trayId:order.trayId,amount:order.amount,contractVersion:order.contractVersion,steps:copy(order.steps)};
+ if(!validOrder(order,true)||order.stage!=='cleared')return null;
+ return {kind:order.actorId==='player'?'player-palace-tea-piecework':'npc-palace-tea-piecework',version:1,actorId:order.actorId,roleId:order.roleId,slotId:order.slotId,holderRevision:order.holderRevision,requestId:order.id,guestId:order.guestId,visitId:order.visitId,day:order.day,cupId:order.cupId,trayId:order.trayId,amount:order.amount,contractVersion:order.contractVersion,steps:copy(order.steps)};
 }
-export function createPalaceTeaOrders({saved,saveState=()=>false}={}){
+export function createPalaceTeaOrders({saved,saveState=()=>false,allowPlayer=false}={}){
  let current={version:1,orders:[]},invalid=null,loadError=null,busy=false;
  if(saved!=null){
   invalid=copy(saved);
-  if(saved?.version!==1||!Array.isArray(saved.orders)||Object.keys(saved).sort().join(',')!=='orders,version'||saved.orders.some(o=>!validOrder(o))||new Set(saved.orders.map(o=>o.id)).size!==saved.orders.length||saved.orders.filter(o=>!['cleared','cancelled'].includes(o.stage)).length>1)loadError='invalid-palace-tea-orders';
+  if(saved?.version!==1||!Array.isArray(saved.orders)||Object.keys(saved).sort().join(',')!=='orders,version'||saved.orders.some(o=>!validOrder(o,allowPlayer))||new Set(saved.orders.map(o=>o.id)).size!==saved.orders.length||saved.orders.filter(o=>!['cleared','cancelled'].includes(o.stage)).length>1)loadError='invalid-palace-tea-orders';
   else{current=copy(saved);invalid=null;}
  }
  const snapshot=()=>copy(loadError?invalid:current),active=()=>current.orders.find(o=>!['cleared','cancelled'].includes(o.stage));
@@ -39,7 +39,7 @@ export function createPalaceTeaOrders({saved,saveState=()=>false}={}){
   active:()=>loadError?null:copy(active()||null),lookup:id=>loadError?null:copy(current.orders.find(o=>o.id===id)||null),
   request(input){
    if(loadError||busy)return {ok:false,code:loadError||'tea-orders-busy'};
-   if(!input||!PALACE_TEA_GUESTS.includes(input.guestId)||!person(input.actorId)||!integer(input.day)||!integer(input.holderRevision)||typeof input.visitId!=='string'||!input.visitId||input.visitId.length>160||input.arrived!==true||input.guestAsked!==true||input.hostAccepted!==true)return {ok:false,code:'tea-request-not-accepted'};
+   if(!input||!PALACE_TEA_GUESTS.includes(input.guestId)||!(person(input.actorId)||allowPlayer&&input.actorId==='player')||!integer(input.day)||!integer(input.holderRevision)||typeof input.visitId!=='string'||!input.visitId||input.visitId.length>160||input.arrived!==true||input.guestAsked!==true||input.hostAccepted!==true)return {ok:false,code:'tea-request-not-accepted'};
    const id=palaceTeaRequestId(input.guestId,input.day);
    // Cancellation consumes this original guest/day request too; neither a
    // revisit nor a replacement worker creates a second employer fee.
