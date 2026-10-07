@@ -34,6 +34,16 @@ const svc=r().regionalTellerEmployment;assert(svc.forRole(roleId));
 const stopAfter=process.env.TELLER_STOP_AFTER;
 const checkpoint=stage=>{main.namespace.save();const file=path.resolve('qa','regional-teller-'+country+'-'+stage+'.json');fs.writeFileSync(file,storage['worlds-days-v1']);console.log('PASS '+stage+' checkpoint saved',country,file,(Date.now()-started)/1000);};
 const savedApplication=process.env.TELLER_RESUME?JSON.parse(fs.readFileSync(process.env.TELLER_RESUME,'utf8')).formalCareers.applications.byRole[roleId]:null;
+if(stopAfter==='handoff'){
+ assert.equal(savedApplication?.status,'approved');assert(r().formalCareers.isHired(roleId));assert(!svc.state().shift);assert(!svc.inspection.state().order);
+ assert(main.namespace.requestStationIntent(svc.intent('accept')));
+ until(()=>svc.state().shift?.stage==='working','original safe handoff',240);
+ const incumbent=r().npcs.find(n=>n.station.id===svc.state().shift.standInId);assert(incumbent);
+ const home=incumbent.station.npcPosition,front=incumbent.station.position,rest=country==='china'?[home[0]-1.8,home[1],home[2]-.3]:[front[0]+1.7,front[1],front[2]-.7];
+ until(()=>incumbent.root.position.distanceTo(new incumbent.root.position.constructor(...rest))<.06&&!incumbent.walking,'same original teller physically clear of work bay',160);
+ assert.equal(svc.state().receipts.length,0);assert(!svc.inspection.state().order);
+ console.log('PASS original incumbent position',incumbent.station.id,incumbent.root.position.toArray());checkpoint('handoff');return;
+}
 if(stopAfter==='interview'){assert.equal(savedApplication?.status,'pending');assert.equal(r().formalCareers.applicationResult(roleId)?.id,savedApplication.id);assert(!r().formalCareers.isHired(roleId));assert(!svc.state().shift);}
 assert(main.namespace.requestStationIntent(svc.intent('formal-view')),JSON.stringify({q:svc.intent('formal-view'),p:state().player,toast:ids.toast.textContent}));until(()=>r().careerHandbook.isOpen(),'walk to actual '+country+' original counter registration',stopAfter==='interview'?80:1500);
 const button=label=>walk(dialog()).find(e=>e.tagName==='button'&&e.textContent===label);
