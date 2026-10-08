@@ -127,6 +127,14 @@ function validCase(job) {
   } else if (job.receipt !== null) return false;
   return true;
 }
+// Read-only structural validation for consumers. The host must also compare the
+// frozen source with the authoritative records ledger at its throughSerial.
+export function validateChinaPersonnelWorkCase(job, {mode, officialTenureId, day, status = 'signed'} = {}) {
+  try { return validCase(job) && (status === null || job.status === status) &&
+    (mode === undefined || job.mode === mode) && (officialTenureId === undefined || job.officialTenureId === officialTenureId) &&
+    (day === undefined || job.day === day); } catch { return false; }
+}
+
 function restoredState(saved) {
   if (!keys(saved, ['version', 'currentId', 'cases']) || saved.version !== 1 || !Array.isArray(saved.cases)) throw Error('invalid-saved-state');
   const ids = new Set();

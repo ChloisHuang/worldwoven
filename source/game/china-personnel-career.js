@@ -7,7 +7,8 @@ import {officialTenureId} from './official-career-progress.js';
 import {CHINA_PERSONNEL_OFFICIALS_V1 as OFFICIALS} from './china-personnel-records.js';
 import {createChinaPersonnelWork, CHINA_PERSONNEL_WORK_DURATIONS as D, CHINA_PERSONNEL_REVIEWER as LU} from './china-personnel-work.js';
 
-const PROVIDER = 'china-personnel-career', ROLE = 'cn-court-clerk', RANK = 'cn-records-regular';
+const PROVIDER = 'china-personnel-career', ROLE = 'cn-court-clerk';
+const RANKS = Object.freeze({trial: 'cn-records-regular', duty: 'cn-records-personnel'});
 const copy = value => structuredClone(value);
 const point = value => Array.isArray(value) && value.length === 3 && value.every(Number.isFinite);
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -46,12 +47,14 @@ const retryCodes = new Set(['save-failed', 'async-save-unsupported', 'persistenc
  * During that callback snapshot() also exposes the same candidate core journal,
  * before the core adopts it, so a parent world capture can mirror it atomically
  * into both top-level and continuity saves. False, throw and Promise fail closed.
+ * personnelWorkState() is the committed-only eligibility getter: formal pay or
+ * promotion checks must never read the in-flight snapshot() save candidate.
  * update(dt) accepts actual frame elapsed only; capped frames never catch up
  * offline time. Restoring a partial activity resumes from its saved progress.
  */
 export function createChinaPersonnelCareer({careers, audience, getPlayer, getClock,
   enabled = false, standing = player => !!player && !player.walking && player.alive !== false,
-  getBusy = () => false, canSee = () => true, getLu = () => null,
+  getBusy = () => false, canSee = () => true, getLu = () => null, isLuBusy = () => false,
   getMeetingPoint = (_actor, fallback) => fallback, getReadingPoint = id => places.get(id)?.position, requestMeeting = () => false,
   meetingHeld = () => false, releaseMeeting: releaseExternal = () => {},
   resumeApproach = () => {}, onWaiting = () => {}, meetingStatus = () => '原事务尚未结束',
@@ -60,7 +63,7 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
     const {continuity, ...top} = saved;
     saved = continuity?.version === 1 ? continuity : Object.keys(top).length ? top : continuity === null ? undefined : saved;
   }
-  let activity = null, heldLu = null, watchedLu = null, watchedPlayer = null;
+  let activity = null, heldLu = null, watchedLu = null, watchedPlayer = null, retirementRetryIn = 0, retirementCheck = null;
   let disposed = false, saving = false, candidateSnapshot = null, loadError = null, lastError = null;
   const documentHome = documentObject ? {parent: documentObject.parent, position: documentObject.position.clone(), rotation: documentObject.rotation.clone(), scale: documentObject.scale.clone()} : null;
   const compileTarget = documentObject ? documentObject.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, .015, 0)).toArray() : [...P.archiveTarget];
@@ -68,18 +71,48 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
   const sourceFor = (day, serial) => audience?.personnelSource?.(day, serial);
   function appointment() {
     const role = careers?.currentRole?.(), tenure = careers?.workState?.().tenure;
-    if (!careers?.isHired?.(ROLE) || role?.id !== ROLE || role.rankId !== RANK) return null;
-    return {actorId: 'player', tenureId: officialTenureId(tenure), rankId: role.rankId};
+    const mode = Object.keys(RANKS).find(mode => RANKS[mode] === role?.rankId);
+    if (!careers?.isHired?.(ROLE) || role?.id !== ROLE || !mode) return null;
+    return {actorId: 'player', tenureId: officialTenureId(tenure), rankId: role.rankId, mode};
+  }
+  function personnelDuty(owner = appointment()) {
+    const duty = careers?.workState?.().lastDuty;
+    return owner?.mode === 'duty' && duty?.roleId === ROLE && duty.slotId === 'cn-court-clerk-1' &&
+      duty.officialPayVersion === 2 && duty.officialRankId === RANKS.duty && duty.officialTenureId === owner.tenureId &&
+      duty.started === true ? duty : null;
   }
   function eligible(request) {
-    if (request.actorId !== 'player' || request.mode !== 'trial' || request.rankId !== RANK) return false;
+    if (request.actorId !== 'player' || request.rankId !== RANKS[request.mode]) return false;
     const state = careers?.state?.();
     if (!state || state.loadError) return false;
-    const owner = state.officialCareer?.appointments.find(row => row.id === request.officialTenureId);
-    const promotion = state.officialCareer?.applications.find(row => row.appointmentId === owner?.id && row.status === 'approved' && row.toRankId === RANK);
-    if (!owner || !promotion || request.day < promotion.decidedAt.day || owner.endedAt && request.day > owner.endedAt.day) return false;
-    if (request.phase === 'restore') return true;
-    return appointment()?.tenureId === request.officialTenureId;
+    const ledger = state.officialCareer, owner = ledger?.appointments.find(row => row.id === request.officialTenureId);
+    if (!owner || request.day < owner.tenure.sinceDay || owner.endedAt && request.day > owner.endedAt.day) return false;
+    // A tenure persists through promotions. Walk its actual ordered assignment
+    // chain, rather than taking the first approved row or requiring today's rank
+    // while restoring a signed trial or an ended appointment's original cases.
+    let rankId = 'cn-records-junior', rankDay = owner.tenure.sinceDay, historicalRank = false;
+    for (const promotion of ledger.applications.filter(row => row.appointmentId === owner.id && row.status === 'approved')) {
+      if (promotion.fromRankId !== rankId) return false;
+      if (rankId === request.rankId && request.day >= rankDay && request.day <= promotion.decidedAt.day) historicalRank = true;
+      rankId = promotion.toRankId; rankDay = promotion.decidedAt.day;
+    }
+    historicalRank ||= rankId === request.rankId && request.day >= rankDay;
+    if (!historicalRank) return false;
+    if (request.mode === 'trial') return request.phase === 'restore' || appointment()?.tenureId === request.officialTenureId;
+    const matchesDuty = duty => duty?.roleId === ROLE && duty.officialPayVersion === 2 && duty.officialRankId === RANKS.duty &&
+      duty.officialTenureId === request.officialTenureId && duty.day === request.day && duty.started === true;
+    if (request.phase === 'restore') {
+      if (matchesDuty(state.lastDuty)) return true;
+      // Once an old day is settled/ended, its real evaluated personal duty is
+      // the historical ownership evidence; the public six-official source is
+      // separately validated by the journal and cannot manufacture service.
+      return ledger.service.some(row => row.appointmentId === request.officialTenureId && row.rankId === RANKS.duty && row.day === request.day &&
+        row.officialPayVersion === 2 && row.officialTenureId === request.officialTenureId &&
+        (!row.positive || row.personnelWork?.id === request.caseId));
+    }
+    const activeOwner = appointment(), duty = personnelDuty(activeOwner);
+    return activeOwner?.tenureId === request.officialTenureId && matchesDuty(duty) && duty.stage === 'archive' &&
+      (duty.day === getClock()?.day || duty.personnelDeferral?.caseId === request.caseId);
   }
   function liveLu() {
     const actor = getLu();
@@ -156,10 +189,17 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
     return point(result) && near(result, office, 1.2) ? [...result] : null;
   }
   const current = () => work.current();
-  const owned = job => job?.mode === 'trial' && job.officialTenureId === appointment()?.tenureId;
+  const owned = job => {
+    const owner = appointment();
+    if (!job || job.mode !== owner?.mode || job.officialTenureId !== owner.tenureId) return false;
+    const duty = job.mode === 'duty' ? personnelDuty(owner) : null;
+    return job.mode === 'trial' || duty?.day === job.day && duty.stage === 'archive' &&
+      (duty.day === getClock()?.day || duty.personnelDeferral?.caseId === job.id);
+  };
   function shownCase() {
-    const rows = work.snapshot()?.cases, all = Array.isArray(rows) ? rows : [], tenure = appointment()?.tenureId;
-    return current() || all.findLast(job => job.mode === 'trial' && job.officialTenureId === tenure) || null;
+    const rows = work.snapshot()?.cases, all = Array.isArray(rows) ? rows : [], owner = appointment();
+    return current() || all.findLast(job => job.mode === owner?.mode && job.officialTenureId === owner.tenureId) ||
+      all.findLast(job => job.officialTenureId === owner?.tenureId) || all.at(-1) || null;
   }
   function availability() {
     if (!enabledNow()) return {ok: false, code: 'disabled'};
@@ -167,12 +207,13 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
     if (!documentObject) return {ok: false, code: 'document-unavailable'};
     const owner = appointment(); if (!owner) return {ok: false, code: 'regular-clerk-required'};
     const jobs = work.snapshot().cases;
-    if (jobs.some(job => job.officialTenureId === owner.tenureId && job.mode === 'trial' && job.status === 'signed')) return {ok: false, code: 'trial-already-signed'};
-    if (current()) return {ok: false, code: owned(current()) ? 'trial-in-progress' : 'unfinished-case'};
-    const day = getClock()?.day;
-    if (!Number.isSafeInteger(day) || !sourceFor(day)?.audience) return {ok: false, code: 'source-unavailable'};
-    if (jobs.some(job => job.officialTenureId === owner.tenureId && job.day === day)) return {ok: false, code: 'source-already-claimed'};
-    return {ok: true, code: 'available'};
+    if (current()) return {ok: false, code: owned(current()) ? `${owner.mode}-in-progress` : 'unfinished-case', mode: owner.mode, sourceDay: current().day};
+    if (owner.mode === 'trial' && jobs.some(job => job.officialTenureId === owner.tenureId && job.mode === 'trial' && job.status === 'signed')) return {ok: false, code: 'trial-already-signed', mode: owner.mode};
+    const duty = personnelDuty(owner), day = owner.mode === 'duty' ? duty?.day : getClock()?.day;
+    if (owner.mode === 'duty' && (duty?.stage !== 'archive' || day !== getClock()?.day)) return {ok: false, code: 'personnel-court-required', mode: owner.mode};
+    if (!Number.isSafeInteger(day) || !sourceFor(day)?.audience) return {ok: false, code: 'source-unavailable', mode: owner.mode};
+    if (jobs.some(job => job.officialTenureId === owner.tenureId && job.day === day)) return {ok: false, code: 'source-already-claimed', mode: owner.mode, sourceDay: day};
+    return {ok: true, code: 'available', mode: owner.mode, sourceDay: day};
   }
   function parse(kind) {
     if (['personnel-claim', 'personnel-view', 'personnel-compile', 'personnel-review', 'personnel-cancel'].includes(kind)) return {type: kind.slice(10)};
@@ -192,7 +233,7 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
     const action = parse(kind); if (!action) return null;
     const job = current(), owner = appointment(), row = job?.rows.find(row => row.actorId === action.actorId);
     if (action.type === 'cancel') return activity ? {id: 'cn-' + kind, provider: PROVIDER, kind, position: getPlayer()?.root.position.toArray() || [...P.registration],
-      action: '取消当前吏籍办理', name: '吏籍试办', intentKey: activity.caseId + ':' + activity.kind, executionRadius: .18, interactionRadius: 2.8, contextControl: true} : null;
+      action: '取消当前吏籍办理', name: current()?.mode === 'duty' ? '吏籍日职' : '吏籍试办', intentKey: activity.caseId + ':' + activity.kind, executionRadius: .18, interactionRadius: 2.8, contextControl: true} : null;
     if (action.type === 'view' && !owner && !work.snapshot()?.cases?.length) return null;
     if (action.type === 'claim' && (!availability().ok || activity)) return null;
     if (!['claim', 'view'].includes(action.type) && (!owned(job) || job.status !== 'draft')) return null;
@@ -202,15 +243,16 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
     if (action.type === 'review' && (!job.compiled || job.reviews.some(row => row.revision === job.revision))) return null;
     if (activity && !['view', 'record'].includes(action.type) && kind !== activity.intentKind) return null;
     const lu = action.type === 'review' ? liveLu() : null;
-    if (action.type === 'review' && !lu) return null;
+    if (action.type === 'review' && (!lu || personnelDuty()?.personnelDeferral?.reviewerBodyId && personnelDuty().personnelDeferral.reviewerBodyId !== lu.bodyId)) return null;
     const place = places.get(action.actorId), reading = place ? readingPoint(action.actorId) : null, meeting = lu ? reviewPoint(lu) : null;
     if (place && !reading) return null;
     const position = place ? reading : action.type === 'compile' ? P.archive : lu ? meeting || P.registration : P.registration;
-    const name = place ? `${officials.get(action.actorId).name} · 原始案簿` : action.type === 'compile' ? '礼务归档案 · 编列吏籍' : lu ? '陆谦 · 当面核阅' : '铨录登记 · 吏籍试办';
-    const labels = {claim: '领取本日六官吏籍试办', view: '查看吏籍试办名册', read: '翻阅原始案簿 · 3秒',
+    const mode = job?.mode || owner?.mode, title = mode === 'duty' ? '吏籍日职' : '吏籍试办';
+    const name = place ? `${officials.get(action.actorId).name} · 原始案簿` : action.type === 'compile' ? '礼务归档案 · 编列吏籍' : lu ? '陆谦 · 当面核阅' : `铨录登记 · ${title}`;
+    const labels = {claim: mode === 'duty' ? '领取本人朝次六官核籍日职' : '领取本日六官吏籍试办', view: `查看${title}名册`, read: '翻阅原始案簿 · 3秒',
       record: action.answer === 'accepted' ? '登记：原件已归档' : '登记：尚待原件', compile: '编列六官名册 · 8秒', review: '向陆谦呈册核阅 · 4秒'};
     return {id: 'cn-' + kind, provider: PROVIDER, kind, name, npcName: place ? officials.get(action.actorId).name : lu ? '陆谦' : '吏籍簿',
-      position: [...position], action: labels[action.type], intentKey: [owner?.tenureId, job?.id, job?.revision, row?.visit?.id, getClock()?.day, kind, lu?.bodyId].join('|'),
+      position: [...position], action: labels[action.type], intentKey: [owner?.tenureId, job?.id, job?.revision, row?.visit?.id, job?.day ?? availability().sourceDay ?? getClock()?.day, kind, lu?.bodyId].join('|'),
       executionRadius: .18, interactionRadius: 2.8, priority: 54,
       ...(lu ? {awaitingReception: !meeting, visualAnchor: {actorId: LU}} : {}), ...(place ? {playerWorkTarget: [...place.target]} : {})};
   }
@@ -230,9 +272,31 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
       revision: job.revision, point: [...selected.position], progress: 0, arrivalPending: !!player.walking,
       playerBodyId: bodyId(player, 'player'), luBodyId: lu?.bodyId || null, waitingPoint: player.root.position.toArray(), proof: null, retryIn: 0};
   }
+  function deferBusyReview(lu) {
+    const job = current(), duty = personnelDuty();
+    if (job?.mode !== 'duty' || !job.compiled || activity?.kind !== 'review-wait' ||
+        activity.caseId !== job.id || lu?.actor !== watchedLu || lu?.bodyId !== activity.luBodyId) return;
+    if (duty?.personnelDeferral?.caseId === job.id) { activity.deferralPending = false; return; }
+    // Lack of a stand point/lease alone is not proof that Lu is busy. The core
+    // independently checks the same live actor's busy state and personal duty.
+    if (meetingAvailable(lu) && isLuBusy(lu.actor) !== true || duty?.day !== getClock()?.day || duty.stage !== 'archive') return;
+    activity.deferralPending = true;
+    let result;
+    saving = true;
+    try { result = careers?.deferPersonnelReview?.({caseId: job.id}) || {ok: false, code: 'persistence-unavailable'}; }
+    catch { result = {ok: false, code: 'save-failed'}; }
+    finally { saving = false; }
+    if (result?.then) { Promise.resolve(result).catch(() => {}); result = {ok: false, code: 'async-save-unsupported'}; }
+    if (result.ok) { activity.deferralPending = false; lastError = null; }
+    else if (lastError !== result.code) {
+      lastError = result.code || 'save-failed';
+      notify('陆谦仍在处理原事务；本次跨日等候凭据尚未保存，原名册与预约保留，将在等候中重试。');
+    }
+  }
   function queueReview(selected) {
     const prior = activity?.intentKind === selected.kind ? activity : null;
     releaseMeeting(); activity = prior || makeActivity(selected, 'review-wait'); activity.kind = 'review-wait'; activity.waitingPoint = getPlayer().root.position.toArray(); syncDocument();
+    deferBusyReview(liveLu()); if (current()?.mode === 'duty') activity.retryIn = 1;
     onWaiting(); notify(`陆谦：${meetingStatus(watchedLu)}。已预约本次核阅；移动或取消可撤销等候，名册仍保留。`); return true;
   }
   function meetingAvailable(lu) {
@@ -271,7 +335,8 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
     if (action.type === 'view') { openPersonnel({country: 'china', roleId: ROLE, scope: 'role'}); return true; }
     if (action.type === 'claim') {
       if (!actorReady()) return false;
-      const result = work.claim({day: getClock().day, mode: 'trial', officialTenureId: appointment()?.tenureId});
+      const available = availability(); if (!available.ok) return false;
+      const result = work.claim({day: available.sourceDay, mode: available.mode, officialTenureId: appointment()?.tenureId});
       const ok = report(result, '已领取本日原件边界。请逐案翻阅六位官员案簿，再自行登记原件状态。');
       if (ok) { syncDocument(); openPersonnel({country: 'china', roleId: ROLE, scope: 'role'}); } return ok;
     }
@@ -318,7 +383,7 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
     const result = work[kind](input);
     if (result.ok || result.code === 'roster-rejected') {
       const id = activity.actorId; clearActivity();
-      report(result, kind === 'visit' ? '原始案簿已阅，请自行选择登记状态。' : kind === 'compile' ? '六官名册已编列，请向陆谦当面呈册。' : '陆谦已签收本任次试办名册，试办完成。');
+      report(result, kind === 'visit' ? '原始案簿已阅，请自行选择登记状态。' : kind === 'compile' ? '六官名册已编列，请向陆谦当面呈册。' : job.mode === 'duty' ? '陆谦已签收本朝次核籍名册，请回原案完成本人归档。' : '陆谦已签收本任次试办名册，试办完成。');
       openPersonnel({country: 'china', roleId: ROLE, scope: 'role', ...(kind === 'visit' ? {actorId: id} : {})}); return;
     }
     if (retryCodes.has(result.code)) {
@@ -326,17 +391,49 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
       if (lastError !== result.code) report(result);
     } else { stopActivity(); report(result); }
   }
+  function retireFinishedCase(elapsed) {
+    const job = current();
+    if (!enabledNow() || loadError || !job) return;
+    const projection = careers?.workState?.(), day = getClock()?.day;
+    const key = [job.id, projection?.revision, day].join('|');
+    if (retirementCheck?.key !== key) {
+      const state = careers?.state?.(), ledger = state?.officialCareer;
+      const owner = ledger?.appointments.find(row => row.id === job.officialTenureId);
+      const ended = !state?.loadError && !!owner?.endedAt;
+      // A durable, evaluated missed personal shift may retire only its exact
+      // old-day draft. A deferred review has no negative service and is never
+      // discarded. Reading committed formal state avoids seeing a save candidate.
+      const missed = !state?.loadError && !!owner && job.mode === 'duty' && job.day < day && ledger.service.some(row =>
+        row.id === `career-review:cn-court-clerk-1:${job.day}` && row.appointmentId === job.officialTenureId &&
+        row.day === job.day && row.rankId === RANKS.duty && row.officialPayVersion === 2 &&
+        row.officialRankId === RANKS.duty && row.officialTenureId === job.officialTenureId &&
+        row.positive === false && row.score === -1 && row.wage === 0 && row.personnelWork === null && row.personnelDeferral === null);
+      retirementCheck = {key, ended, missed};
+    }
+    if (!retirementCheck.ended && !retirementCheck.missed) return;
+    // Both exits retain every original read, answer and source. Temporary body,
+    // rank, window or scene changes alone are never reasons to abandon a case.
+    if (activity) clearActivity();
+    retirementRetryIn = Math.max(0, retirementRetryIn - elapsed); if (retirementRetryIn > 1e-8) return;
+    const result = work.abandon({caseId: job.id});
+    if (result.ok) {
+      retirementRetryIn = 0; lastError = null; syncDocument();
+      if (retirementCheck.missed && !retirementCheck.ended) notify('上一朝次已按未完成入档，旧核籍单已作废留存；可办理下一班原件。');
+    } else { retirementRetryIn = 1; if (lastError !== result.code) report(result); }
+  }
   function update(dt) {
     if (saving || disposed) return;
-    syncDocument(); if (!activity) return;
+    const elapsed = Math.max(0, Math.min(.1, Number.isFinite(dt) ? dt : 0));
+    retireFinishedCase(elapsed); syncDocument(); if (!activity) return;
     if (!enabledNow()) { stopActivity(); return; }
     const job = validActivity(); if (!job) { stopActivity(); return; }
-    const player = getPlayer(), elapsed = Math.max(0, Math.min(.1, Number.isFinite(dt) ? dt : 0));
+    const player = getPlayer();
     if (activity.kind === 'review-wait') {
       if (!actorReady(player) || !near(player.root.position.toArray(), activity.waitingPoint)) { stopActivity(); return; }
       activity.retryIn = Math.max(0, activity.retryIn - elapsed); if (activity.retryIn > 1e-8) return;
       activity.retryIn = 1;
       const next = intent('personnel-review'), lu = liveLu();
+      deferBusyReview(lu);
       if (!next || next.awaitingReception || !meetingAvailable(lu)) return;
       if (!requestMeeting(lu.actor)) return;
       heldLu = lu.actor; activity.kind = 'review-approach'; activity.point = [...next.position]; syncDocument();
@@ -368,7 +465,8 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
     const record = value.activity;
     if (record !== null && (!record || !['read', 'compile', 'review', 'review-wait', 'review-approach'].includes(record.kind) ||
         !parse(record.intentKind) || !point(record.point) || !point(record.waitingPoint) || !Number.isFinite(record.progress) || record.progress < 0 ||
-        !Number.isFinite(record.retryIn) || record.retryIn < 0 || record.retryIn > 1 || typeof record.arrivalPending !== 'boolean')) return false;
+        !Number.isFinite(record.retryIn) || record.retryIn < 0 || record.retryIn > 1 || typeof record.arrivalPending !== 'boolean' ||
+        record.deferralPending !== undefined && typeof record.deferralPending !== 'boolean')) return false;
     clearActivity();
     if (!record || !enabledNow()) return true;
     activity = copy(record); watchedPlayer = getPlayer(); watchedLu = activity.kind.startsWith('review') ? liveLu()?.actor : null;
@@ -391,7 +489,10 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
     // Saved review progress can wait for the SAME body to finish its own task;
     // it never restores a private lease over a meal, toilet, bed or court task.
     if (activity.kind.startsWith('review')) {
-      activity.kind = 'review-wait'; activity.retryIn = 0; activity.arrivalPending = false; activity.waitingPoint = getPlayer().root.position.toArray(); onWaiting();
+      activity.kind = 'review-wait'; activity.retryIn = 0; activity.arrivalPending = false; activity.waitingPoint = getPlayer().root.position.toArray();
+      const deferred = personnelDuty()?.personnelDeferral;
+      if (deferred?.caseId === activity.caseId && deferred.reviewerBodyId === activity.luBodyId) activity.deferralPending = false;
+      onWaiting();
     }
     syncDocument(); return true;
   }
@@ -399,14 +500,15 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
   syncDocument();
   function state() {
     const job = shownCase(), duration = activity ? D[activity.kind === 'read' ? 'visit' : activity.kind.startsWith('review') ? 'review' : 'compile'] : 1;
-    return {enabled: enabledNow(), eligible: !!appointment(), loadError, lastError, availability: availability(), case: job ? copy(job) : null,
+    const owner = appointment(), duty = personnelDuty(owner);
+    return {enabled: enabledNow(), eligible: !!owner, mode: owner?.mode || job?.mode || null, roleId: ROLE, rankId: owner?.rankId || null, sourceDay: job?.day ?? duty?.day ?? null, deferred: !!duty?.personnelDeferral, loadError, lastError, availability: availability(), case: job ? copy(job) : null,
       history: copy(Array.isArray(work.snapshot()?.cases) ? work.snapshot().cases : []), activity: activity?.kind || null, progress: activity ? activity.progress / duration : 0,
-      waiting: activity?.kind === 'review-wait' ? {actorId: LU, bodyId: activity.luBodyId, caseId: activity.caseId} : null,
+      waiting: activity?.kind === 'review-wait' ? {actorId: LU, bodyId: activity.luBodyId, caseId: activity.caseId, deferred: duty?.personnelDeferral?.caseId === activity.caseId, savePending: !!activity.deferralPending} : null,
       place: {registration: [...P.registration], archive: [...P.archive], reads: copy(CHINA_PERSONNEL_READ_PLACES)}};
   }
   const workChoices = () => ['personnel-view', 'personnel-claim', ...OFFICIALS.flatMap(row => [`personnel-read:${row.actorId}`, `personnel-record:${row.actorId}:accepted`, `personnel-record:${row.actorId}:awaiting`]), 'personnel-compile', 'personnel-review', 'personnel-cancel'].filter(kind => intent(kind));
   return {intent, resolveIntent, prepareIntent, executeIntent, update, syncPlayer: syncDocument, stopActivity, cancelApproach: stopActivity,
-    isActing: () => !!activity, isWaiting: () => activity?.kind === 'review-wait', sourcePanel, workChoices, intents: () => workChoices().filter(kind => !kind.startsWith('personnel-record:') && kind !== 'personnel-cancel').map(intent), snapshot, restore, state,
+    isActing: () => !!activity, isWaiting: () => activity?.kind === 'review-wait', personnelWorkState: () => work.snapshot(), sourcePanel, workChoices, intents: () => workChoices().filter(kind => !kind.startsWith('personnel-record:') && kind !== 'personnel-cancel').map(intent), snapshot, restore, state,
     playerAction: () => activity && !activity.arrivalPending && !activity.proof ? ({read: 'read', compile: 'calligraphy', review: 'read'})[activity.kind] || null : null,
     playerStation: () => activity?.kind === 'compile' ? {playerWorkTarget: [...compileTarget]} : activity?.kind === 'read' ? {playerWorkTarget: [...places.get(activity.actorId).target]} : null,
     label: () => activity?.proof ? '原核验凭据待保存 · 稍后重试' : activity?.kind === 'review-wait' ? '已预约陆谦 · 等原事务结束后前往' : activity?.kind === 'review-approach' ? '前往陆谦身旁 · 当面呈册' : activity ? `${{read: '翻阅原始案簿', compile: '编列六官名册', review: '陆谦当面核阅'}[activity.kind]} · ${Math.ceil(D[activity.kind === 'read' ? 'visit' : activity.kind] - activity.progress)}秒` : null,

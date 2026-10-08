@@ -9,28 +9,38 @@ const availabilityText = {
   'signed-trial-complete': '本任核籍试办已有签收原册。',
   'trial-complete': '本任核籍试办已有签收原册。',
   'unfinished-case': '请继续当前同号原册。',
+  'trial-in-progress': '请继续当前同号试办原册。',
+  'duty-in-progress': '请继续当前职责日的同号核籍原册。',
+  'trial-already-signed': '本任核籍试办已有签收原册。',
+  'source-already-claimed': '该朝次原据已领取，请查看已存同号原册。',
+  'personnel-court-required': '先完成本人本朝次朝会，再领取该职责日的核籍原册。',
+  'not-eligible': '当前任职不开放新的核籍办理；原册仍保留。',
 };
 const dayText = day => Number.isSafeInteger(day) && day >= 0 ? `第${day + 1}日` : '原职责日待核对';
 const sourceText = job => `领取时原据：${dayText(job.source?.day)}朝会 · 截至第${job.source?.throughSerial}笔已存证记录`;
 const caseText = (job, history) => {
   const index = history.findIndex(row => row.id === job.id);
-  return `${index >= 0 ? `第${index + 1}号` : '同号'}试办名册 · ${dayText(job.day)}`;
+  return `${index >= 0 ? `第${index + 1}号` : '同号'}${job.mode === 'duty' ? '日职' : '试办'}名册 · ${dayText(job.day)}`;
 };
 const signerName = job => job.source?.audience?.actors?.find(actor => actor.actorId === job.receipt?.signerId)?.name || '原签收人';
 
 // Read-only projection of the persisted same-number case. Rendering cannot
 // visit an original, fill an answer, compile, review, promote or change pay.
 // The adapter still checks every selected physical intent at execution time.
-export function appendPersonnelWorkPanel({panel, role, service, make, action}) {
+export function appendPersonnelWorkPanel({panel, role, service, make, action, personnelProgressionEnabled = false, duty = null}) {
   const state = service?.personnelState?.() || service?.state?.();
   if (!state?.enabled) return false;
-  const history = Array.isArray(state.history) ? state.history.filter(job => job.mode === 'trial') : [];
-  const current = state.case?.mode === 'trial' ? state.case : null;
+  const history = Array.isArray(state.history) ? state.history.filter(job => ['trial', 'duty'].includes(job.mode)) : [];
+  const current = ['trial', 'duty'].includes(state.case?.mode) ? state.case : null;
+  const mode = state.mode || current?.mode || 'trial', daily = mode === 'duty';
   if (!(role?.id === CLERK && state.eligible) && !current && !history.length) return false;
   const section = make('section', null, 'career-table-orders');
-  section.setAttribute('data-panel-key', 'personnel-trial');
-  section.append(make('h3', '核籍试办'));
-  section.append(make('p', '试办不发工资或经验，不占普通朝班；更高实职的荐审与授任尚未开放。', 'career-status-note'));
+  section.setAttribute('data-panel-key', daily ? 'personnel-duty' : 'personnel-trial');
+  section.append(make('h3', daily ? '核籍日职' : '核籍试办'));
+  section.append(make('p', daily ? '本人朝会完成后，逐一到六官原案读据3秒并自行落记，回原案汇总8秒、请陆谦核验4秒，再回本人原案归档8秒，按原职责日合同结薪。核籍不另发一笔工资或经验。' : `试办不发工资或经验，不占普通朝班；${personnelProgressionEnabled ? '本任原册由陆谦本人签收后，可作为申请从八品核籍实职的条件。' : '更高实职的荐审与授任尚未开放。'}`, 'career-status-note'));
+  if (daily && current?.mode !== 'trial' && Number.isSafeInteger(state.sourceDay)) section.append(make('p', `本册对应${dayText(state.sourceDay)}原职责；不会因今天重新打开而改成新班。`, 'career-status-note'));
+  if (daily && state.deferred) section.append(make('p', `${dayText(state.sourceDay)}原班已保存等候延期；继续同号原册，仍按原职责日合同结薪，不另开新班或补发等候工资。`, 'career-status-note'));
+  else if (daily && state.waiting?.savePending) section.append(make('p', '原班延期仍待保存；尚未确认可跨日续办，请稍后重试。', 'career-negative'));
   const appendAction = (root, kind, label) => {
     const button = action(role, kind, label);
     if (!button) return null;
@@ -95,7 +105,11 @@ export function appendPersonnelWorkPanel({panel, role, service, make, action}) {
   }
 
   if (current) appendCase(section, current, current.status === 'draft');
-  else section.append(make('p', availabilityText[state.availability?.code] || (state.eligible ? '先领取一份朝会原据，再逐案核对。' : '本任试办记录保留。'), 'career-status-note'));
+  const settled = current?.mode === 'duty' && duty?.day === current.day && ['ready', 'paid'].includes(duty.stage);
+  if (settled) section.append(make('p', duty.stage === 'paid' ? '该原班已结薪；历史原册保留，不重复发薪。' : '该原班已完成本人归档，工资待入账。', 'career-status-note'));
+  else if (!current || current.status !== 'draft') section.append(make('p', availabilityText[state.availability?.code] || (state.availability?.ok ? daily ? '可领取本人本朝次核籍原册。' : '先领取一份朝会原据，再逐案核对。' : '已存核籍原册保留。'), 'career-status-note'));
+  if (current?.mode === 'duty' && current.status === 'signed' && !settled) section.append(make('p', '本册已签收；原班须完成本人原案归档8秒方可结薪，已结原班不会重复发薪。签收原册不另发工资。', 'career-status-note'));
+  if (state.lastError) section.append(make('p', ['save-failed', 'async-save-unsupported', 'persistence-unavailable'].includes(state.lastError) ? '本次进度仍待保存；原册保留，请稍后重试。' : '本次办理暂未完成，请按原册继续核对。', 'career-negative'));
 
   if (state.activity) {
     const kind = {read: 'visit', compile: 'compile', review: 'review'}[state.activity];
@@ -113,7 +127,7 @@ export function appendPersonnelWorkPanel({panel, role, service, make, action}) {
   } else if (state.waiting) section.append(make('p', '等待陆谦本人接待 · 等候不计核验时间。', 'career-status-note'));
 
   const controls = make('div', null, 'career-actions');
-  if (!current && state.eligible) appendAction(controls, 'personnel-claim', '领取核籍试办原册');
+  if (state.eligible && state.availability?.ok && current?.status !== 'draft') appendAction(controls, 'personnel-claim', daily ? '领取本人本朝次核籍原册' : '领取核籍试办原册');
   if (current?.status === 'draft') {
     if (current.rows.every(row => row.visit && row.archiveStatus !== null) && !current.compiled) appendAction(controls, 'personnel-compile', '回本人原案汇总 · 8秒');
     if (current.compiled) appendAction(controls, 'personnel-review', '请陆谦本人核验 · 4秒');
@@ -126,7 +140,7 @@ export function appendPersonnelWorkPanel({panel, role, service, make, action}) {
   if (older.length) {
     const details = make('details', null, 'career-card-details career-employment-history');
     details.setAttribute('data-panel-key', 'personnel-trial-history');
-    details.append(make('summary', '已存试办原册'));
+    details.append(make('summary', history.some(job => job.mode === 'duty') ? '已存核籍原册' : '已存试办原册'));
     for (const job of older) {
       const record = make('details', null, 'career-card-details');
       record.setAttribute('data-panel-key', `personnel-history-${history.indexOf(job)}`);

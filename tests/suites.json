@@ -372,7 +372,8 @@
       "china-personnel-records.mjs",
       "china-personnel-work.mjs",
       "china-official-grade-life.mjs",
-      "china-official-grade-main.cjs"
+      "china-official-grade-main.cjs",
+      "official-personnel-promotion.mjs"
     ]
   },
   "world-life": {
@@ -635,7 +636,8 @@
       "china-granary-audit-flow.mjs",
       "china-granary-audit-main.cjs",
       "china-personnel-source-flow.mjs",
-      "china-personnel-career.mjs"
+      "china-personnel-career.mjs",
+      "china-personnel-appointment.mjs"
     ]
   },
   "release": {

@@ -99,3 +99,47 @@ console.log('PASS an active optional review queue leaves attendance selectable; 
 // The promotion branch uses the same stable wait record without skipping review.
 {const f=promotionPanel(states[1][1],{canMeet:false});assert(f.service.prepareIntent(f.service.intent('promotion-review')));const saved=JSON.parse(JSON.stringify(f.service.snapshot()));assert.equal(saved.waiting.applicationId,f.core.promotionSummary().application.id);f.dispose();const re=promotionPanel(states[1][1],{canMeet:false});assert(re.service.restore(saved));assert(re.service.isWaiting());re.service.update(.6);assert(re.service.isWaiting());re.dispose();const ready=promotionPanel(states[1][1]);assert(ready.service.restore(saved));ready.service.update(.6);assert(!ready.service.isWaiting());assert.equal(ready.core.promotionSummary().application.stage,'submitted');ready.dispose();}
 console.log('PASS promotion review wait persists and resumes only through actual reception readiness');
+
+// Second-route projection is read-only and independently dispatched. Mutating
+// only the royal runtime must refresh the open handbook without a core revision.
+{
+ const {appendOfficialPromotionPanel, appendOfficialCareerHistory, appendCourtRankReference} = await import('../source/game/official-career-panel.js');
+ const {getChinaRecordsCareerRank} = await import('../source/game/china-official-ranks.js');
+ const rank = getChinaRecordsCareerRank('cn-records-regular'), target = getChinaRecordsCareerRank('cn-records-personnel');
+ const summary = {rank, rankId:rank.rankId, routeId:target.rankId, qualifiedDays:3, tenureDays:3, balance:3, lifetimeQualifiedDays:6, eligible:true, reasons:[], trialComplete:true, application:null};
+ const runtime = {enabled:true, application:null, activity:null, progress:0, waiting:false, loadError:null, lastError:null};
+ let enabled = true, available = true, cancelled = 0;
+ const core = {promotionSummary:()=>summary, promotionAvailability:()=>({ok:available,reasons:[]}),personnelProgressionEnabled:()=>enabled,cancelPromotion:()=>cancelled++};
+ const make=(tag,value,cls)=>Object.assign(element(tag),{textContent:value||'',className:cls||''}),kinds=[],metrics=[];
+ const render=()=>{kinds.length=0;metrics.length=0;const panel={body:element('div'),actions:element('footer')};panel.actions.append(make('button','原朝班'));appendOfficialPromotionPanel({careers:core,role:CLERK,panel,make,metric:(...value)=>metrics.push(value),service:{personnelAppointmentState:()=>runtime},buttonFor:(label,run)=>Object.assign(make('button',label),{onclick:run}),action:(_role,kind,label)=>{kinds.push(kind);return Object.assign(make('button',label||kind),{onclick:()=>requests.push({kind})});}});return panel;};
+ let view=render();assert.deepEqual(kinds,['personnel-promotion-apply']);assert.equal(cancelled,0);assert(metrics.flat().join(' ').includes('26–28文'));assert(text(view.body).includes('文书3级'));assert(text(view.body).includes('只保存一次抽签结果'));assert(text(view.actions).includes('原朝班'));
+ const application={id:'personnel-ui-case',routeVersion:2,appointmentId:'ui-tenure',fromRankId:rank.rankId,toRankId:target.rankId,day:6,status:'pending',stage:'submitted',code:'submitted'};
+ summary.application=application;runtime.application=application;available=false;
+ for(const [stage,kind]of [['submitted','review'],['document-ready','receive-document'],['document-held','imperial-review'],['imperial-approved','appointment']]){
+  application.stage=application.code=stage;view=render();assert.deepEqual(kinds,['personnel-promotion-'+kind]);view.actions.children[1].onclick();assert.equal(requests.at(-1).kind,'personnel-promotion-'+kind);assert(!kinds.some(kind=>kind.startsWith('promotion-')));assert.equal(cancelled,0);
+ }
+ for(const [activity,label]of [['review','陆谦当面核荐 2.0 / 4 秒'],['imperial-review','皇帝当面阅批 2.0 / 4 秒'],['appointment','原登记处宣读 1.5 / 3 秒']]){
+  runtime.activity=activity;runtime.progress=.5;view=render();assert(text(view.body).includes(label));assert.deepEqual(kinds,['personnel-promotion-cancel']);assert(text(view.actions).includes('原朝班'));
+ }
+ runtime.activity='imperial-wait';runtime.waiting=true;view=render();assert(text(view.body).includes('公共听候处等候皇帝'));assert(!all(view.body).some(e=>e.tag==='progress'));assert(text(view.body).includes('取消等候 · 保留申请与原件'));assert.equal(cancelled,0);
+ runtime.activity='review-wait';view=render();assert(text(view.body).includes('等待陆谦本人接待'));
+ runtime.waiting=false;runtime.activity='review-approach';assert(text(render().body).includes('抵达停步后核荐4秒'));
+ runtime.activity=null;runtime.loadError='invalid-saved-state';view=render();assert.equal(kinds.length,0);assert(text(view.body).includes('任命原件暂不可核验'));runtime.loadError=null;
+ application.stage='decided';application.code='promotion-review-rejected';application.status='rejected';view=render();assert(metrics.flat().join(' ').includes('皇帝未准本次任命'));assert.equal(kinds.length,0);
+ application.code='approved';application.status='approved';application.decidedAt={day:7};application.recommendation={};application.imperialDecision={passed:true};summary.rank=target;summary.rankId=target.rankId;summary.routeId=null;view=render();assert.equal(kinds.length,0);assert(metrics.flat().join(' ').includes('更高官职需新的实职与资历路线'));
+ const history={body:element('div')};appendOfficialCareerHistory({careers:{state:()=>({officialCareer:{appointments:[{id:'ui-tenure',tenure:{sinceDay:1},endedAt:null}],service:[],applications:[application]}})},panel:history,make});assert(text(history.body).includes('吏务核籍录事'));assert(text(history.body).includes('第7日申请从八品'));assert(text(history.body).includes('皇帝原次阅批通过，结果已保存'));
+ for(const flag of [false,true]){const panel={body:element('div')};appendCourtRankReference({panel,make,personnelProgressionEnabled:flag});assert(text(panel.body).includes(flag?'当前可玩升阶到从八品':'当前可玩升阶只到正九品'));assert.equal(text(panel.body).includes('从八品新班基础26文'),flag);assert.equal(text(panel.body).includes('本人核籍原册逐行验收与正九品至从八品实任履历核荐，皇帝最终授任'),flag);assert.equal(text(panel.body).includes('人员名册变更、更高阶考核与完整任免链'),flag);assert.equal(text(panel.body).includes('值勤名册目前为日常动作'),!flag);}
+ summary.rank=rank;summary.rankId=rank.rankId;summary.application=null;summary.routeId=null;summary.eligible=false;enabled=false;available=false;view=render();assert.equal(kinds.length,0);assert(!metrics.flat().join(' ').includes('从八品'));assert(!text(view.body).includes('文书3级'));
+ summary.application={...application,stage:'submitted',code:'submitted',status:'pending'};render();assert.equal(kinds.length,0,'disabled v2 receipt must never fall through to original promotion actions');
+ // Use the existing real first-promotion fixture for all unrelated employment
+ // and ordinary work, overriding only the new runtime read projection.
+ const f=promotionPanel(states.at(-1)[1]);let royal={...runtime,enabled:true,application:{...application,status:'pending',code:'document-held',stage:'document-held'},activity:null,progress:0,waiting:false,lastError:null};
+ const projectedCore={...f.core,personnelProgressionEnabled:()=>true,promotionSummary:()=>({...f.core.promotionSummary(),rank,rankId:rank.rankId,routeId:target.rankId,eligible:true,reasons:[],application:royal.application})};
+ const projectedService={...f.service,personnelAppointmentState:()=>royal,intent:kind=>kind?.startsWith('personnel-promotion-')?{id:kind,provider:'china-personnel-appointment',kind,intentKey:royal.application.stage+':'+kind,action:kind,position:[0,0,0]}:f.service.intent(kind)};
+ const royalDoc={head:element('head'),body:element('body'),createElement:element},royalUI=createCareerHandbook({careers:projectedCore,getPlayer:()=>f.actor,getClock:()=>f.clock,getCountry:()=> 'china',getService:()=>projectedService,document:royalDoc,copperLedger:bank});
+ royalUI.open(false);const revision=f.core.state().revision;royal.activity='imperial-wait';royal.waiting=true;royalUI.update('lot');assert(text(royalDoc.body).includes('公共听候处等候皇帝'));
+ royal.activity='imperial-review';royal.waiting=false;royal.progress=.5;royalUI.update('lot');assert(text(royalDoc.body).includes('皇帝当面阅批 2.0 / 4 秒'));
+ royal.lastError='save-failed';royalUI.update('lot');assert(text(royalDoc.body).includes('原完成凭据待保存'));
+ royal.lastError=null;royal.activity=null;royal.application={...royal.application,stage:'imperial-approved',code:'imperial-approved'};royalUI.update('lot');assert(text(royalDoc.body).includes('皇帝已准任 · 待宣读登记'));assert.equal(f.core.state().revision,revision);royalUI.dispose();f.dispose();
+}
+console.log('PASS gated second-route UI, independent five-stage dispatch, real-time royal wait/progress/error refresh without core revision, separate stop versus withdrawal, dynamic target-grade history and unopened higher ranks');
