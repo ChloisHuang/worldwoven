@@ -637,7 +637,8 @@
       "china-granary-audit-main.cjs",
       "china-personnel-source-flow.mjs",
       "china-personnel-career.mjs",
-      "china-personnel-appointment.mjs"
+      "china-personnel-appointment.mjs",
+      "china-personnel-main.cjs"
     ]
   },
   "release": {
