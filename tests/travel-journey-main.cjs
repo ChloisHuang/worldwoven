@@ -20,6 +20,7 @@ once('localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>storage[k]=v}',St
   if(event?.action===rejectAction&&!old.travelJourney?.journeys.some(j=>j.events.some(e=>e.id===event.id))){rejectedWrites++;return false;}}
  storage[k]=v;return true;
 }}`);
+once('history:{replaceState(){}},',"history:{replaceState(_state,_title,url){context.location.hash=new URL(url,'http://example.invalid').hash;}},");
 const begin=harness.indexOf('const report=[];for(let round=0;');if(begin<0)throw Error('Missing bounded body');
 harness=harness.slice(0,begin)+String.raw`
 const r=main.namespace.travelMainReview(),journey=r.travelJourney,ui=r.travelJourneyUI,flight=r.travelFlight,clone=v=>JSON.parse(JSON.stringify(v));
@@ -28,13 +29,16 @@ const find=(e,p)=>p(e)?e:e.children?.map(c=>find(c,p)).find(Boolean),dialog=()=>
 const button=action=>{const b=find(dialog(),e=>e.tagName==='button'&&e.getAttribute('data-travel-action')===action);assert(b&&!b.disabled,action+' enabled');return b;};
 const press=action=>button(action).onclick(),step=(n=1)=>{for(let i=0;i<n;i++){now+=100;main.namespace.travelMainStep(.1);}};
 rejectAction='begin';ids.travel.onclick();assert.equal(journey.view().active,null);assert.equal(rejectedWrites,1);assert(main.namespace.save());assert.equal(JSON.parse(storage['worlds-days-v1']).travelJourney.journeys.length,0);assert.equal(JSON.parse(storage['worlds-days-v1']).travelJourney.activeId,null);
-rejectAction=null;ui.close();ids.travel.onclick();const id=journey.view().active.id;assert.equal(journey.view().active.from,null);assert.equal(journey.view().active.to,'japan');assert.equal(journey.view().active.stage,'planned');assert(ids['globe-ui'].hidden,'journey panel replaces destination picker');
+rejectAction=null;ui.close();ids.travel.onclick();let id=journey.view().active.id;assert.equal(journey.view().active.from,null);assert.equal(journey.view().active.to,'japan');assert.equal(journey.view().active.stage,'planned');assert(ids['globe-ui'].hidden,'journey panel replaces destination picker');
 press('passport');assert(r.travelPassport.isOpen());assert(!ui.isOpen());r.travelPassport.close();assert(ui.isOpen(),'closing original passport returns to this journey');
 context.location.hash='#france';events.hashchange();assert.equal(journey.view().active.id,id);assert.equal(journey.view().active.to,'japan');assert.equal(main.namespace.travelMainReview().selected,'japan');
+const cancelled=id,oldCancel=button('cancel');rejectAction='cancel';oldCancel.onclick();assert.equal(journey.view().active.id,cancelled);assert.equal(context.location.hash,'#france');assert(main.namespace.save());
+rejectAction=null;press('cancel');assert.equal(journey.view().active,null);assert.equal(context.location.hash,'');assert(!ui.isOpen());assert.equal(journey.view().stamps.length,0);
+ids.travel.onclick();id=journey.view().active.id;assert.notEqual(id,cancelled);oldCancel.onclick();assert.equal(journey.view().active.id,id);
 const oldDeparture=button('departure');oldDeparture.onclick();oldDeparture.onclick();assert.equal(journey.view().active.stage,'departure-cleared');assert.equal(journey.view().stamps.length,0,'unknown old origin never creates an exit');
 press('board');step(20);const progress=flight.view().progress;assert(progress>0&&progress<1);assert.equal(flight.view().journey.id,id);
 ui.close();assert(!ids['globe-ui'].hidden);step(20);assert.equal(flight.view().progress,progress);ui.open();assert(ids['globe-ui'].hidden);step();assert(flight.view().progress>progress);assert.equal(journey.view().active.id,id);
-rejectAction='land';step(100);assert.equal(journey.view().active.stage,'flying');assert.equal(rejectedWrites,2,'automatic finish attempts once, not every frame');assert.equal(flight.view().progress,1);
+rejectAction='land';step(100);assert.equal(journey.view().active.stage,'flying');assert.equal(rejectedWrites,3,'automatic finish attempts once, not every frame');assert.equal(flight.view().progress,1);
 const oldSkip=button('land');rejectAction=null;oldSkip.onclick();oldSkip.onclick();assert.equal(journey.view().active.stage,'entry-pending');
 rejectAction='entry';press('entry');assert.equal(journey.view().active.stage,'entry-pending');assert.equal(journey.view().stamps.length,0);assert(main.namespace.save());
 rejectAction=null;press('entry');assert.equal(journey.view().active.stage,'entry-cleared');assert.equal(journey.view().stamps.length,1);assert.equal(journey.view().stamps[0].kind,'entry');assert.equal(journey.view().currentRegion,null);assert(!r.saved.visited.includes('japan'));

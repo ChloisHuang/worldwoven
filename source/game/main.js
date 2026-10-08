@@ -584,10 +584,11 @@ function saveTravelJourney(next,meta){
  try{
   worldSnapshotWriter?.();
   const visited=meta.action==='arrive'?[...new Set([...saved.visited,meta.journey.to])]:saved.visited;
-  const candidate={...saved,travelJourney:next,visited,simulationClock:simulationClock.snapshot()};
+  const worldContinuity=meta.action==='cancel'&&saved.worldContinuity?{...saved.worldContinuity,activeRegion:null}:saved.worldContinuity;
+  const candidate={...saved,travelJourney:next,visited,worldContinuity,simulationClock:simulationClock.snapshot()};
   const result=gameStorage.setItem('worlds-days-v1',JSON.stringify(candidate));
   if(result===false||result?.then){if(result?.then)Promise.resolve(result).catch(()=>{});saved.worldContinuity=previousWorld;saved.visited=previousVisited;return false;}
-  saved.travelJourney=next;saved.visited=visited;return true;
+  saved.travelJourney=next;saved.visited=visited;saved.worldContinuity=worldContinuity;return true;
  }catch{saved.worldContinuity=previousWorld;saved.visited=previousVisited;return false;}
 }
 function refreshTravelButton(){
@@ -637,7 +638,7 @@ if(TRAVEL_JOURNEYS_ENABLED){
  travelJourney=createTravelJourney({saved:saved.travelJourney,initialRegion:trustedRegion,getClock:()=>simulationClock.state(),saveState:saveTravelJourney});
  travelFlight=createTravelFlight({globe});
  travelJourneyUI=createTravelJourneyUI({getView:()=>travelJourney.view(),onAction:performTravelAction,
-  onCancel:id=>{const result=travelJourney.cancel(id);if(result.ok){travelJourneyUI.close('cancelled');travelFlight.clear();refreshTravelButton();}return result;},
+  onCancel:id=>{const result=travelJourney.cancel(id);if(result.ok){history.replaceState(null,'',location.pathname+location.search);travelJourneyUI.close('cancelled');travelFlight.clear();refreshTravelButton();}return result;},
   onPassport:()=>{travelResumeAfterPassport=true;travelPassport.open();},
   onOpen:()=>{travelResumeAfterPassport=false;travelPassport.close();currencyWallet?.close();careerHandbook.close();studyMenu.close();resetTransientInput();if(mode==='globe')$('globe-ui').hidden=true;},
   onClose:()=>{travelFlight.pause();if(mode==='globe')$('globe-ui').hidden=false;refreshTravelButton();canvas.focus({preventScroll:true});}});
