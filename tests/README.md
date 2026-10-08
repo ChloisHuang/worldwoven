@@ -60,3 +60,7 @@ npm run test:door-geometry -- --tiny
 - `development/` 是实验/预览工具，`scripts/build.mjs`、`serve.mjs`、`guard-process-tree.py` 是构建、服务和资源管理，不纳入日常自动回归。
 
 新增有实际回归价值的脚本，只在 manifest 对应模块登记。手部共享测试归 characters；若仅某一职业手持物交接，则加入该职业定向接线测试并用 `--only`，不因此扩大全量门槛。`npm run test:check` 会指出未登记的新根目录脚本。
+
+### 官品俸例定向集成
+
+`china-official-grade-main.cjs` 默认仅跑轻量 `prepare`：真实main启动拒绝薪政写入，再由实际普通save保留启用意图。冷重载/中国原场景单独执行 `OFFICIAL_GRADE_PHASE=restore node --experimental-vm-modules tests/china-official-grade-main.cjs`，读取前一步生成的忽略目录 checkpoint；两步均用共享锁和既有进程树guard串行运行。restore输入明确预设较晚模拟日，验证存档兼容，不代表自然离线/多日游玩；不重跑朝会或用餐长链。`china-official-grade-life.mjs` 用真实六人原控制器逐一归档8秒验证新旧合同结薪，路径为轻量替身，不能当世界路线证据。

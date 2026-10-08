@@ -37,7 +37,7 @@ import {STUDY_SOURCES, studyLesson, savedStudyLesson, defaultStudyLesson} from '
 import {STUDY_XP, skillXPRequired, addSkillXP} from './skill-progress.js';
 // Finite vacancies and one rotating player seat alongside each real incumbent.
 export const COURT_CLERK_ROLE = Object.freeze({
-  id: 'cn-court-clerk', name: '礼务录事', rank: 9, rankId: CLERK_ENTRY_RANK, gradeLabel: '从九品', slotId: 'cn-court-clerk-1', country: 'china', currency: 'copper', employer: '当值礼仪官', workplace: '承务官署',
+  id: 'cn-court-clerk', name: '礼务录事', rank: 9, rankId: CLERK_ENTRY_RANK, gradeLabel: '从九品', slotId: 'cn-court-clerk-1', country: 'china', currency: 'copper', employer: '当值礼仪主管', workplace: '承务官署',
   wage: 18, minimumAgeYears: 18,
   skillRequirements: Object.freeze({ritual: 2, writing: 2}),
   dutyWindow: Object.freeze({startHour: 6, endHour: 11.5}),
@@ -705,7 +705,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const chance=Math.min(.94,.70+Math.min(.20,Math.max(0,summary.qualifiedDays-3)*.04)+
       Math.min(.04,Math.max(0,current.skills.ritual-2+current.skills.writing-2)*.01)-Math.min(.30,Math.max(0,summary.qualifiedDays-summary.balance)*.05));
     const review={chance:Math.max(.4,Math.round(chance*10000)/10000),roll:receipt.roll,passed:false};review.passed=review.roll<review.chance;
-    const appointment=review.passed?{id:`appointment:${receipt.id}`,text:'承务官署升阶文书：核验三日以上从九品实任朝班、归档及考语，当值礼仪官当面考核通过。礼务录事升正九品；持文宣读后生效，下次新班基础日薪二十二文，既有薪据不改。'}:null;
+    const appointment=review.passed?{id:`appointment:${receipt.id}`,text:'承务官署升阶文书：核验三日以上从九品实任朝班、归档及考语，当值礼仪主管当面考核通过。礼务录事升正九品；持文宣读后生效，下次新班基础日薪二十二文，既有薪据不改。'}:null;
     const next={...receipt,review,reviewedAt:timestamp,appointment,status:review.passed?'pending':'rejected',stage:review.passed?'document-ready':'decided',code:review.passed?'document-ready':'promotion-review-rejected',decidedAt:review.passed?null:timestamp};
     const saved=savePromotion(next);return saved.ok?{ok:review.passed,code:next.code,reasons:review.passed?[]:[next.code],applicationId:receipt.id}:saved;
   }

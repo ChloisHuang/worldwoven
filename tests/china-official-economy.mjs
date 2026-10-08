@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createChinaOfficialEconomy, CHINA_OFFICIAL_IDS, CHINA_OFFICIAL_TAVERN_ID} from '../source/game/china-official-economy.js';
-import {CHINA_COURT_OFFICIAL_DAILY_WAGES, getChinaRecordsCareerRank} from '../source/game/china-official-ranks.js';
+import {CHINA_OFFICIAL_DAILY_WAGE, CHINA_OFFICIAL_GRADE_PAY_POLICY_ID, getChinaRecordsCareerRank} from '../source/game/china-official-ranks.js';
 const clone = value => JSON.parse(JSON.stringify(value));
 const [actorId, otherId] = CHINA_OFFICIAL_IDS;
 const initialTreasury = {amount: 150, sourceId: 'test-one-time-world-budget'};
@@ -369,7 +369,7 @@ for (const amount of [0, 6, 24, 30]) {
 const mainSource = fs.readFileSync(new URL('../source/game/main.js', import.meta.url), 'utf8');
 const mainStart = mainSource.indexOf('const officialPayPolicy='), mainEnd = mainSource.indexOf('const chinaSalonEconomy=', mainStart);
 assert(mainStart >= 0 && mainEnd > mainStart);
-const mountMain = new Function('saved', 'createChinaOfficialEconomy', 'CHINA_OFFICIAL_IDS', 'simulationClock', 'worldSnapshotWriter', 'gameStorage', 'save',
+const mountMain = new Function('saved', 'createChinaOfficialEconomy', 'CHINA_OFFICIAL_IDS', 'CHINA_OFFICIAL_GRADE_PAY_POLICY_ID', 'simulationClock', 'worldSnapshotWriter', 'gameStorage', 'save',
   mainSource.slice(mainStart, mainEnd) + '\nreturn chinaOfficialEconomy;');
 const worldState = {chinaOfficialEconomy: legacyState({amount: 0, sourceId: 'world-fiscal-initialization-v1'}),
   copperLedger: {version: 3, cash: 8, bank: 101, interest: {day: 5, minimum: {copper: 91}}},
@@ -381,23 +381,27 @@ const storage = {setItem: (key, json) => {
   if (rejectMainWrite) return false;
   mainWrites++; mainDurable = JSON.parse(json); return true;
 }};
-const mount = () => mountMain(worldState, createChinaOfficialEconomy, CHINA_OFFICIAL_IDS, {state: () => ({day: 5})}, null, storage, () => {
+const mount = () => mountMain(worldState, createChinaOfficialEconomy, CHINA_OFFICIAL_IDS, CHINA_OFFICIAL_GRADE_PAY_POLICY_ID, {state: () => ({day: 5})}, null, storage, () => {
   throw Error('An existing old save must not be replaced during mount');
 });
 let wired = mount();
 assert.equal(wired.loadError, null);
 assert.equal(mainWrites, 0);
-code(wired.completeDuty(duty(actorId, 5)), 'save-failed');
+code(wired.completeDuty(duty(actorId, 5)), 'pay-policy-pending');
 assert.equal(worldState.chinaOfficialEconomy.version, 1, 'Failed migration+pay leaves the durable old save intact');
 rejectMainWrite = false;
+assert(wired.activateGradePayPolicy().ok);
+assert.equal(mainWrites, 1, 'Activation saves only policy metadata before any wage');
+assert.deepEqual(wired.gradePayPolicy(), {version: 1, policyId: 'cn-official-grade-v1', effectiveDay: 6});
 assert(wired.completeDuty(duty(actorId, 5)).ok);
-assert.equal(mainWrites, 1);
+assert.equal(mainWrites, 2);
 assert.equal(mainDurable.chinaOfficialEconomy.version, 2);
 const nextWorld = clone(mainDurable); delete nextWorld.chinaOfficialEconomy;
-assert.deepEqual(nextWorld, untouched, 'The production save callback preserves all unrelated funds and interest state');
+assert.deepEqual(nextWorld, {...untouched, chinaOfficialPayActivation: {version: 1, policyId: CHINA_OFFICIAL_GRADE_PAY_POLICY_ID, effectiveDay: 6}},
+  'The production save callback preserves unrelated funds and interest, adding only the explicit activation intent');
 wired = mount();
 assert(wired.completeDuty(duty(actorId, 5)).replayed);
-assert.equal(mainWrites, 1, 'Reload/country remount does not pay again');
+assert.equal(mainWrites, 2, 'Reload/country remount neither reactivates policy nor pays again');
 const wiredMeal = {actorId, orderId: 'main-existing-meal', amount: 6};
 assert(wired.prepareMealPayment(wiredMeal).commit({chinaServiceWorld: {till: 23}}).ok);
 assert.deepEqual(worldState.copperLedger, untouched.copperLedger);
@@ -405,6 +409,45 @@ assert.equal(worldState.japanOperations.till, 9);
 assert(wired.prepareMealRefund(wiredMeal).commit({chinaServiceWorld: {till: 17}}).ok);
 assert.deepEqual(wired.account(actorId), {bank: 24, cash: 0});
 assert.deepEqual(worldState.copperLedger, untouched.copperLedger);
+
+// Actual main boot intent survives a later ordinary world/clock save after
+// activation initially failed; reload cannot postpone tomorrow's promised rate.
+let delayedWorld = {chinaOfficialEconomy: legacyState({amount: 0, sourceId: 'world-fiscal-initialization-v1'}),
+  simulationClock: {day: 5, seconds: 100}, copperLedger: {cash: 9, bank: 77}};
+let rejectDelayed = true, delayedDurable, delayedWrites = 0;
+const delayedStorage = {setItem(key, json) {
+  assert.equal(key, 'worlds-days-v1'); if (rejectDelayed) return false;
+  delayedDurable = JSON.parse(json); delayedWrites++; return true;
+}};
+const delayedMount = () => mountMain(delayedWorld, createChinaOfficialEconomy, CHINA_OFFICIAL_IDS, CHINA_OFFICIAL_GRADE_PAY_POLICY_ID,
+  {state: () => delayedWorld.simulationClock}, null, delayedStorage, () => {throw Error('Boot cannot replace a failed pending activation');});
+let delayedLedger = delayedMount(); assert.equal(delayedLedger.gradePayPolicy(), null); assert.equal(delayedWrites, 0);
+assert.deepEqual(delayedWorld.chinaOfficialPayActivation, {version: 1, policyId: CHINA_OFFICIAL_GRADE_PAY_POLICY_ID, effectiveDay: 6});
+code(delayedLedger.completeDuty(duty(actorId, 5)), 'pay-policy-pending');
+rejectDelayed = false; delayedWorld.simulationClock = {day: 8, seconds: 400};
+assert(delayedStorage.setItem('worlds-days-v1', JSON.stringify(delayedWorld)), 'Ordinary whole-world save succeeds without a salary transaction');
+assert.equal(delayedWrites, 1); assert.equal(delayedDurable.chinaOfficialEconomy.transactions.length, 0);
+delayedWorld = clone(delayedDurable); delayedLedger = delayedMount();
+assert.equal(delayedWrites, 2); assert.equal(delayedLedger.gradePayPolicy().effectiveDay, 6);
+assert.equal(delayedLedger.state().governmentPaid, 0); assert.equal(delayedLedger.history().length, 0);
+assert.deepEqual(delayedWorld.copperLedger, {cash: 9, bank: 77});
+assert.equal(delayedLedger.completeDuty(duty(actorId, 5)).amount, 24);
+assert.equal(delayedLedger.completeDuty(duty(actorId, 6)).amount, 168);
+
+// Explicit malformed pending plans must not silently acquire a later cutoff.
+for (const invalidIntent of [null, false, 0, '']) {
+  const old = legacyState({amount: 150, sourceId: 'old-plan-money'}); appendLegacyDuty(old);
+  const world = {chinaOfficialEconomy: old, chinaOfficialPayActivation: invalidIntent}; let writes = 0;
+  const store = {setItem() {writes++; return true;}};
+  const ledger = mountMain(world, createChinaOfficialEconomy, CHINA_OFFICIAL_IDS, CHINA_OFFICIAL_GRADE_PAY_POLICY_ID,
+    {state: () => ({day: 8})}, null, store, () => {throw Error('Do not replace an invalid activation intent');});
+  assert.equal(ledger.loadError, null); assert.equal(writes, 0);
+  assert.equal(world.chinaOfficialPayActivation, invalidIntent);
+  assert.equal(ledger.gradePayPolicy(), null); code(ledger.activateGradePayPolicy(), 'invalid-pay-policy');
+  assert.equal(ledger.account(actorId).bank, 24);
+  assert(ledger.prepareMealPayment({actorId, orderId: 'invalid-plan-meal', amount: 6}).commit().ok);
+  assert.equal(ledger.account(actorId).bank, 18, 'Earned money stays spendable while policy intent is rejected');
+}
 
 // Reject forged funding metadata and legacy-shaped bank-funded transactions.
 const splitPaymentIndex = upgraded.transactions.findIndex(transaction => transaction.orderId === 'combined-after-upgrade');
@@ -487,7 +530,7 @@ const r96Save = legacyState(worldBudget);
 for (const id of CHINA_OFFICIAL_IDS) appendLegacyDuty(r96Save, id);
 const r96 = createChinaOfficialEconomy({...policyOptions, saved: r96Save});
 for (const id of CHINA_OFFICIAL_IDS) {
-  assert.equal(r96.dailyWageFor(id), CHINA_COURT_OFFICIAL_DAILY_WAGES[id]);
+  assert.equal(r96.dailyWageFor(id), CHINA_OFFICIAL_DAILY_WAGE);
   assert.equal(r96.completeDuty(duty(id)).amount, 24);
 }
 const oldReceipts = r96.snapshot();

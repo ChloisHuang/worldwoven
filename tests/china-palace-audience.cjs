@@ -14,9 +14,9 @@ const linker=(s,f)=>mod(s==='three'?path.join(root,'vendor/three/build/three.mod
  const offices=cache.get(path.join(root,'game/china-official-bureau.js')).namespace.CHINA_OFFICIAL_BUREAU.offices;
  for(const [i,station] of stations.entries()){
   assert.deepEqual(station.position,offices[i]);assert(station.npcName.includes(station.gradeLabel));
-  assert.equal(station.currentWage,24);assert.equal(station.automaticPromotion,false);
+  assert.equal(station.currentWage,[168,120,88,64,168,38][i]);assert.equal(station.automaticPromotion,false);
  }
- assert.equal(Array.from(stations).sort((a,b)=>a.gradeOrder-b.gradeOrder)[0].id,'cn-official-justice');
+ assert.deepEqual(Array.from(stations).sort((a,b)=>a.gradeOrder-b.gradeOrder).slice(0,2).map(n=>n.id),['cn-minister-works','cn-official-justice']);
  assert.equal(stations[0].id,'cn-minister-works','handbook rank sorting leaves physical order intact');
  const socialModule=mod(path.join(root,'game/npc-social.js'));await socialModule.link(linker);await socialModule.evaluate();
  const {createAudienceSchedule}=audience.namespace,a=createAudienceSchedule();assert(a.due(10,false,120));assert(!a.due(10,true));assert(!a.due(22));a.call();assert(!a.due(10));
