@@ -14,7 +14,7 @@ const errors={
  'handoff-pending':'手头工作尚未交清，岗位保持原安排，请稍后再办理。','handoff-unsafe':'原事务或岗位尚未交清，请等本人完成交接。',
  'dismissal-unsafe':'手头工作尚未交清，岗位保持原安排，请稍后再办理。','recruitment-handoff-unsafe':'请等应聘者回到面谈处，并当面完成交接。',
  'player-tenure-owned':'你已正式任职这个岗位，请先按任职流程离任。','player-role-protected':'你已正式任职这个岗位，请先按任职流程离任。',
- 'trial-incomplete':'两张餐桌尚未全部擦完，完成后才能批准聘用。','qualification-required':'尚无合格记录，请先安排实际试工。',
+ 'trial-incomplete':'两张餐桌尚未全部擦完，完成后才能批准聘用。','qualification-required':'任职资格尚未核对，请查看当前申请安排。',
  'application-not-open':'这份申请已有答复。','slot-occupied':'岗位已有人员，请先安全交接腾空。','hiring-reservation-conflict':'这个岗位已有待交接人选。',
  'management-busy':'账簿正在办理另一笔，请稍后重试。','tavern-business-busy':'账簿正在办理另一笔，请稍后重试。',
  'purchase-operation-conflict':'这笔采购记录已变化，请刷新后重新选择。','stale-stock-price':'食材记录已变化，请重新选择。',
@@ -120,25 +120,29 @@ export function createChinaTavernManagementUI({management,onIntent,onOpen=()=>{}
     if(next.tenureHolderId==='player'||next.holderId==='player')return {ok:false,code:'player-tenure-owned'};
     return management.dismiss(role.roleId);
    },'已办妥离岗，岗位空出；本人仍在原世界生活。'),!owned(s)));card.append(controls);}
-   if(!role.holderId)card.append(make('p',role.roleId==='cn-tavern-steward'?'有意愿且符合条件的来客可前来应聘。':'等待合格人选；空缺期间该岗位业务暂停。','cn-management-note'));
+   if(!role.holderId)card.append(make('p',`${people[role.originalHolderId]||'原任伙计'}若愿意回来，可在手头事务结束后申请复聘；仍须当面答复并安全交接。${role.roleId==='cn-tavern-steward'?'其他符合条件的来客也可申请试工。':''}`,'cn-management-note'));
    body.append(card);
   }
   body.append(make('p','按06:00–18:00实际在岗时数折算；完整覆盖12小时另加1文，试工时间不计入。柜台接待24文为本次经营日薪。','cn-management-note'),make('h3','应聘与试工','cn-management-section-title'));
   const applications=[...s.applications].sort((a,b)=>Number(b.id===selectedApplication)-Number(a.id===selectedApplication)),intents=management.intents();
-  if(!applications.length)body.append(make('p','暂无应聘。服务助理空缺时，有意愿的来客会先办完手头事务，再来面谈。','cn-management-note'));
+  if(!applications.length)body.append(make('p','暂无应聘。空岗可等原合格伙计自愿申请回来；服务助理也可接受来客试工。申请人会先办完手头事务，再来面谈。','cn-management-note'));
   for(const application of applications){
    const c=s.recruitment.candidates?.find(c=>c.applicationId===application.id),card=make('section',null,'cn-management-card');card.setAttribute('data-panel-key',application.id);
+   const qualification=s.qualificationByApplication?.[application.id]||application.decision?.qualification;
+   const rehireQualified=qualification?.kind==='existing-incumbency'&&qualification.actorId===application.actor.actorId&&qualification.bodyId===application.actor.bodyId&&qualification.roleId===application.roleId;
+   const trialOffered=intents.some(i=>i.applicationId===application.id&&i.kind==='trial');
    const status=application.status==='pending-safe-handoff'?'已批准 · 等安全交接':application.status==='assigned'?'已正式到岗':application.status==='rejected'?'已婉拒':application.status==='cancelled'?'申请已结束':phases[c?.phase]||'等候面谈';
    card.append(make('h3',`${application.actor.name} · ${roleNames[application.roleId]||'应聘'}`),make('p',status));
    const steps=application.trial?.work?.steps?.length??c?.steps?.length??0;
-   if(application.trial?.request)card.append(make('p',`擦桌试工 ${steps}/2 桌 · 每桌实际擦拭5秒 · 酒楼支付12文`));
-   else card.append(make('p','先实际擦拭两张餐桌，每桌5秒；酒楼支付12文试工报酬。','cn-management-note'));
+   if(rehireQualified)card.append(make('p','原任职资格已核对，无需另做试工；本人愿意回来后，仍须当面答复并安全交接。','cn-management-note'));
+   else if(application.trial?.request)card.append(make('p',`擦桌试工 ${steps}/2 桌 · 每桌实际擦拭5秒 · 酒楼支付12文`));
+   else card.append(make('p',trialOffered?'先实际擦拭两张餐桌，每桌5秒；酒楼支付12文试工报酬。':'任职资格待核对，请等本人到面谈处查看申请。','cn-management-note'));
    if(application.trial?.work)card.append(make('p',application.trial.payment?'试工合格 · 12文已支付':'试工合格 · 12文尚待支付',application.trial.payment?'cn-management-note':'cn-management-error'));
    if(application.status==='pending-safe-handoff')card.append(make('p','批准后仍须当面交接；原客单、餐具和岗位工作安全交清才会到岗。','cn-management-note'));
    const controls=make('div',null,'cn-management-controls'),ownApplication=owned(s)&&application.owner?.ownership===s.owner.ownership;
    for(const kind of ['inspect','trial','approve','pay','reject']){
     const intent=intents.find(i=>i.applicationId===application.id&&i.kind===kind);if(!intent)continue;
-    const label={inspect:'前往当面交谈',trial:'请试做两桌 · 12文',approve:'批准 · 等交接',pay:'补付试工 · 12文',reject:'婉拒申请'}[kind];
+    const label={inspect:'前往当面交谈',trial:'请试做两桌 · 12文',approve:rehireQualified?`同意复聘${roleNames[application.roleId]||intent.roleName||'原岗位'} · 等交接`:'批准 · 等交接',pay:'补付试工 · 12文',reject:'婉拒申请'}[kind];
     if(kind==='inspect'&&typeof onIntent!=='function')continue;
     const control=button(label,()=>kind==='inspect'?approach(s,structuredClone(intent)):frozenIntent(s,structuredClone(intent),kind),!ownApplication||kind==='trial'&&(!Number.isFinite(s.property.availableBalance)||s.property.availableBalance<12),kind==='approve'?'ww-airy-action':'');controls.append(control);
    }
@@ -153,7 +157,7 @@ export function createChinaTavernManagementUI({management,onIntent,onOpen=()=>{}
   // Do not redraw every earned fraction of a second; only displayed accounting,
   // application phases and usable intents invalidate the panel and its controls.
   const key=JSON.stringify([context,s.loadError,tab,selectedApplication,feedback,feedbackError,s.purchaseOperationPrefix,s.property.balance,s.property.bank,s.property.availableBalance,s.property.revenue,s.property.earnedLabor,s.property.operatingProfit,s.property.materialConsumedCost,
-   s.business.wagesPayable,s.business.trialReserved,s.business.trialEarned,s.business.trialPaid,s.business.paidWages,s.business.procurementCash,s.stock,s.roles,s.applications,s.recruitment.candidates?.map(c=>[c.applicationId,c.phase,c.steps?.length]),management.intents()]);
+   s.business.wagesPayable,s.business.trialReserved,s.business.trialEarned,s.business.trialPaid,s.business.paidWages,s.business.procurementCash,s.stock,s.roles,s.applications,s.qualificationByApplication,s.recruitment.candidates?.map(c=>[c.applicationId,c.phase,c.steps?.length]),management.intents()]);
   if(!force&&key===signature)return;signature=key;generation++;
   const restoreView=preserveAiryPanelView(dialog,doc);dialog.replaceChildren();
   const x=button('×',hide,false,'cn-management-close');x.setAttribute('aria-label','收起经营账');

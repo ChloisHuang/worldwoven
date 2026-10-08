@@ -100,4 +100,27 @@ const checks=[];
  assert(service.executeIntent(service.intent('property')));const application=byText(dialog,'向业主申请购买'),sold=f.saved;assert(application.disabled,'non-owner still waits for host despite live manager');application.onclick();assert.deepEqual(f.saved,sold);assert(dialog.textContent.includes('许安回案'));assert(!byText(dialog,'注资 20 文'));
  service.dispose();f.ui.dispose();checks.push('actual service property wiring: enabled owner alone may invest at register without host; dormant/non-owner/away remain blocked');
 }
+{
+ const f=fixture(),s=f.manager.view(),definitions=Object.values(ROLES),names=['许安','沈禾','陆青'],labels=['柜台接待','厨师','服务助理'];
+ s.roles=s.roles.map(r=>({...r,holderId:null}));s.qualificationByApplication={};
+ s.applications=definitions.map((role,index)=>{
+  const id=`rehire:${role.roleId}`,actor={actorId:role.originalHolderId,bodyId:role.originalHolderId,name:names[index]};
+  s.qualificationByApplication[id]={kind:'existing-incumbency',sourceId:'chinaTavernManagement',sourceRevision:index+1,receiptId:`original:${role.roleId}`,actorId:actor.actorId,bodyId:actor.bodyId,roleId:role.roleId};
+  return {id,actor,owner:copy(s.owner),roleId:role.roleId,status:'submitted',trial:{request:null,work:null,payment:null},decision:null};
+ });
+ s.recruitment.candidates=s.applications.map(a=>({applicationId:a.id,phase:'meeting',steps:[]}));
+ let intents=s.applications.map(a=>({id:`${a.id}:approve`,provider:'cn-tavern-recruitment',kind:'approve',qualificationKind:'existing-incumbency',roleId:a.roleId,applicationId:a.id,intentKey:`${a.id}:1`})),reviews=[];
+ const manager={view:()=>copy(s),intents:()=>copy(intents),reviewApplication(id,accept){reviews.push({id,accept});const a=s.applications.find(a=>a.id===id);a.status='pending-safe-handoff';a.decision={qualification:copy(s.qualificationByApplication[id])};intents=intents.filter(i=>i.applicationId!==id);return true;},executeIntent(){throw Error('rehire must not request trial or payment');}};
+ const document=doc(),ui=createChinaTavernManagementUI({management:manager,document}),dialog=document.body.children.at(-1),card=id=>walk(dialog).find(e=>e.getAttribute('data-panel-key')===id);
+ ui.show(s.applications[0].id);
+ for(const [index,a]of s.applications.entries()){
+  assert(dialog.textContent.includes(`${names[index]}若愿意回来`));assert(card(a.id).textContent.includes('原任职资格已核对，无需另做试工'));
+  assert(!card(a.id).textContent.includes('12文'));assert(!card(a.id).textContent.includes('5秒'));assert(byText(card(a.id),`同意复聘${labels[index]} · 等交接`));
+ }
+ const unverified=s.applications[1],stale=byText(card(unverified.id),'同意复聘厨师 · 等交接');delete s.qualificationByApplication[unverified.id];intents=intents.filter(i=>i.applicationId!==unverified.id);ui.update();stale.onclick();
+ assert.equal(reviews.length,0);assert(card(unverified.id).textContent.includes('任职资格待核对'));assert(!card(unverified.id).textContent.includes('原任职资格已核对'));assert(!byText(card(unverified.id),'同意复聘厨师 · 等交接'));
+ const a=s.applications[0];click(byText(card(a.id),'同意复聘柜台接待 · 等交接'));assert.deepEqual(reviews,[{id:a.id,accept:true}]);assert(card(a.id).textContent.includes('已批准 · 等安全交接'));assert(!card(a.id).textContent.includes('已正式到岗'));
+ delete s.qualificationByApplication[a.id];ui.update();assert(card(a.id).textContent.includes('原任职资格已核对，无需另做试工'),'approved historical qualification remains explanatory without new grant');
+ assert.equal(s.business.trialReserved,0);assert.equal(s.business.trialPaid,0);ui.dispose();f.ui.dispose();checks.push('all three original-role rehire cards read verified qualification, skip trial/payment, invalidate lost proof and retain pending safe handoff');
+}
 console.log('PASS management UI:',checks.join('; '));

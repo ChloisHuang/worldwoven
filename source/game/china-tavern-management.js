@@ -70,6 +70,20 @@ export function createChinaTavernManagement(options={}){
   const a=historicalApplication(s.applicationId),e=root('chinaTavernHiring')?.events?.find(e=>e.applicationId===s.applicationId&&e.kind==='assigned');
   return a?.status==='assigned'&&e?.sequence===s.hiringRevision&&same(s.assignment,a.handoff.assignment)&&same(s.salary,a.decision.salary)&&s.actor.actorId===a.actor.actorId&&s.actor.bodyId===a.actor.bodyId&&s.actor.bodyRevision===a.actor.bodyRevision;
  }catch{return false;}}
+ // This receipt was captured while this body really held its original role.
+ // History checks deliberately do not depend on today's owner or assignment.
+ const qualificationOf=s=>({kind:'existing-incumbency',sourceId:NS,sourceRevision:s.sourceRevision,receiptId:s.id+':activation',actorId:s.actor.actorId,bodyId:s.actor.bodyId,roleId:s.assignment.roleId});
+ function verifyExistingQualification(proof,application=null){try{
+  if(loadError||business?.loadError||!proof||proof.sourceId!==NS)return false;
+  const s=current.contracts.find(s=>s.applicationId===null&&same(qualificationOf(s),proof));
+  if(!s||roleDefinition(proof.roleId)?.originalHolderId!==proof.actorId||!root('chinaTavernBusiness')?.contracts?.some(c=>same(c,contractOf(s))))return false;
+  return !application||application.roleId===proof.roleId&&application.actor?.actorId===proof.actorId&&application.actor.bodyId===proof.bodyId&&application.actor.bodyRevision===s.actor.bodyRevision;
+ }catch{return false;}}
+ function readExistingQualification(actorId,roleId){const d=roleDefinition(roleId),n=options.getActor?.(actorId);if(!d||d.originalHolderId!==actorId||!n)return null;
+  const s=current.contracts.find(s=>s.applicationId===null&&s.assignment.roleId===roleId&&s.actor.actorId===actorId&&s.actor.bodyId===body(n)&&s.actor.bodyRevision===bodyRevision(n));
+  const proof=s&&qualificationOf(s);return proof&&verifyExistingQualification(proof)?copy(proof):null;
+ }
+ const verifyQualification=(p,a)=>p?.sourceId===NS?verifyExistingQualification(p,a):typeof options.verifyQualification==='function'&&call(options.verifyQualification,p,a)===true;
  function verifyPurchase(p){const a=source().purchases.find(a=>a.operationId===p?.id);return !!a&&same(a.proof,p);}
  function verifyStockReceipt(r){try{
   if(stockCandidate&&same(stockCandidate,r))return verifyPurchase(r.proof)&&same(source().purchases.find(a=>a.operationId===r.proof.id)?.owner,r.owner);
@@ -86,7 +100,7 @@ export function createChinaTavernManagement(options={}){
  };
  function verifyPayment(p,a){if(business)return business.verifyTrialReceipt('payment',p,a);return verifySavedTavernBusinessPayment({...businessSources,saved:roots.chinaTavernBusiness,property:property.snapshot(),proof:p,application:a});}
  const sceneCall=(name,...args)=>call(scene()?.[name]?.bind(scene()),...args);
- const runtimeOptions={saved:roots.chinaTavernRecruitment,getClock,getHiring:()=>hiring,readOwner,readSlot,readCandidate,readActor:id=>options.getActor?.(id),
+ const runtimeOptions={saved:roots.chinaTavernRecruitment,getClock,getHiring:()=>hiring,readOwner,readSlot,readCandidate,readExistingQualification,readActor:id=>options.getActor?.(id),
   readActorState:(id,c)=>{const s=sceneCall('recruitmentActorState',id,c);return options.readActorState?options.readActorState(id,c,s):s;},
   readPlayerState:()=>call(options.readPlayerState||options.getPlayerState),canSeeOwner:(id,c)=>call(options.canSeeOwner,id,c),
   releaseCustomer:(...a)=>sceneCall('releaseRecruitmentCustomer',...a),returnCustomer:(...a)=>sceneCall('returnRecruitmentCustomer',...a),
@@ -103,7 +117,7 @@ export function createChinaTavernManagement(options={}){
  };
  recruitment=createChinaTavernRecruitment(runtimeOptions);
  hiring=createChinaTavernHiring({saved:roots.chinaTavernHiring,readOwner,readSlot,readCandidate,
-  saveState:s=>save({chinaTavernHiring:s}),verifyQualification:(p,a)=>call(options.verifyQualification,p,a)===true,
+  saveState:s=>save({chinaTavernHiring:s}),verifyQualification,
   verifyTrialReceipt:(kind,p,a)=>kind==='payment'?verifyPayment(p,a):trialWork(p,a),readSafeHandoff:a=>call(options.readSafeHandoff,a)});
  business=createChinaTavernBusiness({saved:roots.chinaTavernBusiness,getProperty:()=>property,getClock,...businessSources,saveState:(_s,_r,patch)=>save(patch)});
  sourceLinks.business=business;sourceLinks.getBusinessAccount=()=>business;
@@ -150,13 +164,13 @@ export function createChinaTavernManagement(options={}){
   require(call(options.verifySavedStockReceipt||sourceLinks.verifySavedStockReceipt,nextWorld,copy(r))===true&&call(options.verifyOrderSource||sourceLinks.verifyOrderSource||scene()?.verifyStockOrderSource?.bind(scene()),r.kind,copy(r.proof))===true,'unverified-stock-world-source');
   return save(patch);
  }catch(e){lastError=e.message;return false;}}
- function synchronizeContracts(){for(const d of definitions){const r=readRole(d.roleId),n=r?.actor||options.getActor?.(r?.holderId);if(!r||r.holderId==='player'||r.alive!==true||r.available!==true||!n||body(n)!==body(options.getActor?.(r.holderId)))continue;
+ function synchronizeContracts(onlyRoleId=null){let status={ok:true};for(const d of definitions.filter(d=>onlyRoleId===null||d.roleId===onlyRoleId)){const r=readRole(d.roleId),n=r?.actor||options.getActor?.(r?.holderId);if(!r||r.holderId==='player'||r.alive!==true||r.available!==true||!n||body(n)!==body(options.getActor?.(r.holderId)))continue;
   const a=hiring.applications().find(a=>a.status==='assigned'&&same(a.handoff.assignment,assignment(r))),existing=current.contracts.find(c=>same(c.assignment,assignment(r))&&c.actor.bodyId===body(n));
   if(existing||!a&&r.holderId!==d.originalHolderId)continue;
   const now=getClock();if(!Number.isFinite(now?.seconds)||now.seconds<0)continue;
   const next=copy(current),e=a&&hiring.snapshot().events.find(e=>e.kind==='assigned'&&e.applicationId===a.id),s={id:a?'tavern-hiring-contract:'+a.id:`tavern-incumbent-contract:${d.roleId}:${r.revision}:${body(n)}`,sourceRevision:++next.revision,activatedSeconds:now.seconds,actor:{actorId:r.holderId,bodyId:body(n),bodyRevision:bodyRevision(n)},assignment:assignment(r),applicationId:a?.id||null,hiringRevision:e?.sequence??null,salary:a?copy(a.decision.salary):tavernSalaryTerms(d.roleId)};next.contracts.push(s);validateManagement(next);pendingSource=next;
-  try{const result=business.acceptContract(contractOf(s));if(result.ok)current=next;else lastError=result.code;}finally{pendingSource=null;}
- }}
+  try{const result=business.acceptContract(contractOf(s));if(result.ok)current=next;else{lastError=result.code;status=result;}}finally{pendingSource=null;}
+ }return status;}
  function coverage(c){const r=readRole(c.roleId),n=options.getActor?.(c.actorId);if(!r||r.holderId!==c.actorId||r.revision!==c.holderRevision||r.alive!==true||r.available!==true||!n||body(n)!==c.bodyId||recruitment.owns(c.actorId))return null;
   const proof=(options.readTavernCoverage||options.readCoverage)?.(copy(c))||scene()?.readTavernCoverage?.(copy(c));if(!proof)return null;return copy(proof);}
  function tryAssign(id){return guarded(()=>{const a=hiring.application(id);if(!a)return fail('unknown-application');const h=hiring.prepareHandoff({applicationId:id,expectedRevision:hiring.snapshot().revision,by:'player'});if(!h.ok)return h;
@@ -167,17 +181,29 @@ export function createChinaTavernManagement(options={}){
    if(commit()!==true)return fail('save-failed');for(const p of all)if(p.committed?.()!==true)return fail('hiring-adoption-failed');return {ok:true,application:hiring.application(id)};
   }finally{for(const p of locked.reverse())p.release?.();}
  });}
- function dismiss(roleId){return guarded(()=>{require(readOwner()?.ownerId==='player','player-owner-required');const checkpoint=business.checkpoint();if(!checkpoint.ok)return checkpoint;business.suspend();const p=call(options.prepareRoleDismissal,roleId);if(!p?.ok||!p.lock?.())return p||fail('dismissal-unsafe');try{if(p.save(b=>save(b.patch))!==true)return fail('save-failed');return p.committed()===true?{ok:true}:fail('dismissal-adoption-failed');}finally{p.release?.();}});}
+ function dismiss(roleId){return guarded(()=>{
+  require(readOwner()?.ownerId==='player','player-owner-required');const active=activateStock();if(!active.ok)return active;
+  const d=roleDefinition(roleId),r=readRole(roleId);require(d&&r,'unknown-hiring-role');
+  if(r.holderId===d.originalHolderId){
+   const synchronized=synchronizeContracts(roleId);if(!synchronized.ok)return synchronized;
+   const n=options.getActor?.(r.holderId),s=current.contracts.find(s=>same(s.assignment,assignment(r))&&s.actor.bodyId===body(n)&&s.actor.bodyRevision===bodyRevision(n));
+   require(s&&root('chinaTavernBusiness')?.contracts?.some(c=>same(c,contractOf(s))),'incumbent-source-unavailable');
+  }
+  const checkpoint=business.checkpoint();if(!checkpoint.ok)return checkpoint;business.suspend();
+  const p=call(options.prepareRoleDismissal,roleId);if(!p?.ok||!p.lock?.())return p||fail('dismissal-unsafe');
+  try{if(p.save(b=>save(b.patch))!==true)return fail('save-failed');return p.committed()===true?{ok:true}:fail('dismissal-adoption-failed');}finally{p.release?.();}
+ });}
+
  function prepareStockTransition(kind,proof){if(error()||disposed||saving)return fail(error()||'management-suspended');const method={reserve:'prepareReserve',consume:'prepareConsume',cancel:'prepareCancel'}[kind];return method?stock[method]({expectedRevision:stock.snapshot().revision,expectedOwner:readOwner(),proof}):fail('invalid-stock-transition');}
  function update(dt){if(disposed||busy||saving||error()||!Number.isFinite(dt)||dt<=0||dt>.25){business.suspend();return false;}const active=guarded(()=>{const r=activateStock();if(!r.ok||r.dormant)return r;synchronizeContracts();return {ok:true};});if(!active.ok)return false;if(active.dormant){business.suspend();return true;}
   recruitment.update(dt);
-  for(const e of recruitment.snapshot().sources.filter(e=>e.kind==='trial-work')){const a=hiring.application(e.receipt.applicationId),r=business.trialReservation(a?.id);if(r)business.recordTrialWork({reservationId:r.id,workProof:e.receipt});}
+  for(const e of recruitment.snapshot().sources.filter(e=>e.kind==='trial-work')){const a=hiring.application(e.receipt.applicationId),r=business.trialReservation(a?.id);if(r&&business.recordTrialWork({reservationId:r.id,workProof:e.receipt}).ok&&!hiring.application(a.id)?.trial.payment)recruitment.settleEarnedTrial(a.id);}
   for(const a of hiring.applications().filter(a=>a.status==='pending-safe-handoff'))tryAssign(a.id);
   const now=getClock();business.observe({seconds:now?.seconds,dt,coverage:business.snapshot().contracts.map(coverage).filter(Boolean)});
   const marker=now?`${now.day}:${now.hour>=18}:${property.snapshot().revision}:${property.businessBudget()?.balance}`:null;if(marker!==lastSettlement){business.checkpoint();business.settleDue();lastSettlement=marker;}return true;
  }
- function view(){const p=property.state();return {owner:readOwner(),roles:definitions.map(d=>({...d,...readSlot(d.roleId)})),applications:hiring.applications(),recruitment:recruitment.state(),business:business.state(),stock:stock.summary(),property:p,purchases:copy(current.purchases),purchaseOperationPrefix:`cn-tavern-owner-purchase:${p.ownership}:${current.revision+1}`,loadError:error(),lastError};}
- return {hiring,recruitment,business,stock,view,snapshot,update,purchase,dismiss,tryAssign,prepareStockTransition,saveStockWorld,stockAdmission,supplyForOrder,activate:()=>guarded(activateStock),
+ function view(){const p=property.state(),qualificationByApplication=Object.fromEntries(hiring.applications().flatMap(a=>{const proof=readExistingQualification(a.actor.actorId,a.roleId);return proof&&verifyExistingQualification(proof,a)?[[a.id,proof]]:[];}));return {qualificationByApplication,owner:readOwner(),roles:definitions.map(d=>({...d,...readSlot(d.roleId)})),applications:hiring.applications(),recruitment:recruitment.state(),business:business.state(),stock:stock.summary(),property:p,purchases:copy(current.purchases),purchaseOperationPrefix:`cn-tavern-owner-purchase:${p.ownership}:${current.revision+1}`,loadError:error(),lastError};}
+ return {hiring,recruitment,business,stock,readExistingQualification,verifyExistingQualification,view,snapshot,update,purchase,dismiss,tryAssign,prepareStockTransition,saveStockWorld,stockAdmission,supplyForOrder,activate:()=>guarded(activateStock),
   executeIntent:i=>!error()&&!busy&&!saving&&!disposed&&recruitment.executeIntent(i),intents:()=>error()||disposed?[]:recruitment.intents(),
   reviewApplication(id,accept){if(error()||busy||saving||disposed)return false;const i=recruitment.intent(id,accept?'approve':'reject');return i?recruitment.executeIntent(i):false;},
   suspend(){business.suspend();business.checkpoint();recruitment.dispose({suspend:true});disposed=true;},

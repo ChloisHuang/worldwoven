@@ -7,7 +7,7 @@ import {createGameCurrencyLedger} from '../source/game/currency-ledger.js';
 import {createTavernRole} from '../source/game/china-tavern-role.js';
 import {TAVERN_HIRING_ROLES as ROLES} from '../source/game/china-tavern-hiring.js';
 const copy=structuredClone,RICE='yunlai-mushroom-rice';
-function fixture(initial){
+function fixture(initial,sources={}){
  let saved=copy(initial||{chinaServiceWorld:{serial:7,revision:3,till:0,orders:[]},copperLedger:{version:1,cash:50,bank:900,accountOpened:true,nextTransaction:1,transactions:[]}}),seconds=0,property,manager,ledger,links={},rejection=null,writes=0,staged=null;
  const actors=Object.fromEntries(Object.values(ROLES).map(r=>[r.originalHolderId,{station:{id:r.originalHolderId},bodyRevision:0,root:{position:{x:20,y:.215,z:8},userData:{},rotation:{y:0}},alive:true}]));
  let roles;
@@ -18,8 +18,8 @@ function fixture(initial){
   property=createChinaTavernProperty({saved:saved.chinaTavernProperty,copperLedger:ledger,getClock:clock,getTill:()=>saved.chinaServiceWorld.till,getBusinessAccount:()=>links.business,getStock:()=>links.stock,saveState:s=>save({chinaTavernProperty:s})});
   roles=Object.fromEntries(Object.values(ROLES).map(r=>[r.roleId,createTavernRole({...r,resolveActor:id=>actors[id],saved:saved.roleSources?.[r.roleId],saveState:next=>save({roleSources:{...saved.roleSources,[r.roleId]:next}})})]));
  }
- function start(){manager=createChinaTavernManagement({saved,property,sourceLinks:links,getClock:clock,saveFullWorld:save,getRole:id=>roles[id].resolve(),getActor:id=>actors[id],getScene:()=>({snapshot:()=>copy(saved.chinaServiceWorld),verifyStockOrderSource:(kind,proof)=>kind==='reserve'&&JSON.stringify(staged?.proof)===JSON.stringify(proof)}),verifySavedStockReceipt:(world,r)=>world.stockReceipts?.some(p=>JSON.stringify(p)===JSON.stringify(r))===true,getNPCProfile:id=>actors[id]?{actorId:id,bodyId:id,bodyRevision:0,name:id,ageYears:29,alive:true,protected:false,currentRoleId:Object.values(ROLES).find(r=>roles[r.roleId].state().holderId===id)?.roleId||null}:null});return manager;}
- load();return {start,get manager(){return manager;},get property(){return property;},get saved(){return copy(saved);},get writes(){return writes;},get roles(){return roles;},get actors(){return actors;},set seconds(v){seconds=v;},set reject(v){rejection=v;},reload(){load();return start();},
+ function start(){manager=createChinaTavernManagement({saved,property,sourceLinks:links,getClock:clock,saveFullWorld:save,getRole:id=>roles[id].resolve(),getActor:id=>actors[id],verifyQualification:()=>false,prepareRoleDismissal:roleId=>{const p=roles[roleId].prepareAssignment(null),patch=p.ok?{roleSources:{...saved.roleSources,[roleId]:p.assignment}}:null;return p.ok?{...p,patch,save:fn=>p.save(()=>fn({patch}))}:p;},getScene:()=>({snapshot:()=>copy(saved.chinaServiceWorld),verifyStockOrderSource:(kind,proof)=>kind==='reserve'&&JSON.stringify(staged?.proof)===JSON.stringify(proof)}),verifySavedStockReceipt:(world,r)=>world.stockReceipts?.some(p=>JSON.stringify(p)===JSON.stringify(r))===true,getNPCProfile:id=>actors[id]?{actorId:id,bodyId:id,bodyRevision:0,name:id,ageYears:29,alive:true,protected:false,currentRoleId:Object.values(ROLES).find(r=>roles[r.roleId].state().holderId===id)?.roleId||null}:null,...sources});return manager;}
+ load();return {start,get manager(){return manager;},get property(){return property;},get saved(){return copy(saved);},get writes(){return writes;},get roles(){return roles;},get actors(){return actors;},get clock(){return clock();},set seconds(v){seconds=v;},set reject(v){rejection=v;},reload(){load();return start();},
   stageReserve(number,dishId=RICE){const next=copy(saved.chinaServiceWorld);next.revision++;next.serial=number;const order={orderId:'cn-tavern-order-'+number,number,dishId,customerId:'cn-tavern-diner-west',customerName:'顾谨'};next.orders.push({id:order.orderId,number,dishId,customerId:order.customerId,customerName:order.customerName,stage:'requested'});staged={next,proof:{id:'cn-tavern-stock-reserve:'+order.orderId,sourceId:'chinaTavernServiceWorld',sourceRevision:next.revision,businessId:'cn-yunlai-tavern',order,unprepared:true}};return copy(staged.proof);},
   reserve(proof){const p=manager.prepareStockTransition('reserve',proof);assert(p.ok,p.code);assert(p.lock());const next=copy(staged.next);next.stockReceipts=[...(next.stockReceipts||[]),p.sourcePatch.receipt];try{const success=p.save(b=>manager.saveStockWorld({...b.patch,chinaServiceWorld:next}));if(success)assert(p.committed());return success;}finally{p.release();}},
   sellBusiness(){assert(property.setPrice(1).ok);assert(property.replyOffer(property.state().market.offers[0].id,true).ok);},
@@ -54,3 +54,54 @@ console.log('PASS actual original role source activation and business contract s
  assert.equal(restored.saveStockWorld({...restored.snapshot()}),false,'bridge accepts only its exact scene+stock candidate');
 }
 console.log('PASS default NPC loop dormant until player title; resale preserves cutoff; original named shortage buys one finite portion; scene+stock refusal/retry/cold restore; no money means no new stock');
+
+{
+ const f=fixture();f.buyBusiness();const m=f.start(),role=ROLES.host,id=role.originalHolderId;
+ assert.equal(m.readExistingQualification(id,role.roleId),null,'actor identity alone is not an incumbency receipt');
+ f.reject=patch=>patch.chinaTavernBusiness?.contracts?.length>0;assert.equal(m.dismiss(role.roleId).ok,false);assert.equal(f.roles[role.roleId].state().holderId,id,'failed source save cannot vacate the original holder');assert.equal(m.readExistingQualification(id,role.roleId),null);
+ f.reject=null;assert(m.dismiss(role.roleId).ok,'same-frame owner dismissal first preserves the actual original assignment');assert.equal(f.roles[role.roleId].state().holderId,null);
+ const proof=m.readExistingQualification(id,role.roleId);assert.equal(proof.kind,'existing-incumbency');assert.equal(proof.sourceId,'chinaTavernManagement');assert.equal(proof.roleId,role.roleId);assert(m.verifyExistingQualification(proof));assert.equal(m.business.accounting().trialPaid,0);assert.equal(m.business.accounting().earnedWages,0);
+ assert.equal(m.readExistingQualification(id,ROLES.chef.roleId),null);assert.equal(m.verifyExistingQualification({...proof,actorId:'cn-tavern-diner-west'}),false);assert.equal(m.verifyExistingQualification({...proof,sourceRevision:proof.sourceRevision+1}),false);
+ const restored=f.reload();assert.equal(restored.loadError,null);assert.deepEqual(restored.readExistingQualification(id,role.roleId),proof);assert(restored.verifyExistingQualification(proof,{roleId:role.roleId,actor:{actorId:id,bodyId:id,bodyRevision:0}}));assert.equal(restored.verifyExistingQualification(proof,{roleId:role.roleId,actor:{actorId:id,bodyId:id,bodyRevision:1}}),false);
+ f.sellBusiness();assert(restored.verifyExistingQualification(proof),'historical qualification survives ownership transfer');f.actors[id].bodyRevision=1;assert.equal(restored.readExistingQualification(id,role.roleId),null,'live discovery cannot reuse an old body generation');assert(restored.verifyExistingQualification(proof),'historical verification does not need the present body');delete f.actors[id];assert(restored.verifyExistingQualification(proof));
+ const removed=f.saved;removed.chinaTavernBusiness.contracts=[];const absent=fixture(removed).start();assert.equal(absent.verifyExistingQualification(proof),false,'an activation row without its independent business contract is insufficient');
+ const late=fixture();late.buyBusiness();assert(late.roles[role.roleId].assign(null).ok);const lateManager=late.start();assert(lateManager.update(.1));assert.equal(lateManager.readExistingQualification(id,role.roleId),null,'vacancy cannot retrospectively manufacture original incumbency');
+}
+console.log('PASS original rehire qualification requires actual durable retained contract; same-frame dismissal saves source first or remains occupied; exact original role/body, independent bank source and historical cold checks');
+
+// Real recruitment/hiring/business/role cores execute this short trial against
+// a clear-floor source adapter. It records each table only after the runtime's
+// actual movement, facing and five active seconds; it never supplies paid work.
+{
+ const WEST='cn-tavern-diner-west',same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);let f,m;
+ const owner=()=>({ownerId:f.property.state().ownerId,ownership:f.property.state().ownership});
+ const profile=id=>{const n=f.actors[id];return n?{actorId:id,name:id===WEST?'顾谨':id,bodyId:id,bodyRevision:n.bodyRevision??0,ageYears:29,alive:n.alive,protected:false,currentRoleId:Object.values(ROLES).find(r=>f.roles[r.roleId].state().holderId===id)?.roleId||null}:null;};
+ const candidate=id=>m.recruitment.candidate(id),actor=id=>f.actors[id],position=n=>[n.root.position.x,n.root.position.y,n.root.position.z];
+ const leaseValid=(id,c)=>c?.lease?.id===c?.id+':source-customer-release'&&c.lease.actorId===id;
+ const scene={snapshot:()=>f.saved.chinaServiceWorld,
+  recruitmentActorState:(id,c)=>({bodyId:id,bodyRevision:0,alive:actor(id).alive,inScene:!!actor(id),standing:!actor(id).serviceMount,busy:false,sociallyHeld:false,hasCarriedObjects:false,originalOrderSafe:!f.saved.chinaServiceWorld.orders.some(o=>o.customerId===id&&o.stage!=='done'),customerLeaseValid:leaseValid(id,c)}),
+  releaseRecruitmentCustomer:(id,c)=>({id:c.id+':source-customer-release',actorId:id,bodyId:id}),returnRecruitmentCustomer:()=>true,
+  resolveRecruitmentMeetingPoint:()=>({id:'existing-public-reception',position:[22.35,.215,6.7]}),
+  moveRecruitmentActor(id,target,dt){const n=actor(id),p=n.root.position,[x,y,z]=target.position,dist=Math.hypot(x-p.x,z-p.z),step=Math.min(dist,dt*3);if(dist){p.x+=(x-p.x)*step/dist;p.z+=(z-p.z)*step/dist;}p.y=y;n.walking=dist>step+.001;return !n.walking;},stopRecruitmentMove:id=>{actor(id).walking=false;},
+  claimRecruitmentTable:(id,t,c)=>({id:c.id+':source-table:'+t.id,actorId:id,tableId:t.id}),recruitmentTableClaimValid:(id,p,t,c)=>p.id===c.id+':source-table:'+t.id&&p.actorId===id&&p.tableId===t.id,
+  releaseRecruitmentTable:()=>true,canRecruitmentWorkTable:(id,t)=>Math.hypot(actor(id).root.position.x-t.position[0],actor(id).root.position.z-t.position[2])<.12,
+  faceRecruitmentWork(id,target){const n=actor(id);n.root.rotation.y=Math.atan2(target[0]-n.root.position.x,target[2]-n.root.position.z);},
+  prepareRecruitmentTableWork({proof,candidate:c}){const before=f.saved.chinaServiceWorld,n=actor(c.actorId),pending=m.recruitment.snapshot().pending.some(e=>same(e.receipt,proof));let locked=false,durable=false;
+   const valid=()=>pending&&proof.activeSeconds===5&&proof.completedSeconds-proof.startedSeconds>=5&&Math.hypot(n.root.position.x-proof.position[0],n.root.position.z-proof.position[2])<.12;
+   const next={...before,revision:before.revision+1,recruitmentTableReceipts:[...(before.recruitmentTableReceipts||[]),copy(proof)]};
+   return {ok:valid(),patch:{chinaServiceWorld:next},valid,lock(){return locked=valid();},save(fn,r){if(!locked||!valid())return false;return durable=fn({chinaServiceWorld:next,chinaTavernRecruitment:r})===true;},committed:()=>durable,release(){locked=false;}};
+  }};
+ f=fixture(null,{getScene:()=>scene,getNPCProfile:profile,
+  readPlayerState:()=>({actorId:'player',position:[21.2,.215,6.7],inScene:true,standing:true,busy:false,mounted:false}),canSeeOwner:()=>true,
+  verifySavedTrialTableWork:(world,p)=>world.recruitmentTableReceipts?.some(v=>same(v,p))===true,
+  readSafeHandoff(a){const c=candidate(a.id),r=f.roles[a.roleId].state();return leaseValid(a.actor.actorId,c)&&r.holderId===null?{id:a.id+':actual-handoff',sourceId:'clear-floor-role-source',sourceRevision:r.revision,businessId:'cn-yunlai-tavern',applicationId:a.id,actorId:a.actor.actorId,bodyId:a.actor.bodyId,slotId:a.slotId,slotRevision:a.slotRevision,customerReleaseReceiptId:c.lease.id,destinationReleaseReceiptId:r.slotId+':vacant:'+r.revision}:null;},
+  prepareRoleAssignment(a){const p=f.roles[a.roleId].prepareAssignment(a.actor.actorId,{expectedRevision:a.slotRevision});return p.ok?{...p,patch:{roleSources:{...f.saved.roleSources,[a.roleId]:p.assignment}}}:p;},
+ });
+ f.actors[WEST]={station:{id:WEST},bodyRevision:0,alive:true,walking:false,root:{position:{x:22.35,y:.215,z:6.7},rotation:{y:0}}};f.buyBusiness();m=f.start();assert(m.dismiss(ROLES.assistant.roleId).ok);
+ const step=()=>{f.seconds=f.clock.seconds+.1;m.update(.1);},until=(fn,label)=>{for(let i=0;i<5000&&!fn();i++)step();assert(fn(),label+': '+JSON.stringify({runtime:m.recruitment.state(),hiring:m.hiring.applications(),last:m.lastError}));};
+ const choice=m.recruitment.additionalChoices(WEST)[0];assert(choice);assert(m.recruitment.acceptChoice(WEST,{...choice,startedAt:f.clock.seconds}));until(()=>candidate(WEST)?.phase==='meeting','applicant reaches original public meeting');const id=candidate(WEST).applicationId;
+ f.reject=p=>p.chinaTavernBusiness?.receipts?.some(r=>r.kind==='trial-payment');assert(m.executeIntent(m.recruitment.intent(id,'trial')));until(()=>candidate(id)?.phase==='review','two real five-second steps and return');assert.equal(m.hiring.application(id).trial.work.steps.length,2);assert.equal(m.business.account(WEST).bank,0);assert.equal(m.hiring.application(id).trial.payment,null);
+ assert(m.reviewApplication(id,true));until(()=>m.hiring.application(id).status==='assigned','approved candidate reaches actual role assignment');assert.equal(candidate(id).phase,'assigned');assert.equal(m.business.account(WEST).bank,0);
+ f.reject=null;step();assert.equal(m.business.account(WEST).bank,12);assert(m.hiring.application(id).trial.payment);assert.equal(m.business.snapshot().receipts.filter(r=>r.kind==='trial-payment').length,1);for(let i=0;i<4;i++)step();assert.equal(m.business.account(WEST).bank,12);assert.equal(m.business.snapshot().receipts.filter(r=>r.kind==='trial-payment').length,1);
+}
+console.log('PASS actual completed trial rejected payment survives assigned terminal branch; normal management update separately settles exactly12 once, without more work');
