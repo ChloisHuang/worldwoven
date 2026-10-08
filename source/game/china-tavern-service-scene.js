@@ -321,6 +321,11 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   if(!stockTracked(o))return true;
   const s=getManagement()?.stock?.order(o.id);return ['paid','preparing'].includes(o.stage)?s?.status==='reserved':s?.status==='consumed';
  }
+ // Leaving can cancel plate cleanup after the food was actually eaten. Match
+ // the original consumption receipt; another meal's receipt grants no exemption.
+ const mealActuallyConsumed=o=>o.consumed===true&&o.mealId===o.id+'-dish'&&state.mealReceipts?.some(r=>
+  r.source==='china-tavern-meal'&&r.id===o.id+'-consumed'&&r.number===o.number&&r.orderId===o.id&&r.actorId===o.customerId&&
+  r.mealId===o.mealId&&r.dishId===o.dishId&&r.paymentReceipt===o.id&&r.completed===true);
  function physicalPreparation(o,nextRevision){const n=actor('chef',o),player=playerOwns('chef'),seconds=getClock()?.seconds;
   if(!n||!alive(n)&&n!==getPlayer()||n.walking||n.serviceMount||isSociallyHeld(n.station?.id,conversation)||!at(n,P.prep,player ? .23 : .12)||!Number.isFinite(seconds)||seconds<0)return null;
   const elapsed=player?activity?.kind==='prep'&&activity.orderId===o.id&&!getMounted()&&at(n,activity.origin,.03)?activity.elapsed:0:
@@ -335,12 +340,12 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   if(kind==='reserve')return !old&&next.number===state.serial+1&&s.next.serial===next.number&&!next.mealId&&!next.cancelled&&['arriving','awaiting-payment','requested','paid'].includes(next.stage);
   if(!old||!sameJSON(stockOrder(old),proof.order))return false;
   if(kind==='consume')return ['paid','preparing'].includes(old.stage)&&next.stage==='prepared'&&sameJSON(s.preparation,physicalPreparation(old,s.next.revision));
-  return kind==='cancel'&&!old.cancelled&&next.cancelled===true;
+  return kind==='cancel'&&!old.cancelled&&next.cancelled===true&&!mealActuallyConsumed(old);
  }
  function stockTransition(next){const m=getManagement();if(!m||!state)return null;const actions=[];
   for(const n of next.orders){const old=state.orders.find(o=>o.id===n.id);
    if(!old){const gate=stockAdmission(n.dishId);if(!gate.enabled)continue;if(!gate.ready){stockError=gate.code||'stock-activation-pending';return false;}actions.push({kind:'reserve',row:n});}
-   else if(stockTracked(old)&&!old.cancelled&&n.cancelled)actions.push({kind:'cancel',row:n});
+   else if(stockTracked(old)&&!old.cancelled&&n.cancelled&&!mealActuallyConsumed(old))actions.push({kind:'cancel',row:n});
    else if(stockTracked(old)&&['paid','preparing'].includes(old.stage)&&n.stage==='prepared')actions.push({kind:'consume',row:n});
   }
   if(!actions.length)return null;if(actions.length!==1){stockError='multiple-stock-transitions';return false;}

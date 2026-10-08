@@ -130,4 +130,39 @@ const ownMeal=fixture(bankSave,{enableStaffPersonalFunds:true,personalMealEconom
 assert(verified>0);assert.equal(ownMeal.scene.snapshot().kitchenDiner.accountProvider,'tavern-operating-bank');
 const untyped=copy(bankSave);untyped.game.chinaServiceWorld.kitchenDiner.accountProvider='untyped-bank';
 assert.throws(()=>fixture(untyped,{enableStaffPersonalFunds:true,personalMealEconomy:bankSource}));
+
+// Original leave-seat callback after REAL meal consumption may still cancel the
+// remaining plate cleanup. It must not reclassify eaten food as material waste.
+// Refuse that world write once, cold-load, then retry the same order/receipt.
+{
+ const meal=fixture();meal.buy();assert(meal.manager.purchase({operationId:'completed-meal-stock',dishId:RICE,quantity:1}).ok);
+ meal.until(()=>meal.scene.snapshot().orders.every(o=>o.stage==='done'),'completion fixture old dishes drained');
+ const orderId=meal.request();meal.until(()=>meal.scene.playerOrder()?.stage==='ready','real paid dish delivered');
+ assert(meal.scene.eatPlayerMeal());meal.until(()=>meal.scene.playerOrder()?.consumed===true,'original5.5-second meal really consumed');
+ const source=copy(meal.scene.snapshot().mealReceipts.find(r=>r.orderId===orderId)),stock=copy(meal.manager.stock.snapshot());
+ assert(source?.completed);assert.equal(source.actorId,'player');assert.equal(meal.manager.stock.order(orderId).status,'consumed');
+ meal.reject(p=>p.chinaServiceWorld?.orders.some(o=>o.id===orderId&&o.cancelled));
+ assert.equal(meal.scene.cancelPlayerMeal(),false,'original leave-seat cleanup write refused');
+ assert.equal(meal.scene.playerOrder().cancelled,false);assert.deepEqual(meal.manager.stock.snapshot(),stock);
+ const resumed=fixture(meal.snapshot());assert.equal(resumed.manager.loadError,null);
+ assert(resumed.scene.cancelPlayerMeal());resumed.unmount();
+ assert.equal(resumed.manager.stock.order(orderId).status,'consumed','fully eaten food stays consumed after leave-seat retry');
+ assert.equal(resumed.manager.stock.summary().wasteExpense,0);assert.equal(resumed.manager.stock.summary().materialExpense,2);
+ assert.deepEqual(resumed.manager.stock.snapshot(),stock,'cleanup classification adds no second stock transaction');
+ assert.equal(resumed.ledger.reservations().find(r=>r.id===orderId).status,'settled','already supplied food remains paid');
+ resumed.until(()=>resumed.scene.snapshot().orders.find(o=>o.id===orderId)?.stage==='done','unchanged real assistant plate return/wash completes');
+ assert.equal(resumed.scene.snapshot().orders.find(o=>o.id===orderId).consumed,true);
+ assert.equal(fixture(resumed.snapshot()).manager.loadError,null,'completed cleanup and stock history agree after cold load');
+
+ // The last completed receipt belongs to the former order. It cannot exempt a
+ // later, only partly eaten dish from the existing waste/no-refund rule.
+ assert(resumed.manager.purchase({operationId:'partial-meal-stock',dishId:RICE,quantity:1}).ok);
+ const partialId=resumed.request();resumed.until(()=>resumed.scene.playerOrder()?.stage==='ready','second real dish delivered');
+ assert(resumed.scene.eatPlayerMeal());resumed.tick(20);
+ assert(!resumed.scene.playerOrder().consumed);assert(!resumed.scene.snapshot().mealReceipts.some(r=>r.orderId===partialId));
+ assert(resumed.scene.cancelPlayerMeal());resumed.unmount();
+ assert.equal(resumed.manager.stock.order(partialId).status,'wasted');assert.equal(resumed.manager.stock.summary().wasteExpense,2);
+ assert.equal(resumed.manager.stock.summary().materialExpense,4);assert.equal(resumed.ledger.reservations().find(r=>r.id===partialId).status,'settled');
+ assert.equal(fixture(resumed.snapshot()).manager.loadError,null);
+}
 console.log('china tavern stock scene: original stock/prepay/prep/cancel sources, cold verification and actual coverage guards passed (not full-main proof)');
