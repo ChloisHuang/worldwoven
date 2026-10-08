@@ -616,6 +616,8 @@
       "study-choices.mjs",
       "study-xp.mjs",
       "tavern-role-contracts.mjs",
+      "travel-journey.mjs",
+      "travel-flight.mjs",
       "travel-passport.mjs",
       "walking-npc-conversation-main.cjs",
       "world-continuity-main.cjs",
