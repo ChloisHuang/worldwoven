@@ -167,6 +167,7 @@ try{
  }
  if(phase==='duty-restore'){
   assert.equal(duty().stage,'paid');assert.equal(duty().wage,28);assert.deepEqual(clone(duty()),inputSave.formalCareers.lastDuty);
+  assert.deepEqual(clone(career.state().officialCareer.service),inputSave.formalCareers.officialCareer.service,'Cold boot cannot add or rewrite service');
   assert.deepEqual(wages(),oldWages);const service=clone(career.state().officialCareer.service),bank=clone(r.saved.copperLedger);
   step(12);assert.deepEqual(wages(),oldWages);assert.deepEqual(clone(r.saved.copperLedger),bank);assert.deepEqual(clone(career.state().officialCareer.service),service);
   assert.equal(career.settle().ok,false);assert.equal(r.chinaCareer.intent('archive'),null);assert.equal(r.chinaPersonnelCareer.intent('personnel-claim'),null);invariants();write('duty-cold-restored');
