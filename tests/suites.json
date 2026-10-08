@@ -139,7 +139,8 @@
       "scene-geometry.cjs",
       "shoji-side-privacy.cjs",
       "sliding-track-fit.cjs",
-      "china-holding-cell-navigation.cjs"
+      "china-holding-cell-navigation.cjs",
+      "china-official-blocked-door.cjs"
     ]
   },
   "ui": {
