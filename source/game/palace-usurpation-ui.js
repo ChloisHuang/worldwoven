@@ -4,6 +4,7 @@ import {AIRY_PANEL_STYLE,createAiryPanelParts,preserveAiryPanelView} from './air
 const STAGES={locked:'尚未解锁',available:'可开始筹备',planning:'筹备中','ready-for-investiture':'待宣读',failed:'失败冷却',invested:'已登位',abandoned:'已放弃本案'};
 const PERSON_STATES={'not-asked':'尚未当面商议',accepted:'已明确同意',declined:'已婉拒本次联合',withdrew:'已退出本次联合'};
 const STEP_STATES={pending:'待筹备',ready:'可进行',completed:'已完成'};
+const DUTY_ACTIONS=new Set(['court-approve','court-inquire','court-defer','edict-approve','duty-travel']);
 const ERRORS={
  'save-failed':'这一步尚未保存，原筹谋与已存准备仍保留，请重试。',
  'persistence-unavailable':'筹谋暂时无法保存，请稍后重试。',
@@ -38,6 +39,9 @@ const ERRORS={
  'usurpation-busy':'当前步骤正在办理，请稍候。',
  'explicit-abandonment-required':'请单独确认是否放弃本案。',
  'invalid-route':'请保留至少一个有效筹备方向。',
+ 'cross-circle-political-response-required':'先取得不同圈层的具名政治响应。',
+ 'safe-resolution-required':'先让现有帝务、文书与场面安全结束。',
+ 'resolved-case-cannot-be-abandoned':'局势已形成，请继续完成拥立宣读。',
 };
 const text=value=>typeof value==='string'?value:'';
 const rows=value=>Array.isArray(value)?value:[];
@@ -132,6 +136,7 @@ export function createPalaceUsurpationUI({getView=()=>({}),onAction,onOpen=()=>{
  function refresh(force=false,suppliedView=null){
   if(disposed||!opened)return false;
   const view=suppliedView||read(),visible=view.visible!==false,allActions=availableActions(view),stage=visible&&Object.hasOwn(STAGES,view.stage)?view.stage:'locked';
+  const invested=stage==='invested';
   const stageLabel=stage==='planning'&&allActions.some(action=>action.kind==='resolve'&&action.enabled===true)?'可对峙':STAGES[stage];
   const key=JSON.stringify([view.revision,view.caseId,stage,visible,view.summary,view.conditions,view.routes,view.people,view.steps,allActions,view.blockers,view.outcome,view.history,view.cooldownLabel,view.loadError,view.lastError,feedback,confirmation,acting]);
   if(!force&&key===signature)return false;
@@ -139,12 +144,13 @@ export function createPalaceUsurpationUI({getView=()=>({}),onAction,onOpen=()=>{
   if(confirmation&&!allActions.some(action=>action.kind==='abandon'&&actionKey(action)===confirmation&&action.enabled===true))confirmation=null;
   const restore=preserveAiryPanelView(dialog,doc),{header,body,actions}=createAiryPanelParts(doc);
   header.className+=' ww-usurpation-heading';body.className+=' ww-usurpation-body';actions.className+=' ww-usurpation-actions';
-  body.setAttribute('data-panel-key','usurpation-body');dialog.setAttribute('data-usurpation-stage',stage);
-  const dismiss=button('×',()=>close(),{key:'close',cls:'ww-usurpation-close'});dismiss.setAttribute('aria-label','收起并保留筹谋');
-  header.append(make('h2','筹谋帝位'),make('p',stageLabel));
+  body.setAttribute('data-panel-key','usurpation-body');dialog.setAttribute('data-usurpation-stage',stage);dialog.setAttribute('aria-label',invested?'宫廷事务':'筹谋帝位');
+  const dismiss=button('×',()=>close(),{key:'close',cls:'ww-usurpation-close'});dismiss.setAttribute('aria-label',invested?'收起宫廷事务':'收起并保留筹谋');
+  header.append(make('h2',invested?'宫廷事务':'筹谋帝位'),make('p',stageLabel));
   if(!visible)body.append(make('p','当前条件尚未解锁筹谋帝位。先在日常相处与履职中取得不同圈层的认可，再来查看。','ww-usurpation-note'));
   else if(text(view.summary))body.append(make('p',view.summary));
   if(visible){
+   if(!invested){
    const facts=make('div',null,'ww-usurpation-facts'),conditions=make('section'),support=make('section');
    conditions.setAttribute('data-panel-key','usurpation-conditions');conditions.append(make('h3','筹谋条件'));requirementList(conditions,view.conditions);
    support.setAttribute('data-panel-key','usurpation-consenters');support.append(make('h3','已同意的关键人物'));
@@ -152,8 +158,9 @@ export function createPalaceUsurpationUI({getView=()=>({}),onAction,onOpen=()=>{
    if(consenters.length){const names=make('ul');for(const person of consenters)names.append(make('li',person.name));support.append(names);}
    else support.append(make('p','尚无人物明确同意本案。','ww-usurpation-note'));
    facts.append(conditions,support);body.append(facts);
+   }
 
-   if(rows(view.routes).length){
+   if(!invested&&rows(view.routes).length){
     const section=make('section'),routes=make('div',null,'ww-usurpation-routes');section.setAttribute('data-panel-key','usurpation-routes');section.append(make('h3','同一筹谋 · 可组合准备'),make('p','可以改换或组合筹备方向；已有准备留在本案。职业与名位会影响可做的准备。','ww-usurpation-note'));
     for(const route of rows(view.routes)){
      const card=make('section',null,`ww-usurpation-route${route.selected?' is-selected':''}`);card.setAttribute('data-panel-key',`usurpation-route-${route.id}`);
@@ -166,12 +173,12 @@ export function createPalaceUsurpationUI({getView=()=>({}),onAction,onOpen=()=>{
     section.append(routes);body.append(section);
    }
    if(rows(view.steps).length){
-    const section=make('section'),list=make('ol');section.setAttribute('data-panel-key','usurpation-steps');section.append(make('h3','本案步骤'));
-    for(const step of rows(view.steps)){const row=make('li',`${text(step.label)||'本案步骤'} · ${STEP_STATES[step.status]||'待核对'}`);if(step.status==='ready')row.setAttribute('aria-current','step');list.append(row);}
+    const section=make('section'),list=make('ol');section.setAttribute('data-panel-key','usurpation-steps');section.append(make('h3',invested?'当前帝务':'本案步骤'));
+    for(const step of rows(view.steps)){const row=make('li',`${text(step.label)||(invested?'当前帝务':'本案步骤')} · ${invested&&step.status==='pending'?'待处理':STEP_STATES[step.status]||'待核对'}`);if(step.status==='ready')row.setAttribute('aria-current','step');list.append(row);}
     section.append(list);body.append(section);
    }
    const people=rows(view.people).filter(person=>text(person?.name));
-   if(people.length){
+   if(!invested&&people.length){
     const details=make('details');details.setAttribute('data-panel-key','usurpation-people');details.append(make('summary','当面商议与本人答复'));
     for(const person of people){
      const row=make('section',null,'ww-usurpation-person');row.setAttribute('data-panel-key',`usurpation-person-${person.id}`);row.append(make('p',`${person.name} · ${PERSON_STATES[person.status]||'答复待核对'}`));
@@ -180,31 +187,31 @@ export function createPalaceUsurpationUI({getView=()=>({}),onAction,onOpen=()=>{
     }
     details.append(make('p','须实际找到本人商议；对方可拒绝，也可改变答复。','ww-usurpation-note'));body.append(details);
    }
-   const next=allActions.filter(action=>!['select-route','pledge','abandon','cancel-current'].includes(action.kind));
+   const next=allActions.filter(action=>invested?DUTY_ACTIONS.has(action.kind):!['select-route','pledge','abandon','cancel-current'].includes(action.kind));
    if(next.length){
-    const section=make('section');section.setAttribute('data-panel-key','usurpation-next');section.append(make('h3','下一步'),make('p','需要到场的步骤会先前往对应地点；实际剧情选择在现场进行。','ww-usurpation-note'));
+    const section=make('section');section.setAttribute('data-panel-key','usurpation-next');section.append(make('h3',invested?'办理帝务':'下一步'),make('p',invested?'按当前朝会与御批记录办理；需要到场时会先前往对应地点。':'需要到场的步骤会先前往对应地点；实际剧情选择在现场进行。','ww-usurpation-note'));
     if(next.some(action=>action.kind==='resolve'||action.kind==='prepare'&&action.preparationKind==='intrigue'))section.append(make('p','这是虚构宫廷剧情。阴谋可使旧帝失能，对峙可能失败并进入冷却；筹备完成仍须现场办结与宣读，才会变更帝位。','ww-usurpation-warning'));
     for(const action of next)appendAction(section,action,view);body.append(section);
    }
-   if(rows(view.blockers).length){const section=make('section');section.append(make('h3','当前尚缺'));const list=make('ul');for(const blocker of rows(view.blockers))if(text(blocker))list.append(make('li',reasonText(blocker)));section.append(list);body.append(section);}
-   if(text(view.cooldownLabel))body.append(make('p',view.cooldownLabel,'ww-usurpation-note'));
-   if(text(view.outcome?.summary))body.append(make('p',view.outcome.summary,'ww-usurpation-note'));
+   if(rows(view.blockers).length){const section=make('section');section.append(make('h3',invested?'待办条件':'当前尚缺'));const list=make('ul');for(const blocker of rows(view.blockers))if(text(blocker))list.append(make('li',reasonText(blocker)));section.append(list);body.append(section);}
+   if(!invested&&text(view.cooldownLabel))body.append(make('p',view.cooldownLabel,'ww-usurpation-note'));
+   if(!invested&&text(view.outcome?.summary))body.append(make('p',view.outcome.summary,'ww-usurpation-note'));
    if(rows(view.history).length){
     const history=make('details');history.setAttribute('data-panel-key','usurpation-history');history.append(make('summary','历次筹谋记录'));
     for(const [index,row]of rows(view.history).entries())history.append(make('p',`${index+1}. ${text(row.label)||STAGES[row.stage]||'已存筹谋'}`));body.append(history);
    }
-   const abandon=allActions.find(action=>action.kind==='abandon');
+   const abandon=!invested&&allActions.find(action=>action.kind==='abandon');
    if(abandon&&confirmation===actionKey(abandon)){
     const box=make('section',null,'ww-usurpation-confirm');box.setAttribute('data-panel-key','usurpation-abandon-confirmation');box.append(make('h3','放弃这次筹谋？'),make('p','放弃会结束本案，保留已发生的事实与历史，并进入筹谋冷却。收起面板可以保留本案。'));
     appendAction(box,abandon,view,{confirmed:true,label:'确认放弃本案',cls:'ww-usurpation-action ww-usurpation-abandon'});
     box.append(button('继续保留本案',()=>{confirmation=null;refresh(true);},{key:'keep-case',cls:'ww-usurpation-action ww-usurpation-secondary'}));body.append(box);
    }
-   for(const action of allActions.filter(item=>item.kind==='cancel-current'))appendAction(actions,action,view,{label:'停止当前动作 · 保留筹谋',cls:'ww-usurpation-secondary'});
+   if(!invested)for(const action of allActions.filter(item=>item.kind==='cancel-current'))appendAction(actions,action,view,{label:'停止当前动作 · 保留筹谋',cls:'ww-usurpation-secondary'});
    if(abandon&&!confirmation)appendAction(actions,abandon,view,{label:'放弃这次筹谋',cls:'ww-usurpation-abandon'});
   }
   const warning=view.loadError?errorText(view.loadError):feedback||view.lastError&&errorText(view.lastError);
   if(warning){const error=make('p',warning,'ww-usurpation-error');error.setAttribute('role','alert');error.setAttribute('data-panel-key','usurpation-error');body.append(error);}
-  body.append(make('p','收起面板或停止当前动作会保留本案与已存准备。帝位变更以现场剧情及宣读结果为准。','ww-usurpation-note'));
+  if(!invested)body.append(make('p','收起面板或停止当前动作会保留本案与已存准备。帝位变更以现场剧情及宣读结果为准。','ww-usurpation-note'));
   actions.append(button('先收起',()=>close(),{key:'dismiss',cls:'ww-usurpation-secondary'}));
   dialog.replaceChildren(dismiss,header,body,actions);restore();return true;
  }

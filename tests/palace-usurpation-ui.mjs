@@ -54,12 +54,27 @@ function exportState(name,f){
  const cases=[['locked','尚未解锁'],['available','可开始筹备'],['planning','筹备中'],['ready-for-investiture','待宣读'],['failed','失败冷却'],['invested','已登位'],['abandoned','已放弃本案']];
  for(const [stage,label]of cases){
   const f=fixture(view({stage,actions:[],support:98765,roll:.1234,probability:.9876,cooldownLabel:stage==='failed'?'第8日可再筹谋':null}));const original=structuredClone(f.view);
-  f.ui.open();assert(f.dialog.textContent.includes('筹谋帝位'));assert(f.dialog.textContent.includes(label));assert.equal(f.dialog.attrs['data-usurpation-stage'],stage);
+  f.ui.open();assert(f.dialog.textContent.includes(stage==='invested'?'宫廷事务':'筹谋帝位'));assert(f.dialog.textContent.includes(label));assert.equal(f.dialog.attrs['data-usurpation-stage'],stage);
   assert(!/98765|0\.1234|0\.9876|支持值|成功率|票数|revision|cn-official/.test(f.dialog.textContent));assert.deepEqual(f.view,original);assert.equal(f.calls.length,0);
   if(stage==='failed')assert(f.dialog.textContent.includes('第8日可再筹谋'));
   exportState(stage,f);f.ui.dispose();
  }
  const f=fixture(view({actions:[action('resolve','resolve')]}));f.ui.open();assert(f.dialog.textContent.includes('可对峙'));assert(f.dialog.textContent.includes('现场进行'));f.ui.dispose();
+}
+
+// Investiture switches this same panel to actual sovereign duties. Stale plot
+// fields cannot suggest renewed pledges or preparation, and each duty keeps its
+// original pending-item identity for main's live, physical-action validation.
+{
+ const kinds=['court-approve','court-inquire','court-defer','edict-approve','duty-travel'];
+ const f=fixture(view({stage:'invested',title:'<img src=x onerror=alert(1)>',summary:'今日朝会正在等候御批。',office:{actorId:'player',revision:2},
+  steps:[{id:'court',label:'本次朝会奏报',status:'pending'},{id:'edict',label:'同号任命文书御批',status:'ready'}],
+  actions:[...kinds.map((kind,index)=>action(`duty-${index}`,kind,{label:['准奏','当面问询','暂缓再议','阅批原文书','前往当前帝务现场'][index],routeId:`pending-item-${index}`})),action('stale-route','select-route',{routeId:'intrigue'}),action('stale-abandon','abandon')],
+  blockers:[],history:[{caseId:'palace-usurpation-1',stage:'invested',label:'本案已宣读登位'}],cooldownLabel:'过时筹谋冷却',outcome:{summary:'过时筹谋结果'}}));
+ const original=structuredClone(f.view);f.ui.open();assert.equal(f.dialog.attrs['aria-label'],'宫廷事务');assert(f.dialog.textContent.includes('当前帝务'));assert(f.dialog.textContent.includes('本次朝会奏报 · 待处理'));assert(f.dialog.textContent.includes('本案已宣读登位'));
+ assert(!/筹谋条件|尚无人物明确同意|同一筹谋|当面商议与本人答复|已存准备|过时筹谋|<img/.test(f.dialog.textContent));assert(!part(f.dialog,'usurpation-consenters'));assert(!find(f.dialog,'stale-route'));assert(!find(f.dialog,'stale-abandon'));
+ for(const [index,kind]of kinds.entries()){find(f.dialog,`duty-${index}`).onclick();assert.deepEqual(f.calls.at(-1),{id:`duty-${index}`,kind,caseId:'palace-usurpation-1',revision:4,routeId:`pending-item-${index}`});}
+ assert.deepEqual(f.view,original);exportState('invested-duties',f);f.ui.dispose();
 }
 
 // A locked projection does not accidentally surface routes, people or actions

@@ -1,9 +1,27 @@
 import {PALACE_EDICT} from './china-palace-edict-place.js';
 const copy=x=>JSON.parse(JSON.stringify(x));
 const REPORTER='cn-minister-works',RECIPIENT='cn-emperor';
+// The office ledger is the only live authority source. Historical receipts
+// validate their own frozen term; they never get rewritten to today's holder.
+export const validCourtAuthority=value=>!!value&&typeof value==='object'&&!Array.isArray(value)&&['cn-emperor','player'].includes(value.holderId)&&Number.isSafeInteger(value.revision)&&value.revision>=0&&Object.keys(value).length===2;
+export const sameCourtAuthority=(a,b)=>validCourtAuthority(a)&&validCourtAuthority(b)&&a.holderId===b.holderId&&a.revision===b.revision;
+export function readCourtAuthority(reader=null){
+ if(reader===null||reader===undefined)return {holderId:RECIPIENT,revision:0};
+ try{const value=reader();if(!value||value.suspended===true||value.suspended!==undefined&&value.suspended!==false)return null;const term={holderId:value.holderId,revision:value.revision};return validCourtAuthority(term)?term:null;}catch{return null;}
+}
+export const validCourtRecipientProof=proof=>!!proof&&(Object.hasOwn(proof,'authority')?validCourtAuthority(proof.authority)&&proof.recipientId===proof.authority.holderId:proof.recipientId===RECIPIENT);
+export function sameCourtReceiptAuthority(receipt,proof,reader=null){
+ if(receipt.recipientId!==proof.recipientId)return false;
+ if(Object.hasOwn(receipt,'authority'))return sameCourtAuthority(receipt.authority,proof.authority);
+ if(!Object.hasOwn(proof,'authority'))return true;
+ // A legacy save can contain the received ledger and the still-speaking
+ // audience checkpoint. The new controller names the same original term on
+ // replay; accepting that replay must not manufacture or rewrite old proof.
+ return reader!==null&&receipt.recipientId===RECIPIENT&&sameCourtAuthority(proof.authority,{holderId:RECIPIENT,revision:0})&&sameCourtAuthority(proof.authority,readCourtAuthority(reader));
+}
 const reportKeys=['caseId','inspectionId','sourceEventId','reporterId','day'];
 const sameReport=(a,b)=>!!a&&!!b&&reportKeys.every(key=>a[key]===b[key]);
-const completeProof=p=>p?.reporterId===REPORTER&&p.recipientId===RECIPIENT&&p.reportSeconds===6&&p.responseSeconds===4;
+const completeProof=p=>p?.reporterId===REPORTER&&validCourtRecipientProof(p)&&p.reportSeconds===6&&p.responseSeconds===4;
 const freezeTree=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freezeTree(child);Object.freeze(value);}return value;};
 const reportFor=(c,day)=>({caseId:c.id,inspectionId:c.result.id,sourceEventId:c.result.source.eventId,reporterId:REPORTER,day});
 function matchesResult(c,ref){
@@ -31,7 +49,7 @@ export function edictReportSource(state){
  return {eventId:`${documentId}:${outcome}`,documentId,audienceId:l.lastReceipt,outcome,stage:state.order?.id===documentId?state.order.stage:null,workProgress:Number.isFinite(state.props?.workProgress)?state.props.workProgress:null};
 }
 
-export function createCourtReports({readEdict=()=>null,reissueEdict=()=>false,saved={},savedReport=null,saveState=()=>{}}={}){
+export function createCourtReports({readEdict=()=>null,reissueEdict=()=>false,readAuthority=null,saved={},savedReport=null,saveState=()=>{}}={}){
  let cases=Array.isArray(saved.cases)?copy(saved.cases).slice(-8):[],sequence=Math.max(0,saved.sequence||0),savingReceipt=false;
  const preparedReports=new Map();
  // Only the new receipt shape is checked here. A legacy reportedDay remains
@@ -89,11 +107,13 @@ export function createCourtReports({readEdict=()=>null,reissueEdict=()=>false,sa
    if(!matchesResult(c,ref))return {ok:false,code:'invalid-report'};
    if(!completeProof(proof)||proof.reporterId!==ref.reporterId)return {ok:false,code:'invalid-proof'};
    if(c.result.received)return validReceipt(c,c.result.received)&&sameReport(ref,c.result.received)
-    ?{ok:true,replayed:true}:{ok:false,code:'receipt-conflict'};
+    &&sameCourtReceiptAuthority(c.result.received,proof,readAuthority)?{ok:true,replayed:true}:{ok:false,code:'receipt-conflict'};
+   if(readAuthority!==null&&!sameCourtAuthority(proof.authority,readCourtAuthority(readAuthority)))return {ok:false,code:'authority-changed'};
+   if(readAuthority===null&&Object.hasOwn(proof,'authority'))return {ok:false,code:'invalid-proof'};
    if(c.result.reportedDay!==undefined)return {ok:false,code:'historical-report'};
    if(!sameReport(ref,preparedReports.get(c.result.id)))return {ok:false,code:'report-not-prepared'};
    const candidate=snapshot(),result=candidate.cases.find(item=>item.id===c.id).result;
-   result.received=Object.freeze({version:1,...reportFor(c,ref.day),recipientId:RECIPIENT,reportSeconds:6,responseSeconds:4});
+   result.received=freezeTree({version:1,...reportFor(c,ref.day),recipientId:proof.recipientId,...(readAuthority!==null?{authority:{...proof.authority}}:{}),reportSeconds:6,responseSeconds:4});
    result.reportedDay=ref.day;
    // The bridge saves this exact candidate together with audience continuity.
    // Until that succeeds, reentrant observers still see the pending old state.
@@ -105,10 +125,14 @@ export function createCourtReports({readEdict=()=>null,reissueEdict=()=>false,sa
     cases=candidate.cases;preparedReports.delete(c.result.id);return {ok:true,replayed:false};
    }catch{return {ok:false,code:'save-failed'};}finally{savingReceipt=false;}
   },
-  decide(issueId,action,actorId='cn-emperor'){
+  decide(issueId,action,actorId='cn-emperor',authority=null){
    if(savingReceipt)return false;
-   const c=cases.find(c=>c.id===issueId);if(!c||c.response||actorId!=='cn-emperor'||!['approve','inquire','defer'].includes(action))return false;
-   c.response=action;c.decidedBy=actorId;save();return true;
+   const live=readCourtAuthority(readAuthority),c=cases.find(c=>c.id===issueId);if(!c||!live||actorId!==live.holderId||readAuthority!==null&&!sameCourtAuthority(authority,live)||!['approve','inquire','defer'].includes(action))return false;
+   if(c.response)return readAuthority!==null&&c.response===action&&c.decidedBy===actorId&&sameCourtAuthority(c.decidedAuthority,authority);
+   if(readAuthority===null){c.response=action;c.decidedBy=actorId;save();return true;}
+   const candidate=snapshot(),target=candidate.cases.find(item=>item.id===issueId);target.response=action;target.decidedBy=actorId;target.decidedAuthority={...authority};
+   savingReceipt=true;
+   try{const stored=saveState(freezeTree(copy(candidate)));if(stored?.then){Promise.resolve(stored).catch(()=>{});return false;}if(stored===false||stored?.ok===false)return false;cases=candidate.cases;return true;}catch{return false;}finally{savingReceipt=false;}
   },
   inspection(){
    if(savingReceipt)return null;
