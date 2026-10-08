@@ -263,7 +263,8 @@
     "required": [
       "career-work-state.mjs",
       "currency-ledger.mjs",
-      "currency-participant-locks.mjs"
+      "currency-participant-locks.mjs",
+      "china-tavern-hiring.mjs"
     ],
     "integration": [
       "career-application-decisions.mjs",
