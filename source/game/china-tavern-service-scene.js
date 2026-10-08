@@ -23,7 +23,7 @@ const clinicPersonIds=w=>w?.clinicPeople||[];
 const guestPersonIds=w=>w?.guestPeople||[];
 const OFFICIAL_MEAL_PROVIDERS=['china-official-economy','china-salon-reception-account','china-teller-accounts','china-archive-accounts','china-clinic-npc-economy','china-tea-accounts','china-herald-accounts','china-scribe-accounts','china-garden-accounts','china-range-warden-accounts','china-royal-kitchen-accounts','china-guard-accounts','npc-personal-meal-accounts'];
 const ARTIST_MEAL_PROVIDERS=['china-salon-economy',...OFFICIAL_MEAL_PROVIDERS];
-const STAFF_MEAL_PROVIDERS=['tavern-personal-funds',...ARTIST_MEAL_PROVIDERS];
+const STAFF_MEAL_PROVIDERS=['tavern-personal-funds','tavern-operating-bank',...ARTIST_MEAL_PROVIDERS];
 const officialLeaseProvider=lease=>Object.hasOwn(lease,'accountProvider')?lease.accountProvider:'china-official-economy';
 const ACCOUNT_CUSTOMERS=[...CHINA_OFFICIAL_IDS,...SALON_ARTIST_IDS,M.host];
 const KITCHEN_BREAK_PHASES=['draining','ordering','supply','meal','toilet','returning'];
@@ -64,6 +64,30 @@ export function verifySavedRecruitmentTableWork(world,proof){
   proof.claim.tableId===proof.tableId&&Number.isSafeInteger(proof.claim.dirtyVersion)&&proof.claim.dirtyVersion>=0&&
   JSON.stringify(receipt)===JSON.stringify(proof);
 }
+const STOCK_SOURCE='chinaTavernServiceWorld',STOCK_BUSINESS='cn-yunlai-tavern';
+const sameSource=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+const stockOrder=o=>({orderId:o.id,number:o.number,dishId:o.dishId,customerId:o.customerId,customerName:o.customerName});
+// The scene keeps these original-order outcomes after queue cleanup. Inventory
+// history alone cannot authenticate itself or invent an actual preparation.
+export function verifySavedTavernStockReceipt(world,receipt){
+ const kind=receipt?.kind,p=receipt?.proof,order=p?.order;
+ if(!['reserve','consume','cancel'].includes(kind)||p?.sourceId!==STOCK_SOURCE||p.businessId!==STOCK_BUSINESS||
+  !Number.isSafeInteger(p.sourceRevision)||p.sourceRevision<1||!Number.isSafeInteger(order?.number)||order.number<1||
+  order.orderId!=='cn-tavern-order-'+order.number||!TAVERN_DISHES.some(d=>d.id===order.dishId)||
+  typeof order.customerId!=='string'||typeof order.customerName!=='string'||
+  !world?.stockReceipts?.some(r=>sameSource(r,receipt)))return false;
+ if(kind==='reserve')return p.id==='cn-tavern-stock-reserve:'+order.orderId&&p.unprepared===true;
+ if(kind==='cancel')return p.id==='cn-tavern-stock-cancel:'+order.orderId&&p.reason==='original-order-cancelled'&&
+  world.stockReceipts.some(r=>r.kind==='reserve'&&sameSource(r.proof.order,order));
+ const physical=world.stockPreparations?.find(r=>r.id===p.preparationId);
+ return p.id==='cn-tavern-stock-consume:'+order.orderId&&p.completed===true&&p.preparationId===order.orderId+':preparation'&&
+  !!physical&&physical.orderId===order.orderId&&physical.sourceRevision===p.sourceRevision&&physical.activeSeconds>=3.2&&
+  Number.isFinite(physical.completedSeconds)&&physical.completedSeconds>=0&&typeof physical.actorId==='string'&&typeof physical.bodyId==='string'&&
+  sameSource(physical.position,P.prep)&&sameSource(physical.workTarget,P.prepTop)&&Array.isArray(physical.actorPosition)&&
+  Math.hypot(physical.actorPosition[0]-P.prep[0],physical.actorPosition[2]-P.prep[2])<=.23&&Math.abs(physical.actorPosition[1]-P.prep[1])<.12&&
+  world.stockReceipts.some(r=>r.kind==='reserve'&&sameSource(r.proof.order,order));
+}
+export function verifyTavernStockOrderSource(world,kind,proof){const r=world?.stockReceipts?.find(r=>r.kind===kind&&sameSource(r.proof,proof));return !!r&&verifySavedTavernStockReceipt(world,r);}
 
 function validWorld(w,guestEconomy=null,personalMealEconomy=null,enableOfficialPersonalFunds=false,enableArtistPersonalFunds=false,enableStaffPersonalFunds=false){
  const integer=n=>Number.isSafeInteger(n)&&n>=0,ids=new Set(),stages=new Set(['arriving','awaiting-payment','requested','ordered','paid','preparing','prepared','heating','cooked','pass','carrying','wrong','ready','eating','finish-bite','dirty','return','wash','done']);
@@ -91,6 +115,8 @@ function validWorld(w,guestEconomy=null,personalMealEconomy=null,enableOfficialP
  if((w.hostDiner||w.kitchenDiner||w.guestDiner)&&!w.orders.some(o=>o.id===(w.hostDiner||w.kitchenDiner||w.guestDiner).orderId&&(!o.collected||['reserved','settled'].includes(o.payment))))return false;
  if(w.orders.some(o=>!originalGuestOrder(o)&&[...ACCOUNT_CUSTOMERS,...hostPersonIds(w),...kitchenPersonIds(w),...clinicPersonIds(w),...guestPersonIds(w)].includes(o.customerId)&&!o.cancelled&&!['dirty','return','wash','done'].includes(o.stage)&&lease?.orderId!==o.id))return false;
  if(w.recruitmentTableReceipts!==undefined&&(!Array.isArray(w.recruitmentTableReceipts)||new Set(w.recruitmentTableReceipts.map(p=>p.id)).size!==w.recruitmentTableReceipts.length||w.recruitmentTableReceipts.some(p=>p?.sourceId!=='cn-tavern-recruitment'||!integer(p.sourceRevision)||!GUESTS.includes(p.actorId)||typeof p.bodyId!=='string'||!p.applicationId||p.activeSeconds!==5||!Number.isFinite(p.startedSeconds)||!Number.isFinite(p.completedSeconds)||p.completedSeconds-p.startedSeconds<5||!TAVERN_RECRUITMENT_TABLES.some(t=>t.id===p.tableId)||!integer(p.claim?.dirtyVersion))))return false;
+ if(w.stockReceipts!==undefined&&(!Array.isArray(w.stockReceipts)||new Set(w.stockReceipts.map(r=>r.proof?.id)).size!==w.stockReceipts.length||w.stockReceipts.some(r=>!verifySavedTavernStockReceipt(w,r))))return false;
+ if(w.stockPreparations!==undefined&&(!Array.isArray(w.stockPreparations)||new Set(w.stockPreparations.map(r=>r.id)).size!==w.stockPreparations.length||w.stockPreparations.some(r=>!w.stockReceipts?.some(e=>e.kind==='consume'&&e.proof.preparationId===r.id))))return false;
  if(w.visitors.some(v=>v.toiletExit!==undefined&&(!integer(v.toiletExit)||v.mode!=='idle')))return false;
  return GUESTS.every(id=>w.visitors.filter(v=>v.id===id&&integer(v.copper)&&['dining','lodging-wait','lodging','leaving','idle','clinic','salon'].includes(v.mode)&&validSalonVisitor(v)&&(v.mode!=='dining'||ids.has(v.orderId))&&(v.mode!=='clinic'||/^cn-clinic-order-[1-9][0-9]*$/.test(v.careClaimId))).length===1);
 }
@@ -98,7 +124,7 @@ function validWorld(w,guestEconomy=null,personalMealEconomy=null,enableOfficialP
 // Two stable adult visitors produce bounded meal and lodging events. Durable boundaries
 // are saved before effects; the physical action timer itself is never restored.
 export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({hour:10}),worldSeed=1,npcs,lot,furniture,doors,planPath,moveActor,poseContext,getPlayer,getMounted,
-  onRelationshipEvent=()=>({ok:false}),saveState=()=>true,onReview=()=>({ok:true}),chargePlayer=()=>({ok:false,code:'wallet-unavailable'}),notify=()=>{},navigation=lot.navigation||{},propsFactory=createTavernMealProps,sharedNeeds=null,officialEconomy=null,artistEconomy=null,clinicEconomy=null,personalMealEconomy=null,enableOfficialPersonalFunds=false,enableArtistPersonalFunds=false,enableStaffPersonalFunds=false,canBorrowClinic=()=>false,guestEconomy=null,canBorrowGuest=()=>false,staffEconomy=null,getHostRole=null,getKitchenRole=null,getRecruitment=()=>null,enableKitchenNeeds=false,isActorAlive=n=>n?.alive!==false,hasPresentHostMeeting=()=>false,canBorrowArtist=()=>true,getToilet=()=>null,onMealReceipts=()=>{},roomAvailable=()=>true}){
+  onRelationshipEvent=()=>({ok:false}),saveState=()=>true,onReview=()=>({ok:true}),chargePlayer=()=>({ok:false,code:'wallet-unavailable'}),notify=()=>{},navigation=lot.navigation||{},propsFactory=createTavernMealProps,sharedNeeds=null,officialEconomy=null,artistEconomy=null,clinicEconomy=null,personalMealEconomy=null,enableOfficialPersonalFunds=false,enableArtistPersonalFunds=false,enableStaffPersonalFunds=false,canBorrowClinic=()=>false,guestEconomy=null,canBorrowGuest=()=>false,staffEconomy=null,getHostRole=null,getKitchenRole=null,getRecruitment=()=>null,getManagement=()=>null,getPlayerCleaningTable=()=>null,enableKitchenNeeds=false,isActorAlive=n=>n?.alive!==false,hasPresentHostMeeting=()=>false,canBorrowArtist=()=>true,getToilet=()=>null,onMealReceipts=()=>{},roomAvailable=()=>true}){
  const originalHost=npcs.find(n=>n.station.id===ORIGINAL_TAVERN_HOST_ID);let host=originalHost,roleReady=true;let chef=npcs.find(n=>n.station.id===M.cook),assistant=npcs.find(n=>n.station.id===M.assistant);
  const guests=GUESTS.map(id=>npcs.find(n=>n.station.id===id)),staff={host,chef,assistant},actors=[host,chef,assistant,...guests].filter(Boolean);
  const dirt=createTavernDirtProps(lot.group,furniture);
@@ -112,7 +138,8 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  const kitchenRole=r=>getKitchenRole?.(r)||{holderId:tenureOwns(r)?'player':staff[r]?.station.id||null,isPlayer:tenureOwns(r),actor:staff[r],reliefActor:staff[r],available:alive(staff[r]),alive:alive(staff[r])};
  const ownsDish=(n,o)=>!['cook','assistant'].includes(o.holder)||!Object.hasOwn(o,'holderActorId')||!!o.holderActorId&&o.holderActorId===n?.station?.id;
  const kitchenServiceAvailable=()=>['chef','assistant'].every(r=>{if(!getKitchenRole)return !tenureOwns(r)||playerOwns(r);const b=kitchenRole(r);return b.available&&b.alive&&(b.isPlayer?playerOwns(r):alive(b.actor));});
- const kitchenHandoff=r=>kitchenHandoffBoundary(r,{orders:state?.orders,phases:[...phases],activity,heldTrayId:state?.heldTrayId});
+ const kitchenHandoff=r=>{const boundary=kitchenHandoffBoundary(r,{orders:state?.orders,phases:[...phases],activity,heldTrayId:state?.heldTrayId}),n=staff[r],blockers=[...boundary.blockers];
+  if(n&&personalControlBusy(n))blockers.push({kind:'staff-personal-control',actorId:n.station.id});return {ok:!blockers.length,blockers};};
  const isAccountCustomer=id=>ACCOUNT_CUSTOMERS.includes(id)||hostPersonIds(state).includes(id)||kitchenPersonIds(state).includes(id)||clinicPersonIds(state).includes(id)||guestPersonIds(state).includes(id);
  const isAccountOrder=o=>!originalGuestOrder(o)&&isAccountCustomer(o.customerId);
  const accountActor=id=>isAccountCustomer(id)?npcs.find(n=>n.station.id===id):null;
@@ -233,7 +260,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   return [...(s.candidates||[]).filter(c=>c.tableClaim&&!['assigned','returned','paused'].includes(c.phase)).map(c=>c.tableClaim),
    ...(s.pending||[]).filter(e=>e.kind==='table-work').map(e=>e.receipt.claim)].filter(Boolean);
  }
- const recruitmentTableHeld=(id,except=null)=>recruitmentTableClaims().some(c=>c.worldTableId===id&&c.actorId!==except);
+ const recruitmentTableHeld=(id,except=null)=>worldTableId(getPlayerCleaningTable())===id||recruitmentTableClaims().some(c=>c.worldTableId===id&&c.actorId!==except);
  function recruitmentTableSafe(id,table,c,{body=true}={}){const n=originalGuest(id),worldId=worldTableId(table?.id),t=state?.tables.find(t=>t.id===worldId);
   return !!n&&!!t&&!!trialTable(table.id)&&recruitmentLeaseValid(id,c?.lease,c)&&!recruitmentTableHeld(worldId,id)&&
    !state.orders.some(o=>(o.tableId===worldId||o.placedTableId===worldId)&&o.stage!=='done')&&
@@ -277,6 +304,96 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
    committed(){if(accepted)return true;if(!locked||!durable||state!==base)return false;state=next;dirt.update(state.tables,state.rooms);accepted=true;record('recruitment-table-cleaned',{customerId:c.actorId,applicationId:c.applicationId,tableId:worldId});return true;},
    release(){if(durable&&!accepted)return false;if(recruitmentWorldLock===token)recruitmentWorldLock=null;locked=false;released=true;return true;}};
  }
+ let stockSourceCandidate=null,stockError=null,lastWorkControllers=new Set(),coverageSeconds=null;
+ function stockAdmission(dishId){const m=getManagement();if(!m)return {enabled:false,ready:true,available:true,canPurchase:false};
+  try{const s=m.stockAdmission?.(dishId);return s&&typeof s.enabled==='boolean'&&typeof s.ready==='boolean'?s:{enabled:true,ready:false,available:false,canPurchase:false};}
+  catch{return {enabled:true,ready:false,available:false,canPurchase:false};}
+ }
+ function canAdmitStock(dishId){const s=stockAdmission(dishId);return !s.enabled||s.ready&&(s.available||s.canPurchase);}
+ function stockTracked(o){const m=getManagement(),summary=m?.stock?.summary();return !!summary?.active&&o.number>summary.cutoff;}
+ function stockOrderMayWork(o){
+  if(o.cancelled)return false;
+  if(o.customerId==='player'&&['refunded','unpaid'].includes(chargePlayer('status',o)?.status))return false;
+  if(!stockTracked(o))return true;
+  const s=getManagement()?.stock?.order(o.id);return ['paid','preparing'].includes(o.stage)?s?.status==='reserved':s?.status==='consumed';
+ }
+ function physicalPreparation(o,nextRevision){const n=actor('chef',o),player=playerOwns('chef'),seconds=getClock()?.seconds;
+  if(!n||!alive(n)&&n!==getPlayer()||n.walking||n.serviceMount||isSociallyHeld(n.station?.id,conversation)||!at(n,P.prep,player ? .23 : .12)||!Number.isFinite(seconds)||seconds<0)return null;
+  const elapsed=player?activity?.kind==='prep'&&activity.orderId===o.id&&!getMounted()&&at(n,activity.origin,.03)?activity.elapsed:0:
+   lastWorkControllers.has('chef')&&effects.get(n)?.action==='cook'&&!life.isActive(n)?phases.get(o.id)||0:0;
+  if(elapsed<3.2||!stockOrderMayWork(o))return null;
+  return {id:o.id+':preparation',orderId:o.id,sourceRevision:nextRevision,actorId:n===getPlayer()?'player':n.station.id,bodyId:actualBody(n)||'player',
+   position:P.prep.slice(),workTarget:P.prepTop.slice(),actorPosition:n.root.position.toArray(),activeSeconds:elapsed,completedSeconds:seconds};
+ }
+ function verifyStockOrderSource(kind,proof){const s=stockSourceCandidate;if(!s||state!==s.base||kind!==s.kind||!sameJSON(proof,s.proof)||proof.sourceRevision!==s.next.revision)return false;
+  const old=state?.orders.find(o=>o.id===proof.order.orderId),next=s.next.orders.find(o=>o.id===proof.order.orderId);
+  if(!next||!sameJSON(stockOrder(next),proof.order))return false;
+  if(kind==='reserve')return !old&&next.number===state.serial+1&&s.next.serial===next.number&&!next.mealId&&!next.cancelled&&['arriving','awaiting-payment','requested','paid'].includes(next.stage);
+  if(!old||!sameJSON(stockOrder(old),proof.order))return false;
+  if(kind==='consume')return ['paid','preparing'].includes(old.stage)&&next.stage==='prepared'&&sameJSON(s.preparation,physicalPreparation(old,s.next.revision));
+  return kind==='cancel'&&!old.cancelled&&next.cancelled===true;
+ }
+ function stockTransition(next){const m=getManagement();if(!m||!state)return null;const actions=[];
+  for(const n of next.orders){const old=state.orders.find(o=>o.id===n.id);
+   if(!old){const gate=stockAdmission(n.dishId);if(!gate.enabled)continue;if(!gate.ready){stockError=gate.code||'stock-activation-pending';return false;}actions.push({kind:'reserve',row:n});}
+   else if(stockTracked(old)&&!old.cancelled&&n.cancelled)actions.push({kind:'cancel',row:n});
+   else if(stockTracked(old)&&['paid','preparing'].includes(old.stage)&&n.stage==='prepared')actions.push({kind:'consume',row:n});
+  }
+  if(!actions.length)return null;if(actions.length!==1){stockError='multiple-stock-transitions';return false;}
+  const {kind,row}=actions[0],proof={id:'cn-tavern-stock-'+kind+':'+row.id,sourceId:STOCK_SOURCE,sourceRevision:next.revision,businessId:STOCK_BUSINESS,
+   order:stockOrder(row),...(kind==='reserve'?{unprepared:true}:kind==='consume'?{preparationId:row.id+':preparation',completed:true}:{reason:'original-order-cancelled'})};
+  const preparation=kind==='consume'?physicalPreparation(state.orders.find(o=>o.id===row.id),next.revision):null;
+  if(kind==='consume'&&!preparation){stockError='physical-preparation-incomplete';return false;}
+  stockSourceCandidate={base:state,next,kind,proof,preparation};
+  let p=m.prepareStockTransition(kind,copy(proof));
+  if(!p?.ok&&kind==='reserve'&&p?.code==='insufficient-stock'&&m.supplyForOrder?.(copy(proof))?.ok)p=m.prepareStockTransition(kind,copy(proof));
+  if(!p?.ok){stockError=p?.code||'stock-transition-unavailable';stockSourceCandidate=null;return false;}
+  if(p.legacy||p.replayed){stockError='unexpected-stock-replay';stockSourceCandidate=null;return false;}
+  next.stockReceipts=[...(next.stockReceipts||[]),copy(p.sourcePatch.receipt)];
+  if(preparation)next.stockPreparations=[...(next.stockPreparations||[]),copy(preparation)];
+  return p;
+ }
+ function saveWithStock(next,moneyParticipant){const p=stockTransition(next);if(p===false)return false;
+  if(!p)return moneyParticipant?moneyParticipant.commit({chinaServiceWorld:copy(next)}):saveState(copy(next));
+  try{
+   if(!p.lock?.())return false;
+   if(!p.save(bundle=>{const patch={...copy(bundle.patch),chinaServiceWorld:copy(next)};
+    if(moneyParticipant){const result=moneyParticipant.commit(patch);return result?.ok===true;}
+    return getManagement()?.saveStockWorld(patch)===true;
+   }))return false;
+   if(p.committed()!==true)return false;stockError=null;return moneyParticipant?{ok:true}:true;
+  }finally{p.release?.();stockSourceCandidate=null;}
+ }
+ function personalControlBusy(n){return !!n&&(!!n.serviceMount||!!n.walking||!!n.route?.length||life.isActive(n)||isSociallyHeld(n.station.id,conversation)||
+  getToilet()?.ownsActor(n)||inPublicToiletRoom(n)||borrowedLease()?.actorId===n.station.id||
+  !!state?.hostBreak&&breakPersonId(state)===n.station.id||state?.kitchenBreak?.actorId===n.station.id||recruitmentOwns(n));}
+ function hostHandoff(){const n=hostActor()||host,blockers=[];
+  if(n&&personalControlBusy(n))blockers.push({kind:'host-personal-control',actorId:n.station.id});
+  if(n&&(!alive(n)||Math.abs(n.root.position.y-.215)>.12))blockers.push({kind:'host-not-standing',actorId:n.station.id});
+  if(n&&state?.orders.some(o=>o.holderActorId===n.station.id&&o.stage!=='done'))blockers.push({kind:'host-held-object'});
+  for(const o of state?.orders||[])if(['requested','ordered'].includes(o.stage)&&(phases.get(o.id)||0)>0)blockers.push({kind:'host-order-action',orderId:o.id});
+  if(hasPresentHostMeeting()||playerLodging?.hostPending()&&at(getPlayer(),HANDOVER.host.player,.9))blockers.push({kind:'present-host-meeting'});
+  if(activity&&['take-order','collect','rent-room'].includes(activity.kind)||pendingChoice&&['take-order','collect','rent-room'].includes(pendingChoice.kind))blockers.push({kind:'host-player-action'});
+  return {ok:!blockers.length,blockers};
+ }
+ function releaseRecruitmentStaff(id){const n=originalGuest(id);
+  if(!n||staffCustody(n)||personalControlBusy(n)||!recruitmentOrderSafe(id))return false;
+  if(!life.interrupt(n))return false;paths.delete(n);recruitmentRoutes.delete(n);n.route=[];n.walking=false;effects.delete(n);idleSince.delete(n);
+  for(const r of ['host','chef','assistant'])if(staff[r]===n){staff[r]=null;kitchenBindings.delete(r);}
+  if(host===n)host=null;if(chef===n)chef=null;if(assistant===n)assistant=null;return true;
+ }
+ function readTavernCoverage(contract){const r=Object.keys(ROLE).find(r=>ROLE[r]===contract?.roleId),n=r&&staff[r],binding=r==='host'?hostRole():r&&kitchenRole(r),clock=getClock();
+  if(!state||!r||!n||!binding||binding.holderId!==contract.actorId||binding.slotId!==contract.slotId||binding.revision!==contract.holderRevision||
+   n.station.id!==contract.actorId||actualBody(n)!==contract.bodyId||!alive(n)||binding.alive!==true||binding.available!==true||
+   !Number.isFinite(clock.seconds)||clock.seconds!==coverageSeconds||!lastWorkControllers.has(r)||
+   n.serviceMount||life.isActive(n)||isSociallyHeld(n.station.id,conversation)||getToilet()?.ownsActor(n)||inPublicToiletRoom(n)||
+   borrowedLease()?.actorId===n.station.id||state.hostBreak&&breakPersonId(state)===n.station.id||state.kitchenBreak?.actorId===n.station.id||recruitmentCandidate(n.station.id))return null;
+  const p=n.root.position,inArea=r==='chef'?p.x>=21.7&&p.x<=26.1&&p.z>=3&&p.z<=7.3&&Math.abs(p.y-.215)<.2:
+   p.x>=16&&p.x<=26.4&&p.z>=3&&p.z<=22.2&&p.y>=.1&&p.y<=4.2;
+  if(!inArea)return null;
+  return {contractId:contract.id,actorId:contract.actorId,bodyId:contract.bodyId,roleId:contract.roleId,slotId:contract.slotId,
+   holderRevision:contract.holderRevision,alive:true,available:true,inWorkArea:true,controller:'tavern-work',activity:n.walking||workPending(r)||effects.get(n)?.action?'work':'waiting',trial:false};
+ }
  const nearPlayer=p=>!getMounted()&&at(getPlayer(),p,.23);
  const record=(event,data={})=>{const o=state?.orders.find(o=>o.id===data.orderId);history.push({event,time:+time.toFixed(2),mealId:o?.mealId||null,seatId:o?.seatId||null,...data});if(history.length>70)history.shift();};
  function persist(next,bump=true,participant=null){try{
@@ -294,7 +411,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   }
   for(const r of next.serviceReviews||[])if(!(state?.serviceReviews||[]).some(x=>x.id===r.id))events.push(serviceRelationshipEvent('china-tavern-table',r.id,'failed',r.responsibility?.actorId,r.customerId,time,{fault:true}));
   next.relationshipEvents=relationshipOutbox.merge(next.relationshipEvents,events);
-  next={...next,layoutVersion:TAVERN_LAYOUT_VERSION,revision:bump?Math.max(state?.revision||0,next.revision||0)+1:next.revision||0};const result=participant?participant.commit({chinaServiceWorld:copy(next)}):saveState(copy(next));if(result===false||result?.then||participant&&!result?.ok)return false;state=next;relationshipOutbox.deliver(state.relationshipEvents);onMealReceipts(state.mealReceipts||[]);return true;}catch{return false;}}
+  next={...next,layoutVersion:TAVERN_LAYOUT_VERSION,revision:bump?Math.max(state?.revision||0,next.revision||0)+1:next.revision||0};const result=saveWithStock(next,participant);if(result===false||result?.then||participant&&!result?.ok)return false;state=next;relationshipOutbox.deliver(state.relationshipEvents);onMealReceipts(state.mealReceipts||[]);return true;}catch{return false;}finally{stockSourceCandidate=null;}}
  function changeWorld(mutator){const next=copy(state);mutator(next);return persist(next);}
  function change(id,fields){const next=copy(state),o=next.orders.find(o=>o.id===id);Object.assign(o,fields);if(!persist(next))return false;record(fields.stage||'changed',{orderId:id});return true;}
  const accountFunds=id=>{const account=accountEconomy(id)?.account(id);return account?(account.total??account.cash+account.bank):0;};
@@ -321,7 +438,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   const key=p.join(',');let route=paths.get(n);if(!route||route.key!==key){route={key,retryAt:0,retries:0};paths.set(n,route);n.route=[];}if(!n.route.length&&time>=route.retryAt){route.retryAt=time+2;n.route=planPath(n.root.position,{x:p[0],y:p[1],z:p[2]},.25);if(!n.route.length&&++route.retries===3){failures.push({actorId:n.station.id,target:p.slice(),position:n.root.position.toArray(),reason:'empty-route'});if(failures.length>10)failures.shift();}}
   followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,speedScale:.78,arrivalTolerance:.035});return at(n,p,.07);
  }
- function stage(o,next,fields={}){phases.delete(o.id);const changed=change(o.id,{stage:next,...fields});if(changed){const event={ordered:'accepted-at-table',paid:'cook-received-order',cooked:'dish-prepared',pass:'dish-on-pass',carrying:'tray-received',ready:'delivered',eating:'delivered',dirty:'eaten',return:'table-cleared',done:o.mealId?'washed':'cancelled-before-cooking'}[next];if(event&&!(next==='eating'&&o.stage==='ready'))record(event,{orderId:o.id,mealId:fields.mealId||o.mealId});}return changed;}
+ function stage(o,next,fields={}){const changed=change(o.id,{stage:next,...fields});if(changed){phases.delete(o.id);const event={ordered:'accepted-at-table',paid:'cook-received-order',cooked:'dish-prepared',pass:'dish-on-pass',carrying:'tray-received',ready:'delivered',eating:'delivered',dirty:'eaten',return:'table-cleared',done:o.mealId?'washed':'cancelled-before-cooking'}[next];if(event&&!(next==='eating'&&o.stage==='ready'))record(event,{orderId:o.id,mealId:fields.mealId||o.mealId});}return changed;}
  // Persist a completed supply receipt with the physical order before relief.
  // Cancelled/partial meals never reach this boundary. Only one receipt per
  // customer is retained, so old order cleanup cannot erase an unapplied meal.
@@ -458,7 +575,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   if(activity||pendingChoice)return [];
   if(r==='host')return [...state.orders.filter(o=>['requested','ordered'].includes(o.stage)&&payableOrder(o)).map(o=>describe(o.stage==='requested'?'take-order':'collect',o,o.servePoint,o.stage==='requested'?`听${o.customerName}点菜 · ${seatName(o)}`:`收取${o.price}铜文 · 记入酒楼账`)),
     ...state.visitors.filter(v=>v.mode==='lodging-wait').flatMap(v=>state.rooms.filter(room=>!room.dirty&&!room.guestId&&roomAvailable(room.id)).map(room=>describe('rent-room',null,P.host,`为${guests.find(n=>n.station.id===v.id).station.npcName}登记${room.name} · 收12铜文`,{guestId:v.id,roomId:room.id})))];
-  if(r==='chef'){const held=state.orders.find(o=>o.stage==='cooked'&&(!o.holderActorId||o.holderActorId==='player'));if(held)return [describe('pass',held,P.cookPass,`把${held.dishName}放上传菜台`)];return state.orders.filter(o=>o.stage==='paid'||o.stage==='prepared'&&freePassSlot()!==null).map(o=>describe(o.stage==='paid'?'prep':'heat',o,o.stage==='paid'?P.prep:P.stove,`${o.stage==='paid'?'切配':'烹调'}${o.dishName} · ${seatName(o)}`));}
+  if(r==='chef'){const held=state.orders.find(o=>o.stage==='cooked'&&(!o.holderActorId||o.holderActorId==='player'));if(held)return [describe('pass',held,P.cookPass,`把${held.dishName}放上传菜台`)];return state.orders.filter(o=>stockOrderMayWork(o)&&(o.stage==='paid'||o.stage==='prepared'&&freePassSlot()!==null)).map(o=>describe(o.stage==='paid'?'prep':'heat',o,o.stage==='paid'?P.prep:P.stove,`${o.stage==='paid'?'切配':'烹调'}${o.dishName} · ${seatName(o)}`));}
   const held=order(state.heldTrayId);if(held)return [...state.orders.filter(o=>state.visitors.some(v=>v.orderId===o.id&&v.mode==='dining')||borrowedLease()?.orderId===o.id&&borrowedLease().mode==='dining').map(o=>describe('deliver',o,o.servePoint,`送到${seatName(o)} · ${o.customerName}`)),describe('return-tray',held,P.hostPass,'把当前餐盘退回传菜台')];
   const returning=state.orders.find(o=>o.stage==='return'&&(!o.holderActorId||o.holderActorId==='player'));if(returning)return [describe('wash',returning,P.wash,`清洗${seatName(returning)}餐具`)];
   const wrong=state.orders.find(o=>o.stage==='wrong');if(wrong)return [describe('retrieve',wrong,state.orders.find(q=>q.tableId===wrong.placedTableId).servePoint,`取回送错的${wrong.dishName}`)];
@@ -534,9 +651,9 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
     if(need?.seekToilet&&time>=(idleSince.get(v.id+'-toilet')||0)&&!life.isActive(n)){
      idleSince.set(v.id+'-toilet',time+12);if(life.interrupt(n)&&toilet?.requestActor(n)){toilet.updateActor(n,dt,{travel:(point,step)=>travel(n,point,step)});continue;}
     }
-    if(recruitmentTableHeld(GUESTS.indexOf(v.id)?'east':'west')||!hostAdmissionOpen()||!mealCandidate(v)||need&&(!need.seekMeal||life.isActive(n))){phases.delete('arrival-'+v.id);life.update(n,dt,time,{conversationActorId:conversation});continue;}
+    if(!canAdmitStock(TAVERN_DISHES[GUESTS.indexOf(v.id)].id)||recruitmentTableHeld(GUESTS.indexOf(v.id)?'east':'west')||!hostAdmissionOpen()||!mealCandidate(v)||need&&(!need.seekMeal||life.isActive(n))){phases.delete('arrival-'+v.id);life.update(n,dt,time,{conversationActorId:conversation});continue;}
     const unfinished=state.orders.filter(o=>o.stage!=='done');if(unfinished.filter(o=>o.customerId!=='player').length>=4){phases.delete('arrival-'+v.id);life.update(n,dt,time,{conversationActorId:conversation});continue;}
-    tick({id:'arrival-'+v.id},dt,7,()=>{const current=state.visitors.find(q=>q.id===v.id);if(current.mode!=='idle'||recruitmentTableHeld(GUESTS.indexOf(v.id)?'east':'west')||recruitmentOwns(n)||staffCustody(n)||!mealCandidate(current)||!life.interrupt(n))return false;const next=copy(state),fresh=makeOrders(state.receiptId,next.serial)[guests.indexOf(n)];fresh.number=++next.serial;fresh.id='cn-tavern-order-'+fresh.number;fresh.customerCopper=current.copper;next.orders=next.orders.filter(o=>o.stage!=='done'||o.customerId==='player');next.orders.push(fresh);const visitor=next.visitors.find(q=>q.id===v.id);Object.assign(visitor,{mode:'dining',orderId:fresh.id,visits:visitor.visits+1,roomId:null});delete visitor.mealDeferred;return persist(next);});
+    tick({id:'arrival-'+v.id},dt,7,()=>{const current=state.visitors.find(q=>q.id===v.id);if(current.mode!=='idle'||!canAdmitStock(TAVERN_DISHES[GUESTS.indexOf(v.id)].id)||recruitmentTableHeld(GUESTS.indexOf(v.id)?'east':'west')||recruitmentOwns(n)||staffCustody(n)||!mealCandidate(current)||!life.interrupt(n))return false;const next=copy(state),fresh=makeOrders(state.receiptId,next.serial)[guests.indexOf(n)];fresh.number=++next.serial;fresh.id='cn-tavern-order-'+fresh.number;fresh.customerCopper=current.copper;next.orders=next.orders.filter(o=>o.stage!=='done'||o.customerId==='player');next.orders.push(fresh);const visitor=next.visitors.find(q=>q.id===v.id);Object.assign(visitor,{mode:'dining',orderId:fresh.id,visits:visitor.visits+1,roomId:null});delete visitor.mealDeferred;return persist(next);});
    }
   }
  }
@@ -546,7 +663,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  const customer=o=>o.customerId==='player'?getPlayer():isAccountOrder(o)?accountActor(o.customerId):guests[o.guestIndex];
  const customerSeated=o=>!!o&&(o.customerId==='player'?getMounted()?.id===o.seatId&&at(getPlayer(),o.seatAnchor,.35):customer(o)?.serviceMount?.id===o.seatId&&at(customer(o),o.seatAnchor,.35));
  const freePassSlot=()=>{const used=new Set(state.orders.filter(o=>['cooked','pass','carrying','wrong'].includes(o.stage)).map(o=>o.passSlot??o.guestIndex));return [0,1].find(i=>!used.has(i))??null;};
- function prepareDish(o,fields={}){const slot=freePassSlot();return slot!==null&&stage(o,'cooked',{mealId:o.id+'-dish',holder:'cook',passSlot:slot,passPoint:PASS_SLOTS[slot].slice(),...fields});}
+ function prepareDish(o,fields={}){if(!stockOrderMayWork(o))return false;const slot=freePassSlot();return slot!==null&&stage(o,'cooked',{mealId:o.id+'-dish',holder:'cook',passSlot:slot,passPoint:PASS_SLOTS[slot].slice(),...fields});}
 
  // Official prepayments stay refundable against their order and never enter
  // earned till until the actual dish is delivered. Owners can withdraw only
@@ -557,8 +674,9 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  const officialMeal=id=>CHINA_OFFICIAL_IDS.includes(id)?accountMeal(id):null,artistMeal=id=>SALON_ARTIST_IDS.includes(id)?accountMeal(id):null;
  const seatBodyClear=(seat,actor=null)=>!npcs.some(n=>n!==actor&&at(n,seat.anchor,.35));
  function availableOfficialSeats(){const claims=furniture.facilities.state?.()||[];return furniture.items.filter(s=>s.id.startsWith('china-tavern-dining-')&&!recruitmentTableHeld(s.center[0]<21?'west':'east')&&seatBodyClear(s)&&getMounted()?.id!==s.id&&!claims.some(f=>f.id===s.id&&(f.player||f.reservations.length)));}
- function accountMealAvailable(id){const dish=TAVERN_DISHES[0];return id!==hostRole().holderId&&hostAdmissionOpen()&&!!state&&!loadError&&alive(accountActor(id))&&(!SALON_ARTIST_IDS.includes(id)||canBorrowArtist(id))&&(!clinicPersonIds(state).includes(id)||canBorrowClinic(id)&&(!personalMealEconomy||!canBorrowGuest(id)))&&(!guestPersonIds(state).includes(id)||canBorrowGuest(id)&&(!personalMealEconomy||!canBorrowClinic(id)))&&!borrowedLease()&&!!sharedNeeds?.status(id)?.seekMeal&&accountFunds(id)>=dish.price&&state.orders.filter(o=>o.stage!=='done').length<6&&availableOfficialSeats().length>0;}
+ function accountMealAvailable(id){const dish=TAVERN_DISHES[0];return canAdmitStock(dish.id)&&id!==hostRole().holderId&&hostAdmissionOpen()&&!!state&&!loadError&&alive(accountActor(id))&&(!SALON_ARTIST_IDS.includes(id)||canBorrowArtist(id))&&(!clinicPersonIds(state).includes(id)||canBorrowClinic(id)&&(!personalMealEconomy||!canBorrowGuest(id)))&&(!guestPersonIds(state).includes(id)||canBorrowGuest(id)&&(!personalMealEconomy||!canBorrowClinic(id)))&&!borrowedLease()&&!!sharedNeeds?.status(id)?.seekMeal&&accountFunds(id)>=dish.price&&state.orders.filter(o=>o.stage!=='done').length<6&&availableOfficialSeats().length>0;}
  function requestAccountMeal(id,{selfOrder=false,kitchenOrder=false}={}){
+  if(!canAdmitStock(TAVERN_DISHES[0].id))return false;
   if(kitchenOrder?!(state?.kitchenBreak?.actorId===id&&state.kitchenBreak.phase==='ordering'&&hostAtPost()&&kitchenServiceAvailable()&&!borrowedLease()&&accountFunds(id)>=TAVERN_DISHES[0].price&&availableOfficialSeats().length):selfOrder?!(id===hostRole().holderId&&state?.hostBreak?.phase==='self-order'&&id===breakPersonId(state)&&at(host,P.host,.15)&&!borrowedLease()&&accountFunds(id)>=TAVERN_DISHES[0].price&&state.orders.filter(o=>o.stage!=='done').length<6&&availableOfficialSeats().length):!accountMealAvailable(id))return false;const n=accountActor(id),seat=availableOfficialSeats()[0],dish=TAVERN_DISHES[0],number=state.serial+1,orderId='cn-tavern-order-'+number;
   if(!furniture.facilities.reserve(seat.id,id,{purpose:'tavern-meal'})){furniture.facilities.release?.(seat.id,id);return false;}
   const next=copy(state),side=tavernSeatSide(seat);
@@ -601,7 +719,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  function requestPlayerMeal(seat,dishId=M.id){
   if(!hostAdmissionOpen()){notify(hostUnavailableReason());return false;}
   if(!state||state.orders.some(o=>o.customerId==='player'&&o.stage!=='done')||!seat||getMounted()?.id!==seat.id||recruitmentTableHeld(seat.center[0]<21?'west':'east'))return false;
-  const dish=TAVERN_DISHES.find(d=>d.id===dishId);if(!dish)return false;const next=copy(state),number=++next.serial,side=tavernSeatSide(seat);
+  const dish=TAVERN_DISHES.find(d=>d.id===dishId);if(!dish)return false;if(!canAdmitStock(dishId)){notify('这道菜的食材暂未备妥，请稍后再来点餐');return false;}const next=copy(state),number=++next.serial,side=tavernSeatSide(seat);
   const o={id:'cn-tavern-order-'+number,number,customerId:'player',customerName:'你',guestIndex:-1,tableId:seat.center[0]<21?'west':'east',seatId:seat.id,seatAnchor:seat.anchor.slice(),...tablePlace(seat.center[0]<21?'west':'east',side),dishId:dish.id,dishName:dish.name,price:dish.price,customerCopper:0,payment:'unpaid',collected:false,stage:'awaiting-payment',mealId:null,holder:null,cancelled:false,reviews:[],cleaned:false};
   next.orders=next.orders.filter(o=>o.customerId!=='player'||o.stage!=='done');next.orders.push(o);if(!persist(next))return false;record('requested',{orderId:o.id});const paid=reservePlayerMeal(order(o.id));if(paid)notify(`已暂扣${dish.price}铜文，已记入当前接待的客单；送达前取消可退回`);return paid;
  }
@@ -617,6 +735,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  }
  function eatPlayerMeal(){const o=state?.orders.find(o=>o.customerId==='player'&&o.stage==='ready'&&!o.cancelled);return !!o&&customerSeated(o)&&stage(o,'eating',{holder:'player'});}
  function updatePlayerMeal(dt){const o=state.orders.find(o=>o.customerId==='player'&&o.stage!=='done');if(!o)return;
+  if(!o.cancelled&&chargePlayer('status',o)?.status==='refunded'){cancelPlayerMeal();return;}
   if(o.layoutAwaitingSeat&&!o.cancelled){
    if(!customerSeated(o))return;
    // Rejoining the original seat resumes the same paid order. No eating or
@@ -823,19 +942,19 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   return n.serviceMount?'食客 · '+(steps[o?.stage]||'等候点菜'):n.walking?'食客 · 正在入店就座':'食客 · 等候空餐位';
  }
  function update(dt,t,{conversationActorId=null}={}){
-  if(disposed||recruitmentWorldLock)return;relationshipOutbox.deliver(state?.relationshipEvents);time+=Math.max(0,dt);conversation=conversationActorId;effects.clear();if(state&&(!reconcileHostRole()||!reconcileKitchenRoles()))return;life.tick(dt);for(const n of guests){if(n&&!externalOwns(n))n.walking=false;}
+  lastWorkControllers=new Set();coverageSeconds=null;if(disposed||recruitmentWorldLock)return;relationshipOutbox.deliver(state?.relationshipEvents);time+=Math.max(0,dt);conversation=conversationActorId;effects.clear();if(state&&(!reconcileHostRole()||!reconcileKitchenRoles()))return;life.tick(dt);for(const n of guests){if(n&&!externalOwns(n))n.walking=false;}
   if(!state){for(const n of guests)if(n){travel(n,n.station.npcPosition,dt);pose(n,t);}return;}
   for(const n of controlledActors())if(!externalOwns(n))n.walking=false;
   for(const v of [...state.visitors]){const n=guests.find(n=>n.station.id===v.id);if(!recruitmentOwns(n)&&!staffCustody(n))deferGuestMeal(v,n);}
   if(getTenureRoleId&&!tenureOwns(role())){activity=null;pendingChoice=null;handoverRequest=null;}
-  reconcileDiningSeats();updateKitchenBreak(dt);updateHostBreak(dt);const r=role(),activeNPC=npcControllers(dt,t);
+  reconcileDiningSeats();updateKitchenBreak(dt);updateHostBreak(dt);const r=role(),activeNPC=npcControllers(dt,t);lastWorkControllers=new Set(activeNPC);coverageSeconds=getClock()?.seconds;
   for(const id of new Set([...hostPersonIds(state),...kitchenPeople])){const n=npcs.find(n=>n.station.id===id);if(alive(n)&&!recruitmentOwns(n)&&!GUESTS.includes(id)&&!Object.values(staff).includes(n)&&n!==hostBreakActor()&&n.station.id!==state?.kitchenBreak?.actorId&&!state.orders.some(o=>o.holderActorId===id))life.update(n,dt,t,{onDuty:false,conversationActorId:conversation});}
   {
    updateVisitors(dt);updateAccountMeal(dt);
    if(activeNPC.has('host')){const o=state.orders.find(o=>['requested','ordered'].includes(o.stage)&&customerSeated(o));
     if(o){effect(host,null,o.seatAnchor);if(travel(host,o.servePoint,dt))tick(o,dt,1.3,()=>o.stage==='requested'?stage(o,'ordered'):collect(o));}
     else{travel(host,P.host,dt);if(playerLodging?.hostPending()){effect(host,'calligraphy',[23.4,1.32,6.4]);if(at(host,P.host,.15)&&!isSociallyHeld(host.station.id,conversation))tick({id:'player-lodging'},dt,1.3,()=>playerLodging.hostRespond());}else{phases.delete('player-lodging');const v=hostLodgingAdmission()&&state.visitors.find(v=>v.mode==='lodging-wait'),room=state.rooms.find(r=>!r.dirty&&!r.guestId&&roomAvailable(r.id));if(v&&room&&at(host,P.host,.15))rentRoom(v,room);}}}
-   if(activeNPC.has('chef')){const o=state.orders.find(o=>['preparing','prepared','heating','cooked'].includes(o.stage)&&ownsDish(chef,o))||state.orders.find(o=>o.stage==='paid'&&freePassSlot()!==null);if(!o)travel(chef,P.prep,dt);
+   if(activeNPC.has('chef')){const o=state.orders.find(o=>['preparing','prepared','heating','cooked'].includes(o.stage)&&ownsDish(chef,o)&&(o.stage==='cooked'||stockOrderMayWork(o)))||state.orders.find(o=>o.stage==='paid'&&freePassSlot()!==null&&stockOrderMayWork(o));if(!o)travel(chef,P.prep,dt);
     else if(['paid','preparing'].includes(o.stage)){effect(chef,'cook',P.prepTop);if(travel(chef,P.prep,dt))tick(o,dt,3.2,()=>stage(o,'prepared'));}
     else if(['prepared','heating'].includes(o.stage)){effect(chef,'herb-mix',P.stoveTop);if(travel(chef,P.stove,dt))tick(o,dt,4.2,()=>prepareDish(o));}
     else{effect(chef,null,P.passTop,true);if(travel(chef,P.cookPass,dt))tick(o,dt,1.1,()=>stage(o,'pass',{holder:'pass'}));}}
@@ -874,9 +993,9 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  function prepareLodgingWorld(next){if(!state||!validWorld(next,guestEconomy,personalMealEconomy,enableOfficialPersonalFunds,enableArtistPersonalFunds,enableStaffPersonalFunds)||(next.revision||0)!==(state.revision||0))return {ok:false,code:'stale-inn-world'};const committed={...copy(next),revision:(state.revision||0)+1},booking=next.playerStay?.booking;const event=booking?.stage==='active'&&state.playerStay?.booking?.stage==='waiting'?serviceRelationshipEvent('china-tavern-lodging',booking.id,'completed',host?.station.id,'player',time):null;committed.relationshipEvents=relationshipOutbox.merge(committed.relationshipEvents,[event]);return {ok:true,patch:{chinaServiceWorld:committed},committed:()=>{state=committed;relationshipOutbox.deliver(state.relationshipEvents);}};}
  function saveLodgingWorld(next){if(!next||!validWorld(next,guestEconomy,personalMealEconomy,enableOfficialPersonalFunds,enableArtistPersonalFunds,enableStaffPersonalFunds)||(next.revision||0)!==(state?.revision||0)+1)return false;return persist(next,false);}
  function release(){activity=null;pendingChoice=null;for(const n of guests){if(externalOwns(n))continue;if(n?.serviceMount){const seat=n.serviceMount;n.root.position.set(...seat.position);n.serviceMount=null;}if(n)furniture.releaseActor(n.station.id);}for(const p of props.values())p.dispose();props.clear();state=null;paths.clear();}
- return {verifyRecruitmentTableWork:proof=>verifySavedRecruitmentTableWork(state,proof),recruitmentActorState,recruitmentCustomerAvailable,releaseRecruitmentCustomer,recruitmentLeaseValid,returnRecruitmentCustomer,resolveRecruitmentMeetingPoint,moveRecruitmentActor,stopRecruitmentMove,claimRecruitmentTable,recruitmentTableClaimValid,releaseRecruitmentTable,canRecruitmentWorkTable,faceRecruitmentWork,animateRecruitmentActor,recruitmentTableHeld,prepareRecruitmentTableWork,registerGuestPerson,guestMeal,guestMealAvailable,requestGuestMeal,cancelGuestMeal,guestMealActorId:()=>state?.guestDiner?.actorId||null,publicToiletRoute:()=>publicHostRoute?.map(p=>p.slice())||null,registerClinicPerson,clinicMeal,clinicMealAvailable,requestClinicMeal,cancelClinicMeal,clinicMealActorId:()=>state?.clinicDiner?.actorId||null,kitchenBreak:()=>state?.kitchenBreak?copy(state.kitchenBreak):null,cancelKitchenMeal:()=>cancelAccountMeal(state?.kitchenDiner?.actorId),kitchenHandoff,kitchenRole,kitchenPersonIds:()=>[...kitchenPeople],officialMeal,officialMealAvailable,requestOfficialMeal,cancelOfficialMeal,artistMeal,artistMealAvailable,requestArtistMeal,cancelArtistMeal,artistMealActorId:()=>state?.artistDiner?.actorId||null,lodgingState:()=>({rooms:state?.rooms.map(r=>({...r}))||[],playerStay:state?.playerStay?copy(state.playerStay):null,loadError}),prepareLodgingWorld,saveLodgingWorld,setSalonService:service=>{salonService=service;},salonCustomerAvailable,resetSalonRoute:n=>{paths.delete(n);n.route=[];n.walking=false;},setPlayerLodging:service=>{playerLodging=service;},hostRole,hostActor,hostAtPost,hostAdmissionOpen,hostCompletionAvailable,hostUnavailableReason,hostBreak:()=>state?.hostBreak?copy(state.hostBreak):null,cancelHostMeal:()=>cancelAccountMeal(state?.hostDiner?.actorId),canHostLodging:()=>!!host&&!tenureOwns('host')&&hostAdmissionOpen(),lodgingHostReady:()=>hostCompletionAvailable()&&!!host&&!tenureOwns('host')&&!host.walking&&at(host,P.host,.15)&&!isSociallyHeld(host.station.id,conversation)&&!state.orders.some(o=>['requested','ordered'].includes(o.stage)&&customerSeated(o)),start,continuitySnapshot,restoreContinuity,initializeWorld,restoreWorld,claimClinicPatient,releaseClinicPatient,clinicClaims:()=>state?.visitors.filter(v=>v.mode==='clinic').map(v=>({actorId:v.id,claimId:v.careClaimId}))||[],requestPlayerMeal,cancelPlayerMeal,eatPlayerMeal,playerOrder:()=>state?.orders.find(o=>o.customerId==='player'&&o.stage!=='done')||null,choices,execute,update,release,beginReturn,stopActivity(){activity=null;pendingChoice=null;},active:()=>!!state,finished:()=>state?.stage==='finished',owns:n=>controlledActors().includes(n)&&!externalOwns(n),
+ return {hostHandoff,releaseRecruitmentStaff,readTavernCoverage,verifyStockOrderSource,verifyStockReceipt:receipt=>verifySavedTavernStockReceipt(state,receipt),stockAdmission,verifyRecruitmentTableWork:proof=>verifySavedRecruitmentTableWork(state,proof),recruitmentActorState,recruitmentCustomerAvailable,releaseRecruitmentCustomer,recruitmentLeaseValid,returnRecruitmentCustomer,resolveRecruitmentMeetingPoint,moveRecruitmentActor,stopRecruitmentMove,claimRecruitmentTable,recruitmentTableClaimValid,releaseRecruitmentTable,canRecruitmentWorkTable,faceRecruitmentWork,animateRecruitmentActor,recruitmentTableHeld,prepareRecruitmentTableWork,registerGuestPerson,guestMeal,guestMealAvailable,requestGuestMeal,cancelGuestMeal,guestMealActorId:()=>state?.guestDiner?.actorId||null,publicToiletRoute:()=>publicHostRoute?.map(p=>p.slice())||null,registerClinicPerson,clinicMeal,clinicMealAvailable,requestClinicMeal,cancelClinicMeal,clinicMealActorId:()=>state?.clinicDiner?.actorId||null,kitchenBreak:()=>state?.kitchenBreak?copy(state.kitchenBreak):null,cancelKitchenMeal:()=>cancelAccountMeal(state?.kitchenDiner?.actorId),kitchenHandoff,kitchenRole,kitchenPersonIds:()=>[...kitchenPeople],officialMeal,officialMealAvailable,requestOfficialMeal,cancelOfficialMeal,artistMeal,artistMealAvailable,requestArtistMeal,cancelArtistMeal,artistMealActorId:()=>state?.artistDiner?.actorId||null,lodgingState:()=>({rooms:state?.rooms.map(r=>({...r}))||[],playerStay:state?.playerStay?copy(state.playerStay):null,loadError}),prepareLodgingWorld,saveLodgingWorld,setSalonService:service=>{salonService=service;},salonCustomerAvailable,resetSalonRoute:n=>{paths.delete(n);n.route=[];n.walking=false;},setPlayerLodging:service=>{playerLodging=service;},hostRole,hostActor,hostAtPost,hostAdmissionOpen,hostCompletionAvailable,hostUnavailableReason,hostBreak:()=>state?.hostBreak?copy(state.hostBreak):null,cancelHostMeal:()=>cancelAccountMeal(state?.hostDiner?.actorId),canHostLodging:()=>!!host&&!tenureOwns('host')&&hostAdmissionOpen(),lodgingHostReady:()=>hostCompletionAvailable()&&!!host&&!tenureOwns('host')&&!host.walking&&at(host,P.host,.15)&&!isSociallyHeld(host.station.id,conversation)&&!state.orders.some(o=>['requested','ordered'].includes(o.stage)&&customerSeated(o)),start,continuitySnapshot,restoreContinuity,initializeWorld,restoreWorld,claimClinicPatient,releaseClinicPatient,clinicClaims:()=>state?.visitors.filter(v=>v.mode==='clinic').map(v=>({actorId:v.id,claimId:v.careClaimId}))||[],requestPlayerMeal,cancelPlayerMeal,eatPlayerMeal,playerOrder:()=>state?.orders.find(o=>o.customerId==='player'&&o.stage!=='done')||null,choices,execute,update,release,beginReturn,stopActivity(){activity=null;pendingChoice=null;},active:()=>!!state,finished:()=>state?.stage==='finished',owns:n=>controlledActors().includes(n)&&!externalOwns(n),
   playerPose:playerEffect,playerAction:()=>playerEffect()?.action||null,playerStation:()=>playerEffect()?.station||null,
-  snapshot:()=>state?copy(state):null,state:()=>({...(state?copy(state):{}),loadError,activity:activity?copy(activity):null,staffLife:life.state(),staffOwnership:Object.fromEntries(Object.entries(staff).map(([r,n])=>[r,{holderId:r==='host'?hostRole().holderId:kitchenRole(r).holderId,npcId:n?.station.id||null,status:tenureOwns(r)?'released':!n?'unavailable':life.isActive(n)?'short-break':'on-duty'}])),history:copy(history),failures:copy(failures),seatClaims:furniture.facilities.state?.()||[],orders:state?.orders.map(o=>({...copy(o),label:steps[o.stage],props:props.get(o.id)?.state()||null}))||[],actors:controlledActors().map(n=>({id:n.station.id,position:n.root.position.toArray(),mounted:n.serviceMount?.id||null,walking:n.walking,routeLength:n.route.length,routeTarget:paths.get(n)?.key||null,label:actorLabel(n)}))}),
+  snapshot:()=>state?copy(state):null,state:()=>({...(state?copy(state):{}),loadError,stockError,activity:activity?copy(activity):null,staffLife:life.state(),staffOwnership:Object.fromEntries(Object.entries(staff).map(([r,n])=>[r,{holderId:r==='host'?hostRole().holderId:kitchenRole(r).holderId,npcId:n?.station.id||null,status:tenureOwns(r)?'released':!n?'unavailable':life.isActive(n)?'short-break':'on-duty'}])),history:copy(history),failures:copy(failures),seatClaims:furniture.facilities.state?.()||[],orders:state?.orders.map(o=>({...copy(o),label:steps[o.stage],props:props.get(o.id)?.state()||null}))||[],actors:controlledActors().map(n=>({id:n.station.id,position:n.root.position.toArray(),mounted:n.serviceMount?.id||null,walking:n.walking,routeLength:n.route.length,routeTarget:paths.get(n)?.key||null,label:actorLabel(n)}))}),
   socialProfile:id=>life.socialProfile(id),
   canTalkAtPost(n){if(!state||!controlledActors().includes(n)||externalOwns(n)||n.walking||n.route?.length||n.serviceMount)return false;const role=Object.keys(staff).find(r=>staff[r]===n);return !role||!workPending(role)&&!state.orders.some(o=>o.holderActorId===n.station.id&&!['done'].includes(o.stage));},
   canBorrowForSocial(n){if(!state||!controlledActors().includes(n)||externalOwns(n)||state.orders.some(o=>o.holderActorId===n.station.id&&!['done'].includes(o.stage)))return false;const role=Object.keys(staff).find(r=>staff[r]===n),visitor=state.visitors.find(v=>v.id===n.station.id);return role?tenureOwns(role):visitor?visitor.mode==='idle'&&!visitorReturningFromToilet(visitor,n)&&!getToilet()?.ownsActor(n):hostPersonIds(state).includes(n.station.id)||kitchenPeople.has(n.station.id);},

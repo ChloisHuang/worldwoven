@@ -21,3 +21,5 @@ console.log('PASS stable host slot, personal identity/funds/age, atomic assignme
  assert.equal(r.state().holderId,first.station.id);assert(p.committed());assert(p.committed());p.release();
  assert.equal(r.state().revision,1);assert.equal(createTavernHostRole({saved:world.chinaTavernHostRole,resolveActor:id=>pair.get(id)}).resolve().actor,next);
 }
+
+{const actor={station:{id:'cn-tavern-host'},alive:true};const cold=createTavernHostRole({saved:createTavernHostRole().state(),resolveActor:()=>actor});const p=cold.prepareAssignment(null);assert(p.ok);assert.deepEqual(Object.keys(p.assignment).sort(),['holderId','revision','roleId','slotId','version'].sort(),'historical state display fields cannot pollute a cold hiring transaction');assert.equal(p.assignment.revision,1);}

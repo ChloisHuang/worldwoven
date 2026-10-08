@@ -5,6 +5,9 @@ export function createTavernRole({roleId,slotId,originalHolderId,errorName='role
  const initial={version:1,roleId:roleId,slotId:slotId,holderId:originalHolderId,revision:0};
  let current=saved==null?initial:{...saved},loadError=null,lease=null;
  if(!current||current.version!==1||current.roleId!==roleId||current.slotId!==slotId||!(current.holderId===null||id(current.holderId))||!Number.isSafeInteger(current.revision)||current.revision<0)loadError=`invalid-${errorName}-assignment`;
+ // state() historically persisted a transient loadError:null display field.
+ // Assignment evidence is the same canonical five fields after a cold load.
+ if(!loadError)current={version:1,roleId,slotId,holderId:current.holderId,revision:current.revision};
  function state(){return loadError?{...initial,holderId:null,loadError}:{...current,loadError:null};}
  function resolve(){const row=state(),isPlayer=row.holderId==='player',actor=row.holderId?(isPlayer?getPlayer():resolveActor(row.holderId)):null,alive=!!actor&&isActorAlive(actor)!==false;
   return {...row,actor,alive,isPlayer,available:!loadError&&alive&&canAssign(row.holderId,actor),status:loadError?'invalid':row.holderId===null?'vacant':!actor?'unloaded':!alive?'inactive':!canAssign(row.holderId,actor)?'busy':isPlayer?'player':'npc'};

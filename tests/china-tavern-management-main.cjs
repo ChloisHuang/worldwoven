@@ -1,0 +1,75 @@
+// Production main with the existing Three/DOM harness. Feature is temporarily
+// enabled in the test module only. Bank900 is a stated fixture; NPC work, routes,
+// customer orders, trial qualification and cash mutations are actual code.
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+let harness=fs.readFileSync(path.join(__dirname,'fixtures/hotfix-input-harness.cjs'),'utf8');
+function once(a,b){if(!harness.includes(a)||harness.indexOf(a)!==harness.lastIndexOf(a))throw Error('Changed fixture seam: '+a);harness=harness.replace(a,b);}
+const seams=`
+export function tavernMainReview(){return {saved,player,npcs,lot,furniture,chinaTavern,chinaService,chinaLabor,tavernManagement,tavernManagementUI,tavernProperty,tavernKitchenRoles,tavernHostRole,guestAccounts,copperLedger,simulationClock,path,targetStation,pendingInteraction};}
+export function tavernMainStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);activeDailyToilet()?.update(dt);updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);updateGameHealth(dt);updateCamera(dt);}
+export {requestStationIntent,save,cancelAction};
+`;
+once("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),","new vm.SourceTextModule(readProduction(file),");
+once('const cache=new Map();',`const cache=new Map();function readProduction(file){let source=fs.readFileSync(file,'utf8');if(file.endsWith('/game/main.js')){const disabled='const CHINA_TAVERN_MANAGEMENT_ENABLED=false;',enabled='const CHINA_TAVERN_MANAGEMENT_ENABLED=true;';assert(source.includes(disabled)||source.includes(enabled));source=source.replace(disabled,enabled)+${JSON.stringify(seams)};}return source;}`);
+once('vm.createContext({console,','vm.createContext({structuredClone,URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,console,');
+once('{identifier:file,context}','{identifier:file,context,initializeImportMeta:meta=>{meta.url=require("node:url").pathToFileURL(file).href;}}');
+once("const state=()=>context.__worldsDays.getState();assert.equal(state().mode,'globe');","const state=()=>context.__worldsDays.getState();assert(['globe','lot'].includes(state().mode),'Fresh globe or ordinary auto-restored lot');");
+once("const document={body:new E('body'),","const document={head:new E('head'),body:new E('body'),");
+once('add(...e){this.append(...e)}',"prepend(...els){for(const e of els.reverse()){e.remove?.();e.parent=this;this.children.unshift(e);}}querySelectorAll(selector){return this.children.flatMap(e=>[e,...(e.querySelectorAll?.('*')||[])]).filter(e=>selector==='*'||selector.startsWith('.')&&e.className?.split(' ').includes(selector.slice(1)));}get textContent(){return (this._text||'')+this.children.map(e=>e.textContent||'').join('');}set textContent(v){this._text=String(v);this.replaceChildren();}add(...e){this.append(...e)}");
+once('visited:[],stamps:{},outfit:0,appearance:',"visited:[],stamps:{},outfit:0,copperLedger:{version:1,cash:0,bank:900,accountOpened:true,nextTransaction:1,transactions:[]},appearance:");
+once("const main=mod(path.join(root,'game/main.js'));",String.raw`
+const out=path.resolve('qa/tavern-management-main');fs.mkdirSync(out,{recursive:true});const clone=x=>JSON.parse(JSON.stringify(x));
+let journal={version:1,completed:[],staging:'Initial player bank900 only; actual original NPC identities, finite purses, default meal orders, routes and work. DOM/renderer simulated, not browser/iOS.'};
+const from=process.env.TAVERN_MAIN_FROM;
+if(from){const input=JSON.parse(fs.readFileSync(path.resolve(from),'utf8'));storage['worlds-days-v1']=JSON.stringify(input.save||input);journal=input.journal||journal;}
+const main=mod(path.join(root,'game/main.js'));
+`);
+const begin=harness.indexOf('const report=[];for(let round=0;');if(begin<0)throw Error('Missing bounded body');
+harness=harness.slice(0,begin)+String.raw`
+const started=Date.now()-process.uptime()*1000,review=()=>main.namespace.tavernMainReview(),done=id=>journal.completed.includes(id);let steps=0,leg='boot';
+if(state().mode==='globe'){all.find(e=>e.dataset.region==='china').onclick();ids.travel.onclick();}
+const r=review(),m=r.tavernManagement,scene=r.chinaTavern.staffScene,originals=new Map(r.npcs.map(n=>[n.station.id,n]));
+assert.equal(state().region,'china');assert(m);assert.equal(m.loadError,null);assert.equal(r.guestAccounts.loadError,null);assert.equal(scene.state().loadError,null);
+const find=(e,p)=>p(e)?e:e.children?.map(c=>find(c,p)).find(Boolean),panel=()=>find(document.body,e=>e.className?.split(' ').includes('cn-property-dialog'));
+const button=label=>{const b=find(panel(),e=>e.tagName==='button'&&e.textContent===label);assert(b,label);assert(!b.disabled,label+' enabled');return b;};
+const diagnostic=()=>({leg,steps,clock:r.simulationClock.state(),player:r.player.root.position.toArray(),pathLength:review().path.length,target:review().targetStation,pending:review().pendingInteraction,loadError:m.loadError,lastError:m.lastError,applications:m.hiring.applications(),recruitment:m.recruitment.state(),world:scene.state(),toast:ids.toast.textContent});
+const step=()=>{now+=100;main.namespace.tavernMainStep(.1);steps++;};
+const until=(fn,label,limit=4000)=>{leg=label;for(let i=0;i<limit&&!fn();i++){step();if(Date.now()-started>140000)throw Error('Safe bounded stop at '+label);}if(!fn())throw Error(label+' incomplete');};
+function checkpoint(name,evidence){assert.equal(m.loadError,null);assert.equal(scene.state().loadError,null);assert.equal(r.npcs.length,31);for(const [id,n]of originals)assert.equal(r.npcs.find(n=>n.station.id===id),n);assert(main.namespace.save());if(!done(name))journal.completed.push(name);journal.last={name,evidence,clock:clone(r.simulationClock.state()),steps};const item={version:1,save:JSON.parse(storage['worlds-days-v1']),journal};fs.writeFileSync(path.join(out,'checkpoint.json'),JSON.stringify(item));console.log('MILESTONE',name,JSON.stringify(evidence));return process.env.TAVERN_MAIN_STOP_AFTER===name;}
+try{
+ if(!done('01-owner-stock')){
+  assert.equal(r.tavernProperty.state().ownerId,'cn-tavern-host');assert.equal(m.stock.summary().active,false);
+  assert(main.namespace.requestStationIntent(r.chinaService.intent('property')));until(()=>panel()?.open,'original property counter route');
+  button('向业主申请购买').onclick();const app=r.tavernProperty.state().market.application;assert.equal(app.status,'accepted');button('支付 '+app.amount+' 文 · 买下酒楼').onclick();assert.equal(r.tavernProperty.state().ownerId,'player');
+  button('×').onclick();step();assert(m.stock.summary().active);assert.equal(m.stock.summary().inventoryValue,0,'No free opening raw portions');
+  const budget=r.tavernProperty.state().balance,prefix=m.view().purchaseOperationPrefix;
+  assert(m.purchase({dishId:'yunlai-mushroom-rice',quantity:8,operationId:prefix+':rice'}).ok);
+  assert(m.purchase({dishId:'yunlai-green-noodles',quantity:8,operationId:prefix+':noodles'}).ok);
+  assert.equal(r.tavernProperty.state().balance,budget-40);assert.equal(m.stock.summary().inventoryValue,40);
+  if(checkpoint('01-owner-stock',{activationSerial:m.stock.summary().cutoff,procurement:40,inventoryValue:40,bank:r.copperLedger.state().bank}))return;
+ }
+ if(!done('02-applicant')){
+  if(r.tavernKitchenRoles.resolve('assistant').holderId){until(()=>scene.snapshot().orders.every(o=>o.stage==='done')&&scene.kitchenHandoff('assistant').ok,'original customer meals and assistant safe handoff');assert(m.dismiss('cn-tavern-steward').ok);}
+  until(()=>m.recruitment.state().candidates.some(c=>c.phase==='meeting'),'original idle NPC elects and physically arrives to apply',6000);
+  const c=m.recruitment.state().candidates.find(c=>c.phase==='meeting');assert(c.lease);assert(m.hiring.application(c.applicationId));
+  if(checkpoint('02-applicant',{actorId:c.actorId,applicationId:c.applicationId,customerReleaseReceipt:c.lease.id}))return;
+ }
+ if(!done('03-trial')){
+  let c=m.recruitment.state().candidates.find(c=>['meeting','review','travelling-table','cleaning','returning-review'].includes(c.phase));assert(c);
+  if(!m.hiring.application(c.applicationId).trial.request){assert(main.namespace.requestStationIntent(m.recruitment.intent(c.applicationId,'trial')));until(()=>!!m.hiring.application(c.applicationId).trial.request,'owner walks to original applicant and orders trial');}
+  until(()=>m.recruitment.candidate(c.applicationId)?.phase==='review'&&!!m.hiring.application(c.applicationId).trial.work,'original NPC cleans both tables and returns',6000);
+  c=m.recruitment.candidate(c.applicationId);const a=m.hiring.application(c.applicationId);assert.equal(a.trial.work.steps.length,2);assert(a.trial.work.steps.every(s=>s.completedSeconds-s.startedSeconds>=5));
+  if(checkpoint('03-trial',{actorId:c.actorId,applicationId:c.applicationId,steps:a.trial.work.steps,payment:!!a.trial.payment}))return;
+ }
+ if(!done('04-hired')){
+  const c=m.recruitment.state().candidates.find(c=>c.phase==='review');assert(c);const id=c.applicationId;
+  assert(main.namespace.requestStationIntent(m.recruitment.intent(id,'approve')));until(()=>m.hiring.application(id).status==='assigned','owner approval and safe same-body role assignment');
+  const a=m.hiring.application(id),role=r.tavernKitchenRoles.resolve('assistant');assert.equal(role.holderId,a.actor.actorId);assert.equal(role.actor,originals.get(a.actor.actorId));assert.equal(a.decision.salary.baseDailyWage,16);assert(a.trial.payment);assert.equal(m.business.account(a.actor.actorId).bank,12);
+  assert(m.business.snapshot().contracts.some(c=>c.actorId===a.actor.actorId&&c.roleId==='cn-tavern-steward'));
+  if(checkpoint('04-hired',{actorId:a.actor.actorId,applicationId:id,slot:role.slotId,revision:role.revision,trialPayment:12,futureBase:16}))return;
+ }
+ console.log(JSON.stringify({status:'PASS',seconds:(Date.now()-started)/1000,completed:journal.completed,scope:journal.staging}));
+}catch(e){main.namespace.save();fs.writeFileSync(path.join(out,'interrupted.json'),JSON.stringify({version:1,save:JSON.parse(storage['worlds-days-v1']),journal}));fs.writeFileSync(path.join(out,'diagnostic.json'),JSON.stringify(diagnostic()));console.error(JSON.stringify({status:'FAIL',leg,steps,message:e.message,diagnostic:path.join(out,'diagnostic.json')}));throw e;}
+})().catch(e=>{console.error(e);process.exit(1)});
+`;
+new vm.Script(harness,{filename:'tests/tavern-management-main-inherited.cjs',importModuleDynamically:vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER}).runInNewContext({structuredClone,URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,require,console,process,Buffer,__dirname:process.cwd()+'/tests',__filename});
