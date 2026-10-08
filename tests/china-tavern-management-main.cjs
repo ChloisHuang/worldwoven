@@ -5,8 +5,8 @@ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 let harness=fs.readFileSync(path.join(__dirname,'fixtures/hotfix-input-harness.cjs'),'utf8');
 function once(a,b){if(!harness.includes(a)||harness.indexOf(a)!==harness.lastIndexOf(a))throw Error('Changed fixture seam: '+a);harness=harness.replace(a,b);}
 const seams=`
-export function tavernMainReview(){return {saved,player,npcs,lot,furniture,chinaTavern,chinaService,chinaLabor,tavernManagement,tavernManagementUI,tavernProperty,tavernKitchenRoles,tavernHostRole,guestAccounts,copperLedger,simulationClock,path,targetStation,pendingInteraction};}
-export function tavernMainStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);activeDailyToilet()?.update(dt);updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);updateGameHealth(dt);updateCamera(dt);}
+export function tavernMainReview(){return {saved,player,npcs,lot,furniture,chinaTavern,chinaTavernUI,chinaService,chinaLabor,tavernManagement,tavernManagementUI,tavernProperty,tavernKitchenRoles,tavernHostRole,guestAccounts,copperLedger,simulationClock,path,targetStation,pendingInteraction};}
+export function tavernMainStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);activeDailyToilet()?.update(dt);updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);updateGameHealth(dt);chinaTavernUI?.update();updateCamera(dt);}
 export {requestStationIntent,save,cancelAction,navigateTo};
 `;
 once("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),","new vm.SourceTextModule(readProduction(file),");
@@ -28,6 +28,12 @@ const out=path.resolve('qa/tavern-management-main');fs.mkdirSync(out,{recursive:
 let journal={version:1,completed:[],staging:'Initial player bank900 only; actual original NPC identities, finite purses, default meal orders, routes and work. DOM/renderer simulated, not browser/iOS.'};
 const from=process.env.TAVERN_MAIN_FROM||(process.env.TAVERN_MAIN_FRESH==='1'?null:'tests/fixtures/tavern-management-main-checkpoint.json');
 if(from){const input=JSON.parse(fs.readFileSync(path.resolve(from),'utf8'));storage['worlds-days-v1']=JSON.stringify(input.save||input);journal=input.journal||journal;}
+if(process.env.TAVERN_MAIN_STAGE_WORK==='1'&&!journal.workDay){
+ assert(journal.completed.includes('04-hired'));const next=JSON.parse(storage['worlds-days-v1']);
+ const day=Math.floor((600+next.simulationClock.seconds*.7)/1440)+1;journal.workDay=day;
+ next.simulationClock={version:1,seconds:(day*1440+360-600)/.7};storage['worlds-days-v1']=JSON.stringify(next);
+ journal.staging+=' After real hiring, calendar alone staged to next day06 for bounded observed work; no overnight/full-day claim. Meal6 uses existing bank withdrawal, not added money.';
+}
 const main=mod(path.join(root,'game/main.js'));
 `);
 const begin=harness.indexOf('const report=[];for(let round=0;');if(begin<0)throw Error('Missing bounded body');
@@ -40,7 +46,7 @@ const find=(e,p)=>p(e)?e:e.children?.map(c=>find(c,p)).find(Boolean),panel=()=>f
 const button=label=>{const b=find(panel(),e=>e.tagName==='button'&&e.textContent===label);assert(b,label);assert(!b.disabled,label+' enabled');return b;};
 const diagnostic=()=>({leg,steps,clock:r.simulationClock.state(),player:r.player.root.position.toArray(),pathLength:review().path.length,target:review().targetStation,pending:review().pendingInteraction,loadError:m.loadError,lastError:m.lastError,applications:m.hiring.applications(),recruitment:m.recruitment.state(),world:scene.state(),toast:ids.toast.textContent});
 const trialCandidate=c=>['cn-tavern-diner-west','cn-tavern-diner-east'].includes(c?.actorId);
-const step=()=>{now+=100;main.namespace.tavernMainStep(.1);steps++;};
+const step=()=>{now+=100;main.namespace.tavernMainStep(.1);steps++;const o=scene.playerOrder();if(journal.businessOrder&&o?.id===journal.businessOrder.id){const v=journal.businessOrder;if(o.stage==='carrying')v.carrier=o.holderActorId;if(o.stage==='return')v.collector=o.holderActorId;if(o.consumed)v.consumed=true;}};
 const until=(fn,label,limit=4000)=>{leg=label;for(let i=0;i<limit&&!fn();i++){step();if(Date.now()-started>140000)throw Error('Safe bounded stop at '+label);}if(!fn())throw Error(label+' incomplete');};
 function checkpoint(name,evidence){assert.equal(m.loadError,null);assert.equal(scene.state().loadError,null);assert.equal(r.npcs.length,31);for(const [id,n]of originals)assert.equal(r.npcs.find(n=>n.station.id===id),n);assert(main.namespace.save());if(!done(name))journal.completed.push(name);journal.last={name,evidence,clock:clone(r.simulationClock.state()),steps};const item={version:1,save:JSON.parse(storage['worlds-days-v1']),journal};fs.writeFileSync(path.join(out,'checkpoint.json'),JSON.stringify(item));console.log('MILESTONE',name,JSON.stringify(evidence));return process.env.TAVERN_MAIN_STOP_AFTER===name;}
 try{
@@ -87,6 +93,33 @@ try{
   const a=m.hiring.application(id),role=r.tavernKitchenRoles.resolve('assistant');assert.equal(role.holderId,a.actor.actorId);assert.equal(role.actor,originals.get(a.actor.actorId));assert.equal(a.decision.salary.baseDailyWage,16);assert(a.trial.payment);assert.equal(m.business.account(a.actor.actorId).bank,12);
   assert(m.business.snapshot().contracts.some(c=>c.actorId===a.actor.actorId&&c.roleId==='cn-tavern-steward'));
   if(checkpoint('04-hired',{actorId:a.actor.actorId,applicationId:id,slot:role.slotId,revision:role.revision,trialPayment:12,futureBase:16}))return;
+ }
+ if(!done('05-meal')){
+  assert(journal.workDay,'Use explicit TAVERN_MAIN_STAGE_WORK=1 for the first work segment');
+  const actorId=m.hiring.application(journal.trialApplicationId).actor.actorId;
+  assert.equal(scene.kitchenRole('assistant').holderId,actorId);assert.equal(scene.kitchenRole('assistant').actor,originals.get(actorId));
+  if(!journal.businessOrder){
+   assert(r.copperLedger.withdraw(6,'tavern-main-operating-meal-cash').ok);r.tavernManagementUI.close();
+   const choice=r.chinaTavern.seats.map(seat=>r.chinaTavernUI.intent(seat.id,'yunlai-mushroom-rice')).find(Boolean);assert(choice,'original available meal seat');
+   assert(main.namespace.requestStationIntent(choice));until(()=>!!scene.playerOrder(),'owner walks to original chair and orders meal');
+   const o=scene.playerOrder();journal.businessOrder={id:o.id,actorId,price:o.price};assert.equal(o.price,6);assert.equal(m.stock.order(o.id).status,'reserved');
+  }
+  const id=journal.businessOrder.id;
+  until(()=>['ready','eating','finish-bite','dirty','return','done'].includes(scene.snapshot().orders.find(o=>o.id===id)?.stage),'original cook prepares and hired assistant delivers',6000);
+  let o=scene.snapshot().orders.find(o=>o.id===id);assert.equal(o.relationshipServerId,actorId);assert.equal(o.relationshipCookId,'cn-tavern-cook');
+  const prep=scene.snapshot().stockPreparations.find(p=>p.orderId===id),stock=m.stock.order(id);assert(prep&&prep.activeSeconds>=3.2);assert.equal(prep.actorId,'cn-tavern-cook');assert.equal(stock.status,'consumed');assert.equal(stock.allocation.unitCost,2);assert.equal(stock.consume.proof.preparationId,prep.id);
+  assert.equal(r.copperLedger.reservations().find(v=>v.id===id).status,'settled');
+  if(o.stage==='ready'){r.chinaTavernUI.open();const mealPanel=find(document.body,e=>e.className?.split(' ').includes('cn-meal-dialog')),eat=find(mealPanel,e=>e.tagName==='button'&&e.textContent==='享用送来的餐点');assert(eat&&!eat.disabled);eat.onclick();}
+  until(()=>scene.snapshot().orders.find(o=>o.id===id)?.stage==='done','actual player eats and hired assistant returns original dishes',6000);
+  o=scene.snapshot().orders.find(o=>o.id===id);assert(o.consumed&&!o.cancelled);assert.equal(journal.businessOrder.carrier,actorId);assert.equal(journal.businessOrder.collector,actorId);
+  assert.equal(scene.snapshot().stockReceipts.filter(v=>v.kind==='consume'&&v.proof.order.orderId===id).length,1);
+  if(checkpoint('05-meal',{...journal.businessOrder,prepSeconds:prep.activeSeconds,materialCost:stock.allocation.unitCost,server:o.relationshipServerId,cook:o.relationshipCookId}))return;
+ }
+ if(!done('06-observed')){
+  const actorId=journal.businessOrder.actorId,rows=()=>m.business.snapshot().rows.filter(row=>row.actorId===actorId&&row.day===journal.workDay),hours=()=>rows().reduce((n,row)=>n+row.segments.reduce((v,s)=>v+s.endHour-s.startHour,0),0);
+  until(()=>hours()>=.8,'hired assistant accrues only observed work or ordinary waiting',6000);
+  assert(!m.business.snapshot().receipts.some(p=>p.kind==='npc-wage'&&p.actorId===actorId&&p.proof.row.day===journal.workDay));
+  if(checkpoint('06-observed',{actorId,day:journal.workDay,hours:hours(),rows:rows(),baseDailyWage:16,unpaidUntilClose:true}))return;
  }
  console.log(JSON.stringify({status:'PASS',seconds:(Date.now()-started)/1000,completed:journal.completed,scope:journal.staging}));
 }catch(e){main.namespace.save();fs.writeFileSync(path.join(out,'interrupted.json'),JSON.stringify({version:1,save:JSON.parse(storage['worlds-days-v1']),journal}));fs.writeFileSync(path.join(out,'diagnostic.json'),JSON.stringify(diagnostic()));console.error(JSON.stringify({status:'FAIL',leg,steps,message:e.message,diagnostic:path.join(out,'diagnostic.json')}));throw e;}
