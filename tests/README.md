@@ -74,3 +74,7 @@ npm run test:door-geometry -- --tiny
 ### TR03旅行定向入口
 
 `travel-journey-main.cjs`只构造原世界球，测试实际main按钮/hash、原护照、登机/飞行/入境及拒写；输出`qa/travel-main/departure-checkpoint.json`。`travel-arrival-main.cjs`默认从唯一已验fixture冷恢复；`TRAVEL_MAIN_FROM`可选同号续点，`TRAVEL_MAIN_TARGETS`只用于明确要核的国家接点，分别覆盖按钮/hash，不默认重跑四国。`TRAVEL_MAIN_REFUSE_ARRIVAL=1`只用于已入境待抵达档的最后保存拒写；`TRAVEL_MAIN_CANCEL_AT_END=1`核原当前国出境前取消拒写/成功。该脚本逐个成功地区保存`arrival-checkpoint.json`，与departure输出独立；最终唯一fixture保4已抵达+1已取消及7章，普通日期/钱包不改变。所有场景仍按共享串行锁、180秒/1152MiB/Node768守卫；模拟DOM/renderer不是browser/iOS画面接受。
+
+### CR04同案筹谋定向入口
+
+`palace-usurpation-ledger.mjs`检查独立政治回应、三种可组合准备、原帝任次/实际凭据、拒写冷恢复、失败冷却与唯一授位；`palace-usurpation-ui.mjs`为模拟DOM，核定性显示、旧按钮与取消保案；`china-usurpation-context.mjs`只核真实支持/成年身份/已完工序来源及不抢房的住所投影。这些测试不能替代生产main的实际多人到场、御膳消费、登位后帝务或浏览器视觉。当前新链尚未启用，统一使用现有串行共享锁与资源守卫。
