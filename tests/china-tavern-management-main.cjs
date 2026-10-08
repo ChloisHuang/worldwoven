@@ -20,7 +20,7 @@ once('visited:[],stamps:{},outfit:0,appearance:',"visited:[],stamps:{},outfit:0,
 once("const main=mod(path.join(root,'game/main.js'));",String.raw`
 const out=path.resolve('qa/tavern-management-main');fs.mkdirSync(out,{recursive:true});const clone=x=>JSON.parse(JSON.stringify(x));
 let journal={version:1,completed:[],staging:'Initial player bank900 only; actual original NPC identities, finite purses, default meal orders, routes and work. DOM/renderer simulated, not browser/iOS.'};
-const from=process.env.TAVERN_MAIN_FROM;
+const from=process.env.TAVERN_MAIN_FROM||(process.env.TAVERN_MAIN_FRESH==='1'?null:'tests/fixtures/tavern-management-main-checkpoint.json');
 if(from){const input=JSON.parse(fs.readFileSync(path.resolve(from),'utf8'));storage['worlds-days-v1']=JSON.stringify(input.save||input);journal=input.journal||journal;}
 const main=mod(path.join(root,'game/main.js'));
 `);
@@ -40,7 +40,7 @@ try{
  if(!done('01-owner-stock')){
   assert.equal(r.tavernProperty.state().ownerId,'cn-tavern-host');assert.equal(m.stock.summary().active,false);
   assert(main.namespace.requestStationIntent(r.chinaService.intent('property')));until(()=>panel()?.open,'original property counter route');
-  button('向业主申请购买').onclick();const app=r.tavernProperty.state().market.application;assert.equal(app.status,'accepted');button('支付 '+app.amount+' 文 · 买下酒楼').onclick();assert.equal(r.tavernProperty.state().ownerId,'player');
+  until(()=>{const b=find(panel(),e=>e.tagName==='button'&&e.textContent==='向业主申请购买');return !!b&&!b.disabled;},'original host returns to the property counter');button('向业主申请购买').onclick();const app=r.tavernProperty.state().market.application;assert.equal(app.status,'accepted');button('支付 '+app.amount+' 文 · 买下酒楼').onclick();assert.equal(r.tavernProperty.state().ownerId,'player');
   button('×').onclick();step();assert(m.stock.summary().active);assert.equal(m.stock.summary().inventoryValue,0,'No free opening raw portions');
   const budget=r.tavernProperty.state().balance,prefix=m.view().purchaseOperationPrefix;
   assert(m.purchase({dishId:'yunlai-mushroom-rice',quantity:8,operationId:prefix+':rice'}).ok);
