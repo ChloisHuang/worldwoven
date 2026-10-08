@@ -626,7 +626,8 @@
       "china-archive-player-work.cjs",
       "china-palace-tea-player-service.cjs",
       "china-court-report-receipt.mjs",
-      "china-court-report-main.cjs"
+      "china-court-report-main.cjs",
+      "china-court-reissue-pending.mjs"
     ]
   },
   "release": {
