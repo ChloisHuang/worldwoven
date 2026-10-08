@@ -264,7 +264,8 @@
       "career-work-state.mjs",
       "currency-ledger.mjs",
       "currency-participant-locks.mjs",
-      "china-tavern-hiring.mjs"
+      "china-tavern-hiring.mjs",
+      "china-tavern-stock.mjs"
     ],
     "integration": [
       "career-application-decisions.mjs",
