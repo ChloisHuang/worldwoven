@@ -368,6 +368,8 @@
       "regional-teller-physical.cjs",
       "china-official-grade-pay.mjs",
       "china-granary-audit.mjs",
+      "china-personnel-records.mjs",
+      "china-personnel-work.mjs",
       "china-official-grade-life.mjs",
       "china-official-grade-main.cjs"
     ]
@@ -630,7 +632,8 @@
       "china-court-report-main.cjs",
       "china-court-reissue-pending.mjs",
       "china-granary-audit-flow.mjs",
-      "china-granary-audit-main.cjs"
+      "china-granary-audit-main.cjs",
+      "china-personnel-source-flow.mjs"
     ]
   },
   "release": {
