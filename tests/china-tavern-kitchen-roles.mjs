@@ -38,3 +38,13 @@ const heldRoles=createTavernKitchenRoles({...options,canRelease:r=>f.scene.kitch
 f.until(()=>f.scene.snapshot().orders.every(o=>o.stage==='done')&&f.scene.kitchenHandoff('assistant').ok,'same original orders genuinely finish and clear');
 assert(heldRoles.assign('assistant',null).ok);assert.equal(heldRoles.resolve('assistant').status,'vacant');
 console.log('PASS kitchen identity, funds isolation, fail-closed assignment, atomic saves, tenure/vacancy, actual partial work and held-tray release boundary; needs and runtime role substitution not enabled');
+// The composite snapshot must not overwrite a simultaneous other-slot change.
+{
+ const a=new Map(['cn-tavern-cook','cn-tavern-assistant','cn-resident-next'].map(id=>[id,{station:{id},alive:true}]));let tenure=null;
+ const r=createTavernKitchenRoles({resolveActor:id=>a.get(id),canAssign:()=>true,canRelease:()=>true,getTenureRoleId:()=>tenure});
+ const stale=r.prepareAssignment('chef',null);assert(r.assign('assistant',null).ok);assert(!stale.valid());assert(!stale.lock());
+ const p=r.prepareAssignment('chef','cn-resident-next');assert(p.ok&&p.lock());assert.equal(r.assign('assistant','cn-tavern-assistant').code,'assignment-busy');
+ assert(!p.save(()=>false));assert.equal(r.resolve('chef').holderId,'cn-tavern-cook');p.release();
+ const q=r.prepareAssignment('chef','cn-resident-next');tenure='cn-tavern-chef';assert(!q.valid());assert(!q.lock());tenure=null;
+ const end=r.prepareAssignment('chef','cn-resident-next');assert(end.lock());assert(end.save(()=>true));assert(end.committed());end.release();assert.equal(r.resolve('chef').holderId,'cn-resident-next');assert.equal(r.resolve('assistant').status,'vacant');
+}

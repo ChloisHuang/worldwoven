@@ -124,6 +124,13 @@ function project(state) {
  return apps;
 }
 
+// Structural historical projection for cold composition. Callers must also
+// validate the referenced immutable work/qualification/payment source facts;
+// this reader never grants current actor, ownership or employment authority.
+export function hiringApplicationFromSnapshot(saved,applicationId) {
+ return copy(project(saved ?? empty()).get(applicationId) ?? null);
+}
+
 /**
  * All fact adapters are synchronous and READ ONLY. Missing/Promise/throwing
  * sources fail closed. Only the two original diners and three original staff

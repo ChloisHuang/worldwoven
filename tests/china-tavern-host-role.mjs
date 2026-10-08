@@ -7,3 +7,17 @@ assert(!role.assign('cn-tavern-host',{expectedRevision:0}).ok);reject=true;asser
 assert(role.assign('player').ok);assert(role.resolve().isPlayer);assert.equal(role.resolve().actor,player);assert(role.assign(null).ok);assert.equal(role.resolve().actor,null,'player departure never silently restores former NPC');
 assert(role.assign('cn-resident-next').ok);actors.get('cn-resident-next').alive=false;assert.equal(role.resolve().status,'inactive');const reload=createTavernHostRole({...options,saved});assert.equal(reload.resolve().holderId,'cn-resident-next');assert(!reload.resolve().alive);assert(!reload.assign('cn-resident-next').ok);actors.delete('cn-resident-next');assert.equal(reload.resolve().status,'unloaded');assert(!createTavernHostRole({...options,saved:{}}).resolve().available);
 console.log('PASS stable host slot, personal identity/funds/age, atomic assignment, persistent vacancy, manual player holder and injected death/unload boundaries; no mortality simulation');
+// Hiring and assignment must share the one world write. A refusal cannot make
+// the new actor visible, and reentrant assignment cannot escape the held lease.
+{
+ const first={station:{id:'cn-tavern-host'},alive:true},next={station:{id:'cn-resident-next'},alive:true};
+ const pair=new Map([[first.station.id,first],[next.station.id,next]]);let unsafe=false;
+ const r=createTavernHostRole({resolveActor:id=>pair.get(id),canRelease:()=>!unsafe});
+ let p=r.prepareAssignment(next.station.id);assert(p.ok&&p.valid());assert(p.lock());
+ assert.equal(r.assign(null).code,'assignment-busy');assert(!p.save(()=>false));assert(!p.committed());assert.equal(r.state().holderId,first.station.id);p.release();
+ p=r.prepareAssignment(next.station.id);unsafe=true;assert(!p.valid());assert(!p.lock());unsafe=false;
+ p=r.prepareAssignment(next.station.id);assert(p.lock());let world;
+ assert(p.save(({assignment})=>{assert.equal(r.state().holderId,first.station.id);assert.equal(r.assign(null).code,'assignment-busy');world={chinaTavernHostRole:assignment,hiring:{status:'assigned'}};return true;}));
+ assert.equal(r.state().holderId,first.station.id);assert(p.committed());assert(p.committed());p.release();
+ assert.equal(r.state().revision,1);assert.equal(createTavernHostRole({saved:world.chinaTavernHostRole,resolveActor:id=>pair.get(id)}).resolve().actor,next);
+}

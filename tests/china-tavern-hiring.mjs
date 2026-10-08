@@ -2,7 +2,7 @@
 // not a scene trial, an NPC skill grant, physical handoff, or payroll test.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {createChinaTavernHiring,TAVERN_HIRING_BUSINESS_ID as BUSINESS,TAVERN_HIRING_ROLES as ROLES,
+import {createChinaTavernHiring,hiringApplicationFromSnapshot,TAVERN_HIRING_BUSINESS_ID as BUSINESS,TAVERN_HIRING_ROLES as ROLES,
  TAVERN_TRIAL_TABLE_IDS as TABLES} from '../source/game/china-tavern-hiring.js';
 const clone = structuredClone, WEST = 'cn-tavern-diner-west', EAST = 'cn-tavern-diner-east';
 const names = {[WEST]:'顾谨',[EAST]:'周棠','cn-tavern-host':'许安','cn-tavern-cook':'沈禾','cn-tavern-assistant':'陆青'};
@@ -247,12 +247,13 @@ for(const mutate of [f=>{f.source.owner.ownership++;},f=>{f.source.actors[WEST].
 // silently become a fresh journal or mint a replacement body/receipt/contract.
 {
  const f=fixture(),id=f.trial();f.approve(id);f.hiring.recordTrialPayment(f.input(id,{proof:f.payment(id)}));const good=f.hiring.snapshot();
+ assert.deepEqual(hiringApplicationFromSnapshot(good,id),f.hiring.application(id));assert.equal(hiringApplicationFromSnapshot(undefined,id),null);
  const mutations=[s=>{s.revision++;},s=>{s.extra=true;},s=>{s.events[0].data.actor.name='new-name';},
   s=>{s.events[0].data.actor.actorId='cn-clinic-physician';},s=>{s.events[3].data.salary.baseDailyWage=17;},
   s=>{s.events[3].data.salary.preparationBonusCondition='always';},s=>{s.events[2].data.steps[1].tableId=TABLES[0];},
   s=>{s.events[4].data.amount=24;},s=>{s.events.push({...clone(s.events[4]),sequence:++s.revision});}];
  for(const mutate of mutations) {
-  const bad=clone(good);mutate(bad);const restored=fixture(bad,f.source);assert(restored.hiring.loadError);assert.deepEqual(restored.hiring.snapshot(),bad);assert(!restored.submit(EAST).ok);
+  const bad=clone(good);mutate(bad);assert.throws(()=>hiringApplicationFromSnapshot(bad,id));const restored=fixture(bad,f.source);assert(restored.hiring.loadError);assert.deepEqual(restored.hiring.snapshot(),bad);assert(!restored.submit(EAST).ok);
  }
  f.source.work.clear();const unavailable=fixture(good,f.source);assert(unavailable.hiring.loadError);assert.deepEqual(unavailable.hiring.snapshot(),good);
 }
