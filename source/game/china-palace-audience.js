@@ -12,17 +12,17 @@ export {createAudienceSchedule} from './china-court-schedule.js';
 
 // Fictional adult officials retain the same seeded identities on every visit.
 export const CHINA_COURT_OFFICIALS=Object.freeze([
- {id:'cn-minister-works',npcName:'顾衡 · 工部官',ageYears:47,npcPosition:B.offices[0],gender:'male',privateRoomId:B.roomIds[0],courtRole:'works',color:'#697f87'},
- {id:'cn-minister-granary',npcName:'许知远 · 仓务官',ageYears:39,npcPosition:B.offices[1],gender:'male',privateRoomId:B.roomIds[1],courtRole:'granary',color:'#90635b'},
- {id:'cn-official-rites',npcName:'沈叙 · 礼仪官',ageYears:46,npcPosition:B.offices[2],gender:'male',courtRole:'rites',workLabel:'整理朝仪名册 · 核对班位',color:'#667583'},
- {id:'cn-official-personnel',npcName:'陆谦 · 吏务官',ageYears:42,npcPosition:B.offices[3],gender:'male',courtRole:'personnel',workLabel:'整理署内值勤名册',color:'#72564f'},
- {id:'cn-official-justice',npcName:'周惟正 · 刑名官',ageYears:51,npcPosition:B.offices[4],gender:'male',courtRole:'justice',workLabel:'静读律例 · 未有案件不作案报',color:'#4f6962'},
- {id:'cn-official-records',npcName:'宋承简 · 文书官',ageYears:35,npcPosition:B.offices[5],gender:'male',courtRole:'records',workLabel:'抄录官署来文 · 整理案卷',color:'#78624f'}
+ {id:'cn-minister-works',npcName:'顾衡',ageYears:47,npcPosition:B.offices[0],gender:'male',privateRoomId:B.roomIds[0],courtRole:'works',color:'#697f87'},
+ {id:'cn-minister-granary',npcName:'许知远',ageYears:39,npcPosition:B.offices[1],gender:'male',privateRoomId:B.roomIds[1],courtRole:'granary',color:'#90635b'},
+ {id:'cn-official-rites',npcName:'沈叙',ageYears:46,npcPosition:B.offices[2],gender:'male',courtRole:'rites',workLabel:'整理朝仪名册 · 核对班位',color:'#667583'},
+ {id:'cn-official-personnel',npcName:'陆谦',ageYears:42,npcPosition:B.offices[3],gender:'male',courtRole:'personnel',workLabel:'整理署内值勤名册',color:'#72564f'},
+ {id:'cn-official-justice',npcName:'周惟正',ageYears:51,npcPosition:B.offices[4],gender:'male',courtRole:'justice',workLabel:'静读律例 · 未有案件不作案报',color:'#4f6962'},
+ {id:'cn-official-records',npcName:'宋承简',ageYears:35,npcPosition:B.offices[5],gender:'male',courtRole:'records',workLabel:'抄录官署来文 · 整理案卷',color:'#78624f'}
 ].map(official=>{
  const rank=getChinaCourtOfficialRank(official.id);
  return Object.freeze({...official,gradeId:rank.gradeId,gradeLabel:rank.gradeLabel,gradeOrder:rank.gradeOrder,
-  currentWage:rank.currentWage,automaticPromotion:rank.automaticPromotion,officialRankContext:CHINA_OFFICIAL_RANK_CONTEXT,
-  npcName:official.npcName+'（'+rank.gradeLabel+'）'});
+  currentWage:rank.currentWage,officialRoleLabel:rank.roleLabel,officialResponsibility:rank.responsibility,officialImplemented:rank.implemented,officialRemaining:rank.remaining,automaticPromotion:rank.automaticPromotion,officialRankContext:CHINA_OFFICIAL_RANK_CONTEXT,
+  npcName:official.npcName+' · '+rank.roleLabel+'（'+rank.gradeLabel+'）'});
 }));
 export function courtOfficialAppearance(region,id,look){
  if(region!=='china'||!CHINA_COURT_OFFICIALS.some(r=>r.id===id))return look;

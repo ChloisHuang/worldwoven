@@ -173,7 +173,8 @@
       "nearby-dialogue-reentry-main.cjs",
       "service-object-menu-targets.mjs",
       "wallet-bank-navigation-main.cjs",
-      "wallet-ui.mjs"
+      "wallet-ui.mjs",
+      "china-official-grade-display.mjs"
     ]
   },
   "food-lodging": {
@@ -364,7 +365,8 @@
       "regional-teller-career-panel.mjs",
       "regional-teller-employment.mjs",
       "regional-teller-main.cjs",
-      "regional-teller-physical.cjs"
+      "regional-teller-physical.cjs",
+      "china-official-grade-pay.mjs"
     ]
   },
   "world-life": {
