@@ -15,7 +15,8 @@ function once(a, b) {
 }
 const seams = `
 export function personnelMainReview(){return {saved,player,npcs,lot,furniture,formalCareers,copperLedger,chinaOfficialEconomy,chinaAudience,chinaCareer,chinaPersonnelCareer,chinaPersonnelAppointment,chinaPalace,npcSocial,careerHandbook,simulationClock,path,targetStation,pendingInteraction};}
-export function personnelMainStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);activeDailyToilet()?.update(dt);updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);updateGameHealth(dt);careerHandbook.update(mode);}
+export function personnelMainStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);activeDailyToilet()?.update(dt);updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);updateGameHealth(dt);careerHandbook.update(mode);updateCamera(dt);}
+export function personnelMainConditions(){const lu=npcs.find(n=>n.station.id==='cn-official-personnel'),body=n=>n?.bodyId||n?.root?.userData?.bodyId||n?.actorId||n?.station?.id;return {player:{bodyId:body(player),alive:player?.alive!==false,visible:player?.root?.visible,walking:player?.walking,position:player?.root?.position.toArray()},lu:{bodyId:body(lu),alive:lu?.alive!==false,visible:lu?.root?.visible,walking:lu?.walking,position:lu?.root?.position.toArray()},cameraDistance:camera.position.distanceTo(camTarget),standing:{seated:!!seated,bathTransition:!!bathTransition,toiletPose:!!activeDailyToilet()?.playerPose()},busy:{interactionMenuOpen:!!interactionMenuOpen(),performing:!!performing,social:!!npcSocial?.active(),salon:!!chinaSalon?.active(),cleaning:!!chinaLabor?.isCleaning(),court:!!chinaCareer?.isActing(),personnel:!!chinaPersonnelCareer?.isActing()},openMenus:Object.entries({family:familyRuntime?.isOpen(),palace:palaceCompanionshipUI?.isOpen(),conversation:playerConversationUI.isOpen(),consort:chinaConsortUI?.isOpen(),context:contextMenu.isOpen(),passport:travelPassport.isOpen(),study:studyMenu.isOpen(),wallet:currencyWallet?.isOpen(),career:careerHandbook.isOpen(),outfit:outfitPreview.state().open,performance:japanPerformanceUI?.isOpen(),japanService:japanServiceUI?.isOpen(),tavern:chinaTavernUI?.isOpen(),lodging:chinaLodgingUI?.isOpen(),moneyHouse:chinaMoneyHouse?.isOpen(),service:chinaService?.isOpen(),labor:chinaLabor?.isOpen(),salon:chinaSalonUI?.isOpen()}).filter(([,open])=>open).map(([name])=>name)};}
 export {requestStationIntent,save};
 `;
 once("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),", "new vm.SourceTextModule(readProduction(file),");
@@ -51,7 +52,7 @@ const main=mod(path.join(root,'game/main.js'));
 const begin = harness.indexOf('const report=[];for(let round=0;');
 if (begin < 0) throw Error('Missing bounded harness body');
 harness = harness.slice(0, begin) + String.raw`
-const started=Date.now(),done=name=>journal.completed.includes(name),P='personnel-promotion-',LU='cn-official-personnel';
+const started=Date.now()-process.uptime()*1000,done=name=>journal.completed.includes(name),P='personnel-promotion-',LU='cn-official-personnel';
 let r,steps=0,currentLeg='boot';
 const review=()=>main.namespace.personnelMainReview();
 if(state().mode==='globe'){all.find(e=>e.dataset.region==='china').onclick();ids.travel.onclick();}r=review();
@@ -79,6 +80,12 @@ function checkpoint(name,evidence={}){
  if(process.env.PERSONNEL_MAIN_STOP_AFTER===name||Date.now()-started>110000){console.log(JSON.stringify({status:'CHECKPOINT',milestone:name,resume:latest,seconds:(Date.now()-started)/1000}));return true;}return false;
 }
 try {
+ if(process.env.PERSONNEL_MAIN_DIAGNOSTIC==='wait-boot'){
+  const sample=at=>({at,conditions:clone(main.namespace.personnelMainConditions()),samePlayer:review().player===r.player,sameLu:review().npcs.find(n=>n.station.id===LU)===originals.get(LU),activity:clone(r.chinaPersonnelAppointment.snapshot()),application:{id:app()?.id,status:app()?.status,stage:app()?.stage},playerPathLength:state().pathLength,meeting:r.npcSocial.meetingState()});
+  const samples=[sample('cold-boot')];for(let i=0;i<2;i++){step();samples.push(sample('step-'+(i+1)));if(!r.chinaPersonnelAppointment.isActing())break;}
+  const result={scope:'Same actual06 cold boot; at most two production steps with normal updateCamera; no checkpoint/latest overwrite',samples};
+  fs.writeFileSync(path.resolve('qa/boot-wait-diagnostic.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));return;
+ }
  if(process.env.PERSONNEL_MAIN_ATTENDANCE==='1'){
   assert.equal(app().stage,'document-held');assert.equal(career().currentRole().rankId,'cn-records-regular');
   request(P+'imperial-review');until(()=>r.chinaPersonnelAppointment.isWaiting(),'actual public arrival begins royal approval wait',1600);

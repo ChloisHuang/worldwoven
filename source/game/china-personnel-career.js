@@ -261,7 +261,7 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
     return next && selected?.provider === PROVIDER && selected.id === next.id && selected.intentKey === next.intentKey ? next : null;
   }
   function actorReady(player = getPlayer()) {
-    return !!player?.root && player.root.visible !== false && player.alive !== false && !player.walking && standing(player) === true && !getBusy();
+    return !!player?.root && player.alive !== false && !player.walking && standing(player) === true && !getBusy();
   }
   const sourceVisible = id => { const p = places.get(id), office = officials.get(id)?.office; return !!p && canSee({position: [p.target[0], office[1], p.target[2]], sourceActorId: id}) === true; };
   const at = selected => near(getPlayer()?.root?.position.toArray(), selected.position) && canSee(selected) === true;

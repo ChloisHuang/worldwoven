@@ -975,9 +975,12 @@ function personnelRecordVisible(item){
  const from=player.root.position.clone().add(new THREE.Vector3(0,1.15,0)),to=new THREE.Vector3(...target).add(new THREE.Vector3(0,.06,0));
  return cameraDistanceToObstacle(from,to,cameraSolids,0)>=from.distanceTo(to)-.09;
 }
+// Avatar rendering can be hidden by a close camera while the player remains
+// physically present. Only the current scene/body and posture grant readiness.
+function personnelPlayerStanding(){return mode==='lot'&&active?.id==='china'&&!!player?.root&&player.root.parent===lot?.group&&!seated&&!bathTransition&&!activeDailyToilet()?.playerPose();}
 function configureChinaPersonnelCareer(){personnelRuntimeBridge=active.id==='china'?{work:()=>chinaPersonnelCareer,source:(day,serial)=>chinaAudience?.personnelSource(day,serial)||null,actor:id=>{const n=npcs.find(row=>(row.actorId||row.station.id)===id);if(!n)return null;const meeting=npcSocial?.meetingState();return {actorId:id,bodyId:n.bodyId||n.root.userData.bodyId||n.actorId||n.station.id,alive:tavernHostRole.isAlive(n),position:n.root.position.toArray(),busy:id==='cn-official-personnel'&&(!!n.walking||chinaAudience?.meetingAvailable(n)!==true||!!meeting&&meeting.id===id&&meeting.owner!=='personnel-roster-review')};}}:null;chinaPersonnelCareer=active.id==='china'?createChinaPersonnelCareer({
  careers:formalCareers,audience:chinaAudience,enabled:CHINA_PERSONNEL_TRIAL_ENABLED,getPlayer:()=>player,getClock:()=>simulationClock.state(),
- standing:()=>!!player&&!seated&&!bathTransition&&!activeDailyToilet()?.playerPose(),
+ standing:personnelPlayerStanding,
  getBusy:()=>!!(interactionMenuOpen()||performing||npcSocial?.active()||chinaSalon?.active()||chinaLabor?.isCleaning()||chinaCareer?.isActing()||chinaPersonnelAppointment?.isActing()),
  canSee:personnelRecordVisible,isLuBusy:()=>personnelPromotionActor('cn-official-personnel')?.busy===true,getLu:()=>npcs.find(n=>n.station.courtRole==='personnel'&&tavernHostRole.isAlive(n))||null,
  getReadingPoint:personnelReadStandPoint,getMeetingPoint:courtReviewStandPoint,
@@ -991,7 +994,7 @@ function configureChinaPersonnelCareer(){personnelRuntimeBridge=active.id==='chi
 }):null;}
 function configureChinaPersonnelAppointment(){chinaPersonnelAppointment=active.id==='china'?createChinaPersonnelAppointment({careers:formalCareers,palace:chinaPalace,enabled:CHINA_PERSONNEL_TRIAL_ENABLED,
  getPlayer:()=>player,getClock:()=>simulationClock.state(),getLu:()=>npcs.find(n=>n.station.courtRole==='personnel'&&tavernHostRole.isAlive(n))||null,getEmperor:()=>npcs.find(n=>n.station.id==='cn-emperor')||null,
- standing:()=>!!player&&!seated&&!bathTransition&&!activeDailyToilet()?.playerPose(),getBusy:()=>!!(interactionMenuOpen()||performing||npcSocial?.active()||chinaSalon?.active()||chinaLabor?.isCleaning()||chinaCareer?.isActing()||chinaPersonnelCareer?.isActing()),
+ standing:personnelPlayerStanding,getBusy:()=>!!(interactionMenuOpen()||performing||npcSocial?.active()||chinaSalon?.active()||chinaLabor?.isCleaning()||chinaCareer?.isActing()||chinaPersonnelCareer?.isActing()),
  canSee:nearbyInteractionClear,getMeetingPoint:courtReviewStandPoint,requestMeeting:n=>chinaAudience.meetingAvailable(n)&&npcSocial.reserveMeeting(n,{owner:'personnel-promotion-review',duration:90}),
  meetingHeld:n=>npcSocial?.meetingState()?.id===(n.actorId||n.station.id)&&npcSocial.meetingState()?.owner==='personnel-promotion-review',releaseMeeting:()=>npcSocial?.releaseMeeting('personnel-promotion-review'),
  resumeApproach:next=>requestStationIntent(next,{resumePersonnel:true}),onWaiting:()=>{path=[];targetStation=null;pendingInteraction=null;},notify:toast,openRegistration:()=>careerHandbook.open({roleId:'cn-court-clerk',scope:'role'}),

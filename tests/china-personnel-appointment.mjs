@@ -428,3 +428,24 @@ for (const type of ['apply', 'receive-document']) {
   assert(g.requestStationIntent(selected)); assert.equal(executed, 1, 'non-personnel nearby behavior remains unchanged'); assert.equal(g.pendingInteraction, null); old.dispose(); f.dispose();
 }
 console.log('PASS actual main direct moving-frame personnel intent defers once to idle dispatch; old court view unaffected');
+
+// Camera proximity hides the player's render root, not their physical body.
+// A real departure/body loss still releases the queue and preserves the case.
+{
+  const f=fixture();f.apply();f.flags.meeting=false;
+  assert(f.service.prepareIntent(f.service.intent(P+'review')));assert(f.service.isWaiting());
+  const before=copy(f.careers.promotionSummary().application),bankBefore=copy(f.bank);
+  f.player.root.visible=false;f.tick(.2);assert(f.service.isWaiting(),'camera visibility is not physical availability');
+  const queued=f.service.snapshot();f.load(queued);f.tick(.2);assert(f.service.isWaiting(),'same hidden-avatar queue survives reload');
+  f.player.root.position.y+=3;f.tick(.1);assert.equal(f.service.isActing(),false,'real floor departure cancels the physical queue');
+  assert.deepEqual(f.careers.promotionSummary().application,before);assert.deepEqual(f.bank,bankBefore);
+  f.player.root.position.y-=3;f.flags.meeting=true;assert(f.service.prepareIntent(f.service.intent(P+'review')));assert(f.flags.held);
+  f.replacePlayer(null);f.tick(.1);assert.equal(f.service.isActing(),false);assert.equal(f.flags.held,false,'absent current player releases the real lease');
+  assert.deepEqual(f.careers.promotionSummary().application,before);assert.deepEqual(f.bank,bankBefore);f.dispose();
+}
+{
+  const f=fixture();f.receive();f.execute('imperial-review');f.realPalace.ready();f.player.root.visible=false;f.tick(4);
+  assert.equal(f.careers.promotionSummary().application.stage,'imperial-approved');const decided=copy(f.careers.promotionSummary().application);
+  f.tick(2);assert.deepEqual(f.careers.promotionSummary().application,decided,'hidden-render completion cannot repeat the saved imperial decision');f.dispose();
+}
+console.log('PASS personnel approval waits and actual original-emperor review ignore camera-only avatar hiding; real absence releases ownership without duplicate decisions');

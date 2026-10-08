@@ -58,7 +58,7 @@ export function createChinaPersonnelAppointment({careers, palace, getPlayer, get
   }
   function playerReady() {
     const player = getPlayer();
-    return !!player?.root && player.root.visible !== false && player.alive !== false && !player.walking && standing(player) === true && !getBusy();
+    return !!player?.root && player.alive !== false && !player.walking && standing(player) === true && !getBusy();
   }
   const at = position => near(currentPoint(getPlayer()), position) && canSee({position}) === true;
   const hand = () => getPlayer()?.root?.userData?.hands?.[1];

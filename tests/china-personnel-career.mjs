@@ -197,12 +197,11 @@ function fixture({enabled = true, qualified = true, initialSource = true, person
   assert.deepEqual(f.service.state().case.receipt, signed.receipt); assert.equal(f.writes.length, writes); assert(f.saveChecks.every(Boolean));
 }
 
-// Real stationary elapsed only: frame cap, moving/hidden/blocked/busy posture,
+// Real stationary elapsed only: frame cap, moving/blocked/busy posture,
 // changed body, changed appointment, missing legal source stand point.
-for (const failure of ['walking', 'invisible', 'blocked', 'busy', 'seated', 'offsite', 'dead', 'replaced']) {
+for (const failure of ['walking', 'blocked', 'busy', 'seated', 'offsite', 'dead', 'replaced']) {
   const f = fixture(); f.claim(); f.execute('personnel-read:' + OFFICIALS[0].actorId); f.tick(1);
   if (failure === 'walking') f.player.walking = true;
-  if (failure === 'invisible') f.player.root.visible = false;
   if (failure === 'blocked') f.flags.visible = false;
   if (failure === 'busy') f.flags.busy = true;
   if (failure === 'seated') f.flags.standing = false;
@@ -457,3 +456,32 @@ for(const accepted of [true,false]){
  assert.equal(vm.runInNewContext(requestSource+';requestStationIntent(selected)',direct),accepted);assert.equal(stopped,1);assert.equal(held,false);assert.equal(direct.path.length,0);assert.equal(direct.targetStation,null);assert.equal(direct.pendingInteraction,null);
 }
 console.log('PASS actual main work-stop/panel-cancel clears personnel approach even when immediate cancellation save fails');
+
+// A close camera hides only the avatar mesh. Physical presence and the exact
+// waiting position, not the renderer flag, own the original roster queue.
+{
+  const f=fixture();f.claim();f.fill();f.compile();f.flags.meeting=false;
+  assert(f.service.prepareIntent(f.service.intent('personnel-review')));assert(f.service.isWaiting());
+  const before=copy(f.service.snapshot().work),careerBefore=f.careers.state(),bankBefore=copy(f.bank);
+  f.player.root.visible=false;f.tick(.2);assert(f.service.isWaiting(),'camera-hidden avatar keeps the same real queue');
+  const queued=f.service.snapshot();f.load(queued);f.tick(.2);assert(f.service.isWaiting(),'cold hidden-avatar wait remains usable');
+  f.player.root.position.y+=3;f.tick(.1);assert.equal(f.service.isActing(),false,'actual departure to another floor releases waiting');
+  assert.deepEqual(f.service.snapshot().work,before);assert.deepEqual(f.careers.state(),careerBefore);assert.deepEqual(f.bank,bankBefore);
+  f.player.root.position.y-=3;f.flags.meeting=true;assert(f.service.prepareIntent(f.service.intent('personnel-review')));assert(f.flags.held);
+  f.service.dispose({suspend:true});assert.equal(f.flags.held,false,'scene disposal releases the real reviewer lease');
+  assert.deepEqual(f.careers.state(),careerBefore);assert.deepEqual(f.bank,bankBefore);
+}
+// Main supplies the actual lot/root/posture predicate to both adapters. Its
+// rendering visibility is intentionally irrelevant; leaving the scene is not.
+{
+  const start=mainSource.indexOf('function personnelPlayerStanding()'),end=mainSource.indexOf('\nfunction configureChinaPersonnelCareer()',start);
+  assert(start>=0&&end>start);const source=mainSource.slice(start,end);
+  const group={},other={},player={root:{parent:group,visible:false}},context={mode:'lot',active:{id:'china'},player,lot:{group},seated:null,bathTransition:null,activeDailyToilet:()=>null};
+  const ready=()=>vm.runInNewContext(source+';personnelPlayerStanding()',context);
+  assert.equal(ready(),true);context.mode='globe';assert.equal(ready(),false);context.mode='lot';context.active.id='japan';assert.equal(ready(),false);context.active.id='china';
+  player.root.parent=other;assert.equal(ready(),false);player.root.parent=group;context.seated={};assert.equal(ready(),false);context.seated=null;context.bathTransition={};assert.equal(ready(),false);context.bathTransition=null;
+  context.activeDailyToilet=()=>({playerPose:()=>({})});assert.equal(ready(),false);context.activeDailyToilet=()=>null;context.player=null;assert.equal(ready(),false);
+}
+console.log('PASS personnel camera-only avatar hiding keeps queues; real floor departure/scene disposal releases leases; actual main scene/root/posture predicate preserves physical boundaries');
+
+{const f=fixture();f.player.root.visible=false;f.claim();f.read(0);assert.equal(f.service.state().case.rows[0].visit.elapsed,3,'hidden avatar still reads only after actual stationary3s');}
