@@ -140,7 +140,8 @@
       "shoji-side-privacy.cjs",
       "sliding-track-fit.cjs",
       "china-holding-cell-navigation.cjs",
-      "china-official-blocked-door.cjs"
+      "china-official-blocked-door.cjs",
+      "china-official-washroom-return.cjs"
     ]
   },
   "ui": {
