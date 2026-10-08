@@ -95,7 +95,9 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
   if(!s.planned){n.route=planPath(n.root.position,point(target),.25);s.planned=true;}
   const step=followActorRoute(n,dt,{doors,moveActor,npcs,playerPosition:state.position,speedScale:.78});
   s.travel={waiting:!!step.waiting,blocked:!!step.blocked,body:step.body||null};
-  s.stalled=n.walking||step.waiting?0:s.stalled+dt;if(s.stalled>4){s.stalled=0;s.planned=false;if(++s.retries===3){failures.push({actor:n.station.id,stage:s.id,target,position:n.root.position.toArray()});if(failures.length>8)failures.shift();}}
+  // A failed door join is not progress. Normal opening and body queues keep
+  // their route; a blocked door retries this same authored leg after four seconds.
+  s.stalled=n.walking||step.waiting&&step.phase!=='blocked'?0:s.stalled+dt;if(s.stalled>4){s.stalled=0;s.planned=false;if(++s.retries===3){failures.push({actor:n.station.id,stage:s.id,target,position:n.root.position.toArray()});if(failures.length>8)failures.shift();}}
   return false;
  }
  const allInLine=()=>officials.every(n=>tasks.get(n)?.id==='enter-hall'&&tasks.get(n).arrived),paused=n=>!!n&&isSociallyHeld(n.station.id,state.conversationActorId);
