@@ -45,7 +45,8 @@ if(initial.active){
  assert.equal(state().mode,'lot');assert.equal(state().region,initial.currentRegion);assert.deepEqual(clone(journey.snapshot()),initialSave.travelJourney,'cold resume adds no journey or stamp');
 }
 const beforeSame=clone(journey.snapshot()),count=state().npcCount;assert(main.namespace.requestTravel(journey.view().currentRegion));assert.deepEqual(clone(journey.snapshot()),beforeSame);assert.equal(state().npcCount,count,'same-country selection keeps the existing scene');
-for(const [index,target] of (process.env.TRAVEL_MAIN_TARGETS||'').split(',').filter(Boolean).entries()){
+const targets=(process.env.TRAVEL_MAIN_TARGETS||'').split(',').filter(Boolean);
+for(const [index,target] of targets.entries()){
  const before=journey.view(),from=state().region;assert.notEqual(from,target);assert(regionsTarget(target));
  if(index%2===0){ids['return-world'].onclick();assert.equal(state().mode,'globe');assert.equal(journey.view().currentRegion,from);assert.deepEqual(clone(journey.view().stamps),clone(before.stamps));all.find(e=>e.dataset.region===target).onclick();ids.travel.onclick();}
  else{context.location.hash='#'+target;events.hashchange();}
@@ -53,7 +54,7 @@ for(const [index,target] of (process.env.TRAVEL_MAIN_TARGETS||'').split(',').fil
  press('departure');assert.equal(journey.view().stamps.length,before.stamps.length+1);press('board');press('land');press('entry');assert.equal(journey.view().stamps.length,before.stamps.length+2);press('arrive');
  assert.equal(state().mode,'lot');assert.equal(state().region,target);assert.equal(journey.view().currentRegion,target);assert.equal(journey.view().active,null);assert(r.saved.visited.includes(target));
  const view=state();assert(view.npcCount>0);assert.equal(new Set(view.npcLooks.map(n=>n.id)).size,view.npcCount);assert(view.npcLooks.every(n=>n.bodyPreset&&n.hairStyle),'original authored identities built');completed.push(target);
- assert(main.namespace.save());const durable=JSON.parse(storage['worlds-days-v1']);assert.equal(durable.travelJourney.currentRegion,target);assert.equal(durable.travelJourney.activeId,null);assert.equal(durable.worldContinuity.activeRegion,target);assert(durable.visited.includes(target));
+ assert(main.namespace.save());const durable=JSON.parse(storage['worlds-days-v1']);assert.equal(durable.travelJourney.currentRegion,target);assert.equal(durable.travelJourney.activeId,null);assert.equal(durable.worldContinuity.activeRegion,target);assert(durable.visited.includes(target));if(index<targets.length-1)checkpoint('arrived');
 }
 assert.deepEqual(clone(r.simulationClock.snapshot()),clock);assert.equal(JSON.stringify(r.saved.copperLedger),wallet);assert.equal(journey.view().loadError,null);checkpoint('arrived');
 function regionsTarget(id){return ['japan','china','france','egypt'].includes(id);}
