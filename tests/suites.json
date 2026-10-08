@@ -617,6 +617,8 @@
       "study-xp.mjs",
       "tavern-role-contracts.mjs",
       "travel-journey.mjs",
+      "travel-journey-ui.mjs",
+      "travel-journey-main.cjs",
       "travel-flight.mjs",
       "travel-passport.mjs",
       "walking-npc-conversation-main.cjs",
