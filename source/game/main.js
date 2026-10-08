@@ -488,6 +488,9 @@ function continuitySaved(value,id){return {...(value||{}),continuity:loadingWorl
 function continuityControllers(){return {npcPublicInteractions,egyptMeal,egyptKitchenEmployment,egyptTableServiceEmployment,chinaTavern,chinaService:typeof chinaService==='undefined'?null:chinaService,chinaClinic,chinaClinicEmployment,chinaClinicPhysicianEmployment,chinaSalon,chinaSalonEmployment,chinaRoyalKitchen,chinaRoyalKitchenEmployment,chinaPalace,chinaAudience,chinaEdict,chinaConsortCourt,chinaRoyalPlayerMeal,chinaArchery,chinaGuardEmployment,franceTea,franceTeaEmployment,francePastryEmployment,franceGardener,japanService,japanReceptionEmployment,japanBathDeliveryEmployment,japanWomenBathDeliveryEmployment,japanBathMixingEmployment,japanTableServiceEmployment,japanKitchenEmployment,japanPerformance,japanPerformanceEmployment,chinaLabor,franceLabor,chinaCareer,chinaPersonnelCareer,chinaPersonnelAppointment,npcSocial};}
 function continuityIntent(item){return item?{id:item.id,provider:item.provider||null,menuId:item.menuId||null,intentKey:item.intentKey||null,kind:item.kind||null,roleId:item.roleId||null,seatId:item.seatId||null,registration:continuityCopy(item.registration),lessonId:item.studyLesson?.id||null}:null;}
 function captureWorldContinuity(){
+ // Preserve a trusted legacy current country before the world chooser clears activeRegion.
+ // A damaged journey stays untouched; ordinary saves must not replace it with an empty ledger.
+ const journeySnapshot=travelJourney?.snapshot();if(journeySnapshot)saved.travelJourney=journeySnapshot;
  if(tavernManagement)Object.assign(saved,tavernManagement.snapshot());
  if(npcPublicInteractions&&active){saved.npcPublicInteractions??={};saved.npcPublicInteractions[active.id]=npcPublicInteractions.snapshot();}
  if(palaceCompanionship)saved.palaceCompanionship=palaceCompanionship.snapshot();if(salonCompanionship)saved.salonCompanionship=salonCompanionship.snapshot();

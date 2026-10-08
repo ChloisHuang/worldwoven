@@ -27,7 +27,7 @@ assert.equal(r.mode,'globe');assert(journey);const clock=clone(r.simulationClock
 const find=(e,p)=>p(e)?e:e.children?.map(c=>find(c,p)).find(Boolean),dialog=()=>find(document.body,e=>e.className?.split(' ').includes('ww-travel-dialog'));
 const button=action=>{const b=find(dialog(),e=>e.tagName==='button'&&e.getAttribute('data-travel-action')===action);assert(b&&!b.disabled,action+' enabled');return b;};
 const press=action=>button(action).onclick(),step=(n=1)=>{for(let i=0;i<n;i++){now+=100;main.namespace.travelMainStep(.1);}};
-rejectAction='begin';ids.travel.onclick();assert.equal(journey.view().active,null);assert.equal(rejectedWrites,1);assert(main.namespace.save());assert(!JSON.parse(storage['worlds-days-v1']).travelJourney);
+rejectAction='begin';ids.travel.onclick();assert.equal(journey.view().active,null);assert.equal(rejectedWrites,1);assert(main.namespace.save());assert.equal(JSON.parse(storage['worlds-days-v1']).travelJourney.journeys.length,0);assert.equal(JSON.parse(storage['worlds-days-v1']).travelJourney.activeId,null);
 rejectAction=null;ui.close();ids.travel.onclick();const id=journey.view().active.id;assert.equal(journey.view().active.from,null);assert.equal(journey.view().active.to,'japan');assert.equal(journey.view().active.stage,'planned');
 press('passport');assert(r.travelPassport.isOpen());assert(!ui.isOpen());r.travelPassport.close();assert(ui.isOpen(),'closing original passport returns to this journey');
 context.location.hash='#france';events.hashchange();assert.equal(journey.view().active.id,id);assert.equal(journey.view().active.to,'japan');assert.equal(main.namespace.travelMainReview().selected,'japan');
