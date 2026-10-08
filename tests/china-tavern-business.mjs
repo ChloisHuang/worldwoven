@@ -43,6 +43,19 @@ const fail=(r,code)=>{assert.equal(r?.ok,false,JSON.stringify(r));if(code)assert
  const altered=f.durable;altered.chinaTavernBusiness.contracts[0].salary.baseDailyWage=100;const broken=fixture(altered);assert(broken.business.loadError);
 }
 console.log('PASS named host24/chef26/assistant16 + actual full-day1, one zero-origin bank receipt, no personal/player/treasury mint, historical reload and immutable terms');
+// Legitimate task/wait transitions keep the same proved assignment. A genuinely
+// missing endpoint still breaks duty and cannot receive the full-window bonus.
+for(const missingCoverage of [false,true]){
+ const f=fixture();f.seconds=at(1,6);const c=f.contract(),end=at(1,18);let frame=0;
+ const sample=dt=>f.business.observe({seconds:f.seconds,dt,coverage:missingCoverage&&frame===2000?[]:[{...f.coverage(c),activity:frame%2?'work':'waiting'}]});
+ sample(.25);
+ while(f.seconds<end){const next=Math.min(end,f.seconds+.25),dt=Math.min(.25,next-f.seconds);f.seconds=next;frame++;assert(sample(dt));}
+ const row=f.business.snapshot().rows[0],hours=row.segments.reduce((sum,segment)=>sum+segment.endHour-segment.startHour,0);
+ assert.equal(row.segments.length,missingCoverage?2:1);
+ if(missingCoverage){assert(hours<12&&hours>11.9);assert.equal(f.business.accounting().earnedWages,15);}else{assert(Math.abs(hours-12)<1e-9);assert.equal(f.business.accounting().earnedWages,17);}
+ assert(f.business.settleDue().ok);assert.equal(f.business.account(c.actorId).bank,missingCoverage?15:17);
+}
+console.log('PASS verified work/wait alternation preserves full12h and +1; a missing coverage endpoint breaks the window with prorated pay and no bonus');
 {
  const f=fixture();f.seconds=at(1,6);const c=f.contract();f.observe(c,at(1,7));assert.equal(f.business.accounting().earnedWages,1);
  assert(f.business.checkpoint().ok);f.reload();f.seconds=at(1,12);const before=f.business.accounting().earnedWages;f.business.observe({seconds:f.seconds,dt:.25,coverage:[f.coverage(c)]});assert.equal(f.business.accounting().earnedWages,before,'cold gap earns nothing');

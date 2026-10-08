@@ -236,7 +236,9 @@ export function createChinaTavernBusiness(options={}){
    if(!anchor||!previous||seconds<=previous.seconds||Math.abs(seconds-previous.seconds-dt)>1e-7){lastError=null;return false;}
    const additions=[],paid=new Set(current.receipts.filter(r=>r.kind==='npc-wage').map(r=>key(r.proof.row)));
    for(const v of valid){
-    if(!previous.coverage.some(p=>same(p,v)))continue;const c=current.contracts.find(c=>c.id===v.contractId),excluded=c.salary.excludedTrial;
+    // Both endpoints already passed strict live work-area/controller checks.
+    // Work and ordinary waiting are continuous duty for the same assignment.
+    if(!previous.coverage.some(p=>['contractId','actorId','bodyId','roleId','slotId','holderRevision'].every(k=>p[k]===v[k])))continue;const c=current.contracts.find(c=>c.id===v.contractId),excluded=c.salary.excludedTrial;
     let spans=[[Math.max(previous.seconds,c.activatedSeconds),seconds]];
     if(excluded)spans=spans.flatMap(([a,b])=>b<=excluded.startedSeconds||a>=excluded.completedSeconds?[[a,b]]:[[a,Math.min(b,excluded.startedSeconds)],[Math.max(a,excluded.completedSeconds),b]].filter(([x,y])=>y>x));
     // Active reservations exclude their actor's trial interval even before the
