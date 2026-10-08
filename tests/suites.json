@@ -376,7 +376,9 @@
       "china-personnel-work.mjs",
       "china-official-grade-life.mjs",
       "china-official-grade-main.cjs",
-      "official-personnel-promotion.mjs"
+      "official-personnel-promotion.mjs",
+      "china-tavern-recruitment.mjs",
+      "china-tavern-recruitment-scene.mjs"
     ]
   },
   "world-life": {
