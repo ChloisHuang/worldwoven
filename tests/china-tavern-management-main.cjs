@@ -33,6 +33,7 @@ assert.equal(state().region,'china');assert(m);assert.equal(m.loadError,null);as
 const find=(e,p)=>p(e)?e:e.children?.map(c=>find(c,p)).find(Boolean),panel=()=>find(document.body,e=>e.className?.split(' ').includes('cn-property-dialog'));
 const button=label=>{const b=find(panel(),e=>e.tagName==='button'&&e.textContent===label);assert(b,label);assert(!b.disabled,label+' enabled');return b;};
 const diagnostic=()=>({leg,steps,clock:r.simulationClock.state(),player:r.player.root.position.toArray(),pathLength:review().path.length,target:review().targetStation,pending:review().pendingInteraction,loadError:m.loadError,lastError:m.lastError,applications:m.hiring.applications(),recruitment:m.recruitment.state(),world:scene.state(),toast:ids.toast.textContent});
+const trialCandidate=c=>['cn-tavern-diner-west','cn-tavern-diner-east'].includes(c?.actorId);
 const step=()=>{now+=100;main.namespace.tavernMainStep(.1);steps++;};
 const until=(fn,label,limit=4000)=>{leg=label;for(let i=0;i<limit&&!fn();i++){step();if(Date.now()-started>140000)throw Error('Safe bounded stop at '+label);}if(!fn())throw Error(label+' incomplete');};
 function checkpoint(name,evidence){assert.equal(m.loadError,null);assert.equal(scene.state().loadError,null);assert.equal(r.npcs.length,31);for(const [id,n]of originals)assert.equal(r.npcs.find(n=>n.station.id===id),n);assert(main.namespace.save());if(!done(name))journal.completed.push(name);journal.last={name,evidence,clock:clone(r.simulationClock.state()),steps};const item={version:1,save:JSON.parse(storage['worlds-days-v1']),journal};fs.writeFileSync(path.join(out,'checkpoint.json'),JSON.stringify(item));console.log('MILESTONE',name,JSON.stringify(evidence));return process.env.TAVERN_MAIN_STOP_AFTER===name;}
@@ -49,20 +50,20 @@ try{
   if(checkpoint('01-owner-stock',{activationSerial:m.stock.summary().cutoff,procurement:40,inventoryValue:40,bank:r.copperLedger.state().bank}))return;
  }
  if(!done('02-applicant')){
-  if(r.tavernKitchenRoles.resolve('assistant').holderId){until(()=>scene.snapshot().orders.every(o=>o.stage==='done')&&scene.kitchenHandoff('assistant').ok,'original customer meals and assistant safe handoff');assert(m.dismiss('cn-tavern-steward').ok);}
-  until(()=>m.recruitment.state().candidates.some(c=>c.phase==='meeting'),'original idle NPC elects and physically arrives to apply',6000);
-  const c=m.recruitment.state().candidates.find(c=>c.phase==='meeting');assert(c.lease);assert(m.hiring.application(c.applicationId));
+  if(r.tavernKitchenRoles.resolve('assistant').holderId){until(()=>!scene.snapshot().orders.some(o=>o.number<=m.stock.summary().cutoff&&o.stage!=='done')&&scene.kitchenHandoff('assistant').ok,'original legacy meals finish and actual assistant safe handoff');assert(m.dismiss('cn-tavern-steward').ok);}
+  until(()=>m.recruitment.state().candidates.some(c=>trialCandidate(c)&&c.phase==='meeting'),'original idle NPC elects and physically arrives to apply',6000);
+  const c=m.recruitment.state().candidates.find(c=>trialCandidate(c)&&c.phase==='meeting');journal.trialApplicationId=c.applicationId;assert(c.lease);assert(m.hiring.application(c.applicationId));
   if(checkpoint('02-applicant',{actorId:c.actorId,applicationId:c.applicationId,customerReleaseReceipt:c.lease.id}))return;
  }
  if(!done('03-trial')){
-  let c=m.recruitment.state().candidates.find(c=>['meeting','review','travelling-table','cleaning','returning-review'].includes(c.phase));assert(c);
+  let c=m.recruitment.state().candidates.find(c=>c.applicationId===journal.trialApplicationId);assert(c);
   if(!m.hiring.application(c.applicationId).trial.request){assert(main.namespace.requestStationIntent(m.recruitment.intent(c.applicationId,'trial')));until(()=>!!m.hiring.application(c.applicationId).trial.request,'owner walks to original applicant and orders trial');}
   until(()=>m.recruitment.candidate(c.applicationId)?.phase==='review'&&!!m.hiring.application(c.applicationId).trial.work,'original NPC cleans both tables and returns',6000);
   c=m.recruitment.candidate(c.applicationId);const a=m.hiring.application(c.applicationId);assert.equal(a.trial.work.steps.length,2);assert(a.trial.work.steps.every(s=>s.completedSeconds-s.startedSeconds>=5));
   if(checkpoint('03-trial',{actorId:c.actorId,applicationId:c.applicationId,steps:a.trial.work.steps,payment:!!a.trial.payment}))return;
  }
  if(!done('04-hired')){
-  const c=m.recruitment.state().candidates.find(c=>c.phase==='review');assert(c);const id=c.applicationId;
+  const c=m.recruitment.state().candidates.find(c=>c.applicationId===journal.trialApplicationId&&c.phase==='review');assert(c);const id=c.applicationId;
   assert(main.namespace.requestStationIntent(m.recruitment.intent(id,'approve')));until(()=>m.hiring.application(id).status==='assigned','owner approval and safe same-body role assignment');
   const a=m.hiring.application(id),role=r.tavernKitchenRoles.resolve('assistant');assert.equal(role.holderId,a.actor.actorId);assert.equal(role.actor,originals.get(a.actor.actorId));assert.equal(a.decision.salary.baseDailyWage,16);assert(a.trial.payment);assert.equal(m.business.account(a.actor.actorId).bank,12);
   assert(m.business.snapshot().contracts.some(c=>c.actorId===a.actor.actorId&&c.roleId==='cn-tavern-steward'));
