@@ -366,7 +366,9 @@
       "regional-teller-employment.mjs",
       "regional-teller-main.cjs",
       "regional-teller-physical.cjs",
-      "china-official-grade-pay.mjs"
+      "china-official-grade-pay.mjs",
+      "china-official-grade-life.mjs",
+      "china-official-grade-main.cjs"
     ]
   },
   "world-life": {
