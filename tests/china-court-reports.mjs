@@ -23,15 +23,21 @@ const restored=createCourtReports({readEdict:()=>source,saved});assert.equal(res
 source={ledger:{lastDay:2,lastReceipt:'cn-morning-audience:2',outcome:'interrupted',completedReceipt:'cn-morning-audience:1'},order:null,props:{workProgress:0}};
 const interrupted=restored.report('works',5);assert.equal(interrupted.action,'inquire');assert.match(interrupted.text,/未有办结回执/);assert(restored.decide(interrupted.issueId,'inquire'));assert.match(restored.report('granary',5).text,/1件奉准核验未回报/);
 assert.match(interrupted.text,/第3日《荷庭东岸清扫令》/);assert(!interrupted.text.includes('cn-edict'));assert.match(interrupted.response,/补办/);
-const inquiry=restored.inspection();assert(!inquiry.label.includes('cn-edict'));assert(restored.inspected(inquiry.id,{actorId:'cn-minister-works',position:inquiry.point}));
+const inquiry=restored.inspection();assert(!inquiry.label.includes('cn-edict'));const pendingBeforeFailure=restored.snapshot();
+assert.equal(restored.inspected(inquiry.id,{actorId:'cn-minister-works',position:inquiry.point}),false);
+assert(restored.hasPending());assert.deepEqual(restored.snapshot(),pendingBeforeFailure,'Rejected repair cannot consume an authorized inquiry');
+// Explicit old-format record: the historical bug saved a false result. Do not
+// recreate that bug in the current product merely to obtain a migration fixture.
+const oldFailed=restored.snapshot();oldFailed.cases.at(-1).result={id:`court-inspection:${inquiry.id}`,actorId:'cn-minister-works',position:[...inquiry.point],place:inquiry.place,source:edictReportSource(source),recoveryRequested:false};
+
 // An old completed inquiry only recorded the interruption. Restore its prior
 // instruction as a real visit; do not fabricate a success receipt or remote fix.
-let reissues=0;const legacy=createCourtReports({readEdict:()=>source,saved:restored.snapshot(),reissueEdict:id=>{assert.equal(id,'cn-edict-east-shore:2');reissues++;source.ledger.outcome='active';source.order={id,stage:'drafting'};return true;}});
-assert.equal(reissues,0);assert(legacy.hasPending());const revisit=legacy.inspection();assert.equal(revisit.place,'传令案');assert(legacy.inspected(revisit.id,{actorId:'cn-minister-works',position:revisit.point}));assert.equal(reissues,1);assert.equal(source.ledger.completedReceipt,'cn-morning-audience:1');const pending=legacy.report('works',6);assert.match(pending.text,/补办，现正拟稿/);
+let reissues=0;const legacy=createCourtReports({readEdict:()=>source,saved:oldFailed,reissueEdict:id=>{assert.equal(id,'cn-edict-east-shore:2');reissues++;source.ledger.outcome='active';source.order={id,stage:'drafting'};return true;}});
+assert.equal(reissues,0);assert(legacy.hasPending());assert.deepEqual(legacy.snapshot().cases.at(-1).previousResult,oldFailed.cases.at(-1).result);const revisit=legacy.inspection();assert.equal(revisit.place,'传令案');assert(legacy.inspected(revisit.id,{actorId:'cn-minister-works',position:revisit.point}));assert.equal(reissues,1);assert.equal(source.ledger.completedReceipt,'cn-morning-audience:1');const pending=legacy.report('works',6);assert.match(pending.text,/补办，现正拟稿/);
 assert.equal(pending.action,'defer');assert(legacy.decide(pending.issueId,'defer'));acknowledge(legacy,pending);source.ledger.outcome='completed';source.ledger.completedReceipt=source.ledger.lastReceipt;source.props.workProgress=1;const verified=legacy.inspection();assert.equal(verified.place,'荷庭东岸');assert(legacy.inspected(verified.id,{actorId:'cn-minister-works',position:verified.point}));assert.match(legacy.report('works',7).text,/回执与现场落叶入筐相符/);
 // If repair finishes before the next report, that report itself must request
 // east-shore inspection instead of allowing the next daily order to erase it.
-const awaiting=restored.snapshot();awaiting.cases.at(-1).result.recoveryRequested=true;awaiting.cases.at(-1).result.reportedDay=undefined;
+const awaiting=clone(oldFailed);awaiting.cases.at(-1).result.recoveryRequested=true;awaiting.cases.at(-1).result.reportedDay=undefined;
 const quick=createCourtReports({readEdict:()=>source,saved:awaiting}),ready=quick.report('works',8);assert.equal(ready.action,'approve');assert(quick.decide(ready.issueId,'approve'));assert.equal(quick.inspection().place,'荷庭东岸');
 assert.equal(formatCourtEdictText('奉旨核验cn-edict-east-shore:0 · 到传令案核对'),'奉旨核验第1日《荷庭东岸清扫令》 · 到传令案核对');
 // Regression: merely preparing speech used to consume the inspection result.

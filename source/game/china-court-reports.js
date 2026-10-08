@@ -123,9 +123,12 @@ export function createCourtReports({readEdict=()=>null,reissueEdict=()=>false,sa
    // Completed means the live controller's visible work actually reached its
    // terminal state, not merely that time passed or a report was spoken.
    if(source.outcome==='completed'&&source.workProgress!==1)return false;
-   c.result={id:`court-inspection:${c.id}`,actorId,position:position.slice(),place:job.place,source,recoveryRequested:source.outcome==='interrupted'};
-   if(c.result.recoveryRequested)c.result.recoveryRequested=reissueEdict(source.documentId)===true;
-   save();return true;
+   const result={id:`court-inspection:${c.id}`,actorId,position:position.slice(),place:job.place,source,recoveryRequested:source.outcome==='interrupted'};
+   // A rejected original reissue is still unfinished business. Keep this same
+   // authorized case pending for another real visit; never bypass the edict's
+   // identity, contract, actor or active-order guards to manufacture success.
+   if(result.recoveryRequested&&reissueEdict(source.documentId)!==true)return false;
+   c.result=result;save();return true;
   },hasPending:()=>cases.some(c=>c.response&&!c.result&&!c.retired),snapshot,state:snapshot
  };
 }
