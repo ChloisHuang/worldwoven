@@ -29,11 +29,12 @@ export const CHINA_OFFICIAL_GRADE_PAY_V1 = Object.freeze({
   'cn-grade-1-junior':200,'cn-grade-1-regular':240,
 });
 
-// Only these two player grades have playable appointment/promotion paths.
+// These three player grades have bounded, witnessed appointment paths.
 // The complete pay table does not open higher offices or waive real service.
 export const CHINA_RECORDS_CAREER_RANKS = Object.freeze([
   {rankId:'cn-records-junior',title:'礼务录事',gradeId:'cn-grade-9-junior',basePay:18,nextRankId:'cn-records-regular'},
-  {rankId:'cn-records-regular',title:'礼务录事',gradeId:'cn-grade-9-regular',basePay:22,nextRankId:null},
+  {rankId:'cn-records-regular',title:'礼务录事',gradeId:'cn-grade-9-regular',basePay:22,nextRankId:'cn-records-personnel'},
+  {rankId:'cn-records-personnel',title:'吏务核籍录事',gradeId:'cn-grade-8-junior',basePay:26,nextRankId:null},
 ].map(rank => Object.freeze({...rank,...getChinaOfficialGrade(rank.gradeId)})));
 const recordsRanks = new Map(CHINA_RECORDS_CAREER_RANKS.map(rank => [rank.rankId, rank]));
 export const getChinaRecordsCareerRank = rankId => recordsRanks.get(rankId) || null;

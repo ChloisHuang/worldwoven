@@ -174,7 +174,8 @@
       "service-object-menu-targets.mjs",
       "wallet-bank-navigation-main.cjs",
       "wallet-ui.mjs",
-      "china-official-grade-display.mjs"
+      "china-official-grade-display.mjs",
+      "china-personnel-work-panel.mjs"
     ]
   },
   "food-lodging": {
@@ -368,8 +369,11 @@
       "regional-teller-physical.cjs",
       "china-official-grade-pay.mjs",
       "china-granary-audit.mjs",
+      "china-personnel-records.mjs",
+      "china-personnel-work.mjs",
       "china-official-grade-life.mjs",
-      "china-official-grade-main.cjs"
+      "china-official-grade-main.cjs",
+      "official-personnel-promotion.mjs"
     ]
   },
   "world-life": {
@@ -630,7 +634,12 @@
       "china-court-report-main.cjs",
       "china-court-reissue-pending.mjs",
       "china-granary-audit-flow.mjs",
-      "china-granary-audit-main.cjs"
+      "china-granary-audit-main.cjs",
+      "china-personnel-source-flow.mjs",
+      "china-personnel-career.mjs",
+      "china-personnel-appointment.mjs",
+      "china-personnel-main.cjs",
+      "china-personnel-main-save.cjs"
     ]
   },
   "release": {

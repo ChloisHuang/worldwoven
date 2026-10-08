@@ -1,3 +1,5 @@
+import {validateChinaPersonnelWorkCase} from './china-personnel-work.js';
+import {PERSONNEL_RANK,PERSONNEL_FROM_RANK,PERSONNEL_ACTORS,personnelContract,validPersonnelContract,validPersonnelEvidence,personnelEvidenceFields,personnelDeferralMatches,personnelSame,personnelApplicationId,personnelChance,personnelChecked,validPersonnelProof,validPersonnelArchiveProof} from './official-personnel-policy.js';
 import {PALACE_TEA_ROLE} from './china-palace-tea-role.js';
 import {ARCHIVE_ROLE} from './china-archive-role.js';
 export {PALACE_TEA_ROLE} from './china-palace-tea-role.js';
@@ -127,10 +129,10 @@ const attendanceWage = (role,hours) => Math.floor(role.wage*Math.min(1,hours/(ro
 const CLERK_PAY_V1=Object.freeze({[CLERK_ENTRY_RANK]:18,[CLERK_NEXT_RANK]:22});
 const tellerPayFields=row=>row?.tellerPayVersion===1?{tellerPayVersion:1}:{};
 const validTellerPayFields=(row,role)=>regionalTellerRole(role?.id)?row.tellerPayVersion===1||row.tellerPayVersion===undefined&&(row.stage==='missed'||row.positive===false):row.tellerPayVersion===undefined;
-const salaryRole=(role,row)=>regionalTellerRole(role?.id)&&row?.tellerPayVersion===1?{...role,wage:REGIONAL_TELLER_SALARY_V1[role.country]}:role.id===COURT_CLERK_ROLE.id&&row?.officialPayVersion===1?{...role,wage:CLERK_PAY_V1[row.officialRankId]}:role;
-const officialFields=row=>row?.officialPayVersion===1?{officialPayVersion:1,officialRankId:row.officialRankId,officialTenureId:row.officialTenureId}:{};
-const validOfficialFields=(row,role)=>row.officialPayVersion===undefined?row.officialRankId===undefined&&row.officialTenureId===undefined:role.id===COURT_CLERK_ROLE.id&&row.officialPayVersion===1&&Object.hasOwn(CLERK_PAY_V1,row.officialRankId)&&typeof row.officialTenureId==='string';
-const dutyWage = (rawRole,duty) => {const role=salaryRole(rawRole,duty);if(duty.clinicPayVersion===1)return clinicRatedWage(role,coveredHours(duty),clinicPaySummary(duty));return duty.shiftKind==='continuous'?Math.max(0,attendanceWage(role,coveredHours(duty))-customerPenalty(duty)):Math.max(1,completedWage(role,duty.arrivalHour)-customerPenalty(duty));};
+const salaryRole=(role,row)=>regionalTellerRole(role?.id)&&row?.tellerPayVersion===1?{...role,wage:REGIONAL_TELLER_SALARY_V1[role.country]}:role.id===COURT_CLERK_ROLE.id&&[1,2].includes(row?.officialPayVersion)?{...role,wage:row.officialPayVersion===2?row.officialPayContract.basePay:CLERK_PAY_V1[row.officialRankId]}:role;
+const officialFields=row=>[1,2].includes(row?.officialPayVersion)?{officialPayVersion:row.officialPayVersion,officialRankId:row.officialRankId,officialTenureId:row.officialTenureId,...(row.officialPayVersion===2?{officialPayContract:copy(row.officialPayContract)}:{})}:{};
+const validOfficialFields=(row,role)=>row.officialPayVersion===undefined?row.officialRankId===undefined&&row.officialTenureId===undefined&&row.officialPayContract===undefined:role.id===COURT_CLERK_ROLE.id&&(row.officialPayVersion===1&&row.officialPayContract===undefined&&Object.hasOwn(CLERK_PAY_V1,row.officialRankId)&&typeof row.officialTenureId==='string'||validPersonnelContract(row));
+const dutyWage = (rawRole,duty) => {if(duty.officialPayVersion===2)return duty.officialPayContract.basePay+(duty.arrivalHour<=11.5-5/60?duty.officialPayContract.preparationBonus:0);const role=salaryRole(rawRole,duty);if(duty.clinicPayVersion===1)return clinicRatedWage(role,coveredHours(duty),clinicPaySummary(duty));return duty.shiftKind==='continuous'?Math.max(0,attendanceWage(role,coveredHours(duty))-customerPenalty(duty)):Math.max(1,completedWage(role,duty.arrivalHour)-customerPenalty(duty));};
 function validShift(duty,role){
  if(duty.clinicPayVersion!==undefined&&(duty.clinicPayVersion!==1||!clinicRole(role)||duty.shiftKind!=='continuous'))return false;
  if(duty.shiftKind===undefined)return (!regionalTellerRole(role.id)||duty.stage==='missed')&&(!['cn-tavern-host','cn-tavern-chef','cn-pharmacy-apprentice',CLINIC_PHYSICIAN_ROLE.id,ROYAL_KITCHEN_ROLE.id,TEA_SERVER_ROLE.id,TEA_PASTRY_ROLE.id,PALACE_GUARD_ROLE.id,JAPAN_RECEPTION_ROLE.id,...BATH_DELIVERY_ROLE_IDS,JAPAN_BATH_MIXING_ROLE.id,JAPAN_KITCHEN_ROLE.id,JAPAN_TABLE_SERVICE_ROLE.id,EGYPT_KITCHEN_ROLE.id,EGYPT_TABLE_SERVICE_ROLE.id].includes(role.id)||duty.stage==='missed')&&!['startedSeconds','coveredSeconds','completedTasks','endedHour','endedSeconds'].some(key=>own(duty,key));
@@ -372,7 +374,7 @@ function restore(saved, roleMap, slotMap) {
     saved.tenure.sinceHour < 0 || saved.tenure.sinceHour >= 24 || !validTenureApplication(saved.tenure))) throw Error('invalid-career-state');
   const duty = saved.lastDuty;
   if (duty !== null && (!object(duty) || !validSlot(duty.roleId, duty.slotId) || !integer(duty.day) ||
-    !STAGES.has(duty.stage) || roleMap.get(duty.roleId)?.paymentKind==='commission' || !validOfficialFields(duty,roleMap.get(duty.roleId)) || !validTellerPayFields(duty,roleMap.get(duty.roleId)) || typeof duty.started !== 'boolean' || !validShift(duty,roleMap.get(duty.roleId)) || !validCustomerReviews(duty,roleMap.get(duty.roleId)) ||
+    !STAGES.has(duty.stage) || roleMap.get(duty.roleId)?.paymentKind==='commission' || !validOfficialFields(duty,roleMap.get(duty.roleId)) || !validPersonnelEvidence(duty,['ready','paid'].includes(duty.stage)) || !validTellerPayFields(duty,roleMap.get(duty.roleId)) || typeof duty.started !== 'boolean' || !validShift(duty,roleMap.get(duty.roleId)) || !validCustomerReviews(duty,roleMap.get(duty.roleId)) ||
     !(duty.reason === null || typeof duty.reason === 'string' && duty.reason.length <= 80) ||
     !(duty.arrivalHour === null || Number.isFinite(duty.arrivalHour) &&
       duty.arrivalHour >= roleMap.get(duty.roleId).dutyWindow.startHour && duty.arrivalHour < roleMap.get(duty.roleId).dutyWindow.endHour) ||
@@ -406,7 +408,7 @@ function restore(saved, roleMap, slotMap) {
   if (review === null ? saved.lastEvaluatedDay !== null ||
       saved.performance !== Math.max(-100,Math.min(100,(duty?.customerReviews||[]).reduce((total,r)=>Math.max(-100,Math.min(100,total+r.score)),0)+chinaPieceworkServices.length+tellerAuditServices.length)) ||
       saved.promotionProgress !== (duty?.customerReviews||[]).reduce((total,r)=>Math.max(0,Math.min(100,total+Math.min(0,r.score))),0) :
-    !object(review) || !validSlot(review.roleId, review.slotId) || !validOfficialFields(review,roleMap.get(review.roleId)) || !validTellerPayFields(review,roleMap.get(review.roleId)) || !validClinicEvaluation(review,roleMap.get(review.roleId)) || !integer(review.day) ||
+    !object(review) || !validSlot(review.roleId, review.slotId) || !validOfficialFields(review,roleMap.get(review.roleId)) || !validPersonnelEvidence(review,review.positive) || !validTellerPayFields(review,roleMap.get(review.roleId)) || !validClinicEvaluation(review,roleMap.get(review.roleId)) || !integer(review.day) ||
     review.day !== saved.lastEvaluatedDay || review.id !== `career-review:${review.slotId}:${review.day}` ||
     review.evaluatorId !== supervisor(roleMap.get(review.roleId)) || typeof review.positive !== 'boolean' ||
     review.score !== (review.positive ? review.coverageHours===undefined||review.coverageHours>=12-1e-9?1:0 : -1) || typeof review.reason !== 'string' || review.reason.length > 80 ||
@@ -415,19 +417,19 @@ function restore(saved, roleMap, slotMap) {
     (review.coverageHours!==undefined&&(!continuousRole(roleMap.get(review.roleId))||!Number.isFinite(review.coverageHours)||review.coverageHours<0||review.coverageHours>12+1e-9)) ||
     (review.positive ? review.coverageHours!==undefined?review.wage!==(review.clinicPayVersion===1?clinicRatedWage(roleMap.get(review.roleId),review.coverageHours,review):Math.max(0,attendanceWage(salaryRole(roleMap.get(review.roleId),review),review.coverageHours)-(review.servicePenalty??0))) : ![salaryRole(roleMap.get(review.roleId),review).wage,salaryRole(roleMap.get(review.roleId),review).wage+(roleMap.get(review.roleId).preparationBonus??2)].map(wage=>Math.max(1,wage-(review.servicePenalty??0))).includes(review.wage) : review.wage !== 0) ||
     !duty || review.day > duty.day || review.day === duty.day && (review.slotId !== duty.slotId ||
-      (JSON.stringify(officialFields(review))!==JSON.stringify(officialFields(duty))) || (JSON.stringify(tellerPayFields(review))!==JSON.stringify(tellerPayFields(duty))) ||
+      (JSON.stringify(officialFields(review))!==JSON.stringify(officialFields(duty))) || !personnelSame(personnelEvidenceFields(review),personnelEvidenceFields(duty)) || (JSON.stringify(tellerPayFields(review))!==JSON.stringify(tellerPayFields(duty))) ||
       (review.positive&&JSON.stringify(clinicEvaluationFields(review))!==JSON.stringify(duty.clinicPayVersion===1?clinicPaySummary(duty):{})) ||
       (review.positive ? !['ready', 'paid'].includes(duty.stage) || duty.wage !== review.wage || (duty.shiftKind==='continuous'?review.coverageHours!==coveredHours(duty):review.coverageHours!==undefined) || (review.servicePenalty??0)!==customerPenalty(duty) : duty.stage !== 'missed'))) throw Error('invalid-career-state');
   if (duty && ['ready', 'paid'].includes(duty.stage) && (!review || review.day !== duty.day || !review.positive)) throw Error('invalid-career-state');
   // Versioned saves retain earned rank history; v7 also protects care proof.
   if(saved.version>=6&&saved.officialCareer===undefined)throw Error('invalid-career-state');
   const officialCareer=restoreOfficialCareer(saved.officialCareer,{tenure:saved.tenure,lastDuty:duty,lastEvaluation:review});
-  for(const row of [duty,review])if(row?.officialPayVersion===1){
+  for(const row of [duty,review])if([1,2].includes(row?.officialPayVersion)){
     const appointment=officialCareer.appointments.find(a=>a.id===row.officialTenureId);
-    const promoted=officialCareer.applications.find(a=>a.appointmentId===appointment?.id&&a.status==='approved');
+    const promoted=officialCareer.applications.find(a=>a.appointmentId===appointment?.id&&a.status==='approved'&&a.toRankId===row.officialRankId);
     const arrival=row===duty?duty.arrivalHour:row.day===duty?.day?duty.arrivalHour:null;
     if(!appointment||row.day<appointment.tenure.sinceDay||appointment.endedAt&&row.day>appointment.endedAt.day||
-      row.officialRankId===CLERK_NEXT_RANK&&(!promoted||promoted.decidedAt.day>row.day||promoted.decidedAt.day===row.day&&arrival!==null&&arrival<promoted.decidedAt.hour))throw Error('invalid-career-state');
+      row.officialRankId!==CLERK_ENTRY_RANK&&(!promoted||promoted.decidedAt.day>row.day||promoted.decidedAt.day===row.day&&arrival!==null&&arrival<promoted.decidedAt.hour))throw Error('invalid-career-state');
     if(row===review){const evidence=officialCareer.service.find(r=>r.id===review.id);if(!evidence||evidence.appointmentId!==row.officialTenureId||evidence.rankId!==row.officialRankId||['positive','score','wage','reasonCode'].some(key=>evidence[key]!==row[key]))throw Error('invalid-career-state');}
   }
   // No wage total, skill growth or aggregate task counter can imply chef days.
@@ -445,14 +447,14 @@ function restore(saved, roleMap, slotMap) {
     tenure: saved.tenure === null ? null : {roleId: saved.tenure.roleId, slotId: saved.tenure.slotId,
       sinceDay: saved.tenure.sinceDay, sinceHour: saved.tenure.sinceHour,...(saved.tenure.applicationId!==undefined?{applicationId:saved.tenure.applicationId}:{})},
     lastDuty: duty === null ? null : {roleId: duty.roleId, slotId: duty.slotId, day: duty.day, stage: duty.stage,
-      started: duty.started, reason: duty.reason, arrivalHour: duty.arrivalHour, wage: duty.wage,...officialFields(duty),...tellerPayFields(duty),...(duty.clinicPayVersion===1?{clinicPayVersion:1}:{}),...(roleMap.get(duty.roleId).workSource?{workReceiptId:duty.workReceiptId}: {}),...(reviewRole(roleMap.get(duty.roleId))&&duty.customerReviews!==undefined?{customerReviews:copy(duty.customerReviews)}:{}),...(duty.shiftKind?{shiftKind:duty.shiftKind,startedSeconds:duty.startedSeconds,coveredSeconds:duty.coveredSeconds,completedTasks:duty.completedTasks,endedHour:duty.endedHour,endedSeconds:duty.endedSeconds}:{})},
+      started: duty.started, reason: duty.reason, arrivalHour: duty.arrivalHour, wage: duty.wage,...officialFields(duty),...personnelEvidenceFields(duty),...tellerPayFields(duty),...(duty.clinicPayVersion===1?{clinicPayVersion:1}:{}),...(roleMap.get(duty.roleId).workSource?{workReceiptId:duty.workReceiptId}: {}),...(reviewRole(roleMap.get(duty.roleId))&&duty.customerReviews!==undefined?{customerReviews:copy(duty.customerReviews)}:{}),...(duty.shiftKind?{shiftKind:duty.shiftKind,startedSeconds:duty.startedSeconds,coveredSeconds:duty.coveredSeconds,completedTasks:duty.completedTasks,endedHour:duty.endedHour,endedSeconds:duty.endedSeconds}:{})},
     lastPaidDay: saved.lastPaidDay, daily: {...saved.daily},
     learning: Object.fromEntries(STUDY_SOURCES.map(source => [source, {...saved.learning[source]}])),
     lowerWork: {...saved.lowerWork}, performance: saved.performance,
     promotionProgress: saved.promotionProgress, lastEvaluatedDay: saved.lastEvaluatedDay,
     lastEvaluation: review === null ? null : {id: review.id, evaluatorId: review.evaluatorId, day: review.day,
       roleId: review.roleId, slotId: review.slotId, positive: review.positive, score: review.score,
-      reason: review.reason, reasonCode: review.reasonCode, wage: review.wage,...officialFields(review),...tellerPayFields(review),...clinicEvaluationFields(review),...(review.servicePenalty?{servicePenalty:review.servicePenalty}:{}),...(review.coverageHours!==undefined?{coverageHours:review.coverageHours}:{})}};
+      reason: review.reason, reasonCode: review.reasonCode, wage: review.wage,...officialFields(review),...personnelEvidenceFields(review),...tellerPayFields(review),...clinicEvaluationFields(review),...(review.servicePenalty?{servicePenalty:review.servicePenalty}:{}),...(review.coverageHours!==undefined?{coverageHours:review.coverageHours}:{})}};
 }
 
 /**
@@ -467,7 +469,7 @@ function restore(saved, roleMap, slotMap) {
  * Missing bank credit support locks settlement only; cash is never a fallback.
  * No passive simulation or wages. Failed paid-state cleanup keeps ready intact.
  */
-export function createFormalCareers({saved, worldDuty=null, saveState, creditWageToBank, getClock, worldSeed=1, getHiringContext=()=>({}), getPoliticalTitle=()=>null,
+export function createFormalCareers({saved, worldDuty=null, saveState, creditWageToBank, getClock, worldSeed=1, getHiringContext=()=>({}), getPoliticalTitle=()=>null,enablePersonnelProgression=false,readPersonnelWork=()=>null,readPersonnelPendingWork=null,resolvePromotionActor=()=>null,
   roles = FORMAL_CAREER_ROLES, slots = FORMAL_CAREER_SLOTS} = {}) {
   if (typeof saveState !== 'function' || typeof getClock !== 'function') {
     throw new TypeError('formal careers require synchronous saveState and getClock');
@@ -487,7 +489,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const duty=current.lastDuty,customer=duty?.customerReviews?.at(-1);
     return {...copy({revision:current.revision,skills:current.skills,tenure:current.tenure,
       lastDuty:duty===null?null:Object.fromEntries(['roleId','slotId','day','stage','started','reason','arrivalHour','wage',
-        'tellerPayVersion','officialPayVersion','officialRankId','officialTenureId','clinicPayVersion','workReceiptId','shiftKind','startedSeconds','coveredSeconds',
+        'tellerPayVersion','officialPayVersion','officialRankId','officialTenureId','officialPayContract','personnelDeferral','clinicPayVersion','workReceiptId','shiftKind','startedSeconds','coveredSeconds',
         'completedTasks','endedHour','endedSeconds'].filter(key=>own(duty,key)).map(key=>[key,duty[key]])),
       lastEvaluatedDay:current.lastEvaluatedDay,lastEvaluation:current.lastEvaluation,
       ...(current.tellerAuditServices.length?{latestTellerAuditReview:tellerAuditReview(current.tellerAuditServices.at(-1))}:{}),
@@ -539,7 +541,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
       promotionProgress: Math.max(0, Math.min(100, next.promotionProgress + score)), lastEvaluatedDay: duty.day,
       lastDuty: {...duty, wage: positive ? wage : null}, lastEvaluation: {
         id: `career-review:${duty.slotId}:${duty.day}`, evaluatorId: supervisor(role),
-        day: duty.day, roleId: duty.roleId, slotId: duty.slotId, positive, score, reason: reasonText+(servicePenalty?`；顾客评价扣薪${Math.min(hours===null?completedWage(role,duty.arrivalHour)-1:attendanceWage(role,hours),servicePenalty)}${currencyUnit}`:''), reasonCode: reason, wage,...officialFields(duty),...tellerPayFields(duty),...(positive&&duty.clinicPayVersion===1?clinicPaySummary(duty):{}),...(servicePenalty?{servicePenalty}:{}),...(positive&&hours!==null?{coverageHours:hours}:{})}};
+        day: duty.day, roleId: duty.roleId, slotId: duty.slotId, positive, score, reason: reasonText+(servicePenalty?`；顾客评价扣薪${Math.min(hours===null?completedWage(role,duty.arrivalHour)-1:attendanceWage(role,hours),servicePenalty)}${currencyUnit}`:''), reasonCode: reason, wage,...officialFields(duty),...personnelEvidenceFields(duty),...tellerPayFields(duty),...(positive&&duty.clinicPayVersion===1?clinicPaySummary(duty):{}),...(servicePenalty?{servicePenalty}:{}),...(positive&&hours!==null?{coverageHours:hours}:{})}};
     return {...reviewed,officialCareer:recordOfficialService(reviewed.officialCareer,reviewed.tenure,reviewed.lastEvaluation,duty.officialRankId||CLERK_ENTRY_RANK)};
   }
   function missed(next, reason) {
@@ -653,8 +655,19 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const saved=saveApplication({...receipt,status:'cancelled',stage:'decided',ok:false,code:'withdrawn',reasons:['withdrawn'],decidedAt:{day:clock.day,hour:clock.hour}});
     return saved.ok?{ok:true,code:'withdrawn'}:saved;
   }
+  const syncPersonnel=(reader,request)=>{try{const value=reader(request);if(value?.then){Promise.resolve(value).catch(()=>{});return null;}return value;}catch{return null;}};
+  function personnelWork(mode,day){
+    const tenureId=officialTenureId(current.tenure),clock=readClock();
+    if(!tenureId||!clock)return null;
+    const job=syncPersonnel(readPersonnelWork,{mode,officialTenureId:tenureId,...(day!==undefined?{day}:{})});
+    const attained=current.officialCareer.applications.find(a=>a.appointmentId===tenureId&&a.status==='approved'&&a.toRankId===(mode==='trial'?PERSONNEL_FROM_RANK:PERSONNEL_RANK));
+    return validateChinaPersonnelWorkCase(job,{mode,officialTenureId:tenureId,day})&&attained&&job.day>=attained.decidedAt.day&&job.day<=clock.day?copy(job):null;
+  }
+  const promotionActor=id=>syncPersonnel(resolvePromotionActor,id);
+  const actorReady=(actor,id)=>actor?.actorId===id&&actor.alive===true&&typeof actor.bodyId==='string'&&/^[a-zA-Z0-9][a-zA-Z0-9:._-]{0,255}$/.test(actor.bodyId)&&Array.isArray(actor.position)&&actor.position.length===3&&actor.position.every(Number.isFinite);
   function promotionSummary(){
-    return {...officialPromotionSummary(current.officialCareer,current.tenure,readClock(),current.skills,current.lastDuty),loadError};
+    const rankId=officialRankId(current.officialCareer,current.tenure),trial=enablePersonnelProgression&&rankId===PERSONNEL_FROM_RANK?personnelWork('trial'):null;
+    return {...officialPromotionSummary(current.officialCareer,current.tenure,readClock(),current.skills,current.lastDuty,{enablePersonnelProgression,trial}),trialComplete:!!trial,trialReceiptId:trial?.receipt.id||null,trialDay:trial?.day??null,loadError};
   }
   function promotionAvailability(){
     if(loadError)return {ok:false,code:loadError,reasons:[loadError]};
@@ -673,7 +686,18 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const blocked=allowed();if(blocked)return blocked;
     const clock=now();if(!clock)return failure('invalid-clock');
     const available=promotionAvailability();if(!available.ok)return failure(available.code,available.reasons);
-    const summary=promotionSummary(),receipt={id:`official-promotion:${COURT_CLERK_ROLE.id}:${clock.day}`,
+    const summary=promotionSummary();
+    if(summary.routeId===PERSONNEL_RANK){
+      const trial=personnelWork('trial'),recommender=promotionActor(PERSONNEL_ACTORS.recommender);
+      if(!trial)return failure('personnel-trial-required');
+      if(!actorReady(recommender,PERSONNEL_ACTORS.recommender))return failure('promotion-reviewer-unavailable');
+      if(recommender.bodyId!==trial.receipt.signerBodyId)return failure('promotion-identity-changed');
+      const receipt={routeVersion:2,id:personnelApplicationId(clock.day),appointmentId:officialTenureId(current.tenure),fromRankId:PERSONNEL_FROM_RANK,toRankId:PERSONNEL_RANK,
+        day:clock.day,hour:clock.hour,status:'pending',stage:'submitted',code:'submitted',roll:careerInterviewRoll(worldSeed,COURT_CLERK_ROLE.id+':promotion:personnel',clock.day),
+        checked:personnelChecked(summary,current.skills),trial,actors:{recommenderBodyId:recommender.bodyId,emperorBodyId:null},recommendation:null,received:null,imperialDecision:null,declaration:null,reviewedAt:null,decidedAt:null,appointment:null};
+      const saved=savePromotion(receipt);return saved.ok?{ok:true,code:'submitted',applicationId:receipt.id}:saved;
+    }
+    const receipt={id:`official-promotion:${COURT_CLERK_ROLE.id}:${clock.day}`,
       appointmentId:officialTenureId(current.tenure),fromRankId:CLERK_ENTRY_RANK,toRankId:CLERK_NEXT_RANK,
       day:clock.day,hour:clock.hour,status:'pending',stage:'submitted',code:'submitted',
       roll:careerInterviewRoll(worldSeed,COURT_CLERK_ROLE.id+':promotion',clock.day),
@@ -681,9 +705,10 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
       review:null,reviewedAt:null,decidedAt:null,appointment:null};
     const saved=savePromotion(receipt);return saved.ok?{ok:true,code:'submitted',applicationId:receipt.id}:saved;
   }
-  function reviewPromotion({applicationId:expectedId,step='interview'}={}){
+  function reviewPromotion({applicationId:expectedId,step='interview',proof}={}){
     const blocked=allowed();if(blocked)return blocked;
     const summary=promotionSummary(),receipt=summary.application;
+    if(receipt?.routeVersion===2)return reviewPersonnelPromotion(receipt,{applicationId:expectedId,step,proof},summary);
     if(!receipt||receipt.status!=='pending')return failure('no-pending-promotion');
     if(expectedId!==receipt.id)return failure('stale-application');
     const clock=now();if(!clock)return failure('invalid-clock');
@@ -708,6 +733,51 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const appointment=review.passed?{id:`appointment:${receipt.id}`,text:'承务官署升阶文书：核验三日以上从九品实任朝班、归档及考语，当值礼仪主管当面考核通过。礼务录事升正九品；持文宣读后生效，下次新班基础日薪二十二文，既有薪据不改。'}:null;
     const next={...receipt,review,reviewedAt:timestamp,appointment,status:review.passed?'pending':'rejected',stage:review.passed?'document-ready':'decided',code:review.passed?'document-ready':'promotion-review-rejected',decidedAt:review.passed?null:timestamp};
     const saved=savePromotion(next);return saved.ok?{ok:review.passed,code:next.code,reasons:review.passed?[]:[next.code],applicationId:receipt.id}:saved;
+  }
+  function reviewPersonnelPromotion(receipt,{applicationId:expectedId,step,proof},summary){
+    if(receipt.id!==expectedId)return failure('stale-application');
+    if(!enablePersonnelProgression)return failure('personnel-progression-disabled');
+    const clock=now();if(!clock)return failure('invalid-clock');
+    const timestamp={day:clock.day,hour:clock.hour};
+    const previous=step==='interview'?receipt.recommendation:step==='receive-document'?receipt.received:step==='imperial-review'?receipt.imperialDecision:step==='appointment'?receipt.declaration:null;
+    if(previous&&receipt.status!=='cancelled'){
+      if(!validPersonnelProof(receipt,step,proof,clock)||proof.completedAt<previous.proof.completedAt)return failure('invalid-promotion-proof');
+      return {ok:step!=='imperial-review'||previous.passed,code:step==='imperial-review'&&!previous.passed?'promotion-review-rejected':receipt.code,replayed:true,applicationId:receipt.id,...(receipt.status==='approved'?{rankId:PERSONNEL_RANK}:{})};
+    }
+    if(receipt.status!=='pending')return failure('no-pending-promotion');
+    const stages={interview:'submitted','receive-document':'document-ready','imperial-review':'document-held',appointment:'imperial-approved'};
+    if(stages[step]!==receipt.stage)return failure('wrong-review-step');
+    const rejectChanged=()=>{
+      const next={...receipt,status:'rejected',stage:'decided',code:'promotion-eligibility-changed',decidedAt:timestamp},saved=savePromotion(next);
+      return saved.ok?failure('promotion-eligibility-changed'):saved;
+    };
+    const trial=personnelWork('trial',receipt.trial.day);
+    if(!summary.eligible||officialTenureId(current.tenure)!==receipt.appointmentId||!trial||!personnelSame(trial,receipt.trial))return rejectChanged();
+    let actors={...receipt.actors};
+    if(step!=='appointment'){
+      const recommender=promotionActor(PERSONNEL_ACTORS.recommender),emperor=promotionActor(PERSONNEL_ACTORS.emperor);
+      const changed=recommender&&recommender.bodyId!==actors.recommenderBodyId||actors.emperorBodyId!==null&&emperor&&emperor.bodyId!==actors.emperorBodyId;
+      if(changed){const saved=savePromotion({...receipt,status:'cancelled',stage:'decided',code:'promotion-identity-changed',decidedAt:timestamp});return saved.ok?failure('promotion-identity-changed'):saved;}
+      if(!actorReady(recommender,PERSONNEL_ACTORS.recommender)||!actorReady(emperor,PERSONNEL_ACTORS.emperor))return failure('promotion-reviewer-unavailable');
+      if(step==='interview')actors.emperorBodyId=emperor.bodyId;
+      if(step==='interview'||step==='imperial-review'){
+        const actor=step==='interview'?recommender:emperor;
+        if(!proof||!personnelSame(proof.recipientPosition,actor.position)||proof.recipientBodyId!==actor.bodyId)return failure('invalid-promotion-proof');
+      }
+    }
+    const checkedReceipt={...receipt,actors};
+    if(!validPersonnelProof(checkedReceipt,step,proof,clock))return failure('invalid-promotion-proof');
+    let next;
+    if(step==='interview'){
+      const checked=personnelChecked(summary,current.skills),recommendation={chance:personnelChance(checked),checked,proof:copy(proof),at:timestamp};
+      next={...checkedReceipt,recommendation,reviewedAt:timestamp,stage:'document-ready',code:'document-ready',appointment:{id:`appointment:${receipt.id}`,text:'吏务核籍录事荐任文书：陆谦已核验正九品三日实任考语、礼仪文书与具名试差原簿。请持此原文呈皇帝亲阅；奉准后回铨录案宣读受任，从下一新班按从八品基础二十六文核薪，须同日核籍签收及本人朝班归档。'}};
+    }else if(step==='receive-document')next={...receipt,received:{proof:copy(proof),at:timestamp},stage:'document-held',code:'document-held'};
+    else if(step==='imperial-review'){
+      const passed=receipt.roll<receipt.recommendation.chance,imperialDecision={chance:receipt.recommendation.chance,roll:receipt.roll,passed,proof:copy(proof),at:timestamp};
+      next={...receipt,imperialDecision,status:passed?'pending':'rejected',stage:passed?'imperial-approved':'decided',code:passed?'imperial-approved':'promotion-review-rejected',decidedAt:passed?null:timestamp};
+    }else next={...receipt,declaration:{proof:copy(proof),at:timestamp},status:'approved',stage:'decided',code:'approved',decidedAt:timestamp};
+    const saved=savePromotion(next);
+    return saved.ok?{ok:next.status!=='rejected',code:next.code,applicationId:receipt.id,...(next.status==='approved'?{rankId:PERSONNEL_RANK}:{})}:saved;
   }
   function cancelPromotion(expectedId){
     const blocked=allowed();if(blocked)return blocked;
@@ -1141,6 +1211,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if(role.workSource&&receiptId!==undefined&&!validWorkReceipt(role.workSource,receiptId))return no('invalid-work-receipt');
     // Recover an already admitted work slip even after the new-shift window closes.
     if(role.workSource&&duty?.day===clock.day&&duty.workReceiptId===receiptId&&duty.stage==='working')return {...context,ok:true,unchanged:true};
+    if(duty?.officialPayVersion===2&&duty.personnelDeferral&&duty.stage==='archive')return no('personnel-review-pending');
     if(['ready','inspection'].includes(duty?.stage))return no('wage-ready');
     if(current.lastPaidDay===clock.day)return no('already-paid-today');
     if(duty?.day===clock.day&&excused(duty))return no('court-postponed');
@@ -1148,7 +1219,37 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if(clock.hour<role.dutyWindow.startHour||clock.hour>=role.dutyWindow.endHour)return no('outside-arrival-window');
     return {...context,ok:true};
   }
-  const currentOfficialFields=()=>current.tenure?.roleId===COURT_CLERK_ROLE.id?{officialPayVersion:1,officialRankId:officialRankId(current.officialCareer,current.tenure),officialTenureId:officialTenureId(current.tenure)}:{};
+  function archiveAvailability(){
+    const duty=current.lastDuty,clock=readClock();
+    if(loadError||saving||paying)return {ok:false,code:loadError||'career-busy'};
+    if(!duty||duty.stage!=='archive')return {ok:false,code:'invalid-duty-stage'};
+    if(!clock)return {ok:false,code:'invalid-clock'};
+    if(duty.day!==clock.day&&!(duty.officialPayVersion===2&&duty.personnelDeferral))return {ok:false,code:'duty-expired'};
+    if(duty.officialPayVersion!==2)return {ok:true};
+    const job=personnelWork('duty',duty.day);
+    if(!job)return {ok:false,code:'personnel-duty-required'};
+    if(!personnelDeferralMatches(duty,job))return {ok:false,code:'personnel-duty-conflict'};
+    return {ok:true,caseId:job.id,requiresPersonnel:true,contractVersion:2};
+  }
+  function deferPersonnelReview({caseId}={}){
+    const blocked=allowed();if(blocked)return blocked;
+    const duty=current.lastDuty,clock=now();
+    if(!clock)return failure('invalid-clock');
+    if(!duty||duty.officialPayVersion!==2||duty.stage!=='archive'||duty.officialTenureId!==officialTenureId(current.tenure))return failure('invalid-duty-stage');
+    if(duty.personnelDeferral)return duty.personnelDeferral.caseId===caseId?{ok:true,replayed:true}:failure('personnel-duty-conflict');
+    if(duty.day!==clock.day)return failure('duty-expired');
+    const query={mode:'duty',officialTenureId:duty.officialTenureId,day:duty.day,caseId,allowPending:true};
+    const job=syncPersonnel(readPersonnelPendingWork||readPersonnelWork,query),actor=promotionActor(PERSONNEL_ACTORS.recommender);
+    if(!validateChinaPersonnelWorkCase(job,{mode:'duty',officialTenureId:duty.officialTenureId,day:duty.day,status:'draft'})||job.id!==caseId||!job.compiled)return failure('personnel-roster-not-compiled');
+    if(!actorReady(actor,PERSONNEL_ACTORS.recommender)||actor.busy!==true)return failure('personnel-review-not-waiting');
+    const marker={version:1,caseId,job:copy(job),reviewerBodyId:actor.bodyId,requestedAt:{day:clock.day,hour:clock.hour}};
+    return persist({...current,lastDuty:{...duty,personnelDeferral:marker}});
+  }
+  const currentOfficialFields=()=>{
+    if(current.tenure?.roleId!==COURT_CLERK_ROLE.id)return {};
+    const rankId=officialRankId(current.officialCareer,current.tenure),tenureId=officialTenureId(current.tenure);
+    return rankId===PERSONNEL_RANK?{officialPayVersion:2,officialRankId:rankId,officialTenureId:tenureId,officialPayContract:personnelContract(tenureId),personnelWork:null,personnelArchiveProof:null,personnelDeferral:null}:{officialPayVersion:1,officialRankId:rankId,officialTenureId:tenureId};
+  };
   function beginDuty({receiptId,shiftKind} = {}) {
     const blocked = allowed(); if (blocked) return blocked;
     if (interruptedUnsaved) return failure('interruption-unsaved');
@@ -1166,7 +1267,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     return persist({...next, lastDuty: {roleId: current.tenure.roleId, slotId: current.tenure.slotId,
       ...currentOfficialFields(),...(regionalTellerRole(role.id)?{tellerPayVersion:1}:{}),day: clock.day, stage: role.workSource?'working':'arrived', started:!!role.workSource, reason: null, arrivalHour: clock.hour, wage: null,...(role.workSource?{workReceiptId:receiptId}:{}),...(reviewRole(role)?{customerReviews:[]}:{}),...(clinicRole(role)?{clinicPayVersion:1}:{}),...(shiftKind?{shiftKind,startedSeconds:clock.seconds,coveredSeconds:null,completedTasks:null,endedHour:null,endedSeconds:null}:{})}});
   }
-  function dutyEvent(event) {
+  function dutyEvent(event,{proof}={}) {
     const blocked = allowed(); if (blocked) return blocked;
     if (interruptedUnsaved) return failure('interruption-unsaved');
     if (roleMap.get(current.tenure?.roleId)?.workSource) return failure('wrong-duty-source');
@@ -1176,6 +1277,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const rollover = observeDay(); if (!rollover.ok) return rollover;
     const clock = now(); if (!clock) return failure('invalid-clock');
     const duty = current.lastDuty;
+    if(duty?.officialPayVersion===2&&duty.stage==='archive'&&duty.personnelDeferral&&duty.day!==clock.day&&event!=='archive-completed')return failure('personnel-review-pending');
     if (duty?.day === clock.day && excused(duty)) return {ok: true, unchanged: true, excused: true};
     if (event === 'court-start' && (!duty || duty.day !== clock.day || duty.stage === 'missed' && !duty.started)) {
       if (current.tenure.sinceDay === clock.day && current.tenure.sinceHour >= roleMap.get(current.tenure.roleId).dutyWindow.endHour) return {ok: true, unchanged: true, exempt: true};
@@ -1186,10 +1288,16 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
         ...currentOfficialFields(),day: clock.day, stage: 'missed', started: true, reason: 'absent', arrivalHour: null, wage: null}}, false, 'absent'));
     }
     if (!duty) return failure('duty-not-started');
-    if (duty.day !== clock.day) return failure('duty-expired');
+    if (duty.day !== clock.day && !(event==='archive-completed'&&duty.officialPayVersion===2&&duty.personnelDeferral)) return failure('duty-expired');
     const [from, stage] = transitions[event];
     if (duty.stage !== from) return failure('invalid-duty-stage');
     let next = {...current, lastDuty: {...duty, stage, started: true}};
+    if(stage==='ready'&&duty.officialPayVersion===2){
+      const available=archiveAvailability();if(!available.ok)return failure(available.code);
+      const job=personnelWork('duty',duty.day);
+      if(!job||!validPersonnelArchiveProof(proof,duty,clock))return failure('invalid-personnel-archive-proof');
+      next.lastDuty={...next.lastDuty,personnelWork:job,personnelArchiveProof:copy(proof)};
+    }
     if (stage === 'ready') next = evaluate(next, true, 'court-and-archive-completed');
     return persist(next);
   }
@@ -1206,6 +1314,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const clock = now(); if (!clock) return failure('invalid-clock');
     if (observedDay === null || observedDay === clock.day) { observedDay = clock.day; return {ok: true, unchanged: true}; }
     const day = observedDay, tenure = current.tenure, duty = current.lastDuty;
+    if(duty?.officialPayVersion===2&&duty.stage==='archive'&&duty.personnelDeferral&&duty.officialTenureId===officialTenureId(tenure)){observedDay=clock.day;return {ok:true,unchanged:true,deferred:true};}
     if (!tenure || roleMap.get(tenure.roleId)?.paymentKind==='commission' || regionalTellerRole(tenure.roleId)&&(duty?.tellerPayVersion!==1||current.tellerAuditServices.some(row=>row.day===day&&row.amount>0)) || tenure.sinceDay > day || tenure.sinceDay === day &&
       tenure.sinceHour >= roleMap.get(tenure.roleId).dutyWindow.endHour ||
       current.lastEvaluatedDay !== null && current.lastEvaluatedDay >= day || ['ready','inspection'].includes(duty?.stage) ||
@@ -1288,10 +1397,10 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
   }
   return Object.freeze({state, workState, isHired: (roleId = COURT_CLERK_ROLE.id) => !loadError && current.tenure?.roleId === roleId,
     canContinueLabor:receiptId=>{const d=current.lastDuty;let c;try{c=getClock();}catch{return false;}return !loadError&&d?.workReceiptId===receiptId&&(d.stage==='inspection'||d.stage==='working'&&d.day===c?.day);},
-    currentRole:()=>{const role=roleMap.get(current.tenure?.roleId);if(!role)return null;const rank=role.id===COURT_CLERK_ROLE.id?getChinaRecordsCareerRank(officialRankId(current.officialCareer,current.tenure)):null;return copy(rank?{...role,rankId:rank.rankId,gradeLabel:rank.gradeLabel,wage:rank.basePay}:role);},
+    currentRole:()=>{const role=roleMap.get(current.tenure?.roleId);if(!role)return null;const rank=role.id===COURT_CLERK_ROLE.id?getChinaRecordsCareerRank(officialRankId(current.officialCareer,current.tenure)):null;return copy(rank?{...role,name:rank.title,rank:rank.rankId===PERSONNEL_RANK?8:role.rank,rankId:rank.rankId,gradeId:rank.gradeId,gradeLabel:rank.gradeLabel,wage:rank.basePay}:role);},
     slotHolder:roleId=>{if(loadError)return null;const slot=[...slotMap.values()].find(s=>s.roleId===roleId);return slot?current.tenure?.slotId===slot.id?'player':slot.holderId:null;},
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&availableSlot(slot,role)&&slot.id!==current.tenure?.slotId).length})),
     eligibility, applicationAvailability, beginDutyAvailability, applicationResult, applicationHistory,
-    promotionSummary, promotionAvailability, applyPromotion, reviewPromotion, cancelPromotion,
+    promotionSummary, promotionAvailability, applyPromotion, reviewPromotion, cancelPromotion, archiveAvailability, deferPersonnelReview,personnelProgressionEnabled:()=>enablePersonnelProgression,
     laborEvent, customerReview, apply, reviewApplication, cancelApplication, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, recordClinicAssistantService, recordClinicPatientReview, recordTavernChefService, royalKitchenQualification, recordRoyalKitchenService, recordJapanReceptionReview, recordJapanBathDeliveryReview, recordJapanBathMixingReview, recordJapanKitchenReview, recordEgyptKitchenReview, recordEgyptTableServiceReview, recordJapanTableServiceReview, prepareJapanPerformanceService, prepareChinaPieceworkService, prepareTellerAuditService, gardenMaintenanceReceipt, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
 }

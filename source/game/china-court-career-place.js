@@ -1,4 +1,5 @@
 import {careerPlaque} from './china-court-career-lettering.js';
+import {buildPersonnelDocument} from './china-personnel-place.js';
 
 // The player's seventh place is behind the six existing ranks, outside the
 // central imperial aisle. No existing official, desk or bed changes owner.
@@ -16,6 +17,7 @@ export function buildCourtCareerDesk(G, {root, H, solid3}) {
   G.box(document,0,0,0,.38,.025,.29,0xe8d9ba);
   for(let n=0;n<4;n++)G.box(document,-.13+n*.075,.016,0,.01,.004,.20,0x555346);
   G.box(document,.11,.019,.075,.065,.008,.055,0x963f32);
+  buildPersonnelDocument(G,root);
   careerPlaque(G, root, '铨录登记', 21, 2.20, 30.69, 1.70, .34);
   for(const x of [20.48,21.52])G.box(root,x,1.28,31.75,.035,.16,.035,0x775744);
   careerPlaque(G, root, '礼务录事', 21, 1.38, 31.75, 1.24, .22);
