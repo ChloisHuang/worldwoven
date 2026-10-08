@@ -7,7 +7,7 @@ function once(a,b){if(!harness.includes(a)||harness.indexOf(a)!==harness.lastInd
 const seams=`
 export function tavernMainReview(){return {saved,player,npcs,lot,furniture,chinaTavern,chinaService,chinaLabor,tavernManagement,tavernManagementUI,tavernProperty,tavernKitchenRoles,tavernHostRole,guestAccounts,copperLedger,simulationClock,path,targetStation,pendingInteraction};}
 export function tavernMainStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);activeDailyToilet()?.update(dt);updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);updateGameHealth(dt);updateCamera(dt);}
-export {requestStationIntent,save,cancelAction};
+export {requestStationIntent,save,cancelAction,navigateTo};
 `;
 once("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),","new vm.SourceTextModule(readProduction(file),");
 once('const cache=new Map();',`const cache=new Map();function readProduction(file){let source=fs.readFileSync(file,'utf8');if(file.endsWith('/game/main.js')){const disabled='const CHINA_TAVERN_MANAGEMENT_ENABLED=false;',enabled='const CHINA_TAVERN_MANAGEMENT_ENABLED=true;';assert(source.includes(disabled)||source.includes(enabled));source=source.replace(disabled,enabled)+${JSON.stringify(seams)};}return source;}`);
@@ -50,6 +50,14 @@ try{
   if(checkpoint('01-owner-stock',{activationSerial:m.stock.summary().cutoff,procurement:40,inventoryValue:40,bank:r.copperLedger.state().bank}))return;
  }
  if(!done('02-applicant')){
+  // The owner deliberately seeks a new guest applicant in this case. The old
+  // assistant may independently ask to return; decline that real application
+  // in person, then release the shared reception spot for existing lodgers.
+  for(const c of m.recruitment.state().candidates.filter(c=>!trialCandidate(c)&&c.phase==='meeting'&&m.hiring.application(c.applicationId)?.status==='submitted')){
+   assert(main.namespace.requestStationIntent(m.recruitment.intent(c.applicationId,'reject')));until(()=>m.hiring.application(c.applicationId).status==='rejected','owner physically declines former employee application');
+   journal.declinedOriginalApplications=[...(journal.declinedOriginalApplications||[]),c.applicationId];
+  }
+  main.namespace.navigateTo(new three.namespace.Vector3(14,.115,13));until(()=>review().path.length===0,'owner leaves the original customer reception spot');
   if(r.tavernKitchenRoles.resolve('assistant').holderId){until(()=>!scene.snapshot().orders.some(o=>o.number<=m.stock.summary().cutoff&&o.stage!=='done')&&scene.kitchenHandoff('assistant').ok,'original legacy meals finish and actual assistant safe handoff');assert(m.dismiss('cn-tavern-steward').ok);}
   until(()=>m.recruitment.state().candidates.some(c=>trialCandidate(c)&&c.phase==='meeting'),'original idle NPC elects and physically arrives to apply',6000);
   const c=m.recruitment.state().candidates.find(c=>trialCandidate(c)&&c.phase==='meeting');journal.trialApplicationId=c.applicationId;assert(c.lease);assert(m.hiring.application(c.applicationId));
