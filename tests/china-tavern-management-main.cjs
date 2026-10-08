@@ -17,10 +17,12 @@ once("const state=()=>context.__worldsDays.getState();assert.equal(state().mode,
 once("const document={body:new E('body'),","const document={head:new E('head'),body:new E('body'),");
 once('add(...e){this.append(...e)}',"prepend(...els){for(const e of els.reverse()){e.remove?.();e.parent=this;this.children.unshift(e);}}querySelectorAll(selector){return this.children.flatMap(e=>[e,...(e.querySelectorAll?.('*')||[])]).filter(e=>selector==='*'||selector.startsWith('.')&&e.className?.split(' ').includes(selector.slice(1)));}get textContent(){return (this._text||'')+this.children.map(e=>e.textContent||'').join('');}set textContent(v){this._text=String(v);this.replaceChildren();}add(...e){this.append(...e)}");
 once('visited:[],stamps:{},outfit:0,appearance:',"visited:[],stamps:{},outfit:0,copperLedger:{version:1,cash:0,bank:900,accountOpened:true,nextTransaction:1,transactions:[]},appearance:");
-once('let context=vm.createContext(', "let rejectedHandoffs=0;const rejectHandoff=process.env.TAVERN_MAIN_REJECT_HANDOFF==='1';let context=vm.createContext(");
+once('let context=vm.createContext(', "let rejectedHandoffs=0,rejectedWages=0,wageTarget=null;const rejectHandoff=process.env.TAVERN_MAIN_REJECT_HANDOFF==='1',rejectWage=process.env.TAVERN_MAIN_REJECT_WAGE==='1';let context=vm.createContext(");
 once('localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>storage[k]=v}', String.raw`localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>{
  if(k==='worlds-days-v1'&&rejectHandoff){const next=JSON.parse(v),old=JSON.parse(storage[k]||'{}'),holder=next.chinaTavernKitchenRoles?.assistant?.holderId;
   if(['cn-tavern-diner-west','cn-tavern-diner-east'].includes(holder)&&old.chinaTavernKitchenRoles?.assistant?.holderId!==holder&&next.chinaTavernHiring?.events?.some(e=>e.kind==='assigned'&&e.data.assignment.holderId===holder)){rejectedHandoffs++;return false;}}
+ if(k==='worlds-days-v1'&&rejectWage){const next=JSON.parse(v),old=JSON.parse(storage[k]||'{}');
+  if(next.chinaTavernBusiness?.receipts?.some(e=>e.kind==='npc-wage'&&e.actorId===wageTarget?.actorId&&e.proof.row.day===wageTarget?.day&&!old.chinaTavernBusiness?.receipts?.some(p=>p.id===e.id))){rejectedWages++;return false;}}
  storage[k]=v;return true;
 }}`);
 once("const main=mod(path.join(root,'game/main.js'));",String.raw`
@@ -34,6 +36,12 @@ if(process.env.TAVERN_MAIN_STAGE_WORK==='1'&&!journal.workDay){
  next.simulationClock={version:1,seconds:(day*1440+360-600)/.7};storage['worlds-days-v1']=JSON.stringify(next);
  journal.staging+=' After real hiring, calendar alone staged to next day06 for bounded observed work; no overnight/full-day claim. Meal6 uses existing bank withdrawal, not added money.';
 }
+if(process.env.TAVERN_MAIN_STAGE_CLOSE==='1'&&!journal.closeStaged){
+ assert(journal.completed.includes('06-observed'));const next=JSON.parse(storage['worlds-days-v1']);
+ next.simulationClock={version:1,seconds:(journal.workDay*1440+1080-600)/.7};storage['worlds-days-v1']=JSON.stringify(next);
+ journal.closeStaged=true;journal.staging+=' Calendar then staged to18 for settlement only; unpaid observed rows retained, intervening time earns nothing.';
+}
+wageTarget={actorId:journal.businessOrder?.actorId,day:journal.workDay};
 const main=mod(path.join(root,'game/main.js'));
 `);
 const begin=harness.indexOf('const report=[];for(let round=0;');if(begin<0)throw Error('Missing bounded body');
@@ -120,6 +128,30 @@ try{
   until(()=>hours()>=.8,'hired assistant accrues only observed work or ordinary waiting',6000);
   assert(!m.business.snapshot().receipts.some(p=>p.kind==='npc-wage'&&p.actorId===actorId&&p.proof.row.day===journal.workDay));
   if(checkpoint('06-observed',{actorId,day:journal.workDay,hours:hours(),rows:rows(),baseDailyWage:16,unpaidUntilClose:true}))return;
+ }
+ if(!done('07-paid')){
+  assert(journal.closeStaged,'Use explicit TAVERN_MAIN_STAGE_CLOSE=1 for settlement segment');
+  const actorId=journal.businessOrder.actorId,row=m.business.snapshot().rows.find(v=>v.actorId===actorId&&v.day===journal.workDay);
+  assert(row);const hours=row.segments.reduce((n,v)=>n+v.endHour-v.startHour,0),expected=Math.floor(16*hours/12+1e-9);assert.equal(expected,1,'partial observed work, never full-day grant');
+  if(!journal.wageCase)journal.wageCase={actorId,day:journal.workDay,row:clone(row),expected,bankBefore:m.business.account(actorId).bank};
+  const receipts=()=>m.business.snapshot().receipts.filter(v=>v.kind==='npc-wage'&&v.actorId===actorId&&v.proof.row.day===journal.workDay);
+  if(rejectWage){
+   until(()=>rejectedWages>0,'business-funded observed salary save is refused');assert.equal(receipts().length,0);assert.equal(m.business.account(actorId).bank,journal.wageCase.bankBefore);
+   checkpoint('07-wage-rejected',{actorId,rejectedWages,expected,bank:m.business.account(actorId).bank});const persisted=JSON.parse(storage['worlds-days-v1']);
+   assert(!persisted.chinaTavernBusiness.receipts.some(v=>v.kind==='npc-wage'&&v.actorId===actorId&&v.proof.row.day===journal.workDay));assert(!persisted.chinaTavernProperty.events.some(v=>v.kind==='operating-expense'&&v.receipt.kind==='npc-wage'&&v.receipt.actorId===actorId&&v.receipt.proof.row.day===journal.workDay));return;
+  }
+  until(()=>receipts().length===1,'same observed wage settles after cold recovery');const paid=receipts()[0];assert.deepEqual(clone(paid.proof.row),journal.wageCase.row);assert.equal(paid.amount,expected);assert.equal(m.business.account(actorId).bank,journal.wageCase.bankBefore+expected);
+  assert.equal(r.tavernProperty.snapshot().events.filter(e=>e.kind==='operating-expense'&&e.receipt.id===paid.id).length,1);
+  assert(m.business.settleDue().ok);assert(m.business.settleDue().ok);assert.equal(receipts().length,1);assert.equal(m.business.account(actorId).bank,journal.wageCase.bankBefore+expected);
+  if(checkpoint('07-paid',{actorId,amount:paid.amount,receiptId:paid.id,hours,bank:m.business.account(actorId).bank,duplicateRetryPaid:0}))return;
+ }
+ if(!done('08-ledger')){
+  const stock=m.stock.summary(),business=m.business.state(),p=r.tavernProperty.state(),net=p.revenue-(p.performerPaid||0);
+  assert.equal(p.balance,p.invested+net-p.paidWages-p.procurementCash-p.drawn);assert.equal(p.operatingProfit,net-stock.materialExpense-p.earnedLabor);assert.equal(p.inventoryValue,stock.inventoryValue);assert.equal(p.procurementCash,business.procurementCash);assert.equal(p.trialReserved,0);
+  main.namespace.cancelAction();assert(main.namespace.requestStationIntent(r.chinaService.intent('property')));until(()=>panel()?.open,'owner returns to original ledger counter');
+  const before=r.tavernProperty.state(),bank=r.copperLedger.state().bank;assert(before.availableBalance>=10);button('提取 10 文').onclick();assert.equal(r.copperLedger.state().bank,bank+10);assert.equal(r.tavernProperty.state().balance,before.balance-10);
+  button('账簿').onclick();const after=r.tavernProperty.state();assert(panel().textContent.includes('营业盈亏 '+after.operatingProfit+' 文'));assert(panel().textContent.includes('已付伙计工资 '+m.business.state().paidWages+' 文'));button('×').onclick();
+  if(checkpoint('08-ledger',{netRevenue:after.revenue-(after.performerPaid||0),procurement:after.procurementCash,materialExpense:after.materialConsumedCost,inventoryValue:after.inventoryValue,earnedLabor:after.earnedLabor,operatingProfit:after.operatingProfit,trialPaid:m.business.state().trialPaid,paidNPCWages:m.business.state().paidWages,drawn:10,bank:r.copperLedger.state().bank}))return;
  }
  console.log(JSON.stringify({status:'PASS',seconds:(Date.now()-started)/1000,completed:journal.completed,scope:journal.staging}));
 }catch(e){main.namespace.save();fs.writeFileSync(path.join(out,'interrupted.json'),JSON.stringify({version:1,save:JSON.parse(storage['worlds-days-v1']),journal}));fs.writeFileSync(path.join(out,'diagnostic.json'),JSON.stringify(diagnostic()));console.error(JSON.stringify({status:'FAIL',leg,steps,message:e.message,diagnostic:path.join(out,'diagnostic.json')}));throw e;}
