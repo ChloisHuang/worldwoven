@@ -619,6 +619,7 @@
       "travel-journey.mjs",
       "travel-journey-ui.mjs",
       "travel-journey-main.cjs",
+      "travel-arrival-main.cjs",
       "travel-flight.mjs",
       "travel-passport.mjs",
       "walking-npc-conversation-main.cjs",
