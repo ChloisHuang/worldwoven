@@ -629,7 +629,8 @@
       "china-court-report-receipt.mjs",
       "china-court-report-main.cjs",
       "china-court-reissue-pending.mjs",
-      "china-granary-audit-flow.mjs"
+      "china-granary-audit-flow.mjs",
+      "china-granary-audit-main.cjs"
     ]
   },
   "release": {
