@@ -64,3 +64,5 @@ npm run test:door-geometry -- --tiny
 ### 官品俸例定向集成
 
 `china-official-grade-main.cjs` 默认仅跑轻量 `prepare`：真实main启动拒绝薪政写入，再由实际普通save保留启用意图。冷重载/中国原场景单独执行 `OFFICIAL_GRADE_PHASE=restore node --experimental-vm-modules tests/china-official-grade-main.cjs`，读取前一步生成的忽略目录 checkpoint；两步均用共享锁和既有进程树guard串行运行。restore输入明确预设较晚模拟日，验证存档兼容，不代表自然离线/多日游玩；不重跑朝会或用餐长链。`china-official-grade-life.mjs` 用真实六人原控制器逐一归档8秒验证新旧合同结薪，路径为轻量替身，不能当世界路线证据。
+
+`china-court-report-main.cjs` 只冷启一次中国生产main，原核验结果及6/4秒完成凭据为明确staged输入；验证真实全档保存链拒绝/成功时top和continuity一致、31身份与资金不变。它不代替 `china-court-report-receipt.mjs` 的真实相位计时、中断及恢复验证，也不重新走朝会/检查路线。

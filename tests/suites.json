@@ -625,7 +625,8 @@
       "family-placement.mjs",
       "china-archive-player-work.cjs",
       "china-palace-tea-player-service.cjs",
-      "china-court-report-receipt.mjs"
+      "china-court-report-receipt.mjs",
+      "china-court-report-main.cjs"
     ]
   },
   "release": {
