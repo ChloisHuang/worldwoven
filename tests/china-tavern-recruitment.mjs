@@ -212,6 +212,16 @@ for(const change of [f=>f.runtime.cancel(WEST),f=>{f.flags.inScene=false;},f=>{f
 
 // Malformed proof cannot be laundered through a saved runtime source journal.
 {
+ const f=fixture();f.trial();f.until(()=>f.row().phase==='cleaning');f.tick(20);
+ const id=f.row().applicationId,saved={recruitment:f.runtime.snapshot(),hiring:f.hiring.snapshot()},row=saved.recruitment.candidates[0];
+ row.progress.origin=[19.75,.215,13.65];f.world.actors[WEST].root.position.fromArray(row.progress.origin);f.world.claims.clear();
+ const g=fixture(saved,f.world);assert.equal(g.runtime.loadError,null);assert.equal(g.row().applicationId,id);
+ assert.equal(g.row().phase,'to-table');assert.equal(g.row().progress.elapsed,0);assert.equal(g.row().steps.length,0);
+ assert.deepEqual(g.row().reservation,row.reservation);assert.equal(g.world.business,108,'same already funded trial is retained');
+ g.until(()=>g.row().phase==='cleaning');assert.equal(g.row().progress.elapsed,0,'new approach needs fresh standing time');
+ g.tick(20);assert.equal(g.row().steps.length,0,'obsolete partial seconds cannot complete the new approach');
+}
+{
  const f=fixture();f.finish();const saved={recruitment:f.runtime.snapshot(),hiring:f.hiring.snapshot()};
  saved.recruitment.sources.find(e=>e.kind==='table-work').receipt.activeSeconds=0;
  const g=fixture(saved,f.world);assert(g.runtime.loadError);assert(g.hiring.loadError);assert.equal(g.runtime.update(.1),false);

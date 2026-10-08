@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import {createChinaTavernLabor} from '../source/game/china-tavern-labor.js';
 import {createCurrencyLedger} from '../source/game/currency-ledger.js';
+import {TAVERN_TABLE_CLEANING_POINTS} from '../source/game/china-tavern-layout.js';
 const clone = x => JSON.parse(JSON.stringify(x));
 function setup(saved = {}) {
   const store = clone(saved), player = {walking: false, root: {position: {x: 22.35, y: .215, z: 6.7}, rotation: {y: 0}}};
@@ -33,7 +34,7 @@ assert.equal(a.labor.startCleaning(), false);
 a.move(a.labor.view().target.position); a.tick(200); assert.equal(a.labor.state().job.completedTables, 0, 'Arrival requires explicit cleaning');
 a.flags.mounted = {id: 'seat'}; assert.equal(a.labor.startCleaning(), false); a.flags.mounted = null;
 const point = a.labor.view().target.position; a.move([point[0], 4.015, point[2]]); assert.equal(a.labor.startCleaning(), false); a.move(point);
-assert(a.labor.startCleaning()); assert.equal(a.labor.playerAction(), 'tidy'); assert.deepEqual(a.labor.playerStation().playerWorkTarget, [18.825, 1.19, 16.2]);
+assert(a.labor.startCleaning()); assert.equal(a.labor.playerAction(), 'tidy'); assert.deepEqual(a.labor.playerStation().playerWorkTarget, TAVERN_TABLE_CLEANING_POINTS[0].workTarget);
 a.tick(20); a.player.root.position.x += .03; a.labor.update(.1);
 assert.equal(a.labor.state().cleaning, false); assert.equal(a.labor.state().progress, 0); assert.equal(a.labor.playerAction(), null);
 a.tick(100); assert.equal(a.labor.state().job.completedTables, 0);
@@ -49,6 +50,16 @@ const firstId = a.ledger.history()[0].requestId;
 a.finish(); a.home(); assert(a.labor.claim()); assert.equal(a.ledger.state().bank, 24); assert.notEqual(a.ledger.history()[1].requestId, firstId);
 
 // Failed writes neither complete a table nor pay; retry remains possible.
+{
+ const original=setup();assert(original.labor.accept());original.clean();
+ const checkpoint={...original.labor.snapshot(),cleaning:true,elapsed:4.9,origin:{x:22.25,y:.215,z:17.65}},receipt=checkpoint.receiptId;
+ const resumed=setup(original.store);resumed.move([22.25,.215,17.65]);assert(resumed.labor.restore(checkpoint));
+ assert.equal(resumed.labor.isCleaning(),false);assert.equal(resumed.labor.state().job.completedTables,1,'already completed original table stays complete');
+ resumed.tick(60);assert.equal(resumed.labor.state().job.completedTables,1,'old approach earns no seconds');
+ resumed.move(TAVERN_TABLE_CLEANING_POINTS[1].position);assert(resumed.labor.startCleaning());resumed.tick(49);
+ assert.equal(resumed.labor.state().job.completedTables,1);resumed.tick(2);assert.equal(resumed.labor.state().job.stage,'ready');
+ assert.equal(resumed.labor.snapshot().receiptId,receipt);assert.equal(resumed.ledger.state().bank,0);
+}
 const b = setup(); b.flags.rejectLabor = true; assert.equal(b.labor.accept(), false); assert.equal(b.labor.active(), false); b.flags.rejectLabor = false;
 assert(b.labor.accept()); b.clean(); b.flags.rejectLabor = true; b.clean();
 assert.equal(b.labor.state().job.stage, 'working'); assert.equal(b.labor.state().job.completedTables, 1); assert.equal(b.ledger.state().cash, 0);

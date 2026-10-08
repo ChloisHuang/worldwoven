@@ -6,6 +6,7 @@ import {personId} from './china-tavern-host-role.js';
 import {createFormalLaborContract} from './formal-labor-contract.js';
 import {TAVERN_HELPER_ROLE} from './china-tavern-employment.js';
 import {settleTemporaryWage} from './temporary-work-payroll.js';
+import {TAVERN_TABLE_CLEANING_POINTS} from './china-tavern-layout.js';
 // One real, repeatable house job: wipe both existing dining tables and return to
 // the current host for 12 fictional copper. This module never moves the player or NPCs.
 const VERSION = 2, WAGE = 12, SECONDS = 5, FLOOR = .215;
@@ -15,10 +16,7 @@ const HOST = {id: 'cn-tavern-labor-host', name: '向掌柜接活或领工钱', p
 // table work. A visitor must not occupy the same floor dot as a passing actor.
 const REGISTRATION_RADIUS = .9;
 const registrationKinds = new Set(['view', 'formal-view', 'apply', 'resign', 'formal-apply', 'formal-resign']);
-const TABLES = [
-  {id: 'cn-tavern-labor-west', name: '西窗餐桌 · 靠过道一侧', position: [19.75, FLOOR, 13.65], playerWorkTarget: [19.275, 1.19, 13.65]},
-  {id: 'cn-tavern-labor-east', name: '东窗餐桌 · 靠过道一侧', position: [22.25, FLOOR, 17.65], playerWorkTarget: [22.725, 1.19, 17.65]},
-];
+const TABLES=TAVERN_TABLE_CLEANING_POINTS.map(({id,name,position,workTarget})=>({id,name,position,playerWorkTarget:workTarget}));
 const near = (position, point, radius = .2) => !!position &&
   Math.hypot(position.x - point[0], position.z - point[2]) <= radius && Math.abs(position.y - point[1]) <= .2;
 const integer = n => Number.isSafeInteger(n) && n >= 0;

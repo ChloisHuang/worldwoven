@@ -1,11 +1,9 @@
 import {TAVERN_HIRING_BUSINESS_ID as BUSINESS,TAVERN_HIRING_ROLES as ROLES} from './china-tavern-hiring.js';
+import {TAVERN_TABLE_CLEANING_POINTS} from './china-tavern-layout.js';
 
 // These are the two ORIGINAL labor positions/work targets in china-tavern-labor.
 // They are public work sites, never a replacement NPC, private meeting or skill ledger.
-export const TAVERN_RECRUITMENT_TABLES = Object.freeze([
- Object.freeze({id:'cn-tavern-labor-west',position:Object.freeze([19.75,.215,13.65]),workTarget:Object.freeze([19.275,1.19,13.65])}),
- Object.freeze({id:'cn-tavern-labor-east',position:Object.freeze([22.25,.215,17.65]),workTarget:Object.freeze([22.725,1.19,17.65])}),
-]);
+export const TAVERN_RECRUITMENT_TABLES=TAVERN_TABLE_CLEANING_POINTS;
 const PEOPLE = {'cn-tavern-diner-west':'顾谨','cn-tavern-diner-east':'周棠','cn-tavern-host':'许安','cn-tavern-cook':'沈禾','cn-tavern-assistant':'陆青'};
 const GUESTS=['cn-tavern-diner-west','cn-tavern-diner-east'];
 const ROLE_NAMES={'cn-tavern-host':'掌柜','cn-tavern-chef':'厨师','cn-tavern-steward':'服务助理'};
@@ -149,7 +147,15 @@ export function createChinaTavernRecruitment(options={}) {
  try {
   if(options.saved!=null) {invalidSnapshot=copy(options.saved);current=validate(copy(options.saved));
    for(const event of current.sources)if(event.kind==='table-work')require(read('verifyTableWork',copy(event.receipt))===true,'unverified-scene-table-work');}
-  for(const c of current.candidates) restored.add(c.id);
+  for(const c of current.candidates) {
+   // A prior unfinished pose at an obsolete approach is not work at the new
+   // legal stand point. Keep consent, paid reservation and completed receipts.
+   const table=TAVERN_RECRUITMENT_TABLES[c.tableIndex];
+   if(table&&c.progress.elapsed>0&&!near(c.progress.origin,table.position)){
+    c.progress=freshProgress();c.tableClaim=null;if(c.phase==='cleaning')c.phase='to-table';
+   }
+   restored.add(c.id);
+  }
   invalidSnapshot=null;
  } catch(e) {loadError=e.message;current=empty();}
  function save(next) {

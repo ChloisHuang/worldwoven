@@ -3,7 +3,7 @@ import {createServiceRelationshipOutbox,serviceRelationshipEvent} from './servic
 import {kitchenHandoffBoundary} from './china-tavern-kitchen-roles.js';
 import {TAVERN_HOST_SLOT_ID,ORIGINAL_TAVERN_HOST_ID} from './china-tavern-host-role.js';
 import {reserveNpcBed,occupyNpcBed} from './npc-bed-occupancy.js';
-import {TAVERN_LAYOUT_VERSION,tavernSeatSide,tavernTablePlace,normalizeTavernWorld} from './china-tavern-layout.js';
+import {TAVERN_LAYOUT_VERSION,TAVERN_TABLE_CLEANING_POINTS as TAVERN_RECRUITMENT_TABLES,tavernSeatSide,tavernTablePlace,normalizeTavernWorld} from './china-tavern-layout.js';
 import {SALON_ARTIST_IDS} from './china-salon-economy.js';
 import {ROYAL_KITCHEN_CHEF_DAYS,validTavernChefServiceReceipt} from './china-royal-kitchen-role.js';
 import {CHINA_OFFICIAL_IDS} from './china-official-economy.js';
@@ -36,12 +36,6 @@ const personKey=id=>typeof id==='string'&&/^cn-[a-z0-9-]{1,60}$/.test(id);
 const GUESTS=['cn-tavern-diner-west','cn-tavern-diner-east'];
 const ORIGINAL_STAFF=[M.host,M.cook,M.assistant];
 const originalStaffRole=id=>id===M.host?ROLE.host:id===M.cook?ROLE.chef:id===M.assistant?ROLE.assistant:null;
-// Original labor work sites, also asserted against the runtime in its scene test.
-// Keep the original world independent of the optional hiring controller module.
-const TAVERN_RECRUITMENT_TABLES=[
- {id:'cn-tavern-labor-west',position:[19.75,.215,13.65],workTarget:[19.275,1.19,13.65]},
- {id:'cn-tavern-labor-east',position:[22.25,.215,17.65],workTarget:[22.725,1.19,17.65]},
-];
 const originalGuestOrder=o=>GUESTS.includes(o?.customerId)&&o.guestIndex===GUESTS.indexOf(o.customerId);
 // External guests keep their own account provider and never inherit another
 // occupation's purse just because its actor ID appears in a saved registry.
