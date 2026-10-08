@@ -70,3 +70,7 @@ npm run test:door-geometry -- --tiny
 ### 云来经营定向main续点
 
 `china-tavern-management-main.cjs` 默认只从唯一已付合成checkpoint冷载核验，保原人物/工序/钱货来源；DOM/renderer模拟。开发证据的01–09分段见PROJECT_CHECKLIST和相应Git提交，不因发布重走招聘。需要针对真实改动续段时用`TAVERN_MAIN_FROM`指定同号中断存档、`TAVERN_MAIN_STOP_AFTER`限制阶段；只有明确从已聘用档测试工时/结薪时才分别使用`TAVERN_MAIN_STAGE_WORK=1`和`TAVERN_MAIN_STAGE_CLOSE=1`预置日期，不代表自然跨日。`TAVERN_MAIN_REJECT_HANDOFF=1` / `TAVERN_MAIN_REJECT_WAGE=1`只拒对应同笔保存。所有main段仍须共享锁及既有资源守卫，`TAVERN_MAIN_FRESH=1`不作为常规回归入口。
+
+### TR03旅行定向入口
+
+`travel-journey-main.cjs`只构造原世界球，测试实际main按钮/hash、原护照、登机/飞行/入境及拒写；输出`qa/travel-main/departure-checkpoint.json`。`travel-arrival-main.cjs`默认从唯一已验fixture冷恢复；`TRAVEL_MAIN_FROM`可选同号续点，`TRAVEL_MAIN_TARGETS`只用于明确要核的国家接点，分别覆盖按钮/hash，不默认重跑四国。`TRAVEL_MAIN_REFUSE_ARRIVAL=1`只用于已入境待抵达档的最后保存拒写；`TRAVEL_MAIN_CANCEL_AT_END=1`核原当前国出境前取消拒写/成功。该脚本逐个成功地区保存`arrival-checkpoint.json`，与departure输出独立；最终唯一fixture保4已抵达+1已取消及7章，普通日期/钱包不改变。所有场景仍按共享串行锁、180秒/1152MiB/Node768守卫；模拟DOM/renderer不是browser/iOS画面接受。

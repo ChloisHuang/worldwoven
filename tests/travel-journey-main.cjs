@@ -9,7 +9,7 @@ export function travelMainStep(dt){updateTravelPresentation(dt);}
 export {save};
 `;
 once("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),","new vm.SourceTextModule(readProduction(file),");
-once('const cache=new Map();',`const cache=new Map();function readProduction(file){let source=fs.readFileSync(file,'utf8');if(file.endsWith('/game/main.js')){assert(source.includes('const TRAVEL_JOURNEYS_ENABLED=false;')||source.includes('const TRAVEL_JOURNEYS_ENABLED=true;'));source=source.replace('const TRAVEL_JOURNEYS_ENABLED=false;','const TRAVEL_JOURNEYS_ENABLED=true;')+${JSON.stringify(seam)};}return source;}`);
+once('const cache=new Map();',`const cache=new Map();function readProduction(file){let source=fs.readFileSync(file,'utf8');if(file.endsWith('/game/main.js')){assert(source.includes('const TRAVEL_JOURNEYS_ENABLED=false;')||source.includes('const TRAVEL_JOURNEYS_ENABLED=true;'));source=source.replace('const TRAVEL_JOURNEYS_ENABLED=false;','const TRAVEL_JOURNEYS_ENABLED=true;')+${JSON.stringify(seam)};}if(file.endsWith('/game/travel-journey.js'))source=source.replace('const view = () => projection(current,loadError,lastError);','const view = () => {globalThis.__travelViewReads=(globalThis.__travelViewReads||0)+1;return projection(current,loadError,lastError);};');return source;}`);
 once('vm.createContext({console,','vm.createContext({structuredClone,URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,console,');
 once('{identifier:file,context}','{identifier:file,context,initializeImportMeta:meta=>{meta.url=require("node:url").pathToFileURL(file).href;}}');
 once("const document={body:new E('body'),","const document={head:new E('head'),body:new E('body'),");
@@ -37,7 +37,7 @@ rejectAction=null;press('cancel');assert.equal(journey.view().active,null);asser
 ids.travel.onclick();id=journey.view().active.id;assert.notEqual(id,cancelled);oldCancel.onclick();assert.equal(journey.view().active.id,id);
 const oldDeparture=button('departure');oldDeparture.onclick();oldDeparture.onclick();assert.equal(journey.view().active.stage,'departure-cleared');assert.equal(journey.view().stamps.length,0,'unknown old origin never creates an exit');
 press('board');step(20);const progress=flight.view().progress;assert(progress>0&&progress<1);assert.equal(flight.view().journey.id,id);
-ui.close();assert(!ids['globe-ui'].hidden);step(20);assert.equal(flight.view().progress,progress);ui.open();assert(ids['globe-ui'].hidden);step();assert(flight.view().progress>progress);assert.equal(journey.view().active.id,id);
+ui.close();assert(!ids['globe-ui'].hidden);const idleReads=context.__travelViewReads;step(20);assert.equal(context.__travelViewReads,idleReads,'closed travel presentation does not clone the ledger every frame');assert.equal(flight.view().progress,progress);ui.open();assert(ids['globe-ui'].hidden);step();assert(flight.view().progress>progress);assert.equal(journey.view().active.id,id);
 rejectAction='land';step(100);assert.equal(journey.view().active.stage,'flying');assert.equal(rejectedWrites,3,'automatic finish attempts once, not every frame');assert.equal(flight.view().progress,1);
 const oldSkip=button('land');rejectAction=null;oldSkip.onclick();oldSkip.onclick();assert.equal(journey.view().active.stage,'entry-pending');
 rejectAction='entry';press('entry');assert.equal(journey.view().active.stage,'entry-pending');assert.equal(journey.view().stamps.length,0);assert(main.namespace.save());

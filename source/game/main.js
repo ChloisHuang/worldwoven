@@ -182,7 +182,7 @@ import {resolveCameraPosition,buildCameraSolids,cameraDistanceToObstacle,cameraC
 import {createCharacter,characterResourceStats} from './characters.js?rev=R7-20261002';
 import {blocked,moveWithCollision,findPath,canTraverse,resolveSurfaceHeight} from './navigation.js?rev=R7-20261002';
 import * as G from './geometry.js?rev=R7-20261002';
-const TRAVEL_JOURNEYS_ENABLED=false; // Enable after the complete four-country journey is verified.
+const TRAVEL_JOURNEYS_ENABLED=true; // Four-country passport, flight and same-journey recovery verified.
 const CHINA_PERSONNEL_TRIAL_ENABLED=true;
 const CHINA_TAVERN_MANAGEMENT_ENABLED=true; // Original owner hiring, stock, service and accounting loop verified.
 const $=id=>document.getElementById(id), canvas=$('world');
@@ -625,6 +625,8 @@ function requestTravel(id){
 }
 function updateTravelPresentation(dt){
  if(!travelJourney)return;
+ // Normal play and a closed journey panel do not project the full travel history each frame.
+ if(mode!=='globe'||!travelJourneyUI.isOpen()){travelFlight.pause();return;}
  const current=travelJourney.view().active;
  if(!current||current.stage!=='flying'||!travelJourneyUI.isOpen()||document.hidden){travelFlight.pause();travelJourneyUI.update();return;}
  travelFlight.start(current);
