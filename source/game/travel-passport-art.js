@@ -38,8 +38,12 @@ export function buildPassportSpreads(view,notes=[],compact=false){
   const pages=[{id:'inside-cover',type:'intro'},{id:'identity',type:'identity'}];
   const continuationCount=compact?6:8;
   for(const region of view.regions){
-    pages.push({id:region.id,type:'visa',region,records:region.activities.slice(0,4)});
-    for(let offset=4;offset<region.activities.length;offset+=continuationCount){
+    const travel=region.travelStamps||[],firstActivities=travel.length?0:4;
+    pages.push({id:region.id,type:'visa',region,travelRecords:travel.slice(0,2),records:region.activities.slice(0,firstActivities)});
+    for(let offset=2;offset<travel.length;offset+=2){
+      pages.push({id:region.id+'-travel-'+offset,type:'travel',region,travelRecords:travel.slice(offset,offset+2),offset});
+    }
+    for(let offset=firstActivities;offset<region.activities.length;offset+=continuationCount){
       pages.push({id:region.id+'-records-'+offset,type:'activities',region,records:region.activities.slice(offset,offset+continuationCount),offset});
     }
   }
@@ -102,6 +106,17 @@ export function renderPassportBook({view,portrait='',stamps={},cover='',spread=n
     art+=`<g clip-path="url(#paperClip)">${ruledPaper(m)}`;
     const addLines=(value,x,y,font=22,color=INK,width=tw,attrs='')=>{const lines=passportLines(value,width,font);art+=lines.map((l,i)=>text(x,y+i*(font+9),l,font,color,attrs)).join('');return lines.length*(font+9);};
     const heading=(x,title,small='')=>{art+=text(x,113,title,compact?25:28,GREEN);if(small)art+=text(x,140,small,compact?12:14,MUTED,'letter-spacing="1.2"');art+=line(x,151,x+tw,151,'#b4a67e','opacity=".55"');};
+    function travelSeal(stamp,r,x,y){
+      const label=stamp.kind==='entry'?'入境 · ENTRY':'出境 · EXIT',pad=12,inner=tw-pad*2;
+      art+=`<g data-travel-stamp="${esc(stamp.id)}"><rect x="${x+2}" y="${y}" width="${tw-4}" height="132" rx="${stamp.kind==='entry'?3:14}" fill="none" stroke="${r.ink}" stroke-width="1.6" opacity=".85"/><rect x="${x+7}" y="${y+5}" width="${tw-14}" height="122" rx="${stamp.kind==='entry'?1:10}" fill="none" stroke="${r.ink}" stroke-width=".6" opacity=".5"/>`;
+      art+=text(x+pad,y+28,label,compact?20:22,r.ink);
+      art+=svgImage(stamps[r.id]||'',x+tw-42,y+12,28,28,r.ink);
+      for(const [value,dy,size] of [[stamp.dateLabel,58,compact?16:18],[stamp.routeLabel,86,compact?16:18],[stamp.journeyLabel,114,compact?16:18]]){
+        const length=[...value].reduce((n,c)=>n+(/[\u0020-\u007e]/.test(c)?size*.57:size),0);
+        art+=text(x+pad,y+dy,value,size,r.ink,length>inner?`textLength="${inner}" lengthAdjust="spacingAndGlyphs"`:'');
+      }
+      art+='</g>';transcript.push(r.country+' '+label,stamp.dateLabel,stamp.routeLabel,stamp.journeyLabel);
+    }
     function physicalPage(page,side){
       const x=side?m.right:m.left,cx=side?half*1.5:half*.5;
       if(page.type==='identity'){
@@ -126,6 +141,14 @@ export function renderPassportBook({view,portrait='',stamps={},cover='',spread=n
         transcript.push('四方生活旅行护照，一本随身旅行册');
       }else if(page.type==='visa'){
         const r=page.region;heading(x,r.country,'VISAS · '+r.en);addLines(r.place,x,184,compact?21:24,INK,tw);
+        if(page.travelRecords?.length){
+          page.travelRecords.forEach((stamp,i)=>travelSeal(stamp,r,x,207+i*149));
+          const fy=compact?549:522;
+          addLines(r.visited?'已到访 · 旧日期未记录':'到访尚未记录',x,fy,compact?17:19,MUTED,tw);
+          addLines(`日常印记 · ${r.activities.length} 枚`,x,fy+32,compact?17:19,GREEN,tw);
+          transcript.push(r.visited?'已到访；旧到访日期未记录':'到访尚未记录');
+          return;
+        }
         const size=compact?142:139,sy=compact?206:193;
         art+=`<g opacity="${r.visited?'.92':'.23'}" transform="rotate(${parseFloat(r.tilt)||0} ${cx} ${sy+size/2})">${svgImage(stamps[r.id]||'',cx-size/2,sy,size,size,r.ink)}</g>`;
         const fy=compact?378:358;
@@ -138,6 +161,11 @@ export function renderPassportBook({view,portrait='',stamps={},cover='',spread=n
         });
         if(!page.records.length)addLines('完成当地活动后，记录会留在这里',x,fy+85,compact?17:19,MUTED,tw);
         transcript.push(r.country,r.place,r.visited?'已到访；到访日期未记录':'未到访');
+      }else if(page.type==='travel'){
+        const r=page.region;heading(x,r.country+' · 签证','VISAS · CONTINUED');
+        art+=text(x,184,'出入境印章',compact?19:21,MUTED);
+        page.travelRecords.forEach((stamp,i)=>travelSeal(stamp,r,x,207+i*149));
+        addLines('日期为各次通关游戏时刻',x,compact?558:552,compact?15:17,MUTED,tw);
       }else if(page.type==='activities'){
         const r=page.region;heading(x,r.country+' · 记录','CONTINUED');
         art+=text(x,184,`${r.activities.length} 枚日常印记`,compact?19:21,MUTED);

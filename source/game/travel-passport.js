@@ -1,4 +1,5 @@
 import {buildPassportSpreads,renderPassportBook,renderPassportMotion} from './travel-passport-art.js';
+import {travelJourneyView} from './travel-journey.js';
 // A fictional, read-only travel booklet. Existing progress is the only source
 // of earned marks; visiting or opening this UI never writes a date or a stamp.
 const STYLE = new URL('./travel-passport.css', import.meta.url).href;
@@ -23,14 +24,19 @@ const ACTIVITIES = Object.freeze({
 });
 const cleanName = value => typeof value === 'string' ? [...value.replace(/[\u0000-\u001f\u007f-\u009f]/g,'').trim()].slice(0,24).join('') : '';
 const uniqueStrings = value => Array.isArray(value) ? [...new Set(value.filter(x=>typeof x==='string'&&x.length>0&&x.length<=160))] : [];
+const gameDate = ({day,hour}) => {const minutes=Math.floor(hour*60);return `游戏第 ${day+1} 日 · ${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}`;};
 export function travelPassportView(progress={},clock={}) {
   const visited=new Set(uniqueStrings(progress?.visited));
-  const regions=PASSPORT_REGIONS.map(r=>({...r,visited:visited.has(r.id),activities:uniqueStrings(progress?.stamps?.[r.id]).map(id=>({id,label:Object.hasOwn(ACTIVITIES,id)?ACTIVITIES[id]:'往日活动纪念',legacy:!Object.hasOwn(ACTIVITIES,id)}))}));
+  // Only the validated journey ledger supplies dated entry/exit seals. Legacy
+  // visits and activity marks retain their independent, unknown-date meaning.
+  const journey=travelJourneyView(progress?.travelJourney),country=id=>PASSPORT_REGIONS.find(r=>r.id===id)?.country||'启程地未记录';
+  const journeyNumbers=new Map(journey.journeys.map((j,i)=>[j.id,i+1]));
+  const travelStamps=journey.stamps.map(s=>({...s,dateLabel:gameDate(s),journeyLabel:`旅程 ${journeyNumbers.get(s.journeyId)}`,routeLabel:`${country(s.from)} → ${country(s.to)}`}));
+  const regions=PASSPORT_REGIONS.map(r=>({...r,visited:visited.has(r.id),travelStamps:travelStamps.filter(s=>s.regionId===r.id),activities:uniqueStrings(progress?.stamps?.[r.id]).map(id=>({id,label:Object.hasOwn(ACTIVITIES,id)?ACTIVITIES[id]:'往日活动纪念',legacy:!Object.hasOwn(ACTIVITIES,id)}))}));
   const validClock=Number.isSafeInteger(clock?.day)&&clock.day>=0&&Number.isFinite(clock.hour)&&clock.hour>=0&&clock.hour<24;
-  const minutes=validClock?Math.floor(clock.hour*60):0;
   return {nickname:cleanName(progress?.nickname)||'旅居者',regions,visitedCount:regions.filter(r=>r.visited).length,
-    activityCount:regions.reduce((n,r)=>n+r.activities.length,0),
-    clockLabel:validClock?`游戏第 ${clock.day+1} 日 · ${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}`:'游戏时刻暂未记录'};
+    activityCount:regions.reduce((n,r)=>n+r.activities.length,0),travelStampCount:travelStamps.length,travelLoadError:journey.loadError,
+    clockLabel:validClock?gameDate(clock):'游戏时刻暂未记录'};
 }
 const SVG_HEAD='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">';
 const STAMPS={

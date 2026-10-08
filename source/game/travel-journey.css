@@ -1,0 +1,34 @@
+.ww-travel-dialog.ww-airy-panel{position:fixed;inset:var(--ww-ui-top,12px) var(--ww-ui-right,12px) var(--ww-ui-bottom,12px) var(--ww-ui-left,12px);margin:auto;width:min(660px,var(--ww-ui-width,calc(100vw - 24px)));height:min(430px,var(--ww-ui-height,calc(100dvh - 24px)));max-width:var(--ww-ui-width,calc(100vw - 24px));max-height:var(--ww-ui-height,calc(100dvh - 24px));padding:18px 20px 12px;border:1px solid #d4e5dc;border-radius:20px 7px 20px 7px;background:linear-gradient(115deg,#f9f8eef5,#eef6eef5 72%,#eff2f8f5);color:#355e68;box-shadow:0 14px 42px #274b6426;font-family:Georgia,"Songti SC","Noto Serif CJK SC",serif;line-height:1.4;overflow:hidden}
+.ww-travel-dialog[open]{display:flex;flex-direction:column}
+.ww-travel-dialog::backdrop{background:#173b4935;backdrop-filter:blur(2px)}
+.ww-travel-dialog *{box-sizing:border-box}
+.ww-travel-dialog .ww-travel-heading{flex:0 0 auto;min-width:0;padding-right:34px;margin-bottom:10px}
+.ww-travel-dialog h2{margin:0 0 4px;font:500 22px/1.25 Georgia,"Songti SC",serif;letter-spacing:.08em}
+.ww-travel-dialog h3{margin:0 0 6px;font-size:17px;font-weight:500}
+.ww-travel-dialog p{margin:5px 0;font-size:12px;line-height:1.55;overflow-wrap:anywhere}
+.ww-travel-dialog .ww-travel-heading p{margin:0;color:#70898e;font-size:11px}
+.ww-travel-dialog button{min-width:44px;min-height:44px;font-family:inherit;cursor:pointer;box-shadow:none;touch-action:manipulation}
+.ww-travel-dialog button:disabled{opacity:.45;cursor:default}
+.ww-travel-dialog button:focus-visible{outline:2px solid #568f91;outline-offset:2px}
+.ww-travel-dialog .ww-travel-close{position:absolute;right:7px;top:5px;width:44px;height:44px;padding:0;border:0;background:transparent;color:#708c91;font-size:26px}
+.ww-travel-dialog .ww-travel-body{flex:1 1 auto;min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:2px 4px 6px 0}
+.ww-travel-route{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:0 0 14px;padding:12px 14px;border:1px solid #dce8df;border-radius:12px 4px 12px 4px;background:#fffffa75}
+.ww-travel-route>div{min-width:0}.ww-travel-route dt{font-size:11px;color:#738d91}.ww-travel-route dd{margin:5px 0 0;font-size:21px;color:#4c7387;overflow-wrap:anywhere}
+.ww-travel-dialog .ww-travel-steps{display:flex;gap:3px;list-style:none;margin:0 0 13px;padding:0}
+.ww-travel-steps li{flex:1;min-width:0;padding:6px 2px;border-bottom:2px solid #dce6df;text-align:center;font-size:11px;color:#8a9e9e;overflow-wrap:anywhere}
+.ww-travel-steps li.is-complete{border-color:#b3d0c0;color:#75968a}.ww-travel-steps li.is-current{border-color:#72ada0;color:#356f71;background:#dcece580}
+.ww-travel-status{padding:2px 0 8px}.ww-travel-stamps{display:flex;flex-wrap:wrap;gap:4px 14px;margin:2px 0 8px}
+.ww-travel-dialog .ww-travel-stamp{color:#4b807b}.ww-travel-dialog .ww-travel-note{color:#748c90;font-size:11px}.ww-travel-dialog .ww-travel-error{color:#a36661;padding:8px 10px;border-left:2px solid #d9aaa0;background:#f6eae580;white-space:pre-wrap;overflow-wrap:anywhere}
+.ww-travel-dialog .ww-travel-empty{padding:18px 0 6px}
+.ww-travel-dialog .ww-travel-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding-top:8px;margin-top:6px;border-top:1px solid #d5e5dc}
+.ww-travel-dialog .ww-travel-actions>button{width:auto;min-width:44px;flex:0 0 auto;padding:8px 10px;border:0;border-radius:2px;background:transparent;color:#66858c;font-size:12px}
+.ww-travel-dialog .ww-travel-actions>.ww-airy-action{width:auto;flex:1 1 0;min-width:0;padding:10px 12px;font-size:14px;letter-spacing:.03em;background-color:#d8eae4;color:#356775;white-space:normal}
+.ww-travel-dialog progress{display:block;width:100%;height:5px;border:0;border-radius:5px;background:#dbe7e1;accent-color:#75a99f}
+.ww-travel-dialog progress::-webkit-progress-bar{border-radius:5px;background:#dbe7e1}.ww-travel-dialog progress::-webkit-progress-value{border-radius:5px;background:#75a99f}.ww-travel-dialog progress::-moz-progress-bar{border-radius:5px;background:#75a99f}
+/* The flight happens on the original globe. Its modal strip leaves that scene
+   visible, including in the game's already-rotated landscape viewport. */
+body dialog.ww-travel-dialog.is-flying{inset:auto var(--ww-ui-right,12px) var(--ww-ui-bottom,12px) var(--ww-ui-left,12px)!important;margin:0 auto!important;width:min(640px,var(--ww-ui-width,calc(100vw - 24px)));height:min(186px,var(--ww-ui-height,calc(100dvh - 24px)));padding:11px 18px 9px;background:linear-gradient(115deg,#f9f8eee8,#eef6eee8 72%,#eff2f8e8);box-shadow:0 8px 28px #274b6426}
+.ww-travel-dialog.is-flying::backdrop{background:transparent;backdrop-filter:none}
+.ww-travel-dialog.is-flying .ww-travel-heading{margin-bottom:4px}.ww-travel-dialog.is-flying h2{font-size:18px}.ww-travel-dialog.is-flying .ww-travel-body{padding-bottom:0}.ww-travel-dialog.is-flying .ww-travel-flight-label{font-size:11px;margin:0 0 4px}.ww-travel-dialog.is-flying .ww-travel-note{margin:4px 0 0}.ww-travel-dialog.is-flying .ww-travel-actions{padding-top:5px;margin-top:4px}
+@media(max-height:500px){.ww-travel-dialog.ww-airy-panel{padding:11px 18px 9px}.ww-travel-dialog .ww-travel-heading{margin-bottom:6px}.ww-travel-dialog h2{font-size:18px}.ww-travel-dialog h3{font-size:16px}.ww-travel-route{padding:8px 12px;margin-bottom:8px}.ww-travel-route dd{font-size:18px;margin-top:3px}.ww-travel-dialog .ww-travel-steps{margin-bottom:8px}.ww-travel-dialog .ww-travel-actions{padding-top:5px;margin-top:4px}body dialog.ww-travel-dialog.is-flying{height:min(172px,var(--ww-ui-height,calc(100dvh - 24px)))}}
+@media(max-width:450px){.ww-travel-dialog.ww-airy-panel{padding:13px 12px 10px}.ww-travel-dialog .ww-travel-actions{flex-wrap:wrap;gap:4px}.ww-travel-dialog .ww-travel-actions>.ww-airy-action{flex-basis:100%}.ww-travel-route{gap:8px;padding:10px}.ww-travel-steps li{font-size:10px}.ww-travel-dialog.is-flying .ww-travel-actions{flex-wrap:nowrap}.ww-travel-dialog.is-flying .ww-travel-actions>.ww-airy-action{flex-basis:0;font-size:12px}body dialog.ww-travel-dialog.is-flying{padding:10px 12px 8px}}

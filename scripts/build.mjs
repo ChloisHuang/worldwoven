@@ -28,7 +28,7 @@ function emit(rel){if(assets[rel])return assets[rel];if(busy.has(rel))throw Erro
  // this narrowly scoped: no generic CSS parser, glob loader or eager preload.
  body=body.replace(/(\bnew URL\(\s*['"])(\.\.?\/[^'"]+)(['"]\s*,\s*import\.meta\.url\s*\))/g,(_,a,s,b)=>{
   const asset=path.posix.normalize(path.posix.join(path.posix.dirname(rel),s));
-  if(!['game/wallet.css','game/travel-passport.css','qa/nearby-candidate/wallet.css'].includes(asset)&&!/^game\/assets\/currency\/(?:china|japan|egypt|france)\.webp$/.test(asset))throw Error('Unsupported URL asset '+asset);
+  if(!['game/wallet.css','game/travel-passport.css','game/travel-journey.css','qa/nearby-candidate/wallet.css'].includes(asset)&&!/^game\/assets\/currency\/(?:china|japan|egypt|france)\.webp$/.test(asset))throw Error('Unsupported URL asset '+asset);
   return a+emit(asset)+b;
  });
  }const ext=path.extname(rel),stem=path.basename(rel,ext),url='/assets/'+stem+'.'+hash(body)+ext;fs.writeFileSync(path.join(out,url),body);assets[rel]=url;busy.delete(rel);return url;}
