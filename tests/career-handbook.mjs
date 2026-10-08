@@ -143,3 +143,25 @@ console.log('PASS promotion review wait persists and resumes only through actual
  royal.lastError=null;royal.activity=null;royal.application={...royal.application,stage:'imperial-approved',code:'imperial-approved'};royalUI.update('lot');assert(text(royalDoc.body).includes('皇帝已准任 · 待宣读登记'));assert.equal(f.core.state().revision,revision);royalUI.dispose();f.dispose();
 }
 console.log('PASS gated second-route UI, independent five-stage dispatch, real-time royal wait/progress/error refresh without core revision, separate stop versus withdrawal, dynamic target-grade history and unopened higher ranks');
+
+// A held clerk's registration card shows the attained job, while applicants
+// still see the entry role. The personnel projection is a display fixture;
+// its actual grant, contract and wage are covered by the production-main chain.
+{
+ const f=promotionPanel(states.at(-1)[1]),regular=f.core.currentRole();
+ const unemployed=createFormalCareers({saved:seed,getClock:()=>f.clock,saveState:()=>true});
+ const personnel={...f.core,currentRole:()=>({...regular,name:'吏务核籍录事',rankId:'cn-records-personnel',gradeLabel:'从八品',wage:26})};
+ for(const [core,name,wage,owner]of [[unemployed,'礼务录事',18,false],[f.core,'礼务录事',22,true],[personnel,'吏务核籍录事',26,true]]){
+  const doc={head:element('head'),body:element('body'),createElement:element},before=JSON.stringify(core.state());
+  const ui=createCareerHandbook({careers:core,getPlayer:()=>f.actor,getClock:()=>f.clock,getCountry:()=> 'china',getService:()=>f.service,document:doc,copperLedger:bank});
+  ui.open({scope:'catalogue',roleId:CLERK.id});const card=all(doc.body).find(e=>e.className==='career-role-card');assert(card);
+  assert.equal(all(card).find(e=>e.tag==='h3').textContent,name);
+  assert.equal(all(card).find(e=>e.className==='career-card-wage').textContent,wage+'铜文');
+  assert.equal(all(card).some(e=>e.className==='career-vacancy held'),owner);
+  if(wage===26){assert(text(card).includes('朝班：礼仪主管；核籍：吏务主管'));assert(text(card).includes('六官原案核籍、吏务主管验收与本人归档'));}
+  else assert(!text(card).includes('核籍：吏务主管'));
+  assert.equal(JSON.stringify(core.state()),before,'Registration rendering does not change rank, rules or contracts');ui.dispose();
+ }
+ f.dispose();
+}
+console.log('PASS clerk registration display: applicant18, attained regular22 and personnel26 with actual work supervisors; no career mutation');

@@ -38,7 +38,7 @@ const isBathDelivery=role=>[BATH_DELIVERY,WOMEN_BATH_DELIVERY].includes(role?.id
 const bathSideName=role=>role.id===WOMEN_BATH_DELIVERY?'女汤':'男汤';
 const isClerk=role=>role?.id===CLERK;
 const registryKind=role=>isClerk(role)?'view':'formal-view';
-const dutySummary=role=>role.duties|| (isClerk(role)?'11:30朝仪听记 · 官署归档':role.id===TAVERN?'06:00–18:00 · 持续送餐、清洁脏桌、打扫退房客房；提前交班按工时计薪':'06:00–18:00 · 原壶浇两畦、归还与验收');
+const dutySummary=role=>role.duties|| (isClerk(role)?role.rankId==='cn-records-personnel'?'11:30朝仪听记 · 六官原案核籍、吏务主管验收与本人归档':'11:30朝仪听记 · 官署归档':role.id===TAVERN?'06:00–18:00 · 持续送餐、清洁脏桌、打扫退房客房；提前交班按工时计薪':'06:00–18:00 · 原壶浇两畦、归还与验收');
 const resultReason=code=>({'already-applied-today':'本岗位今日已提交，下一模拟日可再申请','interview-rejected':'硬门槛已满足，本次面谈未获录用','hiring-context-unavailable':'招聘信息暂不可用，请稍后重试','adult-required':'年龄未达要求','age-range-required':'台班招募年龄为18–40岁','ritual-required':'礼仪未达要求','writing-required':'文书未达要求','gardening-required':'园艺未达要求','art-required':'艺术未达要求','cooking-required':'烹饪未达要求，可在藏书处学习','martial-required':'武艺未达要求，请在射圃完成安全习射','care-required':'照护未达要求，可读虚构照护书并完成原助手服务','tavern-chef-days-required':'须在三个不同模拟日完成正式酒楼厨师原客单','clinic-experience-required':'须先完成一单药铺助手原单与本人交付，作为入门履历','already-employed':'已有正式职位，请先在原岗位办理离职','political-title-held':'已有宫廷名位，须先明确辞去名位','political-state-unavailable':'宫廷身份暂不可核验','no-vacancy':'当前没有空缺','save-failed':'登记未能保存，请重试','async-save-unsupported':'登记未能保存，请重试','invalid-clock':'世界时钟暂不可用','invalid-career-state':'职业存档暂时无法核对'}[code]||'本次登记未完成，请稍后重试');
 
 
@@ -137,6 +137,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
       root.append(box);
     };
     const cardFor=item=>{
+      if(isClerk(item)&&held?.id===item.id)item=held;
       const own=s.tenure?.roleId===item.id,check=applicationCheck(item),receipt=careers.applicationResult?.(item.id),past=careers.applicationHistory?.(item.id)||[],pending=receipt?.status==='pending',isLocal=!showWorkplace,p=place(item);
       const card=make('section',null,'career-role-card');card.setAttribute('data-panel-key',item.id);if(pending&&isLocal)card.setAttribute('data-pending','true');const head=make('div',null,'career-card-heading'),mark=make('span',null,'career-role-mark');mark.innerHTML=careerRoleMark(item.id);mark.setAttribute('aria-hidden','true');
       const title=make('div');title.append(make('h3',item.name),make('p',`${p.workplace} · ${liveEmployer(item)}`,'career-role-place'));head.append(mark,title);card.append(head);

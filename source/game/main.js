@@ -176,7 +176,7 @@ import {resolveCameraPosition,buildCameraSolids,cameraDistanceToObstacle,cameraC
 import {createCharacter,characterResourceStats} from './characters.js?rev=R7-20261002';
 import {blocked,moveWithCollision,findPath,canTraverse,resolveSurfaceHeight} from './navigation.js?rev=R7-20261002';
 import * as G from './geometry.js?rev=R7-20261002';
-const CHINA_PERSONNEL_TRIAL_ENABLED=false;
+const CHINA_PERSONNEL_TRIAL_ENABLED=true;
 const $=id=>document.getElementById(id), canvas=$('world');
 let viewport=displayedViewport(canvas);const hudLayout=createHudLayout();syncUiViewport();
 const regions=[

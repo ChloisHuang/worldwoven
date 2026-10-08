@@ -22,7 +22,7 @@ export function personnelMainArrival(){const selected=pendingInteraction||target
 export {requestStationIntent,save};
 `;
 once("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),", "new vm.SourceTextModule(readProduction(file),");
-once('const cache=new Map();', `const cache=new Map();function readProduction(file){let source=fs.readFileSync(file,'utf8');if(file.endsWith('/game/main.js')){const gate='const CHINA_PERSONNEL_TRIAL_ENABLED=false;';assert.equal(source.split(gate).length,2,'Exact unpublished test-only activation seam');source=source.replace(gate,'const CHINA_PERSONNEL_TRIAL_ENABLED=true;')+${JSON.stringify(seams)};}return source;}`);
+once('const cache=new Map();', `const cache=new Map();function readProduction(file){let source=fs.readFileSync(file,'utf8');if(file.endsWith('/game/main.js')){const gates=['const CHINA_PERSONNEL_TRIAL_ENABLED=false;','const CHINA_PERSONNEL_TRIAL_ENABLED=true;'],present=gates.filter(gate=>source.includes(gate));assert.equal(present.length,1,'Exactly one personnel feature gate');const gate=present[0];assert.equal(source.split(gate).length,2,'Exact activation seam; enabled releases are unchanged');source=source.replace(gate,'const CHINA_PERSONNEL_TRIAL_ENABLED=true;')+${JSON.stringify(seams)};}return source;}`);
 once('vm.createContext({console,', 'vm.createContext({structuredClone,URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,console,');
 once('{identifier:file,context}', '{identifier:file,context,initializeImportMeta:meta=>{meta.url=require("node:url").pathToFileURL(file).href;}}');
 once("const state=()=>context.__worldsDays.getState();assert.equal(state().mode,'globe');", "const state=()=>context.__worldsDays.getState();assert(['globe','lot'].includes(state().mode),'Fresh globe or ordinary auto-restored lot');");
@@ -165,7 +165,7 @@ try {
   assert.equal(paper.name,'career-appointment-document');assert.notEqual(paper.parent,r.player.root.userData.hands[1]);assert.equal(r.chinaPersonnelAppointment.intent(P+'appointment'),null);
   if(checkpoint('10-appointed',{applicationId:app().id,grade:career().currentRole().gradeLabel,oldDutyUnchanged:true,bankUnchanged:true}))return;
  }
- invariants();console.log(JSON.stringify({status:'PASS',scope:'Actual production main full trial and personnel promotion route through shared navigation; real original31 actors and original books/desks/beds/paper; only unpublished feature gate activated; explicit seed, simulated DOM/renderer, not browser/iOS/natural multi-day validation',checkpoints:journal.completed,seconds:(Date.now()-started)/1000}));
+ invariants();console.log(JSON.stringify({status:'PASS',scope:'Actual production main full trial and personnel promotion route through shared navigation; real original31 actors and original books/desks/beds/paper; feature gate explicitly enabled (unchanged for enabled releases); explicit seed, simulated DOM/renderer, not browser/iOS/natural multi-day validation',checkpoints:journal.completed,seconds:(Date.now()-started)/1000}));
 }catch(error){try{fs.writeFileSync(path.join(output,'failure.json'),JSON.stringify(diagnostic(),null,2));}catch{}throw error;}
 })().catch(e=>{console.error(e);process.exit(1)});
 `;
