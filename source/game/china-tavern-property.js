@@ -1,6 +1,7 @@
 // Fictional ownership of one existing business. The service world remains the
 // source of gross receipts; this journal owns capital, expenses and transfers.
 import {receptionWageReceipt,receptionWageFromEvent,validReceptionWageRecord} from './china-salon-reception-account.js';
+import {validTavernOperatingReceipt} from './china-tavern-business.js';
 export const TAVERN_BUSINESS_ID = 'cn-yunlai-tavern';
 const NPCS = Object.freeze({
   'cn-tavern-host': {name:'许安',funds:600},
@@ -30,7 +31,7 @@ function accounts(state,till) {
   if (!integer(till)) throw Error('invalid-tavern-income');
   const funds=Object.fromEntries(Object.entries(NPCS).map(([id,n])=>[id,n.funds]));
   funds[OWNER]-=CAPITAL;
-  let ownerId=OWNER,invested=CAPITAL,paidWages=0,drawn=0,ownership=0;
+  let ownerId=OWNER,invested=CAPITAL,paidWages=0,operatingCosts=0,drawn=0,ownership=0;
   const ids=new Set(),meals=new Map();let previousTill=0;
   for(const e of state.events) {
     if(!e || !integer(e.day) || !integer(e.till) || e.till<previousTill || e.till>till || !priceValid(e.amount) || typeof e.id!=='string' || ids.has(e.id)) throw Error('invalid-property-event');
@@ -48,18 +49,21 @@ function accounts(state,till) {
     } else if(e.kind==='reception-wage') {
       if(!validReceptionWageRecord(receptionWageFromEvent(e))||e.funding!==0||e.funder!==ownerId)throw Error('invalid-reception-expense');
       paidWages+=e.amount;
+    } else if(e.kind==='operating-expense') {
+      if(!validTavernOperatingReceipt(e.receipt)||e.receipt.amount!==e.amount||e.receipt.id!==e.id||e.funding!==0||e.funder!==ownerId)throw Error('invalid-operating-expense');
+      if(e.receipt.kind==='stock-purchase')operatingCosts+=e.amount;else paidWages+=e.amount;
     } else if(e.kind==='wage') {
-      if(!integer(e.funding)||e.funding!==Math.max(0,e.amount-(invested+e.till-paidWages-drawn))||e.funder!==ownerId)throw Error('invalid-property-wage');
+      if(!integer(e.funding)||e.funding!==Math.max(0,e.amount-(invested+e.till-paidWages-operatingCosts-drawn))||e.funder!==ownerId)throw Error('invalid-property-wage');
       if(e.funding) {if(e.funder==='player')throw Error('invalid-property-funding');funds[e.funder]-=e.funding;invested+=e.funding;}
       paidWages+=e.amount;
     } else if(e.kind==='invest') {if(ownerId!=='player')throw Error('invalid-property-investment');invested+=e.amount;}
     else if(e.kind==='draw') {if(ownerId!=='player')throw Error('invalid-property-draw');drawn+=e.amount;}
     else throw Error('invalid-property-event');
-    if(!integer(invested+e.till-paidWages-drawn)||Object.values(funds).some(n=>!integer(n)))throw Error('invalid-npc-funds');
+    if(!integer(invested+e.till-paidWages-operatingCosts-drawn)||Object.values(funds).some(n=>!integer(n)))throw Error('invalid-npc-funds');
   }
-  const balance=invested+till-paidWages-drawn;
-  if(!integer(balance)||![invested,paidWages,drawn].every(integer))throw Error('invalid-business-balance');
-  return {ownerId,ownerName:name(ownerId),ownership,npcFunds:funds,invested,revenue:till,paidWages,drawn,balance};
+  const balance=invested+till-paidWages-operatingCosts-drawn;
+  if(!integer(balance)||![invested,paidWages,operatingCosts,drawn].every(integer))throw Error('invalid-business-balance');
+  return {ownerId,ownerName:name(ownerId),ownership,npcFunds:funds,invested,revenue:till,paidWages,operatingCosts,drawn,balance};
 }
 function validate(state,till,ledger) {
   if(!state||state.version!==1||!integer(state.revision)||!Array.isArray(state.events))throw Error('invalid-property-state');
@@ -78,7 +82,7 @@ function validate(state,till,ledger) {
   if(ledger) {
     const receipts=new Map(ledger.history().map(t=>[t.requestId,t]));
     for(const e of state.events) {
-      if(personalMealKind(e.kind)||e.kind==='reception-wage')continue; // Separate NPC journals, never a player bank transaction.
+      if(personalMealKind(e.kind)||e.kind==='reception-wage'||e.kind==='operating-expense')continue; // Separate NPC journals, never a player bank transaction.
       const tx=receipts.get(e.id),op=e.kind==='transfer'?(e.to==='player'?'purchase':'sale'):e.kind;
       if(!tx||tx.amount!==e.amount||(e.kind==='wage'?!wages(tx):tx.action!=='business'||tx.operation!==op||tx.businessId!==TAVERN_BUSINESS_ID))throw Error('property-receipt-mismatch');
     }
@@ -88,7 +92,7 @@ function validate(state,till,ledger) {
   return a;
 }
 
-export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=()=>0,getSalonIncome=()=>null,getReceptionAccount=()=>null,saveState,worldSeed=1}={}) {
+export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=()=>0,getSalonIncome=()=>null,getReceptionAccount=()=>null,getBusinessAccount=()=>null,getStock=()=>null,saveState,worldSeed=1}={}) {
   let current=empty(),loadError=null,lastError=null,pending=null,saving=false,npcProjection=null;
   try {if(saved!=null)current=copy(saved);validate(current,getTill(),copperLedger);if(copperLedger.loadError)throw Error(copperLedger.loadError);}
   catch(error){loadError=error.message;}
@@ -111,9 +115,32 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
     }))return fail('reception-property-mismatch');
     return {ok:true};
   }
+  function verifyBusinessAccount() {
+    if(loadError)return fail(loadError);
+    const account=getBusinessAccount(),events=current.events.filter(e=>e.kind==='operating-expense');
+    if(!account)return events.length?fail('tavern-business-unavailable'):{ok:true};
+    if(account.loadError)return fail('tavern-business-unavailable');
+    const snapshot=account.snapshot?.();
+    if(!snapshot||!Array.isArray(snapshot.receipts))return fail('tavern-business-unavailable');
+    const receipts=snapshot.receipts.filter(r=>r.amount>0);
+    if(receipts.length!==events.length||events.some(e=>!account.verifyExpenseReceipt?.(e.receipt)))return fail('tavern-business-property-mismatch');
+    return {ok:true};
+  }
+  function protection() {
+    const account=getBusinessAccount();
+    if(!account)return {sourceRevision:0,protectedFunds:0,trialReserved:0,wagesPayable:0,earnedWages:0,trialEarned:0};
+    if(account.loadError)throw Error('tavern-business-unavailable');
+    const value=account.accounting?.();
+    if(!value||![value.sourceRevision,value.protectedFunds,value.trialReserved,value.wagesPayable,value.earnedWages,value.trialEarned].every(integer)||value.protectedFunds!==value.trialReserved+value.wagesPayable)throw Error('invalid-tavern-obligations');
+    return value;
+  }
+  function businessBudget() {
+    try{const owner=a(),p=protection();if(!integer(current.revision+p.sourceRevision))return null;return {businessId:TAVERN_BUSINESS_ID,ownerId:owner.ownerId,ownership:owner.ownership,sourceId:'chinaTavernProperty',sourceRevision:current.revision+p.sourceRevision,balance:Math.max(0,owner.balance-p.protectedFunds)};}catch{return null;}
+  }
   function persist(next) {
-    if(loadError||saving||pending)return fail(loadError||'property-busy');
+    if(loadError||saving||pending||getBusinessAccount()?.busy)return fail(loadError||'property-busy');
     const verified=verifyReceptionAccount();if(!verified.ok)return verified;
+    const operating=verifyBusinessAccount();if(!operating.ok)return operating;
     saving=true;
     try {validate(next,getTill());const result=saveState(copy(next));if(result===false)return fail('save-failed');if(result?.then){Promise.resolve(result).catch(()=>{});return fail('async-save-unsupported');}current=next;lastError=null;return {ok:true};}
     catch{return fail('save-failed');}finally{saving=false;}
@@ -136,8 +163,9 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
   }
   function ready(revision) {
     const result=refreshDay();if(!result.ok)return result;
+    const operating=verifyBusinessAccount();if(!operating.ok)return operating;
     if(revision!==undefined&&revision!==current.revision)return fail('stale-property-intent');
-    if(saving||pending)return fail('property-busy');return {ok:true};
+    if(saving||pending||getBusinessAccount()?.busy)return fail('property-busy');return {ok:true};
   }
   function applyPurchase(amount,revision) {
     const result=ready(revision);if(!result.ok)return result;
@@ -155,7 +183,7 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
     finally{pending=null;}
   }
   function transfer(to,amount,id) {
-    const before=a(),event={id,kind:'transfer',from:before.ownerId,to,amount,day:day(),till:getTill()};
+    const before=a();if(before.balance<protection().protectedFunds)return fail('business-obligations-unfunded');const event={id,kind:'transfer',from:before.ownerId,to,amount,day:day(),till:getTill()};
     const next={...copy(current),revision:current.revision+1,events:[...current.events,event],market:null};
     next.market=marketFor(accounts(next,getTill()));
     return money(next,to==='player'?'purchase':'sale',amount,id);
@@ -188,7 +216,7 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
   function capital(kind,amount,revision) {
     const result=ready(revision);if(!result.ok)return result;
     const owner=a();if(owner.ownerId!=='player')return fail('not-owner');if(!priceValid(amount))return fail('invalid-amount');
-    if(kind==='draw'&&amount>owner.balance)return fail('insufficient-business-funds');
+    if(kind==='draw'&&amount>Math.max(0,owner.balance-protection().protectedFunds))return fail(protection().protectedFunds?'insufficient-unreserved-business-funds':'insufficient-business-funds');
     const id=`yunlai-${kind}:${current.revision}`,event={id,kind,amount,day:day(),till:getTill()};
     return money({...copy(current),revision:current.revision+1,events:[...current.events,event]},kind,amount,id);
   }
@@ -196,15 +224,18 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
   // wage replay bypasses this hook, so it cannot debit the business twice.
   function prepareCurrencyCommit(tx) {
     if(tx.action!=='business'&&!wages(tx))return null;
-    if(loadError||saving)return fail(loadError||'property-busy');
+    if(loadError||saving||getBusinessAccount()?.busy)return fail(loadError||'property-busy');
     const base=current,baseTill=getTill(),basePending=pending;
     const verified=verifyReceptionAccount();if(!verified.ok)return verified;
+    const operating=verifyBusinessAccount();if(!operating.ok)return operating;
     let next;
     if(tx.action==='business') {
       if(!pending||pending.receiptId!==tx.requestId||pending.operation!==tx.operation||pending.amount!==tx.amount)return fail('property-consent-required');
       next=pending.next;
     } else {
-      const owner=a(),shortfall=Math.max(0,tx.amount-owner.balance);
+      const owner=a(),protectedFunds=protection().protectedFunds;
+      if(protectedFunds&&tx.amount>Math.max(0,owner.balance-protectedFunds))return fail('insufficient-unreserved-business-funds');
+      const shortfall=Math.max(0,tx.amount-owner.balance);
       if(shortfall&&(owner.ownerId==='player'||owner.npcFunds[owner.ownerId]<shortfall))return fail('insufficient-business-funds');
       next={...copy(current),revision:current.revision+1,events:[...current.events,{id:tx.requestId,kind:'wage',amount:tx.amount,day:tx.day,till:getTill(),funding:shortfall,funder:owner.ownerId}]};
     }
@@ -224,8 +255,9 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
     return {total:npcProjection.funds[actorId],currency:'copper'};
   }
   function prepareNpcMeal(input,kind){
-    if(loadError||saving||pending)return fail(loadError||'property-busy');
+    if(loadError||saving||pending||getBusinessAccount()?.busy)return fail(loadError||'property-busy');
     const verified=verifyReceptionAccount();if(!verified.ok)return verified;
+    const operating=verifyBusinessAccount();if(!operating.ok)return operating;
     const {actorId,orderId,amount}=input||{};
     if(!Object.hasOwn(NPCS,actorId)||!mealOrder(orderId)||!priceValid(amount)||day()===null)return fail('invalid-npc-meal');
     const base=current,id=`yunlai-${kind}:${actorId}:${orderId}`,existing=current.events.find(e=>e.id===id);
@@ -286,8 +318,9 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
   }
 
   function prepareReceptionWage({proof,settlementReceipt}={}) {
-    if(loadError||saving||pending)return fail(loadError||'property-busy');
+    if(loadError||saving||pending||getBusinessAccount()?.busy)return fail(loadError||'property-busy');
     const verified=verifyReceptionAccount();if(!verified.ok)return verified;
+    const operating=verifyBusinessAccount();if(!operating.ok)return operating;
     let receipt;try{receipt=receptionWageReceipt(proof,settlementReceipt);}catch(error){return fail(error.message);}
     const base=current,old=current.events.find(e=>e.id===receipt.id),oldTill=getTill();
     if(old){
@@ -298,7 +331,7 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
     const d=day(),futureTill=oldTill+settlementReceipt.businessProceeds;
     if(d===null||!integer(oldTill)||!integer(futureTill))return fail('invalid-reception-expense');
     let owner;try{owner=a();}catch{return fail('invalid-property-state');}
-    if(owner.balance+settlementReceipt.businessProceeds<receipt.amount)return fail('insufficient-business-funds');
+    if(owner.balance+settlementReceipt.businessProceeds-protection().protectedFunds<receipt.amount)return fail('insufficient-business-funds');
     const event={...copy(receipt),kind:'reception-wage',day:d,till:futureTill,funding:0,funder:owner.ownerId};
     const next={...copy(current),revision:current.revision+1,events:[...current.events,event]};
     try{validate(next,futureTill);}catch{return fail('invalid-reception-expense');}
@@ -314,9 +347,46 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
         current=next;accepted=true;lastError=null;return true;
       }};
   }
+  // New expenses can only originate in the source account's prepared exact
+  // receipt. Existing historical records verify against that same source.
+  function prepareOperatingGuard({reserve=0,owner=null}={}) {
+    if(loadError||saving||pending||getBusinessAccount()?.busy)return fail(loadError||'property-busy');
+    const reception=verifyReceptionAccount(),operating=verifyBusinessAccount();if(!reception.ok)return reception;if(!operating.ok)return operating;
+    const base=current,till=getTill(),budget=businessBudget();
+    if(!budget||!integer(reserve)||reserve>budget.balance)return fail('insufficient-unreserved-business-funds');
+    if(owner&&(owner.ownerId!==budget.ownerId||owner.ownership!==budget.ownership))return fail('stale-business-owner');
+    let locked=false,durable=false,accepted=false,inSave=false;
+    const valid=()=>!loadError&&!saving&&!pending&&current===base&&getTill()===till&&JSON.stringify(businessBudget())===JSON.stringify(budget);
+    return {ok:true,patch:{},valid,
+      lock(){if(locked||accepted||!valid())return false;saving=true;locked=true;return true;},
+      save(fn){if(!locked||durable||inSave||accepted||current!==base||getTill()!==till||typeof fn!=='function')return false;inSave=true;try{const result=fn({patch:{}});if(result?.then){Promise.resolve(result).catch(()=>{});return false;}return durable=result===true;}catch{return false;}finally{inSave=false;}},
+      committed(){if(accepted)return true;if(!locked||!durable||inSave||current!==base||getTill()!==till)return false;accepted=true;return true;},
+      release(){if(inSave||durable&&!accepted)return false;if(locked){locked=false;saving=false;}return true;}};
+  }
+  function prepareOperatingExpense({receipt}={}) {
+    if(loadError||saving||pending||getBusinessAccount()?.busy)return fail(loadError||'property-busy');
+    const reception=verifyReceptionAccount(),operating=verifyBusinessAccount();if(!reception.ok)return reception;if(!operating.ok)return operating;
+    const account=getBusinessAccount();
+    if(!validTavernOperatingReceipt(receipt)||receipt.amount<1||account?.verifyExpenseCandidate?.(receipt)!==true)return fail('unverified-operating-expense');
+    const base=current,till=getTill(),owner=a(),p=protection(),old=current.events.find(e=>e.id===receipt.id);
+    if(old&&JSON.stringify(old.receipt)!==JSON.stringify(receipt))return fail('operating-expense-conflict');
+    const spendable=receipt.kind==='stock-purchase'?Math.max(0,owner.balance-p.protectedFunds):Math.max(0,owner.balance-p.trialReserved+(receipt.kind==='trial-payment'?receipt.amount:0));
+    if(!old&&receipt.amount>spendable)return fail('insufficient-business-funds');
+    const event={id:receipt.id,kind:'operating-expense',amount:receipt.amount,day:day(),till,funder:owner.ownerId,funding:0,receipt:copy(receipt)};
+    const next=old?current:{...copy(current),revision:current.revision+1,events:[...current.events,event]};
+    try{validate(next,till);}catch{return fail('invalid-operating-expense');}
+    let locked=false,durable=false,accepted=false,inSave=false;
+    const valid=()=>!loadError&&!saving&&!pending&&current===base&&getTill()===till&&protection().sourceRevision===p.sourceRevision&&account.verifyExpenseCandidate(receipt)===true;
+    const bundle={patch:old?{}:{chinaTavernProperty:copy(next)}};
+    return {ok:true,replayed:!!old,...copy(bundle),valid,
+      lock(){if(locked||accepted||!valid())return false;saving=true;locked=true;return true;},
+      save(fn){if(!locked||durable||inSave||accepted||current!==base||getTill()!==till||typeof fn!=='function')return false;inSave=true;try{const result=fn(copy(bundle));if(result?.then){Promise.resolve(result).catch(()=>{});return false;}return durable=result===true;}catch{return false;}finally{inSave=false;}},
+      committed(){if(accepted)return true;if(!locked||!durable||inSave||current!==base||getTill()!==till)return false;current=next;accepted=true;lastError=null;return true;},
+      release(){if(inSave||durable&&!accepted)return false;if(locked){locked=false;saving=false;}return true;}};
+  }
   function state() {
-    try{const accounts=a(),salon=getSalonIncome(),verified=verifyReceptionAccount();return {...copy(current),...accounts,...(salon?{revenue:accounts.revenue+salon.performerPaid,salonRevenue:salon.grossRevenue,performerPaid:salon.performerPaid}:{}),npcNames:Object.fromEntries(Object.keys(NPCS).map(id=>[id,name(id)])),bank:copperLedger.balances()?.copper.bank??null,loadError:loadError||(!verified.ok?verified.code:null),lastError};}
+    try{const accounts=a(),salon=getSalonIncome(),verified=verifyReceptionAccount(),operating=verifyBusinessAccount(),p=protection(),stock=getStock(),stockState=typeof stock?.summary==='function'?stock.summary():stock?.state?.()?.summary??stock?.summary;const materialConsumedCost=stockState?.materialExpense||0,oldLabor=current.events.filter(e=>e.kind==='wage'||e.kind==='reception-wage').reduce((n,e)=>n+e.amount,0),earnedLabor=oldLabor+p.earnedWages+p.trialEarned;return {...copy(current),...accounts,...(salon?{revenue:accounts.revenue+salon.performerPaid,salonRevenue:salon.grossRevenue,performerPaid:salon.performerPaid}:{}),protectedFunds:p.protectedFunds,trialReserved:p.trialReserved,wagesPayable:p.wagesPayable,availableBalance:Math.max(0,accounts.balance-p.protectedFunds),materialConsumedCost,inventoryValue:stockState?.inventoryValue||0,procurementCash:accounts.operatingCosts,earnedLabor,operatingProfit:accounts.revenue-materialConsumedCost-earnedLabor,npcNames:Object.fromEntries(Object.keys(NPCS).map(id=>[id,name(id)])),bank:copperLedger.balances()?.copper.bank??null,loadError:loadError||(!verified.ok?verified.code:null)||(!operating.ok?operating.code:null),lastError};}
     catch{return {...copy(current),loadError:loadError||'invalid-property-state',lastError};}
   }
-  return {get loadError(){return loadError;},snapshot:()=>copy(current),mealFundsProvider,verifyReceptionAccount,prepareReceptionWage,npcAccount,prepareNpcMealPayment:input=>prepareNpcMeal(input,'npc-meal-payment'),prepareNpcMealRefund:input=>prepareNpcMeal(input,'npc-meal-refund'),state,refreshDay,applyPurchase,confirmPurchase,setPrice,replyOffer,invest:(amount,revision)=>capital('invest',amount,revision),draw:(amount,revision)=>capital('draw',amount,revision),prepareCurrencyCommit};
+  return {get loadError(){return loadError;},snapshot:()=>copy(current),mealFundsProvider,verifyReceptionAccount,verifyBusinessAccount,businessBudget,prepareOperatingGuard,prepareOperatingExpense,prepareReceptionWage,npcAccount,prepareNpcMealPayment:input=>prepareNpcMeal(input,'npc-meal-payment'),prepareNpcMealRefund:input=>prepareNpcMeal(input,'npc-meal-refund'),state,refreshDay,applyPurchase,confirmPurchase,setPrice,replyOffer,invest:(amount,revision)=>capital('invest',amount,revision),draw:(amount,revision)=>capital('draw',amount,revision),prepareCurrencyCommit};
 }

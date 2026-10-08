@@ -6,6 +6,7 @@ import {personId} from './china-tavern-host-role.js';
 import {createFormalLaborContract} from './formal-labor-contract.js';
 import {TAVERN_HELPER_ROLE} from './china-tavern-employment.js';
 import {settleTemporaryWage} from './temporary-work-payroll.js';
+import {TAVERN_TABLE_CLEANING_POINTS} from './china-tavern-layout.js';
 // One real, repeatable house job: wipe both existing dining tables and return to
 // the current host for 12 fictional copper. This module never moves the player or NPCs.
 const VERSION = 2, WAGE = 12, SECONDS = 5, FLOOR = .215;
@@ -15,10 +16,7 @@ const HOST = {id: 'cn-tavern-labor-host', name: '向掌柜接活或领工钱', p
 // table work. A visitor must not occupy the same floor dot as a passing actor.
 const REGISTRATION_RADIUS = .9;
 const registrationKinds = new Set(['view', 'formal-view', 'apply', 'resign', 'formal-apply', 'formal-resign']);
-const TABLES = [
-  {id: 'cn-tavern-labor-west', name: '西窗餐桌 · 靠过道一侧', position: [19.75, FLOOR, 13.65], playerWorkTarget: [19.275, 1.19, 13.65]},
-  {id: 'cn-tavern-labor-east', name: '东窗餐桌 · 靠过道一侧', position: [22.25, FLOOR, 17.65], playerWorkTarget: [22.725, 1.19, 17.65]},
-];
+const TABLES=TAVERN_TABLE_CLEANING_POINTS.map(({id,name,position,workTarget})=>({id,name,position,playerWorkTarget:workTarget}));
 const near = (position, point, radius = .2) => !!position &&
   Math.hypot(position.x - point[0], position.z - point[2]) <= radius && Math.abs(position.y - point[1]) <= .2;
 const integer = n => Number.isSafeInteger(n) && n >= 0;
@@ -56,7 +54,7 @@ function restore(saved) {
  * to the normal player pose context. document:null supports headless logic.
  */
 export function createChinaTavernLabor({getPlayer, getMounted = () => null, host, employment, careers, openRegistration,serviceAdapter=()=>null,
-  isHostAvailable = () => true, copperLedger, getClock, saved, saveState = () => {},
+  isHostAvailable = () => true, canCleanTable = () => true, copperLedger, getClock, saved, saveState = () => {},
   notify = () => {}, onCompleted = () => {}, onIntent = () => {}, canSee = () => true, onOpen = () => {}, document: doc = globalThis.document} = {}) {
   if (typeof getPlayer !== 'function' || !copperLedger || typeof saveState !== 'function') throw new TypeError('labor requires player, ledger and synchronous saveState');
   let current, loadError = null;
@@ -138,7 +136,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     stopCleaning(); notify(formal.pinned(current.job)?`${hostName()}：已登记今日班次。擦净两桌后回来验收，${formal.salary}日薪自动存银行，不另发临工工资。`:`${hostName()}：请擦净两张餐桌，回来验收后，12 铜文工资自动存银行`); ui?.refresh(true); return true;
   }
   function startCleaning() {
-    if (!permitted() || current.job?.stage !== 'working' || cleaning || !formal.canWork(current.job)) return false;
+    if (!permitted() || current.job?.stage !== 'working' || cleaning || !formal.canWork(current.job) || !canCleanTable(target()?.id)) return false;
     if (!at(target().position) || getPlayer()?.walking) return failure('not-at-table', '请站到这张餐桌靠过道的一侧，再开始擦拭');
     origin = {x: player().x, y: player().y, z: player().z}; elapsed = 0; cleaning = true; lastError = null;
     faceTable(); ui?.close(); return true;
@@ -202,7 +200,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
       else if (!getPlayer()?.walking) { pendingClean = false; startCleaning(); }
     }
     if (cleaning) {
-      if (!stationary() || !formal.canWork(current.job)) {
+      if (!stationary() || !formal.canWork(current.job) || !canCleanTable(target()?.id)) {
         stopCleaning(); notify('擦拭已停下；回到桌边后，重新点“开始擦拭”');
       } else {
         faceTable();

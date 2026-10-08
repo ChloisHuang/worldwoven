@@ -8,7 +8,7 @@ export const TAVERN_KITCHEN_ROLES=Object.freeze({
 // player career remains authoritative while held, including off-duty periods.
 // This does not select successors, grant funds, or enroll physiological needs.
 export function createTavernKitchenRoles({saved=null,resolveActor=()=>null,getPlayer=()=>null,isActorAlive=n=>n?.alive!==false,getTenureRoleId=()=>null,canAssign=()=>false,canRelease=()=>({ok:false}),saveState=()=>true}={}){
- const roles={};let initial=saved;
+ const roles={};let initial=saved,assignmentLease=null;
  // Only a completely absent legacy section receives original holders. A partial
  // section must fail closed rather than silently repopulating a vacated job.
  const snapshot=()=>({version:1,chef:roles.chef.state(),assistant:roles.assistant.state()});
@@ -23,8 +23,19 @@ export function createTavernKitchenRoles({saved=null,resolveActor=()=>null,getPl
   if(getTenureRoleId()===definition.roleId){const actor=getPlayer(),alive=!!actor&&isActorAlive(actor)!==false;return {...role.state(),holderId:'player',actor,alive,isPlayer:true,available:alive,status:alive?'player':'unloaded',source:'formal-career',reliefActor:resolveActor(role.state().holderId)};}
   return {...role.resolve(),source:'kitchen-assignment'};
  }
- function assign(key,id,options){if(!roles[key])return {ok:false,code:'unknown-role'};if(getTenureRoleId()===TAVERN_KITCHEN_ROLES[key].roleId)return {ok:false,code:'player-tenure-owns-role'};if(id==='player')return {ok:false,code:'use-formal-career'};return roles[key].assign(id,options);}
- return {state:snapshot,resolve,assign};
+ function eligibility(key,id){if(!roles[key])return {ok:false,code:'unknown-role'};if(assignmentLease)return {ok:false,code:'assignment-busy'};if(getTenureRoleId()===TAVERN_KITCHEN_ROLES[key].roleId)return {ok:false,code:'player-tenure-owns-role'};if(id==='player')return {ok:false,code:'use-formal-career'};return {ok:true};}
+ function assign(key,id,options){const allowed=eligibility(key,id);if(!allowed.ok)return allowed;const token={};assignmentLease=token;try{return roles[key].assign(id,options);}finally{if(assignmentLease===token)assignmentLease=null;}}
+ function prepareAssignment(key,id,options){const allowed=eligibility(key,id);if(!allowed.ok)return allowed;
+  const p=roles[key].prepareAssignment(id,options);if(!p.ok)return p;const baseline=snapshot(),other=key==='chef'?'assistant':'chef',token={};
+  const valid=()=>getTenureRoleId()!==TAVERN_KITCHEN_ROLES[key].roleId&&(!assignmentLease||assignmentLease===token)&&roles[other].state().revision===baseline[other].revision&&p.valid();
+  return {...p,patch:{chinaTavernKitchenRoles:{...baseline,[key]:p.assignment}},valid,
+   lock(){if(assignmentLease||!valid())return false;assignmentLease=token;if(p.lock())return true;assignmentLease=null;return false;},
+   save(saveAtomic){return assignmentLease===token&&valid()&&p.save(saveAtomic);},
+   release(){p.release();if(assignmentLease===token)assignmentLease=null;}
+  };
+ }
+
+ return {state:snapshot,resolve,assign,prepareAssignment};
 }
 
 // A queued paid ticket can safely wait for the next holder. A real tray or an

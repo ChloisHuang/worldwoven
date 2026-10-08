@@ -48,7 +48,7 @@ export function createChinaTavernMealUI({service,getPlayer,getMounted,getRecepti
   const s=service.view(),o=s.order,mounted=getMounted(),seated=service.seats.find(i=>i.id===mounted?.id),available=canOrder(),near=nearEntry(),cash=service.walletCash?.();
   menuState={order:!!o,seated};
   if(seated)chosenSeat=seated.id;else if(!service.seats.some(seat=>seat.id===chosenSeat))chosenSeat=service.seats.find(seat=>canChooseSeat(seat))?.id||service.seats[0]?.id;
-  badge.hidden=!near||!canShow();badge.textContent=o?`云来酒楼 · ${o.cancelled?'正在收拾餐具':s.label}`:seated?'云来酒楼 · 招呼许安点菜':'云来酒楼 · 选座点菜';
+  badge.hidden=!near||!canShow();badge.textContent=o?`云来酒楼 · ${o.cancelled?'正在收拾餐具':s.label}`:seated?'云来酒楼 · 招呼掌柜点菜':'云来酒楼 · 选座点菜';
   if(dialog.open&&!near&&!o){close();return;}if(!dialog.open&&!force)return;
   const key=[o?.id,o?.stage,o?.cancelled,mounted?.id,available,chosenDish,chosenSeat,cash,...service.seats.map(seat=>canChooseSeat(seat))].join('|');if(!force&&key===signature)return;signature=key;invalidateIntent();
   const focused=doc.activeElement?.getAttribute?.('data-cn-meal-focus');const restoreView=preserveAiryPanelView(dialog,doc);dialog.replaceChildren();
@@ -62,7 +62,7 @@ export function createChinaTavernMealUI({service,getPlayer,getMounted,getRecepti
    for(const d of service.menu||[service.dish]){const b=button(null,()=>{chosenDish=d.id;refresh(true);});b.append(make('span',d.name),make('span',`${d.price} 铜文`));b.setAttribute('aria-pressed',String(chosenDish===d.id));b.setAttribute('data-cn-meal-focus','dish-'+d.id);dishes.append(b);}menu.append(dishes);
    menu.append(make('p',seated?'当前餐位':'餐位','cn-meal-kicker cn-meal-seat-label'));const seats=make('div',null,'cn-meal-seats');
    for(const item of seated?[seated]:service.seats){const free=item.id===seated?.id||canChooseSeat(item),b=button(`${seatName(item)}${free?'':' · 有人'}`,()=>{chosenSeat=item.id;refresh(true);});b.setAttribute('aria-pressed',String(chosenSeat===item.id));b.setAttribute('data-cn-meal-focus','seat-'+item.id);b.disabled=!free;seats.append(b);}menu.append(seats);
-  }else{const card=make('div',null,'cn-meal-current');card.append(make('p',seatName(seat),'cn-meal-kicker'),make('h3',order.dishName||dish.name),make('p',o.cancelled?'饭已取消，陆青正在收拾餐具':s.label,'cn-meal-status'));card.setAttribute('role','status');menu.append(card);}
+  }else{const card=make('div',null,'cn-meal-current');card.append(make('p',seatName(seat),'cn-meal-kicker'),make('h3',order.dishName||dish.name),make('p',o.cancelled?'餐点已收起，等待伙计收拾餐具':s.label,'cn-meal-status'));card.setAttribute('role','status');menu.append(card);}
   const payment=order?.payment,settled=payment==='settled'||!payment&&['ready','eating','finish-bite','dirty','return','wash'].includes(o?.stage);
   detail.append(make('p',o?'本次餐单':'当前选择','cn-meal-kicker'),make('h3',o?seatName(seat):dish.name));
   const amount=make('div',null,'cn-meal-price');amount.append(make('strong',String(price)),make('span',`铜文 · ${o?payment==='refunded'?'已退回':settled?'已结账':payment==='unpaid'?'待核对':'已预留':'确认时预留'}`));detail.append(amount);

@@ -141,7 +141,8 @@
       "sliding-track-fit.cjs",
       "china-holding-cell-navigation.cjs",
       "china-official-blocked-door.cjs",
-      "china-official-washroom-return.cjs"
+      "china-official-washroom-return.cjs",
+      "china-tavern-cleaning-geometry.cjs"
     ]
   },
   "ui": {
@@ -265,7 +266,10 @@
     "required": [
       "career-work-state.mjs",
       "currency-ledger.mjs",
-      "currency-participant-locks.mjs"
+      "currency-participant-locks.mjs",
+      "china-tavern-hiring.mjs",
+      "china-tavern-stock.mjs",
+      "china-tavern-business.mjs"
     ],
     "integration": [
       "career-application-decisions.mjs",
@@ -375,7 +379,15 @@
       "china-personnel-work.mjs",
       "china-official-grade-life.mjs",
       "china-official-grade-main.cjs",
-      "official-personnel-promotion.mjs"
+      "official-personnel-promotion.mjs",
+      "china-tavern-recruitment.mjs",
+      "china-tavern-recruitment-scene.mjs",
+      "china-tavern-management.mjs",
+      "china-tavern-labor-claims.mjs",
+      "china-tavern-management-ui.mjs",
+      "china-tavern-stock-scene.mjs",
+      "china-tavern-management-main.cjs",
+      "china-tavern-rehire-scene.mjs"
     ]
   },
   "world-life": {
