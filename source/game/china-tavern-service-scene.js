@@ -34,6 +34,8 @@ const breakPersonId=w=>w?.hostBreak?.actorId||ORIGINAL_TAVERN_HOST_ID;
 const personalAccountProvider=id=>CHINA_OFFICIAL_IDS.includes(id)?'china-official-economy':SALON_ARTIST_IDS.includes(id)?'china-salon-economy':'tavern-personal-funds';
 const personKey=id=>typeof id==='string'&&/^cn-[a-z0-9-]{1,60}$/.test(id);
 const GUESTS=['cn-tavern-diner-west','cn-tavern-diner-east'];
+const ORIGINAL_STAFF=[M.host,M.cook,M.assistant];
+const originalStaffRole=id=>id===M.host?ROLE.host:id===M.cook?ROLE.chef:id===M.assistant?ROLE.assistant:null;
 // Original labor work sites, also asserted against the runtime in its scene test.
 // Keep the original world independent of the optional hiring controller module.
 const TAVERN_RECRUITMENT_TABLES=[
@@ -191,47 +193,55 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  const recruitmentRoutes=new Map(),sameJSON=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
  const recruitmentCandidate=id=>getRecruitment()?.candidate(id)||null;
  const originalGuest=id=>guests.find(n=>n?.station.id===id);
+ const recruitmentPerson=id=>[...GUESTS,...ORIGINAL_STAFF].includes(id)?npcs.find(n=>n?.station.id===id):null;
  const actualBody=n=>n?.bodyId||n?.root?.userData?.bodyId||n?.actorId||n?.station?.id;
  const actualBodyRevision=n=>n?.bodyRevision??n?.root?.userData?.bodyRevision??null;
  const recruitmentOrderSafe=id=>!!state&&!state.orders.some(o=>o.stage!=='done'&&(o.customerId===id||o.holderActorId===id))&&
   !state.rooms.some(r=>r.guestId===id)&&borrowedLease()?.actorId!==id&&state.hostBreak?.actorId!==id&&state.kitchenBreak?.actorId!==id;
  function recruitmentCustomerAvailable(n){const id=n?.station.id,v=state?.visitors.find(v=>v.id===id),need=sharedNeeds?.status(id);
+  if(ORIGINAL_STAFF.includes(id))return alive(n)&&!staffCustody(n)&&!recruitmentOwns(n)&&!n.serviceMount&&!n.walking&&!n.route?.length&&
+   !life.isActive(n)&&!inPublicToiletRoom(n)&&!getToilet()?.ownsActor(n)&&!isSociallyHeld(id,conversation)&&!need?.seekToilet&&recruitmentOrderSafe(id);
   return !!n&&GUESTS.includes(id)&&alive(n)&&v?.mode==='idle'&&!staffCustody(n)&&!recruitmentOwns(n)&&
    !n.serviceMount&&!visitorReturningFromToilet(v,n)&&!getToilet()?.ownsActor(n)&&!isSociallyHeld(id,conversation)&&
    !need?.seekMeal&&!need?.seekToilet&&recruitmentOrderSafe(id);
  }
- function recruitmentLease(id,c){const v=state?.visitors.find(v=>v.id===id);return v&&{
+ function recruitmentLease(id,c){if(ORIGINAL_STAFF.includes(id))return c.roleId===originalStaffRole(id)?{
+  id:c.id+':staff-release',sourceId:'china-tavern-recruitment-staff-custody',actorId:id,bodyId:c.bodyId,bodyRevision:c.bodyRevision,
+  ownership:c.owner.ownership,originalRoleId:c.roleId,slotRevision:c.slotRevision}:null;
+  const v=state?.visitors.find(v=>v.id===id);return v&&{
   id:c.id+':customer-release',sourceId:'china-tavern-recruitment-custody',actorId:id,bodyId:c.bodyId,bodyRevision:c.bodyRevision,
   ownership:c.owner.ownership,visitorOrderId:v.orderId??null,visitorVisits:v.visits};}
  function recruitmentLeaseValid(id,lease,c=recruitmentCandidate(id)){
-  const n=originalGuest(id),v=state?.visitors.find(v=>v.id===id),saved=recruitmentCandidate(id);
+  const n=recruitmentPerson(id),v=state?.visitors.find(v=>v.id===id),saved=recruitmentCandidate(id);
   return !!c&&!!saved&&saved.id===c.id&&sameJSON(saved.lease,lease)&&sameJSON(lease,recruitmentLease(id,c))&&
-   actualBody(n)===c.bodyId&&actualBodyRevision(n)===c.bodyRevision&&alive(n)&&v?.mode==='idle'&&!staffCustody(n)&&
-   !n.serviceMount&&!visitorReturningFromToilet(v,n)&&!getToilet()?.ownsActor(n)&&recruitmentOrderSafe(id);
+   actualBody(n)===c.bodyId&&actualBodyRevision(n)===c.bodyRevision&&alive(n)&&
+   (GUESTS.includes(id)?v?.mode==='idle'&&!visitorReturningFromToilet(v,n):ORIGINAL_STAFF.includes(id)&&!life.isActive(n)&&!inPublicToiletRoom(n))&&!staffCustody(n)&&
+   !n.serviceMount&&!getToilet()?.ownsActor(n)&&recruitmentOrderSafe(id);
  }
- function releaseRecruitmentCustomer(id,c){const n=originalGuest(id),saved=recruitmentCandidate(id);
+ function releaseRecruitmentCustomer(id,c){const n=recruitmentPerson(id),saved=recruitmentCandidate(id);
   if(!saved||saved.id!==c?.id||actualBody(n)!==c.bodyId||actualBodyRevision(n)!==c.bodyRevision)return null;
   if(c.lease&&recruitmentLeaseValid(id,c.lease,c))return copy(c.lease);
   if(!recruitmentCustomerAvailable(n)||!life.interrupt(n))return null;
   paths.delete(n);n.route=[];n.walking=false;effects.delete(n);phases.delete('arrival-'+id);
   furniture.releaseActor(id);return recruitmentLease(id,c);
  }
- function stopRecruitmentMove(id,c){const n=originalGuest(id);if(!n||recruitmentRoutes.get(n)!==c?.id)return false;
+ function stopRecruitmentMove(id,c){const n=recruitmentPerson(id);if(!n||recruitmentRoutes.get(n)!==c?.id)return false;
   recruitmentRoutes.delete(n);paths.delete(n);n.route=[];n.walking=false;effects.delete(n);return true;}
- function returnRecruitmentCustomer(id,lease,reason){const n=originalGuest(id),c=recruitmentCandidate(id);
+ function returnRecruitmentCustomer(id,lease,reason){const n=recruitmentPerson(id),c=recruitmentCandidate(id);
   if(!n||!c||!sameJSON(c.lease,lease)||actualBody(n)!==lease.bodyId||actualBodyRevision(n)!==lease.bodyRevision)return false;
   // A dead/absent body can relinquish custody too. Never dismount/teleport it.
   if(n.serviceMount||state?.orders.some(o=>o.holderActorId===id&&o.stage!=='done'))return false;
   stopRecruitmentMove(id,c);effects.delete(n);phases.delete('arrival-'+id);
   record('recruitment-customer-returned',{customerId:id,applicationId:c.applicationId,reason});return true;
  }
- function recruitmentActorState(id,c=recruitmentCandidate(id)){const n=originalGuest(id),v=state?.visitors.find(v=>v.id===id),need=sharedNeeds?.status(id),held=!!n&&isSociallyHeld(id,conversation);
+ function recruitmentActorState(id,c=recruitmentCandidate(id)){const n=recruitmentPerson(id),v=state?.visitors.find(v=>v.id===id),need=sharedNeeds?.status(id),held=!!n&&isSociallyHeld(id,conversation);
   const carried=!!state?.orders.some(o=>o.stage!=='done'&&o.holderActorId===id&&['cook','assistant'].includes(o.holder));
   return {bodyId:actualBody(n),bodyRevision:actualBodyRevision(n),alive:alive(n),inScene:!!state&&!!n&&npcs.includes(n),
    standing:!!n&&!n.serviceMount&&Math.abs(n.root.position.y-.215)<.12,busy:!!n&&(life.isActive(n)||staffCustody(n)),
    sociallyHeld:held,hasCarriedObjects:carried,originalOrderSafe:recruitmentOrderSafe(id),
    customerLeaseValid:!!c?.lease&&recruitmentLeaseValid(id,c.lease,c),
-   needsCustomerControl:!!need&&(need.seekMeal||need.seekToilet)||!!v&&['clinic','salon','lodging','lodging-wait'].includes(v.mode)||!!n&&getToilet()?.ownsActor(n)===true};
+   needsCustomerControl:!!need&&(GUESTS.includes(id)&&need.seekMeal||need.seekToilet)||!!v&&['clinic','salon','lodging','lodging-wait'].includes(v.mode)||
+    borrowedLease()?.actorId===id||state?.hostBreak&&breakPersonId(state)===id||state?.kitchenBreak?.actorId===id||!!n&&getToilet()?.ownsActor(n)===true};
  }
  function recruitmentLineClear(n,target){const p=n?.root?.position;if(!p||!Array.isArray(target))return false;
   const from={x:p.x,y:p.y+1.45,z:p.z},to={x:target[0],y:target[1],z:target[2]};
@@ -239,7 +249,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  }
  function recruitmentBodyClear(n,p,r=.52){return !npcs.some(other=>other!==n&&alive(other)&&at(other,p,r))&&
   !(getPlayer()?.root?.position&&at(getPlayer(),p,r+.06));}
- function resolveRecruitmentMeetingPoint(id,c){const n=originalGuest(id);if(!recruitmentLeaseValid(id,c?.lease,c))return null;
+ function resolveRecruitmentMeetingPoint(id,c){const n=recruitmentPerson(id);if(!recruitmentLeaseValid(id,c?.lease,c))return null;
   // Existing public reception/assistant handover points, evaluated against the
   // real bodies and path planner. The controller retains the selected point.
   const counter=HANDOVER.host.player,points=[counter,HANDOVER.assistant.player,HANDOVER.assistant.npc,
@@ -250,7 +260,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
    if(at(n,p,.12)||Array.isArray(route)&&route.length)return {id:'cn-tavern-public-hiring-'+index,position:p.slice()};
   }return null;
  }
- function moveRecruitmentActor(id,target,dt,c){const n=originalGuest(id);
+ function moveRecruitmentActor(id,target,dt,c){const n=recruitmentPerson(id);
   if(!n||!recruitmentLeaseValid(id,c?.lease,c)||isSociallyHeld(id,conversation)||!Number.isFinite(dt)||dt<=0||dt>.25)return false;
   recruitmentRoutes.set(n,c.id);return travel(n,target.position,dt);
  }
@@ -280,7 +290,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
  function faceRecruitmentWork(id,target,c){const n=originalGuest(id);if(!n||!recruitmentLeaseValid(id,c?.lease,c)||isSociallyHeld(id,conversation))return false;
   n.root.rotation.y=Math.atan2(target[0]-n.root.position.x,target[2]-n.root.position.z);effect(n,'tidy',target);return true;
  }
- function animateRecruitmentActor(id,t){const n=originalGuest(id),p=getRecruitment()?.pose(id);if(!n||!recruitmentOwns(n)||isSociallyHeld(id,conversation))return false;
+ function animateRecruitmentActor(id,t){const n=recruitmentPerson(id),p=getRecruitment()?.pose(id);if(!n||!recruitmentOwns(n)||isSociallyHeld(id,conversation))return false;
   effect(n,p?.action||null,p?.workTarget||null);pose(n,t);return true;}
  function prepareRecruitmentTableWork({proof,candidate:c}={}){
   const base=state,old=state?.recruitmentTableReceipts?.find(p=>p.id===proof?.id),table=trialTable(proof?.tableId),worldId=worldTableId(proof?.tableId),token={};
@@ -376,7 +386,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   if(activity&&['take-order','collect','rent-room'].includes(activity.kind)||pendingChoice&&['take-order','collect','rent-room'].includes(pendingChoice.kind))blockers.push({kind:'host-player-action'});
   return {ok:!blockers.length,blockers};
  }
- function releaseRecruitmentStaff(id){const n=originalGuest(id);
+ function releaseRecruitmentStaff(id){const n=recruitmentPerson(id);
   if(!n||staffCustody(n)||personalControlBusy(n)||!recruitmentOrderSafe(id))return false;
   if(!life.interrupt(n))return false;paths.delete(n);recruitmentRoutes.delete(n);n.route=[];n.walking=false;effects.delete(n);idleSince.delete(n);
   for(const r of ['host','chef','assistant'])if(staff[r]===n){staff[r]=null;kitchenBindings.delete(r);}
@@ -871,7 +881,7 @@ export function createTavernServiceScene({getTenureRoleId=null,getClock=()=>({ho
   if(!b){
    if(time<nextHostDecision)return;nextHostDecision=time+1;
    const candidates=[host,...hostPersonIds(state).map(id=>npcs.find(n=>n.station.id===id)).filter(n=>n!==host)];let selected=null;
-   for(const n of candidates){if(!alive(n)||isSociallyHeld(n.station.id,conversation))continue;const need=sharedNeeds.status(n.station.id),meal=!!need?.seekMeal&&(n===host||hostAdmissionOpen())&&accountFunds(n.station.id)>=TAVERN_DISHES[0].price&&kitchenServiceAvailable();if(meal||need?.seekToilet&&publicHostRoute&&getToilet()?.publicAvailable?.()){selected={person:n,meal};break;}}
+   for(const n of candidates){if(!alive(n)||recruitmentOwns(n)||isSociallyHeld(n.station.id,conversation))continue;const need=sharedNeeds.status(n.station.id),meal=!!need?.seekMeal&&(n===host||hostAdmissionOpen())&&accountFunds(n.station.id)>=TAVERN_DISHES[0].price&&kitchenServiceAvailable();if(meal||need?.seekToilet&&publicHostRoute&&getToilet()?.publicAvailable?.()){selected={person:n,meal};break;}}
    if(!selected)return;const {person,meal}=selected,id=person.station.id,isHolder=person===host;
    if(!life.interrupt(person)||!hostChange(next=>{next.hostBreak={actorId:id,slotId:TAVERN_HOST_SLOT_ID,assignmentRevision:hostRole().revision,phase:isHolder?'draining':meal?'personal-request':'toilet',meal,waypoint:0};}))return;
    record('host-break-requested');return;

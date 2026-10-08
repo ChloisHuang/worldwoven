@@ -383,7 +383,8 @@
       "china-tavern-labor-claims.mjs",
       "china-tavern-management-ui.mjs",
       "china-tavern-stock-scene.mjs",
-      "china-tavern-management-main.cjs"
+      "china-tavern-management-main.cjs",
+      "china-tavern-rehire-scene.mjs"
     ]
   },
   "world-life": {

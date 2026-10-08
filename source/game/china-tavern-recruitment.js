@@ -6,7 +6,11 @@ export const TAVERN_RECRUITMENT_TABLES = Object.freeze([
  Object.freeze({id:'cn-tavern-labor-west',position:Object.freeze([19.75,.215,13.65]),workTarget:Object.freeze([19.275,1.19,13.65])}),
  Object.freeze({id:'cn-tavern-labor-east',position:Object.freeze([22.25,.215,17.65]),workTarget:Object.freeze([22.725,1.19,17.65])}),
 ]);
-const PEOPLE = {'cn-tavern-diner-west':'顾谨','cn-tavern-diner-east':'周棠'};
+const PEOPLE = {'cn-tavern-diner-west':'顾谨','cn-tavern-diner-east':'周棠','cn-tavern-host':'许安','cn-tavern-cook':'沈禾','cn-tavern-assistant':'陆青'};
+const GUESTS=['cn-tavern-diner-west','cn-tavern-diner-east'];
+const ROLE_NAMES={'cn-tavern-host':'掌柜','cn-tavern-chef':'厨师','cn-tavern-steward':'服务助理'};
+const originalRole=id=>Object.values(ROLES).find(r=>r.originalHolderId===id);
+const applicationRole=id=>GUESTS.includes(id)?ROLES.assistant:originalRole(id);
 const SOURCE = 'cn-tavern-recruitment', SECONDS = 5, copy = structuredClone;
 const integer = x => Number.isSafeInteger(x) && x >= 0;
 const text = x => typeof x === 'string' && !!x && x.length < 180;
@@ -29,7 +33,10 @@ const empty = () => ({version:1,businessId:BUSINESS,serial:0,sourceRevision:0,cl
  *   Hiring readCandidate merges willingness(id); hiring verifyTrialReceipt calls
  *   this verifier. Source receipts are immutable and outlive transient control.
  * - readCandidate(id): actual {actorId,name,bodyId,bodyRevision?,ageYears,alive,
- *   protected,currentRoleId}. Only the two original adult diners apply here.
+ *   protected,currentRoleId}. The two original diners may apply for assistant;
+ *   the three original staff may return ONLY to their own original vacant role.
+ *   readExistingQualification(actorId,roleId) returns a real source-backed
+ *   existing-incumbency proof, or null. Hiring independently verifies it.
  * - additionalChoices/acceptChoice integrate ONLY with the existing life brain's
  *   getAdditionalChoices/onExternalChoice. acceptChoice needs its actual
  *   startedAt; there is no random roll, forced application or skill/XP grant.
@@ -96,11 +103,11 @@ export function createChinaTavernRecruitment(options={}) {
    require(e && ['willingness','table-work','trial-work'].includes(e.kind) && e.sequence===i+1 && p?.sourceId===SOURCE &&
     p.sourceRevision===e.sequence && text(p.id) && !seen.has(p.id) && p.businessId===BUSINESS &&
     Object.hasOwn(PEOPLE,p.actorId) && text(p.bodyId),'invalid-recruitment-source');
-   if(e.kind==='willingness') require(text(p.recruitmentId) && p.roleId===ROLES.assistant.roleId && integer(p.ownership) &&
+   if(e.kind==='willingness') require(text(p.recruitmentId) && p.roleId===applicationRole(p.actorId)?.roleId && integer(p.ownership) &&
     Number.isFinite(p.selectedAt) && p.selectedAt>=0,'invalid-willingness-source');
    else if(e.kind==='table-work') {
     const t=TAVERN_RECRUITMENT_TABLES.find(t=>t.id===p.tableId),w=seen.get(p.willingnessId)?.receipt;
-    require(w && w.actorId===p.actorId && w.bodyId===p.bodyId && w.recruitmentId===p.recruitmentId &&
+    require(GUESTS.includes(p.actorId) && w && w.actorId===p.actorId && w.bodyId===p.bodyId && w.recruitmentId===p.recruitmentId &&
      text(p.applicationId) && p.trialId===p.applicationId+':trial' && t && same(p.position,t.position) &&
      same(p.workTarget,t.workTarget) && text(p.claim?.id) && p.activeSeconds===SECONDS && Number.isFinite(p.startedSeconds) && p.startedSeconds>=0 &&
      Number.isFinite(p.completedSeconds) && p.completedSeconds-p.startedSeconds>=SECONDS-1e-8,'invalid-table-source');
@@ -108,7 +115,7 @@ export function createChinaTavernRecruitment(options={}) {
     require(prior.length<2 && p.tableId===TAVERN_RECRUITMENT_TABLES[prior.length].id &&
      (!prior.length || prior[0].receipt.completedSeconds<=p.startedSeconds),'invalid-table-order');
    } else {
-    require(text(p.applicationId) && p.trialId===p.applicationId+':trial' && Array.isArray(p.steps) && p.steps.length===2,'invalid-trial-source');
+    require(GUESTS.includes(p.actorId) && text(p.applicationId) && p.trialId===p.applicationId+':trial' && Array.isArray(p.steps) && p.steps.length===2,'invalid-trial-source');
     for(const [index,step] of p.steps.entries()) {
      const work=seen.get(step.id)?.receipt;
      require(work && work.actorId===p.actorId && work.bodyId===p.bodyId && work.applicationId===p.applicationId &&
@@ -121,7 +128,7 @@ export function createChinaTavernRecruitment(options={}) {
   for(const c of s.candidates) {
    require(text(c.id) && !ids.has(c.id) && Object.hasOwn(PEOPLE,c.actorId) && text(c.bodyId) &&
     (c.bodyRevision===null || integer(c.bodyRevision)) && c.owner?.ownerId==='player' && integer(c.owner.ownership) &&
-    c.roleId===ROLES.assistant.roleId && integer(c.slotRevision) &&
+    c.roleId===applicationRole(c.actorId)?.roleId && integer(c.slotRevision) &&
     ['waiting-release','to-meeting','meeting','to-table','cleaning','to-owner','review','paused','returning','returned','assigned'].includes(c.phase) &&
     Array.isArray(c.steps) && c.steps.length<=2 && integer(c.tableIndex) && c.tableIndex===c.steps.length &&
     c.progress && Number.isFinite(c.progress.elapsed) && c.progress.elapsed>=0 && c.progress.elapsed<=SECONDS &&
@@ -130,7 +137,7 @@ export function createChinaTavernRecruitment(options={}) {
     (c.progress.elapsed===0 || point(c.progress.origin) && c.progress.startedSeconds!==null) &&
     (c.meeting===null || text(c.meeting.id) && point(c.meeting.position)),'invalid-recruitment-candidate');
    const willing=seen.get(c.willingnessId)?.receipt;
-   require(willing && willing.recruitmentId===c.id && willing.actorId===c.actorId && willing.bodyId===c.bodyId &&
+   require(willing && willing.recruitmentId===c.id && willing.actorId===c.actorId && willing.bodyId===c.bodyId && willing.roleId===c.roleId &&
     willing.sourceRevision===c.willingnessRevision && willing.ownership===c.owner.ownership,'invalid-candidate-willingness');
    for(const step of c.steps) {const p=seen.get(step.id)?.receipt;require(p && p.actorId===c.actorId && p.bodyId===c.bodyId &&
     p.applicationId===c.applicationId && same(step,workStep(p)),'invalid-candidate-work');}
@@ -179,18 +186,30 @@ export function createChinaTavernRecruitment(options={}) {
   return true;
  }
  function eligible(id) {
-  const n=attempt('readCandidate',id),o=attempt('readOwner'),s=attempt('readSlot',ROLES.assistant.roleId);
+  const role=applicationRole(id);if(!role)return null;
+  const n=attempt('readCandidate',id),o=attempt('readOwner'),s=attempt('readSlot',role.roleId);
   return Object.hasOwn(PEOPLE,id) && n?.actorId===id && n.name===PEOPLE[id] && n.alive===true && n.ageYears>=18 &&
    n.protected===false && n.currentRoleId===null && o?.ownerId==='player' && integer(o.ownership) &&
-   s?.roleId===ROLES.assistant.roleId && s.slotId===ROLES.assistant.slotId && integer(s.revision) &&
-   s.holderId===null && s.tenureHolderId===null ? {n,o:{ownerId:o.ownerId,ownership:o.ownership},s} : null;
+   s?.roleId===role.roleId && s.slotId===role.slotId && integer(s.revision) &&
+   s.holderId===null && s.tenureHolderId===null && (GUESTS.includes(id)||existingQualification({actorId:id,bodyId:n.bodyId??id,roleId:role.roleId})) ?
+   {n,o:{ownerId:o.ownerId,ownership:o.ownership},s,role} : null;
+ }
+ function existingQualification(c){
+  if(originalRole(c.actorId)?.roleId!==c.roleId)return null;
+  const p=attempt('readExistingQualification',c.actorId,c.roleId);
+  return p?.kind==='existing-incumbency'&&p.actorId===c.actorId&&p.bodyId===c.bodyId&&p.roleId===c.roleId&&
+   text(p.sourceId)&&integer(p.sourceRevision)&&text(p.receiptId)?copy(p):null;
+ }
+ function qualification(id){const c=candidate(id);if(!c)return null;const a=app(c);
+  return a?.trial.work?{kind:'trial-work',sourceId:a.trial.work.sourceId,sourceRevision:a.trial.work.sourceRevision,receiptId:a.trial.work.id,
+   actorId:c.actorId,bodyId:c.bodyId,roleId:c.roleId}:existingQualification(c);
  }
  function additionalChoices(id) {
   if(disposed || loadError || locked || candidate(id)) return [];
   const e=eligible(id);if(!e) return [];
-  return [{id:'tavern-assistant-application',external:true,provider:SOURCE,roleId:ROLES.assistant.roleId,actorId:id,
+  return [{id:'tavern-'+Object.keys(ROLES).find(key=>ROLES[key].roleId===e.role.roleId)+'-application',external:true,provider:SOURCE,roleId:e.role.roleId,actorId:id,
    bodyId:e.n.bodyId??id,bodyRevision:e.n.bodyRevision??null,ownership:e.o.ownership,slotRevision:e.s.revision,
-   base:.24,traits:{curiosity:.12},duration:[0,0],cooldown:300,label:'去云来酒楼应聘服务助理'}];
+   base:.24,traits:{curiosity:.12},duration:[0,0],cooldown:300,label:GUESTS.includes(id)?'去云来酒楼应聘服务助理':'去云来酒楼商谈复任'+ROLE_NAMES[e.role.roleId]}];
  }
  function acceptChoice(id,selected) {
   if(executing || disposed || loadError || locked || current.pending.length) return false;
@@ -290,7 +309,7 @@ export function createChinaTavernRecruitment(options={}) {
   c.applicationId=r.application.id;c.phase='meeting';save(copy(current));return true;
  }
  function ensureTrial(c,a) {
-  if(!a?.trial.request) return false;
+  if(!GUESTS.includes(c.actorId)||c.roleId!==ROLES.assistant.roleId||!a?.trial.request) return false;
   if(!c.reservation) {
    const receipt=attempt('reserveTrial',copy(a));
    if(!receipt || attempt('verifyMoneyReceipt','reservation',copy(receipt),copy(a))!==true) {lastError='trial-reservation-unavailable';return false;}
@@ -410,12 +429,12 @@ export function createChinaTavernRecruitment(options={}) {
  function intent(id,kind='inspect') {
   const c=candidate(id),a=c && app(c);
   if(disposed || loadError || !c?.meeting || !a || !['meeting','review'].includes(c.phase) || !identityValid(c)) return null;
-  if(!['inspect','trial','approve','reject','pay'].includes(kind) || kind==='trial' && a.trial.request ||
-   kind==='approve' && (!a.trial.work || a.status!=='submitted') || kind==='reject' && a.status!=='submitted' ||
+  if(!['inspect','trial','approve','reject','pay'].includes(kind) || kind==='trial' && (!GUESTS.includes(c.actorId)||a.trial.request||a.status!=='submitted') ||
+   kind==='approve' && ((!a.trial.work&&!existingQualification(c)) || a.status!=='submitted') || kind==='reject' && a.status!=='submitted' ||
    kind==='pay' && (!a.trial.work || a.trial.payment)) return null;
-  return {id:SOURCE+':'+a.id+':'+kind,provider:SOURCE,kind,applicationId:a.id,actorId:c.actorId,
+  return {id:SOURCE+':'+a.id+':'+kind,provider:SOURCE,kind,applicationId:a.id,actorId:c.actorId,roleId:a.roleId,roleName:ROLE_NAMES[a.roleId],qualificationKind:qualification(c.id)?.kind||null,
    position:copy(c.meeting.position),visualAnchor:{actorId:c.actorId},name:PEOPLE[c.actorId],
-   action:{inspect:'当面查看应聘',trial:'请他试做两桌 · 酒楼支付12文',approve:'批准聘用服务助理',reject:'婉拒这次申请',pay:'补付已完成试工的12文'}[kind],
+   action:{inspect:'当面查看应聘',trial:'请他试做两桌 · 酒楼支付12文',approve:'批准聘用'+ROLE_NAMES[a.roleId],reject:'婉拒这次申请',pay:'补付已完成试工的12文'}[kind],
    interactionRadius:2.8,executionRadius:2.4,priority:45,
    intentKey:[a.id,read('getHiring').snapshot().revision,c.phase,c.lease?.id,c.owner.ownership].join(':')};
  }
@@ -433,7 +452,8 @@ export function createChinaTavernRecruitment(options={}) {
    if(next.kind==='inspect') {read('onInspect',copy(app(c)),copy(c));return true;}
    if(next.kind==='pay') return pay(c);
    if(next.kind==='trial') {r=h.requestTrial(input(c));if(r.ok)ensureTrial(c,r.application);}
-   else {r=h.review({...input(c),decision:next.kind==='approve'?'approve':'reject',reason:'owner-declined'});if(r.ok && next.kind==='reject')requestReturn(c,'owner-declined');}
+   else {const qualification=next.kind==='approve'&&!app(c)?.trial.work?existingQualification(c):null;
+    r=h.review({...input(c),decision:next.kind==='approve'?'approve':'reject',...(qualification?{qualification}:{}),reason:'owner-declined'});if(r.ok && next.kind==='reject')requestReturn(c,'owner-declined');}
    if(!r?.ok) lastError=r?.code||'owner-decision-failed';
    return r?.ok===true;
   } finally {executing=false;}
@@ -460,7 +480,7 @@ export function createChinaTavernRecruitment(options={}) {
    },
    release(){if(locked===token)locked=null;released=true;return true;}};
  }
- return {additionalChoices,acceptChoice,willingness,verifyTrialReceipt,update,intent,resolveIntent,executeIntent,prepareAssigned,assigned,
+ return {additionalChoices,acceptChoice,willingness,qualification,verifyTrialReceipt,update,intent,resolveIntent,executeIntent,prepareAssigned,assigned,
   candidate:id=>copy(candidate(id)??null),
   settleEarnedTrial(id){const c=candidate(id);return !!c && !locked && !!c.workProof && pay(c);},
   intents:()=>current.candidates.flatMap(c=>['inspect','trial','approve','reject','pay'].map(k=>intent(c.id,k)).filter(Boolean)),
@@ -469,7 +489,7 @@ export function createChinaTavernRecruitment(options={}) {
   pose(id){const c=candidate(id),table=c && TAVERN_RECRUITMENT_TABLES[c.tableIndex],a=c && actor(c);
    return c?.phase==='cleaning' && table && a && !a.walking && near(position(a),table.position) && safe(c,actorState(c)) ?
     {action:'tidy',workTarget:copy(table.workTarget)} : null;},
-  snapshot,state:()=>({...snapshot(),loadError,lastError}),
+  snapshot,state:()=>({...snapshot(),qualifications:current.candidates.filter(c=>!terminal(c)).flatMap(c=>{const proof=qualification(c.id);return proof?[{applicationId:c.applicationId,actorId:c.actorId,roleId:c.roleId,proof}]:[];}),loadError,lastError}),
   dispose({suspend=false}={}){if(disposed)return;for(const c of current.candidates)if(!terminal(c)){
    if(suspend)stop(c);else {requestReturn(c,'disposed');returnControl(c);}
   }disposed=true;},
