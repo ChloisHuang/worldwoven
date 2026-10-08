@@ -8,7 +8,7 @@ const near=(p,point,r=.9)=>p&&Math.hypot(p.x-point[0],p.z-point[2])<=r&&Math.abs
 
 // Career registration, persistent attendance and the current selected task.
 // Scene owns the people and dirty objects; the contract owns salary/reviews.
-export function createChinaTavernService({meal,property=null,careers,getPlayer,getMounted=()=>null,getClock,host,getLegacyJob=()=>null,
+export function createChinaTavernService({meal,property=null,getManagement=()=>null,onOpenManagement=null,careers,getPlayer,getMounted=()=>null,getClock,host,getLegacyJob=()=>null,
   saved=null,world=null,saveState=()=>true,openRegistration=()=>{},onIntent=()=>{},notify=()=>{},canSee=()=>true,onOpen=()=>{},document:doc=globalThis.document}){
  const scene=meal.staffScene;let current=saved&&saved.version===1?copy(saved):{version:1,serial:0,job:null},selected=null,disposed=false,ui=null,propertyUI=null,attendance=0,lastError=null,waitingRegistration=null,waitingRegistrationAccepted=false,retryScene=0;
  const heldRole=()=>ROLES.find(r=>careers.isHired(r.id));
@@ -122,7 +122,7 @@ export function createChinaTavernService({meal,property=null,careers,getPlayer,g
   snapshot:()=>({version:1,receiptId:current.job?.receiptId||null,selected:selected?copy(selected):null,waitingRegistration:waitingRegistration?copy(waitingRegistration):null,waitingRegistrationAccepted,attendance}),
   restore(s){if(!s||s.version!==1||(s.waitingRegistrationAccepted!==undefined&&typeof s.waitingRegistrationAccepted!=='boolean')||s.receiptId!==(current.job?.receiptId||null)||!Number.isFinite(s.attendance)||s.attendance<0||s.attendance>=1.1)return false;selected=s.selected&&scene.choices().some(c=>key(c)===key(s.selected))?copy(s.selected):null;waitingRegistration=s.waitingRegistration&&resolveIntent(s.waitingRegistration)&&atRegister()?copy(s.waitingRegistration):null;waitingRegistrationAccepted=!!waitingRegistration&&s.waitingRegistrationAccepted!==false;attendance=s.attendance;return true;},
   dispose(){attendance=0;disposed=true;ui?.dispose();propertyUI?.dispose();}};
- if(property&&doc?.createElement&&doc.body)propertyUI=createChinaTavernPropertyUI({property,document:doc,canOperate:()=>atRegister()&&hostReady(),isNearby:()=>atRegister(),notify,onOpen:()=>{ui?.close();onOpen();}});
+ if(property&&doc?.createElement&&doc.body)propertyUI=createChinaTavernPropertyUI({property,getManagement,onOpenManagement,document:doc,canOperate:()=>atRegister()&&(!!getManagement()&&property.state().ownerId==='player'||hostReady()),isNearby:()=>atRegister(),notify,onOpen:()=>{ui?.close();onOpen();}});
  if(doc?.createElement&&doc.body)ui=createUI({doc,service,scene,onIntent,notify,onOpen,choose:c=>{selected=c;return intent('task',null,c);}});return service;
 }
 function createUI({doc,service,scene,onIntent,onOpen,choose}){

@@ -6,7 +6,7 @@ const messages={
  'invalid-price':'请填写1至1000000之间的整数铜文','invalid-offer':'出价须为正整数，且不高于挂牌价','invalid-amount':'金额须为正整数','offer-unavailable':'这份报价已结束','unchanged':'挂牌价格没有变化','property-busy':'账簿正在处理，请稍后重试',
 };
 const validAmount=(value,max=1000000)=>Number.isSafeInteger(value)&&value>0&&value<=max;
-export function createChinaTavernPropertyUI({property,canOperate=()=>true,isNearby=()=>true,onOpen=()=>{},notify=()=>{},document:doc=globalThis.document}) {
+export function createChinaTavernPropertyUI({property,canOperate=()=>true,isNearby=()=>true,onOpen=()=>{},getManagement=()=>null,onOpenManagement=null,notify=()=>{},document:doc=globalThis.document}) {
  const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text!=null)e.textContent=text;if(cls)e.className=cls;return e;};
  const dialog=make('dialog',null,'cn-property-dialog ww-airy-theme ww-airy-panel'),style=make('style');dialog.setAttribute('aria-label','云来酒楼产权与经营账');
  style.textContent=AIRY_UI_THEME+AIRY_PANEL_STYLE+`
@@ -35,7 +35,7 @@ export function createChinaTavernPropertyUI({property,canOperate=()=>true,isNear
  function metrics(s,owned){const dl=make('dl',null,'cn-property-metrics'+(owned?' is-owner':''));for(const [label,value]of owned?[['经营余额',s.balance],['营业实收',s.revenue],['已付玩家工资',s.paidWages]]:[['经营余额',s.balance],['营业实收',s.revenue]]){const row=make('div'),dd=make('dd',String(value));dd.append(make('small','文'));row.append(make('dt',label),dd);dl.append(row);}return dl;}
  function refresh(force=false) {
    if(disposed||!dialog.open&&!force)return;if(!isNearby()){close();return;}
-   const daily=property.refreshDay(),s=property.state(),available=canOperate(),key=JSON.stringify([s.revision,s.balance,s.bank,s.loadError,daily.code,available]);
+   const daily=property.refreshDay(),s=property.state(),available=canOperate(),management=getManagement(),operating=management?.view?.(),key=JSON.stringify([s.revision,s.balance,s.bank,s.loadError,daily.code,available,!!operating,s.availableBalance,s.wagesPayable,s.trialReserved,s.operatingProfit,s.materialConsumedCost,s.inventoryValue,operating?.business?.paidWages,operating?.business?.trialPaid]);
    if(!force&&key===signature)return;signature=key;generation++;
    const focused=doc.activeElement?.getAttribute?.('data-cn-property-focus');const restoreView=preserveAiryPanelView(dialog,doc);dialog.replaceChildren();
    const x=button('×',close,false,'cn-property-close');x.setAttribute('aria-label','关闭产权与经营账');
@@ -48,15 +48,25 @@ export function createChinaTavernPropertyUI({property,canOperate=()=>true,isNear
    if(lastPrice!==m.price){askDraft=null;lastPrice=m.price;}
    const defaultStatus=!available?'许安回案后即可办理':owned?'转让含经营余额，售款存入银行':'申请不扣款；业主同意后，再确认付款';
    status.textContent=feedback||defaultStatus;if(feedbackError||!available)status.className+=' cn-property-error';
+   const managementButton=()=>button('经营 · 食材与伙计',()=>{
+     const live=property.state();if(live.ownerId!=='player'||live.ownership!==s.ownership||getManagement()!==management){feedback='产权或经营安排已变化，请按当前记录重新操作';feedbackError=true;refresh(true);return;}
+     close();onOpenManagement();
+   },false);
    if(showLedger){
-     body.className+=' cn-property-ledger';body.append(make('h3','账簿与经营范围'),make('p',`经营余额 ${s.balance} 文 · 营业实收 ${s.revenue} 文 · 已付玩家工资 ${s.paidWages} 文`),make('p','转让含店内经营余额；个人款项从银行收付。许安继续柜台服务，产权不会自动接班。'),make('p',s.performerPaid?`另有雅集实收 ${s.salonRevenue} 文，已付艺者分成 ${s.performerPaid} 文；经营余额已扣除。全员NPC日薪、食材成本和招聘管理尚未开放。`:'当前成本记实际玩家工资；全员NPC日薪、食材成本和招聘管理尚未开放。'),make('h3','最近往来'));
-     const history=make('ol');for(const e of s.events.slice(-6).reverse()){const text=e.kind==='transfer'?`${s.npcNames[e.from]||'你'} → ${s.npcNames[e.to]||'你'} · 转让 ${e.amount} 文`:e.kind==='npc-meal-payment'?`${s.npcNames[e.actorId]}本人餐款支出 ${e.amount} 文`:e.kind==='npc-meal-refund'?`${s.npcNames[e.actorId]}本人餐款退回 ${e.amount} 文`:e.kind==='wage'?`支付玩家工资 ${e.amount} 文`:e.kind==='invest'?`注入经营账 ${e.amount} 文`:`提取到银行 ${e.amount} 文`;history.append(make('li',`第${e.day+1}日 · ${text}`));}if(!s.events.length)body.append(make('p','暂无产权与资金往来','cn-property-note'));else body.append(history);
+     body.className+=' cn-property-ledger';body.append(make('h3','账簿与经营范围'),make('p',`经营余额 ${s.balance} 文 · 营业实收 ${s.revenue} 文 · 已付玩家工资 ${s.paidWages} 文`),make('p','转让含店内经营余额；个人款项从银行收付。产权不会自动接班。'));
+     if(operating){const b=operating.business;body.append(make('p',`可用经营款 ${s.availableBalance} 文 · 工资待付 ${b.wagesPayable} 文 · 试工预留 ${b.trialReserved} 文`),make('p',`已付伙计工资 ${b.paidWages} 文 · 已付试工 ${b.trialPaid} 文 · 采购支出 ${b.procurementCash} 文`),make('p',`已耗食材 ${s.materialConsumedCost} 文 · 库存成本 ${s.inventoryValue} 文 · 营业盈亏 ${s.operatingProfit} 文`),make('p','营业盈亏已扣已挣工钱与耗用食材；工资和试工预留不能提走。','cn-property-note'));if(s.performerPaid)body.append(make('p',`另有雅集实收 ${s.salonRevenue} 文，已付艺者分成 ${s.performerPaid} 文。`));}
+     else body.append(make('p',s.performerPaid?`另有雅集实收 ${s.salonRevenue} 文，已付艺者分成 ${s.performerPaid} 文；经营余额已扣除。全员NPC日薪、食材成本和招聘管理尚未开放。`:'当前成本记实际玩家工资；全员NPC日薪、食材成本和招聘管理尚未开放。'));
+     body.append(make('h3','最近往来'));
+     const history=make('ol');for(const e of s.events.slice(-6).reverse()){const text=e.kind==='transfer'?`${s.npcNames[e.from]||'你'} → ${s.npcNames[e.to]||'你'} · 转让 ${e.amount} 文`:e.kind==='npc-meal-payment'?`${s.npcNames[e.actorId]}本人餐款支出 ${e.amount} 文`:e.kind==='npc-meal-refund'?`${s.npcNames[e.actorId]}本人餐款退回 ${e.amount} 文`:e.kind==='operating-expense'?`${{'npc-wage':'支付伙计工资','trial-payment':'支付试工报酬','stock-purchase':'采购食材'}[e.receipt?.kind]||'经营支出'} ${e.amount} 文`:e.kind==='reception-wage'?`支付接待工钱 ${e.amount} 文`:e.kind==='wage'?`支付玩家工资 ${e.amount} 文`:e.kind==='invest'?`注入经营账 ${e.amount} 文`:`提取到银行 ${e.amount} 文`;history.append(make('li',`第${e.day+1}日 · ${text}`));}if(!s.events.length)body.append(make('p','暂无产权与资金往来','cn-property-note'));else body.append(history);
+     if(owned&&operating&&typeof onOpenManagement==='function')controls.append(managementButton());
      controls.append(button('返回产权',()=>{showLedger=false;refresh(true);},false,'cn-property-primary ww-airy-action'));restoreView();return;
    }
    const summary=make('section',null,'cn-property-summary'),detail=make('section',null,'cn-property-detail');body.append(summary,detail);
    controls.append(button('账簿',()=>{showLedger=true;refresh(true);}));
+   if(owned&&operating&&typeof onOpenManagement==='function')controls.append(managementButton());
    if(!owned) {
      summary.append(make('p',`第${m.day+1}日 · 业主挂牌`,'cn-property-kicker'),amount(m.price,'铜文'),metrics(s,false),make('p','经营余额随产权一并交割','cn-property-note'));
+     if(operating)detail.append(make('p','接手后须另付原料进货款；现有库存与欠薪随店保留。','cn-property-note'));
      const app=m.application;
      if(!app) {
        offerDraft=offerDraft??m.price;detail.append(make('h3','向业主出价'));
@@ -72,7 +82,7 @@ export function createChinaTavernPropertyUI({property,canOperate=()=>true,isNear
      }
    } else {
      summary.append(make('p','经营账 · 铜文','cn-property-kicker'),metrics(s,true));
-     const capital=make('div',null,'cn-property-capital');capital.append(button('注资 20 文',()=>perform(()=>property.invest(20,revision),'20文周转金已入经营账'),!available||s.bank==null||s.bank<20),button('提取 10 文',()=>perform(()=>property.draw(10,revision),'10文经营结余已入银行'),!available||s.balance<10));summary.append(capital,make('p','转让连同经营余额一并交割','cn-property-note'));
+     const capital=make('div',null,'cn-property-capital');capital.append(button('注资 20 文',()=>perform(()=>property.invest(20,revision),'20文周转金已入经营账'),!available||s.bank==null||s.bank<20),button('提取 10 文',()=>perform(()=>property.draw(10,revision),'10文经营结余已入银行'),!available||(operating?s.availableBalance:s.balance)<10));summary.append(capital,make('p',operating?`可用 ${s.availableBalance} 文；工资与试工预留保留。转让含经营余额。`:'转让连同经营余额一并交割','cn-property-note'));
      const openOffers=m.offers.filter(o=>o.status==='open');ownerTab=ownerTab||(m.price!==null&&openOffers.length?'offers':'listing');
      const tabs=make('div',null,'cn-property-tabs');for(const [id,label]of [['offers',`买方报价 · ${openOffers.length}`],['listing',m.price===null?'挂牌定价':'挂牌改价']]){const tab=button(label,()=>{ownerTab=id;feedback='';feedbackError=false;refresh(true);});tab.setAttribute('aria-pressed',String(ownerTab===id));tabs.append(tab);}detail.append(tabs);
      if(ownerTab==='offers') {
