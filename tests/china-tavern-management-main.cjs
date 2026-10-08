@@ -17,6 +17,12 @@ once("const state=()=>context.__worldsDays.getState();assert.equal(state().mode,
 once("const document={body:new E('body'),","const document={head:new E('head'),body:new E('body'),");
 once('add(...e){this.append(...e)}',"prepend(...els){for(const e of els.reverse()){e.remove?.();e.parent=this;this.children.unshift(e);}}querySelectorAll(selector){return this.children.flatMap(e=>[e,...(e.querySelectorAll?.('*')||[])]).filter(e=>selector==='*'||selector.startsWith('.')&&e.className?.split(' ').includes(selector.slice(1)));}get textContent(){return (this._text||'')+this.children.map(e=>e.textContent||'').join('');}set textContent(v){this._text=String(v);this.replaceChildren();}add(...e){this.append(...e)}");
 once('visited:[],stamps:{},outfit:0,appearance:',"visited:[],stamps:{},outfit:0,copperLedger:{version:1,cash:0,bank:900,accountOpened:true,nextTransaction:1,transactions:[]},appearance:");
+once('let context=vm.createContext(', "let rejectedHandoffs=0;const rejectHandoff=process.env.TAVERN_MAIN_REJECT_HANDOFF==='1';let context=vm.createContext(");
+once('localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>storage[k]=v}', String.raw`localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>{
+ if(k==='worlds-days-v1'&&rejectHandoff){const next=JSON.parse(v),old=JSON.parse(storage[k]||'{}'),holder=next.chinaTavernKitchenRoles?.assistant?.holderId;
+  if(['cn-tavern-diner-west','cn-tavern-diner-east'].includes(holder)&&old.chinaTavernKitchenRoles?.assistant?.holderId!==holder&&next.chinaTavernHiring?.events?.some(e=>e.kind==='assigned'&&e.data.assignment.holderId===holder)){rejectedHandoffs++;return false;}}
+ storage[k]=v;return true;
+}}`);
 once("const main=mod(path.join(root,'game/main.js'));",String.raw`
 const out=path.resolve('qa/tavern-management-main');fs.mkdirSync(out,{recursive:true});const clone=x=>JSON.parse(JSON.stringify(x));
 let journal={version:1,completed:[],staging:'Initial player bank900 only; actual original NPC identities, finite purses, default meal orders, routes and work. DOM/renderer simulated, not browser/iOS.'};
@@ -72,7 +78,12 @@ try{
  }
  if(!done('04-hired')){
   const c=m.recruitment.state().candidates.find(c=>c.applicationId===journal.trialApplicationId&&c.phase==='review');assert(c);const id=c.applicationId;
-  assert(main.namespace.requestStationIntent(m.recruitment.intent(id,'approve')));until(()=>m.hiring.application(id).status==='assigned','owner approval and safe same-body role assignment');
+  if(m.hiring.application(id).status==='submitted')assert(main.namespace.requestStationIntent(m.recruitment.intent(id,'approve')));
+  if(rejectHandoff){until(()=>rejectedHandoffs>0,'same approved handoff write is refused');assert.equal(m.hiring.application(id).status,'pending-safe-handoff');assert.equal(r.tavernKitchenRoles.resolve('assistant').holderId,null);assert.equal(m.recruitment.candidate(id).phase,'review');assert.equal(m.business.account(c.actorId).bank,12);
+   checkpoint('04-handoff-rejected',{applicationId:id,rejectedHandoffs,holder:null,trialBank:12});const persisted=JSON.parse(storage['worlds-days-v1']);assert.equal(persisted.chinaTavernKitchenRoles.assistant.holderId,null);assert(!persisted.chinaTavernHiring.events.some(e=>e.kind==='assigned'&&e.applicationId===id));assert.deepEqual(persisted.chinaServiceWorld.recruitmentTableReceipts,persisted.worldContinuity.regions.china.controllers.chinaTavern.world.recruitmentTableReceipts);return;
+  }
+  until(()=>m.hiring.application(id).status==='assigned','owner approval and safe same-body role assignment');
+  until(()=>m.business.snapshot().contracts.some(contract=>contract.actorId===c.actorId&&contract.roleId==='cn-tavern-steward'),'new source-bound fixed pay contract');
   const a=m.hiring.application(id),role=r.tavernKitchenRoles.resolve('assistant');assert.equal(role.holderId,a.actor.actorId);assert.equal(role.actor,originals.get(a.actor.actorId));assert.equal(a.decision.salary.baseDailyWage,16);assert(a.trial.payment);assert.equal(m.business.account(a.actor.actorId).bank,12);
   assert(m.business.snapshot().contracts.some(c=>c.actorId===a.actor.actorId&&c.roleId==='cn-tavern-steward'));
   if(checkpoint('04-hired',{actorId:a.actor.actorId,applicationId:id,slot:role.slotId,revision:role.revision,trialPayment:12,futureBase:16}))return;
