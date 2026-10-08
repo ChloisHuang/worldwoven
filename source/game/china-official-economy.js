@@ -1,12 +1,18 @@
 // Fictional copper only. The six officials never borrow the player's wallet.
 // Completed duty is government-funded; only earned NPC balances can be spent.
-import {CHINA_COURT_OFFICIAL_RANKS, CHINA_OFFICIAL_DAILY_WAGE} from './china-official-ranks.js';
+import {CHINA_COURT_OFFICIAL_RANKS, CHINA_OFFICIAL_DAILY_WAGE, CHINA_OFFICIAL_GRADE_PAY_V1,
+  CHINA_OFFICIAL_GRADE_PAY_POLICY_ID, CHINA_OFFICIAL_GRADE_ASSIGNMENTS_V1} from './china-official-ranks.js';
 import {SALON_ARTISTS} from './china-tavern-salon-artists.js';
 import {SALON_QUOTE_VERSION, validSalonFee} from './china-salon-pricing.js';
 export const CHINA_OFFICIAL_IDS = Object.freeze(CHINA_COURT_OFFICIAL_RANKS.map(rank => rank.actorId));
 export const CHINA_OFFICIAL_TAVERN_ID = 'cn-yunlai-tavern';
 export const CHINA_OFFICIAL_SALON_MEAL_MINIMUM = 6;
 const OFFICIALS = new Set(CHINA_OFFICIAL_IDS);
+// These fixed NPC appointments are the V1 contract catalogue. A future policy
+// must keep this version's grades/rates available rather than reprice receipts.
+const GRADE_PAY_V1 = new Map(Object.entries(CHINA_OFFICIAL_GRADE_ASSIGNMENTS_V1).map(([actorId, gradeId]) =>
+  [actorId, Object.freeze({version: 1, policyId: CHINA_OFFICIAL_GRADE_PAY_POLICY_ID,
+    gradeId, amount: CHINA_OFFICIAL_GRADE_PAY_V1[gradeId]})]));
 // Stable personal-source identity, independent of rank labels or wage policy.
 // It is provider metadata only and never appoints somebody to an office.
 const OFFICIAL_MEAL_SOURCE = 'cn-official-earned-duty';
@@ -58,7 +64,14 @@ function fresh(dailyWage, dailyWages) {
   const {initialTreasury, treasury, version, ...ledger} = legacyFresh(undefined, dailyWage, dailyWages);
   return {...ledger, version: 2, funding: 'government-guaranteed', governmentPaid: 0};
 }
-const wageFor = (state, actorId) => state.dailyWages?.[actorId] ?? state.dailyWage;
+const legacyWageFor = (state, actorId) => state.dailyWages?.[actorId] ?? state.dailyWage;
+const contractFor = (state, actorId, day) => state.payPolicy && day >= state.payPolicy.effectiveDay ? GRADE_PAY_V1.get(actorId) : null;
+const wageFor = (state, actorId, day) => contractFor(state, actorId, day)?.amount ?? legacyWageFor(state, actorId);
+function payPolicyFor(value) {
+  if (!object(value) || !integer(value.effectiveDay) ||
+      !same(value, {version: 1, policyId: CHINA_OFFICIAL_GRADE_PAY_POLICY_ID, effectiveDay: value.effectiveDay})) throw Error('invalid-pay-policy');
+  return copy(value);
+}
 function conserved(state) {
   if (!object(state.accounts) || Object.keys(state.accounts).length !== CHINA_OFFICIAL_IDS.length ||
       !object(state.destinations) || Object.keys(state.destinations).length !== 1 || !integer(state.destinations[CHINA_OFFICIAL_TAVERN_ID])) return false;
@@ -99,7 +112,7 @@ function salonEvidenceFor(evidence, request) {
 }
 function requestFor(action, input, state) {
   if (!object(input) || !OFFICIALS.has(input.actorId)) return failure('invalid-actor');
-  const request = {action, actorId: input.actorId, amount: action === 'duty' ? wageFor(state, input.actorId) : input.amount,
+  const request = {action, actorId: input.actorId, amount: action === 'duty' ? wageFor(state, input.actorId, input.day) : input.amount,
     receiptId: action.startsWith('meal-') || salonAction(action) ? mealReceipt(action, input.orderId) : input.receiptId};
   if (!positive(request.amount)) return failure('invalid-amount');
   if (!identifier(request.receiptId, 256)) return failure('invalid-receipt-id');
@@ -108,6 +121,14 @@ function requestFor(action, input, state) {
     const evidence = evidenceFor(input.evidence, input.actorId, input.day);
     if (!evidence) return failure('incomplete-duty');
     request.day = input.day; request.evidence = evidence;
+    const contract = contractFor(state, input.actorId, input.day);
+    // Callers may omit the contract: the ledger freezes it from the original
+    // duty day, never the retry/payment day or a caller-selected grade.
+    if (Object.hasOwn(input, 'payContract') && (!contract || !same(input.payContract, contract))) return failure('invalid-pay-contract');
+    if (contract) {
+      if (Object.hasOwn(input, 'amount') && input.amount !== contract.amount) return failure('invalid-amount');
+      request.payContract = copy(contract);
+    }
   } else if (action.startsWith('meal-')) {
     if (!identifier(input.orderId)) return failure('invalid-order-id');
     request.orderId = input.orderId;
@@ -128,7 +149,8 @@ function requestFor(action, input, state) {
 }
 function requestOf(transaction) {
   return {action: transaction.action, actorId: transaction.actorId, amount: transaction.amount, receiptId: transaction.receiptId,
-    ...(transaction.action === 'duty' ? {day: transaction.day, evidence: transaction.evidence} : {}),
+    ...(transaction.action === 'duty' ? {day: transaction.day, evidence: transaction.evidence,
+      ...(Object.hasOwn(transaction, 'payContract') ? {payContract: transaction.payContract} : {})} : {}),
     ...(transaction.action.startsWith('meal-') ? {orderId: transaction.orderId} : {}),
     ...(salonAction(transaction.action) ? {orderId: transaction.orderId, artistId: transaction.artistId,
       activity: transaction.activity, incomePolicy: transaction.incomePolicy} : {}),
@@ -225,7 +247,10 @@ function replay(current, index, transactions) {
     if (!normalized.ok || !same(normalized.request, requestOf(transaction))) throw Error('invalid-saved-state');
     const result = transfer(current, index, normalized.request, !Object.hasOwn(transaction, 'sourceSplit'));
     if (!result.ok || !same(transaction, result.transaction)) throw Error('invalid-saved-state');
-    current = result.next; indexTransaction(index, result.transaction);
+    // Keep the validated original journal object, including optional legacy
+    // fields and key ordering, instead of rewriting historical receipt bytes.
+    result.next.transactions[result.next.transactions.length - 1] = copy(transaction);
+    current = result.next; indexTransaction(index, current.transactions.at(-1));
   }
   return current;
 }
@@ -249,6 +274,12 @@ function restore(saved, initialTreasury) {
     current = migrate(current);
     if (!same(current.legacyFunding, history)) throw Error('invalid-saved-state');
   } else current = fresh(saved.dailyWage, saved.dailyWages);
+  if (Object.hasOwn(saved, 'payPolicy')) {
+    current.payPolicy = payPolicyFor(saved.payPolicy);
+    // The original v1 segment replayed with its finite historical reserve.
+    // It cannot be relabelled as a later grade-pay contract after migration.
+    if (saved.transactions.slice(0, legacyCount).some(tx => tx.action === 'duty' && tx.day >= current.payPolicy.effectiveDay)) throw Error('invalid-saved-state');
+  }
   current = replay(current, index, saved.transactions.slice(legacyCount));
   if (!conserved(current) || !same(saved, current)) throw Error('invalid-saved-state');
   return {current, index};
@@ -275,7 +306,7 @@ function restore(saved, initialTreasury) {
  * New meal receipts record sourceSplit: {cash, bank}; refunds restore that
  * exact split even after later transfers. Version-1 cash-only journal entries
  * without sourceSplit replay unchanged. This ledger has no bank interest.
- * dailyWage and optional per-actor dailyWages are frozen at ledger creation.
+ * dailyWage and optional per-actor dailyWages are frozen legacy rates.
  * Restore reads that saved policy, never today's rank catalogue or new caller
  * defaults. Version-1 states are fully replay-validated before v2 migration;
  * their accounts and receipts stay unchanged. The old source and remainder
@@ -283,7 +314,16 @@ function restore(saved, initialTreasury) {
  * records governmentPaid as cumulative earned pay, never a finite treasury.
  * Loading performs no write, payment, interest or historical wage catch-up.
  * Changing a rank label cannot reprice old receipts or synthesize back pay.
- * NPC automatic promotion and in-world salary-policy changes are not wired.
+ * activateGradePayPolicy explicitly persists the immutable V1 grade schedule
+ * metadata in one write, without paying anybody. Fresh ledgers begin on day 0;
+ * loaded ledgers switch the day after construction, preserving all in-progress
+ * duties on the upgrade day. Failed retries retain this captured cutoff; an
+ * optional full-world activationPlan preserves it through ordinary saves and
+ * reloads while the monetary policy write is still pending.
+ * Each new-policy duty freezes a payContract; historical receipts stay exact.
+ * Production requires activation before paying a new certificate, so a failed
+ * policy save cannot silently pay new days at the old rate or lose the claim.
+ * Automatic NPC promotions and new salary-policy versions are not wired.
  *
  * Dormant official salon preparations use only these earned balances. Reserve
  * retains six copper for a meal and holds the exact cash/bank split outside
@@ -295,8 +335,10 @@ function restore(saved, initialTreasury) {
  * journals and their balance snapshots replay byte-for-byte unchanged.
  */
 export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = CHINA_OFFICIAL_DAILY_WAGE, dailyWages, isAppointed = () => false,
-  getDay = () => null, saveState} = {}) {
-  let current = null, index = indexes(), busy = false, loadError = null;
+  getDay = () => null, saveState, requireGradePayPolicy = false, activationPlan} = {}) {
+  let current = null, index = indexes(), busy = false, loadError = null, revision = 0;
+  const wasFresh = saved === undefined || saved === null;
+  let activationDay = wasFresh ? 0 : null, activationError = null;
   if (typeof isAppointed !== 'function' || typeof getDay !== 'function' || saveState !== undefined && typeof saveState !== 'function') throw TypeError('official economy requires synchronous callbacks');
   try {
     if (saved === undefined || saved === null) {
@@ -305,6 +347,46 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
     }
     else ({current, index} = restore(saved, initialTreasury));
   } catch { loadError = saved === undefined || saved === null ? 'invalid-config' : 'invalid-saved-state'; }
+  // The full-world owner may persist this intent with an ordinary world save
+  // after the first policy write failed. That preserves the cutoff on reload
+  // without prematurely adding policy or income to the monetary ledger.
+  // A successfully activated saved policy is always authoritative.
+  if (current && !current.payPolicy) {
+    if (activationPlan !== undefined) {
+      try { activationDay = payPolicyFor(activationPlan).effectiveDay; }
+      catch { activationError = 'invalid-pay-policy'; }
+    } else if (!wasFresh) {
+      // Otherwise capture once at construction, never again during a retry.
+      try { const day = getDay(); if (integer(day) && integer(day + 1)) activationDay = day + 1; } catch {}
+    }
+  }
+  function activateGradePayPolicy() {
+    if (loadError) return failure(loadError);
+    if (busy) return failure('ledger-busy');
+    if (current.payPolicy) return {ok: true, replayed: true, payPolicy: copy(current.payPolicy)};
+    if (activationError) return failure(activationError);
+    if (!integer(activationDay)) return failure('day-mismatch');
+    // A delayed activation cannot reinterpret a legacy payment already made
+    // at or after its captured cutoff. Keep the ledger intact and report it.
+    if (current.transactions.some(tx => tx.action === 'duty' && tx.day >= activationDay)) return failure('pay-policy-conflict');
+    if (!saveState) return failure('persistence-unavailable');
+    const policy = {version: 1, policyId: CHINA_OFFICIAL_GRADE_PAY_POLICY_ID, effectiveDay: activationDay};
+    const next = {...current, payPolicy: policy};
+    // Even a rejected activation discards detached candidates/guards prepared
+    // before the policy attempt. Monetary state itself remains byte-identical.
+    revision++; busy = true;
+    try {
+      const result = saveState(copy(next), null, {});
+      if (result && typeof result.then === 'function') {
+        Promise.resolve(result).catch(() => {});
+        return failure('async-save-unsupported');
+      }
+      if (result === false || result?.ok === false) return failure('save-failed');
+      current = next;
+      return {ok: true, replayed: false, payPolicy: copy(policy)};
+    } catch { return failure('save-failed'); }
+    finally { busy = false; }
+  }
   function liveCheck(request) {
     // A validated original hold still belongs to its fixed NPC account after
     // appointment loss. Availability cannot confiscate refundable escrow.
@@ -328,6 +410,7 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
       if (!normalized.ok) return normalized;
       const request = normalized.request, previous = index.receipts.get(request.receiptId);
       if (previous && !same(requestOf(previous), request)) return failure('request-conflict');
+      if (action === 'duty' && requireGradePayPolicy && !current.payPolicy && !previous) return failure('pay-policy-pending');
       if (action === 'meal-payment' && index.meals.get(request.orderId)?.refund) return failure('order-already-refunded');
       if (action === 'salon-reserve' && current.salonHolds?.[request.orderId]?.status !== undefined &&
           current.salonHolds[request.orderId].status !== 'reserved') return failure(`salon-already-${current.salonHolds[request.orderId].status}`);
@@ -336,7 +419,7 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
         const error = liveCheck(request);
         if (error) return failure(error);
       }
-      const base = current, result = replayed ? {ok: true, next: current, transaction: previous} : transfer(current, index, request);
+      const base = current, baseRevision = revision, result = replayed ? {ok: true, next: current, transaction: previous} : transfer(current, index, request);
       if (!result.ok) return result;
       const next = result.next, transaction = result.transaction;
       let accepted = false, locked = false;
@@ -345,12 +428,12 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
         ...(transaction.sourceSplit ? {sourceSplit: copy(transaction.sourceSplit)} : {}), transaction: copy(transaction)});
       // Unlike the historical meal hook, a salon candidate cannot be handed
       // back to an external full-world coordinator after it was accepted.
-      const valid = () => !loadError && !busy && (salonAction(action) ?
+      const valid = () => !loadError && !busy && revision === baseRevision && (salonAction(action) ?
         !accepted && current === base && (replayed || !liveCheck(request)) : accepted || current === base);
       function accept() {
         if (accepted) return receipt(true);
         if (busy && !locked) return failure('ledger-busy');
-        if (current !== base) return failure('stale-candidate');
+        if (current !== base || revision !== baseRevision) return failure('stale-candidate');
         if (salonAction(action) && !replayed) {
           const error = liveCheck(request);
           if (error) return failure(error);
@@ -362,7 +445,7 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
       function commit(worldPatch = {}) {
         if (busy) return failure('ledger-busy');
         if (accepted) return receipt(true);
-        if (current !== base) return failure('stale-candidate');
+        if (current !== base || revision !== baseRevision) return failure('stale-candidate');
         if (!object(worldPatch)) return failure('invalid-world-patch');
         // The authoritative economy field cannot be replaced by a world patch.
         if (Object.hasOwn(worldPatch, 'chinaOfficialEconomy')) return failure('invalid-world-patch');
@@ -416,15 +499,22 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
     prepareMealPayment: input => prepare('meal-payment', input, true),
     prepareMealRefund: input => prepare('meal-refund', input, true),
     prepareMealGuard() {
-      const base = current; let locked = false;
-      const valid = () => !loadError && !busy && current === base;
+      const base = current, baseRevision = revision; let locked = false;
+      const valid = () => !loadError && !busy && current === base && revision === baseRevision;
       return {valid, lock() { if (!valid()) return false; busy = true; locked = true; return true; },
         release() { if (locked) { locked = false; busy = false; } }};
     },
   };
   return {loadError, mealFundsProvider: () => mealProvider, state: () => current ? copy(current) : null, snapshot: () => current ? copy(current) : null,
     account, balance: account, history: () => current ? copy(current.transactions) : [],
-    dailyWageFor: actorId => current && OFFICIALS.has(actorId) ? wageFor(current, actorId) : null,
+    gradePayPolicy: () => current?.payPolicy ? copy(current.payPolicy) : null,
+    activateGradePayPolicy,
+    dailyWageFor(actorId, day) {
+      if (!current || !OFFICIALS.has(actorId)) return null;
+      if (!current.payPolicy) return legacyWageFor(current, actorId);
+      try { if (day === undefined) day = getDay(); } catch { return null; }
+      return integer(day) ? wageFor(current, actorId, day) : null;
+    },
     completeDuty(input) { const payment = prepare('duty', input); return payment.ok ? payment.commit() : payment; },
     withdraw(input) { const payment = prepare('withdraw', input); return payment.ok ? payment.commit() : payment; },
     prepareMealPayment: input => prepare('meal-payment', input),
