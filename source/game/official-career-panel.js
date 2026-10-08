@@ -28,7 +28,7 @@ export function appendOfficialCareerHistory({careers,panel,make}){
 }
 
 // Read-only context: complete pay grades never create high-office vacancies.
-export function appendCourtRankReference({panel,make,policy=null,day=0}){
+export function appendCourtRankReference({panel,make,policy=null,day=0,granaryAudit=null}){
  const details=make('details',null,'career-card-details career-court-ranks');
  details.append(make('summary','朝廷官职与品级俸例'));
  details.append(make('p','架空朝廷的游戏日俸；品级名称不代表历史官职或俸米换算。玩家仍从九品入仕，当前可玩升阶只到正九品，更高实职需后续真实履历和授任。'));
@@ -38,6 +38,13 @@ export function appendCourtRankReference({panel,make,policy=null,day=0}){
  for(const rank of [...CHINA_COURT_OFFICIAL_RANKS].sort((a,b)=>a.gradeOrder-b.gradeOrder)){
   details.append(make('p',`${rank.roleLabel} · ${rank.gradeLabel} · 新俸${rank.currentWage}文：${rank.responsibility}。`));
   details.append(make('p',`现已接：${rank.implemented}。仍待接：${rank.remaining}。`,'career-status-note'));
+ }
+ if(granaryAudit?.loadError)details.append(make('p','仓务原俸据暂时无法核验，原记录保留，未作核毕。','career-status-note'));
+ const audit=granaryAudit?.batches?.at(-1);
+ if(audit){
+  const sum=audit.receipts.reduce((total,row)=>total+BigInt(row.amount),0n).toString(),days=[...new Set(audit.receipts.map(row=>row.day+1))].join('、');
+  details.append(make('p',`仓务俸据 · ${audit.id.replace('cn-granary-audit-','第')}批：职责日${days}，已入账${audit.receipts.length}份、合${sum}文。${audit.received?'许知远已奏，皇帝已收讫附册':audit.result?'许知远案前核对完成，待实际朝会奏报收讫':'待许知远本人在原案核对'}。`));
+  details.append(make('p','仅核已付原俸据；职责日期不是到账日期，迟付凭据另批补核。不改变工资、个人消费或仓储库存。','career-status-note'));
  }
  details.append(make('p','本页不是招聘名额；六人身份、原房床与朝会班位保持。朝会当前仅工务和仓务两人有奏报，其余部门专属实务继续建设。'));
  panel.body.append(details);

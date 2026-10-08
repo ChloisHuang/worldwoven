@@ -507,6 +507,15 @@ export function createChinaOfficialEconomy({saved, initialTreasury, dailyWage = 
   };
   return {loadError, mealFundsProvider: () => mealProvider, state: () => current ? copy(current) : null, snapshot: () => current ? copy(current) : null,
     account, balance: account, history: () => current ? copy(current.transactions) : [],
+    // A narrow public-duty source for the warehouse head's audit. Transaction
+    // serials, not duty dates, catch late payment without exposing consumption.
+    dutyAuditSource(after = 0) {
+      if (!current || !integer(after)) return null;
+      return {lastTransaction: current.nextTransaction - 1,
+        receipts: current.transactions.slice(after).filter(tx => tx.action === 'duty').map(tx => copy({
+          id: tx.id, receiptId: tx.receiptId, actorId: tx.actorId, day: tx.day,
+          amount: tx.amount, evidence: tx.evidence, ...(tx.payContract ? {payContract: tx.payContract} : {})}))};
+    },
     gradePayPolicy: () => current?.payPolicy ? copy(current.payPolicy) : null,
     activateGradePayPolicy,
     dailyWageFor(actorId, day) {

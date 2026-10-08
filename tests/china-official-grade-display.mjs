@@ -44,3 +44,12 @@ for(const [policy,day,notice] of [[null,2,'尚未保存'],[{effectiveDay:3},2,'�
  assert(!flatten(root).some(n=>n.tag==='button'),'Salary reference is not an application or rank-grant button');
 }
 console.log('PASS 18-grade curve, six stable identities/physical slots, shared titles, bounded player vacancies and honest read-only court reference');
+
+// The audit is a read-only record of original paid duties, never a wage gate.
+for(const [result,received,notice] of [[null,null,'待许知远本人'],[{actorId:'cn-minister-granary'},null,'待实际朝会'],[{actorId:'cn-minister-granary'},{day:7},'皇帝已收讫']]){
+ const panel={body:make('div')},granaryAudit={batches:[{id:'cn-granary-audit-2',receipts:[{day:2,amount:24},{day:6,amount:120}],result,...(received?{received}:{})}]};
+ appendCourtRankReference({panel,make,granaryAudit});const shown=text(panel.body);
+ assert(shown.includes('第2批'));assert(shown.includes('职责日3、7'));assert(shown.includes('已入账2份、合144文'));assert(shown.includes(notice));assert(shown.includes('职责日期不是到账日期'));assert(!flatten(panel.body).some(n=>n.tag==='button'));
+}
+const damagedPanel={body:make('div')};appendCourtRankReference({panel:damagedPanel,make,granaryAudit:{loadError:'invalid-saved-state'}});assert(text(damagedPanel.body).includes('暂时无法核验'));
+console.log('PASS audit panel distinguishes waiting/read/received, original late duty dates and amounts, no wage/appointment action');
