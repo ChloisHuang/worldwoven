@@ -1,5 +1,6 @@
 import {officialBureauPlaque as culturePlaque} from './china-official-lettering.js';
 import {buildCourtCareerDesk} from './china-court-career-place.js';
+import {markPersonnelBook} from './china-personnel-place.js';
 
 // Fictional duty lodging, not a claim that Ming civil officers lived in the
 // inner palace. The southeast plot is below the existing cherry and tavern.
@@ -38,8 +39,9 @@ export function buildChinaOfficialBureau(G,A){
  const furniture=[];
  for(const[i,x]of[18,24].entries()){
   const table=new THREE.Group();table.position.y=.2;root.add(table);G.table(table,x,31.32,2,.82,C.wood,.92);solid3(root,x,1.13,31.32,2,.15,.82,C.wood);
-  H.boundBook(root,x-.43,1.235,31.3,.48,.44,i?0x81564f:0x536b75);G.box(root,x+.35,1.224,31.6,.62,.012,.36,0xe8d9ba);
-  for(let k=0;k<4;k++)G.box(root,x+.18+k*.10,1.234,31.6,.018,.004,.23,0x4c5146);
+  const recordBook=markPersonnelBook(new THREE.Group(),i?'cn-minister-granary':'cn-minister-works',[x-.43,1.235,31.3]);root.add(recordBook);
+  H.boundBook(recordBook,x-.43,1.235,31.3,.48,.44,i?0x81564f:0x536b75);G.box(recordBook,x+.35,1.224,31.6,.62,.012,.36,0xe8d9ba);
+  for(let k=0;k<4;k++)G.box(recordBook,x+.18+k*.10,1.234,31.6,.018,.004,.23,0x4c5146);
   const bx=i?24.15:17.85,id=CHINA_OFFICIAL_BUREAU.beds[i],roomId=CHINA_OFFICIAL_BUREAU.roomIds[i],ownerId=i?'cn-minister-granary':'cn-minister-works';
   const bed=new THREE.Group();bed.name='Official private timber bed '+id;bed.position.y=.2;root.add(bed);G.bed(bed,bx,35,i?0x827565:0x667e80,1.95,2.50);
   colliders.push({minX:bx-1.025,maxX:bx+1.025,minZ:33.67,maxZ:36.33,minY:.2,maxY:1.82});cameraColliders.push({...colliders.at(-1)});
@@ -102,7 +104,8 @@ export function buildChinaOfficialBureau(G,A){
   const people=[['rites','沈叙',17.35,0x677e8c],['personnel','陆谦',19.8,0x8b7966],['justice','周惟正',22.2,0x667666],['records','宋承简',24.65,0x8a6d73]];
   for(const[i,[key,name,bx,color]]of people.entries()){
    const x=B.offices[i+2][0],desk=new THREE.Group();desk.position.y=y-.015;g.add(desk);G.table(desk,x,31.25,1.55,.68,C.wood,.92);hull(x-.775,x+.775,30.91,31.59,y-.015,y+.98,'cn-official-desk-'+key);
-   H.boundBook(g,x-.4,y+1.02,31.24,.35,.40,color);G.box(g,x+.22,y+.997,31.4,.55,.014,.29,0xe8d9ba);for(let k=0;k<3;k++)G.box(g,x+.07+k*.11,y+1.006,31.4,.014,.005,.18,0x4c5146);
+   const recordBook=markPersonnelBook(new THREE.Group(),'cn-official-'+key,[x-.4,y+1.02,31.24]);g.add(recordBook);
+   H.boundBook(recordBook,x-.4,y+1.02,31.24,.35,.40,color);G.box(recordBook,x+.22,y+.997,31.4,.55,.014,.29,0xe8d9ba);for(let k=0;k<3;k++)G.box(recordBook,x+.07+k*.11,y+1.006,31.4,.014,.005,.18,0x4c5146);
    culturePlaque(G,g,name,x,y+2.3,30.67,1.48,.36);
    const id=B.beds[i+2],room=B.dorms[i<2?0:1],bed=new THREE.Group();bed.name='Official shared-room individual timber bed '+id;bed.position.set(bx,y-.015,35);g.add(bed);const w=1.45,d=2.45;
    for(const xx of[-.58,.58])for(const zz of[-1.04,1.04])G.box(bed,xx,.27,zz,.11,.54,.11,C.dark);

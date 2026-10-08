@@ -174,7 +174,8 @@
       "service-object-menu-targets.mjs",
       "wallet-bank-navigation-main.cjs",
       "wallet-ui.mjs",
-      "china-official-grade-display.mjs"
+      "china-official-grade-display.mjs",
+      "china-personnel-work-panel.mjs"
     ]
   },
   "food-lodging": {
@@ -633,7 +634,8 @@
       "china-court-reissue-pending.mjs",
       "china-granary-audit-flow.mjs",
       "china-granary-audit-main.cjs",
-      "china-personnel-source-flow.mjs"
+      "china-personnel-source-flow.mjs",
+      "china-personnel-career.mjs"
     ]
   },
   "release": {

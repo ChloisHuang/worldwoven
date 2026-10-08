@@ -1,3 +1,4 @@
+import {appendPersonnelWorkPanel} from './china-personnel-work-panel.js';
 import {appendOfficialPromotionPanel,appendOfficialCareerHistory,appendCourtRankReference} from './official-career-panel.js';
 import {appendClinicPhysicianPanel,CLINIC_PHYSICIAN_PANEL_STYLE} from './china-clinic-physician-panel.js';
 import {appendSalonCareerPanel} from './china-salon-career-panel.js';
@@ -107,7 +108,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     if(clockStatus){const text=shiftClockText(c,clockStatus.window);if(clockStatus.node.textContent!==text)clockStatus.node.textContent=text;}
     const begin=held?careers.beginDutyAvailability(held.id):null;
     const guardService=country==='china'?getService(GUARD):null;
-    const service=localService(role),tableChoices=[TABLE_SERVICE,GARDEN].includes(held?.id)&&d?.stage==='working'?service?.taskChoices?.()||[]:[],key=[s.revision,registrationRoleId,registrationScope,held?.id,country,c.day,JSON.stringify(getOfficialPayPolicy()),granaryAudit?.loadError,granaryBatch?.id,!!granaryBatch?.result,granaryBatch?.received?.day,['working','attending'].includes(d?.stage)?Math.floor(c.hour*60):'',begin?.ok,begin?.code,!!service,service?.intent()?.intentKey,regionalTellerRole(held?.id)?service?.intent('original-step')?.intentKey:null,guardService?.identityKey?.(),guardService?.reviewerName?.(),guardService?.holderName?.(),(held?.paymentKind==='commission'||regionalTellerRole(held?.id))?Math.floor(service?.state?.().progressSeconds||0):null,ageYears,JSON.stringify(careers.applicationResult?.()),
+    const service=localService(role),personnel=service?.personnelState?.(),tableChoices=[TABLE_SERVICE,GARDEN].includes(held?.id)&&d?.stage==='working'?service?.taskChoices?.()||[]:[],key=[s.revision,registrationRoleId,registrationScope,held?.id,country,c.day,JSON.stringify(getOfficialPayPolicy()),granaryAudit?.loadError,granaryBatch?.id,!!granaryBatch?.result,granaryBatch?.received?.day,personnel?.enabled,personnel?.eligible,personnel?.case?.id,personnel?.case?.revision,personnel?.case?.status,personnel?.case?.rows?.filter(row=>row.visit).length,personnel?.case?.reviews?.length,personnel?.activity,personnel?.loadError,personnel?.lastError,personnel?.availability?.code,!!personnel?.case?.compiled,Math.floor((personnel?.progress||0)*10),!!personnel?.waiting,personnel?.history?.length,['working','attending'].includes(d?.stage)?Math.floor(c.hour*60):'',begin?.ok,begin?.code,!!service,service?.intent()?.intentKey,regionalTellerRole(held?.id)?service?.intent('original-step')?.intentKey:null,guardService?.identityKey?.(),guardService?.reviewerName?.(),guardService?.holderName?.(),(held?.paymentKind==='commission'||regionalTellerRole(held?.id))?Math.floor(service?.state?.().progressSeconds||0):null,ageYears,JSON.stringify(careers.applicationResult?.()),
       JSON.stringify(tableChoices.map(choice=>[choice.kind,choice.action,choice.detail])),...localRoles.map(r=>`${r.id}:${r.vacancy}:${atRegistration(r)}`)].join(':');
     if(!force&&key===signature)return;signature=key;generation++;clockStatus=null;
     const restoreView=preserveAiryPanelView(dialog,doc);dialog.replaceChildren();const x=buttonFor('×',close);x.className='career-close';x.setAttribute('aria-label','关闭职业手册');
@@ -236,6 +237,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
         const resign=action(held,isClerk(held)?'resign':'formal-resign');if(resign)panel.body.append(resign);const cancel=['cn-pharmacy-apprentice','cn-clinic-physician',GARDEN,TEA,PASTRY,GUARD,ROYAL,RECEPTION,BATH_DELIVERY,WOMEN_BATH_DELIVERY,BATH_MIXING,KITCHEN,TABLE_SERVICE,EGYPT_KITCHEN,EGYPT_TABLE].includes(held.id)?action(held,'cancel'):null;if(cancel)panel.body.append(cancel);
       }
     }
+    if(country==='china'&&isClerk(role))appendPersonnelWorkPanel({panel,role,service,make,action});
     appendOfficialCareerHistory({careers,panel,make});
     if(country==='china'&&isClerk(role))appendCourtRankReference({panel,make,policy:getOfficialPayPolicy(),day:c.day,granaryAudit});
     if(s.loadError)panel.body.append(make('p','职业存档暂时无法核对，请保留当前存档后再试。','career-negative'));restoreView();

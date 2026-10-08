@@ -2,7 +2,7 @@
 // approach and a stair that strands a citizen or erases the perimeter passage.
 // It deliberately does not instantiate the palace scene or run life/court AI.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-const base=path.resolve('source'),context=vm.createContext({console,Float32Array,Uint32Array,Uint16Array,Uint8Array}),cache=new Map();
+const base=path.resolve('source'),context=vm.createContext({console,structuredClone,Float32Array,Uint32Array,Uint16Array,Uint8Array}),cache=new Map();
 function mod(file){file=file.split('?')[0];if(cache.has(file))return cache.get(file);let s=fs.readFileSync(file,'utf8');if(file.endsWith('/regions-east.js'))s+='\nexport {palaceWall,palaceCeiling,palaceRoof,beam,boundBook,foldedCloth,packStatic};';const m=new vm.SourceTextModule(s,{identifier:file,context});cache.set(file,m);return m;}
 const linker=(s,f)=>mod(s==='three'?path.join(base,'vendor/three/build/three.module.js'):path.resolve(path.dirname(f.identifier),s));
 (async()=>{
@@ -45,5 +45,25 @@ const linker=(s,f)=>mod(s==='three'?path.join(base,'vendor/three/build/three.mod
  assert.equal(stairways.length,1);assert.equal(characterFootSurfaces.length,20);assert(stairways[0].rise<=.20);assert(stairways[0].tread>=.28);
  assert(bureau.isChinaOfficialUpperFloor(point(B.upperHall)));assert(!bureau.isChinaOfficialUpperFloor({x:22,y:7.815,z:14}));
  group.updateMatrixWorld(true);roofGroup.updateMatrixWorld(true);let meshCount=0;group.traverse(o=>{if(!o.isMesh)return;meshCount++;assert(o.geometry.attributes.position.array.every(Number.isFinite),'non-finite geometry');});
+ // The new trial reads the six existing books, from actual main's legal
+ // side-point resolver. No full palace, live NPC travel or visual claim.
+ const ids=['cn-minister-works','cn-minister-granary','cn-official-rites','cn-official-personnel','cn-official-justice','cn-official-records'];
+ const marker=cache.get(path.join(base,'game/china-personnel-place.js')).namespace.personnelBookName;
+ const people=ids.map((id,i)=>{const root=new T.Group();root.position.set(...B.offices[i]);return {station:{id},root,collisionRadius:.25};});
+ const main=fs.readFileSync(path.join(base,'game/main.js'),'utf8');
+ const standSource=main.slice(main.indexOf('function courtReviewStandPoint('),main.indexOf('function configureChinaCareer('));
+ const readSource=main.slice(main.indexOf('function personnelReadStandPoint('),main.indexOf('function personnelRecordVisible('));
+ const getStand=Function('THREE','lot','npcs','player','navOptions','automaticDoors','resolveSurfaceHeight','blocked','canTraverse','personnelBookName',standSource+readSource+';return personnelReadStandPoint;')(T,{group,colliders},people,{collisionRadius:.34},{...options,radius:.34},null,nav.namespace.resolveSurfaceHeight,nav.namespace.blocked,nav.namespace.canTraverse,marker);
+ for(const [i,id]of ids.entries()){
+  const book=group.getObjectByName(marker(id));assert(book&&book.userData.personnelActorId===id);assert.equal(book.children.length,i<2?9:8,'Original book/paper mesh count unchanged');
+  const place=getStand(id,B.offices[i]);assert(place,'actual main finds a legal read stand '+id);
+  assert(Math.hypot(place[0]-B.offices[i][0],place[2]-B.offices[i][2])<=1.2&&Math.abs(place[1]-B.offices[i][1])<.3);
+  assert(!people.some(n=>Math.abs(n.root.position.y-place[1])<1&&Math.hypot(n.root.position.x-place[0],n.root.position.z-place[2])<.62),'Read stand does not occupy any original person');
+  assert(!nav.namespace.blocked(place[0],place[2],colliders,.34,{...options,y:place[1]}));
+ }
+ const original=group.getObjectByName('career-appointment-document'),rosterPaper=group.getObjectByName('personnel-roster-document');
+ assert(original&&rosterPaper&&original!==rosterPaper);assert.equal(rosterPaper.visible,false,'Incomplete route adds no visible trial paper');
+ assert(!new T.Box3().setFromObject(original).intersectsBox(new T.Box3().setFromObject(rosterPaper)),'Own roster does not cover original appointment paper');
+ console.log('PASS original six source books, actual main legal sidepoints and distinct hidden roster paper; no NPC/desk/bed moved');
  console.log(JSON.stringify({status:'PASS',scope:'local bureau builder, no palace scene',beds:result.additionalFurniture.length,desks:B.offices.length,dorms:B.dorms.length,steps:characterFootSurfaces.length,meshCount,maxRssMiB:process.resourceUsage().maxRSS/1024}));
 })().catch(e=>{console.error(e);process.exitCode=1;});
