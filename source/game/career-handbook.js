@@ -33,7 +33,7 @@ const isClinic=role=>['cn-pharmacy-apprentice','cn-clinic-physician'].includes(r
 const wageRange=role=>{const bonus=role.preparationBonus??(role.id===CLERK?2:0);return isClinic(role)?`基础${role.wage}${unit(role)}${bonus?'（满班+'+bonus+'）':''} · 患者评分80%–120%`:`${role.wage}${bonus?'–'+(role.wage+bonus):''}${unit(role)}`;};
 const performancePrice=role=>{const values=role.activities.flatMap(activity=>activity==='drink'?['tea','sake'].map(drink=>japanPerformanceCommission(role.id,activity,drink)):[japanPerformanceCommission(role.id,activity)]),min=Math.min(...values),max=Math.max(...values);return min===max?String(min):`${min}–${max}`;};
 const requirements=role=>role.skillRequirements||role.requirements||{};
-const employer=role=>place(role).employer||'岗位主管';
+const employer=role=>role?.id===CLERK&&role.rankId==='cn-records-personnel'?'朝班：礼仪主管；核籍：吏务主管':place(role).employer||'岗位主管';
 const isBathDelivery=role=>[BATH_DELIVERY,WOMEN_BATH_DELIVERY].includes(role?.id);
 const bathSideName=role=>role.id===WOMEN_BATH_DELIVERY?'女汤':'男汤';
 const isClerk=role=>role?.id===CLERK;
