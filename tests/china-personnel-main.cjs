@@ -101,16 +101,19 @@ try {
   fs.writeFileSync(path.resolve('qa/boot-wait-diagnostic.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));return;
  }
  if(process.env.PERSONNEL_MAIN_ATTENDANCE==='1'){
-  assert.equal(app().stage,'document-held');assert.equal(career().currentRole().rankId,'cn-records-regular');
+  assert.equal(app().stage,'document-held');assert.equal(career().currentRole().rankId,'cn-records-regular');assert.equal(career().currentRole().wage,22);
+  const approvalBefore=clone(app()),clockBefore=clone(state().simulationClock);assert.equal(paper.parent,r.player.root.userData.hands[1]);assert.equal(paper.userData.personnelAppointmentId,app().id);
   request(P+'imperial-review');until(()=>r.chinaPersonnelAppointment.isWaiting(),'actual public arrival begins royal approval wait',1600);
-  const applicationId=app().id;request('attend');
+  const applicationId=app().id,approvalWait=clone(r.chinaPersonnelAppointment.snapshot().activity);request('attend');
   assert.equal(r.chinaPersonnelAppointment.isActing(),false);assert.equal(r.chinaPersonnelAppointment.state().royalOwner,null);
   assert.equal(review().pendingInteraction?.provider,'china-court-career');
-  step(30);assert.equal(r.chinaPersonnelAppointment.isActing(),false);assert.equal(review().pendingInteraction?.provider,'china-court-career','queued approval cannot steal ordinary attendance path');
+  step(30);assert.equal(r.chinaPersonnelAppointment.isActing(),false);assert.equal(review().pendingInteraction?.provider,'china-court-career','queued approval cannot steal ordinary attendance path');const routeAfterThreeSeconds={provider:review().pendingInteraction.provider,player:clone(state().player),pathLength:state().pathLength};
   until(()=>career().workState().lastDuty?.day===8&&career().workState().lastDuty?.stage==='arrived','actual next-day ordinary attendance',1400);
   assert.equal(app().id,applicationId);assert.equal(app().stage,'document-held');assert.equal(career().workState().lastDuty.officialRankId,'cn-records-regular');
-  invariants();assert(main.namespace.save());fs.writeFileSync(path.join(output,'attendance-cancels-approval.json'),storage['worlds-days-v1']);
-  console.log(JSON.stringify({status:'PASS',scope:'Calendar-only staged day8; real main attendance cancels royal approval wait and retains its own actual path until the original court place; no full-day simulation',steps}));return;
+  assert.deepEqual(clone(app()),approvalBefore,'Attendance never changes the application or stored decision');assert.equal(paper.parent,r.player.root.userData.hands[1]);assert.equal(paper.userData.personnelAppointmentId,applicationId);assert.equal(r.chinaPersonnelAppointment.isActing(),false);
+  invariants();assert(main.namespace.save());const persisted=JSON.parse(storage['worlds-days-v1']);assert.deepEqual(persisted.formalCareers.lastDuty,clone(career().workState().lastDuty));
+  const result={status:'PASS',scope:'Calendar-only staged day8; real main attendance cancels royal approval wait and retains its own actual path until the original court place; no full-day simulation',sourceCheckpoint:from,clockBefore,clockAfter:clone(state().simulationClock),applicationId,applicationUnchanged:true,paperName:paper.name,sameOriginalPaperHeld:true,approvalWait,routeAfterThreeSeconds,duty:clone(career().workState().lastDuty),futureRoleWage:career().currentRole().wage,playerBankUnchanged:true,original31Unchanged:true,steps,seconds:(Date.now()-started)/1000};
+  fs.writeFileSync(path.join(output,'attendance-cancels-approval.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));return;
  }
  if(!done('00-initial')){assert.equal(job(),null);assert.equal(career().currentRole().rankId,'cn-records-regular');assert.equal(career().promotionSummary().qualifiedDays,3);assert.equal(career().promotionSummary().balance,3);if(checkpoint('00-initial',{scope:journal.staging}))return;}
  if(!done('01-claimed')){request('personnel-claim');until(()=>!!job(),'walk from actual scene spawn to claim');assert.equal(job().status,'draft');assert.equal(job().rows.filter(row=>row.visit).length,0);assert.deepEqual(clone(job().source),clone(r.chinaAudience.personnelSource(job().day,job().source.throughSerial)),'Claim freezes its actual committed source boundary');if(checkpoint('01-claimed',{caseId:job().id,mixedOriginals:job().source.archives.map(row=>row.actorId)}))return;}

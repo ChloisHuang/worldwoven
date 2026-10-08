@@ -638,7 +638,8 @@
       "china-personnel-source-flow.mjs",
       "china-personnel-career.mjs",
       "china-personnel-appointment.mjs",
-      "china-personnel-main.cjs"
+      "china-personnel-main.cjs",
+      "china-personnel-main-save.cjs"
     ]
   },
   "release": {
