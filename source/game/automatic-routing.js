@@ -71,7 +71,10 @@ export function createAutomaticRouting({doors,staticColliders,planningColliders,
   return radii.get(radius);
  }
  function sameFloorOptions(state,originY){
-  const o={...state.options,radius:state.radius,pathRadius:state.radius+.025,cache:false,maxStep:FLOOR_BAND,maxSnapDistance:.6};
+  // These options, filtered supports and collider array are new for this stage.
+  // Reuse their indexes within its synchronous probes; the next stage snapshots
+  // live leaves again, so no cached geometry survives a door-pose change.
+  const o={...state.options,radius:state.radius,pathRadius:state.radius+.025,cache:true,maxStep:FLOOR_BAND,maxSnapDistance:.6};
   // Staging may not borrow a lower floor or go down and back up a nearby stair.
   // The eventual ordinary route retains the full multilevel surface graph.
   const surfaces=o.surfaces??o.walkableSurfaces;

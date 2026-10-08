@@ -2115,3 +2115,10 @@ R16.196吏务核籍录事晋任发布准备（2026-10-08，已构建待push/发�
 - 复用已验生产main六案、冷申请取消、荐任/御批/宣读、审批让位赴班、拒写冷恢复、新合同未签拒付/8秒28文唯一入账与冷载、旧22兼容，以及核心/UI末次登记卡DOM证据；无实质合版逻辑修改，不重跑通过主场景。617登记通过（无测试体）。初始资格/日期/原据及工资门签核为已明确staged前提，模拟DOM/renderer配真实main/Three，不冒称自然三日、完整朝班天、GPU/browser/iOS或正常视角美术接受。更高品级/NPC自动晋升及CR01/CR03/CL01母项仍开放。
 - R195原发布包/公开manifest无法读取后的合法原Git确定性缓存恢复已完成；该事实不称取得原tar。正式本次构建前baseline由494更新为完整恢复540资源。共享锁/180秒/1152MiB整树/768MiB old-space下仅一次R196 Site build PASS：378映射、9,860,043字节，0.505秒/90.520MiB。540旧资源完整SHA256逐一不变；595总immutable全部hash通过，375当前唯一资源、366JS链接、普通图332、启动358、QA闭包128/128/20、生成缓存头及版本/date10-08/原Site基线元数据通过（0.404秒/102.914MiB）。没有重跑源码复制或反复缓存构建。
 - source/Site产品/scripts/tests一致（原历史door-geometry说明各自保留），原project appgprj_6abd8c2ad1b88191a08b2f390b901900/受众保持；两套Git历史分别推进，不混dist到source。此处未部署，公开版本与HTTP头由既有发布worker核实；使用固定Site现有dist，不重建。
+
+
+R16.197净室返岗/门暂存索引紧急热修（2026-10-08，已构建待发布）：用户R196反馈走路卡顿及周惟正二层净室门附近滞留。仅从6af9412取automatic-routing与china-palace-audience两产品小修，f79df1f取必要净室几何证据；不带开发分支未完经营、经营测试草稿或功能开关。source纯hotfix对象以正式R1964834969为父，临时独立Git索引构建，开发HEAD/真实index/WIP不动；固定Site从83f8158正常接两修。版本0.16.197/R16.197，日期10-08。
+- 原门route phase=blocked累计超过4秒后重规划同一原目标；正常开门/waiting、短body阻挡继续等候，不传送/穿墙/移床或改变时间。单stage临时options/过滤几何索引复用，下一stage重新取实时门几何。隔离R196+热修的阻塞门travel反例及door-staging-supports两项PASS（0.504秒/115.555MiB），包括同目标重规划、真实等待保路线、两半径/20–240Hz/台沿/禁止借层边界；619登记通过。源版原反例失败证据保留。
+- 复用原净室真实geometry+automaticDoors+officialLife.publicRoute+audience.travel定向：净室内/门框旁/玩家近身短挡3个明确staged起点均经原门和公共楼梯到周惟正原床前，5.757秒/557.734MiB，75–77模拟秒。首夹具把既有台沿垂直支持变化误限为3D<.09，改回水平<.06及原maxStep=.4后通过，产品未因测试放宽。只有截图无用户存档，不冒称精确现场复现或iPhone实测FPS；40query索引80→2仅性能定位证据。
+- R197仅一次共享锁/180秒/1152MiB/Node768构建PASS：378映射、9,860,464字节，0.705秒/87.613MiB；原R196完整595immutable逐SHA保留，602总资源hash、375当前唯一资源、366JS链接、普通332/启动358/QA128/128/20及版本/日期/生成headers通过（0.404秒/103.488MiB）。无全世界重测或重复build。
+- 正常公开版本/HTTP头由父发布worker核实；本批不称经营完成或browser/iOS性能验收。开发经营提交及其未提交tests/china-tavern-management-main.cjs完整保留，后续仅在草稿安全保存后正常merge热修，不force、不reset。
