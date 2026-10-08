@@ -69,6 +69,7 @@ function routeRequirements(task,c,route) {
   const pledges=acceptedPeople(task,c),prepared=!!task.preparations[route];
   if(route==='guard')return [
     {id:'commander',label:'现任卫队负责人明确响应',met:pledges.some(p=>p.actorId===c?.guard.commanderId&&p.person.guardCommander)},
+    {id:'guard-responses',label:'原守卫逐人明确响应',met:c?.guard.guards.length===RULES.guards&&c.guard.guards.every(g=>pledges.some(p=>p.actorId===g.id&&p.bodyId===g.bodyId))},
     {id:'guards',label:'现有两名守卫实际集结',met:prepared},
   ];
   if(route==='abdication')return [
@@ -114,8 +115,9 @@ function checkPreparation(kind,r,p,c,event,state) {
   } else if(kind==='guard') {
     const commander=acceptedPeople(p,c).find(a=>a.actorId===r.commanderId&&a.person.guardCommander);
     need(r.commanderId===c.guard.commanderId&&commander&&named(r,commander.actorId,commander.bodyId),'commander-response-required');
-    need(idList(r.guardIds,RULES.guards)&&r.guardIds.length===RULES.guards&&r.guardIds.every(id=>
+    need(c.guard.guards.length===RULES.guards&&idList(r.guardIds,RULES.guards)&&r.guardIds.length===RULES.guards&&r.guardIds.every(id=>
       id!==p.playerId&&id!==p.emperor.id&&c.guard.guards.some(g=>g.id===id&&named(r,g.id,g.bodyId))),'real-guards-required');
+    need(r.guardIds.every(id=>acceptedPeople(p,c).some(a=>a.actorId===id&&c.guard.guards.some(g=>g.id===id&&g.bodyId===a.bodyId))),'guard-political-responses-required');
   } else if(kind==='abdication') {
     need(idList(r.officialIds,RULES.officials)&&r.officialIds.every(id=>acceptedPeople(p,c).some(a=>a.actorId===id&&a.person.official&&named(r,id,a.bodyId))),'official-commitments-required');
     need(named(r,p.emperor.id,p.emperor.bodyId),'original-emperor-presence-required');

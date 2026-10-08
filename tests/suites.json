@@ -408,6 +408,7 @@
       "china-usurpation-context.mjs",
       "china-usurpation-actions.mjs",
       "china-sovereign-duty-authority.mjs",
+      "china-usurpation-scene.mjs",
       "china-salon-companionship.mjs",
       "bath-privacy.mjs",
       "hidden-social-state.mjs",
@@ -663,7 +664,8 @@
       "china-personnel-career.mjs",
       "china-personnel-appointment.mjs",
       "china-personnel-main.cjs",
-      "china-personnel-main-save.cjs"
+      "china-personnel-main-save.cjs",
+      "china-usurpation-main.cjs"
     ]
   },
   "release": {

@@ -137,6 +137,18 @@ export function createChinaRoyalKitchenService({npcs,lot,doors,planPath,moveActo
    else{g.position.set(...(o.stage==='prepared'?P.prepTop:o.stage==='cooked'?P.stoveTop:tablePoint(o)));g.userData.holderId=o.stage==='prepared'?'prep':o.stage==='cooked'?'stove':o.seatId;}
   }
  }
+ // A pending source-bound story may be retried after this original meal was
+ // eaten and the world was reloaded. Rehydrate only that requested original
+ // receipt's hidden bowl, never every historical dish or a replacement order.
+ function mealObject(orderId){
+  const o=orders.lookup(orderId);if(!o?.mealId)return null;
+  let prop=props.get(orderId);
+  if(!prop&&o.stage==='consumed'&&o.receipt?.completed===true&&o.receipt.orderId===o.id&&o.receipt.mealId===o.mealId){
+   prop=makeMeal(lot.group,o.mealId);prop.group.visible=false;
+   Object.assign(prop.group.userData,{orderId:o.id,mealId:o.mealId,holderId:o.actorId});props.set(orderId,prop);
+  }
+  return prop?.group||null;
+ }
  function replayRelationships(){relationshipOutbox.deliver(orders.snapshot().orders.filter(o=>['consumed','cancelled'].includes(o.stage)).map(o=>serviceRelationshipEvent('china-royal-kitchen',o.id,o.stage==='consumed'?'completed':'cancelled',o.workerId,o.actorId,relationshipTimes[o.id]??0)));}
  function update(dt,t,s={}){replayRelationships();
   if(disposed)return;playerState=s;time+=dt;rebind();const job=activeJob();
@@ -171,7 +183,7 @@ export function createChinaRoyalKitchenService({npcs,lot,doors,planPath,moveActo
  if(prior?.eating)state.eating=copy(prior.eating);
  const workReceipts=receiptId=>orders.snapshot().orders.filter(o=>o.stage==='consumed'&&o.workerId==='player'&&(!receiptId||o.workReceiptId===receiptId)).map(o=>({source:'china-royal-kitchen',number:o.number,orderId:o.id,mealId:o.mealId,actorId:o.actorId,actorName:o.actorName,day:o.workDay,workReceiptId:o.workReceiptId,completed:true}));
  return {reviewer:()=>{const r=holder();return npcAvailable()?{actorId:jia.station.id,name:jia.station.npcName||jia.station.id,revision:r.revision}:null;},roleHandoffBoundary:handoffBoundary,rebind,acceptsActor:n=>people.has(n?.station.id),personalNeedsState:()=>needsLife?.state()||null,canBorrowMeal:id=>!!needsLife?.canBorrowMeal(id),npcDutyCoverage:()=>{const r=holder(),p=jia.root.position;return npcAvailable()&&!playerOwns()&&!needsLife?.away(jia.station.id)&&!isSociallyHeld(jia.station.id,playerState.conversationActorId)&&(near(jia,P.host,.15)||phase&&p.x>=16&&p.x<=26&&p.z>=-12&&p.z<=-3)?[{actorId:jia.station.id,roleId:ROLE.id,slotId:ROLE.slotId,holderRevision:r.revision}]:[];},requestMeal,playerMealAvailability,waitingForSeat:()=>layoutReseat,canRequestMeal:id=>id==='player'?playerMealAvailability().ok:!!actors.get(id)&&(playerOwns()||npcAvailable()&&!needsLife?.blocks())&&(!meeting||!playerOwns())&&orders.available(id),mealFor,lookupMeal,mealReady,startMeal,completeMeal,cancelMeal,isEatingMeal:(id,actorId)=>{const o=lookupMeal(id,actorId);return o?.stage==='eating'&&seated(o)&&!talkingDiner(actorId)&&(actorId!=='player'||playerCanDine());},mealProgress:id=>state.eating?.[id]??orders.lookup(id)?.eatingSeconds??0,mealReceipts:()=>orders.receipts(),update,snapshot,restore,
-  supplyState:()=>orders.snapshot().supply,held:()=>orders.active().some(o=>o.workerId==='player'&&o.stage==='carrying'),registry:P.registry,meetingReady,requestMeeting:value=>{meeting=!!value;},claimDuty,canEndDuty,releaseDuty,workIntent,executeWork,workReceipts,
+  supplyState:()=>orders.snapshot().supply,mealObject,held:()=>orders.active().some(o=>o.workerId==='player'&&o.stage==='carrying'),registry:P.registry,meetingReady,requestMeeting:value=>{meeting=!!value;},claimDuty,canEndDuty,releaseDuty,workIntent,executeWork,workReceipts,
   canTalkAtPost:n=>people.has(n?.station.id)&&!meeting&&!workAction&&!pending().some(o=>o.workerId===n.station.id)&&!n.walking&&!n.route?.length&&!n.serviceMount,
   canBorrowForSocial:n=>people.has(n?.station.id)&&!needsLife?.owns(n)&&!meeting&&!pending().some(o=>o.workerId===n.station.id)&&(n!==jia||playerOwns()),
   owns:n=>people.has(n?.station.id),ownsStation:id=>people.has(id),socialStatus:n=>needsLife?.owns(n)?{busy:true,canPause:false,attention:false,job:needsLife.label()}:n!==jia&&people.has(n?.station.id)?{busy:false,canPause:true,attention:true,job:personLife(n).label()}:n===jia?{busy:!!pending().find(o=>o.workerId===jia.station.id),canPause:!pending().some(o=>o.workerId===jia.station.id),attention:!pending().some(o=>o.workerId===jia.station.id),job:playerOwns()?life.label():'御膳厨役 · 原单供膳'}:null,

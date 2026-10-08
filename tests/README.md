@@ -78,3 +78,5 @@ npm run test:door-geometry -- --tiny
 ### CR04同案筹谋定向入口
 
 `palace-usurpation-ledger.mjs`检查独立政治回应、三种可组合准备、原帝任次/实际凭据、拒写冷恢复、失败冷却与唯一授位；`palace-usurpation-ui.mjs`为模拟DOM，核定性显示、旧按钮与取消保案；`china-usurpation-context.mjs`只核真实支持/成年身份/已完工序来源及不抢房的住所投影。这些测试不能替代生产main的实际多人到场、御膳消费、登位后帝务或浏览器视觉。当前新链尚未启用，统一使用现有串行共享锁与资源守卫。
+
+`china-usurpation-main.cjs`一次仅进入中国，历史一般支持通过原公开服务/交谈writer构造并明确staged，政治回应和路线实际执行；首段在03保存`qa/usurpation-main/checkpoint.json`，唯一必要Git续点为`tests/fixtures/usurpation-main-checkpoint.json`。用`USURPATION_MAIN_FROM=tests/fixtures/usurpation-main-checkpoint.json`核独立冷恢复，不重一般支持或路线；`USURPATION_MAIN_FRESH=1`只在明确需重建首段时使用。新功能只在测试main内临时启用，生产gate仍false；TR03原开关不改。完整三筹备/登位/帝务仍后续，不把原月容实际拒绝改成成功。`china-usurpation-scene.mjs`是实际寻路/身体/纸物组件夹具，不是整宫main或浏览器视觉。

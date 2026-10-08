@@ -46,6 +46,15 @@ test('original Jia physically prepares and carries one dish; only actual same-se
  const f=fixture(),o=f.service.requestMeal({actorId:'cn-consort-yue',seatId:SEAT});assert(o);assert.equal(f.service.requestMeal({actorId:'player',seatId:SEAT}),null);f.player.root.position.set(0,.215,0);
  f.until(()=>f.service.mealReady(o.id,o.actorId),'Jia delivered original meal');assert.equal(f.service.state().supply.remaining,119);assert.equal(f.service.state().heldMeals.length,1);assert.equal(f.service.state().heldMeals[0].mealId,o.id+'-meal');assert.equal(f.service.startMeal(o.id,o.actorId),false);f.guest.mount=f.seat;assert(f.service.startMeal(o.id,o.actorId));f.tick(60);assert.equal(f.service.completeMeal(o.id,o.actorId),false);const g=fixture(f.checkpoint());g.tick(65);assert(g.service.completeMeal(o.id,o.actorId));assert.equal(g.needs.hunger(o.actorId),0);assert.equal(g.service.workReceipts().length,0);const needs=g.needs.snapshot();g.tick(40);assert(g.service.completeMeal(o.id,o.actorId));assert(g.needs.hunger(o.actorId)>0,'replaying consumed order grants no second meal');assert.equal(g.needs.snapshot().people[o.actorId].receipts['china-royal-kitchen'],1);assert.equal(g.service.state().supply.remaining,119);assert(needs.people[o.actorId].toiletAge>0,'meal does not reset the original royal toilet age');
 });
+test('requested consumed source restores only its same-number hidden bowl after cold load',()=>{
+ const f=fixture(),o=f.service.requestMeal({actorId:'cn-consort-yue',seatId:SEAT});f.player.root.position.set(0,.215,0);
+ f.until(()=>f.service.mealReady(o.id,o.actorId),'original dish delivered');f.guest.mount=f.seat;assert(f.service.startMeal(o.id,o.actorId));f.tick(125);
+ assert(f.service.completeMeal(o.id,o.actorId));const saved=f.checkpoint(),g=fixture(saved),before=g.service.snapshot();
+ assert.equal(g.group.getObjectByName(o.id+'-meal'),undefined);assert.equal(g.service.mealObject('missing-order'),null);
+ const original=g.service.mealObject(o.id);assert(original?.isObject3D);assert.equal(original.name,o.id+'-meal');assert.equal(original.visible,false);
+ assert.equal(original.userData.orderId,o.id);assert.equal(g.service.mealObject(o.id),original);assert.deepEqual(g.service.snapshot(),before);
+ assert.equal(g.group.children.filter(p=>p.name.endsWith('-meal')).length,1);assert.equal(g.service.state().heldMeals.length,0);
+});
 test('player explicitly inherits Jia role, waits for original orders, works same meal and stays employed until explicit bank handover',()=>{
  const f=fixture();f.hire();const receipt=f.employment.state().job.receiptId;f.tick(120);assert(f.employment.state().job.coveredSeconds>10);assert.equal(f.bank.state().bank,0);assert(f.service.state().life.brain.people['cn-cooking'].choices>0,'same Jia makes leisure choices');
  const o=f.service.requestMeal({actorId:'cn-consort-yue',seatId:SEAT});assert.equal(o.workerId,'player');f.guest.mount=f.seat;

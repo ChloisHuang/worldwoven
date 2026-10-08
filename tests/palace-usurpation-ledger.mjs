@@ -9,8 +9,8 @@ const copy=x=>JSON.parse(JSON.stringify(x));
 function world() {
   const npc=(id,circleId,extra={})=>({id,bodyId:`body:${id}`,name:id,ageYears:30,alive:true,eligible:true,supportsGeneral:true,roleId:`role:${id}`,circleId,relationship:1,trust:1,informedOpinion:1,...extra});
   return {player:{id:'player',bodyId:'body:player',ageYears:24,alive:true},emperor:{id:'cn-emperor',bodyId:'body:emperor',ageYears:45,alive:true,tenureRevision:0},
-    supporters:[npc('official-a','court',{official:true}),npc('official-b','court',{official:true}),npc('official-c','court',{official:true}),npc('commander','guard',{guardCommander:true}),npc('attendant','inner')],
-    guard:{commanderId:'commander',guards:[{id:'guard-a',bodyId:'body:guard-a'},{id:'guard-b',bodyId:'body:guard-b'}]},
+    supporters:[npc('official-a','court',{official:true}),npc('official-b','court',{official:true}),npc('official-c','court',{official:true}),npc('commander','guard',{guardCommander:true}),npc('attendant','inner'),npc('guard-a','guard')],
+    guard:{commanderId:'commander',guards:[{id:'commander',bodyId:'body:commander'},{id:'guard-a',bodyId:'body:guard-a'}]},
     experience:{intrigue:6,guard:6,abdication:6},exposure:0,
     safety:{oldWorkSettled:true,itemsSettled:true,meetingsSettled:true,actorTransitionsSafe:true},
     residences:{player:{roomId:'consort-reserve-1',bedId:'china-consort-bed-reserve-1'},formerEmperor:{roomId:'bedroom',bedId:'china-dragon-bed'}},
@@ -125,7 +125,7 @@ test('intrigue needs consumed original food plus its own plot event; kitchen wor
 
 test('guard and joint pressure depend on named current officers and actual original guards',()=>{
   const noPolitics=fixture();assert(noPolitics.core.begin().ok);assert.equal(noPolitics.prepare('guard').code,'commander-response-required');assert.equal(noPolitics.prepare('abdication').code,'official-commitments-required');
-  for(const change of [r=>r.commanderId='official-a',r=>r.guardIds=['guard-a'],r=>r.guardIds=['guard-a','new-guard'],r=>r.participants=r.participants.filter(a=>a.actorId!=='guard-b')]){
+  for(const change of [r=>r.commanderId='official-a',r=>r.guardIds=['guard-a'],r=>r.guardIds=['guard-a','new-guard'],r=>r.participants=r.participants.filter(a=>a.actorId!=='guard-a')]){
     const f=fixture();plan(f,['guard']);const r=f.receipt('guard');change(r);f.publish(r);assert.equal(f.core.recordPreparation(f.id(),'guard',r).ok,false);
   }
   for(const change of [r=>r.officialIds=['official-a','official-b'],r=>r.officialIds=['official-a','official-b','attendant'],r=>r.participants=r.participants.filter(a=>a.actorId!=='cn-emperor')]){
@@ -134,6 +134,18 @@ test('guard and joint pressure depend on named current officers and actual origi
   const guard=fixture();plan(guard,['guard']);assert(guard.prepare('guard').ok);guard.context.guard.guards[0].bodyId='replacement-guard-body';assert.equal(guard.resolve().code,'guard-preparation-required');
   const shared=fixture();shared.context.guard.guards=[{id:'commander',bodyId:'body:commander'},{id:'guard-a',bodyId:'body:guard-a'}];plan(shared,['guard']);assert(shared.prepare('guard').ok,'the actual warden may also be one of the two existing guards');
   const officials=fixture();plan(officials,['abdication']);assert(officials.prepare('abdication').ok);officials.context.supporters[0].official=false;assert.equal(officials.resolve().code,'abdication-preparation-required');
+});
+
+test('the original guards each decide politically; a commander cannot conscript a refusing guard',()=>{
+  const c=world(),commander=c.supporters.find(p=>p.id==='commander'),guard=c.supporters.find(p=>p.id==='guard-a');
+  Object.assign(guard,{relationship:-1,trust:-1,informedOpinion:-1});
+  let seed=1;while(!palaceUsurpationPledgeDecision(seed,FIRST,commander).accepted||palaceUsurpationPledgeDecision(seed,FIRST,guard).accepted)seed++;
+  const f=fixture({seed,context:c});assert(f.core.begin().ok);assert(f.core.selectRoute(f.id(),'guard').ok);
+  assert.equal(f.pledge('commander').accepted,true);assert.equal(f.prepare('guard').code,'guard-political-responses-required');
+  assert.equal(f.pledge('guard-a').accepted,false);assert.equal(f.prepare('guard').code,'guard-political-responses-required');
+  assert.equal(f.task().preparations.guard,null);assert.equal(f.core.view().routes.find(r=>r.id==='guard').requirements.find(r=>r.id==='guard-responses').met,false);
+  assert.equal(f.core.view().actions.find(a=>a.kind==='prepare'&&a.preparationKind==='guard').enabled,false);
+  assert.equal(f.core.office().actorId,'cn-emperor');
 });
 
 test('mechanism success alone never grants office; cross-circle acclamation, safe handoff and the same paper remain necessary',()=>{

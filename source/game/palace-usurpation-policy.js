@@ -8,7 +8,7 @@ export const PALACE_USURPATION_DEFAULTS = Object.freeze({
 });
 export const PALACE_USURPATION_ROUTES = Object.freeze([
   Object.freeze({id:'intrigue',label:'宫廷阴谋',description:'借实际宫廷事件使原帝暂时失能。'}),
-  Object.freeze({id:'guard',label:'卫队响应',description:'争取现任负责人，取得现有卫队的实际响应。'}),
+  Object.freeze({id:'guard',label:'卫队响应',description:'现任负责人和原守卫逐人明确响应，再由原两名守卫实际集结。'}),
   Object.freeze({id:'abdication',label:'联合逼退',description:'由具名官员联合施压，让原帝失去统治权。'}),
 ]);
 export const palaceUsurpationObject = x => x !== null && typeof x === 'object' && !Array.isArray(x);
