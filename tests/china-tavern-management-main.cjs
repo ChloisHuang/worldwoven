@@ -153,6 +153,16 @@ try{
   button('账簿').onclick();const after=r.tavernProperty.state();assert(panel().textContent.includes('营业盈亏 '+after.operatingProfit+' 文'));assert(panel().textContent.includes('已付伙计工资 '+m.business.state().paidWages+' 文'));button('×').onclick();
   if(checkpoint('08-ledger',{netRevenue:after.revenue-(after.performerPaid||0),procurement:after.procurementCash,materialExpense:after.materialConsumedCost,inventoryValue:after.inventoryValue,earnedLabor:after.earnedLabor,operatingProfit:after.operatingProfit,trialPaid:m.business.state().trialPaid,paidNPCWages:m.business.state().paidWages,drawn:10,bank:r.copperLedger.state().bank}))return;
  }
+ // Final independent cold-load pass uses the already paid/drawn checkpoint.
+ // Short ordinary updates must preserve all named outcomes without new money.
+ if(done('08-ledger')){
+  const actorId=journal.wageCase.actorId,paid=()=>m.business.snapshot().receipts.filter(v=>v.kind==='npc-wage'&&v.actorId===actorId&&v.proof.row.day===journal.workDay),before={bank:m.business.account(actorId).bank,playerBank:r.copperLedger.state().bank,contracts:m.business.snapshot().contracts.length,draws:r.tavernProperty.snapshot().events.filter(e=>e.kind==='draw').length,stock:clone(m.stock.summary())};
+  assert.equal(paid().length,1);assert.equal(paid()[0].amount,1);assert.deepEqual(clone(paid()[0].proof.row),journal.wageCase.row);assert.equal(before.bank,13);assert.equal(before.playerBank,519);
+  for(let i=0;i<5;i++)step();assert(m.business.settleDue().ok);assert.equal(paid().length,1);assert.equal(m.business.account(actorId).bank,before.bank);assert.equal(r.copperLedger.state().bank,before.playerBank);assert.equal(m.business.snapshot().contracts.length,before.contracts);assert.equal(r.tavernProperty.snapshot().events.filter(e=>e.kind==='draw').length,before.draws);assert.deepEqual(clone(m.stock.summary()),before.stock);
+  assert.equal(scene.kitchenRole('assistant').actor,originals.get(actorId));assert.equal(m.hiring.application(journal.trialApplicationId).status,'assigned');assert.equal(m.business.state().trialPaid,12);assert.equal(m.business.state().paidWages,9);assert.equal(m.stock.order(journal.businessOrder.id).status,'consumed');
+  const savedBankInterest=r.copperLedger.history().filter(v=>v.action==='interest').reduce((n,v)=>n+v.amount,0);assert.equal(savedBankInterest,5,'existing bank policy, outside business profit');
+  if(checkpoint('09-cold-paid',{actorId,bank:before.bank,playerBank:before.playerBank,paidWages:9,trialPaid:12,bankInterestOutsideBusiness:savedBankInterest,duplicatePayments:0,duplicateDraws:0,stockUnchanged:true}))return;
+ }
  console.log(JSON.stringify({status:'PASS',seconds:(Date.now()-started)/1000,completed:journal.completed,scope:journal.staging}));
 }catch(e){main.namespace.save();fs.writeFileSync(path.join(out,'interrupted.json'),JSON.stringify({version:1,save:JSON.parse(storage['worlds-days-v1']),journal}));fs.writeFileSync(path.join(out,'diagnostic.json'),JSON.stringify(diagnostic()));console.error(JSON.stringify({status:'FAIL',leg,steps,message:e.message,diagnostic:path.join(out,'diagnostic.json')}));throw e;}
 })().catch(e=>{console.error(e);process.exit(1)});

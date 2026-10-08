@@ -32,7 +32,7 @@ export function createChinaTavernPropertyUI({property,canOperate=()=>true,isNear
    const minus=button('−',()=>step(-10),false,'ww-airy-step'),plus=button('+',()=>step(10),false,'ww-airy-step');minus.setAttribute('aria-label',`${label}减少10文`);plus.setAttribute('aria-label',`${label}增加10文`);row.append(minus,input,plus);return row;
  }
  function amount(value,label){const row=make('div',null,'cn-property-amount');row.append(make('strong',String(value)),make('span',label));return row;}
- function metrics(s,owned){const dl=make('dl',null,'cn-property-metrics'+(owned?' is-owner':''));for(const [label,value]of owned?[['经营余额',s.balance],['营业实收',s.revenue],['已付玩家工资',s.paidWages]]:[['经营余额',s.balance],['营业实收',s.revenue]]){const row=make('div'),dd=make('dd',String(value));dd.append(make('small','文'));row.append(make('dt',label),dd);dl.append(row);}return dl;}
+ function metrics(s,owned){const dl=make('dl',null,'cn-property-metrics'+(owned?' is-owner':''));for(const [label,value]of owned?[['经营余额',s.balance],['营业实收',s.revenue],['已付工钱',s.paidWages]]:[['经营余额',s.balance],['营业实收',s.revenue]]){const row=make('div'),dd=make('dd',String(value));dd.append(make('small','文'));row.append(make('dt',label),dd);dl.append(row);}return dl;}
  function refresh(force=false) {
    if(disposed||!dialog.open&&!force)return;if(!isNearby()){close();return;}
    const daily=property.refreshDay(),s=property.state(),available=canOperate(),management=getManagement(),operating=management?.view?.(),key=JSON.stringify([s.revision,s.balance,s.bank,s.loadError,daily.code,available,!!operating,s.availableBalance,s.wagesPayable,s.trialReserved,s.operatingProfit,s.materialConsumedCost,s.inventoryValue,operating?.business?.paidWages,operating?.business?.trialPaid]);
@@ -53,7 +53,7 @@ export function createChinaTavernPropertyUI({property,canOperate=()=>true,isNear
      close();onOpenManagement();
    },false);
    if(showLedger){
-     body.className+=' cn-property-ledger';body.append(make('h3','账簿与经营范围'),make('p',`经营余额 ${s.balance} 文 · 营业实收 ${s.revenue} 文 · 已付玩家工资 ${s.paidWages} 文`),make('p','转让含店内经营余额；个人款项从银行收付。产权不会自动接班。'));
+     body.className+=' cn-property-ledger';body.append(make('h3','账簿与经营范围'),make('p',`经营余额 ${s.balance} 文 · 营业实收 ${s.revenue} 文 · 已付工钱 ${s.paidWages} 文`),make('p','转让含店内经营余额；个人款项从银行收付。产权不会自动接班。'));
      if(operating){const b=operating.business;body.append(make('p',`可用经营款 ${s.availableBalance} 文 · 工资待付 ${b.wagesPayable} 文 · 试工预留 ${b.trialReserved} 文`),make('p',`已付伙计工资 ${b.paidWages} 文 · 已付试工 ${b.trialPaid} 文 · 采购支出 ${b.procurementCash} 文`),make('p',`已耗食材 ${s.materialConsumedCost} 文 · 库存成本 ${s.inventoryValue} 文 · 营业盈亏 ${s.operatingProfit} 文`),make('p','营业盈亏已扣已挣工钱与耗用食材；工资和试工预留不能提走。','cn-property-note'));if(s.performerPaid)body.append(make('p',`另有雅集实收 ${s.salonRevenue} 文，已付艺者分成 ${s.performerPaid} 文。`));}
      else body.append(make('p',s.performerPaid?`另有雅集实收 ${s.salonRevenue} 文，已付艺者分成 ${s.performerPaid} 文；经营余额已扣除。全员NPC日薪、食材成本和招聘管理尚未开放。`:'当前成本记实际玩家工资；全员NPC日薪、食材成本和招聘管理尚未开放。'));
      body.append(make('h3','最近往来'));

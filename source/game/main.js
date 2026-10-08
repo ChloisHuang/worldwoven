@@ -180,7 +180,7 @@ import {createCharacter,characterResourceStats} from './characters.js?rev=R7-202
 import {blocked,moveWithCollision,findPath,canTraverse,resolveSurfaceHeight} from './navigation.js?rev=R7-20261002';
 import * as G from './geometry.js?rev=R7-20261002';
 const CHINA_PERSONNEL_TRIAL_ENABLED=true;
-const CHINA_TAVERN_MANAGEMENT_ENABLED=false; // Enable only after the complete owner loop is verified.
+const CHINA_TAVERN_MANAGEMENT_ENABLED=true; // Original owner hiring, stock, service and accounting loop verified.
 const $=id=>document.getElementById(id), canvas=$('world');
 let viewport=displayedViewport(canvas);const hudLayout=createHudLayout();syncUiViewport();
 const regions=[
