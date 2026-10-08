@@ -61,7 +61,7 @@ function fixture({enabled = true, reject = false} = {}) {
     if (old && (reject ? royal > .95 : royal < .3)) break;
   }
   assert(seed < 100000);
-  const clock = {day: 1, hour: 8, seconds: 100}, flags = {save: true, busy: false, standing: true, clear: true, meeting: true, held: false};
+  const clock = {day: 1, hour: 8, seconds: 100}, flags = {save: true, busy: false, standing: true, clear: true, meeting: true, held: false, reception: true};
   let lu = actor(LU, [21.7, .215, 32.25]), emperor = actor(EMPEROR, [-21.7, 7.815, -4.6]), player = actor('player', [20.55, .215, 32.25]); player.ageYears = 22;
   const originalLu = lu, originalEmperor = emperor, originalPlayer = player, realPalace = palaceFixture(emperor), bank = [], writes = [], runtimeWrites = [], notices = [], travels = [];
   const hooks = {resume: null, waiting: null};
@@ -110,7 +110,7 @@ function fixture({enabled = true, reject = false} = {}) {
   const home = new T.Group(), paper = new T.Group(); home.add(paper); paper.position.set(21.44, 1.235, 31.55);
   const options = {careers, palace: realPalace.palace, getPlayer: () => player, getClock: () => clock, enabled,
     getLu: () => lu, getEmperor: () => emperor, getBusy: () => flags.busy, standing: () => flags.standing, canSee: () => flags.clear,
-    getMeetingPoint: (_actor, fallback) => fallback, requestMeeting: () => {if (!flags.meeting) return false; flags.held = true; return true;},
+    getMeetingPoint: (_actor, fallback) => flags.reception ? fallback : null, requestMeeting: () => {if (!flags.meeting) return false; flags.held = true; return true;},
     meetingHeld: who => flags.held && who === lu, releaseMeeting: () => {flags.held = false;},
     resumeApproach: selected => {travels.push(copy(selected)); return hooks.resume?.(selected) ?? true;}, onWaiting: () => hooks.waiting?.(), notify: text => notices.push(text), documentObject: paper,
     saveState: value => {runtimeWrites.push(copy(value)); if (!flags.save) return false; durableRuntime = copy(value); return true;},
@@ -449,3 +449,28 @@ console.log('PASS actual main direct moving-frame personnel intent defers once t
   f.tick(2);assert.deepEqual(f.careers.promotionSummary().application,decided,'hidden-render completion cannot repeat the saved imperial decision');f.dispose();
 }
 console.log('PASS personnel approval waits and actual original-emperor review ignore camera-only avatar hiding; real absence releases ownership without duplicate decisions');
+
+// Another NPC passing the stand point must not replace an existing valid
+// original-Lu reservation with the registry fallback. No saved anchor/lease is
+// trusted after expiry, cold restore, cancellation or the original body moving.
+{
+  const f=fixture();f.apply();const chosen=f.service.intent(P+'review');assert(f.service.prepareIntent(chosen));
+  const reserved=copy(f.service.intent(P+'review').position);f.flags.reception=false;
+  const stable=f.service.resolveIntent(chosen);assert(stable);assert.deepEqual(stable.position,reserved);assert.equal(stable.awaitingReception,false);
+  assert.equal(f.service.executeIntent(stable),false,'stable reservation never permits remote review');
+  f.player.root.position.set(...reserved);f.flags.clear=false;assert.equal(f.service.executeIntent(stable),false,'actual view obstruction still blocks');f.flags.clear=true;
+  assert(f.service.executeIntent(stable));f.tick(3.9);assert.equal(f.careers.promotionSummary().application.stage,'submitted');f.tick(.1);
+  assert.equal(f.careers.promotionSummary().application.stage,'document-ready');assert.equal(f.careers.promotionSummary().application.imperialDecision,null);assert.equal(f.flags.held,false);f.dispose();
+}
+for(const change of ['expiry','move','restore','cancel']){
+  const f=fixture();f.apply();const chosen=f.service.intent(P+'review');assert(f.service.prepareIntent(chosen));const reserved=copy(chosen.position),before=copy(f.careers.promotionSummary().application);
+  f.flags.reception=false;
+  if(change==='expiry'){f.flags.held=false;assert(f.service.intent(P+'review').awaitingReception);f.flags.held=true;}
+  if(change==='move')f.lu.root.position.x+=2;
+  if(change==='restore')f.load(f.service.snapshot());
+  if(change==='cancel')assert(f.service.stopActivity());
+  const current=f.service.intent(P+'review');assert(current.awaitingReception,change);assert.notDeepEqual(current.position,reserved,change);
+  f.player.root.position.set(...reserved);assert.equal(f.service.executeIntent(chosen),false,change);f.tick(.1);
+  assert.deepEqual(f.careers.promotionSummary().application,before,change);f.dispose();
+}
+console.log('PASS same live Lu lease keeps appointment stand point stable through a transient passer-by; expiry/body movement/cold restore/cancel cannot revive old anchor or remote review');

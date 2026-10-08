@@ -40,7 +40,7 @@ export function createChinaPersonnelAppointment({careers, palace, getPlayer, get
     const {continuity, ...top} = saved;
     saved = continuity?.version === 1 ? continuity : Object.keys(top).length ? top : continuity === null ? undefined : saved;
   }
-  let activity = null, heldLu = null, watchedPlayer = null, watchedRecipient = null;
+  let activity = null, heldLu = null, reviewAnchor = null, watchedPlayer = null, watchedRecipient = null;
   let royalOwner = null, disposed = false, mutating = false, loadError = null, lastError = null, candidate = null;
   const home = documentObject ? {parent: documentObject.parent, position: documentObject.position.clone(), rotation: documentObject.rotation.clone(), scale: documentObject.scale.clone()} : null;
   const enabledNow = () => !disposed && (typeof enabled === 'function' ? enabled() === true : enabled === true);
@@ -106,7 +106,7 @@ export function createChinaPersonnelAppointment({careers, palace, getPlayer, get
     documentObject.position.copy(home.position); documentObject.rotation.copy(home.rotation); documentObject.scale.copy(home.scale);
     delete documentObject.userData.personnelAppointmentId; delete documentObject.userData.personnelAppointmentStage;
   }
-  function releaseLu() { if (heldLu) { heldLu = null; releaseExternal(); } }
+  function releaseLu() { reviewAnchor = null; if (heldLu) { heldLu = null; releaseExternal(); } }
   function clearRoyalLease() { if (royalOwner) { palace?.setDutyLine?.(royalOwner, null); palace?.releaseDuty?.(royalOwner); royalOwner = null; } }
   function clearActivity() { releaseLu(); clearRoyalLease(); activity = null; watchedPlayer = null; watchedRecipient = null; }
   function snapshot() {
@@ -125,7 +125,16 @@ export function createChinaPersonnelAppointment({careers, palace, getPlayer, get
     const had = !!activity; clearActivity(); syncDocument(); return !had || persistRuntime();
   }
   const typeFor = kind => typeof kind === 'string' && kind.startsWith(PREFIX) ? kind.slice(PREFIX.length) : null;
+  function bindReviewPoint(lu, selected) {
+    reviewAnchor = {actor: lu.actor, bodyId: lu.bodyId, position: [...lu.position], point: [...selected.position], applicationId: activity.applicationId, stage: activity.stage};
+  }
   function reviewPoint(lu) {
+    // A passer-by cannot redirect an already reserved meeting to registry.
+    // This anchor is runtime-only and valid solely for this live body/lease.
+    if (reviewAnchor && heldLu === lu.actor && reviewAnchor.actor === lu.actor && reviewAnchor.bodyId === lu.bodyId &&
+        activity?.applicationId === reviewAnchor.applicationId && pending()?.id === reviewAnchor.applicationId && pending()?.stage === reviewAnchor.stage &&
+        ['review-approach', 'review'].includes(activity.kind) && meetingHeld(lu.actor) && equal(reviewAnchor.position, lu.position)) return [...reviewAnchor.point];
+    reviewAnchor = null;
     const [x, y, z] = lu.position, fallback = [x + (x > 24.5 ? -.78 : .78), y, z];
     const result = getMeetingPoint(lu.actor, fallback); return point(result) && near(result, lu.position, 2) ? [...result] : null;
   }
@@ -169,7 +178,7 @@ export function createChinaPersonnelAppointment({careers, palace, getPlayer, get
     const lu = live(LU); if (!lu || watchedRecipient && watchedRecipient !== lu.actor) { stopActivity(); return false; }
     if (next.awaitingReception || lu.actor.walking || !requestMeeting(lu.actor)) return queueLu(next);
     if (!activity) activity = makeActivity(next, 'review-approach');
-    activity.kind = 'review-approach'; activity.point = [...next.position]; heldLu = lu.actor; return true;
+    activity.kind = 'review-approach'; activity.point = [...next.position]; heldLu = lu.actor; bindReviewPoint(lu, next); return true;
   }
   function report(result, success) {
     const code = result?.code || result?.reasons?.[0] || 'save-failed';
@@ -250,7 +259,7 @@ export function createChinaPersonnelAppointment({careers, palace, getPlayer, get
       activity.retryIn = Math.max(0, activity.retryIn - elapsed); if (activity.retryIn > 1e-8) return; activity.retryIn = 1;
       const next = intent(activity.intentKind), lu = live(LU);
       if (!next || next.awaitingReception || !lu || lu.actor.walking || !requestMeeting(lu.actor)) return;
-      heldLu = lu.actor; activity.kind = 'review-approach'; activity.point = [...next.position]; if (resumeApproach(next) === false) stopActivity(); return;
+      heldLu = lu.actor; activity.kind = 'review-approach'; activity.point = [...next.position]; bindReviewPoint(lu, next); if (resumeApproach(next) === false) stopActivity(); return;
     }
     if (activity.kind === 'review-approach') {
       if (getBusy()) { stopActivity(); return; }

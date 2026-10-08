@@ -63,7 +63,7 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
     const {continuity, ...top} = saved;
     saved = continuity?.version === 1 ? continuity : Object.keys(top).length ? top : continuity === null ? undefined : saved;
   }
-  let activity = null, heldLu = null, watchedLu = null, watchedPlayer = null, retirementRetryIn = 0, retirementCheck = null;
+  let activity = null, heldLu = null, reviewAnchor = null, watchedLu = null, watchedPlayer = null, retirementRetryIn = 0, retirementCheck = null;
   let disposed = false, saving = false, candidateSnapshot = null, loadError = null, lastError = null;
   const documentHome = documentObject ? {parent: documentObject.parent, position: documentObject.position.clone(), rotation: documentObject.rotation.clone(), scale: documentObject.scale.clone()} : null;
   const compileTarget = documentObject ? documentObject.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, .015, 0)).toArray() : [...P.archiveTarget];
@@ -138,7 +138,7 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
     },
   });
   loadError = work.loadError;
-  function releaseMeeting() { heldLu = null; releaseExternal(); }
+  function releaseMeeting() { heldLu = null; reviewAnchor = null; releaseExternal(); }
   function persistRuntime() {
     if (typeof saveState !== 'function') return false;
     saving = true; candidateSnapshot = freeze(snapshot());
@@ -222,7 +222,16 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
     if (parts?.[0] === 'personnel-record' && parts.length === 3 && places.has(parts[1]) && ['accepted', 'awaiting'].includes(parts[2])) return {type: 'record', actorId: parts[1], answer: parts[2]};
     return null;
   }
+  function bindReviewPoint(lu, selected) {
+    reviewAnchor = {actor: lu.actor, bodyId: lu.bodyId, position: [...lu.position], point: [...selected.position], caseId: activity.caseId, revision: activity.revision};
+  }
   function reviewPoint(lu) {
+    // Keep only the same live reservation stable when other NPCs pass nearby.
+    // Cold restoration must obtain a fresh lease before binding any point.
+    if (reviewAnchor && heldLu === lu.actor && reviewAnchor.actor === lu.actor && reviewAnchor.bodyId === lu.bodyId &&
+        activity?.caseId === reviewAnchor.caseId && current()?.id === reviewAnchor.caseId && current()?.revision === reviewAnchor.revision &&
+        ['review-approach', 'review'].includes(activity.kind) && meetingHeld(lu.actor) && equal(reviewAnchor.position, lu.position)) return [...reviewAnchor.point];
+    reviewAnchor = null;
     const [x, y, z] = lu.position;
     const fallback = [x + (x > 24.5 ? -.78 : .78), y, z];
     const result = getMeetingPoint(lu.actor, fallback);
@@ -310,7 +319,7 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
     if (!lu || watchedLu && activity?.intentKind === next.kind && watchedLu !== lu.actor) { stopActivity(); return false; }
     if (next.awaitingReception || !meetingAvailable(lu) || !requestMeeting(lu.actor)) return queueReview(next);
     if (!activity || activity.intentKind !== next.kind) activity = makeActivity(next, 'review-approach');
-    activity.kind = 'review-approach'; activity.point = [...next.position]; heldLu = lu.actor; watchedLu = lu.actor; syncDocument();
+    activity.kind = 'review-approach'; activity.point = [...next.position]; heldLu = lu.actor; watchedLu = lu.actor; bindReviewPoint(lu, next); syncDocument();
     return true;
   }
   function report(result, success) {
@@ -436,7 +445,7 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
       deferBusyReview(lu);
       if (!next || next.awaitingReception || !meetingAvailable(lu)) return;
       if (!requestMeeting(lu.actor)) return;
-      heldLu = lu.actor; activity.kind = 'review-approach'; activity.point = [...next.position]; syncDocument();
+      heldLu = lu.actor; activity.kind = 'review-approach'; activity.point = [...next.position]; bindReviewPoint(lu, next); syncDocument();
       if (resumeApproach(next) === false) stopActivity(); return;
     }
     if (activity.kind === 'review-approach') {

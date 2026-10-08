@@ -4,6 +4,7 @@
 // Run SERIAL under flock + scripts/guard-process-tree.py (180s/1152MiB).
 // Default resumes the local completed checkpoint, or the committed actual
 // last completed fixture. PERSONNEL_MAIN_FRESH=1 replays the six-desk route.
+// PERSONNEL_MAIN_BUNDLED=1 explicitly resumes the committed latest checkpoint.
 // Default cold continuation does not rerun or claim fresh six-desk coverage.
 // Completed milestones survive an external kill. PERSONNEL_MAIN_STOP_AFTER names a completed milestone;
 // PERSONNEL_MAIN_FROM names a save checkpoint for a deliberate branch check.
@@ -15,8 +16,9 @@ function once(a, b) {
 }
 const seams = `
 export function personnelMainReview(){return {saved,player,npcs,lot,furniture,formalCareers,copperLedger,chinaOfficialEconomy,chinaAudience,chinaCareer,chinaPersonnelCareer,chinaPersonnelAppointment,chinaPalace,npcSocial,careerHandbook,simulationClock,path,targetStation,pendingInteraction};}
-export function personnelMainStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);activeDailyToilet()?.update(dt);updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);updateGameHealth(dt);careerHandbook.update(mode);updateCamera(dt);}
+export function personnelMainStep(dt,beforePlayer=null){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);activeDailyToilet()?.update(dt);beforePlayer?.(personnelMainArrival());updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);updateGameHealth(dt);careerHandbook.update(mode);updateCamera(dt);}
 export function personnelMainConditions(){const lu=npcs.find(n=>n.station.id==='cn-official-personnel'),body=n=>n?.bodyId||n?.root?.userData?.bodyId||n?.actorId||n?.station?.id;return {player:{bodyId:body(player),alive:player?.alive!==false,visible:player?.root?.visible,walking:player?.walking,position:player?.root?.position.toArray()},lu:{bodyId:body(lu),alive:lu?.alive!==false,visible:lu?.root?.visible,walking:lu?.walking,position:lu?.root?.position.toArray()},cameraDistance:camera.position.distanceTo(camTarget),standing:{seated:!!seated,bathTransition:!!bathTransition,toiletPose:!!activeDailyToilet()?.playerPose()},busy:{interactionMenuOpen:!!interactionMenuOpen(),performing:!!performing,social:!!npcSocial?.active(),salon:!!chinaSalon?.active(),cleaning:!!chinaLabor?.isCleaning(),court:!!chinaCareer?.isActing(),personnel:!!chinaPersonnelCareer?.isActing()},openMenus:Object.entries({family:familyRuntime?.isOpen(),palace:palaceCompanionshipUI?.isOpen(),conversation:playerConversationUI.isOpen(),consort:chinaConsortUI?.isOpen(),context:contextMenu.isOpen(),passport:travelPassport.isOpen(),study:studyMenu.isOpen(),wallet:currencyWallet?.isOpen(),career:careerHandbook.isOpen(),outfit:outfitPreview.state().open,performance:japanPerformanceUI?.isOpen(),japanService:japanServiceUI?.isOpen(),tavern:chinaTavernUI?.isOpen(),lodging:chinaLodgingUI?.isOpen(),moneyHouse:chinaMoneyHouse?.isOpen(),service:chinaService?.isOpen(),labor:chinaLabor?.isOpen(),salon:chinaSalonUI?.isOpen()}).filter(([,open])=>open).map(([name])=>name)};}
+export function personnelMainArrival(){const selected=pendingInteraction||targetStation;if(selected?.provider!=='china-personnel-appointment'||selected.kind!=='personnel-promotion-review')return null;const p=player.root.position,oldGap=Math.hypot(p.x-selected.position[0],p.z-selected.position[2]),oldHeightGap=Math.abs(p.y-selected.position[1]);if(path.length>2&&oldGap>.3)return null;const current=resolvePlayerIntent(selected),lu=npcs.find(n=>n.station.id==='cn-official-personnel'),brief=value=>value&&Object.fromEntries(['provider','kind','id','position','intentKey','executionRadius','visualAnchor','awaitingReception'].filter(k=>value[k]!==undefined).map(k=>[k,value[k]])),radius=current?.executionRadius??.016;return {selected:brief(selected),current:brief(current),keysMatch:!!current&&selected.intentKey===current.intentKey,oldGap,oldHeightGap,currentGap:current?Math.hypot(p.x-current.position[0],p.z-current.position[2]):null,currentHeightGap:current?Math.abs(p.y-current.position[1]):null,near:!!current&&nearbyInteraction(current,p,{radius,clear:()=>true}),clear:!!current&&nearbyInteractionClear(current),nearAndClear:!!current&&nearbyInteraction(current,p,{radius,clear:nearbyInteractionClear}),player:p.toArray(),pathLength:path.length,lu:{position:lu.root.position.toArray(),bodyId:lu.bodyId||lu.root.userData.bodyId||lu.actorId||lu.station.id,alive:lu.alive!==false,walking:lu.walking,visible:lu.root.visible},meeting:npcSocial.meetingState(),runtime:chinaPersonnelAppointment.snapshot()};}
 export {requestStationIntent,save};
 `;
 once("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),", "new vm.SourceTextModule(readProduction(file),");
@@ -29,9 +31,10 @@ once('add(...e){this.append(...e)}', "prepend(...els){for(const e of els.reverse
 once("const main=mod(path.join(root,'game/main.js'));", String.raw`
 const output=path.resolve('qa/personnel-main');fs.mkdirSync(output,{recursive:true});
 const clone=value=>JSON.parse(JSON.stringify(value)),latest=path.join(output,'latest.json');
-const fresh=process.env.PERSONNEL_MAIN_FRESH==='1',fixture=path.resolve('tests/fixtures/personnel-main-checkpoint.json');
-const bundled=!fresh&&!fs.existsSync(latest)&&fs.existsSync(fixture)?JSON.parse(fs.readFileSync(fixture,'utf8')):null;
-let journal=!fresh&&fs.existsSync(latest)?JSON.parse(fs.readFileSync(latest,'utf8')):bundled?.journal||{version:1,completed:[],evidence:[]};
+const fresh=process.env.PERSONNEL_MAIN_FRESH==='1',forceBundle=process.env.PERSONNEL_MAIN_BUNDLED==='1',fixture=path.resolve('tests/fixtures/personnel-main-checkpoint.json');
+if(forceBundle&&!fresh&&!process.env.PERSONNEL_MAIN_FROM)assert(fs.existsSync(fixture),'Requested committed checkpoint exists');
+const bundled=!fresh&&(forceBundle||!fs.existsSync(latest))&&fs.existsSync(fixture)?JSON.parse(fs.readFileSync(fixture,'utf8')):null;
+let journal=bundled?.journal||(!fresh&&fs.existsSync(latest)?JSON.parse(fs.readFileSync(latest,'utf8')):{version:1,completed:[],evidence:[]});
 const from=process.env.PERSONNEL_MAIN_FROM;
 if(from){storage['worlds-days-v1']=fs.readFileSync(path.resolve(output,from),'utf8');journal={version:1,completed:[],evidence:[],branchFrom:from};}
 else if(bundled){assert.equal(bundled.version,1);storage['worlds-days-v1']=JSON.stringify(bundled.save);journal.provenance=bundled.provenance;}
@@ -80,6 +83,17 @@ function checkpoint(name,evidence={}){
  if(process.env.PERSONNEL_MAIN_STOP_AFTER===name||Date.now()-started>110000){console.log(JSON.stringify({status:'CHECKPOINT',milestone:name,resume:latest,seconds:(Date.now()-started)/1000}));return true;}return false;
 }
 try {
+ if(process.env.PERSONNEL_MAIN_DIAGNOSTIC==='arrival'){
+  assert.equal(app().stage,'submitted');assert(r.chinaPersonnelAppointment.isActing());
+  const samples=[],boot=clone(main.namespace.personnelMainConditions());let savedBefore=null,lost=false;
+  for(let i=0;i<1600;i++){
+   now+=100;main.namespace.personnelMainStep(.1,value=>{if(!value)return;const row={step:steps+1,...clone(value)};samples.push(row);if(samples.length>64)samples.shift();if(!savedBefore&&row.oldGap<=.3&&row.oldHeightGap<=.3&&row.meeting?.owner==='personnel-promotion-review'){assert(main.namespace.save());fs.writeFileSync(path.resolve('qa/arrival-before-cancel.json'),storage['worlds-days-v1']);savedBefore=row;}});steps++;
+   if(!r.chinaPersonnelAppointment.isActing()&&app().stage==='submitted'||ids.toast.textContent.includes('当前动作已变化')){lost=true;break;}
+   if(app().stage!=='submitted')break;
+  }
+  const result={scope:'Observation-only actual06 arrival diagnostic; stop at first lost queue; original product arrival guard unchanged',steps,lost,boot,savedBefore,samples,after:{conditions:clone(main.namespace.personnelMainConditions()),runtime:r.chinaPersonnelAppointment.snapshot(),application:{id:app().id,stage:app().stage,status:app().status},pathLength:state().pathLength,meeting:r.npcSocial.meetingState(),toast:ids.toast.textContent}};
+  fs.writeFileSync(path.resolve('qa/personnel-arrival-diagnostic.json'),JSON.stringify(result,null,2));console.log(JSON.stringify({scope:result.scope,steps,lost,savedBefore:!!savedBefore,last:samples.at(-1),after:result.after}));return;
+ }
  if(process.env.PERSONNEL_MAIN_DIAGNOSTIC==='wait-boot'){
   const sample=at=>({at,conditions:clone(main.namespace.personnelMainConditions()),samePlayer:review().player===r.player,sameLu:review().npcs.find(n=>n.station.id===LU)===originals.get(LU),activity:clone(r.chinaPersonnelAppointment.snapshot()),application:{id:app()?.id,status:app()?.status,stage:app()?.stage},playerPathLength:state().pathLength,meeting:r.npcSocial.meetingState()});
   const samples=[sample('cold-boot')];for(let i=0;i<2;i++){step();samples.push(sample('step-'+(i+1)));if(!r.chinaPersonnelAppointment.isActing())break;}

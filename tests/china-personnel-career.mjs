@@ -485,3 +485,24 @@ console.log('PASS actual main work-stop/panel-cancel clears personnel approach e
 console.log('PASS personnel camera-only avatar hiding keeps queues; real floor departure/scene disposal releases leases; actual main scene/root/posture predicate preserves physical boundaries');
 
 {const f=fixture();f.player.root.visible=false;f.claim();f.read(0);assert.equal(f.service.state().case.rows[0].visit.elapsed,3,'hidden avatar still reads only after actual stationary3s');}
+
+// The same reservation rule applies to real roster signing, without changing
+// any physical near/clear proof or allowing a cold/expired lease to survive.
+{
+  const f=fixture();f.claim();f.fill();f.compile();const chosen=f.service.intent('personnel-review');assert(f.service.prepareIntent(chosen));const reserved=copy(chosen.position);
+  f.flags.reception=false;const stable=f.service.resolveIntent(chosen);assert(stable);assert.deepEqual(stable.position,reserved);assert.equal(stable.awaitingReception,false);
+  assert.equal(f.service.executeIntent(stable),false,'signing still requires actual arrival');f.player.root.position.set(...reserved);
+  f.flags.visible=false;assert.equal(f.service.executeIntent(stable),false,'real obstruction is still authoritative');f.flags.visible=true;
+  assert(f.service.executeIntent(stable));f.tick(3.9);assert.equal(f.service.state().case.status,'draft');f.tick(.1);assert.equal(f.service.state().case.status,'signed');assert.equal(f.flags.held,false);
+}
+for(const change of ['expiry','move','restore','cancel']){
+  const f=fixture();f.claim();f.fill();f.compile();const chosen=f.service.intent('personnel-review');assert(f.service.prepareIntent(chosen));const reserved=copy(chosen.position),before=copy(f.service.snapshot().work);
+  f.flags.reception=false;
+  if(change==='expiry'){f.flags.held=false;assert(f.service.intent('personnel-review').awaitingReception);f.flags.held=true;}
+  if(change==='move')f.lu.root.position.x+=2;
+  if(change==='restore')f.load(f.service.snapshot());
+  if(change==='cancel')assert(f.service.stopActivity());
+  const current=f.service.intent('personnel-review');assert(current.awaitingReception,change);assert.notDeepEqual(current.position,reserved,change);
+  f.player.root.position.set(...reserved);assert.equal(f.service.executeIntent(chosen),false,change);f.tick(.1);assert.deepEqual(f.service.snapshot().work,before,change);f.service.dispose();
+}
+console.log('PASS same live roster lease keeps its standing point; transient availability cannot invalidate arrival, while lost/cold/cancelled or moved-body leases never sign remotely');
