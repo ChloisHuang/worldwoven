@@ -367,6 +367,7 @@
       "regional-teller-main.cjs",
       "regional-teller-physical.cjs",
       "china-official-grade-pay.mjs",
+      "china-granary-audit.mjs",
       "china-official-grade-life.mjs",
       "china-official-grade-main.cjs"
     ]
@@ -627,7 +628,9 @@
       "china-palace-tea-player-service.cjs",
       "china-court-report-receipt.mjs",
       "china-court-report-main.cjs",
-      "china-court-reissue-pending.mjs"
+      "china-court-reissue-pending.mjs",
+      "china-granary-audit-flow.mjs",
+      "china-granary-audit-main.cjs"
     ]
   },
   "release": {

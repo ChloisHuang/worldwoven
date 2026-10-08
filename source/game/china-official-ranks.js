@@ -53,7 +53,7 @@ export const CHINA_OFFICIAL_GRADE_ASSIGNMENTS_V1 = Object.freeze({
 export const CHINA_OFFICIAL_DAILY_WAGE = 24;
 export const CHINA_COURT_OFFICIAL_RANKS = Object.freeze([
   {actorId:'cn-minister-works',roleLabel:'工务主官',gradeId:'cn-grade-2-regular',responsibility:'审核本部门实据、监督工务执行并向皇帝复奏',implemented:'原编号清扫令的呈奏、奉准实地核验与复奏',remaining:'完整工程派工、部门预算与下属考核'},
-  {actorId:'cn-minister-granary',roleLabel:'仓务总管',gradeId:'cn-grade-3-regular',responsibility:'钱粮审核、仓务核对与部门回报',implemented:'朝会、已有核验队列的据实通报与本人归档',remaining:'真实仓储、钱粮单据与审核链'},
+  {actorId:'cn-minister-granary',roleLabel:'仓务总管',gradeId:'cn-grade-3-regular',responsibility:'钱粮审核、仓务核对与部门回报',implemented:'原案核对已付俸据、具名奏报与皇帝收讫；本人朝会归档另行计薪',remaining:'真实仓储收发、存量及其他钱粮审核链'},
   {actorId:'cn-official-rites',roleLabel:'礼仪主管',gradeId:'cn-grade-4-regular',responsibility:'礼制、朝仪与相关任职审核',implemented:'朝会、录事入职与从九升正九的当面审核',remaining:'更高阶实职任命与完整礼制事务'},
   {actorId:'cn-official-personnel',roleLabel:'吏务主管',gradeId:'cn-grade-5-regular',responsibility:'官员考核与值勤名册管理',implemented:'朝会与本人归档；值勤名册目前为日常动作',remaining:'真实考核、人员名册变更与任免工序'},
   {actorId:'cn-official-justice',roleLabel:'刑名主官',gradeId:'cn-grade-2-regular',responsibility:'部门裁决、案件审核与问责',implemented:'朝会与本人归档；无实案时不虚报案件',remaining:'真实案件、审理与裁决权限链'},

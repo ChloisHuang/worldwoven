@@ -21,7 +21,7 @@ export const CHINA_OFFICIAL_GARDEN_PLACES=Object.freeze([[11.7,.145,-14.4],[9.2,
 // This controller owns the officials' personal time. Court borrows an
 // official after a safe furniture exit; it never adds personal summon delays,
 // creates, removes, teleports or animates a second emperor.
-export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,reports,economy=null,sharedNeeds=null,getTavern=()=>null,getToilet=()=>null,getSalon=()=>null,getClock=()=>({day:0}),worldSeed=1,saved={},saveState=()=>{},beginInteraction=()=>null,onInteraction=()=>{},record=()=>{}}){
+export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,reports,granaryAudit=null,economy=null,sharedNeeds=null,getTavern=()=>null,getToilet=()=>null,getSalon=()=>null,getClock=()=>({day:0}),worldSeed=1,saved={},saveState=()=>{},beginInteraction=()=>null,onInteraction=()=>{},record=()=>{}}){
  if(!furniture)return null;
  const navigation={surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4,radius:.25};
  const stages=new Map(),duties=JSON.parse(JSON.stringify(saved.duties||{})),unpaidDuties=JSON.parse(JSON.stringify(saved.unpaidDuties||[])),brain=createLifeDecisions({worldSeed,actorIds:officials.map(n=>n.station.id),sharedNeeds,saved:saved.decisions,onChange:()=>save()}),claims=furniture.facilities;
@@ -73,10 +73,11 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  }
  function candidates(n){
   const i=index(n),bed=seat(B.beds[i]),listen=seat('china-tavern-listening-'+(i%2?20.65:17.5)),experience=brain.experience(n.station.id),partners=!conversation&&experience&&[1,2].every(slot=>!occupied('cn-official-garden-place-'+slot,n))?officials.filter(other=>other!==n&&idleEligible(other)&&Math.abs(other.root.position.y-n.root.position.y)<.4&&other.root.position.distanceTo(n.root.position)<6.5&&canTraverse(n.root.position,other.root.position,lot.colliders.concat(doors?.planningColliders||[]),navigation)):[];
-  const inspection=i===0?reports?.inspection():null,duty=duties[n.station.id],salonTargets=salonChoices(n).map(q=>({id:q.artistId+':'+q.activity,choice:{salon:{artistId:q.artistId,activity:q.activity,fee:q.fee,...(Number.isSafeInteger(q.revision)?{revision:q.revision}:{})},label:'自费'+SALON_ACTIVITIES[q.activity].name+' · '+q.fee+'铜文'}}));
+  const audit=i===1?granaryAudit?.job():null,inspection=i===0?reports?.inspection():null,duty=duties[n.station.id],salonTargets=salonChoices(n).map(q=>({id:q.artistId+':'+q.activity,choice:{salon:{artistId:q.artistId,activity:q.activity,fee:q.fee,...(Number.isSafeInteger(q.revision)?{revision:q.revision}:{})},label:'自费'+SALON_ACTIVITIES[q.activity].name+' · '+q.fee+'铜文'}}));
   return [
    ...(duty?.stage==='awaiting-archive'&&duty.day===getClock().day?[{id:'archive-duty',label:'回本署核对今日朝班凭记 · 归档后领俸',base:10,point:B.offices[i],workTarget:B.workTargets[i],action:'calligraphy',duration:[8,8],cooldown:0,relief:{},dutyDay:duty.day}]:[]),
    ...(inspection?[{id:'inspect',label:inspection.label,base:8,point:inspection.point,look:inspection.look,action:'read',duration:[5,9],cooldown:15,inspection,relief:{}}]:[]),
+   ...(audit?[{id:'payroll-audit',label:audit.label,base:8,point:B.offices[i],workTarget:B.workTargets[i],action:'read',duration:[15,27],cooldown:22,relief:{},auditId:audit.id}]:[]),
    {id:'work',label:n.station.workLabel||(i?'核对来文 · 编排下一次奏事':'整理工务文书 · 核对执行回执'),base:1.2,traits:{quiet:.4},needs:{fatigue:-.6},duration:[15,27],cooldown:22,relief:{social:.02},point:B.offices[i],action:'calligraphy',workTarget:B.workTargets[i]},
    {id:'read',label:'官署静读 · 看一会儿书卷',experience:{kind:'read',label:'方才在官署读过书卷'},base:.18,traits:{curiosity:.7,quiet:.8},needs:{fatigue:.2},duration:[10,18],cooldown:50,relief:{fatigue:-.10},point:B.offices[i],action:'read'},
    {id:'rest',label:'回自己的值宿室歇息',base:.05,traits:{quiet:.25},needs:{fatigue:3.5},duration:[18,32],cooldown:90,relief:{fatigue:-.7},point:bed?.position,mount:bed,facilityId:bed?.id,roomId:B.privateRoomIds?.[i]??(i<2?B.roomIds[i]:null)},
@@ -165,11 +166,11 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   tell(n,s.label);animate(n,s,t,both?other:null);
  }
  function release(n,s){if(s?.mount){const landing=findActorStandPoint(n,s.mount,({ignoreDynamicBodies})=>furniture.standPoint(navigation,ignoreDynamicBodies?[...(doors?.cameraColliders||[])]:safety(n),s.mount,n.collisionRadius??.25));if(!landing)return false;n.root.position.copy(landing);s.mount=null;}claims.releaseActor(n.station.id);return true;}
- function finish(n,s,fulfilled=true){if(getSalon()?.ownsNPCCustomer?.(n.station.id))return false;if(s?.choice?.toilet&&getToilet()?.ownsActor(n))return false;if(s?.borrowed&&getTavern()?.officialMeal(n.station.id))return false;if(fulfilled&&s?.choice?.id==='archive-duty'){const duty=duties[n.station.id];if(duty?.day===getClock().day&&duty.day===s.choice.dutyDay&&near(n.root.position,B.offices[index(n)],.2)&&s.elapsed>=8){duty.stage='archived';settleDuty(n);}}if(fulfilled&&s?.choice?.inspection)fulfilled=reports.inspected(s.choice.inspection.id,{actorId:n.station.id,position:n.root.position.toArray(),place:s.choice.inspection.place});if(!release(n,s))return false;if(s?.choice)brain.complete(n.station.id,s.choice,{fulfilled});record('life-'+(s?.choice?.id||'pause')+(fulfilled?':completed':':interrupted'),n);stages.delete(n);save();return true;}
+ function finish(n,s,fulfilled=true){if(getSalon()?.ownsNPCCustomer?.(n.station.id))return false;if(s?.choice?.toilet&&getToilet()?.ownsActor(n))return false;if(s?.borrowed&&getTavern()?.officialMeal(n.station.id))return false;if(fulfilled&&s?.choice?.id==='archive-duty'){const duty=duties[n.station.id];if(duty?.day===getClock().day&&duty.day===s.choice.dutyDay&&near(n.root.position,B.offices[index(n)],.2)&&s.elapsed>=8){duty.stage='archived';settleDuty(n);}}if(fulfilled&&s?.choice?.auditId){if(time<(s.auditRetryAt||0))return false;const audited=n.alive!==false&&granaryAudit?.inspected(s.choice.auditId,{actorId:n.station.id,position:n.root.position.toArray(),elapsed:s.elapsed,duration:s.duration});if(!audited?.ok){s.auditRetryAt=time+1;return false;}delete s.auditRetryAt;}if(fulfilled&&s?.choice?.inspection)fulfilled=reports.inspected(s.choice.inspection.id,{actorId:n.station.id,position:n.root.position.toArray(),place:s.choice.inspection.place});if(!release(n,s))return false;if(s?.choice)brain.complete(n.station.id,s.choice,{fulfilled});record('life-'+(s?.choice?.id||'pause')+(fulfilled?':completed':':interrupted'),n);stages.delete(n);save();return true;}
  function choose(n){
   if(getSalon()?.ownsNPCCustomer?.(n.station.id)){stages.set(n,stage([],getSalon().npcStatus?.(n.station.id)?.label||'单独茶叙进行中',{borrowedSalon:true,arrived:true}));return;}
   if(!brain.decisionDue(n.station.id)){if(!stages.has(n))idle(n);return;}
-  const options=candidates(n),priority=options.find(c=>c.id==='archive-duty')||options.find(c=>c.id==='inspect')||options.find(c=>c.id==='toilet'&&c.available)||(sharedNeeds?.status(n.station.id)?.seekMeal?options.find(c=>c.id==='meal'&&c.available):null),choice=brain.choose(n.station.id,priority?[priority]:options,state.hour??10);
+  const options=candidates(n),priority=options.find(c=>c.id==='archive-duty')||options.find(c=>c.id==='inspect')||options.find(c=>c.id==='toilet'&&c.available)||(sharedNeeds?.status(n.station.id)?.seekMeal?options.find(c=>c.id==='meal'&&c.available):null)||options.find(c=>c.id==='payroll-audit'),choice=brain.choose(n.station.id,priority?[priority]:options,state.hour??10);
   if(!choice){stages.set(n,stage([n.root.position.toArray()],'在廊下稍候',{duration:6}));return;}
   if(choice.toilet&&!getToilet()?.requestPublicActor(n)){brain.complete(n.station.id,choice,{fulfilled:false});idle(n,'公共净室暂忙 · 稍后再去');save();return;}
   if(choice.id==='conversation'){if(!invitation(n,choice)){brain.complete(n.station.id,choice,{fulfilled:false});idle(n,'同僚正在忙，稍后再说');}return;}
@@ -231,7 +232,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   playerRequest(id){if(seat(id)?.kind==='bed')return;for(const n of officials){const s=stages.get(n);if(s?.choice?.facilityId===id||s?.facilityId===id){s.evicted=true;if(s.pairId)endConversation(false,'让出位置，改日再聊');}}},
   meetingAvailable:n=>{const s=stages.get(n);return !!s&&!getSalon()?.ownsNPCCustomer?.(n.station.id)&&!s.pairId&&!s.called&&!s.courtReady&&!s.mount&&!s.borrowed&&!s.borrowedSalon&&!s.choice?.meal&&!s.choice?.toilet;},
   label:n=>formatCourtEdictText(stages.get(n)?.label)||'承务官署 · 日常起居',
-  tick(dt,playerState){state=playerState;time+=dt;brain.tick(dt);if(time>=nextPayrollAt){nextPayrollAt=time+5;for(const n of officials)settleDuty(n);for(const duty of unpaidDuties){const n=officials.find(n=>n.station.id===duty.actorId);if(n)settleDuty(n,duty);}for(let i=unpaidDuties.length-1;i>=0;i--)if(unpaidDuties[i].stage==='paid')unpaidDuties.splice(i,1);}},
+  tick(dt,playerState){state=playerState;time+=dt;brain.tick(dt);if(time>=nextPayrollAt){nextPayrollAt=time+5;for(const n of officials)settleDuty(n);for(const duty of unpaidDuties){const n=officials.find(n=>n.station.id===duty.actorId);if(n)settleDuty(n,duty);}for(let i=unpaidDuties.length-1;i>=0;i--)if(unpaidDuties[i].stage==='paid')unpaidDuties.splice(i,1);if(granaryAudit?.activate().ok)granaryAudit.prepare();}},
   update(n,dt,t){
    let s=stages.get(n);if(!s){choose(n);s=stages.get(n);if(!s)return;}
    const salon=getSalon();
@@ -298,8 +299,12 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
    }
    if(!paused){
     if(s.idle){s.elapsed+=dt;if(brain.decisionDue(n.station.id)&&(urgent(n)||s.elapsed>=s.duration)){stages.delete(n);choose(n);}else animate(n,s,t);return;}
+    const wasArrived=s.arrived;
     if(!s.arrived)travel(n,s,dt);
     if(s.arrived){
+     // A payroll audit counts only time spent by the living original official
+     // at his own desk. Arrival, conversation and remote time earn no reading.
+     if(s.choice?.auditId&&(!wasArrived||n.alive===false||!near(n.root.position,B.offices[index(n)],.2))){animate(n,s,t);return;}
      if(s.choice?.salon){
       if(time<(s.salonRetryAt||0)){animate(n,s,t);return;}
       s.salonRetryAt=time+1;const q=s.choice.salon,offer=salon?.npcOfferStatus?.(n.station.id,q.artistId,q.activity,q.fee),revisionChanged=Number.isSafeInteger(q.revision)&&offer?.revision!==q.revision;
