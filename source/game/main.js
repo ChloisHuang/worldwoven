@@ -639,8 +639,8 @@ if(TRAVEL_JOURNEYS_ENABLED){
  travelJourneyUI=createTravelJourneyUI({getView:()=>travelJourney.view(),onAction:performTravelAction,
   onCancel:id=>{const result=travelJourney.cancel(id);if(result.ok){travelJourneyUI.close('cancelled');travelFlight.clear();refreshTravelButton();}return result;},
   onPassport:()=>{travelResumeAfterPassport=true;travelPassport.open();},
-  onOpen:()=>{travelResumeAfterPassport=false;travelPassport.close();currencyWallet?.close();careerHandbook.close();studyMenu.close();resetTransientInput();},
-  onClose:()=>{travelFlight.pause();refreshTravelButton();canvas.focus({preventScroll:true});}});
+  onOpen:()=>{travelResumeAfterPassport=false;travelPassport.close();currencyWallet?.close();careerHandbook.close();studyMenu.close();resetTransientInput();if(mode==='globe')$('globe-ui').hidden=true;},
+  onClose:()=>{travelFlight.pause();if(mode==='globe')$('globe-ui').hidden=false;refreshTravelButton();canvas.focus({preventScroll:true});}});
 }
 for(const r of regions){const b=document.createElement('button');b.className='region-card';b.dataset.region=r.id;b.style.setProperty('--card-color',r.color);b.innerHTML=`<span class="region-icon">${r.icon}</span><span><strong>${r.country}</strong><small>${r.en}</small></span><span class="visited">${saved.visited.includes(r.id)?'✓':''}</span>`;b.onclick=()=>selectRegion(r.id,true);$('region-cards').append(b);const label=document.createElement('div');label.className='world-label';label.textContent=r.country;$('labels').append(label);globeLabels.set(r.id,label);}
 function showDoorwayHint(manual=false){const visible=!!(manual&&mode==='lot'&&player&&automaticDoors?.isOpeningObstructedBy(player.root.position));const hint=$('doorway-hint');if(hint.hidden===visible)hint.hidden=!visible;}
