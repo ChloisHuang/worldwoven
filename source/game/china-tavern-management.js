@@ -14,6 +14,7 @@ const require=(ok,code)=>{if(!ok)throw Error(code);};
 const receipt=e=>{const {sequence,...r}=e;return copy(r);};
 const empty=()=>({version:1,businessId:BUSINESS,revision:0,activation:null,purchases:[],contracts:[]});
 const ownerValid=o=>exact(o,['ownerId','ownership'])&&['player',...definitions.map(r=>r.originalHolderId)].includes(o.ownerId)&&integer(o.ownership);
+const originalOrderProof=p=>exact(p,['id','sourceId','sourceRevision','businessId','order','unprepared'])&&p.sourceId==='chinaTavernServiceWorld'&&integer(p.sourceRevision)&&p.businessId===BUSINESS&&p.unprepared===true&&exact(p.order,['orderId','number','dishId','customerId','customerName'])&&integer(p.order.number)&&p.order.number>0&&p.order.orderId==='cn-tavern-order-'+p.order.number&&p.id==='cn-tavern-stock-reserve:'+p.order.orderId&&Object.hasOwn(COSTS.unitCosts,p.order.dishId)&&text(p.order.customerId)&&text(p.order.customerName);
 const assignment=r=>({version:1,roleId:r.roleId,slotId:r.slotId,holderId:r.holderId,revision:r.revision});
 const roleDefinition=id=>definitions.find(r=>r.roleId===id);
 const body=n=>n?.bodyId||n?.root?.userData?.bodyId||n?.actorId||n?.station?.id;
@@ -27,7 +28,7 @@ function validateManagement(s){
  const revisions=new Set(),ids=new Set();
  const revision=n=>{require(integer(n)&&n>0&&n<=s.revision&&!revisions.has(n),'invalid-management-source');revisions.add(n);};
  if(s.activation){const a=s.activation,p=a.proof;require(exact(a,['proof','owner','worldRevision'])&&ownerValid(a.owner)&&integer(a.worldRevision)&&exact(p,['id','sourceId','sourceRevision','businessId','serial'])&&p.id==='cn-tavern-stock-activation'&&p.sourceId===NS&&p.businessId===BUSINESS&&integer(p.serial),'invalid-management-activation');revision(p.sourceRevision);}
- for(const p of s.purchases){const q=p.proof;require(exact(p,['operationId','owner','proof'])&&text(p.operationId)&&!ids.has(p.operationId)&&ownerValid(p.owner)&&p.owner.ownerId==='player'&&exact(q,['id','sourceId','sourceRevision','businessId','dishId','quantity','unitCost','costVersion','accepted'])&&q.id===p.operationId&&q.sourceId===NS&&q.businessId===BUSINESS&&Object.hasOwn(COSTS.unitCosts,q.dishId)&&integer(q.quantity)&&q.quantity>0&&q.quantity<=1000000&&q.unitCost===COSTS.unitCosts[q.dishId]&&q.costVersion===COSTS.version&&q.accepted===true,'invalid-management-purchase');ids.add(p.operationId);revision(q.sourceRevision);}
+ for(const p of s.purchases){const q=p.proof;require((p.owner?.ownerId==='player'?exact(p,['operationId','owner','proof']):exact(p,['operationId','owner','proof','orderProof'])&&originalOrderProof(p.orderProof)&&p.operationId==='cn-tavern-npc-supply:'+p.orderProof.order.orderId&&q.quantity===1&&q.dishId===p.orderProof.order.dishId&&!!s.activation&&p.orderProof.order.number>s.activation.proof.serial)&&text(p.operationId)&&!ids.has(p.operationId)&&ownerValid(p.owner)&&exact(q,['id','sourceId','sourceRevision','businessId','dishId','quantity','unitCost','costVersion','accepted'])&&q.id===p.operationId&&q.sourceId===NS&&q.businessId===BUSINESS&&Object.hasOwn(COSTS.unitCosts,q.dishId)&&integer(q.quantity)&&q.quantity>0&&q.quantity<=1000000&&q.unitCost===COSTS.unitCosts[q.dishId]&&q.costVersion===COSTS.version&&q.accepted===true,'invalid-management-purchase');ids.add(p.operationId);revision(q.sourceRevision);}
  for(const c of s.contracts){const d=roleDefinition(c?.assignment?.roleId);require(exact(c,['id','sourceRevision','activatedSeconds','actor','assignment','applicationId','hiringRevision','salary'])&&text(c.id)&&!ids.has(c.id)&&Number.isFinite(c.activatedSeconds)&&c.activatedSeconds>=0&&exact(c.actor,['actorId','bodyId','bodyRevision'])&&text(c.actor.actorId)&&text(c.actor.bodyId)&&(c.actor.bodyRevision===null||integer(c.actor.bodyRevision))&&exact(c.assignment,['version','roleId','slotId','holderId','revision'])&&c.assignment.version===1&&!!d&&c.assignment.slotId===d.slotId&&c.assignment.holderId===c.actor.actorId&&integer(c.assignment.revision)&&(c.applicationId===null?c.hiringRevision===null&&c.actor.actorId===d.originalHolderId:text(c.applicationId)&&integer(c.hiringRevision))&&same(c.salary,tavernSalaryTerms(d.roleId,c.salary?.excludedTrial)),'invalid-management-contract');ids.add(c.id);revision(c.sourceRevision);}
  require(revisions.size===s.revision,'management-source-gap');return s;
 }
@@ -106,24 +107,49 @@ export function createChinaTavernManagement(options={}){
   verifyTrialReceipt:(kind,p,a)=>kind==='payment'?verifyPayment(p,a):trialWork(p,a),readSafeHandoff:a=>call(options.readSafeHandoff,a)});
  business=createChinaTavernBusiness({saved:roots.chinaTavernBusiness,getProperty:()=>property,getClock,...businessSources,saveState:(_s,_r,patch)=>save(patch)});
  sourceLinks.business=business;sourceLinks.getBusinessAccount=()=>business;
- stock=createChinaTavernStock({saved:roots.chinaTavernStock,readOwner,readBusinessBudget:()=>property.businessBudget(),verifyPurchaseSource:verifyPurchase,
+ stock=createChinaTavernStock({saved:roots.chinaTavernStock,readOwner,readBusinessBudget:()=>property.businessBudget(),verifyPurchaseSource:p=>verifyPurchase(p)&&same(source().purchases.find(a=>a.operationId===p.id)?.owner,readOwner()),
   verifyActivationSource:p=>same(p,source().activation?.proof),verifyHistoricalReceipt:verifyStockReceipt,
   verifyOrderSource:(kind,p)=>call(options.verifyOrderSource||sourceLinks.verifyOrderSource||scene()?.verifyStockOrderSource?.bind(scene()),kind,p)===true});
  sourceLinks.stock=stock;sourceLinks.getStock=()=>stock;
  function error(){return loadError||hiring.loadError||recruitment.state().loadError||business.loadError||stock.loadError||property?.state?.().loadError||null;}
  function guarded(fn){if(disposed||busy||saving||error())return fail(error()||(disposed?'management-suspended':'management-busy'));busy=true;try{lastError=null;return fn();}catch(e){return fail(e.message);}finally{busy=false;}}
- function activateStock(){if(stock.summary()?.active)return {ok:true,replayed:true};if(!current.activation){const w=world();require(integer(w?.serial)&&integer(w.revision??0),'tavern-world-unavailable');const next=copy(current),revision=++next.revision;next.activation={proof:{id:'cn-tavern-stock-activation',sourceId:NS,sourceRevision:revision,businessId:BUSINESS,serial:w.serial},owner:readOwner(),worldRevision:w.revision??0};if(!sourceSave(next))return fail('save-failed');}
+ function activateStock(){if(!current.activation&&readOwner()?.ownerId!=='player')return {ok:true,dormant:true};if(stock.summary()?.active)return {ok:true,replayed:true};if(!current.activation){const w=world();require(integer(w?.serial)&&integer(w.revision??0),'tavern-world-unavailable');const next=copy(current),revision=++next.revision;next.activation={proof:{id:'cn-tavern-stock-activation',sourceId:NS,sourceRevision:revision,businessId:BUSINESS,serial:w.serial},owner:readOwner(),worldRevision:w.revision??0};if(!sourceSave(next))return fail('save-failed');}
   const p=stock.prepareActivation({expectedRevision:stock.snapshot().revision,expectedOwner:readOwner(),proof:current.activation.proof});if(!p.ok||p.replayed)return p;
   if(!p.lock())return fail('stale-stock-activation');const next=copy(current);next.activation.owner=readOwner();try{if(!p.save(b=>save({...b.patch,[NS]:next})))return fail('save-failed');if(!p.committed())return fail('stock-adoption-failed');current=next;return {ok:true};}finally{p.release();}}
- function purchase({dishId,quantity,operationId}={}){return guarded(()=>{
+ function purchaseRequest({dishId,quantity,operationId,orderProof=null}={}){
   require(text(operationId)&&integer(quantity)&&quantity>0&&Object.hasOwn(COSTS.unitCosts,dishId),'invalid-purchase-request');
-  let authorization=current.purchases.find(a=>a.operationId===operationId);const owner=readOwner();require(owner?.ownerId==='player','player-owner-required');
-  if(authorization){require(same(authorization.owner,owner)&&authorization.proof.dishId===dishId&&authorization.proof.quantity===quantity,'purchase-operation-conflict');}
-  else{const next=copy(current);authorization={operationId,owner,proof:{id:operationId,sourceId:NS,sourceRevision:++next.revision,businessId:BUSINESS,dishId,quantity,unitCost:COSTS.unitCosts[dishId],costVersion:COSTS.version,accepted:true}};next.purchases.push(authorization);if(!sourceSave(next))return fail('save-failed');}
+  let authorization=current.purchases.find(a=>a.operationId===operationId);const owner=readOwner();
+  require(orderProof?ownerValid(owner)&&owner.ownerId!=='player':owner?.ownerId==='player','player-owner-required');
+  if(authorization){require(same(authorization.owner,owner)&&authorization.proof.dishId===dishId&&authorization.proof.quantity===quantity&&same(authorization.orderProof||null,orderProof),'purchase-operation-conflict');}
+  else{const next=copy(current);authorization={operationId,owner,proof:{id:operationId,sourceId:NS,sourceRevision:++next.revision,businessId:BUSINESS,dishId,quantity,unitCost:COSTS.unitCosts[dishId],costVersion:COSTS.version,accepted:true},...(orderProof?{orderProof:copy(orderProof)}:{})};next.purchases.push(authorization);if(!sourceSave(next))return fail('save-failed');}
   const active=activateStock();if(!active.ok)return active;
   const p=stock.preparePurchase({expectedRevision:stock.snapshot().revision,expectedOwner:owner,proof:authorization.proof});if(!p.ok||p.replayed)return p;
   stockCandidate=copy(p.sourcePatch.receipt);try{const b=business.prepareStockPurchase({stockParticipant:p});return b.ok?b.commit():b;}finally{stockCandidate=null;}
+ }
+ const purchase=input=>guarded(()=>purchaseRequest(input));
+ function stockAdmission(dishId){const owner=readOwner(),problem=error(),enabled=!!current.activation||owner?.ownerId==='player'||!!problem;
+  if(!enabled)return {enabled:false,ready:!problem,available:!problem,canPurchase:false,...(problem?{code:problem}:{})};
+  const summary=stock.summary(),ready=!problem&&summary?.active===true,available=ready&&(summary.inventory[dishId]?.available||0)>0;
+  const canPurchase=ready&&ownerValid(owner)&&owner.ownerId!=='player'&&Object.hasOwn(COSTS.unitCosts,dishId)&&(property.businessBudget()?.balance||0)>=COSTS.unitCosts[dishId];
+  return {enabled:true,ready,available,canPurchase,...(!ready?{code:problem||'stock-inactive'}:!available&&!canPurchase?{code:'insufficient-stock'}:{})};
+ }
+ function supplyForOrder(proof){return guarded(()=>{
+  require(originalOrderProof(proof),'invalid-npc-supply-order');const admission=stockAdmission(proof.order.dishId);
+  require(admission.enabled&&admission.ready&&readOwner()?.ownerId!=='player','npc-supply-unavailable');
+  require(proof.order.number>stock.summary().cutoff,'legacy-order-supply-unavailable');
+  require(call(options.verifyOrderSource||sourceLinks.verifyOrderSource||scene()?.verifyStockOrderSource?.bind(scene()),'reserve',copy(proof))===true,'unverified-npc-supply-order');
+  if(admission.available)return {ok:true,replayed:true};require(admission.canPurchase,'insufficient-business-funds');
+  return purchaseRequest({dishId:proof.order.dishId,quantity:1,operationId:'cn-tavern-npc-supply:'+proof.order.orderId,orderProof:proof});
  });}
+ function saveStockWorld(patch){if(disposed||saving||error())return false;try{
+  require(exact(patch,['chinaServiceWorld','chinaTavernStock']),'invalid-stock-world-patch');
+  const before=stock.snapshot(),next=patch.chinaTavernStock,oldWorld=world(),nextWorld=patch.chinaServiceWorld,e=next?.events?.at(-1);
+  require(next?.revision===before.revision+1&&same({...next,revision:before.revision,events:next.events.slice(0,-1)},before)&&['reserve','consume','cancel'].includes(e?.kind),'invalid-stock-world-patch');
+  const r=receipt(e),prior=oldWorld?.stockReceipts||[],history=nextWorld?.stockReceipts;
+  require(nextWorld?.revision===(oldWorld?.revision||0)+1&&r.proof.sourceRevision===nextWorld.revision&&same(r.owner,readOwner())&&Array.isArray(history)&&history.length===prior.length+1&&same(history.slice(0,-1),prior)&&same(history.at(-1),r),'invalid-stock-world-source');
+  require(call(options.verifySavedStockReceipt||sourceLinks.verifySavedStockReceipt,nextWorld,copy(r))===true&&call(options.verifyOrderSource||sourceLinks.verifyOrderSource||scene()?.verifyStockOrderSource?.bind(scene()),r.kind,copy(r.proof))===true,'unverified-stock-world-source');
+  return save(patch);
+ }catch(e){lastError=e.message;return false;}}
  function synchronizeContracts(){for(const d of definitions){const r=readRole(d.roleId),n=r?.actor||options.getActor?.(r?.holderId);if(!r||r.holderId==='player'||r.alive!==true||r.available!==true||!n||body(n)!==body(options.getActor?.(r.holderId)))continue;
   const a=hiring.applications().find(a=>a.status==='assigned'&&same(a.handoff.assignment,assignment(r))),existing=current.contracts.find(c=>same(c.assignment,assignment(r))&&c.actor.bodyId===body(n));
   if(existing||!a&&r.holderId!==d.originalHolderId)continue;
@@ -143,7 +169,7 @@ export function createChinaTavernManagement(options={}){
  });}
  function dismiss(roleId){return guarded(()=>{require(readOwner()?.ownerId==='player','player-owner-required');const checkpoint=business.checkpoint();if(!checkpoint.ok)return checkpoint;business.suspend();const p=call(options.prepareRoleDismissal,roleId);if(!p?.ok||!p.lock?.())return p||fail('dismissal-unsafe');try{if(p.save(b=>save(b.patch))!==true)return fail('save-failed');return p.committed()===true?{ok:true}:fail('dismissal-adoption-failed');}finally{p.release?.();}});}
  function prepareStockTransition(kind,proof){if(error()||disposed||saving)return fail(error()||'management-suspended');const method={reserve:'prepareReserve',consume:'prepareConsume',cancel:'prepareCancel'}[kind];return method?stock[method]({expectedRevision:stock.snapshot().revision,expectedOwner:readOwner(),proof}):fail('invalid-stock-transition');}
- function update(dt){if(disposed||busy||saving||error()||!Number.isFinite(dt)||dt<=0||dt>.25){business.suspend();return false;}const active=guarded(()=>{const r=activateStock();if(!r.ok)return r;synchronizeContracts();return {ok:true};});if(!active.ok)return false;
+ function update(dt){if(disposed||busy||saving||error()||!Number.isFinite(dt)||dt<=0||dt>.25){business.suspend();return false;}const active=guarded(()=>{const r=activateStock();if(!r.ok||r.dormant)return r;synchronizeContracts();return {ok:true};});if(!active.ok)return false;if(active.dormant){business.suspend();return true;}
   recruitment.update(dt);
   for(const e of recruitment.snapshot().sources.filter(e=>e.kind==='trial-work')){const a=hiring.application(e.receipt.applicationId),r=business.trialReservation(a?.id);if(r)business.recordTrialWork({reservationId:r.id,workProof:e.receipt});}
   for(const a of hiring.applications().filter(a=>a.status==='pending-safe-handoff'))tryAssign(a.id);
@@ -151,7 +177,7 @@ export function createChinaTavernManagement(options={}){
   const marker=now?`${now.day}:${now.hour>=18}:${property.snapshot().revision}:${property.businessBudget()?.balance}`:null;if(marker!==lastSettlement){business.checkpoint();business.settleDue();lastSettlement=marker;}return true;
  }
  function view(){const p=property.state();return {owner:readOwner(),roles:definitions.map(d=>({...d,...readSlot(d.roleId)})),applications:hiring.applications(),recruitment:recruitment.state(),business:business.state(),stock:stock.summary(),property:p,purchases:copy(current.purchases),purchaseOperationPrefix:`cn-tavern-owner-purchase:${p.ownership}:${current.revision+1}`,loadError:error(),lastError};}
- return {hiring,recruitment,business,stock,view,snapshot,update,purchase,dismiss,tryAssign,prepareStockTransition,activate:()=>guarded(activateStock),
+ return {hiring,recruitment,business,stock,view,snapshot,update,purchase,dismiss,tryAssign,prepareStockTransition,saveStockWorld,stockAdmission,supplyForOrder,activate:()=>guarded(activateStock),
   executeIntent:i=>!error()&&!busy&&!saving&&!disposed&&recruitment.executeIntent(i),intents:()=>error()||disposed?[]:recruitment.intents(),
   reviewApplication(id,accept){if(error()||busy||saving||disposed)return false;const i=recruitment.intent(id,accept?'approve':'reject');return i?recruitment.executeIntent(i):false;},
   suspend(){business.suspend();business.checkpoint();recruitment.dispose({suspend:true});disposed=true;},

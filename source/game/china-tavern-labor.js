@@ -56,7 +56,7 @@ function restore(saved) {
  * to the normal player pose context. document:null supports headless logic.
  */
 export function createChinaTavernLabor({getPlayer, getMounted = () => null, host, employment, careers, openRegistration,serviceAdapter=()=>null,
-  isHostAvailable = () => true, copperLedger, getClock, saved, saveState = () => {},
+  isHostAvailable = () => true, canCleanTable = () => true, copperLedger, getClock, saved, saveState = () => {},
   notify = () => {}, onCompleted = () => {}, onIntent = () => {}, canSee = () => true, onOpen = () => {}, document: doc = globalThis.document} = {}) {
   if (typeof getPlayer !== 'function' || !copperLedger || typeof saveState !== 'function') throw new TypeError('labor requires player, ledger and synchronous saveState');
   let current, loadError = null;
@@ -138,7 +138,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
     stopCleaning(); notify(formal.pinned(current.job)?`${hostName()}：已登记今日班次。擦净两桌后回来验收，${formal.salary}日薪自动存银行，不另发临工工资。`:`${hostName()}：请擦净两张餐桌，回来验收后，12 铜文工资自动存银行`); ui?.refresh(true); return true;
   }
   function startCleaning() {
-    if (!permitted() || current.job?.stage !== 'working' || cleaning || !formal.canWork(current.job)) return false;
+    if (!permitted() || current.job?.stage !== 'working' || cleaning || !formal.canWork(current.job) || !canCleanTable(target()?.id)) return false;
     if (!at(target().position) || getPlayer()?.walking) return failure('not-at-table', '请站到这张餐桌靠过道的一侧，再开始擦拭');
     origin = {x: player().x, y: player().y, z: player().z}; elapsed = 0; cleaning = true; lastError = null;
     faceTable(); ui?.close(); return true;
@@ -202,7 +202,7 @@ export function createChinaTavernLabor({getPlayer, getMounted = () => null, host
       else if (!getPlayer()?.walking) { pendingClean = false; startCleaning(); }
     }
     if (cleaning) {
-      if (!stationary() || !formal.canWork(current.job)) {
+      if (!stationary() || !formal.canWork(current.job) || !canCleanTable(target()?.id)) {
         stopCleaning(); notify('擦拭已停下；回到桌边后，重新点“开始擦拭”');
       } else {
         faceTable();

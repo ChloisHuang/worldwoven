@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {createChinaTavernLabor} from '../source/game/china-tavern-labor.js';
+import {createCurrencyLedger} from '../source/game/currency-ledger.js';
+const player={walking:false,root:{position:{x:22.35,y:.215,z:6.7},rotation:{y:0}}};
+const host={walking:false,root:{position:{x:24.1,y:.215,z:6.4}},station:{id:'cn-tavern-host',npcPosition:[24.1,.215,6.4]}};
+let held=null,stored=null;const ledger=createCurrencyLedger({saveState:()=>true});
+const labor=createChinaTavernLabor({getPlayer:()=>player,host,employment:{isHired:()=>true,state:()=>({revision:1})},copperLedger:ledger,getClock:()=>({day:7}),canCleanTable:id=>id!==held,saveState:s=>(stored=structuredClone(s),true),document:null});
+assert(labor.accept());const target=labor.view().target;Object.assign(player.root.position,{x:target.position[0],y:target.position[1],z:target.position[2]});
+held=target.id;assert.equal(labor.startCleaning(),false);assert.equal(labor.isCleaning(),false);
+held=null;assert(labor.startCleaning());for(let i=0;i<20;i++)labor.update(.1);assert(labor.isCleaning());
+held=target.id;labor.update(.1);assert.equal(labor.isCleaning(),false);assert.equal(stored.job.completedTables,0);assert.equal(ledger.state().bank,0);
+held=null;assert(labor.startCleaning());for(let i=0;i<51;i++)labor.update(.1);assert.equal(stored.job.completedTables,1);assert.equal(ledger.state().bank,0);
+console.log('PASS original paid labor rejects or stops at recruitment-held original table; releasing claim permits fresh real work without inherited time or pay');

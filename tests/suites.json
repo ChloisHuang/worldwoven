@@ -379,7 +379,8 @@
       "official-personnel-promotion.mjs",
       "china-tavern-recruitment.mjs",
       "china-tavern-recruitment-scene.mjs",
-      "china-tavern-management.mjs"
+      "china-tavern-management.mjs",
+      "china-tavern-labor-claims.mjs"
     ]
   },
   "world-life": {
