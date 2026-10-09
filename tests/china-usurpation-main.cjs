@@ -110,7 +110,7 @@ function diagnostic(){const live=review();return {leg,steps,seconds:(Date.now()-
  player:r.player.root.position.toArray(),path:live.path.slice(0,5).map(p=>[p.x,p.y,p.z]),pathLength:live.path.length,
  target:live.targetStation,pending:live.pendingInteraction,case:task(),physical:physical.state(),
  actors:[...originals].filter(([id])=>contextNow().supporters.some(person=>person.id===id)).map(([id,n])=>({id,bodyId:bodyId(n),position:n.root.position.toArray(),walking:n.walking,alive:n.alive!==false})),
- archery:r.chinaArchery?.state(),kitchen:r.chinaRoyalKitchen?.state(),employment:r.chinaRoyalKitchenEmployment?.state(),palace:r.chinaPalace?.state(),
+ archery:r.chinaArchery?.state(),plotMeeting:r.chinaArchery?.plotMeetingState?.(task()?.id),kitchen:r.chinaRoyalKitchen?.state(),employment:r.chinaRoyalKitchenEmployment?.state(),palace:r.chinaPalace?.state(),
  supporters:contextNow().supporters.map(person=>({id:person.id,circleId:person.circleId})),meeting:r.npcSocial?.meetingState(),toast:ids.toast.textContent};}
 function step(){
  if(Date.now()-started>150000)throw Error('Bounded stop before external 180s limit: '+leg);
@@ -172,7 +172,19 @@ try{
      if(!waitFor(()=>{const offered=view().actions.find(row=>row.kind==='prepare'&&row.preparationKind===kind&&row.enabled);return offered&&physical.intent(offered);},'original people are safely available for '+kind))return;
      open();click(action('prepare',{preparationKind:kind}));
     }
-    if(!waitFor(()=>!!task().preparations[kind],'actual original bodies complete six seconds of '+kind))return;
+    let nextRetry=steps+30,retries=0;
+    if(!waitFor(()=>{
+     if(task().preparations[kind])return true;
+     const live=review();
+     if(steps>=nextRetry&&!physical.active()&&!live.pendingInteraction&&!live.path.length&&retries<3){
+      const offered=view().actions.find(row=>row.kind==='prepare'&&row.preparationKind===kind&&row.enabled);
+      if(offered&&physical.intent(offered)){
+       journal.mechanismRetries=journal.mechanismRetries||[];journal.mechanismRetries.push({kind,clock:clone(r.simulationClock.state()),reason:r.chinaArchery?.plotMeetingState?.(task().id)?.reason||physical.state().lastError||'approach-ended',position:r.player.root.position.toArray()});
+       open();click(action('prepare',{preparationKind:kind}));retries++;nextRetry=steps+100;
+      }
+     }
+     return false;
+    },'actual original bodies complete six seconds of '+kind))return;
     const receipt=task().preparations[kind];assert.equal(receipt.caseId,journal.caseId);assert.equal(receipt.durationSeconds,6);
     assert(receipt.participants.every(person=>person.bodyId===bodyId(person.actorId==='player'?r.player:originals.get(person.actorId))));
     if(kind==='guard')assert.deepEqual([...receipt.guardIds].sort(),['cn-archery','cn-range-warden']);
