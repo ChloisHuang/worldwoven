@@ -172,7 +172,9 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
   // This one-case appointment waits for the existing patrol and original
   // arrows. It lends neither a job nor a bow, and is never restored cold.
   requestPlotMeeting,plotMeetingState,releasePlotMeeting,
-  plotMeetingSite:()=>boundAvailable()?{position:[-16.35,A.floorY,19.12],actorPoints:Object.fromEntries(guards.map((n,i)=>[n.station.id,HANDOFF[i].slice()]))}:null,
+  // Wait inside the original rear strip, clear of the exit/return route and
+  // its player-yielding distance, including the player's approach tolerance.
+  plotMeetingSite:()=>boundAvailable()?{position:[-19.2,A.floorY,19.1],actorPoints:Object.fromEntries(guards.map((n,i)=>[n.station.id,HANDOFF[i].slice()]))}:null,
   canBorrowForPlot:n=>guards.includes(n)&&plotMeetingState(plotMeeting?.owner).ready===true,
   canTalkForPlot(n){
    if(!guards.includes(n)||plotPriority()||n.walking||n.serviceMount||[...kits.values()].some(k=>k.bow.visible)||flying.visible||impacts.some(q=>q.visible))return false;
