@@ -415,7 +415,9 @@
       "bath-privacy.mjs",
       "hidden-social-state.mjs",
       "hidden-social-actions.mjs",
-      "family-life.mjs"
+      "family-life.mjs",
+      "underground-market-room.mjs",
+      "underground-market-ledger.mjs"
     ],
     "integration": [
       "airy-panel-default-cascade.mjs",
