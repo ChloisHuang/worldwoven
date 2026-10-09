@@ -6,7 +6,7 @@ const STUDY_FIXTURES=new Set(['cn-rest','cn-calligraphy','france-salon','france-
 const EMPLOYERS={
  'japan-reception-employment':'jp-welcome','japan-bath-delivery-employment':'jp-onsen',
  'japan-women-bath-delivery-employment':'jp-women-onsen','japan-bath-mixing-employment':'jp-incense',
- 'japan-kitchen-employment':'jp-sushi','japan-table-service-employment':'jp-ramen','japan-linen-employment':'jp-rest',
+ 'japan-kitchen-employment':'jp-sushi','japan-table-service-employment':'jp-ramen','japan-linen-employment':'jp-rest','japan-boiler-employment':'jp-steam',
  'egypt-kitchen-employment':'egypt-royal-kitchen','egypt-table-service-employment':'egypt-royal-dining',
  'china-clinic-employment':'cn-clinic-physician','china-clinic-physician-employment':'cn-clinic-physician',
  'china-royal-kitchen-employment':'cn-cooking',

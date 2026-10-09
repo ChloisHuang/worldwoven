@@ -1,3 +1,4 @@
+import {createJapanBoilerMaintenance} from './japan-boiler-maintenance.js';
 import {JAPAN_TABLE_SERVICE_TIMELY_SECONDS} from './japan-table-service-role.js';
 import {JAPAN_KITCHEN_TIMELY_SECONDS} from './japan-kitchen-role.js';
 import {JAPAN_BATH_MIXING_TIMELY_SECONDS} from './japan-bath-mixing-role.js';
@@ -120,6 +121,8 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   const id=`japan-service:${v.id}:${kind}:${outcome}${suffix}`;
   if(!state.relationshipEvents.some(e=>e.id===id))state.relationshipEvents.push({id,source:'japan-service',outcome,actorId,participants:[...new Set([actorId,...participants])],kind:'service',serviceKind:kind,...(kind==='wrong-table'?{fault:true}:{}),at:Math.max(0,Number(getRelationshipTime())||0)});
  };
+ const boiler=createJapanBoilerMaintenance({saved:saved.boilerMaintenance,saveState:next=>{const prior=state.boilerMaintenance;state.boilerMaintenance=next;if(persist())return true;state.boilerMaintenance=prior;return false;}});
+ state.boilerMaintenance=boiler.snapshot();
  replayRelationships();
  const receptionKind=kind=>['register','checkout'].includes(kind);
  const receptionReceipt=(job,v,outcome)=>{
@@ -173,7 +176,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   return transaction(()=>{if(evaluate)for(const job of jobs().filter(j=>matchesDuty(j,key)))playerReceipt(job,visit(job.visitId),'handoff');dropClaim(workers.get('player'));staffDuties.delete(key);});
  }
  function tickStaffDuty(key,dt){if(staffDuties.get(key)?.status==='active')for(const j of jobs().filter(j=>matchesDuty(j,key)&&visit(j.visitId)?.customerType!=='player')){const waits=key==='reception'?state.receptionWaits:key==='mixing'?state.mixingWaits:key==='kitchen'?state.kitchenWaits:key==='tableService'?state.tableWaits:state.deliveryWaits;waits[j.id]=(waits[j.id]||0)+Math.max(0,Math.min(.1,dt));}}
- function restoreBoard(prior){Object.assign(state,prior);visits.clear();for(const v of state.visits)visits.set(v.id,v);items.clear();for(const i of state.items)items.set(i.id,i);}
+ function restoreBoard(prior){Object.assign(state,prior);boiler.restore(prior.boilerMaintenance,{preserveDuty:true});visits.clear();for(const v of state.visits)visits.set(v.id,v);items.clear();for(const i of state.items)items.set(i.id,i);}
  const visit=id=>visits.get(id);
  const item=id=>items.get(id);
  const addItem=(v,kind,location)=>{
@@ -294,6 +297,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   if(event==='returned-to-desk'&&v.stage==='checkout'&&japanReceptionReady(evidence.position,v.customerType))next='checkout-ready';
   if(event==='left'&&v.stage==='leaving'&&near(evidence.position,JAPAN_SERVICE_POINTS.departure)){next='departed';state.completed++;}
   if(!next)return false;
+  if(event==='bath-mounted'){boiler.observeBath({visitId:v.id,poolId:v.poolId,customerName:v.name},{persist:false});state.boilerMaintenance=boiler.snapshot();}
   v.stage=next;if(evidence.position)v.position=evidence.position.slice();if(!persist()){restoreBoard(prior);return false;}return true;
  }
  const linenPoint=key=>JAPAN_LINEN_POINTS[key]||JAPAN_SERVICE_POINTS[key];
@@ -418,7 +422,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   tableWork:()=>({visits:clone(state.visits.filter(v=>v.customerType!=='player')),items:clone(state.items.filter(i=>i.kind==='meal')),claims:[...claims.values()].filter(j=>['serve','wash'].includes(j.kind)).map(clone),jobs:jobs().filter(j=>['serve','wash'].includes(j.kind)).map(j=>({...clone(j),workerId:claims.get(j.id)?.workerId||null}))}),
   kitchenWork:()=>({jobs:jobs().filter(j=>j.kind==='cook').map(j=>({...clone(j),workerId:claims.get(j.id)?.workerId||null,visit:clone(visit(j.visitId))})),claims:[...claims.values()].filter(j=>j.kind==='cook').map(clone)}),
   mixingWork:()=>({jobs:jobs().filter(j=>j.kind==='prepare').map(j=>({...clone(j),workerId:claims.get(j.id)?.workerId||null,visit:clone(visit(j.visitId))})),claims:[...claims.values()].filter(j=>j.kind==='prepare').map(clone)}),
-  complete,guestStep,
+  complete,guestStep,boiler,
   // A staff meal uses the same kitchen as orders. A pending break reserves it
   // after its current cook finishes, so a stream of visitors cannot starve it.
   holdWorkplace(resource,workerId) {
