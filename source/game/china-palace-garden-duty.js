@@ -50,6 +50,9 @@ export function createChinaPalaceGardenDuty({edict,slot,getPlayer,getMounted=()=
   const expected=workIntent(id,work?.key);if(!expected||!at(getPlayer(),expected.position,expected.executionRadius||.25)||getMounted())return false;
   if(expected.kind==='await-original')return true;
   if(expected.kind!=='appraise')return edict.executeGardenPlayerWork?.(expected)===true;
+  // The original incumbent must personally witness this appraisal at the post.
+  // A saved work proof alone is not a remote, absent or deceased reviewer's approval.
+  const reviewer=host?.root?.position;if(!meetingReady()||!reviewer||!at(getPlayer(),[reviewer.x,reviewer.y,reviewer.z],1.8))return false;
   const done=edict.gardenPlayerCompleted?.();if(!done||done.documentId!==expected.documentId)return false;
   const proof=done.proof||done;
   const row={source:'china-palace-garden',id:done.documentId+'-'+id,workReceiptId:id,documentId:done.documentId,audienceId:proof.audienceId,day:proof.day,holderRevision:proof.holderRevision,completed:true,accurate:true,proof:copy(proof)};
