@@ -68,6 +68,14 @@ if(sourceCheckpoint){
   const candidate=await helper({prior:input.save,mod,linker,root,assert});
   const {save:prepared,...report}=candidate;input.save=prepared;journal.kitchenHistory=report;
  }
+ if(independentSuccess&&process.env.USURPATION_MAIN_PHASE==='imperial-court'&&!journal.imperialClock){
+  assert.equal(input.save.palaceUsurpation.cases.at(-1).stage,'invested');assert.equal(input.save.palaceUsurpation.office.actorId,'player');
+  const before=clone(input.save),seconds=before.simulationClock.seconds,currentDay=Math.floor((600+seconds*.7)/1440),schedule=before.worldContinuity?.regions?.china?.controllers?.chinaAudience?.schedule;
+  const day=Math.max(currentDay+1,(schedule?.day??-1)+1,(schedule?.lastCompletedDay??-1)+1);
+  input.save.simulationClock={version:1,seconds:(day*1440+10*60-600)/.7};
+  assert.deepEqual({...input.save,simulationClock:before.simulationClock},before,'Only the declared future clock is staged; no court, paper, actor or decision is created');
+  journal.imperialClock={staged:true,fromSeconds:seconds,toSeconds:input.save.simulationClock.seconds,day,hour:10,scope:'Next eligible morning clock only. Intervening day not simulated; original actors, authority, court and paper controllers stay unchanged.'};
+ }
  storage['worlds-days-v1']=JSON.stringify(input.save);coldInput=clone(input.save.palaceUsurpation||null);
  if(journal.caseId)assert.equal(coldInput?.cases?.at(-1)?.id,journal.caseId,'Never substitute another case checkpoint');
 }else if(independentSuccess){
@@ -251,6 +259,33 @@ try{
    assert.equal(core.state().events.filter(event=>event.type==='investiture').length,1);journal.investedOffice=clone(office);
    checkpoint('s06-same-receipt-invested',{caseId:journal.caseId,receiptId:receipt.id,office,repeatDidNotChangeOffice:true,prerequisitesStaged:true,walked,maxStep});
    console.log(JSON.stringify({status:'PASS',scope:'Same original paper and witnesses committed one unique investiture after cold recovery; actual imperial duties remain pending',checkpoint:checkpointPath}));return;
+  }
+  if(process.env.USURPATION_MAIN_PHASE==='imperial-court'){
+   assert(done('s06-same-receipt-invested'));assert.deepEqual(clone(core.office()),journal.investedOffice);assert(journal.imperialClock);
+   const audience=r.chinaAudience,day=journal.imperialClock.day;
+   if(!done('s07-cold-unique-office'))if(checkpoint('s07-cold-unique-office',{office:core.office(),clockStaging:journal.imperialClock,sameInvestiture:task().investiture.receipt.id}))return;
+   open();click(action('duty-travel',{routeId:'court'}));
+   let decisions=0;
+   while(audience.state().schedule.lastCompletedDay!==day){
+    if(!waitFor(()=>audience.playerDecision()?.ready===true||audience.state().schedule.lastCompletedDay===day,'original court assembles and player hears six-second report'))return;
+    if(audience.state().schedule.lastCompletedDay===day)break;
+    const decision=clone(audience.playerDecision()),report=clone(audience.state().currentReport),authority=clone(main.namespace.currentPalaceAuthority());
+    assert.equal(decision.authority.holderId,'player');assert.equal(decision.authority.revision,core.office().revision);assert.equal(audience.state().phase,'report');
+    for(let frame=0;frame<4;frame++)step();assert.equal(audience.state().phase,'report');assert(!audience.state().currentReport.playerDecision,'No automatic player decision');
+    assert.equal(r.chinaPalace.dutyState('china-morning-audience').ready,true);
+    open();click(action('court-approve',{routeId:decision.reporterId}));
+    assert.equal(audience.state().phase,'response');assert.equal(audience.state().phaseTime,0);assert.equal(audience.state().speaker,'player');
+    assert.equal(audience.state().currentReport.playerDecision.action,'approve');assert.equal(audience.state().currentReport.playerDecision.authority.revision,authority.revision);
+    for(let frame=0;frame<39;frame++)step();assert.equal(audience.state().phase,'response');assert(audience.state().phaseTime<4);
+    if(!waitFor(()=>audience.state().phase!=='response','player completes actual four-second response',20))return;
+    journal.imperialDecisions=journal.imperialDecisions||[];journal.imperialDecisions.push({reporterId:decision.reporterId,report,authority,action:'approve',reportSeconds:6,responseSeconds:4,clock:clone(r.simulationClock.state())});decisions++;
+    if(checkpoint('s08-player-court-response-'+journal.imperialDecisions.length,{reporterId:decision.reporterId,authority,reportSeconds:6,responseSeconds:4,clockStagedOnly:true}))return;
+    assert(decisions<=2,'Original court has two reports; no fabricated six-person expansion');
+   }
+   assert.equal(audience.state().schedule.outcome,'completed');
+   if(!waitFor(()=>audience.state().phase==='waiting'&&r.chinaPalace.dutyState('china-morning-audience')===null,'original court dismisses and releases player duty'))return;
+   checkpoint('s09-player-court-complete',{schedule:audience.state().schedule,originalReporters:journal.imperialDecisions.map(d=>d.reporterId),clockStaging:journal.imperialClock});
+   console.log(JSON.stringify({status:'PASS',scope:'Only next morning clock staged; original reports, actual player court responses and dismissal executed in main',checkpoint:checkpointPath}));return;
   }
   throw Error('Explicit independent success phase required');
  }
