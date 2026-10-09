@@ -9,6 +9,7 @@
 // USURPATION_MAIN_FRESH=1 explicitly starts the first segment again.
 // USURPATION_MAIN_STOP_AFTER names a milestone. After 03-political-response,
 // stop; the next invocation proves cold recovery without rerunning the route.
+// USURPATION_MAIN_PHASE=political asks the two existing court supporters next.
 // Later preparation/investiture/duty segments must continue this same journal.
 const fs = require('node:fs'), path = require('node:path'), vm = require('node:vm');
 let harness = fs.readFileSync(path.join(__dirname, 'fixtures/hotfix-input-harness.cjs'), 'utf8');
@@ -115,18 +116,43 @@ function click(selected){
  assert(button&&!button.disabled,selected.id+' real panel button');button.onclick();return button;
 }
 try{
- if(done('03-political-response')){
+ if(done('03-political-response')&&(process.env.USURPATION_MAIN_PHASE!=='political'||!done('04-cold-same-case'))){
   assert(coldInput,'Cold check must come from the persisted same-case checkpoint');
   assert.deepEqual(clone(core.snapshot()),coldInput,'Cold main restores exact committed political history');
   assert.equal(task().id,journal.caseId);assert.deepEqual(clone(task().pledges),journal.pledges);
   assert.equal(physical.isActing(),false,'Cold load never invents a resumed timer or actor lease');
-  assert.equal(physical.state().gathering,null);assert.equal(core.state().events.filter(event=>event.type==='pledge').length,1);
+  assert.equal(physical.state().gathering,null);assert.equal(core.state().events.filter(event=>event.type==='pledge').length,journal.pledges.length);
   for(let i=0;i<4;i++)step();open();r.palaceUsurpationUI.close();main.namespace.cancelAction();
   assert.deepEqual(clone(task().pledges),journal.pledges);assert.equal(task().id,journal.caseId);
   assert.equal(core.state().events.filter(event=>event.type==='begin').length,1);
-  assert.equal(core.state().events.filter(event=>event.type==='pledge').length,1);
+  assert.equal(core.state().events.filter(event=>event.type==='pledge').length,journal.pledges.length);
   checkpoint('04-cold-same-case',{caseId:journal.caseId,responseActor:journal.responseActor,receiptId:journal.pledges[0].receipt.id,rerolled:false});
   console.log(JSON.stringify({status:'PASS',scope:'CR04 first segment plus same-case cold recovery only; later preparations, investiture and imperial duties remain pending',checkpoint:checkpointPath,completed:journal.completed}));return;
+ }
+ if(process.env.USURPATION_MAIN_PHASE==='political'){
+  assert(done('04-cold-same-case'),'Resume the remotely preserved cold checkpoint');
+  assert.deepEqual(clone(core.snapshot()),coldInput,'No history replacement before physical continuation');
+  assert.deepEqual(clone(task().pledges),journal.pledges);
+  assert.equal(task().id,journal.caseId);
+  for(const [actorId,milestone] of [['cn-official-rites','05-rites-response'],['cn-official-justice','06-justice-response']]){
+   if(done(milestone))continue;
+   assert(contextNow().supporters.some(person=>person.id===actorId),'Use an already-established ordinary supporter');
+   assert(!task().pledges.some(person=>person.actorId===actorId),'Never re-ask an answered person');
+   const body=originals.get(actorId),identity=bodyId(body),prior=clone(task().pledges);
+   until(()=>{const offered=view().actions.find(row=>row.kind==='pledge'&&row.actorId===actorId&&row.enabled);return offered&&physical.intent(offered);},'original court supporter becomes safely approachable: '+actorId,1200);
+   open();readyTicks=0;click(action('pledge',{actorId}));
+   until(()=>task().pledges.some(person=>person.actorId===actorId),'original court person supplies the same-case four seconds: '+actorId,1600);
+   const response=task().pledges.find(person=>person.actorId===actorId);
+   assert.equal(response.bodyId,identity);assert.equal(response.receipt.actorBodyId,identity);
+   assert.equal(response.receipt.kind,'political-response');assert.equal(response.receipt.durationSeconds,4);
+   assert.equal(response.receipt.caseId,journal.caseId);assert.equal(response.receipt.completed,true);
+   assert(readyTicks>=39,'Actual main frames provide four seconds');
+   assert.deepEqual(clone(task().pledges.filter(person=>person.actorId!==actorId)),prior,'Earlier answers stay immutable');
+   assert.equal(body,originals.get(actorId));assert.equal(physical.isActing(),false);
+   journal.pledges=clone(task().pledges);
+   if(checkpoint(milestone,{caseId:journal.caseId,actorId,bodyId:identity,accepted:response.accepted,receiptId:response.receipt.id,seconds:4,readyTicks,walked,maxStep}))return;
+  }
+  console.log(JSON.stringify({status:'PASS',scope:'Same case, two existing ordinary court supporters physically answer; no new support, political decision or preparation is staged',checkpoint:checkpointPath,completed:journal.completed}));return;
  }
  if(!done('00-support-threshold')){
   const before=contextNow().supporters;assert.equal(before.length,2,'Pending ordinary support cannot unlock the third person');
