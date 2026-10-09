@@ -216,7 +216,7 @@ export function createEgyptMealService({npcs,lot,furniture,doors,navigation:scen
    case 'returning':if(playerServing())break;carry=true;if(travel(host,P.pass,dt)){face(host,P.passTop);stage('washing',{holder:'kitchen'});}break;
    case 'washing':if(playerServing())break;if(!travel(host,P.pass,dt))break;actionHost='tidy';if(elapsed(4)){if(stage('leaving',{npcCleaned:true})&&!resident(o))finish();}break;
    case 'leaving':finish();break;
-  }}else if(!o){if(!talks.owns(cook)&&!meeting&&state.duty?.status!=='active')travel(cook,P.prep,dt);if(!talks.owns(host)&&!tableMeeting&&state.tableDuty?.status!=='active')travel(host,P.hostHome,dt);if(guest&&!guestAway()&&!talks.owns(guest))travel(guest,guest.station.npcPosition||guest.home.toArray(),dt);}
+  }}else if(!o){if(!talks.owns(cook)&&!meeting&&state.duty?.status!=='active')travel(cook,P.prep,dt);if(!talks.owns(host)&&!tableMeeting&&state.tableDuty?.status!=='active')travel(host,P.hostHome,dt);if(guest&&!artisanBusy()&&!guestAway()&&!talks.owns(guest))travel(guest,guest.station.npcPosition||guest.home.toArray(),dt);}
   if(orderPaused)carry=o.holder==='host'||['pickup','serving','lifting'].includes(o.stage);
   returnGuest(dt);
   if(!actionCook)actionCook=staffLeisure(cook,dt);if(!actionHost)actionHost=staffLeisure(host,dt);
