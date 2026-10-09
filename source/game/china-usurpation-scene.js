@@ -30,6 +30,7 @@ export function createChinaUsurpationScene({core,getContext=()=>null,getScene=()
  standing=()=>false,canSee=()=>false,getBusy=()=>true,animate=()=>{},saveState,
  onIntent=()=>true,notify=()=>{},saved,enabled=false}={}){
  let disposed=false,loadError=null,actions=null,storyMeals={},candidate=null,prepared=null,lastSaveError=null;
+ let pendingGuard=null,guardOwner=null,guardArchery=null;
  const sites=new Map(),props=new Map();let propParent=null;
  const scene=()=>getScene()||{},taskNow=()=>core?.currentTask?.()||null;
  const player=()=>scene().player,actors=()=>scene().npcs||[];
@@ -126,6 +127,12 @@ export function createChinaUsurpationScene({core,getContext=()=>null,getScene=()
     id:`usurpation-kitchen:${task.id}:${source.order.id}`,objectId:source.binding.objectId,position,actorPoints:{},name:'御膳备餐间 · 原单剧情准备'}:null;
   }
   const object=ensureProp(task,kind==='investiture-reading');if(!object)return null;
+  if(kind==='guard'){
+   const original=scene().archery?.plotMeetingSite?.(),guardIds=getContext()?.guard?.guards?.map(row=>row.id)||[];
+   if(!original||guardIds.length!==2||new Set(guardIds).size!==2||ids.length!==3||!guardIds.every(id=>ids.includes(id)&&point(original.actorPoints?.[id])))return null;
+   const site={id:`usurpation-range-handoff:${task.id}`,objectId:object.name,position:original.position.slice(),actorPoints:copy(original.actorPoints),name:'射圃靶外 · 两位原卫当面议事'};
+   return legalSite(site,ids)&&reachable(player(),site.position,.34)?site:null;
+  }
   const key=[task.id,kind,actorId,...ids].join('|'),cached=sites.get(key);
   if(cached&&legalSite(cached,ids))return copy(cached);
   sites.delete(key);
@@ -235,6 +242,32 @@ export function createChinaUsurpationScene({core,getContext=()=>null,getScene=()
    event.kind==='intrigue'?'原帝已实际用完同份御膳，剧情凭据已记入本案。':`${names[event.kind]||'现场准备'}已记入本案。`;
   notify(text);
  }
+ function releaseGuard(reason='cancelled'){
+  if(guardOwner)guardArchery?.releasePlotMeeting?.(guardOwner,reason);
+  pendingGuard=null;guardOwner=null;guardArchery=null;
+ }
+ function acceptedGuards(task){
+  const context=getContext()||{},ids=context.guard?.guards?.map(row=>row.id)||[];
+  if(ids.length!==2||new Set(ids).size!==2||!ids.includes(context.guard?.commanderId))return null;
+  return ids.every(id=>{const person=context.supporters?.find(p=>p.id===id&&p.alive&&p.eligible);
+   return person&&task.pledges?.some(p=>p.actorId===id&&p.bodyId===person.bodyId&&p.roleId===person.roleId&&p.circleId===person.circleId&&p.accepted&&!p.withdrawn);
+  })?ids:null;
+ }
+ function guardWaitingValid(){
+  if(!pendingGuard||!active()||guardArchery!==scene().archery||taskNow()?.id!==guardOwner||!acceptedGuards(taskNow())||
+   !near(player()?.root.position,pendingGuard.position,.22)||standing(player())!==true||getBusy()||pendingGuard.participantIds.some(id=>shouldYield(resolveActor(id))))return false;
+  return !!actions.resolveIntent(pendingGuard);
+ }
+ function startReadyGuard(){
+  if(!pendingGuard)return false;
+  if(!guardWaitingValid()){cancel('guard-appointment-interrupted');return false;}
+  const status=guardArchery.plotMeetingState?.(guardOwner);
+  if(!status?.pending||status.reason){cancel(status?.reason||'guard-appointment-ended');return false;}
+  if(status.ready!==true)return true;
+  const next=pendingGuard;pendingGuard=null;
+  if(!actions.executeIntent(next)){releaseGuard('guard-action-unavailable');prepared=null;return false;}
+  prepared=null;return true;
+ }
  if(saved!==undefined){if(validSaved(saved))storyMeals=copy(saved.storyMeals);else loadError='invalid-saved-usurpation-scene';}
  actions=createChinaUsurpationActions({core,getTask:taskNow,getContext,getClock,getPlayer:player,resolveActor,resolveObject,
   getSite:currentSite,standing,canSee,isAvailable:available,getBusy,borrowActors:request=>gathering.borrow(request),
@@ -243,11 +276,23 @@ export function createChinaUsurpationScene({core,getContext=()=>null,getScene=()
   enabled:active,...(saved!==undefined&&!loadError?{saved:saved.actions}:{})});
  function intent(input,actorId){if(!active())return null;return actions.intent(input,actorId);}
  function prepareIntent(selected){const next=actions.resolveIntent(selected);if(!next)return null;prepared=copy(next);syncProps();return next;}
- function executeIntent(selected){const next=prepareIntent(selected);if(!next)return false;const result=actions.executeIntent(next);if(result)prepared=null;return result;}
- function cancel(reason='cancelled'){prepared=null;return actions.cancel(reason);}
+ function executeIntent(selected){
+  const next=prepareIntent(selected);if(!next)return false;
+  if(next.kind==='guard'){
+   if(actions.active())return actions.state().action==='guard'&&actions.state().caseId===next.caseId;
+   if(pendingGuard)return pendingGuard.intentKey===next.intentKey&&startReadyGuard();
+   const task=taskNow(),ids=acceptedGuards(task),archery=scene().archery;
+   if(!ids||!near(player()?.root.position,next.position,.22)||standing(player())!==true||getBusy()||typeof archery?.requestPlotMeeting!=='function')return false;
+   if(!archery.requestPlotMeeting(task.id,ids)){prepared=null;notify('两位原卫须先处理当前事务，请稍后在靶外继续本案。');return false;}
+   guardOwner=task.id;guardArchery=archery;pendingGuard=copy(next);
+   notify('在靶外等原巡查与弓箭归妥，随后两位原卫当面议事。');return startReadyGuard();
+  }
+  const result=actions.executeIntent(next);if(result)prepared=null;return result;
+ }
+ function cancel(reason='cancelled'){prepared=null;releaseGuard(reason);return actions.cancel(reason);}
  function syncProps(){
   const task=taskNow();if(!active()||!openTask(task)){for(const prop of props.values())prop.object.visible=false;return;}
-  const action=actions.state().action||prepared?.kind;
+  const action=actions.state().action||pendingGuard?.kind||prepared?.kind;
   for(const prop of props.values()){
    prop.object.visible=prop.caseId===task.id&&(prop.charter?action==='investiture-reading':!!action&&action!=='intrigue'&&action!=='investiture-reading');
    if(prop.object.visible)prop.sync(player());
@@ -255,22 +300,25 @@ export function createChinaUsurpationScene({core,getContext=()=>null,getScene=()
  }
  function update(dt,t=0){
   if(disposed)return;
-  if(!active()){actions.cancel('scene-unavailable');gathering.release();syncProps();return;}
+  if(!active()){cancel('scene-unavailable');gathering.release();syncProps();return;}
+  if(pendingGuard)startReadyGuard();
   gathering.update(dt,t);syncProps();actions.update(dt);syncProps();
+  if(guardOwner&&!pendingGuard&&!actions.active())releaseGuard('completed-or-interrupted');
  }
  function restore(value){
   if(disposed||!validSaved(value))return false;
   const previous=storyMeals;storyMeals=copy(value.storyMeals);
   if(!actions.restore(value.actions)){storyMeals=previous;return false;}
-  loadError=null;prepared=null;sites.clear();syncProps();return true;
+  releaseGuard('restore');loadError=null;prepared=null;sites.clear();syncProps();return true;
  }
  return {intent,prepareIntent,resolveIntent:selected=>actions.resolveIntent(selected),executeIntent,update,snapshot,restore,
   verifyEvidence:(...args)=>actions.verifyEvidence(...args),request(input,actorId){const next=intent(input,actorId);return next&&prepareIntent(next)&&onIntent(next)!==false?next:null;},
-  cancel,stopActivity:cancel,cancelApproach:cancel,owns:actor=>gathering.owns(actor),active:()=>actions.active(),isActing:()=>actions.isActing(),
-  isWaiting:()=>actions.isWaiting(),playerAction:()=>actions.playerAction(),label:()=>actions.label(),
+  cancel,stopActivity:cancel,cancelApproach:cancel,owns:actor=>gathering.owns(actor),active:()=>!!pendingGuard||actions.active(),isActing:()=>!!pendingGuard||actions.isActing(),
+  isWaiting:()=>!!pendingGuard||actions.isWaiting(),playerAction:()=>pendingGuard?'observe':actions.playerAction(),label:()=>pendingGuard?'靶外候两位原卫巡毕归弓 · 议事尚未计时':actions.label(),
   syncPlayer:syncProps,state:()=>({...actions.state(),loadError:loadError||actions.state().loadError,lastError:lastSaveError||actions.state().lastError,
+   ...(pendingGuard?{active:true,action:'guard',caseId:pendingGuard.caseId,waiting:true,progress:0,elapsed:0,duration:6}:{}),pendingGuard:pendingGuard?.id||null,
    gathering:gathering.active(),preparedIntent:prepared?.id||null,storyMeals:copy(storyMeals),papers:[...props.values()].map(p=>({id:p.object.name,caseId:p.caseId,charter:p.charter,visible:p.object.visible,holderId:p.object.userData.holderId,position:p.object.position.toArray()}))}),
-  dispose(){if(disposed)return;actions.dispose();gathering.dispose();clearProps();sites.clear();disposed=true;}};
+  dispose(){if(disposed)return;releaseGuard('dispose');actions.dispose();gathering.dispose();clearProps();sites.clear();disposed=true;}};
 }
 
 function makePaper(parent,{objectId,caseId,charter,title,lines}){

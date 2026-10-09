@@ -638,7 +638,7 @@ function configureChinaUsurpation(){
  if(!PALACE_USURPATION_ENABLED||active?.id!=='china'||!palaceUsurpation)return;
  chinaUsurpationActions=createChinaUsurpationScene({core:palaceUsurpation,getContext:usurpationContext,getScene:usurpationScene,getClock:()=>simulationClock.state(),
   planPath,moveActor,doors:automaticDoors,isPresent:usurpationActorPresent,standing:usurpationActorStanding,
-  canBorrow:(actor,{moving=false}={})=>!usurpationMustYield(actor)&&(moving?npcPublicMode(actor)==='leave':!!npcPublicMode(actor)),shouldYield:usurpationMustYield,
+  canBorrow:(actor,{moving=false}={})=>!usurpationMustYield(actor)&&(chinaArchery?.canBorrowForPlot?.(actor)===true||(moving?npcPublicMode(actor)==='leave':!!npcPublicMode(actor))),shouldYield:usurpationMustYield,
   canSee:usurpationCanSee,getBusy:()=>!!(interactionMenuOpen()||seated||bathTransition||performing||npcSocial?.active()||activeDailyToilet()?.playerPose()),
   animate:(actor,time,walking)=>actor.animate(time+(actor.phase||0),walking,walking?null:'relax',characterPoseContext(actor,null)),
   onIntent:requestStationIntent,notify:toast,enabled:PALACE_USURPATION_ENABLED,
