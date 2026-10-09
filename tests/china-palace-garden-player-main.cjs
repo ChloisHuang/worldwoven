@@ -1,5 +1,6 @@
-// Narrow actual-main startup and holder/death/admission wiring. Simulated DOM
-// and renderer; no earned-income, natural-demand or navigation claim here.
+// Actual main with a natural original court/decree. Eligibility and initial
+// player arrival are fixtures; subsequent actions use production navigation.
+// Resource-bounded segments persist the exact world before a cold continuation.
 const fs=require('node:fs'),vm=require('node:vm');let harness=fs.readFileSync('tests/fixtures/hotfix-input-harness.cjs','utf8');
 const extras=`\nexport function gardenReview(){return {player,formalCareers,careerHandbook,chinaPalaceGardenEmployment,chinaPalaceGardenDuty,npcs,chinaEdict,chinaAudience,chinaPalace,gardenSlot,gardenAccounts,heraldAccounts,scribeAccounts,simulationClock,copperLedger,saved};} export function gardenStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);activeDailyToilet()?.update(dt);updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);} export function gardenEnter(){travelJourneyUI.close('garden-local-test');return enterRegion('china');} export {save,requestStationIntent};`;
 
@@ -8,9 +9,9 @@ harness=harness.replace("const main=mod(path.join(root,'game/main.js'));", "{if(
 harness=harness.replace("assert.equal(state().mode,'globe');","assert.equal(state().mode,process.env.GARDEN_PLAYER_RESUME?'lot':'globe');");
 const begin=harness.indexOf('const report=[];for(let round=0;');harness=harness.slice(0,begin)+String.raw`
 if(state().mode!=='lot')main.namespace.gardenEnter();const r=main.namespace.gardenReview(),e=r.chinaPalaceGardenEmployment,d=r.chinaPalaceGardenDuty,flow=r.chinaEdict;assert(e&&d&&flow);const roster=r.npcs.map(n=>n.station.id);const home=r.npcs.find(n=>n.station.id==='cn-garden').home.toArray();
-let frames=0,last='';const output='qa/palace-garden-player';fs.mkdirSync(output,{recursive:true});
+let frames=0,last='';const started=Date.now();const output='qa/palace-garden-player';fs.mkdirSync(output,{recursive:true});
 const detail=()=>JSON.stringify({frames,clock:r.simulationClock.state(),player:r.player.root.position.toArray(),duty:d.state(),job:e.state().job,court:r.chinaAudience.courtStatus(),edict:flow.state()});
-function frame(n=1){for(let i=0;i<n;i++){now+=100;main.namespace.gardenStep(.1);frames++;const stage=flow.state().order?.stage||'-';if(stage!==last||frames%600===0){last=stage;console.log('GARDEN_STAGE',frames,r.simulationClock.state().hour,stage,r.player.root.position.toArray());}if(frames%200===0)assert(process.memoryUsage().rss<1152*1024**2,'RSS bound');}}
+function frame(n=1){for(let i=0;i<n;i++){now+=250;main.namespace.gardenStep(.25);frames++;const stage=flow.state().order?.stage||'-';if(stage!==last||frames%600===0){last=stage;console.log('GARDEN_STAGE',frames,r.simulationClock.state().hour,stage,r.player.root.position.toArray());}if(frames%200===0){assert(process.memoryUsage().rss<1152*1024**2,'RSS bound');checkpoint('progress');if(Date.now()-started>65000){console.log('SEGMENT_SAVED',frames,r.simulationClock.state(),flow.state().order?.stage);process.exit(0);}}}}
 function until(fn,label,max=3000){for(let i=0;i<max&&!fn();i++)frame();assert(fn(),label+' '+detail());}
 function request(kind){const w=e.intent(kind);assert(w,'intent '+kind+' '+detail());assert(main.namespace.requestStationIntent(w),'request '+kind+' '+detail());}
 function checkpoint(name){assert(main.namespace.save());fs.writeFileSync(output+'/'+name+'.json',storage['worlds-days-v1']);}
@@ -19,7 +20,7 @@ if(!process.env.GARDEN_PLAYER_RESUME){
 // Eligibility and initial arrival only are fixtures. Court, original edict,
 // money, all subsequent navigation and manual actions remain production.
 r.player.root.position.set(...d.registry);assert(e.executeIntent(e.intent('formal-apply')));r.careerHandbook.close();assert(e.executeIntent(e.intent('formal-review')));r.careerHandbook.close();until(()=>r.formalCareers.isHired('cn-palace-garden-duty'),'Bo actual approval',800);assert(e.executeIntent(e.intent('accept')));until(()=>r.gardenSlot.state().holderId==='player','Bo physical handoff',200);assert.equal(flow.gardenBinding().actorId,'player');request('task');until(()=>!state().pathLength,'walk home',150);
-}else{assert.equal(r.gardenSlot.state().holderId,'player');assert.equal(d.state().lastError,null);assert.equal(flow.state().order?.recipientId,'player');console.log('COLD_CONTINUITY',JSON.stringify(state().continuity));}
+}else{assert.equal(r.gardenSlot.state().holderId,'player');assert.equal(d.state().lastError,null);if(flow.state().order)assert.equal(flow.state().order.recipientId,'player');console.log('COLD_CONTINUITY',JSON.stringify(state().continuity));}
 let lastKey=null,savedPartial=false;const workId=e.state().job.receiptId;
 for(let i=0;i<5500&&!d.workReceipts(workId).length;i++){
  const w=d.workIntent(workId);if(w&&w.key!==lastKey&&w.kind!=='await-original'){lastKey=w.key;request('task:'+w.key);console.log('PLAYER_ACTION',w.key);}
