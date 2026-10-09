@@ -26,7 +26,7 @@ function once(before, after) {
 const seams = `
 export function usurpationMainReview(){return {saved,player,npcs,lot,furniture,palaceUsurpation,palaceUsurpationUI,chinaUsurpationActions,serviceMenus,simulationClock,chinaAudience,chinaEdict,chinaPalace,chinaArchery,chinaRoyalKitchen,chinaRoyalKitchenEmployment,careerHandbook,formalCareers,relationshipEvents,playerConversations,npcSocial,path,targetStation,pendingInteraction};}
 export function usurpationMainStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);activeDailyToilet()?.update(dt);updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);updateGameHealth(dt);palaceUsurpationUI?.update();careerHandbook.update(mode);updateCamera(dt);}
-export {usurpationView,usurpationContext,currentPalaceAuthority,performUsurpationAction,requestStationIntent,save,cancelAction};
+export {usurpationView,usurpationContext,currentPalaceAuthority,performUsurpationAction,requestStationIntent,save,cancelAction,navigateTo,planPath};
 `;
 once("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),", 'new vm.SourceTextModule(readProduction(file),');
 once('const cache=new Map();', `const cache=new Map();function readProduction(file){let source=fs.readFileSync(file,'utf8');if(file.endsWith('/game/main.js')){const disabled='const PALACE_USURPATION_ENABLED=false;',enabled='const PALACE_USURPATION_ENABLED=true;';const present=[disabled,enabled].filter(value=>source.includes(value));assert.equal(present.length,1,'Exact palace feature gate');assert.equal(source.split(present[0]).length,2);assert(source.includes('const TRAVEL_JOURNEYS_ENABLED=true;'),'Travel gate stays enabled');source=source.replace(disabled,enabled)+${JSON.stringify(seams)};}return source;}`);
@@ -100,7 +100,7 @@ function diagnostic(){const live=review();return {leg,steps,seconds:(Date.now()-
  player:r.player.root.position.toArray(),path:live.path.slice(0,5).map(p=>[p.x,p.y,p.z]),pathLength:live.path.length,
  target:live.targetStation,pending:live.pendingInteraction,case:task(),physical:physical.state(),
  actors:[...originals].filter(([id])=>contextNow().supporters.some(person=>person.id===id)).map(([id,n])=>({id,bodyId:bodyId(n),position:n.root.position.toArray(),walking:n.walking,alive:n.alive!==false})),
- kitchen:r.chinaRoyalKitchen?.state(),employment:r.chinaRoyalKitchenEmployment?.state(),palace:r.chinaPalace?.state(),
+ archery:r.chinaArchery?.state(),kitchen:r.chinaRoyalKitchen?.state(),employment:r.chinaRoyalKitchenEmployment?.state(),palace:r.chinaPalace?.state(),
  supporters:contextNow().supporters.map(person=>({id:person.id,circleId:person.circleId})),meeting:r.npcSocial?.meetingState(),toast:ids.toast.textContent};}
 function step(){
  if(Date.now()-started>150000)throw Error('Bounded stop before external 180s limit: '+leg);
@@ -108,6 +108,10 @@ function step(){
  const before=r.player.root.position.clone();now+=100;main.namespace.usurpationMainStep(.1);steps++;
  const distance=r.player.root.position.distanceTo(before);walked+=distance;maxStep=Math.max(maxStep,distance);
  const activity=physical.state();if(activity.action==='political-response'&&!activity.waiting)readyTicks++;
+ if(process.env.USURPATION_MAIN_PHASE==='support'){
+  const invitation=find(document.body,element=>element.id==='player-conversation-dialog');
+  if(invitation?.open){const before=task().pledges.length,close=find(invitation,element=>element.className?.split(' ').includes('player-conversation-close'));assert(close?.onclick);close.onclick();assert(!invitation.open);assert.equal(task().pledges.length,before);journal.dismissedOrdinaryInvitations=(journal.dismissedOrdinaryInvitations||0)+1;}
+ }
 }
 function until(predicate,label,limit=1600){leg=label;for(let i=0;i<limit&&!predicate();i++)step();assert(predicate(),label+' incomplete; see diagnostic.json');}
 function checkpoint(name,evidence={}){
@@ -276,7 +280,7 @@ try{
   let responsePlan=[['cn-official-rites','05-rites-response'],['cn-official-justice','06-justice-response']];
   if(process.env.USURPATION_MAIN_PHASE==='support'){
    const history=journal.supportHistory;assert(history&&history.caseId===journal.caseId);
-   assert.equal(history.window.gameClockSeconds,r.simulationClock.state().seconds,'History preparation never advances the world');
+   if(!done('07-staged-ordinary-history'))assert.equal(history.window.gameClockSeconds,r.simulationClock.state().seconds,'History preparation never advances the world');else assert(r.simulationClock.state().seconds>=history.window.gameClockSeconds,'Later actual progress may advance the same world');
    assert(history.newEvents.every(event=>event.start>=history.window.start&&event.end<history.window.endExclusive));
    const supported=history.actors.filter(row=>row.status==='support'||row.status==='already-staged'&&row.stance==='support').map(row=>row.actorId);
    for(const actorId of supported)assert(contextNow().supporters.some(person=>person.id===actorId),'Production profiles recognize the explicitly staged ordinary response: '+actorId);
@@ -288,9 +292,41 @@ try{
    assert(contextNow().supporters.some(person=>person.id===actorId),'Use an already-established ordinary supporter');
    assert(!task().pledges.some(person=>person.actorId===actorId),'Never re-ask an answered person');
    const body=originals.get(actorId),identity=bodyId(body),prior=clone(task().pledges);
-   until(()=>{const offered=view().actions.find(row=>row.kind==='pledge'&&row.actorId===actorId&&row.enabled);return offered&&physical.intent(offered);},'original court supporter becomes safely approachable: '+actorId,1200);
-   open();readyTicks=0;click(action('pledge',{actorId}));
-   until(()=>task().pledges.some(person=>person.actorId===actorId),'original court person supplies the same-case four seconds: '+actorId,1600);
+   const guard=actorId==='cn-archery'||actorId==='cn-range-warden';
+   const stepAside=()=>{
+    r.palaceUsurpationUI.close();main.namespace.cancelAction();
+    const here=r.player.root.position.clone(),other=body.root.position,waypoints=[other,...body.route];
+    const next=body.route.find(p=>Math.hypot(p.x-other.x,p.z-other.z)>.2),heading=next?Math.atan2(next.z-other.z,next.x-other.x):Math.atan2(here.z-other.z,here.x-other.x);
+    const laneDistance=q=>Math.min(...waypoints.slice(1).map((b,index)=>{const a=waypoints[index],dx=b.x-a.x,dz=b.z-a.z,t=Math.max(0,Math.min(1,((q.x-a.x)*dx+(q.z-a.z)*dz)/(dx*dx+dz*dz||1)));return Math.hypot(q.x-a.x-t*dx,q.z-a.z-t*dz);}));
+    let target=null;
+    for(const turn of [Math.PI/2,-Math.PI/2,Math.PI,Math.PI*.75,-Math.PI*.75,0]){
+     const q=here.clone();q.x+=Math.cos(heading+turn)*2.8;q.z+=Math.sin(heading+turn)*2.8;
+     if(Math.hypot(q.x-other.x,q.z-other.z)<1.8||laneDistance(q)<1.4)continue;
+     const route=main.namespace.planPath(here,q,.34),end=route?.at(-1);
+     if(end&&Math.hypot(end.x-q.x,end.z-q.z)<.2&&Math.abs((end.y??q.y)-q.y)<.3){target=q;break;}
+    }
+    assert(target,'An actual navigable side of the original public lane exists');main.namespace.navigateTo(target);
+    until(()=>r.player.root.position.distanceTo(target)<.4,'player physically clears the original patrol lane',450);
+    assert(r.player.root.position.distanceTo(here)>1.7);assert.deepEqual(clone(task().pledges),prior);
+   };
+   const clearMilestone='10c-warden-lane-cleared-'+(journal.guardApproachPause?.attempt||1);
+   if(guard&&journal.guardApproachPause?.actorId===actorId&&!done(clearMilestone)){
+    stepAside();if(checkpoint(clearMilestone,{actorId,caseId:journal.caseId,answerStillAbsent:true,playerWalked:true}))return;
+   }
+   readyTicks=0;
+   for(let attempt=0;attempt<(guard?4:1)&&!task().pledges.some(person=>person.actorId===actorId);attempt++){
+    until(()=>{const offered=view().actions.find(row=>row.kind==='pledge'&&row.actorId===actorId&&row.enabled);return offered&&physical.intent(offered);},'original person becomes safely approachable: '+actorId,1200);
+    open();click(action('pledge',{actorId}));leg='original person supplies the same-case four seconds: '+actorId;
+    for(let i=0;i<1600&&!task().pledges.some(person=>person.actorId===actorId);i++){
+     step();const live=review();
+     if(guard&&i>2&&!physical.active()&&!live.path.length&&!live.pendingInteraction)break;
+    }
+    if(guard&&!task().pledges.some(person=>person.actorId===actorId)){
+     journal.cancelledApproaches=(journal.cancelledApproaches||0)+1;stepAside();
+     if(checkpoint('guard-approach-cleared-'+journal.cancelledApproaches,{actorId,caseId:journal.caseId,answerStillAbsent:true,normalCancellation:true}))return;
+    }
+   }
+   assert(task().pledges.some(person=>person.actorId===actorId),'A fixed number of actual approaches completed or yielded; see diagnostic');
    const response=task().pledges.find(person=>person.actorId===actorId);
    assert.equal(response.bodyId,identity);assert.equal(response.receipt.actorBodyId,identity);
    assert.equal(response.receipt.kind,'political-response');assert.equal(response.receipt.durationSeconds,4);
