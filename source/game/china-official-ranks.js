@@ -57,7 +57,7 @@ export const CHINA_COURT_OFFICIAL_RANKS = Object.freeze([
   {actorId:'cn-minister-granary',roleLabel:'仓务总管',gradeId:'cn-grade-3-regular',responsibility:'钱粮审核、仓务核对与部门回报',implemented:'原案核对已付俸据、具名奏报与皇帝收讫；本人朝会归档另行计薪',remaining:'真实仓储收发、存量及其他钱粮审核链'},
   {actorId:'cn-official-rites',roleLabel:'礼仪主管',gradeId:'cn-grade-4-regular',responsibility:'礼制、朝仪与相关任职审核',implemented:'朝会、录事入职与从九升正九的当面审核',remaining:'更高阶实职任命与完整礼制事务'},
   {actorId:'cn-official-personnel',roleLabel:'吏务主管',gradeId:'cn-grade-5-regular',responsibility:'官员考核与值勤名册管理',implemented:'朝会与本人归档；值勤名册目前为日常动作',remaining:'真实考核、人员名册变更与任免工序'},
-  {actorId:'cn-official-justice',roleLabel:'刑名主官',gradeId:'cn-grade-2-regular',responsibility:'部门裁决、案件审核与问责',implemented:'朝会与本人归档；无实案时不虚报案件',remaining:'真实案件、审理与裁决权限链'},
+  {actorId:'cn-official-justice',roleLabel:'刑名主官',gradeId:'cn-grade-2-regular',responsibility:'部门裁决、案件审核与问责',implemented:'朝会与本人归档；真实已报案件的交办、实据复核与具名意见归档',remaining:'完整审理与裁决权限链；现有复核不追加刑罚'},
   {actorId:'cn-official-records',roleLabel:'文书承办官',gradeId:'cn-grade-7-regular',responsibility:'编号来文、拟稿与归档，不授部门裁决权',implemented:'朝会与本人归档；来文和案卷目前为日常动作',remaining:'本人编号来文、拟稿与交接工序；不等同Wen原稿'},
 ].map(rank => Object.freeze({...rank,...getChinaOfficialGrade(rank.gradeId),
   currentWage:CHINA_OFFICIAL_GRADE_PAY_V1[rank.gradeId],payPolicyId:CHINA_OFFICIAL_GRADE_PAY_POLICY_ID,automaticPromotion:false})));

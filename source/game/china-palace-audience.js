@@ -32,6 +32,10 @@ export function courtOfficialAppearance(region,id,look){
 }
 export const chinaCourtOfficialStations=()=>CHINA_COURT_OFFICIALS.map(r=>({...r,npcOnly:true,name:'承务官署 · 值宿与办公',action:'官署起居与朝议',npcAction:'court-duty',npcLabel:'在自己的案边处理来文',npcRotation:Math.PI,position:r.npcPosition.slice()}));
 const point=a=>({x:a[0],y:a[1],z:a[2]}),near=(p,a,r=.075)=>Math.hypot(p.x-a[0],p.z-a[2])<r&&Math.abs(p.y-a[1])<.32;
+// Departmental review may receive an individually released official while
+// other court participants are still departing. The selected actor's actual
+// task ownership and personal-duty availability remain authoritative.
+export function courtCaseReviewAvailable({phase,owned,hasTask,lifeAvailable}){return owned===true&&['waiting','followup','departing'].includes(phase)&&hasTask===false&&lifeAvailable===true;}
 const OWNER='china-morning-audience',FORMAL=new Set(['kneeling','report','response','dismissal','rising']);
 // Two longitudinal ranks leave the central imperial approach unobstructed.
 const side=i=>i%2?1:-1,rank=i=>Math.floor(i/2);
@@ -182,6 +186,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
   labelVisible(n,player){return !owned.has(n)||!FORMAL.has(phase)&&phase!=='holding'||n===speaker||!!player&&n.root.position.distanceTo(player)<1.8;},
   socialProfile:id=>life?.socialProfile(id),
   socialStatus(n){return owned.has(n)?{busy:FORMAL.has(phase)||['assembling','holding'].includes(phase)||!!life?.socialBusy(n.station.id),canPause:!!life?.socialCanPause(n),attention:!FORMAL.has(phase)&&!['assembling','holding'].includes(phase),job:interruptedToday?interruptedLabel:tasks.get(n)?.label||life?.label(n)||'承务官署 · 日常起居'}:null;},
+  caseReviewAvailable:n=>courtCaseReviewAvailable({phase,owned:owned.has(n),hasTask:tasks.has(n),lifeAvailable:!!life?.meetingAvailable(n)}),
   meetingAvailable:n=>owned.has(n)&&!FORMAL.has(phase)&&!['assembling','holding','departing'].includes(phase)&&!tasks.has(n)&&!!life?.meetingAvailable(n),
   playerRequest(id){life?.playerRequest(id);},
   update(dt,t,playerState={}){
