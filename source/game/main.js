@@ -18,6 +18,7 @@ import {palaceUsurpationRoyalMealEligibility} from './palace-usurpation-entitlem
 import {createPalaceUsurpationUI} from './palace-usurpation-ui.js';
 import {readChinaUsurpationContext,projectUsurpationResidence,usurpationBodyId} from './china-usurpation-context.js';
 import {createChinaUsurpationScene} from './china-usurpation-scene.js';
+import {createCriminalCaseMeetingPlacement} from './china-criminal-case-placement.js';
 import {createChinaCriminalCaseRuntime} from './china-criminal-case-runtime.js';
 import {createChinaCriminalCasePanel} from './china-criminal-case-panel.js';
 import {createCrimeRuntime} from './crime-runtime.js';
@@ -893,15 +894,16 @@ function configureCrime(){
 }
 function configureChinaCriminalCases(){
  if(active.id!=='china')return;
+ const meetingPoint=createCriminalCaseMeetingPlacement({getPlayerPosition:()=>player.root.position.toArray(),resolveStand:courtReviewStandPoint,planPath:(a,b)=>planPath(new THREE.Vector3(...a),new THREE.Vector3(...b)),canFinish:(a,b)=>canTraverse(new THREE.Vector3(...a),new THREE.Vector3(...b),lot.colliders,{...navOptions,radius:.34})});
  const canMeet=n=>n?.alive!==false&&!n.walking&&!crimeRuntime?.owns(n)&&!activeDailyToilet()?.owns?.(n)&&
-  !isSociallyHeld(n.actorId||n.station.id)&&npcSocial?.routineAvailable(n)===true&&(!n.station?.courtRole||chinaAudience?.meetingAvailable(n)===true);
+  !isSociallyHeld(n.actorId||n.station.id)&&npcSocial?.routineAvailable(n)===true&&(!n.station?.courtRole||chinaAudience?.caseReviewAvailable(n)===true);
  chinaCriminalCases=createChinaCriminalCaseRuntime({saved:saved.chinaCriminalCases,getCrime:()=>crimeRuntime?.model.snapshot(),getPlayer:()=>player,getActors:()=>[player,...npcs],
   standing:()=>personnelPlayerStanding()&&!player.walking&&!crimeRuntime?.status()?.detained,playerAvailable:()=>personnelPlayerStanding()&&!crimeRuntime?.status()?.detained,
   getBusy:()=>!!(interactionMenuOpen()||performing||pendingInteraction||npcSocial?.active()||activeDailyToilet()?.active()||chinaPersonnelCareer?.isActing()||chinaPersonnelAppointment?.isActing()||chinaCareer?.isActing()||crimeRuntime?.activeAction()),
-  canSee:nearbyInteractionClear,getMeetingPoint:courtReviewStandPoint,getScenePoint:p=>courtReviewStandPoint({root:{position:new THREE.Vector3(...p)}},p),canMeet,
+  canSee:nearbyInteractionClear,getMeetingPoint:meetingPoint,getScenePoint:p=>courtReviewStandPoint({root:{position:new THREE.Vector3(...p)}},p),canMeet,
   requestMeeting:(n,owner)=>canMeet(n)&&npcSocial.reserveMeeting(n,{owner,duration:90}),
   meetingHeld:(n,owner)=>npcSocial?.meetingState()?.id===(n.actorId||n.station.id)&&npcSocial.meetingState()?.owner===owner,
-  releaseMeeting:owner=>npcSocial?.releaseMeeting(owner),stopPlayer:()=>{path=[];targetStation=null;pendingInteraction=null;resetTransientInput();},openPanel:()=>chinaCriminalCasePanel?.open(),notify:toast,
+  releaseMeeting:owner=>npcSocial?.releaseMeeting(owner),cancelApproach:()=>{if(pendingInteraction?.provider==='china-criminal-cases'){path=[];targetStation=null;pendingInteraction=null;}},approachProgress:()=>{let remaining=0,from=player.root.position;for(const to of path){remaining+=Math.hypot(to.x-from.x,to.y-from.y,to.z-from.z);from=to;}return remaining;},stopPlayer:()=>{path=[];targetStation=null;pendingInteraction=null;resetTransientInput();},openPanel:()=>chinaCriminalCasePanel?.open(),notify:toast,
   persist:state=>{worldSnapshotWriter?.();try{const result=gameStorage.setItem('worlds-days-v1',JSON.stringify({...saved,chinaCriminalCases:state}));if(result===false||result?.then)return false;saved.chinaCriminalCases=state;return true;}catch{return false;}}
  });
  chinaCriminalCasePanel=createChinaCriminalCasePanel({getCases:()=>chinaCriminalCases.core.list(),getStatus:()=>chinaCriminalCases.core.status().ok?crimeRuntime.status():chinaCriminalCases.core.status(),getIntent:id=>chinaCriminalCases.intent(id),onAction:next=>requestStationIntent(next),onClose:()=>resetTransientInput(),nameOf:id=>id==='player'?'你':npcs.find(n=>(n.actorId||n.station.id)===id)?.station.npcName||'原具名当事人'});

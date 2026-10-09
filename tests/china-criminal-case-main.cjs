@@ -45,7 +45,7 @@ if(!restored){
 }
 assert(r.chinaCriminalCases.choices().some(i=>i.kind==='board'));
 if(stage()==='archived'){
- const before=JSON.stringify(r.chinaCriminalCases.snapshot());r.chinaCriminalCasePanel.open();r.chinaCriminalCasePanel.close();assert.equal(JSON.stringify(r.chinaCriminalCases.snapshot()),before);assert.equal(r.chinaCriminalCases.intent(caseId),null);assert.equal(r.chinaCriminalCases.core.view(caseId).outcome.code,'sentence-already-served');checkpoint('cold-verified');console.log(JSON.stringify({status:'PASS',scope:'Independent cold main rehydrates exact original case archive; open/close produces no new receipt',frames,travel,summary:summary()}));return;
+ const before=JSON.stringify(r.chinaCriminalCases.snapshot());const board=main.namespace.nearbyChoices(true).nearby.find(i=>i.provider==='china-criminal-cases'&&i.kind==='board');assert(board,'original desk is discoverable through actual nearby UI');assert(main.namespace.requestStationIntent(board));assert(r.chinaCriminalCasePanel.isOpen(),'actual original desk action opens case panel');r.chinaCriminalCasePanel.close();assert.equal(JSON.stringify(r.chinaCriminalCases.snapshot()),before);assert.equal(r.chinaCriminalCases.intent(caseId),null);assert.equal(r.chinaCriminalCases.core.view(caseId).outcome.code,'sentence-already-served');checkpoint('cold-verified');console.log(JSON.stringify({status:'PASS',scope:'Independent cold main rehydrates exact original case archive; open/close produces no new receipt',frames,travel,summary:summary()}));return;
 }
 for(const expected of ['intake','scene','witness','review','archive']){
  if(['intake','scene','witness','review','archive'].indexOf(stage())>['intake','scene','witness','review','archive'].indexOf(expected))continue;

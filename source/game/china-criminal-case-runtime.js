@@ -12,7 +12,7 @@ const labels={intake:'请周惟正当面交办原案',scene:'核查原案现场�
 // Only completed physical steps are durable. Leaving or closing cancels the
 // short unfinished read; the exact case and completed receipts survive travel.
 export function createChinaCriminalCaseRuntime({saved,persist,getCrime,getPlayer,getActors,standing,getBusy,playerAvailable=()=>true,
- canSee,getMeetingPoint,getScenePoint=p=>p,canMeet,requestMeeting,meetingHeld,releaseMeeting,stopPlayer,openPanel,notify=()=>{}}){
+ canSee,getMeetingPoint,getScenePoint=p=>p,canMeet,requestMeeting,meetingHeld,releaseMeeting,stopPlayer,approachProgress=()=>0,cancelApproach=()=>{},openPanel,notify=()=>{}}){
  const core=createChinaCriminalCases({saved,persist,getCrime});let activity=null,prepared=null,disposed=false;
  const actor=id=>getActors().find(n=>idOf(n)===id&&n.alive!==false);
  const accessible=n=>n&&n.alive!==false&&n.present!==false&&!n.walking&&n.serviceMount?.kind!=='bed'&&!n.bathTransition;
@@ -39,9 +39,9 @@ export function createChinaCriminalCaseRuntime({saved,persist,getCrime,getPlayer
   return {id:`criminal-case:${caseId}:${view.stage}`,provider:PROVIDER,kind:view.stage,caseId,intentKey:JSON.stringify([caseId,view.stage,view.sourceRevision,t.targetId,t.position]),name:'刑名原案 · '+(view.number||view.source?.number||''),action:t.witnessUnavailable?'核对已送达的原证言（本人暂不可询）':labels[view.stage],position:t.position.slice(),interactionRadius:1.25,executionRadius:.24,priority:10};
  }
  function resolveIntent(old){const next=old?.kind==='board'?board():intent(old?.caseId);return next&&next.intentKey===old?.intentKey?next:null;}
- function cancel(){if(!activity&&!prepared)return false;activity=null;prepared=null;releaseMeeting(OWNER);return true;}
+ function cancel(){if(!activity&&!prepared)return false;activity=null;prepared=null;releaseMeeting(OWNER);cancelApproach();return true;}
  function prepareIntent(old){const next=resolveIntent(old);if(!next)return null;if(next.kind==='board')return next;const v=core.view(next.caseId),t=target(v);if(!t)return null;
-  if(t.actor){if(!canMeet(t.actor)||!requestMeeting(t.actor,OWNER)){notify('原当事人正在处理原职责，请稍后再来。');return null;}prepared={caseId:v.id,stage:v.stage,revision:v.sourceRevision,target:t,actorKey:keyOf(t.actor)};}return next;}
+  if(t.actor){if(!canMeet(t.actor)||!requestMeeting(t.actor,OWNER)){notify('原当事人正在处理原职责，请稍后再来。');return null;}prepared={caseId:v.id,stage:v.stage,revision:v.sourceRevision,target:t,actorKey:keyOf(t.actor),bestRemaining:Infinity,stalled:0};}return next;}
  function executeIntent(old){
   if(disposed)return false;const next=resolveIntent(old),p=getPlayer();if(!next||!standing()||getBusy()||!near(position(p),next.position,.32)||!canSee(next))return false;
   if(next.kind==='board'){cancel();openPanel();return true;}
@@ -50,9 +50,12 @@ export function createChinaCriminalCaseRuntime({saved,persist,getCrime,getPlayer
   stopPlayer();activity={caseId:next.caseId,stage:view.stage,revision:view.sourceRevision,target:t,origin:position(p).slice(),player:p,playerKey:keyOf(p),actorKey:t.actor?keyOf(t.actor):null,elapsed:0};notify(`${next.action} · 请停留完成核验`);return true;
  }
  function update(dt){
-  if(disposed)return;if(!activity){if(prepared){const n=prepared.target.actor,v=core.view(prepared.caseId);if(!playerAvailable()||!accessible(n)||!getActors().includes(n)||keyOf(n)!==prepared.actorKey||v?.stage!==prepared.stage||v?.sourceRevision!==prepared.revision||!meetingHeld(n,OWNER))cancel();}return;}const a=activity,p=getPlayer(),v=core.view(a.caseId),t=a.target;
+  if(disposed)return;if(!activity){if(prepared){const n=prepared.target.actor,v=core.view(prepared.caseId);if(!playerAvailable()||!accessible(n)||!canMeet(n)||!getActors().includes(n)||keyOf(n)!==prepared.actorKey||v?.stage!==prepared.stage||v?.sourceRevision!==prepared.revision||!meetingHeld(n,OWNER)){cancel();return;}
+   const remaining=approachProgress();if(Number.isFinite(remaining)&&remaining<prepared.bestRemaining-.06){prepared.bestRemaining=remaining;prepared.stalled=0;}else if(Number.isFinite(dt)&&dt>0)prepared.stalled+=Math.min(dt,.1);
+   if(prepared.stalled>=8){cancel();notify('接近暂不能继续，已释放原当事人；原案进度保留。');}}
+  return;}const a=activity,p=getPlayer(),v=core.view(a.caseId),t=a.target;
   if(!Number.isFinite(dt)||dt<=0)return;
-  if(p!==a.player||keyOf(p)!==a.playerKey||!standing()||getBusy()||!near(position(p),a.origin,.15)||!near(position(p),t.targetPosition,2)||v?.stage!==a.stage||v?.sourceRevision!==a.revision||!canSee({position:t.targetPosition,executionRadius:2})||t.actor&&(!accessible(t.actor)||!getActors().includes(t.actor)||keyOf(t.actor)!==a.actorKey&&a.actorKey!==undefined||!meetingHeld(t.actor,OWNER)||!near(position(t.actor),t.targetPosition,.1))){cancel();notify('核验已中止；已完成的原案步骤保留。');return;}
+  if(p!==a.player||keyOf(p)!==a.playerKey||!standing()||getBusy()||!near(position(p),a.origin,.15)||!near(position(p),t.targetPosition,2)||v?.stage!==a.stage||v?.sourceRevision!==a.revision||!canSee({position:t.targetPosition,executionRadius:2})||t.actor&&(!accessible(t.actor)||!canMeet(t.actor)||!getActors().includes(t.actor)||keyOf(t.actor)!==a.actorKey&&a.actorKey!==undefined||!meetingHeld(t.actor,OWNER)||!near(position(t.actor),t.targetPosition,.1))){cancel();notify('核验已中止；已完成的原案步骤保留。');return;}
   if(t.actor)a.actorKey??=keyOf(t.actor);
   a.elapsed+=Math.min(dt,.1);if(a.elapsed+1e-9<2)return;
   const proof={actorId:'player',actorKey:keyOf(p),targetId:t.targetId,elapsed:Math.max(2,a.elapsed),sourceRevision:a.revision,position:asPoint(position(p)),targetPosition:asPoint(t.targetPosition),clear:true,standing:true,

@@ -142,7 +142,8 @@
       "china-holding-cell-navigation.cjs",
       "china-official-blocked-door.cjs",
       "china-official-washroom-return.cjs",
-      "china-tavern-cleaning-geometry.cjs"
+      "china-tavern-cleaning-geometry.cjs",
+      "china-criminal-case-placement.mjs"
     ]
   },
   "ui": {

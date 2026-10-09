@@ -6,6 +6,12 @@ function mod(file){if(cache.has(file))return cache.get(file);const m=new vm.Sour
 const linker=(s,f)=>mod(s==='three'?path.join(root,'vendor/three/build/three.module.js'):path.resolve(path.dirname(f.identifier),s.split('?')[0]));
 (async()=>{
  const audience=mod(path.join(root,'game/china-palace-audience.js'));await audience.link(linker);await audience.evaluate();
+ const reception=audience.namespace.courtCaseReviewAvailable,free={phase:'departing',owned:true,hasTask:false,lifeAvailable:true};
+ assert(reception(free),'another official may still depart after selected official has actually been released');
+ assert(!reception({...free,hasTask:true}),'selected official still obligated to court cannot receive a case');
+ assert(!reception({...free,lifeAvailable:false}),'selected official personal meal/toilet/mount or social obligations win');
+ assert(!reception({...free,owned:false}));for(const phase of ['assembling','holding','kneeling','report','response','dismissal','rising'])assert(!reception({...free,phase}),phase+' cannot be interrupted');
+ if(process.argv.includes('--case-reception-only')){console.log('PASS individual court release for case review, own active tasks and personal/social needs preserved');return;}
  // Rank metadata may sort a handbook, but must not move an incumbent's office
  // or assign another route lane to the actor when a saved world is restored.
  const physicalIds=['cn-minister-works','cn-minister-granary','cn-official-rites','cn-official-personnel','cn-official-justice','cn-official-records'];
