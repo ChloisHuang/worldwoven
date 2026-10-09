@@ -1,3 +1,5 @@
+import {createJapanBeddingReceiving} from './japan-bedding-receiving.js';
+import {JAPAN_GUEST_BED} from './japan-bedding.js';
 import {createJapanBoilerDuty} from './japan-boiler-duty.js';
 import {createJapanLinenDuty} from './japan-linen-duty.js';
 import {isSociallyHeld} from './npc-social-ownership.js';
@@ -33,7 +35,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
  const restSeats=furniture.items.filter(i=>i.kind==='seat'&&i.center[1]===3.8&&i.center[2]===7.55);
  if(restSeats.length<2)return null;
  const workers=[...WORKERS,...JAPAN_LOCAL_WORKERS].map(id=>residents.get(id)).filter(Boolean),guests=new Map(),actors=new Map(workers.map(n=>[n.station.id,n])),tasks=new Map(),cooldowns=new Map();
- let boilerDuty=null,linenDuty=null,staffLife=null,receptionDuty=null,deliveryDuty=null,womenDeliveryDuty=null,mixingDuty=null,kitchenDuty=null,tableServiceDuty=null;
+ let beddingReceiving=null,boilerDuty=null,linenDuty=null,staffLife=null,receptionDuty=null,deliveryDuty=null,womenDeliveryDuty=null,mixingDuty=null,kitchenDuty=null,tableServiceDuty=null;
  const board=createJapanServiceOrders({saved,worldSeed,onRelationshipEvent,getRelationshipTime:()=>time,preservePhysical:!!checkpoint,saveState:state=>saveState({...state,staffLife:staffLife?.snapshot()||saved.staffLife}),capacity:2}),props=createJapanServiceProps(lot.group);
  const navigation={surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4,radius:.25};
  let playerState={},playerCustomerService=null,disposed=false,time=0,nextArrival=0,checkpointAt=5;
@@ -91,6 +93,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   const n=task.actor;failures.push({actor:n.station.id,reason,time:+time.toFixed(2),position:n.root.position.toArray(),destination:task.to.slice(),next:n.route[0]||null,player:playerState.position?.toArray?.()||null});if(failures.length>8)failures.shift();
   if(task.linenWork&&!board.linenReleaseCarrier(n.station.id))return;
   if(task.boilerWork&&!board.boiler.releaseWorker(n.station.id))return;
+  if(task.beddingWork&&!board.bedding.releaseCarrier(n.station.id))return;
   if(task.staffLife){clear(n);staffLife?.abort(n);cooldowns.set(n.station.id,time+3);return;}
   clear(n,{releaseJob:true});furniture.releaseActor(n.station.id);cooldowns.set(n.station.id,time+3);
  }
@@ -163,7 +166,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    let current=tasks.get(n.station.id);
    if(current&&!current.idle)continue;
    if(tableServiceDuty?.holdsHost()&&n.station.id==='jp-ramen'||kitchenDuty?.holdsHost()&&n.station.id==='jp-sushi'||receptionDuty?.holdsHost()&&n.station.id==='jp-welcome'||deliveryDuty?.holdsHost()&&n.station.id==='jp-onsen'||womenDeliveryDuty?.holdsHost()&&n.station.id==='jp-women-onsen'||mixingDuty?.holdsHost()&&n.station.id==='jp-incense')continue;
-   if(linenDuty?.blocksWorker(n.station.id)||boilerDuty?.blocksWorker(n.station.id))continue;
+   if(linenDuty?.blocksWorker(n.station.id)||boilerDuty?.blocksWorker(n.station.id)||beddingReceiving?.blocksWorker(n.station.id))continue;
    const available=board.jobs().filter(j=>!j.workerId&&!tableServiceDuty?.blocksWorker(n.station.id,j.kind)&&!kitchenDuty?.blocksWorker(n.station.id,j.kind)&&!receptionDuty?.blocksWorker(n.station.id)&&!deliveryDuty?.blocksWorker(n.station.id)&&!womenDeliveryDuty?.blocksWorker(n.station.id)&&!mixingDuty?.blocksWorker(n.station.id)&&(!staffLife||staffLife.canClaim(n.station.id,j.kind))),job=available.map(j=>board.claim(j.id,n.station.id)).find(Boolean);
    if(job){clear(n);workerTask(n,job);}
    else {
@@ -171,7 +174,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
     // Work only at this resident's authored post. Shift waiting/relief points
     // may be in the same room, but do not put their original tools there.
     const ownPost=near(point(home),n.home.toArray(),.08),validTarget=Array.isArray(target)&&target.length===3&&target.every(Number.isFinite);
-    const idle=boilerDuty?.idleTask(n.station.id)||linenDuty?.idleTask(n.station.id)||tableServiceDuty?.idleTask(n.station.id)||kitchenDuty?.idleTask(n.station.id)||staffLife?.idleTask(n.station.id)||(validTarget?{duration:4,face:target,...(ownPost?{action:n.station.npcAction,workTarget:target,label:n.station.id==='jp-welcome'?'整理柜台钥匙与客簿':n.station.npcLabel}:{label:n.station.id==='jp-welcome'?'查看柜台钥匙与客簿':'查看药房称量台与浴包'})}:null);
+    const idle=beddingReceiving?.idleTask(n.station.id)||boilerDuty?.idleTask(n.station.id)||linenDuty?.idleTask(n.station.id)||tableServiceDuty?.idleTask(n.station.id)||kitchenDuty?.idleTask(n.station.id)||staffLife?.idleTask(n.station.id)||(validTarget?{duration:4,face:target,...(ownPost?{action:n.station.npcAction,workTarget:target,label:n.station.id==='jp-welcome'?'整理柜台钥匙与客簿':n.station.npcLabel}:{label:n.station.id==='jp-welcome'?'查看柜台钥匙与客簿':'查看药房称量台与浴包'})}:null);
     // Coverage ending or displacement immediately releases the old idle.
     if(current&&(!near(point(current.to),home,.08)||(current.arrived&&!near(n.root.position,current.mount?.anchor||home,.18)))){if(!unmount(n))continue;clear(n);furniture.releaseActor(n.station.id);current=null;}
     // Keep the pose across its work cycle boundary; orders/handoffs above own
@@ -252,15 +255,17 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
  }
  staffLife=createJapanStaffLife({beginInteraction,onInteraction,getMeetingHeld:id=>id==='jp-steam'&&boilerDuty?.holdsHost()||id==='jp-rest'&&linenDuty?.holdsHost()||id==='jp-ramen'&&tableServiceDuty?.holdsHost()||id==='jp-sushi'&&kitchenDuty?.holdsHost()||id==='jp-welcome'&&receptionDuty?.holdsHost()||id==='jp-onsen'&&deliveryDuty?.holdsHost()||id==='jp-women-onsen'&&womenDeliveryDuty?.holdsHost()||id==='jp-incense'&&mixingDuty?.holdsHost(),getReceptionCoverage:()=>receptionDuty?.isCovering()||false,getExternalCoverage:(id,kind)=>boilerDuty?.coversWorker(id,kind)||linenDuty?.coversWorker(id,kind)||tableServiceDuty?.coversWorker(id,kind)||kitchenDuty?.coversWorker(id,kind)||deliveryDuty?.coversWorker(id,kind)||womenDeliveryDuty?.coversWorker(id,kind)||['jp-incense','jp-herb-workshop'].includes(id)&&mixingDuty?.isCovering()||false,sharedNeeds,getToilet,saveState:state=>saveState({...board.state(),staffLife:state}),onMealReceipt:receipt=>!sharedNeeds||sharedNeeds.mealReceipts([receipt])||(sharedNeeds.snapshot().people[receipt.actorId]?.receipts['japan-staff-meal']||0)>=receipt.number,actors,board,furniture,assign,clear,unmount,taskOf:n=>tasks.get(n.station.id),changeWardrobe,worldSeed,canReach:(n,to)=>near(n.root.position,to)||planPath(n.root.position,point(to),.25).length>0,saved:saved.staffLife});
  boilerDuty=createJapanBoilerDuty({board,actors,assign,clear,unmount,taskOf:n=>tasks.get(n.station.id),getStaffLife:()=>staffLife,onComplete:record});
+ beddingReceiving=createJapanBeddingReceiving({board,actors,assign,clear,taskOf:n=>tasks.get(n.station.id),getStaffLife:()=>staffLife,onComplete:record});
  linenDuty=createJapanLinenDuty({tickDrying:false,board,actors,assign,clear,unmount,planPath,taskOf:n=>tasks.get(n.station.id),getStaffLife:()=>staffLife,onComplete:record});
  return {
   connectBoilerDuty(options){return boilerDuty.connect(options);},
+  beddingStatus:()=>board.bedding.status(),
   connectLinenDuty(options){return linenDuty.connect(options);},
   itemAnchor:id=>disposed?null:props.itemAnchor(id),
   owns:n=>actors.has(n.station.id),
-  canTalkAtPost(n){const task=tasks.get(n.station.id);return actors.has(n.station.id)&&!n.walking&&!n.route?.length&&!n.serviceMount&&!n.bathTransition&&(!task||task.idle&&task.arrived)&&!board.workerBusy(n.station.id)&&!board.linenWork().some(l=>l.carryOwner===n.station.id);},
+  canTalkAtPost(n){const task=tasks.get(n.station.id);return actors.has(n.station.id)&&!n.walking&&!n.route?.length&&!n.serviceMount&&!n.bathTransition&&(!task||task.idle&&task.arrived)&&!board.workerBusy(n.station.id)&&![...board.linenWork(),...board.bedding.state().sets].some(l=>l.carryOwner===n.station.id);},
   canBorrowForSocial:n=>guests.has(n.station.id)||staffLife?.canBorrowForSocial(n.station.id)===true,
-  socialStatus(n){const task=tasks.get(n.station.id),need=sharedNeeds?.status(n.station.id),busy=!!(n.serviceMount||n.bathTransition||task&&!task.idle||task?.held||task?.handoff||need?.seekMeal||need?.seekToilet||board.workerBusy(n.station.id)||board.linenWork().some(l=>l.carryOwner===n.station.id));return {busy,canPause:!busy,attention:!busy,job:task?.label||n.station.npcLabel};},
+  socialStatus(n){const task=tasks.get(n.station.id),need=sharedNeeds?.status(n.station.id),busy=!!(n.serviceMount||n.bathTransition||task&&!task.idle||task?.held||task?.handoff||need?.seekMeal||need?.seekToilet||board.workerBusy(n.station.id)||[...board.linenWork(),...board.bedding.state().sets].some(l=>l.carryOwner===n.station.id));return {busy,canPause:!busy,attention:!busy,job:task?.label||n.station.npcLabel};},
   connectPlayerService(options) {return playerCustomerService??=createJapanPlayerService({...options,board,furniture,continuity:checkpoint?.playerService});},
   connectTableServiceDuty(options){return tableServiceDuty??=createJapanTableServiceDuty({...options,board,actors,assign,clear,unmount,planPath,taskOf:n=>tasks.get(n.station.id),getStaffLife:()=>staffLife,customerActor,onComplete:record});},
   connectKitchenDuty(options){return kitchenDuty??=createJapanKitchenDuty({...options,board,actors,assign,clear,unmount,taskOf:n=>tasks.get(n.station.id),getStaffLife:()=>staffLife,onComplete:record});},
@@ -268,10 +273,10 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   connectDeliveryDuty(options){const side=options.side||'men',existing=side==='women'?womenDeliveryDuty:deliveryDuty;if(existing)return existing;const duty=createJapanBathDeliveryDuty({...options,side,board,actors,assign,clear,unmount,planPath,taskOf:n=>tasks.get(n.station.id),getStaffLife:()=>staffLife,customerActor,onComplete:record});if(side==='women')womenDeliveryDuty=duty;else deliveryDuty=duty;return duty;},
   connectReceptionDuty(options){return receptionDuty??=createJapanReceptionDuty({...options,board,actors,assign,clear,unmount,taskOf:n=>tasks.get(n.station.id),getStaffLife:()=>staffLife,customerActor,furniture,onComplete:record});},
   update(dt,t,state={}) {
-   if(disposed)return;time+=dt;board.linenTick(dt);playerState=state;playerCustomerService?.update(dt);spawn();
+   if(disposed)return;time+=dt;board.linenTick(dt);board.bedding.tick(dt);board.bedding.observeUse(dt,state.mountedBedId===JAPAN_GUEST_BED);playerState=state;playerCustomerService?.update(dt);spawn();
    for(const n of actors.values())n.walking=false;
    for(const [id,n]of guests){const v=board.getVisit(id);if(v)scheduleGuest(n,v);}
-   for(const [id,duty]of [['jp-welcome',receptionDuty],['jp-onsen',deliveryDuty],['jp-women-onsen',womenDeliveryDuty],['jp-incense',mixingDuty],['jp-sushi',kitchenDuty],['jp-ramen',tableServiceDuty],['jp-rest',linenDuty],['jp-steam',boilerDuty]])if(!isJapanEmployeeInteraction(actors.get(id),playerState))duty?.update(dt);staffLife?.update(dt,playerState);scheduleWorkers();for(const task of [...tasks.values()])if(tasks.get(task.actor.station.id)===task)tickTask(task,dt);
+   for(const [id,duty]of [['jp-welcome',receptionDuty],['jp-onsen',deliveryDuty],['jp-women-onsen',womenDeliveryDuty],['jp-incense',mixingDuty],['jp-sushi',kitchenDuty],['jp-ramen',tableServiceDuty],['jp-rest',linenDuty],['jp-steam',boilerDuty]])if(!isJapanEmployeeInteraction(actors.get(id),playerState))duty?.update(dt);if(!isJapanEmployeeInteraction(actors.get('jp-herb-workshop'),playerState))beddingReceiving?.update(dt);staffLife?.update(dt,playerState);scheduleWorkers();for(const task of [...tasks.values()])if(tasks.get(task.actor.station.id)===task)tickTask(task,dt);
    for(const [id,n]of [...guests])if(board.getVisit(id)?.stage==='departed')removeGuest(n);
    for(const n of actors.values())animate(n,t);
    const propActors=new Map(actors),playerVisit=playerCustomerService?.state().visit;
@@ -281,6 +286,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    if(tableServiceDuty?.actor())propActors.set('player',tableServiceDuty.actor());
    if(kitchenDuty?.actor())propActors.set('player',kitchenDuty.actor());
    if(mixingDuty?.actor())propActors.set('player',mixingDuty.actor());
+   if(linenDuty?.actor())propActors.set('player',linenDuty.actor());
    props.update(board.state(),propActors,staffLife?.meals());
    if(time>=checkpointAt){board.checkpoint(positions(guests));checkpointAt=time+5;}
   },
@@ -299,14 +305,14 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    return finishVisitCancellation(n,reason);
   },
   socialProfile:id=>staffLife?.socialProfile(id),
-  snapshot:()=>({version:1,board:board.state(),time,nextArrival,checkpointAt,staffLife:staffLife?.snapshot(),staffRuntime:staffLife?.continuity(),playerService:playerCustomerService?.snapshot(),receptionDuty:receptionDuty?.snapshot(),deliveryDuty:deliveryDuty?.snapshot(),womenDeliveryDuty:womenDeliveryDuty?.snapshot(),mixingDuty:mixingDuty?.snapshot(),kitchenDuty:kitchenDuty?.snapshot(),tableServiceDuty:tableServiceDuty?.snapshot(),linenDuty:linenDuty?.snapshot(),boilerDuty:boilerDuty?.snapshot(),cooldowns:[...cooldowns],tasks:[...tasks].map(([id,t])=>({id,to:t.to.slice(),orderJobId:t.orderJobId||null,staffLife:!!t.staffLife,idle:!!t.idle,elapsed:t.elapsed,arrived:t.arrived,mountId:t.mount?.id||null,mountBerthId:t.mount?.berthId||null})),transitions:[...actors].filter(([,n])=>n.bathTransition).map(([id,n])=>[id,n.bathTransition.snapshot()]),history:history.slice()}),
+  snapshot:()=>({version:1,board:board.state(),time,nextArrival,checkpointAt,staffLife:staffLife?.snapshot(),staffRuntime:staffLife?.continuity(),playerService:playerCustomerService?.snapshot(),receptionDuty:receptionDuty?.snapshot(),deliveryDuty:deliveryDuty?.snapshot(),womenDeliveryDuty:womenDeliveryDuty?.snapshot(),mixingDuty:mixingDuty?.snapshot(),kitchenDuty:kitchenDuty?.snapshot(),tableServiceDuty:tableServiceDuty?.snapshot(),linenDuty:linenDuty?.snapshot(),boilerDuty:boilerDuty?.snapshot(),cooldowns:[...cooldowns],tasks:[...tasks].map(([id,t])=>({id,to:t.to.slice(),orderJobId:t.orderJobId||null,staffLife:!!t.staffLife,idle:!!t.idle,beddingKind:t.beddingKind||null,linenId:t.linenId||null,linenStage:t.linenStage||null,elapsed:t.elapsed,arrived:t.arrived,mountId:t.mount?.id||null,mountBerthId:t.mount?.berthId||null})),transitions:[...actors].filter(([,n])=>n.bathTransition).map(([id,n])=>[id,n.bathTransition.snapshot()]),history:history.slice()}),
   restore(s){
    if(s?.version!==1)return false;time=Math.max(0,s.time||0);nextArrival=Math.max(time,s.nextArrival||0);checkpointAt=Math.max(time,s.checkpointAt||0);cooldowns.clear();for(const [id,t]of s.cooldowns||[])if(actors.has(id)&&Number.isFinite(t))cooldowns.set(id,t);history.splice(0,history.length,...(s.history||[]));
    playerCustomerService?.restore(s.playerService);board.restoreClaims(s.board?.claims);staffLife?.restore(s.staffRuntime);receptionDuty?.restore(s.receptionDuty);deliveryDuty?.restore(s.deliveryDuty);womenDeliveryDuty?.restore(s.womenDeliveryDuty);mixingDuty?.restore(s.mixingDuty);kitchenDuty?.restore(s.kitchenDuty);tableServiceDuty?.restore(s.tableServiceDuty);linenDuty?.restore(s.linenDuty);boilerDuty?.restore(s.boilerDuty);
    for(const job of board.state().claims){const n=actors.get(job.workerId);if(n)workerTask(n,job);}
    for(const [id,n]of guests){const v=board.getVisit(id);if(v)scheduleGuest(n,v);}
-   staffLife?.update(0,{night:!!s.staffRuntime?.night});scheduleWorkers();
-   for(const previous of s.tasks||[]){const t=tasks.get(previous.id);if(!t||t.orderJobId!==(previous.orderJobId||undefined)||t.to.some((v,i)=>Math.abs(v-previous.to[i])>.05))continue;t.elapsed=Math.max(0,previous.elapsed||0);t.arrived=!!previous.arrived&&(t.mount?.kind!=='bed'||t.actor.serviceMount?.id===t.mount.id&&t.actor.serviceMount?.berthId===t.mount.berthId&&(!previous.mountBerthId||previous.mountBerthId===t.mount.berthId)&&occupyNpcBed(furniture,t.mount,t.actor.station.id));t.routeSet=false;t.stalled=0;t.actor.route=[];}
+   linenDuty?.update(0);beddingReceiving?.update(0);staffLife?.update(0,{night:!!s.staffRuntime?.night});scheduleWorkers();
+   for(const previous of s.tasks||[]){const t=tasks.get(previous.id);if(!t||(t.beddingKind||null)!==(previous.beddingKind||null)||(t.linenId||null)!==(previous.linenId||null)||(t.linenStage||null)!==(previous.linenStage||null)||t.orderJobId!==(previous.orderJobId||undefined)||t.to.some((v,i)=>Math.abs(v-previous.to[i])>.05))continue;t.elapsed=Math.max(0,previous.elapsed||0);t.arrived=!!previous.arrived&&(t.mount?.kind!=='bed'||t.actor.serviceMount?.id===t.mount.id&&t.actor.serviceMount?.berthId===t.mount.berthId&&(!previous.mountBerthId||previous.mountBerthId===t.mount.berthId)&&occupyNpcBed(furniture,t.mount,t.actor.station.id));t.routeSet=false;t.stalled=0;t.actor.route=[];}
    for(const [id,state]of s.transitions||[]){const n=actors.get(id),item=furniture.items.flatMap(i=>[i,...(i.seats||[])]).find(i=>i.id===state.seatId);if(n&&item?.bathEntry){furniture.facilities.reserve(item.poolId||item.id,id,{eligible:seat=>seat===item.id});furniture.occupyBath(item,id);n.bathTransition=createOnsenTransition({item,saved:state});}}
    return true;
   },

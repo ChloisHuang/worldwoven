@@ -261,6 +261,8 @@
       "japan-table-service-duty-contracts.mjs",
       "japan-table-service-main.cjs",
       "japan-table-service-role-contracts.mjs",
+      "japan-bedding-main.cjs",
+      "japan-bedding-ledger.mjs",
       "japan-boiler-main.cjs",
       "japan-boiler-maintenance.mjs",
       "japan-boiler-duty.mjs",
