@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {JAPAN_BATH_BLENDS,JAPAN_SERVICE_POINTS as P} from './japan-service-orders.js';
+import {JAPAN_BATH_BLENDS,JAPAN_SERVICE_POINTS as P,JAPAN_LINEN_POINTS as L} from './japan-service-orders.js';
 
 // Small original service objects. Their identities come from the order ledger;
 // rendering a pouch never changes its delivered state or creates a new order.
@@ -82,6 +82,11 @@ export function createJapanServiceProps(parent) {
   if(item.location.id==='dining'||item.location.id==='wrong-table')return v.mealPoint||[v.diningPoint[0]+.5,v.diningPoint[1]+.60,v.diningPoint[2]];
   return [P.tokenTray[0]-.44,P.tokenTray[1]+.065,P.tokenTray[2]];
  }
+ // Reachable lower rail belongs to the existing fourth-floor drying lattice.
+ const dryingRail=new THREE.Group();dryingRail.name='Reachable linen drying rail';root.add(dryingRail);
+ box(dryingRail,2.75,.045,.045,0x795a3e,[5.2,12.96,2.02]);
+ for(const x of [3.83,6.57])box(dryingRail,.045,1.56,.045,0x795a3e,[x,12.18,2.02]);
+ for(const side of ['men','women']){const p=P[side+'Changing'],basket=new THREE.Group();basket.name='Used linen return basket '+side;root.add(basket);basket.position.set(p[0]+(side==='men'?-.38:.38),p[1]+.4,p[2]);cylinder(basket,.25,.2,.72,0x967858);}
  return {
   update(state,actorById,staffMeals=[]) {
    const staffItems=staffMeals.map(m=>({id:'staff-meal:'+m.workerId,visitId:m.workerId,kind:'meal',staffMeal:true,eating:m.eating,location:{type:'worker',id:m.workerId}}));
@@ -107,6 +112,19 @@ export function createJapanServiceProps(parent) {
     g.traverse(o=>{if(o.name==='meal-food')o.visible=!item.dirty;});
     const tie=g.getObjectByName('sealed-pouch-tie');if(tie)tie.visible=item.preparation!=='mixed';
     g.visible=actor&&(held||guest||eating)?actor.root.visible:true;
+   }
+   // Same six stock identities remain visible at their real work surface.
+   // A carried towel uses the actor's original cloth tool, so it is never
+   // simultaneously rendered on the table and in somebody else's hands.
+   for(const linen of state.linens||[]){
+    seen.add(linen.id);let g=objects.get(linen.id);if(!g){g=new THREE.Group();g.name=linen.id;g.userData={linenId:linen.id};box(g,.36,.07,.26,0xe1c7b0);box(g,.36,.014,.032,0x929c85,[0,.042,.08]);root.add(g);objects.set(linen.id,g);}
+    const index=Number(linen.id.split('-').at(-1))-1,p=L[linen.station||'restock']||P[linen.station]||L.restock;
+    g.visible=!linen.carryOwner&&linen.stage!=='issued';g.rotation.set(0,0,0);g.scale.set(1,1,1);
+    if(linen.stage==='drying'){g.position.set(4.2+(index%3)*.85,12.63,2.02+Math.floor(index/3)*.08);g.rotation.x=Math.PI/2;g.scale.set(1.5,.5,2.6);}
+    else if(['clean','folded'].includes(linen.stage)){g.position.set(7.5+(index%3)*1.1,12.65+Math.floor(index/3)*.09,2.65);}
+    else if(linen.station==='wash'){g.position.set(4.3,12.67,7.35);}
+    else if(['hang','take'].includes(linen.station)){g.position.set(5.2,12.3,1.68);}
+    else {g.position.set(p[0]+(linen.side==='men'?-.38:.38),p[1]+.8+index*.012,p[2]);}
    }
    for(const [id,g]of objects)if(!seen.has(id)){g.traverse(o=>{if(o.geometry){o.geometry.dispose();geometries.delete(o.geometry);}});g.removeFromParent();objects.delete(id);}
   },
