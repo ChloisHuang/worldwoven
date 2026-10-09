@@ -404,6 +404,7 @@
       "npc-public-interactions.mjs",
       "palace-companionship.mjs",
       "palace-usurpation-ledger.mjs",
+      "palace-usurpation-entitlement.mjs",
       "palace-usurpation-ui.mjs",
       "china-usurpation-context.mjs",
       "china-usurpation-actions.mjs",

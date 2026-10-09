@@ -1,3 +1,5 @@
+import {validPalaceUsurpationRoyalMealEvidence,isCurrentPalaceUsurpationRoyalMealEligibility} from './palace-usurpation-entitlement.js';
+
 // Finite opening supplies, not a simulated tax/procurement system. A prepared
 // portion belongs to one original numbered order until eaten or written off.
 export const ROYAL_DINERS=Object.freeze(['cn-emperor','cn-consort-yue','cn-consort-heng','cn-consort-ling']);
@@ -6,11 +8,13 @@ export const ROYAL_OPENING_SUPPLY=120;
 const copy=x=>JSON.parse(JSON.stringify(x)),int=x=>Number.isSafeInteger(x)&&x>=0;
 const stages=['ordered','prepared','cooked','carrying','served','eating','consumed','cancelled'];
 const active=o=>!['consumed','cancelled'].includes(o.stage);
-// Only the appointment ledger can supply this evidence. Job titles and pending
-// petitions are deliberately not accepted as dining authority.
-export const validRoyalPlayerEligibility=e=>!!e&&e.eligible===true&&e.actorId==='player'&&e.titleId==='consort'&&/^consort-appointment:consort-petition:player:(0|[1-9][0-9]*)$/.test(e.appointmentId||'')&&typeof e.appointmentReceiptId==='string'&&e.appointmentReceiptId.trim().length>0&&e.appointmentReceiptId.length<=200;
-export const royalPlayerEligibilityEvidence=e=>validRoyalPlayerEligibility(e)?{eligible:true,actorId:'player',titleId:'consort',appointmentId:e.appointmentId,appointmentReceiptId:e.appointmentReceiptId}:null;
-export const sameRoyalPlayerEligibility=(a,b)=>validRoyalPlayerEligibility(a)&&validRoyalPlayerEligibility(b)&&a.appointmentId===b.appointmentId&&a.appointmentReceiptId===b.appointmentReceiptId;
+// Keep the original consort evidence and consumed receipts unchanged. A new
+// emperor uses a separate, body/tenure-bound family from the live core helper;
+// job names, pending petitions and self-declared emperor strings grant nothing.
+const validConsortEligibility=e=>!!e&&e.eligible===true&&e.actorId==='player'&&e.titleId==='consort'&&/^consort-appointment:consort-petition:player:(0|[1-9][0-9]*)$/.test(e.appointmentId||'')&&typeof e.appointmentReceiptId==='string'&&e.appointmentReceiptId.trim().length>0&&e.appointmentReceiptId.length<=200;
+export const validRoyalPlayerEligibility=e=>validConsortEligibility(e)||validPalaceUsurpationRoyalMealEvidence(e);
+export const royalPlayerEligibilityEvidence=e=>validConsortEligibility(e)?{eligible:true,actorId:'player',titleId:'consort',appointmentId:e.appointmentId,appointmentReceiptId:e.appointmentReceiptId}:isCurrentPalaceUsurpationRoyalMealEligibility(e)?e:null;
+export const sameRoyalPlayerEligibility=(a,b)=>validRoyalPlayerEligibility(a)&&validRoyalPlayerEligibility(b)&&a.titleId===b.titleId&&(a.titleId==='consort'?a.appointmentId===b.appointmentId&&a.appointmentReceiptId===b.appointmentReceiptId:a.source===b.source&&a.caseId===b.caseId&&a.bodyId===b.bodyId&&a.officeRevision===b.officeRevision&&a.investitureReceiptId===b.investitureReceiptId);
 export function validRoyalKitchenState(s){
  if(!s||s.version!==1||!int(s.revision)||!int(s.serial)||s.supply?.id!=='cn-royal-kitchen-opening-v1'||s.supply.quantity!==ROYAL_OPENING_SUPPLY||!int(s.supply.remaining)||!int(s.supply.wasted)||!Array.isArray(s.orders)||s.orders.length>s.serial)return false;
  const ids=new Set(),actors=new Set(),seats=new Set();let used=0,wasted=0;
@@ -34,10 +38,10 @@ export function createRoyalKitchenOrders({saved=null,getClock=()=>({day:0}),save
  function transaction(fn){if(loadError)return false;const next=copy(state),result=fn(next);if(result===false)return false;next.revision++;if(!validRoyalKitchenState(next))return false;try{const ok=saveState(copy(next));if(ok===false||ok?.then)return false;}catch{return false;}state=next;return true;}
  const eligibility=()=>{try{return royalPlayerEligibilityEvidence(getPlayerMealEligibility());}catch{return null;}};
  const eligible=id=>ROYAL_DINERS.includes(id)||id==='player'&&!!eligibility();
- const available=actorId=>!loadError&&eligible(actorId)&&!!(state.orders.find(o=>o.actorId===actorId&&active(o))||state.supply.remaining>state.orders.filter(o=>o.stage==='ordered').length);
+ const available=actorId=>{if(loadError||!eligible(actorId))return false;const current=state.orders.find(o=>o.actorId===actorId&&active(o));return current?actorId!=='player'||sameRoyalPlayerEligibility(current.eligibility,eligibility()):state.supply.remaining>state.orders.filter(o=>o.stage==='ordered').length;};
  function request({actorId,seatId,name=actorId,workerId='cn-cooking',workReceiptId=null,workDay=getClock().day}){
   if(!eligible(actorId)||actorId==='player'&&workerId==='player')return null;
-  const existing=state.orders.find(o=>o.actorId===actorId&&active(o));if(existing)return existing.seatId===seatId?copy(existing):null;
+  const existing=state.orders.find(o=>o.actorId===actorId&&active(o));if(existing)return existing.seatId===seatId&&(actorId!=='player'||sameRoyalPlayerEligibility(existing.eligibility,eligibility()))?copy(existing):null;
   if(!available(actorId)||!ROYAL_MEAL_SEATS.includes(seatId)||state.orders.some(o=>o.seatId===seatId&&active(o)))return null;
   let id;const ok=transaction(s=>{const number=++s.serial;id='cn-royal-meal-'+number;s.orders.push({id,number,actorId,actorName:name,seatId,day:getClock().day,workDay,workerId,workReceiptId,stage:'ordered',...(actorId==='player'?{eligibility:eligibility()}:{}),mealId:null,supplyReceipt:null,eatingSeconds:0,receipt:null});});return ok?copy(lookup(id)):null;
  }

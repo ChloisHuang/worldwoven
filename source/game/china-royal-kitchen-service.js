@@ -48,7 +48,7 @@ export function createChinaRoyalKitchenService({npcs,lot,doors,planPath,moveActo
   const blocked=(code,reason)=>({ok:false,code,reason});
   if(orders.loadError())return blocked('invalid-state','御膳记录暂不可用');
   if(!Number.isFinite(getPlayer()?.ageYears)||getPlayer().ageYears<18)return blocked('adult-required','仅限已满18岁的受册皇室成员');
-  if(!playerEligibility())return blocked('not-appointed','册封尚未生效，暂不能用膳');
+  if(!playerEligibility())return blocked('not-appointed','皇室身份尚未正式生效，暂不能用膳');
   if(activeJob()||playerOwns())return blocked('finish-kitchen-duty','请先与Jia真实交班，再用膳');
   const own=orders.active().find(o=>o.actorId==='player');
   if(own&&!sameRoyalPlayerEligibility(own.eligibility,playerEligibility()))return blocked('appointment-changed','暂不能用膳，请取消后重试');
