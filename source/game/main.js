@@ -190,7 +190,7 @@ import * as G from './geometry.js?rev=R7-20261002';
 const TRAVEL_JOURNEYS_ENABLED=true; // Four-country passport, flight and same-journey recovery verified.
 const CHINA_PERSONNEL_TRIAL_ENABLED=true;
 const CHINA_TAVERN_MANAGEMENT_ENABLED=true; // Original owner hiring, stock, service and accounting loop verified.
-const PALACE_USURPATION_ENABLED=false; // Open only after all three preparations, investiture and actual imperial duty are integrated.
+const PALACE_USURPATION_ENABLED=true; // CR04: all three preparations, same-receipt investiture and actual player imperial duties verified.
 let palaceUsurpation=null,palaceUsurpationUI=null,chinaUsurpationActions=null;
 let usurpationEntryCache=null,usurpationEntryAt=-Infinity,usurpationCareerCache=null;
 let projectedPalaceOffice=null,projectedPalacePlayer=null;
