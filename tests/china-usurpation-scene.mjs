@@ -71,6 +71,18 @@ test('political talk uses an adjacent supported stand and the original invisible
  assert.equal(f.core.currentTask().pledges.length,1);assert.equal(person.route,originalRoute);assert.equal(socialHoldOwner(person.actorId),null);
  assert(f.service.state().papers.some(p=>p.id.startsWith('usurpation-notebook:')));assert(!f.service.state().papers.some(p=>p.charter));f.dispose();
 });
+test('an original person leaving a public post invalidates that approach without moving or re-answering them',()=>{
+ const f=fixture(),person=f.byId(supporterIds[0]),first=f.service.intent('political-response',person.actorId);
+ assert(first);assert.equal(socialHoldOwner(person.actorId),null,'Offering an approach does not reserve a remote body');
+ person.root.position.z+=4;
+ assert.equal(f.service.resolveIntent(first),null,'An old post cannot become a remote political answer');
+ const next=f.service.intent('political-response',person.actorId);assert(next);assert(next.intentKey.includes('usurpation-discussion:'));assert.notDeepEqual(next.position,first.position);assert.notEqual(next.intentKey,first.intentKey);
+ f.player.root.position.set(...first.position);assert.equal(f.service.executeIntent(first),false);assert.equal(f.core.currentTask().pledges.length,0);
+ f.player.root.position.set(...next.position);const post=person.root.position.clone();assert(f.service.executeIntent(next));
+ f.tick(2);assert(person.root.position.equals(post));assert.equal(f.service.resolveIntent(next)?.intentKey,next.intentKey,'The same held post stays stable');
+ f.scene.country='france';f.tick(.1);assert.equal(socialHoldOwner(person.actorId),null);assert.equal(f.core.currentTask().pledges.length,0);
+ f.scene.country='china';f.begin('political-response',person.actorId);f.tick(4);assert.equal(f.core.currentTask().pledges.length,1);f.dispose();
+});
 test('a public gathering walks original bodies and yields without consuming the case',()=>{
  const f=fixture();for(const id of supporterIds){f.begin('political-response',id);f.tick(4);}
  assert(f.core.selectRoute(f.core.currentTask().id,['abdication']).ok);

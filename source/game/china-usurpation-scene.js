@@ -148,7 +148,9 @@ export function createChinaUsurpationScene({core,getContext=()=>null,getScene=()
    if(!legalSite(site,ids)||!reachable(player(),site.position,.34))return null;sites.set(key,copy(site));return site;
   }
   const key=[task.id,kind,actorId,...ids].join('|'),cached=sites.get(key);
-  if(cached&&legalSite(cached,ids))return copy(cached);
+  const atOriginalPost=kind!=='political-response'||!cached?.id.startsWith('usurpation-discussion:')||
+   near(resolveActor(actorId)?.root.position,cached.actorPoints?.[actorId]);
+  if(cached&&atOriginalPost&&legalSite(cached,ids))return copy(cached);
   sites.delete(key);
   const finish=site=>{if(!legalSite(site,ids,{routes:true}))return null;sites.set(key,copy(site));return site;};
   // A stationary official may talk at their original public post. Only a
@@ -159,7 +161,7 @@ export function createChinaUsurpationScene({core,getContext=()=>null,getScene=()
     for(let i=0;i<8;i++){
      const angle=i*Math.PI/4,position=safePoint([p.x+Math.cos(angle)*1.25,p.y,p.z+Math.sin(angle)*1.25],.34,ids);
      if(!position)continue;
-     const site=finish({id:`usurpation-discussion:${task.id}:${actorId}`,objectId:object.name,position,actorPoints:{[actorId]:p.toArray()},name:`${actor.station?.npcName||actorId} · 当面商议本案`});
+     const site=finish({id:`usurpation-discussion:${task.id}:${actorId}:${p.toArray().map(v=>v.toFixed(3)).join(':')}`,objectId:object.name,position,actorPoints:{[actorId]:p.toArray()},name:`${actor.station?.npcName||actorId} · 当面商议本案`});
      if(site)return site;
     }
    }
