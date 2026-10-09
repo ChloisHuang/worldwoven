@@ -10,6 +10,10 @@
 // USURPATION_MAIN_STOP_AFTER names a milestone. After 03-political-response,
 // stop; the next invocation proves cold recovery without rerunning the route.
 // USURPATION_MAIN_PHASE=political asks the two existing court supporters next.
+// USURPATION_MAIN_PHASE=support appends bounded, declared pre-case ordinary
+// history through existing writers, then physically asks the new supporters.
+// USURPATION_MAIN_PHASE=kitchen-apply declares old chef qualifications, then
+// performs the actual royal application, review and safe handover.
 // Later preparation/investiture/duty segments must continue this same journal.
 const fs = require('node:fs'), path = require('node:path'), vm = require('node:vm');
 let harness = fs.readFileSync(path.join(__dirname, 'fixtures/hotfix-input-harness.cjs'), 'utf8');
@@ -18,8 +22,8 @@ function once(before, after) {
   harness = harness.replace(before, after);
 }
 const seams = `
-export function usurpationMainReview(){return {saved,player,npcs,lot,furniture,palaceUsurpation,palaceUsurpationUI,chinaUsurpationActions,serviceMenus,simulationClock,chinaAudience,chinaEdict,chinaPalace,chinaArchery,chinaRoyalKitchen,chinaRoyalKitchenEmployment,formalCareers,relationshipEvents,playerConversations,npcSocial,path,targetStation,pendingInteraction};}
-export function usurpationMainStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);activeDailyToilet()?.update(dt);updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);updateGameHealth(dt);palaceUsurpationUI?.update();updateCamera(dt);}
+export function usurpationMainReview(){return {saved,player,npcs,lot,furniture,palaceUsurpation,palaceUsurpationUI,chinaUsurpationActions,serviceMenus,simulationClock,chinaAudience,chinaEdict,chinaPalace,chinaArchery,chinaRoyalKitchen,chinaRoyalKitchenEmployment,careerHandbook,formalCareers,relationshipEvents,playerConversations,npcSocial,path,targetStation,pendingInteraction};}
+export function usurpationMainStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);activeDailyToilet()?.update(dt);updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);updateGameHealth(dt);palaceUsurpationUI?.update();careerHandbook.update(mode);updateCamera(dt);}
 export {usurpationView,usurpationContext,currentPalaceAuthority,performUsurpationAction,requestStationIntent,save,cancelAction};
 `;
 once("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),", 'new vm.SourceTextModule(readProduction(file),');
@@ -45,7 +49,20 @@ if(sourceCheckpoint){
  const input=JSON.parse(fs.readFileSync(path.resolve(sourceCheckpoint),'utf8'));
  assert.equal(input.version,1);assert.equal(input.journal?.kind,'china-usurpation-main');
  assert(input.save&&Array.isArray(input.journal.completed));
- storage['worlds-days-v1']=JSON.stringify(input.save);journal=input.journal;coldInput=clone(input.save.palaceUsurpation||null);
+ journal=input.journal;
+ if(process.env.USURPATION_MAIN_PHASE==='support'&&!journal.supportHistory){
+  const append=require(path.resolve('tests/fixtures/usurpation-main-support.cjs'));
+  const load=async name=>{const m=mod(path.join(root,'game',name));if(m.status==='unlinked')await m.link(linker);if(m.status!=='evaluated')await m.evaluate();return m.namespace;};
+  const candidate=await append({save:input.save,load});
+  assert.equal(candidate.report.preservation.clockUnchanged,true);assert.equal(candidate.report.preservation.politicalUnchanged,true);assert.equal(candidate.report.preservation.otherFieldsUnchanged,true);
+  input.save=candidate.save;journal.supportHistory=candidate.report;
+ }
+ if(process.env.USURPATION_MAIN_PHASE==='kitchen-apply'&&!journal.kitchenHistory){
+  const helper=require(path.resolve('tests/fixtures/usurpation-main-kitchen-history.cjs'));
+  const candidate=await helper({prior:input.save,mod,linker,root,assert});
+  const {save:prepared,...report}=candidate;input.save=prepared;journal.kitchenHistory=report;
+ }
+ storage['worlds-days-v1']=JSON.stringify(input.save);coldInput=clone(input.save.palaceUsurpation||null);
  if(journal.caseId)assert.equal(coldInput?.cases?.at(-1)?.id,journal.caseId,'Never substitute another case checkpoint');
 }else{
  const seed=await require(path.resolve('tests/fixtures/usurpation-main-seed.cjs'))({prior:JSON.parse(storage['worlds-days-v1']),mod,linker,root,assert});
@@ -116,7 +133,7 @@ function click(selected){
  assert(button&&!button.disabled,selected.id+' real panel button');button.onclick();return button;
 }
 try{
- if(done('03-political-response')&&(process.env.USURPATION_MAIN_PHASE!=='political'||!done('04-cold-same-case'))){
+ if(done('03-political-response')&&(!['political','support','kitchen-apply'].includes(process.env.USURPATION_MAIN_PHASE)||!done('04-cold-same-case'))){
   assert(coldInput,'Cold check must come from the persisted same-case checkpoint');
   assert.deepEqual(clone(core.snapshot()),coldInput,'Cold main restores exact committed political history');
   assert.equal(task().id,journal.caseId);assert.deepEqual(clone(task().pledges),journal.pledges);
@@ -129,12 +146,49 @@ try{
   checkpoint('04-cold-same-case',{caseId:journal.caseId,responseActor:journal.responseActor,receiptId:journal.pledges[0].receipt.id,rerolled:false});
   console.log(JSON.stringify({status:'PASS',scope:'CR04 first segment plus same-case cold recovery only; later preparations, investiture and imperial duties remain pending',checkpoint:checkpointPath,completed:journal.completed}));return;
  }
- if(process.env.USURPATION_MAIN_PHASE==='political'){
+ if(process.env.USURPATION_MAIN_PHASE==='kitchen-apply'){
+  assert(done('06-justice-response'));assert(journal.kitchenHistory);assert.equal(journal.kitchenHistory.bankCalls,0);
+  assert.deepEqual(clone(core.snapshot()),coldInput);assert.deepEqual(clone(task().pledges),journal.pledges);
+  const roleId='cn-royal-kitchen-cook',employment=r.chinaRoyalKitchenEmployment;
+  const request=kind=>{r.careerHandbook.close();const next=employment.intent(kind);assert(next,kind+' physical employment intent');assert(main.namespace.requestStationIntent(next),'actual original kitchen route '+kind);};
+  assert.equal(r.formalCareers.royalKitchenQualification().qualifiedDays,3);
+  if(!done('k01-staged-chef-prerequisites'))if(checkpoint('k01-staged-chef-prerequisites',{staged:true,qualifiedDays:3,bankCalls:0,caseUnchanged:true,clockUnchanged:true,staging:journal.kitchenHistory.staging}))return;
+  if(!done('k02-royal-application')){
+   assert.equal(r.formalCareers.state().tenure,null);request('formal-apply');
+   until(()=>r.formalCareers.applicationResult(roleId)?.status==='pending','walk to original Jia registration and lodge royal application');
+   assert.equal(r.formalCareers.state().tenure,null);
+   if(checkpoint('k02-royal-application',{applicationId:r.formalCareers.applicationResult(roleId).id,stage:'pending',caseId:journal.caseId}))return;
+  }
+  if(!done('k03-royal-review')){
+   request('formal-review');until(()=>r.formalCareers.applicationResult(roleId)?.status!=='pending','original Jia reviews the actual royal application');
+   const result=r.formalCareers.applicationResult(roleId);assert(result);assert.equal(employment.state().job,null);
+   if(checkpoint('k03-royal-review',{applicationId:result.id,status:result.status,hired:r.formalCareers.isHired(roleId),caseId:journal.caseId}))return;
+   assert(r.formalCareers.isHired(roleId),'If the real interview declines, preserve it instead of patching the outcome');
+  }
+  if(!done('k04-royal-handover')){
+   assert(r.formalCareers.isHired(roleId));request('accept');
+   until(()=>employment.state().job?.stage==='working','Jia and player finish the original safe kitchen handover');
+   assert.equal(r.formalCareers.state().officialCareer.appointments.length,0);
+   if(checkpoint('k04-royal-handover',{receiptId:employment.state().job.receiptId,day:employment.state().job.day,caseId:journal.caseId,originalJiaBody:bodyId(originals.get('cn-cooking'))}))return;
+  }
+  console.log(JSON.stringify({status:'PASS',scope:'Chef history is explicitly staged; royal application, Jia review and safe handover are actual main. No emperor order or intrigue evidence is staged.',checkpoint:checkpointPath,completed:journal.completed}));return;
+ }
+ if(['political','support'].includes(process.env.USURPATION_MAIN_PHASE)){
   assert(done('04-cold-same-case'),'Resume the remotely preserved cold checkpoint');
   assert.deepEqual(clone(core.snapshot()),coldInput,'No history replacement before physical continuation');
   assert.deepEqual(clone(task().pledges),journal.pledges);
   assert.equal(task().id,journal.caseId);
-  for(const [actorId,milestone] of [['cn-official-rites','05-rites-response'],['cn-official-justice','06-justice-response']]){
+  let responsePlan=[['cn-official-rites','05-rites-response'],['cn-official-justice','06-justice-response']];
+  if(process.env.USURPATION_MAIN_PHASE==='support'){
+   const history=journal.supportHistory;assert(history&&history.caseId===journal.caseId);
+   assert.equal(history.window.gameClockSeconds,r.simulationClock.state().seconds,'History preparation never advances the world');
+   assert(history.newEvents.every(event=>event.start>=history.window.start&&event.end<history.window.endExclusive));
+   const supported=history.actors.filter(row=>row.status==='support'||row.status==='already-staged'&&row.stance==='support').map(row=>row.actorId);
+   for(const actorId of supported)assert(contextNow().supporters.some(person=>person.id===actorId),'Production profiles recognize the explicitly staged ordinary response: '+actorId);
+   if(!done('07-staged-ordinary-history'))if(checkpoint('07-staged-ordinary-history',{caseId:journal.caseId,staged:true,window:history.window,actors:history.actors.map(row=>({actorId:row.actorId,status:row.status,eventId:row.eventId})),eventCount:history.newEvents.length,politicalUnchanged:true,clockUnchanged:true}))return;
+   responsePlan=[['cn-official-records','08-records-response'],['cn-consort-heng','09-heng-response']].filter(([actorId])=>supported.includes(actorId));
+  }
+  for(const [actorId,milestone] of responsePlan){
    if(done(milestone))continue;
    assert(contextNow().supporters.some(person=>person.id===actorId),'Use an already-established ordinary supporter');
    assert(!task().pledges.some(person=>person.actorId===actorId),'Never re-ask an answered person');
@@ -152,7 +206,7 @@ try{
    journal.pledges=clone(task().pledges);
    if(checkpoint(milestone,{caseId:journal.caseId,actorId,bodyId:identity,accepted:response.accepted,receiptId:response.receipt.id,seconds:4,readyTicks,walked,maxStep}))return;
   }
-  console.log(JSON.stringify({status:'PASS',scope:'Same case, two existing ordinary court supporters physically answer; no new support, political decision or preparation is staged',checkpoint:checkpointPath,completed:journal.completed}));return;
+  console.log(JSON.stringify({status:'PASS',scope:process.env.USURPATION_MAIN_PHASE==='support'?'Pre-case ordinary history is explicitly staged; each new political answer uses the original physical person and fixed case':'Same case, two existing ordinary court supporters physically answer; no new support, political decision or preparation is staged',checkpoint:checkpointPath,completed:journal.completed}));return;
  }
  if(!done('00-support-threshold')){
   const before=contextNow().supporters;assert.equal(before.length,2,'Pending ordinary support cannot unlock the third person');
