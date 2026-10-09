@@ -259,6 +259,7 @@
       "japan-table-service-duty-contracts.mjs",
       "japan-table-service-main.cjs",
       "japan-table-service-role-contracts.mjs",
+      "japan-linen-role-contracts.mjs",
       "npc-bed-occupancy.mjs",
       "npc-guest-funds-departure.mjs",
       "npc-guest-funds-main.cjs",
