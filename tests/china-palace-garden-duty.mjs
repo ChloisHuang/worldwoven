@@ -12,10 +12,10 @@ function fixture(saved=null){
  const duty=createChinaPalaceGardenDuty(options);
  return {host,player,slot,edict,duty,P,get stored(){return structuredClone(stored);},get moveCount(){return moveCount;},set boundary(v){boundary=v;},set done(v){done=v;boundary=false;},set fail(v){fail=v;},set finishFail(v){finishFail=v;},set mounted(v){mounted=v;},set hour(v){hour=v;},set originalWork(v){originalWork=v;},tick(n=1){for(let i=0;i<n;i++)duty.update(.1,i*.1);}};
 }
-const f=fixture();assert(f.duty.meetingReady());assert(f.duty.claimDuty(ID));assert.equal(f.slot.state().holderId,'cn-garden');
+const f=fixture();assert(!f.duty.playerWorkAllowed(),'inactive player cannot admit an original decree');assert(f.duty.meetingReady());assert(f.duty.claimDuty(ID));assert(!f.duty.playerWorkAllowed(),'physical handoff cannot admit player work');assert.equal(f.slot.state().holderId,'cn-garden');
 f.boundary=false;f.tick(30);assert.equal(f.moveCount,0,'original decree/personal life must drain before moving Bo');
 f.boundary=true;f.fail=true;f.tick(50);assert(f.moveCount>0);assert.equal(f.slot.state().holderId,'cn-garden','failed atomic save cannot adopt player');
-f.fail=false;f.tick();assert.equal(f.slot.state().holderId,'player');assert.equal(f.slot.state().revision,1);assert.equal(f.stored.chinaGardenSlot.holderId,'player');assert(f.duty.dutyActive(ID));
+f.fail=false;f.tick();assert.equal(f.slot.state().holderId,'player');assert.equal(f.slot.state().revision,1);assert.equal(f.stored.chinaGardenSlot.holderId,'player');assert(f.duty.dutyActive(ID));assert(f.duty.playerWorkAllowed());
 const restored=fixture(f.stored);assert.equal(restored.duty.state().lastError,null);assert(restored.duty.holdDuty(ID));assert.equal(restored.duty.snapshot().status,'working');
 f.hour=18;assert(!f.duty.dutyActive(ID),'no wage at/after 18');assert(f.duty.workIntent(ID),'original work remains actionable after hours');f.hour=5;assert(!f.duty.dutyActive(ID));f.hour=12;
 f.mounted=true;assert(!f.duty.dutyActive(ID));f.mounted=false;
@@ -30,6 +30,9 @@ f.host.root.position.x+=4;assert(!f.duty.executeWork(w,ID),'absent Bo cannot app
 f.host.walking=true;assert(!f.duty.executeWork(w,ID),'reviewer must finish the physical return before appraisal');f.host.walking=false;
 assert.equal(f.duty.workReceipts(ID).length,0,'unwitnessed appraisals produce no work receipt');
 f.fail=true;assert(!f.duty.executeWork(w,ID));assert.equal(f.duty.workReceipts(ID).length,0);f.fail=false;f.finishFail=true;assert(!f.duty.executeWork(w,ID));assert.equal(f.duty.workReceipts(ID).length,1);assert(!f.duty.executeWork(w,ID));assert.equal(f.duty.workReceipts(ID).length,1);f.finishFail=false;assert(f.duty.executeWork(w,ID));assert(f.duty.canEndDuty(ID));
-Object.assign(f.player.root.position,{x:f.P.registry[0],y:f.P.registry[1],z:f.P.registry[2]});assert(!f.duty.releaseDuty(ID));assert.equal(f.slot.state().holderId,'player');f.fail=true;f.tick(50);assert.equal(f.slot.state().holderId,'player');f.fail=false;f.tick();assert.equal(f.slot.state().holderId,'cn-garden');assert.equal(f.slot.state().revision,2);assert(f.duty.releaseDuty(ID));assert.equal(f.duty.state().status,'inactive');
+Object.assign(f.player.root.position,{x:f.P.registry[0],y:f.P.registry[1],z:f.P.registry[2]});assert(!f.duty.releaseDuty(ID));assert(!f.duty.playerWorkAllowed(),'returning must block fresh original decree admission and player actions');assert.equal(f.slot.state().holderId,'player');f.fail=true;f.tick(50);assert.equal(f.slot.state().holderId,'player');f.fail=false;f.tick();assert.equal(f.slot.state().holderId,'cn-garden');assert.equal(f.slot.state().revision,2);assert(f.duty.releaseDuty(ID));assert.equal(f.duty.state().status,'inactive');assert(!f.duty.playerWorkAllowed());
 const corrupted=fixture({...f.stored,duty:{...f.stored.duty,status:'working',receiptId:ID}});assert.equal(corrupted.duty.state().lastError,'palace-garden-duty-slot-mismatch');assert(!corrupted.duty.claimDuty(ID));
 console.log('PASS garden duty physical one-seat handoff, atomic failures/cold restore, exact on-site hours, real original appraisal retry, no cancellation fabrication, physical return');
+
+// The production admission gate must read the non-recursive lifecycle flag.
+const {readFileSync}=await import('node:fs');const main=readFileSync(new URL('../source/game/main.js',import.meta.url),'utf8');assert(main.includes('canPlayerGardenWork:()=>chinaPalaceGardenDuty?.playerWorkAllowed()===true&&!seated'));

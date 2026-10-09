@@ -98,7 +98,7 @@ export function createChinaPalaceGardenDuty({edict,slot,getPlayer,getMounted=()=
   const c=poseContext(host,null);c.heldProp=null;c.handoff=false;c.archery=null;
   host.animate?.(t+(host.phase||0),!!host.walking,null,c);
  }
- const duty={registry:P.registry.slice(),meetingReady,requestMeeting:v=>{meeting=!!v;},canClaimDuty,holdDuty,claimDuty,releaseDuty,
+ const duty={registry:P.registry.slice(),playerWorkAllowed:()=>!disposed&&!error&&state.status==='working',meetingReady,requestMeeting:v=>{meeting=!!v;},canClaimDuty,holdDuty,claimDuty,releaseDuty,
   canEndDuty:id=>state.receiptId===id&&state.status==='working'&&!getMounted()&&!acting()&&boundary(),
   dutyState:()=>({status:state.status==='working'&&!active(state.receiptId)?'paused':state.status,receiptId:state.receiptId,lastError:error}),
   dutyActive:id=>active(id)&&getClock().hour>=6&&getClock().hour<18,inWorkplace,workIntent,workChoices:id=>{const w=workIntent(id);return w?[w]:[];},executeWork,
