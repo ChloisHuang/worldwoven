@@ -415,10 +415,7 @@
       "bath-privacy.mjs",
       "hidden-social-state.mjs",
       "hidden-social-actions.mjs",
-      "family-life.mjs",
-      "underground-market-room.mjs",
-      "underground-market-ledger.mjs",
-      "underground-market-crime.mjs"
+      "family-life.mjs"
     ],
     "integration": [
       "airy-panel-default-cascade.mjs",
@@ -670,7 +667,12 @@
       "china-personnel-appointment.mjs",
       "china-personnel-main.cjs",
       "china-personnel-main-save.cjs",
-      "china-usurpation-main.cjs"
+      "china-usurpation-main.cjs",
+      "underground-market-room.mjs",
+      "underground-market-ledger.mjs",
+      "underground-market-crime.mjs",
+      "underground-market-runtime.mjs",
+      "underground-market-main.cjs"
     ]
   },
   "release": {

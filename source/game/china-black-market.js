@@ -36,6 +36,11 @@ export function buildChinaBlackMarket(G,{group,roofGroup,colliders,cameraCollide
   block(-3.408,y,33.2,.014,.026,7.45,C.mortar,false);
   block(-7.8,y,36.991,8.60,.026,.014,C.mortar,false);
  }
+ // Small sideboard at the shared stair mouth identifies the eastern branch
+ // without covering the patrol plaque or hanging into the walking opening.
+ block(-11.79,2.62,28.55,1.48,.10,.12,C.wood,false);
+ block(-11.25,2.51,28.55,.06,.22,.07,C.gold,false);
+ blackMarketPlaque(G,q,'地下黑市',-11.25,2.26,28.42,1.60,.37,Math.PI);
  // Timber jambs frame the opening without reducing its 1.64m clear aperture.
  for(const z of [35.25,37.03])block(-12.18,-2.73,z,.18,2.74,.11,C.wood,false);
  block(-12.18,-1.48,36.14,.18,.34,1.94,C.wood,false);
