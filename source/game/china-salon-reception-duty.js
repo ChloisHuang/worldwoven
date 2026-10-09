@@ -37,11 +37,12 @@ export function createChinaSalonReceptionDuty({salon,slot,getPlayer,getMounted=(
  function workIntent(id,key=null){
   if(!active(id)||acting())return null;
   const completed=salon.receptionPlayerCompleted?.();
-  const w=completed?{key:completed.sessionId+':appraise',kind:'appraise',sessionId:completed.sessionId,position:P.home.slice(),executionRadius:.25,action:`核对 ${completed.customerName} 的原单评价`}:salon.receptionPlayerIntent?.();
+  const w=completed?{key:completed.sessionId+':appraise',kind:'appraise',sessionId:completed.sessionId,position:P.home.slice(),executionRadius:.25,action:`核对 ${completed.customerName} 的原单评价`}:salon.receptionPlayerIntent?.()||{key:'await-original:'+id,kind:'await-original',position:P.home.slice(),executionRadius:.17,action:'到原接待案候客 · 等本人有款邀约'};
   return w&&(!key||w.key===key)?copy(w):null;
  }
  function executeWork(work,id){
   const expected=workIntent(id,work?.key);if(!expected||!at(getPlayer(),expected.position,expected.executionRadius||.25)||getMounted())return false;
+  if(expected.kind==='await-original')return true;
   if(expected.kind!=='appraise')return salon.executeReceptionPlayerWork?.(expected)===true;
   const done=salon.receptionPlayerCompleted?.();if(!done||done.sessionId!==expected.sessionId)return false;
   const row={source:'china-salon-reception',id:done.sessionId+'-'+id,workReceiptId:id,sessionId:done.sessionId,customerId:done.customerId,customerName:done.customerName,completed:true,accurate:true,timely:done.waitSeconds<=60,waitSeconds:done.waitSeconds,proof:copy(done.proof)};

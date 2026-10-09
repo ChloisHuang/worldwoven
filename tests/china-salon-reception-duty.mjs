@@ -29,3 +29,6 @@ Object.assign(f.player.root.position,{x:P.registry[0],y:P.registry[1],z:P.regist
 const corrupted=fixture({...f.stored,duty:{...f.stored.duty,status:'working',receiptId:ID}});assert.equal(corrupted.duty.state().lastError,'salon-reception-duty-slot-mismatch');assert(!corrupted.duty.claimDuty(ID));
 const cancelled=fixture();assert(cancelled.duty.claimDuty(ID));cancelled.tick(30);assert(!cancelled.duty.releaseDuty(ID,{evaluate:true}));cancelled.tick(30);assert.equal(cancelled.duty.workReceipts(ID).length,0,'cancel never invents a successful customer appraisal');
 console.log('PASS reception duty original-session/person ownership, physical one-seat handoff, atomic save failures/cold restore, paused attendance, original settled appraisal retry, return and zero cancelled XP');
+// A freshly accepted player is at REG; only a genuine task route to HOME can
+// open original NPC admission. Clicking wait at REG must not strand the job.
+{const f=fixture();assert(f.duty.claimDuty(ID));f.tick(100);const w=f.duty.workIntent(ID);assert.equal(w.kind,'await-original');assert.deepEqual(w.position,P.home);assert(!f.duty.executeWork(w,ID));Object.assign(f.player.root.position,{x:P.home[0],y:P.home[1],z:P.home[2]});assert(f.duty.executeWork(w,ID));assert.equal(f.duty.workReceipts(ID).length,0);}
