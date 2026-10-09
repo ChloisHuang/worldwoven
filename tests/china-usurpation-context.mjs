@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {readChinaUsurpationContext,projectUsurpationResidence} from '../source/game/china-usurpation-context.js';
+import {palaceUsurpationContext,palaceUsurpationSupporters} from '../source/game/palace-usurpation-policy.js';
 import {RESERVED_CONSORT_QUARTERS as Q} from '../source/game/china-consort-quarters.js';
 
 const actor=(id,ageYears=30)=>({actorId:id,root:{userData:{}},ageYears,alive:true,station:{id,npcName:id}});
@@ -21,7 +22,27 @@ assert.equal(room.privateOwnerId,null,'read never grants a room');
 scene.npcs.find(row=>row.actorId==='cn-range-warden').ageYears=17;
 assert.equal(readChinaUsurpationContext(options).supporters.length,2);
 scene.npcs.find(row=>row.actorId==='cn-range-warden').ageYears=undefined;
-assert.equal(readChinaUsurpationContext(options).supporters.length,2,'unknown is not adult');
+const legacy=readChinaUsurpationContext(options),warden=legacy.supporters.find(p=>p.id==='cn-range-warden');
+assert.equal(legacy.supporters.length,3,'current original guard can participate without assigning an age');
+assert.equal(warden.ageYears,null);assert.equal(warden.participationSource,'original-unaged-guard-duty');
+assert(palaceUsurpationSupporters(palaceUsurpationContext(legacy)).some(p=>p.id===warden.id));
+const original=scene.npcs.find(p=>p.actorId===warden.id);
+assert.equal(original.ageYears,undefined);assert.equal(original.station.ageYears,undefined);
+for(const mutation of [p=>p.station.isChild=true,p=>p.isChild=true,p=>p.root.userData.familyMinor=true,p=>p.station.age=17,p=>p.station.age='unknown']){
+ mutation(original);assert(!readChinaUsurpationContext(options).supporters.some(p=>p.id===warden.id));
+ delete original.station.isChild;delete original.isChild;delete original.root.userData.familyMinor;delete original.station.age;
+}
+const originalBinding=scene.archery.wardenBinding;scene.archery.wardenBinding=()=>({actorId:warden.id,available:false});
+assert(!readChinaUsurpationContext(options).supporters.some(p=>p.id===warden.id));scene.archery.wardenBinding=originalBinding;
+const stranger=actor('cn-unaged-stranger');delete stranger.ageYears;supported.add(stranger.actorId);scene.npcs.push(stranger);
+assert(!readChinaUsurpationContext(options).supporters.some(p=>p.id===stranger.actorId));scene.npcs.pop();supported.delete(stranger.actorId);
+for(const changed of [{...warden,id:'cn-unaged-stranger',roleId:'cn-unaged-stranger'},{...warden,ageYears:17},{...warden,circleId:'town'},{...warden,bodyId:'different-body'}]){
+ const c=palaceUsurpationContext({...legacy,supporters:[changed]});assert.equal(palaceUsurpationSupporters(c).length,0);
+}
+const archer=scene.npcs.find(p=>p.actorId==='cn-archery');delete archer.ageYears;supported.add(archer.actorId);
+assert.deepEqual(readChinaUsurpationContext(options).guard.guards.map(p=>p.id).sort(),['cn-archery','cn-range-warden']);
+assert.equal(readChinaUsurpationContext(options).supporters.find(p=>p.id===archer.actorId).ageYears,null);
+supported.delete(archer.actorId);archer.ageYears=30;
 scene.npcs.find(row=>row.actorId==='cn-range-warden').ageYears=30;
 supported.delete('cn-official-rites');assert.equal(readChinaUsurpationContext(options).supporters.length,2,'withdrawn support disappears');
 supported.add('cn-official-rites');scene.npcs.push(scene.npcs[1]);

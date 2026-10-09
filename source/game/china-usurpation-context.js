@@ -7,8 +7,14 @@ export const USURPATION_COURT_IDS = Object.freeze(['cn-minister-works','cn-minis
 const innerIds = new Set(['cn-consort-yue','cn-consort-heng','cn-consort-ling','cn-palace-herald','cn-calligraphy','cn-cooking']);
 const idOf = actor => actor?.actorId || actor?.station?.id || null;
 export const usurpationBodyId = actor => actor?.bodyId || actor?.root?.userData?.bodyId || idOf(actor);
-const ageOf = actor => actor?.ageYears ?? actor?.station?.ageYears;
-const livingAdult = actor => !!actor?.root && actor.alive !== false && Number.isFinite(ageOf(actor)) && ageOf(actor) >= 18;
+const recordedAges = actor => [actor,actor?.station].filter(Boolean).flatMap(row=>['ageYears','age'].filter(key=>Object.hasOwn(row,key)&&row[key]!=null).map(key=>row[key]));
+const ageOf = actor => recordedAges(actor)[0] ?? null;
+const nonChild = actor => !!actor?.root && actor.alive !== false && actor.isChild!==true && actor.station?.isChild!==true && actor.root.userData?.familyMinor!==true;
+const livingAdult = actor => nonChild(actor) && recordedAges(actor).length>0 && recordedAges(actor).every(age=>Number.isFinite(age)&&age>=18);
+// Non-intimate political participation follows the existing original-role
+// compatibility. This never assigns an age or enables family/romantic actions.
+const legacyGuard = (actor,binding) => nonChild(actor) && recordedAges(actor).length===0 && binding?.available===true &&
+ ['cn-archery','cn-range-warden'].includes(idOf(actor)) && actor.station?.id===idOf(actor) && binding.actorId===idOf(actor);
 const bounded = value => Number.isFinite(value) ? Math.max(-1,Math.min(1,value)) : 0;
 const count = values => Math.min(6,new Set(values.filter(value => typeof value === 'string' && value)).size);
 
@@ -19,15 +25,16 @@ export function readChinaUsurpationContext({scene, relationships, getProfile = (
  const people = scene?.country === 'china' ? scene.npcs || [] : [];
  const player = scene?.player, emperor = people.find(actor => idOf(actor) === 'cn-emperor');
  const guard = scene?.archery?.guardBinding?.(), commander = scene?.archery?.wardenBinding?.();
- const guards = [guard,commander].filter(row => row?.available && people.some(actor => idOf(actor) === row.actorId && livingAdult(actor)))
+ const guards = [guard,commander].filter(row => row?.available && people.some(actor => idOf(actor) === row.actorId && (livingAdult(actor)||legacyGuard(actor,row))))
   .map(row => {const actor=people.find(person=>idOf(person)===row.actorId);return {id:row.actorId,bodyId:usurpationBodyId(actor)};});
  const guardIds = new Set(guards.map(row=>row.id)), seen = new Set(), supporters=[];
  for (const actor of people) {
-  const id=idOf(actor);if(!id || id==='player' || id==='cn-emperor' || seen.has(id) || !livingAdult(actor))continue;
+  const id=idOf(actor),legacy=[guard,commander].some(binding=>legacyGuard(actor,binding));
+  if(!id || id==='player' || id==='cn-emperor' || seen.has(id) || !livingAdult(actor)&&!legacy)continue;
   seen.add(id);const profile=getProfile(id)||{},stance=relationships?.stanceFor?.(id,'player',profile);
   if(stance?.active!==true || stance.observerId!==id || !stance.eventId)continue;
   const pair=relationships?.pair?.(id,'player')||{},official=USURPATION_COURT_IDS.includes(id);
-  supporters.push({id,bodyId:usurpationBodyId(actor),name:actor.station?.npcName||id,ageYears:ageOf(actor),alive:true,
+  supporters.push({id,bodyId:usurpationBodyId(actor),name:actor.station?.npcName||id,ageYears:ageOf(actor),alive:true,...(legacy?{participationSource:'original-unaged-guard-duty'}:{}),
    eligible:true,supportsGeneral:true,roleId:actor.station?.id||id,
    circleId:official?'court':guardIds.has(id)?'guard':innerIds.has(id)?'inner':'town',official,
    guardCommander:id===commander?.actorId&&commander.available===true,

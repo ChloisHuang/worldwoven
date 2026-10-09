@@ -281,3 +281,24 @@ test('untagged legacy resolutions keep their original frozen factors while unres
   assert(re.invest().ok);assert.deepEqual(re.task().resolution,fixed);assert.equal(fixture({saved:re.saved.value}).core.state().loadError,null);
   const unknown=copy(persisted);unknown.events.find(e=>e.type==='resolve').resolutionPolicy=99;assert.equal(fixture({saved:unknown}).core.state().loadError,'invalid-usurpation-state');
 });
+
+
+test('original unaged guard participation stays explicitly sourced without inventing an age in saved history',()=>{
+  const context=world(),mapping={'commander':'cn-range-warden','guard-a':'cn-archery'};
+  for(const person of context.supporters)if(mapping[person.id]){
+    person.id=mapping[person.id];person.bodyId='body:'+person.id;person.roleId=person.id;
+    person.ageYears=null;person.participationSource='original-unaged-guard-duty';
+  }
+  context.guard={commanderId:'cn-range-warden',guards:['cn-range-warden','cn-archery'].map(id=>({id,bodyId:'body:'+id}))};
+  const before=copy(context),f=fixture({context});assert(f.core.begin().ok);
+  for(const id of ['cn-range-warden','cn-archery'])assert(f.pledge(id).ok,'the original person may answer independently');
+  const saved=f.core.snapshot(),cold=fixture({saved,context});
+  assert.equal(cold.core.state().loadError,null);assert.deepEqual(cold.core.snapshot(),saved);
+  for(const event of saved.events)for(const person of event.context.supporters.filter(p=>Object.values(mapping).includes(p.id))){
+    assert.equal(person.ageYears,null);assert.equal(person.participationSource,'original-unaged-guard-duty');
+  }
+  assert.deepEqual(f.context,before,'political compatibility never edits family or actor age');
+  const old=fixture();assert(old.core.begin().ok);assert(old.pledge('official-a').ok);
+  const historical=old.core.snapshot();assert(historical.events.every(e=>e.context.supporters.every(p=>!Object.hasOwn(p,'participationSource'))));
+  assert.deepEqual(fixture({saved:historical}).core.snapshot(),historical,'old contexts need no added field or rewrite');
+});

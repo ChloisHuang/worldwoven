@@ -52,6 +52,7 @@ export function palaceUsurpationContext(raw) {
       relationship:clamp(number(p.relationship),-1,1),trust:clamp(number(p.trust),-1,1),
       informedOpinion:clamp(number(p.informedOpinion),-1,1),
       official:p.official===true,guardCommander:p.guardCommander===true,
+      ...(p.participationSource==='original-unaged-guard-duty'?{participationSource:p.participationSource}:{}),
     })):[],
     guard:{commanderId:raw.guard?.commanderId??null,guards:Array.isArray(raw.guard?.guards)?raw.guard.guards.map(p=>({id:p.id??null,bodyId:p.bodyId??null})):[]},
     experience:Object.fromEntries(PALACE_USURPATION_ROUTES.map(r=>[r.id,clamp(number(raw.experience?.[r.id]),0,6)])),
@@ -63,9 +64,12 @@ export function palaceUsurpationContext(raw) {
 export function palaceUsurpationSupporters(context) {
   const seen=new Set(),bodies=new Set();
   return (context?.supporters||[]).filter(p=>{
+    const legacyGuard=p.ageYears===null&&p.participationSource==='original-unaged-guard-duty'&&
+      ['cn-archery','cn-range-warden'].includes(p.id)&&p.roleId===p.id&&p.circleId==='guard'&&
+      context.guard?.guards?.some(row=>row.id===p.id&&row.bodyId===p.bodyId);
     if (!palaceUsurpationIdentifier(p.id) || !palaceUsurpationIdentifier(p.bodyId) || p.id==='player' || p.id===context.emperor?.id ||
       seen.has(p.id) || bodies.has(p.bodyId) || p.bodyId===context.player?.bodyId || p.bodyId===context.emperor?.bodyId ||
-      !p.alive || !(p.ageYears>=18) || !p.eligible || !palaceUsurpationIdentifier(p.roleId) || !palaceUsurpationIdentifier(p.circleId)) return false;
+      !p.alive || !(p.ageYears>=18||legacyGuard) || !p.eligible || !palaceUsurpationIdentifier(p.roleId) || !palaceUsurpationIdentifier(p.circleId)) return false;
     seen.add(p.id);bodies.add(p.bodyId);return true;
   });
 }
