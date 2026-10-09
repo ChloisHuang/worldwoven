@@ -417,7 +417,8 @@
       "hidden-social-actions.mjs",
       "family-life.mjs",
       "underground-market-room.mjs",
-      "underground-market-ledger.mjs"
+      "underground-market-ledger.mjs",
+      "underground-market-crime.mjs"
     ],
     "integration": [
       "airy-panel-default-cascade.mjs",

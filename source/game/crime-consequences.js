@@ -14,6 +14,8 @@ const terminal = new Set(['released','repaired','closed']);
 const phases = new Set(['undiscovered','witnessed','reported','pursuit','escort','custody','releasing',...terminal]);
 const fail = reason => ({ok:false,reason,code:reason,events:[]});
 const read = input => typeof input === 'function' ? input() : input;
+const receiptId = value => text(value)&&value.length<=128&&value.trim()===value;
+const propertyCrime = c => c.kind==='theft'||c.kind==='fencing';
 
 export function createCrimeConsequences({saved=null,persist=()=>false,actors=()=>[],guards=()=>[],items=[],jail=()=>null,
  hasLineOfSight=()=>false,custodySeconds=45,witnessRadius=7,hearingRadius=12,sightRadius=13,
@@ -28,8 +30,15 @@ export function createCrimeConsequences({saved=null,persist=()=>false,actors=()=
   if(saved!=null){
    const old=copy(saved);
    if(old?.version!==1||!Number.isFinite(old.time)||old.time<0||!Number.isSafeInteger(old.nextCase)||old.nextCase<1||!old.items||typeof old.items!=='object'||Array.isArray(old.items)||!Array.isArray(old.cases)||!Array.isArray(old.effects)||new Set(old.cases.map(c=>c.id)).size!==old.cases.length)throw Error('invalid-crime-save');
-   for(const c of old.cases)if(!text(c.id)||!Number.isSafeInteger(c.number)||c.number<1||c.number>=old.nextCase||!text(c.subjectKey)||!text(c.subjectId)||!['theft','harm'].includes(c.kind)||!text(c.countryId)||!text(c.sceneId)||!phases.has(c.status)||!point(c.lastKnown)||!Number.isFinite(c.searchRemaining)||c.searchRemaining<0||!Number.isFinite(c.custodyRemaining)||c.custodyRemaining<0||!Array.isArray(c.evidence)||!c.evidence.every(validEvidence)||!Number.isSafeInteger(c.reportRevision)||!Number.isSafeInteger(c.investigatedRevision)||c.reportRevision<0||c.investigatedRevision<0||c.kind==='theft'&&!definitions.has(c.itemId)||c.kind==='harm'&&!text(c.victimKey))throw Error('invalid-crime-save');
+   for(const c of old.cases)if(!text(c.id)||!Number.isSafeInteger(c.number)||c.number<1||c.number>=old.nextCase||!text(c.subjectKey)||!text(c.subjectId)||!['theft','harm','fencing'].includes(c.kind)||!text(c.countryId)||!text(c.sceneId)||!phases.has(c.status)||!point(c.lastKnown)||!Number.isFinite(c.searchRemaining)||c.searchRemaining<0||!Number.isFinite(c.custodyRemaining)||c.custodyRemaining<0||!Array.isArray(c.evidence)||!c.evidence.every(validEvidence)||!Number.isSafeInteger(c.reportRevision)||!Number.isSafeInteger(c.investigatedRevision)||c.reportRevision<0||c.investigatedRevision<0||propertyCrime(c)&&!definitions.has(c.itemId)||c.kind==='harm'&&!text(c.victimKey))throw Error('invalid-crime-save');
    for(const [id,d] of definitions){const item=old.items[id];if(!item){if(old.cases.some(c=>c.itemId===id))throw Error('invalid-crime-save');old.items[id]=copy(state.items[id]);continue;}if(item.id!==id||item.ownerId!==d.ownerId||item.holderKey!==null&&!text(item.holderKey)||item.caseId!==null&&!old.cases.some(c=>c.id===item.caseId&&c.itemId===id)||!Number.isSafeInteger(item.transfers)||item.transfers<0)throw Error('invalid-crime-save');}
+   for(const item of Object.values(old.items))if(item.fence!==undefined){
+    const f=item.fence,theft=old.cases.find(c=>c.id===f?.theftCaseId),seller=old.cases.find(c=>c.id===f?.sellerCaseId),buyer=old.cases.find(c=>c.id===f?.buyerCaseId);
+    if(!definitions.has(item.id)||!receiptId(f?.requestId)||f.itemId!==item.id||!text(f.sellerKey)||!text(f.buyerKey)||f.sellerKey===f.buyerKey||item.transfers<2||theft?.kind!=='theft'||theft.itemId!==item.id||theft.subjectKey!==f.sellerKey)throw Error('invalid-crime-save');
+    for(const [c,role,subjectKey] of [[seller,'seller',f.sellerKey],[buyer,'buyer',f.buyerKey]])if(c?.kind!=='fencing'||c.role!==role||c.subjectKey!==subjectKey||c.itemId!==item.id||c.theftCaseId!==theft.id||c.requestId!==f.requestId||c.countryId!==theft.countryId||c.sceneId!==theft.sceneId||c.counterpartyKey!==(role==='seller'?f.buyerKey:f.sellerKey)||c.evidence.some(e=>e.kind==='confession'?e.witnessKey!==subjectKey:e.kind!=='sight'||e.witnessKey===f.sellerKey||e.witnessKey===f.buyerKey))throw Error('invalid-crime-save');
+   }
+   const fenceIds=Object.values(old.items).filter(i=>i.fence).map(i=>i.fence.requestId);if(new Set(fenceIds).size!==fenceIds.length)throw Error('invalid-crime-save');
+   for(const c of old.cases)if(c.kind==='fencing'&&![old.items[c.itemId]?.fence?.sellerCaseId,old.items[c.itemId]?.fence?.buyerCaseId].includes(c.id))throw Error('invalid-crime-save');
    for(const c of old.cases){
     if(c.guardReports!==undefined&&(!c.guardReports||typeof c.guardReports!=='object'||Array.isArray(c.guardReports)||Object.values(c.guardReports).some(r=>!point(r?.position)||!Number.isSafeInteger(r.revision)||r.revision<0||!Number.isFinite(r.at))))throw Error('invalid-crime-save');
     if(c.investigatedBy!==undefined&&(!c.investigatedBy||typeof c.investigatedBy!=='object'||Array.isArray(c.investigatedBy)||Object.values(c.investigatedBy).some(n=>!Number.isSafeInteger(n)||n<0)))throw Error('invalid-crime-save');
@@ -72,7 +81,8 @@ export function createCrimeConsequences({saved=null,persist=()=>false,actors=()=
   if(JSON.stringify({...next,time:state.time})===JSON.stringify(state))return {ok:true,events,...result};
   // Retain all open cases and unacknowledged effects. Closed provenance is
   // bounded; the monotonic receipt sequence never resets when history is trimmed.
-  const removable=next.cases.filter(c=>terminal.has(c.status)&&!next.effects.some(e=>e.caseId===c.id));
+  const pinned=new Set(Object.values(next.items).flatMap(i=>i.fence?[i.fence.theftCaseId,i.fence.sellerCaseId,i.fence.buyerCaseId]:[]));
+  const removable=next.cases.filter(c=>terminal.has(c.status)&&!pinned.has(c.id)&&!next.effects.some(e=>e.caseId===c.id));
   while(removable.length>64){const remove=removable.shift();next.cases=next.cases.filter(c=>c.id!==remove.id);for(const item of Object.values(next.items))if(item.caseId===remove.id)item.caseId=null;}
   busy=true;
   try{
@@ -156,7 +166,7 @@ export function createCrimeConsequences({saved=null,persist=()=>false,actors=()=
        if(c.escortStage==='entry'){c.escortStage='cell';events.push({kind:'cell-route',caseId:c.id});}
        else{
         c.status='custody';c.custodyRemaining=sentence(c);const releasedGuard=c.guardKey;c.guardKey=null;
-        if(c.kind==='theft'){const item=next.items[c.itemId];if(item?.holderKey===c.subjectKey){item.holderKey=null;item.transfers++;c.confiscated=true;}}
+        if(propertyCrime(c)){const item=next.items[c.itemId];if(item?.holderKey===c.subjectKey){item.holderKey=null;item.transfers++;c.confiscated=true;}}
         events.push({kind:'custody',caseId:c.id,guardKey:releasedGuard,subjectKey:c.subjectKey,remaining:c.custodyRemaining});
        }
       }
@@ -198,6 +208,54 @@ export function createCrimeConsequences({saved=null,persist=()=>false,actors=()=
    return {caseId:c.id};
   });
  }
+ // A fencing sale participates in the caller's single durable currency save.
+ // Preparing and locking never persist or reveal the candidate in live state.
+ function fenceEligibility(actorKey,buyerKey,itemId,requestId,w,current=state){
+  if(loadError)return fail(loadError);
+  if(!receiptId(requestId))return fail('invalid-fence-request');
+  const seller=w.people.get(actorKey),buyer=w.people.get(buyerKey),item=current.items[itemId];
+  if(!present(seller)||seller.available===false||seller.busy===true||seller.adult===false)return fail('actor-unavailable');
+  if(!present(buyer)||buyer.available===false||buyer.busy===true||buyer.adult===false)return fail('buyer-unavailable');
+  if(seller.key===buyer.key||seller.id===buyer.id||!sees(seller,buyer,interactionRadius)||!sees(buyer,seller,interactionRadius))return fail('buyer-out-of-reach');
+  if([seller,buyer].some(a=>a.detained===true||openFor(current,a.key).some(c=>['escort','custody','releasing'].includes(c.status))))return fail('actor-detained');
+  if(!definitions.has(itemId)||!item||item.holderKey!==actorKey)return fail('not-item-holder');
+  if(item.fence)return fail('item-already-fenced');
+  if(Object.values(current.items).some(i=>i.fence?.requestId===requestId))return fail('fence-request-used');
+  const theft=current.cases.find(c=>c.id===item.caseId&&c.kind==='theft'&&c.itemId===itemId&&c.subjectKey===actorKey);
+  if(!theft||terminal.has(theft.status)||seller.countryId!==theft.countryId||seller.sceneId!==theft.sceneId)return fail('invalid-item-provenance');
+  return {ok:true};
+ }
+ function fenceObservation(w,actorKey,buyerKey){
+  const seller=w.people.get(actorKey),buyer=w.people.get(buyerKey);
+  const observers=new Map([...w.people].filter(([k,a])=>k!==actorKey&&k!==buyerKey&&sees(a,seller)&&sees(a,buyer)));
+  const signature=JSON.stringify([seller?.position,buyer?.position,[...observers.values()].sort((a,b)=>a.key.localeCompare(b.key)).map(a=>[a.key,a.id,a.position])]);
+  return {observers,signature};
+ }
+ function prepareFence(actorKey,buyerKey,itemId,requestId,override={}){
+  if(loadError||busy)return fail(loadError||'crime-busy');
+  const w=world(override),eligible=fenceEligibility(actorKey,buyerKey,itemId,requestId,w);if(!eligible.ok)return eligible;
+  const base=state,next=copy(state),events=[],seller=w.people.get(actorKey),buyer=w.people.get(buyerKey),item=next.items[itemId];next.time=simulationTime;
+  // Both participants and the object handoff must actually be visible. A
+  // merchant and seller are never each other's independent fencing witnesses.
+  const {observers,signature}=fenceObservation(w,actorKey,buyerKey);
+  const observedWorld={...w,people:observers},fields={itemId,theftCaseId:item.caseId,requestId};
+  const sale=makeCase(next,seller,'fencing',{...fields,role:'seller',counterpartyKey:buyerKey},observedWorld,events);
+  const purchase=makeCase(next,buyer,'fencing',{...fields,role:'buyer',counterpartyKey:actorKey},observedWorld,events);
+  item.holderKey=buyerKey;item.transfers++;item.fence={requestId,itemId,sellerKey:actorKey,buyerKey,theftCaseId:item.caseId,sellerCaseId:sale.id,buyerCaseId:purchase.id};
+  events.push({kind:'property-fenced',caseId:sale.id,buyerCaseId:purchase.id,itemId,actorKey,buyerKey,requestId});
+  let locked=false,accepted=false;
+  const valid=()=>{if(loadError||busy&&!locked)return false;if(accepted)return true;const live=world(override);return state===base&&fenceEligibility(actorKey,buyerKey,itemId,requestId,live,base).ok&&fenceObservation(live,actorKey,buyerKey).signature===signature;};
+  return {ok:true,engine:copy(next),events:copy(events),receipt:copy(item.fence),valid,
+   lock(){if(locked||accepted||!valid())return false;busy=true;locked=true;return true;},
+   committed(){if(accepted)return true;if(!locked||!busy||state!==base||loadError)return false;state=next;accepted=true;return true;},
+   release(){if(locked){locked=false;busy=false;}}
+  };
+ }
+ function verifyFenceReceipt(input){
+  if(loadError||!input||!definitions.has(input.itemId))return false;
+  const f=state.items[input.itemId]?.fence;
+  return !!f&&f.requestId===input.requestId&&(!(input.sellerKey??input.actorKey)||f.sellerKey===(input.sellerKey??input.actorKey))&&(!input.buyerKey||f.buyerKey===input.buyerKey);
+ }
  function harmEligibility(actorKey,victimKey,w,current=state,time=simulationTime){
   if(loadError||busy)return fail(loadError||'crime-busy');
   const actor=w.people.get(actorKey),victim=w.people.get(victimKey);
@@ -233,7 +291,8 @@ export function createCrimeConsequences({saved=null,persist=()=>false,actors=()=
   return commit((next,events)=>{
    const item=next.items[itemId];if(item.holderKey!==actorKey)return fail('not-item-holder');
    const c=next.cases.find(c=>c.id===item.caseId);item.holderKey=null;item.transfers++;
-   if(c){c.returned=true;if(!c.evidence.length)close(next,c,'repaired','property-returned-unseen',events);}
+   if(c){c.returned=true;if(c.subjectKey===actorKey&&!c.evidence.length)close(next,c,'repaired','property-returned-unseen',events);}
+   for(const related of next.cases.filter(c=>c.kind==='fencing'&&c.itemId===itemId&&c.subjectKey===actorKey&&!terminal.has(c.status))){related.returned=true;if(!related.evidence.length)close(next,related,'repaired','property-returned-unseen',events);}
    events.push({kind:'property-returned',caseId:c?.id,itemId,actorKey});return {caseId:c?.id};
   });
  }
@@ -283,7 +342,7 @@ export function createCrimeConsequences({saved=null,persist=()=>false,actors=()=
   for(const c of state.cases)if(!terminal.has(c.status)&&c.evidence.some(e=>e.witnessKey===actorKey)&&w.officers.some(g=>officerAvailable(g)&&sameScene(actor,g)&&distance(actor.position,g.position)<=hearingRadius))result.push({kind:'report',caseId:c.id});
   return result;
  }
- return {take,returnItem,harm,canHarm,offend(input,override={}){return input?.kind==='harm'?harm(input.actorKey||input.actor,input.victimKey||input.victim,override):fail('unknown-offense');},report,surrender,update,tick:update,orders,status,actions,snapshot,
+ return {take,returnItem,prepareFence,verifyFenceReceipt,harm,canHarm,offend(input,override={}){return input?.kind==='harm'?harm(input.actorKey||input.actor,input.victimKey||input.victim,override):fail('unknown-offense');},report,surrender,update,tick:update,orders,status,actions,snapshot,
   pendingEffects:()=>loadError?[]:copy(state.effects),
   ackEffect(id){return commit(next=>{const index=next.effects.findIndex(e=>e.id===id);if(index<0)return {replayed:true};next.effects.splice(index,1);return {effectId:id};});},
   cancelEnforcement(reason='route-failed'){return commit((next,events)=>{const c=active(next);if(!c)return {replayed:true};if(c.status==='custody')return fail('custody-must-be-served');if(c.status==='releasing')close(next,c,'released',reason,events);else abandon(next,c,reason,events);return {caseId:c.id};});}
