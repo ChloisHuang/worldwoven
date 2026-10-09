@@ -2,10 +2,10 @@
 // remains a separate physical compatibility contract.
 export const PALACE_GARDEN_CAREER_ROLE=Object.freeze({
  id:'cn-palace-garden-duty',name:'荷庭勤务',slotId:'cn-palace-garden-duty-1',country:'china',currency:'copper',
- employer:'Bo',workplace:'荷庭东岸 · 原清扫令登记处',supervisorId:'cn-garden',incumbentId:'cn-garden',incumbentName:'Bo',
+ employer:'Bo',workplace:'荷桥原岗 · 勤务登记',supervisorId:'cn-garden',incumbentId:'cn-garden',incumbentName:'Bo',
  vacancyKind:'exclusive',workSource:'cn-palace-garden-labor',wage:16,minimumAgeYears:18,
  skillRequirements:Object.freeze({ritual:1}),dutyWindow:Object.freeze({startHour:6,endHour:18}),earlyBeforeHour:12,preparationBonus:0,
- duties:'18岁起可申请，礼仪1级。Bo本人审核；录用后另行接班，06:00–18:00在荷庭东岸候令，接收同号清扫令、归档、亲手清扫并归还原工具。固定完整日薪16铜文，按实际在岗工时由原宫务工资通道结算，不逐令发工资。完成原令并手动评价后获得10点园艺经验，与读书共用每日4次成长；普通勤务岗位，不授官品。',
+ duties:'18岁起可申请，礼仪1级。Bo本人审核；录用后另行接班，06:00–18:00在荷桥原岗候令，接收同号清扫令、归档、亲手清扫并实际返岗。固定完整日薪16铜文，按实际在岗工时由原宫务工资通道结算，不逐令发工资。完成原令并手动评价后获得10点园艺经验，与读书共用每日4次成长；普通勤务岗位，不授官品。',
 });
 const FIELDS=['source','id','workReceiptId','documentId','audienceId','day','holderRevision','completed','accurate','proof'];
 const PROOF_FIELDS=['version','actorId','documentId','audienceId','day','holderRevision','received','filed','sweepSeconds','returned'];
