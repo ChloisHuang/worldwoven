@@ -20,12 +20,13 @@ for idx,entry in enumerate(data['meshes']):
  out=nodes.new('ShaderNodeOutputMaterial');col=nodes.new('ShaderNodeVertexColor');col.layer_name='ActualColor';bs=nodes.new('ShaderNodeBsdfPrincipled');links.new(col.outputs['Color'],bs.inputs['Base Color']);bs.inputs['Roughness'].default_value=1;bs.inputs['Specular IOR Level'].default_value=0
  # Unshadowed hemisphere contribution approximates production ambient light;
  # actual source vertex colors and source emissive term remain unchanged.
- links.new(col.outputs['Color'],bs.inputs['Emission Color']);bs.inputs['Emission Strength'].default_value=.34
- if m.get('emissiveIntensity',0)>0:
+ links.new(col.outputs['Color'],bs.inputs['Emission Color']);bs.inputs['Emission Strength'].default_value=.34*entry.get('baseLightScale',1)
+ if m.get('emissiveIntensity',0)>0 and any(m.get('emissive',[0,0,0])):
+  bs.inputs['Emission Strength'].default_value=.34
   mix=nodes.new('ShaderNodeMixRGB');mix.blend_type='ADD';mix.inputs[0].default_value=1;links.new(col.outputs['Color'],mix.inputs[1]);mix.inputs[2].default_value=(*(np.array(m['emissive'])*m['emissiveIntensity']),1);links.new(mix.outputs[0],bs.inputs['Emission Color'])
  bs.inputs['Alpha'].default_value=m['opacity'];links.new(bs.outputs[0],out.inputs[0]);mesh.materials.append(mat)
  if idx%25==0: print('Imported',idx,flush=True)
-scene=bpy.context.scene;scene.render.engine='CYCLES';scene.cycles.device='CPU';scene.cycles.samples=12;scene.cycles.use_denoising=False;scene.cycles.max_bounces=3;scene.cycles.diffuse_bounces=2;scene.cycles.transparent_max_bounces=4
+scene=bpy.context.scene;scene.render.engine='CYCLES';scene.cycles.device='CPU';scene.cycles.samples=24;scene.cycles.use_denoising=False;scene.cycles.max_bounces=3;scene.cycles.diffuse_bounces=2;scene.cycles.transparent_max_bounces=4
 scene.render.resolution_x=960;scene.render.resolution_y=640;scene.render.resolution_percentage=100
 scene.render.image_settings.file_format='PNG';scene.view_settings.view_transform='Standard';scene.view_settings.look='Medium High Contrast' if False else 'None';scene.view_settings.exposure=0;scene.view_settings.gamma=1
 world=bpy.data.worlds.new('Daylight representative');world.use_nodes=True;world.node_tree.nodes['Background'].inputs['Color'].default_value=(.39,.55,.52,1);world.node_tree.nodes['Background'].inputs['Strength'].default_value=.6;scene.world=world
@@ -34,7 +35,7 @@ sun=bpy.data.lights.new('Production-direction sun','SUN');sun.energy=1.6;sun.col
 # lighting, not the production fixed irradiance shader implementation.
 for i,f in enumerate(data['lights']):
  p=f['position']
- lamp=bpy.data.lights.new('Authored fixture '+str(i),'POINT');lamp.energy=35;lamp.color=(1,.62,.29);lamp.shadow_soft_size=.2
+ lamp=bpy.data.lights.new('Authored fixture '+str(i),'POINT');lamp.energy=35*(f.get('intensity',14)/14)*(f.get('dayFactor',.82)/.82);lamp.color=(1,.62,.29);lamp.shadow_soft_size=.2
  ob=bpy.data.objects.new(lamp.name,lamp);bpy.context.collection.objects.link(ob);ob.location=cv(p)
 cam=bpy.data.cameras.new('Production 50 degree camera');co=bpy.data.objects.new('Review camera',cam);bpy.context.collection.objects.link(co);scene.camera=co;cam.type='PERSP';cam.sensor_fit='VERTICAL';cam.sensor_height=24;cam.lens=cam.sensor_height/(2*math.tan(math.radians(50)/2));cam.clip_end=150
 # No scene archive is needed: this script reads the actual exported meshes.

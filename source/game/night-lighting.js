@@ -80,11 +80,12 @@ function buildFixtureField(lot,fixtures) {
  do{nx=Math.max(2,Math.ceil(size.x/(policy.horizontalStep*stepScale))+1);ny=Math.max(2,Math.ceil(size.y/(policy.verticalStep*stepScale))+1);nz=Math.max(2,Math.ceil(size.z/(policy.horizontalStep*stepScale))+1);if(nx*ny*nz<=policy.maxVoxels)break;stepScale*=1.1;}while(true);
  const count=nx*ny*nz,day=new Uint16Array(count*4),night=new Uint16Array(count*4),direction=new Uint16Array(count*4),sourceCells=fixtures.map(()=>0),occluded=makeFieldOcclusion(lot);
  const levels=(lot.levels||[{y:0}]).map(l=>l.y).filter(Number.isFinite).sort((a,b)=>a-b);
+ const baseZone=lot.lightingZones?.find(z=>Number.isFinite(z.baseLightScale)&&z.baseLightScale<1),baseBounds=baseZone?.baseLightBounds||baseZone;
  const p=new THREE.Vector3();let maxEnergy=0,occludedContributions=0;
  for(let z=0;z<nz;z++)for(let y=0;y<ny;y++)for(let x=0;x<nx;x++) {
   p.set(min.x+size.x*x/(nx-1),min.y+size.y*y/(ny-1),min.z+size.z*z/(nz-1));
-  let floor=levels[0]??0;
-  if(lot.lightingZones){const zone=lot.lightingZones.find(z=>p.x>=z.minX&&p.x<=z.maxX&&p.z>=z.minZ&&p.z<=z.maxZ&&p.y>=z.minY&&p.y<z.maxY);floor=zone?.floorY??.115;}
+  let floor=levels[0]??0,zone=null;
+  if(lot.lightingZones){zone=lot.lightingZones.find(z=>p.x>=z.minX&&p.x<=z.maxX&&p.z>=z.minZ&&p.z<=z.maxZ&&p.y>=z.minY&&p.y<z.maxY);floor=zone?.floorY??.115;}
   else for(const level of levels)if(level<=p.y)floor=level;
   const nearby=[];
   for(const f of fixtures) {
@@ -104,7 +105,7 @@ function buildFixtureField(lot,fixtures) {
   }
   const offset=(x+nx*(y+ny*z))*4,vl=Math.hypot(vx,vy,vz)||1;
   for(const [axis,value]of[vx/vl,vy/vl,vz/vl].entries())direction[offset+axis]=THREE.DataUtils.toHalfFloat(value);direction[offset+3]=THREE.DataUtils.toHalfFloat(1);maxEnergy=Math.max(maxEnergy,nr,ng,nb);
-  for(const [data,values]of[[night,[nr,ng,nb]],[day,[dr,dg,db]]]){for(let c=0;c<3;c++)data[offset+c]=THREE.DataUtils.toHalfFloat(Math.min(policy.radianceLimit,values[c]));data[offset+3]=THREE.DataUtils.toHalfFloat(1);}
+  for(const [data,values]of[[night,[nr,ng,nb]],[day,[dr,dg,db]]]){for(let c=0;c<3;c++)data[offset+c]=THREE.DataUtils.toHalfFloat(Math.min(policy.radianceLimit,values[c]));data[offset+3]=THREE.DataUtils.toHalfFloat(baseBounds&&p.x>=baseBounds.minX&&p.x<=baseBounds.maxX&&p.z>=baseBounds.minZ&&p.z<=baseBounds.maxZ&&p.y>=baseBounds.minY&&p.y<baseBounds.maxY?clamp(baseZone.baseLightScale,.08,1):1);}
  }
  const texture=data=>{const t=new THREE.Data3DTexture(data,nx,ny,nz);t.format=THREE.RGBAFormat;t.type=THREE.HalfFloatType;t.minFilter=t.magFilter=THREE.LinearFilter;t.unpackAlignment=1;t.generateMipmaps=false;t.colorSpace=THREE.NoColorSpace;t.wrapS=t.wrapT=t.wrapR=THREE.ClampToEdgeWrapping;t.needsUpdate=true;return t;};
  const textures=[texture(day),texture(night),texture(direction)];
@@ -125,7 +126,16 @@ const FIELD_FRAGMENT=`
   vec3 fieldWorldNormal = inverseTransformDirection( geometryNormal, viewMatrix );
   vec3 fieldUV = ( vFourfangFieldWorld + fieldWorldNormal * 0.12 - fourfangFieldMin ) / fourfangFieldSize;
   fieldUV = fieldUV * fourfangFieldUVScale + fourfangFieldUVBias;
-  vec3 fieldColor = texture( fourfangFieldTexture, fieldUV ).rgb;
+  // Alpha attenuates only pre-existing sun/hemisphere diffuse in authored
+  // enclosed volumes. Fixture light added below keeps its full warm contrast.
+  // Unconfigured regions encode exactly 1; no extra texture sample or GPU light.
+  vec4 fieldSample = texture( fourfangFieldTexture, fieldUV );
+  vec3 baseInside = min( vFourfangFieldWorld - fourfangBaseMin, fourfangBaseMax - vFourfangFieldWorld );
+  float baseMask = clamp( min( min( baseInside.x, baseInside.y ), baseInside.z ) / 0.25, 0.0, 1.0 );
+  float baseScale = mix( 1.0, fieldSample.a, baseMask );
+  reflectedLight.directDiffuse *= baseScale;
+  reflectedLight.indirectDiffuse *= baseScale;
+  vec3 fieldColor = fieldSample.rgb;
   vec3 fieldDirection = texture( fourfangFieldDirection, fieldUV ).rgb;
   float fieldLength = length( fieldDirection );
   if ( fieldLength > 0.02 ) {
@@ -140,7 +150,7 @@ const FIELD_FRAGMENT=`
 
 export function createNightLighting({scene,hemi,sun}) {
   let lot=null,region='',night=false,disposed=false,fixtures=[],originals=[],emissions=[],field=null;
-  const bindings=new Map(),fieldUniforms={fourfangFieldEnabled:{value:0},fourfangFieldTexture:{value:null},fourfangFieldDirection:{value:null},fourfangFieldUVScale:{value:new THREE.Vector3()},fourfangFieldUVBias:{value:new THREE.Vector3()},fourfangFieldMin:{value:new THREE.Vector3()},fourfangFieldSize:{value:new THREE.Vector3(1,1,1)}};
+  const bindings=new Map(),fieldUniforms={fourfangBaseMin:{value:new THREE.Vector3()},fourfangBaseMax:{value:new THREE.Vector3()},fourfangFieldEnabled:{value:0},fourfangFieldTexture:{value:null},fourfangFieldDirection:{value:null},fourfangFieldUVScale:{value:new THREE.Vector3()},fourfangFieldUVBias:{value:new THREE.Vector3()},fourfangFieldMin:{value:new THREE.Vector3()},fourfangFieldSize:{value:new THREE.Vector3(1,1,1)}};
 
   function bindMaterials() {
     scene.traverse(o=>{for(const material of(Array.isArray(o.material)?o.material:o.material?[o.material]:[])) {
@@ -157,10 +167,10 @@ export function createNightLighting({scene,hemi,sun}) {
           varying vec3 vFourfangFieldWorld;
           uniform float fourfangFieldEnabled;
           uniform sampler3D fourfangFieldTexture, fourfangFieldDirection;
-          uniform vec3 fourfangFieldMin, fourfangFieldSize, fourfangFieldUVScale, fourfangFieldUVBias;
+          uniform vec3 fourfangFieldMin, fourfangFieldSize, fourfangFieldUVScale, fourfangFieldUVBias, fourfangBaseMin, fourfangBaseMax;
         `).replace('#include <lights_fragment_end>','#include <lights_fragment_end>\n'+FIELD_FRAGMENT);
       };
-      material.customProgramCacheKey=function(){return key.call(this)+'|fourfang-world-field-v1';};
+      material.customProgramCacheKey=function(){return key.call(this)+'|fourfang-world-field-v2-local-base';};
       material.needsUpdate=true;
     }});
   }
@@ -184,6 +194,11 @@ export function createNightLighting({scene,hemi,sun}) {
   function attach(nextLot,nextRegion) {
     if(disposed)throw Error('Night lighting is disposed');
     detach();lot=nextLot;region=nextRegion;lot.group.updateMatrixWorld(true);
+    // The authored black-market volume is the only local base-light override.
+    // Its world-space mask feathers inward, never through an adjacent wall or floor.
+    const baseZone=lot.lightingZones?.find(z=>Number.isFinite(z.baseLightScale)&&z.baseLightScale<1),baseBounds=baseZone?.baseLightBounds||baseZone;
+    fieldUniforms.fourfangBaseMin.value.set(baseBounds?.minX??0,baseBounds?.minY??0,baseBounds?.minZ??0);
+    fieldUniforms.fourfangBaseMax.value.set(baseBounds?.maxX??0,baseBounds?.maxY??0,baseBounds?.maxZ??0);
     const sources=[],seenMaterials=new Set();
     lot.group.traverse(o=>{
       if(o.isPointLight)sources.push(o);
