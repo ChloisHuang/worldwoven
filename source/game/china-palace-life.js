@@ -1,3 +1,4 @@
+import {extendRoyalPantryMealLease} from './china-royal-pantry.js';
 import {isSociallyHeld,isPlayerConversationHeld} from './npc-social-ownership.js';
 import {bedAvailable,reserveNpcBed,occupyNpcBed} from './npc-bed-occupancy.js';
 import {captureWorldRuntime,restoreWorldRuntime} from './world-continuity.js';
@@ -167,6 +168,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
   if(!order||choice.orderId&&order.id!==choice.orderId||order.seatId!==choice.facilityId||choice.mealId&&order.mealId!==choice.mealId)return false;
   if(['cancelled','canceled'].includes(order.stage))return false;
   choice.orderId=order.id;choice.mealId=order.mealId;
+  extendRoyalPantryMealLease(choice,service.pantryMealProgress?.(order.id,n.station.id),claims,n.station.id);
   if(order.stage==='consumed')choice.mealCompleted=true;
   return true;
  }

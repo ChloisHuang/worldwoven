@@ -13,6 +13,8 @@ import {SALON_ARTISTS,SALON_ACTIVITIES} from './china-tavern-salon-artists.js';
 
 const point=a=>({x:a[0],y:a[1],z:a[2]}),near=(p,a,r=.14)=>Math.hypot(p.x-a[0],p.z-a[2])<r&&Math.abs(p.y-a[1])<.32;
 const TAVERN_UP=[[14,.115,8.8],[16.9,.215,9.1],[17.55,.215,8.8],[17.55,2.115,4.2],[19.95,2.115,4.2],[19.95,4.015,9.1],[17.55,4.015,9.1],[17.55,5.915,4.2],[19.95,5.915,4.2],[19.95,7.815,9.1],[22.5,7.815,9.2]];
+const ROYAL_KITCHEN_UP=[[17.2,.215,-8.7],[17.2,.215,-10.6],[24.8,4.015,-10.6],[24.8,4.015,-8.7]];
+const inRoyalKitchen=p=>p.x>16&&p.x<26&&p.z>-12&&p.z<-3;
 const SALON_RECEPTION_POINT=Object.freeze([24.15,7.815,7.65]);
 const reverse=a=>a.slice().reverse().map(p=>p.slice());
 // Real clear east-bank standing places, outside the numbered-edict leaf basket.
@@ -21,7 +23,7 @@ export const CHINA_OFFICIAL_GARDEN_PLACES=Object.freeze([[11.7,.145,-14.4],[9.2,
 // This controller owns the officials' personal time. Court borrows an
 // official after a safe furniture exit; it never adds personal summon delays,
 // creates, removes, teleports or animates a second emperor.
-export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,reports,personnelRecords=null,granaryAudit=null,economy=null,sharedNeeds=null,getTavern=()=>null,getToilet=()=>null,getSalon=()=>null,getClock=()=>({day:0}),worldSeed=1,saved={},saveState=()=>{},beginInteraction=()=>null,onInteraction=()=>{},record=()=>{}}){
+export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,reports,personnelRecords=null,granaryAudit=null,economy=null,sharedNeeds=null,getTavern=()=>null,getToilet=()=>null,getSalon=()=>null,getRoyalKitchen=()=>null,getClock=()=>({day:0}),worldSeed=1,saved={},saveState=()=>{},beginInteraction=()=>null,onInteraction=()=>{},record=()=>{}}){
  if(!furniture)return null;
  const navigation={surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4,radius:.25};
  const stages=new Map(),duties=JSON.parse(JSON.stringify(saved.duties||{})),unpaidDuties=JSON.parse(JSON.stringify(saved.unpaidDuties||[])),brain=createLifeDecisions({worldSeed,actorIds:officials.map(n=>n.station.id),sharedNeeds,saved:saved.decisions,onChange:()=>save()}),claims=furniture.facilities;
@@ -33,7 +35,7 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  const stage=(path,label,options={})=>({path:path.map(a=>a.slice()),label,index:0,arrived:false,planned:false,stalled:0,retries:0,elapsed:0,...options});
  function publicExit(p){
   const bureau=isChinaOfficialUpperFloor(p)||p.y>.25&&p.x>26.1&&p.z>30&&p.z<36.7;
-  const route=bureau?B.stairRoute:p.y>.5&&p.x>15&&p.z<23?TAVERN_UP:null;
+  const route=bureau?B.stairRoute:p.y>.3&&inRoyalKitchen(p)?ROYAL_KITCHEN_UP:p.y>.5&&p.x>15&&p.z<23?TAVERN_UP:null;
   if(!route)return [];
   const remaining=reverse(route.filter(a=>a[1]<=p.y+.25));let closest=.65,start=0;
   // A summons may interrupt someone halfway through a landing or stair.
@@ -50,7 +52,8 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  function publicRoute(n,target){
   const from=n.root.position,to=target?point(target):null;
   if(to&&isChinaOfficialUpperFloor(to))return isChinaOfficialUpperFloor(from)?[target]:[...publicExit(from),...B.stairRoute,target];
-  if(to&&to.y>3.5&&to.y<4.5&&to.x>15&&to.z<23)return from.y>3.5&&from.y<4.5&&from.x>15&&from.z<23?[target]:[...publicExit(from),...TAVERN_UP.slice(0,7),target];
+  if(to&&to.y>3.5&&to.y<4.5&&inRoyalKitchen(to))return from.y>3.5&&from.y<4.5&&inRoyalKitchen(from)?[target]:[...publicExit(from),...ROYAL_KITCHEN_UP,target];
+  if(to&&to.y>3.5&&to.y<4.5&&to.x>15&&to.z<23)return from.y>3.5&&from.y<4.5&&from.x>15&&from.z<23&&!inRoyalKitchen(from)?[target]:[...publicExit(from),...TAVERN_UP.slice(0,7),target];
   if(to&&to.y>7&&to.x>15&&to.z<23)return from.y>7&&from.z<23?[target]:[...publicExit(from),...TAVERN_UP,target];
   return [...publicExit(from),...(target?[target]:[])];
  }
@@ -73,11 +76,12 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  }
  function candidates(n){
   const i=index(n),bed=seat(B.beds[i]),listen=seat('china-tavern-listening-'+(i%2?20.65:17.5)),experience=brain.experience(n.station.id),partners=!conversation&&experience&&[1,2].every(slot=>!occupied('cn-official-garden-place-'+slot,n))?officials.filter(other=>other!==n&&idleEligible(other)&&Math.abs(other.root.position.y-n.root.position.y)<.4&&other.root.position.distanceTo(n.root.position)<6.5&&canTraverse(n.root.position,other.root.position,lot.colliders.concat(doors?.planningColliders||[]),navigation)):[];
-  const audit=i===1?granaryAudit?.job():null,inspection=i===0?reports?.inspection():null,duty=duties[n.station.id],salonTargets=salonChoices(n).map(q=>({id:q.artistId+':'+q.activity,choice:{salon:{artistId:q.artistId,activity:q.activity,fee:q.fee,...(Number.isSafeInteger(q.revision)?{revision:q.revision}:{})},label:'自费'+SALON_ACTIVITIES[q.activity].name+' · '+q.fee+'铜文'}}));
+  const audit=i===1?granaryAudit?.job():null,inspection=i===0?reports?.inspection():null,pantry=pantryTask(n),duty=duties[n.station.id],salonTargets=salonChoices(n).map(q=>({id:q.artistId+':'+q.activity,choice:{salon:{artistId:q.artistId,activity:q.activity,fee:q.fee,...(Number.isSafeInteger(q.revision)?{revision:q.revision}:{})},label:'自费'+SALON_ACTIVITIES[q.activity].name+' · '+q.fee+'铜文'}}));
   return [
    ...(duty?.stage==='awaiting-archive'&&duty.day===getClock().day?[{id:'archive-duty',label:'回本署核对今日朝班凭记 · 归档后领俸',base:10,point:B.offices[i],workTarget:B.workTargets[i],action:'calligraphy',duration:[8,8],cooldown:0,relief:{},dutyDay:duty.day}]:[]),
    ...(inspection?[{id:'inspect',label:inspection.label,base:8,point:inspection.point,look:inspection.look,action:'read',duration:[5,9],cooldown:15,inspection,relief:{}}]:[]),
    ...(audit?[{id:'payroll-audit',label:audit.label,base:8,point:B.offices[i],workTarget:B.workTargets[i],action:'read',duration:[15,27],cooldown:22,relief:{},auditId:audit.id}]:[]),
+   ...(pantry?[{id:'pantry-'+pantry.kind,label:pantry.label,base:8,point:pantry.point,workTarget:pantry.workTarget,action:pantry.kind==='count'?'read':'calligraphy',duration:[pantry.duration,pantry.duration],cooldown:0,relief:{},pantryTaskId:pantry.id,pantryKind:pantry.kind,available:!urgent(n)}]:[]),
    {id:'work',label:n.station.workLabel||(i?'核对来文 · 编排下一次奏事':'整理工务文书 · 核对执行回执'),base:1.2,traits:{quiet:.4},needs:{fatigue:-.6},duration:[15,27],cooldown:22,relief:{social:.02},point:B.offices[i],action:'calligraphy',workTarget:B.workTargets[i]},
    {id:'read',label:'官署静读 · 看一会儿书卷',experience:{kind:'read',label:'方才在官署读过书卷'},base:.18,traits:{curiosity:.7,quiet:.8},needs:{fatigue:.2},duration:[10,18],cooldown:50,relief:{fatigue:-.10},point:B.offices[i],action:'read'},
    {id:'rest',label:'回自己的值宿室歇息',base:.05,traits:{quiet:.25},needs:{fatigue:3.5},duration:[18,32],cooldown:90,relief:{fatigue:-.7},point:bed?.position,mount:bed,facilityId:bed?.id,roomId:B.privateRoomIds?.[i]??(i<2?B.roomIds[i]:null)},
@@ -89,6 +93,8 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
    {id:'conversation',label:'邀请闲下来的同僚到荷庭聊聊',base:.09,traits:{sociability:1.1},needs:{social:1.8},duration:[9,13],cooldown:90,relief:{},point:CHINA_OFFICIAL_GARDEN_PLACES[1],experienceId:experience?.id,targets:partners.map(other=>({id:other.station.id,relationship:{target:other.station.id,weight:.9,opinionWeight:.9}}))}
   ].map(c=>({...c,available:c.available!==false&&!!c.point&&(!c.facilityId||!occupied(c.facilityId,n))&&(!c.roomId||!occupied(c.roomId,n))}));
  }
+ function pantryTask(n){return n.station.id==='cn-minister-granary'&&n.alive!==false?getRoyalKitchen()?.pantryTask?.(n.station.id)||null:null;}
+ const samePantryTask=(task,choice)=>!!task&&task.id===choice.pantryTaskId&&task.kind===choice.pantryKind&&task.point.every((v,i)=>v===choice.point[i]);
  function urgent(n){const need=sharedNeeds?.status(n.station.id);return !!need?.seekMeal||!!need?.seekToilet||brain.fatigued(n.station.id)||duties[n.station.id]?.stage==='awaiting-archive'||index(n)===0&&!!reports?.inspection();}
  function idleEligible(n){const s=stages.get(n);return !!s?.idle&&!s.called&&!s.courtReady&&!s.borrowed&&!s.borrowedSalon&&!s.mount&&!isSociallyHeld(n.station.id,state.conversationActorId)&&state.meetingActorId!==n.station.id&&state.performing!==n.station.id&&!urgent(n)&&brain.canReply(n.station.id);}
  function idle(n,label='手边事情告一段落 · 在原处歇一会儿'){
@@ -166,11 +172,22 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   tell(n,s.label);animate(n,s,t,both?other:null);
  }
  function release(n,s){if(s?.mount){const landing=findActorStandPoint(n,s.mount,({ignoreDynamicBodies})=>furniture.standPoint(navigation,ignoreDynamicBodies?[...(doors?.cameraColliders||[])]:safety(n),s.mount,n.collisionRadius??.25));if(!landing)return false;n.root.position.copy(landing);s.mount=null;}claims.releaseActor(n.station.id);return true;}
- function finish(n,s,fulfilled=true){if(getSalon()?.ownsNPCCustomer?.(n.station.id))return false;if(s?.choice?.toilet&&getToilet()?.ownsActor(n))return false;if(s?.borrowed&&getTavern()?.officialMeal(n.station.id))return false;if(fulfilled&&s?.choice?.id==='archive-duty'){const duty=duties[n.station.id];if(duty?.day===getClock().day&&duty.day===s.choice.dutyDay&&near(n.root.position,B.offices[index(n)],.2)&&s.elapsed>=8){duty.stage='archived';personnelRecords?.witnessArchive({id:`cn-official-archive:${n.station.id}:${duty.day}`,actorId:n.station.id,day:duty.day,audienceId:`cn-morning-audience:${duty.day}`,position:n.root.position.toArray(),elapsed:s.elapsed,duration:8});settleDuty(n);}}if(fulfilled&&s?.choice?.auditId){if(time<(s.auditRetryAt||0))return false;const audited=n.alive!==false&&granaryAudit?.inspected(s.choice.auditId,{actorId:n.station.id,position:n.root.position.toArray(),elapsed:s.elapsed,duration:s.duration});if(!audited?.ok){s.auditRetryAt=time+1;return false;}delete s.auditRetryAt;}if(fulfilled&&s?.choice?.inspection)fulfilled=reports.inspected(s.choice.inspection.id,{actorId:n.station.id,position:n.root.position.toArray(),place:s.choice.inspection.place});if(!release(n,s))return false;if(s?.choice)brain.complete(n.station.id,s.choice,{fulfilled});record('life-'+(s?.choice?.id||'pause')+(fulfilled?':completed':':interrupted'),n);stages.delete(n);save();return true;}
+ function finish(n,s,fulfilled=true){if(getSalon()?.ownsNPCCustomer?.(n.station.id))return false;if(s?.choice?.toilet&&getToilet()?.ownsActor(n))return false;if(s?.borrowed&&getTavern()?.officialMeal(n.station.id))return false;if(fulfilled&&s?.choice?.id==='archive-duty'){const duty=duties[n.station.id];if(duty?.day===getClock().day&&duty.day===s.choice.dutyDay&&near(n.root.position,B.offices[index(n)],.2)&&s.elapsed>=8){duty.stage='archived';personnelRecords?.witnessArchive({id:`cn-official-archive:${n.station.id}:${duty.day}`,actorId:n.station.id,day:duty.day,audienceId:`cn-morning-audience:${duty.day}`,position:n.root.position.toArray(),elapsed:s.elapsed,duration:8});settleDuty(n);}}if(fulfilled&&s?.choice?.auditId){if(time<(s.auditRetryAt||0))return false;const audited=n.alive!==false&&granaryAudit?.inspected(s.choice.auditId,{actorId:n.station.id,position:n.root.position.toArray(),elapsed:s.elapsed,duration:s.duration});if(!audited?.ok){s.auditRetryAt=time+1;return false;}delete s.auditRetryAt;}if(fulfilled&&s?.choice?.pantryTaskId){
+   // The kitchen owns the original stock and requisition ledger. Re-read its
+   // current task before certifying work; a cancelled/advanced task is not
+   // permission to approve a different order with this elapsed time.
+   if(!samePantryTask(pantryTask(n),s.choice))fulfilled=false;
+   else{
+    if(time<(s.pantryRetryAt||0))return false;
+    const result=getRoyalKitchen()?.completePantryTask?.(s.choice.pantryTaskId,{actorId:n.station.id,position:n.root.position.toArray(),elapsed:s.elapsed,duration:s.duration});
+    if(!result?.ok){s.pantryRetryAt=time+1;return false;}
+    delete s.pantryRetryAt;
+   }
+  }if(fulfilled&&s?.choice?.inspection)fulfilled=reports.inspected(s.choice.inspection.id,{actorId:n.station.id,position:n.root.position.toArray(),place:s.choice.inspection.place});if(!release(n,s))return false;if(s?.choice)brain.complete(n.station.id,s.choice,{fulfilled});record('life-'+(s?.choice?.id||'pause')+(fulfilled?':completed':':interrupted'),n);stages.delete(n);save();return true;}
  function choose(n){
   if(getSalon()?.ownsNPCCustomer?.(n.station.id)){stages.set(n,stage([],getSalon().npcStatus?.(n.station.id)?.label||'单独茶叙进行中',{borrowedSalon:true,arrived:true}));return;}
   if(!brain.decisionDue(n.station.id)){if(!stages.has(n))idle(n);return;}
-  const options=candidates(n),priority=options.find(c=>c.id==='archive-duty')||options.find(c=>c.id==='inspect')||options.find(c=>c.id==='toilet'&&c.available)||(sharedNeeds?.status(n.station.id)?.seekMeal?options.find(c=>c.id==='meal'&&c.available):null)||options.find(c=>c.id==='payroll-audit'),choice=brain.choose(n.station.id,priority?[priority]:options,state.hour??10);
+  const options=candidates(n),priority=options.find(c=>c.id==='archive-duty')||options.find(c=>c.id==='inspect')||options.find(c=>c.id==='toilet'&&c.available)||(sharedNeeds?.status(n.station.id)?.seekMeal?options.find(c=>c.id==='meal'&&c.available):null)||options.find(c=>c.id==='payroll-audit')||options.find(c=>c.pantryTaskId&&c.available),choice=brain.choose(n.station.id,priority?[priority]:options,state.hour??10);
   if(!choice){stages.set(n,stage([n.root.position.toArray()],'在廊下稍候',{duration:6}));return;}
   if(choice.toilet&&!getToilet()?.requestPublicActor(n)){brain.complete(n.station.id,choice,{fulfilled:false});idle(n,'公共净室暂忙 · 稍后再去');save();return;}
   if(choice.id==='conversation'){if(!invitation(n,choice)){brain.complete(n.station.id,choice,{fulfilled:false});idle(n,'同僚正在忙，稍后再说');}return;}
@@ -298,6 +315,10 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
     if(finish(n,s,false)){stages.set(n,{courtReady:true,label:'接到朝议召集 · 从当前位置赴殿'});n.route=[];}return;
    }
    if(!paused){
+    if(s.choice?.pantryTaskId){
+     if(n.alive===false)return;
+     if(urgent(n)||!samePantryTask(pantryTask(n),s.choice)){if(finish(n,s,false))choose(n);return;}
+    }
     if(s.idle){s.elapsed+=dt;if(brain.decisionDue(n.station.id)&&(urgent(n)||s.elapsed>=s.duration)){stages.delete(n);choose(n);}else animate(n,s,t);return;}
     const wasArrived=s.arrived;
     if(!s.arrived)travel(n,s,dt);
@@ -305,6 +326,12 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
      // A payroll audit counts only time spent by the living original official
      // at his own desk. Arrival, conversation and remote time earn no reading.
      if(s.choice?.auditId&&(!wasArrived||n.alive===false||!near(n.root.position,B.offices[index(n)],.2))){animate(n,s,t);return;}
+     if(s.choice?.pantryTaskId&&(!wasArrived||!near(n.root.position,s.choice.point,.14))){
+      // A moved or restored body must walk back to the same physical task.
+      // Neither its arrival frame nor time away from the shelf/desk is work.
+      if(wasArrived&&!near(n.root.position,s.choice.point,.14)){s.path=publicRoute(n,s.choice.point);s.index=0;s.arrived=false;s.planned=false;s.stalled=0;n.route=[];}
+      animate(n,s,t);return;
+     }
      if(s.choice?.salon){
       if(time<(s.salonRetryAt||0)){animate(n,s,t);return;}
       s.salonRetryAt=time+1;const q=s.choice.salon,offer=salon?.npcOfferStatus?.(n.station.id,q.artistId,q.activity,q.fee),revisionChanged=Number.isSafeInteger(q.revision)&&offer?.revision!==q.revision;
