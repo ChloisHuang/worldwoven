@@ -178,7 +178,8 @@
       "wallet-bank-navigation-main.cjs",
       "wallet-ui.mjs",
       "china-official-grade-display.mjs",
-      "china-personnel-work-panel.mjs"
+      "china-personnel-work-panel.mjs",
+      "china-criminal-case-panel.mjs"
     ]
   },
   "food-lodging": {
@@ -696,7 +697,9 @@
       "underground-market-ledger.mjs",
       "underground-market-crime.mjs",
       "underground-market-runtime.mjs",
-      "underground-market-main.cjs"
+      "underground-market-main.cjs",
+      "china-criminal-cases.mjs",
+      "china-criminal-case-runtime.mjs"
     ]
   },
   "release": {
