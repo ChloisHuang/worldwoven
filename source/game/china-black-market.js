@@ -91,17 +91,17 @@ export function buildChinaBlackMarket(G,{group,roofGroup,colliders,cameraCollide
   for(const x of [-4.34,-3.76])block(x,-3.70,z,.06,.71,.86,C.edge,false);
   for(let i=0;i<3;i++)block(-4.05,-3.28+i*.10,z,.67,.09,.72,c,false);
  }
- const lamp=(x,y,z)=>{
+ const lamp=(x,y,z,intensity=11,distance=4.2)=>{
   const facing=z>34?-1:1;
   block(x,y,z,.36,.51,.26,C.wood,false);
   G.mesh(q,new THREE.BoxGeometry(.24,.34,.29),0xffd8a2,x,y,z+facing*.04,{emissive:0xffb461,emissiveIntensity:.60});
   for(const yy of [-.26,.26])block(x,y+yy,z,.43,.055,.32,C.edge,false);
-  registerNightFixture(q,x,y,z+facing*.24,{kind:'black-market-wall-lantern',intensity:14,distance:7,dayFactor:.82,floorY:A.floorY});
+  registerNightFixture(q,x,y,z+facing*.24,{kind:'black-market-wall-lantern',intensity,distance,dayFactor:.72,floorY:A.floorY});
  };
- lamp(-10.6,-1.98,29.62);lamp(-5.05,-1.98,29.62);lamp(-10.1,-1.96,36.75);
+ lamp(-10.6,-1.98,29.62,8,3.4);lamp(-5.05,-1.98,29.62,13,4.5);lamp(-10.1,-1.96,36.75,9,3.6);
  const room={id:A.id,name:A.name,...A.bounds,floorY:A.floorY,ceiling:A.ceilingY};
  interiorRooms.push(room);levels.push({id:A.id,name:'地下 · 黑市',y:A.floorY,bounds:A.bounds});
- lightingZones.push({id:A.id,...A.bounds,minY:-4.3,maxY:-1,floorY:A.floorY});
+ lightingZones.push({id:A.id,...A.bounds,minY:-4.3,maxY:-1,floorY:A.floorY,baseLightScale:.18,baseLightBounds:{minX:-12.45,maxX:-2.85,minZ:28.85,maxZ:37.55,minY:-4.6,maxY:-.75}});
  explorationTargets.push({id:'cn-black-market-entry',name:'地下黑市 · 公共阶梯入口',position:[...A.entrance],roomId:'compound'},
   {id:A.id,name:A.name,position:[...A.interaction.position],roomId:A.id});
  facilities.push({id:A.id,name:A.name,targets:['cn-black-market-entry',A.id],furnishings:['独立地下货房','公共梯厅东侧入口','黑市交易台','布料与货包陈列','储货架']});

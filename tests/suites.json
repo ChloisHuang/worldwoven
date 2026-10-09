@@ -607,6 +607,7 @@
       "miko-role.cjs",
       "night-field.cjs",
       "night-lighting.cjs",
+      "underground-market-lighting.mjs",
       "npc-facilities.cjs",
       "npc-life-conversations.mjs",
       "npc-personal-trip.mjs",
