@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPalaceUsurpation,palaceUsurpationCaseId,palaceUsurpationRoll} from '../source/game/palace-usurpation-ledger.js';
-import {palaceUsurpationSame as same,palaceUsurpationPledgeDecision, palaceUsurpationContext} from '../source/game/palace-usurpation-policy.js';
+import {palaceUsurpationSame as same,palaceUsurpationPledgeDecision,palaceUsurpationContext,palaceUsurpationExposure,palaceUsurpationResolution} from '../source/game/palace-usurpation-policy.js';
 
 // Persistence, identity and evidence regressions: a UI-only success, a stale body
 // or a rejected world save must never create the unique emperor entitlement.
@@ -228,4 +228,56 @@ test('identity, lifetime and backwards clocks block new progress without clearin
   const f=fixture();plan(f);assert(f.prepare('intrigue').ok);f.context.experience={intrigue:0,guard:0,abdication:0};assert(f.core.selectRoute(f.id(),'guard').ok);assert.equal(f.task().experience.intrigue,6);assert(f.task().preparations.intrigue);
   f.clock.day=0;assert.equal(f.core.selectRoute(f.id(),'abdication').code,'invalid-clock');assert.equal(f.core.availability().ok,false);
   const noContext=fixture();plan(noContext);noContext.context.player=null;assert.doesNotThrow(()=>noContext.core.view());
+});
+
+test('known refusals and actual public preparations add risk once per case, survive reload and freeze at resolve',()=>{
+  const c=world();c.experience={intrigue:0,guard:0,abdication:0};
+  Object.assign(c.supporters.find(p=>p.id==='attendant'),{relationship:-1,trust:-1,informedOpinion:-1});
+  let seed=1;while(!c.supporters.every(p=>palaceUsurpationPledgeDecision(seed,FIRST,p).accepted===(p.id!=='attendant'))||palaceUsurpationRoll(seed,`${FIRST}:resolution`)>=.5)seed++;
+  const f=fixture({seed,context:c});assert(f.core.begin().ok);assert(f.core.selectRoute(f.id(),['guard','abdication']).ok);
+  for(const p of c.supporters)assert.equal(f.pledge(p.id).accepted,p.id!=='attendant');
+  const refusal=copy(f.task().pledges.find(p=>p.actorId==='attendant')),fixedRoll=f.task().roll;
+  assert.equal(palaceUsurpationExposure(f.task(),f.context).effective,.1);assert.match(f.core.view().riskLabel,/拒绝者听见本案/);
+  assert(f.prepare('guard').ok);assert.equal(palaceUsurpationExposure(f.task(),f.context).effective,.25);
+  assert(f.prepare('abdication').ok);assert.equal(palaceUsurpationExposure(f.task(),f.context).effective,.4);
+  assert(f.core.selectRoute(f.id(),'intrigue').ok);assert.equal(palaceUsurpationExposure(f.task(),f.context).effective,.4,'switching routes cannot erase an actual public preparation');
+  assert(f.core.selectRoute(f.id(),['guard','abdication']).ok);
+  const before=copy(f.saved.value),count=f.calls.save;
+  for(let i=0;i<3;i++){assert(f.pledge('attendant').replayed);assert(f.prepare('guard').replayed);f.core.view();assert.equal(palaceUsurpationExposure(f.task(),f.context).effective,.4);}
+  assert.equal(f.calls.save,count);assert.deepEqual(f.saved.value,before);assert.deepEqual(f.task().pledges.find(p=>p.actorId==='attendant'),refusal);assert.equal(f.task().roll,fixedRoll);
+  const planning=fixture({seed,saved:before,context:f.context});assert.equal(planning.core.state().loadError,null);assert.deepEqual(planning.core.snapshot(),before);assert.equal(palaceUsurpationExposure(planning.task(),planning.context).effective,.4);
+  assert.equal(palaceUsurpationExposure(f.task(),{exposure:.2}).effective,.4,'external risk takes max rather than adding again');
+  assert.equal(palaceUsurpationExposure(f.task(),{exposure:.8}).effective,.8);
+  const unchanged=copy(f.task()),normal=palaceUsurpationContext(f.context);
+  assert(palaceUsurpationResolution(seed,unchanged,normal,2).chance<palaceUsurpationResolution(seed,unchanged,normal,1).chance);
+  f.context.exposure=.2;assert.equal(f.resolve().passed,true);assert.equal(f.task().resolution.factors.exposure,-.1);
+  assert.equal(f.core.snapshot().events.at(-1).resolutionPolicy,2);assert.deepEqual(f.task().pledges.find(p=>p.actorId==='attendant'),refusal);
+  const resolved=copy(f.task().resolution),re=fixture({seed,saved:f.saved.value,context:f.context});assert.equal(re.core.state().loadError,null);
+  re.context.exposure=1;assert(re.resolve().replayed);assert.deepEqual(re.task().resolution,resolved);assert.equal(re.calls.save,0);
+  assert.match(re.core.view().riskLabel,/结果不会重算/);
+});
+
+test('exposure counts only completed evidence from this case, is capped, and is never based on imagined informants',()=>{
+  const f=fixture();plan(f);const task=f.task();
+  assert.equal(palaceUsurpationExposure(task).effective,0);
+  const original=copy(task.pledges[0]),makeRefusal=n=>({...copy(original),actorId:`refusal-${n}`,accepted:false,receipt:{...copy(original.receipt),actorId:`refusal-${n}`}});
+  task.pledges=[makeRefusal(1),makeRefusal(1)];assert.equal(palaceUsurpationExposure(task).derived,.1);
+  task.pledges[0].receipt.completed=false;task.pledges[1].receipt.caseId='different-case';assert.equal(palaceUsurpationExposure(task).derived,0);
+  task.pledges=Array.from({length:9},(_,n)=>makeRefusal(n));assert.equal(palaceUsurpationExposure(task).derived,.6);
+  task.pledges=[];task.preparations.guard={kind:'guard',caseId:task.id,completed:false};assert.equal(palaceUsurpationExposure(task).derived,0);
+  task.preparations.guard.completed=true;assert.equal(palaceUsurpationExposure(task).derived,.15);
+  task.preparations.abdication={kind:'abdication',caseId:'another-case',completed:true};assert.equal(palaceUsurpationExposure(task).derived,.15);
+  assert.doesNotMatch(palaceUsurpationExposure(task).label,/告密|目击|监视/);
+});
+
+test('untagged legacy resolutions keep their original frozen factors while unresolved checkpoints adopt only the new resolve rule',()=>{
+  const f=fixture();ready(f,['guard','abdication']);const legacy=copy(f.saved.value),event=legacy.events.find(e=>e.type==='resolve'),task=legacy.cases[0];
+  assert.equal(event.resolutionPolicy,2);assert.equal(task.resolution.factors.exposure,-.075);
+  delete event.resolutionPolicy;
+  Object.assign(task.resolution,palaceUsurpationResolution(legacy.worldSeed,task,event.context,1));
+  assert.equal(task.resolution.passed,true);assert.equal(Math.abs(task.resolution.factors.exposure),0);
+  const fixed=copy(task.resolution),persisted=copy(legacy),re=fixture({saved:persisted});assert.equal(re.core.state().loadError,null);assert.deepEqual(re.core.snapshot(),persisted);assert(re.resolve().replayed);
+  re.context.exposure=1;assert.deepEqual(re.task().resolution,fixed);assert.equal(re.calls.save,0);
+  assert(re.invest().ok);assert.deepEqual(re.task().resolution,fixed);assert.equal(fixture({saved:re.saved.value}).core.state().loadError,null);
+  const unknown=copy(persisted);unknown.events.find(e=>e.type==='resolve').resolutionPolicy=99;assert.equal(fixture({saved:unknown}).core.state().loadError,'invalid-usurpation-state');
 });

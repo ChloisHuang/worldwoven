@@ -57,6 +57,9 @@ const labels = {'political-response': '当面商议本案', intrigue: '原膳剧
  * standing(actor), isAvailable(actor,{leaseId,kind}), and canSee({position,
  * visualAnchor:{actorId},actor?,object?}) use real pose/occlusion APIs. Actor
  * root.visible is deliberately irrelevant (first-person hiding is not death).
+ * canGather(actor,{kind}) checks whether a new acclamation witness can legally
+ * leave or reserve its original post. It selects only an unsaved witness list;
+ * saved acclamation receipts and their final reading retain the same people.
  * Timers never resume cold. Completed proofs persist under their original IDs
  * across save rejection/cancel; cold retries recheck original identities.
  */
@@ -65,6 +68,7 @@ export function createChinaUsurpationActions({core, getCore = () => core,
   getContext = () => null, getClock = () => null, getPlayer = () => null,
   resolveActor = () => null, resolveObject = () => null, getSite = () => null,
   standing = () => false, canSee = () => false, isAvailable = () => false,
+  canGather = (person, request) => isAvailable(person, request),
   getBusy = () => false, borrowActors = () => false, groupState = () => null,
   releaseActors = () => {}, getMealBinding = () => null, prepareStoryMeal = () => null,
   getMealConsumption = () => null, getDocumentBinding = () => null, getSafeHandoff = () => null,
@@ -108,7 +112,8 @@ export function createChinaUsurpationActions({core, getCore = () => core,
     }
     if (action.kind === 'guard') {
       const commander = context.guard?.commanderId, guards = context.guard?.guards || [];
-      if (!agreed.some(p => p.id === commander && p.guardCommander) || guards.length !== 2 || new Set(guards.map(p => p.id)).size !== guards.length) return null;
+      if (!agreed.some(p => p.id === commander && p.guardCommander) || guards.length !== 2 || new Set(guards.map(p => p.id)).size !== guards.length ||
+        !guards.every(guard => agreed.some(p => p.id === guard.id && p.bodyId === guard.bodyId))) return null;
       return [...new Set(['player', commander, ...guards.map(p => p.id)])];
     }
     if (action.kind === 'abdication') {
@@ -116,9 +121,10 @@ export function createChinaUsurpationActions({core, getCore = () => core,
       return officials.length >= 3 ? ['player', ...officials.slice(0, 3).map(p => p.id), task.emperor.id] : null;
     }
     if (action.kind === 'acclamation') {
-      if (agreed.length < 3 || new Set(agreed.map(p => p.circleId)).size < 2) return null;
-      const first = agreed[0], second = agreed.find(person => person.circleId !== first.circleId),
-        third = agreed.find(person => person !== first && person !== second);
+      const gatherable = agreed.filter(person => { const body = live(person.id, person.bodyId); return body && canGather(body, {kind: action.kind}) === true; });
+      if (gatherable.length < 3 || new Set(gatherable.map(p => p.circleId)).size < 2) return null;
+      const first = gatherable[0], second = gatherable.find(person => person.circleId !== first.circleId),
+        third = gatherable.find(person => person !== first && person !== second);
       return ['player', first.id, second.id, third.id];
     }
     if (action.kind === 'mechanism-resolution') return ['player', task.emperor.id];
@@ -149,6 +155,7 @@ export function createChinaUsurpationActions({core, getCore = () => core,
     if (action.kind === 'investiture-reading') return task.stage === 'ready-for-investiture';
     if (task.stage !== 'planning' && !(['acclamation', 'political-response'].includes(action.kind) && task.stage === 'ready-for-investiture')) return false;
     if (action.kind === 'political-response') return !(task.pledges || []).some(p => p.actorId === action.actorId);
+    if (action.kind === 'guard' && !participants(task, action)) return false;
     if (['intrigue', 'guard', 'abdication', 'acclamation'].includes(action.kind)) {
       if (task.preparations?.[action.kind]) return false;
       if (Array.isArray(task.preparations) && task.preparations.some(p => p.kind === action.kind)) return false;

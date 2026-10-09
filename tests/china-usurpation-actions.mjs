@@ -8,25 +8,25 @@ import {createPalaceUsurpation} from '../source/game/palace-usurpation-ledger.js
 import {palaceUsurpationRoll} from '../source/game/palace-usurpation-policy.js';
 
 const copy = value => structuredClone(value);
-const names = ['cn-official-one', 'cn-official-two', 'cn-official-three', 'cn-guard-commander'];
+const names = ['cn-official-one', 'cn-official-two', 'cn-official-three', 'cn-guard-commander', 'cn-guard-one', 'cn-guard-two'];
 function body(actorId, p = [0, 0, 0]) {
   const vector = {x: p[0], y: p[1], z: p[2], toArray() { return [this.x, this.y, this.z]; }, set(x, y, z) { this.x = x; this.y = y; this.z = z; }};
   return {actorId, bodyId: `${actorId}-original-body`, root: {position: vector, visible: false}, alive: true, walking: false};
 }
-function fixture({enabled = true, missingGroups = false} = {}) {
-  const actors = new Map(['player', 'cn-emperor', ...names, 'cn-guard-one', 'cn-guard-two'].map(id => [id, body(id)]));
+function fixture({enabled = true, missingGroups = false, canGather, declineId = null} = {}) {
+  const actors = new Map(['player', 'cn-emperor', ...names].map(id => [id, body(id)]));
   const clock = {day: 7, hour: 14}, flags = {clear: true, available: true, standing: true, busy: false, coreSave: true, runtimeSave: true, storyBind: true, markerCheckpoint: false, held: false, arrived: true};
   const context = {player: {id: 'player', bodyId: actors.get('player').bodyId, alive: true, ageYears: 25},
     emperor: {id: 'cn-emperor', bodyId: actors.get('cn-emperor').bodyId, tenureRevision: 0, alive: true, ageYears: 45},
     supporters: names.map((id, index) => ({id, bodyId: actors.get(id).bodyId, name: id, ageYears: 35, alive: true, eligible: true,
-      supportsGeneral: true, roleId: `role-${index}`, circleId: index === 3 ? 'guards' : 'officials', relationship: 1, trust: 1, informedOpinion: 1,
+      supportsGeneral: true, roleId: `role-${index}`, circleId: index >= 3 ? 'guards' : 'officials', relationship: 1, trust: 1, informedOpinion: 1,
       official: index < 3, guardCommander: index === 3})),
     guard: {commanderId: names[3], guards: ['cn-guard-one', 'cn-guard-two'].map(id => ({id, bodyId: actors.get(id).bodyId}))},
     experience: {intrigue: 6, guard: 6, abdication: 6}, exposure: 0,
     safety: {oldWorkSettled: true, itemsSettled: true, meetingsSettled: true, actorTransitionsSafe: true},
     residences: {player: {roomId: 'new-ruler-room', bedId: 'new-ruler-bed'}, formerEmperor: {roomId: 'former-ruler-room', bedId: 'former-ruler-bed'}}};
   let seed = 0;
-  while (!names.every(id => palaceUsurpationRoll(seed, `palace-usurpation:0:1:political-response:${id}`) < .9) ||
+  while (!names.every(id => (palaceUsurpationRoll(seed, `palace-usurpation:0:1:political-response:${id}`) < .9) === (id !== declineId)) ||
     palaceUsurpationRoll(seed, 'palace-usurpation:0:1:resolution') >= .2) seed++;
   const objects = new Map([['public-court-board', {}], ['royal-meal-1-meal', {}], ['usurpation-charter:palace-usurpation:0:1', {}]]);
   const meal = {orderId: 'royal-meal-1', objectId: 'royal-meal-1-meal', consumerId: 'cn-emperor', consumerBodyId: context.emperor.bodyId,
@@ -46,6 +46,7 @@ function fixture({enabled = true, missingGroups = false} = {}) {
     getPlayer: () => actors.get('player'), resolveActor: id => actors.get(id), resolveObject: id => objects.get(id), getSite: site,
     standing: actor => flags.standing && !actor?.walking, canSee: () => flags.clear,
     isAvailable: actor => !!actor && actor.alive !== false && flags.available, getBusy: () => flags.busy,
+    ...(canGather ? {canGather} : {}),
     borrowActors: request => {if (missingGroups) return false; group = request; flags.held = true; return true;},
     groupState: lease => ({held: flags.held && group?.leaseId === lease, legalRoutes: true,
       participants: (group?.actors || []).map(actor => ({actorId: actor.actorId, bodyId: actor.bodyId, arrived: flags.arrived}))}),
@@ -120,6 +121,37 @@ function fixture({enabled = true, missingGroups = false} = {}) {
   for (const id of receipt.guardIds) assert(receipt.participants.some(p => p.actorId === id && p.bodyId === f.actors.get(id).bodyId));
   assert.equal(Object.hasOwn(receipt, 'passed'), false); assert.equal(Object.hasOwn(receipt, 'success'), false);
   assert(f.releases >= 5); f.dispose();
+}
+// A commander cannot pledge on behalf of either actual guard. Both original
+// bodies need their own accepted response before any guard lease is offered.
+{
+  const f = fixture(); f.start('political-response', names[3]); f.tick(4);
+  assert.equal(f.service.intent('guard'), null);
+  f.start('political-response', names[4]); f.tick(4); assert.equal(f.service.intent('guard'), null);
+  f.start('political-response', names[5]); f.tick(4); assert(f.service.intent('guard'));
+  const originalBody = f.context.guard.guards[1].bodyId; f.context.guard.guards[1].bodyId = 'replacement-guard-body';
+  assert.equal(f.service.intent('guard'), null); f.context.guard.guards[1].bodyId = originalBody; f.dispose();
+  const declined = fixture({declineId: names[5]});
+  for (const id of names.slice(3)) {declined.start('political-response', id); declined.tick(4);}
+  assert.equal(declined.task().pledges.find(p => p.actorId === names[5]).accepted, false);
+  assert.equal(declined.service.intent('guard'), null); declined.dispose();
+}
+// An unavailable first ally must not prevent three other accepted, reachable
+// people from witnessing. A saved original witness list is never substituted.
+{
+  const blocked = new Set([names[0]]), requests = [];
+  const f = fixture({canGather: (actor, request) => {requests.push(request.kind); return !blocked.has(actor.actorId);}}); f.askAll();
+  const selected = f.service.intent('acclamation'); assert(selected); assert(!selected.participantIds.includes(names[0]));
+  assert.equal(selected.participantIds.length, 4); assert.deepEqual(new Set(requests), new Set(['acclamation']));
+  blocked.clear(); for (const id of names.slice(3)) blocked.add(id);
+  assert.equal(f.service.intent('acclamation'), null, 'one reachable circle cannot manufacture another');
+  blocked.clear(); f.start('acclamation'); f.tick(6);
+  const witnesses = [...f.task().preparations.acclamation.supporterIds]; blocked.add(witnesses[0]);
+  assert.equal(f.service.intent('acclamation'), null, 'saved witnesses cannot be selected again');
+  assert(f.core.selectRoute(f.task().id, 'guard').ok); f.start('guard'); f.tick(6); f.start('mechanism-resolution'); f.tick(6);
+  assert.equal(f.task().stage, 'ready-for-investiture');
+  const reading = f.service.intent('investiture-reading'); assert(reading);
+  assert.deepEqual(new Set(reading.participantIds), new Set(['player', ...witnesses, 'cn-emperor'])); f.dispose();
 }
 // Story package preparation is tied to this player's original active shift,
 // original emperor and original dish. Only actual consumption completes it.

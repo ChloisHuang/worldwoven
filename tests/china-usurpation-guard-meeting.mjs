@@ -58,3 +58,11 @@ test('an actual empty original route cancels the appointment without moving its 
  assert.equal(r.plotMeetingState(owner).reason,'original-route-unavailable');assert(f.guards[0].root.position.equals(position));
  assert.equal(r.snapshot().phase,'handover');assert.equal(r.snapshot().shots.length,0);assert.equal(r.state().guards[0].patrol.checkpoint,'handoff');f.dispose();
 });
+test('a real stationary handoff permits in-place plot talk without deleting the retained original waypoint or advancing duty',()=>{
+ const f=fixture(),r=f.routine,guard=f.guards[0];guard.route=[{x:-17.65,y:.13,z:18.45}];const route=guard.route,prior=r.snapshot();
+ assert(r.canTalkForPlot(guard));assert.equal(r.canBorrowForPlot(guard),false);
+ const hold={palaceUsurpationGathering:true};assert(holdSocialActors([ids[0]],hold));for(let i=0;i<40;i++)f.tick();
+ assert.equal(guard.route,route);assert.equal(r.snapshot().phaseTime,prior.phaseTime);assert.equal(r.snapshot().shots.length,prior.shots.length);
+ releaseSocialActors(hold);guard.root.position.x-=1;assert.equal(r.canTalkForPlot(guard),false);guard.root.position.x+=1;
+ f.flags.urgent=true;assert.equal(r.canTalkForPlot(guard),false);f.dispose();
+});

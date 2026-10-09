@@ -1,12 +1,12 @@
 import {
-  PALACE_USURPATION_VERSION, PALACE_USURPATION_DEFAULTS as RULES, PALACE_USURPATION_ROUTES as ROUTES,
+  PALACE_USURPATION_VERSION, PALACE_USURPATION_RESOLUTION_POLICY, PALACE_USURPATION_DEFAULTS as RULES, PALACE_USURPATION_ROUTES as ROUTES,
   palaceUsurpationObject as object, palaceUsurpationIdentifier as identifier, palaceUsurpationInteger as integer,
   palaceUsurpationTime as time, palaceUsurpationAfter as after, palaceUsurpationMinutes as minutes,
   palaceUsurpationCopy as copy, palaceUsurpationSame as same, palaceUsurpationCaseId as caseId,
   palaceUsurpationRoll as roll, palaceUsurpationContext as contextSnapshot,
   palaceUsurpationSupporters as supporters, palaceUsurpationUnlock as unlock,
   palaceUsurpationPledgeDecision as pledgeDecision, palaceUsurpationActivePledges as activePledges,
-  palaceUsurpationResolution as resolution,
+  palaceUsurpationResolution as resolution, palaceUsurpationExposure as exposure,
 } from './palace-usurpation-policy.js';
 
 export {PALACE_USURPATION_DEFAULTS, PALACE_USURPATION_ROUTES, palaceUsurpationCaseId, palaceUsurpationRoll} from './palace-usurpation-policy.js';
@@ -169,11 +169,14 @@ function applyEvent(state,event) {
       need(!p.preparations[event.kind],'preparation-recorded');
       checkPreparation(event.kind,event.receipt,p,c,event,state);p.preparations[event.kind]=copy(event.receipt);
     } else if(event.type==='resolve') {
-      need(exactKeys(event,['type','at','context','caseId','receipt'])&&p.stage==='planning','wrong-case-stage');
+      const legacy=exactKeys(event,['type','at','context','caseId','receipt']);
+      need((legacy||exactKeys(event,['type','at','context','caseId','receipt','resolutionPolicy'])&&event.resolutionPolicy===PALACE_USURPATION_RESOLUTION_POLICY)&&p.stage==='planning','wrong-case-stage');
       const reasons=readiness(p,c);need(!reasons.length,reasons[0]);
       checkReceipt(event.receipt,'mechanism-resolution',p,c,event,state);
       need(named(event.receipt,p.emperor.id,p.emperor.bodyId),'original-emperor-presence-required');
-      const outcome=resolution(next.worldSeed,p,c);
+      // Untagged historical events keep their original factors and outcome.
+      // Only a new resolve action adopts the new exposure rule.
+      const outcome=resolution(next.worldSeed,p,c,legacy?1:event.resolutionPolicy);
       p.resolution={...outcome,receipt:copy(event.receipt),routes:copy(p.selectedRoutes),at:copy(event.receipt.at)};
       if(outcome.passed)p.stage='ready-for-investiture';
       else {
@@ -292,7 +295,7 @@ export function createPalaceUsurpation({saved,worldSeed=0,getClock,getContext,ve
   }
   function resolve(id,evidence) {
     const p=find(id),replayed=replay(evidence,p?.resolution?.receipt,p);if(replayed)return {...replayed,...(replayed.ok?{passed:p.resolution.passed}: {})};
-    const out=mutate('resolve',{caseId:id,receipt:evidence});return out.ok?{...out,passed:find(id).resolution.passed}:out;
+    const out=mutate('resolve',{caseId:id,receipt:evidence,resolutionPolicy:PALACE_USURPATION_RESOLUTION_POLICY});return out.ok?{...out,passed:find(id).resolution.passed}:out;
   }
   function investiture(id,evidence) {
     const p=find(id),replayed=replay(evidence,p?.investiture?.receipt,p);if(replayed)return replayed;
@@ -310,10 +313,12 @@ export function createPalaceUsurpation({saved,worldSeed=0,getClock,getContext,ve
     const cooldown=p?.cooldownUntil&&at&&!after(at,p.cooldownUntil)?`需等到第${p.cooldownUntil.day}日 ${Math.floor(p.cooldownUntil.hour)}:${String(Math.floor(p.cooldownUntil.hour%1*60)).padStart(2,'0')} 才能重新谋划。`:null;
     const out={version:1,revision,visible,caseId:p?.id||null,stage,title:'篡位',summary:p?status[p.stage]:visible?'已有不同圈层的人认可你的做法，可开始一次谋划。':'',
       selectedRoutes:p?copy(p.selectedRoutes):[],conditions:[],routes:[],people:[],steps:[],actions:[],blockers:[],outcome:null,
-      office:{actorId:current.office.actorId,revision:current.office.revision},cooldownLabel:cooldown,
+      office:{actorId:current.office.actorId,revision:current.office.revision},cooldownLabel:cooldown,riskLabel:null,
       history:current.cases.filter(t=>!OPEN.has(t.stage)).map(t=>({caseId:t.id,stage:t.stage,label:status[t.stage],endedAt:copy(t.endedAt)})),
     };
     if(!visible)return out;
+    out.riskLabel=p?(p.resolution?'本次实行已按当时的已知风险判定，结果不会重算。':exposure(p,c).label):null;
+    if(p&&p.stage==='planning')out.summary+=`。${out.riskLabel}`;
     const blocked=p&&OPEN.has(p.stage)?baseReasons(c,current,p):a.reasons;
     out.blockers=[...blocked];
     out.conditions=[{id:'adult',label:'成年且仍在世',met:c?.player.alive===true&&c.player.ageYears>=18},

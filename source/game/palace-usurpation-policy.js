@@ -2,6 +2,10 @@
 // never counts as consent to a change of ruler. All numbers below are game
 // defaults; none of them are claims about historical institutions.
 export const PALACE_USURPATION_VERSION = 1;
+// Resolution rules are versioned separately from the existing ledger schema.
+// Never change an already recorded political answer or historical resolution.
+export const PALACE_USURPATION_RESOLUTION_POLICY = 2;
+export const PALACE_USURPATION_EXPOSURE_DEFAULTS = Object.freeze({refusal:.10,guard:.15,abdication:.15,maximum:.6});
 export const PALACE_USURPATION_DEFAULTS = Object.freeze({
   supporters: 3, circles: 2, politicalResponseSeconds: 4,
   officials: 3, guards: 2, cooldownDays: 3, minimumChance: .2, maximumChance: .9,
@@ -78,7 +82,23 @@ export function palaceUsurpationActivePledges(task,context) {
   const people=palaceUsurpationSupporters(context);
   return (task?.pledges||[]).filter(p=>p.accepted&&!p.withdrawn&&people.some(a=>a.id===p.actorId&&a.bodyId===p.bodyId&&a.roleId===p.roleId&&a.circleId===p.circleId));
 }
-export function palaceUsurpationResolution(seed,task,context) {
+export function palaceUsurpationExposure(task,context={}) {
+  const completed=(r,kind)=>r?.completed===true&&r.kind===kind&&r.caseId===task?.id;
+  // Each named refusal and completed public preparation contributes once. The
+  // facts establish who heard this case and what happened, not spying, witnesses
+  // outside the receipt, or an unobserved report to the emperor.
+  const refusals=[...new Set((task?.pledges||[]).filter(p=>p.accepted===false&&completed(p.receipt,'political-response')&&p.receipt.actorId===p.actorId).map(p=>p.actorId))];
+  const publicPreparations=['guard','abdication'].filter(kind=>completed(task?.preparations?.[kind],kind));
+  const defaults=PALACE_USURPATION_EXPOSURE_DEFAULTS;
+  const derived=round(Math.min(defaults.maximum,refusals.length*defaults.refusal+publicPreparations.reduce((sum,kind)=>sum+defaults[kind],0)));
+  const external=clamp(number(context?.exposure),0,1),effective=Math.max(derived,external);
+  const label=refusals.length&&publicPreparations.length?'已有拒绝者听见本案，且筹备已公开，实行风险上升。':
+    refusals.length?'已有拒绝者听见本案，实行风险上升。':
+    publicPreparations.length?'卫队集结或官员对质已实际发生，公开筹备增加了实行风险。':
+    external>0?'当前局势增加了实行风险。':'尚无已记录的拒绝或公开筹备增加实行风险。';
+  return {derived,external,effective,refusals,publicPreparations,label};
+}
+export function palaceUsurpationResolution(seed,task,context,resolutionPolicy=PALACE_USURPATION_RESOLUTION_POLICY) {
   const pledges=palaceUsurpationActivePledges(task,context),people=palaceUsurpationSupporters(context).filter(p=>pledges.some(a=>a.actorId===p.id));
   const mean=key=>people.length?people.reduce((sum,p)=>sum+p[key],0)/people.length:0;
   const factors={
@@ -86,7 +106,7 @@ export function palaceUsurpationResolution(seed,task,context) {
     circles:round(Math.min(new Set(pledges.map(p=>p.circleId)).size,3)*.04),
     relationships:round(mean('relationship')*.08+mean('trust')*.08+mean('informedOpinion')*.04),
     experience:round(task.selectedRoutes.reduce((sum,r)=>sum+Math.max(context.experience[r],task.experience?.[r]||0),0)/task.selectedRoutes.length*.025),
-    preparation:round(task.selectedRoutes.length*.035),exposure:round(-context.exposure*.25),
+    preparation:round(task.selectedRoutes.length*.035),exposure:round(-(resolutionPolicy===1?context.exposure:palaceUsurpationExposure(task,context).effective)*.25),
   };
   const chance=round(clamp(.25+Object.values(factors).reduce((sum,n)=>sum+n,0),.2,.9)),roll=palaceUsurpationRoll(seed,`${task.id}:resolution`);
   return {roll,chance,passed:roll<chance,factors};

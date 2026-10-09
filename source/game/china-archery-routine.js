@@ -143,7 +143,7 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
   plotMeetingEnd={owner:plotMeeting.owner,reason};plotMeeting=null;return true;
  }
  function plotMeetingState(owner){
-  if(!plotMeeting||owner&&owner!==plotMeeting.owner)return {pending:false,ready:false,reason:plotMeetingEnd?.owner===owner?plotMeetingEnd.reason:null};
+  if(!plotMeeting||owner&&owner!==plotMeeting.owner)return {pending:false,ready:false,reason:owner&&plotMeetingEnd&&plotMeetingEnd.owner===owner?plotMeetingEnd.reason:null};
   const reason=plotPriority();
   return {pending:true,ready:!reason&&plotMeeting.ready&&physicalHandoffBoundary().ok&&guards.every(n=>!n.walking),
    owner:plotMeeting.owner,actorIds:plotMeeting.actors.map(n=>n.station.id),bodyIds:[...plotMeeting.bodyIds],reason};
@@ -174,6 +174,14 @@ export function createChinaArcheryRoutine({npcs,lot,planPath,moveActor,poseConte
   requestPlotMeeting,plotMeetingState,releasePlotMeeting,
   plotMeetingSite:()=>boundAvailable()?{position:[-16.35,A.floorY,19.12],actorPoints:Object.fromEntries(guards.map((n,i)=>[n.station.id,HANDOFF[i].slice()]))}:null,
   canBorrowForPlot:n=>guards.includes(n)&&plotMeetingState(plotMeeting?.owner).ready===true,
+  canTalkForPlot(n){
+   if(!guards.includes(n)||plotPriority()||n.walking||n.serviceMount||[...kits.values()].some(k=>k.bow.visible)||flying.visible||impacts.some(q=>q.visible))return false;
+   const p=patrol.get(n),index=guards.indexOf(n),stop=CHINA_GUARD_ROUTES[p?.routeId]?.[p?.index]?.at;
+   const at=q=>q&&gap(n.root.position,q)<.08&&Math.abs(n.root.position.y-q[1])<.3;
+   // A preserved last waypoint does not make a stationary original guard
+   // absent. The social hold pauses this same observation/phase for the talk.
+   return p?.stage==='observe'&&n!==shooter()&&at(stop)||p?.stage==='ready'&&['handover','relief'].includes(phase)&&at(HANDOFF[index]);
+  },
   enforcementCandidates(){
    if(!boundAvailable()||needsLife?.blocks()||request||guardWork||registrationRequested||flying.visible||!['handover','relief','release'].includes(phase))return [];
    return guards.filter(n=>!retired.has(n)&&!n.serviceMount&&!kits.get(n)?.bow.visible&&(!isSociallyHeld(n.station.id)||crimeHeld(n)));

@@ -73,11 +73,12 @@ test('political talk uses an adjacent supported stand and the original invisible
 });
 test('a public gathering walks original bodies and yields without consuming the case',()=>{
  const f=fixture();for(const id of supporterIds){f.begin('political-response',id);f.tick(4);}
- const commander=f.byId(supporterIds[3]),route=commander.route,start=commander.root.position.clone();
- f.begin('acclamation');assert(commander.root.position.equals(start));f.tick(.1);assert(commander.root.position.distanceTo(start)<.3);
- assert.equal(f.core.currentTask().preparations.acclamation,null);assert(f.plans.includes(.34)&&f.plans.includes(.25));
- f.flags.yield=true;f.tick(.1);assert.equal(f.service.active(),false);assert.equal(socialHoldOwner(commander.actorId),null);
- assert.equal(f.core.currentTask().stage,'planning');assert.equal(commander.route,route);f.dispose();
+ assert(f.core.selectRoute(f.core.currentTask().id,['abdication']).ok);
+ const official=f.byId(supporterIds[0]),route=official.route,start=official.root.position.clone();
+ f.begin('abdication');assert(official.root.position.equals(start));f.tick(.1);assert(official.root.position.distanceTo(start)<.3);
+ assert.equal(f.core.currentTask().preparations.abdication,null);assert(f.plans.includes(.34)&&f.plans.includes(.25));
+ f.flags.yield=true;f.tick(.1);assert.equal(f.service.active(),false);assert.equal(socialHoldOwner(official.actorId),null);
+ assert.equal(f.core.currentTask().stage,'planning');assert.equal(official.route,route);f.dispose();
 });
 test('a blocked post and unreachable original court do not create a gathering or proof',()=>{
  const f=fixture();f.lot.colliders.push({minX:-30,maxX:30,minZ:-40,maxZ:40,minY:0,maxY:3});
@@ -96,8 +97,11 @@ test('original routed witnesses and a task-owned named charter complete one real
  const until=predicate=>{for(let i=0;i<900&&!predicate();i++)f.tick(.1);assert(predicate(),JSON.stringify({state:f.service.state(),activity:f.service.snapshot().actions.activity,actors:f.npcs.map(a=>({id:a.actorId,position:a.root.position.toArray(),walking:a.walking}))}));};
  f.begin('guard');until(()=>!!f.core.currentTask().preparations.guard);
  f.begin('acclamation');until(()=>!!f.core.currentTask().preparations.acclamation);
+ const witnesses=f.core.currentTask().preparations.acclamation.supporterIds;assert(witnesses.includes('cn-range-warden'));
+ assert(f.core.currentTask().preparations.acclamation.targetId.startsWith('usurpation-range-handoff:'));
  f.begin('mechanism-resolution');until(()=>f.core.currentTask().stage==='ready-for-investiture');
  const caseId=f.core.currentTask().id,selected=f.service.intent('investiture-reading');assert(selected);
+ assert(witnesses.every(id=>selected.participantIds.includes(id)));assert(selected.position[0]<-16);
  const document=f.lot.group.getObjectByName('usurpation-charter:'+caseId);assert(document?.isObject3D);
  assert.equal(document.userData.caseId,caseId);assert.equal(document.userData.holderBodyId,f.player.bodyId);
  f.player.root.position.set(...selected.position);assert(f.service.prepareIntent(selected));assert.equal(document.visible,true);
