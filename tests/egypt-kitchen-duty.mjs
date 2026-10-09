@@ -91,3 +91,8 @@ test('waiting without hungry customers remains an active local shift and can be 
 test('remaining at the original registration point after takeover does not block the waiter’s order report',()=>{
  const f=fixture();claim(f);assert.deepEqual(f.person.root.position.toArray(),f.kitchen.registry);f.until(s=>s.order?.stage==='preparing','waiter reports the resident order to the present player');assert.equal(f.kitchen.workIntent(DUTY)?.stage,'preparing');assert.equal(f.service.state().supply.remaining,24);f.dispose();
 });
+
+// The meal owner must not mutate the borrowed artisan's locomotion or route.
+test('artisan ownership preserves Samira walking while the idle meal service updates',()=>{
+ const f=fixture({hungry:false});f.service.setArtisanBusy(()=>true);f.guest.walking=true;f.guest.route=[new T.Vector3(-6,0,-1)];const route=f.guest.route;f.tick();assert.equal(f.guest.walking,true);assert.equal(f.guest.route,route);assert.equal(f.service.state().order,null);f.dispose();
+});
