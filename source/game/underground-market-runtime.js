@@ -50,5 +50,9 @@ export function createUndergroundMarketRuntime({lot,getActors,getPlayer,economy,
   out.push(choice('close','close','结束交易 · 请周棠收摊返回',place.interaction.position));return out;
  }
  function info(){const v=economy.view();notify(`周棠的开市自有旧物，仅5件原物，售罄不自动补货。摊账现有${v.merchantCash??v.cash??0}文；买回价低于卖价，现金不足不能回购。旧纸每包可整理一次。普通旧物买卖不违法；封存巡牌属于赃物，不能洗掉原案。`);return true;}
+ // Reclaim a saved movement lease before original routines get their first tick.
+ // Otherwise a restored merchant can take one step toward their old life task
+ // on every reload and drift away from an in-progress physical transaction.
+ if(!error&&state.session&&state.session.stage!=='waiting'&&!claim()){yielding=true;release();}
  return {update,choices,invite,verifyAction,cancelAction,close,activeAction:()=>state.action&&copy(state.action),state:()=>({...(error?{error}:{}),lastError,...copy(state),economy:economy.view()}),owns:n=>leased&&n===merchant(),pose(n,t){if(!leased||n!==merchant())return false;n.animate(t+(n.phase||0),!!n.walking,n.walking||state.action?null:'relax',{...poseContext(n,null),...(state.action?{handoff:true}:{})});return true;},interact(x){if(x.kind==='invite')return invite();if(x.kind==='info')return info();if(x.kind==='close')return close();if(!choices().some(c=>c.id===x.id))return false;return begin(x.kind,x.itemId);},dispose(){disposed=true;release();},get loadError(){return error;}};
 }
