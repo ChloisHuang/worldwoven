@@ -13,7 +13,8 @@ const clamp = value => Math.max(-1, Math.min(1, value));
 const add = (left = {}, right = {}) => Object.fromEntries([...new Set([...Object.keys(left), ...Object.keys(right)])]
   .map(key => [key, clamp((left[key] || 0) + (right[key] || 0))]));
 const START = 11056, END = 12600, SERVICE_SECONDS = 5, SERVICE_COUNT = 10;
-const DEFAULT_ACTORS = ['cn-official-records', 'cn-consort-heng'];
+const ROUND_SECONDS = 100, ROUND_COUNT = 15, CONVERSATION_LIMIT = 60;
+const DEFAULT_ACTORS = ['cn-official-records', 'cn-consort-heng', 'cn-archery', 'cn-range-warden'];
 const GUARDS = new Set(['cn-archery', 'cn-range-warden']);
 const nativeLoad = name => import(pathToFileURL(path.resolve(__dirname, '../../source/game', name)).href);
 
@@ -45,6 +46,8 @@ module.exports = async function appendUsurpationMainSupport({save, load = native
   let fixtureTime = cursor, ledger;
   const report = {version: 1, status: 'unchanged', caseId: task.id,
     window: {start: cursor, endExclusive: end, usedThrough: cursor, gameClockSeconds: before.simulationClock.seconds},
+    budgets: {rounds: ROUND_COUNT, roundSeconds: ROUND_SECONDS, maxAttemptsPerActor: ROUND_COUNT,
+      maxNewConversations: Math.max(0, Math.min(CONVERSATION_LIMIT, conversationModule.PLAYER_CONVERSATION_HISTORY_LIMIT - originalConversations.events.length))},
     actors: [], newEvents: [], profiles: [], preservation: null,
     compaction: {relationshipRecentRemoved: [], conversationCompacted: false},
     staging: 'Retrospective ordinary tea services and public conversations only. Original saved personalities and needs are frozen inputs. Each player action is serial, personal cooldowns apply, and all historical actions end before the original 13:00 main scene. This is not naturally elapsed or physically performed main gameplay.'};
@@ -111,7 +114,7 @@ module.exports = async function appendUsurpationMainSupport({save, load = native
     }, saveState: () => true});
   assert.equal(ledger.loadError, null, 'Do not replace malformed old social history');
   const jobs = actorIds.map(actorId => {
-    const result = {actorId, status: null, reason: null, eventId: null, stance: null, newEventIds: []};
+    const result = {actorId, status: null, reason: null, eventId: null, stance: null, attempts: 0, newEventIds: []};
     report.actors.push(result);
     const identity = identities[actorId], source = raw(actorId), person = profile(actorId), prior = ledger.supportFor(actorId);
     report.profiles.push({actorId, source: source.source, ageYears: identity?.ageYears ?? null,
@@ -132,52 +135,71 @@ module.exports = async function appendUsurpationMainSupport({save, load = native
   });
   const stop = (job, status, reason) => Object.assign(job.result, {status, reason});
   function record(job, event) {report.newEvents.push(event);job.result.newEventIds.push(event.eventId);cursor = event.end;}
-  // Ten explicitly staged individual services, with nonoverlapping five-second
-  // intervals. Their public social receipt has no wage or cuisine side effect.
-  for (let round = 0; round < SERVICE_COUNT; round++) for (const job of jobs) {
-    if (job.result.status) continue;
-    const start = Math.max(cursor + 1, job.serviceAt), finish = start + SERVICE_SECONDS;
-    if (finish >= end) {stop(job, 'window-exhausted', 'service-does-not-fit');continue;}
-    const eventId = marker + job.actorId + ':service:' + (round + 1);
-    assert(!social.snapshot().receipts[eventId], 'A staged service ID must be new');
-    const result = social.record({id: eventId, source: 'china-palace-tea', actorId: 'player', participants: ['player', job.actorId],
-      outcome: 'completed', kind: 'service', at: finish});
-    assert(result.ok && !result.replayed, 'Public service writer must append its actual receipt');
-    record(job, {eventType: 'service', actorId: job.actorId, eventId, start, end: finish, status: 'completed'});
-    job.serviceAt = finish + 60;job.services++;
-  }
   const topics = ['art', 'gratitude', 'rest', 'support-request'];
-  // Each distinct ordinary topic gets at most two normal attempts. Every
-  // decline remains in the ledger. An explicit withhold ends this person's
-  // recipe; it is never reconsidered or retried here to force support.
-  for (let round = 0; round < topics.length * 2; round++) for (const job of jobs) {
-    if (job.result.status) continue;
-    const topicId = topics[job.topic], topic = ledger.topicsFor(job.actorId).find(row => row.id === topicId);
-    if (!topic) {stop(job, 'ineligible', 'ordinary-topic-unavailable:' + topicId);continue;}
-    if (ledger.snapshot().events.length >= conversationModule.PLAYER_CONVERSATION_HISTORY_LIMIT) {
-      stop(job, 'ineligible', 'old-conversation-row-preservation-limit');continue;
+  const origin = cursor + 1;
+  let newConversations = 0;
+  // Fixed slots are chosen before any response: fifteen 100-second rounds,
+  // at most six 6-second service slots followed by six 10-second talk slots.
+  // One player performs every slot serially. A person's next talk starts at
+  // least 91 seconds after a nine-second completion; service gaps exceed 60.
+  // Unused slots stay empty. Declines never reset the ID or inspect a future
+  // roll, and support/withhold ends that person's recipe without reconsidering.
+  for (let round = 0; round < ROUND_COUNT; round++) {
+    const roundStart = origin + round * ROUND_SECONDS;
+    for (let index = 0; index < jobs.length; index++) {
+      const job = jobs[index];
+      if (job.result.status || round >= SERVICE_COUNT) continue;
+      if (newConversations >= report.budgets.maxNewConversations) {
+        stop(job, 'budget-exhausted', 'new-conversation-row-limit');continue;
+      }
+      const start = roundStart + index * (SERVICE_SECONDS + 1), finish = start + SERVICE_SECONDS;
+      if (finish >= end) {stop(job, 'window-exhausted', 'service-does-not-fit');continue;}
+      assert(start > cursor && start >= job.serviceAt, 'Fixed service slots are serial and cooled');
+      const eventId = marker + job.actorId + ':service:' + (round + 1);
+      assert(!social.snapshot().receipts[eventId], 'A staged service ID must be new');
+      const result = social.record({id: eventId, source: 'china-palace-tea', actorId: 'player', participants: ['player', job.actorId],
+        outcome: 'completed', kind: 'service', at: finish});
+      assert(result.ok && !result.replayed, 'Public service writer must append its actual receipt');
+      record(job, {eventType: 'service', actorId: job.actorId, eventId, start, end: finish, status: 'completed'});
+      job.serviceAt = finish + 60;job.services++;
     }
-    const start = Math.max(cursor + 1, job.cooldown), finish = start + topic.duration;
-    if (finish >= end) {stop(job, 'window-exhausted', 'conversation-does-not-fit');continue;}
-    fixtureTime = start;
-    const started = ledger.start(job.actorId, topicId);assert(started.ok && !started.replayed, JSON.stringify(started));
-    job.attempts++;
-    let event = started.event;
-    if (event.status === 'accepted') {
-      fixtureTime = finish;
-      const completed = ledger.complete(event.id, {elapsed: event.duration});assert(completed.ok, JSON.stringify(completed));event = completed.event;
+    for (let index = 0; index < jobs.length; index++) {
+      const job = jobs[index];
+      if (job.result.status) continue;
+      if (newConversations >= report.budgets.maxNewConversations) {
+        stop(job, 'budget-exhausted', 'new-conversation-row-limit');continue;
+      }
+      const topicId = topics[job.topic];
+      // Start ordinary talks early, but finish the declared ten services before
+      // asking for support. This rule is fixed independently of every response.
+      if (topicId === 'support-request' && job.services < SERVICE_COUNT) continue;
+      const topic = ledger.topicsFor(job.actorId).find(row => row.id === topicId);
+      if (!topic) {stop(job, 'ineligible', 'ordinary-topic-unavailable:' + topicId);continue;}
+      assert(topic.duration <= 9, 'The declared conversation must fit its fixed ten-second slot');
+      const start = roundStart + jobs.length * (SERVICE_SECONDS + 1) + index * 10, finish = start + topic.duration;
+      if (finish >= end) {stop(job, 'window-exhausted', 'conversation-does-not-fit');continue;}
+      if (start < job.cooldown) continue;
+      assert(start > cursor, 'Fixed talk slots are serial');
+      fixtureTime = start;
+      const started = ledger.start(job.actorId, topicId);assert(started.ok && !started.replayed, JSON.stringify(started));
+      job.attempts++;job.result.attempts = job.attempts;newConversations++;
+      let event = started.event;
+      if (event.status === 'accepted') {
+        fixtureTime = finish;
+        const completed = ledger.complete(event.id, {elapsed: event.duration});assert(completed.ok, JSON.stringify(completed));event = completed.event;
+      }
+      assert(['declined', 'completed'].includes(event.status));
+      record(job, {eventType: 'conversation', actorId: job.actorId, eventId: event.id, start: event.startedAt,
+        end: event.endedAt, topicId, status: event.status, ...(event.result?.supportStance ? {stance: event.result.supportStance} : {})});
+      job.result.eventId = event.id;job.cooldown = event.cooldownUntil;
+      if (event.status === 'declined') continue;
+      if (topicId === 'support-request') {
+        assert(['support', 'withhold'].includes(event.result.supportStance));
+        Object.assign(job.result, {status: event.result.supportStance, stance: event.result.supportStance, reason: 'original-ordinary-response'});
+      } else job.topic++;
     }
-    assert(['declined', 'completed'].includes(event.status));
-    record(job, {eventType: 'conversation', actorId: job.actorId, eventId: event.id, start: event.startedAt,
-      end: event.endedAt, topicId, status: event.status, ...(event.result?.supportStance ? {stance: event.result.supportStance} : {})});
-    job.result.eventId = event.id;job.cooldown = event.cooldownUntil;
-    if (event.status === 'declined') {
-      if (job.attempts === 2) stop(job, 'declined', 'ordinary-topic-declined-twice:' + topicId);
-    } else if (topicId === 'support-request') {
-      assert(['support', 'withhold'].includes(event.result.supportStance));
-      Object.assign(job.result, {status: event.result.supportStance, stance: event.result.supportStance, reason: 'original-ordinary-response'});
-    } else {job.topic++;job.attempts = 0;}
   }
+  for (const job of jobs) if (!job.result.status) stop(job, 'budget-exhausted', 'fixed-round-limit');
   assert(jobs.every(job => job.result.status), 'Every bounded recipe has an explicit result');
   if (report.newEvents.length) {
     output.relationshipEvents = copy(social.snapshot());output.playerConversations = copy(ledger.snapshot());report.status = 'appended';

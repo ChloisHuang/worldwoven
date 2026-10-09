@@ -281,7 +281,7 @@ try{
    const supported=history.actors.filter(row=>row.status==='support'||row.status==='already-staged'&&row.stance==='support').map(row=>row.actorId);
    for(const actorId of supported)assert(contextNow().supporters.some(person=>person.id===actorId),'Production profiles recognize the explicitly staged ordinary response: '+actorId);
    if(!done('07-staged-ordinary-history'))if(checkpoint('07-staged-ordinary-history',{caseId:journal.caseId,staged:true,window:history.window,actors:history.actors.map(row=>({actorId:row.actorId,status:row.status,eventId:row.eventId})),eventCount:history.newEvents.length,politicalUnchanged:true,clockUnchanged:true}))return;
-   responsePlan=[['cn-official-records','08-records-response'],['cn-consort-heng','09-heng-response']].filter(([actorId])=>supported.includes(actorId));
+   responsePlan=[['cn-official-records','08-records-response'],['cn-consort-heng','09-heng-response'],['cn-archery','10-archery-response'],['cn-range-warden','11-warden-response']].filter(([actorId])=>supported.includes(actorId));
   }
   for(const [actorId,milestone] of responsePlan){
    if(done(milestone))continue;
