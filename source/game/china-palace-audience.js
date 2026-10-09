@@ -61,7 +61,7 @@ export function chinaCourtStatusSummary(schedule,phase='waiting'){
  return day+'朝会定于11:30。'+(phase==='holding'?'官员已到班位，持笏静候到点行礼。':phase==='assembling'?'官员正从各自所在处赴班；到点统一行礼。':'官员按各自实际路程提前赴班。');
 }
 
-export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveActor,poseContext,furniture,economy=null,sharedNeeds=null,getTavern=()=>null,getToilet=()=>null,getSalon=()=>null,getClock=()=>({day:0}),worldSeed=1,readEdict=()=>null,reissueEdict=()=>false,readAuthority=null,saved={},saveState=()=>{},beginInteraction=()=>null,onInteraction=()=>{},notify=()=>{}}){
+export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveActor,poseContext,furniture,economy=null,sharedNeeds=null,getTavern=()=>null,getToilet=()=>null,getSalon=()=>null,getRoyalKitchen=()=>null,getClock=()=>({day:0}),worldSeed=1,readEdict=()=>null,reissueEdict=()=>false,readAuthority=null,saved={},saveState=()=>{},beginInteraction=()=>null,onInteraction=()=>{},notify=()=>{}}){
  if(saved.continuity?.version===1)saved={...saved,...saved.continuity.schedule,life:saved.continuity.life,reports:saved.continuity.reports,...(Object.hasOwn(saved.continuity,'granaryAudit')?{granaryAudit:saved.continuity.granaryAudit}:{}),...(Object.hasOwn(saved.continuity,'personnelRecords')?{personnelRecords:saved.continuity.personnelRecords}:{}),preservePhysical:true};
  const officials=CHINA_COURT_OFFICIALS.map(r=>npcs.find(n=>n.station.id===r.id)),emperor=npcs.find(n=>n.station.id==='cn-emperor');
  if(!palace||!emperor||officials.some(n=>!n))return null;
@@ -164,7 +164,7 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
  granaryAudit=typeof economy?.dutyAuditSource==='function'?createChinaGranaryAudit({readReceipts:after=>economy.dutyAuditSource(after),readAuthority,saved:saved.granaryAudit,saveState:saveGranary}):null;
  if(saved.continuity?.runtime?.currentReport?.auditReport)granaryAudit?.restoreReport(saved.continuity.runtime.currentReport.auditReport);
  personnelRecords=createChinaPersonnelRecords({saved:saved.personnelRecords,saveState:savePersonnel,resolveActor:id=>{const n=officials.find(actor=>actor.station.id===id);return n?{actorId:n.actorId||n.station.id,alive:n.alive!==false,position:n.root.position.toArray()}:null;}});
- life=createChinaOfficialLife({personnelRecords,granaryAudit,officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,reports,economy,sharedNeeds,getTavern,getToilet,getSalon,getClock,worldSeed,saved:saved.life,saveState:()=>save(),beginInteraction,onInteraction,record});
+ life=createChinaOfficialLife({personnelRecords,granaryAudit,officials,npcs,lot,furniture,doors,planPath,poseContext,travel,safety,reports,economy,sharedNeeds,getTavern,getToilet,getSalon,getRoyalKitchen,getClock,worldSeed,saved:saved.life,saveState:()=>save(),beginInteraction,onInteraction,record});
  save();
  return {
   playerDecision,

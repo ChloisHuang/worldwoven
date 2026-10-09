@@ -1,3 +1,4 @@
+import {initializePantry,validPantry,reservePantry,cancelPantry,pantryAllocation,pantryTask,completePantryTask} from './china-royal-pantry.js';
 import {validPalaceUsurpationRoyalMealEvidence,isCurrentPalaceUsurpationRoyalMealEligibility} from './palace-usurpation-entitlement.js';
 
 // Finite opening supplies, not a simulated tax/procurement system. A prepared
@@ -29,33 +30,35 @@ export function validRoyalKitchenState(s){
   if(o.stage==='consumed'&&o.actorId==='player'&&(!sameRoyalPlayerEligibility(o.receipt.eligibility,o.eligibility)||o.receipt.eatingSeconds!==o.eatingSeconds))return false;
   if(o.stage!=='consumed'&&o.receipt)return false;
  }
- return s.supply.remaining+used===ROYAL_OPENING_SUPPLY&&s.supply.wasted===wasted;
+ return s.supply.remaining+used===ROYAL_OPENING_SUPPLY&&s.supply.wasted===wasted&&validPantry(s);
 }
-export function createRoyalKitchenOrders({saved=null,getClock=()=>({day:0}),saveState=()=>true,getPlayerMealEligibility=()=>null}={}){
+export function createRoyalKitchenOrders({saved=null,getClock=()=>({day:0}),saveState=()=>true,getPlayerMealEligibility=()=>null,enablePantry=false}={}){
  let state={version:1,revision:0,serial:0,supply:{id:'cn-royal-kitchen-opening-v1',quantity:ROYAL_OPENING_SUPPLY,remaining:ROYAL_OPENING_SUPPLY,wasted:0},orders:[]},loadError=null;
  if(saved!=null){if(validRoyalKitchenState(saved))state=copy(saved);else loadError='invalid-royal-kitchen-state';}
  const snapshot=()=>copy(state),lookup=id=>state.orders.find(o=>o.id===id),forActor=id=>state.orders.find(o=>o.actorId===id&&active(o))||state.orders.filter(o=>o.actorId===id).at(-1)||null;
  function transaction(fn){if(loadError)return false;const next=copy(state),result=fn(next);if(result===false)return false;next.revision++;if(!validRoyalKitchenState(next))return false;try{const ok=saveState(copy(next));if(ok===false||ok?.then)return false;}catch{return false;}state=next;return true;}
+ const ensurePantry=()=>!enablePantry||!!state.pantry||transaction(s=>initializePantry(s));
  const eligibility=()=>{try{return royalPlayerEligibilityEvidence(getPlayerMealEligibility());}catch{return null;}};
  const eligible=id=>ROYAL_DINERS.includes(id)||id==='player'&&!!eligibility();
- const available=actorId=>{if(loadError||!eligible(actorId))return false;const current=state.orders.find(o=>o.actorId===actorId&&active(o));return current?actorId!=='player'||sameRoyalPlayerEligibility(current.eligibility,eligibility()):state.supply.remaining>state.orders.filter(o=>o.stage==='ordered').length;};
+ const available=actorId=>{if(loadError||enablePantry&&!state.pantry||!eligible(actorId))return false;const current=state.orders.find(o=>o.actorId===actorId&&active(o));return current?actorId!=='player'||sameRoyalPlayerEligibility(current.eligibility,eligibility()):state.supply.remaining>state.orders.filter(o=>o.stage==='ordered').length+(state.pantry?.allocations.filter(a=>['return-pending','return-carrying'].includes(a.stage)).length||0);};
  function request({actorId,seatId,name=actorId,workerId='cn-cooking',workReceiptId=null,workDay=getClock().day}){
-  if(!eligible(actorId)||actorId==='player'&&workerId==='player')return null;
+  if(!ensurePantry()||!eligible(actorId)||actorId==='player'&&workerId==='player')return null;
   const existing=state.orders.find(o=>o.actorId===actorId&&active(o));if(existing)return existing.seatId===seatId&&(actorId!=='player'||sameRoyalPlayerEligibility(existing.eligibility,eligibility()))?copy(existing):null;
   if(!available(actorId)||!ROYAL_MEAL_SEATS.includes(seatId)||state.orders.some(o=>o.seatId===seatId&&active(o)))return null;
-  let id;const ok=transaction(s=>{const number=++s.serial;id='cn-royal-meal-'+number;s.orders.push({id,number,actorId,actorName:name,seatId,day:getClock().day,workDay,workerId,workReceiptId,stage:'ordered',...(actorId==='player'?{eligibility:eligibility()}:{}),mealId:null,supplyReceipt:null,eatingSeconds:0,receipt:null});});return ok?copy(lookup(id)):null;
+  let id;const ok=transaction(s=>{const number=++s.serial;id='cn-royal-meal-'+number;s.orders.push({id,number,actorId,actorName:name,seatId,day:getClock().day,workDay,workerId,workReceiptId,stage:'ordered',...(actorId==='player'?{eligibility:eligibility()}:{}),mealId:null,supplyReceipt:null,eatingSeconds:0,receipt:null});return reservePantry(s,s.orders.at(-1));});return ok?copy(lookup(id)):null;
  }
  function change(id,from,to,extra={}){return transaction(s=>{const o=s.orders.find(o=>o.id===id);if(!o||o.stage!==from||o.actorId==='player'&&!sameRoyalPlayerEligibility(o.eligibility,eligibility()))return false;Object.assign(o,extra,{stage:to});});}
- function prepare(id){return transaction(s=>{const o=s.orders.find(o=>o.id===id);if(o?.stage!=='ordered'||s.supply.remaining<1||o.actorId==='player'&&!sameRoyalPlayerEligibility(o.eligibility,eligibility()))return false;s.supply.remaining--;Object.assign(o,{stage:'prepared',supplyReceipt:id+'-prepared',mealId:id+'-meal'});});}
- function cancel(actorId,reason='活动中断'){
+ function prepare(id){return transaction(s=>{const o=s.orders.find(o=>o.id===id);if(o?.stage!=='ordered'||s.supply.remaining<1||o.actorId==='player'&&!sameRoyalPlayerEligibility(o.eligibility,eligibility()))return false;const a=pantryAllocation(s,id);if(a&&a.stage!=='picked')return false;if(a)a.stage='prepared';s.supply.remaining--;Object.assign(o,{stage:'prepared',supplyReceipt:id+'-prepared',mealId:id+'-meal'});});}
+ function cancel(actorId,reason='活动中断',position=null){
   const row=state.orders.find(o=>o.actorId===actorId&&active(o));if(!row)return true;
-  return transaction(s=>{const o=s.orders.find(o=>o.id===row.id);if(o.supplyReceipt)s.supply.wasted++;o.stage='cancelled';o.cancelReason=String(reason).slice(0,100);});
+  return transaction(s=>{const o=s.orders.find(o=>o.id===row.id);if(o.supplyReceipt)s.supply.wasted++;if(!cancelPantry(s,o,position))return false;o.stage='cancelled';o.cancelReason=String(reason).slice(0,100);});
  }
  function consume(id,actorId,elapsed){const row=lookup(id);if(actorId==='player'&&!sameRoyalPlayerEligibility(row?.eligibility,eligibility()))return false;if(row?.stage==='consumed')return row.actorId===actorId;
   if(row?.actorId!==actorId||row.stage!=='eating'||elapsed<12)return false;
   return change(id,'eating','consumed',{eatingSeconds:elapsed,receipt:{source:'china-royal-kitchen',id:id+'-consumed',number:row.number,actorId,orderId:id,mealId:row.mealId,dishId:'royal-steamed-meal',supplyReceipt:row.supplyReceipt,completed:true,...(actorId==='player'?{eligibility:copy(row.eligibility),eatingSeconds:elapsed}:{})}});
  }
- function reassign(receiptId,workerId,nextReceipt=null,workDay=getClock().day){return transaction(s=>{for(const o of s.orders){if(!active(o)||o.workReceiptId!==receiptId)continue;if(o.stage==='carrying')return false;Object.assign(o,{workerId,workReceiptId:nextReceipt,workDay});}});}
- function claim(receiptId,day,workerId='cn-cooking'){return transaction(s=>{if(s.orders.some(o=>o.actorId==='player'&&active(o)))return false;for(const o of s.orders)if(o.stage==='ordered'&&o.workerId===workerId)Object.assign(o,{workerId:'player',workReceiptId:receiptId,workDay:day});});}
- return {snapshot,claim,loadError:()=>loadError,available,request,prepare,cancel,consume,reassign,change,lookup:id=>{const o=lookup(id);return o?copy(o):null;},forActor:id=>{const o=forActor(id);return o?copy(o):null;},active:()=>state.orders.filter(active).map(copy),receipts:()=>state.orders.filter(o=>o.stage==='consumed').map(o=>copy(o.receipt))};
+ function reassign(receiptId,workerId,nextReceipt=null,workDay=getClock().day){return transaction(s=>{for(const o of s.orders){if(!active(o)||o.workReceiptId!==receiptId)continue;if(o.stage==='carrying'||pantryAllocation(s,o.id)?.stage==='picked')return false;Object.assign(o,{workerId,workReceiptId:nextReceipt,workDay});}});}
+ function claim(receiptId,day,workerId='cn-cooking'){return transaction(s=>{if(s.orders.some(o=>o.actorId==='player'&&active(o))||s.pantry?.allocations.some(a=>['picked','return-carrying'].includes(a.stage)))return false;for(const o of s.orders)if(o.stage==='ordered'&&o.workerId===workerId)Object.assign(o,{workerId:'player',workReceiptId:receiptId,workDay:day});});}
+ ensurePantry();
+ return {pantryTask:actorId=>ensurePantry()?pantryTask(state,actorId):null,completePantryTask:(id,proof)=>({ok:transaction(s=>completePantryTask(s,id,proof))}),pantryAllocation:id=>{const a=pantryAllocation(state,id);return a?copy(a):null;},pickSupply:(id,workerId)=>transaction(s=>{const o=s.orders.find(o=>o.id===id),a=pantryAllocation(s,id);if(o?.stage!=='ordered'||o.workerId!==workerId||a?.stage!=='approved')return false;a.stage='picked';a.pickupId=id+'-pantry-picked';return true;}),recoverSupply:(id,workerId)=>transaction(s=>{const a=pantryAllocation(s,id);if(a?.stage!=='return-pending')return false;a.stage='return-carrying';a.returnHolderId=workerId;return true;}),dropReturns:(workerId,position)=>transaction(s=>{if(!Array.isArray(position)||position.length!==3||position.some(n=>!Number.isFinite(n)))return false;for(const a of s.pantry?.allocations||[])if(a.stage==='return-carrying'&&a.returnHolderId===workerId){a.stage='return-pending';a.returnHolderId=null;a.returnPoint=position.slice();}return true;}),returnSupply:(id,workerId)=>transaction(s=>{const a=pantryAllocation(s,id);if(a?.stage!=='return-carrying'||a.returnHolderId!==workerId)return false;a.stage='returned';return true;}),snapshot,claim,loadError:()=>loadError,available,request,prepare,cancel,consume,reassign,change,lookup:id=>{const o=lookup(id);return o?copy(o):null;},forActor:id=>{const o=forActor(id);return o?copy(o):null;},active:()=>state.orders.filter(active).map(copy),receipts:()=>state.orders.filter(o=>o.stage==='consumed').map(o=>copy(o.receipt))};
 }

@@ -1,3 +1,4 @@
+import {PANTRY} from './china-royal-pantry.js';
 import {tavernPlaque} from './china-tavern-lettering.js';
 
 // The former 10 × 14 m service hall is now a genuine 10 × 9 m two-storey
@@ -50,7 +51,7 @@ export function buildChinaRoyalKitchen(G,A){
  addBox(kitchen,18.1,4.59,-4.5,3.8,1.18,1.35,0xa29372);G.box(kitchen,18.1,5.23,-4.5,3.94,.13,1.49,0xc9c0a1);G.cyl(kitchen,17.2,5.34,-4.5,.48,.48,.08,0x343e37);G.sphere(kitchen,17.2,5.44,-4.5,.42,0x46534b,1,.4,1);for(let j=0;j<3;j++)G.cyl(kitchen,19.1,5.37+j*.18,-4.5,.3,.31,.16,0xbba26e,12);G.cone(kitchen,19.1,5.93,-4.5,.34,.15,0xd2b780,12);
  // Same 4.7 m preparation table, original two boards/dough and bowl.
  table(kitchen,21.4,4.015,-7.3,4.7,1.8,1,1.55);for(const x of[20,22.3]){G.box(kitchen,x,4.899,-6.7,.85,.04,.60,0xd5b680);for(let i=0;i<3;i++)G.sphere(kitchen,x-.2+i*.2,4.99,-6.49,.1,0xeee0bc,1,.6,.72);}H.bowl(kitchen,23,4.92,-7.45,0x99b7a8,.3,0x76905a);
- const shelf=H.openShelf(kitchen,[],25.1,-4.5,2,2.6,.7,C.wood,-Math.PI/2);shelf.position.y=4.0;for(const xx of[-.6,0,.6]){for(let j=0;j<3;j++)H.boundBook(shelf,xx,.35+j*.11,0,.4,.46,[0x738d7b,0xb69d6a,0x9a6350][j]);G.vessel(shelf,xx,1.51,0,0xa9c2b5,.55);}colliders.push({minX:24.7,maxX:25.5,minY:4.0,maxY:6.6,minZ:-5.5,maxZ:-3.5});cameraColliders.push({...colliders.at(-1)});
+ const shelf=H.openShelf(kitchen,[],25.1,-4.5,2,2.6,.7,C.wood,-Math.PI/2);shelf.name=PANTRY.id;shelf.userData.batchId=PANTRY.id;shelf.position.y=4.0;tavernPlaque(G,kitchen,'御膳',24.67,6.25,-4.5,1.1,.35).rotation.y=-Math.PI/2;for(const xx of[-.6,0,.6]){for(let j=0;j<3;j++)H.boundBook(shelf,xx,.35+j*.11,0,.4,.46,[0x738d7b,0xb69d6a,0x9a6350][j]);G.vessel(shelf,xx,1.51,0,0xa9c2b5,.55);}colliders.push({minX:24.7,maxX:25.5,minY:4.0,maxY:6.6,minZ:-5.5,maxZ:-3.5});cameraColliders.push({...colliders.at(-1)});
  interiorRooms.push({id:'dining',name:'御膳楼一层餐厅',...CHINA_ROYAL_KITCHEN.bounds,floorY:.215,ceiling:3.77},{id:'kitchen',name:'御膳楼二层备膳间',...CHINA_ROYAL_KITCHEN.bounds,floorY:4.015,ceiling:7.57});
  for(const[id,name,p,roomId]of[['cn-kitchen-prep','二层原备膳案前',[21.4,4.015,-6.1],'kitchen'],['cn-kitchen-stove','二层原蒸笼灶前',[17.8,4.015,-5.65],'kitchen'],['cn-kitchen-rear','御膳后门内',[24.7,.215,-11.05],'dining'],['cn-dining-west','餐厅西侧',[17.8,.215,-6],'dining'],['cn-dining-east','餐厅东侧',[23.9,.215,-6],'dining'],['cn-dining-door','餐厅门内',[21,.215,-3.8],'dining']])explorationTargets.push({id,name,position:p,roomId});
  H.palaceRoof(roof,21,7.83,-7.5,11.3,10.3,1.4,C.roof);
