@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import {createGameCurrencyLedger} from '../source/game/currency-ledger.js';
 import {createUndergroundMarketLedger} from '../source/game/underground-market-ledger.js';
 import {createUndergroundMarketRuntime,MARKET_MERCHANT_ID} from '../source/game/underground-market-runtime.js';
+import {createObjectInteractionAnchors} from '../source/game/object-interaction-anchors.js';
 import {resetSocialHolds,socialHoldOwner,holdSocialActors} from '../source/game/npc-social-ownership.js';
 // Explicitly staged close-up actors exercise adapter contracts, not natural travel.
 function fixture(saved={}){
  resetSocialHolds();let rt,eco,ok=true,canBorrow=true,visible=true,paused=false,available=true,pursuit=false,clock=0;
  const messages=[],actor=(id,z)=>({station:{id,npcName:id},root:{position:{x:0,y:0,z,toArray(){return[this.x,this.y,this.z];}},rotation:{y:0}},route:[],alive:true,animate(){}});
- const p=actor('player',1.5),n=actor(MARKET_MERCHANT_ID,0),place={merchant:{position:[0,0,0]},interaction:{position:[0,0,1.5]},setStock(){}};
+ const p=actor('player',1.5),n=actor(MARKET_MERCHANT_ID,0),place={id:'cn-underground-black-market',merchant:{position:[0,0,0]},interaction:{position:[0,0,1.5]},setStock(){}};
  const storage={setItem(k,v){if(!ok)return false;Object.assign(saved,JSON.parse(v));return true;}};
  const money=createGameCurrencyLedger({saved,storage,transactionParticipant:tx=>eco?.prepareCurrencyCommit(tx)});
  if(!saved.copperLedger)assert(money.earn(40,'runtime-fixture-existing-wages').ok);
@@ -42,4 +43,8 @@ test('patrol ownership is yielded immediately even when session save fails, with
 });
 test('queued invitation neither interrupts nor rewrites the original busy route when cancelled',()=>{
  const f=fixture();f.setBorrow(false);f.n.route=[{x:4,y:0,z:7}];assert(f.rt.invite());assert.equal(f.rt.state().session.stage,'waiting');assert.equal(socialHoldOwner(MARKET_MERCHANT_ID),null);assert(f.rt.close());assert.deepEqual(f.n.route,[{x:4,y:0,z:7}]);assert.equal(f.rt.state().session,null);f.rt.dispose();
+});
+
+test('invitation has a non-owning live marker and all shelf actions share the real counter menu',()=>{
+ const f=fixture(),anchors=createObjectInteractionAnchors({actors:()=>[f.p,f.n]});const invite=f.rt.choices().find(c=>c.kind==='invite'),mark=anchors.resolve(invite);assert(mark&&mark.id==='object:cn-market-invitation');assert.equal(mark.actor,undefined,'queue menu must not freeze a busy NPC');open(f);const choices=f.rt.choices();assert(choices.some(c=>c.kind==='buy'));assert(choices.some(c=>c.kind==='work'));const resolved=choices.map(c=>anchors.resolve(c));assert(resolved.every(Boolean),'approach positions alone are not real object markers');assert.deepEqual([...new Set(resolved.map(a=>a.id))],['object:cn-underground-black-market']);f.rt.dispose();
 });

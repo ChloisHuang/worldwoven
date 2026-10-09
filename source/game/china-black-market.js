@@ -7,7 +7,7 @@ export const CHINA_BLACK_MARKET = Object.freeze({
  id:'cn-underground-black-market',name:'地下黑市',floorY:-4.1,ceilingY:-1.1,
  bounds:{minX:-12.2,maxX:-3.4,minZ:29.4,maxZ:37},
  entrance:[-14,.115,28],branchEntry:[-12.35,-4.1,36.15],
- interaction:{id:'cn-black-market-counter',name:'黑市交易台',position:[-6.65,-4.1,32.9],anchor:[-6.65,-3.02,32.1]},
+ interaction:{id:'cn-black-market-counter',name:'黑市交易台',position:[-6.65,-4.1,32.9],anchor:[-6.65,-3.02,32.1],menuPoint:[-6.65,-2.80,32.32]},
  merchant:{position:[-6.65,-4.1,31.4],workTarget:[-6.65,-3.02,32.1],rotation:0,
   route:[[-14,.115,28],[-14,.115,28.7],[-14,-4.1,35.7],[-14,-4.1,36.15],[-10.6,-4.1,36.15],[-9.1,-4.1,34.3],[-9.1,-4.1,31.4],[-6.65,-4.1,31.4]]},
  route:[[-14,.115,28],[-14,.115,28.7],[-14,-4.1,35.7],[-14,-4.1,36.15],[-10.6,-4.1,36.15],[-8.8,-4.1,34.3],[-6.65,-4.1,32.9]]

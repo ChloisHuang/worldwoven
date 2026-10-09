@@ -40,7 +40,13 @@ export function createUndergroundMarketRuntime({lot,getActors,getPlayer,economy,
   if(state.action){if(!atCounter()||gap(pos(getPlayer()),state.action.origin)>.22||isPaused()){cancelAction();}else{state.action.elapsed+=dt;getPlayer().animate?.(t,false,null,{...poseContext(getPlayer(),null),handoff:true});getPlayer().root.rotation.y=Math.atan2(pos(n).x-pos(getPlayer()).x,pos(n).z-pos(getPlayer()).z);if(state.action.elapsed>=state.action.duration)commitAction();}}
   if(!state.action)state.session.remaining=Math.max(0,state.session.remaining-dt);saveIn-=dt;if(saveIn<=0){saveIn=1;write(copy(state));}if(state.session?.remaining===0)close();
  }
- function choice(id,kind,action,position,itemId=null){return {id:'market:'+id,market:true,kind,itemId,name:'周棠 · 地下旧物小摊',action,position:Array.isArray(position)?position:[position.x,position.y,position.z],interactionRadius:2,executionRadius:2,priority:18};}
+ function choice(id,kind,action,position,itemId=null){
+  const p=Array.isArray(position)?position:[position.x,position.y,position.z],besideMerchant=['invite','waiting','cancel-wait','progress'].includes(id),target=besideMerchant?'cn-market-invitation':place.id;
+  // Queueing an invitation never acquires the social conversation/body lease.
+  // A live authored marker follows the resident; actual execution rechecks them.
+  const anchor=besideMerchant?[p[0],p[1]+1.35,p[2]]:place.interaction.menuPoint||place.interaction.anchor||[p[0],p[1]+1.05,p[2]];
+  return {id:'market:'+id,market:true,kind,itemId,name:'周棠 · 地下旧物小摊',targetKey:target,targetName:'周棠 · 地下旧物小摊',visualAnchor:{id:target,point:anchor},action,position:p,interactionRadius:2,executionRadius:2,priority:18};
+ }
  function choices(){if(disposed||error||!place)return[];const n=merchant(),p=getPlayer(),out=[];if(!p)return out;
   if(!state.session){if(requestable(n)&&(!state.merchantKey||state.merchantKey===identity(n)))out.push(choice('invite','invite',canBorrow(n)?'请空闲的周棠带路去地下旧物小摊':'约好去地下小摊 · 等周棠办完眼前的事',pos(n)));out.push(choice('info','info','查看小摊说明 · 先在酒楼找空闲的周棠',place.interaction.position));return out;}
   if(state.action)return out;if(state.session.stage==='waiting')return [choice('waiting','info','小摊邀约已记下 · 等周棠空闲后出发',pos(n)),choice('cancel-wait','close','取消小摊邀约',pos(n)),choice('cancel-wait-room','close','取消小摊邀约',place.interaction.position)];if(state.session.stage!=='open')return [choice('progress','info',state.session.stage==='travelling'?'周棠正步行前往小摊 · 沿原楼梯跟随':'收摊中 · 周棠正沿原路返回',pos(n))];
@@ -54,5 +60,5 @@ export function createUndergroundMarketRuntime({lot,getActors,getPlayer,economy,
  // Otherwise a restored merchant can take one step toward their old life task
  // on every reload and drift away from an in-progress physical transaction.
  if(!error&&state.session&&state.session.stage!=='waiting'&&!claim()){yielding=true;release();}
- return {update,choices,invite,verifyAction,cancelAction,close,activeAction:()=>state.action&&copy(state.action),state:()=>({...(error?{error}:{}),lastError,...copy(state),economy:economy.view()}),owns:n=>leased&&n===merchant(),pose(n,t){if(!leased||n!==merchant())return false;n.animate(t+(n.phase||0),!!n.walking,n.walking||state.action?null:'relax',{...poseContext(n,null),...(state.action?{handoff:true}:{})});return true;},interact(x){if(x.kind==='invite')return invite();if(x.kind==='info')return info();if(x.kind==='close')return close();if(!choices().some(c=>c.id===x.id))return false;return begin(x.kind,x.itemId);},dispose(){disposed=true;release();},get loadError(){return error;}};
+ return {update,choices,invite,verifyAction,resolveIntent:x=>choices().find(c=>c.id===x?.id)||null,cancelAction,close,activeAction:()=>state.action&&copy(state.action),state:()=>({...(error?{error}:{}),lastError,...copy(state),economy:economy.view()}),owns:n=>leased&&n===merchant(),pose(n,t){if(!leased||n!==merchant())return false;n.animate(t+(n.phase||0),!!n.walking,n.walking||state.action?null:'relax',{...poseContext(n,null),...(state.action?{handoff:true}:{})});return true;},interact(x){if(x.kind==='invite')return invite();if(x.kind==='info')return info();if(x.kind==='close')return close();if(!choices().some(c=>c.id===x.id))return false;return begin(x.kind,x.itemId);},dispose(){disposed=true;release();},get loadError(){return error;}};
 }
