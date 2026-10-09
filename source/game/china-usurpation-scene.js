@@ -14,6 +14,7 @@ const bindingFields=['orderId','objectId','consumerId','consumerBodyId','workerI
 const sameBinding=(a,b)=>bindingFields.every(key=>a?.[key]===b?.[key]);
 const validBinding=b=>b&&bindingFields.every(key=>validId(b[key]))&&b.workerId==='player';
 const openTask=task=>task&&['planning','ready-for-investiture'].includes(task.stage);
+const commonWitness=kind=>['acclamation','investiture-reading'].includes(kind);
 const safetyFields=['oldWorkSettled','itemsSettled','meetingsSettled','actorTransitionsSafe'];
 const names={'political-response':'当面商议本案',guard:'承礼广庭 · 原卫队集结',abdication:'承礼广庭 · 具名联署',
  acclamation:'承礼广庭 · 当面拥立','mechanism-resolution':'承礼广庭 · 当面对峙','investiture-reading':'承礼广庭 · 宣读本案授位原纸'};
@@ -119,6 +120,10 @@ export function createChinaUsurpationScene({core,getContext=()=>null,getScene=()
    workerId:'player',workerBodyId:task.playerBodyId,workReceiptId:order.workReceiptId,dutyActive:duty,stage:order.stage}};
  }
  const getMealBinding=task=>sourceOrder(task)?.binding||null;
+ function stationaryGuard(actor){
+  return actual(actor)&&standing(actor)===true&&!actor.walking&&!privateAt(actor.root.position.toArray())&&!shouldYield(actor)&&
+   scene().archery?.canTalkForPlot?.(actor)===true&&canBorrow(actor,{moving:false,held:false})===true;
+ }
  function currentSite(kind,{task,actorId,participantIds:ids}){
   if(!active()||!openTask(task)||!ids.every(id=>actual(resolveActor(id))))return null;
   if(kind==='intrigue'){
@@ -128,9 +133,9 @@ export function createChinaUsurpationScene({core,getContext=()=>null,getScene=()
     id:`usurpation-kitchen:${task.id}:${source.order.id}`,objectId:source.binding.objectId,position,actorPoints:{},name:'御膳备餐间 · 原单剧情准备'}:null;
   }
   const object=ensureProp(task,kind==='investiture-reading');if(!object)return null;
-  const guardIds=getContext()?.guard?.guards?.map(row=>row.id)||[];
-  if(['guard','acclamation','investiture-reading'].includes(kind)&&ids.some(id=>guardIds.includes(id))){
-   const original=scene().archery?.plotMeetingSite?.(),guardIds=getContext()?.guard?.guards?.map(row=>row.id)||[];
+  const guardIds=getContext()?.guard?.guards?.map(row=>row.id)||[],witnessGuards=ids.filter(id=>guardIds.includes(id));
+  if(kind==='guard'||commonWitness(kind)&&witnessGuards.length>1){
+   const original=scene().archery?.plotMeetingSite?.();
    if(!original||!acceptedGuards(task)||guardIds.length!==2||!guardIds.every(id=>point(original.actorPoints?.[id])))return null;
    const key=[task.id,kind,...ids].join('|'),cached=sites.get(key);if(cached&&legalSite(cached,ids))return copy(cached);
    const actorPoints={},position=safePoint(original.position,.34,ids);if(!position)return null;
@@ -147,12 +152,37 @@ export function createChinaUsurpationScene({core,getContext=()=>null,getScene=()
    const site={id:`usurpation-range-handoff:${task.id}`,objectId:object.name,position,actorPoints,name:kind==='guard'?'射圃靶外 · 两位原卫当面议事':kind==='acclamation'?'射圃靶外 · 具名当面拥立':'射圃靶外 · 同案原见证宣读授位'};
    if(!legalSite(site,ids)||!reachable(player(),site.position,.34))return null;sites.set(key,copy(site));return site;
   }
+  const guardWitness=commonWitness(kind)&&witnessGuards.length===1?resolveActor(witnessGuards[0]):null;
+  const postId=guardWitness?idOf(guardWitness):kind==='political-response'?actorId:null;
   const key=[task.id,kind,actorId,...ids].join('|'),cached=sites.get(key);
-  const atOriginalPost=kind!=='political-response'||!cached?.id.startsWith('usurpation-discussion:')||
-   near(resolveActor(actorId)?.root.position,cached.actorPoints?.[actorId]);
-  if(cached&&atOriginalPost&&legalSite(cached,ids))return copy(cached);
+  const atOriginalPost=!postId||!/^usurpation-(discussion|guard-witness):/.test(cached?.id)||
+   near(resolveActor(postId)?.root.position,cached.actorPoints?.[postId]);
+  if(cached&&atOriginalPost&&(!guardWitness||gathering.owns(guardWitness)||stationaryGuard(guardWitness))&&legalSite(cached,ids))return copy(cached);
   sites.delete(key);
   const finish=site=>{if(!legalSite(site,ids,{routes:true}))return null;sites.set(key,copy(site));return site;};
+  // One personal witness lends only their safe original post. The other guard's
+  // political answer and military appointment cannot lend or withhold this body.
+  if(guardWitness){
+   if(!stationaryGuard(guardWitness))return null;
+   const p=guardWitness.root.position,others=ids.filter(id=>id!=='player'&&id!==postId);
+   if(others.some(id=>!gathering.owns(resolveActor(id))&&(shouldYield(resolveActor(id))||canBorrow(resolveActor(id),{moving:true,held:false})!==true)))return null;
+   const offsets=[[1.25,-.8],[1.25,.8],[1.45,1.9],[2,-.1],[2,-1.2],[.5,2.25]];
+   for(let i=0;i<8;i++){
+    const angle=i*Math.PI/4,position=safePoint([p.x+Math.cos(angle)*1.25,p.y,p.z+Math.sin(angle)*1.25],.34,ids);
+    if(!position)continue;
+    const actorPoints={[postId]:p.toArray()};let complete=true;
+    for(const id of others){
+     const destination=offsets.map(([x,z])=>safePoint([position[0]+x,position[1],position[2]+z],.25,ids))
+      .find(q=>q&&!near(vector(q),position,.70)&&!Object.values(actorPoints).some(other=>near(vector(q),other,.70))&&reachable(resolveActor(id),q,.25));
+     if(!destination){complete=false;break;}actorPoints[id]=destination;
+    }
+    if(!complete)continue;
+    const site=finish({id:`usurpation-guard-witness:${task.id}:${postId}:${p.toArray().map(v=>v.toFixed(3)).join(':')}`,objectId:object.name,position,actorPoints,
+     name:`${guardWitness.station?.npcName||postId} · 原岗${kind==='acclamation'?'具名当面拥立':'同案见证宣读授位'}`});
+    if(site)return site;
+   }
+   return null;
+  }
   // A stationary official may talk at their original public post. Only a
   // legal adjacent player stand is used; private chambers are never a shortcut.
   if(kind==='political-response'){
@@ -239,11 +269,12 @@ export function createChinaUsurpationScene({core,getContext=()=>null,getScene=()
   if(!actual(actor)||shouldYield(actor))return false;
   if(actor===player())return true;
   if(gathering.owns(actor))return gathering.state(leaseId).held===true;
+  if(commonWitness(kind)&&(getContext()?.guard?.guards||[]).some(row=>row.id===idOf(actor))&&stationaryGuard(actor))return true;
   return canBorrow(actor,{moving:kind!=='political-response',held:false})===true;
  }
  function canGather(actor){
   if(!actual(actor)||shouldYield(actor))return false;
-  if((getContext()?.guard?.guards||[]).some(row=>row.id===idOf(actor)))return !!acceptedGuards(taskNow())?.includes(idOf(actor))&&!!scene().archery?.plotMeetingSite?.()&&typeof scene().archery?.requestPlotMeeting==='function';
+  if((getContext()?.guard?.guards||[]).some(row=>row.id===idOf(actor)))return gathering.owns(actor)||stationaryGuard(actor)||!!acceptedGuards(taskNow())?.includes(idOf(actor))&&!!scene().archery?.plotMeetingSite?.()&&typeof scene().archery?.requestPlotMeeting==='function';
   return gathering.owns(actor)||canBorrow(actor,{moving:true,held:false})===true;
  }
  function validSaved(value){
@@ -299,7 +330,7 @@ export function createChinaUsurpationScene({core,getContext=()=>null,getScene=()
  function prepareIntent(selected){const next=actions.resolveIntent(selected);if(!next)return null;prepared=copy(next);syncProps();return next;}
  function executeIntent(selected){
   const next=prepareIntent(selected);if(!next)return false;
-  const guards=getContext()?.guard?.guards||[],rangeMeeting=['guard','acclamation','investiture-reading'].includes(next.kind)&&next.participantIds.some(id=>guards.some(row=>row.id===id));
+  const guards=getContext()?.guard?.guards||[],rangeMeeting=next.kind==='guard'||commonWitness(next.kind)&&next.participantIds.filter(id=>guards.some(row=>row.id===id)).length>1;
   if(rangeMeeting){
    if(actions.active())return actions.state().action===next.kind&&actions.state().caseId===next.caseId;
    if(pendingGuard)return pendingGuard.intentKey===next.intentKey&&startReadyGuard();

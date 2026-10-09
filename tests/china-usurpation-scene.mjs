@@ -16,7 +16,7 @@ const {createRoyalKitchenOrders}=await import('../source/game/china-royal-kitche
 const {createChinaArcheryRoutine}=await import('../source/game/china-archery-routine.js');
 const {socialHoldOwner,resetSocialHolds}=await import('../source/game/npc-social-ownership.js');
 const copy=value=>structuredClone(value),supporterIds=['cn-official-one','cn-official-two','cn-official-three','cn-range-warden','cn-archery'];
-function fixture(saved={}){
+function fixture(saved={},{declinedId=null,strictGuardBorrow=false}={}){
  resetSocialHolds();const clock={day:7,hour:14,...saved.clock},flags={runtimeSave:true,coreSave:true,busy:false,yield:false,borrow:true};
  const lot={group:new THREE.Group(),archery:{},colliders:[],bounds:{minX:-30,maxX:30,minZ:-40,maxZ:40},doorways:[],
   walkableSurfaces:[{minX:-30,maxX:30,minZ:-40,maxZ:40,y:.14}],
@@ -37,7 +37,7 @@ function fixture(saved={}){
   experience:{intrigue:6,guard:6,abdication:6},exposure:0,safety:{oldWorkSettled:true,itemsSettled:true,meetingsSettled:true,actorTransitionsSafe:true},
   residences:{player:{roomId:'new-room',bedId:'new-bed'},formerEmperor:{roomId:'old-room',bedId:'old-bed'}}};
  let sceneService,coreDurable=saved.core,sceneDurable=saved.scene;
- let seed=0;while(!supporterIds.every(id=>palaceUsurpationRoll(seed,`palace-usurpation:0:1:political-response:${id}`)<.9)||palaceUsurpationRoll(seed,'palace-usurpation:0:1:resolution')>=.2)seed++;
+ let seed=0;while(!supporterIds.every(id=>(palaceUsurpationRoll(seed,`palace-usurpation:0:1:political-response:${id}`)<.9)===(id!==declinedId))||palaceUsurpationRoll(seed,'palace-usurpation:0:1:resolution')>=.2)seed++;
  const core=createPalaceUsurpation({worldSeed:seed,saved:saved.core,getClock:()=>clock,getContext:()=>context,
   verifyEvidence:(...args)=>sceneService?.verifyEvidence(...args)===true,saveState:value=>{if(!flags.coreSave)return false;coreDurable=copy(value);sceneDurable=sceneService?.snapshot();return true;}});
  if(!saved.core){assert(core.begin().ok);assert(core.selectRoute(core.currentTask().id,['guard']).ok);}
@@ -51,7 +51,7 @@ function fixture(saved={}){
  const archery=createChinaArcheryRoutine({npcs,lot,planPath,moveActor,doors,getPlayer:()=>player,poseContext:()=>({}),sharedNeeds:{status:()=>flags.yield?{seekMeal:true}:null}});
  const scene={country:'china',lot,player,npcs,archery,royalKitchen:kitchen,royalKitchenEmployment:{state:()=>({job})},furniture:{items:[]}};
  sceneService=createChinaUsurpationScene({core,getScene:()=>scene,getContext:()=>context,getClock:()=>clock,enabled:()=>scene.country==='china',
-  planPath,moveActor,doors,isPresent:a=>all.includes(a),canBorrow:()=>flags.borrow,shouldYield:()=>flags.yield,
+  planPath,moveActor,doors,isPresent:a=>all.includes(a),canBorrow:(a,{moving=false}={})=>flags.borrow&&(!strictGuardBorrow||!context.guard.guards.some(g=>g.id===a.actorId)||archery.canBorrowForPlot(a)||!moving&&archery.canTalkForPlot(a)),shouldYield:()=>flags.yield,
   standing:a=>!a.mount,canSee:()=>true,getBusy:()=>flags.busy,saved:saved.scene,
   saveState:value=>{assert.deepEqual(sceneService.snapshot(),value);if(!flags.runtimeSave)return false;sceneDurable=copy(value);coreDurable=core.snapshot();return true;}});
  const tick=seconds=>{for(let i=0;i<Math.round(seconds*10);i++){beginActorNavigationStep(.1);clock.hour+=.1/3600;
@@ -104,16 +104,42 @@ test('guard intent is read-only and an at-site appointment waits without a timer
  assert.equal(f.service.snapshot().actions.activity,null);f.tick(.1);assert.equal(f.service.state().elapsed,0);
  f.service.cancel();assert.equal(f.archery.plotMeetingState(f.core.currentTask().id).pending,false);assert.equal(f.core.currentTask().preparations.guard,null);f.dispose();
 });
+test('one consenting original guard witnesses at their safe post without borrowing the guard who refused',()=>{
+ const declinedId='cn-archery',f=fixture({},{declinedId,strictGuardBorrow:true}),witness=f.byId('cn-range-warden'),declined=f.byId(declinedId);
+ // Stage only the authored initial handoff, then use the real guard owner to
+ // approve a stationary talk. It never permits this witness to leave the post.
+ const original=f.archery.plotMeetingSite();for(const row of f.context.guard.guards)f.byId(row.id).root.position.set(...original.actorPoints[row.id]);
+ for(const id of supporterIds){f.begin('political-response',id);f.tick(4);}
+ const refusal=copy(f.core.currentTask().pledges.find(p=>p.actorId===declinedId)),post=witness.root.position.clone(),declinedPost=declined.root.position.clone();
+ assert.equal(refusal.accepted,false);assert.equal(f.service.intent('guard'),null);assert.equal(f.archery.canBorrowForPlot(witness),false);
+ const first=f.service.intent('acclamation');assert(first);assert(first.participantIds.includes(witness.actorId));assert(!first.participantIds.includes(declinedId));
+ assert(first.intentKey.includes('usurpation-guard-witness:'));assert.equal(socialHoldOwner(witness.actorId),null);
+ witness.root.position.z+=4;assert.equal(f.service.resolveIntent(first),null,'Leaving the original post expires its approach');
+ witness.root.position.copy(post);f.flags.yield=true;assert.equal(f.service.intent('acclamation'),null);f.flags.yield=false;
+ const selected=f.service.intent('acclamation');assert(selected);f.player.root.position.set(...selected.position);assert(f.service.executeIntent(selected));
+ assert(socialHoldOwner(witness.actorId));assert.equal(socialHoldOwner(declinedId),null);assert.equal(f.archery.plotMeetingState(f.core.currentTask().id).pending,false);
+ assert.equal(f.service.resolveIntent(selected)?.intentKey,selected.intentKey,'The held original post stays stable while the other witnesses walk');
+ const official=f.byId(selected.participantIds.find(id=>id.startsWith('cn-official'))),before=official.root.position.clone();f.tick(.1);
+ assert(official.root.position.distanceTo(before)<.3,'The other named witness walks rather than teleporting');assert(witness.root.position.equals(post));
+ for(let i=0;i<600&&!f.core.currentTask().preparations.acclamation;i++)f.tick(.1);
+ const task=f.core.currentTask();assert(task.preparations.acclamation);assert(!task.preparations.acclamation.supporterIds.includes(declinedId));
+ assert.deepEqual(task.pledges.find(p=>p.actorId===declinedId),refusal);assert.equal(f.service.intent('guard'),null);assert.equal(task.preparations.guard,null);
+ assert(witness.root.position.equals(post));assert(declined.root.position.equals(declinedPost));assert.equal(socialHoldOwner(declinedId),null);
+ const saved=f.save();f.dispose();const cold=fixture(saved,{declinedId,strictGuardBorrow:true});assert.deepEqual(cold.core.currentTask().pledges.find(p=>p.actorId===declinedId),refusal);
+ assert.equal(cold.core.currentTask().preparations.acclamation.targetId,task.preparations.acclamation.targetId);assert.equal(cold.service.intent('guard'),null);cold.dispose();
+});
 test('original routed witnesses and a task-owned named charter complete one real investiture',()=>{
  const f=fixture();for(const id of supporterIds){f.begin('political-response',id);f.tick(4);}
  const until=predicate=>{for(let i=0;i<900&&!predicate();i++)f.tick(.1);assert(predicate(),JSON.stringify({state:f.service.state(),activity:f.service.snapshot().actions.activity,actors:f.npcs.map(a=>({id:a.actorId,position:a.root.position.toArray(),walking:a.walking}))}));};
  f.begin('guard');until(()=>!!f.core.currentTask().preparations.guard);
  f.begin('acclamation');until(()=>!!f.core.currentTask().preparations.acclamation);
  const witnesses=f.core.currentTask().preparations.acclamation.supporterIds;assert(witnesses.includes('cn-range-warden'));
- assert(f.core.currentTask().preparations.acclamation.targetId.startsWith('usurpation-range-handoff:'));
+ assert(f.core.currentTask().preparations.acclamation.targetId.startsWith('usurpation-guard-witness:'));
  f.begin('mechanism-resolution');until(()=>f.core.currentTask().stage==='ready-for-investiture');
  const caseId=f.core.currentTask().id,selected=f.service.intent('investiture-reading');assert(selected);
- assert(witnesses.every(id=>selected.participantIds.includes(id)));assert(selected.position[0]<-16);
+ assert(witnesses.every(id=>selected.participantIds.includes(id)));
+ const originalWitness=f.byId(witnesses.find(id=>f.context.guard.guards.some(row=>row.id===id))).root.position;
+ assert(Math.abs(selected.position[1]-originalWitness.y)<.3&&Math.hypot(selected.position[0]-originalWitness.x,selected.position[2]-originalWitness.z)<2.8,'Reading stays beside the actual original guard post');
  const document=f.lot.group.getObjectByName('usurpation-charter:'+caseId);assert(document?.isObject3D);
  assert.equal(document.userData.caseId,caseId);assert.equal(document.userData.holderBodyId,f.player.bodyId);
  f.player.root.position.set(...selected.position);assert(f.service.prepareIntent(selected));assert.equal(document.visible,true);
