@@ -74,3 +74,15 @@ npm run test:door-geometry -- --tiny
 ### TR03旅行定向入口
 
 `travel-journey-main.cjs`只构造原世界球，测试实际main按钮/hash、原护照、登机/飞行/入境及拒写；输出`qa/travel-main/departure-checkpoint.json`。`travel-arrival-main.cjs`默认从唯一已验fixture冷恢复；`TRAVEL_MAIN_FROM`可选同号续点，`TRAVEL_MAIN_TARGETS`只用于明确要核的国家接点，分别覆盖按钮/hash，不默认重跑四国。`TRAVEL_MAIN_REFUSE_ARRIVAL=1`只用于已入境待抵达档的最后保存拒写；`TRAVEL_MAIN_CANCEL_AT_END=1`核原当前国出境前取消拒写/成功。该脚本逐个成功地区保存`arrival-checkpoint.json`，与departure输出独立；最终唯一fixture保4已抵达+1已取消及7章，普通日期/钱包不改变。所有场景仍按共享串行锁、180秒/1152MiB/Node768守卫；模拟DOM/renderer不是browser/iOS画面接受。
+
+### CR04同案筹谋定向入口
+
+`palace-usurpation-ledger.mjs`检查独立政治回应、三种可组合准备、原帝任次/实际凭据、拒写冷恢复、失败冷却与唯一授位；`palace-usurpation-ui.mjs`为模拟DOM，核定性显示、旧按钮与取消保案；`china-usurpation-context.mjs`只核真实支持/成年身份/已完工序来源及不抢房的住所投影。这些测试不能替代生产main的实际多人到场、御膳消费、登位后帝务或浏览器视觉。本批新链已完成分段main验证并启用，统一使用现有串行共享锁与资源守卫。
+
+`china-usurpation-main.cjs`一次仅进入中国，历史一般支持通过原公开服务/交谈writer构造并明确staged，政治回应和路线实际执行；首段在03保存`qa/usurpation-main/checkpoint.json`，唯一必要Git续点为`tests/fixtures/usurpation-main-checkpoint.json`。用`USURPATION_MAIN_FROM=tests/fixtures/usurpation-main-checkpoint.json`核独立冷恢复，不重一般支持或路线；`USURPATION_MAIN_FRESH=1`只在明确需重建首段时使用。测试可临时开启旧阶段的开关；生产现已启用同一完整链，TR03原开关保持。三筹备/登位/帝务证据分阶段保留，不把原月容实际拒绝改成成功。`china-usurpation-scene.mjs`是实际寻路/身体/纸物组件夹具，不是整宫main或浏览器视觉。
+
+CR04 独立成功输入使用 `USURPATION_MAIN_SCENARIO=success`，唯一独立续点 `tests/fixtures/usurpation-main-success-checkpoint.json`；与原两卫拒绝档不混用。前提来源/纯 seed 筛选完整记录在 journal，原失败档逐次 SHA 校验。历史 `PHASE=mechanisms` 的真实原卫集结等证据见对应 Git 阶段；当前唯一成功档已到最终 s11，不重新跑这些早期阶段。
+
+CR04 成功档已由真实 main 完成两卫集结、三官对质、具名拥立和同案固定决议。仅终验 `USURPATION_MAIN_PHASE=handoff-reject` 可另设 `USURPATION_MAIN_STAGE_HANDOFF=1`，使用 `fixtures/usurpation-main-handoff-ready.cjs` 明示原两卫安全交班可接待前提；它不生成政治/巡查/工资原据，journal 保存精确字段差异及来源。后续 `handoff-retry`、`imperial-court`、`imperial-edict`、`imperial-cold` 从同一独立成功续点冷恢复，不再次设交班标志。原拒绝档始终独立。
+
+CR04 最终已启用；生产main从原31身体执行并保存两份独立合成档：原 seed42 拒绝/御膳档和 seed571 明示staged成功前提档，不能混用或重抽原拒绝。后者当前为 s11（唯一授位、玩家真实朝会与同号原令御批已冷恢复），直接核最终冷恢复用 `USURPATION_MAIN_SCENARIO=success USURPATION_MAIN_FROM=tests/fixtures/usurpation-main-success-checkpoint.json USURPATION_MAIN_PHASE=imperial-cold`；不得对该终态再设 STAGE_HANDOFF 或重新跑早期机制。阶段证据沿各Git提交恢复，不将所有历史阶段串成常规回归。主程序仍是模拟DOM/renderer，并非浏览器/iOS视觉验收。

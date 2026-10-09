@@ -39,7 +39,7 @@ export function createChinaRoyalPlayerMeal({kitchen,furniture,getPlayer,getMount
   return {id:'cn-royal-player-meal-'+kind,provider,kind,seatId:s.id,name:'御膳餐厅',targetKey:'cn-royal-player-meal',targetName:'御膳餐厅',
    action:kind==='resume'?'回到原餐位 · 继续御膳':kind==='request'?`在${name(s)}请一份御膳`:kind==='eat'?'享用送来的御膳':kind==='cancel'?'取消这份御膳':LABELS[o.stage],
    position:position.slice(),executionRadius:['request','resume'].includes(kind)&&!mounted? .016 : .35,interactionRadius:2.1,keepSeat:mounted,priority:48,
-   intentKey:[kind,o?.id||'-',o?.stage||'-',s.id,mounted,eligibility?.appointmentId||'-',eligibility?.appointmentReceiptId||'-'].join('|')};
+   intentKey:[kind,o?.id||'-',o?.stage||'-',s.id,mounted,eligibility?.appointmentId||'-',eligibility?.appointmentReceiptId||'-',eligibility?.caseId||'-',eligibility?.bodyId||'-',eligibility?.officeRevision??'-',eligibility?.investitureReceiptId||'-'].join('|')};
  }
  // Nearby HUD discovery needs only original points until the player is close.
  // Explicit menu/route requests still run the full current eligibility and seat check.
@@ -85,7 +85,7 @@ export function createChinaRoyalPlayerMeal({kitchen,furniture,getPlayer,getMount
   const v=view(),o=v.order;
   return {id:provider,title:'御膳餐厅',subtitle:'清蒸时蔬饭 · 一份正餐',status:v.error||v.label,
    detail:o?`第${o.number}号 · ${name(seats.find(s=>s.id===o.seatId))}`:`储备余 ${v.supply.remaining} 份`,
-   note:o?'起身取消未吃完的御膳':'完成册封宣读的成年人可请膳',
+   note:o?'起身取消未吃完的御膳':'已正式册封或登位的成年皇室成员可请膳',
    items:o?[]:v.seats.map(s=>({...s,intent:intent('request',s.id),disabled:!s.available})),
    primary:o&&kitchen.waitingForSeat?.()?intent('resume'):o?.stage==='served'?intent('eat'):null,secondary:o?intent('cancel'):null,progress:v.progress};
  }

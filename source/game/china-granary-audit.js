@@ -1,6 +1,7 @@
 // Xu checks already-settled official duty receipts. This metadata journal has
 // no authority to pay wages, spend personal balances, or create a treasury.
 import {CHINA_COURT_OFFICIAL_RANKS} from './china-official-ranks.js';
+import {readCourtAuthority,sameCourtAuthority,sameCourtReceiptAuthority,validCourtRecipientProof} from './china-court-reports.js';
 
 export const CHINA_GRANARY_AUDITOR = 'cn-minister-granary';
 export const CHINA_GRANARY_AUDIT_POINT = Object.freeze([24, .215, 32.5]);
@@ -20,7 +21,7 @@ const serial = id => typeof id === 'string' && /^official-[1-9][0-9]*$/.test(id)
 const batchSerial = id => typeof id === 'string' && /^cn-granary-audit-[1-9][0-9]*$/.test(id) && positive(Number(id.slice(17))) ? Number(id.slice(17)) : null;
 const reportFor = (batch, day) => ({batchId: batch.id, reporterId: CHINA_GRANARY_AUDITOR, day});
 const validRef = ref => object(ref) && identifier(ref.batchId) && ref.reporterId === CHINA_GRANARY_AUDITOR && integer(ref.day) && same(ref, reportFor({id: ref.batchId}, ref.day));
-const completeProof = proof => object(proof) && proof.reporterId === CHINA_GRANARY_AUDITOR && proof.recipientId === RECIPIENT && proof.reportSeconds === 6 && proof.responseSeconds === 4;
+const completeProof = proof => object(proof) && proof.reporterId === CHINA_GRANARY_AUDITOR && validCourtRecipientProof(proof) && proof.reportSeconds === 6 && proof.responseSeconds === 4;
 
 // Deliberately allowlist nested fields too. No balance, payment destination,
 // meal/salon receipt, or arbitrary source property can enter an audit batch.
@@ -48,8 +49,9 @@ function inspectionFor(proof) {
       !Number.isFinite(proof.elapsed) || proof.elapsed < proof.duration) return null;
   return {actorId: CHINA_GRANARY_AUDITOR, position: proof.position.slice(), elapsed: proof.elapsed, duration: proof.duration};
 }
-function receivedFor(batch, ref) {
-  return {version: 1, ...reportFor(batch, ref.day), recipientId: RECIPIENT, reportSeconds: 6, responseSeconds: 4};
+function receivedFor(batch, ref, proof = ref) {
+  return {version: 1, ...reportFor(batch, ref.day), recipientId: proof.recipientId ?? RECIPIENT,
+    ...(Object.hasOwn(proof, 'authority') ? {authority: {...proof.authority}} : {}), reportSeconds: 6, responseSeconds: 4};
 }
 function restore(value) {
   if (!object(value) || value.version !== 1 || typeof value.enabled !== 'boolean' || !(value.baseline === null || integer(value.baseline)) ||
@@ -79,7 +81,7 @@ function restore(value) {
     if (batch.result !== null && (!inspectionFor(batch.result) || !same(inspectionFor(batch.result), batch.result))) throw Error('invalid-saved-state');
     if (Object.hasOwn(batch, 'received')) {
       const r = batch.received;
-      if (!batch.result || !object(r) || !integer(r.day) || r.day < Math.max(...batch.receipts.map(row => row.day)) || !same(r, receivedFor(batch, r))) throw Error('invalid-saved-state');
+      if (!batch.result || !object(r) || !completeProof(r) || !integer(r.day) || r.day < Math.max(...batch.receipts.map(row => row.day)) || !same(r, receivedFor(batch, r))) throw Error('invalid-saved-state');
     } else if (i !== value.batches.length - 1) throw Error('invalid-saved-state');
     previous = batch;
   }
@@ -103,7 +105,7 @@ function restore(value) {
  * report()/restoreReport() only bind an ephemeral exact-day audience header;
  * they cannot freeze receipts, complete an audit, or acknowledge a report.
  */
-export function createChinaGranaryAudit({readReceipts = () => null, saved, saveState} = {}) {
+export function createChinaGranaryAudit({readReceipts = () => null, readAuthority = null, saved, saveState} = {}) {
   if (typeof readReceipts !== 'function' || saveState !== undefined && typeof saveState !== 'function') throw TypeError('granary audit requires synchronous callbacks');
   let current = null, loadError = null, busy = false;
   const preparedReports = new Map();
@@ -235,13 +237,15 @@ export function createChinaGranaryAudit({readReceipts = () => null, saved, saveS
       const batch = validReport(ref);
       if (!batch) return failure('invalid-report');
       if (!completeProof(proof) || proof.reporterId !== ref.reporterId) return failure('invalid-proof');
-      if (batch.received && !same(batch.received, receivedFor(batch, ref))) return failure('receipt-conflict');
+      if (batch.received && (!sameCourtReceiptAuthority(batch.received, proof, readAuthority) || !same(batch.received, receivedFor(batch, ref, batch.received)))) return failure('receipt-conflict');
+      if (!batch.received && readAuthority !== null && !sameCourtAuthority(proof.authority, readCourtAuthority(readAuthority))) return failure('authority-changed');
+      if (!batch.received && readAuthority === null && Object.hasOwn(proof, 'authority')) return failure('invalid-proof');
       if (!batch.received && !same(ref, preparedReports.get(batch.id))) return failure('report-not-prepared');
       busy = true;
       try {
         if (!matchesSources([batch])) return failure('source-mismatch');
         if (batch.received) return {ok: true, replayed: true};
-        const candidate = snapshot(); candidate.batches.find(item => item.id === batch.id).received = receivedFor(batch, ref);
+        const candidate = snapshot(); candidate.batches.find(item => item.id === batch.id).received = receivedFor(batch, ref, proof);
         const result = persist(candidate);
         if (result.ok) preparedReports.delete(batch.id);
         return result;

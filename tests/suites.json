@@ -403,6 +403,14 @@
       "npc-social-ownership.mjs",
       "npc-public-interactions.mjs",
       "palace-companionship.mjs",
+      "palace-usurpation-ledger.mjs",
+      "palace-usurpation-entitlement.mjs",
+      "palace-usurpation-ui.mjs",
+      "china-usurpation-context.mjs",
+      "china-usurpation-actions.mjs",
+      "china-sovereign-duty-authority.mjs",
+      "china-usurpation-scene.mjs",
+      "china-usurpation-guard-meeting.mjs",
       "china-salon-companionship.mjs",
       "bath-privacy.mjs",
       "hidden-social-state.mjs",
@@ -658,7 +666,8 @@
       "china-personnel-career.mjs",
       "china-personnel-appointment.mjs",
       "china-personnel-main.cjs",
-      "china-personnel-main-save.cjs"
+      "china-personnel-main-save.cjs",
+      "china-usurpation-main.cjs"
     ]
   },
   "release": {
