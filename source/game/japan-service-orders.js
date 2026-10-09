@@ -337,7 +337,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   linenDuty:()=>staffDuties.has('linen')?clone(staffDuties.get('linen')):null,
   linenReceipts:receiptId=>clone(state.linenReceipts.filter(r=>!receiptId||r.workReceiptId===receiptId)),
   linenTick(dt){if(disposed||!Number.isFinite(dt)||dt<=0||!state.linens.some(l=>l.stage==='drying'&&l.dryingElapsed<JAPAN_LINEN_DRY_SECONDS))return false;return transaction(()=>{for(const l of state.linens)if(l.stage==='drying')l.dryingElapsed=Math.min(JAPAN_LINEN_DRY_SECONDS,l.dryingElapsed+Math.min(.1,dt));});},
-  releaseLinenDuty(receiptId){if(staffDuties.get('linen')?.receiptId!==receiptId)return true;return transaction(()=>{releaseLinenCarrier('player');staffDuties.delete('linen');});},
+  releaseLinenDuty(receiptId){if(staffDuties.has('linen')&&staffDuties.get('linen').receiptId!==receiptId)return false;return transaction(()=>{releaseLinenCarrier('player');staffDuties.delete('linen');});},
   releaseLinenWorker(actorId){if(!['player','jp-rest'].includes(actorId))return false;return transaction(()=>releaseLinenCarrier(actorId));},
   spawnDining({appearance,dishId,position,restPoint,diningPoint,servePoint,mealPoint,restSeatId,paymentId,currency='japan',price}={}) {
    const dish=JAPAN_DINING_MENU.find(d=>d.id===dishId),points=[position,restPoint,diningPoint,servePoint,mealPoint];

@@ -262,6 +262,7 @@
       "japan-linen-role-contracts.mjs",
       "japan-linen-main.cjs",
       "japan-linen-ledger.mjs",
+      "japan-linen-duty.mjs",
       "npc-bed-occupancy.mjs",
       "npc-guest-funds-departure.mjs",
       "npc-guest-funds-main.cjs",
