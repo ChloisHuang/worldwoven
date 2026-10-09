@@ -136,7 +136,7 @@ function click(selected){
  assert(button&&!button.disabled,selected.id+' real panel button');button.onclick();return button;
 }
 try{
- if(done('03-political-response')&&(!['political','support','kitchen-apply','kitchen-meal'].includes(process.env.USURPATION_MAIN_PHASE)||!done('04-cold-same-case'))){
+ if(done('03-political-response')&&(!['political','support','kitchen-apply','kitchen-meal','kitchen-finish'].includes(process.env.USURPATION_MAIN_PHASE)||!done('04-cold-same-case'))){
   assert(coldInput,'Cold check must come from the persisted same-case checkpoint');
   assert.deepEqual(clone(core.snapshot()),coldInput,'Cold main restores exact committed political history');
   assert.equal(task().id,journal.caseId);assert.deepEqual(clone(task().pledges),journal.pledges);
@@ -230,6 +230,43 @@ try{
    if(checkpoint('k08-intrigue-original-consumed',{orderId:order().id,mealId:order().mealId,eatingSeconds:order().eatingSeconds,receiptId:receipt.id,storyActionId:receipt.storyActionId,staged:false}))return;
   }
   console.log(JSON.stringify({status:'PASS',scope:'Original emperor requested, player prepared and delivered, fictional six-second action and original at-least-twelve-second consumption complete; no source order or political outcome staged',checkpoint:checkpointPath,completed:journal.completed}));return;
+ }
+ if(process.env.USURPATION_MAIN_PHASE==='kitchen-finish'){
+  assert(done('k08-intrigue-original-consumed'));assert.deepEqual(clone(core.snapshot()),coldInput);
+  const kitchen=r.chinaRoyalKitchen,employment=r.chinaRoyalKitchenEmployment,receiptId='cn-royal-kitchen-labor-1',intrigue=clone(task().preparations.intrigue);
+  const waitFor=(predicate,label,limit=2000)=>{
+   leg=label;for(let i=0;i<limit&&!predicate();i++){
+    if(Date.now()-started>132000){checkpoint('kitchen-finish-progress-'+Math.floor(r.simulationClock.state().seconds),{incomplete:true,leg,receiptId});console.log(JSON.stringify({status:'CHECKPOINT',scope:'Same original kitchen shift is still being safely settled',checkpoint:checkpointPath}));return false;}step();
+   }assert(predicate(),label+' incomplete; see diagnostic.json');return true;
+  };
+  const request=kind=>{r.palaceUsurpationUI.close();r.careerHandbook.close();const next=employment.intent(kind);assert(next,kind+' original employment intent');assert(main.namespace.requestStationIntent(next));return next;};
+  if(!done('k09-original-work-handed-back')){
+   assert.equal(employment.state().job?.receiptId,receiptId);
+   for(let i=0;i<18&&employment.state().job?.stage==='working';i++){
+    if(kitchen.canEndDuty(receiptId)){
+     request('end-shift');if(!waitFor(()=>employment.state().job?.stage==='ready'||employment.state().waiting&&!kitchen.canEndDuty(receiptId),'return to original Jia for safe shift handover'))return;
+    }else{
+     if(!waitFor(()=>!!employment.intent('task')||kitchen.canEndDuty(receiptId),'finish only already accepted original royal slips'))return;
+     if(kitchen.canEndDuty(receiptId))continue;
+     const next=request('task').work,before=kitchen.lookupMeal(next.orderId,next.actorId).stage;
+     if(!waitFor(()=>kitchen.lookupMeal(next.orderId,next.actorId).stage!==before,'complete accepted original slip '+next.key))return;
+    }
+   }
+   assert.equal(employment.state().job?.stage,'ready');assert.deepEqual(clone(task().preparations.intrigue),intrigue);
+   if(checkpoint('k09-original-work-handed-back',{receiptId,coveredSeconds:employment.state().job.coveredSeconds,completedOrders:employment.state().job.completedOrders,staged:false}))return;
+  }
+  if(!done('k10-original-shift-paid')){
+   request('claim');if(!waitFor(()=>!employment.state().job&&r.formalCareers.state().lastDuty.stage==='paid','original Jia inspects and settles the existing attendance wage'))return;
+   const duty=r.formalCareers.state().lastDuty;assert.equal(duty.workReceiptId,receiptId);assert(duty.wage>=0);
+   if(checkpoint('k10-original-shift-paid',{receiptId,wage:duty.wage,coveredSeconds:duty.coveredSeconds,questReward:false,staged:false}))return;
+  }
+  if(!done('k11-original-kitchen-resigned')){
+   request('formal-resign');if(!waitFor(()=>!r.formalCareers.state().tenure,'leave the settled original job through original registration'))return;
+   assert.equal(employment.state().job,null);assert.deepEqual(clone(task().preparations.intrigue),intrigue);
+   assert.equal(contextNow().safety.oldWorkSettled,true);assert.equal(kitchen.state().jia.released,false);
+   if(checkpoint('k11-original-kitchen-resigned',{receiptId,caseId:journal.caseId,intriguePreserved:true,oldWorkSettled:true,originalJiaReturned:true}))return;
+  }
+  console.log(JSON.stringify({status:'PASS',scope:'Same original accepted dishes completed, Jia handover and existing wage settled, original formal resignation; same intrigue evidence retained',checkpoint:checkpointPath,completed:journal.completed}));return;
  }
  if(['political','support'].includes(process.env.USURPATION_MAIN_PHASE)){
   assert(done('04-cold-same-case'),'Resume the remotely preserved cold checkpoint');
