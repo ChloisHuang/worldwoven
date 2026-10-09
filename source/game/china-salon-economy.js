@@ -76,7 +76,7 @@ export function createChinaSalonEconomy({saved,copperLedger,officialEconomy=null
  // Optional dormant receptionist participant: the original payer save owns all
  // four legs (payer, artist, business expense and receptionist private income).
  function prepareReception(receipt){
-  if(!receipt.receptionWork)return {ok:true,patch:{},valid:()=>true,lock:()=>true,release(){},committed:()=>true};
+  if(!receipt.receptionWork||receipt.receptionWork.actorId==='player')return {ok:true,patch:{},valid:()=>true,lock:()=>true,release(){},committed:()=>true};
   const account=getReceptionAccount();
   if(!account||account.loadError)return {ok:false,code:account?.loadError||'reception-account-unavailable'};
   return account.prepareWage({proof:receipt.receptionWork,settlementReceipt:receipt});
