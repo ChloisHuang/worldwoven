@@ -274,7 +274,10 @@ try{
    }
    if(!waitHandoff(()=>task().stage==='invested','same receipt commits unique office after original witnesses gather'))return;
    step();const office=core.office(),receipt=task().investiture.receipt;
-   assert.deepEqual(clone(receipt),journal.rejectedInvestiture);assert.equal(office.actorId,'player');assert.equal(office.bodyId,bodyId(r.player));assert.equal(office.revision,1);
+   // The ledger canonicalizes unordered identity lists before persistence.
+   // Compare all original fields after that same ordering, including nested safe handoff.
+   const canonicalReceipt=value=>{const next=clone(value);for(const key of ['participants','guardIds','officialIds','supporterIds'])if(Array.isArray(next[key]))next[key].sort(key==='participants'?(a,b)=>String(a.actorId).localeCompare(String(b.actorId)):undefined);if(next.safeHandoff)next.safeHandoff=canonicalReceipt(next.safeHandoff);return next;};
+   assert.deepEqual(canonicalReceipt(receipt),canonicalReceipt(journal.rejectedInvestiture));assert.equal(office.actorId,'player');assert.equal(office.bodyId,bodyId(r.player));assert.equal(office.revision,1);
    assert.equal(office.formerEmperors.length,1);assert.equal(office.formerEmperors[0].actorId,'cn-emperor');assert.equal(office.formerEmperors[0].bodyId,bodyId(originals.get('cn-emperor')));assert.equal(office.formerEmperors[0].alive,true);
    assert.notEqual(office.residence.roomId,office.formerEmperors[0].residence.roomId);assert.equal(physical.state().pendingProofs.length,0);
    const frozen=clone(core.snapshot()),again=core.investiture(journal.caseId,receipt);assert(again.ok&&again.replayed);assert.deepEqual(clone(core.snapshot()),frozen);
