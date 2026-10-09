@@ -263,6 +263,8 @@
       "japan-table-service-role-contracts.mjs",
       "japan-bedding-main.cjs",
       "japan-bedding-ledger.mjs",
+      "japan-bedding-duty.mjs",
+      "japan-bedding-props.mjs",
       "japan-boiler-main.cjs",
       "japan-boiler-maintenance.mjs",
       "japan-boiler-duty.mjs",

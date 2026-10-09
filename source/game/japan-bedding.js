@@ -10,7 +10,7 @@ const near=(p,q)=>Array.isArray(p)&&p.length===3&&p.every(Number.isFinite)&&Math
 const origin='bathhouse-owned-opening-bedding-v1';
 const opening=()=>({version:1,nextUse:1,use:null,sets:[1,2].map(n=>({id:`jp-bedding-${n}`,origin,stage:n===1?'installed':'incoming',station:n===1?'guest':'receiving',carryOwner:null,cycle:0,visitId:null,customerName:'客房旅人',dryingElapsed:0,steps:[]})),receipts:[]});
 export function createJapanBedding({saved=null,worldSeed=1,saveState=()=>true,authorized=()=>false}={}){
- let data=opening(),loadError=null,invalidSaved=null;
+ let data=opening(),loadError=null,invalidSaved=null,liveOccupied=false;
  const set=id=>data.sets.find(s=>s.id===id),guest=s=>['installed','dirty'].includes(s.stage),snapshot=()=>copy(loadError?invalidSaved:data);
  const visitId=id=>typeof id==='string'&&new RegExp(`^jp-bedding-use-${worldSeed>>>0}-[1-9][0-9]*$`).test(id)&&serial(Number(id.split('-').at(-1)));
  function valid(s){
@@ -23,6 +23,7 @@ export function createJapanBedding({saved=null,worldSeed=1,saveState=()=>true,au
    if(x.cycle===0?x.visitId!==null:!visitId(x.visitId)||Number(x.visitId.split('-').at(-1))>=s.nextUse)return false;
    if(['incoming','received'].includes(x.stage)&&(x.id!=='jp-bedding-2'||x.cycle!==0||x.station!=='receiving'))return false;
    if(guest(x)&&x.station!=='guest'||['incoming','installed','dirty','drying','clean'].includes(x.stage)&&x.carryOwner!==null)return false;
+   if(x.stage==='received'&&x.carryOwner!==CLERK)return false;
    if(x.stage==='delivering'&&(x.station!=='restock'||x.carryOwner!==CLERK))return false;
    if(x.carryOwner===CLERK&&!['received','delivering'].includes(x.stage)||[HOST,'player'].includes(x.carryOwner)&&!['collected','wet','dry','folded'].includes(x.stage))return false;
    if(x.carryOwner){if(owners.has(x.carryOwner))return false;owners.add(x.carryOwner);}
@@ -34,9 +35,12 @@ export function createJapanBedding({saved=null,worldSeed=1,saveState=()=>true,au
   const ids=new Set();for(const r of s.receipts){if(!obj(r)||r.source!=='japan-linen'||!['jp-bedding-1','jp-bedding-2'].includes(r.linenId)||!serial(r.cycle)||!visitId(r.visitId)||!workId(r.workReceiptId)||r.id!==`${r.linenId}-cycle-${r.cycle}-${r.workReceiptId}`||r.customerName!=='客房旅人'||r.completed!==true||r.accurate!==true||r.outcome!=='completed'||ids.has(`${r.linenId}:${r.cycle}`)||r.cycle>s.sets.find(x=>x.id===r.linenId).cycle)return false;ids.add(`${r.linenId}:${r.cycle}`);}
   return true;
  }
- function restore(s){if(!valid(s))return false;data=copy(s);loadError=null;invalidSaved=null;return true;}
+ function restore(s){if(!valid(s))return false;data=copy(s);liveOccupied=liveOccupied||!!data.use;loadError=null;invalidSaved=null;return true;}
  function tx(fn){if(loadError)return false;const prior=copy(data);try{if(fn()===false){data=prior;return false;}const result=saveState(copy(data));if(result===false||result?.then){if(result?.then)Promise.resolve(result).catch(()=>{});data=prior;return false;}return true;}catch{data=prior;return false;}}
  function observeUse(dt,mounted){
+  // Physical occupancy is a safety signal, not a successful-save side effect.
+  // A rejected use write must never permit stripping/installing under the player.
+  liveOccupied=!!mounted;
   if(loadError||!Number.isFinite(dt)||dt<0)return false;
   if(!mounted&&!data.use||mounted&&data.use?.used)return true;
   return tx(()=>{
@@ -47,7 +51,7 @@ export function createJapanBedding({saved=null,worldSeed=1,saveState=()=>true,au
  }
  function wash(id,stage,actor,e){
   const x=set(id),station={dirty:'guest',collected:'wash',wet:'hang',drying:'take',dry:'fold',folded:'restock'}[stage];
-  if(!x||x.stage!==stage||!station||e.nextStage!==NEXT[stage]||e.expectedCycle!==x.cycle||!authorized(actor,e)||x.carryOwner&&x.carryOwner!==actor||data.sets.some(y=>y!==x&&y.carryOwner===actor)||!near(e.position,JAPAN_BEDDING_POINTS[station])||stage==='dirty'&&data.use||stage==='drying'&&x.dryingElapsed<8||['collected','wet','dry','folded'].includes(stage)&&x.carryOwner!==actor)return false;
+  if(!x||x.stage!==stage||!station||e.nextStage!==NEXT[stage]||e.expectedCycle!==x.cycle||!authorized(actor,e)||x.carryOwner&&x.carryOwner!==actor||data.sets.some(y=>y!==x&&y.carryOwner===actor)||!near(e.position,JAPAN_BEDDING_POINTS[station])||stage==='dirty'&&(data.use||liveOccupied)||stage==='drying'&&x.dryingElapsed<8||['collected','wet','dry','folded'].includes(stage)&&x.carryOwner!==actor)return false;
   x.steps.push({stage,actorId:actor,receiptId:actor==='player'?e.receiptId:null});x.stage=NEXT[stage];x.station=station;x.carryOwner=['collected','wet','dry','folded'].includes(x.stage)?actor:null;
   if(x.stage==='drying')x.dryingElapsed=0;
   if(x.stage==='clean'&&actor==='player'&&x.steps.every(s=>s.actorId==='player'&&s.receiptId===e.receiptId)){const id=`${x.id}-cycle-${x.cycle}-${e.receiptId}`;data.receipts.push({source:'japan-linen',id,workReceiptId:e.receiptId,linenId:x.id,cycle:x.cycle,visitId:x.visitId,customerName:x.customerName,completed:true,accurate:true,outcome:'completed'});}
@@ -55,18 +59,18 @@ export function createJapanBedding({saved=null,worldSeed=1,saveState=()=>true,au
  function receive(id,stage,e){const x=set(id);if(!x||x.stage!==stage||e.expectedCycle!==x.cycle)return false;
   if(stage==='incoming'){if(data.sets.some(y=>y.carryOwner===CLERK)||!near(e.position,JAPAN_BEDDING_POINTS.receiving))return false;x.stage='received';x.carryOwner=CLERK;}
   else if(stage==='received'){if(x.carryOwner&&x.carryOwner!==CLERK||!near(e.position,JAPAN_BEDDING_POINTS.restock))return false;x.stage='clean';x.station='restock';x.carryOwner=null;}
-  else if(stage==='clean'){if(data.use||data.sets.some(y=>guest(y)||y.stage==='delivering'||y.carryOwner===CLERK)||!near(e.position,JAPAN_BEDDING_POINTS.restock))return false;x.stage='delivering';x.carryOwner=CLERK;}
+  else if(stage==='clean'){if(data.use||liveOccupied||data.sets.some(y=>guest(y)||y.stage==='delivering'||y.carryOwner===CLERK)||!near(e.position,JAPAN_BEDDING_POINTS.restock))return false;x.stage='delivering';x.carryOwner=CLERK;}
   else if(stage==='delivering'&&e.returnToStock){if(x.carryOwner!==CLERK||!near(e.position,JAPAN_BEDDING_POINTS.restock))return false;x.stage='clean';x.station='restock';x.carryOwner=null;}
-  else if(stage==='delivering'){if(data.use||data.sets.some(guest)||x.carryOwner!==CLERK||!near(e.position,JAPAN_BEDDING_POINTS.guest))return false;x.stage='installed';x.station='guest';x.carryOwner=null;}
+  else if(stage==='delivering'){if(data.use||liveOccupied||data.sets.some(guest)||x.carryOwner!==CLERK||!near(e.position,JAPAN_BEDDING_POINTS.guest))return false;x.stage='installed';x.station='guest';x.carryOwner=null;}
   else return false;
  }
- const work=()=>loadError?[]:data.sets.filter(x=>WASH.includes(x.stage)&&!(x.stage==='dirty'&&data.use)).map(x=>({...copy(x),bedding:true,position:JAPAN_BEDDING_POINTS[x.station].slice()}));
- const api={snapshot,state:()=>loadError?{...copy(data),loadError}:copy(data),restore,observeUse,work,
+ const work=()=>loadError?[]:data.sets.filter(x=>WASH.includes(x.stage)&&!(x.stage==='dirty'&&(data.use||liveOccupied))).map(x=>({...copy(x),bedding:true,position:JAPAN_BEDDING_POINTS[x.station].slice()}));
+ const api={snapshot,state:()=>({...copy(data),occupied:liveOccupied||!!data.use,...(loadError?{loadError}:{})}),restore,observeUse,work,
   advance:(id,stage,actor,e={})=>tx(()=>wash(id,stage,actor,e)),
   claim(id,actor,e={}){return tx(()=>{const x=set(id);if(!x||!['collected','wet','dry','folded'].includes(x.stage)||x.carryOwner||x.cycle!==e.expectedCycle||!authorized(actor,e)||data.sets.some(y=>y.carryOwner===actor)||!near(e.position,JAPAN_BEDDING_POINTS[x.station]))return false;x.carryOwner=actor;});},
   releaseCarrier(actor){return tx(()=>{for(const x of data.sets)if(x.carryOwner===actor){if(actor===CLERK){x.stage=x.stage==='delivering'?'clean':'incoming';x.station=x.stage==='clean'?'restock':'receiving';}x.carryOwner=null;}});},
   tick(dt){if(!Number.isFinite(dt)||dt<=0||!data.sets.some(x=>x.stage==='drying'&&x.dryingElapsed<8))return false;return tx(()=>{for(const x of data.sets)if(x.stage==='drying')x.dryingElapsed=Math.min(8,x.dryingElapsed+Math.min(.1,dt));});},
-  receivingWork(){if(loadError)return [];const held=data.sets.find(x=>x.carryOwner===CLERK);return copy(held?[held]:data.sets.filter(x=>x.stage==='incoming'||x.stage==='clean'&&!data.use&&!data.sets.some(y=>guest(y)||y.stage==='delivering')));},
+  receivingWork(){if(loadError)return [];const held=data.sets.find(x=>x.carryOwner===CLERK);return copy(held?[held]:data.sets.filter(x=>x.stage==='incoming'||x.stage==='clean'&&!data.use&&!liveOccupied&&!data.sets.some(y=>guest(y)||y.stage==='delivering')));},
   receive:(id,stage,e)=>tx(()=>receive(id,stage,e)),
   receipts:id=>loadError?[]:copy(data.receipts.filter(r=>!id||r.workReceiptId===id)),
   status:()=>({bedId:JAPAN_GUEST_BED,available:!loadError&&data.sets.some(x=>x.stage==='installed'),message:loadError?'寝具记录待恢复，原榻仍可休息':'寝具正在洗护，原榻仍可休息；洗净后会换回'})

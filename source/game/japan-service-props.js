@@ -129,10 +129,11 @@ export function createJapanServiceProps(parent) {
     else if(['hang','take'].includes(linen.station)){g.position.set(5.2,12.3,1.68);}
     else {g.position.set(p[0]+(linen.side==='men'?-.38:.38),p[1]+.8+index*.012,p[2]);}
    }
-   if(guestQuilt&&state.bedding?.sets)guestQuilt.visible=!!state.bedding.loadError||state.bedding.sets.some(b=>['installed','dirty'].includes(b.stage)&&!b.carryOwner);
+   const beddingSets=!state.bedding?.loadError&&Array.isArray(state.bedding?.sets)?state.bedding.sets:[];
+   if(guestQuilt)guestQuilt.visible=!!state.bedding?.loadError||!Array.isArray(state.bedding?.sets)||beddingSets.some(b=>['installed','dirty'].includes(b.stage)&&!b.carryOwner);
    // Two ledger-owned sets only. The installed set is represented by the
    // original authored futon; never place a second mattress over that mesh.
-   for(const bedding of state.bedding?.sets||[]){
+   for(const bedding of beddingSets){
     seen.add(bedding.id);let g=objects.get(bedding.id);
     if(!g){
      g=new THREE.Group();g.name=bedding.id;g.userData={beddingId:bedding.id};

@@ -22,3 +22,12 @@ const valid=b.snapshot();for(const mutate of [s=>s.sets.push(structuredClone(s.s
 // A newly occupied bare futon makes Nao return the same carried clean cover.
 for(let i=0;i<102;i++)b.observeUse(.1,true);b.observeUse(0,false);assert(b.advance(id,'dirty','jp-rest',{expectedCycle:2,nextStage:'collected',position:P.guest}));assert(receive('jp-bedding-2','clean',P.restock));assert(b.observeUse(.1,true));assert.equal(receive('jp-bedding-2','delivering',P.guest),false);assert(receive('jp-bedding-2','delivering',P.restock,{returnToStock:true}));assert.equal(find('jp-bedding-2').stage,'clean');assert(b.observeUse(0,false));assert.equal(find('jp-bedding-2').cycle,0);
 console.log('PASS two owned identities, real sustained use/release, short-rest exclusion, original cycle cold restore, six wash stages, same-set receipt, finite receiving/install, occupied fallback return, atomic rejection and corrupt-state quarantine');
+// Live occupation is safety evidence even when its durable identity write fails.
+let rejectUse=true;const guarded=create({saveState:()=>!rejectUse});assert.equal(guarded.observeUse(.1,true),false);assert.equal(guarded.state().use,null);assert.equal(guarded.state().occupied,true);
+rejectUse=false;assert(guarded.receive('jp-bedding-2','incoming',{position:P.receiving,expectedCycle:0}));assert(guarded.receive('jp-bedding-2','received',{position:P.restock,expectedCycle:0}));
+// Set up an empty futon with Nao carrying the same real second set.
+const empty=guarded.snapshot();empty.sets[0].stage='clean';empty.sets[0].station='restock';assert(guarded.restore(empty));assert(guarded.observeUse(0,false));assert(guarded.receive('jp-bedding-2','clean',{position:P.restock,expectedCycle:0}));rejectUse=true;assert.equal(guarded.observeUse(.1,true),false);rejectUse=false;
+assert.equal(guarded.receive('jp-bedding-2','delivering',{position:P.guest,expectedCycle:0}),false,'never install under real occupant after failed use save');assert(guarded.receive('jp-bedding-2','delivering',{position:P.restock,expectedCycle:0,returnToStock:true}));assert.deepEqual(guarded.receivingWork(),[]);
+// Dirty cover cannot be collected under that same unsaved real occupant.
+const dirty=create({...options,saved:before});fail=true;assert.equal(dirty.observeUse(.1,true),false);fail=false;assert.deepEqual(dirty.work(),[]);assert.equal(dirty.advance(id,'dirty','jp-rest',{expectedCycle:1,nextStage:'collected',position:P.guest}),false);
+console.log('PASS live mounted-bed guard survives rejected identity writes and prevents install/strip under occupied futon');

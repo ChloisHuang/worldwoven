@@ -66,6 +66,11 @@ if(evidence.phase==='second'){
  assert.notEqual(view().use.id,evidence.firstUse.id);assert(['jp-bedding-1','jp-bedding-2'].includes(view().use.linenId));
  evidence.secondUse={...view().use};assert(main.namespace.standFromSeat());step(2);evidence.phase='done';record('second unique occupation reuses the original finite inventory');
 }
+if(process.env.BEDDING_RESUME&&evidence.phase==='done'){
+ const cycles=view().sets.map(s=>s.cycle),useSerial=view().nextUse;
+ until(()=>{const s=view().sets.find(s=>s.id===evidence.secondUse.linenId);return s&&['clean','delivering','installed'].includes(s.stage);},'cold original second-use cycle continues through safe washing without another occupation');
+ assert.deepEqual(Array.from(view().sets,s=>s.cycle),Array.from(cycles));assert.equal(view().nextUse,useSerial);assert.equal(view().use,null);record('cold cycle keeps original identities and does not create extra use');
+}
 until(()=>evidence.stages.some(s=>s.id==='jp-bedding-2'&&s.stage==='received')&&view().sets.find(s=>s.id==='jp-bedding-2').stage!=='received','Nao receives the original second set and carries it to the original linen table');
 assert.deepEqual(r.npcs.filter(n=>!n.station.id.startsWith('jp-visitor-')).map(n=>n.station.id),evidence.roster);checkpoint();
 const result={status:'PASS',checks:evidence.checks,wallSeconds:(Date.now()-started)/1000,maxRSSMiB:process.resourceUsage().maxRSS/1024,scope:'Production main with full original NPC roster, actual rest and natural shared staff paths; simulated DOM/renderer, not browser/iOS'};
