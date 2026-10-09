@@ -82,3 +82,5 @@ npm run test:door-geometry -- --tiny
 `china-usurpation-main.cjs`一次仅进入中国，历史一般支持通过原公开服务/交谈writer构造并明确staged，政治回应和路线实际执行；首段在03保存`qa/usurpation-main/checkpoint.json`，唯一必要Git续点为`tests/fixtures/usurpation-main-checkpoint.json`。用`USURPATION_MAIN_FROM=tests/fixtures/usurpation-main-checkpoint.json`核独立冷恢复，不重一般支持或路线；`USURPATION_MAIN_FRESH=1`只在明确需重建首段时使用。新功能只在测试main内临时启用，生产gate仍false；TR03原开关不改。完整三筹备/登位/帝务仍后续，不把原月容实际拒绝改成成功。`china-usurpation-scene.mjs`是实际寻路/身体/纸物组件夹具，不是整宫main或浏览器视觉。
 
 CR04 独立成功输入使用 `USURPATION_MAIN_SCENARIO=success`，唯一独立续点 `tests/fixtures/usurpation-main-success-checkpoint.json`；与原两卫拒绝档不混用。当前只保存 s00 前提及未完成的原射圃接近，非集结通过。`PHASE=mechanisms` 后续由真实 main 操作，前提来源/纯 seed 筛选完整记录在 journal，原失败档逐次 SHA 校验。
+
+CR04 成功档已由真实 main 完成两卫集结、三官对质、具名拥立和同案固定决议。仅终验 `USURPATION_MAIN_PHASE=handoff-reject` 可另设 `USURPATION_MAIN_STAGE_HANDOFF=1`，使用 `fixtures/usurpation-main-handoff-ready.cjs` 明示原两卫安全交班可接待前提；它不生成政治/巡查/工资原据，journal 保存精确字段差异及来源。后续 `handoff-retry`、`imperial-court`、`imperial-edict`、`imperial-cold` 从同一独立成功续点冷恢复，不再次设交班标志。原拒绝档始终独立。
