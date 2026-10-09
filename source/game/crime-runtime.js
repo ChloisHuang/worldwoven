@@ -7,27 +7,35 @@ const gap=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 const idOf=n=>n.actorId||n.station?.id||'player';
 // Scene adapter owns only short-lived movement leases. Identity, money, roles,
 // health and relationships remain in their original authoritative modules.
-export function createCrimeRuntime({country,lot,getActors,getPlayer,getClock,getAnimationTime=()=>getClock().seconds,getProfile,getRelation,getMode,getGuards,guardResumed,planPath,moveActor,doors,poseContext,canSee,isAdult,canPerceive=()=>true,playerAvailable,stopPlayer,saveState,saved={},applyInjury,recordRelationship,recordPersonalConduct=null,observeCrimeEvidence=null,notify=()=>{}}){
+export function createCrimeRuntime({country,lot,getActors,getPlayer,getClock,getAnimationTime=()=>getClock().seconds,getProfile,getRelation,getMode,getGuards,guardResumed,planPath,moveActor,doors,poseContext,canSee,isAdult,canPerceive=()=>true,playerAvailable,stopPlayer,saveState,saved={},applyInjury,recordRelationship,recordPersonalConduct=null,observeCrimeEvidence=null,canFenceActor=null,notify=()=>{}}){
+ const sourceSaved=saved,object=x=>!!x&&typeof x==='object'&&!Array.isArray(x),validPoint=p=>p&&['x','y','z'].every(k=>Number.isFinite(p[k]));
+ const runtimeLoadError=!object(saved)||saved.leases!==undefined&&(!object(saved.leases)||Object.values(saved.leases).some(l=>!object(l)||l.lifeKey!==undefined&&(typeof l.lifeKey!=='string'||!l.lifeKey)||l.target!=null&&!validPoint(l.target)||l.breakRemaining!=null&&!Number.isFinite(l.breakRemaining)))||saved.socialPending!==undefined&&(!Array.isArray(saved.socialPending)||saved.socialPending.some(p=>!object(p)||typeof p.personal!=='boolean'||!object(p.event)||typeof p.event.id!=='string'||!p.event.id||p.event.source!=='crime-consequences'||typeof p.event.actorId!=='string'||!Array.isArray(p.event.participants)))?'invalid-crime-runtime-save':null;
+ if(runtimeLoadError)saved={engine:object(saved)?saved.engine:null};
  const owner='crime:'+country,held=new Map(),routes=new Map(),reported=new Set(),routeFailures=new Map();let action=null,scanIn=0,modelIn=0,modelElapsed=0,cachedOrder=null,leaseDirty=false,disposed=false,leases=clone(saved.leases||{}),lastNotice='',socialPending=clone(saved.socialPending||[]);
+ let externalBusy=false;
  const actor=id=>getActors().find(n=>idOf(n)===id),key=n=>`${idOf(n)}@${n.lifeId??n.station?.lifeId??'original'}`;
  const available=n=>n&&n.alive!==false&&isAdult(idOf(n))&&!n.serviceMount&&!n.bathTransition&&(n===getPlayer()?playerAvailable():held.has(idOf(n))||getMode(n)==='leave');
- const rows=()=>getActors().map(n=>({key:key(n),id:idOf(n),countryId:country,sceneId:country,position:point(n.root.position),alive:n.alive!==false,awake:n.serviceMount?.kind!=='bed'&&n.socialPrivateFade!==true&&canPerceive(n),available:available(n),adult:isAdult(idOf(n))}));
- const guardRows=()=>getGuards().map(n=>({key:key(n),id:idOf(n),countryId:country,sceneId:country,position:point(n.root.position),alive:n.alive!==false,routeFailed:(routeFailures.get(idOf(n))||0)>getClock().seconds,available:!socialHoldOwner(idOf(n))||socialHoldOwner(idOf(n))===owner}));
+ const rows=()=>getActors().map(n=>({key:key(n),id:idOf(n),countryId:country,sceneId:country,position:point(n.root.position),alive:n.alive!==false,present:n.present!==false,awake:n.awake!==false&&n.serviceMount?.kind!=='bed'&&n.socialPrivateFade!==true&&canPerceive(n),available:available(n),adult:isAdult(idOf(n))}));
+ const guardRows=()=>getGuards().map(n=>({key:key(n),id:idOf(n),countryId:country,sceneId:country,position:point(n.root.position),alive:n.alive!==false,present:n.present!==false,awake:n.awake!==false&&canPerceive(n),routeFailed:(routeFailures.get(idOf(n))||0)>getClock().seconds,available:!socialHoldOwner(idOf(n))||socialHoldOwner(idOf(n))===owner}));
  const jail=()=>lot.holdingCell?{countryId:country,sceneId:country,entry:point(lot.holdingCell.intake),cell:point(lot.holdingCell.detention),release:point(lot.holdingCell.release),guardCell:{x:-22.9,y:-4.1,z:35.45},guardEntry:{x:-18.1,y:-4.1,z:35}}:null;
  const items=()=>lot.holdingCell?.evidence?[{id:lot.holdingCell.evidence.itemId,ownerId:lot.holdingCell.evidence.owner,name:'封存巡查信物',countryId:country,sceneId:country,position:point(lot.holdingCell.evidence.position)}]:[];
- function persist(engine,events=[]){
+ function pendingEvidence(engine,events=[]){
   const pending=clone(socialPending),enqueue=(event,personal=false)=>{if((personal?recordPersonalConduct:observeCrimeEvidence)&&!pending.some(p=>p.event.id===event.id))pending.push({event,personal});};
   for(const e of events){const c=engine.cases.find(c=>c.id===e.caseId);if(!c)continue;
-   const base={source:'crime-consequences',actorId:c.subjectId,kind:c.kind==='theft'?'property-theft':'physical-harm',outcome:'failed',fault:true,at:c.at};
-   if(e.kind==='offense'&&c.kind==='theft'){
+   const property=c.kind==='theft'||c.kind==='fencing',base={source:'crime-consequences',actorId:c.subjectId,kind:property?'property-theft':'physical-harm',outcome:'failed',fault:true,at:c.at};
+   if(e.kind==='offense'&&property){
     enqueue({...base,id:c.id+':personal',participants:[c.subjectId]},true);
     for(const witness of c.evidence)if(witness.witnessId&&witness.witnessId!==c.subjectId)enqueue({...base,conductEventId:c.id+':personal',id:c.id+':witness:'+witness.witnessKey,participants:[c.subjectId,witness.witnessId]});
    }
    if(e.kind==='report'&&!c.evidence.some(w=>w.witnessKey===e.guardKey)){
-    const guard=getActors().find(n=>key(n)===e.guardKey);if(guard)enqueue({...base,at:getClock().seconds,conductEventId:c.kind==='theft'?c.id+':personal':`crime:${country}:${c.lastIncidentNumber||c.number}:harm:relation`,id:c.id+':'+(c.lastIncidentNumber||c.number)+':heard:'+e.guardKey,participants:[c.subjectId,idOf(guard)]});
+    const guard=getActors().find(n=>key(n)===e.guardKey);if(guard)enqueue({...base,at:getClock().seconds,conductEventId:property?c.id+':personal':`crime:${country}:${c.lastIncidentNumber||c.number}:harm:relation`,id:c.id+':'+(c.lastIncidentNumber||c.number)+':heard:'+e.guardKey,participants:[c.subjectId,idOf(guard)]});
    }
   }
-  const result=saveState({engine,leases:clone(leases),socialPending:pending});if(result===true||result?.ok===true)socialPending=pending;return result;
+  return pending;
+ }
+ function persist(engine,events=[]){
+  if(runtimeLoadError||externalBusy)return false;
+  const pending=pendingEvidence(engine,events),result=saveState({engine,leases:clone(leases),socialPending:pending});if(result===true||result?.ok===true)socialPending=pending;return result;
  }
  function flushSocialEvidence(){
   if(!socialPending.length)return;const done=[];
@@ -36,6 +44,27 @@ export function createCrimeRuntime({country,lot,getActors,getPlayer,getClock,get
  }
 
  const model=createCrimeConsequences({saved:saved.engine,persist,getClock:()=>getClock().seconds,actors:rows,guards:guardRows,items,jail,harmRadius:.9,hasLineOfSight:(a,b)=>canSee(a.position||a,b.position||b)});
+ function prepareFence(actorKey,buyerKey,itemId,requestId){
+  const fail=reason=>({ok:false,reason,code:reason});
+  if(runtimeLoadError)return fail(runtimeLoadError);
+  if(disposed||externalBusy||action)return fail('crime-busy');
+  const fenceRows=()=>rows().map(row=>{
+   if(row.key!==actorKey&&row.key!==buyerKey)return row;
+   const n=getActors().find(n=>key(n)===row.key),role=row.key===buyerKey?'buyer':'seller';
+   let marketBuyer=false;try{marketBuyer=role==='buyer'&&canFenceActor?.(n,role)===true;}catch{}
+   const hardAvailable=!!n&&n.alive!==false&&n.busy!==true&&!n.serviceMount&&!n.bathTransition&&isAdult(idOf(n));
+   return {...row,available:hardAvailable&&(marketBuyer||row.available&&!socialHoldOwner(idOf(n))),busy:!hardAvailable||!marketBuyer&&!!socialHoldOwner(idOf(n))};
+  });
+  const candidate=model.prepareFence(actorKey,buyerKey,itemId,requestId,{actors:fenceRows});if(!candidate.ok)return candidate;
+  const baseLeases=JSON.stringify(leases),basePending=socialPending,pending=pendingEvidence(candidate.engine,candidate.events);
+  let locked=false,accepted=false;
+  const valid=()=>!disposed&&(!externalBusy||locked)&&!action&&(accepted||JSON.stringify(leases)===baseLeases&&socialPending===basePending&&candidate.valid());
+  return {ok:true,crime:{engine:clone(candidate.engine),leases:clone(leases),socialPending:clone(pending)},events:clone(candidate.events),receipt:clone(candidate.receipt),valid,
+   lock(){if(locked||accepted||!valid()||!candidate.lock())return false;locked=true;externalBusy=true;return true;},
+   committed(){if(accepted)return true;if(!locked||!externalBusy||!candidate.committed())return false;socialPending=pending;accepted=true;return true;},
+   release(){if(locked){candidate.release();locked=false;externalBusy=false;}}
+  };
+ }
  function release(id){const n=actor(id),old=held.get(id)||leases[id];if(n&&old&&n.alive!==false&&(!old.lifeKey||old.lifeKey===key(n))){n.route=old.target?planPath(n.root.position,point(old.target),n===getPlayer()?.34:.25):[];n.walking=false;if(Number.isFinite(old.breakRemaining))n.breakAt=getAnimationTime()+old.breakRemaining;}held.delete(id);delete leases[id];routes.delete(id);}
  function reconcile(ids){const needed=new Set(ids.filter(id=>id!=='player'));
   const fresh=[...needed].filter(id=>!held.has(id));if(fresh.some(id=>{const n=actor(id);return !n||n.alive===false||socialHoldOwner(id)&&socialHoldOwner(id)!==owner;}))return false;
@@ -58,7 +87,7 @@ export function createCrimeRuntime({country,lot,getActors,getPlayer,getClock,get
     const rel=recordRelationship({id:effect.id+':relation',source:'crime-consequences',actorId:idOf(a),participants:[idOf(a),idOf(v),...(effect.witnessIds||[])],outcome:'failed',fault:true,kind:'physical-harm',at:effect.at??getClock().seconds});if(!rel?.ok)continue;
    }model.ackEffect(effect.id);
   }}
- function beginHarm(subjectId,victimId){const a=actor(subjectId),v=actor(victimId);if(a&&v&&!model.canHarm(key(a),key(v)).ok)return false;if(action||!available(a)||!v||!isAdult(victimId)||v.alive===false||gap(a.root.position,v.root.position)>.9||!canSee(a.root.position,v.root.position))return false;
+ function beginHarm(subjectId,victimId){if(runtimeLoadError||disposed||externalBusy)return false;const a=actor(subjectId),v=actor(victimId);if(a&&v&&!model.canHarm(key(a),key(v)).ok)return false;if(action||!available(a)||!v||!isAdult(victimId)||v.alive===false||gap(a.root.position,v.root.position)>.9||!canSee(a.root.position,v.root.position))return false;
   if(a===getPlayer())stopPlayer();action={actorId:subjectId,victimId,actorKey:key(a),victimKey:key(v),time:0,origin:point(a.root.position)};notify(`${a===getPlayer()?'你':a.station.npcName}正要推搡${v===getPlayer()?'你':v.station.npcName}。这会造成擦伤并留下目击线索；现在移动或按 E 可停止。`);return true;
  }
  function cancelAction(){if(!action)return false;action=null;reconcile(enforcementIds());return true;}
@@ -73,7 +102,7 @@ export function createCrimeRuntime({country,lot,getActors,getPlayer,getClock,get
    }
   }
  }
- function update(dt,t){if(disposed)return;
+ function update(dt,t){if(runtimeLoadError||disposed||externalBusy)return;
   if(action){const a=actor(action.actorId),v=actor(action.victimId);if(!a||!v||key(a)!==action.actorKey||key(v)!==action.victimKey||!available(a)||v.alive===false||gap(a.root.position,action.origin)>.2||gap(a.root.position,v.root.position)>.9||!canSee(a.root.position,v.root.position)){cancelAction();return;}
    if(!reconcile([...enforcementIds(),...(a===getPlayer()?[]:[idOf(a)])])){cancelAction();return;}action.time+=dt;a.root.rotation.y=Math.atan2(v.root.position.x-a.root.position.x,v.root.position.z-a.root.position.z);a.walking=false;
    a.animate(t+(a.phase||0),false,null,{...poseContext(a,null),handoff:true});
@@ -91,13 +120,13 @@ export function createCrimeRuntime({country,lot,getActors,getPlayer,getClock,get
   if(notice&&notice!==lastNotice){lastNotice=notice;if(['pursuit','escort','custody','releasing','released'].includes(notice))notify({pursuit:'警卫根据真实目击正在追来。你可以停下配合，也可以归还物品。',escort:'警卫已近身拘捕，正带你沿通路去登记；不会瞬移。',custody:'已到小牢房，短暂留置按实际游玩时间计时，离线不补时。',releasing:'留置结束，门已打开，正沿楼梯返回公共庭院。',released:'已返回庭院。归还信物、向实际受害者道歉可以修复后续关系。'}[notice]);}
   scanIn-=dt;if(scanIn<=0){scanIn=2;if(!action&&!cachedOrder)autonomous();}
  }
- function choices(){const p=getPlayer();if(!p)return[];const result=model.status(key(p)).detained?[]:harmChoices();for(const x of model.actions(key(p))||[]){result.push({...x,id:'crime:'+x.kind+':'+(x.itemId||x.caseId||''),crime:true,name:'巡查与案情',action:x.label||x.action||({take:'拿走封存巡牌（未经许可，属于违法）',return:'归还原封存巡牌',report:'向近处警卫报告亲眼所见',surrender:'停下，向面前警卫说明并配合'}[x.kind]||x.kind),position:x.position?[x.position.x,x.position.y,x.position.z]:p.root.position.toArray(),interactionRadius:2,executionRadius:2,priority:20});}return result;}
- return {update,choices,beginHarm,cancelAction,model,status:()=>model.status(key(getPlayer())),snapshot:()=>({engine:model.snapshot(),leases:clone(leases),socialPending:clone(socialPending)}),
+ function choices(){if(runtimeLoadError||disposed||externalBusy)return[];const p=getPlayer();if(!p)return[];const result=model.status(key(p)).detained?[]:harmChoices();for(const x of model.actions(key(p))||[]){result.push({...x,id:'crime:'+x.kind+':'+(x.itemId||x.caseId||''),crime:true,name:'巡查与案情',action:x.label||x.action||({take:'拿走封存巡牌（未经许可，属于违法）',return:'归还原封存巡牌',report:'向近处警卫报告亲眼所见',surrender:'停下，向面前警卫说明并配合'}[x.kind]||x.kind),position:x.position?[x.position.x,x.position.y,x.position.z]:p.root.position.toArray(),interactionRadius:2,executionRadius:2,priority:20});}return result;}
+ return {update,choices,prepareFence,verifyFenceReceipt:input=>!runtimeLoadError&&model.verifyFenceReceipt(input),beginHarm,cancelAction,model,status:()=>runtimeLoadError?{ok:false,reason:runtimeLoadError}:model.status(key(getPlayer())),snapshot:()=>runtimeLoadError?clone(sourceSaved):({engine:model.snapshot(),leases:clone(leases),socialPending:clone(socialPending)}),
   controlsPlayer:()=>!!cachedOrder?.holdSubject&&cachedOrder.subjectKey===key(getPlayer()),
   activeAction:()=>action&&clone(action),
   owns:n=>held.has(idOf(n)),
   pose(n,t){if(held.has(idOf(n))||action?.actorId===idOf(n)){n.animate(t+(n.phase||0),!!n.walking,null,{...poseContext(n,null),...(action?.actorId===idOf(n)?{handoff:true}:{})});return true;}return false;},
-  interact(x){if(x.kind==='harm')return beginHarm('player',x.victimId);const p=key(getPlayer());const r=x.kind==='take'?model.take(p,x.itemId):x.kind==='return'?model.returnItem(p,x.itemId):x.kind==='report'?model.report(p,x.caseId):x.kind==='surrender'?model.surrender(p):null;flushEffects();if(r&&!r.ok)notify('这项操作目前不能完成，请靠近相关人物或物品。');return !!r?.ok;},
-  dispose(){disposed=true;action=null;const wasGuard=[...held.values()].some(x=>x.guard);for(const id of [...held.keys()])release(id);releaseSocialActors(owner);if(wasGuard)guardResumed();}
+  interact(x){if(runtimeLoadError||disposed||externalBusy)return false;if(x.kind==='harm')return beginHarm('player',x.victimId);const p=key(getPlayer());const r=x.kind==='take'?model.take(p,x.itemId):x.kind==='return'?model.returnItem(p,x.itemId):x.kind==='report'?model.report(p,x.caseId):x.kind==='surrender'?model.surrender(p):null;flushEffects();if(r&&!r.ok)notify('这项操作目前不能完成，请靠近相关人物或物品。');return !!r?.ok;},
+  dispose(){if(externalBusy)return;disposed=true;action=null;const wasGuard=[...held.values()].some(x=>x.guard);for(const id of [...held.keys()])release(id);releaseSocialActors(owner);if(wasGuard)guardResumed();}
  };
 }
