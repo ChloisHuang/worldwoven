@@ -19,6 +19,13 @@ export const JAPAN_SERVICE_POINTS = Object.freeze({
  menChanging:[-9.92,3.8,2.4], womenChanging:[5.15,3.8,2.4],
  menWashing:[-9.15,3.8,-3.7], womenWashing:[3,3.8,-4.4],
 });
+export const JAPAN_LINEN_POINTS=Object.freeze({
+ wash:[4.3,11.4,5.95],hang:[5.2,11.4,2.4],take:[5.2,11.4,2.4],
+ fold:[8.6,11.4,3.65],restock:[8.6,11.4,3.65],registry:[5,11.4,3.9],host:[6.2,11.4,4.2],
+});
+export const JAPAN_LINEN_DRY_SECONDS=8;
+const LINEN_STAGES=['clean','issued','dirty','collected','wet','drying','dry','folded'];
+const newLinen=n=>({id:`jp-linen-${n}`,cycle:0,stage:'clean',visitId:null,customerName:null,side:null,location:{type:'point',id:'restock'},carryOwner:null,dryingElapsed:0});
 export const JAPAN_RECEPTION_RADIUS=.34;
 // These are invented bathhouse blends, with no medical claims or real recipes.
 export const JAPAN_BATH_BLENDS = Object.freeze([
@@ -63,9 +70,18 @@ const mealSource=v=>v.dishId==='sushi'?'sushiPickup':'kitchenPickup';
 const sourceOf=item=>item.dirty?'dining':item.kind==='mixture'?'apothecaryPickup':item.kind==='meal'?mealSource(item):'reception';
 
 export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},capacity=2,preservePhysical=false,onRelationshipEvent=()=>false,getRelationshipTime=()=>0}={}) {
- const state={version:1,worldSeed:worldSeed>>>0,nextVisit:1,completed:0,cancelled:0,visits:[],items:[],diningReceipts:[],playerMealReceipts:[],receptionReceipts:[],receptionWaits:{},deliveryReceipts:[],deliveryWaits:{},mixingReceipts:[],mixingWaits:{},kitchenReceipts:[],kitchenWaits:{},tableReceipts:[],tableWaits:{},relationshipEvents:[]};
+ const state={version:1,worldSeed:worldSeed>>>0,nextVisit:1,completed:0,cancelled:0,visits:[],items:[],diningReceipts:[],playerMealReceipts:[],receptionReceipts:[],receptionWaits:{},deliveryReceipts:[],deliveryWaits:{},mixingReceipts:[],mixingWaits:{},kitchenReceipts:[],kitchenWaits:{},tableReceipts:[],tableWaits:{},linens:Array.from({length:6},(_,n)=>newLinen(n+1)),linenReceipts:[],relationshipEvents:[]};
  if(saved?.version===1&&saved.worldSeed===(worldSeed>>>0)) {
   state.relationshipEvents=clone(saved.relationshipEvents||[]);
+  state.linenReceipts=clone((saved.linenReceipts||[]).slice(-240));
+  for(let n=0;n<6;n++){
+   const old=(saved.linens||[]).find(l=>l.id===`jp-linen-${n+1}`);
+   if(old&&LINEN_STAGES.includes(old.stage)&&Number.isSafeInteger(old.cycle)&&old.cycle>=0){
+    const linen=clone(old);linen.dryingElapsed=Math.max(0,Math.min(JAPAN_LINEN_DRY_SECONDS,Number(linen.dryingElapsed)||0));
+    if(!preservePhysical){linen.carryOwner=null;if(linen.location?.type==='worker')linen.location={type:'point',id:linen.station||'restock'};}
+    state.linens[n]=linen;
+   }
+  }
   state.nextVisit=Math.max(1,Number.isSafeInteger(saved.nextVisit)?saved.nextVisit:1);
   state.completed=Math.max(0,saved.completed|0);state.cancelled=Math.max(0,saved.cancelled|0);
   state.diningReceipts=clone((saved.diningReceipts||[]).slice(-24));
@@ -245,15 +261,27 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
  function guestStep(id,event,evidence={}) {
   if(disposed)return false;
   const v=visit(id);if(!v||!active(v))return false;
-  const prior=event==='ate'?clone(state):null;const key=v.side==='men'?'men':'women';let next;
+  const prior=clone(state);const key=v.side==='men'?'men':'women';let next;
   if(event==='arrived'&&v.stage==='arriving'&&japanReceptionReady(evidence.position,v.customerType))next='check-in';
-  if(event==='changed'&&v.stage==='changing'&&near(evidence.position,JAPAN_SERVICE_POINTS[key+'Changing']))next='washing';
+  if(event==='changed'&&v.stage==='changing'&&near(evidence.position,JAPAN_SERVICE_POINTS[key+'Changing'])){
+   if(v.customerType!=='player'){
+    const linen=state.linens.find(l=>l.stage==='clean'&&l.cycle<Number.MAX_SAFE_INTEGER);if(!linen)return false;
+    Object.assign(linen,{cycle:linen.cycle+1,stage:'issued',visitId:v.id,customerName:v.name,side:v.side,location:{type:'guest',id:v.id},station:key+'Changing',carryOwner:null,dryingElapsed:0,used:true});v.linenId=linen.id;
+   }next='washing';
+  }
   if(event==='washed'&&v.stage==='washing'&&near(evidence.position,JAPAN_SERVICE_POINTS[key+'Washing']))next='waiting-bath';
   if(event==='collect-blend'&&v.customerType==='player'&&v.stage==='waiting-bath'&&near(evidence.position,JAPAN_SERVICE_POINTS[v.side+'Receive'])&&item(v.mixtureId)?.location.id===service(v)){next='waiting-bath';v.blendReceived=true;}
   if(event==='bath-mounted'&&v.stage==='waiting-bath'&&(v.customerType!=='player'||v.blendReceived)&&item(v.mixtureId)?.location.id===service(v)&&evidence.poolId===v.poolId&&typeof evidence.seatId==='string'&&evidence.seatId.startsWith(v.poolId+'-seat-')){next='bathing';v.seatId=evidence.seatId;}
   if(event==='bath-interrupted'&&v.customerType==='player'&&v.stage==='bathing'&&evidence.seatId===v.seatId){next='waiting-bath';v.seatId=null;}
   if(event==='bathed'&&v.stage==='bathing'&&evidence.seatId===v.seatId){next='drying';item(v.mixtureId).location={type:'used',id:v.poolId};v.seatId=null;}
-  if(event==='dried'&&v.stage==='drying'&&near(evidence.position,JAPAN_SERVICE_POINTS[key+'Changing']))next='resting';
+  if(event==='dried'&&v.stage==='drying'&&near(evidence.position,JAPAN_SERVICE_POINTS[key+'Changing'])){
+   if(v.customerType!=='player'){
+    const linen=state.linens.find(l=>l.id===v.linenId&&l.visitId===v.id&&l.stage==='issued');
+    // Legacy visits already in the bath had no issued towel. They finish without
+    // manufacturing one; the next real changing event joins the bounded cycle.
+    if(linen){linen.stage='dirty';linen.station=key+'Changing';linen.location={type:'point',id:linen.station};linen.carryOwner=null;}
+   }next='resting';
+  }
   if(event==='rested'&&v.stage==='resting'&&near(evidence.position,v.restPoint,.8)) {next='dining';v.mealRequested=true;if(v.customerType!=='player'){v.diningTaste??=diningTaste(v.id);v.dishId??=v.diningTaste.sushi>v.diningTaste.ramen?'sushi':'ramen';}}
   if(event==='sat-to-eat'&&v.stage==='dining'&&near(evidence.position,v.diningPoint,.8))next='waiting-meal';
   if(event==='begin-eating'&&v.customerType==='player'&&v.stage==='meal-ready'&&near(evidence.position,v.diningPoint,.8))next='eating';
@@ -266,9 +294,51 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   if(event==='returned-to-desk'&&v.stage==='checkout'&&japanReceptionReady(evidence.position,v.customerType))next='checkout-ready';
   if(event==='left'&&v.stage==='leaving'&&near(evidence.position,JAPAN_SERVICE_POINTS.departure)){next='departed';state.completed++;}
   if(!next)return false;
-  v.stage=next;if(evidence.position)v.position=evidence.position.slice();if(!persist()&&prior){restoreBoard(prior);return false;}return true;
+  v.stage=next;if(evidence.position)v.position=evidence.position.slice();if(!persist()){restoreBoard(prior);return false;}return true;
  }
+ const linenPoint=key=>JAPAN_LINEN_POINTS[key]||JAPAN_SERVICE_POINTS[key];
+ const linenAuthorized=(actorId,evidence={})=>actorId==='player'?staffDuties.get('linen')?.status==='active'&&staffDuties.get('linen').receiptId===evidence.receiptId:actorId==='jp-rest'&&(!staffDuties.has('linen')||staffDuties.get('linen').status==='paused'||staffDuties.get('linen').status==='draining'&&state.linens.some(l=>l.carryOwner===actorId));
+ function setLinenDuty(receiptId,status='draining'){
+  const prior=staffDuties.get('linen');
+  if(disposed||!/^jp-linen-labor-[1-9][0-9]*$/.test(receiptId)||!['active','draining','paused'].includes(status)||prior&&prior.receiptId!==receiptId||[...staffDuties.keys()].some(k=>k!=='linen'))return false;
+  if(status==='active'&&state.linens.some(l=>l.carryOwner==='jp-rest'))return false;
+  staffDuties.set('linen',{receiptId,status});return true;
+ }
+ function linenAdvance(linenId,expectedStage,actorId,evidence={}){
+  const linen=state.linens.find(l=>l.id===linenId),next={dirty:'collected',collected:'wet',wet:'drying',drying:'dry',dry:'folded',folded:'clean'}[expectedStage];
+  if(disposed||!linen||linen.stage!==expectedStage||!next||evidence.nextStage!==next||evidence.expectedCycle!==linen.cycle||!linenAuthorized(actorId,evidence)||linen.carryOwner&&linen.carryOwner!==actorId||state.linens.some(l=>l.id!==linenId&&l.carryOwner===actorId))return false;
+  const station={dirty:linen.side+'Changing',collected:'wash',wet:'hang',drying:'take',dry:'fold',folded:'restock'}[expectedStage];
+  if(['collected','wet','dry','folded'].includes(expectedStage)&&linen.carryOwner!==actorId)return false;
+  if(!near(evidence.position,linenPoint(station),.45)||expectedStage==='drying'&&linen.dryingElapsed<JAPAN_LINEN_DRY_SECONDS)return false;
+  return transaction(()=>{
+   linen.stage=next;linen.station=station;linen.carryOwner=['collected','wet','dry','folded'].includes(next)?actorId:null;
+   linen.location=linen.carryOwner?{type:'worker',id:actorId}:{type:'point',id:station};
+   if(next==='drying')linen.dryingElapsed=0;
+   if(next==='clean'){
+    if(actorId==='player'){
+     const workReceiptId=evidence.receiptId,id=`${linen.id}-cycle-${linen.cycle}-${workReceiptId}`;
+     if(!state.linenReceipts.some(r=>r.id===id))state.linenReceipts.push({source:'japan-linen',id,workReceiptId,linenId:linen.id,cycle:linen.cycle,visitId:linen.visitId,customerId:linen.visitId,customerName:linen.customerName,completed:true,accurate:true,outcome:'completed'});
+     state.linenReceipts=state.linenReceipts.slice(-240);
+    }
+    linen.used=false;
+   }
+  });
+ }
+ function releaseLinenCarrier(actorId){for(const linen of state.linens)if(linen.carryOwner===actorId){linen.carryOwner=null;linen.location={type:'point',id:linen.station};}}
  return {
+  linenWork:()=>state.linens.map(l=>({...clone(l),position:clone(linenPoint(l.station||'restock'))})),linenAdvance,setLinenDuty,
+  pauseLinenDuty(receiptId){const duty=staffDuties.get('linen');if(disposed||duty?.receiptId!==receiptId)return false;return transaction(()=>staffDuties.set('linen',{receiptId,status:'paused'}));},
+  linenClaim(linenId,actorId,evidence={}){
+   const linen=state.linens.find(l=>l.id===linenId);
+   if(disposed||!linen||!['collected','wet','dry','folded'].includes(linen.stage)||linen.carryOwner||evidence.expectedCycle!==linen.cycle||!linenAuthorized(actorId,evidence)||state.linens.some(l=>l.carryOwner===actorId)||!near(evidence.position,linenPoint(linen.station),.45))return false;
+   return transaction(()=>{linen.carryOwner=actorId;linen.location={type:'worker',id:actorId};});
+  },
+  linenReleaseCarrier(actorId){if(!['player','jp-rest'].includes(actorId))return false;return transaction(()=>releaseLinenCarrier(actorId));},
+  linenDuty:()=>staffDuties.has('linen')?clone(staffDuties.get('linen')):null,
+  linenReceipts:receiptId=>clone(state.linenReceipts.filter(r=>!receiptId||r.workReceiptId===receiptId)),
+  linenTick(dt){if(disposed||!Number.isFinite(dt)||dt<=0||!state.linens.some(l=>l.stage==='drying'&&l.dryingElapsed<JAPAN_LINEN_DRY_SECONDS))return false;return transaction(()=>{for(const l of state.linens)if(l.stage==='drying')l.dryingElapsed=Math.min(JAPAN_LINEN_DRY_SECONDS,l.dryingElapsed+Math.min(.1,dt));});},
+  releaseLinenDuty(receiptId){if(staffDuties.get('linen')?.receiptId!==receiptId)return true;return transaction(()=>{releaseLinenCarrier('player');staffDuties.delete('linen');});},
+  releaseLinenWorker(actorId){if(!['player','jp-rest'].includes(actorId))return false;return transaction(()=>releaseLinenCarrier(actorId));},
   spawnDining({appearance,dishId,position,restPoint,diningPoint,servePoint,mealPoint,restSeatId,paymentId,currency='japan',price}={}) {
    const dish=JAPAN_DINING_MENU.find(d=>d.id===dishId),points=[position,restPoint,diningPoint,servePoint,mealPoint];
    price??=dish?.price;if(!['japan','copper'].includes(currency)||!Number.isSafeInteger(price)||price<1)return null;
@@ -362,9 +432,11 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   releaseWorker(workerId) {if(workerId==='player')return workers.has(workerId)&&transaction(()=>dropClaim(workers.get(workerId)));const released=dropClaim(workers.get(workerId));if(released)persist();return released;},
   cancel(id,reason='visit-cancelled') {
    const v=visit(id);if(disposed||!v||!active(v))return false;
+   return transaction(()=>{
+   for(const linen of state.linens)if(linen.visitId===id&&linen.stage==='issued'){linen.stage=linen.used?'dirty':'clean';linen.station=linen.used?v.side+'Changing':'restock';linen.location={type:'point',id:linen.station};linen.carryOwner=null;}
    for(const job of [...claims.values()])if(job.visitId===id)dropClaim(job.id);
    for(const cargo of state.items)if(cargo.visitId===id)cargo.location={type:'cancelled',id};
-   v.stage='cancelled';v.cancelReason=reason;v.seatId=null;state.cancelled++;receipt(v,reason);persist();return true;
+   v.stage='cancelled';v.cancelReason=reason;v.seatId=null;state.cancelled++;receipt(v,reason);});
   },
   forgetFinished(visitIds=null) {
    const finished=new Set(state.visits.filter(v=>!active(v)&&(!v.mealConsumed||v.mealWashed)&&!state.items.some(i=>i.location.targetVisitId===v.id)&&(!visitIds||visitIds.includes(v.id))).map(v=>v.id));
