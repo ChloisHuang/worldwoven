@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {JAPAN_BEDDING_POINTS as B} from './japan-bedding.js';
 import {JAPAN_BATH_BLENDS,JAPAN_SERVICE_POINTS as P,JAPAN_LINEN_POINTS as L} from './japan-service-orders.js';
 
 // Small original service objects. Their identities come from the order ledger;
@@ -6,6 +7,8 @@ import {JAPAN_BATH_BLENDS,JAPAN_SERVICE_POINTS as P,JAPAN_LINEN_POINTS as L} fro
 export function createJapanServiceProps(parent) {
  const root=new THREE.Group();root.name='Bathhouse live service objects';root.userData.dynamic=true;parent.add(root);
  const materials=new Map(),geometries=new Set(),objects=new Map(),handA=new THREE.Vector3(),handB=new THREE.Vector3();
+ parent.updateWorldMatrix(true,true);
+ let guestQuilt=null;parent.traverse(g=>{if(g.userData.futonFootprint&&g.getWorldPosition(new THREE.Vector3()).distanceTo(new THREE.Vector3(4.4,7.6,-11.6))<.01)guestQuilt=g.getObjectByName('Soft rectangular indigo quilt')?.parent||null;});
  const material=color=>{if(!materials.has(color))materials.set(color,new THREE.MeshToonMaterial({color}));return materials.get(color);};
  function part(g,geometry,color,p=[0,0,0]) {geometries.add(geometry);const m=new THREE.Mesh(geometry,material(color));m.position.set(...p);m.castShadow=true;g.add(m);return m;}
  const box=(g,w,h,d,c,p)=>part(g,new THREE.BoxGeometry(w,h,d),c,p);
@@ -126,10 +129,47 @@ export function createJapanServiceProps(parent) {
     else if(['hang','take'].includes(linen.station)){g.position.set(5.2,12.3,1.68);}
     else {g.position.set(p[0]+(linen.side==='men'?-.38:.38),p[1]+.8+index*.012,p[2]);}
    }
+   const beddingSets=!state.bedding?.loadError&&Array.isArray(state.bedding?.sets)?state.bedding.sets:[];
+   if(guestQuilt)guestQuilt.visible=!!state.bedding?.loadError||!Array.isArray(state.bedding?.sets)||beddingSets.some(b=>['installed','dirty'].includes(b.stage)&&!b.carryOwner);
+   // Two ledger-owned sets only. The installed set is represented by the
+   // original authored futon; never place a second mattress over that mesh.
+   for(const bedding of beddingSets){
+    seen.add(bedding.id);let g=objects.get(bedding.id);
+    if(!g){
+     g=new THREE.Group();g.name=bedding.id;g.userData={beddingId:bedding.id};
+     box(g,.62,.12,.42,0xe3d8c0,[0,.055,0]);
+     box(g,.60,.018,.405,0xf0e7d1,[0,.124,0]);
+     box(g,.62,.024,.065,0x7c8799,[0,.08,.145]);
+     box(g,.16,.04,.27,0xe3d8c0,[-.215,.145,0]);
+     root.add(g);objects.set(bedding.id,g);
+    }
+    g.visible=!['installed','dirty'].includes(bedding.stage)||!!bedding.carryOwner;
+    g.rotation.set(0,0,0);g.scale.set(1,1,1);
+    if(!g.visible)continue;
+    const actor=bedding.carryOwner&&actorById.get(bedding.carryOwner),index=bedding.id==='jp-bedding-2'?1:0;
+    if(bedding.carryOwner){
+     // A missing actor must not teleport a held bundle back onto a shelf.
+     g.visible=!!actor&&actor.root.visible;if(!actor)continue;
+     actor.root.updateWorldMatrix(true,true);g.rotation.y=actor.root.rotation.y;
+     const hands=actor.root.userData.hands;
+     if(hands?.length===2){hands[0].getWorldPosition(handA);hands[1].getWorldPosition(handB);g.position.copy(handA).add(handB).multiplyScalar(.5);g.position.y-=.07;}
+     else g.position.set(0,1,.4).applyMatrix4(actor.root.matrixWorld);
+    }else if(bedding.stage==='drying'||['restock','fold','hang','take'].includes(bedding.station)){
+     // Air each original cover on the clear front lip of the existing table.
+     // The authored piles and six bath towels occupy its rear, at z=2.65.
+     g.position.set(8.25+index*.70,12.55,3.23);
+     if(bedding.stage==='drying')g.scale.set(1,.40,1);
+    }else if(bedding.station==='wash'){
+     g.position.set(4.55,12.67+index*.18,7.35);
+    }else{
+     const p=B[bedding.station]||B.receiving;
+     g.position.set(p[0]+index*.72,p[1]+.16,p[2]);
+    }
+   }
    for(const [id,g]of objects)if(!seen.has(id)){g.traverse(o=>{if(o.geometry){o.geometry.dispose();geometries.delete(o.geometry);}});g.removeFromParent();objects.delete(id);}
   },
   // Read the existing indexed object, never synthesize a token or scan the lot.
   itemAnchor(id){const object=objects.get(id);return object?.visible?{id:'jp-service-item:'+id,point:object.getWorldPosition(new THREE.Vector3()).toArray()}:null;},
-  dispose() {root.removeFromParent();for(const geometry of geometries)geometry.dispose();for(const m of materials.values())m.dispose();objects.clear();},
+  dispose() {if(guestQuilt)guestQuilt.visible=true;root.removeFromParent();for(const geometry of geometries)geometry.dispose();for(const m of materials.values())m.dispose();objects.clear();},
  };
 }
