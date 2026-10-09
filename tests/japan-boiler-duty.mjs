@@ -9,6 +9,7 @@ saved.visits[0].stage='waiting-bath';saved.visits[0].mixtureId=v.id+':mixture';s
 let reject=true;const board=createJapanServiceOrders({saved,saveState:()=>!reject});
 const admission={poolId:v.poolId,seatId:v.poolId+'-seat-1'};
 assert.equal(board.guestStep(v.id,'bath-mounted',admission),false);assert.equal(board.boiler.work().length,0);assert.equal(board.getVisit(v.id).stage,'waiting-bath');reject=false;assert(board.guestStep(v.id,'bath-mounted',admission));assert.equal(board.boiler.work().length,1);
+const foreign=createJapanServiceOrders({saved:board.state(),worldSeed:2});assert.equal(foreign.boiler.work().length,0,'different world seed cannot inherit boiler load');
 const npc=actor('jp-steam',[6.05,11.4,-11.6]),player=actor('player',[4.1,11.4,-10.8]),tasks=new Map();let relief=null;
 const life={recall:()=>true,canWork:()=>true,state:()=>({active:relief})};
 const duty=createJapanBoilerDuty({board,actors:new Map([['jp-steam',npc]]),assign:(n,to,t)=>tasks.set(n.station.id,{...t,to}),clear:n=>tasks.delete(n.station.id),unmount:()=>true,taskOf:n=>tasks.get(n.station.id),getStaffLife:()=>life,getPlayer:()=>player});

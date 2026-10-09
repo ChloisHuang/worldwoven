@@ -121,7 +121,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   const id=`japan-service:${v.id}:${kind}:${outcome}${suffix}`;
   if(!state.relationshipEvents.some(e=>e.id===id))state.relationshipEvents.push({id,source:'japan-service',outcome,actorId,participants:[...new Set([actorId,...participants])],kind:'service',serviceKind:kind,...(kind==='wrong-table'?{fault:true}:{}),at:Math.max(0,Number(getRelationshipTime())||0)});
  };
- const boiler=createJapanBoilerMaintenance({saved:saved.boilerMaintenance,saveState:next=>{const prior=state.boilerMaintenance;state.boilerMaintenance=next;if(persist())return true;state.boilerMaintenance=prior;return false;}});
+ const boiler=createJapanBoilerMaintenance({saved:saved?.version===1&&saved.worldSeed===(worldSeed>>>0)?saved.boilerMaintenance:null,saveState:next=>{const prior=state.boilerMaintenance;state.boilerMaintenance=next;if(persist())return true;state.boilerMaintenance=prior;return false;}});
  state.boilerMaintenance=boiler.snapshot();
  replayRelationships();
  const receptionKind=kind=>['register','checkout'].includes(kind);

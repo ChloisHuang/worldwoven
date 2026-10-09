@@ -18,6 +18,7 @@ export function validJapanBoilerReceipt(r){
 }
 export const sameJapanBoilerReceipt=(a,b)=>JAPAN_BOILER_RECEIPT_FIELDS.every(field=>JSON.stringify(a?.[field])===JSON.stringify(b?.[field]));
 export function createJapanBoilerMaintenance({saved=null,saveState=()=>true}={}){
+ let loadError=null,invalidSaved=null;
  let data={version:1,nextBatch:1,seen:[],batches:[],receipts:[],duty:null};
  const batch=id=>data.batches.find(b=>b.id===id);
  const authorized=(actor,evidence)=>actor===HOST?!data.duty||data.duty.status!=='active':actor==='player'&&data.duty?.status==='active'&&validWork(evidence.receiptId)&&data.duty.receiptId===evidence.receiptId;
@@ -55,7 +56,7 @@ export function createJapanBoilerMaintenance({saved=null,saveState=()=>true}={})
   for(const b of saved.batches){
    if(!object(b)||!validBatch(b.id)||ids.has(b.id)||Number(b.id.slice('jp-boiler-batch-'.length))>=saved.nextBatch||!sideOf(b.poolId)||sideOf(b.poolId)!==b.side||![...JAPAN_BOILER_STAGES,'completed'].includes(b.stage)||typeof b.frozen!=='boolean'||!Array.isArray(b.visitIds)||!b.visitIds.length||!Array.isArray(b.customerNames)||b.customerNames.length!==b.visitIds.length||!b.customerNames.every(validName)||!b.visitIds.every(validVisit)||![null,HOST,'player'].includes(b.owner))return false;
    if(!Array.isArray(b.steps)||b.steps.length!==(b.stage==='completed'?4:JAPAN_BOILER_STAGES.indexOf(b.stage))||b.steps.some((step,index)=>!object(step)||step.stage!==JAPAN_BOILER_STAGES[index]||![HOST,'player'].includes(step.actorId)||(step.actorId==='player'?!validWork(step.receiptId):step.receiptId!==null)))return false;
-   if(!b.frozen&&(b.stage!=='read'||b.owner!==null)||b.stage==='completed'&&(!b.frozen||b.owner!==null)||b.owner!== 'player'&&b.workReceiptId!==null||b.owner==='player'&&(!b.frozen||saved.duty?.status!=='active'||b.workReceiptId!==saved.duty.receiptId))return false;
+   if(!b.frozen&&(b.stage!=='read'||b.owner!==null)||b.stage==='completed'&&(!b.frozen||b.owner!==null)||b.owner!== 'player'&&b.workReceiptId!==null||b.owner==='player'&&(!b.frozen||!['active','paused'].includes(saved.duty?.status)||b.workReceiptId!==saved.duty.receiptId))return false;
    if(b.stage!=='completed'){const bucket=b.frozen?active:pending;if(bucket.has(b.poolId))return false;bucket.add(b.poolId);}
    for(const visit of b.visitIds){const k=key(visit,b.poolId);if(seen.has(k))return false;seen.add(k);}ids.add(b.id);
   }
@@ -64,11 +65,12 @@ export function createJapanBoilerMaintenance({saved=null,saveState=()=>true}={})
   for(const r of saved.receipts){const b=saved.batches.find(b=>b.id===r?.batchId);if(!validJapanBoilerReceipt(r)||receipts.has(r.batchId)||!b||b.stage!=='completed'||r.poolId!==b.poolId||!b.steps.every(step=>step.actorId==='player'&&step.receiptId===r.workReceiptId)||JSON.stringify(r.visitIds)!==JSON.stringify(b.visitIds)||JSON.stringify(r.customerNames)!==JSON.stringify(b.customerNames))return false;receipts.add(r.batchId);}
   for(const b of saved.batches)if(b.stage==='completed'&&b.steps.every(step=>step.actorId==='player'&&step.receiptId===b.steps[0].receiptId)&&!receipts.has(b.id))return false;
   if(saved.duty?.status==='active'&&saved.batches.some(b=>b.owner===HOST))return false;
-  // A cold load never grants live player authority or keeps an abandoned tool lock.
-  data=copy(saved);if(!preserveDuty){releaseOwners();if(data.duty)data.duty.status='paused';}return true;
+  // A cold load pauses authority while reserving the original batch for its shift.
+  // Nagi must not consume that work while the player walks back to resume.
+  data=copy(saved);loadError=null;invalidSaved=null;if(!preserveDuty&&data.duty)data.duty.status='paused';return true;
  }
- function transact(action,{persist=true}={}){const prior=copy(data);try{if(!action()){data=prior;return false;}if(persist){const result=saveState(copy(data));if(result===false||result&&typeof result.then==='function'){if(result&&typeof result.then==='function')Promise.resolve(result).catch(()=>{});data=prior;return false;}}return true;}catch{data=prior;return false;}}
+ function transact(action,{persist=true}={}){if(loadError)return false;const prior=copy(data);try{if(!action()){data=prior;return false;}if(persist){const result=saveState(copy(data));if(result===false||result&&typeof result.then==='function'){if(result&&typeof result.then==='function')Promise.resolve(result).catch(()=>{});data=prior;return false;}}return true;}catch{data=prior;return false;}}
  function releaseWorker(actorId){if(![HOST,'player'].includes(actorId))return false;for(const b of data.batches)if(b.owner===actorId){b.owner=null;b.workReceiptId=null;}return true;}
- const api={observeBath:(event,options)=>transact(()=>observeBath(event),options),begin:(...args)=>transact(()=>begin(...args)),advance:(...args)=>transact(()=>advance(...args)),claimDuty:id=>transact(()=>claimDuty(id)),pauseDuty:id=>transact(()=>pauseDuty(id)),releaseDuty:id=>transact(()=>releaseDuty(id)),releaseWorker:id=>transact(()=>releaseWorker(id)),duty:()=>copy(data.duty),work:()=>copy(data.batches.filter(available)),receipts:receiptId=>copy(data.receipts.filter(r=>!receiptId||r.workReceiptId===receiptId)),state:()=>copy(data),snapshot:()=>copy(data),restore};
- if(saved)restore(saved);return api;
+ const api={observeBath:(event,options)=>transact(()=>observeBath(event),options),begin:(...args)=>transact(()=>begin(...args)),advance:(...args)=>transact(()=>advance(...args)),claimDuty:id=>transact(()=>claimDuty(id)),pauseDuty:id=>transact(()=>pauseDuty(id)),releaseDuty:id=>transact(()=>releaseDuty(id)),releaseWorker:id=>transact(()=>releaseWorker(id)),duty:()=>copy(data.duty),work:()=>copy(data.batches.filter(available)),receipts:receiptId=>copy(data.receipts.filter(r=>!receiptId||r.workReceiptId===receiptId)),state:()=>loadError?{...copy(data),loadError}:copy(data),snapshot:()=>copy(loadError?invalidSaved:data),restore};
+ if(saved!==null&&saved!==undefined&&!restore(saved)){loadError='invalid-boiler-state';invalidSaved=copy(saved);}return api;
 }

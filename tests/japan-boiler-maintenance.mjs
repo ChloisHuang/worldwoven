@@ -14,7 +14,7 @@ assert(ledger.observeBath(event(4,'women')));assert.equal(ledger.work().length,2
 const advance=(stage,actor='player',receiptId=rid)=>ledger.advance(batch.id,stage,actor,{receiptId,nextStage:STAGES[STAGES.indexOf(stage)+1]||'completed'});
 assert.equal(advance('verify'),false);assert.equal(ledger.advance(batch.id,'read','player',{receiptId:rid,nextStage:'verify'}),false);
 assert(advance('read'));let saved=ledger.snapshot();assert(ledger.restore(saved,{preserveDuty:true}));assert.equal(ledger.duty().status,'active');assert.equal(ledger.work()[0].owner,'player');
-ledger=create({saved,saveState});assert.equal(ledger.duty().status,'paused');assert.equal(ledger.work()[0].owner,null);assert.equal(ledger.work()[0].stage,'adjust');assert.equal(advance('adjust'),false);assert.equal(ledger.observeBath(event(1)),false);assert(ledger.claimDuty(rid));
+ledger=create({saved,saveState});assert.equal(ledger.duty().status,'paused');assert.equal(ledger.work()[0].owner,'player');assert.equal(ledger.work()[0].workReceiptId,rid);assert.equal(ledger.work()[0].stage,'adjust');assert.equal(ledger.begin(batch.id,'adjust','jp-steam'),false);assert(ledger.restore(ledger.snapshot()));assert.equal(ledger.work()[0].owner,'player');assert.equal(advance('adjust'),false);assert.equal(ledger.observeBath(event(1)),false);assert(ledger.claimDuty(rid));
 assert(advance('adjust'));assert.equal(advance('adjust'),false);assert(advance('return'));
 saved=ledger.snapshot();fail=true;assert.equal(advance('verify'),false);assert.deepEqual(ledger.snapshot(),saved);fail=false;assert(advance('verify'));assert.equal(advance('verify'),false);
 const receipt=ledger.receipts(rid)[0];assert.equal(ledger.receipts(rid).length,1);assert(validJapanBoilerReceipt(receipt));assert(sameJapanBoilerReceipt(receipt,structuredClone(receipt)));assert.equal(validJapanBoilerReceipt({...receipt,extra:true}),false);assert.equal(validJapanBoilerReceipt({...receipt,visitIds:[receipt.visitIds[0],receipt.visitIds[0]]}),false);assert.equal(validJapanBoilerReceipt({...receipt,loadCount:100}),false);
@@ -52,3 +52,21 @@ assert(board.boiler.claimDuty(rid));for(const stage of STAGES)assert(board.boile
 assert(validJapanBoilerReceipt(board.boiler.receipts(rid)[0]));
 assert(board.guestStep(pv.id,'bath-interrupted',{seatId:bathEvidence.seatId}));assert(board.guestStep(pv.id,'bath-mounted',bathEvidence));assert.deepEqual(board.boiler.work(),[]);assert.equal(board.boiler.receipts(rid).length,1);
 console.log('PASS actual board player-service bath admission, rejection rollback, interrupted/remount and cold dedup, completed-load replay, dining ID exclusion');
+
+// Corrupt saved work is quarantined, never silently replaced by an empty queue.
+for(const badSaved of [{version:999},false,0,'bad-state',{...create().snapshot(),nextBatch:0}, {...create().snapshot(),seen:['orphaned-admission']}]){
+ let writes=0;const quarantined=create({saved:badSaved,saveState:()=>{writes++;return true;}});
+ assert.equal(quarantined.state().loadError,'invalid-boiler-state');assert.deepEqual(quarantined.work(),[]);assert.equal(quarantined.duty(),null);assert.deepEqual(quarantined.receipts(),[]);
+ assert.deepEqual(quarantined.snapshot(),badSaved);assert.equal(quarantined.observeBath(event(30)),false);assert.equal(quarantined.claimDuty(rid),false);assert.equal(quarantined.begin('jp-boiler-batch-1','read','jp-steam'),false);assert.equal(quarantined.releaseWorker('jp-steam'),false);assert.equal(writes,0);assert.deepEqual(quarantined.snapshot(),badSaved);
+ assert.equal(quarantined.restore({version:999}),false);assert.deepEqual(quarantined.snapshot(),badSaved);
+ assert(quarantined.restore(create().snapshot()));assert.equal(quarantined.state().loadError,undefined);assert(quarantined.observeBath(event(30)));assert.equal(writes,1);
+}
+for(const missing of [undefined,null]){const legacy=create({saved:missing});assert.equal(legacy.state().loadError,undefined);assert(legacy.observeBath(event(31)));}
+const corruptBoardSaved=structuredClone(lastSaved);corruptBoardSaved.boilerMaintenance={version:99,raw:'retain this work'};
+const corruptBoard=createJapanServiceOrders({worldSeed:42,saved:corruptBoardSaved});assert.equal(corruptBoard.boiler.state().loadError,'invalid-boiler-state');assert.deepEqual(corruptBoard.state().boilerMaintenance,corruptBoardSaved.boilerMaintenance);assert.equal(corruptBoard.boiler.claimDuty(rid),false);
+console.log('PASS corrupt ledger quarantine blocks mutations, preserves raw snapshot, isolates board service and recovers only on valid explicit restore');
+
+// Explicit cancellation still hands a cold-reserved batch back to Nagi.
+const coldSource=create();assert(coldSource.observeBath(event(50)));assert(coldSource.claimDuty(rid));const coldId=coldSource.work()[0].id;assert(coldSource.begin(coldId,'read','player',{receiptId:rid}));
+const coldReserved=create({saved:coldSource.snapshot()});assert.equal(coldReserved.duty().status,'paused');assert.equal(coldReserved.begin(coldId,'read','jp-steam'),false);assert.equal(coldReserved.begin(coldId,'read','player',{receiptId:rid}),false);assert(coldReserved.observeBath(event(51,'women')));const independent=coldReserved.work().find(b=>b.side==='women');assert(coldReserved.begin(independent.id,'read','jp-steam'));for(const stage of STAGES)assert(coldReserved.advance(independent.id,stage,'jp-steam',{nextStage:STAGES[STAGES.indexOf(stage)+1]||'completed'}));assert.equal(coldReserved.work().find(b=>b.id===coldId).owner,'player','other pool does not displace cold player batch');assert(coldReserved.releaseDuty(rid));assert(coldReserved.begin(coldId,'read','jp-steam'));
+console.log('PASS cold paused shift reserves its original batch until same-shift resume or explicit release');
