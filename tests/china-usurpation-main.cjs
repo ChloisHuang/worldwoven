@@ -68,6 +68,11 @@ if(sourceCheckpoint){
   const candidate=await helper({prior:input.save,mod,linker,root,assert});
   const {save:prepared,...report}=candidate;input.save=prepared;journal.kitchenHistory=report;
  }
+ if(independentSuccess&&process.env.USURPATION_MAIN_STAGE_HANDOFF==='1'&&!journal.handoffBoundaryStaging){
+  assert.equal(process.env.USURPATION_MAIN_PHASE,'handoff-reject');assert(!journal.completed.includes('s05-investiture-save-rejected'));
+  const prepared=require(path.resolve('tests/fixtures/usurpation-main-handoff-ready.cjs'))({prior:input.save,assert});
+  const {save:next,...provenance}=prepared;input.save=next;journal.handoffBoundaryStaging=provenance;
+ }
  if(independentSuccess&&process.env.USURPATION_MAIN_PHASE==='imperial-court'&&!journal.imperialClock){
   assert.equal(input.save.palaceUsurpation.cases.at(-1).stage,'invested');assert.equal(input.save.palaceUsurpation.office.actorId,'player');
   const before=clone(input.save),seconds=before.simulationClock.seconds,currentDay=Math.floor((600+seconds*.7)/1440),schedule=before.worldContinuity?.regions?.china?.controllers?.chinaAudience?.schedule;
@@ -247,8 +252,17 @@ try{
     if(!waitFor(()=>{const offered=view().actions.find(row=>row.kind==='investiture'&&row.enabled);return offered&&physical.intent(offered);},'same original paper and legal witnesses available'))return;
     open();click(action('investiture'));
    }
+   let handoffNextRetry=steps+30,handoffRetries=0;
+   const waitHandoff=(finished,label)=>waitFor(()=>{
+    if(finished())return true;const live=review();
+    if(steps>=handoffNextRetry&&!physical.active()&&!live.pendingInteraction&&!live.path.length&&handoffRetries<3){
+     const offered=view().actions.find(row=>row.kind==='investiture'&&row.enabled);
+     if(offered&&physical.intent(offered)){journal.handoffRetries=journal.handoffRetries||[];journal.handoffRetries.push({phase:process.env.USURPATION_MAIN_PHASE,clock:clone(r.simulationClock.state()),reason:r.chinaArchery?.plotMeetingState?.(task().id)?.reason||physical.state().lastError||'approach-ended'});open();click(action('investiture'));handoffRetries++;handoffNextRetry=steps+100;}
+    }
+    return false;
+   },label);
    if(rejecting){
-    if(!waitFor(()=>rejectedInvestitures>0,'actual three-second investiture reaches rejected atomic write'))return;
+    if(!waitHandoff(()=>rejectedInvestitures>0,'actual three-second investiture reaches rejected atomic write'))return;
     assert.deepEqual(clone(core.snapshot()),before);assert.equal(core.office().actorId,'cn-emperor');assert.equal(task().investiture,null);
     const saved=JSON.parse(storage['worlds-days-v1']);assert.deepEqual(saved.palaceUsurpation,before);
     const proof=Object.values(physical.snapshot().actions.proofs).find(row=>row.kind==='investiture-reading'&&!row.applied);
@@ -258,7 +272,7 @@ try{
     checkpoint('s05-investiture-save-rejected',{caseId:journal.caseId,receiptId:proof.proof.id,rejectedInvestitures,officeStillOriginal:true,ordinarySaveRetainsPendingProof:true,prerequisitesStaged:true});
     console.log(JSON.stringify({status:'PASS',scope:'Three-second original paper action survived rejected atomic write and ordinary save; cold retry pending',checkpoint:checkpointPath}));return;
    }
-   if(!waitFor(()=>task().stage==='invested','same receipt commits unique office after original witnesses gather'))return;
+   if(!waitHandoff(()=>task().stage==='invested','same receipt commits unique office after original witnesses gather'))return;
    step();const office=core.office(),receipt=task().investiture.receipt;
    assert.deepEqual(clone(receipt),journal.rejectedInvestiture);assert.equal(office.actorId,'player');assert.equal(office.bodyId,bodyId(r.player));assert.equal(office.revision,1);
    assert.equal(office.formerEmperors.length,1);assert.equal(office.formerEmperors[0].actorId,'cn-emperor');assert.equal(office.formerEmperors[0].bodyId,bodyId(originals.get('cn-emperor')));assert.equal(office.formerEmperors[0].alive,true);
