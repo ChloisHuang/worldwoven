@@ -23,7 +23,7 @@ export function createPalaceLeisureClaims(){
   available(id,actor){return !id||!queue.state().some(f=>f.id===id&&f.reservations.some(r=>r.actor!==actor));},
   reserve(id,actor,budget=120){if(!id)return true;const claim=queue.reserve(id,actor);if(!claim){queue.release(id,actor);return false;}leases.set(actor,{id,remaining:budget});return true;},
   release(actor){queue.releaseActor(actor);leases.delete(actor);},
-  extend(actor,seconds){const lease=leases.get(actor);if(!lease||!Number.isFinite(seconds)||seconds<=0)return false;lease.remaining+=seconds;return true;},
+  extend(actor,seconds){const lease=leases.get(actor);if(!lease||!(lease.remaining>0)||!Number.isFinite(seconds)||seconds<=0)return false;lease.remaining+=seconds;return true;},
   tick(actor,dt,paused=false){const lease=leases.get(actor);if(!lease||paused)return false;lease.remaining-=dt;if(lease.remaining>0)return false;queue.releaseActor(actor);leases.delete(actor);return true;},
   state:()=>[...leases].map(([actor,value])=>({actor,...value})),dispose(){leases.clear();queue.dispose();}
  };
