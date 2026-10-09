@@ -392,6 +392,12 @@
       "china-tavern-stock-scene.mjs",
       "china-tavern-management-main.cjs",
       "china-tavern-rehire-scene.mjs"
+    ],
+    "targeted": [
+      "china-palace-garden-player.cjs",
+      "china-palace-garden-career-pay.mjs",
+      "china-palace-garden-duty.mjs",
+      "china-palace-garden-player-main.cjs"
     ]
   },
   "world-life": {

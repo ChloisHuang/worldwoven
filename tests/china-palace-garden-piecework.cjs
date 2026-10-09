@@ -6,7 +6,7 @@ function mod(file){if(cache.has(file))return cache.get(file);const m=new vm.Sour
 const linker=(s,f)=>mod(s==='three'?path.join(root,'vendor/three/build/three.module.js'):path.resolve(path.dirname(f.identifier),s));
 (async()=>{
  const module=mod(path.join(root,'game/china-palace-edict.js'));await module.link(linker);await module.evaluate();const {createEdictLedger,createChinaPalaceEdict}=module.namespace;
- const reportsModule=mod(path.join(root,'game/china-court-reports.js'));await reportsModule.link(linker);await reportsModule.evaluate();const {createCourtReports}=reportsModule.namespace;
+ const reportsModule=mod(path.join(root,'game/china-court-reports.js'));if(reportsModule.status==='unlinked')await reportsModule.link(linker);if(reportsModule.status!=='evaluated')await reportsModule.evaluate();const {createCourtReports}=reportsModule.namespace;
  const receipt={lastCompletedDay:0,completionId:'cn-morning-audience:0'};
  const T=cache.get(path.join(root,'vendor/three/build/three.module.js')).namespace,P=cache.get(path.join(root,'game/china-palace-edict-place.js')).namespace.PALACE_EDICT.points;
  const make=(id,p)=>{const root=new T.Group(),hands=[new T.Group(),new T.Group()];for(const[i,h]of hands.entries()){h.position.set(i?.16:-.16,1,.4);root.add(h);}root.userData.hands=hands;root.position.set(...p);return {station:{id,npcName:id,npcLabel:'original job'},root,home:root.position.clone(),route:[],phase:0,breakAt:20,locomotion:{walkSpeed:9},animate(){this.root.updateWorldMatrix(true,true);}};};
