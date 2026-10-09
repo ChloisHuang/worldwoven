@@ -168,7 +168,7 @@ try{
   for(const pledge of task().pledges)assert(contextNow().supporters.some(person=>person.id===pledge.actorId&&person.bodyId===pledge.bodyId),'Staged history still belongs to a current original supporter');
   const waitFor=(predicate,label,limit=1800)=>{
    leg=label;for(let i=0;i<limit&&!predicate();i++){
-    if(Date.now()-started>132000){checkpoint('success-progress-'+Math.floor(r.simulationClock.state().seconds),{incomplete:true,leg});console.log(JSON.stringify({status:'CHECKPOINT',scope:'Independent staged prerequisites; original physical progress is still incomplete',checkpoint:checkpointPath}));return false;}step();
+    if(Date.now()-started>132000){fs.writeFileSync(path.join(output,'diagnostic.json'),JSON.stringify(diagnostic(),null,2));checkpoint('success-progress-'+Math.floor(r.simulationClock.state().seconds),{incomplete:true,leg});console.log(JSON.stringify({status:'CHECKPOINT',scope:'Independent staged prerequisites; original physical progress is still incomplete',checkpoint:checkpointPath}));return false;}step();
    }
    if(!predicate()){
     checkpoint('success-progress-'+Math.floor(r.simulationClock.state().seconds),{incomplete:true,leg,plotMeeting:r.chinaArchery?.plotMeetingState?.(task().id),physical:physical.state(),guardState:r.chinaArchery?.state()});
@@ -219,7 +219,15 @@ try{
      if(!waitFor(()=>{const offered=view().actions.find(row=>row.kind===kind&&Object.entries(extra).every(([k,v])=>row[k]===v)&&row.enabled);return offered&&physical.intent(offered);},'original people available for '+milestone))return;
      open();click(action(kind,extra));
     }
-    if(!waitFor(finished,'actual six-second '+milestone))return;
+    let nextRetry=steps+30,retries=0;
+    if(!waitFor(()=>{
+     if(finished())return true;const live=review();
+     if(steps>=nextRetry&&!physical.active()&&!live.pendingInteraction&&!live.path.length&&retries<3){
+      const offered=view().actions.find(row=>row.kind===kind&&Object.entries(extra).every(([k,v])=>row[k]===v)&&row.enabled);
+      if(offered&&physical.intent(offered)){journal.ceremonyRetries=journal.ceremonyRetries||[];journal.ceremonyRetries.push({milestone,clock:clone(r.simulationClock.state()),reason:r.chinaArchery?.plotMeetingState?.(task().id)?.reason||physical.state().lastError||'approach-ended'});open();click(action(kind,extra));retries++;nextRetry=steps+100;}
+     }
+     return false;
+    },'actual six-second '+milestone))return;
     const receipt=kind==='prepare'?task().preparations.acclamation:task().resolution.receipt;
     assert.equal(receipt.durationSeconds,6);assert.equal(receipt.caseId,journal.caseId);
     for(const person of receipt.participants)assert.equal(person.bodyId,bodyId(person.actorId==='player'?r.player:originals.get(person.actorId)));
@@ -286,6 +294,35 @@ try{
    if(!waitFor(()=>audience.state().phase==='waiting'&&r.chinaPalace.dutyState('china-morning-audience')===null,'original court dismisses and releases player duty'))return;
    checkpoint('s09-player-court-complete',{schedule:audience.state().schedule,originalReporters:journal.imperialDecisions.map(d=>d.reporterId),clockStaging:journal.imperialClock});
    console.log(JSON.stringify({status:'PASS',scope:'Only next morning clock staged; original reports, actual player court responses and dismissal executed in main',checkpoint:checkpointPath}));return;
+  }
+  if(process.env.USURPATION_MAIN_PHASE==='imperial-edict'){
+   assert(done('s09-player-court-complete'));assert.deepEqual(clone(core.office()),journal.investedOffice);const edict=r.chinaEdict;
+   if(!waitFor(()=>!!edict.playerDecision(),'original Wen draft and herald handoff create an original paper for the player'))return;
+   const original=clone(edict.state().order);assert.equal(original.audienceId,'cn-morning-audience:'+journal.imperialClock.day);assert.equal(original.authority.holderId,'player');assert.equal(original.authority.revision,core.office().revision);
+   open();click(action('duty-travel',{routeId:'edict'}));
+   if(!waitFor(()=>edict.playerDecision()?.ready===true,'player and original herald actually reach public review'))return;
+   const decision=clone(edict.playerDecision());assert.equal(decision.documentId,original.id);assert.equal(edict.state().order.stage,'to-approval');
+   for(let frame=0;frame<4;frame++)step();assert.equal(edict.state().order.stage,'to-approval');assert(!edict.state().order.approvalDecision);assert.notEqual(edict.state().approvalReceipt?.documentId,original.id);
+   open();click(action('edict-approve',{routeId:original.id}));
+   assert.equal(edict.state().order.stage,'approval');assert.equal(edict.state().phaseTime,0);assert.equal(edict.state().speaker,'player');
+   for(let frame=0;frame<39;frame++)step();assert.equal(edict.state().order.stage,'approval');assert(edict.state().phaseTime<4);assert.notEqual(edict.state().approvalReceipt?.documentId,original.id);
+   if(!waitFor(()=>edict.state().approvalReceipt?.documentId===original.id,'actual four-second player approval commits the original paper',20))return;
+   const state=edict.state(),receipt=clone(state.approvalReceipt);
+   assert.equal(state.order.stage,'to-seal');assert.equal(state.order.id,original.id);assert.equal(state.order.approvedBy,'player');assert.equal(receipt.decisionMakerId,'player');assert.equal(receipt.approvalSeconds,4);assert.equal(receipt.authority.revision,core.office().revision);
+   for(const key of ['heraldId','heraldRevision','scribeId','scribeRevision','recipientId','holderRevision'])assert.equal(state.order[key],original[key]);
+   assert.equal(state.order.holder,'herald');assert.equal(state.order.sealed,false);if(state.order.heraldPiecework)assert.equal(state.order.heraldPiecework.steps.approvalSeconds,4);
+   assert.equal(edict.decideAsPlayer('approve').ok,false,'Same original paper cannot be approved twice');assert.deepEqual(clone(edict.state().approvalReceipt),receipt);journal.imperialEdictReceipt=receipt;
+   checkpoint('s10-original-paper-player-approved',{receipt,heraldId:original.heraldId,scribeId:original.scribeId,recipientId:original.recipientId,sourcePaperGeneratedInMain:true,clockStaging:journal.imperialClock});
+   console.log(JSON.stringify({status:'PASS',scope:'Original draft/hand-off/public travel and player four-second imperial approval ran in main; final cold receipt check remains',checkpoint:checkpointPath}));return;
+  }
+  if(process.env.USURPATION_MAIN_PHASE==='imperial-cold'){
+   assert(done('s10-original-paper-player-approved'));assert.deepEqual(clone(core.office()),journal.investedOffice);assert.equal(core.state().events.filter(e=>e.type==='investiture').length,1);
+   assert.deepEqual(clone(r.chinaEdict.state().approvalReceipt),journal.imperialEdictReceipt);assert.equal(r.chinaEdict.state().order.id,journal.imperialEdictReceipt.documentId);assert.equal(r.chinaEdict.state().order.approvedBy,'player');
+   assert.equal(r.chinaEdict.decideAsPlayer('approve').ok,false);assert.deepEqual(clone(r.chinaEdict.state().approvalReceipt),journal.imperialEdictReceipt);
+   open();assert.equal(view().title,'宫廷事务');r.palaceUsurpationUI.close();main.namespace.cancelAction();
+   assert.equal(core.state().events.filter(e=>e.type==='investiture').length,1);assert.deepEqual(clone(r.chinaEdict.state().approvalReceipt),journal.imperialEdictReceipt);
+   checkpoint('s11-cold-office-and-original-imperial-receipt',{office:core.office(),receipt:journal.imperialEdictReceipt,rerolled:false,duplicateApproval:false});
+   console.log(JSON.stringify({status:'PASS',scope:'Committed unique office and actual imperial original-paper receipt cold-restored without replay; original refusal checkpoint unchanged',checkpoint:checkpointPath}));return;
   }
   throw Error('Explicit independent success phase required');
  }
