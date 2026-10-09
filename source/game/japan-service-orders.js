@@ -21,7 +21,7 @@ export const JAPAN_SERVICE_POINTS = Object.freeze({
 });
 export const JAPAN_LINEN_POINTS=Object.freeze({
  wash:[4.3,11.4,5.95],hang:[5.2,11.4,2.4],take:[5.2,11.4,2.4],
- fold:[8.6,11.4,3.65],restock:[8.6,11.4,3.65],registry:[5,11.4,3.9],host:[6.2,11.4,4.2],
+ fold:[8.6,11.4,3.85],restock:[8.6,11.4,3.85],registry:[5,11.4,3.9],host:[6.2,11.4,4.2],
 });
 export const JAPAN_LINEN_DRY_SECONDS=8;
 const LINEN_STAGES=['clean','issued','dirty','collected','wet','drying','dry','folded'];

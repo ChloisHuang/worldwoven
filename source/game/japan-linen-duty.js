@@ -2,11 +2,11 @@ import {JAPAN_SERVICE_POINTS as P,JAPAN_LINEN_POINTS as L} from './japan-service
 export const JAPAN_LINEN_REGISTRY=Object.freeze([5,11.4,3.9]);
 const REG=JAPAN_LINEN_REGISTRY,HOME=[6.2,11.4,4.2],HOST='jp-rest',copy=x=>JSON.parse(JSON.stringify(x));
 const near=(p,q,r=.25)=>!!p&&!!q&&Math.hypot(p.x-q[0],p.z-q[2])<=r&&Math.abs(p.y-q[1])<.35;
-const TARGET={wash:[4.3,12.57,6.43],hang:[5.2,12.96,2.02],take:[5.2,12.96,2.02],fold:[8.6,12.54,3.3],restock:[8.6,12.54,3.3]};
+const TARGET={wash:[4.3,12.57,6.43],hang:[5.2,12.96,2.02],take:[5.2,12.96,2.02],fold:[8.6,12.54,3.42],restock:[8.6,12.54,3.42]};
 const NEXT={dirty:['collect','collected',1],collected:['wash','wet',4],wet:['hang','drying',2],drying:['take','dry',1.5],dry:['fold','folded',3],folded:['restock','clean',1.5]};
 // One original employee and six original towels. The visitor board owns all
 // stock/receipts; this adapter alone owns movement and physical work time.
-export function createJapanLinenDuty({board,actors,assign,clear,unmount,taskOf,getStaffLife,planPath,getPlayer=()=>null,getMounted=()=>null,isDutyRoute=()=>false,onComplete=()=>{}}){
+export function createJapanLinenDuty({board,actors,assign,clear,unmount,taskOf,getStaffLife,planPath,getPlayer=()=>null,getMounted=()=>null,isDutyRoute=()=>false,onComplete=()=>{},tickDrying=true}){
  const host=actors.get(HOST);let playerOptions={getPlayer,getMounted,isDutyRoute},desired=null,paused=false,meeting=false,step=null,disposed=false;
  const player=()=>playerOptions.getPlayer(),mounted=()=>playerOptions.getMounted(),items=()=>board.linenWork(),heldBy=id=>items().find(l=>l.carryOwner===id),held=()=>heldBy('player');
  const dutyActive=id=>desired===id&&!paused&&board.linenDuty()?.status==='active',covering=()=>!!desired&&!paused&&board.linenDuty()?.status==='active';
@@ -29,8 +29,8 @@ export function createJapanLinenDuty({board,actors,assign,clear,unmount,taskOf,g
   const own=heldBy(HOST),w=(own?[own]:items()).map(l=>workFor(l,HOST)).find(Boolean);if(!w)return;
   clear(host);assign(host,w.position,{linenWork:true,linenId:w.linenId,label:w.action,duration:w.duration,action:'tidy',held:own?'cloth':null,workTarget:w.target,ready:()=>{const l=items().find(x=>x.id===w.linenId);return l?.stage===w.expectedStage&&l.cycle===w.cycle;},onDone:()=>{if(!finish(w,host))return false;onComplete(w.visitId,'linen-'+w.kind);return true;}});
  }
- function releaseDuty(id){if(desired!==id)return false;if(held()&&!near(player()?.root.position,held().position,.35))return false;if(!board.releaseLinenDuty(id))return false;desired=null;paused=false;step=null;return true;}
- function update(dt){if(disposed)return;board.linenTick(dt);
+ function releaseDuty(id){if(desired!==id)return desired===null&&!board.linenDuty()&&!held();if(held()&&!near(player()?.root.position,held().position,.35))return false;if(!board.releaseLinenDuty(id))return false;desired=null;paused=false;step=null;return true;}
+ function update(dt){if(disposed)return;if(tickDrying)board.linenTick(dt);
   if(desired&&!paused&&(!inWorkplace()||mounted())){if(!board.linenDuty()||board.pauseLinenDuty(desired)){step=null;paused=true;}}
   if(meeting||desired&&!paused&&!covering())recall();
   if(desired&&!paused&&!covering()&&meetingReady())board.setLinenDuty(desired,'active');
@@ -40,8 +40,8 @@ export function createJapanLinenDuty({board,actors,assign,clear,unmount,taskOf,g
  return {registry:REG.slice(),connect(options){playerOptions={...playerOptions,...options};return this;},update,meetingReady,workIntent,workChoices:choices,executeWork,
   requestMeeting(v){meeting=!!v;},holdDuty(id){desired=id;paused=true;},claimDuty(id){if(disposed||desired&&desired!==id||!this.canClaimDuty())return false;desired=id;paused=false;return true;},
   canClaimDuty:()=>!board.state().visits.some(v=>v.customerType==='player'&&!['departed','cancelled'].includes(v.stage)),canEndDuty:id=>desired===id&&!step&&!held(),releaseDuty,inWorkplace,dutyActive,
-  holdsHost:()=>!!(meeting||desired&&!paused)||!!heldBy(HOST),isCovering:covering,coversWorker:(id,kind=null)=>id===HOST&&covering()&&(!kind||kind==='linen'),blocksWorker:id=>id===HOST&&!!(meeting||desired&&!paused||heldBy(HOST)||taskOf(host)?.linenWork),
-  idlePoint:id=>id===HOST&&covering()?HOME.slice():null,idleTask:id=>id===HOST&&covering()?{duration:4,face:REG,label:'布草由你当班 · 等候交接'}:null,
+  holdsHost:()=>!!(meeting||desired&&!paused&&!covering())||!!heldBy(HOST),isCovering:covering,coversWorker:(id,kind=null)=>id===HOST&&covering()&&(!kind||kind==='linen'),blocksWorker:id=>id===HOST&&!!(meeting||desired&&!paused&&!covering()||heldBy(HOST)||taskOf(host)?.linenWork),
+  idlePoint:id=>id===HOST&&covering()&&!relief()?HOME.slice():null,idleTask:id=>id===HOST&&covering()&&!relief()?{duration:4,face:REG,label:'布草由你当班 · 等候交接'}:null,
   workReceipts:id=>board.linenReceipts(id),isActing:()=>!!step,held:()=>!!held(),actor:player,stopWorkAction(){step=null;},returnPosition:()=>held()?.position.slice()||REG.slice(),
   workLabel:()=>step?.action||(paused?'布草班暂停 · 当面续班或将原巾归回原处':items().some(l=>l.stage==='drying')?'原巾在晾架晾干 · 可处理其他布巾':'布草候单 · 等来客用毕原巾'),
   playerPose:()=>step?{action:'tidy',heldProp:'cloth',workTarget:step.target.slice(),station:{workTarget:step.target.slice()}}:held()?{action:'tidy',heldProp:'cloth',handoff:true,station:{handoff:true}}:null,

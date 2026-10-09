@@ -9,9 +9,10 @@ let harness=fs.readFileSync(path.join(__dirname,'fixtures/hotfix-input-harness.c
 function once(a,b){if(!harness.includes(a)||harness.indexOf(a)!==harness.lastIndexOf(a))throw Error('seam changed '+a);harness=harness.replace(a,b);}
 const extra=`
 export function linenEnter(){travelJourneyUI.close('linen-local-test');return enterRegion('japan');}
+export function linenCloseMenus(){contextMenu.close();playerConversationUI.close();careerHandbook.close();}
 export function linenReview(){return {player,npcs,japanService,japanLinenEmployment,careerHandbook,formalCareers,copperLedger};}
 export function linenStep(dt){beginActorNavigationStep(dt);elapsed+=dt;advanceWorldClock(dt);updateAutomaticDoors(dt);activeDailyToilet()?.update(dt);updatePlayer(dt,elapsed);updateNPCs(dt,elapsed);updateGameHealth(dt);careerHandbook.update(mode);}
-export {requestStationIntent,executeNearbyAction,save};`;
+export {requestStationIntent,executeNearbyAction,save,resolvePlayerIntent,interactionMenuOpen};`;
 once("new vm.SourceTextModule(fs.readFileSync(file,'utf8'),","new vm.SourceTextModule(fs.readFileSync(file,'utf8')+(file.endsWith('/game/main.js')?"+JSON.stringify(extra)+":''),");
 once('vm.createContext({console,','vm.createContext({structuredClone,URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,console,');
 once('{identifier:file,context}','{identifier:file,context,initializeImportMeta:meta=>{meta.url=require("node:url").pathToFileURL(file).href;}}');
@@ -38,7 +39,7 @@ function observe(){const rows=view().linens;assert.equal(rows.length,6);if(mode=
  const l=rows.find(l=>l.id===evidence.linenId);if(l&&l.cycle===evidence.cycle&&evidence.stages.at(-1)?.stage!==l.stage){if(mode==='npc'&&['collected','wet','dry','folded'].includes(l.stage))assert.equal(l.carryOwner,'jp-rest');evidence.stages.push({stage:l.stage,owner:l.carryOwner,frame:evidence.frames});console.log('LINEN_STAGE',JSON.stringify(evidence.stages.at(-1)));}}
 function step(n=1){for(let i=0;i<n;i++){now+=100;main.namespace.linenStep(.1);evidence.frames++;observe();if(evidence.frames%20===0){assert(process.memoryUsage().rss<1152*1024**2,'RSS <=1152 MiB');checkpoint();if(Date.now()-started>Number(process.env.LINEN_SEGMENT_MS||150000)){console.log('CHECKPOINT_NOT_PASS',JSON.stringify(detail()));process.exit(75);}}}}
 function until(fn,label,max=12000){let n=0;for(;n<max&&!fn();n++)step();assert(fn(),label+' '+JSON.stringify(detail()));record(label,{frames:n});}
-function request(kind){r.careerHandbook.close();const intent=service.intent(kind);assert(intent,'intent '+kind+' '+JSON.stringify(detail()));assert(main.namespace.requestStationIntent(intent),'route '+kind+' '+JSON.stringify(detail()));return intent;}
+function request(kind){main.namespace.linenCloseMenus();const intent=service.intent(kind);assert(intent,'intent '+kind+' '+JSON.stringify(detail()));const ok=main.namespace.requestStationIntent(intent);if(!ok)console.log('ROUTE_DEBUG',JSON.stringify({kind,intent,resolved:main.namespace.resolvePlayerIntent(intent),menu:main.namespace.interactionMenuOpen()}));assert(ok,'route '+kind+' '+JSON.stringify(detail()));return intent;}
 if(process.env.LINEN_RESUME){assert.equal(state().continuity.skipped.length,0);assert.equal(state().continuity.relocated.length,0);record('cold continuation retains original world');}
 if(mode==='npc'){
  until(()=>{const l=view().linens.find(l=>l.id===evidence.linenId);return l&&l.cycle>evidence.cycle&&l.stage==='issued';},'same original towel is issued to a later natural original visitor',24000);
