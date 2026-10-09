@@ -699,7 +699,8 @@
       "underground-market-runtime.mjs",
       "underground-market-main.cjs",
       "china-criminal-cases.mjs",
-      "china-criminal-case-runtime.mjs"
+      "china-criminal-case-runtime.mjs",
+      "china-criminal-case-main.cjs"
     ]
   },
   "release": {

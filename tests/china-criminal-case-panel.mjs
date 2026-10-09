@@ -16,9 +16,9 @@ class Element {
 const doc={createElement(tag){return new Element(tag,this);}};doc.body=doc.createElement('body');doc.head=doc.createElement('head');
 const all=n=>[n,...n.children.flatMap(all)],text=()=>all(doc.body).map(n=>n.textContent).join('\n');
 const find=predicate=>all(doc.body).find(predicate),action=()=>find(n=>n.attrs['data-panel-key']==='criminal-action-real-1');
-let cases=[],available=true,revision=0,closed=0;const sent=[];
-const panel=createChinaCriminalCasePanel({document:doc,getCases:()=>structuredClone(cases),getIntent:id=>available?{id,intentKey:`${id}:${revision}`,action:'继续原案'}:null,nameOf:id=>({suspect:'原涉事人',victim:'原受害人'})[id]||id,onClose:()=>closed++,onAction:intent=>{assert.equal(panel.isOpen(),false,'close before navigation');sent.push(intent);}});
-assert(panel.open());assert(text().includes('没有可核验的真实原案'));assert(text().includes('正二品'));assert(text().includes('168文'));assert(!action());
+let cases=[],status={ok:true},available=true,revision=0,closed=0;const sent=[];
+const panel=createChinaCriminalCasePanel({document:doc,getStatus:()=>status,getCases:()=>structuredClone(cases),getIntent:id=>available?{id,intentKey:`${id}:${revision}`,action:'继续原案'}:null,nameOf:id=>({suspect:'原涉事人',victim:'原受害人'})[id]||id,onClose:()=>closed++,onAction:intent=>{assert.equal(panel.isOpen(),false,'close before navigation');sent.push(intent);}});
+assert(panel.open());assert(text().includes('没有可核验的真实原案'));assert(text().includes('正二品'));assert(text().includes('168文'));assert(!action());status={ok:false};panel.refresh();assert(text().includes('原案存档暂无法核验'));assert(!text().includes('没有可核验的真实原案'));status={ok:true};
 cases=[{id:'real-1',number:1,kind:'theft',stage:'intake',source:{subjectId:'suspect',victimId:'victim',evidence:['<img src=x onerror=alert(1)>','已存原事件记录']},outcome:null,stale:false}];const original=structuredClone(cases);
 panel.refresh();assert(text().includes('原涉事人'));assert(text().includes('<img src=x onerror=alert(1)>'));assert(text().includes('不能仅凭陈述认定有罪'));assert.deepEqual(cases,original);
 const first=action();assert(first);revision++;first.onclick();assert.equal(sent.length,1);assert.equal(sent[0].intentKey,'real-1:1');assert.equal(closed,1);first.onclick();assert.equal(sent.length,1);

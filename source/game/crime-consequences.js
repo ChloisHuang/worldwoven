@@ -275,7 +275,7 @@ export function createCrimeConsequences({saved=null,persist=()=>false,actors=()=
    const previous=next.cases.findLast(c=>c.kind==='harm'&&c.subjectKey===actorKey&&c.victimKey===victimKey);
    const continuing=previous&&!terminal.has(previous.status),c=continuing?previous:makeCase(next,actor,'harm',{victimKey,victimId:victim.id},w,events);
    const incidentNumber=continuing?next.nextCase++:c.number,clock=typeof getClock==='function'?getClock():next.time,at=Number.isFinite(clock)&&clock>=0?clock:next.time;
-   c.incidentCount=continuing?(c.incidentCount||1)+1:1;c.lastIncidentAt=next.time;c.lastIncidentNumber=incidentNumber;c.lastHarmAt=at;
+   c.incidentCount=continuing?(c.incidentCount||1)+1:1;c.lastIncidentAt=next.time;c.lastIncidentNumber=incidentNumber;c.lastHarmAt=at;c.incidentPosition=point(actor.position);
    // Repeated physical incidents retain one case/consequence but get fresh,
    // monotonic receipts. Only people seeing THIS incident receive its effect.
    const witnesses=[...w.people.values()].filter(a=>a.key!==actorKey&&(a.key===victimKey||sees(a,actor))).sort((a,b)=>a.key.localeCompare(b.key));

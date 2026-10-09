@@ -37,4 +37,7 @@ function fixture(saved){
 {
  const f=fixture();f.start();f.finish();f.start();f.finish();f.start();f.w.lifeId='replacement';f.rt.update(.1);assert(!f.rt.isActing());assert.equal(f.rt.core.view(f.id).stage,'witness');assert(f.rt.intent(f.id).action.includes('原证言'),'same name replacement cannot testify as original witness');f.rt.dispose();
 }
+{const f=fixture();f.j.lifeId='replacement';assert.equal(f.rt.intent(f.id),null,'replacement actor cannot become original Zhou');f.rt.dispose();}
+{const f=fixture();f.start();for(let i=0;i<120;i++)f.rt.update(1/60);assert.equal(f.rt.core.view(f.id).stage,'scene','60Hz rounding retains full-duration proof');f.rt.dispose();}
+{const f=fixture();const next=f.rt.intent(f.id);assert(f.rt.prepareIntent(next));assert(f.held,'original NPC reserved during approach');assert(!f.rt.isActing());f.rt.cancel();assert.equal(f.held,null);assert.equal(f.rt.core.view(f.id).stage,'intake');f.rt.dispose();}
 console.log('PASS criminal case physical adapter: five stages, actual elapsed, same-life interviews, limited paper source, interrupt, cold resume, refusal and no source mutation');

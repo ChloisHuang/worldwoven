@@ -40,7 +40,7 @@ for(const [policy,day,notice] of [[null,2,'尚未保存'],[{effectiveDay:3},2,'�
  assert(text(root).includes('工务主官 · 正二品 · 新俸168文'));
  assert(text(root).includes('当前可玩升阶只到正九品'));
  assert(text(root).includes('当前仅工务和仓务两人有奏报'));
- assert(text(root).includes('真实案件、审理与裁决权限链'));
+ assert(text(root).includes('真实已报案件的交办、实据复核与具名意见归档'));assert(text(root).includes('完整审理与裁决权限链；现有复核不追加刑罚'));
  assert(!flatten(root).some(n=>n.tag==='button'),'Salary reference is not an application or rank-grant button');
 }
 console.log('PASS 18-grade curve, six stable identities/physical slots, shared titles, bounded player vacancies and honest read-only court reference');

@@ -84,3 +84,12 @@ function finish(review,id,recorded=false){for(const stage of ['intake','scene','
  crime.report('hidden:1',id);assert.equal(review.view(id).stale,true);finish(review,id);assert.equal(review.view(id).outcome.code,'reviewed-referral');
 }
 console.log('china-criminal-cases: evidence, ordering, replay, lifetime, stale review, save refusal and hidden-case checks passed');
+
+// Repeated harm retains its case number but the actual latest incident location.
+{
+ const victim=actor('victim','victim:1'),suspect=actor('suspect','suspect:1'),witness=actor('witness','witness:1'),guard=actor('guard','guard:1');
+ const crime=createCrimeConsequences({actors:()=>[suspect,victim,witness],guards:()=>[guard],hasLineOfSight:()=>true,persist:()=>true});
+ const first=crime.harm(suspect.key,victim.key);assert(first.ok);crime.update(61);
+ suspect.position.x=2;victim.position.x=2;witness.position.x=2;const again=crime.harm(suspect.key,victim.key);assert(again.ok);assert.equal(again.caseId,first.caseId);assert(crime.report(witness.key,again.caseId).ok);
+ const cases=createChinaCriminalCases({getCrime:()=>crime.snapshot()});assert.equal(cases.view(first.caseId).scenePosition.x,2);assert.equal(cases.view(first.caseId).source.incidentCount,2);
+}
