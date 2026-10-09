@@ -523,6 +523,7 @@
       "china-salon-reception-duty.mjs",
       "china-salon-reception-player-service.mjs",
       "china-salon-reception-employment-main.cjs",
+      "china-salon-reception-order-main.cjs",
       "china-scribe-needs-gate.mjs",
       "china-systems-r14.cjs",
       "china-tavern-host-role.mjs",
