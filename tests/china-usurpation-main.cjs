@@ -42,7 +42,8 @@ once('localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>storage[k]=v}', S
  storage[k]=v;return true;
 }}`);
 once("const main=mod(path.join(root,'game/main.js'));", String.raw`
-const output=path.resolve('qa/usurpation-main'),checkpointPath=path.join(output,'checkpoint.json');fs.mkdirSync(output,{recursive:true});
+const independentSuccess=process.env.USURPATION_MAIN_SCENARIO==='success';
+const output=path.resolve(independentSuccess?'qa/usurpation-success-main':'qa/usurpation-main'),checkpointPath=path.join(output,'checkpoint.json');fs.mkdirSync(output,{recursive:true});
 const clone=value=>JSON.parse(JSON.stringify(value));
 const sourceCheckpoint=process.env.USURPATION_MAIN_FROM||
  (process.env.USURPATION_MAIN_FRESH==='1'?null:fs.existsSync(checkpointPath)?checkpointPath:null);
@@ -52,6 +53,7 @@ if(sourceCheckpoint){
  assert.equal(input.version,1);assert.equal(input.journal?.kind,'china-usurpation-main');
  assert(input.save&&Array.isArray(input.journal.completed));
  journal=input.journal;
+ assert.equal(journal.scenario==='independent-success',independentSuccess,'Never mix the preserved original case and the independent success fixture');
  if(process.env.USURPATION_MAIN_PHASE==='support'&&!journal.supportHistory){
   const append=require(path.resolve('tests/fixtures/usurpation-main-support.cjs'));
   const load=async name=>{const m=mod(path.join(root,'game',name));if(m.status==='unlinked')await m.link(linker);if(m.status!=='evaluated')await m.evaluate();return m.namespace;};
@@ -66,6 +68,14 @@ if(sourceCheckpoint){
  }
  storage['worlds-days-v1']=JSON.stringify(input.save);coldInput=clone(input.save.palaceUsurpation||null);
  if(journal.caseId)assert.equal(coldInput?.cases?.at(-1)?.id,journal.caseId,'Never substitute another case checkpoint');
+}else if(independentSuccess){
+ const originalPath=path.resolve('tests/fixtures/usurpation-main-checkpoint.json'),originalBytes=fs.readFileSync(originalPath),original=JSON.parse(originalBytes);
+ assert(original.journal.completed.includes('11-warden-response'));assert(original.save.palaceUsurpation.cases.at(-1).pledges.filter(p=>['cn-archery','cn-range-warden'].includes(p.actorId)).every(p=>p.accepted===false));
+ const seed=await require(path.resolve('tests/fixtures/usurpation-main-success-seed.cjs'))({prior:JSON.parse(storage['worlds-days-v1']),mod,linker,root,assert});
+ storage['worlds-days-v1']=JSON.stringify(seed.save);coldInput=clone(seed.save.palaceUsurpation);
+ journal.scenario='independent-success';journal.caseId=seed.caseId;journal.pledges=clone(seed.pledges);journal.staging=seed.staging;
+ const {save:_save,...provenance}=seed;journal.successPrerequisites=provenance;
+ journal.originalFailureSHA256=require('node:crypto').createHash('sha256').update(originalBytes).digest('hex');
 }else{
  const seed=await require(path.resolve('tests/fixtures/usurpation-main-seed.cjs'))({prior:JSON.parse(storage['worlds-days-v1']),mod,linker,root,assert});
  storage['worlds-days-v1']=JSON.stringify(seed.save);journal.seed={supported:seed.supported,pendingSupport:seed.pendingSupport,attempts:seed.attempts,day:seed.stagedDay};journal.staging=seed.staging;
@@ -108,7 +118,7 @@ function step(){
  const before=r.player.root.position.clone();now+=100;main.namespace.usurpationMainStep(.1);steps++;
  const distance=r.player.root.position.distanceTo(before);walked+=distance;maxStep=Math.max(maxStep,distance);
  const activity=physical.state();if(activity.action==='political-response'&&!activity.waiting)readyTicks++;
- if(process.env.USURPATION_MAIN_PHASE==='support'){
+ if(process.env.USURPATION_MAIN_PHASE==='support'||independentSuccess){
   const invitation=find(document.body,element=>element.id==='player-conversation-dialog');
   if(invitation?.open){const before=task().pledges.length,close=find(invitation,element=>element.className?.split(' ').includes('player-conversation-close'));assert(close?.onclick);close.onclick();assert(!invitation.open);assert.equal(task().pledges.length,before);journal.dismissedOrdinaryInvitations=(journal.dismissedOrdinaryInvitations||0)+1;}
  }
@@ -116,6 +126,7 @@ function step(){
 function until(predicate,label,limit=1600){leg=label;for(let i=0;i<limit&&!predicate();i++)step();assert(predicate(),label+' incomplete; see diagnostic.json');}
 function checkpoint(name,evidence={}){
  invariants();assert(main.namespace.save(),'Ordinary production save succeeds');
+ if(independentSuccess)assert.equal(require('node:crypto').createHash('sha256').update(fs.readFileSync('tests/fixtures/usurpation-main-checkpoint.json')).digest('hex'),journal.originalFailureSHA256,'Original actual refusals are never overwritten');
  if(!done(name))journal.completed.push(name);journal.evidence.push({milestone:name,clock:clone(r.simulationClock.state()),...clone(evidence)});
  journal.last={milestone:name,steps,seconds:(Date.now()-started)/1000};
  const saved=JSON.parse(storage['worlds-days-v1']);
@@ -140,6 +151,38 @@ function click(selected){
  assert(button&&!button.disabled,selected.id+' real panel button');button.onclick();return button;
 }
 try{
+ if(independentSuccess){
+  assert.equal(journal.scenario,'independent-success');assert.deepEqual(clone(core.snapshot()),coldInput);
+  assert.deepEqual(clone(task().pledges),journal.pledges);assert.equal(task().id,journal.caseId);
+  for(const pledge of task().pledges)assert(contextNow().supporters.some(person=>person.id===pledge.actorId&&person.bodyId===pledge.bodyId),'Staged history still belongs to a current original supporter');
+  const waitFor=(predicate,label,limit=1800)=>{
+   leg=label;for(let i=0;i<limit&&!predicate();i++){
+    if(Date.now()-started>132000){checkpoint('success-progress-'+Math.floor(r.simulationClock.state().seconds),{incomplete:true,leg});console.log(JSON.stringify({status:'CHECKPOINT',scope:'Independent staged prerequisites; original physical progress is still incomplete',checkpoint:checkpointPath}));return false;}step();
+   }assert(predicate(),label+' incomplete; see diagnostic.json');return true;
+  };
+  if(!done('s00-staged-qualified-prerequisites')){
+   assert.equal(task().stage,'planning');assert(task().pledges.length>=5&&task().pledges.every(p=>p.accepted));
+   assert(Object.values(task().preparations).every(value=>value===null));
+   if(checkpoint('s00-staged-qualified-prerequisites',{staged:true,seed:journal.successPrerequisites.seed,caseId:journal.caseId,originalFailurePreserved:true,staging:journal.staging}))return;
+  }
+  if(process.env.USURPATION_MAIN_PHASE==='mechanisms'){
+   for(const [kind,milestone]of [['guard','s01-original-guards-gathered'],['abdication','s02-original-officials-confronted']]){
+    if(done(milestone))continue;
+    if(!physical.active()){
+     if(!waitFor(()=>{const offered=view().actions.find(row=>row.kind==='prepare'&&row.preparationKind===kind&&row.enabled);return offered&&physical.intent(offered);},'original people are safely available for '+kind))return;
+     open();click(action('prepare',{preparationKind:kind}));
+    }
+    if(!waitFor(()=>!!task().preparations[kind],'actual original bodies complete six seconds of '+kind))return;
+    const receipt=task().preparations[kind];assert.equal(receipt.caseId,journal.caseId);assert.equal(receipt.durationSeconds,6);
+    assert(receipt.participants.every(person=>person.bodyId===bodyId(person.actorId==='player'?r.player:originals.get(person.actorId))));
+    if(kind==='guard')assert.deepEqual([...receipt.guardIds].sort(),['cn-archery','cn-range-warden']);
+    else {assert.equal(receipt.officialIds.length,3);assert(receipt.participants.some(person=>person.actorId==='cn-emperor'));}
+    if(checkpoint(milestone,{caseId:journal.caseId,receiptId:receipt.id,seconds:6,people:receipt.participants,sourcePreparedInMain:true,prerequisitesStaged:true,walked,maxStep}))return;
+   }
+   console.log(JSON.stringify({status:'PASS',scope:'Independent staged qualified history; original guards and officials physically complete both six-second mechanisms in main, no investiture yet',checkpoint:checkpointPath}));return;
+  }
+  throw Error('Explicit independent success phase required');
+ }
  if(done('03-political-response')&&(!['political','support','kitchen-apply','kitchen-meal','kitchen-finish'].includes(process.env.USURPATION_MAIN_PHASE)||!done('04-cold-same-case'))){
   assert(coldInput,'Cold check must come from the persisted same-case checkpoint');
   assert.deepEqual(clone(core.snapshot()),coldInput,'Cold main restores exact committed political history');
