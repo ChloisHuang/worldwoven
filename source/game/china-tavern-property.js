@@ -21,7 +21,7 @@ const integer = x => Number.isSafeInteger(x) && x >= 0;
 const priceValid = x => integer(x) && x > 0 && x <= 1000000;
 const person = id => id === 'player' || Object.hasOwn(NPCS,id);
 const name = id => id === 'player' ? '你' : NPCS[id]?.name || '未知';
-const wages = tx => tx.action === 'wage' && tx.currency === 'copper' && ['cn-tavern-steward','cn-tavern-chef','cn-tavern-host','cn-tavern-helper'].includes(tx.roleId);
+const wages = tx => tx.action === 'wage' && tx.currency === 'copper' && ['cn-tavern-steward','cn-tavern-chef','cn-tavern-host','cn-tavern-helper','cn-salon-reception'].includes(tx.roleId);
 const hash = value => [...String(value)].reduce((h,c)=>(Math.imul(h,31)+c.charCodeAt(0))>>>0,17);
 const empty = () => ({version:1,revision:0,events:[],market:null});
 

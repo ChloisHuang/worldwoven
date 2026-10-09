@@ -17,6 +17,7 @@ const journal=value=>typeof value?.snapshot==='function'?value.snapshot():value;
 // service, contract and worker. A changed holder revision cannot mint a new ID.
 export function receptionWageReceipt(proof,settlementReceipt){
  const p=validateReceptionProof(proof),r=settlementReceipt,paid=Math.floor(p.fee/2),npc=p.sessionId.startsWith('cn-salon-npc-');
+ if(p.actorId!==ROLE.incumbentId||p.contractVersion!==1||p.amount!==ROLE.amount)throw Error('invalid-reception-wage-contract');
  if(!object(r)||r.id!==`salon-income:${p.sessionId}`||r.sessionId!==p.sessionId||typeof r.settlementId!=='string'||!r.settlementId||r.actorId!==p.artistId||r.activity!==p.activity||r.businessId!==ROLE.employer||r.currency!==ROLE.currency||r.gross!==p.fee||!same(r.incomePolicy,{version:1,performerShareBps:5000,rounding:'floor'})||r.businessCredit!==p.fee||r.businessDebit!==paid||r.performerPaid!==paid||r.businessProceeds!==p.fee-paid||!same(r.receptionWork,p)||
   (npc?r.sourceProvider!=='china-official-economy'||r.customerId!==p.customerId:r.sourceProvider!==undefined||r.customerId!==undefined&&r.customerId!=='player'))throw Error('unverified-reception-income');
  return {id:`salon-reception-wage:${ROLE.id}:${p.sessionId}`,sessionId:p.sessionId,actorId:p.actorId,roleId:p.roleId,slotId:p.slotId,holderRevision:p.holderRevision,contractVersion:p.contractVersion,businessId:ROLE.employer,currency:ROLE.currency,amount:ROLE.amount,incomeReceiptId:r.id,settlementId:r.settlementId,proof:p};
@@ -52,7 +53,7 @@ function mealChange(current,input,kind){
 }
 function restore(saved,income,property){
  const events=property?.events?.filter(e=>e.kind==='reception-wage')||[];
- const marked=(income?.receipts||[]).filter(r=>r.receptionWork!==undefined);
+ const marked=(income?.receipts||[]).filter(r=>r.receptionWork!==undefined&&r.receptionWork?.actorId!=='player');
  if(saved==null){if(events.length||marked.length)throw Error('reception-account-missing');return empty();}
  if(!object(saved)||![1,2].includes(saved.version)||!integer(saved.revision)||!Array.isArray(saved.receipts))throw Error('invalid-reception-account');
  // V1 had salary-only revisions. Retain all verified evidence and zero-origin
