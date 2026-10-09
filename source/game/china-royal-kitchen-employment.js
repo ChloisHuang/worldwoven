@@ -53,7 +53,7 @@ export function createChinaRoyalKitchenEmployment({kitchen,careers,getPlayer,get
  function executeIntent(old){const next=resolveIntent(old);if(!next||getMounted()||!near(getPlayer()?.root.position,next.position,next.executionRadius)||!canSee(next))return false;
   if(next.kind==='formal-view'){formal.open();return true;}
   if(next.kind==='task')return kitchen.executeWork(next.work,current.job.receiptId,getPlayer());
-  if(next.kind==='wait'){const s=kitchen.supplyState();notify(`${next.action} · 开局储备余${s.remaining}/120份，已损耗${s.wasted}份；工作不授用膳资格`);return true;}
+  if(next.kind==='wait'){const s=kitchen.supplyState();notify(`${next.action} · 开局储备余${s.remaining}/120份，已损耗${s.wasted}份${s.pantry?` · ${s.pantry.label}${s.pantry.counted?'已清点':'待许知远清点'}，原架现存${s.pantry.stored}份、待核准${s.pantry.awaitingApproval}份、已领未备${s.pantry.picked}份、待归还${s.pantry.awaitingReturn}份`:''}；工作不授用膳资格`);return true;}
   if(next.kind==='cancel'){if(!flush())return false;if(!formal.cancel(current.job))return false;if(!kitchen.releaseDuty(current.job.receiptId,{cancel:true}))return false;if(!save({...current,job:null}))return false;attendance=0;return true;}
   if(!meet()||next.kind==='end-shift'&&!kitchen.canEndDuty(current.job.receiptId)){waiting=next;kitchen.requestMeeting(true);notify(`等原膳用毕、${reviewerName()}回来当面交班；如尚有备制，请先完成手上原单`);return true;}
   waiting=null;return next.kind==='formal-apply'?formal.apply():next.kind==='formal-review'?formal.review():next.kind==='formal-resign'?formal.resign():next.kind==='accept'?accept():next.kind==='claim'?claim():next.kind==='end-shift'?endShift():false;

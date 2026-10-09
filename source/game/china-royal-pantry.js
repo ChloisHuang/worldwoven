@@ -34,3 +34,13 @@ export function completePantryTask(s,id,proof){const t=pantryTask(s,proof?.actor
  if(t.kind==='count')s.pantry.counted={id:t.id,actorId:PANTRY.actorId,quantity:s.pantry.quantity};
  else{const a=pantryAllocation(s,t.orderId),o=s.orders.find(o=>o.id===t.orderId);if(t.kind==='approve'){a.stage='approved';a.approvalId=t.id;}else a.archived={id:t.id,actorId:PANTRY.actorId,itemId:a.itemId,outcome:o.supplyReceipt?(o.stage==='consumed'?'consumed':'wasted'):a.stage==='released'?'released':'returned'};}return true;
 }
+
+// At most two extra minutes on this same original dining lease. Each grant
+// requires a new real milestone; waiting/retries/reloads grant nothing again.
+export function extendRoyalPantryMealLease(choice,progress,claims,actorId){
+ if(choice?.id!=='meal'||!progress||choice.orderId!==progress.orderId||progress.actorId!==actorId||progress.batchId!==PANTRY.id)return false;
+ const previous=choice.pantryLeaseProgress;if(previous&&previous.orderId!==choice.orderId)return false;
+ const record=previous||{orderId:choice.orderId};let changed=false;
+ for(const [key,seconds]of [['countedId',40],['approvalId',60],['pickupId',20]])if(typeof progress[key]==='string'&&progress[key]&&!record[key]&&claims.extend(actorId,seconds)){record[key]=progress[key];changed=true;}
+ if(changed)choice.pantryLeaseProgress=record;return changed;
+}

@@ -1,3 +1,6 @@
+import {regionalTellerRole} from '../source/game/regional-teller-audit-proof.js';
+import {PALACE_TEA_ROLE} from '../source/game/china-palace-tea-role.js';
+import {ARCHIVE_ROLE} from '../source/game/china-archive-role.js';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import fs from 'node:fs';
@@ -20,7 +23,7 @@ test('player tenure keeps the real NPC helper; original work anchors and history
 });
 test('actual main hiring-context callback selects bound royal reviewer and no original-person fallback',()=>{
  const main=fs.readFileSync(new URL('../source/game/main.js',import.meta.url),'utf8'),start=main.indexOf('getHiringContext:role=>')+'getHiringContext:'.length,end=main.indexOf(',creditWageToBank,getClock',start);assert(start>20&&end>start);let person={actorId:'cn-replacement',name:'新任厨役',revision:2};const looked=[];
- const callback=new vm.Script('('+main.slice(start,end)+')').runInNewContext({chinaRoyalKitchen:{reviewer:()=>person},playerSocialContext:{profileFor:id=>{looked.push(id);return {traits:{quiet:.7},relations:{player:.4},opinions:{player:.5}};}},getNPCProfile:()=>({traits:{curiosity:.2}})});
+ const callback=new vm.Script('('+main.slice(start,end)+')').runInNewContext({regionalTellerRole,PALACE_TEA_ROLE,ARCHIVE_ROLE,chinaRoyalKitchen:{reviewer:()=>person},playerSocialContext:{profileFor:id=>{looked.push(id);return {traits:{quiet:.7},relations:{player:.4},opinions:{player:.5}};}},getNPCProfile:()=>({traits:{curiosity:.2}})});
  const result=callback(R);assert.deepEqual(looked,['cn-replacement']);assert.equal(result.recruiterTraits.quiet,.7);person=null;const absent=callback(R);assert.equal(absent.recruiterTraits,undefined);assert.deepEqual(looked,['cn-replacement']);
 });
 test('actual handbook royal recruitment and live cards use current helper, without rewriting career history',async()=>{
