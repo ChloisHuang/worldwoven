@@ -14,6 +14,8 @@
 // history through existing writers, then physically asks the new supporters.
 // USURPATION_MAIN_PHASE=kitchen-apply declares old chef qualifications, then
 // performs the actual royal application, review and safe handover.
+// USURPATION_MAIN_PHASE=kitchen-meal continues original weighted meal requests,
+// actual player work, the fictional six-second preparation and consumption.
 // Later preparation/investiture/duty segments must continue this same journal.
 const fs = require('node:fs'), path = require('node:path'), vm = require('node:vm');
 let harness = fs.readFileSync(path.join(__dirname, 'fixtures/hotfix-input-harness.cjs'), 'utf8');
@@ -98,6 +100,7 @@ function diagnostic(){const live=review();return {leg,steps,seconds:(Date.now()-
  player:r.player.root.position.toArray(),path:live.path.slice(0,5).map(p=>[p.x,p.y,p.z]),pathLength:live.path.length,
  target:live.targetStation,pending:live.pendingInteraction,case:task(),physical:physical.state(),
  actors:[...originals].filter(([id])=>contextNow().supporters.some(person=>person.id===id)).map(([id,n])=>({id,bodyId:bodyId(n),position:n.root.position.toArray(),walking:n.walking,alive:n.alive!==false})),
+ kitchen:r.chinaRoyalKitchen?.state(),employment:r.chinaRoyalKitchenEmployment?.state(),palace:r.chinaPalace?.state(),
  supporters:contextNow().supporters.map(person=>({id:person.id,circleId:person.circleId})),meeting:r.npcSocial?.meetingState(),toast:ids.toast.textContent};}
 function step(){
  if(Date.now()-started>150000)throw Error('Bounded stop before external 180s limit: '+leg);
@@ -133,7 +136,7 @@ function click(selected){
  assert(button&&!button.disabled,selected.id+' real panel button');button.onclick();return button;
 }
 try{
- if(done('03-political-response')&&(!['political','support','kitchen-apply'].includes(process.env.USURPATION_MAIN_PHASE)||!done('04-cold-same-case'))){
+ if(done('03-political-response')&&(!['political','support','kitchen-apply','kitchen-meal'].includes(process.env.USURPATION_MAIN_PHASE)||!done('04-cold-same-case'))){
   assert(coldInput,'Cold check must come from the persisted same-case checkpoint');
   assert.deepEqual(clone(core.snapshot()),coldInput,'Cold main restores exact committed political history');
   assert.equal(task().id,journal.caseId);assert.deepEqual(clone(task().pledges),journal.pledges);
@@ -172,6 +175,61 @@ try{
    if(checkpoint('k04-royal-handover',{receiptId:employment.state().job.receiptId,day:employment.state().job.day,caseId:journal.caseId,originalJiaBody:bodyId(originals.get('cn-cooking'))}))return;
   }
   console.log(JSON.stringify({status:'PASS',scope:'Chef history is explicitly staged; royal application, Jia review and safe handover are actual main. No emperor order or intrigue evidence is staged.',checkpoint:checkpointPath,completed:journal.completed}));return;
+ }
+ if(process.env.USURPATION_MAIN_PHASE==='kitchen-meal'){
+  assert(done('k04-royal-handover'));assert.deepEqual(clone(core.snapshot()),coldInput);
+  const kitchen=r.chinaRoyalKitchen,employment=r.chinaRoyalKitchenEmployment,job=employment.state().job;
+  assert(job?.stage==='working');assert.equal(job.receiptId,'cn-royal-kitchen-labor-1');
+  const waitFor=(predicate,label,limit=2000)=>{
+   leg=label;for(let i=0;i<limit&&!predicate();i++){
+    if(Date.now()-started>132000){checkpoint('kitchen-progress-'+Math.floor(r.simulationClock.state().seconds),{incomplete:true,leg,orderId:journal.emperorOrderId||null});console.log(JSON.stringify({status:'CHECKPOINT',scope:'Original live kitchen progress only; resume this same saved world',checkpoint:checkpointPath}));return false;}step();
+   }assert(predicate(),label+' incomplete; see diagnostic.json');return true;
+  };
+  const order=()=>journal.emperorOrderId?kitchen.lookupMeal(journal.emperorOrderId,'cn-emperor'):kitchen.mealFor('cn-emperor');
+  const requestWork=()=>{r.palaceUsurpationUI.close();r.careerHandbook.close();const next=employment.intent('task');assert(next,'Original current kitchen task exists');assert(main.namespace.requestStationIntent(next),'Actual original meal route');return next.work;};
+  if(!done('k05-original-emperor-order')){
+   // Other original diners retain their earlier slips and queue order. Work
+   // those same slips if needed; never manufacture the emperor's request.
+   for(let i=0;i<12&&order()?.workerId!=='player';i++){
+    if(!waitFor(()=>order()?.workerId==='player'||employment.intent('task'),'original weighted royal life issues its own meal request'))return;
+    if(order()?.workerId==='player')break;
+    const next=requestWork(),before=kitchen.lookupMeal(next.orderId,next.actorId).stage;
+    if(!waitFor(()=>kitchen.lookupMeal(next.orderId,next.actorId).stage!==before,'complete existing original diner step '+next.key))return;
+   }
+   const original=order();assert(original&&original.workerId==='player'&&original.workReceiptId===job.receiptId);journal.emperorOrderId=original.id;
+   if(checkpoint('k05-original-emperor-order',{orderId:original.id,actorId:original.actorId,workerId:original.workerId,workReceiptId:original.workReceiptId,staged:false}))return;
+  }
+  if(!done('k06-original-emperor-prepared')){
+   for(let i=0;i<12&&!['prepared','cooked'].includes(order().stage);i++){
+    if(!waitFor(()=>!!employment.intent('task'),'original meal work becomes available'))return;
+    const next=requestWork(),before=kitchen.lookupMeal(next.orderId,next.actorId).stage;
+    if(!waitFor(()=>kitchen.lookupMeal(next.orderId,next.actorId).stage!==before,'actual original kitchen step '+next.key))return;
+   }
+   assert(['prepared','cooked'].includes(order().stage));assert.equal(order().workerId,'player');assert(order().supplyReceipt);
+   assert.equal(task().preparations.intrigue,null);
+   if(checkpoint('k06-original-emperor-prepared',{orderId:order().id,mealId:order().mealId,supplyReceipt:order().supplyReceipt,remaining:kitchen.supplyState().remaining,staged:false}))return;
+  }
+  if(!done('k07-fictional-package-prepared')){
+   open();const before=clone(order());click(action('prepare',{preparationKind:'intrigue'}));
+   if(!waitFor(()=>physical.state().pendingMeal,'complete six actual seconds at the original kitchen board'))return;
+   assert.equal(task().preparations.intrigue,null,'Preparation alone is not consumption or mechanism evidence');
+   const pending=physical.snapshot().actions.mealPending;assert(pending?.bound&&pending.progress===6);assert.equal(pending.meal.orderId,order().id);
+   assert.equal(order().stage,before.stage);assert.equal(order().supplyReceipt,before.supplyReceipt);
+   if(checkpoint('k07-fictional-package-prepared',{orderId:order().id,storyActionId:pending.storyActionId,seconds:6,consumed:false,staged:false}))return;
+  }
+  if(!done('k08-intrigue-original-consumed')){
+   for(let i=0;i<12&&!['served','eating','consumed'].includes(order().stage);i++){
+    if(!waitFor(()=>!!employment.intent('task'),'original cooked meal task becomes available'))return;
+    const next=requestWork(),before=kitchen.lookupMeal(next.orderId,next.actorId).stage;
+    if(!waitFor(()=>kitchen.lookupMeal(next.orderId,next.actorId).stage!==before,'cook and physically deliver original meal '+next.key))return;
+   }
+   assert(['served','eating','consumed'].includes(order().stage));
+   if(!waitFor(()=>!!task().preparations.intrigue,'original emperor arrives and consumes the same original dish'))return;
+   const receipt=task().preparations.intrigue;assert.equal(receipt.meal.orderId,order().id);assert.equal(receipt.meal.objectId,order().mealId);assert.equal(order().stage,'consumed');assert(order().eatingSeconds>=12);
+   assert.equal(receipt.storyActionId,journal.caseId+':story-package:'+order().id);assert.equal(receipt.meal.consumerId,'cn-emperor');
+   if(checkpoint('k08-intrigue-original-consumed',{orderId:order().id,mealId:order().mealId,eatingSeconds:order().eatingSeconds,receiptId:receipt.id,storyActionId:receipt.storyActionId,staged:false}))return;
+  }
+  console.log(JSON.stringify({status:'PASS',scope:'Original emperor requested, player prepared and delivered, fictional six-second action and original at-least-twelve-second consumption complete; no source order or political outcome staged',checkpoint:checkpointPath,completed:journal.completed}));return;
  }
  if(['political','support'].includes(process.env.USURPATION_MAIN_PHASE)){
   assert(done('04-cold-same-case'),'Resume the remotely preserved cold checkpoint');
