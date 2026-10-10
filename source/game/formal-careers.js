@@ -1317,7 +1317,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const score=japanKotatsuReviewScore(receipt),review={id:receipt.id,customerId:JAPAN_KOTATSU_ROLE.supervisorId,customerName:JAPAN_KOTATSU_ROLE.employer,
       tableId:'jp-kotatsu-service',tableName:'三层原暖桌',dishId:receipt.itemId,dishName:'原号暖桌',
       reasonCode:'japan-kotatsu-completed',correctedReviewId:null,positive:true,score,
-      reason:`原号暖桌第${receipt.cycle}轮已收拢原物、理平原被、擦净桌面并归置同桌；评价不改变工时工资`,kotatsuReceipt:copy(receipt)};
+      reason:`原号暖桌第${receipt.cycle}轮已收齐原座垫并检查被缘、理平、擦净桌面并原位排齐座垫；评价不改变工时工资`,kotatsuReceipt:copy(receipt)};
     const nextDuty={...duty,customerReviews:[...duty.customerReviews,review]};
     if(!validCustomerReviews(nextDuty,JAPAN_KOTATSU_ROLE))return failure('invalid-customer-review');
     const result=grantSkill({...current,lastDuty:nextDuty,performance:Math.max(-100,Math.min(100,current.performance+score))},'ritual',clock);
