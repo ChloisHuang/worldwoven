@@ -256,6 +256,7 @@
       "egypt-artisan-duty.mjs",
       "egypt-artisan-main.cjs",
       "egypt-artisan-role-contracts.mjs",
+      "france-art-role-contracts.mjs",
       "egypt-table-service-role-contracts.mjs",
       "france-full-meal-main.cjs",
       "france-full-meal.mjs",

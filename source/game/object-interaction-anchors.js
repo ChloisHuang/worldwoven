@@ -12,7 +12,7 @@ const EMPLOYERS={
  'china-royal-kitchen-employment':'cn-cooking',
  'china-tavern-labor':'cn-tavern-host','china-tavern-service':'cn-tavern-host','china-tavern-lodging':'cn-tavern-host',
  'china-salon-employment':'cn-tavern-reception','france-gardener-labor':'france-gardener',
- 'france-tea-employment':'france-salon','france-pastry-employment':'france-bakery',
+ 'france-art-employment':'france-atelier','france-tea-employment':'france-salon','france-pastry-employment':'france-bakery',
 };
 // These surfaces are authored in japan-bathhouse and its original counters.
 // They are deliberately distinct from the service's clear standing positions.
