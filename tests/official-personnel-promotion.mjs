@@ -130,6 +130,8 @@ for(const stage of ['submitted','recommended','negative']){
    assert.equal(f.careers.state().lastDuty.wage,oldPay+2);
    if(n<required-1)assert.equal(f.careers.promotionAvailability().ok,false);
   }
+  const qualified=f.saved,requirements=f.careers.promotionSummary().requirements;
+  for(const skill of ['ritual','writing']){const lacking=copy(qualified);lacking.skills[skill]=requirements[skill]-1;f.load(lacking);fail(f.careers.applyPromotion(),skill+'-required');f.load(qualified);}
   let approved=false;
   for(let attempts=0;attempts<20&&!approved;attempts++){
    assert(f.careers.applyPromotion().ok);const submitted=f.saved;assert.equal(submitted.officialCareer.applications.at(-1).routeVersion,3);f.load();
