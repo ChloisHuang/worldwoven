@@ -19,7 +19,11 @@ export function createFranceBedchamberCare({saved=null,saveState=()=>true}={}){
   if(['clean','inspect'].includes(x.stage)&&x.owner!==null||x.owner==='player'&&(!s.duty||x.workReceiptId!==s.duty.receiptId)||x.owner!=='player'&&x.workReceiptId!==null)return false;
   if(x.steps.some((v,i)=>!object(v)||v.stage!==stages[i]||![HOST,'player'].includes(v.actorId)||(v.actorId==='player'?!work(v.receiptId):v.receiptId!==null)))return false;
   const last=x.steps.at(-1);if(x.owner!==null&&(!last||last.actorId!==x.owner||x.owner==='player'&&last.receiptId!==x.workReceiptId))return false;
-  let previous=0;for(const r of s.receipts){if(!validFranceBedchamberReceipt(r)||r.cycle<=previous||r.cycle>x.cycle||Number(r.useId.split('-').at(-1))>s.useSerial||r.cycle===x.cycle&&(x.stage!=='clean'||r.useId!==x.useId))return false;previous=r.cycle;}
+  const departedUses=new Set();let previous=0;for(const r of s.receipts){if(!validFranceBedchamberReceipt(r)||departedUses.has(r.useId)||r.cycle<=previous||r.cycle>x.cycle||Number(r.useId.split('-').at(-1))>s.useSerial||r.cycle===x.cycle&&(x.stage!=='clean'||r.useId!==x.useId)||r.cycle<x.cycle&&r.useId===x.useId)return false;previous=r.cycle;departedUses.add(r.useId);}
+  // One actual departure cannot justify two care cycles across shifts. An
+  // occupied use cannot already be a departed source. Two berths can leave
+  // in either order, so identity uniqueness, not numeric sorting, is required.
+  if(x.useId)departedUses.add(x.useId);if(users.some(([,u])=>departedUses.has(u.id)))return false;
   return true;
  }
  function restore(s,{preserveDuty=false}={}){if(saving||!valid(s))return false;state=copy(s);if(!preserveDuty&&state.duty)state.duty.status='paused';invalid=null;loadError=null;return true;}
