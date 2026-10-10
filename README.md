@@ -116,11 +116,9 @@ Open **http://127.0.0.1:5173/**.
 # Generate content-hashed production assets
 npm run build
 
-# Preview the production build locally
-npm run preview
 ```
 
-The production preview runs at **http://127.0.0.1:4173/**. Both local servers bind to `127.0.0.1`. Build output is written to `dist/`; building does not publish the site.
+The development server binds to `127.0.0.1`. Build output is written to `dist/`; building does not publish the site.
 
 ## Under the hood
 
