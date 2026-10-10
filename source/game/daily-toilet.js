@@ -15,7 +15,7 @@ const retainReceipts=receipts=>receipts.filter((r,i)=>!r.delivered||i>=receipts.
  * update advances only the player; visitors use updateActor with their existing
  * travel(targetArray, dt) controller. Both share one reservation and one fixture.
  */
-export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPlayer=()=>null,getActors=()=>[],isActorAlive=()=>true,getBusy=()=>false,getClock=()=>({day:0,hour:12}),saved={},saveState=()=>true,onCompleted=()=>true,notify=()=>{}}){
+export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPlayer=()=>null,getActors=()=>[],getRouteWaypoint=actor=>actor.route?.[0],isActorAlive=()=>true,getBusy=()=>false,getClock=()=>({day:0,hour:12}),saved={},saveState=()=>true,onCompleted=()=>true,notify=()=>{}}){
  const receiptId=number=>P.receiptSource+'-'+number;
  const validReceipt=r=>r&&Number.isSafeInteger(r.number)&&r.number>0&&r.id===receiptId(r.number)&&typeof r.actorId==='string'&&r.source===P.receiptSource&&r.facilityId===P.id&&r.completed===true;
  const target=lot?.explorationTargets?.find(t=>t.id===P.id),room=P.privacyBounds||lot?.interiorRooms?.find(r=>r.id===P.roomId);
@@ -27,15 +27,18 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
  const serial=Math.max(Number.isSafeInteger(saved.serial)&&saved.serial>=0?saved.serial:0,...receipts.map(r=>r.number));
  let durable={version:1,serial,receipts:retainReceipts(receipts),pending:saved.pending&&saved.pending.id===receiptId(serial)&&saved.pending.facilityId===P.id?copy(saved.pending):null,lastOutcome:saved.lastOutcome||null,waiters:Array.isArray(saved.waiters)?[...new Set(saved.waiters.filter(id=>typeof id==='string'&&id!=='player'))]:[]};
  let current=null,disposed=false,lastError=null,retryIn=0,recovery=durable.pending,abandonment=null,time=0;
- const cooldowns=new Map(),waitSeen=new Map(durable.waiters.map(id=>[id,0]));let privacyCache=null,exitCache=null;
+ // Loaded queue places need a live controller renewal within two seconds.
+ // Once renewed, retain the existing thirty-second queue grace.
+ const cooldowns=new Map(),waitSeen=new Map(durable.waiters.map(id=>[id,-28])),pausedWaiters=new Set();let privacyCache=null,exitCache=null,lastAdmission=null;
  const idOf=actor=>actor===getPlayer()?'player':actor?.station?.id||actor?.id||null;
  const people=()=>[...new Set([getPlayer(),...(getActors()||[])].filter(Boolean))];
  const actorById=id=>people().find(a=>idOf(a)===id);
  const containsActor=actor=>{const p=actor?.root?.position;return !!room&&!!p&&Math.abs(p.y-P.approach[1])<1&&p.x>room.minX-.05&&p.x<room.maxX+.05&&p.z>room.minZ-.05&&p.z<room.maxZ+.05;};
  const roomClear=actor=>!people().some(a=>a!==actor&&containsActor(a));
- const availableFor=actor=>available&&!disposed&&!current&&!recovery&&!abandonment&&roomClear(actor)&&(!actor||!durable.waiters.length||durable.waiters[0]===idOf(actor));
- function leaveQueue(id){if(!durable.waiters.includes(id))return true;if(!persist({...durable,waiters:durable.waiters.filter(q=>q!==id)}))return false;waitSeen.delete(id);return true;}
- function waitTurn(actor){const id=idOf(actor);if(id==='player')return false;waitSeen.set(id,time);return durable.waiters.includes(id)||persist({...durable,waiters:[...durable.waiters,id]});}
+ const queueHead=()=>durable.waiters.find(id=>!pausedWaiters.has(id));
+ const availableFor=actor=>available&&!disposed&&!current&&!recovery&&!abandonment&&roomClear(actor)&&(!actor||!queueHead()||queueHead()===idOf(actor));
+ function leaveQueue(id){if(!durable.waiters.includes(id))return true;if(!persist({...durable,waiters:durable.waiters.filter(q=>q!==id)}))return false;waitSeen.delete(id);pausedWaiters.delete(id);return true;}
+ function waitTurn(actor){const id=idOf(actor);if(!id||id==='player')return false;pausedWaiters.delete(id);waitSeen.set(id,time);return durable.waiters.includes(id)||persist({...durable,waiters:[...durable.waiters,id]});}
  const alive=actor=>isActorAlive(actor)!==false;
  const clock=()=>{const c=getClock()||{};return {day:Number.isFinite(c.day)?c.day:0,hour:Number.isFinite(c.hour)?c.hour:12};};
  function persist(next){
@@ -141,18 +144,70 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
   }
   return true;
  }
+ // Only the controller that is still executing this route may renew it.
+ // Progress is toward its current route waypoint, not arbitrary body motion.
+ // External multi-leg controllers call this while they own the approach.
+ function retainActor(actor,waypoint=null){
+  const c=current;if(!c||c.actor!==actor||c.cancelled||abandonment)return false;
+  c.lastDriven=time;
+  if(c.stage!=='approaching')return true;
+  const q=getRouteWaypoint(actor)||waypoint||P.approach,p=actor.root.position;
+  const target=Array.isArray(q)?q:[q.x,q.y??p.y,q.z];
+  if(!target.every(Number.isFinite))return false;
+  const key=target.join(','),distance=Math.hypot(p.x-target[0],p.y-target[1],p.z-target[2]);
+  if(c.progressKey!==key){
+   // Replanning in place is not progress. A changed waypoint renews the
+   // lease only after reaching the previous one, or later moving toward it.
+   const moved=c.progressPosition&&Math.hypot(p.x-c.progressPosition[0],p.y-c.progressPosition[1],p.z-c.progressPosition[2]);
+   if(!c.progressTarget||moved>.04&&Math.hypot(p.x-c.progressTarget[0],p.y-c.progressTarget[1],p.z-c.progressTarget[2])<=.45){c.stalled=0;c.progressPosition=[p.x,p.y,p.z];}
+   c.progressKey=key;c.progressTarget=target.slice();c.progressDistance=distance;
+  }else if(distance<=c.progressDistance-.18){c.progressDistance=distance;c.progressPosition=[p.x,p.y,p.z];c.stalled=0;}
+  return true;
+ }
+ function reconcile(){
+  if(!current)return true;
+  const c=current;
+  if(actorById(c.actorId)!==c.actor||!alive(c.actor))return abandonActor(c.actorId,'actor-unavailable');
+  if(c.stage==='using'&&!at(c.actor,P.anchor,.025))return cancel('occupant-left-fixture',c.actorId);
+  if(c.stage==='waiting-privacy'&&!atApproach(c.actor))return cancel('left-approach',c.actorId);
+  if(c.actorId!=='player'&&time-c.lastDriven>20)return cancel('actor-controller-interrupted',c.actorId);
+  if(c.stage==='approaching'&&c.stalled>=20)return cancel('route-stalled',c.actorId);
+  return true;
+ }
+ function admissionMessage(){
+  if(lastAdmission)return lastAdmission;
+  if(lastError==='save-failed'||abandonment||recovery)return '净室预约记录尚未保存，请稍后重试';
+  if(current?.stage==='approaching')return '已有预约者正在前往净室，请稍候';
+  if(current?.stage==='waiting-privacy')return '有人已到净室，正在等门帘合好';
+  if(current?.stage==='using')return '净室有人使用，请在外面稍候';
+  if(current?.stage==='leaving')return '净室使用者正在离开，请让出出口';
+  if(!roomClear(getPlayer()))return '净室内还有人，请等对方走出';
+  if(queueHead())return '已有等候者排在前面，请稍候';
+  return '净室状态已变化，请重新点击';
+ }
+ function actionLabel(){
+  if(current?.stage==='approaching')return '已有预约 · 正在前来';
+  if(current?.stage==='waiting-privacy')return '等门帘合好';
+  if(current?.stage==='using')return '净室使用中';
+  if(current?.stage==='leaving')return '等使用者离开';
+  if(recovery||abandonment)return '正在核对净室';
+  if(!roomClear(getPlayer()))return '等室内人员走出';
+  return queueHead()?'已有等候排位':'如厕';
+ }
  function reserve(actor){
-  if(disposed||!available||!actor?.root||!alive(actor)||!recover())return false;
+  lastAdmission=null;
+  if(disposed||!available||!actor?.root||!alive(actor)||!recover()||!reconcile())return false;
   if(current?.actor===actor)return true;
   const actorId=idOf(actor);if(!actorId)return false;
-  if(getBusy(idOf(actor),actor))return false;
+  if(getBusy(actorId,actor)){lastAdmission='请先结束当前动作，再使用净室';return false;}
+  // A paused queue place keeps its order but cannot monopolize an empty room.
+  pausedWaiters.delete(actorId);
   if(!availableFor(actor)){waitTurn(actor);return false;}
   if((cooldowns.get(actorId)||0)>time)return false;
   const number=durable.serial+1,id=receiptId(number),stage=atApproach(actor)?'waiting-privacy':'approaching';
   const pending={id,number,actorId,facilityId:P.id,stage,...clock()};
   if(!persist({...durable,serial:number,pending,waiters:durable.waiters.filter(id=>id!==actorId)}))return false;
-  const p=actor.root.position;
-  current={actor,actorId,id,number,stage,mounted:false,elapsed:0,wait:0,cancelled:false,progressPoint:[p.x,p.y,p.z],stalled:0,lastDriven:time};return true;
+  current={actor,actorId,id,number,stage,mounted:false,elapsed:0,wait:0,cancelled:false,progressKey:null,progressTarget:null,progressPosition:null,progressDistance:Infinity,stalled:0,lastDriven:time};return true;
  }
  function cancel(reason='cancelled',actorId='player'){
   if(actorId&&!leaveQueue(actorId))return false;
@@ -182,7 +237,7 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
  function tick(actor,dt,travel){
   if(disposed||!current||current.actor!==actor)return false;
   if(abandonment||!alive(actor))return abandonActor(current.actorId);
-  const c=current;c.lastDriven=time;dt=finiteSeconds(dt);
+  const c=current;retainActor(actor);dt=finiteSeconds(dt);
   if(c.stage==='leaving'){release();return true;}
   if(c.stage==='approaching'){
    if(!atApproach(actor)&&travel)travel([...P.approach],dt);
@@ -203,7 +258,7 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
  }
  function intent(){
   if(disposed||!available)return null;
-  return {id:P.intentId,provider:P.provider,kind:'toilet',facilityId:P.id,visualAnchor:{id:P.id,point:[P.anchor[0],P.seatY+.55,P.anchor[2]]},position:[...P.approach],roomId:P.roomId,name:P.name,npcName:'日常起居',action:current?'净室使用中':'如厕',intentKey:'toilet:'+durable.serial+':'+(current?.actorId||'free'),interactionRadius:2.6,executionRadius:P.executionRadius,priority:45};
+  return {id:P.intentId,provider:P.provider,kind:'toilet',facilityId:P.id,visualAnchor:{id:P.id,point:[P.anchor[0],P.seatY+.55,P.anchor[2]]},position:[...P.approach],roomId:P.roomId,name:P.name,npcName:'日常起居',action:actionLabel(),intentKey:'toilet:'+durable.serial+':'+(current?.actorId||'free'),interactionRadius:2.6,executionRadius:P.executionRadius,priority:45};
  }
  const resolveIntent=selected=>{const next=intent();return next&&selected?.provider===next.provider&&selected.id===next.id&&selected.intentKey===next.intentKey?next:null;};
  function pose(actor){return current?.actor===actor&&!abandonment&&alive(actor)&&current.mounted&&at(actor,P.anchor,.025)?{action:'chair-sit',context:{seatHeight:P.seatY-P.anchor[1],visualFloorOffset:0,heldProp:null,handoff:false,seatedMeal:false},seatY:P.seatY,anchor:[...P.anchor],yaw:P.yaw}:null;}
@@ -216,27 +271,21 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
   // world collision recovery must not relocate them out of the bowl first;
   // recover() then performs the original safe interruption/dismount, no relief.
   restorePosition(actorId,position){const pending=durable.pending,actor=actorById(actorId);return available&&!abandonment&&(!actor||alive(actor))&&pending?.actorId===actorId&&['using','leaving'].includes(pending.stage)&&Array.isArray(position)&&[P.anchor,...(P.legacyAnchors||[])].some(a=>a.every((v,i)=>Math.abs(v-position[i])<.025))?position.slice():null;},
-  retainQueuePosition(actor){const id=idOf(actor);if(disposed||!actor?.root||!alive(actor)||!durable.waiters.includes(id))return false;waitSeen.set(id,time);return true;},
-  containsActor,availableFor,queuePosition:actorId=>durable.waiters.indexOf(actorId)+1,prepareIntent(selected){if(!resolveIntent(selected)||!reserve(getPlayer()))return null;return intent();},
+  retainQueuePosition(actor){const id=idOf(actor);if(disposed||!actor?.root||!alive(actor)||!durable.waiters.includes(id))return false;waitSeen.set(id,time);pausedWaiters.add(id);return true;},
+  containsActor,availableFor,retainActor,admissionMessage,queuePosition:actorId=>durable.waiters.indexOf(actorId)+1,prepareIntent(selected){lastAdmission=null;if(!resolveIntent(selected)||!reserve(getPlayer()))return null;return intent();},
   exitPlan(actor){return current?.actor===actor&&current.mounted?(exitClear(actor)?[...P.approach]:exitLanding(actor)):null;},
-  intent,resolveIntent,executeIntent(selected){if(!resolveIntent(selected)||!atApproach(getPlayer()))return false;const ok=reserve(getPlayer());if(!ok)notify(current?'净室有人使用，请稍后再来':'暂时无法使用净室，请稍后再试');return ok;},
+  intent,resolveIntent,executeIntent(selected){if(!resolveIntent(selected)||!atApproach(getPlayer()))return false;const ok=reserve(getPlayer());if(!ok)notify(admissionMessage());return ok;},
   requestActor:reserve,updateActor:(actor,dt,{travel}={})=>tick(actor,dt,travel),ownsActor:actor=>!!current&&current.actor===actor||!!abandonment&&abandonment.actorId===idOf(actor),
   active:(actorId='player')=>!!(current||abandonment)&&(!actorId||(current||abandonment).actorId===actorId),cancel,abandonActor,
   actorPose:pose,playerPose:()=>pose(getPlayer()),playerAction:()=>pose(getPlayer())?.action||null,label,
   update(dt){
    if(disposed)return;dt=finiteSeconds(dt);time+=dt;recover();if(abandonment)return;
-   const expired=durable.waiters.filter(id=>time-(waitSeen.get(id)??0)>30||actorById(id)&&!alive(actorById(id)));
-   if(expired.length&&persist({...durable,waiters:durable.waiters.filter(id=>!expired.includes(id))}))for(const id of expired)waitSeen.delete(id);
+   const expired=durable.waiters.filter(id=>time-(waitSeen.get(id)??0)>30||!actorById(id)||!alive(actorById(id)));
+   if(expired.length&&persist({...durable,waiters:durable.waiters.filter(id=>!expired.includes(id))}))for(const id of expired){waitSeen.delete(id);pausedWaiters.delete(id);}
    if(current&&!alive(current.actor)&&!abandonActor(current.actorId))return;
    retryIn-=dt;if(retryIn<=0){retryIn=1;deliver();}
-   if(current?.stage==='approaching'){
-    const c=current,p=c.actor.root.position;
-    if(Math.hypot(p.x-c.progressPoint[0],p.y-c.progressPoint[1],p.z-c.progressPoint[2])>=.18){c.progressPoint=[p.x,p.y,p.z];c.stalled=0;}
-    else c.stalled+=dt;
-    // Long but progressing stair routes remain valid. A blocked route or a
-    // caller that lost ownership releases the one shared fixture after 20s.
-    if(c.stalled>=20)cancel('route-stalled',c.actorId);
-   }else if(current?.actorId!=='player'&&time-current?.lastDriven>20)cancel('actor-controller-interrupted',current.actorId);
+   if(current?.stage==='approaching')current.stalled+=dt;
+   reconcile();
    if(current?.stage==='leaving')release();
    else if(current?.actorId==='player')tick(current.actor,dt);
    for(const[id,until]of cooldowns)if(until<=time)cooldowns.delete(id);

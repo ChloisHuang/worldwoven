@@ -12,7 +12,7 @@ function valid(s,accepted){
  if(!s||s.version!==1||!INT(s.revision)||!Number.isFinite(s.time)||s.time<0||!Array.isArray(s.archived)||s.archived.length>8||new Set(s.archived).size!==s.archived.length||s.archived.some((id,i)=>!validId(id)||!accepted.includes(id)||id!==accepted[i])||!Array.isArray(s.receipts)||s.receipts.some(r=>!validEgyptArchiveReceipt(r)||!accepted.includes(r.orderId)||r.completed&&!s.archived.includes(r.orderId))||new Set(s.receipts.map(r=>r.id)).size!==s.receipts.length||s.duty&&(!workId(s.duty.receiptId)||!['paused','draining','active'].includes(s.duty.status)))return false;
  const o=s.order;return !o||validId(o.id)&&accepted.includes(o.id)&&o.id===accepted[s.archived.length]&&!s.archived.includes(o.id)&&o.number===Number(o.id.split('-').at(-1))&&['pickup','store'].includes(o.stage)&&['desk','npc','player'].includes(o.holder)&&(o.stage==='store'?o.holder!=='desk':o.holder==='desk')&&Number.isFinite(o.startedAt)&&o.startedAt>=0&&o.startedAt<=s.time&&(o.workReceiptId===null||workId(o.workReceiptId))&&typeof o.abandoned==='boolean';
 }
-export function createEgyptArchiveService({npcs,lot,doors,planPath,moveActor,poseContext=()=>({}),getPlayer,getMounted=()=>null,getAccepted=()=>[],upstreamNeedsClient=()=>false,upstreamOwnsClient=()=>false,canBorrow=()=>true,saved=null,saveState=()=>false}){
+export function createEgyptArchiveService({npcs,lot,doors,planPath,moveActor,poseContext=()=>({}),getPlayer,getMounted=()=>null,getAccepted=()=>[],upstreamNeedsClient=()=>false,upstreamOwnsClient=()=>false,canBorrow=()=>true,getVisitorMeeting=()=>null,saved=null,saveState=()=>false}){
  const actor=npcs.find(n=>n.station.id===ACTOR);if(!actor)return null;
  const accepted=()=>{const ids=getAccepted();return Array.isArray(ids)&&ids.length<=8&&ids.every((id,i)=>id===`egypt-artisan-${i+1}`)?ids:[];};
  let state=fresh(),error=null,disposed=false,meeting=false,step=null,npcStep=null,borrowing=false,routeKey=null;
@@ -52,22 +52,22 @@ export function createEgyptArchiveService({npcs,lot,doors,planPath,moveActor,pos
  function update(dt,t=0){if(disposed||error)return;dt=Math.min(.1,Math.max(0,dt));state.time+=dt;borrowing=false;
  if(state.duty?.status==='active'&&(!local()||getMounted())){if(commit(s=>s.duty.status='paused'))step=null;}
  if(available()){
-  const o=state.order,needNpc=!!o&&!playerOrder()||!state.duty&&!meeting&&!!nextId();
+  const visitor=getVisitorMeeting(),o=state.order,needNpc=!!o&&!playerOrder()||!state.duty&&!meeting&&!visitor?.requested&&!!nextId();
   // Original commission acceptance always has priority. Return the same carried
   // archive scroll to the desk first; never teleport it or let a player accept it.
   if(upstreamNeedsClient()){
    borrowing=true;npcStep=null;const returning=o?.holder==='npc';const target=returning?P.desk:P.home;
    if(travel(target,dt)&&returning)commit(s=>{s.order.holder='desk';s.order.stage='pickup';});
    actor.animate?.(t+(actor.phase||0),!!actor.walking,null,{...poseContext(actor,null),heldProp:null,handoff:returning,archery:returning?{hands:[[-.16,1.25,.43],[.16,1.25,.43]]}:null});
-  }else if(needNpc||meeting||state.duty||!at(actor,P.home,.06)){
+  }else if(needNpc||meeting||state.duty||visitor?.requested||!at(actor,P.home,.06)){
    borrowing=true;if(needNpc){const stage=o?.stage||'register',w={...copy(WORK[stage]),stage,orderId:o?.id||nextId()};w.target[1]+=(Number(w.orderId.split('-').at(-1))-1)*(stage==='store'?.065:.04);if(travel(w.position,dt)){face(actor,w.target);if(!npcStep||npcStep.stage!==stage||npcStep.orderId!==w.orderId)npcStep={stage,orderId:w.orderId,elapsed:0};npcStep.elapsed+=dt;if(npcStep.elapsed>=w.duration&&advance(w,'npc'))npcStep=null;}else npcStep=null;actor.animate?.(t+(actor.phase||0),!!actor.walking,actor.walking?null:w.pose,{...poseContext(actor,{workTarget:w.target}),heldProp:null,handoff:state.order?.holder==='npc',archery:state.order?.holder==='npc'?{hands:[[-.16,1.25,.43],[.16,1.25,.43]]}:null});
-   }else{npcStep=null;if(travel(P.home,dt)&&state.duty?.status==='draining'&&local()&&!getMounted())commit(s=>s.duty.status='active');actor.animate?.(t+(actor.phase||0),!!actor.walking,null,{...poseContext(actor,null),heldProp:null,handoff:false,archery:null});}
+   }else{npcStep=null;if(travel(P.home,dt)&&state.duty?.status==='draining'&&local()&&!getMounted())commit(s=>s.duty.status='active');const receiving=visitor?.working&&!meeting&&!state.duty&&at(actor,P.home,.06);if(receiving)face(actor,P.top);actor.animate?.(t+(actor.phase||0),!!actor.walking,receiving?'calligraphy':null,{...poseContext(actor,receiving?{workTarget:P.top}:null),heldProp:null,handoff:false,archery:null});}
   }else npcStep=null;
  }else npcStep=null;
  if(step){const w=step;if(!active(w.receiptId)||getMounted()||!at(getPlayer(),w.position,.27)||getPlayer().walking)step=null;else{face(getPlayer(),w.target);w.elapsed+=dt;if(w.elapsed>=w.duration&&advance(w,'player'))step=null;}}
  visual();}
- return {duty,update,owns:n=>n===actor&&borrowing,canAcceptOriginal:()=>!error&&at(actor,P.home,.3)&&state.order?.holder!=='npc'&&!npcStep,
- socialStatus:n=>n===actor&&borrowing?{busy:!!npcStep||meeting||state.order?.holder==='npc',canPause:!npcStep&&!meeting&&state.order?.holder!=='npc',attention:!npcStep&&!meeting&&state.order?.holder!=='npc',job:duty.workLabel()}:null,
- canTalkAtPost:n=>n===actor&&borrowing&&!npcStep&&!meeting&&state.order?.holder!=='npc'&&!actor.walking,canBorrowForSocial:n=>n===actor&&borrowing&&!npcStep&&!meeting&&state.order?.holder!=='npc',
+ return {duty,update,visitorReady:()=>!error&&available()&&!meeting&&!state.duty&&!state.order&&!npcStep&&!upstreamNeedsClient()&&at(actor,P.home,.25),owns:n=>n===actor&&borrowing,canAcceptOriginal:()=>!error&&at(actor,P.home,.3)&&state.order?.holder!=='npc'&&!npcStep,
+ socialStatus:n=>n===actor&&borrowing?{busy:!!npcStep||meeting||!!getVisitorMeeting()?.requested||state.order?.holder==='npc',canPause:!npcStep&&!meeting&&!getVisitorMeeting()?.requested&&state.order?.holder!=='npc',attention:!npcStep&&!meeting&&!getVisitorMeeting()?.requested&&state.order?.holder!=='npc',job:getVisitorMeeting()?.requested?'阿赫 · 当面办理来访记录':duty.workLabel()}:null,
+ canTalkAtPost:n=>n===actor&&borrowing&&!npcStep&&!meeting&&!getVisitorMeeting()?.requested&&state.order?.holder!=='npc'&&!actor.walking,canBorrowForSocial:n=>n===actor&&borrowing&&!npcStep&&!meeting&&!getVisitorMeeting()?.requested&&state.order?.holder!=='npc',
  state:()=>({...copy(state),lastError:error,step:step?{stage:step.stage,elapsed:step.elapsed}:null}),snapshot:()=>copy(state),restore(s){if(!valid(s,accepted())||s.revision!==state.revision)return false;state=copy(s);step=null;npcStep=null;visual();return true;},dispose(){disposed=true;step=null;npcStep=null;root.removeFromParent();rack.removeFromParent();geo.dispose();mat.dispose();inkGeo.dispose();inkMat.dispose();rackGeo.dispose();rackMat.dispose();tagMat.dispose();}};
 }

@@ -18,7 +18,7 @@ const ACTIVITIES = Object.freeze({
   'egypt-sphinx':'观察狮身人面像','egypt-glyphs':'辨认象形图案','egypt-papyrus':'绘制纸莎草画','egypt-scales':'轻放象征真诚的羽毛',
   'egypt-guardian':'观察黑石守护神像','egypt-burial':'探看石棺与亚麻木乃伊','egypt-stars':'寻找天顶星图','egypt-anubis-judgment':'体验羽毛与心的象征仪式',
   'egypt-horus-eye':'辨认眼形护符','egypt-cleopatra-suite':'探索王室起居与寝室','egypt-pharaoh-throne':'走近金色王座与仪式长廊',
-  'egypt-royal-reception':'领取探索卷轴','egypt-royal-dining':'摆放面包与彩釉餐盘','egypt-royal-kitchen':'准备陶锅与矿物色餐具','egypt-private-bath':'查看蓝色浴池与更衣器物',
+  'egypt-royal-reception':'来访登记与公共导览','egypt-royal-dining':'摆放面包与彩釉餐盘','egypt-royal-kitchen':'准备陶锅与矿物色餐具','egypt-private-bath':'查看蓝色浴池与更衣器物',
   'egypt-bread':'烘烤传统扁面包','egypt-tea':'泡薄荷茶','egypt-bedroom':'整理亚麻织物','egypt-garden':'照料庭院与喷泉',
   'france-bakery':'烘烤法式面包','france-atelier':'描绘宫苑的光影','france-salon':'翻阅一本诗集','france-bedroom':'整理刺绣床品','france-cafe':'享用宫苑下午茶',
 });

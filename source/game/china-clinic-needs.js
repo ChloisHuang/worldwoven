@@ -19,7 +19,7 @@ export function createClinicNeeds({getHolder,getActor,canDepart,sharedNeeds,econ
  const exitRoute=role=>[...(role==='physician'?upper:[]),...corridor];
  const returnTarget=()=>{const role=currentRole()||task.role;return current()?(role==='physician'?C.points.doctor:C.points.assistant):role==='physician'?[24.6,4.015,-24.3]:[22.1,.215,-24.75];};
  function returnPath(){const role=currentRole()||task.role;return [...reverse(corridor),...(role==='physician'?reverse(upper):[]),returnTarget()];}
- function returnHome(fromToilet=false){const stairs=getTavern()?.publicToiletRoute?.()||[],p=actor().root.position,exit=fromToilet&&p.y>.5&&p.x>15&&p.z>=0&&p.z<23?reverse(stairs.filter(q=>q[1]<=p.y+.3)):[];return enter('return',[...exit,...returnPath()]);}
+ function returnHome(fromToilet=false){if(!getToilet()?.ownsActor(actor())&&getToilet()?.cancel('clinic-return',task.actorId)===false)return false;const stairs=getTavern()?.publicToiletRoute?.()||[],p=actor().root.position,exit=fromToilet&&p.y>.5&&p.x>15&&p.z>=0&&p.z<23?reverse(stairs.filter(q=>q[1]<=p.y+.3)):[];return enter('return',[...exit,...returnPath()]);}
  function advance(n,dt){if(task.index>=task.path.length)return true;if(travel(n,task.path[task.index],dt)){task.index++;saveState(snapshot());}return task.index>=task.path.length;}
  function goToilet(){const need=sharedNeeds?.status(task.actorId),stairs=getTavern()?.publicToiletRoute?.(),facility=getToilet();if(!need?.seekToilet||!stairs?.length||!facility?.publicIntent()||!facility.requestPublicActor(actor()))return returnHome();return enter('go-toilet',[...stairs,facility.publicIntent().position]);}
  function cleanupUnavailable(){const tavern=getTavern(),facility=getToilet();if(tavern?.clinicMeal(task.actorId)&&!tavern.cancelClinicMeal(task.actorId))return false;if(facility?.abandonActor?.(task.actorId,'clinic-person-unavailable')===false)return false;return write(null);}
@@ -48,6 +48,7 @@ export function createClinicNeeds({getHolder,getActor,canDepart,sharedNeeds,econ
    }
    if(task.phase==='go-toilet'&&facility.actorPose(n)&&!enter('toilet'))return;
    if(task.phase==='go-toilet'&&!facility.ownsActor(n)&&!facility.requestPublicActor(n)){returnHome(true);return;}
+   if(task.phase==='go-toilet')facility.retainActor(n,task.path[task.index]);
    if(task.phase==='meal'){if(!lease)goToilet();return;}
    if(task.phase==='toilet'){
     if(!facility?.ownsActor(n)){returnHome(true);return;}
