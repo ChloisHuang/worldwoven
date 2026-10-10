@@ -78,6 +78,10 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     const point=service?.intent(registryKind(role)),p=getPlayer()?.root?.position;
     return !!(p&&point?.position&&Math.abs(p.y-point.position[1])<.3&&Math.hypot(p.x-point.position[0],p.z-point.position[2])<=(point.executionRadius??.18));
   };
+  // The HUD only needs existence; keep live intent checks but avoid building
+  // and sorting every venue while walking. Opening still reads the full list.
+  const hasNearbyRegistry=()=>!!getPlayer()?.root?.position&&roles().some(role=>
+    place(role).country===getCountry()&&!!localService(role)?.intent(registryKind(role))?.position);
   const nearbyRegistries=()=>{
     const p=getPlayer()?.root?.position;if(!p)return [];
     return roles().filter(role=>place(role).country===getCountry()).map(role=>({role,intent:localService(role)?.intent(registryKind(role))})).filter(({intent})=>intent?.position).sort((a,b)=>Math.hypot(p.x-a.intent.position[0],p.z-a.intent.position[2])-Math.hypot(p.x-b.intent.position[0],p.z-b.intent.position[2]));
@@ -262,7 +266,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
   }
   button.onclick=()=>{if(!careers.workState().tenure&&getPoliticalTitle()?.active&&onPoliticalTitleOpen){close();onPoliticalTitleOpen();}else open(false);};dialog.addEventListener('cancel',()=>close());dialog.addEventListener('click',e=>{if(e.target===dialog)close();});
   return {open,close,isOpen:()=>!!dialog.open,
-    update(mode){const s=careers.workState(),r=s.lastEvaluation,c=getClock();slot.hidden=mode!=='lot';if(!wallet){money.textContent=`${copperLedger.state().cash} 铜文`;money.setAttribute('aria-label',`手头${copperLedger.state().cash}铜文`);}const employed=!!s.tenure&&!s.loadError,titled=!employed&&!!getPoliticalTitle()?.active&&!!onPoliticalTitleOpen;button.hidden=!employed&&!titled&&!nearbyRegistries().length;button.setAttribute('aria-label',titled?'查看宫廷名位':employed?'打开当前职业手册':'选择本国求职场所');
+    update(mode){const s=careers.workState(),r=s.lastEvaluation,c=getClock();slot.hidden=mode!=='lot';if(!wallet){money.textContent=`${copperLedger.state().cash} 铜文`;money.setAttribute('aria-label',`手头${copperLedger.state().cash}铜文`);}const employed=!!s.tenure&&!s.loadError,titled=!employed&&!!getPoliticalTitle()?.active&&!!onPoliticalTitleOpen;button.hidden=!employed&&!titled&&!hasNearbyRegistry();button.setAttribute('aria-label',titled?'查看宫廷名位':employed?'打开当前职业手册':'选择本国求职场所');
       const customer=s.lastCustomerReview,piecework=s.latestChinaPieceworkReview,teller=s.latestTellerAuditReview;
       if(teller&&teller.id!==tellerReviewId){tellerReviewId=teller.id;feedback.textContent=`✓ ${teller.reason}`;feedback.className='career-review-pop career-positive';feedbackUntil=c.seconds+6;feedback.hidden=false;}
       else

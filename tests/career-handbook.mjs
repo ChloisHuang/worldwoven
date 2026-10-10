@@ -165,3 +165,32 @@ console.log('PASS gated second-route UI, independent five-stage dispatch, real-t
  f.dispose();
 }
 console.log('PASS clerk registration display: applicant18, attained regular22 and personnel26 with actual work supervisors; no career mutation');
+
+// Closed HUD asks only whether a live registry exists. It must never cache
+// country, assignment or eligibility, nor build/sort the complete venue list.
+{
+ const liveClock={day:1,hour:8,seconds:0},core=createFormalCareers({saved:seed,getClock:()=>liveClock,saveState:()=>true});
+ const doc={head:element('head'),body:element('body'),createElement:element},actor={ageYears:22,root:{position:{x:0,y:0,z:0}}},calls=[],sent=[];
+ let country='china',available=new Set(FORMAL_CAREER_ROLES.map(r=>r.id)),position=true,version=0;
+ const service=id=>({state:()=>({}),intent:kind=>{calls.push([id,kind]);return available.has(id)?{id,kind,intentKey:id+':'+version,position:[FORMAL_CAREER_ROLES.findIndex(r=>r.id===id)+1,0,0],action:kind}:null;}});
+ const ui=createCareerHandbook({careers:core,getClock:()=>liveClock,getCountry:()=>country,getPlayer:()=>position?actor:null,getService:service,copperLedger:bank,document:doc,onIntent:i=>sent.push(i)});
+ const hud=all(doc.body).find(e=>e.className==='career-open'),dialog=all(doc.body).find(e=>e.tag==='dialog');
+ const before=JSON.stringify(core.state());
+ for(country of ['china','japan','france','egypt']){
+  calls.length=0;ui.update('lot');assert.equal(hud.hidden,false);assert.equal(calls.length,1,'HUD stops at first live '+country+' registry');assert.equal(FORMAL_CAREER_ROLES.find(r=>r.id===calls[0][0]).country,country);
+  hud.onclick();const venues=all(dialog).filter(e=>e.attributes['data-workplace']);assert(venues.length>0);ui.close();
+ }
+ country='china';available.clear();calls.length=0;ui.update('lot');assert.equal(hud.hidden,true);assert.equal(calls.length,FORMAL_CAREER_ROLES.filter(r=>r.country===country).length);
+ available.add(CLERK.id);ui.update('lot');assert.equal(hud.hidden,false,'assignment availability refreshes next frame');hud.onclick();
+ assert.equal(all(dialog).filter(e=>e.attributes['data-workplace']).length,1,'opening builds only currently available registries');
+ const oldAction=all(dialog).find(e=>e.className==='career-card-primary ww-airy-action');country='japan';oldAction.onclick();assert.equal(sent.length,0,'country switch rejects old country action');country='china';version++;oldAction.onclick();assert.equal(sent.length,0,'changed live intent cannot dispatch stale action');ui.close();
+ available=new Set(FORMAL_CAREER_ROLES.map(r=>r.id));hud.onclick();assert(all(dialog).filter(e=>e.attributes['data-workplace']).length>1,'reopen rebuilds full current catalogue');ui.close();oldAction.onclick();assert.equal(sent.length,0);
+ position=false;calls.length=0;ui.update('lot');assert.equal(hud.hidden,true);assert.equal(calls.length,0);position=true;
+ const working={...core,workState:()=>({...core.workState(),tenure:{roleId:CLERK.id}})};
+ const jobDoc={head:element('head'),body:element('body'),createElement:element};let employed=true;
+ working.workState=()=>({...core.workState(),tenure:employed?{roleId:CLERK.id}:null});
+ const jobUI=createCareerHandbook({careers:working,getClock:()=>liveClock,getCountry:()=>country,getPlayer:()=>actor,getService:service,copperLedger:bank,document:jobDoc});
+ const jobHUD=all(jobDoc.body).find(e=>e.className==='career-open');calls.length=0;jobUI.update('lot');assert.equal(calls.length,0);assert.equal(jobHUD.attributes['aria-label'],'打开当前职业手册');employed=false;jobUI.update('lot');assert.equal(jobHUD.attributes['aria-label'],'选择本国求职场所');assert.equal(calls.length,1);
+ assert.equal(JSON.stringify(core.state()),before,'HUD, opening and stale actions never change qualifications or assign jobs');jobUI.dispose();ui.dispose();
+}
+console.log('PASS live short-circuit HUD across four countries, missing/player/assignment changes, job change, fresh reopen and stale-intent rejection without career mutation');
