@@ -62,7 +62,7 @@ const assertConserved = state => {
 };
 assert.equal(Object.keys(CHINA_OFFICIAL_GRADE_PAY_V1).length, 18);
 assert(Object.isFrozen(CHINA_OFFICIAL_GRADE_PAY_V1)); assert(Object.isFrozen(CHINA_OFFICIAL_GRADE_ASSIGNMENTS_V1));
-assert.deepEqual(CHINA_RECORDS_CAREER_RANKS.map(rank => rank.basePay), [18, 22, 26]);
+assert.deepEqual(CHINA_RECORDS_CAREER_RANKS.map(rank => rank.basePay), [18, 22, 26, 30, 34, 38, 42, 48]);
 assert.deepEqual(CHINA_COURT_OFFICIAL_RANKS.map(rank => rank.currentWage), [168, 120, 88, 64, 168, 38]);
 assert.equal(CHINA_OFFICIAL_GRADE_PAY_V1['cn-grade-9-junior'], 18);
 assert.equal(CHINA_OFFICIAL_GRADE_PAY_V1['cn-grade-9-regular'], 22);

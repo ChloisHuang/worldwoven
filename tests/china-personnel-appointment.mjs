@@ -474,3 +474,54 @@ for(const change of ['expiry','move','restore','cancel']){
   assert.deepEqual(f.careers.promotionSummary().application,before,change);f.dispose();
 }
 console.log('PASS same live Lu lease keeps appointment stand point stable through a transient passer-by; expiry/body movement/cold restore/cancel cannot revive old anchor or remote review');
+
+// Each added personal grade reuses the exact existing physical/paper adapter.
+// Eligibility, DOM and imperial readiness are deliberately staged here; the
+// preceding real-core fixtures retain original v2 workflow coverage.
+{
+const {appendOfficialPromotionPanel,appendOfficialCareerHistory,appendCourtRankReference} = await import('../source/game/official-career-panel.js');
+const {getChinaRecordsCareerRank:getRank,CHINA_RECORDS_CAREER_RANKS:ranks} = await import('../source/game/china-official-ranks.js');
+const make=(tag,text='',cls='')=>({tag,textContent:text||'',className:cls,children:[],attributes:{},append(...nodes){this.children.push(...nodes);},setAttribute(k,v){this.attributes[k]=v;}});
+const text=n=>[n.textContent,...n.children.map(text)].join(' ');
+const all=n=>[n,...n.children.flatMap(all)];
+const entries=[['cn-records-regular',3,2,3],['cn-records-personnel',5,2,4],['cn-records-personnel-regular',7,3,5],['cn-records-personnel-7-junior',9,3,6],['cn-records-personnel-7-regular',12,4,7],['cn-records-personnel-6-junior',15,4,8]];
+for(const [id,days,ritual,writing] of entries){
+ const rank=getRank(id),target=getRank(rank.nextRankId),version=id==='cn-records-regular'?2:3;
+ const summary={rank,rankId:id,routeId:target.rankId,requirements:{serviceDays:days,tenureDays:days,positiveBalance:days,ritual,writing},qualifiedDays:days,tenureDays:days,balance:days,lifetimeQualifiedDays:days+3,eligible:true,reasons:[],trialComplete:true,application:null};
+ const runtime={activity:null,waiting:false,progress:0};let enabled=true,available=true;const kinds=[],metrics=[];
+ const careers={promotionSummary:()=>summary,promotionAvailability:()=>({ok:available,reasons:summary.reasons}),personnelProgressionEnabled:()=>enabled,cancelPromotion:()=>true};
+ const render=()=>{kinds.length=0;metrics.length=0;const panel={body:make('div'),actions:make('footer')};appendOfficialPromotionPanel({careers,role:{},panel,make,metric:(...x)=>metrics.push(x),service:{personnelAppointmentState:()=>runtime},action:(_r,kind,label)=>{kinds.push(kind);return make('button',label||kind);},buttonFor:label=>make('button',label)});return {panel,body:text(panel.body),metrics:metrics.flat().join(' ')};};
+ let view=render();assert.deepEqual(kinds,['personnel-promotion-apply']);assert(view.metrics.includes(`${days} / ${days} 合格日`));assert(view.metrics.includes(`${target.basePay}–${target.basePay+2}文`));assert(view.body.includes(`礼仪${ritual}级、文书${writing}级`));assert.equal(view.body.includes('核籍试办'),version===2);
+ for(const [stage,kind] of [['submitted','review'],['document-ready','receive-document'],['document-held','imperial-review'],['imperial-approved','appointment']]){
+  summary.application={routeVersion:version,id:'ui:'+id,appointmentId:'tenure',fromRankId:id,toRankId:target.rankId,day:20,status:'pending',stage,code:stage};available=false;view=render();assert.deepEqual(kinds,['personnel-promotion-'+kind]);
+  assert(view.body.includes(`本任${rank.gradeLabel}`));
+ }
+ runtime.activity='imperial-wait';runtime.waiting=true;view=render();assert.deepEqual(kinds,['personnel-promotion-cancel']);assert(view.body.includes('等候不计阅批时间'));assert(!all(view.panel.body).some(n=>n.tag==='progress'));
+ runtime.activity='appointment';runtime.waiting=false;runtime.progress=.5;view=render();assert(view.body.includes('1.5 / 3 秒'));
+ runtime.activity=null;summary.eligible=false;summary.reasons=['service-days-required','tenure-days-required','service-performance-required','ritual-required','writing-required','personnel-trial-required'];view=render();assert(view.metrics.includes(`需${days}日合格`));assert(view.metrics.includes(`礼仪需${ritual}级`));assert(view.metrics.includes(`文书需${writing}级`));assert.equal(view.metrics.includes('核籍试办'),version===2);
+ enabled=false;view=render();assert.equal(kinds.length,0);assert(!view.body.includes('陆谦当面核荐4秒'));enabled=true;
+ summary.application={...summary.application,status:'approved',stage:'decided',code:'approved',decidedAt:{day:21},recommendation:{},imperialDecision:{passed:true}};
+ const history={body:make('div')};appendOfficialCareerHistory({careers:{state:()=>({officialCareer:{appointments:[{id:'tenure',tenure:{sinceDay:0},endedAt:null}],service:[],applications:[summary.application]}})},panel:history,make});assert(text(history.body).includes(`${target.gradeLabel}授任已生效`));assert(text(history.body).includes('陆谦当面核荐通过'));assert(text(history.body).includes('皇帝原次阅批通过，结果已保存'));
+}
+const reference={body:make('div')};appendCourtRankReference({panel:reference,make,personnelProgressionEnabled:true});const referenceText=text(reference.body);assert(referenceText.includes('当前可玩升阶到正六品吏务核籍录事'));assert(referenceText.includes('不接替六官'));assert(referenceText.includes('本岗完整升品路线与条件'));for(const [id,days,ritual,writing] of entries){const from=getRank(id),to=getRank(from.nextRankId);assert(referenceText.includes(`${from.gradeLabel} → ${to.gradeLabel}：本品合格${days}日、实任满${days}日、考语净值≥${days}，礼仪${ritual}级、文书${writing}级`));}for(const rank of ranks.slice(2))assert(referenceText.includes(`${rank.gradeLabel}新班基础${rank.basePay}文`));
+function actor(id,position){const root=new T.Group();root.position.set(...position);root.userData.hands=[new T.Group(),new T.Group()];root.add(...root.userData.hands);return {actorId:id,bodyId:id+'-body',alive:true,walking:false,root};}
+for(const [id] of entries){
+ const rank=getRank(id),target=getRank(rank.nextRankId),version=id==='cn-records-regular'?2:3,clock={day:21,seconds:2100};
+ let row=null,held=false,lease=null,fail=false;const notices=[],proofs=[];
+ const player=actor('player',[20.55,.215,32.25]),lu=actor('cn-official-personnel',[21.7,.215,32.25]),emperor=actor('cn-emperor',[-15.1,.215,-13.35]);
+ const paper=new T.Group(),home=new T.Group();home.add(paper);
+ const careers={promotionSummary:()=>({rank,rankId:id,routeId:target.rankId,eligible:true,application:row}),promotionAvailability:()=>({ok:row===null}),workState:()=>({revision:0}),applyPromotion:()=>{row={routeVersion:version,id:'adapter:'+id,fromRankId:id,toRankId:target.rankId,status:'pending',stage:'submitted'};return {ok:true};},reviewPromotion:({applicationId,step,proof})=>{assert.equal(applicationId,row.id);assert.equal(proof.applicationId,row.id);assert.equal(proof.documentId,'appointment:'+row.id);if(fail)return {ok:false,code:'save-failed'};proofs.push(structuredClone(proof));if(step==='interview')row.stage='document-ready';if(step==='receive-document')row.stage='document-held';if(step==='imperial-review')row.stage='imperial-approved';if(step==='appointment'){row.status='approved';row.stage='decided';}return {ok:true};}};
+ const options={careers,getPlayer:()=>player,getClock:()=>clock,getLu:()=>lu,getEmperor:()=>emperor,enabled:true,documentObject:paper,requestMeeting:()=>held=true,meetingHeld:()=>held,releaseMeeting:()=>held=false,saveState:()=>true,notify:s=>notices.push(s),palace:{requestDuty:owner=>{lease=owner;return true;},dutyState:owner=>lease===owner?{ready:true,stage:'duty-public-review'}:null,setDutyLine(){},releaseDuty:()=>lease=null}};
+ let adapter=createChinaPersonnelAppointment(options);const tick=seconds=>{for(let i=0;i<Math.round(seconds*10);i++)adapter.update(.1);};
+ function perform(kind){const intent=adapter.intent('personnel-promotion-'+kind);assert(intent,`${id}:${kind}`);player.root.position.set(...intent.position);if(kind==='review')assert(adapter.prepareIntent(intent));assert(adapter.executeIntent(intent),`${id}:${kind}:execute`);}
+ assert(adapter.intent('personnel-promotion-apply').action.includes(target.gradeLabel));perform('apply');
+ perform('review');tick(3.9);assert.equal(row.stage,'submitted');tick(.1);assert.equal(row.stage,'document-ready');perform('receive-document');assert.equal(paper.parent,player.root.userData.hands[1]);
+ adapter.dispose({suspend:true});adapter=createChinaPersonnelAppointment({...options,saved:{version:1,applicationId:row.id,activity:null}});assert.equal(paper.parent,player.root.userData.hands[1]);
+ perform('imperial-review');tick(3.9);assert.equal(row.stage,'document-held');tick(.1);assert.equal(row.stage,'imperial-approved');
+ perform('appointment');fail=true;tick(3);assert.equal(row.status,'pending');assert.equal(adapter.snapshot().activity.progress,3);const savedProof=structuredClone(adapter.snapshot().activity.proof);fail=false;tick(1);assert.equal(row.status,'approved');assert.deepEqual(proofs.at(-1),savedProof);assert(notices.at(-1).includes(`${target.gradeLabel}${target.title}自此受任`));assert.equal(proofs.length,4);adapter.dispose();
+}
+const terminal=getRank('cn-records-personnel-6-regular');assert.equal(terminal.nextRankId,null);
+const terminalAdapter=createChinaPersonnelAppointment({careers:{promotionSummary:()=>({rank:terminal,routeId:null,eligible:false,application:null})},enabled:true});assert.equal(terminalAdapter.intent('personnel-promotion-apply'),null);terminalAdapter.dispose();
+console.log('PASS dynamic configured personnel ladder: six panel targets/thresholds/history/disabled gates, all original physical stages and exact paper identity, 4s/4s/3s, save-failed declaration retry, and terminal 正六 bound. Simulated core/DOM/imperial readiness; not browser/main acceptance.');
+
+}

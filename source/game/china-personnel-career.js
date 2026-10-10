@@ -5,10 +5,11 @@ import * as THREE from 'three';
 import {COURT_CAREER_PLACE as P} from './china-court-career-place.js';
 import {officialTenureId} from './official-career-progress.js';
 import {CHINA_PERSONNEL_OFFICIALS_V1 as OFFICIALS} from './china-personnel-records.js';
-import {createChinaPersonnelWork, CHINA_PERSONNEL_WORK_DURATIONS as D, CHINA_PERSONNEL_REVIEWER as LU} from './china-personnel-work.js';
+import {createChinaPersonnelWork, chinaPersonnelWorkRankId, CHINA_PERSONNEL_WORK_DURATIONS as D, CHINA_PERSONNEL_REVIEWER as LU} from './china-personnel-work.js';
+import {isChinaPersonnelRank} from './china-official-ranks.js';
 
 const PROVIDER = 'china-personnel-career', ROLE = 'cn-court-clerk';
-const RANKS = Object.freeze({trial: 'cn-records-regular', duty: 'cn-records-personnel'});
+const TRIAL_RANK = 'cn-records-regular';
 const copy = value => structuredClone(value);
 const point = value => Array.isArray(value) && value.length === 3 && value.every(Number.isFinite);
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -71,18 +72,18 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
   const sourceFor = (day, serial) => audience?.personnelSource?.(day, serial);
   function appointment() {
     const role = careers?.currentRole?.(), tenure = careers?.workState?.().tenure;
-    const mode = Object.keys(RANKS).find(mode => RANKS[mode] === role?.rankId);
+    const mode = role?.rankId === TRIAL_RANK ? 'trial' : isChinaPersonnelRank(role?.rankId) ? 'duty' : null;
     if (!careers?.isHired?.(ROLE) || role?.id !== ROLE || !mode) return null;
     return {actorId: 'player', tenureId: officialTenureId(tenure), rankId: role.rankId, mode};
   }
   function personnelDuty(owner = appointment()) {
     const duty = careers?.workState?.().lastDuty;
     return owner?.mode === 'duty' && duty?.roleId === ROLE && duty.slotId === 'cn-court-clerk-1' &&
-      duty.officialPayVersion === 2 && duty.officialRankId === RANKS.duty && duty.officialTenureId === owner.tenureId &&
+      duty.officialPayVersion === 2 && duty.officialRankId === owner.rankId && duty.officialTenureId === owner.tenureId &&
       duty.started === true ? duty : null;
   }
   function eligible(request) {
-    if (request.actorId !== 'player' || request.rankId !== RANKS[request.mode]) return false;
+    if (request.actorId !== 'player' || !(request.mode === 'trial' ? request.rankId === TRIAL_RANK : request.mode === 'duty' && isChinaPersonnelRank(request.rankId))) return false;
     const state = careers?.state?.();
     if (!state || state.loadError) return false;
     const ledger = state.officialCareer, owner = ledger?.appointments.find(row => row.id === request.officialTenureId);
@@ -99,15 +100,15 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
     historicalRank ||= rankId === request.rankId && request.day >= rankDay;
     if (!historicalRank) return false;
     if (request.mode === 'trial') return request.phase === 'restore' || appointment()?.tenureId === request.officialTenureId;
-    const matchesDuty = duty => duty?.roleId === ROLE && duty.officialPayVersion === 2 && duty.officialRankId === RANKS.duty &&
+    const matchesDuty = duty => duty?.roleId === ROLE && duty.slotId === 'cn-court-clerk-1' && duty.officialPayVersion === 2 && duty.officialRankId === request.rankId &&
       duty.officialTenureId === request.officialTenureId && duty.day === request.day && duty.started === true;
     if (request.phase === 'restore') {
       if (matchesDuty(state.lastDuty)) return true;
       // Once an old day is settled/ended, its real evaluated personal duty is
       // the historical ownership evidence; the public six-official source is
       // separately validated by the journal and cannot manufacture service.
-      return ledger.service.some(row => row.appointmentId === request.officialTenureId && row.rankId === RANKS.duty && row.day === request.day &&
-        row.officialPayVersion === 2 && row.officialTenureId === request.officialTenureId &&
+      return ledger.service.some(row => row.appointmentId === request.officialTenureId && row.rankId === request.rankId && row.day === request.day &&
+        row.officialPayVersion === 2 && row.officialRankId === request.rankId && row.officialTenureId === request.officialTenureId &&
         (!row.positive || row.personnelWork?.id === request.caseId));
     }
     const activeOwner = appointment(), duty = personnelDuty(activeOwner);
@@ -191,14 +192,14 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
   const current = () => work.current();
   const owned = job => {
     const owner = appointment();
-    if (!job || job.mode !== owner?.mode || job.officialTenureId !== owner.tenureId) return false;
+    if (!job || job.mode !== owner?.mode || job.officialTenureId !== owner.tenureId || chinaPersonnelWorkRankId(job) !== owner.rankId) return false;
     const duty = job.mode === 'duty' ? personnelDuty(owner) : null;
     return job.mode === 'trial' || duty?.day === job.day && duty.stage === 'archive' &&
       (duty.day === getClock()?.day || duty.personnelDeferral?.caseId === job.id);
   };
   function shownCase() {
     const rows = work.snapshot()?.cases, all = Array.isArray(rows) ? rows : [], owner = appointment();
-    return current() || all.findLast(job => job.mode === owner?.mode && job.officialTenureId === owner.tenureId) ||
+    return current() || all.findLast(job => job.mode === owner?.mode && job.officialTenureId === owner.tenureId && chinaPersonnelWorkRankId(job) === owner.rankId) ||
       all.findLast(job => job.officialTenureId === owner?.tenureId) || all.at(-1) || null;
   }
   function availability() {
@@ -261,7 +262,7 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
     const labels = {claim: mode === 'duty' ? '领取本人朝次六官核籍日职' : '领取本日六官吏籍试办', view: `查看${title}名册`, read: '翻阅原始案簿 · 3秒',
       record: action.answer === 'accepted' ? '登记：原件已归档' : '登记：尚待原件', compile: '编列六官名册 · 8秒', review: '向陆谦呈册核阅 · 4秒'};
     return {id: 'cn-' + kind, provider: PROVIDER, kind, name, npcName: place ? officials.get(action.actorId).name : lu ? '陆谦' : '吏籍簿',
-      position: [...position], action: labels[action.type], intentKey: [owner?.tenureId, job?.id, job?.revision, row?.visit?.id, job?.day ?? availability().sourceDay ?? getClock()?.day, kind, lu?.bodyId].join('|'),
+      position: [...position], action: labels[action.type], intentKey: [owner?.tenureId, owner?.rankId, job?.id, chinaPersonnelWorkRankId(job), job?.revision, row?.visit?.id, job?.day ?? availability().sourceDay ?? getClock()?.day, kind, lu?.bodyId].join('|'),
       executionRadius: .18, interactionRadius: 2.8, priority: 54,
       ...(lu ? {awaitingReception: !meeting, visualAnchor: {actorId: LU}} : {}), ...(place ? {playerWorkTarget: [...place.target]} : {})};
   }
@@ -414,8 +415,8 @@ export function createChinaPersonnelCareer({careers, audience, getPlayer, getClo
       // discarded. Reading committed formal state avoids seeing a save candidate.
       const missed = !state?.loadError && !!owner && job.mode === 'duty' && job.day < day && ledger.service.some(row =>
         row.id === `career-review:cn-court-clerk-1:${job.day}` && row.appointmentId === job.officialTenureId &&
-        row.day === job.day && row.rankId === RANKS.duty && row.officialPayVersion === 2 &&
-        row.officialRankId === RANKS.duty && row.officialTenureId === job.officialTenureId &&
+        row.day === job.day && row.rankId === chinaPersonnelWorkRankId(job) && row.officialPayVersion === 2 &&
+        row.officialRankId === chinaPersonnelWorkRankId(job) && row.officialTenureId === job.officialTenureId &&
         row.positive === false && row.score === -1 && row.wage === 0 && row.personnelWork === null && row.personnelDeferral === null);
       retirementCheck = {key, ended, missed};
     }

@@ -1,11 +1,15 @@
-// The second promotion's physical adapter. Shared navigation owns the player;
+// The witnessed personnel promotions' physical adapter. Shared navigation owns the player;
 // palace life remains the emperor's sole movement/pose owner. This controller
 // never touches the original edict, NPC jobs, money, XP, or rank directly.
 import * as THREE from 'three';
 import {COURT_CAREER_PLACE as P} from './china-court-career-place.js';
 import {PALACE_EDICT} from './china-palace-edict-place.js';
+import {getChinaRecordsCareerRank} from './china-official-ranks.js';
 
-const PROVIDER = 'china-personnel-appointment', ROLE = 'cn-court-clerk', RANK = 'cn-records-personnel';
+const PROVIDER = 'china-personnel-appointment', ROLE = 'cn-court-clerk';
+const personnelRank = rankId => !!getChinaRecordsCareerRank(rankId) && (rankId === 'cn-records-personnel' || rankId.startsWith('cn-records-personnel-'));
+const personnelApplication = row => !!row && (row.routeVersion === 2 && row.fromRankId === 'cn-records-regular' && row.toRankId === 'cn-records-personnel' ||
+  row.routeVersion === 3 && personnelRank(row.fromRankId) && getChinaRecordsCareerRank(row.fromRankId).nextRankId === row.toRankId && personnelRank(row.toRankId));
 const LU = 'cn-official-personnel', EMPEROR = 'cn-emperor';
 const PUBLIC_EMPEROR = [-15.1, .215, -13.35], PUBLIC_PLAYER = PALACE_EDICT.points.approve;
 const PREFIX = 'personnel-promotion-', durations = {review: 4, 'imperial-review': 4, appointment: 3, 'receive-document': 0};
@@ -45,9 +49,10 @@ export function createChinaPersonnelAppointment({careers, palace, getPlayer, get
   const home = documentObject ? {parent: documentObject.parent, position: documentObject.position.clone(), rotation: documentObject.rotation.clone(), scale: documentObject.scale.clone()} : null;
   const enabledNow = () => !disposed && (typeof enabled === 'function' ? enabled() === true : enabled === true);
   const summary = () => careers?.promotionSummary?.() || {};
-  const application = () => { const row = summary().application; return row?.toRankId === RANK && row.routeVersion === 2 ? row : null; };
+  const application = () => { const row = summary().application; return personnelApplication(row) ? row : null; };
   const pending = () => { const row = application(); return row?.status === 'pending' ? row : null; };
-  const route = () => summary().routeId === RANK || !!pending();
+  const route = () => personnelRank(summary().routeId) || !!pending();
+  const targetRank = row => getChinaRecordsCareerRank(row?.toRankId || summary().routeId);
   const ready = () => enabledNow() && !loadError && route() && summary().eligible === true;
   const documentId = row => row?.appointment?.id || (row ? 'appointment:' + row.id : null);
   const currentPoint = actor => actor?.root?.position.toArray();
@@ -151,7 +156,8 @@ export function createChinaPersonnelAppointment({careers, palace, getPlayer, get
     if (type === 'review' && !lu || type === 'imperial-review' && !emperor) return null;
     const meeting = lu ? reviewPoint(lu) : null;
     const position = lu ? meeting || P.registration : type === 'receive-document' ? P.archive : type === 'imperial-review' ? PUBLIC_PLAYER : P.registration;
-    const action = {apply: '提交从八品吏务核籍录事申请', review: '向陆谦呈履历核荐 · 4秒', 'receive-document': '领取陆谦荐书原件',
+    const target = targetRank(row);
+    const action = {apply: `提交${target?.gradeLabel || ''}${target?.title || '吏务核籍录事'}申请`, review: '向陆谦呈履历核荐 · 4秒', 'receive-document': '领取陆谦荐书原件',
       'imperial-review': '持原荐书当面请皇帝阅批 · 4秒', appointment: '宣读原任命文书并登记 · 3秒'}[type];
     return {provider: PROVIDER, id: 'cn-' + kind, kind, position: [...position], name: type === 'imperial-review' ? '宫苑公共听候处 · 呈荐书' : '铨录登记 · 吏务核籍任命',
       npcName: lu ? '陆谦' : emperor ? '皇帝' : '任命文书', action, executionRadius: .18, interactionRadius: 2.8, priority: 56,
@@ -236,13 +242,13 @@ export function createChinaPersonnelAppointment({careers, palace, getPlayer, get
       ...(recipient ? {recipientPosition: recipient.position, recipientBodyId: recipient.bodyId, recipientAlive: true} : {})};
   }
   function finish() {
-    const type = typeFor(activity.intentKind); activity.proof ||= frozen(proofFor());
+    const type = typeFor(activity.intentKind), target = targetRank(application()); activity.proof ||= frozen(proofFor());
     const result = coreStep({applicationId: activity.applicationId, step: type === 'review' ? 'interview' : type, proof: activity.proof});
     if (result?.ok || application()?.status !== 'pending') {
       clearActivity(); syncDocument(); report(result, {review: '陆谦已核准履历并出具荐书。请到归档案领取原件。',
         'receive-document': '荐书原件已领取。请亲自到宫苑公共听候处呈请皇帝阅批。',
         'imperial-review': '皇帝已准任，此原件即为任命文书。请持回铨录登记处宣读。',
-        appointment: '原任命文书已宣读登记，从八品吏务核籍录事自此受任；新俸例从下一新班生效。'}[type]);
+        appointment: `原任命文书已宣读登记，${target?.gradeLabel || ''}${target?.title || '吏务核籍录事'}自此受任；新俸例从下一新班生效。`}[type]);
       openRegistration({country: 'china', roleId: ROLE, scope: 'role'}); return;
     }
     const code = result?.code || result?.reasons?.[0];

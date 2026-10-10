@@ -29,12 +29,18 @@ export const CHINA_OFFICIAL_GRADE_PAY_V1 = Object.freeze({
   'cn-grade-1-junior':200,'cn-grade-1-regular':240,
 });
 
-// These three player grades have bounded, witnessed appointment paths.
+// Player personal grades remain within the original personnel clerk office.
+// Head offices require separate real vacancies and management duties.
 // The complete pay table does not open higher offices or waive real service.
 export const CHINA_RECORDS_CAREER_RANKS = Object.freeze([
   {rankId:'cn-records-junior',title:'礼务录事',gradeId:'cn-grade-9-junior',basePay:18,nextRankId:'cn-records-regular'},
   {rankId:'cn-records-regular',title:'礼务录事',gradeId:'cn-grade-9-regular',basePay:22,nextRankId:'cn-records-personnel'},
-  {rankId:'cn-records-personnel',title:'吏务核籍录事',gradeId:'cn-grade-8-junior',basePay:26,nextRankId:null},
+  {rankId:'cn-records-personnel',title:'吏务核籍录事',gradeId:'cn-grade-8-junior',basePay:26,nextRankId:'cn-records-personnel-regular'},
+  {rankId:'cn-records-personnel-regular',title:'吏务核籍录事',gradeId:'cn-grade-8-regular',basePay:30,nextRankId:'cn-records-personnel-7-junior'},
+  {rankId:'cn-records-personnel-7-junior',title:'吏务核籍录事',gradeId:'cn-grade-7-junior',basePay:34,nextRankId:'cn-records-personnel-7-regular'},
+  {rankId:'cn-records-personnel-7-regular',title:'吏务核籍录事',gradeId:'cn-grade-7-regular',basePay:38,nextRankId:'cn-records-personnel-6-junior'},
+  {rankId:'cn-records-personnel-6-junior',title:'吏务核籍录事',gradeId:'cn-grade-6-junior',basePay:42,nextRankId:'cn-records-personnel-6-regular'},
+  {rankId:'cn-records-personnel-6-regular',title:'吏务核籍录事',gradeId:'cn-grade-6-regular',basePay:48,nextRankId:null},
 ].map(rank => Object.freeze({...rank,...getChinaOfficialGrade(rank.gradeId)})));
 const recordsRanks = new Map(CHINA_RECORDS_CAREER_RANKS.map(rank => [rank.rankId, rank]));
 export const getChinaRecordsCareerRank = rankId => recordsRanks.get(rankId) || null;
@@ -65,3 +71,5 @@ export const CHINA_COURT_OFFICIAL_DAILY_WAGES = Object.freeze(Object.fromEntries
   CHINA_COURT_OFFICIAL_RANKS.map(rank => [rank.actorId, rank.currentWage])));
 const courtRanks = new Map(CHINA_COURT_OFFICIAL_RANKS.map(rank => [rank.actorId, rank]));
 export const getChinaCourtOfficialRank = actorId => courtRanks.get(actorId) || null;
+
+export const isChinaPersonnelRank = rankId => !!getChinaRecordsCareerRank(rankId) && rankId.startsWith('cn-records-personnel');

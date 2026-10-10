@@ -1,4 +1,5 @@
-import {CHINA_PERSONNEL_WORK_DURATIONS} from './china-personnel-work.js';
+import {CHINA_PERSONNEL_WORK_DURATIONS, chinaPersonnelWorkRankId} from './china-personnel-work.js';
+import {getChinaRecordsCareerRank} from './china-official-ranks.js';
 
 const CLERK = 'cn-court-clerk';
 const archiveText = status => status === 'accepted' ? '已归档' : '尚无已存证归档实据';
@@ -20,7 +21,8 @@ const dayText = day => Number.isSafeInteger(day) && day >= 0 ? `第${day + 1}日
 const sourceText = job => `领取时原据：${dayText(job.source?.day)}朝会 · 截至第${job.source?.throughSerial}笔已存证记录`;
 const caseText = (job, history) => {
   const index = history.findIndex(row => row.id === job.id);
-  return `${index >= 0 ? `第${index + 1}号` : '同号'}${job.mode === 'duty' ? '日职' : '试办'}名册 · ${dayText(job.day)}`;
+  const rank = job.mode === 'duty' ? getChinaRecordsCareerRank(chinaPersonnelWorkRankId(job)) : null;
+  return `${index >= 0 ? `第${index + 1}号` : '同号'}${job.mode === 'duty' ? '日职' : '试办'}名册 · ${dayText(job.day)}${rank ? ` · ${rank.gradeLabel}` : ''}`;
 };
 const signerName = job => job.source?.audience?.actors?.find(actor => actor.actorId === job.receipt?.signerId)?.name || '原签收人';
 
@@ -37,6 +39,8 @@ export function appendPersonnelWorkPanel({panel, role, service, make, action, pe
   const section = make('section', null, 'career-table-orders');
   section.setAttribute('data-panel-key', daily ? 'personnel-duty' : 'personnel-trial');
   section.append(make('h3', daily ? '核籍日职' : '核籍试办'));
+  const currentRank = daily ? getChinaRecordsCareerRank(state.rankId) : null;
+  if (currentRank) section.append(make('p', `现任${currentRank.gradeLabel}${currentRank.title}；每册保留原职责日品级，已完成旧阶原册不计为新阶履职。`, 'career-status-note'));
   section.append(make('p', daily ? '本人朝会完成后，逐一到六官原案读据3秒并自行落记，回原案汇总8秒、请陆谦核验4秒，再回本人原案归档8秒，按原职责日合同结薪。核籍不另发一笔工资或经验。' : `试办不发工资或经验，不占普通朝班；${personnelProgressionEnabled ? '本任原册由陆谦本人签收后，可作为申请从八品核籍实职的条件。' : '更高实职的荐审与授任尚未开放。'}`, 'career-status-note'));
   if (daily && current?.mode !== 'trial' && Number.isSafeInteger(state.sourceDay)) section.append(make('p', `本册对应${dayText(state.sourceDay)}原职责；不会因今天重新打开而改成新班。`, 'career-status-note'));
   if (daily && state.deferred) section.append(make('p', `${dayText(state.sourceDay)}原班已保存等候延期；继续同号原册，仍按原职责日合同结薪，不另开新班或补发等候工资。`, 'career-status-note'));
@@ -105,7 +109,8 @@ export function appendPersonnelWorkPanel({panel, role, service, make, action, pe
   }
 
   if (current) appendCase(section, current, current.status === 'draft');
-  const settled = current?.mode === 'duty' && duty?.day === current.day && ['ready', 'paid'].includes(duty.stage);
+  const settled = current?.mode === 'duty' && duty?.day === current.day && duty.officialTenureId === current.officialTenureId &&
+    duty.officialRankId === chinaPersonnelWorkRankId(current) && ['ready', 'paid'].includes(duty.stage);
   if (settled) section.append(make('p', duty.stage === 'paid' ? '该原班已结薪；历史原册保留，不重复发薪。' : '该原班已完成本人归档，工资待入账。', 'career-status-note'));
   else if (!current || current.status !== 'draft') section.append(make('p', availabilityText[state.availability?.code] || (state.availability?.ok ? daily ? '可领取本人本朝次核籍原册。' : '先领取一份朝会原据，再逐案核对。' : '已存核籍原册保留。'), 'career-status-note'));
   if (current?.mode === 'duty' && current.status === 'signed' && !settled) section.append(make('p', '本册已签收；原班须完成本人原案归档8秒方可结薪，已结原班不会重复发薪。签收原册不另发工资。', 'career-status-note'));
