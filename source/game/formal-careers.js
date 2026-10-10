@@ -887,6 +887,12 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if(!enablePersonnelProgression)return failure('personnel-progression-disabled');
     const clock=now();if(!clock)return failure('invalid-clock');
     const timestamp={day:clock.day,hour:clock.hour};
+    // A retry acknowledges the already saved declaration; it cannot consume a
+    // second vacancy. Only the exact same witnessed proof/day can replay here.
+    if(receipt.routeVersion===4&&receipt.status==='approved'&&step==='appointment'){
+      if(!receipt.declaration||!personnelSame(proof,receipt.declaration.proof)||!validPersonnelProof(receipt,step,proof,clock))return failure('invalid-promotion-proof');
+      return {ok:true,code:receipt.code,replayed:true,applicationId:receipt.id,rankId:receipt.toRankId};
+    }
     if(receipt.routeVersion===4){
       const vacancy=principalVacancy();
       if(!vacancy)return failure('principal-vacancy-unavailable');
@@ -1812,6 +1818,6 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     slotHolder:roleId=>{if(loadError)return null;const slot=[...slotMap.values()].find(s=>s.roleId===roleId);return slot?current.tenure?.slotId===slot.id?'player':slot.holderId:null;},
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&availableSlot(slot,role)&&slot.id!==current.tenure?.slotId).length})),
     eligibility, applicationAvailability, beginDutyAvailability, applicationResult, applicationHistory,
-    currentOfficialAppointment, principalSalaryDayBlocked, principalVacancyAvailability, promotionSummary, promotionAvailability, applyPromotion, reviewPromotion, cancelPromotion, archiveAvailability, deferPersonnelReview,personnelProgressionEnabled:()=>enablePersonnelProgression,
+    currentOfficialAppointment, principalSalaryDayBlocked, principalVacancyAvailability, principalVacancy:principalVacancyAvailability, promotionSummary, promotionAvailability, applyPromotion, reviewPromotion, cancelPromotion, archiveAvailability, deferPersonnelReview,personnelProgressionEnabled:()=>enablePersonnelProgression,
     laborEvent, customerReview, apply, reviewApplication, cancelApplication, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, recordClinicAssistantService, recordClinicPatientReview, recordTavernChefService, royalKitchenQualification, recordRoyalKitchenService, recordChinaSalonReceptionReview, recordPalaceGardenReview, recordJapanReceptionReview, recordJapanBathDeliveryReview, recordJapanBathMixingReview, recordJapanKitchenReview, recordEgyptKitchenReview, recordEgyptTableServiceReview, recordEgyptArtisanReview, recordFranceArtReview, recordFranceBedchamberReview, recordEgyptArchiveReview, recordJapanLinenReview, recordJapanBoilerReview, recordJapanOmamoriReview, recordJapanKotatsuReview, recordJapanGardenReview, recordJapanBalconyReview, recordJapanTableServiceReview, prepareJapanPerformanceService, prepareChinaPieceworkService, prepareTellerAuditService, gardenMaintenanceReceipt, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
 }
