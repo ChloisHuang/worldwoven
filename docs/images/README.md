@@ -1,19 +1,24 @@
-# 四国场景配图
+# Worldwoven gallery images
 
-这四张图片用于仓库首页的场景介绍，展示当前游戏的建筑与布局。
+The repository gallery pairs one exterior and one interior view for each region, using the current game's architecture and character models.
 
-- 来源：源码提交 `66ef94b699e1cf705f194bf94d1e228ebc47344f` 中的生产场景构建器。
-- 制作：从真实场景几何导出，以 Blender 4.3.2 离线渲染；保留源码中的模型、实例变换与颜色，采用示意日光和独立介绍机位。
-- 范围：建筑场景预览，未运行居民行为与游戏界面。浏览器使用 Three.js 实时渲染，材质、光影和动态效果会有所不同。
-- 格式：1280 × 800 WebP；README 中的图片可点击查看大图。
+## Source and presentation
 
-| 配图 | 场景 | 源码 |
-| --- | --- | --- |
-| [china.webp](china.webp) | 中国 · 承光宫苑 | [regions-east.js](../../source/game/regions-east.js) → [china-palace.js](../../source/game/china-palace.js) |
-| [japan.webp](japan.webp) | 日本 · 云隐汤馆 | [japan-bathhouse.js](../../source/game/japan-bathhouse.js) |
-| [egypt.webp](egypt.webp) | 埃及 · 沙海金字塔 | [egypt-temple.js](../../source/game/egypt-temple.js) |
-| [france.webp](france.webp) | 法国 · 白鸢王宫 | [regions-west.js](../../source/game/regions-west.js) |
+- **Source revision:** `9cd44708be8adefdff069f8e9d547e6fd79a479f`.
+- **Geometry:** Production region builders and the current complete character rigs. Original meshes, instance transforms, vertex colors, clothing, and evaluated walking poses are retained.
+- **Residents:** Existing regional character identities use a fixed illustrative world seed. Their positions and staggered walking phases were chosen for these still images along existing paths and room circulation areas; these are not records of live autonomous gameplay or a player's save.
+- **Rendering:** Blender 4.3.2, offline, with representative daylight and authored interior light locations. The browser game uses Three.js, so its real-time materials, lighting, and animated effects differ.
+- **Format:** 1280 × 800 WebP. Click an image in the main README to inspect it at full size.
 
-这些图片不是浏览器实机截图，也不是另行生成的概念美术。场景没有为配图重新设计；使用相机视锥裁剪减少离线渲染负担。
+## Scene sources
 
-项目及第三方组件的许可说明见[仓库首页](../../README.md#致谢与许可)。
+| Region | Exterior | Interior | Production scene |
+| --- | --- | --- | --- |
+| China | [Palace avenue](china-exterior.webp) | [Ceremonial hall](china-interior.webp) | [regions-east.js](../../source/game/regions-east.js) → [china-palace.js](../../source/game/china-palace.js) |
+| Japan | [Canal bridge](japan-exterior.webp) | [Lantern food hall](japan-interior.webp) | [japan-bathhouse.js](../../source/game/japan-bathhouse.js) |
+| Egypt | [Desert approach](egypt-exterior.webp) | [Painted column hall](egypt-interior.webp) | [egypt-temple.js](../../source/game/egypt-temple.js) |
+| France | [Garden promenade](france-exterior.webp) | [Emerald salon](france-interior.webp) | [regions-west.js](../../source/game/regions-west.js) |
+
+These are source-based presentation renders, not browser screenshots or newly invented concept art. The architecture is not rearranged for the gallery. Camera-frustum culling limits the offline geometry export; walls and furnishings visible from each camera remain in place.
+
+See [credits and licensing](../../README.md#credits-and-licensing) for the project and its third-party components.
