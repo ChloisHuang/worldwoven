@@ -1,3 +1,4 @@
+import {visualSupportHeight} from './floor-support.js';
 import {followActorRoute} from './actor-navigation.js';
 import {isSociallyHeld} from './npc-social-ownership.js';
 import {createFranceBedchamberCare} from './france-bedchamber-care.js';
@@ -23,7 +24,8 @@ export function createFranceBedchamberService({npcs,lot,doors,planPath,moveActor
  const active=id=>desired===id&&!paused&&care.duty()?.receiptId===id&&care.duty().status==='active';
  const local=()=>{const p=getPlayer()?.root.position;return !!p&&Math.abs(p.y)<.36&&p.x>3.45&&p.x<10.65&&p.z>-6.1&&p.z<1.5;};
  const face=(n,p)=>{n.root.rotation.y=Math.atan2(p[0]-n.root.position.x,p[2]-n.root.position.z);};
- function travel(target,dt){actor.walking=false;if(near(actor,target,.055)){actor.route=[];routeKey=null;return true;}const key=target.join(',');if(routeKey!==key||!actor.route.length){actor.route=planPath(actor.root.position,{x:target[0],y:target[1],z:target[2]},.25)||[];routeKey=key;}followActorRoute(actor,dt,{doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,speedScale:.85,arrivalTolerance:.035});return near(actor,target,.055);}
+ function ground(){const p=actor.root.position,y=visualSupportHeight(lot,p.x,p.z,p.y,false);if(Number.isFinite(y))p.y=y;}
+ function travel(target,dt){ground();actor.walking=false;if(near(actor,target,.055)){actor.route=[];routeKey=null;return true;}const key=target.join(',');if(routeKey!==key||!actor.route.length){actor.route=planPath(actor.root.position,{x:target[0],y:target[1],z:target[2]},.25)||[];routeKey=key;}followActorRoute(actor,dt,{doors,moveActor,npcs,playerPosition:getPlayer()?.root.position,speedScale:.85,arrivalTolerance:.035});ground();return near(actor,target,.055);}
  const workFor=x=>{const w=W[x.stage];return {...copy(w),stage:x.stage,itemId:x.id,bedId:BED,cycle:x.cycle,useId:x.useId,key:`${x.id}:${x.cycle}:${x.useId}:${x.stage}`,executionRadius:w.pose==='linen-care'?.065:.2,visualAnchor:{id:x.id+'-'+x.stage,point:w.target.slice()}};};
  function workIntent(id,key=null){const x=care.work();if(!objects()||occupied()||!active(id)||step||!x||x.owner&&x.owner!=='player')return null;const w=workFor(x);return !key||key===w.key?w:null;}
  const meetingReady=()=>available()&&near(actor,P.home,.22)&&!npcStep&&care.work()?.owner!==HOST;
