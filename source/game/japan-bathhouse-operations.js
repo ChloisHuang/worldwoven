@@ -281,6 +281,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   const context=poseContext(n,sharedActivity?n.station:chatting?null:task?.workTarget?{workTarget:task.workTarget}:null);
   context.bathTransition=n.bathTransition?.sample()||null;
   if(mount){context.visualFloorOffset=['bath','bed'].includes(mount.kind)?0:context.visualFloorOffset;context.seatHeight=mount.seatY===undefined?undefined:mount.seatY-n.root.position.y-context.visualFloorOffset;context.supportY=mount.supportY;context.bathPose=mount.bathPose;context.bathHipHeight=mount.bathHipHeight;context.lieSupport=mount.lieSupport;context.lieOffset=mount.lieOffset;context.liePillowZ=mount.liePillowZ;context.lieSurfaceHeightAt=mount.kind==='bed'?(x,z)=>furniture.bedSupportAt(mount,x,z):undefined;}
+  context.inspectionTarget=!helping&&task?.arrived?task?.inspectionTarget||null:null;
   context.railWipe=!helping&&task?.arrived?task?.railWipe||null:null;
   context.pondWipe=!helping&&task?.arrived?task?.pondWipe||null:null;
   context.receptionWriting=!helping&&!!task?.arrived&&!!task?.receptionWriting;
