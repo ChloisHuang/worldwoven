@@ -46,10 +46,10 @@ if(vFeatureKind>0.5&&vFeatureKind<1.5){
  float value=(1.00+.28*lowerIris+.12*fibre)*(1.0-.38*rim)*(1.0-.12*ring);
  diffuseColor.rgb*=vec3(value*1.10,value*1.015,value*.90);
 }else if(vFeatureKind>3.5&&vFeatureKind<4.5){
- // Warm ivory sclera, gently reddened at its limbus and canthi. Existing
- // baked lid contact remains multiplied into the base vertex colour.
+ // Neutral sclera with only a trace of limbal warmth. Actual scene lights
+ // still tint/shade the globe; avoid baking warm gray into every eye white.
  float r=length(f.xy),limbus=featureBell(r,1.04,.14);
- diffuseColor.rgb*=mix(vec3(.96,.945,.91),vec3(.97,.85,.79),.28*limbus);
+ diffuseColor.rgb*=mix(vec3(.99,.99,.985),vec3(1.0,.94,.92),.08*limbus);
 }else if(vFeatureKind>4.5&&vFeatureKind<5.5){
  // A lightly broken feather edge and sparse directional strand separation.
  // The separately modeled tapered perimeter hairs carry the silhouette.
@@ -65,7 +65,10 @@ if(vFeatureKind>0.5&&vFeatureKind<1.5){
 // These eye-local coordinates rotate and skin with the actual eye surface.
 if(vFeatureKind>1.5&&vFeatureKind<4.5){
  float upperLid=smoothstep(-.32,.62,f.y);
- diffuseColor.rgb*=1.0-.40*upperLid;
+ // The mesh already carries recess contact. Keep a soft upper-lid falloff
+ // on sclera without doubling the dark mask used for the iris and pupil.
+ const float scleraLidStrength=.20;
+ diffuseColor.rgb*=1.0-(vFeatureKind>3.5?scleraLidStrength:.40)*upperLid;
 }
 `);
   // Readable small corneal reflection, still driven by the existing sun and
@@ -93,6 +96,6 @@ ${hairFlow?HAIR_FLOW_LIGHT_GLSL:''}
 #include <opaque_fragment>`);
  };
  const oldKey=material.customProgramCacheKey.bind(material);
- material.customProgramCacheKey=()=>oldKey()+'-original-feature-surface-depth-v1-'+(hairFlow?HAIR_FLOW_VERSION:'plain-hair');
+ material.customProgramCacheKey=()=>oldKey()+'-original-feature-surface-depth-v2-neutral-sclera-'+(hairFlow?HAIR_FLOW_VERSION:'plain-hair');
  material.needsUpdate=true;
 }
