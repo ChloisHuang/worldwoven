@@ -1,3 +1,4 @@
+import {chinaOfficialRegistry,appendChinaOfficialRegistry} from './china-official-registry.js';
 import {appendPersonnelWorkPanel} from './china-personnel-work-panel.js';
 import {appendOfficialPromotionPanel,appendOfficialCareerHistory,appendCourtRankReference} from './official-career-panel.js';
 import {appendClinicPhysicianPanel,CLINIC_PHYSICIAN_PANEL_STYLE} from './china-clinic-physician-panel.js';
@@ -43,7 +44,7 @@ const dutySummary=role=>role.duties|| (isClerk(role)?role.rankId?.startsWith('cn
 const resultReason=code=>({'already-applied-today':'本岗位今日已提交，下一模拟日可再申请','interview-rejected':'硬门槛已满足，本次面谈未获录用','hiring-context-unavailable':'招聘信息暂不可用，请稍后重试','adult-required':'年龄未达要求','age-range-required':'台班招募年龄为18–40岁','ritual-required':'礼仪未达要求','writing-required':'文书未达要求','gardening-required':'园艺未达要求','art-required':'艺术未达要求','cooking-required':'烹饪未达要求，可在藏书处学习','martial-required':'武艺未达要求，请在射圃完成安全习射','care-required':'照护未达要求，可读虚构照护书并完成原助手服务','tavern-chef-days-required':'须在三个不同模拟日完成正式酒楼厨师原客单','clinic-experience-required':'须先完成一单药铺助手原单与本人交付，作为入门履历','already-employed':'已有正式职位，请先在原岗位办理离职','political-title-held':'已有宫廷名位，须先明确辞去名位','political-state-unavailable':'宫廷身份暂不可核验','no-vacancy':'当前没有空缺','save-failed':'登记未能保存，请重试','async-save-unsupported':'登记未能保存，请重试','invalid-clock':'世界时钟暂不可用','invalid-career-state':'职业存档暂时无法核对'}[code]||'本次登记未完成，请稍后重试');
 
 
-export function createCareerHandbook({careers,copperLedger,getClock,getService,getCountry=()=>null,getPlayer=()=>null,getOfficialPayPolicy=()=>null,getGranaryAudit=()=>null,
+export function createCareerHandbook({careers,copperLedger,getClock,getService,getCountry=()=>null,getPlayer=()=>null,getOfficialPayPolicy=()=>null,getGranaryAudit=()=>null,getCourtOfficials=()=>[],
   onIntent=()=>{},onOpen=()=>{},walletFactory=null,getPoliticalTitle=()=>null,onPoliticalTitleOpen=null,document:doc=globalThis.document}) {
   const liveEmployer=role=>role?.id===GUARD?(getService(GUARD)?.reviewerName?.()||'射圃审核人暂缺'):role?.id===ROYAL?(getService(ROYAL)?.formal?.role?.employer||'当班厨役暂缺'):employer(role);
   const make=(tag,text,cls)=>{const e=doc.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;};
@@ -102,7 +103,9 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
   const shiftClockText=(clock,window)=>`第${clock.day+1}日 ${clockStamp(clock.hour)} · 开班 ${clockStamp(window.startHour)}–${clockStamp(window.endHour)}`;
   function render(force=false) {
     const s=careers.state(),c=getClock(),list=roles(),held=currentRole(s,list),ageYears=getPlayer()?.ageYears;
-    const registrationMode=!!registrationRoleId&&!(registrationScope==='role'&&held?.id===registrationRoleId);
+    const bureau=getCountry()==='china'&&(registrationRoleId===CLERK||!registrationRoleId&&held?.id===CLERK);
+    const registrationMode=!!registrationRoleId&&!(held?.id===registrationRoleId&&(registrationScope==='role'||bureau));
+    const officialRegistry=bureau?chinaOfficialRegistry({careers,state:s,catalogue:list,officials:getCourtOfficials()}):null;
     const country=getCountry(),countryRoles=list.filter(r=>place(r).country===country),registeredPlace=countryRoles.find(r=>r.id===registrationRoleId),localRoles=registeredPlace?countryRoles.filter(r=>workplaceKey(r)===workplaceKey(registeredPlace)):[];
     const focusedResult=registrationRoleId&&careers.applicationResult?.(registrationRoleId),showWorkplace=registrationScope==='catalogue'||focusedResult?.saved!==false&&focusedResult?.ok===false&&['rejected',undefined].includes(focusedResult?.status)&&localRoles.length>1;
     const role=held||localRoles.find(r=>r.id===registrationRoleId)||localRoles[0]||null,displayRoles=showWorkplace?localRoles:localRoles.filter(r=>r.id===registrationRoleId);
@@ -113,11 +116,11 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     if(clockStatus){const text=shiftClockText(c,clockStatus.window);if(clockStatus.node.textContent!==text)clockStatus.node.textContent=text;}
     const begin=held?careers.beginDutyAvailability(held.id):null;
     const guardService=country==='china'?getService(GUARD):null;
-    const service=localService(role),personnel=service?.personnelState?.(),personnelAppointment=service?.personnelAppointmentState?.(),tableChoices=[TABLE_SERVICE,LINEN,BOILER,OMAMORI,KOTATSU,BEDCHAMBER,JAPAN_GARDEN,BALCONY,GARDEN,FRANCE_ART,SALON_RECEPTION].includes(held?.id)&&d?.stage==='working'?service?.taskChoices?.()||[]:[],key=[s.revision,registrationRoleId,registrationScope,held?.id,country,c.day,JSON.stringify(getOfficialPayPolicy()),granaryAudit?.loadError,granaryBatch?.id,!!granaryBatch?.result,granaryBatch?.received?.day,careers.personnelProgressionEnabled?.(),personnel?.enabled,personnel?.eligible,personnel?.mode,personnel?.sourceDay,personnel?.deferred,personnel?.waiting?.savePending,personnelAppointment?.enabled,personnelAppointment?.application?.id,personnelAppointment?.application?.status,personnelAppointment?.application?.stage,personnelAppointment?.activity,Math.floor((personnelAppointment?.progress||0)*10),personnelAppointment?.waiting,personnelAppointment?.royalOwner,personnelAppointment?.loadError,personnelAppointment?.lastError,personnel?.case?.id,personnel?.case?.revision,personnel?.case?.status,personnel?.case?.rows?.filter(row=>row.visit).length,personnel?.case?.reviews?.length,personnel?.activity,personnel?.loadError,personnel?.lastError,personnel?.availability?.code,!!personnel?.case?.compiled,Math.floor((personnel?.progress||0)*10),!!personnel?.waiting,personnel?.history?.length,['working','attending'].includes(d?.stage)?Math.floor(c.hour*60):'',begin?.ok,begin?.code,!!service,service?.intent()?.intentKey,regionalTellerRole(held?.id)?service?.intent('original-step')?.intentKey:null,guardService?.identityKey?.(),guardService?.reviewerName?.(),guardService?.holderName?.(),(held?.paymentKind==='commission'||regionalTellerRole(held?.id))?Math.floor(service?.state?.().progressSeconds||0):null,ageYears,JSON.stringify(careers.applicationResult?.()),
+    const service=localService(role),personnel=service?.personnelState?.(),personnelAppointment=service?.personnelAppointmentState?.(),tableChoices=[TABLE_SERVICE,LINEN,BOILER,OMAMORI,KOTATSU,BEDCHAMBER,JAPAN_GARDEN,BALCONY,GARDEN,FRANCE_ART,SALON_RECEPTION].includes(held?.id)&&d?.stage==='working'?service?.taskChoices?.()||[]:[],key=[JSON.stringify(officialRegistry&&[officialRegistry.holder,officialRegistry.vacancy,...officialRegistry.rows.map(r=>[r.name,r.status,r.wage])]),s.revision,registrationRoleId,registrationScope,held?.id,country,c.day,JSON.stringify(getOfficialPayPolicy()),granaryAudit?.loadError,granaryBatch?.id,!!granaryBatch?.result,granaryBatch?.received?.day,careers.personnelProgressionEnabled?.(),personnel?.enabled,personnel?.eligible,personnel?.mode,personnel?.sourceDay,personnel?.deferred,personnel?.waiting?.savePending,personnelAppointment?.enabled,personnelAppointment?.application?.id,personnelAppointment?.application?.status,personnelAppointment?.application?.stage,personnelAppointment?.activity,Math.floor((personnelAppointment?.progress||0)*10),personnelAppointment?.waiting,personnelAppointment?.royalOwner,personnelAppointment?.loadError,personnelAppointment?.lastError,personnel?.case?.id,personnel?.case?.revision,personnel?.case?.status,personnel?.case?.rows?.filter(row=>row.visit).length,personnel?.case?.reviews?.length,personnel?.activity,personnel?.loadError,personnel?.lastError,personnel?.availability?.code,!!personnel?.case?.compiled,Math.floor((personnel?.progress||0)*10),!!personnel?.waiting,personnel?.history?.length,['working','attending'].includes(d?.stage)?Math.floor(c.hour*60):'',begin?.ok,begin?.code,!!service,service?.intent()?.intentKey,regionalTellerRole(held?.id)?service?.intent('original-step')?.intentKey:null,guardService?.identityKey?.(),guardService?.reviewerName?.(),guardService?.holderName?.(),(held?.paymentKind==='commission'||regionalTellerRole(held?.id))?Math.floor(service?.state?.().progressSeconds||0):null,ageYears,JSON.stringify(careers.applicationResult?.()),
       JSON.stringify(tableChoices.map(choice=>[choice.kind,choice.action,choice.detail])),...localRoles.map(r=>`${r.id}:${r.vacancy}:${atRegistration(r)}`)].join(':');
     if(!force&&key===signature)return;signature=key;generation++;clockStatus=null;
     const restoreView=preserveAiryPanelView(dialog,doc);dialog.replaceChildren();const x=buttonFor('×',close);x.className='career-close';x.setAttribute('aria-label','关闭职业手册');
-    const heading=registrationMode?!showWorkplace?displayRoles[0]?.name||'岗位登记':`${WORKPLACE_NAMES[workplaceKey(registeredPlace)]||place(registeredPlace).workplace||'附近'} · 招工`:held?held.name:`${COUNTRIES[country]||'当地'} · 求职场所`;
+    const heading=bureau&&registrationRoleId?'吏务官职登记 · 空缺与升任':registrationMode?!showWorkplace?displayRoles[0]?.name||'岗位登记':`${WORKPLACE_NAMES[workplaceKey(registeredPlace)]||place(registeredPlace).workplace||'附近'} · 招工`:held?held.name:`${COUNTRIES[country]||'当地'} · 求职场所`;
     dialog.setAttribute('aria-label',heading);
     const panel=createAiryPanelParts(doc);dialog.append(x,panel.header,panel.body,panel.actions);
     panel.header.append(make('h2',heading),make('p',registrationMode?!showWorkplace?'岗位柜台 · 任职登记':'本处岗位 · 当面申请':held?`${COUNTRIES[place(held).country]||place(held).country} · ${place(held).workplace}`:'先选场所，到负责人面前查看和申请岗位。'));
@@ -143,7 +146,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     };
     const cardFor=item=>{
       if(isClerk(item)&&held?.id===item.id)item=held;
-      const own=s.tenure?.roleId===item.id,check=applicationCheck(item),receipt=careers.applicationResult?.(item.id),past=careers.applicationHistory?.(item.id)||[],pending=receipt?.status==='pending',isLocal=!showWorkplace,p=place(item);
+      const own=s.tenure?.roleId===item.id,check=applicationCheck(item),receipt=careers.applicationResult?.(item.id),past=careers.applicationHistory?.(item.id)||[],pending=receipt?.status==='pending',isLocal=!showWorkplace||bureau,p=place(item);
       const card=make('section',null,'career-role-card');card.setAttribute('data-panel-key',item.id);if(pending&&isLocal)card.setAttribute('data-pending','true');const head=make('div',null,'career-card-heading'),mark=make('span',null,'career-role-mark');mark.innerHTML=careerRoleMark(item.id);mark.setAttribute('aria-hidden','true');
       const title=make('div');title.append(make('h3',item.name),make('p',`${p.workplace} · ${liveEmployer(item)}`,'career-role-place'));head.append(mark,title);card.append(head);
       const facts=make('div',null,'career-card-facts');facts.append(make('strong',`${japanPerformanceRole(item.id)?performancePrice(item):item.paymentKind==='commission'?localService(item)?.state?.().quote??item.wage:item.wage}${unit(item)}`, 'career-card-wage'),make('span',chinaPieceworkRole(item.id)?'/ 原单':item.paymentKind==='commission'?'/ 场':'/ 日'),make('span',own?'任职中':`空缺 ${item.vacancy??1}`,own?'career-vacancy held':'career-vacancy'));card.append(facts);
@@ -172,6 +175,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
     };
     const result=careers.applicationResult?.(held&&!registrationMode?held.id:registrationScope==='role'&&registrationRoleId?registrationRoleId:undefined),appliedRole=result&&list.find(r=>r.id===result.roleId);
 
+    if(officialRegistry)appendChinaOfficialRegistry({panel,make,registry:officialRegistry});
     if(!registrationMode&&!held){
       const seen=new Set(),cards=make('div',null,'career-card-grid career-venue-grid');
       for(const {role:item}of nearbyRegistries()){
@@ -183,7 +187,7 @@ export function createCareerHandbook({careers,copperLedger,getClock,getService,g
         const go=action(item,registryKind(item),`前往${WORKPLACE_NAMES[site]||place(item).workplace}`,{scope:'catalogue',roleId:item.id});if(go){go.className='career-card-primary ww-airy-action';card.append(go);}cards.append(card);
       }
       panel.body.append(cards);
-      if(country==='china')panel.body.append(make('p','帝位与后宫身份路径尚未开放。','career-venue-note'));
+      if(country==='china')panel.body.append(make('p','官职在承务官署办理；帝位与后宫名位另循各自宫廷事务。','career-venue-note'));
       if(!seen.size)panel.body.append(make('p','这里暂未开放可申请的工作场所。'));
     }else if(registrationMode){
       const cards=make('div',null,'career-card-grid');for(const item of displayRoles)cards.append(cardFor(item));panel.body.append(cards);
