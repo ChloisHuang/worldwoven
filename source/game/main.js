@@ -734,19 +734,22 @@ function resetSelectedNPC(n){
  if(mode!=='lot'||!npcs.includes(n)||n===player||n.alive===false)return deny('这个人物已不在当前场景。');
  const id=n.actorId||n.station.id,selection=npcSocial?.state();
  if(selection?.id!==id||selection.stage!=='choosing'||!npcSocial.canInteract(n,2.8))return deny('请走近这个人物，重新打开交谈后再重置。');
- const personKey=`${id}@${n.lifeId??n.station.lifeId??'original'}`,order=crimeRuntime?.model.orders(),harm=crimeRuntime?.activeAction();
- if(crimeRuntime?.owns(n)||crimeRuntime?.model.status(personKey)?.detained||[order?.subjectKey,order?.guardKey].includes(personKey)||[harm?.actorId,harm?.victimId].includes(id))return deny('查捕、押送或留置期间不能重置位置，案情会继续保留。');
+ const personKey=`${id}@${n.lifeId??n.station.lifeId??'original'}`,crimeStatus=crimeRuntime?.model.status(personKey),order=crimeRuntime?.model.orders(),harm=crimeRuntime?.activeAction();
+ if(crimeStatus?.ok===false||crimeRuntime?.status?.()?.ok===false)return deny('案情记录暂时无法核对，为保留原记录，现在不能重置。');
+ if(crimeRuntime?.owns(n)||crimeStatus?.detained||['pursuit','escort','custody','releasing'].includes(crimeStatus?.status)||[order?.subjectKey,order?.guardKey].includes(personKey)||[harm?.actorId,harm?.victimId].includes(id))return deny('查捕、押送或留置期间不能重置位置，案情会继续保留。');
  if(familyRuntime?.owns(id)||familyCare?.owns(n)||isSociallyHeld(id)||npcSocial.meetingState()?.id===id||npcSocial.pending())return deny('这个人物还有未结束的共同事务，请先结束后再重置。');
  const managed=[chinaUsurpationActions,chinaPalaceGardenDuty,chinaSalonReceptionDuty,regionalTellerEmployment,chinaPieceworkEmployment,chinaTellerService,chinaTellerPersonal,chinaArchiveService,chinaArchivePersonal,chinaTeaService,chinaTeaPersonal,egyptDailyToilet,egyptArchive,franceBedchamber,franceArt,egyptArtisan,egyptMeal,franceGardener,japanPerformance,franceTea,chinaSalon,chinaMoneyHouse,chinaTavern,chinaClinic,chinaConsortCourt,chinaEdict,chinaPalace,chinaRoyalKitchen,japanService,chinaArchery,undergroundMarket];
- if(activeDailyToilet()?.ownsActor?.(n)||tavernManagement?.recruitment.owns(id)||managed.some(owner=>owner?.owns?.(n)))return deny('这个人物的岗位还不支持安全中断重置，需先完成当前工序；不会丢弃手中物件或原单。');
- const routine=chinaAudience?.owns(n)?chinaAudience.prepareManualReset(n):n.serviceTask||n.serviceMount||n.bathTransition?null:{apply(){},rollback(){}};
+ if(activeDailyToilet()?.ownsActor?.(n)||tavernManagement?.recruitment.owns(id))return deny('这个人物正在如厕或交接岗位，请先结束这一步再重置。');
+ const ownerPreparations=[];for(const owner of managed.filter(owner=>owner?.owns?.(n))){const preparation=owner.prepareManualReset?.(n);if(!preparation)return deny('这个人物的当前岗位状态尚不能安全中断重置；不会丢弃手中物件或原单。');ownerPreparations.push(preparation);}
+ const routine=chinaAudience?.owns(n)?chinaAudience.prepareManualReset(n):ownerPreparations.length?{apply(){},rollback(){}}:n.serviceTask||n.serviceMount||n.bathTransition?null:{apply(){},rollback(){}};
  if(!routine)return deny('这个人物的朝务、用餐或其他工序尚未安全结束，暂不能重置。');
+ const conversation=npcSocial.prepareManualReset(n);if(!conversation)return deny('请先结束当前交谈，再重新打开这个人物的对话。');
  const seconds=simulationClock.state().seconds,key=active.id+':'+personKey,previous=saved.npcManualResets;
  if(Number.isFinite(previous?.[key])&&seconds-previous[key]<10)return deny('刚刚已经重置，请先让人物走动一会儿。');
  const position=findNpcResetPosition({actor:n,spawn:lot.spawn,navigation:navOptions,colliders:lot.colliders,doors:automaticDoors?.cameraColliders||[],actors:npcs,player});
  if(!position)return deny('本国公共落脚处暂时没有安全空位，请让出通道后再试。');
- const claims=furniture.facilities.prepareReleaseActor(id),metadata={apply(){saved.npcManualResets={...previous,[key]:seconds};},rollback(){if(previous===undefined)delete saved.npcManualResets;else saved.npcManualResets=previous;}};
- const result=applyNpcManualReset({actor:n,position,preparations:[routine,claims,metadata],now:elapsed,persist:()=>chinaAudience?.owns(n)?chinaAudience.persistManualReset():save(),after:()=>{resetActorNavigation(n);npcSocial.end('npc-reset');contextMenu.close();nearbyCheckedAt=-Infinity;n.animate(elapsed+n.phase,false,null,characterPoseContext(n,null));}});
+ const claims=[...new Set([id,n.station.id])].map(actorId=>furniture.facilities.prepareReleaseActor(actorId)),metadata={apply(){saved.npcManualResets={...previous,[key]:seconds};},rollback(){if(previous===undefined)delete saved.npcManualResets;else saved.npcManualResets=previous;}};
+ const result=applyNpcManualReset({actor:n,position,preparations:[routine,...ownerPreparations,...claims,metadata,conversation],now:elapsed,persist:()=>chinaAudience?.owns(n)?chinaAudience.persistManualReset():save(),after:()=>{resetActorNavigation(n);npcSocial.end('npc-reset');n.breakAt=elapsed;contextMenu.close();nearbyCheckedAt=-Infinity;n.animate(elapsed+n.phase,false,null,characterPoseContext(n,null));}});
  if(!result.ok){captureWorldContinuity();return deny('这次重置未能保存，人物和原预约已恢复，请再试一次。');}
  toast(`${n.station.npcName||'人物'}已移到本国公共安全位置，接下来继续自己的日常。`);return result;
 }

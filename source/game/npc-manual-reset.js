@@ -6,7 +6,7 @@ const point=p=>Array.isArray(p)?{x:p[0],y:p[1],z:p[2]}:{x:p.x,y:p.y,z:p.z};
 export function findNpcResetPosition({actor,spawn,navigation,colliders=[],doors=[],actors=[],player=null}){
  if(!spawn)return null;const base=point(spawn),radius=actor.collisionRadius??.25,options={...navigation,radius},solids=colliders.concat(doors);
  const bodies=[...actors.filter(n=>n!==actor),...(player?[player]:[])];
- function legal(p){return !blocked(p.x,p.z,solids,radius,{...options,y:p.y})&&!bodies.some(n=>{const q=n.root?.position;if(!q)return false;return p.y<q.y+(n.bodyHeight??1.95)&&p.y+(actor.bodyHeight??1.95)>q.y&&Math.hypot(p.x-q.x,p.z-q.z)<radius+(n.collisionRadius??(n===player?.34:.25))+.16;});}
+ function legal(p){return !blocked(p.x,p.z,solids,radius,{...options,y:p.y})&&!bodies.some(n=>{const q=n.root?.position;if(!q)return false;return p.y<q.y+(n.bodyHeight??1.95)&&p.y+(actor.bodyHeight??1.95)>q.y&&Math.hypot(p.x-q.x,p.z-q.z)<radius+(n.collisionRadius??(n===player ? .34 : .25))+.16;});}
  for(let ring=0;ring<=8;ring++){const r=ring*.45,count=ring?16:1;for(let i=0;i<count;i++){
   const p={x:base.x+Math.cos(i*Math.PI*2/count)*r,y:base.y,z:base.z+Math.sin(i*Math.PI*2/count)*r};
   const y=resolveSurfaceHeight(p,options,solids);if(y===null||Math.abs(y-base.y)>.4)continue;p.y=y;if(!legal(p))continue;
@@ -23,7 +23,7 @@ export function applyNpcManualReset({actor,position,preparations=[],persist,now,
  if(!actor?.root?.position||!Array.isArray(position)||position.length!==3||!position.every(Number.isFinite)||preparations.some(p=>!p))return {ok:false,code:'unavailable'};
  const before={position:actor.root.position.toArray(),route:actor.route,walking:actor.walking,returning:actor.returning,breakAt:actor.breakAt,serviceMount:actor.serviceMount,bathTransition:actor.bathTransition,socialPrivateFade:actor.socialPrivateFade};let applied=0;
  try{
-  for(const preparation of preparations){preparation.apply();applied++;}
+  for(const preparation of preparations){applied++;preparation.apply();}
   actor.root.position.set(...position);actor.route=[];actor.walking=false;actor.returning=false;actor.breakAt=now;actor.serviceMount=null;actor.bathTransition=null;actor.socialPrivateFade=false;
   const result=persist();if(result===false||result?.then||result?.ok===false)throw Error('save-failed');
  }catch{
