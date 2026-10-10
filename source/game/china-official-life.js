@@ -60,10 +60,10 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
  // Paid leisure is sampled only by the existing life decision boundary.
  // Quotes come from the real salon; pending wages and held money are absent
  // from the official's settled account. Never manufacture a withdrawal.
- function salonInterruption(n,s=stages.get(n)){
+ function salonInterruption(n,s=stages.get(n),ignorePlayerConversation=false){
   if(s?.called||s?.courtReady)return 'court-summons';
   if(state.meetingActorId===n.station.id)return 'official-meeting';
-  if(s?.pairId||isSociallyHeld(n.station.id,state.conversationActorId)||state.performing===n.station.id)return 'conversation';
+  if(s?.pairId||isSociallyHeld(n.station.id,ignorePlayerConversation?null:state.conversationActorId)||state.performing===n.station.id)return 'conversation';
   if(urgent(n))return 'personal-need-or-duty';
   return null;
  }
@@ -253,6 +253,8 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
   ready(n){return stages.get(n)?.courtReady===true&&!getSalon()?.ownsNPCCustomer?.(n.station.id);},
   resume(n){const s=stages.get(n),salon=getSalon();if(s?.borrowedSalon||salon?.ownsNPCCustomer?.(n.station.id)){if(s)s.salonInterrupted=true;if(salon?.ownsNPCCustomer?.(n.station.id)&&(salon.cancelNPC?.(n.station.id,'resume-official-life')!==true||salon.ownsNPCCustomer(n.station.id)))return false;if(s&&!finish(n,s,false))return false;}if(stages.get(n)?.pairId)endConversation(false);stages.delete(n);n.route=[];choose(n);},
   playerRequest(id){if(seat(id)?.kind==='bed')return;for(const n of officials){const s=stages.get(n);if(s?.choice?.facilityId===id||s?.facilityId===id){s.evicted=true;if(s.pairId)endConversation(false,'让出位置，改日再聊');}}},
+  playerSalonAvailable(n){const s=stages.get(n);return !!s&&!salonInterruption(n,s,true)&&!s.pairId&&!s.called&&!s.courtReady&&!s.mount&&!s.borrowed&&!s.borrowedSalon&&!s.toiletExit&&(s.idle||['read','garden'].includes(s.choice?.id))&&!pantryTask(n)&&!(index(n)===1&&granaryAudit?.job());},
+  playerSalonRoute:(n,target)=>publicRoute(n,target),
   meetingAvailable:n=>{const s=stages.get(n);return !!s&&!getSalon()?.ownsNPCCustomer?.(n.station.id)&&!s.pairId&&!s.called&&!s.courtReady&&!s.mount&&!s.borrowed&&!s.borrowedSalon&&!s.choice?.meal&&!s.choice?.toilet;},
   label:n=>formatCourtEdictText(stages.get(n)?.label)||'承务官署 · 日常起居',
   tick(dt,playerState){state=playerState;time+=dt;brain.tick(dt);if(time>=nextPayrollAt){nextPayrollAt=time+5;for(const n of officials)settleDuty(n);for(const duty of unpaidDuties){const n=officials.find(n=>n.station.id===duty.actorId);if(n)settleDuty(n,duty);}for(let i=unpaidDuties.length-1;i>=0;i--)if(unpaidDuties[i].stage==='paid')unpaidDuties.splice(i,1);if(granaryAudit?.activate().ok)granaryAudit.prepare();personnelRecords?.retry();}},
@@ -262,13 +264,14 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
    if(s.borrowedSalon||salon?.ownsNPCCustomer?.(n.station.id)){
     s.borrowedSalon=true;
     const status=salon?.npcStatus?.(n.station.id),reason=salonInterruption(n,s);
+    if(status?.playerService)s.playerSalon=true;
     if(status?.label){s.label=status.label;tell(n,s.label);}
     if(status?.stage==='visiting')s.salonCompleted=true;
     if(reason){s.salonInterrupted=true;if(salon?.ownsNPCCustomer?.(n.station.id)&&salon.cancelNPC?.(n.station.id,reason)!==true)return;}
     // The salon alone moves and animates its customer, including while a
     // rejected money write blocks cancellation. Court must keep waiting.
     if(salon?.ownsNPCCustomer?.(n.station.id))return;
-    if(finish(n,s,!!s.salonCompleted&&!s.salonInterrupted)){
+    if(finish(n,s,!!s.salonCompleted&&!s.salonInterrupted&&!s.playerSalon)){
      if(s.called){stages.set(n,{courtReady:true,label:'已离开茶叙 · 从当前位置应召赴朝'});n.route=[];}
      else if(urgent(n))choose(n);else idle(n,'茶叙已告一段落 · 继续日常');
     }

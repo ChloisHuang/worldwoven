@@ -18,10 +18,11 @@ export function appendSalonCareerPanel({panel,role,service,make,action}){
  const choices=(service?.workChoices()||[]).filter(k=>!['work-view','formal-resign','decline'].includes(k)&&(k!=='end-shift'||!o));
  for(const kind of choices){const button=action(role,kind);if(button){button.className='career-current-action ww-airy-action';panel.actions.append(button);}}
  if(o&&o.stage!=='ready'){const decline=action(role,'decline',o.stage==='offered'?'婉拒邀约':'取消本场 · 退还客款');if(decline)panel.actions.append(decline);}
- const details=make('details',null,'career-card-details');details.append(make('summary','台班与账目'));
+ const details=make('details',null,'career-card-details');if(s?.shift&&!o)details.open=true;details.append(make('summary',!o?'可邀请的来客与台班账目':'台班与账目'));
+ if(s?.shift&&!o)panel.body.append(make('p','可主动找客：走近成年来客或歇下来的官员，打开交谈，选择「邀请到店」。','career-status-note'));
  if(review)details.append(make('p',review.reason));
  details.append(make('p',s?.shift?'本席由你当值 · 可自由交班':`本席由你任职 · ${standIn}代管`));
- if(!o)details.append(make('p','无客不计酬'));
+ if(!o){details.append(make('p','可走近下列成年人物，在交谈中选择「邀请到店」。官员只花已入账的本人俸银；原客人只花现有铜钱。无客不计酬，对方可婉拒。'));for(const guest of s?.invitationGuests||[])details.append(make('p',`${guest.name} · ${guest.where}：${guest.status}`));}
  for(const kind of s?.shift?o&&o.stage!=='ready'?['end-shift']:[]:['formal-resign']){const button=action(role,kind);if(button)details.append(button);}
  panel.body.append(details);
 }

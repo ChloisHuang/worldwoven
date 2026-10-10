@@ -161,7 +161,7 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
   const candidate={...session,receptionWork:{...work,seconds:Math.min(2,work.seconds+(Number.isFinite(dt)?Math.max(0,Math.min(.1,dt)):0))}};
   const observation=receptionObjects?.apply(candidate,host,t,poseContext(host,host.station||receptionist.station));
   const beforeWork=clone(work),beforeHistory=history.length;
-  const finished=advanceReceptionWork(work,session,phase,dt,{present:true,posed:observation?.observed===true&&observation.sessionId===session.id&&observation.cardId===work.cardId&&observation.phase===phase,assignment,sourceValid});
+  const finished=advanceReceptionWork(work,session,phase,dt,{present:true,posed:observation?.played===true&&observation.sessionId===session.id&&observation.cardId===work.cardId&&observation.phase===phase,assignment,sourceValid});
   if(finished){record('reception-'+phase,{receptionistId:work.actorId,cardId:work.cardId,roomId:session.roomId});if(!persist()&&playerWork){Object.assign(work,beforeWork);history.splice(beforeHistory);return false;}playerReceptionAction=null;}
   return !!observation;
  }
@@ -187,9 +187,9 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
   setPrivateMenuReading(open){const event=privateCompanionship?.status();if(open&&event?.participants.includes('player'))privateCompanionship.pauseForMenu?.(event.id);else privateCompanionship?.releaseMenuPause?.();},
   respondPrivate(eventId,accepted){privateCompanionship?.releaseMenuPause?.(eventId);return privateCompanionship?.respond(eventId,'player',accepted)?.ok===true;},cancelPrivate(eventId){privateCompanionship?.releaseMenuPause?.(eventId);return privateCompanionship?.status()?.id===eventId&&privateCompanionship?.withdraw('player')?.ok===true;},
   receptionist,performers,setEmployment:value=>{employment=value;},workTravel:travel,workPose:pose,resetWorkRoute:resetRoute,workRoomAvailable:roomAvailable,workReachable:(n,p)=>{const route=planPath(n.root.position,{x:p[0],y:p[1],z:p[2]},.25);return near(n,p)||!!route?.length&&Math.hypot(route.at(-1).x-p[0],route.at(-1).z-p[2])<.15&&Math.abs(route.at(-1).y-p[1])<.3;},get performer(){return performer;},ledger,request,startEscort:()=>!session?.customerId&&startEscort(),cancel:(reason)=>!session?.customerId&&cancel(reason),atReception,recoverPayments,
-  npcChoices,npcOfferStatus,requestNPC,ownsNPCCustomer:id=>!!session?.customerId&&session.customerId===id,
-  cancelNPC:(id,reason='本人另有事务，撤下茶叙')=>session?.customerId===id?cancel(reason):true,
-  npcStatus:id=>session?.customerId===id?{stage:session.stage,label:session.payment==='settled'?'单独茶叙已完成 · 本人款已结清':session.payment==='reserved'?'单独茶叙 · 本人款已预留':'请温晚引见 · 尚未收费'}:null,
+  npcChoices,npcOfferStatus,requestNPC,ownsNPCCustomer:id=>!!session?.customerId&&session.customerId===id||employment?.ownsOfficialCustomer?.(id)===true,
+  cancelNPC:(id,reason='本人另有事务，撤下茶叙')=>session?.customerId===id?cancel(reason):employment?.ownsOfficialCustomer?.(id)?employment.cancel('来客须先处理原事务，本次安排撤回'):true,
+  npcStatus:id=>session?.customerId===id?{stage:session.stage,label:session.payment==='settled'?'单独茶叙已完成 · 本人款已结清':session.payment==='reserved'?'单独茶叙 · 本人款已预留':'请温晚引见 · 尚未收费'}:employment?.ownsOfficialCustomer?.(id)?{playerService:true,stage:employment.state().order?.stage,label:employment.label()}:null,
   admissionBusy:()=>!!session||returning||!receptionAvailable(),
   owns:n=>n===receptionist&&(receptionAssignment()?.holderId!=='player'&&receptionOwner()||receptionLife?.owns(n)||receptionEmployment?.owns?.(n))||performers.includes(n)||!!session?.customerId&&n===customer()||employment?.owns(n),
   isProvidingService:id=>session?.customerId===id||performer?.station.id===id&&!!(session||returning),

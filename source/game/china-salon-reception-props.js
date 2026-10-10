@@ -33,7 +33,10 @@ export function createSalonReceptionProps(parent){
   if(!host?.root?.userData?.hands?.[0]||!host.root.userData.hands[1]||!host.root.userData.tools?.brush)return {observed:false,code:'reception-hands-unavailable'};
   const brush=host.root.userData.tools.brush;
   const right=writing?new THREE.Vector3(24.26+Math.sin(w.seconds*5)*.025,9.0224,5.99+Math.cos(w.seconds*5)*.018):card.position.clone().add(new THREE.Vector3(0,.032,0));
-  const hands=palmTargets(host,right),c={...context,workHeight:undefined,workDistance:undefined,receptionWriting:writing,handoff:true,handoffLean:writing?.25:.54,handoffDip:writing?0:.050,heldProp:null,archery:{hands}};
+  // Longer legs put this fixed desk farther below the same adult's shoulders.
+  // Bend at the waist/knees instead of stretching arms or moving the desk.
+  const legReach=clamp(((host.root.userData.appearance?.shapeTraits?.legLength||1)-1)/.06);
+  const hands=palmTargets(host,right),c={...context,workHeight:undefined,workDistance:undefined,receptionWriting:writing,handoff:true,handoffLean:writing?.25+legReach*.14:.54+legReach*.26,handoffDip:writing?legReach*.06:.050+legReach*.07,heldProp:null,archery:{hands}};
   // The real rig solves both wrists. Only the authored IK height is refined;
   // neither actor, paper, limb scale nor completed evidence is moved to match.
   let tip=null;
@@ -51,7 +54,11 @@ export function createSalonReceptionProps(parent){
   const inPage=tip&&Math.abs(tip.x-P.paper[0])<=.25&&Math.abs(tip.z-P.paper[2])<=.125;
   const gap=writing?Math.abs(tip.y-(P.paper[1]+.002)):rightHand.distanceTo(card.position.clone().add(new THREE.Vector3(0,.032,0)));
   const observed=writing?!!inPage&&gap<=.008:gap<=.008;
-  last={...bound,phase,seconds:w.seconds,writing,observed,gap,tip:tip?.toArray()||null,rightHand:rightHand.toArray(),leftHand:leftHand.toArray(),cardPosition:card.position.toArray(),paperPosition:P.paper.slice()};return {...last};
+  // Service time measures the original desk action actually being played.
+  // Millimetre-perfect IK is visual diagnostics, never a transactional clock:
+  // an unreachable candidate pose must not retry the same 0.1 s forever.
+  const played=[...rightHand.toArray(),...leftHand.toArray(),...card.position.toArray()].every(Number.isFinite);
+  last={...bound,phase,seconds:w.seconds,writing,played,observed,gap,tip:tip?.toArray()||null,rightHand:rightHand.toArray(),leftHand:leftHand.toArray(),cardPosition:card.position.toArray(),paperPosition:P.paper.slice()};return {...last};
  }
  return {apply,sync,rest(session){if(sync(session)){card.position.y=P.card[1];root.updateWorldMatrix(true,true);}},state:()=>last?{...last}:bound?{...bound}:null,clear(){root.visible=false;bound=last=null;},dispose(){root.removeFromParent();geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());}};
 }

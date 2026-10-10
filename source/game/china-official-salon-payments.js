@@ -10,7 +10,7 @@ export function createChinaOfficialSalonPayments({officialEconomy,artistEconomy}
   available,nextId:()=>officialEconomy?.nextSalonOrderId(),
   status:o=>{const h=officialEconomy?.salonHold(o.id);return !h?null:h.actorId===o.customerId&&h.artistId===o.actorId&&h.activity===o.activity&&h.amount===o.fee&&JSON.stringify(h.incomePolicy)===JSON.stringify(o.incomePolicy)?h:{status:'conflict'};},
   recognizesCustomer:id=>CHINA_OFFICIAL_IDS.includes(id),
-  held:()=>officialEconomy?.salonHolds().filter(h=>h.status==='reserved')||[],
+  held:()=>officialEconomy?.salonHolds().filter(h=>h.status==='reserved'&&SALON_ARTISTS.some(a=>a.id===h.artistId&&a.activity===h.activity))||[],
   reserve(o){if(!available(o.customerId,o.fee)&&!officialEconomy?.salonHold(o.id))return no('insufficient-personal-funds');const p=officialEconomy.prepareSalonReserve(terms(o));return p.ok?p.commit():p;},
   refund(o){const p=officialEconomy.prepareSalonRefund(terms(o));return p.ok?p.commit():p;},
   settle(o,{elapsed,duration=2.2}={}){
