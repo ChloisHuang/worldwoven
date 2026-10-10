@@ -9,7 +9,7 @@ export {PALACE_GARDEN_CAREER_ROLE} from './china-palace-garden-career-role.js';
 import {SALON_RECEPTION_CAREER_ROLE,validChinaSalonReceptionReceipt,sameChinaSalonReceptionReceipt,chinaSalonReceptionReviewScore} from './china-salon-reception-career-role.js';
 export {SALON_RECEPTION_CAREER_ROLE} from './china-salon-reception-career-role.js';
 import {validateChinaPersonnelWorkCase} from './china-personnel-work.js';
-import {PERSONNEL_RANK,PERSONNEL_FROM_RANK,PERSONNEL_ACTORS,personnelContract,validPersonnelContract,validPersonnelEvidence,personnelEvidenceFields,personnelDeferralMatches,personnelSame,personnelApplicationId,personnelChance,personnelChecked,validPersonnelProof,validPersonnelArchiveProof} from './official-personnel-policy.js';
+import {isPersonnelRank,PERSONNEL_RANK,PERSONNEL_FROM_RANK,PERSONNEL_ACTORS,personnelContract,validPersonnelContract,validPersonnelEvidence,personnelEvidenceFields,personnelDeferralMatches,personnelSame,personnelApplicationId,personnelChance,personnelChecked,validPersonnelProof,validPersonnelArchiveProof} from './official-personnel-policy.js';
 import {PALACE_TEA_ROLE} from './china-palace-tea-role.js';
 import {ARCHIVE_ROLE} from './china-archive-role.js';
 export {PALACE_TEA_ROLE} from './china-palace-tea-role.js';
@@ -717,8 +717,9 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const tenureId=officialTenureId(current.tenure),clock=readClock();
     if(!tenureId||!clock)return null;
     const job=syncPersonnel(readPersonnelWork,{mode,officialTenureId:tenureId,...(day!==undefined?{day}:{})});
-    const attained=current.officialCareer.applications.find(a=>a.appointmentId===tenureId&&a.status==='approved'&&a.toRankId===(mode==='trial'?PERSONNEL_FROM_RANK:PERSONNEL_RANK));
-    return validateChinaPersonnelWorkCase(job,{mode,officialTenureId:tenureId,day})&&attained&&job.day>=attained.decidedAt.day&&job.day<=clock.day?copy(job):null;
+    const rankId=mode==='trial'?PERSONNEL_FROM_RANK:current.lastDuty?.officialRankId;
+    const attained=current.officialCareer.applications.find(a=>a.appointmentId===tenureId&&a.status==='approved'&&a.toRankId===rankId);
+    return validateChinaPersonnelWorkCase(job,{mode,officialTenureId:tenureId,day,rankId})&&attained&&job.day>=attained.decidedAt.day&&job.day<=clock.day?copy(job):null;
   }
   const promotionActor=id=>syncPersonnel(resolvePromotionActor,id);
   const actorReady=(actor,id)=>actor?.actorId===id&&actor.alive===true&&typeof actor.bodyId==='string'&&/^[a-zA-Z0-9][a-zA-Z0-9:._-]{0,255}$/.test(actor.bodyId)&&Array.isArray(actor.position)&&actor.position.length===3&&actor.position.every(Number.isFinite);
@@ -744,13 +745,14 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const clock=now();if(!clock)return failure('invalid-clock');
     const available=promotionAvailability();if(!available.ok)return failure(available.code,available.reasons);
     const summary=promotionSummary();
-    if(summary.routeId===PERSONNEL_RANK){
-      const trial=personnelWork('trial'),recommender=promotionActor(PERSONNEL_ACTORS.recommender);
+    if(isPersonnelRank(summary.routeId)){
+      const higher=summary.rankId!==PERSONNEL_FROM_RANK;
+      const trial=higher?current.officialCareer.service.findLast(s=>s.appointmentId===officialTenureId(current.tenure)&&s.rankId===summary.rankId&&s.positive)?.personnelWork:personnelWork('trial'),recommender=promotionActor(PERSONNEL_ACTORS.recommender);
       if(!trial)return failure('personnel-trial-required');
       if(!actorReady(recommender,PERSONNEL_ACTORS.recommender))return failure('promotion-reviewer-unavailable');
       if(recommender.bodyId!==trial.receipt.signerBodyId)return failure('promotion-identity-changed');
-      const receipt={routeVersion:2,id:personnelApplicationId(clock.day),appointmentId:officialTenureId(current.tenure),fromRankId:PERSONNEL_FROM_RANK,toRankId:PERSONNEL_RANK,
-        day:clock.day,hour:clock.hour,status:'pending',stage:'submitted',code:'submitted',roll:careerInterviewRoll(worldSeed,COURT_CLERK_ROLE.id+':promotion:personnel',clock.day),
+      const receipt={routeVersion:higher?3:2,id:personnelApplicationId(clock.day,summary.routeId),appointmentId:officialTenureId(current.tenure),fromRankId:summary.rankId,toRankId:summary.routeId,
+        day:clock.day,hour:clock.hour,status:'pending',stage:'submitted',code:'submitted',roll:careerInterviewRoll(worldSeed,COURT_CLERK_ROLE.id+':promotion:personnel'+(higher?':'+summary.routeId:''),clock.day),
         checked:personnelChecked(summary,current.skills),trial,actors:{recommenderBodyId:recommender.bodyId,emperorBodyId:null},recommendation:null,received:null,imperialDecision:null,declaration:null,reviewedAt:null,decidedAt:null,appointment:null};
       const saved=savePromotion(receipt);return saved.ok?{ok:true,code:'submitted',applicationId:receipt.id}:saved;
     }
@@ -765,7 +767,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
   function reviewPromotion({applicationId:expectedId,step='interview',proof}={}){
     const blocked=allowed();if(blocked)return blocked;
     const summary=promotionSummary(),receipt=summary.application;
-    if(receipt?.routeVersion===2)return reviewPersonnelPromotion(receipt,{applicationId:expectedId,step,proof},summary);
+    if([2,3].includes(receipt?.routeVersion))return reviewPersonnelPromotion(receipt,{applicationId:expectedId,step,proof},summary);
     if(!receipt||receipt.status!=='pending')return failure('no-pending-promotion');
     if(expectedId!==receipt.id)return failure('stale-application');
     const clock=now();if(!clock)return failure('invalid-clock');
@@ -799,7 +801,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     const previous=step==='interview'?receipt.recommendation:step==='receive-document'?receipt.received:step==='imperial-review'?receipt.imperialDecision:step==='appointment'?receipt.declaration:null;
     if(previous&&receipt.status!=='cancelled'){
       if(!validPersonnelProof(receipt,step,proof,clock)||proof.completedAt<previous.proof.completedAt)return failure('invalid-promotion-proof');
-      return {ok:step!=='imperial-review'||previous.passed,code:step==='imperial-review'&&!previous.passed?'promotion-review-rejected':receipt.code,replayed:true,applicationId:receipt.id,...(receipt.status==='approved'?{rankId:PERSONNEL_RANK}:{})};
+      return {ok:step!=='imperial-review'||previous.passed,code:step==='imperial-review'&&!previous.passed?'promotion-review-rejected':receipt.code,replayed:true,applicationId:receipt.id,...(receipt.status==='approved'?{rankId:receipt.toRankId}:{})};
     }
     if(receipt.status!=='pending')return failure('no-pending-promotion');
     const stages={interview:'submitted','receive-document':'document-ready','imperial-review':'document-held',appointment:'imperial-approved'};
@@ -808,7 +810,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
       const next={...receipt,status:'rejected',stage:'decided',code:'promotion-eligibility-changed',decidedAt:timestamp},saved=savePromotion(next);
       return saved.ok?failure('promotion-eligibility-changed'):saved;
     };
-    const trial=personnelWork('trial',receipt.trial.day);
+    const trial=receipt.routeVersion===3?current.officialCareer.service.find(s=>s.appointmentId===receipt.appointmentId&&s.rankId===receipt.fromRankId&&s.positive&&s.day===receipt.trial.day)?.personnelWork:personnelWork('trial',receipt.trial.day);
     if(!summary.eligible||officialTenureId(current.tenure)!==receipt.appointmentId||!trial||!personnelSame(trial,receipt.trial))return rejectChanged();
     let actors={...receipt.actors};
     if(step!=='appointment'){
@@ -826,15 +828,15 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     if(!validPersonnelProof(checkedReceipt,step,proof,clock))return failure('invalid-promotion-proof');
     let next;
     if(step==='interview'){
-      const checked=personnelChecked(summary,current.skills),recommendation={chance:personnelChance(checked),checked,proof:copy(proof),at:timestamp};
-      next={...checkedReceipt,recommendation,reviewedAt:timestamp,stage:'document-ready',code:'document-ready',appointment:{id:`appointment:${receipt.id}`,text:'吏务核籍录事荐任文书：陆谦已核验正九品三日实任考语、礼仪文书与具名试差原簿。请持此原文呈皇帝亲阅；奉准后回铨录案宣读受任，从下一新班按从八品基础二十六文核薪，须同日核籍签收及本人朝班归档。'}};
+      const checked=personnelChecked(summary,current.skills),recommendation={chance:personnelChance(checked,receipt.toRankId),checked,proof:copy(proof),at:timestamp};
+      next={...checkedReceipt,recommendation,reviewedAt:timestamp,stage:'document-ready',code:'document-ready',appointment:{id:`appointment:${receipt.id}`,text:receipt.routeVersion===3?`吏务核籍录事考满荐任文书：陆谦已核验本级${summary.requirements.serviceDays}日以上真实核籍、朝班归档与考语。请持此原件呈皇帝亲阅；奉准后回铨录案宣读，个人品阶升${getChinaRecordsCareerRank(receipt.toRankId).gradeLabel}，下一新班基础${getChinaRecordsCareerRank(receipt.toRankId).basePay}文。仍任原核籍录事，不取得部门主管职位或裁决权。`:'吏务核籍录事荐任文书：陆谦已核验正九品三日实任考语、礼仪文书与具名试差原簿。请持此原文呈皇帝亲阅；奉准后回铨录案宣读受任，从下一新班按从八品基础二十六文核薪，须同日核籍签收及本人朝班归档。'}};
     }else if(step==='receive-document')next={...receipt,received:{proof:copy(proof),at:timestamp},stage:'document-held',code:'document-held'};
     else if(step==='imperial-review'){
       const passed=receipt.roll<receipt.recommendation.chance,imperialDecision={chance:receipt.recommendation.chance,roll:receipt.roll,passed,proof:copy(proof),at:timestamp};
       next={...receipt,imperialDecision,status:passed?'pending':'rejected',stage:passed?'imperial-approved':'decided',code:passed?'imperial-approved':'promotion-review-rejected',decidedAt:passed?null:timestamp};
     }else next={...receipt,declaration:{proof:copy(proof),at:timestamp},status:'approved',stage:'decided',code:'approved',decidedAt:timestamp};
     const saved=savePromotion(next);
-    return saved.ok?{ok:next.status!=='rejected',code:next.code,applicationId:receipt.id,...(next.status==='approved'?{rankId:PERSONNEL_RANK}:{})}:saved;
+    return saved.ok?{ok:next.status!=='rejected',code:next.code,applicationId:receipt.id,...(next.status==='approved'?{rankId:receipt.toRankId}:{})}:saved;
   }
   function cancelPromotion(expectedId){
     const blocked=allowed();if(blocked)return blocked;
@@ -1425,7 +1427,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
   const currentOfficialFields=()=>{
     if(current.tenure?.roleId!==COURT_CLERK_ROLE.id)return {};
     const rankId=officialRankId(current.officialCareer,current.tenure),tenureId=officialTenureId(current.tenure);
-    return rankId===PERSONNEL_RANK?{officialPayVersion:2,officialRankId:rankId,officialTenureId:tenureId,officialPayContract:personnelContract(tenureId),personnelWork:null,personnelArchiveProof:null,personnelDeferral:null}:{officialPayVersion:1,officialRankId:rankId,officialTenureId:tenureId};
+    return isPersonnelRank(rankId)?{officialPayVersion:2,officialRankId:rankId,officialTenureId:tenureId,officialPayContract:personnelContract(tenureId,rankId),personnelWork:null,personnelArchiveProof:null,personnelDeferral:null}:{officialPayVersion:1,officialRankId:rankId,officialTenureId:tenureId};
   };
   function beginDuty({receiptId,shiftKind} = {}) {
     const blocked = allowed(); if (blocked) return blocked;
@@ -1574,7 +1576,7 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
   }
   return Object.freeze({state, workState, isHired: (roleId = COURT_CLERK_ROLE.id) => !loadError && current.tenure?.roleId === roleId,
     canContinueLabor:receiptId=>{const d=current.lastDuty;let c;try{c=getClock();}catch{return false;}return !loadError&&d?.workReceiptId===receiptId&&(d.stage==='inspection'||d.stage==='working'&&d.day===c?.day);},
-    currentRole:()=>{const role=roleMap.get(current.tenure?.roleId);if(!role)return null;const rank=role.id===COURT_CLERK_ROLE.id?getChinaRecordsCareerRank(officialRankId(current.officialCareer,current.tenure)):null;return copy(rank?{...role,name:rank.title,rank:rank.rankId===PERSONNEL_RANK?8:role.rank,rankId:rank.rankId,gradeId:rank.gradeId,gradeLabel:rank.gradeLabel,wage:rank.basePay}:role);},
+    currentRole:()=>{const role=roleMap.get(current.tenure?.roleId);if(!role)return null;const rank=role.id===COURT_CLERK_ROLE.id?getChinaRecordsCareerRank(officialRankId(current.officialCareer,current.tenure)):null;return copy(rank?{...role,name:rank.title,rank:Number(rank.gradeId.split('-')[2]),rankId:rank.rankId,gradeId:rank.gradeId,gradeLabel:rank.gradeLabel,wage:rank.basePay}:role);},
     slotHolder:roleId=>{if(loadError)return null;const slot=[...slotMap.values()].find(s=>s.roleId===roleId);return slot?current.tenure?.slotId===slot.id?'player':slot.holderId:null;},
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&availableSlot(slot,role)&&slot.id!==current.tenure?.slotId).length})),
     eligibility, applicationAvailability, beginDutyAvailability, applicationResult, applicationHistory,

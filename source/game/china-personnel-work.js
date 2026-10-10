@@ -1,12 +1,18 @@
 // A same-number public-duty roster. This journal never moves an NPC, appoints
 // anyone, changes pay/skills, or archives the player's later formal duty.
 import {CHINA_PERSONNEL_OFFICIALS_V1} from './china-personnel-records.js';
+import {isChinaPersonnelRank} from './china-official-ranks.js';
 
 export const CHINA_PERSONNEL_WORK_DURATIONS = Object.freeze({visit: 3, compile: 8, review: 4});
 export const CHINA_PERSONNEL_REVIEWER = 'cn-official-personnel';
 export const CHINA_PERSONNEL_COMPILE_POINT = Object.freeze([21.50, .215, 32.25]);
 const PLAYER = 'player', COMPILE_TARGET = 'cn-court-career-desk';
 const ranks = {trial: 'cn-records-regular', duty: 'cn-records-personnel'};
+// Pre-ladder V1 cases did not carry a rank. Their meaning remains fixed at the
+// original trial/base-duty rank; never reinterpret an old case at today's rank.
+export const chinaPersonnelWorkRankId = job => job && Object.hasOwn(job, 'rankId') ? job.rankId : ranks[job?.mode];
+const validRank = job => job.mode === 'trial' ? chinaPersonnelWorkRankId(job) === ranks.trial :
+  job.mode === 'duty' && isChinaPersonnelRank(chinaPersonnelWorkRankId(job));
 const roster = CHINA_PERSONNEL_OFFICIALS_V1.map(({office, gradeOrder, ...actor}) => actor);
 const officials = new Map(CHINA_PERSONNEL_OFFICIALS_V1.map(actor => [actor.actorId, actor]));
 const copy = value => structuredClone(value);
@@ -83,6 +89,7 @@ function rejectedRows(job) {
 }
 function signedReceipt(job, proof) {
   return {version: 1, id: `${job.id}:lu-receipt`, caseId: job.id, actorId: PLAYER, officialTenureId: job.officialTenureId,
+    ...(Object.hasOwn(job, 'rankId') ? {rankId: job.rankId} : {}),
     mode: job.mode, audienceId: job.audienceId, sourceDay: job.day, signerId: CHINA_PERSONNEL_REVIEWER,
     signerBodyId: proof.recipientBodyId, revision: job.revision, corrections: job.rows.reduce((sum, row) => sum + row.corrections, 0),
     rows: job.rows.map(row => ({...copy(roster.find(actor => actor.actorId === row.actorId)), archiveStatus: row.archiveStatus,
@@ -90,8 +97,8 @@ function signedReceipt(job, proof) {
     compileReceiptId: job.compiled.proof.id, reviewReceiptId: proof.id};
 }
 function validCase(job) {
-  if (!keys(job, ['id', 'actorId', 'officialTenureId', 'mode', 'day', 'audienceId', 'source', 'rows', 'revision', 'compiled', 'reviews', 'receipt', 'status']) ||
-      job.actorId !== PLAYER || !identifier(job.officialTenureId) || !Object.hasOwn(ranks, job.mode) || !integer(job.day) ||
+  if (!keys(job, ['id', 'actorId', 'officialTenureId', 'mode', 'day', 'audienceId', 'source', 'rows', 'revision', 'compiled', 'reviews', 'receipt', 'status', ...(object(job) && Object.hasOwn(job, 'rankId') ? ['rankId'] : [])]) ||
+      job.actorId !== PLAYER || !identifier(job.officialTenureId) || !validRank(job) || !integer(job.day) ||
       job.id !== caseId(job.officialTenureId, job.day) || job.audienceId !== courtId(job.day) || !validSource(job.source, job.day) ||
       !Array.isArray(job.rows) || job.rows.length !== 6 || !integer(job.revision) || !Array.isArray(job.reviews) ||
       !['draft', 'signed', 'abandoned'].includes(job.status)) return false;
@@ -129,10 +136,10 @@ function validCase(job) {
 }
 // Read-only structural validation for consumers. The host must also compare the
 // frozen source with the authoritative records ledger at its throughSerial.
-export function validateChinaPersonnelWorkCase(job, {mode, officialTenureId, day, status = 'signed'} = {}) {
+export function validateChinaPersonnelWorkCase(job, {mode, officialTenureId, day, rankId, status = 'signed'} = {}) {
   try { return validCase(job) && (status === null || job.status === status) &&
     (mode === undefined || job.mode === mode) && (officialTenureId === undefined || job.officialTenureId === officialTenureId) &&
-    (day === undefined || job.day === day); } catch { return false; }
+    (day === undefined || job.day === day) && (rankId === undefined || chinaPersonnelWorkRankId(job) === rankId); } catch { return false; }
 }
 
 function restoredState(saved) {
@@ -179,14 +186,15 @@ export function createChinaPersonnelWork({sourceFor = () => null, readAppointmen
     return value;
   }
   function eligible(job, phase) {
+    const rankId = chinaPersonnelWorkRankId(job);
     const result = validateEligibility(freeze({actorId: PLAYER, officialTenureId: job.officialTenureId, mode: job.mode,
-      day: job.day, audienceId: job.audienceId, caseId: job.id, rankId: ranks[job.mode], phase}));
+      day: job.day, audienceId: job.audienceId, caseId: job.id, rankId, phase}));
     if (result?.then) { Promise.resolve(result).catch(() => {}); return false; }
-    return result === true || result?.ok === true && result.actorId === PLAYER && result.officialTenureId === job.officialTenureId && result.rankId === ranks[job.mode];
+    return validRank(job) && (result === true || result?.ok === true && result.actorId === PLAYER && result.officialTenureId === job.officialTenureId && result.rankId === rankId);
   }
   function appointment(job) {
     const current = sync(readAppointment);
-    return current?.actorId === PLAYER && current.tenureId === job.officialTenureId && current.rankId === ranks[job.mode];
+    return validRank(job) && current?.actorId === PLAYER && current.tenureId === job.officialTenureId && current.rankId === chinaPersonnelWorkRankId(job);
   }
   try {
     state = saved === undefined ? {version: 1, currentId: null, cases: []} : restoredState(saved);
@@ -243,6 +251,7 @@ export function createChinaPersonnelWork({sourceFor = () => null, readAppointmen
       const sourceValue = sync(sourceFor, day);
       if (!validSource(sourceValue, day)) return fail('source-unavailable');
       const job = {id, actorId: PLAYER, officialTenureId, mode, day, audienceId: courtId(day), source: copy(sourceValue),
+        ...(mode === 'duty' ? {rankId: sync(readAppointment)?.rankId} : {}),
         rows: roster.map(actor => ({actorId: actor.actorId, visit: null, archiveStatus: null, corrections: 0})),
         revision: 0, compiled: null, reviews: [], receipt: null, status: 'draft'};
       if (!appointment(job) || !eligible(job, 'claim')) return fail('appointment-mismatch');

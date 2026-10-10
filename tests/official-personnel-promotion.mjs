@@ -37,7 +37,7 @@ function fixture(seed=good){
    const tenureId=officialTenureId(careers.state().tenure),records=createChinaPersonnelRecords({resolveActor:id=>{const row=OFFICIALS.find(x=>x.actorId===id);return {actorId:id,alive:true,position:copy(row.office)};},saveState:()=>true});
    assert(records.witnessCourt({id:`cn-morning-audience:${day}`,day,actorIds:OFFICIALS.map(x=>x.actorId)}).ok);
    for(const row of OFFICIALS.slice(0,2))assert(records.witnessArchive({id:`cn-official-archive:${row.actorId}:${day}`,actorId:row.actorId,day,audienceId:`cn-morning-audience:${day}`,position:copy(row.office),elapsed:8,duration:8}).ok);
-   const work=createChinaPersonnelWork({sourceFor:(d,n)=>records.sourceFor(d,n),readAppointment:()=>({actorId:'player',tenureId,rankId:mode==='trial'?REGULAR:PERSONNEL}),validateEligibility:r=>r.officialTenureId===tenureId,resolveActor:id=>actors.get(id),saveState:state=>{for(const row of state.cases)jobs.set(row.id,copy(row));return true;}});
+   const work=createChinaPersonnelWork({sourceFor:(d,n)=>records.sourceFor(d,n),readAppointment:()=>({actorId:'player',tenureId,rankId:mode==='trial'?REGULAR:careers.currentRole().rankId}),validateEligibility:r=>r.officialTenureId===tenureId,resolveActor:id=>actors.get(id),saveState:state=>{for(const row of state.cases)jobs.set(row.id,copy(row));return true;}});
    assert(work.claim({day,mode,officialTenureId:tenureId}).ok);const id=work.current().id;
    for(const row of OFFICIALS){assert(work.visit({caseId:id,actorId:row.actorId,proof:{caseId:id,actorId:'player',targetId:row.actorId,position:[row.office[0]+.7,row.office[1],row.office[2]],standing:true,clear:true,elapsed:3,duration:3}}).ok);assert(work.record({caseId:id,actorId:row.actorId,archiveStatus:OFFICIALS.slice(0,2).includes(row)?'accepted':'awaiting'}).ok);}
    assert(work.compile({caseId:id,proof:{caseId:id,actorId:'player',targetId:'cn-court-career-desk',position:copy(CHINA_PERSONNEL_COMPILE_POINT),standing:true,clear:true,elapsed:8,duration:8,revision:work.current().revision}}).ok);
@@ -98,5 +98,39 @@ for(const change of ['identity','trial']){
  f.actors.get(LU).busy=true;f.flags.save=true;fail(f.careers.deferPersonnelReview({caseId:job.id}),'save-failed');assert.equal(f.careers.state().lastDuty.personnelDeferral,null);f.flags.save=false;assert(f.careers.deferPersonnelReview({caseId:job.id}).ok);const marker=f.saved.lastDuty.personnelDeferral;f.load();f.day(8);assert.deepEqual(f.careers.state().lastDuty.personnelDeferral,marker);assert.equal(f.careers.state().lastDuty.stage,'archive');fail(f.careers.beginDuty(),'personnel-review-pending');fail(f.careers.dutyEvent('court-start'),'personnel-review-pending');assert.equal(f.careers.state().lastEvaluation.day,6);fail(f.archive(),'personnel-duty-required');
  f.actors.get(LU).busy=false;assert(job.sign().ok);assert(f.careers.archiveAvailability().ok);assert(f.archive().ok);assert.equal(f.careers.state().lastEvaluation.day,7);assert.equal(f.careers.state().lastDuty.wage,28);assert(f.careers.settle().ok);f.load();assert.equal(f.careers.state().officialCareer.service.filter(row=>row.rankId===PERSONNEL).length,1);
  f.day(9);assert.equal(f.careers.state().lastEvaluation.day,8);assert.equal(f.careers.state().lastEvaluation.positive,false);f.load();
+}
+// Same-office ladder: every new personal grade requires fresh actual duty
+// receipts, not entry-grade days or a passage of calendar time. The fixed seed
+// lottery may reject; a later real worked day can support one new application.
+{
+ const f=fixture();f.ready();f.job();f.promote();
+ const skilled=f.saved;skilled.skills.ritual=4;skilled.skills.writing=8;f.load(skilled);
+ let day=6;
+ const targets=[['cn-records-personnel-regular',5,30],['cn-records-personnel-7-junior',7,34],['cn-records-personnel-7-regular',9,38],['cn-records-personnel-6-junior',12,42],['cn-records-personnel-6-regular',15,48]];
+ for(const [target,required,pay] of targets){
+  const from=f.careers.currentRole().rankId,oldPay=f.careers.currentRole().wage;
+  assert.equal(f.careers.promotionSummary().qualifiedDays,0);assert.equal(f.careers.promotionSummary().requirements.serviceDays,required);
+  for(let n=0;n<required;n++){
+   f.day(++day);f.court();fail(f.archive(),'personnel-duty-required');f.job({mode:'duty'});assert(f.archive().ok);assert(f.careers.settle().ok);
+   assert.equal(f.careers.state().lastDuty.wage,oldPay+2);
+   if(n<required-1)assert.equal(f.careers.promotionAvailability().ok,false);
+  }
+  let approved=false;
+  for(let attempts=0;attempts<20&&!approved;attempts++){
+   assert(f.careers.applyPromotion().ok);const submitted=f.saved;assert.equal(submitted.officialCareer.applications.at(-1).routeVersion,3);f.load();
+   assert(f.review('interview').ok);f.load();assert(f.review('receive-document').ok);f.load();
+   const imperial=f.review('imperial-review');f.load();
+   if(!imperial.ok){fail(imperial,'promotion-review-rejected');fail(f.careers.applyPromotion(),'promotion-applied-today');f.day(++day);f.court();f.job({mode:'duty'});assert(f.archive().ok);assert(f.careers.settle().ok);continue;}
+   assert.equal(f.careers.currentRole().rankId,from);const previous=f.careers.state().lastDuty;
+   f.flags.save=true;fail(f.review('appointment'),'save-failed');f.flags.save=false;assert(f.review('appointment').ok);approved=true;
+   assert.equal(f.careers.currentRole().rankId,target);assert.equal(f.careers.currentRole().wage,pay);assert.deepEqual(f.careers.state().lastDuty,previous);
+   assert(f.review('appointment').replayed);f.load();assert.equal(f.careers.currentRole().rankId,target);
+   const invalid=f.saved;invalid.officialCareer.applications.at(-1).checked.qualifiedDayIds[0]=0;assert.equal(createFormalCareers({...f.options,saved:invalid}).state().loadError,'invalid-career-state');
+  }
+  assert(approved,'Bounded fixed-seed attempts reach next grade');
+ }
+ assert.equal(f.careers.currentRole().gradeLabel,'正六品');assert.equal(f.careers.promotionSummary().routeId,null);assert(f.careers.promotionSummary().reasons.includes('promotion-route-complete'));
+ f.day(++day);f.court();f.job({mode:'duty'});assert(f.archive().ok);assert(f.careers.settle().ok);assert.equal(f.careers.state().lastDuty.wage,50);f.load();
+ assert.equal(f.careers.state().officialCareer.applications.filter(a=>a.status==='approved').length,7);
 }
 console.log('PASS personnel promotion: old ordered ranks and contracts; current real service/trial; original Lu/emperor/paper; fixed lottery; save/reload/replay; 26+2 signed duty; narrow busy-review deferral.');

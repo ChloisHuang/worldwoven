@@ -1,9 +1,19 @@
+import {getChinaRecordsCareerRank,isChinaPersonnelRank} from './china-official-ranks.js';
 import {validateChinaPersonnelWorkCase} from './china-personnel-work.js';
 
 export const PERSONNEL_RANK = 'cn-records-personnel';
 export const PERSONNEL_FROM_RANK = 'cn-records-regular';
 export const PERSONNEL_ROUTE = PERSONNEL_RANK;
 export const PERSONNEL_REQUIREMENTS = Object.freeze({serviceDays:3,tenureDays:3,positiveBalance:3,ritual:2,writing:3});
+// Fictional gameplay thresholds, not historical appointment rules. Each step
+// consumes only witnessed service at its immediately preceding personal grade.
+export const PERSONNEL_ADVANCEMENT_REQUIREMENTS = Object.freeze(Object.fromEntries([
+ ['cn-records-personnel-regular',5,2,4], ['cn-records-personnel-7-junior',7,3,5],
+ ['cn-records-personnel-7-regular',9,3,6], ['cn-records-personnel-6-junior',12,4,7],
+ ['cn-records-personnel-6-regular',15,4,8],
+].map(([rank,days,ritual,writing])=>[rank,Object.freeze({serviceDays:days,tenureDays:days,positiveBalance:days,ritual,writing})])));
+export const isPersonnelRank = isChinaPersonnelRank;
+export const personnelRequirements = toRankId => toRankId===PERSONNEL_RANK?PERSONNEL_REQUIREMENTS:PERSONNEL_ADVANCEMENT_REQUIREMENTS[toRankId]||null;
 export const PERSONNEL_ACTORS = Object.freeze({recommender:'cn-official-personnel',emperor:'cn-emperor'});
 export const PERSONNEL_POINTS = Object.freeze({registration:Object.freeze([20.55,.215,32.25]),archive:Object.freeze([21.50,.215,32.25])});
 const object = x => x !== null && typeof x === 'object' && !Array.isArray(x);
@@ -16,15 +26,16 @@ export const personnelSame = (a,b) => JSON.stringify(canonical(a))===JSON.string
 function canonical(x){return Array.isArray(x)?x.map(canonical):object(x)?Object.fromEntries(Object.keys(x).sort().map(k=>[k,canonical(x[k])])):x;}
 export const personnelTime = x => object(x)&&integer(x.day)&&Number.isFinite(x.hour)&&x.hour>=0&&x.hour<24;
 export const personnelAfter = (a,b) => a.day>b.day||a.day===b.day&&a.hour>=b.hour;
-export const personnelApplicationId = day => `official-promotion:cn-court-clerk:personnel:${day}`;
-export function personnelChance(checked){
- const chance=.70+Math.min(.20,Math.max(0,checked.qualifiedDays-3)*.04)+Math.min(.04,Math.max(0,checked.ritual-2+checked.writing-3)*.01)-Math.min(.30,Math.max(0,checked.qualifiedDays-checked.balance)*.05);
+export const personnelApplicationId = (day,toRankId=PERSONNEL_RANK) => toRankId===PERSONNEL_RANK?`official-promotion:cn-court-clerk:personnel:${day}`:`official-promotion:cn-court-clerk:${toRankId}:${day}`;
+export function personnelChance(checked,toRankId=PERSONNEL_RANK){
+ const requirements=personnelRequirements(toRankId);
+ const chance=.70+Math.min(.20,Math.max(0,checked.qualifiedDays-requirements.serviceDays)*.04)+Math.min(.04,Math.max(0,checked.ritual-requirements.ritual+checked.writing-requirements.writing)*.01)-Math.min(.30,Math.max(0,checked.qualifiedDays-checked.balance)*.05);
  return Math.max(.4,Math.min(.94,Math.round(chance*10000)/10000));
 }
 export function personnelChecked(summary,skills){return {qualifiedDays:summary.qualifiedDays,tenureDays:summary.tenureDays,balance:summary.balance,ritual:skills.ritual,writing:skills.writing,qualifiedDayIds:[...summary.qualifiedDayIds]};}
-function validChecked(x){return keys(x,['qualifiedDays','tenureDays','balance','ritual','writing','qualifiedDayIds'])&&['qualifiedDays','tenureDays','balance','ritual','writing'].every(k=>integer(x[k]))&&x.qualifiedDays>=3&&x.tenureDays>=3&&x.balance>=3&&x.ritual>=2&&x.writing>=3&&x.ritual+x.writing<=100&&Array.isArray(x.qualifiedDayIds)&&x.qualifiedDayIds.length===x.qualifiedDays&&x.qualifiedDayIds.every(integer)&&x.qualifiedDayIds.every((day,i)=>!i||day>x.qualifiedDayIds[i-1]);}
-export function personnelContract(tenureId){return {version:2,rankId:PERSONNEL_RANK,gradeId:'cn-grade-8-junior',basePay:26,preparationBonus:2,requiredRosterPolicy:'cn-personnel-roster-v1',officialTenureId:tenureId};}
-export const validPersonnelContract = row => row?.officialPayVersion===2&&row.officialRankId===PERSONNEL_RANK&&identifier(row.officialTenureId)&&personnelSame(row.officialPayContract,personnelContract(row.officialTenureId));
+function validChecked(x,toRankId=PERSONNEL_RANK){const q=personnelRequirements(toRankId);return q&& keys(x,['qualifiedDays','tenureDays','balance','ritual','writing','qualifiedDayIds'])&&['qualifiedDays','tenureDays','balance','ritual','writing'].every(k=>integer(x[k]))&&x.qualifiedDays>=q.serviceDays&&x.tenureDays>=q.tenureDays&&x.balance>=q.positiveBalance&&x.ritual>=q.ritual&&x.writing>=q.writing&&x.ritual+x.writing<=100&&Array.isArray(x.qualifiedDayIds)&&x.qualifiedDayIds.length===x.qualifiedDays&&x.qualifiedDayIds.every(integer)&&x.qualifiedDayIds.every((day,i)=>!i||day>x.qualifiedDayIds[i-1]);}
+export function personnelContract(tenureId,rankId=PERSONNEL_RANK){const rank=getChinaRecordsCareerRank(rankId);return {version:2,rankId,gradeId:rank.gradeId,basePay:rank.basePay,preparationBonus:2,requiredRosterPolicy:'cn-personnel-roster-v1',officialTenureId:tenureId};}
+export const validPersonnelContract = row => row?.officialPayVersion===2&&isPersonnelRank(row.officialRankId)&&identifier(row.officialTenureId)&&personnelSame(row.officialPayContract,personnelContract(row.officialTenureId,row.officialRankId));
 export function validPersonnelProof(receipt,step,proof,clock){
  const actorStep=step==='interview'||step==='imperial-review',duration=step==='interview'||step==='imperial-review'?4:step==='appointment'?3:0;
  const names=['applicationId','documentId','actorId','targetId','position','standing','clear','elapsed','duration','day','completedAt'];
@@ -40,7 +51,7 @@ export function validPersonnelArchiveProof(proof,row,clock){
 }
 export function validPersonnelDeferral(row){
  const d=row.personnelDeferral;
- return d===null||keys(d,['version','caseId','job','reviewerBodyId','requestedAt'])&&d.version===1&&identifier(d.reviewerBodyId)&&d.caseId===d.job?.id&&personnelTime(d.requestedAt)&&d.requestedAt.day===row.day&&validateChinaPersonnelWorkCase(d.job,{mode:'duty',officialTenureId:row.officialTenureId,day:row.day,status:'draft'})&&d.job.compiled!==null;
+ return d===null||keys(d,['version','caseId','job','reviewerBodyId','requestedAt'])&&d.version===1&&identifier(d.reviewerBodyId)&&d.caseId===d.job?.id&&personnelTime(d.requestedAt)&&d.requestedAt.day===row.day&&validateChinaPersonnelWorkCase(d.job,{mode:'duty',officialTenureId:row.officialTenureId,day:row.day,rankId:row.officialRankId,status:'draft'})&&d.job.compiled!==null;
 }
 export function personnelDeferralMatches(row,job){
  const d=row.personnelDeferral;
@@ -50,19 +61,22 @@ export function validPersonnelEvidence(row,completed){
  if(row?.officialPayVersion!==2)return row?.personnelWork===undefined&&row?.personnelArchiveProof===undefined&&row?.personnelDeferral===undefined;
  if(!validPersonnelDeferral(row))return false;
  if(!completed)return row.personnelWork===null&&row.personnelArchiveProof===null;
- return validateChinaPersonnelWorkCase(row.personnelWork,{mode:'duty',officialTenureId:row.officialTenureId,day:row.day})&&validPersonnelArchiveProof(row.personnelArchiveProof,row)&&personnelDeferralMatches(row,row.personnelWork);
+ return validateChinaPersonnelWorkCase(row.personnelWork,{mode:'duty',officialTenureId:row.officialTenureId,day:row.day,rankId:row.officialRankId})&&validPersonnelArchiveProof(row.personnelArchiveProof,row)&&personnelDeferralMatches(row,row.personnelWork);
 }
 export const personnelEvidenceFields = row => row?.officialPayVersion===2?{personnelWork:structuredClone(row.personnelWork),personnelArchiveProof:structuredClone(row.personnelArchiveProof),personnelDeferral:structuredClone(row.personnelDeferral)}:{};
 export function validPersonnelApplication(r,appointment,service){
- if(!keys(r,['routeVersion','id','appointmentId','fromRankId','toRankId','day','hour','status','stage','code','roll','checked','trial','actors','recommendation','received','imperialDecision','declaration','reviewedAt','decidedAt','appointment'])||r.routeVersion!==2||r.id!==personnelApplicationId(r.day)||r.fromRankId!==PERSONNEL_FROM_RANK||r.toRankId!==PERSONNEL_RANK||!personnelTime(r)||!personnelAfter(r,{day:appointment.tenure.sinceDay,hour:appointment.tenure.sinceHour})||!Number.isFinite(r.roll)||r.roll<0||r.roll>=1||!validChecked(r.checked)||!keys(r.actors,['recommenderBodyId','emperorBodyId'])||!identifier(r.actors.recommenderBodyId)||!(r.actors.emperorBodyId===null||identifier(r.actors.emperorBodyId))||!validateChinaPersonnelWorkCase(r.trial,{mode:'trial',officialTenureId:r.appointmentId})||r.trial.day>r.day||r.trial.receipt.signerBodyId!==r.actors.recommenderBodyId)return false;
- const relevant=service.filter(s=>s.appointmentId===r.appointmentId&&s.rankId===PERSONNEL_FROM_RANK&&s.day<=r.day),days=[...new Set(relevant.filter(s=>s.positive&&s.reasonCode==='court-and-archive-completed').map(s=>s.day))].sort((a,b)=>a-b);
+ const higher=r?.routeVersion===3, fromRank=higher?r.fromRankId:PERSONNEL_FROM_RANK, toRank=higher?r.toRankId:PERSONNEL_RANK;
+ if(higher&&(!isPersonnelRank(fromRank)||getChinaRecordsCareerRank(fromRank).nextRankId!==toRank||!personnelRequirements(toRank)))return false;
+ if(!keys(r,['routeVersion','id','appointmentId','fromRankId','toRankId','day','hour','status','stage','code','roll','checked','trial','actors','recommendation','received','imperialDecision','declaration','reviewedAt','decidedAt','appointment'])||![2,3].includes(r.routeVersion)||r.id!==personnelApplicationId(r.day,toRank)||r.fromRankId!==fromRank||r.toRankId!==toRank||!personnelTime(r)||!personnelAfter(r,{day:appointment.tenure.sinceDay,hour:appointment.tenure.sinceHour})||!Number.isFinite(r.roll)||r.roll<0||r.roll>=1||!validChecked(r.checked,toRank)||!keys(r.actors,['recommenderBodyId','emperorBodyId'])||!identifier(r.actors.recommenderBodyId)||!(r.actors.emperorBodyId===null||identifier(r.actors.emperorBodyId))||!validateChinaPersonnelWorkCase(r.trial,{mode:higher?'duty':'trial',officialTenureId:r.appointmentId,rankId:fromRank})||r.trial.day>r.day||r.trial.receipt.signerBodyId!==r.actors.recommenderBodyId)return false;
+ if(higher&&!service.some(s=>s.appointmentId===r.appointmentId&&s.rankId===fromRank&&s.positive&&s.day===r.trial.day&&personnelSame(s.personnelWork,r.trial)))return false;
+ const relevant=service.filter(s=>s.appointmentId===r.appointmentId&&s.rankId===fromRank&&s.day<=r.day),days=[...new Set(relevant.filter(s=>s.positive&&s.reasonCode==='court-and-archive-completed').map(s=>s.day))].sort((a,b)=>a-b);
  if(!personnelSame(days,r.checked.qualifiedDayIds)||relevant.reduce((n,s)=>n+s.score,0)!==r.checked.balance)return false;
- if(r.recommendation){const evidence=service.filter(s=>s.appointmentId===r.appointmentId&&s.rankId===PERSONNEL_FROM_RANK&&s.day<=r.recommendation.at?.day),qualified=[...new Set(evidence.filter(s=>s.positive&&s.reasonCode==='court-and-archive-completed').map(s=>s.day))].sort((a,b)=>a-b);
+ if(r.recommendation){const evidence=service.filter(s=>s.appointmentId===r.appointmentId&&s.rankId===fromRank&&s.day<=r.recommendation.at?.day),qualified=[...new Set(evidence.filter(s=>s.positive&&s.reasonCode==='court-and-archive-completed').map(s=>s.day))].sort((a,b)=>a-b);
   if(!personnelSame(qualified,r.recommendation.checked?.qualifiedDayIds)||evidence.reduce((n,s)=>n+s.score,0)!==r.recommendation.checked?.balance)return false;
  }
  const pending=r.status==='pending',approved=r.status==='approved';
  if(!['pending','approved','rejected','cancelled'].includes(r.status)||pending&&(appointment.endedAt!==null||!['submitted','document-ready','document-held','imperial-approved'].includes(r.stage)||r.code!==r.stage||r.decidedAt!==null)||!pending&&(r.stage!=='decided'||!personnelTime(r.decidedAt)||!personnelAfter(r.decidedAt,r))||approved&&r.code!=='approved'||r.status==='rejected'&&!['promotion-review-rejected','promotion-eligibility-changed'].includes(r.code)||r.status==='cancelled'&&!['withdrawn','appointment-ended','promotion-identity-changed'].includes(r.code))return false;
- if(r.recommendation!==null){const rec=r.recommendation;if(!identifier(r.actors.emperorBodyId)||!keys(rec,['chance','checked','proof','at'])||!validChecked(rec.checked)||rec.chance!==personnelChance(rec.checked)||!validPersonnelProof(r,'interview',rec.proof)||!personnelTime(rec.at)||!personnelAfter(rec.at,r)||rec.proof.day!==rec.at.day||!personnelSame(r.reviewedAt,rec.at)||!keys(r.appointment,['id','text'])||r.appointment.id!==`appointment:${r.id}`||typeof r.appointment.text!=='string'||r.appointment.text.length>300)return false;}
+ if(r.recommendation!==null){const rec=r.recommendation;if(!identifier(r.actors.emperorBodyId)||!keys(rec,['chance','checked','proof','at'])||!validChecked(rec.checked,toRank)||rec.chance!==personnelChance(rec.checked,toRank)||!validPersonnelProof(r,'interview',rec.proof)||!personnelTime(rec.at)||!personnelAfter(rec.at,r)||rec.proof.day!==rec.at.day||!personnelSame(r.reviewedAt,rec.at)||!keys(r.appointment,['id','text'])||r.appointment.id!==`appointment:${r.id}`||typeof r.appointment.text!=='string'||r.appointment.text.length>300)return false;}
  else if(r.actors.emperorBodyId!==null||r.reviewedAt!==null||r.appointment!==null||r.received!==null||r.imperialDecision!==null||r.declaration!==null||pending&&r.stage!=='submitted'||approved)return false;
  if(r.received!==null){if(!r.recommendation||!keys(r.received,['proof','at'])||!validPersonnelProof(r,'receive-document',r.received.proof)||!personnelTime(r.received.at)||!personnelAfter(r.received.at,r.recommendation.at)||r.received.proof.day!==r.received.at.day)return false;}
  if(r.imperialDecision!==null){const d=r.imperialDecision;if(!r.received||!keys(d,['chance','roll','passed','proof','at'])||d.chance!==r.recommendation.chance||d.roll!==r.roll||d.passed!==(r.roll<d.chance)||!validPersonnelProof(r,'imperial-review',d.proof)||!personnelTime(d.at)||!personnelAfter(d.at,r.received.at)||d.proof.day!==d.at.day||!d.passed&&(r.status!=='rejected'||r.code!=='promotion-review-rejected'||!personnelSame(r.decidedAt,d.at)))return false;}
