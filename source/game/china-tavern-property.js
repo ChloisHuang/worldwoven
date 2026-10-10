@@ -384,9 +384,14 @@ export function createChinaTavernProperty({saved,copperLedger,getClock,getTill=(
       committed(){if(accepted)return true;if(!locked||!durable||inSave||current!==base||getTill()!==till)return false;current=next;accepted=true;lastError=null;return true;},
       release(){if(inSave||durable&&!accepted)return false;if(locked){locked=false;saving=false;}return true;}};
   }
+  // Live ownership projection for controller reads. Mutation paths still use
+  // the full account/source guards; no journal or display data is copied here.
+  function ownershipState() {
+    try{const {ownerId,ownership}=a();return {ownerId,ownership};}catch{return null;}
+  }
   function state() {
     try{const accounts=a(),salon=getSalonIncome(),verified=verifyReceptionAccount(),operating=verifyBusinessAccount(),p=protection(),stock=getStock(),stockState=typeof stock?.summary==='function'?stock.summary():stock?.state?.()?.summary??stock?.summary;const materialConsumedCost=stockState?.materialExpense||0,oldLabor=current.events.filter(e=>e.kind==='wage'||e.kind==='reception-wage').reduce((n,e)=>n+e.amount,0),earnedLabor=oldLabor+p.earnedWages+p.trialEarned;return {...copy(current),...accounts,...(salon?{revenue:accounts.revenue+salon.performerPaid,salonRevenue:salon.grossRevenue,performerPaid:salon.performerPaid}:{}),protectedFunds:p.protectedFunds,trialReserved:p.trialReserved,wagesPayable:p.wagesPayable,availableBalance:Math.max(0,accounts.balance-p.protectedFunds),materialConsumedCost,inventoryValue:stockState?.inventoryValue||0,procurementCash:accounts.operatingCosts,earnedLabor,operatingProfit:accounts.revenue-materialConsumedCost-earnedLabor,npcNames:Object.fromEntries(Object.keys(NPCS).map(id=>[id,name(id)])),bank:copperLedger.balances()?.copper.bank??null,loadError:loadError||(!verified.ok?verified.code:null)||(!operating.ok?operating.code:null),lastError};}
     catch{return {...copy(current),loadError:loadError||'invalid-property-state',lastError};}
   }
-  return {get loadError(){return loadError;},snapshot:()=>copy(current),mealFundsProvider,verifyReceptionAccount,verifyBusinessAccount,businessBudget,prepareOperatingGuard,prepareOperatingExpense,prepareReceptionWage,npcAccount,prepareNpcMealPayment:input=>prepareNpcMeal(input,'npc-meal-payment'),prepareNpcMealRefund:input=>prepareNpcMeal(input,'npc-meal-refund'),state,refreshDay,applyPurchase,confirmPurchase,setPrice,replyOffer,invest:(amount,revision)=>capital('invest',amount,revision),draw:(amount,revision)=>capital('draw',amount,revision),prepareCurrencyCommit};
+  return {get loadError(){return loadError;},snapshot:()=>copy(current),mealFundsProvider,verifyReceptionAccount,verifyBusinessAccount,businessBudget,prepareOperatingGuard,prepareOperatingExpense,prepareReceptionWage,npcAccount,prepareNpcMealPayment:input=>prepareNpcMeal(input,'npc-meal-payment'),prepareNpcMealRefund:input=>prepareNpcMeal(input,'npc-meal-refund'),state,refreshDay,applyPurchase,confirmPurchase,setPrice,replyOffer,invest:(amount,revision)=>capital('invest',amount,revision),draw:(amount,revision)=>capital('draw',amount,revision),prepareCurrencyCommit,ownershipState};
 }

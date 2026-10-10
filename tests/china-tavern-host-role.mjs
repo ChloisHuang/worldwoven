@@ -23,3 +23,11 @@ console.log('PASS stable host slot, personal identity/funds/age, atomic assignme
 }
 
 {const actor={station:{id:'cn-tavern-host'},alive:true};const cold=createTavernHostRole({saved:createTavernHostRole().state(),resolveActor:()=>actor});const p=cold.prepareAssignment(null);assert(p.ok);assert.deepEqual(Object.keys(p.assignment).sort(),['holderId','revision','roleId','slotId','version'].sort(),'historical state display fields cannot pollute a cold hiring transaction');assert.equal(p.assignment.revision,1);}
+
+// One resolve is one live eligibility read, not two copies of all controllers.
+{
+ const actor={station:{id:'cn-tavern-host'},alive:true};let reads=0,allowed=true;
+ const role=createTavernHostRole({resolveActor:()=>actor,canAssign:()=>{reads++;return allowed;}});
+ for(const value of [true,false,true]){allowed=value;const before=reads,r=role.resolve();assert.equal(reads,before+1);assert.equal(r.available,value);assert.equal(r.status,value?'npc':'busy');}
+ actor.alive=false;const before=reads;assert.equal(role.resolve().status,'inactive');assert.equal(reads,before);
+}

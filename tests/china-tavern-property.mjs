@@ -61,3 +61,10 @@ const checks=[];
  const f=fixture();buy(f);const broken=f.durable;broken.chinaTavernProperty.events[0].amount++;const b=fixture(broken);assert(b.property.state().loadError);code(b.property.setPrice(100),b.property.state().loadError);checks.push('altered title receipt fails closed');
 }
 console.log('PASS tavern property:',checks.join('; '));
+
+// Runtime ownership reads stay fresh and detached without constructing the
+// financial UI projection. All purchase/transfer checks above still apply.
+{
+ const f=fixture(),check=()=>{const full=f.property.state(),owner=f.property.ownershipState();assert.deepEqual(owner,{ownerId:full.ownerId,ownership:full.ownership});assert.deepEqual(Object.keys(owner).sort(),['ownerId','ownership']);owner.ownerId='untrusted';assert.notEqual(f.property.ownershipState().ownerId,'untrusted');};
+ check();buy(f);check();f.reload();check();f.income(10);check();
+}

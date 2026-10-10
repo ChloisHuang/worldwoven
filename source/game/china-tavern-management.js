@@ -52,7 +52,7 @@ export function createChinaTavernManagement(options={}){
  const source=()=>pendingSource||current;
  const root=name=>name==='chinaTavernHiring'?(hiring?.snapshot()||roots[name]):name==='chinaTavernRecruitment'?(recruitment?.snapshot()||roots[name]):name==='chinaTavernBusiness'?(business?.snapshot()||roots[name]):name==='chinaTavernStock'?(stock?.snapshot()||roots[name]):roots[name];
  const historicalApplication=id=>hiringApplicationFromSnapshot(root('chinaTavernHiring'),id);
- const readOwner=()=>{const p=options.getOwner?.()||property?.state?.();return p?{ownerId:p.ownerId,ownership:p.ownership}:null;};
+ const readOwner=()=>{const p=options.getOwner?.()||(property?.ownershipState?property.ownershipState():property?.state?.());return p?{ownerId:p.ownerId,ownership:p.ownership}:null;};
  const readRole=id=>{const r=options.getRole?.(id);return typeof r?.resolve==='function'?r.resolve():r;};
  function readSlot(id){const r=readRole(id);if(!r)return null;return {roleId:r.roleId,slotId:r.slotId,revision:r.revision,holderId:r.holderId,tenureHolderId:r.tenureHolderId??(options.getTenureRoleId?.()===id?'player':null)};}
  function readCandidate(id){const p=options.getNPCProfile?.(id);if(!p)return null;return {...p,...(recruitment?.willingness(id)||{willing:false,willingness:null})};}
@@ -125,7 +125,7 @@ export function createChinaTavernManagement(options={}){
   verifyActivationSource:p=>same(p,source().activation?.proof),verifyHistoricalReceipt:verifyStockReceipt,
   verifyOrderSource:(kind,p)=>call(options.verifyOrderSource||sourceLinks.verifyOrderSource||scene()?.verifyStockOrderSource?.bind(scene()),kind,p)===true});
  sourceLinks.stock=stock;sourceLinks.getStock=()=>stock;
- function error(){return loadError||hiring.loadError||recruitment.state().loadError||business.loadError||stock.loadError||property?.state?.().loadError||null;}
+ function error(){return loadError||hiring.loadError||recruitment.loadError||business.loadError||stock.loadError||property?.state?.().loadError||null;}
  function guarded(fn){if(disposed||busy||saving||error())return fail(error()||(disposed?'management-suspended':'management-busy'));busy=true;try{lastError=null;return fn();}catch(e){return fail(e.message);}finally{busy=false;}}
  function activateStock(){if(!current.activation&&readOwner()?.ownerId!=='player')return {ok:true,dormant:true};if(stock.summary()?.active)return {ok:true,replayed:true};if(!current.activation){const w=world();require(integer(w?.serial)&&integer(w.revision??0),'tavern-world-unavailable');const next=copy(current),revision=++next.revision;next.activation={proof:{id:'cn-tavern-stock-activation',sourceId:NS,sourceRevision:revision,businessId:BUSINESS,serial:w.serial},owner:readOwner(),worldRevision:w.revision??0};if(!sourceSave(next))return fail('save-failed');}
   const p=stock.prepareActivation({expectedRevision:stock.snapshot().revision,expectedOwner:readOwner(),proof:current.activation.proof});if(!p.ok||p.replayed)return p;
