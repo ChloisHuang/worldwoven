@@ -253,7 +253,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    }});
   }else if(v.stage==='checkout')queueAtReception(n,v,'returned-to-desk');
   else if(v.stage==='leaving'){
-   const state=board.kotatsu.state(),rest=state.items.find(x=>x.stage==='resting'&&x.viewerId===v.id),need=sharedNeeds?.status(v.id),optional=v.number%2===1&&!state.seenVisits.includes(v.id)&&!need?.seekMeal&&!need?.seekToilet;
+   const state=board.kotatsu.state(),rest=state.items.find(x=>x.stage==='resting'&&x.viewerId===v.id),need=sharedNeeds?.status(v.id),optional=!state.loadError&&v.number%2===1&&!state.seenVisits.includes(v.id)&&!need?.seekMeal&&!need?.seekToilet;
    const chosen=rest?JAPAN_KOTATSU_TABLES.find(t=>t.id===rest.id):optional?JAPAN_KOTATSU_TABLES.find(t=>state.items.find(x=>x.id===t.id)?.stage==='clean'&&!kotatsuDuty.occupied(t.id)&&![...tasks.values()].some(task=>task.kotatsuRest===t.id)):null;
    if(chosen){let task;task=assign(n,chosen.seat.position,{kotatsuRest:chosen.id,label:'离馆前到原暖桌短坐歇脚',mount:chosen.seat,duration:6,action:'kotatsu',onArrive:()=>{
     const current=board.kotatsu.state().items.find(x=>x.id===chosen.id),urgent=sharedNeeds?.status(v.id);
@@ -261,7 +261,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
     if(!urgent?.seekMeal&&!urgent?.seekToilet&&board.kotatsu.beginRest(chosen.id,v.id)){record(v.id,'kotatsu-rest-mounted');return true;}
     return false;
    },onDone:()=>finishKotatsuRest(n)});
-   }else{if(!state.seenVisits.includes(v.id)&&!board.kotatsu.skipVisitor(v.id))return;step('left',P.departure);}
+   }else{if(!state.loadError&&!state.seenVisits.includes(v.id)&&!board.kotatsu.skipVisitor(v.id))return;step('left',P.departure);}
   }
   else if(v.stage==='cancelled')assign(n,P.departure,{label:'收好行李离开汤馆',onDone:()=>removeGuest(n)});
  }
