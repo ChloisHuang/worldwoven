@@ -57,6 +57,11 @@ export function createFranceBedchamberService({npcs,lot,doors,planPath,moveActor
   isActing:()=>!!step,held:()=>false,stopWorkAction(){step=null;},returnPosition:()=>P.registry.slice(),
   workLabel:()=>care.state().loadError?'寝务记录异常 · 保留原档，停止整理':step?.action||(paused?'寝务已暂停 · 请当面接回':occupied()?'皇家床有人使用 · 离床后再整理':care.work()?W[care.work().stage].action:'床品已整齐 · 真实休息离床后才需整理，可交班'),
   playerPose:()=>step?pose(step):null,dutyState:()=>({receiptId:desired,status:paused?'paused':active(desired)?'active':desired?'draining':'inactive',step:step?copy(step):null})};
- return {duty,care,update,owns:n=>n===actor&&borrowing,socialStatus:n=>n===actor&&borrowing?{busy:!!npcStep||meeting,canPause:!npcStep&&!meeting,attention:!npcStep&&!meeting,job:duty.workLabel()}:null,canTalkAtPost:n=>n===actor&&borrowing&&!npcStep&&!meeting&&!actor.walking,canBorrowForSocial:n=>n===actor&&borrowing&&!npcStep&&!meeting,
+ function prepareManualReset(n){
+  const safe=()=>n===actor&&!disposed&&!care.state().loadError&&actor.alive!==false&&!actor.serviceMount&&!actor.bathTransition&&!desired&&!care.duty()&&!meeting&&!step&&!npcStep&&!care.work()&&!Object.keys(care.state().users).length&&!occupied();
+  if(!safe())return null;const before={routeKey,borrowing,route:actor.route,walking:actor.walking};
+  return {apply(){if(!safe())throw Error('bedchamber-not-idle');routeKey=null;borrowing=false;actor.route=[];actor.walking=false;},rollback(){routeKey=before.routeKey;borrowing=before.borrowing;actor.route=before.route;actor.walking=before.walking;}};
+ }
+ return {duty,care,update,prepareManualReset,owns:n=>n===actor&&borrowing,socialStatus:n=>n===actor&&borrowing?{busy:!!npcStep||meeting,canPause:!npcStep&&!meeting,attention:!npcStep&&!meeting,job:duty.workLabel()}:null,canTalkAtPost:n=>n===actor&&borrowing&&!npcStep&&!meeting&&!actor.walking,canBorrowForSocial:n=>n===actor&&borrowing&&!npcStep&&!meeting,
   state:()=>({...care.state(),duty:duty.dutyState(),npcStep:npcStep?copy(npcStep):null}),snapshot:()=>care.snapshot(),restore(s){const current=care.snapshot();if(s?.revision!==current.revision||!care.restore(s))return false;desired=care.duty()?.receiptId||null;paused=!!desired;step=null;npcStep=null;return true;},dispose(){disposed=true;step=null;npcStep=null;}};
 }
