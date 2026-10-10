@@ -326,6 +326,9 @@ export function buildJapan(){
  function threshold(id,a,b,width=2.4,height=2.85,extra={}){doorways.push({id,a,b,width,height,...(insetMounts.has(id)?{closureMount:insetMounts.get(id)}:{}),...extra});}
  function furnishing(factory,f,x,z,options={}){
    const item=factory(options),base=LEVEL_Y[f];item.group.position.set(x,0,z);floorGroups[f].add(item.group);
+   // Keep each existing movable cushion one draw batch; all fixed table parts
+   // still join the original floor batch. Do not unbatch whole furnishings.
+   item.group.traverse(node=>{if(node.userData.kotatsuCushionId)pack(node);});
    const transform=c=>({...c,minX:c.minX+x,maxX:c.maxX+x,minY:c.minY+base,maxY:c.maxY+base,minZ:c.minZ+z,maxZ:c.maxZ+z});
    colliders.push(...item.localColliders.map(transform));cameraColliders.push(...(item.cameraBoxes??item.localColliders).map(transform));
    if(item.update)updates.push(item.update);return item;
@@ -479,7 +482,7 @@ export function buildJapan(){
   // tatami finishes across the wall thickness and beneath both pocket cavities.
   G.box(f,2,.035,-8.0275,5.52,.07,.495,P.tatami);
   f.userData.characterMatSurfaces.push({minX:-.76,maxX:4.76,minZ:-8.275,maxZ:-7.78,offset:.075});
-  for(const [i,[x,z]]of [[-7,4],[-.7,4],[-7,-3],[-.7,-3]].entries())furnishing(createKotatsu,2,x,z,{size:i===0?2.2:2.45,quiltSize:3.6,height:.7,color:i%2?P.indigo:P.red});
+  for(const [i,[x,z]]of [[-7,4],[-.7,4],[-7,-3],[-.7,-3]].entries())furnishing(createKotatsu,2,x,z,{size:i===0?2.2:2.45,quiltSize:3.6,height:.7,careId:`jp-kotatsu-${i+1}`,color:i%2?P.indigo:P.red});
   sign(f,-2.5,3.04,-7.3,'KOTATSU HALL',P.red,8.2);
   for(const [x,z]of [[-7,4],[-.7,4],[-7,-3],[-.7,-3]])lantern(f,x,3.06,z,false,.35);
   // Full-width vaulted-looking frieze, opaque coffered ceiling remains at 3.8m.

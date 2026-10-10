@@ -1,3 +1,4 @@
+import {createJapanKotatsuDuty,JAPAN_KOTATSU_TABLES} from './japan-kotatsu-duty.js';
 import {createJapanOmamoriDuty} from './japan-omamori-duty.js';
 import {createJapanBeddingReceiving} from './japan-bedding-receiving.js';
 import {JAPAN_GUEST_BED} from './japan-bedding.js';
@@ -36,7 +37,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
  const restSeats=furniture.items.filter(i=>i.kind==='seat'&&i.center[1]===3.8&&i.center[2]===7.55);
  if(restSeats.length<2)return null;
  const workers=[...WORKERS,...JAPAN_LOCAL_WORKERS].map(id=>residents.get(id)).filter(Boolean),guests=new Map(),actors=new Map(workers.map(n=>[n.station.id,n])),tasks=new Map(),cooldowns=new Map();
- let omamoriDuty=null,beddingReceiving=null,boilerDuty=null,linenDuty=null,staffLife=null,receptionDuty=null,deliveryDuty=null,womenDeliveryDuty=null,mixingDuty=null,kitchenDuty=null,tableServiceDuty=null;
+ let kotatsuDuty=null,omamoriDuty=null,beddingReceiving=null,boilerDuty=null,linenDuty=null,staffLife=null,receptionDuty=null,deliveryDuty=null,womenDeliveryDuty=null,mixingDuty=null,kitchenDuty=null,tableServiceDuty=null;
  const board=createJapanServiceOrders({saved,worldSeed,onRelationshipEvent,getRelationshipTime:()=>time,preservePhysical:!!checkpoint,saveState:state=>saveState({...state,staffLife:staffLife?.snapshot()||saved.staffLife}),capacity:2}),props=createJapanServiceProps(lot.group);
  const navigation={surfaces:lot.walkableSurfaces,legacyGround:false,bounds:lot.bounds,bodyHeight:1.95,maxStep:.4,radius:.25};
  let playerState={},playerCustomerService=null,disposed=false,time=0,nextArrival=0,checkpointAt=5;
@@ -78,7 +79,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   return n;
  }
  function removeGuest(n) {
-  const id=n.station.id;if(!omamoriDuty?.endViewing(id))return false;clear(n);furniture.releaseActor(id);guests.delete(id);actors.delete(id);removeVisitor(n);board.forgetFinished([id]);nextArrival=Math.max(nextArrival,time+18);return true;
+  const id=n.station.id;if(!omamoriDuty?.endViewing(id)||!finishKotatsuRest(n))return false;clear(n);furniture.releaseActor(id);guests.delete(id);actors.delete(id);removeVisitor(n);board.forgetFinished([id]);nextArrival=Math.max(nextArrival,time+18);return true;
  }
  for(const v of board.state().visits)if(v.customerType!=='player')addGuest(v);
  const customerActor=id=>guests.get(id)||(board.getVisit(id)?.customerType==='player'?playerCustomerService?.actor():null);
@@ -90,8 +91,10 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   const visit=board.spawn({...identity,restPoint:seat.anchor,diningPoint:seat.anchor,servePoint:[seat.position[0]+.7,seat.position[1],seat.position[2]-.12],restSeatId:seat.id});
   if(visit){addGuest(visit);record(visit.id,'spawned');nextArrival=time+14;}
  }
+ function finishKotatsuRest(n){const x=board.kotatsu.state().items.find(x=>x.stage==='resting'&&x.viewerId===n.station.id);if(!x&&!n.serviceMount?.id?.startsWith('jp-kotatsu-guest-'))return true;if(!unmount(n))return false;return !x||board.kotatsu.endRest(n.station.id);}
  function abortTask(task,reason) {
   const n=task.actor;failures.push({actor:n.station.id,reason,time:+time.toFixed(2),position:n.root.position.toArray(),destination:task.to.slice(),next:n.route[0]||null,player:playerState.position?.toArray?.()||null});if(failures.length>8)failures.shift();
+  if(task.kotatsuRest){task.abortReason=reason;if(!finishKotatsuRest(n)||!board.kotatsu.skipVisitor(n.station.id))return;}
   if(task.omamoriViewing){if(!omamoriDuty.endViewing(n.station.id)||!board.omamori.skipVisitor(n.station.id))return;}
   if(task.linenWork&&!board.linenReleaseCarrier(n.station.id))return;
   if(task.boilerWork&&!board.boiler.releaseWorker(n.station.id))return;
@@ -100,7 +103,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   clear(n,{releaseJob:true});furniture.releaseActor(n.station.id);cooldowns.set(n.station.id,time+3);
  }
  function tickTask(task,dt) {
-  const n=task.actor;n.walking=false;
+  const n=task.actor;n.walking=false;if(task.kotatsuRest&&task.abortReason){abortTask(task,task.abortReason);return;}
   if(isJapanEmployeeInteraction(n,playerState)){tell(n,'先陪你聊一会儿');return;}
   if(n.bathTransition){
    const crossing=n.bathTransition,pose=crossing.update(dt);n.root.position.fromArray(pose.position);n.root.rotation.y=pose.yaw;
@@ -111,16 +114,19 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    }
    return;
   }
+  if(task.kotatsuRest){const need=sharedNeeds?.status(n.station.id);if(need?.seekMeal||need?.seekToilet){if(task.arrived)task.duration=0;else{abortTask(task,'optional rest yields to urgent need');return;}}}
   if(task.orderJobId&&!board.state().claims.some(j=>j.id===task.orderJobId&&j.workerId===n.station.id)){clear(n);return;}
   tell(n,task.label||'稍作等候');
   if(task.after&&!task.after())return;
   if(!task.arrived) {
    if(near(n.root.position,task.to,task.arrivalRadius??.08)) {
     n.route=[];task.arrived=true;task.stalled=0;
+    if(task.kotatsuRest){const x=board.kotatsu.state().items.find(x=>x.id===task.kotatsuRest);if(kotatsuDuty.occupied(task.kotatsuRest)||!(x?.stage==='clean'||x?.stage==='resting'&&x.viewerId===n.station.id)){abortTask(task,'optional original table unavailable');return;}}
     if(task.mount) {
      if(task.mount.kind==='bed'){const bed=reserveNpcBed(furniture,task.mount,n.station.id);if(!bed){task.arrived=false;return;}task.mount=bed;}
      const allowed=task.mount.kind!=='seat'?furniture.canUse(navigation,safety(n),task.mount):furniture.canSit(navigation,safety(n),task.mount);
-     if(!allowed){task.arrived=false;return;}
+     if(!allowed){task.arrived=false;if(task.kotatsuRest){task.mountWait=(task.mountWait||0)+dt;if(task.mountWait>=3)abortTask(task,'optional rest seat transfer obstructed');}return;}
+     if(task.kotatsuRest)task.mountWait=0;
      if(task.mount.kind==='bed'&&!occupyNpcBed(furniture,task.mount,n.station.id)){abortTask(task,'bed reservation lost');return;}
      if(task.mount.kind==='bath'&&!furniture.occupyBath(task.mount,n.station.id)){abortTask(task,'seat reservation lost');return;}
      if(task.mount.bathEntry){n.bathTransition=createOnsenTransition({item:task.mount,position:n.root.position,yaw:n.root.rotation.y});task.arrived=false;return;}
@@ -168,15 +174,15 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    let current=tasks.get(n.station.id);
    if(current&&!current.idle)continue;
    if(tableServiceDuty?.holdsHost()&&n.station.id==='jp-ramen'||kitchenDuty?.holdsHost()&&n.station.id==='jp-sushi'||receptionDuty?.holdsHost()&&n.station.id==='jp-welcome'||deliveryDuty?.holdsHost()&&n.station.id==='jp-onsen'||womenDeliveryDuty?.holdsHost()&&n.station.id==='jp-women-onsen'||mixingDuty?.holdsHost()&&n.station.id==='jp-incense')continue;
-   if(omamoriDuty?.blocksWorker(n.station.id)||linenDuty?.blocksWorker(n.station.id)||boilerDuty?.blocksWorker(n.station.id)||beddingReceiving?.blocksWorker(n.station.id))continue;
+   if(kotatsuDuty?.blocksWorker(n.station.id)||omamoriDuty?.blocksWorker(n.station.id)||linenDuty?.blocksWorker(n.station.id)||boilerDuty?.blocksWorker(n.station.id)||beddingReceiving?.blocksWorker(n.station.id))continue;
    const available=board.jobs().filter(j=>!j.workerId&&!tableServiceDuty?.blocksWorker(n.station.id,j.kind)&&!kitchenDuty?.blocksWorker(n.station.id,j.kind)&&!receptionDuty?.blocksWorker(n.station.id)&&!deliveryDuty?.blocksWorker(n.station.id)&&!womenDeliveryDuty?.blocksWorker(n.station.id)&&!mixingDuty?.blocksWorker(n.station.id)&&(!staffLife||staffLife.canClaim(n.station.id,j.kind))),job=available.map(j=>board.claim(j.id,n.station.id)).find(Boolean);
    if(job){clear(n);workerTask(n,job);}
    else {
-    const home=omamoriDuty?.idlePoint(n.station.id)||boilerDuty?.idlePoint(n.station.id)||linenDuty?.idlePoint(n.station.id)||tableServiceDuty?.idlePoint(n.station.id)||kitchenDuty?.idlePoint(n.station.id)||staffLife?.idlePoint(n.station.id)||n.home.toArray(),target=n.station.workTarget;
+    const home=kotatsuDuty?.idlePoint(n.station.id)||omamoriDuty?.idlePoint(n.station.id)||boilerDuty?.idlePoint(n.station.id)||linenDuty?.idlePoint(n.station.id)||tableServiceDuty?.idlePoint(n.station.id)||kitchenDuty?.idlePoint(n.station.id)||staffLife?.idlePoint(n.station.id)||n.home.toArray(),target=n.station.workTarget;
     // Work only at this resident's authored post. Shift waiting/relief points
     // may be in the same room, but do not put their original tools there.
     const ownPost=near(point(home),n.home.toArray(),.08),validTarget=Array.isArray(target)&&target.length===3&&target.every(Number.isFinite);
-    const idle=omamoriDuty?.idleTask(n.station.id)||beddingReceiving?.idleTask(n.station.id)||boilerDuty?.idleTask(n.station.id)||linenDuty?.idleTask(n.station.id)||tableServiceDuty?.idleTask(n.station.id)||kitchenDuty?.idleTask(n.station.id)||staffLife?.idleTask(n.station.id)||(validTarget?{duration:4,face:target,...(ownPost?{action:n.station.npcAction,workTarget:target,label:n.station.id==='jp-welcome'?'整理柜台钥匙与客簿':n.station.npcLabel}:{label:n.station.id==='jp-welcome'?'查看柜台钥匙与客簿':'查看药房称量台与浴包'})}:null);
+    const idle=kotatsuDuty?.idleTask(n.station.id)||omamoriDuty?.idleTask(n.station.id)||beddingReceiving?.idleTask(n.station.id)||boilerDuty?.idleTask(n.station.id)||linenDuty?.idleTask(n.station.id)||tableServiceDuty?.idleTask(n.station.id)||kitchenDuty?.idleTask(n.station.id)||staffLife?.idleTask(n.station.id)||(validTarget?{duration:4,face:target,...(ownPost?{action:n.station.npcAction,workTarget:target,label:n.station.id==='jp-welcome'?'整理柜台钥匙与客簿':n.station.npcLabel}:{label:n.station.id==='jp-welcome'?'查看柜台钥匙与客簿':'查看药房称量台与浴包'})}:null);
     // Coverage ending or displacement immediately releases the old idle.
     if(current&&(!near(point(current.to),home,.08)||(current.arrived&&!near(n.root.position,current.mount?.anchor||home,.18)))){if(!unmount(n))continue;clear(n);furniture.releaseActor(n.station.id);current=null;}
     // Keep the pose across its work cycle boundary; orders/handoffs above own
@@ -246,11 +252,21 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
     if(!unmount(n))return false;return guestEvent(n,'ate',{position:seat.anchor});
    }});
   }else if(v.stage==='checkout')queueAtReception(n,v,'returned-to-desk');
-  else if(v.stage==='leaving')step('left',P.departure);
+  else if(v.stage==='leaving'){
+   const state=board.kotatsu.state(),rest=state.items.find(x=>x.stage==='resting'&&x.viewerId===v.id),need=sharedNeeds?.status(v.id),optional=v.number%2===1&&!state.seenVisits.includes(v.id)&&!need?.seekMeal&&!need?.seekToilet;
+   const chosen=rest?JAPAN_KOTATSU_TABLES.find(t=>t.id===rest.id):optional?JAPAN_KOTATSU_TABLES.find(t=>state.items.find(x=>x.id===t.id)?.stage==='clean'&&!kotatsuDuty.occupied(t.id)&&![...tasks.values()].some(task=>task.kotatsuRest===t.id)):null;
+   if(chosen){let task;task=assign(n,chosen.seat.position,{kotatsuRest:chosen.id,label:'离馆前到原暖桌短坐歇脚',mount:chosen.seat,duration:6,action:'kotatsu',onArrive:()=>{
+    const current=board.kotatsu.state().items.find(x=>x.id===chosen.id),urgent=sharedNeeds?.status(v.id);
+    if(current?.stage==='resting'&&current.viewerId===v.id)return true;
+    if(!urgent?.seekMeal&&!urgent?.seekToilet&&board.kotatsu.beginRest(chosen.id,v.id)){record(v.id,'kotatsu-rest-mounted');return true;}
+    return false;
+   },onDone:()=>finishKotatsuRest(n)});
+   }else{if(!state.seenVisits.includes(v.id)&&!board.kotatsu.skipVisitor(v.id))return;step('left',P.departure);}
+  }
   else if(v.stage==='cancelled')assign(n,P.departure,{label:'收好行李离开汤馆',onDone:()=>removeGuest(n)});
  }
  function finishVisitCancellation(n,reason){
-  const id=n.station.id;if(!omamoriDuty.endViewing(id))return false;n.cancelVisitReason=null;
+  const id=n.station.id;if(!omamoriDuty.endViewing(id)||!finishKotatsuRest(n))return false;n.cancelVisitReason=null;
   for(const job of board.state().claims)if(job.visitId===id){const worker=actors.get(job.workerId);if(worker)clear(worker,{releaseJob:true});}
   clear(n);furniture.releaseActor(id);board.cancel(id,reason);changeWardrobe(n,board.getVisit(id).appearance);
   scheduleGuest(n,board.getVisit(id));return true;
@@ -269,12 +285,15 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   const working=!n.walking&&task?.arrived&&(!task.idle||near(n.root.position,mount?.anchor||task.to,.18));
   n.animate(t+n.phase,n.walking,sharedActivity?n.station.npcAction:mount?(mount.kind==='bath'?'bathe':mount.kind==='bed'?'lie-rest':mount.poseAction||'chair-sit'):chatting?null:working?task.action:null,context);
  }
- staffLife=createJapanStaffLife({beginInteraction,onInteraction,getMeetingHeld:id=>id==='jp-omamori'&&omamoriDuty?.holdsHost()||id==='jp-herb-workshop'&&beddingReceiving?.holdsHost()||id==='jp-steam'&&boilerDuty?.holdsHost()||id==='jp-rest'&&linenDuty?.holdsHost()||id==='jp-ramen'&&tableServiceDuty?.holdsHost()||id==='jp-sushi'&&kitchenDuty?.holdsHost()||id==='jp-welcome'&&receptionDuty?.holdsHost()||id==='jp-onsen'&&deliveryDuty?.holdsHost()||id==='jp-women-onsen'&&womenDeliveryDuty?.holdsHost()||id==='jp-incense'&&mixingDuty?.holdsHost(),getReceptionCoverage:()=>receptionDuty?.isCovering()||false,getExternalCoverage:(id,kind)=>omamoriDuty?.coversWorker(id,kind)||boilerDuty?.coversWorker(id,kind)||linenDuty?.coversWorker(id,kind)||tableServiceDuty?.coversWorker(id,kind)||kitchenDuty?.coversWorker(id,kind)||deliveryDuty?.coversWorker(id,kind)||womenDeliveryDuty?.coversWorker(id,kind)||['jp-incense','jp-herb-workshop'].includes(id)&&mixingDuty?.isCovering()||false,sharedNeeds,getToilet,saveState:state=>saveState({...board.state(),staffLife:state}),onMealReceipt:receipt=>!sharedNeeds||sharedNeeds.mealReceipts([receipt])||(sharedNeeds.snapshot().people[receipt.actorId]?.receipts['japan-staff-meal']||0)>=receipt.number,actors,board,furniture,assign,clear,unmount,taskOf:n=>tasks.get(n.station.id),changeWardrobe,worldSeed,canReach:(n,to)=>near(n.root.position,to)||planPath(n.root.position,point(to),.25).length>0,saved:saved.staffLife});
+ staffLife=createJapanStaffLife({beginInteraction,onInteraction,getMeetingHeld:id=>id==='jp-tea'&&kotatsuDuty?.holdsHost()||id==='jp-omamori'&&omamoriDuty?.holdsHost()||id==='jp-herb-workshop'&&beddingReceiving?.holdsHost()||id==='jp-steam'&&boilerDuty?.holdsHost()||id==='jp-rest'&&linenDuty?.holdsHost()||id==='jp-ramen'&&tableServiceDuty?.holdsHost()||id==='jp-sushi'&&kitchenDuty?.holdsHost()||id==='jp-welcome'&&receptionDuty?.holdsHost()||id==='jp-onsen'&&deliveryDuty?.holdsHost()||id==='jp-women-onsen'&&womenDeliveryDuty?.holdsHost()||id==='jp-incense'&&mixingDuty?.holdsHost(),getReceptionCoverage:()=>receptionDuty?.isCovering()||false,getExternalCoverage:(id,kind)=>kotatsuDuty?.coversWorker(id,kind)||omamoriDuty?.coversWorker(id,kind)||boilerDuty?.coversWorker(id,kind)||linenDuty?.coversWorker(id,kind)||tableServiceDuty?.coversWorker(id,kind)||kitchenDuty?.coversWorker(id,kind)||deliveryDuty?.coversWorker(id,kind)||womenDeliveryDuty?.coversWorker(id,kind)||['jp-incense','jp-herb-workshop'].includes(id)&&mixingDuty?.isCovering()||false,sharedNeeds,getToilet,saveState:state=>saveState({...board.state(),staffLife:state}),onMealReceipt:receipt=>!sharedNeeds||sharedNeeds.mealReceipts([receipt])||(sharedNeeds.snapshot().people[receipt.actorId]?.receipts['japan-staff-meal']||0)>=receipt.number,actors,board,furniture,assign,clear,unmount,taskOf:n=>tasks.get(n.station.id),changeWardrobe,worldSeed,canReach:(n,to)=>near(n.root.position,to)||planPath(n.root.position,point(to),.25).length>0,saved:saved.staffLife});
+ kotatsuDuty=createJapanKotatsuDuty({board,actors,lot,assign,clear,unmount,taskOf:n=>tasks.get(n.station.id),getStaffLife:()=>staffLife,getPlayerState:()=>playerState,onComplete:record});
  omamoriDuty=createJapanOmamoriDuty({board,actors,lot,assign,clear,unmount,taskOf:n=>tasks.get(n.station.id),getStaffLife:()=>staffLife,onComplete:record});
  boilerDuty=createJapanBoilerDuty({board,actors,assign,clear,unmount,taskOf:n=>tasks.get(n.station.id),getStaffLife:()=>staffLife,onComplete:record});
  beddingReceiving=createJapanBeddingReceiving({board,actors,assign,clear,taskOf:n=>tasks.get(n.station.id),getStaffLife:()=>staffLife,onComplete:record});
  linenDuty=createJapanLinenDuty({tickDrying:false,board,actors,assign,clear,unmount,planPath,taskOf:n=>tasks.get(n.station.id),getStaffLife:()=>staffLife,onComplete:record});
  return {
+  connectKotatsuDuty(options){return kotatsuDuty.connect(options);},
+  kotatsuWorkReceipts:()=>board.kotatsu.receipts(),
   connectOmamoriDuty(options){return omamoriDuty.connect(options);},
   beginOmamoriViewing:()=>omamoriDuty.beginViewing(),completeOmamoriViewing:()=>omamoriDuty.endViewing(),cancelOmamoriViewing:()=>omamoriDuty.endViewing(),omamoriWorkReceipts:()=>board.omamori.receipts(),
   connectBoilerDuty(options){return boilerDuty.connect(options);},
@@ -295,9 +314,9 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    if(disposed)return;time+=dt;board.linenTick(dt);board.bedding.tick(dt);board.bedding.observeUse(dt,state.mountedBedId===JAPAN_GUEST_BED);playerState=state;if(state.omamoriViewing===false)omamoriDuty.endViewing();playerCustomerService?.update(dt);spawn();
    for(const n of actors.values())n.walking=false;
    for(const [id,n]of guests){const v=board.getVisit(id);if(v)scheduleGuest(n,v);}
-   for(const [id,duty]of [['jp-omamori',omamoriDuty],['jp-welcome',receptionDuty],['jp-onsen',deliveryDuty],['jp-women-onsen',womenDeliveryDuty],['jp-incense',mixingDuty],['jp-sushi',kitchenDuty],['jp-ramen',tableServiceDuty],['jp-rest',linenDuty],['jp-steam',boilerDuty]])if(!isJapanEmployeeInteraction(actors.get(id),playerState))duty?.update(dt);if(!isJapanEmployeeInteraction(actors.get('jp-herb-workshop'),playerState))beddingReceiving?.update(dt);staffLife?.update(dt,playerState);scheduleWorkers();for(const task of [...tasks.values()])if(tasks.get(task.actor.station.id)===task)tickTask(task,dt);
+   for(const [id,duty]of [['jp-tea',kotatsuDuty],['jp-omamori',omamoriDuty],['jp-welcome',receptionDuty],['jp-onsen',deliveryDuty],['jp-women-onsen',womenDeliveryDuty],['jp-incense',mixingDuty],['jp-sushi',kitchenDuty],['jp-ramen',tableServiceDuty],['jp-rest',linenDuty],['jp-steam',boilerDuty]])if(!isJapanEmployeeInteraction(actors.get(id),playerState))duty?.update(dt);if(!isJapanEmployeeInteraction(actors.get('jp-herb-workshop'),playerState))beddingReceiving?.update(dt);staffLife?.update(dt,playerState);scheduleWorkers();for(const task of [...tasks.values()])if(tasks.get(task.actor.station.id)===task)tickTask(task,dt);
    for(const [id,n]of [...guests])if(board.getVisit(id)?.stage==='departed')removeGuest(n);
-   for(const n of actors.values())animate(n,t);omamoriDuty.syncVisual();
+   for(const n of actors.values())animate(n,t);omamoriDuty.syncVisual();kotatsuDuty.syncVisual();
    const propActors=new Map(actors),playerVisit=playerCustomerService?.state().visit;
    if(playerVisit?.present&&playerCustomerService.actor())propActors.set(playerVisit.id,playerCustomerService.actor());
    if(deliveryDuty?.actor())propActors.set('player',deliveryDuty.actor());
@@ -314,7 +333,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   playerRequest(id) {
    staffLife?.playerRequest(id);
    for(const n of guests.values())if(n.serviceMount?.id===id&&!['bath','bed'].includes(n.serviceMount.kind)) {
-    if(unmount(n)){clear(n);cooldowns.set(n.station.id,time+2);}
+    if(unmount(n)&&finishKotatsuRest(n)){clear(n);cooldowns.set(n.station.id,time+2);}
    }
   },
   isYieldingFor:id=>[...actors.values()].some(n=>n.serviceMount?.id===id&&!['bath','bed'].includes(n.serviceMount.kind)),
@@ -324,20 +343,20 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    return finishVisitCancellation(n,reason);
   },
   socialProfile:id=>staffLife?.socialProfile(id),
-  snapshot:()=>({version:1,board:board.state(),time,nextArrival,checkpointAt,staffLife:staffLife?.snapshot(),staffRuntime:staffLife?.continuity(),playerService:playerCustomerService?.snapshot(),receptionDuty:receptionDuty?.snapshot(),deliveryDuty:deliveryDuty?.snapshot(),womenDeliveryDuty:womenDeliveryDuty?.snapshot(),mixingDuty:mixingDuty?.snapshot(),kitchenDuty:kitchenDuty?.snapshot(),tableServiceDuty:tableServiceDuty?.snapshot(),linenDuty:linenDuty?.snapshot(),boilerDuty:boilerDuty?.snapshot(),omamoriDuty:omamoriDuty?.snapshot(),cooldowns:[...cooldowns],tasks:[...tasks].map(([id,t])=>({id,to:t.to.slice(),orderJobId:t.orderJobId||null,staffLife:!!t.staffLife,idle:!!t.idle,beddingKind:t.beddingKind||null,linenId:t.linenId||null,linenStage:t.linenStage||null,elapsed:t.elapsed,arrived:t.arrived,mountId:t.mount?.id||null,mountBerthId:t.mount?.berthId||null})),transitions:[...actors].filter(([,n])=>n.bathTransition).map(([id,n])=>[id,n.bathTransition.snapshot()]),history:history.slice()}),
+  snapshot:()=>({version:1,board:board.state(),time,nextArrival,checkpointAt,staffLife:staffLife?.snapshot(),staffRuntime:staffLife?.continuity(),playerService:playerCustomerService?.snapshot(),receptionDuty:receptionDuty?.snapshot(),deliveryDuty:deliveryDuty?.snapshot(),womenDeliveryDuty:womenDeliveryDuty?.snapshot(),mixingDuty:mixingDuty?.snapshot(),kitchenDuty:kitchenDuty?.snapshot(),tableServiceDuty:tableServiceDuty?.snapshot(),linenDuty:linenDuty?.snapshot(),boilerDuty:boilerDuty?.snapshot(),omamoriDuty:omamoriDuty?.snapshot(),kotatsuDuty:kotatsuDuty?.snapshot(),cooldowns:[...cooldowns],tasks:[...tasks].map(([id,t])=>({id,to:t.to.slice(),orderJobId:t.orderJobId||null,staffLife:!!t.staffLife,idle:!!t.idle,beddingKind:t.beddingKind||null,linenId:t.linenId||null,linenStage:t.linenStage||null,elapsed:t.elapsed,arrived:t.arrived,mountId:t.mount?.id||null,mountBerthId:t.mount?.berthId||null})),transitions:[...actors].filter(([,n])=>n.bathTransition).map(([id,n])=>[id,n.bathTransition.snapshot()]),history:history.slice()}),
   restore(s){
    if(s?.version!==1)return false;time=Math.max(0,s.time||0);nextArrival=Math.max(time,s.nextArrival||0);checkpointAt=Math.max(time,s.checkpointAt||0);cooldowns.clear();for(const [id,t]of s.cooldowns||[])if(actors.has(id)&&Number.isFinite(t))cooldowns.set(id,t);history.splice(0,history.length,...(s.history||[]));
-   playerCustomerService?.restore(s.playerService);board.restoreClaims(s.board?.claims);staffLife?.restore(s.staffRuntime);receptionDuty?.restore(s.receptionDuty);deliveryDuty?.restore(s.deliveryDuty);womenDeliveryDuty?.restore(s.womenDeliveryDuty);mixingDuty?.restore(s.mixingDuty);kitchenDuty?.restore(s.kitchenDuty);tableServiceDuty?.restore(s.tableServiceDuty);linenDuty?.restore(s.linenDuty);boilerDuty?.restore(s.boilerDuty);omamoriDuty?.restore(s.omamoriDuty);
+   playerCustomerService?.restore(s.playerService);board.restoreClaims(s.board?.claims);staffLife?.restore(s.staffRuntime);receptionDuty?.restore(s.receptionDuty);deliveryDuty?.restore(s.deliveryDuty);womenDeliveryDuty?.restore(s.womenDeliveryDuty);mixingDuty?.restore(s.mixingDuty);kitchenDuty?.restore(s.kitchenDuty);tableServiceDuty?.restore(s.tableServiceDuty);linenDuty?.restore(s.linenDuty);boilerDuty?.restore(s.boilerDuty);omamoriDuty?.restore(s.omamoriDuty);kotatsuDuty?.restore(s.kotatsuDuty);
    for(const job of board.state().claims){const n=actors.get(job.workerId);if(n)workerTask(n,job);}
    for(const [id,n]of guests){const v=board.getVisit(id);if(v)scheduleGuest(n,v);}
    linenDuty?.update(0);beddingReceiving?.update(0);staffLife?.update(0,{night:!!s.staffRuntime?.night});scheduleWorkers();
-   for(const previous of s.tasks||[]){const t=tasks.get(previous.id);if(!t||(t.beddingKind||null)!==(previous.beddingKind||null)||(t.linenId||null)!==(previous.linenId||null)||(t.linenStage||null)!==(previous.linenStage||null)||t.orderJobId!==(previous.orderJobId||undefined)||t.to.some((v,i)=>Math.abs(v-previous.to[i])>.05))continue;t.elapsed=Math.max(0,previous.elapsed||0);t.arrived=!!previous.arrived&&(t.mount?.kind!=='bed'||t.actor.serviceMount?.id===t.mount.id&&t.actor.serviceMount?.berthId===t.mount.berthId&&(!previous.mountBerthId||previous.mountBerthId===t.mount.berthId)&&occupyNpcBed(furniture,t.mount,t.actor.station.id));t.routeSet=false;t.stalled=0;t.actor.route=[];}
+   for(const previous of s.tasks||[]){const t=tasks.get(previous.id);if(!t||(t.beddingKind||null)!==(previous.beddingKind||null)||(t.linenId||null)!==(previous.linenId||null)||(t.linenStage||null)!==(previous.linenStage||null)||t.orderJobId!==(previous.orderJobId||undefined)||t.to.some((v,i)=>Math.abs(v-previous.to[i])>.05))continue;t.elapsed=Math.max(0,previous.elapsed||0);t.arrived=!!previous.arrived&&(!t.kotatsuRest||t.actor.serviceMount?.id===t.mount?.id)&&(t.mount?.kind!=='bed'||t.actor.serviceMount?.id===t.mount.id&&t.actor.serviceMount?.berthId===t.mount.berthId&&(!previous.mountBerthId||previous.mountBerthId===t.mount.berthId)&&occupyNpcBed(furniture,t.mount,t.actor.station.id));t.routeSet=false;t.stalled=0;t.actor.route=[];}
    for(const [id,state]of s.transitions||[]){const n=actors.get(id),item=furniture.items.flatMap(i=>[i,...(i.seats||[])]).find(i=>i.id===state.seatId);if(n&&item?.bathEntry){furniture.facilities.reserve(item.poolId||item.id,id,{eligible:seat=>seat===item.id});furniture.occupyBath(item,id);n.bathTransition=createOnsenTransition({item,saved:state});}}
    return true;
   },
-  state:()=>({...board.state(),receptionDuty:receptionDuty?.dutyState()||null,deliveryDuty:deliveryDuty?.dutyState()||null,womenDeliveryDuty:womenDeliveryDuty?.dutyState()||null,mixingDuty:mixingDuty?.dutyState()||null,kitchenDuty:kitchenDuty?.dutyState()||null,tableServiceDuty:tableServiceDuty?.dutyState()||null,linenDuty:linenDuty?.dutyState()||null,boilerDuty:boilerDuty?.dutyState()||null,omamoriDuty:omamoriDuty?.dutyState()||null,staffLife:staffLife?.state()||null,history:history.slice(),failures:failures.slice(),actors:[...actors].map(([id,n])=>({id,name:n.station.npcName,position:n.root.position.toArray(),job:n.serviceTask?.label,mounted:n.serviceMount?.id||null,bathTransition:n.bathTransition?.state()||null,walking:n.walking}))}),
+  state:()=>({...board.state(),kotatsuCare:board.kotatsu.state(),receptionDuty:receptionDuty?.dutyState()||null,deliveryDuty:deliveryDuty?.dutyState()||null,womenDeliveryDuty:womenDeliveryDuty?.dutyState()||null,mixingDuty:mixingDuty?.dutyState()||null,kitchenDuty:kitchenDuty?.dutyState()||null,tableServiceDuty:tableServiceDuty?.dutyState()||null,linenDuty:linenDuty?.dutyState()||null,boilerDuty:boilerDuty?.dutyState()||null,omamoriDuty:omamoriDuty?.dutyState()||null,kotatsuDuty:kotatsuDuty?.dutyState()||null,staffLife:staffLife?.state()||null,history:history.slice(),failures:failures.slice(),actors:[...actors].map(([id,n])=>({id,name:n.station.npcName,position:n.root.position.toArray(),job:n.serviceTask?.label,mounted:n.serviceMount?.id||null,bathTransition:n.bathTransition?.state()||null,walking:n.walking}))}),
   dispose({suspend=false}={}) {
-   if(disposed)return;receptionDuty?.dispose();deliveryDuty?.dispose();womenDeliveryDuty?.dispose();mixingDuty?.dispose();kitchenDuty?.dispose();tableServiceDuty?.dispose();linenDuty?.dispose();boilerDuty?.dispose();omamoriDuty?.dispose();playerCustomerService?.suspend({preserve:suspend});if(!suspend)board.checkpoint(positions(guests));disposed=true;
+   if(disposed)return;receptionDuty?.dispose();deliveryDuty?.dispose();womenDeliveryDuty?.dispose();mixingDuty?.dispose();kitchenDuty?.dispose();tableServiceDuty?.dispose();linenDuty?.dispose();boilerDuty?.dispose();omamoriDuty?.dispose();kotatsuDuty?.dispose();playerCustomerService?.suspend({preserve:suspend});if(!suspend)board.checkpoint(positions(guests));disposed=true;
    for(const n of actors.values()){clear(n,{releaseJob:!suspend});furniture.releaseActor(n.station.id);n.serviceMount=null;n.bathTransition=null;}
    board.dispose({suspend});staffLife?.dispose();props.dispose();for(const n of guests.values())removeVisitor(n);guests.clear();actors.clear();
   },
