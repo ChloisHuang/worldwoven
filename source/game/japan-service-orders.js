@@ -1,3 +1,4 @@
+import {createJapanBalconyCare} from './japan-balcony-care.js';
 import {createJapanGardenCare} from './japan-garden-care.js';
 import {createJapanKotatsuCare} from './japan-kotatsu-care.js';
 import {createJapanOmamoriCare} from './japan-omamori-care.js';
@@ -120,7 +121,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
  // receiver remains in the outbox; a successful receiver deduplicates replay by id.
  const acknowledged=new Set();
  const replayRelationships=()=>{for(const event of state.relationshipEvents)if(!acknowledged.has(event.id)){try{const result=onRelationshipEvent(clone(event));if(result?.ok===true&&!result?.then)acknowledged.add(event.id);}catch{}}};
- const persist=()=>{state.relationshipEvents=state.relationshipEvents.filter(e=>!acknowledged.has(e.id));try{const result=saveState(snapshot());if(result===false||result?.then)return false;replayRelationships();return true;}catch{return false;}};
+ const persist=()=>{state.relationshipEvents=state.relationshipEvents.filter(e=>!acknowledged.has(e.id));try{const result=saveState(snapshot());if(result===false||result?.ok===false||result?.then)return false;replayRelationships();return true;}catch{return false;}};
  const relationship=(v,kind,actorId,participants,outcome='completed',suffix='')=>{
   const id=`japan-service:${v.id}:${kind}:${outcome}${suffix}`;
   if(!state.relationshipEvents.some(e=>e.id===id))state.relationshipEvents.push({id,source:'japan-service',outcome,actorId,participants:[...new Set([actorId,...participants])],kind:'service',serviceKind:kind,...(kind==='wrong-table'?{fault:true}:{}),at:Math.max(0,Number(getRelationshipTime())||0)});
@@ -131,6 +132,8 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
  state.omamoriCare=omamori.snapshot();
  const garden=createJapanGardenCare({saved:saved?.version===1&&saved.worldSeed===(worldSeed>>>0)?saved.gardenCare:null,saveState:next=>{const prior=state.gardenCare;state.gardenCare=next;if(persist())return true;state.gardenCare=prior;return false;}});
  state.gardenCare=garden.snapshot();
+ const balcony=createJapanBalconyCare({saved:saved?.version===1&&saved.worldSeed===(worldSeed>>>0)?saved.balconyCare:null,saveState:next=>{const prior=state.balconyCare;state.balconyCare=next;if(persist())return true;state.balconyCare=prior;return false;}});
+ state.balconyCare=balcony.snapshot();
  const kotatsu=createJapanKotatsuCare({saved:saved?.version===1&&saved.worldSeed===(worldSeed>>>0)?saved.kotatsuCare:null,saveState:next=>{const prior=state.kotatsuCare;state.kotatsuCare=next;if(persist())return true;state.kotatsuCare=prior;return false;}});
  state.kotatsuCare=kotatsu.snapshot();
  const bedding=createJapanBedding({worldSeed,saved:saved?.version===1&&saved.worldSeed===(worldSeed>>>0)?saved.bedding:null,authorized:(actor,evidence)=>linenAuthorized(actor,evidence),saveState:next=>{const prior=state.bedding;state.bedding=next;if(persist())return true;state.bedding=prior;return false;}});
@@ -188,7 +191,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   return transaction(()=>{if(evaluate)for(const job of jobs().filter(j=>matchesDuty(j,key)))playerReceipt(job,visit(job.visitId),'handoff');dropClaim(workers.get('player'));staffDuties.delete(key);});
  }
  function tickStaffDuty(key,dt){if(staffDuties.get(key)?.status==='active')for(const j of jobs().filter(j=>matchesDuty(j,key)&&visit(j.visitId)?.customerType!=='player')){const waits=key==='reception'?state.receptionWaits:key==='mixing'?state.mixingWaits:key==='kitchen'?state.kitchenWaits:key==='tableService'?state.tableWaits:state.deliveryWaits;waits[j.id]=(waits[j.id]||0)+Math.max(0,Math.min(.1,dt));}}
- function restoreBoard(prior){Object.assign(state,prior);boiler.restore(prior.boilerMaintenance,{preserveDuty:true});omamori.restore(prior.omamoriCare,{preserveDuty:true});kotatsu.restore(prior.kotatsuCare,{preserveDuty:true});garden.restore(prior.gardenCare,{preserveDuty:true});bedding.restore(prior.bedding);visits.clear();for(const v of state.visits)visits.set(v.id,v);items.clear();for(const i of state.items)items.set(i.id,i);}
+ function restoreBoard(prior){Object.assign(state,prior);boiler.restore(prior.boilerMaintenance,{preserveDuty:true});omamori.restore(prior.omamoriCare,{preserveDuty:true});kotatsu.restore(prior.kotatsuCare,{preserveDuty:true});garden.restore(prior.gardenCare,{preserveDuty:true});balcony.restore(prior.balconyCare,{preserveDuty:true});bedding.restore(prior.bedding);visits.clear();for(const v of state.visits)visits.set(v.id,v);items.clear();for(const i of state.items)items.set(i.id,i);}
  const visit=id=>visits.get(id);
  const item=id=>items.get(id);
  const addItem=(v,kind,location)=>{
@@ -435,7 +438,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
   tableWork:()=>({visits:clone(state.visits.filter(v=>v.customerType!=='player')),items:clone(state.items.filter(i=>i.kind==='meal')),claims:[...claims.values()].filter(j=>['serve','wash'].includes(j.kind)).map(clone),jobs:jobs().filter(j=>['serve','wash'].includes(j.kind)).map(j=>({...clone(j),workerId:claims.get(j.id)?.workerId||null}))}),
   kitchenWork:()=>({jobs:jobs().filter(j=>j.kind==='cook').map(j=>({...clone(j),workerId:claims.get(j.id)?.workerId||null,visit:clone(visit(j.visitId))})),claims:[...claims.values()].filter(j=>j.kind==='cook').map(clone)}),
   mixingWork:()=>({jobs:jobs().filter(j=>j.kind==='prepare').map(j=>({...clone(j),workerId:claims.get(j.id)?.workerId||null,visit:clone(visit(j.visitId))})),claims:[...claims.values()].filter(j=>j.kind==='prepare').map(clone)}),
-  complete,guestStep,boiler,omamori,kotatsu,garden,
+  complete,guestStep,boiler,omamori,kotatsu,garden,balcony,
   // A staff meal uses the same kitchen as orders. A pending break reserves it
   // after its current cook finishes, so a stream of visitors cannot starve it.
   holdWorkplace(resource,workerId) {

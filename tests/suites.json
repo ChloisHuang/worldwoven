@@ -51,7 +51,8 @@
       "random-appearance.cjs",
       "shared-hand-poses.mjs",
       "family-character.mjs",
-      "japan-pond-wipe-pose.mjs"
+      "japan-pond-wipe-pose.mjs",
+      "japan-balcony-contact.mjs"
     ]
   },
   "navigation": {
@@ -420,6 +421,8 @@
       "japan-omamori-care.mjs",
       "japan-kotatsu-care.mjs",
       "japan-garden-care.mjs",
+      "japan-balcony-care.mjs",
+      "japan-balcony-role-contracts.mjs",
       "japan-garden-duty.mjs",
       "japan-kotatsu-duty.mjs",
       "japan-kotatsu-role-contracts.mjs",
@@ -429,7 +432,9 @@
       "japan-omamori-main.cjs",
       "japan-kotatsu-visitors.mjs",
       "japan-kotatsu-main.cjs",
-      "japan-garden-main.cjs"
+      "japan-garden-main.cjs",
+      "japan-balcony-duty.mjs",
+      "japan-balcony-main.cjs"
     ],
     "targeted": [
       "china-palace-garden-player.cjs",

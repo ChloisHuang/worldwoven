@@ -60,10 +60,10 @@ function lantern(g,x,y,z,red=true,s=.37){
   const color=red?0xcf593b:0xffd497;
   registerNightFixture(g,x,y,z,{kind:'paper-lantern',color:red?0xffbb72:0xffd69a,intensity:18,distance:8});
   G.cyl(g,x,y+.54,z,.018,.018,.42,P.wood,6);
-  G.mesh(g,new THREE.SphereGeometry(s,12,10),color,x,y,z,{emissive:red?0x9d2b10:0xf9b353,emissiveIntensity:red?.22:.34}).scale.set(1,1.28,1);
+  const globe=G.mesh(g,new THREE.SphereGeometry(s,12,10),color,x,y,z,{emissive:red?0x9d2b10:0xf9b353,emissiveIntensity:red?.22:.34});globe.scale.set(1,1.28,1);
   for(const yy of [-.34,-.18,0,.18,.34]){const r=s*Math.sqrt(Math.max(.25,1-(yy/(s*1.28))**2));const hoop=G.mesh(g,new THREE.TorusGeometry(r,.013,4,16),P.gold,x,y+yy,z);hoop.rotation.x=Math.PI/2;}
   for(const yy of [-s*1.22,s*1.22])G.cyl(g,x,y+yy,z,s*.55,s*.55,.065,P.wood,10);
-  G.cyl(g,x,y-s*1.42,z,.017,.017,s*.3,P.gold,6);
+  G.cyl(g,x,y-s*1.42,z,.017,.017,s*.3,P.gold,6);return globe;
 }
 function tea(g,x,y,z){G.cyl(g,x,y+.13,z,.22,.25,.26,P.jade);G.cyl(g,x,y+.29,z,.19,.19,.065,P.jade);G.sphere(g,x,y+.35,z,.055,P.gold);beam(g,[x+.19,y+.13,z],[x+.4,y+.24,z],.055,P.jade);G.torus(g,x-.23,y+.17,z,.14,.033,P.jade,0);for(const dx of [-.5,.5]){G.cyl(g,x+dx,y+.065,z+.22,.12,.09,.13,P.cream);G.cyl(g,x+dx,y+.136,z+.22,.085,.085,.012,0x727b42);}}
 function vase(g,x,y,z,color=P.jade,flower=true){G.vessel(g,x,y,z,color,.7);if(flower)for(let i=0;i<5;i++){const a=i*2.4,dx=Math.cos(a)*.26,dz=Math.sin(a)*.2;beam(g,[x,y+.4,z],[x+dx,y+1.15+(i%2)*.12,z+dz],.016,0x566747);G.sphere(g,x+dx,y+1.15+(i%2)*.12,z+dz,.11,i%2?0xe4ae98:0xd9c481);}}
@@ -129,6 +129,7 @@ function eaveRing(g,y){
 
 export function buildJapan(){
  const group=new THREE.Group(),roofGroup=new THREE.Group(),colliders=[],cameraColliders=[],walkableSurfaces=[],ceilingGroups=[],floorGroups=[],explorationTargets=[],doorways=[],roomProgram=[],updates=[],characterFootSurfaces=[];
+ const balconyGallery={id:'jp-balcony-gallery-1',rail:null,lanterns:[],floor:null};
  group.name='Japan · Kasumi-yu Lantern Bathhouse';roofGroup.name='Visible green roof ensemble';roofGroup.visible=true;group.add(roofGroup);
  const levels=[{id:'jp-ground',name:'一层 · 接待与寿司拉面大厅',y:0},{id:'jp-guest',name:'二层 · 男汤与女汤',y:3.8},{id:'jp-tea',name:'三层 · 暖桌会客与演艺茶席',y:7.6},{id:'jp-sky',name:'四层 · 汤屋工作与职人生活',y:11.4}];
  function obstacle(x,y,z,w,h,d,{camera=true}={}){const b=limits(x,y,z,w,h,d);colliders.push(b);if(camera)cameraColliders.push({...b});}
@@ -146,9 +147,9 @@ export function buildJapan(){
    }
  }
  function rail(g,base,x,z,w,axis='x',omitStart=false,omitEnd=false){
-   const part=(xx,y,ww,h,d)=>{
+   let topRail=null;const part=(xx,y,ww,h,d)=>{
      const px=x+(axis==='x'?xx:0),pz=z+(axis==='z'?xx:0);
-     G.box(g,px,y,pz,axis==='x'?ww:d,h,axis==='x'?d:ww,P.red);
+     const mesh=G.box(g,px,y,pz,axis==='x'?ww:d,h,axis==='x'?d:ww,P.red);if(y===.92)topRail=mesh;
      cameraColliders.push(limits(px,base+y,pz,axis==='x'?ww:d,h,axis==='x'?d:ww));
    };
    for(const yy of [.17,.92])part(0,yy,w,.11,.15);
@@ -158,7 +159,7 @@ export function buildJapan(){
      const px=x+(axis==='x'?xx:0),pz=z+(axis==='z'?xx:0);
      G.sphere(g,px,1.01,pz,.08,P.gold);cameraColliders.push(limits(px,base+1.01,pz,.16,.16,.16));
    }
-   obstacle(x,base+.5,z,axis==='x'?w:.16,1,axis==='x'?.16:w,{camera:false});
+   obstacle(x,base+.5,z,axis==='x'?w:.16,1,axis==='x'?.16:w,{camera:false});return topRail;
  }
  function stairLandingGuard(g,base,a,b,top=.99,lower=.22){
    const dx=Math.abs(b[0]-a[0]),dz=Math.abs(b[1]-a[1]),length=dx+dz,alongX=dx>0,
@@ -275,11 +276,11 @@ export function buildJapan(){
    // Broad central doorway links the main hall to a continuous front balcony.
    wall(fg,base,0,9,24,'x',{width:f===3?2.3:4.2,height:2.9,offset:f===3?.5:0});
    for(const x of [-9.65,-6.5,-3.45,3.45,6.5,9.65]){glowWindow(fg,x,1.86,9.16,2.7,1.67);G.box(fg,x,2.87,9.25,2.8,.18,.32,P.cedar);}
-   rail(fg,base,-7.0,11.65,9.7);rail(fg,base,7.0,11.65,9.7);
+   const leftRail=rail(fg,base,-7.0,11.65,9.7);rail(fg,base,7.0,11.65,9.7);if(f===3){balconyGallery.rail=leftRail;leftRail.userData.noStaticBatch=true;leftRail.userData.balconyGalleryId=balconyGallery.id;balconyGallery.floor=fg;}
    // The ground entrance has a real gap; upper balconies get a safe central rail.
    if(f>0)rail(fg,base,0,11.65,4.30,'x',true,true);
    rail(fg,base,-11.85,10.3,2.7,'z');rail(fg,base,11.85,10.3,2.7,'z');
-   for(const x of [-11.75,-7.5,-3,3,7.5,11.75]){groundSolid(fg,base,x,1.75,11.35,.18,3.5,.18,P.red);lantern(fg,x,2.72,10.9,true,.32);}
+   for(const x of [-11.75,-7.5,-3,3,7.5,11.75]){groundSolid(fg,base,x,1.75,11.35,.18,3.5,.18,P.red);const globe=lantern(fg,x,2.72,10.9,true,.32);if(f===3){globe.userData.noStaticBatch=true;globe.userData.balconyGalleryId=balconyGallery.id;balconyGallery.lanterns.push(globe);}}
    // R7: structure is shared, but each level has its own room plan below.
    // No cloned central corridor or repeated guest-room partitions.
    for(const z of [-12,6.8]){lantern(fg,6.45,2.94,z,false,.28);lantern(fg,-10.9,2.94,z,true,.31);}
@@ -813,5 +814,5 @@ export function buildJapan(){
   {id:'jp-weather-rain',kind:'rain',name:'幻想雨天挂偶',position:[5,0,9.14],approach:[5,0,9.86],height:1.78},
  ];
  const characterFloorSurfaces=floorGroups.flatMap(fg=>(fg.userData.characterMatSurfaces||[]).map(s=>({...s,baseY:fg.position.y,minX:s.minX+fg.position.x,maxX:s.maxX+fg.position.x,minZ:s.minZ+fg.position.z,maxZ:s.maxZ+fg.position.z})));
- return {group,gardenPond:{id:'jp-garden-pond-1',edge:gardenEastEdge,fishCount:9,plantCount:3},exchangeCounter:JAPAN_EXCHANGE_COUNTER,performanceHall,additionalFurniture:performanceHall.additionalFurniture,weatherCharmPoints,colliders,characterFloorSurfaces,characterFootSurfaces,spawn:[0,0,37.5],stations,roofGroup,walkableSurfaces,cameraColliders,levels,ceilingGroups,floorGroups,explorationTargets,doorways,facilities,roomProgram,interiorRooms,circulation,bounds:LOT_BOUNDS,update(dt,time){for(const update of updates)update(dt,time);}};
+ return {group,balconyGallery,gardenPond:{id:'jp-garden-pond-1',edge:gardenEastEdge,fishCount:9,plantCount:3},exchangeCounter:JAPAN_EXCHANGE_COUNTER,performanceHall,additionalFurniture:performanceHall.additionalFurniture,weatherCharmPoints,colliders,characterFloorSurfaces,characterFootSurfaces,spawn:[0,0,37.5],stations,roofGroup,walkableSurfaces,cameraColliders,levels,ceilingGroups,floorGroups,explorationTargets,doorways,facilities,roomProgram,interiorRooms,circulation,bounds:LOT_BOUNDS,update(dt,time){for(const update of updates)update(dt,time);}};
 }
