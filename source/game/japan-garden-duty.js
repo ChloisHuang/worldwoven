@@ -1,5 +1,5 @@
 export const JAPAN_GARDEN_REGISTRY=Object.freeze([-17.1,0,-4.7]);
-const REG=JAPAN_GARDEN_REGISTRY,HOME=[-18.4,0,-6],HOST='jp-garden-onsen';
+const REG=JAPAN_GARDEN_REGISTRY,HOME=[-18.4,0,-6],STANDBY=[-17.1,0,-6],HOST='jp-garden-onsen';
 // All steps stand on the existing east shore; no path crosses pond water or stone.
 export const JAPAN_GARDEN_WORK=Object.freeze({
  observe:{position:[-18.9,0,-6],target:[-23.5,.1,-6.8],duration:3,action:'岸上逐一观察原锦鲤',pose:'relax'},
@@ -35,7 +35,7 @@ export function createJapanGardenDuty({board,actors,lot,assign,clear,unmount,tas
   requestMeeting(v){meeting=!!v;},holdDuty(id){desired=id;paused=true;},claimDuty(id){if(disposed||desired&&desired!==id||!this.canClaimDuty())return false;desired=id;paused=false;return true;},
   canClaimDuty:()=>!!host&&!!objects()&&!ledger.state().loadError&&!board.state().visits.some(v=>v.customerType==='player'&&!['departed','cancelled'].includes(v.stage)),canEndDuty:id=>desired===id&&!step,releaseDuty,inWorkplace,dutyActive,
   holdsHost:()=>!!(meeting||desired&&!paused&&!covering()||hostHeld()),isCovering:covering,coversWorker:(id,kind=null)=>id===HOST&&covering()&&(!kind||kind==='local'),blocksWorker:id=>id===HOST&&!!(meeting||desired&&!paused&&!covering()||hostHeld()||taskOf(host)?.gardenWork),
-  idlePoint:id=>id===HOST&&covering()&&!relief()?HOME.slice():null,idleTask:id=>id===HOST&&!relief()?{duration:4,face:[-23.3,.4,-3.8],label:(covering()?'原池巡护已交班 · ':'')+label()}:null,
+  idlePoint:id=>id===HOST&&covering()&&!relief()?STANDBY.slice():null,idleTask:id=>id===HOST&&!relief()?{duration:4,face:[-23.3,.4,-3.8],label:(covering()?'原池巡护已交班 · ':'')+label()}:null,
   workReceipts:id=>ledger.receipts(id),isActing:()=>!!step,held:()=>false,actor:player,stopWorkAction(){step=null;},returnPosition:()=>REG.slice(),workLabel:()=>ledger.state().loadError?'庭园巡护记录异常 · 请保留原存档':step?.action||(paused?'庭园班已暂停 · 当面接回':label()),
   playerPose:()=>step?{action:step.pose,workTarget:step.target.slice(),station:{workTarget:step.target.slice()}}:null,
   dutyState:()=>({receiptId:desired,status:paused?'paused':ledger.duty()?.status||(desired?'draining':'inactive'),step:step?structuredClone(step):null,owned:owned()?.id||null,held:null}),snapshot:()=>({version:1,desired,paused}),restore(s){if(s?.version!==1)return false;desired=s.desired||null;paused=!!desired;step=null;return true;},dispose(){disposed=true;step=null;}

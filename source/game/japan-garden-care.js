@@ -10,7 +10,7 @@ export function createJapanGardenCare({saved=null,saveState=()=>true}={}){
   const x=s.item;if(!x||x.id!==ID||!integer(x.cycle)||!['clean',...STAGES].includes(x.stage)||![null,HOST,'player'].includes(x.owner)||!Array.isArray(x.steps)||x.steps.length!==(STAGES.includes(x.stage)?STAGES.indexOf(x.stage):0))return false;
   if(x.cycle===0?(x.day!==null||s.lastOpenedDay!==null||x.stage!=='clean'):!integer(x.day)||x.day!==s.lastOpenedDay||x.cycle>x.day+1)return false;
   if(['clean','observe'].includes(x.stage)&&x.owner!==null||x.owner==='player'&&(!s.duty||x.workReceiptId!==s.duty.receiptId)||x.owner!=='player'&&x.workReceiptId!==null)return false;
-  if(x.steps.some((v,j)=>v.stage!==STAGES[j]||![HOST,'player'].includes(v.actorId)||(v.actorId==='player'?!work(v.receiptId):v.receiptId!==null)))return false;
+  if(x.steps.some((v,j)=>!v||typeof v!=='object'||Array.isArray(v)||Object.keys(v).length!==3||v.stage!==STAGES[j]||![HOST,'player'].includes(v.actorId)||(v.actorId==='player'?!work(v.receiptId):v.receiptId!==null)))return false;
   const cycles=new Set(),days=new Set();for(const r of s.receipts){if(!validJapanGardenReceipt(r)||r.cycle>x.cycle||r.day>x.day||r.cycle===x.cycle&&(x.stage!=='clean'||r.day!==x.day)||cycles.has(r.cycle)||days.has(r.day))return false;cycles.add(r.cycle);days.add(r.day);}return true;
  }
  function restore(s,{preserveDuty=false}={}){if(!valid(s))return false;state=copy(s);if(!preserveDuty&&state.duty)state.duty.status='paused';loadError=null;return true;}

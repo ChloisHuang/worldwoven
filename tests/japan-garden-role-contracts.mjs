@@ -1,3 +1,4 @@
+import {createFormalLaborContract} from '../source/game/formal-labor-contract.js';
 // A plausible receipt must not mint XP without the original care ledger;
 // retries, cold restoration and bank failures must remain exactly-once.
 import assert from 'node:assert/strict';
@@ -74,3 +75,6 @@ const stale=all(dialog).find(e=>e.tag==='button'&&e.textContent===choices[0].act
 assert(u.careers.recordJapanGardenReview(u.prove(receipt(u))).ok);ui.open({scope:'role',roleId:ROLE.id});assert(text(dialog).includes('原池巡护完成 +1'));assert(text(dialog).includes('园艺经验 10'));assert(!text(dialog).includes('顾客评价扣薪'));
 assert(all(dialog).some(e=>e.tag==='button'&&e.textContent==='end-shift'));assert(all(dialog).some(e=>e.tag==='button'&&e.textContent==='cancel'));ui.dispose();
 console.log('PASS garden handbook: registration/interview, live item choices, stale clicks, safe handoff controls and completion growth');
+
+for(const level of [1,2]){let message='';const bridge=createFormalLaborContract({careers:{apply:()=>({ok:false,reasons:['gardening-required']})},role:{...ROLE,skillRequirements:{gardening:level}},getJob:()=>null,getPlayer:()=>({ageYears:18}),meetHost:()=>true,notify:t=>message=t});assert.equal(bridge.apply(),false);assert(message.includes(`园艺需要${level}级`));}
+console.log('PASS gardening threshold text follows actual role: Japan1 and existing France2');
