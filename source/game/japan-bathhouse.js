@@ -654,7 +654,7 @@ export function buildJapan(){
  G.mesh(district,new THREE.BoxGeometry(7.36,.028,9.05),0x6aa69a,-23.3,.036,-3.8,{transparent:true,opacity:.8,depthWrite:false});
  obstacle(-23.3,.12,-3.8,7.36,.24,9.05,{camera:false});
  for(const z of [-8.45,.85])groundSolid(district,0,-23.3,.18,z,7.9,.36,.32,P.stone);
- for(const x of [-27.1,-19.5])groundSolid(district,0,x,.18,-3.8,.32,.36,9.3,P.stone);
+ let gardenEastEdge=null;for(const x of [-27.1,-19.5]){const edge=G.box(district,x,.18,-3.8,.32,.36,9.3,P.stone);obstacle(x,.18,-3.8,.32,.36,9.3);if(x===-19.5){gardenEastEdge=edge;edge.userData.noStaticBatch=true;edge.userData.gardenPondId='jp-garden-pond-1';}}
  for(let i=0;i<9;i++){const x=-25.6+(i%3)*2.1,z=-6.8+Math.floor(i/3)*2.6;G.sphere(district,x,.062,z,.21,i%2?0xd79566:P.paper,1.6,.12,.7);const tail=G.mesh(district,new THREE.ConeGeometry(.14,.25,3),P.red,x-.39,.065,z);tail.rotation.z=Math.PI/2;tail.rotation.x=Math.PI/2;}
  for(const [x,z]of [[-25,-.4],[-26.3,-1.7],[-24.1,-.9]]){G.cyl(district,x,.067,z,.37,.37,.015,0x6d9a6c,12);G.sphere(district,x,.1,z,.1,0xe3b6b1,1,.45,1);}
  for(const [x,z,s]of [[-27.3,-10,.95],[-26.5,7.8,.8],[-19.8,-11.3,.8]]){G.tree(district,x,z,0x7a9376,s);G.sphere(district,x,.38,z+.8,.75,P.stone,1.3,.65,.75);obstacle(x,.53,z,1.5,1.06,1.5,{camera:false});}
@@ -813,5 +813,5 @@ export function buildJapan(){
   {id:'jp-weather-rain',kind:'rain',name:'幻想雨天挂偶',position:[5,0,9.14],approach:[5,0,9.86],height:1.78},
  ];
  const characterFloorSurfaces=floorGroups.flatMap(fg=>(fg.userData.characterMatSurfaces||[]).map(s=>({...s,baseY:fg.position.y,minX:s.minX+fg.position.x,maxX:s.maxX+fg.position.x,minZ:s.minZ+fg.position.z,maxZ:s.maxZ+fg.position.z})));
- return {group,exchangeCounter:JAPAN_EXCHANGE_COUNTER,performanceHall,additionalFurniture:performanceHall.additionalFurniture,weatherCharmPoints,colliders,characterFloorSurfaces,characterFootSurfaces,spawn:[0,0,37.5],stations,roofGroup,walkableSurfaces,cameraColliders,levels,ceilingGroups,floorGroups,explorationTargets,doorways,facilities,roomProgram,interiorRooms,circulation,bounds:LOT_BOUNDS,update(dt,time){for(const update of updates)update(dt,time);}};
+ return {group,gardenPond:{id:'jp-garden-pond-1',edge:gardenEastEdge,fishCount:9,plantCount:3},exchangeCounter:JAPAN_EXCHANGE_COUNTER,performanceHall,additionalFurniture:performanceHall.additionalFurniture,weatherCharmPoints,colliders,characterFloorSurfaces,characterFootSurfaces,spawn:[0,0,37.5],stations,roofGroup,walkableSurfaces,cameraColliders,levels,ceilingGroups,floorGroups,explorationTargets,doorways,facilities,roomProgram,interiorRooms,circulation,bounds:LOT_BOUNDS,update(dt,time){for(const update of updates)update(dt,time);}};
 }

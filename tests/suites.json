@@ -50,7 +50,8 @@
       "random-appearance-reload.cjs",
       "random-appearance.cjs",
       "shared-hand-poses.mjs",
-      "family-character.mjs"
+      "family-character.mjs",
+      "japan-pond-wipe-pose.mjs"
     ]
   },
   "navigation": {
@@ -255,10 +256,10 @@
       "egypt-archive-role-contracts.mjs",
       "egypt-artisan-duty.mjs",
       "egypt-artisan-main.cjs",
-        "france-art-main.cjs",
+      "france-art-main.cjs",
       "egypt-artisan-role-contracts.mjs",
       "france-art-role-contracts.mjs",
-        "france-art-duty.mjs",
+      "france-art-duty.mjs",
       "egypt-table-service-role-contracts.mjs",
       "france-full-meal-main.cjs",
       "france-full-meal.mjs",
@@ -418,13 +419,17 @@
       "china-tavern-rehire-scene.mjs",
       "japan-omamori-care.mjs",
       "japan-kotatsu-care.mjs",
+      "japan-garden-care.mjs",
+      "japan-garden-duty.mjs",
       "japan-kotatsu-duty.mjs",
       "japan-kotatsu-role-contracts.mjs",
+      "japan-garden-role-contracts.mjs",
       "japan-omamori-duty.mjs",
       "japan-omamori-role-contracts.mjs",
       "japan-omamori-main.cjs",
       "japan-kotatsu-visitors.mjs",
-      "japan-kotatsu-main.cjs"
+      "japan-kotatsu-main.cjs",
+      "japan-garden-main.cjs"
     ],
     "targeted": [
       "china-palace-garden-player.cjs",
