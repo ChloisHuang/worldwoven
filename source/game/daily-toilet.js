@@ -216,6 +216,7 @@ export function createDailyToilet({facility:P,prepareLot=()=>{},lot,doors,getPla
   // world collision recovery must not relocate them out of the bowl first;
   // recover() then performs the original safe interruption/dismount, no relief.
   restorePosition(actorId,position){const pending=durable.pending,actor=actorById(actorId);return available&&!abandonment&&(!actor||alive(actor))&&pending?.actorId===actorId&&['using','leaving'].includes(pending.stage)&&Array.isArray(position)&&[P.anchor,...(P.legacyAnchors||[])].some(a=>a.every((v,i)=>Math.abs(v-position[i])<.025))?position.slice():null;},
+  retainQueuePosition(actor){const id=idOf(actor);if(disposed||!actor?.root||!alive(actor)||!durable.waiters.includes(id))return false;waitSeen.set(id,time);return true;},
   containsActor,availableFor,queuePosition:actorId=>durable.waiters.indexOf(actorId)+1,prepareIntent(selected){if(!resolveIntent(selected)||!reserve(getPlayer()))return null;return intent();},
   exitPlan(actor){return current?.actor===actor&&current.mounted?(exitClear(actor)?[...P.approach]:exitLanding(actor)):null;},
   intent,resolveIntent,executeIntent(selected){if(!resolveIntent(selected)||!atApproach(getPlayer()))return false;const ok=reserve(getPlayer());if(!ok)notify(current?'净室有人使用，请稍后再来':'暂时无法使用净室，请稍后再试');return ok;},

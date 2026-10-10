@@ -17,7 +17,7 @@ export function createChinaDailyToilets(options){
  return {
   palaceIntent:()=>palace.intent(),palaceAvailable:actor=>palace.availableFor(actor),requestPalaceActor:actor=>palace.requestActor(actor),
   publicIntent:()=>publicToilet.intent(),publicAvailable:actor=>publicToilet.availableFor(actor),requestPublicActor:actor=>publicToilet.requestActor(actor),
-  publicQueuePosition:id=>publicToilet.queuePosition(id),
+  publicQueuePosition:id=>publicToilet.queuePosition(id),retainPublicQueuePosition:actor=>publicToilet.retainQueuePosition(actor),
   publicContainsActor:actor=>publicToilet.containsActor(actor),
   prepareIntent:intent=>forIntent(intent)?.prepareIntent(intent)||null,
   exitPlan:actor=>owned(actor)?.exitPlan(actor)||null,
