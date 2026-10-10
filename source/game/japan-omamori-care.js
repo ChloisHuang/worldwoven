@@ -1,6 +1,6 @@
 import {JAPAN_OMAMORI_ITEM_IDS,validJapanOmamoriReceipt} from './japan-omamori-role.js';
 const copy=structuredClone,HOST='jp-omamori',STAGES=['collect','cord','embroidery','return'],int=n=>Number.isSafeInteger(n)&&n>=0;
-const viewer=id=>id==='player'||typeof id==='string'&&/^jp-visitor-(0|[1-9][0-9]*)-[1-9][0-9]*$/.test(id);
+const viewer=id=>{if(id==='player')return true;const m=typeof id==='string'&&/^jp-visitor-(0|[1-9][0-9]*)-([1-9][0-9]*)$/.exec(id);return !!m&&Number(m[1])<=0xffffffff&&Number.isSafeInteger(Number(m[2]));};
 const work=id=>typeof id==='string'&&/^jp-omamori-labor-[1-9][0-9]*$/.test(id)&&Number.isSafeInteger(Number(id.split('-').at(-1)));
 // Original display objects only. A physical public handling creates care demand;
 // neither clock ticks nor job applications manufacture maintenance or stock.
