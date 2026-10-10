@@ -385,6 +385,7 @@ export function createChinaPalaceLife({npcs,lot,furniture,doors,planPath,moveAct
     }
     if(n===emperor&&invitationHold){if(time>=invitationHold.until||(invitationHold.purpose==='petition'?!petitionAvailability().ok:!invitationOpportunity()))invitationHold=null;else{const p=invitationHold.position;if(!s.mount)n.root.rotation.y=Math.atan2(p[0]-n.root.position.x,p[2]-n.root.position.z);tell(n,invitationHold.purpose==='petition'?'已听见你的提请。请到原听候处，当面议定。':'愿邀你受妃嫔名位。是否接受，听从你的心意。');animate(n,s,t);continue;}}
     if(interrupted(n)){tell(n,stop.label+' · 停步与你交谈');if(!s.mount&&state.position)n.root.rotation.y=Math.atan2(state.position.x-n.root.position.x,state.position.z-n.root.position.z);animate(n,s,t);continue;}
+    if(s.choice?.id==='toilet'&&!s.choice.toiletFinished)toilet()?.retainActor(n,stop.path[s.waypoint]);
     if(!s.arrived){if(travel(n,s,stop.path[s.waypoint],dt)){s.waypoint++;if(s.waypoint===stop.path.length){s.arrived=true;record(n,stop.id+':arrived');}}}
     if(s.arrived){
      if(stop.mount&&!s.mount&&!(n===emperor&&duty&&!duty.active)){

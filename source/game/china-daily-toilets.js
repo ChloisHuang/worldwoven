@@ -20,6 +20,8 @@ export function createChinaDailyToilets(options){
   publicQueuePosition:id=>publicToilet.queuePosition(id),retainPublicQueuePosition:actor=>publicToilet.retainQueuePosition(actor),
   publicContainsActor:actor=>publicToilet.containsActor(actor),
   prepareIntent:intent=>forIntent(intent)?.prepareIntent(intent)||null,
+  admissionMessage:intent=>forIntent(intent)?.admissionMessage()||'净室状态已变化，请重新点击',
+  retainActor:(actor,waypoint)=>owned(actor)?.retainActor(actor,waypoint)||false,
   exitPlan:actor=>owned(actor)?.exitPlan(actor)||null,
   restorePosition:(id,position)=>services.map(s=>s.restorePosition(id,position)).find(Boolean)||null,
   intent:()=>selected().intent(),intents:()=>services.map(s=>s.intent()).filter(Boolean),
