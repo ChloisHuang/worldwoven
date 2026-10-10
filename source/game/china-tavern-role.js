@@ -9,8 +9,8 @@ export function createTavernRole({roleId,slotId,originalHolderId,errorName='role
  // Assignment evidence is the same canonical five fields after a cold load.
  if(!loadError)current={version:1,roleId,slotId,holderId:current.holderId,revision:current.revision};
  function state(){return loadError?{...initial,holderId:null,loadError}:{...current,loadError:null};}
- function resolve(){const row=state(),isPlayer=row.holderId==='player',actor=row.holderId?(isPlayer?getPlayer():resolveActor(row.holderId)):null,alive=!!actor&&isActorAlive(actor)!==false;
-  return {...row,actor,alive,isPlayer,available:!loadError&&alive&&canAssign(row.holderId,actor),status:loadError?'invalid':row.holderId===null?'vacant':!actor?'unloaded':!alive?'inactive':!canAssign(row.holderId,actor)?'busy':isPlayer?'player':'npc'};
+ function resolve(){const row=state(),isPlayer=row.holderId==='player',actor=row.holderId?(isPlayer?getPlayer():resolveActor(row.holderId)):null,alive=!!actor&&isActorAlive(actor)!==false,available=!loadError&&alive&&canAssign(row.holderId,actor);
+  return {...row,actor,alive,isPlayer,available,status:loadError?'invalid':row.holderId===null?'vacant':!actor?'unloaded':!alive?'inactive':!available?'busy':isPlayer?'player':'npc'};
  }
  function prepareAssignment(holderId,{expectedRevision=current.revision}={}){
   const before=current;
