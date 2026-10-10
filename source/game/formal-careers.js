@@ -787,12 +787,16 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     return validateChinaPersonnelWorkCase(job,{mode,officialTenureId:tenureId,day,rankId})&&attained&&job.day>=attained.decidedAt.day&&job.day<=clock.day?copy(job):null;
   }
   const promotionActor=id=>syncPersonnel(resolvePromotionActor,id);
-  const principalVacancy=()=>{
+  function principalVacancyAvailability(){
+    if(loadError)return {ok:false,code:loadError};
     const source=principalVacancySource(syncPersonnel(getPrincipalVacancy,{officeId:PRINCIPAL_OFFICE,previousHolderId:PRINCIPAL_OFFICE}));
+    if(!source)return {ok:false,code:'principal-vacancy-unavailable'};
     // An original holder's death opens one appointment only. Resignation does
     // not recreate that consumed vacancy or authorize a new office lifecycle.
-    return source&&!current.officialCareer.applications.some(row=>row.routeVersion===4&&row.status==='approved'&&personnelSame(row.vacancy,source))?source:null;
-  };
+    if(current.officialCareer.applications.some(row=>row.routeVersion===4&&row.status==='approved'&&personnelSame(row.vacancy,source)))return {ok:false,code:'principal-vacancy-consumed'};
+    return {ok:true,...source};
+  }
+  const principalVacancy=()=>principalVacancySource(principalVacancyAvailability());
   const principalAppointed=()=>officialRankId(current.officialCareer,current.tenure)===PRINCIPAL_RANK;
   function currentOfficialAppointment(appointmentId=null){
     if(loadError)return null;
@@ -1808,6 +1812,6 @@ export function createFormalCareers({saved, worldDuty=null, saveState, creditWag
     slotHolder:roleId=>{if(loadError)return null;const slot=[...slotMap.values()].find(s=>s.roleId===roleId);return slot?current.tenure?.slotId===slot.id?'player':slot.holderId:null;},
     catalogue:()=>[...roleMap.values()].map(role=>({...copy(role),vacancy:[...slotMap.values()].filter(slot=>slot.roleId===role.id&&availableSlot(slot,role)&&slot.id!==current.tenure?.slotId).length})),
     eligibility, applicationAvailability, beginDutyAvailability, applicationResult, applicationHistory,
-    currentOfficialAppointment, principalSalaryDayBlocked, promotionSummary, promotionAvailability, applyPromotion, reviewPromotion, cancelPromotion, archiveAvailability, deferPersonnelReview,personnelProgressionEnabled:()=>enablePersonnelProgression,
+    currentOfficialAppointment, principalSalaryDayBlocked, principalVacancyAvailability, promotionSummary, promotionAvailability, applyPromotion, reviewPromotion, cancelPromotion, archiveAvailability, deferPersonnelReview,personnelProgressionEnabled:()=>enablePersonnelProgression,
     laborEvent, customerReview, apply, reviewApplication, cancelApplication, resign, learningTicket, resumeLearning, cancelLearning, completeLearning, completedLowerWork, recordClinicAssistantService, recordClinicPatientReview, recordTavernChefService, royalKitchenQualification, recordRoyalKitchenService, recordChinaSalonReceptionReview, recordPalaceGardenReview, recordJapanReceptionReview, recordJapanBathDeliveryReview, recordJapanBathMixingReview, recordJapanKitchenReview, recordEgyptKitchenReview, recordEgyptTableServiceReview, recordEgyptArtisanReview, recordFranceArtReview, recordFranceBedchamberReview, recordEgyptArchiveReview, recordJapanLinenReview, recordJapanBoilerReview, recordJapanOmamoriReview, recordJapanKotatsuReview, recordJapanGardenReview, recordJapanBalconyReview, recordJapanTableServiceReview, prepareJapanPerformanceService, prepareChinaPieceworkService, prepareTellerAuditService, gardenMaintenanceReceipt, beginDuty, dutyEvent, interruptDuty, observeDay, settle});
 }
