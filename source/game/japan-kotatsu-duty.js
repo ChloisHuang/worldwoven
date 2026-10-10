@@ -7,7 +7,7 @@ export function createJapanKotatsuDuty({board,actors,lot,assign,clear,unmount,ta
  const host=actors.get(HOST),ledger=board.kotatsu,objects=[];lot.group.traverse(n=>{if(n.userData.kotatsuCushionId)objects.push({node:n,id:n.userData.kotatsuCushionId,position:n.position.clone(),rotation:n.rotation.clone()});});
  let options={getPlayer,getMounted,isDutyRoute},desired=null,paused=false,meeting=false,step=null,disposed=false,yieldLifeOnce=false;
  const player=()=>options.getPlayer(),mounted=()=>options.getMounted(),hostHeld=()=>ledger.work().find(x=>x.owner===HOST),held=()=>ledger.work().find(x=>x.owner==='player');
- const occupied=id=>{const t=table(id);return !t||[...actors.values()].some(n=>n.serviceMount&&near(n.root.position,t.center,2))||id==='jp-kotatsu-1'&&(getPlayerState().facilityId==='jp-tea'||getPlayerState().performing==='jp-tea');};
+ const occupied=id=>{const t=table(id);return !t||[...actors.values()].some(n=>n.serviceMount&&near(n.root.position,t.center,2))||id==='jp-kotatsu-1'&&(getPlayerState().kotatsuUsing||getPlayerState().facilityId==='jp-tea'||getPlayerState().performing==='jp-tea');};
  const busy=()=>!!taskOf(host)&&!taskOf(host).idle,relief=()=>{const a=getStaffLife()?.state().active;return a?.reliefId===HOST&&!a.externalCoverage;};
  const covering=()=>!!desired&&!paused&&ledger.duty()?.status==='active',dutyActive=id=>desired===id&&covering();
  const meetingReady=()=>!!host&&near(host.root.position,HOME,.22)&&!host.serviceMount&&!busy()&&!hostHeld()&&getStaffLife()?.state().active?.id!==HOST&&!relief();
