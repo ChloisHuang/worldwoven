@@ -50,7 +50,8 @@
       "random-appearance-reload.cjs",
       "random-appearance.cjs",
       "shared-hand-poses.mjs",
-      "family-character.mjs"
+      "family-character.mjs",
+      "japan-pond-wipe-pose.mjs"
     ]
   },
   "navigation": {

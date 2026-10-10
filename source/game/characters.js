@@ -118,6 +118,26 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    for(let i=range.start;i<range.start+range.count;i++){const sy=geometry.attributes.sourceY?.getX(i)??geometry.attributes.position.getY(i),z=geometry.attributes.position.getZ(i),score=Math.abs(sy-.875)-z*.04;if(score<best){best=score;palmOffsets[side].fromBufferAttribute(geometry.attributes.position,i).sub(rest[hand]);}}
   }
  }
+ // This low outdoor surface is deliberately separate from tabletop workHeight.
+ // Its cloth stays in rig space while a real palm presses its upper face.
+ const pondWipeTarget=V(),pondWipeStrokeAxis=V(),pondWipeLegPoles=[V(-1.4,0,1),V(1.4,0,1)],pondWipeArmPole=V(-.5,.8,-.5),pondWipeClothQ=new THREE.Quaternion(),pondWipePalmQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(-1,0,0),V(0,0,-1),V(0,-1,0))),pondWipePalmOffset=V();
+ let pondWipeLowest=Infinity;for(const point of supportPoints[0]){tmp.copy(point).applyQuaternion(pondWipePalmQ);if(tmp.y<pondWipeLowest){pondWipeLowest=tmp.y;pondWipePalmOffset.copy(tmp);}}
+ const pondClothBounds=props.tools.cloth.children[0].geometry.boundingBox;
+ function posePondWipe(time){
+  const cloth=props.tools.cloth;cloth.scale.set(1,.30,.85);
+  // Sweep parallel to the narrow original coping, never over its water edge.
+  const sweep=Math.sin(time*2.4)*.055,contact=pondWipeTarget.clone().addScaledVector(pondWipeStrokeAxis,sweep);
+  propAnchors[0].copy(contact).sub(tmp.set((pondClothBounds.min.x+pondClothBounds.max.x)*.5,pondClothBounds.min.y*cloth.scale.y,0).applyQuaternion(pondWipeClothQ));
+  propAnchors[0].y+=.002/root.scale.y;propFitted[0]=true;
+  // Flat fingers and palm lie on the folded cloth; IK retains both arm lengths.
+  const top=contact.clone();top.y+=.003/root.scale.y+(pondClothBounds.max.y-pondClothBounds.min.y)*cloth.scale.y;
+  const palmOffset=pondWipePalmOffset.clone().applyQuaternion(pondWipeClothQ),wrist=top.clone().sub(palmOffset);solveLimb(4,5,6,wrist,pondWipeArmPole);posedQ[6].copy(pondWipeClothQ).multiply(pondWipePalmQ);
+  // The free hand rests above the near knee, clear of the garment.
+  reach(1,posedP[14].x*.92,posedP[14].y+.16,posedP[14].z+.025);
+  posedQ[9].copy(pondWipePalmQ);
+  const palm=posedP[6].clone().add(palmOffset),world=p=>p.clone().add(rig.position).applyMatrix4(root.matrixWorld).toArray();
+  metrics.pondWipeContact={target:world(pondWipeTarget),cloth:world(contact.clone().add(V(0,.002/root.scale.y,0))),palm:world(palm),palmGap:(palm.y-top.y)*root.scale.y,stroke:sweep};
+ }
  const chairHands=[0,1].map(()=>({wrist:V(),rotation:new THREE.Quaternion()}));let fittedChairHeight=null;
  function fitOnsenPalmContact(){for(const geometry of template.geometry)for(const range of geometry.userData.sourceRanges||[])if(range.name==='relaxed-palm-1'){
   let low=Infinity;for(let i=range.start;i<range.start+range.count;i++){tmp.fromBufferAttribute(geometry.attributes.position,i).sub(rest[9]).applyQuaternion(onsenLapPalmQ);const depth=tmp.dot(onsenLapNormal);if(depth<low){low=depth;onsenPalmContact.offset.copy(tmp);onsenPalmContact.index=i;}}
@@ -156,7 +176,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   posedP[c].copy(rest[c]).sub(rest[b]).applyQuaternion(posedQ[b]).add(posedP[b]);
   posedQ[c].copy(posedQ[b]);
  }
- function foot(side,target){const ids=side?[13,14,15]:[10,11,12];solveLimb(...ids,target,legPole);posedQ[ids[2]].identity();}
+ function foot(side,target,poleVector=legPole){const ids=side?[13,14,15]:[10,11,12];solveLimb(...ids,target,poleVector);posedQ[ids[2]].identity();}
  function fitChairHands(chairHeight){
   // Fit only when entering a seat or changing its height. The lap is the real
   // skinned garment surface; a broad sleeve must not become the hand support.
@@ -299,7 +319,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
 
   for(const i of[12,15])posedP[i].z+=lieOffsets.heel;for(const i of[11,14,16,17])posedP[i].z+=lieOffsets.heel*.4;
  }
- function resetTools(){propFitted.fill(false);for(const mesh of meshes)if(mesh.morphTargetInfluences)mesh.morphTargetInfluences.fill(0);props.tools.knife.rotation.set(0,0,0);for(const prop of Object.values(props.tools))prop.visible=false;props.left.rotation.set(0,0,0);props.right.rotation.set(0,0,0);}
+ function resetTools(){propFitted.fill(false);props.tools.cloth.scale.set(1,1,1);for(const mesh of meshes)if(mesh.morphTargetInfluences)mesh.morphTargetInfluences.fill(0);props.tools.knife.rotation.set(0,0,0);for(const prop of Object.values(props.tools))prop.visible=false;props.left.rotation.set(0,0,0);props.right.rotation.set(0,0,0);}
  function show(...names){for(const name of names)if(props.tools[name])props.tools[name].visible=true;}
  function animate(time,walking=false,action=null,context=null){
   if(disposed)return;visualFloorOffset=Number.isFinite(context?.visualFloorOffset)?clamp(context.visualFloorOffset,0,.5):0;rig.rotation.set(0,0,0);rig.position.set(0,visualFloorOffset/root.scale.y,0);time=Number.isFinite(time)?time:0;walking=!!walking;if(walking)action=null;resetTools();
@@ -334,8 +354,14 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   props.tools.brush.position.y=receptionWriting?.10:-.015;
   // Explicit object service may bend over a low surface; normal poses and
   // anatomical arm lengths stay unchanged. Feet keep their support solve.
+  const pondWipe=action==='pond-wipe'&&Array.isArray(context?.pondWipe?.target)&&context.pondWipe.target.length===3&&context.pondWipe.target.every(Number.isFinite);
+  metrics.pondWipeContact=null;
+  if(pondWipe){inverseRoot.copy(root.matrixWorld).invert();pondWipeTarget.fromArray(context.pondWipe.target).applyMatrix4(inverseRoot).sub(rig.position);pondWipeStrokeAxis.set(0,0,1).applyMatrix4(inverseRoot).sub(tmp.set(0,0,0).applyMatrix4(inverseRoot));root.getWorldQuaternion(pondWipeClothQ).invert().multiply(armRotation.setFromAxisAngle(armRollAxis,-Math.PI/2));}
   const handoffDip=!walking&&context?.handoff&&Number.isFinite(context.handoffDip)?clamp(context.handoffDip,0,.12):0;
   setTorso((action==='bathe'?(context?.bathHipHeight??.32):action==='chair-sit'?chairHeight+.14:action==='kotatsu'?.417-seatedDrop:walking?rest[0].y+bob:rest[0].y)-handoffDip,context?.handoff&&Number.isFinite(context.handoffLean)?clamp(context.handoffLean,0,.8):action==='calligraphy'?(receptionWriting?.18:.40):/^(knead|bread|cook|sushi|bake|tidy)$/.test(action||'')?.13:0,walking?Math.sin(t)*.012:0);
+  // A supported crouch brings the shoulder within reach of the original .36 m
+  // stone. Never extend arms, move the pond, or lower the actor's floor root.
+  if(pondWipe){setTorso(pondWipeTarget.y+.10,1.14,0);const sitBack=Math.max(0,.55-pondWipeTarget.z);for(const i of[0,1,2,3,4,7,10,13])posedP[i].z-=sitBack;}
   // A shorter thigh sits slightly forward on the same cushion so its knee
   // clears the seat edge; the feet retain their exact floor targets.
   if(action==='chair-sit'&&shapeTraits.legLength<1)for(const i of [0,1,2,3,4,7,10,13])posedP[i].z+=(1-shapeTraits.legLength)*1.2;
@@ -343,7 +369,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   if(action!=='kotatsu'&&action!=='chair-sit'&&action!=='bathe'){
    for(let s=0;s<2;s++){
     const phi=((t+(s?Math.PI:0))%TAU+TAU)%TAU,support=phi<Math.PI,u=support?phi/Math.PI:(phi-Math.PI)/Math.PI;
-    const x=s?.089:-.089,target=footTargets[s];target.set(x,.108,-.025);
+    const x=(s?1:-1)*(pondWipe?.145:.089),target=footTargets[s];target.set(x,.108,-.025);
     if(walking&&physical){
      inverseRoot.copy(root.matrixWorld).invert();
      // Reset planted coordinates only on an actual start or a discontinuous move.
@@ -406,7 +432,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    let hipLimit=posedP[0].y;
    for(let s=0;s<2;s++){const ids=s?[13,14,15]:[10,11,12],target=footTargets[s],reach=rest[ids[0]].distanceTo(rest[ids[1]])+rest[ids[1]].distanceTo(rest[ids[2]])-.003,horizontal=(target.x-posedP[ids[0]].x)**2+(target.z-posedP[ids[0]].z)**2;hipLimit=Math.min(hipLimit,target.y+Math.sqrt(Math.max(.01,reach*reach-horizontal)));}
    const hipAdjust=Math.min(0,hipLimit-posedP[0].y);if(hipAdjust<0)for(const i of[0,1,2,3,4,7,10,13])posedP[i].y+=hipAdjust;
-   for(let s=0;s<2;s++){foot(s,footTargets[s]);posedQ[s?15:12].copy(footOrient[s]);}
+   for(let s=0;s<2;s++){foot(s,footTargets[s],pondWipe?pondWipeLegPoles[s]:legPole);posedQ[s?15:12].copy(footOrient[s]);}
   }else if(action==='bathe'){
    // Relaxed bent knees extend into the basin; feet and robe settle on its bottom.
    foot(0,tmp.set(-.13,.108,.62));foot(1,tmp.set(.13,.108,.62));
@@ -447,6 +473,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   else if(/paint|calligraphy|craft|art/.test(action||'')){const low=/calligraphy/.test(action);reach(0,-.19,1.14,.30);reach(1,.12+Math.sin(time*1.2)*.035,low?1.23:1.43+Math.sin(time*1.4)*.027,low?.34:.30);show('brush');if(!low)show('palette');lookX=low?.17:.035;}
   else if(/tea/.test(action||'')){const sip=Math.pow((Math.sin(time*.9)+1)*.5,2);reach(0,-.17,1.10,.29);reach(1,.11,1.12+sip*.30,.30-sip*.145);show('cup');lookX=.09-sip*.065;}
   else if(/read|rest/.test(action||'')){reach(0,-.16,1.13,.29);reach(1,.18,1.13,.29);show('book');lookX=.22;}
+  else if(pondWipe){show('cloth');lookX=-.38;lookY=0;}
   else if(/garden/.test(action||'')){reach(0,-.27,.96,.14);reach(1,.26,1.09,.29);show('can');lookX=.17;}
   else if(action){reach(0,-.18,1.02,.28);reach(1,.18,1.04+Math.sin(time*2.7)*.025,.29);show('cloth');lookX=.18;}
   // Explicit routine carrying is opt-in: keep the vessel upright at a real
@@ -502,7 +529,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
 
   const grips=[];
   for(let side=0;side<2;side++){
-   const group=side?props.right:props.left,hand=side?9:6,prop=group.children.find(p=>p.visible&&HAND_PROP_GRIPS[p.name]);if(!prop)continue;
+   if(pondWipe)continue;const group=side?props.right:props.left,hand=side?9:6,prop=group.children.find(p=>p.visible&&HAND_PROP_GRIPS[p.name]);if(!prop)continue;
    propAnchors[side].copy(posedP[hand]);propFitted[side]=true;
    const target=V(...HAND_PROP_GRIPS[prop.name]).multiplyScalar(.8).multiply(prop.scale).applyQuaternion(prop.quaternion).add(prop.position);
    if(side&&/garden/.test(action||''))target.applyAxisAngle(armTiltAxis,-.35);
@@ -522,6 +549,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    }
    if(planar)bookHandFits[side]={target:target.clone(),shoulder:posedP[upper].clone(),normal:normal.clone(),elbow:posedP[elbow].clone(),wrist:posedP[hand].clone(),rotation:[upper,elbow,hand].map(i=>posedQ[i].clone())};
   }
+  if(pondWipe)posePondWipe(time);
   // Head-only attention preserves the authored torso, hands and work target.
   // Smooth the return as well as the glance; never let social input twist a
   // neck toward somebody behind the actor or override an aiming/rest pose.
@@ -635,6 +663,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
    metrics.bathTransition={progress:transfer.progress,phase:transfer.phase};
   }else metrics.bathTransition=null;
 
+  if(pondWipe)props.left.quaternion.copy(posedQ[6]).invert().multiply(pondWipeClothQ);
   if(action==='sushi-eat')props.right.quaternion.copy(posedQ[9]).invert().multiply(armRotation.setFromAxisAngle(armPitchAxis,-Math.pow((Math.sin(time*.95)+1)*.5,2)*.55));
   if(action==='chair-sit'&&context?.seatedMeal)props.right.quaternion.copy(posedQ[9]).invert().multiply(armRotation.setFromAxisAngle(armPitchAxis,-Math.pow((Math.sin(time*1.6)+1)*.5,2)*.55));
   if(/garden/.test(action||''))props.right.quaternion.copy(posedQ[9]).invert().multiply(armRotation.setFromAxisAngle(armTiltAxis,-.35));
