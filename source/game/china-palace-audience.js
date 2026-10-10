@@ -189,6 +189,8 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
   socialProfile:id=>life?.socialProfile(id),
   socialStatus(n){return owned.has(n)?{busy:FORMAL.has(phase)||['assembling','holding'].includes(phase)||!!life?.socialBusy(n.station.id),canPause:!!life?.socialCanPause(n),attention:!FORMAL.has(phase)&&!['assembling','holding'].includes(phase),job:interruptedToday?interruptedLabel:tasks.get(n)?.label||life?.label(n)||'承务官署 · 日常起居'}:null;},
   caseReviewAvailable:n=>courtCaseReviewAvailable({phase,owned:owned.has(n),hasTask:tasks.has(n),lifeAvailable:!!life?.meetingAvailable(n)}),
+  playerSalonAvailable:n=>owned.has(n)&&['waiting','followup'].includes(phase)&&!tasks.has(n)&&life?.playerSalonAvailable(n)===true,
+  playerSalonRoute:(n,target)=>life?.playerSalonRoute(n,target)||null,
   meetingAvailable:n=>owned.has(n)&&!FORMAL.has(phase)&&!['assembling','holding','departing'].includes(phase)&&!tasks.has(n)&&!!life?.meetingAvailable(n),
   playerRequest(id){life?.playerRequest(id);},
   update(dt,t,playerState={}){

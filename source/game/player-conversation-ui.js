@@ -10,7 +10,7 @@ const TOPIC_GROUPS=[
  {id:'care',label:'商量与关照',note:'实际经历与眼前的事',ids:['support-request','reconsider-support','trade-advice','health-concern']},
  {id:'connection',label:'彼此的心意',note:'回忆、感谢与表达',ids:['gratitude','shared-memory','confide','express-interest','respond-interest','flirt']},
  {id:'boundaries',label:'把话说清楚',note:'分歧、道歉与界限',ids:['respectful-disagreement','apology','argument','boundary']},
- {id:'company',label:'相约与陪伴',note:'先询问对方的意愿',ids:['public-invitation','quiet-company','private-company']},
+ {id:'company',label:'相约与陪伴',note:'先询问对方的意愿',ids:['public-invitation','quiet-company','private-company','salon-invite-to-venue']},
 ];
 const TOPIC_NOTES={
  'support-request':'询问立场，不代表对方一定支持',
@@ -121,7 +121,8 @@ export function createPlayerConversationUI({getSocial,getCountry,onReset=null,on
    const addChoice=(target,topic,label=topicLabel(topic),explicitConsent=false)=>{
     const b=make('button',null,'player-conversation-topic ww-airy-action'),copy=make('span',null,'player-conversation-topic-copy'),arrow=make('span','›','player-conversation-topic-arrow');b.type='button';b.setAttribute('data-conversation-topic',topic.id);
     copy.append(make('span',label,'player-conversation-topic-label'));
-    if(!explicitConsent&&TOPIC_NOTES[topic.id])copy.append(make('span',TOPIC_NOTES[topic.id],'player-conversation-topic-detail'));
+    b.disabled=topic.disabled===true;
+    if(!explicitConsent&&(topic.detail||TOPIC_NOTES[topic.id]))copy.append(make('span',topic.detail||TOPIC_NOTES[topic.id],'player-conversation-topic-detail'));
     arrow.setAttribute('aria-hidden','true');b.append(copy,arrow);
     if(explicitConsent)b.setAttribute('data-conversation-consent','current-occasion');
     b.onclick=()=>{
