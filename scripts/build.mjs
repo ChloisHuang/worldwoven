@@ -54,7 +54,7 @@ if(fs.existsSync(path.join(root,'qa/nearby.html'))){
 fs.writeFileSync(path.join(out,'three-LICENSE.txt'),fs.readFileSync('source/vendor/three/LICENSE'));
 fs.cpSync('source/licenses',path.join(out,'licenses'),{recursive:true});
 const releaseVersion=JSON.parse(fs.readFileSync('package.json','utf8')).version.replace(/^0\./,'');
-const manifest={release:'R'+releaseVersion+'-public',date:'2026-10-09',baseGameCommit:JSON.parse(fs.readFileSync('cache-baseline.json','utf8')).publishedSourceCommit,assets};fs.writeFileSync(path.join(out,'build.json'),JSON.stringify(manifest,null,2)+'\n');
+const manifest={release:'R'+releaseVersion+'-public',date:'2026-10-10',baseGameCommit:JSON.parse(fs.readFileSync('cache-baseline.json','utf8')).publishedSourceCommit,assets};fs.writeFileSync(path.join(out,'build.json'),JSON.stringify(manifest,null,2)+'\n');
 // No overlapping Cache-Control rules: Cloudflare concatenates matching values.
 fs.writeFileSync(path.join(out,'_headers'),`/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n/\n  Cache-Control: public, max-age=0, must-revalidate\n/index.html\n  Cache-Control: public, max-age=0, must-revalidate\n/game/\n  Cache-Control: public, max-age=0, must-revalidate\n/game/index.html\n  Cache-Control: public, max-age=0, must-revalidate\n/build.json\n  Cache-Control: public, max-age=0, must-revalidate\n`);
 fs.mkdirSync('dist/server',{recursive:true});fs.copyFileSync('worker/index.mjs','dist/server/index.js');fs.mkdirSync('dist/.openai',{recursive:true});fs.copyFileSync('.openai/hosting.json','dist/.openai/hosting.json');
