@@ -121,7 +121,7 @@ export function createJapanServiceOrders({saved={},worldSeed=1,saveState=()=>{},
  // receiver remains in the outbox; a successful receiver deduplicates replay by id.
  const acknowledged=new Set();
  const replayRelationships=()=>{for(const event of state.relationshipEvents)if(!acknowledged.has(event.id)){try{const result=onRelationshipEvent(clone(event));if(result?.ok===true&&!result?.then)acknowledged.add(event.id);}catch{}}};
- const persist=()=>{state.relationshipEvents=state.relationshipEvents.filter(e=>!acknowledged.has(e.id));try{const result=saveState(snapshot());if(result===false||result?.then)return false;replayRelationships();return true;}catch{return false;}};
+ const persist=()=>{state.relationshipEvents=state.relationshipEvents.filter(e=>!acknowledged.has(e.id));try{const result=saveState(snapshot());if(result===false||result?.ok===false||result?.then)return false;replayRelationships();return true;}catch{return false;}};
  const relationship=(v,kind,actorId,participants,outcome='completed',suffix='')=>{
   const id=`japan-service:${v.id}:${kind}:${outcome}${suffix}`;
   if(!state.relationshipEvents.some(e=>e.id===id))state.relationshipEvents.push({id,source:'japan-service',outcome,actorId,participants:[...new Set([actorId,...participants])],kind:'service',serviceKind:kind,...(kind==='wrong-table'?{fault:true}:{}),at:Math.max(0,Number(getRelationshipTime())||0)});

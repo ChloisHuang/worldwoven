@@ -43,3 +43,9 @@ for(const bad of [false,0,'broken',[],{},...[
  assert.deepEqual(badCare.work(),[]);assert.deepEqual(badCare.receipts(),[]);assert.equal(badCare.claimDuty(R),false);assert.equal(badCare.releaseDuty(R),false);assert.equal(badCare.releaseNPC(),false);assert.equal(badCare.observeDay(30,6),false);assert.equal(writes,0);assert.deepEqual(badCare.snapshot(),bad);
 }
 console.log('PASS balcony care boundaries: exact quarantine, synchronous save rollback, reentry guard, cancel/cold handoff and mixed-shift receipt rejection');
+
+// The operations board must not acknowledge a rejected durable write before care sees it.
+let boardReject=true;const rejectedBoard=createJapanServiceOrders({saveState:()=>boardReject?{ok:false}:{ok:true}});
+assert.equal(rejectedBoard.balcony.observeDay(0,6),false);assert.equal(rejectedBoard.balcony.state().item.cycle,0);assert.equal(rejectedBoard.state().balconyCare.item.cycle,0);boardReject=false;assert(rejectedBoard.balcony.observeDay(0,6));assert.equal(rejectedBoard.balcony.state().item.cycle,1);
+assert(rejectedBoard.balcony.claimDuty(R));const beforeBoard=rejectedBoard.state();boardReject=true;assert.equal(rejectedBoard.balcony.advance(ID,'lanterns','player',{cycle:1,day:0,receiptId:R}),false);assert.deepEqual(rejectedBoard.state(),beforeBoard);assert.equal(rejectedBoard.balcony.releaseDuty(R),false);assert.deepEqual(rejectedBoard.state(),beforeBoard);boardReject=false;assert(rejectedBoard.balcony.advance(ID,'lanterns','player',{cycle:1,day:0,receiptId:R}));
+console.log('PASS original corridor operations bridge: object-shaped storage failure does not consume a round, stage or owner; exact retry succeeds');
