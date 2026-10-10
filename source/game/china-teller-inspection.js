@@ -22,13 +22,13 @@ export const validTellerInspectionState=valid;
 // Duty logic has no daily-needs registration. The Chinese scene adapter
 // provides real movement, contact and exclusive body ownership.
 // Only this top-level state is authoritative; there is no continuity restore API.
-export function createTellerInspection({resolveAssignment,getDay,getGlobalAuditDay=()=>-1,getActor,getLedger,canControl=()=>false,isCounterOpen=()=>true,travel,pose,contact=()=>false,economy,saved,saveState=()=>false}={}){
+export function createTellerInspection({resolveAssignment,getDay,getGlobalAuditDay=()=>-1,getActor,getLedger,canControl=()=>false,canControlCounter=canControl,isCounterOpen=()=>true,travel,pose,contact=()=>false,economy,saved,saveState=()=>false}={}){
  let state=empty(),loadError=null,disposed=false,cachedReport=null,cachedOrderId=null;
  const reportOf=c=>{if(cachedOrderId!==c.orderId){cachedReport=verifyTellerSource(c.source);cachedOrderId=c.orderId;}return cachedReport;};
  if(saved!=null){if(valid(saved))state=copy(saved);else{state=copy(saved);loadError='invalid-teller-inspection';}}
  function write(next){if(!valid(next))return false;try{const r=saveState(copy(next));if(r?.then)Promise.resolve(r).catch(()=>{});if(r===false||r?.ok===false||r?.then)return false;state=next;return true;}catch{return false;}}
  const ownedId=()=>loadError?null:state.order?.contract.actorId||null;
- const ready=n=>{const a=resolveAssignment();return !!n&&n.alive!==false&&a?.status==='npc'&&a.actor===n&&a.holderId===n.station?.id&&a.alive&&a.available&&canControl(n);};
+ const ready=(n,control=canControl)=>{const a=resolveAssignment();return !!n&&n.alive!==false&&a?.status==='npc'&&a.actor===n&&a.holderId===n.station?.id&&a.alive&&a.available&&control(n);};
  const blocked=(n,context)=>isCounterOpen()||isSociallyHeld(n.station.id,context.conversationActorId)||context.performing===n.station.id;
  const liveLedger=()=>{try{const ledger=getLedger();return ledger&&ledger.loadError===null&&typeof ledger.state==='function'?ledger:null;}catch{return null;}};
  return {
@@ -38,7 +38,7 @@ export function createTellerInspection({resolveAssignment,getDay,getGlobalAuditD
   // The daily audit reads its frozen source, not a pending cash transaction.
   // Its same holder can pause to serve a customer without handing off, settling,
   // reissuing or replacing that source. isCounterOpen freezes all audit progress.
-  canServeCounter:n=>{const a=resolveAssignment(),o=state.order;return !disposed&&!loadError&&ready(n)&&!!liveLedger()&&(!o||o.contract.actorId===n.station.id&&o.contract.holderRevision===a.revision);},
+  canServeCounter:n=>{const a=resolveAssignment(),o=state.order;return !disposed&&!loadError&&ready(n,canControlCounter)&&!!liveLedger()&&(!o||o.contract.actorId===n.station.id&&o.contract.holderRevision===a.revision);},
   canBorrowMeal:()=>false,
   update(dt,t,context={}){
    if(disposed||loadError||!Number.isFinite(dt)||dt<=0)return;dt=Math.min(dt,.25);
