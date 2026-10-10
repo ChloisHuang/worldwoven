@@ -19,7 +19,7 @@ try{
  renderer.debug.onShaderError=(g,p,v,f)=>report.errors.push({program:g.getProgramInfoLog(p),vertex:g.getShaderInfoLog(v),fragment:g.getShaderInfoLog(f)});
  const scene=new T.Scene();scene.background=new T.Color(0xc1cbc0);const hemi=new T.HemisphereLight(0xfff4d8,0x6e8a7b,.85),sun=new T.DirectionalLight(0xffedcd,1.6);scene.add(hemi,sun,sun.target);configureStableShadows(renderer,sun);
  const ctx=buildChina();scene.add(ctx.group);const M=ctx.blackMarket;
- const views={entry:{position:[14.3,.115,10.4],yaw:Math.PI-.20,rotation:0},branch:{position:[14.3,-4.1,19.15],yaw:-Math.PI/2,rotation:Math.PI/2},counter:{position:M.interaction.position,yaw:.34,rotation:Math.PI}};
+ const views={entry:{position:[14.3,.115,10.4],yaw:Math.PI-.20,rotation:0},branch:{position:[16.65,-4.1,19.15],yaw:-Math.PI/2,rotation:Math.PI/2},counter:{position:M.interaction.position,yaw:.34,rotation:Math.PI}};
  const name=new URL(location.href).searchParams.get('view')||'counter',v=views[name];if(!v)throw Error('Unknown view');
  const player=createCharacter({culture:'china',bodyPreset:'feminine-balanced',wardrobePreset:'hanfu-ruqun'});player.root.position.set(...v.position);player.root.rotation.y=v.rotation;ctx.group.add(player.root);player.animate(1,false,null);applyCharacterShadowPolicy(player.root);
  const merchant=createCharacter({culture:'china',bodyPreset:'masculine-balanced',wardrobePreset:'scholar-tunic-trousers'});merchant.root.position.set(...M.merchant.position);merchant.root.rotation.y=M.merchant.rotation;ctx.group.add(merchant.root);merchant.animate(1,false,null);applyCharacterShadowPolicy(merchant.root);
