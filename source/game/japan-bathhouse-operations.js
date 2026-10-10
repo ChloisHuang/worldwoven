@@ -208,7 +208,8 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    const urgent=sharedNeeds?.status(v.id),occupied=display.items.some(x=>x.stage==='viewing')||[...tasks.values()].some(t=>t.omamoriViewing),optional=interested&&!display.seenVisits.includes(v.id);
    if(viewing||optional&&!occupied&&!urgent?.seekMeal&&!urgent?.seekToilet&&display.items.some(x=>x.stage==='clean')){
     let task;task=assign(n,[4.7,0,33.1],{omamoriViewing:true,label:'沿参道到御守台欣赏原布袋绳结',duration:8,action:'tidy',workTarget:[4.7,1.14,32.04],handoff:true,onArrive:()=>{
-     if(board.omamori.state().items.some(x=>x.stage==='viewing'&&x.viewerId===v.id)||board.omamori.beginViewing(v.id))return true;
+     if(board.omamori.state().items.some(x=>x.stage==='viewing'&&x.viewerId===v.id))return true;const need=sharedNeeds?.status(v.id);
+     if(!need?.seekMeal&&!need?.seekToilet&&board.omamori.beginViewing(v.id))return true;
      // Public stand occupied or final clean pouch handled while we walked:
      // skip this optional stop instead of delaying the original bath visit.
      if(!board.omamori.skipVisitor(v.id))return false;task.duration=0;task.handoff=false;return true;
