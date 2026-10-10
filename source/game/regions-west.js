@@ -1199,17 +1199,21 @@ export function buildFrance({pack=true}={}){
   // White-and-emerald state bedroom with a true tall canopy, gilded finials,
   // draped backcloth and embroidered geometric coverlet.
   G.rug(group,7.0,-1.8,5.8,6.8,C.sage,C.gold);
-  block(7.55,.55,-2.65,3.35,.64,4.05,C.gold);box(7.55,.99,-2.65,3.23,.28,3.93,C.white);box(7.55,1.17,-2.14,3.24,.16,2.93,C.green);box(7.55,1.34,-4.57,3.42,1.70,.18,C.white);
-  for(const x of [6.42,7.55,8.68])box(x,1.262,-1.98,.039,.019,2.40,C.gold);
-  for(const z of [-2.9,-2.1,-1.3])box(7.55,1.263,z,3.10,.019,.035,C.gold);
-  for(const x of [6.72,8.32])pillow(group,x,1.135,-3.82,C.white,.95,.64);
+  block(7.55,.55,-2.65,3.35,.64,4.05,C.gold);box(7.55,.99,-2.65,3.23,.28,3.93,C.white);
+  // Keep only these authored textiles addressable for the original bed's care.
+  // Identity pillow groups preserve every existing mesh/world transform.
+  const franceBedchamber={bedId:'france-furniture-bed-0',cover:box(7.55,1.17,-2.14,3.24,.16,2.93,C.green),embroidery:[],pillows:[],folded:[]};
+  box(7.55,1.34,-4.57,3.42,1.70,.18,C.white);
+  for(const x of [6.42,7.55,8.68])franceBedchamber.embroidery.push(box(x,1.262,-1.98,.039,.019,2.40,C.gold));
+  for(const z of [-2.9,-2.1,-1.3])franceBedchamber.embroidery.push(box(7.55,1.263,z,3.10,.019,.035,C.gold));
+  for(const x of [6.72,8.32]){const original=new THREE.Group();group.add(original);pillow(original,x,1.135,-3.82,C.white,.95,.64);franceBedchamber.pillows.push(original);}
   for(const x of [5.82,9.28])for(const z of [-4.70,-.58]){G.cyl(group,x,2.30,z,.055,.075,4.1,C.gold,10);G.sphere(group,x,4.48,z,.13,C.gold,.80,1.8,.8);cameraBox(x,2.3,z,.15,4.4,.15);}
   box(7.55,4.20,-2.64,3.75,.18,4.5,C.gold);box(7.55,4.31,-2.64,3.66,.075,4.4,C.sage);
   for(const x of [5.96,9.15])for(let k=0;k<4;k++)G.cyl(group,x+(k-1.5)*.09,2.54+k*.006,-4.66,.11,.13,3.06,k%2?C.green:C.emerald,8);
   for(let i=0;i<11;i++)G.sphere(group,5.96+i*.32,4.0,-.49,.22,C.green,1.0,.7,.45);
   block(4.4,.85,-4.95,1.19,1.17,.86,C.white);box(4.4,1.52,-4.95,1.29,.13,1.01,C.gold);G.vessel(group,4.4,1.58,-4.95,C.white,.50);
   feetTable(group,colliders,6.3,1.93,3.1,.82,C.gold,1.10);box(6.3,1.19,1.93,3.20,.11,.90,C.white);cameraBox(6.3,.82,1.93,3.2,1.19,.9);const dressing=local(6.3,2.30,Math.PI);mirror(dressing,0,2.32,0,1.30,1.98);
-  G.vessel(group,7.35,1.245,1.85,C.green,.36);for(let i=0;i<3;i++)box(5.05,1.29+i*.065,1.85,.55,.059,.46,[C.white,C.sage,C.green][i]);
+  G.vessel(group,7.35,1.245,1.85,C.green,.36);for(let i=0;i<3;i++)franceBedchamber.folded.push(box(5.05,1.29+i*.065,1.85,.55,.059,.46,[C.white,C.sage,C.green][i]));
   // Formal parterres, garden pool and a classical afternoon-tea loggia.
   const hedge=(x,z,w,d)=>{addGardenHedge(group,x,z,w,d);G.collider(colliders,x,z,w,d);cameraBox(x,.42,z,w,.75,d);};
   for(const [x,z,w,d]of [[-7.1,8.8,6.2,.40],[-7.1,13.8,6.2,.40],[-10.0,11.3,.40,5],[-4.2,11.3,.40,5],[-7.1,16.9,7.4,.40],[6.75,16.9,8.1,.40],[-11.95,11.6,.45,11.0],[11.95,11.6,.45,11.0]])hedge(x,z,w,d);
@@ -1368,8 +1372,9 @@ export function buildFrance({pack=true}={}){
 
   // Spatially separate static batches so the palace, wings and distant garden
   // rooms can be frustum-culled independently in the enlarged estate.
+  const bedchamberOriginals=new Set([franceBedchamber.cover,...franceBedchamber.embroidery,...franceBedchamber.pillows,...franceBedchamber.folded]);
   function packPalaceChunks(root,skip=null){
-    root.updateMatrixWorld(true);const pieces=[];root.traverse(o=>{if(o.isMesh){let inSkip=false;for(let p=o;p;p=p.parent)if(p===skip)inSkip=true;if(!inSkip)pieces.push(o);}});
+    root.updateMatrixWorld(true);const pieces=[];root.traverse(o=>{if(o.isMesh){let inSkip=false;for(let p=o;p;p=p.parent)if(p===skip||bedchamberOriginals.has(p))inSkip=true;if(!inSkip)pieces.push(o);}});
     const chunks=new Map();
     for(const mesh of pieces){const center=new THREE.Box3().setFromObject(mesh).getCenter(new THREE.Vector3());const key=`${Math.floor(center.x/10)},${Math.floor(center.z/10)}`;let chunk=chunks.get(key);if(!chunk){chunk=new THREE.Group();chunk.name=`Royal estate spatial batch ${key}`;root.add(chunk);chunks.set(key,chunk);}chunk.attach(mesh);}
     for(const chunk of chunks.values())packStatic(chunk);
@@ -1379,5 +1384,5 @@ export function buildFrance({pack=true}={}){
   group.userData.furnitureRevision='R11-sculpted-rocaille-french-furniture';
   group.userData.furnitureAssemblies=furniture.map(q=>{const b=new THREE.Box3().setFromObject(q);return {name:q.name,kind:q.userData.furnitureKind,min:b.min.toArray(),max:b.max.toArray()};});
   if(pack){packPalaceChunks(roofGroup);packPalaceChunks(group,roofGroup);}
-  return {group,colliders,cameraColliders,exchangeCounter,spawn:[0,0,32],stations,roofGroup,walkableSurfaces,explorationTargets,doorways,bounds};
+  return {group,colliders,cameraColliders,exchangeCounter,franceBedchamber,spawn:[0,0,32],stations,roofGroup,walkableSurfaces,explorationTargets,doorways,bounds};
 }

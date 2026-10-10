@@ -156,6 +156,23 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   const palm=posedP[6].clone().add(palmOffset),world=p=>p.clone().add(rig.position).applyMatrix4(root.matrixWorld).toArray();
   metrics.railWipeContact={target:world(railWipeTarget),cloth:world(contact.clone().add(V(0,.002/root.scale.y,0))),palm:world(palm),palmGap:(palm.y-top.y)*root.scale.y,reachError:palm.distanceTo(top),stroke:sweep};
  }
+ // Explicit care of an existing textile: bare palms touch that real surface.
+ // Keep this independent of generic tidy and the separate rail/pond cloth props.
+ const linenCareTarget=V(),linenCareStrokeAxis=V(),linenCarePalmOffsets=[V(),V()];
+ for(let side=0;side<2;side++){let lowest=Infinity;for(const point of supportPoints[side]){tmp.copy(point).applyQuaternion(pondWipePalmQ);if(tmp.y<lowest){lowest=tmp.y;linenCarePalmOffsets[side].copy(tmp);}}}
+ function poseLinenCare(time){
+  const sweep=Math.sin(time*2.4)*.035,contacts=[];
+  for(let side=0;side<2;side++){
+   const upper=side?7:4,elbow=side?8:5,hand=side?9:6;
+   const contact=linenCareTarget.clone().addScaledVector(linenCareStrokeAxis,sweep+(side?.095:-.095)*Math.sign(linenCareStrokeAxis.x||1));contact.y+=.001/root.scale.y;
+   const wrist=contact.clone().sub(linenCarePalmOffsets[side]);
+   solveLimb(upper,elbow,hand,wrist,V(side?.7:-.7,.65,-.55));posedQ[hand].copy(pondWipePalmQ);
+   const palm=posedP[hand].clone().add(linenCarePalmOffsets[side]);
+   contacts.push({palm:palm.clone().add(rig.position).applyMatrix4(root.matrixWorld).toArray(),reachError:palm.distanceTo(contact)});
+  }
+  metrics.linenCareContact={target:linenCareTarget.clone().add(rig.position).applyMatrix4(root.matrixWorld).toArray(),axis:contextLinenAxis,stroke:sweep,hands:contacts};
+ }
+ let contextLinenAxis='x';
  const chairHands=[0,1].map(()=>({wrist:V(),rotation:new THREE.Quaternion()}));let fittedChairHeight=null;
  function fitOnsenPalmContact(){for(const geometry of template.geometry)for(const range of geometry.userData.sourceRanges||[])if(range.name==='relaxed-palm-1'){
   let low=Infinity;for(let i=range.start;i<range.start+range.count;i++){tmp.fromBufferAttribute(geometry.attributes.position,i).sub(rest[9]).applyQuaternion(onsenLapPalmQ);const depth=tmp.dot(onsenLapNormal);if(depth<low){low=depth;onsenPalmContact.offset.copy(tmp);onsenPalmContact.index=i;}}
@@ -374,11 +391,14 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   // anatomical arm lengths stay unchanged. Feet keep their support solve.
   const pondWipe=action==='pond-wipe'&&Array.isArray(context?.pondWipe?.target)&&context.pondWipe.target.length===3&&context.pondWipe.target.every(Number.isFinite);
   const railWipe=action==='rail-wipe'&&Array.isArray(context?.railWipe?.target)&&context.railWipe.target.length===3&&context.railWipe.target.every(Number.isFinite);
+  const linenCare=action==='linen-care'&&Array.isArray(context?.linenCare?.target)&&context.linenCare.target.length===3&&context.linenCare.target.every(Number.isFinite)&&['x','z'].includes(context.linenCare.axis);
+  metrics.linenCareContact=null;
   metrics.pondWipeContact=null;
   metrics.railWipeContact=null;
   metrics.galleryInspectionTarget=null;
   if(pondWipe){inverseRoot.copy(root.matrixWorld).invert();pondWipeTarget.fromArray(context.pondWipe.target).applyMatrix4(inverseRoot).sub(rig.position);pondWipeStrokeAxis.set(0,0,1).applyMatrix4(inverseRoot).sub(tmp.set(0,0,0).applyMatrix4(inverseRoot));root.getWorldQuaternion(pondWipeClothQ).invert().multiply(armRotation.setFromAxisAngle(armRollAxis,-Math.PI/2));}
   if(railWipe){inverseRoot.copy(root.matrixWorld).invert();railWipeTarget.fromArray(context.railWipe.target).applyMatrix4(inverseRoot).sub(rig.position);railWipeStrokeAxis.set(1,0,0).applyMatrix4(inverseRoot).sub(tmp.set(0,0,0).applyMatrix4(inverseRoot));root.getWorldQuaternion(railWipeClothQ).invert();}
+  if(linenCare){inverseRoot.copy(root.matrixWorld).invert();linenCareTarget.fromArray(context.linenCare.target).applyMatrix4(inverseRoot).sub(rig.position);contextLinenAxis=context.linenCare.axis;linenCareStrokeAxis.set(contextLinenAxis==='x'?1:0,0,contextLinenAxis==='z'?1:0).applyMatrix4(inverseRoot).sub(tmp.set(0,0,0).applyMatrix4(inverseRoot));}
   const handoffDip=!walking&&context?.handoff&&Number.isFinite(context.handoffDip)?clamp(context.handoffDip,0,.12):0;
   setTorso((action==='bathe'?(context?.bathHipHeight??.32):action==='chair-sit'?chairHeight+.14:action==='kotatsu'?.417-seatedDrop:walking?rest[0].y+bob:rest[0].y)-handoffDip,context?.handoff&&Number.isFinite(context.handoffLean)?clamp(context.handoffLean,0,.8):action==='calligraphy'?(receptionWriting?.18:.40):/^(knead|bread|cook|sushi|bake|tidy)$/.test(action||'')?.13:0,walking?Math.sin(t)*.012:0);
   // A supported crouch brings the shoulder within reach of the original .36 m
@@ -387,6 +407,9 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   // A standing weight shift and lightly flexed knees put the waist rail within
   // real arm reach. Longer legs need more knee flex; both soles stay planted.
   if(railWipe){setTorso(rest[0].y-.06-Math.max(0,shapeTraits.legLength-1)*1.08,.40,0);const leanForward=Math.max(.10,railWipeTarget.z-.385);for(const i of[0,1,2,3,4,7,10,13])posedP[i].z+=leanForward;}
+  // Lower bedding needs a deeper waist bend than the high folded stack.
+  // Keep shoulders within anatomical reach while leaving clothing off the edge.
+  if(linenCare){const lean=clamp((rest[4].y-linenCareTarget.y)*2.3,.25,.82);setTorso(rest[0].y-.045-Math.max(0,shapeTraits.legLength-1)*.8,lean,0);const leanForward=Math.max(0,linenCareTarget.z-(posedP[4].z+posedP[7].z)*.5-.39);for(const i of[0,1,2,3,4,7,10,13])posedP[i].z+=leanForward;}
   // A shorter thigh sits slightly forward on the same cushion so its knee
   // clears the seat edge; the feet retain their exact floor targets.
   if(action==='chair-sit'&&shapeTraits.legLength<1)for(const i of [0,1,2,3,4,7,10,13])posedP[i].z+=(1-shapeTraits.legLength)*1.2;
@@ -500,6 +523,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   else if(/read|rest/.test(action||'')){reach(0,-.16,1.13,.29);reach(1,.18,1.13,.29);show('book');lookX=.22;}
   else if(pondWipe){show('cloth');lookX=-.38;lookY=0;}
   else if(railWipe){show('cloth');lookX=.12;lookY=0;}
+  else if(action==='linen-care'){reach(0,-.25,.955,.13);reach(1,.25,.955,.13);lookX=.18;lookY=0;}
   else if(/garden/.test(action||'')){reach(0,-.27,.96,.14);reach(1,.26,1.09,.29);show('can');lookX=.17;}
   else if(action){reach(0,-.18,1.02,.28);reach(1,.18,1.04+Math.sin(time*2.7)*.025,.29);show('cloth');lookX=.18;}
   // Explicit routine carrying is opt-in: keep the vessel upright at a real
@@ -555,7 +579,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
 
   const grips=[];
   for(let side=0;side<2;side++){
-   if(pondWipe||railWipe)continue;const group=side?props.right:props.left,hand=side?9:6,prop=group.children.find(p=>p.visible&&HAND_PROP_GRIPS[p.name]);if(!prop)continue;
+   if(pondWipe||railWipe||linenCare)continue;const group=side?props.right:props.left,hand=side?9:6,prop=group.children.find(p=>p.visible&&HAND_PROP_GRIPS[p.name]);if(!prop)continue;
    propAnchors[side].copy(posedP[hand]);propFitted[side]=true;
    const target=V(...HAND_PROP_GRIPS[prop.name]).multiplyScalar(.8).multiply(prop.scale).applyQuaternion(prop.quaternion).add(prop.position);
    if(side&&/garden/.test(action||''))target.applyAxisAngle(armTiltAxis,-.35);
@@ -577,6 +601,7 @@ export function createCharacter({skin=0xdba783,hair=0x463328,clothes=0x5d93a8,ac
   }
   if(pondWipe)posePondWipe(time);
   if(railWipe)poseRailWipe(time);
+  if(linenCare)poseLinenCare(time);
   if(action==='gallery-inspect'&&Array.isArray(context?.inspectionTarget)&&context.inspectionTarget.length===3&&context.inspectionTarget.every(Number.isFinite)){
    inverseRoot.copy(root.matrixWorld).invert();tmp.fromArray(context.inspectionTarget).applyMatrix4(inverseRoot).sub(rig.position).sub(posedP[3]);
    lookX=clamp(-Math.atan2(tmp.y,Math.hypot(tmp.x,tmp.z)),-.60,.20);lookY=clamp(Math.atan2(tmp.x,tmp.z),-.68,.68);
