@@ -309,6 +309,11 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   beginOmamoriViewing:()=>omamoriDuty.beginViewing(),completeOmamoriViewing:()=>omamoriDuty.endViewing(),cancelOmamoriViewing:()=>omamoriDuty.endViewing(),omamoriWorkReceipts:()=>board.omamori.receipts(),
   connectBoilerDuty(options){return boilerDuty.connect(options);},
   beddingStatus:()=>board.bedding.status(),
+  lodgingRoomReady(){const bedding=board.bedding.state(),bed=furniture.facilities.state().find(x=>x.id===JAPAN_GUEST_BED);return !disposed&&!bedding.loadError&&!bedding.occupied&&board.bedding.status().available&&!bed?.reservations?.length&&!bed?.player;},
+  lodgingHost(){
+   if(disposed||board.receptionDuty()||board.jobs().some(j=>['register','checkout'].includes(j.kind)))return null;
+   for(const id of JAPAN_SERVICE_WORKERS.register){const n=actors.get(id),task=n&&tasks.get(id);if(!n||n.alive===false||isJapanEmployeeInteraction(n,playerState)||!staffLife?.canWork(id)||!staffLife.canClaim(id,'register')||receptionDuty?.blocksWorker(id)||board.workerBusy(id)||n.serviceMount||n.bathTransition||n.walking||n.route?.length||task&&(!task.idle||!task.arrived)||!near(n.root.position,P.registrar,1.6))continue;return {id,name:n.station.npcName};}return null;
+  },
   connectLinenDuty(options){return linenDuty.connect(options);},
   itemAnchor:id=>disposed?null:props.itemAnchor(id),
   owns:n=>actors.has(n.station.id),
