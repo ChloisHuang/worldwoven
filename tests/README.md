@@ -90,3 +90,7 @@ CR04 最终已启用；生产main从原31身体执行并保存两份独立合成
 ### 原晋升等待档定向续行
 
 `PERSONNEL_RANK_CONTINUE=1 PERSONNEL_MAIN_FROM=/absolute/path/to/waiting-world.json node --experimental-vm-modules tests/china-personnel-rank-main.cjs` 只继续原待阅批请求，不生成履历、重抽签、布置皇帝/玩家位置或改需求。输入须为 `document-held` 且原请求仍在执行的完整世界存档；禁止同时设 `PERSONNEL_RANK_PUBLIC=1`。输出独立 `qa/personnel-rank-continuation`，保留原普通/分段rank journal。最多60模拟秒，决定完成验证真实4秒和原签，仍等待则保存CHECKPOINT，不把固定预算边界当死锁。只在相关明确待验尾段运行，仍使用共享锁、180秒/1152MiB/Node768守卫。R212原诊断与重放差异、实际9.3秒冷续拒绝见精简evidence JSON；未修改产品导航或声称原热帧无限卡死。
+
+### 日本原映池照料定向入口
+
+`japan-garden-main.cjs` 默认冷验唯一已付 `fixtures/japan-garden-paid/checkpoint.json`，不重走已过招聘和四步巡护；报告以currentRun明确本次冷验/实走观察，累计阶段与接触证据继承原检查点而不冒称重测。`GARDEN_FRESH=1` 才从明示成年/园艺1/礼仪1/种子/初始到岗输入开始；`GARDEN_SCENARIO=npc` 单独查原Akari。`GARDEN_PAUSE_AT=plants` 在实际首步完成后写同号检查点、退出75（仅检查点，不是全链通过）；续段用 `GARDEN_RESUME=<旧目录>/last-save.json GARDEN_OUT=<新目录>`。擦池沿须真实走到原工作点0.08m以内才开工，实际main检查原石范围内的抹布/掌面接触和候援净空。脚本自带共享锁及180秒/1152MiB/Node768限制；模拟DOM/renderer不代替浏览器/iOS接受。`japan-pond-wipe-pose.mjs` 仅覆盖新动作的5体型/5到位位置/11时点与退出，不因此扩跑四国角色全套。
