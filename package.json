@@ -1,6 +1,6 @@
 {
   "name": "worldwoven",
-  "version": "0.16.219",
+  "version": "0.16.220",
   "private": true,
   "description": "Original cel-shaded cultural life and exploration game",
   "engines": {
@@ -10,28 +10,7 @@
     "dev": "node scripts/serve.mjs source 5173",
     "build": "node scripts/build.mjs",
     "preview": "node scripts/serve.mjs dist/client 4173",
-    "test": "node tests/run.cjs",
-    "test:cache": "node --experimental-vm-modules tests/cache-build.cjs",
-    "test:worker": "node --test worker/worker.test.mjs",
-    "test:door-geometry": "node tests/door-geometry/run.cjs",
-    "dev:actors": "node development/actor-model-preview/serve.mjs",
-    "test:list": "node tests/run.cjs --list",
-    "test:check": "node tests/run.cjs --check",
-    "test:characters": "node tests/run.cjs --module characters",
-    "test:characters:list": "node tests/run.cjs --module characters --tier all --list",
-    "test:navigation": "node tests/run.cjs --module navigation",
-    "test:navigation:list": "node tests/run.cjs --module navigation --tier all --list",
-    "test:ui": "node tests/run.cjs --module ui",
-    "test:ui:list": "node tests/run.cjs --module ui --tier all --list",
-    "test:food-lodging": "node tests/run.cjs --module food-lodging",
-    "test:food-lodging:list": "node tests/run.cjs --module food-lodging --tier all --list",
-    "test:economy-careers": "node tests/run.cjs --module economy-careers",
-    "test:economy-careers:list": "node tests/run.cjs --module economy-careers --tier all --list",
-    "test:world-life": "node tests/run.cjs --module world-life",
-    "test:world-life:list": "node tests/run.cjs --module world-life --tier all --list",
-    "test:release:list": "node tests/run.cjs --module release --tier all --list",
-    "test:diagnostics:list": "node tests/run.cjs --module diagnostics --tier all --list",
-    "test:release": "node tests/run.cjs --module release"
+    "dev:actors": "node development/actor-model-preview/serve.mjs"
   },
   "type": "module"
 }

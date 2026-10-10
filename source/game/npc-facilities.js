@@ -19,6 +19,11 @@ export function createFacilityQueue() {
   reservation(id,actor){const f=facilities.get(id),r=f&&[...f.reservations.values()].find(r=>r.actor===actor);return r?{...r}:null;},
   release(id,actor){const f=facilities.get(id);if(!f)return;f.queue=f.queue.filter(a=>a!==actor);for(const [seat,r]of f.reservations)if(r.actor===actor)f.reservations.delete(seat);},
   releaseActor(actor){for(const [id]of facilities)this.release(id,actor);},
+  // Used only inside a synchronous manual recovery transaction. Preserve exact
+  // slot and queue order if its single full-world save is rejected.
+  prepareReleaseActor(actor){const before=[...facilities].map(([id,f])=>({id,reservations:[...f.reservations].filter(([,r])=>r.actor===actor),queueIndex:f.queue.indexOf(actor)}));
+   return {apply:()=>{for(const {id}of before)this.release(id,actor);},rollback:()=>{for(const {id,reservations,queueIndex}of before){const f=facilities.get(id);for(const [seat,r]of reservations)f.reservations.set(seat,r);if(queueIndex>=0&&!f.queue.includes(actor))f.queue.splice(queueIndex,0,actor);}}};
+  },
   // Retained for single-user chairs/changing places. Shared pools cannot evict
   // their bathers when the player requests a different empty slot.
   prioritize(id,active=true){if(disposed)return null;const f=facility(id);if(f.slots.length>1)return null;const previous=active?[...f.reservations.values()][0]?.actor||null:null;f.player=active;if(active)f.reservations.clear();return previous;},

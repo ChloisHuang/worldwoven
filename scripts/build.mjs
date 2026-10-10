@@ -28,7 +28,7 @@ function emit(rel){if(assets[rel])return assets[rel];if(busy.has(rel))throw Erro
  // this narrowly scoped: no generic CSS parser, glob loader or eager preload.
  body=body.replace(/(\bnew URL\(\s*['"])(\.\.?\/[^'"]+)(['"]\s*,\s*import\.meta\.url\s*\))/g,(_,a,s,b)=>{
   const asset=path.posix.normalize(path.posix.join(path.posix.dirname(rel),s));
-  if(!['game/wallet.css','game/travel-passport.css','game/travel-journey.css','qa/nearby-candidate/wallet.css'].includes(asset)&&!/^game\/assets\/currency\/(?:china|japan|egypt|france)\.webp$/.test(asset))throw Error('Unsupported URL asset '+asset);
+  if(!['game/wallet.css','game/travel-passport.css','game/travel-journey.css'].includes(asset)&&!/^game\/assets\/currency\/(?:china|japan|egypt|france)\.webp$/.test(asset))throw Error('Unsupported URL asset '+asset);
   return a+emit(asset)+b;
  });
  }const ext=path.extname(rel),stem=path.basename(rel,ext),url='/assets/'+stem+'.'+hash(body)+ext;fs.writeFileSync(path.join(out,url),body);assets[rel]=url;busy.delete(rel);return url;}
@@ -36,21 +36,6 @@ const main=emit('game/main.js'),entry=emit('game/entry.js'),css=emit('game/game.
 let html=fs.readFileSync('source/game/index.html','utf8').replace('./game.css?rev=R7-20261002',css).replace('./entry.js',entry).replace('../vendor/three/build/three.module.js',three);
 if(html.includes('../tools/')||html.includes('?rev='))throw Error('Private links or blanket cache version remain');
 fs.mkdirSync(path.join(out,'game'),{recursive:true});fs.writeFileSync(path.join(out,'index.html'),html);fs.writeFileSync(path.join(out,'game/index.html'),html);
-// Separate finite T05 UI QA entry; never referenced by the normal game entry.
-const qaEntry=emit('qa/t05-entry.js');
-fs.mkdirSync(path.join(out,'qa'),{recursive:true});
-for(const name of ['t05.html','t05-frame.html']){
- const qa=fs.readFileSync(path.join(root,'qa',name),'utf8').replace('./t05-entry.js',qaEntry).replace('../game/game.css',css).replace('../vendor/three/build/three.module.js',three);
- fs.writeFileSync(path.join(out,'qa',name),qa);
-}
-// Isolated candidate graph: the default main/entry/CSS above are untouched.
-if(fs.existsSync(path.join(root,'qa/nearby.html'))){
- const nearbyEntry=emit('qa/nearby-entry.js'),nearbyCss=emit('qa/nearby-candidate/game.css');
- const nearby=fs.readFileSync(path.join(root,'qa/nearby.html'),'utf8').replace('./nearby-entry.js',nearbyEntry).replace('./nearby-candidate/game.css',nearbyCss).replace('../vendor/three/build/three.module.js',three);
- fs.writeFileSync(path.join(out,'qa/nearby.html'),nearby);
- fs.cpSync(path.join(root,'qa/nearby'),path.join(out,'qa/nearby'),{recursive:true});
- fs.copyFileSync(path.join(root,'qa/nearby-candidate/manifest.json'),path.join(out,'qa/nearby-candidate-manifest.json'));
-}
 fs.writeFileSync(path.join(out,'three-LICENSE.txt'),fs.readFileSync('source/vendor/three/LICENSE'));
 fs.cpSync('source/licenses',path.join(out,'licenses'),{recursive:true});
 const releaseVersion=JSON.parse(fs.readFileSync('package.json','utf8')).version.replace(/^0\./,'');
@@ -58,6 +43,4 @@ const manifest={release:'R'+releaseVersion+'-public',date:'2026-10-10',baseGameC
 // No overlapping Cache-Control rules: Cloudflare concatenates matching values.
 fs.writeFileSync(path.join(out,'_headers'),`/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n/\n  Cache-Control: public, max-age=0, must-revalidate\n/index.html\n  Cache-Control: public, max-age=0, must-revalidate\n/game/\n  Cache-Control: public, max-age=0, must-revalidate\n/game/index.html\n  Cache-Control: public, max-age=0, must-revalidate\n/build.json\n  Cache-Control: public, max-age=0, must-revalidate\n`);
 fs.mkdirSync('dist/server',{recursive:true});fs.copyFileSync('worker/index.mjs','dist/server/index.js');fs.mkdirSync('dist/.openai',{recursive:true});fs.copyFileSync('.openai/hosting.json','dist/.openai/hosting.json');
-// Optional finite mobile QA graph; its snapshot and manifest stay separate.
-if(fs.existsSync(path.join(root,'qa/mobile-candidate/manifest.json'))){const {buildMobileQa}=await import('./build-mobile-qa.mjs');buildMobileQa({root,out});}
 console.log(JSON.stringify({assets:Object.keys(assets).length,bytes:Object.values(assets).reduce((n,u)=>n+fs.statSync(path.join(out,u)).size,0),previousAssetsRetained:prior.length,main,entry,css,three}));

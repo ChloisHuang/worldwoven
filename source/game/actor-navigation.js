@@ -13,6 +13,10 @@ export function beginActorNavigationStep(dt){
 }
 
 export function cancelActorStandIntent(actor){STAND_RECOVERY.delete(actor);}
+// A successful explicit relocation invalidates this actor's local avoidance
+// history only; no other actor or scene clock is touched.
+export function resetActorNavigation(actor){TURNOUT.delete(actor);BODY_RECOVERY.delete(actor);STAND_RECOVERY.delete(actor);}
+
 
 // Only an actual, continuous get-up intent may call this helper. Read-only
 // budget/availability probes keep using furniture.standPoint directly.

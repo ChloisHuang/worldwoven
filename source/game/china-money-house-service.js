@@ -40,9 +40,8 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
   if(!bound)return {actor:originalTeller,holderId:originalTeller.station.id,revision:0,available:true};
   try{const b=counterBinding();return b?.actor&&typeof b.holderId==='string'&&b.holderId&&b.holderId===b.actor.station?.id&&Number.isSafeInteger(b.revision)&&b.revision>=0?b:null;}catch{return null;}
  };
- const atCounter=(b,opening=false)=>{
+ const atCounter=b=>{
   const p=b?.actor?.root?.position,home=C.points.teller;if(!b||b.available!==true||b.actor.alive===false||!p||![p.x,p.y,p.z].every(Number.isFinite))return false;
-  if(opening)return Math.hypot(p.x-home[0],p.y-home[1],p.z-home[2])<=.15;
   const xs=[home[0],C.points.ledger[0],(C.points.counting||C.points.abacus)[0]];
   return Math.abs(p.y-home[1])<=.15&&Math.abs(p.z-home[2])<=.15&&p.x>=Math.min(...xs)-.15&&p.x<=Math.max(...xs)+.15;
  };
@@ -172,8 +171,9 @@ export function createBankCounterService({npcs,lot,getPlayer,poseContext,saved,s
   owns:n=>!!n&&n===binding()?.actor,ownsStation:id=>id===C.stationId,
   isOpen:()=>!!dialog.open,
   open(){
-   const b=binding();if(isSuspended()){notify('原柜正在履职核验，请先交回原柜员再办理自己的存取');return false;}if(disposed||!near()||bound&&!atCounter(b,true)){if(bound)close();notify(bound&&near()&&!atCounter(b,true)?'账房正在核验原单或暂时离柜，请等本人返回柜台':C.approachMessage||'请走到钱庄柜台前，再请账房办理');return false;}
-   onOpen();if(bound){const current=binding();if(!atCounter(current,true)||current.actor!==b.actor||current.holderId!==b.holderId||current.revision!==b.revision||!near()){close();return false;}counterTicket={actor:b.actor,actorId:b.holderId,revision:b.revision};}
+   const b=binding();if(isSuspended()){notify('原柜正在履职核验，请先交回原柜员再办理自己的存取');return false;}if(disposed||!near()||bound&&!atCounter(b)){if(bound)close();notify(bound&&near()&&!atCounter(b)?b?.unavailableMessage||'当前柜员暂不在原柜位，返回柜台后可办理':C.approachMessage||'请走到钱庄柜台前，再请账房办理');return false;}
+   if(bound&&b.beginService?.()===false){close();notify(binding()?.unavailableMessage||'柜员状态已变化，请稍后再试');return false;}
+   onOpen();if(bound){const current=binding();if(!atCounter(current)||current.actor!==b.actor||current.holderId!==b.holderId||current.revision!==b.revision||!near()){close();return false;}counterTicket={actor:b.actor,actorId:b.holderId,revision:b.revision};}
    message='';render();if(!dialog.open)dialog.showModal();return true;
   },close,
   // This counter has no public-conversation relief shift. A released actor is

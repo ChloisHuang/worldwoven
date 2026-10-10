@@ -180,6 +180,8 @@ export function createChinaPalaceAudience({npcs,palace,lot,doors,planPath,moveAc
   personnelSource:(day,throughSerial)=>personnelRecords?.sourceFor(day,throughSerial)||null,
   granaryStatus:()=>granaryAudit?.loadError?{loadError:granaryAudit.loadError}:granaryAudit?.snapshot()||null,
   courtStatus:()=>({phase,schedule:schedule.snapshot()}),
+  prepareManualReset(n){if(!owned.has(n)||tasks.has(n)||!['waiting','followup'].includes(phase)||reportCandidate||granaryCandidate||personnelCandidate)return null;return life?.prepareManualReset(n)||null;},
+  persistManualReset:()=>save(),
   mountForActor:n=>life?.mountForActor(n)||null,
   owns:n=>owned.has(n),
   summary:()=>chinaCourtStatusSummary(schedule.snapshot(),phase),
