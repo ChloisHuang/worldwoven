@@ -4,6 +4,10 @@ import {validateChinaPersonnelWorkCase} from './china-personnel-work.js';
 export const PERSONNEL_RANK = 'cn-records-personnel';
 export const PERSONNEL_FROM_RANK = 'cn-records-regular';
 export const PERSONNEL_ROUTE = PERSONNEL_RANK;
+export const PRINCIPAL_RANK = 'cn-justice-principal';
+export const PRINCIPAL_FROM_RANK = 'cn-records-personnel-6-regular';
+export const PRINCIPAL_OFFICE = 'cn-official-justice';
+export const PRINCIPAL_REQUIREMENTS = Object.freeze({serviceDays:18,tenureDays:18,positiveBalance:18,ritual:5,writing:9});
 export const PERSONNEL_REQUIREMENTS = Object.freeze({serviceDays:3,tenureDays:3,positiveBalance:3,ritual:2,writing:3});
 // Fictional gameplay thresholds, not historical appointment rules. Each step
 // consumes only witnessed service at its immediately preceding personal grade.
@@ -13,13 +17,20 @@ export const PERSONNEL_ADVANCEMENT_REQUIREMENTS = Object.freeze(Object.fromEntri
  ['cn-records-personnel-6-regular',15,4,8],
 ].map(([rank,days,ritual,writing])=>[rank,Object.freeze({serviceDays:days,tenureDays:days,positiveBalance:days,ritual,writing})])));
 export const isPersonnelRank = isChinaPersonnelRank;
-export const personnelRequirements = toRankId => toRankId===PERSONNEL_RANK?PERSONNEL_REQUIREMENTS:PERSONNEL_ADVANCEMENT_REQUIREMENTS[toRankId]||null;
+export const personnelRequirements = toRankId => toRankId===PRINCIPAL_RANK?PRINCIPAL_REQUIREMENTS:toRankId===PERSONNEL_RANK?PERSONNEL_REQUIREMENTS:PERSONNEL_ADVANCEMENT_REQUIREMENTS[toRankId]||null;
 export const PERSONNEL_ACTORS = Object.freeze({recommender:'cn-official-personnel',emperor:'cn-emperor'});
 export const PERSONNEL_POINTS = Object.freeze({registration:Object.freeze([20.55,.215,32.25]),archive:Object.freeze([21.50,.215,32.25])});
 const object = x => x !== null && typeof x === 'object' && !Array.isArray(x);
 const integer = x => Number.isSafeInteger(x) && x >= 0;
 const keys = (x,names) => object(x) && Object.keys(x).length === names.length && names.every(k=>Object.hasOwn(x,k));
 const identifier = x => typeof x === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9:._-]{0,255}$/.test(x);
+export const validPrincipalVacancy = x => keys(x,['officeId','previousHolderId','vacancyId'])&&x.officeId===PRINCIPAL_OFFICE&&x.previousHolderId===PRINCIPAL_OFFICE&&identifier(x.vacancyId);
+export function principalVacancySource(value){
+ const source={officeId:value?.officeId,previousHolderId:value?.previousHolderId,vacancyId:value?.vacancyId};
+ return value?.ok===true&&validPrincipalVacancy(source)?source:null;
+}
+export const isPrincipalApplication = row => row?.routeVersion===4&&row.fromRankId===PRINCIPAL_FROM_RANK&&row.toRankId===PRINCIPAL_RANK&&validPrincipalVacancy(row.vacancy);
+export const isPersonnelApplication = row => !!row&&(row.routeVersion===2&&row.fromRankId===PERSONNEL_FROM_RANK&&row.toRankId===PERSONNEL_RANK||row.routeVersion===3&&isPersonnelRank(row.fromRankId)&&isPersonnelRank(row.toRankId)&&getChinaRecordsCareerRank(row.fromRankId).nextRankId===row.toRankId||isPrincipalApplication(row));
 const point = x => Array.isArray(x) && x.length === 3 && x.every(Number.isFinite);
 const near = (a,b,r) => point(a)&&point(b)&&Math.hypot(a[0]-b[0],a[2]-b[2])<=r&&Math.abs(a[1]-b[1])<=.3;
 export const personnelSame = (a,b) => JSON.stringify(canonical(a))===JSON.stringify(canonical(b));
@@ -65,9 +76,10 @@ export function validPersonnelEvidence(row,completed){
 }
 export const personnelEvidenceFields = row => row?.officialPayVersion===2?{personnelWork:structuredClone(row.personnelWork),personnelArchiveProof:structuredClone(row.personnelArchiveProof),personnelDeferral:structuredClone(row.personnelDeferral)}:{};
 export function validPersonnelApplication(r,appointment,service){
- const higher=r?.routeVersion===3, fromRank=higher?r.fromRankId:PERSONNEL_FROM_RANK, toRank=higher?r.toRankId:PERSONNEL_RANK;
+ const principal=r?.routeVersion===4,higher=r?.routeVersion===3||principal, fromRank=higher?r.fromRankId:PERSONNEL_FROM_RANK, toRank=higher?r.toRankId:PERSONNEL_RANK;
+ if(principal&&(!isPrincipalApplication(r)||!Array.isArray(r.checked?.serviceIds)||r.recommendation&&!Array.isArray(r.recommendation.checked?.serviceIds))||!principal&&higher&&!isPersonnelRank(toRank))return false;
  if(higher&&(!isPersonnelRank(fromRank)||getChinaRecordsCareerRank(fromRank).nextRankId!==toRank||!personnelRequirements(toRank)))return false;
- if(!keys(r,['routeVersion','id','appointmentId','fromRankId','toRankId','day','hour','status','stage','code','roll','checked','trial','actors','recommendation','received','imperialDecision','declaration','reviewedAt','decidedAt','appointment'])||![2,3].includes(r.routeVersion)||r.id!==personnelApplicationId(r.day,toRank)||r.fromRankId!==fromRank||r.toRankId!==toRank||!personnelTime(r)||!personnelAfter(r,{day:appointment.tenure.sinceDay,hour:appointment.tenure.sinceHour})||!Number.isFinite(r.roll)||r.roll<0||r.roll>=1||!validChecked(r.checked,toRank)||!keys(r.actors,['recommenderBodyId','emperorBodyId'])||!identifier(r.actors.recommenderBodyId)||!(r.actors.emperorBodyId===null||identifier(r.actors.emperorBodyId))||!validateChinaPersonnelWorkCase(r.trial,{mode:higher?'duty':'trial',officialTenureId:r.appointmentId,rankId:fromRank})||r.trial.day>r.day||r.trial.receipt.signerBodyId!==r.actors.recommenderBodyId)return false;
+ if(!keys(r,['routeVersion','id','appointmentId','fromRankId','toRankId','day','hour','status','stage','code','roll','checked','trial','actors','recommendation','received','imperialDecision','declaration','reviewedAt','decidedAt','appointment',...(principal?['vacancy']:[])])||![2,3,4].includes(r.routeVersion)||r.id!==personnelApplicationId(r.day,toRank)||r.fromRankId!==fromRank||r.toRankId!==toRank||!personnelTime(r)||!personnelAfter(r,{day:appointment.tenure.sinceDay,hour:appointment.tenure.sinceHour})||!Number.isFinite(r.roll)||r.roll<0||r.roll>=1||!validChecked(r.checked,toRank)||!keys(r.actors,['recommenderBodyId','emperorBodyId'])||!identifier(r.actors.recommenderBodyId)||!(r.actors.emperorBodyId===null||identifier(r.actors.emperorBodyId))||!validateChinaPersonnelWorkCase(r.trial,{mode:higher?'duty':'trial',officialTenureId:r.appointmentId,rankId:fromRank})||r.trial.day>r.day||r.trial.receipt.signerBodyId!==r.actors.recommenderBodyId)return false;
  if(higher&&!service.some(s=>s.appointmentId===r.appointmentId&&s.rankId===fromRank&&s.positive&&s.day===r.trial.day&&personnelSame(s.personnelWork,r.trial)))return false;
  const matchesSnapshot=(checked,at)=>{
   const eligible=service.filter(s=>s.appointmentId===r.appointmentId&&s.rankId===fromRank&&s.day<=at.day);

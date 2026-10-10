@@ -40,10 +40,16 @@ export const CHINA_RECORDS_CAREER_RANKS = Object.freeze([
   {rankId:'cn-records-personnel-7-junior',title:'吏务核籍录事',gradeId:'cn-grade-7-junior',basePay:34,nextRankId:'cn-records-personnel-7-regular'},
   {rankId:'cn-records-personnel-7-regular',title:'吏务核籍录事',gradeId:'cn-grade-7-regular',basePay:38,nextRankId:'cn-records-personnel-6-junior'},
   {rankId:'cn-records-personnel-6-junior',title:'吏务核籍录事',gradeId:'cn-grade-6-junior',basePay:42,nextRankId:'cn-records-personnel-6-regular'},
-  {rankId:'cn-records-personnel-6-regular',title:'吏务核籍录事',gradeId:'cn-grade-6-regular',basePay:48,nextRankId:null},
+  {rankId:'cn-records-personnel-6-regular',title:'吏务核籍录事',gradeId:'cn-grade-6-regular',basePay:48,nextRankId:'cn-justice-principal'},
 ].map(rank => Object.freeze({...rank,...getChinaOfficialGrade(rank.gradeId)})));
 const recordsRanks = new Map(CHINA_RECORDS_CAREER_RANKS.map(rank => [rank.rankId, rank]));
 export const getChinaRecordsCareerRank = rankId => recordsRanks.get(rankId) || null;
+
+// This is an actual office, deliberately outside the personal records ladder.
+// Its catalogue entry never supplies a vacancy or authorizes appointment.
+export const CHINA_JUSTICE_PRINCIPAL_RANK = Object.freeze({rankId:'cn-justice-principal',title:'刑名主官',
+  ...getChinaOfficialGrade('cn-grade-2-regular'),basePay:168,nextRankId:null,officeId:'cn-official-justice',actualOffice:true});
+export const getChinaOfficialCareerRank = rankId => getChinaRecordsCareerRank(rankId) || (rankId===CHINA_JUSTICE_PRINCIPAL_RANK.rankId?CHINA_JUSTICE_PRINCIPAL_RANK:null);
 
 // Freeze V1's six appointment grades separately from future live assignments.
 export const CHINA_OFFICIAL_GRADE_ASSIGNMENTS_V1 = Object.freeze({
