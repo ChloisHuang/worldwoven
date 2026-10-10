@@ -26,7 +26,7 @@ export function createFranceArtProps(parent,P){
   return g;
  }
  function update(state,player,artist){
-  for(const entry of state.completed){if(gallery.has(entry.id))continue;const g=painting(entry.designId);g.name=entry.title;g.userData={orderId:entry.id,designId:entry.designId,artist:entry.artist,title:entry.title};const i=Number(entry.id.split('-').at(-1))-1;g.scale.setScalar(.52);g.position.set(10.59,1.48+Math.floor(i/3)*1.10,-8.9-(i%3)*1.4);g.rotation.y=-Math.PI/2;root.add(g);gallery.set(entry.id,g);}
+  for(const entry of state.completed){if(gallery.has(entry.id))continue;const g=painting(entry.designId);g.name=entry.title;g.userData={orderId:entry.id,designId:entry.designId,artist:entry.artist,title:entry.title};const i=Number(entry.id.split('-').at(-1))-1;g.scale.setScalar(.52);g.position.set(9.0+(i%2)*1.07,1.70+Math.floor(i/2)*1.10,-13.12);g.rotation.y=0;root.add(g);gallery.set(entry.id,g);}
   const o=state.order?.supplyReceipt?state.order:null,key=o?`${o.id}:${o.designId}:${o.stage==='outline'?'outline':'paint'}`:null;
   if(key!==workKey){work?.removeFromParent();work=o?painting(o.designId,o.stage==='outline'):null;if(work){work.name='同号创作原画';work.userData={orderId:o.id,designId:o.designId};root.add(work);}workKey=key;}
   if(!work)return;

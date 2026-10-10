@@ -3,7 +3,7 @@ import {followActorRoute} from './actor-navigation.js';
 import {isSociallyHeld} from './npc-social-ownership.js';
 import {validFranceArtReceipt} from './france-art-role.js';
 const copy=structuredClone,INT=n=>Number.isSafeInteger(n)&&n>=0;
-export const FRANCE_ART_POINTS=Object.freeze({registry:[5.55,0,-8.35],home:[5.55,0,-9.4],rest:[4.3,0,-9.4],desk:[7.1,0,-9.25],top:[7.1,1.95,-10.79],supply:[9.35,0,-8.75],supplyTop:[9.35,1.22,-7.6],catalogue:[9.7,0,-11.9],gallery:[10.57,1.9,-10.25],review:[8.7,0,-11.9]});
+export const FRANCE_ART_POINTS=Object.freeze({registry:[5.55,0,-8.35],home:[5.55,0,-9.4],rest:[4.3,0,-9.4],desk:[7.1,0,-9.25],top:[7.1,1.95,-10.79],supply:[9.35,0,-8.75],supplyTop:[9.35,1.22,-7.6],catalogue:[9.7,0,-11.9],gallery:[9.6,1.9,-13.12],review:[8.7,0,-11.9]});
 const P=FRANCE_ART_POINTS,ARTISAN='france-atelier',CLIENT=ARTISAN;
 export const FRANCE_ART_DESIGNS=Object.freeze([
  {id:'garden-morning',title:'宫苑花园·晨光',subject:'garden',palette:'morning'},

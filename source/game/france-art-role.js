@@ -13,7 +13,7 @@ const object=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 const serial=value=>Number.isSafeInteger(value)&&value>0;
 export function validFranceArtReceipt(r){
  if(!object(r)||r.source!=='france-art'||r.customerId!=='france-atelier'||r.customerName!=='卢西安'||
-  !serial(r.number)||typeof r.orderId!=='string'||typeof r.workReceiptId!=='string'||
+  !serial(r.number)||r.number>6||typeof r.orderId!=='string'||typeof r.workReceiptId!=='string'||
   !Number.isFinite(r.waitSeconds)||r.waitSeconds<0)return false;
  const order=/^france-art-([1-9][0-9]*)$/.exec(r.orderId),work=/^fr-atelier-labor-([1-9][0-9]*)$/.exec(r.workReceiptId);
  if(!order||!work||Number(order[1])!==r.number||!serial(Number(work[1]))||

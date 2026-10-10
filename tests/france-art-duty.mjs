@@ -1,4 +1,4 @@
-// Real original-artisan service, timers, props and durable receipts. Actor
+// Real original-painting service, timers, props and durable receipts. Actor
 // positions and straight-line routes are staged fixtures, not production
 // scene/pathfinding or browser evidence; salary/XP are separately contracted.
 import test from 'node:test';
@@ -37,9 +37,9 @@ test('failed material save, repeat actions and failed catalogue save never dupli
  const f=fixture();claim(f);stage(f,'request','materials');f.reject(s=>s.stock.sheets===5);const w=f.duty.workIntent(DUTY);f.move(w.position);assert(f.duty.executeWork(w,DUTY));f.tick(50);assert.equal(f.service.state().stock.sheets,6);assert.deepEqual(f.service.state().materials,[]);f.reject(()=>false);f.until(s=>s.order.stage==='outline');assert.equal(f.duty.executeWork(w,DUTY),false);stage(f,'outline','paint');stage(f,'paint','pickup');stage(f,'pickup','deliver');f.reject(s=>s.completed.length>0);const end=f.duty.workIntent(DUTY);f.move(end.position);assert(f.duty.executeWork(end,DUTY));f.tick(250);assert(f.duty.held());assert.equal(f.service.state().completed.length,0);assert.deepEqual(f.duty.workReceipts(DUTY),[]);f.reject(()=>false);f.until(s=>s.completed.length===1);assert.equal(f.service.state().stock.sheets,5);assert.equal(f.duty.workReceipts(DUTY).length,1);f.dispose();
 });
 test('cancel returns the actual canvas before NPC continuation, never refunds spent materials or awards NPC work XP',()=>{
- const f=fixture();toHeld(f);f.move(P.catalogue);assert.equal(f.duty.releaseDuty(DUTY,{evaluate:true}),false);f.move(P.desk);assert(f.duty.releaseDuty(DUTY,{evaluate:true}));assert.equal(f.service.state().stock.sheets,5);assert.equal(f.service.state().order.stage,'pickup');assert.equal(f.duty.workReceipts(DUTY)[0].completed,false);f.move([30,0,30]);f.until(s=>s.completed.length===1);assert.equal(f.service.state().completed[0].artist,'npc');assert.equal(f.duty.workReceipts(DUTY).filter(r=>r.completed).length,0);f.dispose();
+ const f=fixture();toHeld(f);f.move(P.catalogue);assert.equal(f.duty.releaseDuty(DUTY,{evaluate:true}),false);f.move(P.desk);f.reject(s=>s.duty===null);assert.equal(f.duty.releaseDuty(DUTY,{evaluate:true}),false);assert(f.duty.held());assert.equal(f.duty.workReceipts(DUTY).length,0);f.reject(()=>false);assert(f.duty.releaseDuty(DUTY,{evaluate:true}));assert.equal(f.service.state().stock.sheets,5);assert.equal(f.service.state().order.stage,'pickup');assert.equal(f.duty.workReceipts(DUTY)[0].completed,false);f.move([30,0,30]);f.until(s=>s.completed.length===1);assert.equal(f.service.state().completed[0].artist,'npc');assert.equal(f.duty.workReceipts(DUTY).filter(r=>r.completed).length,0);f.dispose();
 });
-test('six opening sets stop on exhaustion across reloads, preserve six distinct original IDs and leave needs/lesson independent',()=>{
+test('six opening sets stop on exhaustion across reloads, preserve six distinct original IDs without refilling',()=>{
  let f=fixture();for(let day=1;day<=6;day++){f.setDay(day);f.until(s=>s.completed.length===day,'daily finite original '+day);assert.equal(f.service.state().stock.sheets,6-day);const cp=f.checkpoint();f.dispose();f=fixture(cp);assert.equal(f.service.state().completed.length,day);}
  f.setDay(40);f.tick(200);assert.equal(f.service.state().serial,6);assert.equal(f.service.state().materials.length,6);assert.equal(f.group.getObjectByName('卢西安原画展览').children.length,6);assert.equal(f.service.state().receipts.length,0);f.dispose();
 });
