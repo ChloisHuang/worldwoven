@@ -412,7 +412,8 @@
       "china-tavern-rehire-scene.mjs",
       "japan-omamori-care.mjs",
       "japan-omamori-duty.mjs",
-      "japan-omamori-role-contracts.mjs"
+      "japan-omamori-role-contracts.mjs",
+      "japan-omamori-main.cjs"
     ],
     "targeted": [
       "china-palace-garden-player.cjs",

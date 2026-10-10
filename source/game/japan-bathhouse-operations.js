@@ -78,7 +78,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   return n;
  }
  function removeGuest(n) {
-  const id=n.station.id;clear(n);furniture.releaseActor(id);guests.delete(id);actors.delete(id);removeVisitor(n);board.forgetFinished([id]);nextArrival=Math.max(nextArrival,time+18);
+  const id=n.station.id;if(!omamoriDuty?.endViewing(id))return false;clear(n);furniture.releaseActor(id);guests.delete(id);actors.delete(id);removeVisitor(n);board.forgetFinished([id]);nextArrival=Math.max(nextArrival,time+18);return true;
  }
  for(const v of board.state().visits)if(v.customerType!=='player')addGuest(v);
  const customerActor=id=>guests.get(id)||(board.getVisit(id)?.customerType==='player'?playerCustomerService?.actor():null);
@@ -92,6 +92,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
  }
  function abortTask(task,reason) {
   const n=task.actor;failures.push({actor:n.station.id,reason,time:+time.toFixed(2),position:n.root.position.toArray(),destination:task.to.slice(),next:n.route[0]||null,player:playerState.position?.toArray?.()||null});if(failures.length>8)failures.shift();
+  if(task.omamoriViewing){if(!omamoriDuty.endViewing(n.station.id)||!board.omamori.skipVisitor(n.station.id))return;}
   if(task.linenWork&&!board.linenReleaseCarrier(n.station.id))return;
   if(task.boilerWork&&!board.boiler.releaseWorker(n.station.id))return;
   if(task.beddingWork&&!board.bedding.releaseCarrier(n.station.id))return;
@@ -245,10 +246,10 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
    }});
   }else if(v.stage==='checkout')queueAtReception(n,v,'returned-to-desk');
   else if(v.stage==='leaving')step('left',P.departure);
-  else if(v.stage==='cancelled')assign(n,P.departure,{label:'收好行李离开汤馆',onDone:()=>{removeGuest(n);return true;}});
+  else if(v.stage==='cancelled')assign(n,P.departure,{label:'收好行李离开汤馆',onDone:()=>removeGuest(n)});
  }
  function finishVisitCancellation(n,reason){
-  const id=n.station.id;n.cancelVisitReason=null;
+  const id=n.station.id;if(!omamoriDuty.endViewing(id))return false;n.cancelVisitReason=null;
   for(const job of board.state().claims)if(job.visitId===id){const worker=actors.get(job.workerId);if(worker)clear(worker,{releaseJob:true});}
   clear(n);furniture.releaseActor(id);board.cancel(id,reason);changeWardrobe(n,board.getVisit(id).appearance);
   scheduleGuest(n,board.getVisit(id));return true;
