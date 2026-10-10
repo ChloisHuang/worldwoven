@@ -1,4 +1,5 @@
 import {getChinaRecordsCareerRank,CHINA_RECORDS_CAREER_RANKS,CHINA_OFFICIAL_GRADES,CHINA_OFFICIAL_GRADE_PAY_V1,CHINA_COURT_OFFICIAL_RANKS} from './china-official-ranks.js';
+import {personnelRequirements} from './official-personnel-policy.js';
 const stageText={submitted:'待当值礼仪主管当面考核','document-ready':'考核通过 · 待领文','document-held':'文书在手 · 待宣读',approved:'授任已生效','promotion-review-rejected':'当面考核未通过',withdrawn:'已撤回','appointment-ended':'离任终止申请'};
 const personnelStageText={submitted:'待陆谦当面核荐','document-ready':'陆谦已荐 · 待领原件','document-held':'原荐书在手 · 待皇帝阅批','imperial-approved':'皇帝已准任 · 待宣读登记',approved:'授任已生效','promotion-review-rejected':'皇帝未准本次任命','promotion-eligibility-changed':'任职条件变化 · 本次申请已结束','promotion-identity-changed':'原经办人身份变化 · 本次申请已结束',withdrawn:'已撤回','appointment-ended':'离任终止申请'};
 const reasonText={'service-days-required':'需3日合格朝班与归档','tenure-days-required':'本次任职需满3日','service-performance-required':'本任考语净值需达3','promotion-duty-unsettled':'先完成本班并结清工资','promotion-applied-today':'今日已申请 · 次日可再试','ritual-required':'礼仪需2级','writing-required':'文书需2级','promotion-route-complete':'更高实职路线尚未开放','personnel-trial-required':'须完成一份本任核籍试办并获陆谦签收'};
@@ -11,7 +12,7 @@ export function appendOfficialPromotionPanel({careers,role,panel,metric,make,act
  const blockedRoute=!enabled&&personnelRoute,r=blockedRoute||personnel&&!personnelApplication(summary.application)?null:summary.application,pending=r?.status==='pending';
  const next=personnelRank(summary.rank.nextRankId)&&!enabled?null:getChinaRecordsCareerRank(summary.rank.nextRankId),available=careers.promotionAvailability();
  const requirements={serviceDays:3,tenureDays:3,positiveBalance:3,ritual:2,writing:personnel?3:2,...summary.requirements},trialRequired=personnel&&next?.rankId==='cn-records-personnel',dailyPersonnel=personnelRank(summary.rank.rankId);
- const requirementText={'service-days-required':`需${requirements.serviceDays}日合格${dailyPersonnel?'朝班、核籍与归档':'朝班与归档'}`,'tenure-days-required':`本任${summary.rank.gradeLabel}需满${requirements.tenureDays}日`,'service-performance-required':`本任考语净值需达${requirements.positiveBalance}`,'ritual-required':`礼仪需${requirements.ritual}级`,'writing-required':`文书需${requirements.writing}级`};
+ const requirementText={'service-days-required':`需${requirements.serviceDays}日合格${dailyPersonnel?'朝班、核籍与归档':'朝班与归档'}`,'tenure-days-required':`本任${summary.rank.gradeLabel}需满${requirements.tenureDays}日`,'service-performance-required':`本任考语净值需达${requirements.positiveBalance}`,'ritual-required':`礼仪需${requirements.ritual}级`,'writing-required':`文书需${requirements.writing}级`,'personnel-trial-required':dailyPersonnel?'须有本品已签收并归档的核籍日职原册':reasonText['personnel-trial-required'],'personnel-duty-required':'须完成本品核籍日职并获陆谦签收'};
  const reasons=codes=>(codes||[]).map(c=>requirementText[c]||reasonText[c]||'任职条件暂不可核验').join('；');
  metric('◇ 官品',summary.rank.gradeLabel,summary.rank.title);
  metric('▣ 实任资历',`${summary.qualifiedDays}${next?` / ${requirements.serviceDays}`:''} 合格日`,`${personnel&&next?`本任${summary.rank.gradeLabel}`:'本次任职'} ${summary.tenureDays}日 · 考语净值 ${summary.balance}${next?` / ${requirements.positiveBalance}`:''} · 历任合格 ${summary.lifetimeQualifiedDays}日`);
@@ -55,6 +56,16 @@ export function appendCourtRankReference({panel,make,policy=null,day=0,granaryAu
  const details=make('details',null,'career-card-details career-court-ranks');
  details.append(make('summary','朝廷官职与品级俸例'));
  details.append(make('p',personnelProgressionEnabled?`架空朝廷的游戏日俸；品级名称不代表历史官职或俸米换算。玩家仍从九品入仕，当前可玩升阶到${highestPersonnel.gradeLabel}${highestPersonnel.title}；逐阶办理本人核籍职责，不接替六官，更高实职尚未开放。`:'架空朝廷的游戏日俸；品级名称不代表历史官职或俸米换算。玩家仍从九品入仕，当前可玩升阶只到正九品，更高实职需后续真实履历和授任。'));
+ if(personnelProgressionEnabled){
+  const ladder=make('details',null,'career-card-details career-rank-ladder');ladder.setAttribute('data-panel-key','official-player-rank-ladder');ladder.append(make('summary','本岗完整升品路线与条件'));
+  ladder.append(make('p','从九品礼务录事入仕，基础18文。每一级只累计本品不同模拟日的真实合格职责；此前品级资历不抵下一级，未结班或待薪须先结清。'));
+  for(let index=1;index<CHINA_RECORDS_CAREER_RANKS.length;index++){
+   const from=CHINA_RECORDS_CAREER_RANKS[index-1],to=CHINA_RECORDS_CAREER_RANKS[index],q=personnelRequirements(to.rankId)||{serviceDays:3,tenureDays:3,positiveBalance:3,ritual:2,writing:2};
+   ladder.append(make('p',`${from.gradeLabel} → ${to.gradeLabel}：本品合格${q.serviceDays}日、实任满${q.tenureDays}日、考语净值≥${q.positiveBalance}，礼仪${q.ritual}级、文书${q.writing}级；新班基础${to.basePay}文＋至多2文准备奖。${to.rankId==='cn-records-personnel'?'另须一份本任核籍试办由陆谦本人签收。':''}`));
+  }
+  ladder.append(make('p','从九升正九须当值礼仪主管当面审核、领文及宣读；此后每级均由陆谦核荐4秒、领取原荐书、原皇帝阅批4秒、原登记处宣读3秒生效。从八品起须完成本人朝班、逐案读据与手动核录、汇总8秒、陆谦核验4秒、本人归档8秒，才记合格日与按原合同结薪。'));
+  ladder.append(make('p',`当前本岗最高${highestPersonnel.gradeLabel}；更高主职须另有真实空缺与职责，不由本路线授予，也不替换在任六官。`));details.append(ladder);
+ }
  details.append(make('p',policy?day<policy.effectiveDay?`六官新俸例自第${policy.effectiveDay+1}日的新职责生效；当前日和此前未结职责仍按原约。`:'六官新职责按品级俸例计薪；历史已付、待归档和已完成未付职责保原约。':'六官新薪政尚未保存，旧账保留；本页只展示新俸例。'));
  details.append(make('p',`六官须真实完成朝会，再回本人书案归档8秒才入银行；不按离线或闲站时间补薪。玩家录事原18/22文基础与至多2文准备奖保留。${personnelProgressionEnabled?`${personnelRanks.map(rank=>`${rank.gradeLabel}新班基础${rank.basePay}文`).join('；')}，各品沿用至多2文准备奖，均须逐案读据、手动落记、汇总8秒、陆谦核验4秒，再本人归档8秒结薪。`:''}`));
  for(let rank=9;rank>=1;rank--){const junior=CHINA_OFFICIAL_GRADES.find(g=>g.gradeId===`cn-grade-${rank}-junior`),regular=CHINA_OFFICIAL_GRADES.find(g=>g.gradeId===`cn-grade-${rank}-regular`);details.append(make('p',`${junior.gradeLabel} ${CHINA_OFFICIAL_GRADE_PAY_V1[junior.gradeId]}文 · ${regular.gradeLabel} ${CHINA_OFFICIAL_GRADE_PAY_V1[regular.gradeId]}文`));}

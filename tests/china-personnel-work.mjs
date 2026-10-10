@@ -3,20 +3,21 @@
 // tenure, and failed/reentrant saves must never create Lu's signed receipt.
 import assert from 'node:assert/strict';
 import {createChinaPersonnelRecords, CHINA_PERSONNEL_OFFICIALS_V1 as OFFICIALS} from '../source/game/china-personnel-records.js';
-import {createChinaPersonnelWork, CHINA_PERSONNEL_WORK_DURATIONS, CHINA_PERSONNEL_COMPILE_POINT, CHINA_PERSONNEL_REVIEWER} from '../source/game/china-personnel-work.js';
+import {createChinaPersonnelWork, validateChinaPersonnelWorkCase, chinaPersonnelWorkRankId, CHINA_PERSONNEL_WORK_DURATIONS, CHINA_PERSONNEL_COMPILE_POINT, CHINA_PERSONNEL_REVIEWER} from '../source/game/china-personnel-work.js';
+import {CHINA_RECORDS_CAREER_RANKS, isChinaPersonnelRank} from '../source/game/china-official-ranks.js';
 
 const copy = value => structuredClone(value);
 const DAY = 10, TENURE = 'cn-records-tenure:1', BODY = 'cn-official-personnel-original-body';
 const ids = OFFICIALS.map(actor => actor.actorId);
 const fail = (result, code) => { assert.equal(result.ok, false); if (code) assert.equal(result.code, code); return result; };
-function fixture({archives = [0, 3], day = DAY, mode = 'trial'} = {}) {
+function fixture({archives = [0, 3], day = DAY, mode = 'trial', rankId = mode === 'trial' ? 'cn-records-regular' : 'cn-records-personnel'} = {}) {
   const actors = new Map(OFFICIALS.map(actor => [actor.actorId, {actorId: actor.actorId, alive: true, position: [...actor.office]}]));
   const ledger = createChinaPersonnelRecords({resolveActor: id => actors.get(id), saveState: () => true});
   const court = d => ledger.witnessCourt({id: `cn-morning-audience:${d}`, day: d, actorIds: ids});
   const archive = (index, d = day) => ledger.witnessArchive({id: `cn-official-archive:${ids[index]}:${d}`, actorId: ids[index], day: d,
     audienceId: `cn-morning-audience:${d}`, position: [...OFFICIALS[index].office], elapsed: 8, duration: 8});
   assert(court(day).ok); archives.forEach(index => assert(archive(index).ok));
-  let appointment = {actorId: 'player', tenureId: TENURE, rankId: mode === 'trial' ? 'cn-records-regular' : 'cn-records-personnel'};
+  let appointment = {actorId: 'player', tenureId: TENURE, rankId};
   let saver = () => true, source = (d, serial) => ledger.sourceFor(d, serial), eligible = request => request.officialTenureId === TENURE;
   let reviewer = {actorId: CHINA_PERSONNEL_REVIEWER, bodyId: BODY, alive: true, position: [19.3, 3.915, 32.15]};
   const writes = [], options = {sourceFor: (d, serial) => source(d, serial), readAppointment: () => appointment,
@@ -287,4 +288,42 @@ for (const stage of ['visit', 'record', 'compile', 'review']) {
   assert.equal(restored.loadError, null); assert.equal(restored.snapshot().cases[0].id, firstId);
 }
 
-console.log('china-personnel-work: frozen original roster, six physical reads, correction/review, tenure ownership and durable save boundaries passed');
+// Every same-post grade keeps the real six-source workflow and freezes its own
+// rank. Neither promotion in the same tenure nor rankless legacy data permits
+// reusing a lower/higher grade's original duty as current-rank service.
+const dutyRanks = CHINA_RECORDS_CAREER_RANKS.filter(rank => isChinaPersonnelRank(rank.rankId)).map(rank => rank.rankId);
+assert.equal(dutyRanks.length, 6);
+for (const rankId of dutyRanks) {
+  const f = fixture({mode: 'duty', rankId});
+  f.eligible(request => request.officialTenureId === TENURE && request.rankId === rankId);
+  assert(f.claim().ok); assert.equal(f.job().rankId, rankId);
+  const draft = f.work.snapshot(), otherRank = dutyRanks.find(id => id !== rankId);
+  f.appointment({actorId: 'player', tenureId: TENURE, rankId: otherRank});
+  fail(f.visit(), 'appointment-mismatch'); fail(f.claim(), 'appointment-mismatch');
+  assert.deepEqual(f.work.snapshot(), draft);
+  f.appointment({actorId: 'player', tenureId: TENURE, rankId});
+  f.fill(); assert(f.compile().ok); assert(f.review().ok);
+  const job = f.job(), saved = f.work.snapshot();
+  assert.equal(job.receipt.rankId, rankId); assert.equal(chinaPersonnelWorkRankId(job), rankId);
+  assert(validateChinaPersonnelWorkCase(job, {mode: 'duty', rankId, day: DAY, officialTenureId: TENURE}));
+  assert(!validateChinaPersonnelWorkCase(job, {rankId: otherRank}));
+  assert(!validateChinaPersonnelWorkCase(job, {day: DAY + 1}));
+  assert(!['amount', 'salary', 'xp', 'promotion'].some(key => Object.hasOwn(job.receipt, key)));
+  f.appointment({actorId: 'player', tenureId: TENURE, rankId: otherRank});
+  const historical = createChinaPersonnelWork({...f.options, saved});
+  assert.equal(historical.loadError, null); assert.deepEqual(historical.snapshot(), saved);
+  fail(historical.claim({mode: 'duty', day: DAY, officialTenureId: TENURE}), 'appointment-mismatch');
+  for (const mutate of [row => {row.rankId = 'unsupported-rank';}, row => {row.rankId = null;},
+    row => {row.receipt.rankId = otherRank;}, row => {delete row.receipt.rankId;}]) {
+    const changed = copy(saved); mutate(changed.cases[0]);
+    assert.equal(createChinaPersonnelWork({...f.options, saved: changed}).loadError, 'invalid-saved-state');
+  }
+  const rankless = copy(saved); delete rankless.cases[0].rankId; delete rankless.cases[0].receipt.rankId;
+  assert.equal(chinaPersonnelWorkRankId(rankless.cases[0]), 'cn-records-personnel');
+  assert(!validateChinaPersonnelWorkCase(rankless.cases[0], {rankId: 'cn-records-personnel-regular'}));
+  const old = createChinaPersonnelWork({...f.options, saved: rankless});
+  assert.equal(old.loadError, rankId === 'cn-records-personnel' ? null : 'tenure-ownership-mismatch');
+  if (rankId === 'cn-records-personnel') assert.deepEqual(old.snapshot(), rankless, 'legacy V1 original is retained without migration');
+}
+
+console.log('china-personnel-work: frozen original roster, six physical reads, correction/review, tenure ownership, all six duty grades, legacy rankless restore and durable save boundaries passed');

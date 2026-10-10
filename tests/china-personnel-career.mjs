@@ -13,6 +13,7 @@ const {createChinaPersonnelRecords, CHINA_PERSONNEL_OFFICIALS_V1: OFFICIALS} = a
 const {createFormalCareers, COURT_CLERK_ROLE} = await import('../source/game/formal-careers.js');
 const {createChinaCourtCareer} = await import('../source/game/china-court-career.js');
 const {careerInterviewRoll} = await import('../source/game/career-applications.js');
+const {CHINA_RECORDS_CAREER_RANKS, isChinaPersonnelRank} = await import('../source/game/china-official-ranks.js');
 const {approvePending} = await import('./fixtures/career-application.mjs');
 const copy = value => structuredClone(value), ROLE = COURT_CLERK_ROLE.id, LU = 'cn-official-personnel';
 let goodSeed;
@@ -506,3 +507,58 @@ for(const change of ['expiry','move','restore','cancel']){
   f.player.root.position.set(...reserved);assert.equal(f.service.executeIntent(chosen),false,change);f.tick(.1);assert.deepEqual(f.service.snapshot().work,before,change);f.service.dispose();
 }
 console.log('PASS same live roster lease keeps its standing point; transient availability cannot invalidate arrival, while lost/cold/cancelled or moved-body leases never sign remotely');
+
+// Adapter coverage for every personnel grade. Higher appointment metadata is
+// deliberately staged here; the formal-core promotion suite owns proof of the
+// actual advancement route. Real source ledger, physical reads, saved work and
+// Lu's real body still run through this adapter without granting pay or XP.
+const personnelRanks = CHINA_RECORDS_CAREER_RANKS.filter(row => isChinaPersonnelRank(row.rankId));
+for (const [rankIndex, rank] of personnelRanks.entries()) {
+  const f = fixture({personnel: true}); f.promotePersonnel(); f.beginPersonnelDay(8);
+  const originalFormal = f.careers.state(), originalBank = copy(f.bank), currentRole = f.careers.currentRole();
+  const model = copy(originalFormal), tenureId = model.lastDuty.officialTenureId;
+  let liveRank = rank.rankId;
+  for (let index = 1; index <= rankIndex; index++) model.officialCareer.applications.push({
+    id: `staged-personnel-grade:${index}`, appointmentId: tenureId, status: 'approved',
+    fromRankId: personnelRanks[index - 1].rankId, toRankId: personnelRanks[index].rankId, decidedAt: {day: 7, hour: 15},
+  });
+  model.lastDuty.officialRankId = rank.rankId;
+  model.lastDuty.officialPayContract = {...model.lastDuty.officialPayContract, rankId: rank.rankId, gradeId: rank.gradeId, basePay: rank.basePay};
+  f.options.careers = {isHired: id => id === ROLE,
+    currentRole: () => ({...currentRole, rankId: liveRank}),
+    workState: () => ({...f.careers.workState(), lastDuty: copy(model.lastDuty)}),
+    state: () => copy(model)};
+  f.load(); assert.equal(f.service.state().loadError, null); assert.equal(f.service.state().rankId, rank.rankId);
+  f.claim(); assert.equal(f.service.state().case.rankId, rank.rankId); f.read(0);
+  const partial = f.service.snapshot(); f.load(partial); assert.equal(f.service.state().loadError, null);
+  assert.deepEqual(f.service.snapshot().work, partial.work);
+  const stale = f.service.intent('personnel-read:' + OFFICIALS[1].actorId);
+  liveRank = personnelRanks[(rankIndex + 1) % personnelRanks.length].rankId;
+  assert.equal(f.service.intent('personnel-read:' + OFFICIALS[1].actorId), null);
+  assert.equal(f.service.resolveIntent(stale), null);
+  assert.equal(f.service.state().availability.code, 'unfinished-case');
+  f.tick(.2); assert.deepEqual(f.service.snapshot().work, partial.work);
+  liveRank = rank.rankId;
+  f.fill(); f.compile(); f.review();
+  const signed = f.service.snapshot(), job = signed.work.cases.at(-1);
+  assert.equal(job.receipt.rankId, rank.rankId); assert.equal(job.rows.filter(row => row.visit).length, 6);
+  assert.deepEqual(f.careers.state(), originalFormal); assert.deepEqual(f.bank, originalBank);
+
+  // Once a later duty replaces lastDuty, only this exact personal service
+  // entry can support the historic case, irrespective of the current grade.
+  model.lastDuty.day = 9;
+  const service = {appointmentId: tenureId, rankId: rank.rankId, day: 8, officialPayVersion: 2,
+    officialRankId: rank.rankId, officialTenureId: tenureId, positive: true, personnelWork: copy(job)};
+  model.officialCareer.service.push(service);
+  f.load(signed); assert.equal(f.service.state().loadError, null);
+  for (const changed of [{rankId: 'cn-records-regular'}, {officialRankId: 'cn-records-regular'}, {day: 7},
+    {officialTenureId: 'another-tenure'}, {personnelWork: {...job, id: 'another-case'}}]) {
+    Object.assign(service, changed); f.load(signed);
+    assert.equal(f.service.state().loadError, 'tenure-ownership-mismatch');
+    Object.assign(service, {rankId: rank.rankId, officialRankId: rank.rankId, day: 8, officialTenureId: tenureId, personnelWork: copy(job)});
+  }
+  f.load(signed); assert.equal(f.service.state().loadError, null);
+  assert.deepEqual(f.service.snapshot().work, signed.work);
+  f.service.dispose({suspend: true});
+}
+console.log('PASS all six personnel grades retain real six-source daily work, manual rows, same-body signature, rank-fenced intents and exact historic rank/day/tenure restoration; staged upper appointment metadata, no wages or XP');

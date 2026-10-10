@@ -56,7 +56,7 @@ export function officialPromotionSummary(ledger,tenure,clock,skills,lastDuty,{en
   if(personnel&&!trial)reasons.push('personnel-trial-required');
   if(lastDuty&&['arrived','attending','archive','working','inspection','ready'].includes(lastDuty.stage))reasons.push('promotion-duty-unsettled');
  }
- return {rankId,rank,routeId:department?rank.nextRankId:rankId===CLERK_ENTRY_RANK?CLERK_NEXT_RANK:null,requirements:{...requirements},qualifiedDays:qualifiedDayIds.length,qualifiedDayIds,tenureDays,balance,
+ return {rankId,rank,routeId:department?rank.nextRankId:rankId===CLERK_ENTRY_RANK?CLERK_NEXT_RANK:null,requirements:{...requirements},qualifiedDays:qualifiedDayIds.length,qualifiedDayIds,serviceIds:service.map(r=>r.id),tenureDays,balance,
   lifetimeQualifiedDays:ledger.service.filter(r=>r.positive&&r.reasonCode==='court-and-archive-completed').length,
   application:application?copy(application):null,history:copy(applications),eligible:reasons.length===0,reasons};
 }

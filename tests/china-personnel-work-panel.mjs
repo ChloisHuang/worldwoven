@@ -17,7 +17,7 @@ const buttons = root => all(root).filter(node => node.tag === 'button');
 const find = (root, key) => all(root).find(node => node.attributes['data-panel-key'] === key);
 const ids = OFFICIALS.map(actor => actor.actorId);
 
-function fixture({mode = 'trial', progression = false} = {}) {
+function fixture({mode = 'trial', progression = false, rankId = mode === 'duty' ? 'cn-records-personnel' : 'cn-records-regular'} = {}) {
   const actors = new Map(OFFICIALS.map(actor => [actor.actorId, {actorId: actor.actorId, alive: true, position: [...actor.office]}]));
   const ledger = createChinaPersonnelRecords({resolveActor: id => actors.get(id), saveState: () => true});
   assert(ledger.witnessCourt({id: `cn-morning-audience:${DAY}`, day: DAY, actorIds: ids}).ok);
@@ -26,7 +26,7 @@ function fixture({mode = 'trial', progression = false} = {}) {
   assert(archive(0).ok); assert(archive(3).ok);
   const reviewer = {actorId: CHINA_PERSONNEL_REVIEWER, bodyId: 'original-lu-body', alive: true, position: [19.3, 3.915, 32.15]};
   const options = {sourceFor: (day, serial) => ledger.sourceFor(day, serial),
-    readAppointment: () => ({actorId: 'player', tenureId: TENURE, rankId: mode === 'duty' ? 'cn-records-personnel' : 'cn-records-regular'}),
+    readAppointment: () => ({actorId: 'player', tenureId: TENURE, rankId}),
     validateEligibility: request => request.officialTenureId === TENURE, resolveActor: () => reviewer, saveState: () => true};
   const work = createChinaPersonnelWork(options);
   const f = {ledger, work, options, archive, stateChanges: {}, dispatches: [], renderedKinds: []};
@@ -43,7 +43,7 @@ function fixture({mode = 'trial', progression = false} = {}) {
     elapsed: 4, duration: 4, revision: f.current().revision, recipientPosition: [...reviewer.position],
     recipientBodyId: reviewer.bodyId, recipientAlive: true}});
   f.service = {
-    state: () => ({enabled: true, eligible: true, mode, sourceDay: DAY, availability: {ok: !f.current()}, case: f.current() || null,
+    state: () => ({enabled: true, eligible: true, mode, rankId, sourceDay: DAY, availability: {ok: !f.current()}, case: f.current() || null,
       history: f.work.snapshot().cases, activity: null, progress: 0, waiting: null, ...f.stateChanges}),
     intent(kind) {
       const state = this.state(), job = state.case;
@@ -243,10 +243,14 @@ console.log('PASS compact trial panel with real frozen cases, six physical-read 
   assert(text(view.body).includes('本人原案归档8秒'));
   assert.equal(buttons(view.body).length, 0);
   for (const stage of ['ready', 'paid']) {
-    const settled = f.render({duty: {day: DAY, stage}});
+    const settled = f.render({duty: {day: DAY, stage, officialTenureId: TENURE, officialRankId: 'cn-records-personnel'}});
     assert(text(settled.body).includes(stage === 'paid' ? '该原班已结薪' : '已完成本人归档，工资待入账'));
     assert(!text(settled.body).includes('先完成本人本朝次朝会'));
     assert(!text(settled.body).includes('本册已签收；原班须完成'));
+  }
+  for (const changed of [{officialTenureId: 'different-tenure'}, {officialRankId: 'cn-records-personnel-regular'}, {day: DAY + 1}]) {
+    const mismatch = f.render({duty: {day: DAY, stage: 'paid', officialTenureId: TENURE, officialRankId: 'cn-records-personnel', ...changed}});
+    assert(!text(mismatch.body).includes('该原班已结薪'), 'unrelated paid duty does not settle the displayed historical case');
   }
   f.stateChanges = {availability: {ok: false, code: 'personnel-court-required'}};
   assert(text(f.render().body).includes('先完成本人本朝次朝会'));
@@ -267,3 +271,22 @@ console.log('PASS compact trial panel with real frozen cases, six physical-read 
   assert(!f.renderedKinds.some(kind => kind.startsWith('personnel-promotion-')));
 }
 console.log('PASS paid duty panel shares six manual-read gates, retains old-duty date/contract and honest saved versus pending deferral, requires original archive after signature, and permits an available next-day claim; optional trial remains unpaid');
+
+// Current grade and the immutable old-duty grade remain visibly distinct after
+// promotion, including a rankless pre-ladder case. Rendering stays read-only.
+{
+  const f = fixture({mode: 'duty', rankId: 'cn-records-personnel-6-regular', progression: true});
+  assert(f.claim().ok);
+  let content = text(f.render().body);
+  assert(content.includes('现任正六品吏务核籍录事'));
+  assert(content.includes('第1号日职名册 · 第11日 · 正六品'));
+  assert(content.includes('已完成旧阶原册不计为新阶履职'));
+  f.stateChanges.rankId = 'cn-records-personnel-regular';
+  content = text(f.render().body);
+  assert(content.includes('现任正八品吏务核籍录事'));
+  assert(content.includes('第1号日职名册 · 第11日 · 正六品'));
+  const old = copy(f.current()); delete old.rankId;
+  f.stateChanges.case = old; f.stateChanges.history = [old];
+  assert(text(f.render().body).includes('第1号日职名册 · 第11日 · 从八品'));
+}
+console.log('PASS personnel panel labels exact current/historical grades, retains legacy base grade, and rejects other-rank/day/tenure settlement');

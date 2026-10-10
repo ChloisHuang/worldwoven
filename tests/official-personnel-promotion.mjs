@@ -99,6 +99,21 @@ for(const change of ['identity','trial']){
  f.actors.get(LU).busy=false;assert(job.sign().ok);assert(f.careers.archiveAvailability().ok);assert(f.archive().ok);assert.equal(f.careers.state().lastEvaluation.day,7);assert.equal(f.careers.state().lastDuty.wage,28);assert(f.careers.settle().ok);f.load();assert.equal(f.careers.state().officialCareer.service.filter(row=>row.rankId===PERSONNEL).length,1);
  f.day(9);assert.equal(f.careers.state().lastEvaluation.day,8);assert.equal(f.careers.state().lastEvaluation.positive,false);f.load();
 }
+// Morning application/recommendation freezes an explicit receipt prefix. Work
+// later that day remains a real obligation and must not corrupt a cold save.
+for(const stage of ['submitted','recommended','negative']){
+ const f=fixture();f.ready();f.job();f.promote();const skilled=f.saved;skilled.skills.writing=4;f.load(skilled);
+ for(let day=7;day<=11;day++){f.day(day);f.court();f.job({mode:'duty'});assert(f.archive().ok);assert(f.careers.settle().ok);}
+ f.day(12);assert(f.careers.applyPromotion().ok);const frozen=copy(f.careers.promotionSummary().application.checked);
+ if(stage==='recommended')assert(f.review('interview').ok);
+ f.court();if(stage==='negative')assert(f.careers.interruptDuty('interrupted').ok);else {f.job({mode:'duty'});assert(f.archive().ok);assert(f.careers.settle().ok);}
+ f.load();assert.deepEqual(f.careers.promotionSummary().application.checked,frozen);
+ assert.equal(f.careers.promotionSummary().balance,stage==='negative'?4:6);
+ if(stage==='negative')fail(f.review('interview'),'promotion-eligibility-changed');
+ const legacy=f.saved;delete legacy.officialCareer.applications.at(-1).checked.serviceIds;if(legacy.officialCareer.applications.at(-1).recommendation)delete legacy.officialCareer.applications.at(-1).recommendation.checked.serviceIds;
+ assert.equal(createFormalCareers({...f.options,saved:legacy}).state().loadError,null);
+ const forged=f.saved;forged.officialCareer.applications.at(-1).checked.serviceIds[0]='career-review:cn-court-clerk-1:1';assert.equal(createFormalCareers({...f.options,saved:forged}).state().loadError,'invalid-career-state');
+}
 // Same-office ladder: every new personal grade requires fresh actual duty
 // receipts, not entry-grade days or a passage of calendar time. The fixed seed
 // lottery may reject; a later real worked day can support one new application.
