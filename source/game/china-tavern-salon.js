@@ -161,7 +161,7 @@ export function createChinaTavernSalon({npcs,doors,planPath,moveActor,poseContex
   const candidate={...session,receptionWork:{...work,seconds:Math.min(2,work.seconds+(Number.isFinite(dt)?Math.max(0,Math.min(.1,dt)):0))}};
   const observation=receptionObjects?.apply(candidate,host,t,poseContext(host,host.station||receptionist.station));
   const beforeWork=clone(work),beforeHistory=history.length;
-  const finished=advanceReceptionWork(work,session,phase,dt,{present:true,posed:observation?.observed===true&&observation.sessionId===session.id&&observation.cardId===work.cardId&&observation.phase===phase,assignment,sourceValid});
+  const finished=advanceReceptionWork(work,session,phase,dt,{present:true,posed:observation?.played===true&&observation.sessionId===session.id&&observation.cardId===work.cardId&&observation.phase===phase,assignment,sourceValid});
   if(finished){record('reception-'+phase,{receptionistId:work.actorId,cardId:work.cardId,roomId:session.roomId});if(!persist()&&playerWork){Object.assign(work,beforeWork);history.splice(beforeHistory);return false;}playerReceptionAction=null;}
   return !!observation;
  }
