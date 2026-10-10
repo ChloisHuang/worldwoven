@@ -34,5 +34,6 @@ if(app().status==='rejected'){
 assert.equal(app().id,applicationId);assert.equal(app().stage,'imperial-approved',JSON.stringify(diagnostic()));`);
 // Replace only test expectations; product modules are loaded unchanged.
 source=source.replaceAll("'cn-records-personnel'","'__TARGET__'").replaceAll("'cn-records-regular'","'cn-records-personnel'").replaceAll("'__TARGET__'","'cn-records-personnel-regular'").replaceAll("'从八品'","'正八品'");
+source=source.replace('checkpoints:journal.completed','segmentedPublic:!!journal.publicSegment,staging:journal.staging,checkpoints:journal.completed');
 source=source.replace('Actual production main full trial and personnel promotion route','Actual production main higher-grade promotion route after explicitly core-staged earlier service');
 new vm.Script(source,{filename:__filename}).runInNewContext({require,console,process,Buffer,structuredClone,URL,__dirname,__filename});
