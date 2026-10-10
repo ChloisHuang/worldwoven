@@ -35,6 +35,10 @@ export function createTellerInspection({resolveAssignment,getDay,getGlobalAuditD
   snapshot:()=>copy(state),state:()=>copy(state),get loadError(){return loadError;},ownedActorId:ownedId,
   owns:n=>!!ownedId()&&n?.station?.id===ownedId(),reserves:n=>!!ownedId()&&n?.station?.id===ownedId(),
   handoffBoundary:()=>({ok:!loadError&&!state.order,blockers:loadError?[loadError]:state.order?['teller-original-work-unfinished']:[]}),
+  // The daily audit reads its frozen source, not a pending cash transaction.
+  // Its same holder can pause to serve a customer without handing off, settling,
+  // reissuing or replacing that source. isCounterOpen freezes all audit progress.
+  canServeCounter:n=>{const a=resolveAssignment(),o=state.order;return !disposed&&!loadError&&ready(n)&&!!liveLedger()&&(!o||o.contract.actorId===n.station.id&&o.contract.holderRevision===a.revision);},
   canBorrowMeal:()=>false,
   update(dt,t,context={}){
    if(disposed||loadError||!Number.isFinite(dt)||dt<=0)return;dt=Math.min(dt,.25);
