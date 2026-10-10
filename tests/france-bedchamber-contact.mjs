@@ -37,7 +37,7 @@ function geometry(a){const out={bodyMin:Infinity,shoeMin:[Infinity,Infinity],han
   }
  }});return out;
 }
-const rows=[{name:'Juliette-original',...A.npcRoleAppearance('france','france-bedroom',1,2),scale:.96},{name:'player-original',...A.createAppearanceState(1,{extended:false}).player,scale:1},{name:'player-slender-short',bodyPreset:'feminine-slender',shapeTraits:{legLength:.94},scale:1},{name:'player-broad-long',bodyPreset:'masculine-broad',shapeTraits:{legLength:1.06},scale:1}];
+const rows=[{name:'Juliette-main-seed8-shape1',...A.npcRoleAppearance('france','france-bedroom',8,1),scale:.96},{name:'Juliette-original',...A.npcRoleAppearance('france','france-bedroom',1,2),scale:.96},{name:'player-original',...A.createAppearanceState(1,{extended:false}).player,scale:1},{name:'player-slender-short',bodyPreset:'feminine-slender',shapeTraits:{legLength:.94},scale:1},{name:'player-broad-long',bodyPreset:'masculine-broad',shapeTraits:{legLength:1.06},scale:1}];
 for(const row of rows){const a=C.createCharacter({...row,culture:'france'});lot.group.add(a.root);a.root.position.set(4.55,floor,-1.2);update(a);const baseline=lengths(a),frames=[];
  for(const [stage,object]of Object.entries(objects)){const w=work[stage],target=w.target,axis=stage==='fold'?'x':'z',surface=new T.Box3().setFromObject(object);
   // The real service starts within 65 mm; sample the complete arrival circle,
