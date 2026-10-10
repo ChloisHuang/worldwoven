@@ -200,7 +200,20 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   const dish=v.dishId==='sushi'?'寿司拼盘':'热汤拉面',label=({dining:`点好${dish}，等候上菜`,'waiting-meal':`等厨房做好自己的${dish}`,eating:`吃刚送来的${dish}`})[v.stage]||LABELS[v.stage];
   tell(n,`${v.name} · ${v.number}号 · ${label||''}`);
   const side=v.side,seat=restSeat(v),step=(event,to,options={})=>assign(n,to,{label,onDone:()=>guestEvent(n,event),...options});
-  if(v.stage==='arriving')queueAtReception(n,v,'arrived');
+  if(v.stage==='arriving'){
+   const display=board.omamori.state(),viewing=display.items.find(x=>x.stage==='viewing'&&x.viewerId===v.id),interested=(Number(v.appearance?.seed)||v.number)%2===0;
+   // A stable preference gives an original paying visitor one optional real
+   // stop. No new population, synthetic request or daily stock reset.
+   const urgent=sharedNeeds?.status(v.id),occupied=display.items.some(x=>x.stage==='viewing')||[...tasks.values()].some(t=>t.omamoriViewing),optional=interested&&!display.seenVisits.includes(v.id);
+   if(viewing||optional&&!occupied&&!urgent?.seekMeal&&!urgent?.seekToilet&&display.items.some(x=>x.stage==='clean')){
+    let task;task=assign(n,[4.7,0,33.1],{omamoriViewing:true,label:'沿参道到御守台欣赏原布袋绳结',duration:8,action:'tidy',workTarget:[4.7,1.14,32.04],handoff:true,onArrive:()=>{
+     if(board.omamori.state().items.some(x=>x.stage==='viewing'&&x.viewerId===v.id)||board.omamori.beginViewing(v.id))return true;
+     // Public stand occupied or final clean pouch handled while we walked:
+     // skip this optional stop instead of delaying the original bath visit.
+     if(!board.omamori.skipVisitor(v.id))return false;task.duration=0;task.handoff=false;return true;
+    },onDone:()=>omamoriDuty.endViewing(v.id)});
+   }else{if(optional&&!board.omamori.skipVisitor(v.id))return;queueAtReception(n,v,'arrived');}
+  }
   else if(v.stage==='changing'||v.stage==='drying') {
    if(v.stage==='changing'&&!board.linenWork().some(l=>l.stage==='clean')){tell(n,'等布草间洗净并补回毛巾，再进更衣间');return;}
    if(!furniture.facilities.request(`japan-service-changing-${side}`,v.id))return;
@@ -277,7 +290,7 @@ export function createJapanBathhouseOperations({npcs,lot,furniture,planPath,door
   connectDeliveryDuty(options){const side=options.side||'men',existing=side==='women'?womenDeliveryDuty:deliveryDuty;if(existing)return existing;const duty=createJapanBathDeliveryDuty({...options,side,board,actors,assign,clear,unmount,planPath,taskOf:n=>tasks.get(n.station.id),getStaffLife:()=>staffLife,customerActor,onComplete:record});if(side==='women')womenDeliveryDuty=duty;else deliveryDuty=duty;return duty;},
   connectReceptionDuty(options){return receptionDuty??=createJapanReceptionDuty({...options,board,actors,assign,clear,unmount,taskOf:n=>tasks.get(n.station.id),getStaffLife:()=>staffLife,customerActor,furniture,onComplete:record});},
   update(dt,t,state={}) {
-   if(disposed)return;time+=dt;board.linenTick(dt);board.bedding.tick(dt);board.bedding.observeUse(dt,state.mountedBedId===JAPAN_GUEST_BED);playerState=state;playerCustomerService?.update(dt);spawn();
+   if(disposed)return;time+=dt;board.linenTick(dt);board.bedding.tick(dt);board.bedding.observeUse(dt,state.mountedBedId===JAPAN_GUEST_BED);playerState=state;if(state.omamoriViewing===false)omamoriDuty.endViewing();playerCustomerService?.update(dt);spawn();
    for(const n of actors.values())n.walking=false;
    for(const [id,n]of guests){const v=board.getVisit(id);if(v)scheduleGuest(n,v);}
    for(const [id,duty]of [['jp-omamori',omamoriDuty],['jp-welcome',receptionDuty],['jp-onsen',deliveryDuty],['jp-women-onsen',womenDeliveryDuty],['jp-incense',mixingDuty],['jp-sushi',kitchenDuty],['jp-ramen',tableServiceDuty],['jp-rest',linenDuty],['jp-steam',boilerDuty]])if(!isJapanEmployeeInteraction(actors.get(id),playerState))duty?.update(dt);if(!isJapanEmployeeInteraction(actors.get('jp-herb-workshop'),playerState))beddingReceiving?.update(dt);staffLife?.update(dt,playerState);scheduleWorkers();for(const task of [...tasks.values()])if(tasks.get(task.actor.station.id)===task)tickTask(task,dt);
