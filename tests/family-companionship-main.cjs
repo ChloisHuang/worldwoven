@@ -1,8 +1,0 @@
-// Reuse the verified ST02 real-navigation fixture; add only the ST08 outbox seam.
-const fs=require('node:fs'),vm=require('node:vm');
-let source=fs.readFileSync('tests/palace-companionship-main.cjs','utf8');
-source=source.replace('palaceCompanionshipUI,palaceMeetingPlaces};}', 'palaceCompanionshipUI,palaceMeetingPlaces,familyRuntime};}');
-source=source.replace("let frames=0;const checks=[];", "assert(r.familyRuntime.ledger.setFamilyPlanning('player',{reproductiveRole:'gestational'}).ok);assert(r.familyRuntime.ledger.agreeFamilyPlan({id:'previous-mutual-family-plan',participants:['player','cn-emperor'],consent:{player:true,'cn-emperor':true},startedSeconds:r.simulationClock.state().seconds}).ok);let frames=0;const checks=[];");
-source=source.replace("const checkpoint=main.namespace.socialCheckpoint();", "const birthEvent=r.familyRuntime.ledger.snapshot().events.find(e=>e.id===eventId);assert(birthEvent,'real completion reached family ledger');assert.equal(birthEvent.receipt.source,'palace');assert(birthEvent.receipt.participants.every(p=>p.consent===true&&p.ageYears>=18));const checkpoint=main.namespace.socialCheckpoint();assert.equal(checkpoint.familyPending.length,0,'atomic source outbox acknowledged');note('Actual completed private event reached family ledger once through atomic source outbox, then acknowledged; planning never substituted for this invitation consent');");
-source=source.replace("out='qa/palace-companionship-main/'", "out='qa/family-companionship-main/'");
-new vm.Script(source,{filename:__filename}).runInNewContext({structuredClone,URL,Float32Array,Float64Array,Uint8Array,Uint16Array,Uint32Array,Int8Array,Int16Array,Int32Array,ArrayBuffer,require,console,process,Buffer,__filename,__dirname});

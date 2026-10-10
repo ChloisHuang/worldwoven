@@ -1,5 +1,3 @@
-> Test selection follows [docs/TESTING.md](docs/TESTING.md); the commands below are available checks, not a mandatory full-suite gate for every change.
-
 # Worldwoven · 四方生活
 
 An original cel-shaded cultural life and exploration game. The repository name supports more regions in future; the current public game includes Japan, China, Egypt and France.
@@ -102,18 +100,15 @@ Node.js 22 or newer and npm. There are no downloaded runtime or build dependenci
 
 The local servers bind only to 127.0.0.1 and are not the public deployment service.
 
-## Validation
+## Build and delivery
 
-- `npm test`: list the module test catalog without running it. Use `npm run test:characters`, `test:navigation`, `test:ui`, `test:food-lodging`, `test:economy-careers`, or `test:world-life` for the selected module core; these are not full-module coverage. Targeted integration and explicit complete-module commands: [tests/README.md](tests/README.md).
-- npm run build, then npm run test:cache: complete module graph, immutable content hashes, selective invalidation and prior published graph retention
-- npm run test:worker: the preserved read-only legacy endpoint
-- npm run test:door-geometry -- --check and --tiny: portable door geometry harness checks; see tests/door-geometry/README.md for the separate serialized authored sweep command and limits
+The automated test suites, fixtures, test runners and isolated QA pages were removed at the user's request on 2026-10-10. The available npm commands are development servers, the production build and its preview. Historical release notes below and in docs record earlier work; their removed test commands and evidence paths are not current instructions.
 
-CPU/DOM fixtures do not provide browser or iOS visual acceptance. The R16 baseline received separate production Three/Mesa WebGL2 image checks. R16.1 added focused actual-scene controller and geometry checks for fixed half-curtains. R16.2 adds exact-source Three/Mesa French doorway images, continuous full-scene door sweeps, seven-door bidirectional controller checks and unchanged-region geometry/collision comparisons; no browser or iOS visual acceptance is claimed. Generated screenshots and reports are intentionally not committed. Real iOS performance, driver-specific appearance and observed HTTP warm-cache transfers remain unverified.
+Use npm run build to produce the game and worker. The build retains the previous published immutable asset graph for already-open game pages. It does not run tests or publish isolated QA entries. A successful build is not a claim of browser or iOS gameplay acceptance.
 
 ## Deploy with Sites
 
-Keep .openai/hosting.json and its existing project ID. Use the connected Sites source/save/deploy workflow for that existing public Site, keeping its custom domain and audience unchanged. Choose only checks affected by the change under docs/TESTING.md, build the production output, then publish dist through the supported workflow and verify the terminal deployment result. Do not export or package source snapshots. This repository does not contain publication credentials or configure automatic GitHub deployments.
+Keep .openai/hosting.json and its existing project ID. Use the connected Sites source/save/deploy workflow for that existing public Site, keeping its custom domain and audience unchanged. Build the production output once for the completed changes, then publish dist through the supported workflow and verify the terminal deployment result. Do not export or package source snapshots. This repository does not contain publication credentials or configure automatic GitHub deployments.
 
 Before subsequent releases, cache-baseline.json must describe the confirmed live graph. Reuse the existing prior build outputs for cache retention; rebuild the published version only if those required outputs are actually missing. Do not reconstruct them for every small change. The builder keeps the previous complete graph for already-open pages. On a fresh clone, the first build produces the current graph; historical build outputs are deliberately not in Git. HTML and build.json revalidate; hashed assets cache immutably for one year. Do not add blanket asset cache-busting or manual gzip decompression.
 
@@ -122,7 +117,6 @@ Before subsequent releases, cache-baseline.json must describe the confirmed live
 - source/game: original scenes, globe, controls, characters and interactions
 - source/vendor/three: vendored renderer and its MIT license
 - scripts: dependency-free development and build helpers
-- tests: portable source-level regression suites and necessary baseline fixtures
 - worker: preserved legacy read-only handler
 - .openai/hosting.json: necessary existing deployment identity
 
