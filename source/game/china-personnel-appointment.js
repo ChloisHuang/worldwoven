@@ -4,12 +4,10 @@
 import * as THREE from 'three';
 import {COURT_CAREER_PLACE as P} from './china-court-career-place.js';
 import {PALACE_EDICT} from './china-palace-edict-place.js';
-import {getChinaRecordsCareerRank} from './china-official-ranks.js';
+import {getChinaOfficialCareerRank} from './china-official-ranks.js';
+import {isPersonnelRank as personnelRank,isPersonnelApplication as personnelApplication,PRINCIPAL_RANK} from './official-personnel-policy.js';
 
 const PROVIDER = 'china-personnel-appointment', ROLE = 'cn-court-clerk';
-const personnelRank = rankId => !!getChinaRecordsCareerRank(rankId) && (rankId === 'cn-records-personnel' || rankId.startsWith('cn-records-personnel-'));
-const personnelApplication = row => !!row && (row.routeVersion === 2 && row.fromRankId === 'cn-records-regular' && row.toRankId === 'cn-records-personnel' ||
-  row.routeVersion === 3 && personnelRank(row.fromRankId) && getChinaRecordsCareerRank(row.fromRankId).nextRankId === row.toRankId && personnelRank(row.toRankId));
 const LU = 'cn-official-personnel', EMPEROR = 'cn-emperor';
 const PUBLIC_EMPEROR = [-15.1, .215, -13.35], PUBLIC_PLAYER = PALACE_EDICT.points.approve;
 const PREFIX = 'personnel-promotion-', durations = {review: 4, 'imperial-review': 4, appointment: 3, 'receive-document': 0};
@@ -23,6 +21,7 @@ const frozen = value => { if (value && typeof value === 'object') { Object.value
 const retries = new Set(['save-failed', 'async-save-unsupported', 'persistence-unavailable']);
 const messages = {'save-failed': '原完成凭据已保留，登记暂未保存，将稍后重试。', 'async-save-unsupported': '原完成凭据已保留，登记暂未保存，将稍后重试。',
   'promotion-review-rejected': '皇帝：本次任命未获准，结果已入档；本次申请不会重新抽签。',
+  'principal-vacancy-unavailable':'刑名主官原实缺已不可核验，申请与原件保留。', 'principal-vacancy-changed':'刑名主官原实缺已变化，不能用原荐书接任另一空缺。',
   'promotion-duty-unsettled': '请先完成本轮朝班、归档和结薪，再继续办理任命。'};
 
 /**
@@ -51,8 +50,8 @@ export function createChinaPersonnelAppointment({careers, palace, getPlayer, get
   const summary = () => careers?.promotionSummary?.() || {};
   const application = () => { const row = summary().application; return personnelApplication(row) ? row : null; };
   const pending = () => { const row = application(); return row?.status === 'pending' ? row : null; };
-  const route = () => personnelRank(summary().routeId) || !!pending();
-  const targetRank = row => getChinaRecordsCareerRank(row?.toRankId || summary().routeId);
+  const route = () => personnelRank(summary().routeId) || summary().routeId===PRINCIPAL_RANK || !!pending();
+  const targetRank = row => getChinaOfficialCareerRank(row?.toRankId || summary().routeId);
   const ready = () => enabledNow() && !loadError && route() && summary().eligible === true;
   const documentId = row => row?.appointment?.id || (row ? 'appointment:' + row.id : null);
   const currentPoint = actor => actor?.root?.position.toArray();
@@ -148,7 +147,7 @@ export function createChinaPersonnelAppointment({careers, palace, getPlayer, get
     const type = typeFor(kind), row = pending();
     if (!['apply', 'review', 'receive-document', 'imperial-review', 'appointment', 'cancel'].includes(type)) return null;
     if (type === 'cancel') return activity ? {provider: PROVIDER, id: 'cn-' + kind, kind, position: currentPoint(getPlayer()) || [...P.registration],
-      name: '吏务核籍任命', action: '取消当前办理，保留申请', contextControl: true, executionRadius: .18, interactionRadius: 2.8,
+      name: '官署核荐任命', action: '取消当前办理，保留申请', contextControl: true, executionRadius: .18, interactionRadius: 2.8,
       intentKey: activity.applicationId + ':' + activity.kind} : null;
     if (!ready() || !documentObject || type === 'apply' && (activity || !careers.promotionAvailability?.().ok) || type !== 'apply' && (!row || stages[row.stage] !== type)) return null;
     if (activity && activity.intentKind !== kind) return null;
@@ -159,7 +158,7 @@ export function createChinaPersonnelAppointment({careers, palace, getPlayer, get
     const target = targetRank(row);
     const action = {apply: `提交${target?.gradeLabel || ''}${target?.title || '吏务核籍录事'}申请`, review: '向陆谦呈履历核荐 · 4秒', 'receive-document': '领取陆谦荐书原件',
       'imperial-review': '持原荐书当面请皇帝阅批 · 4秒', appointment: '宣读原任命文书并登记 · 3秒'}[type];
-    return {provider: PROVIDER, id: 'cn-' + kind, kind, position: [...position], name: type === 'imperial-review' ? '宫苑公共听候处 · 呈荐书' : '铨录登记 · 吏务核籍任命',
+    return {provider: PROVIDER, id: 'cn-' + kind, kind, position: [...position], name: type === 'imperial-review' ? '宫苑公共听候处 · 呈荐书' : '铨录登记 · 官署核荐任命',
       npcName: lu ? '陆谦' : emperor ? '皇帝' : '任命文书', action, executionRadius: .18, interactionRadius: 2.8, priority: 56,
       intentKey: [careers.workState?.().revision, row?.id, row?.stage, getClock()?.day, kind, lu?.bodyId, emperor?.bodyId].join('|'),
       ...(lu ? {awaitingReception: !meeting, visualAnchor: {actorId: LU}} : {})};

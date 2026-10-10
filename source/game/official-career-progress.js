@@ -1,5 +1,5 @@
-import {PERSONNEL_RANK, PERSONNEL_FROM_RANK, PERSONNEL_REQUIREMENTS, personnelRequirements, isPersonnelRank, validPersonnelApplication, validPersonnelEvidence, validPersonnelContract, personnelEvidenceFields} from './official-personnel-policy.js';
-import {getChinaRecordsCareerRank} from './china-official-ranks.js';
+import {PERSONNEL_RANK, PERSONNEL_FROM_RANK, PERSONNEL_REQUIREMENTS, PRINCIPAL_RANK, PRINCIPAL_FROM_RANK, principalVacancySource, personnelSame, personnelRequirements, isPersonnelRank, validPersonnelApplication, validPersonnelEvidence, validPersonnelContract, personnelEvidenceFields} from './official-personnel-policy.js';
+import {getChinaRecordsCareerRank,getChinaOfficialCareerRank} from './china-official-ranks.js';
 
 // Only witnessed clerk appointments and evaluated duties become service.
 // Time away, study XP and the old cross-career growth counter never add days.
@@ -28,7 +28,7 @@ export function recordOfficialAppointment(ledger,tenure){
 }
 export function recordOfficialService(ledger,tenure,review,rankId=CLERK_ENTRY_RANK){
  const appointment=currentOfficialAppointment(ledger,tenure);
- if(!appointment||review.roleId!==CLERK_ID||ledger.service.some(r=>r.id===review.id))return ledger;
+ if(!appointment||officialRankId(ledger,tenure)===PRINCIPAL_RANK||!getChinaRecordsCareerRank(rankId)||review.roleId!==CLERK_ID||ledger.service.some(r=>r.id===review.id))return ledger;
  return {...ledger,service:[...ledger.service,{id:review.id,appointmentId:appointment.id,day:review.day,rankId,
   positive:review.positive,score:review.score,wage:review.wage,reasonCode:review.reasonCode,...(review.officialPayVersion===2?{officialPayVersion:2,officialRankId:review.officialRankId,officialTenureId:review.officialTenureId,officialPayContract:copy(review.officialPayContract),...personnelEvidenceFields(review)}:{})}]};
 }
@@ -37,11 +37,11 @@ export function closeOfficialAppointment(ledger,tenure,clock){
  return {...ledger,appointments:ledger.appointments.map(a=>a.id===id?{...a,endedAt:at}:a),
   applications:ledger.applications.map(a=>a.appointmentId===id&&a.status==='pending'?{...a,status:'cancelled',stage:'decided',code:'appointment-ended',decidedAt:at}:a)};
 }
-export function officialPromotionSummary(ledger,tenure,clock,skills,lastDuty,{enablePersonnelProgression=false,trial=null}={}){
- const appointment=currentOfficialAppointment(ledger,tenure),rankId=officialRankId(ledger,tenure),rank=getChinaRecordsCareerRank(rankId);
- const higher=enablePersonnelProgression&&isPersonnelRank(rankId)&&!!rank.nextRankId,personnel=enablePersonnelProgression&&rankId===PERSONNEL_FROM_RANK,department=personnel||higher,requirements=department?personnelRequirements(rank.nextRankId):CLERK_PROMOTION_REQUIREMENTS;
+export function officialPromotionSummary(ledger,tenure,clock,skills,lastDuty,{enablePersonnelProgression=false,trial=null,principalVacancy=null}={}){
+ const appointment=currentOfficialAppointment(ledger,tenure),rankId=officialRankId(ledger,tenure),rank=getChinaOfficialCareerRank(rankId);
+ const principal=enablePersonnelProgression&&rankId===PRINCIPAL_FROM_RANK,higher=enablePersonnelProgression&&isPersonnelRank(rankId)&&!!rank.nextRankId,personnel=enablePersonnelProgression&&rankId===PERSONNEL_FROM_RANK,department=personnel||higher,requirements=department?personnelRequirements(rank.nextRankId):CLERK_PROMOTION_REQUIREMENTS;
  const service=ledger.service.filter(r=>r.appointmentId===appointment?.id&&r.rankId===rankId),qualified=service.filter(r=>r.positive&&r.reasonCode==='court-and-archive-completed'),balance=service.reduce((sum,r)=>sum+r.score,0);
- const rankStart=department?ledger.applications.find(a=>a.appointmentId===appointment?.id&&a.toRankId===rankId&&a.status==='approved')?.decidedAt.day:tenure?.sinceDay;
+ const rankStart=department||rankId===PRINCIPAL_RANK?ledger.applications.find(a=>a.appointmentId===appointment?.id&&a.toRankId===rankId&&a.status==='approved')?.decidedAt.day:tenure?.sinceDay;
  const tenureDays=appointment&&clock&&rankStart!==undefined?Math.max(0,clock.day-rankStart+1):0;
  const qualifiedDayIds=[...new Set(qualified.map(row=>row.day))].sort((a,b)=>a-b);
  const applications=ledger.applications.filter(a=>a.appointmentId===appointment?.id),application=applications.at(-1)||null,reasons=[];
@@ -54,6 +54,11 @@ export function officialPromotionSummary(ledger,tenure,clock,skills,lastDuty,{en
   if((skills?.ritual||0)<requirements.ritual)reasons.push('ritual-required');
   if((skills?.writing||0)<requirements.writing)reasons.push('writing-required');
   if(personnel&&!trial)reasons.push('personnel-trial-required');
+  if(principal){
+   const vacancy=principalVacancySource(principalVacancy);
+   if(!vacancy)reasons.push('principal-vacancy-unavailable');
+   else if(application?.status==='pending'&&application.routeVersion===4&&!personnelSame(vacancy,application.vacancy))reasons.push('principal-vacancy-changed');
+  }
   if(lastDuty&&['arrived','attending','archive','working','inspection','ready'].includes(lastDuty.stage))reasons.push('promotion-duty-unsettled');
  }
  return {rankId,rank,routeId:department?rank.nextRankId:rankId===CLERK_ENTRY_RANK?CLERK_NEXT_RANK:null,requirements:{...requirements},qualifiedDays:qualifiedDayIds.length,qualifiedDayIds,serviceIds:service.map(r=>r.id),tenureDays,balance,
@@ -70,7 +75,7 @@ export function restoreOfficialCareer(value,{tenure,lastDuty,lastEvaluation}={})
  }
  const fail=()=>{throw Error('invalid-career-state');};
  if(!object(value)||value.version!==1||!['appointments','service','applications'].every(k=>Array.isArray(value[k])))fail();
- const appointments=new Map(),seenService=new Set(),seenApplications=new Set();
+ const appointments=new Map(),seenService=new Set(),seenApplications=new Set(),consumedVacancies=new Set();
  for(const a of value.appointments){
   const t=a?.tenure;
   if(!object(a)||!object(t)||t.roleId!==CLERK_ID||t.slotId!=='cn-court-clerk-1'||!time(tenureTime(t))||a.id!==officialTenureId(t)||appointments.has(a.id)||
@@ -89,8 +94,12 @@ export function restoreOfficialCareer(value,{tenure,lastDuty,lastEvaluation}={})
  }
  for(const r of value.applications){
   const a=appointments.get(r?.appointmentId),pending=r?.status==='pending',approved=r?.status==='approved';
-  if([2,3].includes(r?.routeVersion)){
+  if([2,3,4].includes(r?.routeVersion)){
    if(!a||seenApplications.has(r.id)||!validPersonnelApplication(r,a,value.service))fail();
+   if(r.routeVersion===4&&r.status==='approved'){
+    if(consumedVacancies.has(r.vacancy.vacancyId))fail();
+    consumedVacancies.add(r.vacancy.vacancyId);
+   }
    seenApplications.add(r.id);continue;
   }
   if(!object(r)||!a||!time(r)||!after(r,tenureTime(a.tenure))||r.id!==`official-promotion:${CLERK_ID}:${r.day}`||seenApplications.has(r.id)||
@@ -113,12 +122,13 @@ export function restoreOfficialCareer(value,{tenure,lastDuty,lastEvaluation}={})
   if(rows.filter(r=>r.status==='pending').length>1)fail();
   for(const r of rows){
    if(lastApplied&&!after(r,lastApplied)||r.fromRankId!==rank||!after(r,lastDecision))fail();
-   if([2,3].includes(r.routeVersion)&&(r.trial.day<lastDecision.day||r.checked.tenureDays!==r.day-lastDecision.day+1||r.recommendation&&r.recommendation.checked.tenureDays!==r.recommendation.at.day-lastDecision.day+1))fail();
+   if([2,3,4].includes(r.routeVersion)&&(r.trial.day<lastDecision.day||r.checked.tenureDays!==r.day-lastDecision.day+1||r.recommendation&&r.recommendation.checked.tenureDays!==r.recommendation.at.day-lastDecision.day+1))fail();
    lastApplied=r;
    if(r.status==='approved'){rank=r.toRankId;lastDecision=r.decidedAt;}
   }
  }
  for(const r of value.service){
+  if(value.applications.some(a=>a.appointmentId===r.appointmentId&&a.toRankId===PRINCIPAL_RANK&&a.status==='approved'&&r.day>a.decidedAt.day))fail();
   if(r.rankId!==CLERK_ENTRY_RANK&&!value.applications.some(a=>a.appointmentId===r.appointmentId&&a.status==='approved'&&a.toRankId===r.rankId&&a.decidedAt.day<=r.day))fail();
   if(isPersonnelRank(r.rankId)&&(!validPersonnelContract(r)||r.officialRankId!==r.rankId||r.officialTenureId!==r.appointmentId||!validPersonnelEvidence(r,r.positive)))fail();
  }
