@@ -1,3 +1,5 @@
+import {buildChinaBlackMarket} from './china-black-market.js';
+import {blackMarketGroundPieces} from './china-black-market-layout.js';
 import {buildChinaHoldingCell,holdingGroundPieces} from './china-holding-cell.js';
 import {createTellerTools} from './china-teller-tools.js';
 import {createArchiveBooks} from './china-archive-books.js';
@@ -121,8 +123,8 @@ export function buildChinaPalace(G,H){
  const shelf=(g,x,z,w=3.2,h=2.8,d=.7,rot=0)=>{const s=openShelf(g,colliders,x,z,w,h,d,C.wood,rot);s.position.y=.2;cameraColliders.push({minX:x-(rot?d:w)/2,maxX:x+(rot?d:w)/2,minZ:z-(rot?w:d)/2,maxZ:z+(rot?w:d)/2,minY:.2,maxY:h+.2});for(const xx of [-w*.30,0,w*.30]){for(let j=0;j<3;j++)boundBook(s,xx,.35+j*.11,0,w*.20,.46,[0x738d7b,0xb69d6a,0x9a6350][j]);G.vessel(s,xx,1.51,0,0xa9c2b5,.55);}return s;};
  // All four enclosing walls are tall masonry palace walls. South entry is on
  // the spawn axis; secondary east/west/north gates are usable from both sides.
- for(const b of holdingGroundPieces(bounds))G.box(exterior,(b.minX+b.maxX)/2,-.5,(b.minZ+b.maxZ)/2,b.maxX-b.minX,1,b.maxZ-b.minZ,0x859b79);
- for(const b of holdingGroundPieces({minX:-29,maxX:29,minZ:-38,maxZ:38}))floor(exterior,(b.minX+b.maxX)/2,(b.minZ+b.maxZ)/2,b.maxX-b.minX,b.maxZ-b.minZ,.10,0xbdbca9);
+ for(const b of holdingGroundPieces(bounds).flatMap(blackMarketGroundPieces))G.box(exterior,(b.minX+b.maxX)/2,-.5,(b.minZ+b.maxZ)/2,b.maxX-b.minX,1,b.maxZ-b.minZ,0x859b79);
+ for(const b of holdingGroundPieces({minX:-29,maxX:29,minZ:-38,maxZ:38}).flatMap(blackMarketGroundPieces))floor(exterior,(b.minX+b.maxX)/2,(b.minZ+b.maxZ)/2,b.maxX-b.minX,b.maxZ-b.minZ,.10,0xbdbca9);
  const perimeter=(side,axis,at,from,to,gap)=>{
   const w=new THREE.Group();w.name='China perimeter '+side;exterior.add(w);
   // The rear terrace/stair excludes a six-metre inward swing. Three
@@ -342,7 +344,7 @@ export function buildChinaPalace(G,H){
  ];
  // The outer paths are real terrain too: strict surface navigation has no
  // implicit floor that could hide a hole or teleport an actor between levels.
- walkableSurfaces.unshift(...holdingGroundPieces({...bounds,y:.015,owner:'estate terrain'}));
+ walkableSurfaces.unshift(...holdingGroundPieces({...bounds,y:.015,owner:'estate terrain'}).flatMap(blackMarketGroundPieces));
  const r14=new THREE.Group();r14.name='China raised platforms and continuous stairs';group.add(r14);
  const upperFixture=(g,id,x,y,z,floorY)=>{const lamp=silkLantern(g,id,x,y,z,.26);lamp.scale.y=.38;registerNightFixture(g,x,y-.07,z,{kind:'upper-gallery-lantern',intensity:22,distance:12,floorY});};
  const solid3=(g,x,y,z,w,h,d,color)=>{box(g,x,y,z,w,h,d,color);colliders.push({minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2});};
@@ -600,6 +602,7 @@ export function buildChinaPalace(G,H){
  // Outer ground stays in its own group; omit perimeter groups while batching it.
  const walls=exterior.children.filter(o=>o.name.startsWith('China perimeter '));for(const w of walls)exterior.remove(w);packStatic(exterior);for(const w of walls)exterior.add(w);
  const holdingCell=buildChinaHoldingCell(G,{group,roofGroup,colliders,cameraColliders,walkableSurfaces,interiorRooms,levels,lightingZones,explorationTargets,facilities,packStatic});
+ const blackMarket=buildChinaBlackMarket(G,{group,roofGroup,colliders,cameraColliders,walkableSurfaces,interiorRooms,levels,lightingZones,explorationTargets,facilities,packStatic});
  const archiveBooks=createArchiveBooks(G,{group});const tellerTools=createTellerTools(G,{group});
- return {holdingCell,navigationPortals:holdingCell.navigationPortals,archiveBooks,tellerTools,requiredInsetDoorIds:Object.keys(insetKinds),group,roofGroup,colliders,cameraColliders,bounds,spawn:ground([0,0,39]),heightAware:true,levels,lightingZones,additionalFurnitureSeats,additionalFurniture:[...tavern.additionalFurniture,...officialBureau.additionalFurniture,...residence.additionalFurniture],characterFootSurfaces,walkableSurfaces,interiorRooms,doorways,explorationTargets,facilities,stations,architectureProgram,automaticDoorways,archery,clinic,moneyHouse};
+ return {holdingCell,blackMarket,navigationPortals:[...holdingCell.navigationPortals,...blackMarket.navigationPortals],archiveBooks,tellerTools,requiredInsetDoorIds:Object.keys(insetKinds),group,roofGroup,colliders,cameraColliders,bounds,spawn:ground([0,0,39]),heightAware:true,levels,lightingZones,additionalFurnitureSeats,additionalFurniture:[...tavern.additionalFurniture,...officialBureau.additionalFurniture,...residence.additionalFurniture],characterFootSurfaces,walkableSurfaces,interiorRooms,doorways,explorationTargets,facilities,stations,architectureProgram,automaticDoorways,archery,clinic,moneyHouse};
 }

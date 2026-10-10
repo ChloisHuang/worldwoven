@@ -18,8 +18,9 @@ const mask=p=>Math.max(0,Math.min(1,Math.min(...p.map((v,i)=>Math.min(v-[-4,-4.3
 for(const p of [[-4.01,-2,0],[4.01,-2,0],[0,-4.31,0],[0,-.99,0],[0,-2,-4.01],[0,-2,4.01],[0,.115,0]])assert.equal(mask(p),0,'outside fragment unchanged even if filtered alpha is dark');assert.equal(mask([0,-2,0]),1);assert(mask([-3.9,-2,0])>0&&mask([-3.9,-2,0])<1);
 lighting.detach();lighting.dispose();
 const G=await import('../source/game/geometry.js'),{buildChinaBlackMarket}=await import('../source/game/china-black-market.js');const ctx={group:new T.Group(),roofGroup:new T.Group(),colliders:[],cameraColliders:[],walkableSurfaces:[],interiorRooms:[],levels:[],lightingZones:[],explorationTargets:[],facilities:[]};buildChinaBlackMarket(G,ctx);const bz=ctx.lightingZones[0],bb=bz.baseLightBounds;
+const {marketPoint}=await import('../source/game/china-black-market-layout.js');
 const realMask=p=>Math.max(0,Math.min(1,Math.min(p[0]-bb.minX,bb.maxX-p[0],p[1]-bb.minY,bb.maxY-p[1],p[2]-bb.minZ,bb.maxZ-p[2])/.25));
-for(const p of [[-7.8,-2,29.409],[-3.408,-2,33.2],[-7.8,-2,36.991],[-7.8,-1.1,33.2],[-7.8,-4.1,33.2]])assert.equal(realMask(p),1,'authored wall/ceiling/floor interior fully attenuated');
-for(const p of [[-14,-2,36.15],[-7.8,.115,33.2],[-12.46,-2,36.15]])assert.equal(realMask(p),0,'public landing/surface excluded');
-let lamps=0;ctx.group.traverse(o=>{if(o.userData.nightFixture){lamps++;assert(o.userData.nightFixture.distance<=4.5);}});assert.equal(lamps,3);assert.equal(bz.baseLightScale,.18);
+for(const p of [[-7.8,-2,29.409],[-3.408,-2,33.2],[-7.8,-2,36.991],[-7.8,-1.1,33.2],[-7.8,-4.1,33.2]])assert.equal(realMask(marketPoint(p)),1,'authored wall/ceiling/floor interior fully attenuated');
+for(const p of [[-14,-2,36.15],[-7.8,.115,33.2],[-12.46,-2,36.15]])assert.equal(realMask(marketPoint(p)),0,'public landing/surface excluded');
+let lamps=0;ctx.group.traverse(o=>{if(o.userData.nightFixture?.kind==='black-market-wall-lantern'){lamps++;assert(o.userData.nightFixture.distance<=4.5);}});assert.equal(lamps,3);assert.equal(bz.baseLightScale,.18);
 console.log(JSON.stringify({status:'PASS',dimmedCells:dim,unchangedCells:untouched,passes:['outside-alpha-one','fixture-rgb-identical','day-night','no-extra-lights-or-textures','shader-order','global-hemi-unchanged','inward-only-boundary','actual-market-wall-envelope','three-original-lamps','cleanup']}));

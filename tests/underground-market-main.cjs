@@ -12,7 +12,7 @@ harness=harness.replace("const document={body:new E('body'),","const document={h
 harness=harness.replace('getBoundingClientRect(){', 'getClientRects(){return this.hidden?[]:[this.getBoundingClientRect()];}contains(e){return e===this||this.children.some(c=>c.contains?.(e));}querySelectorAll(s){const match=e=>s.startsWith("[")?e.getAttribute?.(s.slice(1,-1))!==undefined:s.startsWith(".")?e.className?.split(" ").includes(s.slice(1)):e.tagName===s;return this.children.flatMap(e=>[...(match(e)?[e]:[]),...(e.querySelectorAll?.(s)||[])]);}getBoundingClientRect(){');
 const phase=(process.argv.find(a=>a.startsWith('--phase='))||'--phase=opening').split('=')[1];
 const out='qa/underground-market-main';fs.mkdirSync(out,{recursive:true});
-if(phase!=='opening')harness=harness.replace("const main=mod(path.join(root,'game/main.js'));", "storage['worlds-days-v1']=fs.readFileSync('qa/underground-market-main/"+(phase==='resume-opening'?'progress':phase==='resume-work'?'work':phase==='fence'?'fence-ready':phase==='buyer-consequences'?'consequences':phase==='consequences'?'fence':phase==='consequences-resume'?'consequences-progress':'opening')+"-save.json','utf8');const main=mod(path.join(root,'game/main.js'));");
+if(phase!=='opening')harness=harness.replace("const main=mod(path.join(root,'game/main.js'));", "storage['worlds-days-v1']=fs.readFileSync('qa/underground-market-main/"+(phase==='relocation-cold'?'relocation':phase==='relocation'?'work':phase==='resume-opening'?'progress':phase==='resume-work'?'work':phase==='fence'?'fence-ready':phase==='buyer-consequences'?'consequences':phase==='consequences'?'fence':phase==='consequences-resume'?'consequences-progress':'opening')+"-save.json','utf8');const main=mod(path.join(root,'game/main.js'));");
 const begin=harness.indexOf('const report=[];for(let round=0;');
 const body=String.raw`
 main.namespace.marketEnter();
@@ -20,7 +20,17 @@ let r=main.namespace.marketReview(),frames=0;const step=()=>{main.namespace.mark
 const merchant=()=>r.npcs.find(n=>n.station.id==='cn-tavern-diner-east');
 const check=(condition,message)=>{if(!condition)throw Error(message+' '+JSON.stringify(main.namespace.marketReadiness()));};
 const phase=(process.argv.find(a=>a.startsWith('--phase='))||'--phase=opening').split('=')[1];
-if(phase==='opening'||phase==='resume-opening'){
+if(phase==='relocation'||phase==='relocation-cold'){
+ const input=JSON.parse(fs.readFileSync('qa/underground-market-main/'+(phase==='relocation'?'work':'relocation')+'-save.json','utf8'));
+ const near=(actual,expected)=>Math.hypot(...actual.map((v,i)=>v-expected[i]))<.025;
+ check(near(r.player.root.position.toArray(),r.lot.blackMarket.interaction.position),'old player physically restored at moved counter');
+ const expectedMerchant=input.worldContinuity.regions.china.actors['cn-tavern-diner-east'].position.map((v,i)=>v+(phase==='relocation'?[29,0,-17][i]:0));check(near(merchant().root.position.toArray(),expectedMerchant),'same merchant physically restored without resetting its offset');
+ check(r.undergroundMarket.activeAction()?.requestId===input.undergroundMarketSession.action.requestId,'same in-progress work retained');
+ const seconds=r.undergroundMarket.activeAction().elapsed;step();check(r.undergroundMarket.activeAction()?.elapsed>=seconds,'same work remains valid after runtime tick');
+ for(const key of ['copperLedger','undergroundMarket','crimeConsequences'])if(Object.hasOwn(input,key))check(JSON.stringify(r.saved[key])===JSON.stringify(input[key]),'original business history unchanged '+key);
+ const checkpoint=main.namespace.marketCheckpoint();fs.writeFileSync('qa/underground-market-main/relocation-save.json',JSON.stringify(checkpoint));
+ console.log(JSON.stringify({status:'PASS',phase,frames,player:r.player.root.position.toArray(),merchant:merchant().root.position.toArray(),workSeconds:r.undergroundMarket.activeAction().elapsed,scope:'Actual main loads original pre-relocation work save, retains bodies, session and paid goods; separate cold phase checks no second relocation. Renderer stub, not visual.'}));
+}else if(phase==='opening'||phase==='resume-opening'){
  check(!!r.lot.blackMarket,'market attached to actual lot');
  // Initial player placement beside the original, unmoved resident is the only
  // approach fixture; all subsequent merchant/player travel uses production routes.

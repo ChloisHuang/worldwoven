@@ -312,6 +312,5 @@ function palaceInteriorLight(group,x,y,z,intensity=15,distance=10){
 
 export function buildChina(){
  const lot=buildChinaPalace(G,{palaceBox,palaceWall,palaceCeiling,palaceRoof,beam,teaSet,bowl,scroll,openShelf,boundBook,foldedCloth,flowerBranches,cherry,bamboo,packStatic});
- lot.blackMarket=lot.holdingCell.blackMarket;
  return lot;
 }

@@ -31,6 +31,7 @@ const {createBrowserModuleLoader}=require('./fixtures/browser-module-loader.cjs'
  }
  const approach=walk([-15.25,.13,19],H.entrance),inbound=walk(H.entrance,H.detention),outbound=walk(H.detention,H.entrance);
  checks.push('existing patrol return→stairs and physically walked descent/return');
+ const M=lot.blackMarket;assert(M&&!H.blackMarket,'civilian market is independent of holding builder');const marketIn=walk([15,.115,8.4],M.merchant.position),marketOut=walk(M.interaction.position,[15,.115,8.4]);assert(!N.canTraverse(point([-14,-4.1,36.15]),point([-10.6,-4.1,36.15]),lot.colliders,options),'former jail shortcut is masonry sealed');checks.push('civilian tavern public threshold to independent cellar and back; old jail branch sealed');
  const before=H.collisionVersion;assert(H.setLocked(true));assert.equal(H.collisionVersion,before+1);assert(!H.setLocked(true));N.clearNavigationCache(options);
  assert.equal(N.findPath(point(H.detention),point(H.entrance),lot.colliders,options).length,0,'closed real gate traps cell route');
  assert(!N.canTraverse(point([-22.9,-4.1,33.5]),point([-22.9,-4.1,35.2]),lot.colliders,options));
@@ -41,5 +42,5 @@ const {createBrowserModuleLoader}=require('./fixtures/browser-module-loader.cjs'
  const pieces=holdingGroundPieces({...lot.bounds,y:.015});assert(pieces.every(s=>!(s.minX<-14&&s.maxX>-14&&s.minZ<32&&s.maxZ>32)),'ground cut has no invisible top surface');
  const box=new G.THREE.Box3().setFromObject(H.roofGroup);assert(box.max.y<0&&box.min.y>=H.ceilingY-.001,'ceiling physically underground at declared level');
  checks.push('sealed physical evidence visibility and true terrain/ceiling cut');
- console.log(JSON.stringify({status:'PASS',scope:'China existing patrol underground holding rooms only; art acceptance requires normal gameplay renders',checks,routeWaypoints:{approach,inbound,outbound}},null,2));
+ console.log(JSON.stringify({status:'PASS',scope:'China existing patrol underground holding rooms only; art acceptance requires normal gameplay renders',checks,routeWaypoints:{approach,inbound,outbound,marketIn,marketOut}},null,2));
 })().catch(e=>{console.error(e);process.exitCode=1;});

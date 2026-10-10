@@ -1,6 +1,5 @@
 import {registerNightFixture} from './night-lighting.js';
 import {holdingPlaque} from './china-holding-lettering.js';
-import {buildChinaBlackMarket} from './china-black-market.js';
 
 // ST05 belongs to the existing Chinese patrol, not to invented new officers.
 // The other three lots currently have no enforcement post.
@@ -54,9 +53,8 @@ export function buildChinaHoldingCell(G,{group,roofGroup,colliders,cameraCollide
  for(const x of [H.minX-.13,H.maxX+.13]){
   if(x<H.minX){stairWall('z',x,H.minZ,35.32,-4.35,1.05);stairWall('z',x,36.96,H.maxZ,-4.35,1.05);stairWall('z',x,35.32,36.96,-1.75,1.05);}
   else {
-   // A separate market branches east from the shared lower landing. The
-   // retaining wall still encloses the entire slope and has a real lintel.
-   stairWall('z',x,H.minZ,35.32,-4.35,1.05);stairWall('z',x,36.96,H.maxZ,-4.35,1.05);stairWall('z',x,35.32,36.96,-1.75,1.05);
+   // The former market branch is permanently masonry-sealed.
+   stairWall('z',x,H.minZ,H.maxZ,-4.35,1.05);
   }
   block(x,1.10,(H.minZ+H.maxZ)/2,.40,.12,H.maxZ-H.minZ,C.wood,false);
  }
@@ -145,9 +143,7 @@ export function buildChinaHoldingCell(G,{group,roofGroup,colliders,cameraCollide
  explorationTargets.push({id:'cn-holding-entry',name:'巡值署 · 地下候审入口',position:[...A.entrance],roomId:'compound'},{id:A.id,name:A.name,position:[...A.intake],roomId:A.id});
  facilities.push({id:A.id,name:A.name,targets:['cn-holding-entry',A.id],furnishings:['真实地下石阶','两间候审室','木榻与饮水罐','巡值封存柜']});
  const navigationPortals=[{id:'cn-holding-stair-route',points:A.route.map(([x,y,z])=>({x,y,z}))},{id:'cn-holding-east-gate',points:[[-18,-4.1,35.5],[-18,-4.1,34.4],[-18,-4.1,32.9]].map(([x,y,z])=>({x,y,z}))}];
- const blackMarket=buildChinaBlackMarket(G,{group,roofGroup,colliders,cameraColliders,walkableSurfaces,interiorRooms,levels,lightingZones,explorationTargets,facilities,packStatic});
- navigationPortals.push(...blackMarket.navigationPortals);
  if(packStatic){packStatic(q);packStatic(roof);}
  let locked=false,collisionVersion=0;
- return {...A,blackMarket,group:q,roofGroup:roof,gates:gateRecords,navigationPortals,get locked(){return locked;},get collisionVersion(){return collisionVersion;},setLocked(value){const next=!!value;if(locked===next)return false;locked=next;gateRecords[0].setLocked(next);collisionVersion++;return true;},setEvidencePresent(present){token.visible=!!present;}};
+ return {...A,group:q,roofGroup:roof,gates:gateRecords,navigationPortals,get locked(){return locked;},get collisionVersion(){return collisionVersion;},setLocked(value){const next=!!value;if(locked===next)return false;locked=next;gateRecords[0].setLocked(next);collisionVersion++;return true;},setEvidencePresent(present){token.visible=!!present;}};
 }
