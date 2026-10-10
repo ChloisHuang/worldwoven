@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {createJapanServiceOrders} from '../source/game/japan-service-orders.js';
+import {createJapanKotatsuDuty,JAPAN_KOTATSU_REGISTRY as REG,JAPAN_KOTATSU_TABLES as TABLES} from '../source/game/japan-kotatsu-duty.js';
+const vec=a=>({x:a[0],y:a[1],z:a[2],toArray(){return [this.x,this.y,this.z]},set(...a){[this.x,this.y,this.z]=a;}}),actor=(id,p)=>({station:{id},root:{position:vec(p),rotation:{y:0}},walking:false,route:[]});
+let reject=false;const board=createJapanServiceOrders({saveState:()=>!reject}),npc=actor('jp-tea',[-4.9,7.6,6.5]),player=actor('player',REG),guest=actor('jp-visitor-1-1',TABLES[0].seat.anchor),tasks=new Map(),actors=new Map([['jp-tea',npc],['jp-visitor-1-1',guest]]);let relief=null,state={};
+const life={recall:()=>true,canWork:()=>true,state:()=>({active:relief})};
+const duty=createJapanKotatsuDuty({board,actors,lot:{group:{traverse(){}}},assign:(n,to,t)=>tasks.set(n.station.id,{...t,to}),clear:n=>tasks.delete(n.station.id),unmount:n=>{n.serviceMount=null;return true;},taskOf:n=>tasks.get(n.station.id),getStaffLife:()=>life,getPlayer:()=>player,getPlayerState:()=>state});
+const id=TABLES[0].id,vid=guest.station.id,r='jp-kotatsu-labor-1';
+assert(board.kotatsu.beginRest(id,vid));guest.serviceMount=TABLES[0].seat;duty.update(.1);assert(!tasks.get('jp-tea'));assert(board.kotatsu.endRest(vid));duty.update(.1);assert(!tasks.get('jp-tea'),'live mount blocks cleaning independently of saved dirty state');guest.serviceMount=null;
+function npcStep(){duty.update(.1);const t=tasks.get('jp-tea');assert(t?.kotatsuWork);npc.root.position.set(...t.to);assert(t.ready());assert(t.onDone());tasks.delete('jp-tea');}
+npcStep();duty.requestMeeting(true);assert(duty.claimDuty(r));assert(!duty.dutyActive(r));for(let i=0;i<3;i++)npcStep();npc.root.position.set(-4.9,7.6,6.5);duty.update(.1);assert(duty.dutyActive(r));duty.requestMeeting(false);assert(duty.coversWorker('jp-tea'));assert(!duty.coversWorker('jp-balcony'));
+assert(board.kotatsu.beginRest(id,'jp-visitor-1-3'));assert(board.kotatsu.endRest('jp-visitor-1-3'));
+state={kotatsuUsing:true,performing:null};assert.equal(duty.workChoices(r).length,0,'ordinary public use blocks the same original table');state={};
+for(const kind of ['collect','smooth','wipe','return']){const w=duty.workIntent(r);assert.equal(w.kind,kind);if(kind==='collect')assert.equal(duty.executeWork(w,r),false);player.root.position.set(...w.position);assert(duty.executeWork(w,r));if(kind==='smooth'){guest.serviceMount=TABLES[0].seat;duty.update(.1);assert(!duty.isActing());assert.equal(board.kotatsu.work()[0].stage,kind);guest.serviceMount=null;assert(duty.executeWork(w,r));}for(let i=0;i<35;i++)duty.update(.1);assert(!duty.isActing());assert.equal(duty.executeWork(w,r),false);if(kind==='collect'){player.root.position.set(0,0,0);duty.update(.1);assert(!duty.dutyActive(r));assert.equal(duty.releaseDuty(r),false);player.root.position.set(...REG);assert(duty.claimDuty(r));duty.update(.1);assert(duty.dutyActive(r));}}
+assert.equal(board.kotatsu.receipts(r).length,1);assert(duty.canEndDuty(r));assert(duty.releaseDuty(r));duty.dispose();
+console.log('PASS Aoi original task drain and relief, source/live/public occupancy guards, four real timed steps, stale execution, same-item paused handoff and single receipt');

@@ -417,9 +417,14 @@
       "china-tavern-management-main.cjs",
       "china-tavern-rehire-scene.mjs",
       "japan-omamori-care.mjs",
+      "japan-kotatsu-care.mjs",
+      "japan-kotatsu-duty.mjs",
+      "japan-kotatsu-role-contracts.mjs",
       "japan-omamori-duty.mjs",
       "japan-omamori-role-contracts.mjs",
-      "japan-omamori-main.cjs"
+      "japan-omamori-main.cjs",
+      "japan-kotatsu-visitors.mjs",
+      "japan-kotatsu-main.cjs"
     ],
     "targeted": [
       "china-palace-garden-player.cjs",
