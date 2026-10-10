@@ -52,7 +52,8 @@
       "shared-hand-poses.mjs",
       "family-character.mjs",
       "japan-pond-wipe-pose.mjs",
-      "japan-balcony-contact.mjs"
+      "japan-balcony-contact.mjs",
+      "france-bedchamber-contact.mjs"
     ]
   },
   "navigation": {
@@ -435,7 +436,10 @@
       "japan-kotatsu-main.cjs",
       "japan-garden-main.cjs",
       "japan-balcony-duty.mjs",
-      "japan-balcony-main.cjs"
+      "japan-balcony-main.cjs",
+      "france-bedchamber-care.mjs",
+      "france-bedchamber-duty.mjs",
+      "france-bedchamber-main.cjs"
     ],
     "targeted": [
       "china-palace-garden-player.cjs",
