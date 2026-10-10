@@ -1,0 +1,111 @@
+{
+  "sourceCommit": "f506cd47576e0df1613719058beb58b99649ff1a",
+  "scope": "Observed production main in simulated DOM/renderer; unchanged bodies, original pending request and fixed draw. No production change or browser/iOS acceptance.",
+  "originalDiagnostic": {
+    "path": "qa/personnel-rank-blocked/imperial-wait-diagnostic.json",
+    "sha256": "3e165e7351fbee8c185de8704496b04e28a13202b70632635b5db2aa1394883b",
+    "steps": 3235,
+    "palaceTime": 665.1,
+    "hasStoppedWorldSave": false,
+    "recoveryTimerRecorded": false
+  },
+  "instrumentedReplay": {
+    "precursor": "qa/personnel-rank-main/06-approach-saved.json",
+    "sameFinalWorldClock": true,
+    "identicalOriginalHotTrajectory": false,
+    "difference": "Royal duty timing and exact crowded-hall coordinates differ; do not attribute the observed timer to the original diagnostic.",
+    "steps": 3235,
+    "emperor": {
+      "id": "cn-emperor",
+      "role": "emperor",
+      "ageYears": 36,
+      "privateRoomId": "bedroom",
+      "activity": null,
+      "stage": "duty-public-stairs",
+      "waypoint": 11,
+      "elapsed": 0,
+      "arrived": false,
+      "mounted": null,
+      "orderId": null,
+      "mealId": null,
+      "mealCompleted": false,
+      "cycles": 2,
+      "position": [
+        -14.916794970566217,
+        0.115,
+        -13.624807544150677
+      ],
+      "walking": false,
+      "idle": false,
+      "paused": false,
+      "teaDecision": null
+    },
+    "bodyWaitSeconds": 1.0999999999999999,
+    "bodyRecoveryThresholdSeconds": 5,
+    "routeState": {
+      "phase": "walking",
+      "target": {
+        "x": -15.1,
+        "y": 0.215,
+        "z": -13.35
+      },
+      "doorId": null,
+      "waitPoint": null,
+      "stagingPath": []
+    },
+    "guardSeconds": 151.942,
+    "treePeakMiB": 793.445
+  },
+  "continuation": {
+    "input": "qa/emperor-original-replay/stopped-save.json",
+    "inputSha256": "f8c7d8eb25b997d2ab66a33ffada6586e3a781209a9c93ab98185f9de2f1866d",
+    "steps": 93,
+    "simulatedSeconds": 9.3,
+    "decision": {
+      "chance": 0.69,
+      "roll": 0.6952548082917929,
+      "passed": false,
+      "proof": {
+        "applicationId": "official-promotion:cn-court-clerk:cn-records-personnel-regular:13",
+        "documentId": "appointment:official-promotion:cn-court-clerk:cn-records-personnel-regular:13",
+        "actorId": "player",
+        "targetId": "cn-emperor",
+        "position": [
+          -15.056387654395296,
+          0.115,
+          -14.278245473028703
+        ],
+        "standing": true,
+        "clear": true,
+        "elapsed": 4,
+        "duration": 4,
+        "day": 13,
+        "completedAt": 27442.314285709097,
+        "recipientPosition": [
+          -15.096815431390317,
+          0.115,
+          -13.354776852914526
+        ],
+        "recipientBodyId": "cn-emperor",
+        "recipientAlive": true
+      },
+      "at": {
+        "day": 13,
+        "hour": 18.160333333272806
+      }
+    },
+    "guardSeconds": 43.921,
+    "treePeakMiB": 689.336,
+    "meal6": "Cancelled by existing royal-duty policy; not evidence of completed meal."
+  },
+  "conclusion": "No persistent navigation defect established. A fixed simulation cutoff ended during a body encounter; the replay endpoint naturally completed the original decision on continuation. Other user-reported NPC stalls remain open.",
+  "committedContinuationHarness": {
+    "guardSeconds": 43.319,
+    "treePeakMiB": 703.762,
+    "steps": 93,
+    "simulatedSeconds": 9.3,
+    "status": "PASS",
+    "inputSha256": "f8c7d8eb25b997d2ab66a33ffada6586e3a781209a9c93ab98185f9de2f1866d",
+    "note": "Final output-directory isolation and comments checked separately; unchanged movement/assertions replay passed."
+  }
+}

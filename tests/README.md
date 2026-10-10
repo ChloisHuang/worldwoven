@@ -86,3 +86,7 @@ CR04 独立成功输入使用 `USURPATION_MAIN_SCENARIO=success`，唯一独立�
 CR04 成功档已由真实 main 完成两卫集结、三官对质、具名拥立和同案固定决议。仅终验 `USURPATION_MAIN_PHASE=handoff-reject` 可另设 `USURPATION_MAIN_STAGE_HANDOFF=1`，使用 `fixtures/usurpation-main-handoff-ready.cjs` 明示原两卫安全交班可接待前提；它不生成政治/巡查/工资原据，journal 保存精确字段差异及来源。后续 `handoff-retry`、`imperial-court`、`imperial-edict`、`imperial-cold` 从同一独立成功续点冷恢复，不再次设交班标志。原拒绝档始终独立。
 
 CR04 最终已启用；生产main从原31身体执行并保存两份独立合成档：原 seed42 拒绝/御膳档和 seed571 明示staged成功前提档，不能混用或重抽原拒绝。后者当前为 s11（唯一授位、玩家真实朝会与同号原令御批已冷恢复），直接核最终冷恢复用 `USURPATION_MAIN_SCENARIO=success USURPATION_MAIN_FROM=tests/fixtures/usurpation-main-success-checkpoint.json USURPATION_MAIN_PHASE=imperial-cold`；不得对该终态再设 STAGE_HANDOFF 或重新跑早期机制。阶段证据沿各Git提交恢复，不将所有历史阶段串成常规回归。主程序仍是模拟DOM/renderer，并非浏览器/iOS视觉验收。
+
+### 原晋升等待档定向续行
+
+`PERSONNEL_RANK_CONTINUE=1 PERSONNEL_MAIN_FROM=/absolute/path/to/waiting-world.json node --experimental-vm-modules tests/china-personnel-rank-main.cjs` 只继续原待阅批请求，不生成履历、重抽签、布置皇帝/玩家位置或改需求。输入须为 `document-held` 且原请求仍在执行的完整世界存档；禁止同时设 `PERSONNEL_RANK_PUBLIC=1`。输出独立 `qa/personnel-rank-continuation`，保留原普通/分段rank journal。最多60模拟秒，决定完成验证真实4秒和原签，仍等待则保存CHECKPOINT，不把固定预算边界当死锁。只在相关明确待验尾段运行，仍使用共享锁、180秒/1152MiB/Node768守卫。R212原诊断与重放差异、实际9.3秒冷续拒绝见精简evidence JSON；未修改产品导航或声称原热帧无限卡死。
