@@ -29,7 +29,7 @@ const TOPIC_NOTES={
 // A menu chooses a topic. It closes before the real shared-world conversation
 // starts. A walking greeting may briefly hold an interruptible routine; menu
 // time never counts toward the conversation or its rewards.
-export function createPlayerConversationUI({getSocial,getCountry,onOpen=()=>{},onClose=()=>{},document:doc=globalThis.document}){
+export function createPlayerConversationUI({getSocial,getCountry,onReset=null,onOpen=()=>{},onClose=()=>{},document:doc=globalThis.document}){
  const make=(tag,text,cls)=>{const el=doc.createElement(tag);if(text)el.textContent=text;if(cls)el.className=cls;return el;};
  const dialog=make('dialog',null,'player-conversation-dialog ww-airy-theme ww-airy-panel'),style=make('style');
  dialog.id='player-conversation-dialog';dialog.setAttribute('aria-label','选择交谈话题');dialog.setAttribute('aria-labelledby','player-conversation-name');dialog.setAttribute('aria-describedby','player-conversation-reply');
@@ -62,8 +62,12 @@ export function createPlayerConversationUI({getSocial,getCountry,onOpen=()=>{},o
 .player-conversation-topic-arrow{flex:0 0 8px;font-size:16px;color:#54837f}
 .player-conversation-dialog .player-conversation-note{grid-column:1 / -1;font-size:12px;line-height:1.5;margin:0;color:#6b858c}
 .player-conversation-dialog .player-conversation-consent{font-size:13px;line-height:1.7;margin:0 0 8px}
-.player-conversation-dialog .ww-airy-panel-actions{display:flex;justify-content:flex-end;margin-top:10px;border-top:1px solid #dbe5d6;padding-top:5px}
+.player-conversation-dialog .ww-airy-panel-actions{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:10px;border-top:1px solid #dbe5d6;padding-top:5px}
 .player-conversation-dialog .ww-airy-panel-actions .player-conversation-close{width:auto;min-width:104px;border:0;border-radius:0;background:transparent;color:#56777d;font-size:12px;padding:8px 12px}
+.player-conversation-dialog .ww-airy-panel-actions .player-conversation-reset{width:auto;min-width:72px;flex:0 0 auto;border:1px solid #a93436;border-radius:0;background:#b73739;color:#fff;font-size:13px;padding:8px 16px}
+.player-conversation-dialog .player-conversation-reset:focus-visible{outline:3px solid #84272a;outline-offset:2px}
+.player-conversation-dialog .player-conversation-reset:disabled{opacity:.6;cursor:wait}
+.player-conversation-dialog .player-conversation-reset-result{color:#9a3437}
 @media(min-width:681px){
  .player-conversation-group[data-conversation-group="everyday"]:only-child{grid-template-columns:repeat(3,minmax(0,1fr))}
  .player-conversation-group[data-conversation-group="everyday"]:only-child>.player-conversation-group-heading,.player-conversation-group[data-conversation-group="everyday"]:only-child>.player-conversation-group-note{grid-column:1 / -1}
@@ -150,6 +154,12 @@ export function createPlayerConversationUI({getSocial,getCountry,onOpen=()=>{},o
    }
    if(!consentTopic&&relationship.privatePlaceAvailable===false&&relationship.stage==='affection')topics.append(make('p','附近没有双方都能使用的私密空间，暂时不能私下亲近。','player-conversation-note'));
    const cancel=make('button',consentTopic?'这次先不了':offer?'婉拒邀请':'改日再聊','player-conversation-close');cancel.type='button';cancel.onclick=()=>close();parts.actions.append(cancel);
+   if(onReset){const reset=make('button','重置','player-conversation-reset');reset.type='button';reset.setAttribute('data-npc-reset',s.id);reset.setAttribute('aria-label',`重置${s.name}到本国安全位置`);
+    reset.onclick=()=>{if(!fresh()||reset.disabled)return;reset.disabled=true;const result=onReset(actor);
+     if(result?.ok){close();return;}
+     reset.disabled=false;let message=topics.querySelector?.('.player-conversation-reset-result');if(!message){message=make('p',null,'player-conversation-note player-conversation-reset-result');message.setAttribute('role','status');topics.append(message);}message.textContent=result?.message||'现在还不能安全重置，请稍后再试。';
+    };parts.actions.append(reset);
+   }
    dialog.replaceChildren(parts.header,parts.body,parts.actions);
   }
   render();dialog.showModal();return true;

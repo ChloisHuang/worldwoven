@@ -739,7 +739,9 @@
       "underground-market-main.cjs",
       "china-criminal-cases.mjs",
       "china-criminal-case-runtime.mjs",
-      "china-criminal-case-main.cjs"
+      "china-criminal-case-main.cjs",
+      "npc-manual-reset.mjs",
+      "npc-manual-reset-main.cjs"
     ]
   },
   "release": {

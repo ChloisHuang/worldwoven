@@ -240,6 +240,12 @@ export function createChinaOfficialLife({officials,npcs,lot,furniture,doors,plan
    stages.set(n,{...s,planned:false,stalled:0});n.route=[];if(!s.borrowed&&!s.borrowedSalon)n.serviceMount=null;for(const id of [s.facilityId,s.choice?.facilityId,s.roomId].filter(id=>id&&id!==bed?.id))claims.reserve(id,n.station.id,{purpose:s.choice?.id||'resumed'});if(s.mount&&s.mount.kind!=='bed')claims.occupy(s.mount.id,n.station.id);}if(conversation){const event=brain.conversation(conversation.id);if(event?.status!=='accepted'||!conversation.participants.every(id=>stages.get(officials.find(n=>n.station.id===id))?.pairId===conversation.id&&(conversation.managed||claims.reservation(stages.get(officials.find(n=>n.station.id===id)).facilityId,id))))endConversation(false);else if(!brain.reserveMeeting(conversation.id))endConversation(false);else conversation.lastAt=time;}for(const n of officials){const current=brain.state(n.station.id)?.current;if(current?.conversationId&&!conversation){brain.cancelConversation(current.conversationId);claims.releaseActor(n.station.id);idle(n);}}return true;}
  ready=true;if(!restore(saved))for(const n of officials)choose(n);
  return {
+
+  prepareManualReset(n){const s=stages.get(n),id=n.station.id;
+   if(!officials.includes(n)||s?.called||s?.courtReady||s?.pairId||s?.borrowed||s?.borrowedSalon||getTavern()?.officialMeal(id)||getSalon()?.ownsNPCCustomer?.(id)||getToilet()?.ownsActor(n))return null;
+   const decision=brain.prepareInterruption(id);if(!decision)return null;
+   return {apply(){decision.apply();stages.delete(n);},rollback(){decision.rollback();if(s)stages.set(n,s);else stages.delete(n);}};
+  },
   courtCompleted(day){for(const n of officials){const previous=duties[n.station.id];if(previous?.day===day)continue;if(previous?.stage==='archived'&&!unpaidDuties.some(d=>d.actorId===n.station.id&&d.day===previous.day))unpaidDuties.push({actorId:n.station.id,...previous});duties[n.station.id]={day,stage:'awaiting-archive'};}save();},
   request(n){const s=stages.get(n);if(s)s.called=true;if(s?.pairId)endConversation(false);},
   cancelCourt(n){const s=stages.get(n);if(s?.courtReady){stages.delete(n);choose(n);}else if(s)s.called=false;},

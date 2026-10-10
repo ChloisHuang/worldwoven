@@ -1,3 +1,5 @@
+import {migrateChinaBlackMarketSave} from './china-black-market-layout.js';
+import {findNpcResetPosition,applyNpcManualReset} from './npc-manual-reset.js';
 import {createFranceBedchamberService} from './france-bedchamber-service.js';
 import {createFranceBedchamberEmployment} from './france-bedchamber-employment.js';
 import {createJapanBalconyEmployment} from './japan-balcony-employment.js';
@@ -110,7 +112,7 @@ import {createChinaPersonnelRecords} from './china-personnel-records.js';
 import {validateChinaPersonnelWorkCase} from './china-personnel-work.js';
 import {personnelSame} from './official-personnel-policy.js';
 import {personnelBookName} from './china-personnel-place.js';
-import {moveActorWithCollision,followActorRoute,beginActorNavigationStep,findActorStandPoint,cancelActorStandIntent} from './actor-navigation.js';
+import {moveActorWithCollision,followActorRoute,beginActorNavigationStep,findActorStandPoint,cancelActorStandIntent,resetActorNavigation} from './actor-navigation.js';
 import {playerStationIntent,nearbyInteraction,nearbyInteractions,interactionIdentity,uniqueInteractionActions,currentInteractionIntent,createServiceMenuIntents} from './player-interaction-intents.js';
 import {createObjectActionMenu} from './object-action-menu.js';
 import {createObjectInteractionAnchors} from './object-interaction-anchors.js';
@@ -257,6 +259,7 @@ const references=[
 for(const [name,url] of references){const a=document.createElement('a');a.textContent=name;a.href=url;a.target='_blank';a.rel='noopener';$('references').append(a);}
 let saved={visited:[],stamps:{},outfit:0};try{const s=JSON.parse(gameStorage.getItem('worlds-days-v1')||'null');if(s&&Array.isArray(s.visited)&&s.stamps)saved={...saved,...s};}catch{}
 migrateChinaLayoutContinuity(saved);
+migrateChinaBlackMarketSave(saved);
 const simulationClock=createSimulationClock(saved.simulationClock,saved.chinaAudience?.day);
 saved.simulationClock=simulationClock.snapshot();
 let clockSaveAt=simulationClock.state().seconds;
@@ -726,11 +729,33 @@ function restoreWorldContinuity(checkpoint){
  setActionProgress($('touch-action'),performing?0:null);if(performing)$('player-state').textContent=performing.action;
 }
 
+function resetSelectedNPC(n){
+ const deny=message=>({ok:false,message});
+ if(mode!=='lot'||!npcs.includes(n)||n===player||n.alive===false)return deny('这个人物已不在当前场景。');
+ const id=n.actorId||n.station.id,selection=npcSocial?.state();
+ if(selection?.id!==id||selection.stage!=='choosing'||!npcSocial.canInteract(n,2.8))return deny('请走近这个人物，重新打开交谈后再重置。');
+ const personKey=`${id}@${n.lifeId??n.station.lifeId??'original'}`,order=crimeRuntime?.model.orders(),harm=crimeRuntime?.activeAction();
+ if(crimeRuntime?.owns(n)||crimeRuntime?.model.status(personKey)?.detained||[order?.subjectKey,order?.guardKey].includes(personKey)||[harm?.actorId,harm?.victimId].includes(id))return deny('查捕、押送或留置期间不能重置位置，案情会继续保留。');
+ if(familyRuntime?.owns(id)||familyCare?.owns(n)||isSociallyHeld(id)||npcSocial.meetingState()?.id===id||npcSocial.pending())return deny('这个人物还有未结束的共同事务，请先结束后再重置。');
+ const managed=[chinaUsurpationActions,chinaPalaceGardenDuty,chinaSalonReceptionDuty,regionalTellerEmployment,chinaPieceworkEmployment,chinaTellerService,chinaTellerPersonal,chinaArchiveService,chinaArchivePersonal,chinaTeaService,chinaTeaPersonal,egyptDailyToilet,egyptArchive,franceBedchamber,franceArt,egyptArtisan,egyptMeal,franceGardener,japanPerformance,franceTea,chinaSalon,chinaMoneyHouse,chinaTavern,chinaClinic,chinaConsortCourt,chinaEdict,chinaPalace,chinaRoyalKitchen,japanService,chinaArchery,undergroundMarket];
+ if(activeDailyToilet()?.ownsActor?.(n)||tavernManagement?.recruitment.owns(id)||managed.some(owner=>owner?.owns?.(n)))return deny('这个人物的岗位还不支持安全中断重置，需先完成当前工序；不会丢弃手中物件或原单。');
+ const routine=chinaAudience?.owns(n)?chinaAudience.prepareManualReset(n):n.serviceTask||n.serviceMount||n.bathTransition?null:{apply(){},rollback(){}};
+ if(!routine)return deny('这个人物的朝务、用餐或其他工序尚未安全结束，暂不能重置。');
+ const seconds=simulationClock.state().seconds,key=active.id+':'+personKey,previous=saved.npcManualResets;
+ if(Number.isFinite(previous?.[key])&&seconds-previous[key]<10)return deny('刚刚已经重置，请先让人物走动一会儿。');
+ const position=findNpcResetPosition({actor:n,spawn:lot.spawn,navigation:navOptions,colliders:lot.colliders,doors:automaticDoors?.cameraColliders||[],actors:npcs,player});
+ if(!position)return deny('本国公共落脚处暂时没有安全空位，请让出通道后再试。');
+ const claims=furniture.facilities.prepareReleaseActor(id),metadata={apply(){saved.npcManualResets={...previous,[key]:seconds};},rollback(){if(previous===undefined)delete saved.npcManualResets;else saved.npcManualResets=previous;}};
+ const result=applyNpcManualReset({actor:n,position,preparations:[routine,claims,metadata],now:elapsed,persist:()=>chinaAudience?.owns(n)?chinaAudience.persistManualReset():save(),after:()=>{resetActorNavigation(n);npcSocial.end('npc-reset');contextMenu.close();nearbyCheckedAt=-Infinity;n.animate(elapsed+n.phase,false,null,characterPoseContext(n,null));}});
+ if(!result.ok){captureWorldContinuity();return deny('这次重置未能保存，人物和原预约已恢复，请再试一次。');}
+ toast(`${n.station.npcName||'人物'}已移到本国公共安全位置，接下来继续自己的日常。`);return result;
+}
+
 function pauseForReadOnlyPanel(){resetTransientInput();}
 function refreshCourtHelp(){const status=$('china-court-status');status.textContent=chinaAudience?.summary()||'';status.hidden=!chinaAudience;}
 function pauseForCareerPanel(){if(!regionalTellerEmployment?.active()&&!chinaCareer?.isActing()&&!(chinaPersonnelCareer?.isActing()||chinaPersonnelAppointment?.isActing())&&!japanPerformanceEmployment?.active()){cancelAction();path=[];targetStation=null;pendingInteraction=null;}resetTransientInput();}
 const careerHandbook=createCareerHandbook({getGranaryAudit:()=>chinaAudience?.granaryStatus()||null,getOfficialPayPolicy:()=>chinaOfficialEconomy.gradePayPolicy(),careers:formalCareers,copperLedger,getClock:()=>simulationClock.state(),getCountry:()=>active?.id,getPlayer:()=>player,getService:roleId=>regionalTellerRole(roleId)?regionalTellerEmployment?.forRole(roleId):[PALACE_TEA_ROLE.id,ARCHIVE_ROLE.id].includes(roleId)?chinaPieceworkEmployment?.forRole(roleId):['jp-performance-reception','jp-salon-mai','jp-salon-ichiro'].includes(roleId)?japanPerformanceEmployment?.forRole(roleId):roleId==='eg-table-service'?egyptTableServiceEmployment:roleId==='eg-kitchen-cook'?egyptKitchenEmployment:roleId==='cn-palace-garden-duty'?chinaPalaceGardenEmployment:roleId==='cn-salon-reception'?chinaSalonReceptionEmployment:roleId==='eg-reception-archive'?egyptArchiveEmployment:roleId==='fr-bedchamber-service'?franceBedchamberEmployment:roleId==='fr-atelier-artist'?franceArtEmployment:roleId==='eg-papyrus-artisan'?egyptArtisanEmployment:roleId==='jp-table-service'?japanTableServiceEmployment:roleId==='jp-linen-service'?japanLinenEmployment:roleId==='jp-boiler-service'?japanBoilerEmployment:roleId==='jp-omamori-service'?japanOmamoriEmployment:roleId==='jp-kotatsu-service'?japanKotatsuEmployment:roleId==='jp-garden-service'?japanGardenEmployment:roleId==='jp-balcony-service'?japanBalconyEmployment:roleId==='jp-kitchen-cook'?japanKitchenEmployment:roleId==='jp-bath-mixing'?japanBathMixingEmployment:roleId==='jp-bath-delivery'?japanBathDeliveryEmployment:roleId==='jp-women-bath-delivery'?japanWomenBathDeliveryEmployment:roleId==='jp-reception-apprentice'?japanReceptionEmployment:['cn-tavern-host','cn-tavern-chef','cn-tavern-steward'].includes(roleId)?(roleId==='cn-tavern-steward'&&chinaLabor?.active()?chinaLabor:chinaService?.forRole(roleId)):roleId==='fr-tea-server'?franceTeaEmployment:roleId==='fr-tea-pastry'?francePastryEmployment:roleId==='cn-palace-guard'?chinaGuardEmployment:['cn-salon-poet','cn-salon-storyteller','cn-salon-musician','cn-salon-chess-player'].includes(roleId)?chinaSalonEmployment?.forRole(roleId):roleId==='cn-pharmacy-apprentice'?chinaClinicEmployment:roleId==='cn-clinic-physician'?chinaClinicPhysicianEmployment:roleId==='cn-royal-kitchen-cook'?chinaRoyalKitchenEmployment:roleId==='fr-garden-assistant'?franceLabor:courtCareerService(),getPoliticalTitle:currentPoliticalTitle,onPoliticalTitleOpen:()=>currentPalaceAuthority()?.holderId==='player'?palaceUsurpationUI?.open():chinaConsortUI?.open(),onIntent:requestStationIntent,onOpen:pauseForCareerPanel,walletFactory:({mount})=>(currencyWallet=createCurrencyWallet({mount,ledger:copperLedger,getCurrency:()=>active?.id==='china'?'copper':active?.id||'copper',getBankTarget:()=>mode==='lot'&&chinaMoneyHouse?lot?.stations.find(station=>chinaMoneyHouse.ownsStation(station.id))||null:null,onBankNavigate:station=>requestStationIntent(stationIntent(station)),onOpen:()=>{careerHandbook.close();pauseForReadOnlyPanel();},onClose:()=>canvas.focus({preventScroll:true})}))});
-const playerConversationUI=createPlayerConversationUI({getSocial:()=>npcSocial,getCountry:()=>active?.id,onOpen:()=>{path=[];targetStation=null;pauseForReadOnlyPanel();},onClose:()=>canvas.focus({preventScroll:true})});
+const playerConversationUI=createPlayerConversationUI({getSocial:()=>npcSocial,getCountry:()=>active?.id,onReset:resetSelectedNPC,onOpen:()=>{path=[];targetStation=null;pauseForReadOnlyPanel();},onClose:()=>canvas.focus({preventScroll:true})});
 const studyMenu=createStudyMenu({careers:formalCareers,getCountry:()=>active?.id,getClock:()=>simulationClock.state(),onOpen:()=>{pauseForCareerPanel();},onClose:()=>canvas.focus({preventScroll:true}),onChoose:(station,lessonId)=>startInteraction(station,{lessonId})});
 const passportPortrait=createPassportPortrait({renderer,getPlayer:()=>player});
 window.addEventListener('pagehide',event=>{if(!event.persisted)passportPortrait.dispose();});

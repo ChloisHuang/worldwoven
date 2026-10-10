@@ -6,10 +6,10 @@ import {conversationTopicLabel} from '../source/game/npc-social.js';
 import {createPlayerConversationUI} from '../source/game/player-conversation-ui.js';
 class E{constructor(tag){this.tagName=tag;this.children=[];this.attrs={};this.open=false;}append(...els){this.children.push(...els);}replaceChildren(...els){this.children=[...els];}setAttribute(k,v){this.attrs[k]=v;}addEventListener(k,f){this[k]=f;}showModal(){this.open=true;}close(){this.open=false;}remove(){} }
 const all=e=>[e,...e.children.flatMap(all)];
-function setup({privateAvailable=true,offeredTopicId=null,available=null,country='china',pending=false}={}){
+function setup({privateAvailable=true,offeredTopicId=null,available=null,country='china',pending=false,onReset=null}={}){
  const choices=[],doc={head:new E('head'),body:new E('body'),createElement:t=>new E(t)};let state=null;
  const social={begin:()=>state={id:'resident-1',name:'明月',stage:'choosing',reply:'记得上次一起聊书。',offeredTopicId},state:()=>state,pending:()=>pending,relationship:()=>({stage:'affection',privatePlaceAvailable:privateAvailable}),topics:()=>available||[{id:'work',label:'工作'},{id:'art',label:'书画'},{id:'rest',label:'休息'},{id:'gratitude',label:'认真道谢'},...(privateAvailable?[{id:'private-company',label:'询问是否愿意私下亲近',private:true}]:[])],choose:(id,options)=>{choices.push({id,...options});state.stage=id==='private-company'&&!options.explicitConsent?'awaiting-consent':'talking';},end:()=>{state=null;}};
- const ui=createPlayerConversationUI({getSocial:()=>social,getCountry:()=>country,document:doc}),dialog=doc.body.children[0];
+ const ui=createPlayerConversationUI({getSocial:()=>social,getCountry:()=>country,onReset,document:doc}),dialog=doc.body.children[0];
  return {ui,dialog,choices,social,find:id=>all(dialog).find(e=>e.attrs['data-conversation-topic']===id),texts:()=>all(dialog).map(e=>e.textContent||'').join(' ')};
 }
 test('only runtime-unlocked topics appear; original topic selectors remain; no private action when place unavailable',()=>{const f=setup({privateAvailable:false});assert(f.ui.open({}));for(const id of ['work','art','rest','gratitude'])assert(f.find(id));assert(!f.find('private-company'));assert(!f.find('confide'));assert.match(f.texts(),/互有好感/);assert.match(f.texts(),/上次一起聊书/);assert.match(f.texts(),/没有.*私密空间/);f.ui.dispose();});
@@ -40,4 +40,10 @@ test('an existing invitation is the first distinct choice and is never duplicate
 });
 test('pending persistence presents only the existing retry, never normal topic choices',()=>{
  const f=setup({pending:true});f.ui.open({});assert.match(f.texts(),/补记刚才的交谈/);assert.equal(all(f.dialog).filter(e=>e.attrs['data-conversation-topic']).length,0);f.ui.dispose();
+});
+
+test('red reset is final footer action, selected actor only; failed and stale clicks are safe',()=>{
+ const calls=[],actor={station:{id:'resident-1'}},f=setup({onReset:n=>{calls.push(n);return calls.length===1?{ok:false,message:'预约尚未结束'}:{ok:true};}});f.ui.open(actor);
+ const reset=all(f.dialog).find(e=>e.attrs['data-npc-reset']);assert(reset);assert.equal(reset.textContent,'重置');assert.equal(f.dialog.children.at(-1).children.at(-1),reset);reset.onclick();assert(f.ui.isOpen());assert.match(f.texts(),/预约尚未结束/);reset.onclick();assert(!f.ui.isOpen());reset.onclick();assert.deepEqual(calls,[actor,actor]);
+ f.ui.open(actor);const stale=all(f.dialog).find(e=>e.attrs['data-npc-reset']);f.ui.close();f.ui.open(actor);stale.onclick();assert.equal(calls.length,2);
 });

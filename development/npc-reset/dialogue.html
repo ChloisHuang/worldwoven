@@ -1,0 +1,8 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NPC reset dialogue layout</title><style>body{margin:0;background:#567071;font-family:system-ui,sans-serif}</style>
+<script type="module">
+import {createPlayerConversationUI} from '../../source/game/player-conversation-ui.js';
+let state=null;const actor={station:{id:'cn-official-justice',npcName:'周惟正 · 刑名主官（正二品）',npcLabel:'回自己的值宿室歇息'}};
+const social={begin:()=>state={id:actor.station.id,name:actor.station.npcName,stage:'choosing',reply:'你好，我是周惟正。闲下来，也喜欢在庭园走走。'},state:()=>state,pending:()=>false,relationship:()=>({stage:'acquainted'}),topics:()=>[{id:'work'},{id:'art'},{id:'rest'},{id:'health-concern'},{id:'gratitude'},{id:'public-invitation'}],end:()=>{state=null;},choose:()=>{}};
+const ui=createPlayerConversationUI({getSocial:()=>social,getCountry:()=> 'china',onReset:()=>({ok:false,message:'这次重置未能保存，人物和原预约已恢复，请再试一次。'})});ui.open(actor);
+requestAnimationFrame(()=>{const d=document.querySelector('dialog'),r=document.querySelector('[data-npc-reset]'),a=d.querySelector('footer'),rect=e=>{const p=e.getBoundingClientRect();return {x:p.x,y:p.y,width:p.width,height:p.height,right:p.right,bottom:p.bottom};};document.body.dataset.layout=JSON.stringify({viewport:[innerWidth,innerHeight],dialog:rect(d),reset:rect(r),footer:rect(a),color:getComputedStyle(r).backgroundColor,visible:rect(r).bottom<=innerHeight&&rect(r).right<=innerWidth});});
+</script>

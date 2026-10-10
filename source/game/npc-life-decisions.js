@@ -128,6 +128,12 @@ export function createLifeDecisions({worldSeed=1,actorIds,saved={},onChange=()=>
   releaseMeeting(eventId){const event=conversations.find(e=>e.id===eventId);if(event?.meeting?.managed)meetingHooks?.release(event.meeting,event.participants);},
   interactionLabel:eventId=>{const e=conversations.find(e=>e.id===eventId);return relationshipInteraction(e?.interactionKind)?.label||null;},
   decisionDue:id=>!!people[id]&&time>=people[id].nextDecisionAt,
+  // Manual recovery interrupts only this intention. The world owner commits
+  // the relocation and this change together, or rolls both back synchronously.
+  prepareInterruption(id){const p=people[id];if(!p||p.current?.conversationId)return null;
+   const before={current:copy(p.current),last:p.last,cooldowns:{...p.cooldowns},nextDecisionAt:p.nextDecisionAt};
+   return {apply(){if(p.current){p.last=p.current.id;p.cooldowns[p.current.id]=time+30;}p.current=null;p.nextDecisionAt=time;},rollback(){Object.assign(p,before);}};
+  },
   defer(id,seconds=12){const p=people[id];if(p&&!p.current){p.nextDecisionAt=Math.max(p.nextDecisionAt,time+seconds);save();}},
   recordExperience(id,evidence){const p=people[id];if(!p||!evidence?.id||evidence.completed!==true||!['staff-work','staff-rest','greeting'].includes(evidence.kind))return {ok:false,reason:'unfinished'};if(p.experiences.some(e=>e.id===evidence.id))return {ok:true,replayed:true};return transaction(()=>{p.experiences.push({id:evidence.id,kind:evidence.kind,label:evidence.label,completedAt:time});p.experiences=p.experiences.slice(-4);return {ok:true};});},
   experience(id){const p=people[id];return p?.experiences.length?copy(p.experiences.at(-1)):null;},
